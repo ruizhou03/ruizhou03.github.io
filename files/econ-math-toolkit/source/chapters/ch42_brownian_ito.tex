@@ -1,0 +1,413 @@
+% !TEX root = ../main.tex
+\chapter{布朗运动与 Itô 引理}
+\label{ch:brownian}
+
+\noindent\emph{用到的前置工具：正态分布与独立性（概率与测度部分）；中心极限定理（渐近统计部分，CLT 一章）；Taylor 二阶展开（多元微积分部分，Taylor 一章）；鞅与条件期望（随机过程部分，鞅一章）。}
+\medskip
+
+到本章为止，本书的随机对象大多是``一串''随机变量：样本 $X_1,\dots,X_n$、一条 Markov 链、一列鞅。但连续时间金融与宏观要处理的，是\emph{在每一个时刻都在抖动}的量——股价分分秒秒在变、利率连续地游走、一个宏观冲击持续地敲打经济。要给这种``连续时间的随机扰动''一个数学载体，就需要布朗运动：它是随机游走在时间步长趋于零时的极限，是连续时间随机过程的``白噪声原材料''。有了它，资产价格可以写成一个随机微分方程，期权可以定价，最优消费—投资问题可以用 Hamilton–Jacobi–Bellman 方程求解。
+
+可是布朗运动有一个让人措手不及的性质：它的路径连续，却\emph{处处不可微}。这意味着普通微积分的链式法则、换元积分，统统不能照搬——对一个无处可导的对象，$\d X/\d t$ 根本不存在。本章的主角 Itô 引理，正是为这种对象量身定做的``链式法则''。它与普通链式法则只差一项，却恰恰是这一项，撑起了整个连续时间金融的大厦。本章先把布朗运动讲清楚（它从哪来、为什么不可微），再讲清那个核心的``$(\d W)^2=\d t$'',然后推出 Itô 引理，最后用它解几何布朗运动、并指向 Black–Scholes 与随机控制。
+
+\section{从随机游走到布朗运动}
+\label{sec:brownian-1}
+
+最稳妥的理解方式，是把布朗运动看成一个我们已经熟悉的对象——简单随机游走——在时间被无限细分时的极限。这条路径不仅给出布朗运动的``出处'',还顺手解释了它为什么是高斯的、为什么方差随时间线性增长。
+
+设时间步长为 $\Delta t$，每一步独立地以等概率向上或向下跳一段 $\Delta x$：令 $\xi_1,\xi_2,\dots$ 独立同分布、各取 $\pm1$ 概率各半。走到时刻 $t=N\Delta t$（即 $N=t/\Delta t$ 步）的位置是
+\[
+    S_N=\Delta x\sum_{k=1}^{N}\xi_k .
+\]
+因为 $\E{\xi_k}=0$、$\Var{\xi_k}=1$，有 $\E{S_N}=0$ 与 $\Var{S_N}=(\Delta x)^2 N=(\Delta x)^2\,t/\Delta t$。我们希望取极限 $\Delta t\to0$ 后，到时刻 $t$ 的位置有一个\emph{非平凡}的方差（既不爆掉、也不塌成零）。这就逼着我们把空间步长与时间步长按一个特定比例绑定：
+\[
+    (\Delta x)^2=\sigma^2\,\Delta t
+    \quad\Longleftrightarrow\quad
+    \Delta x=\sigma\sqrt{\Delta t}.
+\]
+有了这个标度，$\Var{S_N}=\sigma^2 t$ 与步长无关。再对 $S_N=\sigma\sqrt{\Delta t}\sum_{k=1}^N\xi_k=\sigma\sqrt{t}\cdot\frac{1}{\sqrt N}\sum_{k=1}^N\xi_k$ 用中心极限定理（见渐近统计部分，CLT 一章）：当 $N\to\infty$ 时 $\frac{1}{\sqrt N}\sum\xi_k\dto\cN(0,1)$，于是
+\[
+    S_N\dto \cN(0,\sigma^2 t).
+\]
+这个极限过程就是（带波动率 $\sigma$ 的）布朗运动。
+
+\state{为什么是 $\Delta x\propto\sqrt{\Delta t}$，而不是 $\propto\Delta t$}{
+这一条标度关系是理解后文一切的钥匙。如果像普通光滑曲线那样让位移正比于时间（$\Delta x\propto\Delta t$），那么 $N$ 步累计的方差是 $(\Delta x)^2 N\propto(\Delta t)^2\cdot t/\Delta t=t\,\Delta t\to0$——抖动会被磨平，极限退化成一条不动的直线。要让随机性在连续极限下\emph{存活}，位移必须按 $\sqrt{\Delta t}$ 这个更``大''的量级走。正是 $\Delta x\sim\sqrt{\Delta t}\gg\Delta t$ 这件事，日后会化为 $(\d W)^2=\d t$，也正是它让布朗运动不可微：斜率 $\Delta x/\Delta t\sim 1/\sqrt{\Delta t}\to\infty$。
+}
+
+把这个极限对象的性质单独列出，就是布朗运动的公理化定义。
+
+\defn{标准布朗运动（Wiener 过程）}{
+随机过程 $\{W_t\}_{t\ge0}$ 称为\textbf{标准布朗运动}，若满足：
+\begin{itemize}
+    \item[(B1)] $W_0=0$；
+    \item[(B2)] \textbf{独立增量}：对任意 $0\le t_0<t_1<\cdots<t_n$，增量 $W_{t_1}-W_{t_0},\,\dots,\,W_{t_n}-W_{t_{n-1}}$ 相互独立；
+    \item[(B3)] \textbf{高斯增量}：对 $s<t$，增量 $W_t-W_s\dist\cN(0,\,t-s)$——均值为零，方差等于时间长度；
+    \item[(B4)] \textbf{路径连续}：几乎必然地，$t\mapsto W_t$ 是连续函数。
+\end{itemize}
+带漂移 $\mu$、波动率 $\sigma$ 的布朗运动定义为 $X_t=\mu t+\sigma W_t$。
+}
+
+\rmkb[四条公理各管什么]{
+(B2) 独立增量是``无记忆''的连续时间版本：过去怎么走，不影响未来怎么走——它使 $W_t$ 同时是 Markov 过程，也（在 (B3) 之下）使 $W_t$ 成为鞅（见鞅一章）。(B3) 高斯性是中心极限定理留下的``指纹'':极限里出现正态，是因为增量本身是大量独立微小跳动之和。方差恰等于时间长度 $t-s$，正是上文 $(\Delta x)^2=\sigma^2\Delta t$ 标度的结果（标准布朗运动取 $\sigma=1$）。(B4) 连续性必须单独要求——它不是前三条的推论，而是 Wiener 当年证明``这样的过程确实存在''时最吃力的部分。
+}
+
+\rmkb[存在性是一个真正的定理]{
+``满足 (B1)–(B4) 的过程真的存在''并非显然：要在一个概率空间上同时安排不可数无穷多个随机变量 $\{W_t\}$，还要它们的联合分布自洽、路径连续。Wiener（1923）给出了第一个严格构造。本书按使用者的需要，把存在性当作已知，把重心放在如何\emph{用}布朗运动上；想看构造的读者可参阅随机分析教材（如 Karatzas–Shreve）。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+    % 坐标轴
+    \draw[->] (0,-2.7) -- (0,2.9) node[above] {$W_t$};
+    \draw[->] (0,0) -- (8.7,0) node[right] {$t$};
+    \foreach \x/\lab in {2/1,4/2,6/3,8/4} \draw (\x,0.06)--(\x,-0.06) node[below] {\lab};
+    % 方差包络带 ±1.6*sqrt(t)，t∈[0,4]，横轴比例 2 单位=1 时间 → x=2t
+    \draw[dashed,gray] plot[domain=0:4,samples=60] ({2*\x},{1.6*sqrt(\x)});
+    \draw[dashed,gray] plot[domain=0:4,samples=60] ({2*\x},{-1.6*sqrt(\x)});
+    \node[gray,anchor=west] at (6.55,2.45) {$\pm c\sqrt{t}$};
+    \draw[gray,->] (7.4,2.25) -- (7.75,1.95);
+    % 样本路径 1（蓝）—— 锯齿状随机折线，端点落在带内
+    \draw[blue!65!black,thick]
+      (0,0)--(0.5,0.32)--(1,0.10)--(1.5,0.55)--(2,0.30)--(2.5,0.78)--(3,0.50)
+      --(3.5,0.95)--(4,0.66)--(4.5,1.10)--(5,0.80)--(5.5,1.28)--(6,0.95)
+      --(6.5,1.42)--(7,1.05)--(7.5,1.55)--(8,1.20);
+    % 样本路径 2（红）—— 另一条
+    \draw[red!70!black,thick]
+      (0,0)--(0.5,-0.28)--(1,-0.05)--(1.5,-0.40)--(2,-0.12)--(2.5,-0.55)--(3,-0.20)
+      --(3.5,-0.70)--(4,-0.30)--(4.5,-0.85)--(5,-0.45)--(5.5,-1.05)--(6,-0.62)
+      --(6.5,-1.20)--(7,-0.70)--(7.5,-1.35)--(8,-0.85);
+    % 样本路径 3（深绿）—— 穿越零点
+    \draw[green!45!black,thick]
+      (0,0)--(0.5,0.22)--(1,-0.18)--(1.5,0.12)--(2,-0.32)--(2.5,0.05)--(3,-0.40)
+      --(3.5,0.02)--(4,0.42)--(4.5,0.10)--(5,0.55)--(5.5,0.20)--(6,-0.15)
+      --(6.5,0.38)--(7,0.70)--(7.5,0.35)--(8,0.78);
+\end{tikzpicture}
+\caption{布朗运动的三条样本路径：连续但处处锯齿、不可微；典型幅度随时间按 $\sqrt{t}$ 张开，落在虚线包络 $\pm c\sqrt t$ 之间（这里 $c$ 取若干倍标准差以含住大多数路径）。}
+\label{fig:brownian-1}
+\end{figure}
+
+\section{处处连续，处处不可微}
+\label{sec:brownian-2}
+
+布朗运动最反直觉的性质，是它的路径\emph{连续却处处不可微}。这不是数学家的怪癖，而是它作为``连续时间随机扰动''的本质，并且直接决定了为什么需要一套新的微积分。
+
+直觉已经藏在标度关系里。考虑差商
+\[
+    \frac{W_{t+\Delta t}-W_t}{\Delta t}.
+\]
+分子是一个 $\cN(0,\Delta t)$ 的随机变量，典型大小是 $\sqrt{\Delta t}$；除以 $\Delta t$ 后，典型大小是 $\sqrt{\Delta t}/\Delta t=1/\sqrt{\Delta t}$，当 $\Delta t\to0$ 时\emph{发散}。差商不收敛到任何有限值，导数 $\d W/\d t$ 不存在。从图~\ref{fig:brownian-1} 看，无论把路径放大到多小的尺度，它依旧是锯齿状的——放大并不会让它变得``像直线''，自相似的粗糙在每个尺度上重现。
+
+\state{为什么不可微逼出一套新微积分}{
+普通微积分的两块基石都依赖可微性：链式法则要 $\d f/\d t=f'\,\d X/\d t$，换元积分 $\int g\,\d X=\int g\,X'\,\d t$ 也要 $X'$ 存在。布朗运动 $W_t$ 处处没有导数，这两块基石同时垮掉。于是必须重建两样东西：(i) 一种新的积分 $\int_0^t H_s\,\d W_s$（Itô 积分），它不靠 $W$ 可导、而靠 $W$ 的\emph{增量}来定义；(ii) 一条新的链式法则（Itô 引理），它会比普通链式法则多出一项。这一整章其余部分，就是在搭这两样东西。
+}
+
+不可微性的``定量''来源，是下一节的二次变分——这也是 Itô 微积分与普通微积分分道扬镳的真正源头。
+
+\section{二次变分：\texorpdfstring{$(\d W)^2=\d t$}{(dW)^2=dt}}
+\label{sec:brownian-3}
+
+普通光滑函数 $f$ 有一个不起眼的性质：把 $[0,t]$ 切成 $N$ 小段，平方增量之和 $\sum_k\br{f(t_{k+1})-f(t_k)}^2$ 在 $N\to\infty$ 时趋于零（每个增量 $\sim\Delta t$，平方 $\sim(\Delta t)^2$，乘以 $N\sim1/\Delta t$ 段还是 $\sim\Delta t\to0$）。这就是为什么普通微积分里 $(\d x)^2$ 可以当作高阶小量直接扔掉。布朗运动恰恰在这一点上不同。
+
+\thm{布朗运动的二次变分}{
+把 $[0,t]$ 等分为 $N$ 段，$t_k=kt/N$，$\Delta W_k=W_{t_{k+1}}-W_{t_k}$。则平方增量之和
+\[
+    Q_N=\sum_{k=0}^{N-1}(\Delta W_k)^2
+    \;\xrightarrow{\ L^2\ }\; t
+    \qquad(N\to\infty).
+\]
+即布朗运动在 $[0,t]$ 上的\textbf{二次变分}等于 $t$（确定值，非随机）。
+}
+
+\pf{
+各 $\Delta W_k\dist\cN(0,\,t/N)$ 且相互独立（独立增量）。记 $h=t/N$。逐项算期望：$\E{(\Delta W_k)^2}=\Var{\Delta W_k}=h$，故
+\[
+    \E{Q_N}=\sum_{k=0}^{N-1}h=N\cdot\frac{t}{N}=t .
+\]
+均值已经对了，再看它围绕 $t$ 的波动。由独立性，
+\[
+    \Var{Q_N}=\sum_{k=0}^{N-1}\Var{(\Delta W_k)^2}.
+\]
+对 $Z\dist\cN(0,h)$，$(\Delta W_k)^2\dteq Z^2$，而 $\Var{Z^2}=\E{Z^4}-\pr{\E{Z^2}}^2=3h^2-h^2=2h^2$（用了高斯四阶矩 $\E{Z^4}=3h^2$）。于是
+\[
+    \Var{Q_N}=N\cdot2h^2=2N\pr{\frac{t}{N}}^2=\frac{2t^2}{N}\xrightarrow{N\to\infty}0 .
+\]
+均值恒为 $t$、方差趋于零，故 $Q_N\to t$（依 $L^2$，从而依概率）。
+}
+
+这条定理是整套 Itô 微积分的发动机。它说：布朗运动的平方增量之和\emph{不会}像光滑函数那样塌成零，反而坚定地收敛到确定值 $t$。把它写成微分的助记形式，就是那条著名的等式：
+\[
+    \boxed{\ (\d W)^2=\d t\ }.
+\]
+它的含义不是``某个随机量等于 $\d t$'',而是：在对 $[0,t]$ 求和（积分）的极限意义下，$\sum(\Delta W_k)^2$ 的行为与 $\sum\Delta t_k=t$ 完全一样。配套地，由于 $\Delta W_k\cdot\Delta t_k\sim\sqrt{\Delta t}\cdot\Delta t=(\Delta t)^{3/2}$、$(\Delta t_k)^2\sim(\Delta t)^2$ 求和后都趋于零，我们还有 Itô 乘法表：
+\[
+    (\d W)^2=\d t,\qquad \d W\,\d t=0,\qquad (\d t)^2=0 .
+\]
+
+\state{$(\d W)^2=\d t$ 是 Itô 微积分与普通微积分唯一的本质差别}{
+普通微积分扔掉一切二阶项 $(\d x)^2$；Itô 微积分扔掉 $\d W\,\d t$ 和 $(\d t)^2$，却必须\emph{保留} $(\d W)^2$ 并把它换成 $\d t$。后文 Itô 引理之所以比普通链式法则多出一项，根子全在这里：Taylor 展开的二阶项 $\tfrac12 f''(\d X)^2$ 含一个 $(\d W)^2$，在普通微积分里它是可忽略的高阶小量，在 Itô 微积分里它\emph{升格}成了一个 $\d t$ 量级的、不可忽略的漂移项。记住这一条，Itô 引理就不再需要背。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.9,>=Stealth]
+    % 整体 scale=0.9 + 右面板 xshift 收到 6.4cm + 轴标签缩短，消除 overfull \hbox
+    % 左图：平方增量之和 Q_N 随细分变细稳定收敛到 t
+    \begin{scope}
+    \draw[->] (0,0) -- (5.4,0) node[right] {\small 段数 $N$};
+    \draw[->] (0,0) -- (0,3.4) node[above] {\small $\sum(\Delta W_k)^2$};
+    % 目标水平线 t
+    \draw[dashed] (0,2.2) -- (5.2,2.2) node[right,xshift=-1pt] {$t$};
+    % Q_N 折线：随 N 增大在 t 附近抖动收窄并落到 t
+    \draw[blue!65!black,thick]
+      (0.4,0.9)--(0.8,3.0)--(1.2,1.5)--(1.6,2.7)--(2.0,1.85)--(2.4,2.55)
+      --(2.8,2.0)--(3.2,2.38)--(3.6,2.08)--(4.0,2.30)--(4.4,2.14)--(4.8,2.24);
+    \node[blue!65!black,anchor=west] at (1.6,0.7) {\small $Q_N\to t$（方差 $\to0$）};
+    \end{scope}
+    % 右图：对照——光滑函数的平方增量之和塌向 0
+    \begin{scope}[xshift=6.4cm]
+    \draw[->] (0,0) -- (5.4,0) node[right] {\small 段数 $N$};
+    \draw[->] (0,0) -- (0,3.4) node[above] {\small $\sum(\Delta f_k)^2$};
+    \draw[dashed] (0,2.2) -- (5.2,2.2) node[right,xshift=-1pt] {$t$};
+    % 光滑函数：迅速衰减到 0
+    \draw[red!70!black,thick] plot[domain=0.4:4.8,samples=40]
+      ({\x},{1.9/(\x)});
+    \node[red!70!black,anchor=west] at (1.7,1.55) {\small 光滑路径：$\sum(\Delta f_k)^2\to0$};
+    \end{scope}
+\end{tikzpicture}
+\caption{二次变分对照。左：布朗运动的平方增量之和 $Q_N$ 随细分变细，方差收窄、稳定收敛到非零的确定值 $t$。右：普通光滑路径的平方增量之和塌向 $0$。正是左图这条``不肯归零''的二阶量，逼出了 $(\d W)^2=\d t$ 与 Itô 引理的多出项。}
+\label{fig:brownian-2}
+\end{figure}
+
+\section{Itô 积分：为何不能照搬普通积分}
+\label{sec:brownian-4}
+
+在写下随机微分方程之前，必须先弄清 $\int_0^t H_s\,\d W_s$ 这样一个``对布朗运动积分''的对象到底是什么意思。普通的 Riemann–Stieltjes 积分 $\int H\,\d g$ 要求积分子 $g$ 是有界变差的——而布朗运动\emph{不是}（二次变分非零正意味着一阶总变差无穷）。所以这个积分必须重新定义。
+
+定义的办法是回到黎曼和，但要在两处格外当心。设被积过程 $H_s$ 是``适应''的（在时刻 $s$ 只用到 $s$ 之前的信息，不偷看未来），用左端点取值作和：
+\[
+    \int_0^t H_s\,\d W_s
+    \;:=\;\lim_{N\to\infty}\sum_{k=0}^{N-1}H_{t_k}\,\br{W_{t_{k+1}}-W_{t_k}}
+    \qquad(\text{$L^2$ 极限}).
+\]
+两个关键约定：
+
+\begin{itemize}
+    \item \textbf{取左端点（这就是``Itô''的含义）。} 普通积分里取区间内哪一点求值无所谓，极限都一样；但 $W$ 的二次变分非零，使得``取左端 $H_{t_k}$''与``取右端 $H_{t_{k+1}}$''给出\emph{不同}的极限。Itô 积分一律取\emph{左端点}——即用当前信息、不预见增量。正是这个选择让下面的鞅性质成立，也契合金融里``此刻持仓、随后承受下一段价格变动''的因果次序。
+    \item \textbf{适应性。} $H_{t_k}$ 必须只依赖 $t_k$ 时刻及以前的信息，与未来的增量 $W_{t_{k+1}}-W_{t_k}$ 独立。这保证每一项 $H_{t_k}\Delta W_k$ 的条件期望为零。
+\end{itemize}
+
+\prop{Itô 积分是鞅，且有等距}{
+若 $H$ 适应且 $\E{\int_0^t H_s^2\,\d s}<\infty$，则 $M_t=\int_0^t H_s\,\d W_s$ 是（关于布朗运动自然信息流的）鞅，$\E{M_t}=0$，并满足 \textbf{Itô 等距}
+\[
+    \E{\pr{\int_0^t H_s\,\d W_s}^{2}}=\E{\int_0^t H_s^2\,\d s}.
+\]
+}
+
+\pf{
+\emph{鞅性}。在黎曼和里，由适应性，$H_{t_k}$ 与 $\Delta W_k$ 独立，且 $\E{\Delta W_k\given \cF_{t_k}}=0$（增量均值为零、与过去独立），故 $\E{H_{t_k}\Delta W_k\given\cF_{t_k}}=H_{t_k}\E{\Delta W_k\given\cF_{t_k}}=0$。逐项条件期望为零，求和并取极限即得 $\E{M_t\given\cF_s}=M_s$，这正是鞅。\\[2pt]
+\emph{等距}。把平方和展开：
+\[
+    \E{\pr{\sum_k H_{t_k}\Delta W_k}^2}
+    =\sum_{j,k}\E{H_{t_j}H_{t_k}\Delta W_j\Delta W_k}.
+\]
+交叉项（$j\neq k$，设 $j<k$）中 $\Delta W_k$ 与 $H_{t_j}H_{t_k}\Delta W_j$ 独立且均值为零，故为零。对角项用 $\E{(\Delta W_k)^2}=\Delta t_k$ 与独立性，$\E{H_{t_k}^2(\Delta W_k)^2}=\E{H_{t_k}^2}\Delta t_k$。求和得 $\sum_k\E{H_{t_k}^2}\Delta t_k\to\E{\int_0^tH_s^2\,\d s}$。
+}
+
+\rmkb[Itô 等距：把对 $\d W$ 的积分换成对 $\d t$ 的积分]{
+Itô 等距是 Itô 积分最实用的计算工具：要算一个随机积分的二阶矩（方差），不必直面 $\d W$，只需把被积函数平方、改对 $\d t$ 求普通积分。它本质上又是 $(\d W)^2=\d t$ 的化身——平方让 $(\d W)^2$ 现身，再换成 $\d t$。在资产定价里，它是计算组合收益方差、推导定价方程的家常便饭。
+}
+
+\section{Itô 引理：随机演算的链式法则}
+\label{sec:brownian-5}
+
+现在搭本章的顶梁柱。问题是：若 $X_t$ 由布朗运动驱动，$f$ 是一个光滑函数，那么 $f(X_t)$ 随时间如何变化？普通链式法则会说 $\d f=f'(X)\,\d X$；但我们已经知道，对布朗运动这是错的——会漏掉一项。
+
+\subsection{推导：Taylor 展开到二阶，再代入 \texorpdfstring{$(\d W)^2=\d t$}{(dW)^2=dt}}
+
+先建立记号。称 $X_t$ 是一个\textbf{Itô 过程}，若它满足随机微分方程（SDE）
+\[
+    \d X_t=\mu(X_t,t)\,\d t+\sigma(X_t,t)\,\d W_t,
+\]
+其中 $\mu$ 是\emph{漂移}（单位时间的确定性趋势）、$\sigma$ 是\emph{扩散}（单位时间的随机波动幅度）。这是``$X_t=X_0+\int_0^t\mu\,\d s+\int_0^t\sigma\,\d W_s$''的微分速记，后一个积分按上一节的 Itô 积分理解。
+
+要看 $f(X_t)$ 怎么变，对 $f$ 在 $X_t$ 处做 Taylor 二阶展开（见多元微积分部分，Taylor 一章）。关键的判断是：展开\emph{保留到哪一阶}。普通微积分留到一阶；但因为 $(\d X)^2$ 含 $(\d W)^2=\d t$ 这个一阶量级的项，二阶项不能扔。于是展开到二阶：
+\[
+    \d f
+    = f'(X_t)\,\d X_t+\tfrac12 f''(X_t)\,(\d X_t)^2+\underbrace{\cdots}_{\text{三阶及以上}}.
+\]
+计算 $(\d X_t)^2$，用 Itô 乘法表 $(\d W)^2=\d t,\ \d W\,\d t=0,\ (\d t)^2=0$：
+\[
+    (\d X_t)^2
+    =\pr{\mu\,\d t+\sigma\,\d W}^2
+    =\mu^2(\d t)^2+2\mu\sigma\,\d t\,\d W+\sigma^2(\d W)^2
+    =\sigma^2\,\d t .
+\]
+（三项里前两项归零，只剩 $\sigma^2(\d W)^2=\sigma^2\,\d t$。）三阶及以上含 $(\d t)^{3/2}$ 以上的因子，求和后归零，可弃。代回展开式，并把 $\d X_t=\mu\,\d t+\sigma\,\d W_t$ 也代入：
+\[
+    \d f
+    = f'\pr{\mu\,\d t+\sigma\,\d W_t}+\tfrac12 f''\sigma^2\,\d t .
+\]
+整理出漂移与扩散，便是 Itô 引理。
+
+\thm{Itô 引理（一维）}{
+设 $X_t$ 是 Itô 过程 $\d X_t=\mu\,\d t+\sigma\,\d W_t$，$f(x,t)$ 对 $x$ 二次连续可微、对 $t$ 一次连续可微。则 $Y_t=f(X_t,t)$ 也是 Itô 过程，且
+\[
+    \boxed{\;\d f
+    =\underbrace{\pr{\pd{f}{t}+\mu\,\pd{f}{x}+\tfrac12\sigma^2\,\pdn{2}{f}{x}}}_{\text{漂移}}\d t
+    \;+\;\underbrace{\sigma\,\pd{f}{x}}_{\text{扩散}}\d W_t\; }.
+\]
+对仅依赖 $x$ 的 $f(x)$，简化为 $\d f=\pr{\mu f'+\tfrac12\sigma^2 f''}\d t+\sigma f'\,\d W_t$。
+}
+
+\state{与普通链式法则只差一项——那一项是凸性修正}{
+普通链式法则给 $\d f=f'\,\d X=\pr{\mu f'}\d t+\sigma f'\,\d W$。Itô 引理在漂移里\emph{多出}了 $\tfrac12\sigma^2 f''$。这一项：(i) 正比于波动率平方 $\sigma^2$——波动越大，修正越大；(ii) 正比于二阶导 $f''$——\emph{曲率}越大，修正越大；(iii) 符号随 $f''$ 走——$f$ 凸（$f''>0$）则正向抬高漂移，$f$ 凹则压低。它就是下一小节要讲的``凸性修正''：随机性叠加在弯曲的函数上，会系统性地推动 $f$ 的均值。把波动率设为零（$\sigma=0$），多出项消失，Itô 引理退回普通链式法则——可见普通微积分只是``无噪声''的特例。
+}
+
+\subsection{多出项的直觉：凸性修正（Jensen 在动）}
+
+为什么弯曲的函数会让随机扰动``有方向''？这就是 Jensen 不等式：对凸函数 $f$，$\E{f(X)}\ge f(\E{X})$。布朗运动每一小步是均值为零的对称抖动 $\Delta W$；可一旦穿过一个凸函数 $f$，向上的抖动被放大、向下的被压缩，平均下来 $f$ 被\emph{net 抬高}。抬高多少？对 $f$ 在中心做二阶展开取期望：
+\[
+    \E{f(X+\Delta W)}-f(X)
+    \approx f'(X)\,\E{\Delta W}+\tfrac12 f''(X)\,\E{(\Delta W)^2}
+    =\tfrac12 f''(X)\,\sigma^2\,\Delta t ,
+\]
+因为 $\E{\Delta W}=0$、$\E{(\Delta W)^2}=\sigma^2\Delta t$。一阶项被对称性抹平，留下的恰是 $\tfrac12 f''\sigma^2\,\d t$——正是 Itô 引理多出的那一项（图~\ref{fig:brownian-3}）。这把``$(\d W)^2=\d t$''和``Jensen 凸性''缝到了一起：二者是同一件事的两副面孔。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[x=1.5cm,y=0.82cm,>=Stealth]
+    % 凸函数 f(x)=0.4 x^2；x0=2.2，对称抖动 ±1.8 → 左 0.4、右 4.0
+    % f(0.4)=0.064, f(2.2)=1.936, f(4.0)=6.4；弦中点=3.232；
+    % gap=3.232-1.936=1.296=½·0.8·1.8²（数值自洽）。横轴拉宽 → 底部三标签不再相撞。
+    \draw[->] (-0.3,0) -- (4.7,0) node[right] {$x$};
+    \draw[->] (0,-0.4) -- (0,7.1) node[above] {$f(x)$};
+    \draw[thick,domain=0.1:4.2,smooth,variable=\x,blue!65!black]
+        plot ({\x},{0.4*\x*\x});
+    \node[blue!65!black,anchor=south east] at (4.15,6.3) {$f$ 凸};
+    % 关键点
+    \coordinate (XL) at (0.4,0.064);
+    \coordinate (X0) at (2.2,1.936);
+    \coordinate (XR) at (4.0,6.4);
+    \draw[dashed,gray] (XL) -- (XR);
+    \fill (XL) circle (1.4pt);
+    \fill (XR) circle (1.4pt);
+    % f(E X)：曲线上的点
+    \fill[red!70!black] (X0) circle (1.6pt);
+    % E f(X)：弦中点（x=2.2, 高 3.232）
+    \fill[red!70!black] (2.2,3.232) circle (1.6pt);
+    % 竖直双箭头标出凸性间隙（替代原花括号）
+    \draw[<->,red!70!black,thick] (2.2,1.936) -- (2.2,3.232);
+    \node[red!70!black,right,xshift=3pt,align=left] at (2.2,2.58)
+        {\small 凸性间隙\\[-1pt]\small $=\tfrac12 f''\sigma^2\d t$};
+    % x 轴垂足
+    \draw[dotted] (X0) -- (2.2,0);
+    \draw[dotted] (XL) -- (0.4,0);
+    \draw[dotted] (XR) -- (4.0,0);
+    % 底部三标签（间距已拉开）
+    \node[below] at (2.2,0) {$\E{X}$};
+    \node[below] at (0.4,0) {\small $X{-}\sigma\sqrt{\Delta t}$};
+    \node[below] at (4.0,0) {\small $X{+}\sigma\sqrt{\Delta t}$};
+    % E f(X) 与 f(E X) 标签
+    \node[red!70!black,anchor=east,xshift=-4pt] at (2.2,3.35) {\small $\E{f(X)}$};
+    \node[red!70!black,anchor=east,xshift=-4pt] at (2.2,1.82) {\small $f(\E{X})$};
+\end{tikzpicture}
+\caption{Itô 多出项就是 Jensen 凸性间隙。$X$ 做对称抖动 $\pm\sigma\sqrt{\Delta t}$，穿过凸函数 $f$ 后两端被``撬''上去，平均高度 $\E{f(X)}$（弦中点）高于 $f(\E{X})$（曲线上的点）。这段差距正是 $\tfrac12 f''\sigma^2\,\d t$，即 Itô 引理在漂移里多出的一项。}
+\label{fig:brownian-3}
+\end{figure}
+
+\section{几何布朗运动：资产价格的标准模型}
+\label{sec:brownian-6}
+
+Itô 引理的第一桩大用处，是解出连续时间金融里最基础的模型——几何布朗运动（GBM）。它假设股价 $S_t$ 的\emph{对数收益}是布朗运动，即\emph{相对}变化（而非绝对变化）服从恒定漂移加恒定波动：
+\[
+    \frac{\d S_t}{S_t}=\mu\,\d t+\sigma\,\d W_t
+    \qquad\Longleftrightarrow\qquad
+    \d S_t=\mu S_t\,\d t+\sigma S_t\,\d W_t .
+\]
+这样设定有两个经济上的好处：股价天然为正（不会跌成负数），且百分比波动不随价格水平变化（一只 \$10 的股票和一只 \$1000 的股票，日波动率可以相同）。
+
+\ex[解几何布朗运动]{
+对 $\d S_t=\mu S_t\,\d t+\sigma S_t\,\d W_t$，求 $S_t$ 的显式表达式。
+}
+\sol{
+直觉上想``两边除以 $S$ 再积分得 $\ln S$''——这正是普通微积分会做的，但对 Itô 过程必须用 Itô 引理校正。取变换 $f(S)=\ln S$，则 $f'=1/S$、$f''=-1/S^2$。这里漂移 $\mu_S=\mu S$、扩散 $\sigma_S=\sigma S$。代入 Itô 引理 $\d f=\pr{\mu_S f'+\tfrac12\sigma_S^2 f''}\d t+\sigma_S f'\,\d W$：
+\[
+    \d(\ln S_t)
+    =\pr{\mu S\cdot\frac1S+\tfrac12\sigma^2 S^2\cdot\pr{-\frac1{S^2}}}\d t
+      +\sigma S\cdot\frac1S\,\d W_t
+    =\pr{\mu-\tfrac12\sigma^2}\d t+\sigma\,\d W_t .
+\]
+右边漂移与扩散都成了\emph{常数}，可以直接积分：$\ln S_t-\ln S_0=\pr{\mu-\tfrac12\sigma^2}t+\sigma W_t$，于是
+\[
+    \boxed{\;S_t=S_0\exp\!\br{\pr{\mu-\tfrac12\sigma^2}t+\sigma W_t}\;}.
+\]
+由于 $W_t\dist\cN(0,t)$，$\ln S_t$ 正态，故 $S_t$ 服从\textbf{对数正态}分布。
+}
+
+\rmkb[那个 $-\tfrac12\sigma^2$ 不是笔误，是 Itô 修正]{
+若用普通微积分硬算，会得到 $S_t=S_0\exp(\mu t+\sigma W_t)$，漂移里没有 $-\tfrac12\sigma^2$。这一项正是 Itô 引理对 $\ln(\cdot)$ 这个\emph{凹}函数（$f''=-1/S^2<0$）的修正，它把漂移往下压。它有实在的金融含义：$\mu$ 是``瞬时期望收益率''（$\E{\d S/S}=\mu\,\d t$），但对数（连续复利）收益率的期望是 $\mu-\tfrac12\sigma^2$。波动本身会侵蚀复利增长——同样的算术平均收益，波动越大，长期实现的几何增长越低。这就是``波动拖累''（volatility drag），无数实证与资产配置讨论的起点。由 $\E{S_t}=S_0e^{\mu t}$（对数正态的均值公式恰好补回那 $\tfrac12\sigma^2$）可验证 $\mu$ 确为期望收益率。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+    % 横轴 t∈[0,4] 映射到 x=2t；纵轴为 S，S0=1.5 在 y=1.5
+    \draw[->] (0,0) -- (8.8,0) node[right] {$t$};
+    \draw[->] (0,0) -- (0,4.6) node[above] {$S_t$};
+    \foreach \x/\lab in {2/1,4/2,6/3,8/4} \draw (\x,0.06)--(\x,-0.06) node[below] {\lab};
+    % S0 标注
+    \draw[dotted] (0,1.5) -- (8,1.5);
+    \node[anchor=east] at (0,1.5) {$S_0$};
+    % 期望路径 E[S_t]=S0 e^{mu t}, mu=0.25, S0=1.5 → 1.5 e^{0.25 t}
+    \draw[thick,black,dashed] plot[domain=0:3.7,samples=40]
+        ({2*\x},{1.5*exp(0.25*\x)});
+    \node[anchor=south west] at (6.35,4.05) {\small $\E{S_t}=S_0e^{\mu t}$};
+    \draw[->] (6.7,4.0)--(7.15,3.55);
+    % 三条 GBM 样本路径——始终 >0，乘性张开：摆幅随水平放大、上下扇形随时间拉开
+    % 路径 A（蓝，上行；摆幅随水平增大）
+    \draw[blue!65!black,thick]
+      (0.00,1.500)--(0.50,1.680)--(1.00,1.596)--(1.50,1.883)--(2.00,1.733)--(2.50,2.079)--(3.00,1.934)--(3.50,2.359)--(4.00,2.123)--(4.50,2.633)--(5.00,2.396)--(5.50,3.019)--(6.00,2.717)--(6.50,3.396)--(7.00,3.056)--(7.50,3.790)--(8.00,3.487);
+    % 路径 C（深绿，中间/慢涨）
+    \draw[green!45!black,thick]
+      (0.00,1.500)--(0.50,1.605)--(1.00,1.557)--(1.50,1.713)--(2.00,1.627)--(2.50,1.806)--(3.00,1.734)--(3.50,1.907)--(4.00,1.812)--(4.50,2.011)--(5.00,1.930)--(5.50,2.124)--(6.00,2.039)--(6.50,2.242)--(7.00,2.153)--(7.50,2.368)--(8.00,2.273);
+    % 路径 B（红，缓降但不破零；摆幅随水平缩小）
+    \draw[red!70!black,thick]
+      (0.00,1.500)--(0.50,1.410)--(1.00,1.452)--(1.50,1.351)--(2.00,1.405)--(2.50,1.306)--(3.00,1.346)--(3.50,1.265)--(4.00,1.303)--(4.50,1.212)--(5.00,1.248)--(5.50,1.173)--(6.00,1.196)--(6.50,1.125)--(7.00,1.147)--(7.50,1.078)--(8.00,1.100);
+\end{tikzpicture}
+\caption{几何布朗运动的样本路径（$\mu>0$）。路径始终为正、呈乘性张开（对数正态因而右偏：向上的尾巴比向下的长）；虚线为期望轨道 $\E{S_t}=S_0e^{\mu t}$。注意典型（中位）路径增长慢于期望路径，差距即来自 $-\tfrac12\sigma^2$ 的波动拖累。}
+\label{fig:brownian-4}
+\end{figure}
+
+\section{去处：从 Black–Scholes 到随机控制}
+\label{sec:brownian-7}
+
+布朗运动与 Itô 引理是连续时间经济学的通用语言。把本章工具接回主干，几条最重要的去处如下。
+
+\subsection{Black–Scholes 期权定价}
+
+设标的股价是 GBM，欧式期权在到期日 $T$ 的价值 $V(S,t)$ 待定。对 $V(S_t,t)$ 用 Itô 引理算出 $\d V$，再构造一个``持有期权、空头 $\partial V/\partial S$ 份股票''的对冲组合——巧妙之处在于这个组合的 $\d W$ 项恰好相消，瞬时收益变成\emph{无风险}的。无套利要求它只能赚无风险利率 $r$，令两边相等，$\mu$ 神奇地消失，得到 Black–Scholes 偏微分方程：
+\[
+    \pd{V}{t}+rS\,\pd{V}{S}+\tfrac12\sigma^2 S^2\,\pdn{2}{V}{S}=rV .
+\]
+那个 $\tfrac12\sigma^2 S^2\,\partial^2 V/\partial S^2$ 项，正是 Itô 引理的多出项；期权价值对波动率的依赖（即``为什么波动率是期权的核心''）全压在这一项上。
+
+\subsection{风险中性定价与鞅}
+
+Black–Scholes 推导里 $\mu$ 的消失不是巧合，它指向更深的结构：存在一个等价的``风险中性''概率测度，在其下所有资产的\emph{折现价格}都是鞅（见鞅一章）。于是任何衍生品的价格都等于其折现收益在风险中性测度下的期望——定价问题被化为求期望。测度的更换（Girsanov 定理）本质上是给布朗运动换一个漂移，而 Itô 引理保证换测度后过程仍是良定义的 Itô 过程。
+
+\subsection{随机最优控制与 HJB 方程}
+
+连续时间的最优消费—投资、最优停时（实物期权）、最优增长等问题，都是在一个由 SDE 驱动的状态上做动态规划。把离散时间的 Bellman 方程取连续极限（见动态规划一章），值函数 $V(x,t)$ 满足 Hamilton–Jacobi–Bellman 方程
+\[
+    \pd{V}{t}+\max_{a}\set{u(x,a)+\mu(x,a)\,\pd{V}{x}+\tfrac12\sigma^2(x,a)\,\pdn{2}{V}{x}}=0 .
+\]
+方括号里那串正是对 $V$ 用 Itô 引理得到的漂移——HJB 方程就是``值函数的漂移加上瞬时收益等于零''。它把最优控制（见最优控制一章，Pontryagin 原理）与动态规划在连续时间随机环境下统一了起来。
+
+\subsection{利率与宏观金融模型}
+
+短期利率模型（Vasicek、CIR）把利率写成均值回复的 Itô 过程 $\d r_t=\kappa(\theta-r_t)\,\d t+\sigma(r_t)\,\d W_t$；债券定价、期限结构都建立在对它用 Itô 引理之上。连续时间宏观（如 Brunnermeier–Sannikov 一类``宏观金融''模型）更是把整个经济的状态变量写成 Itô 过程，用 Itô 引理推演资产价格与杠杆的动态。
+
+\state{一条引理，半个连续时间经济学}{
+布朗运动给了我们``连续时间的随机扰动''这个原材料；Itô 引理给了我们在其上做微分的唯一正确法则。资产定价（Black–Scholes、风险中性鞅）、随机控制（HJB）、利率与宏观金融，表面上是不同领域，骨子里都是``写一个 SDE，对感兴趣的函数用 Itô 引理，再让无套利 / 最优性 / 平稳性收口成一个偏微分方程''。认清那个多出的 $\tfrac12\sigma^2 f''$ 项——它既是 $(\d W)^2=\d t$，又是 Jensen 凸性——就等于拿到了进入连续时间金融的钥匙。
+}

@@ -1,0 +1,287 @@
+% !TEX root = ../main.tex
+\chapter{不动点定理与均衡存在性}
+\label{ch:fixedpt}
+
+\noindent\emph{用到的前置工具：紧致性、连续性与 Weierstrass 极值定理（第九章）；上/下半连续与最大值定理（第十章）；凸集与凸性（线性代数与凸分析部分）。}
+\medskip
+
+经济学反复在做同一件事：先定义一个``均衡''，然后断言它\emph{存在}。可一旦把这些均衡的定义摊开来看，会发现它们惊人地相似——纳什均衡是``每个人都在对别人的策略做最优反应''，瓦尔拉斯均衡是``一组价格使所有市场恰好出清'',理性预期均衡是``大家的预期被自身验证''。它们都可以写成同一句话：\emph{某个映射把一个点又送回了它自己}。求均衡，就是求这个映射的不动点。于是``均衡存在吗''这个看似各式各样的问题，统统归约成一个纯数学问题：\textbf{这个映射有不动点吗？}本章介绍回答它的核心机器——Brouwer 与 Kakutani 两个不动点定理，并演示经济学里两座存在性大厦（纳什均衡、一般均衡）如何就建在它们之上。下一章的压缩映射定理会从另一个方向补全这套工具：本章的定理只问``在不在'',压缩映射还要回答``唯不唯一、怎么算出来''。
+
+\section{为什么``均衡''就是``不动点''}
+\label{sec:fixedpt-motivation}
+
+先把``不动点''这个词钉死。
+
+\defn{不动点}{
+设 $X$ 是一个集合，$f:X\to X$ 是从 $X$ 到自身的映射。点 $x^*\in X$ 称为 $f$ 的\textbf{不动点}（fixed point），如果
+\[
+    f(x^*)=x^* .
+\]
+若 $f$ 是一个\emph{对应}（correspondence，即取值为集合的映射）$\Phi:X\rightrightarrows X$，则 $x^*$ 称为不动点当且仅当 $x^*\in\Phi(x^*)$。
+}
+
+这个定义本身平淡无奇，要紧的是经济学里``均衡''几乎总能改写成它。看三个例子，它们贯穿微观、宏观与博弈论：
+
+\begin{itemize}
+    \item \textbf{纳什均衡}。每个玩家 $i$ 在给定别人策略 $\vc s_{-i}$ 时，选自己的最优反应 $R_i(\vc s_{-i})$。把所有人的最优反应叠在一起，得到一个从策略组合到策略组合的映射 $R(\vc s)=\bigl(R_1(\vc s_{-1}),\dots,R_n(\vc s_{-n})\bigr)$。一个策略组合是纳什均衡，当且仅当\emph{没人想偏离}——也就是 $\vc s^*=R(\vc s^*)$，恰是 $R$ 的不动点。
+    \item \textbf{一般均衡}。给定价格向量 $\vc p$，市场有超额需求 $\vc z(\vc p)$（需求减供给）。瓦尔拉斯均衡是一组使所有市场出清的价格，即 $\vc z(\vc p^*)=\vc 0$。这看似是``求零点''而非``求不动点'',但通过一个``按超额需求调价''的映射 $\vc p\mapsto T(\vc p)$（哪个市场超额需求为正就抬高它的价），可以把``超额需求为零''等价改写成 $T(\vc p^*)=\vc p^*$。详见后文。
+    \item \textbf{理性预期 / Bellman 方程}。``给定预期、最优反应生成同样的预期''是不动点；动态规划的 $V=TV$ 更是直接写成不动点方程（下一章主题）。
+\end{itemize}
+
+\state{一句话的工具性总结}{
+经济学里绝大多数``均衡''都是某个映射的不动点。因此``均衡存在''这一论断，本质上不依赖具体模型，而依赖一条纯数学事实：\emph{在恰当的条件下，从一个集合到自身的映射必有不动点}。本章的两个定理就是把``恰当的条件''说清楚——一旦你能把均衡写成不动点、并核验那几条条件，存在性便\emph{免费奉送}，无须解出均衡本身。这与隐函数定理的精神一脉相承：不解方程，照样断言解的存在。
+}
+
+\section{Brouwer 不动点定理}
+\label{sec:fixedpt-brouwer}
+
+最基本的版本针对\emph{单值连续}映射。
+
+\thm{Brouwer 不动点定理}{
+设 $K\subseteq\RR^n$ 是\textbf{非空、紧致、凸}的集合，$f:K\to K$ 连续。则 $f$ 至少有一个不动点 $x^*\in K$，即 $f(x^*)=x^*$。
+}
+
+三个条件一个都不能少，缺哪个都能举出反例（见本节末）。先看为什么它``显然''成立——至少在一维上是显然的。
+
+\subsection{一维：连续曲线必与对角线相交}
+\label{sec:fixedpt-1d}
+
+取 $K=[0,1]$，$f:[0,1]\to[0,1]$ 连续。不动点方程 $f(x)=x$ 说的是：函数 $y=f(x)$ 的图像与对角线 $y=x$ 相交。能不能不相交？
+
+定义辅助函数 $g(x)=f(x)-x$，它连续。在左端点，因为 $f(0)\in[0,1]$，必有 $f(0)\ge 0$，故 $g(0)=f(0)-0\ge 0$；在右端点，因为 $f(1)\le 1$，故 $g(1)=f(1)-1\le 0$。一个连续函数在 $0$ 处非负、在 $1$ 处非正，由\textbf{介值定理}必在中间某点 $x^*$ 取零值，即 $g(x^*)=0$，也就是 $f(x^*)=x^*$。
+
+这段两行的论证已经道出 Brouwer 定理的全部直觉：\emph{一条从方块左壁出发、终于右壁、始终待在方块内的连续曲线，无论怎么扭，都逃不过被对角线拦腰截断}（图~\ref{fig:fixedpt-1}）。``$f$ 把 $K$ 映回 $K$''（自映射）逼得曲线两端分别落在对角线的上、下两侧，``连续''又不许它跳过对角线——两者合力，交点无可避免。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=5,>=Stealth]
+  % 单位方块 [0,1]x[0,1]
+  \draw[->] (-0.04,0) -- (1.12,0) node[right] {$x$};
+  \draw[->] (0,-0.04) -- (0,1.12) node[above] {$f(x)$};
+  \draw[gray!55] (1,0) -- (1,1) -- (0,1);
+  \node[anchor=north] at (1,-0.02) {$1$};
+  \node[anchor=east] at (-0.01,1) {$1$};
+  % 对角线 y=x
+  \draw[densely dashed,gray!75] (0,0) -- (1,1);
+  \node[gray!55!black,anchor=north west] at (0.86,0.92) {$y=x$};
+  % 连续自映射 f(x)=0.82-0.6 x-0.16 sin(2 pi x)，值域含于 [0,1]
+  \draw[thick,blue!60!black,domain=0:1,smooth,samples=160,variable=\t]
+      plot ({\t},{0.82-0.6*\t-0.16*sin(deg(2*pi*\t))});
+  \node[blue!60!black,anchor=south west] at (0.02,0.835) {$y=f(x)$};
+  % 起点 f(0)=0.82（对角线上方），终点 f(1)=0.22（对角线下方）
+  \fill[blue!60!black] (0,0.82) circle (0.7pt);
+  \fill[blue!60!black] (1,0.22) circle (0.7pt);
+  % 不动点 x*=0.5332，f(x*)=0.5332，精确落在曲线与对角线交点
+  \coordinate (P) at (0.5332,0.5332);
+  \fill[red!75!black] (P) circle (0.9pt);
+  \draw[densely dotted,red!60!black] (0.5332,0) -- (P);
+  \node[red!70!black,anchor=north] at (0.5332,-0.015) {$x^{*}$};
+  % 不动点标签，停在曲线下方空白，细引线指向交点（不穿曲线）
+  \node[red!70!black,anchor=north west,align=left] at (0.60,0.40)
+      {不动点\\$f(x^{*})=x^{*}$};
+  \draw[red!60!black,->] (0.595,0.345) -- (0.540,0.522);
+\end{tikzpicture}
+\caption{一维 Brouwer。连续自映射 $f:[0,1]\to[0,1]$ 的图像（蓝）从对角线 $y=x$ 上方（$f(0)\ge 0$）出发、到下方（$f(1)\le 1$）收尾，无论中途怎样起伏，必与对角线交于某点——该点即不动点 $x^*$。}
+\label{fig:fixedpt-1}
+\end{figure}
+
+\rmkb[一维是介值定理，高维不是]{
+一维证明只用了介值定理，干净利落。但它\emph{无法}照搬到高维：$\RR^n$（$n\ge 2$）里没有``介值定理''这种把``连续''直接兑换成``过零''的初等工具。高维 Brouwer 的真正根基是\textbf{拓扑}——圆盘不能连续地收缩到它的边界圈上（``无收缩定理''）。一个组合化的等价表述是 \textbf{Sperner 引理}：把单纯形作三角剖分并按规则给顶点染色，则必存在一个``三色俱全''的小单纯形；让剖分越来越细，这些小单纯形收缩到的极限点正是不动点。Brouwer 定理因此可由一个纯组合的计数事实推出。本书按使用者的需要，只陈述定理并讲透一维直觉，高维的拓扑证明留给拓扑课。
+}
+
+\subsection{三个条件各自在防什么}
+\label{sec:fixedpt-counterex}
+
+把任一条件拿掉，不动点就可能消失。记住这三个反例，胜过记定理本身——它们告诉你定理``为什么是这副模样''。
+
+\begin{itemize}
+    \item \textbf{丢掉紧致（去掉有界）}：在 $K=\RR$ 上取平移 $f(x)=x+1$，连续、把 $\RR$ 映回 $\RR$、$\RR$ 也是凸的，但 $f(x)=x$ 无解——点被无限地往外推，永不回头。紧致性（在 $\RR^n$ 中即\emph{有界闭}）堵死了``跑到无穷远''这条逃路。
+    \item \textbf{丢掉紧致（去掉闭）}：在开区间 $K=(0,1)$ 上取 $f(x)=x/2+1/2$（把 $(0,1)$ 映进 $(1/2,1)\subset(0,1)$），唯一的候选不动点是 $x=1$，却不在开集 $K$ 内。闭性保证``极限点不被漏掉''。
+    \item \textbf{丢掉凸（用带洞的集合）}：在圆环 $K=\set{x\in\RR^2:1\le\norm{x}\le 2}$ 上取``旋转 $90^\circ$''，连续、自映射、$K$ 紧致，但旋转没有不动点——中心那个本该被固定的点恰好是环上的``洞''，被挖掉了。凸性（无洞、无凹陷）封死了这种``绕着洞转''的可能。
+\end{itemize}
+
+\rmkb[凸可以放宽成``可缩'']{
+真正起作用的是\emph{拓扑}性质而非凸性本身：Brouwer 定理对任何与闭球同胚（更一般地，可缩）的紧集都成立，凸只是一个好用好查的充分条件。经济学里策略单纯形、价格单纯形天生是凸紧的，故直接用凸版本最省事。
+}
+
+\section{从函数到对应：Kakutani 不动点定理}
+\label{sec:fixedpt-kakutani}
+
+Brouwer 要求 $f$ 是\emph{单值}的连续函数。可经济学里的``最优反应''常常\emph{不是单值的}：当一个玩家面对的若干策略带来\emph{相同}的最高收益时，他的最优反应是\emph{一整个集合}，而非一个点。这时 $R$ 是一个对应（correspondence）$\Phi:K\rightrightarrows K$，Brouwer 不再适用。Kakutani 定理正是为对应量身定做的推广。
+
+要把 Brouwer 的``连续''和``映回自身''翻译到对应上，需要两个概念：值是凸的、图像是闭的（即上半连续）。这两条恰好是上一章``最大值定理''里出现过的同一批性质，此处把它们组装成不动点的条件。
+
+\asm{Kakutani 所需的三件套（针对对应 $\Phi:K\rightrightarrows K$）}{
+\begin{enumerate}
+    \item \textbf{非空凸值}：对每个 $x\in K$，像集 $\Phi(x)$ 非空，且是 $K$ 中的\emph{凸集}。
+    \item \textbf{闭图像（等价于此处的上半连续）}：图像 $\set{(x,y):y\in\Phi(x)}$ 是闭集。即若 $x_n\to x$、$y_n\in\Phi(x_n)$、$y_n\to y$，则必有 $y\in\Phi(x)$。
+    \item 定义域 $K\subseteq\RR^n$ \textbf{非空、紧致、凸}（与 Brouwer 相同）。
+\end{enumerate}
+}
+
+\thm{Kakutani 不动点定理}{
+设 $K\subseteq\RR^n$ 非空、紧致、凸，对应 $\Phi:K\rightrightarrows K$ 满足上面假设的非空凸值与闭图像。则 $\Phi$ 有不动点：存在 $x^*\in K$ 使得
+\[
+    x^*\in\Phi(x^*) .
+\]
+}
+
+\rmkb[两个新条件分别在堵什么漏洞]{
+当 $\Phi$ 退化为单值函数 $f$ 时，``凸值''自动满足（单点集是凸的）、``闭图像''恰好等价于 $f$ 连续，于是 Kakutani 收缩回 Brouwer——它是货真价实的推广。新加的两条各有所司：\textbf{闭图像}是``连续''对集值情形的正确替身，它不许像集在极限处``突然塌缩''漏掉极限点（详见上一章的上/下半连续）；\textbf{凸值}则不许像集``开裂成互不相连的两块''。少了凸值，对应可以在该穿过对角线的地方\emph{一跃而过}那条裂缝、从不与对角线相交——例如 $K=[0,1]$ 上令 $\Phi(x)=\set{1}$（当 $x<\tfrac12$）、$\Phi(\tfrac12)=\set{0,1}$、$\Phi(x)=\set{0}$（当 $x>\tfrac12$）：它在 $x=\tfrac12$ 处的像 $\set{0,1}$ 非凸（缺了中间的 $\tfrac12$），图像虽闭却没有不动点。把那个像``填实''成整段 $[0,1]$，凸值即恢复，$x=\tfrac12$ 立刻成为不动点。这正是``凸值''不可或缺的理由。
+}
+
+\state{为什么经济学偏偏需要 Kakutani 而非 Brouwer}{
+``最优反应''天生是对应：平局（多个最优选择并存）一旦出现，最优反应就从一个点变成一个集合。混合策略恰好保证了这个集合是\emph{凸}的——若两个纯策略都是最优的，对它们的任意概率混合也最优，于是最优反应集是这些最优策略的凸包。因此在博弈论里 Kakutani 不是``更高级的选配'',而是\emph{标配}：纳什 1950 年那篇奠基论文正是用 Kakutani（不是 Brouwer）证出了一般 $n$ 人博弈混合策略均衡的存在。
+}
+
+\section{应用一：纳什均衡的存在}
+\label{sec:fixedpt-nash}
+
+这是 Kakutani 在经济学里最著名的应用。我们要证：\emph{任何有限博弈（有限玩家、每人有限纯策略）都存在混合策略纳什均衡}。证明是一套可复用的``三步装配''——把均衡写成不动点、核验 Kakutani 的条件、收网。
+
+\subsection{搭好舞台：混合策略单纯形}
+\label{sec:fixedpt-nash-stage}
+
+设有 $n$ 个玩家，玩家 $i$ 的纯策略集为有限集 $A_i$，$\abs{A_i}=m_i$。玩家 $i$ 的\textbf{混合策略} $\sigma_i$ 是 $A_i$ 上的一个概率分布，即
+\[
+    \sigma_i\in\Delta_i=\setb{\sigma_i\in\RR^{m_i}_{\ge 0}}{\textstyle\sum_{a\in A_i}\sigma_i(a)=1} .
+\]
+这个 $\Delta_i$ 是 $(m_i-1)$ 维\textbf{单纯形}——它\emph{非空、紧致、凸}（有界闭且任意两概率分布的凸组合仍是概率分布）。所有玩家的混合策略组合构成
+\[
+    \Delta=\Delta_1\times\cdots\times\Delta_n ,
+\]
+有限多个凸紧集的笛卡尔积仍然凸紧。\textbf{Kakutani 对定义域的要求（凸、紧、非空）就此自动满足}——这正是``选混合策略而非纯策略''带来的第一个红利：纯策略集是离散点集，谈不上凸；一``混合''就把它撑成了凸紧的单纯形。
+
+玩家 $i$ 的期望收益 $u_i(\sigma_i,\sigma_{-i})$ 是各方混合概率的\emph{多重线性}函数（对每个 $\sigma_j$ 都是线性的），从而\textbf{连续}，且对自己的 $\sigma_i$ \emph{线性}（自然是凹的）——这两点马上要用。
+
+\subsection{把均衡写成最优反应对应的不动点}
+\label{sec:fixedpt-nash-br}
+
+定义玩家 $i$ 的\textbf{最优反应对应}
+\[
+    B_i(\sigma_{-i})=\argmax_{\sigma_i\in\Delta_i}\;u_i(\sigma_i,\sigma_{-i})\subseteq\Delta_i ,
+\]
+再把所有人的拼起来，得到从 $\Delta$ 到自身的对应
+\[
+    B(\sigma)=B_1(\sigma_{-1})\times\cdots\times B_n(\sigma_{-n}),\qquad B:\Delta\rightrightarrows\Delta .
+\]
+按定义，$\sigma^*$ 是纳什均衡 $\iff$ 每个 $i$ 都在最优反应 $\iff$ $\sigma_i^*\in B_i(\sigma_{-i}^*)$ 对所有 $i$ 成立 $\iff$
+\[
+    \boxed{\ \sigma^*\in B(\sigma^*)\ }.
+\]
+均衡就是最优反应对应 $B$ 的\emph{不动点}（图~\ref{fig:fixedpt-2}）。剩下的全部工作，就是核验 $B$ 满足 Kakutani 的两个条件。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=5,>=Stealth]
+  % 策略平面 (s1,s2)，单位方块为两玩家的（混合）策略
+  \draw[->] (-0.04,0) -- (1.14,0) node[right] {$s_1$};
+  \draw[->] (0,-0.04) -- (0,1.14) node[above] {$s_2$};
+  \draw[gray!50] (1,0) -- (1,1) -- (0,1);
+  \node[anchor=north] at (1,-0.02) {$1$};
+  \node[anchor=east] at (-0.01,1) {$1$};
+  % 玩家 1 的最优反应 s1=R1(s2)：过 (0.8,0) 与 (0.3,1)
+  \draw[thick,blue!60!black] (0.8,0) -- (0.3,1);
+  \node[blue!60!black,anchor=west] at (0.305,0.96) {$s_1=R_1(s_2)$};
+  % 玩家 2 的最优反应 s2=R2(s1)：过 (0,0.7) 与 (1,0.3)
+  \draw[thick,orange!75!black] (0,0.7) -- (1,0.3);
+  \node[orange!72!black,anchor=south west] at (0.02,0.705) {$s_2=R_2(s_1)$};
+  % Nash 交点 (0.5625,0.475)，精确落在两线交点
+  \coordinate (N) at (0.5625,0.475);
+  \fill[red!75!black] (N) circle (0.9pt);
+  \draw[densely dotted,gray!65] (0.5625,0) -- (N) -- (0,0.475);
+  \node[anchor=north] at (0.5625,-0.015) {$s_1^{*}$};
+  \node[anchor=east] at (-0.01,0.475) {$s_2^{*}$};
+  % Nash 标签，停在右上空白，细引线指向交点（不穿任一反应曲线）
+  \node[red!70!black,anchor=west,align=left] at (0.74,0.74)
+      {Nash 均衡\\$\vc s^{*}=B(\vc s^{*})$};
+  \draw[red!60!black,->] (0.735,0.715) -- (0.585,0.495);
+\end{tikzpicture}
+\caption{两人博弈的最优反应曲线（此处恰为单值，画成两条线）：玩家 1 对玩家 2 的最优反应 $R_1$ 与玩家 2 对玩家 1 的最优反应 $R_2$。二者的交点 $\vc s^*$ 满足 $\vc s^*=B(\vc s^*)$，即谁都不想偏离——这就是纳什均衡。Kakutani 定理保证这样的交点总存在。}
+\label{fig:fixedpt-2}
+\end{figure}
+
+\subsection{核验 Kakutani 的条件}
+\label{sec:fixedpt-nash-verify}
+
+\textbf{(1) 非空。} 对固定的 $\sigma_{-i}$，$u_i(\cdot,\sigma_{-i})$ 是紧集 $\Delta_i$ 上的连续函数，由 Weierstrass 极值定理（第九章）最大值可达，故 $B_i(\sigma_{-i})\neq\varnothing$。
+
+\textbf{(2) 凸值。} 关键一步。$B_i(\sigma_{-i})$ 是 $u_i(\cdot,\sigma_{-i})$ 在 $\Delta_i$ 上的所有最大值点。因为 $u_i$ 关于自己的混合策略 $\sigma_i$ 是\emph{线性}的（从而凹），其最大值点之集是凸集：若 $\sigma_i',\sigma_i''$ 都取到同一最高值，则它们的任意凸组合 $\lambda\sigma_i'+(1-\lambda)\sigma_i''$ 因线性也取到\emph{同样}的值，仍是最优反应。\textbf{混合策略的``可凸组合''与收益的线性，在这里合谋造出了凸值}——这正是 Kakutani 的硬要求，也是 Brouwer 给不了的。
+
+\textbf{(3) 闭图像（上半连续）。} 这是``最大值定理''（Berge，第十章）的直接推论：当目标函数 $u_i$ 连续、约束集 $\Delta_i$ 不随参数变（恒为同一紧集）时，$\argmax$ 对应 $B_i$ 上半连续、有闭图像。直观地说，沿着 $\sigma_{-i}^{(k)}\to\sigma_{-i}$ 取一列最优反应 $\sigma_i^{(k)}\to\sigma_i$，由 $u_i$ 连续，极限 $\sigma_i$ 仍是对极限 $\sigma_{-i}$ 的最优反应，不会``塌缩''漏掉。
+
+笛卡尔积保持这三条性质，故乘积对应 $B:\Delta\rightrightarrows\Delta$ 满足 Kakutani 的全部前提。
+
+\subsection{收网}
+\label{sec:fixedpt-nash-close}
+
+\thm{纳什存在性定理（1950）}{
+每个有限博弈都至少存在一个混合策略纳什均衡。
+}
+\pf{
+取定义域为混合策略单纯形之积 $\Delta=\Delta_1\times\cdots\times\Delta_n$，它非空、紧致、凸。取对应为最优反应 $B:\Delta\rightrightarrows\Delta$。上一小节已逐条核验：$B$ 非空凸值、有闭图像。Kakutani 不动点定理于是断言存在 $\sigma^*\in\Delta$ 使 $\sigma^*\in B(\sigma^*)$。依 $B$ 的定义，这等价于每个玩家都在对其余人做最优反应，即 $\sigma^*$ 是纳什均衡。
+}
+
+\state{这套``三步装配''可以照搬}{
+注意证明的骨架与具体博弈无关，是一套通用模板：\textbf{(i)} 把策略空间做成凸紧集（混合策略单纯形之积）；\textbf{(ii)} 把``均衡''写成某个对应（最优反应）的不动点 $\sigma^*\in B(\sigma^*)$；\textbf{(iii)} 用 Weierstrass 验非空、用目标函数对自变量的\emph{凹性}验凸值、用最大值定理验闭图像，套 Kakutani 收网。后续遇到``存在某种均衡''的论断（贝叶斯纳什、相关均衡、议价解……），几乎都能套这个模板，只需替换``策略空间''与``最优反应''的具体内容。认得这副骨架，你就掌握了博弈论里大半存在性证明的通法。
+}
+
+\rmkb[纯策略未必存在，混合才是``闭包''下的对的对象]{
+``石头剪刀布''没有纯策略纳什均衡：对任何纯策略组合，总有人想偏离。但它有混合均衡（各 $1/3$）。这说明纯策略层面问题无解，根子在于纯策略集是离散的、非凸的，不满足不动点定理的前提。引入混合策略，等于把离散点集取了``凸化闭包'',让单纯形登场，存在性才得以成立。\emph{用混合策略不是为了``更一般'',而是为了让不动点机器能够开动}。
+}
+
+\section{应用二：一般均衡的存在}
+\label{sec:fixedpt-walras}
+
+第二座大厦是竞争性一般均衡（瓦尔拉斯均衡）的存在。思路与纳什如出一辙，只是``均衡''换成``价格使所有市场出清''，对应换成``按超额需求调价''。
+
+设有 $\ell$ 种商品，价格向量 $\vc p=(p_1,\dots,p_\ell)$。各消费者在预算约束下最大化效用、各厂商最大化利润，加总得到\textbf{超额需求函数} $\vc z(\vc p)=(z_1(\vc p),\dots,z_\ell(\vc p))$，其中 $z_k$ 为第 $k$ 种商品的市场需求减供给。两条标准性质至关重要：
+
+\asm{超额需求的两条结构性质}{
+\begin{enumerate}
+    \item \textbf{零次齐次}：$\vc z(\lambda\vc p)=\vc z(\vc p)$ 对一切 $\lambda>0$。只有相对价格有意义，故可把价格规范化到单位单纯形
+    \[
+        \Delta=\setb{\vc p\in\RR^\ell_{\ge 0}}{\textstyle\sum_{k}p_k=1},
+    \]
+    它非空、紧致、凸——又是单纯形，又一次满足 Kakutani / Brouwer 对定义域的要求。
+    \item \textbf{瓦尔拉斯法则}：$\vc p\cdot\vc z(\vc p)=0$ 对一切 $\vc p$ 成立（每个消费者花光预算，加总后总支出恒等于总收入）。它的含义是：超额需求的``价值''恒为零。
+\end{enumerate}
+}
+
+目标是找 $\vc p^*\in\Delta$ 使 $\vc z(\vc p^*)\le\vc 0$（自由处置下，出清允许免费品供过于求）。把它化成不动点：定义\textbf{调价映射} $T:\Delta\to\Delta$，
+\[
+    T_k(\vc p)=\frac{p_k+\max\set{0,\,z_k(\vc p)}}{1+\sum_{j=1}^\ell\max\set{0,\,z_j(\vc p)}},\qquad k=1,\dots,\ell .
+\]
+读法很直白：哪种商品超额需求为正（$z_k>0$，供不应求），就\emph{抬高}它的价格 $p_k$；分母只是把结果重新规范化回单纯形 $\Delta$。这个 $T$ 连续（$\vc z$ 连续、$\max\set{0,\cdot}$ 连续）、把凸紧的 $\Delta$ 映回自身，由 \textbf{Brouwer} 定理有不动点 $\vc p^*=T(\vc p^*)$。
+
+剩下要说明：这个不动点 $\vc p^*$ 正是均衡。在不动点处，对每个 $k$，
+\[
+    p_k^*=\frac{p_k^*+\max\set{0,z_k(\vc p^*)}}{1+\sum_j\max\set{0,z_j(\vc p^*)}} .
+\]
+记 $S=\sum_j\max\set{0,z_j(\vc p^*)}\ge 0$，整理得 $p_k^*\,S=\max\set{0,z_k(\vc p^*)}$。两边同乘 $z_k(\vc p^*)$ 再对 $k$ 求和：左边 $=S\sum_k p_k^* z_k(\vc p^*)=S\cdot(\vc p^*\cdot\vc z)=0$（瓦尔拉斯法则）；右边 $=\sum_k z_k(\vc p^*)\max\set{0,z_k(\vc p^*)}=\sum_k\bigl(\max\set{0,z_k(\vc p^*)}\bigr)^2\ge 0$。一个非负的平方和等于零，逼出每一项都是零，即 $\max\set{0,z_k(\vc p^*)}=0$，也就是 $z_k(\vc p^*)\le 0$ 对所有 $k$。所有市场出清（或免费品供过于求），$\vc p^*$ 是瓦尔拉斯均衡。
+
+\thm{瓦尔拉斯均衡存在性（要点版）}{
+若超额需求 $\vc z$ 在价格单纯形 $\Delta$ 上连续、零次齐次并满足瓦尔拉斯法则，则存在 $\vc p^*\in\Delta$ 使 $\vc z(\vc p^*)\le\vc 0$，即竞争性一般均衡存在。
+}
+
+\rmkb[严格证明要小心边界]{
+上面用 Brouwer 的论证抓住了全部直觉，但严格处理时有个技术麻烦：某些价格趋于零（某商品免费）时需求可能爆炸，$\vc z$ 在 $\Delta$ 边界上未必连续或有界。Arrow 与 Debreu（1954）的经典证明正是在此处下功夫——他们用\textbf{Kakutani}（而非 Brouwer），把消费者与厂商的最优选择直接处理成上半连续、凸值的需求/供给\emph{对应}，绕开了为超额需求显式造调价映射的边界难题。无论走 Brouwer 还是 Kakutani，机器都是同一台不动点定理；差别只在如何驯服边界。本书取 Brouwer 版以突出主干直觉。
+}
+
+\section{它通向何处：存在 vs.\ 唯一与构造}
+\label{sec:fixedpt-beyond}
+
+本章把``均衡存在''统一成了``不动点存在'',并交给两台机器：单值的 Brouwer、集值的 Kakutani。但它们只回答一个字——\emph{在}。两件经济学家同样在意的事，它们一概不管。
+
+\state{不动点定理给什么、不给什么}{
+Brouwer 与 Kakutani 用\emph{拓扑}条件（凸、紧、连续 / 上半连续）换来一般的\textbf{存在性}，但\emph{既不保证唯一、也不告诉你怎么算}。证明本身是非构造性的——它断言不动点在那儿，却不交给你一条找到它的路径。多重均衡（多个不动点）在博弈论与宏观里司空见惯，恰恰因为存在性定理对个数缄默。要补上``唯一''与``可计算'',得换一套更强的条件：\textbf{压缩映射}（下一章）。它对映射要求得更苛刻（一致地缩小距离），回报却是存在、唯一、外加一个保证收敛的迭代算法三者兼得。两章合起来才是完整的工具箱：\emph{Brouwer / Kakutani 管``有没有''，Banach 管``唯不唯一、怎么算''}。}
+
+把本章这把工具接回经济学主干，它的去处主要有三处：
+
+\begin{itemize}
+    \item \textbf{博弈论：纳什存在}（本章已证）。它是非合作博弈全部理论的入场券——没有这条存在性，``求解均衡''就成了无的放矢。贝叶斯纳什均衡、相关均衡、子博弈完美均衡的存在性，骨架都沿用本章的``Kakutani 三步装配''。
+    \item \textbf{一般均衡：瓦尔拉斯均衡存在}（本章已证）。Arrow--Debreu 模型的存在性定理是现代价格理论的奠基石；福利经济学两大定理则进一步把这个均衡与帕累托最优挂钩。
+    \item \textbf{动态规划：值函数的存在与唯一}。Bellman 方程 $V=TV$ 是不动点方程，但它活在\emph{无穷维}的函数空间里——Brouwer 要的有限维凸紧集失效了，且这里真正需要的是``唯一 + 可迭代算出'',这正是\textbf{压缩映射}的主场（下一章建立压缩映射这件工具；完整的动态规划理论见 Part VII）。本章与下一章因此分工明确：拓扑给一般的存在（博弈、一般均衡），度量给存在加唯一加构造（值函数）。
+\end{itemize}
+
+这再次印证了本书的主线：认清``均衡即不动点''这一个抽象，许多看似无关的存在性问题，便归约成了同一个数学事实。

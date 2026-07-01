@@ -1,0 +1,459 @@
+% !TEX root = ../main.tex
+\chapter{内积、正交、投影与最小二乘}
+\label{ch:proj}
+
+\noindent\emph{用到的前置工具：向量空间、线性无关、基与维数（第一章）；矩阵、秩与列空间，矩阵求逆（第二章）。}
+\medskip
+
+计量经济学的入门动作只有一个：给一堆数据点配一条``最贴合''的直线。这件看似朴素的事，背后藏着整个线性代数里最有用的一段几何——\textbf{正交投影}。本章想说服你：最小二乘（OLS）不是一套需要硬背的代数公式，而是一个一句话就能说清的几何图像——\emph{把被解释变量这个向量，垂直地投影到回归元张成的那个子空间上}。一旦接受了这个图像，正规方程、投影矩阵 $\mat P=\mat X\inv{(\mat X\T\mat X)}\mat X\T$ 的种种性质、拟合值与残差的正交、$R^2$ 的含义、乃至 Frisch–Waugh–Lovell 定理，都会从同一张图里自然长出来，几乎不需要再单独记忆。
+
+为了讲清这张图，我们先把它赖以成立的几何语言备齐：度量``长度''与``夹角''的\textbf{内积}，由内积派生的\textbf{范数}与\textbf{正交}，以及``垂直分解''得以唯一进行的\textbf{投影定理}。这些工具本身远不止服务于 OLS——条件期望是 $L^2$ 空间里的投影（见后文概率部分『条件期望作为投影』一章），最优线性预测、GLS、工具变量法也都讲着同一套正交的语言。
+
+\section{从拟合一条直线说起}
+\label{sec:proj-motivation}
+
+设有 $n$ 个观测，被解释变量堆成列向量 $\vc y\in\RR^{n}$，$k$ 个回归元（含常数项）堆成 $n\times k$ 矩阵 $\mat X=[\vc x_1\;\cdots\;\vc x_k]$。OLS 要找一组系数 $\vc\beta\in\RR^{k}$，使拟合 $\mat X\vc\beta$ 与 $\vc y$ 的``总偏差''最小：
+\[
+    \min_{\vc\beta\in\RR^{k}}\;\sum_{i=1}^{n}\pr{y_i-\vc x_i\T\vc\beta}^2
+    \;=\;\min_{\vc\beta\in\RR^{k}}\;\norm{\vc y-\mat X\vc\beta}^2 .
+\]
+这里有一个视角的转换，是理解全章的关键。我们\emph{不}把 $\mat X$ 的每一\emph{行}（一个观测的若干特征）当主角，而是把 $\mat X$ 的每一\emph{列}（一个变量在全部 $n$ 个观测上的取值）当主角。于是 $\mat X\vc\beta=\beta_1\vc x_1+\cdots+\beta_k\vc x_k$ 是诸列向量的一个线性组合，当 $\vc\beta$ 取遍 $\RR^k$ 时，$\mat X\vc\beta$ 扫出的正是 $\mat X$ 各列张成的子空间——它的\textbf{列空间} $\mathrm{col}(\mat X)\se\RR^{n}$。
+
+这样一来，OLS 问题就被翻译成了一句纯几何的话：
+
+\state{OLS 的几何重述}{
+在 $n$ 维空间 $\RR^n$ 里，给定一个点 $\vc y$ 和一个子空间 $\mathrm{col}(\mat X)$，求该子空间中\emph{离 $\vc y$ 最近}的点。这个最近点就是拟合值 $\hat{\vc y}=\mat X\hat{\vc\beta}$，而由它指回 $\vc y$ 的那截``够不到''的部分就是残差 $\vc e=\vc y-\hat{\vc y}$。
+}
+
+到一个子空间``最近的点''是什么？欧氏几何的直觉早已给出答案：从点向子空间作\emph{垂线}，垂足就是最近点。把这个``垂线''的直觉变成可计算、可证明、可推广到任意维数的定理，正是本章前半段的任务。我们需要先有``垂直''——也就是内积与正交。
+
+\section{内积、范数与正交}
+\label{sec:proj-inner}
+
+\defn{内积}{
+$\RR^{n}$ 上两个向量 $\vc u,\vc v$ 的（标准）\textbf{内积}定义为
+\[
+    \inner{\vc u}{\vc v}\;=\;\vc u\T\vc v\;=\;\sum_{i=1}^{n}u_i v_i .
+\]
+它满足：对称性 $\inner{\vc u}{\vc v}=\inner{\vc v}{\vc u}$；对每个分量线性 $\inner{a\vc u+b\vc w}{\vc v}=a\inner{\vc u}{\vc v}+b\inner{\vc w}{\vc v}$；以及正定性 $\inner{\vc v}{\vc v}\ge 0$，等号当且仅当 $\vc v=\vc 0$。
+}
+
+内积一举给了我们``长度''与``夹角''两样东西。长度即\textbf{范数}
+\[
+    \norm{\vc v}=\sqrt{\inner{\vc v}{\vc v}}=\sqrt{\textstyle\sum_i v_i^2},
+\]
+它就是欧氏距离；两点的距离 $\norm{\vc u-\vc v}$ 度量的正是 OLS 要最小化的那个``偏差''。夹角则由
+\[
+    \cos\theta=\frac{\inner{\vc u}{\vc v}}{\norm{\vc u}\,\norm{\vc v}}
+\]
+定义。这里右边落在 $[-1,1]$ 内并非凑巧，而是\textbf{Cauchy–Schwarz 不等式}
+\[
+    \abs{\inner{\vc u}{\vc v}}\le\norm{\vc u}\,\norm{\vc v}
+\]
+的保证——它是内积三条性质（对称、线性、正定）的直接推论：对任意实数 $t$，正定性给出 $0\le\norm{\vc u-t\vc v}^2=\norm{\vc u}^2-2t\inner{\vc u}{\vc v}+t^2\norm{\vc v}^2$，这是关于 $t$ 的开口向上的二次式，恒非负要求判别式 $\le0$，即 $\inner{\vc u}{\vc v}^2\le\norm{\vc u}^2\norm{\vc v}^2$，开方即得。当夹角为直角时 $\cos\theta=0$，内积为零——这就是``垂直''的代数定义。
+
+\defn{正交}{
+两个向量 $\vc u,\vc v$ \textbf{正交}（记 $\vc u\perp\vc v$），若 $\inner{\vc u}{\vc v}=0$。称向量 $\vc v$ 与子空间 $\cL$ 正交（记 $\vc v\perp\cL$），若 $\vc v$ 与 $\cL$ 中\emph{每个}向量都正交。一组两两正交且都非零的向量称为\textbf{正交组}；若再把每个都标准化到单位长度，则称\textbf{标准正交组}。
+}
+
+正交之所以是好东西，最直接的理由是下面这条——它把读者熟悉的勾股定理搬进了任意维空间，而 $R^2$ 与方差分解最终都落在它上面。
+
+\fact{勾股定理}{
+若 $\vc u\perp\vc v$，则 $\norm{\vc u+\vc v}^2=\norm{\vc u}^2+\norm{\vc v}^2$。
+}
+\noindent 验证只需展开：$\norm{\vc u+\vc v}^2=\inner{\vc u+\vc v}{\vc u+\vc v}=\norm{\vc u}^2+2\inner{\vc u}{\vc v}+\norm{\vc v}^2$，正交项 $\inner{\vc u}{\vc v}=0$ 一抹去即得。
+
+\rmkb[为什么一上来就抽象成``内积''而不只说点积]{
+本章只用标准内积 $\vc u\T\vc v$，但刻意把性质（对称、线性、正定）单列出来，是因为经济学里``垂直''常以别的面目出现：GLS 用的是加权内积 $\inner{\vc u}{\vc v}_{\vc\Omega}=\vc u\T\inv{\vc\Omega}\vc v$；概率论里随机变量的内积是 $\inner{X}{Y}=\E{XY}$，于是``不相关''就是一种正交，条件期望就是一种投影。凡满足这三条性质的运算都配得上``内积''之名，本章关于投影的所有结论会原样搬过去——这正是抽象的回报。
+}
+
+\section{正交补与投影定理}
+\label{sec:proj-theorem}
+
+把``垂直于一个子空间''的所有向量收集起来，就得到该子空间的\emph{正交补}。它是``残差该待的地方''。
+
+\defn{正交补}{
+子空间 $\cL\se\RR^n$ 的\textbf{正交补}定义为
+\[
+    \cL^{\perp}=\setb{\vc v\in\RR^n}{\inner{\vc v}{\vc m}=0\ \text{对一切}\ \vc m\in\cL}.
+\]
+它本身也是一个子空间，且 $\cL\cap\cL^{\perp}=\set{\vc 0}$、$\dim\cL+\dim\cL^{\perp}=n$。
+}
+
+有了正交补，``向子空间作垂线''这件事就有了精确而强力的表述：$\RR^n$ 里任何一个向量都能\emph{唯一地}拆成``落在 $\cL$ 里''与``垂直于 $\cL$''两块。这正是全章的轴心定理。
+
+\thm{正交投影定理}{
+设 $\cL\se\RR^n$ 是一个（有限维）子空间，$\vc y\in\RR^n$。则存在\emph{唯一}的分解
+\[
+    \vc y=\hat{\vc y}+\vc e,\qquad \hat{\vc y}\in\cL,\quad \vc e\in\cL^{\perp}.
+\]
+其中 $\hat{\vc y}$ 称为 $\vc y$ 在 $\cL$ 上的\textbf{正交投影}。它有两条等价的刻画：
+
+\emph{(i) 正交性。} $\hat{\vc y}$ 是 $\cL$ 中使残差 $\vc y-\hat{\vc y}$ 垂直于整个 $\cL$ 的那个向量。
+
+\emph{(ii) 最近性。} $\hat{\vc y}$ 是 $\cL$ 中离 $\vc y$ 最近的点：对一切 $\vc m\in\cL$，$\;\norm{\vc y-\hat{\vc y}}\le\norm{\vc y-\vc m}$，等号仅当 $\vc m=\hat{\vc y}$。
+}
+
+\pf{
+\textbf{存在性}（构造性）。取 $\cL$ 的一组基，对它作下一节的 Gram–Schmidt 正交化得到标准正交基 $\set{\vc q_1,\dots,\vc q_r}$，令
+\[
+    \hat{\vc y}=\sum_{j=1}^{r}\inner{\vc y}{\vc q_j}\,\vc q_j .
+\]
+则 $\hat{\vc y}\in\cL$，且对每个基向量 $\vc q_i$，
+\[
+    \inner{\vc y-\hat{\vc y}}{\vc q_i}
+    =\inner{\vc y}{\vc q_i}-\sum_{j}\inner{\vc y}{\vc q_j}\inner{\vc q_j}{\vc q_i}
+    =\inner{\vc y}{\vc q_i}-\inner{\vc y}{\vc q_i}=0,
+\]
+末步用了标准正交性 $\inner{\vc q_j}{\vc q_i}=\indicator\{i=j\}$。残差与每个基向量正交，故与它们的全部线性组合正交，即 $\vc e=\vc y-\hat{\vc y}\in\cL^{\perp}$。
+
+\textbf{(i)$\To$(ii) 最近性。} 设 $\hat{\vc y}$ 满足正交性，任取 $\vc m\in\cL$。把 $\vc y-\vc m$ 拆成两段：
+\[
+    \vc y-\vc m=\underbrace{(\vc y-\hat{\vc y})}_{\in\,\cL^{\perp}}+\underbrace{(\hat{\vc y}-\vc m)}_{\in\,\cL}.
+\]
+两段正交，套勾股定理：
+\[
+    \norm{\vc y-\vc m}^2=\norm{\vc y-\hat{\vc y}}^2+\norm{\hat{\vc y}-\vc m}^2\ge\norm{\vc y-\hat{\vc y}}^2,
+\]
+等号当且仅当 $\norm{\hat{\vc y}-\vc m}=0$ 即 $\vc m=\hat{\vc y}$。
+
+\textbf{唯一性。} 若另有 $\vc y=\hat{\vc y}'+\vc e'$ 满足同样的分解，则 $\hat{\vc y}-\hat{\vc y}'=\vc e'-\vc e$。左边在 $\cL$ 中，右边在 $\cL^{\perp}$ 中，故此向量同属 $\cL\cap\cL^{\perp}=\set{\vc 0}$，于是 $\hat{\vc y}=\hat{\vc y}'$、$\vc e=\vc e'$。
+}
+
+\state{投影定理是 OLS 的全部内核}{
+``残差垂直于子空间''（正交性）与``拟合值离数据最近''（最近性）是\emph{同一件事}的两种说法——这正是定理 (i)$\Leftrightarrow$(ii) 的内容。OLS 最小化 $\norm{\vc y-\mat X\vc\beta}^2$，要的是最近性；而我们马上会看到，正交性给出可解的\emph{正规方程}。最小化问题与一组线性方程之所以等价，根子就在这条定理。
+}
+
+图~\ref{fig:proj-1} 把这张图画在最容易看清的二维情形：子空间是一条过原点的直线，投影 $\hat{\vc y}$ 是垂足，残差 $\vc e$ 垂直于直线；直线上任何别的点 $\vc w$ 到 $\vc y$ 的距离都更长——这正是``最近性''的肉眼版本。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.4,>=Stealth,line cap=round,line join=round]
+  % 子空间 = 过原点的直线，斜率 1/3（方向 u=(3,1)）。点 y=(1,3)。
+  % 投影 p = 0.6*(3,1) = (1.8,0.6)。残差 e=y-p=(-0.8,2.4)⟂u。
+  % 直线两端点严格落在斜率 1/3 上：(-1.2,-0.4) 与 (3.9,1.3)，与 0,p,w 共线。
+  \draw[blue!55!black,thick] (-1.2,-0.4) -- (3.9,1.3);
+  \node[blue!55!black,anchor=north west] at (3.46,1.16) {子空间 $\cL$};
+
+  \fill (0,0) circle (1.1pt);
+  \node[anchor=north east] at (0.02,-0.02) {$\vc 0$};
+
+  \coordinate (y) at (1,3);
+  \coordinate (p) at (1.8,0.6);
+  \coordinate (q) at (2.55,0.85);
+
+  \fill[red!70!black] (y) circle (1.2pt);
+  \draw[->,very thick,red!70!black] (0,0) -- (y);
+  \node[red!70!black,anchor=south] at (1.0,3.04) {$\vc y$};
+
+  \fill[blue!55!black] (p) circle (1.2pt);
+  \draw[->,very thick,blue!55!black] (0,0) -- (p);
+  \node[blue!55!black,anchor=north] at (1.82,0.46) {$\hat{\vc y}$};
+
+  \draw[->,very thick,green!45!black] (p) -- (y);
+  \node[green!45!black,anchor=east] at (1.18,2.10) {$\vc e=\vc y-\hat{\vc y}$};
+
+  % 直角标记 at p
+  \draw[black,thin]
+    ($(p)+(-0.237,-0.079)$)
+    -- ($(p)+(-0.237,-0.079)+(-0.079,0.237)$)
+    -- ($(p)+(-0.079,0.237)$);
+
+  \fill[gray] (q) circle (1.0pt);
+  \draw[gray,dashed,thick] (q) -- (y);
+  \node[gray,anchor=north east] at (2.50,0.76) {$\vc w$};
+  \node[gray,anchor=west,align=left] at (2.35,2.25)
+       {$\norm{\vc y-\vc w}$\\[1pt]$>\norm{\vc y-\hat{\vc y}}$};
+\end{tikzpicture}
+\caption{正交投影定理（二维情形）：$\hat{\vc y}$ 是 $\vc y$ 在子空间 $\cL$ 上的垂足，残差 $\vc e=\vc y-\hat{\vc y}$ 垂直于 $\cL$；$\cL$ 中任何别的点 $\vc w$ 都离 $\vc y$ 更远。}
+\label{fig:proj-1}
+\end{figure}
+
+\rmkb[``唯一''靠的是 $\cL\cap\cL^{\perp}=\set{\vc 0}$]{
+唯一性证明里那一步——一个向量既在 $\cL$ 又在 $\cL^{\perp}$ 就只能是零——看似平凡，却是整套理论稳固的基石。它在 OLS 里的回声是：投影 $\hat{\vc y}$ 永远唯一确定（无论 $\mat X$ 是否列满秩），而\emph{系数} $\hat{\vc\beta}$ 唯一与否，则取决于 $\mat X$ 的列是否线性无关——这正是``多重共线性''在几何上的位置（详见下文）。
+}
+
+\section{投影矩阵}
+\label{sec:proj-matrix}
+
+投影定理保证了 $\hat{\vc y}$ 存在且唯一，但还没告诉我们怎么\emph{算}它。既然 $\vc y\mapsto\hat{\vc y}$ 是个线性映射（投影显然对加法与数乘封闭），它必由一个矩阵实现。当子空间是 $\mathrm{col}(\mat X)$ 时，这个矩阵有一个漂亮的闭式。
+
+\thm{投影到列空间的矩阵}{
+设 $\mat X$ 为 $n\times k$ 且\emph{列满秩}（$\rank\mat X=k$，即 $\mat X\T\mat X$ 可逆）。则向 $\mathrm{col}(\mat X)$ 的正交投影由矩阵
+\[
+    \mat P=\mat X\inv{(\mat X\T\mat X)}\mat X\T
+\]
+实现，即对任何 $\vc y$ 都有 $\hat{\vc y}=\mat P\vc y$。
+}
+
+\pf{
+要证 $\mat P\vc y$ 正是投影，按投影定理的正交刻画，只需验证两件事：$\mat P\vc y\in\mathrm{col}(\mat X)$，且残差 $\vc y-\mat P\vc y$ 与 $\mathrm{col}(\mat X)$ 正交。
+
+第一件显然：$\mat P\vc y=\mat X\br{\inv{(\mat X\T\mat X)}\mat X\T\vc y}$ 是 $\mat X$ 各列的线性组合，故在列空间里。
+
+第二件，``与列空间正交''等价于``与 $\mat X$ 每一列正交'',即 $\mat X\T(\vc y-\mat P\vc y)=\vc 0$。直接算：
+\[
+    \mat X\T(\vc y-\mat P\vc y)
+    =\mat X\T\vc y-\mat X\T\mat X\inv{(\mat X\T\mat X)}\mat X\T\vc y
+    =\mat X\T\vc y-\mat X\T\vc y=\vc 0 .
+\]
+两条都成立，故 $\mat P\vc y$ 即所求投影。
+}
+
+\rmk{这个 $\mat P$ 在计量里就是大名鼎鼎的``帽子矩阵''（hat matrix），因为它给 $\vc y$ 戴上帽子变成 $\hat{\vc y}$。}
+
+投影矩阵有两条招牌性质，几乎所有 OLS 的代数恒等式都从它们派生。
+
+\prop{投影矩阵的对称与幂等}{
+上述 $\mat P=\mat X\inv{(\mat X\T\mat X)}\mat X\T$ 满足
+
+\emph{(a) 对称}：$\mat P\T=\mat P$；\qquad
+\emph{(b) 幂等}：$\mat P^2=\mat P$。
+
+反之，任何对称且幂等的矩阵都是向某个子空间（即它自己的列空间）的正交投影。
+}
+
+\pf{
+\textbf{(a) 对称。} 注意 $\mat X\T\mat X$ 对称，故其逆也对称，$\pr{\inv{(\mat X\T\mat X)}}\T=\inv{(\mat X\T\mat X)}$。于是
+\[
+    \mat P\T=\pr{\mat X\inv{(\mat X\T\mat X)}\mat X\T}\T
+    =\mat X\,\pr{\inv{(\mat X\T\mat X)}}\T\mat X\T
+    =\mat X\inv{(\mat X\T\mat X)}\mat X\T=\mat P .
+\]
+
+\textbf{(b) 幂等。} 中间的 $\mat X\T\mat X$ 与它的逆相消：
+\[
+    \mat P^2=\mat X\inv{(\mat X\T\mat X)}\underbrace{\mat X\T\mat X\inv{(\mat X\T\mat X)}}_{=\,\mat I}\mat X\T
+    =\mat X\inv{(\mat X\T\mat X)}\mat X\T=\mat P .
+\]
+}
+
+这两条性质都不是巧合，而是``投影''这件事的几何本质在代数上的投影（恕用此双关）：
+
+\state{对称 $=$ 正交，幂等 $=$ 投影}{
+\emph{幂等} $\mat P^2=\mat P$ 说的是：已经落在子空间里的东西，再投一次纹丝不动——投影是``一锤子买卖''。\emph{对称} $\mat P\T=\mat P$ 说的是这个投影是\emph{正交}的（沿垂直方向投，而非斜着投）；去掉对称只保留幂等，得到的是``斜投影''，在 GLS、IV 里会遇到。把这两个几何事实记牢，胜过记任何代数公式。
+}
+
+与 $\mat P$ 配对的是\textbf{消灭矩阵} $\mat M=\mat I-\mat P$，它把 $\vc y$ 送到残差：$\vc e=\vc y-\hat{\vc y}=(\mat I-\mat P)\vc y=\mat M\vc y$。
+
+\cor{消灭矩阵 $\mat M=\mat I-\mat P$}{
+$\mat M$ 也对称、幂等，它是向\emph{正交补} $\mathrm{col}(\mat X)^{\perp}$ 的投影；且 $\mat M$ 与 $\mat P$ 互相``湮灭''：
+\[
+    \mat M\T=\mat M,\quad \mat M^2=\mat M,\quad \mat P\mat M=\mat M\mat P=\mat 0 .
+\]
+特别地 $\mat M\mat X=\mat 0$：消灭矩阵作用在自己的回归元上得零。
+}
+
+\pf{
+对称由 $\mat P$ 对称立得。幂等：$\mat M^2=(\mat I-\mat P)^2=\mat I-2\mat P+\mat P^2=\mat I-2\mat P+\mat P=\mat I-\mat P=\mat M$。湮灭：$\mat P\mat M=\mat P(\mat I-\mat P)=\mat P-\mat P^2=\mat 0$，同理 $\mat M\mat P=\mat 0$。最后 $\mat M\mat X=\mat X-\mat P\mat X=\mat X-\mat X=\mat 0$，因为 $\mat X$ 的列本就在列空间里、投影不动它们。
+}
+
+\rmkb[投影矩阵的几个``一眼能看穿''的量]{
+对称幂等矩阵的特征值非 $0$ 即 $1$（若 $\mat P\vc v=\lambda\vc v$，则 $\lambda\vc v=\mat P\vc v=\mat P^2\vc v=\lambda^2\vc v$，故 $\lambda=\lambda^2$）。特征值为 $1$ 的方向正是子空间内部、为 $0$ 的是正交补。于是 $\rank\mat P=\tr\mat P=k$（迹等于特征值之和，即 $1$ 的个数），$\rank\mat M=\tr\mat M=n-k$——后者正是 OLS 的``自由度''，它在估计 $\sigma^2$ 时分母里的 $n-k$ 由此而来（见后文计量部分）。
+}
+
+\section{Gram–Schmidt 正交化}
+\label{sec:proj-gs}
+
+投影定理的存在性证明欠了一笔账：它用到了一组\emph{标准正交基}。任意一组线性无关向量未必正交，但总能``扳正''成正交的——这就是 Gram–Schmidt 过程。它本身就是投影的反复运用：每加入一个新向量，就减去它在``已经处理好的那块子空间''上的投影，只留下垂直的新方向。
+
+\thm{Gram–Schmidt 正交化}{
+设 $\vc a_1,\dots,\vc a_k\in\RR^n$ 线性无关。依次令
+\[
+    \vc q_1=\vc a_1,\qquad
+    \vc q_j=\vc a_j-\sum_{i=1}^{j-1}\frac{\inner{\vc a_j}{\vc q_i}}{\inner{\vc q_i}{\vc q_i}}\,\vc q_i
+    \quad(j=2,\dots,k).
+\]
+则 $\set{\vc q_1,\dots,\vc q_k}$ 两两正交，且对每个 $j$ 都有 $\spn\set{\vc q_1,\dots,\vc q_j}=\spn\set{\vc a_1,\dots,\vc a_j}$。把各 $\vc q_j$ 单位化即得标准正交基。
+}
+
+\pf{
+对 $j$ 归纳。$j=1$ 平凡。设 $\vc q_1,\dots,\vc q_{j-1}$ 已两两正交。式中减去的那一项 $\sum_{i<j}\frac{\inner{\vc a_j}{\vc q_i}}{\inner{\vc q_i}{\vc q_i}}\vc q_i$ 恰是 $\vc a_j$ 在子空间 $\spn\set{\vc q_1,\dots,\vc q_{j-1}}$ 上的正交投影（这正是投影定理存在性里用正交基写投影的公式）。因此 $\vc q_j$ 是对应的残差，按投影定理它垂直于该子空间，即与 $\vc q_1,\dots,\vc q_{j-1}$ 全部正交。张成相等则由``每个 $\vc q_j$ 是 $\vc a_1,\dots,\vc a_j$ 的线性组合，反之亦然''逐层推得。
+}
+
+最干净的画面是两个向量的情形（图~\ref{fig:proj-2}）：保留 $\vc a_1$ 不动，把 $\vc a_2$ 沿 $\vc a_1$ 方向的影子减掉，剩下的 $\vc q_2$ 就垂直于 $\vc a_1$。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.4,>=Stealth,line cap=round,line join=round]
+  % Gram-Schmidt: a1=(3.5,0), a2=(2.4,2.4)。
+  % proj_{a1} a2 = (2.4/3.5)*(3.5,0)=(2.4,0); q2=(0,2.4) ⟂ a1。
+  \coordinate (O) at (0,0);
+  \coordinate (a1) at (3.5,0);
+  \coordinate (a2) at (2.4,2.4);
+  \coordinate (pr) at (2.4,0);
+
+  \draw[->,very thick,blue!55!black] (O) -- (a1);
+  \node[blue!55!black,anchor=west] at (3.54,0) {$\vc a_1$};
+
+  \draw[->,very thick,red!70!black] (O) -- (a2);
+  \node[red!70!black,anchor=south west] at (2.42,2.40) {$\vc a_2$};
+
+  \draw[->,very thick,blue!75!black,opacity=0.55] (O) -- (pr);
+  \node[blue!60!black,anchor=north,align=center] at (1.2,-0.08)
+       {$\dfrac{\inner{\vc a_2}{\vc a_1}}{\inner{\vc a_1}{\vc a_1}}\,\vc a_1$};
+
+  \draw[->,very thick,green!45!black] (pr) -- (a2);
+  \node[green!45!black,anchor=west] at (2.46,1.25)
+       {$\vc q_2=\vc a_2-\dfrac{\inner{\vc a_2}{\vc a_1}}{\inner{\vc a_1}{\vc a_1}}\vc a_1$};
+
+  % 直角标记 at pr
+  \draw[black,thin] (2.22,0) -- (2.22,0.18) -- (2.4,0.18);
+  \fill (O) circle (1.0pt);
+\end{tikzpicture}
+\caption{Gram–Schmidt 的一步：从 $\vc a_2$ 中减去它在 $\vc a_1$ 上的投影，得到与 $\vc a_1$ 正交的 $\vc q_2$。每一步都是``原向量 $-$ 投影 $=$ 残差''。}
+\label{fig:proj-2}
+\end{figure}
+
+\rmkb[Gram–Schmidt 通向 QR 分解]{
+把上式反解，$\vc a_j$ 可写成 $\vc q_1,\dots,\vc q_j$ 的线性组合，系数排成一个上三角矩阵。归一化后这给出 $\mat X=\mat Q\mat R$，其中 $\mat Q$ 列标准正交、$\mat R$ 上三角——这就是数值线性代数里解最小二乘的 \textbf{QR 分解}。用它，正规方程退化成 $\mat R\hat{\vc\beta}=\mat Q\T\vc y$，免去了直接对（数值上容易病态的）$\mat X\T\mat X$ 求逆。统计软件算 OLS 走的多是这条路，而非课本里的闭式。
+}
+
+\section{最小二乘即正交投影}
+\label{sec:proj-ols}
+
+万事俱备。现在把投影定理用到子空间 $\cL=\mathrm{col}(\mat X)$ 上，OLS 的全套结论一次落地。最小化 $\norm{\vc y-\mat X\vc\beta}^2$ 求的是 $\mathrm{col}(\mat X)$ 中离 $\vc y$ 最近的点，由投影定理它就是正交投影 $\hat{\vc y}=\mat P\vc y$，残差 $\vc e=\mat M\vc y$ 垂直于整个列空间。``残差垂直于每个回归元''这句话写成方程，就是著名的\textbf{正规方程}。
+
+\thm{正规方程}{
+OLS 系数 $\hat{\vc\beta}$ 是
+\[
+    \mat X\T(\vc y-\mat X\hat{\vc\beta})=\vc 0
+    \quad\Longleftrightarrow\quad
+    \mat X\T\mat X\,\hat{\vc\beta}=\mat X\T\vc y
+\]
+的解。若 $\mat X$ 列满秩，则解唯一：$\;\hat{\vc\beta}=\inv{(\mat X\T\mat X)}\mat X\T\vc y$，相应拟合值 $\hat{\vc y}=\mat X\hat{\vc\beta}=\mat P\vc y$。
+}
+
+\pf{
+由投影定理的正交刻画，最优拟合 $\hat{\vc y}=\mat X\hat{\vc\beta}$ 的残差必垂直于列空间，即与 $\mat X$ 每列正交：$\mat X\T(\vc y-\mat X\hat{\vc\beta})=\vc 0$。展开即 $\mat X\T\mat X\hat{\vc\beta}=\mat X\T\vc y$。列满秩时 $\mat X\T\mat X$ 可逆，左乘其逆得唯一解。也可由微积分直接核验：令 $S(\vc\beta)=\norm{\vc y-\mat X\vc\beta}^2$，则 $\grad S=-2\mat X\T(\vc y-\mat X\vc\beta)$，置零即正规方程——\emph{一阶条件与正交条件是同一个方程}，再次印证最近性与正交性的等价。
+}
+
+图~\ref{fig:proj-3} 是本章最该记住的一张图：把图~\ref{fig:proj-1} 的``直线''换成 $n$ 维空间里的一张``平面''（代表列空间），$\vc y$ 从空间外垂直落到平面上得 $\hat{\vc y}=\mat P\vc y$，竖直的残差 $\vc e=(\mat I-\mat P)\vc y$ 垂直于整个平面。所有 OLS 公式都是这张图的文字注脚。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth,line cap=round,line join=round]
+  % 3D 投影图：向量 y 向列空间(平面 col X)的正交投影。
+  % 平面 = span(ex,ey)，残差沿竖直 ez。
+  \coordinate (O)  at (0,0);
+  \coordinate (A)  at (5,0);
+  \coordinate (B)  at (2.5,1.6);
+  \coordinate (C)  at (7.5,1.6);
+  \fill[blue!8] (O) -- (A) -- (C) -- (B) -- cycle;
+  \draw[blue!40!black,thin] (O) -- (A) -- (C) -- (B) -- cycle;
+  \node[blue!45!black,anchor=north west] at (5.05,0.05) {$\mathrm{col}(\mat X)$};
+
+  \coordinate (P) at (3.75,0.48);   % 投影点(平面内)
+  \coordinate (b) at (3.75,2.48);   % y 终点(竖直长2.0)
+
+  \draw[->,very thick,red!70!black] (O) -- (b);
+  \draw[->,very thick,blue!60!black] (O) -- (P);
+  \draw[->,very thick,green!45!black] (P) -- (b);
+
+  % 直角标记：残差(竖直)⟂平面内方向(沿 OP)
+  \draw[black,thin] ($(P)+(-0.30,-0.0384)$) -- ($(P)+(-0.30,-0.0384)+(0,0.28)$)
+                    -- ($(P)+(0,0.28)$);
+
+  \node[red!70!black,anchor=south west] at (b) {$\vc y$};
+  \node[blue!60!black,anchor=north] at (2.0,0.30) {$\hat{\vc y}=\mat P\vc y$};
+  \node[green!45!black,anchor=west] at ($(P)!0.72!(b)+(0.14,0)$) {$\vc e=(\mat I-\mat P)\vc y$};
+\end{tikzpicture}
+\caption{OLS 的几何全貌：被解释变量 $\vc y$ 向回归元列空间 $\mathrm{col}(\mat X)$ 作正交投影，得拟合值 $\hat{\vc y}=\mat P\vc y$；残差 $\vc e=(\mat I-\mat P)\vc y$ 垂直于整个列空间。}
+\label{fig:proj-3}
+\end{figure}
+
+正交性 $\mat X\T\vc e=\vc 0$ 不是抽象装饰，它逐条对应着回归里熟悉的事实。
+
+\state{$\mat X\T\vc e=\vc 0$ 一句话里的全部含义}{
+残差与\emph{每个}回归元正交。其中：若 $\mat X$ 含常数列 $\vc 1$，则 $\vc 1\T\vc e=\sum_i e_i=0$——\emph{残差和为零}（回归``平均意义上''无偏地穿过数据）；与任一回归元 $\vc x_j$ 正交即 $\vc x_j\T\vc e=0$——\emph{残差与每个解释变量样本不相关}。这两条不是 OLS 的额外假定，而是``垂直投影''四个字的直接推论。
+}
+
+\ex[最简单的投影：回归到常数项]{
+只用一个常数列 $\mat X=\vc 1=(1,\dots,1)\T$ 去拟合 $\vc y$。求投影矩阵 $\mat P$、拟合值 $\hat{\vc y}$ 与残差 $\vc e$，并说明几何含义。
+}
+\sol{
+此时 $\mat X\T\mat X=\vc 1\T\vc 1=n$，故
+\[
+    \mat P=\vc 1\,\inv{(\vc 1\T\vc 1)}\,\vc 1\T=\frac1n\vc 1\vc 1\T,
+\]
+它是每个元素都为 $1/n$ 的 $n\times n$ 矩阵。作用在 $\vc y$ 上：
+\[
+    \hat{\vc y}=\mat P\vc y=\frac1n\vc 1(\vc 1\T\vc y)=\bar y\,\vc 1,
+    \qquad \bar y=\frac1n\sum_i y_i .
+\]
+拟合值是每个分量都等于样本均值 $\bar y$ 的向量——\emph{向常数子空间（一维对角线 $\spn\set{\vc 1}$）的投影就是取平均}。残差 $\vc e=\vc y-\bar y\vc 1$ 是去均值（中心化）后的偏差向量，自动满足 $\vc 1\T\vc e=\sum_i(y_i-\bar y)=0$。这个不起眼的例子是下一节方差分解的出发点：``总平方和''正是 $\vc y$ 减去它在 $\spn\set{\vc 1}$ 上投影后的长度平方。
+}
+
+\rmkb[列不满秩时：投影还在，系数散了]{
+若 $\mat X$ 的列线性相关（完全多重共线性），$\mat X\T\mat X$ 不可逆，闭式 $\inv{(\mat X\T\mat X)}\mat X\T\vc y$ 失效。但请注意：\emph{投影 $\hat{\vc y}$ 依旧存在且唯一}——投影定理只要求``子空间''，从不要求基线性无关。失去唯一性的只是\emph{坐标} $\hat{\vc\beta}$：同一个 $\hat{\vc y}$ 能由相关的列以无穷多种系数组合凑出。这把``共线性''的病灶定位得一清二楚：不是拟合出了问题，而是``把拟合拆给各变量''这件事没了唯一答案。
+}
+
+\section{几处去处：FWL、$R^2$ 与方差分解}
+\label{sec:proj-applications}
+
+投影这把工具一旦在手，许多看似独立的计量结论都成了它的推论。这里点出三处最重要的去处。
+
+\paragraph{Frisch–Waugh–Lovell：分步投影。}
+把回归元分成两块 $\mat X=[\mat X_1\;\;\mat X_2]$，对应系数 $\hat{\vc\beta}=(\hat{\vc\beta}_1,\hat{\vc\beta}_2)$。FWL 定理说：要得到 $\hat{\vc\beta}_2$，不必做完整回归，可以\emph{先把 $\mat X_1$ 的影响从 $\vc y$ 和 $\mat X_2$ 中都``洗掉''，再用洗净的部分对回归}。记 $\mat M_1=\mat I-\mat X_1\inv{(\mat X_1\T\mat X_1)}\mat X_1\T$ 为向 $\mathrm{col}(\mat X_1)^{\perp}$ 的投影，则
+\[
+    \hat{\vc\beta}_2=\inv{\pr{(\mat M_1\mat X_2)\T(\mat M_1\mat X_2)}}(\mat M_1\mat X_2)\T(\mat M_1\vc y).
+\]
+几何上这无非是``分两次投影等于一次投影''：先投到 $\mathrm{col}(\mat X_1)$ 的正交补里（用 $\mat M_1$ 把 $\mat X_1$ 那部分扣净），再在剩下的方向上投影。
+
+\state{FWL 的用处与寓意}{
+\emph{用处}：它解释了``控制变量''到底在做什么——回归系数 $\hat{\vc\beta}_2$ 度量的是\emph{剔除 $\mat X_1$ 之后} $\mat X_2$ 与 $\vc y$ 的关系。固定效应模型里``组内变换''（减去组均值）、以及偏回归图（partial regression plot），都是 FWL 的直接应用。\emph{寓意}：高维回归可以被拆成一连串低维投影——这是后续诸多估计量（部分线性模型、双重机器学习里的``正交化''）共同的骨架。
+}
+
+\paragraph{$R^2$ 是投影长度之比。}
+对含常数项的回归，先把 $\vc y$ 与 $\hat{\vc y}$ 都减去均值 $\bar y\vc 1$（即投到 $\spn\set{\vc 1}$ 的正交补里）。中心化后 $\vc y-\bar y\vc 1$ 仍可分解为``已解释''与``残差''两段，且二者正交（残差垂直于含 $\vc1$ 的整个列空间，自然也垂直于已解释部分），勾股定理给出
+\[
+    \underbrace{\norm{\vc y-\bar y\vc 1}^2}_{\text{SST}}
+    =\underbrace{\norm{\hat{\vc y}-\bar y\vc 1}^2}_{\text{SSE}}
+    +\underbrace{\norm{\vc e}^2}_{\text{SSR}} .
+\]
+（缩写约定：本书统一用 SST 记总平方和、SSE 记\emph{已解释}平方和、SSR 记\emph{残差}平方和；英文教材另有把 SSR 当``回归/已解释''、SSE 当``误差/残差''的相反约定，后文方差分析等处一律沿用此处的命名。）于是
+\[
+    R^2=\frac{\text{SSE}}{\text{SST}}=\frac{\norm{\hat{\vc y}-\bar y\vc 1}^2}{\norm{\vc y-\bar y\vc 1}^2}
+    =\cos^2\theta,
+\]
+其中 $\theta$ 是中心化的 $\vc y$ 与其拟合之间的夹角（图~\ref{fig:proj-4}）。$R^2$ 不过是``总向量被投影到模型里的那一段，占了多大比例''——一个纯粹的长度（角度）问题。它天然落在 $[0,1]$ 里，正因为投影分量永远不长于原向量。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth,line cap=round,line join=round]
+  % OLS 直角分解(去均值)：||y||^2=||yhat||^2+||e||^2。
+  % yhat 水平长 4，e 竖直长 3，y 斜边长 5；cosθ=4/5，R^2=16/25。
+  \coordinate (O) at (0,0);
+  \coordinate (H) at (4,0);
+  \coordinate (Y) at (4,3);
+
+  \draw[->,very thick,blue!60!black] (O) -- (H);
+  \node[blue!60!black,anchor=north] at (2.0,-0.12)
+       {$\hat{\vc y}-\bar y\vc 1$（已解释）};
+
+  \draw[->,very thick,green!45!black] (H) -- (Y);
+  \node[green!45!black,anchor=west] at (4.12,1.5) {$\vc e$（残差）};
+
+  \draw[->,very thick,red!70!black] (O) -- (Y);
+  \node[red!70!black,anchor=south east] at (1.95,1.55) {$\vc y-\bar y\vc 1$（总）};
+
+  \draw[black,thin] (3.74,0) -- (3.74,0.26) -- (4,0.26);
+
+  \draw[orange!80!black,thick] (1.1,0) arc (0:36.87:1.1);
+  \node[orange!80!black,anchor=west] at (1.18,0.42) {$\theta$};
+
+  \node[anchor=west,align=left] at (4.65,2.55)
+       {$R^2=\cos^2\theta$\\[2pt]$\;\;\;=\dfrac{\norm{\hat{\vc y}-\bar y\vc 1}^2}{\norm{\vc y-\bar y\vc 1}^2}$};
+
+  \fill (O) circle (1.0pt);
+\end{tikzpicture}
+\caption{$R^2$ 的几何：中心化后总向量、已解释向量、残差构成直角三角形（勾股 $\text{SST}=\text{SSE}+\text{SSR}$）；$R^2=\cos^2\theta$ 是已解释长度平方占总长度平方的比例。}
+\label{fig:proj-4}
+\end{figure}
+
+\paragraph{方差分解。}
+上式两边同除 $n$（或 $n-1$），就是``样本方差 $=$ 被模型解释的方差 $+$ 残差方差''。这一勾股式的分解远不止用于线性回归：方差分析（ANOVA）、随机变量的``总方差 $=$ 条件期望的方差 $+$ 条件方差''（全方差公式）、乃至贝叶斯里信息的增减，骨子里都是同一条正交分解。把``方差''理解成``长度平方''、把``不相关''理解成``正交'',这些公式就从一个共同的几何母本里流出来。
+
+\state{一图三课}{
+本章的核心图（图~\ref{fig:proj-3}）会在全书反复回响。\emph{微观}里，最优线性预测、需求系统的估计都靠它；\emph{宏观/时序}里，新息（innovation）与 Wold 分解是把当期变量向过去信息张成的空间作投影；\emph{计量}的整座大厦——GLS（换一种内积的投影）、IV 与两阶段最小二乘（先投到工具变量空间再回归）、条件期望作为 $L^2$ 投影（见后文『条件期望作为投影』一章）——都是同一张``垂直落下''的图在不同空间里的重演。学会了正交投影，等于一次性拿到了这许多扇门的钥匙。
+}

@@ -1,0 +1,412 @@
+% !TEX root = ../main.tex
+\chapter{收敛模式}
+\label{ch:convergence}
+
+\noindent\emph{用到的前置工具：随机变量、分布与 CDF（见前文『可测函数、随机变量与分布』一章）；测度对单调集列的连续性（概率与测度部分）；Markov / Chebyshev 不等式（同上）；序列与极限的 $\varepsilon$ 语言（分析与拓扑部分）。}
+\medskip
+
+到这一部分为止，我们手里的随机变量都是``静止''的：一个 $X$、一个分布、一个期望。可计量经济学几乎全部的有用结论，都关乎一\emph{列}随机变量 $X_1,X_2,\dots$ 在 $n\to\infty$ 时``趋向''某个东西——样本均值趋向总体均值、估计量趋向真参数、检验统计量趋向某个已知分布。这一``趋向''就是\textbf{收敛}。麻烦在于：随机变量不是实数，``$X_n$ 趋向 $X$''可以有好几种互不等价的含义，而且它们恰好对应计量里几类\emph{不同}的论断。把``收敛''这一个词拆成它真正的几种意思，正是整个渐近统计部分能开口说话的前提。本章就来做这件事。
+
+\section{为什么``收敛''必须分清几种意思}
+\label{sec:convergence-1}
+
+先看两句计量里天天讲的话，它们听上去都像``收敛'',其实说的是\emph{两件不同的事}。
+
+\textbf{第一句：估计量是一致的。} 我们说 OLS 估计量 $\hat{\vc\beta}_n$``一致''，意思是样本越大、它越贴近真值 $\vc\beta_0$——大样本下几乎不会偏离 $\vc\beta_0$ 太远。这是关于``估计量\emph{落点}''的论断：随机的 $\hat{\vc\beta}_n$ 把它的概率质量越来越紧地压在那个\emph{确定的}点 $\vc\beta_0$ 上。
+
+\textbf{第二句：检验统计量渐近服从 $\chi^2$。} 我们说某个 Wald 统计量``渐近 $\chi^2$'',意思是大样本下它的\emph{分布形状}越来越像 $\chi^2$，于是可以查 $\chi^2$ 表定临界值。这里的极限根本不是一个点，而是一整个\emph{分布}；统计量本身始终是随机的、有散布的，并不缩成一点。
+
+这两句话用的是\emph{不同}的收敛。第一句要的是``随机量塌缩到一个常数'',第二句要的是``随机量的分布逼近另一个分布''。若混为一谈，``大数定律''与``中心极限定理''就会彼此矛盾——前者说 $\bar X_n$ 缩成常数 $\mu$，后者却说 $\rtn(\bar X_n-\mu)$ 摊成一个正态分布，二者怎能并存？答案是它们说的是不同模式的收敛，各自成立、互不冲突。本章给出四种收敛模式的精确定义、它们之间谁强谁弱、以及一套描述``收敛速度''的简便记号（$\op,\Op$）。
+
+\state{一句话定调}{
+``一致性''是\textbf{依概率收敛}（估计量塌缩到真值这个\emph{点}）；``渐近分布''是\textbf{依分布收敛}（统计量的\emph{分布}逼近某极限分布）。它们是两种不同的收敛，分别由大数定律与中心极限定理供给。本章把这两种、连同更强的``几乎必然''与``$L^p$''收敛一并理清，是后面 LLN、CLT、Slutsky、Delta 法得以严格陈述的\emph{语言地基}。
+}
+
+\section{四种收敛模式}
+\label{sec:convergence-2}
+
+设 $X_n$ 与 $X$ 都定义在同一概率空间 $(\Omega,\cF,\PP)$ 上（依分布收敛是例外，见下）。下面四个定义，由强到弱大致排列。
+
+\defn{几乎必然收敛（a.s.）}{
+称 $X_n$ \emph{几乎必然}收敛到 $X$，记 $X_n\asto X$，若
+\[
+    \PP\Big(\setb{\omega}{\lim_{n\to\infty}X_n(\omega)=X(\omega)}\Big)=1 .
+\]
+即：除一个概率为零的例外集外，对\emph{每一个}样本点 $\omega$，实数列 $X_n(\omega)$ 都（按普通的实数极限）收敛到 $X(\omega)$。
+}
+
+\defn{依概率收敛（$\pto$）}{
+称 $X_n$ \emph{依概率}收敛到 $X$，记 $X_n\pto X$，若对任意 $\varepsilon>0$，
+\[
+    \lim_{n\to\infty}\Prob{\,\abs{X_n-X}>\varepsilon\,}=0 .
+\]
+即：对每个固定的容差 $\varepsilon$，``$X_n$ 离 $X$ 超过 $\varepsilon$''这件事的概率随 $n$ 趋于零。
+}
+
+\defn{$L^p$ 收敛（均方为 $p=2$）}{
+设 $\E{\abs{X_n}^p}<\infty$。称 $X_n$ \emph{在 $L^p$ 中}收敛到 $X$，记 $X_n\Lpto{p} X$，若
+\[
+    \lim_{n\to\infty}\E{\abs{X_n-X}^p}=0 .
+\]
+$p=2$ 的情形称\emph{均方收敛}，要求 $\E{(X_n-X)^2}\to 0$。
+}
+
+\defn{依分布收敛（$\dto$）}{
+称 $X_n$ \emph{依分布}收敛到 $X$，记 $X_n\dto X$，若它们的 CDF 满足
+\[
+    F_{X_n}(x)\;\longrightarrow\;F_X(x)\qquad\text{在每个使 } F_X \text{ 连续的点 } x \text{ 处}.
+\]
+}
+
+前三种收敛要求 $X_n$ 与 $X$ 活在同一个 $\Omega$ 上、可以\emph{逐点相减}；依分布收敛则只关乎 CDF（即分布），$X_n$ 与 $X$ 甚至可以建在不同的样本空间上——它根本不比较 $X_n$ 与 $X$ 这两个函数，只比较它们的分布形状。这正是上一节``第二句话''要的那种收敛：极限是一个分布，不是一个具体的随机量。
+
+\rmkb[为什么依分布收敛只要求``连续点''处的 CDF 收敛]{
+这条限制不是技术洁癖，不加它定义就会把该算收敛的情形错判成不收敛。看一个最简单的例子：$X_n=1/n$（退化随机变量），它显然该收敛到 $X=0$。$X$ 的 CDF 是 $F_X(x)=\indicator\{x\ge 0\}$，在 $x=0$ 处从 $0$ 跳到 $1$。而 $F_{X_n}(x)=\indicator\{x\ge 1/n\}$，于是在跳点 $x=0$ 处 $F_{X_n}(0)=0$ 对一切 $n$ 成立，\emph{永远}不等于 $F_X(0)=1$——若要求在所有点收敛，就会荒谬地判定 $1/n\not\dto 0$。但 $x=0$ 恰是 $F_X$ 的\emph{不}连续点；在其余所有点（$F_X$ 的连续点）上 $F_{X_n}(x)\to F_X(x)$ 都成立。把跳点豁免掉，定义才与直觉一致。直觉是：依分布收敛刻画分布``形状''的逼近，而单个跳点处的取值是 CDF 那个``$\le$ 还是 $<$''的约定细节（见前文 CDF 的右连续性讨论），不该左右收敛与否。
+}
+
+\ex[依分布的极限可以是常数]{
+若 $X_n\dto c$，其中 $c$ 是常数（即极限分布是退化在 $c$ 的点质量），这等价于什么？
+}
+\sol{
+极限 $X=c$ 的 CDF 是阶跃 $F_X(x)=\indicator\{x\ge c\}$，其唯一不连续点是 $x=c$。依分布收敛要求在所有 $x\ne c$ 处 $F_{X_n}(x)\to\indicator\{x\ge c\}$。取 $x$ 略小于 $c$ 得 $F_{X_n}(x)\to 0$，取 $x$ 略大于 $c$ 得 $F_{X_n}(x)\to 1$；合起来正是说 $X_n$ 的概率质量全部挤向 $c$，即 $\Prob{\abs{X_n-c}>\varepsilon}\to 0$。所以\textbf{当极限是常数时，依分布收敛与依概率收敛等价}。这条小事实后面极有用：它是 Slutsky 定理（把依概率收敛到常数的项``塞进''依分布收敛的乘积里）能够成立的关键接口。
+}
+
+\section{蕴含关系：谁强谁弱}
+\label{sec:convergence-3}
+
+四种模式不是平起平坐的，它们之间有明确的强弱次序。先把结论摆出来（图~\ref{fig:convergence-1}），再逐条证明。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[>=Stealth,node distance=0pt,scale=0.92,every node/.style={transform shape}]
+  \node[draw,rounded corners,fill=green!8,minimum width=2.5cm,minimum height=1.0cm,align=center] (as) at (0,1.5) {几乎必然\\$X_n\asto X$};
+  \node[draw,rounded corners,fill=orange!10,minimum width=2.5cm,minimum height=1.0cm,align=center] (lp) at (0,-1.5) {$L^p$（含均方）\\$X_n\Lpto{p} X$};
+  \node[draw,rounded corners,fill=cyan!10,minimum width=2.5cm,minimum height=1.0cm,align=center] (p) at (4.2,0) {依概率\\$X_n\pto X$};
+  \node[draw,rounded corners,fill=violet!10,minimum width=2.5cm,minimum height=1.0cm,align=center] (d) at (8.4,0) {依分布\\$X_n\dto X$};
+  \draw[->,very thick] (as) -- (p);
+  \draw[->,very thick] (lp) -- (p);
+  \draw[->,very thick] (p) -- (d);
+  \draw[->,dashed,gray] (d.south west) to[bend left=18] node[below,font=\footnotesize,text=gray] {一般不成立} (p.south east);
+\end{tikzpicture}
+\caption{四种收敛模式的蕴含关系。几乎必然与 $L^p$ 各自都蕴含依概率，依概率又蕴含依分布；实线箭头方向的反向一般\emph{不}成立（如依分布回到依概率，见后例）。此外，几乎必然与 $L^p$ 之间\emph{互不}蕴含——二者都比依概率强，但强的方向不同。}
+\label{fig:convergence-1}
+\end{figure}
+
+\thm{蕴含链}{
+设 $X_n,X$ 在同一概率空间上。则
+\[
+    \ba
+    &\bigl(X_n\asto X\bigr)\ \Longrightarrow\ \bigl(X_n\pto X\bigr),
+    \qquad
+    \bigl(X_n\Lpto{p} X\bigr)\ \Longrightarrow\ \bigl(X_n\pto X\bigr),\\[4pt]
+    &\bigl(X_n\pto X\bigr)\ \Longrightarrow\ \bigl(X_n\dto X\bigr).
+    \ea
+\]
+反向蕴含一般都不成立；几乎必然收敛与 $L^p$ 收敛之间也互不蕴含。
+}
+
+下面三段把三条蕴含分别讲清，每条都给一个可自行重建的论证。
+
+\subsection*{(一) 几乎必然 $\Rightarrow$ 依概率}
+
+\begin{proof}[几乎必然 $\Rightarrow$ 依概率]
+固定 $\varepsilon>0$。定义``从第 $n$ 项起一直离得远''的事件
+\[
+    A_n=\bigcup_{m\ge n}\set{\abs{X_m-X}>\varepsilon}.
+\]
+$A_n$ 关于 $n$ 单调\emph{下降}（$n$ 越大，并的项越少）。它的极限交集 $\bigcap_n A_n$ 是``有无穷多个 $m$ 使 $\abs{X_m-X}>\varepsilon$''的事件。但在 $X_n(\omega)\to X(\omega)$ 的那些 $\omega$ 上（按假设这是概率为 $1$ 的集合），实数收敛意味着只有有限个 $m$ 能让 $\abs{X_m(\omega)-X(\omega)}>\varepsilon$，故这些 $\omega$ 都\emph{不}属于 $\bigcap_n A_n$。于是 $\PP\big(\bigcap_n A_n\big)=0$。再由测度对下降集列的连续性（见概率与测度部分），
+\[
+    \Prob{\abs{X_n-X}>\varepsilon}\le \PP(A_n)\ \downarrow\ \PP\Big(\bigcap_n A_n\Big)=0 .
+\]
+左端被一个趋于零的量压住，故 $\Prob{\abs{X_n-X}>\varepsilon}\to 0$。$\varepsilon$ 任意，即 $X_n\pto X$。
+\end{proof}
+
+\rmkb[直觉：``逐路径''比``逐时刻''强]{
+这条证明的核心，是把``逐路径收敛''翻译成``尾部事件 $A_n$ 的概率消失''。几乎必然收敛管的是\emph{整条}路径 $n\mapsto X_n(\omega)$ 的最终行为（除掉概率零的坏路径），它自然控制住了``尾部还有大偏差''的概率；而依概率收敛只管\emph{每个单独时刻} $n$ 的偏差概率，不追问同一条路径在不同时刻的联动。前者对后者的蕴含，本质上就是``控制了整条尾巴''必然``控制得住任一时刻''。图~\ref{fig:convergence-2} 把这两幅图像并排画出；下一节的打字机反例会再把它们的差距撑开。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[>=Stealth,scale=0.92,every node/.style={transform shape}]
+  % 左图：几乎必然 = 逐条样本路径收敛
+  \begin{scope}
+    \draw[->] (-0.2,0) -- (5.2,0) node[right] {$n$};
+    \draw[->] (0,-1.7) -- (0,2.0) node[above] {$X_n(\omega)$};
+    \draw[dashed,gray] (0,0.0) -- (5.0,0.0);
+    \node[gray,anchor=south,font=\footnotesize] at (3.7,0.42) {极限 $X(\omega)$};
+    \draw[blue!60!black,thick]
+      plot[smooth,tension=0.7] coordinates {(0.3,1.6)(0.9,1.0)(1.6,1.15)(2.4,0.55)(3.3,0.32)(4.2,0.16)(4.9,0.08)};
+    \node[blue!60!black,anchor=south,font=\footnotesize] at (1.6,1.18) {$\omega_1$};
+    \draw[red!60!black,thick]
+      plot[smooth,tension=0.7] coordinates {(0.3,-1.4)(1.0,-0.7)(1.7,-0.9)(2.5,-0.35)(3.4,-0.22)(4.2,-0.10)(4.9,-0.05)};
+    \node[red!60!black,anchor=north,font=\footnotesize] at (1.0,-0.72) {$\omega_2$};
+    \draw[green!45!black,thick]
+      plot[smooth,tension=0.7] coordinates {(0.3,0.7)(1.0,1.35)(1.8,0.5)(2.6,0.78)(3.4,0.30)(4.2,0.13)(4.9,0.04)};
+    \node[green!45!black,anchor=south,font=\footnotesize] at (1.0,1.38) {$\omega_3$};
+    \node[anchor=north,align=center,font=\small] at (2.5,-2.2)
+      {\textbf{几乎必然}：固定 $\omega$，\\\emph{整条}路径 $n\mapsto X_n(\omega)$ 收敛};
+  \end{scope}
+  % 右图：依概率 = 逐时刻概率质量集中
+  \begin{scope}[xshift=8.6cm]
+    \draw[->] (-2.1,0) -- (2.3,0) node[right] {$X_n$ 的取值};
+    \draw[->] (0,-0.3) -- (0,4.6) node[above] {};
+    \draw[dashed,gray] (0,0) -- (0,4.45);
+    \node[gray,anchor=west,font=\footnotesize] at (0.18,4.55) {极限值};
+    \draw[blue!55!black,thick,domain=-2.0:2.0,smooth,samples=90,variable=\t]
+      plot ({\t},{0.55+0.9*exp(-(\t)*(\t)/0.9)});
+    \node[blue!55!black,anchor=west,font=\footnotesize] at (1.15,0.95) {$n$ 小};
+    \draw[red!55!black,thick,domain=-1.5:1.5,smooth,samples=90,variable=\t]
+      plot ({\t},{2.0+1.1*exp(-(\t)*(\t)/0.32)});
+    \node[red!55!black,anchor=west,font=\footnotesize] at (0.78,2.35) {$n$ 中};
+    \draw[green!45!black,thick,domain=-0.95:0.95,smooth,samples=110,variable=\t]
+      plot ({\t},{3.35+0.95*exp(-(\t)*(\t)/0.06)});
+    \node[green!45!black,anchor=west,font=\footnotesize] at (0.5,3.85) {$n$ 大};
+    \node[anchor=north,align=center,font=\small] at (0.0,-0.55)
+      {\textbf{依概率}：在\emph{每个}时刻 $n$，\\$X_n$ 的概率质量向极限值集中};
+  \end{scope}
+\end{tikzpicture}
+\caption{几乎必然 vs 依概率的两幅图像。左：几乎必然收敛盯住\emph{逐条样本路径}——固定 $\omega$，整条折线 $n\mapsto X_n(\omega)$ 作为普通实数列收敛到 $X(\omega)$。右：依概率收敛盯住\emph{逐个时刻}——在每个 $n$ 上看 $X_n$ 的分布，随 $n$ 增大其概率质量越来越紧地集中到极限值附近（钟形越来越高窄），但并不追问同一条路径跨时刻的行为。前者强于后者。}
+\label{fig:convergence-2}
+\end{figure}
+
+\subsection*{(二) $L^p$ $\Rightarrow$ 依概率}
+
+\begin{proof}[$L^p$ $\Rightarrow$ 依概率]
+这是 Markov 不等式的一行推论。对 $\varepsilon>0$，把 Markov 不等式用在非负随机变量 $\abs{X_n-X}^p$ 上：
+\[
+    \Prob{\abs{X_n-X}>\varepsilon}
+    =\Prob{\abs{X_n-X}^p>\varepsilon^p}
+    \le\frac{\E{\abs{X_n-X}^p}}{\varepsilon^p}.
+\]
+右端分子按假设趋于 $0$（这正是 $L^p$ 收敛的定义），分母是固定常数，故左端 $\to 0$。$\varepsilon$ 任意，得 $X_n\pto X$。$p=2$ 时这就是 Chebyshev 不等式的形态：$\Prob{\abs{X_n-X}>\varepsilon}\le \E{(X_n-X)^2}/\varepsilon^2$。
+\end{proof}
+
+\state{均方收敛是证一致性的``傻瓜''路径}{
+要证 $X_n\pto X$，最省力的常见做法是退而证更强的均方收敛 $\E{(X_n-X)^2}\to 0$，因为后者往往只需把均方误差拆成``偏差平方 $+$ 方差''两块、各自算趋零即可：
+\[
+    \E{(X_n-X)^2}=\underbrace{\bigl(\E{X_n}-X\bigr)^2}_{\text{偏差}^2}+\underbrace{\Var{X_n}}_{\text{方差}}
+    \quad(\text{当 }X\text{ 为常数}).
+\]
+样本均值 $\bar X_n$ 的一致性最干净的证明就是这条：$\E{\bar X_n}=\mu$ 故偏差为零，$\Var{\bar X_n}=\sigma^2/n\to0$ 故方差趋零，于是 $\E{(\bar X_n-\mu)^2}\to0$，由本小节立得 $\bar X_n\pto\mu$。这是大数定律最初等的一个版本（``$L^2$ 弱大数律''）。
+}
+
+\subsection*{(三) 依概率 $\Rightarrow$ 依分布}
+
+\begin{proof}[依概率 $\Rightarrow$ 依分布]
+设 $x$ 是 $F_X$ 的连续点，要证 $F_{X_n}(x)\to F_X(x)$。思路是用一个小缓冲 $\varepsilon>0$ 把 $\{X_n\le x\}$ 夹在 $X$ 的两个邻近事件之间。
+
+\emph{上界。} 若 $X_n\le x$，则要么 $X\le x+\varepsilon$，要么 $X>x+\varepsilon$ 但 $X_n$ 把它拉低了至少 $\varepsilon$（即 $\abs{X_n-X}>\varepsilon$）。于是
+\[
+    F_{X_n}(x)=\Prob{X_n\le x}\le \Prob{X\le x+\varepsilon}+\Prob{\abs{X_n-X}>\varepsilon}
+    =F_X(x+\varepsilon)+o(1),
+\]
+末项由 $X_n\pto X$ 趋于 $0$。取 $\limsup$：$\limsup_n F_{X_n}(x)\le F_X(x+\varepsilon)$。
+
+\emph{下界。} 对称地，若 $X\le x-\varepsilon$，则要么 $X_n\le x$，要么 $\abs{X_n-X}>\varepsilon$，故
+\[
+    F_X(x-\varepsilon)\le \Prob{X_n\le x}+\Prob{\abs{X_n-X}>\varepsilon}=F_{X_n}(x)+o(1),
+\]
+取 $\liminf$：$F_X(x-\varepsilon)\le\liminf_n F_{X_n}(x)$。
+
+合并两端：
+\[
+    F_X(x-\varepsilon)\le\liminf_n F_{X_n}(x)\le\limsup_n F_{X_n}(x)\le F_X(x+\varepsilon).
+\]
+现在让 $\varepsilon\downarrow 0$。因为 $x$ 是 $F_X$ 的连续点，$F_X(x\pm\varepsilon)\to F_X(x)$，把 $\liminf$ 与 $\limsup$ 挤成同一个值 $F_X(x)$。故 $F_{X_n}(x)\to F_X(x)$。
+\end{proof}
+
+\rmk{正是这一步证明里出现了``缓冲 $\varepsilon$ 把 $X_n$ 与 $X$ 的事件互相夹住''的手法——它是渐近统计里反复出现的``$\varepsilon$ 夹逼'',Slutsky 定理与连续映射定理的证明都用同一招。}
+
+\section{反向不成立：四个经典反例}
+\label{sec:convergence-4}
+
+蕴含链是单向的。把每个反向都用一个反例堵死，才算真正理解了这四种模式的差别。
+
+\subsection*{依概率 $\not\Rightarrow$ 几乎必然：打字机序列}
+
+最著名的反例是\textbf{打字机序列}（typewriter sequence）。在 $\Omega=[0,1]$ 配 Lebesgue 测度（即均匀分布）上构造：把 $[0,1]$ 依次切成长度 $1,\tfrac12,\tfrac13,\dots$ 的小区间，让支撑块在 $[0,1]$ 上一遍遍``扫过''。具体地，第 $k$ 代把 $[0,1]$ 均分成 $k$ 段，对每一段定义一个示性函数随机变量。前几项是
+\[
+    \ba
+    X_1&=\indicator_{[0,1]};\\
+    X_2&=\indicator_{[0,1/2]},\quad X_3=\indicator_{[1/2,1]};\\
+    X_4&=\indicator_{[0,1/3]},\quad X_5=\indicator_{[1/3,2/3]},\quad X_6=\indicator_{[2/3,1]};\quad\dots
+    \ea
+\]
+图~\ref{fig:convergence-3} 画出了这个``扫描''过程。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[>=Stealth,x=4.5cm/1]
+  \def\rh{0.95}
+  \def\ya{0}
+  \def\yb{-\rh}
+  \def\yc{-2*\rh}
+  % 行 1：X1
+  \draw[thick] (0,\ya) -- (1,\ya);
+  \draw (0,\ya-0.06)--(0,\ya+0.06); \draw (1,\ya-0.06)--(1,\ya+0.06);
+  \fill[cyan!35] (0,\ya) rectangle (1,\ya+0.30);
+  \draw (0,\ya) rectangle (1,\ya+0.30);
+  \node[anchor=west,font=\small] at (1.06,\ya+0.15) {$X_1=\indicator_{[0,1]}$,\ \textcolor{red!70!black}{$X_1(\omega)=1$}};
+  % 行 2：X2
+  \draw[thick] (0,\yb) -- (1,\yb);
+  \draw (0,\yb-0.06)--(0,\yb+0.06); \draw (1,\yb-0.06)--(1,\yb+0.06);
+  \fill[cyan!35] (0,\yb) rectangle (0.5,\yb+0.30);
+  \draw (0,\yb) rectangle (0.5,\yb+0.30);
+  \draw (0.5,\yb) rectangle (1,\yb+0.30);
+  \node[anchor=west,font=\small] at (1.06,\yb+0.15) {$X_2=\indicator_{[0,1/2]}$,\ \textcolor{red!70!black}{$X_2(\omega)=1$}};
+  % 行 3：X5
+  \draw[thick] (0,\yc) -- (1,\yc);
+  \draw (0,\yc-0.06)--(0,\yc+0.06); \draw (1,\yc-0.06)--(1,\yc+0.06);
+  \draw (0,\yc) rectangle (0.3333,\yc+0.30);
+  \fill[cyan!35] (0.3333,\yc) rectangle (0.6667,\yc+0.30);
+  \draw (0.3333,\yc) rectangle (0.6667,\yc+0.30);
+  \draw (0.6667,\yc) rectangle (1,\yc+0.30);
+  \node[anchor=west,font=\small] at (1.06,\yc+0.15) {$X_5=\indicator_{[1/3,2/3]}$,\ \textcolor{red!70!black}{$X_5(\omega)=1$}};
+  \node[anchor=north,font=\footnotesize] at (0,\yc-0.1) {$0$};
+  \node[anchor=north,font=\footnotesize] at (1,\yc-0.1) {$1$};
+  \def\om{0.4}
+  \draw[red!70!black,dashed,thick] (\om,\ya+0.52) -- (\om,\yc-0.05);
+  \node[red!70!black,anchor=south,font=\footnotesize] at (\om,\ya+0.52) {$\omega$};
+\end{tikzpicture}
+\caption{打字机序列。支撑块逐代细分（长度 $\to0$），并在 $[0,1]$ 上来回扫过。任意固定的 $\omega$（图中红虚线）每一代都会被某一块``扫中''一次，故 $X_n(\omega)=1$ 沿 $n$ \emph{无穷多次}出现——该路径不收敛。但块的长度 $\to0$，故 $\Prob{X_n=1}\to0$，依概率收敛成立。}
+\label{fig:convergence-3}
+\end{figure}
+
+\textbf{依概率收敛成立。} 第 $k$ 代里每个 $X_n$ 的支撑块长度是 $1/k$，所以 $\Prob{X_n=1}=1/k\to0$（$n\to\infty$ 时代数 $k\to\infty$）。于是对任意 $\varepsilon\in(0,1)$，$\Prob{\abs{X_n-0}>\varepsilon}=\Prob{X_n=1}=1/k\to0$，即 $X_n\pto 0$。
+
+\textbf{几乎必然收敛失败。} 固定任意 $\omega\in[0,1]$。每一代都恰有一块盖住 $\omega$（因为每代的若干块拼成整个 $[0,1]$），那一块对应的 $X_n$ 在 $\omega$ 处取值 $1$。于是序列 $X_n(\omega)$ 里有\emph{无穷多个} $1$，同时（块在移动）也有无穷多个 $0$——它在 $0$ 和 $1$ 之间永远跳动，对\emph{每一个} $\omega$ 都\textbf{不收敛}。使 $X_n(\omega)$ 收敛的 $\omega$ 集合是空集，概率为 $0\ne1$，故 $X_n\not\asto 0$。
+
+\state{打字机告诉我们什么}{
+依概率收敛只看``每个\emph{时刻} $n$ 偏差大的概率有多小'',它完全允许同一条路径在不同时刻反复``闪''出大偏差——只要每次闪的概率越来越小。几乎必然收敛则盯住``整条\emph{路径}最终是否安定下来''。打字机序列就是``逐时刻越来越好、但逐路径永不安定''的典型：质量块越扫越细（逐时刻好转），却永远在扫（逐路径不收敛）。这是``依概率''严格弱于``几乎必然''的活样本。
+}
+
+\subsection*{依概率 $\not\Rightarrow$ $L^p$：质量小但跑得远}
+
+依概率收敛只关心``偏差大''的\emph{概率}，不关心偏差到底有多大；$L^p$ 收敛却要对偏差的大小（的 $p$ 次方）求期望，一个小概率的巨大偏差就能把期望顶起来。令
+\[
+    X_n=\begin{cases} n, & \text{以概率 } 1/n,\\[2pt] 0, & \text{以概率 } 1-1/n.\end{cases}
+\]
+则 $\Prob{\abs{X_n}>\varepsilon}=1/n\to0$，故 $X_n\pto 0$。但
+\[
+    \E{\abs{X_n-0}^2}=n^2\cdot\frac1n=n\ \longrightarrow\ \infty ,
+\]
+均方误差不仅不趋零、反而发散，故 $X_n\not\Lpto{2}0$。\textbf{依概率收敛管不住矩}：偏差出现的概率虽小（$1/n$），偏差的幅度（$n$）却大到让二阶矩爆炸。这解释了为什么证一致性时``均方收敛''是充分而非必要的——有些一致的估计量其矩根本不存在或不收敛。
+
+\subsection*{依分布 $\not\Rightarrow$ 依概率：对称分布的反例}
+
+依分布收敛只比较\emph{分布}，根本不要求 $X_n$ 与 $X$ 这两个随机量\emph{逐点}靠近。取 $X\sim\cN(0,1)$，令 $X_n=-X$ 对一切 $n$。每个 $X_n$ 都服从 $\cN(0,1)$（正态对称），与 $X$ 分布完全相同，故 $F_{X_n}=F_X$，平凡地 $X_n\dto X$。但
+\[
+    \abs{X_n-X}=\abs{-X-X}=2\abs{X},
+\]
+它根本不依赖 $n$，更不会随 $n$ 缩小；$\Prob{2\abs{X}>\varepsilon}$ 是一个固定的正数，不趋于零，故 $X_n\not\pto X$。图~\ref{fig:convergence-4} 把这件事画清楚：左边 $X_n$ 与 $X$ 同分布（依分布收敛），右边它们的差 $X_n-X=-2X\sim\cN(0,4)$ 的质量根本不向 $0$ 收缩（依概率收敛失败）。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[>=Stealth,scale=0.9,every node/.style={transform shape}]
+  % 左图：X_n 与 X 同分布
+  \begin{scope}
+    \draw[->] (-2.4,0) -- (2.6,0) node[right] {};
+    \draw[->] (0,-0.25) -- (0,2.7) node[above] {};
+    \draw[blue!60!black,very thick,domain=-2.3:2.3,smooth,samples=120,variable=\t]
+      plot ({\t},{2.2*exp(-(\t)*(\t)/2)});
+    \node[blue!60!black,anchor=west,font=\small] at (0.55,1.95) {$X_n\sim\cN(0,1)$};
+    \node[anchor=west,font=\small] at (0.62,1.4) {$X\sim\cN(0,1)$};
+    \node[anchor=north,align=center,font=\small] at (0,-0.55)
+      {两者\emph{分布相同}\\$\Rightarrow X_n\dto X$};
+  \end{scope}
+  % 右图：差 -2X ~ N(0,4)
+  \begin{scope}[xshift=7.4cm]
+    \draw[->] (-3.4,0) -- (3.6,0) node[right] {$X_n-X$};
+    \draw[->] (0,-0.25) -- (0,2.7) node[above] {};
+    \draw[dashed,gray] (0,0) -- (0,2.5);
+    \draw[red!65!black,very thick,domain=-3.3:3.3,smooth,samples=140,variable=\t]
+      plot ({\t},{1.1*exp(-(\t)*(\t)/8)});
+    \node[red!65!black,anchor=west,align=left,font=\small] at (2.55,1.7) {$X_n-X=-2X$\\[-1pt]$\sim\cN(0,4)$};
+    \draw[red!65!black,->] (2.5,1.6) -- (2.0,1.0);
+    \node[anchor=north,align=center,font=\small] at (0,-0.55)
+      {差的质量\emph{不}向 $0$ 收缩\\$\Rightarrow X_n\not\pto X$};
+  \end{scope}
+\end{tikzpicture}
+\caption{依分布 $\not\Rightarrow$ 依概率。取 $X\sim\cN(0,1)$、$X_n=-X$：左图二者分布相同，故 $X_n\dto X$ 平凡成立；右图它们的差 $X_n-X=-2X\sim\cN(0,4)$ 的概率质量始终摊在 $0$ 两侧、不向 $0$ 收缩，故 $X_n\not\pto X$。``分布一样''远不等于``取值贴近''。}
+\label{fig:convergence-4}
+\end{figure}
+
+\rmkb[那个``一般不成立''什么时候变成``成立'']{
+依分布回到依概率，唯一的例外是上一节那个例子：\emph{当极限是常数时}，$X_n\dto c$ 与 $X_n\pto c$ 等价。原因正是上面反例失效的地方——若极限 $X\equiv c$ 是个不动的点，``分布挤向 $c$''就只能靠``取值挤向 $c$''来实现，没有对称翻转之类的花样可玩。这条例外不是边角料：大数定律的结论 $\bar X_n\pto\mu$ 与 Slutsky 定理里``$\hat\sigma_n\pto\sigma$''这类``收敛到常数''的语句，全靠它在依分布与依概率之间自由换乘。
+}
+
+\subsection*{几乎必然与 $L^p$ 互不蕴含}
+
+最后补一句对称性：几乎必然与 $L^p$ 都强于依概率，但彼此谁也不蕴含谁。上面``质量小但跑得远''的例子（$X_n=n$ 以概率 $1/n$）可调成几乎必然收敛到 $0$（让支撑事件可加和，用 Borel--Cantelli 第一引理保证只发生有限次），却仍有 $\E{X_n^2}\to\infty$——这是 a.s.\ 成立而 $L^2$ 失败。反过来，打字机序列的一个加权版本可做到 $L^2$ 收敛（块的高度配合长度使 $\E{X_n^2}\to0$）却仍逐路径不收敛——这是 $L^p$ 成立而 a.s.\ 失败。\textbf{``逐路径安定''与``矩趋零''是两种不同方向的强}，没有高下，故图~\ref{fig:convergence-1} 里它们并列、各自单向指向依概率。
+
+\section{速度的语言：$\op$ 与 $\Op$}
+\label{sec:convergence-5}
+
+知道``$X_n$ 收敛''还不够，渐近分析里我们常要比较``谁比谁收敛得快''、要把一串小项干净地丢掉。确定性分析有 $o(\cdot)$ 与 $O(\cdot)$ 记号干这事；它们有一对随机版本 $\op$（``依概率的小 $o$''）与 $\Op$（``依概率的大 $O$''），是渐近推导里最省事的速记。
+
+\defn{$\op$ 与 $\Op$}{
+设 $\{a_n\}$ 是一列正数（``基准速度''）。
+\begin{itemize}
+    \item 记 $X_n=\op(a_n)$，若 $\dfrac{X_n}{a_n}\pto 0$，即对任意 $\varepsilon>0$，$\Prob{\,\abs{X_n/a_n}>\varepsilon\,}\to0$。读作``$X_n$ 是比 $a_n$ \emph{高阶}的小量''。
+    \item 记 $X_n=\Op(a_n)$，若 $\dfrac{X_n}{a_n}$ \emph{依概率有界}：对任意 $\delta>0$，存在常数 $M$ 与 $N$，使 $\Prob{\,\abs{X_n/a_n}>M\,}<\delta$ 对一切 $n\ge N$ 成立。读作``$X_n$ 与 $a_n$ \emph{同阶}（至多同阶）''。
+\end{itemize}
+}
+
+两个最常用的特例：$X_n=\op(1)$ 就是 $X_n\pto0$（依概率收敛的另一种写法）；$X_n=\Op(1)$ 就是``$X_n$ 依概率有界''（一列不发散的随机量，典型如依分布收敛的序列）。
+
+\rmkb[为什么 $\dto$ 蕴含 $\Op(1)$]{
+若 $X_n\dto X$，则 $X_n=\Op(1)$。直觉：极限分布 $X$ 把几乎所有质量装在某个有限区间里，于是对大 $n$，$X_n$ 的质量也逃不出一个（稍大的）有限区间，故依概率有界。这条小事实极常用：中心极限定理给出 $\rtn(\hat\theta_n-\theta_0)\dto\cN(0,V)$，立刻就有 $\rtn(\hat\theta_n-\theta_0)=\Op(1)$，等价地 $\hat\theta_n-\theta_0=\Op(n^{-1/2})$——这正是``估计量以 $\rtn$ 速度收敛''这句话的精确含义。
+}
+
+这套记号真正的威力，在于它服从一套简单的\emph{代数}，让人能像处理普通小量那样在证明里成批消化误差项。
+
+\prop{$\op/\Op$ 的运算规则}{
+设 $a_n,b_n>0$。下列规则成立（等号读作``左边是右边那一类''）：
+\begin{enumerate}
+    \item（吸收）$\op(a_n)+\op(a_n)=\op(a_n)$，\quad $\Op(a_n)+\Op(a_n)=\Op(a_n)$；
+    \item（小压大）$\op(a_n)+\Op(a_n)=\Op(a_n)$；
+    \item（相乘加阶）$\op(a_n)\,\op(b_n)=\op(a_nb_n)$，\ $\Op(a_n)\,\Op(b_n)=\Op(a_nb_n)$,\ $\op(a_n)\,\Op(b_n)=\op(a_nb_n)$；
+    \item（小吃大）$\Op(a_n)\,\op(1)=\op(a_n)$；
+    \item（数乘与嵌套）$\op(\Op(1))=\op(1)$，\ 即一个依概率有界量乘上 $\op(1)$ 仍是 $\op(1)$。
+\end{enumerate}
+}
+\begin{proof}[证明思路]
+这些规则全部从定义加基本不等式得来，思路与确定性的 $o/O$ 演算一致。举两条代表。
+
+\emph{规则 3 中的 $\op(a_n)\Op(b_n)=\op(a_nb_n)$。} 设 $U_n/a_n\pto0$、$V_n/b_n=\Op(1)$。要证 $U_nV_n/(a_nb_n)\pto0$。写
+\[
+    \frac{U_nV_n}{a_nb_n}=\underbrace{\frac{U_n}{a_n}}_{\pto0}\cdot\underbrace{\frac{V_n}{b_n}}_{\Op(1)}.
+\]
+一个依概率趋零的量乘一个依概率有界的量，仍依概率趋零：给定 $\varepsilon,\delta>0$，取 $M$ 使 $\Prob{\abs{V_n/b_n}>M}<\delta/2$（依概率有界），再取 $n$ 大使 $\Prob{\abs{U_n/a_n}>\varepsilon/M}<\delta/2$（依概率趋零）；在两个小概率事件都不发生时乘积的绝对值 $\le M\cdot(\varepsilon/M)=\varepsilon$，故 $\Prob{\abs{U_nV_n/(a_nb_n)}>\varepsilon}<\delta$。$\delta$ 任意即得。
+
+\emph{规则 2，小压大 $\op(a_n)+\Op(a_n)=\Op(a_n)$。} 设 $U_n/a_n\pto0$（从而依概率有界）、$V_n/a_n=\Op(1)$。由三角不等式
+\[
+    \abs{\tfrac{U_n+V_n}{a_n}}\le\abs{\tfrac{U_n}{a_n}}+\abs{\tfrac{V_n}{a_n}},
+\]
+两个依概率有界量之和仍依概率有界（对右端两项各取一半的界），故 $U_n+V_n=\Op(a_n)$。
+\end{proof}
+
+\ex[用 $\op/\Op$ 一行读出收敛速度]{
+设估计量满足 $\hat\theta_n=\theta_0+\Op(n^{-1/2})$，又有一个余项 $R_n=\op(n^{-1/2})$。问 $\hat\theta_n+R_n-\theta_0$ 是什么阶？$n(\hat\theta_n-\theta_0)^2$ 又是什么阶？
+}
+\sol{
+第一问：$\hat\theta_n+R_n-\theta_0=\Op(n^{-1/2})+\op(n^{-1/2})=\Op(n^{-1/2})$（规则 2，小项被吸收），即加上一个高阶余项不改变收敛速度——这正是渐近展开里``丢掉余项''的合法性依据。第二问：$(\hat\theta_n-\theta_0)^2=\big(\Op(n^{-1/2})\big)^2=\Op(n^{-1})$（规则 3 相乘加阶），故 $n(\hat\theta_n-\theta_0)^2=n\cdot\Op(n^{-1})=\Op(1)$，依概率有界——这就是为什么 $n(\hat\theta_n-\theta_0)^2$ 这类二次型能有非退化的极限分布（如 $\chi^2$），是 Wald 统计量``渐近 $\chi^2$''的速度账。
+}
+
+\state{$\op/\Op$ 是渐近证明的``记账系统''}{
+几乎所有渐近结果的证明，最后都化成``主项 $+$ 一堆余项'',其中主项给出极限分布、余项必须被证明可忽略。$\op/\Op$ 记号让这件事变成机械的代数：把每一项贴上速度标签，按上面的规则相加相乘，主项之外的统统坍缩成 $\op(1)$ 丢掉。Delta 法的一阶 Taylor 展开、M-估计量的渐近正态、GMM 的标准误，骨架都是这套记账。学会熟练地``丢 $\op$''，是读懂现代计量证明的基本功。
+}
+
+\section{它通向何处}
+\label{sec:convergence-6}
+
+本章把``收敛''这个词拆成了四种精确的模式，排好了强弱、堵死了反向、配上了速度记号。这套语言是整个渐近统计部分的地基，后续每一块都直接踩在它上面：
+
+\begin{itemize}
+    \item \textbf{大数定律}（见后文『大数定律』一章）就是关于样本均值的收敛定理：弱大数律断言 $\bar X_n\pto\mu$（依概率），强大数律断言 $\bar X_n\asto\mu$（几乎必然）。``弱''与``强''之分，用的正是本章 a.s.\ 严格强于 $\pto$ 这一层级。一致性（$\plim\hat\theta_n=\theta_0$）就是估计量版的弱大数律。
+    \item \textbf{中心极限定理}（见后文『中心极限定理』一章）是一条\emph{依分布}收敛的定理：$\rtn(\bar X_n-\mu)\dto\cN(0,\sigma^2)$。它和大数定律不矛盾，恰因二者是\emph{不同模式}的收敛——一个把 $\bar X_n$ 塌成常数 $\mu$，另一个把放大后的涨落 $\rtn(\bar X_n-\mu)$ 摊成正态。本章开头那个``看似矛盾''的疑问，到这里彻底解开。
+    \item \textbf{连续映射定理、Slutsky 与 Delta 法}（见后文『连续映射定理、Slutsky 与 Delta 法』一章）是组合这些收敛的运算法则。Slutsky 定理的可用，关键就靠本章那条``依分布收敛到常数 $=$ 依概率收敛到常数''的等价（把 $\hat\sigma_n\pto\sigma$ 塞进 $\dto$ 的乘积里）；Delta 法的余项控制，则是 $\op/\Op$ 代数的直接应用。
+    \item \textbf{极值估计的统一框架}（见后文『极值估计的统一框架』一章）。MLE、GMM、M-估计量的一致性是 $\pto$、渐近正态是 $\dto$、标准误的相合是又一个 $\pto$；整套``三明治''协方差矩阵的推导，从头到尾都在用本章的四种模式与 $\op/\Op$ 记账。
+\end{itemize}
+
+收束一句：实数收敛只有一种意思，随机变量的收敛却有四种，而计量经济学恰好把它们\emph{都}用上了——一致性要 $\pto$、渐近分布要 $\dto$、强相合要 $\asto$、矩的控制要 $L^p$。分清它们，不是数学上的吹毛求疵，而是让``估计量好''与``检验有效''这两类核心论断各归其位的前提。

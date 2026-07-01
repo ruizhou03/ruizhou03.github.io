@@ -1,0 +1,318 @@
+% !TEX root = ../main.tex
+\chapter{Taylor 展开与二阶近似}
+\label{ch:taylor}
+
+\noindent\emph{用到的前置工具：偏导数、梯度、Jacobian 与 Hessian（多元微分一章）；二次型与正定性（线性代数部分，谱定理一章，见第~\ref{ch:spectral}~章）。}
+\medskip
+
+经济学家研究的函数——效用、利润、似然、值函数——几乎都不是多项式那样``友好''的对象。它们往往非线性、形式复杂，甚至（如样本对数似然）根本写不成闭式。可我们对它们提的问题，却常常是\emph{局部}的：在某个最优点附近，目标函数长什么样？参数稍微动一下，估计量会怎么挪？这正是 Taylor 展开登场的地方——它用一个低阶多项式，在一点附近逼近任意光滑函数，把``复杂''换成``可算''。一阶展开给出切线（局部线性化），二阶展开给出最贴合的抛物线（局部二次化）。本章先把一元、多元的展开公式连同余项讲清楚，再说明它最重要的一个用途：二阶项是一个由 Hessian 决定的二次型，于是``一个临界点到底是极小、极大还是鞍点''这件事，被彻底归结为 Hessian 的正定性。这条线索一头连着最优化的二阶条件，另一头连着渐近统计里估计量的展开，是全书使用频率最高的工具之一。
+
+\section{为什么要做近似}
+\label{sec:taylor-motivation}
+
+设想你已经找到了一个最优点 $x^*$，想知道目标函数 $f$ 在它附近的样子。最朴素的想法是：用 $f$ 在 $x^*$ 处的值、斜率、曲率，拼一个多项式去模仿它。零阶近似 $f(x)\approx f(x^*)$ 只记住了高度；一阶近似 $f(x)\approx f(x^*)+f'(x^*)(x-x^*)$ 加上了斜率，得到切线；二阶近似再添一项曲率，得到一条与 $f$ 贴合得更紧的抛物线。阶数越高，在 $x^*$ 附近就越像。Taylor 定理把这个``越来越像''说得精确：它不仅给出近似多项式，还给出\emph{误差有多大}。
+
+这件事之所以是经济学的核心工具，原因有三。其一，\textbf{二阶条件}：判断一个临界点是不是极值，靠的正是二阶近似那一项的符号。其二，\textbf{局部分析与比较静态}：把均衡条件或一阶条件在某点线性化，复杂的非线性系统就退化成一个线性方程，可以直接求解、求导。其三，\textbf{渐近统计}：几乎所有估计量的极限分布，都是先把样本一阶条件围绕真值做 Taylor 展开、再取极限得到的——Delta 法是一阶展开，三明治协方差矩阵藏着二阶展开。换言之，``在一点附近用多项式替身''这一招，贯穿了微观的最优化、宏观的局部动态、计量的渐近理论。
+
+\section{一元 Taylor 定理}
+\label{sec:taylor-univariate}
+
+先把唯一一个自变量的情形讲透，多元情形不过是它的向量化。核心对象是 \textbf{$n$ 阶 Taylor 多项式}：在点 $x_0$ 处，用 $f$ 直到 $n$ 阶的导数信息拼出的多项式
+\[
+    P_n(x)=\sum_{k=0}^{n}\frac{f^{(k)}(x_0)}{k!}\,(x-x_0)^k
+    = f(x_0)+f'(x_0)(x-x_0)+\frac{f''(x_0)}{2}(x-x_0)^2+\cdots .
+\]
+它被设计成在 $x_0$ 处与 $f$ ``吻合到 $n$ 阶''：$P_n$ 与 $f$ 在 $x_0$ 的函数值、一阶到 $n$ 阶导数全部相等。真正的问题是 $f-P_n$ 这个余项有多大。
+
+\thm{一元 Taylor 定理（Lagrange 余项）}{
+设 $f:\RR\to\RR$ 在包含 $x_0$ 与 $x$ 的开区间上 $(n+1)$ 次连续可微。则
+\[
+    f(x)=\sum_{k=0}^{n}\frac{f^{(k)}(x_0)}{k!}(x-x_0)^k
+    +\underbrace{\frac{f^{(n+1)}(\xi)}{(n+1)!}(x-x_0)^{n+1}}_{\text{余项 }R_n},
+\]
+其中 $\xi$ 是介于 $x_0$ 与 $x$ 之间的某一点。
+}
+
+\pf{
+取定 $x$。令 $h=x-x_0$，定义关于 $t$（在 $x_0$ 与 $x$ 之间变动）的辅助函数
+\[
+    g(t)=f(x)-\sum_{k=0}^{n}\frac{f^{(k)}(t)}{k!}(x-t)^k .
+\]
+直接验证 $g(x)=0$，而 $g(x_0)=f(x)-P_n(x)=R_n$。求导时，和式里相邻两项的导数逐对相消（这正是 Taylor 多项式的设计精巧之处），只剩末项：
+\[
+    g'(t)=-\frac{f^{(n+1)}(t)}{n!}(x-t)^n .
+\]
+再引入 $\varphi(t)=(x-t)^{n+1}$，它满足 $\varphi(x)=0$、$\varphi(x_0)=h^{n+1}$。对 $g,\varphi$ 用 Cauchy 中值定理：存在介于 $x_0,x$ 之间的 $\xi$，使
+\[
+    \frac{g(x_0)-g(x)}{\varphi(x_0)-\varphi(x)}=\frac{g'(\xi)}{\varphi'(\xi)} .
+\]
+左边为 $R_n/h^{n+1}$。右边把 $g'(\xi)$ 与 $\varphi'(\xi)=-(n+1)(x-\xi)^n$ 代入，$(x-\xi)^n$ 约去，得 $R_n/h^{n+1}=f^{(n+1)}(\xi)/(n+1)!$，移项即所证。
+}
+
+\rmkb[$n=0$ 就是中值定理]{
+取 $n=0$，定理说 $f(x)=f(x_0)+f'(\xi)(x-x_0)$，这正是 Lagrange 中值定理。所以 Taylor 定理可以看作中值定理的高阶推广：中值定理用``某点的斜率''精确表达一阶增量，Taylor 定理用``某点的 $(n+1)$ 阶导数''精确表达 $n$ 阶近似的误差。整条思路——先造一个在两端取已知值的辅助函数，再用中值定理逮住一个中间点——是分析里反复出现的套路。
+}
+
+Lagrange 余项给出误差的\emph{精确}表达（代价是 $\xi$ 不可知，只知它在区间内）。在很多场合我们其实只需要知道误差``阶数有多小'',这就是 Peano 形式。
+
+\thm{一元 Taylor 定理（Peano 余项）}{
+设 $f$ 在 $x_0$ 处 $n$ 次可微。则当 $x\to x_0$ 时
+\[
+    f(x)=\sum_{k=0}^{n}\frac{f^{(k)}(x_0)}{k!}(x-x_0)^k+o\!\pr{(x-x_0)^n} ,
+\]
+即余项比 $(x-x_0)^n$ 更高阶地趋于零。
+}
+
+\state{两种余项各管一摊}{
+\textbf{Lagrange 余项}给的是``误差等于某个高阶导数乘以 $h^{n+1}$''——它适合做\emph{定量}的误差估计（例如要保证近似误差小于某个阈值，该取多少阶、邻域多大），数值分析靠它。\textbf{Peano 余项}给的是``误差是 $o(h^n)$''——它适合做\emph{定性}的极限论证：在渐近统计里，我们把样本目标函数展开后让 $n\to\infty$，真正用到的就是``余项可忽略''这一句，而不关心它的精确大小。记住：\emph{要算误差用 Lagrange，要扔误差用 Peano}。
+}
+
+\ex[二阶近似的误差控制]{
+用二阶 Taylor 多项式在 $x_0=0$ 处近似 $f(x)=e^x$，并给出 $|x|\le 0.1$ 时的误差上界。
+}
+\sol{
+$f$ 各阶导数都是 $e^x$，故 $f(0)=f'(0)=f''(0)=1$，二阶多项式为 $P_2(x)=1+x+\tfrac12 x^2$。Lagrange 余项（$n=2$）为
+\[
+    R_2=\frac{f'''(\xi)}{3!}x^3=\frac{e^{\xi}}{6}x^3,\qquad \xi\text{ 介于 }0\text{ 与 }x .
+\]
+当 $|x|\le 0.1$ 时 $e^{\xi}\le e^{0.1}<1.106$，于是
+\[
+    |R_2|\le \frac{1.106}{6}(0.1)^3<1.85\times10^{-4} .
+\]
+不必知道 $\xi$ 究竟是多少，仅凭``$f'''$ 在小区间上有界''就锁定了误差量级。这正是 Lagrange 余项的用法：把不可知的 $\xi$ 用一个保守的界放掉。
+}
+
+\paragraph{一阶 vs 二阶：图像。}
+图~\ref{fig:taylor-approx} 把 $f(x)=e^x$ 与它在 $x_0=0$ 处的一阶近似（切线 $1+x$）、二阶近似（抛物线 $1+x+\tfrac12 x^2$）画在一起。三条曲线在 $x_0$ 处相切；离开 $x_0$ 后，切线很快与原函数分道扬镳，而抛物线一直贴着原函数走得更远——多出来的那一项 $\tfrac12 f''(x_0)(x-x_0)^2$ 补上了``弯曲''的信息。这张图就是``阶数越高、近似越好''的直观注脚。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.7,>=Stealth]
+    % 坐标轴
+    \draw[->] (-1.6,0) -- (1.75,0) node[right] {$x$};
+    \draw[->] (0,-0.45) -- (0,4.0) node[above] {$y$};
+    % 原函数 f(x)=e^x
+    \draw[very thick,black,domain=-1.45:1.35,smooth,variable=\t] plot ({\t},{exp(\t)});
+    % 一阶近似（切线）1+x
+    \draw[thick,blue!60!black,domain=-1.45:1.35,variable=\t] plot ({\t},{1+\t});
+    % 二阶近似（抛物线）1+x+x^2/2
+    \draw[thick,red!70!black,domain=-1.45:1.35,smooth,variable=\t] plot ({\t},{1+\t+\t*\t/2});
+    % 展开点 (0,1)：三线在此相切
+    \fill (0,1) circle (1.3pt);
+    \draw[dashed,gray] (0,1) -- (-0.05,1) node[left,black] {$f(x_0)$};
+    \node[below left] at (0,0) {$x_0$};
+    % 标签：原函数（曲线右上端空白）
+    \node[anchor=west,black] at (1.18,3.95) {$f(x)$};
+    \draw[black,->] (1.32,3.78) -- (1.34,3.3);
+    % 标签：二阶近似
+    \node[anchor=west,red!70!black] at (0.62,3.05) {$f(x_0)+f'\Delta+\tfrac12 f''\Delta^2$};
+    \draw[red!70!black,->] (0.6,2.85) -- (1.05,2.55);
+    % 标签：一阶近似
+    \node[anchor=west,blue!60!black] at (0.55,1.55) {$f(x_0)+f'(x_0)\,\Delta$};
+    \draw[blue!60!black,->] (0.85,1.5) -- (1.1,2.0);
+\end{tikzpicture}
+\caption{$f(x)=e^x$ 在 $x_0=0$ 处的一阶近似（切线，蓝）与二阶近似（抛物线，红）。记 $\Delta=x-x_0$。二阶近似补上了曲率项 $\tfrac12 f''\Delta^2$，在 $x_0$ 附近比切线贴合得明显更紧。}
+\label{fig:taylor-approx}
+\end{figure}
+
+\section{多元 Taylor 展开}
+\label{sec:taylor-multivariate}
+
+经济学里的目标函数几乎都是多元的：消费束、要素投入、参数向量。把一元展开升级到 $\RR^n$，做法是沿着一条直线把多元函数变回一元函数，再套用一元定理。
+
+设 $f:\RR^n\to\RR$ 光滑，要在点 $\vc x_0$ 附近展开。取增量 $\vc\Delta=\vc x-\vc x_0$，定义沿这条方向的单变量函数
+\[
+    \phi(t)=f(\vc x_0+t\vc\Delta),\qquad t\in[0,1] .
+\]
+我们关心的 $f(\vc x)=\phi(1)$，而 $f(\vc x_0)=\phi(0)$。对 $\phi$ 在 $t=0$ 处做一元 Taylor 展开即可。用链式法则算 $\phi$ 的导数：
+\[
+    \phi'(t)=\grad f(\vc x_0+t\vc\Delta)\T\vc\Delta,
+    \qquad
+    \phi''(t)=\vc\Delta\T\,\grad^2 f(\vc x_0+t\vc\Delta)\,\vc\Delta .
+\]
+第一式是梯度与方向的内积（方向导数）；第二式里 $\grad^2 f$ 就是 Hessian 矩阵 $\mat H$，于是 $\phi''$ 是一个以 $\vc\Delta$ 为自变量的\textbf{二次型}。在 $t=0$ 处展开 $\phi(1)=\phi(0)+\phi'(0)+\tfrac12\phi''(0)+\cdots$，把上面两式代入，便得到多元 Taylor 公式。
+
+\thm{多元 Taylor 展开（二阶）}{
+设 $f:\RR^n\to\RR$ 在 $\vc x_0$ 的邻域内二次连续可微，$\vc\Delta=\vc x-\vc x_0$。则
+\[
+    \boxed{\;f(\vc x)=f(\vc x_0)+\grad f(\vc x_0)\T\vc\Delta
+    +\frac12\,\vc\Delta\T\,\grad^2 f(\vc x_0)\,\vc\Delta
+    +o\!\pr{\norm{\vc\Delta}^2}\;}
+\]
+当 $\norm{\vc\Delta}\to 0$。在同样的二次连续可微前提下，余项还可写成 Lagrange 形式：存在 $\theta\in(0,1)$ 使
+\[
+    f(\vc x)=f(\vc x_0)+\grad f(\vc x_0)\T\vc\Delta
+    +\tfrac12\,\vc\Delta\T\,\grad^2 f(\vc x_0+\theta\vc\Delta)\,\vc\Delta .
+\]
+此即\textbf{一阶展开}加一个用中间点处 Hessian 精确表达的二阶余项。
+}
+
+\pf{
+为把展开的``小参数''落到 $\norm{\vc\Delta}$ 上，固定单位方向 $\vc u=\vc\Delta/\norm{\vc\Delta}$，记 $s=\norm{\vc\Delta}\ge 0$，令 $\psi(s)=f(\vc x_0+s\vc u)$；于是 $\vc x=\vc x_0+s\vc u$，$\psi(s)=f(\vc x)$，$\psi(0)=f(\vc x_0)$。由链式法则
+\[
+    \psi'(0)=\grad f(\vc x_0)\T\vc u,\qquad
+    \psi''(0)=\vc u\T\,\grad^2 f(\vc x_0)\,\vc u .
+\]
+对 $\psi$ 在 $s=0$ 处用 Peano 形式的一元 Taylor 定理（$n=2$，此处真正的小变量正是 $s$）：
+\[
+    \psi(s)=\psi(0)+\psi'(0)\,s+\tfrac12\psi''(0)\,s^2+o(s^2),\qquad s\to 0 .
+\]
+代入并用 $s\vc u=\vc\Delta$、$s^2=\norm{\vc\Delta}^2$：一阶项化为 $\grad f(\vc x_0)\T\vc\Delta$，二阶项化为 $\tfrac12\vc\Delta\T\grad^2 f(\vc x_0)\vc\Delta$，而余项 $o(s^2)=o(\norm{\vc\Delta}^2)$，即得 Peano 形式。（因 $\grad^2 f$ 在 $\vc x_0$ 处连续，该 $o$ 关于方向 $\vc u$ 一致，故对趋于 $\vc x_0$ 的任意路径都成立。）
+
+至于 Lagrange 形式：回到沿直线的 $\phi(t)=f(\vc x_0+t\vc\Delta)$，$t\in[0,1]$。$f$ 二次连续可微保证 $\phi\in C^2[0,1]$，对 $\phi$ 在 $t=0$ 处用一元 $n=1$ 的 Lagrange 余项定理（其余项已含二阶导数）：存在 $\theta\in(0,1)$ 使
+\[
+    \phi(1)=\phi(0)+\phi'(0)+\tfrac12\phi''(\theta) .
+\]
+代入 $\phi(0)=f(\vc x_0)$、$\phi'(0)=\grad f(\vc x_0)\T\vc\Delta$，以及 $\phi''(\theta)=\vc\Delta\T\grad^2 f(\vc x_0+\theta\vc\Delta)\vc\Delta$，即得带精确中间点的形式——全程只用到 $f\in C^2$。
+}
+
+把公式逐项读出来，每一项都有清楚的几何与经济含义：
+
+\begin{itemize}
+    \item \textbf{零阶项} $f(\vc x_0)$：基准高度。
+    \item \textbf{一阶项} $\grad f(\vc x_0)\T\vc\Delta$：梯度与位移的内积，给出\emph{局部线性化}（切平面）。在临界点处 $\grad f=\vc 0$，这一项消失。
+    \item \textbf{二阶项} $\tfrac12\vc\Delta\T\mat H\vc\Delta$：由 Hessian 决定的二次型，刻画\emph{曲率}。在临界点处，正是它独自决定 $f$ 在该点附近是上凸、下凹还是两者皆有。
+\end{itemize}
+
+\rmkb[一阶展开本身就是一件大工具]{
+只取到一阶，$f(\vc x)\approx f(\vc x_0)+\grad f(\vc x_0)\T\vc\Delta$，就是\emph{局部线性化}。计量里的 Delta 法（在渐近统计部分）正是这一项：若 $\rtn(\hat{\vc\theta}-\vc\theta_0)\dto\cN(\vc 0,\vc\Sigma)$，要求一个光滑变换 $g(\hat{\vc\theta})$ 的极限分布，就把 $g$ 在 $\vc\theta_0$ 处一阶展开，$g(\hat{\vc\theta})\approx g(\vc\theta_0)+\grad g(\vc\theta_0)\T(\hat{\vc\theta}-\vc\theta_0)$，于是 $\rtn\pr{g(\hat{\vc\theta})-g(\vc\theta_0)}\dto\cN\pr{\vc 0,\ \grad g\T\vc\Sigma\,\grad g}$。高阶项被 $\Op$、$\op$ 记号收拾掉——这就是``扔误差用 Peano''那条原则的实战。
+}
+
+\section{局部二次近似与临界点分类}
+\label{sec:taylor-critical}
+
+现在把二阶展开用在它最锋利的地方。设 $\vc x_0$ 是 $f$ 的一个\emph{临界点}（驻点），即 $\grad f(\vc x_0)=\vc 0$。此时一阶项消失，二阶展开化简为
+\[
+    f(\vc x)-f(\vc x_0)=\tfrac12\,\vc\Delta\T\mat H\,\vc\Delta+o\!\pr{\norm{\vc\Delta}^2},
+    \qquad \mat H=\grad^2 f(\vc x_0) .
+\]
+在 $\vc x_0$ 足够小的邻域内，符号由主导项即二次型 $\vc\Delta\T\mat H\vc\Delta$ 决定。于是``$\vc x_0$ 是极小、极大还是鞍点''这个问题，被完全翻译成``二次型 $\vc\Delta\T\mat H\vc\Delta$ 的符号''——而后者正是矩阵正定性的定义（见谱定理一章，第~\ref{ch:spectral}~章）。
+
+\thm{二阶充分条件（临界点分类）}{
+设 $f$ 二次连续可微，$\grad f(\vc x_0)=\vc 0$，$\mat H=\grad^2 f(\vc x_0)$（对称）。则
+\begin{itemize}
+    \item $\mat H$ \emph{正定} $\Rightarrow$ $\vc x_0$ 是\textbf{严格局部极小}；
+    \item $\mat H$ \emph{负定} $\Rightarrow$ $\vc x_0$ 是\textbf{严格局部极大}；
+    \item $\mat H$ \emph{不定}（既有正特征值又有负特征值）$\Rightarrow$ $\vc x_0$ 是\textbf{鞍点}（非极值）；
+    \item $\mat H$ 半定但奇异（有零特征值）$\Rightarrow$ \emph{判别失效}，需更高阶信息。
+\end{itemize}
+}
+
+\pf{
+只证正定情形，其余对称或类似。$\mat H$ 正定，由谱定理其最小特征值 $\lambda_{\min}>0$，且对一切 $\vc\Delta$ 有 $\vc\Delta\T\mat H\vc\Delta\ge\lambda_{\min}\norm{\vc\Delta}^2$（Rayleigh 商下界）。代入二阶展开：
+\[
+    f(\vc x)-f(\vc x_0)\ge\tfrac12\lambda_{\min}\norm{\vc\Delta}^2+o\!\pr{\norm{\vc\Delta}^2}
+    =\norm{\vc\Delta}^2\!\br{\tfrac12\lambda_{\min}+o(1)} .
+\]
+当 $\norm{\vc\Delta}$ 充分小，方括号内 $o(1)$ 项的绝对值小于 $\tfrac14\lambda_{\min}$，故方括号 $>\tfrac14\lambda_{\min}>0$。于是在某去心邻域内 $f(\vc x)>f(\vc x_0)$，即严格局部极小。不定情形：取 $\mat H$ 的正特征值对应方向 $\vc v_+$，沿之 $f$ 上升；取负特征值方向 $\vc v_-$，沿之 $f$ 下降——两个方向上``一升一降'',故非极值，是鞍点。
+}
+
+\state{临界点的性质 = Hessian 的正定性}{
+这是本章与最优化、线性代数三者的交汇点。无约束最优化的全部二阶理论可以一句话概括：\emph{在临界点处，目标函数的局部形状由 Hessian 这一个二次型决定}。判极小看 $\mat H$ 是否正定，判极大看是否负定，二者都不沾边就是鞍点。而``如何判定一个对称矩阵正定''——看特征值符号、看顺序主子式（Sylvester 判据）、看 Cholesky 分解是否存在——是线性代数那一章的全部内容。Taylor 展开在这里扮演的角色，是把一个\emph{分析}问题（函数的局部极值）精确地转交给一个\emph{代数}问题（矩阵的定性），这正是它作为``桥梁工具''的典范用法。
+}
+
+图~\ref{fig:taylor-critical} 把三种情形画成沿不同方向的曲率截面：正定时\emph{每个}方向都向上弯（碗状，极小），负定时每个方向都向下弯（穹顶，极大），不定时至少有一个方向向上、一个方向向下（山口，鞍点）。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[>=Stealth,scale=1.0]
+  % 每个面板：横轴=沿某方向偏离，纵轴=二阶项 q。两条曲线=沿两个方向的截面曲率。
+  % ===== 面板 1：极小（H 正定）=====
+  \begin{scope}[shift={(0,0)}]
+    \draw[->] (-1.25,0) -- (1.25,0) node[right]{\scriptsize 方向};
+    \draw[->] (0,-1.15) -- (0,1.15) node[above]{\scriptsize $q$};
+    \draw[cyan!55!black,thick,domain=-1.05:1.05,smooth,variable=\t] plot ({\t},{0.85*\t*\t});
+    \draw[cyan!70!black,thick,domain=-1.05:1.05,smooth,variable=\t] plot ({\t},{0.40*\t*\t});
+    \fill (0,0) circle (1.2pt);
+    \node at (0,-1.7) {\small 极小};
+    \node at (0,-2.1) {\footnotesize $\mat H\succ 0$（正定）};
+    \node[cyan!55!black] at (0,-2.55) {\footnotesize 每个方向都上凸};
+  \end{scope}
+  % ===== 面板 2：极大（H 负定）=====
+  \begin{scope}[shift={(4.0,0)}]
+    \draw[->] (-1.25,0) -- (1.25,0) node[right]{\scriptsize 方向};
+    \draw[->] (0,-1.15) -- (0,1.15) node[above]{\scriptsize $q$};
+    \draw[red!60!black,thick,domain=-1.05:1.05,smooth,variable=\t] plot ({\t},{-0.85*\t*\t});
+    \draw[red!75!black,thick,domain=-1.05:1.05,smooth,variable=\t] plot ({\t},{-0.40*\t*\t});
+    \fill (0,0) circle (1.2pt);
+    \node at (0,-1.7) {\small 极大};
+    \node at (0,-2.1) {\footnotesize $\mat H\prec 0$（负定）};
+    \node[red!60!black] at (0,-2.55) {\footnotesize 每个方向都下凹};
+  \end{scope}
+  % ===== 面板 3：鞍点（H 不定）=====
+  \begin{scope}[shift={(8.0,0)}]
+    \draw[->] (-1.25,0) -- (1.25,0) node[right]{\scriptsize 方向};
+    \draw[->] (0,-1.15) -- (0,1.15) node[above]{\scriptsize $q$};
+    \draw[violet!60!black,thick,domain=-1.05:1.05,smooth,variable=\t] plot ({\t},{0.75*\t*\t});
+    \draw[violet!75!black,thick,domain=-1.05:1.05,smooth,variable=\t] plot ({\t},{-0.75*\t*\t});
+    \fill (0,0) circle (1.2pt);
+    \node at (0,-1.7) {\small 鞍点};
+    \node at (0,-2.1) {\footnotesize $\mat H$ 不定};
+    \node[violet!60!black] at (0,-2.55) {\footnotesize 有向上有向下};
+  \end{scope}
+\end{tikzpicture}
+\caption{临界点三态。横轴是沿某一方向偏离临界点的位移，纵轴是二阶项 $q(\vc\Delta)=\tfrac12\vc\Delta\T\mat H\vc\Delta$ 的值；每个面板画了沿两个代表方向的截面。正定：所有方向都上凸（碗，极小）；负定：所有方向都下凹（穹顶，极大）；不定：有的方向上凸、有的下凹（山口，鞍点）。}
+\label{fig:taylor-critical}
+\end{figure}
+
+\ex[一个鞍点]{
+判定 $f(x,y)=x^2-y^2$ 在原点的临界点类型。
+}
+\sol{
+$\grad f=(2x,-2y)\T$，在原点为 $\vc 0$，故原点是临界点。Hessian 为常数矩阵
+\[
+    \mat H=\bm 2 & 0\\ 0 & -2\emx ,
+\]
+特征值 $2$ 与 $-2$，一正一负，$\mat H$ 不定。故原点是鞍点：沿 $x$ 轴 $f=x^2$ 取极小，沿 $y$ 轴 $f=-y^2$ 取极大。这里二阶项恰好就是全部（$f$ 本身是二次型，更高阶导数为零），所以分类是精确的，而非仅局部成立。
+}
+
+\ex[二阶项是二次型：一个非对角的例子]{
+求 $f(x,y)=x^2+xy+y^2$ 在原点的二阶近似，并判定类型。
+}
+\sol{
+$\grad f=(2x+y,\ x+2y)\T$ 在原点为零，原点是临界点。Hessian
+\[
+    \mat H=\bm 2 & 1\\ 1 & 2\emx ,
+\]
+其顺序主子式为 $2>0$ 与 $\det\mat H=4-1=3>0$，由 Sylvester 判据 $\mat H$ 正定（等价地，特征值 $1,3$ 均正）。故原点是严格局部极小。二阶近似
+\[
+    f(\vc x)\approx \tfrac12\vc\Delta\T\mat H\vc\Delta=x^2+xy+y^2
+\]
+在此恰好还原 $f$ 本身。交叉项 $xy$ 的存在提醒我们：Hessian 一般不是对角阵，临界点的``主轴方向''是 $\mat H$ 的特征向量方向，沿这些方向曲率取特征值——这把分类问题彻底交回给谱定理。
+}
+
+\rmkb[为什么半定时判别失效]{
+若 $\mat H$ 半正定但奇异，沿零特征值对应的方向 $\vc v_0$ 有 $\vc v_0\T\mat H\vc v_0=0$，二阶项在该方向\emph{消失}，$f$ 在这条线上的行为由三阶及更高阶项接管，二阶展开看不出来。例如 $f(x)=x^4$ 与 $g(x)=x^3$ 在原点都有 $f''=g''=0$（一维的``半定退化''），但前者是极小、后者是拐点。结论：二阶条件是\emph{充分}而非必要——它判得出的一定对，判不出（退化）时要请更高阶的 Taylor 项出场。
+}
+
+\section{去处：从牛顿法到渐近展开}
+\label{sec:taylor-applications}
+
+Taylor 展开不是一个孤立的定理，而是一连串后续工具的共同地基。本节快速点出几个最重要的落点，它们会在后面相应的部分展开。
+
+\paragraph{无约束最优化的二阶条件。}
+本章第~\ref{sec:taylor-critical} 节的分类定理，就是无约束最优化（最优化部分）二阶充分条件的全部内容：找到使 $\grad f=\vc 0$ 的点（一阶条件）后，用 Hessian 的正/负定性确认它是极小还是极大。隐函数定理一章里``二阶条件让比较静态有良定义''的论断（负定 $\Rightarrow$ 可逆），其源头正是这里——负定的 $\mat H$ 不仅判出极大，还因可逆而启动了比较静态公式。
+
+\paragraph{牛顿法：最小化二阶近似。}
+要数值地求 $f$ 的极小，牛顿法的思路是：在当前点 $\vc x_k$ 把 $f$ 用二阶 Taylor 多项式替代，然后\emph{精确地}极小化这个二次替身。二次近似 $q(\vc\Delta)=f(\vc x_k)+\grad f(\vc x_k)\T\vc\Delta+\tfrac12\vc\Delta\T\mat H_k\vc\Delta$ 的极小由 $\grad q=\vc 0$ 给出，即 $\mat H_k\vc\Delta=-\grad f(\vc x_k)$，于是迭代
+\[
+    \vc x_{k+1}=\vc x_k-\inv{\mat H_k}\,\grad f(\vc x_k) .
+\]
+每一步都在求解``当前二次近似的最优点''。当 $\mat H$ 正定且初值够近时，牛顿法二次收敛——这速度正是``二阶近似贴得紧''（图~\ref{fig:taylor-approx} 里红线那种贴法）的回报。计量里 MLE 的数值求解、以及 BHHH、Fisher scoring 等变体，骨子里都是这条迭代。
+
+\paragraph{M-估计量的渐近展开。}
+这是 Taylor 展开在计量里最深的一处用途（详见渐近统计部分）。设估计量 $\hat{\vc\theta}$ 由样本一阶条件 $\vc\Psi_n(\hat{\vc\theta})=\tfrac1n\sum_i\grad_{\vc\theta}m(\vc z_i,\hat{\vc\theta})=\vc 0$ 隐式定义。把 $\vc\Psi_n$ 在真值 $\vc\theta_0$ 处做一阶 Taylor 展开：
+\[
+    \vc 0=\vc\Psi_n(\hat{\vc\theta})
+    =\vc\Psi_n(\vc\theta_0)+\D_{\vc\theta}\vc\Psi_n(\bar{\vc\theta})\,(\hat{\vc\theta}-\vc\theta_0),
+\]
+其中 $\bar{\vc\theta}$ 介于 $\hat{\vc\theta}$ 与 $\vc\theta_0$ 之间（Lagrange 中间点）。解出并乘以 $\rtn$：
+\[
+    \rtn(\hat{\vc\theta}-\vc\theta_0)
+    =-\br{\D_{\vc\theta}\vc\Psi_n(\bar{\vc\theta})}^{-1}\rtn\,\vc\Psi_n(\vc\theta_0) .
+\]
+对右边取极限：括号内的 Jacobian 依概率收敛到一个常数矩阵（Hessian 的期望），$\rtn\vc\Psi_n(\vc\theta_0)$ 由中心极限定理趋于正态。两块拼起来就得到 $\rtn(\hat{\vc\theta}-\vc\theta_0)\dto\cN(\vc 0,\ \vc\Sigma)$，其中 $\vc\Sigma$ 是经典的``三明治''形式。可以看到：MLE、GMM、M-估计的渐近正态性，统统是``把一阶条件做一阶 Taylor 展开、再让 $n\to\infty$''这一招——这正是本章开头许诺的``渐近统计里估计量展开''的真面目。
+
+\state{一条主线}{
+Taylor 展开把``复杂函数''换成``一点附近的多项式替身''，于是：\emph{一阶}替身给出局部线性化（切线、切平面、Delta 法、M-估计的展开骨架）；\emph{二阶}替身给出局部二次化，其曲率项是 Hessian 二次型，由它的正定性判定极值（二阶条件）、由它构造迭代（牛顿法）、由它（取期望后）拼出渐近方差。一件工具，串起最优化、数值方法与渐近统计三条线。下一步该问的自然是：什么样的函数，其二阶近似在\emph{全局}都成立而非仅局部？答案是凹/凸函数——那是下一章的主题。
+}

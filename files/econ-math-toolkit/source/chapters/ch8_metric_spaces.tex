@@ -1,0 +1,444 @@
+% !TEX root = ../main.tex
+\chapter{度量空间、开集闭集与序列收敛}
+\label{ch:metric}
+
+\noindent\emph{用到的前置工具：向量空间与范数（线性代数部分，向量空间见第一章）；实数的基本性质（确界、绝对值）。本章是 Part II 的开篇，几乎是自足的。}
+\medskip
+
+经济学里到处是``逼近''与``极限''的论证：估计量 $\hat{\vc\theta}$ 随样本量增大\emph{收敛}到真值，值迭代 $V_{n+1}=TV_n$ 一步步\emph{逼近}值函数，均衡作为某条曲线与另一条曲线的交点而\emph{存在}。这些说法在一维实数轴上人人会用——``$x_n$ 离 $x^*$ 越来越近''无非是 $\abs{x_n-x^*}\to 0$。可一旦对象变成 $\RR^n$ 里的价格向量、甚至变成一整个``函数''（值函数本身就是无穷维空间里的一个点），``近''和``极限''该怎么讲就不再显然。本章要做的，就是把``接近''``收敛''``闭合''这套直觉从实数轴搬到任意空间里、并讲精确。它是后面所有存在性证明、连续性讨论、动态系统与估计量收敛理论共用的语言地基——这一章先把字母表立起来，后面的章节才有词可写。
+
+\section{为什么经济学也需要拓扑语言}
+\label{sec:metric-motivation}
+
+先说清楚动机，免得把这章当成纯数学的礼节性铺垫。经济学家真正要用到这套语言的地方，集中在三类问题上。
+
+第一类是\textbf{存在性}。``竞争均衡存在吗？''``这个最优化问题有没有解？''——回答它们的标准武器是紧致性与不动点定理（后面几章），而紧致、连续这些概念本身，必须先有``开集''``收敛子列''才能定义。没有本章的词汇，连``Weierstrass 定理：连续函数在紧集上取到最大值''这句话都说不出口。
+
+第二类是\textbf{收敛}。计量经济学整门课都在讨论估计量的\emph{大样本}性质：$\hat{\vc\theta}_n\pto\vc\theta_0$（依概率收敛）、$\hat{\vc\theta}_n\asto\vc\theta_0$（几乎必然收敛）。这些收敛模式各自的定义，骨子里都是``某个距离趋于零''——依概率收敛说的是``落在 $\vc\theta_0$ 的 $\ve$-邻域之外的概率趋于零'',而``邻域''正是本章的开球。要把这些概念摆对，得先有度量。
+
+第三类是\textbf{迭代与动态}。动态规划靠反复作用 Bellman 算子来求值函数，靠的是``相邻迭代越挤越近''最终收敛——这是 Cauchy 列与完备性的语言（压缩映射一章会正面用到）。差分方程的稳定性、马尔可夫链收敛到平稳分布，同样是``序列在某空间里收敛''的故事。
+
+\state{本章在全书里的位置}{
+本章提供的是\textbf{词汇而非定理}：开集 / 闭集、邻域、收敛、Cauchy、完备、有界序列有收敛子列。它们本身很少直接给出经济学结论，但后面每一个``存在''``收敛''``连续''的论证都建在它们之上。读法上不必背，重点是把每个概念\emph{对应回它在一维时的朴素直觉}：度量是``距离'',开集是``每个点都还有活动余地的集合'',闭集是``取极限跑不出去的集合'',完备是``该收敛的都收敛、没有窟窿''。
+}
+
+\section{度量、范数与邻域}
+\label{sec:metric-def}
+
+一切从``两点之间有多远''开始。我们不假定空间是 $\RR^n$、也不假定有坐标，只要求有一个测距的函数，且这个函数满足任何``距离''都该满足的几条朴素性质。
+
+\defn{度量空间}{
+设 $X$ 是一个非空集合。函数 $d:X\times X\to\RR$ 称为 $X$ 上的一个\textbf{度量}（metric，距离函数），若对一切 $x,y,z\in X$ 满足：
+\begin{itemize}
+    \item[(M1)] \textbf{非负且可分}：$d(x,y)\ge 0$，且 $d(x,y)=0$ 当且仅当 $x=y$；
+    \item[(M2)] \textbf{对称}：$d(x,y)=d(y,x)$；
+    \item[(M3)] \textbf{三角不等式}：$d(x,z)\le d(x,y)+d(y,z)$。
+\end{itemize}
+此时称二元组 $(X,d)$ 为\textbf{度量空间}。
+}
+
+这三条恰是``距离''一词的最小公约数：距离不为负、A 到 B 等于 B 到 A、绕路不会更近。三角不等式 (M3) 是其中唯一``有内容''的一条，后面几乎每个证明都要靠它——它正是``$x$ 与 $z$ 都离 $y$ 近，则 $x$ 与 $z$ 彼此也近''这个几何直觉的代数化身。
+
+\ex[最常用的几个度量]{
+验证以下都是度量空间，并体会``同一集合可配不同度量''。
+}
+\sol{
+(1) \emph{实数轴}：$X=\RR$，$d(x,y)=\abs{x-y}$。三条性质都是绝对值的基本性质，(M3) 即 $\abs{x-z}\le\abs{x-y}+\abs{y-z}$。
+
+(2) \emph{欧氏空间}：$X=\RR^n$，$d(\vc x,\vc y)=\norm{\vc x-\vc y}=\sqrt{\sum_{i=1}^n (x_i-y_i)^2}$，即由欧氏范数诱导的度量。这是本书默认的 $\RR^n$ 度量。
+
+(3) \emph{同一 $\RR^n$ 上的另两个度量}：曼哈顿度量 $d_1(\vc x,\vc y)=\sum_i\abs{x_i-y_i}$ 与切比雪夫度量 $d_\infty(\vc x,\vc y)=\max_i\abs{x_i-y_i}$。它们与欧氏度量给出\emph{不同}的``球''的形状（菱形、正方形），但在 $\RR^n$ 上它们彼此``等价'',即诱导出相同的开集、相同的收敛——后面会回到这点。
+
+(4) \emph{离散度量}：任意集合 $X$，令 $d(x,y)=0$（若 $x=y$）、$=1$（若 $x\neq y$）。它满足三条公理，提醒我们度量可以与``连续''的直觉毫无关系。
+}
+
+在向量空间上，度量通常由\textbf{范数}诱导。范数是``长度''的抽象，由它定义距离 $d(\vc x,\vc y)=\norm{\vc x-\vc y}$ 既自然又自动满足三条度量公理。
+
+\defn{范数}{
+设 $V$ 是 $\RR$ 上的向量空间。函数 $\norm{\cdot}:V\to\RR$ 称为\textbf{范数}，若对一切 $\vc x,\vc y\in V$ 与标量 $\alpha\in\RR$：
+\begin{itemize}
+    \item[(N1)] $\norm{\vc x}\ge 0$，且 $\norm{\vc x}=0\iff\vc x=\vc 0$；
+    \item[(N2)] $\norm{\alpha\vc x}=\abs{\alpha}\,\norm{\vc x}$（正齐次）；
+    \item[(N3)] $\norm{\vc x+\vc y}\le\norm{\vc x}+\norm{\vc y}$（三角不等式）。
+\end{itemize}
+}
+
+\rmkb[范数 $\To$ 度量，反之不然]{
+由范数令 $d(\vc x,\vc y):=\norm{\vc x-\vc y}$，则 (N1) 给出度量的 (M1)，(N2) 取 $\alpha=-1$ 给出对称 (M2)，(N3) 给出三角 (M3)——范数诱导的度量自动是度量，且还\emph{平移不变}（$d(\vc x+\vc z,\vc y+\vc z)=d(\vc x,\vc y)$）。但度量空间未必来自范数：上面的离散度量就不是任何范数诱导的（它不满足 $d(\alpha\vc x,\alpha\vc y)=\abs\alpha\, d(\vc x,\vc y)$）。范数的额外结构（与线性运算相容）在线性代数与最优化里很关键；度量则是更朴素、适用面更广的底层概念。
+}
+
+有了距离，``一个点附近''就能精确表达。这是全章最频繁使用的对象。
+
+\defn{开球与邻域}{
+设 $(X,d)$ 为度量空间，$x_0\in X$，$r>0$。集合
+\[
+    B(x_0,r):=\setb{x\in X}{d(x,x_0)<r}
+\]
+称为以 $x_0$ 为心、$r$ 为半径的\textbf{开球}（open ball）。$x_0$ 的一个\textbf{邻域}指任何包含某个 $B(x_0,r)$ 的集合。
+}
+
+在 $\RR$ 里开球就是开区间 $(x_0-r,\,x_0+r)$；在 $\RR^2$ 里（欧氏度量）就是不含边界的圆盘；换成曼哈顿或切比雪夫度量，``球''分别是菱形和正方形（图~\ref{fig:metric-balls}）。``邻域''则不必是球，只要\emph{容得下}一个以该点为心的球即可——这点松弛在后面定义内点时正好够用。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  \def\R{1.3}   % 单位半径在画布上的长度
+  % 三个子图横向排开，间距 4.3：公共坐标十字 + 圆心
+  \foreach \ox in {0,4.3,8.6}{
+    \draw[gray!45,->] (\ox-\R-0.45,0) -- (\ox+\R+0.45,0);
+    \draw[gray!45,->] (\ox,-\R-0.45) -- (\ox,\R+0.45);
+    \fill[black] (\ox,0) circle (1.3pt);
+  }
+  % (1) 欧氏：圆
+  \def\ox{0}
+  \fill[cyan!12!white] (\ox,0) circle (\R);
+  \draw[cyan!55!black,line width=1pt] (\ox,0) circle (\R);
+  \node[anchor=north,font=\small] at (\ox,-\R-0.55) {$d_2$（欧氏）：圆};
+  \draw[cyan!55!black,line width=0.7pt] (\ox,0) -- ({\ox+0.7071*\R},{0.7071*\R});
+  \node[cyan!55!black,font=\small,anchor=south east,inner sep=2pt] at ({\ox+0.45*\R},{0.45*\R}) {$1$};
+  % (2) 曼哈顿：菱形 |x|+|y|<=1
+  \def\ox{4.3}
+  \fill[orange!16!white] (\ox+\R,0) -- (\ox,\R) -- (\ox-\R,0) -- (\ox,-\R) -- cycle;
+  \draw[orange!75!black,line width=1pt] (\ox+\R,0) -- (\ox,\R) -- (\ox-\R,0) -- (\ox,-\R) -- cycle;
+  \node[anchor=north,font=\small] at (\ox,-\R-0.55) {$d_1$（曼哈顿）：菱形};
+  \fill[black] (\ox+\R,0) circle (1pt);
+  \node[font=\small,anchor=north west,inner sep=2pt] at (\ox+\R,-0.02) {$1$};
+  % (3) 切比雪夫：正方形 max(|x|,|y|)<=1
+  \def\ox{8.6}
+  \fill[violet!14!white] (\ox-\R,-\R) rectangle (\ox+\R,\R);
+  \draw[violet!65!black,line width=1pt] (\ox-\R,-\R) rectangle (\ox+\R,\R);
+  \node[anchor=north,font=\small] at (\ox,-\R-0.55) {$d_\infty$（切比雪夫）：正方形};
+  \fill[black] (\ox+\R,0) circle (1pt);
+  \node[font=\small,anchor=north west,inner sep=2pt] at (\ox+\R,-0.02) {$1$};
+\end{tikzpicture}
+\caption{同一 $\RR^2$、同一``单位球''$\{x:d(x,0)<1\}$，换一个度量就换一副形状：欧氏度量下是圆、曼哈顿度量下是菱形、切比雪夫度量下是正方形。三者``球''形虽异，在 $\RR^2$ 上却给出相同的开集与相同的收敛（彼此等价）。}
+\label{fig:metric-balls}
+\end{figure}
+
+\section{开集、闭集与点的分类}
+\label{sec:metric-opensets}
+
+下面这组概念是整套拓扑语言的语法核心。直觉上，开集是``每个成员都还有富余空间''的集合，闭集是``取极限跑不出去''的集合；而二者通过取补集精确地互为对偶。
+
+\subsection{内点与开集}
+
+\defn{内点与开集}{
+设 $A\se X$。点 $x\in A$ 称为 $A$ 的\textbf{内点}（interior point），若存在 $r>0$ 使得 $B(x,r)\se A$——即 $x$ 周围有一整个小球都还在 $A$ 里。$A$ 的全体内点记作 $\operatorname{int}A$。若 $A$ 的每个点都是内点（即 $\operatorname{int}A=A$），则称 $A$ 为\textbf{开集}（open set）。
+}
+
+``开''说的就是``没有边''：站在开集里的任何一点，无论它多靠近``边缘'',总还有一点点活动余地不出界。开区间 $(a,b)$ 是开集——再贴近 $a$ 的点 $x$，离 $a$ 仍有正距离，可取 $r=\min\{x-a,b-x\}$；而 $[a,b]$ 不是开集，因为端点 $a$ 的任何小球都会探出区间左侧。
+
+\fact{开集的基本性质}{
+在任何度量空间 $(X,d)$ 中：
+\begin{itemize}
+    \item[(i)] 每个开球 $B(x_0,r)$ 都是开集；
+    \item[(ii)] 空集 $\varnothing$ 与全空间 $X$ 都是开集；
+    \item[(iii)] \emph{任意多个}开集之并仍是开集；
+    \item[(iv)] \emph{有限个}开集之交仍是开集。
+\end{itemize}
+}
+
+(i) 与 (iv) 值得动手验一遍：(i) 是``开球''名副其实的依据，也示范了三角不等式怎么用；(iv) 则点出``有限''这个限定不可省。
+
+\pf{
+验 (i)：取 $y\in B(x_0,r)$，记 $s:=r-d(y,x_0)>0$。对任何 $z\in B(y,s)$，由三角不等式
+\[
+    d(z,x_0)\le d(z,y)+d(y,x_0)< s+d(y,x_0)=r,
+\]
+故 $z\in B(x_0,r)$，即 $B(y,s)\se B(x_0,r)$。这说明 $y$ 是内点。$y$ 在球内任取，故 $B(x_0,r)$ 全由内点组成，是开集。几何上 $s$ 就是``$y$ 到球面还剩的余量''（图~\ref{fig:metric-interior}）。
+
+(iv)：设 $A_1,\dots,A_k$ 开，$x\in\bigcap_j A_j$。每个 $A_j$ 给出半径 $r_j>0$ 使 $B(x,r_j)\se A_j$；取 $r=\min_j r_j>0$，则 $B(x,r)$ 同时落在所有 $A_j$ 里，故落在交里。``有限''在此不可省：取 $r=\min$ 用到了正数个数有限才保证 $\min>0$；无穷个开集 $(-\tfrac1n,\tfrac1n)$ 的交是单点集 $\{0\}$，并不开。(ii)(iii) 留给读者，皆是定义的直接推演。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=2.2,>=Stealth]
+  \def\r{1.4}                       % 外球半径
+  \coordinate (x0) at (0,0);
+  \coordinate (y) at (0.78,0.42);    % 内点，d(y,x0)=0.8859
+  \def\s{0.514}                      % 余量 s=r-d(y,x0)
+  % 外开球 B(x0,r)
+  \fill[cyan!8!white] (x0) circle (\r);
+  \draw[cyan!55!black,line width=1pt,dashed] (x0) circle (\r);
+  % 内小球 B(y,s)
+  \fill[orange!18!white,opacity=0.8] (y) circle (\s);
+  \draw[orange!80!black,line width=0.9pt] (y) circle (\s);
+  % 圆心 x0 与点 y
+  \fill[black] (x0) circle (1.0pt);
+  \node[anchor=north east,inner sep=2pt] at (x0) {$x_0$};
+  \fill[black] (y) circle (1.0pt);
+  \node[anchor=south east,inner sep=2pt] at (y) {$y$};
+  % d(y,x0)
+  \draw[black,line width=0.7pt] (x0) -- (y);
+  \node[font=\small,anchor=north west,inner sep=2pt] at ($(x0)!0.5!(y)$) {$d(y,x_0)$};
+  % s：沿同方向延到外球面（边界点恰在外圆上）
+  \coordinate (edge) at (1.2327,0.6638);
+  \draw[orange!80!black,line width=0.8pt] (y) -- (edge);
+  \fill[orange!80!black] (edge) circle (0.8pt);
+  \node[orange!80!black,font=\small,anchor=south east,inner sep=3pt] at ($(y)!0.5!(edge)$) {$s$};
+  % 外半径 r
+  \draw[cyan!55!black,line width=0.7pt] (x0) -- (-0.99,0.99);
+  \node[cyan!55!black,font=\small,anchor=south east,inner sep=2pt] at (-0.55,0.55) {$r$};
+  \node[cyan!55!black,font=\small,anchor=north] at (0,-\r-0.10) {$B(x_0,r)$};
+  % 余量注记
+  \node[orange!75!black,align=left,font=\small,anchor=west] at (1.45,0.10)
+    {\kaishu 余量\ $s=r-d(y,x_0)$\\\kaishu 故 $B(y,s)\subseteq B(x_0,r)$};
+  \draw[orange!75!black,->,line width=0.6pt] (1.42,0.28) -- (1.05,0.55);
+\end{tikzpicture}
+\caption{开球是开集的证明图解。任取球内一点 $y$，令 $s=r-d(y,x_0)$ 为``$y$ 到球面还剩的余量''；由三角不等式，整个 $B(y,s)$ 都落在 $B(x_0,r)$ 内（小球恰好内切于大球面），故 $y$ 是内点。}
+\label{fig:metric-interior}
+\end{figure}
+
+\subsection{闭集、聚点与闭包}
+
+闭集最干净的定义是``开集的补集'',但更能体现其内涵的等价说法是``包含自身的全部极限点''。两条我们都要。
+
+\defn{闭集}{
+集合 $A\se X$ 称为\textbf{闭集}（closed set），若它的补集 $X\bs A$ 是开集。
+}
+
+\rmkb[开与闭不是反义词]{
+``闭''被定义为``补集开'',这是个常被误解的地方：开与闭\emph{不互斥、也不穷尽}。一个集合可以\emph{既开又闭}（在 $\RR$ 中只有 $\varnothing$ 和 $\RR$，但在一般空间里可以更多——这正是``连通''概念的来由），也可以\emph{既不开也不闭}（如半开区间 $[0,1)$：含端点 $0$ 故不开，缺端点 $1$ 故不闭，见图~\ref{fig:metric-openclosed}）。所以看到``不是开集''千万别顺势断定``是闭集''。
+}
+
+要把``闭=取极限跑不出去''讲清楚，先要``极限点''这个词。
+
+\defn{聚点、孤立点与闭包}{
+设 $A\se X$，$x\in X$。
+\begin{itemize}
+    \item $x$ 称为 $A$ 的\textbf{聚点}（accumulation/limit point），若 $x$ 的\emph{每个}邻域都含有 $A$ 中异于 $x$ 的点——直觉上 $A$ 的点能要多近有多近地挤向 $x$。
+    \item $x\in A$ 若不是 $A$ 的聚点，则称\textbf{孤立点}。
+    \item $A$ 的\textbf{闭包}（closure）$\overline A$ 是 $A$ 连同其全部聚点构成的集合。
+\end{itemize}
+}
+
+注意聚点不必属于 $A$ 本身——它恰恰是``$A$ 在边上够不着、却被逼近''的那种点。例如 $A=\{1/n:n\in\NN\}$ 的唯一聚点是 $0\notin A$。下面这条等价刻画是``闭''字的真正含义，也是日后判定闭集时最常用的判据。
+
+\thm{闭集的序列刻画}{
+设 $A\se X$。以下三者等价：
+\begin{itemize}
+    \item[(a)] $A$ 是闭集（即 $X\bs A$ 开）；
+    \item[(b)] $A$ 包含它自身的全部聚点（即 $\overline A=A$）；
+    \item[(c)] $A$ 中任何\emph{收敛序列}的极限仍在 $A$ 内：若 $x_n\in A$ 且 $x_n\to x$，则 $x\in A$。
+\end{itemize}
+}
+
+\pf{
+\emph{(a)$\To$(c)}：设 $A$ 闭、$x_n\in A$、$x_n\to x$，反设 $x\notin A$，即 $x\in X\bs A$。因 $X\bs A$ 开，存在 $r>0$ 使 $B(x,r)\se X\bs A$，该球与 $A$ 无交。但 $x_n\to x$ 意味着 $n$ 充分大后 $x_n\in B(x,r)$，与 $x_n\in A$ 矛盾。故 $x\in A$。
+
+\emph{(c)$\To$(b)}：设 $x$ 是 $A$ 的聚点。对每个 $n$，邻域 $B(x,1/n)$ 含 $A$ 中异于 $x$ 的点 $x_n$；则 $d(x_n,x)<1/n\to 0$，即 $x_n\to x$，由 (c) 得 $x\in A$。故 $A$ 含其全部聚点。
+
+\emph{(b)$\To$(a)}：设 $\overline A=A$，要证 $X\bs A$ 开。取 $y\in X\bs A$。$y$ 不在 $A$、也不是 $A$ 的聚点（否则 $y\in\overline A=A$），故 $y$ 有某邻域 $B(y,r)$ 不含 $A$ 中异于 $y$ 的点；又 $y\notin A$，所以 $B(y,r)$ 干脆与 $A$ 无交，即 $B(y,r)\se X\bs A$。于是 $X\bs A$ 的每点都是内点，是开集。
+}
+
+\state{判定``闭''的实战口径}{
+日常证明里几乎总用 (c)：\textbf{要证某集合闭，就取它内部一个收敛序列，验它的极限还在集合里}。这条``序列判据''之所以好用，是因为经济学里的集合常以``满足若干不等式''的形式给出（如约束集 $\{x:g(x)\le 0\}$），而``弱不等式在取极限下保持''——若 $g(x_n)\le 0$ 且 $g$ 连续、$x_n\to x$，则 $g(x)\le 0$——正好兑现 (c)。这就是``闭约束集''几乎总成立、而紧约束集（闭+有界）成为存在性定理标准前提的根由。
+}
+
+\cor{开闭对偶}{
+对集族取补，``并''与``交''互换，于是\fact{开集的基本性质}逐条翻译成：$\varnothing,X$ 闭；\emph{任意多个}闭集之交是闭集；\emph{有限个}闭集之并是闭集。（注意``任意/有限''随对偶而对调。）
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[xscale=1.55,yscale=1,>=Stealth]
+  % 行 1：开区间 (a,b)，两端空心
+  \def\y{2.3}
+  \draw[->,gray!55] (-0.4,\y) -- (3.6,\y);
+  \draw[very thick,cyan!60!black] (0.6,\y) -- (2.8,\y);
+  \draw[cyan!60!black,fill=white,thick] (0.6,\y) circle (1.7pt);
+  \draw[cyan!60!black,fill=white,thick] (2.8,\y) circle (1.7pt);
+  \node[anchor=north,font=\small] at (0.6,\y-0.06) {$a$};
+  \node[anchor=north,font=\small] at (2.8,\y-0.06) {$b$};
+  \node[cyan!60!black,anchor=west,font=\small] at (3.7,\y) {$(a,b)$\ \kaishu 开};
+  \node[anchor=south,font=\small,align=center] at (1.7,\y+0.06) {\kaishu 两端都不含，每点都有余地};
+  % 行 2：闭区间 [c,d]，两端实心
+  \def\y{1.15}
+  \draw[->,gray!55] (-0.4,\y) -- (3.6,\y);
+  \draw[very thick,purple!55!black] (0.6,\y) -- (2.8,\y);
+  \fill[purple!55!black] (0.6,\y) circle (1.9pt);
+  \fill[purple!55!black] (2.8,\y) circle (1.9pt);
+  \node[anchor=north,font=\small] at (0.6,\y-0.06) {$c$};
+  \node[anchor=north,font=\small] at (2.8,\y-0.06) {$d$};
+  \node[purple!55!black,anchor=west,font=\small] at (3.7,\y) {$[c,d]$\ \kaishu 闭};
+  \node[anchor=south,font=\small,align=center] at (1.7,\y+0.06) {\kaishu 含全部端点，极限跑不出去};
+  % 行 3：半开 [0,1)，左实心右空心
+  \def\y{0}
+  \draw[->,gray!55] (-0.4,\y) -- (3.6,\y);
+  \draw[very thick,orange!75!black] (0.6,\y) -- (2.8,\y);
+  \fill[orange!75!black] (0.6,\y) circle (1.9pt);
+  \draw[orange!75!black,fill=white,thick] (2.8,\y) circle (1.7pt);
+  \node[anchor=north,font=\small] at (0.6,\y-0.06) {$0$};
+  \node[anchor=north,font=\small] at (2.8,\y-0.06) {$1$};
+  \node[orange!75!black,anchor=west,font=\small] at (3.7,\y) {$[0,1)$\ \kaishu 既不开也不闭};
+  \node[anchor=south,font=\small,align=center] at (1.7,\y+0.06) {\kaishu 含 $0$ 故不开，缺 $1$ 故不闭};
+\end{tikzpicture}
+\caption{开、闭不是反义词。端点取舍决定一切：两端都不取是开集 $(a,b)$，两端都取是闭集 $[c,d]$，只取一端的 $[0,1)$ 则\emph{既不开也不闭}（含 $0$ 故不开、缺聚点 $1$ 故不闭）。}
+\label{fig:metric-openclosed}
+\end{figure}
+
+\subsection{边界点}
+
+\defn{边界}{
+点 $x\in X$ 称为 $A$ 的\textbf{边界点}（boundary point），若 $x$ 的每个邻域\emph{既}含 $A$ 中的点\emph{又}含 $X\bs A$ 中的点。$A$ 的全体边界点记作 $\partial A$。
+}
+
+边界点是``一脚在内、一脚在外''的临界点。它干净地统一了前面几个概念：开集就是``一个边界点都不含''的集合，闭集就是``把自己的边界点全含进来''的集合，而 $\overline A=\operatorname{int}A\,\cup\,\partial A$。在 $\RR^n$ 里，闭球 $\setb{x}{d(x,x_0)\le r}$ 的边界正是球面 $\setb{x}{d(x,x_0)=r}$，它既属于闭球（故闭球闭）、又不属于开球（故开球开）——开球与闭球的差别，整个就装在这层边界里。
+
+\section{序列收敛、Cauchy 列与完备性}
+\label{sec:metric-convergence}
+
+度量最直接的用途是定义收敛——也就是把一维的 $\abs{x_n-x}\to 0$ 原样搬到任意度量空间。
+
+\defn{序列收敛}{
+度量空间 $(X,d)$ 中的序列 $(x_n)$ \textbf{收敛}到 $x\in X$，记 $x_n\to x$，若 $d(x_n,x)\to 0$；展开即：对任意 $\ve>0$，存在 $N$，使 $n\ge N$ 时 $d(x_n,x)<\ve$。等价地说，$x$ 的任何邻域最终都``关住''了序列的全部尾项（图~\ref{fig:metric-seq}）。此 $x$ 称为序列的\textbf{极限}。
+}
+
+\rmkb[极限唯一、与度量绑定]{
+度量空间中极限唯一：若 $x_n\to x$ 又 $x_n\to y$，则由三角不等式 $d(x,y)\le d(x,x_n)+d(x_n,y)\to 0$，故 $d(x,y)=0$，即 $x=y$。要紧的是，``收敛''是\emph{相对于所选度量}而言的：换一个度量，同一序列可能收敛到别处、甚至不再收敛（离散度量下只有最终恒为常数的序列才收敛）。所幸在 $\RR^n$ 上，欧氏、曼哈顿、切比雪夫三种度量\emph{等价}，给出完全一样的收敛——下一节细说。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.5,>=Stealth]
+  % R^2 中收敛序列 x_n -> x*：螺旋逐步逼近，eps-球关住全部尾项
+  \def\cx{2.7}\def\cy{1.6}
+  % eps 球 (eps=0.55) 关住 x5(0.504),x6(0.353),x7(0.247)
+  \fill[violet!10!white] (\cx,\cy) circle (0.55);
+  \draw[violet!55!black,dashed,line width=0.8pt] (\cx,\cy) circle (0.55);
+  % 折线连序列
+  \draw[gray!50,line width=0.6pt]
+    (1.464,3.298)--(3.431,2.875)--(3.724,1.497)--(2.927,0.916)
+    --(2.328,1.259)--(2.376,1.740)--(2.697,1.847);
+  % 球外的点 x1..x4 带标签
+  \fill (1.464,3.298) circle (1.5pt); \node[font=\small,anchor=south east,inner sep=2pt] at (1.464,3.298) {$x_1$};
+  \fill (3.431,2.875) circle (1.5pt); \node[font=\small,anchor=south west,inner sep=2pt] at (3.431,2.875) {$x_2$};
+  \fill (3.724,1.497) circle (1.5pt); \node[font=\small,anchor=west,inner sep=3pt] at (3.724,1.497) {$x_3$};
+  \fill (2.927,0.916) circle (1.5pt); \node[font=\small,anchor=north,inner sep=3pt] at (2.927,0.916) {$x_4$};
+  % 球内尾项 x5,x6,x7
+  \fill (2.328,1.259) circle (1.4pt); \node[font=\small,anchor=north east,inner sep=1.5pt] at (2.328,1.259) {$x_5$};
+  \fill (2.376,1.740) circle (1.3pt);
+  \fill (2.697,1.847) circle (1.3pt);
+  % 极限点
+  \fill[violet!60!black] (\cx,\cy) circle (1.8pt);
+  \node[violet!60!black,anchor=north west,inner sep=2pt] at (\cx,\cy) {$x^{*}$};
+  % eps 半径（向左水平）
+  \draw[violet!55!black,line width=0.7pt] (\cx,\cy) -- ($(\cx,\cy)+(-0.55,0)$);
+  \node[violet!55!black,anchor=south,font=\small,inner sep=2pt] at ($(\cx,\cy)+(-0.30,0.02)$) {$\varepsilon$};
+  % 注记：右下空白
+  \node[violet!60!black,align=left,font=\small,anchor=west] at (3.95,0.95)
+    {$N$ 之后全部尾项\\落入 $B(x^{*},\varepsilon)$};
+  \draw[violet!55!black,->,line width=0.7pt] (3.92,1.10) -- (3.15,1.50);
+\end{tikzpicture}
+\caption{$\RR^2$ 中序列 $x_n\to x^{*}$。早期的项 $x_1,\dots,x_4$ 可以四处游荡、离 $x^{*}$ 还远；但收敛意味着：无论把 $\varepsilon$-球 $B(x^{*},\varepsilon)$ 取得多小，总存在一个下标 $N$，使 $N$ 之后的\emph{全部}尾项 $x_5,x_6,x_7,\dots$ 都被关进这个球里。}
+\label{fig:metric-seq}
+\end{figure}
+
+\subsection{子列与 Cauchy 列}
+
+\defn{子列}{
+给定序列 $(x_n)$ 与严格递增的下标 $n_1<n_2<n_3<\cdots$，新序列 $(x_{n_k})_{k\ge 1}$ 称为 $(x_n)$ 的一个\textbf{子列}（subsequence）。
+}
+
+子列是``沿原序列挑出无穷多项、保持次序''。一个有用的事实：\emph{若 $x_n\to x$，则它的每个子列也收敛到同一个 $x$}（尾项的性质对子列照样成立）。反过来，一个不收敛的序列也可能有收敛的子列——这正是后面 Bolzano--Weierstrass 的舞台。
+
+下面这个概念是完备性的关键。它刻画``序列项彼此越挤越近''，而\emph{不预设极限存在}——这点差别正是它的全部价值。
+
+\defn{Cauchy 列}{
+序列 $(x_n)$ 称为\textbf{Cauchy 列}（柯西列），若对任意 $\ve>0$，存在 $N$，使得对一切 $m,n\ge N$ 都有 $d(x_m,x_n)<\ve$——即足够靠后的任意两项都任意接近。
+}
+
+收敛与 Cauchy 的关系，是本节的全部张力所在。
+
+\prop{收敛 $\To$ Cauchy}{
+任何收敛序列都是 Cauchy 列。
+}
+
+\pf{
+设 $x_n\to x$。给定 $\ve>0$，取 $N$ 使 $n\ge N$ 时 $d(x_n,x)<\ve/2$。则对 $m,n\ge N$，三角不等式给出
+\[
+    d(x_m,x_n)\le d(x_m,x)+d(x,x_n)<\tfrac\ve2+\tfrac\ve2=\ve .
+\]
+故 $(x_n)$ 是 Cauchy 列。
+}
+
+注意推导只用到``两项都离极限近''，根本没用到极限是谁。反方向——Cauchy 列是否一定收敛——却\emph{不总成立}，而它成立与否，恰恰是空间``有没有窟窿''的试金石。
+
+\subsection{完备性}
+
+\defn{完备空间}{
+度量空间 $(X,d)$ 称为\textbf{完备}（complete），若其中每个 Cauchy 列都在 $X$ 内收敛。
+}
+
+\state{完备性 = ``该收敛的都收敛、空间没有窟窿''}{
+Cauchy 列是``项已经挤成一团、只差一个极限来收口''的序列。完备性断言：这个极限\emph{真的存在、且就在空间内}。反例最能说明问题：在有理数空间 $\QQ$（带 $d(x,y)=\abs{x-y}$）里，取逼近 $\sqrt2$ 的有理数列 $1,\,1.4,\,1.41,\,1.414,\dots$——它是 Cauchy 列（项越挤越近），可它``想''收敛到的 $\sqrt2$ 是个无理数，\emph{不在 $\QQ$ 里}。$\QQ$ 在 $\sqrt2$ 处有个``窟窿'',故\emph{不}完备。把窟窿全填上，得到的正是 $\RR$——实数系的完备性是它区别于有理数系的根本特征，也是``实分析''得以展开的地基。
+}
+
+\fact{$\RR^n$ 完备}{
+配欧氏度量的 $\RR^n$ 是完备度量空间：其中每个 Cauchy 列都在 $\RR^n$ 内收敛。更一般地，$\RR$ 上的有限维赋范空间都完备，常用的函数空间（如紧集上连续函数配上确界范数的 $C(K)$）也完备。
+}
+
+\rmk{完备性是动态规划的隐形地基：压缩映射定理（后文）能断言 Bellman 算子的迭代收敛到唯一不动点，前提正是值函数所在的空间完备——否则迭代出的 Cauchy 列可能``收敛''到一个根本不在空间里的对象。}
+
+\section{$\RR^n$ 的拓扑与 Bolzano--Weierstrass}
+\label{sec:metric-rn}
+
+把上面的一般框架落到经济学最常用的 $\RR^n$ 上，会冒出两件特别好用、却并非在任何度量空间都成立的事实。
+
+\subsection{$\RR^n$ 上度量的等价与逐分量收敛}
+
+\prop{$\RR^n$ 上收敛即逐分量收敛}{
+设 $\vc x_n=(x_n^{(1)},\dots,x_n^{(p)})\in\RR^p$。则（在欧氏度量下）$\vc x_n\to\vc x$ 当且仅当每个分量都收敛：$x_n^{(i)}\to x^{(i)}$，$i=1,\dots,p$。
+}
+
+\pf{
+对每个分量，$\abs{x_n^{(i)}-x^{(i)}}\le\norm{\vc x_n-\vc x}$，故向量收敛蕴含各分量收敛。反过来，
+\[
+    \norm{\vc x_n-\vc x}=\sqrt{\sum_{i=1}^p\bigl(x_n^{(i)}-x^{(i)}\bigr)^2}\le\sqrt{p}\,\max_i\abs{x_n^{(i)}-x^{(i)}},
+\]
+右端在各分量都收敛时趋于零，故向量收敛。这条等价让我们能把 $\RR^n$ 里的收敛问题\emph{拆成 $n$ 个一维问题}逐个处理。
+}
+
+同样的两边夹估计还表明欧氏度量 $d_2$ 与切比雪夫度量 $d_\infty$ 互相控制（$d_\infty\le d_2\le\sqrt p\,d_\infty$），由此它们\textbf{等价}：诱导相同的开集、相同的收敛。这就是为什么在 $\RR^n$ 上我们可以随意挑一个用着方便的范数而不影响任何拓扑结论。
+
+\subsection{Bolzano--Weierstrass 定理}
+
+这是 $\RR^n$ 拓扑里最常被引用的一条，几乎所有``选一个收敛子列''的论证都从它出发。
+
+\thm{Bolzano--Weierstrass}{
+$\RR^n$ 中每个\textbf{有界}序列都有\emph{收敛的子列}。
+}
+
+它说的是：序列本身可以颠来倒去永不收敛，但只要它被关在一个有界范围里，就一定能从中挑出无穷多项、让这些项收敛到某个点。直觉用``反复二分''最清楚（见下证的一维骨架），结论则是后续紧致性理论的引擎。
+
+\pf{
+先看一维 $\RR$，再升到 $\RR^n$。设 $(x_n)\se\RR$ 有界，即落在某闭区间 $I_0=[a,b]$ 内。把 $I_0$ 对半分，两半中至少有一半含序列的\emph{无穷多}项，取这一半为 $I_1$；再对半分 $I_1$，取含无穷多项的一半为 $I_2$；如此得到一列闭区间
+\[
+    I_0\supseteq I_1\supseteq I_2\supseteq\cdots,\qquad \text{长度}\ \abs{I_k}=\frac{b-a}{2^k}\to 0,
+\]
+每个 $I_k$ 都含序列的无穷多项。从 $I_k$ 中挑一项 $x_{n_k}$、且让下标严格递增（每步都有无穷多项可挑，做得到），就得到一个子列 $(x_{n_k})$。由区间套定理（$\RR$ 完备的体现），存在唯一的 $x\in\bigcap_k I_k$；因 $x_{n_k}$ 与 $x$ 同在长度 $\to 0$ 的 $I_k$ 内，$\abs{x_{n_k}-x}\le\abs{I_k}\to 0$，故 $x_{n_k}\to x$。
+
+升到 $\RR^n$：有界向量序列的\emph{第一分量}有界，由一维情形取出使第一分量收敛的子列；在该子列里第二分量仍有界，再取子列使第二分量也收敛——前一分量的收敛被子列继承、不会破坏。逐分量做 $n$ 次，得到一个使所有分量都收敛的子列；由上一命题，它在 $\RR^n$ 中收敛。
+}
+
+\rmkb[``有界''与``$\RR^n$''都不能省]{
+两个前提缺一不可。其一，去掉有界：$x_n=n$ 跑向无穷，任何子列都发散。其二，离开 $\RR^n$（有限维）：在无穷维空间里``有界''不再保证有收敛子列。例如序列空间 $\ell^2$ 里的标准基 $\vc e_1,\vc e_2,\dots$（第 $k$ 个分量为 $1$、其余为 $0$）两两距离都是 $\sqrt2$，有界却无任何 Cauchy 子列、更无收敛子列。这条差异正是``有限维''在经济学存在性定理里如此关键的原因——也提示：一旦模型搬到函数空间（无穷维），紧致性要靠别的（更强的）条件来补。
+}
+
+\state{Bolzano--Weierstrass 通向``紧致''}{
+下一章会看到：在 $\RR^n$ 中，``闭且有界''、``每个序列都有收敛到集内的子列''（列紧）、以及``每个开覆盖都有有限子覆盖''（拓扑紧）三者等价，这就是著名的 Heine--Borel 定理。Bolzano--Weierstrass 正是``有界 $\To$ 有收敛子列''这半边，配上本章``闭 $\To$ 极限不出界''，就拼出``闭+有界 $\To$ 列紧''。而列紧性是 Weierstrass 极值定理（连续函数在紧集上取到最值）的引擎，后者又是几乎所有``最优解存在''论证的落脚点。
+}
+
+\section{这套语言通向何处}
+\label{sec:metric-beyond}
+
+本章只立了字母表，但它支撑起的句子遍布全书。几处主要去处：
+
+\begin{itemize}
+    \item \textbf{紧致性与极值定理}（下一章）。``闭+有界''经 Heine--Borel 升级为紧致，紧集上连续函数必取到最大值——这是``最优化问题有解''``竞争均衡存在''等一切存在性结论的源头。本章的开集、收敛子列是它的原料。
+    \item \textbf{连续性与最大值定理}（Berge）。连续可由``开集的原像是开集''或``$x_n\to x\To f(x_n)\to f(x)$''来定义，两者都直接调用本章词汇；参数化最优化的解如何随参数变（上半连续性），也建在这套收敛语言上。
+    \item \textbf{压缩映射与 Bellman 算子}（后文）。值迭代收敛的证明，核心是``迭代序列是 Cauchy 列''加上``值函数空间完备''——完备性正是本章的概念。
+    \item \textbf{估计量的收敛理论}（渐近统计部分）。依概率收敛 $\hat{\vc\theta}\pto\vc\theta_0$、几乎必然收敛 $\asto$、连续映射定理，乃至``一致律''中处理上确界的论证，底层都是度量空间里``距离趋于零''与``有界序列取收敛子列''的反复运用。
+\end{itemize}
+
+把这章的几个词——开 / 闭、邻域、收敛、Cauchy、完备、有界序列有收敛子列——记牢并对回它们在一维时的朴素样子，后面那些``存在''``收敛''``连续''的论证就不再是黑箱，而是同一套语法的反复造句。

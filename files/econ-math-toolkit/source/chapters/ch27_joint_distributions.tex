@@ -1,0 +1,444 @@
+% !TEX root = ../main.tex
+\chapter{多维分布、独立性与变量变换}
+\label{ch:jointdist}
+
+\noindent\emph{用到的前置工具：随机变量与分布、概率密度（第二十五章）；Lebesgue 积分与期望（第二十六章）；行列式（线性代数部分）、Jacobian 与多元微积分（第十三章）；正定矩阵与谱定理（线性代数部分）。}
+\medskip
+
+到目前为止我们大多盯着\emph{一个}随机变量。但计量经济学里几乎没有一个问题只牵涉一个随机量：一份样本是 $n$ 个观测的联合体，一个回归把因变量、解释变量、误差项绑在一起，一个估计量是全体数据的函数。要谈``$X$ 和 $Y$ 是否相关''``样本均值的分布长什么样''``这个统计量服从 $\chi^2$ 还是 $t$''，都必须先有一套描述\emph{多个随机变量一起如何取值}的语言。这正是本章要建立的。
+
+本章的主线是四个互相咬合的工具。\textbf{联合分布}是底座，它一次性记录所有变量的取值规律，而每个变量自己的分布（边缘分布）只是它的``投影''。\textbf{独立性}是这套语言里最省力的假设——它把联合分布拆成乘积，把``期望''和``乘法''交换次序，是 iid 抽样得以展开的全部依据。\textbf{变量变换公式}回答``一个随机向量经过映射后，新分布是什么''，它是推导抽样分布（$\chi^2,t,F$）、做 MLE 重参数化、理解 Delta 法的统一手柄；其核心——密度按 Jacobian 行列式的绝对值缩放——正是``行列式量度体积''那条几何事实在概率上的化身。最后，\textbf{多元正态分布}把这一切收束：它在线性变换下封闭、不相关即独立、条件期望恰好线性，又是中心极限定理的极限对象，因此成了整个渐近统计的``通用货币''。
+
+\section{联合分布与边缘分布}
+\label{sec:jointdist-1}
+
+\defn{联合分布与联合密度}{
+设 $X,Y$ 是定义在同一概率空间上的随机变量。它们的\textbf{联合分布函数}为
+\[
+    F_{X,Y}(x,y)=\Prob{X\le x,\ Y\le y}.
+\]
+若存在非负函数 $f_{X,Y}:\RR^2\to[0,\infty)$ 使得对一切 Borel 集 $A\se\RR^2$
+\[
+    \Prob{(X,Y)\in A}=\iint_{A} f_{X,Y}(x,y)\,\d x\,\d y,
+\]
+则称 $(X,Y)$ 为\textbf{（联合）连续型}，$f_{X,Y}$ 为其\textbf{联合密度}。对随机向量 $\vc X=(X_1,\dots,X_n)\T$ 的定义完全平行，密度记 $f_{\vc X}(\vc x)$，$\vc x\in\RR^n$。
+}
+
+联合密度的全部信息量，正在于它能回答``$(X,Y)$ 落进任意区域 $A$ 的概率''这一类问题——而单看每个变量各自的分布做不到这一点。把注意力收缩回单个变量，就得到边缘分布。
+
+\defn{边缘密度}{
+连续型 $(X,Y)$ 的\textbf{边缘密度}由对另一变量积掉得到：
+\[
+    f_X(x)=\int_{-\infty}^{\infty} f_{X,Y}(x,y)\,\d y,
+    \qquad
+    f_Y(y)=\int_{-\infty}^{\infty} f_{X,Y}(x,y)\,\d x .
+\]
+}
+
+这一步``积掉''有着干净的直觉：要知道 $X\approx x$ 的密度，就把所有 $X=x$ 但 $Y$ 取遍各种值的可能性全加起来。几何上，联合密度是 $(x,y)$ 平面上方的一座``山''，边缘密度是把这座山分别朝两条坐标轴方向``压扁''得到的剖影（图~\ref{fig:jointdist-1}）。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % --- 主图：联合密度等高线（独立的二元正态，圆形等高线）---
+  \begin{scope}
+    \draw[->] (-2.6,0) -- (3.0,0) node[right] {$x$};
+    \draw[->] (0,-2.6) -- (0,3.0) node[above] {$y$};
+    \foreach \r in {0.8,1.4,2.0} {
+      \draw[thick,cyan!55!black] (0,0) circle (\r);
+    }
+    \fill (0,0) circle (1.2pt);
+    \node[anchor=south west] at (1.45,1.45) {$f(x,y)=\text{const}$};
+  \end{scope}
+  % --- 下方：x 的边缘密度 ---
+  \begin{scope}[yshift=-3.7cm]
+    \draw[->] (-2.6,0) -- (3.0,0) node[right] {$x$};
+    \draw[thick,orange!80!black,domain=-2.4:2.4,smooth,variable=\t]
+      plot ({\t},{1.05*exp(-\t*\t/1.4)});
+    \node[orange!75!black,anchor=west] at (-2.6,1.0) {$f_X(x)$};
+  \end{scope}
+  % --- 左侧：y 的边缘密度（横向画）---
+  \begin{scope}[xshift=-3.4cm]
+    \draw[->] (0,-2.6) -- (0,3.0) node[above] {$y$};
+    \draw[thick,violet!70!black,domain=-2.4:2.4,smooth,variable=\t]
+      plot ({-1.4*exp(-\t*\t/1.4)},{\t});
+    \node[violet!70!black,anchor=east] at (-1.0,1.6) {$f_Y(y)$};
+  \end{scope}
+  % --- 投影引线 ---
+  \draw[dashed,gray] (2.0,0) -- (2.0,-3.7);
+  \draw[dashed,gray] (0,2.0) -- (-3.4,2.0);
+\end{tikzpicture}
+\caption{联合密度的等高线（中）与它向两轴的``投影''——边缘密度 $f_X$（下）、$f_Y$（左）。边缘密度是把另一变量积掉的结果。}
+\label{fig:jointdist-1}
+\end{figure}
+
+\rmkb[从边缘回不到联合]{
+反过来一般不成立：知道 $f_X$ 与 $f_Y$ 并\emph{不能}定出 $f_{X,Y}$。无穷多个不同的联合密度可以共享同一对边缘密度——它们的区别正在于 $X$ 与 $Y$ 之间的``依赖结构''（这一思想被 copula 理论系统化）。图~\ref{fig:jointdist-1} 画的是其中最特殊的一种：联合密度恰好等于两个边缘密度之积，即下一节的独立。
+}
+
+\section{独立性}
+\label{sec:jointdist-2}
+
+独立性是概率论里最强、也最好用的结构性假设。直观上，``$X$ 与 $Y$ 独立''是说：知道 $X$ 取了什么值，对 $Y$ 的分布毫无信息增益。把这句话翻译成密度，就是联合密度分解为边缘密度之积。
+
+\defn{独立性}{
+随机变量 $X,Y$ \textbf{独立}（记 $X\indep Y$），若对一切 $x,y$
+\[
+    F_{X,Y}(x,y)=F_X(x)\,F_Y(y);
+\]
+连续型情形等价地
+\[
+    f_{X,Y}(x,y)=f_X(x)\,f_Y(y).
+\]
+更一般地，$X_1,\dots,X_n$ \textbf{相互独立}，若联合分布函数（或密度）对一切自变量都分解为各边缘之积。
+}
+
+\rmk{注意``相互独立''强于``两两独立''：前者要求任意子集都分解，后者只要求每一对分解，二者并不等价。本书凡说``独立同分布''（iid）均指相互独立。}
+
+独立性最常被使用的形态，并不是密度的分解本身，而是它的一个推论：\emph{独立变量的乘积，期望可以拆开算}。这条性质看似平淡，却是后续几乎所有``算方差''步骤的引擎。
+
+\thm{独立 $\To$ 期望可乘}{
+若 $X\indep Y$，且 $g,h$ 使得 $\E{g(X)}$、$\E{h(Y)}$ 都存在，则
+\[
+    \E{g(X)\,h(Y)}=\E{g(X)}\;\E{h(Y)} .
+\]
+特别地（取 $g,h$ 为恒等映射）$\E{XY}=\E{X}\,\E{Y}$。
+}
+
+\pf{
+直接在联合密度上算，用独立性把密度拆开，再用 Fubini 定理（第二十六章）把二重积分写成两个一重积分之积：
+\[
+\ba
+    \E{g(X)\,h(Y)}
+    &=\iint g(x)\,h(y)\,f_{X,Y}(x,y)\,\d x\,\d y\\
+    &=\iint g(x)\,h(y)\,f_X(x)\,f_Y(y)\,\d x\,\d y\\
+    &=\pr{\int g(x)\,f_X(x)\,\d x}\pr{\int h(y)\,f_Y(y)\,\d y}
+     =\E{g(X)}\,\E{h(Y)}.
+\ea
+\]
+关键的第二个等号正是独立性 $f_{X,Y}=f_X f_Y$，第三个等号是 Fubini 把可分离的被积函数拆成两个积分相乘。离散情形把积分换成求和、密度换成概率质量，论证一字不差。
+}
+
+\state{独立把``期望''与``乘法''解耦}{
+$\E{XY}=\E X\,\E Y$ 这条等式，是从联合行为下降到``逐个处理''的桥梁。它让我们在算 $\Var{X+Y}$、算样本均值的方差、推导 OLS 的 $\E{\vc\ve\vc\ve\T}$ 结构时，能把交叉项一笔勾销。下一节会看到，它正好等价于``协方差为零''——独立的变量必不相关。但请记住方向：独立 $\To$ 不相关，反之一般\emph{不成立}。
+}
+
+\section{协方差与相关}
+\label{sec:jointdist-3}
+
+独立是``非此即彼''的强条件，现实里我们更常想量化\emph{依赖的程度与方向}。协方差与相关系数就是为此而设的一阶刻画。
+
+\defn{协方差与相关系数}{
+设 $X,Y$ 二阶矩有限。\textbf{协方差}
+\[
+    \Cov{X}{Y}=\E{\,(X-\E X)(Y-\E Y)\,}=\E{XY}-\E X\,\E Y .
+\]
+当 $\Var X,\Var Y>0$ 时，\textbf{相关系数}
+\[
+    \Corr(X,Y)=\rho_{XY}=\frac{\Cov{X}{Y}}{\sqrt{\Var X}\,\sqrt{\Var Y}}\ \in[-1,1].
+\]
+对随机向量 $\vc X\in\RR^n$，\textbf{协方差矩阵}
+\[
+    \vc\Sigma=\Var{\vc X}=\E{(\vc X-\E{\vc X})(\vc X-\E{\vc X})\T},
+    \qquad \Sigma_{ij}=\Cov{X_i}{X_j}.
+\]
+}
+
+两条性质值得当作肌肉记忆。其一，协方差关于线性变换是双线性的，由此得到方差的``展开式''：
+\[
+    \Var{X+Y}=\Var X+\Var Y+2\Cov{X}{Y}.
+\]
+正是这里的交叉项 $2\Cov{X}{Y}$，在 $X\indep Y$ 时归零，于是\emph{独立和的方差等于方差之和}——iid 样本均值 $\Var{\bar X}=\sigma^2/n$ 的那个 $1/n$ 就是这么来的。其二，对随机向量与常数矩阵 $\mat A$，
+\[
+    \Var{\mat A\vc X}=\mat A\,\vc\Sigma\,\mat A\T .
+\]
+这条线性变换法则会在多元正态和 OLS 的协方差推导里反复出现。
+
+\state{$\rho$ 只看到``线性''那部分依赖}{
+相关系数度量的是\emph{线性}相依：$\abs{\rho}=1$ 当且仅当 $Y$ 几乎处处是 $X$ 的仿射函数。它对非线性依赖是``色盲''的——见下例。这也是``不相关 $\nRightarrow$ 独立''的根源：协方差只捕捉一阶共动，独立却要求所有阶、所有函数都解耦。
+}
+
+\ex[不相关却不独立]{
+设 $X\dist\cN(0,1)$，令 $Y=X^2$。显然 $Y$ 由 $X$ 完全决定，二者远谈不上独立。它们相关吗？
+}
+\sol{
+算协方差需要 $\E{XY}=\E{X^3}$。标准正态的奇数阶矩为零，故 $\E{X^3}=0$，而 $\E X=0$，于是
+\[
+    \Cov{X}{Y}=\E{XY}-\E X\,\E Y=0-0\cdot\E{X^2}=0 .
+\]
+即 $\rho_{XY}=0$：$X$ 与 $Y=X^2$ \emph{完全不相关}，却有着最强的（函数）依赖。原因是它们的依赖是纯二次的、对称的，没有任何线性成分能被协方差看见。这个例子是``独立 $\To$ 不相关''不可逆的标准反例，也提醒我们：回归里``零相关''远不等于``无关系''。
+}
+
+依赖的几何，最直观地体现在联合密度的等高线形状上。独立（这里取联合正态）对应正圆形等高线——沿任一方向切，条件分布的形状都不变；正相关把等高线沿主对角线拉成椭圆——$X$ 偏大时 $Y$ 也倾向偏大（图~\ref{fig:jointdist-2}）。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.95,>=Stealth]
+  % ============ 左：独立（圆形等高线）============
+  \begin{scope}
+    \draw[->] (-2.3,0) -- (2.5,0) node[right] {$x$};
+    \draw[->] (0,-2.3) -- (0,2.5) node[above] {$y$};
+    \foreach \r in {0.7,1.3,1.9} {
+      \draw[thick,cyan!55!black] (0,0) circle (\r);
+    }
+    \fill (0,0) circle (1.0pt);
+    \node[anchor=north] at (0,-2.55) {(a) 独立：$\Cov{X}{Y}=0$};
+  \end{scope}
+  % ============ 右：正相关（沿 45° 拉伸的椭圆）============
+  \begin{scope}[xshift=6.2cm]
+    \draw[->] (-2.3,0) -- (2.5,0) node[right] {$x$};
+    \draw[->] (0,-2.3) -- (0,2.5) node[above] {$y$};
+    \foreach \s in {0.7,1.3,1.9} {
+      \draw[thick,violet!65!black,rotate=45] (0,0) ellipse ({1.45*\s} and {0.6*\s});
+    }
+    \fill (0,0) circle (1.0pt);
+    \draw[gray,dashed] (-1.9,-1.9) -- (1.9,1.9);
+    \node[anchor=north] at (0,-2.55) {(b) 正相关：$\Cov{X}{Y}>0$};
+  \end{scope}
+\end{tikzpicture}
+\caption{联合正态密度的等高线。独立对应正圆（a）；正相关把等高线沿主对角线（虚线）拉成椭圆（b），椭圆主轴的倾斜程度由 $\rho$ 决定。}
+\label{fig:jointdist-2}
+\end{figure}
+
+\section{多维变量变换公式}
+\label{sec:jointdist-4}
+
+现在来到本章的技术核心。问题是：已知随机向量 $\vc X$ 的密度 $f_{\vc X}$，又有一个可微映射 $\vc Y=\vc g(\vc X)$，那么 $\vc Y$ 的密度 $f_{\vc Y}$ 是什么？这件事在计量里无处不在——抽样分布 $\chi^2,t,F$ 全是某些基本随机变量经过变换得到的，MLE 换参数时似然如何变也由它管。
+
+答案的关键，是回忆行列式的几何意义：一个线性映射把单位体积的小块拉伸为体积 $\abs{\det}$ 的小块（见行列式一章的``体积''解读）。密度是``单位面积上的概率''，所以当映射把面积放大 $\abs{\det\Jac}$ 倍时，为了让总概率守恒，密度必须相应地\emph{除以}这个因子。
+
+\thm{变量变换公式（多维）}{
+设 $\vc g:\RR^n\to\RR^n$ 在开集上是一一对应的连续可微映射，其逆 $\vc g^{-1}$ 也连续可微（即微分同胚）。记 $\vc Y=\vc g(\vc X)$，$\vc X=\vc g^{-1}(\vc Y)$。则 $\vc Y$ 的密度为
+\[
+    f_{\vc Y}(\vc y)
+    = f_{\vc X}\!\bigl(\vc g^{-1}(\vc y)\bigr)\,
+      \abs{\det \Jac_{\vc g^{-1}}(\vc y)} ,
+\]
+其中 $\Jac_{\vc g^{-1}}(\vc y)=\D_{\vc y}\,\vc g^{-1}(\vc y)$ 是逆映射的 Jacobian 矩阵。等价地，用正向 Jacobian $\Jac_{\vc g}$ 写作
+\[
+    f_{\vc Y}(\vc y)
+    = \frac{f_{\vc X}\!\bigl(\vc g^{-1}(\vc y)\bigr)}{\abs{\det \Jac_{\vc g}(\vc x)}}\bigg|_{\vc x=\vc g^{-1}(\vc y)} .
+\]
+}
+
+\pf{
+论证就是``概率守恒 + 积分换元''。任取像空间里的 Borel 集 $B$，设其原像 $A=\vc g^{-1}(B)$。事件 $\{\vc Y\in B\}$ 与 $\{\vc X\in A\}$ 是同一个事件，故概率相等：
+\[
+    \Prob{\vc Y\in B}=\Prob{\vc X\in A}=\int_A f_{\vc X}(\vc x)\,\d\vc x .
+\]
+对右边做积分换元 $\vc x=\vc g^{-1}(\vc y)$。多元微积分的换元公式给出体积元的变换
+\[
+    \d\vc x=\abs{\det \Jac_{\vc g^{-1}}(\vc y)}\,\d\vc y,
+\]
+于是
+\[
+    \Prob{\vc Y\in B}
+    =\int_B f_{\vc X}\!\bigl(\vc g^{-1}(\vc y)\bigr)\,
+      \abs{\det \Jac_{\vc g^{-1}}(\vc y)}\,\d\vc y .
+\]
+这对一切 $B$ 成立，故被积函数就是 $\vc Y$ 的密度，即定理的公式。两种写法的等价性来自逆函数定理 $\Jac_{\vc g^{-1}}(\vc y)=\inv{\Jac_{\vc g}(\vc x)}$，取行列式得 $\abs{\det\Jac_{\vc g^{-1}}}=1/\abs{\det\Jac_{\vc g}}$。
+}
+
+\rmkb[绝对值不可丢]{
+公式里是 $\abs{\det\Jac}$ 而非 $\det\Jac$。行列式本身带符号，它编码了映射是否``翻转''了定向；但密度恒非负、概率不在乎定向，所以只取大小。这与第二十六章把积分换元写成 $\d x=\abs{g'(u)}\,\d u$（一维情形）是同一回事——一维的 $\abs{g'}$ 正是 $1\times1$ Jacobian 行列式的绝对值。
+}
+
+图~\ref{fig:jointdist-3} 把这件事画出来：原空间里一小块面积为 $\d u\,\d v$ 的方块，被映射 $T$ 送成像空间里的一个平行四边形，其面积恰好是 $\abs{\det\Jac}\,\d u\,\d v$。密度乘以这个面积才是落进该块的概率，两边的概率相等正是公式的内容。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ============ 左：原空间 (u,v)，小方块 R ============
+  \begin{scope}
+    \draw[->] (-0.3,0) -- (3.4,0) node[right] {$u$};
+    \draw[->] (0,-0.3) -- (0,3.0) node[above] {$v$};
+    \fill[cyan!20] (1.0,0.9) rectangle (1.8,1.7);
+    \draw[thick,cyan!55!black] (1.0,0.9) rectangle (1.8,1.7);
+    \node at (1.4,1.3) {$R$};
+    \draw[<->] (1.0,0.65) -- (1.8,0.65) node[midway,below] {$\d u$};
+    \draw[<->] (0.75,0.9) -- (0.75,1.7) node[midway,left] {$\d v$};
+    \node[anchor=north] at (1.7,-0.55) {原空间：面积 $=\d u\,\d v$};
+  \end{scope}
+  % ============ 映射箭头 ============
+  \draw[->,very thick,gray] (3.9,1.5) -- (5.3,1.5)
+    node[midway,above] {$T$} node[midway,below=1pt] {\footnotesize $\vc g$};
+  % ============ 右：像空间 (x,y)，平行四边形 T(R) ============
+  \begin{scope}[xshift=6.0cm]
+    \draw[->] (-0.3,0) -- (3.7,0) node[right] {$x$};
+    \draw[->] (0,-0.3) -- (0,3.0) node[above] {$y$};
+    \fill[violet!18] (0.9,0.7) -- (2.0,1.05) -- (2.5,2.10) -- (1.4,1.75) -- cycle;
+    \draw[thick,violet!65!black] (0.9,0.7) -- (2.0,1.05) -- (2.5,2.10) -- (1.4,1.75) -- cycle;
+    \node at (1.7,1.4) {$T(R)$};
+    \node[anchor=north] at (1.9,-0.55)
+      {像空间：面积 $=\abs{\det\Jac}\,\d u\,\d v$};
+  \end{scope}
+\end{tikzpicture}
+\caption{变量变换的几何。映射 $\vc g$ 把原空间一小块（面积 $\d u\,\d v$）送成像空间的平行四边形（面积 $\abs{\det\Jac}\,\d u\,\d v$）。密度按这个面积比缩放，正是行列式作为``体积放大率''在概率上的体现。}
+\label{fig:jointdist-3}
+\end{figure}
+
+\ex[线性变换下的密度]{
+设 $\vc X\in\RR^n$ 有密度 $f_{\vc X}$，$\mat A$ 为可逆矩阵、$\vc b\in\RR^n$ 常向量，令 $\vc Y=\mat A\vc X+\vc b$。求 $f_{\vc Y}$。
+}
+\sol{
+这里 $\vc g(\vc x)=\mat A\vc x+\vc b$，其 Jacobian 是常矩阵 $\Jac_{\vc g}=\mat A$，$\det\Jac_{\vc g}=\det\mat A$。逆映射 $\vc x=\inv{\mat A}(\vc y-\vc b)$。代入公式：
+\[
+    f_{\vc Y}(\vc y)=\frac{1}{\abs{\det\mat A}}\,
+        f_{\vc X}\!\bigl(\inv{\mat A}(\vc y-\vc b)\bigr).
+\]
+线性映射的 Jacobian 处处是同一个 $\mat A$，所以缩放因子 $1/\abs{\det\mat A}$ 是全局常数——这恰好与``线性映射把所有小块按同一倍率 $\abs{\det\mat A}$ 放大''吻合。下一节的多元正态密度，正是把这条规则用在 $\cN(\vc 0,\mat I)$ 上得到的。
+}
+
+\section{卷积：独立和的分布}
+\label{sec:jointdist-5}
+
+经济与计量里``求和''无处不在：样本和 $\sum_i X_i$、累积冲击、组合资产的损益。当被加的变量\emph{独立}时，和的分布有一个干净的公式——卷积。它其实是变量变换公式的一个特例。
+
+\thm{独立和的密度是卷积}{
+设 $X\indep Y$，密度分别为 $f_X,f_Y$，令 $Z=X+Y$。则 $Z$ 的密度为卷积
+\[
+    f_Z(z)=(f_X * f_Y)(z)
+    =\int_{-\infty}^{\infty} f_X(x)\,f_Y(z-x)\,\d x .
+\]
+}
+
+\pf{
+做变换 $(X,Y)\mapsto(Z,W)=(X+Y,\;Y)$，这是线性可逆映射，逆为 $X=Z-W,\ Y=W$，Jacobian
+\[
+    \Jac=\D_{(z,w)}\!\begin{pmatrix}z-w\\ w\end{pmatrix}
+    =\begin{pmatrix}1&-1\\[2pt]0&1\end{pmatrix},\qquad \abs{\det\Jac}=1 .
+\]
+由变量变换公式（缩放因子为 $1$）及独立性 $f_{X,Y}=f_Xf_Y$：
+\[
+    f_{Z,W}(z,w)=f_{X,Y}(z-w,\,w)=f_X(z-w)\,f_Y(w).
+\]
+把多余的 $W$ 积掉得边缘密度
+\[
+    f_Z(z)=\int_{-\infty}^{\infty} f_X(z-w)\,f_Y(w)\,\d w,
+\]
+换积分变量即得卷积式。
+}
+
+几何上（图~\ref{fig:jointdist-4}），求 $f_Z(z)$ 就是把联合密度沿直线 $x+y=z$ ``扫一遍''并累加：固定 $z$，让 $(x,y)$ 跑遍该反对角线，把 $f_{X,Y}(x,z-x)$ 沿线积分。$z$ 增大，这条线平行地向右上方平移。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.6,>=Stealth]
+  \draw[->] (-0.2,0) -- (2.9,0) node[right] {$x$};
+  \draw[->] (0,-0.2) -- (0,2.8) node[above] {$y$};
+  \fill[cyan!10] (0,0) rectangle (2,2);
+  \draw[thick,cyan!55!black] (0,0) rectangle (2,2);
+  \node[cyan!50!black,anchor=south] at (1.0,2.15) {联合支撑 $S$};
+  \draw[cyan!50!black,->] (1.0,2.13) -- (1.0,2.0);
+  % 直线 x+y=z
+  \draw[very thick,orange!85!black] (1.2,0) -- (0,1.2);
+  \node[orange!80!black,anchor=north east] at (0.55,0.4) {$x+y=z$};
+  \draw[orange!80!black,->] (0.5,0.42) -- (0.45,0.75);
+  % 第二个位置 z'>z
+  \draw[thick,orange!55!black,dashed] (2,0.8) -- (0.8,2);
+  \node[orange!55!black,anchor=west] at (2.15,1.0) {$x+y=z'$};
+  \draw[orange!55!black,->] (2.13,1.02) -- (1.78,1.02);
+  % z 增大方向
+  \draw[->,gray] (0.9,0.9) -- (1.2,1.2);
+  \node[gray,anchor=north west] at (1.18,1.12) {\footnotesize $z$ 增大};
+  % 代表点
+  \fill (0.7,0.5) circle (0.9pt);
+  \node[anchor=west] at (0.78,0.5) {\footnotesize $(x,\,z-x)$};
+\end{tikzpicture}
+\caption{卷积的几何。$f_Z(z)$ 是把联合密度沿反对角线 $x+y=z$ 积分；$z$ 增大时该线平行平移。点 $(x,z-x)$ 是积分变量沿线的代表位置。}
+\label{fig:jointdist-4}
+\end{figure}
+
+\ex[正态的可加性]{
+设 $X\dist\cN(\mu_1,\sigma_1^2)$、$Y\dist\cN(\mu_2,\sigma_2^2)$ 且独立。求 $Z=X+Y$ 的分布。
+}
+\sol{
+直接卷积要算一个高斯积分，可以做，但配方过程略繁。这里只报告结果并指出其结构：$Z\dist\cN(\mu_1+\mu_2,\ \sigma_1^2+\sigma_2^2)$。均值相加是期望的线性（无需独立）；方差相加用到 $\Cov{X}{Y}=0$（用到独立），正是 \S\ref{sec:jointdist-3} 的方差展开式；而\emph{和仍是正态}这一点——卷积没有把分布族变出去——才是正态独有的``自再生''性质。它使得 iid 正态样本的任意线性组合（尤其是样本均值 $\bar X\dist\cN(\mu,\sigma^2/n)$）仍精确正态，这是有限样本下许多检验得以``精确''的根基。
+}
+
+\rmk{卷积也解释了中心极限定理的``味道''：把许多独立小冲击相加，等价于把它们的密度反复卷积；卷积有``磨平''效应，反复卷积后形状趋向正态——这正是下一部分中心极限定理的直观来源。}
+
+\section{多元正态分布}
+\label{sec:jointdist-6}
+
+多元正态是整本计量的``中心枢纽''：它是中心极限定理的极限对象，因而是所有渐近分布理论的落点；它在线性运算下保持封闭，使得 OLS 这类线性估计量的分布可以精确刻画；它还有一串异常友好的性质，让本来困难的条件期望、独立性判定都变得平凡。
+
+\defn{多元正态分布}{
+随机向量 $\vc X\in\RR^n$ 服从\textbf{多元正态分布} $\cN(\vc\mu,\vc\Sigma)$，其中 $\vc\mu\in\RR^n$、$\vc\Sigma$ 为 $n\times n$ 对称正定矩阵，若其密度为
+\[
+    f_{\vc X}(\vc x)=\frac{1}{(2\pi)^{n/2}\,(\det\vc\Sigma)^{1/2}}
+    \exp\!\pr{-\tfrac12 (\vc x-\vc\mu)\T\,\inv{\vc\Sigma}\,(\vc x-\vc\mu)} .
+\]
+此时 $\E{\vc X}=\vc\mu$、$\Var{\vc X}=\vc\Sigma$。
+}
+
+这个密度不必硬记——它可以从标准正态\emph{推}出来，过程恰好把本章的工具串成一条线。
+
+\paragraph{从标准正态推出一般密度。}
+取 $n$ 个独立的标准正态 $Z_1,\dots,Z_n\iid\cN(0,1)$，堆成 $\vc Z\dist\cN(\vc 0,\mat I)$。由独立性，联合密度是各边缘之积：
+\[
+    f_{\vc Z}(\vc z)=\prod_{i=1}^n \frac{1}{\sqrt{2\pi}}e^{-z_i^2/2}
+    =\frac{1}{(2\pi)^{n/2}}\,e^{-\frac12\vc z\T\vc z}.
+\]
+因 $\vc\Sigma$ 对称正定，由谱定理可作``矩阵平方根'' $\vc\Sigma^{1/2}$（对称正定，满足 $\vc\Sigma^{1/2}\vc\Sigma^{1/2}=\vc\Sigma$）。定义线性变换
+\[
+    \vc X=\vc\mu+\vc\Sigma^{1/2}\vc Z .
+\]
+用上一节的线性变换密度公式，这里 $\mat A=\vc\Sigma^{1/2}$、$\vc b=\vc\mu$，$\det\mat A=(\det\vc\Sigma)^{1/2}$，逆变换 $\vc z=\vc\Sigma^{-1/2}(\vc x-\vc\mu)$，于是
+\[
+    f_{\vc X}(\vc x)=\frac{1}{(\det\vc\Sigma)^{1/2}}\,f_{\vc Z}\!\bigl(\vc\Sigma^{-1/2}(\vc x-\vc\mu)\bigr)
+    =\frac{1}{(2\pi)^{n/2}(\det\vc\Sigma)^{1/2}}\,
+      e^{-\frac12 (\vc x-\vc\mu)\T\inv{\vc\Sigma}(\vc x-\vc\mu)},
+\]
+末步用了 $\vc z\T\vc z=(\vc x-\vc\mu)\T\vc\Sigma^{-1/2}\vc\Sigma^{-1/2}(\vc x-\vc\mu)=(\vc x-\vc\mu)\T\inv{\vc\Sigma}(\vc x-\vc\mu)$。这正是定义里的密度。\emph{多元正态不过是标准正态做了一次仿射变换}——这句话就是它一切良好性质的总根。
+
+\state{多元正态 $=$ 标准正态的仿射像}{
+记住 $\vc X=\vc\mu+\vc\Sigma^{1/2}\vc Z$ 这一个表示，多元正态的几乎所有性质都能一眼看出：仿射变换的复合还是仿射，所以正态的线性像还是正态；密度里 $\inv{\vc\Sigma}$ 决定的二次型等高线是椭球，主轴方向是 $\vc\Sigma$ 的特征向量（呼应图~\ref{fig:jointdist-2}）；下面三条性质都是这个表示的直接推论。
+}
+
+多元正态的三条性质，是它在渐近统计里被反复调用的原因。
+
+\prop{多元正态的三条核心性质}{
+设 $\vc X\dist\cN(\vc\mu,\vc\Sigma)$。
+\begin{enumerate}
+    \item \textbf{线性变换封闭}：对常数矩阵 $\mat A$（行满秩）与常向量 $\vc b$，
+    \[
+        \mat A\vc X+\vc b\ \dist\ \cN(\mat A\vc\mu+\vc b,\ \mat A\vc\Sigma\mat A\T).
+    \]
+    每个边缘、每个线性组合 $\vc a\T\vc X$ 因此都是（一元）正态。
+    \item \textbf{不相关 $\To$ 独立}：若把 $\vc X$ 分块为 $(\vc X_1,\vc X_2)$，则
+    \[
+        \Cov{\vc X_1}{\vc X_2}=\mat 0\ \Longleftrightarrow\ \vc X_1\indep \vc X_2 .
+    \]
+    \item \textbf{条件分布仍正态、条件期望线性}：
+    \[
+        \vc X_1\mid \vc X_2=\vc x_2\ \dist\
+        \cN\!\bigl(\vc\mu_1+\vc\Sigma_{12}\inv{\vc\Sigma_{22}}(\vc x_2-\vc\mu_2),\
+        \vc\Sigma_{11}-\vc\Sigma_{12}\inv{\vc\Sigma_{22}}\vc\Sigma_{21}\bigr).
+    \]
+\end{enumerate}
+}
+
+\pf[性质 1 与 2 的要点]{
+\emph{性质 1.} 把 $\vc X=\vc\mu+\vc\Sigma^{1/2}\vc Z$ 代入：$\mat A\vc X+\vc b=(\mat A\vc\mu+\vc b)+(\mat A\vc\Sigma^{1/2})\vc Z$，仍是标准正态的仿射像，故仍正态；其均值、协方差由期望线性与 $\Var{\mat A\vc X}=\mat A\vc\Sigma\mat A\T$ 直接读出。
+
+\emph{性质 2.} ``独立 $\To$ 不相关''对任何分布都成立。反向是正态独有的：当 $\vc\Sigma_{12}=\mat 0$ 时 $\vc\Sigma$ 是分块对角的，$\inv{\vc\Sigma}$ 也分块对角，于是密度里的二次型 $(\vc x-\vc\mu)\T\inv{\vc\Sigma}(\vc x-\vc\mu)$ 裂成只含 $\vc x_1$ 的部分加只含 $\vc x_2$ 的部分，指数变成乘积、$\det\vc\Sigma=\det\vc\Sigma_{11}\det\vc\Sigma_{22}$，整个密度因式分解为 $f_1(\vc x_1)f_2(\vc x_2)$——这正是独立的定义。\S\ref{sec:jointdist-3} 那个 $Y=X^2$ 的反例说明此性质\emph{只}对正态成立。
+}
+
+\rmkb[条件期望为何``恰好''线性]{
+性质 3 里条件均值 $\vc\mu_1+\vc\Sigma_{12}\inv{\vc\Sigma_{22}}(\vc x_2-\vc\mu_2)$ 是 $\vc x_2$ 的\emph{线性}（仿射）函数。这绝非巧合，而是回归理论的基石：当 $(Y,\vc X)$ 联合正态时，最优预测 $\E{Y\given \vc X}$ 精确地是线性回归函数，斜率 $\vc\Sigma_{12}\inv{\vc\Sigma_{22}}$ 正是总体回归系数。换言之，``线性回归设定正确''在联合正态下是\emph{定理}而非假设。这个系数与第二十八章把条件期望当``投影''来理解的视角完全一致——它就是 $Y$ 在 $\vc X$ 张成的空间上的投影。
+}
+
+\section{它们通向何处}
+\label{sec:jointdist-7}
+
+本章四件工具，几乎每一件都直接喂给后面的渐近统计与计量。
+
+\begin{itemize}
+    \item \textbf{iid 抽样与抽样分布}。独立同分布是``样本''的数学定义；独立 $\To$ 期望可乘、$\To$ 方差可加，是 $\E{\bar X}=\mu$、$\Var{\bar X}=\sigma^2/n$ 这些起点的全部依据。把正态样本经变量变换，就推出 $\chi^2=\sum Z_i^2$、$t$、$F$ 这三大抽样分布——它们都是``正态做变换''的产物。
+    \item \textbf{中心极限定理（第三十二章）}。独立和的卷积``磨平''效应，其极限形态就是多元正态：$\rtn(\bar{\vc X}-\vc\mu)\dto\cN(\vc 0,\vc\Sigma)$。本章的多元正态正是为这个极限准备的``容器''。
+    \item \textbf{Delta 法与连续映射（第三十三章）}。估计量常是某个渐近正态量的非线性变换 $\vc g(\hat{\vc\theta})$；Delta 法把变量变换\emph{线性化}——用 $\vc g$ 的 Jacobian 近似——从而 $\rtn(\vc g(\hat{\vc\theta})-\vc g(\vc\theta_0))\dto\cN(\vc 0,\ \Jac_{\vc g}\vc\Sigma\Jac_{\vc g}\T)$。这里出现的 $\Jac\vc\Sigma\Jac\T$ 正是本章线性变换方差法则与变量变换公式的合流。
+    \item \textbf{回归（第二十八章及计量主干）}。联合正态下条件期望线性，使``线性回归''从一个建模假设升格为可证的事实；不相关即独立，让正态误差下的诸多正交性论证（如 OLS 估计量与残差独立）成立。
+\end{itemize}
+
+把这四件工具连起来看，会发现它们其实在讲同一个故事：\emph{多个随机变量的联合行为，最干净的情形是独立（拆成乘积）与正态（仿射封闭），而连接``已知分布''与``想要分布''的那座桥，永远是按 Jacobian 行列式缩放的变量变换。}认清这一点，渐近统计里那一长串变换、卷积、协方差矩阵的演算，骨子里都是本章这几样东西在循环使用。

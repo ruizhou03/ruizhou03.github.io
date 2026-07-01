@@ -1,0 +1,372 @@
+% !TEX root = ../main.tex
+\chapter{概率空间、$\sigma$-代数与测度}
+\label{ch:measure}
+
+\noindent\emph{用到的前置工具：集合运算与可数性（实分析预备）；上确界、下确界与单调序列的极限（分析与拓扑部分）；开集与 $\RR^n$ 的拓扑（度量空间，第八章）。}
+\medskip
+
+到目前为止，本书谈概率时一直停留在朴素的层面：有一堆``结果'',每个结果配一个``概率'',加起来等于一。掷骰子、抽卡这类问题，这套朴素框架够用——样本空间是有限的，给每个结果赋个数、要算某事件的概率就把里面的结果加起来，万事大吉。可经济学和计量真正要处理的对象，几乎全都越出了这个舒适区：一个连续型随机变量取任何\emph{单个}值的概率都是零，``加起来''加什么？大数定律谈的是``$n\to\infty$ 时样本均值收敛'',这要在一个装得下\emph{可数无穷}次抛掷的样本空间里才说得清；条件期望要把信息组织成``越来越细的事件族'';随机过程要给``截止到时刻 $t$ 我知道了什么''一个精确的数学身份。这些都需要一个能严格驾驭``无穷''与``不可数''的框架。这个框架就是\textbf{测度论}，而本章——Part V 的开篇——要把它的地基浇好：样本空间、$\sigma$-代数、（概率）测度，以及它们合成的\textbf{概率空间} $(\Omega,\cF,\PP)$。
+
+本章比前面几章都更抽象，但抽象是有回报的：一旦建立起这套语言，随机变量、Lebesgue 积分与期望、条件期望、各种收敛模式与极限定理，乃至随机过程里的信息流，都将站在同一块地基上。读者不必把每个集合论细节都嚼烂；要记住的是\emph{为什么}需要这些构造，以及它们各自在守护什么。
+
+\section{为什么朴素概率不够用}
+\label{sec:measure-motivation}
+
+朴素概率的做法是：列出样本空间 $\Omega$（所有可能结果之集），给每个结果 $\omega$ 赋一个概率 $p(\omega)\ge 0$，使 $\sum_{\omega}p(\omega)=1$；任一事件 $A\subseteq\Omega$ 的概率就是 $\Prob{A}=\sum_{\omega\in A}p(\omega)$。当 $\Omega$ 有限或可数时，这套做法天衣无缝。麻烦从 $\Omega$ \emph{不可数}时开始。
+
+\textbf{第一道坎：连续型随机变量。} 设 $X$ 在 $[0,1]$ 上``均匀分布''。直觉上每个点``一样可能'',可若给每个 $x\in[0,1]$ 赋同一个正概率 $p>0$，那么取可数无穷个点其概率之和已是 $+\infty$，遑论不可数个，与 $\Prob{\Omega}=1$ 矛盾。唯一自洽的选择是 $\Prob{X=x}=0$ 对\emph{每一个} $x$。但这样一来``逐点求和''彻底失效：$[0,1]$ 里每个点概率为零，整段概率却是一。概率不再能从单点累加得到，而必须直接安放在\emph{事件}（如区间 $[a,b]$，其概率为 $b-a$）上。\emph{概率的载体从``点''变成了``集合''}——这是测度论最根本的视角转换。
+
+\textbf{第二道坎：可数无穷的样本空间。} 大数定律说``反复抛硬币，正面频率趋于 $1/2$''。要让这句话有数学意义，样本空间必须容得下\emph{一整条无穷长}的抛掷序列 $\omega=(\omega_1,\omega_2,\dots)$，即 $\Omega=\{0,1\}^{\NN}$。这个集合是\emph{不可数}的（与 $[0,1]$ 一样大）。``频率收敛到 $1/2$''本身是一个事件——由满足某种极限条件的无穷序列组成——要给它赋概率，就得有能力对这种由\emph{可数个}更简单事件经``取极限''搭起来的复杂集合谈论概率。朴素的逐点求和在这里同样无能为力。
+
+\textbf{第三道坎：要对事件做无穷次集合运算。} ``频率收敛''这类陈述，写成集合语言全是可数并、可数交的叠床架屋（``对任意 $\ve$，存在 $N$，对一切 $n\ge N$……''逐句翻译就是 $\bigcap_\ve\bigcup_N\bigcap_{n\ge N}$）。我们需要一个事件的集合，它对这些\emph{可数次}运算\textbf{封闭}——做完运算得到的还是个能赋概率的事件。这正是 $\sigma$-代数的来由。
+
+\state{测度论解决的核心问题}{
+朴素概率把概率赋给\emph{点}、靠求和得到事件概率；这在不可数样本空间上崩溃（每点概率为零却要凑出总概率一）。测度论换一条路：直接把概率赋给\emph{事件}（集合），并要求这套赋值在\emph{可数次}集合运算下保持自洽。代价是必须先讲清楚两件事——(i) \emph{哪些}集合算作``可赋概率的事件''（这就是 $\sigma$-代数），(ii) 赋值要满足哪几条公理（这就是测度）。本章把这两件事讲透，它们是现代概率、渐近理论与随机过程共同的、不可绕过的地基。
+}
+
+\section{样本空间与事件}
+\label{sec:measure-sample}
+
+先把最朴素的两个对象钉死，它们不需要测度论也成立。
+
+\defn{样本空间与样本点}{
+一次随机试验所有可能结果构成的集合 $\Omega$ 称为\textbf{样本空间}（sample space），其中每个元素 $\omega\in\Omega$ 称为一个\textbf{样本点}（或基本结果）。$\Omega$ 的某些子集 $A\subseteq\Omega$ 称为\textbf{事件}（event）；当试验结果 $\omega$ 落在 $A$ 中（$\omega\in A$）时，称``事件 $A$ 发生''。
+}
+
+集合运算与事件的逻辑一一对应，记牢这本``词典''后续会反复用到：并 $A\cup B$ 是``$A$ 或 $B$ 发生'',交 $A\cap B$ 是``$A$ 与 $B$ 同时发生'',补 $A^c=\Omega\bs A$ 是``$A$ 不发生'',$A\subseteq B$ 是``$A$ 发生则 $B$ 必发生'',空集 $\varnothing$ 是``不可能事件'',全集 $\Omega$ 是``必然事件''。
+
+理想情形下，我们希望对\emph{每一个}子集 $A\subseteq\Omega$ 都能谈论 $\Prob{A}$，也就是把概率定义在全体子集之族 $\cP(\Omega)$（即\emph{幂集}）上。当 $\Omega$ 有限或可数时确实可以这么做。但下一节会看到：在不可数的 $\Omega$ 上，强行给幂集里\emph{每个}集合都赋上自洽的概率会导致逻辑矛盾。于是我们退而求其次——只在 $\Omega$ 的某个\emph{子族} $\cF\subseteq\cP(\Omega)$ 上定义概率。这个子族必须足够``规整'',规整到能容纳一切我们实际想问其概率的事件、并对必要的集合运算封闭。这样的子族就是 $\sigma$-代数。
+
+\section{$\sigma$-代数：可以放概率的事件族}
+\label{sec:measure-sigma}
+
+\defn{$\sigma$-代数}{
+设 $\Omega$ 是一个集合。$\Omega$ 的子集构成的族 $\cF\subseteq\cP(\Omega)$ 称为 $\Omega$ 上的一个 \textbf{$\sigma$-代数}（$\sigma$-algebra，或 $\sigma$-域），如果它满足三条：
+\begin{enumerate}
+    \item \textbf{含全集}：$\Omega\in\cF$。
+    \item \textbf{对补封闭}：若 $A\in\cF$，则 $A^c\in\cF$。
+    \item \textbf{对可数并封闭}：若 $A_1,A_2,\dots\in\cF$（可数多个），则 $\bigcup_{n=1}^\infty A_n\in\cF$。
+\end{enumerate}
+满足这三条的二元组 $(\Omega,\cF)$ 称为一个\textbf{可测空间}（measurable space），$\cF$ 中的成员称为\textbf{可测集}（在概率语境下即``事件''）。
+}
+
+这三条看似简朴，却恰好封住了我们需要的全部集合运算（图~\ref{fig:measure-1}）。由它们立刻可以\emph{导出}其余的封闭性，无须另立公理：
+
+\begin{itemize}
+    \item \textbf{含空集}：$\varnothing=\Omega^c\in\cF$（由第 1、2 条）。
+    \item \textbf{对可数交封闭}：由 De Morgan 律，$\bigcap_n A_n=\bigl(\bigcup_n A_n^c\bigr)^c$。每个 $A_n^c\in\cF$（第 2 条），可数并仍在 $\cF$（第 3 条），再取补仍在 $\cF$（第 2 条）。\emph{这正是为什么只须把``可数并''列为公理——可数交是它经由取补的免费推论}。
+    \item \textbf{对有限并、有限交、差封闭}：有限并是可数并的特例（把多余的项填成 $\varnothing$）；$A\bs B=A\cap B^c$。
+\end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1,>=Stealth]
+  % 样本空间 Omega（大矩形）
+  \draw[thick,rounded corners=2pt] (0,0) rectangle (6.6,4.2);
+  \node[anchor=north east] at (6.45,4.05) {$\Omega$};
+  % 两个事件 A、B（重叠的椭圆）
+  \fill[blue!14] (2.0,2.15) ellipse (1.35 and 1.0);
+  \fill[orange!22] (3.8,2.15) ellipse (1.35 and 1.0);
+  \begin{scope}
+    \clip (2.0,2.15) ellipse (1.35 and 1.0);
+    \fill[green!35!gray!40] (3.8,2.15) ellipse (1.35 and 1.0);
+  \end{scope}
+  \draw (2.0,2.15) ellipse (1.35 and 1.0);
+  \draw (3.8,2.15) ellipse (1.35 and 1.0);
+  % 事件标签 A、B 落在各自椭圆非重叠区的空白处
+  \node[blue!45!black] at (1.25,2.55) {$A$};
+  \node[orange!62!black] at (4.55,2.55) {$B$};
+  % 交集 A∩B 标签停在两椭圆上方的空白处，细引线竖直指向绿色区（不穿椭圆轮廓、不碰 Omega）
+  \node[green!30!black,anchor=south] at (2.9,3.45) {$A\cap B$};
+  \draw[green!30!black,->] (2.9,3.4) -- (2.9,2.6);
+  % 一个样本点 omega
+  \fill (1.55,1.55) circle (1.3pt);
+  \node[anchor=east] at (1.45,1.55) {$\omega$};
+  % 底部注
+  \node[anchor=north,align=center,text width=6.6cm] at (3.3,-0.3)
+    {$\cF$ 收集 $\varnothing,\ \Omega,\ A,\ B$ 及它们的补、可数并、可数交——一族「可被赋予概率的事件」};
+\end{tikzpicture}
+\caption{样本空间 $\Omega$ 与其上的一个 $\sigma$-代数 $\cF$。$\cF$ 不是任意一堆子集，而是对取补、可数并、可数交\emph{封闭}的一族事件——它正好装得下我们想谈论概率的全部集合。}
+\label{fig:measure-1}
+\end{figure}
+
+\state{$\sigma$ 这个前缀的含义，以及为何非要``可数''不可}{
+代数（algebra）只要求对\emph{有限}次并、交、补封闭；前缀 $\sigma$ 把要求升级为对\emph{可数}次封闭——这正是``$\sigma$''的全部分量所在。它不可或缺，因为概率论的核心陈述（``频率收敛'',``几乎必然发生'',``尾事件''）天然写成可数次集合运算的极限；而下一节要讲的测度公理里那条\textbf{可数可加性}，也唯有当可数并仍是合法事件时才谈得上。一句话：\emph{$\sigma$-代数对可数运算的封闭，与测度的可数可加性，是为彼此量身定做的一对}。但``可数''也是上限——若贪心地要求对\emph{不可数}次并封闭，几乎任何集合都能由其中的单点拼出，$\cF$ 会膨胀回整个幂集，从而（下一节将看到）与自洽地赋概率相冲突。可数，不多不少，恰是能撑起概率论又不至于自毁的那个尺度。
+}
+
+\ex[两个极端的 $\sigma$-代数]{
+给定 $\Omega$，写出最小与最大的 $\sigma$-代数，并说明它们在``信息''上的含义。
+}
+\sol{
+\textbf{最小}的是\emph{平凡 $\sigma$-代数} $\cF=\set{\varnothing,\Omega}$：含全集、对补封闭（$\varnothing^c=\Omega$）、可数并也跑不出这两个集合。它只能区分``必然''与``不可能'',对应``什么信息都没有''。\textbf{最大}的是\emph{幂集} $\cF=\cP(\Omega)$（全体子集）：显然满足三条公理，对应``信息完备、任何事件都可分辨''。一般的 $\sigma$-代数夹在两者之间，$\cF$ 越大、能分辨的事件越多——\emph{$\sigma$-代数的大小，正是``信息量''的数学度量}。这个``$\sigma$-代数 = 信息''的观念，到条件期望与随机过程的 filtration 一章会成为主角。
+}
+
+\section{为什么不能给所有子集赋概率：不可测集}
+\label{sec:measure-vitali}
+
+既然幂集 $\cP(\Omega)$ 本身就是个 $\sigma$-代数、又是最大最全的那个，为什么不干脆永远用它、对\emph{每个}子集都赋概率，省去``挑一个子族''的麻烦？因为在不可数的 $\Omega$ 上，这个愿望与几条最朴素的要求\emph{自相矛盾}。下面以 $[0,1]$ 上的均匀概率为例说明这个矛盾的来源——这就是著名的 \textbf{Vitali 不可测集}。我们只勾勒构造与直觉，不逐行严格化。
+
+设想在 $\Omega=[0,1)$ 上有一个``长度''意义下的均匀概率 $\PP$，它理应满足两条不容商量的性质：
+
+\begin{itemize}
+    \item \textbf{平移不变}：把一个集合沿圆周（即模 $1$ 的加法，把 $[0,1)$ 首尾相接）整体平移，其概率不变——``均匀''的本意就是各处一视同仁。
+    \item \textbf{可数可加}：可数多个\emph{两两不交}事件之并的概率，等于各自概率之和（这是下一节测度公理的核心，也是``概率''最起码的要求）。
+\end{itemize}
+
+现在构造一个会出事的集合。在 $[0,1)$ 上定义等价关系：$x\sim y$ 当且仅当 $x-y$ 是\emph{有理数}。它把 $[0,1)$ 切成不相交的等价类，每个类形如``某个数加上全体有理数''（模 $1$）。借助选择公理，从\emph{每一个}等价类里各挑\emph{一个}代表元，把这些代表元收集成一个集合 $V$（这就是 Vitali 集）。关键观察有两点：
+
+\begin{enumerate}
+    \item 把 $V$ 沿圆周平移所有可能的有理位移 $q\in\QQ\cap[0,1)$，得到可数多个集合 $V_q=V+q\pmod 1$。它们\emph{两两不交}（不同代表元之间的差是无理数，不可能被有理平移对上），且它们的并\emph{恰好铺满} $[0,1)$（任何 $x$ 都与它所在类的代表元差一个有理数，故必属于某个 $V_q$）。于是
+    \[
+        [0,1)=\bigsqcup_{q\in\QQ\cap[0,1)}V_q\quad(\text{可数个、两两不交}).
+    \]
+    \item 平移不变意味着所有 $V_q$ 有\emph{相同}的概率，记为 $c=\Prob{V}$。
+\end{enumerate}
+
+把可数可加性用到这个分解上：
+\[
+    1=\Prob{[0,1)}=\sum_{q\in\QQ\cap[0,1)}\Prob{V_q}=\sum_{q}c .
+\]
+右边是\emph{可数无穷}个相同的数 $c$ 相加。若 $c=0$，和为 $0\neq 1$；若 $c>0$，和为 $+\infty\neq 1$。无论 $c$ 取何值都凑不出 $1$——\textbf{矛盾}。结论只能是：$V$ 根本\emph{无法}被赋予一个与``平移不变 + 可数可加''相容的概率。这样的 $V$ 就是一个\textbf{不可测集}。
+
+\state{不可测集逼着我们引入 $\sigma$-代数}{
+矛盾的根源不是哪条性质太苛刻——平移不变、可数可加都是``均匀概率''最低限度的要求；根源是\emph{想给幂集里每一个集合都赋概率}这个奢望太贪心。Vitali 集表明：在不可数的 $[0,1)$ 上，一个平移不变、可数可加、且 $\Prob{[0,1)}=1$ 的概率，\emph{不可能}定义在全体子集上。出路只有一条——\emph{缩小定义域}：放弃给那些病态集合赋概率，只在一个``规整''的子族 $\cF\subsetneq\cP(\Omega)$ 上定义 $\PP$。这个子族要对可数运算封闭（这样可数可加才有意义），又要把一切``来历正当''的集合（区间及其可数次运算的产物）都装进去。这样的 $\cF$ 就是下一节的 Borel $\sigma$-代数。\emph{$\sigma$-代数不是数学家的洁癖，而是不可测集逼出来的必需品}。
+}
+
+\rmkb[选择公理与构造性]{
+Vitali 集的存在依赖\textbf{选择公理}（从不可数多个等价类里同时各取一个代表元）。这意味着不可测集无法被``显式写出'',只能断言其存在。事实上若放弃选择公理、改采某些替代公理，可以让``$\RR$ 的一切子集皆 Lebesgue 可测''成为相容的。但主流数学接受选择公理，于是不可测集确实存在，$\sigma$-代数也就确实不可省。对使用者而言，只需记住结论：\emph{在 $\RR$ 上，并非任意子集都能赋予长度／概率，故必须先框定一族可测集}。
+}
+
+\section{测度与概率空间}
+\label{sec:measure-measure}
+
+可测空间 $(\Omega,\cF)$ 只规定了``哪些集合可以谈概率'',还没说概率\emph{是多少}。补上这一步的，就是测度。
+
+\defn{测度与概率测度}{
+设 $(\Omega,\cF)$ 是可测空间。函数 $\mu:\cF\to[0,+\infty]$ 称为 $(\Omega,\cF)$ 上的一个\textbf{测度}（measure），如果
+\begin{enumerate}
+    \item \textbf{非负}：$\mu(A)\ge 0$ 对一切 $A\in\cF$（已含在值域里）；且 $\mu(\varnothing)=0$。
+    \item \textbf{可数可加性}（$\sigma$-可加）：对任意可数多个\emph{两两不交}的 $A_1,A_2,\dots\in\cF$，
+    \[
+        \mu\!\left(\bigcup_{n=1}^\infty A_n\right)=\sum_{n=1}^\infty \mu(A_n) .
+    \]
+\end{enumerate}
+若额外有 $\mu(\Omega)=1$，则称 $\mu$ 为\textbf{概率测度}，通常记作 $\PP$。此时三元组 $(\Omega,\cF,\PP)$ 称为一个\textbf{概率空间}（probability space）。
+}
+
+公理少得惊人——非负、空集为零、可数可加，加上``全空间为一''——但整座概率论大厦都建在它们之上。值得逐条体会它们各自的分量。
+
+\textbf{可数可加性是灵魂。} 把不交事件之并的概率拆成各自概率之和，这件事在\emph{有限}个事件上谁都觉得理所当然（``$A$ 或 $B$ 发生''的概率，当二者互斥时就是两概率相加）。公理的真正力量在于把它推广到\emph{可数无穷}个——正是这条，让我们能从简单事件（区间）的概率，经由可数次拼接，算出复杂事件（如``频率收敛''那种集合）的概率。它也正是上一节那个矛盾里被违反不得的那条。
+
+\rmkb[为何是``可数''可加而非``有限''或``不可数'']{
+只要``有限可加'',对付不了极限：算 $[0,1]$ 的长度要把它写成可数多个小区间之并再求和，有限可加给不出这个跨越。另一头，``不可数可加''又太强会自爆：$[0,1]=\bigcup_{x\in[0,1]}\set{x}$ 是不可数个单点之并，每个单点概率为零，若要求不可数可加就得 $1=\sum_{x}0=0$。可数可加恰好是``够用又不自毁''的那个平衡点——这与上一节 $\sigma$-代数``恰好封闭到可数''是同一个尺度，二者天生配套。
+}
+
+由这几条公理，一批日用性质立刻跟着出来，证明都只是把可数可加性用在巧妙的分解上。
+
+\prop{概率测度的基本性质}{
+设 $(\Omega,\cF,\PP)$ 是概率空间，$A,B\in\cF$。则
+\begin{enumerate}
+    \item \textbf{补事件}：$\Prob{A^c}=1-\Prob{A}$；特别地 $\Prob{A}\le 1$。
+    \item \textbf{单调性}：若 $A\subseteq B$，则 $\Prob{A}\le\Prob{B}$。
+    \item \textbf{容斥（两集）}：$\Prob{A\cup B}=\Prob{A}+\Prob{B}-\Prob{A\cap B}$。
+    \item \textbf{可数次可加性（Boole 不等式）}：$\Prob{\bigcup_n A_n}\le\sum_n\Prob{A_n}$（不要求不交）。
+\end{enumerate}
+}
+\pf{
+\textbf{(1)} $\Omega=A\sqcup A^c$ 是不交分解，由（有限）可加性 $1=\Prob{\Omega}=\Prob{A}+\Prob{A^c}$。\\
+\textbf{(2)} 若 $A\subseteq B$，则 $B=A\sqcup(B\bs A)$ 是不交分解，故 $\Prob{B}=\Prob{A}+\Prob{B\bs A}\ge\Prob{A}$，因为概率非负。\\
+\textbf{(3)} 把 $A\cup B$ 拆成三块不交之并 $(A\bs B)\sqcup(A\cap B)\sqcup(B\bs A)$，分别加可加性，与 $\Prob{A}=\Prob{A\bs B}+\Prob{A\cap B}$、$\Prob{B}=\Prob{B\bs A}+\Prob{A\cap B}$ 联立消元即得。\\
+\textbf{(4)} 用``不交化''技巧：令 $B_1=A_1$、$B_n=A_n\bs\bigcup_{k<n}A_k$。则 $B_n$ 两两不交、$\bigcup_n B_n=\bigcup_n A_n$、且 $B_n\subseteq A_n$。由可数可加与单调性，$\Prob{\bigcup_n A_n}=\Prob{\bigcup_n B_n}=\sum_n\Prob{B_n}\le\sum_n\Prob{A_n}$。
+}
+
+\rmk{第 (4) 条里那招``不交化''（把一列集合 $A_n$ 改写成两两不交且并集不变的 $B_n=A_n\bs\bigcup_{k<n}A_k$）极其常用，下一节的连续性定理还要再用一次——它是把``可数可加''这把只对\emph{不交}集合好使的工具，撬到\emph{一般}集合列上的标准杠杆。}
+
+\section{生成的 $\sigma$-代数与 Borel 集}
+\label{sec:measure-borel}
+
+回到一个悬而未决的问题：在 $\Omega=\RR$（或 $[0,1]$）上，我们到底该用哪个 $\sigma$-代数？幂集太大（含不可测集，赋不了概率），平凡 $\sigma$-代数太小（连区间都分辨不了）。我们想要一个``刚刚好''的——它必须包含一切我们实际关心的集合（首先是区间，因为随机变量的分布是靠``$X$ 落在某区间''来描述的），又要对可数运算封闭，但\emph{不要}大到塞进病态集合。如何精确地造出这个``刚刚好''？答案是``由想要的集合\emph{生成}''。
+
+\thm{任意多个 $\sigma$-代数的交仍是 $\sigma$-代数}{
+设 $\set{\cF_i}_{i\in I}$ 是 $\Omega$ 上任意一族（可以不可数多个）$\sigma$-代数。则它们的交 $\bigcap_{i\in I}\cF_i$（即同时属于每一个 $\cF_i$ 的那些集合）仍是 $\Omega$ 上的一个 $\sigma$-代数。
+}
+\pf{
+逐条验证。$\Omega$ 属于每个 $\cF_i$，故属于交。若 $A$ 属于交，则 $A$ 在每个 $\cF_i$ 里，由各自对补封闭，$A^c$ 也在每个 $\cF_i$ 里，故 $A^c$ 属于交。可数并同理：若 $A_1,A_2,\dots$ 都属于交，则它们都在每个 $\cF_i$ 里，由各自对可数并封闭，$\bigcup_n A_n$ 在每个 $\cF_i$ 里，故属于交。三条都成立。
+}
+
+这条看似平淡的事实是``生成''的引擎。给定任意一族我们\emph{想让它们可测}的集合 $\cC$，全体包含 $\cC$ 的 $\sigma$-代数构成一族（至少幂集是其中之一，故非空）；把它们\emph{全部交起来}，由上面定理仍是 $\sigma$-代数，而且它包含 $\cC$、又被任何包含 $\cC$ 的 $\sigma$-代数所包含——它是``包含 $\cC$ 的最小 $\sigma$-代数''。
+
+\defn{由集类生成的 $\sigma$-代数}{
+设 $\cC\subseteq\cP(\Omega)$ 是任意一族子集。包含 $\cC$ 的\emph{最小} $\sigma$-代数
+\[
+    \sigma(\cC)=\bigcap\set{\cF:\cF\text{ 是 }\sigma\text{-代数且 }\cC\subseteq\cF}
+\]
+称为\textbf{由 $\cC$ 生成的 $\sigma$-代数}。它是``在仍保持 $\sigma$-代数结构的前提下，恰好把 $\cC$ 装进去''的那一个——既不多塞、也不少装。
+}
+
+直观上，$\sigma(\cC)$ 是从 $\cC$ 出发、不断对成员取补、取可数并、取可数交，把所有这样生成的集合都收进来，直到再也生不出新集合为止的``闭包''（图~\ref{fig:measure-2}）。``取最小''这个手法保证了它不会无端膨胀——只装下 $\cC$ 经合法运算\emph{必然}导致的那些集合，一个不多。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1,>=Stealth]
+  % 最外层：全体子集 P(Omega)
+  \draw[thick,rounded corners=4pt] (0,0) rectangle (8.2,5.0);
+  \node[anchor=north east] at (8.05,4.85) {$\cP(\Omega)$（全体子集）};
+  % 中层：sigma(C)
+  \fill[violet!8] (0.7,0.55) rectangle (6.1,4.05);
+  \draw[thick,violet!55!black,rounded corners=3pt] (0.7,0.55) rectangle (6.1,4.05);
+  \node[violet!45!black,anchor=north west] at (0.85,3.9) {$\sigma(\cC)$：含 $\cC$ 的最小 $\sigma$-代数};
+  % 内层：生成类 C（完全落在 sigma(C) 框内，体现 C ⊆ sigma(C)）
+  \fill[green!16] (2.0,1.5) ellipse (1.05 and 0.72);
+  \draw[thick,green!45!black] (2.0,1.5) ellipse (1.05 and 0.72);
+  \node[green!35!black] at (2.0,1.5) {$\cC$};
+  % 闭合说明
+  \node[violet!40!black,anchor=west,align=left] at (3.65,1.9)
+    {对补、可数并、\\可数交反复闭合};
+  \draw[violet!55!black,->] (3.05,1.65) -- (3.6,1.85);
+  % Borel 注
+  \node[anchor=north west,align=left,text width=7.6cm] at (0.25,-0.25)
+    {取 $\Omega=\RR$、$\cC=\{$所有开区间$\}$，便得 \textbf{Borel $\sigma$-代数} $\cB(\RR)=\sigma(\cC)$；
+     它严格小于 $\cP(\RR)$——存在不属于 $\cB(\RR)$ 的子集（不可测集）。};
+\end{tikzpicture}
+\caption{由集类 $\cC$ 生成 $\sigma$-代数：从 $\cC$ 出发反复施加取补、可数并、可数交，得到恰好包含 $\cC$ 的最小 $\sigma$-代数 $\sigma(\cC)$，它仍真包含于幂集 $\cP(\Omega)$。当 $\cC$ 取 $\RR$ 上所有开区间时，$\sigma(\cC)$ 就是 Borel $\sigma$-代数。}
+\label{fig:measure-2}
+\end{figure}
+
+最重要的一例，是取 $\Omega=\RR$、$\cC$ 为全体开集（等价地，全体开区间）。
+
+\defn{Borel $\sigma$-代数}{
+$\RR$ 上由全体\emph{开集}生成的 $\sigma$-代数，称为 \textbf{Borel $\sigma$-代数}，记作 $\cB(\RR)$；其成员称为 \textbf{Borel 集}。一般地，任一拓扑空间（如 $\RR^n$）上由开集生成的 $\sigma$-代数称为该空间的 Borel $\sigma$-代数 $\cB(\RR^n)$。
+}
+
+Borel $\sigma$-代数是概率论的``默认''可测结构。它有几个让人安心的特点：
+
+\begin{itemize}
+    \item \textbf{该有的都有}。一切开集、闭集、半开半闭区间、单点集（$\set{a}=\bigcap_n(a-\tfrac1n,a+\tfrac1n)$ 是可数交）、可数集（如 $\QQ$，是可数个单点之并）……统统是 Borel 集。凡是能从区间出发、经可数次运算够得着的集合，都在里头——这恰好涵盖了我们实际想问其概率的一切集合。
+    \item \textbf{由区间生成也一样}。$\sigma(\set{\text{开区间}})=\sigma(\set{\text{开集}})=\cB(\RR)$，因为 $\RR$ 上每个开集都是可数个开区间之并；甚至只用形如 $(-\infty,a]$（$a\in\QQ$）的``半射线''也能生成同一个 $\cB(\RR)$。这条在下一章定义随机变量时关键：只需检验 $\set{X\le a}$ 这一类事件可测，就够保证 $X$ 关于 Borel 结构整体可测。
+    \item \textbf{它真比幂集小}。可以证明 $\cB(\RR)$ 与 $\RR$ 等势（基数为连续统 $\mathfrak c$），而幂集 $\cP(\RR)$ 的基数为 $2^{\mathfrak c}$，严格更大。所以``绝大多数''子集\emph{不是} Borel 集——上一节的 Vitali 集就在 $\cB(\RR)$ 之外。这正是我们当初要的：大到装下一切有用集合，又小到避开病态集合。
+\end{itemize}
+
+\state{为何 Borel $\sigma$-代数是``刚刚好''的那一个}{
+$\sigma$-代数的``生成''构造解决了第~\ref{sec:measure-vitali} 节留下的两难：幂集太大、平凡 $\sigma$-代数太小，而 $\cB(\RR)=\sigma(\text{开集})$ 不偏不倚——它是\emph{能容纳所有区间（从而所有``$X$ 落在某范围''型事件）的最小} $\sigma$-代数。``最小''保证不混入不可测的麻烦集合，``含开集''保证一切实用事件在内。今后凡在 $\RR$（或 $\RR^n$）上谈随机变量、分布、可测函数，默认的可测结构都是 Borel $\sigma$-代数；它是连接``拓扑（开集）''与``概率（可测）''的标准接口。
+}
+
+\section{测度的连续性}
+\label{sec:measure-continuity}
+
+可数可加性还有一个极其有用的等价面貌：\emph{测度对单调集合列连续}。这是把概率与极限挂钩的桥梁——以后凡是``$\Prob{A_n}\to\Prob{A}$''型的论证（大数定律、各种``几乎必然''的陈述）都从它出发。
+
+\thm{测度的连续性}{
+设 $(\Omega,\cF,\PP)$ 是概率空间，$A_n\in\cF$。
+\begin{enumerate}
+    \item \textbf{从下连续}：若 $A_1\subseteq A_2\subseteq\cdots$ 单调递增，记 $A=\bigcup_n A_n$（写作 $A_n\uparrow A$），则
+    \[
+        \Prob{A_n}\to\Prob{A}=\Prob{\textstyle\bigcup_n A_n}\quad(n\to\infty).
+    \]
+    \item \textbf{从上连续}：若 $A_1\supseteq A_2\supseteq\cdots$ 单调递减，记 $A=\bigcap_n A_n$（写作 $A_n\downarrow A$），则
+    \[
+        \Prob{A_n}\to\Prob{A}=\Prob{\textstyle\bigcap_n A_n}\quad(n\to\infty).
+    \]
+\end{enumerate}
+}
+\pf{
+\textbf{从下连续}（图~\ref{fig:measure-3}）。把递增列差分成两两不交的``环带'': 令 $B_1=A_1$，$B_n=A_n\bs A_{n-1}$（$n\ge 2$）。则 $B_n$ 两两不交，且对每个 $N$ 有 $A_N=\bigsqcup_{n=1}^N B_n$，并 $\bigcup_n B_n=\bigcup_n A_n=A$。用可数可加性：
+\[
+    \Prob{A}=\Prob{\textstyle\bigcup_n B_n}=\sum_{n=1}^\infty\Prob{B_n}
+    =\lim_{N\to\infty}\sum_{n=1}^N\Prob{B_n}
+    =\lim_{N\to\infty}\Prob{\textstyle\bigsqcup_{n=1}^N B_n}
+    =\lim_{N\to\infty}\Prob{A_N}.
+\]
+中间一步\emph{无穷和等于部分和的极限}正是``级数即部分和之极限''的定义，这一步把``可数可加''兑换成了``$\Prob{A_N}$ 的极限''——连续性由此而来。
+
+\textbf{从上连续}由从下连续取补即得。若 $A_n\downarrow A$，则补事件 $A_n^c\uparrow A^c$ 递增，对它用从下连续：$\Prob{A_n^c}\to\Prob{A^c}$。再代入 $\Prob{A_n^c}=1-\Prob{A_n}$、$\Prob{A^c}=1-\Prob{A}$，两边各减一取负，即 $\Prob{A_n}\to\Prob{A}$。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1,>=Stealth]
+  % 样本空间 Omega
+  \draw[thick,rounded corners=2pt] (0,0) rectangle (8.4,4.6);
+  \node[anchor=north east] at (8.25,4.45) {$\Omega$};
+  % 极限事件 A = ∪ A_n（最外层，浅色虚线边界）
+  \fill[blue!7] (3.0,2.3) ellipse (2.7 and 1.55);
+  \draw[densely dashed,blue!55!black,thick] (3.0,2.3) ellipse (2.7 and 1.55);
+  % 递增事件 A_1 ⊂ A_2 ⊂ A_3
+  \fill[blue!32] (3.0,2.3) ellipse (2.25 and 1.28);
+  \fill[blue!24] (3.0,2.3) ellipse (1.55 and 0.92);
+  \fill[blue!16] (3.0,2.3) ellipse (0.85 and 0.55);
+  \draw[blue!60!black] (3.0,2.3) ellipse (0.85 and 0.55);
+  \draw[blue!60!black] (3.0,2.3) ellipse (1.55 and 0.92);
+  \draw[blue!60!black] (3.0,2.3) ellipse (2.25 and 1.28);
+  % 标签 A_1 A_2 A_3：各落在所属环带（沿长轴）中部的纯净空白处
+  \node[blue!50!black] at (3.0,2.3) {$A_1$};
+  \node[blue!50!black] at (4.25,2.3) {$A_2$};
+  \node[blue!50!black] at (4.95,2.3) {$A_3$};
+  % 极限 A 标签
+  \node[blue!55!black,anchor=west] at (6.0,3.7) {$A=\bigcup_{n}A_n$};
+  \draw[blue!55!black,->] (5.95,3.62) -- (5.25,3.0);
+  % 概率收敛小注
+  \node[anchor=north west,align=left,text width=2.5cm] at (6.0,2.4)
+    {$A_n\uparrow A$ 时\\[2pt] $\Prob{A_n}\uparrow\Prob{A}$};
+\end{tikzpicture}
+\caption{从下连续。递增事件列 $A_1\subseteq A_2\subseteq A_3\subseteq\cdots$ 像同心环带一样向极限 $A=\bigcup_n A_n$（虚线）填充，其概率随之单调上升、收敛到 $\Prob{A}$。这是可数可加性的等价化身，也是把概率接到极限运算上的桥梁。}
+\label{fig:measure-3}
+\end{figure}
+
+\rmk{连续性与可数可加性其实\emph{等价}：在``有限可加''的前提下，``从下（或从上）连续''反过来也能推出``可数可加''。所以可以把连续性看作可数可加性``面向极限''的等价表述——日后凡涉及事件列取极限，用连续性往往比直接搬可数可加更顺手。}
+
+\ex[尾事件概率为零的典型用法]{
+设 $A_n$ 是事件，且 $\sum_{n=1}^\infty\Prob{A_n}<\infty$。证明``无穷多个 $A_n$ 同时发生''这一事件的概率为零。（这是 Borel--Cantelli 引理的前半，几乎必然收敛的常用入口。）
+}
+\sol{
+``无穷多个 $A_n$ 发生''写成集合是 $A=\bigcap_{N=1}^\infty\bigcup_{n\ge N}A_n$（对任意 $N$，总还有 $n\ge N$ 使 $A_n$ 发生）。记 $C_N=\bigcup_{n\ge N}A_n$，则 $C_1\supseteq C_2\supseteq\cdots$ 递减且 $A=\bigcap_N C_N$。由\emph{从上连续}，$\Prob{A}=\lim_{N\to\infty}\Prob{C_N}$。再由可数次可加性（Boole 不等式），
+\[
+    \Prob{C_N}=\Prob{\textstyle\bigcup_{n\ge N}A_n}\le\sum_{n\ge N}\Prob{A_n}\xrightarrow{N\to\infty}0,
+\]
+因为收敛级数 $\sum_n\Prob{A_n}$ 的尾和趋于零。故 $\Prob{A}=0$。\emph{从上连续 + Boole 不等式}两件本章工具一配合，就把一个关于``无穷多次发生''的极限陈述化成了一道级数尾和的估计——这正是连续性定理的典型威力。
+}
+
+\section{几乎处处与几乎必然}
+\label{sec:measure-ae}
+
+测度论给了我们一个在朴素概率里说不清的、却无处不在的概念：``某性质\emph{除了一个概率为零的例外集之外}处处成立''。连续型随机变量逼着我们正视它——既然每个单点概率为零，``$X=x$''这种事件就该被当作``可以忽略''来处理。
+
+\defn{几乎处处 / 几乎必然}{
+设 $(\Omega,\cF,\PP)$ 是概率空间，$P(\omega)$ 是关于样本点 $\omega$ 的某个性质（命题）。称 $P$ \textbf{几乎必然}（almost surely，记 a.s.）成立，或在测度论的一般语境下称 \textbf{几乎处处}（almost everywhere，记 a.e.）成立，如果使 $P$ \emph{不}成立的样本点构成一个概率（测度）为零的集合：
+\[
+    \Prob{\set{\omega:P(\omega)\text{ 不成立}}}=0 ,
+\]
+等价地 $\Prob{\set{\omega:P(\omega)\text{ 成立}}}=1$。一个满足 $\Prob{N}=0$ 的集合 $N\in\cF$ 称为\textbf{零测集}（null set）。
+}
+
+零测集``可以忽略''的精确含义是：它对任何概率计算都不产生贡献。两个随机变量若只在一个零测集上取值不同，则在概率论看来它们\emph{无法区分}（同分布、同期望、参与任何极限的结果都一样）——这种``差一个零测集''的等同关系，是后面 $L^p$ 空间、几乎必然收敛、条件期望``几乎处处唯一''等论述的基础。
+
+\rmk{``几乎必然''与``必然''的差别，正是测度论比朴素概率精细的地方。``必然''要求对\emph{每一个} $\omega$ 都成立（例外集为空集 $\varnothing$）；``几乎必然''只要求例外集\emph{测度为零}（可以非空，甚至可以是不可数无穷集——如 $[0,1]$ 上 $\QQ\cap[0,1]$ 那样的可数稠密集，测度为零却处处皆是）。在连续概率里几乎一切有用的结论都是``几乎必然''而非``必然''的。}
+
+\ex[``均匀分布几乎必然取到无理数'']{
+设 $X$ 在 $[0,1]$ 上均匀分布（即 $\Prob{X\in[a,b]}=b-a$）。说明 $X$ 几乎必然是无理数。
+}
+\sol{
+有理数集 $\QQ\cap[0,1]$ 可数，可枚举为 $\set{q_1,q_2,\dots}$。每个单点是零测集（$\Prob{X=q_k}\le\Prob{X\in[q_k,q_k]}=0$），由可数次可加性，
+\[
+    \Prob{X\in\QQ}=\Prob{\textstyle\bigcup_k\set{X=q_k}}\le\sum_k\Prob{X=q_k}=0 .
+\]
+故 $\Prob{X\in\QQ}=0$，等价地 $\Prob{X\notin\QQ}=1$：$X$ 几乎必然取无理数值。注意例外集 $\QQ\cap[0,1]$ 在 $[0,1]$ 里\emph{稠密}（任何区间都含有理数），却仍是零测——这把``几乎必然''与``处处''的差距演示得淋漓尽致：一个测度为零的集合可以稠密到``到处都是'',概率论却照样可以放心忽略它。
+}
+
+\section{它通向何处}
+\label{sec:measure-beyond}
+
+本章浇下的地基本身不解任何经济学问题，但 Part V 之后几乎每一块砖都砌在它上面。把这套抽象接回主干，去处主要有五处，正好对应后续各章：
+
+\begin{itemize}
+    \item \textbf{随机变量与分布}（下一章）。随机变量将被定义为可测空间之间的\emph{可测映射} $X:(\Omega,\cF)\to(\RR,\cB(\RR))$——``可测''的含义是 $\set{X\le a}\in\cF$ 对一切 $a$，借此把 $\RR$ 上的 Borel 结构``拉回''到 $\Omega$ 上。$X$ 的分布则是它把 $\PP$ 推到 $(\RR,\cB(\RR))$ 上得到的概率测度。本章的 $\sigma$-代数与 Borel 集，正是为此铺路。
+    \item \textbf{Lebesgue 积分与期望}（后续章）。期望 $\E{X}=\int_\Omega X\,\d\PP$ 是关于概率测度的积分。它不像 Riemann 积分那样``沿 $x$ 轴切'',而是``沿 $y$ 轴切''——按函数值分层、用测度量每层的``大小''。这种构造对连续型、离散型乃至更怪的随机变量\emph{一视同仁}，统一了``求和''与``积分''两套期望公式。没有测度，这种统一无从谈起。
+    \item \textbf{条件期望作为投影}（后续章）。给定一个子 $\sigma$-代数 $\cG\subseteq\cF$（代表``部分信息''），条件期望 $\E{X\given\cG}$ 是 $X$ 在 $\cG$-可测函数空间上的正交投影。这里``$\sigma$-代数 = 信息''的观念（见第~\ref{sec:measure-sigma} 节的两极例子）成为主角：信息越多（$\cG$ 越大），条件期望越精细。
+    \item \textbf{几乎必然收敛与大数定律}（渐近统计部分）。强大数定律断言样本均值\emph{几乎必然}收敛到期望；它的陈述与证明都离不开本章的``几乎必然''与连续性定理（Borel--Cantelli 正是上面那道例题）。各种收敛模式（依概率、几乎必然、依分布、$L^p$）的精确区分，全靠测度论才说得清。
+    \item \textbf{随机过程里的 filtration = 信息流}（随机过程部分）。一列递增的子 $\sigma$-代数 $\cF_0\subseteq\cF_1\subseteq\cdots$ 刻画``信息随时间积累''——$\cF_t$ 是``截止到时刻 $t$ 所能知道的一切''。鞅、停时、布朗运动都建在这套``信息流''上；它与博弈论里贝叶斯更新的信念结构（``信息一章''）本质相通：都是用 $\sigma$-代数来给``知道了什么''一个数学身份。
+\end{itemize}
+
+\state{本章在全书中的位置}{
+如果说线性代数是计量的引擎、拓扑是存在性的语言，那么测度论就是\emph{现代概率与渐近理论的操作系统}——它本身不直接产出经济学结论，却是其上一切应用（随机变量、期望、条件期望、收敛、随机过程）得以严格运行的底层。本章只要求记住三件事：(i) 概率的载体是\emph{事件}而非点，故需先框定一族可测事件，即 $\sigma$-代数；(ii) 不可数空间上不能给所有子集赋概率（Vitali），故用``由开集生成''的 Borel $\sigma$-代数作为标准可测结构；(iii) 概率测度的灵魂是\emph{可数}可加，它等价地表现为对单调事件列的连续性，并催生``几乎必然''这一连续概率中无处不在的概念。带着这三点往下读，Part V 余下各章都会顺理成章。
+}

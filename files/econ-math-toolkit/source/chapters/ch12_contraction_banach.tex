@@ -1,0 +1,324 @@
+% !TEX root = ../main.tex
+\chapter{压缩映射与 Banach 不动点定理}
+\label{ch:contraction}
+
+\noindent\emph{用到的前置工具：度量空间、序列收敛与完备性（第八章）；上一章的不动点定理（Brouwer、Kakutani）作对照；后文用到的范数与上确界（线性代数部分）。}
+\medskip
+
+上一章的 Brouwer 与 Kakutani 定理回答了``不动点\emph{在不在}''——只要空间是凸紧的、映射连续，不动点就存在。但它们对两件经济学家同样在乎的事一概不答：这个不动点\emph{唯一}吗？要怎么把它\emph{算出来}？本章的压缩映射定理（即 Banach 不动点定理）正好补上这两块：它对映射要求得更苛刻（必须把距离一致地``压缩''），换来的回报也更丰厚——不仅给出存在性，还白送了唯一性、一个收敛的迭代算法，以及一个能事先估计算到第几步够精确的误差界。这套``存在 + 唯一 + 可计算''的组合，正是动态规划全部理论的地基：它保证 Bellman 方程的解（值函数）存在且唯一，并保证值迭代真的会收敛到它。本章先把压缩与定理本身讲透，再引出 Blackwell 那两个一眼可查的充分条件，最后落到 Bellman 算子上。
+
+\section{为什么需要``压缩''这个更强的条件}
+\label{sec:contraction-motivation}
+
+经济学里反复出现同一个数学动作：求解一个``自指''的方程
+\[
+    x = T(x),
+\]
+即寻找映射 $T$ 的不动点。理性预期均衡是``给定大家的预期、最优反应又生成同样的预期''；一般均衡的超额需求为零可化为一个不动点方程；而动态规划的核心——Bellman 方程 $V=TV$——根本就是一句``值函数等于自己经 Bellman 算子作用后的像''。
+
+上一章的工具能断言这类不动点存在，却止步于此。可经济学常常还要追问两件事。其一，\textbf{唯一性}：若均衡（或值函数）不唯一，``比较静态''就无从谈起，模型的预测也含糊。其二，\textbf{可计算性}：现实中我们几乎从不解析地解出不动点，而是从某个初值出发反复迭代 $x_{n+1}=T(x_n)$，指望它收敛——但凭什么收敛？收敛到哪个不动点？Brouwer 定理对此一律沉默。
+
+压缩条件就是为同时拿下这两件事而设的。直觉是：如果 $T$ 把任意两点之间的距离都\emph{按同一个小于 $1$ 的比例缩小}，那么反复作用 $T$，相邻迭代点会越靠越近、挤成一个收敛的序列；而两个不同的不动点之间的距离作用一次本该缩小、却又必须保持不变（不动点嘛），这个矛盾逼出唯一性。下面把它形式化。
+
+\section{压缩映射}
+\label{sec:contraction-def}
+
+\defn{压缩映射}{
+设 $(X,d)$ 是度量空间。映射 $T:X\to X$ 称为\textbf{压缩映射}（contraction），若存在常数 $c\in[0,1)$，使得对一切 $x,y\in X$ 都有
+\[
+    d\bigl(T(x),T(y)\bigr)\;\le\;c\,\, d(x,y).
+\]
+此 $c$ 称为\textbf{压缩系数}（或压缩模）。
+}
+
+请把这个定义和它的``近亲''仔细分清，差别全在那个 $c$ 上（图~\ref{fig:contraction-1}）。
+
+\rmkb[与 Lipschitz、与非扩张的区别]{
+若上式中只要求某个常数 $L<\infty$（不必小于 $1$）成立，$T$ 叫做 \textbf{Lipschitz 连续}（模为 $L$）；若 $L=1$（即 $d(T(x),T(y))\le d(x,y)$）叫\textbf{非扩张}（nonexpansive）。压缩是``Lipschitz 模严格小于 $1$''这一最强的情形。这个``严格''至关重要：恒等映射 $T(x)=x$ 是非扩张的（$c=1$），它的不动点多到铺满全空间——可见一旦放松到 $c=1$，唯一性立刻崩塌。平移 $T(x)=x+1$ 同样非扩张却根本没有不动点。正是 $c<1$ 把这些病态情形挡在门外。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=2.0,>=Stealth]
+  % 坐标轴
+  \draw[->] (-0.1,0) -- (3.3,0) node[right] {$x$};
+  \draw[->] (0,-0.1) -- (0,3.0) node[above] {$T(x)$};
+  % 压缩映射曲线 T(x)=2.9-1.4 e^{-0.6 x}
+  \draw[thick,blue!60!black,domain=0:3.1,smooth,samples=120,variable=\t]
+      plot ({\t},{2.9-1.4*exp(-0.6*\t)});
+  \node[blue!60!black,anchor=north west] at (1.95,2.42) {$y=T(x)$};
+  % 两个输入点 x=0.4 -> 1.7987,  y=2.4 -> 2.5683
+  \coordinate (Px) at (0.4,1.7987);
+  \coordinate (Py) at (2.4,2.5683);
+  \draw[dotted,gray!70] (0.4,0) -- (Px);
+  \draw[dotted,gray!70] (2.4,0) -- (Py);
+  \draw[dotted,gray!70] (Px) -- (0,1.7987);
+  \draw[dotted,gray!70] (Py) -- (0,2.5683);
+  \fill[blue!60!black] (Px) circle (1.0pt);
+  \fill[blue!60!black] (Py) circle (1.0pt);
+  \node[anchor=north] at (0.4,-0.04) {$x$};
+  \node[anchor=north] at (2.4,-0.04) {$y$};
+  \node[anchor=east] at (-0.05,1.7987) {$T(x)$};
+  \node[anchor=east] at (-0.05,2.5683) {$T(y)$};
+  % 输入间距大括号
+  \draw[decorate,decoration={brace,amplitude=5pt,mirror},red!70!black]
+      (0.4,-0.30) -- (2.4,-0.30);
+  \node[red!70!black,anchor=north] at (1.4,-0.42) {$|x-y|$};
+  % 输出间距大括号（明显更短）
+  \draw[decorate,decoration={brace,amplitude=5pt},blue!60!black]
+      (-0.95,1.7987) -- (-0.95,2.5683);
+  \node[blue!60!black,anchor=east,align=center] at (-1.05,2.18)
+      {$|T(x)-T(y)|$\\$\le c\,|x-y|$};
+\end{tikzpicture}
+\caption{压缩映射把输入端的距离 $|x-y|$ 一致地压缩到输出端更短的距离 $|T(x)-T(y)|\le c\,|x-y|$（这里 $c<1$）。曲线越平缓，压缩得越狠。}
+\label{fig:contraction-1}
+\end{figure}
+
+\rmkb[怎么验一个映射是不是压缩]{
+在 $X\se\RR$（或 $\RR^n$ 取适当范数）上，最常用的判据来自中值定理：若 $T$ 可微且导数（在多维是 Jacobian 的范数）一致地被某个 $c<1$ 界住，
+\[
+    \sup_{x}\abs{T'(x)}=c<1,
+\]
+则 $T$ 是以 $c$ 为系数的压缩。直觉就是图~\ref{fig:contraction-1} 里``曲线斜率处处平缓''。注意这要求是\emph{一致}的上界——只在某一点斜率小于 $1$ 远远不够。
+}
+
+\section{Banach 不动点定理}
+\label{sec:contraction-banach}
+
+现在给出本章的主定理。它的力量在于结论之多：一句压缩，换来存在、唯一、构造性收敛、外加误差界四件事。
+
+\thm{Banach 不动点定理（压缩映射原理）}{
+设 $(X,d)$ 是\emph{非空完备}度量空间，$T:X\to X$ 是压缩系数为 $c\in[0,1)$ 的压缩映射。则：
+\begin{itemize}
+    \item \textbf{（存在唯一）} $T$ 有且仅有一个不动点 $x^*\in X$，即 $T(x^*)=x^*$。
+    \item \textbf{（全局收敛）} 任取初值 $x_0\in X$，迭代 $x_{n+1}=T(x_n)$ 都收敛到 $x^*$。
+    \item \textbf{（误差界）} 收敛是几何（线性）速率的，且有先验与后验两个误差估计：
+    \[
+        d(x_n,x^*)\;\le\;\frac{c^{\,n}}{1-c}\,d(x_1,x_0),
+        \qquad
+        d(x_n,x^*)\;\le\;\frac{c}{1-c}\,d(x_n,x_{n-1}).
+    \]
+\end{itemize}
+}
+
+证明本身就是一份``如何用完备性把序列收敛兑现成不动点''的范本，值得逐步看清。
+
+\pf{
+\textbf{第一步：迭代序列是 Cauchy 列。}
+固定 $x_0$，令 $x_{n+1}=T(x_n)$。把压缩性反复用在相邻两项上：
+\[
+    d(x_{n+1},x_n)=d\bigl(T(x_n),T(x_{n-1})\bigr)\le c\,d(x_n,x_{n-1})
+    \le\cdots\le c^{\,n}\,d(x_1,x_0).
+\]
+于是相邻步长以几何速率衰减。对任意 $m>n$，用三角不等式把跨度拆成一串相邻步长再求和：
+\[
+    d(x_m,x_n)\le\sum_{k=n}^{m-1}d(x_{k+1},x_k)
+    \le\sum_{k=n}^{m-1}c^{\,k}\,d(x_1,x_0)
+    \le d(x_1,x_0)\sum_{k=n}^{\infty}c^{\,k}
+    =\frac{c^{\,n}}{1-c}\,d(x_1,x_0).
+\]
+最后一步用了 $c<1$ 时几何级数收敛（这正是``$c<1$''第一次出力的地方）。当 $n\to\infty$，右端 $\to 0$，故 $\{x_n\}$ 是 Cauchy 列。
+
+\textbf{第二步：用完备性取极限。}
+$X$ 完备，意味着每个 Cauchy 列都在 $X$ 内有极限。于是存在 $x^*\in X$ 使 $x_n\to x^*$。这一步是完备性\emph{唯一}被用到、也是不可或缺的地方：在不完备的空间里，迭代点可能挤向一个``本该是极限却不在空间里''的洞，定理随之失效（见后文注）。
+
+\textbf{第三步：极限是不动点。}
+压缩映射必连续（取 Lipschitz 模 $c$ 即知）。对 $x_{n+1}=T(x_n)$ 两边令 $n\to\infty$，左边 $x_{n+1}\to x^*$，右边 $T(x_n)\to T(x^*)$（连续性），故 $x^*=T(x^*)$。
+
+\textbf{第四步：唯一性。}
+设 $x^*$ 与 $y^*$ 都是不动点，则
+\[
+    d(x^*,y^*)=d\bigl(T(x^*),T(y^*)\bigr)\le c\,d(x^*,y^*).
+\]
+移项得 $(1-c)\,d(x^*,y^*)\le 0$。因 $1-c>0$，只能 $d(x^*,y^*)=0$，即 $x^*=y^*$。这里 $c<1$ 第二次出力：它让``距离缩小''与``不动点距离不变''互相矛盾。
+
+\textbf{第五步：误差界。}
+在第一步那条 $d(x_m,x_n)\le\frac{c^{\,n}}{1-c}d(x_1,x_0)$ 中令 $m\to\infty$（$x_m\to x^*$，而度量对极限连续），即得先验界
+\[
+    d(x_n,x^*)\le\frac{c^{\,n}}{1-c}\,d(x_1,x_0).
+\]
+后验界同理：从第 $n$ 步起把序列看成新的迭代，得 $d(x_n,x^*)\le\frac{c}{1-c}d(x_n,x_{n-1})$。
+}
+
+\state{Banach 定理一口气给了你四样东西}{
+对照上一章：Brouwer / Kakutani 只回答\textbf{存在}，靠的是凸紧 + 连续这类\emph{拓扑}条件，证明深而非构造性，对唯一与计算一概不管。Banach 定理换了一类条件（压缩，一个\emph{度量}条件），代价是要求更强，回报是一次拿到四样：\textbf{(1) 存在、(2) 唯一、(3) 从任意初值迭代都收敛、(4) 几何收敛速率 + 可事先估计的误差界}。第 (3)(4) 两条尤其关键：它们把``不动点''从一个抽象的存在性对象，变成了一个你真能在计算机上算出来、并且知道要算几步的东西。这正是它成为数值不动点求解``工作马''的原因。
+}
+
+误差界里两条估计的分工值得记住。\textbf{先验界}（a priori）只用第一步 $d(x_1,x_0)$ 就能在开算之前算出：要把误差压到 $\varepsilon$ 以下，需迭代约 $n\approx\log\!\big(\varepsilon(1-c)/d(x_1,x_0)\big)/\log c$ 步——压缩系数 $c$ 越接近 $1$，所需步数越多、收敛越慢。\textbf{后验界}（a posteriori）则用当前这一步的实际位移 $d(x_n,x_{n-1})$ 给出更紧的实时估计，是写迭代程序时的天然停机准则：一旦相邻两步挪动得足够小，就知道离真解已经足够近。
+
+收敛的几何图像最直观的呈现，是``蛛网图''（图~\ref{fig:contraction-2}）：在 $(x_n,x_{n+1})$ 平面上画出曲线 $y=T(x)$ 与对角线 $y=x$，不动点恰是二者的交点；从 $x_0$ 出发，``竖到曲线、横到对角线''交替前进，因 $T$ 平缓（斜率绝对值 $<1$），台阶逐级缩小、稳稳收向交点。而误差以 $c^n$ 的速率衰减、剩余距离被几何尾和 $\frac{c}{1-c}d_0$ 兜住的样子，见图~\ref{fig:contraction-3}。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=2.0,>=Stealth]
+  \draw[->] (-0.1,0) -- (3.35,0) node[right] {$x_n$};
+  \draw[->] (0,-0.1) -- (0,3.15) node[above] {$x_{n+1}$};
+  \draw[gray!60] (0,0) -- (3.0,3.0);
+  \node[gray!55!black,anchor=west] at (2.72,2.93) {$45^\circ$};
+  \draw[thick,blue!60!black,domain=0:3.2,smooth,samples=120,variable=\t]
+      plot ({\t},{2.9-1.4*exp(-0.6*\t)});
+  \node[blue!60!black,anchor=west] at (2.18,1.95) {$y=T(x)$};
+  \draw[red!70!black,thick]
+      (0.25,0) -- (0.25,1.695) -- (1.695,1.695) -- (1.695,2.394)
+      -- (2.394,2.394) -- (2.394,2.567) -- (2.567,2.567)
+      -- (2.567,2.6) -- (2.6,2.6) -- (2.6,2.606);
+  \fill[red!70!black] (0.25,0) circle (0.9pt);
+  \node[red!70!black,anchor=north] at (0.25,-0.04) {$x_0$};
+  \node[anchor=north] at (1.695,-0.04) {$x_1$};
+  \draw[dotted,gray!70] (1.695,0) -- (1.695,1.695);
+  \node[anchor=north east,inner sep=1pt] at (2.43,-0.04) {$x_2$};
+  \draw[dotted,gray!70] (2.394,0) -- (2.394,2.394);
+  \fill (2.607,2.607) circle (1.3pt);
+  \draw[dotted,gray!70] (2.607,0) -- (2.607,2.607);
+  \node[anchor=north] at (2.607,-0.04) {$x^{*}$};
+  \node[anchor=west,align=left] at (2.86,1.55) {不动点\\$x^{*}=T(x^{*})$};
+  \draw[->,thin,gray!60!black] (2.93,1.72) -- (2.66,2.55);
+\end{tikzpicture}
+\caption{压缩迭代的蛛网图：从 $x_0$ 出发，``竖到曲线、横到对角线''交替前进。因 $T$ 平缓，台阶逐级缩小，迭代稳稳收敛到曲线与 $45^\circ$ 线的交点——唯一不动点 $x^*$。}
+\label{fig:contraction-2}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[xscale=1.45,yscale=1.0,>=Stealth]
+  \draw[->] (-0.3,0) -- (4.7,0) node[right] {$X$};
+  \foreach \px/\lab in {0/{x_0}, 2/{x_1}, 3/{x_2}, 3.5/{x_3}}{
+     \fill[red!70!black] (\px,0) circle (1.3pt);
+     \node[red!70!black,anchor=north] at (\px,-0.08) {$\lab$};
+  }
+  \fill[red!70!black] (3.75,0) circle (1.1pt);
+  \node[red!70!black,anchor=north,inner sep=1.5pt,font=\small] at (3.78,-0.10) {$x_4$};
+  \node at (3.9,0.02) {$\scriptstyle\cdots$};
+  \fill (4.15,0) circle (1.5pt);
+  \node[anchor=south] at (4.15,0.08) {$x^{*}$};
+  \draw[decorate,decoration={brace,amplitude=6pt},blue!60!black] (0,0.14) -- (2,0.14);
+  \node[blue!60!black,anchor=south] at (1.0,0.30) {$d_0=d(x_0,x_1)$};
+  \draw[decorate,decoration={brace,amplitude=5pt},blue!55!black] (2,0.14) -- (3,0.14);
+  \node[blue!55!black,anchor=south,font=\small] at (2.5,0.26) {$\le c\,d_0$};
+  \draw[decorate,decoration={brace,amplitude=4pt},blue!50!black] (3,0.14) -- (3.5,0.14);
+  \node[blue!50!black,anchor=south,font=\small,inner sep=1pt] at (3.7,0.46) {$\le c^2 d_0$};
+  \draw[blue!50!black,->,thin] (3.55,0.46) -- (3.28,0.24);
+  \draw[decorate,decoration={brace,amplitude=6pt,mirror},violet!60!black] (2,-0.58) -- (4.15,-0.58);
+  \node[violet!60!black,anchor=north,align=center] at (3.07,-0.69)
+     {$d(x_1,x^{*})\le\dfrac{c}{1-c}\,d_0$};
+\end{tikzpicture}
+\caption{几何收敛与误差界。相邻迭代步长以 $c^{\,k}$ 衰减；从任一步到不动点的剩余距离被几何尾和兜住，故 $d(x_n,x^*)\le\frac{c^{\,n}}{1-c}d(x_1,x_0)$。}
+\label{fig:contraction-3}
+\end{figure}
+
+\rmkb[完备性与``闭''缺一不可]{
+两处常被忽略的前提都不能省。其一，\textbf{完备性}：在 $X=(0,1]$ 上取 $T(x)=x/2$，它是系数 $1/2$ 的压缩，但 $(0,1]$ 不完备，迭代 $x_n=x_0/2^n\to 0\notin X$，于是\emph{没有}不动点。其二，$T$ 必须\textbf{把 $X$ 映回 $X$ 自身}（$T:X\to X$）；若只在某个子集上压缩、却会把点甩出该子集，定理同样不适用——实践中常用的办法是先找一个 $T$ 不变的闭子集（$\RR^n$ 中的闭集自动完备），再在其上用定理。
+}
+
+\ex[把 Banach 定理用作``求根器'']{
+求方程 $x=\cos x$ 的解。直接解不出来，但右端 $T(x)=\cos x$ 在 $\RR$ 上满足 $\abs{T'(x)}=\abs{\sin x}\le 1$，还不够（端点取等）。把定义域收到不变闭区间 $[0,1]$：$T$ 把 $[0,1]$ 映入 $[\cos 1,1]\subset[0,1]$，且在其上 $\abs{T'(x)}=\sin x\le\sin 1\approx 0.841<1$。故 $T$ 是 $[0,1]$（完备）上系数 $c=\sin 1$ 的压缩。
+}
+\sol{
+从 $x_0=0.5$ 迭代 $x_{n+1}=\cos x_n$，序列稳步收敛到 $x^*\approx 0.739085$（即 Dottie 数）。它存在且唯一由 Banach 定理保证；要预知精度，用先验界：$d(x_1,x_0)=\abs{\cos 0.5-0.5}\approx 0.378$，于是
+\[
+    d(x_n,x^*)\le\frac{c^{\,n}}{1-c}\,(0.378),\qquad c=\sin 1\approx 0.841 .
+\]
+因 $c$ 颇接近 $1$，先验界给出的步数偏多——要 $10^{-6}$ 的精度，按 $\frac{c^{\,n}}{1-c}(0.378)\le 10^{-6}$ 解出 $n\approx 85$（取整到 $86$ 步）。先验界本就保守，实际迭代约 $32$ 步即已达到这一精度。无论如何，这把``解超越方程''彻底变成了``反复按计算器的 $\cos$ 键''，且事先就知道一个稳妥的步数上界。
+}
+
+\section{Blackwell 充分条件}
+\label{sec:contraction-blackwell}
+
+Banach 定理虽好，用在动态规划上却有个现实障碍：直接验证 Bellman 算子 $T$ 满足 $\sup$-范数下的压缩不等式，往往要和绝对值、上确界缠斗一番，不直观也容易出错。Blackwell 给出两条\emph{一眼可查}的充分条件，专为这类``函数空间上的算子''量身定制：只要算子\textbf{保持单调}、并对函数加常数有\textbf{折现}效应，它就自动是压缩。这正是宏观经济学里证明 Bellman 算子是压缩的标准做法。
+
+先固定舞台：设 $X\se\RR^n$，考虑\emph{有界函数}空间 $B(X)$，配上确界范数 $\norm[\infty]{f}=\sup_{s\in X}\abs{f(s)}$。这个空间是完备的（一致收敛的极限仍有界），故可在其上动用 Banach 定理。算子 $T:B(X)\to B(X)$ 作用在函数上、产出新函数。
+
+\thm{Blackwell 充分条件}{
+设 $T:B(X)\to B(X)$ 满足以下两条：
+\begin{itemize}
+    \item \textbf{（单调性）} 若 $f,g\in B(X)$ 满足 $f(s)\le g(s)$ 对一切 $s$ 成立，则 $(Tf)(s)\le(Tg)(s)$ 对一切 $s$ 成立。
+    \item \textbf{（折现）} 存在常数 $\beta\in[0,1)$，使得对任意常数 $a\ge 0$ 与任意 $f\in B(X)$，
+    \[
+        \bigl(T(f+a)\bigr)(s)\;\le\;(Tf)(s)+\beta a
+        \qquad\text{对一切 }s,
+    \]
+    其中 $f+a$ 指处处加上常数 $a$ 的函数。
+\end{itemize}
+则 $T$ 是 $B(X)$（配 $\sup$-范数）上系数为 $\beta$ 的压缩映射。
+}
+
+\pf{
+取任意 $f,g\in B(X)$。由 $\sup$-范数的定义，对一切 $s$ 有
+\[
+    f(s)\le g(s)+\norm[\infty]{f-g},
+\]
+因为 $f(s)-g(s)\le\sup_s\abs{f-g}=\norm[\infty]{f-g}$。把右端看成函数 $g$ 处处加上常数 $a:=\norm[\infty]{f-g}\ge 0$，于是 $f\le g+a$。对两边用\emph{单调性}，再用\emph{折现}：
+\[
+    Tf\;\le\;T(g+a)\;\le\;Tg+\beta a
+    \;=\;Tg+\beta\,\norm[\infty]{f-g}.
+\]
+即对一切 $s$：$(Tf)(s)-(Tg)(s)\le\beta\norm[\infty]{f-g}$。$f,g$ 地位对称，互换再来一遍得反向不等式，合起来
+\[
+    \abs{(Tf)(s)-(Tg)(s)}\le\beta\,\norm[\infty]{f-g}\quad(\forall s)
+    \;\;\Longrightarrow\;\;
+    \norm[\infty]{Tf-Tg}\le\beta\,\norm[\infty]{f-g}.
+\]
+这正是系数 $\beta$ 的压缩。
+}
+
+\state{Blackwell 把``验压缩''降格成``查两条性质''}{
+Blackwell 条件之所以好用，在于它\emph{只是充分而非必要}，却覆盖了经济学里几乎所有重要算子；而它要查的两件事都极其直观——\textbf{单调性}（``喂进去更大的值函数，吐出来也更大''）几乎对任何``取最大值 + 求期望''的算子自动成立；\textbf{折现}（``未来统一抬高 $a$，今天的现值只抬高 $\beta a$''）的常数 $\beta$ 就是模型里的折现因子，白纸黑字摆在那里。两条一查，压缩系数当场读出 $=\beta$，再接 Banach 定理，存在唯一与值迭代收敛一气呵成。
+}
+
+\section{应用：Bellman 算子是压缩}
+\label{sec:contraction-bellman}
+
+现在把一切收束到动态规划的核心。考虑标准的（确定性或随机）无限期折现问题：状态 $s\in X$、行动 $a\in\Gamma(s)$、当期收益 $r(s,a)$ 有界、折现因子 $\beta\in[0,1)$、状态按 $s'=\phi(s,a)$（或某转移核）演化。定义 \textbf{Bellman 算子} $T$，它把一个候选值函数 $f$ 变成新函数：
+\[
+    (Tf)(s)\;=\;\max_{a\in\Gamma(s)}\;\Bigl\{\,r(s,a)+\beta\,f\bigl(\phi(s,a)\bigr)\Bigr\}.
+\]
+（随机情形把 $f(\phi(s,a))$ 换成条件期望 $\E{f(s')\given s,a}$，下述论证一字不改。）所谓 \textbf{Bellman 方程}就是不动点方程 $V=TV$，其解 $V$ 即\emph{值函数}。我们要的正是：这个 $V$ 存在、唯一，且从任意初值做值迭代 $V_{n+1}=TV_n$ 都收敛到它。验两条 Blackwell 条件即可。
+
+\textbf{单调性。}
+设 $f\le g$（处处）。对任意 $s$ 与任意可行 $a$，因 $\beta\ge 0$ 有
+\[
+    r(s,a)+\beta f(\phi(s,a))\le r(s,a)+\beta g(\phi(s,a)).
+\]
+逐点占优的两族数，取最大值后仍占优，故 $(Tf)(s)\le(Tg)(s)$。单调性成立——它本质上只用到``收益里 $f$ 前的系数 $\beta\ge 0$''与``$\max$ 保序''。
+
+\textbf{折现。}
+对常数 $a\ge 0$：
+\[
+\ba
+    \bigl(T(f+a)\bigr)(s)
+    &=\max_{a'\in\Gamma(s)}\Bigl\{r(s,a')+\beta\bigl(f(\phi(s,a'))+a\bigr)\Bigr\}\\
+    &=\max_{a'\in\Gamma(s)}\Bigl\{r(s,a')+\beta f(\phi(s,a'))\Bigr\}+\beta a
+    \;=\;(Tf)(s)+\beta a.
+\ea
+\]
+（常数 $\beta a$ 与被最大化的 $a'$ 无关，可提到 $\max$ 外。）折现条件以\emph{等号}成立，其中的系数恰是折现因子 $\beta<1$。
+
+两条都满足，由 Blackwell 定理，$T$ 是 $\sup$-范数下系数 $\beta$ 的压缩；而有界函数空间 $B(X)$ 完备。于是 Banach 定理一次性交付动态规划的三块地基：
+
+\state{动态规划的地基，就是本章这把工具}{
+Bellman 算子 $T$ 是压缩，立刻推出：
+\begin{itemize}
+    \item \textbf{值函数存在且唯一}——Bellman 方程 $V=TV$ 有唯一解 $V$。``值函数''这个概念因此良定义，无歧义。
+    \item \textbf{值迭代收敛}——从\emph{任意}初猜 $V_0$（哪怕 $V_0\equiv 0$）反复作用 $T$，$V_n\to V$，且误差以 $\beta^{\,n}$ 几何衰减：$\norm[\infty]{V_n-V}\le\frac{\beta^{\,n}}{1-\beta}\norm[\infty]{V_1-V_0}$。这就是数值动态规划最基本的算法，连``算几步够''都由误差界回答。
+    \item \textbf{折现因子 $\beta$ 即收敛速率}——$\beta$ 越接近 $1$（越有耐心），压缩越弱、值迭代越慢。这条朴素事实在校准与数值实践中天天碰到。
+\end{itemize}
+策略迭代（policy iteration）的收敛同样根植于此：每步策略评估解的是一个线性不动点、策略改进由 $T$ 的单调性保证不变差，整体仍以压缩为骨架。
+}
+
+\rmkb[为什么不直接用上一章的 Brouwer]{
+值函数空间是无穷维的函数空间，而 Brouwer 定理要的是\emph{有限维}凸紧集；推广到无穷维的 Schauder 不动点定理虽存在，却仍只给存在性、不给唯一与算法。动态规划真正需要的是``唯一 + 可迭代计算''，这恰是压缩映射的主场而非 Brouwer 的。两章合看，分工一目了然：\textbf{Brouwer / Kakutani 用拓扑条件换来一般的存在性}（博弈论纳什均衡、一般均衡的存在），\textbf{Banach 用更强的度量条件（压缩）换来存在 + 唯一 + 构造性算法}（动态规划的值函数）。
+}
+
+\section{它通向何处}
+\label{sec:contraction-beyond}
+
+本章这把工具的去处高度集中，却都在经济学的要害上：
+
+\begin{itemize}
+    \item \textbf{动态规划与递归方法}（动态最优化部分）是它最大的主场。值函数的存在唯一、值迭代与策略迭代的收敛、乃至``猜一个函数形式再验证''的待定系数法能成立，根都在 Bellman 算子是压缩。随机动态规划只是把期望接进算子，论证不变。
+    \item \textbf{隐函数定理的存在性证明}（见前文``隐函数定理''一章）。我们在那里把``$x^*(p)$ 存在且可微''当作已知，其严格证明的标准路线之一正是构造一个压缩映射、用 Banach 定理产出那条隐函数——本章补上了那处欠条。
+    \item \textbf{数值求解不动点}是它在计算经济学里的日常身份：理性预期均衡、一般均衡价格、博弈的对称均衡，凡能写成 $x=T(x)$ 且 $T$ （在合适范数下）压缩的，都能用简单迭代稳稳求出，且有现成的误差界与停机准则。
+    \item \textbf{Markov 链的遍历性}（随机过程部分）与本章同源：若转移算子在某个度量（如总变差或 Wasserstein）下压缩，平稳分布便存在唯一、且任意初始分布迭代都收敛到它——又是一则 Banach 定理的化身。
+\end{itemize}
+
+把它和上一章并置，本书的一个主线就清楚了：面对``不动点存不存在''，拓扑给一类答案（Brouwer/Kakutani），度量给另一类答案（Banach）；前者宽松而只问存在，后者严格而存在、唯一、可算三者兼得。经济学家两类都要——博弈与一般均衡多用前者，动态规划专用后者。认准了``压缩''这一个条件，就等于同时握住了动态规划全部理论的钥匙。

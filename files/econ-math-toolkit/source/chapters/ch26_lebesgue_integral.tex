@@ -1,0 +1,374 @@
+% !TEX root = ../main.tex
+\chapter{Lebesgue 积分与期望}
+\label{ch:lebesgue}
+
+\noindent\emph{用到的前置工具：概率空间、$\sigma$-代数与测度（见前文「概率空间、测度」一章）；可测函数与随机变量（见前文「可测函数、随机变量与分布」一章）；序列与极限的基本语言（分析与拓扑部分）。}
+\medskip
+
+到这一章为止，我们已经有了概率空间 $(\Omega,\cF,\PP)$、有了可测函数（随机变量）$X:\Omega\to\RR$，却还没有真正定义那个经济学家天天在写的符号——期望 $\E{X}$。本科教材里的写法你很熟悉：离散时 $\E{X}=\sum_x x\,\Prob{X=x}$，连续时 $\E{X}=\int x\,f(x)\,\d x$。这两条公式各管一摊，靠的还是中学的 Riemann 积分。本章要做的事，是把它们统一成同一个更结实的对象：$\E{X}=\int_\Omega X\,\d\PP$，一个对\emph{任何}随机变量都讲得通的积分——\textbf{Lebesgue 积分}。
+
+为什么非换不可？因为渐近统计、动态规划这些后续课程里，最要命的操作是\textbf{把极限与积分（期望）交换次序}：``样本量趋于无穷时，样本均值的期望趋于……''、``无穷期贴现效用的期望等于逐期期望的贴现和''。Riemann 积分对这种交换极不友好——很多时候极限函数干脆就不再 Riemann 可积。Lebesgue 积分换了一种构造积分的思路，恰好把``极限进得去积分号''这件事变得异常顺手，三条主力定理（单调收敛、Fatou、控制收敛）就是干这个的。这一章既给你这个新积分的来历，也把这三件``换序''利器交到你手上。
+
+\section{为什么 Riemann 积分不够用}
+\label{sec:lebesgue-1}
+
+Riemann 积分的做法你再熟悉不过：要算 $\int_a^b f$，就把\emph{定义域} $[a,b]$ 切成许多窄条，每条上用一个矩形（高取该条上某点的函数值）去逼近曲线下的面积，再令条宽趋于零。它在处理``规矩''的函数（连续、分段连续）时无懈可击。问题出在两类经济学与统计学绕不开的场景。
+
+\paragraph{第一类：极限与积分不易交换。}
+考虑一列函数 $f_n$，逐点收敛到 $f$（即对每个 $x$ 都有 $f_n(x)\to f(x)$）。我们极想断言
+\[
+    \lim_{n\to\infty}\int f_n=\int \lim_{n\to\infty} f_n=\int f .
+\]
+但在 Riemann 框架里，这一步常常\emph{不成立}，甚至右边那个 $\int f$ 根本不存在。最干净的反例如下。
+
+\ex[逐点极限把可积函数逼成不可积]{
+把 $[0,1]$ 中的有理数排成一列 $q_1,q_2,q_3,\dots$（有理数可数，故可以排）。令
+\[
+    f_n(x)=\indicator\{x\in\{q_1,\dots,q_n\}\},
+\]
+即在前 $n$ 个有理点取 $1$、别处取 $0$。每个 $f_n$ 只在有限个点上非零，Riemann 可积且 $\int_0^1 f_n=0$。
+}
+\sol{
+逐点看，$f_n(x)\to f(x)=\indicator\{x\in\QQ\cap[0,1]\}$，这就是著名的 Dirichlet 函数：有理点取 $1$、无理点取 $0$。它在 $[0,1]$ 上\emph{处处不连续}。Riemann 和的上和恒为 $1$（每个窄条里都有有理点）、下和恒为 $0$（每个窄条里都有无理点），上下和永不相遇——\textbf{$f$ 不是 Riemann 可积的}。于是
+\[
+    \lim_n\int_0^1 f_n=0,\qquad \int_0^1 \lim_n f_n=\int_0^1 f \;\text{（不存在）}.
+\]
+一列规规矩矩、积分都为 $0$ 的函数，逐点极限竟跌出了 Riemann 可积的世界。
+}
+
+这恰恰是渐近统计的家常便饭：样本量 $n$ 增大时我们手里是一列统计量 $T_n$，想知道极限的期望、或期望的极限，两者能不能对调。如果连``极限对象可不可积''都没保证，整个推断就悬在半空。Lebesgue 积分会让 Dirichlet 函数变得可积（它的积分等于 $0$，因为有理数集的``长度''为零），并且配上一组干净的换序定理。
+
+\paragraph{第二类：离散与连续各算各的。}
+Riemann 积分 $\int x f(x)\,\d x$ 只认有密度的连续型随机变量；离散型只能用求和 $\sum_x x\,\Prob{X=x}$。混合型（比如``有 $30\%$ 概率取 $0$、其余按某密度分布''的删失变量，计量里到处都是）就两头不靠，得手工拼接。我们需要一个\emph{不分离散连续}、一视同仁的期望定义。
+
+\state{症结在于``沿哪个方向切''}{
+Riemann 沿\textbf{定义域}（$x$ 轴）竖切：先固定一小段自变量，再问函数在那儿大约多高。这对``自变量动一点、函数值就乱跳''的函数（如 Dirichlet）毫无办法。Lebesgue 反过来，沿\textbf{值域}（$y$ 轴）横切：先固定一个函数值的区间，再问\emph{有多大一坨自变量}让函数落在这个区间里——也就是去\textbf{量原像集的测度}。换个切法，可积的函数大大变多，而且能直接架在抽象测度空间 $(\Omega,\cF,\PP)$ 上，离散连续混合一锅端。
+}
+
+图~\ref{fig:lebesgue-1} 和图~\ref{fig:lebesgue-2} 把这两种切法摆在一起对照。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[xscale=1.35,yscale=1.25,>=Stealth]
+  \draw[->] (-0.1,0) -- (4.6,0) node[right] {$x$};
+  \draw[->] (0,-0.1) -- (0,3.6) node[above] {$y$};
+  % 竖切矩形（Riemann）：f(x)=1+sqrt(x)，5 条宽 0.8，高 = f(左端点)
+  \fill[cyan!18!white,draw=cyan!55!black] (0.0,0) rectangle (0.8,1.000);
+  \fill[cyan!18!white,draw=cyan!55!black] (0.8,0) rectangle (1.6,1.894);
+  \fill[cyan!18!white,draw=cyan!55!black] (1.6,0) rectangle (2.4,2.265);
+  \fill[cyan!18!white,draw=cyan!55!black] (2.4,0) rectangle (3.2,2.549);
+  \fill[cyan!18!white,draw=cyan!55!black] (3.2,0) rectangle (4.0,2.789);
+  \draw[very thick,blue!70!black,domain=0:4.2,smooth,samples=80,variable=\t]
+        plot ({\t},{1+sqrt(\t)});
+  \node[blue!70!black,anchor=west] at (3.35,3.35) {$y=f(x)$};
+  \draw[blue!70!black,->] (3.62,3.22) -- (3.95,3.02);
+  \foreach \x in {0.0,0.8,1.6,2.4,3.2,4.0} \draw (\x,0.06) -- (\x,-0.06);
+  \node[anchor=north,font=\small] at (0.0,-0.08) {$x_0$};
+  \node[anchor=north,font=\small] at (0.8,-0.08) {$x_1$};
+  \node[anchor=north,font=\small] at (1.6,-0.08) {$x_2$};
+  \node[anchor=north,font=\small] at (2.4,-0.08) {$x_3$};
+  \node[anchor=north,font=\small] at (3.2,-0.08) {$x_4$};
+  \node[anchor=north,font=\small] at (4.0,-0.08) {$x_5$};
+\end{tikzpicture}
+\caption{Riemann 积分：沿 $x$ 轴\emph{竖切}。把定义域分成小段 $[x_{k},x_{k+1}]$，每段配一个宽 $\Delta x_k$、高 $f(x_k)$ 的矩形，面积之和逼近曲线下面积。}
+\label{fig:lebesgue-1}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[xscale=1.35,yscale=1.25,>=Stealth]
+  \draw[->] (-0.1,0) -- (4.6,0) node[right] {$x$};
+  \draw[->] (0,-0.1) -- (0,3.6) node[above] {$y$};
+  % 高亮带 y in [y3,y4]=[2,2.5]，原像 x in [1,2.25]
+  \fill[orange!16!white] (0,2.0) rectangle (4.3,2.5);
+  \foreach \y in {1.0,1.5,2.0,2.5,3.0} \draw[gray!55,thin] (0,\y) -- (4.3,\y);
+  \node[anchor=east,font=\small] at (-0.08,1.0) {$y_1$};
+  \node[anchor=east,font=\small] at (-0.08,1.5) {$y_2$};
+  \node[anchor=east,font=\small] at (-0.08,2.0) {$y_3$};
+  \node[anchor=east,font=\small] at (-0.08,2.5) {$y_4$};
+  \node[anchor=east,font=\small] at (-0.08,3.0) {$y_5$};
+  \node[anchor=north east,font=\small] at (-0.02,0) {$0$};
+  \draw[very thick,blue!70!black,domain=0:4.2,smooth,samples=80,variable=\t]
+        plot ({\t},{1+sqrt(\t)});
+  \node[blue!70!black,anchor=west] at (3.35,3.35) {$y=f(x)$};
+  \draw[blue!70!black,->] (3.62,3.22) -- (3.95,3.02);
+  % 高亮带与曲线的两个交点：f(1)=2, f(2.25)=2.5（精确落在曲线上）
+  \fill[orange!80!black] (1.0,2.0) circle (1.4pt);
+  \fill[orange!80!black] (2.25,2.5) circle (1.4pt);
+  \draw[orange!80!black,dashed] (1.0,2.0) -- (1.0,0);
+  \draw[orange!80!black,dashed] (2.25,2.5) -- (2.25,0);
+  \draw[orange!85!black,line width=2.2pt] (1.0,0) -- (2.25,0);
+  \draw[decorate,decoration={brace,amplitude=5pt,mirror},orange!70!black]
+        (1.0,-0.12) -- (2.25,-0.12);
+  \node[orange!75!black,anchor=north,font=\small,align=center] at (1.625,-0.34)
+        {原像 $f^{-1}\!\big([y_3,y_4]\big)$ 的测度};
+\end{tikzpicture}
+\caption{Lebesgue 积分：沿 $y$ 轴\emph{横切}。把值域分成小带 $[y_k,y_{k+1}]$，对每带去量它的原像集 $f^{-1}([y_k,y_{k+1}])$ 有多大（测度），用``值 $\times$ 原像测度''求和。这正是需要``可测''的地方——原像必须可量。}
+\label{fig:lebesgue-2}
+\end{figure}
+
+\rmkb[``横切''为什么非要可测函数不可]{
+Lebesgue 切法每一步都在问``函数值落在某区间里的那部分自变量有多大''，即去量集合 $f^{-1}([y_k,y_{k+1}])$。要让这件事讲得通，这些原像集必须是\emph{可测集}（属于 $\sigma$-代数 $\cF$）——这恰好就是上一章``可测函数''的定义所保证的。换句话说，可测性不是抽象的洁癖，而是 Lebesgue 横切法能落地的最低门槛：只有原像可量，``值 $\times$ 测度''才有意义。
+}
+
+\section{Lebesgue 积分的三步构造}
+\label{sec:lebesgue-2}
+
+新积分按``由简到繁''分三步搭起来，每一步都用上一步当砖。全程在一个测度空间 $(\Omega,\cF,\mu)$ 上进行；要谈期望，把 $\mu$ 取成概率测度 $\PP$ 即可。
+
+\paragraph{第一步：简单函数。}
+最容易积分的函数，是只取\emph{有限个}值的可测函数。
+
+\defn{简单函数}{
+设 $A_1,\dots,A_m\in\cF$ 是一组两两不交的可测集，$c_1,\dots,c_m\ge 0$ 是常数。形如
+\[
+    \vp(\omega)=\sum_{k=1}^{m} c_k\,\indicator\{\omega\in A_k\}
+\]
+的函数称为\textbf{（非负）简单函数}：它在每个``色块'' $A_k$ 上取常值 $c_k$。其积分\emph{定义}为
+\[
+    \int \vp\,\d\mu \;=\; \sum_{k=1}^{m} c_k\,\mu(A_k) ,
+\]
+即``取值 $\times$ 该值对应集合的测度''之和。
+}
+
+这一步把图~\ref{fig:lebesgue-2} 的直觉钉成了定义：积分就是\emph{每个高度乘以达到该高度的那块地的测度}。注意它对测度 $\mu$ 是普适的——$\mu$ 可以是 $\RR$ 上的长度（Lebesgue 测度），也可以是概率 $\PP$，公式一字不改。
+
+\paragraph{第二步：非负可测函数（用简单函数从下逼近）。}
+任何非负可测函数 $f\ge 0$，都能被一列简单函数\emph{从下方单调地}逼近：存在简单函数列 $\vp_n$ 满足 $0\le\vp_1\le\vp_2\le\cdots$ 且 $\vp_n(\omega)\uparrow f(\omega)$ 对每个 $\omega$ 成立（构造法见下注）。于是自然地定义
+
+\defn{非负可测函数的积分}{
+对可测的 $f\ge 0$，
+\[
+    \int f\,\d\mu \;=\; \sup\set{\int \vp\,\d\mu \;:\; \vp\ \text{为简单函数},\ 0\le\vp\le f } .
+\]
+即用所有``垫在 $f$ 下面''的简单函数的积分取上确界。这个上确界总存在（可能为 $+\infty$）。
+}
+
+\rmkb[从下逼近的标准造法]{
+取定 $n$，把值域 $[0,n)$ 等切成宽 $2^{-n}$ 的小带，令
+\[
+    \vp_n=\sum_{k=0}^{n2^n-1}\frac{k}{2^n}\,\indicator\Big\{\tfrac{k}{2^n}\le f<\tfrac{k+1}{2^n}\Big\}+n\,\indicator\{f\ge n\}.
+\]
+也就是把 $f$ 的值\emph{向下取整}到最近的 $2^{-n}$ 网格、并在 $n$ 处封顶。带越切越细（$n$ 增大）则 $\vp_n$ 单调上升、逐点逼近 $f$。图~\ref{fig:lebesgue-3} 画的就是某个 $\vp_n$：一座垫在 $f$ 下面的阶梯，台阶恰落在各层值上。这正是``沿 $y$ 轴横切''的算法化身。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[xscale=1.35,yscale=1.25,>=Stealth]
+  \draw[->] (-0.1,0) -- (4.6,0) node[right] {$x$};
+  \draw[->] (0,-0.1) -- (0,3.6) node[above] {$y$};
+  % 阶梯简单函数 phi_n（从下方逼近 f）：f=1+sqrt(x)，台阶取层值 c_k
+  % 段：[0,0.25) h=1.0; [0.25,1) h=1.5; [1,2.25) h=2.0; [2.25,4) h=2.5
+  \draw[very thick,orange!80!black] (0,1.0) -- (0.25,1.0);
+  \draw[very thick,orange!80!black] (0.25,1.5) -- (1.0,1.5);
+  \draw[very thick,orange!80!black] (1.0,2.0) -- (2.25,2.0);
+  \draw[very thick,orange!80!black] (2.25,2.5) -- (4.0,2.5);
+  \draw[orange!55!black,dashed,thin] (0.25,1.0) -- (0.25,1.5);
+  \draw[orange!55!black,dashed,thin] (1.0,1.5) -- (1.0,2.0);
+  \draw[orange!55!black,dashed,thin] (2.25,2.0) -- (2.25,2.5);
+  \draw[very thick,blue!70!black,domain=0:4.2,smooth,samples=80,variable=\t]
+        plot ({\t},{1+sqrt(\t)});
+  \node[blue!70!black,anchor=west] at (3.35,3.35) {$f$};
+  \draw[blue!70!black,->] (3.5,3.28) -- (3.85,3.02);
+  \node[orange!80!black,anchor=west] at (2.55,1.78) {$\vp_n$};
+  \foreach \y in {1.0,1.5,2.0,2.5} \draw[gray!50,thin] (-0.05,\y) -- (0.05,\y);
+  \node[anchor=east,font=\small] at (-0.08,1.0) {$c_1$};
+  \node[anchor=east,font=\small] at (-0.08,1.5) {$c_2$};
+  \node[anchor=east,font=\small] at (-0.08,2.0) {$c_3$};
+  \node[anchor=east,font=\small] at (-0.08,2.5) {$c_4$};
+  \node[anchor=north east,font=\small] at (-0.02,0) {$0$};
+\end{tikzpicture}
+\caption{第二步：用简单函数从下方逼近。阶梯 $\vp_n$（橙）整条垫在 $f$（蓝）之下，台阶恰取各层值 $c_k$、在 $f$ 穿过该层处跳升。把带切细（$n\uparrow$），阶梯单调升高、逐点贴近 $f$，其积分的上确界即 $\int f\,\d\mu$。}
+\label{fig:lebesgue-3}
+\end{figure}
+
+\paragraph{第三步：一般可测函数（拆成正负两半）。}
+对一般的可测函数 $f$（可正可负），拆成正部与负部：
+\[
+    f^{+}=\max\{f,0\}\ge 0,\qquad f^{-}=\max\{-f,0\}\ge 0,\qquad f=f^{+}-f^{-},\quad \abs{f}=f^{+}+f^{-}.
+\]
+两半都是非负可测函数，已经能按第二步积分。于是定义
+
+\defn{可积与积分}{
+若 $\int f^{+}\,\d\mu$ 与 $\int f^{-}\,\d\mu$ 中\emph{至少一个有限}，就定义
+\[
+    \int f\,\d\mu=\int f^{+}\,\d\mu-\int f^{-}\,\d\mu .
+\]
+若两者\emph{都有限}（等价地 $\int\abs{f}\,\d\mu<\infty$），称 $f$ 为\textbf{（Lebesgue）可积}，记 $f\in L^1(\mu)$。
+}
+
+\state{三步走，记住它}{
+\textbf{简单函数}（取有限个值，积分 $=\sum c_k\mu(A_k)$）$\;\to\;$ \textbf{非负可测}（用下方简单函数的积分取上确界）$\;\to\;$ \textbf{一般可测}（拆 $f=f^+-f^-$ 分别积分再相减）。三步全靠``值 $\times$ 原像测度''这一个念头反复加细。可积的判据干净利落：$f\in L^1\iff \int\abs{f}<\infty$——\emph{绝对}可积。
+}
+
+\rmk{Lebesgue 积分要求绝对可积（$\int\abs f<\infty$），这与某些反常 Riemann 积分``条件收敛''（如 $\int_0^\infty\frac{\sin x}{x}\,\d x$ 收敛但 $\int_0^\infty\abs{\tfrac{\sin x}{x}}=\infty$）不同。在概率论里这不是损失：期望 $\E{X}$ 本就要求 $\E{\abs X}<\infty$ 才算``存在''，二者口径一致。}
+
+\section{期望就是一个 Lebesgue 积分}
+\label{sec:lebesgue-3}
+
+把上面的测度空间取成概率空间 $(\Omega,\cF,\PP)$、被积函数取成随机变量 $X$，期望的定义便\emph{一字不改}地落地。
+
+\defn{期望}{
+随机变量 $X$ 的\textbf{期望}定义为它关于概率测度 $\PP$ 的 Lebesgue 积分
+\[
+    \E{X}\;=\;\int_\Omega X\,\d\PP ,
+\]
+只要 $\int_\Omega\abs{X}\,\d\PP=\E{\abs X}<\infty$（即 $X\in L^1(\PP)$）就说期望存在。
+}
+
+这一个定义同时\emph{吞并}了本科那两条分头的公式。看离散情形：若 $X$ 只取值 $x_1,x_2,\dots$，令 $A_k=\{X=x_k\}$，则 $X=\sum_k x_k\indicator_{A_k}$ 是简单函数（或其极限），按第一步的积分定义直接得
+\[
+    \E{X}=\int_\Omega X\,\d\PP=\sum_k x_k\,\PP(A_k)=\sum_k x_k\,\Prob{X=x_k},
+\]
+正是熟悉的求和式。连续情形的 $\int x f(x)\,\d x$ 则要靠下一节的换元公式接回去。关键在于：现在它们是\emph{同一个}积分的两种特例，混合型随机变量也自动有定义，不必再手工拼接。
+
+\paragraph{Lebesgue 积分的基本性质。}
+下面几条对后续推导反复要用，证明都顺着三步构造由简单函数推上去，这里只陈述。
+
+\prop{积分的基本性质}{
+设 $X,Y\in L^1(\PP)$，$a,b\in\RR$。则
+\begin{itemize}
+    \item \textbf{线性}：$\E{aX+bY}=a\E{X}+b\E{Y}$。
+    \item \textbf{单调}：若 $X\le Y$（几乎处处），则 $\E{X}\le\E{Y}$；特别地 $\abs{\E{X}}\le\E{\abs X}$。
+    \item \textbf{常数}：$\E{c}=c$；且 $\E{\indicator_A}=\Prob{A}$（概率是示性函数的期望）。
+    \item \textbf{零测无关}：若 $X=Y$ 几乎处处（即 $\Prob{X\ne Y}=0$），则 $\E{X}=\E{Y}$。
+\end{itemize}
+}
+
+\rmkb[``几乎处处''是 Lebesgue 框架的一大便利]{
+``几乎处处''（almost everywhere，概率里叫``几乎必然'' a.s.）指``除一个测度为零的集合外处处成立''。Lebesgue 积分对零测集上的改动完全免疫：Dirichlet 函数与零函数仅在有理数（零测集）上不同，故 $\int_0^1\indicator_\QQ=0$。这条性质让我们能放心地``忽略概率为零的坏事''——计量与概率论里``a.s.''满天飞，根子就在这里。
+}
+
+\section{极限与积分交换：三大主力定理}
+\label{sec:lebesgue-4}
+
+这是本章的\emph{命根子}。Lebesgue 积分真正压倒 Riemann 的地方，就是下面三条``极限进得去积分号''的定理。它们是渐近统计（期望与极限互换）、动态规划（期望与无穷贴现和互换）的发动机。三条都只陈述加直觉，证明属于较重的纯分析、本书从略。
+
+\thm{单调收敛定理（MCT）}{
+设 $0\le f_1\le f_2\le\cdots$ 是一列\emph{单调不减}的非负可测函数，逐点收敛到 $f$（即 $f_n\uparrow f$）。则
+\[
+    \lim_{n\to\infty}\int f_n\,\d\mu=\int f\,\d\mu .
+\]
+换言之，对单调上升的非负函数列，\textbf{极限号与积分号可以直接对调}（两边都允许等于 $+\infty$）。
+}
+
+\rmk{直觉：$f_n$ 一路往上垫高、绝不``偷走''面积，涨上去的面积无处可逃，只能恰好补成 $\int f$。第二步构造里 $\vp_n\uparrow f$ 正是 MCT 的原型场景——MCT 保证了``$\int f=\lim\int\vp_n$''这件看似显然的事真的成立。}
+
+\thm{Fatou 引理}{
+设 $f_n\ge 0$ 是任意一列非负可测函数（\emph{不要求}单调、也不要求收敛）。则
+\[
+    \int \big(\liminf_{n\to\infty} f_n\big)\,\d\mu \;\le\; \liminf_{n\to\infty}\int f_n\,\d\mu .
+\]
+即``先取下极限再积分''不会超过``先积分再取下极限''。
+}
+
+\rmk{Fatou 只给单向不等式，但它最宽容——对任何非负函数列都成立。它说的是：取极限时面积可能\emph{漏掉}一部分（不等号），但绝不会\emph{凭空多出}。它常作为证明 MCT、DCT 的跳板，也是``面积可能逃逸''这一现象的精确刻画。}
+
+\ex[面积可以逃向无穷：Fatou 取严格不等号]{
+在 $\RR$ 上取 $f_n=\indicator_{[n,n+1]}$（高度 $1$、宽度 $1$ 的方块，向右滑走）。逐点看每个 $x$ 终将被方块甩在后头，故 $\liminf_n f_n=0$。但每个 $\int f_n=1$。于是
+\[
+    \int \liminf_n f_n=0 \;<\; 1=\liminf_n\int f_n .
+\]
+}
+\sol{
+面积没有消失，而是\emph{逃到了无穷远}——极限函数（$\equiv 0$）的积分捕捉不到它，所以 Fatou 只能给出``$\le$''。这个例子也顺带说明：若没有额外控制（如下面 DCT 的可积控制函数），极限与积分一般\emph{不能}随便对调。}
+
+\thm{控制收敛定理（DCT）}{
+设可测函数列 $f_n\to f$ 逐点收敛，且存在一个\emph{可积的控制函数} $g\in L^1(\mu)$（$\int g\,\d\mu<\infty$）使得
+\[
+    \abs{f_n(\omega)}\le g(\omega)\quad\text{对一切 }n\text{ 与（几乎）一切 }\omega .
+\]
+则 $f\in L^1(\mu)$，且
+\[
+    \lim_{n\to\infty}\int f_n\,\d\mu=\int f\,\d\mu,\qquad\text{更强地}\quad \int\abs{f_n-f}\,\d\mu\to 0 .
+\]
+}
+
+\rmk{DCT 是三者里日常用得最多的``换序''定理：只要找得到一个不依赖 $n$、积分有限的``天花板'' $g$ 把整列 $f_n$ 罩住，极限与积分就能放心对调。上例 $f_n=\indicator_{[n,n+1]}$ 的失败正因为找不到这样的 $g$——能罩住所有右滑方块的只有 $g\equiv 1$，而它在 $\RR$ 上积分为 $\infty$，不可积。``有可积控制''恰好堵住了``面积逃向无穷''这个唯一的漏洞。}
+
+\state{为什么 Lebesgue 换得了极限、Riemann 换不了}{
+Riemann 积分是定义在``黎曼可积函数''这个\emph{很窄}的圈子里的，逐点极限动辄把你踢出这个圈子（如 Dirichlet 函数），换序无从谈起。Lebesgue 积分定义在\emph{宽得多}的可测函数上，对逐点极限\textbf{封闭}（可测函数的逐点极限仍可测），于是``极限对象一定还在场内''；剩下要担心的只是``面积会不会逃逸''，而 MCT（靠单调）、DCT（靠可积控制）正是堵住逃逸的两道闸。一句话：\emph{Lebesgue 把换序问题从``极限还可积吗''简化成了``面积逃逸了吗''，而后者有现成的闸门可关。}
+}
+
+\section{换元：把期望算到分布上去}
+\label{sec:lebesgue-5}
+
+定义 $\E{X}=\int_\Omega X\,\d\PP$ 把期望架在抽象样本空间 $\Omega$ 上，干净，却没法直接算——我们手上有的从来不是 $\Omega$，而是 $X$ 的\emph{分布}。下面这条换元公式（统计学家爱称``无意识统计学家定律''，LOTUS）把积分从 $\Omega$ 搬到熟悉的实数轴上。
+
+\thm{换元公式（期望化为对分布的积分）}{
+设 $X$ 是随机变量，$P_X$ 是它在 $\RR$ 上的\textbf{分布}（即 $P_X(B)=\Prob{X\in B}$）。则对任意（使期望有定义的）可测函数 $h$，
+\[
+    \E{h(X)}=\int_\Omega h(X)\,\d\PP=\int_\RR h(x)\,\d P_X(x) .
+\]
+取 $h(x)=x$ 即得 $\displaystyle \E{X}=\int_\RR x\,\d P_X(x)$。
+}
+
+\pf{
+照三步构造``由简到繁''推。先看示性函数 $h=\indicator_B$：左边 $\E{\indicator_B(X)}=\Prob{X\in B}=P_X(B)$，右边 $\int_\RR\indicator_B\,\d P_X=P_X(B)$，两边相等——这正是分布 $P_X$ 的\emph{定义}。由积分的线性，等式推广到简单函数 $h=\sum_k c_k\indicator_{B_k}$。对一般非负可测的 $h$，取简单函数 $h_n\uparrow h$，两边各用一次 MCT 取极限即得。最后对一般 $h$ 拆 $h=h^+-h^-$ 分别处理。
+}
+
+这条公式说明：算期望\emph{只需要分布 $P_X$，不需要原始概率空间 $\Omega$}——这正是统计实践的常态（我们建模分布，从不建模 $\Omega$）。再把它接到本科那两条公式上：
+
+\ex[换元如何还原出``求和''与``$\int xf\,\d x$'']{
+分别在离散与连续两种分布下展开 $\int_\RR x\,\d P_X$。
+}
+\sol{
+\emph{离散型}：$P_X$ 把质量 $p_k=\Prob{X=x_k}$ 堆在各点 $x_k$ 上，对这种``点质量''测度积分就是逐点求和，
+\[
+    \E{X}=\int_\RR x\,\d P_X=\sum_k x_k\,p_k .
+\]
+\emph{连续型}：$X$ 有密度 $f$ 意味着 $\d P_X=f(x)\,\d x$（分布对 Lebesgue 测度有密度），于是
+\[
+    \E{X}=\int_\RR x\,\d P_X=\int_\RR x\,f(x)\,\d x .
+\]
+两条本科公式就此\emph{从同一个 Lebesgue 积分里掉出来}，差别只在分布 $P_X$ 长什么样——点质量还是有密度。混合型分布把两者叠加，公式照样成立。
+}
+
+\section{三个常用不等式}
+\label{sec:lebesgue-6}
+
+有了 Lebesgue 期望，下面三条不等式是矩、收敛、$L^p$ 空间里反复出现的``算盘''。这里给陈述与一句直觉，证明留待相关章节。
+
+\thm{Jensen 不等式}{
+设 $\vp:\RR\to\RR$ 为\emph{凸函数}，$X$ 与 $\vp(X)$ 都可积。则
+\[
+    \vp\big(\E{X}\big)\le \E{\vp(X)} .
+\]
+$\vp$ 为凹时不等号反向。
+}
+
+\rmk{直觉：凸函数``下托弦上''，期望（平均）穿过函数时会被这道弯``往上抬''。它是``风险厌恶''的数学骨架——效用 $u$ 凹则 $\E{u(X)}\le u(\E X)$，确定的均值优于带风险的彩票；也给出 $\E{X^2}\ge(\E X)^2$（取 $\vp(x)=x^2$），即方差非负。}
+
+\thm{H\"older 不等式}{
+设 $p,q>1$ 且 $\tfrac1p+\tfrac1q=1$（共轭指数）。则
+\[
+    \E{\abs{XY}}\le \big(\E{\abs{X}^p}\big)^{1/p}\big(\E{\abs{Y}^q}\big)^{1/q} .
+\]
+$p=q=2$ 即 \textbf{Cauchy--Schwarz}：$\E{\abs{XY}}\le\sqrt{\E{X^2}}\sqrt{\E{Y^2}}$。
+}
+
+\rmk{H\"older 是``两个随机变量乘积的期望，被各自的 $L^p$ 大小控制住''。它保证了协方差有限（当二阶矩有限时）、是定义 $L^p$ 空间对偶配对的核心；$p=q=2$ 的特例直接给出相关系数 $\abs{\Corr(X,Y)}\le 1$。}
+
+\thm{Minkowski 不等式（$L^p$ 三角不等式）}{
+设 $p\ge 1$。则
+\[
+    \big(\E{\abs{X+Y}^p}\big)^{1/p}\le \big(\E{\abs{X}^p}\big)^{1/p}+\big(\E{\abs{Y}^p}\big)^{1/p} .
+\]
+}
+
+\rmk{记 $\norm[p]{X}=(\E{\abs X^p})^{1/p}$，Minkowski 就是 $\norm[p]{X+Y}\le\norm[p]{X}+\norm[p]{Y}$——这正是三角不等式，它使 $L^p$ 成为一个\emph{赋范空间}（范数 $\norm[p]{\cdot}$）。$L^2$ 还带内积 $\inner{X}{Y}=\E{XY}$，是下文把条件期望看成``投影''的舞台。}
+
+\section{它通向何处}
+\label{sec:lebesgue-7}
+
+Lebesgue 积分与这一整套换序工具，是后面好几门核心课程的地基。几处主要去处：
+
+\begin{itemize}
+    \item \textbf{矩与矩母函数}。各阶矩 $\E{X^k}$、矩母函数 $M_X(t)=\E{e^{tX}}$ 都是 Lebesgue 积分；``对 $M_X$ 求导能换出矩''这一步，靠的正是 DCT 把求导（极限）放进期望号。
+    \item \textbf{大数定律与中心极限定理}（见后文渐近统计部分）。LLN/CLT 的证明处处在交换期望与极限——特征函数法、截断论证里 MCT 与 DCT 是反复出现的主角。
+    \item \textbf{条件期望}（见后文「条件期望」一章）。条件期望 $\E{X\given\cG}$ 是 $L^2$ 空间里的\emph{投影}，立足于本章的 $L^2$ 结构与 H\"older/Minkowski 给出的范数。
+    \item \textbf{动态规划}（见后文动态最优化部分）。要把无穷期贴现期望效用 $\E{\sum_{t\ge0}\beta^t u(c_t)}$ 拆成逐期形式 $\sum_{t\ge0}\beta^t\E{u(c_t)}$，本质上是把期望搬进无穷和里，正是 MCT/DCT 的应用；Bellman 方程的合法性有赖于此。
+    \item \textbf{对数似然}。$\ell(\theta)=\E{\log f_\theta(X)}$ 是积分；最大似然的渐近理论（一致性、渐近正态）反复要求``$\E{}$ 与 $\partial_\theta$、与 $\lim$ 可交换''，每一步都在引用本章的定理。
+\end{itemize}
+
+一句话收束：期望不是两条分头的公式，而是\emph{一个} Lebesgue 积分；而``极限能进期望号''这件在本科里被默认、在博士阶段却步步要交代的事，正是由 MCT、Fatou、DCT 三条定理撑起来的。认清这一点，渐近统计与动态规划里大量``想当然''的换序，才算真正站稳了脚跟。

@@ -1,0 +1,397 @@
+% !TEX root = ../main.tex
+\chapter{凸优化与对偶}
+\label{ch:duality}
+
+\noindent\emph{用到的前置工具：凸集、凹凸函数与上方图/下方图（凹凸性一章，第十六章）；梯度与一阶判据（多元微分一章，第十三章）；Lagrange 乘子与 KKT 条件（约束最优化，第十九、二十章）；分离超平面的几何（第十六章）。}
+\medskip
+
+到上一章为止，我们已经知道``凹目标 $+$ 凸约束''是一类格外友好的最优化问题：局部最优即全局最优，一阶条件从必要升级为充分。这一章把这件事正式命名为\textbf{凸优化}，并揭示它身上一个深刻而实用的结构——\textbf{对偶}。
+
+对偶之所以值得单独成章，有两个理由。其一，它是个\emph{算界}的工具：哪怕原问题难解，我们也能从它的对偶问题廉价地得到一个界，把``最优值大概在哪''框住。其二，也是经济学家更该在意的，对偶给了许多经济量\emph{第二副面孔}：约束最优化里的 Lagrange 乘子，在对偶视角下正是``松动一单位约束值多少钱''的\textbf{影子价格}；成本最小化与效用最大化、生产前沿的投入与产出、线性规划的资源与定价，这些看似各说各话的经济模型，骨子里都是同一个对偶关系的两面。学会在原问题与对偶问题之间自由切换，等于多了一种重写经济模型的语言。
+
+本章先把凸优化问题界定清楚，再从 Lagrangian 出发构造对偶函数，证明它\emph{无论原问题如何都是凹的}；接着给出永远成立的弱对偶、以及在 Slater 条件下成立的强对偶；最后把这一切翻译成鞍点与极小极大的语言，并指出它在微观、计量、机器学习里的诸多落点。
+
+\section{什么是凸优化问题}
+\label{sec:duality-1}
+
+先把研究对象框定。本章统一采用\textbf{极小化}的标准写法（凹的极大化问题取负号即化为凸的极小化，二者完全对称，只是对偶理论的文献惯例如此）。
+
+\defn{凸优化问题（标准形式）}{
+形如
+\[
+    \min_{\vc x\in\RR^n}\ f_0(\vc x)
+    \quad\st\quad
+    f_i(\vc x)\le 0\ (i=1,\dots,m),
+    \quad
+    \vc a_j\T\vc x=b_j\ (j=1,\dots,p)
+\]
+的问题称为\textbf{凸优化问题}，如果目标 $f_0$ 与每个不等式约束函数 $f_i$ 都是\emph{凸函数}，而等式约束是\emph{仿射}的（即 $\vc a_j\T\vc x=b_j$，线性等式）。它的\textbf{可行域}
+\[
+    \cX=\setb{\vc x}{f_i(\vc x)\le 0\ \forall i,\ \vc a_j\T\vc x=b_j\ \forall j}
+\]
+是一个凸集，目标在其上凸。记最优值为 $p^*=\inf_{\vc x\in\cX} f_0(\vc x)$。
+}
+
+为什么可行域必凸？每个 $\setb{\vc x}{f_i(\vc x)\le 0}$ 是凸函数 $f_i$ 的一个下等值集，由凸性它是凸集（见第十六章）；每个仿射等式 $\vc a_j\T\vc x=b_j$ 是一张超平面，也凸；可行域是这些凸集的交，仍凸。于是凸优化恰好就是上一章那张``保证书''适用的场景。
+
+\state{为什么凸优化被称作``可解''的优化}{
+凸优化几乎是非线性最优化里唯一一类``算得动''的问题，原因正是上一章的核心承诺在约束情形下依然成立：
+\begin{itemize}
+    \item \textbf{局部即全局}。可行域凸、目标凸，任一局部极小都是全局极小，不必担心陷在某个次优的山谷里。
+    \item \textbf{KKT 充要}。一般约束问题里 KKT 只是必要条件；而对凸问题（在 Slater 等温和条件下），\textbf{KKT 条件成为充分必要}——解出 KKT 系统就等于解出全局最优。
+    \item \textbf{多项式时间可解}。从理论到实践（内点法），凸问题有成熟高效的算法保证。
+\end{itemize}
+正因如此，``把一个问题\emph{识别}或\emph{改写}成凸优化''本身就是一种本领：一旦坐进凸优化的框架，可解性、唯一性、灵敏度分析就都是现成的。本章的对偶理论，则是这个框架里最锋利的一把刀。
+}
+
+\rmk{并非所有凸约束集都写成``$f_i\le 0$ 且 $f_i$ 凸''的样子——但只要可行域是凸集、目标是凸函数，问题就是凸的。标准形式只是为了让后面的 Lagrange 对偶有统一的记号载体。注意约束写成 $f_i(\vc x)\le 0$ 是一种规范：``$g(\vc x)\ge c$''型约束先改写成 $c-g(\vc x)\le 0$，这要求 $-g$（即 $g$ 凹）才保持凸性。}
+
+\section{Lagrangian 与对偶函数}
+\label{sec:duality-2}
+
+对偶的全部出发点，是一个把约束``价格化''的老办法——Lagrangian。上一章（约束最优化）里它是用来写一阶条件的；这一章我们换个用法：把它对原变量取下确界，得到一个只依赖乘子的新函数。
+
+\defn{Lagrangian 与对偶函数}{
+对上述标准凸问题，引入不等式约束的乘子 $\vc\lambda\in\RR^m$（$\lambda_i\ge 0$）与等式约束的乘子 $\vc\nu\in\RR^p$，定义 \textbf{Lagrangian}
+\[
+    L(\vc x,\vc\lambda,\vc\nu)
+    =f_0(\vc x)+\sum_{i=1}^m \lambda_i f_i(\vc x)+\sum_{j=1}^p \nu_j\,(\vc a_j\T\vc x-b_j) .
+\]
+对原变量 $\vc x$ 取下确界，得到 \textbf{Lagrange 对偶函数}
+\[
+    g(\vc\lambda,\vc\nu)
+    =\inf_{\vc x\in\RR^n} L(\vc x,\vc\lambda,\vc\nu) .
+\]
+}
+
+直觉上，乘子 $\lambda_i$ 是给违反第 $i$ 条约束开出的\emph{罚价}：约束 $f_i\le 0$ 若被违反（$f_i>0$），就在目标上加一笔正的罚款 $\lambda_i f_i$。Lagrangian 把``硬约束''软化成``软惩罚''；对 $\vc x$ 取 inf，则是问``在这套罚价下，决策者最低能把（被惩罚后的）目标压到多少''。这个最低值就是对偶函数。
+
+对偶函数有一条无论原问题凸不凸都成立的、近乎神奇的性质：
+
+\thm{对偶函数恒为凹}{
+对偶函数 $g(\vc\lambda,\vc\nu)=\inf_{\vc x} L(\vc x,\vc\lambda,\vc\nu)$ 是关于 $(\vc\lambda,\vc\nu)$ 的\emph{凹函数}，且取值在 $[-\infty,+\infty)$ 中——\textbf{即便原问题非凸，这一点也成立}。
+}
+\pf{
+关键在于：固定 $\vc x$，Lagrangian $L(\vc x,\vc\lambda,\vc\nu)$ 是 $(\vc\lambda,\vc\nu)$ 的\emph{仿射}函数（$\lambda_i,\nu_j$ 都只一次方出现，系数是 $f_i(\vc x)$、$\vc a_j\T\vc x-b_j$ 这些与乘子无关的常数）。仿射函数当然既凹又凸。而对偶函数是这一族（以 $\vc x$ 为指标的）仿射函数的\emph{逐点下确界}：
+\[
+    g(\vc\lambda,\vc\nu)=\inf_{\vc x}\,L(\vc x,\vc\lambda,\vc\nu) .
+\]
+凹凸性一章已证（第十六章）：一族凹函数的逐点下确界仍凹（用上方图刻画——$\operatorname{hyp} g=\bigcap_{\vc x}\operatorname{hyp} L(\vc x,\cdot)$ 是一族凸集的交，故凸，故 $g$ 凹）。仿射尤其是凹，故 $g$ 凹。证毕。
+}
+
+\state{对偶函数为何``白送''一个凹结构}{
+这条定理是整个对偶理论的引擎。它说：\textbf{不管你的原问题多么糟糕（非凸、不连续、组合的），它的对偶函数总是凹的}，因而对偶问题——极大化 $g$——\emph{总是}一个凸优化问题。于是哪怕原问题难解，对偶问题也是``好''的。这就是为什么人们愿意绕到对偶那边去：那里风景永远是凸的。代价是对偶只给出原问题的一个\emph{界}（下一节的弱对偶），界紧不紧则取决于强对偶是否成立。
+}
+
+\rmkb[对偶函数可以取到 $-\infty$]{
+对某些 $(\vc\lambda,\vc\nu)$，Lagrangian 关于 $\vc x$ 无下界，此时 $g=-\infty$。这并不是毛病：这些乘子对求界毫无帮助（给出的下界是 $-\infty$），自然会在极大化 $g$ 时被排除。对偶函数真正``有用''的定义域 $\Dom g=\setb{(\vc\lambda,\vc\nu)}{g>-\infty}$ 是一个凸集，对偶问题只在其上做文章。}
+
+\subsection*{一个能算到底的例子}
+
+\ex[等式约束二次极小化的对偶]{
+求 $\min_{\vc x}\ \tfrac12\vc x\T\vc x$ s.t.\ $\mat A\vc x=\vc b$，其中 $\mat A\in\RR^{p\times n}$ 行满秩。写出对偶函数。
+}
+\sol{
+Lagrangian（只有等式约束，乘子 $\vc\nu$）：
+\[
+    L(\vc x,\vc\nu)=\tfrac12\vc x\T\vc x+\vc\nu\T(\mat A\vc x-\vc b) .
+\]
+固定 $\vc\nu$，对 $\vc x$ 求下确界。$L$ 关于 $\vc x$ 是凸二次型，令梯度为零：
+\[
+    \grad_{\vc x} L=\vc x+\mat A\T\vc\nu=\vc 0
+    \quad\To\quad
+    \vc x^\star=-\mat A\T\vc\nu .
+\]
+代回：
+\[
+    g(\vc\nu)=L(\vc x^\star,\vc\nu)
+    =\tfrac12(\mat A\T\vc\nu)\T(\mat A\T\vc\nu)
+    -\vc\nu\T\mat A\,\mat A\T\vc\nu-\vc\nu\T\vc b
+    =-\tfrac12\,\vc\nu\T\mat A\mat A\T\vc\nu-\vc b\T\vc\nu .
+\]
+果然是 $\vc\nu$ 的凹二次函数（$\mat A\mat A\T$ 行满秩故正定，$-\tfrac12\vc\nu\T\mat A\mat A\T\vc\nu$ 凹）。对偶问题 $\max_{\vc\nu} g(\vc\nu)$ 又是一个无约束凸二次极大化，可一步解出 $\vc\nu^*=-(\mat A\mat A\T)^{-1}\vc b$，回代即得原问题最优值 $p^*=\tfrac12\vc b\T(\mat A\mat A\T)^{-1}\vc b$。这个例子里对偶把一个 $n$ 维带约束问题压成了一个 $p$ 维无约束问题（通常 $p\ll n$），还顺手给出了显式解——对偶``降维''的威力可见一斑。
+}
+
+\section{弱对偶：永远成立的那道界}
+\label{sec:duality-3}
+
+对偶函数的每一个值，都是原问题最优值的一个下界。这件事不需要任何凸性，对一切优化问题成立——这就是\textbf{弱对偶}。
+
+\thm{弱对偶}{
+对任意 $\vc\lambda\ge\vc 0$ 与任意 $\vc\nu$，对偶函数给出原问题最优值的下界：
+\[
+    g(\vc\lambda,\vc\nu)\ \le\ p^* .
+\]
+于是\textbf{对偶问题}
+\[
+    d^*=\max_{\vc\lambda\ge\vc 0,\ \vc\nu}\ g(\vc\lambda,\vc\nu)
+\]
+的最优值满足 $d^*\le p^*$。差额 $p^*-d^*\ge 0$ 称为\textbf{对偶间隙}。
+}
+\pf{
+取任意可行点 $\tilde{\vc x}\in\cX$（满足 $f_i(\tilde{\vc x})\le 0$、$\vc a_j\T\tilde{\vc x}=b_j$）与任意 $\vc\lambda\ge\vc 0$、$\vc\nu$。逐项看 Lagrangian 在 $\tilde{\vc x}$ 处的值：
+\[
+    L(\tilde{\vc x},\vc\lambda,\vc\nu)
+    =f_0(\tilde{\vc x})
+    +\underbrace{\sum_i \lambda_i f_i(\tilde{\vc x})}_{\le\,0}
+    +\underbrace{\sum_j \nu_j(\vc a_j\T\tilde{\vc x}-b_j)}_{=\,0}
+    \ \le\ f_0(\tilde{\vc x}) .
+\]
+两个花括号：第一项因 $\lambda_i\ge 0$ 且 $f_i(\tilde{\vc x})\le 0$ 故 $\le 0$；第二项因 $\tilde{\vc x}$ 满足等式约束故 $=0$。再用对偶函数是\emph{对所有 $\vc x$}取下确界，自然不超过它在 $\tilde{\vc x}$ 这一点的值：
+\[
+    g(\vc\lambda,\vc\nu)=\inf_{\vc x} L(\vc x,\vc\lambda,\vc\nu)
+    \ \le\ L(\tilde{\vc x},\vc\lambda,\vc\nu)
+    \ \le\ f_0(\tilde{\vc x}) .
+\]
+这对每个可行 $\tilde{\vc x}$ 都成立，故 $g(\vc\lambda,\vc\nu)\le\inf_{\tilde{\vc x}\in\cX} f_0(\tilde{\vc x})=p^*$。对左边关于 $(\vc\lambda,\vc\nu)$ 取上确界即得 $d^*\le p^*$。
+}
+
+弱对偶的逻辑朴素得令人安心：两条不等号，一条来自``约束的罚项不会帮倒忙''（$\lambda_i f_i\le 0$），一条来自``inf 不超过任一点的值''。它的实用价值在于\emph{廉价取界}——随手代入一个 $\vc\lambda\ge\vc 0$，算出 $g(\vc\lambda,\vc\nu)$，就立刻得到 $p^*$ 的一个可证下界，无需解出原问题。这在分支定界、组合优化里是核心招数。
+
+\state{对偶间隙：你离最优还有多远的证书}{
+若你手上有一个可行解 $\tilde{\vc x}$（给出上界 $f_0(\tilde{\vc x})\ge p^*$）和一组对偶可行的 $(\vc\lambda,\vc\nu)$（给出下界 $g(\vc\lambda,\vc\nu)\le p^*$），那么
+\[
+    g(\vc\lambda,\vc\nu)\ \le\ p^*\ \le\ f_0(\tilde{\vc x}) ,
+\]
+于是 $f_0(\tilde{\vc x})-g(\vc\lambda,\vc\nu)$ 是一个\textbf{可计算的最优性证书}：它框住了 $p^*$，也框住了你当前解 $\tilde{\vc x}$ 的次优程度。一旦这个间隙缩到零，你就\emph{证明}了 $\tilde{\vc x}$ 是最优的——无需任何额外论证。这正是内点法``原始--对偶''迭代里用来判停的依据。}
+
+\section{强对偶与 Slater 条件}
+\label{sec:duality-4}
+
+弱对偶恒成立，但它可能很松（间隙 $>0$）。我们真正想要的是\textbf{强对偶}：$d^*=p^*$，间隙为零，对偶问题与原问题给出\emph{同一个}最优值（图~\ref{fig:duality-1}）。强对偶不会凭空成立——但对凸问题，一个温和的``内部点''条件就足以保证它。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ===== 左：强对偶——间隙为零 =====
+  \begin{scope}
+    \draw[->] (0,-0.2) -- (0,4.6) node[above] {目标值};
+    \def\pstar{2.6}
+    \draw[blue!55!black,line width=2.4pt] (1.4,\pstar) -- (1.4,4.3);
+    \fill[blue!55!black] (1.4,\pstar) circle (2pt);
+    \draw[green!50!black,line width=2.4pt] (2.8,\pstar) -- (2.8,0.5);
+    \fill[green!50!black] (2.8,\pstar) circle (2pt);
+    \draw[dashed,gray] (0,\pstar) -- (3.4,\pstar);
+    \node[anchor=east,font=\small] at (-0.06,\pstar) {$p^*\!=\!d^*$};
+    \node[blue!55!black,anchor=south,font=\small,align=center] at (1.4,4.32)
+       {原问题\\可达 $\ge p^*$};
+    \node[green!45!black,anchor=north,font=\small,align=center] at (2.8,0.46)
+       {对偶界\\$\le d^*$};
+    \node[anchor=south,font=\small] at (1.6,-1.05) {\textbf{强对偶：间隙 $=0$}};
+    \node[font=\small,align=center] at (1.95,3.7) {两端\\\emph{恰好相接}};
+    \draw[->] (1.95,3.28) -- (1.95,2.72);
+  \end{scope}
+  % ===== 右：弱对偶——间隙为正 =====
+  \begin{scope}[xshift=7.0cm]
+    \draw[->] (0,-0.2) -- (0,4.6) node[above] {目标值};
+    \def\pstar{3.1}
+    \def\dstar{1.9}
+    \draw[blue!55!black,line width=2.4pt] (1.4,\pstar) -- (1.4,4.3);
+    \fill[blue!55!black] (1.4,\pstar) circle (2pt);
+    \draw[green!50!black,line width=2.4pt] (2.8,\dstar) -- (2.8,0.5);
+    \fill[green!50!black] (2.8,\dstar) circle (2pt);
+    \draw[dashed,gray] (0,\pstar) -- (4.1,\pstar);
+    \draw[dashed,gray] (0,\dstar) -- (4.1,\dstar);
+    \node[anchor=east,font=\small] at (-0.06,\pstar) {$p^*$};
+    \node[anchor=east,font=\small] at (-0.06,\dstar) {$d^*$};
+    \node[blue!55!black,anchor=south,font=\small,align=center] at (1.4,4.32)
+       {原问题\\可达 $\ge p^*$};
+    \node[green!45!black,anchor=north,font=\small,align=center] at (2.8,0.46)
+       {对偶界\\$\le d^*$};
+    \draw[<->,red!70!black,thick] (4.1,\dstar) -- (4.1,\pstar);
+    \node[red!70!black,anchor=west,font=\small,align=left] at (4.2,2.5)
+       {对偶间隙\\$p^*-d^*>0$};
+    \node[anchor=south,font=\small] at (1.6,-1.05) {\textbf{弱对偶：间隙 $>0$}};
+  \end{scope}
+\end{tikzpicture}
+\caption{弱对偶与强对偶。弱对偶恒成立：对偶界 $d^*$ 永远不超过原问题最优 $p^*$，二者可能留有正的对偶间隙（右）。强对偶（凸 $+$ Slater）则把间隙压到零，对偶界恰好顶到原问题最优、两端相接（左）。}
+\label{fig:duality-1}
+\end{figure}
+
+\defn{Slater 条件}{
+称凸优化问题满足 \textbf{Slater 条件}，如果存在一个\textbf{严格可行点}：某个 $\vc x$ 使
+\[
+    f_i(\vc x)<0\ (i=1,\dots,m),
+    \qquad
+    \vc a_j\T\vc x=b_j\ (j=1,\dots,p) ,
+\]
+即所有\emph{不等式}约束都\emph{严格}成立（等式约束照常成立）。\rmk{对仿射的不等式约束，可放宽为非严格成立——这版常称``弱化的 Slater 条件''。}
+}
+
+\thm{强对偶（Slater）}{
+若原问题为凸且满足 Slater 条件，则\textbf{强对偶成立}：
+\[
+    d^*=p^* ,
+\]
+对偶间隙为零，且只要 $p^*$ 有限，对偶最优值就在某个 $(\vc\lambda^*,\vc\nu^*)$ 处\emph{取到}。
+}
+
+这条定理的严格证明依赖凸集的\textbf{分离超平面定理}（见第十六章），属于本书``只陈述加直觉、不逐行搭''的那一类。下面把直觉讲透，让你能自己重建它的骨架。
+
+\begin{proof}[强对偶的几何直觉]
+把原问题的所有``约束取值--目标取值''组合收集成一个集合，画在以约束值为横轴、目标值为纵轴的平面上（这里以单个不等式约束为例）：
+\[
+    \cA=\setb{(u,t)}{\exists\,\vc x,\ f_1(\vc x)\le u,\ f_0(\vc x)\le t} .
+\]
+$\cA$ 是 $\RR^2$ 中``向右上方张开''的区域。原问题最优值 $p^*$ 是 $\cA$ 与纵轴（$u=0$）相交部分的最低点高度——即``约束恰好满足（$u\le 0$）时目标能压到多低''。
+
+\emph{凸性}保证 $\cA$ 是凸集（这正是用到 $f_0,f_1$ 凸的地方）。于是可以在 $\cA$ 的下边界点 $(0,p^*)$ 处放一条\textbf{支撑直线}（分离超平面在 $\RR^2$ 即直线）：它托在 $\cA$ 之下、恰好碰到 $(0,p^*)$。这条支撑线的斜率（取负）正对应一个乘子 $\lambda^*\ge 0$，而它在 $u=0$ 处的截距，恰好等于对偶最优值 $g(\lambda^*)=d^*$。\emph{支撑线碰到 $(0,p^*)$} 这件事，几何上就是 $d^*=p^*$。
+
+\emph{Slater 条件在哪里登场？}它保证 $\cA$ 在纵轴左侧（$u<0$，即\emph{严格}可行处）有内点，于是过 $(0,p^*)$ 的支撑超平面不会``竖起来''成竖直线——竖直的支撑线对应 $\lambda^*=+\infty$ 那种退化情形，会让对偶取不到、间隙打开。换句话说，Slater 的``内部留有余地''恰好排除了支撑超平面退化，从而保证支撑线斜率有限、对偶最优在有限处取到、间隙归零（图~\ref{fig:duality-3}）。完整证明把这套二维图景升到 $\RR^{m+1}$，用分离超平面定理把凸集 $\cA$ 与一个开半空间分开。
+\end{proof}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.2,>=Stealth]
+  % 轴：u 横（约束取值），t 纵（目标取值）
+  \draw[->] (-2.6,0) -- (3.0,0) node[right] {$u$（约束值）};
+  \draw[->] (0,-0.4) -- (0,4.6) node[above] {$t$};
+  % 集合 A：凸的「向右上张开」区域，下边界为凸曲线 h(u)=2.4-u+0.42u^2
+  \fill[blue!10]
+     (-1.0,4.4)
+     -- (-1.0,3.82)
+     plot[domain=-1.0:2.6,smooth,samples=70,variable=\u] ({\u},{2.4 - 1.0*\u + 0.42*\u*\u})
+     -- (2.6,4.4) -- cycle;
+  \draw[very thick,blue!55!black,domain=-1.0:2.6,smooth,samples=70,variable=\u]
+     plot ({\u},{2.4 - 1.0*\u + 0.42*\u*\u});
+  \node[blue!55!black,font=\small] at (1.7,3.6) {$\cA=\{(u,t)\}$};
+  % p* = 边界在 u=0 处高度 = 2.4
+  \coordinate (P) at (0,2.4);
+  \fill (P) circle (1.7pt);
+  \node[anchor=south east,font=\small] at (-0.08,2.5) {$(0,\,p^*)$};
+  % 支撑直线：过 (0,2.4)，斜率 -1.0
+  \draw[red!70!black,thick,domain=-2.3:2.7,variable=\u]
+     plot ({\u},{2.4 - 1.0*\u});
+  \node[red!70!black,anchor=east,font=\small] at (-0.1,1.55) {截距 $=g(\lambda^*)=d^*$};
+  \draw[red!70!black,->] (-1.05,1.62) -- (-0.55,2.05);
+  \node[red!70!black,anchor=west,font=\small,align=left] at (1.45,1.15)
+     {支撑直线\\斜率 $=-\lambda^*\le 0$};
+  \draw[red!70!black,->] (1.5,1.35) -- (1.15,1.62);
+  \draw[dashed,gray] (0,0) -- (0,2.4);
+  \node[font=\small,align=center,anchor=north] at (-1.0,-0.7)
+     {Slater：$\cA$ 在 $u<0$ 一侧有内点\\$\To$ 支撑线不竖直，$d^*=p^*$};
+\end{tikzpicture}
+\caption{强对偶的几何（单不等式约束）。凸集 $\cA$ 记录所有可达的``约束值--目标值''组合；$p^*$ 是它在纵轴 $u=0$ 上的最低高度。过 $(0,p^*)$ 的支撑直线托住 $\cA$，其纵轴截距即对偶最优 $d^*=g(\lambda^*)$。Slater 条件保证 $\cA$ 在 $u<0$ 处有内点，支撑线不致竖直退化，于是截距恰好顶到 $p^*$，间隙归零。}
+\label{fig:duality-3}
+\end{figure}
+
+\rmkb[强对偶不是凸的免费午餐]{
+凸 $+$ Slater $\To$ 强对偶，但凸性本身不够：存在满足凸性却\emph{无}严格可行点、从而间隙 $>0$ 的反常例子（典型是某些含 $\exp$ 的二维凸问题，可行域贴着边界、内部为空）。Slater 要的``内部点''正是用来堵住这个漏洞。好在经济学里绝大多数模型自带宽裕的内部（预算线内部、生产集内部非空），Slater 通常自动满足，强对偶可以放心使用。}
+
+\section{鞍点与极小极大}
+\label{sec:duality-5}
+
+强对偶还有一副更对称、也更适合博弈论直觉的面孔：它等价于 Lagrangian 存在一个\textbf{鞍点}，等价于``先 min 后 max''与``先 max 后 min''可以\emph{交换次序}。
+
+先看一个对任何函数都成立的不等式——它是弱对偶的``裸''版本。
+
+\lem{极小极大不等式（max--min $\le$ min--max）}{
+对任意函数 $L(\vc x,\vc y)$ 与任意定义域，总有
+\[
+    \sup_{\vc y}\,\inf_{\vc x}\,L(\vc x,\vc y)
+    \ \le\
+    \inf_{\vc x}\,\sup_{\vc y}\,L(\vc x,\vc y) .
+\]
+}
+\pf{
+对任意固定的 $\vc x_0,\vc y_0$，显然 $\inf_{\vc x} L(\vc x,\vc y_0)\le L(\vc x_0,\vc y_0)\le\sup_{\vc y} L(\vc x_0,\vc y)$。左端只依赖 $\vc y_0$、右端只依赖 $\vc x_0$。对左端关于 $\vc y_0$ 取上确界、对右端关于 $\vc x_0$ 取下确界，不等号方向不变，即得。一句话：``\emph{先承诺者吃亏}''——后行动的一方总能针对性地占便宜，所以 max 在内（后动）不弱于 max 在外（先动）。
+}
+
+把这条引理用到 Lagrangian 上，就认出了原问题与对偶问题。关键观察：对 Lagrangian 先对乘子取上确界，恰好``复原''出原问题——
+
+\[
+    \sup_{\vc\lambda\ge\vc 0,\,\vc\nu} L(\vc x,\vc\lambda,\vc\nu)
+    =\begin{cases}
+        f_0(\vc x), & \vc x\ \text{可行},\\[2pt]
+        +\infty, & \vc x\ \text{不可行}.
+    \end{cases}
+\]
+道理是：若 $\vc x$ 违反某条约束（$f_i(\vc x)>0$，或等式不成立），把对应乘子取到 $+\infty$ 即可把 sup 顶到 $+\infty$；若 $\vc x$ 可行，则罚项最优地取 $0$，剩下 $f_0(\vc x)$。于是
+
+\[
+    \underbrace{\inf_{\vc x}\,\sup_{\vc\lambda\ge\vc 0,\,\vc\nu} L}_{=\,p^*\ (\text{原问题})}
+    \ \ge\
+    \underbrace{\sup_{\vc\lambda\ge\vc 0,\,\vc\nu}\,\inf_{\vc x} L}_{=\,d^*\ (\text{对偶问题})} .
+\]
+\textbf{原问题 $=$ ``先 min 后 max''，对偶问题 $=$ ``先 max 后 min''}；二者的差 $p^*-d^*$ 就是极小极大不等式里的间隙，也就是对偶间隙。强对偶 $d^*=p^*$ 于是等价于这两个次序\emph{可交换}。而次序可交换，又等价于 $L$ 有鞍点：
+
+\defn{鞍点}{
+称 $(\vc x^*,\vc\lambda^*,\vc\nu^*)$（$\vc\lambda^*\ge\vc 0$）是 Lagrangian 的\textbf{鞍点}，如果它对 $\vc x$ 是极小、对 $(\vc\lambda,\vc\nu)$ 是极大，即对一切 $\vc x$ 与一切 $\vc\lambda\ge\vc 0,\vc\nu$，
+\[
+    L(\vc x^*,\vc\lambda,\vc\nu)\ \le\ L(\vc x^*,\vc\lambda^*,\vc\nu^*)\ \le\ L(\vc x,\vc\lambda^*,\vc\nu^*) .
+\]
+}
+
+鞍点的形状如其名：沿 $\vc x$ 方向是谷底（往上翘），沿 $\vc\lambda$ 方向是峰顶（往下垂），像一副马鞍（图~\ref{fig:duality-2}）。在鞍点处，谁先动都不吃亏——min 与 max 可以交换。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.05,>=Stealth]
+  % 鞍面：两条经过鞍点的抛物线，分别沿各自的地面坐标轴张开（斜投影模拟 3D）
+  \coordinate (S) at (4.0,2.6);
+  \draw[->] (1.4,0.3) -- (1.4,5.6) node[above] {$L(\vc x,\vc\lambda)$};
+  % 地面坐标轴：x 往右下（单位向量约 (0.92,-0.39)）、lambda 往右上（约 (0.89,0.45)）
+  \draw[->,gray] (2.0,1.5) -- (6.6,-0.43) node[anchor=north,black,font=\small] {$\vc x$ 方向（极小）};
+  \draw[->,gray] (2.0,1.5) -- (5.7,3.35) node[anchor=south west,black,font=\small] {$\vc\lambda$ 方向（极大）};
+  % 沿 x 地面轴张开的抛物线（横向沿 (0.922,-0.387)，竖向 +二次：谷，开口向上）
+  \draw[very thick,blue!60!black,smooth,samples=60,domain=-1.7:1.7,variable=\s]
+     plot ({4.0 + \s*1.25*0.922},{2.6 + \s*1.25*(-0.387) + 0.55*\s*\s});
+  % 沿 lambda 地面轴张开的抛物线（横向沿 (0.894,0.447)，竖向 -二次：峰，开口向下）
+  \draw[very thick,red!65!black,smooth,samples=60,domain=-1.7:1.7,variable=\r]
+     plot ({4.0 + \r*1.25*0.894},{2.6 + \r*1.25*(0.447) - 0.52*\r*\r});
+  \fill (S) circle (2pt);
+  % 鞍点标注：放到鞍点左下的开口楔形里，引线指向 S
+  \node[anchor=east,font=\small] at (3.32,2.02) {鞍点 $(\vc x^*,\vc\lambda^*)$};
+  \draw[->] (3.36,2.06) -- (3.86,2.5);
+  % 蓝（谷）标注：放在蓝色上支右上方空白处，引线指向蓝曲线
+  \node[blue!60!black,anchor=south,font=\small,align=center] at (3.55,5.05)
+     {沿 $\vc x$ 是\emph{谷底}\\（极小化 $L$）};
+  \draw[blue!60!black,->] (3.2,4.95) -- (2.72,4.0);
+  % 红（峰）标注：放在红色右支下方空白处，引线指向红曲线
+  \node[red!65!black,anchor=west,font=\small,align=left] at (5.95,1.35)
+     {沿 $\vc\lambda$ 是\emph{峰顶}\\（极大化 $L$）};
+  \draw[red!65!black,->] (5.95,1.55) -- (5.4,2.3);
+\end{tikzpicture}
+\caption{Lagrangian 在鞍点处的几何。沿原变量 $\vc x$ 方向是谷底（取极小），沿乘子 $\vc\lambda$ 方向是峰顶（取极大），形如马鞍。强对偶成立当且仅当这样的鞍点存在——此时``先 min 后 max''与``先 max 后 min''给出同一个值。}
+\label{fig:duality-2}
+\end{figure}
+
+\thm{鞍点 $\Iff$ 强对偶且最优在两端取到}{
+$(\vc x^*,\vc\lambda^*,\vc\nu^*)$ 是 $L$ 的鞍点，当且仅当 $\vc x^*$ 是原问题最优解、$(\vc\lambda^*,\vc\nu^*)$ 是对偶问题最优解，且强对偶成立（$p^*=d^*=L(\vc x^*,\vc\lambda^*,\vc\nu^*)$）。
+}
+\pf{
+（$\To$）设鞍点存在。鞍点不等式右半 $L(\vc x^*,\vc\lambda^*,\vc\nu^*)\le L(\vc x,\vc\lambda^*,\vc\nu^*)$ 对一切 $\vc x$ 成立，说明 $\vc x^*$ 极小化 $L(\cdot,\vc\lambda^*,\vc\nu^*)$，故 $g(\vc\lambda^*,\vc\nu^*)=L(\vc x^*,\vc\lambda^*,\vc\nu^*)$。左半 $L(\vc x^*,\vc\lambda,\vc\nu)\le L(\vc x^*,\vc\lambda^*,\vc\nu^*)$ 对一切 $\vc\lambda\ge\vc 0,\vc\nu$ 成立，说明 $(\vc\lambda^*,\vc\nu^*)$ 极大化 $L(\vc x^*,\cdot)$，即 $\sup_{\vc\lambda\ge0,\vc\nu} L(\vc x^*,\cdot)=L(\vc x^*,\vc\lambda^*,\vc\nu^*)$——而我们刚算过这个 sup 等于 $f_0(\vc x^*)$（且强制 $\vc x^*$ 可行）。串起来：
+\[
+    g(\vc\lambda^*,\vc\nu^*)=L(\vc x^*,\vc\lambda^*,\vc\nu^*)=f_0(\vc x^*) .
+\]
+左端 $\le d^*\le p^*\le$ 右端（弱对偶），而两端相等，故全链相等：$d^*=p^*$，且 $\vc x^*$、$(\vc\lambda^*,\vc\nu^*)$ 分别是原、对偶最优。
+
+（$\Leftarrow$）反过来，若 $\vc x^*$、$(\vc\lambda^*,\vc\nu^*)$ 各为最优且 $p^*=d^*$，则 $f_0(\vc x^*)=g(\vc\lambda^*,\vc\nu^*)=\inf_{\vc x}L(\vc x,\vc\lambda^*,\vc\nu^*)\le L(\vc x^*,\vc\lambda^*,\vc\nu^*)$。但又 $L(\vc x^*,\vc\lambda^*,\vc\nu^*)=f_0(\vc x^*)+\sum_i\lambda_i^* f_i(\vc x^*)\le f_0(\vc x^*)$（罚项 $\le 0$）。两个不等式夹出等号，逼出 $\sum_i\lambda_i^* f_i(\vc x^*)=0$（即\emph{互补松弛}：$\lambda_i^*f_i(\vc x^*)=0$ 逐项成立）与 $\vc x^*$ 极小化 $L(\cdot,\vc\lambda^*,\vc\nu^*)$，恰好凑齐鞍点两条不等式。
+}
+
+\state{对偶的三种等价说法，与影子价格}{
+对凸问题（Slater 下），下面三件事是\emph{同一件事}：
+\begin{itemize}
+    \item \textbf{强对偶}：$p^*=d^*$，对偶间隙为零；
+    \item \textbf{鞍点}：Lagrangian 有鞍点 $(\vc x^*,\vc\lambda^*,\vc\nu^*)$；
+    \item \textbf{极小极大可交换}：$\inf_{\vc x}\sup_{\vc\lambda,\vc\nu}L=\sup_{\vc\lambda,\vc\nu}\inf_{\vc x}L$。
+\end{itemize}
+而最优乘子 $\vc\lambda^*$ 不只是个证书。它正是约束的\textbf{影子价格}：把第 $i$ 条约束的右端从 $0$ 松动到 $u_i$，最优值的变化率恰是 $-\lambda_i^*$（这是下一章\emph{包络定理}给出的灵敏度，对偶在此与包络合流）。鞍点不等式里隐含的\emph{互补松弛} $\lambda_i^* f_i(\vc x^*)=0$ 则说：约束不紧（$f_i<0$）时影子价格为零，约束一文不值；只有顶着约束（$f_i=0$）的资源才标得出正价。这把抽象的乘子翻译成了经济学最熟悉的语言——\textbf{稀缺才有价}。
+}
+
+\section{它通向何处}
+\label{sec:duality-6}
+
+对偶不是一个孤立的技巧，而是一种贯穿经济学与统计学的结构。把去处标清，方便日后回查。
+
+\begin{itemize}
+    \item \textbf{成本函数与支出函数的对偶}。生产理论里，``给定产量最小化成本''与``给定成本最大化产量''互为对偶；消费者理论里马歇尔需求（效用最大化）与希克斯需求（支出最小化）互为对偶。由此得到的成本/支出函数对价格的导数即要素需求（Shephard 引理）、即希克斯需求——而这恰是\textbf{包络定理}（下一章）的内容：对偶给出``谁是谁的影子价格''，包络给出``值函数对参数的导数就是最优乘子''。两章合起来才是完整的``对偶 $+$ 灵敏度''工具。
+    \item \textbf{线性规划与资源配置}。线性规划是凸优化里最干净的特例，强对偶（在可行时）\emph{无条件}成立。一家厂商在资源约束下最大化产值，其对偶恰是给每种资源\emph{定一个内部影子价}、使总资源估值最小——原始问的是``怎么用''，对偶问的是``值多少''。线性规划对偶因此是``资源的边际价值''最纯粹的数学表达，活跃在运筹、拍卖与一般均衡定价里。
+    \item \textbf{最优传输与匹配}。``如何以最小总成本把一堆供给运到一堆需求''（Monge--Kantorovich 问题）是个大型线性/凸规划，它的对偶（Kantorovich 对偶）给每个产地、每个销地各派一个``价格''，把运输问题翻译成定价问题。这套对偶是匹配市场、稳定匹配定价、以及近年计量里``可识别的转移效用模型''的数学内核。
+    \item \textbf{机器学习}。支持向量机（SVM）的原始问题是带间隔约束的凸二次规划，其\textbf{对偶}只依赖样本两两内积，从而打开了``核技巧''的大门；岭回归、Lasso 等正则化问题的对偶给出对偶范数与稀疏性的几何刻画。机器学习里``原始--对偶''几乎是标准词汇。
+    \item \textbf{稳健与最坏情形优化}。``在最坏的参数实现下做到最好''天然是一个 $\min_{\vc x}\max_{\theta}$ 的极小极大问题；本章的鞍点理论给出它何时等于 $\max_\theta\min_{\vc x}$、何时存在稳健最优解。这正是稳健控制、分布稳健优化、以及对抗式学习的理论起点，也与博弈论里``混合策略均衡 $=$ 双人零和博弈的鞍点''（von Neumann 极小极大定理）一脉相承。
+\end{itemize}
+
+\state{一句话记住对偶}{
+原问题在``初始变量''上做决策，对偶问题在``约束的价格''上做决策；弱对偶说价格永远给出一个保守的界，强对偶（凸 $+$ Slater）说在最优处这个界严丝合缝、价格变成真实的影子价格。\textbf{凡是看到``资源/约束''与``价格/估值''成对出现的经济模型，背后多半就是一对原--对偶问题}。学会在两侧切换，等于同时握住了``怎么配''与``值多少''这两半答案。
+}

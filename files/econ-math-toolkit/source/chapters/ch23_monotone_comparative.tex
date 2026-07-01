@@ -1,0 +1,367 @@
+% !TEX root = ../main.tex
+\chapter{单调比较静态与超模性（Topkis）}
+\label{ch:monotone}
+
+\noindent\emph{用到的前置工具：偏序与格的基本概念（本章自带速览）；最优化的一阶/二阶条件（第十八章）；隐函数定理与比较静态（第十五章），本章正是它的``非光滑''对照。}
+\medskip
+
+隐函数定理那一章给了我们一台精密的比较静态机器：写下一阶条件 $\grad_{\vc x}f=\vc 0$，假设 Hessian 负定（可逆），就能把 $\D_{\vc\theta}\vc x^*$ 算到小数点后。但这台机器对原料挑剔——它要目标函数可微、要内点解、要二阶条件成立、要 Hessian 不退化。一旦选择变量是离散的（建几条生产线、开几家分店）、目标函数有拐角（带固定成本、带不可分投资）、或者我们干脆不愿意假设凹性，这台机器就熄火了。
+
+可经济学真正想问的，往往只是一个\textbf{方向}：成本降了，企业会多投资还是少投资？对手更激进了，我该更激进还是更收敛？我们要的常常不是 $\dd{x^*}{\theta}$ 的数值，而只是它的\emph{符号}。本章要讲的，正是一套只回答方向、却几乎不要任何光滑性的工具——它把比较静态从微积分搬到了\textbf{序}（order）的世界。核心结论惊人地干净：只要``参数越高、越值得把选择变量调高''这一条\emph{序}的性质成立，那么``参数升 $\Rightarrow$ 最优选择升''就自动为真，无需可微、无需凹、无需内点。这套方法由 Topkis 奠基、经 Milgrom、Shannon、Vives 等人发扬，今天是产业组织、超模博弈、机制设计与匹配理论的主力工具。
+
+\section{从符号到序：动机}
+\label{sec:monotone-1}
+
+回忆隐函数定理在标量情形给出的那条``镇店公式''：当 $f_{xx}<0$（二阶条件）时，
+\[
+    \sgn\!\pr{\dd{x^*}{\theta}}=\sgn\!\pr{f_{x\theta}} .
+\]
+最优选择随参数变动的方向，完全由交叉偏导 $f_{x\theta}=\pdc{f}{x}{\theta}$ 的符号决定。$f_{x\theta}>0$ 的含义是：参数 $\theta$ 越高，选择变量 $x$ 的边际回报 $\pd{f}{x}$ 越大——经济学叫 $x$ 与 $\theta$ \emph{互补}。直觉再朴素不过：如果调高 $\theta$ 让``多做一点 $x$''变得更划算，那最优的 $x$ 当然该往上走。
+
+这条洞见的形式（求两次导、看一个符号）是光滑世界的特产，但它的内容（``互补 $\Rightarrow$ 同向变动''）根本不依赖光滑。$f_{x\theta}>0$ 无非是在说一句关于差分的话：
+
+\state{把``互补''翻译成不求导也成立的语言}{
+$f_{x\theta}\ge 0$ 等价于：对任意 $x'>x$，差值
+\[
+    \Delta(\theta)\;:=\;f(x',\theta)-f(x,\theta)
+\]
+是 $\theta$ 的\emph{不减}函数。也就是说，``从 $x$ 升到 $x'$ 能多赚多少''这件事，随参数 $\theta$ 越来越有利。这句话里没有出现任何导数——它对离散的 $x$、带拐角的 $f$ 一字不差地成立。这就是\textbf{递增差}（increasing differences），本章的出发点。
+}
+
+我们要做的，就是把这个差分版的``互补''当作公理，然后证明：它足以逼出最优选择的单调性。代价是放弃``变动多少''、只保留``往哪个方向变''；回报是彻底摆脱可微、凹性、内点这些假设。先把工作的舞台——序与格——铺好。
+
+\section{格、递增差与超模性}
+\label{sec:monotone-2}
+
+\subsection*{偏序与格：最低限度的几何}
+
+序方法的舞台不是 $\RR^n$ 的``长度与角度'',而是``谁比谁大''。我们需要的结构少得可怜：一个偏序，外加``任意两点都有最小的共同上界和最大的共同下界''。
+
+\defn{偏序集与格}{
+集合 $X$ 上的\textbf{偏序} $\succeq$ 是满足自反、反对称、传递的二元关系（允许两个元素\emph{不可比}）。
+设 $x,y\in X$。它们的\textbf{上确界}（join，取大）$x\vee y$ 是最小的同时 $\succeq x$ 与 $\succeq y$ 的元素；\textbf{下确界}（meet，取小）$x\wedge y$ 是最大的同时 $\preceq x$ 与 $\preceq y$ 的元素。
+若 $X$ 中任意两元素的 join 与 meet 都存在且仍属于 $X$，则称 $(X,\succeq)$ 为一个\textbf{格}（lattice）。
+}
+
+最贴近经济学的例子是 $\RR^n$ 配\textbf{分量序}：$\vc x\succeq\vc y$ 当且仅当每个分量都有 $x_i\ge y_i$。此时
+\[
+    \vc x\vee\vc y=\pr{\max(x_1,y_1),\dots,\max(x_n,y_n)},
+    \qquad
+    \vc x\wedge\vc y=\pr{\min(x_1,y_1),\dots,\min(x_n,y_n)} .
+\]
+取大就是逐分量取较大者，取小就是逐分量取较小者（图~\ref{fig:monotone-lattice}）。注意分量序是\emph{偏}序而非全序：$(1,3)$ 与 $(3,1)$ 谁都不 $\succeq$ 谁，它们不可比——而正是这种不可比，才让 join 与 meet 成为真正有内容的运算。任何区间格 $[\vc a,\vc b]=\setb{\vc x}{\vc a\preceq\vc x\preceq\vc b}$、任何有限点集配以分量序，都是格；离散的选择集（如 $\{0,1,2,\dots\}^n$，``各开几家店''）同样是格。这正是序方法能容纳离散选择的根源。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.2,>=Stealth]
+    \draw[->] (-0.2,0) -- (4.6,0) node[right] {$x_1$};
+    \draw[->] (0,-0.2) -- (0,4.6) node[above] {$x_2$};
+    \coordinate (A) at (1,3);
+    \coordinate (B) at (3,1);
+    \coordinate (J) at (3,3);
+    \coordinate (M) at (1,1);
+    \draw[gray!55,thick] (M) -- (B) -- (J) -- (A) -- cycle;
+    \draw[dashed,gray!50] (A) -- (J);
+    \draw[dashed,gray!50] (B) -- (J);
+    \fill[blue!60!black] (A) circle (2pt);
+    \fill[blue!60!black] (B) circle (2pt);
+    \fill[red!70!black] (J) circle (2pt);
+    \fill[red!70!black] (M) circle (2pt);
+    \node[blue!60!black,anchor=south east] at (0.95,3.05) {$\vc a$};
+    \node[blue!60!black,anchor=west] at (3.08,0.95) {$\vc b$};
+    \node[red!70!black,anchor=south west] at (3.08,3.05)
+        {$\vc a\vee\vc b$（取大）};
+    \node[red!70!black,anchor=north east] at (0.92,0.92)
+        {$\vc a\wedge\vc b$（取小）};
+\end{tikzpicture}
+\caption{$\RR^2$ 配分量序。不可比的两点 $\vc a=(1,3)$、$\vc b=(3,1)$ 张成一个矩形，其右上角为 join $\vc a\vee\vc b=(3,3)$（逐分量取大），左下角为 meet $\vc a\wedge\vc b=(1,1)$（逐分量取小）。}
+\label{fig:monotone-lattice}
+\end{figure}
+
+\subsection*{递增差：参数与选择的互补}
+
+现在让目标函数依赖一个选择变量 $\vc x$（取自格 $X$）和一个参数 $\theta$（取自偏序集 $\Theta$）。互补的差分版定义如下。
+
+\defn{递增差（increasing differences）}{
+设 $f:X\times\Theta\to\RR$。称 $f$ 在 $(\vc x,\theta)$ 上具有\textbf{递增差}，若对任意 $\vc x'\succeq\vc x$（$X$ 中）与任意 $\theta'\succeq\theta$（$\Theta$ 中），
+\[
+    f(\vc x',\theta')-f(\vc x,\theta')\;\ge\;f(\vc x',\theta)-f(\vc x,\theta) .
+\]
+等价地，``升高 $\vc x$ 的收益'' $f(\vc x',\cdot)-f(\vc x,\cdot)$ 是 $\theta$ 的不减函数；对称地，``升高 $\theta$ 的收益''也是 $\vc x$ 的不减函数。
+}
+
+这就是上一节那句要点的正式版：参数越高，把选择调高越值得。它把``$f_{x\theta}\ge 0$''从一个关于二阶导的陈述，换成了一个关于\emph{四个函数值之差}的陈述——后者对离散、对拐角、对任何 $f$ 都讲得通。光滑时二者一致：
+
+\prop{光滑情形下递增差就是交叉偏导非负}{
+若 $f$ 二阶连续可微，则 $f$ 在 $X\times\Theta\se\RR\times\RR$ 上具有递增差，当且仅当
+\[
+    \pdc{f}{x}{\theta}\ge 0\quad\text{处处成立.}
+\]
+}
+\pf{
+把定义中的不等式重排为 $\big[f(x',\theta')-f(x',\theta)\big]-\big[f(x,\theta')-f(x,\theta)\big]\ge 0$。对固定的 $x$，$g_x(\theta):=f(x,\theta)$，则方括号内是 $g_{x'}(\theta')-g_{x'}(\theta)$ 与 $g_{x}(\theta')-g_{x}(\theta)$。由微积分基本定理，
+\[
+    \big[f(x',\theta')-f(x',\theta)\big]-\big[f(x,\theta')-f(x,\theta)\big]
+    =\int_{x}^{x'}\!\!\int_{\theta}^{\theta'}\pdc{f}{x}{\theta}\,\d\theta\,\d x .
+\]
+若被积的 $f_{x\theta}\ge 0$，则对一切 $x'\ge x,\ \theta'\ge\theta$ 该重积分非负，即递增差成立；反之，若某点 $f_{x\theta}<0$，取充分小的矩形使被积函数在其上保持负号，重积分为负，递增差被破坏。
+}
+
+\subsection*{超模性：多维选择内部的互补}
+
+递增差刻画的是``选择 $\vc x$''与``参数 $\theta$''之间的互补。当选择本身是多维的（$\vc x=(x_1,\dots,x_n)$），我们往往还需要刻画\emph{不同选择分量之间}的互补：多招一个工人，是否让多买一台机器更划算？这就是超模性。
+
+\defn{超模函数（supermodular）}{
+设 $X$ 是格。称 $f:X\to\RR$ \textbf{超模}，若对一切 $\vc x,\vc y\in X$，
+\[
+    f(\vc x\vee\vc y)+f(\vc x\wedge\vc y)\;\ge\;f(\vc x)+f(\vc y) .
+\]
+不等号反向则称 \textbf{次模}（submodular）。
+}
+
+这个不等式初看费解，换成图~\ref{fig:monotone-lattice} 的矩形就一目了然：左端是``两个对角顶点（取大与取小）''的值之和，右端是``两个不可比顶点''的值之和。超模说的是：把两个折中的选择``拉到两个极端''（一个全高、一个全低）不会更差——这正是``分量同向''的偏好。下面的等价刻画把它与递增差接上了头。
+
+\prop{超模性 $=$ 两两递增差 $=$ 交叉偏导非负}{
+设 $f:\prod_i X_i\to\RR$，各 $X_i\se\RR$。
+\begin{enumerate}
+\item $f$ 超模 $\iff$ 对每一对 $i\neq j$，$f$ 关于 $(x_i,x_j)$（固定其余分量）具有递增差。
+\item 若 $f$ 二阶连续可微，则 $f$ 超模 $\iff$ $\pdc{f}{x_i}{x_j}\ge 0$ 对一切 $i\neq j$ 处处成立。
+\end{enumerate}
+}
+\rmkb[超模、递增差与正定，三件事别混]{
+留意：超模/递增差管的是\emph{交叉}偏导（$i\neq j$）的符号，与对角的 $\partial^2 f/\partial x_i^2$ 无关——因此\textbf{超模与凹凸彼此独立}。$f(x_1,x_2)=x_1x_2$ 超模（$f_{12}=1>0$）却既不凹也不凸；$-x_1^2-x_2^2$ 凹却（交叉导为零）只是``弱''超模。这正是序方法挣脱凹性的技术根源：它只盯交叉项。相比之下，二阶条件要的 Hessian 负定是关于所有二阶导（含对角）的整体性质，二者管辖的区域几乎不重叠。
+}
+
+\ex[柯布--道格拉斯式生产函数是超模的]{
+设产出 $f(L,K)=A\,L^{\alpha}K^{\beta}$，$A,\alpha,\beta>0$。验证它在 $(L,K)\in\RR_{++}^2$ 上超模，并说明其经济含义。
+}
+\sol{
+交叉偏导
+\[
+    \pdc{f}{L}{K}=\pd{}{K}\pr{A\alpha L^{\alpha-1}K^{\beta}}
+    =A\,\alpha\beta\,L^{\alpha-1}K^{\beta-1}>0 .
+\]
+由命题（光滑情形），$f$ 超模。经济含义即\emph{劳动与资本互补}：资本存量越高，多投一单位劳动的边际产出 $\partial f/\partial L=A\alpha L^{\alpha-1}K^{\beta}$ 越大。注意此结论与 $f$ 是否凹无关——$\alpha+\beta>1$（规模报酬递增、$f$ 非凹）时它照样超模。这正预示：哪怕丢掉凹性，``$K$ 升 $\Rightarrow$ 最优 $L$ 升''这类比较静态仍可断言。
+}
+
+\section{Topkis 单调性定理}
+\label{sec:monotone-3}
+
+万事俱备。我们要的结论是：目标对 $(\vc x,\theta)$ 具递增差（且对 $\vc x$ 超模），则随 $\theta$ 上升，最优选择集整体``往上抬''。先把``最优集往上抬''说精确——选择集是集合，得用集合之间的序。
+
+\defn{强集序（strong set order）}{
+设 $A,B$ 是格 $X$ 的两个子集。称 $B$ 在\textbf{强集序}下高于 $A$，记 $A\preceq_s B$，若对一切 $a\in A,\ b\in B$ 都有
+\[
+    a\wedge b\in A
+    \qquad\text{且}\qquad
+    a\vee b\in B .
+\]
+}
+
+直觉：任取低集中一点 $a$、高集中一点 $b$，把它们``往下捏''得到的 $a\wedge b$ 仍落在低集，``往上提''得到的 $a\vee b$ 仍落在高集——高集确实被``顶''到了上方。在 $X\se\RR$（全序）上，$A\preceq_s B$ 就退化为``$A$ 的每个点都 $\le$ $B$ 的每个点''的自然含义，且 $\max$、$\min$ 都随之不减。
+
+\thm{Topkis 单调性定理}{
+设 $X$ 是格，$\Theta$ 是偏序集，$f:X\times\Theta\to\RR$。对每个 $\theta$ 定义最优选择集
+\[
+    \cX^*(\theta)\;=\;\argmax_{\vc x\in X}\,f(\vc x,\theta).
+\]
+若
+\begin{enumerate}
+\item $f(\cdot,\theta)$ 对每个固定的 $\theta$ 在 $X$ 上\textbf{超模}，且
+\item $f$ 在 $X\times\Theta$ 上具有\textbf{递增差}，
+\end{enumerate}
+则 $\theta\mapsto\cX^*(\theta)$ 在\textbf{强集序}下不减：$\theta'\succeq\theta\Rightarrow\cX^*(\theta)\preceq_s\cX^*(\theta')$。
+
+特别地，当各 $\cX^*(\theta)$ 非空时，其\textbf{最大选择} $\overline{x}(\theta)=\sup\cX^*(\theta)$ 与\textbf{最小选择} $\underline{x}(\theta)=\inf\cX^*(\theta)$ 都是 $\theta$ 的不减函数。
+}
+
+\pf{
+取 $\theta'\succeq\theta$，任取 $\vc a\in\cX^*(\theta)$ 与 $\vc b\in\cX^*(\theta')$。须证 $\vc a\wedge\vc b\in\cX^*(\theta)$ 且 $\vc a\vee\vc b\in\cX^*(\theta')$。证明的全部力气在下面这条链式不等式——它把超模与递增差各用一次。
+
+因为 $\vc a$ 在 $\theta$ 下最优，把它换成 $\vc a\wedge\vc b$ 不会更好：
+\[
+    f(\vc a,\theta)\;\ge\;f(\vc a\wedge\vc b,\theta). \tag{$\ast$}
+\]
+我们要由此推出对称的一句：在 $\theta'$ 下把 $\vc b$ 换成 $\vc a\vee\vc b$ 不会更差。
+先用\textbf{超模性}（对 $\theta$）：以 $\vc a,\vc b$ 代入超模不等式 $f(\vc a\vee\vc b,\theta)+f(\vc a\wedge\vc b,\theta)\ge f(\vc a,\theta)+f(\vc b,\theta)$，整理得
+\[
+    f(\vc a\vee\vc b,\theta)-f(\vc b,\theta)\;\ge\;f(\vc a,\theta)-f(\vc a\wedge\vc b,\theta)\;\ge\;0, \tag{1}
+\]
+末一步用了 $(\ast)$。再用\textbf{递增差}：式 $(1)$ 左边是``从 $\vc b$ 升到 $\vc a\vee\vc b\succeq\vc b$ 的收益''在参数 $\theta$ 下的值；递增差说这收益随参数不减，故在 $\theta'\succeq\theta$ 下只多不少：
+\[
+    f(\vc a\vee\vc b,\theta')-f(\vc b,\theta')\;\ge\;f(\vc a\vee\vc b,\theta)-f(\vc b,\theta)\;\ge\;0. \tag{2}
+\]
+但 $\vc b\in\cX^*(\theta')$ 已是 $\theta'$ 下的最优，故 $f(\vc a\vee\vc b,\theta')\le f(\vc b,\theta')$，即 $(2)$ 最左端 $\le 0$。这就把 $(2)$ 的整条不等式夹成等式，逐段读出：$f(\vc a\vee\vc b,\theta')=f(\vc b,\theta')$（故 $\vc a\vee\vc b$ 也是 $\theta'$ 下的最优，$\vc a\vee\vc b\in\cX^*(\theta')$），且 $f(\vc a\vee\vc b,\theta)-f(\vc b,\theta)=0$。把后一个等式代回 $(1)$，其最左端为零，于是 $(1)$ 也被夹成等式，得 $f(\vc a,\theta)=f(\vc a\wedge\vc b,\theta)$，即 $\vc a\wedge\vc b\in\cX^*(\theta)$。两条都得证，$\cX^*(\theta)\preceq_s\cX^*(\theta')$。
+
+最后由 $\cX^*(\theta)\preceq_s\cX^*(\theta')$ 推出最大、最小选择的单调性。记 $A=\cX^*(\theta)$、$B=\cX^*(\theta')$。\textbf{最小选择}：对任意 $\vc a\in A$ 与任意 $\vc b\in B$，强集序给出 $\vc a\wedge\vc b\in A$，故 $\underline{x}(\theta)=\inf A\preceq\vc a\wedge\vc b\preceq\vc b$；对一切 $\vc b\in B$ 取下确界得 $\underline{x}(\theta)\preceq\inf B=\underline{x}(\theta')$。\textbf{最大选择}：对任意 $\vc a\in A$ 与任意 $\vc b\in B$，强集序给出 $\vc a\vee\vc b\in B$，故 $\vc a\preceq\vc a\vee\vc b\preceq\sup B=\overline{x}(\theta')$；对一切 $\vc a\in A$ 取上确界得 $\overline{x}(\theta)\preceq\overline{x}(\theta')$。二者皆不减。
+}
+
+\rmkb[这个证明里到底发生了什么]{
+两条假设各司一职、缺一不可：\textbf{超模性}保证``把 $\vc b$ 往 $\vc a$ 的方向抬到 $\vc a\vee\vc b$''在\emph{同一个}参数下不吃亏（式 $1$）；\textbf{递增差}再保证这件``不吃亏''的事在\emph{更高}的参数下只会更好（式 $2$）。前者是选择分量之间的互补，后者是选择与参数之间的互补。注意全程没有求一次导、没用一次凹性、没碰过内点——动用的只有``取大/取小''与四个函数值的大小比较。若选择是一维的（$X\se\RR$），超模性自动成立（一维格上 $\vc a\vee\vc b=\max$、$\vc a\wedge\vc b=\min$，超模不等式恒为等式），定理便只剩递增差这一条要求。
+}
+
+把 Topkis 定理画出来，就是图~\ref{fig:monotone-id} 与图~\ref{fig:monotone-step}：前者是``峰随参数右移''的连续直观，后者是定理真正承诺的对象——一条可以带平台、带竖直跳跃（多重最优）的、单调不降的选择对应。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.15,>=Stealth]
+    \draw[->] (-0.2,0) -- (5.6,0) node[right] {$x$};
+    \draw[->] (0,-0.3) -- (0,6.1) node[above] {$f(x,\theta)$};
+    \draw[thick,black!55,domain=0:4.2,smooth,variable=\t]
+        plot ({\t},{1.6*\t-0.5*\t*\t});
+    \draw[thick,blue!60!black,domain=0:5.2,smooth,variable=\t]
+        plot ({\t},{3.2*\t-0.5*\t*\t});
+    \coordinate (PL) at (1.6,1.28);
+    \coordinate (PH) at (3.2,5.12);
+    \fill[black!55] (PL) circle (1.6pt);
+    \fill[blue!60!black] (PH) circle (1.6pt);
+    \draw[dashed,black!55] (PL) -- (1.6,0) node[below] {$x^*(\theta_L)$};
+    \draw[dashed,blue!60!black] (PH) -- (3.2,0) node[below] {$x^*(\theta_H)$};
+    \node[black!55,anchor=west] at (3.45,0.85) {$f(\cdot,\theta_L)$};
+    \node[blue!60!black,anchor=west] at (4.35,3.0) {$f(\cdot,\theta_H)$};
+    \draw[->,red!70!black,thick] (1.72,0.30) -- (3.08,0.30);
+    \node[red!70!black,anchor=south,font=\small] at (2.4,0.34) {argmax 右移};
+\end{tikzpicture}
+\caption{递增差的直观：$\theta_H>\theta_L$ 时，高参数曲线相对低参数曲线的``超出'' $f(x,\theta_H)-f(x,\theta_L)=1.6x$ 随 $x$ 越来越大，于是峰顶（argmax）由 $x^*(\theta_L)$ 右移到 $x^*(\theta_H)$。两点均精确落在各自曲线峰顶。}
+\label{fig:monotone-id}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.15,>=Stealth]
+    \draw[->] (-0.2,0) -- (6.0,0) node[right] {$\theta$};
+    \draw[->] (0,-0.2) -- (0,5.3) node[above] {$x^*(\theta)$};
+    \draw[very thick,blue!60!black] (0,1) -- (2,1);
+    \draw[very thick,red!70!black] (2,1) -- (2,3);
+    \draw[very thick,blue!60!black] (2,3) -- (4,3);
+    \draw[very thick,red!70!black] (4,3) -- (4,4.5);
+    \draw[very thick,blue!60!black] (4,4.5) -- (5.4,4.5);
+    \fill[blue!60!black] (0,1) circle (1.6pt);
+    \fill[blue!60!black] (2,3) circle (1.6pt);
+    \fill[blue!60!black] (4,4.5) circle (1.6pt);
+    \fill[blue!60!black] (2,1) circle (1.6pt);
+    \fill[blue!60!black] (4,3) circle (1.6pt);
+    \node[red!70!black,anchor=west,font=\small,align=left]
+        at (2.4,1.7) {此处 argmax\\为整段（多重最优）};
+    \draw[red!70!black,->] (2.38,1.95) -- (2.05,2.0);
+    \node[blue!60!black,anchor=west,font=\small]
+        at (0.25,4.9) {$\theta\uparrow\ \Rightarrow\ x^*(\theta)$ 单调不降};
+\end{tikzpicture}
+\caption{Topkis 定理承诺的对象：最优选择对应 $\cX^*(\theta)$ 在强集序下不减。它可以是一条带平台、带竖直跳跃的阶梯——竖直段（红）处 argmax 是整段区间（多重最优），但最大选择与最小选择仍各自单调不降。无需可微，亦无需 $x^*$ 是单值函数。}
+\label{fig:monotone-step}
+\end{figure}
+
+\state{Topkis 定理的工具性一句话}{
+\textbf{目标超模 $+$ 目标对参数有递增差 $\Rightarrow$ 最优选择随参数单调不降}（强集序意义下，含最大、最小选择）。证明只用``取大/取小''与函数值比较，因此：选择可以离散、目标可以不可微、可以不凹、可以无内点解、可以多重最优——这些隐函数定理逐一要求的条件，这里一个都不需要。
+}
+
+\section{单交叉条件（Milgrom--Shannon）}
+\label{sec:monotone-4}
+
+递增差还可以再削薄。仔细看 Topkis 的证明：递增差是通过``收益 $f(\vc x',\cdot)-f(\vc x,\cdot)$ 随 $\theta$ 不减''来用的，但我们真正需要的，只是这收益``一旦变正就不再变负''——它的具体大小、是否单调上升，无关紧要。这就引出比递增差更弱、且对单调比较静态``恰到好处''的条件。
+
+\defn{单交叉性质（single crossing property）}{
+设 $X,\Theta\se\RR$，$f:X\times\Theta\to\RR$。称 $f$ 关于 $(\vc x;\theta)$ 满足\textbf{单交叉}，若对任意 $x'>x$，差值
+\[
+    g(\theta):=f(x',\theta)-f(x,\theta)
+\]
+满足：$\theta'>\theta$ 时，
+\[
+    g(\theta)\ge 0\ \Rightarrow\ g(\theta')\ge 0,
+    \qquad\text{且}\qquad
+    g(\theta)>0\ \Rightarrow\ g(\theta')>0 .
+\]
+即 $g$ 作为 $\theta$ 的函数，至多变号一次，且只能由负到正（``单向穿越零''）。
+}
+
+递增差要求 $g$ \emph{整体不减}；单交叉只要求 $g$ 的\emph{符号}由负到正、不许回头（图~\ref{fig:monotone-sc}）。后者明显更弱：$g$ 可以在转正之后再回落、甚至剧烈波动，只要不重新变负即可。它捕捉的是``一旦升高 $x$ 变得划算，参数再涨也依旧划算''这件序上的事，而把``划算多少''彻底丢开。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.25,>=Stealth]
+    \draw[->] (-0.2,0) -- (4.5,0) node[right] {$\theta$};
+    \draw[->] (0,-1.5) -- (0,1.7) node[above] {$g(\theta)$};
+    \draw[thick,blue!60!black,domain=0.2:4,smooth,samples=120,variable=\t]
+        plot ({\t},{0.55*(\t-2)+0.6*sin(deg(2.2*(\t-2)))});
+    \fill[red!70!black] (2,0) circle (1.6pt);
+    \draw[dashed,red!70!black] (2,0) -- (2,-0.55) node[right] {$\theta_0$};
+    \node[black!70,anchor=west,font=\small] at (0.15,-1.4) {$g<0$：选 $x_L$ 更优};
+    \node[black!70,anchor=west,font=\small] at (2.85,-0.95) {$g>0$：选 $x_H$ 更优};
+    \node[black!70,anchor=east,font=\small] at (3.42,1.48) {一旦转正便不再返负};
+    \draw[black!70,->] (3.5,1.32) -- (3.5,0.79);
+\end{tikzpicture}
+\caption{单交叉：$g(\theta)=f(x_H,\theta)-f(x_L,\theta)$（升高选择的收益）作为 $\theta$ 的函数，只能由负到正穿越零一次，零点 $\theta_0$ 即``开始值得选高者''的临界参数。转正之后即便回落（如图右段下行）也不再返负——这正是它比递增差弱的地方：递增差要求 $g$ 整条不减，单交叉只管符号不回头。}
+\label{fig:monotone-sc}
+\end{figure}
+
+惊人的是，把递增差换成更弱的单交叉，Topkis 式的结论几乎原样成立——这是 Milgrom 与 Shannon 的定理。更深刻的是，他们证明了单交叉是单调比较静态的\emph{充要}条件。
+
+\thm{Milgrom--Shannon 单调选择定理}{
+设 $X,\Theta\se\RR$，$f:X\times\Theta\to\RR$。则 $\argmax_{x\in X\cap[\underline x,\overline x]}f(x,\theta)$ 对\emph{每一个}约束区间 $[\underline x,\overline x]$ 都在强集序下随 $\theta$ 不减，当且仅当 $f$ 关于 $(x;\theta)$ 满足单交叉性质。
+}
+\rmkb[为什么是充要、为什么要``对每个约束区间'']{
+``充分''方向与 Topkis 证明同构：把式 $(2)$ 那一步的``收益随 $\theta$ 不减''换成``收益的符号不回头''即可贯通。``必要''方向是真正的洞见：若单交叉被破坏（存在 $g$ 先正后负），Milgrom--Shannon 构造出一个把最优解压进合适约束区间的情形，使最优选择\emph{逆}着 $\theta$ 走。正因要排除一切这类反例，定理才要求对每个约束集都单调——这也解释了为何单交叉是``序不变''的正确推广：它恰好是那条在任意单调变换、任意约束下都守得住单调比较静态的最弱条件。
+}
+
+\state{该用递增差还是单交叉？}{
+递增差（及其多维版超模性）是\textbf{基数}（cardinal）条件——依赖 $f$ 的具体数值，且在分量间可``叠加''，故是多维选择（Topkis）与超模博弈的通用语言。单交叉是\textbf{序数}（ordinal）条件——只看符号，对 $f$ 做任意严格增变换都不改变它，是\emph{一维}选择下单调比较静态的充要刻画。一维问题用单交叉最省力；多维或要做博弈的策略互补时，回到超模/递增差。
+}
+
+\ex[价格上涨如何抬高最优存货：无需凹性]{
+零售商持有存货 $x\ge 0$，售价 $\theta$，利润 $f(x,\theta)=\theta\,R(x)-C(x)$，其中 $R$ 是销量（$R'>0$）、$C$ 是持有与采购成本。这里不假设 $f$ 凹（$R,C$ 可任意弯曲，甚至有规模经济使 $f$ 多峰）。问售价 $\theta$ 上升时最优存货 $x^*(\theta)$ 怎样变化？
+}
+\sol{
+取 $x'>x$，看升高存货的收益
+\[
+    g(\theta)=f(x',\theta)-f(x,\theta)=\theta\,\underbrace{[R(x')-R(x)]}_{>0}-\,[C(x')-C(x)] .
+\]
+它是 $\theta$ 的\emph{仿射增}函数（斜率 $R(x')-R(x)>0$），故随 $\theta$ 严格上升——递增差成立，单交叉自然成立（仿射增函数至多由负变正一次）。由 Milgrom--Shannon（或直接由 Topkis），$x^*(\theta)$ 随 $\theta$ 单调不降。全程未用 $f$ 的凹性：哪怕 $f$ 在 $x$ 上多峰、最优存货发生跳跃式跃迁，``售价升 $\Rightarrow$ 存货升''的方向依旧铁定成立。若改用隐函数定理，则需 $f_{xx}<0$ 处处成立——本例正是它失效、而序方法照常工作的典型。
+}
+
+\section{与隐函数定理的对照}
+\label{sec:monotone-5}
+
+把两套比较静态工具并排，能看清它们各自的领地。隐函数定理是光滑世界的\emph{定量}工具，序方法是序世界的\emph{定性}工具；它们在交叉偏导这一点上``握手''，但要价与产出截然不同。
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & 隐函数定理（第十五章） & 单调比较静态（本章） \\
+\midrule
+目标可微？        & 需 $C^1$（甚至 $C^2$） & 不需要 \\
+需要二阶条件 / 凹性？ & 需 Hessian 负定（可逆） & 不需要 \\
+选择变量          & 连续、内点解         & 可离散、可在边界、可格上 \\
+``互补''的形式     & $\pdc{f}{x}{\theta}\ge 0$ & 递增差 / 单交叉（差分版） \\
+产出              & 方向\emph{与}大小 $\dd{x^*}{\theta}$ & 仅方向（单调不降） \\
+多重最优时         & 失效（须单值可微）    & 照常（最大、最小选择皆单调） \\
+\bottomrule
+\end{tabular}
+\caption{两套比较静态工具的分工。光滑情形下二者一致：$\pdc{f}{x}{\theta}\ge 0$ 既是隐函数定理给出 $\sgn(\dd{x^*}{\theta})=\sgn(f_{x\theta})$ 的依据，也正是本章``格、递增差与超模性''一节里的递增差。}
+\label{tab:monotone-compare}
+\end{table}
+
+\state{同一个交叉偏导，两种读法}{
+光滑、内点、凹的``好''情形下，$\pdc{f}{x}{\theta}\ge 0$ 同时被两套理论征用：隐函数定理读它为``$\dd{x^*}{\theta}=-f_{x\theta}/f_{xx}\ge 0$ 的分子符号'',连\emph{大小}一并给出；序方法读它为``递增差成立'',只取\emph{方向}却把可微、凹性、内点统统省下。于是一句口诀：\textbf{要数值，且原料够光滑，用隐函数定理；只要方向，或原料不光滑，用单调比较静态}。后者是前者在``定性、稳健''方向上的极限——把要价压到最低，只换回那个最常被真正需要的东西：符号。
+}
+
+\section{去处}
+\label{sec:monotone-6}
+
+序方法之所以成为现代理论的主力，是因为``参数升 $\Rightarrow$ 选择升''这个模板，在博弈、投资、市场设计与匹配里反复出现，且往往出现在隐函数定理够不着的非光滑、博弈互动场景。
+
+\paragraph{超模博弈与策略互补。}
+这是 Topkis 思想最耀眼的去处。若每个局中人的支付对\emph{自己的策略}超模、且对\emph{他人的策略}具有递增差（``别人更激进，我更激进越划算''——策略互补），则博弈称为\textbf{超模博弈}。把每个人的最优反应看成``以他人策略为参数''的 argmax，Topkis 定理立刻给出：\textbf{最优反应随对手策略单调上升}。配合格上的不动点定理（Tarski），可证纯策略 Nash 均衡存在，且存在\emph{最大}与\emph{最小}均衡；再叠一次递增差（支付对某外生参数也递增），又得``参数升 $\Rightarrow$ 极端均衡随之单调''的比较静态。Bertrand 价格竞争、军备竞赛、技术采纳、网络外部性下的协调，都是超模博弈。这套结论无需支付可微或凹，正是序方法的胜场。
+
+\paragraph{投资与技术互补。}
+``资本与劳动互补''（前面柯布--道格拉斯一例）只是开端。更广地，当多种投资两两超模（一项的回报随另一项上升），Topkis 给出投资决策的\emph{协同单调}：补贴或成本下降会让所有互补的投资同向上调。宏观增长里``技能--技术互补''、组织经济学里``互补性实践成簇出现''（如精益生产的各环节捆绑采用），骨架都是这个。
+
+\paragraph{稳健的比较静态。}
+许多应用模型对函数形式（需求多弯、成本是否凹）并无把握。序方法让我们把结论建立在\emph{定性}假设（``这两样东西互补''）而非\emph{定量}假设（``效用是 CRRA 且 $\gamma=2$''）之上，因而对设定误差稳健。这正是它在实证导向的产业组织与机制设计中受青睐的原因：要的是不被函数形式绑架的结论。
+
+\paragraph{拍卖、机制设计与匹配。}
+单交叉是机制设计的命脉。在私人价值拍卖与筛选模型里，``类型越高、越愿意选更高的行动（出价/数量）''正是单交叉（常称 Spence--Mirrlees 单交叉条件），它保证最优机制里分配随类型单调、激励相容的局部条件能积分为全局条件。在匹配市场，若配对产出对双方类型超模，则稳定匹配是\textbf{正向匹配}（positive assortative matching）——``强强联手、弱弱配''；这一 Becker 的经典结论，本质上就是 Topkis 定理在匹配格上的一次应用。
+
+\medskip
+一以贯之的，是把比较静态从微积分的语言翻译成序的语言：放弃``变多少''、紧扣``往哪变'',换来对不可微、离散、博弈互动、函数形式未知等一大片隐函数定理无能为力的疆域的掌控。当你日后在某篇产业组织或机制设计论文里读到``by supermodularity / single crossing, the equilibrium is increasing in $\theta$''而不见一个导数时，你已经知道，那背后站着的正是本章这两条朴素的序不等式。

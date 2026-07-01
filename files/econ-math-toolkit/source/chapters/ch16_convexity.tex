@@ -1,0 +1,495 @@
+% !TEX root = ../main.tex
+\chapter{凹凸函数与拟凹、拟凸}
+\label{ch:convex}
+
+\noindent\emph{用到的前置工具：偏导数、梯度与 Hessian（多元微分一章，第~\ref{ch:multideriv}~章）；Taylor 展开与二阶近似（第~\ref{ch:taylor}~章）；对称矩阵的正定/半正定性（线性代数部分，谱定理与二次型见第~\ref{ch:spectral}~章）。}
+\medskip
+
+上一章的隐函数定理告诉我们，只要二阶条件成立，一阶条件就刻画了一个``好''的最优解、比较静态也随之有定义。但那里我们偷偷预设了一件事：手上这个一阶条件的解\emph{确实}是我们想要的极大值，而不是极小值、鞍点，或者只是众多局部极大里不起眼的一个。一阶条件 $\grad f=\vc 0$ 本身分不清这些情形——它只是``驻点''的方程。真正把驻点升格为``全局最优''的，是目标函数的形状：它得是``凹''的。
+
+这正是本章要讲的工具。凹凸性是最优化的\textbf{保证书}：目标函数一旦凹，局部极大自动就是全局极大，一阶条件从``必要''升级为``充分''，``找到一个驻点''就等于``解完了问题''。这件事的分量怎么强调都不过分——经济学里几乎每一个``存在唯一最优解''的论断，背后都站着某种凹凸性假设。本章先把凸集与凹凸函数的几种等价说法讲清楚（弦、上方图、切线、Hessian 一层层递进），再证明那条核心承诺（凹 $\To$ 局部最优即全局最优），然后推广到经济学真正需要的、比凹凸更弱的概念——\textbf{拟凹与拟凸}，它才是消费者理论里``凸偏好''的正确数学表达。最后用 Jensen 不等式把凹凸性接到风险厌恶上。
+
+\section{凸集：一切的地基}
+\label{sec:convex-1}
+
+谈``凹凸函数''之前，得先有``凸集''——因为函数的定义域、约束集、以及后面要用的上方图、等值集，都需要是凸的才好谈。凸集的定义朴素到近乎平凡，但正是它撑起了整套理论。
+
+\defn{凸集}{
+集合 $C\se\RR^n$ 称为\textbf{凸集}，如果对任意两点 $\vc x,\vc y\in C$ 与任意 $\lambda\in[0,1]$，都有
+\[
+    \lambda\vc x+(1-\lambda)\vc y\in C .
+\]
+也就是说，$C$ 中任意两点的连线段整段都落在 $C$ 内。
+}
+
+表达式 $\lambda\vc x+(1-\lambda)\vc y$（$\lambda$ 从 $1$ 走到 $0$）恰好扫过从 $\vc x$ 到 $\vc y$ 的整条线段，叫做这两点的\textbf{凸组合}。所以凸集就是``对取凸组合封闭''的集合（图~\ref{fig:convex-1}）。常见的凸集：全空间 $\RR^n$、任意区间、半空间 $\setb{\vc x}{\vc a\T\vc x\le b}$、超平面、球、以及——这一点对最优化至关重要——\emph{任意一族凸集的交}仍是凸集。预算集 $\setb{\vc x\ge\vc 0}{\vc p\T\vc x\le m}$ 就是若干半空间的交，因而是凸的。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ===== 左：凸集 =====
+  \begin{scope}
+    \draw[thick,green!50!black,fill=green!12!white,rotate=15]
+       (1.7,1.3) ellipse (1.55 and 1.05);
+    \coordinate (P) at (0.85,0.95);
+    \coordinate (Q) at (2.6,2.05);
+    \draw[blue!65!black,thick] (P) -- (Q);
+    \fill (P) circle (1.5pt);
+    \fill (Q) circle (1.5pt);
+    \node[anchor=north east] at (P) {$\vc x$};
+    \node[anchor=south west] at (Q) {$\vc y$};
+    \node[green!45!black,anchor=west,font=\small] at (2.55,0.55) {$C$};
+    \node[anchor=south,font=\small,align=center] at (1.7,-0.75)
+       {\textbf{凸集}：任取两点，\\整条连线段都在集内};
+  \end{scope}
+  % ===== 右：非凸集（顶部有凹口的月牙形）=====
+  \begin{scope}[xshift=6.4cm]
+    \draw[thick,red!60!black,fill=red!10!white]
+       plot[smooth cycle,tension=0.7] coordinates
+       {(0.2,0.6) (1.7,0.15) (3.2,0.6) (3.05,1.6) (2.55,2.05)
+        (1.7,1.0) (0.85,2.05) (0.35,1.6)};
+    \coordinate (P) at (0.7,1.85);
+    \coordinate (Q) at (2.7,1.85);
+    \draw[blue!65!black,thick] (P) -- (Q);
+    \fill (P) circle (1.5pt);
+    \fill (Q) circle (1.5pt);
+    \node[anchor=south east] at (0.78,1.85) {$\vc x$};
+    \node[anchor=south west] at (2.62,1.85) {$\vc y$};
+    \node[blue!65!black,anchor=north,font=\small,align=center] at (1.7,2.95)
+       {连线这一段\\\emph{跑到集外}};
+    \draw[blue!65!black,->] (1.7,2.55) -- (1.7,1.93);
+    \node[red!55!black,anchor=west,font=\small] at (3.05,0.95) {$C$};
+    \node[anchor=south,font=\small,align=center] at (1.7,-0.7)
+       {\textbf{非凸集}：某两点的\\连线段会离开集合};
+  \end{scope}
+\end{tikzpicture}
+\caption{凸集与非凸集。判据只看一件事：任取两点，连接它们的整条线段是否都留在集合内。}
+\label{fig:convex-1}
+\end{figure}
+
+\state{为什么经济学离不开凸集}{
+凸集是消费者理论里``凸偏好''的几何载体（``混合''不差于极端，无差异曲线向原点弯），是生产理论里生产可能集的标准假设，更是凸规划赖以成立的前提——\emph{在凸集上极大化凹函数}，局部最优即全局最优、KKT 条件充分（第二十、二十一章）。一旦约束集非凸（如``整数''约束、固定成本带来的不可分性），这些便利统统失效，问题立刻变难。
+}
+
+\section{凹函数与凸函数}
+\label{sec:convex-2}
+
+有了凸的定义域，就能谈函数的``弯法''。直觉是：凸函数像一只碗（开口朝上），凹函数像一座山（开口朝下）。把这句话精确化，最原始的方式是看\textbf{弦}与曲线的相对位置。
+
+\defn{凹函数与凸函数}{
+设 $C\se\RR^n$ 为凸集，$f:C\to\RR$。称 $f$ 为\textbf{凸函数}，如果对任意 $\vc x,\vc y\in C$ 与 $\lambda\in[0,1]$，
+\[
+    f\bigl(\lambda\vc x+(1-\lambda)\vc y\bigr)\;\le\;\lambda f(\vc x)+(1-\lambda)f(\vc y) ;
+\]
+称 $f$ 为\textbf{凹函数}，如果上式中的不等号反向（$\ge$）。若 $\vc x\neq\vc y$、$\lambda\in(0,1)$ 时不等号严格成立，则分别称为\textbf{严格凸}、\textbf{严格凹}。
+}
+
+不等式右边 $\lambda f(\vc x)+(1-\lambda)f(\vc y)$ 是连接两点 $(\vc x,f(\vc x))$、$(\vc y,f(\vc y))$ 的\emph{弦}在横坐标 $\lambda\vc x+(1-\lambda)\vc y$ 处的高度；左边是\emph{函数本身}在同一处的高度。于是定义说的正是：\textbf{凸函数的弦永远在曲线上方，凹函数的弦永远在曲线下方}（图~\ref{fig:convex-2}）。立刻可见 $f$ 凹 $\Iff$ $-f$ 凸——这条对偶让我们只需证一边的定理，另一边自动成立；本章证明多按凹函数来写，因为最优化里出场的是``极大化凹目标''。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ===== 左：凸函数（弦在曲线上方）=====
+  \begin{scope}
+    \draw[->] (-0.2,0) -- (4.1,0) node[right] {$x$};
+    \draw[->] (0,-0.2) -- (0,4.6) node[above] {$f$};
+    \draw[thick,blue!60!black,domain=0.2:3.55,smooth,variable=\t]
+       plot ({\t},{0.35*\t*\t+0.3});
+    \coordinate (A) at (0.6,0.426);
+    \coordinate (B) at (3.2,3.884);
+    \draw[red!75!black,thick] (A) -- (B);
+    \fill (A) circle (1.4pt);
+    \fill (B) circle (1.4pt);
+    \draw[dashed,gray] (2.16,1.933) -- (2.16,2.501);
+    \fill[blue!60!black] (2.16,1.933) circle (1.2pt);
+    \fill[red!75!black] (2.16,2.501) circle (1.2pt);
+    \node[anchor=north] at (0.6,-0.05) {$a$};
+    \node[anchor=north] at (3.2,-0.05) {$b$};
+    \node[blue!60!black,anchor=west] at (2.55,1.35) {$f$};
+    \node[red!75!black,anchor=south east,font=\small] at (2.0,2.55) {弦};
+    \node[anchor=west,font=\small,align=left] at (0.15,4.05)
+       {弦在曲线\\\emph{上}方};
+    \node[anchor=south,font=\small] at (2.0,-0.95) {\textbf{凸函数}};
+  \end{scope}
+  % ===== 右：凹函数（弦在曲线下方）=====
+  \begin{scope}[xshift=6.0cm]
+    \draw[->] (-0.2,0) -- (4.1,0) node[right] {$x$};
+    \draw[->] (0,-0.2) -- (0,4.6) node[above] {$g$};
+    \draw[thick,blue!60!black,domain=0.2:3.45,smooth,variable=\t]
+       plot ({\t},{-0.42*(\t-2.7)*(\t-2.7)+3.7});
+    \coordinate (C) at (0.6,1.848);
+    \coordinate (E) at (3.2,3.595);
+    \draw[red!75!black,thick] (C) -- (E);
+    \fill (C) circle (1.4pt);
+    \fill (E) circle (1.4pt);
+    \draw[dashed,gray] (1.9,2.721) -- (1.9,3.431);
+    \fill[blue!60!black] (1.9,3.431) circle (1.2pt);
+    \fill[red!75!black] (1.9,2.721) circle (1.2pt);
+    \node[anchor=north] at (0.6,-0.05) {$a$};
+    \node[anchor=north] at (3.2,-0.05) {$b$};
+    \node[blue!60!black,anchor=south west] at (2.55,3.5) {$g$};
+    \node[red!75!black,anchor=north,font=\small] at (1.35,2.0) {弦};
+    \node[anchor=west,font=\small,align=left] at (0.15,4.05)
+       {弦在曲线\\\emph{下}方};
+    \node[anchor=south,font=\small] at (2.0,-0.95) {\textbf{凹函数}};
+  \end{scope}
+\end{tikzpicture}
+\caption{凹凸的``弦判据''。凸：弦在曲线上方；凹：弦在曲线下方。虚线段示意弦与曲线在内点处的高度差。}
+\label{fig:convex-2}
+\end{figure}
+
+\subsection*{用``上方图/下方图''把函数翻译成集合}
+
+弦的定义虽直观，却把``函数''和``集合''两套语言混在一起。有一种更漂亮的等价刻画，能把凹凸性彻底\emph{翻译成凸集}的语言，从而让上一节关于凸集的一切（特别是``凸集的交还是凸集'')都能拿来即用。
+
+\defn{上方图与下方图}{
+函数 $f:C\to\RR$ 的\textbf{下方图}（epigraph，``图像及其上方'')与\textbf{上方图}（hypograph，``图像及其下方'')分别是 $\RR^{n+1}$ 中的集合
+\[
+    \operatorname{epi}f=\setb{(\vc x,t)}{\vc x\in C,\ t\ge f(\vc x)},
+    \qquad
+    \operatorname{hyp}f=\setb{(\vc x,t)}{\vc x\in C,\ t\le f(\vc x)} .
+\]
+}
+
+\prop{凹凸的集合刻画}{
+$f$ 是凸函数 $\Iff$ $\operatorname{epi}f$ 是凸集；\quad $f$ 是凹函数 $\Iff$ $\operatorname{hyp}f$ 是凸集。
+}
+\pf{
+只证凸函数一侧（凹的情形对 $-f$ 用之即得）。设 $f$ 凸，取 $\operatorname{epi}f$ 中两点 $(\vc x,s)$、$(\vc y,t)$，即 $s\ge f(\vc x)$、$t\ge f(\vc y)$。对 $\lambda\in[0,1]$，由凸性与 $s,t$ 的下界，
+\[
+    f\bigl(\lambda\vc x+(1-\lambda)\vc y\bigr)
+    \le\lambda f(\vc x)+(1-\lambda)f(\vc y)
+    \le\lambda s+(1-\lambda)t ,
+\]
+这说明 $\bigl(\lambda\vc x+(1-\lambda)\vc y,\ \lambda s+(1-\lambda)t\bigr)\in\operatorname{epi}f$，故 $\operatorname{epi}f$ 凸。反之，若 $\operatorname{epi}f$ 凸，取其上的两点 $(\vc x,f(\vc x))$、$(\vc y,f(\vc y))$，它们的凸组合 $\bigl(\lambda\vc x+(1-\lambda)\vc y,\ \lambda f(\vc x)+(1-\lambda)f(\vc y)\bigr)$ 也在 $\operatorname{epi}f$ 内，按定义即得 $f(\lambda\vc x+(1-\lambda)\vc y)\le\lambda f(\vc x)+(1-\lambda)f(\vc y)$，即 $f$ 凸。
+}
+
+\rmkb[这个翻译为什么值钱]{
+``$f$ 凸 $\Iff$ $\operatorname{epi}f$ 凸''把对函数的判断转成对集合的判断，许多性质于是``免费''得到。例如：一族凸函数的逐点上确界 $\sup_\alpha f_\alpha$ 仍凸——因为 $\operatorname{epi}(\sup_\alpha f_\alpha)=\bigcap_\alpha\operatorname{epi}f_\alpha$ 是凸集的交、自然是凸集。对偶地，一族凹函数的逐点下确界仍凹。后面讲值函数与对偶时（第二十一、二十二章），``上确界保持凸性''正是关键一步。
+}
+
+\section{光滑情形：一阶判据与二阶判据}
+\label{sec:convex-3}
+
+弦判据对一切函数都管用，但要逐对点去验未免笨拙。当 $f$ 可微、乃至二阶可微时，凹凸性有两个用起来顺手得多的等价刻画——它们也正是日后做最优化时真正动手算的判据。
+
+\subsection*{一阶判据：切线（切平面）兜住曲线}
+
+\thm{一阶判据}{
+设 $C\se\RR^n$ 为开凸集，$f:C\to\RR$ 连续可微。则
+\[
+    f\ \text{凹}\quad\Iff\quad
+    f(\vc y)\le f(\vc x)+\grad f(\vc x)\T(\vc y-\vc x)
+    \quad\text{对一切}\ \vc x,\vc y\in C .
+\]
+凸函数对应不等号反向（$\ge$）。严格凹/凸对应 $\vc y\neq\vc x$ 时严格不等。
+}
+\pf{
+证凹的情形。式子右边 $f(\vc x)+\grad f(\vc x)\T(\vc y-\vc x)$ 正是 $f$ 在 $\vc x$ 处的\emph{切平面}在 $\vc y$ 点的高度；不等式说的是：凹函数处处落在它任一点的切平面\emph{之下}（图~\ref{fig:convex-3} 左）。
+
+（$\To$）设 $f$ 凹。对 $\lambda\in(0,1]$，由凹性
+\[
+    f\bigl(\vc x+\lambda(\vc y-\vc x)\bigr)
+    =f\bigl((1-\lambda)\vc x+\lambda\vc y\bigr)
+    \ge(1-\lambda)f(\vc x)+\lambda f(\vc y) ,
+\]
+移项整理得
+\[
+    \frac{f\bigl(\vc x+\lambda(\vc y-\vc x)\bigr)-f(\vc x)}{\lambda}\ \ge\ f(\vc y)-f(\vc x) .
+\]
+令 $\lambda\downarrow 0$，左边趋于方向导数 $\grad f(\vc x)\T(\vc y-\vc x)$，于是 $\grad f(\vc x)\T(\vc y-\vc x)\ge f(\vc y)-f(\vc x)$，即所证。
+
+（$\Leftarrow$）设切平面不等式对一切点成立。取 $\vc x,\vc y$、$\lambda\in[0,1]$，记凸组合 $\vc z=\lambda\vc x+(1-\lambda)\vc y$。把不等式分别用在 $(\vc z,\vc x)$ 与 $(\vc z,\vc y)$ 上：
+\[
+    f(\vc x)\le f(\vc z)+\grad f(\vc z)\T(\vc x-\vc z),
+    \qquad
+    f(\vc y)\le f(\vc z)+\grad f(\vc z)\T(\vc y-\vc z) .
+\]
+以权 $\lambda$、$1-\lambda$ 加权求和，注意 $\lambda(\vc x-\vc z)+(1-\lambda)(\vc y-\vc z)=\vc 0$，梯度项消去，得
+\[
+    \lambda f(\vc x)+(1-\lambda)f(\vc y)\le f(\vc z)=f\bigl(\lambda\vc x+(1-\lambda)\vc y\bigr),
+\]
+正是凹性。
+}
+
+\subsection*{二阶判据：Hessian 半负定}
+
+一阶判据已好用，但``对一切 $\vc x,\vc y$ 成立''仍是个全局条件。若 $f$ 二阶可微，凹凸性可以被压缩成一个\emph{局部}且\emph{逐点}可验的条件——只看一个矩阵的符号。这是经济学里出场频率最高的判据。
+
+\thm{二阶判据}{
+设 $C\se\RR^n$ 为开凸集，$f:C\to\RR$ 二阶连续可微，记其 Hessian 为 $\mat H(\vc x)=\grad^2 f(\vc x)$。则
+\[
+    f\ \text{凹}\quad\Iff\quad \mat H(\vc x)\ \text{半负定，对一切}\ \vc x\in C .
+\]
+$f$ 凸 $\Iff$ $\mat H$ 处处半正定。进一步，$\mat H$ 处处\emph{负定} $\To$ $f$ \emph{严格}凹（反之不必，如 $-x^4$）。
+}
+\pf{
+对任意 $\vc x,\vc y\in C$，沿连线把 $f$ 在 $\vc x$ 处做带 Lagrange 余项的二阶 Taylor 展开（第~\ref{ch:taylor}~章）：存在 $\xi\in(0,1)$、记 $\vc z=\vc x+\xi(\vc y-\vc x)$，使
+\[
+    f(\vc y)=f(\vc x)+\grad f(\vc x)\T(\vc y-\vc x)
+    +\tfrac12(\vc y-\vc x)\T\mat H(\vc z)(\vc y-\vc x) .
+\]
+若 $\mat H$ 处处半负定，二次型项 $\le 0$，于是 $f(\vc y)\le f(\vc x)+\grad f(\vc x)\T(\vc y-\vc x)$——这正是上一条定理里的一阶判据，故 $f$ 凹。反过来，若某点 $\vc x_0$ 处 $\mat H(\vc x_0)$ 不半负定，则存在方向 $\vc v$ 使 $\vc v\T\mat H(\vc x_0)\vc v>0$；由连续性，在 $\vc x_0$ 附近沿 $\vc v$ 走，上式二次型项为正，一阶判据被破坏，$f$ 在该处非凹。半负定与凹由此互为充要。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ===== 左：一阶判据——切线在凹曲线上方 =====
+  \begin{scope}
+    \draw[->] (-0.2,0) -- (4.5,0) node[right] {$x$};
+    \draw[->] (0,-0.2) -- (0,4.0) node[above] {$f$};
+    % 凹曲线 f(x)=-0.32(x-3.0)^2+3.2，在 [0.3,4.1]
+    \draw[very thick,blue!60!black,domain=0.3:4.15,smooth,samples=80,variable=\t]
+       plot ({\t},{-0.32*(\t-3.0)*(\t-3.0)+3.2});
+    % 切点 x0=1.5：f=-0.32*2.25+3.2=2.48，f'=-0.64(x-3)= -0.64*(-1.5)=0.96
+    \coordinate (X0) at (1.5,2.48);
+    \fill (X0) circle (1.5pt);
+    % 切线 y=2.48+0.96(x-1.5)，画在 [0.4,3.6]
+    \draw[orange!85!black,thick,domain=0.4:3.6,variable=\t]
+       plot ({\t},{2.48+0.96*(\t-1.5)});
+    \node[anchor=north] at (1.5,-0.05) {$x$};
+    \node[blue!60!black,anchor=north west] at (3.05,2.55) {$f$};
+    \node[orange!80!black,anchor=west,font=\small,align=left] at (0.05,3.6)
+       {切平面（切线）\\在曲线\emph{上}方};
+    \draw[orange!80!black,->] (1.55,3.55) -- (2.55,3.05);
+    \node[anchor=south,font=\small] at (2.2,-0.9) {\textbf{一阶判据}};
+  \end{scope}
+  % ===== 右：二阶判据示意——碗(凸,H>0)与山(凹,H<0) =====
+  \begin{scope}[xshift=6.0cm]
+    \draw[->] (-0.2,0) -- (4.5,0) node[right] {$x$};
+    \draw[->] (0,-0.2) -- (0,4.0) node[above] {$f$};
+    % 凸（碗）f=0.34(x-2.1)^2+0.3
+    \draw[very thick,green!45!black,domain=0.25:3.9,smooth,samples=80,variable=\t]
+       plot ({\t},{0.34*(\t-2.1)*(\t-2.1)+0.3});
+    % 凹（山）g=-0.32(x-2.1)^2+3.6
+    \draw[very thick,red!60!black,domain=0.25:3.95,smooth,samples=80,variable=\t]
+       plot ({\t},{-0.32*(\t-2.1)*(\t-2.1)+3.6});
+    \node[green!40!black,anchor=west,font=\small] at (3.55,1.6)
+       {凸：$f''\ge 0$};
+    \node[red!55!black,anchor=west,font=\small] at (2.35,3.45)
+       {凹：$f''\le 0$};
+    \node[anchor=south,font=\small] at (2.2,-0.9) {\textbf{二阶判据}};
+  \end{scope}
+\end{tikzpicture}
+\caption{左：凹函数处处落在其任一点切平面之下（一阶判据）。右：单变量下，凸是``碗'' $f''\ge0$、凹是``山'' $f''\le0$；多变量则换成 Hessian 半正定/半负定。}
+\label{fig:convex-3}
+\end{figure}
+
+\rmk{在 $n=1$ 时，Hessian 退化为标量 $f''(x)$：凹 $\Iff f''\le 0$、凸 $\Iff f''\ge0$，正是中学``二阶导判凹凸''那条规则的母版。多变量下，``$f''\le0$''被``Hessian 半负定''接管——而半负定与否，由谱定理（特征值全 $\le0$，见第~\ref{ch:spectral}~章）或主子式判据来判定。}
+
+\ex[Cobb--Douglas 是不是凹的]{
+生产函数 $f(x_1,x_2)=x_1^{a}x_2^{b}$（$x_1,x_2>0$，$a,b>0$）。问：何时它在正象限上凹？
+}
+\sol{
+先算梯度与 Hessian。一阶偏导
+\[
+    f_1=a\,x_1^{a-1}x_2^{b}=\frac{a}{x_1}f,
+    \qquad
+    f_2=\frac{b}{x_2}f .
+\]
+二阶偏导（利用 $f_1,f_2$ 的上式再求导）：
+\[
+    f_{11}=\frac{a(a-1)}{x_1^2}f,
+    \quad
+    f_{22}=\frac{b(b-1)}{x_2^2}f,
+    \quad
+    f_{12}=\frac{ab}{x_1 x_2}f .
+\]
+Hessian 半负定的判据（$2\times2$）是：对角元 $\le0$ 且行列式 $\ge0$。对角元 $f_{11}\le0$、$f_{22}\le0$ 要求 $a\le1$、$b\le1$。再看行列式：
+\[
+    \det\mat H=f_{11}f_{22}-f_{12}^2
+    =\frac{f^2}{x_1^2x_2^2}\Bigl[a(a-1)\,b(b-1)-a^2b^2\Bigr]
+    =\frac{f^2}{x_1^2x_2^2}\,ab\bigl[(a-1)(b-1)-ab\bigr] .
+\]
+方括号 $=(a-1)(b-1)-ab=1-a-b$。因 $ab>0$，故 $\det\mat H\ge0\Iff a+b\le1$。而 $a+b\le1$ 已蕴含 $a\le1,b\le1$，对角元条件自动满足。\textbf{结论：Cobb--Douglas 在正象限凹 $\Iff a+b\le1$}，即\emph{规模报酬不递增}。这把一个纯数学条件（Hessian 半负定）翻译成了一句生产理论的话——可这同时暴露一个尴尬：规模报酬递增（$a+b>1$）的 Cobb--Douglas 并不凹，难道效用/产出递增就没法谈最优化了？答案藏在下一节：它虽不凹，却仍\emph{拟凹}，而拟凹往往已经够用。
+}
+
+\section{核心承诺：凹函数的局部最大就是全局最大}
+\label{sec:convex-4}
+
+现在兑现本章开头那张``保证书''。这条结论是凹凸性在最优化里全部价值的源头。
+
+\thm{凹函数的局部最优即全局最优}{
+设 $C\se\RR^n$ 为凸集，$f:C\to\RR$ 凹。若 $\vc x^*$ 是 $f$ 在 $C$ 上的\emph{局部}极大点，则它必是\emph{全局}极大点。若 $f$ 严格凹，则全局极大点至多一个。
+}
+\pf{
+反证。设 $\vc x^*$ 为局部极大，却存在 $\vc y\in C$ 使 $f(\vc y)>f(\vc x^*)$。因 $C$ 凸，连线段 $\vc z_\lambda=(1-\lambda)\vc x^*+\lambda\vc y$（$\lambda\in[0,1]$）整段落在 $C$ 内。由凹性，
+\[
+    f(\vc z_\lambda)\ge(1-\lambda)f(\vc x^*)+\lambda f(\vc y)
+    =f(\vc x^*)+\lambda\bigl[f(\vc y)-f(\vc x^*)\bigr]>f(\vc x^*)
+    \quad\text{对一切}\ \lambda\in(0,1] .
+\]
+也就是说，从 $\vc x^*$ 朝 $\vc y$ 哪怕只挪一点点（$\lambda$ 任意小），函数值都\emph{严格}高于 $f(\vc x^*)$。这与``$\vc x^*$ 是局部极大''（其某邻域内无更高点）矛盾。故不存在这样的 $\vc y$，$\vc x^*$ 是全局极大。
+
+唯一性：设 $f$ 严格凹，$\vc x_1\neq\vc x_2$ 同为全局极大、值同为 $M$。取中点 $\vc m=\tfrac12\vc x_1+\tfrac12\vc x_2\in C$，严格凹给出 $f(\vc m)>\tfrac12 f(\vc x_1)+\tfrac12 f(\vc x_2)=M$，比最大值还大，矛盾。
+}
+
+这条定理的逆命题方向同样有用：它让一阶条件从``必要''升级为``充分''。无约束情形下，凹函数的驻点（$\grad f=\vc 0$）自动是全局极大——因为一阶判据 $f(\vc y)\le f(\vc x)+\grad f(\vc x)\T(\vc y-\vc x)$ 在 $\grad f(\vc x^*)=\vc 0$ 处直接退化为 $f(\vc y)\le f(\vc x^*)$ 对一切 $\vc y$ 成立。
+
+\state{凹性 = ``一阶条件就够用''的通行证}{
+非凹问题里，一阶条件 $\grad f=\vc 0$ 只是必要条件：解出驻点后还得查二阶条件、还得操心它是不是众多局部极大里最高的那个、甚至会不会是鞍点。\textbf{一旦 $f$ 凹（且定义域凸），这些顾虑一扫而空}：任一驻点都是全局极大，``求一阶条件的解''与``求全局最优''变成同一件事。这就是为什么经济学模型几乎言必称凹——它不是为了好看，而是为了让``一阶条件刻画最优''这套全书最常用的推理\emph{合法}。约束情形下的对应物，是凸规划与 KKT 条件的充分性（第二十、二十一章）。
+}
+
+\section{拟凹与拟凸：经济学真正需要的弱化}
+\label{sec:convex-5}
+
+凹性很美，但它\emph{太强}了。回看上一节的尴尬：规模报酬递增的 Cobb--Douglas 不凹；更要命的是，效用函数本就该是\emph{序数}的——对效用做一个单调递增变换（如 $u\mapsto u^3$ 或 $u\mapsto\log u$）不改变偏好、不改变任何需求行为，可这种变换轻易就能把凹函数变成非凹函数。既然偏好不变、最优选择不变，``凹''就不可能是偏好的本质属性。我们需要一个对单调变换\emph{免疫}的、更弱的概念——它只关心``等值集的形状''，而非``曲线弯多狠''。这就是拟凹。
+
+\defn{拟凹与拟凸}{
+设 $C\se\RR^n$ 为凸集，$f:C\to\RR$。称 $f$ \textbf{拟凹}，如果它的每个\textbf{上等值集}
+\[
+    U_c=\setb{\vc x\in C}{f(\vc x)\ge c}
+\]
+都是凸集（对一切 $c\in\RR$）；称 $f$ \textbf{拟凸}，如果它的每个\textbf{下等值集} $\setb{\vc x}{f(\vc x)\le c}$ 都是凸集。等价地，$f$ 拟凹 $\Iff$ 对任意 $\vc x,\vc y$ 与 $\lambda\in[0,1]$，
+\[
+    f\bigl(\lambda\vc x+(1-\lambda)\vc y\bigr)\ \ge\ \min\set{f(\vc x),f(\vc y)} .
+\]
+}
+
+后一个等价说法（``凸组合处的值不低于两端的较小者'')最便于记忆：在两点之间，函数不会``塌陷''到比两端都低。这正是``单峰''的多维推广。在消费者理论里，上等值集 $U_c$ 就是``不差于某条无差异曲线的所有消费束''——它凸，意味着\emph{把两个一样好的消费束混合起来，不会更差}，这恰是``凸偏好''的标准假设，也是无差异曲线凸向原点的来由。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.5,>=Stealth]
+  \draw[->] (-0.2,0) -- (5.1,0) node[right] {$x$};
+  \draw[->] (0,-0.2) -- (0,3.55) node[above] {$f(x)$};
+  \draw[very thick,blue!60!black,domain=0:4.85,smooth,samples=120,variable=\t]
+     plot ({\t},{3*exp(-(\t-2.4)*(\t-2.4)/1.1)});
+  % 上等值集 {f>=c}, c=1.5, 区间 [1.527,3.273]
+  \draw[dashed,gray] (0,1.5) -- (4.85,1.5);
+  \node[anchor=east,font=\small] at (-0.05,1.5) {$c$};
+  \fill[red!70!black] (1.527,1.5) circle (1.3pt);
+  \fill[red!70!black] (3.273,1.5) circle (1.3pt);
+  \draw[red!70!black,line width=1.6pt] (1.527,0) -- (3.273,0);
+  \draw[dotted,red!70!black] (1.527,1.5) -- (1.527,0);
+  \draw[dotted,red!70!black] (3.273,1.5) -- (3.273,0);
+  \node[red!70!black,anchor=north,font=\small,align=center] at (2.4,-0.12)
+     {上等值集 $\{x:f(x)\ge c\}$ 是\emph{一个区间}};
+  % 弦在左侧凸段上方 -> 非凹
+  \coordinate (A) at (0.3,0.054);
+  \coordinate (B) at (1.6,1.677);
+  \draw[orange!85!black,thick] (A) -- (B);
+  \fill (A) circle (1.2pt);
+  \fill (B) circle (1.2pt);
+  \draw[dotted,orange!70!black] (0.95,0.444) -- (0.95,0.866);
+  \fill[orange!85!black] (0.95,0.866) circle (1.1pt);
+  \fill[blue!60!black] (0.95,0.444) circle (1.1pt);
+  \node[orange!75!black,anchor=west,font=\small,align=left] at (0.05,2.55)
+     {左段弦落在曲线\emph{上}方：\\不满足凹性};
+  \draw[orange!75!black,->] (0.55,2.45) -- (0.9,0.95);
+  \node[blue!60!black,anchor=west] at (3.35,2.35) {$f$};
+  \draw[blue!60!black,->] (3.45,2.3) -- (3.2,1.95);
+\end{tikzpicture}
+\caption{一个\emph{拟凹但非凹}的单峰函数。每条水平线 $f=c$ 切出的上等值集都是一段区间（凸），故拟凹；但左侧上升段是凸的，那里的弦落在曲线上方，故不凹。}
+\label{fig:convex-4}
+\end{figure}
+
+\subsection*{与凹凸的包含关系}
+
+\prop{凹 $\To$ 拟凹（反之不然）}{
+凹函数必拟凹；凸函数必拟凸。反之不成立。
+}
+\pf{
+设 $f$ 凹，取上等值集 $U_c$ 中两点 $\vc x,\vc y$（即 $f(\vc x)\ge c$、$f(\vc y)\ge c$）与 $\lambda\in[0,1]$。由凹性，
+\[
+    f\bigl(\lambda\vc x+(1-\lambda)\vc y\bigr)
+    \ge\lambda f(\vc x)+(1-\lambda)f(\vc y)
+    \ge\lambda c+(1-\lambda)c=c ,
+\]
+故凸组合仍在 $U_c$ 内，$U_c$ 凸，$f$ 拟凹。反例见图~\ref{fig:convex-4} 的单峰函数：它拟凹却不凹。更醒目的反例是\emph{任何}单调函数——$\RR$ 上的单调（增或减）函数既拟凹又拟凸（上、下等值集都是射线，自然是凸的），但单调函数一般既不凹也不凸（如 $f(x)=x^3$）。
+}
+
+\rmk{这条包含关系是``拟凹比凹弱''的精确含义：凹是``弦在曲线下方''（关乎\emph{高度}），拟凹只要``等值集是凸集''（关乎\emph{形状}）。前者会被单调变换破坏，后者不会——若 $g$ 是严格增函数，则 $g\circ f$ 与 $f$ 有完全相同的上等值集 $\{x:g(f(x))\ge g(c)\}=\{x:f(x)\ge c\}$，故 $f$ 拟凹 $\To$ $g\circ f$ 拟凹。这正是拟凹``对序数效用免疫''的根源。}
+
+\ex[拟凹效用足以保证一阶条件刻画需求]{
+为什么消费者理论只假设效用拟凹、而不强求凹？
+}
+\sol{
+考虑预算约束下的效用极大化 $\max_{\vc x}u(\vc x)\ \st\ \vc p\T\vc x\le m,\ \vc x\ge\vc 0$。预算集是凸的（半空间之交）。若 $u$ 拟凹且在最优点处梯度非零，则``相切''的一阶条件（边际替代率 $=$ 价格比）就足以\emph{定出}最优消费束：拟凹保证上等值集 $\{u\ge u(\vc x^*)\}$ 是凸集，它与凸预算集在最优点相切而不交错，于是没有别处能在预算内取得更高效用——切点即全局最优。这恰好不需要凹性：把 $u$ 换成 $u^3$，需求一点不变，而 $u^3$ 可能已不凹。\textbf{拟凹是``偏好凸''与``一阶条件刻画需求''的最弱充分条件}，这也是它在微观里取代凹性、成为效用标准假设的原因。约束最优化里拟凹目标 $+$ 凸约束何时让 KKT 充分，将在第二十、二十一章细讲。
+}
+
+\section{Jensen 不等式：凹凸性遇上期望}
+\label{sec:convex-6}
+
+把凹凸定义里的``两点凸组合''换成``一般概率分布下的期望'',弦判据就升级为概率论中分量极重的 Jensen 不等式。它是凹凸性通往\emph{不确定性与风险}的桥。
+
+\thm{Jensen 不等式}{
+设 $X$ 是取值于凸集 $C\se\RR^n$ 的随机向量、期望 $\E{X}$ 存在。若 $f:C\to\RR$ 凹，则
+\[
+    \E{f(X)}\ \le\ f\bigl(\E{X}\bigr) .
+\]
+$f$ 凸时不等号反向。若 $f$ 严格凹且 $X$ 非退化（不是几乎处处等于常数），则不等号严格。
+}
+\pf{
+用一阶判据，取 $\vc x_0=\E{X}$。凹函数落在其在 $\vc x_0$ 处切平面之下，对\emph{每一个}实现值 $X$ 都有
+\[
+    f(X)\le f\bigl(\E{X}\bigr)+\grad f\bigl(\E{X}\bigr)\T\bigl(X-\E{X}\bigr) .
+\]
+两边取期望。右边第二项 $\grad f(\E{X})\T\E{X-\E{X}}=\grad f(\E{X})\T\,\vc 0=\vc 0$，于是
+\[
+    \E{f(X)}\le f\bigl(\E{X}\bigr) ,
+\]
+即所证。严格性来自：$f$ 严格凹时切平面只在 $\vc x_0$ 一点与曲线相切、别处严格在上方，$X$ 非退化便以正概率取到 $\vc x_0$ 以外的值，期望处不等号严格。
+}
+
+几何上（图~\ref{fig:convex-5}），对两点等概率分布，$\E{f(X)}$ 就是弦的中点高度、$f(\E{X})$ 是曲线在中点的高度——凹函数弦在下，于是 $\E{f(X)}\le f(\E{X})$。一般分布无非是``多点弦''（凸包）的推广。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.45,>=Stealth]
+  \draw[->] (-0.2,0) -- (4.7,0) node[right] {$x$};
+  \draw[->] (0,-0.2) -- (0,4.0) node[above] {$u(x)$};
+  \draw[very thick,blue!60!black,domain=0.05:4.4,smooth,samples=120,variable=\t]
+     plot ({\t},{1.7*sqrt(\t)});
+  \coordinate (U1) at (0.6,1.317);
+  \coordinate (U2) at (3.8,3.314);
+  \draw[red!75!black,thick] (U1) -- (U2);
+  \fill[blue!60!black] (U1) circle (1.3pt);
+  \fill[blue!60!black] (U2) circle (1.3pt);
+  \coordinate (CURVE) at (2.2,2.522);
+  \coordinate (CHORD) at (2.2,2.315);
+  \fill[red!75!black] (CHORD) circle (1.3pt);
+  \fill[blue!60!black] (CURVE) circle (1.3pt);
+  \draw[dotted,gray] (0.6,0) -- (U1);
+  \draw[dotted,gray] (3.8,0) -- (U2);
+  \draw[dashed,gray] (2.2,0) -- (CURVE);
+  \draw[dotted,gray] (CURVE) -- (0,2.522);
+  \draw[dotted,gray] (CHORD) -- (0,2.315);
+  \node[anchor=north] at (0.6,-0.04) {$x_1$};
+  \node[anchor=north] at (3.8,-0.04) {$x_2$};
+  \node[anchor=north] at (2.2,-0.04) {$\E{X}$};
+  \node[blue!60!black,anchor=east,font=\small] at (-0.06,2.62) {$u\!\pr{\E{X}}$};
+  \node[red!75!black,anchor=east,font=\small] at (-0.06,2.18) {$\E{u(X)}$};
+  \draw[<->,black] (2.32,2.315) -- (2.32,2.522);
+  \node[anchor=west,font=\small,align=left] at (2.45,2.0)
+     {间隙 $=u(\E{X})-\E{u(X)}\ge 0$};
+  \node[blue!60!black,anchor=south west] at (3.55,3.25) {$u$};
+  \node[red!75!black,anchor=north west,font=\small] at (0.6,1.15) {弦};
+  \draw[red!75!black,->] (0.95,1.05) -- (1.4,1.78);
+\end{tikzpicture}
+\caption{Jensen 不等式的几何（两点等概率）。凹效用 $u$ 的弦在曲线下方，弦中点高度 $\E{u(X)}$ 低于曲线在 $\E{X}$ 处的高度 $u(\E{X})$；二者之差即 Jensen 间隙。}
+\label{fig:convex-5}
+\end{figure}
+
+\state{凹效用 $=$ 风险厌恶}{
+设个体的财富效用 $u$ 凹。面对一笔均值为 $\E{X}$ 的随机收益 $X$，Jensen 给出
+\[
+    \E{u(X)}\le u\bigl(\E{X}\bigr) :
+\]
+\textbf{他对赌局的期望效用，不超过直接拿到期望财富 $\E{X}$ 的效用}。换言之，他宁愿要确定的 $\E{X}$ 也不愿要均值同为 $\E{X}$ 的彩票——这正是\emph{风险厌恶}的定义。曲线弯得越狠（$u''$ 越负），Jensen 间隙越大，风险厌恶越强；间隙折算成确定性收益的损失，就是\emph{风险溢价}。凹凸性在这里不再只是最优化的技术条件，它\emph{就是}对风险态度的刻画。这套语言贯穿决策论、保险、资产定价与契约理论。
+}
+
+\section{它通向何处}
+\label{sec:convex-7}
+
+凹凸与拟凹凸是全书后续几大块的共同地基，这里把去处一并标清，方便日后回查：
+
+\begin{itemize}
+    \item \textbf{消费者与生产理论}。拟凹效用给出凸偏好与凸向原点的无差异曲线，使``边际替代率 $=$ 价格比''的一阶条件刻画马歇尔需求；凹生产函数（如 $a+b\le1$ 的 Cobb--Douglas）保证成本极小化与利润极大化有良性解。需求/供给的诸多比较静态（上一章的隐函数微分）都默认了这层凹凸性。
+    \item \textbf{凸优化与 KKT 充分性}（第二十、二十一章）。``在凸集上极大化凹（或拟凹）目标''是凸规划，本章的``局部最优即全局最优''在约束情形下升级为：KKT 一阶条件不再只是必要，而成为充分——这是应用中``解一阶条件即解完问题''的合法性来源。对偶理论也建立在 epigraph 的凸性之上。
+    \item \textbf{风险与不确定性}。凹效用 $+$ Jensen $=$ 风险厌恶，进而是风险溢价、保险需求、Arrow--Pratt 风险厌恶度量、以及资产定价里的随机折现因子。决策论与契约理论里``凹''几乎等同于``谨慎''。
+    \item \textbf{计量经济学}。许多估计量来自极大化一个目标函数：MLE 极大化对数似然，许多模型（如 Logit、Probit、指数族）的对数似然\emph{全局凹}，于是数值优化必收敛到唯一全局极大、估计良性、不受初值困扰。GMM 与 M-估计的目标函数凹凸性，同样决定了优化是否稳健。这也是为什么计量里``对数似然凹''被视为一个模型``好用''的重要信号。
+\end{itemize}
+
+凹凸性之所以贯穿这么多领域，是因为它回答了一个所有最优化问题都绕不开的元问题：\textbf{什么时候一阶条件就够用}？凹（或拟凹）给出的答案是``现在就够''，于是我们得以把``求最优''安心地化简为``解方程''——这正是经济学日常推理赖以运转的支点。

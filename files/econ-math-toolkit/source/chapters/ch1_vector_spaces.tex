@@ -1,0 +1,401 @@
+% !TEX root = ../main.tex
+\chapter{向量空间、线性无关、基与维数}
+\label{ch:vec}
+
+\noindent\emph{用到的前置工具：几乎没有——只需 $\RR^n$ 中向量的加法与数乘。这是全书第一章，是后面整套线性代数的地基。}
+\medskip
+
+经济学是一门把现实世界翻译成``线性''关系再求解的学问。计量经济学的整套机器建立在线性回归之上；消费者面对的是线性的预算约束；一般均衡、投入产出、最优化的一阶条件，到头来都化成一组线性方程。线性这件事之所以好用，是因为它有一套异常干净的几何与代数：可以把变量打包成向量、把关系打包成矩阵，然后用一套统一的语言去问``有没有解''``解唯一吗''``参数能不能被数据认出来''。
+
+这套语言的舞台，就是\textbf{向量空间}。它把``可以相加、可以按比例放缩''这件事抽象出来，于是直线、平面、$\RR^n$、乃至全体随机变量构成的集合，都成了同一类对象，可以用同一套定理处理。而本章真正的主角是一个数字——\textbf{维数}。它度量一个空间里``独立方向''有多少、``自由度''有多大；后面会看到，计量里设计矩阵能不能识别出参数、共线性为什么是个问题、回归的自由度从哪来，答案都藏在维数与线性无关里。本章先把向量空间、张成、线性无关、基、维数、子空间、坐标这七个概念依次立起来，并且始终盯着一个问题：\emph{它们将来在微观、计量里到底拿来干什么。}
+
+\section{为什么从向量空间讲起}
+\label{sec:vec-1}
+
+考虑最熟悉的线性回归 $y_i=\vc x_i\T\vc\beta+\ve_i$。把 $n$ 个观测竖着摞起来，写成矩阵形式 $\vc y=\mat X\vc\beta+\vc\ve$，其中 $\mat X$ 是 $n\times k$ 的\textbf{设计矩阵}。OLS 在做的事，几何上是：把 $\vc y$ 投影到 $\mat X$ 的各列所能``张成''的那个空间里。这个空间是不是足够``大''、$\mat X$ 的列是不是``彼此独立''，直接决定了 $\vc\beta$ 能不能被唯一地估出来。``张成''与``独立''这两个词不是比喻，它们是本章要精确定义的数学概念；而``$\mat X$ 列空间的维数''，就是回归里真正能被数据区分开的参数个数。
+
+换句话说，许多在计量、微观课上以为是``技术细节''的东西——满秩、可识别、共线性、自由度——其实都是同一个几何事实的不同侧面。把向量空间这层地基打牢，后面这些概念就不再是需要死记的术语，而是可以一眼看穿的同一件事。这就是把它放在全书第一章的理由。
+
+\section{向量空间}
+\label{sec:vec-2}
+
+我们先给出抽象定义，但读者完全可以在脑子里只装着一个例子：$\RR^n$，即 $n$ 元实数列 $\vc x=(x_1,\dots,x_n)$ 的全体，逐分量相加、逐分量乘以一个实数。本书绝大多数时候，向量空间就是 $\RR^n$。
+
+\defn{向量空间}{
+设 $V$ 是一个非空集合，其上定义了\emph{加法} $\vc u+\vc v$ 与\emph{数乘} $\alpha\vc u$（标量 $\alpha$ 取自域 $\RR$，本书只用实数）。若加法满足交换律、结合律，存在零向量 $\vc 0$（$\vc v+\vc 0=\vc v$）与负元（$\vc v+(-\vc v)=\vc 0$），数乘满足
+\[
+    \alpha(\beta\vc v)=(\alpha\beta)\vc v,\quad 1\vc v=\vc v,\quad
+    \alpha(\vc u+\vc v)=\alpha\vc u+\alpha\vc v,\quad
+    (\alpha+\beta)\vc v=\alpha\vc v+\beta\vc v,
+\]
+则称 $V$ 为 $\RR$ 上的\textbf{向量空间}，$V$ 的元素称为\textbf{向量}。
+}
+
+这一长串公理可以一句话概括：\emph{在 $V$ 里相加、按比例放缩，怎么算都``算得通''，而且结果仍落在 $V$ 内。}最后这半句——``结果仍落在 $V$ 内''——叫做对线性运算的\textbf{封闭性}，是后面判定子空间时唯一要反复检查的东西。
+
+\rmkb[为什么要抽象，而不只讲 $\RR^n$]{
+对经济学使用者来说，把定义抽象成公理的好处是\emph{一份证明、到处通用}。一旦某个集合被验证是向量空间，本章关于张成、线性无关、维数的所有结论就自动成立，不必重证。这样的集合远不止 $\RR^n$：所有 $m\times n$ 实矩阵构成一个向量空间；定义在某区间上的全体连续函数也是（计量里的非参数估计就活在这种``函数空间''里）；甚至``零均值、有限方差的随机变量''全体也构成向量空间，且其上``协方差''恰好是一个内积——条件期望就是在这个空间里做投影（见后文``条件期望''一章）。本章先在 $\RR^n$ 里把直觉建立起来，这些直觉将原封不动地迁移到那些更抽象的空间。
+}
+
+\section{线性组合与张成}
+\label{sec:vec-3}
+
+有了加法和数乘，能从一组向量造出来的所有新向量，就是它们的\textbf{线性组合}。这是整个线性代数里最基础的动作。
+
+\defn{线性组合与张成}{
+设 $\vc v_1,\dots,\vc v_k\in V$。形如
+\[
+    \alpha_1\vc v_1+\alpha_2\vc v_2+\cdots+\alpha_k\vc v_k,
+    \qquad \alpha_1,\dots,\alpha_k\in\RR
+\]
+的向量称为 $\vc v_1,\dots,\vc v_k$ 的一个\textbf{线性组合}。这组向量的全体线性组合构成的集合
+\[
+    \spn\{\vc v_1,\dots,\vc v_k\}
+    =\setb{\textstyle\sum_{j=1}^k\alpha_j\vc v_j}{\alpha_1,\dots,\alpha_k\in\RR}
+\]
+称为它们的\textbf{张成}（span）。
+}
+
+张成回答的是``用手头这几个向量，按线性方式最多能够到多大一片空间''。几何上（图~\ref{fig:vec-1}）：在 $\RR^2$ 或 $\RR^3$ 里，一个非零向量的张成是一条\emph{过原点的直线}（沿它来回伸缩）；两个不共线向量的张成是一个\emph{过原点的平面}（在两个方向上自由配比）。注意张成必然过原点——取所有系数为 $0$ 就得到 $\vc 0$。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ---- 左图：一个向量的张成 = 过原点的直线 ----
+  \begin{scope}[xshift=0cm]
+    \draw[->] (-2.2,0) -- (2.4,0) node[right] {$x_1$};
+    \draw[->] (0,-2.0) -- (0,2.4) node[above] {$x_2$};
+    \draw[thick, blue!60!black] (-2.1,-1.05) -- (2.1,1.05);
+    \draw[->, very thick, red!70!black] (0,0) -- (1.4,0.7);
+    \node[red!70!black, anchor=south east] at (1.4,0.7) {$\vc v$};
+    \node[blue!60!black, anchor=north west] at (0.55,-0.55) {$\spn\{\vc v\}$};
+    \node[anchor=north] at (0.1,-2.0) {(a) 一个向量};
+  \end{scope}
+  % ---- 右图：两个向量的张成 = 过原点的平面（3D 透视）----
+  \begin{scope}[xshift=8cm]
+    \draw[->] (0,0) -- (2.6,0) node[right] {$x_1$};
+    \draw[->] (0,0) -- (0,2.6) node[above] {$x_3$};
+    \draw[->] (0,0) -- (-1.7,-1.2) node[below left] {$x_2$};
+    \fill[blue!18!white, opacity=0.8]
+      (-2.0,-0.55) -- (1.2,1.05) -- (2.0,0.55) -- (-1.2,-1.05) -- cycle;
+    \draw[blue!55!black, thin]
+      (-2.0,-0.55) -- (1.2,1.05) -- (2.0,0.55) -- (-1.2,-1.05) -- cycle;
+    \draw[->, very thick, red!70!black] (0,0) -- (1.1,0.5);
+    \node[red!70!black, anchor=south] at (1.15,0.5) {$\vc u$};
+    \draw[->, very thick, red!70!black] (0,0) -- (-0.85,-0.7);
+    \node[red!70!black, anchor=north east] at (-0.85,-0.7) {$\vc w$};
+    \node[blue!55!black, anchor=west] at (1.4,1.1) {$\spn\{\vc u,\vc w\}$};
+    \node[anchor=north] at (0.1,-1.7) {(b) 两个无关向量};
+  \end{scope}
+\end{tikzpicture}
+\caption{张成的几何。(a) 一个非零向量张成一条过原点的直线；(b) 两个不共线向量张成一个过原点的平面。张成永远包含原点。}
+\label{fig:vec-1}
+\end{figure}
+
+\defn{生成集}{
+若 $\spn\{\vc v_1,\dots,\vc v_k\}=V$，即 $V$ 中每个向量都能写成 $\vc v_1,\dots,\vc v_k$ 的某个线性组合，则称 $\{\vc v_1,\dots,\vc v_k\}$ 是 $V$ 的一个\textbf{生成集}（也说它们\emph{张成} $V$）。
+}
+
+\ex[标准坐标向量张成 $\RR^n$]{
+在 $\RR^n$ 里取 $\vc e_i$ 为第 $i$ 个分量是 $1$、其余为 $0$ 的向量。验证 $\{\vc e_1,\dots,\vc e_n\}$ 张成 $\RR^n$。
+}
+\sol{
+任取 $\vc x=(x_1,\dots,x_n)\in\RR^n$。直接写出
+\[
+    \vc x=x_1\vc e_1+x_2\vc e_2+\cdots+x_n\vc e_n,
+\]
+这是 $\vc e_1,\dots,\vc e_n$ 的线性组合，系数恰是 $\vc x$ 的各分量。故每个 $\vc x$ 都落在张成里，$\{\vc e_i\}$ 是 $\RR^n$ 的生成集。这组向量稍后将充当 $\RR^n$ 的``标准基''。
+}
+
+\section{线性无关}
+\label{sec:vec-4}
+
+生成集解决了``够不够用''，但它可能\emph{冗余}——一组向量里也许有的能被其它的表示出来，删掉它张成不变。把这种冗余精确刻画出来，就是线性相关与无关。这是本章的技术核心。
+
+\defn{线性无关 / 线性相关}{
+称 $\vc v_1,\dots,\vc v_k$ \textbf{线性无关}，若方程
+\[
+    \alpha_1\vc v_1+\alpha_2\vc v_2+\cdots+\alpha_k\vc v_k=\vc 0
+\]
+只有平凡解 $\alpha_1=\cdots=\alpha_k=0$。若存在\emph{不全为零}的系数使上式成立，则称它们\textbf{线性相关}。
+}
+
+定义读起来抽象，但它说的是一件朴素的事：\emph{相关}意味着某个向量是多余的——可以被其余向量线性表示。
+
+\prop{相关 $\Iff$ 某一个能被其余表示}{
+$\vc v_1,\dots,\vc v_k$（$k\ge 2$）线性相关，当且仅当其中至少有一个向量是其余向量的线性组合。
+}
+\pf{
+($\To$）相关则存在不全为零的 $\alpha_j$ 使 $\sum_j\alpha_j\vc v_j=\vc 0$。取某个 $\alpha_m\neq 0$，移项并除以 $\alpha_m$：
+\[
+    \vc v_m=-\frac{1}{\alpha_m}\sum_{j\neq m}\alpha_j\vc v_j,
+\]
+即 $\vc v_m$ 是其余向量的线性组合。
+($\Leftarrow$）若某 $\vc v_m=\sum_{j\neq m}\beta_j\vc v_j$，移项得 $\vc v_m-\sum_{j\neq m}\beta_j\vc v_j=\vc 0$，其中 $\vc v_m$ 的系数为 $1\neq 0$，是不全为零的系数，故相关。
+}
+
+\state{线性无关的判定：化成一个齐次方程组}{
+要判定 $\vc v_1,\dots,\vc v_k\in\RR^n$ 是否无关，把它们当作矩阵 $\mat A=[\vc v_1\ \cdots\ \vc v_k]$ 的各列，则
+\[
+    \alpha_1\vc v_1+\cdots+\alpha_k\vc v_k=\mat A\vc\alpha,
+    \qquad \vc\alpha=(\alpha_1,\dots,\alpha_k)\T.
+\]
+于是\textbf{无关} $\Iff$ 齐次方程组 $\mat A\vc\alpha=\vc 0$ \emph{只有零解}。这把一个看似抽象的几何问题，彻底转化成一个可以用消元法机械求解的方程组问题——这正是``线性无关''最常被实际验证的方式（细节见后文``矩阵、秩与方程组''一章）。
+}
+
+线性相关的几何含义同样直观（图~\ref{fig:vec-2}）：在 $\RR^2$ 里两个向量相关就是\emph{共线}，再添第二个向量并不能把张成从直线扩成平面；在 $\RR^3$ 里三个向量相关就是\emph{共面}，张成至多是一个平面而非整个空间。\emph{相关，就意味着多出来的向量没有开辟新的方向。}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ---- 左图：两个共线向量 → 张成退化为一条直线 ----
+  \begin{scope}[xshift=0cm]
+    \draw[->] (-2.2,0) -- (2.4,0) node[right] {$x_1$};
+    \draw[->] (0,-2.0) -- (0,2.4) node[above] {$x_2$};
+    \draw[thick, blue!60!black] (-2.1,-1.05) -- (2.1,1.05);
+    \draw[->, very thick, red!70!black] (0,0) -- (1.8,0.9);
+    \draw[->, very thick, teal!60!black] (0,0) -- (1.0,0.5);
+    \node[red!70!black, anchor=south east] at (1.85,0.95) {$\vc v_2$};
+    \node[teal!50!black, anchor=north west] at (1.02,0.42) {$\vc v_1$};
+    \node[blue!60!black, anchor=north west] at (0.55,-0.55) {$\spn\{\vc v_1,\vc v_2\}$};
+    \node[anchor=north, align=center] at (0.1,-2.0) {(a) 两个共线向量\\张成仍是直线};
+  \end{scope}
+  % ---- 右图：三个共面向量 → 张成退化为一个平面（R^3 透视）----
+  \begin{scope}[xshift=8cm]
+    \draw[->] (0,0) -- (2.6,0) node[right] {$x_1$};
+    \draw[->] (0,0) -- (0,2.6) node[above] {$x_3$};
+    \draw[->] (0,0) -- (-1.7,-1.2) node[below left] {$x_2$};
+    \fill[blue!18!white, opacity=0.8]
+      (-2.0,-0.55) -- (1.2,1.05) -- (2.0,0.55) -- (-1.2,-1.05) -- cycle;
+    \draw[blue!55!black, thin]
+      (-2.0,-0.55) -- (1.2,1.05) -- (2.0,0.55) -- (-1.2,-1.05) -- cycle;
+    \draw[->, very thick, red!70!black] (0,0) -- (1.3,0.6);
+    \node[red!70!black, anchor=south west] at (1.3,0.6) {$\vc a$};
+    \draw[->, very thick, teal!60!black] (0,0) -- (-0.55,0.18);
+    \node[teal!45!black, anchor=south east] at (-0.55,0.18) {$\vc b$};
+    \draw[->, very thick, orange!80!black] (0,0) -- (-0.85,-0.7);
+    \node[orange!75!black, anchor=north east] at (-0.85,-0.7) {$\vc c$};
+    \node[blue!55!black, anchor=west] at (1.4,1.1) {$\spn\{\vc a,\vc b,\vc c\}$};
+    \node[anchor=north, align=center] at (0.1,-1.7) {(b) 三个共面向量\\张成仍是平面};
+  \end{scope}
+\end{tikzpicture}
+\caption{线性相关的几何。(a) 两个共线向量相关，第二个向量没有开辟新方向，张成仍是一条直线；(b) 三个共面向量相关，张成仍只是一个平面，够不到整个 $\RR^3$。}
+\label{fig:vec-2}
+\end{figure}
+
+\ex[判定一组 $\RR^3$ 向量是否无关]{
+判定 $\vc v_1=(1,0,1)$、$\vc v_2=(0,1,1)$、$\vc v_3=(1,1,2)$ 是否线性无关。
+}
+\sol{
+设 $\alpha_1\vc v_1+\alpha_2\vc v_2+\alpha_3\vc v_3=\vc 0$，逐分量写出方程组：
+\[
+    \bc
+    \alpha_1+\alpha_3=0,\\
+    \alpha_2+\alpha_3=0,\\
+    \alpha_1+\alpha_2+2\alpha_3=0.
+    \ec
+\]
+前两式给 $\alpha_1=-\alpha_3$、$\alpha_2=-\alpha_3$，代入第三式：$-\alpha_3-\alpha_3+2\alpha_3=0$，恒成立。于是取 $\alpha_3=1$ 得非零解 $(\alpha_1,\alpha_2,\alpha_3)=(-1,-1,1)$。存在非零解，故\emph{线性相关}。事实上一眼可验 $\vc v_3=\vc v_1+\vc v_2$——第三个向量是前两个的和，正是命题里``某个能被其余表示''的情形。
+}
+
+\rmkb[一个常用的小事实]{
+含有\emph{零向量}的向量组必然线性相关（给零向量配系数 $1$、其余配 $0$ 即得非平凡解）；两个向量相关当且仅当其一是另一的标量倍（即共线）。这两条平凡观察在快速排查共线性时很顺手。
+}
+
+\section{基与坐标}
+\label{sec:vec-5}
+
+把``够用''（生成）与``不冗余''（无关）这两个要求合在一起，就得到线性代数里最重要的概念之一：\textbf{基}。基是``恰到好处''的一组向量——多一个则冗余，少一个则不够。
+
+\defn{基}{
+向量空间 $V$ 的一组向量 $\{\vc b_1,\dots,\vc b_n\}$ 称为 $V$ 的一个\textbf{基}，若它们
+\emph{(i)} 线性无关，且 \emph{(ii)} 张成 $V$。
+}
+
+基的关键性质是：它给空间里每个向量配上一组\emph{唯一}的``读数''。
+
+\thm{坐标表示的存在唯一性}{
+设 $\{\vc b_1,\dots,\vc b_n\}$ 是 $V$ 的一个基。则 $V$ 中每个向量 $\vc x$ 都\emph{唯一地}写成
+\[
+    \vc x=c_1\vc b_1+c_2\vc b_2+\cdots+c_n\vc b_n .
+\]
+系数 $(c_1,\dots,c_n)$ 称为 $\vc x$ 在该基下的\textbf{坐标}，记 $[\vc x]_{\mathcal B}$。
+}
+\pf{
+\textbf{存在性}来自基张成 $V$：每个 $\vc x$ 都是某个线性组合。\textbf{唯一性}来自线性无关：若同时有
+\[
+    \vc x=\sum_j c_j\vc b_j=\sum_j c_j'\vc b_j,
+\]
+两式相减得 $\sum_j(c_j-c_j')\vc b_j=\vc 0$。因 $\{\vc b_j\}$ 无关，只能 $c_j-c_j'=0$ 对所有 $j$ 成立，即 $c_j=c_j'$。坐标唯一。
+}
+
+这条定理点明了``无关''与``生成''各自的职责：\emph{生成保证坐标存在，无关保证坐标唯一。}缺了无关，同一个向量会有多种写法，``坐标''就失去意义。几何上（图~\ref{fig:vec-3}），在 $\RR^2$ 里取一组（未必正交的）基 $\vc b_1,\vc b_2$，任一向量 $\vc x$ 都能由一个``平行四边形法则''唯一地分解到这两个方向上，两条边长就是它的坐标。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.3,>=Stealth]
+  \draw[->] (-0.5,0) -- (4.2,0) node[right] {$x_1$};
+  \draw[->] (0,-0.5) -- (0,3.4) node[above] {$x_2$};
+  \coordinate (O) at (0,0);
+  \coordinate (b1) at (2,0.5);
+  \coordinate (b2) at (0.6,1.6);
+  \coordinate (X) at (3.0,2.2);   % x = 1.2*b1 + 1.0*b2
+  \coordinate (A) at (2.4,0.6);   % c1*b1
+  \coordinate (B) at (0.6,1.6);   % c2*b2
+  \draw[dashed, gray] (B) -- (X);
+  \draw[->, very thick, blue!55!black] (O) -- (A);
+  \node[blue!55!black, anchor=north] at (1.25,0.30) {$c_1\vc b_1$};
+  \draw[->, very thick, teal!55!black] (A) -- (X);
+  \node[teal!45!black, anchor=west] at (2.82,1.45) {$c_2\vc b_2$};
+  \fill[blue!55!black] (b1) circle (1.0pt);
+  \node[blue!55!black, anchor=north west] at (2.02,0.46) {$\vc b_1$};
+  \draw[->, very thick, teal!55!black] (O) -- (b2);
+  \node[teal!45!black, anchor=south east] at (0.52,1.62) {$\vc b_2$};
+  \draw[->, ultra thick, red!70!black] (O) -- (X);
+  \node[red!70!black, anchor=south west] at (3.02,2.18) {$\vc x$};
+  \fill (O) circle (1.2pt);
+  \node[anchor=west, align=left] at (0.15,3.0)
+    {$\vc x = c_1\vc b_1 + c_2\vc b_2$\\[3pt]
+     $[\vc x]_{\mathcal B}=(c_1,\,c_2)$};
+\end{tikzpicture}
+\caption{向量在基下的坐标。给定基 $\{\vc b_1,\vc b_2\}$，向量 $\vc x$ 沿两个基方向唯一地分解出平行四边形，两个分量的系数 $(c_1,c_2)$ 就是 $\vc x$ 在该基下的坐标。}
+\label{fig:vec-3}
+\end{figure}
+
+\rmkb[标准基与一般基]{
+$\RR^n$ 里最自然的基是上节的标准坐标向量 $\{\vc e_1,\dots,\vc e_n\}$，此时向量的坐标就是它的各个分量——我们平时写 $\vc x=(x_1,\dots,x_n)$ 其实是\emph{默认}选了标准基。但基的选择并不唯一：同一个 $\RR^n$ 可以有无穷多组基。换一组基，相当于换一副``坐标眼镜''看同一个向量；后续``特征值与对角化''一章会反复利用这点——选对了基（特征向量基），一个复杂的线性变换会变成简单的逐坐标伸缩。
+}
+
+\section{维数与替换定理}
+\label{sec:vec-6}
+
+一个空间可以有许多组不同的基，但它们有一个铁打不变的共同点：\emph{含的向量个数相同}。这个公共的个数就是空间的维数——它度量``独立方向''有几个，是``自由度''概念的数学源头。要让``维数''这个定义站得住脚，必须先证明``任意两组基等势''，而这件事的引擎是\textbf{替换定理}（Steinitz 替换引理）。
+
+\lem{替换定理}{
+设 $\{\vc w_1,\dots,\vc w_m\}$ 张成 $V$，而 $\{\vc u_1,\dots,\vc u_p\}$ 是 $V$ 中一组线性无关的向量。则必有 $p\le m$。
+}
+
+\noindent\textbf{核心直觉。}一句话：\emph{无关的向量组，不可能比生成组还长。}生成组 $\{\vc w_j\}$ 用 $m$ 个向量就够覆盖整个 $V$；若无关组 $\{\vc u_i\}$ 的个数 $p$ 超过 $m$，那这 $p$ 个向量挤在一个``只需 $m$ 个方向就铺满''的空间里，必然有人是多余的、能被别人线性表示，这与无关矛盾。替换定理用一个``逐个换入''的构造把这句直觉做实。
+
+\begin{proof}[替换定理的关键步骤]
+思路是把无关组的向量\emph{一个一个换进}生成组，每换入一个，就从生成组里淘汰一个旧向量，同时保持``仍是生成组''。
+
+第一步，因 $\{\vc w_1,\dots,\vc w_m\}$ 张成 $V$，无关向量 $\vc u_1$ 可写成它们的线性组合
+\[
+    \vc u_1=\beta_1\vc w_1+\cdots+\beta_m\vc w_m .
+\]
+$\vc u_1\neq\vc 0$（无关组不含零向量），故某个 $\beta_j\neq 0$，不妨设 $\beta_1\neq 0$。于是能反解出 $\vc w_1$：
+\[
+    \vc w_1=\frac{1}{\beta_1}\Bigl(\vc u_1-\textstyle\sum_{j\ge 2}\beta_j\vc w_j\Bigr).
+\]
+这说明 $\vc w_1\in\spn\{\vc u_1,\vc w_2,\dots,\vc w_m\}$。把 $\vc w_1$ 换成 $\vc u_1$ 后，新的一组 $\{\vc u_1,\vc w_2,\dots,\vc w_m\}$ \emph{仍然张成} $V$（因为凡是用得到 $\vc w_1$ 的地方，都能用 $\vc u_1$ 与其余 $\vc w$ 替代）。
+
+归纳地，假设已经成功换入 $\vc u_1,\dots,\vc u_{k}$、淘汰掉 $k$ 个旧向量，且新组仍张成 $V$。把下一个 $\vc u_{k+1}$ 用这个新生成组表示。\emph{关键一步}：表达式里诸 $\vc w$ 的系数不可能全为零——否则 $\vc u_{k+1}$ 就成了 $\vc u_1,\dots,\vc u_k$ 的线性组合，与 $\{\vc u_i\}$ 无关矛盾。既然某个 $\vc w$ 的系数非零，就照样反解、用 $\vc u_{k+1}$ 把那个 $\vc w$ 换出来，新组依旧张成 $V$。
+
+每换入一个 $\vc u$，就消耗掉一个 $\vc w$。若 $p>m$，到第 $m$ 步时所有 $\vc w$ 已被换光，可此时还剩 $\vc u_{m+1},\dots,\vc u_p$ 没换入——按上一段，下一个 $\vc u_{m+1}$ 会被迫表示成 $\{\vc u_1,\dots,\vc u_m\}$ 的线性组合，与无关矛盾。故必有 $p\le m$。
+\end{proof}
+
+\state{替换定理 $\To$ 维数良定义}{
+设 $\{\vc b_1,\dots,\vc b_n\}$ 与 $\{\vc b_1',\dots,\vc b_{n'}'\}$ 都是 $V$ 的基。第一组张成 $V$、第二组无关，替换定理给 $n'\le n$；调换两组角色（第二组张成、第一组无关）又给 $n\le n'$。于是 $n=n'$。\emph{任意两组基含的向量个数相同}——这个公共数与基的选取无关，把它定义成 $V$ 的维数才有意义。
+}
+
+\defn{维数}{
+向量空间 $V$ 的\textbf{维数} $\dim V$ 定义为它任一组基所含的向量个数（由上，这个数与基的选取无关）。约定 $\dim\{\vc 0\}=0$。
+}
+
+\cor{$\RR^n$ 的维数是 $n$}{
+标准基 $\{\vc e_1,\dots,\vc e_n\}$ 含 $n$ 个向量且是 $\RR^n$ 的基，故 $\dim\RR^n=n$。等价地：$\RR^n$ 里任意 $n+1$ 个向量必线性相关，任意少于 $n$ 个向量都张不成 $\RR^n$。
+}
+
+\rmkb[维数就是``自由度'']{
+维数衡量一个空间里能独立选取的方向数，也就是``自由度''。这正是统计里``自由度''一词的来历：$n$ 个观测张成 $\RR^n$，回归用掉 $k$ 个线性无关的解释变量方向去拟合，残差就只能活在一个 $(n-k)$ 维的子空间里——剩下的 $n-k$ 个自由度，正是方差估计 $s^2=\text{RSS}/(n-k)$ 分母的来源（详见后文``投影与最小二乘''一章）。维数不是抽象装饰，它直接进了你每天看的回归输出。
+}
+
+\section{子空间}
+\label{sec:vec-7}
+
+实际问题里，我们关心的往往不是整个 $\RR^n$，而是它内部某个``自带向量空间结构''的部分——比如设计矩阵的列所能张成的那一片。这就是子空间。
+
+\defn{子空间}{
+向量空间 $V$ 的子集 $W\subseteq V$ 称为 $V$ 的\textbf{子空间}，若 $W$ 在 $V$ 的加法与数乘下\emph{自身也构成向量空间}。
+}
+
+直接按定义逐条核对公理很麻烦，但绝大多数公理 $W$ 从 $V$ 那里``继承''即可，真正要查的只有封闭性与含零。
+
+\prop{子空间判定准则}{
+$W\subseteq V$ 是子空间，当且仅当
+\emph{(i)} $\vc 0\in W$；
+\emph{(ii)} 对加法封闭：$\vc u,\vc v\in W\Rightarrow\vc u+\vc v\in W$；
+\emph{(iii)} 对数乘封闭：$\vc v\in W,\ \alpha\in\RR\Rightarrow\alpha\vc v\in W$。
+}
+\pf{
+必要性显然。充分性：交换律、结合律、分配律等运算性质 $W$ 中的向量作为 $V$ 中的向量自动满足；(i) 提供零向量；由 (iii) 取 $\alpha=-1$ 得负元 $-\vc v\in W$。故 $W$ 满足全部公理，是向量空间。
+}
+
+\rmk{条件 (i) 可由 (iii) 推出（取 $\alpha=0$），但单列出来是为了强调一个最常见的判别口诀：不含原点的集合一定不是子空间。}
+
+子空间的典型样貌（图~\ref{fig:vec-4}）：在 $\RR^2$、$\RR^3$ 里，子空间只能是\emph{过原点的}直线、过原点的平面、$\{\vc 0\}$、或整个空间。一条\emph{不过原点}的直线就不是子空间——它连零向量都不含，对数乘也不封闭（把线上一点放大两倍就离开了这条线）。任何一组向量的张成 $\spn\{\vc v_1,\dots,\vc v_k\}$ 都自动是子空间（封闭性由线性组合的形式直接给出），它是``由这几个向量生成的最小子空间''。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ---- 左图：过原点的直线 = 子空间 ----
+  \begin{scope}[xshift=0cm]
+    \draw[->] (-2.2,0) -- (2.4,0) node[right] {$x_1$};
+    \draw[->] (0,-2.0) -- (0,2.4) node[above] {$x_2$};
+    \draw[thick, blue!60!black] (-2.1,-1.05) -- (2.1,1.05);
+    \fill (0,0) circle (1.6pt);
+    \node[anchor=north east] at (0,0) {$\vc 0$};
+    \draw[->, very thick, red!70!black] (0,0) -- (1.4,0.7);
+    \node[red!70!black, anchor=south east] at (1.4,0.7) {$\vc x$};
+    \node[blue!60!black, anchor=north west] at (0.55,-0.55) {$W=\spn\{\vc x\}$};
+    \node[anchor=north, align=center] at (0.1,-2.0) {(a) 过原点的直线\\\emph{是}子空间};
+  \end{scope}
+  % ---- 右图：不过原点的直线 = 不是子空间 ----
+  \begin{scope}[xshift=7.5cm]
+    \draw[->] (-2.2,0) -- (2.4,0) node[right] {$x_1$};
+    \draw[->] (0,-2.0) -- (0,2.4) node[above] {$x_2$};
+    \draw[thick, blue!60!black] (-2.1,-0.05) -- (2.1,2.05);
+    \draw[fill=white] (0,0) circle (1.6pt);
+    \node[anchor=north east] at (0,0) {$\vc 0$};
+    \coordinate (P) at (0.8,1.4);
+    \fill[red!70!black] (P) circle (1.6pt);
+    \draw[->, very thick, red!70!black] (0,0) -- (P);
+    \node[red!70!black, anchor=east] at (0.75,1.4) {$\vc p$};
+    \coordinate (Q) at (1.6,2.8);
+    \fill[orange!80!black] (Q) circle (1.6pt);
+    \draw[->, very thick, orange!80!black, dashed] (0,0) -- (Q);
+    \node[orange!75!black, anchor=south east] at (1.55,2.85) {$2\vc p$};
+    \node[orange!75!black, anchor=west, align=left] at (1.7,2.2) {$2\vc p\notin L$};
+    \node[blue!60!black, anchor=north west] at (-2.05,0.55) {$L$};
+    \node[anchor=north, align=center] at (0.1,-2.0) {(b) 不过原点的直线\\\emph{不是}子空间};
+  \end{scope}
+\end{tikzpicture}
+\caption{子空间必须过原点。(a) 过原点的直线 $W=\spn\{\vc x\}$ 含零、对线性运算封闭，是子空间；(b) 不过原点的直线 $L$ 既不含 $\vc 0$，对数乘也不封闭——线上点 $\vc p$ 放大两倍后 $2\vc p$ 已离开 $L$。}
+\label{fig:vec-4}
+\end{figure}
+
+\ex[计量里的列空间]{
+设计矩阵 $\mat X=[\vc x_1\ \cdots\ \vc x_k]$ 的各列张成 $\RR^n$ 中的子空间 $\spn\{\vc x_1,\dots,\vc x_k\}$，称为 $\mat X$ 的\textbf{列空间}。说明 OLS 与这个子空间的关系，以及``列线性相关''意味着什么。
+}
+\sol{
+OLS 把因变量 $\vc y$ 投影到列空间上：拟合值 $\hat{\vc y}=\mat X\hat{\vc\beta}$ 是列空间里离 $\vc y$ 最近的点。若各列\emph{线性无关}，列空间维数为 $k$，每个 $\hat{\vc y}$ 对应唯一的系数 $\hat{\vc\beta}$——参数\textbf{可识别}。若各列\emph{线性相关}（即存在完全共线性，比如放进了``男''与``女''两个虚拟变量又保留了截距），列空间维数小于 $k$，同一个 $\hat{\vc y}$ 可由无穷多组 $\hat{\vc\beta}$ 给出——参数\textbf{不可识别}，$\inv{(\mat X\T\mat X)}$ 不存在。``共线性''这个计量里的常见病，本质就是本章的``列线性相关''；而``满秩 $\Iff$ 可识别''，正是``列无关 $\Iff$ 坐标唯一''这条定理的计量版本。
+}
+
+\section{小结：本章工具通向何处}
+\label{sec:vec-8}
+
+\state{七个概念，一条主线}{
+向量空间提供舞台；\textbf{张成}回答``够不够''、\textbf{线性无关}回答``冗不冗余'',二者合一即\textbf{基}；基给每个向量唯一的\textbf{坐标}；任意两组基等势（替换定理）让\textbf{维数}良定义，它就是``独立方向数 / 自由度''；\textbf{子空间}是大空间内部自带结构的一片，它的维数度量它有多``大''。贯穿始终的判定手法只有一个：把问题化成齐次方程组 $\mat A\vc\alpha=\vc 0$ 看有没有非零解。
+}
+
+本章是纯粹的地基，它的去处遍布全书：
+
+\begin{itemize}
+    \item \textbf{秩与方程组}（下一章）。``一个矩阵有多少线性无关的列''就是它的秩，它把本章的``维数''落到具体矩阵上，并直接决定线性方程组 $\mat A\vc x=\vc b$ 解的存在与个数——计量里的``满秩假设''即由此而来。
+    \item \textbf{投影与最小二乘}（后续章节）。OLS 是把 $\vc y$ 投影到设计矩阵列空间这个子空间上；本章的列空间、维数、自由度在那里全部兑现为回归的几何。
+    \item \textbf{特征值与对角化}（后续章节）。换一组基（特征向量基）看同一个线性变换，复杂的矩阵会化简为逐坐标的伸缩——这正是``基的选择不唯一、坐标随基而变''这件事的威力所在。
+    \item \textbf{更抽象的空间}。零均值有限方差的随机变量构成向量空间，协方差是其上的内积，条件期望是正交投影（见``条件期望''一章）；非参数估计活在无穷维函数空间里。本章在 $\RR^n$ 建立的全部直觉，会原样搬到这些空间。
+\end{itemize}
+
+一旦看清``线性''在数学上不过是``可加、可放缩''外加``独立方向数''这点结构，经济学里层出不穷的线性模型就都成了同一出戏的不同布景。这是本书反复要传达的：抓住少数几个数学构造，许多扇门就一起打开了。

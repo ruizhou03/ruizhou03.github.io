@@ -1,0 +1,351 @@
+% !TEX root = ../main.tex
+\chapter{无约束最优化：一阶与二阶条件}
+\label{ch:unconstrained}
+
+\noindent\emph{用到的前置工具：偏导数、梯度与 Hessian（多元微分一章，第~\ref{ch:multideriv}~章）；Taylor 二阶展开（第~\ref{ch:taylor}~章）；对称矩阵的正定/半正定性与二次型（线性代数部分，谱定理一章，见第~\ref{ch:spectral}~章）；凹凸函数（第~\ref{ch:convex}~章）。}
+\medskip
+
+经济学几乎是一门``求极值''的学科：消费者最大化效用，厂商最大化利润，计量学家最大化对数似然，社会计划者最大化福利。这些问题在落到``约束''之前，骨架都是同一件事——给定一个目标函数 $f$，找出让它取最大（或最小）值的那一点。本章处理其中最干净的一类：选择变量可以在整个 $\RR^n$ 里自由取值、没有任何约束。它看似是约束优化的``退化特例'',实则是后者的地基：Lagrange 与 KKT 不过是把约束``折叠''进目标后，再对一个无约束问题用本章的条件。
+
+本章要回答两个问题，也正是使用者每次做优化时都要过的两关。第一关：\textbf{怎么找候选点}？答案是一阶条件 $\grad f=\vc 0$——在内点最优处，梯度必为零。第二关：\textbf{怎么确认它真是最优}？一阶条件只筛出``驻点'',而驻点可能是极大、极小，甚至两头不靠的鞍点；要分辨它们，得看二阶信息，也就是 Hessian 的正负定性。最后我们会看到一件让人安心的事：如果目标函数是凹的，这两关就合并成一关——任何一个驻点自动是全局最大，``找到''即``解完''。
+
+\section{极大、极小：先把话说清楚}
+\label{sec:unconstrained-1}
+
+优化问题写作
+\[
+    \max_{\vc x\in\RR^n}\; f(\vc x)
+    \qquad\text{或}\qquad
+    \min_{\vc x\in\RR^n}\; f(\vc x).
+\]
+极小化 $f$ 等同于极大化 $-f$，故本章以\textbf{极大化}为主线陈述，极小化的对应结论只需把不等号与正负定性整体翻转。先把``最优''这个词的两个层次分清楚：是只在一小片邻域里最高，还是放眼整个定义域都最高。
+
+\defn{局部与全局极大}{
+设 $f:\RR^n\to\RR$，点 $\vc x^*\in\RR^n$。
+\begin{itemize}
+    \item 称 $\vc x^*$ 是 $f$ 的\textbf{全局极大点}，若对一切 $\vc x\in\RR^n$ 都有 $f(\vc x)\le f(\vc x^*)$。
+    \item 称 $\vc x^*$ 是 $f$ 的\textbf{局部极大点}，若存在 $\vc x^*$ 的某个邻域 $U$，使对一切 $\vc x\in U$ 都有 $f(\vc x)\le f(\vc x^*)$。
+\end{itemize}
+若上面的不等号在 $\vc x\neq\vc x^*$ 时严格成立（$f(\vc x)<f(\vc x^*)$），则称\textbf{严格}极大点。把所有 $\le$ 换成 $\ge$，便得到（局部 / 全局，严格 / 非严格）\textbf{极小点}的定义。
+}
+
+区分这两个层次绝非咬文嚼字。我们手上的工具——梯度与 Hessian——都是\emph{局部}信息：它们只知道一点附近的斜率与曲率，对远处的山头一无所知。因此微积分能直接验证的，永远只是``局部最优''。把局部最优升格为全局最优，要么靠额外的全局结构（凹性，见第~\ref{sec:unconstrained-5}~节），要么靠先验证存在性、再逐个比较所有局部最优的高度（Weierstrass 极值定理保证了紧集上连续函数取得最大值，见分析与拓扑部分）。
+
+\rmkb[``内点''这个限定词不能省]{
+本章讲的一阶条件 $\grad f=\vc 0$ 只适用于落在定义域\emph{内部}的最优点。若最优点恰在边界上（例如要求 $\vc x\ge\vc 0$ 而最优消费在某一维取 $0$），梯度未必为零——它可能``还想往外推''，只是被边界挡住了。这正是不等式约束与 KKT 条件要处理的情形（见后文``KKT 条件''一章）；那里的``互补松弛''说的就是``要么梯度分量为零、要么约束起作用''。本章默认最优点是内点，把边界情形留给后续。
+}
+
+\section{一阶必要条件：梯度为零}
+\label{sec:unconstrained-2}
+
+第一关的工具是\textbf{一阶必要条件}（first-order necessary condition，FONC）。它的内容朴素得近乎显然：如果你站在山顶，那么往任何方向看，地面都不再上升——否则朝那个上升方向挪一步就能更高，你就不在山顶了。把``往任何方向''翻译成方向导数，就得到 $\grad f=\vc 0$。
+
+\thm{一阶必要条件}{
+设 $f:\RR^n\to\RR$ 在内点 $\vc x^*$ 处可微。若 $\vc x^*$ 是 $f$ 的局部极大（或局部极小）点，则
+\[
+    \grad f(\vc x^*)=\vc 0 .
+\]
+满足此式的点称为 $f$ 的\textbf{驻点}（stationary point）或\textbf{临界点}（critical point）。
+}
+
+\pf{
+设 $\vc x^*$ 是局部极大点。任取一个方向 $\vc d\in\RR^n$，考察沿这条直线的一元函数
+\[
+    \vp(t)=f(\vc x^*+t\,\vc d),\qquad t\in\RR .
+\]
+因为 $\vc x^*$ 是 $f$ 的局部极大点，且当 $t=0$ 时 $\vc x^*+t\vc d=\vc x^*$，所以 $t=0$ 是一元函数 $\vp$ 的局部极大点。由一元微积分的费马引理（可微函数在内部极值点处导数为零），
+\[
+    \vp'(0)=0 .
+\]
+另一方面，链式法则给出
+\[
+    \vp'(0)=\grad f(\vc x^*)\T\vc d .
+\]
+于是 $\grad f(\vc x^*)\T\vc d=0$ 对\emph{一切}方向 $\vc d$ 成立。一个向量与所有向量都正交，只能是零向量——取 $\vc d=\grad f(\vc x^*)$ 便得 $\norm{\grad f(\vc x^*)}^2=0$，故 $\grad f(\vc x^*)=\vc 0$。
+}
+
+\state{一阶条件是``候选名单'',不是``录取通知''}{
+$\grad f=\vc 0$ 是局部极值的\emph{必要}条件，不是充分条件。它做的事是把整个 $\RR^n$ 里无穷多个点，缩小为一张通常有限的``候选名单''（驻点）。真正的极大点一定在名单上，但名单上的点未必是极大点——它可能是极小、是鞍点。一阶条件负责\textbf{筛选}，二阶条件负责\textbf{甄别}。这套``先解方程定候选、再验二阶定身份''的两步法，是从消费者问题到极大似然估计通用的求解范式。
+}
+
+\rmk{在标量情形 $\grad f=\vc 0$ 退化为熟悉的 $f'(x^*)=0$；在 $n$ 维则是 $n$ 个方程 $\partial f/\partial x_i=0$（$i=1,\dots,n$）组成的方程组。}
+
+图~\ref{fig:unconstrained-1} 把一阶条件``切线水平''的几何含义画了出来：无论是局部极大还是局部极小，曲线在该点的切线都是水平的——这正是 $f'=0$。可见一阶条件确实分不清极大与极小，这是下一节二阶条件要补的课。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % f(x) = (1/3)x^3 - x + 1.2 ; f'(x)=x^2-1 ; crit at x=-1 (local max), x=1 (local min)
+  % f(-1)= -1/3 +1 +1.2 = 1.8667 ; f(1)= 1/3 -1 +1.2 = 0.5333
+  \draw[->] (-2.6,0) -- (3.0,0) node[right] {$x$};
+  \draw[->] (0,-0.4) -- (0,3.2) node[above] {$f(x)$};
+  \draw[thick,domain=-2.3:2.5,smooth,variable=\x,samples=120]
+        plot ({\x},{(1/3)*\x*\x*\x - \x + 1.2});
+  \coordinate (M) at (-1,1.8667);
+  \fill (M) circle (1.6pt);
+  \draw[blue!60!black,thick] (-1.85,1.8667) -- (-0.15,1.8667);
+  \coordinate (N) at (1,0.5333);
+  \fill (N) circle (1.6pt);
+  \draw[blue!60!black,thick] (0.15,0.5333) -- (1.85,0.5333);
+  \node[anchor=south] at (-1,1.97) {局部极大};
+  \node[anchor=north] at (1,0.42) {局部极小};
+  \node[blue!60!black,anchor=west,font=\small] at (-2.55,2.85)
+      {切线水平：$f'=0$};
+\end{tikzpicture}
+\caption{一阶条件的几何含义：在局部极大与局部极小处，切线都水平（$f'=0$）。两点都满足一阶条件，可见单靠一阶条件无法区分极大与极小。}
+\label{fig:unconstrained-1}
+\end{figure}
+
+\section{二阶条件：Hessian 的正负定性}
+\label{sec:unconstrained-3}
+
+筛出驻点之后，要甄别它的身份，得借助曲率信息。直觉上，山顶处曲面向各个方向都\emph{向下弯}，山谷处向各个方向都\emph{向上弯}，而鞍点处一些方向向上弯、另一些向下弯。``弯的方向''由二阶导数刻画，多元情形即 Hessian 矩阵
+\[
+    \mat H(\vc x)=\grad^2 f(\vc x)=\br{\pdc{f}{x_i}{x_j}}_{n\times n}.
+\]
+它的正负定性如何决定身份，根子在 Taylor 二阶展开（第~\ref{ch:taylor}~章）。
+
+\subsection*{从 Taylor 展开读出二阶条件}
+
+设 $f$ 二次连续可微，$\vc x^*$ 是一个驻点（$\grad f(\vc x^*)=\vc 0$）。在 $\vc x^*$ 附近做二阶 Taylor 展开，记位移 $\vc h=\vc x-\vc x^*$：
+\[
+    f(\vc x^*+\vc h)
+    = f(\vc x^*)
+    + \underbrace{\grad f(\vc x^*)\T\vc h}_{=\,0}
+    + \tfrac12\,\vc h\T\mat H(\vc x^*)\,\vc h
+    + o\!\pr{\norm{\vc h}^2}.
+\]
+一阶项因驻点条件消失，于是$f$在 $\vc x^*$ 附近的\emph{增量}由那个二次型主导：
+\[
+    f(\vc x^*+\vc h)-f(\vc x^*)
+    \approx \tfrac12\,\vc h\T\mat H(\vc x^*)\,\vc h .
+\]
+这一步是全章的枢纽。它把``$\vc x^*$ 是不是局部极大''——一个关于函数局部形状的问题——彻底翻译成``二次型 $\vc h\T\mat H\vc h$ 的符号''——一个纯线性代数问题。判断一个对称矩阵导出的二次型恒正、恒负还是变号，正是谱定理与正定性理论（第~\ref{ch:spectral}~章）给出的对象。
+
+\state{二阶条件的本质：把``极值判定''归结为``二次型定号''}{
+在驻点处，$f$ 的局部行为由 $\tfrac12\vc h\T\mat H\vc h$ 决定。于是：
+\begin{itemize}
+    \item $\mat H$ \textbf{负定}（一切 $\vc h\neq\vc 0$ 使 $\vc h\T\mat H\vc h<0$）$\To$ 各方向都向下弯 $\To$ 严格局部极大；
+    \item $\mat H$ \textbf{正定} $\To$ 各方向都向上弯 $\To$ 严格局部极小；
+    \item $\mat H$ \textbf{不定}（既有正方向又有负方向）$\To$ 鞍点，既非极大也非极小。
+\end{itemize}
+正负定性可用特征值（全负 / 全正 / 有正有负）或顺序主子式判别，详见谱定理一章。
+}
+
+\subsection*{必要与充分：半定与定的差别}
+
+二阶条件有``必要''与``充分''两个版本，差别恰好是\emph{半}负定与负定之间的一线之隔——这条线就是``弱''与``严''的分水岭。
+
+\thm{二阶必要条件}{
+设 $f$ 在内点 $\vc x^*$ 处二次连续可微。若 $\vc x^*$ 是\emph{局部极大}点，则
+\[
+    \grad f(\vc x^*)=\vc 0
+    \quad\text{且}\quad
+    \mat H(\vc x^*)\ \text{半负定}
+    \;\bigl(\text{即}\ \vc h\T\mat H(\vc x^*)\vc h\le 0\ \forall\,\vc h\bigr).
+\]
+（对局部极小，Hessian 须半正定。）
+}
+
+\pf{
+一阶条件已由上一节给出，只证半负定。任取方向 $\vc h\neq\vc 0$，沿这条线把上面的 Taylor 展开写成关于步长 $t$ 的式子（令位移为 $t\vc h$）：
+\[
+    f(\vc x^*+t\vc h)-f(\vc x^*)
+    = \tfrac12\,t^2\,\vc h\T\mat H(\vc x^*)\vc h + o(t^2).
+\]
+因 $\vc x^*$ 是局部极大点，对一切充分小的 $t$ 左边 $\le 0$。两边除以 $t^2>0$：
+\[
+    \tfrac12\,\vc h\T\mat H(\vc x^*)\vc h + \frac{o(t^2)}{t^2}\le 0 .
+\]
+令 $t\to 0$，余项 $o(t^2)/t^2\to 0$，得 $\vc h\T\mat H(\vc x^*)\vc h\le 0$。$\vc h$ 任意，故 $\mat H(\vc x^*)$ 半负定。
+}
+
+\thm{二阶充分条件}{
+设 $f$ 在内点 $\vc x^*$ 处二次连续可微。若
+\[
+    \grad f(\vc x^*)=\vc 0
+    \quad\text{且}\quad
+    \mat H(\vc x^*)\ \text{负定},
+\]
+则 $\vc x^*$ 是 $f$ 的\emph{严格局部极大}点。（若 Hessian 正定，则为严格局部极小点。）
+}
+
+\pf{
+设 $\mat H(\vc x^*)$ 负定。负定对称矩阵的最大特征值 $\lambda_{\max}<0$，由谱定理（Rayleigh 商）知，对一切 $\vc h$ 有
+\[
+    \vc h\T\mat H(\vc x^*)\vc h\le \lambda_{\max}\norm{\vc h}^2 .
+\]
+代入 Taylor 展开：
+\[
+    f(\vc x^*+\vc h)-f(\vc x^*)
+    \le \tfrac12\lambda_{\max}\norm{\vc h}^2 + o\!\pr{\norm{\vc h}^2}
+    = \norm{\vc h}^2\!\br{\tfrac12\lambda_{\max} + \frac{o(\norm{\vc h}^2)}{\norm{\vc h}^2}} .
+\]
+当 $\vc h\to\vc 0$ 时方括号里的余项趋于 $0$，而 $\tfrac12\lambda_{\max}<0$ 是个固定的负数。故存在 $\vc x^*$ 的某个邻域，在其中（$\vc h\neq\vc 0$）方括号严格为负，于是 $f(\vc x^*+\vc h)-f(\vc x^*)<0$。这正是严格局部极大。
+}
+
+\state{为什么必要条件只能要``半''、充分条件却要``定''}{
+这道缝隙是无约束优化里最常被搞混的地方，值得记牢：
+\begin{itemize}
+    \item \textbf{必要方向}（已知是极大 $\To$ 推 Hessian）：极大只保证二次型 $\le 0$，挤不出严格 $<0$。例如 $f(x)=-x^4$ 在 $0$ 处是严格极大，但 $f''(0)=0$，Hessian 仅半负定不负定。所以必要条件最多敢说``半负定''。
+    \item \textbf{充分方向}（已知 Hessian $\To$ 推是极大）：只有\emph{严格}的负定才压得住 Taylor 的高阶余项、保证邻域内函数确实下降；半负定留了``$=0$''的方向，那个方向上的高阶项可正可负，结论就悬了。例如 $g(x)=x^3$ 在 $0$ 处 $g''(0)=0$（半负定也半正定），却是鞍点（拐点）；$f(x)=-x^4$ 同样 $f''(0)=0$ 却是极大——可见 Hessian 退化（半定但不定）时二阶条件\textbf{失效}，须看更高阶导数。
+\end{itemize}
+一句话：必要条件是``极大留下的痕迹''（弱），充分条件是``保证极大的证据''（强）。
+}
+
+\ex[二元函数的驻点甄别]{
+求 $f(x,y)=-x^2-y^2+2x+4y$ 的极值点并判定其类型。
+}
+\sol{
+一阶条件：
+\[
+    \pd{f}{x}=-2x+2=0,\qquad \pd{f}{y}=-2y+4=0
+    \;\Longrightarrow\; (x^*,y^*)=(1,2).
+\]
+唯一驻点是 $(1,2)$。Hessian 为常数矩阵
+\[
+    \mat H=\bm -2 & 0\\ 0 & -2\emx .
+\]
+它的两个特征值都是 $-2<0$，故 $\mat H$ 负定。由二阶充分条件，$(1,2)$ 是严格局部极大点。又因 $\mat H$ 处处负定，$f$ 是（严格）凹函数，于是这个局部极大同时是全局极大（下一节）。代入得最大值 $f(1,2)=-1-4+2+8=5$。
+}
+
+\section{鞍点：驻点未必是极值}
+\label{sec:unconstrained-4}
+
+驻点队伍里最容易被一阶条件``放进来''却不是极值的，是\textbf{鞍点}（saddle point）。在鞍点处梯度为零，但 Hessian 不定：沿某些方向函数向上弯（像谷底），沿另一些方向向下弯（像山顶），整体形如马鞍。
+
+最干净的例子是 $f(x,y)=x^2-y^2$。它的梯度 $\grad f=(2x,-2y)\T$ 仅在原点为零，故原点是唯一驻点。Hessian
+\[
+    \mat H=\bm 2 & 0\\ 0 & -2\emx
+\]
+的特征值为 $+2$ 与 $-2$，一正一负——不定。具体看：沿 $x$ 轴 $f(x,0)=x^2$ 在原点取\emph{极小}，沿 $y$ 轴 $f(0,y)=-y^2$ 在原点取\emph{极大}。同一个点，从两个方向看身份相反，故它既非局部极大也非局部极小（图~\ref{fig:unconstrained-2}）。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.05,>=Stealth]
+  % saddle f(x,y)=x^2-y^2, contours x^2-y^2=c are hyperbolas
+  \draw[->] (-3.0,0) -- (3.0,0) node[right] {$x$};
+  \draw[->] (0,-3.0) -- (0,3.0) node[above] {$y$};
+  % contour c=0: diagonals y=+-x
+  \draw[gray!50] (-2.5,-2.5) -- (2.5,2.5);
+  \draw[gray!50] (-2.5,2.5) -- (2.5,-2.5);
+  % c>0: x=+-sqrt(1+y^2), open left-right
+  \draw[red!55!black,thick,domain=-1.55:1.55,smooth,variable=\t,samples=60]
+       plot ({sqrt(1+\t*\t)},{\t});
+  \draw[red!55!black,thick,domain=-1.55:1.55,smooth,variable=\t,samples=60]
+       plot ({-sqrt(1+\t*\t)},{\t});
+  % c<0: y=+-sqrt(1+x^2), open up-down
+  \draw[blue!55!black,thick,domain=-1.55:1.55,smooth,variable=\t,samples=60]
+       plot ({\t},{sqrt(1+\t*\t)});
+  \draw[blue!55!black,thick,domain=-1.55:1.55,smooth,variable=\t,samples=60]
+       plot ({\t},{-sqrt(1+\t*\t)});
+  % directional arrows from origin
+  \draw[->,red!60!black,very thick] (0.18,0) -- (0.95,0);
+  \draw[->,red!60!black,very thick] (-0.18,0) -- (-0.95,0);
+  \draw[->,blue!60!black,very thick] (0,0.18) -- (0,0.95);
+  \draw[->,blue!60!black,very thick] (0,-0.18) -- (0,-0.95);
+  % stationary point origin
+  \fill (0,0) circle (1.8pt);
+  % label grad f=0 with leader to lower-left whitespace
+  \node[anchor=east,font=\small] at (-1.85,-1.45) {驻点 $\grad f=\vc 0$};
+  \draw[->,gray!70] (-1.85,-1.40) -- (-0.12,-0.10);
+  % red label right whitespace
+  \node[red!60!black,anchor=west,font=\small,align=left] at (1.85,-0.62)
+      {沿 $x$ 方向 $f$ 上升\\（此向是极小）};
+  % blue label top whitespace
+  \node[blue!60!black,anchor=south,font=\small,align=center] at (0,2.05)
+      {沿 $y$ 方向 $f$ 下降（此向是极大）};
+\end{tikzpicture}
+\caption{鞍点 $f(x,y)=x^2-y^2$ 在原点的等值线（双曲线）。梯度在原点为零，但沿 $x$ 方向 $f$ 上升（原点是该方向的极小）、沿 $y$ 方向 $f$ 下降（原点是该方向的极大），故原点既非极大也非极小，对应 Hessian 不定。}
+\label{fig:unconstrained-2}
+\end{figure}
+
+\rmkb[鞍点不是病态特例，而是优化里的常客]{
+鞍点在高维问题里极为普遍：一个 $n\times n$ 的 Hessian 要负定，需要 $n$ 个特征值\emph{全部}为负，随着维数升高，``恰好全负''是越来越苛刻的事，更多驻点会落成``有正有负''的鞍点。这件事在两处尤其要紧：其一，数值优化（梯度下降、牛顿法）会被鞍点``绊住'',因为那里梯度也为零，算法分不清自己停在了极值还是马鞍；其二，博弈论里的纳什均衡、min-max 问题（如对抗性估计、稳健优化）本身就是在找鞍点——一方求极大、另一方求极小的交汇处。所以``甄别驻点''不是吹毛求疵，而是优化实践的日常。
+}
+
+\section{凹性：让局部极大升格为全局极大}
+\label{sec:unconstrained-5}
+
+到此为止，所有结论都带着``局部''二字——这是微积分工具的天然局限。经济学却常常需要\emph{全局}的论断：``这个消费组合是最优的'',指的是没有任何别的组合更好，而不只是邻域里最好。把局部升格为全局，需要给目标函数加上一层全局结构，最常用、也最贴合经济学直觉的，就是\textbf{凹性}（第~\ref{ch:convex}~章）。
+
+凹函数的图像处处``向下弯'',不会出现``这边一个小山头、那边一个更高山头''的多峰地形——而多峰正是局部最优区别于全局最优的唯一来源。一旦地形单峰，``爬到一个山顶''就等于``爬到了最高峰''。
+
+\thm{凹函数的局部极大即全局极大}{
+设 $f:\RR^n\to\RR$ 是凹函数。若 $\vc x^*$ 是 $f$ 的局部极大点，则它是 $f$ 的全局极大点。
+}
+
+\pf{
+反证。设 $\vc x^*$ 是局部极大点，但存在某点 $\vc y$ 使 $f(\vc y)>f(\vc x^*)$。考虑从 $\vc x^*$ 到 $\vc y$ 的线段上的点
+\[
+    \vc x_\lambda=(1-\lambda)\vc x^*+\lambda\vc y,\qquad \lambda\in(0,1) .
+\]
+由凹性（凹函数图像位于其任意弦之上，即函数值不低于弦值）：
+\[
+    f(\vc x_\lambda)\ge (1-\lambda)f(\vc x^*)+\lambda f(\vc y)
+    > (1-\lambda)f(\vc x^*)+\lambda f(\vc x^*)
+    = f(\vc x^*),
+\]
+中间的严格不等号用到了 $f(\vc y)>f(\vc x^*)$ 与 $\lambda>0$。也就是说，线段上\emph{每一点}（哪怕 $\lambda$ 取得再小、$\vc x_\lambda$ 离 $\vc x^*$ 再近）都严格高于 $\vc x^*$。但 $\vc x^*$ 是局部极大点，存在邻域 $U$ 使其中的点都不高于 $\vc x^*$；取 $\lambda$ 足够小让 $\vc x_\lambda\in U$，便与 $f(\vc x_\lambda)>f(\vc x^*)$ 矛盾。故不存在更高的 $\vc y$，$\vc x^*$ 是全局极大点。
+}
+
+图~\ref{fig:unconstrained-3} 把这件事画清楚了：凹函数只有一个``山头'',峰处切线水平且整条曲线都压在切线下方，所以那个唯一的驻点既是局部极大、也是全局极大。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % concave f(x)=3-0.4(x-3)^2, peak at x=3,y=3
+  \draw[->] (-0.3,0) -- (6.6,0) node[right] {$x$};
+  \draw[->] (0,-0.3) -- (0,4.0) node[above] {$f(x)$};
+  \draw[thick,domain=0.2:5.9,smooth,variable=\x,samples=100]
+        plot ({\x},{3-0.4*(\x-3)*(\x-3)});
+  \coordinate (P) at (3,3);
+  \fill (P) circle (1.8pt);
+  % horizontal tangent at peak (lies above whole curve)
+  \draw[blue!60!black,thick] (1.0,3) -- (5.0,3);
+  \draw[dashed] (P) -- (3,0) node[below] {$x^*$};
+  % chord between x=1 (f=1.4) and x=5 (f=1.4): lies below curve
+  \coordinate (A) at (1,1.4);
+  \coordinate (B) at (5,1.4);
+  \fill[gray!50!black] (A) circle (1.3pt);
+  \fill[gray!50!black] (B) circle (1.3pt);
+  \draw[gray!55!black,thick] (A) -- (B);
+  \node[blue!60!black,anchor=west,font=\small] at (3.55,3.55)
+      {峰处切线水平，且整条曲线都在它下方};
+  \draw[blue!60!black,->] (4.6,3.42) -- (4.0,3.06);
+  \node[anchor=south,font=\small] at (3,3.08) {唯一驻点};
+  \node[gray!45!black,anchor=north,font=\small] at (3,1.32) {弦在曲线下方（凹）};
+\end{tikzpicture}
+\caption{凹函数的唯一驻点即全局极大点。峰处切线水平（一阶条件），整条曲线都在切线下方（凹），任意弦都落在曲线下方。地形单峰，故``局部最高''即``全局最高''。}
+\label{fig:unconstrained-3}
+\end{figure}
+
+这条定理与二阶条件合起来，给出经济学里最常援引的一组充分条件：
+
+\cor{凹优化的``一关通过''}{
+设 $f$ 二次连续可微且为凹函数（等价地，Hessian $\mat H(\vc x)$ 在定义域上处处半负定）。则任何满足一阶条件 $\grad f(\vc x^*)=\vc 0$ 的点 $\vc x^*$ 都是 $f$ 的全局极大点。若 $f$ 严格凹（Hessian 处处负定即为一种充分情形），则全局极大点至多一个。
+}
+
+\state{凹性把``两关''并成``一关''}{
+一般情形下，求最优要走两步：解一阶条件定候选，再验二阶条件定身份，且只得到局部结论。一旦目标函数凹，这两关合并：
+\begin{itemize}
+    \item 一阶条件从\emph{必要}升格为\emph{充分}——$\grad f=\vc 0$ 不再只是``候选'',而直接是全局最优；
+    \item 不必再单独验二阶条件，凹性已经包办（处处半负定）；
+    \item 结论是\emph{全局}的，不再是局部的；严格凹时最优解还\emph{唯一}。
+\end{itemize}
+这就是为什么经济学模型几乎总要假设效用凹、生产集凸、似然在真值附近凹——\emph{凹性是``存在唯一全局最优''这一论断的标准买路钱}。验证一个最优化问题良定义，第一件事往往就是检查目标函数的凹性。
+}
+
+\section{它通向何处}
+\label{sec:unconstrained-6}
+
+本章的两关——一阶条件定候选、二阶条件（或凹性）定身份——是后续几乎所有优化与估计理论的母板。几处重要去处：
+
+\begin{itemize}
+    \item \textbf{约束优化}（Lagrange 与 KKT，见后文相应各章）。把约束用乘子``折叠''进目标后，最优性条件仍是``某个梯度为零''加``某个二阶条件''——只不过梯度换成 Lagrange 函数的梯度、Hessian 换成在约束切空间上的``有边 Hessian''。本章是它们脱去约束外衣后的内核。
+    \item \textbf{比较静态}（已见隐函数定理一章，第~\ref{ch:ift}~章）。最优选择 $\vc x^*(\vc\theta)$ 由一阶条件 $\grad_{\vc x}f(\vc x^*,\vc\theta)=\vc 0$ 隐式定义；对它用隐函数定理，需要的可逆 Jacobian 恰是本章的 Hessian $\mat H$。二阶充分条件（$\mat H$ 负定）保证了 $\mat H$ 可逆，从而比较静态 $\D_{\vc\theta}\vc x^*=-\mat H^{-1}\grad^2_{\vc x\vc\theta}f$ 有定义——二阶条件一身二任，既定身份，又让参数变动的响应良定义。
+    \item \textbf{极大似然与 M-估计}（见渐近统计部分）。估计量 $\hat{\vc\theta}$ 由样本一阶条件——得分方程 $\grad_{\vc\theta}\,\tfrac1n\sum_i\log f(\vc z_i;\hat{\vc\theta})=\vc 0$——定义，正是本章的 $\grad f=\vc 0$；而其渐近方差里的信息矩阵，来自对数似然的（期望）Hessian，正是本章的二阶项。``得分为零''与``信息矩阵''这对计量基石，骨子里就是无约束优化的一阶、二阶条件。
+    \item \textbf{牛顿法}。要数值求解 $\grad f=\vc 0$，把梯度在当前点线性化（$\grad f(\vc x+\vc h)\approx\grad f(\vc x)+\mat H(\vc x)\vc h$）并令其为零，得迭代 $\vc x_{k+1}=\vc x_k-\mat H(\vc x_k)^{-1}\grad f(\vc x_k)$。Hessian 又一次出场——优化的``找点''与``算点''两件事，都绕着一阶、二阶条件转。
+\end{itemize}
+
+一阶条件给方程，二阶条件给保证，凹性给全局与唯一。这三件套朴素到几乎不像``定理'',却是整座最优化大厦——连同它在微观、宏观、计量里的全部应用——共同的地基。

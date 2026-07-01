@@ -1,0 +1,341 @@
+% !TEX root = ../main.tex
+\chapter{连续映射定理、Slutsky 与 Delta 法}
+\label{ch:slutsky}
+
+\noindent\emph{用到的前置工具：依概率收敛与依分布收敛（收敛模式一章）；大数定律与中心极限定理（同一部分）；Taylor 一阶展开（Taylor 展开一章）；梯度与 Jacobian（多元微分一章）。}
+\medskip
+
+大数定律和中心极限定理是渐近统计的两块基石，但它们直接管的对象很窄：样本均值。一个收敛到常数（LLN），一个标准化后收敛到正态（CLT）。可计量经济学里真正想要极限分布的，几乎从来不是一个干净的样本均值，而是若干样本矩拼出来的\emph{非线性函数}——两个均值的比值（弹性、风险比）、一个均值的对数、样本方差、$t$ 统计量、$R^2$。这些量没有现成的极限定理。本章要装配的三件工具，正是把 LLN 与 CLT ``组合''成这类复杂估计量极限分布的通用接口：\textbf{连续映射定理}（CMT）说连续函数保持收敛，是底层；\textbf{Slutsky 定理}处理``一个收敛到分布的量''与``一个收敛到常数的量''相加、相乘；\textbf{Delta 法}处理对一个渐近正态的量做光滑非线性变换。掌握了它们，你就能从``$\bar X_n$ 怎么样''一路推到``$g(\bar X_n,\bar Y_n)$ 怎么样''——而这正是几乎每一个渐近推导的最后一公里。
+
+\section{为什么需要``组合''工具}
+\label{sec:slutsky-motivation}
+
+先把问题摆清楚。假设你已经从 CLT 知道了样本均值的极限行为，比如
+\[
+    \rtn(\bar X_n-\mu)\dto\cN(0,\sigma^2),
+\]
+又从 LLN 知道样本方差 $\hat\sigma^2\pto\sigma^2$。你真正想报告的，往往是下面这类量的极限分布：
+
+\begin{itemize}
+    \item \textbf{$t$ 统计量} $\dfrac{\rtn(\bar X_n-\mu)}{\hat\sigma}$——分子收敛到 $\cN(0,\sigma^2)$，分母收敛到常数 $\sigma$。它们的\emph{比值}收敛到什么？
+    \item \textbf{对数或比值变换} 如 $\log\bar X_n$、$\bar X_n/\bar Y_n$——对一个渐近正态的量做了非线性函数，新量的极限分布、尤其是它的渐近方差是多少？
+    \item \textbf{二次型} 如 Wald 统计量 $\rtn(\hat{\vc\theta}-\vc\theta_0)\T\inv{\hat{\mat V}}\rtn(\hat{\vc\theta}-\vc\theta_0)$——把一个收敛到正态的向量，夹在一个收敛到常数矩阵的二次型里。
+\end{itemize}
+
+这些量的共同结构是：把``收敛到分布的部分''和``收敛到常数的部分''用连续运算（加、乘、除、取对数、平方）拼在一起。LLN 和 CLT 各自只给出其中一块，要得到整体的极限分布，需要一套规则告诉我们\emph{收敛性在连续运算下如何传递}。这套规则就是本章的三件工具。它们之间是层层搭建的关系：CMT 是地基，Slutsky 是 CMT 在``分布部分 + 常数部分''这一最常见情形下的专用版本，Delta 法则进一步用 Taylor 展开把``非线性变换''线性化，再回头调用 CLT 与 Slutsky。
+
+\section{连续映射定理}
+\label{sec:slutsky-cmt}
+
+最底层的事实简单得近乎显然：如果一串随机变量收敛，那么对它们施加一个\emph{连续}函数，收敛仍然保持，而且极限就是``函数作用在极限上''。这对三种收敛模式都成立。
+
+\thm{连续映射定理（CMT）}{
+设 $g:\RR^k\to\RR^m$ 在随机向量 $X$ 的取值上几乎处处连续（即 $X$ 落在 $g$ 的不连续点集的概率为零）。则三种收敛模式都被 $g$ 保持：
+\[
+    \ba
+    X_n\asto X\ &\Rightarrow\ g(X_n)\asto g(X),\\
+    X_n\pto X\ &\Rightarrow\ g(X_n)\pto g(X),\\
+    X_n\dto X\ &\Rightarrow\ g(X_n)\dto g(X).
+    \ea
+\]
+}
+
+\pf{
+我们把三种情形里``直觉最透''的两种讲明白，依分布那条只点出关键。
+
+\emph{依概率情形（连续函数版本，便于看清机制）。} 先设 $g$ 在 $\RR^k$ 上处处连续，证 $X_n\pto X\Rightarrow g(X_n)\pto g(X)$。要证对任意 $\ve>0$，$\Prob{\norm{g(X_n)-g(X)}>\ve}\to 0$。固定一个大的半径 $M$。在紧集 $\set{\norm{x}\le M}$ 上 $g$ \emph{一致}连续，故存在 $\delta>0$，只要 $\norm{x-y}\le\delta$ 且二者都在该紧集内，就有 $\norm{g(x)-g(y)}\le\ve$。于是事件 $\set{\norm{g(X_n)-g(X)}>\ve}$ 必落入下面三类之一：$\set{\norm{X_n-X}>\delta}$，或 $\set{\norm{X}>M}$，或 $\set{\norm{X_n}>M}$。第一项由 $X_n\pto X$ 趋于零；后两项可通过把 $M$ 取得足够大、使 $X$ 跑出半径 $M$ 的概率任意小来控制（$X_n$ 那一项再借 $X_n\pto X$ 转嫁给 $X$）。$\ve$ 任意，得证。一般的``几乎处处连续''只需把上面的紧集再挖去不连续点的一个小邻域，论证骨架不变。
+
+\emph{几乎必然情形。} 这条最直接：在 $X_n\to X$ 成立的那个概率为 $1$ 的样本点集合上，逐点用 $g$ 的连续性即得 $g(X_n)\to g(X)$；只要这些样本点又避开 $g$ 的不连续点（其概率为零），收敛就保持，故 $g(X_n)\asto g(X)$。
+
+\emph{依分布情形。} 这条不能逐点谈（依分布收敛根本不要求 $X_n$ 与 $X$ 定义在同一空间上）。标准做法是用依分布收敛的等价刻画：$X_n\dto X$ 当且仅当对一切\emph{有界连续}函数 $f$ 有 $\E{f(X_n)}\to\E{f(X)}$。给定有界连续的 $f$，复合 $f\circ g$ 在 $X$ 的取值上仍几乎处处连续且有界，于是 $\E{f(g(X_n))}\to\E{f(g(X))}$，这正说明 $g(X_n)\dto g(X)$。（严格地用到 Portmanteau 定理处理不连续点集为零测的情形，此处不展开。）
+}
+
+\rmkb[``几乎处处连续''而非``处处连续'']{
+定理允许 $g$ 有不连续点，只要极限变量 $X$ 几乎不落在那里。这个放宽很有用：例如 $g(x)=1/x$ 在 $0$ 处不连续，但只要极限 $X$ 取值恒正（如 $X=\sigma>0$），CMT 照样适用，于是 $\hat\sigma\pto\sigma>0\Rightarrow 1/\hat\sigma\pto 1/\sigma$。这正是后面把 $t$ 统计量的分母处理掉所需要的那一步。
+}
+
+\state{CMT 是渐近推导里最朴素也最常用的一步}{
+凡是``已知某个量收敛，对它做一个连续运算（取倒数、开方、取对数、求行列式、矩阵求逆……），结论是运算后的量也收敛到运算作用在极限上''——用的都是 CMT。它本身不产生新的分布，只是\emph{搬运}收敛性。$\hat\sigma\pto\sigma\Rightarrow\hat\sigma^2\pto\sigma^2$、$\hat{\mat V}\pto\mat V\Rightarrow\inv{\hat{\mat V}}\pto\inv{\mat V}$（在 $\mat V$ 可逆处求逆是连续运算）都是它的直接应用。记住这一点能省去大量``重新证一遍收敛''的力气。
+}
+
+\section{Slutsky 定理}
+\label{sec:slutsky-slutsky}
+
+CMT 有一个限制：它要求所有自变量收敛到\emph{同一个}极限对象，并且本质上依赖``联合收敛''。但渐近推导里最常见的局面是混合型的——一部分量收敛到\emph{分布}（如 CLT 给出的 $\rtn(\bar X_n-\mu)\dto\cN$），另一部分量收敛到\emph{常数}（如 LLN 给出的 $\hat\sigma\pto\sigma$）。Slutsky 定理正是为这个混合局面量身定做的。
+
+\thm{Slutsky 定理}{
+设 $X_n\dto X$（$X$ 为某随机向量），$Y_n\pto c$（$c$ 为\emph{常数}向量或矩阵），且维数相容。则
+\[
+    X_n+Y_n\dto X+c,
+    \qquad
+    Y_n X_n\dto c\,X,
+    \qquad
+    Y_n^{-1}X_n\dto c^{-1}X\ \ (\text{当 }c\text{ 可逆}).
+\]
+}
+
+要点全在那个``$Y_n$ 收敛到\emph{常数}''上。如果把 $c$ 换成一个真正随机的极限 $Y$，结论一般\textbf{不成立}——因为 $X_n+Y_n$ 的极限分布会依赖 $X$ 与 $Y$ 的\emph{联合}分布，而单凭各自的边缘收敛 $X_n\dto X$、$Y_n\dto Y$ 决定不了联合分布。极限是常数时这个麻烦消失了：常数与任何东西都``独立'',联合分布被边缘分布唯一确定。这就是 Slutsky 成立的全部秘密，下面的证明把它讲清楚。
+
+\pf{
+关键引理：\emph{若 $X_n\dto X$ 且 $Y_n\pto c$（常数），则联合地 $(X_n,Y_n)\dto(X,c)$。}一旦有了这个联合收敛，三条结论就都是 CMT 的直接推论——因为加法 $(x,y)\mapsto x+y$、乘法 $(x,y)\mapsto yx$、以及在 $c$ 可逆处的 $(x,y)\mapsto y^{-1}x$ 都是（在极限点 $(X,c)$ 附近）连续映射，把联合收敛 $\dto(X,c)$ 经 CMT 送过去即得 $\dto X+c$、$cX$、$c^{-1}X$。
+
+\emph{为什么联合收敛成立。}先看一个直觉版本：$Y_n\pto c$ 意味着 $Y_n$ 的整个分布越来越挤到常数 $c$ 这一点上（图~\ref{fig:slutsky-degenerate}）。在极限处它退化成 $c$ 处的点质量，没有任何``随机性''可言，于是它与 $X_n$ 之间无论有怎样的相依结构都被``压平''了——极限的联合分布只能是 $X$ 的分布与 $c$ 点质量的乘积。
+
+把这件事说严格：要证对一切有界连续 $f$，$\E{f(X_n,Y_n)}\to\E{f(X,c)}$。用三角不等式拆成两段，
+\[
+    \abs{\E{f(X_n,Y_n)}-\E{f(X,c)}}
+    \le\underbrace{\E{\abs{f(X_n,Y_n)-f(X_n,c)}}}_{\text{(I)}}
+    +\underbrace{\abs{\E{f(X_n,c)}-\E{f(X,c)}}}_{\text{(II)}}.
+\]
+第（II）项：固定第二个自变量为常数 $c$，$x\mapsto f(x,c)$ 是有界连续函数，由 $X_n\dto X$ 直接得 (II)$\to 0$。第（I）项：因 $Y_n\pto c$，$Y_n$ 以高概率落在 $c$ 的任意小邻域内；在该邻域上 $f$ 一致连续，故 $\abs{f(X_n,Y_n)-f(X_n,c)}$ 以高概率小于任意 $\ve$，而在小概率的``坏''事件上由 $f$ 有界（$\le 2\sup\abs f$）控制。两块合起来令 (I)$\to 0$。证毕。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % Slutsky 关键直觉：Y_n -p-> c 等价于其分布退化成 c 处的点质量
+  \def\c{3.0}
+  \draw[->] (-0.2,0) -- (6.4,0) node[right] {$y$};
+  \draw[->] (0,-0.2) -- (0,3.6) node[above] {密度};
+  \draw (\c,0.06) -- (\c,-0.06) node[below] {$c$};
+  % 宽（n 小）：sd=0.9，峰高 0.9
+  \draw[green!55!black,thick,domain=0.2:5.8,smooth,variable=\y]
+        plot ({\y},{0.9*exp(-(\y-\c)*(\y-\c)/1.62)});
+  % 中（n 中）：sd=0.5，峰高 1.6
+  \draw[blue!60!black,thick,domain=0.7:5.3,smooth,variable=\y]
+        plot ({\y},{1.6*exp(-(\y-\c)*(\y-\c)/0.5)});
+  % 窄（n 大）：sd=0.25，峰高 3.1
+  \draw[red!70!black,thick,domain=1.6:4.4,smooth,variable=\y]
+        plot ({\y},{3.1*exp(-(\y-\c)*(\y-\c)/0.125)});
+  % 三态标签 + 不穿越其它曲线的细引线
+  \node[green!55!black,anchor=west] at (4.55,1.35) {\small $n$ 小};
+  \draw[green!55!black,->] (4.5,1.35) -- (4.05,0.78);
+  \node[blue!60!black,anchor=west] at (4.55,1.95) {\small $n$ 中};
+  \draw[blue!60!black,->] (4.5,1.95) -- (3.78,1.6);
+  \node[red!70!black,anchor=west] at (4.55,2.6) {\small $n$ 大};
+  \draw[red!70!black,->] (4.5,2.6) -- (3.32,2.6);
+  % 退化点质量竖直箭头
+  \draw[->,very thick,red!70!black] (\c,0) -- (\c,3.35);
+  \node[red!70!black,anchor=west] at (\c+0.18,3.15) {\small 退化于 $c$ 的点质量};
+  % 左侧说明文字（避开曲线与竖直箭头）
+  \node[anchor=west,black] at (0.2,2.55) {$Y_n\pto c$};
+  \node[anchor=west,black] at (0.2,2.05) {\small 分布越来越};
+  \node[anchor=west,black] at (0.2,1.62) {\small 集中在 $c$};
+\end{tikzpicture}
+\caption{Slutsky 定理的机制：$Y_n\pto c$ 意味着 $Y_n$ 的分布越来越集中、最终退化成常数 $c$ 处的点质量。退化的极限不带任何随机性，于是它与 $X_n$ 的相依结构被``压平'',联合极限分布只能是 $X$ 与 $c$ 点质量的乘积——这正是只凭边缘收敛就能拼出联合收敛、进而对加法乘法用 CMT 的原因。}
+\label{fig:slutsky-degenerate}
+\end{figure}
+
+\rmkb[$Y_n$ 的极限必须是常数]{
+反例能说明``常数''不可省。设 $X_n\dto X\sim\cN(0,1)$，并取 $Y_n=-X_n$，则 $Y_n\dto Y\sim\cN(0,1)$（边缘上确实收敛到一个标准正态）。但 $X_n+Y_n=0$ 恒等于零，其极限是退化于 $0$ 的点质量，绝非 $X+Y$ 那个 $\cN(0,2)$。问题正出在 $Y_n$ 收敛到的是一个\emph{随机}极限、且与 $X_n$ 强相依——这时边缘收敛给不出联合分布。Slutsky 之所以好用，就在于它要求的 $Y_n\pto c$ 是收敛到常数，自动绕开了联合分布这道坎。
+}
+
+\ex[$t$ 统计量的极限分布]{
+设 $X_1,\dots,X_n$ 独立同分布，均值 $\mu$、方差 $\sigma^2\in(0,\infty)$。$\bar X_n$ 为样本均值，$\hat\sigma$ 为一个相合的标准差估计（$\hat\sigma\pto\sigma$）。求 $t$ 统计量
+\[
+    T_n=\frac{\rtn(\bar X_n-\mu)}{\hat\sigma}
+\]
+的极限分布。
+}
+\sol{
+分子由中心极限定理给出 $\rtn(\bar X_n-\mu)\dto\cN(0,\sigma^2)$。分母处理两步：$\hat\sigma\pto\sigma>0$，由 CMT（$x\mapsto 1/x$ 在 $\sigma>0$ 处连续）得 $1/\hat\sigma\pto 1/\sigma$。现在把 $T_n$ 写成``分布部分 $\times$ 常数部分'':
+\[
+    T_n=\underbrace{\rtn(\bar X_n-\mu)}_{\dto\,\cN(0,\sigma^2)}\cdot\underbrace{\frac{1}{\hat\sigma}}_{\pto\,1/\sigma}.
+\]
+正是 Slutsky 的乘积形式（$X_n\dto X$、$Y_n\pto c=1/\sigma$）。于是
+\[
+    T_n\dto\frac{1}{\sigma}\cdot\cN(0,\sigma^2)=\cN\!\pr{0,\ \tfrac{1}{\sigma^2}\cdot\sigma^2}=\cN(0,1).
+\]
+这就是为什么``把未知的 $\sigma$ 换成相合估计 $\hat\sigma$''不改变 $t$ 统计量的渐近标准正态分布：Slutsky 保证了用 $\hat\sigma$ 代替 $\sigma$ 在极限里``免费''。注意这里我们\emph{没有}假设数据正态——有限样本下 $T_n$ 服从 $t$ 分布要靠正态假设，但渐近的标准正态只需 CLT 加 Slutsky。
+}
+
+\section{Delta 法}
+\label{sec:slutsky-delta}
+
+CMT 与 Slutsky 处理的是``加、乘、除''这类运算。但常常我们要对一个渐近正态的估计量做更一般的\emph{光滑非线性变换} $g$——取对数、取倒数、做比值、算弹性。直接对 $g(\hat\theta)$ 谈极限分布，CMT 只告诉我们 $g(\hat\theta)\pto g(\theta_0)$（收敛到常数），却看不出``围绕这个常数的正态波动有多大''。要抓住这个波动，需要把 $g$ 在 $\theta_0$ 处\emph{线性化}——这正是 Taylor 一阶展开的活，接上去就是 Delta 法。
+
+\thm{Delta 法（一元）}{
+设标量估计量 $\hat\theta_n$ 满足
+\[
+    \rtn(\hat\theta_n-\theta_0)\dto\cN(0,\sigma^2),
+\]
+$g$ 在 $\theta_0$ 处可微且 $g'(\theta_0)\neq 0$。则
+\[
+    \boxed{\ \rtn\bigl(g(\hat\theta_n)-g(\theta_0)\bigr)\dto\cN\!\bigl(0,\ [g'(\theta_0)]^2\,\sigma^2\bigr)\ }.
+\]
+}
+
+\pf{
+对 $g$ 在 $\theta_0$ 处做带 Lagrange（或 Peano）余项的一阶 Taylor 展开。存在介于 $\hat\theta_n$ 与 $\theta_0$ 之间的 $\bar\theta_n$，使
+\[
+    g(\hat\theta_n)=g(\theta_0)+g'(\bar\theta_n)\,(\hat\theta_n-\theta_0).
+\]
+两边减 $g(\theta_0)$ 再乘 $\rtn$：
+\[
+    \rtn\bigl(g(\hat\theta_n)-g(\theta_0)\bigr)=g'(\bar\theta_n)\cdot\rtn(\hat\theta_n-\theta_0).
+\]
+现在逐块取极限。前提 $\rtn(\hat\theta_n-\theta_0)\dto\cN(0,\sigma^2)$ 蕴含 $\hat\theta_n-\theta_0=\Op(n^{-1/2})\pto 0$，即 $\hat\theta_n\pto\theta_0$；而 $\bar\theta_n$ 被夹在 $\hat\theta_n$ 与 $\theta_0$ 之间，故也有 $\bar\theta_n\pto\theta_0$。$g'$ 在 $\theta_0$ 处连续，由 CMT 得 $g'(\bar\theta_n)\pto g'(\theta_0)$（一个常数）。于是右边是``常数部分 $\times$ 分布部分'':
+\[
+    \underbrace{g'(\bar\theta_n)}_{\pto\,g'(\theta_0)}\cdot\underbrace{\rtn(\hat\theta_n-\theta_0)}_{\dto\,\cN(0,\sigma^2)}.
+\]
+对它用 Slutsky 的乘积形式，极限为 $g'(\theta_0)\cdot\cN(0,\sigma^2)=\cN\bigl(0,[g'(\theta_0)]^2\sigma^2\bigr)$。
+}
+
+可以看到 Delta 法不是一个独立的新定理，而是\emph{Taylor 一阶展开} + \emph{CMT} + \emph{Slutsky} 三者的组合拳：Taylor 把非线性的 $g$ 换成它在 $\theta_0$ 处的切线（斜率 $g'(\theta_0)$），CMT 保证中间点处的斜率收敛到真斜率，Slutsky 把``收敛的斜率''与``渐近正态的波动''乘起来。
+
+\paragraph{几何图像。}
+图~\ref{fig:slutsky-delta} 给出 Delta 法最直观的画面。把 $\hat\theta_n$ 围绕 $\theta_0$ 的渐近正态波动画成横轴上的一口钟；$g$ 在 $\theta_0$ 处的切线（斜率 $g'(\theta_0)$）把横轴的小波动``斜射''到纵轴上，得到 $g(\hat\theta_n)$ 围绕 $g(\theta_0)$ 的波动，仍是一口钟。关键在于：切线把宽度按斜率\emph{缩放}——输入标准差 $\sigma/\rtn$ 经斜率 $g'(\theta_0)$ 变成输出标准差 $\abs{g'(\theta_0)}\,\sigma/\rtn$，方差因此乘上 $[g'(\theta_0)]^2$。图中 $g$ 是凹的、$\abs{g'}<1$，故输出那口钟比输入窄——这就是方差缩放因子 $[g'(\theta_0)]^2$ 的几何含义。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % Delta 法的几何。g(x)=1.4*sqrt(x), theta0=2.5: g=2.2135, g'=0.4427
+  \def\ox{2.2}
+  \def\oy{1.7}
+  \draw[->] (\ox-0.2,\oy) -- (\ox+5.6,\oy) node[right] {$\theta$};
+  \draw[->] (\ox,\oy-0.2) -- (\ox,\oy+4.4) node[above] {$g(\theta)$};
+  % 曲线 g：x=u 映射到 (ox+u, oy+1.4*sqrt(u))
+  \draw[very thick,black,domain=0.15:5.2,smooth,variable=\u]
+        plot ({\ox+\u},{\oy+1.4*sqrt(\u)});
+  \node[anchor=west,black] at (\ox+4.45,\oy+3.55) {$g$};
+  \coordinate (P) at (\ox+2.5,\oy+2.2135);
+  % 切线：斜率 0.4427 过 P
+  \draw[thick,blue!60!black] (\ox+0.4,\oy+1.2838) -- (\ox+4.6,\oy+3.1432);
+  \fill (P) circle (1.6pt);
+  \node[blue!60!black,anchor=west] at (\ox+3.05,\oy+1.0) {切线斜率 $g'(\theta_0)$};
+  \draw[blue!60!black,->] (\ox+3.45,\oy+1.2) -- (\ox+3.78,\oy+2.07);
+  % 引到两轴
+  \draw[dashed,gray] (P) -- (\ox+2.5,\oy) node[above right=1pt,black] {$\theta_0$};
+  \draw[dashed,gray] (P) -- (\ox,\oy+2.2135) node[above left=1pt,black] {$g(\theta_0)$};
+  % 输入钟形：横轴下方，中心 2.5，sd=0.55，峰向下
+  \draw[red!70!black,thick,domain=0.55:4.45,smooth,variable=\u]
+        plot ({\ox+\u},{\oy-1.35+1.2*exp(-(\u-2.5)*(\u-2.5)/0.605)});
+  \node[red!70!black,anchor=north] at (\ox+2.5,\oy-1.55) {$\hat\theta$ 的渐近正态};
+  % 输出钟形：纵轴左侧，中心 2.2135，sd=|g'|*0.55=0.2435，峰向左
+  \draw[red!70!black,thick,domain=1.45:2.98,smooth,variable=\v]
+        plot ({\ox-1.35+1.2*exp(-(\v-2.2135)*(\v-2.2135)/0.11858)},{\oy+\v});
+  \node[red!70!black,anchor=south,rotate=90] at (\ox-1.7,\oy+2.2135) {$g(\hat\theta)$ 的渐近正态};
+\end{tikzpicture}
+\caption{Delta 法的几何。横轴上 $\hat\theta$ 围绕 $\theta_0$ 的渐近正态波动，经 $g$ 在 $\theta_0$ 处的切线（斜率 $g'(\theta_0)$）映到纵轴，得到 $g(\hat\theta)$ 围绕 $g(\theta_0)$ 的波动。切线按斜率缩放宽度：标准差乘 $\abs{g'(\theta_0)}$，方差乘 $[g'(\theta_0)]^2$。图中 $g$ 凹且斜率小于 $1$，故输出那口钟比输入窄。}
+\label{fig:slutsky-delta}
+\end{figure}
+
+\rmkb[为什么要求 $g'(\theta_0)\neq 0$]{
+若 $g'(\theta_0)=0$，一阶项整个消失，$\rtn(g(\hat\theta_n)-g(\theta_0))\dto\cN(0,0)$ 退化为常数 $0$——一阶 Delta 法给出``零方差''，等于没说。这时真正的波动藏在二阶项里：要做\emph{二阶 Delta 法}，把 Taylor 展到平方项，
+\[
+    g(\hat\theta_n)-g(\theta_0)\approx\tfrac12 g''(\theta_0)(\hat\theta_n-\theta_0)^2,
+\]
+于是 $n\bigl(g(\hat\theta_n)-g(\theta_0)\bigr)\dto\tfrac12 g''(\theta_0)\,\sigma^2\,\chi^2_1$——收敛速度从 $\rtn$ 降到 $n$，极限也从正态变成（缩放的）卡方。一阶导为零是``变换在该点恰好把一阶波动抹平''的临界情形，需更高阶展开接管，与 Taylor 一章里``二阶条件退化要看更高阶''是同一种现象。
+}
+
+\ex[对数变换的标准误]{
+设 $\rtn(\hat\theta_n-\theta_0)\dto\cN(0,\sigma^2)$ 且 $\theta_0>0$。求 $\log\hat\theta_n$ 的渐近分布，并写出其标准误。
+}
+\sol{
+取 $g(x)=\log x$，则 $g'(x)=1/x$，$g'(\theta_0)=1/\theta_0\neq 0$。直接代 Delta 法公式：
+\[
+    \rtn\bigl(\log\hat\theta_n-\log\theta_0\bigr)\dto\cN\!\pr{0,\ \frac{\sigma^2}{\theta_0^2}}.
+\]
+于是 $\log\hat\theta_n$ 的渐近方差为 $\sigma^2/(n\theta_0^2)$，其标准误（用相合估计 $\hat\theta_n,\hat\sigma$ 代入）为
+\[
+    \mathrm{se}\bigl(\log\hat\theta_n\bigr)=\frac{\hat\sigma}{\rtn\,\hat\theta_n}.
+\]
+这是``变换量的标准误''的典型算法：原量的标准误是 $\hat\sigma/\rtn$，取对数后乘上 $\abs{g'(\hat\theta_n)}=1/\hat\theta_n$。同理，倒数 $1/\hat\theta_n$ 的渐近方差是 $\sigma^2/(n\theta_0^4)$，因为 $g(x)=1/x$ 的导数是 $-1/x^2$，平方后得 $1/\theta_0^4$。
+}
+
+\section{多元 Delta 法}
+\label{sec:slutsky-multivariate}
+
+经济学里的估计量大多是向量，而我们想要的变换常常把这个向量映成一个标量（如两个均值的比值）或另一个向量。把一元 Delta 法升级到多元，只需把``导数 $g'$''换成``梯度 / Jacobian'',把``$[g']^2\sigma^2$''换成相应的二次型。
+
+\thm{Delta 法（多元）}{
+设 $\vc\theta_0\in\RR^k$，估计量 $\hat{\vc\theta}_n$ 满足
+\[
+    \rtn(\hat{\vc\theta}_n-\vc\theta_0)\dto\cN(\vc 0,\ \vc\Sigma),
+\]
+$g:\RR^k\to\RR^m$ 在 $\vc\theta_0$ 处连续可微，Jacobian $\mat G=\D_{\vc\theta}g(\vc\theta_0)$（$m\times k$ 矩阵）满秩。则
+\[
+    \boxed{\ \rtn\bigl(g(\hat{\vc\theta}_n)-g(\vc\theta_0)\bigr)\dto\cN\!\bigl(\vc 0,\ \mat G\,\vc\Sigma\,\mat G\T\bigr)\ }.
+\]
+当 $m=1$（标量变换）时 $\mat G=\grad g(\vc\theta_0)\T$ 是行向量，渐近方差化为 $\grad g(\vc\theta_0)\T\,\vc\Sigma\,\grad g(\vc\theta_0)$。
+}
+
+\pf{
+与一元完全平行，只是 Taylor 展开取向量形式。把 $g$ 在 $\vc\theta_0$ 处一阶展开，
+\[
+    g(\hat{\vc\theta}_n)=g(\vc\theta_0)+\mat G\,(\hat{\vc\theta}_n-\vc\theta_0)+\op\!\bigl(\norm{\hat{\vc\theta}_n-\vc\theta_0}\bigr),
+\]
+其中余项是比 $\norm{\hat{\vc\theta}_n-\vc\theta_0}$ 更高阶的小量。两边乘 $\rtn$：
+\[
+    \rtn\bigl(g(\hat{\vc\theta}_n)-g(\vc\theta_0)\bigr)
+    =\mat G\cdot\rtn(\hat{\vc\theta}_n-\vc\theta_0)+\op(1),
+\]
+最后一项是 $\op(1)$，因为 $\rtn\norm{\hat{\vc\theta}_n-\vc\theta_0}=\Op(1)$ 乘以 $\op(1)$ 仍是 $\op(1)$。$\mat G$ 是常数矩阵，对 $\rtn(\hat{\vc\theta}_n-\vc\theta_0)\dto\cN(\vc 0,\vc\Sigma)$ 用 CMT（线性映射连续）得 $\mat G\cdot\rtn(\hat{\vc\theta}_n-\vc\theta_0)\dto\mat G\cdot\cN(\vc 0,\vc\Sigma)=\cN(\vc 0,\mat G\vc\Sigma\mat G\T)$，再用 Slutsky 把 $\op(1)$ 项扔掉（一个 $\dto$ 正态、一个 $\pto 0$，和仍 $\dto$ 同一正态）。这里用到正态向量的线性变换公式：若 $Z\sim\cN(\vc 0,\vc\Sigma)$，则 $\mat G Z\sim\cN(\vc 0,\mat G\vc\Sigma\mat G\T)$。
+}
+
+\state{记住夹心公式 $\mat G\vc\Sigma\mat G\T$}{
+多元 Delta 法的渐近协方差是一个\emph{夹心}：变换的 Jacobian 从两侧夹住原协方差矩阵 $\vc\Sigma$。这个结构在计量里反复出现——它就是``把 $\hat{\vc\theta}$ 的不确定性，通过变换 $g$ 的局部线性映射传播到 $g(\hat{\vc\theta})$ 上''。标量情形 $\grad g\T\vc\Sigma\grad g$ 是它的特例。后面 M-估计的三明治协方差矩阵、两步估计的修正方差，骨架都是这同一个``Jacobian 夹 $\vc\Sigma$''的形状。一旦你能默写 $\mat G\vc\Sigma\mat G\T$，绝大多数``变换量的标准误''就是代公式。
+}
+
+\ex[两个均值之比的渐近方差]{
+设 $(\bar X_n,\bar Y_n)$ 满足
+\[
+    \rtn\!\pr{\bm \bar X_n-\mu_X\\ \bar Y_n-\mu_Y\emx}\dto\cN\!\pr{\vc 0,\ \vc\Sigma},\qquad
+    \vc\Sigma=\bm \sigma_X^2 & \sigma_{XY}\\ \sigma_{XY} & \sigma_Y^2\emx,\quad \mu_Y\neq 0.
+\]
+求比值 $\hat r_n=\bar X_n/\bar Y_n$ 的渐近分布。
+}
+\sol{
+取 $g(x,y)=x/y$，这是把 $\RR^2$ 映到 $\RR$ 的标量变换（$m=1$）。在 $(\mu_X,\mu_Y)$ 处算梯度：
+\[
+    \pd{g}{x}=\frac{1}{y}=\frac{1}{\mu_Y},
+    \qquad
+    \pd{g}{y}=-\frac{x}{y^2}=-\frac{\mu_X}{\mu_Y^2},
+    \qquad
+    \grad g=\bm 1/\mu_Y\\[2pt] -\mu_X/\mu_Y^2\emx.
+\]
+渐近方差是夹心二次型 $\grad g\T\vc\Sigma\grad g$。展开：
+\[
+    \ba
+    V&=\bm \dfrac{1}{\mu_Y} & -\dfrac{\mu_X}{\mu_Y^2}\emx
+       \bm \sigma_X^2 & \sigma_{XY}\\ \sigma_{XY} & \sigma_Y^2\emx
+       \bm \dfrac{1}{\mu_Y}\\[4pt] -\dfrac{\mu_X}{\mu_Y^2}\emx\\[4pt]
+     &=\frac{\sigma_X^2}{\mu_Y^2}-\frac{2\mu_X\,\sigma_{XY}}{\mu_Y^3}+\frac{\mu_X^2\,\sigma_Y^2}{\mu_Y^4}.
+    \ea
+\]
+于是
+\[
+    \rtn\!\pr{\frac{\bar X_n}{\bar Y_n}-\frac{\mu_X}{\mu_Y}}\dto\cN(0,\ V).
+\]
+把 $V$ 提出公因子 $r^2=(\mu_X/\mu_Y)^2$ 可写成更眼熟的``相对方差''形式：
+\[
+    V=r^2\!\br{\frac{\sigma_X^2}{\mu_X^2}-\frac{2\sigma_{XY}}{\mu_X\mu_Y}+\frac{\sigma_Y^2}{\mu_Y^2}} ,
+\]
+即比值的相对方差约等于分子的相对方差、加分母的相对方差、减两倍的相对协方差。这条公式在实务中无处不在：弹性估计、风险比、人均量的比较，凡是``一个估计量除以另一个'',它的标准误都由这个夹心算出。注意若 $\bar X_n$ 与 $\bar Y_n$ 正相关（$\sigma_{XY}>0$），比值的方差会被那个减号压低——分子分母同涨同落，比值反而更稳。
+}
+
+\rmkb[多元 Delta 法包含 Slutsky 的乘积与商]{
+前面用 Slutsky 处理的``$\bar X_n/\bar Y_n$''（当其中一个收敛到常数）其实是多元 Delta 法的退化特例。更一般地，只要把``两个都随机''的情形交给多元 Delta 法、把``一个随机一个收敛到常数''的情形交给 Slutsky，就覆盖了实务里几乎所有的代入式估计量。三件工具的分工是：CMT 管``单个量过连续函数'',Slutsky 管``分布部分与常数部分相加相乘'',Delta 法管``随机向量过光滑非线性变换''。
+}
+
+\section{去处：渐近推断的通用引擎}
+\label{sec:slutsky-applications}
+
+本章三件工具很少单独登场，它们几乎总是作为更大推导链条里的``连接件''出现。把它们放回经济学与计量的主干，最重要的几处落点如下。
+
+\paragraph{标准误与置信区间。}
+任何``变换量''的标准误都来自 Delta 法。报告弹性、半弹性、边际效应、几率比（odds ratio）、长期乘数时，原始参数 $\hat{\vc\theta}$ 的协方差矩阵 $\hat{\vc\Sigma}/n$ 是已知的，要的是 $g(\hat{\vc\theta})$ 的标准误——代夹心公式 $\sqrt{\widehat{\grad g}\T\,(\hat{\vc\Sigma}/n)\,\widehat{\grad g}}$ 即可。统计软件里``nlcom''、``margins''这类命令，内核就是数值地算 Jacobian 再夹 $\hat{\vc\Sigma}$。
+
+\paragraph{$t$ 检验与 Wald 检验。}
+$t$ 统计量用未知 $\sigma$ 的相合估计替换之后仍渐近标准正态——这一步是 Slutsky（见本章 $t$ 统计量例）。多维的 Wald 统计量 $\rtn(\hat{\vc\theta}-\vc\theta_0)\T\inv{\hat{\vc\Sigma}}\rtn(\hat{\vc\theta}-\vc\theta_0)$ 收敛到 $\chi^2$：先由 CMT 把 $\inv{\hat{\vc\Sigma}}\pto\inv{\vc\Sigma}$，再由 Slutsky 把它与渐近正态的二次型拼起来，最后由 CMT（二次型是连续映射）得到 $\chi^2$ 极限。检验非线性约束 $g(\vc\theta_0)=\vc 0$ 时，约束的 Jacobian 经 Delta 法进入 Wald 统计量的方差——这正是``非线性约束 Wald 检验''的来历。
+
+\paragraph{极值估计的渐近正态性。}
+这是三件工具与 Taylor 展开合力的终点（详见后文极值估计的统一框架一章）。M-估计量 $\hat{\vc\theta}$ 由样本一阶条件隐式定义，把一阶条件在真值处做 Taylor 展开后解出
+\[
+    \rtn(\hat{\vc\theta}-\vc\theta_0)=-\br{\D_{\vc\theta}\vc\Psi_n(\bar{\vc\theta})}^{-1}\rtn\,\vc\Psi_n(\vc\theta_0),
+\]
+右边正是``一个收敛到常数矩阵的逆''（CMT + LLN）乘以``一个渐近正态的得分''（CLT），再由 Slutsky 拼成乘积——极限是 $\cN(\vc 0,\mat A^{-1}\mat B\mat A^{-1})$ 那个经典的三明治。可以看到，MLE、GMM、M-估计渐近正态性的``最后一公里'',走的全是本章的路：Taylor 把方程线性化，CMT 搬运矩阵的收敛，Slutsky 把常数块与分布块相乘，必要时 Delta 法再把参数变换的不确定性传播出去。
+
+\state{三件工具，一条装配线}{
+LLN 给``收敛到常数'',CLT 给``收敛到正态''——这是原料。本章三件工具是把原料装配成成品的流水线：\emph{CMT}让收敛性穿过任意连续运算；\emph{Slutsky}把``分布块''与``常数块''安全地相加相乘（前提是后者收敛到常数）；\emph{Delta 法}用一阶 Taylor 把光滑非线性变换就地线性化，再调用前两者。几乎每一个估计量的渐近分布、每一个标准误、每一个检验统计量的极限，最终都是这条装配线的产出。记住它们的分工，渐近推导的``最后一公里''就不再是黑箱，而是一串可以自己走完的标准步骤。
+}

@@ -1,0 +1,377 @@
+% !TEX root = ../main.tex
+\chapter{条件期望（作为投影）}
+\label{ch:condexp}
+
+\noindent\emph{用到的前置工具：内积、正交与投影定理（第三章）；概率空间、$\sigma$-代数与测度（概率与测度部分）；随机变量与 Lebesgue 积分意义下的期望（同上）。}
+\medskip
+
+如果说隐函数定理是微观比较静态的``镇店之宝'',那么条件期望就是计量、宏观预期与博弈论信念这三处的共同地基。``给定已知信息，对未知量的最好猜测是什么''——这个问句几乎是整个经济计量学的母题：回归 $\E{Y\given X}$ 是它，理性预期 $\E{p_{t+1}\given \cF_t}$ 是它，博弈中根据观察更新的信念是它，鞅与动态规划里``对下一期取期望''也是它。本章要讲的，正是把``最好的猜测''这件直觉的事，锻造成一个有定义、可计算、性质丰富的数学对象。
+
+本章的主线是一句话：\emph{条件期望就是投影}。读者在线性代数部分已经见过正交投影——把一个向量垂直地落到某个子空间上，得到``子空间里离它最近的点''。我们将看到，把``向量''换成``随机变量''、``子空间''换成``某组信息下可知的随机变量''、``欧氏距离''换成``均方误差'',那同一张``垂直落下''的图就重现了，而它的垂足正是条件期望。于是``最好的猜测''有了精确含义：均方意义下离真值最近的、且只依赖已知信息的那个预测。
+
+\section{从``给定信息的最好猜测''说起}
+\label{sec:condexp-motivation}
+
+设想要预测一个随机变量 $Y$（明天的销量、某人的工资、一项资产的回报）。如果手上什么信息都没有，最朴素的``单点预测''该取多少？一个自然的标准是让\textbf{均方误差}最小：在所有常数 $c$ 里选一个使 $\E{(Y-c)^2}$ 最小的。展开
+\[
+    \E{(Y-c)^2}=\Var{Y}+\pr{\E{Y}-c}^2 ,
+\]
+右边第一项与 $c$ 无关，第二项在 $c=\E{Y}$ 时取零。于是\emph{无信息时的最优常数预测就是无条件期望} $\E{Y}$。这个小计算已经埋下全章的种子：``最好的预测''被定义成``均方最近'',而答案是某种期望。
+
+现实里我们通常\emph{有}信息。也许我们能观测到另一个变量 $X$（受教育年数、昨天的价格、一个信号），或者更一般地，能观测到``某些事件是否发生''所携带的全部信息。问题随之升级：在所有``可以用这些信息算出来''的预测 $g$（不再限于常数）里，哪一个的均方误差 $\E{(Y-g)^2}$ 最小？
+
+这个升级版问题的答案，就是条件期望。本章按``信息''的精细程度分三步走：先看最初等的``给定一个事件''与``给定一个离散变量'',它们用初等概率就能写出；再把``信息''抽象成一个 $\sigma$-代数 $\cG$，给出 Kolmogorov 的一般定义；最后亮出全章的统一视角——条件期望是 $L^2$ 空间里向``$\cG$-可测函数''子空间的正交投影，即均方最近的预测。
+
+\section{初等条件期望：给定事件、给定离散变量}
+\label{sec:condexp-elementary}
+
+最熟悉的起点是条件概率。给定一个概率为正的事件 $B$，事件 $A$ 的条件概率是
+\[
+    \Prob{A\given B}=\frac{\Prob{A\cap B}}{\Prob{B}},\qquad \Prob{B}>0 .
+\]
+它把概率``重新标准化''到 $B$ 内部。把这套重标准化用到随机变量上，就得到给定事件的条件期望。
+
+\defn{给定事件的条件期望}{
+设 $\Prob{B}>0$，随机变量 $X$ 可积。$X$ \textbf{给定事件 $B$ 的条件期望}定义为在 $B$ 上重标准化后的平均：
+\[
+    \E{X\given B}=\frac{\E{X\,\indicator_B}}{\Prob{B}},
+\]
+其中 $\indicator_B$ 是 $B$ 的示性函数。它就是``只在 $B$ 发生的那些情形里、按条件概率重新加权''算出的 $X$ 的平均值。
+}
+
+下一步，把``一个事件''换成``一个离散变量取的各个值''。设 $Z$ 是离散随机变量，取值 $z_1,z_2,\dots$，每个 $\set{Z=z_k}$ 概率为正。对每个 $z_k$，可以问``在 $Z=z_k$ 这一支里 $X$ 的平均是多少'',即 $\E{X\given Z=z_k}$。把这些数按``$Z$ 实际取了哪个值''拼起来，就得到一个\emph{随机变量}。
+
+\defn{给定离散变量的条件期望}{
+设 $Z$ 离散、每个 $\set{Z=z_k}$ 概率为正。\textbf{$X$ 给定 $Z$ 的条件期望} $\E{X\given Z}$ 是这样一个随机变量：当 $Z(\omega)=z_k$ 时它取值
+\[
+    \E{X\given Z=z_k}=\frac{\E{X\,\indicator_{\set{Z=z_k}}}}{\Prob{Z=z_k}} .
+\]
+换言之，$\E{X\given Z}=g(Z)$，其中 $g(z_k):=\E{X\given Z=z_k}$。
+}
+
+这里有一个关键的观念转变，值得停下来强调：\textbf{$\E{X\given Z}$ 不是一个数，而是一个随机变量}——它是 $Z$ 的函数。它的取值随 $Z$ 落在哪一支而变；只有当你进一步对它再取一次期望、把所有支平均掉，才回到一个数 $\E{X}$。这正是下一节``塔性质''要讲的事，也是把条件期望理解成``投影''（投影的像是个向量，不是标量）的第一道伏笔。
+
+\state{两个层次的``条件期望''，别混淆}{
+$\E{X\given Z=z_k}$ 是\emph{一个数}：在 $Z$ 恰好等于 $z_k$ 这一支里 $X$ 的平均。\\
+$\E{X\given Z}$ 是\emph{一个随机变量}：把上面那些数按 $Z$ 的实际取值``装配''起来，得到的 $Z$ 的函数。计量里写 $\E{Y\given X}$（回归函数）时，指的几乎总是后者——一条随 $X$ 而变的曲线，而非单个数。
+}
+
+\ex[抛两枚均匀硬币，给定正面总数预测第一枚]{
+抛两枚独立均匀硬币，正面记 $1$、反面记 $0$。设 $X$ 为第一枚的结果，$Z=X_1+X_2$ 为正面总数（取值 $0,1,2$）。求 $\E{X\given Z}$。
+}
+\sol{
+逐支计算 $g(z)=\E{X\given Z=z}$。
+
+$Z=0$：两枚都反面，$X=0$，故 $g(0)=0$。
+
+$Z=2$：两枚都正面，$X=1$，故 $g(2)=1$。
+
+$Z=1$：恰一枚正面，等概率地是``第一枚正''或``第二枚正'',故 $X$ 以各 $1/2$ 取 $1$ 与 $0$，$g(1)=\tfrac12$。
+
+于是
+\[
+    \E{X\given Z}=g(Z)=\bc 0,& Z=0,\\[2pt] \tfrac12,& Z=1,\\[2pt] 1,& Z=2. \ec
+\]
+它确实是 $Z$ 的函数、是随机变量。顺手验证一下塔性质：$\E{\E{X\given Z}}=0\cdot\tfrac14+\tfrac12\cdot\tfrac12+1\cdot\tfrac14=\tfrac12=\E{X}$，与第一枚正面概率 $1/2$ 吻合。
+}
+
+\section{一般条件期望：Kolmogorov 的定义}
+\label{sec:condexp-kolmogorov}
+
+初等定义有个硬伤：它要求事件概率为正、变量离散。可经济学里要条件化的对象常是\emph{连续}的——给定一个连续协变量 $X$ 预测 $Y$，事件 $\set{X=x}$ 的概率往往为零，``除以 $\Prob{X=x}=0$''当场失效。我们需要一个不依赖``概率为正''、能处理任意信息的定义。Kolmogorov 给出的办法漂亮而抽象：不再逐点定义，而是用两条``整体''性质把 $\E{X\given\cG}$ 唯一钉住。
+
+先要把``信息''本身数学化。一个 $\sigma$-代数 $\cG\se\cF$ 代表``一组我们能够分辨的事件''——对 $\cG$ 里的每个事件，我们都知道它到底发生了没有。``一个预测只依赖 $\cG$ 中的信息'',精确地说就是它\textbf{$\cG$-可测}：它在每个 $\cG$-事件上的取值是定下来的。
+
+\defn{一般条件期望（Kolmogorov）}{
+设 $(\Omega,\cF,\PP)$ 为概率空间，$X$ 可积，$\cG\se\cF$ 是子 $\sigma$-代数。$X$ 关于 $\cG$ 的\textbf{条件期望}是任一满足下列两条的随机变量，记作 $\E{X\given\cG}$：
+
+\emph{(i) 可测性。} $\E{X\given\cG}$ 是 $\cG$-可测的（即``只用 $\cG$ 里的信息就能算出''）。
+
+\emph{(ii) 平均匹配。} 对每个事件 $G\in\cG$，
+\[
+    \E{\E{X\given\cG}\,\indicator_G}=\E{X\,\indicator_G} .
+\]
+满足这两条的随机变量在``几乎必然相等''的意义下唯一。当 $\cG=\sigma(Z)$（由变量 $Z$ 生成的 $\sigma$-代数）时，记 $\E{X\given Z}:=\E{X\given\sigma(Z)}$。
+}
+
+这两条该怎么读？条件 (i) 说\emph{预测只能用手头的信息}；条件 (ii) 说\emph{在任何一块``信息能分辨出来''的区域上，预测的总账要和真值的总账对得上}——你不必逐点猜对 $X$，但在每个 $\cG$-事件上``加总起来''必须无误差。把 (ii) 里的 $G$ 取成 $\Omega$，立得 $\E{\E{X\given\cG}}=\E{X}$，这正是塔性质。
+
+\rmkb[这定义和初等定义对得上吗]{
+对得上。在离散情形 $\cG=\sigma(Z)$，$\cG$-可测就是``$Z$ 的函数'',它在每个原子 $\set{Z=z_k}$ 上为常数。把 (ii) 里的 $G$ 取成单个原子 $\set{Z=z_k}$，得 $\E{X\given\cG}\cdot\Prob{Z=z_k}=\E{X\,\indicator_{\set{Z=z_k}}}$，解出那个常数正是 $\E{X\given Z=z_k}=\E{X\,\indicator_{\set{Z=z_k}}}/\Prob{Z=z_k}$。Kolmogorov 定义不过是把这套``逐原子求平均''推广到了没有原子（连续）的情形——这时``在每个 $\cG$-事件上对账''接管了``除以原子概率''的角色。
+}
+
+定义只说``满足两条的随机变量唯一'',却没说它\emph{存在}。存在性的标准证明走 Radon--Nikodym 定理，下面只陈述其骨架、给直觉，不逐行展开（极重的测度论构造按本书惯例只点到为止）。
+
+\state{存在性的来路：Radon--Nikodym}{
+固定可积的 $X\ge 0$。在 $\cG$ 上定义一个新测度 $\nu(G):=\E{X\,\indicator_G}$（``按 $X$ 加权的概率''）。它对 $\PP$ \emph{绝对连续}：$\Prob{G}=0\To\nu(G)=0$。Radon--Nikodym 定理断言，这种绝对连续的测度必有一个 $\cG$-可测的``密度'' $h$，使 $\nu(G)=\E{h\,\indicator_G}$ 对一切 $G\in\cG$ 成立。这个密度 $h$ 恰好同时满足定义的 (i)(ii)，于是 $\E{X\given\cG}:=h$。一般的 $X$ 拆成正负部分分别处理即可。\emph{记住这一句}：条件期望就是``$X$ 加权测度''关于原测度、在信息 $\cG$ 上的 Radon--Nikodym 导数。
+}
+
+\section{核心视角：条件期望是 $L^2$ 投影}
+\label{sec:condexp-projection}
+
+Kolmogorov 定义干净却抽象，``为什么是它''并不直观。本节给出全章最重要的解释：当 $X$ 平方可积时，$\E{X\given\cG}$ 就是把 $X$ 向``$\cG$-可测的平方可积随机变量''这个子空间作的\emph{正交投影}——也即均方意义下离 $X$ 最近的、只依赖 $\cG$ 信息的预测。这一节把概率论直接接回了投影定理（第三章）。
+
+要套用投影定理，先要有内积空间。把平方可积的随机变量看成``向量'',定义内积
+\[
+    \inner{X}{Y}:=\E{XY},
+\]
+则范数 $\norm{X}=\sqrt{\E{X^2}}$ 度量``大小''，而``正交'' $\inner{X}{Y}=0$ 就是 $\E{XY}=0$。全体平方可积随机变量在这个内积下构成空间 $L^2(\Omega,\cF)$；其中``只用 $\cG$ 信息''的那些（$\cG$-可测且平方可积）构成子空间 $L^2(\Omega,\cG)$。它正是投影定理里的那个``子空间''，而 $X$ 就是要投影的``向量''。
+
+\thm{条件期望即正交投影}{
+设 $\E{X^2}<\infty$。则 $\E{X\given\cG}$ 是 $X$ 在子空间 $L^2(\Omega,\cG)$ 上的正交投影；等价地，它是该子空间中使均方误差最小的元素：
+\[
+    \E{X\given\cG}=\argmin_{\substack{W\ \cG\text{-可测}\\ \E{W^2}<\infty}}\ \E{(X-W)^2} .
+\]
+其残差 $X-\E{X\given\cG}$ 与每个 $\cG$-可测的平方可积 $W$ 正交：$\E{\pr{X-\E{X\given\cG}}W}=0$。
+}
+
+\pf{
+投影定理（第三章）保证：$X$ 在子空间 $L^2(\Omega,\cG)$ 上存在唯一的正交投影 $P X$，其特征是\emph{残差垂直于整个子空间}，即对一切 $\cG$-可测平方可积 $W$ 有 $\E{(X-PX)W}=0$。我们只需验证：这条正交性恰好等价于 Kolmogorov 定义的 (i)(ii)。
+
+$PX$ 在子空间里，故 $\cG$-可测，(i) 满足。把正交性中的 $W$ 取成示性函数 $\indicator_G$（$G\in\cG$，它 $\cG$-可测且有界故平方可积）：
+\[
+    \E{\pr{X-PX}\indicator_G}=0
+    \quad\Longleftrightarrow\quad
+    \E{PX\,\indicator_G}=\E{X\,\indicator_G},
+\]
+正是 (ii)。反过来，若某 $\cG$-可测的 $W^\star$ 满足 (ii)，则它与每个示性函数 $\indicator_G$ 的对账成立；由于 $\cG$-可测的简单函数是示性函数的线性组合、而它们在 $L^2(\Omega,\cG)$ 中稠密，对账由示性函数推广到整个子空间，即残差 $X-W^\star$ 与子空间正交。于是 $W^\star=PX$。故 Kolmogorov 的条件期望与 $L^2$ 投影是同一个对象。
+
+``最近''由投影定理的最近性刻画直接得到：正交投影 $PX$ 是子空间中离 $X$ 最近的点，``距离''在此即 $\norm{X-W}=\sqrt{\E{(X-W)^2}}$，故 $PX$ 最小化均方误差。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth,line cap=round,line join=round]
+  % 条件期望作为 L^2 投影：把随机变量 X 投影到 cG-可测函数子空间。
+  \coordinate (O)  at (0,0);
+  \coordinate (A)  at (5.4,0);
+  \coordinate (B)  at (2.4,1.55);
+  \coordinate (C)  at (7.8,1.55);
+  \fill[blue!8] (O) -- (A) -- (C) -- (B) -- cycle;
+  \draw[blue!40!black,thin] (O) -- (A) -- (C) -- (B) -- cycle;
+  \node[blue!45!black,anchor=north west] at (5.45,0.05)
+       {$L^2(\Omega,\cG)$};
+  \node[blue!45!black,anchor=north west] at (5.45,-0.45)
+       {\footnotesize（$\cG$-可测函数）};
+
+  \coordinate (P) at (4.1,0.50);   % 投影点(平面内)
+  \coordinate (Y) at (4.1,2.50);   % X 终点(竖直长2.0)
+
+  \draw[->,very thick,red!70!black] (O) -- (Y);
+  \draw[->,very thick,blue!60!black] (O) -- (P);
+  \draw[->,very thick,green!45!black] (P) -- (Y);
+
+  % 直角标记：残差(竖直)⟂平面内方向(沿 OP)
+  \draw[black,thin] ($(P)+(-0.30,-0.037)$) -- ($(P)+(-0.30,-0.037)+(0,0.28)$)
+                    -- ($(P)+(0,0.28)$);
+
+  \node[red!70!black,anchor=south west] at (Y) {$X$};
+  \node[blue!60!black,anchor=north] at (2.55,0.34) {$\E{X \given \cG}$};
+  \node[green!45!black,anchor=west] at ($(P)!0.60!(Y)+(0.16,0)$)
+       {$X-\E{X \given \cG}$};
+\end{tikzpicture}
+\caption{条件期望作为 $L^2$ 投影：把随机变量 $X$ 垂直地落到``$\cG$-可测函数''子空间 $L^2(\Omega,\cG)$ 上，垂足就是 $\E{X\given\cG}$；残差 $X-\E{X\given\cG}$ 正交于整个子空间，对应均方误差最小。与第三章 OLS 的投影图是同一张图，只是把欧氏空间换成了随机变量空间。}
+\label{fig:condexp-1}
+\end{figure}
+
+图~\ref{fig:condexp-1} 与第三章 OLS 的几何全貌图\emph{逐元素对应}：那里的 $\vc y$ 在此是 $X$，那里的列空间 $\mathrm{col}(\mat X)$ 在此是 $\cG$-可测函数子空间，那里的拟合值 $\hat{\vc y}=\mat P\vc y$ 在此是 $\E{X\given\cG}$，那里的残差 $\vc e$ 在此是预测误差。OLS 是这张图在有限维欧氏空间里的特例（投影到几条回归元张成的有限维子空间）；条件期望是它在随机变量空间里的版本（投影到一个可能无穷维的子空间）。
+
+\state{为什么``投影''视角值得记住}{
+三件事一次到手。其一，\emph{含义}：$\E{X\given\cG}$ 就是``用 $\cG$ 信息能给出的均方最优预测'',``最好的猜测''从此有了精确定义。其二，\emph{性质}：投影是线性算子、幂等（投影里的东西再投不动）、且``塔性质''不过是``先投到大子空间再投到小子空间 $=$ 直接投到小子空间''——下一节将看到这些性质几乎都能从投影一眼读出。其三，\emph{统一}：OLS、最优线性预测、GLS、条件期望、卡尔曼滤波里的更新，全是同一个正交投影换了空间；学一次，处处通用。
+}
+
+\rmkb[$L^2$ 之外：靠稠密延拓到 $L^1$]{
+投影视角要求 $\E{X^2}<\infty$。但条件期望对一切\emph{可积}（$\E{\abs X}<\infty$）的 $X$ 都有定义——这正是 Kolmogorov 定义和 Radon--Nikodym 路线的好处，它们不需要二阶矩。两条路线在 $L^2$ 上给出同一个对象；超出 $L^2$ 时，可用条件 Jensen 不等式（下节）控制 $\norm[1]{\cdot}$ 范数，把 $L^2$ 上的结论由稠密性延拓到 $L^1$。本书在直觉层面以 $L^2$ 投影为主图，需要完全一般性时回到 Kolmogorov 的两条公理即可。
+}
+
+\section{性质：塔性质、提出已知量、条件 Jensen}
+\label{sec:condexp-properties}
+
+条件期望的威力，一大半来自一组干净的运算性质。它们既可由 Kolmogorov 公理直接验证，又能从``投影''图里看个明白。下面给出最常用的几条。
+
+\prop{条件期望的基本性质}{
+设相关变量都可积，$\cH\se\cG\se\cF$ 为嵌套的子 $\sigma$-代数。则（均在``几乎必然''意义下）：
+
+\emph{(a) 线性。} $\E{aX+bY\given\cG}=a\E{X\given\cG}+b\E{Y\given\cG}$。
+
+\emph{(b) 提出已知量。} 若 $Z$ 是 $\cG$-可测的（``在 $\cG$ 下已知''）且 $ZX$ 可积，则 $\E{ZX\given\cG}=Z\,\E{X\given\cG}$。
+
+\emph{(c) 塔性质（迭代期望）。} $\E{\E{X\given\cG}\given\cH}=\E{X\given\cH}$；特别地取 $\cH=\set{\varnothing,\Omega}$ 得 $\E{\E{X\given\cG}}=\E{X}$。
+
+\emph{(d) 独立则退化为无条件。} 若 $X$ 与 $\cG$ 独立，则 $\E{X\given\cG}=\E{X}$。
+
+\emph{(e) 条件 Jensen。} 若 $\vp$ 为凸函数且 $\vp(X)$ 可积，则 $\vp\pr{\E{X\given\cG}}\le\E{\vp(X)\given\cG}$。
+}
+
+\pf{
+\textbf{(a) 线性}：投影是线性算子，故立得；也可直接核验——右边 $\cG$-可测，且对每个 $G$，$\E{(a\E{X\given\cG}+b\E{Y\given\cG})\indicator_G}=a\E{X\indicator_G}+b\E{Y\indicator_G}=\E{(aX+bY)\indicator_G}$，符合公理 (ii)。
+
+\textbf{(b) 提出已知量}：右边 $Z\,\E{X\given\cG}$ 是两个 $\cG$-可测量之积，仍 $\cG$-可测，(i) 成立。验 (ii)：要证对一切 $G\in\cG$，$\E{Z\,\E{X\given\cG}\,\indicator_G}=\E{ZX\,\indicator_G}$。当 $Z=\indicator_{G'}$（$G'\in\cG$）时，左边 $=\E{\E{X\given\cG}\indicator_{G\cap G'}}=\E{X\indicator_{G\cap G'}}=\E{ZX\indicator_G}$，对账成立。由线性推广到 $\cG$-可测简单函数，再由单调收敛推广到一般 $\cG$-可测 $Z$。直觉上：在 $\cG$ 下 $Z$ 已是``已知常数'',常数自然可以提到期望外。
+
+\textbf{(c) 塔性质}：记 $W=\E{X\given\cG}$。要证 $\E{W\given\cH}=\E{X\given\cH}$。右边 $\cH$-可测，(i) 满足。验 (ii)：对每个 $H\in\cH$，因 $\cH\se\cG$ 故 $H\in\cG$，于是
+\[
+    \E{W\,\indicator_H}=\E{\E{X\given\cG}\indicator_H}=\E{X\,\indicator_H},
+\]
+末步用了 $W=\E{X\given\cG}$ 的公理 (ii)（$H$ 当 $\cG$-事件用）。这恰是 $\E{X\given\cH}$ 该满足的对账，故 $\E{W\given\cH}=\E{X\given\cH}$。
+
+\textbf{(d) 独立}：常数 $\E{X}$ 平凡地 $\cG$-可测。验 (ii)：由独立性 $\E{X\indicator_G}=\E{X}\Prob{G}=\E{\E{X}\indicator_G}$，对一切 $G\in\cG$ 成立。
+
+\textbf{(e) 条件 Jensen}：凸函数 $\vp$ 在任一点 $a$ 处有支撑线 $\vp(x)\ge\vp(a)+\lambda(a)(x-a)$。取 $a=\E{X\given\cG}$（它 $\cG$-可测），代 $x=X$：
+\[
+    \vp(X)\ge\vp\pr{\E{X\given\cG}}+\lambda\pr{\E{X\given\cG}}\pr{X-\E{X\given\cG}} .
+\]
+两边对 $\cG$ 取条件期望，用线性与``提出已知量''（$\vp(\E{X\given\cG})$ 与 $\lambda(\E{X\given\cG})$ 都 $\cG$-可测），第二项的条件期望因子 $\E{X-\E{X\given\cG}\given\cG}=0$ 而消失，余下 $\E{\vp(X)\given\cG}\ge\vp(\E{X\given\cG})$。
+}
+
+塔性质是其中最常被调用的一条，值得用投影的语言再说一遍，因为那个画面一旦记住就再不会忘。
+
+\state{塔性质 $=$ ``粗投影吃掉细投影''}{
+信息越多，子空间越大。$\cH\se\cG$ 意味着 $L^2(\Omega,\cH)\se L^2(\Omega,\cG)$（小子空间套在大子空间里）。塔性质说的是：先把 $X$ 投到\emph{大}子空间（得 $\E{X\given\cG}$），再把结果投到\emph{小}子空间，等于一步到位直接投到小子空间。这在欧氏几何里是显然的：先投到一张大平面、再投到平面里的一条线，和直接投到那条线落点相同。``信息可以逐步丢弃、顺序不影响最终的粗预测''——迭代期望定律的全部内容，就是这句几何常识。
+}
+
+图~\ref{fig:condexp-2} 把塔性质画在最具体的离散情形：$\cG$ 把样本空间划成若干``原子''，$\E{X\given\cG}$ 在每个原子上取 $X$ 在该原子内的平均（一条阶梯），而对这些阶梯再按原子概率加权平均，就抹平成一条水平线 $\E{X}$——这正是 $\cH=\set{\varnothing,\Omega}$（最粗信息）时的塔性质。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth,line cap=round,line join=round]
+  % 离散条件期望 = 在 cG 的每个原子上取 X 的均值（阶梯函数）。
+  % 塔性质：对这些常数再按原子概率加权平均，得回 E[X]。
+  \draw[->] (-0.2,0) -- (8.6,0) node[right] {$\Omega$};
+  \draw[->] (0,-0.2) -- (0,4.5) node[above] {取值};
+
+  \def\ba{0}\def\bb{2.0}\def\bc{3.6}\def\bd{6.0}\def\be{8.0}
+  \def\va{2.1}\def\vb{3.5}\def\vc{1.6}\def\vd{2.9}
+
+  \foreach \xb in {\bb,\bc,\bd}{
+    \draw[gray!55,dashed] (\xb,0) -- (\xb,4.2);
+  }
+
+  \draw[very thick,blue!60!black] (\ba,\va) -- (\bb,\va);
+  \draw[very thick,blue!60!black] (\bb,\vb) -- (\bc,\vb);
+  \draw[very thick,blue!60!black] (\bc,\vc) -- (\bd,\vc);
+  \draw[very thick,blue!60!black] (\bd,\vd) -- (\be,\vd);
+
+  \foreach \px/\base/\off in {
+      0.6/2.1/0.55, 1.0/2.1/-0.50, 1.5/2.1/0.42, 1.7/2.1/-0.47,
+      2.4/3.5/0.40, 2.8/3.5/-0.42, 3.2/3.5/0.30,
+      4.0/1.6/0.55, 4.6/1.6/-0.52, 5.2/1.6/0.48, 5.6/1.6/-0.44,
+      6.5/2.9/0.45, 7.0/2.9/-0.48, 7.5/2.9/0.30 }{
+    \fill[gray!55] (\px,{\base+\off}) circle (1.4pt);
+  }
+
+  \def\globalmean{2.43}
+  \draw[red!75!black,thick,dash pattern=on 5pt off 3pt]
+        (\ba,\globalmean) -- (\be,\globalmean);
+  \node[red!75!black,anchor=east] at (-0.25,\globalmean) {$\E{X}$};
+
+  \node[blue!60!black,anchor=west,align=left] at (5.2,4.05)
+       {$\E{X \given \cG}$ 在每个};
+  \node[blue!60!black,anchor=west,align=left] at (5.2,3.62)
+       {原子上为常数};
+  \draw[blue!60!black,->] (7.0,3.55) -- (7.0,{\vd+0.05});
+
+  \node[anchor=north] at ({(\ba+\bb)/2},-0.05) {$G_1$};
+  \node[anchor=north] at ({(\bb+\bc)/2},-0.05) {$G_2$};
+  \node[anchor=north] at ({(\bc+\bd)/2},-0.05) {$G_3$};
+  \node[anchor=north] at ({(\bd+\be)/2},-0.05) {$G_4$};
+\end{tikzpicture}
+\caption{离散情形下的条件期望与塔性质：$\cG$ 把样本空间分成原子 $G_1,\dots,G_4$，$\E{X\given\cG}$（蓝色阶梯）在每个原子上等于 $X$ 在该原子内的平均（散点围绕阶梯上下对称）；把这条阶梯按原子概率再平均一次，抹平成全局均值 $\E{X}$（红色虚线），即 $\E{\E{X\given\cG}}=\E{X}$。}
+\label{fig:condexp-2}
+\end{figure}
+
+\ex[用塔性质算复合期望]{
+设某商品的需求量 $X$ 依赖于市场状态 $Z$：景气（$Z=1$，概率 $0.4$）时 $\E{X\given Z=1}=100$；萧条（$Z=0$，概率 $0.6$）时 $\E{X\given Z=0}=60$。求总体平均需求 $\E{X}$。
+}
+\sol{
+直接用塔性质 $\E{X}=\E{\E{X\given Z}}$，把条件均值按状态概率加权：
+\[
+    \E{X}=\E{X\given Z=1}\Prob{Z=1}+\E{X\given Z=0}\Prob{Z=0}
+    =100\cdot 0.4+60\cdot 0.6=76 .
+\]
+这就是计量与决策里无处不在的``分层再加总''：先在每一层（状态）内算条件平均，再按各层概率把它们平均掉。看似琐碎，却是全期望公式、全方差分解、乃至动态规划``向后归纳''的基本动作。
+}
+
+\rmkb[全方差公式：方差的勾股分解]{
+塔性质有个孪生兄弟，专管方差：
+\[
+    \Var{X}=\E{\Var{X\given\cG}}+\Var{\E{X\given\cG}} .
+\]
+读作``总方差 $=$ 组内方差的平均 $+$ 组间（条件均值的）方差''。它正是第三章那条勾股分解 $\norm{\vc y-\bar y\vc 1}^2=\norm{\vc e}^2+\norm{\hat{\vc y}-\bar y\vc 1}^2$ 在随机变量空间里的化身：$X$ 减去其条件均值（残差，贡献组内方差）与条件均值减去总均值（已解释部分，贡献组间方差）正交，方差像长度平方一样可加。ANOVA、随机效应模型、信息价值的度量都建在这条分解上。
+}
+
+\section{回归函数：$\E{Y\given X}$ 与它的去处}
+\label{sec:condexp-regression}
+
+把上面的抽象机器对准计量经济学最核心的对象，一切落地。给定协变量向量 $X$ 预测结果 $Y$，``均方最优预测''就是条件期望 $\E{Y\given X}$；当 $\cG=\sigma(X)$ 时它必是 $X$ 的某个（可测）函数。
+
+\defn{回归函数}{
+$Y$ 关于 $X$ 的\textbf{回归函数}（又称\emph{条件期望函数}，CEF）是
+\[
+    m(x):=\E{Y\given X=x},
+\]
+而随机变量 $\E{Y\given X}=m(X)$。它是所有 $X$ 的函数中均方误差最小者：$m=\argmin_{g}\E{(Y-g(X))^2}$。
+}
+
+这把``回归''从``画一条直线''的操作，提升为一个不依赖任何函数形式假设的总体对象：$m(x)$ 是真实世界里``$X=x$ 那一群体的 $Y$ 平均''。图~\ref{fig:condexp-3} 给出它的画面——一条穿过散点云的曲线，在每个 $x$ 处落在该竖直切片里 $Y$ 的均值上。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth,line cap=round,line join=round]
+  % E[Y|X=x] 作为穿过散点云的回归函数 m(x)。
+  % 回归函数 m(x)=1.0+1.05*sqrt(x)；散点在每个 x 处关于 m(x) 上下对称。
+  \def\mfun{1.0+1.05*sqrt(\x)}
+
+  \draw[->] (-0.2,0) -- (7.0,0) node[right] {$x$};
+  \draw[->] (0,-0.2) -- (0,4.4) node[above] {$y$};
+
+  \draw[thick,blue!60!black,domain=0.3:6.2,smooth,variable=\x]
+        plot ({\x},{\mfun});
+  \node[blue!60!black,anchor=west] at (5.0,2.55)
+        {$m(x)=\E{Y \given X=x}$};
+  \draw[blue!60!black,->] (5.45,2.74) -- (5.35,3.05);
+
+  \foreach \px/\off in {
+      0.7/0.55, 0.7/-0.50,
+      1.4/0.62, 1.4/-0.58, 1.4/0.20,
+      2.2/0.70, 2.2/-0.66, 2.2/-0.15,
+      3.1/0.58, 3.1/-0.64, 3.1/0.10,
+      4.0/0.72, 4.0/-0.68,
+      4.9/0.50, 4.9/-0.55, 4.9/0.05,
+      5.7/0.60, 5.7/-0.56 }{
+    \pgfmathsetmacro{\my}{1.0+1.05*sqrt(\px)+\off}
+    \fill[gray!55] (\px,\my) circle (1.5pt);
+  }
+
+  \def\xs{3.1}
+  \pgfmathsetmacro{\ms}{1.0+1.05*sqrt(\xs)}
+  \draw[dashed,gray] (\xs,0) -- (\xs,{\ms+0.95});
+  \fill[red!75!black] (\xs,\ms) circle (1.9pt);
+  \node[red!75!black,anchor=north west,align=left] at (3.45,1.65)
+       {$\E{Y \given X=x_0}$};
+  \draw[red!75!black,->] (3.55,1.74) -- (\xs,{\ms-0.04});
+  \node[anchor=north] at (\xs,-0.05) {$x_0$};
+\end{tikzpicture}
+\caption{回归函数 $m(x)=\E{Y\given X=x}$ 是穿过散点云的``条件均值曲线''：在每个 $x$ 处，它落在该竖直切片内 $Y$ 取值的平均上（图中 $x_0$ 处的红点即该切片的条件均值）。计量里的``回归''本质上就是在估计这条曲线。}
+\label{fig:condexp-3}
+\end{figure}
+
+回归函数 $m$ 一般不是线性的。但当我们把预测限制在 $X$ 的\emph{线性}函数里时，得到的最优线性预测正是总体版的 OLS——这把本章和第三章扣得严丝合缝。
+
+\state{OLS 是``投影到线性子空间''的特例}{
+全条件期望 $m(X)=\E{Y\given X}$ 是把 $Y$ 投到\emph{全体} $X$-可测函数（一个大子空间）上。若改投到其中更小的\emph{线性}子空间 $\setb{\,\vc x\T\vc\beta\,}{\vc\beta\in\RR^k}$，得到的是\textbf{最优线性预测}，其系数
+\[
+    \vc\beta^\star=\inv{\E{XX\T}}\,\E{XY}
+\]
+正是第三章 OLS 公式 $\inv{(\mat X\T\mat X)}\mat X\T\vc y$ 的\emph{总体}对应（样本矩换成总体矩）。两者是同一个正交投影，只是子空间一大一小：当真实 $m$ 恰好线性时二者重合，否则 OLS 给的是 $m$ 的最佳线性逼近。这解释了``回归系数''的总体含义，也说明了为什么误设线性时 OLS 仍是``最好的线性近似''。
+}
+
+最后，把这条工具线索引向它在各门核心课里的落点。
+
+\state{条件期望通向何处}{
+\emph{计量}：回归与条件矩的全部理论以 $\E{Y\given X}$ 为对象；工具变量法的识别条件 $\E{u\given Z}=0$（残差对工具的条件期望为零）就是一句正交性；GMM 把模型写成一族条件矩约束 $\E{g(\cdot)\given Z}=0$。\\
+\emph{宏观}：理性预期假设个体的主观预期等于真实的条件期望 $\E{p_{t+1}\given\cF_t}$；动态规划里 Bellman 方程对未来值函数``取条件期望''$\E{V(s_{t+1})\given s_t}$，正是本章的运算。\\
+\emph{博弈论 / 决策论}：贝叶斯更新后的信念就是给定观察的条件分布，其期望即条件期望——这是下一章``贝叶斯更新与信息''的主角。\\
+\emph{随机过程}：鞅的定义 $\E{X_{t+1}\given\cF_t}=X_t$（``给定至今信息，下一期的最优预测就是当前值'')逐字是条件期望；它撑起了资产定价的无套利、随机积分与最优停时的整套理论。
+}
+
+一个对象，四门核心课。条件期望之所以能同时是回归、是预期、是信念、是鞅，正因为它们共享同一个数学内核——\emph{向``已知信息''子空间的正交投影}。认清了这条``均方最优预测''的主线，这许多看似分散的工具便收束成了同一把钥匙。

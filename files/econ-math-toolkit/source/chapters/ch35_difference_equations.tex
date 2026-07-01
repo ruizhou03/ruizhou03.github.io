@@ -1,0 +1,356 @@
+% !TEX root = ../main.tex
+\chapter{差分方程与稳定性}
+\label{ch:difference}
+
+\noindent\emph{用到的前置工具：特征值、特征向量与对角化（第四章）；矩阵的幂与相似变换（第四章）；对称矩阵与谱定理（第五章）；复数与模（基础，本书直接借用）。}
+\medskip
+
+经济学里几乎所有``随时间演化''的模型，最终都落成一条差分方程：今天的状态决定明天的状态，明天的又决定后天的，如此递推下去。增长模型问资本存量会不会爬向稳态，新凯恩斯模型问通胀与产出缺口在一次冲击后如何回归，理性预期模型问一组前瞻变量怎样选才不至于发散——这些问题表面上各不相干，骨子里都是同一个问句：\emph{一个由 $\vc x_{t+1}=\vc g(\vc x_t)$ 驱动的序列，长期会收敛到稳态、绕着它震荡、还是一去不返地发散？}本章把这个问句的线性版本彻底讲透。线性是起点也是核心：非线性系统在稳态附近的行为，由它的线性化（Jacobian）决定（这一步是隐函数定理与 Taylor 展开的直接应用），所以``线性差分方程稳不稳''这件事，恰好就是判断一切动态经济模型局部稳定性的通用判据。
+
+我们会看到，一阶系统 $\vc x_{t+1}=\mat A\vc x_t$ 的全部秘密都写在 $\mat A$ 的特征值里：解是 $\vc x_t=\mat A^t\vc x_0$，对角化后 $\mat A^t=\mat P\,\vc\Lambda^t\inv{\mat P}$，于是``收敛与否''简化为``特征值的模是否都小于 $1$''。当特征值有的在单位圆内、有的在圆外时，系统是\textbf{鞍点}——既非全局收敛也非全局发散，而是只有从一个特定子空间出发才会收敛。这个看似纯数学的几何事实，正是理性预期均衡之所以唯一的全部原因（Blanchard–Kahn 条件），也是本章最值得带走的一件工具。
+
+\section{从递推到``长期会怎样''}
+\label{sec:difference-1}
+
+一个\textbf{（自治）差分方程}是一条形如
+\[
+    x_{t+1}=g(x_t),\qquad t=0,1,2,\dots
+\]
+的递推关系：给定初值 $x_0$，它唯一地定出整条轨道 $x_0,x_1,x_2,\dots$。``自治''指 $g$ 不显含时间 $t$。我们最关心两件事：是否存在一个\textbf{稳态}（steady state，或称不动点）$x^\ast$ 满足 $x^\ast=g(x^\ast)$——到了那里就再也不动；以及从任意初值出发，轨道是否会\emph{收敛}到这个稳态。
+
+\defn{稳态与（局部渐近）稳定性}{
+点 $x^\ast$ 称为差分方程 $x_{t+1}=g(x_t)$ 的\textbf{稳态}，若 $g(x^\ast)=x^\ast$。称 $x^\ast$ \textbf{局部渐近稳定}，若存在它的一个邻域，使得从该邻域内任一初值出发的轨道都满足 $x_t\to x^\ast$（$t\to\infty$）；若反之邻域内（除 $x^\ast$ 外）任一初值出发的轨道都离开该邻域，则称 $x^\ast$ \textbf{不稳定}。
+}
+
+\rmkb[为什么先把模型线性化]{
+真实模型里 $g$ 几乎总是非线性的，直接判稳很难。但局部稳定性只关心稳态\emph{附近}的行为，于是把 $g$ 在 $x^\ast$ 处做一阶 Taylor 展开（第十四章）：记偏离量 $\hat x_t=x_t-x^\ast$，则
+\[
+    \hat x_{t+1}=g(x^\ast)+g'(x^\ast)\hat x_t+o(\hat x_t)-x^\ast
+    \approx g'(x^\ast)\,\hat x_t .
+\]
+偏离量近似服从一条\emph{线性}差分方程，其系数就是 $g$ 在稳态处的导数 $a=g'(x^\ast)$。这正是本章只需把线性情形讲透的原因：非线性系统的局部稳定性，被它的线性化完全接管（这一结论的严格版本是 Hartman–Grobman 定理，本书只用其结论）。多维情形里 $a$ 换成 Jacobian $\D\vc g(x^\ast)$，下文系统部分照此处理。
+}
+
+\section{一阶线性差分方程}
+\label{sec:difference-2}
+
+最简单也最该吃透的，是单变量一阶线性方程
+\[
+    x_{t+1}=a\,x_t+b,
+\]
+其中 $a,b$ 为常数。它已经包含了``齐次解 + 特解''与``稳定性由系数模决定''这两件本章反复用到的核心结构。
+
+\paragraph{齐次解与特解。}先看\textbf{齐次}部分 $x_{t+1}=a\,x_t$。逐步代入即得 $x_t=a^t x_0$——齐次解是一条几何序列。再找一个\textbf{特解}：最自然的尝试是常数解 $x_t\equiv x^\ast$，代入得 $x^\ast=a x^\ast+b$，只要 $a\neq 1$ 就解出稳态
+\[
+    x^\ast=\frac{b}{1-a}.
+\]
+通解是``齐次解 + 特解''。把通解写成 $x_t=C a^t+x^\ast$，用初值 $x_0$ 定常数 $C=x_0-x^\ast$，得到闭式解
+
+\state{一阶线性差分方程的解}{
+当 $a\neq 1$ 时，$x_{t+1}=a x_t+b$ 的解为
+\[
+    x_t=\underbrace{a^t\,(x_0-x^\ast)}_{\text{齐次解：偏离稳态的部分}}+\underbrace{x^\ast}_{\text{特解：稳态}},
+    \qquad x^\ast=\frac{b}{1-a}.
+\]
+偏离稳态的量 $x_t-x^\ast=(x_0-x^\ast)\,a^t$ 每期乘以一个因子 $a$。于是\emph{收敛与否完全由 $|a|$ 决定}：$|a|<1$ 时 $a^t\to0$，轨道收敛到 $x^\ast$；$|a|>1$ 时 $a^t$ 爆炸，发散；$|a|=1$ 是临界情形。
+}
+
+这条结论分四种典型形态，记住它们能让你一眼看穿轨道的样子：
+
+\begin{itemize}
+    \item $0<a<1$：单调收敛，偏离量逐期同号缩小。
+    \item $-1<a<0$：震荡收敛，偏离量逐期变号、幅度缩小（``阻尼震荡''）。
+    \item $a>1$：单调发散。
+    \item $a<-1$：震荡发散，幅度越来越大、符号交替。
+\end{itemize}
+
+\paragraph{蛛网图：把递推画出来。}一阶差分方程的全部动态可以在一张图上看清。在 $(x_t,x_{t+1})$ 平面上画两条线：递推关系 $x_{t+1}=g(x_t)$（这里是直线 $g(x)=ax+b$）与 $45^\circ$ 对角线 $x_{t+1}=x_t$。二者的交点正是稳态（$g(x^\ast)=x^\ast$）。从 $x_0$ 出发，``竖直走到曲线、再水平走到对角线''反复迭代，就得到\textbf{蛛网图}（cobweb diagram）。直线 $g$ 的斜率 $a$ 与 $45^\circ$ 线的相对陡缓，决定了蛛网是向内卷（收敛）还是向外甩（发散），见图~\ref{fig:difference-1}：斜率绝对值小于 $1$（比对角线平）则收敛，大于 $1$（比对角线陡）则发散。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+% ===== 左：收敛 a=0.6 =====
+\begin{scope}
+  \def\xmax{2.9}
+  \draw[->] (0,0) -- (\xmax,0) node[right] {$x_t$};
+  \draw[->] (0,0) -- (0,\xmax) node[above] {$x_{t+1}$};
+  \draw[gray,thick] (0,0) -- (2.7,2.7);
+  \node[gray,anchor=south east] at (2.7,2.7) {$45^\circ$};
+  \draw[thick,blue!60!black,domain=0:2.7] plot (\x,{0.6*\x+0.8});
+  \node[blue!60!black,anchor=north west] at (1.78,1.7) {$g(x)=ax+b$};
+  \fill (2,2) circle (1.4pt);
+  \draw[dashed,gray] (2,2) -- (2,0) node[below] {$x^\ast$};
+  \draw[red!75!black,thick]
+    (0.5,0) -- (0.5,1.1) -- (1.1,1.1) -- (1.1,1.46) -- (1.46,1.46)
+    -- (1.46,1.676) -- (1.676,1.676) -- (1.676,1.806) -- (1.806,1.806)
+    -- (1.806,1.883) -- (1.883,1.883);
+  \node[anchor=north] at (0.5,-0.05) {$x_0$};
+  \node[red!75!black,anchor=west] at (0.05,2.6) {$|a|<1$：收敛};
+\end{scope}
+% ===== 右：发散 a=1.4 =====
+\begin{scope}[xshift=6.6cm]
+  \def\xmax{3.7}
+  \draw[->] (0,0) -- (\xmax,0) node[right] {$x_t$};
+  \draw[->] (0,0) -- (0,\xmax) node[above] {$x_{t+1}$};
+  \draw[gray,thick] (0,0) -- (3.5,3.5);
+  \node[gray,anchor=south east] at (3.5,3.5) {$45^\circ$};
+  \draw[thick,blue!60!black,domain=0.58:3.05] plot (\x,{1.4*\x-0.8});
+  \node[blue!60!black,anchor=north west] at (2.55,3.0) {$g(x)=ax+b$};
+  \fill (2,2) circle (1.4pt);
+  \draw[dashed,gray] (2,2) -- (2,0) node[below,xshift=-5pt] {$x^\ast$};
+  \draw[red!75!black,thick]
+    (2.3,0) -- (2.3,2.42) -- (2.42,2.42) -- (2.42,2.588) -- (2.588,2.588)
+    -- (2.588,2.823) -- (2.823,2.823) -- (2.823,3.152) -- (3.152,3.152);
+  \node[anchor=north,xshift=6pt] at (2.3,-0.05) {$x_0$};
+  \node[red!75!black,anchor=west] at (0.15,3.35) {$|a|>1$：发散};
+\end{scope}
+\end{tikzpicture}
+\caption{一阶线性差分方程 $x_{t+1}=ax_t+b$ 的蛛网图。稳态 $x^\ast$ 在直线 $g$ 与 $45^\circ$ 线的交点处。左：$|a|<1$（$g$ 比对角线平），蛛网向内卷，$x_t\to x^\ast$。右：$|a|>1$（$g$ 比对角线陡），蛛网向外甩，轨道发散。$g$ 斜率相对 $45^\circ$ 线的陡缓，就是稳定性的全部判据。}
+\label{fig:difference-1}
+\end{figure}
+
+\ex[一个会收敛的简单宏观调整]{
+设某变量按 $x_{t+1}=0.5\,x_t+10$ 调整，初值 $x_0=4$。求稳态、判稳定性，并写出闭式解。
+}
+\sol{
+稳态 $x^\ast=\dfrac{b}{1-a}=\dfrac{10}{1-0.5}=20$。因 $a=0.5$，$|a|=0.5<1$，稳态局部（实则全局，因方程是线性的）渐近稳定。偏离量 $x_0-x^\ast=4-20=-16$，故
+\[
+    x_t=20+(-16)\cdot 0.5^{\,t}=20-16\cdot 2^{-t}.
+\]
+轨道 $4,12,16,18,19,\dots$ 单调上升趋于 $20$。每期偏离量缩小一半，这个``缩小因子''就是 $a$——它度量了\textbf{收敛速度}：$a$ 越接近 $0$ 收敛越快，越接近 $1$ 收敛越慢。
+}
+
+\rmkb[临界情形 $|a|=1$ 与 $a=1$]{
+$a=1$ 时常数特解不存在（分母为零），方程 $x_{t+1}=x_t+b$ 的解是 $x_t=x_0+bt$，线性漂移、不收敛——这正是计量里\textbf{单位根}（随机游走 $x_{t+1}=x_t+\ve_{t+1}$ 是其随机版本）所对应的非平稳行为。$a=-1$ 时轨道在两个值间永久震荡、不收敛也不发散。临界情形在动态经济学里往往标志着``正好失去稳定''的分界，需单独小心。
+}
+
+\section{高阶线性差分方程}
+\label{sec:difference-3}
+
+许多模型天然是高阶的：今天依赖昨天\emph{和}前天。$p$ 阶线性齐次差分方程
+\[
+    x_{t}=a_1 x_{t-1}+a_2 x_{t-2}+\cdots+a_p x_{t-p}
+\]
+的解法，是把一阶情形的``试几何序列''推广开来。代入试探解 $x_t=\lambda^t$（$\lambda\neq0$），两边除以 $\lambda^{t-p}$，得到\textbf{特征方程}
+\[
+    \lambda^{p}=a_1\lambda^{p-1}+a_2\lambda^{p-2}+\cdots+a_p ,
+\]
+即 $\lambda^{p}-a_1\lambda^{p-1}-\cdots-a_p=0$。它的 $p$ 个根 $\lambda_1,\dots,\lambda_p$ 称为\textbf{特征根}。
+
+\state{高阶齐次方程的通解 = 特征根撑起的几何序列之和}{
+若特征根 $\lambda_1,\dots,\lambda_p$ \emph{互不相同}，则通解是它们各自几何序列的线性组合
+\[
+    x_t=C_1\lambda_1^{\,t}+C_2\lambda_2^{\,t}+\cdots+C_p\lambda_p^{\,t},
+\]
+常数 $C_1,\dots,C_p$ 由 $p$ 个初始条件（如 $x_0,\dots,x_{p-1}$）定出。\emph{非齐次}方程 $x_t=\sum_j a_j x_{t-j}+c$ 的通解再加上一个特解（常数 $c$ 时取常数特解 $x^\ast=c/(1-\sum_j a_j)$）即可。
+}
+
+\rmkb[重根与复根]{
+若 $\lambda_0$ 是 $m$ 重根，它贡献的不是一项而是 $m$ 项：$\lambda_0^t,\,t\lambda_0^t,\dots,t^{m-1}\lambda_0^t$（与微分方程里重根配多项式因子同理）。若出现一对共轭复根 $\lambda=re^{\pm i\theta}$，则对应的实值解是 $r^t\cos(\theta t)$ 与 $r^t\sin(\theta t)$：模 $r$ 控制幅度的涨落（$r<1$ 衰减、$r>1$ 放大），辐角 $\theta$ 控制\emph{震荡}的频率。\textbf{复根正是经济周期性波动的数学来源}——一对模小于 $1$ 的复根给出``阻尼周期''，冲击后产出会一边收敛一边来回摆动。}
+
+由通解形式立刻读出稳定性：每一项 $\lambda_j^t$ 收敛到 $0$ 当且仅当 $|\lambda_j|<1$。于是
+
+\thm{高阶线性差分方程的稳定性判据}{
+$p$ 阶线性差分方程的稳态局部渐近稳定，当且仅当其特征方程的\emph{所有}特征根（含复根，按复数的模计）都满足
+\[
+    |\lambda_j|<1,\qquad j=1,\dots,p,
+\]
+即所有特征根都落在复平面的\textbf{单位圆内}。只要有一个根的模大于 $1$，对应的几何序列就会爆炸，系统不稳定。
+}
+
+\pf{
+非齐次方程的解等于稳态加上齐次解，故稳定性只取决于齐次解 $x_t-x^\ast=\sum_j C_j\lambda_j^t$（重根、复根情形把对应项替换为上面那条注里给出的形式，论证不变）。对每一项，$|\lambda_j^t|=|\lambda_j|^t$：当 $|\lambda_j|<1$ 时 $\to0$，当 $|\lambda_j|>1$ 时 $\to\infty$。带多项式因子的项 $t^k\lambda_j^t$ 同样由 $|\lambda_j|$ 主导——因为对任意固定 $k$，只要 $|\lambda_j|<1$ 就有 $t^k|\lambda_j|^t\to0$（指数衰减压过任何多项式增长）。于是和式收敛到 $0$（对一切初值给出的 $C_j$）当且仅当每个 $|\lambda_j|<1$。复根成对出现、其线性组合取实部，模仍是 $|\lambda_j|=r$，结论一致。
+}
+
+\rmk{把 $p$ 阶方程改写成一阶向量系统（下一节）后，特征根恰好就是系统矩阵 $\mat A$ 的特征值，``所有特征根模 $<1$''与下一节``谱半径 $<1$''是同一句话——这也是为什么本章把高阶与系统统一处理。}
+
+\section{一阶系统：$\vc x_{t+1}=\mat A\vc x_t$}
+\label{sec:difference-4}
+
+经济模型里通常有\emph{一组}状态变量同时演化（资本与消费、通胀与产出缺口、多国汇率……），写成向量形式
+\[
+    \vc x_{t+1}=\mat A\,\vc x_t,\qquad \vc x_t\in\RR^n,\ \mat A\in\RR^{n\times n}.
+\]
+（含常数项的 $\vc x_{t+1}=\mat A\vc x_t+\vc b$ 可先解稳态 $\vc x^\ast=\inv{(\mat I-\mat A)}\vc b$、再令 $\hat{\vc x}_t=\vc x_t-\vc x^\ast$ 化为齐次，故下面只看齐次。）这个系统不仅本身重要，前一节的 $p$ 阶方程也能化成它的特例：令 $\vc x_t=(x_t,x_{t-1},\dots,x_{t-p+1})\T$，则 $\vc x_{t+1}=\mat A\vc x_t$，其中 $\mat A$ 是以系数 $a_j$ 为首行的\emph{伴随矩阵}，其特征多项式正是上一节的特征方程。所以``一阶系统''是本章真正的主战场。
+
+\paragraph{解就是矩阵的幂。}逐步代入立得
+\[
+    \vc x_t=\mat A^t\,\vc x_0 .
+\]
+形式上一行就解完了——但 $\mat A^t$ 是什么样子、会不会爆炸，得把矩阵的幂算清楚。这正是对角化（第四章）登场的地方。设 $\mat A$ 可对角化，$\mat A=\mat P\,\vc\Lambda\inv{\mat P}$，其中 $\mat P$ 的各列是特征向量、$\vc\Lambda=\diag(\lambda_1,\dots,\lambda_n)$ 是特征值对角阵。则矩阵幂坍缩成对角阵的幂：
+\[
+    \mat A^t=\pr{\mat P\,\vc\Lambda\inv{\mat P}}^t
+    =\mat P\,\vc\Lambda\,\underbrace{\inv{\mat P}\,\mat P}_{\mat I}\,\vc\Lambda\cdots\inv{\mat P}
+    =\mat P\,\vc\Lambda^{\,t}\inv{\mat P},
+    \qquad
+    \vc\Lambda^{\,t}=\diag(\lambda_1^{\,t},\dots,\lambda_n^{\,t}).
+\]
+中间一连串 $\inv{\mat P}\mat P$ 全部抵消，只剩两端的 $\mat P,\inv{\mat P}$ 夹着 $\vc\Lambda^t$。于是
+
+\state{对角化把系统解耦成 $n$ 条独立的一阶方程}{
+$\vc x_{t+1}=\mat A\vc x_t$ 的解为
+\[
+    \vc x_t=\mat A^t\vc x_0=\mat P\,\vc\Lambda^{\,t}\inv{\mat P}\,\vc x_0,
+    \qquad \vc\Lambda^{\,t}=\diag(\lambda_1^{\,t},\dots,\lambda_n^{\,t}).
+\]
+其几何含义：令 $\vc z_t=\inv{\mat P}\vc x_t$ 为\emph{特征坐标}（把状态按特征向量基展开的坐标），则每个分量各自服从一条解耦的一阶方程 $z_{i,t+1}=\lambda_i z_{i,t}$，解为 $z_{i,t}=\lambda_i^{\,t}z_{i,0}$。原向量是这些独立模态的叠加
+\[
+    \vc x_t=\sum_{i=1}^n \lambda_i^{\,t}\,z_{i,0}\,\vc p_i,
+\]
+$\vc p_i$ 为第 $i$ 个特征向量。沿每个特征方向，系统就是一个``乘以 $\lambda_i$''的一维差分方程——纠缠的多维动态被对角化拆成 $n$ 条互不干扰的几何序列。
+}
+
+\paragraph{谱半径判据。}既然 $\vc x_t=\sum_i\lambda_i^t z_{i,0}\vc p_i$，整体收敛到 $\vc 0$ 当且仅当每个模态 $\lambda_i^t\to0$，即每个 $|\lambda_i|<1$。把``最大的那个模''单拎出来命名：
+
+\defn{谱半径}{
+方阵 $\mat A$ 的\textbf{谱半径}（spectral radius）是其特征值模的最大值
+\[
+    \rho(\mat A)=\max_{i}\,|\lambda_i| .
+\]
+（复特征值按复数的模计。）它度量了在所有特征方向中``伸缩最猛''的那一个方向的伸缩因子。
+}
+
+\thm{线性系统的稳定性判据}{
+对 $\vc x_{t+1}=\mat A\vc x_t$，原点 $\vc 0$ 局部（对线性系统即全局）渐近稳定，当且仅当
+\[
+    \boxed{\ \rho(\mat A)<1\ }
+    \qquad\text{即}\qquad |\lambda_i|<1\ \text{对一切 }i.
+\]
+此时对任意初值 $\vc x_0$ 都有 $\mat A^t\to\mat 0$，故 $\vc x_t\to\vc0$。若 $\rho(\mat A)>1$，则除落在特定子空间上的初值外，轨道发散。
+}
+
+\pf{
+设 $\mat A$ 可对角化（一般情形见下注）。由 $\vc x_t=\mat P\,\vc\Lambda^t\inv{\mat P}\,\vc x_0$，而 $\vc\Lambda^t=\diag(\lambda_1^t,\dots,\lambda_n^t)$。若所有 $|\lambda_i|<1$，则 $\lambda_i^t\to0$，故 $\vc\Lambda^t\to\mat0$，从而 $\mat A^t=\mat P\,\vc\Lambda^t\inv{\mat P}\to\mat0$，对任意 $\vc x_0$ 得 $\vc x_t\to\vc0$。反之，若某 $|\lambda_k|>1$，取 $\vc x_0=\vc p_k$（第 $k$ 个特征向量），则 $\vc x_t=\lambda_k^t\vc p_k$，其范数 $|\lambda_k|^t\to\infty$，发散。故 $\rho(\mat A)<1$ 既充分又必要。
+}
+
+\rmkb[不可对角化时谱半径判据依然成立]{
+若 $\mat A$ 亏损、不可对角化（第四章），可换用 Jordan 标准形 $\mat A=\mat P\mat J\inv{\mat P}$；$\mat J^t$ 的元素是形如 $\binom{t}{k}\lambda^{t-k}$（即 $t^k\lambda^t$ 量级）的项，仍由 $|\lambda|$ 主导：$|\lambda|<1$ 时 $t^k|\lambda|^t\to0$。所以\textbf{谱半径判据 $\rho(\mat A)<1$ 对一般方阵都成立}，不依赖可对角化。这与上一节高阶方程里``重根配多项式因子仍由模主导''是同一件事——伴随矩阵的重特征值，正对应特征方程的重根。
+}
+
+\rmkb[与谱半径的一个常用不等式]{
+直接算特征值有时麻烦，下面这条上界常被用来\emph{快速判稳}：对任意从属（算子）范数 $\norm{\cdot}$ 都有 $\rho(\mat A)\le\norm{\mat A}$。因此只要找到\emph{某一个}矩阵范数使 $\norm{\mat A}<1$（例如行和范数 $\norm[\infty]{\mat A}=\max_i\sum_j|a_{ij}|<1$），就立刻断定 $\rho(\mat A)<1$、系统稳定，连特征值都不必解。这是压缩映射（前文``压缩映射与 Banach 不动点''一章）在线性情形的影子：$\norm{\mat A}<1$ 说的正是``$\mat A$ 是压缩''。}
+
+\ex[二维系统的稳定性]{
+判断 $\vc x_{t+1}=\mat A\vc x_t$ 是否稳定，其中
+\[
+    \mat A=\bm 0.8 & 0.3\\ 0.1 & 0.6 \emx .
+\]
+}
+\sol{
+解特征方程 $\det(\mat A-\lambda\mat I)=0$：
+\[
+    (0.8-\lambda)(0.6-\lambda)-0.3\cdot0.1
+    =\lambda^2-1.4\lambda+0.45=0 .
+\]
+判别式 $1.4^2-4\cdot0.45=1.96-1.8=0.16$，故
+\[
+    \lambda=\frac{1.4\pm0.4}{2}=\{0.9,\ 0.5\}.
+\]
+两个特征值都是实数且 $|0.9|<1$、$|0.5|<1$，所以 $\rho(\mat A)=0.9<1$，系统渐近稳定：从任意初值出发 $\vc x_t\to\vc0$。收敛速度由\emph{最大}特征值 $0.9$ 主导——长期看，偏离稳态的量大致每期乘 $0.9$，比单看某一维更慢的那个模态最终决定整体的收敛快慢。
+}
+
+\rmk{二阶系统有一条不必解根的速记（迹–行列式判据）：设 $\tau=\tr\mat A=\lambda_1+\lambda_2$、$\delta=\det\mat A=\lambda_1\lambda_2$，则两特征值都在单位圆内当且仅当 $|\delta|<1$ 且 $|\tau|<1+\delta$。本例 $\tau=1.4,\ \delta=0.45$：$0.45<1$ 且 $1.4<1.45$，成立，与上面一致。}
+
+\section{鞍点路径与跳跃变量}
+\label{sec:difference-5}
+
+到此为止，``稳''与``不稳''是非黑即白：要么所有特征值在单位圆内（处处收敛），要么有特征值在圆外（几乎处处发散）。但经济学里最重要的情形恰恰落在中间——\textbf{部分特征值在圆内、部分在圆外}。这类系统叫\textbf{鞍点}（saddle path），它表面上``不稳定''，却正是理性预期模型赖以\emph{选定唯一解}的机制。
+
+考虑 $\vc x_{t+1}=\mat A\vc x_t$，设 $\mat A$ 有的特征值 $|\lambda_i|<1$（稳定模态）、有的 $|\lambda_j|>1$（不稳定模态）。由 $\vc x_t=\sum_i\lambda_i^t z_{i,0}\vc p_i$，轨道收敛到 $\vc0$ 的充要条件是：所有不稳定模态的初始权重为零，即 $z_{j,0}=0$ 对每个 $|\lambda_j|>1$ 成立。满足这些条件的初值 $\vc x_0$ 构成一个子空间——稳定特征向量张成的\textbf{稳定特征子空间}（stable subspace），通常称为\textbf{稳定臂}或\textbf{鞍点路径}。
+
+\state{鞍点收敛的几何：只有落在稳定臂上才回得来}{
+把状态空间按特征方向分解为\emph{稳定子空间}（$|\lambda_i|<1$ 的特征向量张成）与\emph{不稳定子空间}（$|\lambda_j|>1$ 的特征向量张成）。则：
+\begin{itemize}
+    \item 初值若\emph{恰好}落在稳定子空间上，所有不稳定模态权重为零，轨道沿稳定臂收敛到稳态；
+    \item 初值若有任何不稳定模态的分量（$z_{j,0}\neq0$），该分量按 $\lambda_j^t$ 放大，轨道终将被甩向无穷。
+\end{itemize}
+收敛的初值是一个``测度为零''的子空间——但这恰恰是好消息，下面说明为什么。
+}
+
+图~\ref{fig:difference-2} 画出二维鞍点（一个 $|\lambda_s|<1$、一个 $|\lambda_u|>1$）的相图：稳定臂上箭头指向稳态（沿它进来），不稳定臂上箭头背离稳态（沿它出去），其余轨线都是先被稳定方向拉近、再被不稳定方向甩出的双曲线。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.5,>=Stealth]
+  \def\R{2.7}
+  \draw[->] (-\R,0) -- (\R,0) node[right] {$x_1$};
+  \draw[->] (0,-\R) -- (0,\R) node[above] {$x_2$};
+  \begin{scope}[rotate=45]
+    \draw[gray!55,thick] (0,-2.45) -- (0,2.45);
+    \draw[very thick,green!45!black] (-2.45,0) -- (2.45,0);
+    \foreach \c in {0.45,1.0}{
+      \draw[blue!55!black,thick,domain=0.185:2.45,smooth,samples=80,variable=\t]
+        plot (\t,{\c/\t});
+      \draw[blue!55!black,thick,domain=-2.45:-0.185,smooth,samples=80,variable=\t]
+        plot (\t,{\c/\t});
+    }
+    \foreach \c in {-0.45,-1.0}{
+      \draw[blue!55!black,thick,domain=0.185:2.45,smooth,samples=80,variable=\t]
+        plot (\t,{\c/\t});
+      \draw[blue!55!black,thick,domain=-2.45:-0.185,smooth,samples=80,variable=\t]
+        plot (\t,{\c/\t});
+    }
+  \end{scope}
+  \fill (0,0) circle (1.3pt);
+  \node[anchor=north east] at (-0.05,-0.05) {$\vc 0$};
+  \draw[->,very thick,green!45!black] (1.55,1.55) -- (1.15,1.15);
+  \draw[->,very thick,green!45!black] (-1.55,-1.55) -- (-1.15,-1.15);
+  \draw[->,very thick,gray!55] (1.15,-1.15) -- (1.55,-1.55);
+  \draw[->,very thick,gray!55] (-1.15,1.15) -- (-1.55,1.55);
+  \draw[->,blue!55!black,thick] (1.9,2.18) -- (2.02,2.32);
+  \draw[->,blue!55!black,thick] (2.18,1.9) -- (2.32,2.02);
+  \draw[->,blue!55!black,thick] (-1.9,-2.18) -- (-2.02,-2.32);
+  \draw[->,blue!55!black,thick] (-2.18,-1.9) -- (-2.32,-2.02);
+  \node[green!45!black,anchor=east,align=center] at (-2.0,-0.7)
+      {稳定臂\\（鞍点路径）};
+  \draw[green!45!black,->] (-2.0,-0.67) .. controls (-1.6,-0.9) .. (-1.4,-1.35);
+  \node[gray!55!black,anchor=west] at (1.7,-2.5) {不稳定臂};
+  \draw[gray!55!black,->] (1.95,-2.35) -- (1.7,-1.7);
+  \node[anchor=west,font=\small] at (-2.55,2.5) {$|\lambda_s|<1,\ |\lambda_u|>1$};
+\end{tikzpicture}
+\caption{二维鞍点相图。绿色\textbf{稳定臂}（$|\lambda_s|<1$ 的特征方向）上轨道收敛到稳态 $\vc0$；灰色\textbf{不稳定臂}（$|\lambda_u|>1$ 的特征方向）上轨道发散。其余初值（蓝色双曲轨线）先被稳定方向拉近、再被不稳定方向甩向无穷。只有恰好落在稳定臂上的初值才收敛——这条线就是鞍点路径。}
+\label{fig:difference-2}
+\end{figure}
+
+\paragraph{跳跃变量挑出唯一收敛解。}如果``只有落在稳定臂上才收敛''意味着收敛要靠运气，那它对经济学有什么用？关键在于经济模型里的变量分两类。\textbf{状态变量}（predetermined，如资本存量、债务）由历史决定，今天不能随意改动——它们的初值是给定的。\textbf{跳跃变量}（jump variable，如消费、资产价格、通胀）是前瞻的，由经济主体当下的最优选择决定——它们的初值是\emph{内生的，可以被选定}。
+
+于是模型自带一个``选解''机制：跳跃变量会调整到\emph{恰好把系统放上稳定臂}的那个值。因为任何偏离稳定臂的选择都会让前瞻变量发散到无穷（违反横截性条件或预算约束、经济上不可行），理性的主体只会选那个唯一让系统收敛的初值。\textbf{鞍点结构于是从``不稳定''翻转成``唯一性的保证''}：稳定臂的维数恰好等于跳跃变量的个数时，跳跃变量被唯一钉死，理性预期均衡存在且唯一。
+
+\state{Blanchard–Kahn 条件：数对了，均衡就唯一}{
+设系统有 $n$ 个变量，其中 $k$ 个是前瞻（跳跃）变量、$n-k$ 个是预定（状态）变量。记 $\mat A$ 落在单位圆外的特征值个数为 $m$（不稳定模态数）。则理性预期均衡\emph{存在且唯一}当且仅当
+\[
+    m=k,
+\]
+即\textbf{不稳定特征值的个数恰好等于跳跃变量的个数}。直觉：每个跳跃变量提供一个``自由度''去消掉一个不稳定模态。若 $m>k$（不稳定模态太多、自由度不够），消不完，没有收敛解（不存在）；若 $m<k$（自由度太多），有多个收敛解（不确定，indeterminacy，对应``太阳黑子''均衡）。
+}
+
+\rmk{这条计数规则即 Blanchard \& Kahn (1980) 条件，是求解线性化 DSGE 模型的标准第一步：先把模型线性化成 $\vc x_{t+1}=\mat A\vc x_t$（加上外生冲击），数 $\mat A$ 单位圆外的特征值，再与跳跃变量个数比对，即知均衡是唯一、不存在、还是不确定。}
+
+\ex[鞍点路径如何选定唯一初值]{
+设二维系统 $\vc x_{t+1}=\mat A\vc x_t$ 的特征值为 $\lambda_s=0.5$（特征向量 $\vc p_s=(1,1)\T$）与 $\lambda_u=2$（特征向量 $\vc p_u=(1,-1)\T$）。其中第一坐标 $x_{1}$ 是预定变量、初值给定为 $x_{1,0}=3$；第二坐标 $x_{2}$ 是跳跃变量。问：为使系统收敛，$x_{2,0}$ 必须取何值？
+}
+\sol{
+按特征向量展开初值：$\vc x_0=z_s\vc p_s+z_u\vc p_u$，即
+\[
+    \bm x_{1,0}\\ x_{2,0}\emx=z_s\bm 1\\1\emx+z_u\bm 1\\-1\emx
+    =\bm z_s+z_u\\ z_s-z_u\emx .
+\]
+收敛要求不稳定模态权重为零：$z_u=0$。于是 $\vc x_0$ 必须落在稳定臂 $\spn\{\vc p_s\}$ 上，即 $\vc x_0=z_s(1,1)\T$，两坐标相等。由预定的 $x_{1,0}=3$ 得 $z_s=3$，因此跳跃变量必须取
+\[
+    x_{2,0}=z_s=3 .
+\]
+任何 $x_{2,0}\neq3$ 都使 $z_u\neq0$，于是 $z_u\cdot2^t$ 项爆炸、系统发散。这里恰好``$1$ 个不稳定特征值 $=$ $1$ 个跳跃变量''，满足 Blanchard–Kahn 条件，故收敛解唯一：跳跃变量被鞍点路径唯一钉死在 $x_{2,0}=3$。
+}
+
+\section{这套工具通向何处}
+\label{sec:difference-6}
+
+差分方程与稳定性是动态经济学的通用语法，本章这把工具的去处遍布三大方向：
+
+\begin{itemize}
+    \item \textbf{宏观动态模型}。Ramsey/新古典增长模型、新凯恩斯模型在稳态附近线性化后都是 $\vc x_{t+1}=\mat A\vc x_t$ 形式，资本是预定变量、消费/通胀是跳跃变量。鞍点稳定性与 Blanchard–Kahn 计数决定了均衡轨道——经济沿鞍点路径收敛到稳态，正是``消费会怎样跳到正确水平''这一经典结论的来源。本章是后续\emph{动态规划与 Bellman 方程}一章的动态地基：那里求出的最优策略 $\vc x_{t+1}=\vc g(\vc x_t)$，其稳态附近的收敛性正用本章判据来分析。
+    \item \textbf{理性预期与均衡唯一性}。前瞻变量靠``跳上稳定臂''被唯一选定，这是理性预期方法论的核心。Blanchard–Kahn 条件是判断线性化 DSGE 模型解之存在唯一的标准工具，本章给出了它的全部数学内核。
+    \item \textbf{计量：时间序列的平稳性}。VAR 模型 $\vc x_t=\mat A\vc x_{t-1}+\vc\ve_t$ 平稳的条件正是 $\rho(\mat A)<1$（伴随矩阵的特征根全在单位圆内）——与本章的稳定性判据逐字相同（接\emph{特征值与对角化}一章）。$\rho(\mat A)=1$ 对应单位根与协整，是非平稳时间序列分析的起点；脉冲响应函数的衰减速度，则由谱半径（最大特征值的模）度量，正是本章``收敛速度''概念在计量里的化身。
+\end{itemize}
+
+一条递推式，三门核心课。把``长期会怎样''归结为``特征值落在单位圆内还是圆外'',再把``均衡唯一吗''归结为``单位圆外的特征值数对不对得上跳跃变量''——本章想留下的，正是这两把能反复开门的钥匙。

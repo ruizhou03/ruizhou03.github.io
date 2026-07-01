@@ -1,0 +1,351 @@
+% !TEX root = ../main.tex
+\chapter{半连续、对应与最大值定理（Berge）}
+\label{ch:berge}
+
+\noindent\emph{用到的前置工具：度量空间、开集闭集与序列收敛（第八章）；紧致性、连续函数与 Weierstrass 极值定理（第九章）。}
+\medskip
+
+经济学里几乎每一个有意思的量，最后都长成``某个最优化问题的解''：消费者在预算约束下选最优消费束，厂商在技术约束下选最优投入，博弈中的玩家对别人的策略选最优反应，动态规划里的决策者逐期选最优行动。而这些最优化问题无一例外地\emph{带着参数}——价格、收入、对手的策略、状态变量。于是真正要问的不是``给定这一组参数，最优解是什么'',而是``参数动一动，最优值和最优解会怎么变''。第十五章的隐函数定理回答了其中可微、内点、约束不起作用的那一类；但经济学里大量约束是\emph{会卡住}的（预算约束取等、产量非负），最优解可能落在边界、可能不唯一、甚至可能随参数\emph{跳变}。要在这种一般情形下哪怕只是断言``最优值随参数连续变化''，隐函数定理就不够用了——我们需要一套能处理``参数化的、带约束的、解可能是一个集合''的最优化的语言。
+
+这套语言由两块拼成。其一是\textbf{半连续}：把``连续''拆成``上''与``下''两半，因为最优值与最优解往往只占其中一半。其二是\textbf{对应}（correspondence，集值映射）：当最优解不唯一、或约束集本身随参数变动时，自然的对象不是函数而是``把每个参数映到一个集合''的映射。本章先把这两块工具讲清楚，再用它们陈述并理解全书最常被引用的结论之一——\textbf{Berge 最大值定理}：只要目标函数连续、约束对应连续且取紧值，那么最优值函数\emph{连续}、最优解对应\emph{上半连续}。最后我们说明它的去处：动态规划值函数的连续性、马歇尔需求的良好性态、博弈最优反应对应的上半连续（这正是下一章 Kakutani 不动点定理的入场券）。
+
+\section{为什么``连续''要拆成两半}
+\label{sec:berge-motivation}
+
+先看一个最朴素的现象，它解释了为什么半连续这个概念非引入不可。考虑参数化的最优值
+\[
+    v(\theta)=\max_{x\in C(\theta)}f(x,\theta),
+\]
+当参数 $\theta$ 越过某个临界点时，最优\emph{选择}可能从一处突然跳到另一处（两个候选峰的高度此消彼长），但最优\emph{值}却可以一路平滑地接上——在跳变那一刻，两个峰恰好一样高。这意味着：值函数 $v$ 可能连续，而最优解却在同一点不连续。``连续''这把笼统的尺子，量不出这种``一半连续、一半跳''的精细差别。
+
+更基本地，最优化天然只青睐``连续''的一半。回忆 Weierstrass 定理（第九章）：连续函数在紧集上取得最大值。但若把条件放松——只要求函数``不会向上跳''（上半连续），紧集上的最大值\emph{依然存在}；而``不会向下跳''（下半连续）对取最大值毫无帮助，对取\emph{最小}值才有用。可见在最优化里，``上''与``下''这两半地位完全不对称，必须分开命名、分别使用。这就是半连续的来由：它把连续性\emph{按方向}拆开，好让我们精确地说出``恰好需要哪一半''。
+
+\section{上半连续与下半连续函数}
+\label{sec:berge-semicont}
+
+我们在度量空间 $X$ 上的实值函数 $f:X\to\RR$ 上定义两个``半''。直观上：上半连续函数在每一点的值``不低于''它附近的极限行为（向上看是闭的），下半连续则反过来。
+
+\defn{上半连续与下半连续（函数）}{
+设 $X$ 是度量空间，$f:X\to\RR$，$x_0\in X$。
+\begin{itemize}
+    \item 称 $f$ 在 $x_0$ \textbf{上半连续}（upper semicontinuous, u.s.c.），若对任意 $\ve>0$ 存在 $\delta>0$，使得 $d(x,x_0)<\delta$ 时
+    \[
+        f(x)<f(x_0)+\ve .
+    \]
+    等价地，对任意 $x_n\to x_0$ 有 $\limsup_{n}f(x_n)\le f(x_0)$。
+    \item 称 $f$ 在 $x_0$ \textbf{下半连续}（lower semicontinuous, l.s.c.），若对任意 $\ve>0$ 存在 $\delta>0$，使得 $d(x,x_0)<\delta$ 时
+    \[
+        f(x)>f(x_0)-\ve .
+    \]
+    等价地，对任意 $x_n\to x_0$ 有 $\liminf_{n}f(x_n)\ge f(x_0)$。
+\end{itemize}
+若 $f$ 在每一点都上（下）半连续，就称 $f$ 在 $X$ 上上（下）半连续。
+}
+
+两个定义合起来恰好是连续：$f$ 在 $x_0$ 连续 $\Iff$ 它在 $x_0$ 既上半连续又下半连续。把这件事记牢，半连续就不再抽象——它就是连续的``左右两半''。
+
+\state{怎么记住哪半是哪半}{
+盯住``跳''发生时函数在断点取\emph{哪个}值。\textbf{上半连续}：在向下跳的断点处，$f$ 取\emph{较高}的那个值（图~\ref{fig:berge-1} 左，实心点在上支）——即上方水平集 $\setb{x}{f(x)\ge a}$ 对一切 $a$ 都\emph{闭}。\textbf{下半连续}：在断点处取\emph{较低}的值（图~\ref{fig:berge-1} 右，实心点在下支）——即下方水平集 $\setb{x}{f(x)\le a}$ 对一切 $a$ 都闭。一句话：\emph{u.s.c.\ 的图像``不会向上跳出去'',l.s.c.\ 的图像``不会向下跌出去''}。后面会看到，最优\emph{值}的连续性，正是靠``目标向上不跳''（u.s.c.）与``约束不塌缩''（l.s.c.）这两半分别保住的。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ===== 左图：上半连续函数 =====
+  \begin{scope}
+    \draw[->] (-0.2,0) -- (3.6,0) node[right] {$x$};
+    \draw[->] (0,-0.2) -- (0,3.3) node[above] {$f(x)$};
+    \draw[thick,blue!60!black,domain=0:1.5] plot (\x,{0.6+0.5*\x});
+    \draw[thick,blue!60!black,domain=1.5:3.4] plot (\x,{0.4+0.4*\x});
+    % u.s.c.：断点取较高值（上支端点实心、下支端点空心）
+    \fill[blue!60!black] (1.5,1.35) circle (1.6pt);
+    \draw[blue!60!black,fill=white,thick] (1.5,1.0) circle (1.6pt);
+    \draw[dashed,gray!60] (1.5,0) -- (1.5,1.35);
+    \node[anchor=north] at (1.5,-0.04) {$x_0$};
+    \node[blue!60!black,anchor=south] at (1.8,2.6) {上半连续 (u.s.c.)};
+  \end{scope}
+  % ===== 右图：下半连续函数 =====
+  \begin{scope}[xshift=6cm]
+    \draw[->] (-0.2,0) -- (3.6,0) node[right] {$x$};
+    \draw[->] (0,-0.2) -- (0,3.3) node[above] {$f(x)$};
+    \draw[thick,red!65!black,domain=0:1.5] plot (\x,{0.6+0.5*\x});
+    \draw[thick,red!65!black,domain=1.5:3.4] plot (\x,{0.4+0.4*\x});
+    % l.s.c.：断点取较低值（下支端点实心、上支端点空心）
+    \draw[red!65!black,fill=white,thick] (1.5,1.35) circle (1.6pt);
+    \fill[red!65!black] (1.5,1.0) circle (1.6pt);
+    \draw[dashed,gray!60] (1.5,0) -- (1.5,1.0);
+    \node[anchor=north] at (1.5,-0.04) {$x_0$};
+    \node[red!65!black,anchor=south] at (1.8,2.6) {下半连续 (l.s.c.)};
+  \end{scope}
+\end{tikzpicture}
+\caption{同一条带跳函数的两种``补点''方式。左：在断点取较高值，向上不跳出去，故上半连续。右：取较低值，向下不跌出去，故下半连续。两者皆于 $x_0$ 不连续，但各占连续性的一半。}
+\label{fig:berge-1}
+\end{figure}
+
+\rmkb[Weierstrass 只需要一半]{
+第九章的极值定理可被半连续精确地``减肥''：\emph{紧集上的上半连续函数必取得最大值}（对称地，下半连续函数必取得最小值）。证明思路与连续情形一致——取一个使 $f$ 趋于其上确界的序列，紧致性保证有收敛子列 $x_{n_k}\to x^*$，而上半连续给出 $f(x^*)\ge\limsup_k f(x_{n_k})=\sup f$，故上确界在 $x^*$ 处达到。\emph{取最大}只用到上半连续这一半，下半连续在这里一点忙都帮不上。这条``半个 Weierstrass''正是 Berge 定理里保住最优值的那块砖。
+}
+
+\section{对应：当映射的取值是一个集合}
+\label{sec:berge-corr}
+
+第二块工具应对的是另一种一般性：参数映到的不是一个点，而是一个\emph{集合}。约束集 $C(\theta)$（如预算集随价格变）天然是集合；最优解 $x^*(\theta)$ 在不唯一时也是集合；博弈里的最优反应通常是一整个集合。把这类对象统一抽象出来，就是对应。
+
+\defn{对应（集值映射）}{
+设 $\Theta,X$ 为集合。一个\textbf{对应}（correspondence）$C:\Theta\rightrightarrows X$ 是一条规则，给每个 $\theta\in\Theta$ 指派一个子集 $C(\theta)\se X$。其\textbf{图像}（graph）定义为
+\[
+    \mathrm{Gr}(C)=\setb{(\theta,x)\in\Theta\times X}{x\in C(\theta)} .
+\]
+若每个 $C(\theta)$ 都非空（紧、闭、凸），就说该对应\textbf{非空值}（紧值、闭值、凸值）。
+}
+
+记号 $\rightrightarrows$（双箭头）专门用来区别对应与普通函数 $\to$。普通函数是对应的特例——每个 $C(\theta)$ 恰好是单点集。
+
+对应的``连续性''该怎么定义？由于值是集合，``$C(\theta)$ 随 $\theta$ 连续地变''这件事，同样分裂成不对称的两半——而且分裂方式与函数那里精神一致：一半管``集合不会突然变大/有点冒出来无法被逼近'',一半管``集合不会突然塌缩/有点凭空消失''。
+
+\defn{上半连续与下半连续（对应）}{
+设 $\Theta,X$ 为度量空间，$C:\Theta\rightrightarrows X$ 在 $\theta_0$ 取非空值。
+\begin{itemize}
+    \item 称 $C$ 在 $\theta_0$ \textbf{上半连续}（u.s.c.），若对任意包含 $C(\theta_0)$ 的开集 $V$，存在 $\theta_0$ 的邻域 $U$，使得 $\theta\in U$ 时 $C(\theta)\se V$。
+    \item 称 $C$ 在 $\theta_0$ \textbf{下半连续}（l.s.c.），若对任意与 $C(\theta_0)$ 相交的开集 $V$，存在 $\theta_0$ 的邻域 $U$，使得 $\theta\in U$ 时 $C(\theta)\cap V\neq\varnothing$。
+    \item 称 $C$ \textbf{连续}，若它在 $\theta_0$ 既上半连续又下半连续。
+\end{itemize}
+}
+
+这两条定义初看绕，但顺着``开集''读直觉立刻浮现。上半连续说：无论你给 $C(\theta_0)$ 套一个多紧的开外套 $V$，只要 $\theta$ 离 $\theta_0$ 够近，$C(\theta)$ 整个都还待在外套里——即\emph{$C(\theta)$ 不会随 $\theta$ 的微动突然向外膨胀出去}。下半连续则说：$C(\theta_0)$ 里任何一小块（与之相交的开集 $V$）所代表的点，在邻近的 $\theta$ 处仍有 $C(\theta)$ 的点落在那里——即\emph{$C(\theta_0)$ 里的点不会随 $\theta$ 的微动突然消失}。
+
+\state{对应的两半，对照函数的两半}{
+\textbf{上半连续（不爆炸）}盯的是``$C(\theta)$ 会不会在 $\theta\to\theta_0$ 时\emph{冒出} $C(\theta_0)$ 之外的多余部分''——等价地，对紧值对应，u.s.c.\ $\Iff$ \emph{图像闭}：$\theta_n\to\theta_0$、$x_n\in C(\theta_n)$、$x_n\to x$ $\Rightarrow$ $x\in C(\theta_0)$。\textbf{下半连续（不塌缩）}盯的是``$C(\theta_0)$ 里的点会不会在 $\theta$ 邻近时\emph{无法被逼近}'':对 $C(\theta_0)$ 中任一点 $x$ 与任一 $\theta_n\to\theta_0$，都能找到 $x_n\in C(\theta_n)$ 使 $x_n\to x$。一句口诀：\emph{u.s.c.\ 防膨胀（图像闭），l.s.c.\ 防塌缩（可逼近）}。图~\ref{fig:berge-2} 把两种``单边''失败画出来。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ===== 左：上半连续但非下半连续（x0 处向上长出一段）=====
+  \begin{scope}
+    \draw[->] (-0.2,0) -- (3.8,0) node[right] {$\theta$};
+    \draw[->] (0,-0.2) -- (0,3.5) node[above] {$C(\theta)$};
+    \draw[blue!60!black,thick] (0.2,0.5) -- (3.5,0.5);
+    \draw[blue!60!black,very thick] (1.6,0.5) -- (1.6,2.6);
+    \fill[blue!60!black] (1.6,2.6) circle (1.6pt);
+    \fill[blue!60!black] (1.6,0.5) circle (1.6pt);
+    \draw[dashed,gray!55] (1.6,0) -- (1.6,0.5);
+    \node[anchor=north] at (1.6,-0.04) {$\theta_0$};
+    \node[blue!60!black,anchor=south] at (1.85,2.95) {上半连续，非下半连续};
+    \node[anchor=west,font=\small,align=left] at (2.0,1.9)
+       {图像闭：$\theta_n\!\to\!\theta_0,$\\$x_n\!\to\!x\Rightarrow x\!\in\!C(\theta_0)$};
+    \draw[->,thin,gray!55!black] (1.98,2.0) -- (1.66,2.0);
+  \end{scope}
+  % ===== 右：下半连续但非上半连续（x0 处突然塌成一点）=====
+  \begin{scope}[xshift=6.3cm]
+    \draw[->] (-0.2,0) -- (3.8,0) node[right] {$\theta$};
+    \draw[->] (0,-0.2) -- (0,3.5) node[above] {$C(\theta)$};
+    \fill[red!18,opacity=0.9] (0.2,0.5) rectangle (1.5,2.6);
+    \fill[red!18,opacity=0.9] (1.7,0.5) rectangle (3.5,2.6);
+    \draw[red!65!black,thick] (0.2,2.6) -- (1.5,2.6);
+    \draw[red!65!black,thick] (1.7,2.6) -- (3.5,2.6);
+    \draw[red!65!black,thick] (0.2,0.5) -- (1.5,0.5);
+    \draw[red!65!black,thick] (1.7,0.5) -- (3.5,0.5);
+    \draw[red!65!black,fill=white,thick] (1.6,2.6) circle (1.6pt);
+    \fill[red!65!black] (1.6,0.5) circle (1.6pt);
+    \draw[dashed,gray!55] (1.6,0) -- (1.6,0.5);
+    \node[anchor=north] at (1.6,-0.04) {$\theta_0$};
+    \node[red!65!black,anchor=south] at (1.85,2.95) {下半连续，非上半连续};
+    \node[anchor=west,font=\small,align=left] at (2.0,1.45)
+       {图像不闭：$C(\theta_0)$ 只剩底点，\\极限点未纳入};
+    \draw[->,thin,gray!55!black] (2.55,1.75) -- (1.78,2.42);
+  \end{scope}
+\end{tikzpicture}
+\caption{对应的两种单边失败。左：$C(\theta)=\{$底线$\}$，仅在 $\theta_0$ 处向上长成一整段——图像闭（u.s.c.），但那一段无法被邻近的 $C(\theta)$ 逼近，故非 l.s.c.。右：$C(\theta)$ 为一条带子，却在 $\theta_0$ 处突然塌成一点——每个剩下的点都可被逼近（l.s.c.），但顶部极限点未纳入 $C(\theta_0)$，图像不闭，故非 u.s.c.。}
+\label{fig:berge-2}
+\end{figure}
+
+\rmkb[闭图像与上半连续的微妙]{
+``图像闭''与``上半连续''在一般情形下并不完全等价：图像闭只是 u.s.c.\ 的必要条件，要它充分还需一个``不跑到无穷远''的条件。但在 Berge 定理用得着的场景里——\emph{$X$ 紧致，或对应取值落在某个紧集内}——两者等价。本书后续凡谈 u.s.c.\ 对应，默认都在紧值（或局部紧）的框架下，届时``上半连续''与``闭图像''可放心互换。验一个对应是不是 u.s.c.，最省事的办法往往就是验它的图像是不是闭集。
+}
+
+\ex[预算集是关于价格连续的对应]{
+固定收入 $w>0$，价格 $p=(p_1,p_2)\gg 0$，预算集
+\[
+    B(p,w)=\setb{x\in\RR_+^2}{p\cdot x\le w}
+\]
+是一个把价格映到消费集合的对应 $B(\cdot,w):\RR_{++}^2\rightrightarrows\RR_+^2$。说明它在 $p\gg 0$ 处连续（图~\ref{fig:berge-3}）。
+}
+\sol{
+$B(p,w)$ 是以两轴截距 $w/p_1$、$w/p_2$ 为顶点的实心三角形，非空、紧（有界闭）、凸。
+\emph{上半连续（不膨胀）.} 价格略升一点，三角形只会缩小或微动，不会突然冒出原来够不着的远处消费束——形式上，截距 $w/p_i$ 是 $p_i$ 的连续函数，故任给包住 $B(p,w)$ 的开集 $V$，$p$ 邻近时 $B(p',w)\se V$。
+\emph{下半连续（不塌缩）.} 价格略变，原预算集里的任何消费束 $x$（满足 $p\cdot x\le w$）都能被邻近价格下可负担的束逼近——只要把 $x$ 沿原点方向稍微缩一点（$\lambda x$，$\lambda$ 略小于 $1$）就严格落入新预算集，再令 $\lambda\to1$。两半都成立，故 $B(\cdot,w)$ 连续。这正是后面断言马歇尔需求``性态良好''的前提。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  \draw[->] (-0.2,0) -- (5.0,0) node[right] {$x_1$};
+  \draw[->] (0,-0.2) -- (0,4.4) node[above] {$x_2$};
+  % 三条预算线共纵截距 w/p2，横截距随 p1 上升而减小：4.5 > 3.0 > 1.8
+  \fill[green!14] (0,0) -- (4.5,0) -- (0,4) -- cycle;
+  \draw[green!50!black,thick] (4.5,0) -- (0,4);
+  \draw[green!45!black,thick,dashed] (3.0,0) -- (0,4);
+  \draw[green!40!black,thick,dotted] (1.8,0) -- (0,4);
+  \node[anchor=north,font=\small] at (4.5,-0.05) {$\frac{w}{p_1}$};
+  \node[anchor=north,font=\small] at (3.0,-0.05) {$\frac{w}{p_1'}$};
+  \node[anchor=north,font=\small] at (1.8,-0.05) {$\frac{w}{p_1''}$};
+  \node[anchor=east,font=\small] at (-0.05,4) {$\frac{w}{p_2}$};
+  \node[green!45!black,anchor=west,align=left,font=\small] at (2.9,3.4)
+     {$p_1$ 上升：预算集\\$B(p,w)$ 连续收缩};
+  \draw[->,green!45!black,thin] (3.55,3.1) -- (2.7,2.55);
+  \node[anchor=west,font=\small] at (0.95,0.5) {$B(p,w)$};
+\end{tikzpicture}
+\caption{预算集对应 $p\mapsto B(p,w)$。$p_1$ 上升时横截距 $w/p_1$ 连续减小，三角形连续收缩——既不膨胀（u.s.c.）也不塌缩（l.s.c.），故连续。}
+\label{fig:berge-3}
+\end{figure}
+
+\section{参数化最优化与最大值定理}
+\label{sec:berge-theorem}
+
+工具备齐，回到主问题。设参数空间 $\Theta$、选择空间 $X$ 均为度量空间，给定
+\[
+    \text{目标函数 } f:X\times\Theta\to\RR,
+    \qquad
+    \text{约束对应 } C:\Theta\rightrightarrows X .
+\]
+对每个参数 $\theta$，决策者求解 $\max_{x\in C(\theta)}f(x,\theta)$，由此定义两个对象：\textbf{值函数}与\textbf{最优解对应}
+\[
+    v(\theta)=\max_{x\in C(\theta)}f(x,\theta),
+    \qquad
+    x^*(\theta)=\argmax_{x\in C(\theta)}f(x,\theta)=\setb{x\in C(\theta)}{f(x,\theta)=v(\theta)} .
+\]
+注意 $v$ 是普通函数（最大值是个数），而 $x^*$ 天然是个\emph{对应}——最优解可能不唯一。我们要问：$f$ 与 $C$ 的连续性，能给 $v$ 与 $x^*$ 带来什么？答案就是 Berge 定理。
+
+\thm{Berge 最大值定理}{
+设 $\Theta,X$ 为度量空间。若
+\begin{itemize}
+    \item 目标函数 $f:X\times\Theta\to\RR$ \emph{连续}（关于 $(x,\theta)$ 联合连续）；
+    \item 约束对应 $C:\Theta\rightrightarrows X$ 在 $\theta_0$ \emph{连续}（既上半连续又下半连续）、且\emph{非空紧值}，
+\end{itemize}
+则：
+\begin{itemize}
+    \item 值函数 $v(\theta)=\displaystyle\max_{x\in C(\theta)}f(x,\theta)$ 在 $\theta_0$ \emph{连续}；
+    \item 最优解对应 $x^*(\theta)=\displaystyle\argmax_{x\in C(\theta)}f(x,\theta)$ 在 $\theta_0$ 非空、紧值、\emph{上半连续}。
+\end{itemize}
+}
+
+定理的结论里藏着一处不对称，值得先点破：\emph{值函数得到完整的连续，最优解却只得到``上''半}。这不是证明做不到更好，而是事情本身如此——下一节会用一张图说明最优解为什么\emph{必然}可能跳。下面给出证明骨架，分三块：紧值保证 $v$ 良定义（最大值真的取得到）、$C$ 的下半连续 + $f$ 上半连续保证 $v$ 上半连续、$C$ 的上半连续 + $f$ 下半连续保证 $v$ 下半连续；两半合起来即 $v$ 连续，而 $x^*$ 的上半连续由图像闭推出。
+
+\pf{
+\textbf{第零步：$v$ 与 $x^*$ 良定义。}
+固定 $\theta$。因 $f(\cdot,\theta)$ 连续、$C(\theta)$ 非空紧，由 Weierstrass 定理（第九章）最大值取得到，故 $v(\theta)$ 是有限数、$x^*(\theta)$ 非空。又 $x^*(\theta)$ 是连续函数 $f(\cdot,\theta)$ 在紧集 $C(\theta)$ 上的最大值点集，它是闭集（最大值点的逆像）且含于紧集 $C(\theta)$，故紧。
+
+\textbf{第一步：$v$ 下半连续（用 $C$ 的下半连续）。}
+取 $\theta_n\to\theta_0$。设 $\hat x\in x^*(\theta_0)$ 是 $\theta_0$ 处的一个最优解，$v(\theta_0)=f(\hat x,\theta_0)$。由 $C$ 在 $\theta_0$ 下半连续（不塌缩），存在 $x_n\in C(\theta_n)$ 使 $x_n\to\hat x$。这些 $x_n$ 未必最优，但终归可行，故 $v(\theta_n)\ge f(x_n,\theta_n)$。令 $n\to\infty$，由 $f$ 连续得 $f(x_n,\theta_n)\to f(\hat x,\theta_0)=v(\theta_0)$，于是
+\[
+    \liminf_{n}v(\theta_n)\ge\lim_n f(x_n,\theta_n)=v(\theta_0) .
+\]
+这正是 $v$ 在 $\theta_0$ 下半连续。说到底，约束不塌缩意味着旧的好选择在新参数下仍``近似可用'',所以最优值不会向下掉。
+
+\textbf{第二步：$v$ 上半连续（用 $C$ 的上半连续）。}
+仍取 $\theta_n\to\theta_0$，并取 $x_n\in x^*(\theta_n)$，即 $v(\theta_n)=f(x_n,\theta_n)$。我们要证 $\limsup_n v(\theta_n)\le v(\theta_0)$。$C$ 在 $\theta_0$ 上半连续且紧值，可推知这些最优解 $\{x_n\}$ 终究被困在 $\theta_0$ 附近一个紧集里，故有收敛子列 $x_{n_k}\to\bar x$；再由 $C$ 的图像闭（u.s.c.\ + 紧值）得 $\bar x\in C(\theta_0)$，即 $\bar x$ 对 $\theta_0$ 可行。于是
+\[
+    \limsup_n v(\theta_n)=\lim_k f(x_{n_k},\theta_{n_k})
+    = f(\bar x,\theta_0)\le\max_{x\in C(\theta_0)}f(x,\theta_0)=v(\theta_0),
+\]
+其中等号用 $f$ 连续、不等号因 $\bar x$ 只是可行（未必最优）。这正是 $v$ 上半连续。背后的道理是，约束不膨胀意味着新参数下的最优选择跑不到 $\theta_0$ 够不着的地方，所以最优值不会向上冒。
+
+第一、二步合起来即 $v$ 在 $\theta_0$ 连续。
+
+\textbf{第三步：$x^*$ 上半连续。}
+在紧值框架下，证 $x^*$ 上半连续等价于证它\emph{图像闭}。取 $\theta_n\to\theta_0$，$x_n\in x^*(\theta_n)$，$x_n\to x$；要证 $x\in x^*(\theta_0)$。一方面 $x_n\in C(\theta_n)$，由 $C$ 图像闭得 $x\in C(\theta_0)$（可行）。另一方面 $f(x_n,\theta_n)=v(\theta_n)$，令 $n\to\infty$，左边由 $f$ 连续趋于 $f(x,\theta_0)$、右边由刚证得的 $v$ 连续趋于 $v(\theta_0)$，故 $f(x,\theta_0)=v(\theta_0)$，即 $x$ 是 $\theta_0$ 处的最优解。于是 $x^*$ 图像闭，从而上半连续。
+}
+
+\state{Berge 定理交付什么，以及它对约束两半的``分工''要求}{
+一句话：\emph{目标连续 + 约束连续紧值 $\Rightarrow$ 最优值连续、最优解上半连续}。证明里清清楚楚地暴露出约束的两半各管一头——
+\begin{itemize}
+    \item \textbf{约束的下半连续（不塌缩）保住 $v$ 不向下掉}：旧的好选择得在新约束下仍近似可用。
+    \item \textbf{约束的上半连续（不膨胀）保住 $v$ 不向上冒}：新约束下的最优解跑不出旧约束的``闭包''。
+\end{itemize}
+缺哪一半，$v$ 就只剩对应的那半连续。这种``目标的连续 + 约束的连续，按方向各保 $v$ 的一半''的结构，是半连续这套语言最漂亮的回报：它让你能精确诊断``连续性是在哪一侧、因为哪个条件失效而坏掉''。
+}
+
+\section{为什么最优解只能保证``上半连续''}
+\label{sec:berge-jump}
+
+定理把完整的连续给了 $v$，却只把上半连续给了 $x^*$。这道``缺口''不是技术遗憾，而是经济现实：\emph{最优选择本就可能随参数跳变}。最干净的例子是两个候选峰高度此消彼长。
+
+\ex[最优解的跳变]{
+设选择空间 $X=\{a,b\}$ 只有两个点（或想成两处局部峰），参数 $\theta\in\RR$，目标
+\[
+    f(a,\theta)=1-\theta,\qquad f(b,\theta)=1+\theta,\qquad C(\theta)=\{a,b\}\ \text{（常对应）}.
+\]
+求 $v$ 与 $x^*$，并观察 $\theta$ 越过 $0$ 时的行为。
+}
+\sol{
+逐点比较两个值：当 $\theta<0$ 时 $f(a,\theta)>f(b,\theta)$，最优是 $a$；当 $\theta>0$ 时反过来，最优是 $b$；当 $\theta=0$ 时两者都等于 $1$，皆最优。于是
+\[
+    v(\theta)=\max\{1-\theta,\,1+\theta\}=1+\abs{\theta},
+    \qquad
+    x^*(\theta)=\bc a, & \theta<0,\\ \{a,b\}, & \theta=0,\\ b, & \theta>0. \ec
+\]
+值函数 $v(\theta)=1+\abs{\theta}$ \emph{连续}（在 $0$ 处有个折点，但不跳）；最优解 $x^*$ 在 $\theta=0$ 处从 $a$ ``跳''到 $b$。它是\emph{上半连续}的：在跳点 $\theta=0$，$x^*$ 把\emph{两个}端点 $a,b$ 都纳入（图像闭），所以 $\theta_n\to0$ 时的最优解的极限仍在 $x^*(0)$ 里——没有膨胀出多余的点。但它\emph{不是}下半连续：$x^*(0)=\{a,b\}$ 里的 $b$ 无法被 $\theta<0$ 一侧的最优解（恒为 $a$）逼近，集合在跨过 $0$ 时一侧``塌掉''了。
+}
+
+图~\ref{fig:berge-4} 把这个机理画成连续光滑的版本：两条候选值曲线的上包络给出连续（带折点）的 $v$，而最优解在交点处从一支跳到另一支，跳点把两支端点都收进来——这正是``上半连续、非下半连续''的标准相貌。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ===== 上面板：值函数 v(theta) 为两条候选值曲线的上包络（连续，折点）=====
+  \begin{scope}[yshift=4.3cm]
+    \draw[->] (-0.2,0) -- (5.2,0) node[right] {$\theta$};
+    \draw[->] (0,-0.2) -- (0,2.6) node[above] {$v(\theta)$};
+    % 两条候选值曲线（细虚线）：A 低斜率支、B 高斜率支，交于 theta0=2.5 (=1.35)
+    \draw[thin,dashed,teal!55!black,domain=0:5.0] plot (\x,{0.6+0.30*\x});
+    \draw[thin,dashed,orange!75!black,domain=0.82:3.75] plot (\x,{-0.65+0.80*\x});
+    % 上包络：theta<theta0 走低斜率支(A)，之后走高斜率支(B)；粗线压在两候选之上
+    \draw[thick,violet!60!black,domain=0:2.5] plot (\x,{0.6+0.30*\x});
+    \draw[thick,violet!60!black,domain=2.5:5.0] plot (\x,{-0.65+0.80*\x});
+    \fill[violet!60!black] (2.5,1.35) circle (1.5pt);
+    \draw[dashed,gray!55] (2.5,0) -- (2.5,1.35);
+    \node[anchor=north] at (2.5,-0.05) {$\theta_0$};
+    \node[violet!60!black,anchor=west] at (3.15,0.85) {上包络 $v(\theta)$ 连续};
+    \node[anchor=south west,font=\small,gray!50!black] at (2.15,1.5) {折点};
+    \node[teal!55!black,font=\small,anchor=north west] at (4.0,1.55) {候选 $v_1$};
+    \node[orange!75!black,font=\small,anchor=north] at (1.25,0.3) {候选 $v_2$};
+  \end{scope}
+  % ===== 下面板：最优解对应 x*(theta) 在 theta0 跳变（上半连续）=====
+  \begin{scope}
+    \draw[->] (-0.2,0) -- (5.2,0) node[right] {$\theta$};
+    \draw[->] (0,-0.2) -- (0,3.2) node[above] {$x^*(\theta)$};
+    \draw[thick,blue!60!black,domain=0:2.5] plot (\x,{0.5+0.14*\x});   % 2.5处=0.85
+    \draw[thick,blue!60!black,domain=2.5:5.0] plot (\x,{1.9+0.10*\x}); % 2.5处=2.15
+    % theta0 处上半连续：整段竖直 [0.85,2.15] 都属于 x*(theta0)，两端实心
+    \draw[blue!60!black,very thick,densely dotted] (2.5,0.85) -- (2.5,2.15);
+    \fill[blue!60!black] (2.5,0.85) circle (1.6pt);
+    \fill[blue!60!black] (2.5,2.15) circle (1.6pt);
+    \draw[dashed,gray!55] (2.5,0) -- (2.5,0.85);
+    \node[anchor=north] at (2.5,-0.05) {$\theta_0$};
+    \node[blue!60!black,anchor=east,font=\small] at (2.45,0.6) {$\theta<\theta_0$};
+    \node[blue!60!black,anchor=west,font=\small] at (3.6,2.55) {$\theta>\theta_0$};
+    \node[anchor=west,font=\small,align=left] at (2.65,1.35)
+       {$x^*$ 跳变\\（仅上半连续）};
+  \end{scope}
+\end{tikzpicture}
+\caption{Berge 定理的``缺口''。上：值函数 $v(\theta)$ 是两条候选值曲线的上包络，连续（$\theta_0$ 处有折点而不跳）。下：最优解 $x^*(\theta)$ 在 $\theta_0$ 处从一支跳到另一支；跳点把两支端点都纳入 $x^*(\theta_0)$（两端实心、竖直虚段），故上半连续——但不下半连续。}
+\label{fig:berge-4}
+\end{figure}
+
+\rmkb[什么时候 $x^*$ 升级为连续函数]{
+若再添一个条件——\emph{$f(\cdot,\theta)$ 在凸集 $C(\theta)$ 上严格拟凹}（且 $C$ 凸值）——则最优解\emph{唯一}，$x^*$ 退化为单值；单值的上半连续对应就是连续函数。于是``目标严格拟凹 + 约束连续凸紧值''给出 $x^*$ \emph{连续}（一条曲线、不跳）。这正是消费者理论里马歇尔需求为何通常是价格-收入的连续函数：严格拟凹的效用挑出唯一最优束。一旦丢掉严格性（如线性效用、完全替代品），最优解就可能不唯一、随价格跳变——退回到``只上半连续''的一般相貌。
+}
+
+\section{它通向何处}
+\label{sec:berge-beyond}
+
+Berge 定理是那种``陈述一次、终身受用''的结论：经济学里凡是``带约束、参数化''的最优化，它的最优值与最优解的连续性，第一反应就该是搬出它。几处核心去处：
+
+\begin{itemize}
+    \item \textbf{动态规划值函数的连续性}（见后文``压缩映射与 Banach 不动点''一章）。Bellman 算子 $(Tf)(s)=\max_{a\in\Gamma(s)}\{r(s,a)+\beta f(\phi(s,a))\}$ 每一步都是一个参数化最优化：状态 $s$ 是参数、行动 $a$ 是选择、$\Gamma(s)$ 是约束对应。Berge 定理保证：只要瞬时收益 $r$ 连续、可行集对应 $\Gamma$ 连续紧值，$T$ 就把连续函数映成连续函数。这恰是用压缩映射定理求值函数时需要的一块——它确保迭代停在``连续有界函数''这个完备空间里，于是值函数本身连续。最优策略对应则由 Berge 给出上半连续。
+    \item \textbf{马歇尔需求与间接效用}（消费者理论）。需求 $x^*(p,w)=\argmax_{x\in B(p,w)}u(x)$ 正是以预算集对应 $B(\cdot)$ 为约束的参数化最优化。本章已验 $B$ 连续紧值，故 Berge 立得：间接效用 $v(p,w)$ 连续、需求对应上半连续；若 $u$ 严格拟凹则需求是连续函数。这是需求理论一切比较静态的``地面''。
+    \item \textbf{博弈的最优反应对应}（见后文``不动点定理''一章）。玩家 $i$ 的最优反应 $\mathrm{BR}_i(\sigma_{-i})=\argmax_{\sigma_i}u_i(\sigma_i,\sigma_{-i})$ 把对手策略组映到自己的最优策略集——又一个参数化最优化，参数是 $\sigma_{-i}$。Berge 定理保证它\emph{上半连续}（且在混合策略下凸值、紧值）。而上半连续 + 凸紧值，恰恰是 \textbf{Kakutani 不动点定理}对集值映射的全部要求——纳什均衡的存在性证明，正是把 Berge 的输出直接喂给 Kakutani。这条``Berge $\to$ Kakutani $\to$ 纳什''的链路，是博弈论存在性定理的标准脚手架。
+\end{itemize}
+
+把本章放回 Part II 的脉络：第九章的 Weierstrass 定理回答``单个最优化的解\emph{存不存在}'',本章 Berge 定理回答``一族参数化最优化的解\emph{怎样随参数变化}'',下一章不动点定理则回答``自指的均衡\emph{存不存在}''。三者环环相扣，而把它们焊在一起的，正是``半连续''这把按方向拆开连续性的尺子——它让我们能精准地说出，在最优化与均衡的每一处，到底需要``连续''的哪一半。

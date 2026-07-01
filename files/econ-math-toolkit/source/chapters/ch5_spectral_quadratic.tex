@@ -1,0 +1,443 @@
+% !TEX root = ../main.tex
+\chapter{对称矩阵、谱定理、二次型与正定性}
+\label{ch:spectral}
+
+\noindent\emph{用到的前置工具：特征值与特征向量、对角化（第四章）；内积、正交与正交矩阵（第三章）；矩阵的秩与可逆性（第二章）。}
+\medskip
+
+经济学里有两类对象，几乎是``生来对称''的：一是计量里的方差-协方差矩阵，二是最优化里目标函数的 Hessian。前者刻画一组随机变量怎样一起波动，后者刻画一个最优值面在驻点附近的弯曲方式。它们都是对称矩阵，而且我们对它们最想问的那个问题，措辞惊人地一致——\textbf{这个二次型是``恒为正''、``恒为负''，还是有正有负？}方差不可能为负，于是协方差矩阵必须半正定；山顶处目标函数往各个方向都向下弯，于是极大值的 Hessian 必须负定。本章要把``正定''这件事彻底讲透：它精确地意味着什么、怎样判断、以及为什么对称矩阵恰好是回答这个问题最顺手的对象。
+
+钥匙是\textbf{谱定理}：实对称矩阵总能被一组正交的特征向量对角化。它把一个看似纠缠的二次型 $\vc x\T\mat A\vc x$ 拆成若干条互相垂直的``主轴''，每条主轴上的弯曲程度就是一个特征值。一旦看清这一点，``正定''不过是``所有特征值都为正''的同义词，而本章后面所有的判据、所有的几何图像，都从这一句话里流出来。
+
+\section{对称矩阵：为什么经济学里到处是它}
+\label{sec:spectral-1}
+
+\defn{对称矩阵}{
+方阵 $\mat A\in\RR^{n\times n}$ 称为\textbf{对称的}，若 $\mat A\T=\mat A$，即对一切 $i,j$ 有 $a_{ij}=a_{ji}$。
+}
+
+对称性看上去只是一个记号上的巧合，但它在经济学里几乎是``默认设置'',原因有三处，每一处都对应一类核心应用。
+
+\state{对称矩阵的三个经济学来源}{
+\textbf{(i) 方差-协方差矩阵。}\, 设随机向量 $\vc X=(X_1,\dots,X_n)\T$，其协方差矩阵 $\vc\Sigma=\br{\Cov{X_i}{X_j}}$ 天然对称，因为 $\Cov{X_i}{X_j}=\Cov{X_j}{X_i}$。\\[2pt]
+\textbf{(ii) Hessian。}\, 二阶连续可微函数 $f$ 的 Hessian $\grad^2 f=\br{\pdc{f}{x_i}{x_j}}$ 对称，这正是混合偏导可交换（Young 定理，第十三章）：$\pdc{f}{x_i}{x_j}=\pdc{f}{x_j}{x_i}$。\\[2pt]
+\textbf{(iii) Gram 矩阵。}\, 任给矩阵 $\mat X$（例如计量里的设计矩阵），$\mat X\T\mat X$ 必对称，因为 $(\mat X\T\mat X)\T=\mat X\T\mat X$。OLS 的正规方程里那个 $\mat X\T\mat X$ 就是这一类。
+}
+
+这三处来源解释了本章为何被单列出来：经济学家真正需要研究``弯曲''与``共同波动''时，研究的对象几乎必然落在对称矩阵这一族里。而对称矩阵恰好拥有一切方阵里最干净的谱结构，下一节就是它。
+
+\section{谱定理：实、正交、可对角化}
+\label{sec:spectral-2}
+
+一般方阵的特征值可能是复数，特征向量也不一定互相垂直，对角化甚至可能根本做不到（第四章）。对称矩阵把这些麻烦一扫而空。
+
+\thm{谱定理（实对称矩阵）}{
+设 $\mat A\in\RR^{n\times n}$ 对称。则有三件事。\\[3pt]
+\textbf{(1)} $\mat A$ 的特征值全为\textbf{实数}。\\[2pt]
+\textbf{(2)} 属于\emph{不同}特征值的特征向量互相\textbf{正交}。\\[2pt]
+\textbf{(3)} 存在一个\textbf{正交矩阵} $\mat Q$（即 $\mat Q\T\mat Q=\mat I$）与对角矩阵 $\vc\Lambda=\diag(\lambda_1,\dots,\lambda_n)$，使得
+\[
+    \mat A=\mat Q\,\vc\Lambda\,\mat Q\T
+    =\sum_{i=1}^n \lambda_i\,\vc q_i\vc q_i\T ,
+\]
+其中 $\mat Q$ 的各列 $\vc q_1,\dots,\vc q_n$ 是 $\mat A$ 的一组\textbf{标准正交}特征向量，$\mat A\vc q_i=\lambda_i\vc q_i$。
+}
+
+(3) 就是常说的``正交可对角化''或\textbf{谱分解}。它的几何含义是：对称矩阵所做的线性变换，无非是``选一组正交的坐标轴（$\vc q_i$），沿各轴分别按因子 $\lambda_i$ 伸缩''。把任一向量 $\vc x$ 按这组正交基展开 $\vc x=\sum_i (\vc q_i\T\vc x)\,\vc q_i$，作用 $\mat A$ 后每个分量被各自的 $\lambda_i$ 缩放——没有旋转、没有剪切，纯粹的沿轴伸缩。这一图像是本章后面一切结论的母本。
+
+(1) 与 (2) 的证明很短，把``对称''这个性质用足即可；(3) 里``总能凑齐一整组正交特征向量''是更深的部分，我们陈述并给直觉。
+
+\pf[特征值为实数，且不同特征值的特征向量正交]{
+先证 (1)。设 $\mat A\vc v=\lambda\vc v$，$\vc v\neq\vc 0$，暂且允许 $\lambda\in\CC$、$\vc v\in\CC^n$。记 $\bar{\vc v}$ 为逐元素的复共轭。把 $\mat A\vc v=\lambda\vc v$ 两边逐元素取共轭，并利用 $\mat A$ 是\emph{实}矩阵（$\bar{\mat A}=\mat A$），得 $\mat A\bar{\vc v}=\bar\lambda\,\bar{\vc v}$——即 $\bar{\vc v}$ 是属于 $\bar\lambda$ 的特征向量，这一步下面要用到。现考虑标量 $\bar{\vc v}\T\mat A\vc v$。一方面
+\[
+    \bar{\vc v}\T\mat A\vc v=\bar{\vc v}\T(\lambda\vc v)=\lambda\,\bar{\vc v}\T\vc v .
+\]
+另一方面，因 $\mat A$ 是实对称矩阵（$\bar{\mat A}=\mat A$，$\mat A\T=\mat A$），这个标量等于它自己的共轭转置：
+\[
+    \overline{\bar{\vc v}\T\mat A\vc v}^{\,\mathsf T}
+    =\vc v\T\bar{\mat A}\,\bar{\vc v}
+    =\vc v\T\mat A\,\bar{\vc v}
+    =\vc v\T(\bar\lambda\,\bar{\vc v})
+    =\bar\lambda\,\vc v\T\bar{\vc v}
+    =\bar\lambda\,\bar{\vc v}\T\vc v .
+\]
+故 $\lambda\,\bar{\vc v}\T\vc v=\bar\lambda\,\bar{\vc v}\T\vc v$。而 $\bar{\vc v}\T\vc v=\sum_i\abs{v_i}^2>0$，两边消去即得 $\lambda=\bar\lambda$，即 $\lambda\in\RR$。
+
+再证 (2)。设 $\mat A\vc v=\lambda\vc v$、$\mat A\vc w=\mu\vc w$，且 $\lambda\neq\mu$（现在 $\lambda,\mu,\vc v,\vc w$ 都已知是实的）。用 $\mat A\T=\mat A$ 算同一个标量 $\vc w\T\mat A\vc v$ 的两种方式：
+\[
+    \vc w\T\mat A\vc v=\vc w\T(\lambda\vc v)=\lambda\,\vc w\T\vc v,
+    \qquad
+    \vc w\T\mat A\vc v=(\mat A\vc w)\T\vc v=\mu\,\vc w\T\vc v .
+\]
+相减得 $(\lambda-\mu)\,\vc w\T\vc v=0$。因 $\lambda\neq\mu$，必有 $\vc w\T\vc v=0$，即两特征向量正交。
+}
+
+\rmkb[为什么``凑齐一整组''是更深的一步]{
+(1)(2) 只说了``不同特征值''的情形。真正需要技术的是\emph{重}特征值：当某个 $\lambda$ 的代数重数大于 $1$ 时，要保证它的特征子空间维数恰好等于重数（即无``亏损''），从而能在该子空间内部再取一组正交基。对称矩阵确实满足这一点，标准证法是对维数作归纳：取一个特征向量 $\vc q_1$（紧致性保证它存在，见第九章），把它正交补 $\vc q_1^{\perp}$ 看成 $(n-1)$ 维空间，$\mat A$ 限制在其上仍对称，归纳即可。直觉上，对称变换``各向独立地伸缩''，不会把一个方向的伸缩``渗''到与它垂直的方向去，于是总能把整个空间切成互相垂直的伸缩轴。
+}
+
+\state{谱定理是本章的总开关}{
+有了 $\mat A=\mat Q\vc\Lambda\mat Q\T$，``对称矩阵''的几乎所有问题都能换到对角的 $\vc\Lambda$ 上去问，而对角矩阵的一切都一目了然。下面三件事将反复用到它：\,(i) 二次型 $\vc x\T\mat A\vc x$ 经正交换元变成纯平方和 $\sum_i\lambda_i y_i^2$；(ii) ``正定''等价于``所有 $\lambda_i>0$'';(iii) $\mat A$ 的行列式 $=\prod_i\lambda_i$、迹 $=\sum_i\lambda_i$。
+}
+
+\section{二次型与正交换元}
+\label{sec:spectral-3}
+
+\defn{二次型}{
+对称矩阵 $\mat A\in\RR^{n\times n}$ 诱导的\textbf{二次型}是函数
+\[
+    q(\vc x)=\vc x\T\mat A\vc x=\sum_{i=1}^n\sum_{j=1}^n a_{ij}x_i x_j,
+    \qquad \vc x\in\RR^n .
+\]
+}
+
+\rmkb[只有对称部分起作用]{
+即便 $\mat A$ 不对称，$\vc x\T\mat A\vc x$ 也只感知它的对称部分：因为 $\vc x\T\mat A\vc x$ 是标量，等于自身转置 $\vc x\T\mat A\T\vc x$，故 $\vc x\T\mat A\vc x=\vc x\T\!\br{\tfrac12(\mat A+\mat A\T)}\vc x$。所以研究二次型时\emph{不妨}总设 $\mat A$ 对称——这也是为何 Hessian、协方差这些以二次型身份登场的矩阵，都可以、并且总是当作对称矩阵处理。
+}
+
+把谱分解代入二次型，是本章最有用的一步代数。令正交变量 $\vc y=\mat Q\T\vc x$（这是一次\emph{旋转}换元，因为 $\mat Q$ 正交，保长保角），则 $\vc x=\mat Q\vc y$，于是
+\[
+    \vc x\T\mat A\vc x
+    =\vc x\T\mat Q\vc\Lambda\mat Q\T\vc x
+    =(\mat Q\T\vc x)\T\vc\Lambda(\mat Q\T\vc x)
+    =\vc y\T\vc\Lambda\vc y
+    =\sum_{i=1}^n\lambda_i\,y_i^2 .
+\]
+
+\state{正交换元把二次型``对角化''成纯平方和}{
+在沿特征向量取的新坐标 $\vc y=\mat Q\T\vc x$ 下，二次型变成无交叉项的纯平方和
+\[
+    \vc x\T\mat A\vc x=\lambda_1 y_1^2+\lambda_2 y_2^2+\cdots+\lambda_n y_n^2 .
+\]
+每个特征值 $\lambda_i$ 就是``沿第 $i$ 条主轴方向，二次型弯曲的快慢与正负''。二次型恒正、恒负、还是有正有负，到这里完全由 $\lambda_i$ 的符号决定——这就是下一节正定性判据的全部来源。
+}
+
+\section{正定、半正定、负定、不定}
+\label{sec:spectral-4}
+
+\defn{正定性的四种类型}{
+设 $\mat A$ 为 $n$ 阶实对称矩阵。称 $\mat A$ 为：\\[3pt]
+\textbf{正定}（positive definite，记 $\mat A\succ0$），若对一切 $\vc x\neq\vc 0$ 有 $\vc x\T\mat A\vc x>0$；\\[2pt]
+\textbf{半正定}（positive semidefinite，记 $\mat A\succeq0$），若对一切 $\vc x$ 有 $\vc x\T\mat A\vc x\ge0$；\\[2pt]
+\textbf{负定}（$\mat A\prec0$）、\textbf{半负定}（$\mat A\preceq0$），定义对称地把不等号反向；\\[2pt]
+\textbf{不定}（indefinite），若 $\vc x\T\mat A\vc x$ 在某些 $\vc x$ 取正、在另一些取负。
+}
+
+由上一节的纯平方和表示 $\vc x\T\mat A\vc x=\sum_i\lambda_i y_i^2$（其中 $\vc y=\mat Q\T\vc x$，且 $\vc x\neq\vc 0\Iff\vc y\neq\vc 0$，因为 $\mat Q$ 可逆），符号判据立刻读出。
+
+\thm{特征值符号判据}{
+对实对称矩阵 $\mat A$，
+\[
+    \mat A\succ0\iff \text{所有 }\lambda_i>0,
+    \qquad
+    \mat A\succeq0\iff \text{所有 }\lambda_i\ge0,
+\]
+\[
+    \mat A\prec0\iff \text{所有 }\lambda_i<0,
+    \qquad
+    \mat A\text{ 不定}\iff \text{既有 }\lambda_i>0\text{ 又有 }\lambda_j<0 .
+\]
+}
+
+\pf{
+只证正定一行，其余完全平行。由 $\vc x\T\mat A\vc x=\sum_i\lambda_i y_i^2$ 且 $\vc y=\mat Q\T\vc x$ 与 $\vc x$ 一一对应。\\
+($\Leftarrow$) 若所有 $\lambda_i>0$，则对 $\vc x\neq\vc0$ 有 $\vc y\neq\vc0$，故 $\sum_i\lambda_i y_i^2\ge(\min_i\lambda_i)\sum_i y_i^2>0$。\\
+($\Rightarrow$) 反设某 $\lambda_k\le0$。取 $\vc y=\vc e_k$（第 $k$ 个标准基向量），对应的 $\vc x=\mat Q\vc e_k=\vc q_k\neq\vc0$，此时 $\vc x\T\mat A\vc x=\lambda_k\le0$，与正定矛盾。
+}
+
+这条判据极其好用：要判断正定性，只需看特征值的符号，根本不必逐个去验证 $\vc x\T\mat A\vc x$。它也立刻给出两条常用的副产品。
+
+\cor{行列式、迹与正定性}{
+若 $\mat A\succ0$，则 $\mat A$ 可逆且 $\inv{\mat A}\succ0$；其行列式 $\det\mat A=\prod_i\lambda_i>0$，迹 $\tr\mat A=\sum_i\lambda_i>0$。更一般地，$\mat A\succeq0$ 时 $\det\mat A=\prod_i\lambda_i\ge0$。
+}
+
+\rmk{反向不真：$\det\mat A>0$ 不蕴含正定——$\diag(-1,-1)$ 行列式为 $1$ 却负定。光看行列式符号会被偶数个负特征值``骗过''，这正是下面 Sylvester 判据要逐阶把关的原因。}
+
+\subsection*{Sylvester 顺序主子式判据}
+
+特征值判据虽干净，却要先解特征方程。实践中常有一条不必求特征值、只需算几个行列式的捷径。
+
+\defn{顺序主子式}{
+$n$ 阶矩阵 $\mat A$ 的第 $k$ 个\textbf{顺序主子式}（leading principal minor）$D_k$ 是其左上角 $k\times k$ 子块的行列式：
+\[
+    D_1=a_{11},\quad
+    D_2=\det\!\begin{bmatrix}a_{11}&a_{12}\\a_{21}&a_{22}\end{bmatrix},\quad\dots,\quad
+    D_n=\det\mat A .
+\]
+}
+
+\thm{Sylvester 判据}{
+设 $\mat A$ 为 $n$ 阶实对称矩阵。则
+\[
+    \mat A\succ0
+    \iff
+    D_1>0,\ D_2>0,\ \dots,\ D_n>0
+    \quad(\text{所有顺序主子式皆正}) ;
+\]
+\[
+    \mat A\prec0
+    \iff
+    (-1)^k D_k>0\ \text{对一切 }k
+    \quad(\text{符号交错}:\ D_1<0,\ D_2>0,\ D_3<0,\dots) .
+\]
+}
+
+\rmkb[判据的直觉与一个易错点]{
+正定性``遗传给子块'':若 $\mat A\succ0$，把 $\vc x$ 限制在前 $k$ 个坐标（其余置零）仍有 $\vc x\T\mat A\vc x>0$，故左上 $k\times k$ 子块也正定，从而 $D_k>0$。反方向（所有 $D_k>0$ 推出正定）可由对 $k$ 的归纳、配方法逐步消元得到，每一步的``主元''正比于 $D_k/D_{k-1}>0$。负定情形把 $\mat A$ 换成 $-\mat A$ 即知 $D_k(-\mat A)=(-1)^kD_k(\mat A)$，于是符号交错。\\[3pt]
+\textbf{易错点：}\,Sylvester 判据只对\emph{严格}正/负定干净成立。\emph{半}正定\textbf{不能}仅靠``顺序主子式 $\ge0$''来判——反例 $\mat A=\diag(0,-1)$ 有 $D_1=0,\ D_2=0$ 都非负，但它显然不是半正定（取 $\vc x=\vc e_2$ 得 $-1<0$）。要判半正定，必须验\textbf{所有}主子式（不止左上角那一列嵌套子块）非负，或者干脆回到特征值。
+}
+
+\ex[二阶矩阵的速记]{
+对 $\mat A=\begin{bmatrix}a&b\\b&c\end{bmatrix}$，用 Sylvester 判据写出正定 / 负定 / 不定的条件。
+}
+\sol{
+顺序主子式为 $D_1=a$，$D_2=\det\mat A=ac-b^2$。于是
+\[
+    \mat A\succ0\iff a>0\ \text{且}\ ac-b^2>0;
+    \qquad
+    \mat A\prec0\iff a<0\ \text{且}\ ac-b^2>0 .
+\]
+当 $ac-b^2<0$ 时 $D_2=\lambda_1\lambda_2<0$，两特征值一正一负，$\mat A$ \textbf{不定}（等值线是双曲线）。这正是无约束最优化里二元函数的二阶检验：$f_{xx}>0$ 且 $f_{xx}f_{yy}-f_{xy}^2>0$ 判极小，$f_{xx}<0$ 且同一行列式 $>0$ 判极大，行列式 $<0$ 则是鞍点——它就是这条速记的逐字翻译。
+}
+
+\subsection*{合同与惯性定律}
+
+还有第三种刻画，它丢掉特征值的具体大小，只保留符号的``个数''。
+
+\defn{合同}{
+两个对称矩阵 $\mat A,\mat B$ \textbf{合同}（congruent），若存在可逆矩阵 $\mat P$ 使 $\mat B=\mat P\T\mat A\mat P$。
+}
+
+合同正是``对二次型作可逆线性换元 $\vc x=\mat P\vc y$''在矩阵上的体现：$\vc x\T\mat A\vc x=\vc y\T(\mat P\T\mat A\mat P)\vc y$。前面的正交换元 $\mat A=\mat Q\vc\Lambda\mat Q\T$ 是合同的一个特例（$\mat P=\mat Q$，且恰好正交）。如果允许更一般的可逆 $\mat P$，还能把各个 $\lambda_i$ 进一步缩放到 $\pm1$ 或 $0$。
+
+\thm{Sylvester 惯性定律}{
+任一实对称矩阵 $\mat A$ 都合同于一个形如
+\[
+    \diag(\underbrace{1,\dots,1}_{n_+},\,\underbrace{-1,\dots,-1}_{n_-},\,\underbrace{0,\dots,0}_{n_0})
+\]
+的对角阵。其中正项数 $n_+$、负项数 $n_-$、零项数 $n_0$ 由 $\mat A$ 唯一确定（不依赖所作的换元），$n_+$ 与 $n_-$ 分别等于 $\mat A$ 的正、负特征值个数，三元组 $(n_+,n_-,n_0)$ 称为 $\mat A$ 的\textbf{惯性指数}。
+}
+
+\rmk{惯性定律说的是：可逆换元能改变各主轴的``长度''（把 $\lambda_i$ 缩成 $\pm1$），却动不了``正负零''这三类的\emph{数目}。正定 $\iff n_+=n$；半正定 $\iff n_-=0$；不定 $\iff n_+>0$ 且 $n_->0$。它解释了为什么``符号''而非``大小''才是二次型的本质不变量。}
+
+\section{几何：等值线的形状由特征值决定}
+\label{sec:spectral-5}
+
+把上面所有判据落到二维图像上，一切变得直观。看二次型的\textbf{等值线} $\set{\vc x:\vc x\T\mat A\vc x=c}$（$c>0$）。在正交坐标 $\vc y=\mat Q\T\vc x$ 下它是 $\lambda_1y_1^2+\lambda_2y_2^2=c$：
+
+\begin{itemize}
+    \item $\mat A\succ0$（$\lambda_1,\lambda_2>0$）：等值线是\textbf{椭圆}，主轴沿特征向量 $\vc q_1,\vc q_2$，第 $i$ 条半轴长为 $\sqrt{c/\lambda_i}$。特征值越大、该方向弯得越急、椭圆在该方向越``扁''；半轴长正比于 $1/\sqrt{\lambda_i}$。曲面本身是一只\textbf{碗}，原点是唯一极小（图~\ref{fig:spectral-1} 左、图~\ref{fig:spectral-2} 左）。
+    \item $\mat A$ 不定（$\lambda_1>0>\lambda_2$）：等值线是\textbf{双曲线}，曲面是一张\textbf{鞍}，原点是驻点但非极值——沿一条主轴向上、沿另一条向下（图~\ref{fig:spectral-1} 右、图~\ref{fig:spectral-2} 右）。
+    \item $\mat A$ 半正定退化（某 $\lambda_i=0$）：该方向上二次型是平的，等值线退化为一对平行线（一条``谷底直线''）。
+\end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+% ===================== 左：正定 -> 同心椭圆 =====================
+\begin{scope}[shift={(0,0)}]
+  \draw[->] (-2.6,0) -- (2.6,0) node[right] {$x_1$};
+  \draw[->] (0,-2.6) -- (0,2.6) node[above] {$x_2$};
+  % 主轴方向（特征向量）：长轴沿 45 度，短轴沿 135 度
+  \draw[gray,dashed] (-2.2,-2.2) -- (2.2,2.2);
+  \draw[gray,dashed] (-1.5,1.5) -- (1.5,-1.5);
+  % 同心椭圆（旋转 45 度）：长半轴沿 45 度，短半轴沿 135 度
+  \draw[thick,blue!55!black,rotate=45] (0,0) ellipse [x radius=0.707, y radius=0.408];
+  \draw[thick,blue!55!black,rotate=45] (0,0) ellipse [x radius=1.414, y radius=0.816];
+  \draw[thick,blue!55!black,rotate=45] (0,0) ellipse [x radius=2.121, y radius=1.225];
+  % 特征向量箭头（q1 沿长轴=较小特征值，q2 沿短轴=较大特征值）
+  \draw[->,red!70!black,very thick] (0,0) -- (1.06,1.06);
+  \node[red!70!black,anchor=south west] at (1.06,1.02) {$\vc q_1$};
+  \draw[->,red!70!black,very thick] (0,0) -- (-0.71,0.71);
+  \node[red!70!black,anchor=south east] at (-0.78,0.78) {$\vc q_2$};
+  \node at (0,-3.1) {(a) 正定：同心椭圆};
+\end{scope}
+% ===================== 右：不定 -> 双曲线 =====================
+\begin{scope}[shift={(7.0,0)}]
+  \draw[->] (-2.6,0) -- (2.6,0) node[right] {$x_1$};
+  \draw[->] (0,-2.6) -- (0,2.6) node[above] {$x_2$};
+  % 渐近线（零水平集 Q=0）
+  \draw[gray!60,dashed] (-2.4,-2.4) -- (2.4,2.4);
+  \draw[gray!60,dashed] (-2.4,2.4) -- (2.4,-2.4);
+  % Q>0 两支（开口左右）：蓝
+  \draw[thick,blue!55!black,domain=-1.35:1.35,smooth,variable=\t] plot ({1.1*cosh(\t)},{1.1*sinh(\t)});
+  \draw[thick,blue!55!black,domain=-1.35:1.35,smooth,variable=\t] plot ({-1.1*cosh(\t)},{1.1*sinh(\t)});
+  % Q<0 两支（开口上下）：红
+  \draw[thick,red!65!black,domain=-1.35:1.35,smooth,variable=\t] plot ({1.1*sinh(\t)},{1.1*cosh(\t)});
+  \draw[thick,red!65!black,domain=-1.35:1.35,smooth,variable=\t] plot ({1.1*sinh(\t)},{-1.1*cosh(\t)});
+  \node[blue!55!black,anchor=west] at (1.7,0.55) {$Q>0$};
+  \node[red!65!black,anchor=south] at (0,1.95) {$Q<0$};
+  \node[gray!55!black,anchor=south west] at (1.55,1.5) {$Q=0$};
+  \node at (0,-3.1) {(b) 不定：双曲（鞍形）};
+\end{scope}
+\end{tikzpicture}
+\caption{二次型 $Q(\vc x)=\vc x\T\mat A\vc x=c$ 的等值线。(a) 正定 $\mat A$（$\lambda_1,\lambda_2>0$）给同心椭圆，主轴沿特征向量 $\vc q_1,\vc q_2$，半轴长 $\propto 1/\sqrt{\lambda_i}$（此处 $\lambda_1<\lambda_2$，故沿 $\vc q_1$ 更长）。(b) 不定 $\mat A$（$\lambda_1>0>\lambda_2$）给双曲线：$Q>0$（蓝）与 $Q<0$（红）两族被零水平线（渐近线，虚线）隔开，对应鞍形曲面。}
+\label{fig:spectral-1}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{scope}[shift={(0,0)}]
+\begin{axis}[
+    width=7.5cm,height=7cm,
+    title={正定：碗形（唯一极小）},
+    xlabel={$x_1$},ylabel={$x_2$},
+    ticks=none, view={35}{25},
+    domain=-1.3:1.3,y domain=-1.3:1.3,samples=24,
+    z buffer=sort, colormap/cool,
+]
+\addplot3[surf,opacity=0.85,faceted color=blue!40!black,fill opacity=0.6]
+   {x^2 + 1.6*y^2};
+\end{axis}
+\end{scope}
+\begin{scope}[shift={(7.6,0)}]
+\begin{axis}[
+    width=7.5cm,height=7cm,
+    title={不定：鞍形（驻点非极值）},
+    xlabel={$x_1$},ylabel={$x_2$},
+    ticks=none, view={35}{25},
+    domain=-1.3:1.3,y domain=-1.3:1.3,samples=24,
+    z buffer=sort, colormap/hot,
+]
+\addplot3[surf,opacity=0.85,faceted color=blue!40!black,fill opacity=0.6]
+   {x^2 - y^2};
+\end{axis}
+\end{scope}
+\end{tikzpicture}
+\caption{同样两块矩阵对应的曲面 $z=\vc x\T\mat A\vc x$。正定给一只碗（原点处各方向都向上弯，唯一极小），不定给一张鞍（一方向向上、另一方向向下，驻点非极值）。这正是最优化二阶条件的几何来源。}
+\label{fig:spectral-2}
+\end{figure}
+
+\state{把符号读成形状}{
+特征值的符号决定二次型曲面是\emph{碗}（全正，正定）、\emph{倒碗}（全负，负定）、还是\emph{鞍}（有正有负，不定）；特征值的大小决定碗有多陡、椭圆有多扁。最优化里``这个驻点是极大、极小还是鞍点'',问的就是 Hessian 这块矩阵给出的是碗、倒碗还是鞍——把代数判据翻译成这幅图像，二阶条件就不再需要死记。
+}
+
+\section{Rayleigh 商：特征值是二次型的极值}
+\label{sec:spectral-6}
+
+谱定理还顺带回答了一个最优化味道十足的问题：在单位球面上，二次型能取到的最大、最小值是多少？答案漂亮——就是最大、最小特征值。
+
+\defn{Rayleigh 商}{
+对实对称矩阵 $\mat A$ 与 $\vc x\neq\vc 0$，\textbf{Rayleigh 商}定义为
+\[
+    R(\vc x)=\frac{\vc x\T\mat A\vc x}{\vc x\T\vc x} .
+\]
+}
+
+它是``单位化后的二次型'':$R(\vc x)$ 只依赖 $\vc x$ 的方向、不依赖长度（$R(t\vc x)=R(\vc x)$）。所以研究它只需把 $\vc x$ 限制在单位球面 $\norm{\vc x}=1$ 上，此时 $R(\vc x)=\vc x\T\mat A\vc x$。
+
+\thm{Rayleigh--Ritz}{
+设 $\mat A$ 实对称，特征值排为 $\lambda_{\min}=\lambda_1\le\cdots\le\lambda_n=\lambda_{\max}$。则对一切 $\vc x\neq\vc0$，
+\[
+    \lambda_{\min}\le R(\vc x)\le\lambda_{\max},
+\]
+且两端分别在 $\vc x$ 取最小、最大特征值对应的特征向量时取到：
+\[
+    \lambda_{\max}=\max_{\vc x\neq\vc0}R(\vc x)=\max_{\norm{\vc x}=1}\vc x\T\mat A\vc x,
+    \qquad
+    \lambda_{\min}=\min_{\vc x\neq\vc0}R(\vc x) .
+\]
+}
+
+\pf{
+在正交坐标 $\vc y=\mat Q\T\vc x$ 下，$\vc x\T\mat A\vc x=\sum_i\lambda_i y_i^2$，而 $\mat Q$ 正交保长，故 $\vc x\T\vc x=\vc y\T\vc y=\sum_i y_i^2$。于是
+\[
+    R(\vc x)=\frac{\sum_i\lambda_i y_i^2}{\sum_i y_i^2} ,
+\]
+这是特征值 $\lambda_i$ 以权重 $w_i=y_i^2/\sum_j y_j^2\ge0$（$\sum_i w_i=1$）作的\textbf{加权平均}。加权平均必落在最小项与最大项之间：$\lambda_{\min}\le\sum_i w_i\lambda_i\le\lambda_{\max}$。把全部权重压到 $\lambda_{\max}$ 对应的坐标（即 $\vc y=\vc e_n$，$\vc x=\vc q_n$）取得上界；压到 $\lambda_{\min}$ 取得下界。
+}
+
+\state{Rayleigh 商：把``谱''变成一个最优化问题}{
+最大特征值 $=$ 单位球面上二次型的最大值，并在对应特征向量处取到——这把``求特征值''重述成``求约束最优化的极值''，是数值线性代数（幂法、Lanczos）与统计降维的共同出发点。
+}
+
+下图把这件事画出来：让 $\vc x$ 沿单位圆转一圈（用角度 $\theta$ 参数化），看 $R$ 怎样在 $\lambda_{\min}$ 与 $\lambda_{\max}$ 之间起伏，并恰在特征向量方向触顶、触底。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+% x 轴 = 角度 theta（0 到 2pi），y 轴 = Rayleigh 商 R(theta)
+% 取 A=diag(lmin,lmax): R = lmin + (lmax-lmin) sin^2(theta)
+\def\yscale{1.2}
+\draw[->] (-0.2,0) -- (7.1,0) node[right] {$\theta$};
+\draw[->] (0,-0.2) -- (0,4.2) node[above] {$R(\vc x_\theta)$};
+% lambda_max 与 lambda_min 水平线
+\draw[gray,dashed] (0,{3*\yscale}) -- (6.2832,{3*\yscale});
+\draw[gray,dashed] (0,{1*\yscale}) -- (6.2832,{1*\yscale});
+\node[anchor=east] at (-0.05,{3*\yscale}) {$\lambda_{\max}$};
+\node[anchor=east] at (-0.05,{1*\yscale}) {$\lambda_{\min}$};
+% 曲线 R(theta) = 1 + 2 sin^2(theta)
+\draw[thick,blue!55!black,domain=0:6.2832,smooth,samples=120,variable=\t]
+   plot ({\t},{(1+2*sin(deg(\t))*sin(deg(\t)))*\yscale});
+% 极小点 (R=lmin)：theta=0, pi, 2pi
+\fill (0,{1*\yscale}) circle (1.6pt);
+\fill (3.1416,{1*\yscale}) circle (1.6pt);
+\fill (6.2832,{1*\yscale}) circle (1.6pt);
+% 极大点 (R=lmax)：theta=pi/2, 3pi/2
+\fill (1.5708,{3*\yscale}) circle (1.6pt);
+\fill (4.7124,{3*\yscale}) circle (1.6pt);
+% 角度刻度
+\foreach \x/\lab in {1.5708/{\tfrac{\pi}{2}}, 3.1416/{\pi}, 4.7124/{\tfrac{3\pi}{2}}, 6.2832/{2\pi}}
+   \draw (\x,0.06) -- (\x,-0.06) node[below] {$\lab$};
+% 标注
+\node[blue!55!black,anchor=south] at (1.5708,{3*\yscale+0.12}) {$\vc x=\vc q_n$};
+\node[blue!55!black,anchor=north] at (3.1416,{1*\yscale-0.12}) {$\vc x=\vc q_1$};
+\end{tikzpicture}
+\caption{Rayleigh 商 $R(\vc x_\theta)$ 随单位向量 $\vc x_\theta=(\cos\theta,\sin\theta)\T$ 转动的变化（$n=2$，$\mat A=\diag(\lambda_{\min},\lambda_{\max})$）。它在 $\lambda_{\min}$ 与 $\lambda_{\max}$ 之间起伏，恰在特征向量方向 $\vc q_1$（最小）、$\vc q_n$（最大）处触底、触顶。}
+\label{fig:spectral-3}
+\end{figure}
+
+\section{去处：协方差、二阶条件、白化与 Cholesky}
+\label{sec:spectral-7}
+
+本章这套``对称矩阵 $+$ 正定性''的语言，是后续好几门核心课的公用底座。这里把几处最重要的落点点明，作为通往各 Part 的路标。
+
+\subsection*{方差矩阵必半正定}
+
+任一随机向量 $\vc X$ 的协方差矩阵 $\vc\Sigma=\E{(\vc X-\vc\mu)(\vc X-\vc\mu)\T}$ 总是半正定的。理由就是一句二次型的计算：对任意常向量 $\vc a$，
+\[
+    \vc a\T\vc\Sigma\,\vc a
+    =\vc a\T\,\E{(\vc X-\vc\mu)(\vc X-\vc\mu)\T}\vc a
+    =\E{\br{\vc a\T(\vc X-\vc\mu)}^2}
+    =\Var{\vc a\T\vc X}\ge0 .
+\]
+
+\state{半正定性就是``方差不会为负''}{
+$\vc a\T\vc\Sigma\vc a=\Var{\vc a\T\vc X}\ge0$ 把一个代数性质（$\vc\Sigma\succeq0$）与一个统计常识（任何线性组合的方差非负）划上等号。它的推论遍布计量：$\vc\Sigma$ 的特征值非负、$\det\vc\Sigma\ge0$；$\vc\Sigma$ 奇异（某 $\lambda_i=0$）恰对应``存在一个零方差的线性组合''，即变量间有完全共线性。主成分分析（第六章）正是去找 $\vc\Sigma$ 最大特征值方向——方差最大的那条主轴，骨子里就是本章的 Rayleigh 商。
+}
+
+\subsection*{最优化的二阶条件}
+
+这是与隐函数定理（第十五章）直接咬合的去处。无约束最优化中（第十八章），内点驻点 $\vc x^*$（$\grad f(\vc x^*)=\vc0$）的二阶判别，全在 Hessian $\mat H=\grad^2 f(\vc x^*)$ 的正定性上：
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Hessian $\mat H$ & 二次型曲面 & 该驻点性质 \\
+\midrule
+负定 $\mat H\prec0$ & 倒碗 & 严格局部极\textbf{大} \\
+正定 $\mat H\succ0$ & 碗 & 严格局部极\textbf{小} \\
+不定 & 鞍 & 鞍点（非极值） \\
+半定（退化） & 退化 & 二阶检验失效，需更高阶信息 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+道理就是 Taylor 二阶展开（第十四章）：$f(\vc x^*+\vc h)\approx f(\vc x^*)+\tfrac12\vc h\T\mat H\vc h$，驻点附近函数的增减完全由二次型 $\vc h\T\mat H\vc h$ 主宰，于是``往哪个方向都下降''（极大）就等价于 $\mat H$ 负定。还记得隐函数定理（第十五章）里那句``二阶条件一身二任''吗——极大值要求 $\mat H$ 负定，而负定矩阵必可逆，这恰好又是对最优化一阶条件做比较静态时所需的非退化条件。两章在``正定性''这个词上接上了头。
+
+\subsection*{白化、GLS 与 Cholesky 前奏}
+
+正定矩阵还能开\textbf{平方根}，这给了我们``拉直''相关数据的工具。设 $\vc\Sigma\succ0$，由谱分解 $\vc\Sigma=\mat Q\vc\Lambda\mat Q\T$ 可定义对称正定平方根
+\[
+    \vc\Sigma^{1/2}=\mat Q\,\vc\Lambda^{1/2}\,\mat Q\T,
+    \qquad
+    \vc\Lambda^{1/2}=\diag\!\big(\sqrt{\lambda_1},\dots,\sqrt{\lambda_n}\big),
+\]
+它满足 $\vc\Sigma^{1/2}\vc\Sigma^{1/2}=\vc\Sigma$（因 $\lambda_i>0$，$\sqrt{\lambda_i}$ 有定义——这一步用足了正定性）。于是变换 $\vc Z=\vc\Sigma^{-1/2}(\vc X-\vc\mu)$ 把任意相关、异方差的 $\vc X$ 标准化成 $\Var{\vc Z}=\mat I$ 的``白噪声'',这叫\textbf{白化}（whitening）。
+
+\state{正定性是``开平方''与``白化''的通行证}{
+$\mat A\succ0\iff$ 它有对称正定平方根 $\mat A^{1/2}$，也 $\iff$ 它有 \textbf{Cholesky 分解} $\mat A=\mat L\mat L\T$（$\mat L$ 下三角、对角元为正）。这两件事在计量里都化作``白化''这一个动作：广义最小二乘（GLS）把 $\vc\Sigma^{-1/2}$ 乘到模型两边，将相关、异方差的误差拉成同方差不相关的 OLS 标准情形；模拟相关随机向量则反过来用 $\mat L$ 把独立标准正态``染上''指定的协方差。正定性正是这一切的前提——平方根、Cholesky 都\emph{只对正定矩阵存在}。
+}
+
+至此，本章的逻辑链条已经合拢：对称矩阵（来自方差与 Hessian）$\to$ 谱定理（拆成正交主轴）$\to$ 正定性（主轴方向的符号）$\to$ 三处去处（方差非负、二阶条件、白化）。读到后面无论是 PCA、GLS，还是最优化的二阶条件，遇到``这个矩阵正定吗''这个问句时，回到本章这幅``碗、倒碗、鞍''的图像，答案与做法往往就在眼前。

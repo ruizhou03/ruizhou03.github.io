@@ -1,0 +1,341 @@
+% !TEX root = ../main.tex
+\chapter{值函数与包络定理}
+\label{ch:envelope}
+
+\noindent\emph{用到的前置工具：偏导数、梯度与链式法则（多元微分一章，第~\ref{ch:multideriv}~章）；最优化的一阶条件（无约束最优化一章，第~\ref{ch:unconstrained}~章）；Lagrange 乘子（等式约束与 Lagrange 乘子一章，第~\ref{ch:lagrange}~章）；隐函数定理（隐函数定理一章，第~\ref{ch:ift}~章）。}
+\medskip
+
+上一把镇店之宝——隐函数定理——回答的是``参数动一下，最优\emph{选择}如何变''。但经济学家追问的另一半问题往往是：参数动一下，最优\emph{值}如何变？厂商的利润随某种要素涨价掉多少？消费者的最大效用随收入升多少？一国的最优福利随某项政策参数移多少？这些问题的答案，原则上要先把最优选择 $\vc x^*(\vc\theta)$ 解出来、代回目标、再对参数求导——一条又长又绕的链。包络定理给出的捷径几乎令人难以置信：在最优点处，那条长链里所有``经由最优选择变动''的项\emph{统统消失}，只剩下目标函数对参数的\emph{直接}偏导。本章先把值函数这个对象立起来，再把包络定理（无约束与约束两种情形）连同它出人意料的简洁直觉讲清楚，最后说明它如何一举生出微观里的 Shephard 引理、Roy 恒等式、Hotelling 引理，以及动态规划里对 Bellman 值函数求导的 Benveniste--Scheinkman 公式。
+
+\section{值函数：把``最优值''看成参数的函数}
+\label{sec:envelope-valuefn}
+
+先把对象定清楚。一个带参数的最优化问题，除了交出最优\emph{选择}，还交出一个最优\emph{值}；把这个最优值看成参数的函数，就是值函数。
+
+\defn{值函数与最优解}{
+设目标函数 $f:\RR^n\times\RR^m\to\RR$，$\vc x\in\RR^n$ 是\textbf{选择变量}、$\vc\theta\in\RR^m$ 是\textbf{参数}。对每个 $\vc\theta$ 考虑
+\[
+    v(\vc\theta)=\max_{\vc x}\,f(\vc x,\vc\theta),
+    \qquad
+    \vc x^*(\vc\theta)=\argmax_{\vc x}\,f(\vc x,\vc\theta).
+\]
+称 $v$ 为该问题的\textbf{值函数}（value function），$\vc x^*$ 为\textbf{最优解}（argmax）。二者由同一个恒等式相连：
+\[
+    v(\vc\theta)=f\bigl(\vc x^*(\vc\theta),\,\vc\theta\bigr).
+\]
+}
+
+这条恒等式是全章的支点。它说：值函数等于把最优选择\emph{代回}目标函数后得到的复合函数。$\vc\theta$ 通过\emph{两条路}影响 $v$——一条\textbf{直接}走（$\vc\theta$ 作为 $f$ 的第二组自变量），一条\textbf{间接}走（$\vc\theta$ 先动了最优选择 $\vc x^*$，$\vc x^*$ 再进 $f$）。要算 $\dd{v}{\theta}$，朴素的想法是把这两条路的贡献都算上。包络定理的全部惊奇，正在于间接那条路的贡献恰好为零。
+
+\rmkb[取 $\min$ 与带约束的情形同理]{
+若问题是 $\min$，把下文一切 $\max$ 换成 $\min$、``峰顶''换成``谷底'',结论一字不改（一阶条件仍是 $\grad_{\vc x}f=\vc 0$）。带约束的情形（$\max_{\vc x}f$ s.t.\ $\vc g(\vc x,\vc\theta)=\vc c$）放到第~\ref{sec:envelope-constrained} 节，用 Lagrangian 处理，结论形式完全平行。本章默认最优解是\emph{内点}且可微地依赖于 $\vc\theta$——后者正由隐函数定理（隐函数定理一章，第~\ref{ch:ift}~章）在二阶条件下保证：Hessian 负定 $\Rightarrow$ $\vc x^*(\vc\theta)$ 存在且 $C^1$。}
+
+\section{包络定理（无约束）}
+\label{sec:envelope-unconstrained}
+
+\thm{包络定理（无约束）}{
+设 $f(\vc x,\vc\theta)$ 连续可微，对每个 $\vc\theta$ 内点最优解 $\vc x^*(\vc\theta)$ 存在、满足一阶条件 $\grad_{\vc x}f(\vc x^*,\vc\theta)=\vc 0$，且 $\vc x^*(\cdot)$ 可微。则值函数 $v(\vc\theta)=f(\vc x^*(\vc\theta),\vc\theta)$ 可微，且
+\[
+    \boxed{\ \pd{v}{\theta_k}(\vc\theta)
+    =\pd{f}{\theta_k}\Bigl(\vc x^*(\vc\theta),\,\vc\theta\Bigr)\ },
+    \qquad k=1,\dots,m.
+\]
+即：\emph{先}对参数求偏导，\emph{再}在最优点取值——求导时\textbf{把 $\vc x$ 当作不随 $\vc\theta$ 变的常数}。
+}
+\pf{
+直接对支点恒等式 $v(\vc\theta)=f(\vc x^*(\vc\theta),\vc\theta)$ 求 $\partial/\partial\theta_k$，用多元链式法则。$\theta_k$ 影响 $f$ 的两条路（经由各 $x_i^*$ 的间接路，与作为第 $k$ 个参数的直接路）都要算上：
+\[
+    \pd{v}{\theta_k}
+    =\underbrace{\sum_{i=1}^{n}\pd{f}{x_i}\bigl(\vc x^*,\vc\theta\bigr)\,\pd{x_i^*}{\theta_k}}_{\text{间接：经由最优选择变动}}
+    \;+\;\underbrace{\pd{f}{\theta_k}\bigl(\vc x^*,\vc\theta\bigr)}_{\text{直接}}.
+\]
+现在动用一阶条件。在最优点，$\grad_{\vc x}f(\vc x^*,\vc\theta)=\vc 0$，即\emph{每一个} $\partial f/\partial x_i(\vc x^*,\vc\theta)=0$。于是间接项里的求和\textbf{逐项为零}：
+\[
+    \sum_{i=1}^{n}\underbrace{\pd{f}{x_i}\bigl(\vc x^*,\vc\theta\bigr)}_{=\,0}\,\pd{x_i^*}{\theta_k}=0 .
+\]
+间接路整条消失，只剩直接项，即得 $\partial v/\partial\theta_k=\partial f/\partial\theta_k(\vc x^*,\vc\theta)$。
+}
+
+证明短得几乎像变戏法，但它给的东西极实在：要算最优值对参数的导数，你\emph{不必}知道 $\vc x^*(\vc\theta)$ 怎么随 $\vc\theta$ 变（即不必算那些麻烦的 $\partial x_i^*/\partial\theta_k$），\emph{也不必}求出 $\vc x^*(\vc\theta)$ 的显式表达——只要知道最优点的\emph{位置} $\vc x^*$，把它代进 $\partial f/\partial\theta_k$ 即可。
+
+\state{包络定理：在最优点，间接效应为零}{
+$\dd{v}{\theta}$ 表面上有两块：参数\emph{直接}进目标的那块，与参数\emph{先动最优选择、最优选择再进目标}的那块。\textbf{在最优点，后一块恒等于零}，因为最优选择已使目标对每个选择变量的边际贡献归零（一阶条件）。所以
+\[
+    \pd{v}{\theta_k}=\pd{f}{\theta_k}\Big|_{\vc x=\vc x^*}
+    \quad(\text{对 }\vc x\text{ 视作常数求偏导，再代入 }\vc x^*).
+\]
+一句话：\emph{已经站在山顶，脚下微调走位不改高度}——值的变化全由``地形随参数整体抬升''贡献。这正是把一条繁琐的链式求导塌缩成一个偏导的根据。}
+
+\subsection*{为什么间接效应为零：一张图}
+
+间接效应消失，靠的是一个极朴素的几何事实：\emph{光滑函数在峰顶的切线是水平的}。把 $\vc\theta$ 固定，$f(\cdot,\vc\theta)$ 作为选择变量 $\vc x$ 的函数在最优点 $\vc x^*$ 取得峰值，于是该点的切平面水平、梯度为零。这意味着：在峰顶附近\emph{挪动选择变量}，目标值的变化是\textbf{二阶}的（正比于位移的平方），一阶项为零（图~\ref{fig:envelope-2}）。参数变动 $\d\theta$ 把最优选择推动了 $\d x^*=O(\d\theta)$，可这点位移落在``峰顶水平''的区域里，对值的贡献只有 $O\bigl((\d x^*)^2\bigr)=O\bigl((\d\theta)^2\bigr)$——在一阶导数里看不见。能被一阶导数捕捉到的，唯有目标地形随参数的\emph{直接}抬升。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.7,>=Stealth]
+    \draw[->] (-0.1,0) -- (4.05,0) node[right] {$x$};
+    \draw[->] (0,-0.1) -- (0,3.7) node[above] {$f(x,\theta)$};
+    % 单峰曲线 f=3 - 0.4 (x-2)^2，峰 (2,3)
+    \draw[very thick,blue!55!black,domain=0.35:3.65,smooth,variable=\x]
+        plot ({\x},{3-0.4*(\x-2)*(\x-2)});
+    % 峰顶（精确 (2,3)），水平切线
+    \fill (2,3) circle (1.3pt);
+    \draw[thick,red!65!black] (1.2,3) -- (3.0,3);
+    % 峰顶到横轴虚线，标 x*（标签在刻度正下方）
+    \draw[dashed,gray] (2,3) -- (2,0);
+    \node[anchor=north] at (2,-0.04) {$x^*(\theta)$};
+    % 小扰动 dx=0.65：从 x*=2 到 x=2.65，曲线落到 2.831
+    \draw[dashed,gray] (2.65,2.831) -- (2.65,0);
+    \node[anchor=north,font=\small] at (2.78,-0.04) {$x^*\!+\!\Delta x$};
+    \fill[blue!55!black] (2.65,2.831) circle (1.1pt);
+    % 二阶小落差：切线 y=3 到曲线 (2.65,2.831) 的竖直微段（与扰动点同横坐标），花括号标注
+    \draw[decorate,decoration={brace,amplitude=4pt},red!65!black]
+        (2.65,3.0) -- (2.65,2.831);
+    \node[red!65!black,anchor=west,font=\small] at (2.78,2.92)
+        {$\sim(\Delta x)^2$};
+    % 切线含义标签：峰左上空白
+    \node[red!65!black,anchor=south west,font=\small] at (0.18,3.12)
+        {峰顶切线水平 $\Rightarrow \pd{f}{x}=0$};
+    % 曲线标签：左侧空白，引线指向左半曲线
+    \node[blue!55!black,anchor=north east] at (1.15,2.05) {$f(\cdot,\theta)$};
+    \draw[blue!55!black,->] (1.0,2.0) -- (0.82,2.41);
+\end{tikzpicture}
+\caption{为什么间接效应为零。固定 $\theta$，目标 $f(\cdot,\theta)$ 在最优点 $x^*$ 处峰顶切线水平（$\partial f/\partial x=0$）。把选择变量挪动 $\Delta x$，值的下降只有 $\sim(\Delta x)^2$——\emph{二阶}小量，一阶导数看不见。于是参数推动最优选择所带来的``间接''贡献在 $\d v/\d\theta$ 里消失。}
+\label{fig:envelope-2}
+\end{figure}
+
+\ex[用包络定理算利润对成本的导数]{
+厂商面对产品价格 $p$（暂固定），单位成本为参数 $c$，产量 $q$ 为选择变量，利润 $\pi(q,c)=p\,q-\tfrac12 b q^2-c\,q$（$b>0$，二次成本使内点解存在）。问最大利润 $v(c)=\max_q\pi(q,c)$ 对 $c$ 的导数。
+}
+\sol{
+\textbf{包络法。}直接对 $c$ 求 $\pi$ 的偏导、把 $q$ 当常数：
+\[
+    \pd{\pi}{c}=-q
+    \quad\Longrightarrow\quad
+    \dd{v}{c}=\pd{\pi}{c}\Big|_{q=q^*}=-\,q^*(c).
+\]
+最大利润对单位成本的导数，恰等于\emph{当前最优产量}的相反数——成本每涨一块钱，最优利润下降的速率正好是你此刻在产的数量。
+
+\textbf{硬算法对照。}一阶条件 $\partial\pi/\partial q=p-bq-c=0$ 给 $q^*(c)=(p-c)/b$，代回得 $v(c)=\tfrac{(p-c)^2}{2b}$，于是 $\dd{v}{c}=-\tfrac{p-c}{b}=-q^*(c)$。两法一致。注意硬算法要先解出 $q^*$、平方、再求导，包络法一步到位且根本不需要 $q^*$ 的显式公式——这正是其价值：当一阶条件无法解析求解时，$\dd{v}{c}=-q^*$ 依然成立。
+}
+
+\subsection*{值函数是一族曲线的上包络——``包络''之名的由来}
+
+定理叫``包络''，因为值函数在几何上正是一族曲线的\textbf{上包络}。把每一个\emph{固定}的选择 $x$ 看成一条曲线 $\theta\mapsto f(x,\theta)$（不同的 $x$ 给不同的曲线）。在每个 $\theta$ 处，值函数挑出这一族曲线里\emph{最高}的那条的高度：$v(\theta)=\max_x f(x,\theta)$。于是 $v$ 的图像从上方``罩住''整族曲线，并恰好在每一点与``当前最优''那条相切（图~\ref{fig:envelope-1}）。相切，正是包络定理的几何化身——在切点处，$v$ 与那条 $f(x^*,\cdot)$ 不仅取值相等，斜率也相等，而后者的斜率就是 $\partial f/\partial\theta$（对固定的 $x^*$ 沿 $\theta$ 求导）。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.4,>=Stealth]
+    \draw[->] (-0.1,0) -- (3.05,0) node[right] {$\theta$};
+    \draw[->] (0,-0.1) -- (0,4.15) node[above] {值};
+    % 上包络 v(theta)=0.65 theta^2
+    \draw[very thick,violet!60!black,domain=0:2.45,smooth,variable=\t]
+        plot ({\t},{0.65*\t*\t});
+    % 三条成员曲线 f(x,theta)=0.15 t^2 + x t - 0.5 x^2，画在切点附近窗口（切于 theta=x）
+    % x=0.6，切于 theta=0.6
+    \draw[thick,blue!55!black,domain=0.30:1.15,smooth,variable=\t]
+        plot ({\t},{0.15*\t*\t+0.6*\t-0.18});
+    % x=1.3，切于 theta=1.3
+    \draw[thick,blue!55!black,domain=0.80:1.85,smooth,variable=\t]
+        plot ({\t},{0.15*\t*\t+1.3*\t-0.845});
+    % x=2.0，切于 theta=2.0
+    \draw[thick,blue!55!black,domain=1.50:2.45,smooth,variable=\t]
+        plot ({\t},{0.15*\t*\t+2.0*\t-2.0});
+    % 三个切点（精确：theta=0.6,1.3,2.0；v=0.65 theta^2）
+    \fill[violet!60!black] (0.6,0.234) circle (1.3pt);
+    \fill[violet!60!black] (1.3,1.0985) circle (1.3pt);
+    \fill[violet!60!black] (2.0,2.6) circle (1.3pt);
+    % 上包络标签：左上空白，短标签（完整定义见图注），引线落在上包络弧右上段
+    \node[violet!60!black,anchor=west] at (0.25,3.35) {$v(\theta)=\sup_x f$};
+    \draw[violet!60!black,->] (1.35,3.30) -- (2.18,3.13);
+    % 成员曲线标签：右下空白，引线指向最下那条成员、不穿上包络
+    \node[blue!55!black,anchor=west] at (1.35,0.40) {$f(\cdot,\theta)$（每条固定一个 $x$）};
+    \draw[blue!55!black,->] (1.4,0.48) -- (1.02,0.66);
+\end{tikzpicture}
+\caption{值函数 $v(\theta)=\max_x f(x,\theta)$ 是一族曲线 $\{\theta\mapsto f(x,\theta)\}_x$（每个固定的 $x$ 一条）的\emph{上包络}。在每个 $\theta$ 处，$v$ 恰与达到它的那条相切（图中三个切点）——切点处取值与\emph{斜率}都相同，而那条曲线的斜率正是 $\partial f/\partial\theta$。这就是``包络''之名与包络定理 $\partial v/\partial\theta=\partial f/\partial\theta|_{x^*}$ 的几何来源。}
+\label{fig:envelope-1}
+\end{figure}
+
+\rmk{上包络这个视角还顺带说明了 $v$ 的一条凸性：一族关于 $\theta$ \emph{凸}（或仿射）的函数取逐点上确界，结果仍凸（见``凸优化与对偶''一章，第~\ref{ch:duality}~章，``上确界保持凸性''）。所以若 $f(x,\cdot)$ 对每个固定 $x$ 是 $\theta$ 的凸函数，则 $v$ 必凸——利润函数对价格凸、成本函数对要素价格凹，根都在这里。}
+
+\section{约束情形：包络定理与 Lagrange 乘子}
+\label{sec:envelope-constrained}
+
+经济学里的最优化大多带约束（预算、技术、资源）。所幸包络定理对约束问题有一个同样干净的版本，代价只是把``目标函数''换成``Lagrangian''。设
+\[
+    v(\vc\theta)=\max_{\vc x}\,f(\vc x,\vc\theta)
+    \quad\text{s.t.}\quad
+    \vc g(\vc x,\vc\theta)=\vc c,
+\]
+其中约束有 $\ell$ 条，$\vc g:\RR^n\times\RR^m\to\RR^{\ell}$，$\vc c\in\RR^{\ell}$ 是约束水平。引入 Lagrange 乘子 $\vc\lambda\in\RR^{\ell}$ 与 Lagrangian
+\[
+    \mathcal L(\vc x,\vc\lambda,\vc\theta)
+    =f(\vc x,\vc\theta)+\vc\lambda\T\bigl(\vc c-\vc g(\vc x,\vc\theta)\bigr).
+\]
+内点最优解 $(\vc x^*,\vc\lambda^*)$ 满足一阶条件（见``等式约束与 Lagrange 乘子''一章，第~\ref{ch:lagrange}~章）
+\[
+    \grad_{\vc x}\mathcal L=\grad_{\vc x}f-\sum_{j}\lambda_j^*\grad_{\vc x}g_j=\vc 0,
+    \qquad
+    \vc g(\vc x^*,\vc\theta)=\vc c .
+\]
+
+\thm{包络定理（约束情形）}{
+在上述设定下，若 $(\vc x^*(\vc\theta),\vc\lambda^*(\vc\theta))$ 可微，则值函数对参数的导数等于 Lagrangian 对该参数的偏导、在最优点 $(\vc x^*,\vc\lambda^*)$ 取值：
+\[
+    \boxed{\ \pd{v}{\theta_k}
+    =\pd{\mathcal L}{\theta_k}\Bigl(\vc x^*,\vc\lambda^*,\vc\theta\Bigr)
+    =\pd{f}{\theta_k}-\sum_{j=1}^{\ell}\lambda_j^*\,\pd{g_j}{\theta_k}\ }
+    \quad\text{（在 }\vc x=\vc x^*\text{ 处）} .
+\]
+特别地，对约束水平 $c_j$ 求导（取 $\theta_k=c_j$，注意 $\partial\mathcal L/\partial c_j=\lambda_j$）：
+\[
+    \boxed{\ \pd{v}{c_j}=\lambda_j^*\ }.
+\]
+}
+\pf{
+关键观察：在最优点，约束\emph{束紧}，$\vc g(\vc x^*(\vc\theta),\vc\theta)=\vc c$，于是括号 $\vc c-\vc g(\vc x^*,\vc\theta)=\vc 0$，因此
+\[
+    v(\vc\theta)=f(\vc x^*,\vc\theta)
+    =\mathcal L\bigl(\vc x^*(\vc\theta),\,\vc\lambda^*(\vc\theta),\,\vc\theta\bigr).
+\]
+也就是说，\emph{沿最优路径}，值函数与 Lagrangian 取值相同——那一项乘子乘约束余量恒为零。现在对右边求 $\partial/\partial\theta_k$，把 $\vc x^*,\vc\lambda^*$ 都看成 $\vc\theta$ 的函数，用链式法则：
+\[
+    \pd{v}{\theta_k}
+    =\underbrace{\grad_{\vc x}\mathcal L\cdot\pd{\vc x^*}{\theta_k}}_{(\mathrm A)}
+    +\underbrace{\grad_{\vc\lambda}\mathcal L\cdot\pd{\vc\lambda^*}{\theta_k}}_{(\mathrm B)}
+    +\pd{\mathcal L}{\theta_k}.
+\]
+两块间接项都死掉：(A) 因为 $\grad_{\vc x}\mathcal L=\vc 0$（对 $\vc x$ 的一阶条件）；(B) 因为 $\grad_{\vc\lambda}\mathcal L=\vc c-\vc g(\vc x^*,\vc\theta)=\vc 0$（约束本身）。于是只剩直接项 $\partial\mathcal L/\partial\theta_k$，即所证。取 $\theta_k=c_j$ 时 $\partial\mathcal L/\partial c_j=\lambda_j$，得 $\partial v/\partial c_j=\lambda_j^*$。
+}
+
+约束版与无约束版是\emph{同一个}故事：把目标换成 Lagrangian，间接效应照样在最优点逐项归零——只是这次要归零的有两组一阶条件（对 $\vc x$ 的与对 $\vc\lambda$ 的，后者即约束）。
+
+\state{Lagrange 乘子 $=$ 约束放松一单位的``影子价格''}{
+$\partial v/\partial c_j=\lambda_j^*$ 给乘子赋予了它最重要的经济含义：\textbf{第 $j$ 条约束的乘子，等于把该约束的水平 $c_j$ 放松一个单位时最优值的增量}。乘子不是求解过程里顺手冒出来的代数辅助量，它本身就是一个有价格量纲的边际估值——\emph{影子价格}（shadow price）。在消费者问题里，预算约束的乘子是``收入的边际效用''（多一块钱能多买到多少效用）；在生产计划里，某种资源约束的乘子是``这种资源的内部估值''（多一单位该资源能多赚多少），它告诉你该出多高的价去购买、或该向哪条紧约束倾斜投资。这条等式是``对偶''思想的源头之一（见``凸优化与对偶''一章，第~\ref{ch:duality}~章）。}
+
+\ex[预算的边际效用]{
+消费者求 $v(m)=\max_{\vc x}u(\vc x)$ s.t.\ $\vc p\cdot\vc x=m$，$\vc p$ 给定、收入 $m$ 是参数。说明 $\dd{v}{m}=\lambda^*$ 的含义，并在 Cobb--Douglas $u=x_1^{a}x_2^{1-a}$ 下验证。
+}
+\sol{
+这里约束水平就是收入 $m$，由约束版包络定理直接得 $\dd{v}{m}=\lambda^*$：间接效用对收入的导数等于乘子，即\textbf{收入的边际效用}——多一块钱能换来的最大效用增量。
+
+验证：Lagrangian $\mathcal L=x_1^a x_2^{1-a}+\lambda(m-p_1x_1-p_2x_2)$。一阶条件给需求 $x_1^*=\dfrac{am}{p_1}$、$x_2^*=\dfrac{(1-a)m}{p_2}$，且
+\[
+    \lambda^*=\pd{u}{x_1}\Big/p_1=\frac{a\,x_2^{1-a}}{x_1^{1-a}\,p_1}
+    =a^{a}(1-a)^{1-a}\,p_1^{-a}p_2^{-(1-a)} .
+\]
+另一方面，把需求代回得间接效用 $v(m)=a^{a}(1-a)^{1-a}\,p_1^{-a}p_2^{-(1-a)}\,m$，它对 $m$ 是\emph{线性}的，斜率恰为 $\dd{v}{m}=a^{a}(1-a)^{1-a}p_1^{-a}p_2^{-(1-a)}=\lambda^*$。两者吻合。（间接效用对收入线性，是 Cobb--Douglas 这一``位似偏好''特例的体现：恩格尔曲线为过原点直线，见``齐次函数与欧拉定理''一章，第~\ref{ch:homogeneous}~章。）
+}
+
+\section{去处一：Shephard 引理、Roy 恒等式、Hotelling 引理}
+\label{sec:envelope-duality}
+
+包络定理在微观里最高产的去处，是把一连串``某个最优值函数对某个价格求导，等于某个最优\emph{数量}''的恒等式一网打尽。它们看似各自独立、在课本里分散出现，其实是同一条包络定理换不同的目标函数与参数而已。下表先给全景，再逐条落实。
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}llll@{}}
+\toprule
+名称 & 值函数 & 对谁求导 & 得到 \\
+\midrule
+Shephard 引理 & 成本 $C(\vc w,y)$ & 要素价格 $w_i$ & 条件要素需求 $x_i^*$ \\
+Hotelling 引理 & 利润 $\Pi(p,\vc w)$ & 产品价格 $p$ & 供给 $y^*$ \\
+Roy 恒等式 & 间接效用 $V(\vc p,m)$ & 价格 $p_i$、收入 $m$ & 马歇尔需求 $x_i^*$ \\
+\bottomrule
+\end{tabular}
+\caption{包络定理的三个``引理''：换一个最优化问题、换一个被求导的价格，就换出一条``值函数的导数 $=$ 最优数量''的恒等式。}
+\label{tab:envelope-lemmas}
+\end{table}
+
+\subsection*{Shephard 引理}
+
+厂商在给定产量 $y$ 下求最小成本：要素价格 $\vc w$，要素投入 $\vc x$，
+\[
+    C(\vc w,y)=\min_{\vc x}\ \vc w\cdot\vc x
+    \quad\text{s.t.}\quad F(\vc x)=y,
+\]
+最优投入 $\vc x^*(\vc w,y)$ 称\textbf{条件要素需求}（conditional factor demand）。这是个\emph{带约束}的问题，本该走约束版：Lagrangian 是 $\mathcal L=\vc w\cdot\vc x-\mu\bigl(F(\vc x)-y\bigr)$，而要素价格 $w_i$ 只\emph{直接}进目标（系数恰是 $x_i$）、\emph{不进}约束 $F(\vc x)=y$。于是 $\partial\mathcal L/\partial w_i=\partial(\vc w\cdot\vc x)/\partial w_i=x_i$，约束版那条``$-\sum_j\lambda_j\,\partial g_j/\partial w_i$''的修正项整块为零——约束版在此退化成与无约束版一模一样的形式。换句话说，这里用的依旧是\emph{约束版}包络定理（成本是带约束 $\min$），只是因为 $w_i$ 不进约束，那个含乘子的修正项恰好消失，公式表面上看起来才与无约束版无异。于是对 $w_i$ 求导、把 $\vc x$ 当常数：
+\[
+    \boxed{\ \pd{C}{w_i}(\vc w,y)=x_i^*(\vc w,y)\ }\qquad(\text{Shephard 引理}).
+\]
+
+\state{Shephard 引理：成本对要素价格求导 $=$ 条件要素需求}{
+成本函数对第 $i$ 种要素价格的偏导，\emph{就是}该要素的条件需求量。直觉一句话：第 $i$ 种要素涨价 $\d w_i$，成本\emph{首当其冲}的上升是``你正用着的那 $x_i^*$ 单位 $\times\ \d w_i$''；至于涨价后你会重新调整要素配比以省钱——那是``沿等产量线挪动选择''的间接效应，而它在最优点是\emph{二阶}的，对成本的一阶导数没有贡献。于是从一个估出来的成本函数，求一次导就读出全部要素需求，无须再解最优化——这是实证产业组织里需求系统估计的支柱。}
+
+\subsection*{Hotelling 引理}
+
+厂商求最大利润：产品价格 $p$、要素价格 $\vc w$、产量 $y$、投入 $\vc x$，
+\[
+    \Pi(p,\vc w)=\max_{y,\vc x}\ \bigl[p\,y-\vc w\cdot\vc x\bigr]
+    \quad\text{s.t.}\quad F(\vc x)=y .
+\]
+价格 $p$ 只直接进目标（系数是 $y$），$w_i$ 只直接进目标（系数是 $-x_i$）。对利润函数用包络定理：
+\[
+    \boxed{\ \pd{\Pi}{p}=y^*(p,\vc w)\ },
+    \qquad
+    \boxed{\ \pd{\Pi}{w_i}=-\,x_i^*(p,\vc w)\ }\qquad(\text{Hotelling 引理}),
+\]
+即利润对产品价格求导得\emph{供给}、对要素价格求导得\emph{要素需求}的相反数。
+
+\subsection*{Roy 恒等式}
+
+消费者的间接效用 $V(\vc p,m)=\max_{\vc x}u(\vc x)$ s.t.\ $\vc p\cdot\vc x=m$。这次价格 $p_i$ 不在目标 $u$ 里、而在\emph{约束}里，所以要走约束版包络定理（用 Lagrangian $\mathcal L=u(\vc x)+\lambda(m-\vc p\cdot\vc x)$）。对 $p_i$ 与对 $m$ 分别求导：
+\[
+    \pd{V}{p_i}=\pd{\mathcal L}{p_i}\Big|_{*}=-\lambda^*\,x_i^*,
+    \qquad
+    \pd{V}{m}=\pd{\mathcal L}{m}\Big|_{*}=\lambda^*.
+\]
+两式相除消去那个不易直接观测的乘子 $\lambda^*$，得
+\[
+    \boxed{\ x_i^*(\vc p,m)=-\,\frac{\partial V/\partial p_i}{\partial V/\partial m}\ }\qquad(\text{Roy 恒等式}).
+\]
+
+\state{为什么三条引理是``一件事''}{
+Shephard、Hotelling、Roy 不是三个需要分别背诵的公式，而是\textbf{同一条包络定理}的三次应用：每次都是``最优值函数对某个价格求导 $=$ 相应的最优数量''。差别只在于这个价格是\emph{直接}进目标（Shephard 的 $w_i$、Hotelling 的 $p,w_i$，用无约束版）还是\emph{经由约束}进（Roy 的 $p_i$，用约束版、再除掉乘子）。认出这一点，你就不必把它们当三件孤立的工具记，而是记一条母定理、外加``价格在目标里还是在约束里''这个二选一。这也正是``对偶''（primal--dual）在消费者与厂商理论里反复出现的根：值函数（成本/利润/间接效用）与最优数量（要素需求/供给/马歇尔需求）互为导数关系。}
+
+\section{去处二：动态规划的 Benveniste--Scheinkman 公式}
+\label{sec:envelope-bs}
+
+包络定理的另一大主场在动态最优化。递归形式的动态规划把整个跨期问题压成一个 Bellman 方程（见``压缩映射与 Banach 不动点''一章，第~\ref{ch:contraction}~章，建立其存在唯一）：
+\[
+    V(s)=\max_{a\in\Gamma(s)}\ \bigl[\,r(s,a)+\beta\,V\bigl(\phi(s,a)\bigr)\bigr],
+\]
+状态 $s$、行动 $a$、当期收益 $r$、折现因子 $\beta$、状态转移 $s'=\phi(s,a)$。要做欧拉方程、要刻画最优策略的性质，常常需要 $V'(s)$——可 $V$ 本身只是``由一个最大化定义''的对象，根本没有显式表达式。这恰是包络定理大显身手之处。
+
+把状态 $s$ 当参数、行动 $a$ 当选择变量。在内点最优行动 $a^*(s)$ 处，对 $a$ 的一阶条件成立，于是对值函数恒等式 $V(s)=r(s,a^*(s))+\beta V(\phi(s,a^*(s)))$ 求 $\dd{}{s}$ 时，所有经由 $a^*(s)$ 的间接项被一阶条件消去，只剩 $s$ 的\emph{直接}通道：
+
+\thm{Benveniste--Scheinkman}{
+在上述递归问题中，若 $a^*(s)$ 为内点最优、$V$ 可微，则
+\[
+    \boxed{\ \ba
+        V'(s)&=\pd{}{s}\Bigl[\,r(s,a)+\beta\,V\bigl(\phi(s,a)\bigr)\Bigr]_{a=a^*(s)}\\[2pt]
+        &=r_s\bigl(s,a^*\bigr)+\beta\,V'\bigl(\phi(s,a^*)\bigr)\,\phi_s\bigl(s,a^*\bigr)\ \ea}.
+\]
+对 $s$ 求导时，把最优行动 $a^*$ 当作常数。
+}
+\pf{
+对 $V(s)=r(s,a^*(s))+\beta V(\phi(s,a^*(s)))$ 求 $\dd{}{s}$，链式法则给出对 $s$ 的直接项加上经由 $a^*(s)$ 的间接项：
+\[
+    V'(s)=\underbrace{r_s+\beta V'(\phi)\,\phi_s}_{\text{直接}}
+    +\underbrace{\bigl[r_a+\beta V'(\phi)\,\phi_a\bigr]}_{=\,0\text{（对 }a\text{ 的一阶条件）}}\,\dd{a^*}{s}.
+\]
+方括号里恰是内点最优对 $a$ 的一阶条件 $\partial/\partial a\,[r+\beta V(\phi)]=0$，故间接项为零，余下直接项即所证。
+}
+
+\state{Benveniste--Scheinkman 让``对值函数求导''变得合法可算}{
+动态规划里反复要用 $V'(s)$（边际值函数），却没有 $V$ 的显式式子。这条公式说：\emph{尽管放心地把 Bellman 方程右边对状态 $s$ 求导，并把最优行动 $a^*$ 当常数}——间接项自动归零。它把``对一个隐式定义的值函数求导''这件看似没把握的事，变成一次直接的偏导。最干净的一个特例是状态``只进收益、不进转移''的情形：若 $r=r(s,a)$、转移 $\phi$ 不显含 $s$，则 $V'(s)=r_s(s,a^*)$——边际值函数等于当期收益对状态的边际，立刻可代进欧拉方程。这是递归宏观（最优增长、实际经济周期、资产定价）做一阶分析的标准入口。}
+
+\rmk{可微性本身需要一点小心：Bellman 方程的解 $V$ 未必处处可微（$\max$ 运算可能制造折点）。Benveniste 与 Scheinkman（1979）的原始贡献正是给出 $V$ 在最优内点处可微的充分条件（大意是：能找到一个可微函数从下方相切于 $V$）。在本书的工具性立场上，记住结论与适用条件即可——一旦 $V$ 在该点可微，导数就由上面这条公式给出。}
+
+\section{小结：选择之导与值之导，配成一对}
+\label{sec:envelope-summary}
+
+把本章与隐函数定理一章（第~\ref{ch:ift}~章）并看，比较静态的两半正好拼齐：
+
+\begin{itemize}
+    \item \textbf{隐函数定理}回答``最优\emph{选择}如何随参数变''：$\D_{\vc\theta}\vc x^*=-\mat H^{-1}\grad^2_{\vc x\vc\theta}f$。它要算 Hessian 的逆，较费力，给的是\emph{选择}的移动。
+    \item \textbf{包络定理}回答``最优\emph{值}如何随参数变''：$\partial v/\partial\theta_k=\partial f/\partial\theta_k|_{\vc x^*}$。它\emph{不必}知道选择如何移动，一个直接偏导即可，给的是\emph{值}的移动。
+\end{itemize}
+
+二者常常配套登场：要刻画一个政策对福利的边际影响（值），用包络；要追踪它对行为的扭曲（选择），用隐函数定理。本章的核心机制——\emph{在最优点，经由最优选择变动的间接效应为零}——还会在后续不断回响：它是对偶理论（成本/利润/间接效用与各自最优数量互为导数）的引擎，是单调比较静态（见后文``单调比较静态与超模性''一章，第~\ref{ch:monotone}~章）退而只问方向时的背景，更是递归方法里对值函数求导的通行证。认得``峰顶切线水平''这一句朴素的几何事实，你就同时握住了 Shephard、Roy、Hotelling 与 Benveniste--Scheinkman 这一串看似无关的结论的共同钥匙。

@@ -1,0 +1,355 @@
+% !TEX root = ../main.tex
+\chapter{等式约束与 Lagrange 乘子}
+\label{ch:lagrange}
+
+\noindent\emph{用到的前置工具：梯度与方向导数（第十三章）；隐函数定理（第十五章）；无约束最优化的一阶/二阶条件（第十八章）；正定/负定矩阵与二次型（线性代数部分）。}
+\medskip
+
+经济学里几乎没有``随便选''的最大化——选择总是被某样东西卡住的。消费者想让效用最高，但花的钱不能超过收入；厂商想压低成本，但产量必须达标；计量里估参数，有时要让估计落在某个约束面上。这些问题的共同形状是``在一条曲线（或一个曲面）上找目标函数的最高点''。本章要讲的 Lagrange 乘子法，正是解这类\textbf{等式约束}问题的标准工具。它做的事有两层：一层是\emph{怎么找到}带约束的最优点（把约束揉进一个新的目标函数，再当无约束问题处理）；另一层——也是经济学家更看重的——是它顺手交出的那个乘子 $\lambda$，它不是中间产物里的废料，而是一个有血有肉的经济量：\textbf{影子价格}，即把约束放松一个单位，能给最优值带来多少边际改善。学会读这个 $\lambda$，等于学会了``收入的边际效用''``资源的边际价值''这一整类概念的数学出处。
+
+\section{从无约束到有约束：问题长什么样}
+\label{sec:lagrange-1}
+
+前一章处理的是无约束最优化：在整个 $\RR^n$ 上找 $f$ 的极值，最优点的标志是 $\grad f=\vc 0$——所有方向上都走不动了。但经济学的选择几乎从不能在整个空间里自由游走。把典型问题写下来，它总是
+
+\[
+    \max_{\vc x\in\RR^n}\; f(\vc x)
+    \qquad \text{s.t.}\qquad
+    g(\vc x)=0 .
+\]
+
+这里 $f$ 是\textbf{目标函数}（效用、利润、负成本……），$g(\vc x)=0$ 是一条\textbf{等式约束}，它把可行的选择限制在 $\RR^n$ 里的一张曲面（$n=2$ 时是一条曲线）上。两个最经典的例子先摆出来，本章会反复回到它们。
+
+\ex[预算约束下的效用最大化]{
+消费者在两种商品上分配收入 $m$，价格为 $p_1,p_2$，效用为 $u(x_1,x_2)$。他求解
+\[
+    \max_{x_1,x_2}\; u(x_1,x_2)
+    \qquad \text{s.t.}\qquad
+    p_1 x_1+p_2 x_2=m .
+\]
+约束 $g(x_1,x_2)=p_1x_1+p_2x_2-m=0$ 就是预算线。解出的 $\vc x^*(\vc p,m)$ 是\emph{马歇尔需求}。
+}
+
+\ex[给定产量的成本最小化]{
+厂商要生产固定产量 $\bar q$，投入 $x_1,x_2$ 的价格为 $w_1,w_2$，生产函数为 $F(x_1,x_2)$。他求解
+\[
+    \min_{x_1,x_2}\; w_1x_1+w_2x_2
+    \qquad \text{s.t.}\qquad
+    F(x_1,x_2)=\bar q .
+\]
+约束 $g=F(x_1,x_2)-\bar q=0$ 是一条等产量线。解出的最小成本作为 $(\vc w,\bar q)$ 的函数就是\emph{成本函数}。
+}
+
+求最小值与求最大值在方法上没有区别：$\min f$ 等价于 $\max(-f)$，下文一律以 $\max$ 叙述，结论照搬到 $\min$ 即可。先看为什么无约束那一套（令 $\grad f=\vc 0$）在这里直接失灵：约束面上的最优点，几乎\emph{从不}是 $f$ 的无约束驻点。在预算约束的例子里，若 $u$ 是``越多越好''的，无约束最大值在无穷远处，根本不存在；真正的最优点落在预算线上，那里 $\grad u\neq\vc 0$。所以我们需要一个新的最优性标志——它要回答的是：站在约束面上的一点，怎么判断``沿着约束面再也走不高了''？
+
+\section{相切：一阶条件的几何来源}
+\label{sec:lagrange-2}
+
+把目光锁在 $n=2$、单约束的情形，几何最透亮。约束 $g(x_1,x_2)=0$ 是平面上一条曲线 $C$。目标 $f$ 有一族\textbf{等值线}（level curves）$\{f=k\}$，$k$ 越大代表 $f$ 越高。在约束曲线上求 $f$ 的最大值，就是问：沿着 $C$ 走，最高能蹭到哪一条等值线？
+
+设想我们站在 $C$ 上某点，那里 $C$ 与某条等值线 $\{f=k\}$\emph{相交而不相切}。相交意味着两条曲线在该点切线方向不同，于是沿 $C$ 往某一侧挪一小步，就能跨到一条更高的等值线上——$f$ 还能涨，这点不可能是最优。能反过来堵死``还能涨''的，只有一种局面：$C$ 与某条等值线在该点\textbf{相切}。相切处，沿 $C$ 的移动方向恰好与等值线方向一致，一阶上 $f$ 不再变化——这就是约束最优点的标志（图~\ref{fig:lagrange-1}）。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.95,>=Stealth]
+    % 坐标轴
+    \draw[->] (-0.2,0) -- (7.4,0) node[right] {$x_1$};
+    \draw[->] (0,-0.2) -- (0,7.2) node[above] {$x_2$};
+    % 约束（预算线）x1+x2=6  =>  x2=6-x1
+    \draw[thick] (0.3,5.7) -- (5.7,0.3);
+    \node[anchor=north east] at (1.7,4.6) {$g(x_1,x_2)=0$};
+    % 目标的三条等值线 x1 x2 = k
+    \draw[gray!70,domain=0.75:6.9,smooth,variable=\t,samples=80] plot ({\t},{5/\t});
+    \draw[thick,red!65!black,domain=1.35:6.9,smooth,variable=\t,samples=120] plot ({\t},{9/\t});
+    \draw[gray!45,domain=1.95:6.95,smooth,variable=\t,samples=80] plot ({\t},{13/\t});
+    \node[gray!70,anchor=west] at (5.15,0.97) {$f=5$};
+    \node[red!65!black,anchor=west] at (4.85,1.85) {$f=9$};
+    \node[gray!45,anchor=west] at (6.35,2.05) {$f=13$};
+    % 切点（精确：x1=x2=3，在预算线与 f=9 上）
+    \coordinate (P) at (3,3);
+    \fill (P) circle (1.8pt);
+    \draw[dashed] (P) -- (3,0) node[below] {$x_1^*$};
+    \draw[dashed] (P) -- (0,3) node[left] {$x_2^*$};
+    % 梯度箭头：grad f=(3,3) 方向、grad g=(1,1) 方向，共线同向
+    \draw[->,thick,red!65!black] (P) -- ($(P)+(1.34,1.34)$)
+        node[anchor=south west,inner sep=1pt] {$\grad f$};
+    \draw[->,thick,blue!60!black] (P) -- ($(P)+(0.78,0.78)$);
+    \node[blue!60!black,anchor=south east,inner sep=1.5pt] at ($(P)+(0.70,0.78)$) {$\grad g$};
+    % 最优点标签（引线从左上方落到切点，避开右上方的两支梯度箭头）
+    \node[anchor=south west,align=left] at (1.45,5.45) {相切点\\$(x_1^*,x_2^*)$};
+    \draw[->] (1.95,5.4) to[bend left=12] (2.86,3.18);
+\end{tikzpicture}
+\caption{约束曲线 $g=0$ 与目标的等值线族。最优点处二者相切：再高的等值线（$f=13$）已离开约束、不可达，再低的（$f=5$）则没用尽约束。相切点的两条法向量 $\grad f$ 与 $\grad g$ 共线。}
+\label{fig:lagrange-1}
+\end{figure}
+
+相切这件几何事，怎么翻成方程？关键是把``切线方向一致''换成``法线方向一致''——后者好写得多。回忆第十三章：函数的梯度\emph{垂直于}它自己的等值线。所以 $\grad f$ 垂直于 $f$ 的等值线，$\grad g$ 垂直于约束曲线 $g=0$（它是 $g$ 的等值线）。两条曲线相切 $\Iff$ 切线平行 $\Iff$ 法线平行 $\Iff$ 两个梯度\textbf{共线}：
+
+\[
+    \grad f(\vc x^*)=\lambda\,\grad g(\vc x^*)\quad\text{对某个标量 }\lambda .
+\]
+
+这就是 Lagrange 一阶条件。它说的是：最优点处，目标的梯度被约束的梯度``完全解释''了——$\grad f$ 没有任何分量是平行于约束面的，否则沿那个分量方向挪一步就能把 $f$ 顶高、且一阶上不违反约束。那个把两个梯度联系起来的比例系数 $\lambda$，就是\textbf{Lagrange 乘子}。
+
+\state{约束最优的一阶标志：梯度共线}{
+内点无约束最优要求 $\grad f=\vc 0$（哪个方向都走不动）；等式约束最优\emph{放宽}了这一点，只要求 $\grad f$ 落在约束的法线方向上，即 $\grad f=\lambda\grad g$。直觉：$\grad f$ 沿约束面的``切向分量''必须为零——只要它非零，就能在不违反约束的前提下让 $f$ 继续上升。乘子 $\lambda$ 量的正是``目标的法向冲动''相对``约束的法向''有多强。
+}
+
+\rmkb[同向还是反向]{
+共线包含同向（$\lambda>0$）与反向（$\lambda<0$）。在``越多越好''的效用最大化里，$\grad f$ 指向效用上升、$\grad g$ 指向约束更紧的方向，二者同向，$\lambda>0$（图~\ref{fig:lagrange-1} 即此情形）。$\lambda$ 的符号本身有经济含义：下一节会看到 $\lambda$ 等于``放松约束''带来的边际收益，对``有用''的约束它为正。先记住共线是核心，符号随问题而定。
+}
+
+\section{Lagrange 函数：把约束揉进目标}
+\label{sec:lagrange-3}
+
+梯度共线条件 $\grad f=\lambda\grad g$ 加上约束 $g=0$，已经能定出最优点。但逐个写梯度分量很笨。Lagrange 的天才之处，是把这套条件``打包''成一个无约束问题的一阶条件。引入新变量 $\lambda$，构造\textbf{Lagrange 函数}
+
+\[
+    \mathcal{L}(\vc x,\lambda)=f(\vc x)-\lambda\,g(\vc x) .
+\]
+
+\defn{Lagrange 函数与一阶条件}{
+对等式约束问题 $\max f(\vc x)$ s.t. $g(\vc x)=0$，定义 Lagrange 函数 $\mathcal{L}(\vc x,\lambda)=f(\vc x)-\lambda g(\vc x)$。把 $\vc x$ 与 $\lambda$ 一起当成自由变量，令 $\mathcal{L}$ 的全部偏导为零，得到 Lagrange 一阶条件：
+\[
+    \bc
+        \grad_{\vc x}\mathcal{L}=\grad f(\vc x)-\lambda\,\grad g(\vc x)=\vc 0, \\[2pt]
+        \pd{\mathcal{L}}{\lambda}=-\,g(\vc x)=0 .
+    \ec
+\]
+}
+
+这套条件的两行恰好就是我们要的两件事，丝毫不多不少。对 $\vc x$ 求偏导给出梯度共线 $\grad f=\lambda\grad g$；对 $\lambda$ 求偏导，把约束 $g(\vc x)=0$ 自动吐了回来。于是``在约束面上找驻点''被改写成了``在扩大的变量空间 $(\vc x,\lambda)$ 里找 $\mathcal L$ 的无约束驻点''——前一章那套求驻点的机器可以原样开动。$\lambda$ 在这里既是``待定的比例系数'',又是``强制约束成立的旋钮'':正是 $\partial\mathcal L/\partial\lambda=0$ 这一行把 $\vc x$ 摁回约束面上。
+
+\rmk{符号约定：$\mathcal L=f-\lambda g$ 与 $\mathcal L=f+\lambda g$ 都有人用，区别只是 $\lambda$ 差一个正负号；本书取减号，好处是下一节 $\lambda=\partial v/\partial c$ 时符号最干净（影子价格直接等于乘子）。}
+
+\ex[用 Lagrange 函数解效用最大化]{
+取 $u(x_1,x_2)=x_1x_2$（一种 Cobb--Douglas 效用），预算约束 $x_1+x_2=6$（已令 $p_1=p_2=1,\ m=6$）。求最优消费束与乘子。
+}
+\sol{
+Lagrange 函数 $\mathcal{L}=x_1x_2-\lambda(x_1+x_2-6)$。三个一阶条件：
+\[
+    \pd{\mathcal L}{x_1}=x_2-\lambda=0,\qquad
+    \pd{\mathcal L}{x_2}=x_1-\lambda=0,\qquad
+    \pd{\mathcal L}{\lambda}=-(x_1+x_2-6)=0 .
+\]
+前两式给 $x_1=x_2=\lambda$，代入第三式得 $2\lambda=6$，故
+\[
+    x_1^*=x_2^*=3,\qquad \lambda^*=3 .
+\]
+最优效用 $u^*=x_1^*x_2^*=9$。这正是图~\ref{fig:lagrange-1} 里那个相切点，$\grad u=(x_2,x_1)=(3,3)$ 与 $\grad g=(1,1)$ 确实共线，比例恰为 $\lambda^*=3$。
+}
+
+\rmkb[消去 $\lambda$ 就回到``边际替代率=价格比'']{
+把前两个一阶条件相除消去 $\lambda$：$\dfrac{u_{x_1}}{u_{x_2}}=\dfrac{p_1}{p_2}$（上例里两价格都是 $1$）。左边是\emph{边际替代率}（无差异曲线的斜率），右边是价格比（预算线的斜率）。这一行就是微观课上``最优消费的切点条件''，它不过是梯度共线 $\grad u=\lambda\grad g$ 把 $\lambda$ 约掉后的样子。Lagrange 法的好处是连 $\lambda$ 本身都保留了下来——而 $\lambda$ 正是下一节的主角。
+}
+
+\section{乘子的经济含义：影子价格}
+\label{sec:lagrange-4}
+
+到此 $\lambda$ 还只是个解方程时冒出来的辅助数。它真正的分量，要在约束水平变动时才显出来。把约束右端从 $0$ 改成一个可调的水平 $c$，研究最优值如何随 $c$ 变化：
+
+\[
+    v(c)=\max_{\vc x}\,f(\vc x)\quad\text{s.t.}\quad g(\vc x)=c .
+\]
+
+$v$ 叫\textbf{值函数}（value function）。在消费者问题里，$c$ 就是收入 $m$，$v(m)$ 是``给定收入能达到的最高效用''——即\emph{间接效用函数}；在成本最小化里，$c$ 是要求的产量 $\bar q$，$v$ 是成本函数。我们要证明的结论极其干净：
+
+\thm{Lagrange 乘子是值函数的斜率}{
+设 $v(c)=\max_{\vc x}\{f(\vc x):g(\vc x)=c\}$，且最优解 $\vc x^*(c)$ 与乘子 $\lambda^*(c)$ 随 $c$ 连续可微。则
+\[
+    \boxed{\ \dd{v}{c}=\lambda^*(c)\ } .
+\]
+即：把约束放松一个单位，最优值的边际增量恰好等于 Lagrange 乘子。
+}
+
+\pf{
+最优解满足约束 $g(\vc x^*(c))=c$ 与一阶条件 $\grad f(\vc x^*)=\lambda^*\grad g(\vc x^*)$。沿 $c$ 对值函数求导，用链式法则：
+\[
+    \dd{v}{c}=\grad f(\vc x^*)\T\,\dd{\vc x^*}{c} .
+\]
+代入一阶条件 $\grad f(\vc x^*)=\lambda^*\grad g(\vc x^*)$：
+\[
+    \dd{v}{c}=\lambda^*\,\grad g(\vc x^*)\T\,\dd{\vc x^*}{c} .
+\]
+再看约束恒等式 $g(\vc x^*(c))\equiv c$，两边对 $c$ 求导得 $\grad g(\vc x^*)\T\dd{\vc x^*}{c}=1$。代回即得 $\dd{v}{c}=\lambda^*\cdot 1=\lambda^*$。
+}
+
+这条结果是本章的心脏，值得逐字咀嚼。证明里出现了一个``奇迹''：$\dd{\vc x^*}{c}$（最优选择如何随约束移动）本来是个麻烦的、要靠隐函数定理才能算的量，可它在最后一步被彻底消掉了——最优值对 $c$ 的全部敏感性，只通过 $\lambda^*$ 这一个数体现。这不是巧合，而是\textbf{包络定理}的雏形：在最优点上，因变量微调带来的间接影响是二阶小量，可以忽略，只剩约束水平变动的直接影响。这一点本书会在包络定理（第二十二章）正式展开。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[>=Stealth,xscale=0.62,yscale=0.30]
+    % 坐标轴：横轴 c（约束水平），纵轴 v（最优值）
+    \draw[->] (-0.3,0) -- (10.2,0) node[right] {$c$};
+    \draw[->] (0,-0.5) -- (0,20.5) node[above] {$v(c)$};
+    % 值函数 v(c)=c^2/4
+    \draw[thick,red!65!black,domain=0:9.4,smooth,variable=\t,samples=120]
+        plot ({\t},{\t*\t/4});
+    \node[red!65!black,anchor=south east] at (9.0,18.6) {$v(c)$};
+    % 在 c=6 处的切线，斜率 v'(6)=3：v=9+3(c-6)，从 c=3.4 到 c=8.6
+    \draw[thick,blue!55!black] (3.4,0.6) -- (8.6,16.8);
+    % 切点 (6,9)，精确在曲线上
+    \coordinate (P) at (6,9);
+    \fill (P) circle (2.6pt);
+    \draw[dashed] (P) -- (6,0) node[below] {$c_0$};
+    \draw[dashed] (P) -- (0,9) node[left] {$v(c_0)$};
+    % 斜率标签
+    \node[blue!55!black,anchor=west] at (8.0,8.0) {切线斜率 $=\lambda$};
+    \draw[blue!55!black,->] (8.7,8.7) -- (7.7,12.7);
+\end{tikzpicture}
+\caption{值函数 $v(c)$ 随约束水平 $c$ 的变化；其在 $c_0$ 处的切线斜率正是该处的 Lagrange 乘子 $\lambda$。这把``乘子''与``约束的边际价值''钉在了一起。}
+\label{fig:lagrange-2}
+\end{figure}
+
+有了 $\dd{v}{c}=\lambda$，乘子的所有经济叫法就都站得住了。
+
+\state{$\lambda$ 是影子价格}{
+$\lambda=\dd{v}{c}$ 说的是：约束放松一单位，目标的最优值能多涨多少——这就是该约束所约束的那份资源的\emph{边际价值}，称为\textbf{影子价格}（shadow price）。它是``价格''，但不是市场上挂牌的价，而是这份资源\emph{对这个决策者而言}的内在估值。几个落点：
+\begin{itemize}
+    \item 效用最大化里，约束是预算，$c=m$，于是 $\lambda=\dd{v}{m}$ 是\textbf{收入的边际效用}——多给一块钱能多换多少效用。
+    \item 成本最小化里，约束是产量，$\lambda=\dd{(\text{成本})}{\bar q}$ 正是\textbf{边际成本}。
+    \item 厂商面对一个紧的产能约束时，$\lambda$ 是``这台机器再多一小时''值多少利润——它给出了为放松约束\emph{愿意支付的最高价}。
+\end{itemize}
+}
+
+\ex[读出影子价格]{
+承接前例 $u=x_1x_2$，但把收入设为可变的 $m$，约束 $x_1+x_2=m$。求间接效用 $v(m)$ 与收入的边际效用，并验证它等于乘子。
+}
+\sol{
+重做一阶条件：$x_2=\lambda,\ x_1=\lambda,\ x_1+x_2=m$，得 $x_1^*=x_2^*=m/2$，$\lambda^*=m/2$。于是间接效用
+\[
+    v(m)=x_1^*x_2^*=\pr{\tfrac{m}{2}}^2=\frac{m^2}{4}.
+\]
+直接求导：$\dd{v}{m}=\dfrac{m}{2}=\lambda^*$。两者相等，正合定理。图~\ref{fig:lagrange-2} 画的就是这个 $v(c)=c^2/4$：在 $c_0=6$ 处切线斜率 $=6/2=3$，恰是前例算出的 $\lambda^*=3$。收入越高，$\lambda$ 越大，意味着这里多一块钱反而更值钱——因为 $u=x_1x_2$ 不是凹到``边际效用递减''那一型；换一个凹效用就会得到递减的 $\lambda$，这正是``收入边际效用递减''的来历。
+}
+
+\rmkb[量纲检查帮你记住 $\lambda$ 是什么]{
+$\lambda=\dd{v}{c}$ 的量纲是``目标单位每约束单位''。效用最大化里是``效用 / 元'',故 $\lambda$ 是收入的边际效用；成本最小化里目标是元、约束是产量，$\lambda$ 是``元 / 件'',即边际成本。每当忘了某个乘子代表什么，写出 $\dd{v}{c}$ 的量纲即可现场重建——这比硬背可靠得多。
+}
+
+\section{多约束情形}
+\label{sec:lagrange-5}
+
+约束不止一条时（$m$ 条等式约束，$m<n$），每条约束配一个自己的乘子。问题写成
+
+\[
+    \max_{\vc x\in\RR^n} f(\vc x)
+    \qquad\text{s.t.}\qquad
+    g_1(\vc x)=0,\ \dots,\ g_m(\vc x)=0 .
+\]
+
+Lagrange 函数把每条约束各乘一个 $\lambda_j$ 减进去：
+
+\[
+    \mathcal{L}(\vc x,\vc\lambda)=f(\vc x)-\sum_{j=1}^{m}\lambda_j\,g_j(\vc x),
+    \qquad \vc\lambda=(\lambda_1,\dots,\lambda_m)\T .
+\]
+
+一阶条件 $\grad_{\vc x}\mathcal L=\vc 0$ 给出
+
+\[
+    \grad f(\vc x^*)=\sum_{j=1}^{m}\lambda_j\,\grad g_j(\vc x^*) ,
+\]
+
+再加上 $m$ 条约束 $g_j(\vc x^*)=0$。几何意义是梯度共线的推广：最优点处，$\grad f$ 落在诸约束梯度 $\{\grad g_j\}$ \textbf{张成的子空间}里——也就是约束面（各 $g_j=0$ 的交集）的法空间。等价地，$\grad f$ 没有任何分量平行于这张约束面，否则沿那个切向分量挪动既能升高 $f$、又一阶地不违反任何约束。
+
+为让 $\vc\lambda$ 唯一确定、Lagrange 法成立，需要约束在最优点处``互不冗余'':
+
+\asm{约束品性（线性无关约束规范）}{
+诸约束梯度 $\grad g_1(\vc x^*),\dots,\grad g_m(\vc x^*)$ \emph{线性无关}（等价地，Jacobian $\D_{\vc x}\vc g$ 行满秩）。
+}
+
+\rmkb[为什么需要约束品性]{
+若约束梯度线性相关，约束面在该点会``退化''（出现尖点或自相交），$\grad f$ 在法空间里的表示就不唯一，乘子 $\vc\lambda$ 可能不存在或不唯一。这与隐函数定理里那个``Jacobian 可逆''是同一类非退化要求：都是为了保证``在约束面上做微积分''这件事良好定义。单约束时它退化为 $\grad g(\vc x^*)\neq\vc 0$。本书在 KKT 条件（第二十章）会再次遇到它的不等式版本。
+}
+
+\ex[两条约束]{
+求 $f(\vc x)=x_1+x_2+x_3$ 在球面 $x_1^2+x_2^2+x_3^2=1$ 与平面 $x_1+x_2=0$ 之交（一个圆）上的最大值。
+}
+\sol{
+两约束 $g_1=x_1^2+x_2^2+x_3^2-1$，$g_2=x_1+x_2$。Lagrange 函数 $\mathcal L=x_1+x_2+x_3-\lambda_1 g_1-\lambda_2 g_2$，一阶条件：
+\[
+    1-2\lambda_1 x_1-\lambda_2=0,\quad
+    1-2\lambda_1 x_2-\lambda_2=0,\quad
+    1-2\lambda_1 x_3=0 .
+\]
+前两式相减得 $2\lambda_1(x_2-x_1)=0$。在最优点 $\lambda_1\neq0$（否则第三式 $1=0$ 矛盾），故 $x_1=x_2$；配上约束 $x_1+x_2=0$ 得 $x_1=x_2=0$。代入球面约束得 $x_3^2=1$，即 $x_3=\pm1$。目标 $f=x_3$ 在 $x_3=1$ 处取最大值 $1$，最优点 $(0,0,1)$。（由第三式 $\lambda_1=\tfrac12$，再回代 $\lambda_2=1$。）
+}
+
+\section{二阶条件：bordered Hessian}
+\label{sec:lagrange-6}
+
+和无约束最优化一样，一阶条件只筛出``驻点'',要区分约束下的极大与极小还得看二阶。区别在于：约束最优\emph{不}要求目标的 Hessian 整体负定，只要求它在\textbf{约束面的切方向上}负定——沿着不可行的方向 $f$ 怎么弯都无所谓，反正走不过去。把``只看切方向''这件事编码进矩阵，得到的就是\textbf{加边 Hessian}（bordered Hessian）。
+
+对单约束问题，定义在最优点处的加边 Hessian 为
+
+\[
+    \overline{\mat H}=
+    \bm
+        0 & \grad g\T \\
+        \grad g & \grad^2_{\vc x\vc x}\mathcal{L}
+    \emx
+    =
+    \bm
+        0 & g_{x_1} & g_{x_2} \\
+        g_{x_1} & \mathcal L_{x_1x_1} & \mathcal L_{x_1x_2} \\
+        g_{x_2} & \mathcal L_{x_2x_1} & \mathcal L_{x_2x_2}
+    \emx ,
+\]
+
+其中 $\grad^2_{\vc x\vc x}\mathcal L$ 是 Lagrange 函数关于选择变量的 Hessian（已在乘子定下后求值），第一行/列用约束梯度 $\grad g$``加边''。它把约束信息镶进了 Hessian 的边框，使得只有约束切方向上的曲率被检验。判据如下（陈述，不逐行证）。
+
+\fact{加边 Hessian 二阶充分条件（$n$ 变量、$m$ 约束）}{
+设一阶条件在 $(\vc x^*,\vc\lambda^*)$ 满足，约束品性成立。考察加边 Hessian $\overline{\mat H}$ 末端的一串\emph{顺序主子式}。
+\begin{itemize}
+    \item \textbf{局部极大}的充分条件：从第 $2m+1$ 阶起的顺序主子式\emph{符号交替}，且最后一个（整个 $\overline{\mat H}$ 的行列式）的符号为 $(-1)^n$。
+    \item \textbf{局部极小}的充分条件：这些顺序主子式\emph{同号}，皆与 $(-1)^m$ 同号。
+\end{itemize}
+两种判据本质都是在说：把二次型 $\vc z\T(\grad^2_{\vc x\vc x}\mathcal L)\vc z$ 限制到约束切空间 $\{\vc z:\grad g_j\T\vc z=0\ \forall j\}$ 上，它分别负定（极大）或正定（极小）。
+}
+
+记不住符号规则不要紧——下面这条最常用的特例几乎覆盖了课程里的全部需求。
+
+\state{两变量单约束：只看一个行列式}{
+$n=2,\ m=1$ 时，加边 Hessian 是 $3\times3$，判据塌缩成一句话：
+\[
+    \det\overline{\mat H}>0 \;\To\; \text{约束局部极大},\qquad
+    \det\overline{\mat H}<0 \;\To\; \text{约束局部极小}.
+\]
+（对应通则里 $(-1)^n=(-1)^2=+1$ 取极大、$(-1)^m=-1$ 取极小。）消费者问题里 $\det\overline{\mat H}>0$ 等价于无差异曲线\emph{凸向原点}——这正是微观课``偏好凸性保证内点最优''的代数化身。
+}
+
+\ex[验证效用最大化的二阶条件]{
+对 $u=x_1x_2$、约束 $x_1+x_2=6$ 的最优点 $(3,3)$，用加边 Hessian 确认它是约束极大。
+}
+\sol{
+$\mathcal L=x_1x_2-\lambda(x_1+x_2-6)$，关于 $\vc x$ 的二阶偏导：$\mathcal L_{x_1x_1}=0$，$\mathcal L_{x_2x_2}=0$，$\mathcal L_{x_1x_2}=1$。约束梯度 $\grad g=(1,1)$。于是
+\[
+    \overline{\mat H}=
+    \bm
+        0 & 1 & 1\\
+        1 & 0 & 1\\
+        1 & 1 & 0
+    \emx,
+    \qquad
+    \det\overline{\mat H}=0\cdot(0-1)-1\cdot(0-1)+1\cdot(1-0)=2>0 .
+\]
+$\det\overline{\mat H}=2>0$，故 $(3,3)$ 确是约束局部极大——与图~\ref{fig:lagrange-1} 的相切图像一致。
+}
+
+\rmk{加边 Hessian 看着比无约束的 Hessian 麻烦，但思想是一回事：二阶条件就是``在所有\emph{可行}方向上，目标都向下弯''。加边只是把``可行方向''这个限制塞进了线性代数里。}
+
+\section{这把工具通向何处}
+\label{sec:lagrange-7}
+
+Lagrange 法是整个最优化部分的枢纽，它的去处密集而重要：
+
+\begin{itemize}
+    \item \textbf{消费者与生产者理论}。马歇尔需求、希克斯需求、成本函数与支出函数，全部来自带约束的最优化；它们之间的对偶关系（Shephard 引理、Roy 恒等式）本质上都是``乘子=值函数斜率''这条定理在不同约束上的实例。
+    \item \textbf{影子价格与资源配置}。$\lambda$ 作为资源的边际价值，是机制设计、最优课税、一般均衡里``价格即影子价格''等思想的数学起点；线性规划的对偶变量也是同一个 $\lambda$。
+    \item \textbf{KKT 条件}（第二十章）。现实约束多是不等式（``花\emph{不超过}收入''而非``恰好花光''）。KKT 把本章推广到不等式：每条约束仍配一个乘子，但要求 $\lambda_j\ge0$ 且满足互补松弛——约束不紧时其影子价格为零。本章是它的``约束全部取等''特例。
+    \item \textbf{包络定理}（第二十二章）。本章 $\dd{v}{c}=\lambda$ 已经是包络定理的一个切片：最优值对参数的导数，等于 Lagrange 函数对该参数的偏导在最优点的取值。包络定理把它推广到任意参数，并解释了为什么``间接影响可忽略''。
+    \item \textbf{约束估计}。计量里的约束最小二乘、约束极大似然，把参数限制写成等式约束后正是本章的问题；乘子的大小还连着检验约束是否成立的 Lagrange 乘子检验（LM 检验）——它的名字就来自这里。
+\end{itemize}
+
+一句话收束：等式约束最优化用一个乘子 $\lambda$ 把``怎么选''（梯度共线）和``约束值多少''（影子价格）这两件事一并交到你手里。认住这个 $\lambda$ 的双重身份，消费者理论、对偶、KKT、包络定理乃至 LM 检验，就都成了同一把钥匙开的几扇门。

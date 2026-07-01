@@ -1,0 +1,286 @@
+% !TEX root = ../main.tex
+\chapter{齐次函数与欧拉定理}
+\label{ch:homogeneous}
+
+\noindent\emph{用到的前置工具：偏导数、梯度与链式法则（第十三章）；等值线与水平集（隐函数定理一章）；单调变换的概念（见后文『凹凸函数与拟凹/拟凸』一章）。}
+\medskip
+
+经济学里有一类问题，问的不是``某个量是多少'',而是``把所有投入\emph{同比例}放大一倍，产出会怎么变''——规模报酬是不是不变？把所有价格和收入\emph{同时}翻一番，需求会不会动——会不会有``货币幻觉''？竞争市场里每种要素都按它的边际产品取酬，加起来会不会恰好把总产出分光、一分不多一分不少？这三问表面上分属生产理论、消费理论与分配理论，却共用同一个数学性质：函数沿\emph{过原点的射线}如何缩放。刻画这件事的工具就是\textbf{齐次函数}，而把``齐次度''与``各偏导之和''钉死在一起的，是\textbf{欧拉定理}。本章先讲清这两个对象，再说明它们如何一举回答上面三问，并把位似（homothetic）这个更宽松、却在消费理论里更常用的推广接上。
+
+\section{从``同比例放大''说起}
+\label{sec:homogeneous-motivation}
+
+先把动机摆透。考虑一个生产函数 $f(\vc x)$，$\vc x=(x_1,\dots,x_n)$ 是各种要素投入量。一个最基本的问题是：如果把\emph{每一种}投入都乘以同一个倍数 $t>1$（多上一倍人手、一倍机器、一倍原料），产出 $f(t\vc x)$ 相对于原产出 $f(\vc x)$ 是大于、等于还是小于 $t$ 倍？
+
+\begin{itemize}
+    \item 若恰好 $f(t\vc x)=t\,f(\vc x)$——投入翻倍产出也翻倍——称\textbf{规模报酬不变}（CRS）。
+    \item 若 $f(t\vc x)>t\,f(\vc x)$——产出涨得比投入快——称\textbf{规模报酬递增}（IRS）。
+    \item 若 $f(t\vc x)<t\,f(\vc x)$——称\textbf{规模报酬递减}（DRS）。
+\end{itemize}
+
+这里的关键词是``同比例''：我们不是动一种投入，而是沿着\emph{从原点出发、穿过点 $\vc x$ 的那条射线}移动（射线上的点正是 $t\vc x$，$t>0$）。于是``规模报酬''这个经济概念，本质上是在问：函数沿过原点的射线\emph{如何}缩放。齐次函数恰好是把这种缩放规律定得最干净的一类函数。
+
+\section{齐次函数}
+\label{sec:homogeneous-def}
+
+\defn{$k$ 次齐次函数}{
+设 $f:D\to\RR$，定义域 $D\se\RR^n$ 是一个\emph{锥}（即 $\vc x\in D$ 蕴含 $t\vc x\in D$ 对一切 $t>0$ 成立，例如正卦限 $\RR^n_{++}$）。称 $f$ 为\textbf{$k$ 次齐次}（homogeneous of degree $k$），若对一切 $\vc x\in D$ 与一切 $t>0$ 都有
+\[
+    f(t\vc x)=t^{k}\,f(\vc x).
+\]
+这里 $k$ 是任意实数，称为 $f$ 的\textbf{齐次度}。
+}
+
+齐次度 $k$ 把上一节的规模报酬分类一网打尽：$k=1$ 是 CRS，$k>1$ 是 IRS，$0<k<1$ 是 DRS。沿一条固定射线看，沿线的取值完全被 $t^k$ 这一条曲线支配（图~\ref{fig:homogeneous-1}）：选定一点 $\vc x$、记 $g(t)=f(t\vc x)$，则齐次性说 $g(t)=t^k g(1)$。$k=1$ 时 $g$ 是过原点的直线，$k>1$ 时凸（加速上升），$0<k<1$ 时凹（边际放缓）。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.05,>=Stealth]
+    \draw[->] (-0.2,0) -- (5.4,0) node[right] {$t$};
+    \draw[->] (0,-0.2) -- (0,4.4) node[above] {$g(t)=f(t\vc x)$};
+    % 三条曲线，均过 (1,1)：g(t)=t^k，归一化 f(x)=1
+    % k=1 直线
+    \draw[thick,blue!60!black,domain=0:3.6,smooth,variable=\t] plot ({\t},{\t});
+    % k=2 凸（IRS）：在 t=2 取 4
+    \draw[thick,red!65!black,domain=0:2.05,smooth,variable=\t] plot ({\t},{\t*\t});
+    % k=1/2 凹（DRS）
+    \draw[thick,green!50!black,domain=0:5.1,smooth,variable=\t] plot ({\t},{sqrt(\t)});
+    % 参照点 t=1, g=1
+    \fill (1,1) circle (1.4pt);
+    \draw[dashed,gray] (1,0) node[below] {$1$} -- (1,1) -- (0,1) node[left] {$f(\vc x)$};
+    % 曲线标签，停在各曲线末端的空白处
+    \node[red!65!black,anchor=west] at (2.0,3.95) {$k>1$（IRS）};
+    \node[blue!60!black,anchor=west] at (3.55,3.55) {$k=1$（CRS）};
+    \node[green!50!black,anchor=west] at (4.5,2.45) {$0<k<1$（DRS）};
+\end{tikzpicture}
+\caption{沿过原点的射线，齐次函数的取值由 $g(t)=t^k f(\vc x)$ 支配（图中已归一化 $f(\vc x)=1$，三条曲线都过 $(1,1)$）。$k=1$ 时投入翻倍产出翻倍（直线，规模报酬不变）；$k>1$ 加速上升（递增）；$0<k<1$ 边际放缓（递减）。}
+\label{fig:homogeneous-1}
+\end{figure}
+
+\ex[几个齐次度的判定]{
+判断下列函数是否齐次，若是给出齐次度。(i) Cobb--Douglas $f(x_1,x_2)=A\,x_1^{a}x_2^{b}$；(ii) CES $f(x_1,x_2)=\pr{x_1^{\rho}+x_2^{\rho}}^{1/\rho}$；(iii) $h(x_1,x_2)=x_1^2+x_2$。
+}
+\sol{
+(i) $f(tx_1,tx_2)=A(tx_1)^a(tx_2)^b=t^{a+b}Ax_1^ax_2^b=t^{a+b}f(\vc x)$，故齐次度 $k=a+b$。指数之和决定规模报酬：$a+b=1$ 即 CRS。
+
+(ii) $f(t\vc x)=\pr{(tx_1)^{\rho}+(tx_2)^{\rho}}^{1/\rho}=\pr{t^{\rho}(x_1^{\rho}+x_2^{\rho})}^{1/\rho}=t\,f(\vc x)$，齐次度 $k=1$（CES 这种写法天生 CRS）。
+
+(iii) $h(t\vc x)=t^2x_1^2+tx_2$。要等于 $t^k h(\vc x)=t^k(x_1^2+x_2)$ 对一切 $\vc x,t$ 成立，需 $t^2$ 与 $t$ 同指数，不可能。故 $h$ \emph{不}齐次——把两项不同``重量''的东西相加，破坏了统一的缩放律。
+}
+
+\rmkb[齐次度可以是负数或零]{
+定义里 $k$ 是任意实数。$k=0$ 的齐次函数满足 $f(t\vc x)=f(\vc x)$——沿射线取值\emph{恒定}，即 $f$ 只取决于各分量的\emph{比例}而与整体规模无关。这正是后文需求函数``零次齐次''的内容。$k<0$ 则随规模放大而缩小，例如把要素价格映到单位成本的某些构造。先记住：``零次齐次 $=$ 只看比例''。
+}
+
+\section{欧拉定理}
+\label{sec:homogeneous-euler}
+
+齐次性是一条``整体''陈述（对每个 $t$ 都成立的等式）。欧拉定理把它翻译成一条``局部''陈述——只关乎在某一点的各个偏导数。这一步翻译之所以宝贵，是因为偏导数正是经济学里的边际量（边际产品、边际效用），于是``缩放律''被改写成了``边际量之间的会计恒等式''。
+
+\thm{欧拉定理}{
+设 $f:D\to\RR$ 在锥 $D\se\RR^n$ 上 $k$ 次齐次且连续可微。则对一切 $\vc x\in D$，
+\[
+    \boxed{\ \sum_{i=1}^{n}x_i\,\pd{f}{x_i}(\vc x)=k\,f(\vc x)\ }
+    \qquad\text{即}\qquad
+    \grad f(\vc x)\cdot\vc x=k\,f(\vc x).
+\]
+}
+\pf{
+固定 $\vc x\in D$，把齐次性的定义式看成关于单一变量 $t>0$ 的恒等式：
+\[
+    f(t\vc x)=t^{k}f(\vc x),\qquad t>0.
+\]
+两边对 $t$ 求导。左边用链式法则，把 $f$ 的第 $i$ 个自变量记为 $u_i=t x_i$，则 $\dd{u_i}{t}=x_i$，于是
+\[
+    \dd{}{t}f(t\vc x)=\sum_{i=1}^{n}\pd{f}{u_i}(t\vc x)\cdot x_i
+    =\sum_{i=1}^{n}x_i\,\pd{f}{x_i}(t\vc x).
+\]
+右边对 $t$ 求导得 $k\,t^{k-1}f(\vc x)$。两边相等：
+\[
+    \sum_{i=1}^{n}x_i\,\pd{f}{x_i}(t\vc x)=k\,t^{k-1}f(\vc x).
+\]
+这对一切 $t>0$ 成立。\emph{令 $t=1$}，即得 $\sum_i x_i\,\partial f/\partial x_i(\vc x)=k\,f(\vc x)$。
+}
+
+\rmkb[一行证明的两个关键动作]{
+整个证明只做了两件事：\textbf{(1) 把多变量的齐次等式压成单变量 $t$ 的恒等式}（沿射线走），\textbf{(2) 对 $t$ 求导后令 $t=1$ 回到原点所在的那条射线}。这套``沿射线参数化、对参数求导、再回代特殊值''的手法在本书反复出现（隐函数定理对恒等式求导、包络定理对参数求导皆同此理）。值得一提的是欧拉定理还有\emph{逆命题}：若连续可微的 $f$ 在锥上处处满足 $\grad f\cdot\vc x=k f$，则 $f$ 必 $k$ 次齐次——这条偏微分方程的解恰好就是齐次函数。所以``$k$ 次齐次''与``$\grad f\cdot\vc x=kf$''是\emph{等价}的两种说法。
+}
+
+\state{欧拉定理是``边际量的会计恒等式''}{
+把欧拉定理读成经济语言：左边 $\sum_i x_i\,\partial f/\partial x_i$ 是\emph{各投入量 $\times$ 该投入的边际产品}之和；右边是 $k$ 乘以总产出。于是当 $f$ 是 CRS（$k=1$）生产函数时，等式说\textbf{各要素按其边际产品取酬，加总后恰好等于总产出}——不多不少。这就是分配理论的数学内核，下一节展开。这条恒等式不是``近似''、不是``均衡条件'',它对任何 $1$ 次齐次函数\emph{恒成立}，纯粹是齐次性的代数后果。
+}
+
+\section{偏导数的齐次度下降一阶}
+\label{sec:homogeneous-derivatives}
+
+齐次函数有一条常被用到的``遗传''性质：它的偏导数也是齐次的，而且齐次度比母函数低一阶。这在经济学里立刻有解释——CRS（$k=1$）生产函数的\emph{边际产品}是 $0$ 次齐次的，也就是说边际产品只取决于要素\emph{配比}、与生产规模无关。
+
+\prop{偏导的齐次度}{
+设 $f:D\to\RR$ 在锥 $D$ 上 $k$ 次齐次且连续可微。则它的每个偏导数 $\partial f/\partial x_i$ 是 $(k-1)$ 次齐次：
+\[
+    \pd{f}{x_i}(t\vc x)=t^{\,k-1}\,\pd{f}{x_i}(\vc x),\qquad t>0,\ i=1,\dots,n.
+\]
+}
+\pf{
+从齐次性恒等式 $f(t\vc x)=t^{k}f(\vc x)$ 出发，这次两边对\emph{第 $i$ 个空间变量} $x_i$ 求偏导（$t$ 视为常数）。左边用链式法则，注意第 $i$ 个自变量 $u_i=tx_i$ 关于 $x_i$ 的导数是 $t$：
+\[
+    \pd{}{x_i}f(t\vc x)=\pd{f}{x_i}(t\vc x)\cdot t.
+\]
+右边 $\pd{}{x_i}\br{t^{k}f(\vc x)}=t^{k}\,\pd{f}{x_i}(\vc x)$。两边相等并除以 $t>0$：
+\[
+    \pd{f}{x_i}(t\vc x)=t^{k-1}\,\pd{f}{x_i}(\vc x).\qedhere
+\]
+}
+
+\rmkb[CRS 下边际产品只看配比]{
+对 CRS（$k=1$）生产函数，$\partial f/\partial x_i$ 是 $0$ 次齐次：$\partial f/\partial x_i(t\vc x)=\partial f/\partial x_i(\vc x)$。也就是说，资本与劳动\emph{同比例}增加时，劳动的边际产品\emph{不变}——增产纯靠堆量、效率不升不降。决定边际产品的是\emph{资本劳动比} $K/L$ 而非各自的绝对水平。这正是增长理论里把变量``人均化''（除以劳动）后能用一个单变量函数 $f(k)$（$k=K/L$）描述整套技术的根据，见本节末。
+}
+
+\section{应用一：欧拉的``产品耗尽''与分配}
+\label{sec:homogeneous-exhaustion}
+
+这是欧拉定理在经济学里最漂亮的应用，历史上称为\emph{欧拉的产品耗尽定理}（adding-up / product exhaustion）。设生产函数 $F(K,L)$ 规模报酬不变（$1$ 次齐次）。在完全竞争市场，厂商把要素价格当作给定，雇用要素至``边际产品价值 $=$ 要素价格''：实际工资 $w=\partial F/\partial L$、实际租金 $r=\partial F/\partial K$。那么按边际产品付酬，付给劳动与资本的总报酬是
+\[
+    wL+rK=\pd{F}{L}\,L+\pd{F}{K}\,K.
+\]
+由欧拉定理（$k=1$），右边恰等于 $F(K,L)$，即\emph{总产出}。于是
+
+\state{竞争 + CRS $\Rightarrow$ 利润为零、产出恰好分光}{
+在完全竞争、且生产规模报酬不变时，各要素按边际产品取酬，总报酬恰好等于总产出：
+\[
+    \pd{F}{L}\,L+\pd{F}{K}\,K=F(K,L).
+\]
+没有剩余、也不会不够分——\textbf{纯利润为零}。这不是某个``恰好''的巧合，而是 $1$ 次齐次性经由欧拉定理逼出来的代数恒等式。它解释了为什么竞争性的长期均衡里利润趋于零，也是新古典分配论``要素各得其边际贡献''能自洽的前提：若 $k\neq 1$，按边际产品付酬就会有缺口（IRS 时不够分、DRS 时有剩余），完全竞争与规模报酬递增因此天然冲突。
+}
+
+\ex[Cobb--Douglas 的要素份额]{
+设 $F(K,L)=A\,K^{\alpha}L^{1-\alpha}$（$0<\alpha<1$，这是 CRS，因指数和为 $1$）。验证产品耗尽，并说明 $\alpha$ 的含义。
+}
+\sol{
+两个边际产品为
+\[
+    \pd{F}{K}=\alpha A K^{\alpha-1}L^{1-\alpha}=\alpha\,\frac{F}{K},
+    \qquad
+    \pd{F}{L}=(1-\alpha)A K^{\alpha}L^{-\alpha}=(1-\alpha)\,\frac{F}{L}.
+\]
+于是按边际产品付酬的总额
+\[
+    \pd{F}{K}K+\pd{F}{L}L=\alpha F+(1-\alpha)F=F,
+\]
+正是产品耗尽。更进一步，资本得到的份额 $rK/F=\partial F/\partial K\cdot K/F=\alpha$，劳动份额 $wL/F=1-\alpha$。\textbf{Cobb--Douglas 指数 $\alpha$ 直接就是资本的收入份额}，且它是\emph{常数}——不随 $K,L$ 变。这正是 Cobb--Douglas 在宏观里历久不衰的原因：它内置了``要素份额大体稳定''这一经验规律。
+}
+
+\rmkb[把变量``人均化'']{
+CRS 让我们能给整套技术降维。$F(K,L)$ 是 $1$ 次齐次，取 $t=1/L$：
+\[
+    \frac{F(K,L)}{L}=F\!\pr{\frac{K}{L},1}=:f(k),\qquad k:=\frac{K}{L}.
+\]
+人均产出 $y=Y/L$ 只是人均资本 $k$ 的单变量函数 $y=f(k)$。Solow 增长模型整套分析（资本积累方程 $\dot k=sf(k)-(n+\delta)k$、稳态、黄金律）都建立在这个``人均化''上，而能这么做的全部根据，就是生产函数的 $1$ 次齐次性。这是齐次函数在宏观增长理论里的核心落点。
+}
+
+\section{应用二：需求的零次齐次与无货币幻觉}
+\label{sec:homogeneous-demand}
+
+第二个落点在消费理论。消费者解
+\[
+    \max_{\vc x\ge 0}\ u(\vc x)\quad\text{s.t.}\quad \vc p\cdot\vc x\le m,
+\]
+得到马歇尔需求 $\vc x^*(\vc p,m)$。现在把\emph{所有价格与收入同时}乘以 $t>0$：$(\vc p,m)\mapsto(t\vc p,tm)$。预算约束 $t\vc p\cdot\vc x\le tm$ 与原约束 $\vc p\cdot\vc x\le m$ 描述的是\emph{同一个}可行集（两边同除以 $t$），目标函数 $u$ 又没动，所以最优选择不变：
+\[
+    \vc x^*(t\vc p,\,tm)=\vc x^*(\vc p,m)\qquad\text{对一切 }t>0.
+\]
+按定义，这正是说\textbf{马歇尔需求关于 $(\vc p,m)$ 是 $0$ 次齐次}的。
+
+\state{零次齐次 $=$ ``没有货币幻觉''}{
+需求 $0$ 次齐次的经济含义是：消费者只关心\emph{相对}价格与\emph{实际}收入，而非价格与收入的名义水平。把所有标价和你的工资同时翻倍，你的实际选择不该有任何变化——这就是``没有货币幻觉''（no money illusion）。这条性质不是额外假设，它是``预算集只取决于价格与收入之比''这一事实的直接推论，因而对任何理性消费者\emph{自动}成立。在宏观里它对应货币中性的微观基础；在计量需求估计里，它是对需求系统施加的一条可检验的\emph{齐次性约束}（各价格弹性与收入弹性之和为零）。
+}
+
+\rmk{用欧拉定理给这条齐次性``求导'',就得到上面提到的弹性约束：对 $x_i^*(\vc p,m)$（$0$ 次齐次）套欧拉定理得 $\sum_j p_j\,\partial x_i^*/\partial p_j+m\,\partial x_i^*/\partial m=0$，两边除以 $x_i^*$ 即``所有（未补偿）价格弹性与收入弹性之和为零''。}
+
+\section{位似函数：齐次性的``有用推广''}
+\label{sec:homogeneous-homothetic}
+
+齐次性对生产函数往往合适，但对\emph{效用函数}却嫌太强——效用本是序数的（只有等值线的形状有意义，具体数值可任意单调重标），而``$u(t\vc x)=t^k u(\vc x)$''是一条加在具体数值上的基数式要求。我们真正想保留的，只是齐次函数那条几何性质：\emph{等值线沿过原点的射线等比例放大}。把它从具体数值里解放出来，就得到位似函数。
+
+\defn{位似函数}{
+称 $f:D\to\RR$（$D$ 为锥）为\textbf{位似的}（homothetic），若存在一个 $k$ 次齐次函数 $h$（某个 $k>0$）与一个严格递增函数 $\phi:\RR\to\RR$，使得
+\[
+    f(\vc x)=\phi\bigl(h(\vc x)\bigr).
+\]
+也就是说，位似函数 $=$ 齐次函数经过一次\emph{严格单调变换}。
+}
+
+单调变换 $\phi$ 不改变等值线的\emph{形状}（只给每条等值线重新贴个标签），所以位似函数与它背后的齐次函数 $h$ \emph{共享同一族等值线}。齐次函数的等值线有一条醒目的几何特征，位似函数原封不动地继承了它：
+
+\prop{位似函数的射线性质}{
+设 $f=\phi\circ h$ 位似。则沿任一条过原点的射线，等值线的切线斜率（即\emph{边际替代率} MRS）保持不变。等价地：所有等值线都是\emph{同一条等值线沿射线的等比例放大}，从而连结各等值线对应切点的\textbf{扩张路径是一条过原点的射线}。
+}
+\pf{
+两点要核验。其一，单调变换不改变 MRS。在两要素情形，等值线斜率为
+\[
+    -\dd{x_2}{x_1}\Big|_{f}=\frac{\partial f/\partial x_1}{\partial f/\partial x_2}
+    =\frac{\phi'(h)\,\partial h/\partial x_1}{\phi'(h)\,\partial h/\partial x_2}
+    =\frac{\partial h/\partial x_1}{\partial h/\partial x_2},
+\]
+$\phi'>0$ 在分子分母同时出现、约掉，故 $f$ 与 $h$ 的 MRS 处处相同。其二，齐次 $h$ 的 MRS 沿射线不变。由上一节，$\partial h/\partial x_i$ 是 $(k-1)$ 次齐次，于是
+\[
+    \frac{\partial h/\partial x_1(t\vc x)}{\partial h/\partial x_2(t\vc x)}
+    =\frac{t^{k-1}\,\partial h/\partial x_1(\vc x)}{t^{k-1}\,\partial h/\partial x_2(\vc x)}
+    =\frac{\partial h/\partial x_1(\vc x)}{\partial h/\partial x_2(\vc x)},
+\]
+$t^{k-1}$ 上下约掉，MRS 只取决于配比 $\vc x$ 的方向、与沿射线走多远无关。两点合起来即得结论。
+}
+
+这条性质有一个一眼可辨的图像（图~\ref{fig:homogeneous-2}）：在固定相对价格下，消费者（或厂商）随预算（或产出目标）扩大而选择的最优点，全部落在\emph{同一条过原点的射线}上——这条线就是\textbf{扩张路径}（expansion path），也是收入提供曲线。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.7,>=Stealth]
+    \draw[->] (-0.05,0) -- (3.2,0) node[right] {$x_1$};
+    \draw[->] (0,-0.05) -- (0,3.0) node[above] {$x_2$};
+    % 等值线：取 h = x1*x2（Cobb-Douglas, a=b=1/2 的单调变换；等值线 x2=c/x1）
+    % 三条等值线 c=0.36, 0.81, 1.44；扩张路径取射线 x2=x1（对称偏好的切点轨迹）
+    % 内层 c1=0.36
+    \draw[thick,green!50!black,domain=0.16:2.45,smooth,variable=\x] plot ({\x},{0.36/\x});
+    % 中层 c2=0.81
+    \draw[thick,green!50!black,domain=0.27:2.7,smooth,variable=\x] plot ({\x},{0.81/\x});
+    % 外层 c3=1.44
+    \draw[thick,green!50!black,domain=0.5:2.85,smooth,variable=\x] plot ({\x},{1.44/\x});
+    % 扩张路径（射线 x2=x1）：切点在 x1=x2=sqrt(c)：0.6, 0.9, 1.2
+    \draw[red!70!black,thick] (0,0) -- (2.55,2.55);
+    % 三个切点（精确：sqrt(c)）
+    \fill (0.6,0.6) circle (0.9pt);
+    \fill (0.9,0.9) circle (0.9pt);
+    \fill (1.2,1.2) circle (0.9pt);
+    % 标签：扩张路径（停在射线右上方空白，细引线指向射线但不穿等值线）
+    \node[red!70!black,anchor=south west] at (2.0,2.62) {扩张路径};
+    \draw[red!70!black,->] (2.05,2.6) -- (2.3,2.3);
+    % 等值线标签：分别贴住三条曲线各自的右端尾部，由内(c1)到外(c3)、高度互不重叠
+    \node[green!45!black,anchor=west] at (2.5,0.16) {$f=c_1$};
+    \node[green!45!black,anchor=west] at (2.74,0.32) {$c_2$};
+    \node[green!45!black,anchor=west] at (2.9,0.52) {$c_3$};
+\end{tikzpicture}
+\caption{位似函数的等值线沿过原点的射线等比例放大（图中 $c_1<c_2<c_3$）。在固定相对价格下，最优点（切点）随规模扩大而沿\emph{同一条过原点的射线}移动——这条直线就是扩张路径。射线性质来自``偏导数 $(k-1)$ 次齐次''，使边际替代率沿射线不变。}
+\label{fig:homogeneous-2}
+\end{figure}
+
+\state{为什么消费理论偏爱位似}{
+位似（而非齐次）才是消费理论里真正用得上的那一档：\textbf{偏好位似 $\Iff$ 每种商品的需求都是收入的\emph{线性}函数（恩格尔曲线为过原点的直线）、且预算份额与收入无关}。直观地说，你变富之后会把多出来的钱\emph{按原比例}分配到各商品上。这条性质让加总变得干净——一群位似且偏好相同的消费者，其总需求就像一个``代表性消费者''的需求，与收入如何分配无关。宏观模型里频繁假设位似偏好，正是为了召唤出这个``代表性家庭''。而齐次效用只是位似的一个特例（取 $\phi=\mathrm{id}$），多出来的基数结构在序数效用框架里并无额外用处。
+}
+
+\rmkb[齐次、位似、拟凹三者的关系]{
+不要混淆三个相邻概念。\textbf{齐次}管的是``沿射线如何缩放''（基数性质）；\textbf{位似}是齐次的单调变换，只保留``等值线沿射线放大''这条几何性质（序数性质，故适配效用）；\textbf{拟凹}（见后文『凹凸函数与拟凹/拟凸』一章）管的是``等值线凸向原点''（上等值集为凸集），保证最优化有良好的内点解。三者彼此独立：位似偏好未必拟凹，拟凹偏好未必位似。但它们常被一并假设，因为合起来能同时保证\emph{需求存在唯一}（拟凹）与\emph{加总干净}（位似）。
+}
+
+\section{小结：一条缩放律，三处落点}
+\label{sec:homogeneous-summary}
+
+本章只讲了一件几何事实——函数沿过原点的射线如何缩放——以及把它局部化的欧拉定理，却接通了经济学三大分支：
+
+\begin{itemize}
+    \item \textbf{生产与分配}（微观/宏观）。齐次度即规模报酬类型；欧拉定理给出``CRS $+$ 竞争 $\Rightarrow$ 产品耗尽、利润为零'',这是新古典分配论的地基。CRS 还让生产函数可``人均化''，撑起 Solow 增长模型。
+    \item \textbf{消费与需求}（微观/计量）。马歇尔需求对 $(\vc p,m)$ 零次齐次 $=$ 无货币幻觉，是需求系统估计里的可检验约束；位似偏好给出线性恩格尔曲线与可加总的代表性消费者。
+    \item \textbf{弹性与会计恒等式}（贯穿）。把欧拉定理用在不同的齐次对象上，就得到``要素份额加总为 $1$''``价格弹性加总为零''这类恒等式——它们不是经验发现，而是齐次性的代数后果。
+\end{itemize}
+
+齐次函数与凹凸性（见后文『凹凸函数与拟凹/拟凸』一章）、与最优化（第四部分）配合，构成了刻画``生产/偏好''这类经济原语的标准工具箱。认得``$f(t\vc x)=t^k f(\vc x)$''这条简单的缩放律，你就同时握住了规模报酬、产品耗尽、货币幻觉与代表性家庭这一串看似无关的结论的共同钥匙。

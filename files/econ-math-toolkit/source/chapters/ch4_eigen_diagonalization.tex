@@ -1,0 +1,445 @@
+% !TEX root = ../main.tex
+\chapter{特征值、特征向量与对角化}
+\label{ch:eigen}
+
+\noindent\emph{用到的前置工具：矩阵作为线性映射、矩阵乘法（第二章）；线性无关、基与维数（第一章）；行列式与矩阵可逆（基础线性代数，本书直接借用，见第二章末）。}
+\medskip
+
+一个矩阵 $\mat A$ 作用在向量上，一般会同时做两件事——把向量\emph{转个方向}、再\emph{拉长或缩短}。方向一变，连续作用 $\mat A^2,\mat A^3,\dots$ 就纠缠得难以追踪：这正是动态系统、Markov 链、反复迭代的最优化算法里反复出现的难题。本章要找的，是这台变换里``方向不变''的那几根轴——沿着它们，$\mat A$ 退化成一个纯粹的数乘。把坐标系换到这几根轴上，矩阵就被``拉直''成对角形，所有关于它的幂、它的长期行为、它的稳定性，都一目了然。这就是\textbf{对角化}：为一个线性变换找到让它变简单的坐标系。它是计量里方差矩阵分析、宏观里差分方程与 VAR 稳定性、概率里 Markov 链收敛的公用引擎，也是下一章谱定理与主成分分析的正门。
+
+\section{方向不变的轴：特征值与特征向量}
+\label{sec:eigen-1}
+
+先把``方向不变''这件事精确化。绝大多数向量被 $\mat A$ 作用后都会偏转，但总有一些特殊方向，作用前后仍落在同一条过原点的直线上——只是被拉伸了一个倍数。这样的方向就是特征向量，那个倍数就是特征值。
+
+\defn{特征值与特征向量}{
+设 $\mat A\in\RR^{n\times n}$。若存在标量 $\lambda$ 与\emph{非零}向量 $\vc v$（允许 $\lambda\in\CC,\vc v\in\CC^n$），使得
+\[
+    \mat A\vc v=\lambda\vc v ,
+\]
+则称 $\lambda$ 为 $\mat A$ 的一个\textbf{特征值}（eigenvalue），$\vc v$ 为属于 $\lambda$ 的\textbf{特征向量}（eigenvector）。
+}
+
+\rmkb[为什么要排除 $\vc v=\vc 0$]{
+若允许 $\vc v=\vc 0$，则 $\mat A\vc 0=\lambda\vc 0$ 对任何 $\lambda$ 都成立，``特征值''便毫无意义。所以定义里硬性要求 $\vc v\neq\vc 0$。与之相反，$\lambda=0$ 是\emph{允许}的：$\mat A\vc v=\vc 0$ 且 $\vc v\neq\vc 0$ 说明 $\mat A$ 有非平凡零空间，即 $\mat A$ 奇异。换句话说，``$0$ 是 $\mat A$ 的特征值''与``$\mat A$ 不可逆''是同一件事——这一点稍后还会用到。
+}
+
+特征向量的几何意义是本章的母图：$\mat A$ 把单位圆压成一个椭圆时，椭圆的主轴方向就是``方向不变''的轴，每条主轴被拉伸的倍数就是对应的特征值（图~\ref{fig:eigen-1}）。沿这些轴，弯曲与旋转都消失了，只剩纯缩放。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth,
+    ax/.style={->,gray!55,thin},
+    ev/.style={->,very thick,red!70!black},
+    gv/.style={->,very thick,blue!55!black}]
+% ============ 左：单位圆 + 特征方向 ============
+\begin{scope}[shift={(0,0)}]
+  \draw[ax] (-2.6,0) -- (2.6,0) node[right]{$x_1$};
+  \draw[ax] (0,-2.6) -- (0,2.8) node[above]{$x_2$};
+  \draw[gray!50,dashed] (-2.3,-2.3) -- (2.3,2.3);
+  \draw[gray!50,dashed] (-2.3,2.3) -- (2.3,-2.3);
+  \draw[thick] (0,0) circle (1);
+  \draw[ev] (0,0) -- (0.7071,0.7071) node[anchor=south west,inner sep=1pt]{$\vc v_1$};
+  \draw[ev] (0,0) -- (0.7071,-0.7071) node[anchor=north west,inner sep=1pt]{$\vc v_2$};
+  \draw[gv] (0,0) -- (0.9397,0.342) node[anchor=west,inner sep=2pt]{$\vc x$};
+  \node at (0,-3.2){(1) 单位圆上的方向};
+\end{scope}
+\draw[->,thick] (2.95,0) -- (4.05,0) node[midway,above]{$\mat A\,\cdot$};
+% ============ 右：像椭圆 ============
+\begin{scope}[shift={(7.0,0)}]
+  \draw[ax] (-2.6,0) -- (2.6,0) node[right]{$x_1$};
+  \draw[ax] (0,-2.6) -- (0,2.8) node[above]{$x_2$};
+  \draw[gray!50,dashed] (-2.3,-2.3) -- (2.3,2.3);
+  \draw[gray!50,dashed] (-2.3,2.3) -- (2.3,-2.3);
+  \draw[thick,rotate=45] (0,0) ellipse [x radius=2, y radius=1];
+  \draw[ev] (0,0) -- (1.4142,1.4142) node[anchor=south west,inner sep=1pt]{$\mat A\vc v_1=2\vc v_1$};
+  \draw[ev] (0,0) -- (0.7071,-0.7071) node[anchor=north west,inner sep=1pt]{$\mat A\vc v_2=\vc v_2$};
+  \draw[gv] (0,0) -- (1.5805,0.9829) node[anchor=south west,inner sep=2pt]{$\mat A\vc x$};
+  \node at (0,-3.2){(2) 像椭圆};
+\end{scope}
+\end{tikzpicture}
+\caption{特征向量是``变换下方向不变的轴''。这里 $\mat A=\big[\begin{smallmatrix}1.5&0.5\\0.5&1.5\end{smallmatrix}\big]$ 把单位圆压成椭圆：沿特征方向 $\vc v_1$（$45^\circ$）向量被拉长 $\lambda_1=2$ 倍、方向不变，沿 $\vc v_2$（$-45^\circ$）保持原长 $\lambda_2=1$、方向也不变；而一般向量 $\vc x$ 既被拉伸、方向又偏转（$\mat A\vc x$ 与 $\vc x$ 不共线）。}
+\label{fig:eigen-1}
+\end{figure}
+
+\state{把特征向量读成``矩阵的自然坐标轴''}{
+特征向量给出 $\mat A$ 最``顺手''的一组坐标方向：在这些方向上，矩阵乘法 $\mat A\vc v$ 退化为标量乘法 $\lambda\vc v$。一旦把任意向量按特征向量展开，作用 $\mat A$ 就只是把各个分量分别乘上各自的 $\lambda_i$——没有方向纠缠。本章后面的对角化、矩阵幂、稳定性分析，全都是在兑现这一句话的红利。
+}
+
+\section{特征多项式：怎样把特征值找出来}
+\label{sec:eigen-2}
+
+定义说清了``是什么'',却没说``怎么求''。把 $\mat A\vc v=\lambda\vc v$ 移项，关键的代数变形只有一步：
+\[
+    \mat A\vc v=\lambda\vc v
+    \iff (\mat A-\lambda\mat I)\vc v=\vc 0 .
+\]
+这是一个齐次线性方程组。我们要的是\emph{非零}解 $\vc v$——而一个齐次方程组有非零解，当且仅当它的系数矩阵奇异（第二章）。于是 $\lambda$ 是特征值，当且仅当 $\mat A-\lambda\mat I$ 不可逆，即其行列式为零。
+
+\defn{特征多项式}{
+矩阵 $\mat A\in\RR^{n\times n}$ 的\textbf{特征多项式}（characteristic polynomial）是
+\[
+    p(\lambda)=\det(\mat A-\lambda\mat I) .
+\]
+它是 $\lambda$ 的 $n$ 次多项式；方程 $p(\lambda)=0$ 称为\textbf{特征方程}，其根恰为 $\mat A$ 的全部特征值。
+}
+
+\state{求特征值就是解特征方程；求特征向量就是解齐次方程组}{
+两步走，机械而可靠：\\[2pt]
+\textbf{(1)} 解 $\det(\mat A-\lambda\mat I)=0$，得到全部特征值 $\lambda_1,\dots$；\\[2pt]
+\textbf{(2)} 对每个 $\lambda_i$，求 $(\mat A-\lambda_i\mat I)\vc v=\vc 0$ 的非零解，即得该特征值的特征向量（它们张成一个子空间，称为\textbf{特征子空间} $\ker(\mat A-\lambda_i\mat I)$）。
+}
+
+\rmkb[特征值可能是复数]{
+特征方程是实系数多项式方程，但根未必是实数。最干净的例子是旋转 $90^\circ$ 的矩阵 $\mat A=\big[\begin{smallmatrix}0&-1\\1&0\end{smallmatrix}\big]$：它把\emph{每一个}实方向都转走了，几何上根本没有``不变的实轴'',对应地 $p(\lambda)=\lambda^2+1=0$ 给出 $\lambda=\pm i$。在 $\CC$ 上特征向量依然存在。代数基本定理保证 $n$ 阶矩阵在复数域内总有 $n$ 个特征值（按重数计）。下一章会看到，实对称矩阵把这种麻烦一扫而空——它的特征值必为实数。}
+
+\ex[一个 $2\times2$ 的完整计算]{
+求 $\mat A=\bm 2 & 1\\ 1 & 2\emx$ 的特征值与特征向量。
+}
+\sol{
+\textbf{特征值。}\, 特征多项式为
+\[
+    p(\lambda)=\det(\mat A-\lambda\mat I)
+    =\det\bm 2-\lambda & 1\\ 1 & 2-\lambda\emx
+    =(2-\lambda)^2-1
+    =\lambda^2-4\lambda+3=(\lambda-1)(\lambda-3) .
+\]
+故 $\lambda_1=1$、$\lambda_2=3$。\\[3pt]
+\textbf{特征向量。}\, 对 $\lambda_1=1$，解 $(\mat A-\mat I)\vc v=\vc 0$：
+\[
+    \bm 1 & 1\\ 1 & 1\emx\vc v=\vc 0
+    \;\To\; v_1+v_2=0
+    \;\To\; \vc v_1\propto\bm 1\\ -1\emx .
+\]
+对 $\lambda_2=3$，解 $(\mat A-3\mat I)\vc v=\vc 0$：
+\[
+    \bm -1 & 1\\ 1 & -1\emx\vc v=\vc 0
+    \;\To\; v_1=v_2
+    \;\To\; \vc v_2\propto\bm 1\\ 1\emx .
+\]
+验算 $\mat A(1,1)\T=(3,3)\T=3(1,1)\T$，无误。特征向量只定到一个非零倍数：若 $\vc v$ 是特征向量则 $c\vc v$（$c\neq0$）也是，因为 $\mat A(c\vc v)=c\,\mat A\vc v=\lambda(c\vc v)$。注意这里两特征向量恰好正交——这并非巧合，而是 $\mat A$ 对称的结果（下一章谱定理）。
+}
+
+\section{代数重数与几何重数}
+\label{sec:eigen-3}
+
+特征值在特征方程里可能是重根，它对应的特征方向也可能不止一个。要刻画``一个特征值带来多少独立方向'',需要分清两个``重数''。
+
+\defn{代数重数与几何重数}{
+设 $\lambda_0$ 是 $\mat A$ 的特征值。\\[2pt]
+$\lambda_0$ 的\textbf{代数重数}（algebraic multiplicity）$m_a(\lambda_0)$ 是它作为特征多项式 $p(\lambda)$ 的根的重数。\\[2pt]
+$\lambda_0$ 的\textbf{几何重数}（geometric multiplicity）$m_g(\lambda_0)$ 是它的特征子空间的维数 $\dim\ker(\mat A-\lambda_0\mat I)$，即属于 $\lambda_0$ 的线性无关特征向量的个数。
+}
+
+二者的关系是一条不等式，方向恰好是``几何 $\le$ 代数''：
+
+\prop{重数不等式}{
+对任一特征值 $\lambda_0$，总有
+\[
+    1\le m_g(\lambda_0)\le m_a(\lambda_0) .
+\]
+}
+
+下界 $m_g\ge1$ 是定义自带的：特征值至少有一个特征向量。上界 $m_g\le m_a$ 是实质内容，直觉是``一个 $\lambda_0$ 撑不起比它的代数重数更多的独立方向'';严格证明可在该特征子空间取一组基、扩成全空间的基后看 $\mat A$ 在这组基下的分块上三角形（其证依赖相似不改变特征多项式，见下一节）。当 $m_g<m_a$ 时，我们说这个特征值是\textbf{亏损的}（defective），它``欠''了几个特征向量。
+
+\ex[一个亏损的例子：剪切矩阵]{
+考虑剪切矩阵 $\mat A=\bm 1 & 1\\ 0 & 1\emx$。它的特征结构是什么？
+}
+\sol{
+特征多项式 $p(\lambda)=\det\bm 1-\lambda & 1\\ 0 & 1-\lambda\emx=(1-\lambda)^2$，故 $\lambda=1$ 是\emph{唯一}特征值、代数重数 $m_a=2$。求特征向量：
+\[
+    (\mat A-\mat I)\vc v=\bm 0 & 1\\ 0 & 0\emx\vc v=\vc 0
+    \;\To\; v_2=0
+    \;\To\; \vc v\propto\bm 1\\ 0\emx .
+\]
+特征子空间只有\emph{一维}，几何重数 $m_g=1<2=m_a$。于是 $\mat A$ 亏损——它只有一根方向不变的轴（$x_1$ 轴），别的方向都被``剪''歪了（图~\ref{fig:eigen-2}）。这正是下一节``可对角化''会卡壳的那类矩阵。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.5,>=Stealth,
+    ax/.style={->,gray!55,thin},
+    ev/.style={->,very thick,red!70!black}]
+  \draw[ax] (-1.2,0) -- (2.9,0) node[right]{$x_1$};
+  \draw[ax] (0,-0.6) -- (0,2.0) node[above]{$x_2$};
+  \draw[gray!60,thick] (0,0) -- (1,0) -- (1,1) -- (0,1) -- cycle;
+  \node[gray!55!black,anchor=east] at (-0.45,0.5) {原正方形};
+  \draw[gray!55!black,->,thin] (-0.42,0.5) -- (-0.04,0.5);
+  \draw[blue!55!black,thick] (0,0) -- (1,0) -- (2,1) -- (1,1) -- cycle;
+  \node[blue!55!black,anchor=west] at (2.05,1.0) {剪切后};
+  \draw[blue!55!black,->,thin] (0.55,1.35) -- (1.55,1.35);
+  \node[blue!55!black,anchor=south,inner sep=1pt] at (1.05,1.37) {\small 上边右滑};
+  \draw[ev] (0,0) -- (1.0,0);
+  \node[red!70!black,anchor=north,align=center] at (1.0,-0.32)
+     {唯一特征方向 $\vc v=(1,0)\T$};
+  \draw[red!70!black,->,thin] (0.78,-0.24) -- (0.62,-0.04);
+\end{tikzpicture}
+\caption{亏损矩阵：剪切 $\mat A=\big[\begin{smallmatrix}1&1\\0&1\end{smallmatrix}\big]$ 把单位正方形``推''成平行四边形，上边整体右滑。特征值 $\lambda=1$ 代数重数为 $2$，却只有一根不变的轴——$x_1$ 轴上的向量原地不动（$\mat A(1,0)\T=(1,0)\T$），其余方向都被剪歪。几何重数 $1<2$，故 $\mat A$ 不可对角化。}
+\label{fig:eigen-2}
+\end{figure}
+
+\section{可对角化：凑齐 $n$ 个线性无关的特征向量}
+\label{sec:eigen-4}
+
+对角化的整个故事，可以浓缩成一句话：\textbf{能不能用特征向量拼出一组基}。如果能，矩阵就被拉直成对角形；如果不能（像上面的剪切矩阵），就拉不直。先把``拉直''说清楚。
+
+\defn{可对角化}{
+方阵 $\mat A\in\RR^{n\times n}$ 称为\textbf{可对角化的}（diagonalizable），若存在可逆矩阵 $\mat P$ 与对角矩阵 $\mat D$，使得
+\[
+    \mat A=\mat P\,\mat D\,\inv{\mat P} ,
+\]
+等价地 $\inv{\mat P}\mat A\mat P=\mat D$。此时称 $\mat A$ 与对角阵 $\mat D$ \textbf{相似}。
+}
+
+这个 $\mat P,\mat D$ 不是凭空来的，它们就是特征向量与特征值。把 $\mat A=\mat P\mat D\inv{\mat P}$ 右乘 $\mat P$ 写成 $\mat A\mat P=\mat P\mat D$，再逐列看：设 $\mat P$ 的第 $j$ 列是 $\vc p_j$、$\mat D=\diag(\lambda_1,\dots,\lambda_n)$，则左边第 $j$ 列是 $\mat A\vc p_j$，右边第 $j$ 列是 $\lambda_j\vc p_j$。两边相等正是 $\mat A\vc p_j=\lambda_j\vc p_j$——即 $\mat P$ 的每一列都是特征向量、$\mat D$ 的对角元是对应特征值。而 $\mat P$ 要可逆，等价于它的 $n$ 列线性无关。于是：
+
+\thm{可对角化判据}{
+$\mat A\in\RR^{n\times n}$ 可对角化，当且仅当它有 $n$ 个线性无关的特征向量。此时取 $\mat P=\br{\vc v_1\ \cdots\ \vc v_n}$（各列为特征向量）、$\mat D=\diag(\lambda_1,\dots,\lambda_n)$（对应特征值），便有
+\[
+    \boxed{\ \mat A=\mat P\,\mat D\,\inv{\mat P}\ } .
+\]
+}
+
+\rmkb[列的顺序与配对]{
+$\mat P$ 各列的顺序可以随意，但 $\mat D$ 对角元的顺序必须\emph{与之一一对应}：第 $j$ 列特征向量配第 $j$ 个对角元特征值。换一个排列，$\mat P$ 与 $\mat D$ 同步换，等式照样成立。还要注意 $\mat P$ 不唯一——每个特征向量都可任意缩放、重特征值的特征子空间内可任选基——但对角阵 $\mat D$ 的对角元（连重数）是 $\mat A$ 定死的。}
+
+什么时候凑得齐 $n$ 个线性无关的特征向量？一个最常用的充分条件，来自下面这条干净的引理：\emph{不同}特征值的特征向量天然就线性无关。
+
+\lem{相异特征值的特征向量线性无关}{
+设 $\vc v_1,\dots,\vc v_k$ 分别是 $\mat A$ 属于\emph{两两不同}的特征值 $\lambda_1,\dots,\lambda_k$ 的特征向量。则 $\vc v_1,\dots,\vc v_k$ 线性无关。
+}
+
+\pf{
+对 $k$ 作归纳。$k=1$ 时单个非零向量自然无关。设结论对 $k-1$ 成立，要证对 $k$ 成立。设有线性关系
+\[
+    c_1\vc v_1+c_2\vc v_2+\cdots+c_k\vc v_k=\vc 0 . \tag{$\ast$}
+\]
+对 $(\ast)$ 两边作用 $\mat A$，利用 $\mat A\vc v_i=\lambda_i\vc v_i$：
+\[
+    c_1\lambda_1\vc v_1+c_2\lambda_2\vc v_2+\cdots+c_k\lambda_k\vc v_k=\vc 0 . \tag{$\ast\ast$}
+\]
+再把 $(\ast)$ 乘以 $\lambda_k$，与 $(\ast\ast)$ 相减，消去 $\vc v_k$ 那一项：
+\[
+    c_1(\lambda_1-\lambda_k)\vc v_1+\cdots+c_{k-1}(\lambda_{k-1}-\lambda_k)\vc v_{k-1}=\vc 0 .
+\]
+这是关于 $\vc v_1,\dots,\vc v_{k-1}$ 的线性关系。由归纳假设它们线性无关，故每个系数为零：$c_i(\lambda_i-\lambda_k)=0$（$i=1,\dots,k-1$）。因为 $\lambda_i\neq\lambda_k$，得 $c_1=\cdots=c_{k-1}=0$。代回 $(\ast)$ 只剩 $c_k\vc v_k=\vc 0$，而 $\vc v_k\neq\vc 0$，故 $c_k=0$。所有系数为零，线性无关得证。
+}
+
+\cor{相异特征值 $\Rightarrow$ 可对角化}{
+若 $\mat A\in\RR^{n\times n}$ 有 $n$ 个\emph{互不相同}的特征值，则它的 $n$ 个特征向量线性无关，故 $\mat A$ 可对角化。
+}
+
+\state{可对角化的两个等价标准}{
+对 $\mat A\in\RR^{n\times n}$，下面两件事等价于``可对角化'':\\[2pt]
+\textbf{(i)} 存在 $n$ 个线性无关的特征向量；\\[2pt]
+\textbf{(ii)} 每个特征值的几何重数都等于其代数重数（即没有亏损），且全部代数重数之和为 $n$。\\[4pt]
+\emph{相异特征值}是 (i) 的一个方便充分条件，但不必要——单位阵 $\mat I$ 只有一个特征值 $1$（代数重数 $n$），却有满满 $n$ 维特征子空间，照样可对角化。真正会卡壳的只有亏损：几何重数顶不上代数重数时（如剪切矩阵），怎么也凑不齐 $n$ 个无关特征向量。
+}
+
+\rmkb[拉不直时怎么办]{
+亏损矩阵无法对角化，但总能化成``几乎对角''的\textbf{Jordan 标准形}——对角线上是特征值、紧邻的上对角线上点缀几个 $1$，每个亏损方向贡献一个 Jordan 块。本书不展开 Jordan 理论，只需记住：经济学里真正要紧的那一大类矩阵（实对称矩阵，下一章）\emph{永不}亏损，必可正交对角化；至于一般动态系统，即便偶遇亏损，谱半径主导的稳定性结论依然成立（本章末再述）。
+}
+
+\section{相似变换：换坐标系看同一台变换}
+\label{sec:eigen-5}
+
+对角化 $\mat A=\mat P\mat D\inv{\mat P}$ 是``相似''这个更一般概念的特例。理解相似，就理解了对角化为何``保留了 $\mat A$ 的本质而只换了外衣''。
+
+\defn{相似}{
+两个方阵 $\mat A,\mat B\in\RR^{n\times n}$ \textbf{相似}（similar），若存在可逆矩阵 $\mat P$ 使
+\[
+    \mat B=\inv{\mat P}\mat A\mat P .
+\]
+}
+
+相似的含义是\textbf{换基}：同一个线性变换，在不同的坐标系（基）下写出来的矩阵互相相似，$\mat P$ 是两组基之间的换基矩阵。可对角化，就是说存在一组基（特征向量基），在这组基下这台变换的矩阵是纯对角的。下面这条性质解释了为什么相似变换``不动''特征结构。
+
+\prop{相似保特征多项式（从而保特征值、迹、行列式）}{
+若 $\mat B=\inv{\mat P}\mat A\mat P$，则 $\mat A$ 与 $\mat B$ 有相同的特征多项式，因而有相同的特征值（连同代数重数）、相同的迹与相同的行列式。
+}
+
+\pf{
+直接计算特征多项式，反复用 $\det(\mat X\mat Y)=\det\mat X\det\mat Y$ 与 $\det(\inv{\mat P})=1/\det\mat P$：
+\[
+\ba
+    \det(\mat B-\lambda\mat I)
+    &=\det(\inv{\mat P}\mat A\mat P-\lambda\,\inv{\mat P}\mat P)
+    =\det\!\big(\inv{\mat P}(\mat A-\lambda\mat I)\mat P\big)\\
+    &=\det(\inv{\mat P})\,\det(\mat A-\lambda\mat I)\,\det(\mat P)
+    =\det(\mat A-\lambda\mat I) .
+\ea
+\]
+特征多项式相同，其根（特征值）随之相同。迹是特征多项式中 $\lambda^{n-1}$ 的系数（差一个符号）、行列式是常数项（差一个符号），故也相同。
+}
+
+\state{相似变换是``换个坐标系，本质不变''}{
+特征值、迹、行列式、秩、可对角化与否——这些都是\textbf{相似不变量}：它们刻画的是线性变换\emph{本身}，与你用哪组基来写矩阵无关。对角化的全部意义，就是在所有相似的``外衣''里挑出最朴素的那一件（对角阵），让这些不变量直接显形在对角线上。
+}
+
+\section{迹等于特征值之和，行列式等于特征值之积}
+\label{sec:eigen-6}
+
+特征值不仅藏着方向信息，还把矩阵两个最常用的标量——迹与行列式——一口气算了出来。这两条恒等式在计量与最优化里出现得极其频繁。
+
+\thm{迹与行列式的特征值公式}{
+设 $\mat A\in\RR^{n\times n}$ 的特征值为 $\lambda_1,\dots,\lambda_n$（在 $\CC$ 上按代数重数计）。则
+\[
+    \tr\mat A=\sum_{i=1}^n\lambda_i ,
+    \qquad
+    \det\mat A=\prod_{i=1}^n\lambda_i .
+\]
+}
+
+\pf{
+把特征多项式 $p(\lambda)=\det(\mat A-\lambda\mat I)$ 按它的根分解：因首项系数为 $(-1)^n$，
+\[
+    p(\lambda)=(-1)^n(\lambda-\lambda_1)(\lambda-\lambda_2)\cdots(\lambda-\lambda_n) .
+\]
+两边比较系数即可。\\[3pt]
+\textbf{行列式。}\, 令 $\lambda=0$：左边 $p(0)=\det\mat A$，右边 $(-1)^n(-\lambda_1)\cdots(-\lambda_n)=(-1)^n(-1)^n\prod_i\lambda_i=\prod_i\lambda_i$。故 $\det\mat A=\prod_i\lambda_i$。\\[3pt]
+\textbf{迹。}\, 比较 $\lambda^{n-1}$ 的系数。右边展开，$\lambda^{n-1}$ 的系数是 $(-1)^n\cdot\big(-(\lambda_1+\cdots+\lambda_n)\big)=(-1)^{n-1}\sum_i\lambda_i$。左边 $\det(\mat A-\lambda\mat I)$ 中 $\lambda^{n-1}$ 的系数——只有主对角线连乘项 $\prod_i(a_{ii}-\lambda)$ 才贡献 $\lambda^{n-1}$——是 $(-1)^{n-1}\sum_i a_{ii}=(-1)^{n-1}\tr\mat A$。两者相等，得 $\tr\mat A=\sum_i\lambda_i$。
+}
+
+\rmkb[对可对角化矩阵有一行更短的证法]{
+若 $\mat A=\mat P\mat D\inv{\mat P}$，则由迹的循环性 $\tr(\mat X\mat Y)=\tr(\mat Y\mat X)$ 得 $\tr\mat A=\tr(\mat P\mat D\inv{\mat P})=\tr(\mat D\inv{\mat P}\mat P)=\tr\mat D=\sum_i\lambda_i$；又 $\det\mat A=\det\mat P\det\mat D\det(\inv{\mat P})=\det\mat D=\prod_i\lambda_i$。上面的证法不依赖可对角化，对一切方阵都成立。}
+
+这两条公式的用处遍布全书。其一，它们给了``不解特征方程也能做核验''的快捷手段——算出几个特征值后，看它们的和、积对不对得上一眼可得的迹与行列式，立刻知道有没有算错。其二，许多结论可直接用迹/行列式翻译成特征值语言：例如``$\mat A$ 可逆 $\iff\det\mat A\neq0\iff$ 所有 $\lambda_i\neq0$'',又把第~\ref{sec:eigen-1} 节那句``$0$ 是特征值 $\iff$ 奇异''补成了完整闭环。计量里用 $\tr\mat A=\sum_i\lambda_i$ 算投影矩阵的秩（前一章 OLS 自由度 $\tr\mat P=\rank\mat P$ 正是此理），统计里用 $\det\vc\Sigma=\prod_i\lambda_i$ 度量协方差矩阵的``广义方差''，都靠这两行。
+
+\ex[用迹与行列式倒查特征值]{
+已知 $\mat A=\bm 2 & 1\\ 1 & 2\emx$（即第~\ref{sec:eigen-2} 节那个矩阵）。不重新解特征方程，验证它的特征值之和、之积。
+}
+\sol{
+$\tr\mat A=2+2=4$，$\det\mat A=2\cdot2-1\cdot1=3$。我们求得的特征值是 $\lambda_1=1,\lambda_2=3$：和为 $1+3=4=\tr\mat A$，积为 $1\cdot3=3=\det\mat A$，两边吻合。反过来，若只知道迹与行列式，特征值便是方程 $\lambda^2-(\tr\mat A)\lambda+\det\mat A=\lambda^2-4\lambda+3=0$ 的根——这对 $2\times2$ 矩阵是最快的求特征值途径。
+}
+
+\section{矩阵幂：对角化最直接的红利}
+\label{sec:eigen-7}
+
+到这里，对角化最实用的一个回报就要兑现了。动态系统反复迭代同一个矩阵（$\vc x_{t+1}=\mat A\vc x_t$ 意味着 $\vc x_t=\mat A^t\vc x_0$），Markov 链 $t$ 步转移是 $\mat A^t$，反复代换的差分方程也归结为求 $\mat A^k$。直接做矩阵连乘既繁琐又看不出规律，但对角化把它打回了``标量的幂''。
+
+关键观察：对角阵的幂是逐元素的幂。若 $\mat D=\diag(\lambda_1,\dots,\lambda_n)$，则
+\[
+    \mat D^k=\diag(\lambda_1^k,\dots,\lambda_n^k) ,
+\]
+因为对角阵相乘就是对角元逐个相乘。再借相似把它搬到 $\mat A$ 上：$\mat A=\mat P\mat D\inv{\mat P}$ 时，连乘里中间的 $\inv{\mat P}\mat P$ 成对抵消，
+\[
+    \mat A^k=(\mat P\mat D\inv{\mat P})(\mat P\mat D\inv{\mat P})\cdots(\mat P\mat D\inv{\mat P})
+    =\mat P\,\mat D(\inv{\mat P}\mat P)\mat D\cdots\mat D\,\inv{\mat P}
+    =\mat P\,\mat D^k\,\inv{\mat P} .
+\]
+
+\thm{可对角化矩阵的幂}{
+若 $\mat A=\mat P\mat D\inv{\mat P}$ 可对角化，则对任意正整数 $k$，
+\[
+    \boxed{\ \mat A^k=\mat P\,\mat D^k\,\inv{\mat P}
+    =\mat P\,\diag(\lambda_1^k,\dots,\lambda_n^k)\,\inv{\mat P}\ } .
+\]
+若 $\mat A$ 还可逆（所有 $\lambda_i\neq0$），公式对负整数 $k$ 亦成立（取 $\mat D^{-1}=\diag(\lambda_i^{-1})$）。
+}
+
+\state{把矩阵的幂化成标量的幂}{
+$\mat A^k=\mat P\,\mat D^k\,\inv{\mat P}$ 是本章使用频率最高的一条结论。它说：要追踪一个线性动态系统迭代很多次以后的样子，只需看每个特征值各自的 $\lambda_i^k$ 怎样增长或衰减——增长最快的那个 $\lambda_i$（模最大者）最终主宰一切。差分方程、VAR、Markov 链的``长期行为'',答案全写在特征值的模里。
+}
+
+\ex[手算一个 $\mat A^k$]{
+用矩阵 $\mat A=\bm 1.5 & 0.5\\ 0.5 & 1.5\emx$（即图~\ref{fig:eigen-1} 那个矩阵，特征值 $\lambda_1=2,\vc v_1=(1,1)\T$ 与 $\lambda_2=1,\vc v_2=(1,-1)\T$），写出 $\mat A^k$ 的闭式。
+}
+\sol{
+取
+\[
+    \mat P=\bm 1 & 1\\ 1 & -1\emx,\qquad
+    \mat D=\bm 2 & 0\\ 0 & 1\emx,\qquad
+    \inv{\mat P}=\tfrac12\bm 1 & 1\\ 1 & -1\emx
+\]
+（$\inv{\mat P}$ 用 $2\times2$ 求逆公式，$\det\mat P=-2$）。于是
+\[
+    \mat A^k=\mat P\,\mat D^k\,\inv{\mat P}
+    =\bm 1 & 1\\ 1 & -1\emx\bm 2^k & 0\\ 0 & 1\emx\tfrac12\bm 1 & 1\\ 1 & -1\emx
+    =\frac12\bm 2^k+1 & 2^k-1\\ 2^k-1 & 2^k+1\emx .
+\]
+验证 $k=1$ 还原成 $\mat A$、$k=0$ 给出 $\mat I$，无误。注意当 $k$ 增大，$2^k$ 项压倒一切：$\mat A^k$ 的行为最终由\emph{最大}特征值 $\lambda_1=2$ 及其特征方向 $\vc v_1=(1,1)\T$ 主导——这正是下一节``谁主导长期''的小型预演。
+}
+
+\section{去处：稳定性、Markov 链与通往谱定理}
+\label{sec:eigen-8}
+
+本章这套``特征值 $+$ 对角化''的语言，是后面好几门课的公用底座。这里把三处最重要的落点点明，作为路标。
+
+\subsection*{差分方程与 VAR 的稳定性：谱半径}
+
+线性动态系统 $\vc x_{t+1}=\mat A\vc x_t$（差分方程、向量自回归 VAR、迭代算法都是这个形式）的长期命运，完全由 $\mat A$ 特征值的模决定。把初值按特征向量展开 $\vc x_0=\sum_i c_i\vc v_i$，再用上一节的矩阵幂公式，
+\[
+    \vc x_t=\mat A^t\vc x_0=\sum_i c_i\,\lambda_i^t\,\vc v_i .
+\]
+每个模式 $\vc v_i$ 以速率 $\lambda_i^t$ 演化：$\abs{\lambda_i}<1$ 的模式衰减、$\abs{\lambda_i}>1$ 的模式爆炸。于是整条轨道是收敛还是发散，取决于\emph{最大}的那个模。
+
+\defn{谱半径}{
+矩阵 $\mat A$ 的\textbf{谱半径}（spectral radius）是其特征值模的最大值
+\[
+    \rho(\mat A)=\max_i\,\abs{\lambda_i} .
+\]
+}
+
+\state{稳定性判据：$\rho(\mat A)<1$}{
+对线性系统 $\vc x_{t+1}=\mat A\vc x_t$：\\[2pt]
+$\rho(\mat A)<1\iff$ 对任意初值 $\vc x_t\to\vc 0$（系统\textbf{渐近稳定}）；\\[2pt]
+$\rho(\mat A)>1\iff$ 存在初值使 $\vc x_t$ 发散。\\[4pt]
+增长最快的模式 $\lambda_i^t\vc v_i$（模最大的特征值方向）最终主宰轨道，故``长期增长率''就是 $\rho(\mat A)$、``长期方向''就是它对应的特征向量（图~\ref{fig:eigen-3}）。VAR 平稳、差分方程稳定、不动点迭代收敛——这些条件在矩阵语言里是同一句话：谱半径小于一。}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth,
+    ax/.style={->,gray!55,thin},
+    traj/.style={blue!55!black,thick}]
+% ============ 左：稳定 rho(A)<1 ============
+\begin{scope}[shift={(0,0)}]
+  \draw[ax] (-0.4,0) -- (2.7,0) node[right]{$x_1$};
+  \draw[ax] (0,-0.4) -- (0,2.8) node[above]{$x_2$};
+  \draw[gray!50,dashed] (0,0) -- (2.5,2.5);
+  \node[gray!55!black,anchor=south] at (2.30,2.40) {$\vc v_1$};
+  \foreach \px/\py in {2/0.2, 1.33/0.43, 0.929/0.479, 0.6757/0.4507,
+       0.5068/0.3943, 0.3886/0.3323, 0.3024/0.2743, 0.2377/0.2237}
+    \fill[blue!55!black] (\px,\py) circle (1.6pt);
+  \draw[traj] (2,0.2) -- (1.33,0.43) -- (0.929,0.479) -- (0.6757,0.4507)
+     -- (0.5068,0.3943) -- (0.3886,0.3323) -- (0.3024,0.2743) -- (0.2377,0.2237);
+  \node[blue!55!black,anchor=south] at (2.0,0.30) {$\vc x_0$};
+  \node[anchor=east] at (2.7,1.95) {$\rho(\mat A)<1$};
+  \node at (1.35,-1.0){(1) 稳定：收敛于 $\vc 0$};
+\end{scope}
+% ============ 右：不稳定 rho(A)>1 ============
+\begin{scope}[shift={(6.4,0)}]
+  \draw[ax] (-0.4,0) -- (2.7,0) node[right]{$x_1$};
+  \draw[ax] (0,-1.1) -- (0,2.8) node[above]{$x_2$};
+  \draw[gray!50,dashed] (0,0) -- (2.5,2.5);
+  \node[gray!55!black,anchor=south] at (2.30,2.40) {$\vc v_1$};
+  \foreach \px/\py in {0.4/-0.3, 0.3775/-0.2525, 0.3616/-0.2054, 0.3528/-0.1575,
+       0.3517/-0.1076, 0.3593/-0.0541, 0.3767/0.0047, 0.4058/0.071,
+       0.4487/0.1474, 0.5081/0.2369, 0.5877/0.3436, 0.6919/0.4722,
+       0.8264/0.6287, 0.9985/0.8205, 1.2169/1.0568, 1.4931/1.349, 1.8412/1.7115}
+    \fill[blue!55!black] (\px,\py) circle (1.6pt);
+  \draw[traj] (0.4,-0.3) -- (0.3775,-0.2525) -- (0.3616,-0.2054) -- (0.3528,-0.1575)
+     -- (0.3517,-0.1076) -- (0.3593,-0.0541) -- (0.3767,0.0047) -- (0.4058,0.071)
+     -- (0.4487,0.1474) -- (0.5081,0.2369) -- (0.5877,0.3436) -- (0.6919,0.4722)
+     -- (0.8264,0.6287) -- (0.9985,0.8205) -- (1.2169,1.0568) -- (1.4931,1.349) -- (1.8412,1.7115);
+  \node[blue!55!black,anchor=north west] at (0.45,-0.30) {$\vc x_0$};
+  \node[anchor=west] at (1.55,0.55) {$\rho(\mat A)>1$};
+  \node at (1.35,-1.5){(2) 不稳定：沿 $\vc v_1$ 发散};
+\end{scope}
+\end{tikzpicture}
+\caption{线性系统 $\vc x_{t+1}=\mat A\vc x_t$ 的轨道。两块矩阵的特征向量相同（主方向 $\vc v_1$ 沿 $45^\circ$），区别只在谱半径。左：$\rho(\mat A)<1$，任意初值都被吸进原点，路径渐渐贴上主方向 $\vc v_1$（衰减最慢的模式）。右：$\rho(\mat A)>1$，轨道沿 $\vc v_1$ 越甩越远。长期行为完全由谱半径与主特征向量决定。}
+\label{fig:eigen-3}
+\end{figure}
+
+\subsection*{Markov 链的平稳分布：特征值 $1$}
+
+一条有限状态 Markov 链由转移矩阵 $\mat T$ 刻画（行随机：每行非负、行和为 $1$），$t$ 步后的状态分布是行向量 $\vc\pi_0\T\mat T^t$。这里特征值扮演双重角色。一方面，行随机矩阵\emph{必有}特征值 $1$：因各行和为 $1$，全 $1$ 向量满足 $\mat T\vc 1=\vc 1$，故 $1$ 是右特征向量 $\vc 1$ 对应的特征值；与之配对的\emph{左}特征向量 $\vc\pi$（满足 $\vc\pi\T\mat T=\vc\pi\T$）归一化为概率后，就是\textbf{平稳分布}——链跑到长期不再变化的那个分布。另一方面，其余特征值的模都 $\le1$，它们控制``收敛到平稳分布有多快'':模第二大的特征值 $\abs{\lambda_2}$ 决定混合速度，谱间隙 $1-\abs{\lambda_2}$ 越大、收敛越快。
+
+\state{平稳分布 $=$ 特征值 $1$ 的特征向量；收敛速度 $=$ 第二特征值}{
+``链最终稳定在哪里''与``稳定得多快'',分别由 $\mat T$ 的第一、第二特征值回答：平稳分布是 $\lambda_1=1$ 对应的左特征向量，混合速率由 $\abs{\lambda_2}$ 主宰。这把动态随机过程的两个核心问题，化成了一道特征值问题。Markov 链一章（在随机过程部分）会把遍历性、唯一平稳分布等结论严格建立在这条观察上。
+}
+
+\subsection*{通往谱定理与主成分分析}
+
+最后，本章是下一章的正门。这里讲的对角化对\emph{一般}方阵成立，代价是 $\mat P$ 不一定好——它的列（特征向量）未必正交，$\mat A$ 甚至可能亏损、根本对角化不了。下一章把镜头对准经济学里最常见的一族——\textbf{实对称矩阵}（协方差矩阵、Hessian、Gram 矩阵 $\mat X\T\mat X$）。它们的特征结构格外干净：特征值必为实数、永不亏损，而且特征向量可取成\emph{两两正交}。于是对角化升级为\textbf{正交对角化} $\mat A=\mat Q\vc\Lambda\mat Q\T$（$\mat Q$ 正交），即\textbf{谱定理}。它进一步通向二次型的正定性判别、主成分分析（去找协方差矩阵最大特征值的方向，即方差最大的主轴）与最优化的二阶条件。本章把``特征值是什么、怎么算、怎么用幂''讲透，是读懂那一切的前提。
+
+一句话收束：对角化是为线性变换\emph{挑坐标系}的艺术——挑到特征向量这组基，矩阵的幂、它的长期行为、它的稳定性就都从对角线上直接读出。这正是本书反复强调的工具性：认清``特征值主宰长期行为''这一条，差分方程、Markov 链、PCA 这几扇看似无关的门，便一并有了钥匙。

@@ -1,0 +1,129 @@
+% ============================================================
+%  commands.tex — 经济学博士的数学工具箱
+%  广谱数学宏：覆盖线性代数 / 分析与拓扑 / 概率测度 / 最优化 /
+%  渐近统计 / 动态最优化。编译：XeLaTeX + ctexbook（见 main.tex）。
+%  盒子系统见 theorems.tex。
+%
+%  约定（写章节者必读）：
+%   · 单字母不做有歧义的重定义；矩阵写 \mat{A}，（粗体）向量写 \vc{x}、\vc{\beta}。
+%   · 花体（σ-代数、集类、样本空间、分布）统一前缀 c：\cF \cB \cP \cN ...
+%   · 期望/方差/概率自动配括号：\E{X}\to E(X)，\E[\theta]{X}\to E_\theta(X)，
+%     \Var{X}、\Cov{X}{Y}、\Prob{A}。条件竖线在配对括号内用 \given，
+%     裸竖线用 \mid。
+%   · 绝不使用未在本文件定义的宏。
+% ============================================================
+
+\usepackage{amsmath}
+
+% --- 环境简写 ---
+\newcommand{\ba}{\begin{aligned}}
+\newcommand{\ea}{\end{aligned}}
+\newcommand{\bc}{\begin{cases}}
+\newcommand{\ec}{\end{cases}}
+\newcommand{\bm}{\begin{bmatrix}}     % 注意：本书未载 bm 宏包，\bm 即「bmatrix 起」
+\newcommand{\emx}{\end{bmatrix}}
+
+% --- 数集 ---
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\NN}{\mathbb{N}}
+\newcommand{\CC}{\mathbb{C}}
+
+% --- 花体：σ-代数 / 集类 / 样本空间 / 分布族 ---
+\newcommand{\cF}{\mathcal{F}}
+\newcommand{\cG}{\mathcal{G}}
+\newcommand{\cB}{\mathcal{B}}
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cC}{\mathcal{C}}
+\newcommand{\cP}{\mathcal{P}}
+\newcommand{\cL}{\mathcal{L}}
+\newcommand{\cN}{\mathcal{N}}          % 正态：\cN(\mu,\sigma^2)
+\newcommand{\cX}{\mathcal{X}}
+\newcommand{\cY}{\mathcal{Y}}
+\newcommand{\cH}{\mathcal{H}}
+
+% --- 矩阵 / 向量记号助手（避免单字母重定义冲突）---
+\newcommand{\mat}[1]{\mathbf{#1}}      % 矩阵：\mat{A}（仅用于拉丁字母！）
+% ⚠️ 大写希腊矩阵（Σ Λ Ω Π Φ ...）一律用 \vc，不要用 \mat！
+%    本书 XeLaTeX+ctex(macnew) 字体下 \mathbf{\Sigma} 会渲染成【空白】（字形缺失），
+%    \boldsymbol{\Sigma} 正常。即矩阵 Σ 写 \vc\Sigma、对角阵 Λ 写 \vc\Lambda。
+\newcommand{\vc}[1]{\boldsymbol{#1}}   % 向量/粗体希腊：\vc{x}、\vc{\beta}、\vc\Sigma、\vc\Lambda
+\newcommand{\T}{^{\mathsf{T}}}          % 转置：\mat{A}\T
+\newcommand{\inv}[1]{{#1}^{-1}}
+
+% --- 希腊字母简写（只加无歧义的）---
+\newcommand{\ve}{\varepsilon}
+\newcommand{\vp}{\varphi}
+
+% --- 定界符 ---
+\newcommand{\pr}[1]{\left(#1\right)}
+\newcommand{\br}[1]{\left[#1\right]}
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\norm}[2][]{\left\|#2\right\|_{#1}}
+\newcommand{\floor}[1]{\left\lfloor #1\right\rfloor}
+\newcommand{\ceil}[1]{\left\lceil #1\right\rceil}
+\newcommand{\inner}[2]{\left\langle #1,#2\right\rangle}
+\newcommand{\given}{\,\middle|\,}       % 条件竖线（须置于 \left...\right 内）
+\newcommand{\setb}[2]{\left\{\,#1 : #2\,\right\}}  % 集合构造：\setb{x}{x>0}
+
+% --- 算子 ---
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\esssup}{ess\,sup}
+\DeclareMathOperator*{\essinf}{ess\,inf}
+\DeclareMathOperator{\plim}{plim}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\spn}{span}
+\DeclareMathOperator{\Corr}{Corr}
+\DeclareMathOperator{\Dom}{dom}
+
+% --- 概率 / 期望（自动配括号，可带下标）---
+\newcommand{\PP}{\mathbb{P}}                 % 概率测度符号（裸）
+\newcommand{\EE}{\mathbb{E}}                 % 期望符号（裸）
+\newcommand{\Prob}[1]{\mathbb{P}\!\left(#1\right)}
+\newcommand{\E}[2][]{\mathbb{E}_{#1}\!\left(#2\right)}
+\newcommand{\Var}[2][]{\operatorname{Var}_{#1}\!\left(#2\right)}
+\newcommand{\Cov}[2]{\operatorname{Cov}\!\left(#1,#2\right)}
+\newcommand{\indep}{\perp\!\!\!\perp}        % 独立
+\newcommand{\dist}{\sim}
+\newcommand{\indicator}{\mathbf{1}}          % 示性函数 \indicator\{X>0\}
+
+% --- 收敛 ---
+\newcommand{\dto}{\overset{d}{\to}}
+\newcommand{\pto}{\overset{p}{\to}}
+\newcommand{\asto}{\overset{\mathrm{a.s.}}{\to}}
+\newcommand{\Lpto}[1]{\overset{L^{#1}}{\to}}
+\newcommand{\dteq}{\overset{d}{=}}
+\newcommand{\iid}{\overset{\mathrm{i.i.d.}}{\sim}}
+\newcommand{\Op}{O_{p}}
+\newcommand{\op}{o_{p}}
+\newcommand{\rtn}{\sqrt{n}}
+
+% --- 微积分 / 向量微分 ---
+\renewcommand{\d}{\mathop{}\!\mathrm{d}}     % 微分算子 d（积分/全微分）
+\newcommand{\dd}[2]{\frac{\d #1}{\d #2}}
+\newcommand{\pd}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\pdn}[3]{\frac{\partial^{#1} #2}{\partial #3^{#1}}}
+\newcommand{\pdc}[3]{\frac{\partial^2 #1}{\partial #2\,\partial #3}}
+\newcommand{\grad}{\nabla}
+\newcommand{\Hess}{\mathbf{H}}               % Hessian（如需另记，可局部覆盖）
+\newcommand{\Jac}{\mathbf{J}}               % Jacobian
+\DeclareMathOperator{\D}{D}                   % 全导数算子：\D_{\vc x}\mat F
+
+% --- 逻辑 / 杂项 ---
+\newcommand{\se}{\subseteq}
+\newcommand{\bs}{\setminus}
+\newcommand{\st}{\text{ s.t. }}
+\newcommand{\To}{\Longrightarrow}
+\newcommand{\Iff}{\Longleftrightarrow}
+\newcommand{\sumi}{\sum_{i=1}^n}
+\newcommand{\prodi}{\prod_{i=1}^n}
+
+% 中文强调用楷体（不用斜体；见站点偏好）
+\renewcommand{\emph}[1]{{\kaishu #1}}

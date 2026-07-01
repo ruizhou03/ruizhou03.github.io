@@ -1,0 +1,218 @@
+\documentclass[oneside,fontset=macnew,UTF8]{ctexbook}
+
+\usepackage{amsmath, amsthm, amssymb, amsfonts}
+\usepackage{thmtools}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{framed}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{environ}
+\usepackage{tcolorbox}
+\tcbuselibrary{theorems,skins,breakable}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{multicol}
+\usetikzlibrary{positioning, arrows.meta, patterns, calc, decorations.pathreplacing}
+\usepackage[normalem]{ulem}
+\usepackage{colortbl}
+\usepackage{cancel}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*,labelindent=0pt}
+
+\renewcommand{\proofname}{证明}
+
+\usepackage{fancyhdr}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\thepage}}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[L]{\textit{\leftmark}}
+\fancyhead[R]{\thepage}
+\fancyfoot[R]{\tiny 经济学博士的数学工具箱 \textemdash\ ruizhou03.com}
+
+\setstretch{1.25}
+\geometry{
+    textheight=9in, textwidth=5.5in, top=1in,
+    headheight=14pt, headsep=25pt, footskip=30pt
+}
+
+\def\notetitle{经济学博士的数学工具箱}
+\def\notesubtitle{一份面向经济学博士生的工具性数学指南}
+\def\noteauthor{周睿 \ 编著}
+\def\notedate{2026 年}
+
+\input{theorems.tex}
+\input{commands.tex}
+
+\begin{document}
+
+\title{\textbf{
+    \LARGE{\notetitle}\\
+    \vspace{0.5em}
+    \large\textit{\notesubtitle}
+    \vspace*{8\baselineskip}}
+}
+\author{\noteauthor}
+\date{\notedate}
+
+\maketitle
+\newpage
+
+\thispagestyle{empty}
+\section*{如何阅读本书}
+
+这本书写给正在念经济学博士、却时常被数学``卡一下''的人——包括我自己。经济学的核心课程（微观、宏观、计量）会不断借用数学工具：计量里大量的线性代数，微观里的最优化与比较静态，宏观里的动态规划，决策论与博弈论里的概率、测度与贝叶斯更新。这些工具往往散落在不同的数学课本里，各讲各的、各有各的记号，且大多是为数学家而非经济学家写的——它们把``严格''放在第一位，却很少告诉你\textbf{这个工具是用来干什么的}。本书想做的，正是把这些工具集中到一处，并且\emph{始终站在使用者的角度}来讲。
+
+\subsection*{每个知识点都按``三件套''来写}
+
+本书不追求数学课本那种环环相扣的逻辑链条；相反，它以\textbf{工具}为单位来组织，每一个工具都尽量回答三个问题：
+
+\begin{itemize}
+    \item \textbf{它解决什么问题（用处）}——先说清楚经济学家为什么需要它，它在你将来会遇到的哪类问题里登场。
+    \item \textbf{它从哪里来（推导）}——给出关键的推导与直觉，让你看清这个结论不是从天而降，而是可以自己重建的。证明以``讲明白''为标准，少数极重的纯数学构造只陈述并给直觉、不逐行搭建。
+    \item \textbf{它以后用在哪（去处）}——指出它在微观、宏观、计量乃至后续章节里的具体落点，把孤立的工具接回经济学的主干。
+\end{itemize}
+
+正因如此，各章之间\textbf{不强求严丝合缝的先后衔接}：你可以按需跳读，遇到不熟的前置概念时再回头翻查。每章开头会点明它依赖哪些前面的工具。
+
+\subsection*{彩框颜色约定}
+
+\begin{itemize}
+    \item \tcbox[colback=green!10!white, colframe=green!10!white, size=fbox]{\textbf{绿色：定义}}——我们赖以构建的对象与概念。
+    \item \tcbox[colback=cyan!10!white, colframe=cyan!10!white, size=fbox]{\textbf{蓝色：定理 / 命题}}——核心结论，通常附证明。
+    \item \tcbox[colback=pink!20!white, colframe=pink!20!white, size=fbox]{\textbf{粉色：假设}}——一个论证所维持的前提。
+    \item \tcbox[colback=violet!8!white, colframe=violet!8!white, size=fbox]{\textbf{淡紫：要点框}}——对工具性的提炼，或一句话点透的关键直觉。
+    \item 全书还穿插着\textbf{例}（worked examples）与\textbf{注}（remarks）。
+\end{itemize}
+
+\subsection*{记号约定}
+
+向量用粗体小写，如 $\vc{x},\vc{\beta}$；矩阵用粗体大写，如 $\mat{A},\mat{H}$；转置记为 $\mat{A}\T$，逆记为 $\inv{\mat{A}}$。实数集记 $\RR$，$n$ 维欧氏空间记 $\RR^n$。梯度记 $\grad f$，Hessian 记 $\grad^2 f$；映射 $\mat F$ 关于变量组 $\vc x$ 的 Jacobian 记 $\D_{\vc x}\mat F$。概率测度记 $\PP$，期望记 $\E{\cdot}$，方差、协方差记 $\Var{\cdot}$、$\Cov{\cdot}{\cdot}$；$\sigma$-代数等用花体 $\cF,\cB$。依概率、依分布收敛分别记 $\pto$、$\dto$。各章若另有局部记号，会在该章开头声明。
+
+\newpage
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+% ============================================================
+%  全书规划（八个 Part，42 章）—— 当前为样章预览，仅编入隐函数定理一章。
+%  风格锁定后将逐 Part 补齐。
+%
+%  Part I  线性代数：计量经济学的引擎
+%    1 向量空间、线性无关、基与维数
+%    2 矩阵、秩、行列式与线性方程组的解结构（含行列式速览）
+%    3 内积、正交、投影与最小二乘（OLS 的几何）
+%    4 特征值、特征向量与对角化
+%    5 对称矩阵、谱定理、二次型与正定性
+%    6 奇异值分解与降维
+%    7 矩阵微积分（向量/矩阵求导；OLS 与 MLE 的推导）
+%  Part II  分析与拓扑：存在性与收敛的语言
+%    8 度量空间、开集闭集、序列收敛
+%    9 紧致性、连续性与 Weierstrass 极值定理
+%   10 上/下半连续与最大值定理（Berge）
+%   11 不动点定理（Brouwer、Kakutani）与均衡存在
+%   12 压缩映射与 Banach 不动点（Bellman 算子）
+%  Part III  多元微积分与比较静态
+%   13 偏导、梯度、Jacobian 与 Hessian
+%   14 Taylor 展开与二阶近似
+%   15 隐函数定理与比较静态        <== 本次样章
+%   16 凹凸函数与拟凹/拟凸
+%   17 齐次函数与欧拉定理
+%  Part IV  最优化
+%   18 无约束最优化（一阶/二阶条件）
+%   19 等式约束与 Lagrange 乘子
+%   20 不等式约束与 KKT 条件
+%   21 凸优化与对偶
+%   22 值函数与包络定理
+%   23 单调比较静态与超模性（Topkis）
+%  Part V  概率与测度
+%   24 概率空间、σ-代数、测度（为什么需要测度）
+%   25 可测函数、随机变量与分布
+%   26 Lebesgue 积分与期望
+%   27 多维分布、独立性与变量变换
+%   28 条件期望（作为投影）
+%   29 贝叶斯更新与信息（博弈论的信念）
+%  Part VI  渐近统计
+%   30 收敛模式（依概率/几乎必然/依分布/Lp）
+%   31 大数定律
+%   32 中心极限定理
+%   33 连续映射定理、Slutsky 与 Delta 法
+%   34 极值估计的统一框架（MLE/GMM/M-估计）
+%  Part VII  动态最优化
+%   35 差分方程与稳定性
+%   36 变分法与 Euler 方程
+%   37 最优控制与 Pontryagin 最大值原理
+%   38 动态规划与 Bellman 方程
+%   39 随机动态规划与递归方法
+%  Part VIII  随机过程
+%   40 Markov 链（平稳分布、遍历性）
+%   41 鞅
+%   42 布朗运动与 Itô 引理
+% ============================================================
+
+\part{线性代数：计量经济学的引擎}
+\include{chapters/ch1_vector_spaces}
+\include{chapters/ch2_rank_linear_systems}
+\include{chapters/ch3_projection_ols}
+\include{chapters/ch4_eigen_diagonalization}
+\include{chapters/ch5_spectral_quadratic}
+\include{chapters/ch6_svd}
+\include{chapters/ch7_matrix_calculus}
+
+\part{分析与拓扑：存在性与收敛的语言}
+\include{chapters/ch8_metric_spaces}
+\include{chapters/ch9_compactness_weierstrass}
+\include{chapters/ch10_berge_maximum}
+\include{chapters/ch11_fixed_points}
+\include{chapters/ch12_contraction_banach}
+
+\part{多元微积分与比较静态}
+\include{chapters/ch13_gradient_jacobian_hessian}
+\include{chapters/ch14_taylor}
+\include{chapters/ch15_ift_comparative_statics}
+\include{chapters/ch16_convexity}
+\include{chapters/ch17_homogeneous_euler}
+
+\part{最优化}
+\include{chapters/ch18_unconstrained}
+\include{chapters/ch19_lagrange}
+\include{chapters/ch20_kkt}
+\include{chapters/ch21_convex_duality}
+\include{chapters/ch22_envelope}
+\include{chapters/ch23_monotone_comparative}
+
+\part{概率与测度}
+\include{chapters/ch24_probability_measure}
+\include{chapters/ch25_random_variables}
+\include{chapters/ch26_lebesgue_integral}
+\include{chapters/ch27_joint_distributions}
+\include{chapters/ch28_conditional_expectation}
+\include{chapters/ch29_bayes_information}
+
+\part{渐近统计}
+\include{chapters/ch30_modes_of_convergence}
+\include{chapters/ch31_lln}
+\include{chapters/ch32_clt}
+\include{chapters/ch33_slutsky_delta}
+\include{chapters/ch34_extremum_estimators}
+
+\part{动态最优化}
+\include{chapters/ch35_difference_equations}
+\include{chapters/ch36_calculus_variations}
+\include{chapters/ch37_optimal_control}
+\include{chapters/ch38_dynamic_programming}
+\include{chapters/ch39_stochastic_dp}
+
+\part{随机过程}
+\include{chapters/ch40_markov_chains}
+\include{chapters/ch41_martingales}
+\include{chapters/ch42_brownian_ito}
+
+\end{document}

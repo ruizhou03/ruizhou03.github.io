@@ -1,0 +1,500 @@
+% !TEX root = ../main.tex
+\chapter{极值估计的统一框架（MLE/GMM/M-估计）}
+\label{ch:extremum}
+
+\noindent\emph{用到的前置工具：大数定律与中心极限定理（渐近统计部分前几章）；连续映射定理、Slutsky 与 Delta 法（前一章）；Taylor 展开（第~\ref{ch:taylor}~章）；无约束最优化的一阶、二阶条件（第~\ref{ch:unconstrained}~章）；隐函数定理（第~\ref{ch:ift}~章）；矩阵求逆与正定矩阵（线性代数部分）。}
+\medskip
+
+这是全书的汇流处。前面几百页里我们一件一件地磨工具：大数定律保证样本平均收敛、中心极限定理给出正态极限、Slutsky 与 Delta 法把收敛在四则运算与光滑变换下传递、Taylor 展开把复杂函数在一点附近换成多项式替身、二阶条件用 Hessian 判极值、隐函数定理把``由方程隐含定义的解''对参数求导。本章要做的，是把这些工具一次性拧在一起，回答计量经济学里那个最核心的问题：\textbf{一个估计量，它的极限是什么？它围着真值怎样波动？这个波动有多大？}
+
+令人惊讶的是，计量里几乎所有的估计量——最小二乘、极大似然、广义矩、非线性最小二乘、分位数回归——都能装进同一个模子：它们都是某个``样本目标函数''的极大（或极小）点。这个模子叫\textbf{极值估计量}（extremum estimator）。本章先把这个统一框架立起来，再沿着两条主线把它的渐近理论一气推完：\emph{一致性}（估计量收敛到真值）靠的是大数定律加一个识别条件；\emph{渐近正态}（围着真值的波动是正态的）靠的是对样本一阶条件做 Taylor 展开，再让大数定律定住二阶项、中心极限定理定住一阶项。推完你会看到一个反复出现的对象——三明治协方差矩阵 $\inv{\mat A}\mat B\inv{\mat A}$——以及它在极大似然下如何坍缩成信息矩阵的逆（这就是 Cramér--Rao 下界）。最后我们把 GMM 与 QMLE 接进同一框架，并指明它通向假设检验三位一体与稳健标准误的去处。
+
+\section{一个模子装下所有估计量}
+\label{sec:extremum-1}
+
+先看为什么``极大化一个样本目标''能囊括这么多看似不同的估计量。手上有数据 $\vc z_1,\dots,\vc z_n$（独立同分布，$\vc z_i$ 可以包含因变量、回归元等一切观测到的东西），要估计一个参数 $\vc\theta\in\Theta\se\RR^p$。
+
+\defn{极值估计量}{
+给定一个\textbf{样本目标函数} $Q_n(\vc\theta)$（它依赖数据，故是随机的），称
+\[
+    \hat{\vc\theta}_n=\argmax_{\vc\theta\in\Theta}\,Q_n(\vc\theta)
+\]
+为一个\textbf{极值估计量}。常见情形里 $Q_n$ 是一个样本平均
+\[
+    Q_n(\vc\theta)=\frac1n\sumi q(\vc z_i,\vc\theta),
+\]
+其中 $q$ 是某个事先选定的``单观测准则函数''。取极小的情形（如最小二乘）只需把 $q$ 换成 $-q$，故不失一般性只谈极大。
+}
+
+这个定义的威力，全在于换不同的 $q$ 就换出不同的经典估计量。下表把它们一字排开——请注意它们共享的结构：都是``把一个单观测准则在样本上平均，再极大化''。
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{@{}lll@{}}
+\toprule
+估计量 & 单观测准则 $q(\vc z_i,\vc\theta)$ & 目标 $Q_n$ 的含义 \\
+\midrule
+极大似然 (MLE) & $\log f(\vc z_i;\vc\theta)$ & 样本对数似然 \\
+非线性最小二乘 & $-\bigl(y_i-g(\vc x_i,\vc\theta)\bigr)^2$ & 负的样本残差平方和 \\
+普通最小二乘 (OLS) & $-(y_i-\vc x_i\T\vc\theta)^2$ & NLLS 的线性特例 \\
+分位数回归 & $-\rho_\tau\bigl(y_i-\vc x_i\T\vc\theta\bigr)$ & 负的样本``弹球''损失 \\
+广义矩 (GMM) & 见第~\ref{sec:extremum-5}~节 & 加权矩条件的二次型 \\
+\bottomrule
+\end{tabular}
+\caption{换一个单观测准则 $q$，就换出一个经典估计量。它们都是``把 $q$ 在样本上平均、再极大化''——这正是极值估计框架要统一的事。}
+\label{tab:extremum-zoo}
+\end{table}
+
+\state{为什么值得把它们统一起来}{
+逐个去推 OLS、MLE、GMM 的渐近分布，是一年级计量里最劝退的部分——每个都要重来一遍``展开、取极限、拼方差''。极值估计框架告诉你：\emph{它们是同一个推导}。一致性是``$Q_n$ 一致收敛到 $Q$ 且峰唯一''的直接推论；渐近正态是``对一阶条件做一阶 Taylor 展开''的直接推论。把这套母推导吃透一次，所有具体估计量的渐近性质就成了\emph{代入}而非\emph{重做}。这正是本书一贯的主张：认清工具本身，等于同时拿到许多扇门的钥匙。
+}
+
+整章的逻辑分两步走，与极值的两个最优性条件一一对应：
+
+\begin{itemize}
+    \item \textbf{一致性}（$\hat{\vc\theta}_n\pto\vc\theta_0$）——用到的是``极大点''这件事本身：样本目标的峰，收敛到总体目标的峰。
+    \item \textbf{渐近正态}（$\rtn(\hat{\vc\theta}_n-\vc\theta_0)\dto\cN$）——用到的是``一阶条件 $\grad Q_n(\hat{\vc\theta}_n)=\vc 0$''：对它做 Taylor 展开。
+\end{itemize}
+
+我们逐一来。
+
+\section{一致性：样本的峰收敛到总体的峰}
+\label{sec:extremum-2}
+
+直觉先行。样本目标 $Q_n(\vc\theta)$ 是个随机函数，随抽样而起伏；但只要它是样本平均，大数定律就保证它\emph{逐点}收敛到一个确定的\textbf{总体目标}
+\[
+    Q(\vc\theta)=\E{q(\vc z,\vc\theta)} .
+\]
+如果这个总体目标有一个\emph{唯一}的峰，且它的位置恰是我们要估的真值 $\vc\theta_0$，那么——只要随机起伏在整个 $\Theta$ 上一致地被压下去——样本目标的峰 $\hat{\vc\theta}_n$ 就别无选择，只能挤向总体目标的峰 $\vc\theta_0$。图~\ref{fig:extremum-1} 把这件事画了出来。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=2.4,>=Stealth]
+    \draw[->] (0.42,0.5) -- (3.62,0.5) node[right] {$\theta$};
+    \draw[->] (0.5,0.42) -- (0.5,3.25) node[above] {目标值};
+    % 总体目标 Q（粗线，唯一峰在 theta0=2，值 3）
+    \draw[very thick,black,domain=0.5:3.5,smooth,samples=200,variable=\t]
+        plot ({\t},{3-(\t-2)*(\t-2)});
+    % 样本目标 Q_n（细线，围着 Q 起伏）
+    \draw[thin,red!70!black,domain=0.5:3.5,smooth,samples=400,variable=\t]
+        plot ({\t},{3-(\t-2)*(\t-2)+0.18*sin(deg(5*\t+1.2))});
+    % 总体峰点 (2,3)
+    \fill (2,3) circle (0.7pt);
+    \draw[dashed,gray] (2,3) -- (2,0.5);
+    \node[below] at (2,0.5) {$\theta_0$};
+    % 样本峰点 (2.3834, 2.9472)
+    \fill[red!70!black] (2.3834,2.9472) circle (0.7pt);
+    \draw[dashed,red!55!black] (2.3834,2.9472) -- (2.3834,0.5);
+    \node[below,red!70!black] at (2.3834,0.5) {$\hat\theta_n$};
+    \node[anchor=west] at (3.02,2.55) {$Q(\theta)$};
+    \draw[->,black] (3.10,2.45) -- (3.05,1.90);
+    \node[anchor=west,red!70!black] at (0.6,1.30) {$Q_n(\theta)$};
+    \draw[->,red!70!black] (0.98,1.40) -- (1.15,1.80);
+\end{tikzpicture}
+\caption{随机的样本目标 $Q_n$（细线）围着确定的总体目标 $Q$（粗线）起伏。$Q$ 有唯一的峰在真值 $\theta_0$。当样本量增大、起伏被一致地压下，$Q_n$ 的峰 $\hat\theta_n$ 被迫挤向 $Q$ 的峰 $\theta_0$——这就是一致性。注意：是``唯一峰''加``一致收敛''两件事一起，才逼出 $\hat\theta_n\to\theta_0$。}
+\label{fig:extremum-1}
+\end{figure}
+
+把直觉翻成两条假设。第一条管``峰唯一''，第二条管``起伏一致地小''。
+
+\asm{识别（唯一峰）}{
+总体目标 $Q(\vc\theta)=\E{q(\vc z,\vc\theta)}$ 在 $\vc\theta_0$ 处取得\emph{严格唯一}的极大：对任意 $\vc\theta\neq\vc\theta_0$ 都有 $Q(\vc\theta)<Q(\vc\theta_0)$。
+}
+
+\asm{一致收敛}{
+样本目标在参数空间上\emph{一致地}收敛于总体目标：
+\[
+    \sup_{\vc\theta\in\Theta}\,\bigl|Q_n(\vc\theta)-Q(\vc\theta)\bigr|\pto 0 .
+\]
+（在紧致 $\Theta$ 上，逐点的大数定律加上 $q(\vc z,\cdot)$ 关于 $\vc\theta$ 的某种等度连续性，即可升级为这条一致收敛——这类结论叫\emph{一致大数定律}，本章取其结论。）
+}
+
+\thm{极值估计量的一致性}{
+设 $\Theta$ 紧致、$Q$ 连续，并满足上面的识别与一致收敛两条假设。则
+\[
+    \hat{\vc\theta}_n\pto\vc\theta_0 .
+\]
+}
+
+\pf{
+证明只是把图~\ref{fig:extremum-1} 的直觉写严格，核心是一个``夹挤''。固定真值处的取值作参照。由 $\hat{\vc\theta}_n$ 是 $Q_n$ 的极大点，先有
+\[
+    Q_n(\hat{\vc\theta}_n)\ \ge\ Q_n(\vc\theta_0) .
+\]
+现在用一致收敛把这条关于 $Q_n$ 的不等式翻译回 $Q$。记 $\ve_n=\sup_{\vc\theta}|Q_n(\vc\theta)-Q(\vc\theta)|\pto 0$。则
+\[
+    Q(\hat{\vc\theta}_n)
+    \ \ge\ Q_n(\hat{\vc\theta}_n)-\ve_n
+    \ \ge\ Q_n(\vc\theta_0)-\ve_n
+    \ \ge\ Q(\vc\theta_0)-2\ve_n .
+\]
+第一、三个不等号各用一次一致收敛（$Q$ 与 $Q_n$ 在任意点相差不超过 $\ve_n$），中间用极大性。于是
+\[
+    Q(\vc\theta_0)-Q(\hat{\vc\theta}_n)\ \le\ 2\ve_n\pto 0 .
+\]
+也就是说，$\hat{\vc\theta}_n$ 处的\emph{总体}目标值，被挤到了与峰值 $Q(\vc\theta_0)$ 任意接近。最后一步把``目标值接近峰值''翻成``位置接近峰点'':这正是识别假设（唯一峰）的用武之地——它保证 $Q$ 只有在 $\vc\theta_0$ 附近才接近峰值，故 $\hat{\vc\theta}_n$ 必落在 $\vc\theta_0$ 的任意小邻域内（紧致性确保不会``跑到无穷远处''逃逸）。即 $\hat{\vc\theta}_n\pto\vc\theta_0$。
+}
+
+\state{一致性 $=$ 唯一识别 $+$ 一致收敛}{
+这条证明值得记住它的``零件分工'':\emph{大数定律}（藏在一致收敛里）负责把随机的 $Q_n$ 钉到确定的 $Q$ 上；\emph{识别}（唯一峰）负责把``目标值接近''升级成``位置接近''。两者缺一不可——少了一致收敛，样本峰可能被某处的随机凸起带跑；少了识别，即便 $Q_n\to Q$，也可能有两个并列的峰让 $\hat{\vc\theta}_n$ 无所适从。识别不是技术细节，它是计量里``参数到底估不估得出来''这一根本问题的数学名字（共线性、弱工具、标签互换，本质上都是识别的失败）。
+}
+
+\rmkb[识别为什么常常成立]{
+在 MLE 里识别有一个漂亮的来源。设真分布是 $f(\cdot;\vc\theta_0)$。总体目标是 $Q(\vc\theta)=\E[\vc\theta_0]{\log f(\vc z;\vc\theta)}$，于是
+\[
+    Q(\vc\theta_0)-Q(\vc\theta)
+    =\E[\vc\theta_0]{\log\frac{f(\vc z;\vc\theta_0)}{f(\vc z;\vc\theta)}}
+    =\mathrm{KL}\!\bigl(f_{\vc\theta_0}\,\big\|\,f_{\vc\theta}\bigr)\ \ge\ 0,
+\]
+即 Kullback--Leibler 散度，由 Jensen 不等式非负，且\emph{仅当} $f_{\vc\theta}=f_{\vc\theta_0}$（几乎处处）时为零。所以只要参数化是``可识别的''（不同 $\vc\theta$ 给不同分布），总体对数似然的唯一峰自动落在真值 $\vc\theta_0$——这就是``极大似然估真值''最深处的道理：真值是让平均对数似然最大的那个参数，因为它让模型与真相的 KL 距离为零。
+}
+
+\section{渐近正态：对一阶条件做 Taylor 展开}
+\label{sec:extremum-3}
+
+一致性说的是``$\hat{\vc\theta}_n$ 落在 $\vc\theta_0$ 附近''，但没说有多近、波动是什么形状。要回答这个，得放大来看：把误差 $\hat{\vc\theta}_n-\vc\theta_0$ 乘上 $\rtn$ 这个``放大镜'',再问它的极限分布。答案几乎总是正态，而推导是一段已经在 Taylor 展开一章预演过的标准动作（第~\ref{ch:taylor}~章），这里把它走完整。
+
+假设 $\hat{\vc\theta}_n$ 是\emph{内点}极大且 $Q_n$ 光滑，则它满足样本一阶条件（得分为零）
+\[
+    \vc s_n(\hat{\vc\theta}_n)\;:=\;\grad_{\vc\theta}Q_n(\hat{\vc\theta}_n)\;=\;\vc 0,
+    \qquad
+    \vc s_n(\vc\theta)=\frac1n\sumi\grad_{\vc\theta}q(\vc z_i,\vc\theta) .
+\]
+这里 $\vc s_n$ 称为\textbf{样本得分}（score）。把它在真值 $\vc\theta_0$ 处做一阶 Taylor 展开（对向量值映射用矩阵形式的中值定理）：
+\[
+    \vc 0=\vc s_n(\hat{\vc\theta}_n)
+    =\vc s_n(\vc\theta_0)+\mat H_n(\bar{\vc\theta}_n)\,(\hat{\vc\theta}_n-\vc\theta_0),
+\]
+其中 $\mat H_n(\vc\theta)=\D_{\vc\theta}\vc s_n(\vc\theta)=\grad^2_{\vc\theta}Q_n(\vc\theta)$ 是样本目标的 Hessian，$\bar{\vc\theta}_n$ 是介于 $\hat{\vc\theta}_n$ 与 $\vc\theta_0$ 之间的某个中间点。只要 $\mat H_n(\bar{\vc\theta}_n)$ 可逆，解出误差并乘 $\rtn$：
+\[
+    \boxed{\ \rtn(\hat{\vc\theta}_n-\vc\theta_0)
+    =-\,\bigl[\mat H_n(\bar{\vc\theta}_n)\bigr]^{-1}\;\rtn\,\vc s_n(\vc\theta_0)\ } .
+\]
+这条恒等式是整章的枢纽。它把我们想要的随机量（左边）表成了两块已知极限行为的东西的乘积，右边正好一块用大数定律、一块用中心极限定理：
+
+\begin{itemize}
+    \item \textbf{Hessian 块（大数定律）}。$\mat H_n(\vc\theta)=\frac1n\sumi\grad^2_{\vc\theta}q(\vc z_i,\vc\theta)$ 是样本平均，由大数定律收敛到其期望；又因 $\bar{\vc\theta}_n$ 被 $\hat{\vc\theta}_n$ 夹着趋于 $\vc\theta_0$（一致性！），得
+    \[
+        \mat H_n(\bar{\vc\theta}_n)\pto \mat H_0:=\E{\grad^2_{\vc\theta}q(\vc z,\vc\theta_0)}\;=\;-\mat A,
+    \]
+    其中我们\emph{定义} $\mat A=-\mat H_0=-\E{\grad^2 q(\vc z,\vc\theta_0)}$（在极大点 Hessian 负定，故 $\mat A$ 正定）。$\mat A$ 度量的是总体目标在峰处的\emph{曲率}。
+    \item \textbf{得分块（中心极限定理）}。在 $\vc\theta_0$ 处，单观测得分 $\grad q(\vc z_i,\vc\theta_0)$ 是独立同分布的随机向量，而且\emph{均值为零}（见下面的注），所以 $\rtn\,\vc s_n(\vc\theta_0)=\frac1{\rtn}\sumi\grad q(\vc z_i,\vc\theta_0)$ 由中心极限定理趋于正态：
+    \[
+        \rtn\,\vc s_n(\vc\theta_0)\dto\cN(\vc 0,\mat B),
+        \qquad
+        \mat B:=\Var{\grad q(\vc z,\vc\theta_0)}=\E{\grad q\,\grad q\T}.
+    \]
+    $\mat B$ 度量的是得分的\emph{抽样方差}。
+\end{itemize}
+
+\rmkb[为什么真值处的得分均值为零]{
+这是上面 CLT 能用的关键，也是整个理论的``支点恒等式''。因为 $\vc\theta_0$ 是\emph{总体}目标 $Q(\vc\theta)=\E{q(\vc z,\vc\theta)}$ 的内点极大，对它求一阶条件并交换期望与求导的次序（合法性由控制收敛保证，见 Lebesgue 积分一章）：
+\[
+    \grad_{\vc\theta}Q(\vc\theta_0)=\E{\grad_{\vc\theta}q(\vc z,\vc\theta_0)}=\vc 0 .
+\]
+即\emph{总体得分在真值处期望为零}。这正是``真值让平均准则最优''的一阶刻画——也是为什么 $\rtn\,\vc s_n(\vc\theta_0)$ 是一个中心化的和、可以直接喂给 CLT。
+}
+
+把两块用 Slutsky 定理（前一章）拼起来：$[\mat H_n]^{-1}\pto-\inv{\mat A}$ 是收敛到常数矩阵的因子，$\rtn\vc s_n(\vc\theta_0)\dto\cN(\vc 0,\mat B)$ 是依分布收敛的因子，二者相乘的极限分布是把常数矩阵作用到正态上：
+
+\thm{极值估计量的渐近正态性}{
+在上述正则条件（内点、光滑、$\mat A$ 正定、CLT 适用）下，
+\[
+    \boxed{\ \rtn(\hat{\vc\theta}_n-\vc\theta_0)\ \dto\ \cN\!\bigl(\vc 0,\ \inv{\mat A}\,\mat B\,\inv{\mat A}\bigr)\ },
+\]
+其中
+\[
+    \mat A=-\,\E{\grad^2_{\vc\theta}q(\vc z,\vc\theta_0)}
+    \quad(\text{曲率/负 Hessian 的期望}),
+    \qquad
+    \mat B=\E{\grad q\,\grad q\T}\big|_{\vc\theta_0}
+    \quad(\text{得分方差}).
+\]
+}
+
+\pf{
+承接枢纽恒等式 $\rtn(\hat{\vc\theta}_n-\vc\theta_0)=-[\mat H_n(\bar{\vc\theta}_n)]^{-1}\rtn\,\vc s_n(\vc\theta_0)$。由一致性 $\hat{\vc\theta}_n\pto\vc\theta_0$ 知 $\bar{\vc\theta}_n\pto\vc\theta_0$，配合一致大数定律得 $\mat H_n(\bar{\vc\theta}_n)\pto-\mat A$，再由``矩阵求逆是连续映射''（连续映射定理，$\mat A$ 可逆故 $-\mat A$ 附近求逆连续）得 $[\mat H_n(\bar{\vc\theta}_n)]^{-1}\pto-\inv{\mat A}$。另一方面 $\rtn\,\vc s_n(\vc\theta_0)\dto\cN(\vc 0,\mat B)$。一个依概率收敛到常数矩阵、一个依分布收敛，Slutsky 定理允许相乘：
+\[
+    \rtn(\hat{\vc\theta}_n-\vc\theta_0)
+    \dto -(-\inv{\mat A})\,\cN(\vc 0,\mat B)
+    =\inv{\mat A}\,\cN(\vc 0,\mat B).
+\]
+最后用``正态在线性变换下封闭''：若 $\vc\xi\sim\cN(\vc 0,\mat B)$，则 $\mat M\vc\xi\sim\cN(\vc 0,\mat M\mat B\mat M\T)$。取 $\mat M=\inv{\mat A}$（对称，故 $\mat M\T=\inv{\mat A}$）得方差 $\inv{\mat A}\mat B\inv{\mat A}$。
+}
+
+\state{三明治方差的解剖}{
+$\inv{\mat A}\mat B\inv{\mat A}$ 这个``三明治''——两片面包 $\inv{\mat A}$ 夹着一块馅 $\mat B$——不是巧合的代数形状，它是两种力量的产物：$\mat B$ 是\emph{得分的抽样噪声}（一阶条件因抽样而抖动多少），$\mat A$ 是\emph{总体目标的曲率}（峰有多尖）。估计误差 $=$ 噪声 $\div$ 曲率：噪声越大、误差越大（$\mat B$ 在分子），曲率越大、峰越尖、误差越小（$\mat A$ 在分母，出现两次因为它先把得分翻译成位置、又因方差是二次而平方）。图~\ref{fig:extremum-2} 把标量情形画了出来——这也正是隐函数定理的影子：估计量由一阶条件 $\vc s_n(\hat{\vc\theta}_n)=\vc 0$ 隐含定义，对它做的 Taylor 展开，本质上就是``对恒等式求导、用 Hessian 的逆解出''那一招（第~\ref{ch:ift}~章）在随机扰动下的版本。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=2.6,>=Stealth]
+    \def\A{0.9}\def\t0{2}\def\sB{0.6}
+    % 浅色采样带
+    \fill[red!8]
+        (0.85,{-\A*(0.85-\t0)+\sB}) --
+        (3.15,{-\A*(3.15-\t0)+\sB}) --
+        (3.15,{-\A*(3.15-\t0)-\sB}) --
+        (0.85,{-\A*(0.85-\t0)-\sB}) -- cycle;
+    \draw[->] (0.7,0) -- (3.5,0) node[right] {$\theta$};
+    \draw[->] (\t0,-1.55) -- (\t0,1.55);
+    \node[anchor=west,align=left] at (\t0+0.12,1.30) {样本得分\\$s_n(\theta)=\dfrac{\partial Q_n}{\partial\theta}$};
+    % 期望得分线
+    \draw[very thick,black] (0.85,{-\A*(0.85-\t0)}) -- (3.15,{-\A*(3.15-\t0)});
+    \draw[thin,red!60!black,dashed] (0.85,{-\A*(0.85-\t0)+\sB}) -- (3.15,{-\A*(3.15-\t0)+\sB});
+    \draw[thin,red!60!black,dashed] (0.85,{-\A*(0.85-\t0)-\sB}) -- (3.15,{-\A*(3.15-\t0)-\sB});
+    \fill (\t0,0) circle (0.8pt);
+    \node[anchor=south west,inner sep=1.5pt] at (\t0+0.02,0.03) {$\theta_0$};
+    \node[anchor=east,align=center] at (1.05,0.95)
+        {斜率 $=-A$\\（总体曲率，Hessian 的期望）};
+    \draw[->,black] (1.07,0.84) -- (1.25,0.675);
+    \def\tb{2.78}
+    \draw[<->,red!70!black,thick]
+        (\tb,{-\A*(\tb-\t0)+\sB}) -- (\tb,{-\A*(\tb-\t0)-\sB});
+    \node[anchor=west,red!70!black,align=left] at (\tb+0.06,{-\A*(\tb-\t0)})
+        {得分方差 $B$\\（带的高度）};
+    \draw[<->,red!70!black,thick] (1.333,-0.16) -- (2.667,-0.16);
+    \node[anchor=north,red!70!black,align=center] at (\t0,-0.22)
+        {$\hat\theta_n$ 的分散 $\;\propto\; B/A^2$};
+    \draw[dotted,red!55!black] (1.333,0) -- (1.333,-0.16);
+    \draw[dotted,red!55!black] (2.667,0) -- (2.667,-0.16);
+\end{tikzpicture}
+\caption{三明治方差的来源（标量情形）。粗线是总体得分 $\E{s_n(\theta)}=-A(\theta-\theta_0)$，过 $(\theta_0,0)$，斜率 $-A$ 即曲率。抽样让样本得分在粗线上下抖动，幅度（带的竖直高度）由得分方差 $B$ 决定。估计量 $\hat\theta_n$ 落在样本得分等于零之处；竖直的得分噪声 $B$ 经斜率翻译成 $\hat\theta_n$ 的水平分散，幅度 $\propto B/A^2=A^{-1}BA^{-1}$。噪声越大、曲率越小，估计越不准。}
+\label{fig:extremum-2}
+\end{figure}
+
+\rmkb[标准误从哪来]{
+渐近正态性还没法直接拿来做推断，因为 $\mat A,\mat B$ 都含未知的真值与总体期望。实践中用样本对应物去估它们（``即插即用''）：
+\[
+    \hat{\mat A}=-\frac1n\sumi\grad^2 q(\vc z_i,\hat{\vc\theta}_n),
+    \qquad
+    \hat{\mat B}=\frac1n\sumi\grad q(\vc z_i,\hat{\vc\theta}_n)\,\grad q(\vc z_i,\hat{\vc\theta}_n)\T .
+\]
+由一致性与连续映射定理，$\hat{\mat A}\pto\mat A$、$\hat{\mat B}\pto\mat B$，故 $\hat{\vc\theta}_n$ 的估计协方差矩阵
+\[
+    \widehat{\Var{\hat{\vc\theta}_n}}=\frac1n\,\inv{\hat{\mat A}}\,\hat{\mat B}\,\inv{\hat{\mat A}}
+\]
+是 $\frac1n\inv{\mat A}\mat B\inv{\mat A}$ 的相合估计。它对角元的平方根就是\textbf{标准误}。这个用样本三明治拼出来的版本，正是计量软件里那个``稳健标准误''（robust / sandwich SE）的来历——见本章末。
+}
+
+\section{极大似然：信息矩阵等式与 Cramér--Rao}
+\label{sec:extremum-4}
+
+把上面的母定理代入 $q=\log f$，就得到极大似然的全部渐近理论。最漂亮的一点是：在 MLE（且模型\emph{正确设定}）下，三明治会神奇地坍缩——两片面包和馅变成同一个矩阵。
+
+\thm{信息矩阵等式}{
+设模型正确设定，即数据真的来自 $f(\cdot;\vc\theta_0)$。则在 $\vc\theta_0$ 处，得分方差等于负的期望 Hessian，二者都等于\textbf{Fisher 信息矩阵} $\mathcal I$：
+\[
+    \mat A=-\,\E{\grad^2\log f(\vc z;\vc\theta_0)}
+    \;=\;\E{\grad\log f\,\grad\log f\T}\big|_{\vc\theta_0}=\mat B
+    \;=:\;\mathcal I .
+\]
+}
+
+\pf{
+从恒等式 $\int f(\vc z;\vc\theta)\,\d\vc z=1$（密度积分为一，对一切 $\vc\theta$）出发，两次对 $\vc\theta$ 求导（交换积分与求导，正则条件下合法）。第一次：
+\[
+    \int \grad f\,\d\vc z=\vc 0
+    \quad\Longrightarrow\quad
+    \int (\grad\log f)\,f\,\d\vc z=\E{\grad\log f}=\vc 0,
+\]
+（用了 $\grad f=(\grad\log f)f$）——这重新得到``真值处得分均值为零''。第二次，对上式再求一次导：
+\[
+    \int\bigl[\grad^2\log f+(\grad\log f)(\grad\log f)\T\bigr]f\,\d\vc z=\mat 0 .
+\]
+（对 $(\grad\log f)f$ 用乘积法则：$\grad\bigl[(\grad\log f)f\bigr]=(\grad^2\log f)f+(\grad\log f)(\grad f)\T=(\grad^2\log f)f+(\grad\log f)(\grad\log f)\T f$。）取期望即得
+\[
+    \E{\grad^2\log f}+\E{(\grad\log f)(\grad\log f)\T}=\mat 0,
+\]
+也就是 $-\mat A+\mat B=\mat 0$，即 $\mat A=\mat B=\mathcal I$。
+}
+
+把 $\mat A=\mat B=\mathcal I$ 代回三明治，两片面包与馅合体：
+\[
+    \inv{\mat A}\mat B\inv{\mat A}
+    =\inv{\mathcal I}\,\mathcal I\,\inv{\mathcal I}
+    =\inv{\mathcal I}.
+\]
+
+\cor{极大似然估计量的渐近分布}{
+正确设定下，
+\[
+    \rtn(\hat{\vc\theta}_{\mathrm{MLE}}-\vc\theta_0)\ \dto\ \cN\!\bigl(\vc 0,\ \inv{\mathcal I}\bigr).
+\]
+渐近方差就是信息矩阵的逆。
+}
+
+这个 $\inv{\mathcal I}$ 不是任意的好——它是\emph{能达到的最小}方差。Cramér--Rao 不等式说，任何（渐近无偏的）估计量的渐近方差都 $\succeq\inv{\mathcal I}$（矩阵意义上不小于），而 MLE 恰好取到这个下界。所以正确设定下的 MLE 是\textbf{渐近有效}的：没有别的正则估计量能比它更精确。
+
+\state{信息越多，估计越准——一句话的几何}{
+信息矩阵 $\mathcal I=-\E{\grad^2\log f}$ 就是\emph{平均对数似然在峰处的曲率}。曲率大$=$峰尖，意味着``偏离真值一点点，似然就掉得很厉害'',数据对参数的位置很``敏感''，于是估计很准（方差 $\inv{\mathcal I}$ 小）；曲率小$=$峰平，似然对参数不敏感，估计就糊（方差大）。图~\ref{fig:extremum-3} 把这条``曲率$\to$信息$\to$精度''的链子画了出来。这也解释了为什么 $\mathcal I$ 叫``信息'':它量的正是\emph{一个观测平均能为定位参数提供多少分辨力}。Cramér--Rao 下界 $\inv{\mathcal I}$ 则是这句话的极致——没有任何手法能从同样的信息里榨出更高的精度。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.55,>=Stealth]
+  % ============ 左：高信息（对数似然峰尖）============
+  \begin{scope}[shift={(0,0)}]
+    \def\xc{0}
+    \draw[->] (\xc-1.45,1.2) -- (\xc+1.45,1.2) node[right] {$\theta$};
+    \draw[very thick,black,domain=-0.874:0.874,smooth,samples=80,variable=\u]
+        plot ({\xc+\u},{1.2+1.3-1.7*\u*\u});
+    \fill (\xc,2.5) circle (1.1pt);
+    \draw[dashed,gray] (\xc,2.5) -- (\xc,1.2) -- (\xc,-1.45);
+    \node[anchor=south,align=center] at (\xc-0.05,2.55) {$\bar\ell(\theta)$ 峰\emph{尖}};
+    \node[anchor=west,align=left] at (\xc+0.62,1.78) {大曲率\\$=$ 大信息 $\mathcal I$};
+    \draw[->] (\xc-1.45,-0.3) -- (\xc+1.45,-0.3) node[right] {$\hat\theta_n$};
+    \draw[red!70!black,thick,domain=-1.25:1.25,smooth,samples=120,variable=\u]
+        plot ({\xc+\u},{-0.3+1.0*exp(-\u*\u/(2*0.16))});
+    \draw[<->,red!70!black] (\xc-0.40,-0.55) -- (\xc+0.40,-0.55);
+    \node[anchor=north,red!70!black,align=center] at (\xc,-0.60) {方差小\\$=\mathcal I^{-1}$};
+    \node[anchor=north] at (\xc,-1.30) {高信息};
+  \end{scope}
+  % ============ 右：低信息（对数似然峰平）============
+  \begin{scope}[shift={(4,0)}]
+    \def\xc{0}
+    \draw[->] (\xc-1.45,1.2) -- (\xc+1.45,1.2) node[right] {$\theta$};
+    \draw[very thick,black,domain=-1.3:1.3,smooth,samples=80,variable=\u]
+        plot ({\xc+\u},{1.2+0.62-0.55*\u*\u});
+    \fill (\xc,1.82) circle (1.1pt);
+    \draw[dashed,gray] (\xc,1.82) -- (\xc,1.2) -- (\xc,-1.45);
+    \node[anchor=south,align=center] at (\xc,1.90) {$\bar\ell(\theta)$ 峰\emph{平}};
+    \node[anchor=west,align=left] at (\xc+0.42,2.18) {小曲率\\$=$ 小信息 $\mathcal I$};
+    \draw[->] (\xc-1.45,-0.3) -- (\xc+1.45,-0.3) node[right] {$\hat\theta_n$};
+    \draw[red!70!black,thick,domain=-1.30:1.30,smooth,samples=120,variable=\u]
+        plot ({\xc+\u},{-0.3+0.471*exp(-\u*\u/(2*0.7225))});
+    \draw[<->,red!70!black] (\xc-0.85,-0.55) -- (\xc+0.85,-0.55);
+    \node[anchor=north,red!70!black,align=center] at (\xc,-0.60) {方差大\\$=\mathcal I^{-1}$};
+    \node[anchor=north] at (\xc,-1.30) {低信息};
+  \end{scope}
+\end{tikzpicture}
+\caption{Fisher 信息 $=$ 平均对数似然 $\bar\ell$ 在峰处的曲率。左：峰\emph{尖}（大曲率$=$大信息），似然对参数敏感，$\hat\theta_n$ 的抽样分布\emph{窄}（方差 $\mathcal I^{-1}$ 小）。右：峰\emph{平}（小曲率$=$小信息），$\hat\theta_n$ 的分布\emph{宽}。这就是``信息越多、估计越准''，以及 Cramér--Rao 下界 $\mathcal I^{-1}$ 的直观来源。}
+\label{fig:extremum-3}
+\end{figure}
+
+\ex[正态均值的 MLE 与信息]{
+设 $z_1,\dots,z_n\iid\cN(\mu,\sigma^2)$，$\sigma^2$ 已知，估 $\mu$。写出对数似然、得分、信息，并给出 $\hat\mu$ 的渐近分布。
+}
+\sol{
+单观测对数似然 $\log f(z;\mu)=-\tfrac12\log(2\pi\sigma^2)-\dfrac{(z-\mu)^2}{2\sigma^2}$。对 $\mu$ 求导得得分
+\[
+    \pd{\log f}{\mu}=\frac{z-\mu}{\sigma^2},
+    \qquad
+    \pdn{2}{\log f}{\mu}=-\frac{1}{\sigma^2}.
+\]
+Hessian 是常数 $-1/\sigma^2$，故信息（用 $\mat A$ 那一侧最省事）
+\[
+    \mathcal I=-\E{\pdn{2}{\log f}{\mu}}=\frac{1}{\sigma^2}.
+\]
+（用 $\mat B$ 那一侧核对：$\Var{\dfrac{z-\mu}{\sigma^2}}=\dfrac{\Var{z}}{\sigma^4}=\dfrac{\sigma^2}{\sigma^4}=\dfrac{1}{\sigma^2}$，两侧相等，信息矩阵等式当场兑现。）样本得分为零 $\frac1n\sum_i\frac{z_i-\mu}{\sigma^2}=0$ 解出 $\hat\mu=\bar z$，于是
+\[
+    \rtn(\hat\mu-\mu)\dto\cN\!\bigl(0,\ \inv{\mathcal I}\bigr)=\cN(0,\sigma^2).
+\]
+这与直接对样本均值用中心极限定理（$\rtn(\bar z-\mu)\dto\cN(0,\sigma^2)$）给出的结论分毫不差——正好用这个一切都能手算的特例，验证了极值估计的整套机器无误。它真正的价值在于：当似然不再有闭式解（probit、logit、Tobit、混合模型……）时，同一套公式照样给出渐近分布与标准误。
+}
+
+\section{GMM：矩条件与最优权重}
+\label{sec:extremum-5}
+
+很多经济模型不直接给出似然，却给出一组\textbf{矩条件}：理论预言某些函数在真值处期望为零。最典型的是工具变量——``工具与扰动正交''就是一条矩条件。广义矩估计（GMM）把这类信息系统化。
+
+\defn{矩条件与 GMM 估计量}{
+设理论给出 $k$ 维矩函数 $\vc g(\vc z,\vc\theta)$，在真值处期望为零：
+\[
+    \E{\vc g(\vc z,\vc\theta_0)}=\vc 0
+    \qquad(\text{$k$ 条矩条件}).
+\]
+记样本矩 $\bar{\vc g}_n(\vc\theta)=\frac1n\sumi\vc g(\vc z_i,\vc\theta)$。给定一个对称正定\textbf{权重矩阵} $\mat W$，\textbf{GMM 估计量}是
+\[
+    \hat{\vc\theta}_n=\argmin_{\vc\theta}\ \bar{\vc g}_n(\vc\theta)\T\,\mat W\,\bar{\vc g}_n(\vc\theta).
+\]
+}
+
+当矩条数 $k$ 多于参数数 $p$（\emph{过度识别}）时，一般找不到让所有样本矩同时为零的 $\vc\theta$；GMM 退而求其次，让样本矩``尽量接近零'',而 $\mat W$ 决定了``哪个方向上的偏离更该被惩罚''。把它套进极值框架（取 $Q_n=-\bar{\vc g}_n\T\mat W\bar{\vc g}_n$）走一遍前面的推导，可得渐近分布——推导同前，结果如下。
+
+\thm{GMM 的渐近分布与最优权重}{
+记矩函数的 Jacobian $\mat G=\E{\D_{\vc\theta}\vc g(\vc z,\vc\theta_0)}$（$k\times p$）与矩的方差 $\mat S=\Var{\vc g(\vc z,\vc\theta_0)}$（$k\times k$）。则
+\[
+    \rtn(\hat{\vc\theta}_n-\vc\theta_0)\dto\cN\!\bigl(\vc 0,\ \mat V_{\mat W}\bigr),
+    \quad
+    \mat V_{\mat W}=\inv{(\mat G\T\mat W\mat G)}\,\mat G\T\mat W\,\mat S\,\mat W\mat G\,\inv{(\mat G\T\mat W\mat G)} .
+\]
+在所有正定 $\mat W$ 里，取
+\[
+    \boxed{\ \mat W^{*}=\inv{\mat S}\ }
+\]
+使 $\mat V_{\mat W}$ 达到\emph{矩阵意义下的最小}，此时方差坍缩为
+\[
+    \mat V^{*}=\inv{(\mat G\T\inv{\mat S}\mat G)} .
+\]
+}
+
+\pf[最优权重的直觉（不逐行）]{
+完整的渐近展开与前一节同构（对一阶条件 $\mat G\T\mat W\bar{\vc g}_n(\hat{\vc\theta}_n)=\vc 0$ 做 Taylor 展开），这里只点明``$\mat W^*=\inv{\mat S}$ 最优''的来历。各条样本矩的可信度不同：方差大的矩（$\mat S$ 的大特征值方向）噪声大、信息少，方差小的矩信息多。最优权重应当\emph{按可信度加权}——给噪声小的矩高权、噪声大的矩低权，而``按方差倒数加权''正是 $\inv{\mat S}$。这与广义最小二乘里``用误差协方差的逆做权重''是同一个原理，也是 Gauss--Markov/Aitken 式``逆方差加权最有效''思想在矩空间里的化身。代数上，把 $\mat W=\inv{\mat S}$ 代入 $\mat V_{\mat W}$ 立刻约掉中间一截，得 $\mat V^*=\inv{(\mat G\T\inv{\mat S}\mat G)}$；而 $\mat V_{\mat W}-\mat V^*\succeq\mat 0$ 对任意 $\mat W$ 成立（标准的二次型配方可证），即 $\mat V^*$ 最小。
+}
+
+\rmkb[可行的两步 GMM]{
+最优权重 $\inv{\mat S}$ 含未知的 $\mat S$，故实务上分两步：第一步用任意权重（常取 $\mat W=\mat I$）算一个相合但未必有效的 $\hat{\vc\theta}^{(1)}$；用它估出 $\hat{\mat S}=\frac1n\sumi\vc g(\vc z_i,\hat{\vc\theta}^{(1)})\vc g(\vc z_i,\hat{\vc\theta}^{(1)})\T$；第二步以 $\mat W=\inv{\hat{\mat S}}$ 重新极小化，得到有效的两步 GMM。过度识别时还附赠一个检验：在 $\mat W^*$ 下，$n\,\bar{\vc g}_n(\hat{\vc\theta}_n)\T\inv{\hat{\mat S}}\,\bar{\vc g}_n(\hat{\vc\theta}_n)\dto\chi^2_{k-p}$，即\textbf{Hansen 的 $J$ 检验}——它问``这些多出来的矩条件彼此相容吗'',是对模型设定的整体检验。
+}
+
+\rmk{GMM 把恰好识别（$k=p$）的矩估计、工具变量、两阶段最小二乘全收作特例：恰好识别时样本矩能被精确清零，权重 $\mat W$ 无关紧要，GMM 退化为解 $\bar{\vc g}_n(\hat{\vc\theta}_n)=\vc 0$。}
+
+\section{M-估计与 QMLE：当模型可能错}
+\label{sec:extremum-6}
+
+回到最一般的 M-估计（$\hat{\vc\theta}_n=\argmax\frac1n\sum_i q(\vc z_i,\vc\theta)$，$q$ 是任选准则）。它最重要的用场之一是\textbf{拟极大似然}（QMLE）：你照常极大化某个似然，但并不真信这个似然就是数据生成过程——比如对计数或分数数据硬套正态、或对面板套 Poisson。这时模型``设定错了'',信息矩阵等式 $\mat A=\mat B$ \emph{不再成立}（它的证明用到``真分布就是 $f_{\vc\theta_0}$''），于是渐近方差\emph{回到完整的三明治} $\inv{\mat A}\mat B\inv{\mat A}$，不能再用 $\inv{\mathcal I}$。
+
+\state{三明治 vs.\ 信息逆：一张判断表}{
+\textbf{什么时候方差是 $\inv{\mat A}$（$=\inv{\mathcal I}$）、什么时候是三明治 $\inv{\mat A}\mat B\inv{\mat A}$？}——取决于 $\mat A=\mat B$ 成不成立。
+\begin{itemize}
+    \item \emph{模型正确设定的 MLE}：信息矩阵等式成立，$\mat A=\mat B=\mathcal I$，方差 $=\inv{\mathcal I}$，且达到 Cramér--Rao 下界（有效）。此时三明治退化、用简洁的 $\inv{\mathcal I}$ 即可。
+    \item \emph{QMLE / 一般 M-估计 / 设定可疑}：$\mat A\neq\mat B$，必须用三明治 $\inv{\mat A}\mat B\inv{\mat A}$，否则标准误会错。代价是放弃有效性，换来对设定错误的稳健性。
+\end{itemize}
+经验法则：拿不准设定对不对，就报三明治（稳健）标准误——它在正确设定时也对（只是没榨干效率），在错误设定时\emph{仍然}对。这就是为什么现代实证论文几乎一律默认稳健标准误。
+}
+
+\ex[OLS 的稳健标准误正是三明治]{
+线性模型 $y_i=\vc x_i\T\vc\beta+u_i$，用准则 $q=-(y_i-\vc x_i\T\vc\theta)^2$（即 OLS）。算出 $\mat A,\mat B$，说明同方差与异方差下标准误的差别。
+}
+\sol{
+得分 $\grad q=2\vc x_i(y_i-\vc x_i\T\vc\theta)$，在真值处 $=2\vc x_i u_i$；Hessian $\grad^2 q=-2\vc x_i\vc x_i\T$。于是（吸收掉常数 $2$，它在三明治里上下抵消）
+\[
+    \mat A=-\E{\grad^2 q}=2\,\E{\vc x\vc x\T},
+    \qquad
+    \mat B=\Var{\grad q}=4\,\E{u^2\,\vc x\vc x\T}.
+\]
+代入 $\inv{\mat A}\mat B\inv{\mat A}$（常数 $2,4$ 约成 $1$）得 OLS 的渐近方差
+\[
+    \inv{\bigl(\E{\vc x\vc x\T}\bigr)}\ \E{u^2\,\vc x\vc x\T}\ \inv{\bigl(\E{\vc x\vc x\T}\bigr)} .
+\]
+\textbf{同方差}（$\E{u^2\given\vc x}=\sigma^2$ 常数）时，中间块 $\E{u^2\vc x\vc x\T}=\sigma^2\E{\vc x\vc x\T}$，三明治坍缩成 $\sigma^2\inv{(\E{\vc x\vc x\T})}$——这正是教科书里那个``经典''OLS 方差公式。\textbf{异方差}时中间块不再约分，必须留着完整的三明治——其样本版本 $\inv{(\sum\vc x_i\vc x_i\T)}\bigl(\sum\hat u_i^2\vc x_i\vc x_i\T\bigr)\inv{(\sum\vc x_i\vc x_i\T)}$ 就是 White（异方差稳健）标准误。可见``稳健标准误''并不神秘：它不过是不假设同方差、直接用样本三明治而已。
+}
+
+\section{收束：三位一体的检验与全书的汇流}
+\label{sec:extremum-7}
+
+有了 $\rtn(\hat{\vc\theta}_n-\vc\theta_0)\dto\cN(\vc 0,\mat V)$，假设检验是水到渠成的一步。要检验 $H_0:\vc r(\vc\theta_0)=\vc 0$，有三种互补的造法，合称\textbf{检验三位一体}，它们各从极值图景的一个侧面入手：
+
+\begin{itemize}
+    \item \textbf{Wald 检验}：直接量``估计量离原假设有多远''。用 $\hat{\vc\theta}_n$ 和它的渐近方差构造 $\vc r(\hat{\vc\theta}_n)\T\,\widehat{\Var{}}^{-1}\vc r(\hat{\vc\theta}_n)\dto\chi^2$。只需估\emph{无约束}模型。
+    \item \textbf{似然比 / 距离检验（LR）}：量``加上约束后，目标函数的峰降了多少''——$2\bigl[Q_n(\hat{\vc\theta}_n)-Q_n(\tilde{\vc\theta}_n)\bigr]$，其中 $\tilde{\vc\theta}_n$ 是约束下的估计。需估两个模型。
+    \item \textbf{拉格朗日乘子 / 得分检验（LM）}：量``在约束解处，得分离零有多远''——若约束是真的，约束解处的得分 $\vc s_n(\tilde{\vc\theta}_n)$ 应接近零。只需估\emph{约束}模型。
+\end{itemize}
+
+三者在 $H_0$ 下渐近等价、都趋于同一个 $\chi^2$，差别只在``从哪个侧面逼近极值''——离峰的水平距离（Wald）、峰的高度落差（LR）、还是峰处的斜率（LM）。这三把尺子量的是同一座山的同一个顶。
+
+\state{一章收束全书}{
+回望这一章用到了多少前面的工具，就明白为什么说它是汇流处：\emph{大数定律}定住 Hessian（给出 $\mat A$）、\emph{中心极限定理}定住得分（给出 $\mat B$）、\emph{Slutsky 与连续映射定理}把两块拼成极限分布、\emph{Taylor 展开}把一阶条件线性化、\emph{隐函数定理}的精神支配着``由一阶条件隐含定义的解''如何随扰动移动、\emph{矩阵求逆与正定性}撑起三明治的代数、\emph{二阶条件}（Hessian 负定$=$$\mat A$ 正定）保证一切有定义、\emph{Lebesgue 控制收敛}许可``期望与求导交换''那几步关键操作、\emph{Kullback--Leibler 散度}（凸性/Jensen）解释了识别。一个公式 $\rtn(\hat{\vc\theta}_n-\vc\theta_0)\dto\cN(\vc 0,\inv{\mat A}\mat B\inv{\mat A})$，把全书前面散落的工具一次性收进了计量推断。
+}
+
+它的去处，则是你接下来要上的每一门计量课与每一篇实证论文：
+
+\begin{itemize}
+    \item \textbf{所有估计量的标准误}。OLS/IV/2SLS、probit/logit/Tobit、Poisson 回归、分位数回归、NLLS——它们的标准误全是某个 $\inv{\mat A}\mat B\inv{\mat A}$（或正确设定下的 $\inv{\mathcal I}$）的样本版本。会读软件输出里``Robust SE''那一列，靠的就是本章。
+    \item \textbf{稳健与聚类标准误}。把三明治中间的 $\mat B$ 换成允许异方差（White）或组内相关（cluster）的估计，是同一框架的直接推广。
+    \item \textbf{GMM 与结构估计}。宏观的 Euler 方程估计、产业组织的需求估计、动态离散选择，骨架都是 GMM 或模拟矩，最优权重 $\inv{\mat S}$ 与 $J$ 检验来自本章。
+    \item \textbf{检验三位一体}。Wald/LR/LM 在每一门计量课、每一次模型设定检验里反复出现，它们的渐近 $\chi^2$ 性质就建立在本章的渐近正态之上。
+\end{itemize}
+
+至此，本书前七个 Part 磨出的工具，在这里被一次性焊成了计量经济学的渐近推断引擎。这正是``认清工具本身、等于同时拿到许多扇门钥匙''的最终兑现——你现在握着的，是打开一年级计量理论顶点的那把总钥匙。

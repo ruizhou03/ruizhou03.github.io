@@ -1,0 +1,436 @@
+% !TEX root = ../main.tex
+\chapter{矩阵、秩、行列式与线性方程组的解结构}
+\label{ch:rank}
+
+\noindent\emph{用到的前置工具：向量空间、线性无关、基与维数（第一章）；矩阵乘法与转置（基础线性代数）。}
+\medskip
+
+经济学里，凡是要``从数据里把参数解出来''的地方，背后都站着同一个方程：$\mat A\vc x=\vc b$。最小二乘的正规方程是它，工具变量的矩估计方程是它，联立方程组模型的约简型也是它。于是三个问题反复出现——这个方程\emph{有没有}解？解\emph{唯不唯一}？若有多个解，它们\emph{长什么样}？这三问看似零碎，其实由一个统一的几何图景一并回答：把矩阵 $\mat A$ 看成一个线性映射，它的四个基本子空间（列空间、零空间、行空间、左零空间）就把全部答案写在脸上。本章先建立这个图景，再用一个数——\textbf{秩}——把它量化，并顺带补上\textbf{行列式}这把同源的尺子（它判可逆、量体积，又是后面特征值与正定判据的入口），最后把结论翻译回计量经济学最关心的那句话：\emph{OLS 的系数何时被唯一确定？}
+
+\section{从正规方程说起}
+\label{sec:rank-1}
+
+线性回归要做的事，是给定一张数据矩阵 $\mat X$（$n$ 行观测、$k$ 列解释变量）和一个被解释向量 $\vc y\in\RR^n$，找一组系数 $\vc\beta\in\RR^k$ 使 $\mat X\vc\beta$ 尽量接近 $\vc y$。最小二乘的一阶条件给出\textbf{正规方程}
+\[
+    \mat X\T\mat X\,\vc\beta=\mat X\T\vc y .
+\]
+这是一个标准的 $\mat A\vc x=\vc b$（这里 $\mat A=\mat X\T\mat X$、$\vc x=\vc\beta$、$\vc b=\mat X\T\vc y$）。计量经济学的开篇结论——``OLS 估计量 $\hat{\vc\beta}=\inv{(\mat X\T\mat X)}\mat X\T\vc y$ 存在且唯一''——其实就是在断言这个线性方程组恰好有唯一解。它什么时候成立？当它不成立（比如两个解释变量完全共线）时，又是哪里出了问题、参数变成了什么？
+
+要干净地回答这些，必须跳出``逐个方程消元''的层面，换一个更高的视角：\emph{把矩阵当成一种作用——一个把向量送到向量的映射}。一旦这样看，$\mat A\vc x=\vc b$ 就不再是一堆等式，而是一个几何问题：\emph{$\vc b$ 是不是落在 $\mat A$ 能够``够得到''的那些向量之中？}
+
+\section{矩阵作为线性映射}
+\label{sec:rank-2}
+
+一个 $m\times n$ 矩阵 $\mat A$ 通过 $\vc x\mapsto\mat A\vc x$ 把 $\RR^n$ 里的向量送到 $\RR^m$ 里。这个对应是\textbf{线性}的：$\mat A(\alpha\vc x+\beta\vc y)=\alpha\mat A\vc x+\beta\mat A\vc y$。反过来，$\RR^n$ 到 $\RR^m$ 的任何线性映射都可由某个唯一的 $m\times n$ 矩阵实现，所以``矩阵''与``有限维线性映射''是一回事的两种说法。
+
+关键的一步观察是：\emph{矩阵乘向量，本质是对列做加权求和}。把 $\mat A$ 按列写成 $\mat A=\br{\vc a_1\ \vc a_2\ \cdots\ \vc a_n}$，其中 $\vc a_j\in\RR^m$ 是第 $j$ 列，则
+\[
+    \mat A\vc x
+    =\br{\vc a_1\ \cdots\ \vc a_n}
+    \begin{bmatrix} x_1\\ \vdots\\ x_n\end{bmatrix}
+    =x_1\vc a_1+x_2\vc a_2+\cdots+x_n\vc a_n .
+\]
+也就是说，$\mat A\vc x$ 就是 $\mat A$ 各列的一个\textbf{线性组合}，组合系数正是 $\vc x$ 的各分量。这句话朴素得近乎平凡，却是本章一切结论的源头：方程 $\mat A\vc x=\vc b$ 有解，当且仅当 $\vc b$ 能写成 $\mat A$ 各列的线性组合。
+
+\state{把方程看成``$\vc b$ 是不是列的组合''}{
+$\mat A\vc x=\vc b$ \emph{有解} $\iff$ $\vc b$ 属于 $\mat A$ 各列张成的集合。求解 $\vc x$，就是去找``用哪些系数把各列拼出 $\vc b$''。这一改写把``解方程''变成了``判断归属''，而后者是纯几何的——这正是引入子空间的理由。
+}
+
+\section{四个基本子空间}
+\label{sec:rank-3}
+
+由 $\mat A$（连同它的转置 $\mat A\T$）自然生出四个子空间，它们装下了关于映射 $\mat A$ 与方程 $\mat A\vc x=\vc b$ 想知道的一切。先给定义。
+
+\defn{列空间与零空间}{
+设 $\mat A$ 为 $m\times n$ 矩阵。
+\begin{itemize}
+    \item \textbf{列空间}（column space）$C(\mat A)=\setb{\mat A\vc x}{\vc x\in\RR^n}\se\RR^m$：$\mat A$ 各列张成的子空间，也是映射 $\mat A$ 的\emph{值域}（能够被够到的所有向量）。
+    \item \textbf{零空间}（null space，核）$N(\mat A)=\setb{\vc x\in\RR^n}{\mat A\vc x=\vc 0}\se\RR^n$：被 $\mat A$ 压成零向量的所有 $\vc x$。
+\end{itemize}
+对转置 $\mat A\T$ 重复同一构造，得到另两个：\textbf{行空间} $C(\mat A\T)\se\RR^n$（$\mat A$ 各行张成的子空间）与\textbf{左零空间} $N(\mat A\T)\se\RR^m$（满足 $\mat A\T\vc y=\vc 0$，即 $\vc y\T\mat A=\vc 0\T$ 的所有 $\vc y$）。
+}
+
+这四个子空间分住在两个房间里：列空间与左零空间在到达域 $\RR^m$，行空间与零空间在定义域 $\RR^n$。它们的关系——尤其是``谁与谁正交''——构成了线性代数最优美的一张图（图~\ref{fig:rank-1}）。本章先把维数关系讲透；正交关系留待``内积、正交、投影''一章用内积语言精确证明，这里只点出结论与直觉。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ===== 左侧：定义域 R^n =====
+  \draw[rounded corners=20pt] (-4.4,-2.7) rectangle (-0.6,2.7);
+  \node[anchor=south] at (-2.5,2.75) {$\RR^{n}$（定义域）};
+  \fill[cyan!12] (-2.5,0) -- (-3.8,1.8) -- (-1.2,1.8) -- cycle;
+  \node[cyan!50!black] at (-2.5,1.25) {行空间 $C(\mat A\T)$};
+  \node[cyan!50!black] at (-2.5,0.6) {$\dim=r$};
+  \fill[orange!16] (-2.5,0) -- (-3.8,-1.8) -- (-1.2,-1.8) -- cycle;
+  \node[orange!60!black] at (-2.5,-0.9) {零空间 $N(\mat A)$};
+  \node[orange!60!black] at (-2.5,-1.5) {$\dim=n-r$};
+  \fill (-2.5,0) circle (1.4pt);
+  \node[anchor=east] at (-2.6,0) {$\vc 0$};
+  % ===== 右侧：到达域 R^m =====
+  \draw[rounded corners=20pt] (0.6,-2.7) rectangle (4.4,2.7);
+  \node[anchor=south] at (2.5,2.75) {$\RR^{m}$（到达域）};
+  \fill[cyan!12] (2.5,0) -- (1.2,1.8) -- (3.8,1.8) -- cycle;
+  \node[cyan!50!black] at (2.5,1.25) {列空间 $C(\mat A)$};
+  \node[cyan!50!black] at (2.5,0.6) {$\dim=r$};
+  \fill[orange!16] (2.5,0) -- (1.2,-1.8) -- (3.8,-1.8) -- cycle;
+  \node[orange!60!black] at (2.5,-0.9) {左零空间 $N(\mat A\T)$};
+  \node[orange!60!black] at (2.5,-1.5) {$\dim=m-r$};
+  \fill (2.5,0) circle (1.4pt);
+  \node[anchor=west] at (2.6,0) {$\vc 0$};
+  % ===== 映射箭头 A =====
+  \draw[->,thick,blue!55!black] (-1.2,1.1) to[bend left=14] (1.2,1.1);
+  \node[blue!55!black,anchor=south] at (0,1.4) {$\mat A$};
+  \draw[->,thick,orange!65!black] (-1.2,-1.1) to[bend right=10] (2.4,-0.18);
+  \node[orange!65!black,anchor=north] at (-0.1,-1.55) {$\mat A\vc x=\vc 0$};
+\end{tikzpicture}
+\caption{四个基本子空间。映射 $\mat A$ 把行空间一一映满列空间（二者同维 $r$），把整个零空间压到 $\vc 0$。行空间 $\perp$ 零空间（在 $\RR^n$ 内），列空间 $\perp$ 左零空间（在 $\RR^m$ 内）。}
+\label{fig:rank-1}
+\end{figure}
+
+\rmkb[``左''零空间的由来]{
+$N(\mat A\T)$ 里的向量 $\vc y$ 满足 $\mat A\T\vc y=\vc 0$，转置一下就是 $\vc y\T\mat A=\vc 0\T$——$\vc y$ 从\emph{左边}乘 $\mat A$ 得到零行向量，故名``左''零空间。它收集的是``$\mat A$ 各列的所有线性约束''：$\vc y$ 与 $\mat A$ 的每一列都正交，因此 $\vc y\perp C(\mat A)$。这正是图~\ref{fig:rank-1}右侧那对正交关系。
+}
+
+\section{秩：行秩等于列秩}
+\label{sec:rank-4}
+
+四个子空间的维数不是各自独立的，它们被一个数串起来——这个数就是\textbf{秩}。
+
+\defn{秩}{
+矩阵 $\mat A$ 的\textbf{列秩}是其列向量张成空间的维数 $\dim C(\mat A)$，即\emph{线性无关列的最大个数}；\textbf{行秩}是 $\dim C(\mat A\T)$，即线性无关行的最大个数。下面的定理表明二者相等，于是统称为 $\mat A$ 的\textbf{秩}，记作 $\rank(\mat A)$ 或 $r$。
+}
+
+行秩等于列秩，乍看并无道理：行是 $\RR^n$ 里的向量、列是 $\RR^m$ 里的向量，两组向量住在不同空间，凭什么``无关者的个数''恰好一样多？这其实是线性代数里最值得惊叹的事实之一。
+
+\thm{行秩 = 列秩}{
+对任意 $m\times n$ 实矩阵 $\mat A$，行秩与列秩相等。
+}
+\pf{
+记列秩为 $r$。取列空间 $C(\mat A)$ 的一组基 $\vc c_1,\dots,\vc c_r\in\RR^m$，把它们拼成 $m\times r$ 矩阵 $\mat C=\br{\vc c_1\ \cdots\ \vc c_r}$。$\mat A$ 的每一列都是这组基的线性组合，故每列 $\vc a_j$ 都可写成 $\vc a_j=\mat C\vc r_j$，其中 $\vc r_j\in\RR^r$ 是组合系数。把这些系数列拼成 $r\times n$ 矩阵 $\mat R=\br{\vc r_1\ \cdots\ \vc r_n}$，于是
+\[
+    \mat A=\mat C\mat R,
+    \qquad \mat C\in\RR^{m\times r},\ \mat R\in\RR^{r\times n}.
+\]
+这是一个\emph{秩分解}：把 $\mat A$ 写成一个``窄''矩阵乘一个``扁''矩阵，中间维数为 $r$。
+
+现在看行。由 $\mat A=\mat C\mat R$，$\mat A$ 的第 $i$ 行等于 $\mat C$ 第 $i$ 行（一个 $\RR^r$ 中的行向量）右乘 $\mat R$，也就是 $\mat R$ 各行的线性组合。因此 $\mat A$ 的\emph{每一行都落在 $\mat R$ 的 $r$ 个行所张成的空间里}，从而 $\mat A$ 的行空间维数
+\[
+    \text{行秩}(\mat A)=\dim C(\mat A\T)\le r=\text{列秩}(\mat A).
+\]
+把上述论证施于 $\mat A\T$（它的列秩是 $\mat A$ 的行秩，行秩是 $\mat A$ 的列秩），同样得到``列秩 $\le$ 行秩'',即 $\text{列秩}(\mat A)\le\text{行秩}(\mat A)$。两个不等式合起来即得行秩 $=$ 列秩。
+}
+
+\state{秩是``真实自由度''的度量}{
+一个 $m\times n$ 矩阵看似有 $mn$ 个数，但作为一个映射，它真正能``撑起''的维数只有 $r=\rank(\mat A)$：值域 $C(\mat A)$ 是 $r$ 维的，被独立编码进去的输入方向也是 $r$ 维的（行空间）。秩分解 $\mat A=\mat C\mat R$ 把这点摆明——信息全压在那个 $r$ 维的``腰''上。在计量里，$\mat X$ 的秩就是``线性无关的解释变量个数'',它直接决定能识别多少个参数。
+}
+
+\rmk{由秩分解 $\mat A=\mat C\mat R$ 顺带可见：$C(\mat A)=C(\mat C)$（$\mat A$ 的列都是 $\mat C$ 各列的组合，反之 $\mat C$ 各列是基、本就在 $C(\mat A)$ 中），故 $\rank(\mat A)=\rank(\mat C)=r$，自洽。}
+
+\section{秩\textendash 零化度定理}
+\label{sec:rank-5}
+
+秩量化了``被映射保留''的维数，那么``被压垮''的维数有多少？答案由秩\textendash 零化度定理给出，它是本章承上启下的枢纽。
+
+\defn{零化度}{
+零空间的维数 $\dim N(\mat A)$ 称为 $\mat A$ 的\textbf{零化度}（nullity），记作 $\operatorname{null}(\mat A)$。它是齐次方程 $\mat A\vc x=\vc 0$ 的解空间维数，也就是``自由变量''的个数。
+}
+
+\thm{秩\textendash 零化度定理}{
+对任意 $m\times n$ 矩阵 $\mat A$，定义域维数 $n$ 在映射下一分为二：
+\[
+    \rank(\mat A)+\operatorname{null}(\mat A)=n,
+    \qquad\text{即}\qquad
+    \dim C(\mat A\T)+\dim N(\mat A)=n .
+\]
+}
+\pf{
+设 $\operatorname{null}(\mat A)=k$，取零空间 $N(\mat A)$ 的一组基 $\vc u_1,\dots,\vc u_k\in\RR^n$。把它扩充成整个 $\RR^n$ 的一组基，补进 $\vc w_1,\dots,\vc w_{n-k}$（线性无关扩充总能做到，见第一章）。断言：像 $\mat A\vc w_1,\dots,\mat A\vc w_{n-k}$ 构成列空间 $C(\mat A)$ 的一组基；若成立，则 $\rank(\mat A)=n-k$，于是 $\rank+\operatorname{null}=(n-k)+k=n$。
+
+\emph{张成。} 任取 $\vc b\in C(\mat A)$，即 $\vc b=\mat A\vc x$。把 $\vc x$ 按基展开 $\vc x=\sum_i\alpha_i\vc u_i+\sum_j\beta_j\vc w_j$，作用 $\mat A$，因 $\mat A\vc u_i=\vc 0$，得 $\vc b=\sum_j\beta_j\,\mat A\vc w_j$。故诸 $\mat A\vc w_j$ 张成 $C(\mat A)$。
+
+\emph{线性无关。} 设 $\sum_j\beta_j\,\mat A\vc w_j=\vc 0$，即 $\mat A\!\pr{\sum_j\beta_j\vc w_j}=\vc 0$，于是 $\sum_j\beta_j\vc w_j\in N(\mat A)$，可写成 $\sum_i\gamma_i\vc u_i$。移项得 $\sum_j\beta_j\vc w_j-\sum_i\gamma_i\vc u_i=\vc 0$。但 $\{\vc u_i\}\cup\{\vc w_j\}$ 是 $\RR^n$ 的基、线性无关，故所有系数为零，特别地 $\beta_j=0$。于是诸 $\mat A\vc w_j$ 线性无关。
+
+两条合起来，$\{\mat A\vc w_j\}$ 是 $C(\mat A)$ 的基，$\dim C(\mat A)=n-k$，定理得证。
+}
+
+定理的直觉一目了然：$n$ 维的输入空间，被 $\mat A$ 沿着 $\operatorname{null}(\mat A)$ 个方向``彻底压扁''（这些方向全送到 $\vc 0$），剩下的 $\rank(\mat A)$ 个独立方向才被搬到值域里去。压扁的加上保留的，正好是全部 $n$ 个维度。结合图~\ref{fig:rank-1}：左房间 $\RR^n$ 被劈成``零空间（$n-r$ 维）$\oplus$ 行空间（$r$ 维）'',前者整团塌向原点，后者被一一映满到右边的列空间。
+
+\state{一张维数账单}{
+对 $m\times n$ 矩阵 $\mat A$，秩为 $r$，四个子空间的维数被两条账目锁死：
+\[
+    \ba
+    \underbrace{\dim C(\mat A\T)}_{r}\ +\ \underbrace{\dim N(\mat A)}_{n-r}&=n
+    \quad(\RR^n\text{ 内}),\\[4pt]
+    \underbrace{\dim C(\mat A)}_{r}\ +\ \underbrace{\dim N(\mat A\T)}_{m-r}&=m
+    \quad(\RR^m\text{ 内}).
+    \ea
+\]
+第二条是把第一条用到 $\mat A\T$（$n\times m$、同秩 $r$）的结果。记住这张账单，下一节关于``有解 / 唯一''的全部判据都是它的直接推论。
+}
+
+\section{$\mat A\vc x=\vc b$ 解的存在性与结构}
+\label{sec:rank-6}
+
+万事俱备。把前面的几何翻译成关于解的三句话：何时有解、何时唯一、多个解时的形状。
+
+\subsection*{存在性：$\vc b$ 必须落在列空间里}
+
+由 \S\ref{sec:rank-2}，$\mat A\vc x=\vc b$ 有解当且仅当 $\vc b$ 是 $\mat A$ 各列的线性组合，即 $\vc b\in C(\mat A)$。
+
+\prop{有解的判据}{
+$\mat A\vc x=\vc b$ 有解 $\iff \vc b\in C(\mat A) \iff \rank(\mat A)=\rank\br{\mat A\ \vc b}$，
+其中 $\br{\mat A\ \vc b}$ 是把 $\vc b$ 添为新列的增广矩阵。
+}
+\pf{
+前一个等价已述。后一个：把 $\vc b$ 添为新列，若 $\vc b\in C(\mat A)$ 则它是已有列的组合、不增加无关列个数，秩不变；若 $\vc b\notin C(\mat A)$ 则它带来一个新的无关方向，秩加一。故``秩不变''与``$\vc b\in C(\mat A)$''等价。
+}
+
+\subsection*{唯一性：零空间必须平凡}
+
+假设已有解。解唯一与否，完全由零空间说了算。设 $\vc x_1,\vc x_2$ 都满足 $\mat A\vc x=\vc b$，相减得 $\mat A(\vc x_1-\vc x_2)=\vc 0$，即 $\vc x_1-\vc x_2\in N(\mat A)$。反之，给定一个解 $\vc x_p$，对任意 $\vc h\in N(\mat A)$ 都有 $\mat A(\vc x_p+\vc h)=\mat A\vc x_p+\vc 0=\vc b$，故 $\vc x_p+\vc h$ 也是解。这就把解集刻画得清清楚楚。
+
+\thm{解集的仿射结构}{
+若 $\mat A\vc x=\vc b$ 有一个特解 $\vc x_p$（任取其一），则它的\emph{全部}解恰为
+\[
+    \boxed{\ \setb{\vc x}{\mat A\vc x=\vc b}=\vc x_p+N(\mat A)
+    =\setb{\vc x_p+\vc h}{\vc h\in N(\mat A)}\ }.
+\]
+即``一个特解 $+$ 齐次解的全体''。解集是一个\textbf{仿射集}：把子空间 $N(\mat A)$ 整体平移 $\vc x_p$ 得到，它过 $\vc x_p$、且``平行于''零空间。
+}
+\pf{
+（$\supseteq$）上一段已证 $\vc x_p+\vc h$ 对每个 $\vc h\in N(\mat A)$ 都是解。（$\subseteq$）若 $\vc x$ 是任一解，令 $\vc h=\vc x-\vc x_p$，则 $\mat A\vc h=\vc b-\vc b=\vc 0$，故 $\vc h\in N(\mat A)$、$\vc x=\vc x_p+\vc h$ 属于右边。两个包含合起来即等号。
+}
+
+这正是图~\ref{fig:rank-2}的内容：齐次方程的解 $N(\mat A)$ 是一个过原点的子空间（图中那条过 $\vc 0$ 的直线），而非齐次方程的解集是把它整体平移到特解 $\vc x_p$ 处的一条平行线（或平面）。解的``形状''由零空间决定，解的``位置''由特解决定——二者职责分明。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  \draw[->] (-0.4,0) -- (6.2,0) node[right] {};
+  \draw[->] (0,-0.4) -- (0,5.0) node[above] {};
+  \fill (0,0) circle (1.4pt);
+  \node[anchor=north east] at (0,0) {$\vc 0$};
+  % 零空间 N(A)：过原点、方向 (2,1)
+  \draw[orange!70!black,thick] (0,0) -- (5.2,2.6);
+  \node[orange!70!black,anchor=north west] at (4.55,2.28) {零空间 $N(\mat A)$};
+  \draw[orange!70!black,->,thick] (0,0) -- (2,1);
+  \node[orange!70!black,anchor=north west] at (1.05,0.45) {$\vc v$};
+  % 解集：过特解 x_p=(0.6,3.0)、方向 (2,1)
+  \draw[blue!60!black,thick] (0.1,2.75) -- (4.6,5.0);
+  \node[blue!60!black,anchor=south east] at (2.55,4.40) {解集 $\{\vc x:\mat A\vc x=\vc b\}$};
+  \fill[blue!60!black] (0.6,3.0) circle (1.7pt);
+  \node[blue!60!black,anchor=south east] at (0.55,3.05) {$\vc x_p$};
+  \draw[blue!60!black,->,thick,dashed] (0,0) -- (0.6,3.0);
+  \fill[blue!60!black] (2.6,4.0) circle (1.4pt);
+  \draw[blue!60!black,->,thick] (0.6,3.0) -- (2.6,4.0);
+  \node[blue!60!black,anchor=north west] at (1.55,3.45) {$+\,t\vc v$};
+\end{tikzpicture}
+\caption{解集 $=$ 特解 $+$ 零空间。零空间 $N(\mat A)$ 是过原点的子空间（橙线）；非齐次方程的解集（蓝线）是它平移 $\vc x_p$ 后的仿射集，与零空间平行。沿 $\vc v$ 方向移动不改变 $\mat A\vc x$ 的值，故仍在解集上。}
+\label{fig:rank-2}
+\end{figure}
+
+\state{三问的统一答案}{
+对 $\mat A\vc x=\vc b$：
+\begin{itemize}
+    \item \textbf{是否有解}由 $\vc b$ 与列空间 $C(\mat A)$ 的关系决定：$\vc b\in C(\mat A)$ 才有解。
+    \item \textbf{解是否唯一}由零空间 $N(\mat A)$ 决定：$N(\mat A)=\{\vc 0\}$（零化度为 $0$）时，有解必唯一；否则一旦有解便有无穷多。
+    \item \textbf{多解时的形状}永远是``一个特解 $+$ 零空间''的仿射集，其维数 $=\operatorname{null}(\mat A)=n-r$。
+\end{itemize}
+存在性看右房间（列空间），唯一性看左房间（零空间）——这就是图~\ref{fig:rank-1}两侧的分工。
+}
+
+\ex[读出解集的形状]{
+设
+\[
+    \mat A=\begin{bmatrix} 1 & 2 & 3\\ 2 & 4 & 6\end{bmatrix},
+    \qquad \vc b=\begin{bmatrix} 1\\ 2\end{bmatrix}.
+\]
+判断 $\mat A\vc x=\vc b$ 是否有解，若有，写出全部解。
+}
+\sol{
+第二行是第一行的 $2$ 倍，故 $\rank(\mat A)=1$。增广矩阵 $\br{\mat A\ \vc b}$ 的第二行 $(2,4,6\mid 2)$ 也是第一行 $(1,2,3\mid 1)$ 的 $2$ 倍，秩仍为 $1$，与 $\rank(\mat A)$ 相等，故\emph{有解}。
+
+方程退化为单条 $x_1+2x_2+3x_3=1$。取一个特解：令 $x_2=x_3=0$ 得 $\vc x_p=(1,0,0)\T$。零空间由 $x_1+2x_2+3x_3=0$ 给出，是 $\RR^3$ 中过原点的二维平面，维数 $\operatorname{null}=n-r=3-1=2$，与秩\textendash 零化度账单 $1+2=3$ 吻合。取它的一组基，例如
+\[
+    \vc h_1=\begin{bmatrix}-2\\1\\0\end{bmatrix},\quad
+    \vc h_2=\begin{bmatrix}-3\\0\\1\end{bmatrix}
+    \quad(\text{皆满足 }\mat A\vc h_i=\vc 0).
+\]
+于是全部解为一个二维仿射平面
+\[
+    \vc x=\underbrace{\begin{bmatrix}1\\0\\0\end{bmatrix}}_{\vc x_p}
+    +s\begin{bmatrix}-2\\1\\0\end{bmatrix}
+    +t\begin{bmatrix}-3\\0\\1\end{bmatrix},
+    \qquad s,t\in\RR .
+\]
+}
+
+\section{满秩、列满秩、行满秩}
+\label{sec:rank-7}
+
+把上一节的判据按``秩取到极大值''的几种情形归类，就得到几个反复出现的术语。设 $\mat A$ 为 $m\times n$、秩为 $r$；总有 $r\le\min(m,n)$（无关列不会超过列数 $n$、无关行不超过行数 $m$）。
+
+\defn{各种满秩}{
+\begin{itemize}
+    \item \textbf{列满秩}：$r=n$（秩等于列数）。此时各列线性无关，$N(\mat A)=\{\vc 0\}$。
+    \item \textbf{行满秩}：$r=m$（秩等于行数）。此时各行线性无关，$C(\mat A)=\RR^m$。
+    \item \textbf{满秩}：$r=\min(m,n)$，即列满秩或行满秩。方阵（$m=n$）满秩时同时是列满秩与行满秩，等价于\emph{可逆}。
+\end{itemize}
+}
+
+把它们对接到``有解 / 唯一'',就是下面这张可以直接查的表（证明都是 \S\ref{sec:rank-6} 三问答案的直接套用）。
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+\toprule
+& 零空间 $N(\mat A)$ & 列空间 $C(\mat A)$ \\
+\midrule
+\textbf{列满秩}（$r=n$） & $=\{\vc 0\}$ & 真子空间（除非 $r=m$）\\
+含义 & 有解必\textbf{唯一} & 未必对每个 $\vc b$ 有解 \\
+\addlinespace
+\textbf{行满秩}（$r=m$） & 一般非平凡（除非 $r=n$） & $=\RR^m$ \\
+含义 & 有解时一般\textbf{无穷多} & 对\textbf{任意} $\vc b$ 都有解 \\
+\bottomrule
+\end{tabular}
+\caption{满秩类型与解的对应。列满秩管``唯一性'',行满秩管``存在性''；方阵满秩二者兼得，故对每个 $\vc b$ 恰有唯一解——这正是可逆。}
+\label{tab:rank-1}
+\end{table}
+
+\cor{方阵的等价刻画}{
+对 $n\times n$ 方阵 $\mat A$，下列陈述彼此等价：
+(i) $\mat A$ 可逆；
+(ii) $\rank(\mat A)=n$；
+(iii) $N(\mat A)=\{\vc 0\}$（齐次方程只有零解）；
+(iv) 对每个 $\vc b$，$\mat A\vc x=\vc b$ 有唯一解；
+(v) $\det\mat A\neq 0$。
+}
+\rmk{(v) 用到行列式——下一节就把它需要的部分补齐：判断一个方阵可不可逆，既可以问``秩满不满'',也可以问``行列式是否为零'',二者说的是同一件事。}
+
+\section{行列式：可逆性的数值判据与体积}
+\label{sec:rank-det}
+
+上一节用``秩满不满''来判一个方阵是否可逆。本节给出同一件事的另一把尺子——\textbf{行列式}：它把一个 $n\times n$ 方阵压成\emph{一个数} $\det\mat A$，这个数是否为零恰好判定可逆（上面推论中的第 (v) 条），而它的绝对值还有一个极干净的几何含义。行列式更是后面三处的钥匙：特征多项式 $\det(\mat A-\lambda\mat I)=0$（第四章）、二次型正定的顺序主子式判据（第五章），以及概率论里多重积分变量变换的 Jacobian 行列式。本书不为它单设一章，这里把要用到的部分一次备齐。
+
+\defn{行列式}{
+$n$ 阶方阵 $\mat A$ 的\textbf{行列式} $\det\mat A$（也记作 $\abs{\mat A}$）是把方阵映为一个标量、且满足下面三条性质的唯一函数：(i) 关于每一列分别是线性的（\textbf{多重线性}）；(ii) 若某两列相同则取值为 $0$（\textbf{交错性}）；(iii) $\det\mat I=1$（\textbf{归一}）。
+}
+
+这三条性质唯一地确定了行列式，并等价地给出可计算的\textbf{按行（列）的代数余子式展开}（Laplace 展开）。实用中最常用的是低阶情形：
+\[
+\det\bm a & b\\ c & d\emx=ad-bc,
+\qquad
+\det\bm a_{11}&a_{12}&a_{13}\\ a_{21}&a_{22}&a_{23}\\ a_{31}&a_{32}&a_{33}\emx
+=\sum_{j=1}^{3}(-1)^{1+j}\,a_{1j}\,M_{1j},
+\]
+其中 $M_{1j}$ 是划去第 $1$ 行、第 $j$ 列后剩下的 $2\times2$ 子行列式，称为\textbf{余子式}；带上符号的 $(-1)^{1+j}M_{1j}$ 则称为\textbf{代数余子式}。
+
+\thm{行列式的关键性质}{
+设 $\mat A,\mat B$ 为 $n$ 阶方阵。
+\begin{itemize}
+    \item $\det(\mat A\T)=\det\mat A$，故凡对``列''成立的性质对``行''同样成立。
+    \item 交换两列（行）使行列式变号；某列（行）整体乘以 $k$ 使行列式乘 $k$；把某列（行）的倍数加到另一列（行）上，行列式不变。
+    \item 三角矩阵（含对角矩阵）的行列式等于其对角元之积。
+    \item \textbf{乘性}：$\det(\mat A\mat B)=\det\mat A\cdot\det\mat B$。
+    \item $\mat A$ 可逆 $\iff\det\mat A\neq0$；可逆时 $\det(\inv{\mat A})=1/\det\mat A$。
+\end{itemize}
+}
+
+\pf[要点]{
+前三条都是定义中三条性质的直接推论：交换两列后，用交错性与多重线性即得变号；把某列的倍数加到另一列上，多出来的那一项含有两列相同、由交错性为零，故行列式不变；将矩阵用列变换化成三角形并记录这些变换对行列式的影响，即得三角阵公式。乘性可以这样看：固定 $\mat B$，函数 $\mat A\mapsto\det(\mat A\mat B)$ 关于 $\mat A$ 的各列同样是多重线性且交错的，故它必是 $\det\mat A$ 的常数倍；取 $\mat A=\mat I$ 定出该常数恰为 $\det\mat B$。最后一条：若 $\mat A$ 可逆，则 $\det\mat A\cdot\det(\inv{\mat A})=\det(\mat A\inv{\mat A})=\det\mat I=1$，故 $\det\mat A\neq0$；反之若 $\det\mat A=0$，由下面的几何解读，列向量必线性相关，$\mat A$ 不可逆。
+}
+
+\paragraph{几何解读：行列式就是体积缩放因子。}
+把 $\mat A$ 看成线性映射，它的列 $\vc a_1,\dots,\vc a_n$ 正是单位坐标向量 $\vc e_1,\dots,\vc e_n$ 的像。于是 $\mat A$ 把单位立方体映成由这些列向量张成的平行多面体，而
+\[
+\abs{\det\mat A}=\text{该平行多面体的体积（二维即面积）},
+\]
+行列式的\emph{符号}则记录定向是否被翻转。由此立刻看出：$\det\mat A=0$ 当且仅当这些列向量线性相关、平行多面体塌缩到更低的维度——也就是映射把空间``压扁''，自然不可逆（图~\ref{fig:rank-det}）。乘性 $\det(\mat A\mat B)=\det\mat A\,\det\mat B$ 在这个图景下几乎不言自明：先后施加两个线性映射，体积的缩放因子相乘。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.25,>=Stealth]
+    \draw[->,gray!55] (-0.3,0) -- (3.0,0) node[black,right] {$x_1$};
+    \draw[->,gray!55] (0,-0.3) -- (0,2.5) node[black,above] {$x_2$};
+    % 单位正方形（虚线）
+    \draw[gray!60,dashed] (0,0) -- (1,0) -- (1,1) -- (0,1) -- cycle;
+    % 平行四边形：列 a1=(2,0.5), a2=(0.5,1.5)，det=2.75>0
+    \coordinate (O) at (0,0);
+    \coordinate (A1) at (2,0.5);
+    \coordinate (A2) at (0.5,1.5);
+    \coordinate (S) at (2.5,2.0);
+    \fill[blue!10] (O) -- (A1) -- (S) -- (A2) -- cycle;
+    \draw[blue!55!black,thick] (O) -- (A1) -- (S) -- (A2) -- cycle;
+    \draw[->,very thick,blue!55!black] (O) -- (A1);
+    \draw[->,very thick,blue!55!black] (O) -- (A2);
+    \node[blue!55!black,anchor=west] at (2.05,0.45) {$\vc a_1$};
+    \node[blue!55!black,anchor=east] at (0.42,1.45) {$\vc a_2$};
+    \node at (1.45,1.05) {面积 $=\abs{\det\mat A}$};
+\end{tikzpicture}
+\caption{$2\times2$ 行列式的几何：矩阵 $\mat A$ 把单位正方形（虚线）映成由它的两列 $\vc a_1,\vc a_2$ 张成的平行四边形，面积恰为 $\abs{\det\mat A}$；行列式的符号表示定向是否翻转。当 $\det\mat A=0$ 时 $\vc a_1,\vc a_2$ 共线、平行四边形塌成线段，映射把平面压扁，故不可逆。}
+\label{fig:rank-det}
+\end{figure}
+
+行列式还顺带给出一个理论上很顺手的求解公式。
+
+\prop{Cramer 法则}{
+若 $\mat A$ 为 $n$ 阶可逆方阵，则 $\mat A\vc x=\vc b$ 的唯一解的第 $i$ 个分量为
+\[
+    x_i=\frac{\det\mat A_i}{\det\mat A},
+\]
+其中 $\mat A_i$ 是把 $\mat A$ 的第 $i$ 列替换为 $\vc b$ 后所得的矩阵。
+}
+
+\rmk{Cramer 法则在理论推导里很方便（例如在比较静态中写出某个内生变量的显式表达式），但当 $n$ 较大时其计算量远高于高斯消元，数值计算中几乎不用。}
+
+\rmkb[行列式的去处]{
+行列式真正高频的用处在后面：① 特征值由特征方程 $\det(\mat A-\lambda\mat I)=0$ 给出（第四章）；② 对称矩阵正定的一个判据是其所有\emph{顺序主子式}（左上角各阶子行列式）皆为正（第五章 Sylvester 判据）；③ 在概率论中，多维随机变量做变量变换时，新密度要乘上变换的 Jacobian 行列式的绝对值——那里行列式扮演的正是本节这个``体积缩放因子''的角色。
+}
+
+\section{去处：OLS 何时被唯一确定}
+\label{sec:rank-8}
+
+回到开篇的正规方程。现在可以把``OLS 估计量存在且唯一''这句话彻底讲透，并看清它失效时究竟发生了什么。
+
+\thm{正规方程有唯一解 $\iff$ $\mat X$ 列满秩}{
+设 $\mat X$ 为 $n\times k$ 数据矩阵。正规方程 $\mat X\T\mat X\,\vc\beta=\mat X\T\vc y$ 对每个 $\vc y$ 都有\emph{唯一}解 $\hat{\vc\beta}=\inv{(\mat X\T\mat X)}\mat X\T\vc y$，当且仅当 $\mat X$ \textbf{列满秩}（$\rank(\mat X)=k$，即各解释变量线性无关、无完全多重共线）。
+}
+\pf{
+唯一性由 \S\ref{sec:rank-7} 表归结为 $k\times k$ 方阵 $\mat X\T\mat X$ 可逆，即 $N(\mat X\T\mat X)=\{\vc 0\}$。关键是一条恒等：
+\[
+    \mat X\T\mat X\,\vc v=\vc 0
+    \;\Longrightarrow\;
+    \vc v\T\mat X\T\mat X\,\vc v=0
+    \;\Longrightarrow\;
+    \norm{\mat X\vc v}^2=(\mat X\vc v)\T(\mat X\vc v)=0
+    \;\Longrightarrow\;
+    \mat X\vc v=\vc 0 .
+\]
+反向 $\mat X\vc v=\vc0\Rightarrow\mat X\T\mat X\vc v=\vc0$ 显然。故 $N(\mat X\T\mat X)=N(\mat X)$——两者零空间相同。于是 $\mat X\T\mat X$ 可逆 $\iff N(\mat X)=\{\vc 0\}\iff\mat X$ 列满秩。（存在性是免费的：正规方程的右端 $\mat X\T\vc y$ 总落在 $C(\mat X\T\mat X)=C(\mat X\T)$ 中，故无论是否列满秩，正规方程\emph{总有}解；列满秩只是把``有解''升级为``唯一解''。）
+}
+
+\state{多重共线性 $=$ 零空间非平凡 $=$ 不可识别}{
+若 $\mat X$ \emph{不}列满秩，存在 $\vc v\neq\vc 0$ 使 $\mat X\vc v=\vc 0$：某些解释变量的一个非平凡组合恒等于零（\textbf{完全多重共线}）。此时对任一解 $\hat{\vc\beta}$，整条 $\hat{\vc\beta}+t\vc v$（$t\in\RR$）都同样最小化残差平方和——数据无法在这条线上区分谁对谁错。用经济学的话说，对应的参数\emph{不可识别}：列方向 $\vc v$ 上的系数被数据留作未定。解集恰是 \S\ref{sec:rank-6} 那个``特解 $+$ 零空间''的仿射集（图~\ref{fig:rank-2}），只不过这里它住在参数空间里。识别，归根结底就是\emph{要求零空间平凡}。
+}
+
+\ex[两个完全共线的回归元]{
+模型 $y_i=\beta_1 x_{i1}+\beta_2 x_{i2}+\varepsilon_i$，但数据中恒有 $x_{i2}=2x_{i1}$（例如``身高（厘米）''与``身高（英寸）''的换算）。说明为何 $\beta_1,\beta_2$ 不可单独识别。
+}
+\sol{
+此时 $\mat X$ 第二列 $=2\times$ 第一列，$\rank(\mat X)=1<2=k$，非列满秩。取 $\vc v=(2,-1)\T$，则 $\mat X\vc v$ 的第 $i$ 个分量为 $2x_{i1}-x_{i2}=2x_{i1}-2x_{i1}=0$，即 $\mat X\vc v=\vc0$，$\vc v\in N(\mat X)$。给定任意一组拟合系数 $(\beta_1,\beta_2)$，换成 $(\beta_1+2t,\,\beta_2-t)$ 后拟合值
+\[
+    (\beta_1+2t)x_{i1}+(\beta_2-t)x_{i2}
+    =\beta_1 x_{i1}+\beta_2 x_{i2}+t\,(2x_{i1}-x_{i2})
+    =\beta_1 x_{i1}+\beta_2 x_{i2}
+\]
+对所有 $i$ 都不变，残差平方和也不变。于是沿 $\vc v$ 方向有一整条等价的``最优''系数线，数据无从挑选。\emph{能}被识别的只有不随 $\vc v$ 变动的量，比如这里的``总效应''组合 $\beta_1+2\beta_2$（读者可验证它在替换下不变）。补救之道——删掉冗余列、加约束、或换识别假设——本质都是\emph{把零空间打回平凡}。
+}
+
+最后点出这把工具的几处去处，它们都把今天的``秩 / 零空间''当作基本词汇：
+\begin{itemize}
+    \item \textbf{OLS 的几何}（后文``内积、正交、投影与最小二乘''一章）。本章把列空间当成``可达集''，下一步会赋予它内积，于是``$\vc b\notin C(\mat X)$ 时怎么办''有了标准答案：把 $\vc y$ \emph{投影}到 $C(\mat X)$ 上，投影点就是拟合值 $\mat X\hat{\vc\beta}$，残差落在左零空间 $N(\mat X\T)$ 里——正交关系（图~\ref{fig:rank-1}）正是最小二乘的几何内核。
+    \item \textbf{识别}（计量与结构估计）。``参数可识别''的一般定义，是某个映射的零空间平凡；线性情形它就退化为本章的列满秩。工具变量、联立方程的秩条件与阶条件，本质都是在数另一个矩阵的秩。
+    \item \textbf{降维与近似}（后文``奇异值分解''一章）。当 $\mat X$ \emph{接近}不满秩（强但不完全的多重共线）时，$\mat X\T\mat X$ 虽可逆却``病态'',$\inv{(\mat X\T\mat X)}$ 把噪声放得很大。秩分解 $\mat A=\mat C\mat R$ 的连续版本——奇异值分解——会把``有效秩''量化为奇异值的衰减，给出主成分回归、岭回归等稳健化手段的统一语言。
+\end{itemize}
+
+一个数（秩）、两个房间（$\RR^n$ 与 $\RR^m$）、四个子空间，就回答了``有解 / 唯一 / 形状''的全部追问，并直通计量经济学的识别问题。这是线性代数作为``计量引擎''的第一块基石；接下来的几章会在它之上，逐步装上内积、特征值与分解，把这台引擎彻底点火。

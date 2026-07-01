@@ -1,0 +1,376 @@
+% !TEX root = ../main.tex
+\chapter{Markov 链：平稳分布与遍历性}
+\label{ch:markov}
+
+\noindent\emph{用到的前置工具：转移矩阵作为线性映射、矩阵幂与对角化、特征值 $1$ 的左特征向量（特征值与对角化一章，线性代数部分）；条件概率与条件期望（概率与测度部分）；依概率收敛、几乎必然收敛与大数定律（渐近统计部分）；Perron--Frobenius 直觉（非负矩阵的主特征值，可借特征值一章）。}
+\medskip
+
+经济学里很多随机模型，状态空间是\emph{离散}的、时间是\emph{一格一格}走的，而且``下一步去哪''只取决于``此刻在哪''——就业还是失业、繁荣还是衰退、违约还是正常。这类过程的骨架就是 Markov 链：一台只看当前状态、按固定概率随机跳转的机器。它简单到可以完全写进一个矩阵里，却足以撑起一大片现代经济学——劳动市场的就业流转、商业周期的状态切换、随机增长、财富分布动态（Aiyagari）、贝叶斯计算里的 MCMC，乃至 Google 给网页排序的 PageRank，骨子里都是同一台机器在转。
+
+本章的主线是两个长期问题。其一：让这台机器空转很久，它最终停在哪儿？答案是\textbf{平稳分布}——一个被转移矩阵原样保持的概率分布，正是``长期均衡分布''的数学形态。其二：我能不能只靠观测\emph{一条}足够长的样本路径，就把这个长期分布估出来？答案是\textbf{遍历定理}——在适当条件下``时间平均等于空间平均'',这是时间序列版的大数定律、也是几乎所有动态计量推断默默依赖的前提。沿途我们会看到，这两个问题最终都化成线性代数里的一道特征值问题：平稳分布是转移矩阵特征值 $1$ 的左特征向量，收敛快慢由第二特征值的模主宰。这正兑现了特征值一章末尾埋下的那句预告。
+
+\section{Markov 性：只记得现在}
+\label{sec:markov-1}
+
+先把``无记忆''这件直觉的事钉成定义。设有一个取值于离散状态空间 $S=\set{1,2,\dots,m}$ 的随机过程 $\set{X_t}_{t\ge 0}$，$X_t$ 表示 $t$ 时刻系统所处的状态。
+
+\defn{Markov 性与（时齐）Markov 链}{
+随机过程 $\set{X_t}$ 称为一条 \textbf{Markov 链}，若对一切 $t$ 与一切状态序列，都有
+\[
+    \Prob{X_{t+1}=j \given X_t=i,\,X_{t-1}=i_{t-1},\dots,X_0=i_0}
+    =\Prob{X_{t+1}=j \given X_t=i} .
+\]
+即给定\emph{当前}状态 $X_t$，未来 $X_{t+1}$ 与\emph{过去}的历史条件独立。若右端这个一步转移概率还不依赖时间 $t$，记
+\[
+    P_{ij}\;=\;\Prob{X_{t+1}=j\given X_t=i},
+\]
+则称该链是\textbf{时齐的}（time-homogeneous）。本章只讨论时齐链。
+}
+
+定义里那条等式，常被读成一句口诀：\emph{在已知现在的条件下，未来与过去无关}。它不是说``过去无关紧要'',而是说过去的全部相关信息，已经被``当前状态''这一个量\emph{打包压缩}干净了——只要你知道今天的状态，昨天怎么走到这里的，对预测明天不再添加任何信息。这正是 Markov 性的全部内容，也是它好用的根源：一个本可能极其复杂的历史依赖，被压成了``当前在哪''这一个充分统计量。
+
+\rmkb[Markov 性是一种``状态设计'']{
+一个过程是不是 Markov，往往取决于你把``状态''定义成什么。原始变量若有记忆（比如今天的产出依赖过去两期），它本身不是一阶 Markov；但只要把状态\emph{扩维}——令 $\tilde X_t=(Y_t,Y_{t-1})$——扩维后的过程通常就重获 Markov 性。这一招在宏观里无处不在：把``够用的历史''塞进状态向量，让递归方法（Bellman 方程、随机动态规划）得以施展。Markov 性与其说是世界的性质，不如说是一种\emph{建模选择}：选对状态，复杂的历史依赖就坍缩成``只看现在''。
+}
+
+\section{转移矩阵：把一条链装进一个矩阵}
+\label{sec:markov-2}
+
+把所有一步转移概率 $P_{ij}$ 码成一个 $m\times m$ 的方阵，就得到整条链的全部信息。
+
+\defn{转移矩阵}{
+时齐 Markov 链的\textbf{转移矩阵}是 $\mat P=\br{P_{ij}}_{m\times m}$，其中 $P_{ij}=\Prob{X_{t+1}=j\given X_t=i}$ 是``从 $i$ 到 $j$''的一步概率。它是一个\textbf{随机矩阵}（stochastic matrix）：
+\[
+    P_{ij}\ge 0 \quad\text{对一切 } i,j;
+    \qquad
+    \sum_{j=1}^{m} P_{ij}=1 \quad\text{对一切 } i .
+\]
+即每个元素非负、\emph{每一行加起来等于 $1$}（从 $i$ 出发，下一步总要落在某个状态）。
+}
+
+\rmk{记号约定：本书把状态分布写成\emph{行}向量、转移概率从行指标流向列指标（$P_{ij}$ 是 $i\to j$），于是分布的演化是``行向量右乘矩阵''$\vc\mu\mapsto\vc\mu\mat P$。这与计量、宏观文献的主流一致；少数书把分布写成列向量、用 $\mat P\T$ 作用，结论一样，只是左右乘的差别。}
+
+\paragraph{分布如何演化。}
+设 $t$ 时刻系统状态的概率分布是行向量 $\vc\mu_t=\br{\mu_t(1),\dots,\mu_t(m)}$，$\mu_t(i)=\Prob{X_t=i}$。由全概率公式，下一期落在 $j$ 的概率是
+\[
+    \mu_{t+1}(j)=\sum_{i} \Prob{X_t=i}\,\Prob{X_{t+1}=j\given X_t=i}
+    =\sum_i \mu_t(i)\,P_{ij} .
+\]
+这恰是行向量乘矩阵的第 $j$ 个分量。于是分布的演化律干净利落：
+\[
+    \boxed{\ \vc\mu_{t+1}=\vc\mu_t\,\mat P\ }.
+\]
+这就是 Markov 链最实用的一句话——\emph{往前推一期，就是右乘一次 $\mat P$}。整条链的动力学，被压缩成了一次矩阵乘法。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[>=Stealth,scale=1.0,
+    st/.style={circle,draw,thick,minimum size=1.5cm,font=\normalsize}]
+  % 两状态就业模型：E(在业) 与 U(失业)
+  \node[st,fill=cyan!12] (E) at (0,0)   {就业 $E$};
+  \node[st,fill=pink!22] (U) at (5,0)   {失业 $U$};
+  % E->U：失业率 s（分手率），上方弧
+  \draw[->,thick,blue!60!black] (E) to[bend left=28]
+        node[above,font=\small]{$s$} (U);
+  % U->E：找到工作 f（找工率），下方弧
+  \draw[->,thick,red!65!black] (U) to[bend left=28]
+        node[below,font=\small]{$f$} (E);
+  % 自环：E 保持就业 1-s（左侧），U 保持失业 1-f（右侧）
+  \draw[->,thick,blue!60!black] (E) to[out=160,in=110,looseness=5]
+        node[above left,font=\small]{$1-s$} (E);
+  \draw[->,thick,red!65!black] (U) to[out=20,in=70,looseness=5]
+        node[above right,font=\small]{$1-f$} (U);
+\end{tikzpicture}
+\caption{两状态就业链的转移图。结点是状态，有向箭头标注一步转移概率：在业者以概率 $s$ 失业、$1-s$ 留任；失业者以概率 $f$ 找到工作、$1-f$ 继续失业。从每个结点流出的概率之和为 $1$（转移矩阵每行加总为 $1$）。}
+\label{fig:markov-1}
+\end{figure}
+
+\ex[两状态就业链]{
+最经典的劳动市场玩具模型只有两个状态：就业 $E$ 与失业 $U$（图~\ref{fig:markov-1}）。每期在业者以概率 $s$（分手率）变为失业，失业者以概率 $f$（找工率）变为就业。写出转移矩阵，并把状态排列为 $(E,U)$。
+}
+\sol{
+从 $E$ 出发：留在 $E$ 的概率是 $1-s$，去 $U$ 的概率是 $s$；从 $U$ 出发：去 $E$ 的概率是 $f$，留在 $U$ 的概率是 $1-f$。于是
+\[
+    \mat P=\begin{bmatrix} 1-s & s\\[2pt] f & 1-f\end{bmatrix}.
+\]
+每一行加起来都是 $1$，确是随机矩阵。这个 $2\times 2$ 的小矩阵，后面会一路陪我们走到平稳分布与遍历性——它的平稳分布将给出长期失业率。
+}
+
+\section{n 步转移与 Chapman--Kolmogorov：矩阵幂}
+\label{sec:markov-3}
+
+一步转移已被 $\mat P$ 装好，那``$n$ 步之后从 $i$ 到 $j$''的概率呢？记
+\[
+    P^{(n)}_{ij}=\Prob{X_{t+n}=j\given X_t=i}.
+\]
+把中途某个时点 $k$（$0<k<n$）的落脚状态拆出来，按全概率公式对它求和，再用 Markov 性把``前 $k$ 步''与``后 $n-k$ 步''解耦：
+
+\thm{Chapman--Kolmogorov 方程}{
+对任意 $0<k<n$ 与任意状态 $i,j$，
+\[
+    P^{(n)}_{ij}=\sum_{\ell\in S} P^{(k)}_{i\ell}\,P^{(n-k)}_{\ell j}.
+\]
+写成矩阵就是 $\mat P^{(n)}=\mat P^{(k)}\,\mat P^{(n-k)}$；特别地，$n$ 步转移矩阵就是一步转移矩阵的 $n$ 次幂：
+\[
+    \boxed{\ \mat P^{(n)}=\mat P^{\,n}\ }.
+\]
+}
+
+\pf{
+分两步看。固定起点 $i$、终点 $j$，把第 $k$ 期所处的中间状态 $\ell$ 拆出来：
+\[
+    \Prob{X_{t+n}=j\given X_t=i}
+    =\sum_{\ell}\Prob{X_{t+n}=j,\,X_{t+k}=\ell\given X_t=i}.
+\]
+对联合事件用乘法公式、再用 Markov 性（给定 $X_{t+k}=\ell$，后段与起点 $i$ 无关），且时齐性把``从 $\ell$ 再走 $n-k$ 步''写成 $P^{(n-k)}_{\ell j}$：
+\[
+    =\sum_{\ell}\underbrace{\Prob{X_{t+k}=\ell\given X_t=i}}_{P^{(k)}_{i\ell}}\;
+    \underbrace{\Prob{X_{t+n}=j\given X_{t+k}=\ell}}_{P^{(n-k)}_{\ell j}}
+    =\sum_{\ell}P^{(k)}_{i\ell}P^{(n-k)}_{\ell j}.
+\]
+右端正是矩阵乘积 $\mat P^{(k)}\mat P^{(n-k)}$ 的 $(i,j)$ 元。取 $k=1$ 归纳即得 $\mat P^{(n)}=\mat P^{n}$。
+}
+
+这条结论把一个看似要追踪所有中间路径的概率问题，彻底交给了线性代数：\emph{$n$ 步转移就是把转移矩阵自乘 $n$ 次}。而矩阵幂正是对角化最直接的红利（特征值一章）。若 $\mat P$ 可对角化为 $\mat P=\mat V\,\vc\Lambda\,\inv{\mat V}$（$\vc\Lambda=\diag(\lambda_1,\dots,\lambda_m)$ 为特征值），则
+\[
+    \mat P^{\,n}=\mat V\,\vc\Lambda^{\,n}\,\inv{\mat V},
+    \qquad
+    \vc\Lambda^{\,n}=\diag(\lambda_1^{\,n},\dots,\lambda_m^{\,n}).
+\]
+长期行为 $n\to\infty$ 于是完全由特征值的幂主宰——这正是平稳分布与收敛速率的来源，下面就兑现。
+
+\state{长期行为=最大特征值的天下}{
+随机矩阵 $\mat P$ 的特征值都满足 $\abs{\lambda}\le 1$（每行加总为 $1$ 决定了 $\mat P\vc 1=\vc 1$，故 $1$ 必是特征值；Perron--Frobenius 进一步保证它是模最大的那个）。当链\emph{不可约且非周期}时，$1$ 是唯一模长等于 $1$ 的特征值，于是 $\mat P^n$ 中除 $\lambda_1=1$ 对应的那一项外，其余模长严格小于 $1$ 的 $\lambda_i^{\,n}\to 0$（可约或周期链另有别的模 $1$ 特征值——如周期 $2$ 链的 $\lambda=-1$——其幂并不衰减，留待后面两节处理）。\emph{留下来主宰长期分布的，正是特征值 $1$ 对应的特征向量；衰减最慢的那一项 $\abs{\lambda_2}^n$ 则决定收敛有多快}。把``链停在哪''与``停得多快''两个问题，化成了第一、第二特征值。
+}
+
+\section{状态分类：常返、暂留与周期}
+\label{sec:markov-4}
+
+并非每条链都会安顿到一个长期分布。决定命运的，是状态之间``能不能互相到达''以及``回访的节律''。先厘清几个分类概念，它们恰是后面遍历定理两个条件的来源。
+
+\defn{可达、互通、不可约}{
+状态 $j$ \textbf{可达}于 $i$（记 $i\to j$），若存在某个 $n\ge 0$ 使 $P^{(n)}_{ij}>0$（从 $i$ 出发有正概率在若干步后到 $j$）。若 $i\to j$ 且 $j\to i$，称 $i,j$ \textbf{互通}。若链中\emph{任意}两个状态都互通，称该链\textbf{不可约}（irreducible）——整个状态空间连成一块，没有``出去就回不来''的死角。
+}
+
+\defn{常返与暂留}{
+从状态 $i$ 出发，记首次返回 $i$ 的概率为 $f_i=\Prob{\,\exists\,n\ge 1:\,X_n=i\given X_0=i}$。若 $f_i=1$，称 $i$ \textbf{常返}（recurrent）——迟早必定回来，从而被访问无穷多次；若 $f_i<1$，称 $i$ \textbf{暂留}（transient）——有正概率一去不返，长期看只被访问有限次。进一步，若常返且\emph{平均}返回时间 $\E{T_i}<\infty$，称\textbf{正常返}（positive recurrent）。
+}
+
+\defn{周期}{
+状态 $i$ 的\textbf{周期}是 $d(i)=\gcd\set{n\ge 1: P^{(n)}_{ii}>0}$，即所有能回到 $i$ 的步数的最大公约数。若 $d(i)=1$，称 $i$ \textbf{非周期}（aperiodic）；若 $d(i)>1$，则回访只能发生在 $d(i)$ 的整数倍步，链的分布会在几组状态间\emph{周期性摆动}而不收敛。
+}
+
+这三组概念各管一件事，缺一不可，下面的图给出一眼可辨的对照：不可约管``连不连通''，正常返管``回不回得来、回得快不快'',非周期管``回访有没有固定节拍''。
+
+\rmkb[周期的典型与破除]{
+取两状态链 $\mat P=\big[\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\big]$：从 $1$ 出发只能在第 $2,4,6,\dots$ 步回到 $1$，周期 $d=2$。分布 $(1,0)$ 与 $(0,1)$ 永远交替、绝不收敛——它\emph{有}唯一平稳分布 $(\tfrac12,\tfrac12)$，却收敛不上去。破除周期极其廉价：只要任一状态有正的\emph{自环} $P_{ii}>0$（比如经济里``有概率维持原状''几乎总成立），$\gcd$ 里就混进了 $1$，整条不可约链立刻非周期。这解释了为何现实经济模型几乎从不真遇上周期病。
+}
+
+\state{有限状态链的一条便利事实}{
+在\emph{有限}状态空间上，不可约 $\Rightarrow$ 所有状态都是正常返的（链跑不出去，又必然无穷次回访每个状态，平均返回时间自动有限）。于是对有限链，遍历性所需的条件浓缩成两句话：\textbf{不可约 $+$ 非周期}。本章后面的主结论默认在有限状态上陈述，正是吃了这条便利；可数无穷或连续状态空间还需单独要求正常返（如收入、财富取值连续时）。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[>=Stealth,scale=1.0,
+    st/.style={circle,draw,thick,minimum size=0.82cm,font=\small,inner sep=1pt}]
+  % --- 左图：可约链（状态 3 暂留，2-1 是吸收性闭集）---
+  \begin{scope}[shift={(0,0)}]
+    \node[st,fill=cyan!12] (A1) at (0,0)    {$1$};
+    \node[st,fill=cyan!12] (A2) at (1.7,0)  {$2$};
+    \node[st,fill=pink!22] (A3) at (0.85,1.6){$3$};
+    % 1<->2 互通（闭通信类），各带自环省略；用双向弧
+    \draw[->,thick,blue!60!black] (A1) to[bend left=22] (A2);
+    \draw[->,thick,blue!60!black] (A2) to[bend left=22] (A1);
+    % 3 -> 1 与 3 -> 2：单向流出，回不去（暂留）
+    \draw[->,thick,red!65!black] (A3) -- (A1);
+    \draw[->,thick,red!65!black] (A3) -- (A2);
+    \node[font=\small,align=center] at (0.85,-1.0)
+        {\textbf{可约}：状态 $3$ 暂留\\（流出后回不去）};
+  \end{scope}
+  % --- 右图：不可约且非周期（三角环 + 一个自环破周期）---
+  \begin{scope}[shift={(6.2,0)}]
+    \node[st,fill=cyan!12] (B1) at (0,0)     {$1$};
+    \node[st,fill=cyan!12] (B2) at (1.7,0)   {$2$};
+    \node[st,fill=cyan!12] (B3) at (0.85,1.6) {$3$};
+    \draw[->,thick,blue!60!black] (B1) -- (B2);
+    \draw[->,thick,blue!60!black] (B2) -- (B3);
+    \draw[->,thick,blue!60!black] (B3) -- (B1);
+    % 反向边 2->1 让三角双向连通（不可约更直观），并破纯周期
+    \draw[->,thick,blue!60!black] (B2) to[bend left=30] (B1);
+    % 自环：状态 1 有正概率原地停留 -> 非周期
+    \draw[->,thick,red!65!black] (B1) to[out=200,in=150,looseness=6] (B1);
+    \node[font=\small,align=center] at (0.85,-1.0)
+        {\textbf{不可约 $+$ 非周期}\\（处处可达 $+$ 自环破周期）};
+  \end{scope}
+\end{tikzpicture}
+\caption{状态分类对照。左：状态 $3$ 只流出、流不回，是暂留态，$\set{1,2}$ 构成一个``出不去''的吸收性闭集，全链\emph{可约}。右：三个状态两两可达（不可约），且状态 $1$ 带自环（有正概率原地停留），打破了纯三角环的周期性——这正是遍历定理要求的``不可约 $+$ 非周期''。}
+\label{fig:markov-2}
+\end{figure}
+
+\section{平稳分布：被转移矩阵原样保持的分布}
+\label{sec:markov-5}
+
+现在回到主问题。若分布 $\vc\mu_t$ 演化到某一刻\emph{不再改变}，这个分布就是链的``长期均衡''。
+
+\defn{平稳分布}{
+概率行向量 $\vc\pi=\br{\pi_1,\dots,\pi_m}$（$\pi_i\ge 0$，$\sum_i\pi_i=1$）称为链的\textbf{平稳分布}（stationary distribution），若它被一步转移原样保持：
+\[
+    \boxed{\ \vc\pi\,\mat P=\vc\pi\ },
+    \qquad\text{即}\quad
+    \pi_j=\sum_i \pi_i P_{ij}\ \ \text{对一切 } j .
+\]
+等价地，$\vc\pi$ 是不动点：若 $\vc\mu_t=\vc\pi$，则 $\vc\mu_{t+1}=\vc\pi\mat P=\vc\pi$，此后永远停在 $\vc\pi$。
+}
+
+这个定义把``长期均衡''说成了一个再清楚不过的代数条件，而它正是线性代数里的老熟人。把 $\vc\pi\mat P=\vc\pi$ 看作 $\vc\pi(\mat P-\mat I)=\vc 0$，它说的恰是：
+
+\state{平稳分布 = 转移矩阵特征值 $1$ 的左特征向量}{
+$\vc\pi\mat P=\vc\pi$ 意味着 $\vc\pi$ 是 $\mat P$ 关于特征值 $\lambda=1$ 的\emph{左}特征向量（再归一化为概率向量）。而 $\lambda=1$ 一定是 $\mat P$ 的特征值——因为每行加总为 $1$ 等价于 $\mat P\vc 1=\vc 1$（$\vc 1$ 是全 $1$ \emph{列}向量），即 $1$ 是 $\mat P$ 的\emph{右}特征值；左、右特征值集合相同，故 $1$ 也是左特征值，对应的左特征向量就是 $\vc\pi$。\textbf{求平稳分布 = 解一道特征值 $1$ 的（左）特征向量问题}。这把``长期均衡分布''彻底接进了特征值与对角化一章的对角化机器。
+}
+
+\thm{平稳分布的存在与唯一（有限链）}{
+有限状态、\emph{不可约}的 Markov 链\emph{存在唯一}的平稳分布 $\vc\pi$，且 $\pi_i>0$ 对一切 $i$。
+}
+
+\pf[直觉]{
+存在性：随机矩阵 $\mat P\vc 1=\vc 1$ 保证 $1$ 是特征值，相应必有左特征向量；Perron--Frobenius 定理（应用于非负、不可约矩阵）进一步保证该特征向量可取成\emph{各分量同号}，归一化后即得一个概率向量 $\vc\pi$，且 $\pi_i>0$。唯一性：不可约使主特征值 $1$ \emph{单重}（几何重数为 $1$），故特征值 $1$ 的特征向量空间一维，归一化后的概率向量唯一。把这条与有限链的``不可约 $\Rightarrow$ 正常返''合起来，还可给出概率意义上的显式公式 $\pi_i=1/\E{T_i}$（$\E{T_i}$ 为从 $i$ 出发的平均返回时间）：\emph{长期停在某状态的比例，等于回访它的平均间隔的倒数}。严格的 Perron--Frobenius 构造属纯线性代数，这里只取其结论与直觉。
+}
+
+\rmkb[注意：平稳 $\ne$ 收敛]{
+不可约只保证平稳分布\emph{存在且唯一}，并不保证从任意初始分布出发都会\emph{收敛}到它。上一节那条周期 $2$ 的链是反例：它有唯一的 $\vc\pi=(\tfrac12,\tfrac12)$，但 $(1,0)$ 出发的分布永远在 $(1,0),(0,1)$ 间跳，到不了 $\vc\pi$。要让``从哪儿出发都收敛过去'',还得补上\emph{非周期}——这正是下一节遍历定理的内容。代数上看，周期会让 $\mat P$ 有别的模长为 $1$ 的特征值（如 $\lambda=-1$），它们的幂不衰减、持续制造振荡。}
+
+\ex[两状态就业链的平稳分布=长期失业率]{
+续图~\ref{fig:markov-1} 的就业链 $\mat P=\big[\begin{smallmatrix}1-s&s\\ f&1-f\end{smallmatrix}\big]$（$0<s,f<1$）。求平稳分布，并解读其经济含义。
+}
+\sol{
+解 $\vc\pi\mat P=\vc\pi$，即 $(\pi_E,\pi_U)$ 满足
+\[
+    \pi_E=(1-s)\pi_E+f\,\pi_U,\qquad
+    \pi_U=s\,\pi_E+(1-f)\pi_U .
+\]
+两式等价（这是 $\vc\pi(\mat P-\mat I)=\vc 0$ 的两行必线性相关），取第一式得 $s\,\pi_E=f\,\pi_U$，配上归一化 $\pi_E+\pi_U=1$：
+\[
+    \boxed{\ \pi_U=\frac{s}{s+f},\qquad \pi_E=\frac{f}{s+f}\ }.
+\]
+$\pi_U=\dfrac{s}{s+f}$ 就是\emph{长期失业率}——一个只由分手率 $s$ 与找工率 $f$ 决定的简洁比值。它正是劳动经济学里 Shimer 等人讨论的失业率稳态公式：分手越频繁（$s\uparrow$）失业率越高，找工越快（$f\uparrow$）失业率越低。注意这个长期值\emph{与初始就业状态无关}——无论经济从充分就业还是大萧条出发，只要 $s,f$ 不变，失业率终将收敛到同一个 $s/(s+f)$。这条``初值无关''正是下一节遍历性的预演。
+}
+
+\section{遍历定理：收敛、且时间平均=空间平均}
+\label{sec:markov-6}
+
+把前面的线索收束成本章的中心结论。``不可约''让长期均衡\emph{存在且唯一}，``非周期''再排除掉周期性振荡——两者合起来，链就真正``忘掉初始条件''、收敛到那个唯一的平稳分布。
+
+\thm{遍历定理（有限状态）}{
+设 $\set{X_t}$ 是有限状态、\emph{不可约且非周期}的 Markov 链，平稳分布为 $\vc\pi$。则：
+\begin{enumerate}
+\item \textbf{分布收敛（混合）}：对\emph{任意}初始分布 $\vc\mu_0$，
+\[
+    \vc\mu_0\,\mat P^{\,n}\;\xrightarrow{\ n\to\infty\ }\;\vc\pi ,
+    \qquad\text{即}\quad P^{(n)}_{ij}\to\pi_j\ \text{对一切 } i,j .
+\]
+\item \textbf{时间平均收敛（遍历）}：对任意有界函数 $g:S\to\RR$，以概率 $1$（不论初始状态），
+\[
+    \frac{1}{n}\sum_{t=1}^{n} g(X_t)\;\xrightarrow{\ \text{a.s.}\ }\;
+    \sum_{i\in S}\pi_i\,g(i)\;=\;\E[\vc\pi]{g(X)} .
+\]
+\end{enumerate}
+}
+
+第一部分是``空间''层面的收敛：让链空转足够久，\emph{不论从哪个状态出发}，$n$ 步后落在 $j$ 的概率都趋于同一个 $\pi_j$。$\mat P^n$ 的每一行都趋于同一个行向量 $\vc\pi$——初始条件被彻底冲刷干净。它的代数机理上一节已点透：可对角化下 $\mat P^n=\sum_k\lambda_k^{\,n}(\cdots)$，唯一模长为 $1$ 的特征值 $\lambda_1=1$ 的项存活、贡献出 $\vc\pi$，其余 $\abs{\lambda_k}<1$ 的项（非周期保证了再无别的模 $1$ 特征值）以 $\abs{\lambda_k}^n$ 的速率消失。第二大特征值的模 $\abs{\lambda_2}$ 因而主宰收敛的快慢——它是那个\textbf{收敛因子}：$\abs{\lambda_2}$ 越小，误差衰减越快、越早忘掉初始条件；$\abs{\lambda_2}$ 越接近 $1$ 则混得越慢。真正与收敛\emph{速率}成正比的是它的补 $1-\abs{\lambda_2}$，下一段的谱隙。
+
+\rmkb[谱隙与混合时间]{
+$1-\abs{\lambda_2}$ 称为\emph{谱隙}（spectral gap）。收敛误差大致按 $\abs{\lambda_2}^n$ 衰减，故达到给定精度所需步数（混合时间）约正比于 $1/(1-\abs{\lambda_2})$。这在 MCMC 里是性命攸关的量：谱隙大则采样器``混得快''、少量样本就近似独立于初值；谱隙小则链在状态空间里挪得慢，需要极长的 burn-in。设计一个好的 MCMC 采样器，本质就是\emph{把第二特征值往零里压}。}
+
+第二部分才是经济计量真正吃重的那一半——它是\textbf{时间序列版的大数定律}。普通大数定律要求样本\emph{独立同分布}；可一条 Markov 链的相邻取值显然\emph{相关}（$X_{t+1}$ 依赖 $X_t$）。遍历定理告诉我们：只要链不可约、（正）常返，\emph{相依}不要紧——沿\emph{单一一条}样本路径做时间平均 $\frac1n\sum_t g(X_t)$，照样收敛到按平稳分布算的``空间平均''$\E[\vc\pi]{g(X)}$。
+
+\state{遍历性：一条长路径 = 一整个总体}{
+独立同分布下，大数定律让我们用``横截面的多个个体''逼近总体期望。可时间序列里我们往往只有\emph{一条}历史轨迹（一个国家的 GDP 序列、一只股票的回报），样本点之间还彼此相关。遍历性正是这种处境的救命稻草：\textbf{它许诺一条足够长的样本路径，能像反复独立抽样那样，把整个平稳分布``跑遍''一遍}。于是``时间平均 $=$ 空间平均''——用历史均值估长期均值、用样本自相关估总体自相关，都因此有了根据。几乎所有时间序列计量（平稳性、一致性、$\rtn$-渐近正态）默认的``遍历平稳''前提，源头就在这里；它也是蒙特卡洛与 MCMC 能用样本均值近似积分的理论保证。}
+
+\rmk{第一部分（分布收敛）需要\emph{非周期}，否则分布会周期振荡；但第二部分（时间平均）只需\emph{不可约 $+$ 正常返}、\emph{不要求}非周期——哪怕分布在两组状态间永远跳，长程的时间平均仍把两组按 $\vc\pi$ 的比例正确加权。计量里``遍历''一词通常指的就是第二部分这种时间平均的收敛。}
+
+\section{细致平衡：可逆链与一个验证平稳的捷径}
+\label{sec:markov-7}
+
+求平稳分布要解线性方程组 $\vc\pi\mat P=\vc\pi$；状态一多就麻烦。有一类特殊的链，存在一条几乎免算的捷径——也正是这类链撑起了 MCMC。
+
+\defn{细致平衡与可逆链}{
+若概率向量 $\vc\pi$ 与转移矩阵 $\mat P$ 满足\textbf{细致平衡条件}（detailed balance）
+\[
+    \boxed{\ \pi_i P_{ij}=\pi_j P_{ji}\quad\text{对一切 } i,j\ },
+\]
+则称该链关于 $\vc\pi$ 是\textbf{可逆的}（reversible）。
+}
+
+细致平衡有一个透明的概率解读：把 $\pi_i P_{ij}$ 看作平稳态下``单位时间里从 $i$ 流向 $j$ 的概率质量''。条件说的是——\emph{每一对状态之间，正向流量恰好等于反向流量}，逐边两两抵消（图~\ref{fig:markov-3}）。这比平稳分布的要求强：平稳只需\emph{每个结点}的总流入等于总流出（全局平衡），可逆则要求\emph{每条边}上双向流量分别相等（局部平衡）。强条件自然蕴含弱条件：
+
+\prop{细致平衡 $\Rightarrow$ 平稳}{
+若 $\vc\pi$ 与 $\mat P$ 满足细致平衡 $\pi_i P_{ij}=\pi_j P_{ji}$，则 $\vc\pi$ 是平稳分布，即 $\vc\pi\mat P=\vc\pi$。
+}
+
+\pf{
+逐分量验证 $\vc\pi\mat P=\vc\pi$ 的第 $j$ 个分量。把细致平衡代入再用 $\mat P$ 的行和为 $1$：
+\[
+    (\vc\pi\mat P)_j=\sum_i \pi_i P_{ij}
+    \overset{\text{细致平衡}}{=}\sum_i \pi_j P_{ji}
+    =\pi_j\sum_i P_{ji}
+    =\pi_j\cdot 1=\pi_j .
+\]
+对每个 $j$ 成立，故 $\vc\pi\mat P=\vc\pi$。
+}
+
+这条命题的妙处在于把``验证平稳''从``解方程组''降级为``逐边核对一个对称等式''。在很多模型里，人们\emph{先猜}一个 $\vc\pi$、再核对细致平衡——成立就立刻断定它平稳，完全绕开了 $\vc\pi\mat P=\vc\pi$ 的联立求解。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[>=Stealth,scale=1.0,
+    st/.style={circle,draw,thick,minimum size=1.15cm,font=\small}]
+  \node[st,fill=cyan!12] (S1) at (0,0)   {$i$};
+  \node[st,fill=cyan!12] (S2) at (4.0,0) {$j$};
+  % 上弧 i->j，蓝，流量标签直接压在弧上方
+  \draw[->,thick,blue!60!black] (S1) to[bend left=32]
+        node[above,font=\small,pos=0.5]{$\pi_i P_{ij}$} (S2);
+  % 下弧 j->i，红，流量标签直接压在弧下方
+  \draw[->,thick,red!65!black] (S2) to[bend left=32]
+        node[below,font=\small,pos=0.5]{$\pi_j P_{ji}$} (S1);
+  % 顶部一句话说明 + 平衡等式，居中于两结点上方空白，无引线（标签已在弧上）
+  \node[anchor=south,align=center,font=\small] at (2.0,1.55)
+       {两个方向的``概率流''相等：$\ \pi_i P_{ij}=\pi_j P_{ji}$};
+\end{tikzpicture}
+\caption{细致平衡（可逆链）。平稳态下，$i\to j$ 与 $j\to i$ 两个方向的概率流量逐边相等：$\pi_i P_{ij}=\pi_j P_{ji}$。逐边相抵自然推出每个结点总流入等于总流出，故 $\vc\pi$ 平稳——但反之不然，平稳并不要求逐边相等。}
+\label{fig:markov-3}
+\end{figure}
+
+\ex[出生--死亡链的平稳分布]{
+设状态为 $\set{0,1,\dots,m}$（如某产品的库存、排队人数），只能在相邻状态间移动：在 $i$ 处以概率 $a_i$ 上行到 $i+1$、以概率 $b_i$ 下行到 $i-1$、其余概率原地不动。这类``生灭链''（birth--death chain）必可逆。用细致平衡求其平稳分布。
+}
+\sol{
+相邻才有转移，细致平衡只对相邻边给出非平凡条件：$\pi_i\,a_i=\pi_{i+1}\,b_{i+1}$，即
+\[
+    \pi_{i+1}=\pi_i\,\frac{a_i}{b_{i+1}} .
+\]
+从 $\pi_0$ 出发层层相乘：
+\[
+    \pi_k=\pi_0\prod_{i=0}^{k-1}\frac{a_i}{b_{i+1}},
+    \qquad k=0,1,\dots,m,
+\]
+再由 $\sum_{k}\pi_k=1$ 定出 $\pi_0$。\emph{一条线性链上，整个平稳分布被``逐边比值''连乘出来，根本不必解 $m+1$ 元方程组}——这正是可逆性的红利。排队论里 $M/M/1$ 队列的几何型平稳分布、随机库存模型的长期分布，都是这个公式的实例。
+}
+
+\state{细致平衡是 MCMC 的设计原理}{
+贝叶斯计量里，后验分布 $\vc\pi$ 往往只知道形状、算不出归一化常数，没法直接抽样。MCMC 的思路反过来：\emph{先有目标 $\vc\pi$，再去设计一条以 $\vc\pi$ 为平稳分布的链}，让它跑起来、用样本路径近似 $\vc\pi$（遍历定理保证可行）。怎么保证设计出的链恰好平稳于 $\vc\pi$？正是用细致平衡来\emph{凑}：Metropolis--Hastings 的接受概率 $\min\!\big\{1,\,\frac{\pi_j q_{ji}}{\pi_i q_{ij}}\big\}$ 就是精心设计来让 $\pi_i P_{ij}=\pi_j P_{ji}$ 成立的——而且这个比值里 $\vc\pi$ 的归一化常数恰好相消，于是``算不出归一化常数''不再是障碍。一条本章的纯理论命题，就这样成了现代贝叶斯计算的发动机。}
+
+\section{去处：它把哪些门连了起来}
+\label{sec:markov-8}
+
+Markov 链是``离散状态 $+$ 离散时间 $+$ 无记忆''这一最朴素随机结构的完整理论，它的去处铺得很广：
+
+\begin{itemize}
+\item \textbf{随机动态规划的冲击过程}（随机动态规划一章）。递归宏观模型里，外生冲击（生产率、收入）通常被设成一条有限状态 Markov 链，转移矩阵 $\mat P$ 进入 Bellman 方程里那个条件期望 $\E{V(\cdot)\given\text{今日冲击}}$；连续的 AR(1) 冲击也常用 Tauchen/Rouwenhorst 方法离散成 Markov 链来求解。
+\item \textbf{财富与收入分布动态}（Aiyagari、Bewley 模型）。异质个体面对收入 Markov 冲击各自最优储蓄，个体策略 $+$ 收入链共同诱导出财富的转移核；其\emph{平稳分布}就是模型预测的长期\textbf{财富分布}——平稳分布在这里直接等于宏观研究的核心对象。
+\item \textbf{贝叶斯计算（MCMC）}。如上所述，Gibbs 采样、Metropolis--Hastings 都是``为目标后验造一条遍历链''，靠细致平衡保平稳、靠遍历定理保样本均值收敛；谱隙决定它跑得快不快。
+\item \textbf{时间序列的遍历平稳前提}（大数定律、渐近统计部分）。平稳遍历是几乎所有时间序列一致性与渐近正态结果的默认底座；本章第二部分的``时间平均 $=$ 空间平均'',正是 ARMA、GMM、动态面板能用一条历史路径做推断的根据。
+\item \textbf{PageRank}。Google 早期把网页间的链接结构当成一条 Markov 链（随机冲浪者），网页的重要性排名就取它的\emph{平稳分布} $\vc\pi$；为保证不可约非周期、平稳分布唯一，算法人为加了``以小概率随机跳到任意页''的扰动——本章的存在唯一性条件被直接拿来当工程设计准则。
+\end{itemize}
+
+一条链，一个矩阵，两个特征值，串起了宏观的冲击过程、计量的遍历推断、贝叶斯的采样算法与搜索引擎的排序。这再次印证本书的主张：认清``平稳分布是特征值 $1$ 的左特征向量、长期收敛由第二特征值主宰''这一条线性代数事实，就同时拿到了好几扇门的钥匙。下一章的\emph{鞅}会从另一个角度刻画随机过程——不是问``长期停在哪'',而是问``下一步能不能被预测''。

@@ -1,0 +1,370 @@
+% !TEX root = ../main.tex
+\chapter{矩阵微积分：向量与矩阵求导}
+\label{ch:matcalc}
+
+\noindent\emph{用到的前置工具：偏导数、梯度与 Jacobian、Hessian（第十三章）；矩阵乘法、转置、迹、行列式与求逆（第二章）；二次型与正定性（第五章）。}
+\medskip
+
+到本书这一处为止，``对一个变量求导''你早已驾轻就熟。可经济学里要求导的对象，几乎从来不是一个标量：OLS 要让残差平方和 $\norm{\vc y-\mat X\vc\beta}^2$ 对整个系数向量 $\vc\beta$ 取极小；极大似然要让对数似然 $\ell(\vc\theta)$ 对参数向量 $\vc\theta$ 取极大；GMM 要让一个二次型对参数求一阶条件。把这些一阶条件一项一项地拆成对 $\beta_1,\beta_2,\dots$ 的偏导再拼回去，既冗长又容易出错。本章要做的，是把``对向量、对矩阵求导''变成一套和标量求导一样机械、可背、可查的规则——给定常用的几条恒等式，几乎所有估计量的推导都能在半页纸内一气呵成。
+
+我们先把记号约定钉死（向量求导最大的混乱来源就是布局约定不统一），再逐条把核心恒等式用逐元素展开推一遍，让你不必死记、随时能自己重建。最后用 OLS 与正态 MLE 两个范例演示这套规则如何直接吐出估计量，并指明它通向计量经济学渐近理论的去处。
+
+\section{布局约定：先把记号钉死}
+\label{sec:matcalc-layout}
+
+标量对标量求导只有一个 $\dd{y}{x}$，没有歧义。可一旦分子分母里出现向量，``导数排成行还是排成列''就有了两种相反的摆法，文献里都在用，混用必出错。先讲清楚，后面才不会乱。
+
+\defn{标量对向量的导数（梯度）}{
+设 $f:\RR^n\to\RR$，$\vc x=(x_1,\dots,x_n)\T$。把各个偏导排成一个\emph{列向量}，称为 $f$ 的\textbf{梯度}：
+\[
+    \grad f \;=\; \pd{f}{\vc x}
+    \;=\;
+    \begin{bmatrix}
+        \partial f/\partial x_1\\[2pt]
+        \vdots\\[2pt]
+        \partial f/\partial x_n
+    \end{bmatrix}
+    \;\in\;\RR^n .
+\]
+}
+
+把梯度取成\emph{列}向量（与自变量 $\vc x$ 同形），是本书自始至终采用的\textbf{分母布局}（denominator layout）约定。这样做有两个好处：其一，一阶条件 $\grad f=\vc 0$ 是 $n$ 个方程组成的列向量，和 $\vc x$ 摆放一致，更新公式 $\vc x\leftarrow\vc x-\grad f$ 类的式子形状自洽；其二，与 Hessian、Jacobian 等高阶对象拼接时维数能直接对上。
+
+\defn{向量对向量的导数（Jacobian）}{
+设映射 $\vc g:\RR^n\to\RR^m$，$\vc g(\vc x)=(g_1(\vc x),\dots,g_m(\vc x))\T$。把所有一阶偏导排成 $m\times n$ 矩阵，称为 $\vc g$ 的 \textbf{Jacobian}：
+\[
+    \D_{\vc x}\vc g \;=\;
+    \begin{bmatrix}
+        \partial g_1/\partial x_1 & \cdots & \partial g_1/\partial x_n\\
+        \vdots & & \vdots\\
+        \partial g_m/\partial x_1 & \cdots & \partial g_m/\partial x_n
+    \end{bmatrix}
+    \;\in\;\RR^{m\times n},
+    \qquad
+    \br{\D_{\vc x}\vc g}_{ij}=\pd{g_i}{x_j} .
+\]
+}
+
+Jacobian 的第 $i$ 行是分量函数 $g_i$ 的梯度的\emph{转置}。这里采用的是\textbf{分子布局}（行随分子 $g_i$ 走、列随分母 $x_j$ 走）——这是 Jacobian 的通用写法，与上面梯度的分母布局并不矛盾：梯度若视为 $m=1$ 的特例，按 Jacobian 写法本应是一个\emph{行}向量 $\pr{\grad f}\T$，而我们约定标量函数的``梯度''专指其列向量形式。
+
+\state{两条记号铁律，本章（及全书）始终遵守}{
+(1) \textbf{梯度是列向量}（标量对向量，分母布局）：$\grad f=\pd{f}{\vc x}\in\RR^n$，与 $\vc x$ 同形。\\[2pt]
+(2) \textbf{Jacobian 是 $m\times n$ 矩阵}（向量对向量，分子布局）：$\br{\D_{\vc x}\vc g}_{ij}=\partial g_i/\partial x_j$，行随分子、列随分母。\\[4pt]
+判断维数的口诀：写完一个求导表达式，先数``它该有几行几列''，对不上就说明哪里转置错了。下面所有恒等式都已按这套约定校准，可放心套用。
+}
+
+\rmkb[为什么布局之争值得一提]{
+同一个恒等式 $\partial(\vc a\T\vc x)/\partial\vc x$，分母布局给 $\vc a$（列向量），分子布局给 $\vc a\T$（行向量）——差一个转置。两套都自洽，混用才出错。许多教材的``矛盾''其实只是布局不同。本书统一用上面那套（梯度列、Jacobian $m\times n$），读外部文献时只需先认出对方用的是哪套，再决定要不要补转置。
+}
+
+\section{标量对向量：四条核心恒等式}
+\label{sec:matcalc-scalar}
+
+经济学里反复出现的标量函数，无非线性型 $\vc a\T\vc x$ 与二次型 $\vc x\T\mat A\vc x$ 两类。把这两类的梯度推清楚，OLS、GLS、岭回归的一阶条件就都到手了。推导的统一手法是\emph{逐元素展开、对单个 $x_k$ 求偏导、再拼回向量}——这是本章最值得掌握的``重建''能力。
+
+\subsection*{线性型的梯度}
+
+\thm{线性型求导}{
+设 $\vc a\in\RR^n$ 为常向量，$f(\vc x)=\vc a\T\vc x=\sum_{i=1}^n a_i x_i$。则
+\[
+    \pd{(\vc a\T\vc x)}{\vc x}=\vc a .
+\]
+}
+
+\pf{
+对第 $k$ 个分量求偏导：$\displaystyle\pd{}{x_k}\sum_{i=1}^n a_i x_i=a_k$，因为只有 $i=k$ 的那一项含 $x_k$。把 $\set{a_k}_{k=1}^n$ 按梯度的列向量约定拼回，正是 $\vc a$。同理 $\partial(\vc x\T\vc a)/\partial\vc x=\vc a$（$\vc x\T\vc a$ 与 $\vc a\T\vc x$ 是同一个标量）。
+}
+
+这是最简单也最常用的一条：它是线性求导法则在向量上的直接推广，对应标量世界里的 $(ax)'=a$。
+
+\subsection*{二次型的梯度}
+
+\thm{二次型求导}{
+设 $\mat A\in\RR^{n\times n}$ 为常矩阵，$f(\vc x)=\vc x\T\mat A\vc x$。则
+\[
+    \pd{(\vc x\T\mat A\vc x)}{\vc x}=(\mat A+\mat A\T)\,\vc x .
+\]
+特别地，当 $\mat A$ \emph{对称}（$\mat A=\mat A\T$）时，
+\[
+    \pd{(\vc x\T\mat A\vc x)}{\vc x}=2\mat A\vc x .
+\]
+}
+
+\pf{
+把二次型写成双重求和：$\displaystyle f=\vc x\T\mat A\vc x=\sum_{i=1}^n\sum_{j=1}^n A_{ij}\,x_i x_j$。对 $x_k$ 求偏导，凡含 $x_k$ 的项都要贡献：当 $i=k$（且 $j\neq k$）时项为 $A_{kj}x_k x_j$，导数 $A_{kj}x_j$；当 $j=k$（且 $i\neq k$）时项为 $A_{ik}x_i x_k$，导数 $A_{ik}x_i$；当 $i=j=k$ 时项为 $A_{kk}x_k^2$，导数 $2A_{kk}x_k$。合并（注意对角项恰好把上面两类各算了一遍、二者相加正好是 $2A_{kk}x_k$）得
+\[
+    \pd{f}{x_k}=\sum_{j=1}^n A_{kj}x_j+\sum_{i=1}^n A_{ik}x_i
+    =\br{\mat A\vc x}_k+\br{\mat A\T\vc x}_k .
+\]
+第一个和是 $\mat A$ 第 $k$ 行点乘 $\vc x$，即 $(\mat A\vc x)_k$；第二个和是 $\mat A$ 第 $k$ \emph{列}点乘 $\vc x$，即 $(\mat A\T\vc x)_k$。拼回列向量即 $(\mat A+\mat A\T)\vc x$。$\mat A$ 对称时两项相等，合为 $2\mat A\vc x$。
+}
+
+\rmkb[对称化：为什么实际中几乎总是 $2\mat A\vc x$]{
+任何二次型 $\vc x\T\mat A\vc x$ 都等于它的对称化版本 $\vc x\T\mat A_s\vc x$，其中 $\mat A_s=\tfrac12(\mat A+\mat A\T)$——因为反对称部分对二次型零贡献（$\vc x\T\mat B\vc x=0$ 当 $\mat B\T=-\mat B$）。于是不妨一开始就把 $\mat A$ 取成对称的，公式就是干净的 $2\mat A\vc x$。经济学里的二次型（残差平方和的 $\mat X\T\mat X$、协方差矩阵、Hessian）本来就对称，所以你日常见到的几乎永远是 $2\mat A\vc x$ 这一形。
+}
+
+\subsection*{把它接到 Jacobian 上：线性映射的导数}
+
+\thm{线性映射求导}{
+设 $\mat A\in\RR^{m\times n}$ 为常矩阵，$\vc g(\vc x)=\mat A\vc x:\RR^n\to\RR^m$。则其 Jacobian
+\[
+    \D_{\vc x}(\mat A\vc x)=\mat A .
+\]
+}
+
+\pf{
+第 $i$ 个分量 $g_i=\sum_{j=1}^n A_{ij}x_j$，故 $\partial g_i/\partial x_k=A_{ik}$。按 Jacobian 约定 $[\D_{\vc x}\vc g]_{ik}=\partial g_i/\partial x_k=A_{ik}$，正是 $\mat A$ 本身。
+}
+
+这三条放在一起，构成了向量求导的``乘法表''（表~\ref{tab:matcalc-dict}）。把它们和标量世界对照，记忆几乎是免费的：
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+标量世界 & 向量世界 & 结果形状 \\
+\midrule
+$(ax)'=a$ & $\partial(\vc a\T\vc x)/\partial\vc x=\vc a$ & 列向量 $\in\RR^n$ \\
+$(ax^2)'=2ax$ & $\partial(\vc x\T\mat A\vc x)/\partial\vc x=(\mat A+\mat A\T)\vc x$ & 列向量 $\in\RR^n$ \\
+$(ax)'=a$ & $\D_{\vc x}(\mat A\vc x)=\mat A$ & 矩阵 $\in\RR^{m\times n}$ \\
+\bottomrule
+\end{tabular}
+\caption{向量求导的三条核心恒等式，与一元微积分一一对应。}
+\label{tab:matcalc-dict}
+\end{table}
+
+\section{链式法则与梯度的几何}
+\label{sec:matcalc-chain}
+
+恒等式之间靠链式法则串起来。它在向量情形就是\emph{Jacobian 的矩阵乘法}，维数自动对齐——这正是采用统一布局的红利。
+
+\thm{链式法则（向量形式）}{
+设 $\vc x\xrightarrow{\ \vc g\ }\vc u\in\RR^m\xrightarrow{\ \vc h\ }\vc z\in\RR^p$，复合映射 $\vc z=\vc h(\vc g(\vc x))$。则
+\[
+    \D_{\vc x}\vc z=\br{\D_{\vc u}\vc h}\,\br{\D_{\vc x}\vc g}
+    \qquad(p\times m \text{ 乘 } m\times n=p\times n) .
+\]
+若最外层是标量 $\phi:\RR^m\to\RR$，$\phi(\vc u)$ 且 $\vc u=\vc g(\vc x)$，则按梯度（列向量）约定
+\[
+    \grad_{\vc x}\,\phi=\br{\D_{\vc x}\vc g}\T\,\grad_{\vc u}\phi .
+\]
+}
+
+\pf{
+分量上就是普通链式法则 $\partial z_i/\partial x_j=\sum_{k} (\partial z_i/\partial u_k)(\partial u_k/\partial x_j)$，右端恰是矩阵乘积 $[\D_{\vc u}\vc h\cdot\D_{\vc x}\vc g]_{ij}$。标量情形：$\partial\phi/\partial x_j=\sum_k(\partial\phi/\partial u_k)(\partial u_k/\partial x_j)$。右端是 $\vc g$ 的 Jacobian 第 $j$ 列与 $\grad_{\vc u}\phi$ 的内积，即 $[\,(\D_{\vc x}\vc g)\T\grad_{\vc u}\phi\,]_j$；之所以要转置，正是为了把分子布局的 Jacobian 转回与列向量梯度相容的形状——再次印证那条``数行数列''的口诀。
+}
+
+\ex[用链式法则推二次型梯度]{
+设 $f(\vc x)=\norm{\mat A\vc x-\vc b}^2=(\mat A\vc x-\vc b)\T(\mat A\vc x-\vc b)$，求 $\grad_{\vc x}f$。
+}
+\sol{
+令 $\vc u=\mat A\vc x-\vc b$，则 $f=\vc u\T\vc u=\phi(\vc u)$，$\grad_{\vc u}\phi=2\vc u$（二次型 $\mat A=\mat I$ 的情形）。又 $\D_{\vc x}\vc u=\mat A$。代入链式法则：
+\[
+    \grad_{\vc x}f=\br{\D_{\vc x}\vc u}\T\grad_{\vc u}\phi=\mat A\T\,(2\vc u)=2\mat A\T(\mat A\vc x-\vc b) .
+\]
+这正是下一节 OLS 一阶条件的雏形（取 $\mat A=\mat X$、$\vc b=\vc y$）。
+}
+
+\paragraph{梯度的几何。}
+梯度不只是``偏导拼成的列''，它有清晰的几何意义——指向最速上升方向，这也是它在最优化里居核心地位的原因。在一点 $\vc x_0$ 处，函数沿单位方向 $\vc v$（$\norm{\vc v}=1$）的方向导数是 $\grad f(\vc x_0)\T\vc v$。由 Cauchy–Schwarz 不等式，
+\[
+    \grad f(\vc x_0)\T\vc v\le\norm{\grad f(\vc x_0)}\,\norm{\vc v}=\norm{\grad f(\vc x_0)},
+\]
+等号当且仅当 $\vc v$ 与 $\grad f(\vc x_0)$ 同向。\textbf{梯度方向是函数增长最快的方向，其长度是这个最大增长率}；负梯度方向则是下降最快的方向（梯度下降法的依据）。同时，梯度垂直于过该点的等高线 $\set{\vc x:f(\vc x)=f(\vc x_0)}$：沿等高线移动 $f$ 不变，方向导数为零，故等高线的切向与梯度正交（图~\ref{fig:matcalc-grad}）。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % 等高线图：f(x1,x2)=x1^2/4 + x2^2 的椭圆等高线，梯度方向 = 最速上升、垂直于等高线
+  \draw[->] (-3.4,0) -- (3.6,0) node[right] {$x_1$};
+  \draw[->] (0,-2.0) -- (0,4.4) node[above] {$x_2$};
+  % 三条等高线 f=c：椭圆 x半轴 2sqrt(c)，y半轴 sqrt(c)；c=0.36/1/1.96
+  \draw[gray!70,thick] (0,0) ellipse [x radius=1.2, y radius=0.6];
+  \draw[gray!70,thick] (0,0) ellipse [x radius=2.0, y radius=1.0];
+  \draw[gray!70,thick] (0,0) ellipse [x radius=2.8, y radius=1.4];
+  % 等高线标注：放在负 x 轴下方空白处，细引线指向外圈椭圆，不压线
+  \node[gray!55!black,anchor=north] at (-2.8,-1.55) {$f=c_3>c_2>c_1$};
+  \draw[gray!55!black,->] (-2.55,-1.55) -- (-2.78,-0.18);
+  % 等高线 f=1 上一点 P=(2cos55,sin55)=(1.147,0.819)
+  % 梯度 ∇f=(x1/2,2x2)=(0.5736,1.638)，单位(0.3304,0.9437)，画长1.5
+  \coordinate (P) at (1.147,0.819);
+  \fill (P) circle (1.8pt);
+  \draw[->,very thick,red!70!black] (P) -- ($(P)+(0.4956,1.4156)$);
+  \node[red!70!black,anchor=west,align=left] at (1.95,2.65) {$\grad f$\\（最速上升方向）};
+  \draw[red!70!black,->] (2.10,2.45) -- (1.70,2.10);
+  % 切线（等高线方向）：单位(-0.9437,0.3304)，两端各1.15
+  \draw[blue!55!black,dashed,thick] ($(P)+(-1.15,0.4028)$) -- ($(P)+(1.15,-0.4028)$);
+  \node[blue!55!black,anchor=west] at (2.25,0.92) {等高线切向};
+  \draw[blue!55!black,->] (2.55,0.78) -- (2.18,0.49);
+  % 直角标记：梯度⊥切向
+  \draw[thin] ($(P)+(0.0925,0.2642)$) -- ($(P)+(-0.1718,0.3567)$) -- ($(P)+(-0.2642,0.0925)$);
+\end{tikzpicture}
+\caption{梯度 $\grad f$ 垂直于等高线、指向函数增长最快的方向；其长度等于最大方向导数。等高线由内向外 $f$ 递增，故梯度指向外侧。}
+\label{fig:matcalc-grad}
+\end{figure}
+
+\section{应用一：OLS 的一阶条件}
+\label{sec:matcalc-ols}
+
+现在收割。最小二乘要解
+\[
+    \min_{\vc\beta\in\RR^k}\;S(\vc\beta)=\norm{\vc y-\mat X\vc\beta}^2
+    =(\vc y-\mat X\vc\beta)\T(\vc y-\mat X\vc\beta),
+\]
+其中 $\vc y\in\RR^n$、$\mat X\in\RR^{n\times k}$ 列满秩。先把目标函数展开成``线性型 + 二次型''的标准形：
+\[
+    S(\vc\beta)=\vc y\T\vc y-2\,\vc y\T\mat X\vc\beta+\vc\beta\T(\mat X\T\mat X)\vc\beta .
+\]
+（中间项用了 $\vc\beta\T\mat X\T\vc y=\vc y\T\mat X\vc\beta$，二者是同一个标量、互为转置。）三项逐一对 $\vc\beta$ 求梯度，正好各用上一条恒等式：常数项 $\vc y\T\vc y$ 梯度为 $\vc 0$；线性项 $-2\vc y\T\mat X\vc\beta=-2(\mat X\T\vc y)\T\vc\beta$ 梯度为 $-2\mat X\T\vc y$（线性型法则）；二次型项的核 $\mat X\T\mat X$ 对称，梯度为 $2\mat X\T\mat X\vc\beta$（二次型法则）。合并得
+\[
+    \grad_{\vc\beta}S=-2\mat X\T\vc y+2\mat X\T\mat X\vc\beta .
+\]
+令其为零，立得\textbf{正规方程}与 OLS 估计量：
+\[
+    \mat X\T\mat X\,\hat{\vc\beta}=\mat X\T\vc y
+    \quad\Longrightarrow\quad
+    \hat{\vc\beta}=\inv{(\mat X\T\mat X)}\mat X\T\vc y .
+\]
+
+\state{两条路殊途同归}{
+``投影''一章是从几何（残差垂直于列空间）得到正规方程的；这里是纯靠求向量梯度、令一阶条件为零得到同一个方程。\emph{一阶条件 $\grad_{\vc\beta}S=\vc 0$ 与正交条件 $\mat X\T(\vc y-\mat X\hat{\vc\beta})=\vc 0$ 是同一行字}——这正是``最近''与``正交''等价的代数面孔。本章提供的是后续一切估计量都通用的机械手法：写出目标、套恒等式求梯度、令零、解出。
+}
+
+二阶条件也现成：Hessian $\grad^2_{\vc\beta}S=2\mat X\T\mat X$。列满秩时 $\mat X\T\mat X$ 正定（第五章），故 $S$ 严格凸，一阶条件的解是唯一的全局极小。
+
+\section{标量对矩阵与迹技巧}
+\label{sec:matcalc-trace}
+
+到这里求导对象都是向量。但 MLE 要对协方差矩阵求导、面板与系统方程要对系数矩阵求导，于是需要``标量对矩阵''的导数。约定与梯度平行：把对每个矩阵元素的偏导排回\emph{同形}的矩阵。
+
+\defn{标量对矩阵的导数}{
+设 $f:\RR^{n\times m}\to\RR$ 是矩阵 $\mat X=(X_{ij})$ 的标量函数。其导数定义为与 $\mat X$ \emph{同形}的矩阵，第 $(i,j)$ 元为对 $X_{ij}$ 的偏导：
+\[
+    \br{\pd{f}{\mat X}}_{ij}=\pd{f}{X_{ij}} .
+\]
+}
+
+处理矩阵的标量函数，最顺手的桥梁是\textbf{迹}：任何``矩阵进、标量出''的线性组合都能写成迹，而迹有一身好用的代数性质（线性、轮换不变 $\tr(\mat{AB})=\tr(\mat{BA})$、$\tr(\mat A\T)=\tr(\mat A)$）。下面两条是``迹技巧''的核心。
+
+\thm{迹对矩阵求导}{
+设 $\mat A$ 为与 $\mat X$ 维数相容的常矩阵。则
+\[
+    \pd{}{\mat X}\tr(\mat A\mat X)=\mat A\T,
+    \qquad
+    \pd{}{\mat X}\tr(\mat X\T\mat A)=\mat A,
+    \qquad
+    \pd{}{\mat X}\tr(\mat X\T\mat A\mat X)=(\mat A+\mat A\T)\mat X .
+\]
+}
+
+\pf{
+第一条：$\tr(\mat A\mat X)=\sum_i(\mat A\mat X)_{ii}=\sum_i\sum_k A_{ik}X_{ki}=\sum_{i,k}A_{ik}X_{ki}$。对 $X_{pq}$ 求偏导，只有 $(k,i)=(p,q)$ 那一项存活，得 $A_{qp}$。故 $[\partial\tr(\mat A\mat X)/\partial\mat X]_{pq}=A_{qp}=(\mat A\T)_{pq}$，即 $\mat A\T$。第二条同理（或由 $\tr(\mat X\T\mat A)=\tr(\mat A\T\mat X)$ 配第一条，得 $(\mat A\T)\T=\mat A$）。第三条把 $\tr(\mat X\T\mat A\mat X)=\sum_{i,j,k}X_{ki}A_{kj}X_{ji}$ 逐元素展开、对 $X_{pq}$ 求偏导（含 $X_{pq}$ 的项出现两处，分别凑出 $\mat A$ 与 $\mat A\T$），与向量二次型完全平行，得 $(\mat A+\mat A\T)\mat X$；$\mat A$ 对称时为 $2\mat A\mat X$。
+}
+
+\rmkb[一切``矩阵进标量出''都先化成迹]{
+诀窍是：标量等于自己的迹（$c=\tr c$），于是任何这类表达式都能套上 $\tr$，再用轮换性 $\tr(\mat{AB})=\tr(\mat{BA})$ 把要求导的 $\mat X$ 挪到方便的位置，最后套上面三条。例如 $\vc a\T\mat X\vc b=\tr(\vc a\T\mat X\vc b)=\tr(\mat X\vc b\vc a\T)$，于是 $\partial(\vc a\T\mat X\vc b)/\partial\mat X=(\vc b\vc a\T)\T=\vc a\vc b\T$。这一手在 MLE 推导里几乎逢矩阵必用。
+}
+
+\subsection*{行列式与逆的导数}
+
+正态似然里会出现 $\ln\abs{\det\mat X}$（来自高斯密度的归一化常数），GLS 与信息矩阵会用到 $\inv{\mat X}$ 怎么随 $\mat X$ 变。两条结论：
+
+\thm{对数行列式与逆的导数}{
+设 $\mat X$ 可逆。则
+\[
+    \pd{}{\mat X}\ln\abs{\det\mat X}=\pr{\inv{\mat X}}\T,
+    \qquad
+    \d\pr{\inv{\mat X}}=-\,\inv{\mat X}\,(\d\mat X)\,\inv{\mat X} .
+\]
+$\mat X$ 对称正定时第一条即 $\inv{\mat X}$。
+}
+
+\pf{
+\emph{对数行列式}。用余子式（Laplace）展开 $\det\mat X=\sum_j X_{ij}C_{ij}$（沿第 $i$ 行，$C_{ij}$ 为代数余子式，与 $X_{ij}$ 无关），故 $\partial\det\mat X/\partial X_{ij}=C_{ij}$。而逆矩阵的元素公式 $(\inv{\mat X})_{ji}=C_{ij}/\det\mat X$（伴随矩阵除以行列式）给出 $C_{ij}=\det\mat X\cdot(\inv{\mat X})_{ji}$。于是
+\[
+    \pd{\ln\abs{\det\mat X}}{X_{ij}}=\frac{1}{\det\mat X}\pd{\det\mat X}{X_{ij}}
+    =\frac{C_{ij}}{\det\mat X}=(\inv{\mat X})_{ji}=\br{(\inv{\mat X})\T}_{ij},
+\]
+拼回矩阵即 $(\inv{\mat X})\T$。\\[3pt]
+\emph{逆的微分}。对恒等式 $\mat X\,\inv{\mat X}=\mat I$ 两边取全微分（乘积法则）：$(\d\mat X)\inv{\mat X}+\mat X\,\d(\inv{\mat X})=\mat 0$。左乘 $\inv{\mat X}$ 解出 $\d(\inv{\mat X})=-\inv{\mat X}(\d\mat X)\inv{\mat X}$。这是标量公式 $\d(1/x)=-x^{-2}\d x$ 的矩阵版——注意矩阵不交换，两个 $\inv{\mat X}$ 必须分别夹在 $\d\mat X$ 两侧。
+}
+
+\section{应用二：正态线性模型的 MLE 与信息矩阵}
+\label{sec:matcalc-mle}
+
+把上面所有工具合到一处，推一遍古典正态线性模型的极大似然——它既复用了向量求导（对 $\vc\beta$）又复用了对矩阵/标量求导（对 $\sigma^2$），是检验本章规则的标准考场。模型 $\vc y=\mat X\vc\beta+\vc\ve$，$\vc\ve\sim\cN(\vc 0,\sigma^2\mat I_n)$。对数似然为
+\[
+    \ell(\vc\beta,\sigma^2)
+    =-\frac{n}{2}\ln(2\pi)-\frac{n}{2}\ln\sigma^2
+    -\frac{1}{2\sigma^2}(\vc y-\mat X\vc\beta)\T(\vc y-\mat X\vc\beta) .
+\]
+
+\paragraph{对 $\vc\beta$ 求导。}
+只有最后一项含 $\vc\beta$，且它就是 $-\tfrac{1}{2\sigma^2}\norm{\vc y-\mat X\vc\beta}^2$，梯度已在 OLS 一节算过：
+\[
+    \grad_{\vc\beta}\ell=-\frac{1}{2\sigma^2}\cdot\br{-2\mat X\T(\vc y-\mat X\vc\beta)}
+    =\frac{1}{\sigma^2}\mat X\T(\vc y-\mat X\vc\beta) .
+\]
+令其为零，$\sigma^2$ 这个正标量约掉，得到的正是正规方程——\textbf{正态误差下的 MLE 与 OLS 给出同一个 $\hat{\vc\beta}$}：
+\[
+    \hat{\vc\beta}_{\mathrm{MLE}}=\inv{(\mat X\T\mat X)}\mat X\T\vc y .
+\]
+
+\paragraph{对 $\sigma^2$ 求导。}
+记 $\tau=\sigma^2$，含 $\tau$ 的两项对 $\tau$ 求偏导：
+\[
+    \pd{\ell}{\tau}=-\frac{n}{2\tau}+\frac{1}{2\tau^2}\norm{\vc y-\mat X\vc\beta}^2 .
+\]
+令其为零并代入 $\hat{\vc\beta}$：
+\[
+    \hat\sigma^2_{\mathrm{MLE}}=\frac{1}{n}\norm{\vc y-\mat X\hat{\vc\beta}}^2=\frac{1}{n}\sum_{i=1}^n\hat\ve_i^2 .
+\]
+注意分母是 $n$ 而非 $n-k$：MLE 的方差估计有限样本下有偏（低估），这正是计量里用 $s^2=\mathrm{RSS}/(n-k)$ 做无偏修正的由来（见``投影''一章里 $\tr\mat M=n-k$ 的自由度论证）。
+
+\paragraph{信息矩阵。}
+渐近推断要的是\textbf{Fisher 信息矩阵}——对数似然的负 Hessian 的期望，它的逆给出 MLE 的渐近方差。把参数堆成 $\vc\theta=(\vc\beta\T,\sigma^2)\T$，逐块求二阶导。对 $\vc\beta$ 块：
+\[
+    \grad^2_{\vc\beta\vc\beta}\ell=\pd{}{\vc\beta\T}\br{\frac{1}{\sigma^2}\mat X\T(\vc y-\mat X\vc\beta)}
+    =-\frac{1}{\sigma^2}\mat X\T\mat X .
+\]
+对 $\sigma^2$ 块（用上面的 $\partial\ell/\partial\tau$ 再对 $\tau$ 求一次导）：$\partial^2\ell/\partial\tau^2=\tfrac{n}{2\tau^2}-\tfrac{1}{\tau^3}\norm{\vc y-\mat X\vc\beta}^2$，取期望（用 $\E{\norm{\vc y-\mat X\vc\beta}^2}=n\sigma^2$）得 $-\tfrac{n}{2\sigma^4}$。交叉块 $\partial^2\ell/\partial\vc\beta\partial\tau=-\tfrac{1}{\tau^2}\mat X\T(\vc y-\mat X\vc\beta)$ 的期望为 $\vc 0$（因 $\E{\vc y-\mat X\vc\beta}=\vc 0$）。于是信息矩阵 $\mathcal I=-\E{\grad^2\ell}$ 是块对角的：
+\[
+    \mathcal I(\vc\beta,\sigma^2)=
+    \begin{bmatrix}
+        \dfrac{1}{\sigma^2}\mat X\T\mat X & \vc 0\\[8pt]
+        \vc 0\T & \dfrac{n}{2\sigma^4}
+    \end{bmatrix}.
+\]
+块对角意味着 $\hat{\vc\beta}$ 与 $\hat\sigma^2$ 渐近独立；左上块的逆 $\sigma^2\inv{(\mat X\T\mat X)}$ 正是 $\hat{\vc\beta}$ 那条经典的渐近协方差矩阵。整段推导自始至终只调用了本章的几条恒等式，没有额外的特设步骤。
+
+\state{本章这套规则的真正去处}{
+所有极值估计量——MLE、GMM、M-估计——都由一个样本一阶条件 $\frac1n\sum_i\grad_{\vc\theta}\,m(\vc z_i,\hat{\vc\theta})=\vc 0$ 隐含定义。要导出 $\rtn(\hat{\vc\theta}-\vc\theta_0)\dto\cN(\vc 0,\mat V)$，关键一步是对这个一阶条件做 Taylor 展开，而展开里出现的 Jacobian、Hessian、信息矩阵，全都是本章``对向量/矩阵求导''的产物。Delta 法要算变换 $g(\hat{\vc\theta})$ 的雅可比 $\D_{\vc\theta}g$；三明治协方差矩阵 $\mat A^{-1}\mat B\mat A^{-\!\top}$ 里的 $\mat A$ 是矩 Jacobian。换言之，本章是后面整个渐近统计部分（中心极限定理之后）反复调用的``求导引擎''。
+}
+
+\section{小结：一张可随身携带的规则表}
+\label{sec:matcalc-summary}
+
+本章把``对向量、对矩阵求导''压缩成几条可背、可查、可自证的规则。最后汇总成一张表，遇到推导时按图索骥即可（皆采用本书约定：梯度为列向量、Jacobian 为 $m\times n$、标量对矩阵导数与矩阵同形）。
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+表达式 & 导数 & 备注 \\
+\midrule
+$\vc a\T\vc x$ & $\partial/\partial\vc x=\vc a$ & 线性型 \\
+$\vc x\T\mat A\vc x$ & $\partial/\partial\vc x=(\mat A+\mat A\T)\vc x$ & 对称时 $2\mat A\vc x$ \\
+$\mat A\vc x$ & $\D_{\vc x}=\mat A$ & 线性映射，Jacobian \\
+$\norm{\vc y-\mat X\vc\beta}^2$ & $\partial/\partial\vc\beta=-2\mat X\T(\vc y-\mat X\vc\beta)$ & OLS 一阶条件 \\
+$\tr(\mat A\mat X)$ & $\partial/\partial\mat X=\mat A\T$ & 迹技巧 \\
+$\tr(\mat X\T\mat A\mat X)$ & $\partial/\partial\mat X=(\mat A+\mat A\T)\mat X$ & 对称时 $2\mat A\mat X$ \\
+$\ln\abs{\det\mat X}$ & $\partial/\partial\mat X=(\inv{\mat X})\T$ & 对称正定时 $\inv{\mat X}$ \\
+$\inv{\mat X}$ & $\d(\inv{\mat X})=-\inv{\mat X}(\d\mat X)\inv{\mat X}$ & 微分形式 \\
+复合 $\vc h\circ\vc g$ & $\D_{\vc x}=(\D_{\vc u}\vc h)(\D_{\vc x}\vc g)$ & 链式法则 = 矩阵乘 \\
+\bottomrule
+\end{tabular}
+\caption{向量与矩阵求导核心恒等式速查表。每一条都能用``逐元素展开''在草稿纸上重建。}
+\label{tab:matcalc-cheatsheet}
+\end{table}
+
+这套规则本身不深，但它是经济计量学日常推导的通用语：OLS、GLS、MLE、GMM 的一阶条件，信息矩阵与渐近方差，Delta 法的雅可比——它们的起点都是``对一个向量或矩阵求导''。把表~\ref{tab:matcalc-cheatsheet} 里的几条恒等式连同``数行数列''的维数自检练熟，后面渐近统计部分的大量推导都能照此机械地展开。

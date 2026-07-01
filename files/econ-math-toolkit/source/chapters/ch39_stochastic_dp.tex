@@ -1,0 +1,399 @@
+% !TEX root = ../main.tex
+\chapter{随机动态规划与递归方法}
+\label{ch:stochdp}
+
+\noindent\emph{用到的前置工具：上一章的（确定性）动态规划与 Bellman 方程；压缩映射与 Banach 不动点定理、Blackwell 充分条件（第十二章）；条件期望（概率与测度部分）；Markov 链与转移矩阵（随机过程部分）；用于一阶条件的包络定理（最优化部分）。}
+\medskip
+
+上一章的动态规划假设了一个其实并不存在的世界：明天会怎样，今天就已经板上钉钉。可现实经济的底色恰恰是\emph{不确定}——技术冲击让产出忽高忽低，个人收入随就业、健康起落，资产回报更是天天在赌。一旦把随机性放进来，``状态''就分成两半：一半是决策者自己攒下来的、可由行动改变的\textbf{内生状态}（资本、财富），另一半是老天爷甩过来的、谁也左右不了的\textbf{外生冲击}。本章要做的，是把上一章那套递归方法升级到这个有冲击的世界，并说明一件令人安心的事：升级几乎不费力气——只要在``看向未来''的那一步把确定的值换成\emph{条件期望}，确定性 DP 的整套机器（值函数存在唯一、值迭代收敛、Euler 方程）就原样接着转。能这么省事，根子在一个朴素的算子性质：取期望不会把函数之间的距离放大。本章先把随机 Bellman 方程立起来，再证期望保压缩、随机值迭代仍收敛，接着导出含 $\mathbb{E}_t$ 的随机 Euler 方程，最后落到现代宏观与金融最看重的三处去处——预防性储蓄、递归竞争均衡、资产定价的随机贴现因子。
+
+\section{从确定到随机：状态里多出一个冲击}
+\label{sec:stochdp-motivation}
+
+回忆上一章那个标准的折现序贯问题：选一串行动使折现收益和最大。确定性版本里，今天的状态 $x$ 加上今天的行动 $a$，明天的状态 $x'=\phi(x,a)$ 就完全定下来了。现在往里掺入不确定性。最干净的做法是引入一个\textbf{外生状态} $z$（``冲击''），它本身按某个随机规律演化、不受决策者控制，但会影响当期收益或状态转移。于是系统由一对状态 $(x,z)$ 描述：
+
+\begin{itemize}
+    \item $x$ 是\textbf{内生状态}（endogenous state）：资本存量、金融财富、库存——决策者通过行动 $a$ 改变它，$x'=\phi(x,a,z)$。
+    \item $z$ 是\textbf{外生状态}（exogenous state）或\textbf{冲击}：全要素生产率、利率、个人收入扰动——它\emph{自行}演化，决策者只能观察、不能干预。
+\end{itemize}
+
+对 $z$ 的演化，最常用、也最便于递归处理的假设是它服从 \textbf{Markov 过程}：明天的冲击分布只取决于今天的冲击，与更早的历史无关。这个假设之所以是``天作之合'',是因为递归方法的全部威力都建立在``当前状态是对未来的充分概括''之上；只要 $z$ 是 Markov 的，$(x,z)$ 这一对就仍然是充分状态——记住今天的 $(x,z)$，明天该怎么决策就一清二楚，无需翻历史账本。
+
+\asm{外生冲击服从 Markov 过程}{
+冲击 $z_t$ 取值于状态空间 $\mathcal{Z}$，其演化满足 Markov 性质：对任意 $t$ 与任意可测集 $B$，
+\[
+    \Prob{z_{t+1}\in B\given z_t,z_{t-1},\dots,z_0}=\Prob{z_{t+1}\in B\given z_t}.
+\]
+当 $\mathcal{Z}=\set{z_1,\dots,z_N}$ 有限时，演化由\textbf{转移矩阵} $\vc\Pi$ 完全刻画，其元素
+\[
+    \Pi_{ij}=\Prob{z_{t+1}=z_j\given z_t=z_i},
+    \qquad \sum_{j=1}^N\Pi_{ij}=1 .
+\]
+}
+
+\rmk{本书一律把转移矩阵写作粗体的 $\vc\Pi$（源码 \texttt{\textbackslash vc\textbackslash Pi}，而非 \texttt{\textbackslash mat\textbackslash Pi}）——大写希腊字母的矩阵在本书字体下必须用 \texttt{\textbackslash vc} 才能正常显示。它的第 $i$ 行是``今天处在 $z_i$、明天落到各 $z_j$''的概率分布，故每行非负且和为 $1$，即 $\vc\Pi$ 是一个\emph{随机矩阵}。它的性质（平稳分布、遍历性）留待随机过程部分细讲，这里只把它当作刻画冲击演化的输入。}
+
+\state{随机情形的关键观念：把``冲击''纳入状态，递归结构就保住了}{
+不确定性看似破坏了``当前状态概括一切''的递归前提，但只要冲击是 Markov 的，把它\emph{并入状态向量}（从 $x$ 升级到 $(x,z)$），充分性就失而复得。代价仅仅是：状态多了一维，且``看向明天''时面对的不再是一个确定的明天，而是一个\emph{分布}——于是``最大化未来价值''自然变成``最大化未来价值的\emph{条件期望}''。本章余下的一切，都是这一句话的展开。
+}
+
+\section{随机 Bellman 方程}
+\label{sec:stochdp-bellman}
+
+把上一章的 Bellman 方程改写到 $(x,z)$ 上。决策者在状态 $(x,z)$ 下选行动 $a$，得当期收益 $u(x,a,z)$；行动连同当期冲击决定内生状态的转移 $x'=\phi(x,a,z)$；而下期冲击 $z'$ 按 $\vc\Pi$ 随机抽取。决策者在选 $a$ 时\emph{已经知道}今天的 $(x,z)$，但\emph{还不知道}明天的 $z'$——他只能对 $z'$ 的分布取期望。这就给出
+
+\thm{随机 Bellman 方程}{
+设当期收益 $u$ 有界、折现因子 $\beta\in[0,1)$、可行集 $a\in\Gamma(x,z)$、冲击 $z$ 按 Markov 转移核演化。则值函数 $V(x,z)$ 满足
+\[
+    V(x,z)=\max_{a\in\Gamma(x,z)}\;\Big\{\,u(x,a,z)+\beta\,\E{V(x',z')\given z}\,\Big\},
+    \qquad x'=\phi(x,a,z),
+\]
+其中条件期望对下期冲击 $z'$ 求取（给定当期 $z$）。有限状态时它写成
+\[
+    V(x,z_i)=\max_{a\in\Gamma(x,z_i)}\;\Big\{\,u(x,a,z_i)+\beta\sum_{j=1}^N \Pi_{ij}\,V\big(\phi(x,a,z_i),\,z_j\big)\Big\}.
+\]
+}
+
+和确定性版本逐字对照，唯一的改动是把那个确定的``下期值'' $V(x')$ 换成了\emph{条件期望} $\E{V(x',z')\given z}$。这正是``看向一个不确定的明天''该有的样子：明天的内生状态 $x'$ 由今天的选择定下、是确定的，但明天的冲击 $z'$ 还没揭晓，于是对 $V(x',z')$ 沿 $z'$ 的条件分布求平均。条件期望这个对象——``给定今天信息、对明天的最好预测''——正是\emph{条件期望}一章锻造出来的工具，在这里第一次进入动态规划的核心。
+
+\rmkb[``给定 $z$''而非``给定 $(x,z)$'']{
+期望里的条件信息只写了 $z$，没写 $x$。这是因为下期冲击 $z'$ 的分布只由当期 $z$（经 $\vc\Pi$）决定，与 $x,a$ 无关——这是``$z$ 外生''的精确含义。$x'$ 虽是随机量 $z'$ 出现前就被 $a$ 锁定的确定值，但 $V(x',z')$ 仍随 $z'$ 而波动，故期望不可省。若模型里转移本身带噪声（如 $x'=\phi(x,a,z)+\varepsilon'$），则把 $\varepsilon'$ 一并纳入冲击、对其分布一起取期望即可，下文论证一字不改。}
+
+\paragraph{相应的最优策略也带上冲击。}
+解出 $V$ 后，每个状态上取到最大值的那个行动定义\textbf{策略函数}
+\[
+    a=g(x,z)\in\argmax_{a\in\Gamma(x,z)}\Big\{u(x,a,z)+\beta\,\E{V(x',z')\given z}\Big\}.
+\]
+与确定性情形最醒目的不同是：策略现在是\emph{两个}变量的函数。固定内生状态 $x$、让冲击 $z$ 取不同值，就得到一\emph{族}策略曲线——冲击越有利，同样的 $x$ 往往对应越高的最优行动（更多投资、更多储蓄或更多消费，视模型而定）。图~\ref{fig:stochdp-policy} 画的正是随机增长模型里的资本积累策略 $k'=g(k,z)$：三条曲线对应高、中、低三种生产率冲击，整体随 $z$ 上移。这族曲线就是结构计量与数值宏观真正要计算、并拿去与数据匹配的对象。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+    % 轴
+    \draw[->] (-0.2,0) -- (7.6,0) node[right] {$k$（当期资本）};
+    \draw[->] (0,-0.2) -- (0,5.6) node[above] {$k'=g(k,z)$};
+    % 45 度线
+    \draw[gray,dashed] (0,0) -- (5.3,5.3);
+    \node[gray,anchor=west] at (4.7,5.0) {$45^\circ$};
+    % 三条策略曲线：高/中/低冲击，凹、随 z 上移；g(k,z)= a_z * k^{0.6}
+    \draw[thick,red!70!black,domain=0.05:6.8,smooth,variable=\t,samples=80]
+        plot ({\t},{1.55*pow(\t,0.6)});
+    \draw[thick,blue!65!black,domain=0.05:6.8,smooth,variable=\t,samples=80]
+        plot ({\t},{1.25*pow(\t,0.6)});
+    \draw[thick,green!50!black,domain=0.05:6.8,smooth,variable=\t,samples=80]
+        plot ({\t},{0.98*pow(\t,0.6)});
+    % 曲线标签停在右端空白
+    \node[red!70!black,anchor=west] at (6.15,5.05) {$g(k,z_H)$};
+    \node[blue!65!black,anchor=west] at (6.15,4.05) {$g(k,z_M)$};
+    \node[green!50!black,anchor=west] at (6.15,3.15) {$g(k,z_L)$};
+\end{tikzpicture}
+\caption{随机增长模型的资本积累策略族 $k'=g(k,z)$。冲击 $z$ 越高（生产率越好），对同样的当期资本 $k$ 选择越高的下期资本，整族曲线随 $z$ 平移。冲击使``一条''策略变成``一族''策略。}
+\label{fig:stochdp-policy}
+\end{figure}
+
+下面那张图（图~\ref{fig:stochdp-tree}）则换个角度，画出状态本身在冲击驱动下如何随机演化：今天 $x_t$ 是确定的一点，明天 $x_{t+1}$ 随 $z'$ 的三种实现分叉成三个可能值（各带转移概率 $\Pi$），后天再各自展开——这就是随机递归问题在状态空间里铺开的``情景树''。期望算子做的，正是在每个分叉处按概率加权求平均。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+    % 时间轴
+    \draw[->] (-0.2,0) -- (9.8,0) node[right] {$t$};
+    \foreach \x/\lab in {0.7/{t}, 4.3/{t+1}, 7.9/{t+2}} {
+        \draw[gray!50,dashed] (\x,-0.15) -- (\x,5.6);
+        \node[below,gray!50!black] at (\x,-0.2) {$\lab$};
+    }
+    % t 期：确定的当前状态
+    \coordinate (A) at (0.7,2.8);
+    \fill[black] (A) circle (2.2pt);
+    \node[anchor=east] at (0.5,2.8) {$x_t$};
+    % t+1 期：三个可能实现（由冲击 z' 决定）
+    \coordinate (BH) at (4.3,4.6);
+    \coordinate (BM) at (4.3,2.8);
+    \coordinate (BL) at (4.3,1.0);
+    % 分支
+    \draw[red!70!black,thick,->] (A) -- (BH);
+    \draw[blue!65!black,thick,->] (A) -- (BM);
+    \draw[green!55!black,thick,->] (A) -- (BL);
+    % 概率标签放在各线段附近的空白，不压线
+    \node[red!70!black,font=\small] at (2.05,4.15) {$\Pi_{z_t z_H}$};
+    \node[blue!65!black,font=\small] at (2.4,3.05) {$\Pi_{z_t z_M}$};
+    \node[green!55!black,font=\small] at (2.05,1.45) {$\Pi_{z_t z_L}$};
+    \fill[red!70!black] (BH) circle (2.2pt);
+    \fill[blue!65!black] (BM) circle (2.2pt);
+    \fill[green!55!black] (BL) circle (2.2pt);
+    % t+2 期：每个 t+1 节点再各分三支（淡灰，示意继续展开）
+    \foreach \b/\y in {BH/4.6, BM/2.8, BL/1.0} {
+        \draw[gray!55,->] (\b) -- (7.9,{\y+0.6});
+        \draw[gray!55,->] (\b) -- (7.9,{\y});
+        \draw[gray!55,->] (\b) -- (7.9,{\y-0.6});
+    }
+    % t+1 节点标签：上/下两支贴节点右上方，中间一支抬到节点正上方空白，
+    % 三者均清晰避开后续灰色分支，并与各自节点同色以助识别
+    \node[anchor=south west,red!70!black] at (4.42,4.78) {$x_{t+1}(z_H)$};
+    \node[anchor=south,blue!65!black] at (4.95,3.18) {$x_{t+1}(z_M)$};
+    \node[anchor=south west,green!55!black] at (4.42,1.18) {$x_{t+1}(z_L)$};
+\end{tikzpicture}
+\caption{状态在冲击下的随机演化（情景树）。当前 $x_t$ 确定，下期状态随冲击 $z'$ 的实现分叉，各支按转移概率 $\Pi_{z_t z_j}$ 加权；其后每个节点继续展开。Bellman 方程里的条件期望，就是在每个分叉处按这些概率求平均。}
+\label{fig:stochdp-tree}
+\end{figure}
+
+\section{期望算子保压缩：随机值迭代照样收敛}
+\label{sec:stochdp-contraction}
+
+把随机 Bellman 方程写成算子形式：定义\textbf{随机 Bellman 算子} $T$，它把候选值函数 $f(x,z)$ 映成
+\[
+    (Tf)(x,z)=\max_{a\in\Gamma(x,z)}\Big\{u(x,a,z)+\beta\,\E{f(x',z')\given z}\Big\}.
+\]
+我们要的还是老三样：值函数 $V$（即 $V=TV$ 的解）存在、唯一，且从任意初猜做值迭代 $V_{n+1}=TV_n$ 都收敛到它。第十二章已经用 Blackwell 充分条件把确定性算子是压缩这件事办妥了，那里还顺手写了一句``随机情形把 $f(\phi(x,a))$ 换成条件期望，论证一字不改''。本节把这句承诺兑现：之所以一字不改，是因为\emph{条件期望算子本身不放大距离}。
+
+\lem{条件期望是非扩张的}{
+对任意两个有界函数 $f,g$ 与任意当期冲击 $z$，
+\[
+    \big|\,\E{f(x',z')\given z}-\E{g(x',z')\given z}\,\big|\;\le\;\E{\,\big|f(x',z')-g(x',z')\big|\,\given z}\;\le\;\norm[\infty]{f-g}.
+\]
+}
+
+\begin{proof}
+第一个不等号是条件期望版的三角不等式：期望的差等于差的期望 $\E{f-g\given z}$（线性），而 $|\E{Y\given z}|\le\E{|Y|\given z}$（条件 Jensen，或直接由积分的绝对值不超过绝对值的积分）。第二个不等号：逐点有 $|f(x',z')-g(x',z')|\le\sup_{x',z'}|f-g|=\norm[\infty]{f-g}$，对一个不超过常数 $\norm[\infty]{f-g}$ 的非负量取条件期望，结果仍不超过该常数（期望保序、且常数的期望是自身）。两步合起来即得。
+\end{proof}
+
+这条引理说的是一件几何上很直白的事：取（条件）期望是一种``加权平均'',而平均一组数绝不会比这组数里最大的偏离更离谱——平均把差异抹平、只会缩小或持平，永远不会放大。这正是``非扩张''（系数 $1$ 的 Lipschitz）的含义。有了它，验证随机 Bellman 算子的两条 Blackwell 条件就毫无悬念。
+
+\thm{随机 Bellman 算子是压缩}{
+在上述设定下，随机 Bellman 算子 $T$ 是有界函数空间 $B(\cX\times\mathcal{Z})$（配 $\sup$-范数）上系数为 $\beta$ 的压缩映射。从而 Bellman 方程 $V=TV$ 有唯一解 $V$，且从任意初猜 $V_0$ 做值迭代 $V_{n+1}=TV_n$ 都有
+\[
+    \norm[\infty]{V_n-V}\;\le\;\frac{\beta^{\,n}}{1-\beta}\,\norm[\infty]{V_1-V_0}\;\to\;0 .
+\]
+}
+
+\begin{proof}
+验 Blackwell 两条（第十二章），$T$ 中唯一新增的成分是条件期望算子。
+
+\emph{单调性}：设 $f\le g$ 处处成立。条件期望保序（对 $f\le g$ 取条件期望得 $\E{f\given z}\le\E{g\given z}$），故对任意 $(x,z)$ 与可行 $a$，
+\[
+    u(x,a,z)+\beta\,\E{f(x',z')\given z}\le u(x,a,z)+\beta\,\E{g(x',z')\given z}
+\]
+（用到 $\beta\ge 0$）。逐点占优的两族数取最大值后仍占优，故 $(Tf)(x,z)\le(Tg)(x,z)$。
+
+\emph{折现}：对任意常数 $c\ge 0$，因 $\E{f+c\given z}=\E{f\given z}+c$（条件期望对常数的处理与无条件期望相同），
+\[
+    \big(T(f+c)\big)(x,z)
+    =\max_a\Big\{u+\beta\big(\E{f(x',z')\given z}+c\big)\Big\}
+    =(Tf)(x,z)+\beta c .
+\]
+两条 Blackwell 条件都满足，故 $T$ 是系数 $\beta$ 的压缩。有界函数空间在 $\sup$-范数下完备，Banach 不动点定理（第十二章）即交付存在唯一与值迭代的几何收敛；误差界来自该定理的先验估计。
+\end{proof}
+
+\state{随机性几乎是``免费''的：期望不破坏压缩}{
+这是本章在理论上最该记住的一句话。从确定性 DP 到随机 DP，整套``存在 + 唯一 + 值迭代收敛''的理论骨架\emph{原封不动}，唯一新增的环节——对未来取条件期望——恰好是个非扩张算子，它嵌进 Bellman 算子里既不破坏单调性、也不破坏折现，于是压缩系数仍然就是折现因子 $\beta$，收敛速率也仍是 $\beta^{\,n}$。换句话说，不确定性没有给递归方法的\emph{合法性}添任何麻烦；它只是把``算一个确定的下期值''换成``算一个期望''，多出来的全是\emph{计算}的活（求积分、求和），不是\emph{理论}的坎。
+}
+
+图~\ref{fig:stochdp-vi} 把这层结论画了出来：从初猜 $V_0\equiv 0$ 出发，值迭代生成的函数列 $V_1,V_2,V_3,\dots$ 自下而上逐次逼近不动点 $V$，相邻两次的最大偏差按 $\beta^{\,n}$ 几何缩小——与确定性情形画出来一模一样，因为期望那一步没有改变收敛的快慢。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+    % 轴
+    \draw[->] (-0.2,0) -- (7.6,0) node[right] {$x$（状态）};
+    \draw[->] (0,-0.2) -- (0,5.6) node[above] {值函数};
+    % 不动点 V（凹、递增），最上方；V(x) = 4.6*(1-exp(-0.5 x))
+    \draw[very thick,blue!70!black,domain=0:7.0,smooth,variable=\t,samples=100]
+        plot ({\t},{4.6*(1-exp(-0.5*\t))});
+    % 迭代序列：V_n(x) = (1-beta^n) * V(x)，beta=0.6 -> 因子 0.4, 0.64, 0.784
+    \foreach \fac/\col/\lab/\ly in {
+        0.4/{green!55!black}/{$V_1$}/1.784,
+        0.64/{orange!85!black}/{$V_2$}/2.855,
+        0.784/{red!70!black}/{$V_3$}/3.498} {
+        \draw[thick,\col,domain=0:7.0,smooth,variable=\t,samples=100]
+            plot ({\t},{\fac*4.6*(1-exp(-0.5*\t))});
+        \node[\col,anchor=west] at (7.05,\ly) {\lab};
+    }
+    \node[blue!70!black,anchor=west] at (7.05,4.461) {$V=TV$};
+    % 误差几何衰减的标注（中部空白，不压曲线）；并说明 V_0≡0 为初猜
+    \node[anchor=west,font=\small,align=left] at (1.55,0.95)
+        {初猜 $V_0\equiv 0$，则 $\norm[\infty]{V_n-V}\le\dfrac{\beta^{\,n}}{1-\beta}\,\norm[\infty]{V_1-V_0}$};
+\end{tikzpicture}
+\caption{随机值迭代的几何收敛。从初猜 $V_0\equiv 0$ 起，迭代列 $V_1,V_2,V_3,\dots$ 自下而上逼近不动点 $V=TV$，相邻间距按 $\beta^{\,n}$ 缩小。期望算子的非扩张性保证了这一收敛与确定性情形无异。}
+\label{fig:stochdp-vi}
+\end{figure}
+
+\section{随机 Euler 方程}
+\label{sec:stochdp-euler}
+
+值迭代回答``怎么算'',Euler 方程回答``最优条件长什么样''——它是用解析手段刻画最优行为、并把模型接到数据上的主力。确定性 Euler 方程把``今天少消费一单位的边际代价''与``存起来、明天多消费的边际收益''相等；随机版本只在``明天''那一侧多套一个 $\mathbb{E}_t$，因为明天的回报与边际效用都还是随机的。
+
+以最典型的随机消费--储蓄问题为例。消费者持有财富，每期选消费 $c_t$、把余下的存成资产、赚取随机毛回报 $R_{t+1}$（受冲击 $z$ 驱动），效用为 $\mathbb{E}_0\sum_t\beta^t u(c_t)$，$u$ 凹增。写成递归形式，状态是``财富 $x$、冲击 $z$''，Bellman 方程为
+\[
+    V(x,z)=\max_{c}\Big\{u(c)+\beta\,\E{V\big(R'(x-c),\,z'\big)\given z}\Big\},
+\]
+其中 $x-c$ 是当期储蓄、$R'$ 是随机毛回报。这里下期财富 $x'=R'(x-c)$ 因含下期回报 $R'$ 而\emph{也}随 $z'$ 波动——这正是``随机 Bellman 方程''一节那条注里``转移本身带噪声''的情形，把 $R'$ 一并纳入对 $z'$ 的条件期望即可，下面的推导一字不改。对内点最优 $c$ 求一阶条件（对 $c$ 求导、令其为零）：
+\[
+    u'(c)=\beta\,\E{R'\,V_x\big(R'(x-c),z'\big)\given z}.
+\]
+右边出现的是\emph{下期}值函数对财富的偏导 $V_x$。要把它换成可观测的边际效用，调用\textbf{包络定理}（最优化部分）：在已按最优策略行事的包络上，值函数对状态的偏导等于当期收益对状态的偏导，这里给出 $V_x(x,z)=u'(c(x,z))$（多得一单位财富，全花在当期消费上的边际价值）。把这条包络关系代回，便得
+
+\thm{随机 Euler 方程（消费--储蓄）}{
+内点最优消费路径满足
+\[
+    u'(c_t)=\beta\,\E{\,R_{t+1}\,u'(c_{t+1})\,\given\, z_t},
+\]
+等价地，记 $\mathbb{E}_t(\cdot):=\E{\cdot\given z_t}$（给定 $t$ 期信息的条件期望），
+\[
+    \boxed{\ \mathbb{E}_t\!\Big[\beta\,\frac{u'(c_{t+1})}{u'(c_t)}\,R_{t+1}\Big]=1\ } .
+\]
+}
+
+这就是宏观与金融里出镜率最高的方程之一。左边那一大坨的期望等于 $1$，是一切``跨期最优''的统一指纹。它的读法是：把明天多消费一单位折算回今天的``主观现值'' $\beta\,u'(c_{t+1})/u'(c_t)$，乘上这一单位储蓄实际换来的物质回报 $R_{t+1}$，再对未达成的不确定性取期望，平均下来应当不赚不亏（等于 $1$）；否则当前的消费--储蓄配置就还没榨干，可以重新分配来变好。
+
+\rmkb[与确定性 Euler 方程的唯一区别就是那个 $\mathbb{E}_t$]{
+若把所有随机性拿掉（$R_{t+1}$ 与 $c_{t+1}$ 确定），上式退化为确定性 Euler 方程 $u'(c_t)=\beta R\,u'(c_{t+1})$，正是上一章的结论。随机化做的事仅有一件：在\emph{明天}那一侧罩上 $\mathbb{E}_t$。但这个``仅有一件''改变深远——因为期望里 $R_{t+1}$ 与 $u'(c_{t+1})$ 同时随机、还可能相关，$\mathbb{E}_t[R_{t+1}u'(c_{t+1})]\ne\mathbb{E}_t[R_{t+1}]\cdot\mathbb{E}_t[u'(c_{t+1})]$，那个协方差项正是下文资产风险溢价的来源。}
+
+\rmk{$\mathbb{E}_t$ 是``在 $t$ 期信息下''的条件期望，本质上就是\emph{条件期望}一章里以 $\sigma$-代数 $\cF_t$ 为条件的 $\E{\cdot\given\cF_t}$；在 Markov 设定下它退化为以当期冲击 $z_t$ 为条件，故写成 $\E{\cdot\given z_t}$。理性预期假设说的就是：经济主体在做决策时用的正是这个数学上``正确''的条件期望，不多不少。}
+
+\section{应用一：随机增长与预防性储蓄}
+\label{sec:stochdp-precaution}
+
+\paragraph{随机增长（RBC 的核）。}
+把上面的资产换成生产性资本，就是实际经济周期（RBC）模型的核心。社会计划者在状态 $(k,z)$（资本、生产率冲击）下选当期消费 $c$ 与下期资本 $k'$，产出为 $z f(k)$，资源约束 $c+k'=z f(k)+(1-\delta)k$。Bellman 方程
+\[
+    V(k,z)=\max_{k'}\Big\{u\big(zf(k)+(1-\delta)k-k'\big)+\beta\,\E{V(k',z')\given z}\Big\},
+\]
+其 Euler 方程为 $u'(c_t)=\beta\,\mathbb{E}_t\big[u'(c_{t+1})\,(z_{t+1}f'(k_{t+1})+1-\delta)\big]$——这里随机毛回报就是``下期资本边际产品 $+$ 不折旧的部分''。其策略函数 $k'=g(k,z)$ 正是图~\ref{fig:stochdp-policy} 那一族曲线：生产率高时多积累、低时少积累，资本与产出于是随冲击共同波动，这便是 RBC 解释经济周期的机制。
+
+\paragraph{预防性储蓄：风险本身就让人多存钱。}
+随机 Euler 方程还揭示了一个确定性世界里根本不存在的动机。比较两个消费者，面对相同的\emph{期望}未来收入，但一个未来确定、另一个未来有风险。确定性 Euler 方程只关心 $u'(c_{t+1})$；而随机版本关心 $\mathbb{E}_t[u'(c_{t+1})]$。关键在于边际效用 $u'$ 的形状：对常见效用（如 CRRA），$u'$ 是\emph{凸}函数（$u'''>0$）。由 Jensen 不等式，对凸函数取期望大于在期望处取值：
+\[
+    \mathbb{E}_t\big[u'(c_{t+1})\big]\;>\;u'\big(\mathbb{E}_t[c_{t+1}]\big)\qquad(\text{当 }u'''>0).
+\]
+也就是说，\emph{在期望消费相同的前提下，消费的不确定性抬高了期望边际效用}。而 Euler 方程要求 $u'(c_t)=\beta R\,\mathbb{E}_t[u'(c_{t+1})]$，右边被风险抬高，要重新相等，左边 $u'(c_t)$ 也得抬高，即今天 $c_t$ 要\emph{降低}——消费者主动压低今天的消费、多存一点，以缓冲未来的风险。这就是\textbf{预防性储蓄}（precautionary saving），其源头精确地是\emph{边际效用的凸性} $u'''>0$（图~\ref{fig:stochdp-precaution}）。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+    % 轴
+    \draw[->] (-0.2,0) -- (7.2,0) node[right] {$c'$（下期消费）};
+    \draw[->] (0,-0.2) -- (0,5.4) node[above] {$u'(c')$（边际效用）};
+    % 凸递减的边际效用曲线 u'(c)= 8/(c+1)
+    \draw[thick,blue!65!black,domain=0.35:6.6,smooth,variable=\t,samples=100]
+        plot ({\t},{8/(\t+1)});
+    \node[blue!65!black,anchor=west] at (5.3,1.7) {$u'(c')$（凸）};
+    % 两实现 cL=1.2, cH=4.8（等概率），均值 cbar=3.0
+    \coordinate (PL) at (1.2,3.636);
+    \coordinate (PH) at (4.8,1.379);
+    \coordinate (PB) at (3.0,2.0);            % 曲线上 (cbar, u'(cbar))
+    \coordinate (MID) at (3.0,2.508);          % 弦中点 (cbar, E[u'])
+    \draw[red!75!black,thick] (PL) -- (PH);
+    \fill[black] (PL) circle (1.8pt);
+    \fill[black] (PH) circle (1.8pt);
+    \fill[blue!65!black] (PB) circle (1.8pt);
+    \fill[red!75!black] (MID) circle (1.8pt);
+    % 横轴标记
+    \draw[dashed,gray] (PL) -- (1.2,0) node[below] {$c_L$};
+    \draw[dashed,gray] (PH) -- (4.8,0) node[below] {$c_H$};
+    \draw[dashed,gray] (3.0,2.508) -- (3.0,0) node[below] {$\bar c$};
+    % 纵向高度标记
+    \draw[dashed,red!75!black] (MID) -- (0,2.508);
+    \node[red!75!black,anchor=east,font=\small] at (-0.05,2.56) {$\E{u'(c')}$};
+    \draw[dashed,blue!65!black] (PB) -- (0,2.0);
+    \node[blue!65!black,anchor=east,font=\small] at (-0.05,1.92) {$u'(\bar c)$};
+    % 注记于右上空白，引线指中点，不穿曲线
+    \node[anchor=west,font=\small,align=left] at (3.35,4.3)
+        {风险使 $\E{u'(c')}>u'(\E{c'})$\\[-1pt]（边际效用凸 $\Rightarrow$ 预防性储蓄）};
+    \draw[->,gray!70] (4.05,4.15) -- (3.05,2.55);
+\end{tikzpicture}
+\caption{预防性储蓄的来源。边际效用 $u'$ 凸时（$u'''>0$），消费 $c_L,c_H$ 的期望边际效用（红弦中点）高于在期望消费 $\bar c$ 处的边际效用（蓝点），即 $\E{u'(c')}>u'(\E{c'})$。风险抬高期望边际效用，迫使今天少消费、多储蓄。}
+\label{fig:stochdp-precaution}
+\end{figure}
+
+\rmkb[二次效用为何``看不见''预防性储蓄]{
+若 $u$ 取二次型，则 $u'$ 是线性的、$u'''=0$，Jensen 不等式退化成等号，$\mathbb{E}_t[u'(c_{t+1})]=u'(\mathbb{E}_t[c_{t+1}])$——风险被边际效用``漏掉'',预防性储蓄消失，模型回到``确定性等价''（只看期望、不看方差）。这正是早期用二次效用得到的随机游走消费假说看不到预防性动机的原因。要让风险真正影响储蓄，必须让边际效用弯曲（$u'''>0$），这也是为何不完全市场宏观（下一应用）几乎都用 CRRA 而非二次效用。}
+
+\paragraph{通向不完全市场（Aiyagari）。}
+预防性储蓄是\textbf{不完全市场}宏观模型的发动机。在 Aiyagari 型经济里，大量异质个体各自面对不可保险的收入冲击 $z$、只能靠存一种无风险资产自我保险，每个人解的都是上面那个带 $\mathbb{E}_t$ 的消费--储蓄问题。预防性动机使他们持有正的缓冲储蓄，加总起来就是整个经济的资本供给——它取决于收入风险的大小，于是``风险''这个微观变量经由预防性储蓄，定量地决定了宏观的利率与财富分布。这类模型的求解，本质上就是对每个个体跑本章的随机值迭代、再加一个总量市场出清，正是下一节``递归竞争均衡''的内容。
+
+\section{应用二：递归竞争均衡}
+\label{sec:stochdp-rce}
+
+到目前为止我们解的都是\emph{单个}决策者的问题。把许多这样的决策者放进一个市场、让价格内生地把他们的选择协调到出清，就得到\textbf{均衡}。递归方法的威力在于：均衡本身也能写成递归的——这就是\textbf{递归竞争均衡}（recursive competitive equilibrium, RCE），现代宏观刻画动态经济的标准语言。
+
+它的关键设计是把``个体状态''与``总体状态''分开。每个人有自己的内生状态（如个人资产 $x$），但他做最优决策时还需要知道决定价格的\emph{总体}状态——通常是外生冲击 $z$，以及（在异质个体模型里）整个经济的财富\emph{分布} $\mu$。于是个体的 Bellman 方程里，价格被写成总体状态的函数，个体把它当作给定：
+
+\defn{递归竞争均衡（要素）}{
+一个 RCE 由以下对象构成，使彼此自洽：
+\begin{itemize}
+    \item \textbf{价格函数} $p(z,\mu)$：把总体状态映成市场价格（利率、工资等）。
+    \item \textbf{个体值函数与策略} $V(x;z,\mu)$、$g(x;z,\mu)$：在给定价格函数下，解个体的随机 Bellman 方程
+    \[
+        V(x;z,\mu)=\max_{a}\Big\{u\big(x,a;p(z,\mu)\big)+\beta\,\E{V(x';z',\mu')\given z}\Big\}.
+    \]
+    \item \textbf{分布的演化律} $\mu'=\Phi(\mu,z,z')$：由所有个体的策略 $g$ 与冲击实现，按``加总后的转移''把今天的分布推到明天。
+    \item \textbf{市场出清}：在每个总体状态 $(z,\mu)$ 下，由 $g$ 加总出的总需求与总供给相等，这正是 $p(z,\mu)$ 被定下来的条件。
+\end{itemize}
+}
+
+\state{RCE = ``个体递归优化''与``总体一致性''的不动点}{
+RCE 把均衡问题拆成两层，每层都是一个不动点：\emph{个体层}给定价格函数解随机 Bellman 方程（一个值函数不动点，由本章前几节保证存在唯一）；\emph{总体层}要求由个体最优策略加总出的价格，恰好就是个体当初拿来优化的那个价格函数（一个``预期自我实现''的不动点）。整个模型因此是``不动点套不动点''。这层结构正是它能被数值求解的原因：外层迭代价格函数、内层值迭代解个体问题，交替直至两层都收敛。
+}
+
+\rmk{在\emph{代表性个体}模型（如基准 RBC）里，分布 $\mu$ 退化成一个点（人人相同），总体状态就只剩冲击 $z$，RCE 大大简化——个体问题与社会计划者问题甚至常常重合（福利定理）。一旦个体\emph{异质}且市场\emph{不完全}（Aiyagari、以及带总量冲击的 Krusell--Smith），分布 $\mu$ 真正变成一个``无穷维状态''，如何在递归框架里处理它，是计算宏观的一大主题。}
+
+\section{应用三：资产定价与随机贴现因子}
+\label{sec:stochdp-asset}
+
+随机 Euler 方程换一副眼镜看，就是整个\emph{资产定价}理论。前面那条消费--储蓄 Euler 方程 $\mathbb{E}_t[\,m_{t+1}R_{t+1}\,]=1$ 里反复出现的``主观折现 $\times$ 边际效用比''
+\[
+    m_{t+1}=\beta\,\frac{u'(c_{t+1})}{u'(c_t)},
+\]
+值得被单独命名：
+
+\defn{随机贴现因子}{
+\textbf{随机贴现因子}（stochastic discount factor, SDF），又称\textbf{定价核}，是随机变量
+\[
+    m_{t+1}:=\beta\,\frac{u'(c_{t+1})}{u'(c_t)} .
+\]
+它把``下一期、某个状态下的一块钱''折算成``今天的价值'',且这个折算率随未来状态（经消费）而变——故曰``随机''。
+}
+
+有了 $m$，任何资产的定价被压缩成一行。对毛回报为 $R^i_{t+1}$ 的资产 $i$，随机 Euler 方程即
+
+\thm{资产定价基本方程}{
+任何资产 $i$ 的毛回报 $R^i_{t+1}$ 满足
+\[
+    \boxed{\ \mathbb{E}_t\!\big[m_{t+1}\,R^i_{t+1}\big]=1\ },
+    \qquad m_{t+1}=\beta\,\frac{u'(c_{t+1})}{u'(c_t)} .
+\]
+等价地，资产的当期价格 $p_t$ 等于其未来支付 $x_{t+1}$ 的``$m$-加权期望'' $p_t=\mathbb{E}_t[m_{t+1}x_{t+1}]$。
+}
+
+一条式子、一个 $m$，给所有资产定价——这是金融经济学的中心结论之一。它的力量在于``同一个 $m$'':无论股票、债券还是期权，折现用的是同一个由\emph{消费}决定的核 $m_{t+1}$，资产之间的差别全在它们的支付 $R^i_{t+1}$ 上。下面两个推论把它翻译成更熟悉的语言。
+
+\paragraph{无风险利率与风险溢价。}
+对无风险资产 $R^f_{t+1}$（$t$ 期已知），$\mathbb{E}_t[m_{t+1}R^f]=1$ 给出 $R^f_t=1/\mathbb{E}_t[m_{t+1}]$。对一般风险资产，用 $\mathbb{E}_t[m R^i]=\mathbb{E}_t[m]\mathbb{E}_t[R^i]+\Cov{m}{R^i}$（条件协方差，下标省略）展开 $\mathbb{E}_t[mR^i]=1$，再代入 $R^f=1/\mathbb{E}_t[m]$，整理得
+\[
+    \mathbb{E}_t[R^i_{t+1}]-R^f_t=-\,R^f_t\,\Cov{m_{t+1}}{R^i_{t+1}}.
+\]
+这就是\textbf{风险溢价}的来源：一个资产要求多高的超额回报，取决于它的回报与定价核 $m$（即边际效用）\emph{怎么共动}。$m$ 在消费低（边际效用高）时大；若某资产恰在那种``经济差''的时候回报也低（$\Cov{m}{R^i}<0$），它在你最需要钱时掉链子，故须用\emph{正}的风险溢价补偿。反之，能在坏时候发钱的资产（保险性）允许负溢价。\emph{风险的价钱，量的是与边际效用的协方差，不是回报自身的方差}——这是消费基础资产定价对``风险''的根本重新定义。
+
+\paragraph{消费 CAPM。}
+进一步把 $m$ 线性化（或取 CRRA 效用 $u'(c)=c^{-\gamma}$，则 $m_{t+1}=\beta(c_{t+1}/c_t)^{-\gamma}$），上式化为：资产的风险溢价正比于其回报与\emph{消费增长}的协方差，比例系数是相对风险厌恶 $\gamma$。这就是\textbf{消费资本资产定价模型}（Consumption CAPM）——它把经典 CAPM 里那个``市场组合''替换成了``总消费'',断言真正不可分散、必须被定价的风险，是与总消费同涨落的那部分。
+
+\state{资产定价 = 随机 Euler 方程换个名字}{
+不要把资产定价当成独立的一套理论。它就是消费者跨期最优的一阶条件——随机 Euler 方程——的重新包装：把``主观折现 $\times$ 边际效用比''命名为定价核 $m$，那条人人都在满足的最优条件 $\mathbb{E}_t[mR]=1$ 立刻成了给一切资产定价的万能公式。这正是本书反复强调的``一具工具、多扇门'':同一个随机 Euler 方程，在宏观那一侧解释消费与储蓄，在金融这一侧就成了资产定价的地基。
+}
+
+\rmkb[$\mathbb{E}_t[mR^i]=1$ 直接就是一族矩条件——通向 GMM]{
+资产定价基本方程在计量上是一座金矿。对任意 $t$ 期已知的工具变量 $\vc w_t$，由全期望（塔性质）有 $\E{(m_{t+1}R^i_{t+1}-1)\,\vc w_t}=\vc 0$——这是一组\emph{矩条件}，其中 $m_{t+1}=\beta(c_{t+1}/c_t)^{-\gamma}$ 含未知参数 $(\beta,\gamma)$。用样本矩去匹配这些总体矩、求出 $(\beta,\gamma)$，正是\textbf{广义矩估计}（GMM）的经典发源地（Hansen--Singleton）。换言之，理论给的 Euler 方程直接\emph{就是}估计方程，不需要先解出整个模型——这条捷径是结构计量偏爱 Euler 方程的根本原因。GMM 作为\emph{极值估计}统一框架的一员，其相合性与渐近正态见后文``极值估计''一章。}
+
+\section{它通向何处}
+\label{sec:stochdp-beyond}
+
+本章把递归方法从确定性世界推进到了不确定性世界，而代价之小（只多一个非扩张的期望算子）几乎令人意外。它的去处铺满了现代经济学的实证与理论前沿：
+
+\begin{itemize}
+    \item \textbf{数值宏观}：随机值迭代、策略迭代，加上对连续状态的离散化或插值，是求解几乎一切动态随机模型的主力算法；本章的收敛理论就是它们能用的保证。
+    \item \textbf{不完全市场与异质个体宏观}：从 Aiyagari 的预防性储蓄到 Krusell--Smith 的总量冲击，再到当下的 HANK（异质个体新凯恩斯），核心都是``大量个体各解一个随机 DP $+$ 总体出清''的递归竞争均衡。
+    \item \textbf{资产定价}：消费 CAPM、长期风险、灾难风险等模型，全部围绕同一个 $\mathbb{E}_t[mR]=1$ 展开，区别只在如何刻画定价核 $m$ 与消费过程。
+    \item \textbf{动态结构估计}：从随机 Euler 方程读出矩条件交给 GMM（Hansen--Singleton），或用嵌套不动点（Rust）直接估计离散选择的动态规划——结构计量的两大路线都以本章的递归问题为被估对象。这些估计量的大样本性质，统归后文\textbf{极值估计}一章的旗下。
+\end{itemize}
+
+把这一章和前一章并看，会看到一条清爽的逻辑线：压缩映射保证了 Bellman 算子有唯一不动点（第十二章），确定性 DP 据此把无限期最优化压缩成一个递归方程（上一章），而本章只是往``看向未来''那一步里塞进一个条件期望——一个碰巧不放大距离的算子——整套理论便毫发无伤地延拓到了随机世界。不确定性是现代经济学绕不开的底色，而递归方法正是驯服它的通用语言。

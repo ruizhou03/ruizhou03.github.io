@@ -1,0 +1,391 @@
+% !TEX root = ../main.tex
+\chapter{可测函数、随机变量与分布}
+\label{ch:randomvar}
+
+\noindent\emph{用到的前置工具：概率空间、$\sigma$-代数与测度（见前章『概率空间、$\sigma$-代数与测度』）；集合的原像与基本拓扑（分析与拓扑部分）。}
+\medskip
+
+上一章我们费了不少力气，才把``概率''安放在一个三元组 $(\Omega,\cF,\PP)$ 上：样本空间 $\Omega$、可赋概率的事件族 $\cF$、以及测度 $\PP$。但经济学家几乎从不直接和 $\Omega$ 打交道。我们写下 $X\dist\cN(0,1)$、谈一个收益率的分布、对一个估计量求期望——所用的语言全都活在实数轴上，而非那个抽象的 $\Omega$。本章要搭的正是这座桥：把``随机性''严格定义成一个从 $\Omega$ 到 $\RR$ 的\emph{可测函数}（随机变量），再让它把概率从 $\Omega$ 上``推''到实轴上，得到一个只关乎实数的对象——\textbf{分布}。一旦有了分布，我们就可以\emph{忘掉 $\Omega$}，只在熟悉的实数轴上做积分、求矩、比较收敛。本章末尾会看到，计量经济学里天天用的 CDF、密度、似然，统统是这座桥另一端的产物。
+
+\section{动机：为什么要把随机性写成函数}
+\label{sec:randomvar-1}
+
+先想清楚我们到底要什么。掷一枚硬币、做一次试验、抽一个样本——结果是某个 $\omega\in\Omega$，它可能是``正面''``反面''这样的抽象记号，没有数值可言。但我们关心的从来不是 $\omega$ 本身，而是它的某个\emph{数值特征}：赌局的赔付、资产的收益、被访者的收入。把``结果''对应到``一个实数''，这个对应就是一个函数 $X:\Omega\to\RR$。这一步把抽象的随机试验翻译成了实数轴上的随机点，正是``随机变量''这个名字的由来——它\emph{名为变量，实为函数}。
+
+但光是``函数''还不够。我们想问的问题形如``收益落在 $[a,b]$ 里的概率是多少'',也就是
+\[
+    \Prob{a\le X\le b}=\PP\big(\setb{\omega}{a\le X(\omega)\le b}\big).
+\]
+等式右边要有意义，集合 $\setb{\omega}{a\le X(\omega)\le b}$ 必须是 $\cF$ 里的一个事件——否则 $\PP$ 根本无从赋值。换句话说，我们需要的不是任意函数，而是这样一类函数：它把实轴上``我们关心的集合''拉回去，得到的总是 $\cF$ 中的合法事件。这个``拉回去仍合法''的要求，就是\textbf{可测性}。可测性不是数学家自找的麻烦，而是``让 $\Prob{X\in B}$ 这句话有定义''的最低门槛。
+
+\state{随机变量的两层身份}{
+随机变量 $X$ 一身二任：作为\emph{函数} $X:\Omega\to\RR$，它把每个试验结果翻译成一个实数；作为\emph{可测}函数，它保证``$X$ 落在某集合里''这件事永远对应一个能赋概率的事件。前者让随机性有了数值，后者让概率计算有了立足点。本章先把这两层讲清楚，再看它如何诱导出实数轴上的分布。
+}
+
+\section{可测函数}
+\label{sec:randomvar-2}
+
+要把``拉回去仍合法''说精确，先要指定实轴那一端``我们关心的集合''是哪些。答案是 Borel $\sigma$-代数 $\cB(\RR)$：它由全体开区间生成，包含一切区间、开集、闭集，以及由它们经可数次并、交、补得到的集合——日常遇到的实数集合无一例外都在其中（见前章）。于是``可测''的定义自然成形。
+
+\defn{可测函数}{
+设 $(\Omega,\cF)$ 与 $(E,\mathcal{E})$ 是两个可测空间（各配一个 $\sigma$-代数）。称函数 $X:\Omega\to E$ \emph{可测}（关于 $\cF$ 与 $\mathcal{E}$），若对一切 $B\in\mathcal{E}$ 都有
+\[
+    X^{-1}(B)=\setb{\omega\in\Omega}{X(\omega)\in B}\in\cF .
+\]
+即：$X$ 把目标端每个可测集，原像拉回成出发端的一个可测集。
+}
+
+\rmkb[为什么是原像，而不是像]{
+可测性用\emph{原像}定义，绝非随意。原像运算和集合的并、交、补完美交换：$X^{-1}(B^c)=\big(X^{-1}(B)\big)^c$，$X^{-1}\!\big(\bigcup_n B_n\big)=\bigcup_n X^{-1}(B_n)$。正因如此，``原像落回 $\cF$''这个性质会自动地在补、可数并、可数交下保持——而这恰是 $\sigma$-代数的运算。\emph{像}运算就没有这么好的代数性质（像不与补交换），用它来定义会处处碰壁。这是测度论里反复出现的主题：可测性顺着原像走。
+}
+
+逐个去验证``每个 Borel 集的原像都在 $\cF$ 里''是不现实的，因为 Borel 集多得没法逐一检查。所幸有一条极其好用的简化：只需在一族\emph{生成元}上验证即可。
+
+\lem{只验生成元就够}{
+设 $\mathcal{E}=\sigma(\cC)$ 由集类 $\cC$ 生成。若对一切 $C\in\cC$ 都有 $X^{-1}(C)\in\cF$，则 $X$ 可测（即对一切 $B\in\mathcal{E}$ 都有 $X^{-1}(B)\in\cF$）。
+}
+\begin{proof}
+关键在于原像与集合运算交换。考察目标端的集类
+\[
+    \mathcal{D}=\setb{B\subseteq E}{X^{-1}(B)\in\cF}.
+\]
+由 $X^{-1}(E)=\Omega\in\cF$、$X^{-1}(B^c)=(X^{-1}B)^c$、$X^{-1}(\bigcup_n B_n)=\bigcup_n X^{-1}(B_n)$，且 $\cF$ 对这些运算封闭，知 $\mathcal{D}$ 本身就是一个 $\sigma$-代数。前提说 $\cC\se\mathcal{D}$，于是 $\mathcal{D}\supseteq\sigma(\cC)=\mathcal{E}$。这正是说对一切 $B\in\mathcal{E}$ 有 $X^{-1}(B)\in\cF$。
+\end{proof}
+
+把这条用在 $E=\RR$、$\mathcal{E}=\cB(\RR)$ 上：$\cB(\RR)$ 由形如 $(-\infty,x]$ 的半直线生成（这族集合的可数并交补能造出全体 Borel 集）。于是一条函数 $X:\Omega\to\RR$ 可测，当且仅当
+\[
+    \boxed{\ \setb{\omega}{X(\omega)\le x}\in\cF\quad\text{对一切 } x\in\RR.\ }
+\]
+这就是随机变量在实操中真正要核验的条件——只看 $\{X\le x\}$，一族最简单的事件。
+
+\section{随机变量}
+\label{sec:randomvar-3}
+
+\defn{随机变量}{
+给定概率空间 $(\Omega,\cF,\PP)$，一个（实值）\emph{随机变量}是一个可测函数
+\[
+    X:(\Omega,\cF)\to(\RR,\cB(\RR)),
+\]
+即对一切 $x\in\RR$ 都有 $\{X\le x\}\in\cF$。
+}
+
+至此``随机变量''被彻底去神秘化了：它就是定义在样本空间上、取实数值、且``$\{X\le x\}$ 永远是事件''的函数。图~\ref{fig:randomvar-1} 把这幅图像画出来——$X$ 把样本点送到实轴上的像点，而阈值 $x$ 在 $\Omega$ 一侧拉出一个原像事件 $\{X\le x\}$。可测性要的就是：无论阈值 $x$ 取在哪里，这块阴影区域总落在 $\cF$ 中。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+    % 右侧：实轴 R
+    \draw[->] (5.0,-2.7) -- (5.0,2.8) node[above] {$\RR$};
+    % 半直线 (-infty, x]（实轴上加粗）
+    \draw[blue!55!black,very thick] (5.0,-2.7) -- (5.0,-0.1);
+    \draw[blue!55!black,thick] (4.86,-0.1) -- (5.14,-0.1);
+    \node[blue!55!black,right=3pt] at (5.0,-0.1) {$x$};
+    \node[blue!55!black,anchor=west] at (5.35,-2.15) {$(-\infty,x]$};
+    % 实轴上的像点
+    \fill (5.0,1.3) circle (1.4pt) node[right=3pt] {$X(\omega_1)$};
+    \fill (5.0,0.55) circle (1.4pt) node[right=3pt] {$X(\omega_2)$};
+    \fill (5.0,-1.15) circle (1.4pt) node[right=3pt] {$X(\omega_3)$};
+
+    % 左侧：样本空间 Omega，下半阴影为原像
+    \begin{scope}
+        \clip (0,0) ellipse (1.8 and 2.4);
+        \fill[blue!12] (-2.0,-2.6) rectangle (2.0,-0.7);
+    \end{scope}
+    \draw[thick] (0,0) ellipse (1.8 and 2.4);
+    \node at (0,2.9) {$\Omega$};
+    \node[blue!55!black,align=center] at (0,-1.78) {$\{X\le x\}$\\$=X^{-1}\!\big((-\infty,x]\big)$};
+    % 样本点
+    \fill (-0.7,1.25) circle (1.4pt) node[left=1pt] {$\omega_1$};
+    \fill (0.6,0.5) circle (1.4pt) node[right=1pt] {$\omega_2$};
+    \fill (-1.05,-1.05) circle (1.4pt) node[left=1pt] {$\omega_3$};
+
+    % 映射箭头 X
+    \draw[->,thick] (1.55,1.2) to[bend left=10] (4.75,1.3);
+    \draw[->] (1.85,0.45) to[bend left=6] (4.75,0.55);
+    \draw[->] (1.55,-1.05) to[bend right=8] (4.75,-1.15);
+    \node[above] at (3.1,1.6) {$X$};
+\end{tikzpicture}
+\caption{随机变量 $X:\Omega\to\RR$ 把样本点映到实轴。阈值 $x$ 在 $\Omega$ 一侧拉回一个原像事件 $\{X\le x\}$（阴影）；可测性要求它对一切 $x$ 都落在 $\cF$ 中。图中 $\omega_3$ 的像不超过 $x$，故 $\omega_3$ 落在阴影里。}
+\label{fig:randomvar-1}
+\end{figure}
+
+\ex[示性函数是最简单的随机变量]{
+设 $A\in\cF$ 是一个事件，定义 $X=\indicator_A$，即 $X(\omega)=1$ 若 $\omega\in A$、否则为 $0$。验证 $X$ 是随机变量。
+}
+\sol{
+逐一看 $\{X\le x\}$：当 $x<0$ 时它是 $\varnothing$；当 $0\le x<1$ 时它是 $\{X=0\}=A^c$；当 $x\ge 1$ 时它是整个 $\Omega$。三者 $\varnothing,A^c,\Omega$ 都在 $\cF$ 中（因为 $A\in\cF$ 且 $\cF$ 对补封闭）。故对一切 $x$ 都有 $\{X\le x\}\in\cF$，$\indicator_A$ 是随机变量。这个小例子点出一个事实：``一个集合是事件''与``它的示性函数是随机变量''是\emph{同一件事}的两种说法。
+}
+
+\section{分布：把概率搬到实数轴上}
+\label{sec:randomvar-4}
+
+现在收获这一切的回报。随机变量 $X$ 在手，我们就能把 $\Omega$ 上的测度 $\PP$ \emph{推前}（push forward）到实轴上，得到一个只关乎实数的测度。
+
+\defn{分布（像测度 / law）}{
+随机变量 $X$ 的\emph{分布}（也称 law、像测度）是定义在 $(\RR,\cB(\RR))$ 上的测度 $\PP_X$，由
+\[
+    \PP_X(B)\;=\;\PP\big(X^{-1}(B)\big)\;=\;\Prob{X\in B},
+    \qquad B\in\cB(\RR)
+\]
+给出。
+}
+
+\rmkb[$\PP_X$ 确实是一个概率测度]{
+要确认 $\PP_X$ 名副其实。首先 $\PP_X(\RR)=\PP(X^{-1}(\RR))=\PP(\Omega)=1$。其次对两两不交的 Borel 集 $\{B_n\}$，它们的原像 $\{X^{-1}(B_n)\}$ 也两两不交（$X$ 是函数，一个 $\omega$ 的像只落在一个 $B_n$ 里），于是
+\[
+    \PP_X\!\Big(\bigcup_n B_n\Big)=\PP\Big(\bigcup_n X^{-1}(B_n)\Big)=\sum_n \PP\big(X^{-1}(B_n)\big)=\sum_n \PP_X(B_n),
+\]
+中间一步用了 $\PP$ 的可数可加性。可数可加 $+$ 全测度为 $1$，$\PP_X$ 就是 $(\RR,\cB(\RR))$ 上一个不折不扣的概率测度。可测性在这里是\emph{隐形的功臣}：正因 $X^{-1}(B)\in\cF$，右边的 $\PP(\cdots)$ 才总有定义。
+}
+
+图~\ref{fig:randomvar-2} 是这次``搬运''的示意：实轴上取一个 Borel 集 $B$，它在 $\Omega$ 里的原像 $X^{-1}(B)$ 是一个事件，分布 $\PP_X$ 赋给 $B$ 的质量，恰好就是原像那块事件原本拥有的概率。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+    % 左：(Omega, F, P)
+    \draw[thick] (0,0) ellipse (1.7 and 2.1);
+    \node at (0,2.55) {$(\Omega,\cF,\PP)$};
+    % 原像 X^{-1}(B) 阴影块
+    \begin{scope}
+        \clip (0,0) ellipse (1.7 and 2.1);
+        \fill[orange!22] (-0.9,-2.3) rectangle (0.9,0.6);
+    \end{scope}
+    \draw[thick] (0,0) ellipse (1.7 and 2.1);
+    \node[orange!60!black,align=center] at (0,-1.35) {$X^{-1}(B)$};
+
+    % 右：实轴 R 上的 Borel 集 B
+    \draw[->] (5.2,-2.3) -- (5.2,2.4) node[above] {$\RR$};
+    \draw[orange!70!black,very thick] (5.2,-0.4) -- (5.2,0.9);
+    \draw[orange!70!black,thick] (5.06,-0.4)--(5.34,-0.4);
+    \draw[orange!70!black,thick] (5.06,0.9)--(5.34,0.9);
+    \node[orange!60!black,right=3pt] at (5.2,0.25) {$B$};
+
+    % 映射箭头 X
+    \draw[->,thick] (1.45,0.0) to[bend left=8] (4.95,0.25);
+    \node[above] at (3.2,0.55) {$X$};
+
+    % 下方：推前测度等式
+    \node[anchor=north,align=center] at (3.0,-2.75)
+      {像测度（分布）：$\displaystyle \PP_X(B)=\PP\!\big(X^{-1}(B)\big)=\Prob{X\in B}$};
+\end{tikzpicture}
+\caption{分布 $\PP_X$ 是 $\PP$ 沿 $X$ 的推前：实轴上 Borel 集 $B$ 的质量，定义为它在 $\Omega$ 中原像 $X^{-1}(B)$ 的概率。}
+\label{fig:randomvar-2}
+\end{figure}
+
+\state{有了分布，就可以忘掉 $\Omega$}{
+$(\Omega,\cF,\PP)$ 是搭台用的脚手架，一旦分布 $\PP_X$ 算出来，关于 $X$ 的一切概率问题——任何 $\Prob{X\in B}$、任何期望 $\E{g(X)}$、任何矩——都能只凭 $\PP_X$ 回答，再不必回头看 $\Omega$ 长什么样。这就是为什么我们能放心地写 $X\dist\cN(0,1)$ 而\emph{从不指定} $\Omega$：两个建在完全不同样本空间上的随机变量，只要分布相同（记 $X\dteq Y$），在所有概率计算中就完全可以互换。这条``只谈分布''的便利，是整个概率论与计量建模赖以运转的支点。
+}
+
+\section{分布函数（CDF）}
+\label{sec:randomvar-5}
+
+测度 $\PP_X$ 作用在全体 Borel 集上，信息量很大却不便手算。幸好，一维情形下，整个分布可以被一个\emph{实变量的实值函数}完全编码——这就是分布函数。
+
+\defn{累积分布函数（CDF）}{
+随机变量 $X$ 的\emph{分布函数}（CDF）为
+\[
+    F_X(x)\;=\;\Prob{X\le x}\;=\;\PP_X\big((-\infty,x]\big),\qquad x\in\RR .
+\]
+}
+
+CDF 之所以能编码整个分布，是因为半直线 $(-\infty,x]$ 生成了 $\cB(\RR)$：知道了 $\PP_X$ 在所有这种半直线上的值，由测度的唯一性它在全体 Borel 集上的值也就定死了。于是``CDF 相同''等价于``分布相同''，一维分布与 CDF 一一对应。下面这条定理给出 CDF 的``指纹''——三条性质刻画了它的全部形状。
+
+\thm{CDF 的三条性质}{
+任何随机变量的 CDF $F=F_X$ 满足：
+\begin{enumerate}
+    \item（单调不减）$x_1\le x_2\Rightarrow F(x_1)\le F(x_2)$；
+    \item（端点极限）$\displaystyle\lim_{x\to-\infty}F(x)=0$，$\displaystyle\lim_{x\to+\infty}F(x)=1$；
+    \item（右连续）对一切 $x$，$\displaystyle\lim_{y\downarrow x}F(y)=F(x)$。
+\end{enumerate}
+反之，任何满足这三条的函数都是某个随机变量的 CDF。
+}
+\begin{proof}
+三条性质都直接来自概率测度的两个核心特征——单调性与对单调集列的连续性（见前章测度的连续性）。
+
+\emph{单调性。} 若 $x_1\le x_2$，则 $(-\infty,x_1]\se(-\infty,x_2]$，故由 $\PP_X$ 的单调性 $F(x_1)=\PP_X((-\infty,x_1])\le\PP_X((-\infty,x_2])=F(x_2)$。
+
+\emph{端点极限。} 取 $x_n\to+\infty$，则集列 $(-\infty,x_n]$ 单调上升趋向 $\RR$，由测度对上升集列的连续性，$F(x_n)=\PP_X((-\infty,x_n])\to\PP_X(\RR)=1$。同理取 $x_n\to-\infty$，集列单调下降趋向 $\varnothing$，由测度对下降集列的连续性（有限测度下成立），$F(x_n)\to\PP_X(\varnothing)=0$。
+
+\emph{右连续。} 取 $y_n\downarrow x$，则 $(-\infty,y_n]$ 单调下降，且 $\bigcap_n(-\infty,y_n]=(-\infty,x]$（关键：右端点 $x$ 本身被每个 $(-\infty,y_n]$ 包含，因 $y_n\ge x$，故落在交里）。再由下降集列的连续性，$F(y_n)\to\PP_X((-\infty,x])=F(x)$。
+
+反方向（任一满足三条的 $F$ 都来自某随机变量）需用前章的测度扩张构造一个以 $F$ 为 CDF 的测度，再取 $\Omega=\RR$、$X(\omega)=\omega$ 即可。此处只陈述、不展开。
+\end{proof}
+
+\rmkb[为什么是``右''连续，不是左连续]{
+右连续这条常令初学者意外，根子在于 CDF 用的是\emph{闭}半直线 $(-\infty,x]$（即``$\le$''而非``$<$''）。在跳点处，$F$ 的左极限 $F(x^-)=\lim_{y\uparrow x}F(y)=\Prob{X<x}$，而 $F(x)=\Prob{X\le x}$，二者之差正是该点的质量：
+\[
+    F(x)-F(x^-)=\Prob{X=x}.
+\]
+于是 $F$ 在 $x$ 处的跳幅，恰等于 $X$ 取到 $x$ 这个值的概率。把定义改成 $\Prob{X<x}$ 就会得到左连续的版本——纯属约定，但全世界（连同每一个计量软件）都用前者，务必记牢。
+}
+
+图~\ref{fig:randomvar-3} 对照两类典型的 CDF：离散型是阶梯（在每个质量点处跳跃，跳幅为该点概率，且\emph{右}连续——故跳点取右侧的实心值），连续型则光滑上升、处处无跳。两者都从 $0$ 单调升到 $1$。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  % ============ 左图：离散 CDF（阶梯）============
+  \begin{scope}
+    \draw[->] (-0.3,0) -- (4.2,0) node[right] {$x$};
+    \draw[->] (0,-0.3) -- (0,3.2) node[above] {$F(x)$};
+    \draw[dashed,gray] (0,2.8) -- (4.0,2.8);
+    \node[anchor=east] at (-0.05,2.8) {$1$};
+    \node[anchor=east] at (-0.05,0) {$0$};
+    \draw[thick] (0,0) -- (1,0);
+    \draw[thick] (1,0.933) -- (2,0.933);
+    \draw[thick] (2,1.866) -- (3,1.866);
+    \draw[thick] (3,2.8) -- (4.0,2.8);
+    \fill (1,0.933) circle (1.6pt); \draw[fill=white] (1,0) circle (1.6pt);
+    \fill (2,1.866) circle (1.6pt); \draw[fill=white] (2,0.933) circle (1.6pt);
+    \fill (3,2.8)   circle (1.6pt); \draw[fill=white] (3,1.866) circle (1.6pt);
+    \foreach \k in {1,2,3} {\draw (\k,0.06)--(\k,-0.06) node[below] {$\k$};}
+    \node[anchor=north] at (2.0,-0.55) {离散型：阶梯，右连续};
+  \end{scope}
+  % ============ 右图：连续 CDF（光滑上升）============
+  \begin{scope}[xshift=6.4cm]
+    \draw[->] (-0.3,0) -- (4.2,0) node[right] {$x$};
+    \draw[->] (0,-0.3) -- (0,3.2) node[above] {$F(x)$};
+    \draw[dashed,gray] (0,2.8) -- (4.0,2.8);
+    \node[anchor=east] at (-0.05,2.8) {$1$};
+    \node[anchor=east] at (-0.05,0) {$0$};
+    \draw[thick,blue!60!black,domain=0:4,smooth,samples=120,variable=\t]
+      plot ({\t},{2.8/(1+exp(-2.4*(\t-2)))});
+    \node[anchor=north] at (2.0,-0.55) {连续型：光滑上升};
+  \end{scope}
+\end{tikzpicture}
+\caption{两类典型 CDF。左：离散型，在质量点 $1,2,3$ 处各跳 $1/3$，跳点取右侧实心值（右连续），左极限为空心。右：连续型，光滑单调上升、处处无跳。两者皆自 $0$ 升至 $1$。}
+\label{fig:randomvar-3}
+\end{figure}
+
+\section{离散型、连续型与混合型}
+\label{sec:randomvar-6}
+
+CDF 的形状把随机变量分成几类，分类的依据正是``概率质量是怎么铺开的''。
+
+\defn{离散型与（绝对）连续型}{
+\textbf{离散型}：$X$ 的取值集中在至多可数个点 $\{a_1,a_2,\dots\}$ 上，分布完全由\emph{概率质量函数}（pmf）$p(a_k)=\Prob{X=a_k}$ 给出，且 $\sum_k p(a_k)=1$。其 CDF 是阶梯函数。
+
+\textbf{（绝对）连续型}：存在一个非负可积函数 $f$（\emph{密度}，pdf），使得对一切 $x$，
+\[
+    F(x)=\int_{-\infty}^{x} f(t)\,\d t .
+\]
+此时 $\Prob{X=x}=0$ 对每个单点成立，概率被密度``抹开''在区间上：$\Prob{a\le X\le b}=\int_a^b f$。
+}
+
+\rmkb[``连续''有两种意思，别混]{
+CDF 连续（无跳）不等于存在密度。前者只排除了质量点；后者（``绝对连续''）还要求 CDF 能写成密度的积分。存在反例（如 Cantor 分布）：CDF 处处连续、却没有密度，质量诡异地藏在一个 Lebesgue 测度为零的集合上。这类``奇异连续''分布在经济学里几乎不登场，但提醒我们：``有密度''是比``CDF 连续''更强的要求。下一小节的 Radon–Nikodym 定理会把``何时有密度''讲清楚。
+}
+
+更现实的是\textbf{混合型}：一部分质量集中在若干点（CDF 在那里跳），其余质量由密度铺开（CDF 在别处光滑上升）。这在经济数据里极其常见。
+
+\ex[一个混合型随机变量：有删失的支出]{
+设家庭对某项可选服务的支出 $X\ge 0$：有正概率 $\Prob{X=0}=\pi$ 完全不消费（角点解），在 $X>0$ 上则按某密度 $g$ 连续分布。它既非纯离散（$X>0$ 部分是连续的），也非纯连续（$x=0$ 处有质量 $\pi>0$）。它的 CDF 在 $0$ 处跳一段高 $\pi$，之后光滑上升到 $1$（形状见图~\ref{fig:randomvar-4}）。这类``一堆零 $+$ 连续正值''的结构，正是 Tobit 模型与角点解需求的标准设定。
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.05,>=Stealth]
+  \draw[->] (-0.6,0) -- (6.4,0) node[right] {$x$};
+  \draw[->] (0,-0.3) -- (0,3.5) node[above] {$F(x)$};
+  \draw[dashed,gray] (0,3.0) -- (6.0,3.0);
+  \node[anchor=east] at (-0.05,3.0) {$1$};
+  \node[anchor=east] at (-0.05,0) {$0$};
+  % x<0：X 不取负值，F 恒为 0（无连续上升段）
+  \draw[thick,blue!60!black] (-0.55,0) -- (0,0);
+  % 角点 x=0 处跳一段高 pi：从 0 跳到 pi（=0.9 tikz 单位，对应 pi=0.3）
+  \draw[red!70!black,very thick,->] (0,0) -- (0,0.74);
+  \draw[fill=white] (0,0) circle (1.6pt);
+  \fill (0,0.9) circle (1.6pt);
+  % x>0：连续部分，由密度 g 铺开，从 (0,pi) 光滑升到 1
+  \draw[thick,blue!60!black,domain=0:6,smooth,samples=120,variable=\t]
+    plot ({\t},{0.9+2.1*(1-exp(-0.55*\t))});
+  % pi 水平虚线引导 + 跳点标注（置于曲线下方，无重叠）
+  \draw[dashed,red!55!black] (0,0.9) -- (2.0,0.9);
+  \node[red!65!black,anchor=west] at (2.05,0.9) {跳：质量点 $\Prob{X=0}=\pi$（角点解）};
+  % 连续部分标注（置于曲线右上、不压曲线）
+  \node[blue!55!black,anchor=west] at (2.7,1.95) {连续部分（密度 $g$，在 $X>0$ 上）};
+  \draw[blue!55!black,->] (3.05,1.82) -- (1.35,1.95);
+\end{tikzpicture}
+\caption{混合型 CDF（删失 / 角点解）。$X\ge0$，故 $x<0$ 处 $F\equiv0$、无连续上升段；在角点 $x=0$ 跳一段高 $\Prob{X=0}=\pi$（右连续：取右侧实心值），其后由 $X>0$ 上的密度 $g$ 光滑铺开、单调升至 $1$。这正是 Tobit 模型``一堆零 $+$ 连续正值''的标准形状。}
+\label{fig:randomvar-4}
+\end{figure}
+
+\subsection*{密度作为 Radon--Nikodym 导数}
+
+``密度''其实有一个统一而深刻的来源：它是分布 $\PP_X$ 相对于 Lebesgue 测度的 Radon--Nikodym 导数。要看清这点，先要一个概念。
+
+\defn{绝对连续（测度间）}{
+设 $\mu,\nu$ 是同一可测空间上的两个测度。称 $\nu$ \emph{关于} $\mu$ \emph{绝对连续}，记 $\nu\ll\mu$，若
+\[
+    \mu(B)=0\ \Longrightarrow\ \nu(B)=0 .
+\]
+即：$\mu$ 看不见（零测）的集合，$\nu$ 也看不见。
+}
+
+\thm{Radon--Nikodym}{
+设 $\mu$ 是 $\sigma$-有限测度，$\nu$ 是有限测度，且 $\nu\ll\mu$。则存在一个非负可测函数 $f$（记 $f=\dfrac{\d\nu}{\d\mu}$，称 Radon--Nikodym 导数），使得对一切可测集 $B$，
+\[
+    \nu(B)=\int_B f\,\d\mu .
+\]
+且 $f$ 在 $\mu$-几乎处处的意义下唯一。
+}
+
+这条定理本章只陈述、给直觉，不搭它的纯测度论证明（标准证明走 Hilbert 空间投影或 Hahn 分解，属于``极重的纯数学构造'',按本书体例略去）。直觉是这样的：$\nu\ll\mu$ 保证 $\nu$ 不会在 $\mu$ 的零测集上``凭空''堆出质量，于是 $\nu$ 的质量必然是``沿着 $\mu$ 铺开''的——而 $f(x)$ 量的就是\emph{在点 $x$ 处，$\nu$ 的质量相对 $\mu$ 浓还是稀}，是一个局部的``密度比''。把这把刀切在 $\mu=$ Lebesgue 测度上，立刻得到我们熟悉的概率密度。
+
+\state{概率密度 $=$ 分布关于 Lebesgue 测度的 R--N 导数}{
+取 $\mu=\lambda$（实轴上的 Lebesgue 测度，即``长度''），$\nu=\PP_X$（$X$ 的分布）。当且仅当 $\PP_X\ll\lambda$（即 $X$ 是绝对连续型：凡长度为零的集合概率也为零、没有质量点）时，Radon--Nikodym 定理保证存在密度
+\[
+    f_X=\frac{\d\PP_X}{\d\lambda},\qquad \Prob{X\in B}=\int_B f_X\,\d\lambda .
+\]
+这就是``密度''最本质的定义。它把``连续型''一词解释得通透：连续型 $=$ 分布关于长度绝对连续 $=$ R--N 导数（密度）存在。离散型则相反，质量全压在零长度的点上，相对 Lebesgue 测度根本不绝对连续，故没有这种密度；它的``密度''要换一把尺子——相对\emph{计数测度}的 R--N 导数，那恰好就是 pmf。\textbf{pmf 与 pdf 在 R--N 的框架下被统一了，区别只在背景测度选谁}：计数测度给出 pmf，Lebesgue 测度给出 pdf。
+}
+
+\rmk{这个统一视角不只是漂亮：下一部分讲期望时，``$\E{g(X)}=\int g\,\d\PP_X$''对离散与连续是\emph{同一个}积分式，只是背景测度不同——无需把求和与积分分开记两套公式。}
+
+\section{可测性在运算下的封闭性}
+\label{sec:randomvar-7}
+
+随机变量很少单独出现：我们要做 $X+Y$、$XY$、$\max\{X,Y\}$，要取一列随机变量的极限 $\lim_n X_n$（样本均值、估计量都是这么来的）。若这些运算会把``随机变量''做成``非随机变量''（即破坏可测性），整套理论就崩了。所幸可测性极其稳固。
+
+\prop{可测函数对代数运算与极限封闭}{
+设 $X,Y$ 与 $\{X_n\}_{n\ge1}$ 都是 $(\Omega,\cF)$ 上的随机变量，$c\in\RR$。则下列函数也都是随机变量：
+\[
+    cX,\quad X+Y,\quad XY,\quad \max\{X,Y\},\quad \min\{X,Y\},
+\]
+以及（当下列极限对每个 $\omega$ 存在或取值于扩充实数时）
+\[
+    \sup_n X_n,\quad \inf_n X_n,\quad \limsup_n X_n,\quad \liminf_n X_n,\quad \lim_n X_n .
+\]
+}
+\begin{proof}[证明思路]
+代数运算这部分有一条干净的捷径：连续函数把可测函数复合后仍可测。具体地，若 $\vp:\RR^2\to\RR$ 连续、$X,Y$ 可测，则 $\vp(X,Y)$ 可测——因为 $(X,Y):\Omega\to\RR^2$ 是可测的（两个分量都可测即可推出向量可测），而连续 $\vp$ 把 Borel 集的原像拉回 Borel 集，两步复合后原像仍落在 $\cF$ 里。取 $\vp(u,v)=u+v,\ uv,\ \max\{u,v\}$ 等连续函数，立得各代数运算封闭。
+
+极限这部分要害在于一个等式。对 $\sup_n X_n$，注意
+\[
+    \set{\sup_n X_n\le x}=\bigcap_{n}\set{X_n\le x}.
+\]
+右边是可数个事件 $\{X_n\le x\}\in\cF$ 的交，而 $\cF$ 对可数交封闭，故左边 $\in\cF$，对一切 $x$ 成立，即 $\sup_n X_n$ 可测。$\inf_n X_n=-\sup_n(-X_n)$ 同理。再由
+\[
+    \limsup_n X_n=\inf_{m}\,\sup_{n\ge m}X_n,\qquad \liminf_n X_n=\sup_{m}\,\inf_{n\ge m}X_n,
+\]
+两次套用上一步即得二者可测。当 $\lim_n X_n$ 存在时它等于 $\limsup_n X_n$，故也可测。
+\end{proof}
+
+\state{为什么这条性质是``地基级''的}{
+``可测性在可数次极限下不塌''这一点，是后面一切``渐近''理论得以成立的暗中前提。样本均值 $\bar X_n=\frac1n\sum_{i\le n}X_i$、极大似然估计量 $\hat\theta_n$、乃至大数定律 / 中心极限定理里出现的种种极限，全是``随机变量经可数次运算与取极限''得来的。本命题保证它们\emph{仍是}随机变量、仍有分布、仍能求概率与期望——这件事看似理所当然，却正是它在默默撑着整座大厦。注意``\emph{可数}''不可省：可测性只对可数次运算封闭，不可数个随机变量的上确界未必可测，这也是随机过程理论里需要``可分性''等额外条件的根源。
+}
+
+\section{它通向何处}
+\label{sec:randomvar-8}
+
+本章把``随机性''钉死成了``$\Omega$ 上的可测函数'',又用推前把概率搬到了实数轴上，得到分布、CDF 与密度。这三样是后续几乎所有内容的入口：
+
+\begin{itemize}
+    \item \textbf{期望即对分布积分}（见后文『Lebesgue 积分与期望』一章）。一旦有了分布 $\PP_X$，期望就是 $\E{g(X)}=\int_\RR g\,\d\PP_X$；对连续型化为 $\int g(x)f_X(x)\,\d x$、对离散型化为 $\sum_k g(a_k)p(a_k)$——两者本是同一积分对不同背景测度的写法。矩、矩母函数、特征函数都由此而来。
+    \item \textbf{常见分布族与变量变换}。正态 $\cN(\mu,\sigma^2)$ 等分布族就是一族具体的 $\PP_X$；而``$Y=g(X)$ 的分布是什么''（变量变换、Jacobian 公式）正是对推前测度再做一次推前，见后文『多维分布、独立性与变量变换』一章。
+    \item \textbf{似然就是密度}。把密度 $f_X(x;\theta)$ 看成参数 $\theta$ 的函数，就是似然函数——极大似然、贝叶斯更新（『贝叶斯更新与信息』一章）全建在它上面。R--N 视角还解释了为什么似然比 $f(x;\theta_1)/f(x;\theta_0)$ 这种``两个分布之比''是良定义的对象。
+    \item \textbf{依分布收敛 $=$ CDF 收敛}。在渐近统计部分，$X_n\dto X$ 的定义正是 $F_{X_n}(x)\to F_X(x)$ 在 $F_X$ 的连续点上成立。本章建立的 CDF，是中心极限定理那句 $\rtn(\bar X_n-\mu)\dto\cN(0,\sigma^2)$ 之所以\emph{能被陈述}的语言。
+\end{itemize}
+
+一句话收束：上一章给了概率一个家 $(\Omega,\cF,\PP)$，本章则教会概率\emph{搬家}——搬到我们真正会算的实数轴上。此后整本书谈``一个随机变量的分布''时，背后都是这套推前机制在运转，而 $\Omega$ 早已功成身退、退居幕后。

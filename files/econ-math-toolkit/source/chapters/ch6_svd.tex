@@ -1,0 +1,396 @@
+% !TEX root = ../main.tex
+\chapter{奇异值分解与降维}
+\label{ch:svd}
+
+\noindent\emph{用到的前置工具：内积、正交与投影（第三章）；特征值、特征向量与对角化（第四章）；对称矩阵、谱定理与正定性（第五章）。}
+\medskip
+
+到上一章为止，我们能漂亮地分解的都是\emph{方阵}，而且谱定理那套最干净的结论只对\emph{对称}方阵成立。可经济学里真正天天打交道的矩阵——数据矩阵 $\mat X$（$n$ 个观测、$k$ 个变量）——通常既不是方阵（$n\gg k$），更谈不上对称。奇异值分解（singular value decomposition，SVD）正是把谱定理推广到\emph{任意} $m\times n$ 矩阵的那把钥匙：任何矩阵都能写成``旋转—沿主轴拉伸—再旋转''三步。它一举回答了一长串看似各自独立的问题——主成分分析（PCA）如何降维、当 $\mat X\T\mat X$ 不可逆时最小二乘还能不能解、一个矩阵离低秩矩阵有多远、多重共线性到底``病''在哪里。本章把这把万能分解讲透，并把它接回计量与数据分析的几个核心落点。
+
+\section{为什么需要一把``万能分解''}
+\label{sec:svd-motivation}
+
+特征值分解（第四章）和谱定理（第五章）很强大，但它们有一道硬门槛：只能作用在方阵上，而最干净的正交对角化 $\mat A=\mat Q\vc\Lambda\mat Q\T$ 更是只对实对称矩阵成立。经济学家手里最重要的那个矩阵——把每一行当作一个观测、每一列当作一个变量的数据矩阵 $\mat X\in\RR^{n\times k}$——几乎从不是方阵（样本量 $n$ 远大于变量数 $k$），自然也无所谓对称。我们却偏偏想对它做这些事：
+
+\begin{itemize}
+    \item \textbf{降维}：$k$ 个变量高度相关，能否用少数几个``综合指标''几乎无损地概括全部信息？这是主成分分析。
+    \item \textbf{求解病态或不可逆的最小二乘}：当 $\mat X\T\mat X$ 因共线性而（近乎）奇异、正规方程 $\mat X\T\mat X\vc\beta=\mat X\T\vc y$ 无唯一解时，还能不能给出一个有意义的解？
+    \item \textbf{低秩近似与压缩}：用一个秩很低的矩阵去逼近 $\mat X$，丢掉的``信息''最少能控制在多少？
+    \item \textbf{诊断病态}：怎样用一个数刻画``这个矩阵离奇异有多近''，从而预警共线性、弱工具变量这类麻烦？
+\end{itemize}
+
+这四件事的共同要害，是想把一个一般矩阵拆成``彼此正交的几条独立方向 + 每条方向上的一个强度''。谱定理对对称阵正是这么做的；SVD 把它推广到一切矩阵，从而成为上面所有问题的统一答案。
+
+\state{一句话定位}{
+谱定理回答``对称方阵怎么拆''，奇异值分解回答``任意矩阵怎么拆''。后者是前者的推广：把 $\mat A$ 作用到一对正交基上，输出仍是一组正交方向，只是长度被``奇异值''缩放了。降维、广义逆、低秩近似、病态诊断，骨子里都是在读这把分解。
+}
+
+\section{奇异值分解：陈述与几何}
+\label{sec:svd-statement}
+
+\thm{奇异值分解}{
+设 $\mat A\in\RR^{m\times n}$ 为任意实矩阵，秩为 $r$。则存在正交矩阵 $\mat U\in\RR^{m\times m}$、$\mat V\in\RR^{n\times n}$（即 $\mat U\T\mat U=\mat I_m$，$\mat V\T\mat V=\mat I_n$）与``对角''矩阵 $\vc\Sigma\in\RR^{m\times n}$，使得
+\[
+    \mat A=\mat U\,\vc\Sigma\,\mat V\T ,
+\]
+其中 $\vc\Sigma$ 除主对角线外全为零，对角元
+\[
+    \sigma_1\ge\sigma_2\ge\cdots\ge\sigma_r>0=\sigma_{r+1}=\cdots
+\]
+称为 $\mat A$ 的\textbf{奇异值}。$\mat U$ 的各列 $\vc u_1,\dots,\vc u_m$ 称为\textbf{左奇异向量}，$\mat V$ 的各列 $\vc v_1,\dots,\vc v_n$ 称为\textbf{右奇异向量}。
+}
+
+把分解逐列读出来，更见其用意。$\mat A=\mat U\vc\Sigma\mat V\T$ 等价于对每个 $j\le r$，
+\[
+    \mat A\vc v_j=\sigma_j\,\vc u_j,
+    \qquad
+    \mat A\T\vc u_j=\sigma_j\,\vc v_j ,
+\]
+而对 $j>r$ 则 $\mat A\vc v_j=\vc 0$。换言之：存在一组输入端的正交基 $\set{\vc v_j}$ 和一组输出端的正交基 $\set{\vc u_j}$，使得 $\mat A$ 把第 $j$ 个输入方向\emph{原封不动地}送到第 $j$ 个输出方向上，只是把长度乘了 $\sigma_j$。这正是``$\mat A$ 在合适的坐标里就是一组纯缩放''——和对角化的精神完全一致，区别只在于进出两端用了\emph{两套不同}的正交基。
+
+\state{把 $\mat A$ 读成``旋转—拉伸—旋转''}{
+$\mat A=\mat U\vc\Sigma\mat V\T$ 作用在向量 $\vc x$ 上是三步：$\mat V\T$ 先把 $\vc x$ \emph{旋转}到以右奇异向量为坐标轴的系里；$\vc\Sigma$ 沿这些坐标轴各自\emph{拉伸} $\sigma_j$ 倍；$\mat U$ 再把结果\emph{旋转}到以左奇异向量为坐标轴的系里。正交矩阵只转不形变，全部的``形变''都集中在中间那步对角拉伸上——奇异值 $\sigma_j$ 就是各主方向上的拉伸强度。
+}
+
+这个三步图像最干净的看法，是看 $\mat A$ 把单位球面送到哪里。单位球面经正交变换 $\mat V\T$ 仍是单位球面；经 $\vc\Sigma$ 沿各坐标轴拉伸 $\sigma_j$ 倍后变成一个半轴长为 $\sigma_j$ 的椭球；再经正交变换 $\mat U$ 旋转到位。于是：
+
+\state{几何本质}{
+任意矩阵 $\mat A$ 把单位球面映成一个椭球。椭球的\emph{半轴长}就是奇异值 $\sigma_j$，半轴的\emph{方向}就是左奇异向量 $\vc u_j$；把这些半轴拉回原像，对应的就是右奇异向量 $\vc v_j$。最大奇异值 $\sigma_1=\max_{\norm{\vc x}=1}\norm{\mat A\vc x}$ 度量了 $\mat A$ 能产生的最大拉伸，最小（非零）奇异值则是最小拉伸。
+}
+
+图~\ref{fig:svd-geometry} 把二维情形画了出来：一个 $2\times 2$ 矩阵把单位圆经``$\mat V\T$ 旋转 $\to$ $\vc\Sigma$ 沿坐标轴拉伸 $\to$ $\mat U$ 旋转''三步送成一个椭圆。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth,
+    ax/.style={->,gray!60,thin},
+    sv/.style={->,thick,blue!55!black},
+    su/.style={->,thick,red!60!black}]
+  \def\r{0.8}
+  % Panel 1: 单位圆 + 右奇异向量
+  \begin{scope}[shift={(0,0)}]
+    \draw[ax] (-1.25,0)--(1.25,0);
+    \draw[ax] (0,-1.25)--(0,1.45);
+    \draw[thick] (0,0) circle (\r);
+    \draw[sv] (0,0)--(0.693,0.400) node[anchor=south west,inner sep=1pt]{$\vc v_1$};
+    \draw[sv] (0,0)--(-0.400,0.693) node[anchor=south east,inner sep=1pt]{$\vc v_2$};
+    \node at (0,-1.6){\small (1) 单位圆};
+  \end{scope}
+  \draw[->,thick] (1.55,0)--(2.55,0) node[midway,above]{$\mat V\T$};
+  % Panel 2: V' 旋转后
+  \begin{scope}[shift={(4.1,0)}]
+    \draw[ax] (-1.25,0)--(1.25,0);
+    \draw[ax] (0,-1.25)--(0,1.45);
+    \draw[thick] (0,0) circle (\r);
+    \draw[sv] (0,0)--(\r,0) node[anchor=north west,inner sep=1pt]{$\vc e_1$};
+    \draw[sv] (0,0)--(0,\r) node[anchor=south east,inner sep=1pt]{$\vc e_2$};
+    \node at (0,-1.6){\small (2) 旋转：主轴对齐};
+  \end{scope}
+  \draw[->,thick] (4.1,-1.95)--(4.1,-2.85) node[midway,right]{$\vc\Sigma$};
+  % Panel 3: Sigma 拉伸
+  \begin{scope}[shift={(4.1,-5.2)}]
+    \draw[ax] (-2.85,0)--(2.85,0);
+    \draw[ax] (0,-1.25)--(0,1.55);
+    \draw[thick] (0,0) ellipse (2.4 and 0.8);
+    \draw[su] (0,0)--(2.4,0) node[anchor=north,inner sep=2pt]{$\sigma_1\vc e_1$};
+    \draw[su] (0,0)--(0,0.8) node[anchor=south west,inner sep=1pt]{$\sigma_2\vc e_2$};
+    \node at (0,-1.65){\small (3) 沿坐标轴拉伸};
+  \end{scope}
+  \draw[->,thick] (1.05,-5.2)--(0.05,-5.2) node[midway,above]{$\mat U$};
+  % Panel 4: U 旋转
+  \begin{scope}[shift={(-3.2,-5.2)}]
+    \draw[ax] (-2.85,0)--(2.85,0);
+    \draw[ax] (0,-1.55)--(0,1.55);
+    \draw[thick,rotate=20] (0,0) ellipse (2.4 and 0.8);
+    \draw[su] (0,0)--(2.255,0.821) node[anchor=south west,inner sep=1pt]{$\sigma_1\vc u_1$};
+    \draw[su] (0,0)--(-0.274,0.752) node[anchor=south east,inner sep=1pt]{$\sigma_2\vc u_2$};
+    \node at (0,-1.85){\small (4) 旋转：得到椭圆};
+  \end{scope}
+\end{tikzpicture}
+\caption{二维 SVD 的几何三步。单位圆经 $\mat V\T$ 旋转（圆不变，右奇异向量 $\vc v_1,\vc v_2$ 转到坐标轴），经 $\vc\Sigma$ 沿坐标轴拉伸 $\sigma_1,\sigma_2$ 倍成轴对齐椭圆，再经 $\mat U$ 旋转得到一般椭圆——其长短半轴正是 $\sigma_1\vc u_1,\sigma_2\vc u_2$。这里取长短半轴之比 $\sigma_1:\sigma_2=3:1$。}
+\label{fig:svd-geometry}
+\end{figure}
+
+\section{奇异值从哪来：与 $\mat A\T\mat A$、$\mat A\mat A\T$ 的关系}
+\label{sec:svd-construct}
+
+奇异值不是凭空规定的，它直接来自一个对称半正定矩阵的谱。这一节用谱定理把 SVD 构造出来——这既是它的``来历'',也是实际计算它的方法。
+
+关键观察是：对任意 $\mat A$，矩阵 $\mat A\T\mat A$ 是 $n\times n$ 对称半正定矩阵（对任意 $\vc x$ 有 $\vc x\T\mat A\T\mat A\vc x=\norm{\mat A\vc x}^2\ge 0$）。由谱定理，它可正交对角化：存在标准正交基 $\vc v_1,\dots,\vc v_n$ 与非负特征值 $\lambda_1\ge\cdots\ge\lambda_n\ge 0$，使得
+\[
+    \mat A\T\mat A\,\vc v_j=\lambda_j\,\vc v_j .
+\]
+这些 $\vc v_j$ 就取作右奇异向量。定义
+\[
+    \boxed{\ \sigma_j=\sqrt{\lambda_j}\ }
+    \qquad(\text{奇异值 = $\mat A\T\mat A$ 特征值的算术平方根}),
+\]
+对 $\sigma_j>0$ 的那些 $j$（即 $j\le r=\rank\mat A$），令
+\[
+    \vc u_j=\frac{1}{\sigma_j}\,\mat A\vc v_j .
+\]
+
+\state{核心等式}{
+\[
+    \sigma_j(\mat A)=\sqrt{\lambda_j(\mat A\T\mat A)}=\sqrt{\lambda_j(\mat A\mat A\T)} .
+\]
+$\mat A\T\mat A$ 与 $\mat A\mat A\T$ 有\emph{相同}的非零特征值（即 $\sigma_j^2$），右奇异向量 $\vc v_j$ 是前者的特征向量、左奇异向量 $\vc u_j$ 是后者的特征向量。这把``一般矩阵的奇异值''彻底化归为``对称半正定矩阵的特征值''——后者我们在谱定理一章已经完全掌握。
+}
+
+要验证这套构造确实给出 SVD，只需检查 $\set{\vc u_j}$ 标准正交、且 $\mat A=\sum_j\sigma_j\vc u_j\vc v_j\T$。
+
+\pf{
+先看 $\set{\vc u_j}_{j\le r}$ 标准正交。对 $i,j\le r$，
+\[
+    \vc u_i\T\vc u_j
+    =\frac{1}{\sigma_i\sigma_j}(\mat A\vc v_i)\T(\mat A\vc v_j)
+    =\frac{1}{\sigma_i\sigma_j}\,\vc v_i\T(\mat A\T\mat A)\vc v_j
+    =\frac{\lambda_j}{\sigma_i\sigma_j}\,\vc v_i\T\vc v_j .
+\]
+由 $\set{\vc v_j}$ 标准正交，$\vc v_i\T\vc v_j=\delta_{ij}$；当 $i=j$ 时上式为 $\lambda_j/\sigma_j^2=1$，当 $i\neq j$ 时为 $0$。故 $\set{\vc u_j}_{j\le r}$ 标准正交，可补成 $\RR^m$ 的标准正交基。
+
+再看分解式。$\set{\vc v_j}$ 是 $\RR^n$ 的标准正交基，故任意 $\vc x$ 有 $\vc x=\sum_{j}(\vc v_j\T\vc x)\vc v_j$。两边左乘 $\mat A$，并用 $\mat A\vc v_j=\sigma_j\vc u_j$（$j\le r$）、$\mat A\vc v_j=\vc 0$（$j>r$，因为 $\norm{\mat A\vc v_j}^2=\lambda_j=0$）：
+\[
+    \mat A\vc x=\sum_{j\le r}\sigma_j(\vc v_j\T\vc x)\,\vc u_j
+    =\Big(\sum_{j\le r}\sigma_j\,\vc u_j\vc v_j\T\Big)\vc x .
+\]
+对一切 $\vc x$ 成立，故 $\mat A=\sum_{j\le r}\sigma_j\vc u_j\vc v_j\T$，写成矩阵形式即 $\mat A=\mat U\vc\Sigma\mat V\T$。
+}
+
+\rmkb[为什么不直接对 $\mat A$ 做特征分解]{
+当 $\mat A$ 不是方阵时根本谈不上特征值；即便是方阵，非对称矩阵的特征向量也未必正交、甚至可能不可对角化。SVD 的高明之处正在于：它不去碰 $\mat A$ 本身的谱，而是退到永远对称半正定的 $\mat A\T\mat A$ 上借谱定理的力。代价是进出两端要用两套正交基（$\mat V$ 与 $\mat U$），换来的是\emph{对一切矩阵}都成立。
+}
+
+上面那个 $\mat A=\sum_{j\le r}\sigma_j\vc u_j\vc v_j\T$ 的写法极其有用，它把 $\mat A$ 表成 $r$ 个秩一矩阵之和，按奇异值从大到小排列：
+
+\state{秩一展开（外积形式）}{
+\[
+    \mat A=\sum_{j=1}^{r}\sigma_j\,\vc u_j\vc v_j\T .
+\]
+每一项 $\sigma_j\vc u_j\vc v_j\T$ 是一个秩一矩阵，``重要性''由 $\sigma_j$ 排序。这一形式是低秩近似（下一节）和数据压缩的直接出发点：想压缩 $\mat A$，就只留前几个最大的项。
+}
+
+\ex[手算一个 $2\times2$ 的 SVD]{
+求 $\mat A=\begin{bmatrix}1 & 1\\ 0 & 1\end{bmatrix}$ 的奇异值。
+}
+\sol{
+按构造法，先算 $\mat A\T\mat A$：
+\[
+    \mat A\T\mat A
+    =\begin{bmatrix}1 & 0\\ 1 & 1\end{bmatrix}
+     \begin{bmatrix}1 & 1\\ 0 & 1\end{bmatrix}
+    =\begin{bmatrix}1 & 1\\ 1 & 2\end{bmatrix}.
+\]
+其特征值由 $\det(\mat A\T\mat A-\lambda\mat I)=(1-\lambda)(2-\lambda)-1=\lambda^2-3\lambda+1=0$ 解出
+\[
+    \lambda=\frac{3\pm\sqrt5}{2}\quad\Longrightarrow\quad
+    \lambda_1=\frac{3+\sqrt5}{2}\approx2.618,\quad
+    \lambda_2=\frac{3-\sqrt5}{2}\approx0.382 .
+\]
+于是奇异值为
+\[
+    \sigma_1=\sqrt{\lambda_1}\approx1.618,\qquad
+    \sigma_2=\sqrt{\lambda_2}\approx0.618 .
+\]
+可作两处校验：其一，$\sigma_1\sigma_2=\sqrt{\lambda_1\lambda_2}=\sqrt{\det(\mat A\T\mat A)}=\sqrt{1}=1$，正是 $\abs{\det\mat A}=1$（奇异值之积等于行列式绝对值）；其二，$\sigma_1^2+\sigma_2^2=\lambda_1+\lambda_2=\tr(\mat A\T\mat A)=3$，正是 $\mat A$ 各元素平方和——这就是下文要用到的``奇异值平方和 = Frobenius 范数平方''。
+}
+
+\section{低秩近似：Eckart–Young 定理}
+\label{sec:svd-lowrank}
+
+秩一展开 $\mat A=\sum_{j\le r}\sigma_j\vc u_j\vc v_j\T$ 自然引出一个问题：若只留前 $k$ 项，得到的秩 $k$ 矩阵
+\[
+    \mat A_k=\sum_{j=1}^{k}\sigma_j\,\vc u_j\vc v_j\T
+\]
+是 $\mat A$ 多好的近似？Eckart–Young 定理说：它是\emph{最好的}。先约定两个矩阵``大小''的度量：谱范数 $\norm[2]{\mat A}=\sigma_1$（最大奇异值，即最大拉伸），Frobenius 范数 $\norm[F]{\mat A}=\sqrt{\sum_{i,j}a_{ij}^2}=\sqrt{\sum_j\sigma_j^2}$。
+
+\thm{Eckart–Young（最佳低秩近似）}{
+设 $\mat A\in\RR^{m\times n}$ 的奇异值为 $\sigma_1\ge\cdots\ge\sigma_r>0$，$\mat A_k=\sum_{j\le k}\sigma_j\vc u_j\vc v_j\T$ 为其前 $k$ 项截断（$k<r$）。则在一切秩不超过 $k$ 的矩阵 $\mat B$ 中，$\mat A_k$ 使近似误差最小，且
+\[
+    \min_{\rank\mat B\le k}\norm[2]{\mat A-\mat B}=\norm[2]{\mat A-\mat A_k}=\sigma_{k+1},
+\]
+\[
+    \min_{\rank\mat B\le k}\norm[F]{\mat A-\mat B}=\norm[F]{\mat A-\mat A_k}=\sqrt{\sigma_{k+1}^2+\cdots+\sigma_r^2} .
+\]
+}
+
+证明的完整版需要一点变分论证，这里只给最透亮的直觉：误差 $\mat A-\mat A_k=\sum_{j>k}\sigma_j\vc u_j\vc v_j\T$ 恰好是被丢掉的那些项，它本身就是一个 SVD（剩余奇异值为 $\sigma_{k+1},\dots,\sigma_r$），故其谱范数是 $\sigma_{k+1}$、Frobenius 范数是剩余奇异值的平方和开根。定理真正的内容是``没有任何别的秩 $k$ 矩阵能做得更好'',这一最优性来自奇异值的极值刻画。
+
+\state{它的用处：降维与压缩的``无损率''有了标尺}{
+把 $\norm[F]{\mat A}^2=\sum_j\sigma_j^2$ 想成 $\mat A$ 的总``能量''。取前 $k$ 个奇异值，保留的能量比例就是
+\[
+    \frac{\sigma_1^2+\cdots+\sigma_k^2}{\sigma_1^2+\cdots+\sigma_r^2}.
+\]
+当奇异值衰减很快（数据高度相关）时，少数几个 $k$ 就能吃下绝大部分能量——这正是降维与压缩之所以可能的数学原因，也是怎么挑 $k$ 的依据。
+}
+
+图~\ref{fig:svd-spectrum} 画出一个典型的奇异值谱及其累计能量：前 $3$ 个奇异值已捕获 $97\%$ 的能量，意味着用秩 $3$ 的 $\mat A_3$ 近似 $\mat A$，丢掉的能量不到 $3\%$。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+  \draw[->,thin] (0,0)--(9.4,0) node[right]{$i$};
+  \draw[->,thin] (0,0)--(0,5.6) node[above]{$\sigma_i$};
+  \draw[->,thin] (9.0,0)--(9.0,5.6) node[above]{累计能量};
+  \foreach \y/\lab in {1/1,2/2,3/3,4/4,5/5}{\draw[thin] (-0.08,\y)--(0,\y) node[left]{\small\lab};}
+  \foreach \p/\u in {50/2.5,90/4.5,100/5.0}{\draw[thin] (9.0,\u)--(9.08,\u) node[right]{\scriptsize\p\%};}
+  \def\bw{0.34}
+  \foreach \i/\h in {1/5.0,2/3.2,3/1.8,4/0.9,5/0.5,6/0.3,7/0.15,8/0.1}{
+    \fill[cyan!30!blue!55!white] (\i-\bw,0) rectangle (\i+\bw,\h);
+    \draw[cyan!40!blue!60!black,thin] (\i-\bw,0) rectangle (\i+\bw,\h);
+    \node[below] at (\i,0) {\scriptsize \i};
+  }
+  \draw[thick,red!65!black]
+    (1,3.152)--(2,4.442)--(3,4.851)--(4,4.953)--(5,4.985)--(6,4.996)--(7,4.999)--(8,5.000);
+  \foreach \x/\y in {1/3.152,2/4.442,3/4.851,4/4.953,5/4.985,6/4.996,7/4.999,8/5.000}{
+    \fill[red!65!black] (\x,\y) circle (1.3pt);}
+  \draw[dashed,gray!70!black] (3.5,0)--(3.5,5.15);
+  \node[gray!55!black,anchor=south,align=center] at (3.5,5.18) {\small 取前 $k=3$，保留 $97\%$};
+  \node[red!65!black,anchor=north west] at (4.3,4.55) {\small 累计能量比};
+\end{tikzpicture}
+\caption{一个快速衰减的奇异值谱（柱，左轴）及其累计能量比（折线，右轴）。前 $3$ 个奇异值已吃下 $97\%$ 的能量，故秩 $3$ 截断 $\mat A_3$ 几乎无损。奇异值衰减越快，降维空间越大。}
+\label{fig:svd-spectrum}
+\end{figure}
+
+\section{Moore–Penrose 广义逆与最小范数最小二乘解}
+\label{sec:svd-pinv}
+
+最小二乘（第三章）的正规方程是 $\mat X\T\mat X\vc\beta=\mat X\T\vc y$。当 $\mat X$ 列满秩时 $\mat X\T\mat X$ 可逆，解唯一：$\hat{\vc\beta}=(\mat X\T\mat X)^{-1}\mat X\T\vc y$。但只要存在共线性（某列是其它列的线性组合），$\mat X$ 就不再列满秩、$\mat X\T\mat X$ 奇异，逆不存在——此时最小二乘解\emph{不唯一}（有一整条解的仿射空间）。SVD 给出一个对一切矩阵都成立、且能在不唯一时挑出``最自然''那一个解的工具：Moore–Penrose 广义逆。
+
+\defn{Moore–Penrose 广义逆（伪逆）}{
+设 $\mat A=\mat U\vc\Sigma\mat V\T$ 的秩为 $r$。其\textbf{伪逆} $\mat A^{+}\in\RR^{n\times m}$ 定义为
+\[
+    \mat A^{+}=\mat V\,\vc\Sigma^{+}\,\mat U\T ,
+\]
+其中 $\vc\Sigma^{+}$ 由 $\vc\Sigma$ \emph{转置后把每个非零奇异值取倒数、零仍为零}得到：对角元为 $1/\sigma_1,\dots,1/\sigma_r$，其余为零。
+}
+
+伪逆把可逆矩阵的逆推广到了任意矩阵：当 $\mat A$ 方且可逆时，$\sigma_j$ 全非零，$\vc\Sigma^{+}=\vc\Sigma^{-1}$，于是 $\mat A^{+}=\mat V\vc\Sigma^{-1}\mat U\T=(\mat U\vc\Sigma\mat V\T)^{-1}=\mat A^{-1}$，与普通逆重合。它真正的价值在于不可逆的情形：
+
+\thm{伪逆给出最小范数最小二乘解}{
+对任意 $\mat A\in\RR^{m\times n}$ 与 $\vc b\in\RR^m$，向量
+\[
+    \hat{\vc x}=\mat A^{+}\vc b
+\]
+是最小二乘问题 $\min_{\vc x}\norm{\mat A\vc x-\vc b}^2$ 的解；并且在所有最小二乘解中，$\hat{\vc x}$ 是\emph{范数最小}的那一个。当 $\mat A$ 列满秩时它就是唯一的普通最小二乘解 $(\mat A\T\mat A)^{-1}\mat A\T\vc b$。
+}
+
+\pf{
+用 SVD 把目标函数在两套正交基里``拉直''。记 $\vc c=\mat U\T\vc b$（坐标旋转，不改范数），$\vc z=\mat V\T\vc x$。因正交变换保持范数，
+\[
+    \norm{\mat A\vc x-\vc b}^2
+    =\norm{\mat U\vc\Sigma\mat V\T\vc x-\vc b}^2
+    =\norm{\vc\Sigma\vc z-\vc c}^2
+    =\sum_{j=1}^{r}(\sigma_j z_j-c_j)^2+\sum_{j>r}c_j^2 .
+\]
+最后一组 $\sum_{j>r}c_j^2$ 与 $\vc z$ 无关，是无法消去的残差（$\vc b$ 落在 $\mat A$ 列空间之外的部分）。前 $r$ 项每一项都能独立取零，当且仅当
+\[
+    z_j=\frac{c_j}{\sigma_j}\quad(j\le r).
+\]
+这唯一地定下了 $\vc z$ 的前 $r$ 个分量；而 $z_{r+1},\dots,z_n$ 不出现在目标里，可任取——这正是解不唯一的来源。要在这些解里取范数最小者，由 $\norm{\vc x}=\norm{\vc z}$，只需令多余分量 $z_j=0$（$j>r$）。于是
+\[
+    z_j=\frac{c_j}{\sigma_j}\ (j\le r),\quad z_j=0\ (j>r)
+    \quad\Longleftrightarrow\quad
+    \vc z=\vc\Sigma^{+}\vc c ,
+\]
+回代 $\vc x=\mat V\vc z=\mat V\vc\Sigma^{+}\mat U\T\vc b=\mat A^{+}\vc b$。证毕。
+}
+
+\state{伪逆的双重含义}{
+$\hat{\vc x}=\mat A^{+}\vc b$ 同时做了两件事：\emph{在列空间方向上}，它给出最小二乘拟合（让残差正交于列空间，与第三章的投影一致）；\emph{在零空间方向上}，它把多余的自由度统统设为零，从而在所有等价拟合里选出范数最小的解。后一条在共线性下尤其要紧：普通最小二乘此时给不出唯一答案，伪逆用``最小范数''这一额外准则把答案钉死。
+}
+
+\rmk{零奇异值``取倒数变零''这一步是全部关窍：可逆方向照常取倒数还原，不可逆方向（$\sigma_j=0$）则直接抹掉、不去强行除以零。}
+
+\ex[共线设计下的最小范数解]{
+设 $\mat A=\begin{bmatrix}1 & 1\\ 1 & 1\end{bmatrix}$（两列相同，秩 $1$），$\vc b=\begin{bmatrix}2\\ 0\end{bmatrix}$。求最小范数最小二乘解。
+}
+\sol{
+$\mat A$ 秩为 $1$，奇异值只有一个：$\mat A\T\mat A=\begin{bmatrix}2 & 2\\ 2 & 2\end{bmatrix}$，特征值 $\lambda_1=4,\lambda_2=0$，故 $\sigma_1=2$。对应右、左奇异向量 $\vc v_1=\vc u_1=\tfrac{1}{\sqrt2}(1,1)\T$。于是
+\[
+    \mat A^{+}=\frac{1}{\sigma_1}\vc v_1\vc u_1\T
+    =\frac{1}{2}\cdot\frac{1}{2}\begin{bmatrix}1\\1\end{bmatrix}\begin{bmatrix}1 & 1\end{bmatrix}
+    =\frac{1}{4}\begin{bmatrix}1 & 1\\ 1 & 1\end{bmatrix},
+    \qquad
+    \hat{\vc x}=\mat A^{+}\vc b=\frac14\begin{bmatrix}2\\2\end{bmatrix}=\begin{bmatrix}1/2\\ 1/2\end{bmatrix}.
+\]
+所有最小二乘解满足 $x_1+x_2=1$（拟合值 $\mat A\vc x=(x_1+x_2)(1,1)\T$ 要尽量逼近 $\vc b$，最优为 $x_1+x_2=1$，残差 $\norm{(1,-1)\T}=\sqrt2$）。在这条直线上，离原点最近的点正是 $(1/2,1/2)$——伪逆自动选中了它，而非诸如 $(1,0)$ 或 $(0,1)$ 这种范数更大的解。
+}
+
+\section{条件数与多重共线性诊断}
+\label{sec:svd-cond}
+
+伪逆的证明里那个关键步骤 $z_j=c_j/\sigma_j$ 暴露了一个隐患：如果某个 $\sigma_j$ 很小（接近零但不为零），那么 $\vc b$ 在该方向上的微小扰动 $\Delta c_j$ 会被放大 $1/\sigma_j$ 倍，导致解 $\hat{\vc x}$ 剧烈变动。这就是\textbf{病态}（ill-conditioning）。刻画这种敏感程度的标准量是条件数。
+
+\defn{条件数}{
+满秩矩阵 $\mat A$ 的（谱）\textbf{条件数}定义为最大奇异值与最小奇异值之比
+\[
+    \kappa(\mat A)=\frac{\sigma_{\max}}{\sigma_{\min}}\ \ge 1 .
+\]
+$\kappa$ 越大，矩阵越接近奇异，求解 $\mat A\vc x=\vc b$ 对数据扰动越敏感。$\kappa=1$ 对应正交矩阵（所有奇异值相等，最稳）。
+}
+
+条件数的意义可以一句话说清：它是``输出相对误差''对``输入相对误差''的最大放大倍数。沿最大奇异值方向 $\mat A$ 拉伸 $\sigma_{\max}$ 倍，沿最小奇异值方向只拉伸 $\sigma_{\min}$ 倍；解一个方程相当于反着做，于是最小奇异值方向上的扰动被放大 $1/\sigma_{\min}$、再相对于 $\sigma_{\max}$ 这把尺子衡量，放大因子就是 $\kappa$。
+
+\state{为什么计量经济学家盯着条件数}{
+在最小二乘里，相关的矩阵是设计矩阵 $\mat X$（或正规化后的 $\mat X\T\mat X$，其条件数是 $\mat X$ 的平方）。多重共线性的本质就是 $\mat X$ 的列\emph{近乎线性相关}，于是 $\mat X$ 把某个方向几乎压扁——对应一个接近零的奇异值，$\kappa(\mat X)$ 暴涨。后果是 $\hat{\vc\beta}=(\mat X\T\mat X)^{-1}\mat X\T\vc y$ 在该方向上方差极大、符号飘忽、对样本的微小变动极不稳定。条件数（或其平方 $\kappa(\mat X\T\mat X)$）因此是共线性最直接的诊断量——比逐对相关系数更可靠，因为它能抓住三个及以上变量\emph{联合}的近线性相关。
+}
+
+图~\ref{fig:svd-cond} 把这件事画了出来：当两个回归元近正交时，$\hat{\vc\beta}$ 的方差椭圆近乎圆形（$\kappa\approx1$，各方向同样稳）；当两个回归元夹角很小、近乎共线时，方差椭圆沿某个方向被极度拉长（$\kappa$ 很大），意味着估计量在该方向上几乎不可辨识。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth,
+    ax/.style={->,gray!55,thin},
+    reg/.style={->,very thick,blue!55!black}]
+  % Panel (a): 正交回归元 -> 良态
+  \begin{scope}[shift={(0,0)}]
+    \draw[ax] (-1.7,0)--(1.9,0);
+    \draw[ax] (0,-1.7)--(0,1.9);
+    \draw[reg] (0,0)--(1.2,0) node[anchor=north,inner sep=3pt]{$\vc x_1$};
+    \draw[reg] (0,0)--(0,1.2) node[anchor=east,inner sep=3pt]{$\vc x_2$};
+    \draw[thick,red!65!black] (0,0) circle (0.75);
+    \node[anchor=north,align=center] at (0,-2.0)
+      {\small (a) 回归元近正交\\[-1pt]\small $\kappa\approx 1$：估计稳定};
+  \end{scope}
+  % Panel (b): 近共线 -> 病态
+  \begin{scope}[shift={(5.4,0)}]
+    \draw[ax] (-1.7,0)--(1.9,0);
+    \draw[ax] (0,-1.7)--(0,1.9);
+    \draw[reg] (0,0)--(1.2,0) node[anchor=north,inner sep=3pt]{$\vc x_1$};
+    \draw[reg] (0,0)--(1.159,0.311) node[anchor=south west,inner sep=1pt]{$\vc x_2$};
+    \draw[thick,red!65!black,rotate=135] (0,0) ellipse (1.7 and 0.224);
+    \node[red!60!black,anchor=north west,align=left] at (-0.30,-1.05) {\small 方差沿此\\[-2pt]\small 方向爆炸};
+    \draw[red!60!black,->,thin] (0.40,-0.90)--(1.202,-1.202);
+    \node[anchor=north,align=center] at (0,-2.0)
+      {\small (b) 回归元近共线\\[-1pt]\small $\kappa$ 很大：估计不稳};
+  \end{scope}
+\end{tikzpicture}
+\caption{条件数与共线性（系数空间示意，回归元 $\vc x_j$ 仅标方向）。红色椭圆示意最小二乘估计量 $\hat{\vc\beta}$ 的方差形态（正比于 $(\mat X\T\mat X)^{-1}$）。(a) 回归元近正交时椭圆近圆，各方向都稳；(b) 回归元近共线时椭圆沿某方向被极度拉长，对应一个接近零的奇异值、$\kappa$ 暴涨，该方向上的系数几乎不可辨识。}
+\label{fig:svd-cond}
+\end{figure}
+
+\section{去处：PCA、共线性、弱工具与压缩}
+\label{sec:svd-applications}
+
+本章这把分解的下游应用极广，这里点出几个经济学博士最常撞见的落点。
+
+\paragraph{主成分分析（PCA）。}
+给定中心化的数据矩阵 $\mat X\in\RR^{n\times k}$（每列已减去均值），样本协方差矩阵正比于 $\mat X\T\mat X$。PCA 要找的``主成分''是数据方差最大的那些正交方向——而这恰好是 $\mat X\T\mat X$ 的特征向量，也就是 $\mat X$ 的\emph{右奇异向量} $\vc v_j$；第 $j$ 个主成分解释的方差正比于 $\sigma_j^2$。于是：
+
+\state{PCA 就是对数据矩阵做 SVD}{
+主成分方向 = $\mat X$ 的右奇异向量 $\vc v_j$ = $\mat X\T\mat X$ 的特征向量；该主成分上的得分 = $\mat X\vc v_j=\sigma_j\vc u_j$；它解释的方差比例 = $\sigma_j^2\big/\sum_l\sigma_l^2$。取前几个最大奇异值对应的主成分，就是用 Eckart–Young 意义下最优的低维子空间概括数据——降维与可视化、构造少数``综合指标''（如把多个宏观序列压成一个景气指数）皆源于此。
+}
+
+\paragraph{多重共线性诊断。}
+如上节所述，条件数 $\kappa(\mat X)$（或方差膨胀的来源——接近零的奇异值）是共线性最干净的度量。出现极大 $\kappa$ 时，常见对策正是用 PCA 把高度相关的回归元压成少数正交主成分再回归（主成分回归），或转向带正则的岭回归——后者可证等价于把伪逆里每个滤波因子 $1/\sigma_j$ 替换为 $\sigma_j/(\sigma_j^2+\lambda)$（当 $\lambda\to0$ 时回到 $1/\sigma_j$，即第~\ref{sec:svd-pinv}~节里 $z_j=c_j/\sigma_j$ 那个倒数），从而压低小奇异值方向的方差放大。
+
+\paragraph{弱工具变量。}
+在工具变量估计里，第一阶段是把内生回归元对工具投影。若工具与内生变量的相关性很弱，第一阶段设计矩阵就接近降秩——又是一个``最小奇异值接近零''的病态问题。弱工具之所以让 IV/2SLS 估计量方差爆炸、并产生有限样本偏误，根子上和共线性是同一回事：相关矩阵的条件数过大。识别强度的诸多检验（如基于第一阶段的统计量）背后量的就是这种奇异性。
+
+\paragraph{数据压缩与去噪。}
+秩一展开 $\mat A=\sum_j\sigma_j\vc u_j\vc v_j\T$ 让压缩变得显然：存一个 $m\times n$ 矩阵要 $mn$ 个数，而存前 $k$ 项只需 $k(m+n+1)$ 个数；当 $k\ll\min(m,n)$ 时省下大量存储。更进一步，若数据 = 低秩信号 + 小噪声，丢掉小奇异值往往同时\emph{去掉了噪声}——这正是图像压缩、推荐系统的低秩补全、以及计量里因子模型（用少数共同因子解释大量序列）的共同数学内核。
+
+\state{一把分解，多门核心课}{
+SVD 把谱定理从对称方阵推广到一切矩阵，于是同一套``奇异值 + 左右奇异向量''反复出现在彼此看似无关的问题里：在数据分析里它是 PCA 与降维，在计量里它是共线性与弱工具的诊断、是岭回归的几何，在数值上它是求解病态线性系统、是计算伪逆与秩的最稳手段。认清了奇异值就是``各正交主方向上的拉伸强度''、接近零的奇异值就是``病态的源头'',上面这些门就一并打开了。
+}

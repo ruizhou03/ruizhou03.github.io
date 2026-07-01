@@ -1,0 +1,448 @@
+% !TEX root = ../main.tex
+\chapter{偏导、梯度、Jacobian 与 Hessian}
+\label{ch:multideriv}
+
+\noindent\emph{用到的前置工具：单变量微分（导数即局部线性逼近的斜率）；向量与矩阵、转置与矩阵乘法（线性代数部分）；正定矩阵的概念将在二阶条件处用到（对称矩阵与正定性，线性代数部分）。}
+\medskip
+
+单变量微积分里，``导数''是一个明确无误的对象：一个数，曲线在某点的斜率，也是该点附近最好的线性逼近的斜率。可经济学里要求导的函数几乎从来不是一元的——效用是消费束的函数，利润是一组投入的函数，似然是一整个参数向量的函数。一旦自变量变成向量、甚至因变量也变成向量，``导数''该长什么样？它还是一个数吗，还是一个向量、一个矩阵？
+
+本章的任务，是把``多元函数的导数''这件事一次配齐。结论可以先剧透：随着``输入维数''和``输出维数''的不同，导数会呈现为三种形态——标量函数的导数是一个向量（\textbf{梯度}），向量值映射的导数是一个矩阵（\textbf{Jacobian}），而把标量函数求两次导得到的二阶信息又是一个矩阵（\textbf{Hessian}）。这三件套不是三件孤立的东西，它们共享同一个内核：\emph{导数就是最好的局部线性逼近}。认清这个内核，最优化的一阶/二阶条件、隐函数定理与比较静态、概率里的变量变换、计量里的 Delta 法，才会显出它们其实是同一把工具在不同场合的化身。
+
+\section{偏导数与方向导数}
+\label{sec:multideriv-1}
+
+最朴素的想法是：要看多元函数怎么变，就一次只动一个变量，其余按住不动。这就是偏导数。
+
+\defn{偏导数}{
+设 $f:\RR^n\to\RR$，$\vc x=(x_1,\dots,x_n)\T$。$f$ 关于第 $i$ 个变量的\textbf{偏导数}是
+\[
+    \pd{f}{x_i}(\vc x)
+    \;=\;
+    \lim_{h\to 0}\frac{f(\vc x+h\,\vc e_i)-f(\vc x)}{h},
+\]
+其中 $\vc e_i$ 是第 $i$ 个标准基向量。它就是把除 $x_i$ 外的所有变量当常数、对 $x_i$ 求的普通一元导数。
+}
+
+偏导数好算（按一元规则机械求导即可），但它有一个明显的局限：它只告诉你沿\emph{坐标轴方向}走时 $f$ 的变化率。可经济学里关心的方向常常是斜的——预算线、等产量线、一条价格变动的路径，都不平行于坐标轴。要问``沿任意一个给定方向走，$f$ 变多快'',就需要方向导数。
+
+\defn{方向导数}{
+设 $f:\RR^n\to\RR$，$\vc u\in\RR^n$ 为一个\emph{单位}向量（$\norm{\vc u}=1$）。$f$ 在 $\vc x$ 处沿方向 $\vc u$ 的\textbf{方向导数}是
+\[
+    D_{\vc u}f(\vc x)
+    \;=\;
+    \lim_{t\to 0}\frac{f(\vc x+t\,\vc u)-f(\vc x)}{t}
+    \;=\;
+    \dd{}{t}\,f(\vc x+t\,\vc u)\Big|_{t=0}.
+\]
+}
+
+把 $g(t)=f(\vc x+t\vc u)$ 看成沿直线 $\vc x+t\vc u$ 切出的一条一元曲线，方向导数就是它在 $t=0$ 处的斜率。偏导数是方向导数取 $\vc u=\vc e_i$ 的特例。
+
+\rmkb[偏导数全部存在，并不保证函数``光滑'']{
+偏导数只探测了 $n$ 个坐标方向，是相当弱的信息。存在这样的函数：在某点所有偏导数都存在，函数在该点却连续都谈不上，更别说沿斜方向可微。后面``可微性''一节会看到，真正``像一元导数那样好用''的条件比``偏导都存在''强得多。这正是多元微分比一元微分微妙的地方——不能想当然地把一元的直觉照搬过来。
+}
+
+\section{梯度：把偏导数装进一个向量}
+\label{sec:multideriv-grad}
+
+把 $f$ 的 $n$ 个一阶偏导数排成一个列向量，就得到本章第一件主器——梯度。它看似只是``偏导数的打包'',几何含义却异常丰富。
+
+\defn{梯度}{
+设 $f:\RR^n\to\RR$ 在 $\vc x$ 处各偏导数存在。$f$ 的\textbf{梯度}是把偏导数排成的\emph{列}向量
+\[
+    \grad f(\vc x)
+    \;=\;
+    \begin{bmatrix}
+        \partial f/\partial x_1\\[2pt]
+        \vdots\\[2pt]
+        \partial f/\partial x_n
+    \end{bmatrix}
+    \;\in\;\RR^n .
+\]
+（取成列向量、与自变量同形，是本书一贯的\emph{分母布局}约定；见矩阵微积分一章。）
+}
+
+梯度真正的用处，藏在它和方向导数的关系里。下面这条恒等式是本节的枢纽。
+
+\thm{方向导数 $=$ 梯度与方向的内积}{
+若 $f$ 在 $\vc x$ 处可微（见下一节），则对任意单位向量 $\vc u$，
+\[
+    D_{\vc u}f(\vc x)
+    \;=\;
+    \grad f(\vc x)\cdot\vc u
+    \;=\;
+    \norm{\grad f(\vc x)}\,\cos\theta,
+\]
+其中 $\theta$ 是 $\grad f(\vc x)$ 与 $\vc u$ 的夹角。
+}
+
+\pf{
+设 $g(t)=f(\vc x+t\vc u)$。这是 $f$ 与直线 $\vc x+t\vc u$ 的复合，对 $t$ 用链式法则（其多元形式在本章后面给出），
+\[
+    g'(t)=\sum_{i=1}^n \pd{f}{x_i}(\vc x+t\vc u)\cdot u_i
+    =\grad f(\vc x+t\vc u)\cdot\vc u .
+\]
+取 $t=0$ 即得 $D_{\vc u}f(\vc x)=\grad f(\vc x)\cdot\vc u$。再由内积的几何意义 $\vc a\cdot\vc b=\norm{\vc a}\norm{\vc b}\cos\theta$，并注意 $\norm{\vc u}=1$，便得最右一式。
+}
+
+这条简单的式子一口气回答了``梯度有什么几何意义''的全部问题。把 $\theta$ 当成可调的——也就是让方向 $\vc u$ 绕一圈——$D_{\vc u}f=\norm{\grad f}\cos\theta$ 在 $\theta=0$（$\vc u$ 与梯度同向）时取最大值 $\norm{\grad f}$，在 $\theta=\pi$（反向）时取最小值 $-\norm{\grad f}$，在 $\theta=\pi/2$（垂直于梯度）时为零。三句话连起来，就是梯度的三条核心性质：
+
+\state{梯度的三件事（一条内积式全包）}{
+\textbf{(1) 方向。}\ $\grad f$ 指向 $f$ \emph{上升最快}的方向；$-\grad f$ 指向下降最快的方向。\\[2pt]
+\textbf{(2) 大小。}\ $\norm{\grad f}$ 就是沿最速上升方向走时的变化率——梯度越长，地势越陡。\\[2pt]
+\textbf{(3) 与等值线垂直。}\ 沿等值线（$f$ 取常数的方向）方向导数为零，故 $\grad f$ \emph{垂直于过该点的等值线（等值面）}。
+}
+
+第 (3) 条尤其值得记住：要画出 $\grad f$，先画过该点的那条等值线，梯度就是从这条线垂直地``戳出去''、指向函数值更高一侧的箭头（图~\ref{fig:multideriv-1}）。微观经济学里这处处可见——无差异曲线的梯度就是边际效用向量，与无差异曲线垂直；最优化时``梯度与约束面法向平行''正是 Lagrange 条件的几何形态（见后文``等式约束与 Lagrange 乘子''一章）。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.7,>=Stealth]
+  % 坐标轴
+  \draw[->] (-0.2,0) -- (3.7,0) node[right] {$x_1$};
+  \draw[->] (0,-0.2) -- (0,2.6) node[above] {$x_2$};
+  % 三条椭圆等值线 f=x1^2/4+x2^2，半轴 (a,b)=(2sqrt c, sqrt c)
+  \draw[gray!55] (0,0) ellipse (1 and 0.5);          % c1=1/4
+  \draw[thick,black!75] (0,0) ellipse (2 and 1);      % c2=1，过点 x0
+  \draw[gray!55] (0,0) ellipse (3 and 1.5);          % c3=9/4
+  % 等值线标签（停在椭圆之间空白处）
+  \node[gray!55,font=\small,anchor=south] at (0.6,0.03) {$f=c_1$};
+  \node[black!75,font=\small,anchor=south] at (1.45,0.03) {$f=c_2$};
+  \node[gray!55,font=\small,anchor=south] at (2.5,0.03) {$f=c_3$};
+  % 点 x0=(1.147,0.819) 在 c=1 椭圆上
+  \coordinate (P) at (1.147,0.819);
+  \fill (P) circle (1.3pt);
+  \node[anchor=north east] at (1.10,0.80) {$\vc x_0$};
+  % 梯度向量（单位方向 (0.330,0.944)，长 0.95，垂直等值线、指向外）
+  \draw[->,very thick,blue!60!black] (P) -- (1.461,1.716);
+  \node[blue!60!black,anchor=south west] at (1.46,1.62) {$\grad f(\vc x_0)$};
+  % 切向线段（单位 (-0.944,0.330)，沿等值线切线，过 P）
+  \draw[thick,red!65!black] (2.044,0.505) -- (0.251,1.133);
+  \node[red!65!black,anchor=west,font=\small] at (2.06,0.50) {等值线切向};
+  % 直角标记（梯度 ⟂ 切向）
+  \draw[blue!50!black,thin] (0.977,0.879) -- (1.037,1.049) -- (1.207,0.989);
+  % 最速上升注记，停在左上空白，细引线指梯度箭头（不穿过椭圆）
+  \node[blue!60!black,anchor=east,align=right,font=\small] at (1.02,2.15)
+    {最速上升方向\\（垂直于等值线）};
+  \draw[blue!60!black,->,thin] (1.05,2.0) -- (1.31,1.5);
+\end{tikzpicture}
+\caption{梯度 $\grad f(\vc x_0)$ 垂直于过 $\vc x_0$ 的等值线、指向函数值更高的一侧（最速上升方向）；沿等值线切向走 $f$ 不变，方向导数为零。}
+\label{fig:multideriv-1}
+\end{figure}
+
+至于``为什么方向导数等于投影''，图~\ref{fig:multideriv-2} 把那条内积式画了出来：固定梯度 $\grad f$ 后，沿任意单位方向 $\vc u$ 的变化率，正是梯度在 $\vc u$ 上的投影长度 $\norm{\grad f}\cos\theta$。你越是偏离梯度方向（$\theta$ 越大），走得越``不划算''；偏到与梯度垂直时，一步也没爬高。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.5,>=Stealth]
+  \coordinate (O) at (0,0);
+  \fill (O) circle (1.2pt);
+  \node[anchor=north east] at (0,0) {$\vc x_0$};
+  % 梯度向量：方向 35 度，长 3
+  \coordinate (G) at (2.457,1.721);
+  \draw[->,very thick,blue!60!black] (O) -- (G);
+  \node[blue!60!black,anchor=south west] at (2.40,1.66) {$\grad f$};
+  % 单位方向 u（与梯度夹角 40 度，画长 3.2 表示方向）
+  \coordinate (U) at (0.828,3.091);
+  \draw[->,thick,black!80] (O) -- (U);
+  \node[anchor=south,black!80] at (0.85,3.10) {方向 $\vc u$（单位长）};
+  % 梯度尖端向 u 直线作垂线
+  \coordinate (F) at (0.595,2.220);   % 垂足
+  \draw[dashed,gray!70] (G) -- (F);
+  % 投影段（O 到垂足）= 方向导数大小
+  \draw[->,very thick,red!70!black] (O) -- (F);
+  % 直角标记
+  \draw[gray!70,thin] (0.530,1.978) -- (0.772,1.914) -- (0.836,2.155);
+  % 夹角 theta 弧（35 度到 75 度，圆心精确落在原点）
+  \draw[black!60] (0.762,0.533) arc (35:75:0.93);
+  \node[black!60] at (1.18,1.07) {$\theta$};
+  % 方向导数标注，停右下空白，细引线指投影段
+  \node[red!70!black,anchor=west,align=left] at (1.55,2.55)
+    {$D_{\vc u}f=\grad f\cdot\vc u$\\[1pt]$\phantom{D_{\vc u}f}=\norm{\grad f}\cos\theta$};
+  \draw[red!70!black,->,thin] (1.5,2.55) -- (0.45,2.0);
+\end{tikzpicture}
+\caption{方向导数是梯度在所选方向 $\vc u$ 上的投影 $\norm{\grad f}\cos\theta$：与梯度同向（$\theta=0$）变化率最大且等于 $\norm{\grad f}$，与梯度垂直（$\theta=\pi/2$）变化率为零。}
+\label{fig:multideriv-2}
+\end{figure}
+
+\ex[等值线垂直性的直接验证]{
+设 $f(x_1,x_2)=\tfrac14 x_1^2+x_2^2$（图~\ref{fig:multideriv-1} 用的就是它）。在点 $\vc x_0=(1.147,\,0.819)$ 处求梯度，并验证它确实垂直于过该点的等值线。
+}
+\sol{
+梯度为 $\grad f=(\tfrac12 x_1,\,2x_2)\T$，在 $\vc x_0$ 处
+\[
+    \grad f(\vc x_0)=\pr{\tfrac12\cdot 1.147,\ 2\cdot 0.819}\T=(0.574,\,1.638)\T .
+\]
+等值线 $\tfrac14 x_1^2+x_2^2=1$ 在该点的切向量，可由把 $x_2$ 看成 $x_1$ 的隐函数、对 $x_1$ 求导得到：$\tfrac12 x_1+2x_2\,x_2'=0$，故切向斜率 $x_2'=-x_1/(4x_2)=-1.147/(4\cdot0.819)=-0.350$，一个切向量是 $(1,\,-0.350)$。它与梯度的内积
+\[
+    (0.574,\,1.638)\cdot(1,\,-0.350)=0.574-0.573\approx 0 .
+\]
+内积为零，二者垂直——正与图中那个直角标记吻合。把切向斜率 $-0.350$ 转成单位向量便是图里那条红色等值线切向。
+}
+
+\section{全微分与可微性：导数即最佳线性逼近}
+\label{sec:multideriv-diff}
+
+到这里我们一直在用``可微''这个词，却没把它定义清楚。在一元里，可微就是导数存在，没什么可纠结的。多元则不然：上一节提醒过，``偏导数都存在''是个太弱的条件。真正配得上``可微''这个名号、并让整套微分工具好用的，是下面这个以\emph{线性逼近}为核心的定义。它也正是把一元导数``斜率''升级到多元的正确方式。
+
+\defn{（全）可微}{
+$f:\RR^n\to\RR$ 在 $\vc x$ 处\textbf{可微}，是指存在一个向量 $\vc a\in\RR^n$，使得当增量 $\vc h\to\vc 0$ 时
+\[
+    f(\vc x+\vc h)=f(\vc x)+\vc a\cdot\vc h+r(\vc h),
+    \qquad
+    \frac{r(\vc h)}{\norm{\vc h}}\to 0 .
+\]
+此时必有 $\vc a=\grad f(\vc x)$，那一项 $\vc a\cdot\vc h=\grad f(\vc x)\cdot\vc h$ 称为 $f$ 在 $\vc x$ 处的\textbf{全微分}。
+}
+
+这个定义在说一句朴素的话：\emph{在 $\vc x$ 附近，$f$ 几乎就是一个仿射（线性$+$常数）函数}，而那一段线性部分 $\grad f\cdot\vc h$ 就是``最好''的线性逼近——好到误差 $r(\vc h)$ 比 $\norm{\vc h}$ 本身还要快地趋于零（即 $r(\vc h)=o(\norm{\vc h})$）。图~\ref{fig:multideriv-3} 沿某个方向 $\vc h$ 把这件事切成一元图像来看：曲线在切点附近被它的切线（线性逼近）紧紧贴住，二者的缝隙是高阶小量。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.45,>=Stealth]
+  % 横轴 t（沿方向 h 的步长），纵轴函数值
+  \draw[->] (-0.6,0) -- (3.4,0) node[right] {$t$};
+  \draw[->] (0,-0.3) -- (0,4.4) node[above] {$f(\vc x_0+t\vc h)$};
+  % 曲线 g(t)=1+0.55 t+0.16 t^2
+  \draw[very thick,blue!60!black,domain=-0.5:3.0,smooth,variable=\t]
+        plot ({\t},{1+0.55*\t+0.16*\t*\t});
+  \node[blue!60!black,anchor=east] at (1.55,3.6) {$f(\vc x_0+t\vc h)$};
+  \draw[blue!60!black,->,thin] (1.6,3.6) -- (2.05,3.05);
+  % 切线 = 最佳线性逼近 L(t)=1+0.55 t
+  \draw[thick,red!70!black,domain=-0.5:3.0,variable=\t] plot ({\t},{1+0.55*\t});
+  \node[red!70!black,anchor=north west] at (2.55,2.40) {线性逼近};
+  \node[red!70!black,anchor=north west,font=\small] at (1.62,1.62)
+       {$f(\vc x_0)+\grad f(\vc x_0)\cdot t\vc h$};
+  % 切点 (0,1)
+  \fill (0,1) circle (1.4pt);
+  \node[anchor=east,font=\small] at (-0.12,1.0) {$f(\vc x_0)$};
+  % t=2.6 处的余项
+  \draw[dotted,gray!60] (2.6,0) -- (2.6,3.512);
+  \node[anchor=north] at (2.6,-0.04) {$t$};
+  \draw[decorate,decoration={brace,amplitude=4pt},black!75]
+        (2.72,2.430) -- (2.72,3.512);
+  \node[black!75,anchor=west,align=left] at (2.86,2.97)
+       {余项 $o(\abs{t})$\\[1pt]\small（比 $t$ 更快趋零）};
+  \fill[blue!60!black] (2.6,3.512) circle (1.1pt);
+  \fill[red!70!black] (2.6,2.430) circle (1.1pt);
+\end{tikzpicture}
+\caption{可微的含义：沿方向 $\vc h$ 切出的曲线 $t\mapsto f(\vc x_0+t\vc h)$ 在 $t=0$ 处被其切线（线性逼近 $f(\vc x_0)+\grad f\cdot t\vc h$）贴住，二者之差是 $o(\abs{t})$ 的高阶小量。}
+\label{fig:multideriv-3}
+\end{figure}
+
+为什么要费劲用``线性逼近''来定义可微，而不直接说``偏导都存在''？因为只有线性逼近这个定义才能保证我们想要的好性质一并到位：可微 $\To$ 连续、可微 $\To$ 一切方向导数都存在且等于 $\grad f\cdot\vc u$（上一节定理正是用了可微）。仅有偏导数则什么都保证不了。好在有一条便于检验的充分条件，让我们在实践中几乎不必回到 $\ve$–$\delta$ 定义。
+
+\thm{连续可微 $\To$ 可微}{
+若 $f$ 的各偏导数 $\partial f/\partial x_i$ 在 $\vc x$ 的某邻域内\emph{存在且连续}（记作 $f\in C^1$），则 $f$ 在 $\vc x$ 处可微。
+}
+
+\rmkb[一条实用的``免检''规则]{
+经济学里写下的函数——多项式、指数、对数、它们的和差积商与复合——只要在所考察的点上分母不为零、对数的真数为正，就都是 $C^1$（往往是 $C^\infty$）的，因而自动可微。于是日常工作中``可微''几乎从不需要验证，可以放心使用 $\grad f$、方向导数公式以及后面的链式法则。真正要当心可微性的，是分段定义的函数、带绝对值或 $\max$ 的函数（如期权收益、参与约束的边界），以及理论证明里需要严格性的场合。
+}
+
+\section{Jacobian：向量值映射的导数}
+\label{sec:multideriv-jac}
+
+到目前为止因变量都是一个标量。可经济学里大量对象是\emph{向量值}的映射 $\RR^n\to\RR^m$：需求系统把价格与收入这一组数映成一组需求量，最优反应把对手的策略映成自己的最优策略，从结构参数到矩条件的映射也是向量到向量。它们的``导数''该是什么？沿用``导数即最佳线性逼近''这条主线，答案自然浮现——一个标量的最佳线性逼近用一个向量（梯度）描述，那么一个向量的最佳线性逼近就该用一个\emph{矩阵}描述。这个矩阵就是 Jacobian。
+
+\defn{Jacobian 矩阵}{
+设映射 $\vc g:\RR^n\to\RR^m$，写成分量 $\vc g(\vc x)=\pr{g_1(\vc x),\dots,g_m(\vc x)}\T$。它的 \textbf{Jacobian} 是把所有一阶偏导排成的 $m\times n$ 矩阵
+\[
+    \D_{\vc x}\vc g
+    \;=\;
+    \begin{bmatrix}
+        \partial g_1/\partial x_1 & \cdots & \partial g_1/\partial x_n\\
+        \vdots & & \vdots\\
+        \partial g_m/\partial x_1 & \cdots & \partial g_m/\partial x_n
+    \end{bmatrix}
+    \;\in\;\RR^{m\times n},
+    \qquad
+    \br{\D_{\vc x}\vc g}_{ij}=\pd{g_i}{x_j} .
+\]
+它的第 $i$ 行是分量函数 $g_i$ 的梯度的转置 $\pr{\grad g_i}\T$。
+}
+
+Jacobian 把``导数即最佳线性逼近''推到了最一般的形式：在 $\vc x$ 附近，
+\[
+    \vc g(\vc x+\vc h)=\vc g(\vc x)+\br{\D_{\vc x}\vc g}\,\vc h+\vc r(\vc h),
+    \qquad
+    \frac{\norm{\vc r(\vc h)}}{\norm{\vc h}}\to 0 .
+\]
+也就是说，非线性映射 $\vc g$ 在一点的局部行为，最好地由一个\emph{线性映射}——左乘矩阵 $\D_{\vc x}\vc g$——来近似。梯度与 Jacobian 在这里统一了起来：当 $m=1$（标量输出）时，$\D_{\vc x}\vc g$ 退化成一个 $1\times n$ 的行向量，恰是 $\pr{\grad g}\T$；标量函数的导数原来一直是 Jacobian 的特例。
+
+\state{三件套的统一视角：导数 $=$ 最佳线性逼近}{
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}lll@{}}
+\toprule
+对象 & 形态 & 含义\\
+\midrule
+$f:\RR^n\to\RR$ 的一阶导 & 向量 $\grad f\in\RR^n$ & 标量输出的最佳线性逼近\\
+$\vc g:\RR^n\to\RR^m$ 的一阶导 & 矩阵 $\D_{\vc x}\vc g\in\RR^{m\times n}$ & 向量输出的最佳线性逼近\\
+$f:\RR^n\to\RR$ 的二阶导 & 矩阵 $\mat H\in\RR^{n\times n}$ & 梯度场 $\grad f$ 的 Jacobian\\
+\bottomrule
+\end{tabular}\\[4pt]
+一句话：\textbf{把非线性的东西在一点拍扁成线性的东西，那块``拍扁''的系数就是导数。} 输入输出维数决定它是向量还是矩阵。
+}
+
+当 $m=n$（输入输出同维）时，方阵 $\D_{\vc x}\vc g$ 的行列式 $\det\pr{\D_{\vc x}\vc g}$ 叫 \textbf{Jacobian 行列式}，它度量这个线性逼近把体积放大或缩小的倍率（带符号，符号表示是否翻转定向）。这个量在两处反复登场：其一，它非零正是\emph{反函数定理}与\emph{隐函数定理}里那个``可逆''条件（见后文``隐函数定理与比较静态''一章——那里把内生变量的 Jacobian 可逆当作比较静态成立的前提）；其二，它是\emph{多维变量变换}的换元因子。
+
+\ex[极坐标变换的 Jacobian 行列式]{
+平面上从极坐标 $(r,\theta)$ 到直角坐标的映射为 $x=r\cos\theta$、$y=r\sin\theta$。求其 Jacobian 矩阵与 Jacobian 行列式。
+}
+\sol{
+把 $(x,y)$ 当输出、$(r,\theta)$ 当输入，逐项求偏导：
+\[
+    \D_{(r,\theta)}\vc g
+    =\begin{bmatrix}
+        \partial x/\partial r & \partial x/\partial\theta\\[2pt]
+        \partial y/\partial r & \partial y/\partial\theta
+    \end{bmatrix}
+    =\begin{bmatrix}
+        \cos\theta & -r\sin\theta\\[2pt]
+        \sin\theta & \phantom{-}r\cos\theta
+    \end{bmatrix},
+\]
+行列式
+\[
+    \det\pr{\D_{(r,\theta)}\vc g}
+    =\cos\theta\cdot r\cos\theta-(-r\sin\theta)\cdot\sin\theta
+    =r\pr{\cos^2\theta+\sin^2\theta}=r .
+\]
+这正是重积分换元里那个熟悉的因子：$\d x\,\d y=r\,\d r\,\d\theta$。它的概率版本（密度函数在变量变换下要乘上 Jacobian 行列式的绝对值）将在``多维分布与变量变换''一章中给出——那里 $\abs{\det(\cdot)}$ 保证概率质量守恒。
+}
+
+\section{Hessian 与混合偏导的对称性}
+\label{sec:multideriv-hess}
+
+把一阶信息（梯度）再求一次导，得到二阶信息。对一元函数，二阶导是一个数，符号告诉你曲线是凸是凹；对多元函数，二阶导是一个矩阵——\textbf{Hessian}，它装着函数在一点附近的全部``弯曲''信息，是判别极大极小、做二阶逼近的核心对象。
+
+\defn{Hessian 矩阵}{
+设 $f:\RR^n\to\RR$ 二阶偏导数存在。$f$ 的 \textbf{Hessian} 是二阶偏导排成的 $n\times n$ 矩阵
+\[
+    \mat H(\vc x)=\grad^2 f(\vc x)
+    =\begin{bmatrix}
+        \partial^2 f/\partial x_1^2 & \cdots & \partial^2 f/\partial x_1\partial x_n\\
+        \vdots & & \vdots\\
+        \partial^2 f/\partial x_n\partial x_1 & \cdots & \partial^2 f/\partial x_n^2
+    \end{bmatrix},
+    \qquad
+    \br{\mat H}_{ij}=\pdc{f}{x_i}{x_j} .
+\]
+它恰好是梯度场 $\grad f:\RR^n\to\RR^n$ 的 Jacobian：$\mat H=\D_{\vc x}\grad f$。
+}
+
+最后那句话点出了三件套之间的血缘：Hessian 不是凭空多出来的第三种导数，它就是``对梯度这个向量值映射再求一次 Jacobian''。这也立刻解释了为什么后面隐函数定理一章里，对一阶条件 $\grad f=\vc 0$ 套用隐函数定理时，那个关键的 Jacobian 恰好是 Hessian。
+
+Hessian 有一条优美而实用的性质：在温和条件下它是\emph{对称矩阵}。
+
+\thm{Young（Clairaut）定理：混合偏导可交换}{
+若 $f$ 的二阶偏导数 $\partial^2 f/\partial x_i\partial x_j$ 在 $\vc x$ 的某邻域内\emph{连续}（即 $f\in C^2$），则混合偏导与求导次序无关：
+\[
+    \pdc{f}{x_i}{x_j}=\pdc{f}{x_j}{x_i}
+    \qquad(\text{对一切 }i,j).
+\]
+因而 Hessian 是\textbf{对称矩阵}：$\mat H=\mat H\T$。
+}
+
+直觉上为什么次序可以换？看 $i,j$ 两个方向。混合偏导 $\partial^2 f/\partial x_i\partial x_j$ 衡量的是``沿 $x_j$ 走时，$x_i$ 方向的斜率如何变化''。考虑由 $\vc x$ 出发、边长分别为 $s,t$ 的小矩形四个顶点上的函数值，作``二阶差分''
+\[
+    \Delta=f(\vc x+s\vc e_i+t\vc e_j)-f(\vc x+s\vc e_i)-f(\vc x+t\vc e_j)+f(\vc x).
+\]
+这个对称的组合除以 $st$，当 $s,t\to0$ 时既趋于 $\partial^2 f/\partial x_i\partial x_j$，也趋于 $\partial^2 f/\partial x_j\partial x_i$——因为 $\Delta$ 关于交换 $i\leftrightarrow j$ 显然不变，两个极限被夹在同一个量上，故相等。连续性是让这两次取极限可以交换次序的保证。
+
+\rmkb[少了连续性，对称会破]{
+$C^2$ 不是可有可无的装饰。经典反例
+\[
+    f(x,y)=\frac{xy\pr{x^2-y^2}}{x^2+y^2}\ \ (x,y)\neq(0,0),\qquad f(0,0)=0,
+\]
+在原点处两个混合偏导都存在却不相等：直接计算给出 $f_{xy}(0,0)=-1$ 而 $f_{yx}(0,0)=+1$。原因正是它的二阶偏导在原点不连续。所幸经济学里的目标函数几乎都是 $C^2$ 的，可以放心地把 Hessian 当对称矩阵用。
+}
+
+Hessian 对称这件事用处极大。第一，对称矩阵有实特征值、可正交对角化（见线性代数部分的谱定理），于是``Hessian 负定 $\Iff$ 局部严格凹 $\Iff$ 内点极大''这套二阶条件才有干净的特征值刻画。第二，它是二阶 Taylor 展开 $f(\vc x+\vc h)\approx f(\vc x)+\grad f\cdot\vc h+\tfrac12\vc h\T\mat H\vc h$ 里那个二次型的矩阵——对称性让这个二次型写起来无歧义（见``Taylor 展开与二阶近似''一章）。
+
+\ex[Cobb--Douglas 生产函数的梯度与 Hessian]{
+生产函数 $f(K,L)=A\,K^{a}L^{b}$（$A,a,b>0$）。求边际产品向量（梯度）与 Hessian，并验证混合偏导对称、解释各项符号的经济含义。
+}
+\sol{
+一阶偏导即两种要素的\emph{边际产品}：
+\[
+    \pd{f}{K}=aA\,K^{a-1}L^{b}=a\,\frac{f}{K},
+    \qquad
+    \pd{f}{L}=bA\,K^{a}L^{b-1}=b\,\frac{f}{L},
+\]
+故梯度 $\grad f=\pr{a f/K,\ b f/L}\T$，两个分量都为正——多投入任一要素都增产，符合``边际产品为正''。二阶偏导：
+\[
+    \pdn{2}{f}{K}=a(a-1)A\,K^{a-2}L^{b},
+    \quad
+    \pdn{2}{f}{L}=b(b-1)A\,K^{a}L^{b-2},
+    \quad
+    \pdc{f}{K}{L}=ab\,A\,K^{a-1}L^{b-1} .
+\]
+两个混合偏导
+\[
+    \pdc{f}{K}{L}=\pdc{f}{L}{K}=abA\,K^{a-1}L^{b-1}
+\]
+确实相等（Young 定理的直接印证）。于是
+\[
+    \mat H=AK^{a-2}L^{b-2}
+    \begin{bmatrix}
+        a(a-1)L^{2} & abKL\\[2pt]
+        abKL & b(b-1)K^{2}
+    \end{bmatrix}.
+\]
+符号上：对角元 $\partial^2 f/\partial K^2$ 在 $a<1$ 时为负，即\emph{边际产品递减}（多投同一要素，增产越来越慢）；交叉项 $\partial^2 f/\partial K\partial L=abf/(KL)>0$ 为正，说明两要素\emph{互补}——多用劳动会抬高资本的边际产品。这个交叉偏导的符号，正是比较静态里决定``一个参数动、最优选择朝哪走''的关键量（见后文从一阶条件做比较静态）。
+}
+
+\section{链式法则的矩阵形式}
+\label{sec:multideriv-chain}
+
+复合是经济学建模的常态：效用是消费的函数、消费又是价格收入的函数；似然是参数的函数、参数又依赖样本。把这些复合关系求导，靠的是链式法则。它的多元形式之所以漂亮，是因为``导数即线性逼近''让一切归结为一句话——\emph{复合映射的最佳线性逼近，就是各段最佳线性逼近的复合}；而线性映射的复合就是矩阵相乘。
+
+\thm{链式法则（矩阵形式）}{
+设 $\vc g:\RR^n\to\RR^m$ 在 $\vc x$ 处可微，$\vc f:\RR^m\to\RR^k$ 在 $\vc y=\vc g(\vc x)$ 处可微。则复合 $\vc f\circ\vc g:\RR^n\to\RR^k$ 在 $\vc x$ 处可微，其 Jacobian 是两个 Jacobian 之\emph{积}：
+\[
+    \D_{\vc x}\pr{\vc f\circ\vc g}
+    =\br{\D_{\vc y}\vc f}\,\br{\D_{\vc x}\vc g}
+    \qquad(\text{维数 }k\times m \text{ 乘 } m\times n=k\times n).
+\]
+}
+
+\pf{
+两段各自的线性逼近为 $\vc f(\vc y+\vc k)\approx\vc f(\vc y)+\br{\D_{\vc y}\vc f}\vc k$ 与 $\vc g(\vc x+\vc h)\approx\vc g(\vc x)+\br{\D_{\vc x}\vc g}\vc h$。把后者代入前者（取 $\vc k=\vc g(\vc x+\vc h)-\vc g(\vc x)\approx\br{\D_{\vc x}\vc g}\vc h$）：
+\[
+    \vc f\pr{\vc g(\vc x+\vc h)}\approx\vc f(\vc y)+\br{\D_{\vc y}\vc f}\br{\D_{\vc x}\vc g}\,\vc h .
+\]
+按定义，复合在 $\vc x$ 处的最佳线性逼近的系数矩阵就是 $\br{\D_{\vc y}\vc f}\br{\D_{\vc x}\vc g}$，即其 Jacobian。（余项是高阶小量之和，仍为 $o(\norm{\vc h})$，严格论证从略。）逐元素看，这条矩阵恒等式就是熟悉的``对所有中间变量求和''的链式法则
+\[
+    \pd{(f_i\circ\vc g)}{x_j}=\sum_{l=1}^m\pd{f_i}{y_l}\,\pd{g_l}{x_j},
+\]
+它正是矩阵乘法 $\br{\D_{\vc y}\vc f}\br{\D_{\vc x}\vc g}$ 的第 $(i,j)$ 元。
+}
+
+\state{记不住下标？用``维数对齐''来记}{
+矩阵形式的链式法则有一个好处：你永远不必背``谁乘谁''。只要按从外到内的次序把各段 Jacobian 写下来——$\D_{\vc y}\vc f$（$k\times m$）在前、$\D_{\vc x}\vc g$（$m\times n$）在后——相邻矩阵的``内维''$m$ 自动对消，剩下 $k\times n$ 恰是复合映射应有的尺寸。维数对不上，就说明顺序或转置写错了。这条``维数体操''在矩阵微积分一章里是反复用到的查错手段。
+}
+
+一个最常用的特例值得单列：标量函数与一条参数化路径复合。设 $f:\RR^n\to\RR$，$\vc x(t)$ 是一条随标量 $t$ 变动的路径（$k=1$，$n\to n$，内层输出维 $=n$）。链式法则给出
+\[
+    \dd{}{t}\,f\pr{\vc x(t)}
+    =\grad f\pr{\vc x(t)}\cdot\dd{\vc x}{t}
+    =\sum_{i=1}^n\pd{f}{x_i}\,\dd{x_i}{t} .
+\]
+本章开头证方向导数公式时用的就是它（取 $\vc x(t)=\vc x_0+t\vc u$，则 $\d\vc x/\d t=\vc u$）。宏观增长核算里``总产出增长率 $=$ 各要素增长率按产出弹性加权之和''、跨期模型里沿最优路径对值函数求时间导数，骨子里都是这条路径链式法则。
+
+\section{三件套通向何处}
+\label{sec:multideriv-where}
+
+本章配齐的梯度、Jacobian、Hessian，是后续几乎每一处多元微分的入口。把它们的主要去处列在一起，能看清这章在全书里的位置：
+
+\begin{itemize}
+    \item \textbf{无约束最优化}（最优化部分）。内点极值的一阶必要条件是 $\grad f=\vc 0$（梯度为零，沿任何方向都``爬不动了''）；二阶条件靠 Hessian 的定性——极大要 $\mat H$ 负定、极小要正定。梯度与 Hessian 正是一阶/二阶条件的两个主角。
+    \item \textbf{隐函数定理与比较静态}（见后文``隐函数定理与比较静态''一章）。对一阶条件 $\grad f=\vc 0$ 这个方程组套用隐函数定理，关键的``可逆''条件落在 Hessian 上，比较静态公式 $\D_{\vc\theta}\vc x^*=-\mat H^{-1}\,\grad^2_{\vc x\vc\theta}f$ 里梯度、Hessian、交叉 Jacobian 一并出场。
+    \item \textbf{多维变量变换}（概率与测度部分）。随机向量做非线性变换时，新密度要乘上变换 Jacobian 行列式的绝对值——这是``概率质量不会凭空增减''的数学表达，极坐标那个 $r$ 是它最简单的版本。
+    \item \textbf{Delta 法}（渐近统计部分）。已知 $\rtn(\hat{\vc\theta}-\vc\theta_0)\dto\cN(\vc 0,\vc\Sigma)$，要求一个非线性变换 $\vc g(\hat{\vc\theta})$ 的渐近分布，就把 $\vc g$ 在 $\vc\theta_0$ 处线性化——用的正是 Jacobian $\D\vc g$——得到 $\rtn\pr{\vc g(\hat{\vc\theta})-\vc g(\vc\theta_0)}\dto\cN\pr{\vc 0,\ \br{\D\vc g}\vc\Sigma\br{\D\vc g}\T}$。Delta 法本质上就是``导数即最佳线性逼近''在随机变量上的应用。
+    \item \textbf{生产与消费理论}（微观经济学）。生产函数的梯度就是边际产品向量，效用函数的梯度就是边际效用向量；它们与价格向量的比较，给出最优投入与最优消费的条件。
+\end{itemize}
+
+贯穿这五处的，始终是本章那句一以贯之的内核：\emph{导数就是最佳的局部线性逼近}。维数决定它呈现为向量还是矩阵，但``把非线性的东西在一点拍扁成线性''这件事从未改变。把这一点吃透，下游那些看似各不相同的公式，便都成了同一把工具的不同用法。

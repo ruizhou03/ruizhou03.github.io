@@ -1,0 +1,380 @@
+% !TEX root = ../main.tex
+\chapter{最优控制与 Pontryagin 最大值原理}
+\label{ch:optcontrol}
+
+\noindent\emph{用到的前置工具：变分法与 Euler 方程（前一章）；Lagrange 乘子与一阶条件（最优化部分）；隐函数定理与比较静态（第~\ref{ch:ift}~章）；差分/微分方程与稳定性、鞍点动态（动态最优化部分前几章）；包络定理（最优化部分）。}
+\medskip
+
+宏观经济学的核心问题几乎都是同一句话：在时间上分配一个有限的资源。一个社会今天多消费一点，明天可投资的资本就少一点；一个矿主今天多采一吨，地下的存量就永久少一吨；一家企业今天多装一台机器，未来的产出会高、但眼下要付出调整成本。这些问题的共同结构是：有一个随时间演化的\emph{状态}（资本、矿藏、机器存量），它的演化速度由我们当期选择的一个\emph{控制}（消费、开采率、投资率）决定，而我们要在整条时间路径上把某个累积的收益最大化。
+
+变分法（前一章）已经能处理这类问题的一个特例，但它有两处不够用：一是它要求把问题写成对一条路径 $x(t)$ 求泛函极值，控制隐含在 $\dot x$ 里，一旦控制本身受到约束（开采率非负、投资不能为负）就难以处理；二是它给不出一个在经济学里极其有用的对象——\emph{影子价格的动态路径}。最优控制理论补上了这两块。它把``状态''与``控制''明确分开，引入一个随时间变化的乘子 $\lambda(t)$——状态的动态影子价格，并把整个动态最优化问题压缩成一个静态的逐期最大化加上两条微分方程。这套语言就是 \textbf{Pontryagin 最大值原理}，它是连续时间动态最优化的主力工具，也是宏观增长理论、最优政策、资源经济学与投资理论共同的脚手架。
+
+\section{问题的结构：状态、控制与运动方程}
+\label{sec:optcontrol-1}
+
+我们把一大类连续时间动态最优化问题统一写成下面的标准型。决策者在时间区间 $[0,T]$ 上，每一时刻 $t$ 选一个\emph{控制} $u(t)$，它通过一个\emph{运动方程}驱动\emph{状态} $x(t)$ 的演化，目标是把一路上累积的瞬时收益最大化：
+\[
+    \max_{u(\cdot)}\;\int_0^T f\bigl(x(t),u(t),t\bigr)\,\d t
+    \quad\text{s.t.}\quad
+    \dot x(t)=g\bigl(x(t),u(t),t\bigr),\qquad x(0)=x_0 .
+\]
+这里 $x_0$ 是给定的初始状态，$f$ 是瞬时收益（如效用流、利润流），$g$ 给出状态的变化率。终端时刻 $T$ 可以有限也可以无穷；终端状态 $x(T)$ 可以自由、可以固定、也可以有下界约束，下文会看到不同的终端设定对应不同的\emph{横截条件}。
+
+\defn{状态、控制与运动方程}{
+\emph{状态变量} $x(t)$ 概括了系统在 $t$ 时刻的全部相关历史信息——它是``存量''（资本、矿藏、财富）。\emph{控制变量} $u(t)$ 是决策者每期可自由选择的``流量''决策（消费、开采、投资）。二者由\emph{运动方程}（state equation）$\dot x=g(x,u,t)$ 联系：当期的控制决定状态此刻的变化速度。给定初始状态 $x(0)=x_0$ 与一条控制路径 $u(\cdot)$，运动方程就唯一地解出整条状态路径 $x(\cdot)$。
+}
+
+\rmkb[状态 vs.\ 控制：谁是``存量''谁是``流量'']{
+区分状态与控制是用好这套工具的第一步，判据很简单：状态是\emph{不能瞬间跳变}的量（它只能通过 $\dot x$ 连续地累积或耗散），控制是\emph{可以每期重选}的量。Ramsey 增长里，资本 $k$ 是状态（今天的资本是昨天投资攒下来的，不能凭空跳一截），消费 $c$ 是控制（每期任选）。Hotelling 开采里，地下存量 $S$ 是状态，开采率是控制。同一个经济量在不同模型里角色可能互换，关键看它在你的问题里是``被累积的''还是``被选择的''。
+}
+
+这个问题的难点在于它是\emph{无穷维}的：我们要选的不是几个数，而是一整条函数 $u(\cdot)$，而且当期的选择会通过运动方程改变未来所有时刻的状态，进而改变未来的收益。直接对每个 $u(t)$ 求偏导是不行的——它们彼此通过 $x(\cdot)$ 纠缠在一起。最大值原理的全部巧妙之处，就在于它用一个乘子把这种``跨期纠缠''解开，让问题重新变得可以逐期处理。
+
+\section{Hamilton 量与影子价格}
+\label{sec:optcontrol-2}
+
+解开纠缠的办法，本质上是把运动方程当成一族\emph{逐时刻的约束}，对每个时刻配一个 Lagrange 乘子。回忆静态约束最优化（Lagrange 一章）：要在约束 $h(x)=0$ 下极大化 $f(x)$，我们构造 $\mathcal L=f+\lambda h$，乘子 $\lambda$ 度量``约束放松一单位，最优值涨多少''——它是约束的影子价格。现在约束是一条微分方程，对每个时刻 $t$ 都有一份``约束'' $\dot x-g=0$，于是乘子也变成一条时间路径 $\lambda(t)$。
+
+把这些逐期约束并进目标，并定义一个核心对象：
+
+\defn{Hamilton 量}{
+对标准型最优控制问题，定义 \emph{Hamilton 量}（Hamiltonian）
+\[
+    H(x,u,\lambda,t)\;=\;\underbrace{f(x,u,t)}_{\text{当期收益}}\;+\;\underbrace{\lambda\,g(x,u,t)}_{\text{状态变化的估值}} .
+\]
+其中 $\lambda(t)$ 称为\emph{协态变量}（costate）或\emph{伴随变量}，它是状态 $x$ 的动态影子价格。
+}
+
+Hamilton 量的经济解读极其干净，值得反复体会：它是当期的``总价值流''。第一项 $f$ 是此刻直接落袋的收益；第二项 $\lambda g=\lambda\dot x$ 是\emph{此刻状态正在增加的速度} $\dot x$ 乘以\emph{每单位状态的价值} $\lambda$，也就是``此刻我们正在为未来积累的价值''按影子价格折算后的流量。于是
+
+\state{Hamilton 量 $=$ 当期享受 $+$ 为未来攒下的家当（按影子价格计）}{
+最大化 $H$ 就是在每个瞬间权衡\emph{现在}与\emph{将来}：控制 $u$ 一方面直接影响当期收益 $f$，另一方面通过 $g$ 影响状态的积累速度、从而影响未来。协态 $\lambda$ 正是把``未来''翻译成``当期可比的价格''的汇率。一旦有了正确的 $\lambda(t)$，原本牵一发动全身的跨期问题，就被还原成每个时刻\emph{独立地}最大化一个 $H$——这就是下一节最大值原理的核心。
+}
+
+\section{Pontryagin 最大值原理}
+\label{sec:optcontrol-3}
+
+有了 Hamilton 量，最优性条件可以异常简洁地陈述出来。
+
+\thm{Pontryagin 最大值原理}{
+设 $\bigl(x^*(\cdot),u^*(\cdot)\bigr)$ 是标准型最优控制问题的最优解，$f,g$ 关于 $(x,u)$ 连续可微。则存在一条连续的协态路径 $\lambda(t)$，使得对几乎所有 $t\in[0,T]$：
+\begin{enumerate}
+    \item \textbf{（最大值条件）}最优控制逐点最大化 Hamilton 量：
+    \[
+        u^*(t)\in\argmax_{u}\;H\bigl(x^*(t),u,\lambda(t),t\bigr).
+    \]
+    若最优控制是内点解、$H$ 关于 $u$ 可微，这等价于 $\displaystyle \pd{H}{u}=0$。
+    \item \textbf{（协态方程）}协态的演化由
+    \[
+        \dot\lambda(t)=-\,\pd{H}{x}\bigl(x^*(t),u^*(t),\lambda(t),t\bigr)
+    \]
+    给出。
+    \item \textbf{（运动方程）}状态满足 $\dot x(t)=\pd{H}{\lambda}=g\bigl(x^*(t),u^*(t),t\bigr)$。
+    \item \textbf{（横截条件）}终端约束按下表配对：
+    \[
+        \begin{cases}
+        x(T)\ \text{固定}: & \text{无条件（}x(T)=x_T\text{已定）},\\[2pt]
+        x(T)\ \text{自由}: & \lambda(T)=0,\\[2pt]
+        x(T)\ge \bar x\ \text{（不等约束）}: & \lambda(T)\ge 0,\ \lambda(T)\bigl(x(T)-\bar x\bigr)=0 .
+        \end{cases}
+    \]
+\end{enumerate}
+}
+
+这四条里，最大值条件与协态方程是真正的``新东西'',值得逐一给出推导骨架与直觉。
+
+\paragraph{最大值条件从哪来。}
+最直接的看法是把它当成 Lagrange 一阶条件的逐期版本。把目标写成对偶形式：用乘子路径 $\lambda(t)$ 把约束 $\dot x-g=0$ 并入目标，
+\[
+    J=\int_0^T\Bigl[f(x,u,t)+\lambda\bigl(g(x,u,t)-\dot x\bigr)\Bigr]\d t
+    =\int_0^T\bigl[H(x,u,\lambda,t)-\lambda\dot x\bigr]\d t .
+\]
+对最后一项分部积分，$-\int_0^T\lambda\dot x\,\d t=-\lambda x\big|_0^T+\int_0^T\dot\lambda\,x\,\d t$，于是
+\[
+    J=\int_0^T\bigl[H(x,u,\lambda,t)+\dot\lambda\,x\bigr]\d t-\lambda(T)x(T)+\lambda(0)x_0 .
+\]
+现在考虑对最优路径做一个小扰动：控制变 $u^*+\epsilon\,\delta u$、状态随之变 $x^*+\epsilon\,\delta x$（$\delta x(0)=0$，因初值固定）。令 $J$ 对 $\epsilon$ 的一阶变化为零：
+\[
+    \delta J=\int_0^T\Bigl[\underbrace{\Bigl(\pd{H}{x}+\dot\lambda\Bigr)}_{\text{配 }\delta x}\delta x
+    +\underbrace{\pd{H}{u}}_{\text{配 }\delta u}\delta u\Bigr]\d t-\lambda(T)\,\delta x(T)=0 .
+\]
+$\delta x$ 与 $\delta u$ 不独立（前者由后者经运动方程决定），但 $\lambda$ 还没定——\emph{我们有权选它}。妙处正在这里：选 $\lambda$ 使 $\delta x$ 的系数恒为零，即令 $\dot\lambda=-\partial H/\partial x$（这就是协态方程！），就把 $\delta x$ 项整条消掉；剩下的 $\int\pd{H}{u}\delta u\,\d t=0$ 对任意 $\delta u$ 成立，逼出 $\partial H/\partial u=0$（最大值条件）；而边界项 $-\lambda(T)\delta x(T)=0$ 在 $x(T)$ 自由（$\delta x(T)$ 任意）时逼出 $\lambda(T)=0$（横截条件）。三条主条件就这样\emph{一次性}从同一个变分里掉出来。
+
+\state{选 $\lambda$ 消掉状态扰动——这才是协态方程的来历}{
+协态方程不是凭空规定的：它是``恰好让间接的状态扰动 $\delta x$ 对目标无一阶影响''的那条乘子路径。一旦 $\lambda$ 这样选定，控制的扰动就只剩下\emph{直接}效应 $\partial H/\partial u$，于是逐期最大化 $H$ 成立。这与静态 Lagrange 里``选乘子消掉约束方向的梯度''是同一个念头，只是这里``约束''是连续一条、乘子也连续一条。}
+
+\rmkb[为什么叫``最大值''原理而非``一阶条件'']{
+注意定理第 1 条说的是 $u^*$ \emph{最大化} $H$，而不仅是 $\partial H/\partial u=0$。这是最大值原理比变分法强的关键：当控制受约束（如 $u\ge 0$，或 $u\in[\underline u,\bar u]$）时，最优控制可能落在边界上，此时 $\partial H/\partial u\ne 0$，但 $u^*$ 仍是 $H$ 在可行集上的最大点。``取 $H$ 的 $\argmax$''这一表述自动涵盖了内点解、边界解乃至 $H$ 关于 $u$ 线性时的\emph{bang-bang}（在边界间跳切）解。变分法的 Euler 方程做不到这一点。}
+
+\paragraph{协态方程的直觉：影子价格的``套利''方程。}
+把协态方程 $\dot\lambda=-\partial H/\partial x$ 展开，$\partial H/\partial x=f_x+\lambda g_x$，得
+\[
+    -\dot\lambda=\pd{f}{x}+\lambda\,\pd{g}{x} .
+\]
+读作一条资产定价式：$\lambda$ 是``持有一单位状态''这项资产的影子价格。多持有一单位状态，本期带来两项回报——直接的边际收益 $f_x$，以及它让状态增长更快（$g_x$）从而进一步增值 $\lambda g_x$；这两项之和就是该资产的``股息流''。而 $\dot\lambda$ 是它的资本利得（影子价格随时间的升降）。等式 $-\dot\lambda=f_x+\lambda g_x$ 把这两者绑在一起说：\emph{股息流加资本利得恰好为零}。这是 present-value 形式特有的读法——折现已经并进了 $\lambda$ 本身的衰减里，所以扣掉折现后的``超额''总回报归零；这正是无套利。（更干净的``要求回报 $=$ 股息 $+$ 资本利得''那条无套利式，要到下一节剥出折现因子的 current-value 形式才出现。）协态变量随时间的演化，就是影子价格为了维持跨期无套利而必须遵循的轨迹。
+
+\section{折现与 current-value Hamilton 量}
+\label{sec:optcontrol-4}
+
+经济学问题几乎总带折现：目标是 $\int_0^\infty e^{-\rho t}f(x,u)\,\d t$，$\rho>0$ 是折现率，且 $f,g$ 通常不显含 $t$（自治）。直接套上一节的 Hamilton 量会得到带 $e^{-\rho t}$ 的协态方程，乘子本身随时间衰减，相图里参数不再是常数，很不方便。标准做法是把折现因子``剥出来''。
+
+记原始（present-value）Hamilton 量 $H=e^{-\rho t}f+\lambda g$，并定义 \emph{current-value} 协态 $m(t)=e^{\rho t}\lambda(t)$——即把影子价格换算到``当期币值''。相应地：
+
+\defn{current-value Hamilton 量}{
+对折现问题 $\max\int_0^\infty e^{-\rho t}f(x,u)\,\d t$ s.t.\ $\dot x=g(x,u)$，定义\emph{当期值} Hamilton 量
+\[
+    \mathcal H(x,u,m)\;=\;f(x,u)+m\,g(x,u),
+    \qquad m(t)=e^{\rho t}\lambda(t) .
+\]
+它就是把折现因子从 $H$ 中整体提出后剩下的部分：$H=e^{-\rho t}\mathcal H$。
+}
+
+用 $\mathcal H$ 重写最优性条件，折现率 $\rho$ 会以一个干净的形式出现在协态方程里。最大值条件不变（$e^{-\rho t}$ 是正的公因子，不影响 $\argmax_u$）：
+\[
+    \pd{\mathcal H}{u}=0 .
+\]
+协态方程需要换算。由 $\lambda=e^{-\rho t}m$，求导得 $\dot\lambda=e^{-\rho t}(\dot m-\rho m)$。又原始协态方程 $\dot\lambda=-\partial H/\partial x=-e^{-\rho t}\partial\mathcal H/\partial x$。两式相等、约去 $e^{-\rho t}$：
+
+\state{current-value 协态方程（折现问题的主力公式）}{
+\[
+    \dot m=\rho\,m-\pd{\mathcal H}{x}
+    \qquad\Longleftrightarrow\qquad
+    \boxed{\ \rho\,m=\pd{\mathcal H}{x}+\dot m\ } .
+\]
+右边的盒装形式是它最该记住的样子，又一条资产定价式：\emph{要求回报率} $\rho$（左边，机会成本）$=$ \emph{股息} $\partial\mathcal H/\partial x$ $+$ \emph{资本利得} $\dot m$（右边）。折现率 $\rho$ 在这里扮演``无风险利率''，影子价格 $m$ 必须挣到这个回报，否则就该把资源挪作他用。}
+
+折现问题的横截条件也相应改写。对 $T\to\infty$ 的自治折现问题，最常用的是
+
+\rmkb[无穷期横截条件]{
+$T\to\infty$ 时，自由终端的 $\lambda(T)=0$ 推广为\emph{极限横截条件}
+\[
+    \lim_{t\to\infty}e^{-\rho t}m(t)\,x(t)=0
+    \quad(\text{即 }\lim_{t\to\infty}\lambda(t)x(t)=0).
+\]
+直觉：折现后``留在无穷远处的状态的价值''必须归零——否则要么留下了本可享用的资源（次优），要么借了永远还不清的债。在 Ramsey 这类模型里，它正是\emph{排除爆炸路径}、把无穷多条满足欧拉方程的轨道收窄到唯一一条稳定臂的那个条件。}
+
+\section{应用一：Ramsey 增长与 Keynes--Ramsey 规则}
+\label{sec:optcontrol-5}
+
+最优控制最著名的落点是 Ramsey--Cass--Koopmans 最优增长模型。社会计划者选择消费路径 $c(t)$ 以最大化折现效用，资本 $k$ 按``产出减消费减折旧''积累：
+\[
+    \max_{c(\cdot)}\int_0^\infty e^{-\rho t}u(c)\,\d t
+    \quad\text{s.t.}\quad
+    \dot k=F(k)-c-\delta k,\quad k(0)=k_0,
+\]
+其中 $u'>0,u''<0$，$F'>0,F''<0$，$\delta$ 为折旧率。状态是 $k$、控制是 $c$。当期值 Hamilton 量为
+\[
+    \mathcal H=u(c)+m\bigl(F(k)-c-\delta k\bigr).
+\]
+
+\ex[导出 Keynes--Ramsey 规则]{
+对上面的 Ramsey 问题，写出三条最优性条件并消去协态 $m$，得到最优消费增长率满足的方程。}
+\sol{
+\emph{最大值条件}（$c$ 内点）：
+\[
+    \pd{\mathcal H}{c}=u'(c)-m=0
+    \quad\Longrightarrow\quad m=u'(c).
+\]
+影子价格等于消费的边际效用——多攒一单位资本的价值，正是它能换来的边际效用。\emph{协态方程}：
+\[
+    \dot m=\rho m-\pd{\mathcal H}{k}=\rho m-m\bigl(F'(k)-\delta\bigr)
+    =m\bigl(\rho-F'(k)+\delta\bigr).
+\]
+现在消去 $m$。由 $m=u'(c)$ 对时间求导，$\dot m=u''(c)\dot c$。代入协态方程并两边除以 $m=u'(c)$：
+\[
+    \frac{u''(c)\dot c}{u'(c)}=\rho-F'(k)+\delta .
+\]
+整理出\emph{Keynes--Ramsey 规则}：
+\[
+    \boxed{\ \frac{\dot c}{c}=\frac{1}{\sigma(c)}\bigl(F'(k)-\delta-\rho\bigr)\ },
+    \qquad
+    \sigma(c)\equiv-\frac{c\,u''(c)}{u'(c)}>0 ,
+\]
+其中 $\sigma(c)$ 是相对风险厌恶系数（消费的跨期替代弹性之倒数）。
+}
+
+这条规则是宏观的``F=ma''级别的结果，它说的是：消费\emph{增长}当且仅当资本的净边际回报 $F'(k)-\delta$ 超过折现率 $\rho$。回报高于不耐心程度，就值得推迟消费、让消费随时间上升；二者相等时 $\dot c=0$，达到稳态。曲率 $\sigma$ 决定调整速度——人越不愿在时间上替代消费（$\sigma$ 大），同样的回报差异引起的消费倾斜就越平缓。
+
+\rmkb[这正是协态方程在干活]{
+注意整个推导的发动机是协态方程：它把``影子价格如何随时间演化''翻译成了``消费如何随时间演化''。$m=u'(c)$ 把价格挂到消费上，协态方程给出价格的运动，链式法则把它转成消费的运动。没有 Pontryagin 的协态语言，这条规则也能用变分法（前一章的 Euler 方程）凑出来，但协态版本把``$m$ 是资本的影子价格''这层经济含义摆在了明面上。}
+
+\paragraph{相图与鞍点路径。}
+Ramsey 模型的两条动态方程——消费的 Keynes--Ramsey 规则与资本的运动方程——在 $(k,c)$ 平面上给出一个鞍点系统。两条``零变化线''（nullcline）为：
+\[
+    \begin{gathered}
+    \dot c=0:\quad F'(k)=\delta+\rho\ \Rightarrow\ k=k^*\quad(\text{一条竖直线});\\[3pt]
+    \dot k=0:\quad c=F(k)-\delta k\quad(\text{一条驼峰曲线}).
+    \end{gathered}
+\]
+二者交于稳态 $(k^*,c^*)$。在该点附近系统是\emph{鞍点}：四个象限里轨线的方向（由 $\dot c,\dot k$ 的符号决定）使得只有一条``稳定臂''（saddle path）通向稳态，其余轨道都发散。给定初始资本 $k_0$，计划者唯一能做的最优选择，就是把初始消费 $c_0$ 跳到稳定臂上——这恰好由前面的极限横截条件挑出。图~\ref{fig:optcontrol-1} 画出了这个相图。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+    % 坐标轴
+    \draw[->] (-0.2,0) -- (8.6,0) node[right] {$k$};
+    \draw[->] (0,-0.2) -- (0,6.0) node[above] {$c$};
+    % k̇=0 曲线: c = F(k)-δk，取驼峰 c = 2.4*sqrt(k) - 0.18*k （在 k∈[0,8]）
+    % 顶点导数: 1.2/sqrt(k) - 0.18 = 0 -> sqrt(k)=6.667 -> k≈44 太大；改造型
+    % 用 c = 3.2*sqrt(k)-0.42*k，导数 1.6/sqrt(k)-0.42=0 -> sqrt(k)=3.81 -> k≈14.5 仍大
+    % 直接用受控抛物线驼峰： c = -0.13*(k-7)^2 + 5.0 , 峰在 k=7 c=5; k=0 时 c=5-0.13*49=1.63>0
+    \draw[thick,domain=0.15:8.4,smooth,variable=\k] plot ({\k},{-0.13*(\k-7)^2+5.0});
+    \node[anchor=west] at (6.55,2.05) {$\dot k=0$};
+    % k̇=0 曲线标签放右下空白
+    % ċ=0 竖直线 k=k*，取 k*=4.5
+    \draw[thick] (4.5,-0.05) -- (4.5,5.9);
+    \node[anchor=south] at (4.5,5.92) {$\dot c=0$};
+    % 稳态点：k=4.5，c = -0.13*(4.5-7)^2+5 = -0.13*6.25+5 = 5-0.8125 = 4.1875
+    \coordinate (E) at (4.5,4.1875);
+    \fill (E) circle (2.0pt);
+    \node[anchor=south west] at (4.62,4.27) {$E$};
+    % 稳态坐标虚线
+    \draw[dashed] (E) -- (4.5,0) ;
+    \draw[dashed] (E) -- (0,4.1875) node[left] {$c^*$};
+    \node[anchor=north] at (4.5,-0.02) {$k^*$};
+    % 稳定臂（saddle path）：经过 E、负斜率的曲线，从左上到右下
+    % 用平滑曲线手工取点，确保过 E(4.5,4.1875)，单调下降：左侧在驼峰上方、右侧在驼峰下方
+    \draw[very thick,blue!60!black,smooth] plot coordinates
+        {(1.2,5.3) (2.2,4.9) (3.3,4.5) (4.5,4.1875) (5.8,3.8) (7.0,3.4) (8.0,3.05)};
+    \node[blue!60!black,anchor=south west] at (1.25,5.32) {稳定臂};
+    % 方向箭头（沿稳定臂指向 E）：左上段向右下、右下段向左上
+    \draw[blue!60!black,->,very thick] (2.4,4.83) -- (2.6,4.76);
+    \draw[blue!60!black,->,very thick] (6.4,3.60) -- (6.2,3.67);
+    % 四象限方向箭头（小箭头，放在远离曲线与标签的空白处）
+    % 左上区：k<k*（F'>δ+ρ→ċ>0 向上）、c 偏高（k̇<0 向左）：箭头 ↖
+    \draw[gray,->] (1.0,2.9) -- (0.7,3.15);
+    % 右上区：k>k*（ċ<0 向下）、k̇<0（c 高于 k̇=0 线 向左）：↙
+    \draw[gray,->] (6.6,5.55) -- (6.25,5.32);
+    % 左下区：k<k*（ċ>0 上）、c 低于 k̇=0 线（k̇>0 右）：↗（基点取驼峰下方 c<hump）
+    \draw[gray,->] (2.0,0.9) -- (2.35,1.13);
+    % 右下区：k>k*（ċ<0 下）、k̇>0（右）：↘
+    \draw[gray,->] (7.7,1.4) -- (8.0,1.17);
+\end{tikzpicture}
+\caption{Ramsey 模型在 $(k,c)$ 平面上的相图。竖直线 $\dot c=0$ 与驼峰曲线 $\dot k=0$ 交于稳态 $E=(k^*,c^*)$，该点是鞍点；蓝色\emph{稳定臂}是唯一通向 $E$ 的轨道。给定 $k_0$，最优策略是把初始消费跳到稳定臂上，此后沿臂趋向稳态。灰色小箭头示意四个象限里 $(\dot k,\dot c)$ 的方向。}
+\label{fig:optcontrol-1}
+\end{figure}
+
+\section{应用二：Hotelling 与可耗竭资源开采}
+\label{sec:optcontrol-6}
+
+最优控制在资源经济学里给出了著名的 \textbf{Hotelling 规则}。一个矿主拥有可耗竭存量 $S(t)$，初始 $S(0)=S_0$，每期开采 $q(t)\ge 0$ 出售，存量按 $\dot S=-q$ 耗减。设市场价格为 $p$、开采成本为零，矿主最大化折现利润：
+\[
+    \max_{q(\cdot)\ge 0}\int_0^\infty e^{-\rho t}\,p(t)\,q(t)\,\d t
+    \quad\text{s.t.}\quad
+    \dot S=-q,\quad S(0)=S_0,\quad S(t)\ge 0 .
+\]
+状态是 $S$、控制是 $q$。当期值 Hamilton 量
+\[
+    \mathcal H=p\,q+m\,(-q)=(p-m)\,q .
+\]
+
+注意 $\mathcal H$ 关于 $q$ 是\emph{线性}的——这正是最大值条件优于变分法之处：内点一阶条件会要求 $p-m=0$，但若 $p>m$ 矿主想无限开采、若 $p<m$ 则完全不采。最优内点路径恰好维持 $p=m$（影子价格等于市价：留在地下的边际价值等于卖出的边际收入），此时 $\mathcal H$ 对 $q$ 无差异，由市场出清定开采量。协态方程在零成本下尤其干净：$\partial\mathcal H/\partial S=0$（存量本身不进收益），故
+\[
+    \dot m=\rho m-\pd{\mathcal H}{S}=\rho m .
+\]
+即 $m(t)=m_0 e^{\rho t}$：影子价格以折现率指数增长。结合 $p=m$ 得
+
+\state{Hotelling 规则：地下资源的价格按利率增长}{
+\[
+    \boxed{\ \frac{\dot p}{p}=\rho\ }
+    \qquad(\text{零开采成本}).
+\]
+矿藏在地下是一项资产，其``回报''全部来自升值。无套利要求它的升值率等于资金的机会成本 $\rho$——否则矿主要么今天全采了去买债券、要么屯着等涨价。于是\emph{资源的净价格（扣除开采成本后的``矿租''）必须以利率增长}。这是协态方程 $\dot m=\rho m$ 的直接读数：当状态不进当期收益时，影子价格纯粹靠折现率自我增值。}
+
+把价格路径接回需求即可定出存量路径。设需求 $q=a-bp$，则 $p(t)=m_0 e^{\rho t}$ 给出 $q(t)=a-b\,m_0 e^{\rho t}$，开采量随价格上涨而递减；存量 $S(t)=S_0-\int_0^t q\,\d s$ 单调下降。初值 $m_0$ 由``恰好在某有限时刻 $T$ 把资源采尽、且此刻价格升到需求纵截距（$q=0$，即所谓\emph{窒息价格} $a/b$）''这个横截条件钉死。图~\ref{fig:optcontrol-2} 把价格与存量的最优路径并排画出。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=1.0,>=Stealth]
+    % 左图：价格路径 p(t)=p0 e^{ρt}，凸增直到窒息价 p_bar
+    \begin{scope}
+    \draw[->] (-0.2,0) -- (4.6,0) node[right] {$t$};
+    \draw[->] (0,-0.2) -- (0,4.3) node[above] {$p$};
+    % p0=0.8, ρ 取使 t=T=3.5 时 p=p_bar=3.6 ：0.8 e^{ρ*3.5}=3.6 -> e^{ρ*3.5}=4.5 -> ρ*3.5=1.504 -> ρ=0.4297
+    % 画 p=0.8*exp(0.4297*t) 从 t=0 到 3.5
+    \draw[thick,blue!60!black,domain=0:3.5,smooth,variable=\t] plot ({\t},{0.8*exp(0.4297*\t)});
+    % 窒息价水平虚线 p_bar=3.6
+    \draw[dashed] (0,3.6) node[left]{$\bar p$} -- (3.5,3.6);
+    % 终端时刻 T 竖虚线
+    \draw[dashed] (3.5,0) node[below]{$T$} -- (3.5,3.6);
+    % p0 标签
+    \draw[dashed] (0,0.8) -- (0.0,0.8);
+    \node[anchor=east] at (0,0.8) {$p_0$};
+    % 曲线标签放左上空白
+    \node[blue!60!black,anchor=west] at (0.35,3.05) {$p(t)=p_0e^{\rho t}$};
+    % 子图标题
+    \node at (2.2,-0.95) {(a) 价格按利率上升};
+    \end{scope}
+    % 右图：存量路径 S(t) 凹降到 0 于 T
+    \begin{scope}[xshift=6.4cm]
+    \draw[->] (-0.2,0) -- (4.6,0) node[right] {$t$};
+    \draw[->] (0,-0.2) -- (0,4.3) node[above] {$S$};
+    % S(t) 从 S0=4 单调凸降到 0 于 t=3.5；q=a-bp 随 t 增大而减小，|dS/dt|=q 递减→S 曲线凸（先陡后平），且 q(T)=0 故末端斜率=0（水平触零）
+    % 取 q(t)=q0(1-t/T)、S=4-q0(t-t^2/(2T))，q0=8/T 使 S(T)=0（见正文 Hotelling 推导）
+    \draw[thick,blue!60!black,smooth] plot coordinates
+        {(0,4.0) (0.5,2.94) (1.0,2.04) (1.5,1.31) (2.0,0.74) (2.5,0.33) (3.0,0.08) (3.3,0.01) (3.5,0.0)};
+    % 末端竖虚线标 T（S 已降到 0）
+    \draw[dashed] (3.5,-0.05) node[below]{$T$} -- (3.5,0.55);
+    % S0 标签
+    \draw[dashed] (0,4.0) -- (0.0,4.0);
+    \node[anchor=east] at (0,4.0) {$S_0$};
+    \node[blue!60!black,anchor=west] at (1.7,3.2) {$S(t)$};
+    \node at (2.2,-0.95) {(b) 存量单调耗减};
+    \end{scope}
+\end{tikzpicture}
+\caption{Hotelling 最优开采路径。(a) 资源净价格按利率指数上升，直至 $T$ 时刻触及窒息价格 $\bar p$、需求归零。(b) 地下存量从 $S_0$ 单调耗减；由于开采量随价格上涨而下降，耗减先快后慢，曲线凸减、末端 $\dot S=-q\to0$ 切线水平，到 $T$ 恰好采尽（$S(T)=0$）。}
+\label{fig:optcontrol-2}
+\end{figure}
+
+\section{应用三：q 理论投资}
+\label{sec:optcontrol-7}
+
+第三个经典落点是带调整成本的最优投资，它给出了 Tobin 的 \emph{q 理论} 的微观基础。企业选择投资率 $I$ 以最大化折现净现金流，资本按 $\dot K=I-\delta K$ 积累，但安装投资要付凸的调整成本 $C(I)$（$C',C''>0$）：
+\[
+    \max_{I(\cdot)}\int_0^\infty e^{-\rho t}\bigl[\pi(K)-I-C(I)\bigr]\d t
+    \quad\text{s.t.}\quad
+    \dot K=I-\delta K ,
+\]
+$\pi(K)$ 为资本的营业利润流。当期值 Hamilton 量 $\mathcal H=\pi(K)-I-C(I)+m(I-\delta K)$。
+
+\ex[导出投资的 q 理论]{
+写出 $I$ 的最大值条件，并解释为何协态 $m$ 就是``边际 q''。}
+\sol{
+\emph{最大值条件}：
+\[
+    \pd{\mathcal H}{I}=-1-C'(I)+m=0
+    \quad\Longrightarrow\quad
+    m=1+C'(I).
+\]
+即投资到\emph{安装一单位资本的边际成本（购置 $1$ 加调整成本 $C'$）等于该单位资本的影子价格 $m$}。由于 $C''>0$，可反解出 $I=C'^{-1}(m-1)$，投资是 $m$ 的增函数：影子价格越高、越值得投。\emph{协态方程}：
+\[
+    \dot m=\rho m-\pd{\mathcal H}{K}=\rho m-\bigl(\pi'(K)-\delta m\bigr)
+    =(\rho+\delta)m-\pi'(K).
+\]
+}
+
+这里的协态 $m$ 正是 \textbf{Tobin 的边际 q}——增加一单位安装好的资本给企业带来的边际价值。把协态方程写成资产定价式 $(\rho+\delta)m=\pi'(K)+\dot m$ 即一目了然：持有一单位资本的要求回报 $(\rho+\delta)m$，等于它的边际利润股息 $\pi'(K)$ 加上 $q$ 的资本利得 $\dot m$。当 $q=m>1$（资本的市场估值高于其重置成本），企业就该正投资；$q<1$ 则该让资本折旧缩减。q 理论把``企业该不该投资''这个问题，干净地归结为``影子价格 $m$ 是否超过 $1$''。
+
+\section{与动态规划的等价：$\lambda$ 是值函数的梯度}
+\label{sec:optcontrol-8}
+
+最后把最优控制接回它的孪生工具——动态规划。两者解的是同一类问题，只是视角不同：最大值原理沿着\emph{最优路径}走，追踪状态与协态这一对轨线；动态规划则站在\emph{状态空间}里，为每个可能的状态求一个``从此刻起最优能拿到的价值''，即值函数 $V(x,t)$。二者由一个简洁的桥梁相连。
+
+\state{协态 $=$ 值函数对状态的梯度}{
+对同一个最优控制问题，沿最优路径有
+\[
+    \boxed{\ \lambda(t)=\pd{V}{x}\bigl(x^*(t),t\bigr)\ }
+    \qquad(\text{折现问题则 }m(t)=\partial V/\partial x).
+\]
+协态变量就是值函数关于状态的偏导——这正坐实了``$\lambda$ 是状态的影子价格''这一说法：影子价格的标准定义本就是``最优值对约束（此处即状态存量）的边际''，而那恰是包络定理给出的 $\partial V/\partial x$。}
+
+这条等式不是巧合，而是包络定理（最优化部分）在动态情形的化身：影子价格永远等于最优值函数对资源的边际敏感度。从它出发，连续时间动态规划的 \emph{Hamilton--Jacobi--Bellman 方程}
+\[
+    \rho V(x)=\max_u\Bigl\{f(x,u)+V'(x)\,g(x,u)\Bigr\}
+\]
+与最大值原理是一回事：右边花括号内正是把 $\lambda=V'(x)$ 代入后的 current-value Hamilton 量 $\mathcal H$，对 $u$ 取 $\max$ 就是最大值条件；而对 HJB 两边关于 $x$ 求导（用包络定理）便复现协态方程 $\rho m=\partial\mathcal H/\partial x+\dot m$。
+
+\state{两条路，一座山}{
+最大值原理与动态规划是同一座山的两条上山路。\emph{最大值原理}（本章）适合刻画\emph{路径}的性质——增长率规则、相图、鞍点动态，连续时间、确定性问题里它往往最省力。\emph{动态规划}（下一章）适合\emph{递归}地刻画\emph{策略}（控制作为状态的函数 $u=u(x)$），且能自然地推广到\emph{随机}环境（随机动态规划）。知道 $\lambda=V'(x)$ 这座桥，就能在两种语言间自由翻译：路径上的协态，就是状态空间里值函数的斜率。}
+
+至此，本章的工具完成了它的使命：把``在时间上分配资源''这个宏观经济学的母题，化为一个 Hamilton 量、一条最大化条件、一条协态方程与一组横截条件。Ramsey 规则、Hotelling 规则、q 理论——这些看似分属增长、资源、投资三个领域的结果，骨子里都是同一条协态方程在不同收益与运动方程下的读数。而协态变量 $\lambda$ 作为``状态的动态影子价格'',既是这套机器的核心，也是通往下一章动态规划的桥。

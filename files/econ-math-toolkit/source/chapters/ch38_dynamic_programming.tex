@@ -1,0 +1,384 @@
+% !TEX root = ../main.tex
+\chapter{动态规划与 Bellman 方程}
+\label{ch:dp}
+
+\noindent\emph{用到的前置工具：压缩映射与 Banach 不动点定理、Blackwell 充分条件（压缩映射一章）；值函数与包络定理、Benveniste--Scheinkman 公式（值函数与包络定理一章）；无约束最优化的一阶条件（最优化部分）；上确界范数与有界函数空间（分析与拓扑部分）。}
+\medskip
+
+宏观经济学里几乎每一个量化模型，骨子里都是同一道题：一个决策者在无穷长的时间里反复做选择，每期的选择既要顾及当期得失，又要顾及它把人推到什么样的未来。最优增长里社会计划者每期在消费与投资间分配产出；消费--储蓄模型里家庭每期决定花多少、存多少；求职模型里失业者每天决定是否接受手头的工价；厂商每期决定投资多少、要不要更换设备。这些问题的共同形状是\textbf{序贯决策}（sequential decision）：一长串环环相扣的选择，前一步的选择经由``状态''的演化约束了后一步的可能性。直接把它当成一个变量多到无穷的最优化问题来解，既无从下手，也看不出结构。
+
+动态规划（dynamic programming）给出的，是一种以``少胜多''的视角转换：它不去一次性地解出整条最优路径，而是把整个无穷期问题\emph{压缩成一个关于单期的递归方程}——Bellman 方程。一旦能写出 Bellman 方程，无穷维的最优化就塌缩成``在每个状态上做一次静态最优化''，而把这些静态问题串起来的，是一个定义在函数空间上的算子。本章先由序贯问题导出 Bellman 方程（最优性原理），再说明这个算子是压缩、于是值函数存在唯一、值迭代必收敛（直接接上压缩映射一章的结论），随后给出策略迭代这另一条求解路线，最后用包络定理对值函数求导、结合一阶条件导出 Euler 方程——把动态规划接回它在宏观、消费理论与结构估计里的全部去处。
+
+\section{序贯决策与序贯问题}
+\label{sec:dp-sequence}
+
+先把要解的问题摆清楚。一个标准的无穷期、折现、确定性最优化问题，由四样东西刻画：\textbf{状态} $x\in X$（描述``此刻处境''的变量，如资本存量、财富、是否在业），\textbf{行动} $a\in\Gamma(x)$（在状态 $x$ 下可选的决策，可行集 $\Gamma(x)$ 可能随状态而变），\textbf{当期收益} $u(x,a)$（这一期的得失），以及\textbf{状态转移} $x'=\phi(x,a)$（今天的状态与行动决定明天的状态）。再加一个\textbf{折现因子} $\beta\in[0,1)$：未来的收益按 $\beta$ 的幂次贴现回今天。
+
+\defn{序贯问题}{
+给定初始状态 $x_0\in X$，\textbf{序贯问题}（sequence problem，SP）是在所有可行的行动序列上最大化折现收益之和：
+\[
+    W(x_0)=\sup_{\{a_t\}_{t=0}^{\infty}}\ \sum_{t=0}^{\infty}\beta^{\,t}\,u(x_t,a_t)
+    \quad\text{s.t.}\quad
+    a_t\in\Gamma(x_t),\ \ x_{t+1}=\phi(x_t,a_t),\ \ x_0\text{ 给定}.
+\]
+称 $W:X\to\RR$ 为序贯问题的\textbf{值函数}：它是从每个可能的起点出发所能达到的最优折现总收益。
+}
+
+这里``选择''的对象是整条无穷长的行动序列 $\{a_t\}_{t=0}^{\infty}$——一个无穷维的最优化对象。直接对它做一阶条件，会得到一串首尾相连、无穷多个方程，难以驾驭。动态规划的全部出发点，是注意到这个问题有一种特殊的\emph{递归结构}：它在时间上``自相似''。
+
+\state{为什么序贯问题适合递归处理}{
+注意收益和与转移方程都是\textbf{平稳}（stationary）且\textbf{可加}的：当期收益 $u(x,a)$ 只看当下的状态与行动（不显含时间 $t$），转移 $\phi(x,a)$ 也是；而总收益是各期收益的折现\emph{求和}。这两条合起来意味着：站在任意一期 $t$ 回望，``从今往后''的问题与``从第 $0$ 期起''的问题\emph{长得一模一样}，只是起点状态从 $x_0$ 换成了 $x_t$。正是这种``未来是当下的缩影''让我们能把无穷期问题折叠进一个单期的递归方程。可加性保证今天的决策只通过\emph{一个}渠道——它留给明天的状态 $x'$——影响整个未来；折现 $\beta<1$ 则保证那个未来的价值是有限的、可比较的。}
+
+\section{最优性原理与 Bellman 方程}
+\label{sec:dp-bellman}
+
+把上面的``自相似''说法形式化，就得到动态规划的奠基性观察——Bellman 的\textbf{最优性原理}。
+
+\state{最优性原理（Principle of Optimality）}{
+一条最优策略具有这样的性质：无论初始状态与初始决策为何，\emph{余下的决策相对于由初始决策所导致的新状态而言，必定也构成一条最优策略}。换句话说：\textbf{最优路径的任意一段尾巴，本身也是从它的起点出发的最优路径}。}
+
+这句话听上去像绕口令，几何上却极朴素（图~\ref{fig:dp-1}）。设想从 $x_0$ 出发的一条最优路径，它第一步选了 $a_0$、于是明天落在 $x_1=\phi(x_0,a_0)$。把这条路径在 $t=1$ 处``切一刀'',剩下从 $x_1$ 往后的那段尾巴——如果它不是``从 $x_1$ 出发的最优路径'',那我们就能用一条更好的尾巴替换它，从而改进整条路径的总收益；但这与原路径已是最优相矛盾。故那段尾巴必然最优。它的折现总收益，恰恰就是从 $x_1$ 出发的值 $W(x_1)$。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[xscale=1.0,yscale=1.0,>=Stealth]
+  \foreach \i/\x/\lab in {0/0/{x_0}, 1/3/{x_1}, 2/6/{x_2}, 3/9/{x_3}}{
+    \fill[blue!55!black] (\x,0) circle (3pt);
+    \node[blue!55!black,anchor=north,font=\small] at (\x,-0.25) {$\lab$};
+  }
+  \node[font=\small] at (10.6,0) {$\cdots$};
+  \draw[->,thick] (0.25,0) -- (2.75,0);
+  \node[anchor=south,font=\small] at (1.5,0.18) {$a_0$};
+  \node[anchor=south,red!65!black,font=\small] at (1.5,0.62) {$u(x_0,a_0)$};
+  \draw[->,thick] (3.25,0) -- (5.75,0);
+  \node[anchor=south,font=\small] at (4.5,0.18) {$a_1$};
+  \node[anchor=south,red!65!black,font=\small] at (4.5,0.62) {$\beta\,u(x_1,a_1)$};
+  \draw[->,thick] (6.25,0) -- (8.75,0);
+  \node[anchor=south,font=\small] at (7.5,0.18) {$a_2$};
+  \node[anchor=south,red!65!black,font=\small] at (7.5,0.62) {$\beta^2 u(x_2,a_2)$};
+  \draw[->,thick] (9.25,0) -- (10.2,0);
+  \draw[decorate,decoration={brace,amplitude=8pt,mirror},violet!60!black] (-0.1,-0.95) -- (10.6,-0.95);
+  \node[violet!60!black,anchor=north,font=\small] at (5.25,-1.25) {从 $x_0$ 出发的最优值 $\;=\;W(x_0)$};
+  \draw[decorate,decoration={brace,amplitude=6pt},teal!60!black] (3.0,1.25) -- (10.6,1.25);
+  \node[teal!60!black,anchor=south,font=\small] at (6.8,1.45) {从 $x_1$ 出发的最优值 $\;=\;W(x_1)$（折现后为 $\beta W(x_1)$）};
+  \draw[gray!55,dashed] (3,-0.7) -- (3,1.15);
+\end{tikzpicture}
+\caption{最优性原理。整条最优路径的折现总收益是 $W(x_0)$；在 $t=1$ 处``切一刀'',从 $x_1$ 起的尾巴本身也最优，其折现值为 $\beta W(x_1)$。于是 $W(x_0)$ 拆成``当期收益 $u(x_0,a_0)$''加上``折现后的尾巴 $\beta W(x_1)$''——这正是 Bellman 方程的来源。}
+\label{fig:dp-1}
+\end{figure}
+
+有了这个洞见，导出 Bellman 方程只需把``切一刀''写成等式。从 $x_0$ 出发的最优总收益，等于第一步的当期收益，加上从明天的状态起最优地走下去的折现值：
+\[
+    W(x_0)=\max_{a_0\in\Gamma(x_0)}\ \Bigl\{\,u(x_0,a_0)+\beta\,W\bigl(\phi(x_0,a_0)\bigr)\Bigr\}.
+\]
+这里的关键一跳是：尾巴的最优值\emph{不必}再展开成一串无穷和，最优性原理保证它就是 $W(\phi(x_0,a_0))$ 本身。由于问题平稳，起点 $x_0$ 没有任何特殊之处，对每个状态 $x$ 都成立同样的等式。去掉时间下标、把状态记为 $x$、明天的状态记为 $x'=\phi(x,a)$，便得到本章的中心方程。
+
+\defn{Bellman 方程}{
+\textbf{Bellman 方程}（Bellman equation，又称\emph{泛函方程}）是关于未知函数 $V:X\to\RR$ 的方程
+\[
+    V(x)=\max_{a\in\Gamma(x)}\ \Bigl\{\,u(x,a)+\beta\,V\bigl(\phi(x,a)\bigr)\Bigr\}
+    \qquad\text{对一切 }x\in X .
+\]
+满足此方程的 $V$ 称为该问题的\textbf{值函数}（value function）。达到右端最大值的行动 $a$（作为状态 $x$ 的函数）记
+\[
+    g(x)=\argmax_{a\in\Gamma(x)}\ \Bigl\{\,u(x,a)+\beta\,V\bigl(\phi(x,a)\bigr)\Bigr\},
+\]
+称为\textbf{最优策略函数}（optimal policy function）。
+}
+
+请细看这个方程的``身份''：它不是一个关于数的方程，而是一个关于\emph{函数}的方程——未知量 $V$ 是整条函数，方程要求它在每一点都与``自己经过右端那套运算后''的结果相等。这正是泛函方程之名的由来，也预告了求解它需要在\emph{函数空间}上做文章。
+
+\state{Bellman 方程把``无穷维''压成``单期 $+$ 递归''}{
+序贯问题 $W(x_0)=\sup\sum_t\beta^t u(x_t,a_t)$ 的选择对象是无穷长的行动序列；Bellman 方程把它替换成``在每个状态上做一次\emph{单期}最大化''$\max_a\{u(x,a)+\beta V(x')\}$。两者通过最优性原理等价：\textbf{$W$ 满足 Bellman 方程，且 Bellman 方程的解就是 $W$}（在适当条件下，见下节）。这是动态规划的核心交易——\emph{用一个定义在函数空间上的递归方程，换掉一个无穷维的序贯最优化}。代价是要去函数空间里求解 $V$；回报是结构空前清晰：当期收益 $u(x,a)$ 与``留给未来的状态价值'' $\beta V(x')$ 之间的权衡，被孤立成一道每期都一样的静态题。}
+
+\rmkb[行动可以是``下一期状态''本身]{
+许多模型里把``选明天的状态''当作决策更方便。例如最优增长中产出 $f(k)$ 一部分消费、一部分留作明天的资本 $k'$，与其说``选投资 $i$''不如直接说``选 $k'$''。此时 Bellman 方程写成
+\[
+    V(k)=\max_{k'\in\Gamma(k)}\ \Bigl\{\,u\bigl(f(k)-k'\bigr)+\beta\,V(k')\Bigr\},
+\]
+行动 $a=k'$、转移 $\phi(k,k')=k'$ 退化为恒等。这是宏观里最常见的写法，下文的 Euler 方程与例子都采用它。}
+
+\section{Bellman 算子与值函数的存在唯一}
+\label{sec:dp-operator}
+
+要让上一节的全部论断站得住脚，必须回答两个问题：Bellman 方程\emph{有解吗}？解\emph{唯一吗}？这两问的答案，整个落在压缩映射一章已经备好的工具上。关键是把 Bellman 方程右端看成一个作用在\emph{函数}上的\textbf{算子}。
+
+\defn{Bellman 算子}{
+设 $B(X)$ 为 $X$ 上的有界函数空间，配上确界范数 $\norm[\infty]{f}=\sup_{x\in X}\abs{f(x)}$。\textbf{Bellman 算子} $T:B(X)\to B(X)$ 把候选值函数 $f$ 映成新函数 $Tf$：
+\[
+    (Tf)(x)=\max_{a\in\Gamma(x)}\ \Bigl\{\,u(x,a)+\beta\,f\bigl(\phi(x,a)\bigr)\Bigr\}.
+\]
+}
+
+在这套语言下，Bellman 方程 $V=TV$ 就是一句话：\emph{值函数是 Bellman 算子的不动点}。于是``Bellman 方程有唯一解''等价于``$T$ 有唯一不动点''——而压缩映射一章的 Banach 不动点定理正是回答不动点存在唯一的利器。我们只需验证 $T$ 是压缩。直接和上确界、绝对值缠斗并不轻松，所幸压缩映射一章给出的 Blackwell 两条充分条件专为这类算子量身定做：只要 $T$ \emph{保持单调}、且对函数整体加常数有\emph{折现}效应，它就自动是压缩。这两条对 Bellman 算子都一目了然。
+
+\asm{标准假设}{
+当期收益 $u$ 有界（$\sup_{x,a}\abs{u(x,a)}<\infty$）、折现因子 $\beta\in[0,1)$、可行集 $\Gamma(x)$ 非空。}
+
+\rmk{有界性是为了让 $T$ 把 $B(X)$ 映回 $B(X)$、并直接套用 $\sup$-范数下的完备性；常见的无界收益（如对数效用、二次损失）需要换用带权范数或单调收敛的论证，结论形态不变，本章按工具性立场默认有界以突出主线。}
+
+\thm{值函数的存在唯一与值迭代收敛}{
+在标准假设下，Bellman 算子 $T:B(X)\to B(X)$ 是 $\sup$-范数下系数为 $\beta$ 的压缩映射。从而：
+\begin{itemize}
+    \item \textbf{（存在唯一）} Bellman 方程 $V=TV$ 有且仅有一个解 $V\in B(X)$；
+    \item \textbf{（值迭代收敛）} 从\emph{任意}初猜 $V_0\in B(X)$ 出发，迭代 $V_{n+1}=TV_n$ 都收敛到 $V$，且
+    \[
+        \norm[\infty]{V_n-V}\;\le\;\frac{\beta^{\,n}}{1-\beta}\,\norm[\infty]{V_1-V_0},
+    \]
+    即误差以 $\beta^{\,n}$ 的几何速率衰减。
+\end{itemize}
+}
+\pf{
+$B(X)$ 配 $\sup$-范数是完备度量空间（一致收敛的极限仍有界），故只需证 $T$ 是压缩，再援引 Banach 不动点定理。验 Blackwell 两条：
+
+\textbf{单调性。}设 $f\le g$ 处处成立。因 $\beta\ge 0$，对每个 $x$ 与每个可行 $a$ 都有 $u(x,a)+\beta f(\phi(x,a))\le u(x,a)+\beta g(\phi(x,a))$。逐点占优的两族数取最大值后仍占优，故 $(Tf)(x)\le(Tg)(x)$。
+
+\textbf{折现。}对任意常数 $c\ge 0$，注意 $\beta c$ 与被最大化的 $a$ 无关、可提到 $\max$ 外：
+\[
+    \bigl(T(f+c)\bigr)(x)
+    =\max_{a}\Bigl\{u(x,a)+\beta\bigl(f(\phi(x,a))+c\bigr)\Bigr\}
+    =(Tf)(x)+\beta c .
+\]
+两条 Blackwell 条件成立，压缩系数恰为折现因子 $\beta<1$，故 $T$ 压缩。其余三句结论（存在、唯一、几何收敛与误差界）由 Banach 不动点定理直接给出。
+}
+
+\state{动态规划的地基，是``压缩''这一个条件}{
+本节兑现了上一节悬而未决的承诺：Bellman 方程\emph{有唯一解}（``值函数''这个概念因此良定义、无歧义），而且这个解\emph{可以算}——从任意初猜（哪怕 $V_0\equiv 0$）反复作用 $T$ 必收敛到它，连``算几步够''都由误差界 $\frac{\beta^{\,n}}{1-\beta}\norm[\infty]{V_1-V_0}$ 回答。请记住这条因果链：\textbf{折现 $\beta<1\;\Rightarrow\;T$ 压缩（系数 $\beta$）$\;\Rightarrow\;$ 值函数存在唯一 $+$ 值迭代收敛}。它也解释了一桩校准中天天遇到的朴素事实——$\beta$ 越接近 $1$（决策者越有耐心），压缩越弱、值迭代越慢。}
+
+\section{值迭代}
+\label{sec:dp-vfi}
+
+上节定理里那句``$V_{n+1}=TV_n$ 收敛''本身就是一套算法，叫\textbf{值迭代}（value function iteration，VFI），是数值动态规划最基本的求解器。它把求解泛函方程变成一个机械的循环：随便取一个初始值函数 $V_0$（通常取 $V_0\equiv 0$），反复对它作用 Bellman 算子，序列 $V_0\to V_1\to V_2\to\cdots$ 单调而稳步地逼近真正的值函数 $V^*$。每一步 $V_{n+1}=TV_n$ 都只是对每个状态 $x$ 做一次静态最大化 $\max_a\{u(x,a)+\beta V_n(\phi(x,a))\}$——再无穷期的问题，也被拆成了一连串单期最优化。
+
+收敛的几何图像最直观（图~\ref{fig:dp-vi}）：把每个 $V_n$ 画成 $X$ 上的一条曲线，它们像一摞逐步抬升的水平线，相邻两条之间的间隔按 $\beta$ 的幂次缩小——这正是上确界范数下 $\norm[\infty]{V_{n+1}-V_n}\le\beta\,\norm[\infty]{V_n-V_{n-1}}$ 的可视化，与压缩映射一章里``相邻迭代步长几何衰减''是同一回事。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[xscale=2.45,yscale=1.62,>=Stealth]
+  \draw[->] (-0.05,0) -- (4.85,0) node[right] {$x$};
+  \draw[->] (0,-0.05) -- (0,4.75) node[above] {值};
+  \draw[very thick,violet!65!black,domain=0.35:4.3,smooth,samples=120,variable=\x]
+      plot ({\x},{2.6+ln(\x+0.5)});
+  \draw[blue!60!black,thick,domain=0.35:4,smooth,samples=120,variable=\x]
+      plot ({\x},{2.6+ln(\x+0.5)-2.100});
+  \draw[blue!55!black,thick,domain=0.35:4,smooth,samples=120,variable=\x]
+      plot ({\x},{2.6+ln(\x+0.5)-1.260});
+  \draw[blue!50!black,thick,domain=0.35:4,smooth,samples=120,variable=\x]
+      plot ({\x},{2.6+ln(\x+0.5)-0.756});
+  \draw[blue!42!black,thin,domain=0.35:4,smooth,samples=120,variable=\x]
+      plot ({\x},{2.6+ln(\x+0.5)-0.454});
+  \draw[blue!38!black,thin,domain=0.35:4,smooth,samples=120,variable=\x]
+      plot ({\x},{2.6+ln(\x+0.5)-0.272});
+  \node[blue!60!black,anchor=west] at (4.03,2.004) {$V_0$};
+  \node[blue!55!black,anchor=west] at (4.03,2.844) {$V_1$};
+  \node[blue!50!black,anchor=west] at (4.03,3.348) {$V_2$};
+  \node[blue!42!black,anchor=west,font=\small] at (4.03,3.64) {$V_3$};
+  \node[violet!65!black,anchor=west] at (4.03,4.104) {$V^{*}$};
+  \draw[dashed,gray!50] (1.6,1.242) -- (1.6,3.342);
+  \draw[decorate,decoration={brace,amplitude=5pt},red!72!black] (1.55,1.242) -- (1.55,2.082);
+  \node[red!72!black,anchor=east,font=\small] at (1.45,1.66) {$d_0$};
+  \draw[decorate,decoration={brace,amplitude=5pt},red!72!black] (1.55,2.082) -- (1.55,2.586);
+  \node[red!72!black,anchor=east,font=\small] at (1.45,2.33) {$\beta d_0$};
+  \draw[decorate,decoration={brace,amplitude=5pt},red!72!black] (1.55,2.586) -- (1.55,2.888);
+  \node[red!72!black,anchor=east,font=\small] at (1.45,2.74) {$\beta^2 d_0$};
+  \node[red!72!black,anchor=west,align=left,font=\small] at (2.55,1.15)
+      {每步沿 $\sup$-范数\\收缩到 $\beta$ 倍};
+  \node[blue!60!black,anchor=south,font=\small] at (0.42,1.02) {任意初猜 $V_0$};
+  \draw[blue!60!black,->,thin] (0.55,1.00) -- (0.62,0.613);
+\end{tikzpicture}
+\caption{值迭代的几何收敛。从任意初猜 $V_0$ 出发，$V_{n+1}=TV_n$ 生成一摞逐步抬升的曲线，逐点逼近不动点 $V^{*}$。相邻两条曲线在 $\sup$-范数下的间隔 $d_0,\beta d_0,\beta^2 d_0,\dots$ 按 $\beta$ 的幂次几何收缩——这就是 $T$ 为压缩（系数 $\beta$）的可视化。}
+\label{fig:dp-vi}
+\end{figure}
+
+\ex[用值迭代验证最优增长的解析解]{
+考虑对数效用、Cobb--Douglas 生产、资本完全折旧的最优增长模型，决策对象取为下一期资本 $k'$：
+\[
+    V(k)=\max_{0\le k'\le k^{\alpha}}\ \Bigl\{\,\ln\bigl(k^{\alpha}-k'\bigr)+\beta\,V(k')\Bigr\},
+    \qquad \alpha\in(0,1),\ \beta\in(0,1).
+\]
+（产出 $k^\alpha$ 一部分消费 $c=k^\alpha-k'$、一部分作明天的资本 $k'$。）用值迭代从 $V_0\equiv 0$ 出发，猜测极限的函数形式并验证它满足 Bellman 方程。
+}
+\sol{
+\textbf{先做一步值迭代看出形状。}取 $V_0\equiv 0$。则
+\[
+    V_1(k)=\max_{k'}\ \ln(k^{\alpha}-k')
+    =\ln(k^{\alpha})=\alpha\ln k
+\]
+（$\beta V_0=0$，故全部产出当期消费、$k'=0$ 最优）。再迭代一步会得到形如 $A_2+B_2\ln k$ 的函数。这提示极限必是
+\[
+    V(k)=A+B\ln k
+\]
+的形式（``猜函数形式再验证''的待定系数法，其合法性正源于值迭代收敛到\emph{唯一}不动点：只要猜中的 $A+B\ln k$ 满足 Bellman 方程，它就\emph{是}那个值函数）。
+
+\textbf{代入待定。}把 $V(k')=A+B\ln k'$ 代入 Bellman 方程右端：
+\[
+    A+B\ln k=\max_{k'}\ \Bigl\{\ln(k^{\alpha}-k')+\beta\bigl(A+B\ln k'\bigr)\Bigr\}.
+\]
+对 $k'$ 求一阶条件 $-\dfrac{1}{k^{\alpha}-k'}+\dfrac{\beta B}{k'}=0$，解得最优储蓄
+\[
+    k'=\frac{\beta B}{1+\beta B}\,k^{\alpha}.
+\]
+回代、比较两边 $\ln k$ 的系数：右端 $\ln(k^\alpha-k')+\beta B\ln k'$ 中含 $\ln k$ 的部分为 $\alpha(1+\beta B)\ln k$ 嵌进对数后整理给出系数方程 $B=\alpha+\alpha\beta B$，故
+\[
+    B=\frac{\alpha}{1-\alpha\beta}.
+\]
+于是最优策略
+\[
+    k'=g(k)=\alpha\beta\,k^{\alpha}
+    \qquad\Bigl(\text{因 }\tfrac{\beta B}{1+\beta B}=\alpha\beta\Bigr),
+\]
+即每期把产出的固定比例 $\alpha\beta$ 储蓄下来、其余 $(1-\alpha\beta)$ 比例消费。常数 $A$ 由 $A=\frac{1}{1-\beta}\bigl[\ln(1-\alpha\beta)+\frac{\alpha\beta}{1-\alpha\beta}\ln(\alpha\beta)\bigr]$ 给定（对收敛与策略无关紧要）。这个 $V=A+B\ln k$ 满足 Bellman 方程，由解的唯一性它\emph{就是}值函数——而值迭代从 $V_0\equiv0$ 出发必收敛到它，第一步 $V_1=\alpha\ln k$ 已显出 $\ln k$ 的雏形。
+}
+
+\rmkb[这就是图~\ref{fig:dp-policy} 里的政策函数]{
+上例解出的最优策略 $k'=g(k)=\alpha\beta\,k^{\alpha}$ 是一条凹增曲线。它与 $45^\circ$ 线 $k'=k$ 的交点给出稳态资本 $k^{*}=(\alpha\beta)^{1/(1-\alpha)}$（令 $g(k^*)=k^*$ 解出）；从任意初始资本出发，按 $k_{t+1}=g(k_t)$ 迭代都单调收敛到 $k^{*}$。下一节把策略函数与这种动态收敛画在一起。}
+
+\section{最优策略函数}
+\label{sec:dp-policy}
+
+值迭代收敛后，我们手里有了值函数 $V$；但模型的\emph{行为}预测，藏在伴随而生的\textbf{最优策略函数} $g(x)=\argmax_a\{u(x,a)+\beta V(\phi(x,a))\}$ 里——它直接回答``在每个状态该怎么做''。一旦有了 $g$，整条最优路径只需从初始状态反复迭代 $x_{t+1}=\phi(x_t,g(x_t))$ 即可生成，无穷维的序贯问题至此被一条单变量映射的迭代完全取代。
+
+策略函数也是连接动态规划与可观测数据的接口：消费--储蓄模型里 $g$ 是消费函数，求职模型里 $g$ 是``保留工资''规则，投资模型里 $g$ 是投资政策。结构估计（下文）拟合的，正是 $g$（或由它生成的选择概率）与数据的吻合。
+
+把上一节最优增长例子的策略函数 $g(k)=\alpha\beta\,k^{\alpha}$ 画出来，能一眼看清模型的长期行为（图~\ref{fig:dp-policy}）。策略曲线与 $45^\circ$ 线的交点是\textbf{稳态}（steady state）$k^{*}$：在那里``明天的资本恰等于今天''，系统停驻。曲线在 $k^*$ 处比 $45^\circ$ 线平缓（$0<g'(k^*)<1$），于是从任意初始资本出发，沿 $k_{t+1}=g(k_t)$ 的``蛛网''迭代都单调收敛到 $k^{*}$——这与压缩映射一章里收敛蛛网图是同一种几何，只不过这里迭代的是\emph{状态}、那里迭代的是值函数。
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[xscale=8.6,yscale=8.6,>=Stealth]
+  \draw[->] (-0.015,0) -- (0.70,0) node[right] {$k_t$};
+  \draw[->] (0,-0.015) -- (0,0.56) node[above] {$k_{t+1}$};
+  \draw[gray!60] (0,0) -- (0.55,0.55);
+  \node[gray!55!black,anchor=south west,font=\small,inner sep=1pt] at (0.50,0.50) {$45^\circ$};
+  \draw[very thick,blue!60!black,domain=0.008:0.66,smooth,samples=160,variable=\k]
+      plot ({\k},{0.38*(\k)^(0.4)});
+  \node[blue!60!black,anchor=west] at (0.55,0.318) {$k'=g(k)$};
+  \fill (0.1994,0.1994) circle (0.45pt);
+  \draw[dotted,gray!65] (0.1994,0) -- (0.1994,0.1994);
+  \node[anchor=north,font=\small] at (0.1994,-0.009) {$k^{*}$};
+  \node[anchor=west,font=\small,inner sep=2pt] at (0.255,0.165) {稳态 $g(k^{*})=k^{*}$};
+  \draw[->,thin,gray!60!black] (0.30,0.175) -- (0.215,0.197);
+  \draw[red!70!black,very thick]
+     (0.55,0) -- (0.55,0.2992) -- (0.2992,0.2992) -- (0.2992,0.2345)
+     -- (0.2345,0.2345) -- (0.2345,0.2127) -- (0.2127,0.2127) -- (0.2127,0.2046);
+  \fill[red!70!black] (0.55,0) circle (0.45pt);
+  \node[red!70!black,anchor=north,font=\small] at (0.55,-0.009) {$k_0$};
+  \node[red!70!black,anchor=south,font=\small,align=center] at (0.40,0.36)
+     {从任意 $k_0$\\迭代收敛到 $k^{*}$};
+  \draw[red!70!black,->,thin] (0.40,0.355) -- (0.31,0.305);
+\end{tikzpicture}
+\caption{最优增长模型的策略函数 $k'=g(k)=\alpha\beta\,k^{\alpha}$（$\alpha=0.4,\ \beta=0.95$）。它与 $45^\circ$ 线相交于稳态 $k^{*}=(\alpha\beta)^{1/(1-\alpha)}\approx 0.20$。因 $0<g'(k^*)<1$，从任意 $k_0$ 出发沿 $k_{t+1}=g(k_t)$ 迭代的``蛛网''都单调收敛到 $k^{*}$。}
+\label{fig:dp-policy}
+\end{figure}
+
+\section{策略迭代}
+\label{sec:dp-pi}
+
+值迭代每步只把值函数往前推一点点（收敛速率 $\beta$，$\beta$ 接近 $1$ 时奇慢）。\textbf{策略迭代}（policy iteration，Howard 算法）换一条思路：不去一点点改进值函数，而是\emph{一次性把一个固定策略评估到底}，再据此改进策略，如此交替。它往往以\emph{超线性}的速度、很少的几轮就收敛，是另一根求解动态规划的主梁。
+
+策略迭代在两步之间循环。给定当前策略 $g$：
+
+\textbf{第一步：策略评估（policy evaluation）。}\emph{假装}今后永远照 $g$ 行事，算出这套（次优）策略下的值函数 $V_g$。它满足一个\emph{去掉了 $\max$} 的线性方程——因为行动已被 $g$ 钉死，不再需要最大化：
+\[
+    V_g(x)=u\bigl(x,g(x)\bigr)+\beta\,V_g\bigl(\phi(x,g(x))\bigr)
+    \qquad\text{对一切 }x .
+\]
+这是一个关于 $V_g$ 的\emph{线性}不动点方程（记右端算子为 $T_g$，则 $V_g=T_g V_g$）；状态有限时它就是一个线性方程组，可直接求逆解出 $V_g=(\mat I-\beta\mat P_g)^{-1}\vc u_g$，其中 $\mat P_g$ 是策略 $g$ 诱导的状态转移矩阵、$\vc u_g$ 是各状态当期收益向量。
+
+\textbf{第二步：策略改进（policy improvement）。}拿着评估出的 $V_g$，在每个状态\emph{重新做一次}单期最大化，看有没有比 $g(x)$ 更好的当期行动：
+\[
+    g^{+}(x)=\argmax_{a\in\Gamma(x)}\ \Bigl\{\,u(x,a)+\beta\,V_g\bigl(\phi(x,a)\bigr)\Bigr\}.
+\]
+用 $g^{+}$ 替换 $g$，回到第一步。如此往复，直到策略不再变化。
+
+\thm{策略迭代单调改进且收敛}{
+策略迭代生成的策略序列对应的值函数逐轮不减：$V_{g^{+}}\ge V_g$（逐点）；且当策略不再改变时，对应的 $V_g$ 满足 Bellman 方程，故 $g$ 为最优策略、$V_g=V$。在有限状态--有限行动下，策略迭代经有限轮终止于最优。
+}
+\pf{
+\textbf{改进不变差。}由 $g^{+}$ 的定义，它在每个状态取得的右端值不小于 $g$ 所取得的，即
+\[
+    u\bigl(x,g^{+}(x)\bigr)+\beta V_g\bigl(\phi(x,g^{+}(x))\bigr)
+    \;\ge\;
+    u\bigl(x,g(x)\bigr)+\beta V_g\bigl(\phi(x,g(x))\bigr)=V_g(x).
+\]
+左端正是 $(T_{g^{+}}V_g)(x)$，故 $T_{g^{+}}V_g\ge V_g$。$T_{g^{+}}$ 单调（与 Bellman 算子同理，$\beta\ge0$ 加 $\max$ 退化为求和仍保序），反复作用并取极限：$V_{g^{+}}=\lim_n T_{g^{+}}^n V_g\ge V_g$。即新策略处处不差于旧策略。
+
+\textbf{终止即最优。}若某轮 $g^{+}=g$，代入改进步的定义即知 $V_g(x)=\max_a\{u(x,a)+\beta V_g(\phi(x,a))\}$，恰是 Bellman 方程；由解的唯一性 $V_g=V$、$g$ 为最优。有限状态--行动下策略只有有限多个、且值严格改进（除非已最优），故必有限轮终止。
+}
+
+\state{值迭代 vs.\ 策略迭代：同一地基，两种节奏}{
+两套算法都根植于``$T$ 单调 $+$ 折现''这副骨架（见压缩映射一章）。差别在节奏：\textbf{值迭代}每步只对值函数作用一次 $T$，便宜但收敛慢（线性速率 $\beta$）；\textbf{策略迭代}每轮先把当前策略\emph{彻底}评估（解一个线性方程组，等价于把 $T_g$ 迭代到收敛），再贪婪改进，轮数极少（常 $O(\log)$ 量级）但每轮更贵。实践中常用折中的``修正策略迭代''：评估步只迭代固定的几次而非解到底。无论哪种，正确性都由本章``$T$ 是压缩、解唯一''与策略改进的单调性共同担保。}
+
+\section{包络定理与 Euler 方程}
+\label{sec:dp-euler}
+
+到此我们能求出值函数与策略函数，但还缺一件做\emph{解析}分析时最常用的东西：\textbf{Euler 方程}——刻画相邻两期最优选择之间权衡的一阶必要条件。它是消费理论、资产定价、最优增长里做比较分析、推导利率--消费增长关系的标准入口。导出它需要对值函数求导，而 $V$ 只是``由一个 $\max$ 隐式定义''的对象、没有显式表达式。这正是值函数与包络定理一章里 Benveniste--Scheinkman 公式大显身手之处。
+
+以宏观最常用的``选下一期状态''写法为例：
+\[
+    V(k)=\max_{k'}\ \Bigl\{\,u\bigl(f(k)-k'\bigr)+\beta\,V(k')\Bigr\}.
+\]
+内点最优 $k'=g(k)$ 满足对 $k'$ 的一阶条件——当期多存一单位、少消费的边际损失，等于明天多一单位资本带来的折现边际值：
+\begin{equation}
+    -\,u'\bigl(f(k)-k'\bigr)+\beta\,V'(k')=0
+    \quad\Longleftrightarrow\quad
+    u'(c)=\beta\,V'(k'),
+    \qquad c=f(k)-k' .
+    \label{eq:dp-foc}
+\end{equation}
+式~\eqref{eq:dp-foc} 含一个我们尚不知道的对象 $V'(k')$。下一步用包络定理把它算出来。
+
+\textbf{用 Benveniste--Scheinkman 求 $V'$。}把状态 $k$ 当参数、$k'$ 当选择变量，对值函数恒等式 $V(k)=u(f(k)-g(k))+\beta V(g(k))$ 求 $\dd{}{k}$。链式法则给出对 $k$ 的直接通道加上经由 $g(k)$ 的间接通道：
+\[
+    V'(k)=u'(c)\,f'(k)
+    +\underbrace{\bigl[-u'(c)+\beta V'(k')\bigr]}_{=\,0\ \text{（对 }k'\text{ 的一阶条件}\eqref{eq:dp-foc}\text{）}}\,g'(k).
+\]
+方括号恰是一阶条件，间接项归零，余下
+\begin{equation}
+    \boxed{\ V'(k)=u'(c)\,f'(k)\ }.
+    \label{eq:dp-bs}
+\end{equation}
+这就是 Benveniste--Scheinkman 公式在本模型的形态：边际值函数等于``当期消费的边际效用''乘以``资本的边际产出''——直观上，多一单位资本能多产出 $f'(k)$、换成消费值 $u'(c)f'(k)$。它把对隐式值函数求导这件没把握的事，变成了一个一目了然的偏导。
+
+\textbf{合成 Euler 方程。}式~\eqref{eq:dp-bs} 对任意期都成立，故明天 $V'(k')=u'(c')f'(k')$（$c'$ 是明天的消费）。把它代回一阶条件~\eqref{eq:dp-foc} $u'(c)=\beta V'(k')$，那个抽象的 $V'$ 被彻底消去，只剩下相邻两期的\emph{消费}与可观测的\emph{技术}：
+\[
+    \boxed{\ u'(c_t)=\beta\,u'(c_{t+1})\,f'(k_{t+1})\ }
+    \qquad(\text{Euler 方程}).
+\]
+
+\state{Euler 方程：跨期的``边际权衡相等''}{
+Euler 方程是整个跨期最优化的中枢，读法是一句经济直觉：\textbf{今天少消费一单位的边际损失 $u'(c_t)$，恰好等于把它存下来、明天连本带利（边际产出 $f'(k_{t+1})$）地折现回来的边际收益 $\beta u'(c_{t+1})f'(k_{t+1})$}。最优路径上跨期的边际权衡处处相等，没有任何可改进的重新配置余地。它的导出严丝合缝地分两步：\emph{一阶条件}给出``今天 vs.\ 明天''的权衡 $u'(c)=\beta V'(k')$，\emph{包络定理}（Benveniste--Scheinkman）把无法直接观测的 $V'$ 翻译成可观测的边际量 $u'(c')f'(k')$。这套``一阶条件 $+$ 包络定理''的组合拳，是从任何递归问题里榨出 Euler 方程的通用配方。}
+
+\rmkb[与变分法的 Euler 方程是同一个东西]{
+变分法部分用扰动法（对最优路径做微小偏移、令一阶变分为零）也能直接从序贯问题导出同一条 Euler 方程，不经过值函数。两条路殊途同归：变分法把它看成``无穷维最优化的一阶条件'',动态规划把它看成``递归一阶条件 $+$ 包络定理''。动态规划这条路额外的好处是：它同时交付了\emph{全局}的值函数与策略函数（不只是局部最优的必要条件），还自带了随机推广的现成框架（见下文）。}
+
+\ex[对数效用最优增长的 Euler 方程与稳态]{
+仍取 $u(c)=\ln c$、$f(k)=k^{\alpha}$、完全折旧。写出 Euler 方程，求稳态资本 $k^{*}$，并与前文待定系数法解出的 $g(k)=\alpha\beta k^{\alpha}$ 对照。
+}
+\sol{
+$u'(c)=1/c$、$f'(k)=\alpha k^{\alpha-1}$，代入 Euler 方程：
+\[
+    \frac{1}{c_t}=\beta\,\frac{1}{c_{t+1}}\,\alpha\,k_{t+1}^{\alpha-1}
+    \quad\Longleftrightarrow\quad
+    \frac{c_{t+1}}{c_t}=\alpha\beta\,k_{t+1}^{\alpha-1}.
+\]
+\textbf{稳态}处 $c_{t+1}=c_t$、$k_{t+1}=k^{*}$，故 $1=\alpha\beta\,(k^{*})^{\alpha-1}$，解得
+\[
+    k^{*}=(\alpha\beta)^{1/(1-\alpha)} ,
+\]
+与图~\ref{fig:dp-policy} 中策略函数同 $45^\circ$ 线交点的 $k^{*}$ 完全一致。\textbf{对照策略函数}：由 $g(k)=\alpha\beta k^{\alpha}$ 与 $c=k^\alpha-g(k)=(1-\alpha\beta)k^\alpha$，则 $c_{t+1}/c_t=(k_{t+1}/k_t)^\alpha\cdot$（用 $k_{t+1}=\alpha\beta k_t^\alpha$）化简后正是 $\alpha\beta\,k_{t+1}^{\alpha-1}$，与 Euler 方程吻合。三条路线——值迭代待定系数、策略函数、Euler 方程——指向同一个解，互为印证。
+}
+
+\section{它通向何处}
+\label{sec:dp-beyond}
+
+动态规划是离散时间动态最优化的统治性框架，其去处几乎覆盖现代宏观与结构计量的全部：
+
+\begin{itemize}
+    \item \textbf{宏观 DSGE 与最优增长、实际经济周期。}最优增长模型（本章贯穿的例子）是新古典宏观的内核；加入劳动--闲暇选择、技术冲击，就成了 RBC 与各类 DSGE 模型。它们的求解与分析，靠的正是本章的值/策略迭代（数值解）与 Euler 方程（解析刻画、对数线性化）。
+    \item \textbf{消费--储蓄与永久收入假说。}家庭的跨期消费选择是 Bellman 方程的直接应用，Euler 方程 $u'(c_t)=\beta\,\E{(1+r_{t+1})\,u'(c_{t+1})}$（随机收益版）就是消费理论的核心方程；永久收入假说、预防性储蓄、流动性约束都在这套递归框架里展开。
+    \item \textbf{动态离散选择与结构估计（Rust 模型）。}当行动是离散的（换不换发动机、退不退出市场、上不上学），值函数定义在离散行动上，Bellman 方程成为``条件值函数''的递归。Rust 的嵌套不动点算法（NFXP）把``内层用值迭代解 Bellman、外层最大化似然''嵌套起来，是结构产业组织与劳动经济学估计动态模型的奠基方法。
+    \item \textbf{随机动态规划与 Markov 决策过程。}把确定性转移 $x'=\phi(x,a)$ 换成随机转移核、把 $V(\phi(x,a))$ 换成条件期望 $\E{V(x')\given x,a}$，本章的全部论证一字不改地成立（Blackwell 两条仍满足、$T$ 仍压缩）——这就是下一章随机递归方法的主题，也是上面所有应用的真正工作形态（收入冲击、生产率冲击、价格不确定）。
+    \item \textbf{强化学习。}机器学习里的 Q-学习、时序差分、策略梯度，骨架就是 Bellman 方程与值/策略迭代在``转移核未知、需从样本中学''情形下的随机近似版本。本章的压缩与不动点视角，是理解这些算法为何收敛的出发点。
+\end{itemize}
+
+把本章放回全书的脉络，它是数把工具的交汇点：\textbf{压缩映射}（压缩映射一章）担保值函数存在唯一、值迭代收敛；\textbf{包络定理}（值函数与包络定理一章）让我们能对隐式的值函数求导、生出 Euler 方程；\textbf{一阶条件}（最优化部分）给出每期的跨期权衡。三者合流，把一个看似无从下手的无穷期最优化，化成``一个递归方程 $+$ 一套迭代算法 $+$ 一条 Euler 方程''。认准了 Bellman 方程这一个递归方程，就等于同时握住了现代宏观与动态结构估计的总钥匙。
