@@ -154,9 +154,13 @@ def _schema_hint(schema):
 
 
 def call_anthropic(ai, system, user, schema, effort=EFFORT):
-    """Claude 原生 SDK；结构化输出约束成给定 json_schema（读 ANTHROPIC_API_KEY）。"""
+    """Claude 原生 SDK；结构化输出约束成给定 json_schema。
+
+    key：ANTHROPIC_API_KEY 优先，其次 FLIGHTWATCH_API_KEY（安装器统一写这一个）。
+    """
     from anthropic import Anthropic
-    client = Anthropic()
+    client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY")
+                       or os.environ.get("FLIGHTWATCH_API_KEY"))
     resp = client.messages.create(
         model=ai.get("model") or MODEL,
         max_tokens=8000,

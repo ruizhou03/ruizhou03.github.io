@@ -41,3 +41,15 @@
 
 配置、凭证、日志、中间产物都放运行器实例目录（如 `~/.flightwatch/`），**不复用**任何
 私人 `zirconeey-*` 路径。
+
+## Phase 3 · 安装器（起步）
+
+`install/get.sh`（拟托管到 `/flight/get`）：下载 runner → 建 venv + `playwright install chromium`
+→ 解码盯票码写 `flightwatch.json` → 装 `flightwatch` 命令包装（导出 FLIGHTWATCH_HOME/PYTHONPATH
++ 从 credentials 导入 key/邮箱）→（mac）按 config.schedule 生成 LaunchAgent 定时 → 跑首轮。
+带测试开关（FLIGHTWATCH_SRC 本地源 / _VENV 复用 / _MODE / _SKIP_SCHEDULE / _SKIP_FIRSTRUN）。
+**轻路径已验证**：本地源下载 8 文件、盯票码解码、wrapper 生成、`flightwatch status` 跑通。
+重路径（venv 建 + playwright install + launchd 加载 + 首轮）为标准命令，待真装一次端到端验证。
+**未决**：`/flight/get` 真实托管——安装脚本要放到 Jekyll 会 serve 的路径（非 `_` 前缀），随
+Phase 4 上线一起定；runner 文件可从 raw.githubusercontent 取（`_flight-staging` 虽不被 Jekyll
+构建、但 raw 可访问）。
