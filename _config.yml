@@ -48,6 +48,8 @@ exclude:
   - backends/
   # 付费文章全文源（含锁定正文）：gitignore + 构建排除双保险，绝不进站
   - _paid/
+  # 机票捡漏（设计稿）：暂存在 _-prefixed 目录，仅本地/设计评审，绝不进站
+  - _flight-staging/
 
 # 播客音频根地址（Cloudflare R2 公共域名 + 前缀）。
 # post.html 检测到文章 podcast: true 就自动拼 {{ podcast_base }}/{{ slug }}.mp3。
