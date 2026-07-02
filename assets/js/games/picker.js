@@ -207,7 +207,7 @@
         if (!text) return null;
         return {
           id: cryptoId(),
-          text: text.slice(0, 20),
+          text: [...text].slice(0, MAX_NAME_LEN).join(''),
           weight: clampWeight(isNaN(w) ? DEFAULT_PCT : w),
           locked: false,
         };
@@ -330,6 +330,7 @@
   const MAX_WEIGHT = 100;
   const MIN_PCT = 1;        // 每项最少占 1%（保证扇区可见且非 0）
   const DEFAULT_PCT = 20;   // 非法值兜底
+  const MAX_NAME_LEN = 8;   // 单个选项名字上限（一般不超过 8 字，也让转盘文字排得下）
   function clampWeight(w) {
     let n = Number(w);
     if (!isFinite(n)) n = DEFAULT_PCT;
@@ -359,18 +360,6 @@
     for (let k = 0; k < rem && k < order.length; k++) out[order[k].i]++;
     return out;
   }
-  // 某行滑块能拖到的最大占比＝总 100 减去(其余锁定项之和 + 其余未锁定项各留 MIN_PCT)。
-  // 于是滑块轨道 = 这一行还能占的真实范围：拖到 2/3 处≈占掉剩余池子的 2/3，读数仍是绝对 %。
-  function sliderMaxFor(idx) {
-    const pcts = currentPercents();
-    let lockedSum = 0, otherUnlocked = 0;
-    state.options.forEach((o, i) => {
-      if (i === idx) return;
-      if (o.locked) lockedSum += pcts[i]; else otherUnlocked++;
-    });
-    return Math.max(MIN_PCT, 100 - lockedSum - MIN_PCT * otherUnlocked);
-  }
-
   // 把某一项的占比设为 target%，其余"未锁定"项按比例补足到 100%；写回后 weight 即百分比、和为 100
   function setPercent(optId, target) {
     const opts = state.options;
@@ -461,8 +450,8 @@
       row.innerHTML = `
         <button type="button" class="opt-del" aria-label="删除选项" ${state.options.length <= 2 ? 'disabled' : ''}>✕</button>
         <span class="opt-chip" style="background:${color}" aria-hidden="true"></span>
-        <input type="text" class="opt-text" value="${escapeHtml(opt.text)}" placeholder="选项 ${idx + 1}" maxlength="20" />
-        <input type="range" class="opt-weight" min="${MIN_PCT}" max="${Math.round(sliderMaxFor(idx))}" step="1" value="${pcts[idx]}" aria-label="占比滑块" ${locked ? 'disabled' : ''} />
+        <input type="text" class="opt-text" value="${escapeHtml(opt.text)}" placeholder="选项 ${idx + 1}" maxlength="${MAX_NAME_LEN}" />
+        <input type="range" class="opt-weight" min="${MIN_PCT}" max="100" step="1" value="${pcts[idx]}" aria-label="占比滑块" ${locked ? 'disabled' : ''} />
         <span class="wnum"><input type="number" class="opt-weight-num" min="${MIN_PCT}" max="100" step="1" value="${pcts[idx]}" inputmode="numeric" aria-label="占比（百分比）" ${locked ? 'disabled' : ''} /><i class="wpct">%</i></span>
         <button type="button" class="opt-lock ${locked ? 'locked' : ''}" aria-label="${locked ? '解锁占比' : '锁定占比'}" title="${locked ? '已锁定：改别的选项时它保持不变' : '锁定这一项占比（调别的选项时它不变）'}">${locked ? '🔒' : '🔓'}</button>
       `;
@@ -509,7 +498,9 @@
         if (opt.locked) return;
         setPercent(opt.id, Number(e.target.value));
         markDirty();
-        syncWeightUI(e.target);
+        // 绝对语义：滑块位置就是这项的绝对占比%（相同占比→相同位置）。若因锁定/others 触到上限，
+        // 这里连同拖动的这根滑块一起回填成真实值——多拖也只会停在能占到的最大处（不越界）。
+        syncWeightUI(null);
         renderWheel();
         updateSpinBtn();
       });
@@ -621,38 +612,46 @@
       const color = SLICE_COLORS[idx % SLICE_COLORS.length];
       svg += `<path class="slice" data-idx="${idx}" d="M ${cx} ${cy} L ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z" fill="${color}" stroke="#fff" stroke-width="0.6"/>`;
 
-      // 文字标签：一律沿辐条方向排（radial），字号按扇区大小自适应——半径方向比扇区宽度长得多，
-      // 短名大扇区就写大、长名也塞得下、方向统一好看（参考常见转盘）。空名字/太细扇区在调用处挡掉。
+      // 文字标签：一律沿辐条方向排（radial）。字号只看扇区大小与字符实际宽度、不随字数缩小
+      //（名字上限 8 字，都排得下）；扇区太细（如权重 1%）字会太小 → 只留颜色、靠列表色块图例认。
       const aMid = (a0 + a1) / 2;
       const sliceFraction = end - start;
       const name = (opt.text || '').trim();
-      if (name && sliceFraction > 0.025) {
+      if (name && sliceFraction > 0.015) {
         svg += wheelLabelSvg(name, aMid, sliceFraction, cx, cy, r);
       }
     });
     $wheel.innerHTML = svg;
   }
-  // 扇区文字：沿辐条方向的一行，字号 = min(半径塞得下, 扇区角向宽度, 上限)，大扇区允许更大字；
-  // 最小字号还放不下就末尾省略。左半区整体翻 180° 避免倒着读。
+  // 单个字符的近似宽度（em）：全角/CJK≈1、ASCII 字母数字≈0.62、空格≈0.35、其它≈0.6，
+  // 用来按“实际内容宽度”排版，兼顾汉字/数字/英文/符号混排。
+  function charEmWidth(ch) {
+    const c = ch.codePointAt(0);
+    if (c >= 0x2E80 || (c >= 0x1100 && c <= 0x11FF) || (c >= 0xFF01 && c <= 0xFF60)) return 1.0;
+    if (/[A-Za-z0-9]/.test(ch)) return 0.62;
+    if (ch === ' ') return 0.35;
+    return 0.6;
+  }
+  // 扇区文字：沿辐条一行。字号 = min( 8 个全角字排满半径的上限(与字数无关), 扇区内端弧宽, 硬上限 )，
+  // 于是 1~8 个字都是同样大小、不会因字多而变小；字号 < 4（扇区太细，如 1%）就不写字、只留颜色。
   function wheelLabelSvg(name, aMid, sliceFraction, cx, cy, r) {
     const chars = [...name];
     const aMidDeg = aMid * 180 / Math.PI;
-    const rInner = r * 0.15, rOuter = r * 0.95;
-    const avail = rOuter - rInner;                     // 半径方向可用长度
+    const rInner = r * 0.20, rOuter = r * 0.96;
+    const availR = rOuter - rInner;                    // 半径方向可用长度
     const rMid = (rInner + rOuter) / 2;
-    const maxF = Math.min(12, 3 + sliceFraction * 26); // 大扇区允许更大字
-    const angW = 2 * rMid * Math.sin(Math.PI * Math.min(sliceFraction, 0.5)); // 扇区角向宽度
-    let fontSize = Math.max(4, Math.min(avail / (chars.length * 1.04), maxF, angW * 0.82));
-    // 最小字号还放不下 → 末尾省略
-    let text = name;
-    const maxChars = Math.floor(avail / (4 * 1.04));
-    if (chars.length > maxChars) text = chars.slice(0, Math.max(1, maxChars - 1)).join('') + '…';
+    const advEm = chars.reduce((s, ch) => s + charEmWidth(ch), 0) || 1;  // 文本沿半径的实际宽度(em)
+    const cap8 = availR / (8 * 1.02);                  // 8 个全角字恰好排满 → 与字数无关的字号上限
+    const arcInner = rInner * (2 * Math.PI * Math.min(sliceFraction, 0.5)); // 内端(最窄处)弧宽
+    let fontSize = Math.min(cap8, arcInner * 0.9, 12);
+    fontSize = Math.min(fontSize, availR / (advEm * 1.02));  // 内容更窄(如英文)时兜底不溢出
+    if (fontSize < 4) return '';                       // 扇区太细：只留颜色（靠列表色块图例认）
     const tx = cx + rMid * Math.cos(aMid);
     const ty = cy + rMid * Math.sin(aMid);
     let rotDeg = aMidDeg;                              // 径向（沿辐条）
     const nd = ((rotDeg % 360) + 360) % 360;
-    if (nd > 90 && nd < 270) rotDeg += 180;            // 左半区翻正
-    return `<text x="${tx.toFixed(2)}" y="${ty.toFixed(2)}" transform="rotate(${rotDeg.toFixed(2)} ${tx.toFixed(2)} ${ty.toFixed(2)})" font-size="${fontSize.toFixed(2)}">${escapeHtml(text)}</text>`;
+    if (nd > 90 && nd < 270) rotDeg += 180;            // 左半区翻正，避免倒着读
+    return `<text x="${tx.toFixed(2)}" y="${ty.toFixed(2)}" transform="rotate(${rotDeg.toFixed(2)} ${tx.toFixed(2)} ${ty.toFixed(2)})" font-size="${fontSize.toFixed(2)}">${escapeHtml(name)}</text>`;
   }
 
   // ── 转盘动画 ──────────────────────────
@@ -1238,7 +1237,7 @@
       const opts = p.options
         .filter(o => o && typeof o.text === 'string')
         .map(o => ({
-          text: o.text.slice(0, 20),
+          text: [...o.text].slice(0, MAX_NAME_LEN).join(''),
           weight: clampWeight(o.weight),
         }));
       if (opts.length < 2) continue;
