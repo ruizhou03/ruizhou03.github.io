@@ -60,6 +60,16 @@ permalink: /toolbox/xiangqi/
     .xq-mode-tabs { gap: 0.2rem; }
     .xq-mode-tab { padding: 0.3rem 0.5rem; font-size: 0.78rem; }
     .xq-btn { padding: 0.32rem 0.55rem; font-size: 0.78rem; }
+    /* 手机端：楚河汉界中央倒计时闹钟缩小，避免盖住中路棋子/河界字（不要设 transform，warn 呼吸动画要用它保持居中） */
+    .xq-clock {
+      font-size: 0.8rem;
+      min-width: 1.8rem;
+      padding: 0.16rem 0.38rem;
+      gap: 0.1rem;
+      border-width: 2px;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+    }
+    .xq-clock .xq-clock-ico { font-size: 0.68rem; }
   }
 
   .xq-statusbar {
@@ -300,6 +310,7 @@ permalink: /toolbox/xiangqi/
     <button class="xq-btn" id="xqUndoBtn">↶ 悔棋</button>
     <button class="xq-btn" id="xqPauseBtn" hidden>⏸ 暂停</button>
     <button class="xq-btn" id="xqNewBtn">🔄 重新开始</button>
+    <button class="xq-btn" id="xqFaceBtn" hidden title="对坐模式：两人面对面时，把对面一方的棋子字转正，双方都好认">🔁 对坐</button>
   </div>
 
   <div class="xq-statusbar">
@@ -776,10 +787,17 @@ permalink: /toolbox/xiangqi/
     catch { return {}; }
   })();
 
+  // 触屏设备（手机/平板）默认开启「对坐模式」；桌面默认关闭。用户手动切换后记住其选择。
+  const xqIsTouchLike = (() => {
+    try { return window.matchMedia('(hover: none) and (pointer: coarse)').matches; }
+    catch { return false; }
+  })();
+
   const state = {
     mode: stored.lastMode || 'pvp',
     difficulty: DIFFICULTY[stored.difficulty] ? stored.difficulty : 'normal',
     tally: Object.assign({ r: 0, b: 0 }, stored.tally || {}),
+    faceToFace: (stored.faceToFace !== undefined) ? !!stored.faceToFace : xqIsTouchLike,   // 对坐：对面一方棋子转 180°
     board: startingBoard(),
     turn: RED,
     history: [],          // [{undoRecord, prevTurn}]
@@ -810,7 +828,8 @@ permalink: /toolbox/xiangqi/
     localStorage.setItem(STORE_KEY, JSON.stringify({
       tally: state.tally,
       lastMode: state.mode,
-      difficulty: state.difficulty
+      difficulty: state.difficulty,
+      faceToFace: state.faceToFace
     }));
   }
 
@@ -828,6 +847,12 @@ permalink: /toolbox/xiangqi/
   function isFlipped() {
     if (xqIsOnline && xqMyColor) return xqMyColor === BLACK;   // 联机：我方棋子永远在下方
     return state.mode === 'ai-black';
+  }
+
+  // 对坐模式：仅本机双人生效——棋盘不翻转，把顶部一方（黑方）的棋子字转 180°，让面对面坐的两个玩家
+  // 各自读到正着的棋子字。联机各自视角、人机单人视角都不需要，故排除。
+  function xqFaceToFaceActive() {
+    return state.faceToFace && state.mode === 'pvp' && !xqIsOnline;
   }
 
   // ============================================================
@@ -915,6 +940,7 @@ permalink: /toolbox/xiangqi/
     const kingInCheck = isInCheck(state.board, state.turn) ? findKing(state.board, state.turn) : null;
 
     // Pieces
+    const faceFlip = xqFaceToFaceActive();
     const pieceGroup = svgEl('g', { class: 'pieces' });
     for (let r = 0; r < N_RANKS; r++) {
       for (let f = 0; f < N_FILES; f++) {
@@ -926,7 +952,10 @@ permalink: /toolbox/xiangqi/
         if (state.selected && state.selected[0] === f && state.selected[1] === r) circleClasses.push('selected');
         if (kingInCheck && kingInCheck[0] === f && kingInCheck[1] === r) circleClasses.push('in-check');
         pieceGroup.appendChild(svgEl('circle', { class: circleClasses.join(' '), cx, cy, r: 32 }));
-        const txt = svgEl('text', { class: 'piece-text ' + (p.color === RED ? 'red' : 'black'), x: cx, y: cy + 1 });
+        const txtAttrs = { class: 'piece-text ' + (p.color === RED ? 'red' : 'black'), x: cx, y: cy + 1 };
+        // 对坐：把黑方（顶部一方）的字绕自身中心转 180°，让对面玩家读正
+        if (faceFlip && p.color === BLACK) txtAttrs.transform = 'rotate(180 ' + cx + ' ' + (cy + 1) + ')';
+        const txt = svgEl('text', txtAttrs);
         txt.appendChild(document.createTextNode(PIECE_GLYPH[p.color][p.type]));
         pieceGroup.appendChild(txt);
       }
@@ -998,6 +1027,11 @@ permalink: /toolbox/xiangqi/
     pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
     pauseBtn.disabled = state.over;
     pausedOverlay.classList.toggle('show', state.paused && !state.over);
+    const faceBtn = document.getElementById('xqFaceBtn');
+    if (faceBtn) {
+      faceBtn.hidden = !(state.mode === 'pvp' && !xqIsOnline);
+      faceBtn.textContent = state.faceToFace ? '🔁 对坐：开' : '🔁 对坐：关';
+    }
   }
 
   function newGame() {
@@ -1198,6 +1232,12 @@ permalink: /toolbox/xiangqi/
 
   newBtn.onclick = newGame;
   ovBtn.onclick = newGame;
+  document.getElementById('xqFaceBtn').addEventListener('click', () => {
+    state.faceToFace = !state.faceToFace;
+    persist();
+    renderBoard();
+    updateStatus();
+  });
 
   // ── games-shell：战绩榜 + 评论 ─────────────
   let xqWlbWidget = null;
@@ -1867,7 +1907,9 @@ permalink: /toolbox/xiangqi/
     if (!xqGameActive()) return;
     const cur = state.turn, k = (cur === RED) ? 'r' : 'b';
     if (!xqIsOnline && aiSide() === cur) return;                 // local AI side → existing triggerAiMove handles it
-    if (xqIControlColor(cur) && xqAutopilot[k]) { setTimeout(() => xqTimeoutAiMove(cur), 500); return; }  // 托管
+    // 旧逻辑：连超两轮后 xqAutopilot 让电脑「每回合立刻替人落子」，人再也夺不回控制权（永久托管）。
+    // 改为始终给当前走子方完整的 60s 倒计时；只有真的再次超时才代走一手，任何一次手动落子都会经
+    // xqResetStreak 解除托管，人永远能收回控制权。
     xqStartTurnTimer(cur);                                       // human turn → run the clock
   }
   function xqResetStreak(color) {                                 // a real (in-time) move by this side
