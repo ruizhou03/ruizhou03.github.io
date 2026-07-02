@@ -76,10 +76,10 @@ permalink: /toolbox/connect4/
   .c4-board-wrap {
     position: relative;
     width: 100%;
-    max-width: 420px;
+    max-width: 460px;
     margin: 0 auto;
-    aspect-ratio: 7 / 6;
-    border-radius: 10px;
+    aspect-ratio: 1 / 1;
+    border-radius: 14px;
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
@@ -230,7 +230,7 @@ permalink: /toolbox/connect4/
     normal: { depth: 4, noise: 0,    randChance: 0,    delayMs: 320 },
     hard:   { depth: 7, noise: 0,    randChance: 0,    delayMs: 460 }
   };
-  const C4_DIFF_LABEL = { easy: '简单', normal: '普通', hard: '困难' };
+  const C4_DIFF_LABEL = { easy: '新手', normal: '普通', hard: '高手' };
 
   const stored = (() => {
     try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
@@ -277,6 +277,13 @@ permalink: /toolbox/connect4/
   const difficultyTabs = document.getElementById('c4DifficultyTabs');
   const pgoOverlay = document.getElementById('c4PreGameOverlay');
 
+  // AI 思考链的「代」+ 可取消定时器：换局 / 换难度会 gen++ 作废所有在途链，
+  // 并 clearTimeout 掉挂起的定时器 —— 杜绝幽灵落子 / 重复落子。
+  let gen = 0;
+  let aiTimers = [];
+  function scheduleAi(fn, ms) { const id = setTimeout(fn, ms); aiTimers.push(id); return id; }
+  function clearAiTimers() { aiTimers.forEach(clearTimeout); aiTimers = []; }
+
   function persist() {
     localStorage.setItem(STORE_KEY, JSON.stringify({
       tally,
@@ -287,6 +294,9 @@ permalink: /toolbox/connect4/
   function curTally() { return tally[state.difficulty]; }
 
   function newGame() {
+    gen++;                                         // 作废所有在途 AI 思考链
+    clearAiTimers();
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     state.board = Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
     state.heights = Array(COLS).fill(0);
     state.history = [];
@@ -297,6 +307,7 @@ permalink: /toolbox/connect4/
     state.aiThinking = false;
     state.anim = null;
     state.started = true;
+    invalidateBoard();
     overlay.classList.remove('show');
     pausedOverlay.classList.remove('show');
     pgoOverlay.classList.remove('open');
@@ -339,118 +350,163 @@ permalink: /toolbox/connect4/
   }
 
   // ============ 绘制 ============
+  // 棋子配色：高光 / 主体 / 暗部 / 暗边，做出玻璃糖果质感
+  const DISC = {
+    [HUMAN]: { hi: '#ff9184', mid: '#e8484b', lo: '#bd2130', rim: 'rgba(120,20,28,0.55)' },
+    [AI]:    { hi: '#ffe08a', mid: '#f6bd2c', lo: '#d9930a', rim: 'rgba(150,95,4,0.55)' }
+  };
+
+  function currentIsDark() {
+    const t = document.documentElement.dataset.theme;
+    if (t === 'dark') return true;
+    if (t === 'light') return false;
+    return matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
   function geom() {
     const W = canvas.width, H = canvas.height;
-    const cell = Math.min(W / COLS, H / (ROWS + 1)); // 顶部留一行做投放区
+    const side = W * 0.015;
+    const cell = Math.min((W - side * 2) / COLS, (H - side) / (ROWS + 1)); // 顶部留投放槽
     const boardW = cell * COLS, boardH = cell * ROWS;
     const ox = (W - boardW) / 2;
-    const oy = H - boardH;          // 棋盘贴底，顶部空出投放区
+    const oy = H - boardH - cell * 0.12;   // 底部留一点余量给 3D 板厚
     return { W, H, cell, boardW, boardH, ox, oy, r: cell * 0.40 };
   }
 
-  function discColors(who) {
-    return who === HUMAN
-      ? { a: '#ff6b6b', b: '#d63031' }   // 红
-      : { a: '#ffe169', b: '#f0a500' };  // 黄
+  function roundRectPath(c, x, y, w, h, rad) {
+    c.beginPath();
+    c.moveTo(x + rad, y);
+    c.arcTo(x + w, y, x + w, y + h, rad);
+    c.arcTo(x + w, y + h, x, y + h, rad);
+    c.arcTo(x, y + h, x, y, rad);
+    c.arcTo(x, y, x + w, y, rad);
+    c.closePath();
   }
 
-  function paintDisc(g, cx, cy, who, r) {
-    const col = discColors(who);
-    ctx.fillStyle = 'rgba(0,0,0,0.22)';
-    ctx.beginPath();
-    ctx.arc(cx + 1, cy + 2, r, 0, Math.PI * 2);
-    ctx.fill();
-    const grad = ctx.createRadialGradient(cx - r * 0.32, cy - r * 0.32, r * 0.1, cx, cy, r);
-    grad.addColorStop(0, col.a);
-    grad.addColorStop(1, col.b);
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
+  // 一枚有高光 / 暗边 / 接触阴影的棋子
+  function paintDisc(c, cx, cy, who, r, alpha) {
+    const d = DISC[who];
+    c.save();
+    if (alpha != null) c.globalAlpha = alpha;
+    c.shadowColor = 'rgba(0,0,0,0.35)';
+    c.shadowBlur = r * 0.22;
+    c.shadowOffsetY = r * 0.14;
+    const body = c.createRadialGradient(cx - r * 0.36, cy - r * 0.42, r * 0.08, cx, cy, r * 1.06);
+    body.addColorStop(0, d.hi); body.addColorStop(0.52, d.mid); body.addColorStop(1, d.lo);
+    c.fillStyle = body;
+    c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
+    c.restore();
+    c.save();
+    if (alpha != null) c.globalAlpha = alpha;
+    c.lineWidth = Math.max(1, r * 0.07); c.strokeStyle = d.rim;
+    c.beginPath(); c.arc(cx, cy, r * 0.965, 0, Math.PI * 2); c.stroke();
+    const spec = c.createRadialGradient(cx - r * 0.3, cy - r * 0.36, 0, cx - r * 0.3, cy - r * 0.36, r * 0.6);
+    spec.addColorStop(0, 'rgba(255,255,255,0.6)'); spec.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = spec;
+    c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
+    c.restore();
+  }
+
+  // 一个凹陷的空洞：顶部内阴影 + 底部受光，做出「挖进板里」的立体感
+  function paintHole(c, cx, cy, r, isDark) {
+    const grad = c.createRadialGradient(cx, cy - r * 0.18, r * 0.15, cx, cy, r);
+    grad.addColorStop(0, isDark ? '#0e1c34' : '#132747');
+    grad.addColorStop(1, isDark ? '#060d1a' : '#0a1730');
+    c.fillStyle = grad;
+    c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
+    const rim = c.createLinearGradient(0, cy - r, 0, cy + r);
+    rim.addColorStop(0, 'rgba(0,0,0,0.55)');
+    rim.addColorStop(0.5, 'rgba(0,0,0,0)');
+    rim.addColorStop(1, isDark ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.16)');
+    c.lineWidth = Math.max(1, r * 0.10); c.strokeStyle = rim;
+    c.beginPath(); c.arc(cx, cy, r * 0.93, 0, Math.PI * 2); c.stroke();
+  }
+
+  // 蓝色棋盘面：竖向渐变 + 底部一道暗边模拟板厚 + 顶部内高光
+  function paintBoardPanel(c, g, isDark) {
+    const p = isDark
+      ? { top: '#274f8c', bot: '#16305a', edge: '#0f2445', frame: 'rgba(255,255,255,0.05)' }
+      : { top: '#3f6db4', bot: '#254e8f', edge: '#173663', frame: 'rgba(255,255,255,0.16)' };
+    const rad = g.cell * 0.14, thick = g.cell * 0.07;
+    c.fillStyle = p.edge;
+    roundRectPath(c, g.ox, g.oy + thick, g.boardW, g.boardH, rad); c.fill();
+    const grad = c.createLinearGradient(0, g.oy, 0, g.oy + g.boardH);
+    grad.addColorStop(0, p.top); grad.addColorStop(1, p.bot);
+    c.fillStyle = grad;
+    roundRectPath(c, g.ox, g.oy, g.boardW, g.boardH, rad); c.fill();
+    c.strokeStyle = p.frame; c.lineWidth = Math.max(1, g.cell * 0.03);
+    roundRectPath(c, g.ox + 1.5, g.oy + 1.5, g.boardW - 3, g.boardH - 3, rad - 1); c.stroke();
+  }
+
+  // hover：列淡高亮 + 投放槽里悬着一枚半透明幽灵子
+  function paintHover(c, g, col, who) {
+    c.fillStyle = 'rgba(255,255,255,0.06)';
+    c.fillRect(g.ox + col * g.cell, g.oy, g.cell, g.boardH);
+    paintDisc(c, g.ox + col * g.cell + g.cell / 2, g.oy * 0.52, who, g.r, 0.6);
+  }
+
+  // 获胜四连：发光连线 + 逐子光环
+  function paintWin(c, g, winCells) {
+    const cells = winCells.cells;
+    const a = cells[0], b = cells[cells.length - 1];
+    const x1 = g.ox + a.c * g.cell + g.cell / 2, y1 = g.oy + a.r * g.cell + g.cell / 2;
+    const x2 = g.ox + b.c * g.cell + g.cell / 2, y2 = g.oy + b.r * g.cell + g.cell / 2;
+    c.save();
+    c.shadowColor = 'rgba(255,255,255,0.85)'; c.shadowBlur = g.cell * 0.45;
+    c.strokeStyle = 'rgba(255,255,255,0.96)'; c.lineWidth = Math.max(4, g.cell * 0.14);
+    c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+    c.restore();
+    c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = Math.max(2, g.cell * 0.055);
+    for (const p of cells) {
+      const cx = g.ox + p.c * g.cell + g.cell / 2, cy = g.oy + p.r * g.cell + g.cell / 2;
+      c.beginPath(); c.arc(cx, cy, g.r * 1.04, 0, Math.PI * 2); c.stroke();
+    }
+  }
+
+  // 静态层缓存：棋盘面 + 空洞 + 已落定棋子。只在棋盘 / 尺寸 / 主题变化时重建，
+  // 下落动画每帧只需 drawImage 缓存 + 画一枚移动的子，既省算力又更顺。
+  let boardCache = null, boardCacheValid = false;
+  function invalidateBoard() { boardCacheValid = false; }
+  function ensureBoardCache(g, isDark) {
+    if (!boardCache) boardCache = document.createElement('canvas');
+    if (boardCache.width !== canvas.width || boardCache.height !== canvas.height) {
+      boardCache.width = canvas.width; boardCache.height = canvas.height;
+      boardCacheValid = false;
+    }
+    if (boardCacheValid) return;
+    const c = boardCache.getContext('2d');
+    c.clearRect(0, 0, boardCache.width, boardCache.height);
+    paintBoardPanel(c, g, isDark);
+    for (let r = 0; r < ROWS; r++)
+      for (let col = 0; col < COLS; col++) {
+        const cx = g.ox + col * g.cell + g.cell / 2, cy = g.oy + r * g.cell + g.cell / 2;
+        const v = state.board[r] ? state.board[r][col] : EMPTY;
+        if (v === EMPTY) paintHole(c, cx, cy, g.r, isDark);
+        else paintDisc(c, cx, cy, v, g.r);
+      }
+    boardCacheValid = true;
   }
 
   function draw() {
-    const W = canvas.clientWidth;
-    if (W && canvas.width !== W) {
-      canvas.width = W;
-      canvas.height = Math.round(W * 6 / 7);
+    const cssW = canvas.clientWidth || 460;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);   // 视网膜屏清晰渲染
+    const need = Math.round(cssW * dpr);
+    if (need && (canvas.width !== need || canvas.height !== need)) {
+      canvas.width = need; canvas.height = need;              // 正方形：棋盘满宽 + 顶部投放槽
+      boardCacheValid = false;
     }
     const g = geom();
+    ensureBoardCache(g, currentIsDark());
     ctx.clearRect(0, 0, g.W, g.H);
-
-    // hover 列高亮（仅人类回合可点时）
-    if (hoverCol >= 0 && state.started && !state.over && !state.paused &&
-        !state.aiThinking && !state.anim && state.turn === HUMAN &&
-        state.heights[hoverCol] < ROWS) {
-      ctx.fillStyle = 'rgba(255, 107, 107, 0.12)';
-      ctx.fillRect(g.ox + hoverCol * g.cell, 0, g.cell, g.H);
-      // 顶部投放指示圈
-      const cx = g.ox + hoverCol * g.cell + g.cell / 2;
-      ctx.fillStyle = 'rgba(255, 107, 107, 0.55)';
-      ctx.beginPath();
-      ctx.arc(cx, g.oy / 2, g.r * 0.7, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // 棋盘蓝色板
-    const isDark = matchMedia('(prefers-color-scheme: dark)').matches
-      && document.documentElement.dataset.theme !== 'light'
-      || document.documentElement.dataset.theme === 'dark';
-    ctx.fillStyle = isDark ? '#1d3a6b' : '#2a5db0';
-    roundRect(g.ox, g.oy, g.boardW, g.boardH, g.cell * 0.12);
-    ctx.fill();
-
-    // 每格掏空成洞，露出已落棋子
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const cx = g.ox + c * g.cell + g.cell / 2;
-        const cy = g.oy + r * g.cell + g.cell / 2;
-        const v = state.board[r] ? state.board[r][c] : EMPTY;
-        if (v === EMPTY) {
-          // 黑底空洞 + 一圈淡描边——红/黄棋子对比都拉满
-          ctx.fillStyle = '#0a1426';
-          ctx.beginPath();
-          ctx.arc(cx, cy, g.r, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.18)';
-          ctx.lineWidth = Math.max(1, g.cell * 0.025);
-          ctx.stroke();
-        } else {
-          paintDisc(g, cx, cy, v, g.r);
-        }
-      }
-    }
-
-    // 正在下落的棋子
+    ctx.drawImage(boardCache, 0, 0);
+    if (hoverCol >= 0 && canHumanPlay() && state.heights[hoverCol] < ROWS)
+      paintHover(ctx, g, hoverCol, HUMAN);
     if (state.anim) {
       const a = state.anim;
-      const cx = g.ox + a.col * g.cell + g.cell / 2;
-      paintDisc(g, cx, a.y, a.who, g.r);
+      paintDisc(ctx, g.ox + a.col * g.cell + g.cell / 2, g.oy + a.rowPos * g.cell + g.cell / 2, a.who, g.r);
     }
-
-    // 获胜四连高亮
-    if (state.winCells) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-      ctx.lineWidth = Math.max(3, g.cell * 0.10);
-      ctx.lineCap = 'round';
-      for (const p of state.winCells.cells) {
-        const cx = g.ox + p.c * g.cell + g.cell / 2;
-        const cy = g.oy + p.r * g.cell + g.cell / 2;
-        ctx.beginPath();
-        ctx.arc(cx, cy, g.r * 0.96, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-    }
-  }
-
-  function roundRect(x, y, w, h, rad) {
-    ctx.beginPath();
-    ctx.moveTo(x + rad, y);
-    ctx.arcTo(x + w, y, x + w, y + h, rad);
-    ctx.arcTo(x + w, y + h, x, y + h, rad);
-    ctx.arcTo(x, y + h, x, y, rad);
-    ctx.arcTo(x, y, x + w, y, rad);
-    ctx.closePath();
+    if (state.winCells) paintWin(ctx, g, state.winCells);
   }
 
   // ============ 落子 / 动画 ============
@@ -468,13 +524,12 @@ permalink: /toolbox/connect4/
     state.heights[col]--;
   }
 
-  // 玩家/AI 共用：带下落动画地落子，落定后结算并切换回合
+  // 玩家/AI 共用：带下落动画地落子，落定后结算并切换回合。
+  // 位置以「行」为单位（rowPos），脱离像素 —— resize / DPR 变化都不会让棋子瞬移。
   function dropDisc(col, who) {
     if (state.heights[col] >= ROWS) return;
-    const g = geom();
     const targetR = ROWS - 1 - state.heights[col];
-    const targetY = g.oy + targetR * g.cell + g.cell / 2;
-    state.anim = { col, targetR, who, y: -g.cell * 0.5, vy: 0, targetY };
+    state.anim = { col, targetR, who, rowPos: -1.3, vRow: 0 };
     animateDrop();
   }
 
@@ -483,14 +538,13 @@ permalink: /toolbox/connect4/
     if (rafId) cancelAnimationFrame(rafId);
     const step = () => {
       const a = state.anim;
-      if (!a) return;
-      const g = geom();
-      a.targetY = g.oy + a.targetR * g.cell + g.cell / 2;
-      a.vy += g.cell * 0.055;          // 重力加速
-      a.y += a.vy;
-      if (a.y >= a.targetY) {
-        a.y = a.targetY;
+      if (!a) { rafId = null; return; }
+      a.vRow += 0.055;                 // 重力加速（行/帧²）
+      a.rowPos += a.vRow;
+      if (a.rowPos >= a.targetR) {
+        a.rowPos = a.targetR;
         state.anim = null;
+        rafId = null;
         finalizeDrop(a.col, a.who);
         return;
       }
@@ -502,6 +556,7 @@ permalink: /toolbox/connect4/
 
   function finalizeDrop(col, who) {
     const r = applyDrop(col, who);
+    invalidateBoard();                 // 棋盘变了：重建静态缓存
     const win = checkWin(r, col, who);
     if (win) {
       state.over = true;
@@ -529,7 +584,7 @@ permalink: /toolbox/connect4/
     draw();
     updateStatus();
     if (!state.over && state.turn === AI && !state.paused) {
-      setTimeout(aiMove, 120);
+      scheduleAi(aiMove, 120);
     }
   }
 
@@ -685,20 +740,24 @@ permalink: /toolbox/connect4/
   function aiMove() {
     if (state.over || state.paused || state.anim) return;
     if (state.turn !== AI) return;
+    if (state.aiThinking) return;              // 防重复思考链（暂停/继续快速切换）
+    const myGen = gen;                         // 捕获本局代号
     state.aiThinking = true;
     updateStatus();
     const cfg = DIFFICULTY[state.difficulty];
     // 先让 UI 重绘"思考中"，再开算
-    setTimeout(() => {
+    scheduleAi(() => {
+      if (myGen !== gen) return;               // 已换局/换难度 → 整条链作废
       const t0 = performance.now();
       const col = pickAiMove();
       const cost = performance.now() - t0;
       // 移动端硬深搜可能偏慢；保证至少有最短停顿，但不额外拖
       const wait = Math.max(0, cfg.delayMs - cost - 50);
-      setTimeout(() => {
+      scheduleAi(() => {
+        if (myGen !== gen) return;             // 落子前再校验：作废则丢弃，杜绝幽灵子
         state.aiThinking = false;
-        if (state.paused || state.over) { updateStatus(); return; }
-        if (col >= 0) dropDisc(col, AI);
+        if (state.paused || state.over || state.turn !== AI) { updateStatus(); return; }
+        if (col >= 0 && state.heights[col] < ROWS) dropDisc(col, AI);
         else updateStatus();
       }, wait);
     }, 30);
@@ -767,7 +826,7 @@ permalink: /toolbox/connect4/
     state.paused = !state.paused;
     updateStatus();
     if (!state.paused && !state.over && state.turn === AI && !state.aiThinking && !state.anim) {
-      setTimeout(aiMove, 120);
+      scheduleAi(aiMove, 120);
     }
   }
   pauseBtn.onclick = togglePause;
@@ -777,6 +836,15 @@ permalink: /toolbox/connect4/
   ovBtn.onclick = newGame;
 
   window.addEventListener('resize', draw);
+
+  // 主题切换（系统深色 / 站点 data-theme 手动切）时重建棋盘缓存并重绘
+  function onThemeChange() { invalidateBoard(); draw(); }
+  const themeMedia = matchMedia('(prefers-color-scheme: dark)');
+  if (themeMedia.addEventListener) themeMedia.addEventListener('change', onThemeChange);
+  else if (themeMedia.addListener) themeMedia.addListener(onThemeChange);
+  new MutationObserver(onThemeChange).observe(document.documentElement, {
+    attributes: true, attributeFilter: ['data-theme']
+  });
 
   // ── games-shell：战绩榜 + 评论 + 结算图 ──────
   let c4WlbWidget = null;
@@ -791,48 +859,23 @@ permalink: /toolbox/connect4/
     return m + ':' + String(s).padStart(2, '0');
   }
 
-  // 结算分享图：复用棋盘画法
+  // 结算分享图：复用游戏里的棋盘 / 空洞 / 棋子画法，观感与对局一致
   function c4PaintBoard(g2, x, y, w, h) {
-    const cell = Math.min(w / COLS, h / ROWS);
-    const bw = cell * COLS, bh = cell * ROWS;
-    const ox = x + (w - bw) / 2, oy = y + (h - bh) / 2;
-    const rad = cell * 0.40;
-    g2.fillStyle = '#2a5db0';
-    g2.beginPath();
-    const rr = cell * 0.12;
-    g2.moveTo(ox + rr, oy);
-    g2.arcTo(ox + bw, oy, ox + bw, oy + bh, rr);
-    g2.arcTo(ox + bw, oy + bh, ox, oy + bh, rr);
-    g2.arcTo(ox, oy + bh, ox, oy, rr);
-    g2.arcTo(ox, oy, ox + bw, oy, rr);
-    g2.closePath();
-    g2.fill();
+    const cell = Math.min(w / COLS, h / (ROWS + 0.3));
+    const boardW = cell * COLS, boardH = cell * ROWS;
+    const ox = x + (w - boardW) / 2, oy = y + (h - boardH) / 2;
+    const gg = { cell, boardW, boardH, ox, oy, r: cell * 0.40 };
+    paintBoardPanel(g2, gg, false);
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const cx = ox + c * cell + cell / 2;
         const cy = oy + r * cell + cell / 2;
         const v = state.board[r] ? state.board[r][c] : EMPTY;
-        if (v === EMPTY) {
-          g2.fillStyle = '#e9eef7';
-          g2.beginPath(); g2.arc(cx, cy, rad, 0, Math.PI * 2); g2.fill();
-        } else {
-          const col = v === HUMAN ? ['#ff6b6b', '#d63031'] : ['#ffe169', '#f0a500'];
-          const grad = g2.createRadialGradient(cx - rad * 0.32, cy - rad * 0.32, rad * 0.1, cx, cy, rad);
-          grad.addColorStop(0, col[0]); grad.addColorStop(1, col[1]);
-          g2.fillStyle = grad;
-          g2.beginPath(); g2.arc(cx, cy, rad, 0, Math.PI * 2); g2.fill();
-        }
+        if (v === EMPTY) paintHole(g2, cx, cy, gg.r, false);
+        else paintDisc(g2, cx, cy, v, gg.r);
       }
     }
-    if (state.winCells) {
-      g2.strokeStyle = 'rgba(255,255,255,0.95)';
-      g2.lineWidth = Math.max(3, cell * 0.10);
-      for (const p of state.winCells.cells) {
-        const cx = ox + p.c * cell + cell / 2;
-        const cy = oy + p.r * cell + cell / 2;
-        g2.beginPath(); g2.arc(cx, cy, rad * 0.96, 0, Math.PI * 2); g2.stroke();
-      }
-    }
+    if (state.winCells) paintWin(g2, gg, state.winCells);
   }
 
   function c4GetSettlementOpts() {
