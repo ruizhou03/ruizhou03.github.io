@@ -3247,7 +3247,7 @@
       if (f) { icon = foodIconHTML(f, '🍖'); name = f.name; }
       else { const kb = pet.kibble || {}; icon = foodIconHTML(kb, '🥣'); name = kb.name || '干粮'; }
     }
-    $foodPickerTrigger.innerHTML = `<span class="fpt-emoji">${icon}</span><span class="fpt-name">${escapeHtml(name)}</span><span class="fpt-caret">换 ▾</span>`;
+    $foodPickerTrigger.innerHTML = `<span class="fpt-emoji">${icon}</span><span class="fpt-name">${escapeHtml(name)}</span><span class="fpt-caret">换</span>`;
   }
   // 折叠组：增删改与折叠开关。组只是「组织容器」，不带任何换算系数——每个成员仍保留各自的
   // 等效干粮重量。组头不可被选来记账（点它＝展开/收起）。
@@ -3446,6 +3446,12 @@
   // 手机端：点触发条展开/收起食物列表
   if ($foodPickerTrigger) $foodPickerTrigger.addEventListener('click', () => {
     if ($entryCols) $entryCols.classList.toggle('fs-open');
+  });
+  // 悬浮列表打开时，点它和触发条以外的地方 → 收起（列表已盖住填写区，只有真正点外面才收）
+  document.addEventListener('click', (e) => {
+    if (!$entryCols || !$entryCols.classList.contains('fs-open')) return;
+    if ($entryCols.contains(e.target)) return;
+    $entryCols.classList.remove('fs-open');
   });
 
   function selectRecordFood(id) {

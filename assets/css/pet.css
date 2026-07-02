@@ -468,11 +468,11 @@
      点它整宽铺开列表（组/品牌都看得清），选一个就自动收回、接着填写。 */
   @media (max-width: 800px) {
     .entry-form { padding: 1rem; }
-    .entry-form .entry-cols { flex-direction: column; align-items: stretch; gap: 0; }
-    /* 触发条：显示当前所选食物 + 换▾ */
+    .entry-form .entry-cols { flex-direction: column; align-items: stretch; gap: 0; position: relative; }
+    /* 触发条：显示当前所选食物 + 换▾（定高，方便悬浮列表对齐到它正下方） */
     .entry-form .food-picker-trigger {
       display: flex; align-items: center; gap: 0.55rem; width: 100%;
-      padding: 0.6rem 0.85rem; margin-bottom: 0.7rem; min-height: 48px;
+      padding: 0.6rem 0.85rem; margin-bottom: 0.7rem; height: 48px; box-sizing: border-box;
       border: 1px solid var(--color-border); border-radius: 12px;
       background: var(--color-bg-warm); color: var(--color-ink);
       font: inherit; font-size: 0.95rem; cursor: pointer; text-align: left;
@@ -481,16 +481,19 @@
     .entry-form .food-picker-trigger .fpt-emoji .fc-photo { width: 1.4em; height: 1.4em; object-fit: cover; border-radius: 5px; display: block; }
     .entry-form .food-picker-trigger .fpt-name { flex: 1 1 auto; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .entry-form .food-picker-trigger .fpt-caret { flex: 0 0 auto; color: var(--color-muted); font-size: 0.85rem; }
+    .entry-form .food-picker-trigger .fpt-caret::after { content: ' ▾'; }
     .entry-form .entry-cols.fs-open .food-picker-trigger { border-color: var(--color-accent); }
-    /* 列表：默认收起，.fs-open 时整宽铺开（复用桌面竖列的 chip/折叠样式） */
+    .entry-form .entry-cols.fs-open .food-picker-trigger .fpt-caret::after { content: ' ▴'; }
+    /* 列表：默认收起；.fs-open 时【绝对定位悬浮】在触发条正下方，盖住下面的填写区、不把
+       页面撑长——逼用户先选好再往下填，也不显臃肿。复用桌面竖列的 chip 与折叠样式。 */
     .entry-form .food-selector { display: none; }
     .entry-form .entry-cols.fs-open .food-selector {
-      display: flex; flex-direction: column; align-self: stretch;
-      flex: 1 1 auto; width: 100%;
-      max-height: 46vh; overflow-y: auto;
-      margin: 0 0 0.7rem; padding: 0.5rem;
-      border: 1px solid var(--color-border); border-right: 1px solid var(--color-border);
-      border-radius: 12px; background: var(--color-bg-warm);
+      display: flex; flex-direction: column;
+      position: absolute; top: 52px; left: 0; right: 0; z-index: 20;
+      max-height: min(46vh, 360px); overflow-y: auto;
+      margin: 0; padding: 0.5rem;
+      border: 1px solid var(--color-border); border-radius: 12px;
+      background: var(--color-bg); box-shadow: var(--pet-shadow-2);
     }
     .entry-form .fill-area { flex: 1 1 auto; width: auto; padding: 0; }
     .entry-form .fill-area > * { max-width: none; }
