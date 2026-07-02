@@ -66,19 +66,38 @@ permalink: /toolbox/picker/
     transition: opacity 0.3s;
   }
 
+  /* —— 占比列表头：把「平均分配」放在占比一侧，明确它是调占比、不是重置选项 —— */
+  .weights-bar {
+    display: flex; align-items: center; gap: 0.5rem;
+    margin-bottom: 0.55rem;
+  }
+  .weights-bar .wb-label {
+    font-size: 0.82rem; color: var(--color-light); margin-right: auto;
+  }
+  .equal-btn {
+    padding: 0.28rem 0.72rem; font-size: 0.82rem; font: inherit;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: transparent; color: var(--color-muted);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  @media (hover: hover) {
+    .equal-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+
   .options-list { display: flex; flex-direction: column; gap: 0.7rem; }
+  /* [删] [色块] [选项名] [占比滑块] [占比数字+%] [锁] */
   .option-row {
     display: grid;
-    grid-template-columns: 28px minmax(0, 1.5fr) minmax(110px, 1fr) 58px 42px;
+    grid-template-columns: 24px 14px minmax(0, 1.4fr) minmax(84px, 1fr) 60px 28px;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
   }
   .option-row .opt-del {
-    width: 28px; height: 28px; border-radius: 6px;
+    width: 24px; height: 24px; border-radius: 6px;
     border: 1px solid var(--color-border); background: transparent;
-    color: var(--color-light); cursor: pointer; font-size: 0.9rem;
+    color: var(--color-light); cursor: pointer; font-size: 0.85rem;
     display: inline-flex; align-items: center; justify-content: center;
-    transition: all 0.15s;
+    transition: all 0.15s; padding: 0;
   }
   @media (hover: hover) {
     .option-row .opt-del:hover {
@@ -87,6 +106,12 @@ permalink: /toolbox/picker/
   }
   .option-row .opt-del:disabled {
     opacity: 0.35; cursor: not-allowed;
+  }
+  /* 选项色块：跟转盘扇区、计票柱同色同位置——选项列表本身就是「图例」 */
+  .option-row .opt-chip {
+    width: 14px; height: 14px; border-radius: 50%;
+    display: inline-block; flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
   }
   .option-row .opt-text {
     width: 100%; min-width: 0;
@@ -103,6 +128,7 @@ permalink: /toolbox/picker/
     height: 6px; border-radius: 3px; background: var(--color-border);
     outline: none; cursor: pointer;
   }
+  .option-row .opt-weight:disabled { opacity: 0.4; cursor: not-allowed; }
   .option-row .opt-weight::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: 18px; height: 18px; border-radius: 50%;
@@ -116,12 +142,13 @@ permalink: /toolbox/picker/
     background: var(--color-accent); border: 2px solid var(--color-bg);
     cursor: pointer;
   }
-  /* 权重数字框：可直接输入小数做精细调控（0.1、2.5…），去掉浏览器自带的上下箭头 */
+  /* 占比数字框 + % 后缀：直接输入这一项占多少百分比 */
+  .option-row .wnum { display: flex; align-items: center; gap: 3px; min-width: 0; }
   .option-row .opt-weight-num {
     width: 100%; min-width: 0; box-sizing: border-box;
     -webkit-appearance: none; -moz-appearance: textfield; appearance: none;
     border: 1px solid var(--color-border); border-radius: 6px;
-    padding: 0.4rem 0.3rem;
+    padding: 0.4rem 0.2rem;
     font: inherit; font-size: 0.9rem; text-align: center;
     color: var(--color-ink); background: var(--color-bg);
     outline: none; transition: border-color 0.2s;
@@ -131,14 +158,20 @@ permalink: /toolbox/picker/
     -webkit-appearance: none; margin: 0;
   }
   .option-row .opt-weight-num:focus { border-color: var(--color-accent); }
-  .option-row .opt-pct {
-    text-align: right;
-    font-family: var(--font-body);
-    font-size: 0.95rem; color: var(--color-muted);
-    white-space: nowrap;
-    transition: color 0.2s;
+  .option-row .opt-weight-num:disabled { opacity: 0.55; cursor: not-allowed; }
+  .option-row .wpct {
+    font-style: normal; font-size: 0.85rem; color: var(--color-muted); flex-shrink: 0;
   }
-  .option-row.is-winner .opt-pct { color: #8a6a35; font-weight: 700; }
+  /* 锁定按钮：🔓 未锁 / 🔒 已锁（锁住的行在你调别的选项时占比保持不变） */
+  .option-row .opt-lock {
+    width: 28px; height: 28px; padding: 0;
+    border: none; background: transparent; cursor: pointer;
+    font-size: 0.95rem; line-height: 1; opacity: 0.45;
+    transition: opacity 0.15s;
+  }
+  @media (hover: hover) { .option-row .opt-lock:hover { opacity: 0.9; } }
+  .option-row .opt-lock.locked { opacity: 1; }
+  .option-row.is-locked .opt-text { border-style: dashed; }
   .option-row.is-winner .opt-text {
     background: rgba(201,169,110,0.14);
     border-color: var(--color-highlight, #c9a96e);
@@ -146,7 +179,7 @@ permalink: /toolbox/picker/
 
   .add-row {
     margin-top: 0.9rem;
-    display: flex; justify-content: center; gap: 0.6rem; flex-wrap: wrap;
+    display: flex; justify-content: center;
   }
   .add-row button {
     padding: 0.4rem 1rem; font-size: 0.9rem;
@@ -161,8 +194,6 @@ permalink: /toolbox/picker/
   }
   }
   .add-row button:disabled { opacity: 0.4; cursor: not-allowed; }
-  /* 恢复等权：实线边、跟"添加选项"区分开 */
-  .add-row .equal-btn { border-style: solid; }
 
   .mode-row {
     display: flex; align-items: center; gap: 1.2rem;
@@ -273,15 +304,23 @@ permalink: /toolbox/picker/
 
   @media (min-width: 760px) {
     .stage {
-      display: grid;
-      grid-template-columns: auto minmax(240px, 360px);
+      display: flex;
       justify-content: center;
       align-items: center;
-      gap: 1.8rem;
       max-width: 760px;
     }
-    .outcome-col { align-self: center; }
-    /* 并排时结果/再抽按钮不必再撑最小高度，交给内容自然高度 */
+    .wheel-col { flex: 0 0 auto; }
+    /* 抽之前：转盘居中、右侧结果列收起（宽度 0）；首抽时 .spun 让它展开——
+       flex 居中会把转盘自然带向左，这就是"点抽后转盘滑向左边"的动画。
+       （不用 gap，改用 margin，避免收起时空隙让转盘偏离正中心。） */
+    .outcome-col {
+      flex: 0 0 auto;
+      width: 0; opacity: 0; overflow: hidden; margin-left: 0;
+      transition: width 0.55s ease, opacity 0.4s ease, margin-left 0.55s ease;
+    }
+    .stage.spun .outcome-col {
+      width: 340px; opacity: 1; margin-left: 1.8rem;
+    }
     .stage .result-zone { margin-top: 0; }
     .stage .tally-panel { margin-top: 1rem; padding-top: 1rem; }
     .stage .reset-row { margin-top: 1rem; }
@@ -403,11 +442,18 @@ permalink: /toolbox/picker/
     font-size: 0.95rem; color: var(--color-ink);
     font-weight: 600;
   }
+  /* 计票名字：最多折两行显示，再长就省略号（完整名鼠标悬停可见 title）；前置同色小圆点做图例 */
   .tally-name {
     font-size: 0.78rem; color: var(--color-muted);
-    text-align: center;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    text-align: center; line-height: 1.25;
     width: 100%;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden; word-break: break-word;
+  }
+  .tally-name .tally-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 3px; vertical-align: baseline;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
   }
   .tally-col.is-winner .tally-name { color: var(--color-ink); font-weight: 600; }
 
@@ -597,16 +643,18 @@ permalink: /toolbox/picker/
 
   @media (max-width: 600px) {
     .picker-card { padding: 1.1rem 0.9rem; }
-    /* 手机端收起滑块，改由数字框做权重精调（触屏上打字比拖滑块更准）；
-       行变为 [删] [选项名] [权重数字] [%] 四列 */
+    /* 手机端收起滑块，改由数字框输占比（触屏上打字比拖滑块更准）；
+       行变为 [删] [色块] [选项名] [占比数字+%] [锁] 五列 */
     .option-row {
-      grid-template-columns: 26px minmax(0, 1.4fr) 58px 40px;
-      gap: 0.45rem;
+      grid-template-columns: 22px 12px minmax(0, 1.4fr) 56px 26px;
+      gap: 0.4rem;
     }
     .option-row .opt-weight { display: none; }
+    .option-row .opt-del { width: 22px; height: 22px; }
+    .option-row .opt-chip { width: 12px; height: 12px; }
     .option-row .opt-text { font-size: 0.9rem; padding: 0.4rem 0.55rem; }
-    .option-row .opt-weight-num { font-size: 0.85rem; padding: 0.4rem 0.2rem; }
-    .option-row .opt-pct { font-size: 0.85rem; }
+    .option-row .opt-weight-num { font-size: 0.85rem; padding: 0.4rem 0.1rem; }
+    .option-row .wpct { font-size: 0.8rem; }
     .wheel-svg text { font-size: 11px; }
   }
 </style>
@@ -630,9 +678,12 @@ permalink: /toolbox/picker/
       <button type="button" class="profile-action" id="profile-share-btn" title="复制当前选项的分享链接到剪贴板">🔗 分享</button>
       <span class="profile-toast" id="profile-toast" style="display:none;"></span>
     </div>
+    <div class="weights-bar">
+      <span class="wb-label">选项与占比</span>
+      <button type="button" class="equal-btn" id="equal-btn" title="把所有选项的占比拉平成一样（每项 100÷选项数）">⚖ 平均分配</button>
+    </div>
     <div class="options-list" id="options-list"></div>
     <div class="add-row">
-      <button type="button" class="equal-btn" id="equal-btn" title="把所有选项的权重恢复成完全一样">⚖ 恢复等权</button>
       <button type="button" id="add-btn">+ 添加选项</button>
     </div>
 
@@ -708,10 +759,10 @@ permalink: /toolbox/picker/
   <details class="about">
     <summary>关于这个工具</summary>
     <p>每次抽签都会重新生成随机数（用浏览器的 <code>Math.random()</code>），不存历史（除了你主动展开的"最近抽签"，存在本机 localStorage）、不联网、不收集任何数据。</p>
-    <p>"加权"采用累积分布抽样：所有权重加和归一化后，落在哪个区间就选哪个——跟轮盘赌一样直观。每项权重可以直接在数字框里输入小数（如 0.1、2.5）精细调控，且必须是正数；点"⚖ 恢复等权"可一键把所有权重拉平。</p>
-    <p>每次抽签都是相互独立、严格按权重的随机（同分布、无记忆）。如果你觉得"某一项好像一路都更容易被抽到"，那多半是错觉：随机序列天生会出现连号，人脑很容易把它读成"趋势"。放大到几百万次实测，各项频率跟设定权重完全吻合。</p>
-    <p>多次模式不是"比谁更幸运"，而是"独立同分布抽样的简单多数"——理论上权重越高的越可能胜出，但小样本（3 次、5 次）下波动比较大，这正是好玩的地方。平票时按"第一时间到达最高票数"算赢。</p>
-    <p>把当前清单分享给朋友：点上方"🔗 分享"——选项和权重都会编码到 URL hash 里，对方打开就同步了。</p>
+    <p>每项的数字就是它的<strong>中签概率（%）</strong>，各项之和永远 = 100%。直接在数字框里输入或拖滑块即可；因为要凑满 100%，改动一项时其余未锁定的项会按各自比例自动补足。想精确设出「40/40/20」这种组合：把调好的项点 🔒 锁住，再调下一项就不会动它了。点"⚖ 平均分配"可一键把占比拉平。选项名放不下时，转盘和计票柱只留颜色——认颜色即可，全名在上面的列表里（每行前的小圆点就是它在转盘/柱状图里的颜色）。</p>
+    <p>抽签本身是按占比的累积分布抽样（跟轮盘赌一样）。每次都是相互独立、严格按占比的随机（同分布、无记忆）。如果你觉得"某一项好像一路都更容易被抽到"，那多半是错觉：随机序列天生会出现连号，人脑很容易把它读成"趋势"。放大到几百万次实测，各项频率跟设定占比完全吻合。</p>
+    <p>多次模式不是"比谁更幸运"，而是"独立同分布抽样的简单多数"——理论上占比越高的越可能胜出，但小样本（3 次、5 次）下波动比较大，这正是好玩的地方。平票时按"第一时间到达最高票数"算赢。</p>
+    <p>把当前清单分享给朋友：点上方"🔗 分享"——选项和占比都会编码到 URL hash 里，对方打开就同步了。</p>
     <p>键盘：焦点不在输入框时，按 <kbd>空格</kbd> / <kbd>回车</kbd> 直接抽签；在选项名输入框里按 <kbd>回车</kbd> 跳到下一个选项，已经是最后一个就自动新建一个。</p>
   </details>
 </article>

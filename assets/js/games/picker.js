@@ -17,12 +17,13 @@
   // ── 状态 ──────────────────────────────
   const state = {
     options: [
-      { id: cryptoId(), text: '火锅',     weight: 5 },
-      { id: cryptoId(), text: '烧烤',     weight: 5 },
-      { id: cryptoId(), text: '沙县小吃', weight: 5 },
+      { id: cryptoId(), text: '火锅',     weight: 5, locked: false },
+      { id: cryptoId(), text: '烧烤',     weight: 5, locked: false },
+      { id: cryptoId(), text: '沙县小吃', weight: 5, locked: false },
     ],
     draws: 1,
     busy: false,
+    spun: false,            // 是否已经抽过（宽屏：抽前转盘居中，首抽时滑向左边给结果腾位）
     rotation: 0,            // 当前累积旋转角度（CSS）
     multiResults: [],       // 多次模式下每次抽到的 idx
     skipAnimation: false,   // 用户在多次模式中点了"跳过动画"
@@ -60,6 +61,7 @@
       id: cryptoId(),
       text: o.text,
       weight: clampWeight(o.weight),   // 兼容旧方案里可能存过的 0 权重 → 收敛成正数
+      locked: false,
     }));
     state.draws = profile.draws || 1;
   }
@@ -206,7 +208,8 @@
         return {
           id: cryptoId(),
           text: text.slice(0, 20),
-          weight: clampWeight(isNaN(w) ? EQUAL_WEIGHT : w),
+          weight: clampWeight(isNaN(w) ? DEFAULT_PCT : w),
+          locked: false,
         };
       }).filter(Boolean).slice(0, 10);
       if (items.length < 2) return false;
@@ -318,25 +321,87 @@
   const $ioCopyBtn        = document.getElementById('io-copy-btn');
   const $ioImportBtn      = document.getElementById('io-import-btn');
 
-  // ── 权重：正数、可小数（一位）──────────
-  // 铁律：每项权重必须是正数（禁止 0 / 负数），否则"某项 100% 其余 0"这种设置就没意义了。
-  // 滑块只覆盖 0.1–10 的常用区间做快速拖动；数字框允许打到 MAX_WEIGHT，超出滑块量程时
-  // 滑块停在最大端。所有入口（拖动 / 输入 / 分享链接 / 导入 / 等权）都过 clampWeight。
-  const MIN_WEIGHT = 0.1;
+  // ── 权重＝占比（百分比模型）──────────
+  // 每项内部 weight 就当"百分点"用，界面上直接显示/编辑百分比，任何时候各项之和 = 100%。
+  // 铁律：每项占比必须是正数（≥ MIN_PCT），禁 0/负（"某项 100% 其余 0" 无意义）。
+  // 编辑联动：改一项，其余"未锁定"的行按各自比例自动补足到 100%；锁定(🔒)的行保持不变，
+  //   于是能精确设出 40/40/20 这类组合（锁住已调好的，再调下一项）。
+  const MIN_WEIGHT = 0.1;   // 内部权重下限（hash/导入/旧方案兜底用，防 0/负）
   const MAX_WEIGHT = 100;
-  const SLIDER_MAX = 10;
-  const EQUAL_WEIGHT = 5;   // "恢复等权"及新建选项用的默认权重（等权时具体取值无所谓，取滑块中段更好看）
+  const MIN_PCT = 1;        // 每项最少占 1%（保证扇区可见且非 0）
+  const DEFAULT_PCT = 20;   // 非法值兜底
   function clampWeight(w) {
     let n = Number(w);
-    if (!isFinite(n)) n = EQUAL_WEIGHT;
+    if (!isFinite(n)) n = DEFAULT_PCT;
     n = Math.round(n * 10) / 10;          // 归一到一位小数
     if (n < MIN_WEIGHT) n = MIN_WEIGHT;
     if (n > MAX_WEIGHT) n = MAX_WEIGHT;
     return n;
   }
   function fmtWeight(w) {
-    // 整数不显示 ".0"：5 → "5"，2.5 → "2.5"
     return String(Math.round(clampWeight(w) * 10) / 10);
+  }
+
+  // 当前各项显示用的整数百分比，且用"最大余数法"保证四舍五入后仍严格加总 = 100
+  function displayPercents() {
+    const ws = state.options.map(o => Math.max(0, o.weight));
+    const total = ws.reduce((a, b) => a + b, 0) || 1;
+    const raw = ws.map(w => w / total * 100);
+    const floor = raw.map(x => Math.floor(x));
+    let rem = Math.round(100 - floor.reduce((a, b) => a + b, 0));
+    const order = raw.map((x, i) => ({ i, frac: x - Math.floor(x) }))
+      .sort((a, b) => b.frac - a.frac);
+    const out = floor.slice();
+    for (let k = 0; k < rem && k < order.length; k++) out[order[k].i]++;
+    return out;
+  }
+
+  // 把某一项的占比设为 target%，其余"未锁定"项按比例补足到 100%；写回后 weight 即百分比、和为 100
+  function setPercent(optId, target) {
+    const opts = state.options;
+    const kIdx = opts.findIndex(o => o.id === optId);
+    if (kIdx < 0) return;
+    const total = opts.reduce((s, o) => s + Math.max(0, o.weight), 0) || 1;
+    const cur = opts.map(o => Math.max(0, o.weight) / total * 100);
+    let lockedSum = 0;
+    const unlocked = [];
+    opts.forEach((o, i) => {
+      if (i === kIdx) return;
+      if (o.locked) lockedSum += cur[i];
+      else unlocked.push(i);
+    });
+    const unlockedSum = unlocked.reduce((s, i) => s + cur[i], 0);
+    let p;
+    if (unlocked.length === 0) {
+      // 其余都锁死了：这一项被完全决定，无法自由改
+      p = Math.max(MIN_PCT, 100 - lockedSum);
+    } else {
+      const maxK = 100 - lockedSum - MIN_PCT * unlocked.length;
+      p = Math.max(MIN_PCT, Math.min(maxK, Number(target)));
+    }
+    const next = cur.slice();
+    next[kIdx] = p;
+    const remaining = 100 - p - lockedSum;
+    if (unlocked.length > 0) {
+      if (unlockedSum > 0) {
+        unlocked.forEach(i => { next[i] = remaining * cur[i] / unlockedSum; });
+      } else {
+        unlocked.forEach(i => { next[i] = remaining / unlocked.length; });
+      }
+    }
+    opts.forEach((o, i) => { o.weight = Math.max(MIN_WEIGHT, next[i]); });
+  }
+
+  // 平均分配：所有项占比拉平（并解除全部锁定）
+  function equalizeWeights() {
+    const share = 100 / state.options.length;
+    state.options.forEach(o => { o.weight = share; o.locked = false; });
+  }
+  function clearLocks() {
+    state.options.forEach(o => { o.locked = false; });
+  }
+  function unlockedCount() {
+    return state.options.reduce((n, o) => n + (o.locked ? 0 : 1), 0);
   }
 
   // ── helpers ───────────────────────────
@@ -371,34 +436,36 @@
   // ── 渲染选项行 ────────────────────────
   function renderOptions() {
     $list.innerHTML = '';
-    const ws = effectiveWeights();
-    const total = ws.reduce((a, b) => a + b, 0) || 1;
+    const pcts = displayPercents();
     state.options.forEach((opt, idx) => {
       const row = document.createElement('div');
-      row.className = 'option-row';
+      row.className = 'option-row' + (opt.locked ? ' is-locked' : '');
       row.dataset.id = opt.id;
-      const pct = total > 0 ? (ws[idx] / total * 100) : 0;
+      const color = SLICE_COLORS[idx % SLICE_COLORS.length];
+      const locked = !!opt.locked;
       row.innerHTML = `
         <button type="button" class="opt-del" aria-label="删除选项" ${state.options.length <= 2 ? 'disabled' : ''}>✕</button>
+        <span class="opt-chip" style="background:${color}" aria-hidden="true"></span>
         <input type="text" class="opt-text" value="${escapeHtml(opt.text)}" placeholder="选项 ${idx + 1}" maxlength="20" />
-        <input type="range" class="opt-weight" min="${MIN_WEIGHT}" max="${SLIDER_MAX}" step="0.1" value="${Math.min(SLIDER_MAX, opt.weight)}" aria-label="权重滑块" />
-        <input type="number" class="opt-weight-num" min="${MIN_WEIGHT}" max="${MAX_WEIGHT}" step="0.1" value="${fmtWeight(opt.weight)}" inputmode="decimal" aria-label="权重数值（正数，可小数）" />
-        <span class="opt-pct">${pct.toFixed(0)}%</span>
+        <input type="range" class="opt-weight" min="${MIN_PCT}" max="100" step="1" value="${pcts[idx]}" aria-label="占比滑块" ${locked ? 'disabled' : ''} />
+        <span class="wnum"><input type="number" class="opt-weight-num" min="${MIN_PCT}" max="100" step="1" value="${pcts[idx]}" inputmode="numeric" aria-label="占比（百分比）" ${locked ? 'disabled' : ''} /><i class="wpct">%</i></span>
+        <button type="button" class="opt-lock ${locked ? 'locked' : ''}" aria-label="${locked ? '解锁占比' : '锁定占比'}" title="${locked ? '已锁定：改别的选项时它保持不变' : '锁定这一项占比（调别的选项时它不变）'}">${locked ? '🔒' : '🔓'}</button>
       `;
-      // 事件
+      // 删除
       row.querySelector('.opt-del').addEventListener('click', () => {
         if (state.busy) return;
         if (state.options.length <= 2) return;
-        const idx = state.options.findIndex(o => o.id === opt.id);
-        if (idx < 0) return;
-        const removed = state.options.splice(idx, 1)[0];
+        const i = state.options.findIndex(o => o.id === opt.id);
+        if (i < 0) return;
+        const removed = state.options.splice(i, 1)[0];
+        clearLocks();          // 结构变了，锁定失效
         markDirty();
         renderAll();
-        showToast(`已删除"${removed.text || ('选项' + (idx + 1))}"`, {
+        showToast(`已删除"${removed.text || ('选项' + (i + 1))}"`, {
           label: '撤销',
           onClick: () => {
             if (state.options.length >= 10) return;
-            state.options.splice(idx, 0, removed);
+            state.options.splice(i, 0, removed);
             markDirty();
             renderAll();
           },
@@ -407,52 +474,67 @@
       const textInput = row.querySelector('.opt-text');
       const slider    = row.querySelector('.opt-weight');
       const numInput  = row.querySelector('.opt-weight-num');
+      const lockBtn   = row.querySelector('.opt-lock');
 
       textInput.addEventListener('input', (e) => {
         opt.text = e.target.value;
         markDirty();
-        renderWheel();   // 文字变了要重画转盘
+        renderWheel();       // 文字变了要重画转盘
+        updateSpinBtn();     // 有空名字会禁用"抽"
       });
-      // 回车 = 跳到下一个选项名输入框；已是最后一个且当前非空 → 自动新建一个并聚焦
+      // 回车推进 / 末项非空则自动新建
       textInput.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter') return;
         e.preventDefault();
         advanceFromTextInput(opt.id, e.target.value);
       });
 
-      // 拖滑块（覆盖 0.1–10 的快速区间）→ 同步数字框
+      // 拖滑块 → 把这一项设成该占比（其余未锁定项按比例补足到 100%）
       slider.addEventListener('input', (e) => {
-        opt.weight = clampWeight(e.target.value);
-        numInput.value = fmtWeight(opt.weight);
+        if (opt.locked) return;
+        setPercent(opt.id, Number(e.target.value));
         markDirty();
-        renderOptionsPct();
+        syncWeightUI(e.target);
         renderWheel();
         updateSpinBtn();
       });
-      // 数字框（精细，可小数、可超出滑块量程）→ 同步滑块。空串先放行，等 blur 再规范化
+      // 数字框输占比。空串先放行，等 blur 再规范化回填
       numInput.addEventListener('input', (e) => {
+        if (opt.locked) return;
         if (e.target.value.trim() === '') return;
-        const w = clampWeight(e.target.value);
-        opt.weight = w;
-        slider.value = Math.min(SLIDER_MAX, w);
+        setPercent(opt.id, Number(e.target.value));
         markDirty();
-        renderOptionsPct();
+        syncWeightUI(e.target);   // 别覆盖用户正在输入的这个框
         renderWheel();
         updateSpinBtn();
       });
-      // 失焦：把空 / 越界 / 非法值收敛成合法正数并回填
-      numInput.addEventListener('blur', (e) => {
-        const w = clampWeight(e.target.value === '' ? opt.weight : e.target.value);
-        opt.weight = w;
-        e.target.value = fmtWeight(w);
-        slider.value = Math.min(SLIDER_MAX, w);
-        renderOptionsPct();
-        renderWheel();
-        updateSpinBtn();
+      numInput.addEventListener('blur', () => {
+        syncWeightUI(null);       // 回填成四舍五入后、加总 = 100 的整数占比
       });
+
+      // 锁定 / 解锁
+      lockBtn.addEventListener('click', () => {
+        if (state.busy) return;
+        if (!opt.locked && unlockedCount() <= 1) {
+          showToast('至少留一项不锁定，才能自动配平');
+          return;
+        }
+        opt.locked = !opt.locked;
+        renderOptions();          // 重画锁图标 + 各框禁用态
+        renderWheel();
+      });
+
       $list.appendChild(row);
     });
   }
+  function appendOption(text) {
+    // 新选项默认拿"平均一份"的占比，不喧宾夺主；结构变了顺手解除锁定
+    const ws = state.options.map(o => Math.max(0, o.weight));
+    const avg = ws.length ? ws.reduce((a, b) => a + b, 0) / ws.length : DEFAULT_PCT;
+    state.options.push({ id: cryptoId(), text: text || '', weight: avg, locked: false });
+    clearLocks();
+  }
+
   // 选项名输入框里按回车的推进逻辑（见 keydown 绑定）
   function advanceFromTextInput(optId, currentValue) {
     if (state.busy) return;
@@ -471,7 +553,7 @@
       return;
     }
     // 否则新建一个选项并聚焦
-    state.options.push({ id: cryptoId(), text: '', weight: EQUAL_WEIGHT });
+    appendOption('');
     markDirty();
     renderAll();
     const newRows = $list.querySelectorAll('.option-row');
@@ -480,13 +562,20 @@
     if (lastText) lastText.focus();
   }
 
-  function renderOptionsPct() {
-    const ws = effectiveWeights();
-    const total = ws.reduce((a, b) => a + b, 0) || 1;
+  // 编辑占比后，把每行的滑块 / 数字框 / 禁用态同步成最新（exceptEl 是用户当前正操作的元素，跳过不覆盖）
+  function syncWeightUI(exceptEl) {
+    const pcts = displayPercents();
     const rows = $list.querySelectorAll('.option-row');
     rows.forEach((row, idx) => {
-      const pct = ws[idx] / total * 100;
-      row.querySelector('.opt-pct').textContent = pct.toFixed(0) + '%';
+      const o = state.options[idx];
+      const slider = row.querySelector('.opt-weight');
+      const num = row.querySelector('.opt-weight-num');
+      if (slider && slider !== exceptEl) slider.value = pcts[idx];
+      if (num && num !== exceptEl && document.activeElement !== num) num.value = pcts[idx];
+      const locked = !!(o && o.locked);
+      if (slider) slider.disabled = locked;
+      if (num) num.disabled = locked;
+      row.classList.toggle('is-locked', locked);
     });
   }
   function escapeHtml(s) {
@@ -517,29 +606,39 @@
       const color = SLICE_COLORS[idx % SLICE_COLORS.length];
       svg += `<path class="slice" data-idx="${idx}" d="M ${cx} ${cy} L ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z" fill="${color}" stroke="#fff" stroke-width="0.6"/>`;
 
-      // 文字标签：放在切片角度中点，半径 60% 处
+      // 文字标签：放在切片角度中点，半径 60% 处。
+      // 放得下就显示名字（可折两行），空名字或太长放不下 → 不写字、只留颜色（靠选项列表的色块图例认）。
       const aMid = (a0 + a1) / 2;
       const sliceFraction = end - start;
-      if (sliceFraction > 0.04) {  // 至少占 4% 才放文字
-        const tx = cx + r * 0.6 * Math.cos(aMid);
-        const ty = cy + r * 0.6 * Math.sin(aMid);
-        // 下半圆（sin(aMid) > 0，即 y > cy）多旋 180°，避免文字倒着读
-        let rotDeg = (aMid * 180 / Math.PI) + 90;
-        if (Math.sin(aMid) > 0) rotDeg += 180;
-        const fontSize = sliceFraction > 0.18 ? 8.5 : (sliceFraction > 0.10 ? 7 : 5.6);
-        const label = truncateLabel(opt.text || ('选项' + (idx + 1)), sliceFraction);
-        svg += `<text x="${tx.toFixed(2)}" y="${ty.toFixed(2)}" transform="rotate(${rotDeg.toFixed(2)} ${tx.toFixed(2)} ${ty.toFixed(2)})" font-size="${fontSize}">${escapeHtml(label)}</text>`;
+      const name = (opt.text || '').trim();
+      if (name && sliceFraction > 0.05) {
+        const lines = wheelLabelLines(name, sliceFraction);
+        if (lines) {
+          const tx = cx + r * 0.6 * Math.cos(aMid);
+          const ty = cy + r * 0.6 * Math.sin(aMid);
+          // 下半圆（sin(aMid) > 0，即 y > cy）多旋 180°，避免文字倒着读
+          let rotDeg = (aMid * 180 / Math.PI) + 90;
+          if (Math.sin(aMid) > 0) rotDeg += 180;
+          const fontSize = sliceFraction > 0.18 ? 8.5 : (sliceFraction > 0.10 ? 7 : 5.6);
+          const inner = lines.length === 1
+            ? escapeHtml(lines[0])
+            : `<tspan x="${tx.toFixed(2)}" dy="-0.55em">${escapeHtml(lines[0])}</tspan><tspan x="${tx.toFixed(2)}" dy="1.1em">${escapeHtml(lines[1])}</tspan>`;
+          svg += `<text x="${tx.toFixed(2)}" y="${ty.toFixed(2)}" transform="rotate(${rotDeg.toFixed(2)} ${tx.toFixed(2)} ${ty.toFixed(2)})" font-size="${fontSize}">${inner}</text>`;
+        }
       }
     });
     $wheel.innerHTML = svg;
   }
-  function truncateLabel(text, fraction) {
-    // 切片越大允许越长。粗略：每 0.06 片段允许 1 个字
-    const maxChars = Math.max(2, Math.floor(fraction * 16));
-    if ([...text].length > maxChars) {
-      return [...text].slice(0, maxChars - 1).join('') + '…';
+  // 名字能不能放进这个扇区：放得下→1 行；稍长→折 2 行；再长→返回 null（不写字、只留颜色）
+  function wheelLabelLines(name, fraction) {
+    const chars = [...name];
+    const perLine = Math.max(2, Math.round(fraction * 22));
+    if (chars.length <= perLine) return [name];
+    if (chars.length <= perLine * 2) {
+      const half = Math.ceil(chars.length / 2);
+      return [chars.slice(0, half).join(''), chars.slice(half).join('')];
     }
-    return text;
+    return null;
   }
 
   // ── 转盘动画 ──────────────────────────
@@ -632,6 +731,7 @@
     state.multiResults = [];
     $tallyBars.innerHTML = state.options.map((o, i) => {
       const color = SLICE_COLORS[i % SLICE_COLORS.length];
+      const name = o.text || ('选项' + (i + 1));
       return `
         <div class="tally-col" data-idx="${i}">
           <div class="tally-medal">🥇</div>
@@ -639,7 +739,7 @@
             <div class="tally-bar-fill" style="background:${color};"></div>
             <div class="tally-count">0</div>
           </div>
-          <div class="tally-name">${escapeHtml(o.text || ('选项' + (i + 1)))}</div>
+          <div class="tally-name" title="${escapeHtml(name)}"><span class="tally-dot" style="background:${color}"></span>${escapeHtml(name)}</div>
         </div>
       `;
     }).join('');
@@ -668,6 +768,7 @@
     if (state.busy) return;
     if (state.options.length < 2) return;
     if (totalWeight() <= 0) return;
+    if (hasBlankOption()) return;   // 有选项没填名字，不许抽（避免转盘上出现"选项3"这类占位）
 
     state.busy = true;
     state.skipAnimation = false;   // 每次点抽都重新计起
@@ -679,6 +780,9 @@
     $resultCopyBtn.textContent = '📋 复制结果';
     clearHighlights();
     $result.innerHTML = '&nbsp;';
+
+    // 首抽：宽屏下把转盘从居中滑向左边，给右侧结果/计票腾位；再抽时已在分栏状态，不再来回移动。
+    if (!state.spun) { state.spun = true; $stage.classList.add('spun'); }
 
     // 把整个"舞台"（转盘 + 结果 + 计票）滚进视口，保证两者都完整可见。
     // 关键：顶部导航是 position:fixed，会盖住视口顶端一整条；这里按导航实际高度设
@@ -833,17 +937,31 @@
     $addBtn.disabled = atMax;
     $addBtn.textContent = atMax ? '已达上限（10 个选项）' : '+ 添加选项';
   }
+  function blankCount() {
+    return state.options.reduce((n, o) => n + ((o.text || '').trim() === '' ? 1 : 0), 0);
+  }
+  function hasBlankOption() {
+    return blankCount() > 0;
+  }
   function updateSpinBtn() {
     const enoughOpts = state.options.length >= 2;
     const hasWeight = totalWeight() > 0;
-    $spinBtn.disabled = !enoughOpts || !hasWeight || state.busy;
+    const blanks = blankCount();
+    $spinBtn.disabled = !enoughOpts || !hasWeight || blanks > 0 || state.busy;
     if (!enoughOpts) {
       $spinHintText.textContent = '至少需要两个选项';
+    } else if (blanks > 0) {
+      $spinHintText.textContent = `还有 ${blanks} 个选项没填名字`;
     } else if (!hasWeight) {
-      $spinHintText.textContent = '所有权重为 0，至少给一项设置权重 > 0';
+      $spinHintText.textContent = '所有占比为 0，至少给一项设置占比 > 0';
     } else if (!state.busy) {
       $spinHintText.textContent = '';
     }
+  }
+  // 宽屏"转盘居中→首抽滑向左"的收回：换方案 / 载入分享链接等新语境时回到居中
+  function unspin() {
+    state.spun = false;
+    $stage.classList.remove('spun');
   }
   function updateWheelVisibility() {
     $wheelZone.style.display = state.options.length >= 2 ? '' : 'none';
@@ -852,19 +970,19 @@
   // ── 事件绑定 ──────────────────────────
   $addBtn.addEventListener('click', () => {
     if (state.busy || state.options.length >= 10) return;
-    state.options.push({ id: cryptoId(), text: '', weight: EQUAL_WEIGHT });
+    appendOption('');
     markDirty();
     renderAll();
   });
-  // 恢复等权：把所有选项权重拉回同一个值（等权时具体取值无所谓）
+  // 平均分配：把所有选项占比拉平（每项 100/n），并解除全部锁定
   $equalBtn.addEventListener('click', () => {
     if (state.busy) return;
-    state.options.forEach(o => { o.weight = EQUAL_WEIGHT; });
+    equalizeWeights();
     markDirty();
-    renderOptions();   // 重画各行的滑块 / 数字框 / 百分比
+    renderOptions();   // 重画各行的滑块 / 数字框 / 锁定态
     renderWheel();
     updateSpinBtn();
-    showToast('已恢复等权');
+    showToast('已平均分配');
   });
   function setActivePreset(btnOrNull) {
     $drawsGrp.querySelectorAll('button[data-draws]').forEach(b => {
@@ -963,6 +1081,7 @@
     updateDrawsUI();
     renderProfileBar();
     reset();
+    unspin();          // 新方案 → 转盘回到居中
   });
 
   $profileNewBtn.addEventListener('click', () => {
@@ -1153,6 +1272,7 @@
       updateDrawsUI();
       renderProfileBar();
       reset();
+      unspin();        // 载入分享链接 → 转盘回到居中
     }
   });
 
