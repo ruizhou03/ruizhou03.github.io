@@ -732,6 +732,8 @@
   const $linkToastMount = document.getElementById('link-toast-mount');
 
   const $foodSelector = document.getElementById('food-selector');
+  const $entryCols = document.getElementById('entry-cols');
+  const $foodPickerTrigger = document.getElementById('food-picker-trigger');
   const $unitSuffix = document.getElementById('unit-suffix');
   const $extraEqRow = document.getElementById('extra-eq-row');
   const $extraEq = document.getElementById('extra-eq');
@@ -3230,6 +3232,22 @@
         selectRecordFood(f);
       });
     });
+    updatePickerTrigger();
+  }
+  // 手机端「当前食物」触发条：显示当前选中的食物 + 换▾（桌面端 CSS 隐藏此条）。
+  function updatePickerTrigger() {
+    if (!$foodPickerTrigger) return;
+    const pet = currentPet();
+    if (!pet) { $foodPickerTrigger.innerHTML = ''; return; }
+    let icon, name;
+    if (recordFood === 'kibble') {
+      const kb = pet.kibble || {}; icon = foodIconHTML(kb, '🥣'); name = kb.name || '干粮';
+    } else {
+      const f = (pet.foodLibrary || []).find(x => x.id === recordFood);
+      if (f) { icon = foodIconHTML(f, '🍖'); name = f.name; }
+      else { const kb = pet.kibble || {}; icon = foodIconHTML(kb, '🥣'); name = kb.name || '干粮'; }
+    }
+    $foodPickerTrigger.innerHTML = `<span class="fpt-emoji">${icon}</span><span class="fpt-name">${escapeHtml(name)}</span><span class="fpt-caret">换 ▾</span>`;
   }
   // 折叠组：增删改与折叠开关。组只是「组织容器」，不带任何换算系数——每个成员仍保留各自的
   // 等效干粮重量。组头不可被选来记账（点它＝展开/收起）。
@@ -3425,9 +3443,14 @@
     schedulePushMeta(pet);
   }
   $foodSelector.addEventListener('pointerdown', fdDown);
+  // 手机端：点触发条展开/收起食物列表
+  if ($foodPickerTrigger) $foodPickerTrigger.addEventListener('click', () => {
+    if ($entryCols) $entryCols.classList.toggle('fs-open');
+  });
 
   function selectRecordFood(id) {
     recordFood = id;
+    if ($entryCols) $entryCols.classList.remove('fs-open');   // 选好后把手机端列表自动收回去
     const pet = currentPet();
     recordMethod = (pet && getMethodPref(pet, id)) || defaultMethodFor(id);
     pendingEntryTsEnd = null;

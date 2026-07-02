@@ -71,7 +71,9 @@
     </div>
 
     <div class="entry-form">
-      <div class="entry-cols">
+      <div class="entry-cols" id="entry-cols">
+        <!-- 手机端专用：显示当前所选食物，点它展开/收起下面的列表（桌面端 CSS 隐藏） -->
+        <button type="button" class="food-picker-trigger" id="food-picker-trigger"></button>
         <!-- LEFT: food-type column (scrolls vertically when there are many) -->
         <div class="food-selector" id="food-selector"></div>
 

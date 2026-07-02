@@ -461,19 +461,41 @@
     position: relative; z-index: 5; cursor: grabbing;
     box-shadow: var(--pet-shadow-2); opacity: 0.97; transition: none;
   }
-  /* Narrow screens: 保持「左窄竖列食物 + 右侧填写」的两栏（与电脑端一致，折叠目录才自然）；
-     操作区（记录时间 / 记一笔）靠 flex-wrap 折到整行下方。窄到放不下时填写区会自动换行。 */
+  /* 桌面端隐藏「当前食物」触发条（只手机端用） */
+  .entry-form .food-picker-trigger { display: none; }
+
+  /* Narrow screens（方案 B）：整块竖向堆叠。食物列表默认收起，顶部只留一条「当前食物 · 换▾」；
+     点它整宽铺开列表（组/品牌都看得清），选一个就自动收回、接着填写。 */
   @media (max-width: 800px) {
     .entry-form { padding: 1rem; }
-    .entry-form .entry-cols { flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 0; }
-    .entry-form .food-selector {
-      flex: 0 0 104px; align-self: stretch;
-      max-height: 320px;   /* 竖排、超出滚动，跟电脑端一样 */
+    .entry-form .entry-cols { flex-direction: column; align-items: stretch; gap: 0; }
+    /* 触发条：显示当前所选食物 + 换▾ */
+    .entry-form .food-picker-trigger {
+      display: flex; align-items: center; gap: 0.55rem; width: 100%;
+      padding: 0.6rem 0.85rem; margin-bottom: 0.7rem; min-height: 48px;
+      border: 1px solid var(--color-border); border-radius: 12px;
+      background: var(--color-bg-warm); color: var(--color-ink);
+      font: inherit; font-size: 0.95rem; cursor: pointer; text-align: left;
     }
-    .entry-form .fill-area { flex: 1 1 160px; width: auto; padding: 0 0 0 0.9rem; }
+    .entry-form .food-picker-trigger .fpt-emoji { flex: 0 0 auto; display: inline-flex; font-size: 1.15rem; }
+    .entry-form .food-picker-trigger .fpt-emoji .fc-photo { width: 1.4em; height: 1.4em; object-fit: cover; border-radius: 5px; display: block; }
+    .entry-form .food-picker-trigger .fpt-name { flex: 1 1 auto; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .entry-form .food-picker-trigger .fpt-caret { flex: 0 0 auto; color: var(--color-muted); font-size: 0.85rem; }
+    .entry-form .entry-cols.fs-open .food-picker-trigger { border-color: var(--color-accent); }
+    /* 列表：默认收起，.fs-open 时整宽铺开（复用桌面竖列的 chip/折叠样式） */
+    .entry-form .food-selector { display: none; }
+    .entry-form .entry-cols.fs-open .food-selector {
+      display: flex; flex-direction: column; align-self: stretch;
+      flex: 1 1 auto; width: 100%;
+      max-height: 46vh; overflow-y: auto;
+      margin: 0 0 0.7rem; padding: 0.5rem;
+      border: 1px solid var(--color-border); border-right: 1px solid var(--color-border);
+      border-radius: 12px; background: var(--color-bg-warm);
+    }
+    .entry-form .fill-area { flex: 1 1 auto; width: auto; padding: 0; }
     .entry-form .fill-area > * { max-width: none; }
     /* 记录时间 on top, 记一笔 as the big action at the bottom（整行贴底）。 */
-    .entry-form .action-col { flex: 1 1 100%; width: 100%; border-left: none; margin-top: 0.7rem; }
+    .entry-form .action-col { width: 100%; border-left: none; margin-top: 0.7rem; }
     .entry-form .action-col .save-btn { order: 3; width: 100%; border-radius: 14px; min-height: 48px; }
     .entry-form .action-col .time-pill { border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-bg-warm); justify-content: flex-start; }
   }
