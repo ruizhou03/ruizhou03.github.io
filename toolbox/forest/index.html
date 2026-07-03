@@ -1062,7 +1062,7 @@ theme_color: "#fafaf9"
         <!-- tree SVG 动态注入 -->
       </div>
       <div class="timer-display" id="timer-display">25:00</div>
-      <div class="timer-status" id="timer-status">选好时长，点下面按钮种一棵树 🌱</div>
+      <div class="timer-status" id="timer-status"></div>
     </div>
 
     <!-- 时长：首屏直接可调 -->
@@ -1218,9 +1218,9 @@ theme_color: "#fafaf9"
   <div class="pomodoro-counter" id="overlay-counter" style="display: none;">第 1 个番茄</div>
   <div id="overlay-tree-container" class="overlay-tree-zone"></div>
   <div class="timer-big" id="overlay-timer">25:00</div>
-  <div class="focus-tag" id="overlay-tag">专心</div>
-  <div class="focus-warn" id="overlay-warn">离开这个页面 / 切换 tab 超过 15 秒，树会枯萎。</div>
-  <button type="button" class="give-up-btn" id="give-up-btn">放弃 · 让树死掉</button>
+  <div class="focus-tag" id="overlay-tag">专注中</div>
+  <div class="focus-warn" id="overlay-warn">离开页面超过 15 秒，树会枯萎</div>
+  <button type="button" class="give-up-btn" id="give-up-btn">放弃这棵</button>
   <div class="grace-banner hidden" id="grace-banner"></div>
 </div>
 
@@ -1829,13 +1829,13 @@ theme_color: "#fafaf9"
     $overlay.classList.toggle('break-mode', isBreak);
 
     if (isBreak) {
-      $overlayTag.textContent = '🌊 休息一下';
+      $overlayTag.textContent = '休息一下';
       $overlayWarn.textContent = '休息时间，可以离开屏幕；时间到自动开始下一棵';
       $giveUpBtn.textContent = '结束循环';
     } else {
-      $overlayTag.textContent = state.task ? `📌 ${state.task}` : '专心';
-      $overlayWarn.textContent = '离开这个页面 / 切换 tab 超过 15 秒，树会枯萎。';
-      $giveUpBtn.textContent = '放弃 · 让树死掉';
+      $overlayTag.textContent = state.task ? state.task : '专注中';
+      $overlayWarn.textContent = '离开页面超过 15 秒，树会枯萎';
+      $giveUpBtn.textContent = '放弃这棵';
     }
 
     if (state.pomodoroOn) {
@@ -1964,18 +1964,17 @@ theme_color: "#fafaf9"
       // toast 文案
       let msg;
       if (wasRevival) {
-        msg = `🌱 灌溉成功！新种 ${TREE_NAME[tree.type]}（${tree.durationMinutes} 分）+ 复活 ${revivedTreeName}（${revivedExp.toFixed(0)} 经验）✨`;
+        msg = `灌溉成功：新种一棵 ${TREE_NAME[tree.type]}（${tree.durationMinutes} 分），并复活了 ${revivedTreeName}`;
       } else {
-        msg = `🌳 种成功一棵 ${TREE_NAME[tree.type]}！专注了 ${tree.durationMinutes} 分钟`;
+        msg = `种成一棵 ${TREE_NAME[tree.type]} · 专注 ${tree.durationMinutes} 分钟`;
         if (isInChain && bonus > 1) {
           msg += ` · ${state.cycleCount} 连击 ×${bonus}`;
-          if (chainTrees > 1) msg += ` ✨ 本链 ${chainTrees} 棵全升级`;
         }
       }
       $timerStatus.textContent = msg;
     } else {
       // break 完成
-      $timerStatus.textContent = '☕ 休息结束！准备下一棵...';
+      $timerStatus.textContent = '休息结束，准备下一棵';
     }
 
     state.session = null;
@@ -1989,8 +1988,8 @@ theme_color: "#fafaf9"
       const nextIsBreak = !wasBreak;
       const nextMin = nextIsBreak ? state.breakMin : state.duration;
       $graceBanner.textContent = nextIsBreak
-        ? `☕ 5 秒后开始 ${nextMin} 分钟休息...`
-        : `🌱 5 秒后开始下一棵 ${state.duration} 分钟专注...`;
+        ? `5 秒后开始休息`
+        : `5 秒后开始下一棵`;
       $graceBanner.classList.remove('hidden');
       $timerDisplay.textContent = fmtTime(nextMin * 60);
       // 不关 overlay，继续显示 grace 提示
@@ -2003,8 +2002,8 @@ theme_color: "#fafaf9"
           startSession({ isBreak: nextIsBreak });
         } else {
           $graceBanner.textContent = nextIsBreak
-            ? `☕ ${countdown} 秒后开始 ${nextMin} 分钟休息...`
-            : `🌱 ${countdown} 秒后开始下一棵 ${state.duration} 分钟专注...`;
+            ? `${countdown} 秒后开始休息`
+            : `${countdown} 秒后开始下一棵`;
         }
       }, 1000);
     } else {
@@ -2036,10 +2035,10 @@ theme_color: "#fafaf9"
 
       if (elapsed < GRACE_MS) {
         // 1 分钟宽限期：当作误操作，不留枯萎树
-        $timerStatus.textContent = '↺ 不算（1 分钟内退出，没事）';
+        $timerStatus.textContent = '未满 1 分钟退出，这棵不计';
       } else if (inRevival) {
         // 灌溉失败：树原状不动，不做二次惩罚
-        $timerStatus.textContent = '🥀 灌溉中断了，那棵树还在等下次';
+        $timerStatus.textContent = '灌溉中断，这棵枯树仍保留';
       } else {
         // 正常失败 → 树枯萎
         const tree = {
@@ -2057,12 +2056,12 @@ theme_color: "#fafaf9"
         state.trees.push(tree);
         saveTrees();
         $timerStatus.textContent = reason === 'left_page'
-          ? '🥀 树枯萎了——你离开了页面太久'
-          : '🥀 树死掉了——下次坚持一下';
+          ? '树枯萎了：离开页面太久'
+          : '树枯萎了：这次放弃了';
       }
     } else {
       // break 失败：用户提前结束休息（结束循环）
-      $timerStatus.textContent = '☕ 休息中断，循环结束';
+      $timerStatus.textContent = '休息中断，循环结束';
     }
 
     state.session = null;
@@ -2395,11 +2394,9 @@ theme_color: "#fafaf9"
     if (!Array.from($durationTabs).some(b => b.classList.contains('active'))) {
       $customMin.value = cost;
     }
-    // 展示 banner
-    const revivedExp = ((t.attemptedMinutes || 0) * 0.5).toFixed(0);
+    // 展示 banner（只留状态短句；完整规则在详情 popover 里讲）
     $revivalBanner.innerHTML = `
-      🌱 准备灌溉枯萎的 <strong>${TREE_NAME[t.type]}</strong>（原目标 ${t.durationMinutes} 分 · 曾坚持 ${t.attemptedMinutes || 0} 分）·
-      完成 <strong>${cost} 分钟</strong>专注 → 得新 ${cost} 分树 + 复活成 ${revivedExp} 经验形态
+      灌溉 <strong>${TREE_NAME[t.type]}</strong>：完成 <strong>${cost} 分钟</strong>专注即可复活
       <button type="button" class="cancel-revival" id="cancel-revival">取消</button>
     `;
     $revivalBanner.classList.add('visible');
@@ -2408,7 +2405,7 @@ theme_color: "#fafaf9"
     $durationTabs.forEach(b => b.disabled = true);
     $customMin.disabled = true;
     // 修改 startBtn 文案
-    $startBtn.textContent = `🌱 开始灌溉 (${cost} 分)`;
+    $startBtn.textContent = `开始灌溉（${cost} 分）`;
     // 滚到设置区
     $revivalBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -2419,7 +2416,7 @@ theme_color: "#fafaf9"
     $revivalBanner.innerHTML = '';
     $durationTabs.forEach(b => b.disabled = false);
     $customMin.disabled = false;
-    $startBtn.textContent = '🌱 开始种树';
+    $startBtn.textContent = '开始种树';
     // duration 不重置——用户可以保留之前选的
   }
 
@@ -2543,16 +2540,16 @@ theme_color: "#fafaf9"
     ` : '';
     const isRevived = t.success && t.revivalDiscount && t.revivalDiscount < 1;
     const statusRow = t.success
-      ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${TIER_NAME[tier]}</span>${isRevived ? ' <span class="tier-badge" style="background: rgba(201, 169, 110, 0.25); color: #b08838;">灌溉复活</span>' : ''}</span></div>`
-      : `<div class="td-row"><span class="label">状态</span><span class="value" style="color:#b07c75;">🥀 枯萎了</span></div>`;
+      ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${TIER_NAME[tier]}</span>${isRevived ? ' <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">灌溉复活</span>' : ''}</span></div>`
+      : `<div class="td-row"><span class="label">状态</span><span class="value" style="color: var(--ft-danger);">已枯萎</span></div>`;
     const durationRow = t.success
       ? `<div class="td-row"><span class="label">专注</span><span class="value"><strong>${t.durationMinutes} 分钟</strong>${isRevived ? '（曾坚持时长）' : ''}</span></div>`
       : `<div class="td-row"><span class="label">专注</span><span class="value">坚持了 ${t.attemptedMinutes || 0} 分（目标 ${t.durationMinutes} 分）</span></div>`;
     const bonusRow = t.success && t.cycleBonus && t.cycleBonus > 1
-      ? `<div class="td-row"><span class="label">加成</span><span class="value" style="color: #b08838;"><strong>×${t.cycleBonus}</strong>${t.cycleNum ? ` · 循环第 ${t.cycleNum} 个` : ''}</span></div>`
+      ? `<div class="td-row"><span class="label">加成</span><span class="value" style="color: var(--ft-gold-ink);"><strong>×${t.cycleBonus}</strong>${t.cycleNum ? ` · 循环第 ${t.cycleNum} 个` : ''}</span></div>`
       : '';
     const discountRow = isRevived
-      ? `<div class="td-row"><span class="label">折扣</span><span class="value" style="color: #b08838;"><strong>×${t.revivalDiscount}</strong> · 灌溉复活</span></div>`
+      ? `<div class="td-row"><span class="label">折扣</span><span class="value" style="color: var(--ft-gold-ink);"><strong>×${t.revivalDiscount}</strong> · 灌溉复活</span></div>`
       : '';
     const expRow = t.success
       ? `<div class="td-row"><span class="label">经验</span><span class="value">${treeExp(t).toFixed(1)} 点</span></div>`
@@ -2560,9 +2557,9 @@ theme_color: "#fafaf9"
 
     // 操作按钮：枯萎树 → 灌溉；正常树 → 铲除
     const actionsHtml = t.success
-      ? `<button type="button" class="danger" id="td-delete">🪓 铲除</button>
+      ? `<button type="button" class="danger" id="td-delete">铲除</button>
          <button type="button" id="td-close">关闭</button>`
-      : `<button type="button" id="td-revive" style="background: var(--color-bg-warm); border-color: #c9a96e; color: #b08838; font-weight: 600;">🌱 灌溉这棵 (${revivalCostFor(t)} 分)</button>
+      : `<button type="button" id="td-revive" style="background: var(--ft-gold-soft); border-color: var(--ft-gold); color: var(--ft-gold-ink); font-weight: 600;">灌溉这棵（${revivalCostFor(t)} 分）</button>
          <button type="button" id="td-close">关闭</button>`;
 
     const revivalHint = !t.success
