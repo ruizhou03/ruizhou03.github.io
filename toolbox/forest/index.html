@@ -1252,6 +1252,15 @@ theme_color: "#fafaf9"
           </span>
         </div>
         <div class="setting-row">
+          <label>离开页面</label>
+          <div class="duration-tabs" id="strict-tabs" style="flex-grow: 0;">
+            <button type="button" data-strict="1" title="专注时离开本页 / 切走超 15 秒，树会枯萎（手机默认）">树会枯萎</button>
+            <button type="button" data-strict="0" title="离开不影响，专注全凭自觉（电脑默认）">不影响</button>
+          </div>
+          <span style="flex-grow: 1;"></span>
+          <span class="strict-note" id="strict-note" style="color: var(--color-light); font-size: var(--ft-fs-cap);"></span>
+        </div>
+        <div class="setting-row">
           <label>主题</label>
           <div class="pill-group" id="theme-bg-pills">
             <button type="button" data-value="default" title="默认"><span class="theme-swatch theme-swatch-default"></span></button>
@@ -1500,6 +1509,31 @@ theme_color: "#fafaf9"
   const FIELDS_KEY = 'tool.forest.fields.v1';
   const ACTIVE_FIELD_KEY = 'tool.forest.activeField.v1';
   const THEME_KEY = 'tool.forest.theme.v1';
+  const STRICT_KEY = 'tool.forest.strict.v1';   // 专注严格度：'1'=离开枯萎 / '0'=宽松自觉
+
+  // 严格度默认按设备：触屏 / 已装成 App → 严格（手机场景才有意义）；桌面浏览器 → 宽松
+  function defaultStrict() {
+    try {
+      const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      const standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+      return !!(coarse || standalone || window.navigator.standalone);
+    } catch (e) { return true; }
+  }
+  function loadStrict() {
+    try {
+      const raw = localStorage.getItem(STRICT_KEY);
+      return raw === null ? defaultStrict() : raw === '1';
+    } catch (e) { return defaultStrict(); }
+  }
+  function saveStrict() {
+    try { localStorage.setItem(STRICT_KEY, state.strict ? '1' : '0'); } catch (e) {}
+  }
+  // 当前模式下「离开页面」的说明文案（首屏与遮罩共用）
+  function focusWarnText() {
+    return state.strict
+      ? '专注期间离开本页 / 切走超 15 秒，树会枯萎（有 1 分钟宽限，也可灌溉复活）'
+      : '自觉模式：离开页面不会让树枯萎，专注全凭自己坚持';
+  }
 
   const TREE_NAME = {
     oak: '橡树', pine: '松树', sakura: '樱花', palm: '椰子树', cactus: '仙人掌',
@@ -1520,6 +1554,7 @@ theme_color: "#fafaf9"
     revivalTargetId: null, // 正在准备灌溉的枯萎树 id（null 时是普通 session）
     paused: false,      // 专注是否暂停
     pausedAt: null,     // 暂停起始时间戳
+    strict: true,       // 离开页面是否枯萎（init 时按设备/存档定）
     fields: [],         // 田块列表 [{id, name, createdAt}]
     activeFieldId: null,
     theme: { background: 'default', timer: 'countdown' },
@@ -2118,7 +2153,7 @@ theme_color: "#fafaf9"
       $giveUpBtn.textContent = '结束循环';
     } else {
       $overlayTag.textContent = state.task ? state.task : '专注中';
-      $overlayWarn.textContent = '离开页面超过 15 秒，树会枯萎';
+      $overlayWarn.textContent = state.strict ? '离开页面超过 15 秒，树会枯萎' : '自觉模式：离开不会枯萎';
       $giveUpBtn.textContent = '放弃这棵';
     }
 
@@ -2478,6 +2513,10 @@ theme_color: "#fafaf9"
   document.addEventListener('visibilitychange', () => {
     if (!state.session) return;
     if (state.paused) return;   // 暂停期间离开不判枯萎
+    if (!state.strict) {        // 宽松/自觉模式：离开不惩罚，回前台补一帧刷新显示即可
+      if (!document.hidden) tick();
+      return;
+    }
     if (state.session.isBreak) {
       // break 模式不监控离开 — 但回前台也补一帧避免显示卡老
       if (!document.hidden) tick();
@@ -3436,10 +3475,40 @@ theme_color: "#fafaf9"
     });
   });
 
+  // ============ 专注严格度（离开是否枯萎）============
+  const $strictTabs = document.getElementById('strict-tabs');
+  function applyStrictUI() {
+    if ($strictTabs) {
+      $strictTabs.querySelectorAll('button').forEach(b => {
+        b.classList.toggle('active', (b.dataset.strict === '1') === state.strict);
+      });
+    }
+    // 首屏说明随模式更新（浏览器不支持可见性检测时另说）
+    if ($focusWarning) {
+      $focusWarning.textContent = ('hidden' in document)
+        ? focusWarnText()
+        : '你的浏览器较旧，离开页面本就不会让树枯萎';
+    }
+    // 正在专注时实时更新遮罩说明
+    if (state.session && !state.session.isBreak && $overlayWarn) {
+      $overlayWarn.textContent = state.strict ? '离开页面超过 15 秒，树会枯萎' : '自觉模式：离开不会枯萎';
+    }
+  }
+  if ($strictTabs) {
+    $strictTabs.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.strict = btn.dataset.strict === '1';
+        saveStrict();
+        applyStrictUI();
+      });
+    });
+  }
+
   // ============ Init ============
   loadTrees();
   loadFields();
   loadTheme();
+  state.strict = loadStrict();
   migrateFieldsAndTrees();
   setActivePill($themeBgPills, state.theme.background);
   setActivePill($themeTimerPills, state.theme.timer);
@@ -3450,10 +3519,6 @@ theme_color: "#fafaf9"
   renderStats();
   updatePomodoroHint();
   resumeSession();
-
-  // 首屏常驻规则说明：开始前就让用户知道「离开就枯萎」这条核心且惩罚性强的规则
-  $focusWarning.textContent = ('hidden' in document)
-    ? '专注期间离开本页或切走超 15 秒，树会枯萎（有 1 分钟宽限，也可灌溉复活）'
-    : '你的浏览器较旧，离开页面不会让树枯萎';
+  applyStrictUI();   // 严格度按钮高亮 + 首屏「离开页面」说明（随当前模式）
 })();
 </script>
