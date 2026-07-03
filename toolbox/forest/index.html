@@ -2130,6 +2130,7 @@ theme_color: "#fafaf9"
     };
     state.treeType = active.treeType || state.treeType;
     state.task = active.task || '';
+    if (!active.isBreak) state.duration = Math.round(active.duration / 60000);  // 让结束后的显示与本段时长一致
     state.paused = false;
     state.pausedAt = null;
     openSessionUI();
@@ -2312,6 +2313,7 @@ theme_color: "#fafaf9"
     // Pomodoro 自动链：focus 后接 break，break 后接 focus（续跑完成时不自动进下一段）
     if (state.pomodoroOn && !opts.noAdvance) {
       $pauseBtn.style.display = 'none';
+      $giveUpBtn.textContent = '结束循环';   // grace 期间这个按钮用来停止自动链
       const nextIsBreak = !wasBreak;
       const nextMin = nextIsBreak ? state.breakMin : state.duration;
       $graceBanner.textContent = nextIsBreak
@@ -2416,17 +2418,38 @@ theme_color: "#fafaf9"
     startSession();
   });
   $giveUpBtn.addEventListener('click', async () => {
+    // grace 倒计时期间点击 = 停止番茄自动链（此时并无进行中的 session）
+    if (graceTimeout) {
+      clearInterval(graceTimeout); graceTimeout = null;
+      $graceBanner.classList.add('hidden');
+      state.cycleCount = 0;
+      state.currentChainId = null;
+      $overlay.classList.remove('open');
+      $overlay.classList.remove('break-mode');
+      $pauseBtn.style.display = 'none';
+      $startBtn.disabled = false;
+      $timerDisplay.textContent = fmtTime(state.duration * 60);
+      renderTree(0);
+      $timerStatus.textContent = '循环已结束';
+      return;
+    }
     if (state.session && state.session.isBreak) {
       // break 期间放弃 = 结束循环
       failSession('gave_up');
       return;
     }
+    // focus 期间放弃：先冻结计时，避免确认框停留时正好到点被 tick 判成功
+    if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
     const ok = await showConfirm({
       title: '放弃这棵树？',
       message: '这棵树会枯萎，且无法恢复。',
       okText: '放弃', danger: true,
     });
-    if (!ok) return;
+    if (!ok) {
+      // 取消 → 恢复计时（session 仍在且未暂停时）
+      if (state.session && !state.paused) { tick(); tickInterval = setInterval(tick, 1000); }
+      return;
+    }
     failSession('gave_up');
   });
 
@@ -3082,6 +3105,7 @@ theme_color: "#fafaf9"
     if (onPage >= active.duration) {
       // 离开前时间就已到 → 判完成（revivalTargetId 已还原，灌溉能正确结算；续跑完成不自动进下一段）
       state.session = active;
+      if (!active.isBreak) state.duration = Math.round(active.duration / 60000);  // 结束显示与本段时长一致
       completeSession({ noAdvance: true });
       return;
     }
