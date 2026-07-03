@@ -1045,6 +1045,73 @@ theme_color: "#fafaf9"
     font-size: var(--ft-fs-cap);
     cursor: pointer;
   }
+
+  /* ============ 站内 modal（替代原生 confirm/prompt/alert）============ */
+  .ft-modal-mask {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(20, 25, 22, 0.5);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+  }
+  .ft-modal-mask.open { display: flex; }
+  .ft-modal {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--ft-r-md);
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.3);
+    width: min(400px, 100%);
+    padding: 1.3rem 1.4rem 1.2rem;
+  }
+  .ft-modal h3 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: 1.15rem; color: var(--color-ink); margin: 0 0 0.5rem;
+  }
+  .ft-modal p {
+    font-size: var(--ft-fs-base); color: var(--color-muted);
+    line-height: 1.6; margin: 0 0 1.1rem;
+  }
+  .ft-modal input[type="text"] {
+    width: 100%; box-sizing: border-box;
+    padding: 0.6rem 0.7rem; margin: 0 0 1.1rem;
+    border: 1px solid var(--color-border); border-radius: var(--ft-r-xs);
+    background: var(--color-bg-warm); color: var(--color-ink); font: inherit; font-size: 16px;
+  }
+  .ft-modal input[type="text"]:focus { outline: none; border-color: var(--color-accent); }
+  .ft-modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
+  .ft-modal-actions button {
+    font: inherit; font-size: var(--ft-fs-base); font-weight: 500;
+    padding: 0.55rem 1.2rem; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-muted);
+    transition: all 0.18s;
+  }
+  .ft-modal-actions button.primary { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .ft-modal-actions button.danger { background: var(--ft-danger); color: #fff; border-color: var(--ft-danger); }
+  @media (hover: hover) {
+    .ft-modal-actions button.primary:hover,
+    .ft-modal-actions button.danger:hover { filter: brightness(1.06); }
+    .ft-modal-actions button:not(.primary):not(.danger):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+
+  /* ============ toast（含撤销）============ */
+  .ft-toast {
+    position: fixed; left: 50%; bottom: calc(1.4rem + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px);
+    z-index: 2100;
+    background: rgba(28, 32, 30, 0.96); color: #fff;
+    padding: 0.7rem 0.75rem 0.7rem 1.15rem; border-radius: 999px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+    display: flex; align-items: center; gap: 0.9rem;
+    font-size: var(--ft-fs-base); line-height: 1.3;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
+    max-width: min(440px, calc(100vw - 2rem));
+  }
+  .ft-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  .ft-toast button {
+    font: inherit; font-size: var(--ft-fs-sm); font-weight: 600;
+    color: #8fd0ff; background: transparent; border: none; cursor: pointer;
+    padding: 0.2rem 0.5rem; white-space: nowrap; flex-shrink: 0;
+  }
 </style>
 
 <div class="ft-wrap">
@@ -1241,19 +1308,113 @@ theme_color: "#fafaf9"
     document.body.appendChild(b);
   }
 
+  // ============ 站内 modal / toast（替代原生 confirm/prompt/alert）============
+  let _modalEls = null;
+  function ensureModal() {
+    if (_modalEls) return _modalEls;
+    const mask = document.createElement('div');
+    mask.className = 'ft-modal-mask';
+    mask.innerHTML = '<div class="ft-modal" role="dialog" aria-modal="true">'
+      + '<h3 class="ft-modal-title"></h3>'
+      + '<p class="ft-modal-msg"></p>'
+      + '<input type="text" class="ft-modal-input" style="display:none;" maxlength="30" />'
+      + '<div class="ft-modal-actions">'
+      + '<button type="button" class="ft-modal-cancel"></button>'
+      + '<button type="button" class="ft-modal-ok"></button>'
+      + '</div></div>';
+    document.body.appendChild(mask);
+    _modalEls = {
+      mask,
+      title: mask.querySelector('.ft-modal-title'),
+      msg: mask.querySelector('.ft-modal-msg'),
+      input: mask.querySelector('.ft-modal-input'),
+      cancel: mask.querySelector('.ft-modal-cancel'),
+      ok: mask.querySelector('.ft-modal-ok'),
+    };
+    return _modalEls;
+  }
+  // 通用弹窗；isPrompt 时带输入框，resolve 输入串或 null；否则 resolve 布尔
+  function openModal(opts, isPrompt) {
+    const els = ensureModal();
+    els.title.textContent = opts.title || '';
+    if (opts.message) { els.msg.innerHTML = opts.message; els.msg.style.display = ''; }
+    else { els.msg.textContent = ''; els.msg.style.display = 'none'; }
+    els.ok.textContent = opts.okText || '确定';
+    els.ok.className = 'ft-modal-ok ' + (opts.danger ? 'danger' : 'primary');
+    els.cancel.textContent = opts.cancelText || '取消';
+    if (isPrompt) {
+      els.input.style.display = '';
+      els.input.value = opts.value || '';
+      els.input.placeholder = opts.placeholder || '';
+    } else {
+      els.input.style.display = 'none';
+    }
+    els.mask.classList.add('open');
+    if (isPrompt) setTimeout(() => { els.input.focus(); els.input.select(); }, 30);
+    else setTimeout(() => els.ok.focus(), 30);
+    return new Promise(resolve => {
+      function done(val) {
+        els.ok.removeEventListener('click', onOk);
+        els.cancel.removeEventListener('click', onCancel);
+        els.mask.removeEventListener('click', onMask);
+        document.removeEventListener('keydown', onKey, true);
+        els.mask.classList.remove('open');
+        resolve(val);
+      }
+      const okVal = () => isPrompt ? els.input.value.trim() : true;
+      const cancelVal = () => isPrompt ? null : false;
+      function onOk() { done(okVal()); }
+      function onCancel() { done(cancelVal()); }
+      function onMask(e) { if (e.target === els.mask) done(cancelVal()); }
+      function onKey(e) {
+        if (e.key === 'Escape') { e.preventDefault(); done(cancelVal()); }
+        else if (e.key === 'Enter') { e.preventDefault(); done(okVal()); }
+      }
+      els.ok.addEventListener('click', onOk);
+      els.cancel.addEventListener('click', onCancel);
+      els.mask.addEventListener('click', onMask);
+      document.addEventListener('keydown', onKey, true);
+    });
+  }
+  function showConfirm(opts) { return openModal(opts, false); }
+  function showPrompt(opts) { return openModal(opts, true); }
+
+  let _toastEl = null, _toastTimer = null;
+  function hideToast() {
+    if (_toastEl) _toastEl.classList.remove('show');
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+  }
+  function showToast(message, opts) {
+    opts = opts || {};
+    const duration = opts.duration || 5000;
+    if (!_toastEl) {
+      _toastEl = document.createElement('div');
+      _toastEl.className = 'ft-toast';
+      document.body.appendChild(_toastEl);
+    }
+    if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+    _toastEl.innerHTML = '<span class="ft-toast-msg"></span>';
+    _toastEl.querySelector('.ft-toast-msg').textContent = message;
+    if (typeof opts.undo === 'function') {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = opts.undoText || '撤销';
+      b.addEventListener('click', () => { hideToast(); opts.undo(); });
+      _toastEl.appendChild(b);
+    }
+    requestAnimationFrame(() => _toastEl.classList.add('show'));
+    _toastTimer = setTimeout(hideToast, duration);
+  }
+
   const TREES_KEY = 'tool.forest.trees.v1';
   const ACTIVE_KEY = 'tool.forest.active.v1';
   const FIELDS_KEY = 'tool.forest.fields.v1';
   const ACTIVE_FIELD_KEY = 'tool.forest.activeField.v1';
   const THEME_KEY = 'tool.forest.theme.v1';
 
-  const TREE_EMOJI = {
-    oak: '🌳', pine: '🌲', sakura: '🌸', palm: '🌴', cactus: '🌵',
-  };
   const TREE_NAME = {
     oak: '橡树', pine: '松树', sakura: '樱花', palm: '椰子树', cactus: '仙人掌',
   };
-  const DEAD_EMOJI = '🥀';
 
   const state = {
     trees: [],          // 已种成的树 / 失败记录
@@ -2085,13 +2246,18 @@ theme_color: "#fafaf9"
     state.currentChainId = state.pomodoroOn ? newChainId() : null;
     startSession();
   });
-  $giveUpBtn.addEventListener('click', () => {
+  $giveUpBtn.addEventListener('click', async () => {
     if (state.session && state.session.isBreak) {
       // break 期间放弃 = 结束循环
       failSession('gave_up');
       return;
     }
-    if (!confirm('确定放弃这棵树吗？它会死掉。')) return;
+    const ok = await showConfirm({
+      title: '放弃这棵树？',
+      message: '这棵树会枯萎，且无法恢复。',
+      okText: '放弃', danger: true,
+    });
+    if (!ok) return;
     failSession('gave_up');
   });
 
@@ -2126,12 +2292,14 @@ theme_color: "#fafaf9"
   $pomodoroOn.addEventListener('change', () => {
     state.pomodoroOn = $pomodoroOn.checked;
   });
+  let breakTouched = false;   // 用户手动改过休息分钟后，切换专注时长不再覆盖它
   $breakMin.addEventListener('input', () => {
     const v = parseInt($breakMin.value, 10);
-    if (Number.isFinite(v) && v >= 1 && v <= 60) state.breakMin = v;
+    if (Number.isFinite(v) && v >= 1 && v <= 60) { state.breakMin = v; breakTouched = true; }
   });
   function updatePomodoroHint() {
-    // 切换专注时长时，自动建议一个对应的休息时长（用户可手动改）
+    // 切换专注时长时，自动建议一个对应的休息时长——但用户手动设过就不再覆盖
+    if (breakTouched) return;
     const suggested = breakMinutesFor(state.duration);
     state.breakMin = suggested;
     $breakMin.value = suggested;
@@ -2340,18 +2508,16 @@ theme_color: "#fafaf9"
       tip.className = 'tree-tooltip';
       tip.textContent = tipText;
       div.appendChild(tip);
-      // 编辑模式删除按钮（仅成功的树才能铲除）
-      if (t.success) {
-        const deleteX = document.createElement('div');
-        deleteX.className = 'delete-x';
-        deleteX.textContent = '×';
-        deleteX.dataset.id = t.id;
-        deleteX.addEventListener('click', e => {
-          e.stopPropagation();
-          deleteTree(t.id);
-        });
-        div.appendChild(deleteX);
-      }
+      // 编辑模式删除按钮（成功树与枯树都可铲除）
+      const deleteX = document.createElement('div');
+      deleteX.className = 'delete-x';
+      deleteX.textContent = '×';
+      deleteX.dataset.id = t.id;
+      deleteX.addEventListener('click', e => {
+        e.stopPropagation();
+        deleteTree(t.id);
+      });
+      div.appendChild(deleteX);
 
       // 拖动 + 点击
       attachInteractions(div, t.id);
@@ -2360,20 +2526,29 @@ theme_color: "#fafaf9"
     });
   }
 
-  function deleteTree(id) {
+  async function deleteTree(id) {
     const t = state.trees.find(x => x.id === id);
     if (!t) return;
-    if (!t.success) {
-      alert('枯萎的树不能直接铲除——只能通过灌溉复活。');
-      return;
-    }
-    const label = `${TREE_NAME[t.type]}（${t.durationMinutes} 分）`;
-    if (!confirm(`铲除这棵${label}？该操作不可撤销。`)) return;
+    const label = t.success ? `${TREE_NAME[t.type]}（${t.durationMinutes} 分）` : `枯萎的${TREE_NAME[t.type]}`;
+    const ok = await showConfirm({
+      title: t.success ? '铲除这棵树？' : '铲除这棵枯树？',
+      message: t.success ? '铲除后无法恢复。' : '铲除后将失去它的灌溉复活机会。',
+      okText: '铲除', danger: true,
+    });
+    if (!ok) return;
+    if (state.revivalTargetId === id) cancelRevival();  // 正准备灌溉这棵则先取消
+    const snapshot = t;  // 引用仍完整（含 position），撤销时原样放回
     state.trees = state.trees.filter(x => x.id !== id);
     saveTrees();
     hideDetail();
     renderFieldTabs();
     renderStats();
+    showToast(`已铲除${label}`, { undo: () => {
+      state.trees.push(snapshot);
+      saveTrees();
+      renderFieldTabs();
+      renderStats();
+    } });
   }
 
   // ============ 灌溉机制 ============
@@ -2560,11 +2735,12 @@ theme_color: "#fafaf9"
       ? `<button type="button" class="danger" id="td-delete">铲除</button>
          <button type="button" id="td-close">关闭</button>`
       : `<button type="button" id="td-revive" style="background: var(--ft-gold-soft); border-color: var(--ft-gold); color: var(--ft-gold-ink); font-weight: 600;">灌溉这棵（${revivalCostFor(t)} 分）</button>
+         <button type="button" class="danger" id="td-delete">铲除</button>
          <button type="button" id="td-close">关闭</button>`;
 
     const revivalHint = !t.success
-      ? `<div style="margin-top: 0.6rem; padding: 0.55rem 0.7rem; background: var(--color-bg-warm); border-radius: 6px; font-size: var(--ft-fs-cap); color: var(--color-muted); line-height: 1.5;">
-          完成 <strong style="color: var(--color-ink);">${revivalCostFor(t)} 分钟</strong>专注 → 得一棵新的 ${revivalCostFor(t)} 分树 + 这棵复活成 <strong style="color: var(--color-ink);">${((t.attemptedMinutes || 0) * 0.5).toFixed(0)} 经验</strong>形态（×0.5 折扣）。枯萎树不能直接铲除。
+      ? `<div style="margin-top: 0.6rem; padding: 0.55rem 0.7rem; background: var(--color-bg-warm); border-radius: var(--ft-r-xs); font-size: var(--ft-fs-cap); color: var(--color-muted); line-height: 1.5;">
+          完成 <strong style="color: var(--color-ink);">${revivalCostFor(t)} 分钟</strong>专注即可复活：这棵变回 <strong style="color: var(--color-ink);">×0.5 折扣</strong>形态，同时新种一棵 ${revivalCostFor(t)} 分树。不想留着也可以直接铲除。
         </div>`
       : '';
 
@@ -2598,14 +2774,13 @@ theme_color: "#fafaf9"
     $treeDetail.classList.add('open');
     openDetailId = treeId;
 
-    if (t.success) {
-      document.getElementById('td-delete').addEventListener('click', () => deleteTree(treeId));
-    } else {
-      document.getElementById('td-revive').addEventListener('click', () => {
-        queueRevival(treeId);
-        hideDetail();
-      });
-    }
+    const $tdDelete = document.getElementById('td-delete');
+    if ($tdDelete) $tdDelete.addEventListener('click', () => deleteTree(treeId));
+    const $tdRevive = document.getElementById('td-revive');
+    if ($tdRevive) $tdRevive.addEventListener('click', () => {
+      queueRevival(treeId);
+      hideDetail();
+    });
     document.getElementById('td-close').addEventListener('click', hideDetail);
   }
 
@@ -2644,8 +2819,14 @@ theme_color: "#fafaf9"
     }[c]));
   }
 
-  $resetBtn.addEventListener('click', () => {
-    if (!confirm('确定清空所有种树记录（含全部田块）？这个操作不可撤销。')) return;
+  $resetBtn.addEventListener('click', async () => {
+    const ok = await showConfirm({
+      title: '清空所有数据？',
+      message: '将删除全部田块与树。可在几秒内撤销。',
+      okText: '清空', danger: true,
+    });
+    if (!ok) return;
+    const snap = { trees: state.trees, fields: state.fields, activeFieldId: state.activeFieldId };
     state.trees = [];
     state.fields = [];
     state.activeFieldId = null;
@@ -2656,6 +2837,15 @@ theme_color: "#fafaf9"
     migrateFieldsAndTrees();  // 重建默认田
     renderFieldTabs();
     renderStats();
+    showToast('已清空所有数据', { undo: () => {
+      state.trees = snap.trees;
+      state.fields = snap.fields;
+      state.activeFieldId = snap.activeFieldId;
+      saveTrees();
+      saveFields();
+      renderFieldTabs();
+      renderStats();
+    } });
   });
 
   // ============ Resume in-progress session ============
@@ -2709,11 +2899,11 @@ theme_color: "#fafaf9"
     $deleteFieldBtn.style.display = state.fields.length >= 2 ? '' : 'none';
   }
 
-  function addNewField() {
+  async function addNewField() {
     const defaultName = `第 ${state.fields.length + 1} 块田`;
-    const name = (prompt('给这块田起个名字：', defaultName) || '').trim();
-    if (!name) return;
-    const f = { id: newFieldId(), name, createdAt: new Date().toISOString() };
+    const name = await showPrompt({ title: '新建田块', placeholder: '给这块田起个名字', value: defaultName, okText: '创建' });
+    if (name === null) return;                 // 取消
+    const f = { id: newFieldId(), name: name || defaultName, createdAt: new Date().toISOString() };
     state.fields.push(f);
     state.activeFieldId = f.id;
     saveFields();
@@ -2721,25 +2911,30 @@ theme_color: "#fafaf9"
     renderField();
   }
 
-  $renameFieldBtn.addEventListener('click', () => {
+  $renameFieldBtn.addEventListener('click', async () => {
     const f = state.fields.find(x => x.id === state.activeFieldId);
     if (!f) return;
-    const name = (prompt('改名成：', f.name) || '').trim();
+    const name = await showPrompt({ title: '重命名田块', value: f.name, okText: '保存' });
     if (!name || name === f.name) return;
     f.name = name;
     saveFields();
     renderFieldTabs();
   });
 
-  $deleteFieldBtn.addEventListener('click', () => {
+  $deleteFieldBtn.addEventListener('click', async () => {
     if (state.fields.length < 2) return;
     const f = state.fields.find(x => x.id === state.activeFieldId);
     if (!f) return;
     const treesInField = state.trees.filter(t => t.fieldId === state.activeFieldId);
-    const msg = treesInField.length > 0
-      ? `删除「${f.name}」？这块田里的 ${treesInField.length} 棵树会一起被铲除（不可撤销）。`
-      : `删除「${f.name}」？`;
-    if (!confirm(msg)) return;
+    const ok = await showConfirm({
+      title: `删除「${f.name}」？`,
+      message: treesInField.length > 0
+        ? `这块田里的 ${treesInField.length} 棵树会一起被铲除。可在几秒内撤销。`
+        : '可在几秒内撤销。',
+      okText: '删除', danger: true,
+    });
+    if (!ok) return;
+    const snap = { field: f, trees: treesInField };
     state.trees = state.trees.filter(t => t.fieldId !== state.activeFieldId);
     state.fields = state.fields.filter(x => x.id !== state.activeFieldId);
     state.activeFieldId = state.fields[0].id;
@@ -2748,6 +2943,15 @@ theme_color: "#fafaf9"
     hideDetail();
     renderFieldTabs();
     renderStats();
+    showToast(`已删除「${snap.field.name}」`, { undo: () => {
+      state.fields.push(snap.field);
+      snap.trees.forEach(t => state.trees.push(t));
+      state.activeFieldId = snap.field.id;
+      saveTrees();
+      saveFields();
+      renderFieldTabs();
+      renderStats();
+    } });
   });
 
   // ============ 经验值图表 ============
@@ -2942,9 +3146,9 @@ theme_color: "#fafaf9"
   updatePomodoroHint();
   resumeSession();
 
-  // 友好提示
-  if (!('hidden' in document)) {
-    $focusWarning.textContent = '注意：你的浏览器不支持页面可见性检测，离开 tab 不会触发树死亡。';
-  }
+  // 首屏常驻规则说明：开始前就让用户知道「离开就枯萎」这条核心且惩罚性强的规则
+  $focusWarning.textContent = ('hidden' in document)
+    ? '专注期间离开本页或切走超 15 秒，树会枯萎（有 1 分钟宽限，也可灌溉复活）'
+    : '你的浏览器较旧，离开页面不会让树枯萎';
 })();
 </script>
