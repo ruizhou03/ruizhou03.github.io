@@ -948,6 +948,7 @@ theme_color: "#fafaf9"
   .focus-overlay .timer-big,
   .focus-overlay .focus-tag,
   .focus-overlay .focus-warn,
+  .focus-overlay .overlay-actions,
   .focus-overlay .give-up-btn,
   .focus-overlay .pomodoro-counter,
   .focus-overlay .grace-banner { position: relative; z-index: 3; }
@@ -990,6 +991,28 @@ theme_color: "#fafaf9"
     color: #ff8888; border-color: #ff8888;
   }
   }
+  /* 暂停 / 放弃 两个出口并排 */
+  .focus-overlay .overlay-actions {
+    display: flex; gap: 0.7rem; align-items: center; justify-content: center;
+    flex-wrap: wrap;
+  }
+  .focus-overlay .pause-btn {
+    background: rgba(255, 255, 255, 0.14); color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    padding: 0.55rem 1.6rem;
+    font: inherit; font-size: var(--ft-fs-sm); font-weight: 500; cursor: pointer;
+    transition: all 0.18s;
+  }
+  @media (hover: hover) {
+    .focus-overlay .pause-btn:hover { background: rgba(255, 255, 255, 0.24); }
+  }
+  .focus-overlay.theme-default .pause-btn {
+    background: rgba(40, 40, 40, 0.08); color: rgba(40, 40, 40, 0.82);
+    border-color: rgba(40, 40, 40, 0.2);
+  }
+  /* 暂停态：计时大字压暗，提示专注已停 */
+  .focus-overlay.paused .timer-big { opacity: 0.45; }
   .focus-overlay .tree-svg .tree-trunk { fill: #8b6a3e; }
   .focus-overlay .tree-svg .tree-ground { fill: #5a4530; }
 
@@ -1287,7 +1310,10 @@ theme_color: "#fafaf9"
   <div class="timer-big" id="overlay-timer">25:00</div>
   <div class="focus-tag" id="overlay-tag">专注中</div>
   <div class="focus-warn" id="overlay-warn">离开页面超过 15 秒，树会枯萎</div>
-  <button type="button" class="give-up-btn" id="give-up-btn">放弃这棵</button>
+  <div class="overlay-actions">
+    <button type="button" class="pause-btn" id="pause-btn">暂停</button>
+    <button type="button" class="give-up-btn" id="give-up-btn">放弃这棵</button>
+  </div>
   <div class="grace-banner hidden" id="grace-banner"></div>
 </div>
 
@@ -1429,6 +1455,8 @@ theme_color: "#fafaf9"
     breakMin: 5,        // 用户自定义的休息分钟（开循环时用）
     currentChainId: null, // 当前循环链 ID（同链树共享 cycleBonus）
     revivalTargetId: null, // 正在准备灌溉的枯萎树 id（null 时是普通 session）
+    paused: false,      // 专注是否暂停
+    pausedAt: null,     // 暂停起始时间戳
     fields: [],         // 田块列表 [{id, name, createdAt}]
     activeFieldId: null,
     theme: { background: 'default', timer: 'countdown' },
@@ -1475,6 +1503,7 @@ theme_color: "#fafaf9"
   const $timerStatus = document.getElementById('timer-status');
   const $startBtn = document.getElementById('start-btn');
   const $giveUpBtn = document.getElementById('give-up-btn');
+  const $pauseBtn = document.getElementById('pause-btn');
   const $taskInput = document.getElementById('task-input');
   const $customMin = document.getElementById('custom-min');
   const $durationTabs = document.querySelectorAll('[data-min]');
@@ -1483,7 +1512,6 @@ theme_color: "#fafaf9"
   const $overlayTag = document.getElementById('overlay-tag');
   const $focusWarning = document.getElementById('focus-warning');
   const $pomodoroOn = document.getElementById('pomodoro-on');
-  const $pomodoroHint = document.getElementById('pomodoro-hint');
   const $overlayCounter = document.getElementById('overlay-counter');
   const $overlayWarn = document.getElementById('overlay-warn');
   const $graceBanner = document.getElementById('grace-banner');
@@ -1516,6 +1544,31 @@ theme_color: "#fafaf9"
       if (s) localStorage.setItem(ACTIVE_KEY, JSON.stringify(s));
       else localStorage.removeItem(ACTIVE_KEY);
     } catch (e) {if (e && e.name === 'QuotaExceededError') showStorageWarn(); }
+  }
+  // 把进行中的 session + 番茄链/灌溉/暂停 元信息 + 心跳时间一起落盘，供智能续跑还原
+  function persistActive() {
+    if (!state.session) { saveActive(null); return; }
+    saveActive(Object.assign({}, state.session, {
+      lastTick: Date.now(),
+      paused: !!state.paused,
+      pausedAt: state.paused ? state.pausedAt : null,
+      _meta: {
+        pomodoroOn: state.pomodoroOn,
+        cycleCount: state.cycleCount,
+        currentChainId: state.currentChainId,
+        revivalTargetId: state.revivalTargetId,
+        breakMin: state.breakMin,
+      },
+    }));
+  }
+  function restoreMeta(active) {
+    const m = active._meta || {};
+    state.pomodoroOn = !!m.pomodoroOn;
+    if (typeof m.cycleCount === 'number') state.cycleCount = m.cycleCount;
+    state.currentChainId = m.currentChainId || null;
+    state.revivalTargetId = m.revivalTargetId || null;
+    if (typeof m.breakMin === 'number') state.breakMin = m.breakMin;
+    if ($pomodoroOn) $pomodoroOn.checked = state.pomodoroOn;
   }
 
   // ============ Fields (多块田) ============
@@ -1974,20 +2027,27 @@ theme_color: "#fafaf9"
   function startSession(opts = {}) {
     const isBreak = !!opts.isBreak;
     const minutes = isBreak ? state.breakMin : state.duration;
-    const startTime = Date.now();
     state.session = {
-      startTime,
+      startTime: Date.now(),
       duration: minutes * 60 * 1000,
       task: state.task,
       treeType: state.treeType,
       isBreak,
     };
-    state.breakMode = isBreak;
-    saveActive(state.session);
+    state.paused = false;
+    state.pausedAt = null;
+    openSessionUI();
+    persistActive();
+  }
 
+  // 依据 state.session 打开全屏遮罩并启动计时（新开 / 续跑共用）
+  function openSessionUI() {
+    const isBreak = !!state.session.isBreak;
+    state.breakMode = isBreak;
     applyTheme();   // 套用主题 + 生成粒子
     $overlay.classList.add('open');
     $overlay.classList.toggle('break-mode', isBreak);
+    $overlayTimer.style.color = '';   // 复位上一段可能残留的告警色
 
     if (isBreak) {
       $overlayTag.textContent = '休息一下';
@@ -2008,14 +2068,73 @@ theme_color: "#fafaf9"
       $overlayCounter.style.display = 'none';
     }
 
+    updatePauseUI();
     $startBtn.disabled = true;
+    if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
     tick();
     tickInterval = setInterval(tick, 1000);
   }
 
+  // 续跑一个已存在的 session（智能续跑用）
+  function enterExisting(active, note) {
+    state.session = {
+      startTime: active.startTime,
+      duration: active.duration,
+      task: active.task || '',
+      treeType: active.treeType,
+      isBreak: !!active.isBreak,
+    };
+    state.treeType = active.treeType || state.treeType;
+    state.task = active.task || '';
+    state.paused = false;
+    state.pausedAt = null;
+    openSessionUI();
+    persistActive();
+    if (note) showToast('已为你继续计时');
+  }
+
+  // ============ 暂停 / 继续 ============
+  function updatePauseUI() {
+    const inFocus = state.session && !state.session.isBreak;
+    $pauseBtn.style.display = inFocus ? '' : 'none';
+    if (inFocus && state.paused) {
+      $pauseBtn.textContent = '继续';
+      $overlayTag.textContent = '已暂停';
+      $overlay.classList.add('paused');
+    } else {
+      $pauseBtn.textContent = '暂停';
+      $overlay.classList.remove('paused');
+      if (inFocus) $overlayTag.textContent = state.task ? state.task : '专注中';
+    }
+  }
+  function togglePause() {
+    if (!state.session || state.session.isBreak) return;
+    if (!state.paused) {
+      state.paused = true;
+      state.pausedAt = Date.now();
+      if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+      state.leftAt = null;   // 暂停期间的离开不计
+      updatePauseUI();
+      persistActive();
+    } else {
+      const pausedMs = Date.now() - (state.pausedAt || Date.now());
+      state.session.startTime += pausedMs;   // 顺延开始时间，剩余时长不变
+      state.paused = false;
+      state.pausedAt = null;
+      updatePauseUI();
+      persistActive();
+      tick();
+      tickInterval = setInterval(tick, 1000);
+    }
+  }
+  $pauseBtn.addEventListener('click', togglePause);
+
+  let _lastBeat = 0;
   function tick() {
     if (!state.session) return;
     const now = Date.now();
+    // 心跳：定期落盘 lastTick，供智能续跑判断离开时长（节流 ~2s）
+    if (!state.paused && now - _lastBeat > 2000) { _lastBeat = now; persistActive(); }
     const elapsed = now - state.session.startTime;
     const remaining = state.session.duration - elapsed;
     const progress = Math.min(1, elapsed / state.session.duration);
@@ -2057,9 +2176,11 @@ theme_color: "#fafaf9"
     }
   }
 
-  function completeSession() {
+  function completeSession(opts) {
+    opts = opts || {};
     if (!state.session) return;
     clearInterval(tickInterval); tickInterval = null;
+    state.paused = false; state.pausedAt = null;
 
     const wasBreak = !!state.session.isBreak;
     const wasRevival = !!state.revivalTargetId;
@@ -2144,8 +2265,9 @@ theme_color: "#fafaf9"
     $timerDisplay.classList.remove('warn');
     renderStats();
 
-    // Pomodoro 自动链：focus 后接 break，break 后接 focus
-    if (state.pomodoroOn) {
+    // Pomodoro 自动链：focus 后接 break，break 后接 focus（续跑完成时不自动进下一段）
+    if (state.pomodoroOn && !opts.noAdvance) {
+      $pauseBtn.style.display = 'none';
       const nextIsBreak = !wasBreak;
       const nextMin = nextIsBreak ? state.breakMin : state.duration;
       $graceBanner.textContent = nextIsBreak
@@ -2168,14 +2290,13 @@ theme_color: "#fafaf9"
         }
       }, 1000);
     } else {
-      // 单次模式：直接结束
+      // 单次模式（或续跑完成）：直接结束；祝贺文案保留到下次交互再被覆盖
       $overlay.classList.remove('open');
+      $overlay.classList.remove('break-mode');
+      $pauseBtn.style.display = 'none';
       $startBtn.disabled = false;
       $timerDisplay.textContent = fmtTime(state.duration * 60);
       renderTree(0);
-      setTimeout(() => {
-        if (!state.session) $timerStatus.textContent = '点「开始」种一棵树';
-      }, 8000);
     }
   }
 
@@ -2229,9 +2350,13 @@ theme_color: "#fafaf9"
     saveActive(null);
     state.cycleCount = 0;
     state.currentChainId = null;
+    state.paused = false;
+    state.pausedAt = null;
     cancelRevival();
     $overlay.classList.remove('open');
     $overlay.classList.remove('break-mode');
+    $overlay.classList.remove('paused');
+    $pauseBtn.style.display = 'none';
     $overlayTimer.style.color = '';
     $timerDisplay.classList.remove('warn');
     $startBtn.disabled = false;
@@ -2266,6 +2391,7 @@ theme_color: "#fafaf9"
   // visible 时强制立 tick 一次刷新；同时 hidden 时也 tick 一次把状态对齐到当下的 Date.now()。
   document.addEventListener('visibilitychange', () => {
     if (!state.session) return;
+    if (state.paused) return;   // 暂停期间离开不判枯萎
     if (state.session.isBreak) {
       // break 模式不监控离开 — 但回前台也补一帧避免显示卡老
       if (!document.hidden) tick();
@@ -2848,23 +2974,58 @@ theme_color: "#fafaf9"
     } });
   });
 
-  // ============ Resume in-progress session ============
+  // ============ Resume in-progress session（智能续跑）============
+  const RESUME_TOLERANCE_MS = 5 * 60 * 1000;  // 5 分钟内的刷新/误关 → 无缝续跑，超过才弹窗确认
+
   function resumeSession() {
     const active = loadActive();
     if (!active) return;
-    const elapsed = Date.now() - active.startTime;
-    if (elapsed >= active.duration) {
-      // 早就该结束了 → 标记成功（用户离开太久，但本质上时间到了）
+    restoreMeta(active);   // 先还原番茄链 / 灌溉目标 / 休息分钟
+
+    const now = Date.now();
+    const lastTick = active.lastTick || active.startTime;
+    const onPage = lastTick - active.startTime;   // 离开前实际在页时长（≈已专注）
+    const gap = Math.max(0, now - lastTick);       // 离开时长
+
+    if (onPage >= active.duration) {
+      // 离开前时间就已到 → 判完成（revivalTargetId 已还原，灌溉能正确结算；续跑完成不自动进下一段）
       state.session = active;
-      completeSession();
+      completeSession({ noAdvance: true });
       return;
     }
-    // 还在进行中 → 按"离开页面"处理：树枯萎
-    state.session = active;
-    state.treeType = active.treeType;
-    state.task = active.task;
-    state.duration = active.duration / 60000;
-    failSession('left_page');
+    if (active.isBreak) {
+      // 休息本就允许离开：把离开时长补回后续上
+      active.startTime += gap;
+      enterExisting(active);
+      return;
+    }
+    if (gap <= RESUME_TOLERANCE_MS) {
+      // 短暂中断（刷新/崩溃重启）→ 无缝续跑，且离开的时间不计入专注
+      active.startTime += gap;
+      enterExisting(active, true);
+    } else {
+      // 离开较久、时间还没到 → 弹站内确认，交给用户决定
+      askResume(active, gap, onPage);
+    }
+  }
+
+  async function askResume(active, gap, onPage) {
+    const mins = Math.max(1, Math.round(gap / 60000));
+    const treeName = TREE_NAME[active.treeType] || '树';
+    const ok = await showConfirm({
+      title: '继续上次的专注？',
+      message: `你离开了约 ${mins} 分钟。这棵${treeName}还没长成——离开的时间不计入专注，要接着计时吗？`,
+      okText: '继续', cancelText: '放弃这棵',
+    });
+    const now = Date.now();
+    if (ok) {
+      active.startTime = now - onPage;   // 从离开处接着算，离开时长不计
+      enterExisting(active, true);
+    } else {
+      active.startTime = now - onPage;   // 让 attemptedMinutes 反映真实在页时长
+      state.session = active;
+      failSession('gave_up');
+    }
   }
 
   // ============ Field tabs UI ============
