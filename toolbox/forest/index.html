@@ -29,6 +29,9 @@ theme_color: "#fafaf9"
     --ft-shadow-card: 0 4px 18px rgba(30, 58, 95, 0.06);
   }
 
+  /* 阻断橡皮筋回弹（仅本工具页内联，standalone 下更像原生 App）*/
+  html, body { overscroll-behavior: none; }
+
   .ft-wrap { max-width: 760px; margin: 0 auto; padding: 1rem; }
   .ft-wrap header { text-align: center; margin-bottom: 1.5rem; }
   .ft-wrap header h1 {
@@ -565,9 +568,10 @@ theme_color: "#fafaf9"
 
   .tree-instance {
     position: absolute;
-    width: 90px; height: 90px;
+    /* 实际宽高由 JS 按格子尺寸内联设置（此处不写死）*/
     display: flex; align-items: flex-end; justify-content: center;
     cursor: pointer;
+    touch-action: none;   /* 触屏拖动不被页面滚动抢走 */
     transition: transform 0.18s, filter 0.18s;
     will-change: transform;
   }
@@ -784,22 +788,49 @@ theme_color: "#fafaf9"
     .stage { padding: 1.4rem 1rem 1.2rem; }
     .timer-display { font-size: 2.6rem; }
     .stats-grid { grid-template-columns: 1fr 1fr 1fr; }
-    .tree-instance { width: 70px; height: 70px; }
-    .field-cell-grid { background-size: 25% 70px; }
+    /* .tree-instance 与网格尺寸由 JS 按格子内联控制，这里不再写死 */
     .tree-tooltip { font-size: var(--ft-fs-cap); }
+  }
+  /* 平板：竖屏用满宽度，横屏及桌面再放宽容器，别把大屏当放大版手机 */
+  @media (min-width: 768px) { .ft-wrap { max-width: 820px; } }
+  @media (min-width: 1024px) { .ft-wrap { max-width: 920px; } }
+  /* 触屏设备（手机 / 平板）：核心可点目标抬到 ≥44px */
+  @media (pointer: coarse) {
+    .setting-row .duration-tabs button { padding-top: 0.72rem; padding-bottom: 0.72rem; }
+    .duration-row .duration-tabs button { padding: 0.72rem 0; }
+    .setting-row .tree-types button { width: 44px; height: 44px; }
+    .setting-row .pill-group button { width: 44px; height: 44px; }
+    .theme-swatch { width: 22px; height: 22px; }
+    .field-tab, .field-tab-add { padding-top: 0.55rem; padding-bottom: 0.55rem; }
+    .field-toolbar button { padding-top: 0.55rem; padding-bottom: 0.55rem; }
+    .exp-range-tabs button { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .tree-detail .td-actions button { padding-top: 0.62rem; padding-bottom: 0.62rem; }
+    .tree-instance .delete-x { width: 28px; height: 28px; top: -6px; right: -6px; }
+    .tree-instance .delete-x::before { content: ''; position: absolute; inset: -10px; }  /* 放大命中区 */
   }
   /* 手机窄屏：压缩主舞台让首屏就能看到操作区；输入框 ≥16px 防 iOS 聚焦缩放 */
   @media (max-width: 480px) {
     .ft-wrap { padding: 0.75rem; }
     .ft-wrap header { margin-bottom: 0.8rem; }
     .ft-wrap header h1 { font-size: 1.6rem; }
-    .plant-card { padding: 0.85rem 0.8rem 1rem; border-radius: 16px; }
+    .plant-card { padding: 0.85rem 0.8rem 1rem; border-radius: var(--ft-r-lg); }
     .tree-svg { width: min(150px, 40vw); height: min(150px, 40vw); }
     .timer-display { font-size: 2.1rem; margin: 0.6rem 0 0.3rem; }
     .stage { padding: 1.1rem 0.9rem 1rem; }
     .focus-overlay svg { width: min(220px, 56vw); height: min(220px, 56vw); }
     .focus-overlay .timer-big { font-size: 3rem; }
     .ft-wrap input[type="number"], .ft-wrap input[type="text"] { font-size: 16px; }
+  }
+  /* 矮横屏（手机横放 / 平板横屏）：按视口高度收缩专注遮罩，保证树+时间+按钮一屏放下 */
+  @media (orientation: landscape) and (max-height: 600px) {
+    .focus-overlay svg { width: min(150px, 24vh); height: min(150px, 24vh); }
+    .focus-overlay .timer-big { font-size: 2.4rem; margin: 0.4rem 0 0.3rem; }
+    .focus-overlay .focus-warn { display: none; }
+    .focus-overlay .focus-tag { margin-bottom: 0.8rem; }
+  }
+  /* 已安装为独立 App 时略收紧顶部，更像原生首屏 */
+  @media (display-mode: standalone) {
+    .ft-wrap header { margin-bottom: 1rem; }
   }
 
   /* 锁屏遮罩（focus 时） */
@@ -815,6 +846,8 @@ theme_color: "#fafaf9"
     /* 全屏专注遮罩盖住整个视口（含刘海/底部 Home 条），用安全区撑开内边距 */
     padding: max(2rem, env(safe-area-inset-top)) max(2rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom)) max(2rem, env(safe-area-inset-left));
     overflow: hidden;
+    overscroll-behavior: contain;
+    touch-action: none;
     transition: background 0.6s;
   }
   /* 主题：背景层 */
@@ -1404,6 +1437,17 @@ theme_color: "#fafaf9"
   }
   function showConfirm(opts) { return openModal(opts, false); }
   function showPrompt(opts) { return openModal(opts, true); }
+
+  // 读取底部安全区高度（供 popover 避开 Home 指示条）
+  let _safeProbe = null;
+  function safeAreaBottom() {
+    if (!_safeProbe) {
+      _safeProbe = document.createElement('div');
+      _safeProbe.style.cssText = 'position:fixed;bottom:0;left:0;height:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none;';
+      document.body.appendChild(_safeProbe);
+    }
+    return parseFloat(getComputedStyle(_safeProbe).paddingBottom) || 0;
+  }
 
   let _toastEl = null, _toastTimer = null;
   function hideToast() {
@@ -2464,11 +2508,6 @@ theme_color: "#fafaf9"
   });
 
   // ============ Stats + 田地视图 ============
-  const COLS_DESKTOP = 8;
-  const COLS_MOBILE = 4;
-  const ROW_HEIGHT_DESKTOP = 90;
-  const ROW_HEIGHT_MOBILE = 70;
-
   // 田地相关 DOM
   const $field = document.getElementById('field');
   const $editModeBtn = document.getElementById('edit-mode-btn');
@@ -2479,13 +2518,38 @@ theme_color: "#fafaf9"
   let openDetailId = null;
   let $snapPreview = null;  // 拖动时的目标 cell 预览
 
+  // 列数随可用宽度连续计算（手机≈4、平板竖屏≈6-8、平板横屏/桌面≈9-11），
+  // 唯一事实源是 fieldWidth——CSS 只管控件尺寸，几何全在这里。
+  const TARGET_CELL = 92;   // 目标每格宽度（px）
   function getFieldDimensions() {
-    const isMobile = window.innerWidth <= 600;
-    const cols = isMobile ? COLS_MOBILE : COLS_DESKTOP;
-    const rowHeight = isMobile ? ROW_HEIGHT_MOBILE : ROW_HEIGHT_DESKTOP;
     const fieldWidth = $field.clientWidth || 800;
+    let cols = Math.round(fieldWidth / TARGET_CELL);
+    cols = Math.max(4, Math.min(12, cols));
     const cellWidth = fieldWidth / cols;
+    // 行高跟随格宽但夹在 64–96，避免树过扁 / 过高
+    const rowHeight = Math.max(64, Math.min(96, Math.round(cellWidth * 0.96)));
     return { cols, rowHeight, cellWidth, fieldWidth };
+  }
+
+  // 视口列数变小后，把 col 越界的树按原顺序重新紧凑落格（每块田独立，仅在需要时落盘），
+  // 避免桌面(多列)种的树在手机(少列)因 overflow:hidden 被裁掉看不见。
+  function reflowOutOfRange(cols) {
+    const byField = {};
+    state.trees.forEach(t => {
+      const fid = t.fieldId || (state.fields[0] && state.fields[0].id);
+      (byField[fid] = byField[fid] || []).push(t);
+    });
+    let changed = false;
+    Object.keys(byField).forEach(fid => {
+      const arr = byField[fid].filter(t => t.position);
+      if (!arr.some(t => t.position.col >= cols)) return;   // 该田无越界，保持不动
+      arr.sort((a, b) => (a.position.row - b.position.row) || (a.position.col - b.position.col))
+        .forEach((t, i) => {
+          const col = i % cols, row = Math.floor(i / cols);
+          if (t.position.col !== col || t.position.row !== row) { t.position = { col, row }; changed = true; }
+        });
+    });
+    if (changed) saveTrees();
   }
 
   function ensurePositions() {
@@ -2571,6 +2635,9 @@ theme_color: "#fafaf9"
     }
     $emptyForest.style.display = 'none';
     $field.style.display = '';
+
+    // 先按当前视口列数把越界的树折回可见范围
+    reflowOutOfRange(getFieldDimensions().cols);
 
     const total = trees.length;
     const dead = trees.filter(t => !t.success).length;
@@ -2885,19 +2952,23 @@ theme_color: "#fafaf9"
       </div>
     `;
 
-    // 定位：贴在树上方/下方
+    // 定位：先让弹窗可测量（不可见），按真实尺寸放上/下方，并避开底部安全区
+    $treeDetail.style.visibility = 'hidden';
+    $treeDetail.classList.add('open');
     const rect = anchorEl.getBoundingClientRect();
-    const popH = 220;  // approximate
-    const popW = 280;
+    const popH = $treeDetail.offsetHeight;
+    const popW = $treeDetail.offsetWidth;
+    const margin = 12;
+    const safeB = safeAreaBottom();
     let top = rect.top - popH - 8;
-    if (top < 8) top = rect.bottom + 8;
-    // 贴底防溢出：下方放不下时钳回视口内（留出底部安全区余量）
-    if (top + popH > window.innerHeight - 16) top = Math.max(8, window.innerHeight - popH - 16);
+    if (top < margin) top = rect.bottom + 8;                  // 上方放不下 → 放下方
+    const maxTop = window.innerHeight - popH - margin - safeB;
+    if (top > maxTop) top = Math.max(margin, maxTop);         // 下方顶出视口 → 钳回（含安全区）
     let left = rect.left + rect.width / 2 - popW / 2;
-    left = Math.max(8, Math.min(window.innerWidth - popW - 8, left));
+    left = Math.max(margin, Math.min(window.innerWidth - popW - margin, left));
     $treeDetail.style.top = top + 'px';
     $treeDetail.style.left = left + 'px';
-    $treeDetail.classList.add('open');
+    $treeDetail.style.visibility = '';
     openDetailId = treeId;
 
     const $tdDelete = document.getElementById('td-delete');
