@@ -1,3 +1,79 @@
+## 2026-07-03
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生。距 7-02 巡检共 **7 个 commit**（`965babf` 之后 → `f65264a` 为止），全部是**前端小工具的 UX/视觉打磨**，一行内容 / IA / `_data/` / `_config.yml` / `_notes/` / `files/` 都未动（`git diff --stat 965babf..HEAD -- '*.md' '_data/*' '_config.yml'` 空）。三条主线：① **`toolbox/picker` 抽签工具三连迭代**（`75b6f3e` → `9c4d134` → `f65264a`）—— 权重模型从"直编占比 + 联动补足 + 可锁定 + 长名图例 + 空选项禁抽 + 转盘居中→首抽滑左 + 平均分配按钮"→ 滑块量程改动态"可占区间"（锁定 50% 后拖第二条按剩余池分）+ 转盘文字改沿辐条排布 → 再回归**绝对语义**（相同占比→相同位置，四项 25% 时四滑块对齐；上限时该行回填真实值），配合选项名 8 字上限、转盘字号只看扇区大小与字符实际宽度（1~8 字同样大小、cap8 逻辑），resvg 无头验证。② **`toolbox/chess + xiangqi` 象棋 / 中象共 3 项修复 + 1 新模式**（`8d032f0`）—— (a) `pointerdown` 重入清理 + `move/up/cancel` 挂 window + `try/finally` + 兜底扫除孤儿幽灵，根除多指触屏拖拽后卡死在视口的幽灵棋子；(b) 回合超时托管改「始终给完整倒计时、再次超时才代走一手 + 任何手动落子即解除托管」，修复连超两轮后人被永久夺权；(c) 新增「对坐模式」（触屏默认开 + 桌面手动开关），本机双人时把对面棋子转 180°，与「每回合翻转」互斥；(d) 手机端(≤600px)缩小楚河汉界 / 中央倒计时药丸不再盖住中路棋子。③ **`toolbox/connect4` 四子棋棋盘视觉重做 + 4 个 bug 修复**（`6172d78`）—— 满宽正方棋盘 + 竖向渐变蓝板 + 底部暗边模拟板厚 + 凹陷洞（顶部内阴影 + 底部受光）+ 红/黄玻璃糖果质感 + 悬停幽灵子 + 获胜四连改「发光连线 + 逐子光环」+ DPR 视网膜清晰渲染 + 深色模式棋盘配色 + 分享结算图同步 + 静态棋盘层离屏缓存；bug 修复（多 agent 对抗式评审 + DOM 模拟回归确认）：P2 换局/换难度时在途 AI 思考链未取消 → 新盘幽灵落子（加 gen 代号 + 可取消定时器）、P2 aiMove 缺 aiThinking 守卫 → 暂停秒续可能重复落子（加守卫 + 落子前重校验列）、P3 下落动画改用「行」为单位（resize 不再让棋子瞬移）、P3 C4_DIFF_LABEL "简单/困难" → "新手/高手"与全站 UI 统一。④ **`toolbox/pet` 宠物中心手机端 UX 两连**（`74c2537` + `261b0cb`）—— 手机端选食物先改「展开式全宽列表·选完自动收起」（方案 B：顶部触发条 `#food-picker-trigger`、点它整宽铺开、组头独立展开、`selectRecordFood` 收回），随后改进为**悬浮展开**（绝对定位在触发条正下方、盖住下面填写区、不再把页面撑长/推下去；触发条定高 48px + 列表 max-height 46vh/360px、可滚、带阴影实底；`▾ ↔ ▴` 切换；点列表 / 触发条以外自动收起；桌面端完全不变）。改动 8 个文件共 +662 / -284 行——`assets/js/games/picker.js` (+291/-...) / `toolbox/picker/index.html` / `toolbox/connect4/index.html` / `toolbox/chess/index.html` / `toolbox/xiangqi/index.html` / `_includes/toolbox/pet/board.html` / `assets/css/pet.css` / `assets/js/pet.js`（净新增 29 行）。
+>
+> `bundle install` ✅ + `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（15.29 s cold build）。`_site/` 顶层仍 26 项（与 7-02 完全一致：`account` `admin` `admin-manifest.json` `assets` `assistant-fulltext.json` `assistant-index.json` `CNAME` `en` `essays` `feed.xml` `files` `flight` `google5306…` `index.html` `life` `manifest.json` `notes` `pdfjs` `redirects.json` `research` `robots.txt` `search.json` `sitemap.xml` `sw.js` `toolbox` `zh`），未新增 / 未删减顶级路径；`_site/toolbox/{picker,connect4,chess,xiangqi}/index.html` 全部渲染，`_site/toolbox/chess/ai-worker.js` 仍在（原引用未受本次改动波及）。**未发现 `_flight-staging/` / `_paid/` 泄露**（`_site/life/paid-test/` 内 2 个 HTML 属付费预览，已上线，不是泄露）。**代码质量核对**：改动集中于 5 个游戏/工具文件，`grep "console.log\|debugger\|TODO\|FIXME\|XXX"` 仅命中 `assets/js/pet.js:5` 那条有意的品牌 log（`console.log('%c🐾 宠物中心 ' + BUILD_VERSION, ...)`，宠物中心一直有）、无新增 debug 遗留。**今日 0 项自动修复**——7 个 commit 全部是站主亲手打磨的 UX/视觉迭代，属工具设计取向 / 交互决策范畴，不属本 agent 应擅动的"小而无争议"改动；build 健康、`_site/` 结构无异常、workspace 干净（`git status` clean、`git ls-files --others --exclude-standard` 空）、无任何低风险小修可做。**P1 队列**：唯一 P1 承接 20 日的 `_config.yml`.`study_order` 未列 `interm-econometrics`（今日**第 21 日承接**），`_notes/study/interm-econometrics/interm-econometrics-2023.md` 仍在、`comm -23 <(ls _notes/study/) <(sed -n '/^study_order:/,/^[a-z]/p' _config.yml | grep '^  - ')` 差集仍只此一条——纯 IA 设计判断（保留 / 加进 study_order / 合并 `interm-metrics`），不擅动。**P2 队列**：承接 7-02 全部 P2（`linear-algebra-strang.md` 提到「本站中文《线性代数讲义》」但对应中文材料只以《经济学数学工具箱》线性代数部分 ch1-ch7 存在、`_flight-staging/` 目录名与 runner 生产后端角色不匹配、`bare_dollar.py` 启发式漏判、`spotcheck.py` `.tex` 探测启发式、`tutoring/` 7 篇缺 summary、`paid-test-us-visa-types.md` 缺 summary 且无法直接改、`mao-thought-principles.md` 无 summary 字段但正文有介绍段、`toolbox/random/` hover 缩进 cosmetic、mid-2015 与 anova-R 互链、掼蛋真机联机回归、宠物中心多浏览器验收、机票监控 mac 装机 / 卸装 / 更新真机验收、`toolbox/flight/` 5 HTML 多浏览器验收、《经济学数学工具箱》三项内容确认、jukebox 16 首问题首 + 3 失败首、5 条 DNS NameResolutionError 外链、`dead_links.py` SVG xmlns 命名空间误判），今日均**无新观察**、承接不变。此外今日改动新出以下**P2 新观察**：⑤ picker 权重语义在 7-02 一天内三连迭代（占比联动+锁定 → 动态量程 → 回归绝对语义）说明交互设计尚在收敛，建议真机 iPhone Safari + 桌面 Chrome 各拉一次 3~10 选项 / 锁 1~2 项 / 4 项等权对齐 / 长名 8 字 / 空选项禁抽 / 转盘 1% 细扇区 6 种场景手感回归；⑥ connect4 canvas 无 `keydown` / `tabindex` / `role=button` / `aria-label` —— 是历史状态、并非本次视觉重做引入的回归（`git show 6172d78 -- toolbox/connect4/index.html` diff 未涉及 a11y 属性），但既然 flight/pet 都有 a11y 通道，四子棋是否补一条键盘落子（← / → 移动列指示 + Enter 落子 + 焦点方框可视）可挪进"游戏 a11y 补齐"这条内容待办；⑦ 象棋/中象「对坐模式」新加了 CSS 转 180° + 触屏默认开的启发，仍需真机 iPad 竖 / 横屏、以及 iPhone Safari 横屏两台面对面下一整局验收（沙箱无触屏无法替代）。
+
+### ✅ 本次已自动修复
+
+无。
+
+7 个 commit 全部由站主亲手打磨（picker 权重模型 / 转盘排文语义收敛、connect4 视觉重做与 4 bug 修、chess+xiangqi 幽灵子/超时托管/对坐模式、pet 手机端食物列表悬浮展开）——均属 UX/视觉设计取向决策，不属"小而无争议"范畴；build ✅ / `_site/` 结构与 7-02 一致 / workspace 干净 / 无低风险小修可做。
+
+### 📋 待你把关
+
+#### P0（紧急）
+
+无。
+
+#### P1（重要）
+
+1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 ~ 7-02，**第 21 日承接**）。`/notes/` landing 渲染遍历 `site.study_order`（`notes/index.html` L81），所以 `interm-econometrics-2023.md`（sub_category =「中级计量经济学」、120 页 Wooldridge 体系英文讲义、94 keywords 厚足覆盖）在 `/notes/index.html` 里**渲染不出来**（sitemap / search.json 仍正常工作，**仅** landing 缺）。今日核对：`ls _notes/study/` 仍 26 个目录（较昨日不变）、`study_order` 仍 25 条，`comm -23` 差集仍只 `interm-econometrics` 一条。改否、改成什么名（保留现状 / 加进 `study_order` / 与 `interm-metrics/` 合并）仍属设计判断，请你拍板 —— 承接 21 日，是仓库里最久的 P1。
+
+#### P2（建议）
+
+1. **`linear-algebra-strang.md` summary 里「本站中文《线性代数讲义》」的引用**（承接 6-24 ~ 7-02，性质与 7-02 一致）—— 站上线代中文材料以《经济学数学工具箱》里 ch1-ch7 存在（`ch1_vector_spaces` / `ch2_rank_linear_systems` / `ch3_projection_ols` / `ch4_eigen_diagonalization` / `ch5_spectral_quadratic` / `ch6_svd` / `ch7_matrix_calculus` 7 章），但书名不同、面向经济学博士、并非独立线代教材。三种改法：① 保留字面等以后写独立中文《线性代数讲义》；② 改字面为「本站《经济学数学工具箱》线性代数部分（ch1-ch7）」并链过去；③ 删引用改自足介绍。**属内容写作 + 结构映射决策，请你拍板**。
+
+2. **`_flight-staging/` 目录名与其内容实际角色不匹配**（承接 7-02，性质不变）—— 目录里的 `runner/` 已是**已上线机票监控工具的生产后端**（`flight/get:21` 硬编码从 `raw.githubusercontent.com/…/main/_flight-staging/runner/` 拉取，走 GitHub raw 而非 Jekyll，`_config.yml` exclude 拦不住外部 curl 读取），但目录名沿用「设计稿暂存」语义会误导。三种改法：① 保留名字（沉默约定）；② `runner/` 挪出到 `flightwatch/runner/` 需同步改 `flight/get:21` SRC 常量 + 新旧 URL 平滑迁移；③ `_flight-staging/` 改名 `_flightwatch/` 保 `_-`前缀防收录，只改 URL 前缀。**命名 / 迁移决策，请你拍板**。
+
+3. **picker 权重语义 7-02 一天内三连迭代（占比联动+锁定 → 动态量程 → 绝对语义）待真机手感回归验收**（**今日新观察**）—— 建议 iPhone Safari + 桌面 Chrome 各拉一次 3~10 选项 / 锁 1~2 项 / 4 项等权对齐 / 长名 8 字 / 空选项禁抽 / 转盘 1% 细扇区**六种场景**手感回归，特别看：滑块拖动过程中"上限时该行回填真实值"是否直觉、锁定后未锁定项按比例补足是否与预期一致、转盘 8 字全角字排满半径的 cap8 上限在 1~8 字下字号是否稳定、空选项禁抽提示是否清晰、`resvg` 无头预览与真机浏览器渲染是否吻合。沙箱无 GUI / 无触屏跑不了。
+
+4. **connect4 canvas 无键盘落子通道**（**今日新观察**）—— 历史状态、非本次视觉重做引入（`git show 6172d78 -- toolbox/connect4/index.html` diff 未涉及 a11y 属性），但既然 flight/pet 有 a11y 通道，四子棋可挪进"游戏 a11y 补齐"内容待办：补 `← / →` 移动列指示 + Enter 落子 + 焦点方框可视，是否加请你拍板。
+
+5. **chess + xiangqi「对坐模式」新加的 CSS 转 180° 待真机 iPad / iPhone 横屏面对面下一整局验收**（**今日新观察**）—— 触屏默认开 + 桌面手动开关的启发是否合适、旋转后棋子拾放热区是否仍精准、与「每回合翻转」互斥切换是否顺滑、手机端(≤600px)中央倒计时药丸缩小后是否仍能清楚看到、超时托管夺权改「再次超时才代走 + 任何手动落子即解除」是否让"想走却走不了"消失。沙箱无触屏跑不了。
+
+6. **`toolbox/pet` 宠物中心手机端食物列表**「悬浮展开」**新姿态待真机 iOS Safari + Android Chrome 双端验收**（**今日新观察**）—— 触发条定高 48px + 列表 max-height 46vh/360px 是否在 iPhone SE / iPhone 15 Pro Max / Pixel 5 各屏幕比例下都够展开数量、绝对定位盖住填写区是否遮挡关键 CTA、`▾ ↔ ▴` 切换与点外收起是否顺滑、桌面端"完全不变"承诺（`display: none`）是否 CSS 层面无泄漏。沙箱无触屏跑不了。
+
+7. **`scripts/audit/bare_dollar.py` 启发式漏判 `$\d+-...$` 类数学配对**（承接 6-30 ~ 7-02）—— 今日**未跑** audit 脚本，老待办承接。
+
+8. **`scripts/audit/spotcheck.py` 的 `.tex 源` 探测启发式仍漏判带主题后缀和异目录情形**（承接 6-27 ~ 7-02）—— 今日**未跑** audit 脚本，老待办承接。
+
+9. **`_notes/tutoring/` 10 篇里 7 篇缺 `summary` 字段**（承接 6-30 ~ 7-02）—— 老文盘扫，内容写作决策。
+
+10. **`_notes/life/paid-test-us-visa-types.md` 缺 `summary` 字段且无法直接改**（承接 6-30 ~ 7-02）—— 需改源文件 `_paid/liuxue-test-visa.md` 或改 `scripts/paywall/build_paid.py`。
+
+11. **`_notes/study/mao-thought/mao-thought-principles.md` 无 `summary:` 字段但正文 L17 是介绍段落**（承接 6-29 ~ 7-02）—— 写作偏好；PDF-only 页面有正文时 `post.html` 兜底不触发，渲染上不缺。
+
+12. **`toolbox/random/` hover 守卫内层缩进 cosmetic** —— 承接 6-03 ~ 7-02，功能正确、纯排版风格小差异，可忽略。
+
+13. **mid-2015 与 anova-R 纯 PDF 存档可加同课程互链入口** —— 承接 6-03 ~ 7-02，内容写作决策。
+
+14. **掼蛋 6-18 ~ 6-24 联机改造 + 6-30 四象限版型迁移待真机 / 微信内置浏览器跑两局完整联机回归**（承接 6-27 ~ 7-02）。沙箱无浏览器 / 无音频出口无法替代真机回归。
+
+15. **宠物中心近期多轮更新待多浏览器 / 多设备验收**（承接 6-29 ~ 7-02；本轮再加手机端食物列表悬浮展开两连；建议 iPhone Safari + Android Chrome + 桌面 Chrome + 桌面 Firefox + PWA standalone 至少五组合下过一遍）。沙箱无 GUI / 无真触屏，跑不了。
+
+16. **机票监控 Phase 3 一键安装器 `flight/get` + Phase 2 后端 pipeline 待 mac 真机端到端跑一轮验收**（承接 7-02）—— `curl -fsSL https://ruizhou03.com/flight/get | bash -s -- <盯票码>` 完整入口 = 建 venv + Playwright + LaunchAgent + 首轮 + 定时的**装机链路**是否在**空白 mac**（未预装任何 flightwatch 相关物）上一次成功、以及**已装用户后续 flightwatch 命令**更新 runner 会不会因 `_flight-staging/` 名字变动等回归，建议真机装机 / 卸装 / 更新三步整流一次。沙箱无 mac 出口跑不了。
+
+17. **`toolbox/flight/` 5 个 HTML 页 UX 待多浏览器 / 多屏幕跑一遍**（承接 7-02）—— `index.html` / `manual.html` / `handoff.html` / `ticket-detail.html` / `email-digest.html`，建议 iPhone Safari + Android Chrome + 桌面 Chrome + 桌面 Firefox + PWA "加装到主屏" 至少五组合下过完整配置→保存→交接→查看单票四步骤一遍。
+
+18. **《经济学博士的数学工具箱》教材首发三项确认**（承接 7-02）—— ① summary 里 800 字长概述（现 L4）内容详实但对 landing 页 note-card 可能偏长（`_layouts/post.html` 与 `_includes/note-card.html` 处理超长 summary 的行为需核对）；② `sub_category=经济学数学基础` 是**新分类字符串**，若将来还有相邻教材（如"经济学统计基础"）值得先想清楚这条侧栏走向；③ `course=经济学数学工具箱` 是否要挂进 `_data/course_aliases.yml`（让读者搜"经济数学"、"math for economists" 等口语词也能找到）建议与 `search-keywords` skill 一并处理。
+
+19. **jukebox 16 首问题首 + 3 失败首待逐类修复** —— 承接 6-18 ~ 7-02。
+
+20. **5 条 DNS NameResolutionError 外链需站主在生产环境复验** —— 承接 6-08 ~ 7-02；今日**未跑** `dead_links.py`。
+
+21. **`dead_links.py` 把 SVG `xmlns="http://www.w3.org/2000/svg"` 命名空间字符串误判为外链** —— 承接 6-08 ~ 7-02，cosmetic 非阻塞。
+
+### 🗂 仓库卫生
+
+**仓库结构较昨日无变化，无需再优化。** `git diff --stat 965babf..HEAD` 覆盖的 8 个文件全在 `toolbox/{picker,connect4,chess,xiangqi}/index.html` + `_includes/toolbox/pet/board.html` + `assets/{css/pet.css,js/pet.js,js/games/picker.js}`——纯代码改动，**未新增 / 未删除任何目录、未新增 / 未删除任何 `_notes/` `_data/` `files/` 条目**（`git diff --stat 965babf..HEAD -- '*.md' '_data/*' '_config.yml'` 空）。`git status` clean、`git ls-files --others --exclude-standard` 空、`find . -name '.DS_Store' -o -name '*.bak' -o -name '*.orig' -o -name '*.tmp' -o -name '*~'` 全空、`find . -name "* 2.*"` 全空，无编辑器 / 系统垃圾。大文件核对：`files/or/or-2023.pdf` 5.55 MB 仍是唯一 5 MB 以上文件（`images.py` 潜在 pdfslim 候选、承接昨日）、`files/econ-math-toolkit/econ-math-toolkit.pdf` 3.02 MB + `files/interm-macro/interm-macro-2022-zh.pdf` 2.23 MB 仍是 2 MB 以上二人组、均低于 5 MB 阈值。`_paid/` + `_flight-staging/` 双双在 `_config.yml` L50/L52 exclude 列表内且 `_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空——七月首日双保险仍稳固。**结论**：目录结构与文件架构与 7-02 完全一致，仅工具/游戏代码行内调整，无仓库卫生可动项。
+
+### 💓 后端脉搏 / 📬 读者来信
+
+7 个 commit 均为前端工具代码打磨（picker 权重语义与转盘排文、connect4 canvas 视觉重做、chess/xiangqi 拖拽与超时托管、pet 手机端食物列表 UX），**未新增任何对 zircon-urge / leaderboards / zircon-comments waline / 付费墙 `/api/paid` `/api/redeem` 端点的依赖**。`backend_pulse.py` 本次未主动跑（沙箱无 fly.io 出口，承接 6-04 ~ 7-02 每次巡检结论），站点后端配置维持稳定。
+
+---
+
 ## 2026-07-02
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生。距 7-01 巡检共 **24 个 commit**（`4d35916` 之后 → `4321226` 为止），基本全是站主亲手在做的三条主线：① **机票监控（flightwatch）Phase 1 收口 + Phase 2 后端 pipeline 全落地 + Phase 3 起步 + 上线** —— 从 6-30 只是 `_flight-staging/` 内部设计稿，一天之内完成 a11y 键盘/读屏收口、品牌改名「机票监控」、样张航线中性化、邮件文案 AI 触发价澄清、盯票码前端编解码 + 交接页动态还原、判断层多厂商 provider:model 分发 + 简单模式（阈值比价·无 AI·零密钥） + 完整模式（judge_api.py 直连 Anthropic API）、config.py 配置桥、scrape.py 真机端到端跑通、notify + platform（mac 适配）、flightwatch CLI 编排、Phase 3 一键安装器 `flight/get`、AI 模型选择器移动至安装手册、通知卡/直飞/日期双呈现·实时同步、日历角标内收 + 到达日星形 ✧→✦ 对称、频率并入通知卡紧凑内联、迁入公开 `toolbox/flight/`（5 个 HTML + PWA `manifest.json` + apple-touch-icon + 4 张 flight-icon-{192,512,maskable-512}.png + 2 张 flight-icon{,-maskable}.svg + `_data/toolbox.yml` 新增 flight 条目），前端 UI 从 `_flight-staging/` 迁到公开 `toolbox/flight/` 出站、后端 runner 仍留 `_flight-staging/runner/` 里（10 个 Python 模块共 1600+ 行 + install/get.sh 137 行 + README.md 55 行），一键安装器通过 `raw.githubusercontent.com/…/main/_flight-staging/runner/` 拉取（`flight/get:21` 显式硬编码路径）—— 前端已上线，后端保留 `_-`前缀私密目录 + `_config.yml` 显式 exclude 双保险不进 Jekyll build。② **《经济学博士的数学工具箱》原创中文数学教材首发**（`b285652`）—— 8 部分 / 42 章 / 447 页 XeLaTeX + ctexbook 排版，本次一次性入仓：`_notes/study/econ-math-toolkit/econ-math-toolkit.md`（front-matter + 76 条中英 keywords + 800 字 summary，`sub_category=经济学数学基础`，author=周睿，date=2026-06-27）+ `files/econ-math-toolkit/econ-math-toolkit.pdf`（3.02 MB rendered PDF）+ `files/econ-math-toolkit/source/main.tex` / `commands.tex` / `theorems.tex` + 42 个 `chapters/ch{1..42}_*.tex`（每章 200-500 行，共 ~15,000 行 LaTeX 源）+ `docs/econ-math-toolkit-playbook.md`（章节写作方法论）+ `docs/workflows/econ-math-write-part.workflow.js`（自动化写作 workflow 171 行）。**站主自认领的原创教材**，非搬运，是继 5-25 灵敏度分析原创教材、6-16 中级宏观 & 6-24 Strang 线代英文姊妹版之后又一大部头讲义上架。③ **`study_order` 双双补齐**（`39e36f3` + `faab25c`）—— 承接 6-01 起 P1、6-24 起 P1，站主两天内直接把 `econ-math-toolkit` 与 `linear-algebra` 分别登记进 `_config.yml` L90/L92（数学组，位置在 `real-anal` 之前，即 econ-math-toolkit → real-anal → linear-algebra 三档梯度）—— **昨日 P1#2「linear-algebra 缺 study_order」7 日承接 + 昨日隐含 P1「econ-math-toolkit 缺 study_order」0 日承接双双消除**，`/notes/index.html` 数学组现完整渲染 `econ-math-toolkit` / `real-anal` / `linear-algebra` 三档。次要三条：④ **宠物中心三个 fix**（`6bf56d2` contactNicknames 免被 CloudSync 覆盖冲掉、`2503688` 食物两级可折叠目录、`55ba53b` 趋势图今日时段逐日翻看 + 目标参考线按当时目标分段渲染）；⑤ **`cat-soundboard` 新增两种情境喵**（`8a85eb1` 等饭喵 / 落单喵 + 播放有效区间机制 + 2 个新音频文件 `meow-food.mp3` 7.79 KB / `meow-lonely.mp3` 8.21 KB）；⑥ **`toolbox/picker`**（`75a4b99` 权重必为正数 + 支持小数精调 + 恢复等权按钮 + 转盘与图表并排不再被导航裁切 + 选项名回车推进）。
@@ -1360,96 +1436,3 @@
 
 ---
 
-## 2026-06-19
-
-> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周五 DOW=5，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=19，未跑 monthly_stats）。距 6-18 巡检共 **7 个 commit**（`eb4a8dd` 之后 → `3ca3687` 为止），主题**单线**：**掼蛋（guandan）联机改造的第二波收尾——出牌倒计时 + SSE 实时推送 + 局终结算闩与四视角测试模式**。① **联机「真人变机器人」回归修复 + 四视角测试模式**（`b526cbd` + `e85006b`）—— 真人在第 2 局起被前端误显示为机器人 + 刷新退化问题；同步配上「四视角（暗号 quad）」测试模式，一人扮四家走真实联机流程自测，方便后续回归。② **联机结算卡死 + 出牌反馈打磨**（`7395e06`）—— 联机结算回归修复，出牌即时反馈、炸弹特效、测试条体验联调。③ **出牌倒计时（统一 25s 上限，所有视角看「该谁出 + 剩多久」）**（`afa9d4e`）—— `turnMs()` 不再按 10/20/30 分档，只区分「限时 25s」与「不限」；`applyServerGameState` 进入出牌态时一律 `armTurnClock()`，把闹钟挂在「当前该出牌者」的座位 / 出牌区，自时钟超时自动出牌 + 连续 2 次转托管。④ **SSE 实时推送从「搭好默认关」→「默认开 + 兜底回退轮询」**（`ebc8d2e` + `5bce07a`）—— 先 `ebc8d2e` 搭好 EventSource 统一同步入口 `startOnlineSync/stopOnlineSync`（flag 关→长轮询、flag 开→SSE；连不上/被代理屏蔽自动回退轮询），保持 flag 关，零行为变化；随后 `5bce07a` 后端 stream 端点上线后默认启用 SSE（他人出牌约 1 个网络往返即到），同时把**局终死循环根因**修掉——结算闩 `_endHandled/_matchEnded` 原先只在 `startNetworkedGame/startRound` 复位，靠轮询/推送进入下一局的玩家从此不复位、第 2 局起 `endRound` 成 no-op；改为 `applyServerGameState` 收到 playing/tribute (新局进行中) 即复位该闩；防御 `sendNetworkedMove` 在非出牌阶段/非我回合/我已出完时直接忽略，根除「提交被退回→牌弹回→再被提示出牌」循环；`startNetworkedGame` 对 round_end/match_end 视图如实置相位，不再硬置 PLAYING 闪 UI。⑤ **倒计时改用服务器统一计时（切视角不重跳）+ 测试模式秒切视角**（`3ca3687`）—— 倒计时原是客户端本地 `now+25s`、每次重渲都重置、切视角即重数；改为客户端用服务器下发的 `turnElapsedMs` (本回合已用时) 算 `turnRemainMs = 上限 - 已用`，切视角/重连/任何重渲都显示同一条、不重置；超时自动出牌按剩余触发；单机仍满额。测试模式切座引入 `_srv` 缓存的瞬时渲染 + 后续 SSE/轮询初帧刷新（去阻塞 GET）。版本号：`2026.06.18.x` → `2026.06.19.x`。共改 2 个文件：`assets/js/games/guandan.js` 7 次（+543 / -77）、`toolbox/guandan/index.html` 7 次（缓存版本号 bump）。**0 文章内容改动 / 0 站点 IA 改动**——7 个 commit 全部锁在 `assets/js/games/guandan.js` + `toolbox/guandan/index.html` 两个文件。`bundle install` ✅ + `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（11.942 s，cold build）。今日 `scripts/audit/run.sh` 全套审计 **13/13 每日项全 clean**——`keywords_coverage`（散文 121 篇全部充足，与昨日同）/ `images`（仅 `files/interm-macro/interm-macro-2022-zh.pdf` 2.13 MB 大文件，承接 6-16 中文版讲义首发，markdown 入口正常，状态与昨日完全相同）/ `material_type_enum`（分布完全无变化：Notes ×44 / Exams ×40 / 课程测评 ×18 / 经验之谈 ×5 / 错题本 ×3 / 写作 ×2 / 口语 ×1 / 词汇 ×1）/ `filename_convention` / `hover_no_media`（7 次掼蛋改动后无裸 `:hover` 引入）/ `sibling_crosslink`（9 个 ≥3 篇 sub_category 组全互链）/ `bare_dollar` / `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` / `spotcheck`（10 项配额抽检见下）/ `backend_pulse`（HTTP 403，承接 6-04 ~ 6-18）。**今日 0 项自动修复**——7 个 commit 全部合规。**P1 队列**：6-18 review 经核对清掉 4 项「早已修掉但机械承接」的旧项后，仅 `study_order` 未列 `interm-econometrics` 一条 P1 仍有效（承接 6-13 至 6-18 共 6 日）。今日另对 6-05 残留的「付费 / 隐藏内容公开 manifest.json 暴露」P1 做了独立核验——根 `manifest.json` 仅含站点元信息（name/icons/start_url=/zh/）**无 shortcuts / 无路径泄露**；`admin-manifest.json` 走 Liquid 模板 `{% unless item.hidden or item.trashed %}` 过滤 hidden/trashed、置 `sitemap: false`、付费文 paid:true 字段属设计内（公开 = 有预览 + 购买入口），亦无暴露隐藏内容——该项 6-05 P1 可正式归档。**抽检 10 项无新增问题**（1 个 game `chess` 1987 行 / 99.8KB inline 与 leap/runner 同性质，全 `:hover` 已 `@media (hover: hover)` 守卫；2 个 pdf_archive `adv-micro-psu/2025-final.pdf` + `interm-macro/interm-macro-2022.pdf` 各被对应 markdown `pdf_url` 唯一引用；2 个 lecture_note_pdf_only `causal-inference/final-2022` + `corp-fin/mid-sample-4` PDF 路径有效、front-matter 完整、keywords 厚足、属一次性真题样卷存档维持现状；5 个 life note `kitchen-vs-bathroom-water` `fridge-layout-guide` `paid-test-us-banking-guide` `special-garments-care` `cooking-water` front-matter 齐整、生活之问 / 留学攻略两个专栏调性一致）。
-
-### ✅ 本次已自动修复
-
-无。
-
-7 个 commit 全部锁在 `assets/js/games/guandan.js` + `toolbox/guandan/index.html` 两个文件内，无文章内容 / 信息架构 / 搜索 / 样式 / 配置 / front-matter 改动。所有审计项 clean，未发现任何无争议低风险问题可自动处理。
-
-### 📋 待你把关
-
-#### P0（紧急）
-无。
-
-#### P1（重要）
-
-1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 / 6-14 / 6-15 / 6-16 / 6-17 / 6-18，第 7 日承接）。`/notes/` landing 渲染遍历的就是 `site.study_order`（`notes/index.html` L81 + L245），所以 `interm-econometrics-2023.md`（sub_category =「中级计量经济学」、与同名旧版 `interm-metrics-2023.md` 同名相近但目录不同）这篇在 `/notes/index.html` 里**渲染不出来**（`_site/sitemap.xml` 第 300 行确认 `/notes/interm-econometrics/interm-econometrics-2023` 已收录到 sitemap、search.json 正常，**仅** landing 缺）。改否、改成什么名（保留现状 / 加进 `study_order` / 与 `interm-metrics/` 合并）属设计判断，仍请你拍板。
-
-#### P2（建议）
-
-1. **`toolbox/random/` hover 守卫内层缩进 cosmetic** —— 承接自 6-03。功能正确，纯排版风格小差异，可忽略。
-2. **mid-2015 与 anova-R 纯 PDF 存档可加同课程互链入口** —— 承接自 6-03。已有「同课程自动侧栏」覆盖（`sibling_crosslink.py` ✅）但缺手写互链段落引导。属内容写作决策。
-3. **掼蛋 6-18 ~ 6-19 期间联机改造第二波（结算闩 / SSE / 倒计时 / 四视角测试）大动 7 commit，建议站主在真机 / 微信内置浏览器跑两局完整联机回归** —— ① 真机 SSE 是否真连上（看 console / network 标签 EventSource），代理屏蔽时是否平滑回退长轮询；② 第 2 / 第 3 局结算是否每局都弹（局终死循环已修，但要真两人开局连打验证）；③ 倒计时切视角时是否不重跳（关键修复点）；④ 测试模式四视角 quad 切座是否秒切无空屏；⑤ 单机一局回归（防 `isNetworked` 闩残留再次卡死 AI）。沙箱无浏览器无法替代真机回归。
-4. **jukebox 16 首问题首 + 3 失败首待逐类修复** —— 6-17 `008ff4f` 落地 74 首安全改善后剩余的「英文歌 / 翻唱抓错 CD / ASR 漂移」等问题首站主可继续推进。属内容修复决策（承接自 6-18）。
-
-#### 已归档（核对当前仓库已修复，从队列移除）
-
-1. ~~付费 / 隐藏内容公开 manifest.json 暴露（承接 6-05 P1）~~ —— 今日核对：根 `manifest.json` 仅站点元信息（name/short_name/icons/start_url=/zh/）无 shortcuts 无路径泄露；`admin-manifest.json` 走 `{% unless item.hidden or item.trashed %}` 过滤、置 `sitemap: false`、付费文 paid:true 属公开元信息（预览 + 购买入口本就公开），不暴露隐藏内容。该 P1 正式归档。
-
-### 🗂 仓库卫生
-
-**仓库结构较昨日无变化，无需再优化。** 工作树干净（`git status` clean、`git ls-files --others --exclude-standard` 空、无 `.DS_Store` / `*.bak` / `*.orig` / `*.tmp` / `*~` / 副本文件 / 密钥 / 凭证 / 个人路径痕迹）。7 个 commit 全部锁在 `assets/js/games/guandan.js` + `toolbox/guandan/index.html` 两个文件；未引入新目录 / 新顶级文件 / 新依赖 / 新二进制（`guandan-dmc.bin` 未再动）。`_config.yml` 的 `exclude:` 列表已含 `DAILY_REVIEW.md`、`EMAIL_SUMMARY.md`、`SPOTCHECK_100_REPORT.md`、`SPOTCHECK_100_AGENT_REPORTS.md`、`TOOLBOX_AUDIT_REPORT.md`、`docs/`、`scripts/`、`tools/`、`_paid/`、`audio/`、`backends/`、`.claude/`、`.githooks/` 等所有内部目录与产物。`.gitignore` 状态未变。**结论**：与 6-15 / 6-16 / 6-17 / 6-18 同——仓库目录基线稳定，无可优化空间，跳过结构调整。
-
-### 🔬 抽检专项
-
-**抽检 1/10 · `game` · `toolbox/chess/index.html`**（1986 行 / 99.8 KB inline + `ai-worker.js` 40 行 / 1.5 KB）
-- 已修复：无。
-- 待办：无新增。
-- 长期建议：单文件 1986 行已超出站内单游戏阈值（站主自定的 >1000 行考虑拆分），但聚合度高（含 AI Worker 调度 / 多模式 / 升变 UI / 领地卡 mini & terr 双套渲染）；已两次重构后稳定。`:hover` 已全部 `@media (hover: hover)` 守卫 ✅（共 7 处 hover 全部内层）。维持现状即可。
-
-**抽检 2/10 · `pdf_archive` · `files/adv-micro-psu/2025-final.pdf`**（51.5 KB）
-- 已修复：无。
-- 归属：✅ `_notes/study/adv-micro-psu/2025-final.md` 唯一引用 `pdf_url: "/files/adv-micro-psu/2025-final.pdf"`，路径一致。
-- 体积合理性：51.5 KB 极小（题面 PDF 无图无扫描），未列入 `EXEMPT_FILES`、`images.py` 未报，符合预期。
-- LaTeX 化潜力：低——PSU 高微 2025 期末真题 PDF，存档定位明确、一次性真题无更新需求；建议维持 PDF 存档。
-
-**抽检 3/10 · `lecture_note_pdf_only` · `_notes/study/causal-inference/final-2022.md`**
-- 已修复：无。
-- 一致性：✅ `pdf_url: "/files/causal-inference/final-2022.pdf"` 路径有效（grep + 文件 ls 双重确认）；front-matter 完整（layout/main_category/sub_category=因果推断与商业应用/course/material_type=Exams/date=2022-09-01/author=Zircon/discipline=经济学/keywords ×27 厚足覆盖中英术语 PSM/RDD/DID/IV/synthetic control/光华/PKU/AB test/uplift modeling/HTE 等）；summary 介绍清晰提示「无答案」并指向 2023 真题做横向对比。
-- LaTeX 化建议：③ 维持 PDF 存档即可——2022 年真题题面，定位明确无更新需求。
-
-**抽检 4/10 · `lecture_note_pdf_only` · `_notes/study/corp-fin/mid-sample-4.md`**
-- 已修复：无。
-- 一致性：✅ `pdf_url: "/files/corp-fin/mid-sample-4.pdf"` 路径有效；front-matter 完整（material_type=Exams、summary 指向 `mid-sample-4-sol` 配套答案、keywords ×26 覆盖错别字「公司财物」+ 英文术语 + NPV/IRR/WACC/CAPM/MM 定理 + Ross Westerfield / Brealey Myers 教材名）；author=Zircon。
-- LaTeX 化建议：③ 维持 PDF 存档即可——样卷题面，定位与 final-2022 同性质。
-
-**抽检 5/10 · `note` · `_notes/life/kitchen-vs-bathroom-water.md`**（185 行 / 16.5 KB）
-- 已修复：无。
-- front-matter ✅：title / date / main_category=生活攻略 / sub_category=生活之问 / permalink / keywords ×34 覆盖核心搜索词（厨房水 vs 卫生间水、卫生间水能喝吗、储水式热水器军团菌、二次供水、起泡器、铅、GB 5749 等）。
-- 内容观感 ✅：开篇钩子 + 落实工程性问题，符合生活之问专栏调性。
-- 长期建议：无。
-
-**抽检 6/10 · `note` · `_notes/life/fridge-layout-guide.md`**（276 行 / 17.2 KB）
-- 已修复：无。
-- front-matter ✅：30 条 keywords 覆盖中英术语（FoodKeeper / USDA / crisper drawer / 乙烯催熟 / 保鲜抽屉）；含 `hidden:false trashed:false bodyremote:false published:true` 四个 admin 后台字段，与 admin/index.html 调试形成的标记一致，正常。
-- 长期建议：无。
-
-**抽检 7/10 · `note` · `_notes/life/paid-test-us-banking-guide.md`**（620 行 / 22.8 KB）
-- 已修复：无。
-- front-matter ✅：title 含「（付费）」标记、permalink `/life/paid-test/us-banking-guide`、sub_category=留学攻略、author=周睿（与其他付费文一致）、`published: true`、keywords 充足。
-- 长期建议：无——属付费内容线，由付费墙系统管控。
-
-**抽检 8/10 · `pdf_archive` · `files/interm-macro/interm-macro-2022.pdf`**（1.6 MB）
-- 已修复：无。
-- 归属：✅ `_notes/study/interm-macro/interm-macro-2022.md` 唯一引用 `pdf_url: "/files/interm-macro/interm-macro-2022.pdf"`；同目录另有 6-16 上线的中文版 `interm-macro-2022-zh.pdf` (2.13 MB) 对应 `interm-macro-2022-zh.md`（承接 6-16 / 6-17 / 6-18 巡检状态——`images.py` 唯一大文件提示，markdown 入口正常）。
-- LaTeX 化潜力：中等——中级宏观整学期讲义 1.6 MB 量级合理，若有 .tex 源可纳入低优 LaTeX 化队列，无源则维持 PDF。属设计判断。
-
-**抽检 9/10 · `note` · `_notes/life/special-garments-care.md`**（439 行 / 19.8 KB）
-- 已修复：无。
-- front-matter ✅：sub_category=生活之问 / keywords ×20 含错别字「衬杉怎么洗」覆盖；开篇钩子（新买衬衫越洗越黄）+ 「2. 结论先行」清晰结构。
-- 长期建议：无。
-
-**抽检 10/10 · `note` · `_notes/life/cooking-water.md`**（310 行 / 20.0 KB）
-- 已修复：无。
-- front-matter ✅：sub_category=生活之问 + `extra_categories: [菜谱]` 双归类（生活之问 + 菜谱）；keywords ×21 覆盖中英术语（DBPs / THMs / 氯胺 / 硬水软水 / GB 5749）、permalink `/life/cooking-water` 整洁。
-- 长期建议：无。
-
-### 💓 后端脉搏 / 📬 读者来信
-
-后端三件套（zircon-urge / leaderboards / zircon-comments waline）+ 付费墙 `/api/paid` / `/api/redeem` 端点本次 `backend_pulse.py` 仍全报 HTTP 403。与 5-27 ~ 6-18 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。**今日 7 个 commit 全部前端**（assets/js/games/guandan.js + toolbox/guandan/index.html），后端无新增依赖。
-
----
