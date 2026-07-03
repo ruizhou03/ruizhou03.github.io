@@ -655,7 +655,8 @@ permalink: /toolbox/picker/
     .option-row .opt-text { font-size: 0.9rem; padding: 0.4rem 0.55rem; }
     .option-row .opt-weight-num { font-size: 0.85rem; padding: 0.4rem 0.1rem; }
     .option-row .wpct { font-size: 0.8rem; }
-    .wheel-svg text { font-size: 11px; }
+    /* 注意：不要在这里给 .wheel-svg text 设固定 font-size —— 转盘每个字的字号是 JS 按扇区/
+       字数精确算好、写在 SVG 属性上并随画布缩放的；用 CSS 覆盖会让正立排的字互相重叠。 */
   }
 
   /* —— 选项名超 8 字：红框警示 —— */

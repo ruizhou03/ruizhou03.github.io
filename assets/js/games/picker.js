@@ -556,7 +556,8 @@
       const updateRowLen = (val) => {
         const tooLong = nameLen(val) > MAX_NAME_LEN;
         row.classList.toggle('is-toolong', tooLong);
-        warn.style.display = tooLong ? '' : 'none';
+        // 显式 'block'（而非 ''）：'' 只是清掉内联样式、会退回样式表里的 .opt-warn{display:none}，红字就永远不显示
+        warn.style.display = tooLong ? 'block' : 'none';
       };
       updateRowLen(opt.text);
 
