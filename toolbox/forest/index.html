@@ -3238,6 +3238,7 @@ theme_color: "#fafaf9"
   const $expEmpty = document.getElementById('exp-empty');
   const $expSvgWrap = document.getElementById('exp-chart-svg-wrap');
   const $expTooltip = document.getElementById('exp-bar-tooltip');
+  const $expChartZone = document.getElementById('exp-chart-zone');
 
   let expRange = '7';  // today / 7 / 30 / 90
 
@@ -3297,6 +3298,12 @@ theme_color: "#fafaf9"
   }
 
   function renderExpChart() {
+    // 一棵成活的树都还没有时，整块图表面板隐藏，避免新用户首屏一片空
+    if ($expChartZone) {
+      const hasAny = state.trees.some(t => t.success);
+      $expChartZone.style.display = hasAny ? '' : 'none';
+      if (!hasAny) return;
+    }
     const buckets = buildBuckets(expRange);
     const total = buckets.reduce((s, b) => s + b.exp, 0);
     const peak = Math.max(0.1, ...buckets.map(b => b.exp));
