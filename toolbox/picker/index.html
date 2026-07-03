@@ -657,6 +657,136 @@ permalink: /toolbox/picker/
     .option-row .wpct { font-size: 0.8rem; }
     .wheel-svg text { font-size: 11px; }
   }
+
+  /* —— 选项名超 8 字：红框警示 —— */
+  .option-item { display: flex; flex-direction: column; gap: 0.25rem; }
+  .option-row.is-toolong .opt-text {
+    border-color: #d0342c;
+    background: rgba(208,52,44,0.06);
+  }
+  .opt-warn {
+    display: none;
+    margin-left: calc(24px + 14px + 1rem);   /* 对齐到选项名输入框左缘（删+色块+两个 gap） */
+    font-size: 0.76rem; color: #d0342c;
+  }
+  @keyframes opt-flash {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(208,52,44,0); }
+    30%      { box-shadow: 0 0 0 3px rgba(208,52,44,0.35); }
+  }
+  .option-row.flash .opt-text {
+    animation: opt-flash 0.7s ease;
+    border-color: #d0342c;
+  }
+
+  /* —— 板块（档案 / 历史）—— */
+  .board {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    padding: 1.2rem 1.3rem;
+    margin-top: 1.4rem;
+  }
+  .board-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.6rem; flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+  }
+  .board-title {
+    font-size: 1.05rem; color: var(--color-ink); margin: 0; font-weight: 600;
+  }
+  .board-head .history-count {
+    font-size: 0.8rem; color: var(--color-light); font-weight: 400; margin-left: 0.3rem;
+  }
+  .board-head-actions {
+    display: flex; align-items: center; gap: 0.7rem;
+    font-size: 0.84rem; color: var(--color-muted);
+  }
+  .perpage-label { display: inline-flex; align-items: center; gap: 0.3rem; }
+  #history-perpage {
+    font: inherit; font-size: 0.84rem;
+    padding: 0.15rem 0.4rem; border: 1px solid var(--color-border);
+    border-radius: 6px; background: var(--color-bg); color: var(--color-text);
+    cursor: pointer;
+  }
+  .board-btn {
+    padding: 0.32rem 0.8rem; font: inherit; font-size: 0.84rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: transparent; color: var(--color-muted);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  @media (hover: hover) {
+    .board-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  .board-btn.dirty {
+    border-color: var(--color-accent); color: var(--color-accent);
+    background: rgba(232,200,40,0.12);
+  }
+  .board-btn.dirty::after { content: ' ●'; font-size: 0.7em; vertical-align: 0.15em; }
+
+  /* —— 档案板块 —— */
+  .archive-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.4rem; }
+  .archive-empty { color: var(--color-light); font-size: 0.86rem; margin: 0.2rem 0 0.6rem; }
+  .archive-item {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--color-border); border-radius: 8px;
+    transition: border-color 0.15s;
+  }
+  .archive-item.is-current { border-color: var(--color-accent); background: rgba(201,169,110,0.08); }
+  .archive-name {
+    flex: 1; min-width: 0; color: var(--color-ink); font-size: 0.92rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .archive-badge {
+    margin-left: 0.4rem; font-size: 0.7rem; color: #fff;
+    background: var(--color-accent); border-radius: 999px; padding: 0.05rem 0.4rem;
+  }
+  .archive-meta { font-size: 0.78rem; color: var(--color-light); flex-shrink: 0; }
+  .archive-item-actions { display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0; }
+  .ar-btn {
+    font: inherit; font-size: 0.8rem; cursor: pointer;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: transparent; color: var(--color-muted);
+    padding: 0.22rem 0.6rem; transition: all 0.15s;
+  }
+  .ar-btn.ar-icon { padding: 0.22rem 0.4rem; }
+  @media (hover: hover) {
+    .ar-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  .archive-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
+
+  /* —— 历史板块 —— */
+  #history-board .history-list { margin: 0; display: flex; flex-direction: column; gap: 0.45rem; }
+  #history-board .history-item { display: flex; align-items: center; gap: 0.6rem; }
+  .history-seq { font-size: 0.75rem; color: var(--color-light); flex-shrink: 0; min-width: 2.2em; }
+  .history-pager {
+    display: flex; align-items: center; justify-content: center; gap: 0.8rem;
+    margin-top: 0.8rem; font-size: 0.84rem; color: var(--color-muted);
+  }
+  .history-pager:empty { margin-top: 0; }
+  .pg-btn {
+    font: inherit; font-size: 0.84rem; cursor: pointer;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: transparent; color: var(--color-muted);
+    padding: 0.25rem 0.7rem; transition: all 0.15s;
+  }
+  @media (hover: hover) { .pg-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); } }
+  .pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pg-info { white-space: nowrap; }
+  .pg-jump {
+    width: 3em; text-align: center; font: inherit; font-size: 0.84rem;
+    -webkit-appearance: none; -moz-appearance: textfield; appearance: none;
+    border: 1px solid var(--color-border); border-radius: 6px;
+    padding: 0.12rem 0.2rem; background: var(--color-bg); color: var(--color-ink);
+    outline: none;
+  }
+  .pg-jump::-webkit-outer-spin-button, .pg-jump::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  @media (max-width: 600px) {
+    .board { padding: 1rem 0.9rem; }
+    .opt-warn { margin-left: calc(22px + 12px + 0.8rem); }
+    .archive-item { flex-wrap: wrap; }
+  }
 </style>
 
 <article class="picker-wrap">
@@ -666,18 +796,6 @@ permalink: /toolbox/picker/
   </header>
 
   <div class="picker-card">
-    <div class="profile-bar">
-      <span class="profile-label">方案：</span>
-      <select class="profile-select" id="profile-select" aria-label="选择已保存的方案">
-        <option value="">（未选择方案）</option>
-      </select>
-      <button type="button" class="profile-action" id="profile-save-btn" style="display:none;" title="保存当前修改到这个方案">💾 保存</button>
-      <button type="button" class="profile-action" id="profile-rename-btn" style="display:none;" title="重命名">✏️</button>
-      <button type="button" class="profile-action" id="profile-delete-btn" style="display:none;" title="删除">🗑️</button>
-      <button type="button" class="profile-action profile-new" id="profile-new-btn" title="把当前选项保存为新方案">+ 新建</button>
-      <button type="button" class="profile-action" id="profile-share-btn" title="复制当前选项的分享链接到剪贴板">🔗 分享</button>
-      <span class="profile-toast" id="profile-toast" style="display:none;"></span>
-    </div>
     <div class="weights-bar">
       <span class="wb-label">选项与占比</span>
       <button type="button" class="equal-btn" id="equal-btn" title="把所有选项的占比拉平成一样（每项 100÷选项数）">⚖ 平均分配</button>
@@ -735,36 +853,35 @@ permalink: /toolbox/picker/
     </div>
   </div>
 
-  <details class="about" id="history-details">
-    <summary>📜 最近抽签 <span class="history-count" id="history-count"></span></summary>
+  <section class="board" id="archive-board">
+    <div class="board-head">
+      <h2 class="board-title">🗂 我的档案</h2>
+      <span class="profile-toast" id="profile-toast" style="display:none;"></span>
+    </div>
+    <div class="archive-list" id="profile-list"></div>
+    <p class="archive-empty" id="archive-empty">还没有保存的档案。把当前这套选项「存为新档案」，之后就能一键调取。</p>
+    <div class="archive-actions">
+      <button type="button" class="board-btn" id="profile-new-btn" title="把当前选项另存为一个新档案">+ 存为新档案</button>
+      <button type="button" class="board-btn" id="profile-save-btn" style="display:none;" title="把当前改动保存回正在使用的档案">💾 保存改动</button>
+      <button type="button" class="board-btn" id="profile-share-btn" title="复制当前选项的分享链接（别人打开即同步）">🔗 复制分享链接</button>
+    </div>
+  </section>
+
+  <section class="board" id="history-board">
+    <div class="board-head">
+      <h2 class="board-title">📜 抽签历史 <span class="history-count" id="history-count"></span></h2>
+      <div class="board-head-actions">
+        <label class="perpage-label">每页
+          <select id="history-perpage" aria-label="每页条数"></select>
+          条</label>
+        <button type="button" class="board-btn" id="history-clear-btn">清空</button>
+      </div>
+    </div>
     <div class="history-list" id="history-list">
       <p class="history-empty">还没有抽签记录。</p>
     </div>
-    <div class="history-actions">
-      <button type="button" class="history-clear" id="history-clear-btn">清空历史</button>
-    </div>
-  </details>
-
-  <details class="about" id="io-details">
-    <summary>📥 导入 / 导出方案</summary>
-    <p>把全部已保存方案打包成一段 JSON，可以贴到别的浏览器或者备份起来。</p>
-    <textarea class="io-textarea" id="io-textarea" rows="5" placeholder="把方案 JSON 贴这里再点「导入」；或点「导出」把现有方案填进来"></textarea>
-    <div class="io-actions">
-      <button type="button" class="io-btn" id="io-export-btn">📤 导出到这里</button>
-      <button type="button" class="io-btn" id="io-copy-btn">📋 复制</button>
-      <button type="button" class="io-btn" id="io-import-btn">📥 导入</button>
-    </div>
-  </details>
-
-  <details class="about">
-    <summary>关于这个工具</summary>
-    <p>每次抽签都会重新生成随机数（用浏览器的 <code>Math.random()</code>），不存历史（除了你主动展开的"最近抽签"，存在本机 localStorage）、不联网、不收集任何数据。</p>
-    <p>每项的数字就是它的<strong>中签概率（%）</strong>，各项之和永远 = 100%。直接在数字框里输入或拖滑块即可；因为要凑满 100%，改动一项时其余未锁定的项会按各自比例自动补足。想精确设出「40/40/20」这种组合：把调好的项点 🔒 锁住，再调下一项就不会动它了。点"⚖ 平均分配"可一键把占比拉平。每个选项名最多 8 个字：转盘上的文字沿辐条方向排、大小只随扇区和内容、不会因字多而变小；扇区太小（比如占比只有 1%）时就只显示颜色，靠上面列表里每行的小圆点认（同色对应转盘扇区和计票柱），计票柱名字放不下会折两行、悬停看全名。</p>
-    <p>抽签本身是按占比的累积分布抽样（跟轮盘赌一样）。每次都是相互独立、严格按占比的随机（同分布、无记忆）。如果你觉得"某一项好像一路都更容易被抽到"，那多半是错觉：随机序列天生会出现连号，人脑很容易把它读成"趋势"。放大到几百万次实测，各项频率跟设定占比完全吻合。</p>
-    <p>多次模式不是"比谁更幸运"，而是"独立同分布抽样的简单多数"——理论上占比越高的越可能胜出，但小样本（3 次、5 次）下波动比较大，这正是好玩的地方。平票时按"第一时间到达最高票数"算赢。</p>
-    <p>把当前清单分享给朋友：点上方"🔗 分享"——选项和占比都会编码到 URL hash 里，对方打开就同步了。</p>
-    <p>键盘：焦点不在输入框时，按 <kbd>空格</kbd> / <kbd>回车</kbd> 直接抽签；在选项名输入框里按 <kbd>回车</kbd> 跳到下一个选项，已经是最后一个就自动新建一个。</p>
-  </details>
+    <div class="history-pager" id="history-pager"></div>
+  </section>
 </article>
 
 <script src="/assets/js/games/picker.js?v={{ site.time | date: '%s' }}"></script>

@@ -16,10 +16,10 @@
 
   // ── 状态 ──────────────────────────────
   const state = {
+    // 默认：是 / 否 —— 一打开就是个能直接抽的「二选一」决策转盘（最贴合「遇事不决」）
     options: [
-      { id: cryptoId(), text: '火锅',     weight: 5, locked: false },
-      { id: cryptoId(), text: '烧烤',     weight: 5, locked: false },
-      { id: cryptoId(), text: '沙县小吃', weight: 5, locked: false },
+      { id: cryptoId(), text: '是', weight: 50, locked: false },
+      { id: cryptoId(), text: '否', weight: 50, locked: false },
     ],
     draws: 1,
     busy: false,
@@ -30,10 +30,14 @@
     profiles: [],           // 本地存的所有方案（从 localStorage 读取）
     currentProfileId: null, // 当前加载的方案 id；null = 未选择
     dirty: false,           // 当前选项相对于已加载方案是否有未保存的修改
-    history: [],            // 抽签历史（最近 10 条），从 localStorage 读取
+    history: [],            // 抽签历史（保存全部，上限 HISTORY_MAX），从 localStorage 读取
+    historyPage: 1,         // 历史当前页（分页）
+    historyPerPage: 10,     // 历史每页条数
     lastResultText: '',     // 最近一次的结果纯文本（用于复制）
   };
-  const HISTORY_MAX = 10;
+  const HISTORY_MAX = 1000; // 尽量“保存全部”，同时给 localStorage 一个安全上限
+  const HISTORY_PERPAGE_KEY = 'picker.history.perpage.v1';
+  const HISTORY_PERPAGE_OPTIONS = [10, 20, 50, 100];
 
   // ── Profile（本地方案）──────────────────
   const PROFILE_STORAGE_KEY = 'picker.profiles.v1';
@@ -80,8 +84,8 @@
     saveProfilesToStorage();
     state.currentProfileId = profile.id;
     markClean();
-    renderProfileBar();
-    showToast('已新建方案');
+    renderProfileList();
+    showToast('已存为新档案');
   }
   function saveCurrentToProfile() {
     const p = findProfile(state.currentProfileId);
@@ -90,22 +94,51 @@
     p.draws = state.draws;
     saveProfilesToStorage();
     markClean();
-    showToast('已保存修改');
+    renderProfileList();
+    showToast('已保存改动');
   }
-  function renameCurrentProfile(newName) {
-    const p = findProfile(state.currentProfileId);
+  // 调取某个档案（覆盖当前选项）
+  function loadProfile(id) {
+    if (state.busy) return;
+    const p = findProfile(id);
     if (!p) return;
-    p.name = newName;
-    saveProfilesToStorage();
-    renderProfileBar();
-  }
-  function deleteCurrentProfile() {
-    state.profiles = state.profiles.filter(p => p.id !== state.currentProfileId);
-    saveProfilesToStorage();
-    state.currentProfileId = null;
+    if (state.dirty && state.currentProfileId && state.currentProfileId !== id) {
+      const cur = findProfile(state.currentProfileId);
+      if (!confirm(`「${cur ? cur.name : '当前'}」有未保存的改动，调取别的档案会丢失。确定继续？`)) return;
+    }
+    applyProfileToState(p);
+    state.currentProfileId = id;
     markClean();
-    renderProfileBar();
-    showToast('已删除');
+    renderAll();
+    updateDrawsUI();
+    renderProfileList();
+    reset();
+    unspin();
+    showToast(`已调取「${p.name}」`);
+  }
+  function renameProfile(id) {
+    if (state.busy) return;
+    const p = findProfile(id);
+    if (!p) return;
+    const name = prompt('新档案名：', p.name);
+    if (name === null) return;
+    const t = name.trim();
+    if (!t) { showToast('档案名不能为空'); return; }
+    p.name = t;
+    saveProfilesToStorage();
+    renderProfileList();
+    showToast('已重命名');
+  }
+  function deleteProfile(id) {
+    if (state.busy) return;
+    const p = findProfile(id);
+    if (!p) return;
+    if (!confirm(`确定删除档案「${p.name}」？此操作不可恢复。`)) return;
+    state.profiles = state.profiles.filter(x => x.id !== id);
+    if (state.currentProfileId === id) { state.currentProfileId = null; markClean(); }
+    saveProfilesToStorage();
+    renderProfileList();
+    showToast('已删除档案');
   }
 
   // ── Dirty 标识（当前 vs 已加载方案）──────
@@ -141,32 +174,67 @@
     if (state.history.length > HISTORY_MAX) {
       state.history = state.history.slice(0, HISTORY_MAX);
     }
+    state.historyPage = 1;      // 新记录 → 跳回第一页看最新
     saveHistoryToStorage();
     renderHistory();
   }
   function clearHistory() {
     state.history = [];
+    state.historyPage = 1;
     saveHistoryToStorage();
     renderHistory();
   }
   function renderHistory() {
     const n = state.history.length;
-    $historyCount.textContent = n > 0 ? `（${n}）` : '';
+    $historyCount.textContent = n > 0 ? `共 ${n} 条` : '';
     if (n === 0) {
       $historyList.innerHTML = '<p class="history-empty">还没有抽签记录。</p>';
+      $historyPager.innerHTML = '';
       return;
     }
-    $historyList.innerHTML = state.history.map(h => {
+    const per = state.historyPerPage;
+    const pages = Math.max(1, Math.ceil(n / per));
+    state.historyPage = Math.min(Math.max(1, state.historyPage), pages);
+    const startIdx = (state.historyPage - 1) * per;
+    const slice = state.history.slice(startIdx, startIdx + per);
+    $historyList.innerHTML = slice.map((h, i) => {
+      const seq = startIdx + i + 1;   // 全局序号（1 = 最新）
       const dt = new Date(h.ts);
       const timeStr = `${String(dt.getMonth() + 1).padStart(2, '0')}/${String(dt.getDate()).padStart(2, '0')} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
       const fromStr = h.profile ? h.profile : (h.optionTexts || []).join(' · ');
       const drawsStr = (h.draws && h.draws > 1) ? ` · ${h.draws} 次` : '';
       return `<div class="history-item">
+        <span class="history-seq">#${seq}</span>
         <span class="history-winner">${escapeHtml(h.winner || '?')}</span>
         <span class="history-from">${escapeHtml(fromStr)}${drawsStr}</span>
         <span class="history-meta">${escapeHtml(timeStr)}</span>
       </div>`;
     }).join('');
+    renderHistoryPager(pages);
+  }
+  function renderHistoryPager(pages) {
+    if (pages <= 1) { $historyPager.innerHTML = ''; return; }
+    const p = state.historyPage;
+    $historyPager.innerHTML = `
+      <button type="button" class="pg-btn" data-act="prev" ${p <= 1 ? 'disabled' : ''}>‹ 上一页</button>
+      <span class="pg-info">第 <input type="number" class="pg-jump" min="1" max="${pages}" value="${p}" aria-label="跳转到第几页" /> / ${pages} 页</span>
+      <button type="button" class="pg-btn" data-act="next" ${p >= pages ? 'disabled' : ''}>下一页 ›</button>
+    `;
+    $historyPager.querySelector('[data-act="prev"]').addEventListener('click', () => {
+      if (state.historyPage > 1) { state.historyPage--; renderHistory(); }
+    });
+    $historyPager.querySelector('[data-act="next"]').addEventListener('click', () => {
+      if (state.historyPage < pages) { state.historyPage++; renderHistory(); }
+    });
+    const jump = $historyPager.querySelector('.pg-jump');
+    const applyJump = () => {
+      let v = parseInt(jump.value, 10);
+      if (isNaN(v)) v = state.historyPage;
+      state.historyPage = Math.min(Math.max(1, v), pages);
+      renderHistory();
+    };
+    jump.addEventListener('change', applyJump);
+    jump.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyJump(); } });
   }
 
   // ── URL Hash 分享 ────────────────────
@@ -222,28 +290,36 @@
     }
   }
 
-  function renderProfileBar() {
-    // 重建 select
-    const prevValue = state.currentProfileId || '';
-    $profileSelect.innerHTML = '<option value="">（未选择方案）</option>';
-    state.profiles.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.name;
-      if (p.id === state.currentProfileId) opt.selected = true;
-      $profileSelect.appendChild(opt);
-    });
-    if (!findProfile(state.currentProfileId)) {
-      state.currentProfileId = null;
-      $profileSelect.value = '';
+  function renderProfileList() {
+    if (!findProfile(state.currentProfileId)) state.currentProfileId = null;
+    const profiles = state.profiles;
+    if (profiles.length === 0) {
+      $profileList.innerHTML = '';
+      $archiveEmpty.style.display = '';
     } else {
-      $profileSelect.value = state.currentProfileId;
+      $archiveEmpty.style.display = 'none';
+      $profileList.innerHTML = profiles.map(p => {
+        const cur = p.id === state.currentProfileId;
+        const nOpt = Array.isArray(p.options) ? p.options.length : 0;
+        return `<div class="archive-item${cur ? ' is-current' : ''}" data-id="${p.id}">
+          <span class="archive-name">${escapeHtml(p.name)}${cur ? '<span class="archive-badge">当前</span>' : ''}</span>
+          <span class="archive-meta">${nOpt} 项</span>
+          <span class="archive-item-actions">
+            <button type="button" class="ar-btn ar-load" data-act="load">调取</button>
+            <button type="button" class="ar-btn ar-icon" data-act="rename" title="重命名" aria-label="重命名">✏️</button>
+            <button type="button" class="ar-btn ar-icon" data-act="del" title="删除" aria-label="删除">🗑️</button>
+          </span>
+        </div>`;
+      }).join('');
+      $profileList.querySelectorAll('.archive-item').forEach(el => {
+        const id = el.dataset.id;
+        el.querySelector('[data-act="load"]').addEventListener('click', () => loadProfile(id));
+        el.querySelector('[data-act="rename"]').addEventListener('click', () => renameProfile(id));
+        el.querySelector('[data-act="del"]').addEventListener('click', () => deleteProfile(id));
+      });
     }
-    // 操作按钮按是否有选中方案来显示
-    const has = !!state.currentProfileId;
-    $profileSaveBtn.style.display   = has ? '' : 'none';
-    $profileRenameBtn.style.display = has ? '' : 'none';
-    $profileDeleteBtn.style.display = has ? '' : 'none';
+    // 「保存改动到当前档案」只有在调取了某档案时才显示
+    $profileSaveBtn.style.display = state.currentProfileId ? '' : 'none';
   }
 
   let toastTimer;
@@ -304,10 +380,9 @@
   const $tallyBars = document.getElementById('tally-bars');
   const $resetRow  = document.getElementById('reset-row');
   const $resetBtn  = document.getElementById('reset-btn');
-  const $profileSelect    = document.getElementById('profile-select');
+  const $profileList      = document.getElementById('profile-list');
+  const $archiveEmpty     = document.getElementById('archive-empty');
   const $profileSaveBtn   = document.getElementById('profile-save-btn');
-  const $profileRenameBtn = document.getElementById('profile-rename-btn');
-  const $profileDeleteBtn = document.getElementById('profile-delete-btn');
   const $profileNewBtn    = document.getElementById('profile-new-btn');
   const $profileShareBtn  = document.getElementById('profile-share-btn');
   const $profileToast     = document.getElementById('profile-toast');
@@ -316,10 +391,8 @@
   const $historyList      = document.getElementById('history-list');
   const $historyCount     = document.getElementById('history-count');
   const $historyClearBtn  = document.getElementById('history-clear-btn');
-  const $ioTextarea       = document.getElementById('io-textarea');
-  const $ioExportBtn      = document.getElementById('io-export-btn');
-  const $ioCopyBtn        = document.getElementById('io-copy-btn');
-  const $ioImportBtn      = document.getElementById('io-import-btn');
+  const $historyPager     = document.getElementById('history-pager');
+  const $historyPerpage   = document.getElementById('history-perpage');
 
   // ── 权重＝占比（百分比模型）──────────
   // 每项内部 weight 就当"百分点"用，界面上直接显示/编辑百分比，任何时候各项之和 = 100%。
@@ -349,16 +422,11 @@
     const total = ws.reduce((a, b) => a + b, 0) || 1;
     return ws.map(w => w / total * 100);
   }
-  // 当前各项显示用的整数百分比，且用"最大余数法"保证四舍五入后仍严格加总 = 100
+  // 当前各项显示用的整数百分比。各项独立四舍五入——这样「等权」的项会显示成完全一样的数字
+  // （如三项各 33，而不是 34/33/33）。底层权重本就严格相等，转盘/概率是真等分；不显示总计，
+  // 所以取整后偶尔加总 99/101 不会露出来、也不影响真实概率。
   function displayPercents() {
-    const raw = currentPercents();
-    const floor = raw.map(x => Math.floor(x));
-    let rem = Math.round(100 - floor.reduce((a, b) => a + b, 0));
-    const order = raw.map((x, i) => ({ i, frac: x - Math.floor(x) }))
-      .sort((a, b) => b.frac - a.frac);
-    const out = floor.slice();
-    for (let k = 0; k < rem && k < order.length; k++) out[order[k].i]++;
-    return out;
+    return currentPercents().map(x => Math.round(x));
   }
   // 把某一项的占比设为 target%，其余"未锁定"项按比例补足到 100%；写回后 weight 即百分比、和为 100
   function setPercent(optId, target) {
@@ -443,14 +511,15 @@
     const pcts = displayPercents();
     state.options.forEach((opt, idx) => {
       const row = document.createElement('div');
-      row.className = 'option-row' + (opt.locked ? ' is-locked' : '');
+      row.className = 'option-row' + (opt.locked ? ' is-locked' : '')
+        + (nameLen(opt.text) > MAX_NAME_LEN ? ' is-toolong' : '');
       row.dataset.id = opt.id;
       const color = SLICE_COLORS[idx % SLICE_COLORS.length];
       const locked = !!opt.locked;
       row.innerHTML = `
         <button type="button" class="opt-del" aria-label="删除选项" ${state.options.length <= 2 ? 'disabled' : ''}>✕</button>
         <span class="opt-chip" style="background:${color}" aria-hidden="true"></span>
-        <input type="text" class="opt-text" value="${escapeHtml(opt.text)}" placeholder="选项 ${idx + 1}" maxlength="${MAX_NAME_LEN}" />
+        <input type="text" class="opt-text" value="${escapeHtml(opt.text)}" placeholder="选项 ${idx + 1}" maxlength="40" />
         <input type="range" class="opt-weight" min="${MIN_PCT}" max="100" step="1" value="${pcts[idx]}" aria-label="占比滑块" ${locked ? 'disabled' : ''} />
         <span class="wnum"><input type="number" class="opt-weight-num" min="${MIN_PCT}" max="100" step="1" value="${pcts[idx]}" inputmode="numeric" aria-label="占比（百分比）" ${locked ? 'disabled' : ''} /><i class="wpct">%</i></span>
         <button type="button" class="opt-lock ${locked ? 'locked' : ''}" aria-label="${locked ? '解锁占比' : '锁定占比'}" title="${locked ? '已锁定：改别的选项时它保持不变' : '锁定这一项占比（调别的选项时它不变）'}">${locked ? '🔒' : '🔓'}</button>
@@ -480,11 +549,23 @@
       const numInput  = row.querySelector('.opt-weight-num');
       const lockBtn   = row.querySelector('.opt-lock');
 
+      // 超过 8 字的红框警示（允许继续输入，但会挡住抽签）
+      const warn = document.createElement('div');
+      warn.className = 'opt-warn';
+      warn.textContent = `名字不能超过 ${MAX_NAME_LEN} 个字`;
+      const updateRowLen = (val) => {
+        const tooLong = nameLen(val) > MAX_NAME_LEN;
+        row.classList.toggle('is-toolong', tooLong);
+        warn.style.display = tooLong ? '' : 'none';
+      };
+      updateRowLen(opt.text);
+
       textInput.addEventListener('input', (e) => {
         opt.text = e.target.value;
+        updateRowLen(e.target.value);
         markDirty();
         renderWheel();       // 文字变了要重画转盘
-        updateSpinBtn();     // 有空名字会禁用"抽"
+        updateSpinBtn();     // 空名字 / 超长会挡住抽签
       });
       // 回车推进 / 末项非空则自动新建
       textInput.addEventListener('keydown', (e) => {
@@ -530,7 +611,11 @@
         renderWheel();
       });
 
-      $list.appendChild(row);
+      const item = document.createElement('div');
+      item.className = 'option-item';
+      item.appendChild(row);
+      item.appendChild(warn);
+      $list.appendChild(item);
     });
   }
   function appendOption(text) {
@@ -612,8 +697,9 @@
       const color = SLICE_COLORS[idx % SLICE_COLORS.length];
       svg += `<path class="slice" data-idx="${idx}" d="M ${cx} ${cy} L ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z" fill="${color}" stroke="#fff" stroke-width="0.6"/>`;
 
-      // 文字标签：一律沿辐条方向排（radial）。字号只看扇区大小与字符实际宽度、不随字数缩小
-      //（名字上限 8 字，都排得下）；扇区太细（如权重 1%）字会太小 → 只留颜色、靠列表色块图例认。
+      // 文字标签：沿半径方向、从边界往中心排，每个字保持正立（不侧向旋转）。字号只看扇区大小
+      // 与字符宽度、不随字数缩小（名字上限 8 字，都排得下）；扇区太细（如权重 1%）字会太小 →
+      // 只留颜色、靠列表色块图例认。
       const aMid = (a0 + a1) / 2;
       const sliceFraction = end - start;
       const name = (opt.text || '').trim();
@@ -623,35 +709,31 @@
     });
     $wheel.innerHTML = svg;
   }
-  // 单个字符的近似宽度（em）：全角/CJK≈1、ASCII 字母数字≈0.62、空格≈0.35、其它≈0.6，
-  // 用来按“实际内容宽度”排版，兼顾汉字/数字/英文/符号混排。
-  function charEmWidth(ch) {
-    const c = ch.codePointAt(0);
-    if (c >= 0x2E80 || (c >= 0x1100 && c <= 0x11FF) || (c >= 0xFF01 && c <= 0xFF60)) return 1.0;
-    if (/[A-Za-z0-9]/.test(ch)) return 0.62;
-    if (ch === ' ') return 0.35;
-    return 0.6;
-  }
-  // 扇区文字：沿辐条一行。字号 = min( 8 个全角字排满半径的上限(与字数无关), 扇区内端弧宽, 硬上限 )，
-  // 于是 1~8 个字都是同样大小、不会因字多而变小；字号 < 4（扇区太细，如 1%）就不写字、只留颜色。
+  // 扇区文字：字符沿半径逐个正立排开（不旋转），阅读顺序从最上/最左的一端开始（自然顺读）。
+  // 字号 = min( 8 个字排满半径的上限(与字数无关), 扇区内端弧宽, 硬上限 )，1~8 字同样大小；
+  // 字号 < 4（扇区太细，如 1%）就不写字、只留颜色。
   function wheelLabelSvg(name, aMid, sliceFraction, cx, cy, r) {
     const chars = [...name];
-    const aMidDeg = aMid * 180 / Math.PI;
-    const rInner = r * 0.20, rOuter = r * 0.96;
-    const availR = rOuter - rInner;                    // 半径方向可用长度
+    const n = chars.length;
+    const rInner = r * 0.18, rOuter = r * 0.90;
+    const availR = rOuter - rInner;
     const rMid = (rInner + rOuter) / 2;
-    const advEm = chars.reduce((s, ch) => s + charEmWidth(ch), 0) || 1;  // 文本沿半径的实际宽度(em)
-    const cap8 = availR / (8 * 1.02);                  // 8 个全角字恰好排满 → 与字数无关的字号上限
     const arcInner = rInner * (2 * Math.PI * Math.min(sliceFraction, 0.5)); // 内端(最窄处)弧宽
-    let fontSize = Math.min(cap8, arcInner * 0.9, 12);
-    fontSize = Math.min(fontSize, availR / (advEm * 1.02));  // 内容更窄(如英文)时兜底不溢出
-    if (fontSize < 4) return '';                       // 扇区太细：只留颜色（靠列表色块图例认）
-    const tx = cx + rMid * Math.cos(aMid);
-    const ty = cy + rMid * Math.sin(aMid);
-    let rotDeg = aMidDeg;                              // 径向（沿辐条）
-    const nd = ((rotDeg % 360) + 360) % 360;
-    if (nd > 90 && nd < 270) rotDeg += 180;            // 左半区翻正，避免倒着读
-    return `<text x="${tx.toFixed(2)}" y="${ty.toFixed(2)}" transform="rotate(${rotDeg.toFixed(2)} ${tx.toFixed(2)} ${ty.toFixed(2)})" font-size="${fontSize.toFixed(2)}">${escapeHtml(name)}</text>`;
+    let fontSize = Math.min(availR / (8 * 1.06), arcInner * 0.95, 13);
+    if (fontSize < 4) return '';                       // 扇区太细：只留颜色
+    const step = fontSize * 1.06;
+    const cosA = Math.cos(aMid), sinA = Math.sin(aMid);
+    // 阅读起点在“最上”的一端（若近水平则取“最左”）：rim 端是否为起点
+    const eps = 0.02;
+    const rimIsStart = (sinA < -eps) ? true : (sinA > eps ? false : (cosA < 0));
+    const sign = rimIsStart ? 1 : -1;
+    let out = '';
+    for (let i = 0; i < n; i++) {
+      const rho = rMid + sign * ((n - 1) / 2 - i) * step;  // i 为阅读顺序
+      const x = cx + rho * cosA, y = cy + rho * sinA;
+      out += `<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" font-size="${fontSize.toFixed(2)}">${escapeHtml(chars[i])}</text>`;
+    }
+    return out;
   }
 
   // ── 转盘动画 ──────────────────────────
@@ -779,9 +861,9 @@
   // ── 主流程 ────────────────────────────
   async function spin() {
     if (state.busy) return;
-    if (state.options.length < 2) return;
-    if (totalWeight() <= 0) return;
-    if (hasBlankOption()) return;   // 有选项没填名字，不许抽（避免转盘上出现"选项3"这类占位）
+    // 有拦截项（选项不足 / 超 8 字 / 空名字 / 占比 0）→ 不抽，红框高亮 + 提示
+    const blk = spinBlockers();
+    if (blk) { $spinHintText.textContent = blk.reason; flashBadOptions(blk.ids); return; }
 
     state.busy = true;
     state.skipAnimation = false;   // 每次点抽都重新计起
@@ -950,26 +1032,38 @@
     $addBtn.disabled = atMax;
     $addBtn.textContent = atMax ? '已达上限（10 个选项）' : '+ 添加选项';
   }
-  function blankCount() {
-    return state.options.reduce((n, o) => n + ((o.text || '').trim() === '' ? 1 : 0), 0);
+  function nameLen(t) { return [...(t || '')].length; }
+  function tooLongIds() {
+    return state.options.filter(o => nameLen(o.text) > MAX_NAME_LEN).map(o => o.id);
   }
-  function hasBlankOption() {
-    return blankCount() > 0;
+  // 抽签前的拦截项：返回 null 表示可抽，否则 { reason, ids }（ids 是要高亮的选项）
+  function spinBlockers() {
+    if (state.options.length < 2) return { reason: '至少需要两个选项', ids: [] };
+    const tl = tooLongIds();
+    if (tl.length) return { reason: `有选项超过 ${MAX_NAME_LEN} 个字，请改短`, ids: tl };
+    const bl = state.options.filter(o => (o.text || '').trim() === '').map(o => o.id);
+    if (bl.length) return { reason: `还有 ${bl.length} 个选项没填名字`, ids: bl };
+    if (totalWeight() <= 0) return { reason: '所有占比为 0，至少给一项设置占比 > 0', ids: [] };
+    return null;
+  }
+  // 抽不了时，把有问题的那几行红框闪一下并聚焦第一处
+  function flashBadOptions(ids) {
+    ids.forEach(id => {
+      const row = $list.querySelector(`.option-row[data-id="${id}"]`);
+      if (!row) return;
+      row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash');
+      setTimeout(() => row.classList.remove('flash'), 800);
+    });
+    const first = ids[0] && $list.querySelector(`.option-row[data-id="${ids[0]}"] .opt-text`);
+    if (first) first.focus();
   }
   function updateSpinBtn() {
-    const enoughOpts = state.options.length >= 2;
-    const hasWeight = totalWeight() > 0;
-    const blanks = blankCount();
-    $spinBtn.disabled = !enoughOpts || !hasWeight || blanks > 0 || state.busy;
-    if (!enoughOpts) {
-      $spinHintText.textContent = '至少需要两个选项';
-    } else if (blanks > 0) {
-      $spinHintText.textContent = `还有 ${blanks} 个选项没填名字`;
-    } else if (!hasWeight) {
-      $spinHintText.textContent = '所有占比为 0，至少给一项设置占比 > 0';
-    } else if (!state.busy) {
-      $spinHintText.textContent = '';
-    }
+    // 只有抽签中才禁用按钮；其它无效情况（空名字/超 8 字/占比 0）按钮仍可点，
+    // 点了会在 spin() 里给红框高亮 + 提示，而不是把按钮灰掉、用户不知为何抽不了。
+    $spinBtn.disabled = state.busy;
+    const blk = state.busy ? null : spinBlockers();
+    if (blk) $spinHintText.textContent = blk.reason;
+    else if (!state.busy) $spinHintText.textContent = '';
   }
   // 宽屏"转盘居中→首抽滑向左"的收回：换方案 / 载入分享链接等新语境时回到居中
   function unspin() {
@@ -1062,82 +1156,26 @@
   });
 
   // ── Profile 事件绑定 ──────────────────
-  $profileSelect.addEventListener('change', (e) => {
-    if (state.busy) {
-      // 抽签中不让切，但要把 select 拉回去
-      $profileSelect.value = state.currentProfileId || '';
-      return;
-    }
-    // 切走前如果有未保存修改，提示
-    if (state.dirty && state.currentProfileId) {
-      const p = findProfile(state.currentProfileId);
-      const pName = p ? p.name : '当前方案';
-      if (!confirm(`「${pName}」有未保存的修改，切换会丢失。\n确定继续？`)) {
-        $profileSelect.value = state.currentProfileId;
-        return;
-      }
-    }
-    const id = e.target.value;
-    if (!id) {
-      // "（未选择方案）"——清掉关联，保留当前选项内容不变
-      state.currentProfileId = null;
-      markClean();
-      renderProfileBar();
-      return;
-    }
-    const p = findProfile(id);
-    if (!p) return;
-    applyProfileToState(p);
-    state.currentProfileId = id;
-    markClean();
-    renderAll();
-    updateDrawsUI();
-    renderProfileBar();
-    reset();
-    unspin();          // 新方案 → 转盘回到居中
-  });
-
+  // 存为新档案（把当前选项另存）
   $profileNewBtn.addEventListener('click', () => {
     if (state.busy) return;
-    const name = prompt('给这个方案起个名字：', '');
+    const name = prompt('给这套选项起个档案名：', '');
     if (name === null) return;
     const trimmed = name.trim();
     if (!trimmed) {
-      showToast('方案名不能为空');
+      showToast('档案名不能为空');
       return;
     }
     if (state.profiles.some(p => p.name === trimmed)) {
-      if (!confirm(`已经有同名方案"${trimmed}"，确定要再建一个？`)) return;
+      if (!confirm(`已经有同名档案「${trimmed}」，确定要再建一个？`)) return;
     }
     createProfile(trimmed);
   });
 
+  // 保存改动到当前档案
   $profileSaveBtn.addEventListener('click', () => {
     if (state.busy || !state.currentProfileId) return;
     saveCurrentToProfile();
-  });
-
-  $profileRenameBtn.addEventListener('click', () => {
-    if (state.busy || !state.currentProfileId) return;
-    const p = findProfile(state.currentProfileId);
-    if (!p) return;
-    const name = prompt('新方案名：', p.name);
-    if (name === null) return;
-    const trimmed = name.trim();
-    if (!trimmed) {
-      showToast('方案名不能为空');
-      return;
-    }
-    renameCurrentProfile(trimmed);
-    showToast('已重命名');
-  });
-
-  $profileDeleteBtn.addEventListener('click', () => {
-    if (state.busy || !state.currentProfileId) return;
-    const p = findProfile(state.currentProfileId);
-    if (!p) return;
-    if (!confirm(`确定要删除方案"${p.name}"吗？此操作不可恢复。`)) return;
-    deleteCurrentProfile();
   });
 
   // ── 分享按钮 ──────────────────────────
@@ -1183,82 +1221,15 @@
     showToast('历史已清空');
   });
 
-  // ── 导入 / 导出 ───────────────────────
-  $ioExportBtn.addEventListener('click', () => {
-    if (state.profiles.length === 0) {
-      $ioTextarea.value = '[]';
-      showToast('还没有方案可以导出');
-      return;
+  // ── 历史每页条数 ──────────────────────
+  $historyPerpage.addEventListener('change', () => {
+    const v = parseInt($historyPerpage.value, 10);
+    if (!isNaN(v) && v > 0) {
+      state.historyPerPage = v;
+      state.historyPage = 1;
+      try { localStorage.setItem(HISTORY_PERPAGE_KEY, String(v)); } catch (e) {}
+      renderHistory();
     }
-    const exportData = state.profiles.map(p => ({
-      name: p.name,
-      options: p.options,
-      draws: p.draws || 1,
-    }));
-    $ioTextarea.value = JSON.stringify(exportData, null, 2);
-    $ioTextarea.focus();
-    $ioTextarea.select();
-  });
-  $ioCopyBtn.addEventListener('click', async () => {
-    if (!$ioTextarea.value.trim()) {
-      showToast('文本框是空的');
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText($ioTextarea.value);
-      showToast('已复制到剪贴板');
-    } catch (e) {
-      $ioTextarea.focus();
-      $ioTextarea.select();
-      showToast('剪贴板不可用，请手动 Cmd/Ctrl+C');
-    }
-  });
-  $ioImportBtn.addEventListener('click', () => {
-    if (state.busy) return;
-    const raw = $ioTextarea.value.trim();
-    if (!raw) {
-      showToast('请先把方案 JSON 粘贴进来');
-      return;
-    }
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (e) {
-      showToast('JSON 解析失败：格式不对');
-      return;
-    }
-    if (!Array.isArray(parsed)) {
-      showToast('JSON 应该是一个方案数组');
-      return;
-    }
-    const cleaned = [];
-    for (const p of parsed) {
-      if (!p || typeof p.name !== 'string' || !Array.isArray(p.options)) continue;
-      const opts = p.options
-        .filter(o => o && typeof o.text === 'string')
-        .map(o => ({
-          text: [...o.text].slice(0, MAX_NAME_LEN).join(''),
-          weight: clampWeight(o.weight),
-        }));
-      if (opts.length < 2) continue;
-      cleaned.push({
-        id: cryptoId(),
-        name: p.name.slice(0, 40),
-        options: opts,
-        draws: Math.max(1, Math.min(100, Number(p.draws) || 1)),
-        createdAt: Date.now(),
-      });
-    }
-    if (cleaned.length === 0) {
-      showToast('没找到有效方案');
-      return;
-    }
-    const msg = `将导入 ${cleaned.length} 个方案（追加到现有 ${state.profiles.length} 个之后）。确定？`;
-    if (!confirm(msg)) return;
-    state.profiles = state.profiles.concat(cleaned);
-    saveProfilesToStorage();
-    renderProfileBar();
-    showToast(`已导入 ${cleaned.length} 个方案`);
   });
 
   // ── 键盘快捷键：Space / Enter 抽签 ─────
@@ -1283,7 +1254,7 @@
       markClean();
       renderAll();
       updateDrawsUI();
-      renderProfileBar();
+      renderProfileList();
       reset();
       unspin();        // 载入分享链接 → 转盘回到居中
     }
@@ -1292,9 +1263,18 @@
   // ── 初始化 ────────────────────────────
   state.profiles = loadProfilesFromStorage();
   state.history  = loadHistoryFromStorage();
+  // 每页条数：填充下拉 + 读回上次选择
+  try {
+    const saved = parseInt(localStorage.getItem(HISTORY_PERPAGE_KEY), 10);
+    if (!isNaN(saved) && saved > 0) state.historyPerPage = saved;
+  } catch (e) {}
+  if ($historyPerpage) {
+    $historyPerpage.innerHTML = HISTORY_PERPAGE_OPTIONS
+      .map(v => `<option value="${v}"${v === state.historyPerPage ? ' selected' : ''}>${v}</option>`).join('');
+  }
   // 如果 URL 里有 #options=...，优先用 hash 的内容（覆盖默认 options）
   tryApplyHashToState();
-  renderProfileBar();
+  renderProfileList();
   renderHistory();
   renderAll();
   updateDrawsUI();
