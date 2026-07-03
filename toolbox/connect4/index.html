@@ -79,8 +79,9 @@ permalink: /toolbox/connect4/
     max-width: 460px;
     margin: 0 auto;
     aspect-ratio: 1 / 1;
-    border-radius: 14px;
+    border-radius: 16px;
     overflow: hidden;
+    box-shadow: 0 12px 34px rgba(21, 44, 71, 0.22), 0 2px 6px rgba(21, 44, 71, 0.12);
     user-select: none;
     -webkit-user-select: none;
     touch-action: manipulation;
@@ -350,11 +351,18 @@ permalink: /toolbox/connect4/
   }
 
   // ============ 绘制 ============
-  // 棋子配色：高光 / 主体 / 暗部 / 暗边，做出玻璃糖果质感
+  // 配色跟着站点设计语言走：藏蓝棋盘 + 暖红 / 暖金棋子（不再是塑料蓝+柠檬黄）
   const DISC = {
-    [HUMAN]: { hi: '#ff9184', mid: '#e8484b', lo: '#bd2130', rim: 'rgba(120,20,28,0.55)' },
-    [AI]:    { hi: '#ffe08a', mid: '#f6bd2c', lo: '#d9930a', rim: 'rgba(150,95,4,0.55)' }
+    [HUMAN]: { hi: '#e07a63', mid: '#c23b2e', lo: '#992017', rim: 'rgba(80,16,10,0.55)' },
+    [AI]:    { hi: '#f4d178', mid: '#e0a636', lo: '#b97f14', rim: 'rgba(110,72,8,0.55)' }
   };
+  function boardPal(isDark) {
+    return isDark
+      ? { top: '#20395a', bot: '#111f33', frame: 'rgba(255,255,255,0.05)',
+          holeIn: '#0b192b', holeOut: '#060f1c', holeRimLo: 'rgba(255,255,255,0.06)' }
+      : { top: '#2a4a72', bot: '#152c47', frame: 'rgba(255,255,255,0.12)',
+          holeIn: '#0e2138', holeOut: '#081426', holeRimLo: 'rgba(255,255,255,0.10)' };
+  }
 
   function currentIsDark() {
     const t = document.documentElement.dataset.theme;
@@ -365,12 +373,12 @@ permalink: /toolbox/connect4/
 
   function geom() {
     const W = canvas.width, H = canvas.height;
-    const side = W * 0.015;
-    const cell = Math.min((W - side * 2) / COLS, (H - side) / (ROWS + 1)); // 顶部留投放槽
+    const pad = W * 0.05;                    // 洞区四周内边距
+    const cell = (W - pad * 2) / COLS;        // 棋盘满宽铺满整个画布
     const boardW = cell * COLS, boardH = cell * ROWS;
-    const ox = (W - boardW) / 2;
-    const oy = H - boardH - cell * 0.12;   // 底部留一点余量给 3D 板厚
-    return { W, H, cell, boardW, boardH, ox, oy, r: cell * 0.40 };
+    const ox = pad;
+    const oy = H - boardH - pad;              // 顶部剩余部分是「投放条」，整块都是板身
+    return { W, H, cell, boardW, boardH, ox, oy, r: cell * 0.40, pad };
   }
 
   function roundRectPath(c, x, y, w, h, rad) {
@@ -388,7 +396,7 @@ permalink: /toolbox/connect4/
     const d = DISC[who];
     c.save();
     if (alpha != null) c.globalAlpha = alpha;
-    c.shadowColor = 'rgba(0,0,0,0.35)';
+    c.shadowColor = 'rgba(0,0,0,0.38)';
     c.shadowBlur = r * 0.22;
     c.shadowOffsetY = r * 0.14;
     const body = c.createRadialGradient(cx - r * 0.36, cy - r * 0.42, r * 0.08, cx, cy, r * 1.06);
@@ -400,8 +408,8 @@ permalink: /toolbox/connect4/
     if (alpha != null) c.globalAlpha = alpha;
     c.lineWidth = Math.max(1, r * 0.07); c.strokeStyle = d.rim;
     c.beginPath(); c.arc(cx, cy, r * 0.965, 0, Math.PI * 2); c.stroke();
-    const spec = c.createRadialGradient(cx - r * 0.3, cy - r * 0.36, 0, cx - r * 0.3, cy - r * 0.36, r * 0.6);
-    spec.addColorStop(0, 'rgba(255,255,255,0.6)'); spec.addColorStop(1, 'rgba(255,255,255,0)');
+    const spec = c.createRadialGradient(cx - r * 0.3, cy - r * 0.36, 0, cx - r * 0.3, cy - r * 0.36, r * 0.62);
+    spec.addColorStop(0, 'rgba(255,255,255,0.55)'); spec.addColorStop(1, 'rgba(255,255,255,0)');
     c.fillStyle = spec;
     c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
     c.restore();
@@ -409,40 +417,37 @@ permalink: /toolbox/connect4/
 
   // 一个凹陷的空洞：顶部内阴影 + 底部受光，做出「挖进板里」的立体感
   function paintHole(c, cx, cy, r, isDark) {
+    const p = boardPal(isDark);
     const grad = c.createRadialGradient(cx, cy - r * 0.18, r * 0.15, cx, cy, r);
-    grad.addColorStop(0, isDark ? '#0e1c34' : '#132747');
-    grad.addColorStop(1, isDark ? '#060d1a' : '#0a1730');
+    grad.addColorStop(0, p.holeIn);
+    grad.addColorStop(1, p.holeOut);
     c.fillStyle = grad;
     c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
     const rim = c.createLinearGradient(0, cy - r, 0, cy + r);
     rim.addColorStop(0, 'rgba(0,0,0,0.55)');
     rim.addColorStop(0.5, 'rgba(0,0,0,0)');
-    rim.addColorStop(1, isDark ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.16)');
+    rim.addColorStop(1, p.holeRimLo);
     c.lineWidth = Math.max(1, r * 0.10); c.strokeStyle = rim;
     c.beginPath(); c.arc(cx, cy, r * 0.93, 0, Math.PI * 2); c.stroke();
   }
 
-  // 蓝色棋盘面：竖向渐变 + 底部一道暗边模拟板厚 + 顶部内高光
-  function paintBoardPanel(c, g, isDark) {
-    const p = isDark
-      ? { top: '#274f8c', bot: '#16305a', edge: '#0f2445', frame: 'rgba(255,255,255,0.05)' }
-      : { top: '#3f6db4', bot: '#254e8f', edge: '#173663', frame: 'rgba(255,255,255,0.16)' };
-    const rad = g.cell * 0.14, thick = g.cell * 0.07;
-    c.fillStyle = p.edge;
-    roundRectPath(c, g.ox, g.oy + thick, g.boardW, g.boardH, rad); c.fill();
-    const grad = c.createLinearGradient(0, g.oy, 0, g.oy + g.boardH);
+  // 藏蓝棋盘：整块铺满画布（无透明投放槽），圆角卡片 + 竖向渐变 + 顶部内高光
+  function paintBoardPanel(c, x, y, w, h, isDark) {
+    const p = boardPal(isDark);
+    const rad = w * 0.032;
+    const grad = c.createLinearGradient(0, y, 0, y + h);
     grad.addColorStop(0, p.top); grad.addColorStop(1, p.bot);
     c.fillStyle = grad;
-    roundRectPath(c, g.ox, g.oy, g.boardW, g.boardH, rad); c.fill();
-    c.strokeStyle = p.frame; c.lineWidth = Math.max(1, g.cell * 0.03);
-    roundRectPath(c, g.ox + 1.5, g.oy + 1.5, g.boardW - 3, g.boardH - 3, rad - 1); c.stroke();
+    roundRectPath(c, x, y, w, h, rad); c.fill();
+    c.strokeStyle = p.frame; c.lineWidth = Math.max(1, w * 0.004);
+    roundRectPath(c, x + 1.5, y + 1.5, w - 3, h - 3, rad - 1); c.stroke();
   }
 
-  // hover：列淡高亮 + 投放槽里悬着一枚半透明幽灵子
+  // hover：列淡高亮 + 投放条里悬着一枚半透明幽灵子
   function paintHover(c, g, col, who) {
-    c.fillStyle = 'rgba(255,255,255,0.06)';
+    c.fillStyle = 'rgba(255,255,255,0.05)';
     c.fillRect(g.ox + col * g.cell, g.oy, g.cell, g.boardH);
-    paintDisc(c, g.ox + col * g.cell + g.cell / 2, g.oy * 0.52, who, g.r, 0.6);
+    paintDisc(c, g.ox + col * g.cell + g.cell / 2, g.oy * 0.5, who, g.r, 0.62);
   }
 
   // 获胜四连：发光连线 + 逐子光环
@@ -477,7 +482,7 @@ permalink: /toolbox/connect4/
     if (boardCacheValid) return;
     const c = boardCache.getContext('2d');
     c.clearRect(0, 0, boardCache.width, boardCache.height);
-    paintBoardPanel(c, g, isDark);
+    paintBoardPanel(c, 0, 0, g.W, g.H, isDark);
     for (let r = 0; r < ROWS; r++)
       for (let col = 0; col < COLS; col++) {
         const cx = g.ox + col * g.cell + g.cell / 2, cy = g.oy + r * g.cell + g.cell / 2;
@@ -861,11 +866,12 @@ permalink: /toolbox/connect4/
 
   // 结算分享图：复用游戏里的棋盘 / 空洞 / 棋子画法，观感与对局一致
   function c4PaintBoard(g2, x, y, w, h) {
-    const cell = Math.min(w / COLS, h / (ROWS + 0.3));
+    paintBoardPanel(g2, x, y, w, h, false);            // 藏蓝卡片铺满给定矩形
+    const pad = Math.min(w, h) * 0.06;
+    const cell = Math.min((w - pad * 2) / COLS, (h - pad * 2) / ROWS);
     const boardW = cell * COLS, boardH = cell * ROWS;
-    const ox = x + (w - boardW) / 2, oy = y + (h - boardH) / 2;
+    const ox = x + (w - boardW) / 2, oy = y + (h - boardH) / 2;   // 洞区居中
     const gg = { cell, boardW, boardH, ox, oy, r: cell * 0.40 };
-    paintBoardPanel(g2, gg, false);
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const cx = ox + c * cell + cell / 2;
