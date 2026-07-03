@@ -25,41 +25,7 @@ permalink: /toolbox/picker/
     margin-bottom: 1.4rem;
   }
 
-  /* —— 方案（profile）管理条 —— */
-  .profile-bar {
-    display: flex; align-items: center; gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.3rem; padding-bottom: 1rem;
-    border-bottom: 1px dashed var(--color-border);
-    font-size: 0.88rem;
-  }
-  .profile-bar > span.profile-label {
-    color: var(--color-muted); flex-shrink: 0;
-  }
-  .profile-select {
-    flex: 1; min-width: 130px; max-width: 240px;
-    padding: 0.34rem 0.75rem;
-    font: inherit; font-size: 0.88rem;
-    border: 1px solid var(--color-border); border-radius: 999px;
-    background: var(--color-bg); color: var(--color-text);
-    cursor: pointer; outline: none;
-    transition: border-color 0.2s;
-  }
-  .profile-select:focus { border-color: var(--color-accent); }
-  .profile-action {
-    padding: 0.32rem 0.6rem; font-size: 0.85rem;
-    border: 1px solid var(--color-border); border-radius: 999px;
-    background: transparent; color: var(--color-muted);
-    cursor: pointer; font: inherit; line-height: 1.2;
-    transition: all 0.15s; white-space: nowrap;
-  }
-  @media (hover: hover) {
-    .profile-action:hover:not(:disabled) {
-    border-color: var(--color-accent); color: var(--color-accent);
-  }
-  }
-  .profile-action:disabled { opacity: 0.4; cursor: not-allowed; }
-  .profile-action.profile-new { border-style: dashed; }
+  /* —— toast 提示（档案板块 #archive-board 复用）—— */
   .profile-toast {
     font-size: 0.78rem; color: var(--color-accent);
     font-style: normal;
@@ -472,43 +438,6 @@ permalink: /toolbox/picker/
   }
   }
 
-  details.about {
-    margin-top: 2.2rem; font-size: 0.88rem;
-    color: var(--color-muted); line-height: 1.7;
-  }
-  details.about + details.about { margin-top: 1rem; }
-  details.about summary {
-    cursor: pointer; padding: 0.4rem 0;
-    color: var(--color-muted); font-weight: 500;
-    list-style: none;
-  }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
-  details.about p { margin: 0.6rem 0; }
-  details.about kbd {
-    display: inline-block;
-    padding: 0.05em 0.4em;
-    font-family: var(--font-body);
-    font-size: 0.82em;
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    background: var(--color-bg-warm, var(--color-bg));
-    color: var(--color-ink);
-    line-height: 1.4;
-  }
-
-  /* —— profile dirty 标识 —— */
-  .profile-action.dirty {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-    background: rgba(232,200,40,0.12);
-  }
-  .profile-action.dirty::after {
-    content: ' ●';
-    font-size: 0.7em;
-    vertical-align: 0.2em;
-  }
-
   /* —— toast 撤销按钮 —— */
   .profile-toast .toast-action {
     margin-left: 0.45rem;
@@ -588,57 +517,6 @@ permalink: /toolbox/picker/
     color: var(--color-muted);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     flex: 1; min-width: 0;
-  }
-  .history-actions {
-    text-align: right;
-    margin-top: 0.4rem;
-  }
-  .history-clear {
-    padding: 0.25rem 0.8rem;
-    font: inherit; font-size: 0.78rem;
-    border: 1px dashed var(--color-border);
-    border-radius: 999px;
-    background: transparent; color: var(--color-muted);
-    cursor: pointer;
-  }
-  @media (hover: hover) {
-    .history-clear:hover {
-    border-color: #c83828; color: #c83828; border-style: solid;
-  }
-  }
-
-  /* —— 导入/导出面板 —— */
-  .io-textarea {
-    width: 100%; box-sizing: border-box;
-    margin: 0.5rem 0 0.4rem;
-    padding: 0.5rem 0.7rem;
-    font-family: var(--font-mono, ui-monospace, Menlo, Monaco, monospace);
-    font-size: 0.78rem;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    background: var(--color-bg);
-    color: var(--color-ink);
-    resize: vertical;
-    outline: none;
-  }
-  .io-textarea:focus { border-color: var(--color-accent); }
-  .io-actions {
-    display: flex; gap: 0.4rem;
-    flex-wrap: wrap;
-  }
-  .io-btn {
-    padding: 0.3rem 0.75rem;
-    font: inherit; font-size: 0.82rem;
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
-    background: transparent; color: var(--color-muted);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  @media (hover: hover) {
-    .io-btn:hover {
-    border-color: var(--color-accent); color: var(--color-accent);
-  }
   }
 
   @media (max-width: 600px) {
