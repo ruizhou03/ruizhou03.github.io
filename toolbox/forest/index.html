@@ -2588,10 +2588,15 @@ theme_color: "#fafaf9"
     const fid = state.activeFieldId;
     newTree.fieldId = fid;
     const occupied = new Set();
+    let maxRow = 0;
     state.trees.forEach(t => {
-      if (t.fieldId === fid && t.position) occupied.add(`${t.position.col},${t.position.row}`);
+      if (t.fieldId === fid && t.position) {
+        occupied.add(`${t.position.col},${t.position.row}`);
+        if (t.position.row > maxRow) maxRow = t.position.row;
+      }
     });
-    for (let row = 0; row < 500; row++) {
+    // 扫到已有最大行 + 1 行为止；仍满则追加到全新一行（绝不落回 (0,0) 覆盖首格）
+    for (let row = 0; row <= maxRow + 1; row++) {
       for (let col = 0; col < cols; col++) {
         if (!occupied.has(`${col},${row}`)) {
           newTree.position = { col, row };
@@ -2599,7 +2604,7 @@ theme_color: "#fafaf9"
         }
       }
     }
-    newTree.position = { col: 0, row: 0 };
+    newTree.position = { col: 0, row: maxRow + 2 };
   }
 
   function renderStats() {
@@ -2979,11 +2984,14 @@ theme_color: "#fafaf9"
       hideDetail();
     });
     document.getElementById('td-close').addEventListener('click', hideDetail);
+    // fixed 弹窗不跟随滚动 → 页面一滚就关，避免浮在半空指错树
+    window.addEventListener('scroll', hideDetail, { passive: true });
   }
 
   function hideDetail() {
     $treeDetail.classList.remove('open');
     openDetailId = null;
+    window.removeEventListener('scroll', hideDetail);
   }
 
   document.addEventListener('click', e => {
@@ -3008,6 +3016,19 @@ theme_color: "#fafaf9"
   // 窗口尺寸变化 → 重新计算
   window.addEventListener('resize', () => {
     if (state.trees.length > 0) renderField();
+  });
+
+  // 多 tab 同步：别的标签页改了树/田，本 tab 立即重载，避免稍后整份覆盖把对方的数据冲掉
+  window.addEventListener('storage', (e) => {
+    if (!e.key) return;
+    if (e.key === TREES_KEY || e.key === FIELDS_KEY || e.key === ACTIVE_FIELD_KEY) {
+      loadTrees();
+      loadFields();
+      migrateFieldsAndTrees();
+      hideDetail();
+      renderFieldTabs();
+      renderStats();
+    }
   });
 
   function escapeHtml(s) {
