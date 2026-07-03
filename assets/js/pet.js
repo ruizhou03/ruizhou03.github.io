@@ -59,6 +59,24 @@
     }
     return data;
   }
+  // For user-initiated one-shot ops NOT in the durable entry-outbox (member/role/transfer/
+  // leave/regenerate + time-change): retry a TRANSIENT failure (network / 5xx / 429 / 503
+  // write-contention / parse_error) a few times so a dropped POST isn't silently lost. A
+  // TERMINAL 4xx (invalid op) throws immediately — no pointless retry. Pass a stable opId in
+  // the body for any non-idempotent op (propose-time-change) so a retry can't duplicate.
+  async function apiRetry(action, opts, tries = 4) {
+    let lastErr;
+    for (let i = 0; i < tries; i++) {
+      try { return await api(action, opts); }
+      catch (e) {
+        lastErr = e;
+        const st = e && e.status;
+        if (st && st >= 400 && st < 500 && st !== 429) throw e;   // terminal (4xx≠429) → don't retry
+        await new Promise(r => setTimeout(r, 250 * (i + 1) + Math.floor(Math.random() * 150)));
+      }
+    }
+    throw lastErr;
+  }
   const EMOJIS = ['🐱', '🐈', '🐈‍⬛', '🐕', '🐶', '🐰', '🐹', '🐭', '🦔', '🐦', '🦜', '🐢', '🐠'];   // 13 个 + 拍照格 = 14，正好铺满两行（每行 7）
   // 各物种干粮默认能量密度（kcal/g，可被用户覆盖）——粗略行业基线：猫粮≈3.8、狗粮略低、兔粮高纤偏低、雪貂高蛋白偏高。
   const KIBBLE_KCAL_DEFAULT = { cat: 3.8, dog: 3.5, rabbit: 2.6, hamster: 3.2, bird: 3.5, ferret: 4.2 };
@@ -1222,30 +1240,61 @@
     'preferredUnit',
     'kibbleKcalPerG','kibble','foodLibrary','foodGroups','conversionBase',
   ];
-  function petMetaPatch(pet) {
-    const out = {};
-    META_FIELDS.forEach(k => { out[k] = pet[k]; });
+  // PER-FIELD meta sync. pet._syncedMeta = the last-known SERVER value of each field.
+  // A field is "dirty" iff its local value differs from _syncedMeta. petMetaPatch sends
+  // ONLY dirty fields → two admins editing DIFFERENT fields don't clobber each other (the
+  // backend merges per field). On pull we apply server values only for NON-dirty fields.
+  function metaDirtyKeys(pet) {
+    const synced = pet._syncedMeta || {};
+    const out = [];
+    META_FIELDS.forEach(k => { if (JSON.stringify(pet[k]) !== JSON.stringify(synced[k])) out.push(k); });
     return out;
+  }
+  function petMetaPatch(pet) {
+    const patch = {};
+    metaDirtyKeys(pet).forEach(k => { patch[k] = pet[k]; });
+    return patch;
+  }
+  function markMetaSynced(pet, patch) {
+    pet._syncedMeta = pet._syncedMeta || {};
+    Object.keys(patch).forEach(k => { pet._syncedMeta[k] = patch[k]; });
+  }
+  // Fold a freshly-pulled server meta into the pet: adopt the server value for every field
+  // we DON'T have a local unsynced edit on; keep (and later re-push) the ones we do. Also
+  // (re)baselines _syncedMeta so future diffs are per-field.
+  function applyServerMeta(pet, serverMeta) {
+    if (!serverMeta) return;
+    if (!pet._syncedMeta) {
+      // First fold under the per-field scheme. Adopt server wholesale UNLESS a legacy
+      // whole-pet dirty flag says we have an unsynced edit (then keep local; it'll diff-push).
+      const hadLegacyDirty = pet._metaDirty === true;
+      META_FIELDS.forEach(k => { if (!hadLegacyDirty && serverMeta[k] !== undefined) pet[k] = serverMeta[k]; });
+      pet._syncedMeta = {};
+      META_FIELDS.forEach(k => { pet._syncedMeta[k] = serverMeta[k]; });
+      delete pet._metaDirty;   // retire the old boolean; dirtiness now derives from _syncedMeta
+      return;
+    }
+    META_FIELDS.forEach(k => {
+      const localDirty = JSON.stringify(pet[k]) !== JSON.stringify(pet._syncedMeta[k]);
+      if (!localDirty && serverMeta[k] !== undefined) { pet[k] = serverMeta[k]; pet._syncedMeta[k] = serverMeta[k]; }
+      // dirty field → keep local value, leave _syncedMeta stale so it still counts as dirty and gets pushed
+    });
   }
   const metaPushTimers = {};   // per-pet debounce timer (id → handle), so editing pet B can't cancel pet A's pending push
   function schedulePushMeta(pet) {
     if (!pet || !pet.shared || !pet.serverPetId) return;
-    // Mark this pet as having a local edit that hasn't reached the server yet,
-    // so a concurrent pull (60s poll / tab refocus) won't clobber it back to the
-    // stale server copy before our push lands. _metaSeq guards against an in-flight
-    // push clearing the flag when a newer edit arrived during its await.
-    pet._metaDirty = true;
+    // _metaSeq guards against an in-flight push marking fields synced when a newer edit
+    // arrived during its await.
     pet._metaSeq = (pet._metaSeq || 0) + 1;
     const mySeq = pet._metaSeq;
     clearTimeout(metaPushTimers[pet.id]);
     metaPushTimers[pet.id] = setTimeout(async () => {
+      const patch = petMetaPatch(pet);
+      if (!Object.keys(patch).length) return;   // nothing changed
       try {
-        await api('update', {
-          petId: pet.serverPetId,
-          body: { patch: petMetaPatch(pet) },
-        });
-        if (pet._metaSeq === mySeq) pet._metaDirty = false;
-      } catch (e) { /* swallow; stays dirty so pulls keep the local copy */ }
+        await api('update', { petId: pet.serverPetId, body: { patch } });
+        if (pet._metaSeq === mySeq) markMetaSynced(pet, patch);   // these fields now match server
+      } catch (e) { /* swallow; fields stay dirty so pulls keep the local copy + retry later */ }
     }, 600);
   }
   // Push any pets whose local meta edits never reached the server (e.g. saved then
@@ -1253,11 +1302,13 @@
   // initial sync can't overwrite an unsynced local edit.
   async function flushDirtyMeta() {
     await Promise.all(state.pets
-      .filter(p => p._metaDirty && p.shared && p.serverPetId)
+      .filter(p => p.shared && p.serverPetId && metaDirtyKeys(p).length)
       .map(async p => {
+        const patch = petMetaPatch(p);
+        if (!Object.keys(patch).length) return;
         try {
-          await api('update', { petId: p.serverPetId, body: { patch: petMetaPatch(p) } });
-          p._metaDirty = false;
+          await api('update', { petId: p.serverPetId, body: { patch } });
+          markMetaSynced(p, patch);
         } catch (e) { /* stays dirty; retried next session */ }
       }));
   }
@@ -1287,11 +1338,10 @@
       try {
         await flushOps(p);   // push any queued records first, so the merge below doesn't look "local-only"
         const r = await api('get', { petId: p.serverPetId });
-        // Don't apply server meta over a local edit that hasn't synced yet, or we'd
-        // revert the user's just-saved change (e.g. a new food type's config).
-        if (r && r.pet && !p._metaDirty) {
-          META_FIELDS.forEach(k => { if (r.pet[k] !== undefined) p[k] = r.pet[k]; });
-        }
+        // Per-field fold: adopt server values for fields with no local unsynced edit, keep
+        // the ones we're mid-editing (they'll diff-push) — so a pull never reverts a just-
+        // saved change, and two admins editing different fields both survive.
+        if (r && r.pet) applyServerMeta(p, r.pet);
         if (r && Array.isArray(r.members)) {
           // Detect newcomers so the owner/members get a 「新成员加入」notice instead of
           // a stranger silently appearing. First pull baselines the whole roster.
@@ -1324,6 +1374,10 @@
           });
           p.entries = mergeServerEntries(p.entries, r.entries, r.deleted);
           reconcileBodyWeight(p);
+          // bodyWeight is derived from weight ENTRIES (decision A), not an independent scalar
+          // to sync — re-baseline its synced value so the reconciled number never looks
+          // spuriously "dirty" and churns the meta push.
+          if (p._syncedMeta) p._syncedMeta.bodyWeight = p.bodyWeight;
         }
         if (r && Array.isArray(r.timechanges)) p.timeChanges = r.timechanges;
         if (r && r.code) p.serverCode = r.code;
@@ -1412,10 +1466,11 @@
   }
   // Returns the server response (entries/timechanges) so callers can reconcile.
   async function pushProposeTimeChange(pet, entryId, newTs) {
-    return api('propose-time-change', { petId: pet.serverPetId, body: { entryId, newTs } });
+    // opId (stable across retries) makes the tc-push idempotent so a retry can't create a duplicate.
+    return apiRetry('propose-time-change', { petId: pet.serverPetId, body: { entryId, newTs, opId: uuid('op') } });
   }
   async function pushDecideTimeChange(pet, tcId, decision) {
-    return api('decide-time-change', { petId: pet.serverPetId, body: { tcId, decision } });
+    return apiRetry('decide-time-change', { petId: pet.serverPetId, body: { tcId, decision } });
   }
 
   function petIconHtml(p) {
@@ -2614,14 +2669,14 @@
     }
     try {
       if (ds.act === 'role') {
-        await api('set-role', { petId: p.serverPetId, body: { targetDeviceId: target, role: ds.role } });
+        await apiRetry('set-role', { petId: p.serverPetId, body: { targetDeviceId: target, role: ds.role } });
       } else if (ds.act === 'remove') {
         if (!confirm('把「' + memberDisplayName(p, target) + '」移出？他们将立即失去访问权。')) return;
-        await api('remove-member', { petId: p.serverPetId, body: { targetDeviceId: target } });
+        await apiRetry('remove-member', { petId: p.serverPetId, body: { targetDeviceId: target } });
       } else if (ds.act === 'transfer') {
         const tName = memberDisplayName(p, target);
         if (!confirm('把主人身份转让给「' + tName + '」？你将变成管理员。')) return;
-        await api('transfer', { petId: p.serverPetId, body: { newOwnerDeviceId: target } });
+        await apiRetry('transfer', { petId: p.serverPetId, body: { newOwnerDeviceId: target } });
       }
       const r = await api('get', { petId: p.serverPetId });
       p.members = r.members || p.members;
@@ -2921,7 +2976,7 @@
       kickOthers = confirm(`当前还有 ${others} 位已加入的成员。\n\n确定 = 同时把他们移出（彻底清退，怀疑泄露时用）\n取消 = 只换码，已加入的成员保留`);
     }
     try {
-      const r = await api('regenerate-code', { petId: p.serverPetId, body: { kickOthers } });
+      const r = await apiRetry('regenerate-code', { petId: p.serverPetId, body: { kickOthers } });
       p.serverCode = r.code;
       $pmShareCode.textContent = r.code;
       if (r && Array.isArray(r.members)) p.members = r.members;
@@ -3135,7 +3190,7 @@
         catch (e) { alert('删除失败：' + (e.message || 'unknown')); return; }
       } else {
         if (!confirm('仅从你这边移除？其他人仍能继续记录。')) return;
-        try { await api('leave', { petId: p.serverPetId, body: {} }); } catch (_) {}
+        try { await apiRetry('leave', { petId: p.serverPetId, body: {} }); } catch (_) {}
       }
     } else {
       if (!confirm('删除这只宠物以及所有记录？')) return;
