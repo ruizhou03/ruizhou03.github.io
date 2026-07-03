@@ -49,9 +49,12 @@
     const text = await r.text();
     let data;
     try { data = JSON.parse(text); } catch { data = { error: 'parse_error', raw: text }; }
-    if (!r.ok || !data || data.ok === false) {
+    // A 200 with an unparseable/garbage body is NOT success — must be retriable, never
+    // treated as a landed write (else the outbox would drop the op on a fake success).
+    if (!r.ok || !data || data.ok === false || data.error === 'parse_error') {
       const err = new Error((data && data.error) || `http_${r.status}`);
       err.status = r.status;
+      err.code = data && data.error;   // lets the outbox tell terminal rejections from transient
       throw err;
     }
     return data;
@@ -1224,7 +1227,7 @@
     META_FIELDS.forEach(k => { out[k] = pet[k]; });
     return out;
   }
-  let metaPushTimer = null;
+  const metaPushTimers = {};   // per-pet debounce timer (id → handle), so editing pet B can't cancel pet A's pending push
   function schedulePushMeta(pet) {
     if (!pet || !pet.shared || !pet.serverPetId) return;
     // Mark this pet as having a local edit that hasn't reached the server yet,
@@ -1234,8 +1237,8 @@
     pet._metaDirty = true;
     pet._metaSeq = (pet._metaSeq || 0) + 1;
     const mySeq = pet._metaSeq;
-    clearTimeout(metaPushTimer);
-    metaPushTimer = setTimeout(async () => {
+    clearTimeout(metaPushTimers[pet.id]);
+    metaPushTimers[pet.id] = setTimeout(async () => {
       try {
         await api('update', {
           petId: pet.serverPetId,
@@ -1263,12 +1266,17 @@
   // that haven't reached the server yet (still queued in _pendingOps). Server wins
   // for matching ids; local-only ids are appended. Used by every sync path so none
   // of them can silently overwrite a not-yet-synced record.
-  function mergeServerEntries(local, server) {
+  function mergeServerEntries(local, server, deleted) {
     const srv = Array.isArray(server) ? server : [];
+    const tomb = new Set(Array.isArray(deleted) ? deleted : []);
     const serverIds = new Set(srv.map(e => e.id));
-    const merged = [...srv];
-    (local || []).forEach(e => { if (!serverIds.has(e.id)) merged.push(e); });
-    merged.sort((a, b) => a.ts - b.ts);
+    const merged = srv.filter(e => !tomb.has(e.id));          // server is authoritative, minus tombstones
+    (local || []).forEach(e => {
+      if (serverIds.has(e.id)) return;                         // server has it → use server's copy
+      if (tomb.has(e.id)) return;                              // deleted on server → drop, never resurrect
+      merged.push(e);                                          // local-only, not deleted → keep (no data loss)
+    });
+    merged.sort((a, b) => (a.ts - b.ts) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));   // stable id tiebreak
     return merged;
   }
 
@@ -1303,7 +1311,18 @@
         }
         if (typeof p.activitySeenAt !== 'number') p.activitySeenAt = Date.now();   // baseline so a fresh pull doesn't flag all history
         if (r && Array.isArray(r.entries)) {
-          p.entries = mergeServerEntries(p.entries, r.entries);
+          // Self-heal: any local record the server is missing (and that wasn't deleted) —
+          // e.g. one lost to the OLD pre-atomic clobber bug — gets re-queued so it re-uploads
+          // and reaches every member. Tombstoned (deleted) ids are never re-queued.
+          const tomb = new Set(Array.isArray(r.deleted) ? r.deleted : []);
+          const serverIds = new Set(r.entries.map(e => e.id));
+          const pendingAddIds = new Set((p._pendingOps || []).filter(o => o.type === 'add' && o.entry).map(o => o.entry.id));
+          (p.entries || []).forEach(e => {
+            if (e && e.id && !serverIds.has(e.id) && !tomb.has(e.id) && !pendingAddIds.has(e.id)) {
+              enqueueOp(p, { type: 'add', entry: e });
+            }
+          });
+          p.entries = mergeServerEntries(p.entries, r.entries, r.deleted);
           reconcileBodyWeight(p);
         }
         if (r && Array.isArray(r.timechanges)) p.timeChanges = r.timechanges;
@@ -1324,8 +1343,17 @@
   // the recorder sees it locally but other members never do (the "5 recorded,
   // admin sees 3" bug). Ops persist to localStorage so they survive a reload.
   const _flushing = {};   // serverPetId -> bool, so one pet flushes one-at-a-time
+  // Server error codes that mean "this op is INVALID and will never succeed" → safe to drop.
+  // Anything else (transient 404/429/503, bad_token/not_member during a race, network,
+  // parse_error) stays queued and retries, so a record is never silently lost.
+  const TERMINAL_OP_ERRORS = new Set([
+    'not_your_entry', 'no_permission', 'owner_only', 'missing_entry', 'missing_entry_id',
+    'bad_ts', 'bad_decision', 'not_approvable', 'not_rejectable',
+    'cannot_remove_owner', 'cannot_change_owner_role', 'bad_role', 'member_not_found',
+  ]);
   function enqueueOp(pet, op) {
     pet._pendingOps = pet._pendingOps || [];
+    if (!op.opId) op.opId = uuid('op');   // idempotency: retries can't duplicate on the server
     pet._pendingOps.push(op);
     persist();
     flushOps(pet);
@@ -1340,24 +1368,28 @@
         const op = pet._pendingOps[0];
         try {
           if (op.type === 'add') {
-            await api('add-entry', { petId: pet.serverPetId, body: { entry: op.entry } });
+            const r = await api('add-entry', { petId: pet.serverPetId, body: { entry: op.entry, opId: op.opId } });
+            // Landing verification: the server response must actually contain the record's
+            // id before we drop it from the outbox. (Belt-and-suspenders now the backend is
+            // atomic; catches any 200-with-wrong-body.)
+            if (r && Array.isArray(r.entries) && !r.entries.some(e => e && e.id === op.entry.id)) {
+              break;   // didn't land → keep queued, retry on next flush
+            }
           } else if (op.type === 'del') {
-            const r = await api('delete-entry', { petId: pet.serverPetId, body: { entryId: op.entryId } });
+            const r = await api('delete-entry', { petId: pet.serverPetId, body: { entryId: op.entryId, opId: op.opId } });
             if (r && Array.isArray(r.timechanges)) pet.timeChanges = r.timechanges;
           }
-          pet._pendingOps.shift();   // server confirmed → drop from outbox
+          pet._pendingOps.shift();   // server confirmed the write landed → drop from outbox
           persist();
         } catch (e) {
-          // Permanent rejection (e.g. 403 no-permission delete): don't retry forever —
-          // drop the op and re-pull so server truth (the un-deleted record) comes back.
-          const st = e && e.status;
-          if (st && st >= 400 && st < 500 && st !== 429) {
+          // Only drop on an explicit TERMINAL rejection. Transient failures stay queued.
+          if (TERMINAL_OP_ERRORS.has(e && e.code)) {
             pet._pendingOps.shift();
             persist();
             pullSharedPets().then(render).catch(() => {});
             continue;
           }
-          break;   // network / transient error → leave it queued, retry on next sync
+          break;   // network / transient (incl. bad_token/not_member during a race) → retry later
         }
       }
     } finally {
@@ -3673,8 +3705,7 @@
       kcalPerUnit: food.kcalPerUnit,
       note: '', author: DEVICE_ID,
     };
-    pet.entries.push(newEntry);
-    persist();
+    if (!commitNewEntry(pet, newEntry)) return;   // push+persist atomically; rollback+warn on quota (no local/server split)
     $reading.value = '';
     $resetCheck.checked = false;
     resetEntryTime();
@@ -5252,7 +5283,13 @@
     incoming.pets.forEach(rp => {                                     // 远端按 id 合并 / 补充
       if (!rp || !rp.id) return;
       const cur = byId.get(rp.id);
-      byId.set(rp.id, cur ? mergePetPair(cur, rp) : rp);
+      if (cur) {
+        // 共享宠物的记录/元数据/成员/发件箱/令牌以 pet-food 后端为准（pullSharedPets 会持续刷新）。
+        // 账号云同步是另一套「整份覆盖」，绝不能拿一份陈旧快照把共享宠物的这些字段冲掉——保留本地。
+        byId.set(rp.id, (cur.shared || rp.shared) ? cur : mergePetPair(cur, rp));
+      } else {
+        byId.set(rp.id, rp);                                          // 只在另一台设备上的宠物 → 收进来（共享的随后由 pull 刷新）
+      }
     });
     const merged = Array.from(byId.values());
     const unchanged = merged.length === state.pets.length &&
