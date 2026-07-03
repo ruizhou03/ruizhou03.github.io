@@ -10,10 +10,37 @@ theme_color: "#fafaf9"
 ---
 
 <style>
+  /* ============ 工具级设计 token（仅本页内联，与全站 main.css 不冲突）============ */
+  :root {
+    --ft-r-lg: 16px;   /* 外层大卡 */
+    --ft-r-md: 12px;   /* 中层卡 / popover / 田地 */
+    --ft-r-sm: 10px;   /* 内层元素 / setting-row */
+    --ft-r-xs: 8px;    /* 输入框 / 小块 */
+    --ft-fs-cap: 0.75rem;   /* 角标 / 轴 / 微说明 */
+    --ft-fs-sm: 0.82rem;    /* 次级标签 / 提示 */
+    --ft-fs-base: 0.9rem;   /* 正文 / label */
+    --ft-fs-md: 1rem;       /* 小标题 */
+    --ft-fs-lg: 1.12rem;    /* 主按钮 */
+    --ft-danger: #b07c75;                        /* destructive 唯一职责色 */
+    --ft-danger-soft: rgba(176, 124, 117, 0.1);
+    --ft-gold: #c9a96e;                          /* 灌溉 / 巨树 暖金 */
+    --ft-gold-ink: #b08838;
+    --ft-gold-soft: rgba(201, 169, 110, 0.16);
+    --ft-shadow-card: 0 4px 18px rgba(30, 58, 95, 0.06);
+  }
+
   .ft-wrap { max-width: 760px; margin: 0 auto; padding: 1rem; }
-  .ft-wrap header { text-align: center; margin-bottom: 1.4rem; }
-  .ft-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem; }
-  .ft-wrap header .sub { color: var(--color-light); font-style: normal; }
+  .ft-wrap header { text-align: center; margin-bottom: 1.5rem; }
+  .ft-wrap header h1 {
+    font-size: 2rem; font-weight: 500; letter-spacing: 0.01em;
+    color: var(--color-ink); margin-bottom: 0.35rem;
+    display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center;
+  }
+  .ft-wrap header h1 .title-mark { color: var(--color-accent); display: inline-flex; }
+  .ft-wrap header h1 .title-mark svg { width: 1.1em; height: 1.1em; display: block; }
+  .ft-wrap header .sub { color: var(--color-muted); font-style: normal; font-size: var(--ft-fs-base); }
+  /* 通用线性图标：描边跟随 currentColor，尺寸随字号 */
+  .ft-ico { width: 1.05em; height: 1.05em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
 
   /* ============ 主舞台（树 + 计时器）============ */
   .stage {
@@ -105,7 +132,7 @@ theme_color: "#fafaf9"
     50% { opacity: 0.6; }
   }
   .timer-status {
-    font-size: 0.9rem;
+    font-size: var(--ft-fs-base);
     color: var(--color-muted);
     min-height: 1.4em;
   }
@@ -125,14 +152,14 @@ theme_color: "#fafaf9"
     border-radius: 10px;
   }
   .setting-row label {
-    font-size: 0.88rem; color: var(--color-muted);
+    font-size: var(--ft-fs-sm); color: var(--color-muted);
     flex-shrink: 0;
   }
   .setting-row .duration-tabs {
     display: flex; gap: 0.3rem; flex-wrap: wrap; flex-grow: 1;
   }
   .setting-row .duration-tabs button {
-    font: inherit; font-size: 0.85rem;
+    font: inherit; font-size: var(--ft-fs-sm);
     padding: 0.4rem 0.85rem;
     border: 1px solid var(--color-border); border-radius: 999px;
     background: var(--color-bg); color: var(--color-muted); cursor: pointer;
@@ -191,16 +218,29 @@ theme_color: "#fafaf9"
     margin: 0 0.45rem;
   }
   .setting-row .group-label {
-    font-size: 0.82rem;
+    font-size: var(--ft-fs-sm);
     color: var(--color-muted);
     margin-right: 0.25rem;
   }
+  /* 主题预览：直接显示主题真实渐变，而非无关 emoji */
+  .theme-swatch {
+    width: 20px; height: 20px; border-radius: 50%;
+    display: block;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+  }
+  .theme-swatch-default { background: linear-gradient(180deg, #f0f4ed 0%, #e8e2d4 100%); }
+  .theme-swatch-night   { background: linear-gradient(180deg, #2f5030 0%, #0d150a 100%); }
+  .theme-swatch-bubbles { background: linear-gradient(180deg, #1a3a5e 0%, #0d2540 100%); }
+  .theme-swatch-stars   { background: linear-gradient(180deg, #3a2270 0%, #0a0518 100%); }
+  .theme-swatch-sunrise { background: linear-gradient(180deg, #d35a45 0%, #e88a5a 45%, #f0c478 100%); }
+  .theme-swatch-rain    { background: linear-gradient(180deg, #3a4b60 0%, #15202d 100%); }
+  .theme-swatch-aurora  { background: linear-gradient(135deg, #0a1a3e 0%, #1a3a5a 40%, #34c0a0 100%); }
   .setting-row input[type="number"]:focus { outline: none; border-color: var(--color-accent); }
   .setting-row input[type="text"] {
     flex-grow: 1; padding: 0.5rem 0.7rem;
     border: 1px solid var(--color-border); border-radius: 8px;
     background: var(--color-bg); color: var(--color-ink);
-    font: inherit; font-size: 0.95rem;
+    font: inherit; font-size: var(--ft-fs-base);
   }
   .setting-row input[type="text"]:focus { outline: none; border-color: var(--color-accent); }
   .setting-row .tree-types {
@@ -223,10 +263,10 @@ theme_color: "#fafaf9"
   .plant-card {
     background: var(--color-bg);
     border: 1px solid var(--color-border);
-    border-radius: 18px;
+    border-radius: var(--ft-r-lg);
     padding: 1rem 1rem 1.1rem;
     margin-bottom: 1.4rem;
-    box-shadow: 0 6px 24px rgba(30, 58, 95, 0.08);
+    box-shadow: var(--ft-shadow-card);
   }
   .plant-card .stage { margin: 0 0 0.9rem; }
   .plant-card > .duration-row { margin-bottom: 0.7rem; }
@@ -236,7 +276,7 @@ theme_color: "#fafaf9"
   .duration-row .duration-tabs { flex-wrap: nowrap; gap: 0.35rem; }
   .duration-row .duration-tabs button { flex: 1 1 0; min-width: 0; padding: 0.45rem 0; text-align: center; }
   .duration-row input[type="number"] { width: 72px; flex-shrink: 0; }
-  .duration-row .unit { color: var(--color-light); font-size: 0.85rem; flex-shrink: 0; }
+  .duration-row .unit { color: var(--color-light); font-size: var(--ft-fs-sm); flex-shrink: 0; }
 
   /* 更多设置：原生 <details> 折叠，默认收起保持首屏清爽 */
   .more-settings {
@@ -249,7 +289,7 @@ theme_color: "#fafaf9"
     list-style: none;
     cursor: pointer;
     padding: 0.7rem 0.95rem;
-    font-size: 0.85rem;
+    font-size: var(--ft-fs-sm);
     color: var(--color-muted);
     display: flex; align-items: center; gap: 0.45rem;
   }
@@ -289,7 +329,7 @@ theme_color: "#fafaf9"
     background: transparent; color: #b07c75;
     border: 1px dashed #b07c75;
     box-shadow: none;
-    font-size: 0.92rem;
+    font-size: var(--ft-fs-base);
     padding: 0.6rem 1.6rem;
   }
   @media (hover: hover) {
@@ -298,7 +338,7 @@ theme_color: "#fafaf9"
 
   .focus-warning {
     margin-top: 0.7rem;
-    font-size: 0.82rem;
+    font-size: var(--ft-fs-sm);
     color: var(--color-light);
     font-style: normal;
   }
@@ -314,7 +354,7 @@ theme_color: "#fafaf9"
     border-left: 4px solid #c9a96e;
     border-radius: 10px;
     color: #78350f;
-    font-size: 0.92rem;
+    font-size: var(--ft-fs-base);
     line-height: 1.55;
   }
   @media (prefers-color-scheme: dark) {
@@ -337,7 +377,7 @@ theme_color: "#fafaf9"
   :root[data-theme="dark"] .revival-banner strong { color: #fff; }
   .revival-banner .cancel-revival {
     margin-left: 0.5rem;
-    font: inherit; font-size: 0.78rem;
+    font: inherit; font-size: var(--ft-fs-cap);
     padding: 0.2rem 0.55rem;
     background: transparent;
     border: 1px solid currentColor;
@@ -354,8 +394,9 @@ theme_color: "#fafaf9"
   /* ============ 统计 ============ */
   .stats-zone {
     background: var(--color-bg); border: 1px solid var(--color-border);
-    border-radius: 14px; padding: 1.2rem 1.4rem;
+    border-radius: var(--ft-r-lg); padding: 1.2rem 1.4rem;
     margin-bottom: 1.4rem;
+    box-shadow: var(--ft-shadow-card);
   }
   .stats-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem;
@@ -374,7 +415,7 @@ theme_color: "#fafaf9"
     line-height: 1;
   }
   .stat-card .stat-label {
-    font-size: 0.74rem;
+    font-size: var(--ft-fs-cap);
     color: var(--color-muted);
     margin-top: 0.3rem;
   }
@@ -389,7 +430,7 @@ theme_color: "#fafaf9"
     justify-content: space-between;
   }
   .forest-title small {
-    font-size: 0.78rem; font-weight: 400;
+    font-size: var(--ft-fs-cap); font-weight: 400;
     color: var(--color-muted);
   }
   /* ============ 多块田 tabs ============ */
@@ -402,7 +443,7 @@ theme_color: "#fafaf9"
     border: 1px solid var(--color-border);
   }
   .field-tab {
-    font: inherit; font-size: 0.85rem;
+    font: inherit; font-size: var(--ft-fs-sm);
     padding: 0.35rem 0.85rem;
     border: 1px solid var(--color-border); border-radius: 999px;
     background: var(--color-bg); color: var(--color-muted); cursor: pointer;
@@ -416,14 +457,14 @@ theme_color: "#fafaf9"
     .field-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
   .field-tab .tab-count {
-    font-size: 0.72rem; opacity: 0.7;
+    font-size: var(--ft-fs-cap); opacity: 0.7;
     padding: 0.05rem 0.4rem;
     background: rgba(0, 0, 0, 0.08);
     border-radius: 999px;
   }
   .field-tab.active .tab-count { background: rgba(255, 255, 255, 0.18); }
   .field-tab-add {
-    font: inherit; font-size: 0.85rem; font-weight: 600;
+    font: inherit; font-size: var(--ft-fs-sm); font-weight: 600;
     padding: 0.35rem 0.85rem;
     border: 1px dashed var(--color-border); border-radius: 999px;
     background: transparent; color: var(--color-muted); cursor: pointer;
@@ -439,7 +480,7 @@ theme_color: "#fafaf9"
     margin-bottom: 0.7rem;
   }
   .field-toolbar button {
-    font: inherit; font-size: 0.8rem;
+    font: inherit; font-size: var(--ft-fs-sm);
     padding: 0.35rem 0.85rem;
     border: 1px solid var(--color-border); border-radius: 999px;
     background: var(--color-bg); color: var(--color-muted);
@@ -448,23 +489,28 @@ theme_color: "#fafaf9"
   .field-toolbar button.active {
     background: var(--color-accent); color: #fff; border-color: var(--color-accent);
   }
+  .field-toolbar button.danger { color: var(--ft-danger); }
   @media (hover: hover) {
-    .field-toolbar button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .field-toolbar button:not(.active):not(.danger):hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .field-toolbar button.danger:hover { border-color: var(--ft-danger); color: var(--ft-danger); }
   }
+  /* 区块标题前的线性小图标间距 */
+  .forest-title span { display: inline-flex; align-items: center; }
+  .forest-title .ft-ico, .exp-chart-header .ft-ico { margin-right: 0.4rem; color: var(--color-accent); }
   .field-toolbar .spacer { flex-grow: 1; }
   .field-toolbar .field-hint {
-    font-size: 0.78rem; color: var(--color-light);
+    font-size: var(--ft-fs-cap); color: var(--color-light);
     font-style: normal;
   }
 
   .field {
     position: relative;
     width: 100%;
-    background: linear-gradient(180deg, #c8d8a8 0%, #b3c790 60%, #a3b87f 100%);
-    border-radius: 12px;
+    background: linear-gradient(180deg, #d0d8c6 0%, #c1cbb2 60%, #b3bfa2 100%);
+    border-radius: var(--ft-r-md);
     overflow: hidden;
     border: 1px solid var(--color-border);
-    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
     user-select: none;
     -webkit-user-select: none;
   }
@@ -484,10 +530,10 @@ theme_color: "#fafaf9"
     position: absolute; inset: 0;
     pointer-events: none;
     background-image:
-      linear-gradient(to right, rgba(255,255,255,0.18) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.18) 1px, transparent 1px);
+      linear-gradient(to right, rgba(255,255,255,0.12) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.12) 1px, transparent 1px);
     /* background-size 由 JS 设置 */
-    opacity: 0.55;
+    opacity: 0.4;
     transition: opacity 0.2s;
   }
   .field.edit-mode .field-cell-grid { opacity: 1; }
@@ -553,7 +599,7 @@ theme_color: "#fafaf9"
     border-radius: 50%;
     display: none;
     align-items: center; justify-content: center;
-    font-size: 0.85rem; font-weight: 700;
+    font-size: var(--ft-fs-sm); font-weight: 700;
     cursor: pointer;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
     z-index: 7;
@@ -573,7 +619,7 @@ theme_color: "#fafaf9"
     color: #fff;
     padding: 0.45rem 0.7rem;
     border-radius: 8px;
-    font-size: 0.78rem;
+    font-size: var(--ft-fs-cap);
     white-space: nowrap;
     pointer-events: none;
     line-height: 1.45;
@@ -612,9 +658,9 @@ theme_color: "#fafaf9"
   .tree-detail .td-row {
     display: flex; align-items: baseline; gap: 0.5rem;
     margin-bottom: 0.35rem;
-    font-size: 0.88rem;
+    font-size: var(--ft-fs-sm);
   }
-  .tree-detail .td-row .label { color: var(--color-muted); width: 60px; flex-shrink: 0; font-size: 0.78rem; }
+  .tree-detail .td-row .label { color: var(--color-muted); width: 60px; flex-shrink: 0; font-size: var(--ft-fs-cap); }
   .tree-detail .td-row .value { color: var(--color-ink); }
   .tree-detail .td-actions {
     display: flex; gap: 0.4rem; margin-top: 0.85rem;
@@ -622,7 +668,7 @@ theme_color: "#fafaf9"
   }
   .tree-detail .td-actions button {
     flex-grow: 1;
-    font: inherit; font-size: 0.82rem;
+    font: inherit; font-size: var(--ft-fs-sm);
     padding: 0.4rem 0.7rem;
     border: 1px solid var(--color-border); border-radius: 6px;
     background: var(--color-bg); color: var(--color-muted);
@@ -636,7 +682,7 @@ theme_color: "#fafaf9"
   }
   .tree-detail .tier-badge {
     display: inline-block;
-    font-size: 0.7rem;
+    font-size: var(--ft-fs-cap);
     padding: 0.1rem 0.45rem;
     border-radius: 999px;
     background: var(--color-bg-warm);
@@ -649,18 +695,19 @@ theme_color: "#fafaf9"
     text-align: center;
     padding: 2.5rem 1rem;
     color: var(--color-light);
-    font-size: 0.9rem;
+    font-size: var(--ft-fs-base);
     background: var(--color-bg-warm);
     border-radius: 10px;
   }
 
   /* ============ 经验值图表 ============ */
+  /* 嵌在 stats-zone 内的子面板：保持扁平，用 bg-warm 与外层拉开层级 */
   .exp-chart-zone {
     margin-top: 1.4rem;
     padding: 1.1rem 1.2rem;
-    background: var(--color-bg);
+    background: var(--color-bg-warm);
     border: 1px solid var(--color-border);
-    border-radius: 12px;
+    border-radius: var(--ft-r-md);
   }
   .exp-chart-header {
     display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap;
@@ -673,7 +720,7 @@ theme_color: "#fafaf9"
     font-size: 1rem;
   }
   .exp-chart-header .summary {
-    font-size: 0.8rem;
+    font-size: var(--ft-fs-sm);
     color: var(--color-muted);
   }
   .exp-chart-header .summary strong {
@@ -685,7 +732,7 @@ theme_color: "#fafaf9"
     margin-bottom: 0.9rem;
   }
   .exp-range-tabs button {
-    font: inherit; font-size: 0.78rem;
+    font: inherit; font-size: var(--ft-fs-cap);
     padding: 0.32rem 0.7rem;
     border: 1px solid var(--color-border); border-radius: 999px;
     background: var(--color-bg); color: var(--color-muted); cursor: pointer;
@@ -705,7 +752,7 @@ theme_color: "#fafaf9"
     color: #fff;
     padding: 0.35rem 0.6rem;
     border-radius: 6px;
-    font-size: 0.75rem;
+    font-size: var(--ft-fs-cap);
     pointer-events: none;
     white-space: nowrap;
     transform: translate(-50%, -100%);
@@ -718,12 +765,12 @@ theme_color: "#fafaf9"
     text-align: center;
     padding: 2rem;
     color: var(--color-light);
-    font-size: 0.85rem;
+    font-size: var(--ft-fs-sm);
   }
 
   .reset-row { text-align: center; margin-top: 1rem; }
   .reset-row button {
-    font: inherit; font-size: 0.78rem;
+    font: inherit; font-size: var(--ft-fs-cap);
     padding: 0.4rem 0.85rem;
     border: 1px solid var(--color-border); border-radius: 999px;
     background: var(--color-bg); color: var(--color-light); cursor: pointer;
@@ -739,7 +786,7 @@ theme_color: "#fafaf9"
     .stats-grid { grid-template-columns: 1fr 1fr 1fr; }
     .tree-instance { width: 70px; height: 70px; }
     .field-cell-grid { background-size: 25% 70px; }
-    .tree-tooltip { font-size: 0.72rem; }
+    .tree-tooltip { font-size: var(--ft-fs-cap); }
   }
   /* 手机窄屏：压缩主舞台让首屏就能看到操作区；输入框 ≥16px 防 iOS 聚焦缩放 */
   @media (max-width: 480px) {
@@ -923,7 +970,7 @@ theme_color: "#fafaf9"
     text-align: center;
   }
   .focus-overlay .focus-warn {
-    font-size: 0.85rem;
+    font-size: var(--ft-fs-sm);
     color: rgba(255, 255, 255, 0.6);
     max-width: 360px;
     text-align: center;
@@ -935,7 +982,7 @@ theme_color: "#fafaf9"
     border: 1px dashed rgba(255, 255, 255, 0.3);
     border-radius: 999px;
     padding: 0.55rem 1.4rem;
-    font: inherit; font-size: 0.85rem; cursor: pointer;
+    font: inherit; font-size: var(--ft-fs-sm); cursor: pointer;
     transition: all 0.18s;
   }
   @media (hover: hover) {
@@ -959,7 +1006,7 @@ theme_color: "#fafaf9"
     top: max(1.4rem, calc(env(safe-area-inset-top) + 0.5rem));
     right: max(1.4rem, calc(env(safe-area-inset-right) + 0.5rem));
     color: rgba(255, 255, 255, 0.8);
-    font-size: 0.85rem;
+    font-size: var(--ft-fs-sm);
     background: rgba(255, 255, 255, 0.08);
     padding: 0.4rem 0.85rem;
     border-radius: 999px;
@@ -968,7 +1015,7 @@ theme_color: "#fafaf9"
   .focus-overlay .grace-banner {
     position: absolute; bottom: calc(5rem + env(safe-area-inset-bottom));
     color: rgba(255, 255, 255, 0.65);
-    font-size: 0.85rem;
+    font-size: var(--ft-fs-sm);
     font-style: normal;
     background: rgba(0, 0, 0, 0.25);
     padding: 0.45rem 1rem;
@@ -983,7 +1030,7 @@ theme_color: "#fafaf9"
     background: #b07c75;
     color: #fff;
     padding: 0.55rem 1rem;
-    font-size: 0.88rem;
+    font-size: var(--ft-fs-sm);
     text-align: center;
     z-index: 9999;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -995,14 +1042,15 @@ theme_color: "#fafaf9"
     border-radius: 999px;
     padding: 0.1rem 0.55rem;
     margin-left: 0.7rem;
-    font-size: 0.78rem;
+    font-size: var(--ft-fs-cap);
     cursor: pointer;
   }
 </style>
 
 <div class="ft-wrap">
   <header>
-    <h1>🌳 种树</h1>
+    <h1><span class="title-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-6"/><path d="M12 16c-3.3 0-6-2.5-6-5.6C6 6.9 8.7 3.5 12 3.5s6 3.4 6 6.9c0 3.1-2.7 5.6-6 5.6z"/></svg></span>种树</h1>
+    <p class="sub">用一段不被打断的时间，种下一棵树</p>
   </header>
 
   <!-- ========== 种树主卡片：舞台 + 设置 + 开始（一张大卡片，首屏即懂怎么用）========== -->
@@ -1032,7 +1080,7 @@ theme_color: "#fafaf9"
 
     <!-- 更多设置：折叠收起，保持首屏清爽 -->
     <details class="more-settings">
-      <summary>⚙ 更多设置 · 树种 / 主题 / 番茄循环</summary>
+      <summary><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>更多设置 · 树种 / 主题 / 番茄循环</summary>
       <div class="more-settings-body">
         <div class="setting-row">
           <label>在做什么</label>
@@ -1049,35 +1097,35 @@ theme_color: "#fafaf9"
           </div>
         </div>
         <div class="setting-row">
-          <label>🍅 番茄循环</label>
+          <label>番茄循环</label>
           <label class="pomodoro-toggle" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; user-select: none;">
             <input type="checkbox" id="pomodoro-on" />
             <span>专注 ↔ 休息 循环</span>
           </label>
           <span style="flex-grow: 1;"></span>
-          <span style="color: var(--color-muted); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+          <span style="color: var(--color-muted); font-size: var(--ft-fs-sm); display: inline-flex; align-items: center; gap: 0.35rem;">
             休息
-            <input type="number" id="break-min" min="1" max="60" value="5" style="width: 56px; padding: 0.3rem 0.45rem; text-align: center; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-ink); font: inherit; font-size: 0.88rem;" />
+            <input type="number" id="break-min" min="1" max="60" value="5" style="width: 56px; padding: 0.3rem 0.45rem; text-align: center; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-ink); font: inherit; font-size: var(--ft-fs-sm);" />
             分
           </span>
         </div>
         <div class="setting-row">
-          <label>🎨 主题</label>
+          <label>主题</label>
           <div class="pill-group" id="theme-bg-pills">
-            <button type="button" data-value="default" title="默认（白色）">⚪</button>
-            <button type="button" data-value="night" title="沉浸夜">🌙</button>
-            <button type="button" data-value="bubbles" title="气泡">🫧</button>
-            <button type="button" data-value="stars" title="星空">⭐</button>
-            <button type="button" data-value="sunrise" title="日出">🌅</button>
-            <button type="button" data-value="rain" title="雨">🌧</button>
-            <button type="button" data-value="aurora" title="极光">🌌</button>
+            <button type="button" data-value="default" title="默认"><span class="theme-swatch theme-swatch-default"></span></button>
+            <button type="button" data-value="night" title="沉浸夜"><span class="theme-swatch theme-swatch-night"></span></button>
+            <button type="button" data-value="bubbles" title="气泡"><span class="theme-swatch theme-swatch-bubbles"></span></button>
+            <button type="button" data-value="stars" title="星空"><span class="theme-swatch theme-swatch-stars"></span></button>
+            <button type="button" data-value="sunrise" title="日出"><span class="theme-swatch theme-swatch-sunrise"></span></button>
+            <button type="button" data-value="rain" title="雨"><span class="theme-swatch theme-swatch-rain"></span></button>
+            <button type="button" data-value="aurora" title="极光"><span class="theme-swatch theme-swatch-aurora"></span></button>
           </div>
           <span class="pill-divider"></span>
           <span class="group-label">计时</span>
           <div class="pill-group" id="theme-timer-pills">
-            <button type="button" data-value="countdown" title="倒计时">⏳</button>
-            <button type="button" data-value="countup" title="正计时">⏱</button>
-            <button type="button" data-value="hidden" title="只看树">🌳</button>
+            <button type="button" data-value="countdown" title="倒计时"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12M6 20h12"/><path d="M8 4v3.2a3 3 0 0 0 1 2.2l3 2.6 3-2.6a3 3 0 0 0 1-2.2V4"/><path d="M8 20v-3.2a3 3 0 0 1 1-2.2l3-2.6 3 2.6a3 3 0 0 1 1 2.2V20"/></svg></button>
+            <button type="button" data-value="countup" title="正计时"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5"/><path d="M9.5 2.5h5"/><path d="M18.6 7l1.3-1.3"/></svg></button>
+            <button type="button" data-value="hidden" title="只看树"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 10.7a3 3 0 0 0 4.1 4.1"/><path d="M9.8 5.2A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.2 3.1"/><path d="M6.2 6.3A17 17 0 0 0 2.5 12s3.5 7 9.5 7a10 10 0 0 0 2.2-.3"/></svg></button>
           </div>
         </div>
       </div>
@@ -1090,7 +1138,7 @@ theme_color: "#fafaf9"
 
     <!-- 开始：大按钮，卡片内，首屏可见 -->
     <div class="action-row">
-      <button type="button" class="action-btn" id="start-btn">🌱 开始种树</button>
+      <button type="button" class="action-btn" id="start-btn">开始种树</button>
       <div class="focus-warning" id="focus-warning"></div>
     </div>
   </div>
@@ -1113,25 +1161,25 @@ theme_color: "#fafaf9"
     </div>
 
     <div class="forest-title">
-      <span>🌲 我的田地</span>
+      <span><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-3-2.2-5-5.2-5-.3 2.9 1.9 5 5.2 5z"/><path d="M12 13c0-2.6 2-4.5 4.8-4.5.3 2.6-1.7 4.5-4.8 4.5z"/></svg>我的田地</span>
       <small id="forest-meta"></small>
     </div>
     <div class="field-tabs" id="field-tabs">
       <!-- JS 填充 -->
     </div>
     <div class="field-toolbar">
-      <button type="button" id="edit-mode-btn">✎ 整理</button>
-      <button type="button" id="rename-field-btn">✏ 重命名</button>
-      <button type="button" id="delete-field-btn" style="color: #b07c75;">🗑 删除此田</button>
+      <button type="button" id="edit-mode-btn">整理</button>
+      <button type="button" id="rename-field-btn">重命名</button>
+      <button type="button" class="danger" id="delete-field-btn">删除此田</button>
       <span class="spacer"></span>
-      <span class="field-hint" id="field-hint">点击树查看详情 · 拖动可挪位置</span>
+      <span class="field-hint" id="field-hint">点击查看详情 · 拖动挪位置</span>
     </div>
     <div class="field" id="field">
       <div class="field-cell-grid"></div>
       <!-- 树由 JS 动态渲染 -->
     </div>
     <div class="empty-forest" id="empty-forest" style="display: none;">
-      🌱 田地空空如也——种第一棵吧
+      还没有树。完成一次专注，这里会种下第一棵。
     </div>
 
     <div class="tree-detail" id="tree-detail">
@@ -1140,7 +1188,7 @@ theme_color: "#fafaf9"
 
     <div class="exp-chart-zone" id="exp-chart-zone">
       <div class="exp-chart-header">
-        <span class="title">📊 专注经验值</span>
+        <span class="title"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="6" y="11" width="3" height="6" rx="0.6"/><rect x="10.5" y="7" width="3" height="10" rx="0.6"/><rect x="15" y="13.5" width="3" height="3.5" rx="0.6"/></svg>专注经验值</span>
         <span class="summary" id="exp-summary">—</span>
       </div>
       <div class="exp-range-tabs" id="exp-range-tabs">
@@ -1154,7 +1202,7 @@ theme_color: "#fafaf9"
         <div class="exp-bar-tooltip" id="exp-bar-tooltip"></div>
       </div>
       <div class="exp-empty" id="exp-empty" style="display: none;">
-        🌱 这个范围内还没专注过——种棵树吧
+        这段时间还没有专注记录。
       </div>
     </div>
 
@@ -1582,12 +1630,15 @@ theme_color: "#fafaf9"
       `;
     }
 
-    // 0% 进度时只显示种子（小圆点）
+    // 0% 进度时只显示破土的幼芽（纯矢量）
     if (progress < 0.05) {
+      const gy = groundY;
       return `<svg class="tree-svg" viewBox="0 0 320 240">
         ${ground}
-        <circle cx="160" cy="${groundY - 4}" r="4" fill="#6b4f2e"/>
-        <text x="160" y="${groundY - 14}" text-anchor="middle" font-size="10" fill="#888">🌱</text>
+        <path d="M160 ${gy - 2} L160 ${gy - 20}" stroke="#5a8a3e" stroke-width="3" stroke-linecap="round"/>
+        <path d="M160 ${gy - 13} C150 ${gy - 13} 145 ${gy - 20} 145 ${gy - 26} C154 ${gy - 26} 160 ${gy - 20} 160 ${gy - 13} Z" fill="#6ba053"/>
+        <path d="M160 ${gy - 16} C170 ${gy - 16} 176 ${gy - 22} 176 ${gy - 29} C166 ${gy - 29} 160 ${gy - 23} 160 ${gy - 16} Z" fill="#5a8a3e"/>
+        <ellipse cx="160" cy="${gy - 1}" rx="7" ry="3" fill="#6b4f2e" opacity="0.6"/>
       </svg>`;
     }
 
@@ -1654,9 +1705,9 @@ theme_color: "#fafaf9"
         body += `<polygon fill="#3d6e3d" points="${cx - lw/2},${ly} ${cx + lw/2},${ly} ${cx},${ly - layerH * 1.05}"/>`;
       }
       if (tier === 4) {
-        // 巨树松树：顶上挂个小星星
+        // 巨树松树：顶上一颗暖金星芒（矢量）
         const top = trunkTop - layers * layerH * 0.85 - layerH * 1.05;
-        decoration = `<text x="${cx}" y="${top + 3}" text-anchor="middle" font-size="6">⭐</text>`;
+        decoration = `<path d="M${cx} ${top - 3.5} Q ${cx} ${top} ${cx + 3.5} ${top} Q ${cx} ${top} ${cx} ${top + 3.5} Q ${cx} ${top} ${cx - 3.5} ${top} Q ${cx} ${top} ${cx} ${top - 3.5} Z" fill="var(--ft-gold)"/>`;
       }
     } else if (type === 'sakura') {
       const trunkH = 14 * s;
@@ -1670,10 +1721,11 @@ theme_color: "#fafaf9"
         <circle fill="#f7c5d3" cx="${cx + r * 0.5}" cy="${trunkTop - r * 0.75}" r="${r * 0.55}"/>
       `;
       if (tier === 4) {
-        // 巨树樱花：飘落花瓣
+        // 巨树樱花：飘落花瓣（矢量粉点）
         decoration = `
-          <text x="${cx + r * 0.7}" y="${groundY - 6}" font-size="5">🌸</text>
-          <text x="${cx - r * 0.9}" y="${groundY - 16}" font-size="4" opacity="0.7">🌸</text>
+          <circle cx="${cx + r * 0.7}" cy="${groundY - 8}" r="1.8" fill="#f4b7c8"/>
+          <circle cx="${cx - r * 0.9}" cy="${groundY - 16}" r="1.4" fill="#f7c5d3" opacity="0.85"/>
+          <circle cx="${cx + r * 0.3}" cy="${groundY - 23}" r="1.1" fill="#fad5e0" opacity="0.7"/>
         `;
       }
     } else if (type === 'palm') {
@@ -1719,8 +1771,8 @@ theme_color: "#fafaf9"
         body += `<line x1="${cx - 0.5}" y1="${yy}" x2="${cx + 0.5}" y2="${yy}" stroke="#3a6535" stroke-width="0.5"/>`;
       }
       if (tier === 4) {
-        // 巨树仙人掌：顶上开花
-        decoration = `<text x="${cx}" y="${top + 1}" text-anchor="middle" font-size="6">🌸</text>`;
+        // 巨树仙人掌：顶上一朵矢量小花
+        decoration = `<g fill="#e79ac0"><circle cx="${cx}" cy="${top - 1.8}" r="1.6"/><circle cx="${cx - 2.4}" cy="${top}" r="1.6"/><circle cx="${cx + 2.4}" cy="${top}" r="1.6"/><circle cx="${cx}" cy="${top + 2.2}" r="1.6"/></g><circle cx="${cx}" cy="${top}" r="1.3" fill="var(--ft-gold)"/>`;
       }
     } else {
       // 默认：橡树（圆形树冠）
@@ -1736,11 +1788,11 @@ theme_color: "#fafaf9"
         <circle fill="#4a7a35" cx="${cx + r * 0.05}" cy="${trunkTop - r * 0.25}" r="${r * 0.45}"/>
       `;
       if (tier === 4) {
-        // 巨橡树：果实（红色小点）
+        // 巨橡树：暖金果实（矢量小点，不再复用危险色）
         decoration = `
-          <circle fill="#b07c75" cx="${cx - r * 0.3}" cy="${trunkTop - r * 0.55}" r="1.8"/>
-          <circle fill="#b07c75" cx="${cx + r * 0.4}" cy="${trunkTop - r * 0.4}" r="1.6"/>
-          <circle fill="#b07c75" cx="${cx - r * 0.05}" cy="${trunkTop - r * 0.95}" r="1.5"/>
+          <circle fill="var(--ft-gold-ink)" cx="${cx - r * 0.3}" cy="${trunkTop - r * 0.55}" r="1.8"/>
+          <circle fill="var(--ft-gold-ink)" cx="${cx + r * 0.4}" cy="${trunkTop - r * 0.4}" r="1.6"/>
+          <circle fill="var(--ft-gold-ink)" cx="${cx - r * 0.05}" cy="${trunkTop - r * 0.95}" r="1.5"/>
         `;
       }
     }
@@ -1825,10 +1877,14 @@ theme_color: "#fafaf9"
     }
 
     if (state.session.isBreak) {
-      // break 模式不画树，画一个静态的
+      // break 模式不画树，画一杯矢量热饮 + 袅袅热气
       $overlayTreeContainer.innerHTML = `
-        <svg class="tree-svg" viewBox="0 0 320 240" style="opacity: 0.7;">
-          <text x="160" y="130" text-anchor="middle" font-size="120">☕</text>
+        <svg class="tree-svg" viewBox="0 0 320 240" style="opacity: 0.85;">
+          <g fill="none" stroke="#cfe6ff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M112 120 h74 v46 a26 26 0 0 1 -26 26 h-22 a26 26 0 0 1 -26 -26 z"/>
+            <path d="M186 130 h16 a18 18 0 0 1 0 36 h-16"/>
+            <path d="M132 98 c0 -11 -9 -13 -9 -24 M158 98 c0 -11 -9 -13 -9 -24 M184 98 c0 -11 -9 -13 -9 -24"/>
+          </g>
         </svg>
       `;
     } else {
@@ -2510,7 +2566,7 @@ theme_color: "#fafaf9"
          <button type="button" id="td-close">关闭</button>`;
 
     const revivalHint = !t.success
-      ? `<div style="margin-top: 0.6rem; padding: 0.55rem 0.7rem; background: var(--color-bg-warm); border-radius: 6px; font-size: 0.78rem; color: var(--color-muted); line-height: 1.5;">
+      ? `<div style="margin-top: 0.6rem; padding: 0.55rem 0.7rem; background: var(--color-bg-warm); border-radius: 6px; font-size: var(--ft-fs-cap); color: var(--color-muted); line-height: 1.5;">
           完成 <strong style="color: var(--color-ink);">${revivalCostFor(t)} 分钟</strong>专注 → 得一棵新的 ${revivalCostFor(t)} 分树 + 这棵复活成 <strong style="color: var(--color-ink);">${((t.attemptedMinutes || 0) * 0.5).toFixed(0)} 经验</strong>形态（×0.5 折扣）。枯萎树不能直接铲除。
         </div>`
       : '';
@@ -2572,10 +2628,10 @@ theme_color: "#fafaf9"
     editMode = !editMode;
     $field.classList.toggle('edit-mode', editMode);
     $editModeBtn.classList.toggle('active', editMode);
-    $editModeBtn.textContent = editMode ? '✓ 完成整理' : '✎ 整理';
+    $editModeBtn.textContent = editMode ? '完成' : '整理';
     $fieldHint.textContent = editMode
-      ? '拖动树挪位置 · 点 × 铲除 · 完成后再点一次按钮'
-      : '点击树查看详情 · 拖动可挪位置';
+      ? '拖动挪位置 · 点 × 铲除'
+      : '点击查看详情 · 拖动挪位置';
     hideDetail();
     renderField();
   });
