@@ -642,6 +642,17 @@ theme_color: "#fafaf9"
     .tree-instance:hover { z-index: 5; }
   }
   .tree-instance.selected { z-index: 6; filter: drop-shadow(0 0 6px rgba(30, 58, 95, 0.5)); }
+  /* 整理模式勾选待合并 */
+  .tree-instance.msel { z-index: 7; }
+  .tree-instance.msel::after {
+    content: '✓'; position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--color-accent); color: #fff;
+    font-size: 0.72rem; line-height: 1; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); z-index: 8;
+  }
+  .field.edit-mode .tree-instance.msel { outline: 2px solid var(--color-accent); outline-offset: 3px; border-radius: 8px; }
   .tree-instance.dragging {
     z-index: 10; cursor: grabbing;
     transition: none;
@@ -1354,6 +1365,7 @@ theme_color: "#fafaf9"
       <button type="button" id="edit-mode-btn">整理</button>
       <button type="button" id="rename-field-btn">重命名</button>
       <button type="button" class="danger" id="delete-field-btn">删除此田</button>
+      <button type="button" id="merge-btn" style="display:none; color: var(--ft-gold-ink); border-color: var(--ft-gold);">合并选中</button>
       <span class="spacer"></span>
       <span class="field-hint" id="field-hint">点击查看详情 · 拖动挪位置</span>
     </div>
@@ -1541,6 +1553,7 @@ theme_color: "#fafaf9"
   const FIELDS_KEY = 'tool.forest.fields.v1';
   const ACTIVE_FIELD_KEY = 'tool.forest.activeField.v1';
   const THEME_KEY = 'tool.forest.theme.v1';
+  const SESSIONS_KEY = 'tool.forest.sessions.v1';   // 不可变专注流水（统计/经验曲线用，不受合并/培养影响）
   const STRICT_KEY = 'tool.forest.strict.v1';   // 专注严格度：'1'=离开枯萎 / '0'=宽松自觉
 
   // 严格度默认按设备：触屏 / 已装成 App → 严格（手机场景才有意义）；桌面浏览器 → 宽松
@@ -1584,9 +1597,12 @@ theme_color: "#fafaf9"
     breakMin: 5,        // 用户自定义的休息分钟（开循环时用）
     currentChainId: null, // 当前循环链 ID（同链树共享 cycleBonus）
     revivalTargetId: null, // 正在准备灌溉的枯萎树 id（null 时是普通 session）
+    cultivateTargetId: null, // 正在准备培养的成活树 id（下一次专注并入它）
     paused: false,      // 专注是否暂停
     pausedAt: null,     // 暂停起始时间戳
     strict: true,       // 离开页面是否枯萎（init 时按设备/存档定）
+    sessions: [],       // 不可变专注流水 [{minutes, exp, endTime, type}]，统计/曲线用
+    selectedIds: [],    // 整理模式下勾选待合并的树 id
     fields: [],         // 田块列表 [{id, name, createdAt}]
     activeFieldId: null,
     theme: { background: 'default', timer: 'countdown' },
@@ -1611,19 +1627,18 @@ theme_color: "#fafaf9"
     return 'chain-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5);
   }
 
-  // 树的有效 tier（基于 durationMinutes × bonus × revivalDiscount）
-  function effectiveTier(tree) {
-    if (!tree.success) return 1;
-    const bonus = tree.cycleBonus || 1.0;
-    const discount = tree.revivalDiscount || 1.0;
-    return durationToTier(tree.durationMinutes * bonus * discount);
-  }
-
-  // 树带来的 "经验值"（图表用）
-  function treeExp(tree) {
+  // 树的「有效经验值」——决定 tier / 尺寸。合并/培养后的树带显式 value；普通树 = 时长×连击×灌溉折扣
+  function treeValue(tree) {
+    if (typeof tree.value === 'number') return tree.value;
     if (!tree.success) return 0;
     return tree.durationMinutes * (tree.cycleBonus || 1.0) * (tree.revivalDiscount || 1.0);
   }
+  function effectiveTier(tree) {
+    if (!tree.success) return 1;
+    return durationToTier(treeValue(tree));
+  }
+  // 兼容旧调用；森林展示用。统计/经验曲线改走不可变 sessions 流水，不受合并/培养影响
+  function treeExp(tree) { return treeValue(tree); }
 
   // ============ DOM ============
   const $treeContainer = document.getElementById('tree-container');
@@ -1663,6 +1678,34 @@ theme_color: "#fafaf9"
   function saveTrees() {
     try { localStorage.setItem(TREES_KEY, JSON.stringify(state.trees)); } catch (e) {if (e && e.name === 'QuotaExceededError') showStorageWarn(); }
   }
+  // ============ 不可变专注流水（统计 / 经验曲线；合并 / 培养不改它）============
+  function loadSessions() {
+    try {
+      const raw = localStorage.getItem(SESSIONS_KEY);
+      state.sessions = raw ? JSON.parse(raw) : [];
+    } catch (e) { state.sessions = []; }
+  }
+  function saveSessions() {
+    try { localStorage.setItem(SESSIONS_KEY, JSON.stringify(state.sessions)); } catch (e) {if (e && e.name === 'QuotaExceededError') showStorageWarn(); }
+  }
+  // 每完成一次真实专注都追加一条（minutes=真实分钟，exp=当时的经验含连击/灌溉折扣）
+  function logSession(minutes, exp, endTime, type) {
+    state.sessions.push({ minutes: Math.round(minutes * 10) / 10, exp: Math.round(exp * 10) / 10, endTime, type: type || 'oak' });
+    saveSessions();
+  }
+  // 首次引入 sessions：从现有成活树回填一份历史流水，之后二者独立
+  function migrateSessions() {
+    let raw = null;
+    try { raw = localStorage.getItem(SESSIONS_KEY); } catch (e) {}
+    if (raw !== null) return;   // 已有流水，不覆盖
+    state.sessions = state.trees.filter(t => t.success).map(t => ({
+      minutes: Math.round((t.durationMinutes || treeValue(t)) * 10) / 10,
+      exp: Math.round(treeValue(t) * 10) / 10,
+      endTime: t.endTime,
+      type: t.type,
+    }));
+    saveSessions();
+  }
   function loadActive() {
     try {
       const raw = localStorage.getItem(ACTIVE_KEY);
@@ -1687,6 +1730,7 @@ theme_color: "#fafaf9"
         cycleCount: state.cycleCount,
         currentChainId: state.currentChainId,
         revivalTargetId: state.revivalTargetId,
+        cultivateTargetId: state.cultivateTargetId,
         breakMin: state.breakMin,
       },
     }));
@@ -1697,6 +1741,7 @@ theme_color: "#fafaf9"
     if (typeof m.cycleCount === 'number') state.cycleCount = m.cycleCount;
     state.currentChainId = m.currentChainId || null;
     state.revivalTargetId = m.revivalTargetId || null;
+    state.cultivateTargetId = m.cultivateTargetId || null;
     if (typeof m.breakMin === 'number') state.breakMin = m.breakMin;
     if ($pomodoroOn) $pomodoroOn.checked = state.pomodoroOn;
   }
@@ -2219,51 +2264,72 @@ theme_color: "#fafaf9"
     }
 
     if (!wasBreak) {
-      // focus 完成 → 种新树（灌溉模式也种一棵新的）
-      // 灌溉模式下不进 chain（保留连击 bonus 给纯粹的连续专注）
-      const isInChain = state.pomodoroOn && state.currentChainId && !wasRevival;
-      const cycleNum = isInChain ? state.cycleCount + 1 : null;
-      const tree = {
-        id: 'tr-' + Date.now().toString(36),
-        type: state.session.treeType,
-        task: state.session.task || '',
-        durationMinutes: state.session.duration / 60000,
-        chainId: isInChain ? state.currentChainId : null,
-        cycleNum,
-        cycleBonus: 1.0,   // 占位，下面追溯更新
-        startTime: state.session.startTime,
-        endTime: Date.now(),
-        success: true,
-      };
-      assignNewPosition(tree);
-      state.trees.push(tree);
-      state.cycleCount++;
-
-      // 追溯更新：同 chain 的所有树（含刚才这棵）都改成新 bonus
-      let bonus = 1.0;
-      let chainTrees = 0;
-      if (isInChain) {
-        bonus = cycleBonusFor(state.cycleCount);
-        state.trees.forEach(t => {
-          if (t.chainId === state.currentChainId) {
-            t.cycleBonus = bonus;
-            chainTrees++;
-          }
-        });
-      }
-      saveTrees();
-
-      // toast 文案
-      let msg;
-      if (wasRevival) {
-        msg = `灌溉成功：新种一棵 ${TREE_NAME[tree.type]}（${tree.durationMinutes} 分），并复活了 ${revivedTreeName}`;
-      } else {
-        msg = `种成一棵 ${TREE_NAME[tree.type]} · 专注 ${tree.durationMinutes} 分钟`;
-        if (isInChain && bonus > 1) {
-          msg += ` · ${state.cycleCount} 连击 ×${bonus}`;
+      const realMinutes = state.session.duration / 60000;
+      const sessType = state.session.treeType;
+      if (state.cultivateTargetId) {
+        // 培养完成：把本次专注并入目标树 —— (原值 + 本次分钟) × 0.9
+        const target = state.trees.find(x => x.id === state.cultivateTargetId && x.success);
+        if (target) {
+          const before = treeValue(target);
+          const newVal = Math.round((before + realMinutes) * 0.9);
+          target.value = newVal;
+          target.origin = 'cultivate';
+          target.endTime = Date.now();
+          saveTrees();
+          $timerStatus.textContent = `培养成功：${TREE_NAME[target.type]}长到约 ${newVal} 分（${TIER_NAME[effectiveTier(target)]}）`;
+        } else {
+          $timerStatus.textContent = `专注 ${realMinutes} 分钟完成`;
         }
+        logSession(realMinutes, realMinutes, Date.now(), sessType);   // 真实专注照常入不可变流水
+        cancelCultivate();
+      } else {
+        // focus 完成 → 种新树（灌溉模式也种一棵新的）
+        // 灌溉模式下不进 chain（保留连击 bonus 给纯粹的连续专注）
+        const isInChain = state.pomodoroOn && state.currentChainId && !wasRevival;
+        const cycleNum = isInChain ? state.cycleCount + 1 : null;
+        const tree = {
+          id: 'tr-' + Date.now().toString(36),
+          type: state.session.treeType,
+          task: state.session.task || '',
+          durationMinutes: realMinutes,
+          chainId: isInChain ? state.currentChainId : null,
+          cycleNum,
+          cycleBonus: 1.0,   // 占位，下面追溯更新
+          startTime: state.session.startTime,
+          endTime: Date.now(),
+          success: true,
+        };
+        assignNewPosition(tree);
+        state.trees.push(tree);
+        state.cycleCount++;
+
+        // 追溯更新：同 chain 的所有树（含刚才这棵）都改成新 bonus
+        let bonus = 1.0;
+        let chainTrees = 0;
+        if (isInChain) {
+          bonus = cycleBonusFor(state.cycleCount);
+          state.trees.forEach(t => {
+            if (t.chainId === state.currentChainId) {
+              t.cycleBonus = bonus;
+              chainTrees++;
+            }
+          });
+        }
+        saveTrees();
+        logSession(tree.durationMinutes, treeValue(tree), tree.endTime, tree.type);  // 真实专注入不可变流水
+
+        // toast 文案
+        let msg;
+        if (wasRevival) {
+          msg = `灌溉成功：新种一棵 ${TREE_NAME[tree.type]}（${tree.durationMinutes} 分），并复活了 ${revivedTreeName}`;
+        } else {
+          msg = `种成一棵 ${TREE_NAME[tree.type]} · 专注 ${tree.durationMinutes} 分钟`;
+          if (isInChain && bonus > 1) {
+            msg += ` · ${state.cycleCount} 连击 ×${bonus}`;
+          }
+        }
+        $timerStatus.textContent = msg;
       }
-      $timerStatus.textContent = msg;
     } else {
       // break 完成
       $timerStatus.textContent = '休息结束，准备下一棵';
@@ -2325,10 +2391,14 @@ theme_color: "#fafaf9"
     if (!wasBreak) {
       const elapsedMin = elapsed / 60000;
       const inRevival = !!state.revivalTargetId;
+      const inCultivate = !!state.cultivateTargetId;
 
       if (elapsed < GRACE_MS) {
         // 1 分钟宽限期：当作误操作，不留枯萎树
         $timerStatus.textContent = '未满 1 分钟退出，这棵不计';
+      } else if (inCultivate) {
+        // 培养失败：目标树原状不动
+        $timerStatus.textContent = '培养中断，这棵树没变';
       } else if (inRevival) {
         // 灌溉失败：树原状不动，不做二次惩罚
         $timerStatus.textContent = '灌溉中断，这棵枯树仍保留';
@@ -2364,6 +2434,7 @@ theme_color: "#fafaf9"
     state.paused = false;
     state.pausedAt = null;
     cancelRevival();
+    cancelCultivate();
     $overlay.classList.remove('open');
     $overlay.classList.remove('break-mode');
     $overlay.classList.remove('paused');
@@ -2630,10 +2701,10 @@ theme_color: "#fafaf9"
     const startOfWeek = new Date(startOfToday);
     startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
 
-    const successTrees = state.trees.filter(t => t.success);
-    $statToday.textContent = successTrees.filter(t => t.endTime >= startOfToday.getTime()).length;
-    $statWeek.textContent = successTrees.filter(t => t.endTime >= startOfWeek.getTime()).length;
-    $statTotalMin.textContent = Math.round(successTrees.reduce((s, t) => s + t.durationMinutes, 0));
+    // 统计走不可变 sessions 流水——合并/培养不会让这些数字缩水
+    $statToday.textContent = state.sessions.filter(s => s.endTime >= startOfToday.getTime()).length;
+    $statWeek.textContent = state.sessions.filter(s => s.endTime >= startOfWeek.getTime()).length;
+    $statTotalMin.textContent = Math.round(state.sessions.reduce((sum, s) => sum + (s.minutes || 0), 0));
 
     // 田地
     ensurePositions();
@@ -2705,7 +2776,8 @@ theme_color: "#fafaf9"
       const x = t.position.col * cellWidth + 2;
       const y = t.position.row * rowHeight + 2;
       const div = document.createElement('div');
-      div.className = 'tree-instance' + (t.success ? '' : ' dead');
+      div.className = 'tree-instance' + (t.success ? '' : ' dead')
+        + (editMode && state.selectedIds.indexOf(t.id) >= 0 ? ' msel' : '');
       div.dataset.id = t.id;
       div.dataset.tier = String(tier);
       div.style.width = (cellWidth - 4) + 'px';
@@ -2744,7 +2816,7 @@ theme_color: "#fafaf9"
   async function deleteTree(id) {
     const t = state.trees.find(x => x.id === id);
     if (!t) return;
-    const label = t.success ? `${TREE_NAME[t.type]}（${t.durationMinutes} 分）` : `枯萎的${TREE_NAME[t.type]}`;
+    const label = t.success ? `${TREE_NAME[t.type]}（${t.origin ? '约 ' + Math.round(treeValue(t)) : t.durationMinutes} 分）` : `枯萎的${TREE_NAME[t.type]}`;
     const ok = await showConfirm({
       title: t.success ? '铲除这棵树？' : '铲除这棵枯树？',
       message: t.success ? '铲除后无法恢复。' : '铲除后将失去它的灌溉复活机会。',
@@ -2752,6 +2824,8 @@ theme_color: "#fafaf9"
     });
     if (!ok) return;
     if (state.revivalTargetId === id) cancelRevival();  // 正准备灌溉这棵则先取消
+    if (state.cultivateTargetId === id) cancelCultivate();
+    const si = state.selectedIds.indexOf(id); if (si >= 0) state.selectedIds.splice(si, 1);
     const snapshot = t;  // 引用仍完整（含 position），撤销时原样放回
     state.trees = state.trees.filter(x => x.id !== id);
     saveTrees();
@@ -2775,6 +2849,7 @@ theme_color: "#fafaf9"
   function queueRevival(treeId) {
     const t = state.trees.find(x => x.id === treeId);
     if (!t || t.success) return;
+    cancelCultivate();                     // 与培养互斥
     state.revivalTargetId = treeId;
     const cost = revivalCostFor(t);
     state.duration = cost;
@@ -2808,6 +2883,31 @@ theme_color: "#fafaf9"
     $customMin.disabled = false;
     $startBtn.textContent = '开始种树';
     // duration 不重置——用户可以保留之前选的
+  }
+
+  // ============ 培养机制（挑一棵成活树，下一次专注并入它，×0.9）============
+  function queueCultivate(treeId) {
+    const t = state.trees.find(x => x.id === treeId);
+    if (!t || !t.success) return;
+    cancelRevival();                       // 与灌溉互斥
+    state.cultivateTargetId = treeId;
+    const cur = Math.round(treeValue(t));
+    // 培养不锁时长——用户自选专注多久，完成后按 (原值 + 本次分钟) × 0.9 升级
+    $revivalBanner.innerHTML = `
+      培养 <strong>${TREE_NAME[t.type]}</strong>（现约 ${cur} 分）：选好时长开始，完成后并入它 · (原值+本次)×0.9
+      <button type="button" class="cancel-revival" id="cancel-cultivate">取消</button>
+    `;
+    $revivalBanner.classList.add('visible');
+    document.getElementById('cancel-cultivate').addEventListener('click', cancelCultivate);
+    $startBtn.textContent = '开始培养';
+    $revivalBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function cancelCultivate() {
+    if (!state.cultivateTargetId) return;
+    state.cultivateTargetId = null;
+    $revivalBanner.classList.remove('visible');
+    $revivalBanner.innerHTML = '';
+    $startBtn.textContent = '开始种树';
   }
 
   // ============ 拖动 + 点击 ============
@@ -2879,6 +2979,8 @@ theme_color: "#fafaf9"
           div.classList.remove('dragging');
           hideSnapPreview();
           snapTreeToCell(div, treeId);
+        } else if (editMode) {
+          toggleMergeSelect(treeId);   // 整理模式下点树 = 勾选/取消（用于合并）
         } else {
           showDetail(treeId, div);
         }
@@ -2929,14 +3031,17 @@ theme_color: "#fafaf9"
     const taskRow = t.task ? `
       <div class="td-row"><span class="label">任务</span><span class="value">${escapeHtml(t.task)}</span></div>
     ` : '';
-    const isRevived = t.success && t.revivalDiscount && t.revivalDiscount < 1;
+    const isRevived = t.success && !t.origin && t.revivalDiscount && t.revivalDiscount < 1;
+    const originName = t.origin === 'merge' ? '合并而成' : t.origin === 'cultivate' ? '培养长成' : '';
     const statusRow = t.success
-      ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${TIER_NAME[tier]}</span>${isRevived ? ' <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">灌溉复活</span>' : ''}</span></div>`
+      ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${TIER_NAME[tier]}</span>${isRevived ? ' <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">灌溉复活</span>' : ''}${t.origin ? ` <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">${originName}</span>` : ''}</span></div>`
       : `<div class="td-row"><span class="label">状态</span><span class="value" style="color: var(--ft-danger);">已枯萎</span></div>`;
     const durationRow = t.success
-      ? `<div class="td-row"><span class="label">专注</span><span class="value"><strong>${t.durationMinutes} 分钟</strong>${isRevived ? '（曾坚持时长）' : ''}</span></div>`
+      ? (t.origin
+          ? `<div class="td-row"><span class="label">等效</span><span class="value"><strong>约 ${Math.round(treeValue(t))} 分</strong>专注</span></div>`
+          : `<div class="td-row"><span class="label">专注</span><span class="value"><strong>${t.durationMinutes} 分钟</strong>${isRevived ? '（曾坚持时长）' : ''}</span></div>`)
       : `<div class="td-row"><span class="label">专注</span><span class="value">坚持了 ${t.attemptedMinutes || 0} 分（目标 ${t.durationMinutes} 分）</span></div>`;
-    const bonusRow = t.success && t.cycleBonus && t.cycleBonus > 1
+    const bonusRow = t.success && !t.origin && t.cycleBonus && t.cycleBonus > 1
       ? `<div class="td-row"><span class="label">加成</span><span class="value" style="color: var(--ft-gold-ink);"><strong>×${t.cycleBonus}</strong>${t.cycleNum ? ` · 循环第 ${t.cycleNum} 个` : ''}</span></div>`
       : '';
     const discountRow = isRevived
@@ -2946,9 +3051,10 @@ theme_color: "#fafaf9"
       ? `<div class="td-row"><span class="label">经验</span><span class="value">${treeExp(t).toFixed(1)} 点</span></div>`
       : '';
 
-    // 操作按钮：枯萎树 → 灌溉；正常树 → 铲除
+    // 操作按钮：枯萎树 → 灌溉；正常树 → 培养 / 铲除
     const actionsHtml = t.success
-      ? `<button type="button" class="danger" id="td-delete">铲除</button>
+      ? `<button type="button" id="td-cultivate" style="background: var(--ft-gold-soft); border-color: var(--ft-gold); color: var(--ft-gold-ink); font-weight: 600;">继续培养</button>
+         <button type="button" class="danger" id="td-delete">铲除</button>
          <button type="button" id="td-close">关闭</button>`
       : `<button type="button" id="td-revive" style="background: var(--ft-gold-soft); border-color: var(--ft-gold); color: var(--ft-gold-ink); font-weight: 600;">灌溉这棵（${revivalCostFor(t)} 分）</button>
          <button type="button" class="danger" id="td-delete">铲除</button>
@@ -3001,6 +3107,11 @@ theme_color: "#fafaf9"
       queueRevival(treeId);
       hideDetail();
     });
+    const $tdCultivate = document.getElementById('td-cultivate');
+    if ($tdCultivate) $tdCultivate.addEventListener('click', () => {
+      queueCultivate(treeId);
+      hideDetail();
+    });
     document.getElementById('td-close').addEventListener('click', hideDetail);
     // fixed 弹窗不跟随滚动 → 页面一滚就关，避免浮在半空指错树
     window.addEventListener('scroll', hideDetail, { passive: true });
@@ -3019,14 +3130,68 @@ theme_color: "#fafaf9"
   });
 
   // ============ Edit mode toggle ============
+  // ============ 合并（整理模式勾选两棵以上 → 合成一棵，×0.8）============
+  const $mergeBtn = document.getElementById('merge-btn');
+  function toggleMergeSelect(id) {
+    const t = state.trees.find(x => x.id === id);
+    if (!t || !t.success) return;   // 只有成活的树能合并
+    const i = state.selectedIds.indexOf(id);
+    if (i >= 0) state.selectedIds.splice(i, 1);
+    else state.selectedIds.push(id);
+    renderField();
+    updateMergeBtn();
+  }
+  function updateMergeBtn() {
+    if (!$mergeBtn) return;
+    const n = state.selectedIds.length;
+    if (editMode && n >= 2) { $mergeBtn.style.display = ''; $mergeBtn.textContent = `合并 ${n} 棵`; }
+    else $mergeBtn.style.display = 'none';
+  }
+  async function mergeSelected() {
+    const picks = state.selectedIds.map(id => state.trees.find(t => t.id === id && t.success)).filter(Boolean);
+    if (picks.length < 2) return;
+    const sum = picks.reduce((acc, t) => acc + treeValue(t), 0);
+    const newVal = Math.round(sum * 0.8);
+    const first = picks[0];
+    const ok = await showConfirm({
+      title: `合并 ${picks.length} 棵树？`,
+      message: `合成一棵约 <strong>${newVal} 分</strong>的${TREE_NAME[first.type]}（${picks.length} 棵之和 ×0.8）。原来的树会消失；累计专注和经验曲线不受影响。`,
+      okText: '合并',
+    });
+    if (!ok) return;
+    const merged = {
+      id: 'tr-' + Date.now().toString(36),
+      type: first.type,
+      value: newVal,
+      origin: 'merge',
+      endTime: Date.now(),
+      success: true,
+      fieldId: first.fieldId,
+      position: first.position,
+    };
+    const ids = new Set(state.selectedIds);
+    state.trees = state.trees.filter(t => !ids.has(t.id));
+    state.trees.push(merged);
+    state.selectedIds = [];
+    saveTrees();
+    updateMergeBtn();
+    hideDetail();
+    renderFieldTabs();
+    renderStats();
+    showToast(`合并成一棵约 ${newVal} 分的${TREE_NAME[merged.type]}（${TIER_NAME[effectiveTier(merged)]}）`);
+  }
+  if ($mergeBtn) $mergeBtn.addEventListener('click', mergeSelected);
+
   $editModeBtn.addEventListener('click', () => {
     editMode = !editMode;
     $field.classList.toggle('edit-mode', editMode);
     $editModeBtn.classList.toggle('active', editMode);
     $editModeBtn.textContent = editMode ? '完成' : '整理';
     $fieldHint.textContent = editMode
-      ? '拖动挪位置 · 点 × 铲除'
+      ? '拖动挪位置 · 点 × 铲除 · 点选两棵可合并'
       : '点击查看详情 · 拖动挪位置';
+    state.selectedIds = [];       // 进出整理都清空勾选
+    updateMergeBtn();
     hideDetail();
     renderField();
   });
@@ -3039,9 +3204,10 @@ theme_color: "#fafaf9"
   // 多 tab 同步：别的标签页改了树/田，本 tab 立即重载，避免稍后整份覆盖把对方的数据冲掉
   window.addEventListener('storage', (e) => {
     if (!e.key) return;
-    if (e.key === TREES_KEY || e.key === FIELDS_KEY || e.key === ACTIVE_FIELD_KEY) {
+    if (e.key === TREES_KEY || e.key === FIELDS_KEY || e.key === ACTIVE_FIELD_KEY || e.key === SESSIONS_KEY) {
       loadTrees();
       loadFields();
+      loadSessions();
       migrateFieldsAndTrees();
       hideDetail();
       renderFieldTabs();
@@ -3062,13 +3228,15 @@ theme_color: "#fafaf9"
       okText: '清空', danger: true,
     });
     if (!ok) return;
-    const snap = { trees: state.trees, fields: state.fields, activeFieldId: state.activeFieldId };
+    const snap = { trees: state.trees, fields: state.fields, activeFieldId: state.activeFieldId, sessions: state.sessions };
     state.trees = [];
     state.fields = [];
     state.activeFieldId = null;
+    state.sessions = [];
     saveTrees();
     saveActive(null);
     saveFields();
+    saveSessions();
     try { localStorage.removeItem(ACTIVE_FIELD_KEY); } catch (e) {}
     migrateFieldsAndTrees();  // 重建默认田
     renderFieldTabs();
@@ -3077,8 +3245,10 @@ theme_color: "#fafaf9"
       state.trees = snap.trees;
       state.fields = snap.fields;
       state.activeFieldId = snap.activeFieldId;
+      state.sessions = snap.sessions;
       saveTrees();
       saveFields();
+      saveSessions();
       renderFieldTabs();
       renderStats();
     } });
@@ -3162,6 +3332,7 @@ theme_color: "#fafaf9"
       btn.addEventListener('click', () => {
         state.activeFieldId = btn.dataset.fieldId;
         saveFields();
+        state.selectedIds = []; if (typeof updateMergeBtn === 'function') updateMergeBtn();  // 换田清空勾选
         hideDetail();
         renderFieldTabs();
         renderField();
@@ -3279,15 +3450,12 @@ theme_color: "#fafaf9"
         });
       }
     }
-    // 累加 trees（只算成功的，且只在当前 active field 还存在的树都算？或全部？
-    // 数据角度：所有种过的（包括其它田、已删除的——其实已删除的没了）。
-    // 现实是 state.trees 已经是当前所有，含全部 fields。统计跨 fields。
-    state.trees.forEach(t => {
-      if (!t.success) return;
-      const ms = t.endTime;
+    // 累加不可变 sessions 流水（真实专注历史，合并/培养不改动它）
+    state.sessions.forEach(s => {
+      const ms = s.endTime;
       const b = buckets.find(x => ms >= x.startMs && ms < x.endMs);
       if (b) {
-        b.exp += treeExp(t);
+        b.exp += (s.exp || 0);
         b.count += 1;
       }
     });
@@ -3295,9 +3463,9 @@ theme_color: "#fafaf9"
   }
 
   function renderExpChart() {
-    // 一棵成活的树都还没有时，整块图表面板隐藏，避免新用户首屏一片空
+    // 一次专注都还没有时，整块图表面板隐藏，避免新用户首屏一片空
     if ($expChartZone) {
-      const hasAny = state.trees.some(t => t.success);
+      const hasAny = state.sessions.length > 0;
       $expChartZone.style.display = hasAny ? '' : 'none';
       if (!hasAny) return;
     }
@@ -3458,9 +3626,11 @@ theme_color: "#fafaf9"
   // ============ Init ============
   loadTrees();
   loadFields();
+  loadSessions();
   loadTheme();
   state.strict = loadStrict();
   migrateFieldsAndTrees();
+  migrateSessions();   // 首次从现有成活树回填一份不可变专注流水
   setActivePill($themeBgPills, state.theme.background);
   setActivePill($themeTimerPills, state.theme.timer);
   applyStageTheme();
