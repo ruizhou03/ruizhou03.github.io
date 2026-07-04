@@ -1881,115 +1881,101 @@ theme_color: "#fafaf9"
 
   // ============ Tree SVG ============
   // progress: 0-1 描述树的成长进度
+  // ============ 生长树（初芽 → 幼树 → 成树；五种树各自形态，绘于计时舞台与全屏遮罩）============
+  const _tn = x => Math.round(x * 10) / 10;
+  const _tPAL = {
+    oak:    { dark:'#48793a', mid:'#5c9245', light:'#7cae5c' },
+    sakura: { dark:'#e79ab4', mid:'#f4b7c8', light:'#fcdbe6' },
+  };
+  function _tGround(cx, y, spread) {
+    return `<ellipse class="tree-ground" cx="${cx}" cy="${_tn(y+8)}" rx="${_tn(spread)}" ry="${_tn(spread*0.16)}" opacity="0.5"/>`
+         + `<ellipse cx="${cx}" cy="${_tn(y+6)}" rx="${_tn(spread*0.6)}" ry="${_tn(spread*0.1)}" fill="rgba(0,0,0,0.12)"/>`;
+  }
+  // 微锥形、略带弧度的树干
+  function _tTrunk(cx, baseY, topY, wB, wT) {
+    const bl=cx-wB/2, br=cx+wB/2, tl=cx-wT/2, tr=cx+wT/2, m=(baseY+topY)/2;
+    return `<path class="tree-trunk" d="M${_tn(bl)} ${_tn(baseY)} C ${_tn(bl+wB*0.12)} ${_tn(m)} ${_tn(tl-0.5)} ${_tn(topY+3)} ${_tn(tl)} ${_tn(topY)} L ${_tn(tr)} ${_tn(topY)} C ${_tn(tr+0.5)} ${_tn(topY+3)} ${_tn(br-wB*0.12)} ${_tn(m)} ${_tn(br)} ${_tn(baseY)} Z"/>`;
+  }
+  // 分层有机树冠（暗底 + 中景团簇 + 左上高光），阔叶/樱花共用
+  function _tCrown(cx, cy, R, pal) {
+    const c=(x,y,r,col)=>`<circle class="tree-canopy" cx="${_tn(x)}" cy="${_tn(y)}" r="${_tn(Math.max(1.5,r))}" fill="${col}"/>`;
+    return `<ellipse class="tree-canopy" cx="${_tn(cx)}" cy="${_tn(cy)}" rx="${_tn(R)}" ry="${_tn(R*0.84)}" fill="${pal.dark}"/>`
+      + c(cx-R*0.5, cy+R*0.02, R*0.52, pal.mid)
+      + c(cx+R*0.5, cy-R*0.02, R*0.5,  pal.mid)
+      + c(cx-R*0.02,cy-R*0.5,  R*0.54, pal.mid)
+      + c(cx+R*0.34,cy+R*0.34, R*0.40, pal.dark)
+      + c(cx-R*0.38,cy+R*0.36, R*0.38, pal.dark)
+      + c(cx-R*0.34,cy-R*0.40, R*0.32, pal.light)
+      + c(cx+R*0.10,cy-R*0.46, R*0.24, pal.light)
+      + c(cx-R*0.52,cy-R*0.12, R*0.20, pal.light);
+  }
+  function _tSprout(cx, gy, p) {
+    const H = 12 + p*46;
+    return `<path d="M${cx} ${_tn(gy-2)} L${cx} ${_tn(gy-H)}" stroke="#5c9245" stroke-width="3.2" stroke-linecap="round"/>`
+      + `<path class="tree-canopy" fill="#6ba053" d="M${cx} ${_tn(gy-H+6)} C ${_tn(cx-11)} ${_tn(gy-H+4)} ${_tn(cx-15)} ${_tn(gy-H-4)} ${_tn(cx-14)} ${_tn(gy-H-11)} C ${_tn(cx-5)} ${_tn(gy-H-11)} ${cx} ${_tn(gy-H-3)} ${cx} ${_tn(gy-H+6)} Z"/>`
+      + `<path class="tree-canopy" fill="#5c9245" d="M${cx} ${_tn(gy-H+3)} C ${_tn(cx+11)} ${_tn(gy-H+1)} ${_tn(cx+16)} ${_tn(gy-H-7)} ${_tn(cx+15)} ${_tn(gy-H-14)} C ${_tn(cx+6)} ${_tn(gy-H-14)} ${cx} ${_tn(gy-H-6)} ${cx} ${_tn(gy-H+3)} Z"/>`;
+  }
+  function _tBroad(cx, gy, p, pal) {
+    const h=42+p*118, topY=gy-h, R=26+p*58, cy=topY-R*0.12;
+    return _tTrunk(cx, gy, topY, 7+p*9, 4+p*4) + _tCrown(cx, cy, R, pal);
+  }
+  function _tPine(cx, gy, p) {
+    const trunkH=14+p*12;
+    const trunk=_tTrunk(cx, gy, gy-trunkH, 6+p*4, 4+p*2);
+    const totalH=45+p*128, topY=gy-totalH;
+    const tiers=Math.max(2, Math.round(2+p*3));
+    const startY=gy-trunkH*0.55, step=(startY-topY)/tiers, maxW=32+p*46;
+    let s='';
+    for (let i=0;i<tiers;i++){
+      const ly=startY-i*step, w=maxW*(1-i/(tiers+0.6)), tipY=ly-step*1.28;
+      const col=i%2===0?'#3f6f3d':'#4b7d46';
+      s+=`<path class="tree-canopy" fill="${col}" d="M${_tn(cx-w/2)} ${_tn(ly)} Q ${_tn(cx)} ${_tn(ly+step*0.34)} ${_tn(cx+w/2)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)} Z"/>`;
+    }
+    return trunk+s;
+  }
+  function _tPalm(cx, gy, p) {
+    const h=46+p*132, lean=4+p*6, topX=cx+lean, topY=gy-h;
+    const wB=8+p*5, wT=4.5+p*2.5, midX=cx+lean*0.4, midY=(gy+topY)/2;
+    const trunk=`<path class="tree-trunk" d="M${_tn(cx-wB/2)} ${_tn(gy)} Q ${_tn(midX-wT/2-2)} ${_tn(midY)} ${_tn(topX-wT/2)} ${_tn(topY)} L ${_tn(topX+wT/2)} ${_tn(topY)} Q ${_tn(midX+wT/2+2)} ${_tn(midY)} ${_tn(cx+wB/2)} ${_tn(gy)} Z"/>`;
+    const L=34+p*48, wid=7+p*4;
+    const frond=(a,col)=>{
+      const rad=a*Math.PI/180;
+      const ex=topX+Math.cos(rad)*L, ey=topY-Math.sin(rad)*L*0.82;
+      const cx1=topX+Math.cos(rad)*L*0.5, cy1=topY-Math.sin(rad)*L*0.5-(9+p*6);
+      return `<path class="tree-canopy" fill="${col}" d="M${_tn(topX)} ${_tn(topY)} Q ${_tn(cx1)} ${_tn(cy1)} ${_tn(ex)} ${_tn(ey)} Q ${_tn(cx1)} ${_tn(cy1+wid)} ${_tn(topX)} ${_tn(topY+4)} Z"/>`;
+    };
+    let f='';
+    [205,158,-25,22].forEach(a=>f+=frond(a,'#37793f'));   // 后层深绿
+    [120,90,60].forEach(a=>f+=frond(a,'#469450'));         // 前层亮绿
+    f+=`<circle class="tree-trunk" cx="${_tn(topX)}" cy="${_tn(topY)}" r="${_tn(4+p*2)}"/>`;
+    if (p>0.6) f+=`<g fill="#6b4a2b"><circle cx="${_tn(topX-4)}" cy="${_tn(topY+3)}" r="2.6"/><circle cx="${_tn(topX+4)}" cy="${_tn(topY+4)}" r="2.4"/></g>`;
+    return trunk+f;
+  }
+  function _tCactus(cx, gy, p) {
+    const h=42+p*112, w=22+p*15, top=gy-h, col='#5aa15c';
+    let s=`<rect class="tree-canopy" fill="${col}" x="${_tn(cx-w/2)}" y="${_tn(top)}" width="${_tn(w)}" height="${_tn(h)}" rx="${_tn(w/2)}"/>`;
+    if (p>0.42){ const reach=w*0.62, th=w*0.42, ay=top+h*0.36, up=30+p*36;
+      s+=`<rect class="tree-canopy" fill="${col}" x="${_tn(cx-w/2-reach+3)}" y="${_tn(ay)}" width="${_tn(reach)}" height="${_tn(th)}" rx="${_tn(th/2)}"/>`;
+      s+=`<rect class="tree-canopy" fill="${col}" x="${_tn(cx-w/2-reach+3)}" y="${_tn(ay-up)}" width="${_tn(th)}" height="${_tn(up+th)}" rx="${_tn(th/2)}"/>`; }
+    if (p>0.72){ const reach=w*0.55, th=w*0.4, ay=top+h*0.54, up=24+p*30;
+      s+=`<rect class="tree-canopy" fill="${col}" x="${_tn(cx+w/2-3)}" y="${_tn(ay)}" width="${_tn(reach)}" height="${_tn(th)}" rx="${_tn(th/2)}"/>`;
+      s+=`<rect class="tree-canopy" fill="${col}" x="${_tn(cx+w/2-3+reach-th)}" y="${_tn(ay-up)}" width="${_tn(th)}" height="${_tn(up+th)}" rx="${_tn(th/2)}"/>`; }
+    s+=`<line x1="${_tn(cx)}" y1="${_tn(top+w*0.45)}" x2="${_tn(cx)}" y2="${_tn(gy-5)}" stroke="#4c8a4e" stroke-width="1.4" opacity="0.55"/>`;
+    if (p>0.9) s+=`<g fill="#e79ac0"><circle cx="${_tn(cx-3)}" cy="${_tn(top+1)}" r="2.4"/><circle cx="${_tn(cx+3)}" cy="${_tn(top-0.5)}" r="2"/></g>`;
+    return s;
+  }
   function buildTreeSvg(treeType, progress) {
     progress = Math.max(0, Math.min(1, progress));
-    const groundY = 220;
-
-    // 通用画地面
-    const ground = `<ellipse class="tree-ground" cx="160" cy="${groundY + 8}" rx="100" ry="14" opacity="0.5"/>`;
-
-    // 树干高度随 progress 变化
-    const trunkH = 20 + progress * 110;
-    const trunkBase = groundY;
-    const trunkTop = trunkBase - trunkH;
-    const trunkW = 6 + progress * 8;
-
-    let canopy = '';
-    let trunkPath = '';
-
-    if (treeType === 'pine') {
-      // 松树：三角层叠
-      trunkPath = `<rect class="tree-trunk" x="${160 - trunkW/2}" y="${trunkTop}" width="${trunkW}" height="${trunkH + 8}" rx="2"/>`;
-      const layers = Math.max(1, Math.floor(progress * 3.5) + 1);
-      const baseY = trunkTop + 12;
-      const totalH = trunkH * 0.95;
-      const layerH = totalH / layers;
-      let c = '';
-      for (let i = 0; i < layers; i++) {
-        const ly = baseY - i * layerH;
-        const lw = 30 + (1 - i / layers) * 60 * progress;
-        c += `<polygon class="tree-canopy" fill="#3d6e3d" points="${160 - lw/2},${ly} ${160 + lw/2},${ly} 160,${ly - layerH * 1.1}"/>`;
-      }
-      canopy = c;
-    } else if (treeType === 'sakura') {
-      // 樱花：粉色圆形
-      trunkPath = `<rect class="tree-trunk" x="${160 - trunkW/2}" y="${trunkTop}" width="${trunkW}" height="${trunkH + 8}" rx="2"/>`;
-      const r = 20 + progress * 55;
-      const cx = 160, cy = trunkTop + 8;
-      canopy = `
-        <circle class="tree-canopy" fill="#f4b7c8" cx="${cx}" cy="${cy}" r="${r}"/>
-        <circle class="tree-canopy" fill="#fad5e0" cx="${cx - r * 0.4}" cy="${cy - r * 0.3}" r="${r * 0.55}"/>
-        <circle class="tree-canopy" fill="#f7c5d3" cx="${cx + r * 0.4}" cy="${cy - r * 0.2}" r="${r * 0.5}"/>
-        <circle class="tree-canopy" fill="#f8a8be" cx="${cx + r * 0.1}" cy="${cy + r * 0.2}" r="${r * 0.45}"/>
-      `;
-    } else if (treeType === 'palm') {
-      // 椰子树：长树干 + 叶片
-      const palmTrunkH = 30 + progress * 130;
-      const palmTrunkTop = groundY - palmTrunkH;
-      trunkPath = `<path class="tree-trunk" d="M ${158 - 3} ${groundY} Q ${156} ${(groundY + palmTrunkTop) / 2} ${162} ${palmTrunkTop} L ${162 + 5} ${palmTrunkTop} Q ${162} ${(groundY + palmTrunkTop) / 2 + 6} ${158 + 3} ${groundY} Z"/>`;
-      const leafL = 50 + progress * 50;
-      let l = '';
-      const leafCount = 6;
-      for (let i = 0; i < leafCount; i++) {
-        const angle = (i / leafCount) * 360 + 25;
-        const rad = angle * Math.PI / 180;
-        const ex = 162 + Math.cos(rad) * leafL;
-        const ey = palmTrunkTop + Math.sin(rad) * leafL * 0.6 - 5;
-        l += `<ellipse class="tree-canopy" fill="#3d8543" cx="${(162 + ex) / 2}" cy="${(palmTrunkTop + ey) / 2 - 3}" rx="${leafL / 2}" ry="9" transform="rotate(${angle} ${(162 + ex) / 2} ${(palmTrunkTop + ey) / 2})" opacity="0.9"/>`;
-      }
-      canopy = l;
-    } else if (treeType === 'cactus') {
-      // 仙人掌：胖矮的圆柱 + 横臂
-      const w = 26 + progress * 18;
-      const h = 30 + progress * 110;
-      const top = groundY - h;
-      trunkPath = `<rect class="tree-canopy" fill="#5fa05f" x="${160 - w/2}" y="${top}" width="${w}" height="${h}" rx="${w/2}"/>`;
-      let c = '';
-      if (progress > 0.4) {
-        const armW = 14;
-        const armH = 50 * progress;
-        c += `<rect class="tree-canopy" fill="#5fa05f" x="${160 - w/2 - armW + 2}" y="${top + h * 0.3}" width="${armW}" height="${armH}" rx="${armW/2}"/>`;
-        c += `<rect class="tree-canopy" fill="#5fa05f" x="${160 - w/2 - armW + 2}" y="${top + h * 0.3 - armW}" width="${armW + 4}" height="${armW}" rx="6"/>`;
-      }
-      if (progress > 0.7) {
-        const armW = 14;
-        const armH = 40 * progress;
-        c += `<rect class="tree-canopy" fill="#5fa05f" x="${160 + w/2 - 2}" y="${top + h * 0.5}" width="${armW}" height="${armH}" rx="${armW/2}"/>`;
-        c += `<rect class="tree-canopy" fill="#5fa05f" x="${160 + w/2 - 2 - 2}" y="${top + h * 0.5 - armW}" width="${armW + 4}" height="${armW}" rx="6"/>`;
-      }
-      // 仙人掌不画 trunk
-      trunkPath += c;
-      canopy = '';
-    } else {
-      // 默认：橡树（圆形树冠）
-      trunkPath = `<rect class="tree-trunk" x="${160 - trunkW/2}" y="${trunkTop}" width="${trunkW}" height="${trunkH + 8}" rx="2"/>`;
-      const r = 20 + progress * 55;
-      const cx = 160, cy = trunkTop + 5;
-      canopy = `
-        <circle class="tree-canopy" fill="#5a8a3e" cx="${cx}" cy="${cy}" r="${r}"/>
-        <circle class="tree-canopy" fill="#6ba053" cx="${cx - r * 0.4}" cy="${cy - r * 0.3}" r="${r * 0.55}"/>
-        <circle class="tree-canopy" fill="#5a8a3e" cx="${cx + r * 0.4}" cy="${cy - r * 0.2}" r="${r * 0.5}"/>
-        <circle class="tree-canopy" fill="#4a7a35" cx="${cx + r * 0.1}" cy="${cy + r * 0.25}" r="${r * 0.45}"/>
-      `;
-    }
-
-    // 0% 进度时只显示破土的幼芽（纯矢量）
-    if (progress < 0.05) {
-      const gy = groundY;
-      return `<svg class="tree-svg" viewBox="0 0 320 240">
-        ${ground}
-        <path d="M160 ${gy - 2} L160 ${gy - 20}" stroke="#5a8a3e" stroke-width="3" stroke-linecap="round"/>
-        <path d="M160 ${gy - 13} C150 ${gy - 13} 145 ${gy - 20} 145 ${gy - 26} C154 ${gy - 26} 160 ${gy - 20} 160 ${gy - 13} Z" fill="#6ba053"/>
-        <path d="M160 ${gy - 16} C170 ${gy - 16} 176 ${gy - 22} 176 ${gy - 29} C166 ${gy - 29} 160 ${gy - 23} 160 ${gy - 16} Z" fill="#5a8a3e"/>
-        <ellipse cx="160" cy="${gy - 1}" rx="7" ry="3" fill="#6b4f2e" opacity="0.6"/>
-      </svg>`;
-    }
-
-    return `<svg class="tree-svg" viewBox="0 0 320 240">
-      ${ground}
-      ${canopy}
-      ${trunkPath}
-    </svg>`;
+    const cx = 160, gy = 216, p = progress;
+    const spread = 24 + p * 60;
+    let body;
+    if (p < 0.10) body = _tSprout(cx, gy, p);
+    else if (treeType === 'pine') body = _tPine(cx, gy, p);
+    else if (treeType === 'sakura') body = _tBroad(cx, gy, p, _tPAL.sakura);
+    else if (treeType === 'palm') body = _tPalm(cx, gy, p);
+    else if (treeType === 'cactus') body = _tCactus(cx, gy, p);
+    else body = _tBroad(cx, gy, p, _tPAL.oak);
+    return `<svg class="tree-svg" viewBox="0 0 320 240">${_tGround(cx, gy, spread)}${body}</svg>`;
   }
 
   function renderTree(progress, target) {
