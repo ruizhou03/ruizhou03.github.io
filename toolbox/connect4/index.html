@@ -81,7 +81,7 @@ permalink: /toolbox/connect4/
     aspect-ratio: 1 / 1;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 12px 34px rgba(21, 44, 71, 0.22), 0 2px 6px rgba(21, 44, 71, 0.12);
+    box-shadow: 0 12px 34px rgba(90, 70, 40, 0.18), 0 2px 6px rgba(90, 70, 40, 0.10);
     user-select: none;
     -webkit-user-select: none;
     touch-action: manipulation;
@@ -351,17 +351,20 @@ permalink: /toolbox/connect4/
   }
 
   // ============ 绘制 ============
-  // 配色跟着站点设计语言走：藏蓝棋盘 + 暖红 / 暖金棋子（不再是塑料蓝+柠檬黄）
+  // 配色跟着站点设计语言走：奶油浅棋盘 + 暖红 / 琥珀金棋子
   const DISC = {
     [HUMAN]: { hi: '#e07a63', mid: '#c23b2e', lo: '#992017', rim: 'rgba(80,16,10,0.55)' },
-    [AI]:    { hi: '#f4d178', mid: '#e0a636', lo: '#b97f14', rim: 'rgba(110,72,8,0.55)' }
+    [AI]:    { hi: '#e6b25a', mid: '#cf8a20', lo: '#a3660c', rim: 'rgba(90,58,6,0.55)' }
   };
+  // 浅板/深板各一套：洞的顶部内阴影 / 底部受光、hover 底色、获胜连线色都随主题切
   function boardPal(isDark) {
     return isDark
-      ? { top: '#20395a', bot: '#111f33', frame: 'rgba(255,255,255,0.05)',
-          holeIn: '#0b192b', holeOut: '#060f1c', holeRimLo: 'rgba(255,255,255,0.06)' }
-      : { top: '#2a4a72', bot: '#152c47', frame: 'rgba(255,255,255,0.12)',
-          holeIn: '#0e2138', holeOut: '#081426', holeRimLo: 'rgba(255,255,255,0.10)' };
+      ? { top: '#454036', bot: '#322e27', frame: 'rgba(255,255,255,0.06)',
+          holeIn: '#2b2720', holeOut: '#201d17', holeShadowTop: 'rgba(0,0,0,0.50)', holeRimBot: 'rgba(255,255,255,0.10)',
+          hoverTint: 'rgba(255,255,255,0.05)', winStroke: 'rgba(255,255,255,0.96)', winGlow: 'rgba(255,255,255,0.85)' }
+      : { top: '#f5efe3', bot: '#e6dcc8', frame: 'rgba(140,115,75,0.18)',
+          holeIn: '#f0e9da', holeOut: '#d8cbb0', holeShadowTop: 'rgba(70,50,25,0.42)', holeRimBot: 'rgba(255,255,255,0.55)',
+          hoverTint: 'rgba(90,70,40,0.07)', winStroke: 'rgba(30,58,95,0.92)', winGlow: 'rgba(30,58,95,0.50)' };
   }
 
   function currentIsDark() {
@@ -396,7 +399,7 @@ permalink: /toolbox/connect4/
     const d = DISC[who];
     c.save();
     if (alpha != null) c.globalAlpha = alpha;
-    c.shadowColor = 'rgba(0,0,0,0.38)';
+    c.shadowColor = 'rgba(55,38,20,0.32)';
     c.shadowBlur = r * 0.22;
     c.shadowOffsetY = r * 0.14;
     const body = c.createRadialGradient(cx - r * 0.36, cy - r * 0.42, r * 0.08, cx, cy, r * 1.06);
@@ -409,29 +412,29 @@ permalink: /toolbox/connect4/
     c.lineWidth = Math.max(1, r * 0.07); c.strokeStyle = d.rim;
     c.beginPath(); c.arc(cx, cy, r * 0.965, 0, Math.PI * 2); c.stroke();
     const spec = c.createRadialGradient(cx - r * 0.3, cy - r * 0.36, 0, cx - r * 0.3, cy - r * 0.36, r * 0.62);
-    spec.addColorStop(0, 'rgba(255,255,255,0.55)'); spec.addColorStop(1, 'rgba(255,255,255,0)');
+    spec.addColorStop(0, 'rgba(255,255,255,0.52)'); spec.addColorStop(1, 'rgba(255,255,255,0)');
     c.fillStyle = spec;
     c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
     c.restore();
   }
 
-  // 一个凹陷的空洞：顶部内阴影 + 底部受光，做出「挖进板里」的立体感
+  // 一个凹陷的浅色「杯」：顶部内阴影 + 底部受光，做出「挖进板里」的立体感
   function paintHole(c, cx, cy, r, isDark) {
     const p = boardPal(isDark);
-    const grad = c.createRadialGradient(cx, cy - r * 0.18, r * 0.15, cx, cy, r);
+    const grad = c.createRadialGradient(cx, cy - r * 0.15, r * 0.1, cx, cy, r);
     grad.addColorStop(0, p.holeIn);
     grad.addColorStop(1, p.holeOut);
     c.fillStyle = grad;
     c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
     const rim = c.createLinearGradient(0, cy - r, 0, cy + r);
-    rim.addColorStop(0, 'rgba(0,0,0,0.55)');
+    rim.addColorStop(0, p.holeShadowTop);
     rim.addColorStop(0.5, 'rgba(0,0,0,0)');
-    rim.addColorStop(1, p.holeRimLo);
-    c.lineWidth = Math.max(1, r * 0.10); c.strokeStyle = rim;
+    rim.addColorStop(1, p.holeRimBot);
+    c.lineWidth = Math.max(1, r * 0.11); c.strokeStyle = rim;
     c.beginPath(); c.arc(cx, cy, r * 0.93, 0, Math.PI * 2); c.stroke();
   }
 
-  // 藏蓝棋盘：整块铺满画布（无透明投放槽），圆角卡片 + 竖向渐变 + 顶部内高光
+  // 奶油棋盘：整块铺满画布（无透明投放槽），圆角卡片 + 竖向渐变 + 顶部内高光
   function paintBoardPanel(c, x, y, w, h, isDark) {
     const p = boardPal(isDark);
     const rad = w * 0.032;
@@ -443,28 +446,29 @@ permalink: /toolbox/connect4/
     roundRectPath(c, x + 1.5, y + 1.5, w - 3, h - 3, rad - 1); c.stroke();
   }
 
-  // hover：列淡高亮 + 投放条里悬着一枚半透明幽灵子
-  function paintHover(c, g, col, who) {
-    c.fillStyle = 'rgba(255,255,255,0.05)';
+  // hover：列淡高亮（浅板用暖色压深、深板用白提亮）+ 投放条里悬一枚半透明幽灵子
+  function paintHover(c, g, col, who, isDark) {
+    c.fillStyle = boardPal(isDark).hoverTint;
     c.fillRect(g.ox + col * g.cell, g.oy, g.cell, g.boardH);
     paintDisc(c, g.ox + col * g.cell + g.cell / 2, g.oy * 0.5, who, g.r, 0.62);
   }
 
-  // 获胜四连：发光连线 + 逐子光环
-  function paintWin(c, g, winCells) {
+  // 获胜四连：发光连线 + 逐子光环（浅板用藏蓝、深板用白，才看得清）
+  function paintWin(c, g, winCells, isDark) {
+    const p = boardPal(isDark);
     const cells = winCells.cells;
     const a = cells[0], b = cells[cells.length - 1];
     const x1 = g.ox + a.c * g.cell + g.cell / 2, y1 = g.oy + a.r * g.cell + g.cell / 2;
     const x2 = g.ox + b.c * g.cell + g.cell / 2, y2 = g.oy + b.r * g.cell + g.cell / 2;
     c.save();
-    c.shadowColor = 'rgba(255,255,255,0.85)'; c.shadowBlur = g.cell * 0.45;
-    c.strokeStyle = 'rgba(255,255,255,0.96)'; c.lineWidth = Math.max(4, g.cell * 0.14);
+    c.shadowColor = p.winGlow; c.shadowBlur = g.cell * 0.45;
+    c.strokeStyle = p.winStroke; c.lineWidth = Math.max(4, g.cell * 0.14);
     c.lineCap = 'round';
     c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
     c.restore();
-    c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = Math.max(2, g.cell * 0.055);
-    for (const p of cells) {
-      const cx = g.ox + p.c * g.cell + g.cell / 2, cy = g.oy + p.r * g.cell + g.cell / 2;
+    c.strokeStyle = p.winStroke; c.lineWidth = Math.max(2, g.cell * 0.055);
+    for (const q of cells) {
+      const cx = g.ox + q.c * g.cell + g.cell / 2, cy = g.oy + q.r * g.cell + g.cell / 2;
       c.beginPath(); c.arc(cx, cy, g.r * 1.04, 0, Math.PI * 2); c.stroke();
     }
   }
@@ -502,16 +506,17 @@ permalink: /toolbox/connect4/
       boardCacheValid = false;
     }
     const g = geom();
-    ensureBoardCache(g, currentIsDark());
+    const isDark = currentIsDark();
+    ensureBoardCache(g, isDark);
     ctx.clearRect(0, 0, g.W, g.H);
     ctx.drawImage(boardCache, 0, 0);
     if (hoverCol >= 0 && canHumanPlay() && state.heights[hoverCol] < ROWS)
-      paintHover(ctx, g, hoverCol, HUMAN);
+      paintHover(ctx, g, hoverCol, HUMAN, isDark);
     if (state.anim) {
       const a = state.anim;
       paintDisc(ctx, g.ox + a.col * g.cell + g.cell / 2, g.oy + a.rowPos * g.cell + g.cell / 2, a.who, g.r);
     }
-    if (state.winCells) paintWin(ctx, g, state.winCells);
+    if (state.winCells) paintWin(ctx, g, state.winCells, isDark);
   }
 
   // ============ 落子 / 动画 ============
@@ -881,7 +886,7 @@ permalink: /toolbox/connect4/
         else paintDisc(g2, cx, cy, v, gg.r);
       }
     }
-    if (state.winCells) paintWin(g2, gg, state.winCells);
+    if (state.winCells) paintWin(g2, gg, state.winCells, false);
   }
 
   function c4GetSettlementOpts() {
