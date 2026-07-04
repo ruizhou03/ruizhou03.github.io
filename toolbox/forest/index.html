@@ -230,21 +230,9 @@ theme_color: "#fafaf9"
     color: var(--color-muted);
     margin-right: 0.25rem;
   }
-  /* 主题预览：真实渐变底 + 该主题标志性小图案（月/泡/星/日/雨/极光），一眼可辨 */
-  .theme-swatch {
-    position: relative;
-    width: 21px; height: 21px; border-radius: 50%;
-    display: block; overflow: hidden;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.16);
-  }
-  .theme-swatch svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-  .theme-swatch-default { background: linear-gradient(180deg, #f0f4ed 0%, #e8e2d4 100%); }
-  .theme-swatch-night   { background: linear-gradient(180deg, #2f5030 0%, #0d150a 100%); }
-  .theme-swatch-bubbles { background: linear-gradient(180deg, #1a3a5e 0%, #0d2540 100%); }
-  .theme-swatch-stars   { background: linear-gradient(180deg, #3a2270 0%, #0a0518 100%); }
-  .theme-swatch-sunrise { background: linear-gradient(180deg, #d35a45 0%, #e88a5a 45%, #f0c478 100%); }
-  .theme-swatch-rain    { background: linear-gradient(180deg, #3a4b60 0%, #15202d 100%); }
-  .theme-swatch-aurora  { background: linear-gradient(135deg, #0a1a3e 0%, #1a3a5a 40%, #34c0a0 100%); }
+  /* 主题预览：每个主题一幅圆形小景（月夜/气泡/星空/日出/雨/极光），SVG 自带描边圆 */
+  .theme-swatch { display: block; width: 23px; height: 23px; }
+  .theme-swatch svg { width: 100%; height: 100%; display: block; }
 
   /* 悬浮备注（主题 / 计时模式等小图标按钮，鼠标停留才出）*/
   [data-tip] { position: relative; }
@@ -859,7 +847,7 @@ theme_color: "#fafaf9"
     .duration-row .duration-tabs button { padding: 0.72rem 0; }
     .setting-row .tree-types button { width: 44px; height: 44px; }
     .setting-row .pill-group button { width: 44px; height: 44px; }
-    .theme-swatch { width: 22px; height: 22px; }
+    .theme-swatch { width: 26px; height: 26px; }
     .field-tab, .field-tab-add { padding-top: 0.55rem; padding-bottom: 0.55rem; }
     .field-toolbar button { padding-top: 0.55rem; padding-bottom: 0.55rem; }
     .exp-range-tabs button { padding-top: 0.5rem; padding-bottom: 0.5rem; }
@@ -1306,20 +1294,20 @@ theme_color: "#fafaf9"
         <div class="setting-row">
           <label>主题</label>
           <div class="pill-group" id="theme-bg-pills">
-            <button type="button" data-value="default" data-tip="默认"><span class="theme-swatch theme-swatch-default"></span></button>
-            <button type="button" data-value="night" data-tip="沉浸夜"><span class="theme-swatch theme-swatch-night"><svg viewBox="0 0 22 22"><path d="M13 4a7 7 0 1 0 4.6 12.4A7.5 7.5 0 0 1 13 4z" fill="rgba(246,240,214,0.92)"/></svg></span></button>
-            <button type="button" data-value="bubbles" data-tip="气泡"><span class="theme-swatch theme-swatch-bubbles"><svg viewBox="0 0 22 22"><circle cx="7.5" cy="14" r="2.7" fill="rgba(255,255,255,0.5)"/><circle cx="13" cy="8.4" r="2" fill="rgba(255,255,255,0.45)"/><circle cx="15.6" cy="14.6" r="1.4" fill="rgba(255,255,255,0.4)"/></svg></span></button>
-            <button type="button" data-value="stars" data-tip="星空"><span class="theme-swatch theme-swatch-stars"><svg viewBox="0 0 22 22"><circle cx="7" cy="8" r="1.1" fill="#fff"/><circle cx="14.6" cy="6.4" r="0.8" fill="#fff"/><circle cx="11" cy="13.6" r="1.2" fill="#fff"/><circle cx="16" cy="12.6" r="0.7" fill="#fff"/><circle cx="6" cy="14.2" r="0.7" fill="#fff"/></svg></span></button>
-            <button type="button" data-value="sunrise" data-tip="日出"><span class="theme-swatch theme-swatch-sunrise"><svg viewBox="0 0 22 22"><circle cx="11" cy="18.5" r="5.2" fill="rgba(255,246,205,0.92)"/><g stroke="rgba(255,240,190,0.85)" stroke-width="1" stroke-linecap="round"><line x1="11" y1="8.5" x2="11" y2="11"/><line x1="4.6" y1="12" x2="6.3" y2="13.3"/><line x1="17.4" y1="12" x2="15.7" y2="13.3"/></g></svg></span></button>
-            <button type="button" data-value="rain" data-tip="雨"><span class="theme-swatch theme-swatch-rain"><svg viewBox="0 0 22 22"><g stroke="rgba(203,222,255,0.82)" stroke-width="1.1" stroke-linecap="round"><line x1="7" y1="6" x2="5.3" y2="10.4"/><line x1="12" y1="6" x2="10.3" y2="10.4"/><line x1="17" y1="6" x2="15.3" y2="10.4"/><line x1="9.5" y1="12" x2="7.8" y2="16.4"/><line x1="14.5" y1="12" x2="12.8" y2="16.4"/></g></svg></span></button>
-            <button type="button" data-value="aurora" data-tip="极光"><span class="theme-swatch theme-swatch-aurora"><svg viewBox="0 0 22 22"><path d="M2 13 Q 7 6 12 11 T 22 9" fill="none" stroke="rgba(90,235,190,0.78)" stroke-width="2.2" stroke-linecap="round"/><path d="M2 16.5 Q 8 10.5 13 14 T 22 12.5" fill="none" stroke="rgba(152,122,235,0.62)" stroke-width="1.8" stroke-linecap="round"/></svg></span></button>
+            <button type="button" data-value="default" data-tip="默认"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-def" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f2ea"/><stop offset="1" stop-color="#e6e0d1"/></linearGradient><clipPath id="cl-default"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-default)"><rect width="44" height="44" fill="url(#g-def)"/><path d="M22 27c0-4-2.6-6.4-6.4-6.4C15.6 24.4 18 27 22 27z" fill="#c9c2ad" opacity="0.55"/><path d="M22 25.5c0-3.4 2.3-5.6 5.8-5.6.1 2.9-2 5.6-5.8 5.6z" fill="#cfc9b6" opacity="0.55"/></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
+            <button type="button" data-value="night" data-tip="沉浸夜"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-nt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2e4a34"/><stop offset="0.5" stop-color="#16241a"/><stop offset="1" stop-color="#0c130d"/></linearGradient><clipPath id="cl-night"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-night)"><rect width="44" height="44" fill="url(#g-nt)"/><path d="M27 14.5a7.4 7.4 0 1 1-8.6-7.3 6 6 0 0 0 8.6 7.3z" fill="#f3ecd0"/><circle cx="14" cy="10" r="0.9" fill="#f3ecd0" opacity="0.85"/><circle cx="30" cy="24" r="0.7" fill="#f3ecd0" opacity="0.7"/></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
+            <button type="button" data-value="bubbles" data-tip="气泡"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-bb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b6aa0"/><stop offset="0.6" stop-color="#154a78"/><stop offset="1" stop-color="#0c2f4f"/></linearGradient><clipPath id="cl-bubbles"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-bubbles)"><rect width="44" height="44" fill="url(#g-bb)"/><circle cx="15" cy="26" r="4.2" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.1" opacity="0.75"/><circle cx="13.5" cy="24.5" r="1.18" fill="rgba(255,255,255,0.9)" opacity="0.85"/><circle cx="24" cy="16" r="3" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.1" opacity="0.75"/><circle cx="22.95" cy="14.95" r="0.84" fill="rgba(255,255,255,0.9)" opacity="0.85"/><circle cx="28" cy="27" r="2.3" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.1" opacity="0.75"/><circle cx="27.2" cy="26.2" r="0.64" fill="rgba(255,255,255,0.9)" opacity="0.85"/></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
+            <button type="button" data-value="stars" data-tip="星空"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-st" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2a70"/><stop offset="0.55" stop-color="#1c1442"/><stop offset="1" stop-color="#0a0518"/></linearGradient><clipPath id="cl-stars"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-stars)"><rect width="44" height="44" fill="url(#g-st)"/><path d="M15 11.6 Q 15 15 18.4 15 Q 15 15 15 18.4 Q 15 15 11.6 15 Q 15 15 15 11.6 Z" fill="#fff"/><path d="M28 9.8 Q 28 12 30.2 12 Q 28 12 28 14.2 Q 28 12 25.8 12 Q 28 12 28 9.8 Z" fill="#fff"/><circle cx="22" cy="27" r="1" fill="#fff"/><circle cx="31" cy="24" r="0.8" fill="#fff" opacity="0.8"/><circle cx="12" cy="26" r="0.7" fill="#fff" opacity="0.7"/></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
+            <button type="button" data-value="sunrise" data-tip="日出"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-sr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e07a48"/><stop offset="0.5" stop-color="#ef9a5f"/><stop offset="1" stop-color="#f6c877"/></linearGradient><clipPath id="cl-sunrise"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-sunrise)"><rect width="44" height="44" fill="url(#g-sr)"/><circle cx="22" cy="30" r="9.5" fill="#fff3cf"/><circle cx="22" cy="30" r="13" fill="none" stroke="#fff3cf" stroke-width="1" opacity="0.4"/><g stroke="#fff3cf" stroke-width="1.4" stroke-linecap="round" opacity="0.9"><path d="M22 15v3.4"/><path d="M11 20l2.4 2.4"/><path d="M33 20l-2.4 2.4"/></g></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
+            <button type="button" data-value="rain" data-tip="雨"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-rn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#41556d"/><stop offset="0.55" stop-color="#28384b"/><stop offset="1" stop-color="#182430"/></linearGradient><clipPath id="cl-rain"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-rain)"><rect width="44" height="44" fill="url(#g-rn)"/><path d="M14 19a4.4 4.4 0 0 1 8.3-1.5 3.6 3.6 0 0 1 .6 7.1H15a3.4 3.4 0 0 1-1-6.6z" fill="#dfe7f2" opacity="0.95"/><g stroke="#bcd2ef" stroke-width="1.5" stroke-linecap="round"><path d="M15 27.5l-1.4 3"/><path d="M21 27.5l-1.4 3"/><path d="M27 27l-1.4 3"/></g></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
+            <button type="button" data-value="aurora" data-tip="极光"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-au" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d2247"/><stop offset="0.6" stop-color="#123a55"/><stop offset="1" stop-color="#0a2a3e"/></linearGradient><clipPath id="cl-aurora"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-aurora)"><rect width="44" height="44" fill="url(#g-au)"/><path d="M6 26 Q 16 12 22 22 T 38 18" fill="none" stroke="#57e6bd" stroke-width="3.4" stroke-linecap="round" opacity="0.9"/><path d="M6 30 Q 17 18 24 26 T 38 22" fill="none" stroke="#8f7ce8" stroke-width="2.6" stroke-linecap="round" opacity="0.75"/><circle cx="30" cy="12" r="0.9" fill="#fff" opacity="0.8"/><circle cx="13" cy="11" r="0.7" fill="#fff" opacity="0.7"/></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
           </div>
           <span class="pill-divider"></span>
           <span class="group-label">计时</span>
           <div class="pill-group" id="theme-timer-pills">
-            <button type="button" data-value="countdown" data-tip="倒计时"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12M6 20h12"/><path d="M8 4v3.2a3 3 0 0 0 1 2.2l3 2.6 3-2.6a3 3 0 0 0 1-2.2V4"/><path d="M8 20v-3.2a3 3 0 0 1 1-2.2l3-2.6 3 2.6a3 3 0 0 1 1 2.2V20"/></svg></button>
-            <button type="button" data-value="countup" data-tip="正计时"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5"/><path d="M9.5 2.5h5"/><path d="M18.6 7l1.3-1.3"/></svg></button>
-            <button type="button" data-value="hidden" data-tip="只看树 · 不显示时间"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 10.7a3 3 0 0 0 4.1 4.1"/><path d="M9.8 5.2A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.2 3.1"/><path d="M6.2 6.3A17 17 0 0 0 2.5 12s3.5 7 9.5 7a10 10 0 0 0 2.2-.3"/></svg></button>
+            <button type="button" data-value="countdown" data-tip="倒计时"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.2h11"/><path d="M6.5 20.8h11"/><path d="M8 3.2c0 4.2 4 5.4 4 8.8 0 3.4-4 4.6-4 8.8"/><path d="M16 3.2c0 4.2-4 5.4-4 8.8 0 3.4 4 4.6 4 8.8"/><path d="M9 19.6c.9-2.2 5.1-2.2 6 0z" fill="currentColor" stroke="none"/><circle cx="12" cy="9.3" r="0.85" fill="currentColor" stroke="none"/></svg></button>
+            <button type="button" data-value="countup" data-tip="正计时"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 2.4h4.8"/><path d="M12 2.4v2.2"/><path d="M18.7 6.1l1.3-1.3"/><circle cx="12" cy="13.4" r="7.7" fill="currentColor" fill-opacity="0.07"/><path d="M12 13.4V8.9"/><circle cx="12" cy="13.4" r="1.05" fill="currentColor" stroke="none"/></svg></button>
+            <button type="button" data-value="hidden" data-tip="只看树 · 不显示时间"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.8 5.6A9.2 9.2 0 0 1 12 5.3c5.1 0 8.3 5.7 8.3 5.7a14.6 14.6 0 0 1-2.5 3"/><path d="M6.6 6.9A14.6 14.6 0 0 0 3.7 11s3.2 5.7 8.3 5.7a9.2 9.2 0 0 0 2.6-.4"/><path d="M10.3 9.3a2.4 2.4 0 0 0 3.4 3.4"/><path d="M4.5 3.7l15 15.3"/></svg></button>
           </div>
         </div>
       </div>
@@ -1927,105 +1915,162 @@ theme_color: "#fafaf9"
 
   // ============ Tree SVG ============
   // progress: 0-1 描述树的成长进度
-  // ============ 生长树（初芽 → 幼树 → 成树；五种树各自形态，绘于计时舞台与全屏遮罩）============
+  // ============ 生长树 v3（明确光照 + 树干纹理 + 草地 + 装饰阶梯；绘于计时舞台与全屏遮罩）============
   const _tn = x => Math.round(x * 10) / 10;
   const _tPAL = {
-    oak:    { dark:'#48793a', mid:'#5c9245', light:'#7cae5c' },
-    sakura: { dark:'#e79ab4', mid:'#f4b7c8', light:'#fcdbe6' },
+    oak:    { base:'#3d6b30', mid:'#568740', light:'#74a855', rim:'#93c270' },
+    sakura: { base:'#db88a6', mid:'#eeacc0', light:'#f7cddb', rim:'#ffe6ef' },
   };
-  function _tGround(cx, y, spread) {
-    return `<ellipse class="tree-ground" cx="${cx}" cy="${_tn(y+8)}" rx="${_tn(spread)}" ry="${_tn(spread*0.16)}" opacity="0.5"/>`
-         + `<ellipse cx="${cx}" cy="${_tn(y+6)}" rx="${_tn(spread*0.6)}" ry="${_tn(spread*0.1)}" fill="rgba(0,0,0,0.12)"/>`;
+  const _BARKD = '#57411f';
+  function _tGround(cx, gy, spread) {
+    const g = x => _tn(x);
+    return `<ellipse class="tree-ground" cx="${g(cx)}" cy="${g(gy+9)}" rx="${g(spread)}" ry="${g(spread*0.15)}" opacity="0.42"/>`
+      + `<ellipse cx="${g(cx-spread*0.15)}" cy="${g(gy+8)}" rx="${g(spread*0.5)}" ry="${g(spread*0.09)}" fill="#000" opacity="0.06"/>`
+      + `<g stroke="#5c9145" stroke-width="1.6" stroke-linecap="round" fill="none">`
+      + `<path d="M${g(cx-spread*0.55)} ${g(gy+7)} q -1 -5 -3 -7"/><path d="M${g(cx-spread*0.45)} ${g(gy+7)} q 1 -4 2 -6"/>`
+      + `<path d="M${g(cx+spread*0.5)} ${g(gy+7)} q 1 -5 3 -7"/><path d="M${g(cx+spread*0.4)} ${g(gy+7)} q -1 -4 -2 -6"/></g>`;
   }
-  // 微锥形、略带弧度的树干
+  // 微锥弧形树干（主体 class=tree-trunk 供遮罩暖色化）+ 右暗 / 左亮 / 根部张开
   function _tTrunk(cx, baseY, topY, wB, wT) {
     const bl=cx-wB/2, br=cx+wB/2, tl=cx-wT/2, tr=cx+wT/2, m=(baseY+topY)/2;
-    return `<path class="tree-trunk" d="M${_tn(bl)} ${_tn(baseY)} C ${_tn(bl+wB*0.12)} ${_tn(m)} ${_tn(tl-0.5)} ${_tn(topY+3)} ${_tn(tl)} ${_tn(topY)} L ${_tn(tr)} ${_tn(topY)} C ${_tn(tr+0.5)} ${_tn(topY+3)} ${_tn(br-wB*0.12)} ${_tn(m)} ${_tn(br)} ${_tn(baseY)} Z"/>`;
+    const body=`<path class="tree-trunk" d="M${_tn(bl)} ${_tn(baseY)} C ${_tn(bl+wB*0.1)} ${_tn(m)} ${_tn(tl-0.5)} ${_tn(topY+3)} ${_tn(tl)} ${_tn(topY)} L ${_tn(tr)} ${_tn(topY)} C ${_tn(tr+0.5)} ${_tn(topY+3)} ${_tn(br-wB*0.1)} ${_tn(m)} ${_tn(br)} ${_tn(baseY)} Z"/>`;
+    const flare=`<path class="tree-trunk" d="M${_tn(bl)} ${_tn(baseY)} q -3.5 -0.5 -5 2 q 3 -1 5 -0.6 Z"/><path class="tree-trunk" d="M${_tn(br)} ${_tn(baseY)} q 3.5 -0.5 5 2 q -3 -1 -5 -0.6 Z"/>`;
+    const shade=`<path d="M${_tn(cx)} ${_tn(topY)} C ${_tn(cx+0.5)} ${_tn(topY+3)} ${_tn(br-wB*0.1)} ${_tn(m)} ${_tn(br)} ${_tn(baseY)} L ${_tn(cx)} ${_tn(baseY)} Z" fill="#000" opacity="0.16"/>`;
+    const lit=`<path d="M${_tn(bl+0.9)} ${_tn(baseY-1)} C ${_tn(bl+wB*0.1+0.9)} ${_tn(m)} ${_tn(tl+0.5)} ${_tn(topY+3)} ${_tn(tl+1)} ${_tn(topY+0.5)}" fill="none" stroke="#fff" stroke-width="1" stroke-linecap="round" opacity="0.14"/>`;
+    return flare+body+shade+lit;
   }
-  // 分层有机树冠（暗底 + 中景团簇 + 左上高光），阔叶/樱花共用
+  // 有明确光照的圆润树冠（左上受光、右下暗部），阔叶/樱花共用
   function _tCrown(cx, cy, R, pal) {
-    const c=(x,y,r,col)=>`<circle class="tree-canopy" cx="${_tn(x)}" cy="${_tn(y)}" r="${_tn(Math.max(1.5,r))}" fill="${col}"/>`;
-    return `<ellipse class="tree-canopy" cx="${_tn(cx)}" cy="${_tn(cy)}" rx="${_tn(R)}" ry="${_tn(R*0.84)}" fill="${pal.dark}"/>`
-      + c(cx-R*0.5, cy+R*0.02, R*0.52, pal.mid)
-      + c(cx+R*0.5, cy-R*0.02, R*0.5,  pal.mid)
-      + c(cx-R*0.02,cy-R*0.5,  R*0.54, pal.mid)
-      + c(cx+R*0.34,cy+R*0.34, R*0.40, pal.dark)
-      + c(cx-R*0.38,cy+R*0.36, R*0.38, pal.dark)
-      + c(cx-R*0.34,cy-R*0.40, R*0.32, pal.light)
-      + c(cx+R*0.10,cy-R*0.46, R*0.24, pal.light)
-      + c(cx-R*0.52,cy-R*0.12, R*0.20, pal.light);
+    const c=(x,y,r,f)=>`<circle class="tree-canopy" cx="${_tn(x)}" cy="${_tn(y)}" r="${_tn(Math.max(1.5,r))}" fill="${f}"/>`;
+    let s='';
+    [[cx,cy,R],[cx-R*0.6,cy+R*0.05,R*0.62],[cx+R*0.6,cy+R*0.02,R*0.6],
+     [cx-R*0.3,cy-R*0.55,R*0.5],[cx+R*0.32,cy-R*0.52,R*0.46],[cx,cy-R*0.72,R*0.4],
+     [cx-R*0.02,cy+R*0.52,R*0.6]].forEach(b=>s+=c(b[0],b[1],b[2],pal.mid));
+    s+=c(cx+R*0.34,cy+R*0.4,R*0.46,pal.base)+c(cx-R*0.3,cy+R*0.5,R*0.38,pal.base)+c(cx+R*0.58,cy+R*0.12,R*0.34,pal.base);
+    s+=c(cx-R*0.32,cy-R*0.34,R*0.46,pal.light)+c(cx-R*0.02,cy-R*0.54,R*0.32,pal.light)+c(cx-R*0.58,cy-R*0.02,R*0.26,pal.light);
+    s+=c(cx-R*0.3,cy-R*0.42,R*0.22,pal.rim);
+    return s;
   }
   function _tSprout(cx, gy, p) {
     const H = 12 + p*46;
-    return `<path d="M${cx} ${_tn(gy-2)} L${cx} ${_tn(gy-H)}" stroke="#5c9245" stroke-width="3.2" stroke-linecap="round"/>`
+    return `<path d="M${cx} ${_tn(gy-2)} L${cx} ${_tn(gy-H)}" stroke="#5c9145" stroke-width="3.2" stroke-linecap="round"/>`
       + `<path class="tree-canopy" fill="#6ba053" d="M${cx} ${_tn(gy-H+6)} C ${_tn(cx-11)} ${_tn(gy-H+4)} ${_tn(cx-15)} ${_tn(gy-H-4)} ${_tn(cx-14)} ${_tn(gy-H-11)} C ${_tn(cx-5)} ${_tn(gy-H-11)} ${cx} ${_tn(gy-H-3)} ${cx} ${_tn(gy-H+6)} Z"/>`
       + `<path class="tree-canopy" fill="#5c9245" d="M${cx} ${_tn(gy-H+3)} C ${_tn(cx+11)} ${_tn(gy-H+1)} ${_tn(cx+16)} ${_tn(gy-H-7)} ${_tn(cx+15)} ${_tn(gy-H-14)} C ${_tn(cx+6)} ${_tn(gy-H-14)} ${cx} ${_tn(gy-H-6)} ${cx} ${_tn(gy-H+3)} Z"/>`;
   }
   function _tBroad(cx, gy, p, pal) {
-    const h=34+p*98, topY=gy-h, R=22+p*47, cy=topY-R*0.12;
+    const h=34+p*98, topY=gy-h, R=22+p*47, cy=topY-R*0.14;
     return _tTrunk(cx, gy, topY, 7+p*9, 4+p*4) + _tCrown(cx, cy, R, pal);
   }
   function _tPine(cx, gy, p) {
-    const trunkH=14+p*12;
-    const trunk=_tTrunk(cx, gy, gy-trunkH, 6+p*4, 4+p*2);
-    const totalH=42+p*120, topY=gy-totalH;
-    const tiers=Math.max(2, Math.round(2+p*3));
-    const startY=gy-trunkH*0.55, step=(startY-topY)/tiers, maxW=32+p*46;
+    const trunkH=14+p*12, trunk=_tTrunk(cx, gy, gy-trunkH, 6+p*4, 4+p*2);
+    const totalH=42+p*120, topY=gy-totalH, tiers=Math.max(2, Math.round(2+p*3));
+    const startY=gy-trunkH*0.55, step=(startY-topY)/tiers, maxW=34+p*46;
     let s='';
-    for (let i=0;i<tiers;i++){
-      const ly=startY-i*step, w=maxW*(1-i/(tiers+0.6)), tipY=ly-step*1.28;
-      const col=i%2===0?'#3f6f3d':'#4b7d46';
-      s+=`<path class="tree-canopy" fill="${col}" d="M${_tn(cx-w/2)} ${_tn(ly)} Q ${_tn(cx)} ${_tn(ly+step*0.34)} ${_tn(cx+w/2)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)} Z"/>`;
+    for (let i=0;i<tiers;i++){ const ly=startY-i*step, w=maxW*(1-i/(tiers+0.5)), tipY=ly-step*1.32, L=cx-w/2, Rr=cx+w/2;
+      s+=`<path class="tree-canopy" d="M${_tn(L)} ${_tn(ly)} Q ${_tn(cx)} ${_tn(ly+step*0.3)} ${_tn(Rr)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)} Z" fill="#3f7040"/>`;
+      s+=`<path class="tree-canopy" d="M${_tn(cx)} ${_tn(ly)} Q ${_tn((cx+Rr)/2)} ${_tn(ly+step*0.16)} ${_tn(Rr)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)} Z" fill="#33602f"/>`;
+      s+=`<path d="M${_tn(L)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)}" stroke="#5c9354" stroke-width="1.5" stroke-linecap="round" fill="none"/>`;
     }
     return trunk+s;
   }
   function _tPalm(cx, gy, p) {
     const h=40+p*112, lean=4+p*6, topX=cx+lean, topY=gy-h;
     const wB=8+p*5, wT=4.5+p*2.5, midX=cx+lean*0.4, midY=(gy+topY)/2;
+    const P=t=>[ (1-t)*(1-t)*cx+2*(1-t)*t*midX+t*t*topX, (1-t)*(1-t)*gy+2*(1-t)*t*midY+t*t*topY ];
     const trunk=`<path class="tree-trunk" d="M${_tn(cx-wB/2)} ${_tn(gy)} Q ${_tn(midX-wT/2-2)} ${_tn(midY)} ${_tn(topX-wT/2)} ${_tn(topY)} L ${_tn(topX+wT/2)} ${_tn(topY)} Q ${_tn(midX+wT/2+2)} ${_tn(midY)} ${_tn(cx+wB/2)} ${_tn(gy)} Z"/>`;
+    let rings='';
+    for (let i=1;i<=5;i++){ const t=i/6, pt=P(t), w=(wB*(1-t)+wT*t);
+      rings+=`<path d="M${_tn(pt[0]-w/2-0.5)} ${_tn(pt[1])} q ${_tn(w/2+0.5)} 2.4 ${_tn(w+1)} 0" stroke="${_BARKD}" stroke-width="1" fill="none" opacity="0.5"/>`; }
     const L=30+p*40, wid=7+p*4;
-    const frond=(a,col)=>{
-      const rad=a*Math.PI/180;
-      const ex=topX+Math.cos(rad)*L, ey=topY-Math.sin(rad)*L*0.7;
-      const cx1=topX+Math.cos(rad)*L*0.5, cy1=topY-Math.sin(rad)*L*0.5-(9+p*6);
-      return `<path class="tree-canopy" fill="${col}" d="M${_tn(topX)} ${_tn(topY)} Q ${_tn(cx1)} ${_tn(cy1)} ${_tn(ex)} ${_tn(ey)} Q ${_tn(cx1)} ${_tn(cy1+wid)} ${_tn(topX)} ${_tn(topY+4)} Z"/>`;
-    };
-    let f='';
-    [205,158,-25,22].forEach(a=>f+=frond(a,'#37793f'));   // 后层深绿
-    [120,90,60].forEach(a=>f+=frond(a,'#469450'));         // 前层亮绿
-    f+=`<circle class="tree-trunk" cx="${_tn(topX)}" cy="${_tn(topY)}" r="${_tn(4+p*2)}"/>`;
-    if (p>0.6) f+=`<g fill="#6b4a2b"><circle cx="${_tn(topX-4)}" cy="${_tn(topY+3)}" r="2.6"/><circle cx="${_tn(topX+4)}" cy="${_tn(topY+4)}" r="2.4"/></g>`;
-    return trunk+f;
+    const frond=(a,col,rib)=>{ const rad=a*Math.PI/180;
+      const ex=topX+Math.cos(rad)*L, ey=topY-Math.sin(rad)*L*0.7, c1=topX+Math.cos(rad)*L*0.5, cy1=topY-Math.sin(rad)*L*0.5-(9+p*6);
+      let f=`<path class="tree-canopy" fill="${col}" d="M${_tn(topX)} ${_tn(topY)} Q ${_tn(c1)} ${_tn(cy1)} ${_tn(ex)} ${_tn(ey)} Q ${_tn(c1)} ${_tn(cy1+wid)} ${_tn(topX)} ${_tn(topY+4)} Z"/>`;
+      if (rib) f+=`<path d="M${_tn(topX)} ${_tn(topY+1)} Q ${_tn(c1)} ${_tn(cy1+wid*0.4)} ${_tn(ex)} ${_tn(ey)}" stroke="#2f6636" stroke-width="0.8" fill="none" opacity="0.6"/>`;
+      return f; };
+    let fr='';
+    [205,158,-25,22].forEach(a=>fr+=frond(a,'#37793f',false));
+    [120,90,60].forEach(a=>fr+=frond(a,'#4a9a52',true));
+    fr+=`<circle fill="${_BARKD}" cx="${_tn(topX)}" cy="${_tn(topY)}" r="${_tn(4+p*2)}"/>`;
+    if (p>0.55) fr+=`<g fill="#6b4a2b"><circle cx="${_tn(topX-4)}" cy="${_tn(topY+3)}" r="2.6"/><circle cx="${_tn(topX+4)}" cy="${_tn(topY+4)}" r="2.4"/><circle cx="${_tn(topX)}" cy="${_tn(topY+5.5)}" r="2.3"/></g>`;
+    return trunk+rings+fr;
   }
   function _tCactus(cx, gy, p) {
-    const h=40+p*108, w=22+p*15, top=gy-h, col='#5aa15c';
-    let s=`<rect class="tree-canopy" fill="${col}" x="${_tn(cx-w/2)}" y="${_tn(top)}" width="${_tn(w)}" height="${_tn(h)}" rx="${_tn(w/2)}"/>`;
-    if (p>0.42){ const reach=w*0.62, th=w*0.42, ay=top+h*0.36, up=30+p*36;
-      s+=`<rect class="tree-canopy" fill="${col}" x="${_tn(cx-w/2-reach+3)}" y="${_tn(ay)}" width="${_tn(reach)}" height="${_tn(th)}" rx="${_tn(th/2)}"/>`;
-      s+=`<rect class="tree-canopy" fill="${col}" x="${_tn(cx-w/2-reach+3)}" y="${_tn(ay-up)}" width="${_tn(th)}" height="${_tn(up+th)}" rx="${_tn(th/2)}"/>`; }
-    if (p>0.72){ const reach=w*0.55, th=w*0.4, ay=top+h*0.54, up=24+p*30;
-      s+=`<rect class="tree-canopy" fill="${col}" x="${_tn(cx+w/2-3)}" y="${_tn(ay)}" width="${_tn(reach)}" height="${_tn(th)}" rx="${_tn(th/2)}"/>`;
-      s+=`<rect class="tree-canopy" fill="${col}" x="${_tn(cx+w/2-3+reach-th)}" y="${_tn(ay-up)}" width="${_tn(th)}" height="${_tn(up+th)}" rx="${_tn(th/2)}"/>`; }
-    s+=`<line x1="${_tn(cx)}" y1="${_tn(top+w*0.45)}" x2="${_tn(cx)}" y2="${_tn(gy-5)}" stroke="#4c8a4e" stroke-width="1.4" opacity="0.55"/>`;
-    if (p>0.9) s+=`<g fill="#e79ac0"><circle cx="${_tn(cx-3)}" cy="${_tn(top+1)}" r="2.4"/><circle cx="${_tn(cx+3)}" cy="${_tn(top-0.5)}" r="2"/></g>`;
+    const h=40+p*108, w=22+p*15, top=gy-h, col='#5aa15c', lit='#6db06d', dk='#4b8a4e';
+    const rr=(x,y,ww,hh)=>`<rect class="tree-canopy" x="${_tn(x)}" y="${_tn(y)}" width="${_tn(ww)}" height="${_tn(hh)}" rx="${_tn(ww/2)}" fill="${col}"/>`
+      + `<rect x="${_tn(x)}" y="${_tn(y)}" width="${_tn(ww*0.4)}" height="${_tn(hh)}" rx="${_tn(ww*0.2)}" fill="${lit}"/>`
+      + `<rect x="${_tn(x+ww*0.7)}" y="${_tn(y)}" width="${_tn(ww*0.3)}" height="${_tn(hh)}" rx="${_tn(ww*0.15)}" fill="${dk}" opacity="0.7"/>`;
+    let s=rr(cx-w/2,top,w,h);
+    if (p>0.42){ const aw=w*0.5, reach=w*0.62, ay=top+h*0.36, up=30+p*36; s+=rr(cx-w/2-reach+3,ay,reach,aw)+rr(cx-w/2-reach+3,ay-up,aw,up+aw); }
+    if (p>0.72){ const aw=w*0.44, reach=w*0.55, ay=top+h*0.54, up=24+p*30; s+=rr(cx+w/2-3,ay,reach,aw)+rr(cx+w/2-3+reach-aw,ay-up,aw,up+aw); }
+    for (let i=0;i<3;i++){ const xx=cx-w*0.22+i*w*0.22; s+=`<line x1="${_tn(xx)}" y1="${_tn(top+w*0.4)}" x2="${_tn(xx)}" y2="${_tn(gy-6)}" stroke="#3f7642" stroke-width="0.8" opacity="0.5"/>`; }
+    if (p>0.8) s+=`<g><circle cx="${_tn(cx)}" cy="${_tn(top-1)}" r="3.4" fill="#ec7fb0"/><circle cx="${_tn(cx)}" cy="${_tn(top-1)}" r="1.5" fill="#ffd76a"/></g>`;
     return s;
   }
-  function buildTreeSvg(treeType, progress) {
+  // —— 装饰阶梯：树价值越高越华丽（微光/花瓣/萤火/光晕/光环/飞鸟）——
+  function _decoLevel(v){ return v>=220?4 : v>=130?3 : v>=70?2 : v>=40?1 : 0; }
+  function _gradeName(v){ return v>=220?'神木' : v>=130?'参天' : v>=70?'巨树' : v>=40?'大树' : v>=20?'成树' : '幼苗'; }
+  function _canopyCenter(type, p){
+    const gy=214;
+    if (type==='pine'){ const H=42+p*120; return {cx:160, cy:gy-H*0.5, R:(34+p*46)*0.6}; }
+    if (type==='palm'||type==='cactus'){ const h=type==='palm'?40+p*112:40+p*108; return {cx:160, cy:gy-h*0.75, R:28+p*26}; }
+    const h=34+p*98, topY=gy-h, R=22+p*47; return {cx:160, cy:topY-R*0.14, R};
+  }
+  function _decorate(type, p, level, op){
+    if (level<=0) return {behind:'', front:''};
+    const c=_canopyCenter(type,p), cx=c.cx, cy=c.cy, R=c.R;
+    const petCol = type==='sakura' ? '#f2b6cb' : type==='oak' ? '#d9a441' : '#e6c268';
+    const o = op==null ? 1 : op;
+    const ff=(x,y)=>`<circle cx="${_tn(x)}" cy="${_tn(y)}" r="3.6" fill="#ffe6a0" opacity="${_tn(0.25*o)}"/><circle cx="${_tn(x)}" cy="${_tn(y)}" r="1.4" fill="#fff6d8" opacity="${_tn(o)}"/>`;
+    const sp=(x,y,s)=>`<path d="M${_tn(x)} ${_tn(y-s)} Q ${_tn(x)} ${_tn(y)} ${_tn(x+s)} ${_tn(y)} Q ${_tn(x)} ${_tn(y)} ${_tn(x)} ${_tn(y+s)} Q ${_tn(x)} ${_tn(y)} ${_tn(x-s)} ${_tn(y)} Q ${_tn(x)} ${_tn(y)} ${_tn(x)} ${_tn(y-s)} Z" fill="#fff0c0" opacity="${_tn(o)}"/>`;
+    const bd=(x,y,s)=>`<path d="M${_tn(x-s)} ${_tn(y)} Q ${_tn(x-s*0.5)} ${_tn(y-s*0.8)} ${_tn(x)} ${_tn(y-s*0.1)} Q ${_tn(x+s*0.5)} ${_tn(y-s*0.8)} ${_tn(x+s)} ${_tn(y)}" stroke="#4a4a55" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="${_tn(o)}"/>`;
+    const pt=(x,y)=>`<ellipse cx="${_tn(x)}" cy="${_tn(y)}" rx="2.4" ry="1.3" fill="${petCol}" transform="rotate(35 ${_tn(x)} ${_tn(y)})" opacity="${_tn(o)}"/>`;
+    const around=[[cx-R*0.95,cy+R*0.15],[cx+R*0.92,cy-R*0.05],[cx-R*0.35,cy-R*0.85],[cx+R*0.35,cy+R*0.7],[cx+R*1.05,cy+R*0.4],[cx-R*1.05,cy-R*0.35],[cx+R*0.1,cy-R*1.05],[cx-R*0.7,cy+R*0.6]];
+    let behind='', front='';
+    if (level>=2) behind+=`<circle cx="${_tn(cx)}" cy="${_tn(cy)}" r="${_tn(R*1.4)}" fill="#ffe9b0" opacity="${_tn(0.13*o)}"/><circle cx="${_tn(cx)}" cy="${_tn(cy)}" r="${_tn(R*1.12)}" fill="#fff2cf" opacity="${_tn(0.1*o)}"/>`;
+    if (level>=4) behind=`<circle cx="${_tn(cx)}" cy="${_tn(cy)}" r="${_tn(R*1.32)}" fill="none" stroke="#ffe0a0" stroke-width="2.2" opacity="${_tn(0.45*o)}"/><circle cx="${_tn(cx)}" cy="${_tn(cy)}" r="${_tn(R*1.46)}" fill="none" stroke="#ffe0a0" stroke-width="1" opacity="${_tn(0.22*o)}"/>`+behind;
+    const ffN = level>=4?8 : level>=3?6 : level>=2?4 : 0;
+    for (let i=0;i<ffN;i++){ const a=around[i%around.length]; front+=ff(a[0],a[1]); }
+    if (level>=1) front+=pt(cx+R*0.8,cy+R*0.9)+pt(cx-R*0.75,cy+R*1.1)+sp(cx-R*0.55,cy-R*0.7,3.5);
+    if (level>=3) front+=bd(cx-R*1.15,cy-R*0.8,7)+sp(cx+R*0.7,cy-R*0.6,3);
+    if (level>=4) front+=bd(cx+R*0.6,cy-R*1.15,6)+pt(cx+R*0.2,cy+R*1.25)+pt(cx-R*0.2,cy+R*0.95)+sp(cx,cy-R*0.95,4);
+    return {behind, front};
+  }
+  function _treeBody(type, p){
+    if (p < 0.10) return _tSprout(160, 214, p);
+    if (type === 'pine') return _tPine(160, 214, p);
+    if (type === 'sakura') return _tBroad(160, 214, p, _tPAL.sakura);
+    if (type === 'palm') return _tPalm(160, 214, p);
+    if (type === 'cactus') return _tCactus(160, 214, p);
+    return _tBroad(160, 214, p, _tPAL.oak);
+  }
+  function buildTreeSvg(treeType, progress, value) {
     progress = Math.max(0, Math.min(1, progress));
     const cx = 160, gy = 214, p = progress;
     const spread = 24 + p * 60;
-    let body;
-    if (p < 0.10) body = _tSprout(cx, gy, p);
-    else if (treeType === 'pine') body = _tPine(cx, gy, p);
-    else if (treeType === 'sakura') body = _tBroad(cx, gy, p, _tPAL.sakura);
-    else if (treeType === 'palm') body = _tPalm(cx, gy, p);
-    else if (treeType === 'cactus') body = _tCactus(cx, gy, p);
-    else body = _tBroad(cx, gy, p, _tPAL.oak);
-    return `<svg class="tree-svg" viewBox="0 0 320 240">${_tGround(cx, gy, spread)}${body}</svg>`;
+    const body = _treeBody(treeType, p);
+    // 装饰：value 决定等级；生长中(舞台)接近完成才淡入
+    let deco = { behind:'', front:'' };
+    if (typeof value === 'number' && value > 0 && p >= 0.10) {
+      const lvl = _decoLevel(value);
+      const op = p >= 0.85 ? 1 : (p >= 0.6 ? (p-0.6)/0.25 : 0);
+      if (lvl > 0 && op > 0) deco = _decorate(treeType, p, lvl, op);
+    }
+    return `<svg class="tree-svg" viewBox="0 0 320 240">${deco.behind}${_tGround(cx, gy, spread)}${body}${deco.front}</svg>`;
   }
 
   function renderTree(progress, target) {
-    const html = buildTreeSvg(state.treeType, progress);
+    // 生长中的树按「本次专注最终会长成多大」预告装饰（接近完成才淡入）
+    let value;
+    if (state.session && !state.session.isBreak) {
+      const mins = state.session.duration / 60000;
+      if (state.cultivateTargetId) {
+        const tt = state.trees.find(x => x.id === state.cultivateTargetId && x.success);
+        value = tt ? Math.round((treeValue(tt) + mins) * 0.9) : mins;
+      } else {
+        value = mins;
+      }
+    }
+    const html = buildTreeSvg(state.treeType, progress, value);
     if (!target) {
       $treeContainer.innerHTML = html;
       $overlayTreeContainer.innerHTML = html;
@@ -2044,7 +2089,7 @@ theme_color: "#fafaf9"
   }
   const TIER_NAME = { 1: '幼苗', 2: '成树', 3: '大树', 4: '巨树' };
 
-  function buildFieldTreeSvg(type, tier, dead) {
+  function buildFieldTreeSvg(type, tier, dead, value) {
     if (dead) {
       // 枯萎树：所有 tier 都画成枯枝形态
       return `<svg viewBox="0 0 100 100">
@@ -2058,14 +2103,11 @@ theme_color: "#fafaf9"
     // 复用生长树渲染器：tier → 生长进度，等比缩放进 100×100 田格，与舞台上的树同款
     const p = tier >= 4 ? 1.0 : tier === 3 ? 0.78 : tier === 2 ? 0.55 : 0.34;
     const cx = 160, gy = 214, s = 0.42, tx = 50 - cx * s, ty = 92 - gy * s;
-    let body;
-    if (type === 'pine') body = _tPine(cx, gy, p);
-    else if (type === 'sakura') body = _tBroad(cx, gy, p, _tPAL.sakura);
-    else if (type === 'palm') body = _tPalm(cx, gy, p);
-    else if (type === 'cactus') body = _tCactus(cx, gy, p);
-    else body = _tBroad(cx, gy, p, _tPAL.oak);
+    const body = _treeBody(type, p);
     const shadow = `<ellipse cx="${cx}" cy="${_tn(gy+7)}" rx="${_tn(30+p*40)}" ry="${_tn(6+p*4)}" fill="rgba(0,0,0,0.14)"/>`;
-    return `<svg class="tree-svg" viewBox="0 0 100 100"><g transform="translate(${_tn(tx)} ${_tn(ty)}) scale(${s})">${shadow}${body}</g></svg>`;
+    const lvl = typeof value === 'number' ? _decoLevel(value) : 0;   // 高级树带装饰
+    const deco = lvl > 0 ? _decorate(type, p, lvl, 1) : { behind:'', front:'' };
+    return `<svg class="tree-svg" viewBox="0 0 100 100"><g transform="translate(${_tn(tx)} ${_tn(ty)}) scale(${s})">${deco.behind}${shadow}${body}${deco.front}</g></svg>`;
   }
 
   // ============ Timer ============
@@ -2276,7 +2318,7 @@ theme_color: "#fafaf9"
           target.origin = 'cultivate';
           target.endTime = Date.now();
           saveTrees();
-          $timerStatus.textContent = `培养成功：${TREE_NAME[target.type]}长到约 ${newVal} 分（${TIER_NAME[effectiveTier(target)]}）`;
+          $timerStatus.textContent = `培养成功：${TREE_NAME[target.type]}长到约 ${newVal} 分（${_gradeName(newVal)}）`;
         } else {
           $timerStatus.textContent = `专注 ${realMinutes} 分钟完成`;
         }
@@ -2784,12 +2826,12 @@ theme_color: "#fafaf9"
       div.style.height = (rowHeight - 4) + 'px';
       div.style.left = x + 'px';
       div.style.top = y + 'px';
-      div.innerHTML = buildFieldTreeSvg(t.type, tier, !t.success);
+      div.innerHTML = buildFieldTreeSvg(t.type, tier, !t.success, t.success ? treeValue(t) : 0);
       // 工具提示（hover 显示在 tree 上方）
       const date = new Date(t.endTime).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
-      const isRevivedTip = t.success && t.revivalDiscount && t.revivalDiscount < 1;
+      const isRevivedTip = t.success && !t.origin && t.revivalDiscount && t.revivalDiscount < 1;
       const tipText = t.success
-        ? `${TREE_NAME[t.type]}（${TIER_NAME[tier]}${isRevivedTip ? ' · 灌溉复活' : ''}）· ${treeExp(t).toFixed(0)} 经验 · ${date}`
+        ? `${TREE_NAME[t.type]}（${_gradeName(treeValue(t))}${isRevivedTip ? ' · 灌溉复活' : ''}）· ${Math.round(treeValue(t))} 经验 · ${date}`
         : `${TREE_NAME[t.type]}（枯萎）· ${date}`;
       if (_canHover) {
         div.addEventListener('mouseenter', () => { if (!div.classList.contains('dragging')) showTreeTip(div, tipText); });
@@ -3034,7 +3076,7 @@ theme_color: "#fafaf9"
     const isRevived = t.success && !t.origin && t.revivalDiscount && t.revivalDiscount < 1;
     const originName = t.origin === 'merge' ? '合并而成' : t.origin === 'cultivate' ? '培养长成' : '';
     const statusRow = t.success
-      ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${TIER_NAME[tier]}</span>${isRevived ? ' <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">灌溉复活</span>' : ''}${t.origin ? ` <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">${originName}</span>` : ''}</span></div>`
+      ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${_gradeName(treeValue(t))}</span>${isRevived ? ' <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">灌溉复活</span>' : ''}${t.origin ? ` <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">${originName}</span>` : ''}</span></div>`
       : `<div class="td-row"><span class="label">状态</span><span class="value" style="color: var(--ft-danger);">已枯萎</span></div>`;
     const durationRow = t.success
       ? (t.origin
@@ -3178,7 +3220,7 @@ theme_color: "#fafaf9"
     hideDetail();
     renderFieldTabs();
     renderStats();
-    showToast(`合并成一棵约 ${newVal} 分的${TREE_NAME[merged.type]}（${TIER_NAME[effectiveTier(merged)]}）`);
+    showToast(`合并成一棵约 ${newVal} 分的${TREE_NAME[merged.type]}（${_gradeName(newVal)}）`);
   }
   if ($mergeBtn) $mergeBtn.addEventListener('click', mergeSelected);
 
