@@ -872,7 +872,12 @@ permalink: /toolbox/feixingqi/
   function fxqSetDie(value) {
     const v = (value >= 1 && value <= 6) ? value : 6;
     const dots = DIE_PIPS[v].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9.5"/>`).join('');
-    diceDisp.innerHTML = `<svg viewBox="0 0 100 100" fill="#c0392b" aria-hidden="true">${dots}</svg>`;
+    // Pips wear the current player's colour, so the die itself signals whose
+    // turn it is. A faint dark outline keeps a light face (yellow) legible on
+    // the white die. Falls back to red before a game has an active player.
+    const p = currentPlayer();
+    const pipColor = (p && COLOR_INFO[p]) ? COLOR_INFO[p].hex : '#c0392b';
+    diceDisp.innerHTML = `<svg viewBox="0 0 100 100" fill="${pipColor}" stroke="rgba(0,0,0,0.32)" stroke-width="2" aria-hidden="true">${dots}</svg>`;
   }
   // Drive the center dice's visual state (visibility / active / breathing ring).
   // Called at the end of updateStatus, so diceBtn.disabled is already set.
