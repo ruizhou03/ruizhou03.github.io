@@ -178,9 +178,14 @@ theme_color: "#fafaf9"
   }
   .setting-row input[type="number"] {
     width: 88px; padding: 0.35rem 0.5rem; text-align: center;
-    border: 1px solid var(--color-border); border-radius: 6px;
+    border: 1px solid var(--color-border); border-radius: var(--ft-r-xs);
     background: var(--color-bg); color: var(--color-ink);
     font: inherit;
+    -moz-appearance: textfield; appearance: textfield;   /* 去掉上下调节箭头，别遮住占位符 */
+  }
+  .setting-row input[type="number"]::-webkit-outer-spin-button,
+  .setting-row input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
   }
   /* pill 按钮组（主题/计时切换） */
   .setting-row .pill-group {
@@ -225,12 +230,14 @@ theme_color: "#fafaf9"
     color: var(--color-muted);
     margin-right: 0.25rem;
   }
-  /* 主题预览：直接显示主题真实渐变，而非无关 emoji */
+  /* 主题预览：真实渐变底 + 该主题标志性小图案（月/泡/星/日/雨/极光），一眼可辨 */
   .theme-swatch {
-    width: 20px; height: 20px; border-radius: 50%;
-    display: block;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+    position: relative;
+    width: 21px; height: 21px; border-radius: 50%;
+    display: block; overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.16);
   }
+  .theme-swatch svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .theme-swatch-default { background: linear-gradient(180deg, #f0f4ed 0%, #e8e2d4 100%); }
   .theme-swatch-night   { background: linear-gradient(180deg, #2f5030 0%, #0d150a 100%); }
   .theme-swatch-bubbles { background: linear-gradient(180deg, #1a3a5e 0%, #0d2540 100%); }
@@ -238,6 +245,51 @@ theme_color: "#fafaf9"
   .theme-swatch-sunrise { background: linear-gradient(180deg, #d35a45 0%, #e88a5a 45%, #f0c478 100%); }
   .theme-swatch-rain    { background: linear-gradient(180deg, #3a4b60 0%, #15202d 100%); }
   .theme-swatch-aurora  { background: linear-gradient(135deg, #0a1a3e 0%, #1a3a5a 40%, #34c0a0 100%); }
+
+  /* 悬浮备注（主题 / 计时模式等小图标按钮，鼠标停留才出）*/
+  [data-tip] { position: relative; }
+  @media (hover: hover) {
+    [data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute; bottom: calc(100% + 7px); left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20, 25, 30, 0.94); color: #fff;
+      padding: 0.3rem 0.55rem; border-radius: 6px;
+      font-size: var(--ft-fs-cap); line-height: 1.2;
+      white-space: nowrap; pointer-events: none; z-index: 40;
+    }
+    [data-tip]:hover::before {
+      content: ''; position: absolute; bottom: calc(100% + 2px); left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent; border-top-color: rgba(20, 25, 30, 0.94);
+      pointer-events: none; z-index: 40;
+    }
+  }
+  /* 一体式滑动开关（离开页面 严格/宽松）*/
+  .seg-toggle {
+    position: relative; display: inline-flex;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .seg-toggle button {
+    position: relative; z-index: 1;
+    font: inherit; font-size: var(--ft-fs-sm);
+    padding: 0.4rem 0.95rem;
+    border: none; background: transparent;
+    color: var(--color-muted); cursor: pointer;
+    border-radius: 999px; white-space: nowrap;
+    transition: color 0.2s;
+  }
+  .seg-toggle button.active { color: #fff; }
+  .seg-thumb {
+    position: absolute; top: 3px; bottom: 3px; left: 3px; width: 0;
+    border-radius: 999px; background: var(--color-accent);
+    box-shadow: 0 1px 4px rgba(30, 58, 95, 0.25);
+    transition: left 0.24s cubic-bezier(.4,.2,.2,1), width 0.24s cubic-bezier(.4,.2,.2,1);
+    z-index: 0;
+  }
   .setting-row input[type="number"]:focus { outline: none; border-color: var(--color-accent); }
   .setting-row input[type="text"] {
     flex-grow: 1; padding: 0.5rem 0.7rem;
@@ -278,15 +330,15 @@ theme_color: "#fafaf9"
   .duration-row { flex-wrap: nowrap; }
   .duration-row .duration-tabs { flex-wrap: nowrap; gap: 0.35rem; }
   .duration-row .duration-tabs button { flex: 1 1 0; min-width: 0; padding: 0.45rem 0; text-align: center; }
-  .duration-row input[type="number"] { width: 72px; flex-shrink: 0; }
+  .duration-row input[type="number"] { width: 82px; flex-shrink: 0; }
   .duration-row .unit { color: var(--color-light); font-size: var(--ft-fs-sm); flex-shrink: 0; }
 
   /* 更多设置：原生 <details> 折叠，默认收起保持首屏清爽 */
   .more-settings {
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: var(--ft-r-sm);
     background: var(--color-bg);
-    overflow: hidden;
+    /* 不裁剪，否则悬浮备注会被切掉 */
   }
   .more-settings > summary {
     list-style: none;
@@ -582,9 +634,6 @@ theme_color: "#fafaf9"
   @media (hover: hover) {
     .tree-instance:hover { z-index: 5; }
   }
-  @media (hover: hover) {
-    .tree-instance:hover .tree-tooltip { display: block; }
-  }
   .tree-instance.selected { z-index: 6; filter: drop-shadow(0 0 6px rgba(30, 58, 95, 0.5)); }
   .tree-instance.dragging {
     z-index: 10; cursor: grabbing;
@@ -614,12 +663,9 @@ theme_color: "#fafaf9"
     .tree-instance .delete-x:hover { background: #b07c75; transform: scale(1.1); }
   }
 
-  .tree-tooltip {
-    display: none;
-    position: absolute;
-    /* bottom 由 tier 决定（见下方） */
-    left: 50%;
-    transform: translateX(-50%);
+  /* 树悬浮备注：单例 position:fixed，JS 定位并夹在视口内，绝不出框 */
+  .tree-hover-tip {
+    position: fixed; display: none;
     background: rgba(20, 25, 30, 0.92);
     color: #fff;
     padding: 0.45rem 0.7rem;
@@ -629,22 +675,9 @@ theme_color: "#fafaf9"
     pointer-events: none;
     line-height: 1.45;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-    z-index: 8;
+    z-index: 90; opacity: 0; transition: opacity 0.12s;
   }
-  /* 不同 tier 的树视觉顶端不同，tooltip 贴在树顶 */
-  .tree-instance[data-tier="1"] .tree-tooltip { bottom: 42%; }
-  .tree-instance[data-tier="2"] .tree-tooltip { bottom: 55%; }
-  .tree-instance[data-tier="3"] .tree-tooltip { bottom: 65%; }
-  .tree-instance[data-tier="4"] .tree-tooltip { bottom: 78%; }
-  .tree-instance.dead .tree-tooltip { bottom: 50%; }
-  .tree-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%; left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: rgba(20, 25, 30, 0.92);
-  }
+  .tree-hover-tip.show { opacity: 1; }
 
   /* 详情 popover */
   .tree-detail {
@@ -1203,7 +1236,7 @@ theme_color: "#fafaf9"
       <div id="tree-container">
         <!-- tree SVG 动态注入 -->
       </div>
-      <div class="timer-display" id="timer-display">25:00</div>
+      <div class="timer-display" id="timer-display">30:00</div>
       <div class="timer-status" id="timer-status"></div>
     </div>
 
@@ -1211,8 +1244,7 @@ theme_color: "#fafaf9"
     <div class="setting-row duration-row">
       <label>时长</label>
       <div class="duration-tabs">
-        <button type="button" data-min="15">15</button>
-        <button type="button" data-min="25" class="active">25</button>
+        <button type="button" data-min="30" class="active">30</button>
         <button type="button" data-min="50">50</button>
         <button type="button" data-min="90">90</button>
       </div>
@@ -1253,30 +1285,29 @@ theme_color: "#fafaf9"
         </div>
         <div class="setting-row">
           <label>离开页面</label>
-          <div class="duration-tabs" id="strict-tabs" style="flex-grow: 0;">
+          <div class="seg-toggle" id="strict-tabs">
+            <span class="seg-thumb" id="strict-thumb"></span>
             <button type="button" data-strict="1" title="专注时离开本页 / 切走超 15 秒，树会枯萎（手机默认）">树会枯萎</button>
             <button type="button" data-strict="0" title="离开不影响，专注全凭自觉（电脑默认）">不影响</button>
           </div>
-          <span style="flex-grow: 1;"></span>
-          <span class="strict-note" id="strict-note" style="color: var(--color-light); font-size: var(--ft-fs-cap);"></span>
         </div>
         <div class="setting-row">
           <label>主题</label>
           <div class="pill-group" id="theme-bg-pills">
-            <button type="button" data-value="default" title="默认"><span class="theme-swatch theme-swatch-default"></span></button>
-            <button type="button" data-value="night" title="沉浸夜"><span class="theme-swatch theme-swatch-night"></span></button>
-            <button type="button" data-value="bubbles" title="气泡"><span class="theme-swatch theme-swatch-bubbles"></span></button>
-            <button type="button" data-value="stars" title="星空"><span class="theme-swatch theme-swatch-stars"></span></button>
-            <button type="button" data-value="sunrise" title="日出"><span class="theme-swatch theme-swatch-sunrise"></span></button>
-            <button type="button" data-value="rain" title="雨"><span class="theme-swatch theme-swatch-rain"></span></button>
-            <button type="button" data-value="aurora" title="极光"><span class="theme-swatch theme-swatch-aurora"></span></button>
+            <button type="button" data-value="default" data-tip="默认"><span class="theme-swatch theme-swatch-default"></span></button>
+            <button type="button" data-value="night" data-tip="沉浸夜"><span class="theme-swatch theme-swatch-night"><svg viewBox="0 0 22 22"><path d="M13 4a7 7 0 1 0 4.6 12.4A7.5 7.5 0 0 1 13 4z" fill="rgba(246,240,214,0.92)"/></svg></span></button>
+            <button type="button" data-value="bubbles" data-tip="气泡"><span class="theme-swatch theme-swatch-bubbles"><svg viewBox="0 0 22 22"><circle cx="7.5" cy="14" r="2.7" fill="rgba(255,255,255,0.5)"/><circle cx="13" cy="8.4" r="2" fill="rgba(255,255,255,0.45)"/><circle cx="15.6" cy="14.6" r="1.4" fill="rgba(255,255,255,0.4)"/></svg></span></button>
+            <button type="button" data-value="stars" data-tip="星空"><span class="theme-swatch theme-swatch-stars"><svg viewBox="0 0 22 22"><circle cx="7" cy="8" r="1.1" fill="#fff"/><circle cx="14.6" cy="6.4" r="0.8" fill="#fff"/><circle cx="11" cy="13.6" r="1.2" fill="#fff"/><circle cx="16" cy="12.6" r="0.7" fill="#fff"/><circle cx="6" cy="14.2" r="0.7" fill="#fff"/></svg></span></button>
+            <button type="button" data-value="sunrise" data-tip="日出"><span class="theme-swatch theme-swatch-sunrise"><svg viewBox="0 0 22 22"><circle cx="11" cy="18.5" r="5.2" fill="rgba(255,246,205,0.92)"/><g stroke="rgba(255,240,190,0.85)" stroke-width="1" stroke-linecap="round"><line x1="11" y1="8.5" x2="11" y2="11"/><line x1="4.6" y1="12" x2="6.3" y2="13.3"/><line x1="17.4" y1="12" x2="15.7" y2="13.3"/></g></svg></span></button>
+            <button type="button" data-value="rain" data-tip="雨"><span class="theme-swatch theme-swatch-rain"><svg viewBox="0 0 22 22"><g stroke="rgba(203,222,255,0.82)" stroke-width="1.1" stroke-linecap="round"><line x1="7" y1="6" x2="5.3" y2="10.4"/><line x1="12" y1="6" x2="10.3" y2="10.4"/><line x1="17" y1="6" x2="15.3" y2="10.4"/><line x1="9.5" y1="12" x2="7.8" y2="16.4"/><line x1="14.5" y1="12" x2="12.8" y2="16.4"/></g></svg></span></button>
+            <button type="button" data-value="aurora" data-tip="极光"><span class="theme-swatch theme-swatch-aurora"><svg viewBox="0 0 22 22"><path d="M2 13 Q 7 6 12 11 T 22 9" fill="none" stroke="rgba(90,235,190,0.78)" stroke-width="2.2" stroke-linecap="round"/><path d="M2 16.5 Q 8 10.5 13 14 T 22 12.5" fill="none" stroke="rgba(152,122,235,0.62)" stroke-width="1.8" stroke-linecap="round"/></svg></span></button>
           </div>
           <span class="pill-divider"></span>
           <span class="group-label">计时</span>
           <div class="pill-group" id="theme-timer-pills">
-            <button type="button" data-value="countdown" title="倒计时"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12M6 20h12"/><path d="M8 4v3.2a3 3 0 0 0 1 2.2l3 2.6 3-2.6a3 3 0 0 0 1-2.2V4"/><path d="M8 20v-3.2a3 3 0 0 1 1-2.2l3-2.6 3 2.6a3 3 0 0 1 1 2.2V20"/></svg></button>
-            <button type="button" data-value="countup" title="正计时"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5"/><path d="M9.5 2.5h5"/><path d="M18.6 7l1.3-1.3"/></svg></button>
-            <button type="button" data-value="hidden" title="只看树"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 10.7a3 3 0 0 0 4.1 4.1"/><path d="M9.8 5.2A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.2 3.1"/><path d="M6.2 6.3A17 17 0 0 0 2.5 12s3.5 7 9.5 7a10 10 0 0 0 2.2-.3"/></svg></button>
+            <button type="button" data-value="countdown" data-tip="倒计时"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12M6 20h12"/><path d="M8 4v3.2a3 3 0 0 0 1 2.2l3 2.6 3-2.6a3 3 0 0 0 1-2.2V4"/><path d="M8 20v-3.2a3 3 0 0 1 1-2.2l3-2.6 3 2.6a3 3 0 0 1 1 2.2V20"/></svg></button>
+            <button type="button" data-value="countup" data-tip="正计时"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5"/><path d="M9.5 2.5h5"/><path d="M18.6 7l1.3-1.3"/></svg></button>
+            <button type="button" data-value="hidden" data-tip="只看树 · 不显示时间"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 10.7a3 3 0 0 0 4.1 4.1"/><path d="M9.8 5.2A10 10 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.2 3.1"/><path d="M6.2 6.3A17 17 0 0 0 2.5 12s3.5 7 9.5 7a10 10 0 0 0 2.2-.3"/></svg></button>
           </div>
         </div>
       </div>
@@ -1541,7 +1572,7 @@ theme_color: "#fafaf9"
 
   const state = {
     trees: [],          // 已种成的树 / 失败记录
-    duration: 25,       // 当前选定的分钟数
+    duration: 30,       // 当前选定的分钟数
     treeType: 'oak',
     task: '',
     session: null,      // 进行中的 session
@@ -1562,7 +1593,7 @@ theme_color: "#fafaf9"
 
   // 焦点时长 → 推荐休息时长（用户没改时的 default）
   function breakMinutesFor(focusMin) {
-    if (focusMin <= 25) return 5;
+    if (focusMin <= 30) return 5;
     if (focusMin <= 50) return 10;
     if (focusMin <= 90) return 20;
     return Math.round(focusMin / 5);
@@ -2599,6 +2630,31 @@ theme_color: "#fafaf9"
   let openDetailId = null;
   let $snapPreview = null;  // 拖动时的目标 cell 预览
 
+  // 树悬浮备注：单例 tooltip，getBoundingClientRect + 视口夹取，绝不出框
+  const _canHover = !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
+  let _treeTip = null;
+  function showTreeTip(el, text) {
+    if (!_treeTip) {
+      _treeTip = document.createElement('div');
+      _treeTip.className = 'tree-hover-tip';
+      document.body.appendChild(_treeTip);
+    }
+    _treeTip.textContent = text;
+    _treeTip.style.display = 'block';
+    const r = el.getBoundingClientRect();
+    const tw = _treeTip.offsetWidth, th = _treeTip.offsetHeight;
+    let left = r.left + r.width / 2 - tw / 2;
+    left = Math.max(8, Math.min(window.innerWidth - tw - 8, left));   // 水平夹在视口内
+    let top = r.top - th - 8;
+    if (top < 8) top = r.bottom + 8;                                  // 上方放不下 → 放树下方
+    _treeTip.style.left = left + 'px';
+    _treeTip.style.top = top + 'px';
+    _treeTip.classList.add('show');
+  }
+  function hideTreeTip() {
+    if (_treeTip) { _treeTip.classList.remove('show'); _treeTip.style.display = 'none'; }
+  }
+
   // 列数随可用宽度连续计算（手机≈4、平板竖屏≈6-8、平板横屏/桌面≈9-11），
   // 唯一事实源是 fieldWidth——CSS 只管控件尺寸，几何全在这里。
   const TARGET_CELL = 92;   // 目标每格宽度（px）
@@ -2783,10 +2839,10 @@ theme_color: "#fafaf9"
       const tipText = t.success
         ? `${TREE_NAME[t.type]}（${TIER_NAME[tier]}${isRevivedTip ? ' · 灌溉复活' : ''}）· ${treeExp(t).toFixed(0)} 经验 · ${date}`
         : `${TREE_NAME[t.type]}（枯萎）· ${date}`;
-      const tip = document.createElement('div');
-      tip.className = 'tree-tooltip';
-      tip.textContent = tipText;
-      div.appendChild(tip);
+      if (_canHover) {
+        div.addEventListener('mouseenter', () => { if (!div.classList.contains('dragging')) showTreeTip(div, tipText); });
+        div.addEventListener('mouseleave', hideTreeTip);
+      }
       // 编辑模式删除按钮（成功树与枯树都可铲除）
       const deleteX = document.createElement('div');
       deleteX.className = 'delete-x';
@@ -2918,10 +2974,11 @@ theme_color: "#fafaf9"
         if (ev.pointerId !== pointerId) return;
         const dx = ev.clientX - startX;
         const dy = ev.clientY - startY;
-        if (!dragging && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+        if (!dragging && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
           dragging = true;
           div.classList.add('dragging');
           hideDetail();
+          hideTreeTip();
         }
         if (dragging) {
           div.style.left = (startLeft + dx) + 'px';
@@ -3477,11 +3534,21 @@ theme_color: "#fafaf9"
 
   // ============ 专注严格度（离开是否枯萎）============
   const $strictTabs = document.getElementById('strict-tabs');
+  const $strictThumb = document.getElementById('strict-thumb');
+  // 把滑块移到当前选中项上（折叠面板展开后才有真实尺寸，故也在 toggle/resize 时重定位）
+  function positionStrictThumb() {
+    if (!$strictTabs || !$strictThumb) return;
+    const activeBtn = $strictTabs.querySelector('button.active');
+    if (!activeBtn || !activeBtn.offsetWidth) return;
+    $strictThumb.style.left = activeBtn.offsetLeft + 'px';
+    $strictThumb.style.width = activeBtn.offsetWidth + 'px';
+  }
   function applyStrictUI() {
     if ($strictTabs) {
       $strictTabs.querySelectorAll('button').forEach(b => {
         b.classList.toggle('active', (b.dataset.strict === '1') === state.strict);
       });
+      positionStrictThumb();
     }
     // 首屏说明随模式更新（浏览器不支持可见性检测时另说）
     if ($focusWarning) {
@@ -3502,6 +3569,10 @@ theme_color: "#fafaf9"
         applyStrictUI();
       });
     });
+    // 展开「更多设置」后测量重定位滑块（折叠时子元素无尺寸）
+    const $moreSettings = document.querySelector('.more-settings');
+    if ($moreSettings) $moreSettings.addEventListener('toggle', () => { if ($moreSettings.open) positionStrictThumb(); });
+    window.addEventListener('resize', positionStrictThumb);
   }
 
   // ============ Init ============
