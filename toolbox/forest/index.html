@@ -2081,7 +2081,7 @@ theme_color: "#fafaf9"
     if (p>0.8) s+=`<g><circle cx="${_tn(cx)}" cy="${_tn(top-1)}" r="3.4" fill="#ec7fb0"/><circle cx="${_tn(cx)}" cy="${_tn(top-1)}" r="1.5" fill="#ffd76a"/></g>`;
     return s;
   }
-  // —— 装饰阶梯：树价值越高越华丽（微光/花瓣/萤火/光晕/光环/飞鸟）——
+  // —— 装饰阶梯：树价值越高越华丽（果实/地花/灯串/小鸟/蝴蝶/落瓣，逐级叠加；实心装点，无光晕光环）——
   function _decoLevel(v){ return v>=220?4 : v>=130?3 : v>=70?2 : v>=40?1 : 0; }
   function _gradeName(v){ return v>=220?'神木' : v>=130?'参天' : v>=70?'巨树' : v>=40?'大树' : v>=20?'成树' : '幼苗'; }
   function _canopyCenter(type, p){
@@ -2090,24 +2090,110 @@ theme_color: "#fafaf9"
     if (type==='palm'||type==='cactus'){ const h=type==='palm'?40+p*112:40+p*108; return {cx:160, cy:gy-h*0.75, R:28+p*26}; }
     const h=34+p*98, topY=gy-h, R=22+p*47; return {cx:160, cy:topY-R*0.14, R};
   }
-  function _decorate(type, p, level, op){
+  // species 果实/花
+  function _dFruit(type, x, y){
+    x=_tn(x); y=_tn(y);
+    if (type==='sakura'){
+      let g='';
+      for(let k=0;k<5;k++){ const a=k/5*Math.PI*2 - Math.PI/2; const px=x+Math.cos(a)*3.4, py=y+Math.sin(a)*3.4;
+        g+=`<ellipse cx="${_tn(px)}" cy="${_tn(py)}" rx="2.5" ry="3.5" fill="#fff2f6" transform="rotate(${_tn(a*180/Math.PI+90)} ${_tn(px)} ${_tn(py)})"/>`
+         +`<ellipse cx="${_tn(px)}" cy="${_tn(py+0.6)}" rx="1" ry="1.6" fill="#f6a9c6" transform="rotate(${_tn(a*180/Math.PI+90)} ${_tn(px)} ${_tn(py)})" opacity="0.7"/>`; }
+      return g+`<circle cx="${x}" cy="${y}" r="1.8" fill="#f28aad"/><circle cx="${x}" cy="${y}" r="0.9" fill="#ffdf7a"/>`;
+    }
+    if (type==='oak'){ // 金橡果
+      return `<ellipse cx="${x}" cy="${_tn(y+1)}" rx="3.5" ry="4.6" fill="#d9a441"/>`
+        +`<ellipse cx="${_tn(x-1)}" cy="${_tn(y+0.6)}" rx="1.1" ry="1.9" fill="#f2d488" opacity="0.8"/>`
+        +`<path d="M${_tn(x-3.7)} ${_tn(y-1.5)} a3.7 3 0 0 1 7.4 0 Z" fill="#8a6a3a"/>`
+        +`<path d="M${x} ${_tn(y-4.3)} l0 -2.2" stroke="#8a6a3a" stroke-width="1.1" stroke-linecap="round"/>`;
+    }
+    if (type==='pine'){ // 松果
+      let g=`<ellipse cx="${x}" cy="${y}" rx="3" ry="4.6" fill="#8a5a34"/>`;
+      for(let r=0;r<3;r++) g+=`<path d="M${_tn(x-2.8)} ${_tn(y-3.2+r*3)} q 2.8 1.7 5.6 0" stroke="#66421f" stroke-width="1" fill="none"/>`;
+      return g;
+    }
+    if (type==='cactus'){ // 仙人掌粉花
+      let g='';
+      for(let k=0;k<5;k++){ const a=k/5*Math.PI*2; g+=`<ellipse cx="${_tn(x+Math.cos(a)*2.6)}" cy="${_tn(y+Math.sin(a)*2.6)}" rx="1.7" ry="2.6" fill="#ec7fb0" transform="rotate(${_tn(a*180/Math.PI)} ${_tn(x+Math.cos(a)*2.6)} ${_tn(y+Math.sin(a)*2.6)})"/>`; }
+      return g+`<circle cx="${x}" cy="${y}" r="1.6" fill="#ffd76a"/>`;
+    }
+    // palm：椰枣/浆果串
+    return `<g fill="#e0603f"><circle cx="${_tn(x-2)}" cy="${y}" r="1.8"/><circle cx="${_tn(x+2)}" cy="${y}" r="1.8"/><circle cx="${x}" cy="${_tn(y-2)}" r="1.8"/><circle cx="${x}" cy="${_tn(y+1.6)}" r="1.7"/></g>`
+      +`<circle cx="${_tn(x-2.6)}" cy="${_tn(y-0.6)}" r="0.6" fill="#f2a58c"/>`;
+  }
+  // 树根小花（茎+叶+5瓣+花心）
+  function _dGFlower(x, gy, col){
+    x=_tn(x); const fy=_tn(gy-6.5);
+    let g=`<path d="M${x} ${_tn(gy)} Q ${_tn(x-1.2)} ${_tn(gy-4)} ${x} ${_tn(fy+2)}" stroke="#4f8a3e" stroke-width="1.3" fill="none" stroke-linecap="round"/>`;
+    g+=`<path d="M${x} ${_tn(gy-3)} q -3.4 -0.6 -4.4 -3 q 3.4 0.2 4.4 3 Z" fill="#5c9145"/>`;
+    for(let k=0;k<5;k++){ const a=k/5*Math.PI*2 - Math.PI/2; g+=`<circle cx="${_tn(x+Math.cos(a)*2.5)}" cy="${_tn(fy+Math.sin(a)*2.5)}" r="2" fill="${col}"/>`; }
+    return g+`<circle cx="${x}" cy="${fy}" r="1.5" fill="#ffd76a"/>`;
+  }
+  // 暖色灯串：一条垂线挂在树冠前，nb 个暖灯泡（实心，非光晕）
+  function _dGarland(cx, cy, R, nb){
+    const x0=cx-R*0.86, x1=cx+R*0.86, ytop=cy-R*0.1, ctrlY=cy+R*0.38;
+    let g=`<path d="M${_tn(x0)} ${_tn(ytop)} Q ${_tn(cx)} ${_tn(ctrlY)} ${_tn(x1)} ${_tn(ytop)}" stroke="#4a3f30" stroke-width="1.1" fill="none" opacity="0.7"/>`;
+    const cols=['#ffcf6b','#ff9d5c','#ffe19a','#ffb765'];
+    for(let i=0;i<nb;i++){ const t=(i+0.5)/nb;
+      const bx=(1-t)*(1-t)*x0+2*(1-t)*t*cx+t*t*x1;
+      const by=(1-t)*(1-t)*ytop+2*(1-t)*t*ctrlY+t*t*ytop;
+      const hy=by+3.4, col=cols[i%cols.length];
+      g+=`<path d="M${_tn(bx)} ${_tn(by-0.5)} l0 2.6" stroke="#4a3f30" stroke-width="0.8"/>`;
+      g+=`<circle cx="${_tn(bx)}" cy="${_tn(hy)}" r="2.6" fill="${col}"/>`;
+      g+=`<circle cx="${_tn(bx-0.8)}" cy="${_tn(hy-0.8)}" r="0.85" fill="#fff6de"/>`;
+    }
+    return g;
+  }
+  // 枝头小鸟（蓝背橙腹知更鸟）
+  function _dBird(x, y, faceLeft){
+    const d = faceLeft ? -1 : 1; x=_tn(x); y=_tn(y);
+    let g=`<ellipse cx="${x}" cy="${y}" rx="6" ry="4.3" fill="#4a72a8" transform="rotate(${faceLeft?-16:16} ${x} ${y})"/>`;
+    g+=`<path d="M${_tn(x-d*5)} ${_tn(y+1.5)} l${_tn(-d*6.5)} 1.6 l${_tn(d*1.2)} 2.2 Z" fill="#3f639a"/>`;
+    g+=`<ellipse cx="${_tn(x+d*1.6)}" cy="${_tn(y+1.6)}" rx="3.3" ry="2.9" fill="#e8a24d"/>`;
+    g+=`<circle cx="${_tn(x+d*4.7)}" cy="${_tn(y-3)}" r="3.3" fill="#3f639a"/>`;
+    g+=`<path d="M${_tn(x+d*7.6)} ${_tn(y-3.2)} l${_tn(d*3)} 0.7 l${_tn(-d*2.4)} 1.5 Z" fill="#f0a83c"/>`;
+    g+=`<circle cx="${_tn(x+d*5.3)}" cy="${_tn(y-3.5)}" r="0.9" fill="#17202e"/>`;
+    g+=`<path d="M${_tn(x-d*0.5)} ${_tn(y-1.5)} q ${_tn(-d*5)} -1.5 ${_tn(-d*7.5)} 2.5 q ${_tn(d*4)} 1.2 ${_tn(d*6.8)} -1 Z" fill="#33507e"/>`;
+    return g;
+  }
+  // 蝴蝶
+  function _dButterfly(x, y, col, dk){
+    x=_tn(x); y=_tn(y);
+    const w=(dx,dy,rx,ry,rot)=>`<ellipse cx="${_tn(x+dx)}" cy="${_tn(y+dy)}" rx="${rx}" ry="${ry}" fill="${col}" transform="rotate(${rot} ${_tn(x+dx)} ${_tn(y+dy)})"/>`;
+    return `<g>${w(-2.6,-1.4,2.9,3.7,-28)}${w(2.6,-1.4,2.9,3.7,28)}${w(-2.1,2.1,2.2,2.7,-24)}${w(2.1,2.1,2.2,2.7,24)}`
+      +`<line x1="${x}" y1="${_tn(y-3.2)}" x2="${x}" y2="${_tn(y+3.2)}" stroke="${dk||'#3a2f28'}" stroke-width="1.1" stroke-linecap="round"/>`
+      +`<path d="M${x} ${_tn(y-3.2)} q -1.6 -2 -2.6 -1.8 M${x} ${_tn(y-3.2)} q 1.6 -2 2.6 -1.8" stroke="${dk||'#3a2f28'}" stroke-width="0.6" fill="none" stroke-linecap="round"/></g>`;
+  }
+  // 落瓣
+  function _dPetal(x, y, col, rot){
+    return `<ellipse cx="${_tn(x)}" cy="${_tn(y)}" rx="2.6" ry="1.4" fill="${col}" transform="rotate(${rot} ${_tn(x)} ${_tn(y)})" opacity="0.9"/>`;
+  }
+  function _decorate(type, p, level){
     if (level<=0) return {behind:'', front:''};
-    const c=_canopyCenter(type,p), cx=c.cx, cy=c.cy, R=c.R;
-    const petCol = type==='sakura' ? '#f2b6cb' : type==='oak' ? '#d9a441' : '#e6c268';
-    const o = op==null ? 1 : op;
-    const ff=(x,y)=>`<circle cx="${_tn(x)}" cy="${_tn(y)}" r="3.6" fill="#ffe6a0" opacity="${_tn(0.25*o)}"/><circle cx="${_tn(x)}" cy="${_tn(y)}" r="1.4" fill="#fff6d8" opacity="${_tn(o)}"/>`;
-    const sp=(x,y,s)=>`<path d="M${_tn(x)} ${_tn(y-s)} Q ${_tn(x)} ${_tn(y)} ${_tn(x+s)} ${_tn(y)} Q ${_tn(x)} ${_tn(y)} ${_tn(x)} ${_tn(y+s)} Q ${_tn(x)} ${_tn(y)} ${_tn(x-s)} ${_tn(y)} Q ${_tn(x)} ${_tn(y)} ${_tn(x)} ${_tn(y-s)} Z" fill="#fff0c0" opacity="${_tn(o)}"/>`;
-    const bd=(x,y,s)=>`<path d="M${_tn(x-s)} ${_tn(y)} Q ${_tn(x-s*0.5)} ${_tn(y-s*0.8)} ${_tn(x)} ${_tn(y-s*0.1)} Q ${_tn(x+s*0.5)} ${_tn(y-s*0.8)} ${_tn(x+s)} ${_tn(y)}" stroke="#4a4a55" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="${_tn(o)}"/>`;
-    const pt=(x,y)=>`<ellipse cx="${_tn(x)}" cy="${_tn(y)}" rx="2.4" ry="1.3" fill="${petCol}" transform="rotate(35 ${_tn(x)} ${_tn(y)})" opacity="${_tn(o)}"/>`;
-    const around=[[cx-R*0.95,cy+R*0.15],[cx+R*0.92,cy-R*0.05],[cx-R*0.35,cy-R*0.85],[cx+R*0.35,cy+R*0.7],[cx+R*1.05,cy+R*0.4],[cx-R*1.05,cy-R*0.35],[cx+R*0.1,cy-R*1.05],[cx-R*0.7,cy+R*0.6]];
+    const c=_canopyCenter(type,p), cx=c.cx, cy=c.cy, R=c.R, gy=214;
+    const petCol = type==='sakura' ? '#f4b8cf' : type==='oak' ? '#e6c06a' : type==='cactus' ? '#ec7fb0' : type==='palm' ? '#ff9b6b' : '#e0a24a';
+    const gcols=['#ef8fb0','#ffcf6b','#8fb8e6','#c79be0','#f7f3ea'];
+    const fpts=[[cx-R*0.44,cy+R*0.12],[cx+R*0.5,cy-R*0.02],[cx-R*0.02,cy-R*0.42],[cx+R*0.22,cy+R*0.46],[cx-R*0.55,cy-R*0.28],[cx+R*0.12,cy-R*0.64]];
     let behind='', front='';
-    if (level>=2) behind+=`<circle cx="${_tn(cx)}" cy="${_tn(cy)}" r="${_tn(R*1.4)}" fill="#ffe9b0" opacity="${_tn(0.13*o)}"/><circle cx="${_tn(cx)}" cy="${_tn(cy)}" r="${_tn(R*1.12)}" fill="#fff2cf" opacity="${_tn(0.1*o)}"/>`;
-    if (level>=4) behind=`<circle cx="${_tn(cx)}" cy="${_tn(cy)}" r="${_tn(R*1.32)}" fill="none" stroke="#ffe0a0" stroke-width="2.2" opacity="${_tn(0.45*o)}"/><circle cx="${_tn(cx)}" cy="${_tn(cy)}" r="${_tn(R*1.46)}" fill="none" stroke="#ffe0a0" stroke-width="1" opacity="${_tn(0.22*o)}"/>`+behind;
-    const ffN = level>=4?8 : level>=3?6 : level>=2?4 : 0;
-    for (let i=0;i<ffN;i++){ const a=around[i%around.length]; front+=ff(a[0],a[1]); }
-    if (level>=1) front+=pt(cx+R*0.8,cy+R*0.9)+pt(cx-R*0.75,cy+R*1.1)+sp(cx-R*0.55,cy-R*0.7,3.5);
-    if (level>=3) front+=bd(cx-R*1.15,cy-R*0.8,7)+sp(cx+R*0.7,cy-R*0.6,3);
-    if (level>=4) front+=bd(cx+R*0.6,cy-R*1.15,6)+pt(cx+R*0.2,cy+R*1.25)+pt(cx-R*0.2,cy+R*0.95)+sp(cx,cy-R*0.95,4);
+    // 果实/花（lv1 三颗，lv3+ 五颗）
+    const nf = level>=3 ? 5 : 3;
+    for(let i=0;i<nf;i++) front+=_dFruit(type, fpts[i][0], fpts[i][1]);
+    // 树根小花（lv1:2 · lv2:3 · lv4:5）
+    const gN = level>=4 ? 5 : level>=2 ? 3 : 2;
+    const gxs=[cx-R*0.85, cx+R*0.72, cx-R*0.3, cx+R*0.28, cx-R*1.2, cx+R*1.15];
+    for(let i=0;i<gN;i++) front+=_dGFlower(gxs[i], gy + (i%2?1.5:0), gcols[i%gcols.length]);
+    // 灯串（lv2 起，lv4 更密）—— 挂在树冠前
+    if (level>=2) front+=_dGarland(cx, cy, R, level>=4 ? 7 : 4);
+    // 小鸟（lv3 起，栖在树冠右上）
+    if (level>=3) front+=_dBird(cx+R*0.5, cy-R*0.52, false);
+    // 蝴蝶（lv2:1 · lv3:2 · lv4:3）
+    const bN = level>=4 ? 3 : level>=3 ? 2 : level>=2 ? 1 : 0;
+    const bpts=[[cx-R*1.2, cy+R*0.1, '#e59a4a', '#7a4a1f'],[cx+R*1.15, cy-R*0.35, '#b28fd6', '#4a2f6a'],[cx-R*0.2, cy-R*1.05, '#7ec6c0', '#2f5a56']];
+    for(let i=0;i<bN;i++) front+=_dButterfly(bpts[i][0], bpts[i][1], bpts[i][2], bpts[i][3]);
+    // 落瓣纷飞（lv4）
+    if (level>=4){
+      const pp=[[cx-R*0.8,cy+R*0.7,20],[cx+R*0.9,cy+R*0.4,-35],[cx-R*0.3,cy+R*1.1,50],[cx+R*0.4,cy+R*0.95,-15],[cx-R*1.0,cy+R*0.2,30],[cx+R*1.1,cy+R*0.75,-50],[cx+R*0.05,cy+R*1.3,10]];
+      for(const q of pp) front+=_dPetal(q[0], q[1], petCol, q[2]);
+    }
     return {behind, front};
   }
   function _treeBody(type, p){
@@ -2123,14 +2209,16 @@ theme_color: "#fafaf9"
     const cx = 160, gy = 214, p = progress;
     const spread = 24 + p * 60;
     const body = _treeBody(treeType, p);
-    // 装饰：value 决定等级；生长中(舞台)接近完成才淡入
-    let deco = { behind:'', front:'' };
+    // 装饰：value 决定等级；生长中(舞台)接近完成才整体淡入
+    let deco = { behind:'', front:'' }, dop = 1;
     if (typeof value === 'number' && value > 0 && p >= 0.10) {
       const lvl = _decoLevel(value);
-      const op = p >= 0.85 ? 1 : (p >= 0.6 ? (p-0.6)/0.25 : 0);
-      if (lvl > 0 && op > 0) deco = _decorate(treeType, p, lvl, op);
+      dop = p >= 0.85 ? 1 : (p >= 0.6 ? (p-0.6)/0.25 : 0);
+      if (lvl > 0 && dop > 0) deco = _decorate(treeType, p, lvl);
     }
-    return `<svg class="tree-svg" viewBox="0 0 320 240">${deco.behind}${_tGround(cx, gy, spread)}${body}${deco.front}</svg>`;
+    const wrapB = deco.behind && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.behind}</g>` : '';
+    const wrapF = deco.front && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.front}</g>` : '';
+    return `<svg class="tree-svg" viewBox="0 0 320 240">${wrapB}${_tGround(cx, gy, spread)}${body}${wrapF}</svg>`;
   }
 
   function renderTree(progress, target) {
@@ -2181,7 +2269,7 @@ theme_color: "#fafaf9"
     const body = _treeBody(type, p);
     const shadow = `<ellipse cx="${cx}" cy="${_tn(gy+7)}" rx="${_tn(30+p*40)}" ry="${_tn(6+p*4)}" fill="rgba(0,0,0,0.14)"/>`;
     const lvl = typeof value === 'number' ? _decoLevel(value) : 0;   // 高级树带装饰
-    const deco = lvl > 0 ? _decorate(type, p, lvl, 1) : { behind:'', front:'' };
+    const deco = lvl > 0 ? _decorate(type, p, lvl) : { behind:'', front:'' };
     return `<svg class="tree-svg" viewBox="0 0 100 100"><g transform="translate(${_tn(tx)} ${_tn(ty)}) scale(${s})">${deco.behind}${shadow}${body}${deco.front}</g></svg>`;
   }
 
