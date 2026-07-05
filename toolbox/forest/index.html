@@ -876,13 +876,11 @@ theme_color: "#fafaf9"
     .tree-svg { width: min(150px, 40vw); height: min(150px, 40vw); }
     .timer-display { font-size: 2.1rem; margin: 0.6rem 0 0.3rem; }
     .stage { padding: 1.1rem 0.9rem 1rem; }
-    .focus-overlay svg { width: min(220px, 56vw); height: min(220px, 56vw); }
     .focus-overlay .timer-big { font-size: 3rem; }
     .ft-wrap input[type="number"], .ft-wrap input[type="text"] { font-size: 16px; }
   }
   /* 矮横屏（手机横放 / 平板横屏）：按视口高度收缩专注遮罩，保证树+时间+按钮一屏放下 */
   @media (orientation: landscape) and (max-height: 600px) {
-    .focus-overlay svg { width: min(150px, 24vh); height: min(150px, 24vh); }
     .focus-overlay .timer-big { font-size: 2.4rem; margin: 0.4rem 0 0.3rem; }
     .focus-overlay .focus-warn { display: none; }
     .focus-overlay .focus-tag { margin-bottom: 0.8rem; }
@@ -1036,6 +1034,17 @@ theme_color: "#fafaf9"
   }
 
   /* 树位置 */
+  /* —— 全树「微风轻摆」idle 动画：绕树干根部极克制地往复，无缝，缩放无关（预览=线上）——
+        田地每棵按 value 派生的时长/相位错峰，整片森林像被风拂过而非齐刷刷 */
+  .tree-sway { transform-box: fill-box; transform-origin: 50% 90%; }
+  @media (prefers-reduced-motion: no-preference) {
+    .tree-sway {
+      animation-name: treeSway; animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite; animation-direction: alternate; animation-duration: 5.6s;
+    }
+  }
+  @keyframes treeSway { from { transform: rotate(-1.15deg); } to { transform: rotate(1.15deg); } }
+
   /* —— 沉浸布局：计时在顶、树种在前景地面带上 —— */
   .overlay-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 22vh; z-index: 1; pointer-events: none; overflow: hidden; }
   #overlay-ground svg { width: 100%; height: 100%; display: block; }
@@ -1066,7 +1075,9 @@ theme_color: "#fafaf9"
   /* 计时风格 */
   .focus-overlay.timer-hidden .timer-big { display: none; }
   .focus-overlay.open { display: flex; }
-  .focus-overlay svg { width: min(280px, 60vw); height: min(280px, 60vw); }
+  /* 沉浸布局下场景(#overlay-scene)/地面(#overlay-ground)/树(#overlay-tree-container)各有独立作用域的 SVG 尺寸规则；
+     不能再用 `.focus-overlay svg` 一刀切——它会以同等特指度覆盖 `.overlay-scene svg{width:100%}`，
+     把本该铺满整屏的场景压成左上角一个 min(280px,60vw) 的小方块。 */
   /* 全屏专注区统一垂直节奏：树 →(1.5)→ 计时 →(0.5)→ 任务 →(1.5)→ 提示 →(2)→ 动作 */
   .focus-overlay .timer-big {
     font-family: var(--font-display);
@@ -4150,7 +4161,7 @@ return deco_cactus;
     const wrapB = deco.behind && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.behind}</g>` : '';
     const wrapF = deco.front && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.front}</g>` : '';
     const petals = (treeType === 'sakura' && p >= 0.5) ? _sakuraFall() : '';
-    return `<svg class="tree-svg" viewBox="0 0 320 240">${wrapB}${_tGround(cx, gy, spread)}${body}${wrapF}${petals}</svg>`;
+    return `<svg class="tree-svg" viewBox="0 0 320 240"><g class="tree-sway" style="animation-delay:-2.1s">${wrapB}${_tGround(cx, gy, spread)}${body}${wrapF}</g>${petals}</svg>`;
   }
 
   function renderTree(progress, target) {
@@ -4202,7 +4213,11 @@ return deco_cactus;
     const shadow = `<ellipse cx="${cx}" cy="${_tn(gy+7)}" rx="${_tn(30+p*40)}" ry="${_tn(6+p*4)}" fill="rgba(0,0,0,0.14)"/>`;
     const lvl = typeof value === 'number' ? _decoLevel(value) : 0;   // 高级树带装饰
     const deco = lvl > 0 ? _decorate(type, p, lvl) : { behind:'', front:'' };
-    return `<svg class="tree-svg" viewBox="0 0 100 100"><g transform="translate(${_tn(tx)} ${_tn(ty)}) scale(${s})">${deco.behind}${shadow}${body}${deco.front}</g></svg>`;
+    // 田地每棵按 value 派生错峰的微风轻摆(确定性→预览与线上一致)
+    const _sv = (typeof value === 'number' && value > 0) ? value : (tier * 37 + 11);
+    const swd = (5.2 + ((_sv * 7) % 30) / 30 * 2).toFixed(1);
+    const swdl = ((_sv * 0.17) % 6).toFixed(1);
+    return `<svg class="tree-svg" viewBox="0 0 100 100"><g transform="translate(${_tn(tx)} ${_tn(ty)}) scale(${s})"><g class="tree-sway" style="animation-duration:${swd}s;animation-delay:-${swdl}s">${deco.behind}${shadow}${body}${deco.front}</g></g></svg>`;
   }
 
   // ============ Timer ============
