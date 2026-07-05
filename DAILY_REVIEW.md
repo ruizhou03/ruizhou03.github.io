@@ -1,3 +1,89 @@
+## 2026-07-05
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生。距 7-04 巡检共 **7 个 commit**（`cdac174` 之后 → `a17c509` 为止），**0 文章 / 0 IA / 0 `_data/` / 0 `_config.yml` / 0 `_notes/` / 0 `files/` 改动**（`git diff --stat cdac174..HEAD -- '*.md' '_data/*' '_config.yml' '_notes/**' 'files/**'` 空）——7 个 commit 全部锁在 3 个前端文件里：`toolbox/forest/index.html`（+602 / -429 行 / 5 commit）、`toolbox/connect4/index.html`（1 commit 换色）、`toolbox/feixingqi/index.html`（1 commit 骰子色）。三条主线：
+>
+> ① **`toolbox/forest/` 种树专注计时器视觉与玩法再迭代 5 连**（`fe9ce0b` → `ff042a5` → `e57a07c` → `193e414` → `a17c509`）——承接 7-04 首日 10 连产品化后的第二波打磨：(a) **主题色板辨识度 + 悬浮备注 + 树提示不出框 + 时长/自定义/严格开关改良**（fe9ce0b）—— 每种主题（森林 / 草原 / 湖畔 / 竹林 / 沙漠 / 雪原 / 樱花 / 秋叶）拉开辨识色差、田地上的树支持悬浮显示备注、树 popover 位置约束不再溢出容器、时长选择器与自定义分钟数交互对齐、严格度切换 UI 微调；(b) **重做生长树美术**（ff042a5）—— 五种树（松 / 枫 / 樱 / 竹 / 沙）的初芽 → 幼树 → 成树三阶段美术全部重画；(c) **落地所选方案——双叶苗 logo / 沉浸舞台 / 草坡田地 + 田地树同款重做**（e57a07c）—— logo 换成双叶苗 SVG、专注舞台改为沉浸背景、田地改草坡渐变、田地上的树用同款矢量重画；(d) **新玩法「合并 / 培养」——把小树整合成参天巨树**（193e414）—— 新增合并玩法，把多棵小树合成一棵参天巨树，是 forest 首个内容层玩法而非纯 UI 迭代；(e) **图标与树木美术 v3——图标重做 + 五树精修 + 高级树装饰阶梯**（a17c509）—— 应用图标（apple-touch / 192 / 512 / maskable）配套重做、五树精修 + 高级树多级装饰阶梯（花 / 果 / 星饰）。5 天内 forest 已从「首发 10 连产品化」→「玩法层扩展 5 连」，工具已具备 iOS / iPad / macOS / 安卓 / 桌面五端 PWA + 内容玩法 + 视觉主题体系的完整个人产品形态。 ② **`toolbox/connect4` 四子棋棋盘换成奶油浅色系贴合站点奶油底**（`c864aa2`）—— 承接 7-04 的藏蓝棋盘 → 奶油浅板（#f5efe3 → #e6dcc8）+ 凹洞改暖色「浅杯」（顶部暖阴影 + 底部受光）、AI 棋子暖金 → 琥珀金（#cf8a20）+ 在浅板上对比更足、获胜连线在浅板上白线不清 → 藏蓝发光线 + 藏蓝光环、hover 列高亮浅板用暖色压深、卡片投影藏蓝 → 暖棕（更浮）、深色模式给暖调不刺眼的深棕板对应、分享结算图同步；行为回归 DOM 模拟 11 项全绿，异步竞态既修 bug 未回退。是 7-04 视觉重做后又一次色板重定向——从「藏蓝深板厚重工业感」改为「奶油浅板贴合站点整体温润奶油底」。 ③ **`toolbox/feixingqi` 中央骰子点数改用当前玩家颜色兼作轮次提示**（`36ea411`）—— 轮到谁掷骰、骰面点数就用谁的座位色（红 / 黄 / 蓝 / 绿），配合原有的呼吸光环一起提醒当前是谁的回合；给点子加一圈极淡描边保证浅色的黄点在白骰面上依然清晰；掷骰翻滚动画与落定结果都跟随当前玩家色。是一次小而准的可用性微调，属"三秒钟看清是谁的回合"的直觉性设计。
+>
+> `bundle install` ✅ + `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（12.957 s cold build）。`_site/` 顶层仍 **26 项**（与 7-04 / 7-03 / 7-02 完全一致：`CNAME` `account` `admin` `admin-manifest.json` `assets` `assistant-fulltext.json` `assistant-index.json` `en` `essays` `feed.xml` `files` `flight` `google5306…` `index.html` `life` `manifest.json` `notes` `pdfjs` `redirects.json` `research` `robots.txt` `search.json` `sitemap.xml` `sw.js` `toolbox` `zh`），未新增 / 未删减顶级路径。`_site/toolbox/forest/index.html` 249.2 KB（源 163.5 KB + Jekyll layout 注入）、`_site/toolbox/connect4/index.html` 124.7 KB、`_site/toolbox/feixingqi/index.html` 213.2 KB 三处均渲染完整；`_site/toolbox/index.html` grep `/toolbox/forest/` 命中 2 次（生活工具组 tool-card + bulk-offline shortcut）；`_site/sitemap.xml` + `_site/search.json` forest / connect4 / feixingqi 各命中——搜索体系闭环。**未发现 `_flight-staging/` / `_paid/` 泄露**（`find _site -path "*_flight-staging*" -o -path "*_paid*"` 空）。**代码质量核对**：改动集中于 3 个前端文件，HTML 结构 parser 检查（`html.parser` 栈跟踪）forest / connect4 / feixingqi 三处 open tags 全部归零 ✅；`grep "console.log\|debugger\|TODO\|FIXME\|XXX"` 仅 feixingqi:L2932 一条邀请链接注释（`Opening a ?room=XXXX invite link ...`，XXXX 为占位符）、多处 `typeof x !== 'undefined'` 是合法 JS 存在性检查，均无新增 debug 遗留。**今日 0 项自动修复**——7 个 commit 全部由站主亲手打磨（forest 玩法 + 视觉 5 连深化 / connect4 换色 / feixingqi 骰色），属工具设计取向 / 交互决策 / 视觉品味范畴，一律不属本 agent 应擅动的"小而无争议"改动；build 健康、`_site/` 结构无异常、workspace 干净（`git status` clean、`git ls-files --others --exclude-standard` 空、无编辑器 / 系统垃圾 / `* 2.*` 副本）、无任何低风险小修可做。**P1 队列**：唯一 P1 仍是承接 6-13 的 `_config.yml`.`study_order` 未列 `interm-econometrics`（今日**第 23 日承接**），`_notes/study/interm-econometrics/interm-econometrics-2023.md` 仍在，`comm -23 <(ls _notes/study/) <(sed -n '/^study_order:/,/^[a-z]/p' _config.yml | grep '^  - ')` 差集仍只此一条——纯 IA 设计判断，不擅动。**P2 队列**：承接 7-04 全部 P2（含 forest / pet 真机验收、picker 一周 6 commit 手感回归、connect4 藏蓝配色抽 palette、chess / xiangqi 对坐模式验收、pet 手机端悬浮列表验收、bare_dollar / spotcheck 启发式漏判、tutoring 缺 summary、paid-test-visa 缺 summary、mao-thought-principles 无 summary、random hover 缩进、mid-2015/anova-R 互链、掼蛋联机回归、宠物中心多浏览器、机票监控 mac 端到端、flight 5 HTML 多浏览器、经济学工具箱三项确认、jukebox 问题首、DNS NameResolutionError、dead_links SVG xmlns 误判、connect4 canvas 无键盘落子共 20 余条）——今日无新观察消除、承接不变。此外今日新出 **P2 新观察**：⑤ forest 一天再迭代 5 连（主题色 / 生长树美术 / 沉浸舞台 / 合并培养玩法 / 图标与树 v3）后**再次拉开与 7-04 真机验收清单的距离**，建议 iPhone / Android / iPad / 桌面 Chrome / 桌面 Firefox / PWA standalone 六组合验收清单本次要补：8 种主题色板辨识度是否直觉、悬浮备注 popover 定位是否始终在容器内、树 popover 长时间悬浮的性能、五树三阶段美术在多主题背景下的对比度、logo 双叶苗 SVG 在多分辨率下清晰度、田地草坡渐变在浅 / 深模式的调性、**合并玩法**（多小树合成参天巨树）的操作发现性 / 撤销机制 / 是否会误伤番茄链累计、图标 v3 在主屏 icon 网格中的观感、高级树装饰阶梯（花 / 果 / 星饰）在稀有度上的辨识度，沙箱无 GUI / 无触屏跑不了；⑥ connect4 从藏蓝深板改到奶油浅板是站点视觉「与主底色更贴合」的选择——但 7-04 P2#6 提出「是否把 藏蓝 + 暖红 / 暖金 抽成 `--game-board-*` 共享 palette」的假设本次直接被推翻（本次 connect4 不再走藏蓝路线），若日后要抽 palette 应以「奶油浅底 + 暖色棋子 + 藏蓝点缀」为新基准，本条待重新拟定；⑦ feixingqi 骰子点数染当前玩家色是一次极小而准的可用性微调，与「呼吸光环 / 座位色」构成三层"是谁的回合"信号冗余，是否要把这套「玩家色系统」抽成 `_data/players.yml` 或 CSS 变量供其他多人回合制工具（掼蛋 / 跳棋 / 五子棋 / 反棋）复用可拍板——目前 feixingqi 是「红 / 黄 / 蓝 / 绿」座位色、掼蛋是「东南西北」四方位色、跳棋是六色，各自独立。
+
+### ✅ 本次已自动修复
+
+无。
+
+7 个 commit 全部由站主亲手打磨（forest 视觉+玩法 5 连 / connect4 奶油浅板配色重定向 / feixingqi 骰子点色跟随当前玩家）——均属 UX / 视觉 / 玩法层设计取向决策，不属"小而无争议"范畴；build ✅ / `_site/` 26 项结构与 7-04 / 7-03 / 7-02 完全一致 / workspace 干净 / 无低风险小修可做。
+
+### 📋 待你把关
+
+#### P0（紧急）
+
+无。
+
+#### P1（重要）
+
+1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 ~ 7-04，**第 23 日承接**）。`/notes/` landing 渲染遍历 `site.study_order`（`notes/index.html` L81），所以 `interm-econometrics-2023.md`（sub_category =「中级计量经济学」、120 页 Wooldridge 体系英文讲义、94 keywords 厚足覆盖）在 `/notes/index.html` 里**渲染不出来**（sitemap / search.json 仍正常工作，**仅** landing 缺）。今日核对：`ls _notes/study/` 仍 26 个目录（较昨日不变）、`study_order` 仍 25 条，`comm -23` 差集仍只 `interm-econometrics` 一条。改否、改成什么名（保留现状 / 加进 `study_order` / 与 `interm-metrics/` 合并）仍属设计判断，请你拍板 —— 承接 23 日，是仓库里最久的 P1。
+
+#### P2（建议）
+
+1. **`linear-algebra-strang.md` summary 里「本站中文《线性代数讲义》」的引用**（承接 6-24 ~ 7-04，性质与 7-04 一致）—— 站上线代中文材料以《经济学数学工具箱》里 ch1-ch7 存在，但书名不同、面向经济学博士。三种改法：① 保留字面等以后写独立中文《线性代数讲义》；② 改字面为「本站《经济学数学工具箱》线性代数部分（ch1-ch7）」并链过去；③ 删引用改自足介绍。**属内容写作 + 结构映射决策，请你拍板**。
+
+2. **`_flight-staging/` 目录名与其内容实际角色不匹配**（承接 7-02 ~ 7-04，性质不变）—— 目录里的 `runner/` 已是**已上线机票监控工具的生产后端**，但目录名沿用「设计稿暂存」语义会误导。三种改法：① 保留名字（沉默约定）；② `runner/` 挪出到 `flightwatch/runner/` 需同步改 `flight/get:21` SRC 常量 + 新旧 URL 平滑迁移；③ `_flight-staging/` 改名 `_flightwatch/` 保 `_-`前缀防收录，只改 URL 前缀。**命名 / 迁移决策，请你拍板**。
+
+3. **`toolbox/forest/` 种树专注计时器再迭代 5 连后待真机 / PWA 六组合验收再补 10 项**（**今日新观察 + 承接 7-04 P2#3**）—— 建议 iPhone Safari + Android Chrome + iPad + 桌面 Chrome + 桌面 Firefox + 「加装到主屏」PWA standalone 六组合下过完整流程一遍并补：① 8 种主题色板辨识度是否直觉、② 悬浮备注 popover 定位是否始终在容器内、③ 树 popover 长时间悬浮的性能、④ 五树三阶段美术在多主题背景下的对比度、⑤ logo 双叶苗 SVG 在多分辨率下清晰度、⑥ 田地草坡渐变在浅 / 深模式的调性、⑦ **合并玩法**（多小树合成参天巨树）的操作发现性 / 撤销机制 / 是否会误伤番茄链累计、⑧ 图标 v3 在主屏 icon 网格中的观感、⑨ 高级树装饰阶梯（花 / 果 / 星饰）在稀有度上的辨识度、⑩ PWA standalone 下装到主屏后是否具备完整独立体验，并叠加 7-04 P2#3 的 13 项手感与状态回归。沙箱无 GUI / 无触屏跑不了。
+
+4. **`assets/js/pet.js` 宠物中心同步加固 2 连待真机双人 / 双端互测验收**（承接 7-04 P2#4，性质不变）—— 6 项互测清单（发件箱 opId 幂等 / 一台删除另一台不复活 / per-field meta 双管理员不互相覆盖 / propose 改时间 opId 幂等 / 云同步不冲掉共享宠物 / 成员 API 失败重试幂等），沙箱无双端真机跑不了。
+
+5. **`toolbox/connect4` 从藏蓝改到奶油浅板后共享 palette 抽取方案需重新拟定**（**今日新观察**，替换 7-04 P2#6）—— 7-04 假设「站点主色 `--color-accent` 藏蓝、connect4 与其对齐、其他棋类（gomoku / chess / xiangqi / tiaoqi / reversi）也可复用」本次直接被推翻（connect4 改奶油浅板 + 藏蓝仅作获胜连线点缀）。若日后要抽 `assets/css/main.css` 的 `--game-board-*` 共享 token，应以「奶油浅底 + 暖色棋子 + 藏蓝点缀」为新基准，本条待你重新拟定拍板方向。
+
+6. **`toolbox/feixingqi` 骰子点色跟随玩家的「玩家色系统」是否抽出**（**今日新观察**）—— feixingqi 骰点色 + 呼吸光环 + 座位色三层"是谁的回合"信号已冗余到位，是否要把「玩家色系统」抽成 `_data/players.yml` 或 CSS 变量供其他多人回合制工具（掼蛋 / 跳棋 / 五子棋 / 反棋）复用属设计决策，请你拍板——目前 feixingqi「红 / 黄 / 蓝 / 绿」、掼蛋「东南西北」、跳棋六色各自独立。
+
+7. **`toolbox/picker` 一周 6 commit 完整重构后待真机手感回归**（承接 7-04 P2#5，性质不变）—— 8 场景真机手感回归清单，沙箱无 GUI / 无触屏跑不了。
+
+8. **chess + xiangqi「对坐模式」新加的 CSS 转 180° 待真机 iPad / iPhone 横屏面对面下一整局验收**（承接 7-03 ~ 7-04）—— 沙箱无触屏跑不了。
+
+9. **`toolbox/pet` 宠物中心手机端食物列表「悬浮展开」新姿态待真机 iOS Safari + Android Chrome 双端验收**（承接 7-03 ~ 7-04）—— 沙箱无触屏跑不了。
+
+10. **`scripts/audit/bare_dollar.py` 启发式漏判 `$\d+-...$` 类数学配对**（承接 6-30 ~ 7-04）—— 今日**未跑** audit 脚本，老待办承接。
+
+11. **`scripts/audit/spotcheck.py` 的 `.tex 源` 探测启发式仍漏判带主题后缀和异目录情形**（承接 6-27 ~ 7-04）—— 今日**未跑** audit 脚本，老待办承接。
+
+12. **`_notes/tutoring/` 10 篇里 7 篇缺 `summary` 字段**（承接 6-30 ~ 7-04）—— 老文盘扫，内容写作决策。
+
+13. **`_notes/life/paid-test-us-visa-types.md` 缺 `summary` 字段且无法直接改**（承接 6-30 ~ 7-04）—— 需改源文件 `_paid/liuxue-test-visa.md` 或改 `scripts/paywall/build_paid.py`。
+
+14. **`_notes/study/mao-thought/mao-thought-principles.md` 无 `summary:` 字段但正文 L17 是介绍段落**（承接 6-29 ~ 7-04）—— 写作偏好；PDF-only 页面有正文时 `post.html` 兜底不触发，渲染上不缺。
+
+15. **`toolbox/random/` hover 守卫内层缩进 cosmetic** —— 承接 6-03 ~ 7-04，功能正确、纯排版风格小差异，可忽略。
+
+16. **mid-2015 与 anova-R 纯 PDF 存档可加同课程互链入口** —— 承接 6-03 ~ 7-04，内容写作决策。
+
+17. **掼蛋 6-18 ~ 6-24 联机改造 + 6-30 四象限版型迁移待真机 / 微信内置浏览器跑两局完整联机回归**（承接 6-27 ~ 7-04）。沙箱无浏览器 / 无音频出口无法替代真机回归。
+
+18. **宠物中心近期多轮更新待多浏览器 / 多设备验收**（承接 6-29 ~ 7-04）。沙箱无 GUI / 无真触屏，跑不了。
+
+19. **机票监控 Phase 3 一键安装器 `flight/get` + Phase 2 后端 pipeline 待 mac 真机端到端跑一轮验收**（承接 7-02 ~ 7-04）。沙箱无 mac 出口跑不了。
+
+20. **`toolbox/flight/` 5 个 HTML 页 UX 待多浏览器 / 多屏幕跑一遍**（承接 7-02 ~ 7-04）。
+
+21. **《经济学博士的数学工具箱》教材首发三项确认**（承接 7-02 ~ 7-04）—— summary 长度 / `sub_category=经济学数学基础` 新分类走向 / `course=经济学数学工具箱` 是否挂进 `_data/course_aliases.yml`。
+
+22. **jukebox 16 首问题首 + 3 失败首待逐类修复** —— 承接 6-18 ~ 7-04。
+
+23. **5 条 DNS NameResolutionError 外链需站主在生产环境复验** —— 承接 6-08 ~ 7-04；今日**未跑** `dead_links.py`。
+
+24. **`dead_links.py` 把 SVG `xmlns="http://www.w3.org/2000/svg"` 命名空间字符串误判为外链** —— 承接 6-08 ~ 7-04，cosmetic 非阻塞。
+
+25. **`toolbox/connect4` canvas 无键盘落子通道**（承接 7-03 ~ 7-04）—— 历史状态、非本次配色改动引入，可挪进"游戏 a11y 补齐"内容待办。
+
+### 🗂 仓库卫生
+
+**仓库结构较昨日无变化，无需再优化。** `git diff --stat cdac174..HEAD` 覆盖的 3 个文件全在 `toolbox/{forest,connect4,feixingqi}/index.html`——纯前端代码改动，**未新增 / 未删除任何目录、未新增 / 未删除任何 `_notes/` `_data/` `files/` 条目**（`git diff --stat cdac174..HEAD -- '*.md' '_data/*' '_config.yml' '_notes/**' 'files/**'` 空）。`git status` clean、`git ls-files --others --exclude-standard` 空、`find . -name '.DS_Store' -o -name '*.bak' -o -name '*.orig' -o -name '*.tmp' -o -name '*~'` 全空、`find . -name "* 2.*"` 全空，无编辑器 / 系统垃圾。大文件核对：仍与 7-04 一致——`files/or/or-2023.pdf` 5.55 MB 唯一 5 MB 以上（承接 `images.py` 潜在 pdfslim 候选）、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB + `files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB 仍是 2 MB 以上二人组。`_paid/` + `_flight-staging/` 双双在 `_config.yml` L50/L52 exclude 列表内且 `_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空——双保险仍稳固。`toolbox/forest/` 目录仍 2 项（`index.html` 163.5 KB / 5 天从 143.8 KB 增长 20 KB 反映玩法 + 视觉扩展 + `manifest.json` 758 B）、`assets/icons/forest-{apple-touch,icon-192,icon-512,icon-maskable-512}.png` 4 张图 7-01 首发时已到位（**注**：a17c509 commit message 提到「图标重做」但**这 4 个 PNG 文件的 mtime 仍是 6-30 首发日、size 未变**——可能是 commit message 说的「图标」指 SVG logo / 应用内图标而非站点 PWA 主 icon，请你留意本条以确认没有需要更新的 PWA icon 资源被漏 push）、`_data/toolbox.yml` L…「工作」分类 forest entry 已挂 status=live、`_site/toolbox/index.html` 生活工具组 tool-card + bulk-offline shortcut 已渲染到位（`grep -c "/toolbox/forest/"` 命中 2 次），forest 已完成从「新工具首发」到「玩法层扩展」的连续 5 天完整落地。**结论**：目录结构与文件架构与 7-04 完全一致，仅前端代码行内调整，无仓库卫生可动项。
+
+### 💓 后端脉搏 / 📬 读者来信
+
+7 个 commit 均为前端工具代码打磨（forest 视觉 + 玩法 5 连 / connect4 换色 / feixingqi 骰色），未新增任何对 zircon-urge / leaderboards / zircon-comments waline / 付费墙 `/api/paid` `/api/redeem` / pet-food fly.io 后端端点的依赖变化。`backend_pulse.py` 本次未主动跑（沙箱无 fly.io 出口，承接 6-04 ~ 7-04 每次巡检结论），站点后端配置维持稳定。
+
+---
+
 ## 2026-07-04
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生。距 7-03 巡检共 **17 个 commit**（`bc37516` 之后 → `901bb56` 为止），**0 文章 / 0 IA / 0 `_data/` / 0 `_config.yml` / 0 `_notes/` / 0 `files/` 改动**（`git diff --stat bc37516..HEAD -- '*.md' '_data/*' '_config.yml' '_notes/**' 'files/**'` 空）——17 个 commit 全部锁在 5 个前端文件里：`toolbox/forest/index.html`（+1109 行主体重构 / 10 commit）、`toolbox/picker/index.html` + `assets/js/games/picker.js`（3 commit 收口）、`assets/js/pet.js`（2 commit 同步加固）、`toolbox/connect4/index.html`（2 commit 文案 + 配色贴合），共 +1433 / -731 行。四条主线：
@@ -1326,101 +1412,3 @@
 
 ---
 
-## 2026-06-21
-
-> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项每日；今日周日 DOW=7，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=21，未跑 monthly_stats）。**距 6-20 巡检 0 个新 commit**——HEAD 仍是 `6b13484`（6-20 daily-review 自动提交），自昨晚 6-20 00:08 UTC 至今 6-21 00:03 UTC 这 24 小时内站主未推任何手写 commit，工作树纯净（`git status` clean、`git ls-files --others --exclude-standard` 空、无任何 .DS_Store / *.bak / 副本文件 / 凭证泄露痕迹），无新分支、无新远端引用。`bundle install` ✅ + `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（13.206 s，cold build）。今日 `scripts/audit/run.sh` 全套审计 **13/13 每日项全 clean**——`keywords_coverage`（散文 121 篇全部充足，与 6-20 完全一致）/ `images`（仅 `files/interm-macro/interm-macro-2022-zh.pdf` 2.13 MB 大文件，承接 6-16 中文版讲义首发，markdown 入口正常，与 6-16 / 6-17 / 6-18 / 6-19 / 6-20 同）/ `material_type_enum`（分布完全无变化：Notes ×44 / Exams ×40 / 课程测评 ×18 / 经验之谈 ×5 / 错题本 ×3 / 写作 ×2 / 口语 ×1 / 词汇 ×1）/ `filename_convention` / `hover_no_media`（0 commit，无 `:hover` 新增）/ `sibling_crosslink`（9 个 ≥3 篇 sub_category 组全互链）/ `bare_dollar` / `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` / `spotcheck`（10 项配额抽检见下）/ `backend_pulse`（HTTP 403，承接 6-04 ~ 6-20）。**今日 0 项自动修复**——0 个 commit、所有审计 clean、抽检 10 项无新增问题。**P1 队列**：仅 `study_order` 未列 `interm-econometrics` 一条 P1 仍有效（承接 6-13 至 6-20 共 8 日），今日核对 `ls _notes/study/` 共 24 个目录、`_config.yml` `study_order` 共 23 条，唯一差集仍是 `interm-econometrics`，与 6-19 / 6-20 核对完全一致。**抽检 10 项无新增问题**（4 个 pdf_archive `adv-macro-psu/chapters/ch5.pdf` + `adv-micro-pku/chapters/ch2.pdf` + `adv-micro-psu/chapters/ch8.pdf` 三个章节切片各被英文学术主页 `/index.html` L602 / L623 / L638 唯一引用，与 6-19 抽检的 `adv-micro-psu/2025-final.pdf`、6-20 抽检的 `adv-micro-pku/chapters/ch6.pdf` 同 pattern；`psy-stat-I/anova-R.pdf` 被 `_notes/study/psy-stat-I/anova-R.md` 唯一引用；1 个 lecture_note_pdf_only `china-hist/china-hist-2024` PDF 1.8 MB 有效、front-matter 完整、keywords ×26 厚足；1 个 lecture_note_full `adv-micro-psu/adv-micro-psu-2026` 148 行 / 33 keywords，含 5-part 9-章博弈论结构、章节依赖图、6 套考题完整解答，是站内目前最高质量 lecture_note_full 之一；2 个 life note `lane-change-illusion` 与课程笔记 `tutoring/quadratic-inequality` front-matter 齐整、生活之问 / 数学专栏调性一致；1 个 toefl 老模板分享 `toefl-templates-2023` 34 行 / 9 张 inline 图片，front-matter 简（无 summary / permalink / author 字段）但属 2023-07 老分享格式；1 个 game `toolbox/doudizhu/index.html` 2399 行 / 92.8 KB inline，18 处 `:hover` 全部 `@media (hover: hover)` 守卫，引用 `assets/css/games-shell.css`，符合站内大型游戏 pattern）。
-
-### ✅ 本次已自动修复
-
-无。
-
-0 个 commit、工作树纯净、所有审计项 clean、抽检 10 项无新增可自动处理项，**无需任何修复**。今日唯一动作是更新本 DAILY_REVIEW.md 文档。
-
-### 📋 待你把关
-
-#### P0（紧急）
-无。
-
-#### P1（重要）
-
-1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 / 6-14 / 6-15 / 6-16 / 6-17 / 6-18 / 6-19 / 6-20，第 9 日承接）。`/notes/` landing 渲染遍历的就是 `site.study_order`（`notes/index.html` L81），所以 `interm-econometrics-2023.md`（sub_category =「中级计量经济学」、与同名旧版 `interm-metrics-2023.md` 同名相近但目录不同）这篇在 `/notes/index.html` 里**渲染不出来**（sitemap / search.json 仍正常工作，**仅** landing 缺）。今日核对：`ls _notes/study/` 共 24 个目录，`study_order` 共 23 条，唯一差集即 `interm-econometrics`。改否、改成什么名（保留现状 / 加进 `study_order` / 与 `interm-metrics/` 合并）属设计判断，仍请你拍板。
-
-#### P2（建议）
-
-1. **`toolbox/random/` hover 守卫内层缩进 cosmetic** —— 承接自 6-03。功能正确，纯排版风格小差异，可忽略。
-2. **mid-2015 与 anova-R 纯 PDF 存档可加同课程互链入口** —— 承接自 6-03。已有「同课程自动侧栏」覆盖（`sibling_crosslink.py` ✅）但缺手写互链段落引导。属内容写作决策。今日抽检 `psy-stat-I/anova-R` 再次扫到，状态同。
-3. **掼蛋 6-18 ~ 6-20 期间联机改造收尾（结算闩 / SSE / 倒计时 / 四视角测试 / 逐家亮牌节奏）大动 10 commit，建议站主在真机 / 微信内置浏览器跑两局完整联机回归** —— 承接 6-20 P2#3。今日无新增 guandan 改动，但 6-19 ~ 6-20 改动尚未真机回归过——若已跑过两局完整联机请告知此项可归档。
-4. **jukebox 16 首问题首 + 3 失败首待逐类修复** —— 6-17 `008ff4f` 落地 74 首安全改善后剩余的「英文歌 / 翻唱抓错 CD / ASR 漂移」等问题首站主可继续推进。属内容修复决策（承接自 6-18 / 6-19 / 6-20）。
-5. **抽检 9/10 `_notes/toefl/toefl-templates-2023.md` 老分享前置 cosmetic** —— 34 行 / 1.8 KB 短笔记，2023-07-11 写的，front-matter 缺 `summary` / `permalink` / `author` 三字段（Jekyll 走默认 permalink 也能渲染、build clean、`frontmatter_yaml.py` 不报错，属早期写作标准）。日后若做老文盘扫可一并补齐；当下不影响任何对外功能，属内容维护决策，无需立刻动。
-
-### 🗂 仓库卫生
-
-**仓库结构较昨日无变化，无需再优化。** 工作树干净（`git status` clean、`git ls-files --others --exclude-standard` 空、`find . -name '.DS_Store' -o -name '*.bak' -o -name '*.orig' -o -name '*.tmp' -o -name '*~'` 全空、无副本文件 / 密钥 / 凭证 / 个人路径痕迹）。0 commit 自然 0 新增目录 / 文件 / 依赖 / 二进制。`_config.yml` 的 `exclude:` 列表已含 `DAILY_REVIEW.md`、`EMAIL_SUMMARY.md`、`SPOTCHECK_100_REPORT.md`、`SPOTCHECK_100_AGENT_REPORTS.md`、`TOOLBOX_AUDIT_REPORT.md`、`docs/`、`scripts/`、`tools/`、`_paid/`、`audio/`、`backends/`、`.claude/`、`.githooks/` 等所有内部目录与产物（grep 已核对）。`.gitignore` 状态未变。**结论**：与 6-15 / 6-16 / 6-17 / 6-18 / 6-19 / 6-20 同——仓库目录基线稳定，无可优化空间，跳过结构调整。
-
-### 🔬 抽检专项
-
-**抽检 1/10 · `game` · `toolbox/doudizhu/index.html`**（2399 行 / 92.8 KB inline，无独立 .js/.css）
-- 已修复：无。
-- 待办：无新增。
-- 长期建议：单文件 2399 行已大幅超过站主自定的 >1000 行考虑拆分阈值（与 6-19 抽检的 `chess` 1986 行同性质，但比 chess 更高），inline-only（无独立 .js/.css）；与 `assets/css/games-shell.css` 主题样式系统协调一致。18 处 `:hover` 全部 `@media (hover: hover)` 守卫 ✅（`hover_no_media.py` clean 印证）。深色模式适配良好（`:root[data-theme="dark"]` overrides 完整）。考虑长期：是否要参考 6-04 `d85c349` pet 拆分（5303 → 32 行 index.html + `_includes/toolbox/pet/{board,modals}.html` + `assets/css/pet.css` + `assets/js/pet.js`）做相同处理？属架构决策，需站主拍板，不擅自动手。
-
-**抽检 2/10 · `pdf_archive` · `files/adv-macro-psu/chapters/ch5.pdf`**（195.4 KB）
-- 已修复：无。
-- 归属：✅ `/index.html` L638 唯一引用（"Ch 5: The Solow Growth Model"），属英文学术主页 PSU 高宏章节切片系列；与同系列 ch1–ch8 同 pattern（6-19 抽检的 ch6、6-20 抽检的 `adv-micro-pku/ch6` 均同此架构）。
-- 体积合理性：195.4 KB 极小，未列入 `EXEMPT_FILES`、`images.py` 未报。
-- LaTeX 化潜力：低——PSU 高宏章节切片，目前只有 PDF 没有 .tex 源，教学场景已固定为研究生录入资料，建议维持 PDF 存档。
-
-**抽检 3/10 · `lecture_note_pdf_only` · `_notes/study/china-hist/china-hist-2024.md`**
-- 已修复：无。
-- 一致性：✅ `pdf_url: "/files/china-hist/china-hist-2024.pdf"` 路径有效（PDF 1.8 MB 实存）；front-matter 完整（layout/main_category=学习资料/sub_category=中国古代文化/course/material_type=Notes/date=2024-09-01/author=Zircon/discipline=通识/keywords ×26 厚足覆盖中英文术语 + 错别字「中国古代文话」+ "PKU"/"北大 通识"/"诸子百家"/"宋明理学"/"科举 制度"等核心搜索词）；summary 介绍清晰（"按朝代和文化主题（思想、制度、文学、礼乐）梳理脉络"）。
-- LaTeX 化建议：③ 维持 PDF 存档即可——通识课课堂笔记 1.8 MB 量级合理，定位明确无更新需求，PDF 形态满足搜索 + PDF 内嵌预览即可。
-
-**抽检 4/10 · `pdf_archive` · `files/adv-micro-pku/chapters/ch2.pdf`**（249.7 KB）
-- 已修复：无。
-- 归属：✅ `/index.html` L602 唯一引用（"Ch 2: Consumer Theory"），属英文学术主页 PKU 高微章节切片 ch1–ch6 系列之一；与 6-06 抽检 `ch2.pdf`（同文件抽到了第二次）+ 6-20 抽检的 `ch6.pdf` 同 pattern。
-- 体积合理性：249.7 KB 极小，未列入 `EXEMPT_FILES`、`images.py` 未报。
-- LaTeX 化潜力：低——PKU 高微章节切片，目前只有 PDF 没有 .tex 源，教学场景已固定为研究生录入资料，建议维持 PDF 存档。
-
-**抽检 5/10 · `lecture_note_full` · `_notes/study/adv-micro-psu/adv-micro-psu-2026.md`**（148 行 / 11.8 KB）
-- 已修复：无。
-- 一致性：✅ `pdf_url: "/files/adv-micro-psu/adv-micro-psu-lecture-notes.pdf"` 路径有效（PDF 1.29 MB 实存）；front-matter 完整（layout/main_category/sub_category=高级微观经济学（PSU）/course/material_type=Notes/date=2026-05-04/author=Zircon/discipline=经济学/keywords ×33 厚足覆盖 ECON 521 / Krishna / Penn State / Nash bargaining / Rubinstein / Gale-Shapley / Myerson / VCG / PBE / repeated games / micro prelim 等 PhD 微观核心术语）；summary 介绍清晰（"跟着 Krishna 教授 ECON 521 一整学期写出来的高微讲义，299 页 PDF，覆盖 9 章 + 13 套 PS + 6 套考试完整解答"）。
-- 内容观感 ✅：148 行散文式发表帖，含「起因 / 这本讲义是什么 / 适合谁 / 怎么用（章节依赖图 + 颜色 boxed envs 速查 + 直觉先于形式 + PS/往年题完整收录）/ 几个做对的事 / 局限与免责 / 怎么获取 / 写在最后」整套结构；章节依赖图用 ASCII 框图绘制清晰；信息租 `$\frac{1-F(x)}{f(x)}` 直觉讲解贴切；先讲直觉再上数学的写作哲学贯穿；写作过程中 Claude Code 辅助 LaTeX 排版的免责声明合理透明。
-- LaTeX 化状态：✅ **已 LaTeX 化**——本身就是 .tex 编译产物（299 页讲义 PDF）；本帖是 .md 发表帖配对 .pdf 下载。该 PDF 1.29 MB 体积合理。
-- 长期建议：无——这是站内目前最高质量 lecture_note_full 之一（仅次于本人其他长讲义），结构与文笔均堪典范。
-
-**抽检 6/10 · `note`（生活之问）· `_notes/life/lane-change-illusion.md`**（331 行 / 23.6 KB）
-- 已修复：无。
-- front-matter ✅：title「塞车时隔壁车道总比你快，一变过去它就停——这到底是错觉还是玄学？」/ sub_category=生活之问 / permalink `/life/lane-change-illusion` / keywords ×25 覆盖核心搜索词（"变道错觉"、"隔壁车道总比我快"、"一变道就更慢"、"塞车变道"、"车道手风琴"、"交通流守恒"、"Redelmeier Tibshirani"、"next lane seems faster"、"幽灵堵车"、"走停波"、"拉链式并线 / zipper merge"、"晚并线"，含错别字兜底 "变到错觉" / "为什么换道不快"）。
-- 内容观感 ✅：331 行五段式结构齐全（问题 → 结论先行 → 科学原理 → 实践建议 → 参考来源），与「[幽灵堵车](/life/phantom-traffic-jam)」姊妹篇对照清晰；科学原理三层递进（认知错觉 Redelmeier 1999 → 手风琴相位 → 守恒论证）；含 inline SVG「同样的平均速度，被超时段又长又显眼」+ inline JS canvas 车流模拟（M=车数、200 行 IDM 跟车 + MOBIL 变道决策算法实现，可视化「守 vs 变」对照）；参考来源 5 条含 Nature 1999 原文、LWR 1955–1956 守恒理论、Treiber-Kesting 教科书、明尼苏达州交通局 zipper merge 官方说明，循证规范。
-- 长期建议：无——这是「生活之问」专栏典范长文。
-
-**抽检 7/10 · `pdf_archive` · `files/adv-micro-psu/chapters/ch8.pdf`**（305.3 KB）
-- 已修复：无。
-- 归属：✅ `/index.html` L623 唯一引用（"Ch 8: Repeated Games"），属英文学术主页 PSU 高微章节切片系列；与抽检 5 的 `adv-micro-psu-lecture-notes.pdf` 同源，但 ch8.pdf 是章节切片独立链接（教学便利）。
-- 体积合理性：305.3 KB 极小，未列入 `EXEMPT_FILES`、`images.py` 未报。
-- LaTeX 化潜力：✅ **已 LaTeX 化**——整本 PSU 高微讲义 `adv-micro-psu-lecture-notes.pdf` 已是 .tex 编译产物（见抽检 5），ch8 是其中第 8 章的切片；维持现状即可。
-
-**抽检 8/10 · `pdf_archive` · `files/psy-stat-I/anova-R.pdf`**（314.3 KB）
-- 已修复：无。
-- 归属：✅ `_notes/study/psy-stat-I/anova-R.md` 唯一引用 `pdf_url: "/files/psy-stat-I/anova-R.pdf"`，路径一致；同目录 `final-2022.md` 也间接相关。
-- 体积合理性：314.3 KB 极小，未列入 `EXEMPT_FILES`、`images.py` 未报。
-- LaTeX 化潜力：③ 维持 PDF 存档——本科心理统计 R 代码模板综合表，定位为「写实验报告时对着抄」的查表用文档，已稳定使用，迁移成本与收益不匹配；keywords ×29 厚足（含 bruceR / ezANOVA / afex / Tukey HSD / Bonferroni / Mauchly 等）。承接 6-03 P2#2 互链建议：可加同课程手写互链段落引导（自动侧栏已覆盖）。
-
-**抽检 9/10 · `note`（TOEFL 模板分享）· `_notes/toefl/toefl-templates-2023.md`**（34 行 / 1.8 KB）
-- 已修复：无。
-- front-matter ⚠️：title「托福写作与口语模板」/ sub_category=TOEFL / discipline=语言考试 / material_type=写作 / keywords ×13 覆盖核心搜索词（"托福写作 模板"、"TOEFL writing template"、"toeflresources"、"老托福 模板"、"独立写作 模板"、"综合写作 模板"等）；**缺 `summary` / `permalink` / `author` 三字段**——属 2023-07 早期写作标准，Jekyll 走默认 permalink 也能渲染、build clean、`frontmatter_yaml.py` 不报错，但与新写作约定有差距。
-- 内容观感：34 行短分享，9 张 inline JPG 图片（托福模板 LaTeX 文档逐页扫图，含封面 + 综合写作 + 独立写作 + 口语四类题型），alt 文本齐整带页码 + 内容说明；正文文字简（仅介绍 toeflresources.com 资源 + 「文末阅读原文是蓝色的~」公众号迁移残留语）。
-- 待办：见 P2 #5，老分享缺 summary / permalink / author 属内容维护决策，建议日后做老文盘扫一并补齐；当下不影响功能、不需立即动手。
-- 长期建议：无紧迫项。
-
-**抽检 10/10 · `note`（初升高数学）· `_notes/tutoring/quadratic-inequality.md`**（46 行 / 1.2 KB）
-- 已修复：无。
-- front-matter ✅：title「一元二次不等式」/ sub_category=数学 / course=数学 / discipline=初升高 / material_type=Notes / date=2026-01-21 / permalink `/notes/tutoring/quadratic-inequality` / `redirect_from: /notes/pre-high-school/quadratic-inequality`（保留旧路径兼容）/ pdf_url `/files/tutoring/quadratic-inequality/Main.pdf` / `published: true` / keywords ×28 厚足（覆盖中英文术语「数轴标根法」「穿根法」「韦达定理」「判别式」「区间表示法」「quadratic inequality」+ 错别字兜底「一元二次不等试」「一元二次不等士」+ 口诀类「大于取两边 小于取中间」）。
-- 一致性：✅ PDF 文件实存（`files/tutoring/quadratic-inequality/Main.pdf` 143.7 KB），同目录有 .tex 源（`Main.tex` + `chapters/` + `commands.tex` + `theorems.tex` + `Makefile`），**已 LaTeX 化**。
-- 长期建议：无——初升高数学辅导讲义，LaTeX 源已签入，体积合理。
-
-### 💓 后端脉搏 / 📬 读者来信
-
-后端三件套（zircon-urge / leaderboards / zircon-comments waline）+ 付费墙 `/api/paid` / `/api/redeem` 端点本次 `backend_pulse.py` 仍全报 HTTP 403。与 5-27 ~ 6-20 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。**今日 0 commit 全部纯巡检**，后端无新增依赖。
-
----
