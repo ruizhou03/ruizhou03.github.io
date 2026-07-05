@@ -106,6 +106,18 @@ theme_color: "#fafaf9"
     border-radius: inherit;
     z-index: 0;
   }
+  /* 主题场景背景（舞台 / 遮罩），铺满、置于粒子与树之下 */
+  .stage-scene, .overlay-scene {
+    position: absolute; inset: 0;
+    pointer-events: none; overflow: hidden; z-index: 0;
+  }
+  .stage-scene { border-radius: inherit; }
+  .stage-scene svg, .overlay-scene svg { width: 100%; height: 100%; display: block; }
+  /* 场景背景上的文字加一层柔和阴影保证可读 */
+  .focus-overlay .timer-big, .focus-overlay .focus-tag, .focus-overlay .focus-warn { text-shadow: 0 1px 10px rgba(0,0,0,0.4); }
+  .focus-overlay.theme-default .timer-big, .focus-overlay.theme-default .focus-tag, .focus-overlay.theme-default .focus-warn { text-shadow: 0 1px 8px rgba(255,255,255,0.6); }
+  .stage .timer-display, .stage .timer-status { text-shadow: 0 1px 6px rgba(0,0,0,0.28); }
+  .stage.theme-default .timer-display, .stage.theme-default .timer-status { text-shadow: 0 1px 5px rgba(255,255,255,0.6); }
   /* 让树、计时器、状态文本盖在粒子之上 */
   .stage > #tree-container,
   .stage > .timer-display,
@@ -1232,6 +1244,7 @@ theme_color: "#fafaf9"
   <div class="plant-card">
     <!-- 舞台（树 + 计时）-->
     <div class="stage" id="stage">
+      <div class="stage-scene" id="stage-scene"></div>
       <div class="stage-particles" id="stage-particles"></div>
       <div id="tree-container">
         <!-- tree SVG 动态注入 -->
@@ -1294,13 +1307,13 @@ theme_color: "#fafaf9"
         <div class="setting-row">
           <label>主题</label>
           <div class="pill-group" id="theme-bg-pills">
-            <button type="button" data-value="default" data-tip="默认"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-def" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f2ea"/><stop offset="1" stop-color="#e6e0d1"/></linearGradient><clipPath id="cl-default"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-default)"><rect width="44" height="44" fill="url(#g-def)"/><path d="M22 27c0-4-2.6-6.4-6.4-6.4C15.6 24.4 18 27 22 27z" fill="#c9c2ad" opacity="0.55"/><path d="M22 25.5c0-3.4 2.3-5.6 5.8-5.6.1 2.9-2 5.6-5.8 5.6z" fill="#cfc9b6" opacity="0.55"/></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
-            <button type="button" data-value="night" data-tip="沉浸夜"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-nt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2e4a34"/><stop offset="0.5" stop-color="#16241a"/><stop offset="1" stop-color="#0c130d"/></linearGradient><clipPath id="cl-night"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-night)"><rect width="44" height="44" fill="url(#g-nt)"/><path d="M27 14.5a7.4 7.4 0 1 1-8.6-7.3 6 6 0 0 0 8.6 7.3z" fill="#f3ecd0"/><circle cx="14" cy="10" r="0.9" fill="#f3ecd0" opacity="0.85"/><circle cx="30" cy="24" r="0.7" fill="#f3ecd0" opacity="0.7"/></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
-            <button type="button" data-value="bubbles" data-tip="气泡"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-bb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b6aa0"/><stop offset="0.6" stop-color="#154a78"/><stop offset="1" stop-color="#0c2f4f"/></linearGradient><clipPath id="cl-bubbles"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-bubbles)"><rect width="44" height="44" fill="url(#g-bb)"/><circle cx="15" cy="26" r="4.2" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.1" opacity="0.75"/><circle cx="13.5" cy="24.5" r="1.18" fill="rgba(255,255,255,0.9)" opacity="0.85"/><circle cx="24" cy="16" r="3" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.1" opacity="0.75"/><circle cx="22.95" cy="14.95" r="0.84" fill="rgba(255,255,255,0.9)" opacity="0.85"/><circle cx="28" cy="27" r="2.3" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.1" opacity="0.75"/><circle cx="27.2" cy="26.2" r="0.64" fill="rgba(255,255,255,0.9)" opacity="0.85"/></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
-            <button type="button" data-value="stars" data-tip="星空"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-st" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2a70"/><stop offset="0.55" stop-color="#1c1442"/><stop offset="1" stop-color="#0a0518"/></linearGradient><clipPath id="cl-stars"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-stars)"><rect width="44" height="44" fill="url(#g-st)"/><path d="M15 11.6 Q 15 15 18.4 15 Q 15 15 15 18.4 Q 15 15 11.6 15 Q 15 15 15 11.6 Z" fill="#fff"/><path d="M28 9.8 Q 28 12 30.2 12 Q 28 12 28 14.2 Q 28 12 25.8 12 Q 28 12 28 9.8 Z" fill="#fff"/><circle cx="22" cy="27" r="1" fill="#fff"/><circle cx="31" cy="24" r="0.8" fill="#fff" opacity="0.8"/><circle cx="12" cy="26" r="0.7" fill="#fff" opacity="0.7"/></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
-            <button type="button" data-value="sunrise" data-tip="日出"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-sr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e07a48"/><stop offset="0.5" stop-color="#ef9a5f"/><stop offset="1" stop-color="#f6c877"/></linearGradient><clipPath id="cl-sunrise"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-sunrise)"><rect width="44" height="44" fill="url(#g-sr)"/><circle cx="22" cy="30" r="9.5" fill="#fff3cf"/><circle cx="22" cy="30" r="13" fill="none" stroke="#fff3cf" stroke-width="1" opacity="0.4"/><g stroke="#fff3cf" stroke-width="1.4" stroke-linecap="round" opacity="0.9"><path d="M22 15v3.4"/><path d="M11 20l2.4 2.4"/><path d="M33 20l-2.4 2.4"/></g></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
-            <button type="button" data-value="rain" data-tip="雨"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-rn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#41556d"/><stop offset="0.55" stop-color="#28384b"/><stop offset="1" stop-color="#182430"/></linearGradient><clipPath id="cl-rain"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-rain)"><rect width="44" height="44" fill="url(#g-rn)"/><path d="M14 19a4.4 4.4 0 0 1 8.3-1.5 3.6 3.6 0 0 1 .6 7.1H15a3.4 3.4 0 0 1-1-6.6z" fill="#dfe7f2" opacity="0.95"/><g stroke="#bcd2ef" stroke-width="1.5" stroke-linecap="round"><path d="M15 27.5l-1.4 3"/><path d="M21 27.5l-1.4 3"/><path d="M27 27l-1.4 3"/></g></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
-            <button type="button" data-value="aurora" data-tip="极光"><span class="theme-swatch"><svg viewBox="0 0 44 44"><defs><linearGradient id="g-au" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d2247"/><stop offset="0.6" stop-color="#123a55"/><stop offset="1" stop-color="#0a2a3e"/></linearGradient><clipPath id="cl-aurora"><circle cx="22" cy="22" r="21"/></clipPath></defs><g clip-path="url(#cl-aurora)"><rect width="44" height="44" fill="url(#g-au)"/><path d="M6 26 Q 16 12 22 22 T 38 18" fill="none" stroke="#57e6bd" stroke-width="3.4" stroke-linecap="round" opacity="0.9"/><path d="M6 30 Q 17 18 24 26 T 38 22" fill="none" stroke="#8f7ce8" stroke-width="2.6" stroke-linecap="round" opacity="0.75"/><circle cx="30" cy="12" r="0.9" fill="#fff" opacity="0.8"/><circle cx="13" cy="11" r="0.7" fill="#fff" opacity="0.7"/></g><circle cx="22" cy="22" r="21" fill="none" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></svg></span></button>
+            <button type="button" data-value="default" data-tip="默认"><span class="theme-swatch" data-scene="default"></span></button>
+            <button type="button" data-value="night" data-tip="沉浸夜"><span class="theme-swatch" data-scene="night"></span></button>
+            <button type="button" data-value="bubbles" data-tip="气泡"><span class="theme-swatch" data-scene="bubbles"></span></button>
+            <button type="button" data-value="stars" data-tip="星空"><span class="theme-swatch" data-scene="stars"></span></button>
+            <button type="button" data-value="sunrise" data-tip="日出"><span class="theme-swatch" data-scene="sunrise"></span></button>
+            <button type="button" data-value="rain" data-tip="雨"><span class="theme-swatch" data-scene="rain"></span></button>
+            <button type="button" data-value="aurora" data-tip="极光"><span class="theme-swatch" data-scene="aurora"></span></button>
           </div>
           <span class="pill-divider"></span>
           <span class="group-label">计时</span>
@@ -1397,6 +1410,7 @@ theme_color: "#fafaf9"
 
 <!-- ========== 全屏 focus 遮罩 ========== -->
 <div class="focus-overlay" id="focus-overlay">
+  <div class="overlay-scene" id="overlay-scene"></div>
   <div class="overlay-particles" id="overlay-particles"></div>
   <div class="pomodoro-counter" id="overlay-counter" style="display: none;">第 1 个番茄</div>
   <div id="overlay-tree-container" class="overlay-tree-zone"></div>
@@ -1805,12 +1819,16 @@ theme_color: "#fafaf9"
 
   function rand(min, max) { return min + Math.random() * (max - min); }
 
+  function _sceneSvg(name) {
+    return `<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">${_themeScene(name)}</svg>`;
+  }
   function applyTheme() {
     if (!$overlay) return;
     // 清掉所有 theme-* 类，只加当前
     $overlay.className = $overlay.className.replace(/\btheme-\w+\b/g, '').replace(/\btimer-\w+\b/g, '');
     $overlay.classList.add('theme-' + state.theme.background);
     $overlay.classList.add('timer-' + state.theme.timer);
+    const os = document.getElementById('overlay-scene'); if (os) os.innerHTML = _sceneSvg(state.theme.background);
     renderParticles(document.getElementById('overlay-particles'), state.theme.background, 1.0);
   }
 
@@ -1819,12 +1837,14 @@ theme_color: "#fafaf9"
     if (!$stage) return;
     $stage.className = $stage.className.replace(/\btheme-\w+\b/g, '');
     $stage.classList.add('theme-' + state.theme.background);
+    const ss = document.getElementById('stage-scene'); if (ss) ss.innerHTML = _sceneSvg(state.theme.background);
     renderParticles(document.getElementById('stage-particles'), state.theme.background, 0.3);
   }
 
   function renderParticles(container, bg, scale) {
     if (!container) return;
     container.innerHTML = '';
+    if (bg === 'sunrise' || bg === 'default' || bg === 'night') return;  // 这些场景已自足，不加动态粒子
     const k = (n) => Math.max(1, Math.round(n * scale));
     const small = scale < 1;
 
@@ -1915,6 +1935,61 @@ theme_color: "#fafaf9"
 
   // ============ Tree SVG ============
   // progress: 0-1 描述树的成长进度
+  // ============ 主题场景（每主题一幅矢量小景，作舞台 / 全屏遮罩 / 选择器的背景）============
+  function _stars(list){ return list.map(([x,y,r,br])=>{
+    let s=`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${br||0.9}"/>`;
+    if(r>=1.3) s+=`<path d="M${x} ${y-r*2.6} L${x} ${y+r*2.6} M${x-r*2.6} ${y} L${x+r*2.6} ${y}" stroke="#fff" stroke-width="0.5" opacity="${(br||0.9)*0.5}"/>`;
+    return s;}).join(''); }
+  function _cloud(x,y,s,fill,op){ return `<g fill="${fill}" opacity="${op}"><ellipse cx="${x}" cy="${y}" rx="${s}" ry="${s*0.42}"/><ellipse cx="${x-s*0.55}" cy="${y+s*0.12}" rx="${s*0.55}" ry="${s*0.32}"/><ellipse cx="${x+s*0.6}" cy="${y+s*0.1}" rx="${s*0.5}" ry="${s*0.3}"/><ellipse cx="${x-s*0.1}" cy="${y-s*0.18}" rx="${s*0.5}" ry="${s*0.32}"/></g>`; }
+  function _scene_night(){
+    return `<defs><linearGradient id="ns" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d3b46"/><stop offset="0.5" stop-color="#122731"/><stop offset="1" stop-color="#070f14"/></linearGradient><radialGradient id="nm" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fbf6e2"/><stop offset="0.7" stop-color="#efe6c6"/><stop offset="1" stop-color="#efe6c6" stop-opacity="0"/></radialGradient><radialGradient id="nmg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e8e6c8" stop-opacity="0.35"/><stop offset="1" stop-color="#e8e6c8" stop-opacity="0"/></radialGradient><linearGradient id="nmw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd0e0" stop-opacity="0.12"/><stop offset="0.5" stop-color="#c9b8e8" stop-opacity="0.08"/><stop offset="1" stop-color="#9fd0e0" stop-opacity="0"/></linearGradient></defs>
+      <rect width="400" height="400" fill="url(#ns)"/><path d="M0 120 Q 200 60 400 160 L400 300 L0 300 Z" fill="url(#nmw)"/>
+      ${_stars([[60,60,1.6,1],[120,40,1,0.8],[170,90,1.8,1],[240,50,1.2,0.85],[300,80,1,0.8],[340,50,1.5,0.95],[90,140,1,0.7],[200,150,1.3,0.8],[280,160,1,0.7],[350,180,1.2,0.8],[40,200,0.9,0.6],[150,210,1,0.6],[320,230,1,0.6],[130,110,0.8,0.6],[250,110,0.9,0.7]])}
+      <circle cx="300" cy="110" r="52" fill="url(#nmg)"/><g><circle cx="300" cy="110" r="34" fill="url(#nm)"/><circle cx="314" cy="102" r="30" fill="#122731" opacity="0.9"/></g>
+      <path d="M0 300 Q 130 270 260 296 Q 340 312 400 292 L400 400 L0 400 Z" fill="#0a171b"/><path d="M0 330 Q 160 306 300 330 Q 360 340 400 328 L400 400 L0 400 Z" fill="#060f12"/>`;
+  }
+  function _scene_sunrise(){
+    return `<defs><linearGradient id="ss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c24d2c"/><stop offset="0.42" stop-color="#e37a45"/><stop offset="0.72" stop-color="#f2a961"/><stop offset="1" stop-color="#fbd88f"/></linearGradient><radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff6d8"/><stop offset="0.55" stop-color="#ffe6a6"/><stop offset="1" stop-color="#ffe6a6" stop-opacity="0"/></radialGradient><radialGradient id="sung" cx="50%" cy="72%" r="65%"><stop offset="0" stop-color="#fff0c0" stop-opacity="0.5"/><stop offset="1" stop-color="#fff0c0" stop-opacity="0"/></radialGradient></defs>
+      <rect width="400" height="400" fill="url(#ss)"/><rect width="400" height="400" fill="url(#sung)"/>
+      <g stroke="#fff3cf" stroke-width="3" stroke-linecap="round" opacity="0.24"><path d="M200 300 L200 70"/><path d="M200 300 L95 120"/><path d="M200 300 L305 120"/><path d="M200 300 L45 230"/><path d="M200 300 L355 230"/></g>
+      <circle cx="200" cy="308" r="104" fill="url(#sun)"/><circle cx="200" cy="308" r="44" fill="#fff8e4"/>
+      ${_cloud(95,150,44,'#f7c98f',0.75)}${_cloud(310,120,52,'#f3b47a',0.7)}${_cloud(250,200,60,'#ffe0a8',0.55)}
+      <path d="M0 300 Q 120 282 240 300 Q 330 314 400 298 L400 400 L0 400 Z" fill="#c86a44" opacity="0.85"/><path d="M0 330 Q 160 314 320 332 Q 370 340 400 330 L400 400 L0 400 Z" fill="#a9532f"/>`;
+  }
+  function _scene_default(){
+    return `<defs><linearGradient id="ds" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9c8df"/><stop offset="0.45" stop-color="#d3e2e8"/><stop offset="1" stop-color="#eef0e2"/></linearGradient><radialGradient id="dsun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff6df" stop-opacity="0.9"/><stop offset="1" stop-color="#fff6df" stop-opacity="0"/></radialGradient></defs>
+      <rect width="400" height="400" fill="url(#ds)"/><circle cx="310" cy="90" r="90" fill="url(#dsun)"/><circle cx="310" cy="90" r="26" fill="#fff8ea"/>
+      ${_cloud(110,120,50,'#ffffff',0.9)}${_cloud(300,190,44,'#ffffff',0.8)}${_cloud(60,210,36,'#ffffff',0.7)}
+      <path d="M0 300 Q 130 272 270 298 Q 340 310 400 296 L400 400 L0 400 Z" fill="#c2d0a6"/><path d="M0 336 Q 150 314 320 336 Q 370 344 400 334 L400 400 L0 400 Z" fill="#aebd8f"/>`;
+  }
+  function _scene_bubbles(){
+    return `<defs><linearGradient id="bs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3282ad"/><stop offset="0.5" stop-color="#195a83"/><stop offset="1" stop-color="#0a2f4d"/></linearGradient><linearGradient id="bray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfeaf5" stop-opacity="0.32"/><stop offset="1" stop-color="#cfeaf5" stop-opacity="0"/></linearGradient></defs>
+      <rect width="400" height="400" fill="url(#bs)"/><g fill="url(#bray)"><path d="M120 0 L60 400 L120 400 L165 0 Z"/><path d="M240 0 L300 400 L340 400 L285 0 Z"/><path d="M180 0 L200 400 L215 400 L210 0 Z"/></g>
+      ${[[90,300,15],[300,240,20],[150,180,10],[250,120,13],[70,150,8],[330,330,11],[200,260,7]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#dff1fa" stroke-width="${r>12?1.6:1.1}" opacity="0.65"/><circle cx="${x-r*0.35}" cy="${y-r*0.35}" r="${r*0.28}" fill="#eef8fd" opacity="0.8"/>`).join('')}
+      <path d="M0 350 Q 120 322 260 348 Q 340 360 400 344 L400 400 L0 400 Z" fill="#0b2b42"/>`;
+  }
+  function _scene_stars(){
+    return `<defs><linearGradient id="sts" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#382a6e"/><stop offset="0.5" stop-color="#1a1440"/><stop offset="1" stop-color="#0a0618"/></linearGradient><linearGradient id="mw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9a6ef" stop-opacity="0"/><stop offset="0.5" stop-color="#c7baf2" stop-opacity="0.22"/><stop offset="1" stop-color="#8fd0e0" stop-opacity="0"/></linearGradient><radialGradient id="pl" cx="40%" cy="40%" r="60%"><stop offset="0" stop-color="#f0c98a"/><stop offset="1" stop-color="#b07a3e"/></radialGradient></defs>
+      <rect width="400" height="400" fill="url(#sts)"/><path d="M-40 90 Q 200 180 440 130 L440 240 Q 200 300 -40 210 Z" fill="url(#mw)"/>
+      ${_stars([[50,50,1.4,1],[100,90,1,0.8],[160,50,1.7,1],[220,90,1.1,0.8],[280,50,1,0.7],[330,80,1.5,0.95],[70,150,1,0.7],[130,190,1.3,0.85],[210,160,1,0.7],[290,180,1.4,0.9],[350,150,1,0.7],[40,230,0.9,0.6],[110,250,1,0.6],[180,240,0.9,0.6],[260,250,1.1,0.7],[330,240,0.9,0.6],[150,120,0.8,0.7],[240,120,0.9,0.7],[300,120,0.8,0.6]])}
+      <circle cx="88" cy="82" r="12" fill="url(#pl)"/><path d="M70 82 a18 6 0 0 0 36 0" fill="none" stroke="#d8b57a" stroke-width="1.4" opacity="0.7"/>
+      <path d="M0 330 Q 160 306 320 330 Q 370 340 400 330 L400 400 L0 400 Z" fill="#0c0a20"/>`;
+  }
+  function _scene_rain(){
+    return `<defs><linearGradient id="rs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#47596d"/><stop offset="0.55" stop-color="#33465a"/><stop offset="1" stop-color="#1d2b38"/></linearGradient></defs>
+      <rect width="400" height="400" fill="url(#rs)"/><path d="M0 250 Q 150 200 300 244 Q 380 268 400 232 L400 400 L0 400 Z" fill="#7f92a6" opacity="0.14"/>
+      ${_cloud(110,90,54,'#33414f',0.92)}${_cloud(300,70,60,'#2c3846',0.92)}${_cloud(210,130,50,'#3a4859',0.85)}
+      <g stroke="#c3d6ee" stroke-width="1.5" stroke-linecap="round" opacity="0.55">${[...Array(22)].map((_,i)=>{const x=20+i*17, y=150+(i%5)*36; return `<path d="M${x} ${y} l-7 18"/>`;}).join('')}</g>
+      <path d="M0 330 Q 160 310 320 332 Q 372 342 400 330 L400 400 L0 400 Z" fill="#18242f"/>`;
+  }
+  function _scene_aurora(){
+    return `<defs><linearGradient id="as" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c1f3e"/><stop offset="0.55" stop-color="#102f48"/><stop offset="1" stop-color="#0a2236"/></linearGradient><linearGradient id="au1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fe9c4" stop-opacity="0"/><stop offset="0.4" stop-color="#57e0b8" stop-opacity="0.7"/><stop offset="1" stop-color="#3aa8d0" stop-opacity="0"/></linearGradient><linearGradient id="au2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a98cf0" stop-opacity="0"/><stop offset="0.45" stop-color="#9a7ce8" stop-opacity="0.6"/><stop offset="1" stop-color="#57c0d0" stop-opacity="0"/></linearGradient></defs>
+      <rect width="400" height="400" fill="url(#as)"/>${_stars([[60,60,1.2,0.8],[140,40,1,0.7],[260,50,1.2,0.8],[330,80,1,0.7],[100,110,0.9,0.6],[300,120,1,0.7],[200,70,1,0.7]])}
+      <path d="M20 40 Q 90 140 60 250 L110 250 Q 150 150 90 40 Z" fill="url(#au1)"/><path d="M150 30 Q 230 130 190 260 L250 260 Q 300 140 230 30 Z" fill="url(#au2)"/><path d="M270 40 Q 350 130 320 250 L370 250 Q 400 150 340 40 Z" fill="url(#au1)"/>
+      <path d="M0 320 Q 90 250 180 300 Q 260 344 400 300 L400 400 L0 400 Z" fill="#0a1a28"/><path d="M0 344 Q 120 320 260 344 Q 340 356 400 342 L400 400 L0 400 Z" fill="#e9f2f6" opacity="0.08"/>`;
+  }
+  function _themeScene(name){ const f={default:_scene_default,night:_scene_night,bubbles:_scene_bubbles,stars:_scene_stars,sunrise:_scene_sunrise,rain:_scene_rain,aurora:_scene_aurora}[name]||_scene_default; return f(); }
+
   // ============ 生长树 v3（明确光照 + 树干纹理 + 草地 + 装饰阶梯；绘于计时舞台与全屏遮罩）============
   const _tn = x => Math.round(x * 10) / 10;
   const _tPAL = {
@@ -3675,6 +3750,11 @@ theme_color: "#fafaf9"
   migrateSessions();   // 首次从现有成活树回填一份不可变专注流水
   setActivePill($themeBgPills, state.theme.background);
   setActivePill($themeTimerPills, state.theme.timer);
+  // 选择器里每个主题按钮画一枚「场景圆窗」预览
+  document.querySelectorAll('.theme-swatch[data-scene]').forEach(el => {
+    const nm = el.dataset.scene;
+    el.innerHTML = `<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><defs><clipPath id="csw-${nm}"><circle cx="200" cy="200" r="197"/></clipPath></defs><g clip-path="url(#csw-${nm})">${_themeScene(nm)}</g><circle cx="200" cy="200" r="196" fill="none" stroke="rgba(0,0,0,0.16)" stroke-width="7"/></svg>`;
+  });
   applyStageTheme();
   $timerDisplay.textContent = fmtTime(state.duration * 60);
   renderTree(0);
