@@ -1313,7 +1313,6 @@ theme_color: "#fafaf9"
             <button type="button" data-value="stars" data-tip="星空"><span class="theme-swatch" data-scene="stars"></span></button>
             <button type="button" data-value="sunrise" data-tip="日出"><span class="theme-swatch" data-scene="sunrise"></span></button>
             <button type="button" data-value="rain" data-tip="雨"><span class="theme-swatch" data-scene="rain"></span></button>
-            <button type="button" data-value="aurora" data-tip="极光"><span class="theme-swatch" data-scene="aurora"></span></button>
           </div>
           <span class="pill-divider"></span>
           <span class="group-label">计时</span>
@@ -1808,7 +1807,7 @@ theme_color: "#fafaf9"
       const raw = localStorage.getItem(THEME_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed.background) state.theme.background = parsed.background;
+        if (parsed.background) state.theme.background = parsed.background === 'aurora' ? 'default' : parsed.background;
         if (parsed.timer) state.theme.timer = parsed.timer;
       }
     } catch (e) {}
@@ -1988,7 +1987,7 @@ theme_color: "#fafaf9"
       <path d="M20 40 Q 90 140 60 250 L110 250 Q 150 150 90 40 Z" fill="url(#au1)"/><path d="M150 30 Q 230 130 190 260 L250 260 Q 300 140 230 30 Z" fill="url(#au2)"/><path d="M270 40 Q 350 130 320 250 L370 250 Q 400 150 340 40 Z" fill="url(#au1)"/>
       <path d="M0 320 Q 90 250 180 300 Q 260 344 400 300 L400 400 L0 400 Z" fill="#0a1a28"/><path d="M0 344 Q 120 320 260 344 Q 340 356 400 342 L400 400 L0 400 Z" fill="#e9f2f6" opacity="0.08"/>`;
   }
-  function _themeScene(name){ const f={default:_scene_default,night:_scene_night,bubbles:_scene_bubbles,stars:_scene_stars,sunrise:_scene_sunrise,rain:_scene_rain,aurora:_scene_aurora}[name]||_scene_default; return f(); }
+  function _themeScene(name){ const f={default:_scene_default,night:_scene_night,bubbles:_scene_bubbles,stars:_scene_stars,sunrise:_scene_sunrise,rain:_scene_rain}[name]||_scene_default; return f(); }
 
   // ============ 生长树 v3（明确光照 + 树干纹理 + 草地 + 装饰阶梯；绘于计时舞台与全屏遮罩）============
   const _tn = x => Math.round(x * 10) / 10;
