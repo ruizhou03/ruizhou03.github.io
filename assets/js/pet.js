@@ -1594,6 +1594,7 @@
     renderHistory(deltas, pet);
     renderWeight(pet);
     renderTrend(deltas, pet);
+    if (trendFsOpen) syncTrendFs();   // 全屏横向看图开着时，把这一帧镜像过去
     updateInboxBadge();
     if ($inboxModal.classList.contains('open')) renderInbox();   // live-refresh open inbox on new sync
     renderFoodSelector();
@@ -5226,20 +5227,214 @@
   });
   $mmModal.addEventListener('click', e => { if (e.target === $mmModal) $mmModal.classList.remove('open'); });
 
+  // ===== 趋势图：导出图片 + 全屏横向看图 =====
+  const $chartDownload = document.getElementById('chart-download');
+  const $chartFullscreen = document.getElementById('chart-fullscreen');
+  const $trendFs = document.getElementById('trend-fs');
+  const $trendChartFs = document.getElementById('trend-chart-fs');
+  const $tfsTitle = document.getElementById('tfs-title');
+  const $tfsTabs = document.getElementById('tfs-tabs');
+  const $tfsStats = document.getElementById('tfs-stats');
+  const $tfsClose = document.getElementById('tfs-close');
+  const $tfsDownload = document.getElementById('tfs-download');
+  const $tfsDaynav = document.getElementById('tfs-daynav');
+  const $tfsPrev = document.getElementById('tfs-prev');
+  const $tfsDate = document.getElementById('tfs-date');
+  const $tfsNext = document.getElementById('tfs-next');
+  const $tfsToday = document.getElementById('tfs-today');
+  const $tfsCustom = document.getElementById('tfs-custom');
+  const $tfsCustomStart = document.getElementById('tfs-custom-start');
+  const $tfsCustomEnd = document.getElementById('tfs-custom-end');
+
+  // 统一的区间切换入口（内嵌 tab 与全屏 tab 都调它）
+  function setTrendPeriod(p) {
+    state.period = p;
+    state.intradayIso = null;   // 切换区间时今日视图回到今天，避免停在某个旧日期上
+    if (p === 'custom' && (!state.customStart || !state.customEnd)) {
+      const todayIso = todayBucketIso();
+      const back = lastNDays(30, todayIso);
+      state.customStart = state.customStart || back[back.length - 1];
+      state.customEnd = state.customEnd || todayIso;
+    }
+    persist();
+    render();
+  }
+  // 当前视图的「区间名 + 日期范围」——用于导出标题与全屏标题
+  function trendExportInfo() {
+    const activeBtn = $trendTabs.querySelector('button.active');
+    const label = (activeBtn && activeBtn.textContent.trim()) || '趋势';
+    const fmtCn = iso => { const q = iso.split('-'); return q[0] + '年' + parseInt(q[1], 10) + '月' + parseInt(q[2], 10) + '日'; };
+    let range = '';
+    if (state.period === 'today') {
+      range = fmtCn(state.intradayIso || todayBucketIso());
+    } else if (state.period === 'custom') {
+      let s = state.customStart, e = state.customEnd;
+      if (s && e) { if (s > e) { const t = s; s = e; e = t; } range = fmtCn(s) + ' — ' + fmtCn(e); }
+    } else {
+      const n = parseInt(state.period, 10) || 7;
+      const days = lastNDays(n, todayBucketIso());
+      range = fmtCn(days[days.length - 1]) + ' — ' + fmtCn(days[0]);
+    }
+    return { label, range };
+  }
+  function petInfoLine(pet) {
+    const parts = [];
+    const sp = (FOOD_REC[pet.species] && FOOD_REC[pet.species].label) || '';
+    const breedOrSp = (pet.breed && pet.breed.trim()) || sp;
+    if (breedOrSp) parts.push(breedOrSp);
+    if (pet.ageYears > 0) parts.push(pet.ageYears < 1 ? Math.round(pet.ageYears * 12) + '月龄' : (pet.ageYears % 1 === 0 ? pet.ageYears : pet.ageYears.toFixed(1)) + '岁');
+    if (pet.bodyWeight > 0) { const u = pet.bodyWeightUnit || 'kg'; parts.push(parseFloat(bwFromKg(pet.bodyWeight, u).toFixed(2)) + ' ' + u); }
+    const tr = targetRange(pet);
+    if (tr) { const M = convM(pet), U = convUnit(pet); parts.push(tr.min === tr.max ? '目标 ' + fmtG(tr.min * M) + ' ' + U + '/天' : '目标 ' + fmtG(tr.min * M) + '–' + fmtG(tr.max * M) + ' ' + U + '/天'); }
+    return parts.join('   ·   ');
+  }
+  // 把当前趋势 SVG 栅格化成一张图（解析掉 CSS 变量，按目标像素渲染保证清晰）
+  function svgToPng(svgEl, outW, outH, done) {
+    const cs = getComputedStyle(svgEl);
+    let s = new XMLSerializer().serializeToString(svgEl);
+    s = s.replace(/var\((--[\w-]+)\)/g, (m, name) => (cs.getPropertyValue(name).trim() || '#000000'));
+    const font = "-apple-system,'PingFang SC','Noto Sans CJK SC','Noto Serif SC',sans-serif";
+    s = s.replace(/<svg/, '<svg xmlns="http://www.w3.org/2000/svg" width="' + outW + '" height="' + outH + '" style="font-family:' + font + '"');
+    const img = new Image();
+    img.onload = () => done(img);
+    img.onerror = () => done(null);
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+  }
+  function loadImage(src, done) {
+    if (!src) { done(null); return; }
+    const img = new Image();
+    img.onload = () => done(img);
+    img.onerror = () => done(null);
+    img.src = src;
+  }
+  function roundRectPath(ctx, x, y, w, h, r) {
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); return; }
+    ctx.beginPath(); ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  // 把趋势图导出成一张带宠物信息 + 区间日期 + 站点署名的图片卡片
+  async function downloadTrendImage() {
+    const pet = currentPet();
+    if (!pet || !$trendChart || !$trendChart.querySelector('*')) { alert('这个图暂时没有内容可下载'); return; }
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (_) {}
+    const S = 2, W = 760, PAD = 32;
+    const chartW = W - PAD * 2;
+    const chartH = Math.round(chartW * 240 / 600);
+    svgToPng($trendChart, Math.round(chartW * S), Math.round(chartH * S), (chartImg) => {
+      if (!chartImg) { alert('导出失败，请重试'); return; }
+      loadImage(pet.avatar || null, (avatarImg) => {
+        const root = document.documentElement;
+        const gv = n => getComputedStyle(root).getPropertyValue(n).trim();
+        const C = { bg: gv('--color-bg') || '#faf8f4', warm: gv('--color-bg-warm') || '#f2eee6', ink: gv('--color-ink') || '#2b2824', muted: gv('--color-muted') || '#77716a', accent: gv('--color-accent') || '#3a4a63', border: gv('--color-border') || '#e6e0d6' };
+        const font = getComputedStyle(document.body).fontFamily || "'Noto Serif SC',serif";
+        const info = trendExportInfo();
+        const infoLine = petInfoLine(pet);
+        const stats = (($chartMeta.querySelector('span:last-child') || {}).textContent || '').trim();
+        const now = new Date();
+        const genStamp = '导出于 ' + now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日';
+        const avSize = 50;
+        let H = PAD + avSize + 20 + 34;
+        if (info.range) H += 28;
+        H += 16 + chartH + 14;
+        if (stats) H += 22;
+        H += 18 + 20 + PAD;
+        const cv = document.createElement('canvas');
+        cv.width = Math.round(W * S); cv.height = Math.round(H * S);
+        const ctx = cv.getContext('2d');
+        ctx.scale(S, S);
+        ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = C.accent; ctx.fillRect(0, 0, W, 5);
+        let y = PAD;
+        if (avatarImg) {
+          ctx.save(); roundRectPath(ctx, PAD, y, avSize, avSize, 12); ctx.clip();
+          ctx.drawImage(avatarImg, PAD, y, avSize, avSize); ctx.restore();
+          ctx.strokeStyle = C.border; ctx.lineWidth = 1; roundRectPath(ctx, PAD, y, avSize, avSize, 12); ctx.stroke();
+        } else {
+          roundRectPath(ctx, PAD, y, avSize, avSize, 12); ctx.fillStyle = C.warm; ctx.fill();
+          ctx.font = Math.round(avSize * 0.6) + 'px ' + font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = C.ink; ctx.fillText(pet.emoji || '🐾', PAD + avSize / 2, y + avSize / 2 + 2); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        }
+        ctx.textBaseline = 'middle';
+        ctx.font = '600 30px ' + font; ctx.fillStyle = C.ink;
+        ctx.fillText(pet.name || '宝贝', PAD + avSize + 16, y + (infoLine ? avSize / 2 - 9 : avSize / 2));
+        if (infoLine) { ctx.font = '15px ' + font; ctx.fillStyle = C.muted; ctx.fillText(infoLine, PAD + avSize + 16, y + avSize / 2 + 15); }
+        ctx.textBaseline = 'alphabetic';
+        y += avSize + 20;
+        ctx.font = '600 24px ' + font; ctx.fillStyle = C.ink; ctx.fillText(info.label, PAD, y + 22); y += 34;
+        if (info.range) { ctx.font = '16px ' + font; ctx.fillStyle = C.accent; ctx.fillText(info.range, PAD, y + 18); y += 28; }
+        y += 16;
+        roundRectPath(ctx, PAD - 8, y - 8, chartW + 16, chartH + 16, 14); ctx.fillStyle = C.warm; ctx.fill();
+        ctx.drawImage(chartImg, PAD, y, chartW, chartH);
+        y += chartH + 14;
+        if (stats) { ctx.font = '15px ' + font; ctx.fillStyle = C.ink; ctx.fillText(stats, PAD, y + 16); y += 22; }
+        y += 18;
+        ctx.font = '12.5px ' + font; ctx.fillStyle = C.muted;
+        ctx.fillText('🐾 宠物中心 · ruizhou03.com', PAD, y + 12);
+        ctx.textAlign = 'right'; ctx.fillText(genStamp, W - PAD, y + 12); ctx.textAlign = 'left';
+        cv.toBlob((blob) => {
+          if (!blob) { alert('导出失败'); return; }
+          const safe = str => (str || '').replace(/[\\/:*?"<>|]/g, '').replace(/年|月/g, '.').replace(/日/g, '').replace(/\s*—\s*/g, '_至_').replace(/\s+/g, '');
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = (pet.name || '宠物') + '-' + safe(info.label) + (info.range ? '-' + safe(info.range) : '') + '.png';
+          document.body.appendChild(a); a.click();
+          setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+        }, 'image/png');
+      });
+    });
+  }
+  // ---- 全屏横向看图（手机竖屏时旋转成横屏，内含区间/日期切换）----
+  let trendFsOpen = false;
+  function openTrendFs() {
+    if (!$trendFs) return;
+    trendFsOpen = true;
+    $trendFs.hidden = false;
+    document.body.classList.add('trend-fs-open');
+    syncTrendFs();
+  }
+  function closeTrendFs() {
+    trendFsOpen = false;
+    if ($trendFs) $trendFs.hidden = true;
+    document.body.classList.remove('trend-fs-open');
+  }
+  // 把内嵌趋势图的最新一帧镜像到全屏面板（复用同一套渲染，避免两套绘制逻辑）
+  function syncTrendFs() {
+    if (!trendFsOpen || !$trendChartFs) return;
+    $trendChartFs.innerHTML = $trendChart.innerHTML;
+    const pet = currentPet();
+    const info = trendExportInfo();
+    if ($tfsTitle) $tfsTitle.textContent = (pet && pet.name ? pet.name + ' · ' : '') + info.label + (info.range ? ' · ' + info.range : '');
+    if ($tfsStats) $tfsStats.textContent = (($chartMeta.querySelector('span:last-child') || {}).textContent || '').trim();
+    if ($tfsTabs) $tfsTabs.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.p === state.period));
+    if ($tfsDaynav) $tfsDaynav.style.display = state.period === 'today' ? '' : 'none';
+    if ($tfsCustom) $tfsCustom.style.display = state.period === 'custom' ? '' : 'none';
+    if (state.period === 'today') syncTfsDayNav();
+    if (state.period === 'custom') { if ($tfsCustomStart) $tfsCustomStart.value = state.customStart || ''; if ($tfsCustomEnd) $tfsCustomEnd.value = state.customEnd || ''; }
+  }
+  function syncTfsDayNav() {
+    if (!$tfsDate) return;
+    const today = todayBucketIso();
+    const view = state.intradayIso || today;
+    $tfsDate.value = view; $tfsDate.max = today;
+    const isToday = view >= today;
+    if ($tfsNext) $tfsNext.disabled = isToday;
+    if ($tfsToday) $tfsToday.style.display = isToday ? 'none' : '';
+  }
+  if ($chartDownload) $chartDownload.addEventListener('click', downloadTrendImage);
+  if ($chartFullscreen) $chartFullscreen.addEventListener('click', openTrendFs);
+  if ($tfsClose) $tfsClose.addEventListener('click', closeTrendFs);
+  if ($tfsDownload) $tfsDownload.addEventListener('click', downloadTrendImage);
+  if ($tfsTabs) $tfsTabs.querySelectorAll('button').forEach(b => b.addEventListener('click', () => setTrendPeriod(b.dataset.p)));
+  if ($tfsToday) $tfsToday.addEventListener('click', () => { state.intradayIso = null; render(); });
+  if ($tfsDate) $tfsDate.addEventListener('change', () => { const v = $tfsDate.value; if (!v) return; const today = todayBucketIso(); state.intradayIso = (v >= today) ? null : v; render(); });
+  if ($tfsCustomStart) $tfsCustomStart.addEventListener('change', () => { state.customStart = $tfsCustomStart.value || null; persist(); render(); });
+  if ($tfsCustomEnd) $tfsCustomEnd.addEventListener('change', () => { state.customEnd = $tfsCustomEnd.value || null; persist(); render(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && trendFsOpen) closeTrendFs(); });
+
   // ===== Trend tabs =====
   $trendTabs.querySelectorAll('button').forEach(b => {
-    b.addEventListener('click', () => {
-      state.period = b.dataset.p;
-      state.intradayIso = null;   // 切换区间时今日视图回到今天，避免停在某个旧日期上
-      if (state.period === 'custom' && (!state.customStart || !state.customEnd)) {
-        const todayIso = todayBucketIso();
-        const back = lastNDays(30, todayIso);
-        state.customStart = state.customStart || back[back.length - 1];
-        state.customEnd = state.customEnd || todayIso;
-      }
-      persist();
-      render();
-    });
+    b.addEventListener('click', () => setTrendPeriod(b.dataset.p));
   });
   $customStart.addEventListener('change', () => { state.customStart = $customStart.value || null; persist(); render(); });
   $customEnd.addEventListener('change', () => { state.customEnd = $customEnd.value || null; persist(); render(); });
@@ -5268,6 +5463,8 @@
   }
   if ($dnPrev) $dnPrev.addEventListener('click', () => stepIntraday(-1));
   if ($dnNext) $dnNext.addEventListener('click', () => stepIntraday(1));
+  if ($tfsPrev) $tfsPrev.addEventListener('click', () => stepIntraday(-1));   // 全屏里的逐日翻看复用同一逻辑
+  if ($tfsNext) $tfsNext.addEventListener('click', () => stepIntraday(1));
   if ($dnToday) $dnToday.addEventListener('click', () => { state.intradayIso = null; render(); });
   if ($dnDate) $dnDate.addEventListener('change', () => {
     const v = $dnDate.value; if (!v) return;

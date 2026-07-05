@@ -152,6 +152,8 @@
       <span class="right" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end;">
         <span id="chart-range-lbl"></span>
         <button type="button" class="target-toggle" id="chart-target-toggle" style="display: none;">目标参考线</button>
+        <button type="button" class="target-toggle" id="chart-fullscreen" title="横屏放大看图（可在里面切区间/日期）">⤢ 横屏</button>
+        <button type="button" class="target-toggle" id="chart-download" title="把当前这张趋势图存成图片">⬇ 下载</button>
       </span>
     </div>
     <div class="trend-tabs" id="trend-tabs">
@@ -178,6 +180,38 @@
       <svg viewBox="0 0 600 240" id="trend-chart" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="chart-tip" id="chart-tip" hidden></div>
       <div class="chart-meta" id="chart-meta"></div>
+    </div>
+
+    <!-- 全屏横向看图：把趋势图放大成横屏；手机竖屏时旋转 90°。里面也能切区间/翻日期/自定义/下载 -->
+    <div class="trend-fs" id="trend-fs" hidden>
+      <div class="trend-fs-inner">
+        <div class="tfs-top">
+          <span class="tfs-title" id="tfs-title"></span>
+          <div class="tfs-tabs" id="tfs-tabs">
+            <button type="button" data-p="today">今日时段</button>
+            <button type="button" data-p="7">近 7 日</button>
+            <button type="button" data-p="30">近 30 日</button>
+            <button type="button" data-p="180">近半年</button>
+            <button type="button" data-p="365">近 1 年</button>
+            <button type="button" data-p="custom">自定义</button>
+          </div>
+          <button type="button" class="tfs-icon" id="tfs-download" title="下载这张图">⬇</button>
+          <button type="button" class="tfs-icon" id="tfs-close" title="退出横屏" aria-label="退出横屏">✕</button>
+        </div>
+        <div class="tfs-chart"><svg viewBox="0 0 600 240" id="trend-chart-fs" preserveAspectRatio="xMidYMid meet"></svg></div>
+        <div class="tfs-bottom">
+          <span class="tfs-stats" id="tfs-stats"></span>
+          <span class="tfs-daynav" id="tfs-daynav" style="display:none;">
+            <button type="button" class="dn-arrow" id="tfs-prev" aria-label="前一天">‹</button>
+            <input type="date" id="tfs-date" class="dn-date" aria-label="选择要看的日期" />
+            <button type="button" class="dn-arrow" id="tfs-next" aria-label="后一天">›</button>
+            <button type="button" class="dn-today" id="tfs-today">今天</button>
+          </span>
+          <span class="tfs-custom" id="tfs-custom" style="display:none;">
+            <span>从</span><input type="date" id="tfs-custom-start" /><span>到</span><input type="date" id="tfs-custom-end" />
+          </span>
+        </div>
+      </div>
     </div>
 
     <div class="section-title">
