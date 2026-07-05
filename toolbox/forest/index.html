@@ -1232,6 +1232,47 @@ theme_color: "#fafaf9"
     color: #8fd0ff; background: transparent; border: none; cursor: pointer;
     padding: 0.2rem 0.5rem; white-space: nowrap; flex-shrink: 0;
   }
+  /* —— 主题呼吸动效 + 樱花落樱(整合自 scenes-anim/sakura-fall) —— */
+
+@media (prefers-reduced-motion: no-preference){
+  .sc-drift{animation:scDrift 64s linear infinite}
+  .sc-drift-slow{animation:scDrift 96s linear infinite}
+  .sc-drift-rain{animation:scDrift 46s linear infinite}
+  .sc-riser{animation:scRise 20s ease-in-out infinite alternate}
+  .sc-moon{animation:scMoon 46s ease-in-out infinite alternate}
+  .sc-bloom{animation:scPulse 8s ease-in-out infinite}
+  .sc-star{animation:scTwinkle 3.6s ease-in-out infinite}
+  .rn-far{animation:rnFar 1.55s linear infinite}
+  .rn-mid{animation:rnMid 1.05s linear infinite}
+  .rn-near{animation:rnNear 0.72s linear infinite}
+  .rn-ripple{transform-box:fill-box;transform-origin:center;animation-name:rnRipple;animation-timing-function:ease-out;animation-iteration-count:infinite}
+  .sc-rays{animation:scRaySway 14s ease-in-out infinite alternate}
+  .bub{animation-name:bubRise;animation-timing-function:cubic-bezier(.42,0,.72,1);animation-iteration-count:infinite}
+  .bubw{animation-name:bubWob;animation-timing-function:ease-in-out;animation-iteration-count:infinite;animation-direction:alternate}
+}
+@keyframes scDrift{from{transform:translateX(0)}to{transform:translateX(-400px)}}
+@keyframes scRise{from{transform:translateY(7px)}to{transform:translateY(-11px)}}
+@keyframes scMoon{from{transform:translate(0px,5px)}to{transform:translate(-15px,-11px)}}
+@keyframes scPulse{0%,100%{opacity:1}50%{opacity:.62}}
+@keyframes scTwinkle{0%,100%{opacity:1}50%{opacity:.32}}
+@keyframes rnFar{from{transform:translateY(0)}to{transform:translateY(44px)}}
+@keyframes rnMid{from{transform:translateY(0)}to{transform:translateY(52px)}}
+@keyframes rnNear{from{transform:translateY(0)}to{transform:translateY(64px)}}
+@keyframes rnRipple{0%{transform:scale(.22);opacity:.6}70%{opacity:.16}100%{transform:scale(1.15);opacity:0}}
+@keyframes scRaySway{from{transform:translateX(-11px) skewX(-1.5deg)}to{transform:translateX(13px) skewX(1.5deg)}}
+@keyframes bubRise{0%{transform:translateY(0);opacity:0}7%{opacity:1}84%{opacity:1}100%{transform:translateY(-495px);opacity:0}}
+@keyframes bubWob{from{transform:translateX(-5px)}to{transform:translateX(5px)}}
+
+
+@media (prefers-reduced-motion: no-preference){
+  .pf{animation-name:pfFall;animation-timing-function:linear;animation-iteration-count:infinite}
+  .pfw{animation-name:pfSway;animation-timing-function:ease-in-out;animation-direction:alternate;animation-iteration-count:infinite}
+  .pfr{transform-box:fill-box;transform-origin:center;animation-name:pfSpin;animation-timing-function:linear;animation-iteration-count:infinite}
+}
+@keyframes pfFall{0%{transform:translateY(0);opacity:0}9%{opacity:1}85%{opacity:1}100%{transform:translateY(176px);opacity:0}}
+@keyframes pfSway{from{transform:translateX(-9px)}to{transform:translateX(9px)}}
+@keyframes pfSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
 </style>
 
 <div class="ft-wrap">
@@ -1842,7 +1883,7 @@ theme_color: "#fafaf9"
   function renderParticles(container, bg, scale) {
     if (!container) return;
     container.innerHTML = '';
-    if (bg === 'sunrise' || bg === 'default' || bg === 'night') return;  // 这些场景已自足，不加动态粒子
+    return;  // 场景已自带动画，粒子层停用
     const k = (n) => Math.max(1, Math.round(n * scale));
     const small = scale < 1;
 
@@ -1934,59 +1975,170 @@ theme_color: "#fafaf9"
   // ============ Tree SVG ============
   // progress: 0-1 描述树的成长进度
   // ============ 主题场景（每主题一幅矢量小景，作舞台 / 全屏遮罩 / 选择器的背景）============
-  function _stars(list){ return list.map(([x,y,r,br])=>{
-    let s=`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${br||0.9}"/>`;
-    if(r>=1.3) s+=`<path d="M${x} ${y-r*2.6} L${x} ${y+r*2.6} M${x-r*2.6} ${y} L${x+r*2.6} ${y}" stroke="#fff" stroke-width="0.5" opacity="${(br||0.9)*0.5}"/>`;
-    return s;}).join(''); }
-  function _cloud(x,y,s,fill,op){ return `<g fill="${fill}" opacity="${op}"><ellipse cx="${x}" cy="${y}" rx="${s}" ry="${s*0.42}"/><ellipse cx="${x-s*0.55}" cy="${y+s*0.12}" rx="${s*0.55}" ry="${s*0.32}"/><ellipse cx="${x+s*0.6}" cy="${y+s*0.1}" rx="${s*0.5}" ry="${s*0.3}"/><ellipse cx="${x-s*0.1}" cy="${y-s*0.18}" rx="${s*0.5}" ry="${s*0.32}"/></g>`; }
-  function _scene_night(){
-    return `<defs><linearGradient id="ns" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d3b46"/><stop offset="0.5" stop-color="#122731"/><stop offset="1" stop-color="#070f14"/></linearGradient><radialGradient id="nm" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fbf6e2"/><stop offset="0.7" stop-color="#efe6c6"/><stop offset="1" stop-color="#efe6c6" stop-opacity="0"/></radialGradient><radialGradient id="nmg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e8e6c8" stop-opacity="0.35"/><stop offset="1" stop-color="#e8e6c8" stop-opacity="0"/></radialGradient><linearGradient id="nmw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd0e0" stop-opacity="0.12"/><stop offset="0.5" stop-color="#c9b8e8" stop-opacity="0.08"/><stop offset="1" stop-color="#9fd0e0" stop-opacity="0"/></linearGradient></defs>
-      <rect width="400" height="400" fill="url(#ns)"/><path d="M0 120 Q 200 60 400 160 L400 300 L0 300 Z" fill="url(#nmw)"/>
-      ${_stars([[60,60,1.6,1],[120,40,1,0.8],[170,90,1.8,1],[240,50,1.2,0.85],[300,80,1,0.8],[340,50,1.5,0.95],[90,140,1,0.7],[200,150,1.3,0.8],[280,160,1,0.7],[350,180,1.2,0.8],[40,200,0.9,0.6],[150,210,1,0.6],[320,230,1,0.6],[130,110,0.8,0.6],[250,110,0.9,0.7]])}
-      <circle cx="300" cy="110" r="52" fill="url(#nmg)"/><g><circle cx="300" cy="110" r="34" fill="url(#nm)"/><circle cx="314" cy="102" r="30" fill="#122731" opacity="0.9"/></g>
-      <path d="M0 300 Q 130 270 260 296 Q 340 312 400 292 L400 400 L0 400 Z" fill="#0a171b"/><path d="M0 330 Q 160 306 300 330 Q 360 340 400 328 L400 400 L0 400 Z" fill="#060f12"/>`;
+  function _stars(list){ return list.map(([x,y,r,br],i)=>{
+  const d=(((i*0.53)%1)*3.6).toFixed(2);
+  let s=`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${br||0.9}"/>`;
+  if(r>=1.3) s+=`<path d="M${x} ${y-r*2.6} L${x} ${y+r*2.6} M${x-r*2.6} ${y} L${x+r*2.6} ${y}" stroke="#fff" stroke-width="0.5" opacity="${(br||0.9)*0.5}"/>`;
+  return `<g class="sc-star" style="animation-delay:${d}s">${s}</g>`;}).join(''); }
+function _cloud(x,y,s,fill,op){ return `<g fill="${fill}" opacity="${op}"><ellipse cx="${x}" cy="${y}" rx="${s}" ry="${s*0.42}"/><ellipse cx="${x-s*0.55}" cy="${y+s*0.12}" rx="${s*0.55}" ry="${s*0.32}"/><ellipse cx="${x+s*0.6}" cy="${y+s*0.1}" rx="${s*0.5}" ry="${s*0.3}"/><ellipse cx="${x-s*0.1}" cy="${y-s*0.18}" rx="${s*0.5}" ry="${s*0.32}"/></g>`; }
+function _driftX(inner, cls){ return `<g class="${cls}"><g>${inner}</g><g transform="translate(400,0)">${inner}</g></g>`; }
+
+function _scene_default(){
+  const clouds=_cloud(110,120,50,'#ffffff',0.92)+_cloud(300,190,44,'#ffffff',0.85)+_cloud(60,210,36,'#ffffff',0.75)+_cloud(210,90,30,'#ffffff',0.6);
+  return `<defs>
+    <linearGradient id="ds" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9c8df"/><stop offset="0.45" stop-color="#d3e2e8"/><stop offset="1" stop-color="#eef0e2"/></linearGradient>
+    <radialGradient id="dsun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff6df" stop-opacity="0.95"/><stop offset="1" stop-color="#fff6df" stop-opacity="0"/></radialGradient>
+    <radialGradient id="dbloom" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff3d0" stop-opacity="0.85"/><stop offset="0.6" stop-color="#ffeec2" stop-opacity="0.28"/><stop offset="1" stop-color="#ffeec2" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#ds)"/>
+  <circle cx="310" cy="90" r="92" fill="url(#dsun)"/>
+  <circle cx="310" cy="90" r="26" fill="#fff8ea"/>
+  ${_driftX(clouds,'sc-drift')}
+  <!-- 云飘到日前时，这层暖光在云之上透出，做"阳光穿过云"的散射感 -->
+  <circle cx="310" cy="90" r="104" fill="url(#dbloom)" class="sc-bloom"/>
+  <path d="M0 300 Q 130 272 270 298 Q 340 310 400 296 L400 400 L0 400 Z" fill="#c2d0a6"/>
+  <path d="M0 336 Q 150 314 320 336 Q 370 344 400 334 L400 400 L0 400 Z" fill="#aebd8f"/>`;
+}
+function _scene_sunrise(){
+  const clouds=_cloud(95,150,44,'#f7c98f',0.7)+_cloud(310,120,52,'#f3b47a',0.65)+_cloud(250,200,60,'#ffe0a8',0.5);
+  return `<defs>
+    <linearGradient id="ss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c24d2c"/><stop offset="0.42" stop-color="#e37a45"/><stop offset="0.72" stop-color="#f2a961"/><stop offset="1" stop-color="#fbd88f"/></linearGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff6d8"/><stop offset="0.55" stop-color="#ffe6a6"/><stop offset="1" stop-color="#ffe6a6" stop-opacity="0"/></radialGradient>
+    <radialGradient id="sung" cx="50%" cy="72%" r="65%"><stop offset="0" stop-color="#fff0c0" stop-opacity="0.5"/><stop offset="1" stop-color="#fff0c0" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#ss)"/>
+  <rect width="400" height="400" fill="url(#sung)"/>
+  <g class="sc-riser"><circle cx="200" cy="308" r="112" fill="url(#sun)"/><circle cx="200" cy="308" r="46" fill="#fff8e4"/></g>
+  ${_driftX(clouds,'sc-drift-slow')}
+  <path d="M0 300 Q 120 282 240 300 Q 330 314 400 298 L400 400 L0 400 Z" fill="#c86a44" opacity="0.85"/>
+  <path d="M0 330 Q 160 314 320 332 Q 370 340 400 330 L400 400 L0 400 Z" fill="#a9532f"/>`;
+}
+function _scene_night(){
+  return `<defs>
+    <linearGradient id="ns" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d3b46"/><stop offset="0.5" stop-color="#122731"/><stop offset="1" stop-color="#070f14"/></linearGradient>
+    <radialGradient id="nm" cx="42%" cy="40%" r="62%"><stop offset="0" stop-color="#fdfbef"/><stop offset="0.7" stop-color="#efe6c6"/><stop offset="1" stop-color="#e4d7ad"/></radialGradient>
+    <radialGradient id="nmg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e8e6c8" stop-opacity="0.32"/><stop offset="1" stop-color="#e8e6c8" stop-opacity="0"/></radialGradient>
+    <linearGradient id="nmw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd0e0" stop-opacity="0.12"/><stop offset="0.5" stop-color="#c9b8e8" stop-opacity="0.08"/><stop offset="1" stop-color="#9fd0e0" stop-opacity="0"/></linearGradient>
+    <mask id="ncres"><circle cx="300" cy="108" r="30" fill="#fff"/><circle cx="316" cy="99" r="27" fill="#000"/></mask>
+  </defs>
+  <rect width="400" height="400" fill="url(#ns)"/>
+  <path d="M0 120 Q 200 60 400 160 L400 300 L0 300 Z" fill="url(#nmw)"/>
+  ${_stars([[60,60,1.6,1],[120,40,1,0.8],[170,90,1.8,1],[240,50,1.2,0.85],[300,80,1,0.8],[340,50,1.5,0.95],[90,140,1,0.7],[200,150,1.3,0.8],[280,160,1,0.7],[350,180,1.2,0.8],[40,200,0.9,0.6],[150,210,1,0.6],[320,230,1,0.6],[130,110,0.8,0.6],[250,110,0.9,0.7]])}
+  <g class="sc-moon">
+    <circle cx="300" cy="108" r="46" fill="url(#nmg)"/>
+    <circle cx="300" cy="108" r="30" fill="url(#nm)" mask="url(#ncres)"/>
+    <circle cx="289" cy="99" r="3.2" fill="#e3d6ac" opacity="0.5"/><circle cx="293" cy="114" r="2.2" fill="#e3d6ac" opacity="0.45"/><circle cx="284" cy="108" r="1.8" fill="#e3d6ac" opacity="0.4"/>
+  </g>
+  <path d="M0 300 Q 130 270 260 296 Q 340 312 400 292 L400 400 L0 400 Z" fill="#0a171b"/>
+  <path d="M0 330 Q 160 306 300 330 Q 360 340 400 328 L400 400 L0 400 Z" fill="#060f12"/>`;
+}
+// 一层雨:竖直雨丝铺满,严格纵向周期=per → 平移 per 无缝。丝在【旋转过的坐标系】里竖直,
+// 整层被外层 rotate 一斜 → 竖直下落=顺着斜向落(有被风吹的感觉);覆盖范围放大以撑住旋转后的裁切。
+function _rainLayer(cls, cols, rows, len, sw, op, per){
+  const X0=-150, X1=550, W=X1-X0; let seeds=[];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const jx=(((r*7+c*13)%5)/5-0.4), jy=(((c*5+r*11)%5)/5-0.4);
+    seeds.push([ (X0+(c+0.5+jx)*(W/cols)).toFixed(1), ((r+0.5+jy)*(per/rows)).toFixed(1) ]);
   }
-  function _scene_sunrise(){
-    return `<defs><linearGradient id="ss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c24d2c"/><stop offset="0.42" stop-color="#e37a45"/><stop offset="0.72" stop-color="#f2a961"/><stop offset="1" stop-color="#fbd88f"/></linearGradient><radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff6d8"/><stop offset="0.55" stop-color="#ffe6a6"/><stop offset="1" stop-color="#ffe6a6" stop-opacity="0"/></radialGradient><radialGradient id="sung" cx="50%" cy="72%" r="65%"><stop offset="0" stop-color="#fff0c0" stop-opacity="0.5"/><stop offset="1" stop-color="#fff0c0" stop-opacity="0"/></radialGradient></defs>
-      <rect width="400" height="400" fill="url(#ss)"/><rect width="400" height="400" fill="url(#sung)"/>
-      <g stroke="#fff3cf" stroke-width="3" stroke-linecap="round" opacity="0.24"><path d="M200 300 L200 70"/><path d="M200 300 L95 120"/><path d="M200 300 L305 120"/><path d="M200 300 L45 230"/><path d="M200 300 L355 230"/></g>
-      <circle cx="200" cy="308" r="104" fill="url(#sun)"/><circle cx="200" cy="308" r="44" fill="#fff8e4"/>
-      ${_cloud(95,150,44,'#f7c98f',0.75)}${_cloud(310,120,52,'#f3b47a',0.7)}${_cloud(250,200,60,'#ffe0a8',0.55)}
-      <path d="M0 300 Q 120 282 240 300 Q 330 314 400 298 L400 400 L0 400 Z" fill="#c86a44" opacity="0.85"/><path d="M0 330 Q 160 314 320 332 Q 370 340 400 330 L400 400 L0 400 Z" fill="#a9532f"/>`;
+  let s=''; const kmax=Math.ceil(700/per)+2;
+  // x2 给 1.2 的极小横移:一是让渐变描边有非零 bbox(纯竖线 bbox 宽 0 会导致渐变不渲染),二是斜向靠外层 rotate 给
+  for(let k=-2;k<=kmax;k++){ const oy=k*per-150;
+    for(const [x,y] of seeds){ const y1=(+y+oy).toFixed(1); s+=`<line x1="${x}" y1="${y1}" x2="${(+x+1.2).toFixed(1)}" y2="${(+y1+len).toFixed(1)}"/>`; } }
+  return `<g class="${cls}" stroke="url(#rstreak)" stroke-width="${sw}" stroke-linecap="round" opacity="${op}">${s}</g>`;
+}
+// 地面涟漪：双环、按 y 越近越大做透视,scale+透明循环(无对勾溅点)
+function _ripples(){
+  const R=[[70,384,27],[300,378,24],[182,392,31],[120,360,16],[250,362,18],[350,388,22],[42,368,14],[214,374,22],[332,357,15]];
+  return R.map(([x,y,rx],i)=>{ const d=(((i*0.37)%1)*2.4).toFixed(2), dur=(2.0+(i%3)*0.45).toFixed(2);
+    return `<g class="rn-ripple" style="animation-delay:-${d}s;animation-duration:${dur}s">`
+      +`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${(rx*0.3).toFixed(1)}" fill="none" stroke="#9fc0dd" stroke-width="1.3" opacity="0.5"/>`
+      +`<ellipse cx="${x}" cy="${y}" rx="${(rx*0.52).toFixed(1)}" ry="${(rx*0.52*0.3).toFixed(1)}" fill="none" stroke="#c2dcf0" stroke-width="1" opacity="0.4"/></g>`;
+  }).join('');
+}
+function _scene_rain(){
+  const clouds=_cloud(100,70,54,'#2d3946',0.96)+_cloud(298,58,60,'#27313d',0.96)+_cloud(206,104,46,'#333f4d',0.9);
+  return `<defs>
+    <linearGradient id="rs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a4a5c"/><stop offset="0.5" stop-color="#495a6c"/><stop offset="0.8" stop-color="#5b6b7d"/><stop offset="1" stop-color="#43515f"/></linearGradient>
+    <linearGradient id="rhaze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ccd8e6" stop-opacity="0"/><stop offset="0.72" stop-color="#ccd8e6" stop-opacity="0.16"/><stop offset="1" stop-color="#ccd8e6" stop-opacity="0.04"/></linearGradient>
+    <linearGradient id="rstreak" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf3ff" stop-opacity="0"/><stop offset="0.5" stop-color="#eaf3ff" stop-opacity="1"/><stop offset="1" stop-color="#eaf3ff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="rground" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3844"/><stop offset="1" stop-color="#18222c"/></linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#rs)"/>
+  <path d="M0 250 Q 150 214 300 246 Q 380 262 400 240 L400 360 L0 360 Z" fill="#8ea3b8" opacity="0.1"/>
+  ${_driftX(clouds,'sc-drift-rain')}
+  <rect x="0" y="150" width="400" height="210" fill="url(#rhaze)"/>
+  <g transform="rotate(12 200 200)">${_rainLayer('rn-far',26,6,9,0.8,0.24,44)}${_rainLayer('rn-mid',19,5,16,1.15,0.4,52)}</g>
+  <path d="M0 346 Q 120 332 260 346 Q 340 354 400 342 L400 400 L0 400 Z" fill="url(#rground)"/>
+  <path d="M0 346 Q 120 332 260 346 Q 340 354 400 342" fill="none" stroke="#63788a" stroke-width="1" opacity="0.4"/>
+  ${_ripples()}
+  <g transform="rotate(12 200 200)">${_rainLayer('rn-near',11,4,24,1.6,0.52,64)}</g>`;
+}
+function _scene_bubbles(){
+  // 气泡：每颗独立个体，大的升得快(浮力/物理感)、缓入加速上升、边升边左右摆动、进出淡入淡出→无缝
+  // cy 落在下半水域(减弱动态时也看得到气泡);大的 r→dur 小(升得快·浮力物理感)
+  const bubs=[
+    {x:60,cy:392,r:12,dur:11,wob:3.4,dl:0,op:0.62},{x:120,cy:320,r:7,dur:14.5,wob:2.8,dl:5,op:0.55},
+    {x:182,cy:398,r:14,dur:9.5,wob:3.9,dl:2,op:0.62},{x:232,cy:352,r:6,dur:15.5,wob:2.6,dl:8,op:0.5},
+    {x:292,cy:378,r:10,dur:12,wob:3.2,dl:3,op:0.6},{x:342,cy:336,r:8,dur:13.5,wob:3.0,dl:6.5,op:0.55},
+    {x:92,cy:308,r:5,dur:16.5,wob:2.4,dl:10,op:0.5},{x:206,cy:366,r:9,dur:12.8,wob:3.1,dl:12.5,op:0.58},
+    {x:314,cy:300,r:6,dur:14.8,wob:2.7,dl:1.5,op:0.52},{x:150,cy:346,r:11,dur:10.5,wob:3.6,dl:7.5,op:0.6},
+  ];
+  const bubbles=bubs.map(b=>`<g class="bub" style="animation-duration:${b.dur}s;animation-delay:-${b.dl}s;--op:${b.op}"><g class="bubw" style="animation-duration:${b.wob}s"><circle cx="${b.x}" cy="${b.cy}" r="${b.r}" fill="none" stroke="#dff1fa" stroke-width="${b.r>11?1.6:1.1}" opacity="${b.op}"/><circle cx="${b.x-b.r*0.35}" cy="${(b.cy-b.r*0.35).toFixed(1)}" r="${(b.r*0.28).toFixed(1)}" fill="#eef8fd" opacity="${b.op}"/></g></g>`).join('');
+  return `<defs>
+    <linearGradient id="bs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3282ad"/><stop offset="0.5" stop-color="#195a83"/><stop offset="1" stop-color="#0a2f4d"/></linearGradient>
+    <linearGradient id="bray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfeaf5" stop-opacity="0.32"/><stop offset="1" stop-color="#cfeaf5" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#bs)"/>
+  <g class="sc-rays" fill="url(#bray)"><path d="M120 -20 L60 400 L120 400 L165 -20 Z"/><path d="M240 -20 L300 400 L340 400 L285 -20 Z"/><path d="M180 -20 L200 400 L215 400 L210 -20 Z"/></g>
+  ${bubbles}
+  <path d="M0 350 Q 120 322 260 348 Q 340 360 400 344 L400 400 L0 400 Z" fill="#0b2b42"/>`;
+}
+function _themeScene(name){ const f={default:_scene_default,night:_scene_night,bubbles:_scene_bubbles,sunrise:_scene_sunrise,rain:_scene_rain}[name]||_scene_default; return f(); }
+  // —— 选择器专用缩略图(突出主角) ——
+  function _st(list){ return list.map(([x,y,r,br])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${br||0.9}"/>`).join(''); }
+  
+  function _themeThumb(name){
+    if(name==='night') return `<defs>
+      <linearGradient id="tn-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d3b46"/><stop offset="0.55" stop-color="#122731"/><stop offset="1" stop-color="#0a141a"/></linearGradient>
+      <radialGradient id="tn-m" cx="42%" cy="40%" r="62%"><stop offset="0" stop-color="#fdfbef"/><stop offset="0.7" stop-color="#efe6c6"/><stop offset="1" stop-color="#e4d7ad"/></radialGradient>
+      <radialGradient id="tn-g" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e8e6c8" stop-opacity="0.4"/><stop offset="1" stop-color="#e8e6c8" stop-opacity="0"/></radialGradient>
+      <mask id="tn-c"><circle cx="205" cy="195" r="86" fill="#fff"/><circle cx="246" cy="171" r="78" fill="#000"/></mask></defs>
+      <rect width="400" height="400" fill="url(#tn-s)"/>
+      ${_st([[70,80,3,0.9],[120,300,2.4,0.8],[330,120,3,0.9],[300,320,2.2,0.75],[90,180,2,0.7],[360,260,2.4,0.8]])}
+      <circle cx="205" cy="195" r="120" fill="url(#tn-g)"/>
+      <circle cx="205" cy="195" r="86" fill="url(#tn-m)" mask="url(#tn-c)"/>
+      <circle cx="182" cy="168" r="8" fill="#e3d6ac" opacity="0.45"/><circle cx="190" cy="210" r="6" fill="#e3d6ac" opacity="0.4"/><circle cx="170" cy="196" r="5" fill="#e3d6ac" opacity="0.4"/>`;
+    if(name==='sunrise') return `<defs>
+      <linearGradient id="tr-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c24d2c"/><stop offset="0.45" stop-color="#e6813f"/><stop offset="1" stop-color="#fcd98d"/></linearGradient>
+      <radialGradient id="tr-sun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff8e0"/><stop offset="0.5" stop-color="#ffe6a6"/><stop offset="1" stop-color="#ffe6a6" stop-opacity="0"/></radialGradient></defs>
+      <rect width="400" height="400" fill="url(#tr-s)"/>
+      <circle cx="200" cy="232" r="150" fill="url(#tr-sun)"/>
+      <circle cx="200" cy="232" r="78" fill="#fff6d8"/>
+      <path d="M0 300 Q 140 286 260 300 Q 340 310 400 298 L400 400 L0 400 Z" fill="#c86a44" opacity="0.9"/>`;
+    if(name==='default') return `<defs>
+      <linearGradient id="td-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9c8df"/><stop offset="0.5" stop-color="#d3e2e8"/><stop offset="1" stop-color="#eef0e2"/></linearGradient>
+      <radialGradient id="td-g" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff6df" stop-opacity="0.95"/><stop offset="1" stop-color="#fff6df" stop-opacity="0"/></radialGradient></defs>
+      <rect width="400" height="400" fill="url(#td-s)"/>
+      <circle cx="238" cy="150" r="135" fill="url(#td-g)"/><circle cx="238" cy="150" r="52" fill="#fff8ea"/>
+      <g fill="#ffffff" opacity="0.95"><ellipse cx="140" cy="250" rx="66" ry="27"/><ellipse cx="96" cy="262" rx="34" ry="20"/><ellipse cx="184" cy="260" rx="30" ry="18"/><ellipse cx="132" cy="234" rx="30" ry="19"/></g>
+      <path d="M0 320 Q 150 300 300 320 Q 360 328 400 318 L400 400 L0 400 Z" fill="#c2d0a6"/>`;
+    if(name==='rain') return `<defs>
+      <linearGradient id="tp-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a4a5c"/><stop offset="0.6" stop-color="#4f6072"/><stop offset="1" stop-color="#44525f"/></linearGradient>
+      <linearGradient id="tp-st" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf3ff" stop-opacity="0"/><stop offset="0.5" stop-color="#eaf3ff" stop-opacity="1"/><stop offset="1" stop-color="#eaf3ff" stop-opacity="0"/></linearGradient>
+      <linearGradient id="tp-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3844"/><stop offset="1" stop-color="#18222c"/></linearGradient></defs>
+      <rect width="400" height="400" fill="url(#tp-s)"/>
+      <g transform="rotate(12 200 200)"><g stroke="url(#tp-st)" stroke-width="2.4" stroke-linecap="round" opacity="0.6">${(()=>{let s='';for(let r=0;r<7;r++)for(let c=0;c<7;c++){const x=20+c*58+((r%2)?28:0),y=60+r*44;s+=`<line x1="${x}" y1="${y}" x2="${x+1.4}" y2="${y+26}"/>`;}return s;})()}</g></g>
+      <g fill="#28323e"><ellipse cx="200" cy="96" rx="96" ry="40"/><ellipse cx="140" cy="112" rx="50" ry="28"/><ellipse cx="262" cy="110" rx="46" ry="26"/></g>
+      <path d="M0 330 Q 150 316 300 330 Q 360 338 400 328 L400 400 L0 400 Z" fill="url(#tp-g)"/>
+      <g fill="none" stroke="#9fc0dd"><ellipse cx="150" cy="368" rx="40" ry="12" stroke-width="2"/><ellipse cx="150" cy="368" rx="20" ry="6" stroke-width="1.6" opacity="0.7"/><ellipse cx="285" cy="360" rx="30" ry="9" stroke-width="1.8" opacity="0.8"/></g>`;
+    // bubbles —— 突出大气泡(不是光束)
+    return `<defs>
+      <linearGradient id="tb-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3282ad"/><stop offset="0.5" stop-color="#195a83"/><stop offset="1" stop-color="#0a2f4d"/></linearGradient>
+      <linearGradient id="tb-ray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfeaf5" stop-opacity="0.18"/><stop offset="1" stop-color="#cfeaf5" stop-opacity="0"/></linearGradient></defs>
+      <rect width="400" height="400" fill="url(#tb-s)"/>
+      <g fill="url(#tb-ray)"><path d="M150 0 L110 400 L160 400 L200 0 Z"/><path d="M260 0 L300 400 L330 400 L295 0 Z"/></g>
+      ${[[150,250,46],[258,168,34],[120,120,24],[300,300,28],[210,330,20],[196,208,16]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#e2f2fb" stroke-width="${r>30?3:2.2}" opacity="0.8"/><circle cx="${x-r*0.34}" cy="${y-r*0.34}" r="${r*0.24}" fill="#f0f9fd" opacity="0.9"/>`).join('')}`;
   }
-  function _scene_default(){
-    return `<defs><linearGradient id="ds" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9c8df"/><stop offset="0.45" stop-color="#d3e2e8"/><stop offset="1" stop-color="#eef0e2"/></linearGradient><radialGradient id="dsun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff6df" stop-opacity="0.9"/><stop offset="1" stop-color="#fff6df" stop-opacity="0"/></radialGradient></defs>
-      <rect width="400" height="400" fill="url(#ds)"/><circle cx="310" cy="90" r="90" fill="url(#dsun)"/><circle cx="310" cy="90" r="26" fill="#fff8ea"/>
-      ${_cloud(110,120,50,'#ffffff',0.9)}${_cloud(300,190,44,'#ffffff',0.8)}${_cloud(60,210,36,'#ffffff',0.7)}
-      <path d="M0 300 Q 130 272 270 298 Q 340 310 400 296 L400 400 L0 400 Z" fill="#c2d0a6"/><path d="M0 336 Q 150 314 320 336 Q 370 344 400 334 L400 400 L0 400 Z" fill="#aebd8f"/>`;
-  }
-  function _scene_bubbles(){
-    return `<defs><linearGradient id="bs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3282ad"/><stop offset="0.5" stop-color="#195a83"/><stop offset="1" stop-color="#0a2f4d"/></linearGradient><linearGradient id="bray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfeaf5" stop-opacity="0.32"/><stop offset="1" stop-color="#cfeaf5" stop-opacity="0"/></linearGradient></defs>
-      <rect width="400" height="400" fill="url(#bs)"/><g fill="url(#bray)"><path d="M120 0 L60 400 L120 400 L165 0 Z"/><path d="M240 0 L300 400 L340 400 L285 0 Z"/><path d="M180 0 L200 400 L215 400 L210 0 Z"/></g>
-      ${[[90,300,15],[300,240,20],[150,180,10],[250,120,13],[70,150,8],[330,330,11],[200,260,7]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#dff1fa" stroke-width="${r>12?1.6:1.1}" opacity="0.65"/><circle cx="${x-r*0.35}" cy="${y-r*0.35}" r="${r*0.28}" fill="#eef8fd" opacity="0.8"/>`).join('')}
-      <path d="M0 350 Q 120 322 260 348 Q 340 360 400 344 L400 400 L0 400 Z" fill="#0b2b42"/>`;
-  }
-  function _scene_stars(){
-    return `<defs><linearGradient id="sts" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#382a6e"/><stop offset="0.5" stop-color="#1a1440"/><stop offset="1" stop-color="#0a0618"/></linearGradient><linearGradient id="mw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9a6ef" stop-opacity="0"/><stop offset="0.5" stop-color="#c7baf2" stop-opacity="0.22"/><stop offset="1" stop-color="#8fd0e0" stop-opacity="0"/></linearGradient><radialGradient id="pl" cx="40%" cy="40%" r="60%"><stop offset="0" stop-color="#f0c98a"/><stop offset="1" stop-color="#b07a3e"/></radialGradient></defs>
-      <rect width="400" height="400" fill="url(#sts)"/><path d="M-40 90 Q 200 180 440 130 L440 240 Q 200 300 -40 210 Z" fill="url(#mw)"/>
-      ${_stars([[50,50,1.4,1],[100,90,1,0.8],[160,50,1.7,1],[220,90,1.1,0.8],[280,50,1,0.7],[330,80,1.5,0.95],[70,150,1,0.7],[130,190,1.3,0.85],[210,160,1,0.7],[290,180,1.4,0.9],[350,150,1,0.7],[40,230,0.9,0.6],[110,250,1,0.6],[180,240,0.9,0.6],[260,250,1.1,0.7],[330,240,0.9,0.6],[150,120,0.8,0.7],[240,120,0.9,0.7],[300,120,0.8,0.6]])}
-      <circle cx="88" cy="82" r="12" fill="url(#pl)"/><path d="M70 82 a18 6 0 0 0 36 0" fill="none" stroke="#d8b57a" stroke-width="1.4" opacity="0.7"/>
-      <path d="M0 330 Q 160 306 320 330 Q 370 340 400 330 L400 400 L0 400 Z" fill="#0c0a20"/>`;
-  }
-  function _scene_rain(){
-    return `<defs><linearGradient id="rs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#47596d"/><stop offset="0.55" stop-color="#33465a"/><stop offset="1" stop-color="#1d2b38"/></linearGradient></defs>
-      <rect width="400" height="400" fill="url(#rs)"/><path d="M0 250 Q 150 200 300 244 Q 380 268 400 232 L400 400 L0 400 Z" fill="#7f92a6" opacity="0.14"/>
-      ${_cloud(110,90,54,'#33414f',0.92)}${_cloud(300,70,60,'#2c3846',0.92)}${_cloud(210,130,50,'#3a4859',0.85)}
-      <g stroke="#c3d6ee" stroke-width="1.5" stroke-linecap="round" opacity="0.55">${[...Array(22)].map((_,i)=>{const x=20+i*17, y=150+(i%5)*36; return `<path d="M${x} ${y} l-7 18"/>`;}).join('')}</g>
-      <path d="M0 330 Q 160 310 320 332 Q 372 342 400 330 L400 400 L0 400 Z" fill="#18242f"/>`;
-  }
-  function _scene_aurora(){
-    return `<defs><linearGradient id="as" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c1f3e"/><stop offset="0.55" stop-color="#102f48"/><stop offset="1" stop-color="#0a2236"/></linearGradient><linearGradient id="au1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fe9c4" stop-opacity="0"/><stop offset="0.4" stop-color="#57e0b8" stop-opacity="0.7"/><stop offset="1" stop-color="#3aa8d0" stop-opacity="0"/></linearGradient><linearGradient id="au2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a98cf0" stop-opacity="0"/><stop offset="0.45" stop-color="#9a7ce8" stop-opacity="0.6"/><stop offset="1" stop-color="#57c0d0" stop-opacity="0"/></linearGradient></defs>
-      <rect width="400" height="400" fill="url(#as)"/>${_stars([[60,60,1.2,0.8],[140,40,1,0.7],[260,50,1.2,0.8],[330,80,1,0.7],[100,110,0.9,0.6],[300,120,1,0.7],[200,70,1,0.7]])}
-      <path d="M20 40 Q 90 140 60 250 L110 250 Q 150 150 90 40 Z" fill="url(#au1)"/><path d="M150 30 Q 230 130 190 260 L250 260 Q 300 140 230 30 Z" fill="url(#au2)"/><path d="M270 40 Q 350 130 320 250 L370 250 Q 400 150 340 40 Z" fill="url(#au1)"/>
-      <path d="M0 320 Q 90 250 180 300 Q 260 344 400 300 L400 400 L0 400 Z" fill="#0a1a28"/><path d="M0 344 Q 120 320 260 344 Q 340 356 400 342 L400 400 L0 400 Z" fill="#e9f2f6" opacity="0.08"/>`;
-  }
-  function _themeScene(name){ const f={default:_scene_default,night:_scene_night,bubbles:_scene_bubbles,sunrise:_scene_sunrise,rain:_scene_rain}[name]||_scene_default; return f(); }
 
   // ============ 生长树 v3（明确光照 + 树干纹理 + 草地 + 装饰阶梯；绘于计时舞台与全屏遮罩）============
   const _tn = x => Math.round(x * 10) / 10;
@@ -2035,14 +2187,14 @@ theme_color: "#fafaf9"
     return _tTrunk(cx, gy, topY, 7+p*9, 4+p*4) + _tCrown(cx, cy, R, pal);
   }
   function _tPine(cx, gy, p) {
-    const trunkH=14+p*12, trunk=_tTrunk(cx, gy, gy-trunkH, 6+p*4, 4+p*2);
-    const totalH=42+p*120, topY=gy-totalH, tiers=Math.max(2, Math.round(2+p*3));
-    const startY=gy-trunkH*0.55, step=(startY-topY)/tiers, maxW=34+p*46;
+    const trunkH=14+p*10, trunk=_tTrunk(cx, gy, gy-trunkH, 6+p*4, 4+p*2);
+    const totalH=44+p*96, topY=gy-totalH, tiers=Math.max(2, Math.round(2+p*3));
+    const startY=gy-trunkH*0.55, step=(startY-topY)/tiers, maxW=46+p*74;
     let s='';
-    for (let i=0;i<tiers;i++){ const ly=startY-i*step, w=maxW*(1-i/(tiers+0.5)), tipY=ly-step*1.32, L=cx-w/2, Rr=cx+w/2;
-      s+=`<path class="tree-canopy" d="M${_tn(L)} ${_tn(ly)} Q ${_tn(cx)} ${_tn(ly+step*0.3)} ${_tn(Rr)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)} Z" fill="#3f7040"/>`;
-      s+=`<path class="tree-canopy" d="M${_tn(cx)} ${_tn(ly)} Q ${_tn((cx+Rr)/2)} ${_tn(ly+step*0.16)} ${_tn(Rr)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)} Z" fill="#33602f"/>`;
-      s+=`<path d="M${_tn(L)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)}" stroke="#5c9354" stroke-width="1.5" stroke-linecap="round" fill="none"/>`;
+    for (let i=0;i<tiers;i++){ const ly=startY-i*step, w=maxW*(0.40 + 0.60*Math.pow(1-i/tiers,0.78)), tipY=ly-step*1.62, L=cx-w/2, Rr=cx+w/2;
+      s+=`<path class="tree-canopy" d="M${_tn(L)} ${_tn(ly)} Q ${_tn(cx)} ${_tn(ly+step*0.42)} ${_tn(Rr)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)} Z" fill="#477942"/>`;
+      s+=`<path class="tree-canopy" d="M${_tn(cx)} ${_tn(ly)} Q ${_tn((cx+Rr)/2)} ${_tn(ly+step*0.22)} ${_tn(Rr)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)} Z" fill="#356331"/>`;
+      s+=`<path d="M${_tn(L)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)}" stroke="#6aa35e" stroke-width="1.6" stroke-linecap="round" fill="none"/>`;
     }
     return trunk+s;
   }
@@ -2089,111 +2241,1146 @@ theme_color: "#fafaf9"
     const h=34+p*98, topY=gy-h, R=22+p*47; return {cx:160, cy:topY-R*0.14, R};
   }
   // species 果实/花
-  function _dFruit(type, x, y){
-    x=_tn(x); y=_tn(y);
-    if (type==='sakura'){
-      let g='';
-      for(let k=0;k<5;k++){ const a=k/5*Math.PI*2 - Math.PI/2; const px=x+Math.cos(a)*3.4, py=y+Math.sin(a)*3.4;
-        g+=`<ellipse cx="${_tn(px)}" cy="${_tn(py)}" rx="2.5" ry="3.5" fill="#fff2f6" transform="rotate(${_tn(a*180/Math.PI+90)} ${_tn(px)} ${_tn(py)})"/>`
-         +`<ellipse cx="${_tn(px)}" cy="${_tn(py+0.6)}" rx="1" ry="1.6" fill="#f6a9c6" transform="rotate(${_tn(a*180/Math.PI+90)} ${_tn(px)} ${_tn(py)})" opacity="0.7"/>`; }
-      return g+`<circle cx="${x}" cy="${y}" r="1.8" fill="#f28aad"/><circle cx="${x}" cy="${y}" r="0.9" fill="#ffdf7a"/>`;
-    }
-    if (type==='oak'){ // 金橡果
-      return `<ellipse cx="${x}" cy="${_tn(y+1)}" rx="3.5" ry="4.6" fill="#d9a441"/>`
-        +`<ellipse cx="${_tn(x-1)}" cy="${_tn(y+0.6)}" rx="1.1" ry="1.9" fill="#f2d488" opacity="0.8"/>`
-        +`<path d="M${_tn(x-3.7)} ${_tn(y-1.5)} a3.7 3 0 0 1 7.4 0 Z" fill="#8a6a3a"/>`
-        +`<path d="M${x} ${_tn(y-4.3)} l0 -2.2" stroke="#8a6a3a" stroke-width="1.1" stroke-linecap="round"/>`;
-    }
-    if (type==='pine'){ // 松果
-      let g=`<ellipse cx="${x}" cy="${y}" rx="3" ry="4.6" fill="#8a5a34"/>`;
-      for(let r=0;r<3;r++) g+=`<path d="M${_tn(x-2.8)} ${_tn(y-3.2+r*3)} q 2.8 1.7 5.6 0" stroke="#66421f" stroke-width="1" fill="none"/>`;
-      return g;
-    }
-    if (type==='cactus'){ // 仙人掌粉花
-      let g='';
-      for(let k=0;k<5;k++){ const a=k/5*Math.PI*2; g+=`<ellipse cx="${_tn(x+Math.cos(a)*2.6)}" cy="${_tn(y+Math.sin(a)*2.6)}" rx="1.7" ry="2.6" fill="#ec7fb0" transform="rotate(${_tn(a*180/Math.PI)} ${_tn(x+Math.cos(a)*2.6)} ${_tn(y+Math.sin(a)*2.6)})"/>`; }
-      return g+`<circle cx="${x}" cy="${y}" r="1.6" fill="#ffd76a"/>`;
-    }
-    // palm：椰枣/浆果串
-    return `<g fill="#e0603f"><circle cx="${_tn(x-2)}" cy="${y}" r="1.8"/><circle cx="${_tn(x+2)}" cy="${y}" r="1.8"/><circle cx="${x}" cy="${_tn(y-2)}" r="1.8"/><circle cx="${x}" cy="${_tn(y+1.6)}" r="1.7"/></g>`
-      +`<circle cx="${_tn(x-2.6)}" cy="${_tn(y-0.6)}" r="0.6" fill="#f2a58c"/>`;
+  // —— 五树种专属装饰：各自 IIFE 隔离，避免独立设计的同名助手冲突 ——
+  const deco_oak = (function(){
+// ===== 橡树(oak) 专属华贵语汇 =====
+// 铁律：不复用任何跨物种「弯弧灯串」母题。所有装饰锚定橡树真实几何：
+//   粗树干(节疤/板根) · 一根可见横枝 · 树冠体(cx,cy,R) · 地面 gy
+// 专属意象 = 「古老庭院里的大橡树」：
+//   • 成串下垂的金橡果(带杯壳，橡树真果，两两成对挂枝)
+//   • 从一根真实横枝上垂下的木秋千(双绳+木板)
+//   • 树干上的节疤/树皮纹理 + 外张板根(buttress roots)
+//   • 真正停在横枝上的鸣禽 / 枝杈里的树枝鸟窝(含蛋)
+//   • 树冠内的林间光斑(暖金透光)
+//   • 落地的橡果与叶(不是通用小花)
+//
+// 阶梯（逐级叠加，越高越华丽）：
+//   1 大树：板根 + 树干节疤 + 几串金橡果 + 落地橡果
+//   2 巨树：+ 横枝伸出 + 木秋千垂挂 + 更多橡果串 + 冠内光斑
+//   3 参天：+ 横枝上停一只鸣禽 + 更密橡果 + 落叶
+//   4 神木：+ 枝杈里树枝鸟窝(含蛋) + 秋千更精致(木纹) + 满树橡果 + 更多光斑落叶
+//
+// 依赖外部已存在的 _tn(四舍五入)。若宿主未提供则挂到 globalThis 兜底（不用 var 声明，避免 eval 作用域下与外层 const 冲突）。
+if (typeof globalThis._tn === 'undefined' && typeof _tn === 'undefined') { globalThis._tn = x => Math.round(x*10)/10; }
+
+// —— 橡树几何锚点（与 broadleaf3 完全一致）——
+function _oakGeom(p){
+  const cx=160, gy=214;
+  const h=34+p*98, topY=gy-h, R=22+p*47, cy=topY-R*0.14;
+  const wB=7+p*9, wT=4+p*4;          // 树干基宽/顶宽
+  // 冠下缘（圆簇最低点大致处）
+  const crownBottom = cy + R*0.92;
+  // 一根可见的低横枝：从树干长出，伸向左侧「开阔天空」——落在冠体之外下方，
+  // 这样秋千/小鸟都贴浅色背景，大图小图都读得出（橡树标志性的横展粗枝）。
+  const branchY = crownBottom - R*0.02;   // 枝根在冠下缘略上，出冠即入开阔区
+  const branchRootX = cx - wB*0.35;       // 从树干左侧长出
+  const branchTipX = cx - R*1.12;         // 伸到冠左外缘之外
+  const branchTipY = branchY + R*0.1;     // 略下垂
+  return {cx,gy,topY,R,cy,wB,wT,crownBottom,branchY,branchRootX,branchTipX,branchTipY};
+}
+
+// —— 成串金橡果：从一点垂下两颗，带杯壳纹与小柄（橡树真果）——
+function _oakAcornCluster(x, y, s){
+  x=_tn(x); y=_tn(y); s=s||1;
+  const acorn=(ax,ay,tilt)=>{
+    ax=_tn(ax); ay=_tn(ay);
+    const bodyR=2.2*s, capW=2.7*s;
+    return `<g transform="rotate(${_tn(tilt)} ${ax} ${ay})">`
+      // 果柄
+      +`<path d="M${ax} ${_tn(ay-capW-2.2*s)} l0 ${_tn(2*s)}" stroke="#7a5a30" stroke-width="${_tn(0.9*s)}" stroke-linecap="round"/>`
+      // 坚果体（暖金）
+      +`<ellipse cx="${ax}" cy="${_tn(ay+bodyR*0.5)}" rx="${_tn(bodyR)}" ry="${_tn(bodyR*1.35)}" fill="#d9a441"/>`
+      +`<ellipse cx="${_tn(ax-bodyR*0.35)}" cy="${_tn(ay+bodyR*0.2)}" rx="${_tn(bodyR*0.42)}" ry="${_tn(bodyR*0.7)}" fill="#f0cd82" opacity="0.85"/>`
+      // 杯壳（深棕，格纹）
+      +`<path d="M${_tn(ax-capW)} ${_tn(ay-capW*0.3)} a${_tn(capW)} ${_tn(capW*0.75)} 0 0 1 ${_tn(capW*2)} 0 Z" fill="#8a6a3a"/>`
+      +`<path d="M${_tn(ax-capW*0.9)} ${_tn(ay-capW*0.55)} a${_tn(capW*0.9)} ${_tn(capW*0.55)} 0 0 1 ${_tn(capW*1.8)} 0" fill="none" stroke="#6b5028" stroke-width="${_tn(0.7*s)}"/>`
+      // 杯壳小凸尖
+      +`<circle cx="${ax}" cy="${_tn(ay-capW*0.72)}" r="${_tn(0.8*s)}" fill="#6b5028"/>`
+      +`</g>`;
+  };
+  // 短枝：从锚点分叉出两条果柄
+  let g=`<path d="M${x} ${y} q ${_tn(-2.5*s)} ${_tn(4*s)} ${_tn(-4*s)} ${_tn(6*s)} M${x} ${y} q ${_tn(2.5*s)} ${_tn(4*s)} ${_tn(4.5*s)} ${_tn(5*s)}" stroke="#6f5334" stroke-width="${_tn(1*s)}" fill="none" stroke-linecap="round"/>`;
+  g+=acorn(x-4*s, y+6*s, -14);
+  g+=acorn(x+4.5*s, y+5*s, 12);
+  return g;
+}
+
+// —— 树干节疤（同心椭圆眼状纹）——
+function _oakKnot(x, y, s){
+  x=_tn(x); y=_tn(y); s=s||1;
+  return `<g>`
+    +`<ellipse cx="${x}" cy="${y}" rx="${_tn(3.2*s)}" ry="${_tn(4*s)}" fill="#5b431f"/>`
+    +`<ellipse cx="${x}" cy="${y}" rx="${_tn(2*s)}" ry="${_tn(2.6*s)}" fill="none" stroke="#4a3618" stroke-width="${_tn(0.9*s)}"/>`
+    +`<ellipse cx="${x}" cy="${y}" rx="${_tn(0.9*s)}" ry="${_tn(1.3*s)}" fill="#3d2c13"/>`
+    +`<ellipse cx="${_tn(x-0.9*s)}" cy="${_tn(y-1*s)}" rx="${_tn(2*s)}" ry="${_tn(2.6*s)}" fill="none" stroke="#7a5c30" stroke-width="${_tn(0.6*s)}" opacity="0.6"/>`
+    +`</g>`;
+}
+
+// —— 外张板根（trunk 基部两侧的三角外撑）——
+function _oakButtress(cx, gy, wB){
+  const L=cx-wB/2, Rr=cx+wB/2;
+  const reach=wB*0.7+3, rise=6;
+  // 左板根（受光，浅）
+  let g=`<path d="M${_tn(L+0.5)} ${_tn(gy-rise-3)} C ${_tn(L-1)} ${_tn(gy-rise*0.4)} ${_tn(L-reach)} ${_tn(gy-1)} ${_tn(L-reach)} ${_tn(gy+1)} L ${_tn(L+1.5)} ${_tn(gy+1)} Z" fill="#84663f"/>`;
+  // 右板根（暗）
+  g+=`<path d="M${_tn(Rr-0.5)} ${_tn(gy-rise-3)} C ${_tn(Rr+1)} ${_tn(gy-rise*0.4)} ${_tn(Rr+reach)} ${_tn(gy-1)} ${_tn(Rr+reach)} ${_tn(gy+1)} L ${_tn(Rr-1.5)} ${_tn(gy+1)} Z" fill="#57411f"/>`;
+  // 板根之间根隙暗线
+  g+=`<path d="M${_tn(L-reach*0.55)} ${_tn(gy+1)} q 1 -3 2.5 -4.5 M${_tn(Rr+reach*0.55)} ${_tn(gy+1)} q -1 -3 -2.5 -4.5" stroke="#4a3618" stroke-width="0.9" fill="none" opacity="0.6"/>`;
+  return g;
+}
+
+// —— 可见横枝（从树干伸出的粗枝，锥形，带上缘受光）——
+function _oakBranch(g){
+  const {branchRootX, branchY, branchTipX, branchTipY} = g;
+  const rx=branchRootX, ry=branchY;
+  const tx=branchTipX, ty=branchTipY;
+  const wRoot=4.2, wTip=1.6;
+  // 枝身（下垂弧）
+  const midX=(rx+tx)/2, midY=(ry+ty)/2 - 2;
+  let s=`<path d="M${_tn(rx)} ${_tn(ry-wRoot/2)} Q ${_tn(midX)} ${_tn(midY-wTip)} ${_tn(tx)} ${_tn(ty-wTip/2)} L ${_tn(tx)} ${_tn(ty+wTip/2)} Q ${_tn(midX)} ${_tn(midY+wRoot*0.3)} ${_tn(rx)} ${_tn(ry+wRoot/2)} Z" fill="#6f5334"/>`;
+  // 上缘受光
+  s+=`<path d="M${_tn(rx)} ${_tn(ry-wRoot/2+0.6)} Q ${_tn(midX)} ${_tn(midY-wTip+0.6)} ${_tn(tx)} ${_tn(ty-wTip/2+0.5)}" stroke="#84663f" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.8"/>`;
+  // 枝端小分叉
+  s+=`<path d="M${_tn(tx)} ${_tn(ty)} l -3 -2 M${_tn(tx)} ${_tn(ty)} l -2.5 2.5" stroke="#6f5334" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
+  return s;
+}
+
+// —— 木秋千（双绳 + 木板，挂在横枝端）——
+function _oakSwing(g, detailed){
+  const {branchTipX, branchTipY} = g;
+  // 挂点略靠枝内一点，避免落在最细的枝端
+  const hx=_tn(branchTipX+4), hy=_tn(branchTipY+1);
+  const dropL=18, seatW=13;
+  const seatY=_tn(hy+dropL), sl=_tn(hx-seatW/2), sr=_tn(hx+seatW/2);
+  // 两根绳
+  let s=`<path d="M${_tn(hx-1.5)} ${hy} L ${sl+1.5} ${seatY}" stroke="#5a4526" stroke-width="1.3" stroke-linecap="round"/>`
+    +`<path d="M${_tn(hx+1.5)} ${hy} L ${sr-1.5} ${seatY}" stroke="#5a4526" stroke-width="1.3" stroke-linecap="round"/>`;
+  // 挂点绳结
+  s+=`<circle cx="${hx}" cy="${hy}" r="1.6" fill="#5a4526"/>`;
+  // 木板座（暖木色，左受光）
+  s+=`<rect x="${sl}" y="${seatY}" width="${_tn(seatW)}" height="3.6" rx="1.4" fill="#a9793f"/>`;
+  s+=`<rect x="${sl}" y="${seatY}" width="${_tn(seatW)}" height="1.5" rx="0.8" fill="#c4934f"/>`;
+  s+=`<rect x="${sl}" y="${_tn(seatY+2.4)}" width="${_tn(seatW)}" height="1.2" rx="0.6" fill="#7d5629"/>`;
+  if (detailed){ // 木纹
+    s+=`<line x1="${_tn(sl+2)}" y1="${_tn(seatY+1.8)}" x2="${_tn(sr-2)}" y2="${_tn(seatY+1.8)}" stroke="#8a6534" stroke-width="0.5" opacity="0.6"/>`;
+    // 绳上缠结
+    s+=`<circle cx="${_tn(hx-3.4)}" cy="${_tn(hy+dropL*0.5)}" r="0.9" fill="#4a3820"/>`;
+    s+=`<circle cx="${_tn(hx+3.4)}" cy="${_tn(hy+dropL*0.5)}" r="0.9" fill="#4a3820"/>`;
   }
-  // 树根小花（茎+叶+5瓣+花心）
-  function _dGFlower(x, gy, col){
-    x=_tn(x); const fy=_tn(gy-6.5);
-    let g=`<path d="M${x} ${_tn(gy)} Q ${_tn(x-1.2)} ${_tn(gy-4)} ${x} ${_tn(fy+2)}" stroke="#4f8a3e" stroke-width="1.3" fill="none" stroke-linecap="round"/>`;
-    g+=`<path d="M${x} ${_tn(gy-3)} q -3.4 -0.6 -4.4 -3 q 3.4 0.2 4.4 3 Z" fill="#5c9145"/>`;
-    for(let k=0;k<5;k++){ const a=k/5*Math.PI*2 - Math.PI/2; g+=`<circle cx="${_tn(x+Math.cos(a)*2.5)}" cy="${_tn(fy+Math.sin(a)*2.5)}" r="2" fill="${col}"/>`; }
-    return g+`<circle cx="${x}" cy="${fy}" r="1.5" fill="#ffd76a"/>`;
+  return s;
+}
+
+// —— 停在横枝上的鸣禽（暖胸小鸟，脚立枝上）——
+function _oakBird(g){
+  // 停在横枝「外段开阔处」（贴浅背景才读得出），朝树心（右）
+  const t=0.72;
+  const bx=_tn(g.branchRootX + (g.branchTipX-g.branchRootX)*t);
+  const by=_tn(g.branchY + (g.branchTipY-g.branchY)*t - 5.5); // 立在枝上方
+  const d=1; // 朝右
+  let s=`<g>`;
+  // 脚
+  s+=`<path d="M${bx} ${_tn(by+4)} l0 2 M${_tn(bx+2)} ${_tn(by+4)} l0 2" stroke="#3a2a18" stroke-width="0.9" stroke-linecap="round"/>`;
+  // 身（橄榄棕背，圆胖）
+  s+=`<ellipse cx="${bx}" cy="${by}" rx="5.4" ry="4.2" fill="#6b7a4a" transform="rotate(14 ${bx} ${by})"/>`;
+  // 尾
+  s+=`<path d="M${_tn(bx-4.6)} ${_tn(by+1)} l -5.5 1 l 1.2 2 Z" fill="#5a683d"/>`;
+  // 暖胸腹
+  s+=`<ellipse cx="${_tn(bx+1.4)}" cy="${_tn(by+1.6)}" rx="3" ry="2.7" fill="#e0a24a"/>`;
+  // 头
+  s+=`<circle cx="${_tn(bx+4.4)}" cy="${_tn(by-2.6)}" r="3" fill="#5a683d"/>`;
+  // 喙
+  s+=`<path d="M${_tn(bx+7.1)} ${_tn(by-2.8)} l 2.8 0.6 l -2.2 1.4 Z" fill="#d69434"/>`;
+  // 眼
+  s+=`<circle cx="${_tn(bx+5)}" cy="${_tn(by-3.1)}" r="0.85" fill="#17130c"/>`;
+  s+=`<circle cx="${_tn(bx+4.7)}" cy="${_tn(by-3.4)}" r="0.3" fill="#fff" opacity="0.8"/>`;
+  // 翼
+  s+=`<path d="M${_tn(bx+0.5)} ${_tn(by-1)} q -4.5 -1 -6.8 2.2 q 3.6 1.1 6.2 -0.6 Z" fill="#4e5c34"/>`;
+  s+=`</g>`;
+  return s;
+}
+
+// —— 枝杈里的树枝鸟窝（含两枚蛋）——
+function _oakNest(g){
+  // 放在冠右上「亮侧边缘」的一处枝杈：贴较浅底色，读得出；比原来更大。
+  const nx=_tn(g.cx + g.R*0.62), ny=_tn(g.cy - g.R*0.44);
+  const W=10, H=9; // 窝体：更宽更深的碗
+  const rim=_tn(ny-2);     // 碗口高度
+  let s=`<g>`;
+  // 支撑小枝杈（让窝像坐在分叉上）：只一条斜向后的托枝，短，避免像「腿」
+  s+=`<path d="M${_tn(nx+W*0.5)} ${_tn(ny+H*0.5)} q 3 1.5 5.5 1" stroke="#5b431f" stroke-width="1.6" fill="none" stroke-linecap="round"/>`;
+  s+=`<path d="M${_tn(nx-W*0.5)} ${_tn(ny+H*0.5)} q -2 1 -3.5 0.6" stroke="#5b431f" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
+  // 深碗（先画整只碗，深棕），碗口在 rim
+  s+=`<path d="M${_tn(nx-W)} ${rim} Q ${nx} ${_tn(rim+H+2)} ${_tn(nx+W)} ${rim} Z" fill="#6b4f2a"/>`;
+  // 蛋（藏在碗里，只露上半，暖奶油色带一点斑）——先画蛋，再用碗前缘盖住下半
+  const egg=(ex,ey,f)=>`<ellipse cx="${_tn(ex)}" cy="${_tn(ey)}" rx="2.6" ry="3.2" fill="${f}"/>`
+    +`<ellipse cx="${_tn(ex-0.8)}" cy="${_tn(ey-1)}" rx="0.8" ry="1.1" fill="#fbf6ea" opacity="0.85"/>`
+    +`<circle cx="${_tn(ex+0.7)}" cy="${_tn(ey+0.4)}" r="0.4" fill="#b9a06f" opacity="0.7"/>`;
+  s+=egg(nx-3.6, rim-0.6, '#e4d9bc');
+  s+=egg(nx+0.2, rim-1.4, '#eee3c8');
+  s+=egg(nx+3.8, rim-0.4, '#dccfae');
+  // 碗前缘（编织的树枝碗壁，盖住蛋下半，形成「蛋窝里」的层次）
+  s+=`<path d="M${_tn(nx-W)} ${rim} Q ${nx} ${_tn(rim+H)} ${_tn(nx+W)} ${rim} Q ${_tn(nx+W*0.72)} ${_tn(rim-2.6)} ${nx} ${_tn(rim-1.8)} Q ${_tn(nx-W*0.72)} ${_tn(rim-2.6)} ${_tn(nx-W)} ${rim} Z" fill="#7a5a30"/>`;
+  // 编织纹（碗壁横向短弧）
+  for(let i=-2;i<=2;i++){ const wx=nx+i*3.4;
+    s+=`<path d="M${_tn(wx-2.2)} ${_tn(rim+2.2)} q 2.2 2 4.4 0" stroke="#a9793f" stroke-width="0.8" fill="none" opacity="0.75"/>`; }
+  // 碗口内沿受光
+  s+=`<path d="M${_tn(nx-W*0.78)} ${_tn(rim-0.6)} Q ${nx} ${_tn(rim+2)} ${_tn(nx+W*0.78)} ${_tn(rim-0.6)}" fill="none" stroke="#5b431f" stroke-width="1" opacity="0.6"/>`;
+  s+=`</g>`;
+  return s;
+}
+
+// —— 冠内林间光斑（暖金透光的柔和斑块）——
+function _oakDapple(x, y, r){
+  x=_tn(x); y=_tn(y); r=_tn(r);
+  return `<circle cx="${x}" cy="${y}" r="${r}" fill="#f4e2a0" opacity="0.5"/>`
+    +`<circle cx="${_tn(x-r*0.3)}" cy="${_tn(y-r*0.3)}" r="${_tn(r*0.5)}" fill="#fbf1c8" opacity="0.55"/>`;
+}
+
+// —— 落地橡果（比果串小、躺地）——
+function _oakGroundAcorn(x, gy){
+  x=_tn(x); const y=_tn(gy-1.5);
+  return `<g>`
+    +`<ellipse cx="${x}" cy="${y}" rx="2.4" ry="3" fill="#d9a441" transform="rotate(72 ${x} ${y})"/>`
+    +`<path d="M${_tn(x-1)} ${_tn(y-2.6)} a2.6 2 0 0 1 3.4 1.4 Z" fill="#8a6a3a"/>`
+    +`</g>`;
+}
+
+// —— 落叶（简洁的橡树裂叶剪影：一条中脉 + 两侧对称的圆浅裂，整体像叶不像虫）——
+function _oakLeaf(x, y, rot, col){
+  x=_tn(x); y=_tn(y);
+  // 实心叶片：细长椭圆状主体，左右各三个圆浅裂
+  return `<g transform="rotate(${_tn(rot)} ${x} ${y})">`
+    +`<path d="M${x} ${_tn(y-4.5)} `
+      +`C ${_tn(x+2.6)} ${_tn(y-3.2)} ${_tn(x+2.4)} ${_tn(y-1.6)} ${_tn(x+1.4)} ${_tn(y-0.8)} `   // 右上裂
+      +`C ${_tn(x+3)} ${_tn(y-0.2)} ${_tn(x+2.8)} ${_tn(y+1.4)} ${_tn(x+1.4)} ${_tn(y+2)} `        // 右中裂
+      +`C ${_tn(x+2.2)} ${_tn(y+3)} ${_tn(x+1.2)} ${_tn(y+3.8)} ${x} ${_tn(y+4.5)} `               // 右下收尖
+      +`C ${_tn(x-1.2)} ${_tn(y+3.8)} ${_tn(x-2.2)} ${_tn(y+3)} ${_tn(x-1.4)} ${_tn(y+2)} `        // 左下裂
+      +`C ${_tn(x-2.8)} ${_tn(y+1.4)} ${_tn(x-3)} ${_tn(y-0.2)} ${_tn(x-1.4)} ${_tn(y-0.8)} `      // 左中裂
+      +`C ${_tn(x-2.4)} ${_tn(y-1.6)} ${_tn(x-2.6)} ${_tn(y-3.2)} ${x} ${_tn(y-4.5)} Z" fill="${col}"/>` // 左上裂回顶
+    +`<line x1="${x}" y1="${_tn(y-3.6)}" x2="${x}" y2="${_tn(y+3.8)}" stroke="#3d6b30" stroke-width="0.6" opacity="0.55"/>`
+    +`</g>`;
+}
+
+function _decorate(type, p, level){
+  if (type!=='oak') return {behind:'', front:''};
+  if (level<=0) return {behind:'', front:''};
+  const g=_oakGeom(p);
+  const {cx,gy,topY,R,cy,wB,branchY,branchRootX,branchTipX} = g;
+  let behind='', front='';
+
+  // ——【lv1】板根 · 树干节疤 · 金橡果串 · 落地橡果 ——
+  // 板根（在树身之前画一点点、多数其实要贴着 trunk 基部，放 front 更稳）
+  behind += _oakButtress(cx, gy, wB);
+  // 树干节疤（1~2 个，锚在树干中下段）
+  front += _oakKnot(cx - wB*0.12, gy - (34+p*98)*0.42, 0.9);
+  if (level>=2) front += _oakKnot(cx + wB*0.05, gy - (34+p*98)*0.66, 0.75);
+
+  // 金橡果串：挂在冠「下缘」处，果串向下垂进开阔区 —— 贴浅背景，两个尺度都读得出。
+  // （橡树真果，取代通用小花/灯串；避免埋进冠体深处被吞掉）
+  const acPts = [
+    [cx + R*0.5,  cy + R*0.82, 1.1],   // 右下缘
+    [cx + R*0.82, cy + R*0.5,  1.0],   // 右侧缘
+    [cx - R*0.05, cy + R*0.98, 1.05],  // 正下缘
+    [cx + R*0.24, cy + R*0.92, 1.0],   // 右下
+    [cx - R*0.42, cy + R*0.86, 1.0],   // 左下缘（秋千枝那侧上方）
+    [cx + R*0.62, cy + R*0.72, 0.95],
+  ];
+  const nAc = level>=4 ? 6 : level>=3 ? 5 : level>=2 ? 4 : 3;
+  for(let i=0;i<nAc;i++) front += _oakAcornCluster(acPts[i][0], acPts[i][1], acPts[i][2]);
+
+  // 落地橡果
+  const gAcN = level>=4 ? 5 : level>=3 ? 4 : level>=2 ? 3 : 2;
+  const gAcX = [cx-R*0.7, cx+R*0.6, cx-R*0.28, cx+R*0.34, cx-R*1.0];
+  for(let i=0;i<gAcN;i++) front += _oakGroundAcorn(gAcX[i], gy + (i%2?1:0));
+
+  // ——【lv2】横枝 + 木秋千 + 冠内光斑 ——
+  if (level>=2){
+    front += _oakBranch(g);
+    front += _oakSwing(g, level>=4);
+    // 冠内光斑（左上受光侧）
+    behind += _oakDapple(cx - R*0.34, cy - R*0.36, 6.5);
+    behind += _oakDapple(cx - R*0.02, cy - R*0.55, 4.5);
   }
-  // 暖色灯串：一条垂线挂在树冠前，nb 个暖灯泡（实心，非光晕）
-  function _dGarland(cx, cy, R, nb){
-    const x0=cx-R*0.86, x1=cx+R*0.86, ytop=cy-R*0.1, ctrlY=cy+R*0.38;
-    let g=`<path d="M${_tn(x0)} ${_tn(ytop)} Q ${_tn(cx)} ${_tn(ctrlY)} ${_tn(x1)} ${_tn(ytop)}" stroke="#4a3f30" stroke-width="1.1" fill="none" opacity="0.7"/>`;
-    const cols=['#ffcf6b','#ff9d5c','#ffe19a','#ffb765'];
-    for(let i=0;i<nb;i++){ const t=(i+0.5)/nb;
-      const bx=(1-t)*(1-t)*x0+2*(1-t)*t*cx+t*t*x1;
-      const by=(1-t)*(1-t)*ytop+2*(1-t)*t*ctrlY+t*t*ytop;
-      const hy=by+3.4, col=cols[i%cols.length];
-      g+=`<path d="M${_tn(bx)} ${_tn(by-0.5)} l0 2.6" stroke="#4a3f30" stroke-width="0.8"/>`;
-      g+=`<circle cx="${_tn(bx)}" cy="${_tn(hy)}" r="2.6" fill="${col}"/>`;
-      g+=`<circle cx="${_tn(bx-0.8)}" cy="${_tn(hy-0.8)}" r="0.85" fill="#fff6de"/>`;
+
+  // ——【lv3】横枝上鸣禽 + 落叶 ——
+  if (level>=3){
+    front += _oakBird(g);
+    const lvPts = [[cx-R*0.85, cy+R*0.85, 18, '#5c9145'], [cx+R*0.9, cy+R*0.55, -40, '#6ea24d'], [cx-R*0.2, cy+R*1.05, 55, '#4f8a3e']];
+    for(const q of lvPts) front += _oakLeaf(q[0], q[1], q[2], q[3]);
+  }
+
+  // ——【lv4】枝杈鸟窝(含蛋) + 更多光斑落叶 ——
+  if (level>=4){
+    front += _oakNest(g);
+    behind += _oakDapple(cx + R*0.3, cy - R*0.28, 5);
+    behind += _oakDapple(cx - R*0.55, cy + R*0.02, 4);
+    const lv2 = [[cx+R*1.05, cy+R*0.9, -25, '#6ea24d'], [cx-R*1.0, cy+R*0.55, 35, '#5c9145'], [cx+R*0.5, cy+R*1.2, -10, '#4f8a3e'], [cx+R*0.05, cy+R*1.35, 70, '#6ea24d']];
+    for(const q of lv2) front += _oakLeaf(q[0], q[1], q[2], q[3]);
+  }
+
+  return {behind, front};
+}
+
+// 交付契约要求的具名函数：deco_oak(p, level) -> {behind, front}
+function deco_oak(p, level){ return _decorate('oak', p, level); }
+return deco_oak;
+})();
+  const deco_sakura = (function(){
+// deco_sakura(p, level) → {behind, front}
+// 樱花专属华贵语汇：盛放繁花 + 空中花瓣雨 + 地面落瓣毯 + 盛放花枝
+// 锚定 broadleaf3(160,214,p)：h=34+p*98, topY=gy-h, R=22+p*47, cy=topY-R*0.14
+function _tn(x){ return Math.round(x*10)/10; }
+
+function deco_sakura(p, level){
+  const cx=160, gy=214;
+  const h=34+p*98, topY=gy-h, R=22+p*47, cy=topY-R*0.14;
+  // 樱花色板（与树身 PAL.sakura 呼应 + 站点暖金点缀）
+  const PINK='#f4a9c2', PINKL='#ffd3e2', PINKD='#e087a5', WHITE='#fff4f8';
+  const CORE='#f6c14e';        // 花心：暖金
+  const GOLD='#e8b24a', GOLDD='#caa53c';
+  const BRANCH='#5a4326', BRANCHL='#775836';
+  let behind='', front='';
+
+  // —— 单朵五瓣樱花（带缺刻的花瓣感，实心，缩小仍成团）——
+  // r 为整朵半径；瓣用圆近似（≥约4px 时安全）
+  function blossom(x,y,r,face){
+    // face: 正面(五瓣+金心) / 侧背(简化团)
+    let s='';
+    if(face){
+      // 花瓣底盘（略深粉），让白瓣有描边感、从冠面跳出
+      s+=`<circle cx="${_tn(x)}" cy="${_tn(y)}" r="${_tn(r*1.02)}" fill="${PINKD}" opacity="0.9"/>`;
+      // 五瓣，绕心 72°，左上受光 —— 亮白粉，明显跳出
+      for(let k=0;k<5;k++){
+        const a=(-90+k*72)*Math.PI/180;
+        const px=x+Math.cos(a)*r*0.6, py=y+Math.sin(a)*r*0.6;
+        const lit=(k===4||k===0);         // 左上两瓣最亮
+        s+=`<circle cx="${_tn(px)}" cy="${_tn(py)}" r="${_tn(r*0.52)}" fill="${lit?WHITE:PINKL}"/>`;
+      }
+      // 花心暖金
+      s+=`<circle cx="${_tn(x)}" cy="${_tn(y)}" r="${_tn(r*0.34)}" fill="${CORE}"/>`;
+      s+=`<circle cx="${_tn(x-r*0.1)}" cy="${_tn(y-r*0.1)}" r="${_tn(r*0.16)}" fill="#fff0c0"/>`;
+    } else {
+      // 侧团（更暗，作阴影层的花团）
+      s+=`<circle cx="${_tn(x)}" cy="${_tn(y)}" r="${_tn(r*0.9)}" fill="${PINKD}"/>`;
+      s+=`<circle cx="${_tn(x-r*0.35)}" cy="${_tn(y-r*0.3)}" r="${_tn(r*0.5)}" fill="${PINK}"/>`;
     }
+    return s;
+  }
+
+  // —— 单片飘落花瓣（水滴+缺刻，斜向）——
+  function petal(x,y,s2,rot,col){
+    const c=Math.cos(rot), sn=Math.sin(rot);
+    // 花瓣：一个略长的椭圆样式，用 path
+    const w=s2, l=s2*1.35;
+    return `<g transform="translate(${_tn(x)} ${_tn(y)}) rotate(${_tn(rot*180/Math.PI)})">`
+      +`<path d="M0 ${_tn(-l)} C ${_tn(w*0.9)} ${_tn(-l*0.4)} ${_tn(w*0.7)} ${_tn(l*0.5)} 0 ${_tn(l)} C ${_tn(-w*0.7)} ${_tn(l*0.5)} ${_tn(-w*0.9)} ${_tn(-l*0.4)} 0 ${_tn(-l)} Z" fill="${col}"/>`
+      // 缺刻（顶端小 V）
+      +`<path d="M ${_tn(-w*0.28)} ${_tn(-l*0.92)} L 0 ${_tn(-l*0.66)} L ${_tn(w*0.28)} ${_tn(-l*0.92)}" fill="${WHITE}" opacity="0.55"/>`
+      +`</g>`;
+  }
+
+  // 伪随机（确定性），用于花瓣雨/落毯的分布
+  function rnd(i){ const s=Math.sin(i*127.1+43.7)*43758.5; return s-Math.floor(s); }
+
+  // ============ LEVEL 1: 繁花加密 —— 在树冠上撒专属的一层「盛放正面花簇」 ============
+  // 锚定树冠：沿冠面均匀分布，突出「比橡树更密更满」的花
+  // 花团锚在树冠半径内，避免飘在空中
+  {
+    // 前景繁花团（正面五瓣）——分布在冠面朝观者一侧
+    const spots=[
+      [cx-R*0.42, cy-R*0.30, R*0.16],
+      [cx+R*0.30, cy-R*0.44, R*0.15],
+      [cx-R*0.08, cy-R*0.58, R*0.14],
+      [cx+R*0.52, cy-R*0.06, R*0.15],
+      [cx-R*0.58, cy+R*0.06, R*0.14],
+      [cx+R*0.12, cy+R*0.02, R*0.15],
+      [cx-R*0.26, cy+R*0.30, R*0.15],
+      [cx+R*0.36, cy+R*0.34, R*0.14],
+      [cx-R*0.02, cy-R*0.14, R*0.16],
+      [cx-R*0.44, cy+R*0.42, R*0.13],
+    ];
+    // 背后暗花团（衬托深度，放 behind 之后其实要在树前——统一放 front，靠色分层）
+    spots.forEach((s,i)=>{
+      front+=blossom(s[0], s[1], s[2], true);
+    });
+  }
+
+  // ============ LEVEL 2: 空中飘落的花瓣改为「持续落樱」动画(_sakuraFall)，
+  //   不再画静止的半空花瓣(用户:动效里不能有停在半空中的静止花瓣)。此处留空。============
+
+  // ============ LEVEL 3: 地面落瓣毯 —— 树下一圈铺满的落樱 ============
+  if(level>=3){
+    // 落瓣毯：在地面椭圆区域内平铺一层花瓣（behind：让树/草压在其上更自然？
+    // 落瓣在地面上，应盖过草——放 front 底部，但在飘落花瓣之下先画）
+    const spread = 26+p*54;
+    let carpet='';
+    // 粉色底晕（毯的整体粉调）
+    carpet += `<ellipse cx="${_tn(cx)}" cy="${_tn(gy+7)}" rx="${_tn(spread*1.02)}" ry="${_tn(spread*0.2)}" fill="${PINKL}" opacity="0.5"/>`;
+    carpet += `<ellipse cx="${_tn(cx-spread*0.08)}" cy="${_tn(gy+6)}" rx="${_tn(spread*0.78)}" ry="${_tn(spread*0.15)}" fill="${PINK}" opacity="0.45"/>`;
+    // 铺散的单瓣（贴地，扁平角度）
+    const M=26;
+    for(let i=0;i<M;i++){
+      const ang = rnd(i)*Math.PI*2;
+      const rad = Math.sqrt(rnd(i+9)) * spread*0.95;
+      const px = cx + Math.cos(ang)*rad;
+      const py = gy+2 + Math.sin(ang)*rad*0.18 + rnd(i+17)*4;  // 压扁到地面带
+      const sz = 2.2 + rnd(i+5)*1.5;
+      const rot = rnd(i+13)*Math.PI;
+      const col = (i%3===0)?PINKL:(i%3===1?PINK:PINKD);
+      // 贴地花瓣稍压扁
+      carpet += `<g transform="translate(${_tn(px)} ${_tn(py)}) scale(1,0.55)">`+petal(0,0,sz,rot,col)+`</g>`;
+    }
+    // 落瓣毯放在飘落雨之前（视觉在下），插到 front 头部
+    front = carpet + front;
+  }
+
+  // ============ LEVEL 4: 神木 —— 盛放花枝挑出 + 花瓣雨加浓 + 暖金流苏点缀 ============
+  if(level>=4){
+    // 从冠中伸出几枝「盛放花枝」——真实樱枝：细褐枝挑出冠外，末端一串正面繁花
+    function bloomBranch(x0,y0,ang,len,n0){
+      const rad=ang*Math.PI/180;
+      const ex=x0+Math.cos(rad)*len, ey=y0-Math.sin(rad)*len*0.9;
+      const mx=x0+Math.cos(rad)*len*0.5 - 3, my=y0-Math.sin(rad)*len*0.5-8; // 上拱
+      let s=`<path d="M${_tn(x0)} ${_tn(y0)} Q ${_tn(mx)} ${_tn(my)} ${_tn(ex)} ${_tn(ey)}" stroke="${BRANCH}" stroke-width="${_tn(2.2)}" fill="none" stroke-linecap="round"/>`;
+      s+=`<path d="M${_tn(x0)} ${_tn(y0-0.6)} Q ${_tn(mx)} ${_tn(my-0.6)} ${_tn(ex)} ${_tn(ey-0.6)}" stroke="${BRANCHL}" stroke-width="0.9" fill="none" stroke-linecap="round" opacity="0.7"/>`;
+      // 沿枝末端一串花
+      for(let k=0;k<n0;k++){
+        const tt=0.55+0.45*(k/(n0-1||1));
+        const bx=x0+(ex-x0)*tt, by=y0+(ey-y0)*tt;
+        s+=blossom(bx, by, 4.2+ (k===n0-1?1.4:0), true);
+      }
+      // 枝端花苞（暖金点）
+      s+=`<circle cx="${_tn(ex)}" cy="${_tn(ey)}" r="1.8" fill="${GOLD}"/>`;
+      return s;
+    }
+    let br='';
+    // 三枝：左上、右上、右侧下垂——挑出冠外
+    br += bloomBranch(cx-R*0.5, cy-R*0.2, 152, R*0.62, 3);
+    br += bloomBranch(cx+R*0.5, cy-R*0.35, 34, R*0.6, 3);
+    br += bloomBranch(cx+R*0.62, cy+R*0.2, -8, R*0.55, 3);
+    front += br;
+
+    // 冠顶暖金花苞冠冕（一排立起的金苞，作神木徽记，锚在冠顶弧线）
+    let crown='';
+    const CN=7;
+    for(let i=0;i<CN;i++){
+      const a=(-140 + i*(280/(CN-1)))*Math.PI/180;
+      const bx=cx+Math.cos(a)*R*0.9, by=cy+Math.sin(a)*R*0.9;
+      if(by>cy+R*0.2) continue; // 只上半冠
+      crown+=`<circle cx="${_tn(bx)}" cy="${_tn(by)}" r="2.4" fill="${GOLD}"/>`;
+      crown+=`<circle cx="${_tn(bx-0.5)}" cy="${_tn(by-0.6)}" r="1.0" fill="#ffe9a8"/>`;
+    }
+    front += crown;
+
+    // （神木不再加静止的空中花瓣雨——改由 _sakuraFall 持续飘落）
+
+    // 地面落瓣毯加金：几点暖金落蕊
+    const spread = 26+p*54;
+    for(let i=0;i<7;i++){
+      const ang=rnd(i+101)*Math.PI*2, rad=Math.sqrt(rnd(i+111))*spread*0.85;
+      const px=cx+Math.cos(ang)*rad, py=gy+2+Math.sin(ang)*rad*0.18;
+      front += `<circle cx="${_tn(px)}" cy="${_tn(py)}" r="1.5" fill="${GOLD}"/>`;
+    }
+  }
+
+  return {behind, front};
+}
+return deco_sakura;
+})();
+  const deco_pine = (function(){
+// deco_pine —— 针叶林「野林生趣」专属语汇（重构：抛弃「越高级堆越多雪」）
+// ─────────────────────────────────────────────────────────────────────
+// 递进逻辑与橡树对齐 = 「越老的古松，越多野林生灵把它当家」：
+//   越往高等级，越多针叶林特有的野生生命聚集到这棵树上。
+//   与橡树区分：橡树是「人来亲近」(秋千/树屋/庭院鸣禽)；松树是「野林栖居」。
+//
+//   L1 大树   ：松果（松树自己的果实，老树才多结）——垂挂在下层枝缝
+//   L2 巨树   ：+ 一只【红松鼠】抱着松果攀在树干上（针叶林标志居民）+ 更多松果
+//   L3 参天   ：+ 一个【藏在层间的鸟巢（带蛋）】——雀鸟选中这棵树安家 + 更密松果
+//   L4 神木   ：+ 一只【猫头鹰】栖于树冠 + 一只小雀鸟 + 第二只松鼠 —— 住满野林生灵的雄伟古松
+//
+// 雪：不作为等级信号。四级都一样的「极轻薄恒定薄雪」——只在最高一层锥尖挂一抹
+//     常青高山薄霜，四级完全相同，纯氛围。
+//
+// 依赖外部 _tn(四舍五入)；宿主未提供则兜底（不用 var，避免 eval 作用域冲突）。
+if (typeof globalThis._tn === 'undefined' && typeof _tn === 'undefined') { globalThis._tn = x => Math.round(x*10)/10; }
+
+// —— 松树几何锚点（与 pine3_fuller 逐字一致）——
+function _pineGeom(p){
+  const cx=160, gy=214;
+  const trunkH=14+p*10, totalH=44+p*96, topY=gy-totalH;
+  const tiers=Math.max(2,Math.round(2+p*3));
+  const startY=gy-trunkH*0.55, step=(startY-topY)/tiers, maxW=46+p*74;
+  const T=[];
+  for(let i=0;i<tiers;i++){
+    const ly=startY-i*step;
+    const w=maxW*(0.40 + 0.60*Math.pow(1 - i/tiers, 0.78));
+    const tipY=ly-step*1.62;
+    T.push({ly,w,tipY,L:cx-w/2,R:cx+w/2});
+  }
+  return {cx,gy,trunkH,totalH,topY,tiers,startY,step,maxW,T};
+}
+
+// —— 站点色 + 自然色板 ——
+const _CONE='#9c6f38', _CONED='#6e4a1e', _CONEL='#caa05c';   // 松果（暖棕→暖金高光）
+const _CONESTEM='#5c421f';
+const _SQ='#c05a26', _SQD='#9a4318', _SQL='#e08a4c';          // 红松鼠（锈红/腹白）
+const _SQBELLY='#f4e6d2';
+const _NAVY='#1e3a5f', _GOLD='#e8b04a', _CREAM='#f4ecda';     // 站点藏蓝/暖金/奶油
+const _EGG='#e9dcc0', _EGGL='#f7efdc', _EGGSPOT='#b39a6a';
+const _NESTD='#6b4f2a', _NEST='#7d5c30', _NESTL='#a9793f';    // 枝编鸟巢
+const _OWL='#7b6a52', _OWLD='#5c4e3c', _OWLL='#a1907a';       // 猫头鹰（暖灰褐）
+const _BIRD='#3f6b8c', _BIRDBELLY='#f4ecda';                  // 小雀鸟（青蓝背，锚站点蓝系）
+const _SNOW='#f4f7fb', _SNOWLIT='#ffffff';                    // 恒定薄雪/薄霜
+const _DARK='#241a10';
+
+// ═════════════ 助手 ═════════════
+
+// —— 松果：垂挂的纺锤形，带鳞片纹与左上受光。x,y=挂点顶端 ——
+function _pinecone(x,y,sc){
+  x=_tn(x); y=_tn(y); sc=sc||1;
+  const w=3.5*sc, rows=5, rh=1.55*sc;    // 修长 + 逐行叠鳞
+  const cy=y+1.3*sc;
+  let s=`<line x1="${x}" y1="${_tn(y)}" x2="${x}" y2="${_tn(cy)}" stroke="${_CONESTEM}" stroke-width="${_tn(0.8*sc)}" stroke-linecap="round"/>`;
+  // 底衬(整体棕色轮廓,填补鳞片间缝)
+  s+=`<path d="M${x} ${_tn(cy)} Q ${_tn(x-w)} ${_tn(cy+rh*1.2)} ${_tn(x-w*0.55)} ${_tn(cy+rh*3)} Q ${_tn(x-w*0.25)} ${_tn(cy+rh*4.6)} ${x} ${_tn(cy+rh*5)} Q ${_tn(x+w*0.25)} ${_tn(cy+rh*4.6)} ${_tn(x+w*0.55)} ${_tn(cy+rh*3)} Q ${_tn(x+w)} ${_tn(cy+rh*1.2)} ${x} ${_tn(cy)} Z" fill="${_CONED}"/>`;
+  // 鳞片:逐行(上宽下窄)交错的下弯扇贝,叠出凹凸松果肌理
+  for(let i=0;i<rows;i++){
+    const ry=cy+i*rh*0.94, rw=w*(1-i*0.15), scales=i<3?2:1;
+    for(let j=0;j<scales;j++){
+      const sx=scales===2?(x+(j?rw*0.42:-rw*0.42)):x, sw=rw*(scales===2?0.6:0.86);
+      s+=`<path d="M${_tn(sx-sw)} ${_tn(ry)} Q ${_tn(sx)} ${_tn(ry+rh*1.7)} ${_tn(sx+sw)} ${_tn(ry)} Q ${_tn(sx)} ${_tn(ry+rh*0.5)} ${_tn(sx-sw)} ${_tn(ry)} Z" fill="${_CONE}"/>`;
+      s+=`<path d="M${_tn(sx-sw)} ${_tn(ry)} Q ${_tn(sx)} ${_tn(ry+rh*1.7)} ${_tn(sx+sw)} ${_tn(ry)}" fill="none" stroke="${_CONED}" stroke-width="${_tn(0.4*sc)}" opacity="0.7"/>`;
+    }
+  }
+  // 左上鳞片受光
+  s+=`<path d="M${_tn(x-w*0.75)} ${_tn(cy+0.3)} Q ${_tn(x-w*0.1)} ${_tn(cy+rh*1.5)} ${_tn(x+w*0.15)} ${_tn(cy+0.3)} Q ${_tn(x-w*0.25)} ${_tn(cy+rh*0.5)} ${_tn(x-w*0.75)} ${_tn(cy+0.3)} Z" fill="${_CONEL}" opacity="0.75"/>`;
+  return s;
+}
+
+// —— 红松鼠：攀在树干上、抱一颗松果、大尾巴上卷。cx0=树干中线, footY=脚所在高度 ——
+// facing 右(1)/左(-1)。松鼠身体贴干侧，头朝上，标志性大蓬尾在背后上卷。
+function _squirrel(cx0, footY, sc, facing){
+  sc=sc||1; facing=facing||1; const f=facing;
+  const bx=_tn(cx0), by=_tn(footY);         // 锚点（腹部贴树干处）
+  const U=6.2*sc;                            // 体量单位
+  let s=`<g>`;
+  // 大蓬尾（在身后，先画→被身体压住根部）：从臀部起，向上卷回成 S
+  s+=`<path d="M${_tn(bx - f*U*0.2)} ${_tn(by + U*0.15)} `
+    +`C ${_tn(bx - f*U*1.2)} ${_tn(by + U*0.2)} ${_tn(bx - f*U*1.5)} ${_tn(by - U*0.9)} ${_tn(bx - f*U*0.9)} ${_tn(by - U*1.35)} `
+    +`C ${_tn(bx - f*U*0.4)} ${_tn(by - U*1.7)} ${_tn(bx + f*U*0.05)} ${_tn(by - U*1.2)} ${_tn(bx - f*U*0.35)} ${_tn(by - U*0.95)} `
+    +`C ${_tn(bx - f*U*0.75)} ${_tn(by - U*0.7)} ${_tn(bx - f*U*0.85)} ${_tn(by - U*0.05)} ${_tn(bx - f*U*0.2)} ${_tn(by + U*0.15)} Z" fill="${_SQD}"/>`;
+  // 尾巴受光高光条
+  s+=`<path d="M${_tn(bx - f*U*1.05)} ${_tn(by - U*0.5)} C ${_tn(bx - f*U*1.15)} ${_tn(by - U*0.95)} ${_tn(bx - f*U*0.8)} ${_tn(by - U*1.25)} ${_tn(bx - f*U*0.6)} ${_tn(by - U*1.1)}" stroke="${_SQL}" stroke-width="${_tn(1.3*sc)}" fill="none" stroke-linecap="round" opacity="0.8"/>`;
+  // 身体（坐姿弓背，锈红）
+  s+=`<path d="M${_tn(bx)} ${_tn(by)} `
+    +`Q ${_tn(bx - f*U*0.55)} ${_tn(by - U*0.1)} ${_tn(bx - f*U*0.5)} ${_tn(by - U*0.75)} `
+    +`Q ${_tn(bx - f*U*0.35)} ${_tn(by - U*1.35)} ${_tn(bx + f*U*0.15)} ${_tn(by - U*1.45)} `
+    +`Q ${_tn(bx + f*U*0.6)} ${_tn(by - U*1.4)} ${_tn(bx + f*U*0.55)} ${_tn(by - U*0.7)} `
+    +`Q ${_tn(bx + f*U*0.5)} ${_tn(by - U*0.05)} ${_tn(bx)} ${_tn(by)} Z" fill="${_SQ}"/>`;
+  // 腹部（浅奶油，偏向朝外/受光侧）
+  s+=`<path d="M${_tn(bx + f*U*0.18)} ${_tn(by - U*0.08)} `
+    +`Q ${_tn(bx + f*U*0.5)} ${_tn(by - U*0.2)} ${_tn(bx + f*U*0.42)} ${_tn(by - U*0.75)} `
+    +`Q ${_tn(bx + f*U*0.32)} ${_tn(by - U*1.1)} ${_tn(bx + f*U*0.05)} ${_tn(by - U*1.15)} `
+    +`Q ${_tn(bx + f*U*0.1)} ${_tn(by - U*0.6)} ${_tn(bx + f*U*0.18)} ${_tn(by - U*0.08)} Z" fill="${_SQBELLY}"/>`;
+  // 头（圆，在身体顶）
+  const hx=bx + f*U*0.15, hy=by - U*1.55;
+  s+=`<circle cx="${_tn(hx)}" cy="${_tn(hy)}" r="${_tn(U*0.5)}" fill="${_SQ}"/>`;
+  // 头顶受光
+  s+=`<path d="M${_tn(hx - U*0.35)} ${_tn(hy - U*0.15)} a${_tn(U*0.45)} ${_tn(U*0.45)} 0 0 1 ${_tn(U*0.55)} ${_tn(-U*0.2)}" stroke="${_SQL}" stroke-width="${_tn(1.1*sc)}" fill="none" stroke-linecap="round" opacity="0.7"/>`;
+  // 双耳（松鼠尖耳带簇）
+  s+=`<path d="M${_tn(hx - U*0.32)} ${_tn(hy - U*0.35)} l ${_tn(-U*0.18)} ${_tn(-U*0.5)} l ${_tn(U*0.35)} ${_tn(U*0.15)} Z" fill="${_SQD}"/>`;
+  s+=`<path d="M${_tn(hx + f*U*0.28)} ${_tn(hy - U*0.4)} l ${_tn(U*0.1)} ${_tn(-U*0.5)} l ${_tn(U*0.22)} ${_tn(U*0.3)} Z" fill="${_SQ}"/>`;
+  // 眼 + 鼻
+  s+=`<circle cx="${_tn(hx + f*U*0.22)}" cy="${_tn(hy - U*0.05)}" r="${_tn(U*0.13)}" fill="${_DARK}"/>`;
+  s+=`<circle cx="${_tn(hx + f*U*0.5)}" cy="${_tn(hy + U*0.08)}" r="${_tn(U*0.08)}" fill="${_DARK}"/>`;
+  // 抱着的小松果（在胸前）
+  s+=_pinecone(hx + f*U*0.15, hy + U*0.5, 0.7*sc).replace(/<line[^>]*>/,''); // 抱着的果无挂柄
+  // 前爪（抱住松果）
+  s+=`<path d="M${_tn(hx - f*U*0.05)} ${_tn(hy + U*0.55)} q ${_tn(f*U*0.25)} ${_tn(U*0.2)} ${_tn(f*U*0.5)} ${_tn(U*0.05)}" stroke="${_SQD}" stroke-width="${_tn(1.4*sc)}" fill="none" stroke-linecap="round"/>`;
+  s+=`</g>`;
+  return s;
+}
+
+// —— 藏在层间的鸟巢（枝编碗+蛋），塞在某层三角下沿内侧 ——
+function _nest(x, y, sc){
+  x=_tn(x); y=_tn(y); sc=sc||1;
+  const W=8.5*sc, H=6*sc, rim=_tn(y);
+  let s=`<g>`;
+  // 深碗
+  s+=`<path d="M${_tn(x-W)} ${rim} Q ${x} ${_tn(rim+H+2)} ${_tn(x+W)} ${rim} Z" fill="${_NESTD}"/>`;
+  // 蛋（露上半）
+  const egg=(ex,ey,f)=>`<ellipse cx="${_tn(ex)}" cy="${_tn(ey)}" rx="${_tn(2.3*sc)}" ry="${_tn(2.9*sc)}" fill="${f}"/>`
+    +`<ellipse cx="${_tn(ex-0.7*sc)}" cy="${_tn(ey-0.9*sc)}" rx="${_tn(0.7*sc)}" ry="${_tn(1*sc)}" fill="${_EGGL}" opacity="0.85"/>`
+    +`<circle cx="${_tn(ex+0.6*sc)}" cy="${_tn(ey+0.3*sc)}" r="${_tn(0.35*sc)}" fill="${_EGGSPOT}" opacity="0.7"/>`;
+  s+=egg(x-3.2*sc, rim-0.5*sc, _EGG);
+  s+=egg(x+0.2*sc, rim-1.3*sc, _EGGL);
+  s+=egg(x+3.3*sc, rim-0.3*sc, '#dccfae');
+  // 碗前缘（枝编壁，盖蛋下半）
+  s+=`<path d="M${_tn(x-W)} ${rim} Q ${x} ${_tn(rim+H)} ${_tn(x+W)} ${rim} Q ${_tn(x+W*0.72)} ${_tn(rim-2.4*sc)} ${x} ${_tn(rim-1.6*sc)} Q ${_tn(x-W*0.72)} ${_tn(rim-2.4*sc)} ${_tn(x-W)} ${rim} Z" fill="${_NEST}"/>`;
+  // 编织纹
+  for(let i=-2;i<=2;i++){ const wx=x+i*3*sc;
+    s+=`<path d="M${_tn(wx-2*sc)} ${_tn(rim+2*sc)} q ${_tn(2*sc)} ${_tn(1.8*sc)} ${_tn(4*sc)} 0" stroke="${_NESTL}" stroke-width="${_tn(0.75*sc)}" fill="none" opacity="0.75"/>`; }
+  s+=`</g>`;
+  return s;
+}
+
+// —— 猫头鹰：栖于树冠，正面圆胖，大眼盘。x,y=身体中心 ——
+function _owl(x, y, sc){
+  x=_tn(x); y=_tn(y); sc=sc||1;
+  const W=8*sc, H=10*sc;
+  let s=`<g>`;
+  // 栖枝小爪下的枝
+  s+=`<path d="M${_tn(x-W*0.6)} ${_tn(y+H*0.62)} q ${_tn(W*0.6)} ${_tn(1.6*sc)} ${_tn(W*1.2)} 0" stroke="${_CONESTEM}" stroke-width="${_tn(1.4*sc)}" fill="none" stroke-linecap="round"/>`;
+  // 身体（卵形，暖灰褐）
+  s+=`<ellipse cx="${x}" cy="${y}" rx="${_tn(W)}" ry="${_tn(H)}" fill="${_OWL}"/>`;
+  // 左受光
+  s+=`<path d="M${_tn(x-W*0.2)} ${_tn(y-H*0.85)} Q ${_tn(x-W*0.95)} ${_tn(y-H*0.4)} ${_tn(x-W*0.75)} ${_tn(y+H*0.4)}" stroke="${_OWLL}" stroke-width="${_tn(1.4*sc)}" fill="none" stroke-linecap="round" opacity="0.7"/>`;
+  // 胸腹斑纹（横向短弧几道）
+  s+=`<g stroke="${_OWLD}" stroke-width="${_tn(0.6*sc)}" fill="none" opacity="0.55">`
+    +`<path d="M${_tn(x-W*0.55)} ${_tn(y+H*0.05)} q ${_tn(W*0.55)} ${_tn(1.6*sc)} ${_tn(W*1.1)} 0"/>`
+    +`<path d="M${_tn(x-W*0.5)} ${_tn(y+H*0.3)} q ${_tn(W*0.5)} ${_tn(1.4*sc)} ${_tn(W)} 0"/></g>`;
+  // 双翼（收拢，两侧深色）
+  s+=`<path d="M${_tn(x-W*0.75)} ${_tn(y-H*0.35)} Q ${_tn(x-W*1.05)} ${_tn(y+H*0.15)} ${_tn(x-W*0.6)} ${_tn(y+H*0.5)}" stroke="${_OWLD}" stroke-width="${_tn(2.4*sc)}" fill="none" stroke-linecap="round"/>`;
+  s+=`<path d="M${_tn(x+W*0.75)} ${_tn(y-H*0.35)} Q ${_tn(x+W*1.05)} ${_tn(y+H*0.15)} ${_tn(x+W*0.6)} ${_tn(y+H*0.5)}" stroke="${_OWLD}" stroke-width="${_tn(2.4*sc)}" fill="none" stroke-linecap="round"/>`;
+  // 头（与身体连成一体的圆顶）
+  s+=`<circle cx="${x}" cy="${_tn(y-H*0.55)}" r="${_tn(W*0.92)}" fill="${_OWL}"/>`;
+  // 两簇角羽（猫头鹰标志耳羽）
+  s+=`<path d="M${_tn(x-W*0.6)} ${_tn(y-H*1.05)} l ${_tn(-W*0.15)} ${_tn(-H*0.45)} l ${_tn(W*0.5)} ${_tn(H*0.18)} Z" fill="${_OWL}"/>`;
+  s+=`<path d="M${_tn(x+W*0.6)} ${_tn(y-H*1.05)} l ${_tn(W*0.15)} ${_tn(-H*0.45)} l ${_tn(-W*0.5)} ${_tn(H*0.18)} Z" fill="${_OWL}"/>`;
+  // 面盘（浅色心形）
+  s+=`<path d="M${x} ${_tn(y-H*0.02)} Q ${_tn(x-W*0.8)} ${_tn(y-H*0.25)} ${_tn(x-W*0.62)} ${_tn(y-H*0.75)} Q ${_tn(x-W*0.4)} ${_tn(y-H*1.15)} ${x} ${_tn(y-H*0.95)} Q ${_tn(x+W*0.4)} ${_tn(y-H*1.15)} ${_tn(x+W*0.62)} ${_tn(y-H*0.75)} Q ${_tn(x+W*0.8)} ${_tn(y-H*0.25)} ${x} ${_tn(y-H*0.02)} Z" fill="${_OWLL}"/>`;
+  // 大眼盘（两只金环黑瞳）
+  const eyeY=y-H*0.6, ex=W*0.42, er=W*0.34;
+  s+=`<circle cx="${_tn(x-ex)}" cy="${_tn(eyeY)}" r="${_tn(er)}" fill="${_GOLD}"/>`;
+  s+=`<circle cx="${_tn(x+ex)}" cy="${_tn(eyeY)}" r="${_tn(er)}" fill="${_GOLD}"/>`;
+  s+=`<circle cx="${_tn(x-ex)}" cy="${_tn(eyeY)}" r="${_tn(er*0.55)}" fill="${_DARK}"/>`;
+  s+=`<circle cx="${_tn(x+ex)}" cy="${_tn(eyeY)}" r="${_tn(er*0.55)}" fill="${_DARK}"/>`;
+  s+=`<circle cx="${_tn(x-ex-er*0.2)}" cy="${_tn(eyeY-er*0.2)}" r="${_tn(er*0.2)}" fill="#fff" opacity="0.9"/>`;
+  s+=`<circle cx="${_tn(x+ex-er*0.2)}" cy="${_tn(eyeY-er*0.2)}" r="${_tn(er*0.2)}" fill="#fff" opacity="0.9"/>`;
+  // 喙（暖金小三角，两眼之间下方）
+  s+=`<path d="M${x} ${_tn(eyeY+er*0.5)} l ${_tn(-1.5*sc)} ${_tn(2.2*sc)} l ${_tn(3*sc)} 0 Z" fill="${_GOLD}"/>`;
+  s+=`</g>`;
+  return s;
+}
+
+// —— 小雀鸟：栖在枝头，青蓝背+奶油腹，朝内。x,y=身体中心 ——
+function _songbird(x, y, sc, facing){
+  x=_tn(x); y=_tn(y); sc=sc||1; facing=facing||1; const f=facing;
+  let s=`<g>`;
+  const b=5*sc;
+  // 脚
+  s+=`<path d="M${_tn(x)} ${_tn(y+b*0.8)} l0 ${_tn(1.8*sc)} M${_tn(x+f*b*0.4)} ${_tn(y+b*0.8)} l0 ${_tn(1.8*sc)}" stroke="${_DARK}" stroke-width="${_tn(0.8*sc)}" stroke-linecap="round"/>`;
+  // 尾
+  s+=`<path d="M${_tn(x-f*b*0.9)} ${_tn(y+b*0.1)} l ${_tn(-f*b*1)} ${_tn(b*0.2)} l ${_tn(f*b*0.25)} ${_tn(b*0.5)} Z" fill="${_BIRD}"/>`;
+  // 身（青蓝，圆胖）
+  s+=`<ellipse cx="${x}" cy="${y}" rx="${_tn(b*1.05)}" ry="${_tn(b*0.85)}" fill="${_BIRD}" transform="rotate(${_tn(f*10)} ${x} ${y})"/>`;
+  // 奶油腹
+  s+=`<ellipse cx="${_tn(x+f*b*0.28)}" cy="${_tn(y+b*0.28)}" rx="${_tn(b*0.55)}" ry="${_tn(b*0.5)}" fill="${_BIRDBELLY}"/>`;
+  // 头
+  s+=`<circle cx="${_tn(x+f*b*0.85)}" cy="${_tn(y-b*0.5)}" r="${_tn(b*0.6)}" fill="${_BIRD}"/>`;
+  // 喙（暖金）
+  s+=`<path d="M${_tn(x+f*b*1.4)} ${_tn(y-b*0.55)} l ${_tn(f*b*0.55)} ${_tn(b*0.12)} l ${_tn(-f*b*0.4)} ${_tn(b*0.28)} Z" fill="${_GOLD}"/>`;
+  // 眼
+  s+=`<circle cx="${_tn(x+f*b*0.95)}" cy="${_tn(y-b*0.6)}" r="${_tn(b*0.16)}" fill="${_DARK}"/>`;
+  // 翼
+  s+=`<path d="M${_tn(x+f*b*0.1)} ${_tn(y-b*0.2)} q ${_tn(-f*b*0.9)} ${_tn(-b*0.2)} ${_tn(-f*b*1.3)} ${_tn(b*0.45)} q ${_tn(f*b*0.7)} ${_tn(b*0.22)} ${_tn(f*b*1.2)} ${_tn(-b*0.12)} Z" fill="#2f5570"/>`;
+  s+=`</g>`;
+  return s;
+}
+
+// —— 恒定极薄雪：只在最高一层锥尖挂一抹薄霜（四级完全相同，纯氛围）——
+function _frostTip(T, tiers){
+  const t=T[tiers-1];
+  const {tipY}=t; const cx=160;
+  let s='';
+  // 尖端一小撮柔软薄雪：贴锥尖上两条斜边，很薄
+  s+=`<path d="M${_tn(cx)} ${_tn(tipY-1)} `
+    +`Q ${_tn(cx-5)} ${_tn(tipY+5)} ${_tn(cx-7)} ${_tn(tipY+9)} `
+    +`Q ${_tn(cx-3)} ${_tn(tipY+7)} ${_tn(cx)} ${_tn(tipY+8)} `
+    +`Q ${_tn(cx+3)} ${_tn(tipY+7)} ${_tn(cx+7)} ${_tn(tipY+9)} `
+    +`Q ${_tn(cx+5)} ${_tn(tipY+5)} ${_tn(cx)} ${_tn(tipY-1)} Z" fill="${_SNOW}"/>`;
+  // 高光
+  s+=`<path d="M${_tn(cx)} ${_tn(tipY+0.5)} Q ${_tn(cx-3.5)} ${_tn(tipY+4)} ${_tn(cx-4)} ${_tn(tipY+7)} Q ${_tn(cx-1.5)} ${_tn(tipY+5)} ${_tn(cx)} ${_tn(tipY+5.5)} Z" fill="${_SNOWLIT}"/>`;
+  return s;
+}
+
+// ═════════════ 逐级叠加 ═════════════
+function deco_pine(p, level){
+  if(level<=0) return {behind:'',front:''};
+  const g=_pineGeom(p);
+  const {cx,gy,tiers,T,maxW}=g;
+  let behind='', front='';
+
+  // （去掉了锥尖那抹薄霜——用户觉得没必要）
+
+  // ——【L1 大树】松果：松树自己的果实，几颗垂挂在中下层枝缝 ——
+  // 挂在各层三角下沿角内侧一点（贴较浅背景，读得出）。
+  const conePts1 = [
+    [T[0].R-5, T[0].ly-1.5, 1.0],
+    [T[1].L+5, T[1].ly-1.5, 0.92],
+    [T[0].L+7, T[0].ly-1.5, 0.95],
+  ];
+  conePts1.forEach(c=>{ front += _pinecone(c[0], c[1], c[2]); });
+
+  // ——【L2 巨树】+ 红松鼠攀树干抱松果 + 更多松果 ——
+  if(level>=2){
+    // 松鼠攀在树干右侧（贴干、脚锚在下层高度），朝上，抱果
+    front += _squirrel(cx + 4, gy - g.trunkH*0.4 - 2, 1.0, 1);
+    // 更多松果
+    front += _pinecone(T[1].R-5, T[1].ly-1.5, 0.9);
+    front += _pinecone(T[2] ? T[2].R-5 : T[1].R-9, (T[2]?T[2].ly:T[1].ly)-1.5, 0.88);
+  }
+
+  // ——【L3 参天】+ 藏在层间的鸟巢(带蛋) + 更密松果 ——
+  if(level>=3){
+    // 鸟巢：塞在中上层三角下沿内侧（右侧、贴较浅背景）——放右让出左侧给 L4 猫头鹰
+    const nt = T[Math.min(2, tiers-2)];
+    front += _nest(nt.L + nt.w*0.66, nt.ly - 1.5, 0.92);
+    // 更密松果（层缝左右交错）
+    front += _pinecone(T[2] ? T[2].L+5 : T[1].L+9, (T[2]?T[2].ly:T[1].ly)-1.5, 0.88);
+    front += _pinecone(T[3] ? T[3].R-4 : T[tiers-1].R-4, (T[3]?T[3].ly:T[tiers-1].ly)-1.5, 0.82);
+    front += _pinecone(T[0].R-10, T[0].ly-1.5, 0.9);
+  }
+
+  // ——【L4 神木】+ 猫头鹰栖树冠 + 小雀鸟 + 第二只松鼠 —— 住满野林生灵 ——
+  if(level>=4){
+    // 猫头鹰：栖在较低一层的左侧枝头（左侧亮区、贴浅背景，最抢眼的居民；
+    // 与右侧的鸟巢分居两侧、且在其下一层，避免叠压）
+    const ot = T[Math.min(1, tiers-2)];
+    front += _owl(ot.L + ot.w*0.30, ot.ly - 9, 1.0);
+    // 小雀鸟：栖在上层枝头右侧，朝内
+    const bt = T[Math.min(3, tiers-1)];
+    front += _songbird(bt.R - 5, bt.ly - 6, 0.95, -1);
+    // 第二只松鼠：不再挤在树干（会和 L2 那只叠成一坨），改让它蹲在
+    // 中层三角的左外沿枝头、朝树心(右)，把「野林生灵」铺散到树身两侧。
+    const st = T[Math.min(2, tiers-2)];
+    front += _squirrel(st.L + 6, st.ly - 1.5, 0.8, 1);
+    // 再添两颗松果，满树结实
+    front += _pinecone(T[1].R-9, T[1].ly-1.5, 0.85);
+    front += _pinecone(T[0].L+12, T[0].ly-1.5, 0.85);
+  }
+
+  return {behind, front};
+}
+return deco_pine;
+})();
+  const deco_palm = (function(){
+// ===== 椰子树（palm）专属华贵装饰阶梯 =====
+// 意象：热带海滨的丰饶与礼庆。全部锚定椰子树自身真实几何：
+//   椰冠基部(topX,topY)、树干中线Bézier、椰叶放射方向、地面沙滩。
+// 严禁：树干开花 / 跨物种通用弯弧灯串。
+// 阶梯（逐级叠加，越高越华丽）：
+//   1 大树：椰冠基部一挂「成串饱满椰子」(3~4颗，绳束挂枝) + 树干加深环纹一圈金线
+//   2 巨树：+ 一支下垂「椰枣果穗」(米黄花轴+橙红浆果串) + 基部沙丘一枚贝壳
+//   3 参天：+ 沿真实椰叶方向的「金亮叶尖」点缀 + 第二挂椰子 + 沙滩海星
+//   4 神木：+ 椰叶基部停一只「热带鸟」(锚在上层叶柄) + 更饱满果穗 + 沙滩多贝壳/浪花点
+
+function _tn(x){ return Math.round(x*10)/10; }
+
+// —— 椰子树真实几何（与 tree3-render.js 的 palm3 完全对齐）——
+function _palmGeo(p){
+  const cx=160, gy=214;
+  const h=40+p*112, lean=4+p*6, topX=cx+lean, topY=gy-h;
+  const wB=8+p*5, wT=4.5+p*2.5, midX=cx+lean*0.4, midY=(gy+topY)/2;
+  // 树干中线二次Bézier控制点：起(cx,gy) 控(midX,midY) 终(topX,topY)
+  const P=(t)=>[ (1-t)*(1-t)*cx+2*(1-t)*t*midX+t*t*topX,
+                 (1-t)*(1-t)*gy+2*(1-t)*t*midY+t*t*topY ];
+  const W=(t)=> wB*(1-t)+wT*t;
+  const L=30+p*40;               // 椰叶长度（palm3 同名）
+  return {cx,gy,h,lean,topX,topY,wB,wT,midX,midY,P,W,L};
+}
+
+// —— 单颗椰子（左上受光的实心椭球，深棕壳+金反光+三点萌芽孔）——
+function _coco(x,y,r){
+  x=_tn(x); y=_tn(y); r=_tn(r);
+  return `<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${_tn(r*1.12)}" fill="#7a4a24"/>`
+    +`<ellipse cx="${_tn(x-r*0.34)}" cy="${_tn(y-r*0.4)}" rx="${_tn(r*0.5)}" ry="${_tn(r*0.6)}" fill="#9a6636" opacity="0.85"/>`
+    +`<ellipse cx="${_tn(x-r*0.5)}" cy="${_tn(y-r*0.55)}" rx="${_tn(r*0.22)}" ry="${_tn(r*0.3)}" fill="#c69152" opacity="0.7"/>`
+    +`<ellipse cx="${_tn(x+r*0.4)}" cy="${_tn(y+r*0.45)}" rx="${_tn(r*0.4)}" ry="${_tn(r*0.5)}" fill="#5a3417" opacity="0.55"/>`;
+}
+
+// —— 一挂成串椰子：从枝点(ax,ay)垂下一束绳，3~4颗聚拢；金束带点缀 ——
+function _cocoBunch(ax,ay,r,big){
+  ax=_tn(ax); ay=_tn(ay);
+  // 绳束
+  let g=`<path d="M${ax} ${ay} q -1.5 ${_tn(r*1.2)} -0.5 ${_tn(r*2)}" stroke="#5a3d22" stroke-width="1.4" fill="none" stroke-linecap="round"/>`
+       +`<path d="M${ax} ${ay} q 1.6 ${_tn(r*1.2)} 0.6 ${_tn(r*2)}" stroke="#5a3d22" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
+  const gy0=ay+r*1.9;
+  // 聚拢的椰子（后排先画）
+  g+=_coco(ax+r*0.05, gy0+r*0.7, r*1.02);
+  g+=_coco(ax-r*0.95, gy0, r);
+  g+=_coco(ax+r*0.95, gy0, r);
+  if(big) g+=_coco(ax+r*0.02, gy0-r*0.15, r*1.05);
+  // 共同暖金束带
+  g+=`<path d="M${_tn(ax-r*1.3)} ${_tn(gy0-r*0.2)} q ${_tn(r*1.3)} ${_tn(r*0.7)} ${_tn(r*2.6)} 0" stroke="#e6b24d" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.9"/>`;
+  return g;
+}
+
+// —— 椰枣果穗：从枝点垂下的米黄花轴 + 两侧密排橙红浆果 ——
+function _dateSpadix(ax,ay,len,rich){
+  ax=_tn(ax); ay=_tn(ay);
+  const bx=ax+2, by=ay+len; // 微微外摆
+  // 主花轴
+  let g=`<path d="M${ax} ${ay} Q ${_tn(ax+1.5)} ${_tn(ay+len*0.5)} ${_tn(bx)} ${_tn(by)}" stroke="#e8dcae" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+  const cols=['#e0603f','#d24f30','#ec7a4a'];
+  const N=rich?9:6;
+  for(let i=0;i<N;i++){
+    const t=(i+1)/(N+1);
+    const px=ax+(bx-ax)*t + (1.5)*Math.sin(t*Math.PI); // 沿轴微鼓
+    const py=ay+len*t;
+    const side=(i%2)?1:-1;
+    const r=1.8-0.3*Math.abs(t-0.5)*2;
+    g+=`<circle cx="${_tn(px+side*2.4)}" cy="${_tn(py)}" r="${_tn(r)}" fill="${cols[i%3]}"/>`;
+    g+=`<circle cx="${_tn(px-side*2.2)}" cy="${_tn(py+1.4)}" r="${_tn(r*0.9)}" fill="${cols[(i+1)%3]}"/>`;
+    // 高光
+    g+=`<circle cx="${_tn(px+side*2.4-0.7)}" cy="${_tn(py-0.7)}" r="0.5" fill="#ffcf9a" opacity="0.8"/>`;
+  }
+  return g;
+}
+
+// —— 沙丘（基部一小抹暖沙，前景）——
+function _sandMound(cx,gy,w){
+  cx=_tn(cx);
+  return `<path d="M${_tn(cx-w)} ${_tn(gy+5)} Q ${cx} ${_tn(gy-4)} ${_tn(cx+w)} ${_tn(gy+5)} L ${_tn(cx+w)} ${_tn(gy+9)} L ${_tn(cx-w)} ${_tn(gy+9)} Z" fill="#ecd39a"/>`
+    +`<path d="M${_tn(cx-w)} ${_tn(gy+5)} Q ${cx} ${_tn(gy-4)} ${_tn(cx+w)} ${_tn(gy+5)}" stroke="#f7ecc4" stroke-width="1.6" fill="none" opacity="0.95"/>`
+    +`<path d="M${_tn(cx-w*0.2)} ${_tn(gy+1.5)} Q ${_tn(cx+w*0.3)} ${_tn(gy-0.5)} ${_tn(cx+w*0.7)} ${_tn(gy+2.5)}" stroke="#d4b878" stroke-width="0.9" fill="none" opacity="0.7"/>`;
+}
+
+// —— 贝壳（扇贝，金脊）——
+function _shell(x,y,s,col){
+  x=_tn(x); y=_tn(y); s=_tn(s);
+  let g=`<path d="M${x} ${_tn(y+s*0.9)} A ${s} ${s} 0 0 1 ${_tn(x-s)} ${_tn(y-s*0.2)} A ${s} ${s} 0 0 1 ${_tn(x+s)} ${_tn(y-s*0.2)} A ${s} ${s} 0 0 1 ${x} ${_tn(y+s*0.9)} Z" fill="${col}"/>`;
+  // 顶铰
+  g+=`<circle cx="${x}" cy="${_tn(y-s*0.2)}" r="${_tn(s*0.28)}" fill="#c9945a"/>`;
+  // 放射金脊
+  for(let k=-2;k<=2;k++){ const a=(-Math.PI/2)+k*0.42;
+    g+=`<path d="M${x} ${_tn(y-s*0.1)} L ${_tn(x+Math.cos(a)*s*0.85)} ${_tn(y-s*0.1+Math.sin(a)*s*0.85+s*0.55)}" stroke="#e6b24d" stroke-width="0.7" opacity="0.7"/>`; }
+  return g;
+}
+
+// —— 海星 ——
+function _starfish(x,y,s){
+  x=_tn(x); y=_tn(y); s=_tn(s);
+  let pts='';
+  for(let k=0;k<10;k++){ const a=-Math.PI/2+k*Math.PI/5; const rr=(k%2? s*0.42 : s);
+    pts+=`${_tn(x+Math.cos(a)*rr)},${_tn(y+Math.sin(a)*rr)} `; }
+  return `<polygon points="${pts.trim()}" fill="#e8956b"/>`
+    +`<polygon points="${pts.trim()}" fill="#f2b48c" opacity="0.5" transform="translate(-0.6 -0.6)"/>`
+    +`<circle cx="${x}" cy="${y}" r="${_tn(s*0.18)}" fill="#c9704a"/>`;
+}
+
+// —— 金亮叶尖：严格沿 palm3 那条椰叶的中肋二次Bézier，在叶尖一段染暖金 ——
+//    palm3: 端点 ex=topX+cos*L, ey=topY-sin*L*0.7；控制 cx1=topX+cos*L*0.5, cy1=topY-sin*L*0.5-(9+p*6)
+function _frondTip(topX,topY,angDeg,L,p){
+  const rad=angDeg*Math.PI/180;
+  const ctrlX=topX+Math.cos(rad)*L*0.5, ctrlY=topY-Math.sin(rad)*L*0.5-(9+p*6);
+  const ex=topX+Math.cos(rad)*L,        ey=topY-Math.sin(rad)*L*0.7;
+  // 中肋点 B(t)=(1-t)^2*top + 2(1-t)t*ctrl + t^2*end
+  const B=(t)=>[ (1-t)*(1-t)*topX+2*(1-t)*t*ctrlX+t*t*ex,
+                 (1-t)*(1-t)*topY+2*(1-t)*t*ctrlY+t*t*ey ];
+  // 叶面受光高光:沿中肋一条柔和亮绿(阳光扫过椰叶),从叶基到叶尖渐隐——不是金泡挂灯
+  const [mx,my]=B(0.5);
+  return `<path d="M${_tn(topX)} ${_tn(topY)} Q ${_tn(mx)} ${_tn(my)} ${_tn(ex)} ${_tn(ey)}" stroke="#9ccf72" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.55"/>`;
+}
+
+// —— 热带鸟：停在上层叶柄基部（锚在椰冠附近的一条叶方向的近端）——
+function _tropicBird(bx,by){
+  bx=_tn(bx); by=_tn(by);
+  // 身体（左上受光的青绿/暖腹）
+  let g=`<ellipse cx="${bx}" cy="${by}" rx="5" ry="3.6" fill="#2f7d6b"/>`;
+  g+=`<ellipse cx="${_tn(bx-1.3)}" cy="${_tn(by-1.1)}" rx="2.6" ry="1.9" fill="#4aa88f" opacity="0.9"/>`;
+  g+=`<path d="M${_tn(bx-1)} ${_tn(by+1)} q 3 2 5.6 0.4 q -2.4 2.6 -6 1.2 Z" fill="#f0b24d"/>`; // 暖腹
+  // 头
+  g+=`<circle cx="${_tn(bx-4)}" cy="${_tn(by-2.4)}" r="2.7" fill="#2f7d6b"/>`;
+  g+=`<circle cx="${_tn(bx-4.6)}" cy="${_tn(by-3)}" r="1.1" fill="#57b89e" opacity="0.9"/>`;
+  // 喙（橙）
+  g+=`<path d="M${_tn(bx-6.4)} ${_tn(by-2.6)} l -3.4 0.8 l 3.2 1.4 Z" fill="#f0902d"/>`;
+  g+=`<circle cx="${_tn(bx-4.7)}" cy="${_tn(by-2.7)}" r="0.7" fill="#1c2b28"/>`; // 眼
+  // 翼
+  g+=`<path d="M${_tn(bx-0.5)} ${_tn(by-1.5)} q 5 -1 7.5 1.5 q -4 0.6 -7 0 Z" fill="#256a5a"/>`;
+  // 长尾羽（往右下垂）
+  g+=`<path d="M${_tn(bx+4)} ${_tn(by+0.5)} q 6 1 9 5 q -4 -0.5 -8.5 -3 Z" fill="#2f7d6b"/>`;
+  g+=`<path d="M${_tn(bx+4)} ${_tn(by+1)} q 5 2 7 5.5" stroke="#f0b24d" stroke-width="1" fill="none" opacity="0.8"/>`;
+  // 脚（勾住叶柄）
+  g+=`<path d="M${_tn(bx-1)} ${_tn(by+3)} l 0 2.4 M${_tn(bx+1.5)} ${_tn(by+3)} l 0 2.2" stroke="#c97a2a" stroke-width="1" stroke-linecap="round"/>`;
+  return g;
+}
+
+// ============ 主函数 ============
+function deco_palm(p, level){
+  const G=_palmGeo(p);
+  const {cx,gy,topX,topY,P,W,L}=G;
+  let behind='', front='';
+
+  // 椰冠基部两个自然挂点（在冠心两侧下方一点，模拟叶鞘之间垂果）
+  const hangL=[topX-6.5, topY+6];
+  const hangR=[topX+7,   topY+7];
+  // 果实半径随 p 略变，且保证 field(×0.42) 下仍≥~1.7px：这里取树坐标 r≈3.1~3.9
+  const cr=3.1+p*0.8;
+
+  // ---- Level ≥1：一挂成串椰子（挂在椰冠基部左侧）+ 树干金线强化 ----
+  // 成串椰子挂点在冠基，属于「前景」（垂在树冠之前）
+  front += _cocoBunch(hangL[0], hangL[1], cr, false);
+  // 树干若干道加深环纹镶一线暖金（锚在树干中线Bézier；behind 让树干覆盖不必要处）
+  {
+    let rings='';
+    for(let i=1;i<=4;i++){ const t=i/5; const [bx,by]=P(t); const w=W(t);
+      rings+=`<path d="M${_tn(bx-w/2-0.4)} ${_tn(by)} q ${_tn(w/2+0.4)} 2.2 ${_tn(w+0.8)} 0" stroke="#e6b24d" stroke-width="0.9" fill="none" opacity="0.7"/>`;
+    }
+    front += rings;
+  }
+
+  if(level>=2){
+    // ---- Level ≥2：一支下垂椰枣果穗（挂在冠基右侧）+ 基部沙丘 + 一枚贝壳 ----
+    front += _dateSpadix(hangR[0], hangR[1], 18+p*10, false);
+    // 沙滩气息（基部前景）
+    front += _sandMound(cx, gy, 22+p*8);
+    front += _shell(cx-14, gy+3, 3.4, '#f4c9d6');
+  }
+
+  if(level>=3){
+    // ---- Level ≥3：金亮叶尖(锚在真实叶方向) + 第二挂椰子 + 海星 ----
+    // 沿 palm3 四条舒展叶(205/158/22/-25)的叶尖点暖金，金尖真正骑在叶片上
+    [205,158,22,-25].forEach(a=> { front += _frondTip(topX,topY,a,L,p); });
+    // 第二挂椰子，稍靠右下（错位不撞第一挂）
+    front += _cocoBunch(topX+2, topY+9, cr*0.92, false);
+    // 海星卧沙
+    front += _starfish(cx+15, gy+4, 4.2);
+    // 果穗再加一颗贝壳（右侧）
+    front += _shell(cx+3, gy+5, 3, '#fbe6b0');
+  }
+
+  if(level>=4){
+    // ---- Level 4（神木）：热带鸟停上层叶柄 + 更饱满果穗 + 浪花沙滩点 ----
+    // 鸟锚在左上层叶的中段（沿 120° 叶方向，落在绿叶上、避开深色冠心）
+    const brad=124*Math.PI/180;
+    const bx=topX+Math.cos(brad)*L*0.6, by=topY-Math.sin(brad)*L*0.7*0.6;
+    front += _tropicBird(bx, by);
+    // 更饱满的椰枣果穗替补一支（左下再垂一小穗）
+    front += _dateSpadix(topX-8, topY+9, 15+p*8, true);
+    // 沙滩浪花点 + 多贝壳
+    front += _shell(cx+18, gy+2, 2.6, '#f4c9d6');
+    front += `<g fill="#ffffff" opacity="0.85"><circle cx="${_tn(cx-24)}" cy="${_tn(gy+6)}" r="1.1"/><circle cx="${_tn(cx-20)}" cy="${_tn(gy+7)}" r="0.8"/><circle cx="${_tn(cx+26)}" cy="${_tn(gy+7)}" r="1"/></g>`;
+    // 冠基第一挂椰子升级为更满一束（覆盖式再画一颗托）
+    front += _coco(hangL[0]-cr*0.05, hangL[1]+cr*1.75, cr*1.06);
+  }
+
+  return {behind, front};
+}
+
+// 兼容旧渲染夹具（若被 eval 后用 _decorate 调度）
+return deco_palm;
+})();
+  const deco_cactus = (function(){
+// deco_cactus.js —— 沙漠巨人柱(saguaro)专属华贵语汇（重做版）
+// 推翻旧「柱身树洞正脸猫头鹰」——那玩意读成一张诡异人脸，彻底删除。
+// 现在的沙漠语汇：
+//   · 白色沙漠花冠（植物学正确：只开在柱顶 apex 与臂尖 tip 的顶端）
+//   · 明确是「鸟」的侧影——仙人掌鹪鹩(cactus wren)侧身停在【手臂顶端】，
+//     有喙、有上翘的尾，一眼是鸟；绝不做成洞里正脸。
+//   · 基部沙漠地面：暖沙 + 石子 + 小圆桶掌(golden barrel) + 一朵沙漠小花
+//   · 暖沙漠余晖：柱身左缘一条暖金缘光 + 远处一点暖日晕
+// 逐级(大树→巨树→参天→神木)越来越华丽舒展。
+//
+// 锚点全部来自 cactus3(160,214,p) 的真实几何：
+//   柱身 top=214-(40+p*108), w=22+p*15;  柱顶(cx,top)
+//   左臂 ay=top+h*0.36 reach=w*0.62 up=30+p*36 (p>0.42), 臂尖顶中心=(cx-w/2-reach+3+aw/2, ay-up)
+//   右臂 ay=top+h*0.54 reach=w*0.55 up=24+p*30 (p>0.72), 臂尖顶中心=(cx+w/2-3+reach-aw/2, ay-up)
+function deco_cactus(p, level){
+  const _tn = x => Math.round(x*10)/10;
+  const cx=160, gy=214;
+  const h=40+p*108, w=22+p*15, top=gy-h;
+  // —— 与树身函数一致的臂几何 ——
+  const Law=w*0.5, Lreach=w*0.62, Lay=top+h*0.36, Lup=30+p*36;
+  const LtipX=cx-w/2-Lreach+3 + Law/2, LtipY=Lay-Lup;        // 左臂竖段顶端中心
+  const Raw=w*0.44, Rreach=w*0.55, Ray=top+h*0.54, Rup=24+p*30;
+  const RtipX=cx+w/2-3+Rreach-Raw/2, RtipY=Ray-Rup;          // 右臂竖段顶端中心
+  const apex={x:cx, y:top};                                   // 柱顶中心
+
+  let behind='', front='';
+
+  // ———————————————————————————————————————————————
+  // 沙漠花冠：一圈白色花瓣 + 暖金花蕊。植物学正确——柱状仙人掌只在顶端/臂尖成环开花。
+  // (bx,by) 花冠中心；r 花冠半径；petals 外圈花朵数。
+  function crown(bx,by,r,petals){
+    let g=`<g>`;
+    // 深绿萼座：让花环像从仙人掌肉里长出而非漂浮
+    g+=`<ellipse cx="${_tn(bx)}" cy="${_tn(by+r*0.18)}" rx="${_tn(r*0.92)}" ry="${_tn(r*0.5)}" fill="#3f7642" opacity="0.6"/>`;
+    // 外圈每朵：白瓣（左半偏亮）
+    for(let i=0;i<petals;i++){
+      const a=(i/petals)*Math.PI*2 - Math.PI/2;
+      const px=bx+Math.cos(a)*r, py=by+Math.sin(a)*r*0.62 - r*0.16;
+      const lit = Math.cos(a)<0;
+      const fr=r*0.44;
+      g+=`<circle cx="${_tn(px)}" cy="${_tn(py)}" r="${_tn(fr)}" fill="${lit?'#fffef9':'#f3ecdd'}"/>`;
+    }
+    // 中央顶花：白瓣 + 暖金心
+    g+=`<circle cx="${_tn(bx)}" cy="${_tn(by-r*0.16)}" r="${_tn(r*0.52)}" fill="#fffefb"/>`;
+    g+=`<circle cx="${_tn(bx)}" cy="${_tn(by-r*0.16)}" r="${_tn(r*0.25)}" fill="#f0b43a"/>`;
+    g+=`<circle cx="${_tn(bx-r*0.09)}" cy="${_tn(by-r*0.22)}" r="${_tn(r*0.1)}" fill="#f9d778"/>`;
+    g+=`</g>`;
     return g;
   }
-  // 枝头小鸟（蓝背橙腹知更鸟）
-  function _dBird(x, y, faceLeft){
-    const d = faceLeft ? -1 : 1; x=_tn(x); y=_tn(y);
-    let g=`<ellipse cx="${x}" cy="${y}" rx="6" ry="4.3" fill="#4a72a8" transform="rotate(${faceLeft?-16:16} ${x} ${y})"/>`;
-    g+=`<path d="M${_tn(x-d*5)} ${_tn(y+1.5)} l${_tn(-d*6.5)} 1.6 l${_tn(d*1.2)} 2.2 Z" fill="#3f639a"/>`;
-    g+=`<ellipse cx="${_tn(x+d*1.6)}" cy="${_tn(y+1.6)}" rx="3.3" ry="2.9" fill="#e8a24d"/>`;
-    g+=`<circle cx="${_tn(x+d*4.7)}" cy="${_tn(y-3)}" r="3.3" fill="#3f639a"/>`;
-    g+=`<path d="M${_tn(x+d*7.6)} ${_tn(y-3.2)} l${_tn(d*3)} 0.7 l${_tn(-d*2.4)} 1.5 Z" fill="#f0a83c"/>`;
-    g+=`<circle cx="${_tn(x+d*5.3)}" cy="${_tn(y-3.5)}" r="0.9" fill="#17202e"/>`;
-    g+=`<path d="M${_tn(x-d*0.5)} ${_tn(y-1.5)} q ${_tn(-d*5)} -1.5 ${_tn(-d*7.5)} 2.5 q ${_tn(d*4)} 1.2 ${_tn(d*6.8)} -1 Z" fill="#33507e"/>`;
+
+  // 单朵克制小花（低等级的顶/臂尖点缀）
+  function bud(bx,by,r){
+    return `<g><circle cx="${_tn(bx)}" cy="${_tn(by)}" r="${_tn(r)}" fill="#fffdf6"/>`
+      +`<circle cx="${_tn(bx-r*0.28)}" cy="${_tn(by-r*0.3)}" r="${_tn(r*0.55)}" fill="#fffefb"/>`
+      +`<circle cx="${_tn(bx)}" cy="${_tn(by)}" r="${_tn(r*0.4)}" fill="#f0b43a"/></g>`;
+  }
+
+  // ———————————————————————————————————————————————
+  // 仙人掌鹪鹩（cactus wren）——纯侧影，站在【臂尖顶端】。
+  // 一眼是鸟：短喙朝外、尾上翘、胸腹一抹亮、脚落在臂顶。不做任何正脸/双眼。
+  // (footX,footY) = 立足点（臂尖花冠上沿）；dir=+1 朝右 / -1 朝左。
+  function wren(footX,footY,dir,sc){
+    const D=dir; // 朝向
+    const bx=footX, by=footY - 5.4*sc;   // 身体中心高于立足点，给短腿留出落脚
+    let g=`<g>`;
+    // 尾：从身后上翘（鹪鹩标志性翘尾）
+    const tx=bx - D*5.2*sc, ty=by + 0.4*sc;
+    g+=`<path d="M${_tn(bx-D*2.6*sc)} ${_tn(by+1.2*sc)} `
+       +`Q ${_tn(tx-D*1.5*sc)} ${_tn(ty-1*sc)} ${_tn(tx-D*1.2*sc)} ${_tn(ty-5.4*sc)} `
+       +`L ${_tn(tx+D*1.4*sc)} ${_tn(ty-4.2*sc)} `
+       +`Q ${_tn(bx-D*1.4*sc)} ${_tn(by-0.4*sc)} ${_tn(bx-D*1.2*sc)} ${_tn(by+1.6*sc)} Z" fill="#8a6a3f"/>`;
+    // 身体（棕背，椭圆，略前倾）
+    g+=`<ellipse cx="${_tn(bx)}" cy="${_tn(by)}" rx="${_tn(4.6*sc)}" ry="${_tn(3.5*sc)}" fill="#a07a44" transform="rotate(${_tn(-D*12)} ${_tn(bx)} ${_tn(by)})"/>`;
+    // 胸腹一抹亮奶白（朝前下方）
+    g+=`<ellipse cx="${_tn(bx+D*1.4*sc)}" cy="${_tn(by+1.4*sc)}" rx="${_tn(2.7*sc)}" ry="${_tn(2.4*sc)}" fill="#efe3c9"/>`;
+    // 背部受光高光
+    g+=`<ellipse cx="${_tn(bx-D*0.6*sc)}" cy="${_tn(by-1.6*sc)}" rx="${_tn(2.4*sc)}" ry="${_tn(1.5*sc)}" fill="#b89058" transform="rotate(${_tn(-D*12)} ${_tn(bx)} ${_tn(by)})"/>`;
+    // 头（朝前上方）
+    const hx=bx+D*4.4*sc, hy=by-2.4*sc;
+    g+=`<circle cx="${_tn(hx)}" cy="${_tn(hy)}" r="${_tn(2.7*sc)}" fill="#9c743f"/>`;
+    // 眉纹（鹪鹩白眉，一笔）
+    g+=`<path d="M${_tn(hx-D*1.6*sc)} ${_tn(hy-1.3*sc)} q ${_tn(D*2.4*sc)} ${_tn(-0.8*sc)} ${_tn(D*3.4*sc)} ${_tn(0.3*sc)}" stroke="#f2ead6" stroke-width="${_tn(0.9*sc)}" fill="none" stroke-linecap="round"/>`;
+    // 侧脸一只小眼（侧影只见一只，不构成正脸）
+    g+=`<circle cx="${_tn(hx+D*0.6*sc)}" cy="${_tn(hy-0.2*sc)}" r="${_tn(0.8*sc)}" fill="#241a10"/>`;
+    // 短喙（略下弯，明确朝外）
+    g+=`<path d="M${_tn(hx+D*2.2*sc)} ${_tn(hy-0.2*sc)} l ${_tn(D*3.4*sc)} ${_tn(1.0*sc)} l ${_tn(-D*3.1*sc)} ${_tn(1.2*sc)} Z" fill="#3a2c18"/>`;
+    // 两条短腿落在臂顶（腿别拖太长，站得稳）
+    const legTop = by + 2.9*sc, legBot = Math.min(footY, legTop + 2.6*sc);
+    g+=`<g stroke="#3a2c18" stroke-width="${_tn(0.9*sc)}" stroke-linecap="round">`
+      +`<path d="M${_tn(bx+D*0.6*sc)} ${_tn(legTop)} L ${_tn(bx+D*0.8*sc)} ${_tn(legBot)}"/>`
+      +`<path d="M${_tn(bx+D*1.9*sc)} ${_tn(legTop-0.3*sc)} L ${_tn(bx+D*2.1*sc)} ${_tn(legBot)}"/>`
+      +`</g>`;
+    g+=`</g>`;
     return g;
   }
-  // 蝴蝶
-  function _dButterfly(x, y, col, dk){
-    x=_tn(x); y=_tn(y);
-    const w=(dx,dy,rx,ry,rot)=>`<ellipse cx="${_tn(x+dx)}" cy="${_tn(y+dy)}" rx="${rx}" ry="${ry}" fill="${col}" transform="rotate(${rot} ${_tn(x+dx)} ${_tn(y+dy)})"/>`;
-    return `<g>${w(-2.6,-1.4,2.9,3.7,-28)}${w(2.6,-1.4,2.9,3.7,28)}${w(-2.1,2.1,2.2,2.7,-24)}${w(2.1,2.1,2.2,2.7,24)}`
-      +`<line x1="${x}" y1="${_tn(y-3.2)}" x2="${x}" y2="${_tn(y+3.2)}" stroke="${dk||'#3a2f28'}" stroke-width="1.1" stroke-linecap="round"/>`
-      +`<path d="M${x} ${_tn(y-3.2)} q -1.6 -2 -2.6 -1.8 M${x} ${_tn(y-3.2)} q 1.6 -2 2.6 -1.8" stroke="${dk||'#3a2f28'}" stroke-width="0.6" fill="none" stroke-linecap="round"/></g>`;
-  }
-  // 落瓣
-  function _dPetal(x, y, col, rot){
-    return `<ellipse cx="${_tn(x)}" cy="${_tn(y)}" rx="2.6" ry="1.4" fill="${col}" transform="rotate(${rot} ${_tn(x)} ${_tn(y)})" opacity="0.9"/>`;
-  }
-  function _decorate(type, p, level){
-    if (level<=0) return {behind:'', front:''};
-    const c=_canopyCenter(type,p), cx=c.cx, cy=c.cy, R=c.R, gy=214;
-    const petCol = type==='sakura' ? '#f4b8cf' : type==='oak' ? '#e6c06a' : type==='cactus' ? '#ec7fb0' : type==='palm' ? '#ff9b6b' : '#e0a24a';
-    const gcols=['#ef8fb0','#ffcf6b','#8fb8e6','#c79be0','#f7f3ea'];
-    const fpts=[[cx-R*0.44,cy+R*0.12],[cx+R*0.5,cy-R*0.02],[cx-R*0.02,cy-R*0.42],[cx+R*0.22,cy+R*0.46],[cx-R*0.55,cy-R*0.28],[cx+R*0.12,cy-R*0.64]];
-    let behind='', front='';
-    // 果实/花（lv1 三颗，lv3+ 五颗）
-    const nf = level>=3 ? 5 : 3;
-    for(let i=0;i<nf;i++) front+=_dFruit(type, fpts[i][0], fpts[i][1]);
-    // 树根小花（lv1:2 · lv2:3 · lv4:5）
-    const gN = level>=4 ? 5 : level>=2 ? 3 : 2;
-    const gxs=[cx-R*0.85, cx+R*0.72, cx-R*0.3, cx+R*0.28, cx-R*1.2, cx+R*1.15];
-    for(let i=0;i<gN;i++) front+=_dGFlower(gxs[i], gy + (i%2?1.5:0), gcols[i%gcols.length]);
-    // 灯串（lv2 起，lv4 更密）—— 挂在树冠前
-    if (level>=2) front+=_dGarland(cx, cy, R, level>=4 ? 7 : 4);
-    // 小鸟（lv3 起，栖在树冠右上）
-    if (level>=3) front+=_dBird(cx+R*0.5, cy-R*0.52, false);
-    // 蝴蝶（lv2:1 · lv3:2 · lv4:3）
-    const bN = level>=4 ? 3 : level>=3 ? 2 : level>=2 ? 1 : 0;
-    const bpts=[[cx-R*1.2, cy+R*0.1, '#e59a4a', '#7a4a1f'],[cx+R*1.15, cy-R*0.35, '#b28fd6', '#4a2f6a'],[cx-R*0.2, cy-R*1.05, '#7ec6c0', '#2f5a56']];
-    for(let i=0;i<bN;i++) front+=_dButterfly(bpts[i][0], bpts[i][1], bpts[i][2], bpts[i][3]);
-    // 落瓣纷飞（lv4）
-    if (level>=4){
-      const pp=[[cx-R*0.8,cy+R*0.7,20],[cx+R*0.9,cy+R*0.4,-35],[cx-R*0.3,cy+R*1.1,50],[cx+R*0.4,cy+R*0.95,-15],[cx-R*1.0,cy+R*0.2,30],[cx+R*1.1,cy+R*0.75,-50],[cx+R*0.05,cy+R*1.3,10]];
-      for(const q of pp) front+=_dPetal(q[0], q[1], petCol, q[2]);
+
+  // ———————————————————————————————————————————————
+  // 沙漠地面伴生：暖沙 + 石子 + 小圆桶掌(golden barrel) + 一朵沙漠小花
+  function barrelCactus(bx,by,r){
+    let g=`<g>`;
+    g+=`<ellipse cx="${_tn(bx)}" cy="${_tn(by)}" rx="${_tn(r)}" ry="${_tn(r*0.9)}" fill="#5f9e57"/>`;
+    g+=`<ellipse cx="${_tn(bx-r*0.32)}" cy="${_tn(by-r*0.28)}" rx="${_tn(r*0.42)}" ry="${_tn(r*0.5)}" fill="#74b466"/>`; // 左上受光
+    g+=`<ellipse cx="${_tn(bx+r*0.42)}" cy="${_tn(by+r*0.1)}" rx="${_tn(r*0.3)}" ry="${_tn(r*0.55)}" fill="#4c8446" opacity="0.7"/>`;
+    for(let i=-1;i<=1;i++){ const xx=bx+i*r*0.5;
+      g+=`<line x1="${_tn(xx)}" y1="${_tn(by-r*0.7)}" x2="${_tn(xx)}" y2="${_tn(by+r*0.7)}" stroke="#3f7642" stroke-width="0.7" opacity="0.6"/>`;
     }
-    return {behind, front};
+    // 顶一朵暖金小花（圆桶掌花开在顶）
+    g+=`<circle cx="${_tn(bx)}" cy="${_tn(by-r*0.88)}" r="${_tn(r*0.34)}" fill="#f0b43a"/>`;
+    g+=`<circle cx="${_tn(bx-r*0.12)}" cy="${_tn(by-r*0.95)}" r="${_tn(r*0.15)}" fill="#f9d778"/>`;
+    g+=`</g>`;
+    return g;
   }
+  // 沙漠小花（茎+一朵）——扎在沙里
+  function sandFlower(bx,gy2,col){
+    const fy=gy2-7;
+    let g=`<path d="M${_tn(bx)} ${_tn(gy2)} Q ${_tn(bx-1.4)} ${_tn(gy2-4)} ${_tn(bx)} ${_tn(fy+2)}" stroke="#5c9145" stroke-width="1.2" fill="none" stroke-linecap="round"/>`;
+    for(let k=0;k<5;k++){ const a=k/5*Math.PI*2 - Math.PI/2;
+      g+=`<circle cx="${_tn(bx+Math.cos(a)*2.4)}" cy="${_tn(fy+Math.sin(a)*2.4)}" r="1.9" fill="${col}"/>`; }
+    return g+`<circle cx="${_tn(bx)}" cy="${_tn(fy)}" r="1.4" fill="#f0b43a"/>`;
+  }
+  function desertGround(){
+    // 大一号暖沙丘底座（L4）
+    return `<ellipse cx="${_tn(cx)}" cy="${_tn(gy+6)}" rx="${_tn(w*1.6+18)}" ry="10" fill="#e9d3a8" opacity="0.6"/>`;
+  }
+
+  // ———————————————————————————————————————————————
+  // 暖沙漠余晖：柱身左缘一条暖金缘光 + 远日晕
+  // （分散到 behind 层里逐级加，见下）
+
+  // ============ 逐级叠加 ============
+  // L1 大树 ：柱顶一朵小花 + 柱身左缘一抹暖金缘光 + 淡沙。极克制。
+  // L2 巨树 ：柱顶小花冠 + 臂尖各一朵白花 + 基部一颗圆桶掌 + 石子 + 沙花一朵。
+  // L3 参天 ：柱顶花冠 + 臂尖升花冠 + 一只鹪鹩停右臂尖 + 第二颗圆桶掌 + 远日晕。
+  // L4 神木 ：柱顶满环大花冠 + 双臂尖花冠 + 两只鹪鹩(左右臂尖) + 三颗多肉 + 沙丘 + 沙花 + 全暖光。
+
+  // —— 背景层（树身之前）：缘光 / 沙 / 日晕 ——
+  // 柱身左缘暖金缘光（逐级更亮）
+  const glowW = level>=4?2.4 : level>=3?2.0 : level>=2?1.7 : 1.4;
+  const glowOp= level>=4?0.55: level>=3?0.5 : level>=2?0.42: 0.36;
+  behind+=`<path d="M${_tn(cx-w*0.55)} ${_tn(top+w*0.5)} L ${_tn(cx-w*0.55)} ${_tn(gy-8)}" stroke="#f6e2a8" stroke-width="${glowW}" stroke-linecap="round" opacity="${glowOp}"/>`;
+  // 地面淡沙一抹
+  if(level<4){ behind+=`<ellipse cx="${_tn(cx)}" cy="${_tn(gy+6)}" rx="${_tn(w*1.15+8)}" ry="7" fill="#e9d3a8" opacity="${level>=2?0.5:0.4}"/>`; }
+  else { behind+=desertGround(); }
+  // 石子
+  if(level>=2){ behind+=`<g fill="#c9a978"><ellipse cx="${_tn(cx-w*1.2-6)}" cy="${_tn(gy+7)}" rx="4.2" ry="2.4"/><ellipse cx="${_tn(cx+w*1.1+4)}" cy="${_tn(gy+8)}" rx="3.4" ry="2"/></g>`; }
+  if(level>=4){ behind+=`<ellipse cx="${_tn(cx-w*1.2-6)}" cy="${_tn(gy+8)}" rx="4.2" ry="1.2" fill="#a98a5c" opacity="0.7"/><ellipse cx="${_tn(cx+w*0.6)}" cy="${_tn(gy+9)}" rx="3" ry="1.7" fill="#c9a978"/>`; }
+  // 远处一点暖日晕
+  if(level>=3){ behind+=`<circle cx="${_tn(cx-w*1.9)}" cy="${_tn(top+h*0.12)}" r="${level>=4?11:10}" fill="#f7d797" opacity="${level>=4?0.3:0.26}"/>`; }
+
+  // —— 前景层（树身之后） ——
+  // 柱顶花冠：逐级增大加瓣
+  if(level>=1 && level<2){ front+=bud(apex.x, apex.y-2, 4.2); }   // 一朵
+  if(level===2){ front+=crown(apex.x, apex.y, 8, 5); }            // 小花冠
+  if(level===3){ front+=crown(apex.x, apex.y, 10, 6); }           // 花冠
+  if(level>=4){ front+=crown(apex.x, apex.y-1, 12.5, 8); }        // 满环大花冠
+
+  // 左臂尖花（p>0.42 才有臂）
+  if(p>0.42){
+    if(level===2){ front+=bud(LtipX, LtipY-1, 4); }
+    if(level===3){ front+=crown(LtipX, LtipY+1, 8.5, 5); }
+    if(level>=4){ front+=crown(LtipX, LtipY, 10, 6); }
+  }
+  // 右臂尖花（p>0.72 才有臂）
+  if(p>0.72){
+    if(level===2){ front+=bud(RtipX, RtipY-1, 3.6); }
+    if(level===3){ front+=crown(RtipX, RtipY+1, 8, 5); }
+    if(level>=4){ front+=crown(RtipX, RtipY, 9.5, 6); }
+  }
+
+  // 鹪鹩：L3 一只停右臂尖（朝左，回望柱身）；L4 再加一只停左臂尖（朝右）。
+  // 若没有对应臂，退而停在柱顶花冠旁。
+  if(level>=3){
+    if(p>0.72){ front+=wren(RtipX, RtipY-6, -1, 1.0); }        // 站右臂尖花冠上沿
+    else if(p>0.42){ front+=wren(LtipX, LtipY-6, +1, 1.0); }   // 无右臂→站左臂
+    else { front+=wren(apex.x+w*0.4, apex.y-2, -1, 0.9); }     // 无臂→柱顶旁
+  }
+  if(level>=4 && p>0.42){ front+=wren(LtipX, LtipY-6.5, +1, 0.95); } // 左臂尖再来一只朝右
+
+  // 基部伴生多肉：L2 一颗、L3 两颗、L4 三颗丛
+  if(level>=2){ front+=barrelCactus(cx-w*1.15-4, gy-4, 6.5); }
+  if(level>=3){ front+=barrelCactus(cx+w*1.05+2, gy-3, 5); }
+  if(level>=4){ front+=barrelCactus(cx-w*0.7-2, gy-2, 4); }
+
+  // 沙漠小花：L2 一朵、L4 再一朵
+  if(level>=2){ front+=sandFlower(cx+w*1.25+6, gy-2, '#ec7fb0'); }
+  if(level>=4){ front+=sandFlower(cx-w*1.5-4, gy-1, '#e0a24a'); }
+
+  return {behind, front};
+}
+return deco_cactus;
+})();
+  function _sakuraFall(){
+  const P=[[100,70,5.6,0],[130,58,6.6,1.6],[160,66,5.2,2.8],[190,60,7.2,0.9],[214,74,6.2,3.6],
+           [112,92,7.6,2.1],[146,104,5.6,4.2],[178,96,6.9,1.2],[206,90,6.1,3.1],[126,116,7.1,5.2],[196,112,6.5,4.7]];
+  return `<g>`+P.map(([x,y,dur,dl],i)=>{
+    const sway=(2.6+(i%4)*0.45).toFixed(1), spin=(3.0+(i%5)*0.7).toFixed(1);
+    const col=i%3===0?'#fbd6e4':(i%3===1?'#f4b6cf':'#ffe9f1');
+    // 花瓣:小水滴/瓣形,画在原点,靠 pfr 自转
+    return `<g class="pf" style="animation-duration:${dur}s;animation-delay:-${dl}s">`
+      +`<g class="pfw" style="animation-duration:${sway}s">`
+      +`<g class="pfr" style="animation-duration:${spin}s;animation-delay:-${(dl*0.7).toFixed(1)}s">`
+      +`<path d="M${x} ${y-3.2} C ${x+3.4} ${y-1.6} ${x+2} ${y+3} ${x} ${y+3.4} C ${x-2} ${y+3} ${x-3.4} ${y-1.6} ${x} ${y-3.2} Z" fill="${col}"/>`
+      +`<path d="M${x} ${y-3.2} C ${x+1.6} ${y-1} ${x+1} ${y+1.6} ${x} ${y+3.4}" fill="none" stroke="#e893b4" stroke-width="0.5" opacity="0.5"/>`
+      +`</g></g></g>`;
+  }).join('')+`</g>`;
+}
+  function _decorate(type, p, level){ if(level<=0) return {behind:'',front:''}; const f={oak:deco_oak,sakura:deco_sakura,pine:deco_pine,palm:deco_palm,cactus:deco_cactus}[type]; return f ? f(p,level) : {behind:'',front:''}; }
+
   function _treeBody(type, p){
     if (p < 0.10) return _tSprout(160, 214, p);
     if (type === 'pine') return _tPine(160, 214, p);
@@ -2216,7 +3403,8 @@ theme_color: "#fafaf9"
     }
     const wrapB = deco.behind && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.behind}</g>` : '';
     const wrapF = deco.front && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.front}</g>` : '';
-    return `<svg class="tree-svg" viewBox="0 0 320 240">${wrapB}${_tGround(cx, gy, spread)}${body}${wrapF}</svg>`;
+    const petals = (treeType === 'sakura' && p >= 0.5) ? _sakuraFall() : '';
+    return `<svg class="tree-svg" viewBox="0 0 320 240">${wrapB}${_tGround(cx, gy, spread)}${body}${wrapF}${petals}</svg>`;
   }
 
   function renderTree(progress, target) {
@@ -3839,7 +5027,7 @@ theme_color: "#fafaf9"
   // 选择器里每个主题按钮画一枚「场景圆窗」预览
   document.querySelectorAll('.theme-swatch[data-scene]').forEach(el => {
     const nm = el.dataset.scene;
-    el.innerHTML = `<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><defs><clipPath id="csw-${nm}"><circle cx="200" cy="200" r="197"/></clipPath></defs><g clip-path="url(#csw-${nm})">${_themeScene(nm)}</g><circle cx="200" cy="200" r="196" fill="none" stroke="rgba(0,0,0,0.16)" stroke-width="7"/></svg>`;
+    el.innerHTML = `<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><defs><clipPath id="csw-${nm}"><circle cx="200" cy="200" r="197"/></clipPath></defs><g clip-path="url(#csw-${nm})">${_themeThumb(nm)}</g><circle cx="200" cy="200" r="196" fill="none" stroke="rgba(0,0,0,0.16)" stroke-width="7"/></svg>`;
   });
   applyStageTheme();
   $timerDisplay.textContent = fmtTime(state.duration * 60);
