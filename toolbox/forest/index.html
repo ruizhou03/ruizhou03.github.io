@@ -1977,9 +1977,8 @@ theme_color: "#fafaf9"
   // ============ 主题场景（每主题一幅矢量小景，作舞台 / 全屏遮罩 / 选择器的背景）============
   function _stars(list){ return list.map(([x,y,r,br],i)=>{
   const d=(((i*0.53)%1)*3.6).toFixed(2);
-  let s=`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${br||0.9}"/>`;
-  if(r>=1.3) s+=`<path d="M${x} ${y-r*2.6} L${x} ${y+r*2.6} M${x-r*2.6} ${y} L${x+r*2.6} ${y}" stroke="#fff" stroke-width="0.5" opacity="${(br||0.9)*0.5}"/>`;
-  return `<g class="sc-star" style="animation-delay:${d}s">${s}</g>`;}).join(''); }
+  // 干净星点(去掉放大后像廉价"✛"准星的十字光芒)
+  return `<g class="sc-star" style="animation-delay:${d}s"><circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${br||0.9}"/></g>`;}).join(''); }
 function _cloud(x,y,s,fill,op){ return `<g fill="${fill}" opacity="${op}"><ellipse cx="${x}" cy="${y}" rx="${s}" ry="${s*0.42}"/><ellipse cx="${x-s*0.55}" cy="${y+s*0.12}" rx="${s*0.55}" ry="${s*0.32}"/><ellipse cx="${x+s*0.6}" cy="${y+s*0.1}" rx="${s*0.5}" ry="${s*0.3}"/><ellipse cx="${x-s*0.1}" cy="${y-s*0.18}" rx="${s*0.5}" ry="${s*0.32}"/></g>`; }
 function _driftX(inner, cls){ return `<g class="${cls}"><g>${inner}</g><g transform="translate(400,0)">${inner}</g></g>`; }
 
