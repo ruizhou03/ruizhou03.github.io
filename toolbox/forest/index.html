@@ -899,7 +899,7 @@ theme_color: "#fafaf9"
     backdrop-filter: blur(8px);
     z-index: 1500;
     display: none;
-    align-items: center; justify-content: center;
+    align-items: center; justify-content: flex-start;
     flex-direction: column;
     color: #fff;
     /* 全屏专注遮罩盖住整个视口（含刘海/底部 Home 条），用安全区撑开内边距 */
@@ -1036,7 +1036,25 @@ theme_color: "#fafaf9"
   }
 
   /* 树位置 */
-  .overlay-tree-zone { position: relative; z-index: 2; }
+  /* —— 沉浸布局：计时在顶、树种在前景地面带上 —— */
+  .overlay-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 22vh; z-index: 1; pointer-events: none; overflow: hidden; }
+  #overlay-ground svg { width: 100%; height: 100%; display: block; }
+  #overlay-tree-container.overlay-tree-zone {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    --ovtw: min(58vw, 44vh);
+    width: var(--ovtw); height: auto;
+    bottom: calc(22vh - 0.081 * var(--ovtw) - 0.8vh);
+    z-index: 2;
+  }
+  #overlay-tree-container.overlay-tree-zone svg { width: 100%; height: auto; }
+  .focus-overlay .overlay-actions {
+    position: absolute; left: 0; right: 0;
+    bottom: calc(2vh + env(safe-area-inset-bottom)); z-index: 4;
+  }
+  @media (orientation: landscape) {
+    .overlay-ground { height: 19vh; }
+    #overlay-tree-container.overlay-tree-zone { --ovtw: min(32vw, 58vh); bottom: calc(19vh - 0.081 * var(--ovtw) - 0.8vh); }
+  }
   .focus-overlay .timer-big,
   .focus-overlay .focus-tag,
   .focus-overlay .focus-warn,
@@ -1476,6 +1494,7 @@ theme_color: "#fafaf9"
 <!-- ========== 全屏 focus 遮罩 ========== -->
 <div class="focus-overlay" id="focus-overlay">
   <div class="overlay-scene" id="overlay-scene"></div>
+  <div class="overlay-ground" id="overlay-ground"></div>
   <div class="overlay-particles" id="overlay-particles"></div>
   <div class="pomodoro-counter" id="overlay-counter" style="display: none;">第 1 个番茄</div>
   <div id="overlay-tree-container" class="overlay-tree-zone"></div>
@@ -1887,6 +1906,20 @@ theme_color: "#fafaf9"
   function _sceneSvg(name) {
     return `<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">${_themeScene(name)}</svg>`;
   }
+  // 前景地面带（让树扎实种在地里）；落雨主题在带上加可见的涟漪+落地水花
+  const _OVGROUND = { default:['#b9cb90','#a6ba79','#d0dcac'], night:['#2f3e30','#1e2b1f','#435c45'], sunrise:['#cf9a63','#ad7842','#e8c48c'], rain:['#3c4e60','#2a3947','#566b7d'], bubbles:['#1e5f7d','#123f52','#3080a0'] };
+  function _overlayGroundSvg(theme){
+    const g = _OVGROUND[theme] || _OVGROUND.default;
+    let rip = '';
+    if (theme === 'rain') {
+      const R=[[58,42,26],[150,34,17],[252,46,30],[332,36,20],[110,60,22],[300,62,24],[200,54,19],[40,66,15]];
+      rip = R.map((v,i)=>{ const x=v[0],y=v[1],rx=v[2], d=(((i*0.37)%1)*2.4).toFixed(2), dur=(2.0+(i%3)*0.45).toFixed(2);
+        return `<g class="rn-ripple" style="animation-delay:-${d}s;animation-duration:${dur}s"><ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${(rx*0.34).toFixed(1)}" fill="none" stroke="#9fc0dd" stroke-width="1.6" opacity="0.55"/><ellipse cx="${x}" cy="${y}" rx="${(rx*0.5).toFixed(1)}" ry="${(rx*0.5*0.34).toFixed(1)}" fill="none" stroke="#c2dcf0" stroke-width="1.1" opacity="0.4"/></g>`
+          +`<g class="rn-splash" style="animation-delay:-${d}s"><path d="M${x} ${y-3} l0 -3.4 M${x-2.6} ${y-2.6} l-1.3 -2.2 M${x+2.6} ${y-2.6} l1.3 -2.2" stroke="#dbeaf7" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0.85"/></g>`;
+      }).join('');
+    }
+    return `<svg viewBox="0 0 400 100" preserveAspectRatio="none"><rect width="400" height="100" fill="${g[1]}"/><path d="M0 30 Q 200 8 400 24 L400 100 L0 100 Z" fill="${g[0]}"/><path d="M0 30 Q 200 8 400 24" fill="none" stroke="${g[2]}" stroke-width="2.4" opacity="0.55"/>${rip}</svg>`;
+  }
   function applyTheme() {
     if (!$overlay) return;
     // 清掉所有 theme-* 类，只加当前
@@ -1894,6 +1927,7 @@ theme_color: "#fafaf9"
     $overlay.classList.add('theme-' + state.theme.background);
     $overlay.classList.add('timer-' + state.theme.timer);
     const os = document.getElementById('overlay-scene'); if (os) os.innerHTML = _sceneSvg(state.theme.background);
+    const og = document.getElementById('overlay-ground'); if (og) og.innerHTML = _overlayGroundSvg(state.theme.background);
     renderParticles(document.getElementById('overlay-particles'), state.theme.background, 1.0);
   }
 
