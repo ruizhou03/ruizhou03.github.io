@@ -1001,6 +1001,12 @@ theme_color: "#fafaf9"
     }
   }
   #tree-container .tree-anim .tree-sway, #overlay-tree-container .tree-anim .tree-sway { animation: none; }
+  /* 树的环境光：随主题给舞台/遮罩里的树整体调色（月夜压暗偏冷、雨天去饱和、
+     水下蓝移、日出暖染）；田地不挂主题类，永远白昼原色 */
+  .theme-night :is(.tree-anim, .petal-layer) svg { filter: brightness(0.74) saturate(0.82) hue-rotate(-6deg); }
+  .theme-rain :is(.tree-anim, .petal-layer) svg { filter: brightness(0.8) saturate(0.8); }
+  .theme-bubbles :is(.tree-anim, .petal-layer) svg { filter: brightness(0.85) saturate(0.9) hue-rotate(10deg); }
+  .theme-sunrise :is(.tree-anim, .petal-layer) svg { filter: sepia(0.16) brightness(1.03) saturate(1.06); }
   /* 落樱层：只建一次、跨重建持续飘落 */
   #tree-container .petal-layer, #overlay-tree-container .petal-layer { position: absolute; inset: 0; pointer-events: none; }
   .petal-layer svg { width: 100%; height: 100%; display: block; }
@@ -1335,6 +1341,10 @@ theme_color: "#fafaf9"
 @keyframes bubMoteFloat{from{transform:translate(0,0)}to{transform:translate(var(--mx,2px),-14px)}}
 @keyframes bubCaustDrift{from{transform:translate(-10px,0) scale(1)}to{transform:translate(14px,4px) scale(1.06)}}
 
+@media (prefers-reduced-motion: no-preference){
+  .bub-weed{transform-box:fill-box;transform-origin:50% 100%;animation:bubWeedSway 6s ease-in-out infinite alternate}
+}
+@keyframes bubWeedSway{from{transform:rotate(-2.4deg)}to{transform:rotate(2.6deg)}}
 </style>
 
 <div class="ft-wrap">
@@ -2029,37 +2039,95 @@ function _driftX(inner, cls){ return `<g class="${cls}"><g>${inner}</g><g transf
 // 一朵柔软有体积的云:silhouette(裹进滤镜羽化)由多个圆叠成蓬松轮廓;
 //  顶部一层暖白高光偏移向光源方(右上),底部一层冷灰柔阴影 → 出体积。
 // 用 df- 前缀 gradient/filter,自足不冲突。
-function _dcloud(x,y,s,op){
-  // 基础蓬松轮廓(比原来更多圆、更连续,像真云团)
-  const lobes=[
-    [0,      0,     s*1.00, s*0.60],
-    [-s*0.62,s*0.14,s*0.60, s*0.42],
-    [ s*0.66,s*0.12,s*0.56, s*0.40],
-    [-s*0.20,-s*0.26,s*0.58,s*0.44],
-    [ s*0.30,-s*0.22,s*0.52,s*0.40],
-    [-s*1.02,s*0.24,s*0.36, s*0.28],
-    [ s*1.04,s*0.22,s*0.34, s*0.26],
-  ];
-  const ell=(cx,cy,rx,ry,fill)=>`<ellipse cx="${(x+cx).toFixed(1)}" cy="${(y+cy).toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="${fill}"/>`;
-  // 底部柔阴影:一整片藏在云肚【内侧】的低宽暗色,略上移并收窄,只透出一点点体积暗面,
-  // 绝不低于/宽于白色轮廓(否则会露出"暗嘴唇")
-  const shadow=ell(0, s*0.26, s*0.92, s*0.24,'url(#dfsh)');
-  // 云主体(用竖向渐变:顶亮底稍灰,给体积)
-  const body=lobes.map(([cx,cy,rx,ry])=>ell(cx,cy,rx,ry,'url(#dfbody)')).join('');
-  // 顶部受光高光(偏右上、暖白、小一圈)
-  const lit=lobes.slice(0,5).map(([cx,cy,rx,ry])=>ell(cx+rx*0.12,cy-ry*0.32,rx*0.66,ry*0.52,'url(#dflit)')).join('');
-  return `<g opacity="${op}">`
-    + `<g filter="url(#dfblur)">${shadow}</g>`
-    + `<g filter="url(#dfsoft)">${body}</g>`
-    + `<g filter="url(#dfsoft)" opacity="0.85">${lit}</g>`
-    + `</g>`;
-}
+
 
 function _scene_default(){
+  // —— 共享 helper 局部副本(与 index.html 顶层 _driftX 完全一致) ——
+  const _driftX=(inner,cls)=>`<g class="${cls}"><g>${inner}</g><g transform="translate(400,0)">${inner}</g></g>`;
+
+  // —— 柔软有体积的云(v2:平涂主体零接缝 + 渐隐阴影/高光出体积) ——
+  const _dcloud=(x,y,s,op)=>{
+    const lobes=[
+      [0,      0,     s*1.00, s*0.60],
+      [-s*0.62,s*0.14,s*0.60, s*0.42],
+      [ s*0.66,s*0.12,s*0.56, s*0.40],
+      [-s*0.20,-s*0.26,s*0.58,s*0.44],
+      [ s*0.30,-s*0.22,s*0.52,s*0.40],
+      [-s*1.02,s*0.24,s*0.36, s*0.28],
+      [ s*1.04,s*0.22,s*0.34, s*0.26],
+    ];
+    const ell=(cx,cy,rx,ry,fill)=>`<ellipse cx="${(x+cx).toFixed(1)}" cy="${(y+cy).toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="${fill}"/>`;
+    // 云底外沿的柔阴影(藏在主体内侧,只透出羽化边)
+    const under=ell(0, s*0.26, s*0.92, s*0.24,'url(#dfsh)');
+    // 主体:单一平涂近白色 → 椭圆再怎么叠都不会出现内部接缝
+    const body=lobes.map(([cx,cy,rx,ry])=>ell(cx,cy,rx,ry,'#f9fbfd')).join('');
+    // 云肚体积暗面:radial 渐隐(边缘α=0),叠在平涂主体上;
+    // 三枚错落不对称(中心/半径都错开),并集起伏——不再是一枚可辨的大椭圆
+    const belly=ell(-s*0.40,s*0.20,s*0.46,s*0.15,'url(#dfsh)')
+              + ell( s*0.34,s*0.30,s*0.44,s*0.14,'url(#dfsh)')
+              + ell(-s*0.04,s*0.34,s*0.58,s*0.16,'url(#dfsh)');
+    // 顶部受光高光:radial 渐隐暖白(原 linear 渐变有可辨椭圆轮廓,渐隐后无)
+    const lit=lobes.slice(0,5).map(([cx,cy,rx,ry])=>ell(cx+rx*0.12,cy-ry*0.30,rx*0.72,ry*0.60,'url(#dflit)')).join('');
+    return `<g opacity="${op}">`
+      + `<g filter="url(#dfblur)">${under}</g>`
+      + `<g filter="url(#dfsoft)">${body}</g>`
+      + `<g filter="url(#dfsoft)">${belly}${lit}</g>`
+      + `</g>`;
+  };
+
+  // —— 草簇/草纹/野花(手工定点,确定性;低饱和贴合奶油绿色板) ——
+  const f1=n=>(+n).toFixed(1);
+  // 一簇三叶草(叶基错开,不是一点放射)
+  const tuft=(x,y,k,c,w,o)=>`<path d="M ${f1(x-0.9*k)} ${f1(y)} q ${f1(-1.3*k)} ${f1(-2.6*k)} ${f1(-2.1*k)} ${f1(-4.3*k)} M ${f1(x)} ${f1(y+0.2)} q ${f1(0.2*k)} ${f1(-3.2*k)} ${f1(0.5*k)} ${f1(-5.4*k)} M ${f1(x+0.9*k)} ${f1(y)} q ${f1(1.5*k)} ${f1(-2.3*k)} ${f1(2.4*k)} ${f1(-4.0*k)}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" opacity="${o}"/>`;
+  // 单叶散布(草纹)
+  const blade=(x,y,k,dir,c,o)=>`<path d="M ${x} ${y} q ${f1(dir*1.1*k)} ${f1(-2.4*k)} ${f1(dir*1.7*k)} ${f1(-4.0*k)}" fill="none" stroke="${c}" stroke-width="0.9" stroke-linecap="round" opacity="${o}"/>`;
+  // 五瓣小野花(奶油色系,带一点淡金花芯)
+  const flower=(x,y,r,pc)=>{ let p='';
+    for(let i=0;i<5;i++){ const a=i*1.2566-1.5708;
+      p+=`<circle cx="${f1(x+Math.cos(a)*r*1.05)}" cy="${f1(y+Math.sin(a)*r*1.05)}" r="${(r*0.68).toFixed(2)}" fill="${pc}"/>`; }
+    return `<g opacity="0.8">${p}<circle cx="${x}" cy="${y}" r="${(r*0.45).toFixed(2)}" fill="#dfc98b"/></g>`;
+  };
+
+  // 远丘:簇沿丘顶轮廓线定点(基部埋进坡里,叶尖略探出霾带),体量小、色浅=远
+  const grassFar =
+      tuft(68,289.5,0.75,'#a9bd85',0.9,0.6)
+    + tuft(150,287,0.7,'#a9bd85',0.9,0.55)
+    + tuft(226,293,0.75,'#a9bd85',0.9,0.6)
+    + tuft(312,304.5,0.7,'#a9bd85',0.9,0.55)
+    + blade(105,307,0.7,-1,'#e0e9bd',0.55)
+    + blade(190,311,0.75,1,'#a9bd85',0.5)
+    + blade(268,313,0.7,1,'#e0e9bd',0.5)
+    + `<circle cx="140" cy="306" r="0.9" fill="#f2ead2" opacity="0.75"/>`
+    + `<circle cx="247" cy="309.5" r="0.8" fill="#f2ead2" opacity="0.7"/>`;
+  // 近丘:丘顶簇 + 坡身簇 + 受光/背光单叶 + 野花(压轴画在暗影带之上保持干净)
+  const grassNear =
+      tuft(52,331,0.9,'#8a9f6a',1.0,0.6)
+    + tuft(138,326.5,0.85,'#8a9f6a',1.0,0.55)
+    + tuft(206,327.5,0.9,'#8a9f6a',1.0,0.6)
+    + tuft(283,333,0.85,'#8a9f6a',1.0,0.55)
+    + tuft(352,340.5,0.9,'#8a9f6a',1.0,0.6)
+    + tuft(95,356,1.1,'#879c66',1.05,0.5)
+    + tuft(170,368,1.15,'#879c66',1.1,0.5)
+    + tuft(248,353,1.05,'#879c66',1.05,0.5)
+    + tuft(318,363,1.1,'#879c66',1.1,0.5)
+    + tuft(30,378,1.15,'#879c66',1.1,0.45)
+    + blade(60,347,0.9,1,'#d6e2ae',0.5)
+    + blade(128,384,1.0,-1,'#b8c992',0.5)
+    + blade(200,345,0.9,-1,'#d6e2ae',0.5)
+    + blade(226,378,1.0,1,'#b8c992',0.5)
+    + blade(288,389,1.0,-1,'#b8c992',0.45)
+    + blade(340,348,0.9,1,'#d6e2ae',0.5)
+    + blade(146,353,0.85,1,'#8ea36e',0.45)
+    + blade(262,366,0.9,-1,'#8ea36e',0.45)
+    + flower(86,353.5,1.1,'#f5eeda')
+    + flower(186,364,1.15,'#ead8cc')
+    + flower(256,350.5,1.05,'#f0e5ba')
+    + flower(338,372,1.1,'#f5eeda');
+
   // 远层(慢、淡、偏小、偏灰) + 近层(快、白、体积强) 做景深
   const farClouds =
       _dcloud(210,92,26,0.55)
-    + _dcloud(60,206,34,0.62);
+    + _dcloud(60,215,34,0.62);   // ③ 原(60,206):下沉 9,云底浸进低空薄雾
   const nearClouds =
       _dcloud(112,120,50,0.96)
     + _dcloud(300,192,44,0.90);
@@ -2085,6 +2153,13 @@ function _scene_default(){
       <stop offset="0.55" stop-color="#fbf6e6" stop-opacity="0.42"/>
       <stop offset="1"    stop-color="#fbf6e6" stop-opacity="0"/>
     </linearGradient>
+    <!-- ③ 低空薄雾:两端归零、峰值压在远云底(y≈242),全宽,远云漂到哪都被托住 -->
+    <linearGradient id="dfmist" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#f9f4e4" stop-opacity="0"/>
+      <stop offset="0.45" stop-color="#f9f4e4" stop-opacity="0.14"/>
+      <stop offset="0.75" stop-color="#f9f4e4" stop-opacity="0.22"/>
+      <stop offset="1"    stop-color="#f9f4e4" stop-opacity="0"/>
+    </linearGradient>
     <!-- 太阳外晕 & 更柔的核心 -->
     <radialGradient id="dfsun" cx="50%" cy="50%" r="50%">
       <stop offset="0"    stop-color="#fff6df" stop-opacity="0.95"/>
@@ -2097,24 +2172,27 @@ function _scene_default(){
       <stop offset="0.86" stop-color="#fff4d6"/>
       <stop offset="1"    stop-color="#ffedc4" stop-opacity="0.35"/>
     </radialGradient>
+    <!-- ② 日核:实心圆换成边缘渐隐(0.82 后滚落),视觉尺寸≈原 r20 -->
+    <radialGradient id="dfcore2" cx="50%" cy="50%" r="50%">
+      <stop offset="0"    stop-color="#fffef8"/>
+      <stop offset="0.6"  stop-color="#fffdf3"/>
+      <stop offset="0.82" stop-color="#fffdf3" stop-opacity="0.95"/>
+      <stop offset="1"    stop-color="#fff6dd" stop-opacity="0"/>
+    </radialGradient>
     <radialGradient id="dbloom" cx="50%" cy="50%" r="50%">
       <stop offset="0"   stop-color="#fff3d0" stop-opacity="0.85"/>
       <stop offset="0.6" stop-color="#ffeec2" stop-opacity="0.28"/>
       <stop offset="1"   stop-color="#ffeec2" stop-opacity="0"/>
     </radialGradient>
-    <!-- 云:体积渐变 / 高光 / 阴影 / 羽化滤镜 -->
-    <linearGradient id="dfbody" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0"   stop-color="#ffffff"/>
-      <stop offset="0.6" stop-color="#f4f7fa"/>
-      <stop offset="1"   stop-color="#dbe4ee"/>
-    </linearGradient>
-    <linearGradient id="dflit" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0"   stop-color="#ffffff"/>
-      <stop offset="1"   stop-color="#fff8ec" stop-opacity="0.85"/>
-    </linearGradient>
+    <!-- 云:渐隐高光 / 渐隐阴影 / 羽化滤镜(主体平涂无需渐变) -->
+    <radialGradient id="dflit" cx="50%" cy="42%" r="55%">
+      <stop offset="0"    stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="0.55" stop-color="#fffdf4" stop-opacity="0.5"/>
+      <stop offset="1"    stop-color="#fff8ec" stop-opacity="0"/>
+    </radialGradient>
     <radialGradient id="dfsh" cx="50%" cy="50%" r="50%">
-      <stop offset="0"   stop-color="#aebecd" stop-opacity="0.26"/>
-      <stop offset="0.7" stop-color="#aebecd" stop-opacity="0.12"/>
+      <stop offset="0"   stop-color="#aebecd" stop-opacity="0.2"/>
+      <stop offset="0.7" stop-color="#aebecd" stop-opacity="0.1"/>
       <stop offset="1"   stop-color="#aebecd" stop-opacity="0"/>
     </radialGradient>
     <filter id="dfsoft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="0.7"/></filter>
@@ -2128,6 +2206,12 @@ function _scene_default(){
       <stop offset="0"   stop-color="#b3c68c"/>
       <stop offset="1"   stop-color="#9db078"/>
     </linearGradient>
+    <!-- 近丘底暗带:上缘 α=0 羽化(原平涂 0.22 有硬边),底部保持压重 -->
+    <linearGradient id="dfg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#8ba06d" stop-opacity="0"/>
+      <stop offset="0.6" stop-color="#8ba06d" stop-opacity="0.14"/>
+      <stop offset="1"   stop-color="#8ba06d" stop-opacity="0.24"/>
+    </linearGradient>
     <!-- 极淡颗粒(去"塑料扁平"感) -->
     <filter id="dfgrain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0"/></filter>
   </defs>
@@ -2136,14 +2220,15 @@ function _scene_default(){
   <rect width="400" height="400" fill="url(#dfsky)"/>
   <rect width="400" height="400" fill="url(#dfwarm)"/>
 
-  <!-- 太阳:外晕 + 柔核(保留 310,90) -->
+  <!-- 太阳:外晕 + 柔核(保留 310,90;② 内核改渐隐) -->
   <circle cx="310" cy="90" r="98" fill="url(#dfsun)"/>
   <circle cx="310" cy="90" r="34" fill="url(#dfcore)"/>
-  <circle cx="310" cy="90" r="20" fill="#fffdf3"/>
+  <circle cx="310" cy="90" r="23" fill="url(#dfcore2)"/>
 
   <!-- 远景云(慢) -->
   ${_driftX(farClouds,'sc-drift-slow')}
-  <!-- 地平线大气霾带(压在云与地之间) -->
+  <!-- ③ 低空薄雾(压远云底) + 地平线大气霾带(压在云与地之间) -->
+  <rect x="0" y="188" width="400" height="72" fill="url(#dfmist)"/>
   <rect x="0" y="236" width="400" height="86" fill="url(#dfhaze)"/>
   <!-- 近景云(快、体积强) -->
   ${_driftX(nearClouds,'sc-drift')}
@@ -2154,10 +2239,13 @@ function _scene_default(){
   <!-- 草地:远丘 + 近丘,受光渐变;丘顶一抹暖边光 -->
   <path d="M0 300 Q 130 272 270 298 Q 340 310 400 296 L400 400 L0 400 Z" fill="url(#dfg1)"/>
   <path d="M0 300 Q 130 272 270 298 Q 340 310 400 296" fill="none" stroke="#eef3dc" stroke-width="1.4" opacity="0.55"/>
+  ${grassFar}
   <path d="M0 336 Q 150 314 320 336 Q 370 344 400 334 L400 400 L0 400 Z" fill="url(#dfg2)"/>
   <path d="M0 336 Q 150 314 320 336 Q 370 344 400 334" fill="none" stroke="#c9d8a8" stroke-width="1.2" opacity="0.5"/>
-  <!-- 近丘底部一层极淡暗影,压出体积、不再是一块平绿 -->
-  <path d="M0 374 Q 150 368 400 372 L400 400 L0 400 Z" fill="#8ba06d" opacity="0.22"/>
+  <!-- 近丘底部一层极淡暗影(dfg3 上缘羽化),压出体积、不再是一块平绿 -->
+  <path d="M0 374 Q 150 368 400 372 L400 400 L0 400 Z" fill="url(#dfg3)"/>
+  <!-- ① 草簇/草纹/野花(画在暗影带之上保持清晰) -->
+  ${grassNear}
 
   <!-- 极淡颗粒质感覆盖全幅(不遮识别度) -->
   <rect width="400" height="400" filter="url(#dfgrain)" opacity="0.05"/>`;
@@ -2170,46 +2258,83 @@ function _scene_default(){
 // 细腻颗粒/柔和噪点、近大远小景深。
 // 所有 gradient / filter id 用 "sr" 前缀避免与其它主题冲突。
 
-function _sunriseRimCloud(x, y, s, opBody, opRim){
-  // 一朵有体积的云：四片 lobe 拼成一整团。太阳在下方(200,308) → 朝阳侧＝底部。
-  // 关键：不用渐变 body / clipPath / 任何 id 引用——因为 _driftX 会把整段云复制一份并 translate(400,0)，
-  // 复制出的重复 id + userSpaceOnUse 会让第二份错位或消失，破坏无缝循环。
-  // 全部用「不透明纯色椭圆 + screen 高光椭圆」，随 translate 平移零副作用。
-  const lobes=[
-    [x,        y,         s,        s*0.42],
-    [x-s*0.55, y+s*0.12,  s*0.55,   s*0.32],
-    [x+s*0.6,  y+s*0.1,   s*0.5,    s*0.3],
-    [x-s*0.1,  y-s*0.18,  s*0.5,    s*0.32],
-  ];
-  const el=(cx,cy,ex,ey,fill,op,extra='')=>`<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${ex.toFixed(1)}" ry="${ey.toFixed(1)}" fill="${fill}" opacity="${op}"${extra}/>`;
-  // 主体分两笔叠出竖向体积：先铺深一档暖棕整团(底色)，再在【上半】盖浅一档暖金(略上移·略缩)
-  // → 顶亮底暗；两笔都是 opacity 1 的纯色，重叠处不叠暗环、拼成实心一整团。
-  let baseDk='', baseLt='';
-  for(const [cx,cy,ex,ey] of lobes){
-    baseDk += el(cx, cy, ex, ey, '#e0a878', 1);              // 底色：偏暗暖棕金
-    baseLt += el(cx, cy-ey*0.28, ex*0.98, ey*0.82, '#f7cd9f', 1); // 上半：浅暖金
-  }
-  const body = `<g opacity="${opBody}">${baseDk}${baseLt}</g>`;
-  // 底缘被朝阳染的暖亮边(rim light)：一层偏下的暖亮椭圆群，screen 叠加只在底缘透出暖光。
-  let rim='';
-  for(const [cx,cy,ex,ey] of lobes){
-    rim += el(cx, cy+ey*0.62, ex*0.9, ey*0.55, 'url(#srCloudRim)', opRim);
-  }
-  // 顶部一抹被高空天光提亮的暖调（很淡、只取每团中央一小片），让云体有起伏不死平
-  let topLit='';
-  for(const [cx,cy,ex,ey] of lobes){
-    topLit += el(cx, cy-ey*0.35, ex*0.62, ey*0.42, '#fff2dc', opBody*0.18);
-  }
-  // 叠放顺序：主体(顶亮底暗) → 顶部受光高光 → 底缘被朝阳染的暖亮边
-  return `${body}<g style="mix-blend-mode:screen">${topLit}</g><g style="mix-blend-mode:screen">${rim}</g>`;
-}
+
 
 function _scene_sunrise(){
+  // —— 局部 helper 副本（与 index.html 顶层 _driftX 同义，保证本函数自足） ——
+  const _driftX=(inner,cls)=>`<g class="${cls}"><g>${inner}</g><g transform="translate(400,0)">${inner}</g></g>`;
+
+  // —— 逆光云（体积版，签名不变）：太阳在下方(200,308) → 朝阳侧＝底部 ——
+  const _sunriseRimCloud=(x,y,s,opBody,opRim)=>{
+    // 前 4 片 = 旧版原 lobe（轮廓尺度不变），后 3 片小补片让整团连续蓬松
+    const lobes=[
+      [0,       0,      s*1.00, s*0.42],
+      [-s*0.55, s*0.12, s*0.55, s*0.32],
+      [ s*0.60, s*0.10, s*0.50, s*0.30],
+      [-s*0.10,-s*0.18, s*0.50, s*0.32],
+      [ s*0.34,-s*0.12, s*0.42, s*0.27],
+      [-s*0.98, s*0.20, s*0.30, s*0.19],
+      [ s*1.00, s*0.18, s*0.28, s*0.18],
+    ];
+    const el=(cx,cy,rx,ry,fill)=>`<ellipse cx="${(x+cx).toFixed(1)}" cy="${(y+cy).toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="${fill}"/>`;
+    // 剪影：所有 lobe 同一中间调纯色 → 并集内部零分界（这是去掉"可辨椭圆弧线"的关键：
+    // 任何不透明的 per-lobe 渐变在重叠处都会露出弧形分界，只有纯色并集是干净的）
+    let sil='';
+    for(const [cx,cy,rx,ry] of lobes) sil += el(cx,cy,rx,ry,'#e2a072');
+    // 明暗全用「羽化径向、收尾全透明」的斑块叠（重叠自然混合→绝无弧线），
+    // 保持 before 版被认可的受光结构：顶面天光略亮 → 云腹一条暗带 → 底缘朝阳金 rim。
+    // 顶面天光：沿上排 lobe 三片浅暖光斑
+    const lit =
+        el(-s*0.10,-s*0.28,s*0.62,s*0.30,'url(#srClit)')
+      + el( s*0.38,-s*0.22,s*0.52,s*0.26,'url(#srClit)')
+      + el(-s*0.62,-s*0.02,s*0.42,s*0.22,'url(#srClit)')
+      + el( s*0.90, s*0.06,s*0.30,s*0.16,'url(#srClit)');
+    // 云腹暗带：贴着底排 lobe 中线的一排宽扁暗斑（在金 rim 之上），逆光云的"压舱"暗面
+    let shade='';
+    for(const i of [0,1,2]){
+      const [cx,cy,rx,ry]=lobes[i];
+      shade += el(cx,cy+ry*0.12,rx*1.00,ry*0.48,'url(#srCshade)');
+    }
+    // 底缘被朝阳染的暖亮 rim：亮核贴在各底排 lobe 的底缘线上（cy+ry*0.45、ry*0.55 →
+    // 下缘恰在剪影底边），径向收尾全透明 + 模糊——金边烧在边上，不垂到云外变光雾
+    let rim='';
+    for(const i of [0,1,2,5,6]){
+      const [cx,cy,rx,ry]=lobes[i];
+      rim += el(cx,cy+ry*0.45,rx*0.86,ry*0.55,'url(#srCrim)');
+    }
+    return `<g opacity="${opBody}">`
+      + `<g filter="url(#srCsoft)">${sil}</g>`
+      + `<g filter="url(#srCblur)">${lit}</g>`
+      + `<g filter="url(#srCblur)">${shade}</g>`
+      + `<g filter="url(#srCblur)" opacity="${opRim}">${rim}</g>`
+      + `</g>`;
+  };
+
+  // —— 山脊微起伏：沿旧版二次曲线包络叠固定小扰动，中点平滑成连续脊线 ——
+  const qy=(p0,p1,p2,t)=>{const u=1-t;return u*u*p0+2*u*t*p1+t*t*p2;};
+  const farEnv =x=> x<=240 ? qy(300,282,300,x/240) : qy(300,314,298,(x-240)/160);
+  const nearEnv=x=> x<=320 ? qy(330,314,332,x/320) : qy(332,340,330,(x-320)/80);
+  // 固定扰动（非随机，端点为 0 保住画幅边缘锚点；幅度 ≤2.6，"极克制"）
+  const FAR_W =[0,-1.6,0.9,-2.2,-0.8,1.4,0.4,-1.1,1.8,0.6,-1.5,0.8,2.0,-0.6,1.2,-1.0,0];
+  const NEAR_W=[0,1.2,-1.8,0.7,2.4,-0.9,-2.2,1.5,0.5,-1.6,2.2,-0.8,1.4,-2.6,0.9,-1.2,0];
+  const ridgePts=(env,w)=>w.map((dy,i)=>[i*25, env(i*25)+dy]);
+  const ridgeD=(pts)=>{
+    let d=`M${pts[0][0]} ${pts[0][1].toFixed(1)}`;
+    for(let i=1;i<pts.length-1;i++){
+      const [x1,y1]=pts[i],[x2,y2]=pts[i+1];
+      d+=` Q ${x1} ${y1.toFixed(1)} ${((x1+x2)/2).toFixed(1)} ${((y1+y2)/2).toFixed(1)}`;
+    }
+    const [xl,yl]=pts[pts.length-1];
+    return d+` L ${xl} ${yl.toFixed(1)}`;
+  };
+  const farRidge =ridgeD(ridgePts(farEnv ,FAR_W ));
+  const nearRidge=ridgeD(ridgePts(nearEnv,NEAR_W));
+
   // 三朵云（保留原位置/尺寸），下方光源在(200,308)，rim 打在朝向太阳的一侧
   const clouds =
-      _sunriseRimCloud(95, 150, 44, 0.62, 0.5)
-    + _sunriseRimCloud(310, 120, 52, 0.58, 0.46)
-    + _sunriseRimCloud(250, 200, 60, 0.5,  0.55);
+      _sunriseRimCloud(95, 150, 44, 0.66, 0.95)
+    + _sunriseRimCloud(310, 120, 52, 0.62, 0.9)
+    + _sunriseRimCloud(250, 200, 60, 0.55, 1);
 
   // 克制的光线散射：极淡、宽、模糊的暖光楔，从太阳向上外扩，只做"晨光弥散"暗示，不做硬光柱
   const ray=(cx,w,op)=>`<path d="M${(200+cx).toFixed(1)} 40 L${(200+cx-w).toFixed(1)} 308 L${(200+cx+w).toFixed(1)} 308 Z" fill="url(#srRay)" opacity="${op}"/>`;
@@ -2263,26 +2388,42 @@ function _scene_sunrise(){
       <stop offset="1" stop-color="#ffe6b0" stop-opacity="0"/>
     </linearGradient>
     <filter id="srRayBlur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter>
-    <!-- 云：底缘被朝阳染的暖亮边(rim light) -->
-    <radialGradient id="srCloudRim" cx="50%" cy="72%" r="58%">
-      <stop offset="0" stop-color="#ffdca0"/>
-      <stop offset="0.6" stop-color="#ffc985" stop-opacity="0.7"/>
-      <stop offset="1" stop-color="#ffc985" stop-opacity="0"/>
+    <!-- 逆光云：中间调剪影上叠「羽化天光/暗带/金 rim」（皆 objectBoundingBox，随漂移复制安全） -->
+    <radialGradient id="srClit" cx="50%" cy="50%" r="52%">
+      <stop offset="0" stop-color="#ffd9a8" stop-opacity="0.95"/>
+      <stop offset="0.55" stop-color="#fbcd97" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#fbcd97" stop-opacity="0"/>
     </radialGradient>
+    <radialGradient id="srCshade" cx="50%" cy="50%" r="52%">
+      <stop offset="0" stop-color="#9c5634" stop-opacity="0.52"/>
+      <stop offset="0.6" stop-color="#9c5634" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#9c5634" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="srCrim" cx="50%" cy="55%" r="55%">
+      <stop offset="0" stop-color="#fff3cf" stop-opacity="1"/>
+      <stop offset="0.55" stop-color="#ffd28c" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffd28c" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="srCsoft" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="0.7"/></filter>
+    <filter id="srCblur" x="-45%" y="-45%" width="190%" height="190%"><feGaussianBlur stdDeviation="1.6"/></filter>
     <!-- 地平线暖雾/霞气 -->
     <linearGradient id="srMist" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffe0ad" stop-opacity="0"/>
       <stop offset="0.55" stop-color="#ffdca0" stop-opacity="0.5"/>
       <stop offset="1" stop-color="#ffcf8c" stop-opacity="0.72"/>
     </linearGradient>
-    <!-- 远山：暖棕剪影 + 顶边暖反光 -->
+    <!-- 远山：暖棕多档剪影(顶部大气提亮) + 顶边暖反光 -->
     <linearGradient id="srHillFar" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#d0764a"/>
-      <stop offset="1" stop-color="#bd6740"/>
+      <stop offset="0" stop-color="#d88152"/>
+      <stop offset="0.12" stop-color="#cf7448"/>
+      <stop offset="0.32" stop-color="#c46b41"/>
+      <stop offset="1" stop-color="#b25e39"/>
     </linearGradient>
     <linearGradient id="srHillNear" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#a95530"/>
-      <stop offset="1" stop-color="#8f4526"/>
+      <stop offset="0" stop-color="#b05c35"/>
+      <stop offset="0.16" stop-color="#a3512d"/>
+      <stop offset="0.45" stop-color="#964827"/>
+      <stop offset="1" stop-color="#874022"/>
     </linearGradient>
     <!-- 柔和颗粒：极淡噪点，压掉大色块的塑料感 -->
     <filter id="srGrain" x="0" y="0" width="100%" height="100%">
@@ -2312,19 +2453,19 @@ function _scene_sunrise(){
     <circle cx="200" cy="308" r="44" fill="none" stroke="#fff6da" stroke-width="2.2" opacity="0.55"/>
   </g>
 
-  <!-- 云（慢飘，带 rim light 与阴影） -->
+  <!-- 云（慢飘，体积逆光云：多档色阶+羽化+底缘金 rim） -->
   ${_driftX(clouds,'sc-drift-slow')}
 
   <!-- 地平线暖雾/霞气：压在山与天交界，做空气透视 -->
   <rect x="0" y="286" width="400" height="60" fill="url(#srMist)"/>
 
-  <!-- 远山（浅、被暖雾罩） -->
-  <path d="M0 300 Q 120 282 240 300 Q 330 314 400 298 L400 400 L0 400 Z" fill="url(#srHillFar)" opacity="0.92"/>
-  <!-- 远山顶边暖反光 -->
-  <path d="M0 300 Q 120 282 240 300 Q 330 314 400 298" fill="none" stroke="#ffd9a0" stroke-width="1.4" opacity="0.5"/>
+  <!-- 远山（浅、被暖雾罩；脊线带极克制起伏） -->
+  <path d="${farRidge} L400 400 L0 400 Z" fill="url(#srHillFar)" opacity="0.92"/>
+  <!-- 远山顶边暖反光（沿新脊线） -->
+  <path d="${farRidge}" fill="none" stroke="#ffd9a0" stroke-width="1.4" opacity="0.5"/>
   <!-- 近山 -->
-  <path d="M0 330 Q 160 314 320 332 Q 370 340 400 330 L400 400 L0 400 Z" fill="url(#srHillNear)"/>
-  <path d="M0 330 Q 160 314 320 332 Q 370 340 400 330" fill="none" stroke="#e89a63" stroke-width="1.2" opacity="0.4"/>
+  <path d="${nearRidge} L400 400 L0 400 Z" fill="url(#srHillNear)"/>
+  <path d="${nearRidge}" fill="none" stroke="#e89a63" stroke-width="1.2" opacity="0.4"/>
 
   <!-- 全幅柔和颗粒（叠在最上，极淡） -->
   <rect width="400" height="400" filter="url(#srGrain)" opacity="0.05"/>`;
@@ -2339,15 +2480,15 @@ function _scene_sunrise(){
 
 // 有质感的星：亮核 + 柔光晕，随尺寸/亮度错落；沿用 sc-star 明灭
 function _ntStars(list){ return list.map(([x,y,r,br,glow],i)=>{
-  const d=(((i*0.53)%1)*3.6).toFixed(2);
+  const d=(((i*0.53)%1)*3.6).toFixed(2), dur=(3.0+((i*0.37)%1)*2.8).toFixed(2);
   const halo = glow ? `<circle cx="${x}" cy="${y}" r="${(r*3.4).toFixed(2)}" fill="url(#ntStarHalo)" opacity="${(br*0.9).toFixed(2)}"/>` : '';
-  return `<g class="sc-star" style="animation-delay:${d}s">${halo}`
+  return `<g class="sc-star" style="animation-delay:${d}s;animation-duration:${dur}s">${halo}`
     + `<circle cx="${x}" cy="${y}" r="${r}" fill="#f4f8ff" opacity="${br}"/>`
     + (r>1.2?`<circle cx="${x}" cy="${y}" r="${(r*0.45).toFixed(2)}" fill="#ffffff" opacity="1"/>`:'')
     + `</g>`;}).join(''); }
 
 function _scene_night(){
-  // 星表：[x,y,r,亮度,是否带柔晕]。亮度/大小刻意错落，几颗“主星”带明显光晕
+  // 星表：[x,y,r,亮度,是否带柔晕]。亮度/大小刻意错落，几颗“主星”带明显光晕（未动）
   const stars=[
     [60,60,1.9,1,1],[120,40,1.0,0.7,0],[168,86,2.3,1,1],[240,50,1.3,0.85,0],
     [300,78,1.0,0.7,0],[344,50,1.7,0.95,1],[92,138,1.1,0.72,0],[200,150,1.5,0.85,1],
@@ -2356,6 +2497,21 @@ function _scene_night(){
     [212,196,0.9,0.55,0],[96,250,1.0,0.6,0],[184,44,0.8,0.5,0],[36,120,1.4,0.85,1],
     [270,206,0.85,0.5,0],[158,168,0.9,0.55,0],[318,132,1.1,0.7,0],[224,246,0.8,0.5,0],
   ];
+  // 确定性伪随机（sin-fract，替代 (i*53)%40 的格点感；绝不用 Math.random）
+  const ntH=n=>{const x=Math.sin(n)*43758.5453;return x-Math.floor(x);};
+  // 银河脊线（与原实现同一条曲线，微尘星与椭圆链共用）
+  const ntSpine=t=>150-Math.sin(Math.min(1,Math.max(0,(t-0.02)))*Math.PI)*70;
+  // 银河椭圆链：[cx,cy,rx,ry,rot,op]，cy 取自脊线；宽柔底层 + 略亮脊层。
+  // 左端椭圆加宽使带体一直延到画左缘(不在画内"凭空开始"；注意别放完全出画的大椭圆，
+  // resvg 裁切视窗下会 panic)；右端靠近月亮逐级降透明淡出(月光把银河洗掉，物理上也对)
+  const mwSoft=[
+    [25,129,115,27,-19,1],[120,94,95,27,-10,1],[205,80,95,28,0,0.9],[285,96,88,25,12,0.42],[382,134,86,24,22,0.25],
+  ];
+  const mwSpine=[
+    [45,120,95,16,-18,0.95],[160,85,78,17,-6,0.95],[255,84,75,16,7,0.5],
+  ];
+  const mwEll=(list,grad)=>list.map(([cx,cy,rx,ry,rot,op])=>
+    `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#${grad})" opacity="${op}" transform="rotate(${rot} ${cx} ${cy})"/>`).join('');
   return `<defs>
     <!-- 天空：多段冷色纵深，顶部墨蓝压暗，靠地平线略回暖 -->
     <linearGradient id="ntSky" x1="0" y1="0" x2="0" y2="1">
@@ -2376,16 +2532,16 @@ function _scene_night(){
       <stop offset="0.5" stop-color="#22404c" stop-opacity="0.18"/>
       <stop offset="1" stop-color="#22404c" stop-opacity="0"/>
     </radialGradient>
-    <!-- 银河带：柔和聚拢的斜带 -->
-    <linearGradient id="ntMwFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#b9c8e6" stop-opacity="0"/>
-      <stop offset="0.5" stop-color="#c6d4ec" stop-opacity="0.16"/>
-      <stop offset="1" stop-color="#b9c8e6" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="ntMwCore" cx="50%" cy="50%" r="50%">
-      <stop offset="0" stop-color="#d9def0" stop-opacity="0.22"/>
-      <stop offset="0.6" stop-color="#b9a8d8" stop-opacity="0.08"/>
+    <!-- 银河：宽柔底层 / 收紧亮脊层（纯径向渐变自带羽化，零 filter，防低分糊雾与滤镜盒硬边） -->
+    <radialGradient id="ntMwSoft" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#cfdaf0" stop-opacity="0.13"/>
+      <stop offset="0.55" stop-color="#b9a8d8" stop-opacity="0.05"/>
       <stop offset="1" stop-color="#b9a8d8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ntMwSpine" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#e4ebf8" stop-opacity="0.12"/>
+      <stop offset="0.5" stop-color="#cbd6ee" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#cbd6ee" stop-opacity="0"/>
     </radialGradient>
     <!-- 月面：柔和明暗（左上受光、右下阴影，做体积） -->
     <radialGradient id="ntMoon" cx="38%" cy="34%" r="72%">
@@ -2409,20 +2565,52 @@ function _scene_night(){
     </radialGradient>
     <!-- 月牙镂空 -->
     <mask id="ntCres"><circle cx="300" cy="108" r="30" fill="#fff"/><circle cx="316" cy="99" r="27" fill="#000"/></mask>
-    <!-- 山体：远山带月光反射的顶光 -->
+    <!-- 山体：三层色阶拉开（远山偏蓝灰泛月光、近山最深但不落纯黑） -->
     <linearGradient id="ntHillFar" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#12303a"/>
-      <stop offset="0.35" stop-color="#0d2530"/>
-      <stop offset="1" stop-color="#081a22"/>
+      <stop offset="0" stop-color="#173d4b"/>
+      <stop offset="0.4" stop-color="#0e2833"/>
+      <stop offset="1" stop-color="#091c25"/>
     </linearGradient>
     <linearGradient id="ntHillMid" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0c222b"/>
-      <stop offset="1" stop-color="#06141b"/>
+      <stop offset="0" stop-color="#0f2934"/>
+      <stop offset="1" stop-color="#071720"/>
     </linearGradient>
     <linearGradient id="ntHillNear" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#08161d"/>
-      <stop offset="1" stop-color="#030a0e"/>
+      <stop offset="0" stop-color="#091b25"/>
+      <stop offset="1" stop-color="#030c14"/>
     </linearGradient>
+    <!-- 山脊月光渐隐：贴各层山脊的一抹侧受光，往山脚淡出（userSpaceOnUse 跟随脊线高度） -->
+    <linearGradient id="ntRidgeFar" gradientUnits="userSpaceOnUse" x1="0" y1="224" x2="0" y2="282">
+      <stop offset="0" stop-color="#7fa6ba" stop-opacity="0.20"/>
+      <stop offset="0.5" stop-color="#7fa6ba" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#7fa6ba" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ntRidgeMid" gradientUnits="userSpaceOnUse" x1="0" y1="280" x2="0" y2="334">
+      <stop offset="0" stop-color="#6d94a8" stop-opacity="0.12"/>
+      <stop offset="0.5" stop-color="#6d94a8" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#6d94a8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ntRidgeNear" gradientUnits="userSpaceOnUse" x1="0" y1="314" x2="0" y2="376">
+      <stop offset="0" stop-color="#5d8296" stop-opacity="0.10"/>
+      <stop offset="0.5" stop-color="#5d8296" stop-opacity="0.03"/>
+      <stop offset="1" stop-color="#5d8296" stop-opacity="0"/>
+    </linearGradient>
+    <!-- 月侧光洗：月亮(300,108)一侧的山肩被照得略亮，往左往下淡出 -->
+    <radialGradient id="ntLitFar" gradientUnits="userSpaceOnUse" cx="305" cy="242" r="180">
+      <stop offset="0" stop-color="#9dc3d4" stop-opacity="0.13"/>
+      <stop offset="0.5" stop-color="#9dc3d4" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#9dc3d4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ntLitMid" gradientUnits="userSpaceOnUse" cx="310" cy="296" r="160">
+      <stop offset="0" stop-color="#86aec2" stop-opacity="0.10"/>
+      <stop offset="0.5" stop-color="#86aec2" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#86aec2" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ntLitNear" gradientUnits="userSpaceOnUse" cx="312" cy="332" r="150">
+      <stop offset="0" stop-color="#7196ab" stop-opacity="0.07"/>
+      <stop offset="0.55" stop-color="#7196ab" stop-opacity="0.03"/>
+      <stop offset="1" stop-color="#7196ab" stop-opacity="0"/>
+    </radialGradient>
     <!-- 夜雾：贴着山脊的一层浅雾 -->
     <linearGradient id="ntMist" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#4a6a78" stop-opacity="0"/>
@@ -2432,7 +2620,6 @@ function _scene_night(){
     <!-- 细颗粒纹理（打破纯色块的塑料感） -->
     <filter id="ntGrain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="n"/>
       <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0"/></filter>
-    <filter id="ntSoft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7"/></filter>
     <filter id="ntSoft2" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.5"/></filter>
   </defs>
 
@@ -2440,17 +2627,20 @@ function _scene_night(){
   <rect width="400" height="400" fill="url(#ntVignTop)"/>
   <rect width="400" height="400" fill="url(#ntHorizon)"/>
 
-  <!-- 银河：一条柔和斜带 + 沿带聚光核 + 密布微尘星（避免糊成雾团，做出尘埃颗粒感） -->
+  <!-- 银河：宽柔底层 + 收紧亮脊层（旋转椭圆链，形态收紧、无 blur） + 密布微尘星 -->
   <g opacity="0.82">
-    <path d="M-40 150 Q 160 66 300 128 Q 380 158 440 138 L440 210 Q 360 226 300 196 Q 170 132 -40 224 Z" fill="url(#ntMwFade)" filter="url(#ntSoft)"/>
-    <ellipse cx="150" cy="118" rx="120" ry="42" fill="url(#ntMwCore)" filter="url(#ntSoft)"/>
-    <ellipse cx="300" cy="150" rx="88" ry="36" fill="url(#ntMwCore)" filter="url(#ntSoft)"/>
+    ${mwEll(mwSoft,'ntMwSoft')}
+    ${mwEll(mwSpine,'ntMwSpine')}
   </g>
   ${(function(){let s='';for(let i=0;i<90;i++){
-    const t=i/89, bx=-30+t*470;
-    const spine=150-Math.sin(Math.min(1,Math.max(0,(t-0.02)))*Math.PI)*70;
-    const by=spine+((i*53)%40-20)*(0.55+0.5*Math.sin(t*Math.PI));
-    const rr=(0.35+((i*7)%4)/8).toFixed(2), op=(0.14+((i*13)%7)/45).toFixed(2);
+    const t=(i+0.5)/90;
+    const bx=-30+t*470+(ntH(i*12.9898+78.233)-0.5)*16;
+    const spread=0.55+0.5*Math.sin(t*Math.PI);
+    const off=ntH(i*26.651+37.3)+ntH(i*7.9898+13.7)-1;
+    const by=ntSpine(t)+off*30*spread;
+    const rr=(0.32+ntH(i*4.7+91.1)*0.5).toFixed(2);
+    const fade=t>0.62?Math.max(0.22,1-(t-0.62)*2.4):1;
+    const op=((0.12+ntH(i*17.23+5.9)*0.16)*fade).toFixed(2);
     s+=`<circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${rr}" fill="#e6edff" opacity="${op}"/>`;
   }return s;})()}
 
@@ -2470,18 +2660,27 @@ function _scene_night(){
     </g>
   </g>
 
-  <!-- 远山（带月光顶光） + 夜雾 -->
+  <!-- 远山（山脊月光渐隐 + 月侧光洗） + 夜雾 -->
   <path d="M0 250 Q 130 214 260 244 Q 340 262 400 240 L400 300 L0 300 Z" fill="url(#ntHillFar)"/>
+  <path d="M0 250 Q 130 214 260 244 Q 340 262 400 240 L400 300 L0 300 Z" fill="url(#ntRidgeFar)"/>
+  <path d="M0 250 Q 130 214 260 244 Q 340 262 400 240 L400 300 L0 300 Z" fill="url(#ntLitFar)"/>
   <path d="M0 250 Q 130 214 260 244 Q 340 262 400 240" fill="none" stroke="#38586a" stroke-width="1.1" opacity="0.35"/>
   <path d="M-20 262 Q 130 232 260 258 Q 340 272 420 254 L420 300 L-20 300 Z" fill="url(#ntMist)" opacity="0.6" filter="url(#ntSoft2)"/>
 
-  <!-- 中山 -->
+  <!-- 中山（同样受一点月光） -->
   <path d="M0 300 Q 130 270 260 296 Q 340 312 400 292 L400 400 L0 400 Z" fill="url(#ntHillMid)"/>
+  <path d="M0 300 Q 130 270 260 296 Q 340 312 400 292 L400 400 L0 400 Z" fill="url(#ntRidgeMid)"/>
+  <path d="M0 300 Q 130 270 260 296 Q 340 312 400 292 L400 400 L0 400 Z" fill="url(#ntLitMid)"/>
   <path d="M0 300 Q 130 270 260 296 Q 340 312 400 292" fill="none" stroke="#2a4653" stroke-width="1" opacity="0.28"/>
-  <path d="M-20 308 Q 130 282 260 304 Q 340 318 420 300 L420 340 L-20 340 Z" fill="url(#ntMist)" opacity="0.42" filter="url(#ntSoft2)"/>
+  <path d="M-20 308 Q 130 282 260 304 Q 340 318 420 300 L420 340 L-20 340 Z" fill="url(#ntMist)" opacity="0.45" filter="url(#ntSoft2)"/>
 
-  <!-- 近山 -->
+  <!-- 中山与近山之间的薄夜雾（贴近山山脊，近山从雾里长出来） -->
+  <path d="M-20 332 Q 160 302 300 328 Q 360 338 420 324 L420 368 L-20 368 Z" fill="url(#ntMist)" opacity="0.45" filter="url(#ntSoft2)"/>
+
+  <!-- 近山（最深一层，但不落纯黑；山脊一线极淡月光收住轮廓） -->
   <path d="M0 336 Q 160 306 300 332 Q 360 342 400 328 L400 400 L0 400 Z" fill="url(#ntHillNear)"/>
+  <path d="M0 336 Q 160 306 300 332 Q 360 342 400 328 L400 400 L0 400 Z" fill="url(#ntRidgeNear)"/>
+  <path d="M0 336 Q 160 306 300 332 Q 360 342 400 328 L400 400 L0 400 Z" fill="url(#ntLitNear)"/>
 
   <!-- 全局细颗粒（极低透明，破塑料感） -->
   <rect width="400" height="400" filter="url(#ntGrain)" opacity="0.05"/>`;
@@ -2493,79 +2692,134 @@ function _scene_night(){
 // gradient/mask id 一律 rn_ 前缀防冲突。动画沿用 rn-far/mid/near + rn-ripple；新增 rn-splash（无缝）。
 
 // —— 体积感乌云：核阴影 + 受光腹 + 羽化外缘（多椭圆叠加模拟软边）——
-function _rnCloud(x, y, s, opacity){
-  // 云下柔和落影（雨柱阴影，托起体积感/浮起来）
-  const shadow = `<ellipse cx="${x}" cy="${y+s*0.5}" rx="${s*1.05}" ry="${s*0.3}" fill="url(#rn_cloudshadow)" opacity="${(opacity*0.6).toFixed(2)}"/>`;
-  // 底层软羽化外缘（大而淡）
-  const halo = `<g fill="url(#rn_cloudsoft)" opacity="${(opacity*0.9).toFixed(2)}">`
-    + `<ellipse cx="${x}" cy="${y}" rx="${s*1.18}" ry="${s*0.62}"/>`
-    + `<ellipse cx="${x-s*0.5}" cy="${y+s*0.14}" rx="${s*0.72}" ry="${s*0.46}"/>`
-    + `<ellipse cx="${x+s*0.55}" cy="${y+s*0.12}" rx="${s*0.66}" ry="${s*0.42}"/></g>`;
-  // 云体（暗核）
-  const body = `<g fill="url(#rn_cloudbody)" opacity="${opacity}">`
-    + `<ellipse cx="${x}" cy="${y}" rx="${s}" ry="${s*0.44}"/>`
-    + `<ellipse cx="${x-s*0.55}" cy="${y+s*0.14}" rx="${s*0.58}" ry="${s*0.34}"/>`
-    + `<ellipse cx="${x+s*0.6}" cy="${y+s*0.12}" rx="${s*0.52}" ry="${s*0.32}"/>`
-    + `<ellipse cx="${x-s*0.12}" cy="${y-s*0.2}" rx="${s*0.52}" ry="${s*0.34}"/></g>`;
-  // 顶缘微受光（天空最亮处在云上方偏后，给云顶一点冷高光，塑体积——用 clip 只落在云内）
-  const top = `<g fill="url(#rn_cloudtop)" opacity="${(opacity*0.5).toFixed(2)}">`
-    + `<ellipse cx="${x-s*0.15}" cy="${y-s*0.16}" rx="${s*0.7}" ry="${s*0.26}"/></g>`;
-  return shadow + halo + body + top;
-}
+
 
 // —— 雨层：竖直雨丝在旋转坐标系里下落；渐变描边两端淡出成"雨丝"质感 ——
-function _rnRainLayer(cls, cols, rows, len, sw, op, per, grad){
-  const X0=-160, X1=560, W=X1-X0; let seeds=[];
-  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
-    const jx=(((r*7+c*13)%5)/5-0.4), jy=(((c*5+r*11)%5)/5-0.4);
-    seeds.push([ (X0+(c+0.5+jx)*(W/cols)).toFixed(1), ((r+0.5+jy)*(per/rows)).toFixed(1) ]);
-  }
-  let s=''; const kmax=Math.ceil(760/per)+2;
-  for(let k=-2;k<=kmax;k++){ const oy=k*per-160;
-    for(const [x,y] of seeds){ const y1=(+y+oy).toFixed(1);
-      s+=`<line x1="${x}" y1="${y1}" x2="${(+x+1.2).toFixed(1)}" y2="${(+y1+len).toFixed(1)}"/>`; } }
-  return `<g class="${cls}" stroke="url(#${grad})" stroke-width="${sw}" stroke-linecap="round" opacity="${op}">${s}</g>`;
-}
+
 
 // —— 显眼涟漪 + 溅起水花：透视排布(y 越小=越远=越小越淡)，双扩散环 + 水花皇冠 ——
-function _rnRipplesAndSplash(){
-  // [cx, cy, baseR, scale]  scale 综合近大远小：近(下)大而清晰，远(上)小而淡
-  const R=[
-    [ 96,362,30,1.00],[300,356,27,0.96],[190,372,34,1.05],
-    [ 58,344,18,0.72],[250,346,20,0.76],[350,364,24,0.88],
-    [140,340,15,0.64],[214,352,22,0.82],[330,338,14,0.60],
-    [ 40,370,20,0.80],[168,336,12,0.55],[286,338,13,0.58],
-  ];
-  const ripples = R.map(([x,y,rx,sc],i)=>{
-    const d=(((i*0.31)%1)*2.6).toFixed(2), dur=(2.1+(i%4)*0.4).toFixed(2);
-    const rrx=(rx*sc).toFixed(1), rry=(rx*sc*0.30).toFixed(1);
-    const irx=(rx*sc*0.5).toFixed(1), iry=(rx*sc*0.5*0.30).toFixed(1);
-    const op=(0.30+sc*0.34).toFixed(2), iop=(0.24+sc*0.28).toFixed(2);
-    return `<g class="rn-ripple" style="animation-delay:-${d}s;animation-duration:${dur}s">`
-      + `<ellipse cx="${x}" cy="${y}" rx="${rrx}" ry="${rry}" fill="none" stroke="#aecbe6" stroke-width="${(1.0+sc*0.7).toFixed(2)}" opacity="${op}"/>`
-      + `<ellipse cx="${x}" cy="${y}" rx="${irx}" ry="${iry}" fill="none" stroke="#d6ecfb" stroke-width="${(0.7+sc*0.5).toFixed(2)}" opacity="${iop}"/></g>`;
-  }).join('');
-  // 水花皇冠：每个溅点=一小簇细droplet(中间一柱+两侧弧珠)在原地跃起再落下(rn-splash 无缝循环)
-  const S=[
-    [ 96,362,1.00],[190,372,1.05],[300,356,0.96],[350,364,0.88],
-    [ 40,370,0.80],[214,352,0.82],[250,346,0.76],[140,340,0.64],
-  ];
-  const splashes = S.map(([x,y,sc],i)=>{
-    const d=(((i*0.43)%1)*1.4).toFixed(2), dur=(1.3+(i%3)*0.35).toFixed(2);
-    const h=(6+sc*4.5).toFixed(1);  // 跃起高度（收敛，不做长天线）
-    const w=(3.4+sc*2.8).toFixed(1);// 张开宽度
-    // 溅起水花皇冠：中心一颗略高的水珠 + 两侧外抛小水珠，整体扁矮呈"冠"形
-    return `<g class="rn-splash" style="animation-delay:-${d}s;animation-duration:${dur}s;transform-origin:${x}px ${y}px">`
-      + `<circle cx="${x}" cy="${(y-(+h)).toFixed(1)}" r="${(1.0+sc*0.7).toFixed(2)}" fill="#e6f2fd"/>`
-      + `<circle cx="${(x-(+w)).toFixed(1)}" cy="${(y-(+h)*0.55).toFixed(1)}" r="${(0.8+sc*0.5).toFixed(2)}" fill="#d2e7f8"/>`
-      + `<circle cx="${(+x+(+w)).toFixed(1)}" cy="${(y-(+h)*0.55).toFixed(1)}" r="${(0.8+sc*0.5).toFixed(2)}" fill="#d2e7f8"/>`
-      + `<circle cx="${(x-(+w)*0.5).toFixed(1)}" cy="${(y-(+h)*0.88).toFixed(1)}" r="${(0.6+sc*0.35).toFixed(2)}" fill="#dcecfa"/>`
-      + `<circle cx="${(+x+(+w)*0.5).toFixed(1)}" cy="${(y-(+h)*0.88).toFixed(1)}" r="${(0.6+sc*0.35).toFixed(2)}" fill="#dcecfa"/></g>`;
-  }).join('');
-  return ripples + splashes;
-}
+
 
 function _scene_rain(){
+  // —— 局部副本：共享 _driftX（内容复制一份 translate(400,0) 做无缝漂移）——
+  function _driftX(inner, cls){ return `<g class="${cls}"><g>${inner}</g><g transform="translate(400,0)">${inner}</g></g>`; }
+
+  // —— 体积感乌云：核阴影 + 受光腹 + 羽化外缘（多椭圆叠加模拟软边）——
+  function _rnCloud(x, y, s, opacity){
+    // 云下柔和落影（雨柱阴影，托起体积感/浮起来）
+    const shadow = `<ellipse cx="${x}" cy="${y+s*0.5}" rx="${s*1.05}" ry="${s*0.3}" fill="url(#rn_cloudshadow)" opacity="${(opacity*0.6).toFixed(2)}"/>`;
+    // 底层软羽化外缘（大而淡）
+    const halo = `<g fill="url(#rn_cloudsoft)" opacity="${(opacity*0.9).toFixed(2)}">`
+      + `<ellipse cx="${x}" cy="${y}" rx="${s*1.18}" ry="${s*0.62}"/>`
+      + `<ellipse cx="${x-s*0.5}" cy="${y+s*0.14}" rx="${s*0.72}" ry="${s*0.46}"/>`
+      + `<ellipse cx="${x+s*0.55}" cy="${y+s*0.12}" rx="${s*0.66}" ry="${s*0.42}"/></g>`;
+    // 云体（暗核）
+    const body = `<g fill="url(#rn_cloudbody)" opacity="${opacity}">`
+      + `<ellipse cx="${x}" cy="${y}" rx="${s}" ry="${s*0.44}"/>`
+      + `<ellipse cx="${x-s*0.55}" cy="${y+s*0.14}" rx="${s*0.58}" ry="${s*0.34}"/>`
+      + `<ellipse cx="${x+s*0.6}" cy="${y+s*0.12}" rx="${s*0.52}" ry="${s*0.32}"/>`
+      + `<ellipse cx="${x-s*0.12}" cy="${y-s*0.2}" rx="${s*0.52}" ry="${s*0.34}"/></g>`;
+    // 顶缘微受光（天空最亮处在云上方偏后，给云顶一点冷高光，塑体积——用 clip 只落在云内）
+    const top = `<g fill="url(#rn_cloudtop)" opacity="${(opacity*0.5).toFixed(2)}">`
+      + `<ellipse cx="${x-s*0.15}" cy="${y-s*0.16}" rx="${s*0.7}" ry="${s*0.26}"/></g>`;
+    return shadow + halo + body + top;
+  }
+
+  // —— 雨层：竖直雨丝在旋转坐标系里下落；渐变描边两端淡出成"雨丝"质感 ——
+  // 种子抖动用 sin 散列（确定性、跨行列无周期），纵向仍按 per 平铺 → 循环无缝
+  function _rnRainLayer(cls, cols, rows, len, sw, op, per, grad){
+    const X0=-160, X1=560, W=X1-X0; let seeds=[];
+    const h=n=>{ const v=Math.sin(n*12.9898+78.233)*43758.5453; return v-Math.floor(v); };
+    for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+      const jx=(h(r*311.7+c*127.1)-0.5)*0.92, jy=(h(r*183.3+c*269.5)-0.5)*0.92;
+      seeds.push([ (X0+(c+0.5+jx)*(W/cols)).toFixed(1), ((r+0.5+jy)*(per/rows)).toFixed(1) ]);
+    }
+    let s=''; const kmax=Math.ceil(760/per)+2;
+    for(let k=-2;k<=kmax;k++){ const oy=k*per-160;
+      for(const [x,y] of seeds){ const y1=(+y+oy).toFixed(1);
+        s+=`<line x1="${x}" y1="${y1}" x2="${(+x+1.2).toFixed(1)}" y2="${(+y1+len).toFixed(1)}"/>`; } }
+    return `<g class="${cls}" stroke="url(#${grad})" stroke-width="${sw}" stroke-linecap="round" opacity="${op}">${s}</g>`;
+  }
+
+  // —— 积水洼：不规则岸线 + 天光反射渐变 + 远岸受光细边 + 近岸暗影 + 洼内碎反光 ——
+  function _rnPuddles(){
+    // [基底路径, 远岸高光路径(上缘), 近岸暗影路径(下缘内侧), 反光椭圆(cx,cy,rx,ry)]
+    const P=[
+      [ 'M46 362 C52 356.6 70 353.4 88 353 C100 352.7 108 354.2 114 354.6 C122 355.1 126 356.4 130 358.2 C137 360.8 138.5 364.2 132.5 367.4 C126 371.8 116 373 106 372.2 C96 371.4 90 374.8 80 374 C64 373.2 50 369.8 46.5 366.2 C44.8 364.8 44.8 363.4 46 362 Z',
+        'M50 361.2 C58 356.6 72 353.8 88 353.5 C104 353.2 120 355.2 129 358.6',
+        'M129 366.4 C122 370.8 110 372 104 371.4 C95 370.6 88 373.6 80 373 C66 372.2 53 369 48.5 365.8',
+        [88, 362, 34, 5.5] ],
+      [ 'M152 371 C158 365.4 178 361.6 200 361.2 C222 360.9 244 363.6 254 367.6 C261 370.4 261.5 374.4 252 377.8 C243 381 228 382.4 214 382.6 C204 382.7 198 381 190 381.6 C177 382.4 156 378.4 151.5 374.6 C149.8 373.2 150.4 372.4 152 371 Z',
+        'M156 369.4 C164 364.6 181 361.9 200 361.7 C220 361.4 241 364 252 368.2',
+        'M251 375.2 C242 379.4 227 381 213 381.2 C203 381.3 197 379.6 189 380.2 C177 381 160 377.6 154 374.4',
+        [203, 371, 44, 6.5] ],
+      [ 'M276 359.5 C282 354.8 296 352.2 310 352.2 C326 352.2 342 354.2 350 357.4 C356 359.8 355.6 363.4 348 365.8 C340 368.4 328 369.6 316 369.4 C309 369.3 305 367.8 299 368.2 C290 368.6 278 365 276 362.6 C274.9 361.4 275 360.6 276 359.5 Z',
+        'M280 358.4 C287 354.6 298 352.6 310 352.6 C325 352.6 340 354.6 349 358',
+        'M347 363.8 C339 366.8 328 368.2 316 368 C309 367.9 305 366.4 299 366.8 C291 367.2 281 364.2 278 362',
+        [312, 360, 32, 4.8] ],
+      // 两处小水洼（远离大涟漪，作地面质感；压暗融进前景暗地，避免像贴上去的亮"药丸"）
+      [ 'M46 381 C50 378.4 60 377.2 68 378 C74 378.6 75.5 380.6 72 382.2 C66 384.6 52 384.8 47.5 382.8 C45.8 382 45.2 381.9 46 381 Z',
+        'M48 380.4 C52 378.4 60 377.6 67 378.3',
+        '', null, 0.55 ],
+      [ 'M328 378 C332 375.8 342 375 349 375.8 C354 376.4 355 378.2 351.5 379.8 C345 382.4 333 382.4 329.5 380.6 C327.8 379.7 327.3 379 328 378 Z',
+        'M330 377.4 C334 375.6 342 375.2 348 375.9',
+        '', null, 0.55 ],
+    ];
+    let out='';
+    for(const [base, bank, dark, shine, gop] of P){
+      let one = `<path d="${base}" fill="url(#rn_puddle)"/>`;
+      if(bank) one += `<path d="${bank}" fill="none" stroke="url(#rn_bank)" stroke-width="0.8" stroke-linecap="round"/>`;
+      if(dark) one += `<path d="${dark}" fill="none" stroke="url(#rn_bankd)" stroke-width="1.1" stroke-linecap="round"/>`;
+      if(shine) one += `<ellipse cx="${shine[0]}" cy="${shine[1]}" rx="${shine[2]}" ry="${shine[3]}" fill="url(#rn_pshine)"/>`;
+      out += (gop && gop<1) ? `<g opacity="${gop}">${one}</g>` : one;
+    }
+    // 洼内碎反光：短横细线当被雨点打碎的天光倒影（两档粗细/透明度、长短参差，避免整齐划一）
+    out += `<path d="M66 361 h20 M174 369 h18 M294 358 h20" stroke="#cfe2f2" stroke-width="0.9" opacity="0.22" stroke-linecap="round"/>`;
+    out += `<path d="M94 366 h13 M206 374 h22 M234 368 h11 M320 363 h12" stroke="#cfe2f2" stroke-width="0.7" opacity="0.13" stroke-linecap="round"/>`;
+    return out;
+  }
+
+  // —— 显眼涟漪 + 溅起水花：透视排布(y 越小=越远=越小越淡)，柔化双环 + 水花皇冠 ——
+  function _rnRipplesAndSplash(){
+    // [cx, cy, baseR, scale]  scale 综合近大远小：近(下)大而清晰，远(上)小而淡
+    const R=[
+      [ 96,362,30,1.00],[300,356,27,0.96],[190,372,34,1.05],
+      [ 58,344,18,0.72],[250,346,20,0.76],[350,364,24,0.88],
+      [140,340,15,0.64],[214,352,22,0.82],[330,338,14,0.60],
+      [ 40,370,20,0.80],[168,336,12,0.55],[286,338,13,0.58],
+    ];
+    const ripples = R.map(([x,y,rx,sc],i)=>{
+      const d=(((i*0.31)%1)*2.6).toFixed(2), dur=(2.1+(i%4)*0.4).toFixed(2);
+      const rrx=(rx*sc).toFixed(1), rry=(rx*sc*0.30).toFixed(1);
+      const irx=(rx*sc*0.5).toFixed(1), iry=(rx*sc*0.5*0.30).toFixed(1);
+      const op=(0.28+sc*0.30).toFixed(2), iop=(0.22+sc*0.24).toFixed(2);
+      const wOut=(0.75+sc*0.5).toFixed(2), wIn=(0.55+sc*0.35).toFixed(2);
+      // 外环：宽而淡的软衬垫底(羽化边) + 渐变描边主环(远淡近亮)；内环：更细更淡
+      return `<g class="rn-ripple" style="animation-delay:-${d}s;animation-duration:${dur}s">`
+        + `<ellipse cx="${x}" cy="${y}" rx="${rrx}" ry="${rry}" fill="none" stroke="url(#rn_ripSoft)" stroke-width="${(wOut*2.6).toFixed(2)}" opacity="${(op*0.45).toFixed(2)}"/>`
+        + `<ellipse cx="${x}" cy="${y}" rx="${rrx}" ry="${rry}" fill="none" stroke="url(#rn_rip)" stroke-width="${wOut}" opacity="${op}"/>`
+        + `<ellipse cx="${x}" cy="${y}" rx="${irx}" ry="${iry}" fill="none" stroke="url(#rn_ripIn)" stroke-width="${wIn}" opacity="${iop}"/></g>`;
+    }).join('');
+    // 水花皇冠：每个溅点=一小簇细droplet(中间一柱+两侧弧珠)在原地跃起再落下(rn-splash 无缝循环)
+    const S=[
+      [ 96,362,1.00],[190,372,1.05],[300,356,0.96],[350,364,0.88],
+      [ 40,370,0.80],[214,352,0.82],[250,346,0.76],[140,340,0.64],
+    ];
+    const splashes = S.map(([x,y,sc],i)=>{
+      const d=(((i*0.43)%1)*1.4).toFixed(2), dur=(1.3+(i%3)*0.35).toFixed(2);
+      const h=(6+sc*4.5).toFixed(1);  // 跃起高度（收敛，不做长天线）
+      const w=(3.4+sc*2.8).toFixed(1);// 张开宽度
+      // 溅起水花皇冠：中心一颗略高的水珠 + 两侧外抛小水珠，整体扁矮呈"冠"形
+      return `<g class="rn-splash" style="animation-delay:-${d}s;animation-duration:${dur}s;transform-origin:${x}px ${y}px">`
+        + `<circle cx="${x}" cy="${(y-(+h)).toFixed(1)}" r="${(1.0+sc*0.7).toFixed(2)}" fill="#e6f2fd"/>`
+        + `<circle cx="${(x-(+w)).toFixed(1)}" cy="${(y-(+h)*0.55).toFixed(1)}" r="${(0.8+sc*0.5).toFixed(2)}" fill="#d2e7f8"/>`
+        + `<circle cx="${(+x+(+w)).toFixed(1)}" cy="${(y-(+h)*0.55).toFixed(1)}" r="${(0.8+sc*0.5).toFixed(2)}" fill="#d2e7f8"/>`
+        + `<circle cx="${(x-(+w)*0.5).toFixed(1)}" cy="${(y-(+h)*0.88).toFixed(1)}" r="${(0.6+sc*0.35).toFixed(2)}" fill="#dcecfa"/>`
+        + `<circle cx="${(+x+(+w)*0.5).toFixed(1)}" cy="${(y-(+h)*0.88).toFixed(1)}" r="${(0.6+sc*0.35).toFixed(2)}" fill="#dcecfa"/></g>`;
+    }).join('');
+    return ripples + splashes;
+  }
+
   // 云布局沿用原位置（100,70 / 298,58 / 206,104），只是换成体积云
   const clouds = _rnCloud(100,72,54,0.96) + _rnCloud(300,60,60,0.96) + _rnCloud(206,106,46,0.92);
   return `<defs>
@@ -2626,6 +2880,39 @@ function _scene_rain(){
     <linearGradient id="rn_wetsheen" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#8fa6ba" stop-opacity="0.55"/>
       <stop offset="1" stop-color="#8fa6ba" stop-opacity="0"/></linearGradient>
+    <!-- 积水洼：天光反射(上亮下暗) + 远岸受光/近岸暗影的横向淡出 + 洼内柔反光 -->
+    <linearGradient id="rn_puddle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7e94a9" stop-opacity="0.95"/>
+      <stop offset="0.55" stop-color="#5c6f82" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#3e5063" stop-opacity="0.9"/></linearGradient>
+    <linearGradient id="rn_bank" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a9c0d5" stop-opacity="0"/>
+      <stop offset="0.25" stop-color="#a9c0d5" stop-opacity="0.5"/>
+      <stop offset="0.75" stop-color="#a9c0d5" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#a9c0d5" stop-opacity="0"/></linearGradient>
+    <linearGradient id="rn_bankd" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0d1620" stop-opacity="0"/>
+      <stop offset="0.25" stop-color="#0d1620" stop-opacity="0.35"/>
+      <stop offset="0.75" stop-color="#0d1620" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#0d1620" stop-opacity="0"/></linearGradient>
+    <radialGradient id="rn_pshine" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#b8cce0" stop-opacity="0.26"/>
+      <stop offset="0.7" stop-color="#b8cce0" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#b8cce0" stop-opacity="0"/></radialGradient>
+    <!-- 涟漪环：渐变描边(远淡近亮) + 软衬羽化边 -->
+    <linearGradient id="rn_rip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9fbcd8" stop-opacity="0.25"/>
+      <stop offset="0.6" stop-color="#bcd6ec" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#dcedfb" stop-opacity="0.95"/></linearGradient>
+    <linearGradient id="rn_ripIn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c2dcf0" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#e2f1fd" stop-opacity="0.85"/></linearGradient>
+    <linearGradient id="rn_ripSoft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9fbcd8" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#c8e0f2" stop-opacity="0.5"/></linearGradient>
+    <!-- 细颗粒纹理（与其他主题一致的 grain，暗景用白噪声）-->
+    <filter id="rn_grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0"/></filter>
   </defs>
 
   <!-- 天空 -->
@@ -2661,6 +2948,9 @@ function _scene_rain(){
   <path d="M0 344 Q 120 330 260 344 Q 340 352 400 340 L400 358 Q 260 348 120 344 Q 40 342 0 350 Z" fill="url(#rn_wetsheen)" opacity="0.6"/>
   <path d="M0 344 Q 120 330 260 344 Q 340 352 400 340" fill="none" stroke="#8296a8" stroke-width="1.1" opacity="0.55"/>
 
+  <!-- 积水洼（3 大 2 小，不规则岸线 + 天光反光，大涟漪正落在洼里）-->
+  ${_rnPuddles()}
+
   <!-- 显眼涟漪 + 溅起水花（在地面上方一点，透视近大远小）-->
   ${_rnRipplesAndSplash()}
 
@@ -2668,7 +2958,9 @@ function _scene_rain(){
   <g transform="rotate(12 200 200)">${_rnRainLayer('rn-near',12,4,25,1.65,0.55,64,'rn_streakNear')}</g>
 
   <!-- 全局暗角，收拢景深 -->
-  <rect width="400" height="400" fill="url(#rn_vig)"/>`;
+  <rect width="400" height="400" fill="url(#rn_vig)"/>
+  <!-- 极淡颗粒质感（与其他主题一致）-->
+  <rect width="400" height="400" filter="url(#rn_grain)" opacity="0.05"/>`;
 }
 // ===== bubbles(专业化打磨版) =====
 // 保留原构图：蓝色水体上暗下深、顶部体积光柱(sc-rays摇曳)、气泡自下而上(bub/bubw)。
@@ -2709,12 +3001,15 @@ function _scene_bubbles(){
     + _bubGlass(b.x, b.cy, b.r, b.op)
     + `</g>`).join('');
 
-  // 悬浮微粒：细小的浮尘/浮游物，缓慢上浮，随机分布，加"水感"
+  // 悬浮微粒：细小的浮尘/浮游物，缓慢上浮，随机分布，加"水感"。
+  // 后 6 颗是本轮往中下部（含海床上方贴地悬沙）补的，更小更淡。
   const motes=[
     [48,300,1.4,0.30,17,-1.2],[110,260,1.1,0.24,21,3],[172,290,1.6,0.32,15,-2.5],
     [244,250,1.0,0.20,23,2],[300,282,1.5,0.28,18,-3],[352,258,1.2,0.22,20,1.5],
     [80,340,1.3,0.26,19,-2],[214,318,1.1,0.20,22,2.5],[330,330,1.4,0.28,16,-1.8],
     [140,296,0.9,0.18,24,3.2],[268,340,1.2,0.24,18,-2.2],[36,270,1.0,0.20,21,2.8],
+    [64,372,1.1,0.16,22,2.4],[188,344,0.9,0.14,25,-2],[262,368,1.2,0.15,20,1.8],
+    [338,376,1.0,0.14,23,-2.6],[118,386,1.3,0.16,19,2.2],[290,318,0.9,0.13,24,-1.5],
   ];
   const dust = motes.map(([x,y,r,op,dur,drift],i)=>{
     const dl=((i*1.7)%dur).toFixed(1);
@@ -2722,17 +3017,94 @@ function _scene_bubbles(){
       + `<circle cx="${x}" cy="${y}" r="${r}" fill="#dbeef8" opacity="${op}"/></g>`;
   }).join('');
 
-  // 焦散光斑：水面折射投进上层水里的柔和光网。用大而极淡、参差错落的软斑（非整齐横条），
+  // 焦散光斑：水面折射投进水里的柔和光网。用大而极淡、参差错落的软斑（非整齐横条），
   // 每斑透明度低、边缘全羽化 → 是"氛围光斑"而不是漂浮的灰色药丸。慢速漂移。
+  // 末 5 枚是本轮往中下部延伸的：更大、更扁、更淡（衰减的余光）。
   const cst=[
     [96,60,60,26,-9,0.9],[232,44,78,30,6,0.85],[340,92,52,22,-7,0.8],
     [158,104,46,20,8,0.7],[292,150,42,19,-5,0.65],[54,142,34,16,10,0.6],
     [200,88,40,18,3,0.55],[120,178,50,20,-6,0.4],[318,196,44,18,5,0.38],
+    [140,238,54,19,-6,0.30],[268,262,58,20,7,0.26],[76,288,46,16,5,0.22],
+    [332,246,42,15,-8,0.24],[204,306,50,16,4,0.18],
   ];
   const caustics = `<g class="bub-caust">`
     + cst.map(([x,y,rx,ry,rot,op])=>
         `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" transform="rotate(${rot} ${x} ${y})" fill="url(#bubCaustDot)" opacity="${op}"/>`).join('')
     + `</g>`;
+
+  // —— 海床 —— 沙面渐变 + 湿沙内缘光 + 沙纹 + 海草 + 礁石/贝壳
+  const bedPath='M0 350 Q 120 322 260 348 Q 340 360 400 344 L400 400 L0 400 Z';
+  const crest='M0 350 Q 120 322 260 348 Q 340 360 400 344';
+
+  // 一根海草叶：底部在(bx,by)，两条三次曲线在叶尖收拢成尖，向 lean 侧弯。
+  // 叶身近底竖直、上段才弯向 lean 侧（三次曲线做出的"先立后弯"），避免读成直刺。
+  // CSS 旋转(bub-weed)在 path 上、位移在外层 g 上，避免 CSS transform 覆盖平移。
+  const blade=(bx,by,h,lean,w,fill,op,dur,dl)=>{
+    const c1lx=(lean*0.04-w).toFixed(1),        c1ly=(-h*0.46).toFixed(1);
+    const c2lx=(lean*0.45-w*0.45).toFixed(1),   c2ly=(-h*0.88).toFixed(1);
+    const c1rx=(lean*0.58+w*0.35).toFixed(1),   c1ry=(-h*0.70).toFixed(1);
+    const c2rx=(w*1.05+lean*0.06).toFixed(1),   c2ry=(-h*0.28).toFixed(1);
+    return `<g transform="translate(${bx} ${by})">`
+    + `<path class="bub-weed" style="animation-duration:${dur}s;animation-delay:-${dl}s" d="M ${-w} 0 C ${c1lx} ${c1ly} ${c2lx} ${c2ly} ${lean} ${-h} C ${c1rx} ${c1ry} ${c2rx} ${c2ry} ${w} 0 Z" fill="${fill}" opacity="${op}"/>`
+    + `</g>`;
+  };
+  // 4 丛：左大(56)、左中小(152)、右中小(272)、右(338)，全部低饱和蓝青，高度≤38 不进画面中部
+  const weeds =
+    // 丛A（左，最丰）
+      blade(52,341,30,-8,2.2,'#0b3348',0.92,6.6,1.2)
+    + blade(56,341.5,38,4,2.6,'#14506b',0.88,7.4,3.8)
+    + blade(60,342,24,10,1.9,'#1a5c6b',0.85,5.8,0.4)
+    + blade(57,341,33,-3,2.2,'#0e3b53',0.90,6.9,5.1)
+    // 丛C（左中，小）
+    + blade(149,337,16,-5,1.6,'#0d3850',0.88,5.6,2.6)
+    + blade(152,337.5,21,4,1.9,'#14506b',0.85,6.4,0.9)
+    + blade(156,338,12,8,1.4,'#1a5c6b',0.80,5.2,4.4)
+    // 丛D（右中，3叶小tuft：中间补一短叶收拢，免得两叶呈"八"字散开）
+    + blade(270,350,13,-4,1.4,'#0d3850',0.85,5.9,1.7)
+    + blade(272,350.2,9,1,1.1,'#0f4258',0.80,5.4,3.6)
+    + blade(274,350.5,17,5,1.6,'#165672',0.82,6.7,4.9)
+    // 丛B（右）
+    + blade(335,353,22,-6,1.9,'#0c3549',0.90,6.2,3.3)
+    + blade(339,353.5,29,5,2.3,'#155371',0.85,7.1,0.6)
+    + blade(343,354,17,9,1.6,'#1a5c6b',0.82,5.5,2.1);
+
+  // 沙纹涟漪：顺坡向的短弧，极淡 + 轻微糊边（放大不见硬线）
+  const rippleArcs=[
+    ['M22 366 q 30 -4.5 58 -0.5',0.13],['M118 372 q 36 -5 70 -0.5',0.14],
+    ['M232 370 q 32 -4 62 1',0.12],['M312 380 q 28 -3.5 56 0',0.12],
+    ['M64 388 q 40 -5 78 -0.5',0.10],['M188 390 q 44 -4.5 86 0.5',0.10],
+    ['M338 362 q 22 -3 44 -0.5',0.11],['M96 380 q 26 -3.5 50 0',0.09],
+  ].map(([d,o])=>`<path d="${d}" opacity="${o}"/>`).join('');
+  // 沙面细碎亮屑（贴地那点闪的碎沙）
+  const grit=[[46,378,1.0,0.13],[142,384,0.8,0.11],[226,380,1.1,0.12],[302,388,0.9,0.11],[366,372,0.8,0.12],[86,368,0.7,0.10]]
+    .map(([x,y,r,o])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#7fa9c0" opacity="${o}"/>`).join('');
+
+  // 礁石（不规则圆钝blob，非椭圆）+ 顶缘受光弧；卵石一颗；扇贝一枚
+  const rocks =
+      `<path d="M66 348 Q 67 340 75 338.5 Q 84 337.5 87 343 Q 88.5 347 86 349 Q 76 352 66 348 Z" fill="url(#bubRockG)"/>`
+    + `<path d="M69.5 342 Q 74.5 339.5 81 340.5" fill="none" stroke="#71a3ba" stroke-width="1" stroke-linecap="round" opacity="0.32"/>`
+    + `<path d="M300 356 Q 302 350 309 349.5 Q 315 349.5 317 354 Q 317.5 357 314 358 Q 305 359.5 300 356 Z" fill="url(#bubRockG)"/>`
+    + `<path d="M303.5 352.4 Q 308 350.6 312.6 351.6" fill="none" stroke="#71a3ba" stroke-width="0.9" stroke-linecap="round" opacity="0.30"/>`
+    + `<path d="M214 346 Q 215 342.5 219 342.5 Q 222.5 343 222.5 345.5 Q 221 347.5 217 347.3 Q 214.5 347 214 346 Z" fill="url(#bubRockG)" opacity="0.9"/>`
+    // 扇贝：铰点在下的扇形 + 两道浅色放射贝纹（低对比，放大不读成深色箭头）
+    + `<g opacity="0.6">`
+    + `<path d="M246.3 353.8 L242.2 349.6 A 5.6 5.6 0 0 1 250.4 349.6 Z" fill="#5d8ba3"/>`
+    + `<path d="M246.3 353.8 L244.3 349.1 M246.3 353.8 L248.3 349.1" stroke="#a8cbdc" stroke-width="0.5" stroke-linecap="round" opacity="0.55"/>`
+    + `<circle cx="246.3" cy="353.6" r="0.85" fill="#44708a"/>`
+    + `</g>`;
+
+  const seabed =
+      `<path d="${bedPath}" fill="url(#bubSand)"/>`
+    // 湿沙内缘光：一条宽而糊的亮带贴着坡顶内侧（clip 进海床，不溢进水体）
+    + `<g clip-path="url(#bubBedClip)">`
+    +   `<path d="${crest}" fill="none" stroke="#6ba3bd" stroke-width="7" opacity="0.16" filter="url(#bubEdgeF)"/>`
+    +   `<g filter="url(#bubRipF)" stroke="#4c86a6" stroke-width="1.1" stroke-linecap="round" fill="none">${rippleArcs}</g>`
+    +   grit
+    + `</g>`
+    // 坡顶沿线微光（原描边保留，加一点点糊防放大成硬线）
+    + `<path d="${crest}" fill="none" stroke="#3f9ac0" stroke-width="1.4" opacity="0.35" filter="url(#bubRimF)"/>`
+    + rocks
+    + weeds;
 
   return `<defs>
     <!-- 水体：顶部亮(受光)→中深→底暗 -->
@@ -2754,7 +3126,7 @@ function _scene_bubbles(){
       <stop offset="0.7" stop-color="#00121f" stop-opacity="0"/>
       <stop offset="1" stop-color="#00121f" stop-opacity="0.45"/>
     </radialGradient>
-    <!-- 体积光：沿光柱纵向亮→淡，横向靠 bubRay 羽化 -->
+    <!-- 体积光：沿光柱纵向亮→淡；横向羽化靠 bubRayF 高斯糊 -->
     <linearGradient id="bubRayV" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#eaf7ff" stop-opacity="0.42"/>
       <stop offset="0.45" stop-color="#cfeaf5" stop-opacity="0.16"/>
@@ -2781,6 +3153,27 @@ function _scene_bubbles(){
       <stop offset="0.45" stop-color="#9fd8ef" stop-opacity="0.10"/>
       <stop offset="1" stop-color="#9fd8ef" stop-opacity="0"/>
     </radialGradient>
+    <!-- 海床沙面：坡顶受光的青沙 → 深处压暗（userSpace 锚在 333-400，与坡形吻合） -->
+    <linearGradient id="bubSand" x1="0" y1="333" x2="0" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#33698a"/>
+      <stop offset="0.3" stop-color="#1e5273"/>
+      <stop offset="0.62" stop-color="#0f3a57"/>
+      <stop offset="1" stop-color="#08243e"/>
+    </linearGradient>
+    <!-- 礁石体：顶亮底暗 -->
+    <linearGradient id="bubRockG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2c6484"/>
+      <stop offset="1" stop-color="#0d3049"/>
+    </linearGradient>
+    <clipPath id="bubBedClip"><path d="${bedPath}"/></clipPath>
+    <!-- 光柱横向羽化 -->
+    <filter id="bubRayF" x="-30%" y="-6%" width="160%" height="112%"><feGaussianBlur stdDeviation="4.5"/></filter>
+    <!-- 湿沙内缘光的宽糊 -->
+    <filter id="bubEdgeF" x="-4%" y="-90%" width="108%" height="280%"><feGaussianBlur stdDeviation="2.6"/></filter>
+    <!-- 坡顶沿线微光的轻糊 -->
+    <filter id="bubRimF" x="-3%" y="-160%" width="106%" height="420%"><feGaussianBlur stdDeviation="0.6"/></filter>
+    <!-- 沙纹的轻糊 -->
+    <filter id="bubRipF" x="-6%" y="-40%" width="112%" height="180%"><feGaussianBlur stdDeviation="0.5"/></filter>
     <!-- 细颗粒纹理，去塑料感 -->
     <filter id="bubGrain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0"/></filter>
   </defs>
@@ -2789,16 +3182,16 @@ function _scene_bubbles(){
   <rect width="400" height="400" fill="url(#bubWater)"/>
   <!-- 顶部受光辉光 -->
   <rect width="400" height="400" fill="url(#bubTopGlow)"/>
-  <!-- 焦散：水体上部漂移的柔光网 -->
+  <!-- 焦散：上部亮斑 + 中下部衰减余光，同组漂移 -->
   ${caustics}
 
-  <!-- 体积光柱：斜梯形填纵向渐变(bubRayV, 顶亮→水底淡出)，多束不同透明度做层次，sc-rays 保留摇曳 -->
-  <g class="sc-rays">
+  <!-- 体积光柱：斜梯形填纵向渐变(bubRayV, 顶亮→水底淡出)，整组包 bubRayF 高斯糊做横向羽化，sc-rays 保留摇曳 -->
+  <g class="sc-rays"><g filter="url(#bubRayF)">
     <path d="M112 -30 L52 420 L128 420 L172 -30 Z" fill="url(#bubRayV)" opacity="0.9"/>
     <path d="M244 -30 L306 420 L346 420 L292 -30 Z" fill="url(#bubRayV)" opacity="0.8"/>
     <path d="M180 -30 L198 420 L216 420 L212 -30 Z" fill="url(#bubRayV)" opacity="0.7"/>
     <path d="M330 -30 L392 420 L420 420 L376 -30 Z" fill="url(#bubRayV)" opacity="0.55"/>
-  </g>
+  </g></g>
 
   <!-- 悬浮微粒（在光柱之后，气泡之前，营造景深） -->
   ${dust}
@@ -2806,9 +3199,8 @@ function _scene_bubbles(){
   <!-- 气泡 -->
   ${bubbles}
 
-  <!-- 海床 + 上沿柔光 -->
-  <path d="M0 350 Q 120 322 260 348 Q 340 360 400 344 L400 400 L0 400 Z" fill="#06243b"/>
-  <path d="M0 350 Q 120 322 260 348 Q 340 360 400 344" fill="none" stroke="#3f9ac0" stroke-width="1.4" opacity="0.35"/>
+  <!-- 海床：沙面渐变 + 湿沙内缘 + 沙纹 + 礁石贝壳 + 海草剪影 -->
+  ${seabed}
 
   <!-- 暗角景深（最上层，压四周） -->
   <rect width="400" height="400" fill="url(#bubVign)"/>
@@ -2870,35 +3262,60 @@ function _themeScene(name){ const f={default:_scene_default,night:_scene_night,b
     sakura: { base:'#db88a6', mid:'#eeacc0', light:'#f7cddb', rim:'#ffe6ef' },
   };
   const _BARKD = '#57411f';
-  function _tGround(cx, gy, spread) {
-    const g = x => _tn(x);
-    return `<ellipse class="tree-ground" cx="${g(cx)}" cy="${g(gy+9)}" rx="${g(spread)}" ry="${g(spread*0.15)}" opacity="0.42"/>`
-      + `<ellipse cx="${g(cx-spread*0.15)}" cy="${g(gy+8)}" rx="${g(spread*0.5)}" ry="${g(spread*0.09)}" fill="#000" opacity="0.06"/>`
-      + `<g stroke="#5c9145" stroke-width="1.6" stroke-linecap="round" fill="none">`
-      + `<path d="M${g(cx-spread*0.55)} ${g(gy+7)} q -1 -5 -3 -7"/><path d="M${g(cx-spread*0.45)} ${g(gy+7)} q 1 -4 2 -6"/>`
-      + `<path d="M${g(cx+spread*0.5)} ${g(gy+7)} q 1 -5 3 -7"/><path d="M${g(cx+spread*0.4)} ${g(gy+7)} q -1 -4 -2 -6"/></g>`;
-  }
-  // 微锥弧形树干（主体 class=tree-trunk 供遮罩暖色化）+ 右暗 / 左亮 / 根部张开
-  function _tTrunk(cx, baseY, topY, wB, wT) {
-    const bl=cx-wB/2, br=cx+wB/2, tl=cx-wT/2, tr=cx+wT/2, m=(baseY+topY)/2;
-    const body=`<path class="tree-trunk" d="M${_tn(bl)} ${_tn(baseY)} C ${_tn(bl+wB*0.1)} ${_tn(m)} ${_tn(tl-0.5)} ${_tn(topY+3)} ${_tn(tl)} ${_tn(topY)} L ${_tn(tr)} ${_tn(topY)} C ${_tn(tr+0.5)} ${_tn(topY+3)} ${_tn(br-wB*0.1)} ${_tn(m)} ${_tn(br)} ${_tn(baseY)} Z"/>`;
-    const flare=`<path class="tree-trunk" d="M${_tn(bl)} ${_tn(baseY)} q -3.5 -0.5 -5 2 q 3 -1 5 -0.6 Z"/><path class="tree-trunk" d="M${_tn(br)} ${_tn(baseY)} q 3.5 -0.5 5 2 q -3 -1 -5 -0.6 Z"/>`;
-    const shade=`<path d="M${_tn(cx)} ${_tn(topY)} C ${_tn(cx+0.5)} ${_tn(topY+3)} ${_tn(br-wB*0.1)} ${_tn(m)} ${_tn(br)} ${_tn(baseY)} L ${_tn(cx)} ${_tn(baseY)} Z" fill="#000" opacity="0.16"/>`;
-    const lit=`<path d="M${_tn(bl+0.9)} ${_tn(baseY-1)} C ${_tn(bl+wB*0.1+0.9)} ${_tn(m)} ${_tn(tl+0.5)} ${_tn(topY+3)} ${_tn(tl+1)} ${_tn(topY+0.5)}" fill="none" stroke="#fff" stroke-width="1" stroke-linecap="round" opacity="0.14"/>`;
-    return flare+body+shade+lit;
-  }
-  // 有明确光照的圆润树冠（左上受光、右下暗部），阔叶/樱花共用
-  function _tCrown(cx, cy, R, pal) {
-    const c=(x,y,r,f)=>`<circle class="tree-canopy" cx="${_tn(x)}" cy="${_tn(y)}" r="${_tn(Math.max(1.5,r))}" fill="${f}"/>`;
-    let s='';
-    [[cx,cy,R],[cx-R*0.6,cy+R*0.05,R*0.62],[cx+R*0.6,cy+R*0.02,R*0.6],
-     [cx-R*0.3,cy-R*0.55,R*0.5],[cx+R*0.32,cy-R*0.52,R*0.46],[cx,cy-R*0.72,R*0.4],
-     [cx-R*0.02,cy+R*0.52,R*0.6]].forEach(b=>s+=c(b[0],b[1],b[2],pal.mid));
-    s+=c(cx+R*0.34,cy+R*0.4,R*0.46,pal.base)+c(cx-R*0.3,cy+R*0.5,R*0.38,pal.base)+c(cx+R*0.58,cy+R*0.12,R*0.34,pal.base);
-    s+=c(cx-R*0.32,cy-R*0.34,R*0.46,pal.light)+c(cx-R*0.02,cy-R*0.54,R*0.32,pal.light)+c(cx-R*0.58,cy-R*0.02,R*0.26,pal.light);
-    s+=c(cx-R*0.3,cy-R*0.42,R*0.22,pal.rim);
+  function _tGround(cx, gy, spread, type) {
+  const g = x => _tn(x);
+  const base = `<ellipse class="tree-ground" cx="${g(cx)}" cy="${g(gy+9)}" rx="${g(spread)}" ry="${g(spread*0.15)}" opacity="0.42"/>`
+    + `<ellipse cx="${g(cx-spread*0.15)}" cy="${g(gy+8)}" rx="${g(spread*0.5)}" ry="${g(spread*0.09)}" fill="#000" opacity="0.06"/>`;
+  if (type === 'cactus' || type === 'palm') {
+    const sand = type === 'cactus' ? '#cfa963' : '#e3c98d';
+    const sandHi = type === 'cactus' ? '#e2c07c' : '#f2e0ae';
+    // 沙色罩层与地面底椭圆完全同心同尺寸（不产生第二圈轮廓）；提亮层压极低透明度防「可辨椭圆圈」
+    let s = base
+      + `<ellipse cx="${g(cx)}" cy="${g(gy+9)}" rx="${g(spread)}" ry="${g(spread*0.15)}" fill="${sand}" opacity="0.32"/>`
+      + `<ellipse cx="${g(cx-spread*0.15)}" cy="${g(gy+8)}" rx="${g(spread*0.5)}" ry="${g(spread*0.09)}" fill="${sandHi}" opacity="0.14"/>`;
+    if (type === 'cactus') {
+      // 小石子（带受光点），替代绿草
+      const st=(x,y,r,rot)=>`<g transform="rotate(${rot} ${g(x)} ${g(y)})">`
+        + `<ellipse cx="${g(x)}" cy="${g(y+r*0.55)}" rx="${g(r*0.9)}" ry="${g(r*0.28)}" fill="#000" opacity="0.10"/>`
+        + `<ellipse cx="${g(x)}" cy="${g(y)}" rx="${g(r)}" ry="${g(r*0.72)}" fill="#9c8563"/>`
+        + `<ellipse cx="${g(x-r*0.28)}" cy="${g(y-r*0.26)}" rx="${g(r*0.46)}" ry="${g(r*0.3)}" fill="#bda87f" opacity="0.9"/></g>`;
+      s += st(cx-spread*0.52, gy+6.6, 2.6, -8) + st(cx-spread*0.38, gy+8, 1.6, 14) + st(cx+spread*0.47, gy+7, 2.2, 6);
+    } else {
+      // 沙滩干草：沿用原草簇笔画形状，换成枯黄沙草色
+      s += `<g stroke="#b39a5a" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.9">`
+        + `<path d="M${g(cx-spread*0.55)} ${g(gy+7)} q -1 -5 -3 -7"/><path d="M${g(cx-spread*0.45)} ${g(gy+7)} q 1 -4 2 -6"/>`
+        + `<path d="M${g(cx+spread*0.5)} ${g(gy+7)} q 1 -5 3 -7"/><path d="M${g(cx+spread*0.4)} ${g(gy+7)} q -1 -4 -2 -6"/></g>`;
+    }
     return s;
   }
+  return base
+    + `<g stroke="#5c9145" stroke-width="1.6" stroke-linecap="round" fill="none">`
+    + `<path d="M${g(cx-spread*0.55)} ${g(gy+7)} q -1 -5 -3 -7"/><path d="M${g(cx-spread*0.45)} ${g(gy+7)} q 1 -4 2 -6"/>`
+    + `<path d="M${g(cx+spread*0.5)} ${g(gy+7)} q 1 -5 3 -7"/><path d="M${g(cx+spread*0.4)} ${g(gy+7)} q -1 -4 -2 -6"/></g>`;
+}
+  // 微锥弧形树干（主体 class=tree-trunk 供遮罩暖色化）+ 右暗 / 左亮 / 根部张开
+  function _tTrunk(cx, baseY, topY, wB, wT) {
+  const bl=cx-wB/2, br=cx+wB/2, tl=cx-wT/2, tr=cx+wT/2, m=(baseY+topY)/2;
+  const body=`<path class="tree-trunk" d="M${_tn(bl)} ${_tn(baseY)} C ${_tn(bl+wB*0.1)} ${_tn(m)} ${_tn(tl-0.5)} ${_tn(topY+3)} ${_tn(tl)} ${_tn(topY)} L ${_tn(tr)} ${_tn(topY)} C ${_tn(tr+0.5)} ${_tn(topY+3)} ${_tn(br-wB*0.1)} ${_tn(m)} ${_tn(br)} ${_tn(baseY)} Z"/>`;
+  const flare=`<path class="tree-trunk" d="M${_tn(bl)} ${_tn(baseY)} q -3.5 -0.5 -5 2 q 3 -1 5 -0.6 Z"/><path class="tree-trunk" d="M${_tn(br)} ${_tn(baseY)} q 3.5 -0.5 5 2 q -3 -1 -5 -0.6 Z"/>`;
+  const shade=`<path d="M${_tn(cx)} ${_tn(topY)} C ${_tn(cx+0.5)} ${_tn(topY+3)} ${_tn(br-wB*0.1)} ${_tn(m)} ${_tn(br)} ${_tn(baseY)} L ${_tn(cx)} ${_tn(baseY)} Z" fill="#000" opacity="0.16"/>`;
+  const lit=`<path d="M${_tn(bl+0.9)} ${_tn(baseY-1)} C ${_tn(bl+wB*0.1+0.9)} ${_tn(m)} ${_tn(tl+0.5)} ${_tn(topY+3)} ${_tn(tl+1)} ${_tn(topY+0.5)}" fill="none" stroke="#ffe3b0" stroke-width="1.1" stroke-linecap="round" opacity="0.32"/>`;
+  return flare+body+shade+lit;
+}
+  // 有明确光照的圆润树冠（左上受光、右下暗部），阔叶/樱花共用
+  function _tCrown(cx, cy, R, pal) {
+  const c=(x,y,r,f,o)=>`<circle class="tree-canopy" cx="${_tn(x)}" cy="${_tn(y)}" r="${_tn(Math.max(1.5,r))}" fill="${f}"${o?` opacity="${o}"`:''}/>`;
+  // 同色双层软边：内核沿光向偏心（dx,dy），避免同心圆在放大时读成一圈圈 banding
+  const soft=(x,y,r,f,eo,co,dx,dy)=>c(x,y,r,f,eo)+c(x+r*dx,y+r*dy,r*0.66,f,co);
+  let s='';
+  [[cx,cy,R],[cx-R*0.6,cy+R*0.05,R*0.62],[cx+R*0.6,cy+R*0.02,R*0.6],
+   [cx-R*0.3,cy-R*0.55,R*0.5],[cx+R*0.32,cy-R*0.52,R*0.46],[cx,cy-R*0.72,R*0.4],
+   [cx-R*0.02,cy+R*0.52,R*0.6]].forEach(b=>s+=c(b[0],b[1],b[2],pal.mid));
+  s+=soft(cx+R*0.34,cy+R*0.4,R*0.46,pal.base,'0.6','0.85',0.1,0.12)+soft(cx-R*0.3,cy+R*0.5,R*0.38,pal.base,'0.6','0.85',0.06,0.13)+soft(cx+R*0.58,cy+R*0.12,R*0.34,pal.base,'0.55','0.8',0.12,0.08);
+  s+=soft(cx-R*0.32,cy-R*0.34,R*0.46,pal.light,'0.62','0.85',-0.1,-0.11)+soft(cx-R*0.02,cy-R*0.54,R*0.32,pal.light,'0.6','0.8',-0.07,-0.12)+soft(cx-R*0.58,cy-R*0.02,R*0.26,pal.light,'0.6','0.8',-0.12,-0.06);
+  s+=c(cx-R*0.3,cy-R*0.42,R*0.22,pal.rim,'0.9');
+  return s;
+}
   function _tSprout(cx, gy, p) {
     const H = 12 + p*46;
     return `<path d="M${cx} ${_tn(gy-2)} L${cx} ${_tn(gy-H)}" stroke="#5c9145" stroke-width="3.2" stroke-linecap="round"/>`
@@ -2910,50 +3327,91 @@ function _themeScene(name){ const f={default:_scene_default,night:_scene_night,b
     return _tTrunk(cx, gy, topY, 7+p*9, 4+p*4) + _tCrown(cx, cy, R, pal);
   }
   function _tPine(cx, gy, p) {
-    const trunkH=14+p*10, trunk=_tTrunk(cx, gy, gy-trunkH, 6+p*4, 4+p*2);
-    const totalH=44+p*96, topY=gy-totalH, tiers=Math.max(2, Math.round(2+p*3));
-    const startY=gy-trunkH*0.55, step=(startY-topY)/tiers, maxW=46+p*74;
-    let s='';
-    for (let i=0;i<tiers;i++){ const ly=startY-i*step, w=maxW*(0.40 + 0.60*Math.pow(1-i/tiers,0.78)), tipY=ly-step*1.62, L=cx-w/2, Rr=cx+w/2;
-      s+=`<path class="tree-canopy" d="M${_tn(L)} ${_tn(ly)} Q ${_tn(cx)} ${_tn(ly+step*0.42)} ${_tn(Rr)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)} Z" fill="#477942"/>`;
-      s+=`<path class="tree-canopy" d="M${_tn(cx)} ${_tn(ly)} Q ${_tn((cx+Rr)/2)} ${_tn(ly+step*0.22)} ${_tn(Rr)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)} Z" fill="#356331"/>`;
-      s+=`<path d="M${_tn(L)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)}" stroke="#6aa35e" stroke-width="1.6" stroke-linecap="round" fill="none"/>`;
+  const trunkH=14+p*10, trunk=_tTrunk(cx, gy, gy-trunkH, 6+p*4, 4+p*2);
+  const totalH=44+p*96, topY=gy-totalH, tiers=Math.max(2, Math.round(2+p*3));
+  const startY=gy-trunkH*0.55, step=(startY-topY)/tiers, maxW=46+p*74;
+  let s='';
+  for (let i=0;i<tiers;i++){ const ly=startY-i*step, w=maxW*(0.40 + 0.60*Math.pow(1-i/tiers,0.78)), tipY=ly-step*1.62, L=cx-w/2, Rr=cx+w/2;
+    const skirt=step*0.42;
+    if (i>0){ // 层间极淡落影（投在下一层锥面内，宽度收在 0.44w 以免越出下层轮廓）
+      // 上缘曲线抬到裙摆之上，被本层身体盖掉 → 阴影紧贴裙摆下缘，不悬空
+      const sl=cx-w*0.22, sr=cx+w*0.22;
+      s+=`<path d="M${_tn(sl)} ${_tn(ly-0.5)} Q ${_tn(cx)} ${_tn(ly+skirt+1)} ${_tn(sr)} ${_tn(ly-0.5)} Q ${_tn(cx)} ${_tn(ly+skirt+6.5)} ${_tn(sl)} ${_tn(ly-0.5)} Z" fill="#1c3a20" opacity="0.16"/>`;
     }
-    return trunk+s;
+    s+=`<path class="tree-canopy" d="M${_tn(L)} ${_tn(ly)} Q ${_tn(cx)} ${_tn(ly+skirt)} ${_tn(Rr)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)} Z" fill="#477942"/>`;
+    // 裙摆二次曲线上取点 + 子曲线控制点（精确细分，分面底边严格贴合裙摆）
+    const qx=t=>L+w*t, qy=t=>ly+2*t*(1-t)*skirt;
+    const c1x=t=>(1-t)*cx+t*Rr, c1y=t=>(1-t)*(ly+skirt)+t*ly;
+    const facet=(t0,endX,endY,op)=>`<path class="tree-canopy" d="M${_tn(qx(t0))} ${_tn(qy(t0))} Q ${_tn(c1x(t0))} ${_tn(c1y(t0))} ${_tn(Rr)} ${_tn(ly)} L ${_tn(endX)} ${_tn(endY)} Z" fill="#356331" opacity="${op}"/>`;
+    s+=facet(0.38,cx,tipY,'0.30')+facet(0.55,cx,tipY,'0.38');
+    const eU=0.74, ex=Rr+(cx-Rr)*eU, ey=ly+(tipY-ly)*eU;
+    s+=facet(0.74,ex,ey,'0.55');
+    s+=`<path d="M${_tn(L)} ${_tn(ly)} L ${_tn(cx)} ${_tn(tipY)}" stroke="#6aa35e" stroke-width="1.6" stroke-linecap="round" fill="none"/>`;
   }
+  return trunk+s;
+}
   function _tPalm(cx, gy, p) {
-    const h=40+p*112, lean=4+p*6, topX=cx+lean, topY=gy-h;
-    const wB=8+p*5, wT=4.5+p*2.5, midX=cx+lean*0.4, midY=(gy+topY)/2;
-    const P=t=>[ (1-t)*(1-t)*cx+2*(1-t)*t*midX+t*t*topX, (1-t)*(1-t)*gy+2*(1-t)*t*midY+t*t*topY ];
-    const trunk=`<path class="tree-trunk" d="M${_tn(cx-wB/2)} ${_tn(gy)} Q ${_tn(midX-wT/2-2)} ${_tn(midY)} ${_tn(topX-wT/2)} ${_tn(topY)} L ${_tn(topX+wT/2)} ${_tn(topY)} Q ${_tn(midX+wT/2+2)} ${_tn(midY)} ${_tn(cx+wB/2)} ${_tn(gy)} Z"/>`;
-    let rings='';
-    for (let i=1;i<=5;i++){ const t=i/6, pt=P(t), w=(wB*(1-t)+wT*t);
-      rings+=`<path d="M${_tn(pt[0]-w/2-0.5)} ${_tn(pt[1])} q ${_tn(w/2+0.5)} 2.4 ${_tn(w+1)} 0" stroke="${_BARKD}" stroke-width="1" fill="none" opacity="0.5"/>`; }
-    const L=30+p*40, wid=7+p*4;
-    const frond=(a,col,rib)=>{ const rad=a*Math.PI/180;
-      const ex=topX+Math.cos(rad)*L, ey=topY-Math.sin(rad)*L*0.7, c1=topX+Math.cos(rad)*L*0.5, cy1=topY-Math.sin(rad)*L*0.5-(9+p*6);
-      let f=`<path class="tree-canopy" fill="${col}" d="M${_tn(topX)} ${_tn(topY)} Q ${_tn(c1)} ${_tn(cy1)} ${_tn(ex)} ${_tn(ey)} Q ${_tn(c1)} ${_tn(cy1+wid)} ${_tn(topX)} ${_tn(topY+4)} Z"/>`;
-      if (rib) f+=`<path d="M${_tn(topX)} ${_tn(topY+1)} Q ${_tn(c1)} ${_tn(cy1+wid*0.4)} ${_tn(ex)} ${_tn(ey)}" stroke="#2f6636" stroke-width="0.8" fill="none" opacity="0.6"/>`;
-      return f; };
-    let fr='';
-    [205,158,-25,22].forEach(a=>fr+=frond(a,'#37793f',false));
-    [120,90,60].forEach(a=>fr+=frond(a,'#4a9a52',true));
-    fr+=`<circle fill="${_BARKD}" cx="${_tn(topX)}" cy="${_tn(topY)}" r="${_tn(4+p*2)}"/>`;
-    if (p>0.55) fr+=`<g fill="#6b4a2b"><circle cx="${_tn(topX-4)}" cy="${_tn(topY+3)}" r="2.6"/><circle cx="${_tn(topX+4)}" cy="${_tn(topY+4)}" r="2.4"/><circle cx="${_tn(topX)}" cy="${_tn(topY+5.5)}" r="2.3"/></g>`;
-    return trunk+rings+fr;
-  }
+  const h=40+p*112, lean=4+p*6, topX=cx+lean, topY=gy-h;
+  const wB=8+p*5, wT=4.5+p*2.5, midX=cx+lean*0.4, midY=(gy+topY)/2;
+  const P=t=>[ (1-t)*(1-t)*cx+2*(1-t)*t*midX+t*t*topX, (1-t)*(1-t)*gy+2*(1-t)*t*midY+t*t*topY ];
+  const trunk=`<path class="tree-trunk" d="M${_tn(cx-wB/2)} ${_tn(gy)} Q ${_tn(midX-wT/2-2)} ${_tn(midY)} ${_tn(topX-wT/2)} ${_tn(topY)} L ${_tn(topX+wT/2)} ${_tn(topY)} Q ${_tn(midX+wT/2+2)} ${_tn(midY)} ${_tn(cx+wB/2)} ${_tn(gy)} Z"/>`;
+  let rings='';
+  for (let i=1;i<=5;i++){ const t=i/6, pt=P(t), w=(wB*(1-t)+wT*t);
+    rings+=`<path d="M${_tn(pt[0]-w/2-0.5)} ${_tn(pt[1])} q ${_tn(w/2+0.5)} 2.4 ${_tn(w+1)} 0" stroke="${_BARKD}" stroke-width="1" fill="none" opacity="0.5"/>`; }
+  const L=30+p*40, wid=7+p*4;
+  const qp=(x0,y0,x1,y1,x2,y2,t)=>[(1-t)*(1-t)*x0+2*(1-t)*t*x1+t*t*x2,(1-t)*(1-t)*y0+2*(1-t)*t*y1+t*t*y2];
+  const frond=(a,col,rib)=>{ const rad=a*Math.PI/180;
+    const ex=topX+Math.cos(rad)*L, ey=topY-Math.sin(rad)*L*0.7, c1=topX+Math.cos(rad)*L*0.5, cy1=topY-Math.sin(rad)*L*0.5-(9+p*6);
+    let f=`<path class="tree-canopy" fill="${col}" d="M${_tn(topX)} ${_tn(topY)} Q ${_tn(c1)} ${_tn(cy1)} ${_tn(ex)} ${_tn(ey)} Q ${_tn(c1)} ${_tn(cy1+wid)} ${_tn(topX)} ${_tn(topY+4)} Z"/>`;
+    // 侧羽：叶身中部→下缘的短细纹，随叶弯曲取样，克制 3 道
+    const pin=col==='#4a9a52' ? '#2f6636' : '#28542e';
+    let pf='';
+    [0.4,0.58,0.76].forEach(t=>{
+      const U=qp(topX,topY,c1,cy1,ex,ey,t), Lo=qp(topX,topY+4,c1,cy1+wid,ex,ey,t), Lo2=qp(topX,topY+4,c1,cy1+wid,ex,ey,Math.min(1,t+0.09));
+      const ax=U[0]+(Lo[0]-U[0])*0.35, ay=U[1]+(Lo[1]-U[1])*0.35;
+      pf+=`<path d="M${_tn(ax)} ${_tn(ay)} Q ${_tn((ax+Lo2[0])/2)} ${_tn((ay+Lo2[1])/2+0.6)} ${_tn(Lo2[0])} ${_tn(Lo2[1])}" stroke="${pin}" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.45"/>`;
+    });
+    f+=pf;
+    if (rib) f+=`<path d="M${_tn(topX)} ${_tn(topY+1)} Q ${_tn(c1)} ${_tn(cy1+wid*0.4)} ${_tn(ex)} ${_tn(ey)}" stroke="#2f6636" stroke-width="0.8" fill="none" opacity="0.6"/>`;
+    return f; };
+  let fr='';
+  [205,158,-25,22].forEach(a=>fr+=frond(a,'#37793f',false));
+  [120,90,60].forEach(a=>fr+=frond(a,'#4a9a52',true));
+  fr+=`<circle fill="${_BARKD}" cx="${_tn(topX)}" cy="${_tn(topY)}" r="${_tn(4+p*2)}"/>`;
+  if (p>0.55) fr+=`<g fill="#6b4a2b"><circle cx="${_tn(topX-4)}" cy="${_tn(topY+3)}" r="2.6"/><circle cx="${_tn(topX+4)}" cy="${_tn(topY+4)}" r="2.4"/><circle cx="${_tn(topX)}" cy="${_tn(topY+5.5)}" r="2.3"/></g>`;
+  return trunk+rings+fr;
+}
   function _tCactus(cx, gy, p) {
-    const h=40+p*108, w=22+p*15, top=gy-h, col='#5aa15c', lit='#6db06d', dk='#4b8a4e';
-    const rr=(x,y,ww,hh)=>`<rect class="tree-canopy" x="${_tn(x)}" y="${_tn(y)}" width="${_tn(ww)}" height="${_tn(hh)}" rx="${_tn(ww/2)}" fill="${col}"/>`
-      + `<rect x="${_tn(x)}" y="${_tn(y)}" width="${_tn(ww*0.4)}" height="${_tn(hh)}" rx="${_tn(ww*0.2)}" fill="${lit}"/>`
-      + `<rect x="${_tn(x+ww*0.7)}" y="${_tn(y)}" width="${_tn(ww*0.3)}" height="${_tn(hh)}" rx="${_tn(ww*0.15)}" fill="${dk}" opacity="0.7"/>`;
-    let s=rr(cx-w/2,top,w,h);
-    if (p>0.42){ const aw=w*0.5, reach=w*0.62, ay=top+h*0.36, up=30+p*36; s+=rr(cx-w/2-reach+3,ay,reach,aw)+rr(cx-w/2-reach+3,ay-up,aw,up+aw); }
-    if (p>0.72){ const aw=w*0.44, reach=w*0.55, ay=top+h*0.54, up=24+p*30; s+=rr(cx+w/2-3,ay,reach,aw)+rr(cx+w/2-3+reach-aw,ay-up,aw,up+aw); }
-    for (let i=0;i<3;i++){ const xx=cx-w*0.22+i*w*0.22; s+=`<line x1="${_tn(xx)}" y1="${_tn(top+w*0.4)}" x2="${_tn(xx)}" y2="${_tn(gy-6)}" stroke="#3f7642" stroke-width="0.8" opacity="0.5"/>`; }
-    if (p>0.8) s+=`<g><circle cx="${_tn(cx)}" cy="${_tn(top-1)}" r="3.4" fill="#ec7fb0"/><circle cx="${_tn(cx)}" cy="${_tn(top-1)}" r="1.5" fill="#ffd76a"/></g>`;
-    return s;
+  const h=40+p*108, w=22+p*15, top=gy-h, col='#5aa15c', lit='#6db06d', dk='#4b8a4e';
+  const rr=(x,y,ww,hh)=>`<rect class="tree-canopy" x="${_tn(x)}" y="${_tn(y)}" width="${_tn(ww)}" height="${_tn(hh)}" rx="${_tn(ww/2)}" fill="${col}"/>`
+    + `<rect x="${_tn(x)}" y="${_tn(y)}" width="${_tn(ww*0.46)}" height="${_tn(hh)}" rx="${_tn(ww*0.23)}" fill="${lit}" opacity="0.5"/>`
+    + `<rect x="${_tn(x)}" y="${_tn(y)}" width="${_tn(ww*0.3)}" height="${_tn(hh)}" rx="${_tn(ww*0.15)}" fill="${lit}" opacity="0.55"/>`
+    + `<rect x="${_tn(x+ww*0.64)}" y="${_tn(y)}" width="${_tn(ww*0.36)}" height="${_tn(hh)}" rx="${_tn(ww*0.18)}" fill="${dk}" opacity="0.35"/>`
+    + `<rect x="${_tn(x+ww*0.78)}" y="${_tn(y)}" width="${_tn(ww*0.22)}" height="${_tn(hh)}" rx="${_tn(ww*0.11)}" fill="${dk}" opacity="0.5"/>`;
+  // 臂根下内角：圆弧填角（沿竖直边 dy 方向与水平边 dx 方向各退 r，曲线经角点鼓成圆肘）
+  // 填色按所贴表面取受光/背光混合色，避免在明暗带上出现突兀色块
+  const litMix='#69ac69', dkMix='#509252';
+  const fil=(cxn,cyn,dx,dy,r,f)=>`<path d="M${_tn(cxn)} ${_tn(cyn+dy*r)} Q ${_tn(cxn)} ${_tn(cyn)} ${_tn(cxn+dx*r)} ${_tn(cyn)} L ${_tn(cxn)} ${_tn(cyn)} Z" fill="${f}"/>`;
+  // 竖段与柱之间窄缝的底部：单块「弯月膜」两侧相切收口（缝宽<2px，两个独立填角会交叉成星芒，故用一整块）
+  const men=(xa,xb,ay,rm,f)=>{ const mid=(xa+xb)/2;
+    return `<path d="M${_tn(xa)} ${_tn(ay-rm)} Q ${_tn(xa)} ${_tn(ay)} ${_tn(mid)} ${_tn(ay)} Q ${_tn(xb)} ${_tn(ay)} ${_tn(xb)} ${_tn(ay-rm)} L ${_tn(xb)} ${_tn(ay+3)} L ${_tn(xa)} ${_tn(ay+3)} Z" fill="${f}"/>`; };
+  let s=rr(cx-w/2,top,w,h);
+  if (p>0.42){ const aw=w*0.5, reach=w*0.62, ay=top+h*0.36, up=30+p*36, hx=cx-w/2-reach+3;
+    s+=rr(hx,ay,reach,aw)+rr(hx,ay-up,aw,up+aw);
+    const colL=cx-w/2;
+    s+=fil(colL,ay+aw,-1,1,aw*0.5,litMix)      // 臂根下内角（柱左缘=受光侧 × 臂下缘）
+      +men(hx+aw,colL,ay,aw*0.7,col);          // 竖段×柱窄缝底部弯月膜
   }
+  if (p>0.72){ const aw=w*0.44, reach=w*0.55, ay=top+h*0.54, up=24+p*30, hx=cx+w/2-3, vx=hx+reach-aw;
+    s+=rr(hx,ay,reach,aw)+rr(vx,ay-up,aw,up+aw);
+    const colR=cx+w/2;
+    s+=fil(colR,ay+aw,1,1,aw*0.5,dkMix)        // 臂根下内角（柱右缘=背光侧 × 臂下缘）
+      +men(colR,vx,ay,aw*0.7,col);             // 柱×竖段窄缝底部弯月膜
+  }
+  for (let i=0;i<3;i++){ const xx=cx-w*0.22+i*w*0.22; s+=`<line x1="${_tn(xx)}" y1="${_tn(top+w*0.4)}" x2="${_tn(xx)}" y2="${_tn(gy-6)}" stroke="#3f7642" stroke-width="0.8" opacity="0.5"/>`; }
+  if (p>0.8) s+=`<g><circle cx="${_tn(cx)}" cy="${_tn(top-1)}" r="3.4" fill="#ec7fb0"/><circle cx="${_tn(cx)}" cy="${_tn(top-1)}" r="1.5" fill="#ffd76a"/></g>`;
+  return s;
+}
   // —— 装饰阶梯：树价值越高越华丽（果实/地花/灯串/小鸟/蝴蝶/落瓣，逐级叠加；实心装点，无光晕光环）——
   function _decoLevel(v){ return v>=220?4 : v>=130?3 : v>=70?2 : v>=40?1 : 0; }
   function _gradeName(v){ return v>=220?'神木' : v>=130?'参天' : v>=70?'巨树' : v>=40?'大树' : v>=20?'成树' : '幼苗'; }
@@ -4127,7 +4585,7 @@ return deco_cactus;
     const wrapB = deco.behind && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.behind}</g>` : '';
     const wrapF = deco.front && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.front}</g>` : '';
     const petals = (!noPetals && treeType === 'sakura' && p >= 0.5) ? _sakuraFall() : '';
-    return `<svg class="tree-svg" viewBox="0 0 320 240"><g class="tree-sway" style="animation-delay:-2.1s">${wrapB}${_tGround(cx, gy, spread)}${body}${wrapF}</g>${petals}</svg>`;
+    return `<svg class="tree-svg" viewBox="0 0 320 240"><g class="tree-sway" style="animation-delay:-2.1s">${wrapB}${_tGround(cx, gy, spread, treeType)}${body}${wrapF}</g>${petals}</svg>`;
   }
 
   function renderTree(progress, target) {
