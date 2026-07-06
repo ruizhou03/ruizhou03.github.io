@@ -329,7 +329,7 @@
 
 - id: forest
   name: 种树
-  icon: 🌳
+  icon: /assets/icons/forest-icon-192.png
   tagline: 番茄钟 + 森林
   url: /toolbox/forest/
   category: 工作
