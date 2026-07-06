@@ -124,7 +124,7 @@ theme_color: "#fafaf9"
     pointer-events: none; overflow: hidden;
     border-bottom-left-radius: inherit; border-bottom-right-radius: inherit;
   }
-  .stage-ground svg { width: 100%; height: 100%; display: block; }
+  .stage-ground svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .stage > #tree-container {
     position: absolute; left: 50%; transform: translateX(-50%);
     width: var(--stw);
@@ -165,7 +165,9 @@ theme_color: "#fafaf9"
     pointer-events: none; overflow: hidden; z-index: 0;
   }
   .stage-scene { border-radius: inherit; }
-  .stage-scene svg, .overlay-scene svg { width: 100%; height: 100%; display: block; }
+  .stage-scene svg, .overlay-scene svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .scene-fade-in { animation: sceneFade 0.4s ease; }
+  @keyframes sceneFade { from { opacity: 0; } }
   /* 场景背景上的文字加一层柔和阴影保证可读 */
   .focus-overlay .timer-big, .focus-overlay .focus-tag, .focus-overlay .focus-warn { text-shadow: 0 1px 10px rgba(0,0,0,0.4); }
   .focus-overlay.theme-default .timer-big, .focus-overlay.theme-default .focus-tag, .focus-overlay.theme-default .focus-warn { text-shadow: 0 1px 8px rgba(255,255,255,0.6); }
@@ -389,6 +391,10 @@ theme_color: "#fafaf9"
   .more-settings > summary::after { content: '▾'; margin-left: auto; transition: transform 0.2s; }
   .more-settings[open] > summary { border-bottom: 1px solid var(--color-border); }
   .more-settings[open] > summary::after { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: no-preference) {
+    .more-settings[open] .more-settings-body { animation: setBodyIn 0.22s ease-out; }
+  }
+  @keyframes setBodyIn { from { opacity: 0; transform: translateY(-4px); } }
   .more-settings-body { display: grid; gap: 1.05rem; padding: 0.85rem 0.9rem 1rem; }
   /* 分组：本次专注（会话级）/ 偏好（持久化），标题小字提纲挈领 */
   .settings-group { display: grid; gap: 0.55rem; }
@@ -750,6 +756,10 @@ theme_color: "#fafaf9"
     display: none;
   }
   .tree-detail.open { display: block; }
+  @media (prefers-reduced-motion: no-preference) {
+    .tree-detail.open { animation: popIn 0.16s ease-out; }
+  }
+  @keyframes popIn { from { opacity: 0; transform: translateY(4px); } }
   .tree-detail .td-row {
     display: flex; align-items: baseline; gap: 0.5rem;
     margin-bottom: 0.35rem;
@@ -982,10 +992,48 @@ theme_color: "#fafaf9"
     }
   }
   @keyframes treeSway { from { transform: rotate(-1.15deg); } to { transform: rotate(1.15deg); } }
+  /* 摆动动画挂在跨秒级重建存活的 .tree-anim 包裹层上（旧方案 svg 内 g.tree-sway 每秒随
+     innerHTML 重建而重启，负 delay 固定＝永远冻在同一帧）；田地树不重建，仍用 svg 内 sway */
+  #tree-container .tree-anim, #overlay-tree-container .tree-anim { transform-origin: 50% 89%; }
+  @media (prefers-reduced-motion: no-preference) {
+    #tree-container .tree-anim, #overlay-tree-container .tree-anim {
+      animation: treeSway 5.6s ease-in-out -2.1s infinite alternate;
+    }
+  }
+  #tree-container .tree-anim .tree-sway, #overlay-tree-container .tree-anim .tree-sway { animation: none; }
+  /* 落樱层：只建一次、跨重建持续飘落 */
+  #tree-container .petal-layer, #overlay-tree-container .petal-layer { position: absolute; inset: 0; pointer-events: none; }
+  .petal-layer svg { width: 100%; height: 100%; display: block; }
+  /* 休息热饮的袅袅热气 */
+  .break-mug .mug-steam { transform-box: fill-box; transform-origin: 50% 100%; opacity: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .break-mug .mug-steam { animation: mugSteam 3.2s ease-in-out infinite; }
+  }
+  @keyframes mugSteam {
+    0% { opacity: 0; transform: translateY(5px); }
+    35% { opacity: 0.85; }
+    70%, 100% { opacity: 0; transform: translateY(-8px); }
+  }
+  /* 种成庆典：柔金光环 + 叶瓣爆散（一次性，reduced-motion 直接跳过） */
+  .celebrate-burst { position: absolute; inset: 0; pointer-events: none; }
+  .celebrate-burst svg { width: 100%; height: 100%; display: block; }
+  .celeb-ring { transform-box: fill-box; transform-origin: center; animation: celebRing 0.9s ease-out forwards; }
+  @keyframes celebRing { from { transform: scale(0.4); opacity: 0.9; } to { transform: scale(2.6); opacity: 0; } }
+  .celeb-leaf { opacity: 0; animation: celebLeaf 0.95s ease-out forwards; }
+  @keyframes celebLeaf {
+    0% { opacity: 0; translate: 0 0; }
+    12% { opacity: 1; }
+    100% { opacity: 0; translate: var(--dx) var(--dy); }
+  }
+  /* 新树落田 pop-in */
+  @media (prefers-reduced-motion: no-preference) {
+    .tree-instance.just-planted svg { animation: plantPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); transform-origin: 50% 88%; }
+  }
+  @keyframes plantPop { from { transform: scale(0.3); opacity: 0; } }
 
   /* —— 沉浸布局：计时在顶、树种在前景地面带上 —— */
   .overlay-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 22vh; height: 22dvh; z-index: 1; pointer-events: none; overflow: hidden; }
-  #overlay-ground svg { width: 100%; height: 100%; display: block; }
+  #overlay-ground svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   #overlay-tree-container.overlay-tree-zone {
     position: absolute; left: 50%; transform: translateX(-50%);
     --ovtw: min(58vw, 44vh);
@@ -1014,6 +1062,11 @@ theme_color: "#fafaf9"
   /* 计时风格 */
   .focus-overlay.timer-hidden .timer-big { display: none; }
   .focus-overlay.open { display: flex; }
+  @supports (transition-behavior: allow-discrete) {
+    .focus-overlay { transition: opacity 0.35s ease, display 0.35s allow-discrete; opacity: 0; }
+    .focus-overlay.open { opacity: 1; }
+    @starting-style { .focus-overlay.open { opacity: 0; } }
+  }
   /* 沉浸布局下场景(#overlay-scene)/地面(#overlay-ground)/树(#overlay-tree-container)各有独立作用域的 SVG 尺寸规则；
      不能再用 `.focus-overlay svg` 一刀切——它会以同等特指度覆盖 `.overlay-scene svg{width:100%}`，
      把本该铺满整屏的场景压成左上角一个 min(280px,60vw) 的小方块。 */
@@ -1075,6 +1128,7 @@ theme_color: "#fafaf9"
     border-color: rgba(40, 40, 40, 0.2);
   }
   /* 暂停态：计时大字压暗，提示专注已停 */
+  .focus-overlay .timer-big { transition: opacity 0.3s ease; }
   .focus-overlay.paused .timer-big { opacity: 0.45; }
   .focus-overlay .tree-svg .tree-trunk { fill: #8b6a3e; }
   .focus-overlay .tree-svg .tree-ground { fill: #5a4530; }
@@ -1110,6 +1164,10 @@ theme_color: "#fafaf9"
     border-radius: 999px;
   }
   .focus-overlay .grace-banner.hidden { display: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .focus-overlay .grace-banner:not(.hidden) { animation: fadeInUp 0.25s ease; }
+  }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(6px); } }
 
   /* localStorage 已满时弹一次的顶部警告条 */
   .storage-warn {
@@ -1143,6 +1201,12 @@ theme_color: "#fafaf9"
     padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
   }
   .ft-modal-mask.open { display: flex; }
+  @media (prefers-reduced-motion: no-preference) {
+    .ft-modal-mask.open { animation: maskIn 0.18s ease; }
+    .ft-modal-mask.open .ft-modal { animation: modalIn 0.18s cubic-bezier(0.2, 0.7, 0.3, 1); }
+  }
+  @keyframes maskIn { from { opacity: 0; } }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(6px); } }
   .ft-modal {
     background: var(--color-bg);
     border: 1px solid var(--color-border);
@@ -1211,7 +1275,7 @@ theme_color: "#fafaf9"
   .sc-drift-slow{animation:scDrift 96s linear infinite}
   .sc-drift-rain{animation:scDrift 46s linear infinite}
   .sc-riser{animation:scRise 20s ease-in-out infinite alternate}
-  .sc-moon{animation:scMoon 46s ease-in-out infinite alternate}
+  .sc-moon{animation:scMoon 160s ease-in-out infinite alternate}
   .sc-bloom{animation:scPulse 8s ease-in-out infinite}
   .sc-star{animation:scTwinkle 3.6s ease-in-out infinite}
   .rn-far{animation:rnFar 1.55s linear infinite}
@@ -1224,7 +1288,7 @@ theme_color: "#fafaf9"
 }
 @keyframes scDrift{from{transform:translateX(0)}to{transform:translateX(-400px)}}
 @keyframes scRise{from{transform:translateY(7px)}to{transform:translateY(-11px)}}
-@keyframes scMoon{from{transform:translate(0px,5px)}to{transform:translate(-15px,-11px)}}
+@keyframes scMoon{from{transform:translate(0px,3px)}to{transform:translate(-9px,-7px)}}
 @keyframes scPulse{0%,100%{opacity:1}50%{opacity:.62}}
 @keyframes scTwinkle{0%,100%{opacity:1}50%{opacity:.32}}
 @keyframes rnFar{from{transform:translateY(0)}to{transform:translateY(44px)}}
@@ -1912,14 +1976,28 @@ theme_color: "#fafaf9"
     }
     return `<svg viewBox="0 0 400 100" preserveAspectRatio="none"><rect width="400" height="100" fill="${g[1]}"/><path d="M0 30 Q 200 8 400 24 L400 100 L0 100 Z" fill="${g[0]}"/><path d="M0 30 Q 200 8 400 24" fill="none" stroke="${g[2]}" stroke-width="2.4" opacity="0.55"/>${rip}</svg>`;
   }
+  // 场景切换交叉淡入：新层叠上、动画结束移除旧层，避免整幅 innerHTML 硬切
+  function _swapScene(container, html) {
+    if (!container) return;
+    while (container.children.length > 1) container.firstElementChild.remove();
+    const old = container.firstElementChild;
+    if (!old) { container.innerHTML = html; return; }
+    container.insertAdjacentHTML('beforeend', html);
+    const nw = container.lastElementChild;
+    nw.classList.add('scene-fade-in');
+    let done = false;
+    const finish = () => { if (done) return; done = true; if (old.parentNode) old.remove(); nw.classList.remove('scene-fade-in'); };
+    nw.addEventListener('animationend', finish, { once: true });
+    setTimeout(finish, 650);   // reduced-motion / 动画被跳过时的兜底
+  }
   function applyTheme() {
     if (!$overlay) return;
     // 清掉所有 theme-* 类，只加当前
     $overlay.className = $overlay.className.replace(/\btheme-\w+\b/g, '').replace(/\btimer-\w+\b/g, '');
     $overlay.classList.add('theme-' + state.theme.background);
     $overlay.classList.add('timer-' + state.theme.timer);
-    const os = document.getElementById('overlay-scene'); if (os) os.innerHTML = _sceneSvg(state.theme.background);
-    const og = document.getElementById('overlay-ground'); if (og) og.innerHTML = _overlayGroundSvg(state.theme.background);
+    _swapScene(document.getElementById('overlay-scene'), _sceneSvg(state.theme.background));
+    _swapScene(document.getElementById('overlay-ground'), _overlayGroundSvg(state.theme.background));
   }
 
   function applyStageTheme() {
@@ -1927,8 +2005,8 @@ theme_color: "#fafaf9"
     if (!$stage) return;
     $stage.className = $stage.className.replace(/\btheme-\w+\b/g, '');
     $stage.classList.add('theme-' + state.theme.background);
-    const ss = document.getElementById('stage-scene'); if (ss) ss.innerHTML = _sceneSvg(state.theme.background);
-    const sg = document.getElementById('stage-ground'); if (sg) sg.innerHTML = _overlayGroundSvg(state.theme.background);
+    _swapScene(document.getElementById('stage-scene'), _sceneSvg(state.theme.background));
+    _swapScene(document.getElementById('stage-ground'), _overlayGroundSvg(state.theme.background));
   }
 
   // ============ Tree SVG ============
@@ -4034,7 +4112,7 @@ return deco_cactus;
     if (type === 'cactus') return _tCactus(160, 214, p);
     return _tBroad(160, 214, p, _tPAL.oak);
   }
-  function buildTreeSvg(treeType, progress, value) {
+  function buildTreeSvg(treeType, progress, value, noPetals) {
     progress = Math.max(0, Math.min(1, progress));
     const cx = 160, gy = 214, p = progress;
     const spread = 24 + p * 60;
@@ -4048,7 +4126,7 @@ return deco_cactus;
     }
     const wrapB = deco.behind && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.behind}</g>` : '';
     const wrapF = deco.front && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.front}</g>` : '';
-    const petals = (treeType === 'sakura' && p >= 0.5) ? _sakuraFall() : '';
+    const petals = (!noPetals && treeType === 'sakura' && p >= 0.5) ? _sakuraFall() : '';
     return `<svg class="tree-svg" viewBox="0 0 320 240"><g class="tree-sway" style="animation-delay:-2.1s">${wrapB}${_tGround(cx, gy, spread)}${body}${wrapF}</g>${petals}</svg>`;
   }
 
@@ -4064,13 +4142,30 @@ return deco_cactus;
         value = mins;
       }
     }
-    const html = buildTreeSvg(state.treeType, progress, value);
-    if (!target) {
-      $treeContainer.innerHTML = html;
-      $overlayTreeContainer.innerHTML = html;
-    } else {
-      target.innerHTML = html;
+    // 生长量化到 0.5%：一档内几何不变就不重建（旧方案每秒重建 svg，摆动/落樱动画被打断）
+    const pq = Math.round(Math.max(0, Math.min(1, progress)) * 200) / 200;
+    const wantPetals = state.treeType === 'sakura' && pq >= 0.5;
+    const key = state.treeType + '|' + pq + '|' + (value || 0);
+    const targets = target ? [target] : [$treeContainer, $overlayTreeContainer];
+    targets.forEach(t => {
+      const L = _ensureTreeLayers(t);
+      if (L.anim._ftKey !== key) {
+        L.anim._ftKey = key;
+        L.anim.innerHTML = buildTreeSvg(state.treeType, pq, value, true);
+      }
+      const hasPetals = !!L.petals.firstChild;
+      if (wantPetals && !hasPetals) L.petals.innerHTML = '<svg viewBox="0 0 320 240">' + _sakuraFall() + '</svg>';
+      else if (!wantPetals && hasPetals) L.petals.innerHTML = '';
+    });
+  }
+  // 持久双层：.tree-anim（摆动层，跨重建存活）+ .petal-layer（落樱层，只建一次持续飘）
+  function _ensureTreeLayers(target) {
+    let anim = target.querySelector(':scope > .tree-anim');
+    if (!anim) {
+      target.innerHTML = '<div class="tree-anim"></div><div class="petal-layer"></div>';
+      anim = target.querySelector(':scope > .tree-anim');
     }
+    return { anim, petals: target.querySelector(':scope > .petal-layer') };
   }
 
   // ============ 田地树（按 tier 渲染最终形态）============
@@ -4252,16 +4347,22 @@ return deco_cactus;
     }
 
     if (state.session.isBreak) {
-      // break 模式不画树，画一杯矢量热饮 + 袅袅热气
-      $overlayTreeContainer.innerHTML = `
-        <svg class="tree-svg" viewBox="0 0 320 240" style="opacity: 0.85;">
+      // break 模式不画树，画一杯矢量热饮 + 袅袅热气（只画一次：每秒重建会打断热气动画）
+      if (!$overlayTreeContainer.querySelector('.break-mug')) {
+        $overlayTreeContainer.innerHTML = `
+        <svg class="tree-svg break-mug" viewBox="0 0 320 240" style="opacity: 0.85;">
           <g fill="none" stroke="#cfe6ff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
             <path d="M112 120 h74 v46 a26 26 0 0 1 -26 26 h-22 a26 26 0 0 1 -26 -26 z"/>
             <path d="M186 130 h16 a18 18 0 0 1 0 36 h-16"/>
-            <path d="M132 98 c0 -11 -9 -13 -9 -24 M158 98 c0 -11 -9 -13 -9 -24 M184 98 c0 -11 -9 -13 -9 -24"/>
+          </g>
+          <g fill="none" stroke="#cfe6ff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+            <path class="mug-steam" d="M132 98 c0 -11 -9 -13 -9 -24"/>
+            <path class="mug-steam" style="animation-delay:-1.1s" d="M158 98 c0 -11 -9 -13 -9 -24"/>
+            <path class="mug-steam" style="animation-delay:-2.2s" d="M184 98 c0 -11 -9 -13 -9 -24"/>
           </g>
         </svg>
       `;
+      }
     } else {
       renderTree(progress);
     }
@@ -4341,6 +4442,7 @@ return deco_cactus;
         };
         assignNewPosition(tree);
         state.trees.push(tree);
+        _justPlantedId = tree.id;
         state.cycleCount++;
 
         // 追溯更新：同 chain 的所有树（含刚才这棵）都改成新 bonus
@@ -4407,18 +4509,42 @@ return deco_cactus;
         }
       }, 1000);
     } else {
-      // 单次模式（或续跑完成）：直接结束；祝贺文案保留到下次交互再被覆盖
-      $overlay.classList.remove('open');
-      $overlay.classList.remove('break-mode');
+      // 单次模式（或续跑完成）：庆典播完再收遮罩；祝贺文案保留到下次交互再被覆盖
+      const closeNow = () => {
+        $overlay.classList.remove('open');
+        $overlay.classList.remove('break-mode');
+        setTimeout(() => renderTree(0, $overlayTreeContainer), 420);   // 等淡出结束再重置遮罩里的树
+      };
       $pauseBtn.style.display = 'none';
       $startBtn.disabled = false;
       $timerDisplay.textContent = fmtTime(state.duration * 60);
-      renderTree(0);
-      // 树落进了独立的森林页，给一条带入口的确认（每次专注完成必产出一棵树）
+      renderTree(0, $treeContainer);
       if (!wasBreak) {
         showToast('这棵树已种进你的森林', { undoText: '去看看', undo: () => { location.hash = '#forest'; } });
+        celebrateThenClose(closeNow);
+      } else {
+        closeNow();
       }
     }
+  }
+
+  // 种成庆典：柔金光环 + 叶瓣爆散，播完再关遮罩（reduced-motion 直接关）
+  function celebrateThenClose(closeFn) {
+    let rm = false;
+    try { rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+    if (rm || !$overlayTreeContainer || !$overlay.classList.contains('open')) { closeFn(); return; }
+    const burst = document.createElement('div');
+    burst.className = 'celebrate-burst';
+    const leaves = [];
+    for (let i = 0; i < 8; i++) {
+      const a = (Math.PI * 2 * i) / 8 + 0.35;
+      const dx = Math.cos(a) * 92, dy = Math.sin(a) * 66 - 26;
+      const col = i % 2 ? '#8fbf6f' : '#e7c87f';
+      leaves.push('<path class="celeb-leaf" style="--dx:' + dx.toFixed(0) + 'px;--dy:' + dy.toFixed(0) + 'px;animation-delay:' + (i * 0.03).toFixed(2) + 's" transform="translate(160 128)" d="M0 0 q5 -8 0 -15 q-5 7 0 15" fill="' + col + '"/>');
+    }
+    burst.innerHTML = '<svg viewBox="0 0 320 240"><circle class="celeb-ring" cx="160" cy="128" r="30" fill="none" stroke="#e7c87f" stroke-width="3"/>' + leaves.join('') + '</svg>';
+    $overlayTreeContainer.appendChild(burst);
+    setTimeout(() => { burst.remove(); closeFn(); }, 1050);
   }
 
   const GRACE_MS = 60 * 1000;  // 1 分钟宽限期：失败不计
@@ -4662,6 +4788,7 @@ return deco_cactus;
   // 列数随可用宽度连续计算（手机≈4、平板竖屏≈6-8、平板横屏/桌面≈9-11），
   // 唯一事实源是 fieldWidth——CSS 只管控件尺寸，几何全在这里。
   const TARGET_CELL = 92;   // 目标每格宽度（px）
+  let _justPlantedId = null;   // 刚种成的树：下次渲染田地时做一次 pop-in
   let _lastFieldWidth = 0;   // 森林视图隐藏时 clientWidth=0，退回上次真实量到的宽度
   function getFieldDimensions() {
     const live = $field.clientWidth;
@@ -4836,6 +4963,7 @@ return deco_cactus;
       const y = t.position.row * rowHeight + 2;
       const div = document.createElement('div');
       div.className = 'tree-instance' + (t.success ? '' : ' dead')
+        + (t.id === _justPlantedId ? ' just-planted' : '')
         + (editMode && state.selectedIds.indexOf(t.id) >= 0 ? ' msel' : '');
       div.dataset.id = t.id;
       div.dataset.tier = String(tier);
@@ -4870,6 +4998,7 @@ return deco_cactus;
 
       $field.appendChild(div);
     });
+    _justPlantedId = null;   // pop-in 只播一次
   }
 
   async function deleteTree(id) {
@@ -5231,6 +5360,7 @@ return deco_cactus;
     const ids = new Set(state.selectedIds);
     state.trees = state.trees.filter(t => !ids.has(t.id));
     state.trees.push(merged);
+    _justPlantedId = merged.id;
     state.selectedIds = [];
     saveTrees();
     updateMergeBtn();
