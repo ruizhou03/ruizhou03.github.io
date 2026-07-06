@@ -22,12 +22,20 @@ theme_color: "#fafaf9"
     --ft-fs-md: 1rem;       /* 小标题 */
     --ft-fs-lg: 1.12rem;    /* 主按钮 */
     --ft-danger: #b07c75;                        /* destructive 唯一职责色 */
+    --ft-danger-ink: #9c5f56;                    /* 深一档：小字可点文字 / hover */
     --ft-danger-soft: rgba(176, 124, 117, 0.1);
     --ft-gold: #c9a96e;                          /* 灌溉 / 巨树 暖金 */
     --ft-gold-ink: #b08838;
     --ft-gold-soft: rgba(201, 169, 110, 0.16);
     --ft-shadow-card: 0 4px 18px rgba(30, 58, 95, 0.06);
+    --ft-shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.18);     /* 浮层：popover / tooltip */
+    --ft-shadow-modal: 0 14px 44px rgba(0, 0, 0, 0.3);   /* 模态 */
+    --ft-on-accent: #fff;   /* 实心 accent 上的文字（暗色下翻深，白字压浅蓝会发虚）*/
   }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --ft-on-accent: #10202e; }
+  }
+  :root[data-theme="dark"] { --ft-on-accent: #10202e; }
 
   /* 阻断橡皮筋回弹（仅本工具页内联，standalone 下更像原生 App）*/
   html, body { overscroll-behavior: none; }
@@ -42,6 +50,13 @@ theme_color: "#fafaf9"
   .ft-wrap header h1 .title-mark { color: var(--color-accent); display: inline-flex; }
   .ft-wrap header h1 .title-mark svg { width: 1.1em; height: 1.1em; display: block; }
   .ft-wrap header .sub { color: var(--color-muted); font-style: normal; font-size: var(--ft-fs-base); }
+  /* 键盘可达性：统一焦点圈；主按钮禁用态可见 */
+  .ft-wrap :is(button, a, input, summary):focus-visible,
+  .focus-overlay button:focus-visible {
+    outline: 2px solid var(--color-accent); outline-offset: 2px;
+  }
+  .action-btn:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
+
   /* 通用线性图标：描边跟随 currentColor，尺寸随字号 */
   .ft-ico { width: 1.05em; height: 1.05em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
 
@@ -65,7 +80,7 @@ theme_color: "#fafaf9"
   @media (hover: hover) {
     .ft-nav-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
-  .ft-nav-tab.active { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
+  .ft-nav-tab.active { background: var(--color-accent); border-color: var(--color-accent); color: var(--ft-on-accent); }
   /* 手机 / 窄屏：固定底部 tab 栏（App 质感），内容与 toast 让位 */
   @media (max-width: 768px) {
     .ft-nav {
@@ -130,43 +145,21 @@ theme_color: "#fafaf9"
   }
   .stage.theme-night { background: linear-gradient(180deg, #1a2818 0%, #0d150a 100%); }
   .stage.theme-bubbles { background: linear-gradient(180deg, #1a3a5e 0%, #0d2540 100%); }
-  .stage.theme-stars { background: linear-gradient(180deg, #1f0f3a 0%, #0a0518 100%); }
   .stage.theme-sunrise { background: linear-gradient(180deg, #d35a45 0%, #e88a5a 40%, #f0c478 100%); }
   .stage.theme-rain { background: linear-gradient(180deg, #2d3a4a 0%, #15202d 100%); }
-  .stage.theme-aurora { background: linear-gradient(180deg, #0a1a3e 0%, #1a3a5a 60%, #0a2840 100%); }
-  .stage.theme-aurora::before {
-    content: '';
-    position: absolute; inset: 0;
-    background:
-      radial-gradient(ellipse at 30% 30%, rgba(80, 220, 180, 0.35), transparent 50%),
-      radial-gradient(ellipse at 70% 50%, rgba(140, 100, 220, 0.3), transparent 55%),
-      radial-gradient(ellipse at 50% 20%, rgba(70, 200, 230, 0.25), transparent 60%);
-    animation: auroraDrift 20s ease-in-out infinite alternate;
-    pointer-events: none;
-    z-index: 0;
-  }
   /* 深色主题下舞台文字翻成浅色 */
   .stage.theme-night .timer-display,
   .stage.theme-bubbles .timer-display,
-  .stage.theme-stars .timer-display,
   .stage.theme-sunrise .timer-display,
-  .stage.theme-rain .timer-display,
-  .stage.theme-aurora .timer-display { color: #f4f1ea; }
+  .stage.theme-rain .timer-display { color: #f4f1ea; }
   .stage.theme-night .timer-status,
   .stage.theme-bubbles .timer-status,
-  .stage.theme-stars .timer-status,
   .stage.theme-sunrise .timer-status,
-  .stage.theme-rain .timer-status,
-  .stage.theme-aurora .timer-status { color: rgba(255, 255, 255, 0.72); }
-  /* 舞台粒子容器（与 .overlay-particles 同结构，仅作用域不同）*/
-  .stage-particles {
-    position: absolute; inset: 0;
-    pointer-events: none;
-    overflow: hidden;
-    border-radius: inherit;
-    z-index: 0;
-  }
-  /* 主题场景背景（舞台 / 遮罩），铺满、置于粒子与树之下 */
+  .stage.theme-rain .timer-status { color: rgba(255, 255, 255, 0.72); }
+  /* 晴日场景是亮色白昼画面：文字钉深色，不跟站点暗色翻白（否则暗色模式下近白文字压亮天不可读）*/
+  .stage.theme-default .timer-display { color: #2f3630; }
+  .stage.theme-default .timer-status { color: rgba(47, 54, 48, 0.72); }
+  /* 主题场景背景（舞台 / 遮罩），铺满、置于树之下 */
   .stage-scene, .overlay-scene {
     position: absolute; inset: 0;
     pointer-events: none; overflow: hidden; z-index: 0;
@@ -200,7 +193,10 @@ theme_color: "#fafaf9"
     margin: 1.2rem 0 0.5rem;
     font-variant-numeric: tabular-nums;
   }
-  .timer-display.warn { color: #b07c75; animation: pulse 1.4s ease-in-out infinite; }
+  .timer-display.warn { color: var(--ft-danger); }
+  @media (prefers-reduced-motion: no-preference) {
+    .timer-display.warn { animation: pulse 1.4s ease-in-out infinite; }
+  }
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
@@ -223,7 +219,7 @@ theme_color: "#fafaf9"
     padding: 0.7rem 0.95rem;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: var(--ft-r-sm);
   }
   .setting-row label {
     font-size: var(--ft-fs-sm); color: var(--color-muted);
@@ -240,7 +236,7 @@ theme_color: "#fafaf9"
     transition: all 0.18s;
   }
   .setting-row .duration-tabs button.active {
-    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+    background: var(--color-accent); color: var(--ft-on-accent); border-color: var(--color-accent);
   }
   @media (hover: hover) {
     .setting-row .duration-tabs button:not(.active):hover {
@@ -311,7 +307,7 @@ theme_color: "#fafaf9"
     border-radius: 999px; white-space: nowrap;
     transition: color 0.2s;
   }
-  .seg-toggle button.active { color: #fff; }
+  .seg-toggle button.active { color: var(--ft-on-accent); }
   .seg-thumb {
     position: absolute; top: 3px; bottom: 3px; left: 3px; width: 0;
     border-radius: 999px; background: var(--color-accent);
@@ -360,7 +356,7 @@ theme_color: "#fafaf9"
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: var(--ft-r-lg);
-    padding: 1rem 1rem 1.1rem;
+    padding: 1.2rem 1.3rem 1.3rem;
     margin-bottom: 1.4rem;
     box-shadow: var(--ft-shadow-card);
   }
@@ -412,17 +408,17 @@ theme_color: "#fafaf9"
 
   /* 开始按钮：卡片内、大号、铺满 */
   .plant-card .action-row { margin: 1.1rem 0 0.1rem; }
-  .plant-card .action-btn { width: 100%; max-width: 420px; padding: 1.05rem 2rem; font-size: 1.15rem; }
+  .plant-card .action-btn { width: 100%; max-width: 420px; padding: 1.05rem 2rem; font-size: var(--ft-fs-lg); }
 
   /* ============ 主操作按钮 ============ */
   .action-row {
     text-align: center; margin: 1.4rem 0;
   }
   .action-btn {
-    font: inherit; font-size: 1.1rem; font-weight: 600;
+    font: inherit; font-size: var(--ft-fs-lg); font-weight: 600;
     padding: 0.95rem 3rem;
     border: none; border-radius: 999px;
-    background: var(--color-accent); color: #fff; cursor: pointer;
+    background: var(--color-accent); color: var(--ft-on-accent); cursor: pointer;
     box-shadow: 0 3px 12px rgba(30, 58, 95, 0.28);
     transition: all 0.2s;
   }
@@ -432,17 +428,6 @@ theme_color: "#fafaf9"
     box-shadow: 0 5px 18px rgba(30, 58, 95, 0.35);
   }
   }
-  .action-btn.give-up {
-    background: transparent; color: #b07c75;
-    border: 1px dashed #b07c75;
-    box-shadow: none;
-    font-size: var(--ft-fs-base);
-    padding: 0.6rem 1.6rem;
-  }
-  @media (hover: hover) {
-    .action-btn.give-up:hover { background: rgba(192, 57, 43, 0.08); }
-  }
-
   .focus-warning {
     margin-top: 0.7rem;
     font-size: var(--ft-fs-sm);
@@ -459,7 +444,7 @@ theme_color: "#fafaf9"
     background: linear-gradient(135deg, #fff8e7, #fef3c7);
     border: 1px solid #d4b67e;
     border-left: 4px solid #c9a96e;
-    border-radius: 10px;
+    border-radius: var(--ft-r-sm);
     color: #78350f;
     font-size: var(--ft-fs-base);
     line-height: 1.55;
@@ -513,7 +498,7 @@ theme_color: "#fafaf9"
     text-align: center;
     padding: 0.6rem 0.4rem;
     background: var(--color-bg-warm);
-    border-radius: 10px;
+    border-radius: var(--ft-r-sm);
   }
   .stat-card .stat-num {
     font-family: var(--font-display);
@@ -530,6 +515,7 @@ theme_color: "#fafaf9"
   /* 森林视图 */
   .forest-title {
     font-family: var(--font-display);
+    font-size: var(--ft-fs-md);   /* 与「专注经验值」标题同级同字号 */
     font-weight: 600;
     color: var(--color-ink);
     margin-bottom: 0.7rem;
@@ -540,13 +526,14 @@ theme_color: "#fafaf9"
     font-size: var(--ft-fs-cap); font-weight: 400;
     color: var(--color-muted);
   }
+  #merge-btn { color: var(--ft-gold-ink); border-color: var(--ft-gold); }
   /* ============ 多块田 tabs ============ */
   .field-tabs {
     display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;
     margin-bottom: 0.7rem;
     padding: 0.5rem;
     background: var(--color-bg-warm);
-    border-radius: 10px;
+    border-radius: var(--ft-r-sm);
     border: 1px solid var(--color-border);
   }
   .field-tab {
@@ -558,7 +545,7 @@ theme_color: "#fafaf9"
     display: inline-flex; align-items: center; gap: 0.35rem;
   }
   .field-tab.active {
-    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+    background: var(--color-accent); color: var(--ft-on-accent); border-color: var(--color-accent);
   }
   @media (hover: hover) {
     .field-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
@@ -595,7 +582,7 @@ theme_color: "#fafaf9"
     cursor: pointer; transition: all 0.18s;
   }
   .field-toolbar button.active {
-    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+    background: var(--color-accent); color: var(--ft-on-accent); border-color: var(--color-accent);
   }
   .field-toolbar button.danger { color: var(--ft-danger); }
   @media (hover: hover) {
@@ -669,7 +656,7 @@ theme_color: "#fafaf9"
   .snap-preview {
     position: absolute;
     border: 2px dashed rgba(255, 255, 255, 0.85);
-    border-radius: 8px;
+    border-radius: var(--ft-r-xs);
     background: rgba(255, 255, 255, 0.18);
     pointer-events: none;
     transition: left 0.12s, top 0.12s;
@@ -704,7 +691,7 @@ theme_color: "#fafaf9"
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); z-index: 8;
   }
-  .field.edit-mode .tree-instance.msel { outline: 2px solid var(--color-accent); outline-offset: 3px; border-radius: 8px; }
+  .field.edit-mode .tree-instance.msel { outline: 2px solid var(--color-accent); outline-offset: 3px; border-radius: var(--ft-r-xs); }
   .tree-instance.dragging {
     z-index: 10; cursor: grabbing;
     transition: none;
@@ -719,7 +706,7 @@ theme_color: "#fafaf9"
     position: absolute;
     top: -4px; right: -4px;
     width: 22px; height: 22px;
-    background: #b07c75; color: #fff;
+    background: var(--ft-danger); color: #fff;
     border-radius: 50%;
     display: none;
     align-items: center; justify-content: center;
@@ -730,7 +717,7 @@ theme_color: "#fafaf9"
   }
   .field.edit-mode .tree-instance .delete-x { display: flex; }
   @media (hover: hover) {
-    .tree-instance .delete-x:hover { background: #b07c75; transform: scale(1.1); }
+    .tree-instance .delete-x:hover { background: var(--ft-danger-ink); transform: scale(1.1); }
   }
 
   /* 树悬浮备注：单例 position:fixed，JS 定位并夹在视口内，绝不出框 */
@@ -739,7 +726,7 @@ theme_color: "#fafaf9"
     background: rgba(20, 25, 30, 0.92);
     color: #fff;
     padding: 0.45rem 0.7rem;
-    border-radius: 8px;
+    border-radius: var(--ft-r-xs);
     font-size: var(--ft-fs-cap);
     white-space: nowrap;
     pointer-events: none;
@@ -754,9 +741,9 @@ theme_color: "#fafaf9"
     position: fixed;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
-    border-radius: 12px;
+    border-radius: var(--ft-r-md);
     padding: 1rem 1.1rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--ft-shadow-pop);
     z-index: 100;
     min-width: 240px;
     max-width: 90vw;
@@ -778,7 +765,7 @@ theme_color: "#fafaf9"
     flex-grow: 1;
     font: inherit; font-size: var(--ft-fs-sm);
     padding: 0.4rem 0.7rem;
-    border: 1px solid var(--color-border); border-radius: 6px;
+    border: 1px solid var(--color-border); border-radius: var(--ft-r-xs);
     background: var(--color-bg); color: var(--color-muted);
     cursor: pointer; transition: all 0.18s;
   }
@@ -786,7 +773,7 @@ theme_color: "#fafaf9"
     .tree-detail .td-actions button:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
   @media (hover: hover) {
-    .tree-detail .td-actions button.danger:hover { border-color: #b07c75; color: #b07c75; }
+    .tree-detail .td-actions button.danger:hover { border-color: var(--ft-danger); color: var(--ft-danger); }
   }
   .tree-detail .tier-badge {
     display: inline-block;
@@ -797,7 +784,7 @@ theme_color: "#fafaf9"
     color: var(--color-muted);
     margin-left: 0.4rem;
   }
-  .tree-detail .tier-badge.tier-4 { background: rgba(201, 169, 110, 0.25); color: #b08838; }
+  .tree-detail .tier-badge.tier-4 { background: var(--ft-gold-soft); color: var(--ft-gold-ink); }
 
   .empty-forest {
     text-align: center;
@@ -805,14 +792,14 @@ theme_color: "#fafaf9"
     color: var(--color-light);
     font-size: var(--ft-fs-base);
     background: var(--color-bg-warm);
-    border-radius: 10px;
+    border-radius: var(--ft-r-sm);
   }
 
   /* ============ 经验值图表 ============ */
   /* 嵌在 stats-zone 内的子面板：保持扁平，用 bg-warm 与外层拉开层级 */
   .exp-chart-zone {
     margin-top: 1.4rem;
-    padding: 1.1rem 1.2rem;
+    padding: 1.2rem 1.3rem;
     background: var(--color-bg-warm);
     border: 1px solid var(--color-border);
     border-radius: var(--ft-r-md);
@@ -847,7 +834,7 @@ theme_color: "#fafaf9"
     transition: all 0.18s;
   }
   .exp-range-tabs button.active {
-    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+    background: var(--color-accent); color: var(--ft-on-accent); border-color: var(--color-accent);
   }
   @media (hover: hover) {
     .exp-range-tabs button:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
@@ -859,7 +846,7 @@ theme_color: "#fafaf9"
     background: rgba(20, 25, 30, 0.92);
     color: #fff;
     padding: 0.35rem 0.6rem;
-    border-radius: 6px;
+    border-radius: var(--ft-r-xs);
     font-size: var(--ft-fs-cap);
     pointer-events: none;
     white-space: nowrap;
@@ -885,7 +872,7 @@ theme_color: "#fafaf9"
     transition: all 0.18s;
   }
   @media (hover: hover) {
-    .reset-row button:hover { color: #b07c75; border-color: #b07c75; }
+    .reset-row button:hover { color: var(--ft-danger); border-color: var(--ft-danger); }
   }
 
   @media (max-width: 600px) {
@@ -896,7 +883,6 @@ theme_color: "#fafaf9"
   /* 平板：竖屏用满宽度，横屏及桌面再放宽容器，别把大屏当放大版手机 */
   /* 沉浸舞台：桌面上把「树 + 计时」的舞台放大成主角，控件与森林在下方依次展开 */
   @media (min-width: 768px) {
-    .ft-wrap { max-width: 760px; }
     .stage { --stw: min(300px, 40vw); padding: 3rem 1.4rem 0; min-height: calc(var(--stw) * 0.75 + var(--sgh) + 9rem); }
     .timer-display { font-size: 4.4rem; }
     .plant-card { padding: 1.4rem 1.4rem 1.5rem; }
@@ -919,8 +905,9 @@ theme_color: "#fafaf9"
   /* 手机窄屏：压缩主舞台让首屏就能看到操作区；输入框 ≥16px 防 iOS 聚焦缩放 */
   @media (max-width: 480px) {
     .ft-wrap { padding: 0.75rem; }
-    .ft-wrap header { margin-bottom: 0.8rem; }
-    .ft-wrap header h1 { font-size: 1.6rem; }
+    .ft-wrap header { margin-bottom: 0.55rem; }
+    .ft-wrap header h1 { font-size: 1.45rem; }
+    .ft-wrap header .sub { font-size: var(--ft-fs-sm); }
     .plant-card { padding: 0.85rem 0.8rem 1rem; border-radius: var(--ft-r-lg); }
     .timer-display { font-size: 2.2rem; margin: 0.6rem 0 0.3rem; }
     .stage { padding: 1.1rem 0.9rem 0; }
@@ -942,7 +929,7 @@ theme_color: "#fafaf9"
   .focus-overlay {
     position: fixed; inset: 0;
     background: rgba(20, 30, 24, 0.86);
-    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
     z-index: 1500;
     display: none;
     align-items: center; justify-content: flex-start;
@@ -958,7 +945,7 @@ theme_color: "#fafaf9"
   /* 主题：背景层 */
   .focus-overlay.theme-default {
     background: linear-gradient(180deg, #f0f4ed 0%, #e8e2d4 100%);
-    color: var(--color-ink);
+    color: #2a2f2b;   /* 场景是亮色白昼画面：不跟站点暗色翻白 */
   }
   .focus-overlay.theme-default .focus-tag { color: rgba(40, 40, 40, 0.78); }
   .focus-overlay.theme-default .focus-warn { color: rgba(40, 40, 40, 0.6); }
@@ -967,7 +954,7 @@ theme_color: "#fafaf9"
     border-color: rgba(40, 40, 40, 0.3);
   }
   @media (hover: hover) {
-    .focus-overlay.theme-default .give-up-btn:hover { color: #b07c75; border-color: #b07c75; }
+    .focus-overlay.theme-default .give-up-btn:hover { color: var(--ft-danger); border-color: var(--ft-danger); }
   }
   .focus-overlay.theme-default .pomodoro-counter {
     color: rgba(40, 40, 40, 0.78);
@@ -980,107 +967,10 @@ theme_color: "#fafaf9"
   }
   .focus-overlay.theme-night { background: linear-gradient(180deg, #1a2818 0%, #0d150a 100%); }
   .focus-overlay.theme-bubbles { background: linear-gradient(180deg, #1a3a5e 0%, #0d2540 100%); }
-  .focus-overlay.theme-stars { background: linear-gradient(180deg, #1f0f3a 0%, #0a0518 100%); }
   .focus-overlay.theme-sunrise {
     background: linear-gradient(180deg, #d35a45 0%, #e88a5a 40%, #f0c478 100%);
-    animation: sunriseShift 90s ease-in-out infinite alternate;
   }
   .focus-overlay.theme-rain { background: linear-gradient(180deg, #2d3a4a 0%, #15202d 100%); }
-  .focus-overlay.theme-aurora {
-    background: linear-gradient(180deg, #0a1a3e 0%, #1a3a5a 60%, #0a2840 100%);
-  }
-  .focus-overlay.theme-aurora::before {
-    content: '';
-    position: absolute; inset: 0;
-    background:
-      radial-gradient(ellipse at 30% 30%, rgba(80, 220, 180, 0.35), transparent 50%),
-      radial-gradient(ellipse at 70% 50%, rgba(140, 100, 220, 0.3), transparent 55%),
-      radial-gradient(ellipse at 50% 20%, rgba(70, 200, 230, 0.25), transparent 60%);
-    animation: auroraDrift 20s ease-in-out infinite alternate;
-    pointer-events: none;
-  }
-  @keyframes sunriseShift {
-    0% { background: linear-gradient(180deg, #b34e3a 0%, #d68658 40%, #e8b86a 100%); }
-    50% { background: linear-gradient(180deg, #d35a45 0%, #e88a5a 40%, #f0c478 100%); }
-    100% { background: linear-gradient(180deg, #6b3a2a 0%, #b3614a 40%, #e0a060 100%); }
-  }
-  @keyframes auroraDrift {
-    0% { transform: translateY(0) scale(1); }
-    100% { transform: translateY(-20px) scale(1.05); }
-  }
-
-  /* particles container */
-  .overlay-particles {
-    position: absolute; inset: 0;
-    pointer-events: none;
-    overflow: hidden;
-  }
-  /* 气泡 */
-  .particle.bubble {
-    position: absolute;
-    bottom: -60px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5), rgba(135, 206, 250, 0.2));
-    box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.3);
-    animation: bubbleRise linear infinite;
-  }
-  @keyframes bubbleRise {
-    0% { bottom: -60px; opacity: 0; transform: translateX(0); }
-    8% { opacity: 0.7; }
-    50% { transform: translateX(15px); }
-    100% { bottom: 110%; opacity: 0; transform: translateX(-10px); }
-  }
-  /* 星星 */
-  .particle.star {
-    position: absolute;
-    width: 2px; height: 2px;
-    background: #fff;
-    border-radius: 50%;
-    box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
-    animation: twinkle ease-in-out infinite;
-  }
-  @keyframes twinkle {
-    0%, 100% { opacity: 0.2; transform: scale(0.7); }
-    50% { opacity: 1; transform: scale(1.4); }
-  }
-  /* 雨 */
-  .particle.raindrop {
-    position: absolute;
-    width: 1.5px;
-    background: linear-gradient(180deg, transparent 0%, rgba(180, 200, 255, 0.65) 100%);
-    animation: rainFall linear infinite;
-  }
-  @keyframes rainFall {
-    0% { transform: translateY(-120px); opacity: 0; }
-    15% { opacity: 1; }
-    100% { transform: translateY(115vh); opacity: 0; }
-  }
-  /* 极光：用浮动光斑 */
-  .particle.aurora-blob {
-    position: absolute;
-    width: 200px; height: 200px;
-    border-radius: 50%;
-    filter: blur(40px);
-    opacity: 0.4;
-    animation: auroraFloat ease-in-out infinite alternate;
-  }
-  @keyframes auroraFloat {
-    0% { transform: translate(0, 0) scale(1); opacity: 0.3; }
-    100% { transform: translate(30px, -20px) scale(1.15); opacity: 0.55; }
-  }
-  /* 太阳光晕（日出主题） */
-  .particle.sun {
-    position: absolute;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 230, 150, 0.7) 0%, rgba(255, 200, 100, 0.3) 40%, transparent 70%);
-    filter: blur(2px);
-    animation: sunPulse 6s ease-in-out infinite alternate;
-  }
-  @keyframes sunPulse {
-    0% { opacity: 0.6; transform: scale(0.95); }
-    100% { opacity: 1; transform: scale(1.08); }
-  }
-
   /* 树位置 */
   /* —— 全树「微风轻摆」idle 动画：绕树干根部极克制地往复，无缝，缩放无关（预览=线上）——
         田地每棵按 value 派生的时长/相位错峰，整片森林像被风拂过而非齐刷刷 */
@@ -1094,13 +984,14 @@ theme_color: "#fafaf9"
   @keyframes treeSway { from { transform: rotate(-1.15deg); } to { transform: rotate(1.15deg); } }
 
   /* —— 沉浸布局：计时在顶、树种在前景地面带上 —— */
-  .overlay-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 22vh; z-index: 1; pointer-events: none; overflow: hidden; }
+  .overlay-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 22vh; height: 22dvh; z-index: 1; pointer-events: none; overflow: hidden; }
   #overlay-ground svg { width: 100%; height: 100%; display: block; }
   #overlay-tree-container.overlay-tree-zone {
     position: absolute; left: 50%; transform: translateX(-50%);
     --ovtw: min(58vw, 44vh);
     width: var(--ovtw); height: auto;
     bottom: calc(22vh - 0.081 * var(--ovtw) - 0.8vh);
+    bottom: calc(22dvh - 0.081 * var(--ovtw) - 0.8dvh);
     z-index: 2;
   }
   #overlay-tree-container.overlay-tree-zone svg { width: 100%; height: auto; }
@@ -1109,8 +1000,8 @@ theme_color: "#fafaf9"
     bottom: calc(2vh + env(safe-area-inset-bottom)); z-index: 4;
   }
   @media (orientation: landscape) {
-    .overlay-ground { height: 19vh; }
-    #overlay-tree-container.overlay-tree-zone { --ovtw: min(32vw, 58vh); bottom: calc(19vh - 0.081 * var(--ovtw) - 0.8vh); }
+    .overlay-ground { height: 19vh; height: 19dvh; }
+    #overlay-tree-container.overlay-tree-zone { --ovtw: min(32vw, 58vh); bottom: calc(19vh - 0.081 * var(--ovtw) - 0.8vh); bottom: calc(19dvh - 0.081 * var(--ovtw) - 0.8dvh); }
   }
   .focus-overlay .timer-big,
   .focus-overlay .focus-tag,
@@ -1224,9 +1115,9 @@ theme_color: "#fafaf9"
   .storage-warn {
     position: fixed;
     top: 0; left: 0; right: 0;
-    background: #b07c75;
+    background: var(--ft-danger);
     color: #fff;
-    padding: 0.55rem 1rem;
+    padding: calc(0.55rem + env(safe-area-inset-top)) 1rem 0.55rem;   /* 刘海屏 standalone 不钻刘海 */
     font-size: var(--ft-fs-sm);
     text-align: center;
     z-index: 9999;
@@ -1256,7 +1147,7 @@ theme_color: "#fafaf9"
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: var(--ft-r-md);
-    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--ft-shadow-modal);
     width: min(400px, 100%);
     padding: 1.3rem 1.4rem 1.2rem;
   }
@@ -1282,7 +1173,7 @@ theme_color: "#fafaf9"
     border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-muted);
     transition: all 0.18s;
   }
-  .ft-modal-actions button.primary { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .ft-modal-actions button.primary { background: var(--color-accent); color: var(--ft-on-accent); border-color: var(--color-accent); }
   .ft-modal-actions button.danger { background: var(--ft-danger); color: #fff; border-color: var(--ft-danger); }
   @media (hover: hover) {
     .ft-modal-actions button.primary:hover,
@@ -1402,7 +1293,6 @@ theme_color: "#fafaf9"
     <div class="stage" id="stage">
       <div class="stage-scene" id="stage-scene"></div>
       <div class="stage-ground" id="stage-ground"></div>
-      <div class="stage-particles" id="stage-particles"></div>
       <div id="tree-container">
         <!-- tree SVG 动态注入 -->
       </div>
@@ -1531,7 +1421,7 @@ theme_color: "#fafaf9"
       <button type="button" id="edit-mode-btn">整理</button>
       <button type="button" id="rename-field-btn">重命名</button>
       <button type="button" class="danger" id="delete-field-btn">删除此田</button>
-      <button type="button" id="merge-btn" style="display:none; color: var(--ft-gold-ink); border-color: var(--ft-gold);">合并选中</button>
+      <button type="button" id="merge-btn" style="display:none;">合并选中</button>
       <span class="spacer"></span>
       <span class="field-hint" id="field-hint">点击查看详情 · 拖动挪位置</span>
     </div>
@@ -1553,7 +1443,7 @@ theme_color: "#fafaf9"
         <span class="summary" id="exp-summary">—</span>
       </div>
       <div class="exp-range-tabs" id="exp-range-tabs">
-        <button type="button" data-range="today">今日（按小时）</button>
+        <button type="button" data-range="today">今日</button>
         <button type="button" data-range="7" class="active">最近 7 天</button>
         <button type="button" data-range="30">最近 30 天</button>
         <button type="button" data-range="90">最近 90 天</button>
@@ -1578,7 +1468,6 @@ theme_color: "#fafaf9"
 <div class="focus-overlay" id="focus-overlay">
   <div class="overlay-scene" id="overlay-scene"></div>
   <div class="overlay-ground" id="overlay-ground"></div>
-  <div class="overlay-particles" id="overlay-particles"></div>
   <div class="pomodoro-counter" id="overlay-counter" style="display: none;">第 1 个番茄</div>
   <div id="overlay-tree-container" class="overlay-tree-zone"></div>
   <div class="timer-big" id="overlay-timer">25:00</div>
@@ -2005,7 +1894,6 @@ theme_color: "#fafaf9"
     try { localStorage.setItem(THEME_KEY, JSON.stringify(state.theme)); } catch (e) {if (e && e.name === 'QuotaExceededError') showStorageWarn(); }
   }
 
-  function rand(min, max) { return min + Math.random() * (max - min); }
 
   function _sceneSvg(name) {
     return `<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">${_themeScene(name)}</svg>`;
@@ -2032,7 +1920,6 @@ theme_color: "#fafaf9"
     $overlay.classList.add('timer-' + state.theme.timer);
     const os = document.getElementById('overlay-scene'); if (os) os.innerHTML = _sceneSvg(state.theme.background);
     const og = document.getElementById('overlay-ground'); if (og) og.innerHTML = _overlayGroundSvg(state.theme.background);
-    renderParticles(document.getElementById('overlay-particles'), state.theme.background, 1.0);
   }
 
   function applyStageTheme() {
@@ -2042,99 +1929,6 @@ theme_color: "#fafaf9"
     $stage.classList.add('theme-' + state.theme.background);
     const ss = document.getElementById('stage-scene'); if (ss) ss.innerHTML = _sceneSvg(state.theme.background);
     const sg = document.getElementById('stage-ground'); if (sg) sg.innerHTML = _overlayGroundSvg(state.theme.background);
-    renderParticles(document.getElementById('stage-particles'), state.theme.background, 0.3);
-  }
-
-  function renderParticles(container, bg, scale) {
-    if (!container) return;
-    container.innerHTML = '';
-    return;  // 场景已自带动画，粒子层停用
-    const k = (n) => Math.max(1, Math.round(n * scale));
-    const small = scale < 1;
-
-    if (bg === 'bubbles') {
-      for (let i = 0; i < k(18); i++) {
-        const p = document.createElement('div');
-        p.className = 'particle bubble';
-        const size = rand(8, 22) * (small ? 0.7 : 1);
-        p.style.width = size + 'px';
-        p.style.height = size + 'px';
-        p.style.left = rand(0, 100) + '%';
-        p.style.animationDuration = rand(7, 14) + 's';
-        p.style.animationDelay = rand(0, 10) + 's';
-        container.appendChild(p);
-      }
-    } else if (bg === 'stars') {
-      for (let i = 0; i < k(80); i++) {
-        const p = document.createElement('div');
-        p.className = 'particle star';
-        const size = rand(1.2, 2.8);
-        p.style.width = size + 'px';
-        p.style.height = size + 'px';
-        p.style.left = rand(0, 100) + '%';
-        p.style.top = rand(0, 80) + '%';
-        p.style.animationDuration = rand(2, 5) + 's';
-        p.style.animationDelay = rand(0, 5) + 's';
-        container.appendChild(p);
-      }
-    } else if (bg === 'rain') {
-      for (let i = 0; i < k(60); i++) {
-        const p = document.createElement('div');
-        p.className = 'particle raindrop';
-        p.style.height = rand(20, small ? 30 : 50) + 'px';
-        p.style.left = rand(0, 100) + '%';
-        p.style.top = rand(-50, -20) + 'px';
-        p.style.animationDuration = rand(0.5, 1.2) + 's';
-        p.style.animationDelay = rand(0, 1.5) + 's';
-        container.appendChild(p);
-      }
-    } else if (bg === 'aurora') {
-      const colors = [
-        'radial-gradient(circle, rgba(80, 220, 180, 0.6), transparent 70%)',
-        'radial-gradient(circle, rgba(140, 100, 220, 0.55), transparent 70%)',
-        'radial-gradient(circle, rgba(70, 200, 230, 0.5), transparent 70%)',
-        'radial-gradient(circle, rgba(180, 100, 200, 0.5), transparent 70%)',
-      ];
-      const blobN = small ? 3 : 4;
-      const blobSize = small ? 110 : 200;
-      for (let i = 0; i < blobN; i++) {
-        const p = document.createElement('div');
-        p.className = 'particle aurora-blob';
-        p.style.width = blobSize + 'px';
-        p.style.height = blobSize + 'px';
-        p.style.background = colors[i];
-        p.style.left = rand(10, 75) + '%';
-        p.style.top = rand(10, 50) + '%';
-        p.style.animationDuration = rand(8, 14) + 's';
-        p.style.animationDelay = rand(0, 4) + 's';
-        container.appendChild(p);
-      }
-    } else if (bg === 'sunrise') {
-      // 太阳 + 几个云朵感
-      const sun = document.createElement('div');
-      sun.className = 'particle sun';
-      const sunSize = small ? 90 : 180;
-      sun.style.width = sunSize + 'px';
-      sun.style.height = sunSize + 'px';
-      sun.style.left = '60%';
-      sun.style.top = '12%';
-      container.appendChild(sun);
-      // 几个小光晕
-      const halos = small ? 1 : 3;
-      for (let i = 0; i < halos; i++) {
-        const halo = document.createElement('div');
-        halo.className = 'particle sun';
-        const sz = rand(small ? 30 : 60, small ? 55 : 100);
-        halo.style.width = sz + 'px';
-        halo.style.height = sz + 'px';
-        halo.style.left = rand(10, 80) + '%';
-        halo.style.top = rand(20, 60) + '%';
-        halo.style.opacity = '0.5';
-        halo.style.animationDelay = rand(0, 4) + 's';
-        container.appendChild(halo);
-      }
-    }
-    // night & default: 不加粒子，纯背景
   }
 
   // ============ Tree SVG ============
@@ -5464,6 +5258,8 @@ return deco_cactus;
   // 窗口尺寸变化 → 重新计算
   window.addEventListener('resize', () => {
     if (state.trees.length > 0) renderField();
+    const vf = document.getElementById('view-forest');
+    if (vf && !vf.hidden) renderExpChart();
   });
 
   // 多 tab 同步：别的标签页改了树/田，本 tab 立即重载，避免稍后整份覆盖把对方的数据冲掉
@@ -5750,7 +5546,10 @@ return deco_cactus;
     const totalCount = buckets.reduce((s, b) => s + b.count, 0);
     $expSummary.innerHTML = `本范围共 <strong>${total.toFixed(0)}</strong> 经验 · ${totalCount} 棵树`;
 
-    const W = 720, H = 200;
+    // 手机上固定 720 宽 viewBox 会把轴字缩到 ~4px：按容器实际宽度设（1 单位 ≈ 1px）
+    const wrapW = ($expSvgWrap && $expSvgWrap.clientWidth) || 0;
+    const W = wrapW ? Math.max(320, Math.min(720, Math.round(wrapW))) : 720, H = 200;
+    $expSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     const m = { l: 38, r: 8, t: 12, b: 28 };
     const innerW = W - m.l - m.r;
     const innerH = H - m.t - m.b;
