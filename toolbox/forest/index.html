@@ -45,16 +45,35 @@ theme_color: "#fafaf9"
   /* 通用线性图标：描边跟随 currentColor，尺寸随字号 */
   .ft-ico { width: 1.05em; height: 1.05em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
 
-  /* ============ 主舞台（树 + 计时器）============ */
+  /* ============ 主舞台（树 + 计时器）============
+     沉浸布局与全屏遮罩同语言：计时在顶部文档流里，树以绝对定位「坐」在
+     底部前景地面带上（0.081 = 画内地面线 gy=214 距 svg 底边的比例 × 0.75）。
+     尺寸全用 clamp 连续过渡，消除旧断点在 480/481px 的跳变。 */
   .stage {
+    --stw: clamp(170px, 52vw, 300px);   /* 树宽 */
+    --sgh: clamp(44px, 11vw, 58px);     /* 前景地面带高 */
     border: 1px solid var(--color-border);
     border-radius: var(--ft-r-lg);
-    padding: 2.8rem 1.4rem 2rem;
+    padding: 2.2rem 1.4rem 0;
+    min-height: calc(var(--stw) * 0.75 + var(--sgh) + 7.5rem);
     text-align: center;
     margin-bottom: 1.4rem;
     position: relative;
     overflow: hidden;
     transition: background 0.5s ease;
+  }
+  .stage-ground {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: var(--sgh); z-index: 0;
+    pointer-events: none; overflow: hidden;
+    border-bottom-left-radius: inherit; border-bottom-right-radius: inherit;
+  }
+  .stage-ground svg { width: 100%; height: 100%; display: block; }
+  .stage > #tree-container {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    width: var(--stw);
+    bottom: calc(var(--sgh) * 0.96 - 0.081 * var(--stw));
+    z-index: 1;
   }
   /* 主题背景（与全屏 .focus-overlay.theme-* 保持一致，仅尺寸不同）*/
   .stage.theme-default {
@@ -118,14 +137,13 @@ theme_color: "#fafaf9"
   .focus-overlay.theme-default .timer-big, .focus-overlay.theme-default .focus-tag, .focus-overlay.theme-default .focus-warn { text-shadow: 0 1px 8px rgba(255,255,255,0.6); }
   .stage .timer-display, .stage .timer-status { text-shadow: 0 1px 6px rgba(0,0,0,0.28); }
   .stage.theme-default .timer-display, .stage.theme-default .timer-status { text-shadow: 0 1px 5px rgba(255,255,255,0.6); }
-  /* 让树、计时器、状态文本盖在粒子之上 */
-  .stage > #tree-container,
+  /* 让计时器、状态文本盖在场景与地面带之上（树自身在坐地定位规则里给了 z-index）*/
   .stage > .timer-display,
-  .stage > .timer-status { position: relative; z-index: 1; }
+  .stage > .timer-status { position: relative; z-index: 2; }
 
   .tree-svg {
-    width: min(264px, 58vw);
-    height: min(264px, 58vw);
+    width: 100%;
+    height: auto;   /* 按 viewBox 4:3 固有比出高，不产生 letterbox 垫高 */
     margin: 0 auto;
     display: block;
   }
@@ -837,18 +855,15 @@ theme_color: "#fafaf9"
   }
 
   @media (max-width: 600px) {
-    .stage { padding: 1.4rem 1rem 1.2rem; }
+    .stage { padding: 1.4rem 1rem 0; }
     .timer-display { font-size: 2.6rem; }
-    .stats-grid { grid-template-columns: 1fr 1fr 1fr; }
     /* .tree-instance 与网格尺寸由 JS 按格子内联控制，这里不再写死 */
-    .tree-tooltip { font-size: var(--ft-fs-cap); }
   }
   /* 平板：竖屏用满宽度，横屏及桌面再放宽容器，别把大屏当放大版手机 */
   /* 沉浸舞台：桌面上把「树 + 计时」的舞台放大成主角，控件与森林在下方依次展开 */
   @media (min-width: 768px) {
     .ft-wrap { max-width: 760px; }
-    .stage { padding: 3.4rem 1.4rem 2.6rem; }
-    .tree-svg { width: min(300px, 40vw); height: min(300px, 40vw); }
+    .stage { --stw: min(300px, 40vw); padding: 3rem 1.4rem 0; min-height: calc(var(--stw) * 0.75 + var(--sgh) + 9rem); }
     .timer-display { font-size: 4.4rem; }
     .plant-card { padding: 1.4rem 1.4rem 1.5rem; }
   }
@@ -873,9 +888,8 @@ theme_color: "#fafaf9"
     .ft-wrap header { margin-bottom: 0.8rem; }
     .ft-wrap header h1 { font-size: 1.6rem; }
     .plant-card { padding: 0.85rem 0.8rem 1rem; border-radius: var(--ft-r-lg); }
-    .tree-svg { width: min(150px, 40vw); height: min(150px, 40vw); }
-    .timer-display { font-size: 2.1rem; margin: 0.6rem 0 0.3rem; }
-    .stage { padding: 1.1rem 0.9rem 1rem; }
+    .timer-display { font-size: 2.2rem; margin: 0.6rem 0 0.3rem; }
+    .stage { padding: 1.1rem 0.9rem 0; }
     .focus-overlay .timer-big { font-size: 3rem; }
     .ft-wrap input[type="number"], .ft-wrap input[type="text"] { font-size: 16px; }
   }
@@ -1341,6 +1355,7 @@ theme_color: "#fafaf9"
     <!-- 舞台（树 + 计时）-->
     <div class="stage" id="stage">
       <div class="stage-scene" id="stage-scene"></div>
+      <div class="stage-ground" id="stage-ground"></div>
       <div class="stage-particles" id="stage-particles"></div>
       <div id="tree-container">
         <!-- tree SVG 动态注入 -->
@@ -1924,9 +1939,9 @@ theme_color: "#fafaf9"
     let rip = '';
     if (theme === 'rain') {
       const R=[[58,42,26],[150,34,17],[252,46,30],[332,36,20],[110,60,22],[300,62,24],[200,54,19],[40,66,15]];
-      rip = R.map((v,i)=>{ const x=v[0],y=v[1],rx=v[2], d=(((i*0.37)%1)*2.4).toFixed(2), dur=(2.0+(i%3)*0.45).toFixed(2);
+      rip = R.map((v,i)=>{ const x=v[0],y=v[1],rx=v[2], d=(((i*0.37)%1)*2.4).toFixed(2), dur=(2.0+(i%3)*0.45).toFixed(2), sdur=(1.3+(i%3)*0.35).toFixed(2);
         return `<g class="rn-ripple" style="animation-delay:-${d}s;animation-duration:${dur}s"><ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${(rx*0.34).toFixed(1)}" fill="none" stroke="#9fc0dd" stroke-width="1.6" opacity="0.55"/><ellipse cx="${x}" cy="${y}" rx="${(rx*0.5).toFixed(1)}" ry="${(rx*0.5*0.34).toFixed(1)}" fill="none" stroke="#c2dcf0" stroke-width="1.1" opacity="0.4"/></g>`
-          +`<g class="rn-splash" style="animation-delay:-${d}s"><path d="M${x} ${y-3} l0 -3.4 M${x-2.6} ${y-2.6} l-1.3 -2.2 M${x+2.6} ${y-2.6} l1.3 -2.2" stroke="#dbeaf7" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0.85"/></g>`;
+          +`<g class="rn-splash" style="animation-delay:-${d}s;animation-duration:${sdur}s;transform-origin:${x}px ${y}px"><path d="M${x} ${y-3} l0 -3.4 M${x-2.6} ${y-2.6} l-1.3 -2.2 M${x+2.6} ${y-2.6} l1.3 -2.2" stroke="#dbeaf7" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0.85"/></g>`;
       }).join('');
     }
     return `<svg viewBox="0 0 400 100" preserveAspectRatio="none"><rect width="400" height="100" fill="${g[1]}"/><path d="M0 30 Q 200 8 400 24 L400 100 L0 100 Z" fill="${g[0]}"/><path d="M0 30 Q 200 8 400 24" fill="none" stroke="${g[2]}" stroke-width="2.4" opacity="0.55"/>${rip}</svg>`;
@@ -1948,6 +1963,7 @@ theme_color: "#fafaf9"
     $stage.className = $stage.className.replace(/\btheme-\w+\b/g, '');
     $stage.classList.add('theme-' + state.theme.background);
     const ss = document.getElementById('stage-scene'); if (ss) ss.innerHTML = _sceneSvg(state.theme.background);
+    const sg = document.getElementById('stage-ground'); if (sg) sg.innerHTML = _overlayGroundSvg(state.theme.background);
     renderParticles(document.getElementById('stage-particles'), state.theme.background, 0.3);
   }
 
