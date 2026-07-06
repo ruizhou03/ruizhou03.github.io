@@ -45,6 +45,47 @@ theme_color: "#fafaf9"
   /* 通用线性图标：描边跟随 currentColor，尺寸随字号 */
   .ft-ico { width: 1.05em; height: 1.05em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
 
+  /* ============ 页面导航（种树 / 我的森林 双视图）============ */
+  .ft-view[hidden] { display: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .ft-view.view-enter-r { animation: ftViewInR 0.28s cubic-bezier(0.2, 0.7, 0.3, 1); }
+    .ft-view.view-enter-l { animation: ftViewInL 0.28s cubic-bezier(0.2, 0.7, 0.3, 1); }
+  }
+  @keyframes ftViewInR { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+  @keyframes ftViewInL { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+  .ft-nav { display: flex; gap: 0.45rem; justify-content: center; margin: -0.3rem 0 1.25rem; }
+  .ft-nav-tab {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.48rem 1.25rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    background: var(--color-bg); color: var(--color-muted);
+    text-decoration: none; font-size: var(--ft-fs-sm);
+    transition: color 0.18s, border-color 0.18s, background 0.18s;
+  }
+  @media (hover: hover) {
+    .ft-nav-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-accent); }
+  }
+  .ft-nav-tab.active { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
+  /* 手机 / 窄屏：固定底部 tab 栏（App 质感），内容与 toast 让位 */
+  @media (max-width: 768px) {
+    .ft-nav {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+      margin: 0; gap: 0;
+      padding: 0.28rem 0.6rem calc(0.28rem + env(safe-area-inset-bottom));
+      background: var(--color-bg);
+      border-top: 1px solid var(--color-border);
+      box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.07);
+    }
+    .ft-nav-tab {
+      flex: 1 1 0; flex-direction: column; justify-content: center; gap: 0.18rem;
+      border: none; background: none; border-radius: var(--ft-r-sm);
+      padding: 0.32rem 0; font-size: var(--ft-fs-cap);
+    }
+    .ft-nav-tab .ft-ico { width: 22px; height: 22px; }
+    .ft-nav-tab.active { background: none; color: var(--color-accent); font-weight: 600; }
+    .ft-wrap { padding-bottom: calc(4.2rem + env(safe-area-inset-bottom)); }
+  }
+
   /* ============ 主舞台（树 + 计时器）============
      沉浸布局与全屏遮罩同语言：计时在顶部文档流里，树以绝对定位「坐」在
      底部前景地面带上（0.081 = 画内地面线 gy=214 距 svg 底边的比例 × 0.75）。
@@ -1263,6 +1304,10 @@ theme_color: "#fafaf9"
     max-width: min(440px, calc(100vw - 2rem));
   }
   .ft-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  /* 手机端底部有固定 tab 栏，toast 往上让位 */
+  @media (max-width: 768px) {
+    .ft-toast { bottom: calc(4.6rem + env(safe-area-inset-bottom)); }
+  }
   .ft-toast button {
     font: inherit; font-size: var(--ft-fs-sm); font-weight: 600;
     color: #8fd0ff; background: transparent; border: none; cursor: pointer;
@@ -1343,6 +1388,14 @@ theme_color: "#fafaf9"
     <p class="sub">用一段不被打断的时间，种下一棵树</p>
   </header>
 
+  <!-- ========== 页面导航：种树 / 我的森林（桌面=分段胶囊，手机=底部 tab 栏）========== -->
+  <nav class="ft-nav" id="ft-nav" aria-label="页面切换">
+    <a href="#/" class="ft-nav-tab active" data-view="plant"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11"/><path d="M12 13c0-4.5-3-7-7-7 0 4 3 7 7 7Z"/><path d="M12 11c0-4 3-6.5 7-6.5 0 3.5-3 6.5-7 6.5Z"/></svg><span>种树</span></a>
+    <a href="#forest" class="ft-nav-tab" data-view="forest"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="10.5" r="3.8"/><path d="M7 14.3V19"/><circle cx="16.5" cy="9" r="4.6"/><path d="M16.5 13.6V19"/><path d="M3.5 21h17"/></svg><span>我的森林</span></a>
+  </nav>
+
+  <!-- ========== 视图：种树 ========== -->
+  <section class="ft-view" id="view-plant">
   <!-- ========== 种树主卡片：舞台 + 设置 + 开始（一张大卡片，首屏即懂怎么用）========== -->
   <div class="plant-card">
     <!-- 舞台（树 + 计时）-->
@@ -1447,8 +1500,10 @@ theme_color: "#fafaf9"
       <div class="focus-warning" id="focus-warning"></div>
     </div>
   </div>
+  </section>
 
-  <!-- ========== 统计 ========== -->
+  <!-- ========== 视图：我的森林（统计 + 田地 + 经验图表）========== -->
+  <section class="ft-view" id="view-forest" hidden>
   <div class="stats-zone">
     <div class="stats-grid">
       <div class="stat-card">
@@ -1516,6 +1571,7 @@ theme_color: "#fafaf9"
       <button type="button" id="reset-btn">清空所有数据</button>
     </div>
   </div>
+  </section>
 </div>
 
 <!-- ========== 全屏 focus 遮罩 ========== -->
@@ -4564,6 +4620,10 @@ return deco_cactus;
       $startBtn.disabled = false;
       $timerDisplay.textContent = fmtTime(state.duration * 60);
       renderTree(0);
+      // 树落进了独立的森林页，给一条带入口的确认（每次专注完成必产出一棵树）
+      if (!wasBreak) {
+        showToast('这棵树已种进你的森林', { undoText: '去看看', undo: () => { location.hash = '#forest'; } });
+      }
     }
   }
 
@@ -4808,8 +4868,11 @@ return deco_cactus;
   // 列数随可用宽度连续计算（手机≈4、平板竖屏≈6-8、平板横屏/桌面≈9-11），
   // 唯一事实源是 fieldWidth——CSS 只管控件尺寸，几何全在这里。
   const TARGET_CELL = 92;   // 目标每格宽度（px）
+  let _lastFieldWidth = 0;   // 森林视图隐藏时 clientWidth=0，退回上次真实量到的宽度
   function getFieldDimensions() {
-    const fieldWidth = $field.clientWidth || 800;
+    const live = $field.clientWidth;
+    if (live) _lastFieldWidth = live;
+    const fieldWidth = live || _lastFieldWidth || 800;
     let cols = Math.round(fieldWidth / TARGET_CELL);
     cols = Math.max(4, Math.min(12, cols));
     const cellWidth = fieldWidth / cols;
@@ -4917,6 +4980,9 @@ return deco_cactus;
   }
 
   function renderField() {
+    // 森林视图隐藏时不渲染（量不到宽度，reflow 会按错误列数落盘）；切入视图时会全量重渲
+    const vf = document.getElementById('view-forest');
+    if (vf && vf.hidden) return;
     const trees = activeFieldTrees();
     if (trees.length === 0) {
       $field.style.display = 'none';
@@ -5070,8 +5136,8 @@ return deco_cactus;
     $customMin.disabled = true;
     // 修改 startBtn 文案
     $startBtn.textContent = `开始灌溉（${cost} 分）`;
-    // 滚到设置区
-    $revivalBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // 从森林视图发起时先切回种树视图，再滚到设置区
+    goPlantView(() => $revivalBanner.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   }
   function cancelRevival() {
     if (!state.revivalTargetId) return;
@@ -5099,7 +5165,7 @@ return deco_cactus;
     $revivalBanner.classList.add('visible');
     document.getElementById('cancel-cultivate').addEventListener('click', cancelCultivate);
     $startBtn.textContent = '开始培养';
-    $revivalBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    goPlantView(() => $revivalBanner.scrollIntoView({ behavior: 'smooth', block: 'center' }));
   }
   function cancelCultivate() {
     if (!state.cultivateTargetId) return;
@@ -5822,6 +5888,46 @@ return deco_cactus;
     window.addEventListener('resize', positionStrictThumb);
   }
 
+  // ============ 视图路由：#/ 种树 ↔ #forest 我的森林 ============
+  // DOM 节点只做 hidden 切换、绝不 innerHTML 重建，所有既有监听保持存活。
+  const $viewPlant = document.getElementById('view-plant');
+  const $viewForest = document.getElementById('view-forest');
+  const $navTabs = document.querySelectorAll('.ft-nav-tab');
+  let currentView = null;
+  function parseRoute() { return location.hash === '#forest' ? 'forest' : 'plant'; }
+  function applyRoute() {
+    const v = parseRoute();
+    if (v === currentView) return;
+    currentView = v;
+    hideDetail();
+    $viewPlant.hidden = v !== 'plant';
+    $viewForest.hidden = v !== 'forest';
+    $navTabs.forEach(t => t.classList.toggle('active', t.dataset.view === v));
+    const el = v === 'forest' ? $viewForest : $viewPlant;
+    el.classList.remove('view-enter-l', 'view-enter-r');
+    void el.offsetWidth;
+    el.classList.add(v === 'forest' ? 'view-enter-r' : 'view-enter-l');
+    window.scrollTo(0, 0);
+    if (v === 'forest') {
+      // 等一帧让布局稳定，clientWidth 量到的才是真实宽度
+      requestAnimationFrame(() => {
+        if (currentView !== 'forest') return;
+        renderFieldTabs();
+        renderStats();
+      });
+    } else {
+      positionStrictThumb();   // 视图重新可见后滑块需要真实尺寸重定位
+    }
+  }
+  // 灌溉/培养从森林视图发起、落点在种树卡：先切回种树视图再执行回调
+  function goPlantView(cb) {
+    if (parseRoute() === 'plant') { if (cb) cb(); return; }
+    location.hash = '#/';
+    applyRoute();
+    if (cb) requestAnimationFrame(() => requestAnimationFrame(cb));
+  }
+  window.addEventListener('hashchange', applyRoute);
+
   // ============ Init ============
   loadTrees();
   loadFields();
@@ -5864,5 +5970,6 @@ return deco_cactus;
   updatePomodoroHint();
   resumeSession();
   applyStrictUI();   // 严格度按钮高亮 + 首屏「离开页面」说明（随当前模式）
+  applyRoute();      // 按 URL hash 进入对应视图（#forest 深链接也能直达）
 })();
 </script>
