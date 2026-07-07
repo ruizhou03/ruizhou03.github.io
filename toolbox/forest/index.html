@@ -407,6 +407,8 @@ theme_color: "#fafaf9"
   .more-settings-body .setting-row {
     border: none; background: none; border-radius: 0; padding: 0.1rem 0.1rem;
   }
+  /* .setting-row 的 display:flex 会压过 UA 的 [hidden]{display:none}（ledger/pet 修过同款坑）*/
+  .setting-row[hidden] { display: none !important; }
   .more-settings-body .setting-row > label:first-child { min-width: 4.6em; }
   /* 大选择器（树种/主题/计时）：标签在上、选项排在下，窄屏不挤 */
   .more-settings-body .setting-stack { flex-direction: column; align-items: flex-start; gap: 0.45rem; }
@@ -1698,9 +1700,14 @@ theme_color: "#fafaf9"
   }
   function savePrefs() {
     try {
+      // 灌溉/培养会把 state.duration 临时锁成复活成本——这不是用户的「常用时长」，
+      // 锁定期间保留上次存的时长，防止刷新后把复活成本当偏好恢复出来
+      const locked = !!(state.revivalTargetId || state.cultivateTargetId);
+      const prev = locked ? loadPrefs() : null;
+      const dur = (locked && prev && Number.isFinite(prev.duration)) ? prev.duration : state.duration;
       localStorage.setItem(PREFS_KEY, JSON.stringify({
         treeType: state.treeType,
-        duration: state.duration,
+        duration: dur,
         pomodoroOn: state.pomodoroOn,
         breakMin: state.breakMin,
         breakTouched: !!breakTouched,   // 只会在事件回调里被调用，此时 let 声明早已生效
@@ -6352,6 +6359,17 @@ return deco_cactus;
   applyStageTheme();
   $timerDisplay.textContent = fmtTime(state.duration * 60);
   renderTree(0);
+  // 森林视图尚未打开时也要有真实田宽（否则种树按 800px 兜底算列数，首次进森林页会触发重排）：
+  // 以 visibility:hidden 显示一帧量宽，量完立刻藏回
+  (function seedFieldWidth() {
+    if ($field.clientWidth || !$viewForest || !$viewForest.hidden) return;
+    $viewForest.style.visibility = 'hidden';
+    $viewForest.hidden = false;
+    const w = $field.clientWidth;
+    $viewForest.hidden = true;
+    $viewForest.style.visibility = '';
+    if (w) _lastFieldWidth = w;
+  })();
   renderFieldTabs();
   renderStats();
   updatePomodoroHint();
