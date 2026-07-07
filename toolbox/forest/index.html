@@ -4976,12 +4976,14 @@ return deco_cactus;
     } else {
       // 单次模式（或续跑完成）：庆典播完再收遮罩；祝贺文案保留到下次交互再被覆盖
       const closeNow = () => {
+        // 庆典播放期间用户可能已（键盘）开始了新专注——那是新会话的遮罩，别关
+        if (state.session) return;
         $overlay.classList.remove('open');
         $overlay.classList.remove('break-mode');
-        setTimeout(() => renderTree(0, $overlayTreeContainer), 420);   // 等淡出结束再重置遮罩里的树
+        $startBtn.disabled = false;   // 庆典结束才解锁，堵死庆典窗口内的重复开始竞态
+        setTimeout(() => { if (!state.session) renderTree(0, $overlayTreeContainer); }, 420);   // 等淡出结束再重置遮罩里的树
       };
       $pauseBtn.style.display = 'none';
-      $startBtn.disabled = false;
       $timerDisplay.textContent = fmtTime(state.duration * 60);
       renderTree(0, $treeContainer);
       if (!wasBreak) {
@@ -5078,7 +5080,9 @@ return deco_cactus;
     $timerDisplay.classList.remove('warn');
     $startBtn.disabled = false;
     $timerDisplay.textContent = fmtTime(state.duration * 60);
-    renderTree(0);
+    // 舞台立即重置；遮罩里的树等 0.35s 淡出结束再重置，避免半大树在淡出中闪缩成小芽
+    renderTree(0, $treeContainer);
+    setTimeout(() => { if (!state.session) renderTree(0, $overlayTreeContainer); }, 420);
     renderStats();
   }
 
@@ -5100,10 +5104,13 @@ return deco_cactus;
       $pauseBtn.style.display = 'none';
       $startBtn.disabled = false;
       $timerDisplay.textContent = fmtTime(state.duration * 60);
-      renderTree(0);
+      renderTree(0, $treeContainer);
+      setTimeout(() => { if (!state.session) renderTree(0, $overlayTreeContainer); }, 420);   // 等淡出结束
       $timerStatus.textContent = '循环已结束';
       return;
     }
+    // 会话已结束（如庆典播放期间点到）：没有可放弃的树，别弹与事实相反的枯萎警告
+    if (!state.session) return;
     if (state.session && state.session.isBreak) {
       // break 期间放弃 = 结束循环
       failSession('gave_up');
