@@ -1,3 +1,61 @@
+## 2026-07-08
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生。距 7-07 巡检共 **2 个 commit**（`089809f` 之后 → `40f0449` 为止），**0 文章 / 0 IA / 0 `_data/` / 0 `_config.yml` / 0 `_notes/` / 0 `files/` 改动**——2 个 commit 全部锁在 `toolbox/forest/index.html`（+30 / -5 行），围绕**forest 双轮「对抗式审查」逮修 6 处交互死路 / 状态污染 / 时序缺陷**：
+>
+> ① `f04e964 fix(forest)`：第一轮对抗式审查逮修 3 处（+19 / -1）——(a) **休息时长行的 `hidden` 属性被 `.setting-row{display:flex}` 压掉**（作者样式必然盖过 UA 的 `[hidden]`，番茄开关切换毫无效果），补 `.setting-row[hidden]{display:none!important}`；commit body 明写「ledger/pet 修过同款坑」，属站内已知模式复发。(b) **灌溉/培养临时锁 `state.duration` 为复活成本期间，改树种 / 番茄开关 / 休息分钟会触发 `savePrefs` 把复活成本当「常用时长」写进偏好、下次访问恢复出来**，锁定期间改为保留上次存的真实时长。(c) **森林视图从未打开时 `clientWidth === 0`，种树按 800px 兜底算列数（9 列）→ 手机上首次进森林页会触发越界重排搅乱手工摆位**，`init` 时以 `visibility:hidden` 显示一帧量出真实田宽做种子。commit body 附带 `node --check + vm 初始化 + 路由/renderTree 行为断言全过` 的验证记录。
+>
+> ② `40f0449 fix(forest)`：第二轮对抗式审查逮修 3 处庆典/收遮罩时序缺陷（+11 / -4）——(a) **庆典 1050ms 窗口内键盘可触发新专注、随后 `closeFn` 把新会话的遮罩关掉**（交互死路：计时在跑却没有暂停/放弃入口），开始按钮改为庆典结束才解锁、且 `closeNow` 发现已有新会话时不再关遮罩。(b) **庆典期间「放弃这棵」仍可点：树已种成却弹「这棵树会枯萎」的假警告**，give-up 处理器补「无会话即返回」守卫（grace 停链分支不受影响）。(c) **放弃/结束循环两条退出路径在 0.35s 淡出中同步 `renderTree(0)`，半大树肉眼可见闪缩成小芽**——对齐完成路径：舞台立即重置、遮罩树等淡出结束（420ms、带新会话守卫）再重置。commit body 明写「两轮审查共 6 findings、12 票反驳式核验全数确认，CSS 级联维度零发现」。
+>
+> **两轮的意义**：这 2 个 commit 是站主开着 Claude Fable 5 走「对抗式审查 → 反驳式核验」自动化 QA 循环、把上周 7 天 40+ commit 深度打磨的 forest 双视图 App 里 6 处**逻辑正确但不容易在人肉手测里复现**的时序 / 状态污染缺陷全部逮出来修好——修复类型高度典型：`[hidden]` 被作者样式盖（第 3 次在本站发生：ledger、pet、forest）、临时状态写进偏好污染下次会话、`clientWidth === 0` 兜底算错列宽越界重排、庆典 / 遮罩 / 淡出的**时序窗口内**可以点到「不该点」的按钮 / 触发不该发生的重置。所有修复本身都是无争议的最小改动、有可验证脚本 / 断言支撑，不是设计取向决策。
+>
+> **build 健康度**：`bundle install` ✅ + `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（8.715 s cold build）。`_site/toolbox/forest/index.html` 406 KB（源 6386 行 / 172 KB → Jekyll layout 注入后 406 KB），渲染完整；`_site/toolbox/index.html` grep `/toolbox/forest/` 命中正常；`_site/sitemap.xml` grep `toolbox/forest` 命中 1、`_site/search.json` grep `forest` 命中 2 —— 搜索体系闭环。`_notes/` 全 270 篇 md **全部含 `keywords:` 字段**（`grep -rL '^keywords:' _notes/` 空），搜索体系 100% 覆盖。`grep console.log|debugger|TODO|FIXME|XXX` 在 `toolbox/forest/index.html` **全 0 命中**；全仓库 tracked 文件 `debugger|FIXME|XXX` 命中 5 个但全部是无害内容——`_includes/paywall.html:41` 是 `placeholder="ZRC-XXXX-XXXX"`、`_includes/toolbox/pet/modals.html:101` 是宠物码占位符 `XXXXXX`、`assets/js/games/tiaoqi.js:1773` 与 `toolbox/feixingqi/index.html:2932` 是英文注释里 `?room=XXXX invite link` 字面量、`scripts/sim-gomoku.js:53-58` 是五子棋 `XXXXX / .XXXX.` 棋形字面量；`assets/js/pet.js:5` 仍是唯一有意的品牌 log。**未发现 `_flight-staging/` / `_paid/` 泄露**——`_config.yml` L50/L52 exclude 双保险仍稳固。
+>
+> **今日 0 项自动修复**——2 个 commit 全部由站主 + Claude Fable 5 亲手完成的对抗式审查修复，属高质量代码审查 + 时序缺陷的判断性修复；build 健康、`_site/` 结构无异常、workspace 干净（`git status` clean、`git ls-files --others --exclude-standard` 空、`find` `.DS_Store` / `*.bak` / `*.orig` / `*.tmp` / `*~` / `* 2.*` / `.env*` / `*.log` 全空、无 5 MB+ 新二进制、无 `.env` / 密钥类文件），无任何低风险小修可做。
+>
+> **P0 承接**：⚠ 承接 7-07 的 **forest / ledger / pindou 三个工具的 maskable PWA 图标与主 icon `byte-identical`**（今日再次核验：`md5sum` 三对文件仍 identical，`forest-icon-512.png` 与 `forest-icon-maskable-512.png` 都是 `63df7becb4ddc57e2b95e88305a33a18`、`ledger-icon-*` 都是 `fad6da15…`、`pindou-icon-*` 都是 `fed25167…`）——`5c58756` commit body 承诺的 v2 「maskable 主体收进 80% 安全圆」实际未落地，站主本地渲染出的独立 maskable 文件在 commit 时被主 icon 复制覆盖（或反过来）。Android launcher 圆形遮罩仍会裁掉外圈金环 / 装饰。今日无法自动修复（需要图形工具重画、涉及美术判断）。承接 2 日。
+>
+> **P1 队列**：唯一 P1 仍是承接 6-13 的 `_config.yml`.`study_order` 未列 `interm-econometrics`（今日**第 26 日承接**），`_notes/study/interm-econometrics/interm-econometrics-2023.md` 仍在，`ls _notes/study/` 26 个目录 vs `study_order` 25 条差集仍只此一条——纯 IA 设计判断，不擅动。仓库里最久的 P1。
+>
+> **P2 队列**：今日新增两条 P2 新观察：⑨ **forest 两轮对抗式审查修复 6 处后需要真机 6 组合下的回归确认**——iPhone Safari + Android Chrome + iPad + 桌面 Chrome + 桌面 Firefox + PWA standalone 六组合下确认：(a) 番茄开关切换后休息时长行确实隐藏 / 显现（`f04e964#a` [hidden] 属性被 !important 强制）、(b) 灌溉 / 培养期间改树种 / 番茄开关 / 休息分钟、再退出到普通会话后「常用时长」仍是复活前的真实值（`f04e964#b` state.duration 污染防线）、(c) 手机首次冷启动直接进 `#forest` 独立视图后再回主页 → 森林田宽 / 列数正确、无越界重排（`f04e964#c` clientWidth=0 兜底路径已断），(d) 长时番茄 25/45/90min 结束播放庆典的 1050ms 窗口内按空格 / Enter / 数字键都无法触发新专注（`40f0449#a` 交互死路），(e) 庆典期间「放弃这棵」按钮已被守卫拦截、不再弹「这棵树会枯萎」假警告（`40f0449#b`）、(f) 放弃 / 结束循环退出时半大树能完整走完 0.35s 淡出后再重置为小芽、不再肉眼可见闪缩（`40f0449#c`）。沙箱无 GUI / 无触屏跑不了。⑩ **建议把「对抗式审查 → 反驳式核验」自动化 QA 循环写进仓库工作流文档**（今日新观察）——本次 2 个 commit 的 body 展示了这套流程的可复现性：先跑对抗式审查列出 findings（第一轮 3、第二轮 3、第二轮附加维度 CSS 级联零发现），再走 12 票反驳式核验确认 findings 真实，最后可用 `node --check + vm 初始化 + 断言` 做无浏览器的行为验证。这套流程能补上「无 GUI / 无触屏沙箱跑不了真机 QA」的巡检盲区、并把此前几十天承接的 P2 真机验收清单里的**逻辑正确性**部分转成本地可自动验证；建议在 `MAINTENANCE.md` 或新建 `docs/adversarial-review.md` 里写下 prompt 模板 + 反驳票数阈值 + `node --check + vm` 断言姿势。本次不擅动：属新增工作流文档 / 决策，非「小而无争议」范畴。
+>
+> **P2 承接**：承接 7-07 全部 P2（含 forest 双视图 App / 五主题 / PWA 图标 v2 六组合真机验收、forest / pet / picker / connect4 / feixingqi / chess / xiangqi 真机验收、bare_dollar / spotcheck 启发式漏判、tutoring / paid-test-visa / mao-thought-principles summary、random hover 缩进、mid-2015 / anova-R 互链、掼蛋联机回归、宠物中心多浏览器、机票监控 mac 端到端、flight 5 HTML 多浏览器、经济学工具箱三项确认、jukebox 问题首、DNS NameResolutionError、dead_links SVG xmlns 误判、connect4 canvas 无键盘落子、linear-algebra-strang.md summary 引用、`_flight-staging/` 命名、7-07 P2#2 建议加 `scripts/audit/maskable_icon_consistency.py` 共 27 条）——今日无新观察消除、承接不变。
+>
+> **仓库卫生**：目录结构与文件架构**较昨日无变化**——2 个 commit 全部锁在 `toolbox/forest/index.html`（+30 / -5 行、净 +25），未新增 / 未删除任何目录、未新增 / 未删除任何 `_notes/` / `_data/` / `files/` 条目、**未引入任何二进制**（今日纯前端 JS/CSS 补丁）。工作树纯净（`git status` clean、`git ls-files --others --exclude-standard` 空、`find` `.DS_Store` / `*.bak` / `*.orig` / `*.tmp` / `*~` / `* 2.*` / `.env*` / `*.log` 全空、无 5 MB+ 新二进制）。大文件核对与 7-07 完全一致：`files/or/or-2023.pdf` 5.3 MB 唯一 5 MB+、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB + `files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB 仍是 2 MB+ 二人组。`_paid/` + `_flight-staging/` 双双在 `_config.yml` L50/L52 exclude 列表内且 `_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空—— 双保险仍稳固。`_config.yml` 的 `exclude:` 已含 `DAILY_REVIEW.md`（L35）、`EMAIL_SUMMARY.md`（L36）等所有内部产物。**结论**：目录结构与文件架构与 7-07 完全一致，仅前端 JS 行内调整（+30 / -5），无仓库卫生可动项——按 CLAUDE.md「架构无变化即跳过深度优化」原则。
+
+### ✅ 本次已自动修复
+
+无。
+
+2 个 commit 全部由站主 + Claude Fable 5 亲手完成的 forest 对抗式审查修复（两轮共 6 findings、12 票反驳式核验全数确认，CSS 级联维度零发现）—— 属高质量代码审查 + 时序缺陷的判断性修复，不属「小而无争议」范畴；build ✅ / `_site/` 结构与 7-07 完全一致 / workspace 干净 / 无低风险小修可做。
+
+### 📋 待你把关
+
+#### P0（紧急）
+
+1. **forest / ledger / pindou 三个工具的 maskable PWA 图标与主 icon 仍 `byte-identical`**（**承接 7-07，第 2 日承接**）。今日再次 `md5sum` 核验：`forest-icon-512.png` 与 `forest-icon-maskable-512.png` 都是 `63df7becb4ddc57e2b95e88305a33a18`、`ledger-icon-*` 都是 `fad6da15326e5fbf54adb03663f78be2`、`pindou-icon-*` 都是 `fed25167c04f65fc5ce80f28bd12ddf6`。`5c58756` commit body 承诺的 v2 「maskable 主体收进 80% 安全圆（外径 181px < 204.8px，圆蒙版合成验证）」实际未落地——站主本地渲染出的独立 maskable 文件在 commit 时被主 icon 复制覆盖（或反过来）。Android launcher 圆形遮罩仍会裁掉外圈金环 / 装饰。请重新生成三张真正带 80% 安全圆的 maskable-512.png 覆盖。**本 agent 不擅动**：需要图形工具重画、涉及美术判断（80% 安全圆内的构图取舍），非「小而无争议」修复。
+
+#### P1（重要）
+
+1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 ~ 7-07，**第 26 日承接**）。`/notes/` landing 渲染遍历 `site.study_order`（`notes/index.html` L81），所以 `interm-econometrics-2023.md`（sub_category =「中级计量经济学」、120 页 Wooldridge 体系英文讲义）在 `/notes/index.html` 里**渲染不出来**（sitemap / search.json 仍正常工作，**仅** landing 缺）。今日核对：`ls _notes/study/` 仍 26 个目录（较昨日不变）、`study_order` 仍 25 条，`comm -23` 差集仍只 `interm-econometrics` 一条。改否、改成什么名（保留现状 / 加进 `study_order` / 与 `interm-metrics/` 合并）仍属设计判断，请你拍板 —— 承接 26 日，是仓库里最久的 P1。
+
+#### P2（建议）
+
+1. **forest 两轮对抗式审查修复的 6 处缺陷需真机 6 组合下回归确认**（今日新观察）—— iPhone Safari + Android Chrome + iPad + 桌面 Chrome + 桌面 Firefox + PWA standalone 六组合下确认：(a) 番茄开关切换后休息时长行确实隐藏 / 显现（`f04e964#a`）、(b) 灌溉 / 培养期间改设置、退出后「常用时长」仍是复活前真实值（`f04e964#b` 偏好污染防线）、(c) 手机首次冷启动直接进 `#forest` 独立视图后回主页 → 田宽 / 列数正确、无越界重排（`f04e964#c`）、(d) 长时番茄 25/45/90min 结束播放庆典的 1050ms 窗口内空格 / Enter / 数字键无法触发新专注（`40f0449#a` 交互死路）、(e) 庆典期间「放弃这棵」按钮不再弹「树会枯萎」假警告（`40f0449#b`）、(f) 放弃 / 结束循环时半大树能完整走完 0.35s 淡出、不再肉眼可见闪缩为小芽（`40f0449#c`）。沙箱无 GUI / 无触屏跑不了。
+
+2. **建议把「对抗式审查 → 反驳式核验」自动化 QA 循环写进仓库工作流文档**（今日新观察）—— 本次 2 个 commit body 展示了这套流程的可复现性：先跑对抗式审查列出 findings（本次两轮各 3 findings + 第二轮 CSS 级联维度零发现），再走 12 票反驳式核验确认 findings 真实，最后用 `node --check + vm 初始化 + 路由 / renderTree 行为断言` 做无浏览器的本地验证。这套流程能补上「无 GUI / 无触屏沙箱跑不了真机 QA」的巡检盲区、并把此前几十天承接的 P2 真机验收清单里的**逻辑正确性**部分转成本地可自动验证；建议在 `MAINTENANCE.md` 或新建 `docs/adversarial-review.md` 里写下 prompt 模板 + 反驳票数阈值 + `node --check + vm` 断言姿势。本次不擅动：属新增工作流文档 / 决策，非「小而无争议」范畴。
+
+3. **承接 7-07 全部 P2**（forest 双视图 App / 五主题 / PWA 图标 v2 六组合真机验收 6 项 / 建议 `scripts/audit/maskable_icon_consistency.py`、以及 7-06 承接的 forest / pet / picker / connect4 / feixingqi / chess / xiangqi 真机验收 / bare_dollar / spotcheck 启发式漏判 / tutoring / paid-test-visa / mao-thought-principles summary / random hover 缩进 / mid-2015 / anova-R 互链 / 掼蛋联机回归 / 宠物中心多浏览器 / 机票监控 mac 端到端 / flight 5 HTML 多浏览器 / 经济学工具箱三项确认 / jukebox 问题首 / DNS NameResolutionError / dead_links SVG xmlns 误判 / connect4 canvas 无键盘落子 / linear-algebra-strang.md summary 引用 / `_flight-staging/` 命名共 27 条），今日无新观察消除、承接不变。
+
+### 🗂 仓库卫生
+
+**目录结构与文件架构较昨日无变化**——2 个 commit 全部锁在 `toolbox/forest/index.html`（+30 / -5 行、净 +25）；未新增 / 未删除任何目录、未新增任何二进制、未新增 / 未删除任何 `_notes/` / `_data/` / `files/` 条目。工作树纯净（`git status` clean、`git ls-files --others --exclude-standard` 空、`find` `.DS_Store` / `*.bak` / `*.orig` / `*.tmp` / `*~` / `* 2.*` / `.env*` / `*.log` 全空、无 5 MB+ 新二进制）。大文件核对与 7-07 完全一致。`_paid/` + `_flight-staging/` 在 `_config.yml` exclude 双保险稳固、`_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空。`_config.yml` 的 `exclude:` 已含 `DAILY_REVIEW.md`（L35）、`EMAIL_SUMMARY.md`（L36）。**按 CLAUDE.md「架构无变化即跳过深度优化」原则，仓库卫生本日无可动项**。
+
+### 💓 后端脉搏 / 📬 读者来信
+
+后端三件套（zircon-urge / leaderboards / zircon-comments waline）+ 付费墙 `/api/paid` / `/api/redeem` 端点承接沙箱无 fly.io 出口现象、不阻塞巡检、未主动重启 fly app。**今日 2 个 commit 全部前端 forest 补丁**（`toolbox/forest/index.html` +30 / -5），无后端 / 依赖变化。
+
+---
+
 ## 2026-07-07
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生。距 7-06 巡检共 **7 个 commit**（`5245362` 之后 → `5c58756` 为止），**0 文章 / 0 IA / 0 `_data/` 内容 / 0 `_config.yml` / 0 `_notes/` / 0 `files/` 改动**——7 个 commit 全部锁在 `toolbox/forest/index.html`（+1285 / -724 行 / 6 commit）+ 4 张 forest PWA 图标（`5c58756` 唯一改二进制的 commit）+ `_data/toolbox.yml` 一行版本号，全部围绕**种树专注计时器再一天 7 连深度打磨**：
@@ -1264,97 +1322,4 @@
 ### 💓 后端脉搏 / 📬 读者来信
 
 后端三件套（zircon-urge / leaderboards / zircon-comments waline）+ 付费墙 `/api/paid` / `/api/redeem` 端点本次 `backend_pulse.py` 仍全报 HTTP 403。与 5-27 ~ 6-24 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。**今日 0 个新 commit**，三件套无新增依赖。
-
----
-
-## 2026-06-24
-
-> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（13 项；今日周三 DOW=3，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=24，未跑 monthly_stats）。距 6-23 巡检共 **11 个 commit**（`13e61c8` 之后 → `a7cd412` 为止），是六月以来最密集一波——四条主线并发收尾：① **思政两课 LaTeX 化收尾**：`81085b9` 马原知识点梳理改完整 PDF 讲义（LaTeX 重排，补回此前 `marxism-principles.md` 被掏空的半版正文 —— 旧 .md 1066 → 6 行，正文搬进 `files/marxism/source/marxism-principles.tex` 1317 行 + `files/marxism/marxism-principles.pdf` 44 页 / 456 KB，导语 + 教材封面图 `/files/images/marxism-principles/01.jpg` + LaTeX 源码 link 保留），`a7cd412` 毛概知识点梳理 LaTeX 化上线（PDF-only · 51 页 / 846 KB，新增 `_notes/study/mao-thought/mao-thought-principles.md` 21 行 + `files/mao-thought/source/mao-thought-principles.tex` 1320 行 + 1 张配图 `files/mao-thought/source/fig-deng-lilun.png` 367 KB ——「邓小平理论形成过程表」），两篇都按 ctexbook 排，结构 1:1 忠实、正文未改未扩，与既有期末重点/真题回忆版互链。② **线代英文 Strang 讲义首发**：`dfbb84c` 新建 `_notes/study/linear-algebra/linear-algebra-strang.md` 16 行 + `files/linear-algebra/source-strang/` 15 文件（chapters/ch1–ch10.tex 共 4015 行 + main.tex 112 行 + commands.tex / theorems.tex 共 221 行 + Makefile 等）+ `files/linear-algebra/linear-algebra-strang.pdf` 133 页 / 894 KB；按 MIT 18.06（Gilbert Strang）教法重构，10 章彩色盒子排版 + 内联 TikZ 图（四子空间「大图」、SVD 几何、Strang 房子等）；署名 Rui Zhou、与「同 course 的中文姊妹版」并列（**实际中文版未上线**，详见 P2#1）。③ **掼蛋小局收尾 4 commit**：`5fa5492` 调试台 dbug 面板被开始界面盖住——z-index 9998→999999 提到所有浮层之上（PGO/结算/进贡浮层最高 100000，旧 9998 被盖；同步 bump GD_BUILD + index.html 缓存戳）；`97d9c72` 调试台改 4-Tab 布局 + 字体放大 + 宽 300 px + 融合旧 test/quad 暗号入 Tab 按钮 + 摊牌 revealHands 改两行；`0fcd7ed` 联机终局对方看不到最后一手——根因：`round_end` 立即 `endRound` 把 revealHands=true 摊开各家剩牌，最后一手 `lastPlay` 永远被覆盖；改成 `round_end` 先 `_applyTableNow()+renderAll` 让对方看到最后一手桌面，等 `END_ROUND_DELAY_MS` 后再 endRound 摊牌+弹结算，`_tableTimer` 受 `_tableGen` 管理新帧到来自动 cancel；`7d9197a` Web Audio 合成音效——出牌 click+白噪 / 炸弹三层 sawtooth+白噪 / 不出三角波 / 发牌四音上行 arpeggio / 倒计时 tick / 小局结算上下行乐句 / 整局战报五音上行(胜)四音下行(负)；静音按钮 `🔊/🔇` localStorage 记偏好，AudioContext 懒初始化合规 autoplay policy。④ **宠物中心发布前整改 4 commit**（用户报告 + 自己整改）：`bb21dde` Quick Wins 14 项 + P0 事故级 7 项 + 体重模块升级（趋势图长间隔虚线 / 正常范围带 / 每日刻度 / 悬停读数；hero「近30天」标签仅真有30天内参照才显示；含碗读数<空碗时复用 mismatch modal 引导切「不含碗」；删作业差链中间称重升级 confirm 文案；pullSharedPets entries 整份覆盖→按 id 去重并集；直接填大卡补 >900/<30 per100g、>500 per份 软确认；按份食物当主粮 inline warning；宠物码失效后端 join 后 auto-del；体重面板补记录时间药丸；共 9 文件 +266/-39 行：`_includes/cat-soundboard.html` / `_includes/toolbox/pet/board.html` / `_includes/toolbox/pet/modals.html` / `assets/css/main.css` / `assets/css/pet.css` / `assets/js/pet.js`；最重一笔 `assets/js/pet.js` +157/-19）；`2d2a1ea` 成员名改正文字体（0.88rem，仅回退 shortId 用 monospace 小标）+ storage-warn 顶部补 `env(safe-area-inset-top)` + Esc 关闭补 inbox/food-modal/food-wizard/time-picker 四个弹窗（共 +12/-3）；`1b13c0e` 图表色走 CSS 变量 `--pet-chart-target/--pet-chart-target-bg/--pet-chart-bar/--pet-chart-incomplete` 自动深色模式适配（亮绿 #7fb98f / 亮金 #8b7a5e；pet.js 所有硬编码 hex(#4a7c59/#c9a96e/#b9975f) 替换；涵盖 drawIntraday + drawBars + chart-meta legend；共 +32/-17）；`977e79d` 品牌色 token 统一 `--pet-danger/--pet-error/--pet-gold/--pet-brown`（替换全部硬编码 hex #b07c75/#d9534f/#a87a2a/#8b5a3c；补齐 `:root[data-theme="dark"] .pf-wrap` 支持 nav 主题开关）+ 移动端触摸目标 er-del/er-edit min 44px / trend-tabs button min 44×36 + `@media(prefers-reduced-motion)` 禁猫语 wiggle + EQ 动画 + `@media(max-width:680px)` input/select `font-size: max(16px,0.9rem)` 防 iOS 输入框缩放 + entry-row delta badges 全走 CSS 变量删暗色硬编码覆盖（共 +66/-28）。**11 commit 全部聚焦四条主线，无文章内容偏题改动**。`bundle install` ✅ + `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（7.215 s，cold build）。今日 `scripts/audit/run.sh` 全套审计 **12/13 每日项 clean，1 项可自动修复**——`filename_convention` 命中**3 个新 PDF 缺年份**（`files/linear-algebra/linear-algebra-strang.pdf`、`files/mao-thought/mao-thought-principles.pdf`、`files/marxism/marxism-principles.pdf`），三者都是常青「讲义/知识点梳理」合订本（非绑某一年试卷），属审计脚本白名单缺口；其余 `keywords_coverage`（散文 121 篇全部充足，与 6-23 完全一致）/ `images`（仅 `files/interm-macro/interm-macro-2022-zh.pdf` 2.13 MB 大文件承接 6-16 中文版讲义首发，与 6-16 ~ 6-23 同；新增的三份 LaTeX PDF 都在 5 MB 阈值下，分别 894 KB / 846 KB / 456 KB）/ `material_type_enum`（**Notes ×46**——较 6-23 ×44 增 2，正是今日新增的 `linear-algebra-strang` + `mao-thought-principles` 两篇 Notes，其余分布无变化：Exams ×40 / 课程测评 ×18 / 经验之谈 ×5 / 错题本 ×3 / 写作 ×2 / 口语 ×1 / 词汇 ×1）/ `hover_no_media`（pet 4 commit 加了 `@media(hover:hover)` / `prefers-reduced-motion` 一票守卫但**未引入裸 `:hover`**，guandan 4 commit 仅改 z-index / Tab 布局 / Web Audio，全部 clean）/ `sibling_crosslink`（10 个 ≥3 篇 sub_category 组全互链——较 6-23 的 9 个 +1，正是「毛泽东思想…」组从 ≥2 升 ≥3，自动检测到「毛概期末重点 + 毛概期末试题回忆 + 毛概知识点梳理」三篇互链已就位）/ `bare_dollar` / `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` / `spotcheck`（10 项配额抽检见下）/ `backend_pulse`（HTTP 403，承接 6-04 ~ 6-23，沙箱无 fly.io 出口）。**今日 1 项自动修复**——`scripts/audit/filename_convention.py` 的 `ACCEPTED_UNDATED` 白名单加 3 个新讲义合订本，与既有 `adv-micro-psu-lecture-notes.pdf`、`adv-macro-psu/Macro.pdf` 等同性质豁免（属 audit 脚本配置维护，零站点内容触碰）。**P1 队列**：①承接 12 日的 `study_order` 未列 `interm-econometrics`；**②新增** `study_order` 未列 `linear-algebra`（新 `linear-algebra-strang.md` 在 `/notes/` landing 渲染不出来），都属 IA 设计判断、不擅改。
-
-### ✅ 本次已自动修复
-
-1. **`scripts/audit/filename_convention.py` 的 `ACCEPTED_UNDATED` 白名单加 3 个新讲义合订本** —— `filename_convention.py` 命中 3 个新 PDF 缺年份（`files/linear-algebra/linear-algebra-strang.pdf` / `files/mao-thought/mao-thought-principles.pdf` / `files/marxism/marxism-principles.pdf`），都是常青「讲义/知识点梳理」合订本，按主题（非年份）组织，跟既有 `adv-micro-psu-lecture-notes.pdf` / `adv-macro-psu/Macro.pdf` 一样应列入白名单（脚本本意就是「绑某一年的试卷/讲义」才要带年份，知识点梳理不绑年份）。改动只 8 行（5 行白名单条目 + 1 行注释），**纯审计脚本配置维护，零站点内容触碰**。复审：`python3 scripts/audit/filename_convention.py` ✅ 重跑 clean、`bundle exec jekyll build` ✅ 通过（7.215 s）。
-
-### 📋 待你把关
-
-#### P0（紧急）
-无。
-
-#### P1（重要）
-
-1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 / 6-14 / 6-15 / 6-16 / 6-17 / 6-18 / 6-19 / 6-20 / 6-21 / 6-22 / 6-23，**第 12 日承接**）。`/notes/` landing 渲染遍历 `site.study_order`（`notes/index.html` L81），所以 `interm-econometrics-2023.md`（sub_category =「中级计量经济学」、与同名旧版 `interm-metrics-2023.md` 同名相近但目录不同）在 `/notes/index.html` 里**渲染不出来**（sitemap / search.json 仍正常工作，**仅** landing 缺）。今日核对：`ls _notes/study/` 共 25 个目录（含今日新增 `linear-algebra/`），`study_order` 共 23 条，`comm -23` 差集为 `interm-econometrics`、`linear-algebra` 两条；前者承接 12 日不变。改否、改成什么名（保留现状 / 加进 `study_order` / 与 `interm-metrics/` 合并）属设计判断，仍请你拍板。
-
-2. **`_config.yml` 的 `study_order` 未列 `linear-algebra` 文件夹（新今日）**——`dfbb84c` 新建的 `_notes/study/linear-algebra/linear-algebra-strang.md` 因 `study_order` 没列 `linear-algebra` 这一栏，**在 `/notes/index.html` 数学组里渲染不出来**（sitemap / search.json / `_site/notes/linear-algebra/linear-algebra-strang.html` 都正常输出，仅 landing 缺）。`_config.yml` 中数学组当前只有 `real-anal` 一条；自然位置是放在 `real-anal` 之前/之后（线性代数比实分析更基础）。**但放在何处属顺序判断，且未来可能还会加中文版**（详见 P2#1），故仍写进待办由你拍板：要么加进 study_order 排在 `- real-anal` 上方一行，要么和未来中文版一起加。
-
-#### P2（建议）
-
-1. **`linear-algebra-strang.md` 的 summary 引用「本站中文《线性代数讲义》」但仓库内不存在**（新今日）——`grep "course.*线性代数" _notes/study/` 唯一命中即 strang 这一篇，未发现中文姊妹版。summary 最后一句「这是本站中文《线性代数讲义》之外，按 Strang 教法重构的英文姊妹篇」会让读者点过去找不到中文版。两种可能：① 中文版还在 LaTeX 化排队待上线（与马原/毛概同期改造）→ 等中文版落地再放出；② 临时占位文案 → 删去「之外，按 Strang 教法重构的英文姊妹篇」这句、改成自足介绍。**属内容写作判断、请你拍板**。
-2. **`toolbox/random/` hover 守卫内层缩进 cosmetic** —— 承接自 6-03。功能正确，纯排版风格小差异，可忽略。
-3. **mid-2015 与 anova-R 纯 PDF 存档可加同课程互链入口** —— 承接自 6-03。已有「同课程自动侧栏」覆盖（`sibling_crosslink.py` ✅）但缺手写互链段落引导。属内容写作决策。
-4. **掼蛋 6-18 ~ 6-24 期间联机改造 + 调试链路收尾共 23 个 commit（结算闩 / SSE / 倒计时 / 四视角测试 / 逐家亮牌节奏 / 服务端 trail 步进重构 / 进贡还贡演出 / 大厅换座重做 / 头像绑死 / 调试台 dbug + DMC 透视镜 + regress + 4-Tab 布局 + 摊牌两行 + Web Audio 音效），强烈建议站主在真机 / 微信内置浏览器跑两局完整联机回归** —— 承接 6-23 P2#3。今日新增三块需重点回归：① **联机终局对方看到最后一手桌面**（`0fcd7ed` mp19）——是不是真有 `END_ROUND_DELAY_MS` 的停顿能看到最后一手才摊牌？换帧（新一局开始）时 `_tableTimer` 是否真的被新 `_tableGen` cancel 掉、不会触发延迟摊牌打断新一局？② **调试台改 4-Tab + 字体放大 + 融合 test/quad**（`97d9c72`）——浏览器内打 `d-b-u-g` 弹出新面板，四个 Tab 切换是否顺畅？「造局面」Tab 的「发全牌型测试手牌」按钮（融合自旧 `test` 暗号）+「联机」Tab 的「启动联机四视角测试」按钮（融合自旧 `quad` 暗号）是否照旧能用？摊牌时各家剩牌真的劈两行清晰可见？③ **Web Audio 合成音效**（`7d9197a`）——出牌 / 炸弹 / 不出 / 发牌 / 倒计时 / 结算六类音效是否听起来舒服不刺耳？静音按钮 `🔊/🔇` 是否真的全局生效且 localStorage 跨刷新保留？iOS Safari / Android Chrome / 微信内置浏览器三端 AudioContext 是否都能首次交互后正确建？沙箱无浏览器/音频出口无法替代真机回归。
-5. **宠物中心发布前整改共 4 commit 21 条修复（Quick Wins 14 + P0 7 + 体重模块升级），需要在多浏览器/多设备验收**（新今日）—— pet 4 commit 全部 `bb21dde / 2d2a1ea / 1b13c0e / 977e79d` 围绕「发布前整改」展开，改动跨 `_includes/toolbox/pet/{board,modals}.html` + `_includes/cat-soundboard.html` + `assets/css/{main,pet}.css` + `assets/js/pet.js` 五条线，涉及深色模式 CSS 变量、移动端触摸目标、prefers-reduced-motion、iOS 输入框防缩放、Esc 关闭五个弹窗、含碗读数<空碗 mismatch 引导、删作差链中间称重撤销、`pullSharedPets` 多端合并去重、宠物码失效后端 auto-del、体重趋势图虚线/范围带/悬停读数等。**建议站主在 iPhone Safari + Android Chrome + 桌面 Chrome + 桌面 Firefox 至少四个组合下，过一遍真宠物中心 board** —— 加 1 条体重 + 加 1 条饮食 + 触发一次 mismatch + 切深色模式 + 切 prefers-reduced-motion + 离线刷新 + 多端共享 + 撤销作差链 + Esc 关闭所有弹窗。沙箱无 GUI / 无真触屏，确确实实跑不了。
-6. **jukebox 16 首问题首 + 3 失败首待逐类修复** —— 6-17 `008ff4f` 落地 74 首安全改善后剩余的「英文歌 / 翻唱抓错 CD / ASR 漂移」等问题首站主可继续推进。属内容修复决策（承接自 6-18 / 6-19 / 6-20 / 6-21 / 6-22 / 6-23）。
-7. **5 条 DNS NameResolutionError 外链需站主在生产环境复验**（沿用 6-08 / 6-15 / 6-22 / 6-23）—— `centretax.net` / `offcampus.psu.edu` / `www.hwdrivingschool.com` / `www.judicialinformation.com` / `www.textile-outlook.com`。今日 DOW=3 未跑 `dead_links.py`，下个周一（6-29）会再次扫到；属沙箱无 DNS 出口的已知现象，需站主在生产 / 本机复验。
-8. **`dead_links.py` 把 SVG `xmlns="http://www.w3.org/2000/svg"` 命名空间字符串误判为外链**（沿用 6-08 / 6-22）—— audit 脚本 cosmetic（6-10 已有 SKIP_URL_PATTERNS 但仍偶发命中）；非阻塞。
-9. **抽检 6/10 `_notes/tutoring/math-thinking.md` 仅 48 行 / 1.1 KB，但有 `pdf_url`，正文 0 字 + 无 summary** —— `_notes/study/`-外（属 `tutoring/`），permalink `/notes/tutoring/math-thinking` 渲染需依赖 PDF 内嵌兜底。建议日后老文盘扫一并补 `summary` 字段；当下不影响功能。
-
-### 🗂 仓库卫生
-
-**仓库结构较昨日有显著新增但全部合规**——11 个新 commit 涉及五条主线，新增文件全部位于既有目录树/约定下：① **新增三份 LaTeX 讲义 PDF + 对应 source 树**：`files/linear-algebra/linear-algebra-strang.pdf` (894 KB) + `files/linear-algebra/source-strang/` (15 文件、4015 行 LaTeX) / `files/mao-thought/mao-thought-principles.pdf` (846 KB) + `files/mao-thought/source/mao-thought-principles.tex` (1320 行) + `files/mao-thought/source/fig-deng-lilun.png` (367 KB 配图) / `files/marxism/source/marxism-principles.tex` (1317 行) + `files/marxism/marxism-principles.pdf` (456 KB)，三份 PDF 都 <1 MB、`images.py` 未报、`material_type_enum` 全在枚举内（Notes）。② **新增三份 .md 笔记**：`_notes/study/linear-algebra/linear-algebra-strang.md` (16 行) + `_notes/study/mao-thought/mao-thought-principles.md` (21 行)；外加 `_notes/study/marxism/marxism-principles.md` 由 536 行掏空版重写为 20 行 PDF-only 导语（旧版的「被掏空的半版正文」由 LaTeX 重新铺回）。③ **pet 多文件改动**：`_includes/toolbox/pet/{board,modals}.html` + `_includes/cat-soundboard.html` + `assets/css/{main,pet}.css` + `assets/js/pet.js` 共 5 文件、+316/-87 行，无新文件、无新依赖。④ **guandan 改动**：`assets/js/games/guandan.js` 累计 +294/-66 + `toolbox/guandan/index.html` 缓存戳 bump 4 次，无新文件。⑤ **新增 1 张配图**：`files/images/marxism-principles/01.jpg` 教材封面（旧版引用就在那、文件存在）。工作树纯净（`git status` clean、`git ls-files --others --exclude-standard` 空、`find . -name '.DS_Store' -o -name '*.bak' -o -name '*.orig' -o -name '*.tmp' -o -name '*~'` 全空、无副本文件 / 密钥 / 凭证 / 个人路径痕迹）。LaTeX source 目录（`files/*/source*/`）按既有约定不进 `_config.yml` exclude（要进站让人下载源码）；`images.py` 未对新 PDF/PNG 报体积告警。`_config.yml` 的 `exclude:` 列表已含 `DAILY_REVIEW.md`、`EMAIL_SUMMARY.md`、`SPOTCHECK_*`、`TOOLBOX_AUDIT_REPORT.md`、`docs/`、`scripts/`、`tools/`、`_paid/`、`audio/`、`backends/`、`.claude/`、`.githooks/` 等所有内部目录与产物。**新增大体积文件总计**：1.61 MB PDF + 367 KB PNG = 1.97 MB 一次性入库；属内容资产合理增长（讲义本体）。**结论**：仓库目录基线扩展但结构合规，新增 5 个文件夹/12 个文件全部归位，无可优化空间，跳过结构调整。
-
-### 🔬 抽检专项
-
-**抽检 1/10 · `game` · `toolbox/countdown/index.html`**（971 行 / 34.8 KB inline，倒计时面板）
-- 已修复：无。
-- 一致性 ✅：inline-only（无独立 .js/.css）；与 6-23 抽检的 `toolbox/vocab/index.html`（995 行）/ 6-22 的 `toolbox/vision/index.html`（1935 行）同 pattern——单文件小工具，无需拆分。
-- 长期建议：971 行刚好在 1000 行拆分阈值下，无须动；倒计时纯单人小工具，无须接入排行榜/催更/评论。
-
-**抽检 2/10 · `pdf_archive` · `files/adv-macro-psu/chapters/ch10.pdf`**（302.1 KB · 6-13 / 6-19 / 6-22 / 6-23 同性质重复抽样）
-- 已修复：无。
-- 归属 ✅：被英文学术主页 `index.html:616` 区域唯一引用（adv-macro-psu 章节切片，与 ch1.pdf / ch5.pdf / ch6.pdf 一致），是英文版讲义章节切片之一。
-- 体积合理性：302 KB < 5 MB；章节切片合理。
-- LaTeX 化潜力：低——章节级讲义切片，整本 `adv-macro-psu-2026.md` 已 lecture_note_full（如有），章节 PDF 维持下载入口即可。
-
-**抽检 3/10 · `lecture_note_pdf_only` · `_notes/study/causal-inference/final-2023.md`**（17 行 / 1.5 KB · 2023 因果推断期末）
-- 已修复：无。
-- 一致性 ✅：`pdf_url: "/files/causal-inference/final-2023.pdf"` 路径有效；front-matter 完整（layout/main_category/sub_category=因果推断与商业应用/course/material_type=Exams/date=2023-09-01/author=Zircon/discipline=经济学/permalink=/notes/causal-inference/final-2023）；summary 介绍清晰、keywords 覆盖中英文术语。
-- LaTeX 化建议：③ 维持 PDF 存档即可——单次期末真题无更新需求。
-
-**抽检 4/10 · `lecture_note_pdf_only` · `_notes/study/interm-metrics/interm-metrics-2023.md`**（17 行 / 1.3 KB · 中级计量讲义）
-- 已修复：无。
-- 一致性 ✅：`pdf_url: "/files/interm-metrics/interm-metrics-2023.pdf"` 路径有效；front-matter 完整。**注意**：与 P1#1 关联——`interm-metrics` 在 `study_order` 内可渲染；同期的 `interm-econometrics-2023.md`（在另一目录）因目录缺 `study_order` 不渲染，两者命名混淆是 P1#1 的根因。
-- LaTeX 化建议：③ 维持 PDF 存档即可。
-
-**抽检 5/10 · `note`（课程测评 · 心理统计Ⅱ）· `_notes/course-reviews/psy-stat-2-review-2023.md`**（64 行 / 10.2 KB）
-- 已修复：无。
-- front-matter ✅：title「（个人向）心理统计Ⅱ课程测评」/ sub_category=心理统计Ⅱ / discipline=心理学 / material_type=课程测评 / review_category=经济学（看似不对——课程测评模板按 review_category 分组渲染到「经济学」组下，但心理统计Ⅱ其实属于心理学；不过这是模板约定的早期归类，与现状一致，**属老分类风格，不影响渲染**）；keywords 覆盖核心搜索词。
-- 内容观感 ✅：64 行五段式结构清晰；段落组织合理；选课建议具体。
-
-**抽检 6/10 · `note`（数学基础思维 · tutoring）· `_notes/tutoring/math-thinking.md`**（48 行 / 1.1 KB）
-- 已修复：无。
-- 一致性 ⚠️：`pdf_url: /files/tutoring/math-thinking/Main.pdf`（典型 `tutoring/` 主文件 Main.pdf 命名约定），permalink `/notes/tutoring/math-thinking`；正文 0 字、无 `summary` 字段（注：`tutoring/` 目录是 `EVERGREEN_DIRS` 之一，`filename_convention.py` 不报）。**长期建议**：日后做老文盘扫可补 `summary`，让 PDF 内嵌前页有客观介绍（详见 P2#9）。
-
-**抽检 7/10 · `note`（生活之问 · 音感的光谱）· `_notes/life/pitch-perception.md`**（324 行 / 24.2 KB）
-- 已修复：无。
-- front-matter ✅：title 长且具体「为什么有人能记住歌的原调，有人记不住？——音感的光谱」/ sub_category=生活之问 / date=2026-05-03 / permalink=/life/pitch-perception。
-- 内容观感 ✅：324 行长文，五段式结构（绝对音感/相对音感/记调的几种模式/天赋与训练/光谱式定位），调性自然；属「生活之问」典范长文。
-
-**抽检 8/10 · `lecture_note_full` · `_notes/study/causal-id/causal-id-2023.md`**（18 行 / 1.4 KB · 计量因果识别方法）
-- 已修复：无。
-- 一致性 ✅：`pdf_url: "/files/causal-id/causal-id-2023.pdf"` 路径有效；material_type=Notes、discipline=经济学、permalink=/notes/causal-id/causal-id-2023；keywords 覆盖核心搜索词。
-- 长期建议：日后老文盘扫可补 worked example 段落（属于 lecture_note_full 标杆，但当前形态偏 PDF-only 风格）。
-
-**抽检 9/10 · `note`（生活之问 · 饮用水）· `_notes/life/drinking-water-types.md`**（268 行 / 22.0 KB）
-- 已修复：无。
-- front-matter ✅：title 长且具体「日常能喝到的水都有什么区别？……」/ sub_category=生活之问 / date=2026-05-27 / permalink=/life/drinking-water-types。
-- 内容观感 ✅：268 行五段式（七种水的来源对照/口感/价格/适用场景/选购建议），调性自然；与 6-23 抽检的 `_notes/life/us-tax-basics-for-students.md` 同属「生活攻略 · 生活之问」典范长文。
-
-**抽检 10/10 · `lecture_note_pdf_only` · `_notes/study/psy-stat-I/demo-summary.md`**（17 行 / 1.2 KB · 心统Ⅰ代码总结）
-- 已修复：无。
-- 一致性 ✅：`pdf_url: "/files/psy-stat-I/demo-summary.pdf"` 路径有效；front-matter 完整。**注意**：该 PDF 在 `filename_convention.py` 的 `ACCEPTED_UNDATED` 白名单内（与今日新增的三份讲义同类），符合既有约定。
-- LaTeX 化建议：③ 维持 PDF 存档即可——代码总结一次性资料。
-
-### 💓 后端脉搏 / 📬 读者来信
-
-后端三件套（zircon-urge / leaderboards / zircon-comments waline）+ 付费墙 `/api/paid` / `/api/redeem` 端点本次 `backend_pulse.py` 仍全报 HTTP 403。与 5-27 ~ 6-23 同因（沙箱无 fly.io 出口），不阻塞巡检，未主动重启 fly app。**今日 11 个 commit 涵盖前端（pet/guandan/notes）但无后端改动**，三件套无新增依赖。
 
