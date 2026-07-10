@@ -69,7 +69,14 @@ theme_color: "#fafaf9"
   }
   @keyframes ftViewInR { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
   @keyframes ftViewInL { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
-  .ft-nav { display: flex; gap: 0.45rem; justify-content: center; margin: -0.3rem 0 1.25rem; }
+  .ft-nav {
+    /* 复位全站 nav{position:fixed;top:0;width:100%;z-index:1000;背景/下边框} 对本工具
+       <nav class="ft-nav"> 的污染——桌面这应是流内居中的分段胶囊，不是又一条固定顶栏。
+       手机端下面的 @media 会重新把它定成固定底部 tab 栏。 */
+    position: static; top: auto; width: auto; z-index: auto;
+    background: none; backdrop-filter: none; -webkit-backdrop-filter: none; border-bottom: none;
+    display: flex; gap: 0.45rem; justify-content: center; margin: -0.3rem 0 1.25rem;
+  }
   .ft-nav-tab {
     display: inline-flex; align-items: center; gap: 0.4rem;
     padding: 0.48rem 1.25rem;
