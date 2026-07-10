@@ -322,40 +322,28 @@
     margin-bottom: 2rem;
   }
   .hero-portrait { margin: 0; }
-  /* 照片相册（Instagram 式）：横向滑动一张一张满幅显示 + 底部圆点指示器 +
-     桌面 hover 出左右箭头 + 键盘方向键；触屏原生 swipe（CSS scroll-snap）。 */
+  /* 照片相册（微信式拖拽翻页）：手指 / 鼠标拖着胶片走、页与页之间留白、松手吸附到
+     最近一张；触屏走原生 scroll-snap，桌面用指针拖动。底部圆点指示当前。 */
   .photo-carousel { position: relative; }
   .ps-track {
-    display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+    display: flex; gap: 12px;
+    overflow-x: auto; scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch; scrollbar-width: none;
     aspect-ratio: 2 / 3;
     border-radius: var(--radius-lg);
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-2);
     background: var(--color-bg-warm);
+    cursor: grab;
   }
+  .ps-track.is-dragging { cursor: grabbing; scroll-snap-type: none; scroll-behavior: auto; }
   .ps-track::-webkit-scrollbar { display: none; }
   .ps-slide { flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; }
-  .ps-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  /* 桌面 hover 出的左右箭头（触屏隐藏，只 swipe） */
-  .ps-arrow {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    width: 30px; height: 30px; border-radius: 50%;
-    background: rgba(255,255,255,0.9); border: 1px solid rgba(26,26,46,0.08);
-    color: #1a1a2e; font-size: 1.05rem; line-height: 1;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; z-index: 3; opacity: 0;
-    transition: opacity 0.2s ease, background 0.2s ease;
-    box-shadow: 0 1px 4px rgba(26,26,46,0.18);
+  .ps-slide img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    -webkit-user-drag: none; user-select: none; pointer-events: none;
   }
-  .ps-arrow--prev { left: 8px; }
-  .ps-arrow--next { right: 8px; }
-  .photo-carousel:hover .ps-arrow { opacity: 1; }
-  .ps-arrow:hover { background: #fff; }
-  .ps-arrow:focus-visible { opacity: 1; outline: 2px solid var(--color-accent); outline-offset: 2px; }
-  .ps-arrow[hidden] { display: none; }
-  @media (hover: none) { .ps-arrow { display: none; } }
-  /* 底部圆点：当前点放大变色（~180ms，对齐 IG 手感） */
+  /* 底部圆点：当前点放大变藏蓝 */
   .ps-dots { display: flex; gap: 6px; justify-content: center; align-items: center; margin-top: 0.7rem; }
   .ps-dot {
     width: 6px; height: 6px; border-radius: 50%; padding: 0; border: none;

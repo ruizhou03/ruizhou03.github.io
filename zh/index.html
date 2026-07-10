@@ -65,8 +65,6 @@ title: 锆铌 | Rui Zhou
           <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-window.jpg' | relative_url }}" alt="周睿在窗边看毕业证书" width="760" height="1140" loading="lazy"></div>
           <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-stair.jpg' | relative_url }}" alt="周睿在楼梯窗边远望" width="760" height="1140" loading="lazy"></div>
         </div>
-        <button type="button" class="ps-arrow ps-arrow--prev" aria-label="上一张照片" hidden>&#8249;</button>
-        <button type="button" class="ps-arrow ps-arrow--next" aria-label="下一张照片">&#8250;</button>
         <div class="ps-dots">
           <button type="button" class="ps-dot is-active" aria-label="第 1 张"></button>
           <button type="button" class="ps-dot" aria-label="第 2 张"></button>
@@ -170,8 +168,8 @@ title: 锆铌 | Rui Zhou
 </section>
 
 <script>
-  // 首页 hero 照片相册（Instagram 式）：CSS scroll-snap 原生 swipe；圆点随滚动同步、
-  // 桌面 hover 出的左右箭头在两端自动隐藏、方向键切换。5 张都是真实 <img>。
+  // 首页 hero 照片相册（微信式拖拽翻页）：触屏走原生 scroll-snap；桌面用指针拖动跟手、
+  // 松手平滑吸附到最近一张（页间有 12px 留白）。圆点随滚动同步、方向键可切。5 张真实 <img>。
   (function () {
     var car = document.querySelector('.photo-carousel');
     if (!car) return;
@@ -180,35 +178,58 @@ title: 锆铌 | Rui Zhou
     var n = slides.length;
     if (n < 2) return;
     var dots = Array.prototype.slice.call(car.querySelectorAll('.ps-dot'));
-    var prevBtn = car.querySelector('.ps-arrow--prev');
-    var nextBtn = car.querySelector('.ps-arrow--next');
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // 预加载全部（含 lazy 的后两张）
     slides.forEach(function (s) { var im = s.querySelector('img'); if (im) { var pre = new Image(); pre.src = im.src; } });
     var cur = 0;
+    function nearest() {              // 用 offsetLeft，天然含 gap
+      var best = 0, bestD = Infinity;
+      for (var i = 0; i < n; i++) {
+        var d = Math.abs(slides[i].offsetLeft - track.scrollLeft);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      return best;
+    }
+    function setDots() { for (var k = 0; k < dots.length; k++) dots[k].classList.toggle('is-active', k === cur); }
     function goTo(i) {
       i = Math.max(0, Math.min(n - 1, i));
-      track.scrollTo({ left: i * track.clientWidth, behavior: reduce ? 'auto' : 'smooth' });
-    }
-    function sync() {
-      var i = Math.round(track.scrollLeft / track.clientWidth);
-      cur = Math.max(0, Math.min(n - 1, i));
-      for (var k = 0; k < dots.length; k++) dots[k].classList.toggle('is-active', k === cur);
-      if (prevBtn) prevBtn.hidden = (cur === 0);
-      if (nextBtn) nextBtn.hidden = (cur === n - 1);
+      track.scrollTo({ left: slides[i].offsetLeft, behavior: reduce ? 'auto' : 'smooth' });
+      cur = i; setDots();
     }
     var ticking = false;
     track.addEventListener('scroll', function () {
-      if (!ticking) { ticking = true; window.requestAnimationFrame(function () { sync(); ticking = false; }); }
+      if (!ticking) { ticking = true; window.requestAnimationFrame(function () { cur = nearest(); setDots(); ticking = false; }); }
     }, { passive: true });
-    if (prevBtn) prevBtn.addEventListener('click', function () { goTo(cur - 1); });
-    if (nextBtn) nextBtn.addEventListener('click', function () { goTo(cur + 1); });
     dots.forEach(function (d, k) { d.addEventListener('click', function () { goTo(k); }); });
     car.addEventListener('keydown', function (e) {
       if (e.key === 'ArrowLeft') { goTo(cur - 1); e.preventDefault(); }
       else if (e.key === 'ArrowRight') { goTo(cur + 1); e.preventDefault(); }
     });
-    window.addEventListener('resize', sync);
-    sync();
+    // ── 桌面指针拖动（触屏交给原生 scroll-snap）：拖时关掉 snap 自由跟手，松手平滑吸附 ──
+    var dragging = false, startX = 0, startScroll = 0, moved = false;
+    track.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'touch') return;
+      dragging = true; moved = false; startX = e.clientX; startScroll = track.scrollLeft;
+      track.classList.add('is-dragging');
+      try { track.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    track.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - startX;
+      if (Math.abs(dx) > 3) moved = true;
+      track.scrollLeft = startScroll - dx;
+    });
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      var target = nearest();
+      track.scrollTo({ left: slides[target].offsetLeft, behavior: reduce ? 'auto' : 'smooth' });
+      cur = target; setDots();
+      // 滚完再恢复 CSS mandatory snap，避免立即 re-snap 造成跳变
+      window.setTimeout(function () { track.classList.remove('is-dragging'); }, reduce ? 0 : 380);
+    }
+    track.addEventListener('pointerup', endDrag);
+    track.addEventListener('pointercancel', endDrag);
+    window.addEventListener('resize', function () { cur = nearest(); setDots(); });
+    setDots();
   })();
 </script>
