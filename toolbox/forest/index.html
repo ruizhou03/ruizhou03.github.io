@@ -27,15 +27,16 @@ theme_color: "#fafaf9"
     --ft-gold: #c9a96e;                          /* 灌溉 / 巨树 暖金 */
     --ft-gold-ink: #b08838;
     --ft-gold-soft: rgba(201, 169, 110, 0.16);
+    --ft-hint: #5f6672;   /* 浅底上达 AA 的说明小字（--color-light≈2.5:1 不够）*/
     --ft-shadow-card: 0 4px 18px rgba(30, 58, 95, 0.06);
     --ft-shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.18);     /* 浮层：popover / tooltip */
     --ft-shadow-modal: 0 14px 44px rgba(0, 0, 0, 0.3);   /* 模态 */
     --ft-on-accent: #fff;   /* 实心 accent 上的文字（暗色下翻深，白字压浅蓝会发虚）*/
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --ft-on-accent: #10202e; }
+    :root:not([data-theme="light"]) { --ft-on-accent: #10202e; --ft-hint: #9aa3b0; }
   }
-  :root[data-theme="dark"] { --ft-on-accent: #10202e; }
+  :root[data-theme="dark"] { --ft-on-accent: #10202e; --ft-hint: #9aa3b0; }
 
   /* 阻断橡皮筋回弹（仅本工具页内联，standalone 下更像原生 App）*/
   html, body { overscroll-behavior: none; }
@@ -398,7 +399,7 @@ theme_color: "#fafaf9"
   .settings-group { display: grid; gap: 0.55rem; }
   .settings-group-title {
     font-size: var(--ft-fs-cap); font-weight: 600;
-    color: var(--color-light); letter-spacing: 0.09em;
+    color: var(--ft-hint); letter-spacing: 0.09em;
   }
   .settings-group + .settings-group { border-top: 1px solid var(--color-border); padding-top: 0.9rem; }
   /* 折叠区里的设置行扁平化（外层 details 已有边框）；标签列定宽让控件起点对齐 */
@@ -437,7 +438,7 @@ theme_color: "#fafaf9"
   .focus-warning {
     margin-top: 0.7rem;
     font-size: var(--ft-fs-sm);
-    color: var(--color-light);
+    color: var(--ft-hint);
     font-style: normal;
   }
 
@@ -579,7 +580,7 @@ theme_color: "#fafaf9"
   @media (hover: hover) {
     .field-tab-add:hover { border-style: solid; border-color: var(--color-accent); color: var(--color-accent); }
   }
-  .field-tab-hint { font-size: var(--ft-fs-cap); color: var(--color-light); align-self: center; margin-left: 0.15rem; }
+  .field-tab-hint { font-size: var(--ft-fs-cap); color: var(--ft-hint); align-self: center; margin-left: 0.15rem; }
 
   /* ============ 田地 ============ */
   .field-toolbar {
@@ -606,7 +607,7 @@ theme_color: "#fafaf9"
   .forest-title .ft-ico, .exp-chart-header .ft-ico { margin-right: 0.4rem; color: var(--color-accent); }
   .field-toolbar .spacer { flex-grow: 1; }
   .field-toolbar .field-hint {
-    font-size: var(--ft-fs-cap); color: var(--color-light);
+    font-size: var(--ft-fs-cap); color: var(--ft-hint);
     font-style: normal;
   }
 
@@ -875,7 +876,7 @@ theme_color: "#fafaf9"
   .exp-empty {
     text-align: center;
     padding: 2rem;
-    color: var(--color-light);
+    color: var(--ft-hint);
     font-size: var(--ft-fs-sm);
   }
 
@@ -1278,7 +1279,7 @@ theme_color: "#fafaf9"
   }
   .ft-toast button {
     font: inherit; font-size: var(--ft-fs-sm); font-weight: 600;
-    color: #8fd0ff; background: transparent; border: none; cursor: pointer;
+    color: #9db8d6; background: transparent; border: none; cursor: pointer;   /* 沉稳蓝·贴站点色板（toast 底恒深色，勿套亮色模式深蓝 accent）*/
     padding: 0.2rem 0.5rem; white-space: nowrap; flex-shrink: 0;
   }
   /* —— 主题呼吸动效 + 樱花落樱(整合自 scenes-anim/sakura-fall) —— */
@@ -1384,7 +1385,7 @@ theme_color: "#fafaf9"
     <!-- 时长：首屏直接可调 -->
     <div class="setting-row duration-row">
       <label>时长</label>
-      <div class="duration-tabs">
+      <div class="duration-tabs" role="group" aria-label="专注时长">
         <button type="button" data-min="30" class="active">30</button>
         <button type="button" data-min="50">50</button>
         <button type="button" data-min="90">90</button>
@@ -1405,7 +1406,7 @@ theme_color: "#fafaf9"
           </div>
           <div class="setting-row setting-stack">
             <label>树种</label>
-            <div class="tree-types" id="tree-types">
+            <div class="tree-types" id="tree-types" role="group" aria-label="树种">
               <button type="button" data-tree="oak" class="active"><span class="opt-ico">🌳</span><span class="opt-cap">橡树</span></button>
               <button type="button" data-tree="pine"><span class="opt-ico">🌲</span><span class="opt-cap">松树</span></button>
               <button type="button" data-tree="sakura"><span class="opt-ico">🌸</span><span class="opt-cap">樱花</span></button>
@@ -1432,7 +1433,7 @@ theme_color: "#fafaf9"
           <div class="settings-group-title">偏好</div>
           <div class="setting-row">
             <label>离开页面</label>
-            <div class="seg-toggle" id="strict-tabs">
+            <div class="seg-toggle" id="strict-tabs" role="group" aria-label="离开页面时">
               <span class="seg-thumb" id="strict-thumb"></span>
               <button type="button" data-strict="1" title="专注时离开本页 / 切走超 15 秒，树会枯萎（手机默认）">树会枯萎</button>
               <button type="button" data-strict="0" title="离开不影响，专注全凭自觉（电脑默认）">不影响</button>
@@ -1440,7 +1441,7 @@ theme_color: "#fafaf9"
           </div>
           <div class="setting-row setting-stack">
             <label>主题背景</label>
-            <div class="pill-group" id="theme-bg-pills">
+            <div class="pill-group" id="theme-bg-pills" role="group" aria-label="主题背景">
               <button type="button" data-value="default"><span class="theme-swatch" data-scene="default"></span><span class="opt-cap">晴日</span></button>
               <button type="button" data-value="night"><span class="theme-swatch" data-scene="night"></span><span class="opt-cap">月夜</span></button>
               <button type="button" data-value="bubbles"><span class="theme-swatch" data-scene="bubbles"></span><span class="opt-cap">气泡</span></button>
@@ -1450,7 +1451,7 @@ theme_color: "#fafaf9"
           </div>
           <div class="setting-row setting-stack">
             <label>计时显示</label>
-            <div class="pill-group" id="theme-timer-pills">
+            <div class="pill-group" id="theme-timer-pills" role="group" aria-label="计时显示">
               <button type="button" data-value="countdown"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.2h11"/><path d="M6.5 20.8h11"/><path d="M8 3.2c0 4.2 4 5.4 4 8.8 0 3.4-4 4.6-4 8.8"/><path d="M16 3.2c0 4.2-4 5.4-4 8.8 0 3.4 4 4.6 4 8.8"/><path d="M9 19.6c.9-2.2 5.1-2.2 6 0z" fill="currentColor" stroke="none"/><circle cx="12" cy="9.3" r="0.85" fill="currentColor" stroke="none"/></svg><span class="opt-cap">倒计时</span></button>
               <button type="button" data-value="countup"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 2.4h4.8"/><path d="M12 2.4v2.2"/><path d="M18.7 6.1l1.3-1.3"/><circle cx="12" cy="13.4" r="7.7" fill="currentColor" fill-opacity="0.07"/><path d="M12 13.4V8.9"/><circle cx="12" cy="13.4" r="1.05" fill="currentColor" stroke="none"/></svg><span class="opt-cap">正计时</span></button>
               <button type="button" data-value="hidden" title="只看树，不显示时间"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.8 5.6A9.2 9.2 0 0 1 12 5.3c5.1 0 8.3 5.7 8.3 5.7a14.6 14.6 0 0 1-2.5 3"/><path d="M6.6 6.9A14.6 14.6 0 0 0 3.7 11s3.2 5.7 8.3 5.7a9.2 9.2 0 0 0 2.6-.4"/><path d="M10.3 9.3a2.4 2.4 0 0 0 3.4 3.4"/><path d="M4.5 3.7l15 15.3"/></svg><span class="opt-cap">只看树</span></button>
@@ -1530,7 +1531,7 @@ theme_color: "#fafaf9"
         <button type="button" data-range="90">最近 90 天</button>
       </div>
       <div class="exp-chart-svg-wrap" id="exp-chart-svg-wrap">
-        <svg class="exp-chart-svg" id="exp-chart-svg" viewBox="0 0 720 200" preserveAspectRatio="none"></svg>
+        <svg class="exp-chart-svg" id="exp-chart-svg" viewBox="0 0 720 200" preserveAspectRatio="none" role="img" aria-label="专注经验值柱状图"></svg>
         <div class="exp-bar-tooltip" id="exp-bar-tooltip"></div>
       </div>
       <div class="exp-empty" id="exp-empty" style="display: none;">
@@ -1546,7 +1547,7 @@ theme_color: "#fafaf9"
 </div>
 
 <!-- ========== 全屏 focus 遮罩 ========== -->
-<div class="focus-overlay" id="focus-overlay">
+<div class="focus-overlay" id="focus-overlay" role="dialog" aria-modal="true" aria-label="专注计时" tabindex="-1">
   <div class="overlay-scene" id="overlay-scene"></div>
   <div class="overlay-ground" id="overlay-ground"></div>
   <div class="pomodoro-counter" id="overlay-counter" style="display: none;">第 1 个番茄</div>
@@ -1703,6 +1704,12 @@ theme_color: "#fafaf9"
   const ACTIVE_FIELD_KEY = 'tool.forest.activeField.v1';
   const THEME_KEY = 'tool.forest.theme.v1';
   const SESSIONS_KEY = 'tool.forest.sessions.v1';   // 不可变专注流水（统计/经验曲线用，不受合并/培养影响）
+  // 每标签页一个稳定 id（sessionStorage 跨刷新存活、跨标签页独立），用于判断进行中的专注归属哪个 tab
+  let _tabId;
+  try {
+    _tabId = sessionStorage.getItem('tool.forest.tabId');
+    if (!_tabId) { _tabId = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); sessionStorage.setItem('tool.forest.tabId', _tabId); }
+  } catch (e) { _tabId = 't' + Date.now(); }
   const STRICT_KEY = 'tool.forest.strict.v1';   // 专注严格度：'1'=离开枯萎 / '0'=宽松自觉
   const PREFS_KEY = 'tool.forest.prefs.v1';   // 常用偏好：树种/时长/番茄开关/休息分钟（跨访问记住）
 
@@ -1899,6 +1906,7 @@ theme_color: "#fafaf9"
     if (!state.session) { saveActive(null); return; }
     saveActive(Object.assign({}, state.session, {
       lastTick: Date.now(),
+      _tabId: _tabId,
       paused: !!state.paused,
       pausedAt: state.paused ? state.pausedAt : null,
       _meta: {
@@ -4712,6 +4720,21 @@ return deco_cactus;
     persistActive();
   }
 
+  // 全屏遮罩=对话框：打开时隔离背景（inert 挡键盘/读屏）+ 移焦进遮罩，关闭时还原
+  function setOverlayA11y(on) {
+    [document.querySelector('.ft-wrap'), document.querySelector('body > nav'), document.querySelector('body > footer')]
+      .forEach(el => { if (!el) return; if (on) el.setAttribute('inert', ''); else el.removeAttribute('inert'); });
+    if (on) { try { $overlay.focus(); } catch (e) {} }
+    else { try { if (!$startBtn.disabled) $startBtn.focus(); } catch (e) {} }
+  }
+  // Esc 关闭遮罩 = 走「放弃 / 结束循环」流程（放弃仍会弹确认，不一键毁树）；确认框开着时它自理 Esc
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !$overlay.classList.contains('open')) return;
+    if (document.querySelector('.ft-modal-mask.open')) return;
+    e.preventDefault();
+    $giveUpBtn.click();
+  });
+
   // 依据 state.session 打开全屏遮罩并启动计时（新开 / 续跑共用）
   function openSessionUI() {
     const isBreak = !!state.session.isBreak;
@@ -4719,6 +4742,7 @@ return deco_cactus;
     applyTheme();   // 套用主题 + 生成粒子
     $overlay.classList.add('open');
     $overlay.classList.toggle('break-mode', isBreak);
+    setOverlayA11y(true);
     $overlayTimer.style.color = '';   // 复位上一段可能残留的告警色
 
     if (isBreak) {
@@ -5002,6 +5026,7 @@ return deco_cactus;
         $overlay.classList.remove('open');
         $overlay.classList.remove('break-mode');
         $startBtn.disabled = false;   // 庆典结束才解锁，堵死庆典窗口内的重复开始竞态
+        setOverlayA11y(false);
         // 遮罩关闭、树真正落进森林之后再报喜，避免"庆典还在演就说种好了"
         if (!wasBreak && wasOverlayOpen) {
           showToast('这棵树已种进你的森林', { undoText: '去看看', undo: () => { location.hash = '#forest'; } });
@@ -5099,6 +5124,7 @@ return deco_cactus;
     $overlay.classList.remove('open');
     $overlay.classList.remove('break-mode');
     $overlay.classList.remove('paused');
+    setOverlayA11y(false);
     $pauseBtn.style.display = 'none';
     $overlayTimer.style.color = '';
     $timerDisplay.classList.remove('warn');
@@ -5127,6 +5153,7 @@ return deco_cactus;
       $overlay.classList.remove('break-mode');
       $pauseBtn.style.display = 'none';
       $startBtn.disabled = false;
+      setOverlayA11y(false);
       $timerDisplay.textContent = fmtTime(state.duration * 60);
       renderTree(0, $treeContainer);
       setTimeout(() => { if (!state.session) renderTree(0, $overlayTreeContainer); }, 420);   // 等淡出结束
@@ -5478,6 +5505,15 @@ return deco_cactus;
         div.addEventListener('mouseenter', () => { if (!div.classList.contains('dragging')) showTreeTip(div, tipText); });
         div.addEventListener('mouseleave', hideTreeTip);
       }
+      // 键盘可达：树本体可聚焦（回车/空格=查看详情，整理模式=勾选）
+      div.setAttribute('tabindex', '0');
+      div.setAttribute('role', 'button');
+      div.setAttribute('aria-label', tipText + '，回车查看详情');
+      div.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (editMode) toggleMergeSelect(t.id); else showDetail(t.id, div);
+      });
       // 编辑模式删除按钮（成功树与枯树都可铲除）
       const deleteX = document.createElement('div');
       deleteX.className = 'delete-x';
@@ -5485,6 +5521,14 @@ return deco_cactus;
       deleteX.dataset.id = t.id;
       deleteX.addEventListener('click', e => {
         e.stopPropagation();
+        deleteTree(t.id);
+      });
+      deleteX.setAttribute('role', 'button');
+      deleteX.setAttribute('tabindex', '0');
+      deleteX.setAttribute('aria-label', '铲除' + (t.success ? TREE_NAME[t.type] : '这棵枯树'));
+      deleteX.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault(); e.stopPropagation();
         deleteTree(t.id);
       });
       div.appendChild(deleteX);
@@ -5952,6 +5996,12 @@ return deco_cactus;
   function resumeSession() {
     const active = loadActive();
     if (!active) return;
+    // 另一个标签页正在专注（心跳很新、且属别的 tab）→ 别抢它的会话，只提示
+    if (active._tabId && active._tabId !== _tabId &&
+        Math.max(0, Date.now() - (active.lastTick || active.startTime)) < 12000) {
+      showToast('另一个标签页正在专注中');
+      return;
+    }
     restoreMeta(active);   // 先还原番茄链 / 灌溉目标 / 休息分钟
 
     const now = Date.now();
@@ -5975,7 +6025,17 @@ return deco_cactus;
     if (gap <= RESUME_TOLERANCE_MS) {
       // 短暂中断（刷新/崩溃重启）→ 无缝续跑，且离开的时间不计入专注
       active.startTime += gap;
-      enterExisting(active, true);
+      enterExisting(active, !active.paused);
+      if (active.paused) {
+        // 刷新前处于暂停 → 续跑后保持暂停，冻结在暂停时刻的已专注量，等用户手动继续
+        state.paused = true;
+        state.pausedAt = Date.now();
+        state.session.startTime = state.pausedAt - onPage;
+        if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+        updatePauseUI();
+        tick();
+        persistActive();
+      }
     } else {
       // 离开较久、时间还没到 → 弹站内确认，交给用户决定
       askResume(active, gap, onPage);
@@ -6169,6 +6229,7 @@ return deco_cactus;
       $expSvg.style.display = 'none';
       $expEmpty.style.display = '';
       $expSummary.textContent = '';
+      $expSvg.setAttribute('aria-label', '专注经验值柱状图：本范围暂无专注记录');
       return;
     }
     $expSvg.style.display = '';
@@ -6176,6 +6237,7 @@ return deco_cactus;
 
     const totalCount = buckets.reduce((s, b) => s + b.count, 0);
     $expSummary.innerHTML = `本范围共 <strong>${total.toFixed(0)}</strong> 经验 · ${totalCount} 棵树`;
+    $expSvg.setAttribute('aria-label', `专注经验值柱状图：本范围共 ${total.toFixed(0)} 经验，${totalCount} 棵树`);
 
     // 手机上固定 720 宽 viewBox 会把轴字缩到 ~4px：按容器实际宽度设（1 单位 ≈ 1px）
     const wrapW = ($expSvgWrap && $expSvgWrap.clientWidth) || 0;
@@ -6411,6 +6473,17 @@ return deco_cactus;
   updatePomodoroHint();
   resumeSession();
   applyStrictUI();   // 严格度按钮高亮 + 首屏「离开页面」说明（随当前模式）
+  // 分段/胶囊单选控件：视觉选中靠 .active，读屏靠 aria-pressed —— 用委托监听统一同步（免逐点维护）
+  function refreshAriaPressed() {
+    document.querySelectorAll('#tree-types button, .duration-tabs button, #theme-bg-pills button, #theme-timer-pills button, #strict-tabs button, .exp-range-tabs button')
+      .forEach(b => b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false'));
+  }
+  document.addEventListener('click', (e) => {
+    if (e.target.closest && e.target.closest('#tree-types, .duration-tabs, #theme-bg-pills, #theme-timer-pills, #strict-tabs, .exp-range-tabs')) {
+      requestAnimationFrame(refreshAriaPressed);
+    }
+  });
+  refreshAriaPressed();
   applyRoute();      // 按 URL hash 进入对应视图（#forest 深链接也能直达）
 })();
 </script>
