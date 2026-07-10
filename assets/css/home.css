@@ -322,49 +322,45 @@
     margin-bottom: 2rem;
   }
   .hero-portrait { margin: 0; }
-  /* 照片堆叠：一叠毕业照的样子，点一下翻下一张（键盘可用·reduced-motion 安全） */
-  .photo-stack {
-    display: block; width: 100%;
-    background: none; border: none; padding: 0; margin: 0;
-    cursor: pointer; font: inherit; color: inherit;
-    -webkit-tap-highlight-color: transparent;
-  }
+  /* 照片堆叠：5 张真实毕业照叠成一摞——背后露出的是真图（下一/下下张），
+     不是空样板；点图左半=上一张、右半=下一张，带翻牌位移动画。 */
+  .photo-stack { display: block; width: 100%; padding: 4px 14px 10px; }
   .ps-deck { position: relative; display: block; aspect-ratio: 2 / 3; }
-  .ps-frame {
-    position: absolute; inset: 0; z-index: 2;
+  .ps-card {
+    position: absolute; inset: 0;
     border-radius: var(--radius-lg); overflow: hidden;
-    border: 1px solid var(--color-border); box-shadow: var(--shadow-2);
-    background: var(--color-bg-warm);
-    transition: transform var(--dur-base) var(--ease);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-warm); box-shadow: var(--shadow-2);
+    transform-origin: 50% 62%; will-change: transform, opacity;
+    transition: transform 0.38s cubic-bezier(.2,.72,.25,1), opacity 0.32s ease, box-shadow 0.32s ease;
   }
-  .ps-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity var(--dur-fast) var(--ease); }
-  /* 背后两张微微露出的「叠层」 */
-  .ps-deck::before, .ps-deck::after {
-    content: ""; position: absolute; inset: 0;
-    border-radius: var(--radius-lg); background: var(--color-bg-warm);
-    border: 1px solid var(--color-border); box-shadow: var(--shadow-1);
+  .ps-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ps-card.p0 { transform: translate(0,0) rotate(-1deg);                  opacity: 1; z-index: 50; box-shadow: var(--shadow-3); }
+  .ps-card.p1 { transform: translate(7%, 3%) rotate(3deg) scale(.972);    opacity: 1; z-index: 40; }
+  .ps-card.p2 { transform: translate(-6%, 6%) rotate(-3deg) scale(.945);  opacity: 1; z-index: 30; }
+  /* 出栈：原地微倾 + 缩小 + 淡出（不做大位移，避免撑出横向滚动） */
+  .ps-card.pb { transform: rotate(-7deg) scale(.9);                       opacity: 0; z-index: 10; }
+  /* 左右两个透明点击区（键盘可 Tab 聚焦 + Enter 触发） */
+  .ps-nav {
+    position: absolute; top: 0; bottom: 0; width: 50%; z-index: 60;
+    border: none; background: none; padding: 0; margin: 0; cursor: pointer;
+    display: flex; align-items: center; -webkit-tap-highlight-color: transparent;
   }
-  .ps-deck::before { z-index: 1; transform: rotate(-3deg) translate(-4px, 4px); }
-  .ps-deck::after  { z-index: 0; transform: rotate(3deg) translate(4px, 6px); }
-  .photo-stack:hover .ps-frame { transform: translateY(-3px) rotate(-0.6deg); }
-  .photo-stack:active .ps-frame { transform: scale(0.99); }
-  .photo-stack:focus-visible { outline: none; }
-  .photo-stack:focus-visible .ps-frame { outline: 2px solid var(--color-accent); outline-offset: 3px; }
-  .ps-hint {
-    display: flex; gap: 0.4rem; align-items: center; justify-content: center;
-    margin-top: 0.7rem; font-size: 0.74rem; color: var(--color-muted);
+  .ps-prev { left: 0; justify-content: flex-start; }
+  .ps-next { right: 0; justify-content: flex-end; }
+  .ps-nav span {
+    font-family: Georgia, 'Times New Roman', serif; font-size: 1.5rem; line-height: 1; color: #fff;
+    margin: 0 0.4rem; padding: 0.05rem 0.55rem; border-radius: var(--radius-pill);
+    background: rgba(26,26,46,0.42); opacity: 0; transition: opacity var(--dur-base) var(--ease);
   }
-  .ps-count {
-    font-family: 'Cormorant Garamond', var(--font-display);
-    font-variant: small-caps; letter-spacing: 0.12em; color: var(--color-accent);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .ps-frame, .ps-img { transition: none; }
-    .photo-stack:hover .ps-frame { transform: none; }
-  }
+  .ps-nav:hover span, .ps-nav:focus-visible span { opacity: 1; }
+  .ps-nav:focus-visible { outline: none; }
+  .ps-nav:focus-visible span { outline: 2px solid #fff; outline-offset: 1px; }
+  @media (hover: none) { .ps-nav span { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .ps-card { transition: none; } }
   @media (max-width: 640px) {
     .hero-wrap { grid-template-columns: 1fr; gap: 1.3rem; }
-    .hero-portrait { max-width: 200px; }
+    .hero-portrait { max-width: 210px; }
   }
   .home-kicker {
     font-family: 'Cormorant Garamond', var(--font-display);
