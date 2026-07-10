@@ -13,8 +13,9 @@ title: 锆铌 | Rui Zhou
 {% assign essay_count = 0 %}
 
 {% for n in site.notes %}
-  {% if n.published != false %}{% assign total = total | plus: 1 %}{% endif %}
-  {% if n.date %}{% assign valid_notes = valid_notes | push: n %}{% endif %}
+  {% comment %} 只统计 / 收录「访客可见」的：排除下架 hidden、回收 trashed、未发布 published:false —— 隐藏的不进近期更新，后面的自动递补 {% endcomment %}
+  {% if n.published != false and n.hidden != true and n.trashed != true %}{% assign total = total | plus: 1 %}{% endif %}
+  {% if n.date and n.published != false and n.hidden != true and n.trashed != true %}{% assign valid_notes = valid_notes | push: n %}{% endif %}
   {% if n.discipline %}{% assign notes_count = notes_count | plus: 1 %}{% endif %}
   {% assign _is_research = false %}
   {% if n.main_category == "科研妙招" %}{% assign _is_research = true %}{% endif %}
