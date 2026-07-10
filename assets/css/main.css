@@ -686,6 +686,8 @@
       font-weight: 600; font-size: 1.12rem; letter-spacing: 0.02em;
       color: var(--color-ink); text-transform: none;
     }
+    /* 桌面菜单首项用 flex 精确居中 tile 与「锆铌」（修 tile 掉到基线下的错位） */
+    .nav-links .nav-link-home a { display: inline-flex; align-items: center; }
     .nav-brand:hover,
     .nav-links .nav-link-home a:hover { color: var(--color-accent); }
     .nav-brand::before,
@@ -694,7 +696,7 @@
       display: inline-block;
       width: 1.5em; height: 1.5em;
       line-height: 1.5em; text-align: center;
-      margin-right: 0.4em; vertical-align: -0.32em;
+      margin-right: 0.4em; vertical-align: middle;
       background: linear-gradient(150deg, #c9a96e, #b8934e);
       color: #fffdf7;
       font-family: 'Cormorant Garamond', var(--font-display);
