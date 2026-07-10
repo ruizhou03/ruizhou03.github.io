@@ -99,6 +99,10 @@ theme_color: "#fafaf9"
     .ft-nav-tab .ft-ico { width: 22px; height: 22px; }
     .ft-nav-tab.active { background: none; color: var(--color-accent); font-weight: 600; }
     .ft-wrap { padding-bottom: calc(4.2rem + env(safe-area-inset-bottom)); }
+    /* 网页版（非 PWA）手机浏览器里，站点页脚在文档流最底，会被固定底部 tab 栏压住。
+       给它让出底栏高度，页脚顶到底栏上方可见可点。standalone 下页脚已 display:none，不受影响。
+       本规则写在本工具内联 <style> 里、只随本页加载，等效只作用于种树页，不污染其它工具页。 */
+    body > footer { margin-bottom: calc(4.2rem + env(safe-area-inset-bottom)); }
   }
 
   /* ============ 主舞台（树 + 计时器）============
@@ -133,15 +137,9 @@ theme_color: "#fafaf9"
   }
   /* 主题背景（与全屏 .focus-overlay.theme-* 保持一致，仅尺寸不同）*/
   .stage.theme-default {
+    /* 晴日=恒亮白昼场景（scene SVG 恒为亮色、文字钉深色），兜底底色两模式都保持亮，
+       否则暗色下 SVG 加载间隙会露出暗绿兜底、深色计时文字压上去一闪不可读 */
     background: linear-gradient(180deg, #f0f4ed 0%, var(--color-bg-warm) 100%);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .stage.theme-default {
-      background: linear-gradient(180deg, #1f2418 0%, #2a2a26 100%);
-    }
-  }
-  :root[data-theme="dark"] .stage.theme-default {
-    background: linear-gradient(180deg, #1f2418 0%, #2a2a26 100%);
   }
   .stage.theme-night { background: linear-gradient(180deg, #1a2818 0%, #0d150a 100%); }
   .stage.theme-bubbles { background: linear-gradient(180deg, #1a3a5e 0%, #0d2540 100%); }
@@ -506,6 +504,7 @@ theme_color: "#fafaf9"
     text-align: center;
     padding: 0.6rem 0.4rem;
     background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);   /* 暗色下卡片与外层近同色，补淡描边保住"三格数据"的分组感 */
     border-radius: var(--ft-r-sm);
   }
   .stat-card .stat-num {
@@ -565,6 +564,11 @@ theme_color: "#fafaf9"
     border-radius: 999px;
   }
   .field-tab.active .tab-count { background: rgba(255, 255, 255, 0.18); }
+  /* 暗色下非激活药丸的半透明黑底会"掉底"看不见，改用浅色底（激活态不受影响）*/
+  :root[data-theme="dark"] .field-tab:not(.active) .tab-count { background: rgba(255, 255, 255, 0.10); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .field-tab:not(.active) .tab-count { background: rgba(255, 255, 255, 0.10); }
+  }
   .field-tab-add {
     font: inherit; font-size: var(--ft-fs-sm); font-weight: 600;
     padding: 0.35rem 0.85rem;
@@ -911,6 +915,7 @@ theme_color: "#fafaf9"
     .field-toolbar button { padding-top: 0.55rem; padding-bottom: 0.55rem; }
     .exp-range-tabs button { padding-top: 0.5rem; padding-bottom: 0.5rem; }
     .tree-detail .td-actions button { padding-top: 0.62rem; padding-bottom: 0.62rem; }
+    .focus-overlay .pause-btn, .focus-overlay .give-up-btn { min-height: 44px; }   /* 专注中最高频的两个出口，抬到 ≥44px 命中区 */
     .tree-instance .delete-x { width: 28px; height: 28px; top: -6px; right: -6px; }
     .tree-instance .delete-x::before { content: ''; position: absolute; inset: -10px; }  /* 放大命中区 */
   }
@@ -1373,7 +1378,7 @@ theme_color: "#fafaf9"
         <!-- tree SVG 动态注入 -->
       </div>
       <div class="timer-display" id="timer-display">30:00</div>
-      <div class="timer-status" id="timer-status"></div>
+      <div class="timer-status" id="timer-status" aria-live="polite"></div>
     </div>
 
     <!-- 时长：首屏直接可调 -->
@@ -1547,13 +1552,13 @@ theme_color: "#fafaf9"
   <div class="pomodoro-counter" id="overlay-counter" style="display: none;">第 1 个番茄</div>
   <div id="overlay-tree-container" class="overlay-tree-zone"></div>
   <div class="timer-big" id="overlay-timer">25:00</div>
-  <div class="focus-tag" id="overlay-tag">专注中</div>
+  <div class="focus-tag" id="overlay-tag" aria-live="polite">专注中</div>
   <div class="focus-warn" id="overlay-warn">离开页面超过 15 秒，树会枯萎</div>
   <div class="overlay-actions">
     <button type="button" class="pause-btn" id="pause-btn">暂停</button>
     <button type="button" class="give-up-btn" id="give-up-btn">放弃这棵</button>
   </div>
-  <div class="grace-banner hidden" id="grace-banner"></div>
+  <div class="grace-banner hidden" id="grace-banner" aria-live="polite"></div>
 </div>
 
 <script>
@@ -1655,10 +1660,11 @@ theme_color: "#fafaf9"
     return parseFloat(getComputedStyle(_safeProbe).paddingBottom) || 0;
   }
 
-  let _toastEl = null, _toastTimer = null;
+  let _toastEl = null, _toastTimer = null, _toastDeadline = 0;
   function hideToast() {
     if (_toastEl) _toastEl.classList.remove('show');
     if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
+    _toastDeadline = 0;
   }
   function showToast(message, opts) {
     opts = opts || {};
@@ -1666,6 +1672,10 @@ theme_color: "#fafaf9"
     if (!_toastEl) {
       _toastEl = document.createElement('div');
       _toastEl.className = 'ft-toast';
+      _toastEl.setAttribute('role', 'status');       // 读屏可闻：一次性反馈（种成 / 撤销入口）
+      _toastEl.setAttribute('aria-live', 'polite');
+      // 点 toast 空白处即关——带「去看看 / 撤销」按钮的提示容易被当成"必须处理"，给个随手关掉的出口
+      _toastEl.addEventListener('click', (e) => { if (!e.target.closest('button')) hideToast(); });
       document.body.appendChild(_toastEl);
     }
     if (_toastTimer) { clearTimeout(_toastTimer); _toastTimer = null; }
@@ -1679,8 +1689,13 @@ theme_color: "#fafaf9"
       _toastEl.appendChild(b);
     }
     requestAnimationFrame(() => _toastEl.classList.add('show'));
+    _toastDeadline = Date.now() + duration;
     _toastTimer = setTimeout(hideToast, duration);
   }
+  // 后台标签页里 setTimeout 会被节流，回到前台时若 toast 早该消失了立刻收掉，别留"僵尸提示"
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && _toastDeadline && Date.now() >= _toastDeadline) hideToast();
+  });
 
   const TREES_KEY = 'tool.forest.trees.v1';
   const ACTIVE_KEY = 'tool.forest.active.v1';
@@ -1831,7 +1846,8 @@ theme_color: "#fafaf9"
   function loadTrees() {
     try {
       const raw = localStorage.getItem(TREES_KEY);
-      state.trees = raw ? JSON.parse(raw) : [];
+      const parsed = raw ? JSON.parse(raw) : [];
+      state.trees = Array.isArray(parsed) ? parsed : [];   // 坏数据（非数组）降为空数组，避免 migrate 阶段抛错白屏
     } catch (e) { state.trees = []; }
   }
   function saveTrees() {
@@ -1841,7 +1857,8 @@ theme_color: "#fafaf9"
   function loadSessions() {
     try {
       const raw = localStorage.getItem(SESSIONS_KEY);
-      state.sessions = raw ? JSON.parse(raw) : [];
+      const parsed = raw ? JSON.parse(raw) : [];
+      state.sessions = Array.isArray(parsed) ? parsed : [];
     } catch (e) { state.sessions = []; }
   }
   function saveSessions() {
@@ -1910,7 +1927,8 @@ theme_color: "#fafaf9"
   function loadFields() {
     try {
       const raw = localStorage.getItem(FIELDS_KEY);
-      state.fields = raw ? JSON.parse(raw) : [];
+      const parsed = raw ? JSON.parse(raw) : [];
+      state.fields = Array.isArray(parsed) ? parsed : [];
     } catch (e) { state.fields = []; }
     try {
       state.activeFieldId = localStorage.getItem(ACTIVE_FIELD_KEY) || null;
@@ -4975,19 +4993,25 @@ return deco_cactus;
       }, 1000);
     } else {
       // 单次模式（或续跑完成）：庆典播完再收遮罩；祝贺文案保留到下次交互再被覆盖
+      // 只有"用户此刻真的在看着遮罩里的树长成"时才报喜。冷启动补算（离开期间到点、重开页面）
+      // 时遮罩根本没开，此刻弹"这棵树已种进你的森林"会像凭空冒出——那种情况下不弹 toast。
+      const wasOverlayOpen = $overlay.classList.contains('open');
       const closeNow = () => {
         // 庆典播放期间用户可能已（键盘）开始了新专注——那是新会话的遮罩，别关
         if (state.session) return;
         $overlay.classList.remove('open');
         $overlay.classList.remove('break-mode');
         $startBtn.disabled = false;   // 庆典结束才解锁，堵死庆典窗口内的重复开始竞态
+        // 遮罩关闭、树真正落进森林之后再报喜，避免"庆典还在演就说种好了"
+        if (!wasBreak && wasOverlayOpen) {
+          showToast('这棵树已种进你的森林', { undoText: '去看看', undo: () => { location.hash = '#forest'; } });
+        }
         setTimeout(() => { if (!state.session) renderTree(0, $overlayTreeContainer); }, 420);   // 等淡出结束再重置遮罩里的树
       };
       $pauseBtn.style.display = 'none';
       $timerDisplay.textContent = fmtTime(state.duration * 60);
       renderTree(0, $treeContainer);
       if (!wasBreak) {
-        showToast('这棵树已种进你的森林', { undoText: '去看看', undo: () => { location.hash = '#forest'; } });
         celebrateThenClose(closeNow);
       } else {
         closeNow();
@@ -5011,7 +5035,7 @@ return deco_cactus;
     }
     burst.innerHTML = '<svg viewBox="0 0 320 240"><circle class="celeb-ring" cx="160" cy="128" r="30" fill="none" stroke="#e7c87f" stroke-width="3"/>' + leaves.join('') + '</svg>';
     $overlayTreeContainer.appendChild(burst);
-    setTimeout(() => { burst.remove(); closeFn(); }, 1050);
+    setTimeout(() => { burst.remove(); closeFn(); }, 1200);   // ≥ 最长叶瓣 0.95s+0.21s 延迟，庆典完整播完再收遮罩
   }
 
   const GRACE_MS = 60 * 1000;  // 1 分钟宽限期：失败不计
@@ -5493,6 +5517,11 @@ return deco_cactus;
     renderFieldTabs();
     renderStats();
     showToast(`已铲除${label}`, { undo: () => {
+      // 若原格已被撤销期间新种的树占了，清掉旧坐标让 ensurePositions 另分空格，避免两棵重叠
+      if (snapshot.position && state.trees.some(x => x.fieldId === snapshot.fieldId && x.position &&
+          x.position.col === snapshot.position.col && x.position.row === snapshot.position.row)) {
+        delete snapshot.position;
+      }
       state.trees.push(snapshot);
       saveTrees();
       renderFieldTabs();
