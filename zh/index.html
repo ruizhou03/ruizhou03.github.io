@@ -57,15 +57,13 @@ title: 锆铌 | Rui Zhou
       </div>
     </div>
     <figure class="hero-portrait">
-      <div class="photo-stack" role="group" aria-label="毕业照（点左右切换）">
+      <div class="photo-stack" role="button" tabindex="0" aria-label="点一下看下一张毕业照">
         <div class="ps-deck">
           <div class="ps-card p0"><img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager"></div>
           <div class="ps-card p1"><img src="{{ '/files/zh/images/portrait-boya.jpg' | relative_url }}" alt="周睿在未名湖与博雅塔前" width="760" height="1140" loading="eager"></div>
           <div class="ps-card p2"><img src="{{ '/files/zh/images/portrait-huabiao.jpg' | relative_url }}" alt="周睿在华表前抛学位帽" width="760" height="1140" loading="eager"></div>
           <div class="ps-card pb"><img src="{{ '/files/zh/images/portrait-window.jpg' | relative_url }}" alt="周睿在窗边看毕业证书" width="760" height="1140" loading="lazy"></div>
           <div class="ps-card pb"><img src="{{ '/files/zh/images/portrait-stair.jpg' | relative_url }}" alt="周睿在楼梯窗边远望" width="760" height="1140" loading="lazy"></div>
-          <button type="button" class="ps-nav ps-prev" aria-label="上一张照片"><span aria-hidden="true">‹</span></button>
-          <button type="button" class="ps-nav ps-next" aria-label="下一张照片"><span aria-hidden="true">›</span></button>
         </div>
       </div>
     </figure>
@@ -163,8 +161,8 @@ title: 锆铌 | Rui Zhou
 </section>
 
 <script>
-  // 首页 hero 照片堆叠：5 张都是 DOM 里真实的 <img>，靠 z-index/transform 分层，
-  // 背后露出的就是真图（下一/下下张已渲染好）；点图左半=上一张、右半=下一张（键盘 ←/→ 亦可）。
+  // 首页 hero 照片叠层翻牌：5 张真实 <img> 分 p0(顶)/p1/p2(右下露出的叠层)/pb(隐藏) 四层，
+  // 点一下 / Enter：最上一张 leaving 向右上翻飞（停最上层），同时下层上移递补（单向循环）。
   (function () {
     var stack = document.querySelector('.photo-stack');
     if (!stack) return;
@@ -173,22 +171,32 @@ title: 锆铌 | Rui Zhou
     if (n < 2) return;
     // 预加载全部（含 lazy 的后两张），保证翻到时已就绪
     cards.forEach(function (c) { var im = c.querySelector('img'); if (im) { var pre = new Image(); pre.src = im.src; } });
-    var cur = 0;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var cur = 0, busy = false;
+    function posClass(p) { return p === 0 ? 'p0' : p === 1 ? 'p1' : p === 2 ? 'p2' : 'pb'; }
     function layout() {
       for (var i = 0; i < n; i++) {
-        var pos = (i - cur + n) % n;
-        cards[i].className = 'ps-card ' + (pos === 0 ? 'p0' : pos === 1 ? 'p1' : pos === 2 ? 'p2' : 'pb');
+        if (cards[i].classList.contains('leaving')) continue; // 翻飞中的那张不参与重排
+        cards[i].className = 'ps-card ' + posClass((i - cur + n) % n);
       }
     }
-    function go(d) { cur = (cur + d + n) % n; layout(); }
     layout();
-    var prev = stack.querySelector('.ps-prev');
-    var next = stack.querySelector('.ps-next');
-    if (prev) prev.addEventListener('click', function () { go(-1); });
-    if (next) next.addEventListener('click', function () { go(1); });
+    function next() {
+      if (busy) return;
+      if (reduce) { cur = (cur + 1) % n; layout(); return; }
+      busy = true;
+      var lv = cards[cur];
+      lv.className = 'ps-card leaving';   // 顶张翻飞（z 最高，压住下层）
+      cur = (cur + 1) % n;
+      layout();                            // 其余同时上移：p1→p0 升到中心、pb→p2 淡入
+      window.setTimeout(function () {
+        lv.className = 'ps-card ' + posClass((cards.indexOf(lv) - cur + n) % n); // 落到最底层（已不可见）
+        busy = false;
+      }, 430);
+    }
+    stack.addEventListener('click', next);
     stack.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowLeft') { go(-1); e.preventDefault(); }
-      else if (e.key === 'ArrowRight') { go(1); e.preventDefault(); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); next(); }
     });
   })();
 </script>
