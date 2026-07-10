@@ -5,7 +5,7 @@
   付费/编辑/删除占位「即将上线」，下一块接。下方 JS 用 raw 包裹保护。
 {%- endcomment -%}
 {%- if page.path -%}
-<div id="admin-fab" data-path="{{ page.path }}" data-hidden="{% if page.hidden %}true{% else %}false{% endif %}" data-trashed="{% if page.trashed %}true{% else %}false{% endif %}" data-paid="{{ page.paid }}" data-url="{{ page.url }}" data-title="{{ page.title | escape }}">
+<div id="admin-fab" data-path="{{ page.path }}" data-hidden="{% if page.hidden %}true{% else %}false{% endif %}" data-trashed="{% if page.trashed %}true{% else %}false{% endif %}" data-paid="{{ page.paid }}" data-evergreen="{{ page.evergreen }}" data-url="{{ page.url }}" data-title="{{ page.title | escape }}">
   <button id="ab-gear" class="ab-gear" type="button" title="管理本文" aria-label="管理本文">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
   </button>
@@ -15,6 +15,9 @@
     <button class="ab-act" id="ab-toggle-pub" type="button">下架此文</button>
     <button class="ab-act ab-danger" id="ab-del" type="button">删除（进回收站）</button>
     <button class="ab-act" id="ab-paid" type="button">设为付费</button>
+    <div class="ab-row ab-ever-row"><span class="ab-dot ab-ever-dot" id="ab-ever-dot"></span><span id="ab-ever-state">成熟度：未标注</span></div>
+    <button class="ab-act" id="ab-ever-green" type="button">🌲 标为常青（定稿）</button>
+    <button class="ab-act" id="ab-ever-growing" type="button">✏️ 标为更新中</button>
     <button class="ab-act" id="ab-edit" type="button">编辑正文与参数</button>
     <div class="ab-msg" id="ab-msg"></div>
   </div>
@@ -136,6 +139,35 @@
       btn.textContent = hidden ? '恢复（重新公开）' : '下架此文';
       if (paidBtn) paidBtn.textContent = paid ? '取消付费（改回免费）' : '设为付费';
     }
+
+    // ── 成熟度：常青（定稿）/ 更新中（front-matter evergreen，走通用 set-flag）──
+    var everState = document.getElementById('ab-ever-state');
+    var everDot = document.getElementById('ab-ever-dot');
+    var everGreenBtn = document.getElementById('ab-ever-green');
+    var everGrowBtn = document.getElementById('ab-ever-growing');
+    var evergreen = fab.getAttribute('data-evergreen') || '';   // 'true' | 'false' | ''（未标注）
+    function paintEver() {
+      var label = evergreen === 'true' ? '常青（定稿）' : (evergreen === 'false' ? '更新中' : '未标注');
+      if (everState) everState.textContent = '成熟度：' + label;
+      if (everDot) everDot.style.background = evergreen === 'true' ? '#a9822f' : (evergreen === 'false' ? '#1e3a5f' : 'var(--color-light)');
+      if (everGreenBtn) everGreenBtn.disabled = (evergreen === 'true');
+      if (everGrowBtn) everGrowBtn.disabled = (evergreen === 'false');
+    }
+    function setEver(val) {
+      if (everGreenBtn) everGreenBtn.disabled = true;
+      if (everGrowBtn) everGrowBtn.disabled = true;
+      msg.textContent = '提交中…';
+      window.SiteAuth.authedFetch('/api/admin?action=set-flag', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: path, key: 'evergreen', value: val })
+      })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+        .then(function () { evergreen = val ? 'true' : 'false'; paintEver(); msg.textContent = '已标为「' + (val ? '常青' : '更新中') + '」，约 1–2 分钟生效。'; })
+        .catch(function (e) { msg.textContent = '失败：' + ((e && e.error) || '请重试'); paintEver(); });
+    }
+    if (everGreenBtn) everGreenBtn.addEventListener('click', function () { setEver(true); });
+    if (everGrowBtn) everGrowBtn.addEventListener('click', function () { setEver(false); });
+    paintEver();
 
     gear.addEventListener('click', function (e) { e.stopPropagation(); fab.classList.toggle('ab-open'); });
     document.addEventListener('click', function (e) { if (!fab.contains(e.target)) fab.classList.remove('ab-open'); });
