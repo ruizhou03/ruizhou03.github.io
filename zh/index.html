@@ -57,20 +57,13 @@ title: 锆铌 | Rui Zhou
       </div>
     </div>
     <figure class="hero-portrait">
-      <div class="photo-carousel">
-        <div class="ps-track" aria-label="毕业照相册（左右滑动或方向键切换）">
-          <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager"></div>
-          <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-boya.jpg' | relative_url }}" alt="周睿在未名湖与博雅塔前" width="760" height="1140" loading="eager"></div>
-          <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-huabiao.jpg' | relative_url }}" alt="周睿在华表前抛学位帽" width="760" height="1140" loading="eager"></div>
-          <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-window.jpg' | relative_url }}" alt="周睿在窗边看毕业证书" width="760" height="1140" loading="lazy"></div>
-          <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-stair.jpg' | relative_url }}" alt="周睿在楼梯窗边远望" width="760" height="1140" loading="lazy"></div>
-        </div>
-        <div class="ps-dots">
-          <button type="button" class="ps-dot is-active" aria-label="第 1 张"></button>
-          <button type="button" class="ps-dot" aria-label="第 2 张"></button>
-          <button type="button" class="ps-dot" aria-label="第 3 张"></button>
-          <button type="button" class="ps-dot" aria-label="第 4 张"></button>
-          <button type="button" class="ps-dot" aria-label="第 5 张"></button>
+      <div class="photo-stack">
+        <div class="ps-deck">
+          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager"></div>
+          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-boya.jpg' | relative_url }}" alt="周睿在未名湖与博雅塔前" width="760" height="1140" loading="eager"></div>
+          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-huabiao.jpg' | relative_url }}" alt="周睿在华表前抛学位帽" width="760" height="1140" loading="eager"></div>
+          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-window.jpg' | relative_url }}" alt="周睿在窗边看毕业证书" width="760" height="1140" loading="lazy"></div>
+          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-stair.jpg' | relative_url }}" alt="周睿在楼梯窗边远望" width="760" height="1140" loading="lazy"></div>
         </div>
       </div>
     </figure>
@@ -168,68 +161,80 @@ title: 锆铌 | Rui Zhou
 </section>
 
 <script>
-  // 首页 hero 照片相册（微信式拖拽翻页）：触屏走原生 scroll-snap；桌面用指针拖动跟手、
-  // 松手平滑吸附到最近一张（页间有 12px 留白）。圆点随滚动同步、方向键可切。5 张真实 <img>。
+  // 首页 hero 照片堆叠（微信式）：一叠真实 <img>，背后露出下一张；拖最上面那张跟手滑走、
+  // 松手过阈值(±25%宽)翻到下一/上一张、否则弹回；点一下 / Enter / ←→ 也翻。触屏 + 桌面同源。
   (function () {
-    var car = document.querySelector('.photo-carousel');
-    if (!car) return;
-    var track = car.querySelector('.ps-track');
-    var slides = Array.prototype.slice.call(track.querySelectorAll('.ps-slide'));
-    var n = slides.length;
+    var stack = document.querySelector('.photo-stack');
+    if (!stack) return;
+    var deck = stack.querySelector('.ps-deck');
+    var cards = Array.prototype.slice.call(deck.querySelectorAll('.ps-card'));
+    var n = cards.length;
     if (n < 2) return;
-    var dots = Array.prototype.slice.call(car.querySelectorAll('.ps-dot'));
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    slides.forEach(function (s) { var im = s.querySelector('img'); if (im) { var pre = new Image(); pre.src = im.src; } });
-    var cur = 0;
-    function nearest() {              // 用 offsetLeft，天然含 gap
-      var best = 0, bestD = Infinity;
-      for (var i = 0; i < n; i++) {
-        var d = Math.abs(slides[i].offsetLeft - track.scrollLeft);
-        if (d < bestD) { bestD = d; best = i; }
-      }
-      return best;
+    cards.forEach(function (c) { var im = c.querySelector('img'); if (im) { var p = new Image(); p.src = im.src; } });
+    var top = 0, busy = false;
+    function rest(d) {
+      if (d === 0) return { t: 'translate(0px,0px) rotate(0deg) scale(1)', z: 60, o: 1 };
+      if (d === 1) return { t: 'translate(0px,12px) rotate(1.6deg) scale(0.955)', z: 40, o: 1 };
+      if (d === 2) return { t: 'translate(0px,22px) rotate(-1.6deg) scale(0.915)', z: 30, o: 1 };
+      return { t: 'translate(0px,26px) rotate(0deg) scale(0.9)', z: 20, o: 0 };
     }
-    function setDots() { for (var k = 0; k < dots.length; k++) dots[k].classList.toggle('is-active', k === cur); }
-    function goTo(i) {
-      i = Math.max(0, Math.min(n - 1, i));
-      track.scrollTo({ left: slides[i].offsetLeft, behavior: reduce ? 'auto' : 'smooth' });
-      cur = i; setDots();
+    function place(c, d, anim) {
+      var r = rest(d);
+      c.style.transition = anim ? '' : 'none';
+      c.style.zIndex = String(r.z);
+      c.style.transform = r.t;
+      c.style.opacity = String(r.o);
     }
-    var ticking = false;
-    track.addEventListener('scroll', function () {
-      if (!ticking) { ticking = true; window.requestAnimationFrame(function () { cur = nearest(); setDots(); ticking = false; }); }
-    }, { passive: true });
-    dots.forEach(function (d, k) { d.addEventListener('click', function () { goTo(k); }); });
-    car.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowLeft') { goTo(cur - 1); e.preventDefault(); }
-      else if (e.key === 'ArrowRight') { goTo(cur + 1); e.preventDefault(); }
-    });
-    // ── 桌面指针拖动（触屏交给原生 scroll-snap）：拖时关掉 snap 自由跟手，松手平滑吸附 ──
-    var dragging = false, startX = 0, startScroll = 0, moved = false;
-    track.addEventListener('pointerdown', function (e) {
-      if (e.pointerType === 'touch') return;
-      dragging = true; moved = false; startX = e.clientX; startScroll = track.scrollLeft;
-      track.classList.add('is-dragging');
-      try { track.setPointerCapture(e.pointerId); } catch (err) {}
-    });
-    track.addEventListener('pointermove', function (e) {
-      if (!dragging) return;
-      var dx = e.clientX - startX;
-      if (Math.abs(dx) > 3) moved = true;
-      track.scrollLeft = startScroll - dx;
-    });
-    function endDrag() {
-      if (!dragging) return;
-      dragging = false;
-      var target = nearest();
-      track.scrollTo({ left: slides[target].offsetLeft, behavior: reduce ? 'auto' : 'smooth' });
-      cur = target; setDots();
-      // 滚完再恢复 CSS mandatory snap，避免立即 re-snap 造成跳变
-      window.setTimeout(function () { track.classList.remove('is-dragging'); }, reduce ? 0 : 380);
+    function layout(skip) { for (var i = 0; i < n; i++) { if (cards[i] !== skip) place(cards[i], (i - top + n) % n, true); } }
+    layout(null);
+
+    function fly(dir) {            // dir=1 下一张（飞左），dir=-1 上一张（飞右）
+      if (busy) return;
+      busy = true;
+      var f = cards[top];
+      var sign = dir > 0 ? -1 : 1;
+      var W = deck.clientWidth || 1;
+      f.style.transition = '';
+      f.style.zIndex = '70';
+      f.style.transform = 'translate(' + (sign * W * 1.15) + 'px,' + (W * 0.1) + 'px) rotate(' + (sign * 22) + 'deg)';
+      f.style.opacity = '0';
+      top = (top + dir + n) % n;
+      layout(f);
+      window.setTimeout(function () { place(f, (cards.indexOf(f) - top + n) % n, false); busy = false; }, 460);
     }
-    track.addEventListener('pointerup', endDrag);
-    track.addEventListener('pointercancel', endDrag);
-    window.addEventListener('resize', function () { cur = nearest(); setDots(); });
-    setDots();
+
+    // ── 拖拽（触屏 swipe + 桌面鼠标同源）──
+    var drag = false, sx = 0, dx = 0, W = 1, moved = false, tc = null;
+    deck.addEventListener('pointerdown', function (e) {
+      if (busy) return;
+      tc = cards[top]; drag = true; moved = false; sx = e.clientX; dx = 0; W = deck.clientWidth || 1;
+      tc.style.transition = 'none'; deck.classList.add('is-dragging');
+    });
+    deck.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      dx = e.clientX - sx;
+      if (Math.abs(dx) > 5) moved = true;
+      tc.style.transform = 'translate(' + dx + 'px,' + (Math.abs(dx) * 0.04) + 'px) rotate(' + ((dx / W) * 14) + 'deg)';
+    });
+    function release() {
+      if (!drag) return;
+      drag = false; deck.classList.remove('is-dragging');
+      if (Math.abs(dx) > W * 0.25) fly(dx < 0 ? 1 : -1);
+      else place(tc, 0, true);
+    }
+    deck.addEventListener('pointerup', release);
+    deck.addEventListener('pointercancel', release);
+    window.addEventListener('pointerup', release);
+
+    // 点一下也翻（非拖拽时）；键盘可用
+    deck.addEventListener('click', function () { if (!busy && !moved) fly(1); moved = false; });
+    deck.setAttribute('tabindex', '0');
+    deck.setAttribute('role', 'button');
+    deck.setAttribute('aria-label', '毕业照，点一下或左右拖翻看');
+    deck.addEventListener('keydown', function (e) {
+      if (busy) return;
+      if (e.key === 'ArrowRight' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fly(1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); fly(-1); }
+    });
   })();
 </script>

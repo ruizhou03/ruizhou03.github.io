@@ -322,37 +322,23 @@
     margin-bottom: 2rem;
   }
   .hero-portrait { margin: 0; }
-  /* 照片相册（微信式拖拽翻页）：手指 / 鼠标拖着胶片走、页与页之间留白、松手吸附到
-     最近一张；触屏走原生 scroll-snap，桌面用指针拖动。底部圆点指示当前。 */
-  .photo-carousel { position: relative; }
-  .ps-track {
-    display: flex; gap: 12px;
-    overflow-x: auto; scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch; scrollbar-width: none;
-    aspect-ratio: 2 / 3;
-    border-radius: var(--radius-lg);
+  /* 照片堆叠（微信式）：一叠毕业照，背后露出下一张；拖最上面那张跟手滑走、松手过阈值
+     翻到下一张、否则弹回；点一下也翻下一张。触屏 swipe / 桌面拖动同源（Pointer Events）。
+     photo-stack overflow:hidden 把飞出/拖出的卡在框边裁掉，避免撑出横向滚动。 */
+  .photo-stack { position: relative; width: 100%; padding: 6px 10px 32px; overflow: hidden; }
+  .ps-deck { position: relative; aspect-ratio: 2 / 3; cursor: grab; touch-action: pan-y; }
+  .ps-deck.is-dragging { cursor: grabbing; }
+  .ps-card {
+    position: absolute; inset: 0;
+    border-radius: var(--radius-lg); overflow: hidden;
     border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-2);
-    background: var(--color-bg-warm);
-    cursor: grab;
+    background: var(--color-bg-warm); box-shadow: var(--shadow-2);
+    transform-origin: 50% 60%; will-change: transform, opacity;
+    transition: transform 0.44s cubic-bezier(.2,.72,.3,1), opacity 0.4s ease;
   }
-  .ps-track.is-dragging { cursor: grabbing; scroll-snap-type: none; scroll-behavior: auto; }
-  .ps-track::-webkit-scrollbar { display: none; }
-  .ps-slide { flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; }
-  .ps-slide img {
-    width: 100%; height: 100%; object-fit: cover; display: block;
-    -webkit-user-drag: none; user-select: none; pointer-events: none;
-  }
-  /* 底部圆点：当前点放大变藏蓝 */
-  .ps-dots { display: flex; gap: 6px; justify-content: center; align-items: center; margin-top: 0.7rem; }
-  .ps-dot {
-    width: 6px; height: 6px; border-radius: 50%; padding: 0; border: none;
-    background: var(--color-border); cursor: pointer;
-    transition: background 0.18s ease, transform 0.18s ease;
-  }
-  .ps-dot.is-active { background: var(--color-accent); transform: scale(1.35); }
-  .ps-dot:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-  @media (prefers-reduced-motion: reduce) { .ps-track { scroll-behavior: auto; } }
+  .ps-card img { width: 100%; height: 100%; object-fit: cover; display: block; -webkit-user-drag: none; user-select: none; pointer-events: none; }
+  .ps-deck:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; border-radius: var(--radius-lg); }
+  @media (prefers-reduced-motion: reduce) { .ps-card { transition: none; } }
   @media (max-width: 640px) {
     .hero-wrap { grid-template-columns: 1fr; gap: 1.3rem; }
     .hero-portrait { max-width: 260px; }
