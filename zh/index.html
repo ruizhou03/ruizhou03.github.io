@@ -57,7 +57,14 @@ title: 锆铌 | Rui Zhou
       </div>
     </div>
     <figure class="hero-portrait">
-      <img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager">
+      <button type="button" class="photo-stack" aria-label="点一下，换下一张毕业照">
+        <span class="ps-deck">
+          <span class="ps-frame">
+            <img class="ps-img" src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager">
+          </span>
+        </span>
+        <span class="ps-hint"><span class="ps-count">1 / 5</span> · 点一下换一张</span>
+      </button>
     </figure>
   </div>
 
@@ -151,3 +158,34 @@ title: 锆铌 | Rui Zhou
     {% endfor %}
   </ul>
 </section>
+
+<script>
+  // 首页 hero 照片堆叠：点一下（或键盘 Enter/Space，button 原生支持）翻下一张
+  (function () {
+    var stack = document.querySelector('.photo-stack');
+    if (!stack) return;
+    var img = stack.querySelector('.ps-img');
+    var count = stack.querySelector('.ps-count');
+    var base = '/files/zh/images/';
+    var photos = [
+      { s: 'portrait-guanghua.jpg', a: '周睿在北京大学光华管理学院' },
+      { s: 'portrait-boya.jpg',     a: '周睿在未名湖与博雅塔前' },
+      { s: 'portrait-huabiao.jpg',  a: '周睿在华表前抛学位帽' },
+      { s: 'portrait-window.jpg',   a: '周睿在窗边看毕业证书' },
+      { s: 'portrait-stair.jpg',    a: '周睿在楼梯窗边远望' }
+    ];
+    photos.forEach(function (p) { var i = new Image(); i.src = base + p.s; }); // 预加载
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var idx = 0;
+    function show(n) {
+      idx = (n + photos.length) % photos.length;
+      var p = photos[idx];
+      function set() {
+        img.src = base + p.s; img.alt = p.a; img.style.opacity = '1';
+        if (count) count.textContent = (idx + 1) + ' / ' + photos.length;
+      }
+      if (reduce) { set(); } else { img.style.opacity = '0'; window.setTimeout(set, 150); }
+    }
+    stack.addEventListener('click', function () { show(idx + 1); });
+  })();
+</script>

@@ -321,23 +321,50 @@
     align-items: center;
     margin-bottom: 2rem;
   }
-  .hero-portrait {
-    margin: 0;
-    aspect-ratio: 2 / 3;
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-2);
-    background: var(--color-bg-warm);
+  .hero-portrait { margin: 0; }
+  /* 照片堆叠：一叠毕业照的样子，点一下翻下一张（键盘可用·reduced-motion 安全） */
+  .photo-stack {
+    display: block; width: 100%;
+    background: none; border: none; padding: 0; margin: 0;
+    cursor: pointer; font: inherit; color: inherit;
+    -webkit-tap-highlight-color: transparent;
   }
-  .hero-portrait img {
-    width: 100%; height: 100%;
-    object-fit: cover; object-position: center 22%;
-    display: block;
+  .ps-deck { position: relative; display: block; aspect-ratio: 2 / 3; }
+  .ps-frame {
+    position: absolute; inset: 0; z-index: 2;
+    border-radius: var(--radius-lg); overflow: hidden;
+    border: 1px solid var(--color-border); box-shadow: var(--shadow-2);
+    background: var(--color-bg-warm);
+    transition: transform var(--dur-base) var(--ease);
+  }
+  .ps-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity var(--dur-fast) var(--ease); }
+  /* 背后两张微微露出的「叠层」 */
+  .ps-deck::before, .ps-deck::after {
+    content: ""; position: absolute; inset: 0;
+    border-radius: var(--radius-lg); background: var(--color-bg-warm);
+    border: 1px solid var(--color-border); box-shadow: var(--shadow-1);
+  }
+  .ps-deck::before { z-index: 1; transform: rotate(-3deg) translate(-4px, 4px); }
+  .ps-deck::after  { z-index: 0; transform: rotate(3deg) translate(4px, 6px); }
+  .photo-stack:hover .ps-frame { transform: translateY(-3px) rotate(-0.6deg); }
+  .photo-stack:active .ps-frame { transform: scale(0.99); }
+  .photo-stack:focus-visible { outline: none; }
+  .photo-stack:focus-visible .ps-frame { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+  .ps-hint {
+    display: flex; gap: 0.4rem; align-items: center; justify-content: center;
+    margin-top: 0.7rem; font-size: 0.74rem; color: var(--color-muted);
+  }
+  .ps-count {
+    font-family: 'Cormorant Garamond', var(--font-display);
+    font-variant: small-caps; letter-spacing: 0.12em; color: var(--color-accent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ps-frame, .ps-img { transition: none; }
+    .photo-stack:hover .ps-frame { transform: none; }
   }
   @media (max-width: 640px) {
     .hero-wrap { grid-template-columns: 1fr; gap: 1.3rem; }
-    .hero-portrait { max-width: 190px; aspect-ratio: 4 / 5; }
+    .hero-portrait { max-width: 200px; }
   }
   .home-kicker {
     font-family: 'Cormorant Garamond', var(--font-display);
