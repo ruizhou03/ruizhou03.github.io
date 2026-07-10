@@ -57,14 +57,13 @@ title: 锆铌 | Rui Zhou
       </div>
     </div>
     <figure class="hero-portrait">
-      <button type="button" class="photo-stack" aria-label="点一下，换下一张毕业照">
-        <span class="ps-deck">
-          <span class="ps-frame">
-            <img class="ps-img" src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager">
-          </span>
-        </span>
-        <span class="ps-hint"><span class="ps-count">1 / 5</span> · 点一下换一张</span>
-      </button>
+      <div class="photo-stack">
+        <div class="ps-deck">
+          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager" data-i="0"></div>
+          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-boya.jpg' | relative_url }}" alt="周睿在未名湖与博雅塔前" width="760" height="1140" loading="eager" data-i="1"></div>
+          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-huabiao.jpg' | relative_url }}" alt="周睿在华表前抛学位帽" width="760" height="1140" loading="eager" data-i="2"></div>
+        </div>
+      </div>
     </figure>
   </div>
 
@@ -160,12 +159,15 @@ title: 锆铌 | Rui Zhou
 </section>
 
 <script>
-  // 首页 hero 照片堆叠（v1 复原）：点一下（或键盘 Enter/Space，button 原生支持）翻下一张
+  // 首页 hero 照片堆叠：一叠真实毕业照，背后两张是预渲染的真图；只保持当前 3 张已加载
+  //（顶 + 背后 2 张·省内存·以后更多张也不会一次全加载）。点一下 / Enter / → 顶张淡出上移、
+  // 背后真图递补上来；离场那张回收后载入新进入的照片（3 张循环窗口）。
   (function () {
     var stack = document.querySelector('.photo-stack');
     if (!stack) return;
-    var img = stack.querySelector('.ps-img');
-    var count = stack.querySelector('.ps-count');
+    var deck = stack.querySelector('.ps-deck');
+    var cards = Array.prototype.slice.call(deck.querySelectorAll('.ps-card'));
+    if (cards.length < 2) return;
     var base = '/files/zh/images/';
     var photos = [
       { s: 'portrait-guanghua.jpg', a: '周睿在北京大学光华管理学院' },
@@ -174,18 +176,49 @@ title: 锆铌 | Rui Zhou
       { s: 'portrait-window.jpg',   a: '周睿在窗边看毕业证书' },
       { s: 'portrait-stair.jpg',    a: '周睿在楼梯窗边远望' }
     ];
-    photos.forEach(function (p) { var i = new Image(); i.src = base + p.s; }); // 预加载
+    var n = photos.length;
+    var VIS = Math.min(cards.length, 3);   // 同时呈现/加载的张数（最多 3）
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var idx = 0;
-    function show(n) {
-      idx = (n + photos.length) % photos.length;
-      var p = photos[idx];
-      function set() {
-        img.src = base + p.s; img.alt = p.a; img.style.opacity = '1';
-        if (count) count.textContent = (idx + 1) + ' / ' + photos.length;
-      }
-      if (reduce) { set(); } else { img.style.opacity = '0'; window.setTimeout(set, 150); }
+    var DEPTH = [
+      { t: 'translate(0px,0px) rotate(0deg) scale(1)',        z: 30 },
+      { t: 'translate(0px,11px) rotate(1.8deg) scale(0.955)', z: 20 },
+      { t: 'translate(0px,21px) rotate(-1.8deg) scale(0.91)', z: 10 }
+    ];
+    var order = cards.slice(0, VIS);       // 深度顺序：[顶, 背后1, 背后2]
+    var idx = 0, busy = false;
+    function load(card, pIdx) {            // 按需载入某卡的照片（只在真正要显示时加载）
+      var m = ((pIdx % n) + n) % n, im = card.querySelector('img');
+      if (im && im.getAttribute('data-i') !== String(m)) { im.src = base + photos[m].s; im.alt = photos[m].a; im.setAttribute('data-i', m); }
     }
-    stack.addEventListener('click', function () { show(idx + 1); });
+    function place(card, d, anim) {
+      card.style.transition = anim ? '' : 'none';
+      card.style.zIndex = String(DEPTH[d].z);
+      card.style.transform = DEPTH[d].t;
+      card.style.opacity = '1';
+    }
+    for (var k = 0; k < VIS; k++) { load(order[k], idx + k); place(order[k], k, false); }
+    function next() {
+      if (busy) return; busy = true;
+      var leaving = order[0];
+      leaving.style.transition = '';
+      leaving.style.zIndex = '40';
+      leaving.style.opacity = '0';
+      leaving.style.transform = 'translate(0px,-10px) rotate(-1.6deg) scale(1.02)';
+      for (var d = 1; d < VIS; d++) place(order[d], d - 1, true);   // 背后真图上移递补
+      idx = (idx + 1) % n;
+      window.setTimeout(function () {
+        load(leaving, idx + (VIS - 1));       // 离场卡回收 + 载入新进入的照片
+        place(leaving, VIS - 1, false);       // 归位到最底（已被上层遮住）
+        order.push(order.shift());            // 轮换深度顺序
+        busy = false;
+      }, reduce ? 0 : 340);
+    }
+    stack.addEventListener('click', next);
+    stack.setAttribute('tabindex', '0');
+    stack.setAttribute('role', 'button');
+    stack.setAttribute('aria-label', '点一下看下一张毕业照');
+    stack.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); next(); }
+    });
   })();
 </script>
