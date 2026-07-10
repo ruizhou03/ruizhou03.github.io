@@ -939,6 +939,7 @@ permalink: /toolbox/feixingqi/
   }
 
   function startGame() {
+    clearTimeout(fxqPassBeatTimer); fxqPassing = false;
     state.players = [];
     state.playerKinds = {};
     for (const c of TURN_ORDER) {
@@ -987,6 +988,7 @@ permalink: /toolbox/feixingqi/
   }
 
   function backToSetup() {
+    clearTimeout(fxqPassBeatTimer); fxqPassing = false;
     state.started = false;
     state.aiThinking = false;
     state.players = [];
@@ -1050,7 +1052,7 @@ permalink: /toolbox/feixingqi/
       rosterEl.appendChild(item);
     });
 
-    diceBtn.disabled = !state.started || state.over || state.paused || state.awaitingPick || state.aiThinking || currentKindIsAi() || fxqReplaying || !fxqControlsCurrent();
+    diceBtn.disabled = !state.started || state.over || state.paused || state.awaitingPick || state.aiThinking || fxqPassing || currentKindIsAi() || fxqReplaying || !fxqControlsCurrent();
     pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
     pauseBtn.disabled = state.over || !Object.values(state.playerKinds).includes('ai');
     pausedOverlay.classList.toggle('show', state.paused && !state.over);
@@ -1709,8 +1711,11 @@ permalink: /toolbox/feixingqi/
           path.push({ kind: 'fly-step', x: landed.cx + (endCell.cx - landed.cx) * t, y: landed.cy + (endCell.cy - landed.cy) * t });
         }
         path.push({ kind: 'fly', status: 'track', pos: endIdx });
-      } else if (landed.color === player) {
+      } else if (landed.color === player && cur !== transition) {
         // Small jump: +4 cells CW (applies to dashed-line END endpoint too).
+        // Exclude the stretch-entry (transition) cell: landing exactly on it
+        // does NOT jump (resolveJumps has the same `idx !== transition` guard),
+        // so the animation must not fly +4 and then snap back to the entry cell.
         path.push({ kind: 'pause' });
         let pos = cur;
         for (let k = 0; k < SMALL_JUMP_DISTANCE; k++) {
@@ -1809,7 +1814,7 @@ permalink: /toolbox/feixingqi/
       // hangar as the plane flies past.
       if (preview.triggered && preview.triggered.bigJumped) {
         const cross = L().FLIGHT_CROSSES[player];
-        if (cross && state.pieces[cross.color]) {
+        if (cross && state.players.includes(cross.color)) {
           for (let i = 0; i < 4; i++) {
             const op = state.pieces[cross.color][i];
             if (op.status === 'stretch' && op.pos === cross.stretchPos) {
@@ -1837,6 +1842,39 @@ permalink: /toolbox/feixingqi/
   // Turn flow
   // ============================================================
   let diceRollAnimTimer = 0;
+  let fxqPassBeatTimer = 0;
+  let fxqPassing = false;          // true during the post-roll "read your die" beat
+  const FXQ_PASS_BEAT_MS = 700;
+  // End the roller's turn after a short beat that keeps the die they just
+  // rolled on screen (in the roller's colour) before it — and the turn — hand
+  // over to the next seat. Used by the two "instant pass" paths (no legal move
+  // / 3-consecutive-6 penalty): unlike a normal move, there's no piece
+  // animation to fill the time, so without the beat the die's own-colour result
+  // frame is overwritten with the next player's colour in the same synchronous
+  // tick and is never painted — the reported "掷完就变下家色" bug. Online games
+  // (live + replay) hand off synchronously so every client stays in lock-step.
+  function fxqPassTurnWithBeat() {
+    const doPass = () => {
+      fxqPassing = false;
+      if (!state.started) return;   // game was reset/left during the beat
+      state.dice = null;
+      state.consecutiveSixes = 0;
+      state.rollsThisTurn = 0;
+      state.awaitingPick = false;
+      state.legalPieces = [];
+      nextTurn();
+      renderBoard();
+      updateStatus();
+      autosave();
+      fxqEmitTurn();
+      maybeTriggerAi();
+    };
+    if (fxqReplaying || fxqOnline.active()) { doPass(); return; }
+    fxqPassing = true;
+    updateStatus();                 // repaint: die shows this roll, roller's colour, disabled
+    clearTimeout(fxqPassBeatTimer);
+    fxqPassBeatTimer = setTimeout(doPass, FXQ_PASS_BEAT_MS);
+  }
 
   // `forced` is supplied when replaying a remote turn online: the dice value
   // is taken from the event log instead of rolled locally, so every client
@@ -1885,34 +1923,18 @@ permalink: /toolbox/feixingqi/
         }
       }
       // (silent: piece visibly returns to its hangar slot)
-      state.dice = null;
-      state.consecutiveSixes = 0;
-      state.rollsThisTurn = 0;
       state.awaitingPick = false;
-      state.legalPieces = [];
-      nextTurn();
-      renderBoard();
-      updateStatus();
-      autosave();
-      fxqEmitTurn();
-      maybeTriggerAi();
+      renderBoard();                 // show the penalised piece returning home
+      fxqPassTurnWithBeat();         // hold the rolled die a beat, then hand off
       return;
     }
 
     state.legalPieces = legalPiecesFor(player, state.dice);
     if (state.legalPieces.length === 0) {
-      // No move possible — turn passes silently (the status bar shows whose
-      // turn it is, so a popup hint is redundant).
-      state.dice = null;
-      state.awaitingPick = false;
-      state.consecutiveSixes = 0;
-      state.rollsThisTurn = 0;
-      nextTurn();
-      renderBoard();
-      updateStatus();
-      autosave();
-      fxqEmitTurn();
-      maybeTriggerAi();
+      // No move possible — turn passes (the status bar shows whose turn it is,
+      // so a popup hint is redundant). Hold the rolled die a beat first so the
+      // player can read what they rolled before the turn hands over.
+      fxqPassTurnWithBeat();
       return;
     }
     state.awaitingPick = true;
@@ -2459,7 +2481,21 @@ permalink: /toolbox/feixingqi/
     fxqSetDie(state.dice == null ? fxqLastDie : state.dice);
     renderBoard();
     updateStatus();
-    if (!state.paused && currentKindIsAi() && !state.awaitingPick) { clearTimeout(aiTimer); aiTimer = setTimeout(triggerAiTurn, 320); }
+    if (!state.paused && currentKindIsAi()) {
+      clearTimeout(aiTimer);
+      if (state.awaitingPick && state.legalPieces && state.legalPieces.length) {
+        // The snapshot caught this AI seat *after* it rolled but *before* its
+        // delayed pick fired (a 250–500ms window that's easy to hit on a
+        // tab-hide / close). Re-dispatch the pick with the restored dice so the
+        // game doesn't dead-lock on "轮到🤖…选飞机" (dice stays disabled for AI).
+        aiTimer = setTimeout(() => {
+          if (state.over || state.paused || !currentKindIsAi() || !state.awaitingPick) return;
+          selectPiece(pickAiPiece(currentPlayer(), state.dice, state.legalPieces));
+        }, 320);
+      } else if (!state.awaitingPick) {
+        aiTimer = setTimeout(triggerAiTurn, 320);
+      }
+    }
   }
 
   function autosave() {
