@@ -213,7 +213,7 @@
     .markdown-content h3 { font-size: 1.3rem; }
 
     /* Doocs 标志性的引用块 (Blockquote) */
-    .markdown-content blockquote { margin: 1.5em 0; padding: 0.8em 1.2em; border-left: 4px solid var(--color-accent); background-color: var(--color-bg-warm); color: var(--color-muted); border-radius: 0 4px 4px 0; }
+    .markdown-content blockquote { margin: 1.6em 0; padding: 0.75em 1.3em; border-left: 3px solid #a9822f; background-color: var(--color-bg-warm); color: var(--color-ink); border-radius: 0 6px 6px 0; font-size: 1.02em; }
     .markdown-content blockquote p { margin: 0; }
 
     /* PDF 资料的开场说明（post.html 自动生成或 front-matter summary） */
@@ -717,3 +717,12 @@
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) .maturity-pill.maturity-evergreen { color: #d8b56f; border-color: #d8b56f; }
     }
+
+    /* ─── 文章编辑式页眉：栏目 eyebrow(smallcaps) + 金色短线 ─── */
+    .post-eyebrow {
+      font-family: 'Cormorant Garamond', var(--font-display);
+      font-variant: small-caps; letter-spacing: 0.16em;
+      font-size: 0.9rem; color: var(--color-accent);
+      margin: 0 0 0.9rem;
+    }
+    .post-goldrule { width: 44px; height: 2px; background: #a9822f; margin: 1.5rem auto 0; border-radius: 1px; }
