@@ -19,10 +19,12 @@ permalink: /toolbox/
     }
     .tool-card {
       display: flex; flex-direction: column;
-      padding: 0.9rem 0.8rem 0.85rem;
+      padding: 0.95rem 0.9rem 0.9rem;
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
-      background: var(--color-bg);
+      /* 招牌卡那种质感下放给每张小卡：暖色渐变底 + 一层浅阴影，紧凑不占地方 */
+      background: linear-gradient(180deg, var(--color-bg-warm), var(--color-bg));
+      box-shadow: var(--shadow-1);
       text-decoration: none;
       transition: all var(--dur-base) var(--ease);
     }
