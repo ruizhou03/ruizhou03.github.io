@@ -57,13 +57,22 @@ title: 锆铌 | Rui Zhou
       </div>
     </div>
     <figure class="hero-portrait">
-      <div class="photo-stack" role="button" tabindex="0" aria-label="点一下看下一张毕业照">
-        <div class="ps-deck">
-          <div class="ps-card p0"><img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager"></div>
-          <div class="ps-card p1"><img src="{{ '/files/zh/images/portrait-boya.jpg' | relative_url }}" alt="周睿在未名湖与博雅塔前" width="760" height="1140" loading="eager"></div>
-          <div class="ps-card p2"><img src="{{ '/files/zh/images/portrait-huabiao.jpg' | relative_url }}" alt="周睿在华表前抛学位帽" width="760" height="1140" loading="eager"></div>
-          <div class="ps-card pb"><img src="{{ '/files/zh/images/portrait-window.jpg' | relative_url }}" alt="周睿在窗边看毕业证书" width="760" height="1140" loading="lazy"></div>
-          <div class="ps-card pb"><img src="{{ '/files/zh/images/portrait-stair.jpg' | relative_url }}" alt="周睿在楼梯窗边远望" width="760" height="1140" loading="lazy"></div>
+      <div class="photo-carousel">
+        <div class="ps-track" aria-label="毕业照相册（左右滑动或方向键切换）">
+          <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager"></div>
+          <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-boya.jpg' | relative_url }}" alt="周睿在未名湖与博雅塔前" width="760" height="1140" loading="eager"></div>
+          <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-huabiao.jpg' | relative_url }}" alt="周睿在华表前抛学位帽" width="760" height="1140" loading="eager"></div>
+          <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-window.jpg' | relative_url }}" alt="周睿在窗边看毕业证书" width="760" height="1140" loading="lazy"></div>
+          <div class="ps-slide"><img src="{{ '/files/zh/images/portrait-stair.jpg' | relative_url }}" alt="周睿在楼梯窗边远望" width="760" height="1140" loading="lazy"></div>
+        </div>
+        <button type="button" class="ps-arrow ps-arrow--prev" aria-label="上一张照片" hidden>&#8249;</button>
+        <button type="button" class="ps-arrow ps-arrow--next" aria-label="下一张照片">&#8250;</button>
+        <div class="ps-dots">
+          <button type="button" class="ps-dot is-active" aria-label="第 1 张"></button>
+          <button type="button" class="ps-dot" aria-label="第 2 张"></button>
+          <button type="button" class="ps-dot" aria-label="第 3 张"></button>
+          <button type="button" class="ps-dot" aria-label="第 4 张"></button>
+          <button type="button" class="ps-dot" aria-label="第 5 张"></button>
         </div>
       </div>
     </figure>
@@ -161,42 +170,45 @@ title: 锆铌 | Rui Zhou
 </section>
 
 <script>
-  // 首页 hero 照片叠层翻牌：5 张真实 <img> 分 p0(顶)/p1/p2(右下露出的叠层)/pb(隐藏) 四层，
-  // 点一下 / Enter：最上一张 leaving 向右上翻飞（停最上层），同时下层上移递补（单向循环）。
+  // 首页 hero 照片相册（Instagram 式）：CSS scroll-snap 原生 swipe；圆点随滚动同步、
+  // 桌面 hover 出的左右箭头在两端自动隐藏、方向键切换。5 张都是真实 <img>。
   (function () {
-    var stack = document.querySelector('.photo-stack');
-    if (!stack) return;
-    var cards = Array.prototype.slice.call(stack.querySelectorAll('.ps-card'));
-    var n = cards.length;
+    var car = document.querySelector('.photo-carousel');
+    if (!car) return;
+    var track = car.querySelector('.ps-track');
+    var slides = Array.prototype.slice.call(track.querySelectorAll('.ps-slide'));
+    var n = slides.length;
     if (n < 2) return;
-    // 预加载全部（含 lazy 的后两张），保证翻到时已就绪
-    cards.forEach(function (c) { var im = c.querySelector('img'); if (im) { var pre = new Image(); pre.src = im.src; } });
+    var dots = Array.prototype.slice.call(car.querySelectorAll('.ps-dot'));
+    var prevBtn = car.querySelector('.ps-arrow--prev');
+    var nextBtn = car.querySelector('.ps-arrow--next');
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var cur = 0, busy = false;
-    function posClass(p) { return p === 0 ? 'p0' : p === 1 ? 'p1' : p === 2 ? 'p2' : 'pb'; }
-    function layout() {
-      for (var i = 0; i < n; i++) {
-        if (cards[i].classList.contains('leaving')) continue; // 翻飞中的那张不参与重排
-        cards[i].className = 'ps-card ' + posClass((i - cur + n) % n);
-      }
+    // 预加载全部（含 lazy 的后两张）
+    slides.forEach(function (s) { var im = s.querySelector('img'); if (im) { var pre = new Image(); pre.src = im.src; } });
+    var cur = 0;
+    function goTo(i) {
+      i = Math.max(0, Math.min(n - 1, i));
+      track.scrollTo({ left: i * track.clientWidth, behavior: reduce ? 'auto' : 'smooth' });
     }
-    layout();
-    function next() {
-      if (busy) return;
-      if (reduce) { cur = (cur + 1) % n; layout(); return; }
-      busy = true;
-      var lv = cards[cur];
-      lv.className = 'ps-card leaving';   // 顶张翻飞（z 最高，压住下层）
-      cur = (cur + 1) % n;
-      layout();                            // 其余同时上移：p1→p0 升到中心、pb→p2 淡入
-      window.setTimeout(function () {
-        lv.className = 'ps-card ' + posClass((cards.indexOf(lv) - cur + n) % n); // 落到最底层（已不可见）
-        busy = false;
-      }, 430);
+    function sync() {
+      var i = Math.round(track.scrollLeft / track.clientWidth);
+      cur = Math.max(0, Math.min(n - 1, i));
+      for (var k = 0; k < dots.length; k++) dots[k].classList.toggle('is-active', k === cur);
+      if (prevBtn) prevBtn.hidden = (cur === 0);
+      if (nextBtn) nextBtn.hidden = (cur === n - 1);
     }
-    stack.addEventListener('click', next);
-    stack.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); next(); }
+    var ticking = false;
+    track.addEventListener('scroll', function () {
+      if (!ticking) { ticking = true; window.requestAnimationFrame(function () { sync(); ticking = false; }); }
+    }, { passive: true });
+    if (prevBtn) prevBtn.addEventListener('click', function () { goTo(cur - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { goTo(cur + 1); });
+    dots.forEach(function (d, k) { d.addEventListener('click', function () { goTo(k); }); });
+    car.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { goTo(cur - 1); e.preventDefault(); }
+      else if (e.key === 'ArrowRight') { goTo(cur + 1); e.preventDefault(); }
     });
+    window.addEventListener('resize', sync);
+    sync();
   })();
 </script>

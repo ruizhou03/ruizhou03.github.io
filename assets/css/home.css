@@ -322,35 +322,52 @@
     margin-bottom: 2rem;
   }
   .hero-portrait { margin: 0; }
-  /* 照片叠层翻牌：5 张真实毕业照叠成一摞，背后两张往右下露出（都偏右，和右翻一致）；
-     点任意处，最上一张向右上翻飞、露出下面那张（单向循环，无箭头无左翻）。 */
-  .photo-stack { display: block; width: 100%; cursor: pointer; padding: 2px 18px 16px 2px; }
-  .ps-deck { position: relative; display: block; aspect-ratio: 2 / 3; }
-  .ps-card {
-    position: absolute; inset: 0;
-    border-radius: var(--radius-lg); overflow: hidden;
+  /* 照片相册（Instagram 式）：横向滑动一张一张满幅显示 + 底部圆点指示器 +
+     桌面 hover 出左右箭头 + 键盘方向键；触屏原生 swipe（CSS scroll-snap）。 */
+  .photo-carousel { position: relative; }
+  .ps-track {
+    display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    aspect-ratio: 2 / 3;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--color-border);
-    background: var(--color-bg-warm); box-shadow: var(--shadow-2);
-    transform-origin: 50% 60%; will-change: transform, opacity;
-    transition: transform 0.42s cubic-bezier(.34,.1,.28,1), opacity 0.4s ease, box-shadow 0.3s ease;
+    box-shadow: var(--shadow-2);
+    background: var(--color-bg-warm);
   }
-  .ps-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .ps-card.p0 { transform: translate(0,0) rotate(-1.5deg);            opacity: 1; z-index: 50; box-shadow: var(--shadow-3); }
-  .ps-card.p1 { transform: translate(5%, 4.5%) rotate(3deg) scale(.965);  opacity: 1; z-index: 40; }
-  .ps-card.p2 { transform: translate(9%, 8.5%) rotate(5.5deg) scale(.93); opacity: 1; z-index: 30; }
-  .ps-card.pb { transform: translate(9%, 8.5%) rotate(5.5deg) scale(.93); opacity: 0; z-index: 20; }
-  /* 翻走：最上一张向右上翻飞 + 淡出，停在最上层，露出下面的叠层（位移小，防横向滚动） */
-  .ps-card.leaving { transform: translate(13%, -1%) rotate(10deg) scale(.9); opacity: 0; z-index: 60; }
-  .photo-stack:hover .ps-card.p0 { transform: translateY(-3px) rotate(-1.5deg); }
-  .photo-stack:focus-visible { outline: none; }
-  .photo-stack:focus-visible .ps-card.p0 { outline: 2px solid var(--color-accent); outline-offset: 3px; }
-  @media (prefers-reduced-motion: reduce) {
-    .ps-card { transition: none; }
-    .photo-stack:hover .ps-card.p0 { transform: translate(0,0) rotate(-1.5deg); }
+  .ps-track::-webkit-scrollbar { display: none; }
+  .ps-slide { flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; }
+  .ps-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* 桌面 hover 出的左右箭头（触屏隐藏，只 swipe） */
+  .ps-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(255,255,255,0.9); border: 1px solid rgba(26,26,46,0.08);
+    color: #1a1a2e; font-size: 1.05rem; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 3; opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+    box-shadow: 0 1px 4px rgba(26,26,46,0.18);
   }
+  .ps-arrow--prev { left: 8px; }
+  .ps-arrow--next { right: 8px; }
+  .photo-carousel:hover .ps-arrow { opacity: 1; }
+  .ps-arrow:hover { background: #fff; }
+  .ps-arrow:focus-visible { opacity: 1; outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  .ps-arrow[hidden] { display: none; }
+  @media (hover: none) { .ps-arrow { display: none; } }
+  /* 底部圆点：当前点放大变色（~180ms，对齐 IG 手感） */
+  .ps-dots { display: flex; gap: 6px; justify-content: center; align-items: center; margin-top: 0.7rem; }
+  .ps-dot {
+    width: 6px; height: 6px; border-radius: 50%; padding: 0; border: none;
+    background: var(--color-border); cursor: pointer;
+    transition: background 0.18s ease, transform 0.18s ease;
+  }
+  .ps-dot.is-active { background: var(--color-accent); transform: scale(1.35); }
+  .ps-dot:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .ps-track { scroll-behavior: auto; } }
   @media (max-width: 640px) {
     .hero-wrap { grid-template-columns: 1fr; gap: 1.3rem; }
-    .hero-portrait { max-width: 210px; }
+    .hero-portrait { max-width: 260px; }
   }
   .home-kicker {
     font-family: 'Cormorant Garamond', var(--font-display);
