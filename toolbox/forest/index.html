@@ -282,6 +282,13 @@ theme_color: "#fafaf9"
   .setting-row .opt-ico { font-size: 1.25rem; line-height: 1; }
   .setting-row .pill-group button .ft-ico { width: 21px; height: 21px; color: var(--color-muted); }
   .setting-row .opt-cap { font-size: var(--ft-fs-cap); color: var(--color-muted); }
+  /* 灵活模式（∞ 不限时）：松树是它的专属树种（两个账户）*/
+  #flex-btn { font-weight: 600; }
+  #tree-types button[data-tree="pine"] { display: none; }               /* 传统模式选择器里藏掉松树 */
+  #tree-types.flex-locked button[data-tree] { display: none; }
+  #tree-types.flex-locked button[data-tree="pine"] { display: flex; }   /* 灵活模式只显示松树 */
+  #tree-types.flex-locked { opacity: 0.9; pointer-events: none; }        /* 锁定不可改 */
+  .focus-overlay .give-up-btn.flex-stop { background: var(--color-accent); border-color: var(--color-accent); color: var(--ft-on-accent); font-weight: 600; }
   @media (hover: hover) {
     .setting-row .pill-group button:not(.active):hover,
     .setting-row .tree-types button:not(.active):hover { border-color: var(--color-accent); }
@@ -1447,6 +1454,7 @@ theme_color: "#fafaf9"
         <button type="button" data-min="30" class="active">30</button>
         <button type="button" data-min="50">50</button>
         <button type="button" data-min="90">90</button>
+        <button type="button" id="flex-btn" title="不设目标，随时停下就收树（灵活模式）">∞ 不限时</button>
       </div>
       <input type="number" id="custom-min" min="1" max="180" placeholder="自定义" />
       <span class="unit">分</span>
@@ -1791,6 +1799,7 @@ theme_color: "#fafaf9"
         pomodoroOn: state.pomodoroOn,
         breakMin: state.breakMin,
         breakTouched: !!breakTouched,   // 只会在事件回调里被调用，此时 let 声明早已生效
+        flexible: !!state.flexible,
       }));
     } catch (e) {}
   }
@@ -1844,6 +1853,7 @@ theme_color: "#fafaf9"
     selectedIds: [],    // 整理模式下勾选待合并的树 id
     fields: [],         // 田块列表 [{id, name, createdAt}]
     activeFieldId: null,
+    flexible: false,    // 灵活模式：不设目标·正计时·不失败·锁松树
     theme: { background: 'default', timer: 'countdown' },
   };
 
@@ -1892,6 +1902,8 @@ theme_color: "#fafaf9"
   const $customMin = document.getElementById('custom-min');
   const $durationTabs = document.querySelectorAll('[data-min]');
   const $treeTypes = document.querySelectorAll('[data-tree]');
+  const $flexBtn = document.getElementById('flex-btn');
+  const $treeTypesEl = document.getElementById('tree-types');
   const $overlay = document.getElementById('focus-overlay');
   const $overlayTag = document.getElementById('overlay-tag');
   const $focusWarning = document.getElementById('focus-warning');
@@ -4764,13 +4776,15 @@ return deco_cactus;
 
   function startSession(opts = {}) {
     const isBreak = !!opts.isBreak;
+    const flexible = !isBreak && !!state.flexible;
     const minutes = isBreak ? state.breakMin : state.duration;
     state.session = {
       startTime: Date.now(),
-      duration: minutes * 60 * 1000,
+      duration: flexible ? null : minutes * 60 * 1000,
       task: state.task,
-      treeType: state.treeType,
+      treeType: flexible ? 'pine' : state.treeType,
       isBreak,
+      flexible,
     };
     state.paused = false;
     state.pausedAt = null;
@@ -4803,7 +4817,13 @@ return deco_cactus;
     setOverlayA11y(true);
     $overlayTimer.style.color = '';   // 复位上一段可能残留的告警色
 
-    if (isBreak) {
+    const flexible = !!state.session.flexible;
+    $giveUpBtn.classList.toggle('flex-stop', flexible);
+    if (flexible) {
+      $overlayTag.textContent = state.task ? state.task : '专注中（不限时）';
+      $overlayWarn.textContent = '随时点「停下 · 收树」结束，会种下一棵松树';
+      $giveUpBtn.textContent = '停下 · 收树';
+    } else if (isBreak) {
       $overlayTag.textContent = '休息一下';
       $overlayWarn.textContent = '休息时间，可以离开屏幕；时间到自动开始下一棵';
       $giveUpBtn.textContent = '结束循环';
@@ -4837,10 +4857,11 @@ return deco_cactus;
       task: active.task || '',
       treeType: active.treeType,
       isBreak: !!active.isBreak,
+      flexible: !!active.flexible,
     };
     state.treeType = active.treeType || state.treeType;
     state.task = active.task || '';
-    if (!active.isBreak) state.duration = Math.round(active.duration / 60000);  // 让结束后的显示与本段时长一致
+    if (!active.isBreak && !active.flexible) state.duration = Math.round(active.duration / 60000);  // 让结束后的显示与本段时长一致
     state.paused = false;
     state.pausedAt = null;
     openSessionUI();
@@ -4850,7 +4871,7 @@ return deco_cactus;
 
   // ============ 暂停 / 继续 ============
   function updatePauseUI() {
-    const inFocus = state.session && !state.session.isBreak;
+    const inFocus = state.session && !state.session.isBreak && !state.session.flexible;   // 灵活模式无暂停
     $pauseBtn.style.display = inFocus ? '' : 'none';
     if (inFocus && state.paused) {
       $pauseBtn.textContent = '继续';
@@ -4891,6 +4912,14 @@ return deco_cactus;
     // 心跳：定期落盘 lastTick，供智能续跑判断离开时长（节流 ~2s）
     if (!state.paused && now - _lastBeat > 2000) { _lastBeat = now; persistActive(); }
     const elapsed = now - state.session.startTime;
+    if (state.session.flexible) {
+      // 灵活模式：正计时，不倒计时、不自动完成；树按已专注时长生长（1 小时≈满，封顶）
+      const t = fmtTime(Math.floor(elapsed / 1000));
+      $timerDisplay.textContent = t;
+      $overlayTimer.textContent = t;
+      renderTree(Math.min(1, elapsed / (60 * 60 * 1000)));
+      return;
+    }
     const remaining = state.session.duration - elapsed;
     const progress = Math.min(1, elapsed / state.session.duration);
 
@@ -5194,6 +5223,54 @@ return deco_cactus;
     renderStats();
   }
 
+  // 灵活模式「停下 · 收树」：不失败，按已专注挂钟时长种一棵松树（<1 分钟不计）
+  function stopFlexible() {
+    if (!state.session || !state.session.flexible) return;
+    if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+    const startTime = state.session.startTime;
+    const task = state.session.task || '';
+    const now = Date.now();
+    const elapsedMin = (now - startTime) / 60000;
+    const min = Math.round(elapsedMin);
+    const planted = elapsedMin >= 1;
+    const wasOverlayOpen = $overlay.classList.contains('open');
+    state.session = null;
+    saveActive(null);
+    if (planted) {
+      const tree = {
+        id: 'tr-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+        type: 'pine', task, durationMinutes: min,
+        chainId: null, cycleNum: null, cycleBonus: 1.0,
+        startTime, endTime: now,
+        success: true, flex: true,
+      };
+      assignNewPosition(tree);
+      state.trees.push(tree);
+      _justPlantedId = tree.id;
+      saveTrees();
+      logSession(min, treeValue(tree), now, 'pine');   // 1 分钟=1 积分，与传统一致；按结束时间落当天流水
+      $timerStatus.textContent = `种成一棵松树 · 灵活专注 ${min} 分钟`;
+    } else {
+      $timerStatus.textContent = '不足 1 分钟，这次不计';
+    }
+    renderStats();
+    $pauseBtn.style.display = 'none';
+    $timerDisplay.textContent = '0:00';
+    renderTree(0, $treeContainer);
+    const closeNow = () => {
+      if (state.session) return;
+      $overlay.classList.remove('open');
+      $overlay.classList.remove('break-mode');
+      $startBtn.disabled = false;
+      setOverlayA11y(false);
+      if (planted && wasOverlayOpen) {
+        showToast(`已种下一棵松树 · ${min} 分（灵活）`, { undoText: '去看看', undo: () => { location.hash = '#forest'; } });
+      }
+      setTimeout(() => { if (!state.session) renderTree(0, $overlayTreeContainer); }, 420);
+    };
+    if (planted) celebrateThenClose(closeNow); else closeNow();
+  }
+
   $startBtn.addEventListener('click', () => {
     state.task = $taskInput.value.trim();
     state.cycleCount = 0;
@@ -5220,6 +5297,7 @@ return deco_cactus;
     }
     // 会话已结束（如庆典播放期间点到）：没有可放弃的树，别弹与事实相反的枯萎警告
     if (!state.session) return;
+    if (state.session.flexible) { stopFlexible(); return; }   // 灵活模式：停下=收树（不失败、无需确认）
     if (state.session && state.session.isBreak) {
       // break 期间放弃 = 结束循环
       failSession('gave_up');
@@ -5246,6 +5324,7 @@ return deco_cactus;
   document.addEventListener('visibilitychange', () => {
     if (!state.session) return;
     if (state.paused) return;   // 暂停期间离开不判枯萎
+    if (state.session.flexible) { if (!document.hidden) tick(); return; }   // 灵活模式：离开不枯萎、挂钟照走
     if (!state.strict) {        // 宽松/自觉模式：离开不惩罚，回前台补一帧刷新显示即可
       if (!document.hidden) tick();
       return;
@@ -5296,9 +5375,38 @@ return deco_cactus;
   }
 
   // ============ Settings UI ============
+  // 灵活模式（∞）UI 同步：进入=锁松树/关番茄/正计时从 0；退出=还原
+  function applyFlexibleUI() {
+    const flex = !!state.flexible;
+    if ($flexBtn) $flexBtn.classList.toggle('active', flex);
+    if ($treeTypesEl) $treeTypesEl.classList.toggle('flex-locked', flex);
+    if (flex) {
+      $durationTabs.forEach(b => b.classList.remove('active'));
+      if ($customMin) $customMin.value = '';
+      state.treeType = 'pine';
+      if ($pomodoroOn && $pomodoroOn.checked) { $pomodoroOn.checked = false; state.pomodoroOn = false; syncBreakRow(); }
+    } else if (state.treeType === 'pine') {
+      state.treeType = 'oak';   // 松树仅灵活模式专属
+    }
+    $treeTypes.forEach(b => b.classList.toggle('active', b.dataset.tree === state.treeType));
+    if (!state.session) {
+      $timerDisplay.textContent = flex ? '0:00' : fmtTime(state.duration * 60);
+      if ($startBtn) $startBtn.textContent = flex ? '开始 · 不限时' : '开始种树';
+      renderTree(0);
+    }
+  }
+  function exitFlexibleUI() {
+    if (!state.flexible && !($flexBtn && $flexBtn.classList.contains('active'))) return;
+    state.flexible = false;
+    if ($flexBtn) $flexBtn.classList.remove('active');
+    if ($treeTypesEl) $treeTypesEl.classList.remove('flex-locked');
+    if ($startBtn && !state.session) $startBtn.textContent = '开始种树';
+    if (state.treeType === 'pine') { state.treeType = 'oak'; $treeTypes.forEach(b => b.classList.toggle('active', b.dataset.tree === state.treeType)); }
+  }
   $durationTabs.forEach(btn => {
     btn.addEventListener('click', () => {
       if (state.session) return;
+      exitFlexibleUI();
       $durationTabs.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.duration = parseInt(btn.dataset.min, 10);
@@ -5310,6 +5418,7 @@ return deco_cactus;
   });
   $customMin.addEventListener('input', () => {
     if (state.session) return;
+    exitFlexibleUI();
     const v = parseInt($customMin.value, 10);
     if (Number.isFinite(v) && v >= 1 && v <= 180) {
       $durationTabs.forEach(b => b.classList.remove('active'));
@@ -5328,6 +5437,13 @@ return deco_cactus;
       renderTree(0);
       savePrefs();
     });
+  });
+  if ($flexBtn) $flexBtn.addEventListener('click', () => {
+    if (state.session) return;
+    state.flexible = true;
+    applyFlexibleUI();
+    updatePomodoroHint();
+    savePrefs();
   });
 
   // ============ Stats + 田地视图 ============
@@ -5826,7 +5942,7 @@ return deco_cactus;
     const isRevived = t.success && !t.origin && t.revivalDiscount && t.revivalDiscount < 1;
     const originName = t.origin === 'merge' ? '合并而成' : t.origin === 'cultivate' ? '培养长成' : '';
     const statusRow = t.success
-      ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${_gradeName(treeValue(t))}</span>${isRevived ? ' <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">灌溉复活</span>' : ''}${t.origin ? ` <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">${originName}</span>` : ''}${t.manual ? ' <span class="tier-badge" style="background: var(--color-bg-warm); color: var(--color-muted);">手动补种</span>' : ''}</span></div>`
+      ? `<div class="td-row"><span class="label">树形</span><span class="value">${TREE_NAME[t.type]} <span class="tier-badge tier-${tier}">${_gradeName(treeValue(t))}</span>${isRevived ? ' <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">灌溉复活</span>' : ''}${t.origin ? ` <span class="tier-badge" style="background: var(--ft-gold-soft); color: var(--ft-gold-ink);">${originName}</span>` : ''}${t.manual ? ' <span class="tier-badge" style="background: var(--color-bg-warm); color: var(--color-muted);">手动补种</span>' : ''}${t.flex ? ' <span class="tier-badge" style="background: var(--color-bg-warm); color: var(--color-muted);">灵活</span>' : ''}</span></div>`
       : `<div class="td-row"><span class="label">状态</span><span class="value" style="color: var(--ft-danger);">已枯萎</span></div>`;
     const durationRow = t.success
       ? (t.origin
@@ -6062,6 +6178,13 @@ return deco_cactus;
       return;
     }
     restoreMeta(active);   // 先还原番茄链 / 灌溉目标 / 休息分钟
+
+    if (active.flexible) {
+      // 灵活模式：无目标、不失败、挂钟照走 → 直接续上正计时（离开时长计入，与自觉一致）
+      state.flexible = true;
+      enterExisting(active);
+      return;
+    }
 
     const now = Date.now();
     const lastTick = active.lastTick || active.startTime;
@@ -6590,6 +6713,7 @@ return deco_cactus;
     if (typeof p.pomodoroOn === 'boolean') { state.pomodoroOn = p.pomodoroOn; $pomodoroOn.checked = p.pomodoroOn; }
     if (Number.isFinite(p.breakMin) && p.breakMin >= 1 && p.breakMin <= 60) { state.breakMin = p.breakMin; $breakMin.value = p.breakMin; }
     breakTouched = !!p.breakTouched;
+    state.flexible = !!p.flexible;
     syncBreakRow();
   })();
   setActivePill($themeBgPills, state.theme.background);
@@ -6617,6 +6741,7 @@ return deco_cactus;
   renderStats();
   updatePomodoroHint();
   resumeSession();
+  applyFlexibleUI();   // 灵活模式（∞）UI 与偏好 / 续跑同步
   applyStrictUI();   // 严格度按钮高亮 + 首屏「离开页面」说明（随当前模式）
   // 分段/胶囊单选控件：视觉选中靠 .active，读屏靠 aria-pressed —— 用委托监听统一同步（免逐点维护）
   function refreshAriaPressed() {
