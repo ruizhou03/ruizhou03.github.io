@@ -1,19 +1,19 @@
   .cat-card {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.9rem;
     padding: 1rem 1.2rem;
     background: var(--color-bg-warm);
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     text-decoration: none;
     color: var(--color-ink);
-    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    transition: border-color var(--dur-base) var(--ease), transform var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
   }
   .cat-card:hover {
     border-color: var(--color-accent);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+    box-shadow: var(--shadow-2);
     text-decoration: none;
   }
   .cat-icon { font-size: 1.5rem; line-height: 1; }

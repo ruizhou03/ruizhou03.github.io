@@ -95,6 +95,8 @@
   category: 游戏
   subcategory: 牌类游戏
   status: live
+  featured: true
+  featured_note: 白嫖 DanZero 权重，能打过最强档的三档 AI
 
 - id: blackjack
   name: 21 点
@@ -334,6 +336,8 @@
   url: /toolbox/forest/
   category: 工作
   status: live
+  featured: true
+  featured_note: 专注就种一棵树，中途离开会枯的番茄钟
 
 # ===== 三、生活 =====
 
@@ -416,6 +420,8 @@
   url: /toolbox/pet/
   category: 生活
   status: live
+  featured: true
+  featured_note: 多设备原子同步的养宠记录，可装成独立 App
 
 - id: timemachine
   name: X 年前的今天
@@ -448,6 +454,8 @@
   url: /toolbox/bazi/
   category: 生活
   status: live
+  featured: true
+  featured_note: 自带 1901–2099 历法引擎，全程离线不调接口
 
 - id: pindou
   name: 拼豆图纸
@@ -456,6 +464,8 @@
   url: /toolbox/pindou/
   category: 生活
   status: live
+  featured: true
+  featured_note: 上传即出图纸，AI 自动抠图 + 官方色卡量化
 
 - id: ledger
   name: 记账
@@ -468,6 +478,9 @@
 - id: flight
   name: 机票监控
   icon: /assets/icons/flight-icon-192.png
+  tagline: 自动盯票 · 降价提醒
   url: /toolbox/flight/
   category: 生活
   status: live
+  featured: true
+  featured_note: 生成盯票码，在你自己的 Mac 上每天盯票

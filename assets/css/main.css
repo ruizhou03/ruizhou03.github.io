@@ -33,6 +33,22 @@
       --font-body: 'Cormorant Garamond', 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN', 'Songti SC', 'STSong', 'SimSun', 'Hiragino Mincho ProN', serif;
       --font-solemn: 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN', 'Songti SC', 'STZhongsong', 'STSong', 'SimSun', 'Hiragino Mincho ProN', serif;
       --max-width: 800px;
+
+      /* ── 刻度 token（scale）：全站从此只取值，替代各页手写的 magic number；
+         先立标准、后增量替换（优先最高频的卡片 / 按钮）。消除"同一张卡跨页
+         圆角 10/12/16px 各不同、阴影两两差 0.01"这类堆叠感的地基。 ── */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-pill: 999px;
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+      --shadow-1: 0 1px 2px rgba(26, 26, 46, 0.05);
+      --shadow-2: 0 4px 14px rgba(26, 26, 46, 0.08);
+      --shadow-3: 0 10px 30px rgba(26, 26, 46, 0.12);
+      --dur-fast: 0.15s; --dur-base: 0.2s; --dur-slow: 0.3s;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+      --side-w: 256px;
     }
 
     /* 暗黑模式配置 */
@@ -42,12 +58,18 @@
         --color-bg: #1a1918; --color-bg-warm: #222120; --color-accent: #7aaddb;
         --color-nav-bg: rgba(26,25,24,0.92);
         --color-accent-soft: rgba(122, 173, 219, 0.12);
+        --shadow-1: 0 1px 2px rgba(0,0,0,0.30);
+        --shadow-2: 0 6px 20px rgba(0,0,0,0.42);
+        --shadow-3: 0 12px 32px rgba(0,0,0,0.55);
       }
     }
     :root[data-theme="dark"] {
       --color-ink: #e8e6e3; --color-text: #b8b5b0; --color-border: #2e2c2a;
       --color-bg: #1a1918; --color-bg-warm: #222120; --color-accent: #7aaddb;
       --color-nav-bg: rgba(26,25,24,0.92);
+      --shadow-1: 0 1px 2px rgba(0,0,0,0.30);
+      --shadow-2: 0 6px 20px rgba(0,0,0,0.42);
+      --shadow-3: 0 12px 32px rgba(0,0,0,0.55);
     }
     :root[data-theme="light"] {
       --color-ink: #1a1a2e; --color-text: #374151; --color-border: #e5e7eb;
