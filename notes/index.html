@@ -317,6 +317,8 @@ title: "学习资料"
             {% assign match_path = "/" | append: folder | append: "/" %}
             {% assign raw_folder_notes = site.notes | where_exp: "n", "n.path contains match_path" %}
             {% assign folder_notes = raw_folder_notes | where_exp: "n", "n.material_type != '课程测评'" %}
+            {%- comment -%} 去重：自写教材(author=Rui Zhou)已在顶部书架展示，树里不再重复；某课若全是自写讲义则被下方 size>0 守卫整块跳过 {%- endcomment -%}
+            {% assign folder_notes = folder_notes | where_exp: "n", "n.author != 'Rui Zhou'" %}
             {% if folder_notes.size > 0 %}
               {% assign first_note = folder_notes[0] %}
               {% if first_note.discipline == disc %}
