@@ -57,15 +57,14 @@ title: 锆铌 | Rui Zhou
       </div>
     </div>
     <figure class="hero-portrait">
-      <div class="photo-stack">
-        <div class="ps-deck">
-          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager"></div>
-          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-boya.jpg' | relative_url }}" alt="周睿在未名湖与博雅塔前" width="760" height="1140" loading="eager"></div>
-          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-huabiao.jpg' | relative_url }}" alt="周睿在华表前抛学位帽" width="760" height="1140" loading="eager"></div>
-          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-window.jpg' | relative_url }}" alt="周睿在窗边看毕业证书" width="760" height="1140" loading="lazy"></div>
-          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-stair.jpg' | relative_url }}" alt="周睿在楼梯窗边远望" width="760" height="1140" loading="lazy"></div>
-        </div>
-      </div>
+      <button type="button" class="photo-stack" aria-label="点一下，换下一张毕业照">
+        <span class="ps-deck">
+          <span class="ps-frame">
+            <img class="ps-img" src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager">
+          </span>
+        </span>
+        <span class="ps-hint"><span class="ps-count">1 / 5</span> · 点一下换一张</span>
+      </button>
     </figure>
   </div>
 
@@ -161,80 +160,32 @@ title: 锆铌 | Rui Zhou
 </section>
 
 <script>
-  // 首页 hero 照片堆叠（微信式）：一叠真实 <img>，背后露出下一张；拖最上面那张跟手滑走、
-  // 松手过阈值(±25%宽)翻到下一/上一张、否则弹回；点一下 / Enter / ←→ 也翻。触屏 + 桌面同源。
+  // 首页 hero 照片堆叠（v1 复原）：点一下（或键盘 Enter/Space，button 原生支持）翻下一张
   (function () {
     var stack = document.querySelector('.photo-stack');
     if (!stack) return;
-    var deck = stack.querySelector('.ps-deck');
-    var cards = Array.prototype.slice.call(deck.querySelectorAll('.ps-card'));
-    var n = cards.length;
-    if (n < 2) return;
-    cards.forEach(function (c) { var im = c.querySelector('img'); if (im) { var p = new Image(); p.src = im.src; } });
-    var top = 0, busy = false;
-    function rest(d) {
-      if (d === 0) return { t: 'translate(0px,0px) rotate(0deg) scale(1)', z: 60, o: 1 };
-      if (d === 1) return { t: 'translate(0px,12px) rotate(1.6deg) scale(0.955)', z: 40, o: 1 };
-      if (d === 2) return { t: 'translate(0px,22px) rotate(-1.6deg) scale(0.915)', z: 30, o: 1 };
-      return { t: 'translate(0px,26px) rotate(0deg) scale(0.9)', z: 20, o: 0 };
+    var img = stack.querySelector('.ps-img');
+    var count = stack.querySelector('.ps-count');
+    var base = '/files/zh/images/';
+    var photos = [
+      { s: 'portrait-guanghua.jpg', a: '周睿在北京大学光华管理学院' },
+      { s: 'portrait-boya.jpg',     a: '周睿在未名湖与博雅塔前' },
+      { s: 'portrait-huabiao.jpg',  a: '周睿在华表前抛学位帽' },
+      { s: 'portrait-window.jpg',   a: '周睿在窗边看毕业证书' },
+      { s: 'portrait-stair.jpg',    a: '周睿在楼梯窗边远望' }
+    ];
+    photos.forEach(function (p) { var i = new Image(); i.src = base + p.s; }); // 预加载
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var idx = 0;
+    function show(n) {
+      idx = (n + photos.length) % photos.length;
+      var p = photos[idx];
+      function set() {
+        img.src = base + p.s; img.alt = p.a; img.style.opacity = '1';
+        if (count) count.textContent = (idx + 1) + ' / ' + photos.length;
+      }
+      if (reduce) { set(); } else { img.style.opacity = '0'; window.setTimeout(set, 150); }
     }
-    function place(c, d, anim) {
-      var r = rest(d);
-      c.style.transition = anim ? '' : 'none';
-      c.style.zIndex = String(r.z);
-      c.style.transform = r.t;
-      c.style.opacity = String(r.o);
-    }
-    function layout(skip) { for (var i = 0; i < n; i++) { if (cards[i] !== skip) place(cards[i], (i - top + n) % n, true); } }
-    layout(null);
-
-    function fly(dir) {            // dir=1 下一张（飞左），dir=-1 上一张（飞右）
-      if (busy) return;
-      busy = true;
-      var f = cards[top];
-      var sign = dir > 0 ? -1 : 1;
-      var W = deck.clientWidth || 1;
-      f.style.transition = '';
-      f.style.zIndex = '70';
-      f.style.transform = 'translate(' + (sign * W * 1.15) + 'px,' + (W * 0.1) + 'px) rotate(' + (sign * 22) + 'deg)';
-      f.style.opacity = '0';
-      top = (top + dir + n) % n;
-      layout(f);
-      window.setTimeout(function () { place(f, (cards.indexOf(f) - top + n) % n, false); busy = false; }, 460);
-    }
-
-    // ── 拖拽（触屏 swipe + 桌面鼠标同源）──
-    var drag = false, sx = 0, dx = 0, W = 1, moved = false, tc = null;
-    deck.addEventListener('pointerdown', function (e) {
-      if (busy) return;
-      tc = cards[top]; drag = true; moved = false; sx = e.clientX; dx = 0; W = deck.clientWidth || 1;
-      tc.style.transition = 'none'; deck.classList.add('is-dragging');
-    });
-    deck.addEventListener('pointermove', function (e) {
-      if (!drag) return;
-      dx = e.clientX - sx;
-      if (Math.abs(dx) > 5) moved = true;
-      tc.style.transform = 'translate(' + dx + 'px,' + (Math.abs(dx) * 0.04) + 'px) rotate(' + ((dx / W) * 14) + 'deg)';
-    });
-    function release() {
-      if (!drag) return;
-      drag = false; deck.classList.remove('is-dragging');
-      if (Math.abs(dx) > W * 0.25) fly(dx < 0 ? 1 : -1);
-      else place(tc, 0, true);
-    }
-    deck.addEventListener('pointerup', release);
-    deck.addEventListener('pointercancel', release);
-    window.addEventListener('pointerup', release);
-
-    // 点一下也翻（非拖拽时）；键盘可用
-    deck.addEventListener('click', function () { if (!busy && !moved) fly(1); moved = false; });
-    deck.setAttribute('tabindex', '0');
-    deck.setAttribute('role', 'button');
-    deck.setAttribute('aria-label', '毕业照，点一下或左右拖翻看');
-    deck.addEventListener('keydown', function (e) {
-      if (busy) return;
-      if (e.key === 'ArrowRight' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fly(1); }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); fly(-1); }
-    });
+    stack.addEventListener('click', function () { show(idx + 1); });
   })();
 </script>
