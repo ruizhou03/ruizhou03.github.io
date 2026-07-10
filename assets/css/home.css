@@ -313,6 +313,32 @@
      一句主张式门面；名字梗降级为可折叠彩蛋，不再当头条。
      ───────────────────────────────────────────── */
   .bio-section { margin-bottom: 3.5rem; }
+  /* Hero 两栏：左文字 + 右竖幅真人照，把之前"上窄(≈2/3)下宽(铺满)"的憋屈补满整宽 */
+  .hero-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(190px, 30%, 250px);
+    gap: 2.4rem;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  .hero-portrait {
+    margin: 0;
+    aspect-ratio: 2 / 3;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-2);
+    background: var(--color-bg-warm);
+  }
+  .hero-portrait img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center 22%;
+    display: block;
+  }
+  @media (max-width: 640px) {
+    .hero-wrap { grid-template-columns: 1fr; gap: 1.3rem; }
+    .hero-portrait { max-width: 190px; aspect-ratio: 4 / 5; }
+  }
   .home-kicker {
     font-family: 'Cormorant Garamond', var(--font-display);
     font-variant: small-caps;
@@ -327,14 +353,12 @@
     font-weight: 600;
     color: var(--color-ink);
     letter-spacing: -0.005em;
-    max-width: 32rem;
     margin: 0 0 1.1rem;
   }
   .home-dek {
     font-size: 1.02rem;
     color: var(--color-text);
     line-height: 1.8;
-    max-width: 34rem;
     margin: 0 0 1.2rem;
   }
   .home-pills {

@@ -35,24 +35,29 @@ title: 锆铌 | Rui Zhou
 {% assign featured = hot_posts | first %}
 
 <section class="bio-section">
-  <p class="home-kicker">锆铌 · Zircon</p>
-  <h1 class="home-lead">一个永不过期的地方——硬核讲义、科研心得、生活折腾，和五十多件亲手做的小工具，都排得像一本书。</h1>
-  <p class="home-dek">
-    博主周睿，在宾夕法尼亚州立大学（Penn State，不是 UPenn 宾大！）攻读经济学博士，研究行为经济学与微观经济理论。平时喜欢跑步、健身和唱歌，热衷探索未知的风景，也是个重度强迫症患者——不然也不会有这个地方。
-  </p>
-
   {% assign tool_count = site.data.toolbox | where: "status", "live" | size %}
-  <div class="home-pills">
-    <span>永不过期</span>
-    <span>全文搜索</span>
-    <span>学习资料可下载</span>
-    <span>篇篇有评论区</span>
-  </div>
-
-  <div class="home-stats">
-    <span>📚 {{ notes_count }} 份课程资料与讲义</span>
-    <span>🧰 {{ tool_count }} 件原创工具</span>
-    <span>✍️ {{ total }} 份内容</span>
+  <div class="hero-wrap">
+    <div class="hero-text">
+      <p class="home-kicker">锆铌 · Zircon</p>
+      <h1 class="home-lead">一个永不过期的地方——硬核讲义、科研心得、生活折腾，和五十多件亲手做的小工具，都排得像一本书。</h1>
+      <p class="home-dek">
+        博主周睿，在宾夕法尼亚州立大学（Penn State，不是 UPenn 宾大！）攻读经济学博士，研究行为经济学与微观经济理论。平时喜欢跑步、健身和唱歌，热衷探索未知的风景，也是个重度强迫症患者——不然也不会有这个地方。
+      </p>
+      <div class="home-pills">
+        <span>永不过期</span>
+        <span>全文搜索</span>
+        <span>学习资料可下载</span>
+        <span>篇篇有评论区</span>
+      </div>
+      <div class="home-stats">
+        <span>📚 {{ notes_count }} 份课程资料与讲义</span>
+        <span>🧰 {{ tool_count }} 件原创工具</span>
+        <span>✍️ {{ total }} 份内容</span>
+      </div>
+    </div>
+    <figure class="hero-portrait">
+      <img src="{{ '/files/en/images/profile_web.jpeg' | relative_url }}" alt="周睿 (Rui Zhou)" width="533" height="800" loading="eager">
+    </figure>
   </div>
 
   <p class="home-cta">文章下方都能留言——这是我更新最大的动力，欢迎路过留一句。</p>
