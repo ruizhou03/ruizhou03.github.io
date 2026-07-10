@@ -1,0 +1,152 @@
+---
+layout: default
+title: 关于我 · 锆铌
+permalink: /zh/about/
+description: 周睿（Rui Zhou）——宾夕法尼亚州立大学经济学博士，北大光华本科；「锆铌」这个站的来历，和一以贯之的那种较真。
+---
+
+<article class="about">
+
+  <p class="about-eyebrow">关于 · About</p>
+  <h1 class="about-h1">我是周睿</h1>
+
+  <div class="about-hero">
+    <figure class="about-portrait">
+      <img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager">
+      <figcaption>北京大学光华管理学院</figcaption>
+    </figure>
+    <div class="about-intro">
+      <p>你好，我是<strong>周睿</strong>——一个在宾夕法尼亚州立大学（Penn State，真的不是 UPenn 宾大）念经济学博士的人，研究方向是<strong>行为经济学</strong>与<strong>微观经济理论</strong>。本科在北京大学光华管理学院。</p>
+      <p>平时喜欢跑步、健身和唱歌，热衷去看没看过的风景，也是个不轻不重的强迫症患者。这个站叫<strong>「锆铌」</strong>，是我留在网上的一块自留地——把想通的东西、造出来的工具、和过日子的方法，都收在一个永不过期的地方。</p>
+    </div>
+  </div>
+
+  <section class="about-block">
+    <p class="about-eyebrow">名字 · The Name</p>
+    <h2>为什么叫「锆铌」</h2>
+    <p>锆（Zr）是我名字拼音首字母对应的元素，铌（Nb）在元素周期表里正好紧挨着锆。拼在一起，是一个高中时抱着化学竞赛课本的少年留下的中二念头——我承认确实挺蠢的，但用久了，也就成了名字。</p>
+  </section>
+
+  <section class="about-block">
+    <p class="about-eyebrow">一条主线 · The Throughline</p>
+    <h2>一以贯之的，是同一种较真</h2>
+    <p>我大概是个重度强迫症患者。这件事听起来像毛病，但它其实是这个站上几乎所有东西的共同来源——同一种较真，被用在了三个地方：</p>
+    <ul class="about-list">
+      <li><strong>用在研究上</strong>，它变成行为经济学——去较真"人到底是怎么做决定的"。</li>
+      <li><strong>用在动手上</strong>，它变成了五十多件亲手做的小工具——每一件都在抠一个别人可能觉得"差不多得了"的细节。</li>
+      <li><strong>用在写字上</strong>，它变成循证的科普与攻略——凡事想找到依据、讲到自己信了为止。</li>
+    </ul>
+    <p>所以如果你在这个站里感到一种"较真到有点轴"的气质，那不是错觉。</p>
+  </section>
+
+  <section class="about-block">
+    <p class="about-eyebrow">这里有什么 · What's Here</p>
+    <h2>你可以从这几个门逛起</h2>
+    <div class="about-doors">
+      <a href="{{ '/notes/' | relative_url }}" class="about-door">
+        <span class="ad-ic">📚</span>
+        <span class="ad-tx"><b>学习资料</b>北大到 Penn State 一路的课程笔记，和我自己重排 / 重写的 LaTeX 讲义，都能直接下载。</span>
+      </a>
+      <a href="{{ '/toolbox/' | relative_url }}" class="about-door">
+        <span class="ad-ic">🧰</span>
+        <span class="ad-tx"><b>百宝箱</b>为解决自己的问题顺手做的工具与小游戏——掼蛋 AI、宠物中心、八字、拼豆、机票监控……</span>
+      </a>
+      <a href="{{ '/research/' | relative_url }}" class="about-door">
+        <span class="ad-ic">🔬</span>
+        <span class="ad-tx"><b>科研妙招</b>一个博士的科研工具与踩坑心得。</span>
+      </a>
+      <a href="{{ '/life/' | relative_url }}" class="about-door">
+        <span class="ad-ic">☕</span>
+        <span class="ad-tx"><b>生活攻略</b>把日子过明白的循证攻略，外加想到哪写到哪的随笔。</span>
+      </a>
+    </div>
+  </section>
+
+  <p class="about-closing">站里所有文章下面都能留言——那是我更新最大的动力。欢迎随便逛，随手留一句。</p>
+
+  <p class="about-back"><a href="{{ '/zh/' | relative_url }}">← 回首页</a></p>
+
+</article>
+
+<style>
+  .about {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .about-eyebrow {
+    font-family: 'Cormorant Garamond', var(--font-display);
+    font-variant: small-caps;
+    letter-spacing: 0.16em;
+    font-size: 0.82rem;
+    color: var(--color-accent);
+    margin: 0 0 0.5rem;
+  }
+  .about-h1 {
+    font-size: 2.3rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    letter-spacing: -0.01em;
+    margin: 0 0 1.8rem;
+  }
+  .about-hero {
+    display: grid;
+    grid-template-columns: clamp(200px, 34%, 280px) minmax(0, 1fr);
+    gap: 2rem;
+    align-items: center;
+    margin-bottom: 3rem;
+  }
+  .about-portrait {
+    margin: 0;
+    aspect-ratio: 2 / 3;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-2);
+    position: relative;
+  }
+  .about-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .about-portrait figcaption {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    font-size: 0.72rem; color: #fff;
+    background: linear-gradient(transparent, rgba(26,26,46,0.55));
+    padding: 1.4rem 0.7rem 0.5rem; text-align: center;
+    letter-spacing: 0.02em;
+  }
+  .about-intro p { font-size: 1.05rem; line-height: 1.85; margin: 0 0 1rem; }
+  .about-intro p:last-child { margin-bottom: 0; }
+
+  .about-block { margin: 0 0 2.6rem; }
+  .about-block h2 { font-size: 1.4rem; font-weight: 600; color: var(--color-ink); margin: 0.1rem 0 0.9rem; }
+  .about-block p { font-size: 1.02rem; line-height: 1.85; margin: 0 0 1rem; }
+  .about-list { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: 0.7rem; }
+  .about-list li {
+    font-size: 1rem; line-height: 1.7;
+    padding-left: 1rem; border-left: 2px solid var(--color-highlight);
+  }
+
+  .about-doors { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-top: 1rem; }
+  .about-door {
+    display: flex; gap: 0.7rem; align-items: flex-start;
+    padding: 0.9rem 1rem;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: border-color var(--dur-base) var(--ease), transform var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
+  }
+  .about-door:hover { border-color: var(--color-accent); transform: translateY(-2px); box-shadow: var(--shadow-2); }
+  .about-door .ad-ic { font-size: 1.3rem; line-height: 1; flex: none; }
+  .about-door .ad-tx { font-size: 0.86rem; color: var(--color-muted); line-height: 1.5; }
+  .about-door .ad-tx b { display: block; color: var(--color-ink); font-size: 0.98rem; font-weight: 600; margin-bottom: 0.15rem; }
+
+  .about-closing { font-size: 1.02rem; color: var(--color-text); line-height: 1.85; margin: 2.4rem 0 2rem; }
+  .about-back { margin: 0; }
+  .about-back a { font-size: 0.95rem; color: var(--color-accent); text-decoration: none; }
+
+  @media (max-width: 620px) {
+    .about-h1 { font-size: 1.85rem; }
+    .about-hero { grid-template-columns: 1fr; gap: 1.3rem; }
+    .about-portrait { max-width: 220px; }
+    .about-doors { grid-template-columns: 1fr; }
+  }
+</style>
