@@ -209,8 +209,11 @@
     
     /* 标题：加粗并拉开层次，H2 带底部边框 */
     .markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4 { color: var(--color-ink); font-family: var(--font-display); margin-top: 2em; margin-bottom: 1em; font-weight: 600; }
-    .markdown-content h2 { font-size: 1.6rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.4em; }
-    .markdown-content h3 { font-size: 1.3rem; }
+    /* 编辑式章节标题：主节(#)缀一截暖金短线、子节(##)去掉灰通栏更干净，层级更清爽 */
+    .markdown-content h1 { font-size: 1.85rem; margin-top: 2.4em; margin-bottom: 0.7em; }
+    .markdown-content h1::after { content: ""; display: block; width: 2.4rem; height: 2px; background: #a9822f; margin-top: 0.55rem; border-radius: 1px; }
+    .markdown-content h2 { font-size: 1.42rem; padding-bottom: 0.15em; }
+    .markdown-content h3 { font-size: 1.2rem; color: var(--color-accent); }
 
     /* Doocs 标志性的引用块 (Blockquote) */
     .markdown-content blockquote { margin: 1.6em 0; padding: 0.75em 1.3em; border-left: 3px solid #a9822f; background-color: var(--color-bg-warm); color: var(--color-ink); border-radius: 0 6px 6px 0; font-size: 1.02em; }
@@ -693,16 +696,10 @@
     .nav-brand::before,
     .nav-links .nav-link-home a::before {
       content: "Zr";
-      display: inline-block;
-      width: 1.5em; height: 1.5em;
-      line-height: 1.5em; text-align: center;
-      margin-right: 0.4em; vertical-align: middle;
-      background: linear-gradient(150deg, #c9a96e, #b8934e);
-      color: #fffdf7;
       font-family: 'Cormorant Garamond', var(--font-display);
-      font-weight: 700; font-size: 0.72em;
-      border-radius: 6px;
-      box-shadow: 0 1px 2px rgba(26, 26, 46, 0.14);
+      font-weight: 700; font-size: 1.05em;
+      color: #b8934e;                 /* 金色 Zr、无背景，和浏览器 tab 的 favicon 一致 */
+      margin-right: 0.32em; letter-spacing: 0.01em;
     }
 
     /* ─── 成熟度 pill：常青（定稿）暖金描边 / 更新中 藏蓝——由管理后台 set-flag(evergreen) 控制 ─── */
