@@ -675,3 +675,30 @@
       }
       html { scroll-behavior: auto !important; }
     }
+
+    /* ─── 品牌字标：金色 Zr tile + 衬线「锆铌」──────────────────────
+       把只存在于 16px favicon 里的 Zr 符号升级成导航常驻的视觉签名。
+       桌面走菜单首项 .nav-link-home（在最左）、手机走左上角 .nav-brand，
+       两者本就互斥（各自的 display 由既有规则控制，这里不碰 display）。 */
+    .nav-brand,
+    .nav-links .nav-link-home a {
+      font-family: 'Cormorant Garamond', var(--font-display);
+      font-weight: 600; font-size: 1.12rem; letter-spacing: 0.02em;
+      color: var(--color-ink); text-transform: none;
+    }
+    .nav-brand:hover,
+    .nav-links .nav-link-home a:hover { color: var(--color-accent); }
+    .nav-brand::before,
+    .nav-links .nav-link-home a::before {
+      content: "Zr";
+      display: inline-block;
+      width: 1.5em; height: 1.5em;
+      line-height: 1.5em; text-align: center;
+      margin-right: 0.4em; vertical-align: -0.32em;
+      background: linear-gradient(150deg, #c9a96e, #b8934e);
+      color: #fffdf7;
+      font-family: 'Cormorant Garamond', var(--font-display);
+      font-weight: 700; font-size: 0.72em;
+      border-radius: 6px;
+      box-shadow: 0 1px 2px rgba(26, 26, 46, 0.14);
+    }
