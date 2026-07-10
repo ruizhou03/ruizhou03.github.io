@@ -9,5 +9,6 @@
 <a class="tool-card live" href="{{ t.url | relative_url }}">
   <div class="tool-icon">{%- if t.icon contains "/" -%}<img src="{{ t.icon | relative_url }}" alt="">{%- else -%}{{ t.icon }}{%- endif -%}</div>
   <div class="tool-name">{{ t.name }}</div>
+  {%- if t.tagline and t.tagline != "" -%}<div class="tool-tagline">{{ t.tagline }}</div>{%- endif -%}
 </a>
 {%- endif -%}

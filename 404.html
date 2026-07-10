@@ -1,0 +1,66 @@
+---
+layout: default
+title: 页面走丢了 · 404
+permalink: /404.html
+noindex: true
+---
+
+<section class="notfound">
+  <p class="nf-code">404</p>
+  <h1 class="nf-title">这一页走丢了</h1>
+  <p class="nf-msg">链接可能改过、删了，或者从来就不存在。不如从下面两个门重新逛起。</p>
+  <div class="nf-links">
+    <a href="{{ '/zh/' | relative_url }}" class="nf-btn nf-btn--primary">← 回首页</a>
+    <a href="{{ '/toolbox/' | relative_url }}" class="nf-btn">🧰 逛百宝箱</a>
+  </div>
+</section>
+
+<style>
+  .notfound {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 4.5rem 1rem 5.5rem;
+    text-align: center;
+  }
+  .nf-code {
+    font-family: 'Cormorant Garamond', var(--font-display);
+    font-size: 5rem;
+    line-height: 1;
+    font-weight: 600;
+    color: var(--color-accent);
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+  .nf-title {
+    font-size: 1.5rem;
+    color: var(--color-ink);
+    margin: 1rem 0 0.6rem;
+  }
+  .nf-msg {
+    color: var(--color-muted);
+    font-size: 1rem;
+    line-height: 1.8;
+    margin: 0 auto 2.2rem;
+    max-width: 30rem;
+  }
+  .nf-links {
+    display: flex;
+    gap: 0.7rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .nf-btn {
+    text-decoration: none;
+    border: 1px solid var(--color-border);
+    color: var(--color-muted);
+    border-radius: 999px;
+    padding: 0.45rem 1.3rem;
+    font-size: 0.92rem;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .nf-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .nf-btn--primary {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+</style>

@@ -622,3 +622,34 @@
         margin: 0 auto 1.8rem; text-align: center;
       }
     }
+
+    /* ─── 全局键盘焦点环（系统级默认，补齐无障碍）───
+       此前多处 outline:none 清了焦点态却无兜底；这里统一给键盘导航
+       （:focus-visible，鼠标点击不触发）一个用站点强调色的焦点环，
+       暗色模式下 --color-accent 自动变浅蓝，对比足够。 */
+    a:focus-visible,
+    button:focus-visible,
+    summary:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible,
+    [tabindex]:focus-visible,
+    .tool-card:focus-visible,
+    .cat-card:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+      border-radius: 3px;
+    }
+
+    /* ─── 尊重「减少动态效果」系统偏好（公共层兜底）───
+       各工具页此前各自为战地做 reduced-motion，这里在全站公共层
+       统一收口，让全站默认就照顾到前庭敏感 / 省电用户。 */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      html { scroll-behavior: auto !important; }
+    }

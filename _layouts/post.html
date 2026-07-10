@@ -28,7 +28,7 @@ layout: default
       <span style="font-size: 1.1rem;">{{ page.date | date: "%B %d, %Y" }}</span>
 
       <span style="font-size: 1.1rem; font-style: italic; letter-spacing: 0.05rem;">
-        By {{ page.author | default: "Zircon" }}
+        By {{ page.author | default: site.author.name }}
       </span>
 
       <div id="post-stats" style="display: none; gap: 1.2rem; align-items: center; font-family: var(--font-body); font-size: 0.95rem; opacity: 0.85;">

@@ -34,57 +34,70 @@ title: 锆铌 | Rui Zhou
 {% assign hot_posts = all_content | where: "hot", true %}
 {% assign featured = hot_posts | first %}
 
-<section class="bio-section" style="margin-bottom: 3rem;">
-  <h1>关于这里</h1>
-  <p style="margin-bottom: 1rem;">
-    这里是微信公众号<strong>「锆铌」</strong>的网页版存档，涵盖硬核课程笔记、科研干货，以及随心写下的生活感悟。
-  </p>
-  <p style="margin-bottom: 1rem;">
-    顺便解释一下这个名字为什么这么独特——锆（Zr）是我名字首字母对应的元素，铌（Nb）紧排在锆后面……拼在一起大概就是一个高中化学竞赛生留下来的中二遗产——我承认确实挺蠢的，但由于历史原因就一直沿用至今了。
-  </p>
-  <p style="margin-bottom: 1rem;">
-    博主目前在宾夕法尼亚州立大学（Penn State，不是UPenn宾大！）攻读经济学博士，研究行为经济学与微观经济理论。平时喜欢跑步、健身和唱歌，热衷探索未知的风景——还是个重度强迫症患者，不然也不会有这个公众号。
-  </p>
-  <p style="margin-bottom: 1.5rem;">
-    相比公众号，这里的链接<strong>永不过期</strong>，支持<strong>全文搜索</strong>，学习资料可以直接下载，不用跳转外链。文章下方都有评论区，欢迎留言——这是我更新最大的动力！
+<section class="bio-section">
+  <p class="home-kicker">锆铌 · Zircon</p>
+  <h1 class="home-lead">一个永不过期的地方——硬核讲义、科研心得、生活折腾，和五十多件亲手做的小工具，都排得像一本书。</h1>
+  <p class="home-dek">
+    博主周睿，在宾夕法尼亚州立大学（Penn State，不是 UPenn 宾大！）攻读经济学博士，研究行为经济学与微观经济理论。平时喜欢跑步、健身和唱歌，热衷探索未知的风景，也是个重度强迫症患者——不然也不会有这个地方。
   </p>
 
   {% assign tool_count = site.data.toolbox | where: "status", "live" | size %}
-  <div style="font-size: 0.88rem; color: var(--color-muted); margin: 1.2rem 0 0; display: flex; flex-wrap: wrap; gap: 1.2rem 1.8rem;">
-    <span>📝 {{ total }} 份内容</span>
-    <span>🗂 4 个内容分类</span>
-    <span>🧰 百宝箱 {{ tool_count }} 个小工具</span>
+  <div class="home-pills">
+    <span>永不过期</span>
+    <span>全文搜索</span>
+    <span>学习资料可下载</span>
+    <span>篇篇有评论区</span>
   </div>
+
+  <div class="home-stats">
+    <span>📚 {{ notes_count }} 份课程资料与讲义</span>
+    <span>🧰 {{ tool_count }} 件原创工具</span>
+    <span>✍️ {{ total }} 份内容</span>
+  </div>
+
+  <p class="home-cta">文章下方都能留言——这是我更新最大的动力，欢迎路过留一句。</p>
+
+  <details class="name-note">
+    <summary>关于「锆铌」这个名字</summary>
+    <p>锆（Zr）是我名字首字母对应的元素，铌（Nb）紧排在锆后面……拼在一起大概就是一个高中化学竞赛生留下来的中二遗产——我承认确实挺蠢的，但由于历史原因就一直沿用至今了。</p>
+  </details>
 </section>
 
 <section style="margin-bottom: 3.5rem;">
-  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.85rem;">
+  <div class="cat-grid">
     <a href="/notes/" class="cat-card">
       <span class="cat-icon">📚</span>
       <div>
         <div class="cat-name">学习资料</div>
-        <div class="cat-count">{{ notes_count }} 份资料</div>
+        <div class="cat-desc">硬核课程笔记与自写 LaTeX 讲义 · 可直接下载</div>
       </div>
     </a>
     <a href="/research/" class="cat-card">
       <span class="cat-icon">🔬</span>
       <div>
         <div class="cat-name">科研妙招</div>
-        <div class="cat-count">{{ research_count }} 篇文章</div>
+        <div class="cat-desc">一个 PhD 的科研工具与踩坑心得</div>
       </div>
     </a>
     <a href="/life/" class="cat-card">
       <span class="cat-icon">☕</span>
       <div>
         <div class="cat-name">生活攻略</div>
-        <div class="cat-count">{{ life_count }} 篇文章</div>
+        <div class="cat-desc">把日子过明白的循证攻略</div>
       </div>
     </a>
     <a href="/essays/" class="cat-card">
       <span class="cat-icon">✍️</span>
       <div>
         <div class="cat-name">随笔漫谈</div>
-        <div class="cat-count">{{ essay_count }} 篇文章</div>
+        <div class="cat-desc">想到哪写到哪的碎念</div>
+      </div>
+    </a>
+    <a href="/toolbox/" class="cat-card cat-card--wide">
+      <span class="cat-icon">🧰</span>
+      <div>
+        <div class="cat-name">百宝箱</div>
+        <div class="cat-desc">为解决自己的问题，亲手做的 {{ tool_count }} 件工具与小游戏</div>
       </div>
     </a>
   </div>
