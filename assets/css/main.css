@@ -90,18 +90,23 @@
     
     /* 导航栏核心布局 */
     nav { position: fixed; top: 0; width: 100%; z-index: 1000; background: var(--color-nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border); }
-    .nav-inner { 
-      max-width: 960px; margin: 0 auto; padding: 0.7rem 2rem; 
-      display: flex; justify-content: space-between; align-items: center; 
+    .nav-inner {
+      max-width: 960px; margin: 0 auto; padding: 0.7rem 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: nowrap; gap: 1rem;   /* 各区块之间留一道最小间距、整条永不换行 */
     }
-    
-    /* 导航链接 (PC端显示，手机端隐藏) */
-    .nav-links { display: flex; list-style: none; gap: 1.8rem; }
-    .nav-links a { text-decoration: none; font-size: 0.95rem; font-weight: 500; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* 导航链接 (PC端显示，手机端隐藏)。
+       每个板块名 white-space:nowrap 永不断字（"科研妙招"绝不掰成 3+1）；整行 nowrap，
+       装不下时由 @media(max-width:960) 整条收进 ☰，中间没有"挤压断字"的过渡态。 */
+    .nav-links { display: flex; list-style: none; gap: 1.4rem; flex-wrap: nowrap; }
+    .nav-links a { text-decoration: none; font-size: 0.95rem; font-weight: 500; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
     .nav-links a:hover { color: var(--color-accent); }
 
-    /* 返回链接样式 */
-    .nav-back { font-size: 0.9rem; font-weight: 500; color: var(--color-accent); text-decoration: none; display: flex; align-items: center; gap: 0.3rem; }
+    /* 返回链接：低调的层级指示——细 chevron + 灰字 + 永不换行，hover 才点亮成强调色，不与品牌抢眼 */
+    .nav-back { font-size: 0.85rem; font-weight: 500; color: var(--color-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; transition: color 0.2s; }
+    .nav-back:hover { color: var(--color-accent); }
+    .nav-back .chev { font-size: 1.2em; line-height: 1; font-weight: 400; }
     /* 手机端左上角品牌「锆铌」→ 中文首页（桌面隐藏，桌面靠 .nav-links 里的锆铌） */
     .nav-brand { display: none; font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; color: var(--color-ink); text-decoration: none; letter-spacing: 0.02em; }
     .nav-settings { display: none; }   /* ☰ 菜单底部设置区，只手机端显示 */
@@ -117,8 +122,8 @@
     /* 右上控件：search + theme + EN 同在 .nav-right-box 里，整体作为 nav-inner 的最右
        flex 项；space-between 把 [back / nav-links / right-box] 推开。.nav-controls
        只是为了给 theme + EN 收一点更紧的 gap（0.6rem 比 box 整体的 1rem 紧）。 */
-    .nav-right-box { display: flex; align-items: center; gap: 1rem; }
-    .nav-controls { display: flex; align-items: center; gap: 0.6rem; }
+    .nav-right-box { display: flex; align-items: center; gap: 0.75rem; }
+    .nav-controls { display: flex; align-items: center; gap: 0.5rem; }
 
     /* 响应式：手机端调整 */
     @media (max-width: 768px) {
@@ -128,14 +133,20 @@
       /* 工具页（toolbox）正文本身已是带卡片的紧凑工具，main 的 2rem 边距叠上
          工具自己的内边距会把手机端挤成窄条——这里把 main 边距收到 1rem。 */
       body.is-toolbox > main { padding: 0 1rem; }
+    }
 
+    /* 顶栏折叠为 ☰：临界点设在 960（＝内容栏宽）。960 以上＝整行、每项 nowrap 永不断字；
+       960 以下＝干净的汉堡菜单。两态之间不再有"内容装不下→挤压断字"的丑过渡带。
+       （正文字号等非导航的手机端微调仍留在 768。） */
+    @media (max-width: 960px) {
       .nav-inner {
         display: grid;
         grid-template-columns: 1fr auto 1fr; /* 三段式：左、中、右 */
         align-items: center;
         padding: 0.6rem 1.2rem;
+        gap: 0.5rem;
       }
-      
+
       .nav-brand { display: inline-block; justify-self: start; }   /* 左：锆铌 */
       .nav-left-zone .nav-back { display: none; }                  /* 手机端不显示返回链接，左上角统一锆铌 */
       .nav-toggle { display: block; justify-self: center; } /* 居中汉堡包 */
