@@ -32,115 +32,133 @@ body_class: adm-page
   <div id="adm-main" hidden>
     <div class="adm-verified">已验证管理员：<strong id="adm-email"></strong></div>
 
-    <div class="adm-board-tabs">
-      <button type="button" class="adm-board-tab adm-bon" data-board="data">📊 数据分析</button>
-      <button type="button" class="adm-board-tab" data-board="content">🗂 内容管理</button>
-    </div>
+    <div class="adm-console">
+      <aside class="adm-nav" id="adm-nav">
+        <button type="button" class="adm-nav-collapse" id="adm-nav-collapse" title="折叠 / 展开目录" aria-label="折叠目录">‹</button>
+        <div class="adm-nav-group">
+          <div class="adm-nav-gh">数据分析</div>
+          <button type="button" class="adm-nav-item" data-pane="overview"><span class="i">📈</span><span class="t">总览</span></button>
+          <button type="button" class="adm-nav-item" data-pane="rankings"><span class="i">🏆</span><span class="t">内容排行</span></button>
+          <button type="button" class="adm-nav-item" data-pane="traffic"><span class="i">🌐</span><span class="t">整体流量</span></button>
+          <button type="button" class="adm-nav-item" data-pane="geo"><span class="i">🗺️</span><span class="t">访客地理</span></button>
+        </div>
+        <div class="adm-nav-group">
+          <div class="adm-nav-gh">内容管理</div>
+          <button type="button" class="adm-nav-item" data-pane="articles"><span class="i">📄</span><span class="t">文章内容</span></button>
+          <button type="button" class="adm-nav-item" data-pane="visibility"><span class="i">👁</span><span class="t">板块与工具</span></button>
+        </div>
+      </aside>
 
-    <div id="adm-board-data" class="adm-board">
-    {%- comment -%} 数据看板 {%- endcomment -%}
-    <section class="adm-sec">
-      <div class="adm-sec-top">
-        <h2>数据看板</h2>
-        <button id="adm-refresh" class="adm-mini" type="button">刷新</button>
-      </div>
-      <div class="adm-ov-row">
-        <div class="adm-ov"><div class="adm-ov-n" id="ov-views">—</div><div class="adm-ov-l">总浏览量</div></div>
-        <div class="adm-ov"><div class="adm-ov-n" id="ov-comments">—</div><div class="adm-ov-l">总评论数</div></div>
-      </div>
-      <div class="adm-mood-grid">
-        <div class="adm-mood"><div class="adm-mood-n" id="ov-urge">—</div><div class="adm-mood-l">🔔 催更</div></div>
-        <a class="adm-mood" href="#adm-rank-card" data-metric="likes"><div class="adm-mood-n" id="ov-like">—</div><div class="adm-mood-l">👍 点赞</div></a>
-        <div class="adm-mood"><div class="adm-mood-n" id="ov-heart">—</div><div class="adm-mood-l">❤️ 红心</div></div>
-        <a class="adm-mood" href="#adm-rank-card" data-metric="favs"><div class="adm-mood-n" id="ov-star">—</div><div class="adm-mood-l">⭐ 收藏</div></a>
-      </div>
-      <div class="adm-rank" id="adm-rank-card">
-        <div class="adm-rank-head">
-          <h3>文章排行 · Top 10</h3>
-          <div class="adm-metric-tabs" id="adm-metric-tabs">
-            <button type="button" data-m="views" class="on">阅读量</button>
-            <button type="button" data-m="comments">评论</button>
-            <button type="button" data-m="likes">点赞</button>
-            <button type="button" data-m="favs">收藏</button>
+      <div class="adm-panes">
+        {%- comment -%} 总览 {%- endcomment -%}
+        <section class="adm-sec adm-pane" data-pane="overview">
+          <div class="adm-sec-top">
+            <h2>总览</h2>
+            <button id="adm-refresh" class="adm-mini" type="button">刷新</button>
           </div>
-        </div>
-        <div class="adm-rank-view" id="rk-view">
-          <button type="button" data-v="rank" class="on">📊 排行 Top 10</button>
-          <button type="button" data-v="trend">📈 时间趋势</button>
-        </div>
-        <ol id="rk-active" class="adm-ol"><li class="adm-empty">加载中…</li></ol>
-        <div class="adm-chart" id="rk-trend" hidden><div class="adm-chart-fallback">加载趋势…</div></div>
-        <p class="adm-note" id="rk-active-note" style="margin-top: 0.6rem"></p>
-      </div>
-    </section>
+          <div class="adm-ov-row">
+            <div class="adm-ov"><div class="adm-ov-n" id="ov-views">—</div><div class="adm-ov-l">总浏览量</div></div>
+            <div class="adm-ov"><div class="adm-ov-n" id="ov-comments">—</div><div class="adm-ov-l">总评论数</div></div>
+          </div>
+          <div class="adm-mood-grid">
+            <div class="adm-mood"><div class="adm-mood-n" id="ov-urge">—</div><div class="adm-mood-l">🔔 催更</div></div>
+            <a class="adm-mood" href="#rankings" data-metric="likes"><div class="adm-mood-n" id="ov-like">—</div><div class="adm-mood-l">👍 点赞</div></a>
+            <div class="adm-mood"><div class="adm-mood-n" id="ov-heart">—</div><div class="adm-mood-l">❤️ 红心</div></div>
+            <a class="adm-mood" href="#rankings" data-metric="favs"><div class="adm-mood-n" id="ov-star">—</div><div class="adm-mood-l">⭐ 收藏</div></a>
+          </div>
+          <p class="adm-note" style="margin-top:1rem">点上面的「点赞 / 收藏」，或左侧「内容排行」，可看各内容排行与全站趋势。</p>
+        </section>
 
-    {%- comment -%} 整体流量（Cloudflare Web Analytics，经 urge 服务端代取）{%- endcomment -%}
-    <section class="adm-sec">
-      <div class="adm-sec-top">
-        <h2>整体流量</h2>
-        <span class="adm-range" id="cf-range-pills">
-          <button type="button" data-days="7" class="on">近 7 天</button>
-          <button type="button" data-days="14">14 天</button>
-          <button type="button" data-days="30">30 天</button>
-          <button type="button" data-custom="1">自定义…</button>
-        </span>
-        <span class="adm-daterange" id="cf-daterange" hidden>
-          <input type="date" id="cf-since" aria-label="起始日期"><span>→</span><input type="date" id="cf-until" aria-label="结束日期">
-          <button type="button" id="cf-apply" class="adm-mini">应用</button>
-        </span>
-        <span class="adm-soon" id="cf-range">Cloudflare</span>
-      </div>
-      <div class="adm-ov-row">
-        <div class="adm-ov"><div class="adm-ov-n" id="cf-visits">—</div><div class="adm-ov-l">访问 visits</div><div class="adm-spark" id="cf-visits-spark"></div></div>
-        <div class="adm-ov"><div class="adm-ov-n" id="cf-pv">—</div><div class="adm-ov-l">页面浏览 PV</div><div class="adm-spark" id="cf-pv-spark"></div></div>
-      </div>
-      <div class="adm-chart" id="cf-trend"><div class="adm-chart-fallback">加载趋势…</div></div>
-      <p class="adm-caption">趋势 = Cloudflare 页面浏览 PV（客户端 beacon，会被广告 / 隐私拦截器系统性低估，实际数偏高）。</p>
-      <div class="adm-rank-grid">
-        <div class="adm-rank"><h3>热门页面</h3><ol id="cf-pages" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
-        <div class="adm-rank"><h3>来源</h3><ol id="cf-ref" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
-        <div class="adm-rank"><h3>国家 / 地区</h3><ol id="cf-geo" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
-        <div class="adm-rank"><h3>设备构成</h3><div class="adm-chart-sm" id="cf-dev-chart"><div class="adm-chart-fallback">加载…</div></div></div>
-      </div>
-      <div class="adm-rank" style="margin-top: var(--space-3)">
-        <h3>访客地理分布 · 世界</h3>
-        <div class="adm-map" id="cf-map"><div class="adm-chart-fallback">加载地图…</div></div>
-        <p class="adm-note" style="margin-top:0.4rem">数据源 Cloudflare 只到国家级——中国省级分布拿不到，故只做世界图。</p>
-      </div>
-      <p class="adm-note" id="cf-note" hidden></p>
-    </section>
-    </div><!-- /adm-board-data -->
+        {%- comment -%} 内容排行（文章 / 工具 / 资料通排）{%- endcomment -%}
+        <section class="adm-sec adm-pane" data-pane="rankings" hidden>
+          <div class="adm-sec-top"><h2>内容排行</h2></div>
+          <div class="adm-rank" id="adm-rank-card">
+            <div class="adm-rank-head">
+              <h3>Top 10 · 文章 / 工具 / 资料</h3>
+              <div class="adm-metric-tabs" id="adm-metric-tabs">
+                <button type="button" data-m="views" class="on">阅读量</button>
+                <button type="button" data-m="comments">评论</button>
+                <button type="button" data-m="likes">点赞</button>
+                <button type="button" data-m="favs">收藏</button>
+              </div>
+            </div>
+            <div class="adm-rank-view" id="rk-view">
+              <button type="button" data-v="rank" class="on">📊 排行 Top 10</button>
+              <button type="button" data-v="trend">📈 全站趋势</button>
+            </div>
+            <ol id="rk-active" class="adm-ol"><li class="adm-empty">加载中…</li></ol>
+            <div class="adm-chart" id="rk-trend" hidden><div class="adm-chart-fallback">加载趋势…</div></div>
+            <p class="adm-note" id="rk-active-note" style="margin-top: 0.6rem"></p>
+          </div>
+        </section>
 
-    <div id="adm-board-content" class="adm-board" hidden>
+        {%- comment -%} 整体流量（Cloudflare Web Analytics，经 urge 服务端代取）{%- endcomment -%}
+        <section class="adm-sec adm-pane" data-pane="traffic" hidden>
+          <div class="adm-sec-top">
+            <h2>整体流量</h2>
+            <span class="adm-range" id="cf-range-pills">
+              <button type="button" data-days="7" class="on">近 7 天</button>
+              <button type="button" data-days="14">14 天</button>
+              <button type="button" data-days="30">30 天</button>
+              <button type="button" data-custom="1">自定义…</button>
+            </span>
+            <span class="adm-daterange" id="cf-daterange" hidden>
+              <input type="date" id="cf-since" aria-label="起始日期"><span>→</span><input type="date" id="cf-until" aria-label="结束日期">
+              <button type="button" id="cf-apply" class="adm-mini">应用</button>
+            </span>
+            <span class="adm-soon" id="cf-range">Cloudflare</span>
+          </div>
+          <div class="adm-ov-row">
+            <div class="adm-ov"><div class="adm-ov-n" id="cf-visits">—</div><div class="adm-ov-l">访问 visits</div><div class="adm-spark" id="cf-visits-spark"></div></div>
+            <div class="adm-ov"><div class="adm-ov-n" id="cf-pv">—</div><div class="adm-ov-l">页面浏览 PV</div><div class="adm-spark" id="cf-pv-spark"></div></div>
+          </div>
+          <div class="adm-chart" id="cf-trend"><div class="adm-chart-fallback">加载趋势…</div></div>
+          <p class="adm-caption">趋势 = Cloudflare 页面浏览 PV（客户端 beacon，会被广告 / 隐私拦截器系统性低估，实际数偏高）。</p>
+          <div class="adm-rank-grid">
+            <div class="adm-rank"><h3>热门页面</h3><ol id="cf-pages" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+            <div class="adm-rank"><h3>来源</h3><ol id="cf-ref" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+            <div class="adm-rank"><h3>设备构成</h3><div class="adm-chart-sm" id="cf-dev-chart"><div class="adm-chart-fallback">加载…</div></div></div>
+          </div>
+          <p class="adm-note" id="cf-note" hidden></p>
+        </section>
 
-    {%- comment -%} 板块与小工具可见性（数据源 _data/visibility.json）{%- endcomment -%}
-    <section class="adm-sec">
-      <div class="adm-sec-top">
-        <h2>板块与小工具可见性</h2>
-        <button id="vis-refresh" class="adm-mini" type="button">刷新</button>
-      </div>
-      <p class="adm-note" style="margin:0 0 1rem;">「下架」＝对访客隐藏整个板块 / 小工具：顶栏导航、首页卡片、百宝箱列表、以及页面本身都不再对访客出现；你（管理员）登录后仍能看到（变灰）、可点进去预览。改动提交后约 1–2 分钟随 Pages 重建生效（这期间标「重建中」）。工具页的源码本身仍是公开仓库的一部分——这里是「下架 / 不列出」，不是加密。</p>
-      <div id="vis-body" class="vis-body"><div class="cm-empty">加载中…</div></div>
-    </section>
+        {%- comment -%} 访客地理 {%- endcomment -%}
+        <section class="adm-sec adm-pane" data-pane="geo" hidden>
+          <div class="adm-sec-top"><h2>访客地理 · 世界</h2></div>
+          <div class="adm-map" id="cf-map"><div class="adm-chart-fallback">加载地图…</div></div>
+          <p class="adm-note" style="margin-top:0.4rem">数据源 Cloudflare 只到国家级——中国省级分布拿不到，故只做世界图。香港 / 台湾在该底图里非独立区块，只在下方国家榜列出、地图上不单独着色。</p>
+          <div class="adm-rank" style="margin-top: var(--space-3)"><h3>国家 / 地区</h3><ol id="cf-geo" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+        </section>
 
-    {%- comment -%} 内容管理（清单视角；文章页齿轮是就地补充）{%- endcomment -%}
-    <section class="adm-sec">
-      <div class="adm-sec-top">
-        <h2>内容管理</h2>
-        <input id="cm-search" class="cm-search" type="search" placeholder="搜标题 / 路径…" autocomplete="off">
+        {%- comment -%} 文章内容管理（清单视角；文章页齿轮是就地补充）{%- endcomment -%}
+        <section class="adm-sec adm-pane" data-pane="articles" hidden>
+          <div class="adm-sec-top">
+            <h2>文章内容</h2>
+            <input id="cm-search" class="cm-search" type="search" placeholder="搜标题 / 路径…" autocomplete="off">
+          </div>
+          <div class="cm-tabs">
+            <button type="button" class="cm-tab cm-on" data-f="all">全部</button>
+            <button type="button" class="cm-tab" data-f="offshelf">已下架</button>
+            <button type="button" class="cm-tab" data-f="paid">付费</button>
+            <button type="button" class="cm-tab" data-f="trash">回收站</button>
+          </div>
+          <div id="cm-batch" class="cm-batch" hidden></div>
+          <div id="cm-list" class="cm-list"><div class="cm-empty">加载中…</div></div>
+          <div id="cm-pager" class="cm-pager"></div>
+          <p class="adm-note">下架＝正文搬后端、访客（含查看源码）看不到、你仍可预览、可随时恢复（栏目里变灰）；删除＝真 404（文章不再构建），访客和你都打不开，栏目里就地留一条带删除线的墓碑、可还原或彻底删除；彻底删除＝从仓库抹除文件，站内不可恢复（只能从 git 历史找回）。改动提交后约 1–2 分钟生效（这期间列表可能仍显旧态，已就地标「重建中」）。也可在文章页用右下角齿轮就地操作。</p>
+        </section>
+
+        {%- comment -%} 板块与小工具可见性（数据源 _data/visibility.json）{%- endcomment -%}
+        <section class="adm-sec adm-pane" data-pane="visibility" hidden>
+          <div class="adm-sec-top">
+            <h2>板块与小工具可见性</h2>
+            <button id="vis-refresh" class="adm-mini" type="button">刷新</button>
+          </div>
+          <p class="adm-note" style="margin:0 0 1rem;">「下架」＝对访客隐藏整个板块 / 小工具：顶栏导航、首页卡片、百宝箱列表、以及页面本身都不再对访客出现；你（管理员）登录后仍能看到（变灰）、可点进去预览。改动提交后约 1–2 分钟随 Pages 重建生效（这期间标「重建中」）。工具页的源码本身仍是公开仓库的一部分——这里是「下架 / 不列出」，不是加密。</p>
+          <div id="vis-body" class="vis-body"><div class="cm-empty">加载中…</div></div>
+        </section>
       </div>
-      <div class="cm-tabs">
-        <button type="button" class="cm-tab cm-on" data-f="all">全部</button>
-        <button type="button" class="cm-tab" data-f="offshelf">已下架</button>
-        <button type="button" class="cm-tab" data-f="paid">付费</button>
-        <button type="button" class="cm-tab" data-f="trash">回收站</button>
-      </div>
-      <div id="cm-batch" class="cm-batch" hidden></div>
-      <div id="cm-list" class="cm-list"><div class="cm-empty">加载中…</div></div>
-      <div id="cm-pager" class="cm-pager"></div>
-      <p class="adm-note">下架＝正文搬后端、访客（含查看源码）看不到、你仍可预览、可随时恢复（栏目里变灰）；删除＝真 404（文章不再构建），访客和你都打不开，栏目里就地留一条带删除线的墓碑、可还原或彻底删除；彻底删除＝从仓库抹除文件，站内不可恢复（只能从 git 历史找回）。改动提交后约 1–2 分钟生效（这期间列表可能仍显旧态，已就地标「重建中」）。也可在文章页用右下角齿轮就地操作。</p>
-    </section>
-    </div><!-- /adm-board-content -->
+    </div>
   </div>
 </article>
 
@@ -161,6 +179,37 @@ body_class: adm-page
   .adm-verified { font-size: 0.9rem; color: var(--color-muted); background: var(--color-bg-warm);
     border: 1px solid var(--color-border); border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 2rem; }
   .adm-verified strong { color: var(--color-ink); }
+
+  /* ── 管理控制台：左侧可折叠目录 + 右侧单面板（点目录切换子页面）── */
+  .adm-console { display: flex; gap: var(--space-4); align-items: flex-start; }
+  .adm-nav { flex: none; width: 188px; position: sticky; top: 5rem; display: flex; flex-direction: column; gap: var(--space-3); }
+  .adm-nav.collapsed { width: 46px; }
+  .adm-nav-collapse { align-self: flex-end; width: 26px; height: 26px; border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-muted); cursor: pointer; font-size: 0.95rem; line-height: 1; }
+  .adm-nav-collapse:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .adm-nav-group { display: flex; flex-direction: column; gap: 2px; }
+  .adm-nav-gh { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; color: var(--color-light); padding: 0 0.6rem; margin-bottom: 0.15rem; white-space: nowrap; }
+  .adm-nav.collapsed .adm-nav-gh { visibility: hidden; height: 0.4rem; }
+  .adm-nav-item { display: flex; align-items: center; gap: 0.55rem; width: 100%; text-align: left; cursor: pointer;
+    padding: 0.5rem 0.65rem; border: none; background: none; border-radius: var(--radius-md);
+    color: var(--color-muted); font-family: inherit; font-size: 0.9rem; transition: background .12s, color .12s; }
+  .adm-nav-item:hover { background: var(--color-bg-warm); color: var(--color-ink); }
+  .adm-nav-item.on { background: var(--color-accent); color: #fff; }
+  .adm-nav-item .i { flex: none; width: 1.3rem; text-align: center; font-size: 0.95rem; }
+  .adm-nav.collapsed .adm-nav-item { justify-content: center; padding: 0.5rem 0; }
+  .adm-nav.collapsed .adm-nav-item .t { display: none; }
+  .adm-panes { flex: 1; min-width: 0; }
+  .adm-panes .adm-sec { margin-bottom: 0; }
+  .adm-pane[hidden] { display: none; }
+  @media (max-width: 760px) {
+    .adm-console { flex-direction: column; gap: var(--space-3); }
+    .adm-nav, .adm-nav.collapsed { width: 100% !important; position: static; flex-direction: row; overflow-x: auto; gap: var(--space-2); padding-bottom: 0.3rem; }
+    .adm-nav-collapse { display: none; }
+    .adm-nav-group { flex-direction: row; gap: 0.3rem; }
+    .adm-nav-gh { display: none; }
+    .adm-nav-item, .adm-nav.collapsed .adm-nav-item { white-space: nowrap; padding: 0.4rem 0.75rem; border: 1px solid var(--color-border); }
+    .adm-nav-item .t, .adm-nav.collapsed .adm-nav-item .t { display: inline; }
+  }
 
   /* 每个板块做成「暖底托白卡」面板：与站点招牌层次一致，两大板块不再糊成一张长纸 */
   .adm-sec { margin-bottom: var(--space-6); padding: var(--space-5) var(--space-5) var(--space-6);
@@ -517,7 +566,7 @@ body_class: adm-page
   };
   var METRIC_NOTE = {
     favs: '收藏从计数器上线起累计；要并入历史收藏，在后端跑一次 <code>backfill-favcount</code>。「时间趋势」＝每日快照（越用越全）。',
-    _default: '横向＝各文章排行 Top 10；纵向「时间趋势」＝全站该指标每日快照（从今天起每天记一次，越往后越全）。'
+    _default: '横向＝各内容排行 Top 10（文章 / 工具 / 资料通排）；纵向「全站趋势」＝该指标全站每日快照，不限于上面 10 条（从今起每天记一次、越往后越全）。'
   };
   var SNAP_KEY = { views: 'views', comments: 'comments', likes: 'like', favs: 'star' };
   var rankData = { views: null, comments: null, likes: null, favs: null };
@@ -580,7 +629,7 @@ body_class: adm-page
       b.addEventListener('click', function () { setRankView(b.getAttribute('data-v')); });
     });
     Array.prototype.forEach.call(document.querySelectorAll('.adm-mood[data-metric]'), function (a) {
-      a.addEventListener('click', function () { setMetric(a.getAttribute('data-metric')); });   // 心情卡点赞/收藏 → 切指标
+      a.addEventListener('click', function (e) { e.preventDefault(); gotoPane('rankings'); setMetric(a.getAttribute('data-metric')); });   // 心情卡点赞/收藏 → 跳到内容排行 + 切指标
     });
   }
 
@@ -1088,25 +1137,31 @@ body_class: adm-page
     cmExec(it, a).then(function () { renderContent(); })
       .catch(function (e) { row.classList.remove('cm-busy'); alert('操作失败：' + ((e && e.error) || '请重试')); });
   }
-  function setBoard(name) {   // 切换顶层「数据分析 / 内容管理」板块
-    if (name !== 'content') name = 'data';
-    Array.prototype.forEach.call(document.querySelectorAll('.adm-board-tab'), function (x) { x.classList.toggle('adm-bon', x.getAttribute('data-board') === name); });
-    var dd = document.getElementById('adm-board-data'), cc = document.getElementById('adm-board-content');
-    if (dd) dd.hidden = (name !== 'data');
-    if (cc) cc.hidden = (name !== 'content');
-    // 图表若在板块隐藏时初始化过，尺寸会是 0——切回数据板时重量一次
-    if (name === 'data' && window.__admResizeCharts) setTimeout(window.__admResizeCharts, 30);
+  // ── 控制台路由：左侧目录点选 → 右侧显示对应子面板（hash 可直达 / 刷新保持 / 前进后退）──
+  var PANES = ['overview', 'rankings', 'traffic', 'geo', 'articles', 'visibility'];
+  function showPane(name) {
+    if (PANES.indexOf(name) < 0) name = 'overview';
+    Array.prototype.forEach.call(document.querySelectorAll('.adm-pane'), function (p) { p.hidden = (p.getAttribute('data-pane') !== name); });
+    Array.prototype.forEach.call(document.querySelectorAll('.adm-nav-item'), function (a) { a.classList.toggle('on', a.getAttribute('data-pane') === name); });
+    // 图表若在面板隐藏时初始化过尺寸会是 0——切到含图的面板时重量一次
+    if (window.__admResizeCharts) setTimeout(window.__admResizeCharts, 30);
+  }
+  function gotoPane(name) {
+    if (window.history && history.replaceState) history.replaceState(null, '', '#' + name); else location.hash = name;
+    showPane(name);
   }
   function wireBoardTabs() {
-    Array.prototype.forEach.call(document.querySelectorAll('.adm-board-tab'), function (t) {
-      t.addEventListener('click', function () {
-        var b = t.getAttribute('data-board');
-        if (window.history && history.replaceState) history.replaceState(null, '', '#' + b); else location.hash = b;
-        setBoard(b);
-      });
+    Array.prototype.forEach.call(document.querySelectorAll('.adm-nav-item'), function (t) {
+      t.addEventListener('click', function () { gotoPane(t.getAttribute('data-pane')); });
     });
-    window.addEventListener('hashchange', function () { setBoard((location.hash || '').replace(/^#/, '')); });
-    setBoard((location.hash || '').replace(/^#/, ''));   // 进来按 URL hash 选板块（导航栏「数据分析 / 内容管理」可直达）
+    var col = document.getElementById('adm-nav-collapse'), nav = document.getElementById('adm-nav');
+    if (col && nav) col.addEventListener('click', function () {
+      nav.classList.toggle('collapsed');
+      col.textContent = nav.classList.contains('collapsed') ? '›' : '‹';
+      if (window.__admResizeCharts) setTimeout(window.__admResizeCharts, 30);
+    });
+    window.addEventListener('hashchange', function () { showPane((location.hash || '').replace(/^#/, '')); });
+    showPane((location.hash || '').replace(/^#/, ''));   // 进来按 hash 选面板
   }
   function cmWireControls() {
     wireBoardTabs();
