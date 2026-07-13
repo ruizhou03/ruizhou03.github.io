@@ -12,4 +12,6 @@ author: "Rui Zhou"
 permalink: "/notes/econ-math-toolkit/econ-math-toolkit"
 pdf_url: "/files/econ-math-toolkit/econ-math-toolkit.pdf"
 summary: "一本从零写起、面向经济学博士生的工具性数学教材（中文，XeLaTeX + ctexbook 排版，447 页，8 个部分 / 42 章，彩色盒子分色标出定义/定理/假设，配大量原创 TikZ 图）。写法贯彻「三件套」：每个知识点都讲清它①解决什么问题（工具性）→②从哪来（关键推导与直觉）→③以后用在哪（micro / macro / metrics 的具体落点）。八个部分依次为：线性代数（投影与 OLS 的几何、谱定理、SVD、矩阵微积分）、分析与拓扑（紧致性与 Weierstrass、Berge 最大值定理、不动点、压缩映射）、多元微积分与比较静态（隐函数定理、Taylor、凹凸性、欧拉定理）、最优化（Lagrange、KKT、凸对偶、包络定理、单调比较静态）、概率与测度（σ-代数与测度、Lebesgue 积分、条件期望作为投影、贝叶斯更新）、渐近统计（LLN、CLT、Slutsky/Delta 法、MLE/GMM/M-估计的统一框架与三明治方差）、动态最优化（差分方程与鞍点路径、变分法、Pontryagin 最大值原理、Bellman 方程）、随机过程（Markov 链、鞅、布朗运动与 Itô 引理）。各章相对独立、可按需跳读，适合作为博士一年级核心课（微观/宏观/计量）的数学后备手册或数学夏令营（math camp）自学讲义。"
+published: true
+trashed: false
 ---
