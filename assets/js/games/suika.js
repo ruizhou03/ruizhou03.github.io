@@ -599,6 +599,9 @@
   }
 
   function triggerPeek() {
+    // 与其余 6 个暗号一致的状态守卫：菜单态/结算态敲 peek 直接 no-op，
+    // 既不消耗本局预算，也不在开局前 ensureQueueFilled 定格未来 5 个掉落（堵住开局前偷看）。
+    if (isOver || !world || !gameStarted) return;
     if (!checkAndConsumeCheatBudget('peek')) return;
     ensureQueueFilled();
     const preview = nextLevelQueue.slice(0, 5);
@@ -786,6 +789,10 @@
   let gameFocused = false;          // 当前是否捕获键盘（点击 game-zone = true，点别处 = false）
   let trialMode = false;            // 是否在「试一试」试玩模式
   let trialDropsLeft = 0;
+  // 试玩用一串 setTimeout（撒果 / spawn hover / 到数收尾），中途离开试玩时它们可能还
+  // 在途。每次进/出试玩就 ++trialToken，让在途回调用 myToken !== trialToken 自我作废，
+  // 避免（如进调参后）后台定时器把玩家正看的视图切走、或凭空 spawn/删果。
+  let trialToken = 0;
   const TRIAL_DROPS = PC.trialDrops;
 
   // —— 排行榜状态 ——
@@ -1169,7 +1176,8 @@
     if (trialMode) {
       trialDropsLeft--;
       if (trialDropsLeft <= 0) {
-        setTimeout(endTrial, 1500);
+        const t = trialToken;
+        setTimeout(() => { if (t === trialToken) endTrial(); }, 1500);
         return;
       }
     }
@@ -1882,6 +1890,11 @@
       $ovEvoSummary.textContent = '一颗水果都没合，下一局加油。';
     }
 
+    // 若结算前正开着调参幕（游戏中打开 settings 后点结算），先关掉它并清 inGameSettings，
+    // 否则起始幕与结束幕两个 inset:0 overlay 会叠加，且 inGameSettings 残留 true 会污染
+    // 下次打开设置的暂停还原逻辑。gameOver 是所有结算路径的唯一终点，放这里覆盖最全。
+    $startOverlay.classList.remove('open');
+    inGameSettings = false;
     $overlay.classList.add('open');
     $gameZone.classList.add('over');
 
@@ -1890,11 +1903,22 @@
     submitToLeaderboard();
   }
 
+  // 清掉「跨局残留」的瞬态物理/暗号状态：重力反转、disco 彩虹、地震排程。
+  // restart / startGame / 回主菜单 都调它——避免上一局临结束触发的 gravity/disco 暗号
+  // 或地震排程渗进新一局（表现：新局开局瞬间抖动、彩虹串场、checkDanger 被静默跳过数秒）。
+  function resetTransientRunState() {
+    gravityReversalUntil = 0;
+    discoModeUntil = 0;
+    _gravityWasReversed = false;
+    nextTremorAt = 0;
+  }
+
   function restart() {
     if (engine) {
       World.clear(world, false);
       Engine.clear(engine);
     }
+    resetTransientRunState();
     isOver = false;
     isPaused = false;
     score = 0;
@@ -1940,10 +1964,12 @@
 
   function startGame() {
     // 试玩状态清干净
+    ++trialToken;         // 作废在途试玩定时器（含已排程的 endTrial），防其回来切视图/删果
     trialMode = false;
     // 清掉「试一试」可能留下的水果
     const lingering = Composite.allBodies(world).filter(b => b.fruitLevel);
     if (lingering.length) World.remove(world, lingering);
+    resetTransientRunState();   // 新局不继承上局暗号/地震残留
     $startOverlay.classList.remove('open');
     gameStarted = true;
     setFocus(true);
@@ -1972,6 +1998,7 @@
       Engine.clear(engine);
     }
     setupWorld();
+    resetTransientRunState();   // 回主菜单也清干净暗号/地震残留
     isOver = false;
     isPaused = false;
     score = 0;
@@ -2465,10 +2492,12 @@
       off.height = H;
       const ctx = off.getContext('2d');
 
-      // 主题色：跟 game-zone 一致
-      const isDark = (typeof matchMedia === 'function')
-        && (matchMedia('(prefers-color-scheme: dark)').matches
-            || document.documentElement.getAttribute('data-theme') === 'dark');
+      // 主题色：判据必须与 game-zone 的 CSS 同源，否则「强制浅色 data-theme=light +
+      // 系统深色」时游戏区是浅色、截图卡却出深色。CSS 规则=（系统深且非强制浅）或强制深。
+      const de = document.documentElement.getAttribute('data-theme');
+      const isDark = de === 'dark'
+        || (de !== 'light' && typeof matchMedia === 'function'
+            && matchMedia('(prefers-color-scheme: dark)').matches);
       const colors = isDark ? {
         bgTop: '#2a2418', bgBot: '#1f1a10',
         ink: '#e8d8b8', muted: '#9c8e72',
@@ -2736,6 +2765,7 @@
   const $restartFromSettingsBtn = document.getElementById('restart-from-settings-btn');
   const $tryPhysicsBtn = document.getElementById('try-physics-btn');
   const $startFromSettingsBtn = document.getElementById('start-from-settings-btn');
+  const $settingsToMenuBtn = document.getElementById('settings-to-menu-btn');
 
   // 根据 inGameSettings 切换设置面板底部按钮组
   function refreshSettingsActions() {
@@ -2744,6 +2774,9 @@
     $startFromSettingsBtn.style.display = inGame ? 'none' : '';
     $resumeFromSettingsBtn.style.display = inGame ? '' : 'none';
     $restartFromSettingsBtn.style.display = inGame ? '' : 'none';
+    // 「返回主菜单」只在非游戏中（开局前的调参）出现：游戏中要退出走 继续/重开，
+    // 避免暂停中的对局被误跳回主菜单丢进度。（修复：调参/试玩进去后回不到模式选择器）
+    $settingsToMenuBtn.style.display    = inGame ? 'none' : '';
   }
 
   // 控制栏「⚙ 调参」按钮
@@ -2756,6 +2789,18 @@
       $pauseBtn.textContent = '▶ 继续';
     } else {
       inGameSettings = false;
+      // 试玩进行中点调参：先干净地结束试玩（作废在途定时器 + 清残果 + 释放焦点），
+      // 否则试玩的 spawnHover / endTrial 定时器会在调参幕开着时回来抢视图。
+      if (trialMode) {
+        ++trialToken;
+        trialMode = false;
+        trialDropsLeft = 0;
+        hoverFruit = null;
+        hoverVx = 0;
+        setFocus(false);
+        const tf = Composite.allBodies(world).filter(b => b.fruitLevel);
+        if (tf.length) World.remove(world, tf);
+      }
     }
     refreshSettingsActions();
     $startOverlay.classList.add('open');
@@ -2772,6 +2817,14 @@
   $restartFromSettingsBtn.addEventListener('click', () => {
     inGameSettings = false;
     restart();   // 已有函数：清 world + reset score + 关 overlay + 重新 setupWorld
+  });
+
+  // 「↶ 返回主菜单」：从（非游戏中的）调参幕切回主视图去换模式。只切视图，不动
+  // world / run state（这条路径本就没在跑正式局）。
+  $settingsToMenuBtn.addEventListener('click', () => {
+    inGameSettings = false;
+    showOverlayView('main');
+    applyModeSelection();   // 保证模式 tab 高亮与 gameMode 一致（防御性）
   });
 
   // 视图切换
@@ -2840,6 +2893,7 @@
   }
 
   function endTrial() {
+    ++trialToken;         // 作废任何在途的试玩定时器（撒果 / spawn hover / 收尾）
     trialMode = false;
     hoverFruit = null;
     hoverVx = 0;
@@ -2856,6 +2910,7 @@
     if (trialMode) return;
     trialMode = true;
     trialDropsLeft = TRIAL_DROPS;
+    const myToken = ++trialToken;   // 本次试玩的 token；离开试玩即失效在途定时器
 
     const old = Composite.allBodies(world).filter(b => b.fruitLevel);
     if (old.length) World.remove(world, old);
@@ -2866,7 +2921,7 @@
     const positions = [0.15, 0.30, 0.45, 0.60, 0.75, 0.90];
     positions.forEach((px, i) => {
       setTimeout(() => {
-        if (!trialMode) return;
+        if (myToken !== trialToken) return;
         const lv = 1 + Math.floor(Math.random() * 3);
         const x = $canvas.width * px;
         World.add(world, createFruitBody(lv, x, 35 - (i % 3) * 12));
@@ -2875,19 +2930,25 @@
 
     // 1.2 秒后给玩家一个 hover fruit
     setTimeout(() => {
-      if (!trialMode) return;
+      if (myToken !== trialToken) return;
       setFocus(true);
       spawnHoveringFruit();
     }, 1200);
   });
 
-  // 试玩结束视图的两个按钮
+  // 试玩结束视图的按钮
   document.getElementById('continue-tuning-btn').addEventListener('click', () => {
     inGameSettings = false;
     refreshSettingsActions();
     showOverlayView('settings');
   });
   document.getElementById('start-from-trial-btn').addEventListener('click', startGame);
+  // 「↶ 返回主菜单」：试玩结束后回主视图换模式（试玩永远是非游戏中态，无需门控）。
+  document.getElementById('trial-to-menu-btn').addEventListener('click', () => {
+    inGameSettings = false;
+    showOverlayView('main');
+    applyModeSelection();
+  });
 
   document.getElementById('reset-physics-btn').addEventListener('click', () => {
     PHYSICS.bounce = 0.5;
