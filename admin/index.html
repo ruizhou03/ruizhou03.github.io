@@ -523,8 +523,8 @@ body_class: adm-page
 
   // ══ 图表（ECharts，仅数据看板用，懒加载 + 从 CSS 变量取色以贴合站点/跟随暗色）══
   // 自托管（不走 CDN）——国内 jsdelivr 的大 JS 常不可达，改由本站同源提供，永远可达
-  var ECHARTS_SRC = '{{ "/assets/vendor/echarts.min.js" | relative_url }}';
-  var WORLD_JSON = '{{ "/assets/vendor/world.json" | relative_url }}';
+  var ECHARTS_SRC = '{{ "/assets/echarts/echarts.min.js" | relative_url }}';
+  var WORLD_JSON = '{{ "/assets/echarts/world.json" | relative_url }}';
   var echartsP = null, worldP = null, chartInsts = {}, chartCache = {}, cfDays = 7, pillsWired = false, themeWired = false;
 
   function loadScript(src) {
