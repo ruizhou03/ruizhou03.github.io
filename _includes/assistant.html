@@ -998,26 +998,8 @@
     // ✦ 桥接按钮
     zsAsk.addEventListener('click', function () { bridgeToAssistant(zsInput.value); });
 
-    // 导航栏入口
+    // 导航栏入口（只用点击唤起；不再绑定 ⌘K/Ctrl+K/「/」——Windows、手机端本就用不上键盘快捷键）
     if (navBtn) navBtn.addEventListener('click', function () { openSearch(); });
-
-    // ⌘K / Ctrl+K 全局快捷键
-    document.addEventListener('keydown', function (e) {
-      var isModK = (e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey);
-      if (isModK) {
-        e.preventDefault();
-        if (modal.classList.contains('zs-open')) closeSearch();
-        else openSearch();
-      } else if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        // 「/」 也能唤起（前提：当前不在输入框里）
-        var t = e.target;
-        var tag = t && t.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
-        if (modal.classList.contains('zs-open') || panel.classList.contains('za-open')) return;
-        e.preventDefault();
-        openSearch();
-      }
-    });
 
     // 初始化空态
     renderEmpty();

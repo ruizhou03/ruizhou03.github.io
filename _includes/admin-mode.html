@@ -59,9 +59,8 @@
   body.sa-admin .tool-card[data-hidden="true"],
   body.sa-admin .featured-card-tool[data-hidden="true"] { opacity: 0.5; }
 
-  /* 管理员模式隐藏站内小助手（避免与文章齿轮重合） */
-  body.sa-admin #za-fab, body.sa-admin #za-panel,
-  body.sa-admin #zs-mask, body.sa-admin #zs-modal { display: none !important; }
+  /* 管理员模式只隐藏小助手「聊天气泡」(与文章右下角齿轮重合)；搜索弹窗 #zs-* 必须保留，否则管理员按搜索没反应 */
+  body.sa-admin #za-fab, body.sa-admin #za-panel { display: none !important; }
 
   /* 栏目列表项注入的就地开关组 */
   .sa-item-tools { display: inline-flex; align-items: center; gap: 0.3rem; margin-left: 0.5rem;

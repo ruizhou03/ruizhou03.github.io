@@ -99,12 +99,15 @@
     /* 导航链接 (PC端显示，手机端隐藏)。
        每个板块名 white-space:nowrap 永不断字（"科研妙招"绝不掰成 3+1）；整行 nowrap，
        装不下时由 @media(max-width:960) 整条收进 ☰，中间没有"挤压断字"的过渡态。 */
-    .nav-links { display: flex; list-style: none; gap: 1.4rem; flex-wrap: nowrap; }
+    /* 左区（品牌 + 返回链）与中间导航都显式垂直居中——否则 ul 项被 stretch、文字贴顶，
+       而更小字号的返回链居中，两者一比就显得返回链"偏低"。 */
+    .nav-left-zone { display: flex; align-items: center; gap: 0.6rem; }
+    .nav-links { display: flex; list-style: none; gap: 1.4rem; flex-wrap: nowrap; align-items: center; }
     .nav-links a { text-decoration: none; font-size: 0.95rem; font-weight: 500; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
     .nav-links a:hover { color: var(--color-accent); }
 
     /* 返回链接：低调的层级指示——细 chevron + 灰字 + 永不换行，hover 才点亮成强调色，不与品牌抢眼 */
-    .nav-back { font-size: 0.85rem; font-weight: 500; color: var(--color-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; transition: color 0.2s; }
+    .nav-back { font-size: 0.85rem; line-height: 1; font-weight: 500; color: var(--color-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; transition: color 0.2s; }
     .nav-back:hover { color: var(--color-accent); }
     /* 用边框画的几何 chevron（不是字形）：随文字整体垂直居中，不再"沉底对齐"；随 currentColor 变色 */
     .nav-back .chev { display: inline-block; box-sizing: border-box; width: 0.4em; height: 0.4em;

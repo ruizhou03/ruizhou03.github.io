@@ -4,6 +4,7 @@ title: 管理后台 | Rui Zhou
 permalink: /admin/
 sitemap: false
 noindex: true
+body_class: adm-page
 ---
 
 <article class="adm-wrap">
@@ -49,17 +50,23 @@ noindex: true
       </div>
       <div class="adm-mood-grid">
         <div class="adm-mood"><div class="adm-mood-n" id="ov-urge">—</div><div class="adm-mood-l">🔔 催更</div></div>
-        <a class="adm-mood" href="#rk-likes"><div class="adm-mood-n" id="ov-like">—</div><div class="adm-mood-l">👍 点赞</div></a>
+        <a class="adm-mood" href="#adm-rank-card" data-metric="likes"><div class="adm-mood-n" id="ov-like">—</div><div class="adm-mood-l">👍 点赞</div></a>
         <div class="adm-mood"><div class="adm-mood-n" id="ov-heart">—</div><div class="adm-mood-l">❤️ 红心</div></div>
-        <a class="adm-mood" href="#rk-favs"><div class="adm-mood-n" id="ov-star">—</div><div class="adm-mood-l">⭐ 收藏</div></a>
+        <a class="adm-mood" href="#adm-rank-card" data-metric="favs"><div class="adm-mood-n" id="ov-star">—</div><div class="adm-mood-l">⭐ 收藏</div></a>
       </div>
-      <div class="adm-rank-grid">
-        <div class="adm-rank"><h3>最受欢迎 · 阅读量</h3><ol id="rk-read" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
-        <div class="adm-rank"><h3>点赞最多</h3><ol id="rk-likes" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
-        <div class="adm-rank"><h3>收藏最多</h3><ol id="rk-favs" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
-        <div class="adm-rank"><h3>评论最多</h3><ol id="rk-commented" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+      <div class="adm-rank" id="adm-rank-card">
+        <div class="adm-rank-head">
+          <h3>文章排行 · Top 10</h3>
+          <div class="adm-metric-tabs" id="adm-metric-tabs">
+            <button type="button" data-m="views" class="on">阅读量</button>
+            <button type="button" data-m="comments">评论</button>
+            <button type="button" data-m="likes">点赞</button>
+            <button type="button" data-m="favs">收藏</button>
+          </div>
+        </div>
+        <ol id="rk-active" class="adm-ol"><li class="adm-empty">加载中…</li></ol>
+        <p class="adm-note" id="rk-active-note" style="margin-top: 0.6rem">各指标暂未逐日记录、给不出单指标的时间趋势；<strong>页面浏览的时间趋势见下方「整体流量」折线</strong>。</p>
       </div>
-      <p class="adm-note" id="adm-fav-note" hidden>收藏数据从计数器上线起累计；要并入历史收藏，在后端跑一次 <code>backfill-favcount</code>。</p>
     </section>
 
     {%- comment -%} 整体流量（Cloudflare Web Analytics，经 urge 服务端代取）{%- endcomment -%}
@@ -128,7 +135,10 @@ noindex: true
 </article>
 
 <style>
-  .adm-wrap { max-width: 920px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  /* 管理后台不受正文栏宽限制：整页与顶栏都放宽，方便横向检索与对比 */
+  body.adm-page main { max-width: 1320px; }
+  body.adm-page .nav-inner { max-width: 1320px; }
+  .adm-wrap { max-width: 1280px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
   .adm-head h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .adm-sub { color: var(--color-light); margin-bottom: 2rem; }
   .adm-state { text-align: center; padding: 3rem 1rem; color: var(--color-muted);
@@ -280,6 +290,15 @@ noindex: true
   .adm-range button:hover:not(.on) { border-color: var(--color-highlight); color: var(--color-highlight); }
   .adm-range button.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
   .adm-caption { font-size: 0.7rem; color: var(--color-light); margin: -0.6rem 0 var(--space-4); }
+
+  /* 文章排行合并卡：一张卡 + 指标切换（阅读量/评论/点赞/收藏），省地方、自己切换 */
+  .adm-rank-head { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.7rem; }
+  .adm-rank-head h3 { margin: 0 !important; }
+  .adm-metric-tabs { display: inline-flex; gap: 0.25rem; flex-wrap: wrap; }
+  .adm-metric-tabs button { font: inherit; font-size: 0.75rem; cursor: pointer; padding: 0.2rem 0.7rem;
+    color: var(--color-muted); background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: var(--radius-pill); }
+  .adm-metric-tabs button:hover:not(.on) { border-color: var(--color-highlight); color: var(--color-highlight); }
+  .adm-metric-tabs button.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
 </style>
 
 <script>
@@ -437,8 +456,45 @@ noindex: true
     }).join('');
   }
 
+  // ── 文章排行合并卡：四个指标共用一张卡、自己切换 ──
+  var METRICS = {
+    views: { key: 'views', unit: '次' }, comments: { key: 'comments', unit: '条' },
+    likes: { key: 'likes', unit: '赞' }, favs: { key: 'favs', unit: '藏' }
+  };
+  var METRIC_NOTE = {
+    favs: '收藏数据从计数器上线起累计；要并入历史收藏，在后端跑一次 <code>backfill-favcount</code>。',
+    _default: '各指标暂未逐日记录、给不出单指标的时间趋势；<strong>页面浏览的时间趋势见下方「整体流量」折线</strong>。'
+  };
+  var rankData = { views: null, comments: null, likes: null, favs: null };
+  var activeMetric = 'views', metricWired = false;
+  function renderActiveRank() {
+    var m = METRICS[activeMetric], data = rankData[activeMetric];
+    var ol = document.getElementById('rk-active');
+    if (data == null) { if (ol) ol.innerHTML = '<li class="adm-empty">加载中…</li>'; }
+    else renderRank('rk-active', data, m.key, m.unit);
+    var note = document.getElementById('rk-active-note');
+    if (note) note.innerHTML = METRIC_NOTE[activeMetric] || METRIC_NOTE._default;
+  }
+  function setMetric(m) {
+    if (!METRICS[m]) return;
+    activeMetric = m;
+    var box = document.getElementById('adm-metric-tabs');
+    if (box) Array.prototype.forEach.call(box.querySelectorAll('button'), function (b) { b.classList.toggle('on', b.getAttribute('data-m') === m); });
+    renderActiveRank();
+  }
+  function wireMetricTabs() {
+    if (metricWired) return; metricWired = true;
+    var box = document.getElementById('adm-metric-tabs');
+    if (box) Array.prototype.forEach.call(box.querySelectorAll('button'), function (b) {
+      b.addEventListener('click', function () { setMetric(b.getAttribute('data-m')); });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.adm-mood[data-metric]'), function (a) {
+      a.addEventListener('click', function () { setMetric(a.getAttribute('data-metric')); });   // 心情卡点赞/收藏 → 切指标
+    });
+  }
+
   function loadDashboard() {
-    wireRangePills();
+    wireRangePills(); wireMetricTabs(); renderActiveRank();
     loadTitles().then(function () {
       // urge（Redis）：点赞榜 + 收藏榜 + 反应总量
       jget('/api/admin?action=overview').then(function (d) {
@@ -448,12 +504,9 @@ noindex: true
           setN('ov-urge', r.urge); setN('ov-like', r.like); setN('ov-heart', r.heart); setN('ov-star', r.star);
         }
       });
-      // 多取一些（30），客户端滤掉已下线页后仍凑得满 Top10
-      jget('/api/admin?action=top-likes&limit=30').then(function (d) { renderRank('rk-likes', d && d.items, 'likes', '赞'); });
-      jget('/api/admin?action=top-favs&limit=30').then(function (d) {
-        renderRank('rk-favs', d && d.items, 'favs', '藏');
-        var note = document.getElementById('adm-fav-note'); if (note) note.hidden = false;
-      });
+      // 多取一些（30），客户端滤掉已下线页后仍凑得满 Top10；数据存起来、按当前选中的指标渲染合并卡
+      jget('/api/admin?action=top-likes&limit=30').then(function (d) { rankData.likes = (d && d.items) || []; if (activeMetric === 'likes') renderActiveRank(); });
+      jget('/api/admin?action=top-favs&limit=30').then(function (d) { rankData.favs = (d && d.items) || []; if (activeMetric === 'favs') renderActiveRank(); });
       // comments（Postgres）：经 urge 代取（带直连兜底）—— 总浏览/总评论 + 阅读量榜 + 评论榜
       cmtGet('overview').then(function (d) {
         if (d && d.ok) {
@@ -461,16 +514,17 @@ noindex: true
           var c = document.getElementById('ov-comments'); if (c) c.textContent = fmt(d.totalComments);
         }
       });
-      cmtGet('top-read', 30).then(function (d) { renderRank('rk-read', d && d.items, 'views', '次'); });
-      cmtGet('top-commented', 30).then(function (d) { renderRank('rk-commented', d && d.items, 'comments', '条'); });
+      cmtGet('top-read', 30).then(function (d) { rankData.views = (d && d.items) || []; if (activeMetric === 'views') renderActiveRank(); });
+      cmtGet('top-commented', 30).then(function (d) { rankData.comments = (d && d.items) || []; if (activeMetric === 'comments') renderActiveRank(); });
       // Cloudflare 整体流量
       loadTraffic();
     });
   }
 
   // ══ 图表（ECharts，仅数据看板用，懒加载 + 从 CSS 变量取色以贴合站点/跟随暗色）══
-  var ECHARTS_SRC = 'https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js';
-  var WORLD_JSON = 'https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/json/world.json';
+  // 自托管（不走 CDN）——国内 jsdelivr 的大 JS 常不可达，改由本站同源提供，永远可达
+  var ECHARTS_SRC = '{{ "/assets/vendor/echarts.min.js" | relative_url }}';
+  var WORLD_JSON = '{{ "/assets/vendor/world.json" | relative_url }}';
   var echartsP = null, worldP = null, chartInsts = {}, chartCache = {}, cfDays = 7, pillsWired = false, themeWired = false;
 
   function loadScript(src) {
