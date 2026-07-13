@@ -9,7 +9,7 @@
 | 建议 | 状态 | 落地证据 |
 |---|---|---|
 | 1. CSS 提取到外部文件 | ✅ 已完成（2026-05-19） | `assets/css/main.css`（635 行）+ `assets/css/home.css`（308 行），`_layouts/default.html:37` 和 `index.html:6` 引外部 link |
-| 2. Front-matter 字段体系统一 | ✅ 已完成 | 见 [项目记忆 project_taxonomy_conventions](file:///Users/zhourui/.claude/projects/-Users-zhourui-Desktop-zirconeey-github-io/memory/project_taxonomy_conventions.md) |
+| 2. Front-matter 字段体系统一 | ✅ 已完成 | 见 项目记忆 `project_taxonomy_conventions` |
 | 3. GitHub Pages Jekyll 版本漂移 | — | 接受现状（差异极小，本地 4.3 vs Pages 3.10） |
 | 4. `/notes/` 页面性能优化 | — | 当前规模够用 |
 | 5. Service Worker 离线策略精简 | — | 当前 SW 工作正常 |
@@ -20,7 +20,7 @@
 | 10. LaTeX 渲染抽 include | ✅ 已完成 | `_includes/latex-logo.html` + 12 处 call site 全部用 include |
 | 11. PWA Manifest icons | ✅ 已完成 | `manifest.json` 现有 `any` + `maskable` 双 icon |
 
-**仍未做的**：`.git` 历史瘦身（300M，需 force-push 改写历史，详见 [项目记忆 project_repo_hygiene](file:///Users/zhourui/.claude/projects/-Users-zhourui-Desktop-zirconeey-github-io/memory/project_repo_hygiene.md)）。
+**仍未做的**：`.git` 历史瘦身（300M，需 force-push 改写历史，详见 项目记忆 `project_repo_hygiene`）。
 
 ---
 

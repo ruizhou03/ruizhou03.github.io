@@ -6,9 +6,9 @@ export const meta = {
   ],
 }
 
-const MD = '/Users/zhourui/Desktop/其他/北京大学/课程/大二下学期/货币经济学/Notes/Monetary Economics.md'
-const SRC = '/Users/zhourui/Desktop/ruizhou03.github.io/files/monetary-econ/source'
-const ECON_STYLE = '/Users/zhourui/Desktop/ruizhou03.github.io/files/interm-econometrics/source/chapters/ch6_dummies.tex'
+const MD = '~/Desktop/其他/北京大学/课程/大二下学期/货币经济学/Notes/Monetary Economics.md'
+const SRC = 'files/monetary-econ/source'
+const ECON_STYLE = 'files/interm-econometrics/source/chapters/ch6_dummies.tex'
 
 const FIGS = [
   { id: 1, kind: 'diagram', ctx: '37-105',  what: 'OLG two-period model, "Golden Rule Allocation". Axes c1 (horizontal), c2 (vertical). A straight feasible/resource line through the endowment point (y, y) with the two axis-intercepts both labelled y; a family of convex indifference curves; the golden-rule allocation E = (c1*, c2*) where the highest attainable indifference curve is tangent to the feasible line, with dashed guide lines down to c1* and across to c2*. Other labelled points C (upper-left on the line), B (lower-right on the line), D (a point on a higher, unattainable indifference curve), and the annotation "The Golden Rule Allocation" with an arrow pointing to E.' },

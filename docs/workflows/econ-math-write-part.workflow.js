@@ -8,7 +8,7 @@ export const meta = {
   ],
 }
 
-const SRC = '/Users/zhourui/Desktop/ruizhou03.github.io/files/econ-math-toolkit/source'
+const SRC = 'files/econ-math-toolkit/source'
 // ⚠️ args 传参在本环境不可靠（实测回退到默认）；逐 Part 写时直接改这里的默认清单。
 // 当前活跃：Part VIII 随机过程（ch40–42，全书最后一个 Part）。Part I–VII 已完工并装订（见 playbook / git）。
 const partName = (args && args.partName) || 'Part VIII 随机过程'

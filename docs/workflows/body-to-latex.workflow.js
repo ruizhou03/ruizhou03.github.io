@@ -8,9 +8,9 @@ export const meta = {
   ],
 }
 
-const MD = '/Users/zhourui/Desktop/其他/北京大学/课程/大二下学期/货币经济学/Notes/Monetary Economics.md'
-const SRC = '/Users/zhourui/Desktop/ruizhou03.github.io/files/monetary-econ/source'
-const ECON = '/Users/zhourui/Desktop/ruizhou03.github.io/files/interm-econometrics/source/chapters/ch1_simple_regression.tex'
+const MD = '~/Desktop/其他/北京大学/课程/大二下学期/货币经济学/Notes/Monetary Economics.md'
+const SRC = 'files/monetary-econ/source'
+const ECON = 'files/interm-econometrics/source/chapters/ch1_simple_regression.tex'
 
 const LABELS = 'ch:money-model (Ch1), ch:barter (Ch2), ch:commodity (Ch3), ch:inflation (Ch4), ch:international (Ch5), ch:central-bank (Ch6), ch:money-supply (Ch7)'
 
