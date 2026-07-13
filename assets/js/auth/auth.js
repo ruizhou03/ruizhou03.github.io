@@ -83,6 +83,16 @@
     lsDel('gs.nick.anon.v1'); lsDel(ADOPT_FLAG);
   }
 
+  // 向 /me 复核某张 token 是否真的失效。仅当明确收到 401 才算失效（返回 true）；
+  // 网络错误 / 其它状态一律当作"仍然有效"（返回 false），避免误登出。
+  async function tokenRevokedLive(token) {
+    if (!token) return false;
+    try {
+      var res = await fetch(API + '/auth?action=me', { headers: { 'Authorization': 'Bearer ' + token } });
+      return res.status === 401;
+    } catch (e) { return false; }
+  }
+
   async function post(path, body, withAuth) {
     var headers = { 'Content-Type': 'application/json' };
     if (withAuth) {
@@ -179,7 +189,10 @@
       opts.headers = headers;
       var full = url.indexOf('http') === 0 ? url : (API.replace(/\/api$/, '') + url);
       var res = await fetch(full, opts);
-      if (res.status === 401) clearSession();
+      // 别一遇到 401 就登出：某个接口的鉴权/时序问题、后端瞬断都可能返回 401，
+      // 而 token 其实还有效。只有向 /me 复核确认 token 真失效时才清登录态，
+      // 这样多设备（各持一张独立 token）不会被偶发 401 误登出。
+      if (res.status === 401 && t && await tokenRevokedLive(t)) clearSession();
       return res;
     },
 
