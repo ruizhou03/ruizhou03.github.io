@@ -12,6 +12,7 @@ author: "Zircon"
 permalink: "/notes/mao-thought/mao-thought-principles"
 pdf_url: "/files/mao-thought/mao-thought-principles.pdf"
 published: true
+trashed: false
 ---
 
 本文是笔者备考 2023 年春季《毛泽东思想和中国特色社会主义理论体系概论》期末时，对着课本逐章整理出的全部知识点梳理。沿教材主线层层展开——从马克思主义中国化时代化的历史进程，到毛泽东思想、新民主主义革命理论、社会主义改造理论、社会主义建设道路初步探索，再到中国特色社会主义理论体系（邓小平理论、“三个代表”重要思想、科学发展观）与习近平新时代中国特色社会主义思想——以多级提纲铺开各章要点，方便对着提纲背诵与回忆。
