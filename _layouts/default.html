@@ -113,6 +113,31 @@
 </head>
 <body class="{% if page.manifest %}app-shell {% endif %}{% if page.url contains '/toolbox/' %}is-toolbox{% endif %}{% if page.body_class %} {{ page.body_class }}{% endif %}">
 
+  {%- comment -%}
+    ─── 板块 / 小工具可见性门控（数据源 _data/visibility.json，由管理后台读写）───
+    sec_hidden = 当前页是否因所属板块 / 工具被下架而对访客隐藏；对管理员（.sa-admin）变灰可预览。
+    与文章自身的 page.hidden/page.trashed 正交叠加（任一为真即门控）。
+    landing 页（/research//life//toolbox/）无 main_category，按 url 命中；工具页整箱下架时全 /toolbox/* 命中。
+  {%- endcomment -%}
+  {%- assign vis_sections = site.data.visibility.sections -%}
+  {%- assign vis_tools = site.data.visibility.tools -%}
+  {%- assign hide_research = false -%}{%- if vis_sections contains '科研妙招' -%}{%- assign hide_research = true -%}{%- endif -%}
+  {%- assign hide_life = false -%}{%- if vis_sections contains '生活攻略' -%}{%- assign hide_life = true -%}{%- endif -%}
+  {%- assign hide_essays = false -%}{%- if vis_sections contains '随笔漫谈' -%}{%- assign hide_essays = true -%}{%- endif -%}
+  {%- assign hide_toolbox = false -%}{%- if vis_sections contains '百宝箱' -%}{%- assign hide_toolbox = true -%}{%- endif -%}
+  {%- assign sec_hidden = false -%}
+  {%- if page.main_category and vis_sections contains page.main_category -%}{%- assign sec_hidden = true -%}{%- endif -%}
+  {%- if page.url == '/research/' and hide_research -%}{%- assign sec_hidden = true -%}{%- endif -%}
+  {%- if page.url == '/life/' and hide_life -%}{%- assign sec_hidden = true -%}{%- endif -%}
+  {%- if page.url == '/essays/' and hide_essays -%}{%- assign sec_hidden = true -%}{%- endif -%}
+  {%- if page.url contains '/toolbox/' -%}
+    {%- if hide_toolbox -%}{%- assign sec_hidden = true -%}
+    {%- else -%}
+      {%- assign _te = site.data.toolbox | where: 'url', page.url | first -%}
+      {%- if _te and vis_tools contains _te.id -%}{%- assign sec_hidden = true -%}{%- endif -%}
+    {%- endif -%}
+  {%- endif -%}
+
   <nav>
     <div class="nav-inner">
       <div class="nav-left-zone">
@@ -147,10 +172,10 @@
       <ul class="nav-links">
         <li class="nav-link-home"><a href="{{ site.baseurl }}/zh/">锆铌</a></li>
         <li><a href="{{ site.baseurl }}/notes/">学习资料</a></li>
-        <li><a href="{{ site.baseurl }}/research/">科研妙招</a></li>
-        <li><a href="{{ site.baseurl }}/life/">生活攻略</a></li>
-        <li><a href="{{ site.baseurl }}/toolbox/">百宝箱</a></li>
-        <li><a href="{{ site.baseurl }}/essays/">随笔漫谈</a></li>
+        <li{% if hide_research %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/research/">科研妙招</a></li>
+        <li{% if hide_life %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/life/">生活攻略</a></li>
+        <li{% if hide_toolbox %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/toolbox/">百宝箱</a></li>
+        <li{% if hide_essays %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/essays/">随笔漫谈</a></li>
         <li class="nav-settings">
           <button type="button" class="nav-set-btn" onclick="toggleTheme()" aria-label="切换明暗">&#9683; 主题</button>
           <a class="nav-set-btn" href="{{ site.baseurl }}/">EN 英文站</a>
@@ -178,8 +203,8 @@
     </div>
   </nav>
 
-  <main data-hidden="{% if page.hidden %}true{% else %}false{% endif %}" data-trashed="{% if page.trashed %}true{% else %}false{% endif %}" data-bodyremote="{% if page.bodyremote %}true{% else %}false{% endif %}">
-    {% if page.hidden or page.trashed %}<div class="hidden-gate"><h1 class="hidden-gate-title">页面不存在</h1><p>抱歉，没有找到这个页面。<a href="{{ '/zh/' | relative_url }}">返回首页</a></p></div>{% endif %}
+  <main data-hidden="{% if page.hidden or sec_hidden %}true{% else %}false{% endif %}" data-trashed="{% if page.trashed %}true{% else %}false{% endif %}" data-bodyremote="{% if page.bodyremote %}true{% else %}false{% endif %}">
+    {% if page.hidden or page.trashed or sec_hidden %}<div class="hidden-gate"><h1 class="hidden-gate-title">页面不存在</h1><p>抱歉，没有找到这个页面。<a href="{{ '/zh/' | relative_url }}">返回首页</a></p></div>{% endif %}
     {{ content }}
   </main>
 

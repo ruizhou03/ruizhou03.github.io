@@ -1,12 +1,16 @@
 {%- assign t = include.tool -%}
+{%- comment -%} 下架门控：该工具 id 在 visibility.tools，或整箱下架（百宝箱在 visibility.sections）→ 访客不见、管理员变灰 {%- endcomment -%}
+{%- assign t_hidden = false -%}
+{%- if site.data.visibility.tools contains t.id -%}{%- assign t_hidden = true -%}{%- endif -%}
+{%- if site.data.visibility.sections contains '百宝箱' -%}{%- assign t_hidden = true -%}{%- endif -%}
 {%- if t.status == "coming" -%}
-<div class="tool-card coming-soon">
+<div class="tool-card coming-soon"{% if t_hidden %} data-hidden="true"{% endif %}>
   <div class="tool-icon">{%- if t.icon contains "/" -%}<img src="{{ t.icon | relative_url }}" alt="">{%- else -%}{{ t.icon }}{%- endif -%}</div>
   <div class="tool-name">{{ t.name }}</div>
   <div class="tool-status">🔜 敬请期待</div>
 </div>
 {%- else -%}
-<a class="tool-card live" href="{{ t.url | relative_url }}">
+<a class="tool-card live" href="{{ t.url | relative_url }}"{% if t_hidden %} data-hidden="true"{% endif %}>
   <div class="tool-icon">{%- if t.icon contains "/" -%}<img src="{{ t.icon | relative_url }}" alt="">{%- else -%}{{ t.icon }}{%- endif -%}</div>
   <div class="tool-name">{{ t.name }}</div>
   {%- if t.tagline and t.tagline != "" -%}<div class="tool-tagline">{{ t.tagline }}</div>{%- endif -%}

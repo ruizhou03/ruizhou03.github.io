@@ -78,6 +78,17 @@ noindex: true
     </div><!-- /adm-board-data -->
 
     <div id="adm-board-content" class="adm-board" hidden>
+
+    {%- comment -%} 板块与小工具可见性（数据源 _data/visibility.json）{%- endcomment -%}
+    <section class="adm-sec">
+      <div class="adm-sec-top">
+        <h2>板块与小工具可见性</h2>
+        <button id="vis-refresh" class="adm-mini" type="button">刷新</button>
+      </div>
+      <p class="adm-note" style="margin:0 0 1rem;">「下架」＝对访客隐藏整个板块 / 小工具：顶栏导航、首页卡片、百宝箱列表、以及页面本身都不再对访客出现；你（管理员）登录后仍能看到（变灰）、可点进去预览。改动提交后约 1–2 分钟随 Pages 重建生效（这期间标「重建中」）。工具页的源码本身仍是公开仓库的一部分——这里是「下架 / 不列出」，不是加密。</p>
+      <div id="vis-body" class="vis-body"><div class="cm-empty">加载中…</div></div>
+    </section>
+
     {%- comment -%} 内容管理（清单视角；文章页齿轮是就地补充）{%- endcomment -%}
     <section class="adm-sec">
       <div class="adm-sec-top">
@@ -647,6 +658,120 @@ noindex: true
     if (cs) cs.addEventListener('input', function () { cmPage = 1; renderContent(); });
   }
 
+  // ── 板块 / 小工具可见性 ──
+  // 构建期内联：工具目录（静态）+ 当前可见性状态（兜底，翻旗标后以后端 visibility-get 为准）。
+  var VIS_TOOLBOX = {{ site.data.toolbox | jsonify }};
+  var VIS_STATE0 = {{ site.data.visibility | jsonify }};
+  var VIS_SECTIONS = [
+    { key: '科研妙招', label: '科研妙招', desc: '/research/ 整栏 + 全部文章' },
+    { key: '生活攻略', label: '生活攻略', desc: '/life/ 整栏 + 全部文章（含菜谱）' },
+    { key: '随笔漫谈', label: '随笔漫谈', desc: '/essays/ 整栏 + 全部文章' },
+    { key: '百宝箱', label: '百宝箱（整个工具箱）', desc: '/toolbox/ 入口 + 所有工具页' }
+  ];
+  var visSections = {}, visTools = {}, visInited = false, visBusy = false, visPending = false, visSha = null;
+
+  function visSeed(state) {
+    visSections = {}; visTools = {};
+    ((state && state.sections) || []).forEach(function (x) { visSections[x] = 1; });
+    ((state && state.tools) || []).forEach(function (x) { visTools[x] = 1; });
+  }
+  function visLiveTools() { return (VIS_TOOLBOX || []).filter(function (t) { return t && t.status !== 'coming'; }); }
+  function visInit() {
+    visSeed(VIS_STATE0 || {});        // 先按内联状态渲染（秒开）
+    renderVis();
+    var rb = document.getElementById('vis-refresh');
+    if (rb) rb.addEventListener('click', visReload);
+    visReload();                      // 再拉后端「已提交的最新真值」
+  }
+  function visReload() {
+    jget('/api/admin?action=visibility-get').then(function (d) {
+      if (d && d.ok) { visSeed(d); visSha = d.sha || null; visPending = false; }
+      renderVis();
+    });
+  }
+  function visRow(vk, title, meta, on, badge, locked) {
+    var badgeHtml = badge ? '<span class="cm-badge b-hidden">' + esc(badge) + '</span>' : '';
+    var btn = locked ? ''
+      : '<button type="button" class="cm-btn" data-vk="' + esc(vk) + '"' + (visBusy ? ' disabled' : '') + '>' + (on ? '恢复（公开）' : '下架') + '</button>';
+    return '<div class="cm-row">' +
+      '<div class="cm-main"><span class="cm-title">' + esc(title) + '</span><div class="cm-meta">' + esc(meta) + '</div></div>' +
+      '<div class="cm-badges">' + badgeHtml + '</div>' +
+      '<div class="cm-acts">' + btn + '</div>' +
+    '</div>';
+  }
+  function renderVis() {
+    var el = document.getElementById('vis-body');
+    if (!el) return;
+    var boxHidden = !!visSections['百宝箱'];
+    var html = '';
+
+    // 板块
+    html += '<div class="cm-list" style="margin-bottom:1.2rem">';
+    html += '<div class="cm-sub-h">板块（整栏下架 / 恢复）</div>';
+    VIS_SECTIONS.forEach(function (s) {
+      var on = !!visSections[s.key];
+      html += visRow('sec:' + s.key, s.label, s.desc, on, on ? '已下架' : '');
+    });
+    html += '</div>';
+
+    // 小工具
+    var live = visLiveTools();
+    var hiddenCount = live.filter(function (t) { return boxHidden || visTools[t.id]; }).length;
+    html += '<div class="cm-list">';
+    html += '<div class="cm-sub-h" style="display:flex;align-items:center;gap:.5rem">' +
+      '<span style="flex:1">小工具 · 共 ' + live.length + ' 件，已下架 ' + hiddenCount + '</span>' +
+      '<button type="button" class="cm-btn" data-vis="all-hide"' + (visBusy ? ' disabled' : '') + '>全部下架</button>' +
+      '<button type="button" class="cm-btn" data-vis="all-show"' + (visBusy ? ' disabled' : '') + '>全部恢复</button></div>';
+    if (boxHidden) {
+      html += '<div class="cm-row"><div class="cm-main"><div class="cm-meta">整个「百宝箱」板块已下架 → 下面所有工具当前都对访客隐藏。要单独控制某个工具，先在上方「板块」里恢复「百宝箱」。</div></div></div>';
+    }
+    var cats = [], byCat = {};
+    live.forEach(function (t) { var c = t.category || '其他'; if (!byCat[c]) { byCat[c] = []; cats.push(c); } byCat[c].push(t); });
+    cats.forEach(function (c) {
+      html += '<div class="cm-sub-h">' + esc(c) + '</div>';
+      byCat[c].forEach(function (t) {
+        var on = !!visTools[t.id];
+        var meta = (t.category || '') + (t.subcategory ? ' · ' + t.subcategory : '') + ' · ' + t.id;
+        var badge = boxHidden ? '随百宝箱下架' : (on ? '已下架' : '');
+        html += visRow('tool:' + t.id, t.name, meta, on, badge, boxHidden);
+      });
+    });
+    html += '</div>';
+
+    if (visPending) html += '<p class="adm-note" style="color:#9a6a00;margin-top:.8rem">已提交，Pages 重建中约 1–2 分钟…（这期间线上仍显旧态）</p>';
+
+    el.innerHTML = html;
+    Array.prototype.forEach.call(el.querySelectorAll('[data-vis]'), function (btn) {
+      btn.addEventListener('click', function () { visBulk(btn.getAttribute('data-vis')); });
+    });
+    Array.prototype.forEach.call(el.querySelectorAll('[data-vk]'), function (btn) {
+      btn.addEventListener('click', function () { visToggle(btn.getAttribute('data-vk')); });
+    });
+  }
+  function visToggle(vk) {
+    if (visBusy) return;
+    if (vk.indexOf('sec:') === 0) { var k = vk.slice(4); if (visSections[k]) delete visSections[k]; else visSections[k] = 1; }
+    else if (vk.indexOf('tool:') === 0) { var id = vk.slice(5); if (visTools[id]) delete visTools[id]; else visTools[id] = 1; }
+    visSave();
+  }
+  function visBulk(kind) {
+    if (visBusy) return;
+    var live = visLiveTools();
+    if (kind === 'all-hide') live.forEach(function (t) { visTools[t.id] = 1; });
+    else if (kind === 'all-show') live.forEach(function (t) { delete visTools[t.id]; });
+    visSave();
+  }
+  function visSave() {
+    visBusy = true; renderVis();
+    var payload = { sections: Object.keys(visSections), tools: Object.keys(visTools) };
+    window.SiteAuth.authedFetch('/api/admin?action=visibility-set', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+      .then(function (j) { visBusy = false; visPending = true; if (j && j.sha) visSha = j.sha; visSeed(j); renderVis(); })
+      .catch(function (e) { visBusy = false; renderVis(); alert('保存失败：' + ((e && e.error) || '请重试')); visReload(); });
+  }
+
   function start() {
     if (!window.SiteAuth) { setTimeout(start, 100); return; }
 
@@ -679,6 +804,7 @@ noindex: true
             show(elMain);
             if (!dashLoaded) { dashLoaded = true; loadDashboard(); }
             if (!cmLoaded) { cmLoaded = true; cmWireControls(); loadContent(); }
+            if (!visInited) { visInited = true; visInit(); }
           } else {
             show(elDenied);
           }

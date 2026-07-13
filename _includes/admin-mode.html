@@ -48,6 +48,17 @@
   body.sa-admin .paginated-item[data-trashed="true"] > a { text-decoration: line-through; }
   body.sa-admin .yearly-card[data-trashed="true"] .yearly-card-title { text-decoration: line-through; }
 
+  /* ── 板块 / 小工具「下架」的入口卡片与导航项（数据源 _data/visibility.json）──
+     访客：整项不见；管理员：变灰但仍可点进去预览。覆盖：顶栏导航项、首页栏目卡、百宝箱工具卡。 */
+  body:not(.sa-admin) .nav-links li[data-section-hidden],
+  body:not(.sa-admin) .cat-card[data-hidden="true"],
+  body:not(.sa-admin) .tool-card[data-hidden="true"],
+  body:not(.sa-admin) .featured-card-tool[data-hidden="true"] { display: none !important; }
+  body.sa-admin .nav-links li[data-section-hidden],
+  body.sa-admin .cat-card[data-hidden="true"],
+  body.sa-admin .tool-card[data-hidden="true"],
+  body.sa-admin .featured-card-tool[data-hidden="true"] { opacity: 0.5; }
+
   /* 管理员模式隐藏站内小助手（避免与文章齿轮重合） */
   body.sa-admin #za-fab, body.sa-admin #za-panel,
   body.sa-admin #zs-mask, body.sa-admin #zs-modal { display: none !important; }

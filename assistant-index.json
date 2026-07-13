@@ -63,12 +63,16 @@ layout: null
     {%- unless _sum -%}{%- assign _sum = item.excerpt | strip_html | strip_newlines -%}{%- endunless -%}
     {%- assign _sum = _sum | strip | truncate: 96 -%}
 
+    {%- comment -%} 所属板块被整体下架（visibility.sections）也算 hidden，小助手对非管理员据此过滤 {%- endcomment -%}
+    {%- assign _item_hidden = item.hidden -%}
+    {%- if item.main_category and site.data.visibility.sections contains item.main_category -%}{%- assign _item_hidden = true -%}{%- endif -%}
+
     {
       "title"   : {{ _disp_title | jsonify }},
       "url"     : "{{ site.baseurl }}{{ item.url }}",
       "category": {{ cat_str | jsonify }},
       "type"    : "{{ _type }}",
-      "hidden"  : {% if item.hidden %}true{% else %}false{% endif %},
+      "hidden"  : {% if _item_hidden %}true{% else %}false{% endif %},
       "download": "{% if _dl %}{{ site.baseurl }}{{ _dl }}{% endif %}",
       "summary" : {{ _sum | jsonify }},
       "keywords": {{ kw | jsonify }},
@@ -80,11 +84,15 @@ layout: null
   {% for tool in live_tools %}
     {%- assign tkw = tool.name | append: ' ' | append: tool.tagline | append: ' ' | append: tool.category -%}
     {%- if tool.subcategory -%}{%- assign tkw = tkw | append: ' ' | append: tool.subcategory -%}{%- endif -%}
+    {%- assign _tool_hidden = false -%}
+    {%- if site.data.visibility.tools contains tool.id -%}{%- assign _tool_hidden = true -%}{%- endif -%}
+    {%- if site.data.visibility.sections contains '百宝箱' -%}{%- assign _tool_hidden = true -%}{%- endif -%}
     {
       "title"   : {{ tool.name | jsonify }},
       "url"     : "{{ site.baseurl }}{{ tool.url }}",
       "category": {{ "百宝箱 · " | append: tool.category | jsonify }},
       "type"    : "tool",
+      "hidden"  : {% if _tool_hidden %}true{% else %}false{% endif %},
       "download": "",
       "summary" : {{ tool.tagline | jsonify }},
       "keywords": {{ tkw | jsonify }},

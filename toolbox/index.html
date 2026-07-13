@@ -150,7 +150,10 @@ permalink: /toolbox/
   </div>
   <div class="featured-grid">
     {%- for t in featured -%}
-    <a class="featured-card-tool" href="{{ t.url | relative_url }}">
+    {%- assign ft_hidden = false -%}
+    {%- if site.data.visibility.tools contains t.id -%}{%- assign ft_hidden = true -%}{%- endif -%}
+    {%- if site.data.visibility.sections contains '百宝箱' -%}{%- assign ft_hidden = true -%}{%- endif -%}
+    <a class="featured-card-tool" href="{{ t.url | relative_url }}"{% if ft_hidden %} data-hidden="true"{% endif %}>
       <div class="ft-icon">{%- if t.icon contains "/" -%}<img src="{{ t.icon | relative_url }}" alt="">{%- else -%}{{ t.icon }}{%- endif -%}</div>
       <div class="ft-body">
         <div class="ft-name">{{ t.name }}</div>

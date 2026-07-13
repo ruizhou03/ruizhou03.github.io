@@ -13,9 +13,11 @@ title: 锆铌 | Rui Zhou
 {% assign essay_count = 0 %}
 
 {% for n in site.notes %}
-  {% comment %} 只统计 / 收录「访客可见」的：排除下架 hidden、回收 trashed、未发布 published:false —— 隐藏的不进近期更新，后面的自动递补 {% endcomment %}
-  {% if n.published != false and n.hidden != true and n.trashed != true %}{% assign total = total | plus: 1 %}{% endif %}
-  {% if n.date and n.published != false and n.hidden != true and n.trashed != true %}{% assign valid_notes = valid_notes | push: n %}{% endif %}
+  {% comment %} 只统计 / 收录「访客可见」的：排除下架 hidden、回收 trashed、未发布 published:false，以及所属板块被整体下架的（visibility.sections）—— 隐藏的不进近期更新，后面的自动递补 {% endcomment %}
+  {% assign _sec_hidden = false %}
+  {% if n.main_category and site.data.visibility.sections contains n.main_category %}{% assign _sec_hidden = true %}{% endif %}
+  {% if n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true %}{% assign total = total | plus: 1 %}{% endif %}
+  {% if n.date and n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true %}{% assign valid_notes = valid_notes | push: n %}{% endif %}
   {% if n.discipline %}{% assign notes_count = notes_count | plus: 1 %}{% endif %}
   {% assign _is_research = false %}
   {% if n.main_category == "科研妙招" %}{% assign _is_research = true %}{% endif %}
@@ -86,14 +88,14 @@ title: 锆铌 | Rui Zhou
         <div class="cat-desc">硬核课程笔记与自写 LaTeX 讲义 · 可直接下载</div>
       </div>
     </a>
-    <a href="/research/" class="cat-card">
+    <a href="/research/" class="cat-card"{% if site.data.visibility.sections contains '科研妙招' %} data-hidden="true"{% endif %}>
       <span class="cat-icon">🔬</span>
       <div>
         <div class="cat-name">科研妙招</div>
         <div class="cat-desc">一个 PhD 的科研工具与踩坑心得</div>
       </div>
     </a>
-    <a href="/life/" class="cat-card">
+    <a href="/life/" class="cat-card"{% if site.data.visibility.sections contains '生活攻略' %} data-hidden="true"{% endif %}>
       <span class="cat-icon">☕</span>
       <div>
         <div class="cat-name">生活攻略</div>
@@ -107,7 +109,7 @@ title: 锆铌 | Rui Zhou
         <div class="cat-desc">想到哪写到哪的碎念</div>
       </div>
     </a>
-    <a href="/toolbox/" class="cat-card cat-card--wide">
+    <a href="/toolbox/" class="cat-card cat-card--wide"{% if site.data.visibility.sections contains '百宝箱' %} data-hidden="true"{% endif %}>
       <span class="cat-icon">🧰</span>
       <div>
         <div class="cat-name">百宝箱</div>
