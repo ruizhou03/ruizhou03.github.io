@@ -77,6 +77,11 @@ body_class: adm-page
           <button type="button" data-days="7" class="on">近 7 天</button>
           <button type="button" data-days="14">14 天</button>
           <button type="button" data-days="30">30 天</button>
+          <button type="button" data-custom="1">自定义…</button>
+        </span>
+        <span class="adm-daterange" id="cf-daterange" hidden>
+          <input type="date" id="cf-since" aria-label="起始日期"><span>→</span><input type="date" id="cf-until" aria-label="结束日期">
+          <button type="button" id="cf-apply" class="adm-mini">应用</button>
         </span>
         <span class="adm-soon" id="cf-range">Cloudflare</span>
       </div>
@@ -289,6 +294,11 @@ body_class: adm-page
     color: var(--color-muted); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-pill); }
   .adm-range button:hover:not(.on) { border-color: var(--color-highlight); color: var(--color-highlight); }
   .adm-range button.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .adm-range.adm-loading { opacity: 0.5; pointer-events: none; }
+  .adm-daterange { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--color-muted); }
+  .adm-daterange[hidden] { display: none; }
+  .adm-daterange input[type="date"] { font: inherit; font-size: 0.72rem; padding: 0.14rem 0.4rem;
+    border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); color: var(--color-text); }
   .adm-caption { font-size: 0.7rem; color: var(--color-light); margin: -0.6rem 0 var(--space-4); }
 
   /* 文章排行合并卡：一张卡 + 指标切换（阅读量/评论/点赞/收藏），省地方、自己切换 */
@@ -299,6 +309,39 @@ body_class: adm-page
     color: var(--color-muted); background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: var(--radius-pill); }
   .adm-metric-tabs button:hover:not(.on) { border-color: var(--color-highlight); color: var(--color-highlight); }
   .adm-metric-tabs button.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+
+  /* 可见性面板：从竖排长列表改成可扫视的网格——板块横排小卡 + 工具分类网格，点一下切换 */
+  .vis-block-h { font-size: 0.8rem; font-weight: 700; color: var(--color-muted); margin: 0 0 var(--space-2); }
+  .vis-tools-h { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: var(--space-4); flex-wrap: wrap; }
+  .vis-bulk { display: inline-flex; gap: 0.35rem; }
+  .vis-sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--space-2); }
+  .vis-sec-card { text-align: left; font: inherit; cursor: pointer; border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 0.65rem 0.8rem; background: var(--color-bg);
+    display: flex; flex-direction: column; gap: 0.3rem; transition: border-color .15s, box-shadow .15s; }
+  .vis-sec-card:hover:not(:disabled) { border-color: var(--color-accent); box-shadow: var(--shadow-1); }
+  .vis-sec-card:disabled { cursor: default; }
+  .vis-sec-card.off { background: var(--color-bg-warm); border-color: rgba(201,169,110,0.5); }
+  .vis-sec-top { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+  .vis-sec-name { font-size: 0.9rem; font-weight: 600; color: var(--color-ink); }
+  .vis-sec-state { font-size: 0.64rem; padding: 0.05rem 0.45rem; border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border); color: var(--color-muted); white-space: nowrap; }
+  .vis-sec-card.off .vis-sec-state { color: #9a6a00; border-color: rgba(201,169,110,0.5); background: rgba(201,169,110,0.13); }
+  .vis-sec-desc { font-size: 0.68rem; color: var(--color-light); }
+  .vis-cat-h { font-size: 0.76rem; font-weight: 700; color: var(--color-muted); margin: var(--space-3) 0 var(--space-2); }
+  .vis-cat-h span { font-weight: 400; color: var(--color-light); font-size: 0.7rem; margin-left: 0.4rem; }
+  .vis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: var(--space-2); }
+  .vis-cell { text-align: left; font: inherit; cursor: pointer; border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: 0.5rem 0.65rem; background: var(--color-bg);
+    display: flex; align-items: center; gap: 0.5rem; transition: border-color .15s; min-width: 0; }
+  .vis-cell:hover:not(:disabled) { border-color: var(--color-accent); }
+  .vis-cell:disabled { cursor: default; }
+  .vis-cell.off { background: var(--color-bg-warm); opacity: 0.72; }
+  .vis-cell-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--color-accent); }
+  .vis-cell.off .vis-cell-dot { background: var(--color-highlight); }
+  .vis-cell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .vis-cell-name { font-size: 0.82rem; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vis-cell.off .vis-cell-name { text-decoration: line-through; color: var(--color-muted); }
+  .vis-cell-meta { font-size: 0.63rem; color: var(--color-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 
 <script>
@@ -525,7 +568,7 @@ body_class: adm-page
   // 自托管（不走 CDN）——国内 jsdelivr 的大 JS 常不可达，改由本站同源提供，永远可达
   var ECHARTS_SRC = '{{ "/assets/echarts/echarts.min.js" | relative_url }}';
   var WORLD_JSON = '{{ "/assets/echarts/world.json" | relative_url }}';
-  var echartsP = null, worldP = null, chartInsts = {}, chartCache = {}, cfDays = 7, pillsWired = false, themeWired = false;
+  var echartsP = null, worldP = null, chartInsts = {}, chartCache = {}, cfDays = 7, cfCustom = null, pillsWired = false, themeWired = false;
 
   function loadScript(src) {
     return new Promise(function (res, rej) {
@@ -544,11 +587,21 @@ body_class: adm-page
     });
     return echartsP;
   }
+  var WORLD_NAMES = null, WORLD_NORM = null;
+  function normName(s) { return String(s || '').toLowerCase().replace(/[^a-z]/g, ''); }
+  function buildWorldNames(geo) {
+    WORLD_NAMES = {}; WORLD_NORM = {};
+    ((geo && geo.features) || []).forEach(function (f) {
+      var nm = f.properties && f.properties.name; if (!nm) return;
+      WORLD_NAMES[nm] = 1; WORLD_NORM[normName(nm)] = nm;
+    });
+  }
   function ensureWorld() {
     if (worldP) return worldP;
     worldP = ensureECharts().then(function () {
-      if (window.echarts.getMap && window.echarts.getMap('world')) return true;
-      return fetch(WORLD_JSON).then(function (r) { return r.json(); }).then(function (geo) { window.echarts.registerMap('world', geo); return true; });
+      var got = window.echarts.getMap && window.echarts.getMap('world');
+      if (got) { buildWorldNames(got.geoJson || got.geoJSON); return true; }
+      return fetch(WORLD_JSON).then(function (r) { return r.json(); }).then(function (geo) { window.echarts.registerMap('world', geo); buildWorldNames(geo); return true; });
     });
     return worldP;
   }
@@ -628,14 +681,39 @@ body_class: adm-page
       });
     }).catch(function () { fallback('cf-dev-chart', '加载失败'); });
   }
-  // CF countryName → echarts world.json 名称（常见分歧的别名；直配为主，未命中不着色，仍在国家榜里可见）
+  // CF 的 countries 可能给「全名」也可能给「ISO-2 码」——两种都要能落到 world.json 的 name 上。
+  // world.json 只有 name 字段（无 ISO），所以：直配 name → 归一化 name → 别名 → ISO-2 码表，逐级兜。
   var CMAP = {
     'United States of America': 'United States', 'USA': 'United States', 'Russian Federation': 'Russia',
     'South Korea': 'Korea', 'Korea, Republic of': 'Korea', 'Viet Nam': 'Vietnam',
     'Czechia': 'Czech Rep.', 'Czech Republic': 'Czech Rep.', 'Dominican Republic': 'Dominican Rep.',
     'Bosnia and Herzegovina': 'Bosnia and Herz.', 'United Republic of Tanzania': 'Tanzania'
   };
-  function mapCountry(n) { n = n || ''; return CMAP[n] || n; }
+  var ISO2NAME = {
+    CN:'China', US:'United States', JP:'Japan', KR:'Korea', GB:'United Kingdom', DE:'Germany',
+    FR:'France', CA:'Canada', AU:'Australia', SG:'Singapore', IN:'India', RU:'Russia', VN:'Vietnam',
+    NL:'Netherlands', HK:'Hong Kong', TW:'Taiwan', IT:'Italy', ES:'Spain', SE:'Sweden', CH:'Switzerland',
+    BR:'Brazil', MX:'Mexico', ID:'Indonesia', TH:'Thailand', MY:'Malaysia', PH:'Philippines', PL:'Poland',
+    TR:'Turkey', SA:'Saudi Arabia', AE:'United Arab Emirates', IL:'Israel', ZA:'South Africa', EG:'Egypt',
+    AR:'Argentina', CL:'Chile', CO:'Colombia', NZ:'New Zealand', IE:'Ireland', BE:'Belgium', AT:'Austria',
+    DK:'Denmark', NO:'Norway', FI:'Finland', PT:'Portugal', GR:'Greece', CZ:'Czech Rep.', HU:'Hungary',
+    RO:'Romania', UA:'Ukraine', PK:'Pakistan', BD:'Bangladesh', NG:'Nigeria', KE:'Kenya', IR:'Iran',
+    KZ:'Kazakhstan', LK:'Sri Lanka', NP:'Nepal', MM:'Myanmar', KH:'Cambodia', LA:'Laos', MN:'Mongolia'
+  };
+  function resolveName(cand) {   // 把候选名落到真实的 world.json name 上；落不到返回 null
+    if (!cand) return null;
+    if (!WORLD_NAMES) return cand;            // 地图还没加载完，先原样（稍后重渲会再校）
+    if (WORLD_NAMES[cand]) return cand;
+    var n = WORLD_NORM[normName(cand)];
+    return n || null;
+  }
+  function mapCountry(raw) {
+    raw = String(raw || '').trim(); if (!raw) return '';
+    var r = resolveName(raw); if (r) return r;                                   // 直配 / 归一化全名
+    if (CMAP[raw]) { r = resolveName(CMAP[raw]); if (r) return r; }              // 别名
+    if (/^[A-Za-z]{2}$/.test(raw)) { r = resolveName(ISO2NAME[raw.toUpperCase()]); if (r) return r; }  // ISO-2 码
+    return raw;                                                                  // 落不到就原样（该国不着色，仍在国家榜里）
+  }
   function renderWorldMap(countries) {
     chartCache.countries = countries;
     if (!document.getElementById('cf-map')) return;
@@ -671,43 +749,76 @@ body_class: adm-page
   function wireRangePills() {
     if (pillsWired) return; pillsWired = true;
     var box = document.getElementById('cf-range-pills'); if (!box) return;
+    var dr = document.getElementById('cf-daterange');
     Array.prototype.forEach.call(box.querySelectorAll('button'), function (b) {
       b.addEventListener('click', function () {
-        cfDays = parseInt(b.getAttribute('data-days'), 10) || 7;
+        if (b.getAttribute('data-custom')) { if (dr) dr.hidden = !dr.hidden; return; }   // 展开/收起自定义
+        cfCustom = null; cfDays = parseInt(b.getAttribute('data-days'), 10) || 7;
+        if (dr) dr.hidden = true;
         Array.prototype.forEach.call(box.querySelectorAll('button'), function (x) { x.classList.toggle('on', x === b); });
         loadTraffic();
       });
     });
+    var apply = document.getElementById('cf-apply');
+    if (apply) apply.addEventListener('click', function () {
+      var s = document.getElementById('cf-since'), u = document.getElementById('cf-until');
+      if (!s || !u || !s.value || !u.value) { alert('请选择起止日期'); return; }
+      if (s.value > u.value) { alert('起始日期不能晚于结束日期'); return; }
+      cfCustom = { since: s.value, until: u.value };
+      Array.prototype.forEach.call(box.querySelectorAll('button'), function (x) { x.classList.toggle('on', !!x.getAttribute('data-custom')); });
+      loadTraffic();
+    });
   }
 
-  function loadTraffic() {
-    jget('/api/admin?action=traffic&days=' + cfDays).then(function (d) {
-      var note = document.getElementById('cf-note');
-      if (!d || !d.ok) {
-        if (note) {
-          note.hidden = false;
-          note.textContent = (d && d.error === 'cf_not_configured')
-            ? '尚未配置 Cloudflare API Token（在 zircon-urge 设 CF_API_TOKEN / CF_ACCOUNT_ID 后即可）。'
-            : '流量数据暂时取不到' + (d && d.error ? '（' + d.error + '）' : '') + '。';
-        }
-        ['cf-pages', 'cf-ref', 'cf-geo'].forEach(function (id) {
-          var el = document.getElementById(id); if (el) el.innerHTML = '<li class="adm-empty">暂无数据</li>';
-        });
-        renderTrend([], cfDays); renderDeviceDonut([]); renderWorldMap([]);
-        return;
+  var trafficCache = {};   // 窗口 key（'7'/'14'/'30' 或自定义 since~until）→ 响应，切换时秒开、不重复请求
+  function trafficKey() { return cfCustom ? ('c:' + cfCustom.since + '~' + cfCustom.until) : String(cfDays); }
+  function applyTraffic(d) {
+    var note = document.getElementById('cf-note');
+    if (!d || !d.ok) {
+      if (note) {
+        note.hidden = false;
+        note.textContent = (d && d.error === 'cf_not_configured')
+          ? '尚未配置 Cloudflare API Token（在 zircon-urge 设 CF_API_TOKEN / CF_ACCOUNT_ID 后即可）。'
+          : '流量数据暂时取不到' + (d && d.error ? '（' + d.error + '）' : '') + '。';
       }
-      if (note) note.hidden = true;
-      var visits = document.getElementById('cf-visits'); if (visits) visits.textContent = fmt(d.visits);
-      var pv = document.getElementById('cf-pv'); if (pv) pv.textContent = fmt(d.pageviews);
-      var range = document.getElementById('cf-range'); if (range && d.since) range.textContent = d.since + ' ~ ' + d.until;
-      renderTrafficPages(d.pages || []);
-      renderReferers(d.referers || []);
-      renderSimple('cf-geo', (d.countries || []).map(function (x) { return { label: CC[x.name] || x.name || '(未知)', n: x.visits }; }), '');
-      renderTrend(d.series || [], cfDays);
-      renderSpark('cf-visits-spark', d.series || [], 'visits');
-      renderSpark('cf-pv-spark', d.series || [], 'pv');
-      renderDeviceDonut(d.devices || []);
-      renderWorldMap(d.countries || []);
+      ['cf-pages', 'cf-ref', 'cf-geo'].forEach(function (id) {
+        var el = document.getElementById(id); if (el) el.innerHTML = '<li class="adm-empty">暂无数据</li>';
+      });
+      renderTrend([], cfDays); renderDeviceDonut([]); renderWorldMap([]);
+      return;
+    }
+    if (note) note.hidden = true;
+    var visits = document.getElementById('cf-visits'); if (visits) visits.textContent = fmt(d.visits);
+    var pv = document.getElementById('cf-pv'); if (pv) pv.textContent = fmt(d.pageviews);
+    var range = document.getElementById('cf-range'); if (range && d.since) range.textContent = d.since + ' ~ ' + d.until;
+    renderTrafficPages(d.pages || []);
+    renderReferers(d.referers || []);
+    renderSimple('cf-geo', (d.countries || []).map(function (x) { return { label: CC[x.name] || x.name || '(未知)', n: x.visits }; }), '');
+    renderTrend(d.series || [], cfDays);
+    renderSpark('cf-visits-spark', d.series || [], 'visits');
+    renderSpark('cf-pv-spark', d.series || [], 'pv');
+    renderDeviceDonut(d.devices || []);
+    renderWorldMap(d.countries || []);
+  }
+  function trafficUrl(days, custom) {
+    return custom ? ('/api/admin?action=traffic&since=' + custom.since + '&until=' + custom.until)
+                  : ('/api/admin?action=traffic&days=' + days);
+  }
+  function prefetchTraffic() {   // 预取其它常用窗口，之后切换秒开
+    [7, 14, 30].forEach(function (days) {
+      if (trafficCache[String(days)]) return;
+      jget(trafficUrl(days, null)).then(function (d) { if (d && d.ok) trafficCache[String(days)] = d; });
+    });
+  }
+  function loadTraffic() {
+    var key = trafficKey();
+    if (trafficCache[key]) { applyTraffic(trafficCache[key]); prefetchTraffic(); return; }
+    var pills = document.getElementById('cf-range-pills'); if (pills) pills.classList.add('adm-loading');
+    jget(trafficUrl(cfDays, cfCustom)).then(function (d) {
+      if (pills) pills.classList.remove('adm-loading');
+      if (d && d.ok) trafficCache[key] = d;
+      applyTraffic(d);
+      prefetchTraffic();
     });
   }
 
@@ -994,15 +1105,17 @@ body_class: adm-page
       renderVis();
     });
   }
-  function visRow(vk, title, meta, on, badge, locked) {
-    var badgeHtml = badge ? '<span class="cm-badge b-hidden">' + esc(badge) + '</span>' : '';
-    var btn = locked ? ''
-      : '<button type="button" class="cm-btn" data-vk="' + esc(vk) + '"' + (visBusy ? ' disabled' : '') + '>' + (on ? '恢复（公开）' : '下架') + '</button>';
-    return '<div class="cm-row">' +
-      '<div class="cm-main"><span class="cm-title">' + esc(title) + '</span><div class="cm-meta">' + esc(meta) + '</div></div>' +
-      '<div class="cm-badges">' + badgeHtml + '</div>' +
-      '<div class="cm-acts">' + btn + '</div>' +
-    '</div>';
+  function visSecCard(vk, title, desc, on) {
+    return '<button type="button" class="vis-sec-card' + (on ? ' off' : '') + '" data-vk="' + esc(vk) + '"' + (visBusy ? ' disabled' : '') + '>' +
+      '<span class="vis-sec-top"><span class="vis-sec-name">' + esc(title) + '</span>' +
+      '<span class="vis-sec-state">' + (on ? '已下架' : '公开') + '</span></span>' +
+      '<span class="vis-sec-desc">' + esc(desc) + '</span></button>';
+  }
+  function visCell(vk, name, meta, on, locked) {
+    return '<button type="button" class="vis-cell' + (on ? ' off' : '') + '" data-vk="' + esc(vk) + '"' + ((visBusy || locked) ? ' disabled' : '') + ' title="' + esc(name + ' · ' + meta) + '">' +
+      '<span class="vis-cell-dot" aria-hidden="true"></span>' +
+      '<span class="vis-cell-main"><span class="vis-cell-name">' + esc(name) + '</span>' +
+      '<span class="vis-cell-meta">' + esc(meta) + '</span></span></button>';
   }
   function renderVis() {
     var el = document.getElementById('vis-body');
@@ -1010,38 +1123,32 @@ body_class: adm-page
     var boxHidden = !!visSections['百宝箱'];
     var html = '';
 
-    // 板块
-    html += '<div class="cm-list" style="margin-bottom:1.2rem">';
-    html += '<div class="cm-sub-h">板块（整栏下架 / 恢复）</div>';
-    VIS_SECTIONS.forEach(function (s) {
-      var on = !!visSections[s.key];
-      html += visRow('sec:' + s.key, s.label, s.desc, on, on ? '已下架' : '');
-    });
+    // 板块（点一下切换）——横排小卡
+    html += '<div class="vis-block-h">板块 · 点一下切换 下架 / 公开</div>';
+    html += '<div class="vis-sections">';
+    VIS_SECTIONS.forEach(function (s) { html += visSecCard('sec:' + s.key, s.label, s.desc, !!visSections[s.key]); });
     html += '</div>';
 
-    // 小工具
+    // 小工具——按分类分组、每组一个网格，一屏看全，点格子切换
     var live = visLiveTools();
     var hiddenCount = live.filter(function (t) { return boxHidden || visTools[t.id]; }).length;
-    html += '<div class="cm-list">';
-    html += '<div class="cm-sub-h" style="display:flex;align-items:center;gap:.5rem">' +
-      '<span style="flex:1">小工具 · 共 ' + live.length + ' 件，已下架 ' + hiddenCount + '</span>' +
-      '<button type="button" class="cm-btn" data-vis="all-hide"' + (visBusy ? ' disabled' : '') + '>全部下架</button>' +
-      '<button type="button" class="cm-btn" data-vis="all-show"' + (visBusy ? ' disabled' : '') + '>全部恢复</button></div>';
-    if (boxHidden) {
-      html += '<div class="cm-row"><div class="cm-main"><div class="cm-meta">整个「百宝箱」板块已下架 → 下面所有工具当前都对访客隐藏。要单独控制某个工具，先在上方「板块」里恢复「百宝箱」。</div></div></div>';
-    }
+    html += '<div class="vis-block-h vis-tools-h"><span>小工具 · 共 ' + live.length + ' 件，已下架 ' + hiddenCount + '</span>' +
+      '<span class="vis-bulk"><button type="button" class="cm-btn" data-vis="all-hide"' + (visBusy ? ' disabled' : '') + '>全部下架</button>' +
+      '<button type="button" class="cm-btn" data-vis="all-show"' + (visBusy ? ' disabled' : '') + '>全部恢复</button></span></div>';
+    if (boxHidden) html += '<p class="adm-note" style="margin:.1rem 0 .6rem">整个「百宝箱」已下架 → 下列工具当前都对访客隐藏；要单独控制某个工具，先在上方恢复「百宝箱」。</p>';
     var cats = [], byCat = {};
     live.forEach(function (t) { var c = t.category || '其他'; if (!byCat[c]) { byCat[c] = []; cats.push(c); } byCat[c].push(t); });
     cats.forEach(function (c) {
-      html += '<div class="cm-sub-h">' + esc(c) + '</div>';
+      var chid = byCat[c].filter(function (t) { return boxHidden || visTools[t.id]; }).length;
+      html += '<div class="vis-cat-h">' + esc(c) + '<span>' + byCat[c].length + ' 件' + (chid ? ' · 藏 ' + chid : '') + '</span></div>';
+      html += '<div class="vis-grid">';
       byCat[c].forEach(function (t) {
-        var on = !!visTools[t.id];
-        var meta = (t.category || '') + (t.subcategory ? ' · ' + t.subcategory : '') + ' · ' + t.id;
-        var badge = boxHidden ? '随百宝箱下架' : (on ? '已下架' : '');
-        html += visRow('tool:' + t.id, t.name, meta, on, badge, boxHidden);
+        var on = boxHidden || !!visTools[t.id];
+        var meta = (t.subcategory ? t.subcategory + ' · ' : '') + t.id;
+        html += visCell('tool:' + t.id, t.name, meta, on, boxHidden);
       });
+      html += '</div>';
     });
-    html += '</div>';
 
     if (visPending) html += '<p class="adm-note" style="color:#9a6a00;margin-top:.8rem">已提交，Pages 重建中约 1–2 分钟…（这期间线上仍显旧态）</p>';
 
