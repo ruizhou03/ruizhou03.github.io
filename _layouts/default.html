@@ -143,24 +143,24 @@
       <div class="nav-left-zone">
         <a class="nav-brand" href="{{ site.baseurl }}/zh/">锆铌</a>
         {% if page.url contains "/toolbox/" and page.url != "/toolbox/" %}
-          <a href="{{ site.baseurl }}/toolbox/" class="nav-back"><span class="chev">‹</span>生活百宝箱</a>
+          <a href="{{ site.baseurl }}/toolbox/" class="nav-back"><span class="chev" aria-hidden="true"></span>生活百宝箱</a>
         {% elsif page.layout == "post" or page.collection == "notes" %}
           {% if page.main_category == "科研妙招" %}
-            <a href="{{ site.baseurl }}/research/" class="nav-back"><span class="chev">‹</span>科研妙招</a>
+            <a href="{{ site.baseurl }}/research/" class="nav-back"><span class="chev" aria-hidden="true"></span>科研妙招</a>
           {% elsif page.main_category == "生活攻略" %}
-            <a href="{{ site.baseurl }}/life/" class="nav-back"><span class="chev">‹</span>生活攻略</a>
+            <a href="{{ site.baseurl }}/life/" class="nav-back"><span class="chev" aria-hidden="true"></span>生活攻略</a>
           {% elsif page.main_category == "随笔漫谈" %}
-            <a href="{{ site.baseurl }}/essays/" class="nav-back"><span class="chev">‹</span>随笔漫谈</a>
+            <a href="{{ site.baseurl }}/essays/" class="nav-back"><span class="chev" aria-hidden="true"></span>随笔漫谈</a>
           {% elsif page.material_type == "课程测评" %}
-            <a href="{{ site.baseurl }}/notes/course-reviews/" class="nav-back"><span class="chev">‹</span>课程测评</a>
+            <a href="{{ site.baseurl }}/notes/course-reviews/" class="nav-back"><span class="chev" aria-hidden="true"></span>课程测评</a>
           {% elsif page.discipline == "语言考试" %}
-            <a href="{{ site.baseurl }}/notes/toefl-gre/" class="nav-back"><span class="chev">‹</span>TOEFL &amp; GRE</a>
+            <a href="{{ site.baseurl }}/notes/toefl-gre/" class="nav-back"><span class="chev" aria-hidden="true"></span>TOEFL &amp; GRE</a>
           {% elsif page.discipline == "初升高" %}
-            <a href="{{ site.baseurl }}/notes/tutoring/" class="nav-back"><span class="chev">‹</span>学习辅导资料</a>
+            <a href="{{ site.baseurl }}/notes/tutoring/" class="nav-back"><span class="chev" aria-hidden="true"></span>学习辅导资料</a>
           {% elsif page.sub_category == "菜谱" %}
-            <a href="{{ site.baseurl }}/toolbox/recipes/" class="nav-back"><span class="chev">‹</span>菜谱专区</a>
+            <a href="{{ site.baseurl }}/toolbox/recipes/" class="nav-back"><span class="chev" aria-hidden="true"></span>菜谱专区</a>
           {% else %}
-            <a href="{{ site.baseurl }}/notes/" class="nav-back"><span class="chev">‹</span>学习资料</a>
+            <a href="{{ site.baseurl }}/notes/" class="nav-back"><span class="chev" aria-hidden="true"></span>学习资料</a>
           {% endif %}
         {% endif %}
       </div>

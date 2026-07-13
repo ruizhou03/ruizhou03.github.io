@@ -233,9 +233,9 @@
   // ── 导航入口渲染 ──
   var slot = document.getElementById('auth-slot');
   function initial(nick) { return (nick || '?').trim().charAt(0).toUpperCase(); }
-  // 管理员专属：在导航右侧注入「数据分析 / 内容管理」两个可见按钮（非管理员则移除）
-  var NAV_ICON_DATA = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="18" y1="20" x2="18" y2="9"></line></svg>';
-  var NAV_ICON_CONTENT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>';
+  // 管理员专属：在导航右侧注入「管理后台」单入口（非管理员则移除）。
+  // 进去后再用页内的「数据分析 / 内容管理」板块 tab 切换——顶栏不再重复两个按钮。
+  var NAV_ICON_ADMIN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>';
   var ICON_HOME = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>';
   var ICON_LOGOUT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>';
   function syncAdminNav(user) {
@@ -248,8 +248,7 @@
         wrap.id = 'nav-admin-links';
         wrap.className = 'nav-admin-links';
         wrap.innerHTML =
-          '<a class="nav-dash-btn" href="/admin/#data" title="数据分析" aria-label="数据分析">' + NAV_ICON_DATA + '<span class="nav-dash-tx">数据分析</span></a>' +
-          '<a class="nav-dash-btn" href="/admin/#content" title="内容管理" aria-label="内容管理">' + NAV_ICON_CONTENT + '<span class="nav-dash-tx">内容管理</span></a>';
+          '<a class="nav-dash-btn" href="/admin/" title="管理后台" aria-label="管理后台">' + NAV_ICON_ADMIN + '<span class="nav-dash-tx">管理后台</span></a>';
         controls.appendChild(wrap);
       }
     } else if (existing && existing.parentNode) {
@@ -270,7 +269,7 @@
         '<div class="sa-menu">' +
           '<div class="sa-menu-name">' + (user.nick || user.email || '') + '</div>' +
           '<a class="sa-mi" href="/account/">' + ICON_HOME + '我的主页</a>' +
-          (user.isAdmin ? '<a class="sa-mi sa-admin-link" href="/admin/#data">' + NAV_ICON_DATA + '数据分析</a><a class="sa-mi sa-admin-link" href="/admin/#content">' + NAV_ICON_CONTENT + '内容管理</a>' : '') +
+          (user.isAdmin ? '<a class="sa-mi sa-admin-link" href="/admin/">' + NAV_ICON_ADMIN + '管理后台</a>' : '') +
           '<button type="button" class="sa-logout sa-mi">' + ICON_LOGOUT + '退出登录</button>' +
         '</div>' +
       '</div>';

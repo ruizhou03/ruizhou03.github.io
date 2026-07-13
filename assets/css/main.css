@@ -106,7 +106,9 @@
     /* 返回链接：低调的层级指示——细 chevron + 灰字 + 永不换行，hover 才点亮成强调色，不与品牌抢眼 */
     .nav-back { font-size: 0.85rem; font-weight: 500; color: var(--color-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; transition: color 0.2s; }
     .nav-back:hover { color: var(--color-accent); }
-    .nav-back .chev { font-size: 1.2em; line-height: 1; font-weight: 400; }
+    /* 用边框画的几何 chevron（不是字形）：随文字整体垂直居中，不再"沉底对齐"；随 currentColor 变色 */
+    .nav-back .chev { display: inline-block; box-sizing: border-box; width: 0.4em; height: 0.4em;
+      border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(135deg); margin-right: 0.1em; }
     /* 手机端左上角品牌「锆铌」→ 中文首页（桌面隐藏，桌面靠 .nav-links 里的锆铌） */
     .nav-brand { display: none; font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; color: var(--color-ink); text-decoration: none; letter-spacing: 0.02em; }
     .nav-settings { display: none; }   /* ☰ 菜单底部设置区，只手机端显示 */
