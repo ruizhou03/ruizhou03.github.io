@@ -46,7 +46,12 @@ noindex: true
       <div class="adm-ov-row">
         <div class="adm-ov"><div class="adm-ov-n" id="ov-views">—</div><div class="adm-ov-l">总浏览量</div></div>
         <div class="adm-ov"><div class="adm-ov-n" id="ov-comments">—</div><div class="adm-ov-l">总评论数</div></div>
-        <div class="adm-ov"><div class="adm-ov-n" id="ov-mood">—</div><div class="adm-ov-l">心情互动</div></div>
+      </div>
+      <div class="adm-mood-grid">
+        <div class="adm-mood"><div class="adm-mood-n" id="ov-urge">—</div><div class="adm-mood-l">🔔 催更</div></div>
+        <a class="adm-mood" href="#rk-likes"><div class="adm-mood-n" id="ov-like">—</div><div class="adm-mood-l">👍 点赞</div></a>
+        <div class="adm-mood"><div class="adm-mood-n" id="ov-heart">—</div><div class="adm-mood-l">❤️ 红心</div></div>
+        <a class="adm-mood" href="#rk-favs"><div class="adm-mood-n" id="ov-star">—</div><div class="adm-mood-l">⭐ 收藏</div></a>
       </div>
       <div class="adm-rank-grid">
         <div class="adm-rank"><h3>最受欢迎 · 阅读量</h3><ol id="rk-read" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
@@ -119,14 +124,18 @@ noindex: true
   .adm-state p { margin: 0 0 1rem; }
   .adm-muted { color: var(--color-light); font-size: 0.85rem; }
   .adm-btn { padding: 0.6rem 1.6rem; font-size: 0.95rem; font-weight: 700; font-family: inherit;
-    cursor: pointer; background: var(--color-highlight); color: #fff; border: none; border-radius: 8px; }
+    cursor: pointer; background: var(--color-accent); color: #fff; border: none; border-radius: var(--radius-sm); box-shadow: var(--shadow-1); }
+  .adm-btn:hover { filter: brightness(1.08); }
   .adm-verified { font-size: 0.9rem; color: var(--color-muted); background: var(--color-bg-warm);
     border: 1px solid var(--color-border); border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 2rem; }
   .adm-verified strong { color: var(--color-ink); }
 
-  .adm-sec { margin-bottom: 2.6rem; }
-  .adm-sec-top { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.1rem; }
-  .adm-sec-top h2 { font-size: 1.3rem; color: var(--color-ink); margin: 0; }
+  /* 每个板块做成「暖底托白卡」面板：与站点招牌层次一致，两大板块不再糊成一张长纸 */
+  .adm-sec { margin-bottom: var(--space-6); padding: var(--space-5) var(--space-5) var(--space-6);
+    background: var(--color-bg-warm); border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-1); }
+  .adm-sec-top { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.3rem; }
+  .adm-sec-top h2 { font-family: var(--font-display); font-size: 1.35rem; color: var(--color-ink); margin: 0; letter-spacing: 0.01em; }
   .adm-mini { font-size: 0.78rem; font-family: inherit; cursor: pointer; color: var(--color-muted);
     background: none; border: 1px solid var(--color-border); border-radius: 6px; padding: 0.25rem 0.7rem; }
   @media (hover: hover) {
@@ -135,26 +144,43 @@ noindex: true
   .adm-soon { font-size: 0.68rem; color: var(--color-light); white-space: nowrap;
     border: 1px solid var(--color-border); border-radius: 999px; padding: 0.15rem 0.55rem; }
 
-  .adm-ov-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.6rem; }
-  .adm-ov { border: 1px solid var(--color-border); border-radius: 12px; padding: 1.1rem 1.2rem; background: var(--color-bg); }
-  .adm-ov-n { font-size: 1.7rem; font-weight: 700; color: var(--color-ink); line-height: 1.1; }
-  .adm-ov-l { font-size: 0.8rem; color: var(--color-light); margin-top: 0.35rem; }
+  .adm-ov-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
+  .adm-ov { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.15rem 1.25rem; background: var(--color-bg); box-shadow: var(--shadow-1); }
+  .adm-ov-n { font-family: var(--font-display); font-size: 2rem; font-weight: 700; color: var(--color-ink); line-height: 1.05; font-variant-numeric: tabular-nums lining-nums; }
+  .adm-ov-n small { font-size: 0.9rem; font-weight: 400; color: var(--color-light); margin-left: 0.12rem; }
+  .adm-ov-l { font-size: 0.8rem; color: var(--color-light); margin-top: 0.4rem; }
 
-  .adm-rank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; }
-  .adm-rank { border: 1px solid var(--color-border); border-radius: 14px; padding: 1.2rem 1.3rem; background: var(--color-bg); }
-  .adm-rank h3 { font-size: 1rem; color: var(--color-ink); margin: 0 0 0.8rem; }
-  .adm-ol { list-style: none; margin: 0; padding: 0; }
-  .adm-ol li { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0; border-bottom: 1px solid var(--color-border); }
+  /* 心情互动拆四项：催更 / 点赞 / 红心 / 收藏（比总览大卡紧凑；有对应榜的可点击下钻） */
+  .adm-mood-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: var(--space-2); margin-bottom: var(--space-4); }
+  .adm-mood { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 0.7rem 0.8rem; background: var(--color-bg); box-shadow: var(--shadow-1); text-decoration: none; display: block; }
+  .adm-mood-n { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--color-ink); line-height: 1.05; font-variant-numeric: tabular-nums lining-nums; }
+  .adm-mood-l { font-size: 0.74rem; color: var(--color-light); margin-top: 0.25rem; }
+  a.adm-mood { transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
+  a.adm-mood:hover { border-color: var(--color-accent); box-shadow: var(--shadow-2); transform: translateY(-1px); }
+  a.adm-mood .adm-mood-l::after { content: ' ↗'; color: var(--color-highlight); }
+
+  .adm-rank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-3); }
+  .adm-rank { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.2rem 1.3rem; background: var(--color-bg); box-shadow: var(--shadow-1); }
+  .adm-rank h3 { font-family: var(--font-display); font-size: 1.05rem; color: var(--color-ink); margin: 0 0 0.7rem; }
+  /* 排行榜行：底下铺一条按占比归一的「数据墨水」条，从文字表格变仪表盘 */
+  .adm-ol { list-style: none; margin: 0; padding: 0; --adm-bar: rgba(30,58,95,0.09); }
+  .adm-ol li { position: relative; overflow: hidden; display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.5rem 0.45rem; border-bottom: 1px solid var(--color-border); border-radius: var(--radius-sm); }
   .adm-ol li:last-child { border-bottom: none; }
+  .adm-ol li::before { content: ''; position: absolute; left: 0; top: 2px; bottom: 2px; width: var(--pct, 0%);
+    background: var(--adm-bar); border-radius: var(--radius-sm); z-index: 0; pointer-events: none; transition: width 0.5s var(--ease, ease); }
+  .adm-ol li > * { position: relative; z-index: 1; }
   .adm-rk-i { flex-shrink: 0; width: 1.4rem; height: 1.4rem; line-height: 1.4rem; text-align: center;
-    font-size: 0.75rem; font-weight: 700; color: var(--color-muted); background: var(--color-bg-warm); border-radius: 5px; }
+    font-size: 0.75rem; font-weight: 700; color: var(--color-muted); background: var(--color-bg-warm); border-radius: var(--radius-sm); }
+  .adm-ol li:first-child .adm-rk-i { color: #fff; background: var(--color-highlight); }
   .adm-rk-t { flex: 1; min-width: 0; font-size: 0.88rem; color: var(--color-text); text-decoration: none;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .adm-rk-t:hover { color: var(--color-highlight); }
+  .adm-rk-t:hover { color: var(--color-accent); text-decoration: underline; }
   .adm-type { flex-shrink: 0; font-size: 0.64rem; color: var(--color-muted); background: var(--color-bg-warm);
     border: 1px solid var(--color-border); border-radius: 4px; padding: 0.05rem 0.35rem; }
-  .adm-rk-n { flex-shrink: 0; font-size: 0.85rem; font-weight: 700; color: var(--color-ink); }
+  .adm-rk-n { flex-shrink: 0; font-size: 0.85rem; font-weight: 700; color: var(--color-ink); font-variant-numeric: tabular-nums lining-nums; }
   .adm-rk-n small { font-size: 0.7rem; font-weight: 400; color: var(--color-light); margin-left: 0.15rem; }
+  .adm-rk-dead { flex: 1; min-width: 0; font-size: 0.88rem; color: var(--color-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .adm-empty { color: var(--color-light); font-size: 0.85rem; justify-content: center; }
   .adm-note { font-size: 0.76rem; color: var(--color-light); margin-top: 1rem; }
   .adm-note code { font-size: 0.72rem; background: var(--color-bg-warm); padding: 0.05rem 0.35rem; border-radius: 4px; }
@@ -167,12 +193,12 @@ noindex: true
   .cm-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
   .cm-tab { font-family: inherit; font-size: 0.8rem; cursor: pointer; padding: 0.3rem 0.8rem;
     color: var(--color-muted); background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 999px; }
-  .cm-tab.cm-on { background: var(--color-highlight); color: #fff; border-color: var(--color-highlight); }
-  .cm-list { border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; }
+  .cm-tab.cm-on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .cm-list { border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-1); }
   .adm-board-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.8rem; border-bottom: 1px solid var(--color-border); }
   .adm-board-tab { font-family: inherit; font-size: 0.98rem; cursor: pointer; padding: 0.55rem 1.1rem; color: var(--color-muted);
     background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-  .adm-board-tab.adm-bon { color: var(--color-ink); font-weight: 700; border-bottom-color: var(--color-highlight); }
+  .adm-board-tab.adm-bon { color: var(--color-ink); font-weight: 700; border-bottom-color: var(--color-accent); }
   .adm-board[hidden] { display: none; }
   .cm-pager { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.9rem; font-size: 0.8rem; color: var(--color-muted); }
   .cm-pager:empty { display: none; }
@@ -182,14 +208,14 @@ noindex: true
     background: var(--color-bg); color: var(--color-text); cursor: pointer; font: inherit; font-size: 0.8rem; }
   .cm-pg-btn:hover:not(:disabled):not(.cm-pg-on) { border-color: var(--color-highlight); color: var(--color-highlight); }
   .cm-pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .cm-pg-btn.cm-pg-on { background: var(--color-highlight); color: #fff; border-color: var(--color-highlight); }
+  .cm-pg-btn.cm-pg-on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
   .cm-batch { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem;
-    padding: 0.5rem 0.85rem; background: var(--color-bg-warm); border: 1px solid var(--color-highlight); border-radius: 10px; }
+    padding: 0.5rem 0.85rem; background: var(--color-bg-warm); border: 1px solid var(--color-accent); border-radius: var(--radius-md); }
   .cm-batch[hidden] { display: none; }
   .cm-batch-n { font-size: 0.82rem; color: var(--color-ink); font-weight: 700; }
   .cm-batch .cm-spacer { flex: 1; }
   .cm-batch .cm-btn { font-size: 0.78rem; }
-  .cm-check { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; accent-color: var(--color-highlight); }
+  .cm-check { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; accent-color: var(--color-accent); }
   .cm-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--color-border); }
   .cm-row:last-child { border-bottom: none; }
   .cm-main { flex: 1; min-width: 0; }
@@ -199,9 +225,10 @@ noindex: true
   .cm-meta { font-size: 0.7rem; color: var(--color-light); margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cm-badges { display: flex; gap: 0.3rem; flex-shrink: 0; }
   .cm-badge { font-size: 0.62rem; padding: 0.03rem 0.4rem; border-radius: 4px; border: 1px solid var(--color-border); color: var(--color-muted); }
-  .cm-badge.b-hidden { color: #9a6a00; border-color: #f0d68a; background: #fff8e6; }
-  .cm-badge.b-paid { color: #1d6f5c; border-color: #a8d8c8; background: #ecf7f2; }
-  .cm-badge.b-off { color: #b5483a; border-color: #e6b3aa; background: #fbeeec; }
+  /* 徽章底改半透明叠加（不吃背景色）→ 暗色模式下不再像贴纸一样爆白；文字色见下方暗色块提亮 */
+  .cm-badge.b-hidden { color: #9a6a00; border-color: rgba(201,169,110,0.5); background: rgba(201,169,110,0.13); }
+  .cm-badge.b-paid { color: #1d6f5c; border-color: rgba(45,143,120,0.45); background: rgba(45,143,120,0.12); }
+  .cm-badge.b-off { color: #b5483a; border-color: rgba(181,72,58,0.45); background: rgba(181,72,58,0.12); }
   .cm-acts { display: flex; gap: 0.3rem; flex-shrink: 0; }
   .cm-btn { font-family: inherit; font-size: 0.7rem; cursor: pointer; padding: 0.22rem 0.55rem;
     color: var(--color-muted); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; white-space: nowrap; }
@@ -213,11 +240,26 @@ noindex: true
   .cm-empty { padding: 2rem 1rem; text-align: center; color: var(--color-light); font-size: 0.85rem; }
   .cm-sub-h { padding: 0.5rem 0.85rem; font-size: 0.72rem; font-weight: 700; color: var(--color-muted);
     background: var(--color-bg-warm); border-bottom: 1px solid var(--color-border); }
+
+  /* ── 暗色模式修正：徽章 / 待生效字 文字提亮；排行数据墨水条改亮蓝（否则暗底上看不见） ── */
+  [data-theme="dark"] .cm-badge.b-hidden { color: #d8b872; }
+  [data-theme="dark"] .cm-badge.b-paid { color: #6fd0b4; }
+  [data-theme="dark"] .cm-badge.b-off { color: #e79488; }
+  [data-theme="dark"] .cm-pend { color: #d8b872; }
+  [data-theme="dark"] .adm-ol { --adm-bar: rgba(150,190,235,0.14); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .cm-badge.b-hidden { color: #d8b872; }
+    :root:not([data-theme="light"]) .cm-badge.b-paid { color: #6fd0b4; }
+    :root:not([data-theme="light"]) .cm-badge.b-off { color: #e79488; }
+    :root:not([data-theme="light"]) .cm-pend { color: #d8b872; }
+    :root:not([data-theme="light"]) .adm-ol { --adm-bar: rgba(150,190,235,0.14); }
+  }
 </style>
 
 <script>
 (function () {
   var titleMap = null;
+  var titleBySlug = null;   // url 末段 slug → 条目：给排行榜 postId（可能是 slug 而非完整路径）兜底匹配
   var dashLoaded = false;
 
   function esc(s) {
@@ -236,12 +278,18 @@ noindex: true
   function loadTitles() {
     if (titleMap) return Promise.resolve(titleMap);
     return fetch('/search.json').then(function (r) { return r.ok ? r.json() : []; }).then(function (arr) {
-      titleMap = {};
+      titleMap = {}; titleBySlug = {};
       (arr || []).forEach(function (it) {
-        if (it && it.url) titleMap[normPath(it.url)] = { title: it.title || it.url, category: it.category || '' };
+        if (it && it.url) {
+          var np = normPath(it.url);
+          var entry = { title: it.title || it.url, category: it.category || '', url: np };
+          titleMap[np] = entry;
+          var slug = np.split('/').filter(Boolean).pop();
+          if (slug && !titleBySlug[slug]) titleBySlug[slug] = entry;   // 首个占位，避免同名 slug 互相覆盖
+        }
       });
       return titleMap;
-    }).catch(function () { titleMap = {}; return titleMap; });
+    }).catch(function () { titleMap = {}; titleBySlug = {}; return titleMap; });
   }
   // 站点固定落地/板块页：不在 search.json，但都是活页面，给友好名 + 视为可链接。
   var KNOWN = {
@@ -265,12 +313,17 @@ noindex: true
   // 返回 {title, live, type}：命中 search.json(文章/工具) 或 KNOWN(首页/栏目) = 活页面；否则 = 已下线。
   function resolve(path) {
     var k = normPath(path);
-    if (titleMap && titleMap[k]) {
-      var cat = titleMap[k].category || '';
-      return { title: titleMap[k].title, live: true, type: cat.indexOf('工具') === 0 ? 'tool' : 'article' };
+    var e = (titleMap && titleMap[k]) || null;
+    if (!e && titleBySlug) {                                  // 完整路径没命中 → 用末段 slug 兜底（postId 可能是 slug）
+      var slug = k.split('/').filter(Boolean).pop();
+      if (slug && titleBySlug[slug]) e = titleBySlug[slug];
     }
-    if (KNOWN[k]) return { title: KNOWN[k], live: true, type: KNOWN_TYPE[k] || 'section' };
-    return { title: path || '(未知)', live: false, type: 'dead' };
+    if (e) {
+      var cat = e.category || '';
+      return { title: e.title, live: true, type: cat.indexOf('工具') === 0 ? 'tool' : 'article', url: e.url || k };
+    }
+    if (KNOWN[k]) return { title: KNOWN[k], live: true, type: KNOWN_TYPE[k] || 'section', url: k };
+    return { title: path || '(未知)', live: false, type: 'dead', url: k };
   }
   // 所有数据请求都只走 zircon-urge（authedFetch 会自动带 token；comments 的数据由 urge 服务端代取，
   // 这样既绕开浏览器侧广告/隐私拦截，也不受桌面网络对 comments 域名的影响）。
@@ -300,12 +353,14 @@ noindex: true
       return { path: path, info: resolve(path), n: it[key] || 0 };
     }).filter(function (x) { return x.info.live; }).slice(0, 10);
     if (!rows.length) { el.innerHTML = '<li class="adm-empty">暂无数据</li>'; return; }
+    var max = rows.reduce(function (m, x) { return Math.max(m, x.n); }, 0) || 1;
     el.innerHTML = rows.map(function (x, i) {
-      return '<li>' +
+      var pct = Math.round(x.n / max * 100);
+      return '<li style="--pct:' + pct + '%">' +
         '<span class="adm-rk-i">' + (i + 1) + '</span>' +
         typeTag(x.info.type) +
-        '<a class="adm-rk-t" href="' + esc(normPath(x.path)) + '" target="_blank" rel="noopener" title="' + esc(x.path) + '">' + esc(x.info.title) + '</a>' +
-        '<span class="adm-rk-n">' + x.n + '<small>' + unit + '</small></span>' +
+        '<a class="adm-rk-t" href="' + esc(x.info.url) + '" target="_blank" rel="noopener" title="' + esc(x.path) + '">' + esc(x.info.title) + '</a>' +
+        '<span class="adm-rk-n">' + fmt(x.n) + '<small>' + unit + '</small></span>' +
       '</li>';
     }).join('');
   }
@@ -315,13 +370,14 @@ noindex: true
     if (!el) return;
     var rows = (items || []).filter(function (x) { return !HIDE_PATHS[normPath(x.path)]; }).slice(0, 10);
     if (!rows.length) { el.innerHTML = '<li class="adm-empty">暂无数据</li>'; return; }
+    var max = rows.reduce(function (m, x) { return Math.max(m, x.views || 0); }, 0) || 1;
     el.innerHTML = rows.map(function (x, i) {
-      var info = resolve(x.path), p = normPath(x.path);
+      var info = resolve(x.path), p = normPath(x.path), pct = Math.round((x.views || 0) / max * 100);
       var cell = info.live
         ? '<a class="adm-rk-t" href="' + esc(p) + '" target="_blank" rel="noopener" title="' + esc(x.path) + '">' + esc(info.title) + '</a>'
-        : '<span class="adm-rk-t" title="' + esc(x.path) + '">' + esc(info.title) + '</span>';
-      return '<li><span class="adm-rk-i">' + (i + 1) + '</span>' + typeTag(info.type) + cell +
-        '<span class="adm-rk-n">' + (x.views || 0) + '<small>次</small></span></li>';
+        : '<span class="adm-rk-dead" title="' + esc(x.path) + '">' + esc(info.title) + '</span>';
+      return '<li style="--pct:' + pct + '%"><span class="adm-rk-i">' + (i + 1) + '</span>' + typeTag(info.type) + cell +
+        '<span class="adm-rk-n">' + fmt(x.views || 0) + '<small>次</small></span></li>';
     }).join('');
   }
   // 流量「来源」：外链到来源域名（直接访问无链接）。
@@ -329,13 +385,14 @@ noindex: true
     var el = document.getElementById('cf-ref');
     if (!el) return;
     if (!items || !items.length) { el.innerHTML = '<li class="adm-empty">暂无数据</li>'; return; }
+    var max = items.reduce(function (m, x) { return Math.max(m, x.visits || 0); }, 0) || 1;
     el.innerHTML = items.map(function (x, i) {
-      var host = x.host || '';
+      var host = x.host || '', pct = Math.round((x.visits || 0) / max * 100);
       var cell = host
         ? '<a class="adm-rk-t" href="https://' + esc(host) + '" target="_blank" rel="noopener" title="' + esc(host) + '">' + esc(host) + '</a>'
         : '<span class="adm-rk-t">(直接访问)</span>';
-      return '<li><span class="adm-rk-i">' + (i + 1) + '</span>' + cell +
-        '<span class="adm-rk-n">' + (x.visits || 0) + '</span></li>';
+      return '<li style="--pct:' + pct + '%"><span class="adm-rk-i">' + (i + 1) + '</span>' + cell +
+        '<span class="adm-rk-n">' + fmt(x.visits || 0) + '</span></li>';
     }).join('');
   }
   // 简单列表（无链接，国家/设备用）
@@ -343,11 +400,13 @@ noindex: true
     var el = document.getElementById(elId);
     if (!el) return;
     if (!items || !items.length) { el.innerHTML = '<li class="adm-empty">暂无数据</li>'; return; }
+    var max = items.reduce(function (m, x) { return Math.max(m, x.n || 0); }, 0) || 1;
     el.innerHTML = items.map(function (it, i) {
-      return '<li>' +
+      var pct = Math.round((it.n || 0) / max * 100);
+      return '<li style="--pct:' + pct + '%">' +
         '<span class="adm-rk-i">' + (i + 1) + '</span>' +
         '<span class="adm-rk-t" title="' + esc(it.label) + '">' + esc(it.label) + '</span>' +
-        '<span class="adm-rk-n">' + (it.n || 0) + (unit ? '<small>' + unit + '</small>' : '') + '</span>' +
+        '<span class="adm-rk-n">' + fmt(it.n || 0) + (unit ? '<small>' + unit + '</small>' : '') + '</span>' +
       '</li>';
     }).join('');
   }
@@ -358,8 +417,8 @@ noindex: true
       jget('/api/admin?action=overview').then(function (d) {
         if (d && d.reactions) {
           var r = d.reactions;
-          var el = document.getElementById('ov-mood');
-          if (el) el.textContent = fmt((r.urge || 0) + (r.like || 0) + (r.heart || 0) + (r.star || 0));
+          var setN = function (id, v) { var e = document.getElementById(id); if (e) e.textContent = fmt(v || 0); };
+          setN('ov-urge', r.urge); setN('ov-like', r.like); setN('ov-heart', r.heart); setN('ov-star', r.star);
         }
       });
       // 多取一些（30），客户端滤掉已下线页后仍凑得满 Top10
