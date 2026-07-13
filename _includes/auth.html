@@ -41,6 +41,7 @@
     font-size: 0.85rem; font-weight: 700; line-height: 30px; text-align: center;
     padding: 0; font-family: inherit;
   }
+  .sa-avatar.sa-avatar-img { background-size: cover; background-position: center; color: transparent; }
   .sa-menu {
     position: absolute; right: 0; top: calc(100% + 8px);
     min-width: 148px; background: var(--color-bg);
@@ -233,6 +234,8 @@
   // ── 导航入口渲染 ──
   var slot = document.getElementById('auth-slot');
   function initial(nick) { return (nick || '?').trim().charAt(0).toUpperCase(); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   // 管理员专属：在导航右侧注入「管理后台」单入口（非管理员则移除）。
   // 进去后再用页内的「数据分析 / 内容管理」板块 tab 切换——顶栏不再重复两个按钮。
   var NAV_ICON_ADMIN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>';
@@ -265,9 +268,9 @@
     }
     slot.innerHTML =
       '<div class="sa-avatar-wrap">' +
-        '<button class="sa-avatar" type="button" title="' + (user.nick || '') + '">' + initial(user.nick) + '</button>' +
+        '<button class="sa-avatar" type="button" title="' + esc(user.nick || '') + '">' + esc(initial(user.nick)) + '</button>' +
         '<div class="sa-menu">' +
-          '<div class="sa-menu-name">' + (user.nick || user.email || '') + '</div>' +
+          '<div class="sa-menu-name">' + esc(user.nick || user.email || '') + '</div>' +
           '<a class="sa-mi" href="/account/">' + ICON_HOME + '我的主页</a>' +
           (user.isAdmin ? '<a class="sa-mi sa-admin-link" href="/admin/">' + NAV_ICON_ADMIN + '管理后台</a>' : '') +
           '<button type="button" class="sa-logout sa-mi">' + ICON_LOGOUT + '退出登录</button>' +
@@ -275,6 +278,12 @@
       '</div>';
     var avatarBtn = slot.querySelector('.sa-avatar');
     var menu = slot.querySelector('.sa-menu');
+    // 有自定义头像则用图片铺满，否则保留首字母
+    if (user.avatar && /^data:image\//.test(user.avatar)) {
+      avatarBtn.classList.add('sa-avatar-img');
+      avatarBtn.style.backgroundImage = 'url("' + user.avatar + '")';
+      avatarBtn.textContent = '';
+    }
     avatarBtn.addEventListener('click', function (e) { e.stopPropagation(); menu.classList.toggle('open'); });
     document.addEventListener('click', function () { menu.classList.remove('open'); });
     slot.querySelector('.sa-logout').addEventListener('click', function () { SiteAuth.logout(); menu.classList.remove('open'); });

@@ -163,6 +163,18 @@
 
     logout: function () { clearSession(); },
 
+    // 更新资料：{ nick?, bio?, avatar? }。成功后刷新本地 user 缓存 + 同步昵称到小游戏身份，
+    // 触发 onChange 让导航头像/账号页即时重渲染。
+    updateProfile: async function (fields) {
+      var r = await post('/auth?action=profile', fields || {}, true);
+      if (!r.ok || !r.data || !r.data.user) {
+        return { ok: false, error: (r.data && r.data.error) || 'update_failed' };
+      }
+      setSession(null, r.data.user);
+      if (r.data.user.nick) lsSet('gs.nick.v1', r.data.user.nick);
+      return { ok: true, user: r.data.user };
+    },
+
     // 校验本地 token 是否仍有效；无效则登出。返回最新 user 或 null。
     refresh: async function () {
       var t = SiteAuth.getToken();
