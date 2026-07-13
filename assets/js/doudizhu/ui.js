@@ -2585,7 +2585,7 @@
     GamesShell.Settlement.present({ dataURL, filename });
   }
 
-  function difficultyLabel(d) { return { easy: '🌱 新手', normal: '🙂 普通', hard: '🔥 高手', master: '👑 大神' }[d] || d; }
+  function difficultyLabel(d) { return { easy: '🌱 新手', normal: '🙂 普通', hard: '🔥 高手 · AI', master: '👑 大神 · AI' }[d] || d; }
   function seatLabel(s) { return s === 0 ? '你' : 'AI'; }
   function formatDuration(ms) {
     const s = Math.floor(ms / 1000);
@@ -2939,7 +2939,7 @@
     const parts = [];
     parts.push(`<strong>${cfg.aiCount === 0 ? '3 真人' : (cfg.aiCount === 1 ? '2 真人 + 1 AI' : '1 真人 + 2 AI')}</strong>`);
     if (cfg.aiCount > 0) {
-      const lv = ({ easy: '🌱 新手', normal: '🙂 普通', hard: '🔥 高手' })[cfg.aiLevel] || cfg.aiLevel;
+      const lv = difficultyLabel(cfg.aiLevel);
       parts.push(`AI ${lv}`);
     }
     parts.push(cfg.bidStyle === 'call' ? '叫分模式' : '抢地主');
@@ -3366,7 +3366,7 @@
     for (let i = 0; i < (cfg.aiCount || 0); i++) {
       const li = document.createElement('li');
       const seat = requiredHumans + i + 1;
-      li.innerHTML = `<span class="seat">座 ${seat}</span><span class="nick">🤖 AI · ${({ easy: '新手', normal: '普通', hard: '高手' })[cfg.aiLevel] || '普通'}</span><span class="badge">AI</span>`;
+      li.innerHTML = `<span class="seat">座 ${seat}</span><span class="nick">🤖 AI · ${({ normal: '普通', hard: '高手', master: '大神' })[cfg.aiLevel] || '普通'}</span><span class="badge">AI</span>`;
       ul.appendChild(li);
     }
     const startBtn = $('ddzLobbyStartBtn');
