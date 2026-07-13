@@ -1,3 +1,51 @@
+## 2026-07-13
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生。距 7-12 巡检共 **0 个新 commit**（`git log ab84fb4..HEAD` 空、`git log --oneline -1` 头仍是 `ab84fb4 chore(daily-review): 2026-07-12 自动巡检`）。工作区自 7-12 上一次 routine 落地后**完全静止**——0 文章 / 0 IA / 0 `_data/` / 0 `_config.yml` / 0 `_notes/` / 0 `files/` / 0 前端 / 0 二进制变动。这是 7-11 那场 27-commit 高强度冲刺日之后的**连续第二个回落日**，也是本 routine 自 5-27 常态化以来遇到「距上一次巡检 0 commit」的第六日（前五日分别是 6-28 / 7-01 / 7-09 / 7-10 / 7-12）。
+>
+> **build 健康度**：`bundle install` ✅（`Bundle complete! 7 Gemfile dependencies, 39 gems now installed.`）+ `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（**15.456 s cold build**，与 7-12 的 15.24 s 同量级）。`_site/` 顶层 **27 项**与 7-12 完全一致（`404.html` `CNAME` `account` `admin` `admin-manifest.json` `assets` `assistant-fulltext.json` `assistant-index.json` `en` `essays` `feed.xml` `files` `flight` `google5306…` `index.html` `life` `manifest.json` `notes` `pdfjs` `redirects.json` `research` `robots.txt` `search.json` `sitemap.xml` `sw.js` `toolbox` `zh`）。**三个关键产物 byte-identical**：`_site/toolbox/forest/index.html` **438533 B** 与 7-12/7-11 一字不差；`_site/404.html` **87456 B**、`_site/zh/about/index.html` **93293 B**，也都稳定。`_notes/` 全 **270 篇 md** 仍 100% 覆盖 `keywords:`（`grep -rL '^keywords:' _notes/` 空），搜索体系闭环。`toolbox/forest/index.html` 的 `console.log|debugger|TODO|FIXME|XXX` 仍全 0 命中（净化住）。`_paid/` + `_flight-staging/` 在 `_config.yml` L50/L52 exclude 稳固、`find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空。`_config.yml` 的 `exclude:` 已含 `DAILY_REVIEW.md`（L35）、`EMAIL_SUMMARY.md`（L36）。
+>
+> **今日 0 项自动修复**——本仓库距上次巡检未发生任何改动，工作树 clean（`git status` clean、`git ls-files --others --exclude-standard` 空），所有健康度指标与 7-12 一字不差，一切承接项按原优先级持续挂在待办栏。
+>
+> **P0 承接**：⚠ 承接 7-07 ~ 7-12 的 **forest / ledger / pindou 三个工具的 maskable PWA 图标与主 icon 仍 `byte-identical`**（今日**第 7 日承接**——达 7 天节点）。今日再次 `md5sum` 核验三对文件 md5 与前六日一字不差：`assets/icons/forest-icon-{512,maskable-512}.png` 都是 `63df7becb4ddc57e2b95e88305a33a18`、`assets/icons/ledger-icon-{512,maskable-512}.png` 都是 `fad6da15326e5fbf54adb03663f78be2`、`assets/icons/pindou-icon-{512,maskable-512}.png` 都是 `fed25167c04f65fc5ce80f28bd12ddf6`。`5c58756` commit body 承诺的 v2「maskable 主体收进 80% 安全圆」实际未落地——Android launcher 圆形遮罩仍会裁掉外圈金环。本 agent 不擅动（需图形工具重画、涉及美术判断）。
+>
+> **P1 承接**：唯一 P1 仍是承接 6-13 的 `_config.yml`.`study_order` 未列 `interm-econometrics`（今日**第 31 日承接**，突破 30 天节点）。核对：`ls _notes/study/` 仍 26 个目录 vs `study_order` 25 条、`comm -23` 差集仍只 `interm-econometrics` 一条。7-11 自写教材书架上线后，`interm-econometrics-2023.md` 在 `/notes/` 顶部书架里已作为 6 卡之一可见（作者 Rui Zhou 命中书架筛选）；下方按 `discipline` 分组渲染的传统树里仍因 `study_order` 缺该 slug 而无课程块。是否仍算 P1、还是已被自写教材书架的引入部分解决 —— 请你拍板：保留现状 / 加进 `study_order` 让下方树里也出现 / 改与 `interm-metrics/` 合并。仓库里最久的 P1，31 天挂账、纯 IA 设计判断、不擅改。
+>
+> **P2 承接**：承接 7-11/7-12 全部 P2（7-11 冲刺日新增 `/zh/about/` + `404.html` + 首页照片堆叠 3 张预渲染 + reduce-motion 翻页 + forest「grow」暗号 + forest ∞ 灵活模式的六组合真机验收 6 项 / `docs/workflows/*.workflow.js` + `docs/ARCHITECTURE_REVIEW.md` 里含 4+1 处 `/Users/zhourui/…` 本机绝对路径的清理 / `452797e` 书架 commit 声明「现 7 本」实际 6 本的意图确认；以及从 7-10/7-07/7-06 承接的 forest 两轮对抗式审查修复 6 处的六组合真机验收 6 项 / 建议把「对抗式审查 → 反驳式核验」自动化 QA 循环写进 `MAINTENANCE.md` 或新建 `docs/adversarial-review.md`、forest 双视图 App / 五主题 / PWA 图标 v2 六组合真机验收 + `scripts/audit/maskable_icon_consistency.py`、forest / pet / picker / connect4 / feixingqi / chess / xiangqi 真机验收、bare_dollar / spotcheck 启发式漏判、tutoring / paid-test-visa / mao-thought-principles summary、random hover 缩进、mid-2015 / anova-R 互链、掼蛋联机回归、宠物中心多浏览器、机票监控 mac 端到端、flight 5 HTML 多浏览器、经济学工具箱三项确认、jukebox 问题首、DNS NameResolutionError、dead_links SVG xmlns 误判、connect4 canvas 无键盘落子、linear-algebra-strang.md summary 引用、`_flight-staging/` 命名共 30 条）——今日无新观察消除、无新观察加入，承接不变。
+>
+> **仓库卫生**：目录结构与文件架构**较昨日无变化**——0 commit、0 文件动；`git status` clean、`git ls-files --others --exclude-standard` 空、`find` `.DS_Store` / `*.bak` / `*.orig` / `*.tmp` / `*~` / `* 2.*` / `.env*` / `*.log` 全空、无 5 MB+ 新二进制。大文件核对与 7-12 完全一致：`files/or/or-2023.pdf` 5.4 MB 唯一 5 MB+、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB + `files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB + `pdfjs/build/pdf.worker.mjs` 仍 2.1 MB+ 群。**结论**：仓库结构较昨日无变化，无需再优化。
+
+### ✅ 本次已自动修复
+
+无。
+
+距上次 review 0 个新 commit、工作区完全静止；build ✅ / `_site/` 27 项结构与 7-12 一字不差 / 关键 assets 尺寸（forest 438533 B / 404.html 87456 B / zh/about 93293 B）稳定 / workspace 干净——无任何低风险小修可做。
+
+### 📋 待你把关
+
+#### P0（紧急）
+
+1. **forest / ledger / pindou 三个工具的 maskable PWA 图标与主 icon 仍 `byte-identical`**（承接 7-07 / 7-08 / 7-09 / 7-10 / 7-11 / 7-12，**第 7 日承接**——达 7 天节点）。今日再次 `md5sum` 核验三对文件 md5 与前六日一字不差：`assets/icons/forest-icon-512.png` 与 `assets/icons/forest-icon-maskable-512.png` 都是 `63df7becb4ddc57e2b95e88305a33a18`、`assets/icons/ledger-icon-512.png` 与 `assets/icons/ledger-icon-maskable-512.png` 都是 `fad6da15326e5fbf54adb03663f78be2`、`assets/icons/pindou-icon-512.png` 与 `assets/icons/pindou-icon-maskable-512.png` 都是 `fed25167c04f65fc5ce80f28bd12ddf6`。`5c58756` commit body 承诺的 v2「maskable 主体收进 80% 安全圆」实际未落地——Android launcher 圆形遮罩仍会裁掉外圈金环 / 装饰。请重新生成三张真正带 80% 安全圆的 maskable-512.png 覆盖。**本 agent 不擅动**：需要图形工具重画、涉及美术判断。
+
+#### P1（重要）
+
+1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 ~ 7-12，**第 31 日承接**——突破 30 天挂账节点）。今日核对：`ls _notes/study/` 仍 26 个目录、`study_order` 仍 25 条，`comm -23` 差集仍只 `interm-econometrics` 一条。**7-11 自写教材书架上线后**，`interm-econometrics-2023.md` 已在 `/notes/` 顶部书架里作为 6 卡之一可见（作者 Rui Zhou 命中书架筛选）；下方按 `discipline` 分组渲染的传统树里仍因 `study_order` 缺该 slug 而无课程块。是否仍算 P1、还是已被自写教材书架的引入部分解决 —— 请你拍板：保留现状 / 加进 `study_order` 让下方树里也出现 / 改与 `interm-metrics/` 合并。仓库里最久的 P1，31 天挂账、纯 IA 设计判断、不擅改。
+
+#### P2（建议）
+
+1. **承接 7-11 / 7-12 全部 P2**——(a) 7-11 冲刺日新增 `/zh/about/` + `404.html` + 首页照片堆叠 3 张预渲染 + reduce-motion 翻页 + forest「grow」暗号 + forest ∞ 灵活模式的六组合真机验收 6 项（iPhone Safari + Android Chrome + iPad + 桌面 Chrome + 桌面 Firefox + PWA standalone；沙箱无 GUI / 无触屏跑不了）；(b) `docs/workflows/*.workflow.js`（4 处）与 `docs/ARCHITECTURE_REVIEW.md`（1 处）里含 `/Users/zhourui/…` 本机绝对路径、暴露 macOS 用户名与桌面路径习惯，`docs/` 虽在 `_config.yml` L34 exclude 内不外泄到 `_site/`、但仓库层面可 git clone 后 grep 到，改成 `path.resolve(__dirname, …)` 或 `${HOME}/…` 更干净——涉及脚本可运行性判断、非「小而无争议」范畴、本 agent 不擅动；(c) `452797e` 书架 commit 声明「现 7 本」但今日仍是 6 本（差「线代」不含 Strang 那本 + 「策略与博弈」两本）——commit body 与实际数据不符的意图确认。
+
+2. **承接 7-10 / 7-07 / 7-06 全部老 P2**（forest 两轮对抗式审查修复 6 处的六组合真机验收 6 项 / 建议把「对抗式审查 → 反驳式核验」自动化 QA 循环写进 `MAINTENANCE.md` 或新建 `docs/adversarial-review.md`、以及从 7-07 承接的 forest 双视图 App / 五主题 / PWA 图标 v2 六组合真机验收 + `scripts/audit/maskable_icon_consistency.py`、7-06 承接的 forest / pet / picker / connect4 / feixingqi / chess / xiangqi 真机验收、bare_dollar / spotcheck 启发式漏判、tutoring / paid-test-visa / mao-thought-principles summary、random hover 缩进、mid-2015 / anova-R 互链、掼蛋联机回归、宠物中心多浏览器、机票监控 mac 端到端、flight 5 HTML 多浏览器、经济学工具箱三项确认、jukebox 问题首、DNS NameResolutionError、dead_links SVG xmlns 误判、connect4 canvas 无键盘落子、linear-algebra-strang.md summary 引用、`_flight-staging/` 命名共 27 条）——今日无新观察消除、承接不变。
+
+### 🗂 仓库卫生
+
+**目录结构与文件架构较昨日无变化**——0 commit、0 文件动，`git status` clean、`git ls-files --others --exclude-standard` 空、`find` `.DS_Store` / `*.bak` / `*.orig` / `*.tmp` / `*~` / `* 2.*` / `.env*` / `*.log` 全空、无 5 MB+ 新二进制、无 `.env` / 密钥类文件。大文件核对与 7-12 一字不差：`files/or/or-2023.pdf` 5.4 MB 唯一 5 MB+、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB + `files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB + `pdfjs/build/pdf.worker.mjs` 仍是 2.1 MB+ 群。`_paid/` + `_flight-staging/` 在 `_config.yml` L50/L52 exclude 双保险稳固、`_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空。`_config.yml` 的 `exclude:` 已含 `DAILY_REVIEW.md`（L35）、`EMAIL_SUMMARY.md`（L36）等所有内部产物。**结论**：仓库结构较昨日无变化，无需再优化。
+
+### 💓 后端脉搏 / 📬 读者来信
+
+后端三件套（zircon-urge / leaderboards / zircon-comments waline）+ 付费墙 `/api/paid` / `/api/redeem` 端点承接沙箱无 fly.io 出口现象、不阻塞巡检、未主动重启 fly app。**今日 0 个新 commit**，无后端 / 前端 / 依赖 / 内容变化。
+
+---
+
 ## 2026-07-12
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生。距 7-11 巡检共 **0 个新 commit**（`git log 554d5ba..HEAD` 空、`git log --oneline -1` 头仍是 `554d5ba chore(daily-review): 2026-07-11 自动巡检`）。工作区自 7-11 上一次 routine 落地后**完全静止**——0 文章 / 0 IA / 0 `_data/` / 0 `_config.yml` / 0 `_notes/` / 0 `files/` / 0 前端 / 0 二进制变动。这是 7-11 那场 27-commit 高强度冲刺日之后的**回落一天**，也是本 routine 自 5-27 常态化以来遇到「距上一次巡检 0 commit」的第五日（前四日分别是 6-28 / 7-01 / 7-09 / 7-10）。
@@ -986,121 +1034,3 @@
 
 ---
 
-## 2026-06-29
-
-> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（16 项；今日周一 DOW=1，跑了 dead_links / orphan_files / pii_scan 三项周一项；DOM=29，未跑 monthly_stats）。距 6-28 巡检共 **9 个 commit**（`9f69751` → `e84fd3f`），全部是宠物中心一条线的 UX 打磨与功能加固，承接昨日 P2#6「待多浏览器/多设备验收」的同一作者持续推进：① `09f9b08` + `45a8603`「v2026.06.24 版本信标双子」——先加可见标 `2026.06.24-A`、再撤页头药丸改页脚低调灰字（避免吵正文）；② `7a1e38f` + `07d55e2`「6-28 巡查组 autofix」——共享同步防丢条 / 活动流持久化 / 成员辨识度 + 后续 XSS / 辨识度 / 同步合并 / 逻辑 / 三端打磨；③ `5696bec` + `dbba468` + `a95883a` + `b15db52` + `e84fd3f`「6-28 b/c/d/e/f 五连递增 patch」——数据备份导出/恢复 + 存储满真提示回滚 + 删除权限前端收口 / 身份 token 前端接入 + 家人动态含自己 + 通知文案软化 + 加入通知/换码清退 / 修通知箱标题重复 + 统一三端折叠断点 + iPad 防缩放 / 三端设计打磨（手机正文宽度 / auto-fit 卡 / 圆角阴影体系 / 弹窗关闭键）/ 猫语面板并入主面板视觉 + PWA standalone 专属顶栏。9 个 commit 全部聚焦 `_includes/toolbox/pet/` + `_includes/cat-soundboard.html` + `assets/css/pet.css` + `assets/js/pet.js` 四套文件、不溢出。`bundle install` ✅ + `bundle exec ruby -e 'Jekyll::Commands::Build.process(...)'` ✅ 通过、零 warning、零 error（cold build 13.114 s）。今日 `scripts/audit/run.sh` 全套审计 **13/13 每日项全 clean + 3/3 周一项跑完**——`keywords_coverage`（散文 121 篇全部充足，承接 6-27 / 6-28）/ `images`（仅 `files/interm-macro/interm-macro-2022-zh.pdf` 2.13 MB 大文件，承接 6-16 ~ 6-28，markdown 入口正常）/ `material_type_enum`（**分布完全无变化**：Notes ×46 / Exams ×40 / 课程测评 ×18 / 经验之谈 ×5 / 错题本 ×3 / 写作 ×2 / 口语 ×1 / 词汇 ×1，承接 6-28）/ `filename_convention` / `hover_no_media`（pet 大改后所有 `:hover` 仍齐用 `@media (hover: hover)` 守卫）/ `sibling_crosslink`（10 个 ≥3 篇 sub_category 组全互链）/ `bare_dollar` / `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` / `spotcheck`（10 项配额抽检见下）/ `backend_pulse`（HTTP 403，承接 6-04 ~ 6-28）/ `dead_links`（260 条与上周一同源：wechat 403 ×几十条 + 几十条 DNS NameResolutionError 长链 + 5 条已知失活外链 + jsdelivr / fonts.googleapis 等 CDN 沙箱不可达）/ `orphan_files`（0 孤儿）/ `pii_scan`（18 篇含 PII，分布同上周一，无新增）。**今日 3 项自动修复**——巡读 `_notes/` 全文时发现 3 处 `\$<math>$` 转义错位（半个 `\$` 转义掉，后面 `$` 开了未配对的数学环境，致 KaTeX 渲染断裂）：① `_notes/life/fresh-vs-frozen-fish.md:56`「速率降至 \$1/100$」→「速率降至 $1/100$」（数学分数）/ ② `_notes/life/autorefractor.md:34`「短了 \$1/3$ 米」→「短了 $1/3$ 米」/ ③ `_notes/study/adv-micro-psu/adv-micro-psu-2026.md:106`「正是 \$1-F(x)$ 这个概率质量」→「正是 $1-F(x)$ 这个概率质量」。三处都属同模式打字错误（本想写 `$math$`、误把开头 `$` 转义成 `\$`），上下游同段已用正确 `$...$` 配对，没有歧义；修复后 cold rebuild 仍零 warning / 零 error（4.999 s）。**P1 队列**：承接昨日两条 `study_order` 缺项——①承接 13 日的 `interm-econometrics`（**第 17 日承接**）、②承接 1 日的 `linear-algebra`（**第 6 日承接**），核对 `comm -23` 差集仍是这两条；都属 IA 设计判断、不擅改。
-
-### ✅ 本次已自动修复
-
-1. **`_notes/life/fresh-vs-frozen-fish.md:56`** —「`速率降至 \$1/100$）`」→「`速率降至 $1/100$）`」。原文为 `\$1/100$`：开头 `\$` 被 KaTeX 解析为字面美元符 `$`，剩下 `1/100$` 开了一个**未配对的**数学环境，会污染段落后续直到下一个 `$` 才闭合；前后同段 `$5\text{-}10\%$` / `$10\text{-}15\%$` / `$-18$ ℃` 都是 KaTeX 数学分数 / 区间正确写法，本行作者本想用 `$1/100$` 表「速率降到 1/100」（分数），不是货币。修复后 KaTeX 在 -18 ℃ bullet 处正常渲染分数。
-2. **`_notes/life/autorefractor.md:34`** —「`焦距比"刚好落在视网膜上"短了 \$1/3$ 米`」→「`...短了 $1/3$ 米`」。同一模式：本行讲 `-3.00 D` 对应焦距 `1/3 米`（屈光度倒数），是数学分数；同段 `$-3.00$ D` 已用了正确 `$...$` 数学写法，作者本想写 `$1/3$`、误把开头 `$` 转义。修复后段落 KaTeX 正确渲染分数 1/3。
-3. **`_notes/study/adv-micro-psu/adv-micro-psu-2026.md:106`** —「`正是 \$1-F(x)$ 这个概率质量`」→「`正是 $1-F(x)$ 这个概率质量`」。Mechanism Design 章节讲 hazard rate `(1-F(x))/f(x)` 的直觉拆解时，同句开头与结尾都用了 `$\frac{1-F(x)}{f(x)}$` / `$f(x)$` / `$(1-F)/f$` 等正确 `$math$` 写法，本行作者本想用 `$1-F(x)$`、误把开头 `$` 转义；句子另一处 `$f(x)$` 表「本地密度」配对正常。修复后段落 KaTeX 正确渲染 `1-F(x)`。
-
-> **判定路径**：`grep -rnE '\\\$[^$]{1,40}\$' _notes/` 扫到约 25 条候选，其中 22 条是 `$\$10K$` 这类正确写法（math 模式里用 `\$` 嵌字面美元符，表「\$10K」金额）—— 排除；剩下 3 条是真错位（math content 1/3 / 1/100 / 1-F(x) 不是货币），统一修复。前后段落上下文一致、零歧义，符合「小而无争议」标准；rebuild 验证零回归。
-
-### 📋 待你把关
-
-#### P0（紧急）
-无。
-
-#### P1（重要）
-
-1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 / 6-14 / 6-15 / 6-16 / 6-17 / 6-18 / 6-19 / 6-20 / 6-21 / 6-22 / 6-23 / 6-24 / 6-25 / 6-26 / 6-27 / 6-28，**第 17 日承接**）。`/notes/` landing 渲染遍历 `site.study_order`（`notes/index.html` L81），所以 `interm-econometrics-2023.md`（sub_category =「中级计量经济学」、120 页 Wooldridge 体系教科书式英文讲义）在 `/notes/index.html` 里**渲染不出来**（sitemap / search.json 仍正常工作，**仅** landing 缺）。今日核对：`ls _notes/study/` 仍 25 个目录、`study_order` 仍 23 条，`comm -23` 差集仍是 `interm-econometrics`、`linear-algebra` 两条，承接昨日不变。改否、改成什么名（保留现状 / 加进 `study_order` / 与 `interm-metrics/` 合并）属设计判断，仍请你拍板。
-
-2. **`_config.yml` 的 `study_order` 仍未列 `linear-algebra` 文件夹**（承接 6-24 / 6-25 / 6-26 / 6-27 / 6-28，**第 6 日承接**）—— `dfbb84c` 6-24 新建的 `_notes/study/linear-algebra/linear-algebra-strang.md` 因 `study_order` 没列 `linear-algebra`，**在 `/notes/index.html` 数学组里渲染不出来**（sitemap / search.json / `_site/notes/linear-algebra/linear-algebra-strang.html` 都正常输出，仅 landing 缺）。`_config.yml` 中数学组当前只有 `real-anal` 一条；自然位置是放在 `real-anal` 之前（线性代数比实分析更基础）。**但放在何处属顺序判断，且未来可能还会加中文版**（详见 P2#1），故仍写进待办由你拍板。
-
-#### P2（建议）
-
-1. **`linear-algebra-strang.md` 的 summary 引用「本站中文《线性代数讲义》」但仓库内仍不存在**（承接 6-24 / 6-25 / 6-26 / 6-27 / 6-28）—— `grep "course.*线性代数" _notes/study/` 仍只命中 strang 这一篇，未发现中文姊妹版。summary 最后一句「这是本站中文《线性代数讲义》之外，按 Strang 教法重构的英文姊妹篇」会让读者点过去找不到中文版。两种可能：① 中文版还在 LaTeX 化排队待上线 → 等中文版落地再放出；② 临时占位文案 → 删去「之外，按 Strang 教法重构的英文姊妹篇」这句、改成自足介绍。**属内容写作判断、请你拍板**。
-2. **`scripts/audit/spotcheck.py` 的 `.tex 源` 探测启发式漏判带主题后缀和异目录情形**（承接 6-27 / 6-28）—— L185 `fp.with_suffix(".tex")` 只查同路径同基名 `.tex`，无法识别两类常见模式：① **主题后缀**（同目录）`chN.pdf` ↔ `chN_<topic>.tex`（昨日抽检 `files/adv-macro-psu/chapters/ch8.pdf` 实存 `ch8_rbc.tex` 一例为证）；② **异目录**（`files/<topic>/` ↔ `files/<topic>/source/`）（昨日抽检 `files/real-anal/real-anal-ch6-2024.pdf` 实存 `files/real-anal/source/real-anal-ch6-banach-spaces.tex` 一例为证）。今日 4 项 `pdf_archive` 抽检里另 2 项（`files/game-theory/game-theory-mid-2023.pdf` 1.4 MB、`files/adv-micro-pku/chapters/ch6.pdf` 134.8 KB）均确为真 PDF-only（核对：`ls files/game-theory/source/` 不存在；`ls files/adv-micro-pku/chapters/` 仅 ch1.pdf…chN.pdf 无任何 `.tex` 源），不再加例。**建议修复**：把 `if tex.exists(): continue` 改成同时检测 ①`fp.with_suffix(".tex")`、②`<dir>/<stem>_*.tex` glob、③`<repo>/<files-dir>/<topic>/source/**/<stem>*.tex` glob 与 `**/*-<stem-tail>*.tex` glob。属审计脚本启发式增强、风险极低、纯减小 false-positive 抽签池——但仍是脚本逻辑改动，**自评不属"小而无争议"范畴，列入待办由你拍板**。
-3. **`_notes/study/mao-thought/mao-thought-principles.md` 缺 `summary` 字段**（今日**新发现**，抽检 6/10）—— 22 行 / 2.4 KB / 正文有一段实质引导（line 17，介绍备考 2023 春毛概期末时对着课本逐章整理出的全部知识点梳理，沿教材主线层层展开）+ 串读引到「期末重点」与「真题回忆版」+ LaTeX 源链接（line 21）。front-matter 完整（layout=post / sub_category=毛泽东思想和中国特色社会主义理论体系概论 / course / material_type=Notes / date=2023-06-15 / discipline=思政 / keywords ×26 充足覆盖核心搜索词），**但无 `summary` 字段**。同 sub_category 三件套的另两篇（`mao-final-highlights-2023.md` / `mao-final-2023-spring.md`）情况待核（未抽中）；本篇正文 / 体例 / 互链都已齐，仅缺 SEO / 列表卡 summary。归并入老文盘扫待办（与昨日 P2#10 `corp-fin/mid-2018.md` 同 pattern）—— 属内容写作判断（站主了解课程内容、写一句更准），不擅改。
-4. **`toolbox/random/` hover 守卫内层缩进 cosmetic** —— 承接自 6-03。功能正确，纯排版风格小差异，可忽略。
-5. **mid-2015 与 anova-R 纯 PDF 存档可加同课程互链入口** —— 承接自 6-03。已有「同课程自动侧栏」覆盖（`sibling_crosslink.py` ✅）但缺手写互链段落引导。属内容写作决策。
-6. **掼蛋 6-18 ~ 6-24 期间联机改造 + 调试链路收尾共 23 个 commit 待真机/微信内置浏览器跑两局完整联机回归** —— 承接 6-27 / 6-28 P2#5。重点回归：① 联机终局对方看到最后一手桌面（`0fcd7ed` mp19）；② 调试台 4-Tab + 字体放大 + 融合 test/quad（`97d9c72`）；③ Web Audio 合成音效（`7d9197a`）。沙箱无浏览器/音频出口无法替代真机回归。
-7. **宠物中心 6-28 共 9 commit（v2026.06.24-A → v2026.06.28f）三端 UX 大改 + 数据备份 + 身份 token + 共享同步加固待多浏览器/多设备验收** —— 承接 6-27 / 6-28 P2#6 并升级范围。今日新增的 9 commit 集中在三件事：① **数据备份导出/恢复 + 存储满真提示回滚 + 删除权限前端收口**（`5696bec`）—— 站主建议在「设满存储 quota 触发 QuotaExceededError」与「主动删一条体重 / 饮食」两个路径上跑回滚验收；② **身份 token 前端接入 + 加入通知/换码清退**（`dbba468`）—— 多设备 + 多家人时的「邀请码 → token 落本地 → token 失效后清退」是高风险联机链路，需主端 + 副端两台同时跑「邀请 → 加入 → 主端换码 → 副端被清退」整套；③ **三端设计打磨**（`b15db52` / `e84fd3f`）—— 手机正文宽度 / auto-fit 卡 / 圆角阴影体系 / 弹窗关闭键 / PWA standalone 顶栏 / 猫语面板视觉并入主面板，建议站主在 iPhone Safari + Android Chrome + 桌面 Chrome + 桌面 Firefox + 加装到主屏（PWA standalone）至少五个组合下，过一遍 board——加 1 条体重 + 加 1 条饮食 + 触发 mismatch + 切深色 + 切 prefers-reduced-motion + 离线刷新 + 多端共享 + 撤销作差链 + Esc 关弹窗 + 试导出/导入。沙箱无 GUI / 无真触屏，确确实实跑不了。
-8. **jukebox 16 首问题首 + 3 失败首待逐类修复** —— 6-17 `008ff4f` 落地 74 首安全改善后剩余的「英文歌 / 翻唱抓错 CD / ASR 漂移」等问题首站主可继续推进。属内容修复决策（承接自 6-18 ~ 6-28）。
-9. **5 条 DNS NameResolutionError 外链需站主在生产环境复验**（沿用 6-08 / 6-15 / 6-22 / 6-23 / 6-24 / 6-25 / 6-26 / 6-27 / 6-28）—— `centretax.net` / `offcampus.psu.edu` / `www.hwdrivingschool.com` / `www.judicialinformation.com` / `www.textile-outlook.com`。今日周一跑了 `dead_links.py`，本次报 260 条外链疑似死链，多数是沙箱代理 ProxyError（jsdelivr / fonts.googleapis / google CDN / openstreetmap / fly.io 等），不是真死链；wechat 403 一批与 PII 同源（公众号文章链接对未登录爬虫返回 403），不是真死链；上述 5 条 DNS 解析失败属真坏链候选，需站主在生产 / 本机复验。
-10. **`dead_links.py` 把 SVG `xmlns="http://www.w3.org/2000/svg"` 命名空间字符串误判为外链**（沿用 6-08 / 6-22 / 6-23 / 6-24 / 6-25 / 6-26 / 6-27 / 6-28）—— audit 脚本 cosmetic（6-10 已有 SKIP_URL_PATTERNS 但仍偶发命中）；非阻塞。
-11. **抽检 3/10 · `_notes/study/corp-fin/mid-2018.md` 缺 `summary` 字段**（承接 6-28 P2#10）—— 与本次 P2#3 `mao-thought-principles.md` 同 pattern；老文盘扫待办，日后补 summary 时一并涵盖；当下不影响功能。
-
-### 🗂 仓库卫生
-
-**仓库结构较昨日无变化，无需再优化**——9 个新 commit 全部聚焦宠物中心（`_includes/toolbox/pet/` + `_includes/cat-soundboard.html` + `assets/css/pet.css` + `assets/js/pet.js` 四套已有文件，无新增目录、无新增文件），未引入新的目录或可疑文件；`git status` clean、`git ls-files --others --exclude-standard` 空、`find . -name '.DS_Store' -o -name '*.bak' -o -name '*.orig' -o -name '*.tmp' -o -name '*~'` 全空、副本文件（`find . -name "* 2.*"`）全空 / 无密钥 / 凭证 / 个人路径痕迹。`_config.yml` 的 `exclude:` 列表已含 `DAILY_REVIEW.md`、`EMAIL_SUMMARY.md`、`SPOTCHECK_*`、`TOOLBOX_AUDIT_REPORT.md`、`docs/`、`scripts/`、`tools/`、`_paid/`、`audio/`、`backends/`、`.claude/`、`.githooks/` 等所有内部目录与产物，状态与昨日完全一致。`.gitignore` 状态未变。**结论**：与 6-15 ~ 6-28 同——仓库目录基线稳定，无可优化空间，跳过结构调整。
-
-### 🔬 抽检专项
-
-**抽检 1/10 · `game` · `toolbox/dontdoit/index.html`**（1052 行 / 45.2 KB inline ·「不要做挑战 Don't Do It」社交派对小游戏 · 同目录 `cards.json`）
-- 已修复：无。
-- 一致性 ✅：layout=default / title「不要做挑战 Don't Do It \| Rui Zhou」/ permalink=/toolbox/dontdoit/；正确接入 `assets/css/games-shell.css`（L381）+ `games-shell/identity.js` / `qrcode.js` / `comments.js`（L385-387）；卡牌内容外置 `cards.json` 与 index.html 解耦。1052 行略超 1000 行拆分软阈值但属可接受范围（卡牌渲染 + 抽卡逻辑 + 排行榜联机自洽，强行拆分反而 IA 散）。
-- 同目录已含 `cards.json` 内容拆分文件，无独立 .js / .css；调性符合站点高端典雅，dare-header / dare-btn / dare-wrap 命名清晰。
-- 联机/排行榜 ✅：通过 `games-shell` 已接入催更 + 评论 + 排行榜；属社交派对游戏适合联机使用。
-- 建议：无——架构合理、IA 健康、单文件中等规模可维护。
-
-**抽检 2/10 · `pdf_archive` · `files/game-theory/game-theory-mid-2023.pdf`**（1.4 MB · 2023 博弈论期中真题）
-- 已修复：无。
-- 归属 ✅：被 `_notes/study/game-theory/game-theory-mid-2023.md` 唯一引用 `pdf_url: "/files/game-theory/game-theory-mid-2023.pdf"`，路径有效。
-- 体积合理性：1.4 MB << 5 MB 大文件阈值；非孤儿、非候选 imgslim/pdfslim 对象。
-- LaTeX 化状态：✅ **真 PDF-only 存档**（核对：`ls files/game-theory/source/` 不存在；`grep "game-theory.*tex" files/`  零命中）。本科课程一次性期中真题原卷无更新需求，建议**维持现状**。
-
-**抽检 3/10 · `lecture_note_pdf_only` · `_notes/study/real-anal/hw-summary-with-sol.md`**（17 行 / 1.4 KB · 2024 UMich 实分析作业含答案合订本，PDF-only 存档）
-- 已修复：无。
-- 一致性 ✅：`pdf_url: "/files/real-anal/hw-summary-with-sol.pdf"` 路径有效；front-matter 完整（layout=post / main_category=学习资料 / sub_category=实分析 / course=实分析 / material_type=Notes / date=2024-09-01 / author=Zircon / discipline=数学 / permalink=/notes/real-anal/hw-summary-with-sol / **有 `summary` 字段且写满**：「2024 年在密歇根大学交换时上的实分析课，整学期作业题与我自己的解答合订本。覆盖 Lebesgue 测度、外测度、σ-algebra、Carathéodory 构造、可测函数、Lebesgue 积分、Fatou 引理等核心套路，可对照 Folland 教材自学或卡题时翻看参考解法。」/ keywords ×28 厚足覆盖核心搜索词「实分析 作业 含解答」/「Real Analysis homework with solution」/「UMich 实分析 作业」/「密歇根 实分析 作业」/「Folland 实分析 习题」/「测度论 作业 解答」/「Math 597 习题」等）。
-- 同 sub_category 互链 ✅：通过 `sibling_crosslink.py` 与同 `course=实分析` 的其他笔记（`hw-summary-with-sol.md` + `cheat-sheet.md` + `real-anal-2024.md` + chapter notes 等 ≥6 篇）自动侧栏互链。
-- LaTeX 化建议：③ 维持 PDF 存档即可——交换学期一次性作业题目 + 自己手写答案，PDF 性价比最高、无更新需求。
-- 长期建议：无。
-
-**抽检 4/10 · `pdf_archive` · `files/adv-metrics-psu/midterm-spring-2025-with-solutions.pdf`**（111.2 KB · 2025 春 PSU 高级计量博士课程期中含答案）
-- 已修复：无。
-- 归属 ✅：被 `_notes/study/adv-metrics-psu/midterm-spring-2025-with-solutions.md` 引用 `pdf_url`；`_notes/study/adv-metrics-psu/midterm-spring-2026.md` 也提到「上届期中含答案」串读链接到 `midterm-spring-2025-with-solutions.pdf` 作参考。
-- 体积合理性：111.2 KB << 5 MB；章节合理。
-- LaTeX 化状态：✅ **真 PDF-only 存档**（核对：`ls files/adv-metrics-psu/source/` 含 `midterm-spring-2025-with-solutions.tex`、实际 LaTeX 源已有 → 与昨日 spotcheck 启发式漏判 P2#2 同类）—— `files/adv-metrics-psu/source/midterm-spring-2025-with-solutions.tex` 存在但 `spotcheck.py` 因「异目录 + 主题后缀」启发式未识别。**承接 P2#2**。建议**维持现状**。
-- 长期建议：无。
-
-**抽检 5/10 · `note`（生活攻略 · 避孕套科普）· `_notes/life/condoms-guide.md`**（369 行 / 27.3 KB · 2026-05-27）
-- 已修复：无。
-- front-matter ✅：title「避孕套科普：怎么挑、怎么戴、戴和不戴差多少？」/ sub_category=生活之问 / date=2026-05-27 / permalink=/life/condoms-guide / keywords ×44 厚足覆盖核心搜索词（「避孕套科普」/「怎么挑避孕套」/「避孕套尺寸」/「nominal width」/「polyurethane」/「polyisoprene」/「lambskin」/「Sanders 2012 condom errors」/「CAEP 戴套勃起」/「左炔诺孕酮 1.5 mg」/「油基润滑剂 乳胶套」/「WHO 避孕套规范」/「ISO 4074 避孕套标准」等专业循证关键词全部到位）。
-- 内容观感 ✅：开篇用「完美使用 vs 典型使用 2% vs 13%」「80% 用户对自己用的尺寸不清楚」「戴套不戴套男女不对称」三组强 hook 进入；调性循证、严谨、说明「这是科普性内容，主要受众是已经有性行为或即将有性行为的成年人」声明；引 Sanders 2012、ISO 4074、WHO 规范等具体文献。
-- 图文 ✅：2 处 `<p class="img-caption">`，调性符合「生活之问」专栏。
-- 排版 ✅：数学百分比 `2%` / `13%` 直接写，未污染 KaTeX；无中文斜体（验证 `svg_italic_zh` ✅）；`---` 分割线规范。
-- 长期建议：无。
-
-**抽检 6/10 · `lecture_note_full` · `_notes/study/mao-thought/mao-thought-principles.md`**（22 行 / 2.4 KB · 2023 春毛概期末知识点梳理 · 51 页 PDF + 引导短文 + LaTeX 源链接）
-- 已修复：无。
-- 一致性 ✅：layout=post / sub_category=毛泽东思想和中国特色社会主义理论体系概论 / course / material_type=Notes / date=2023-06-15 / discipline=思政 / permalink=/notes/mao-thought/mao-thought-principles / pdf_url=/files/mao-thought/mao-thought-principles.pdf / published=true / keywords ×26 覆盖核心搜索词（「毛泽东思想和中国特色社会主义理论体系概论 知识点梳理」/「毛概 知识点」/「毛中特」/「马克思主义中国化时代化」/「新民主主义革命 三大法宝」/「邓小平理论」/「三个代表」/「科学发展观」/「习近平新时代中国特色社会主义思想」/「Mao Zedong Thought notes」+ 错别字「毛慨」「毛盖」「毛特」+ 期末复习词「毛概 期末 复习提纲」等）。
-- 正文 ✅：line 17 一段实质引导（备考 2023 春毛概期末时对着课本逐章整理出的全部知识点梳理，沿教材主线层层展开——从马克思主义中国化时代化的历史进程到习近平新时代中国特色社会主义思想——以多级提纲铺开各章要点，方便对着提纲背诵与回忆）、line 19 串读到「期末重点」与「真题回忆版」两篇 sibling、line 21 LaTeX 源链接。
-- 待办：**无 `summary` 字段**（front-matter 列出 keywords 后没接 summary）。同 sub_category 三件套之一却独缺 SEO / 列表卡 summary。归并入 P2 #3 老文盘扫待办（与昨日 corp-fin/mid-2018.md 同 pattern）—— 属内容写作判断、请你拍板。
-- LaTeX 化建议：本篇正文是 51 页 PDF + 引导短文混合形态、PDF 本身已带 LaTeX 源（`/files/mao-thought/source/mao-thought-principles.tex`），属于已完成 LaTeX 化状态，无须再加工。
-- 长期建议：无。
-
-**抽检 7/10 · `pdf_archive` · `files/adv-micro-pku/chapters/ch6.pdf`**（134.8 KB · PKU 高级微观课本章 6 切片）
-- 已修复：无。
-- 归属 ✅：被英文学术主页 `index.html` 唯一引用（adv-micro-pku 高级微观 PKU 博士课章节切片之一，与 6-27 抽检 `adv-macro-psu/chapters/ch5.pdf`、6-26 抽检 `adv-micro-psu/chapters/ch7.pdf` 同 pattern）。
-- 体积合理性：134.8 KB << 5 MB。
-- LaTeX 化状态：✅ **真 PDF-only 存档**（核对：`ls files/adv-micro-pku/chapters/` 全部为 ch1.pdf…chN.pdf，无任何 `.tex` 源；这是 PKU 课程章节切片，与 PSU 课程不同没做 LaTeX 化）。章节切片就是合订本拆页快捷下载入口，章节级 `.tex` 不强求。建议**维持现状**。
-- 长期建议：无。
-
-**抽检 8/10 · `note`（生活攻略 · 做菜用油）· `_notes/life/cooking-oils-guide.md`**（307 行 / 20.3 KB · 2026-03-06）
-- 已修复：无。
-- front-matter ✅：title「做菜用什么油？聊聊常见食用油的烟点和生态位」/ sub_category=生活之问 / extra_categories=[菜谱] / date=2026-03-06 / permalink=/life/cooking-oils-guide / keywords ×22（「做菜用什么油」/「食用油烟点」/「smoke point」/「橄榄油 EVOO」/「精炼 vs 初榨」/「MUFA PUFA」/「丙烯醛 acrolein」/「高温炒菜用什么油」/「油炸用油」等核心搜索词）。
-- 内容观感 ✅：循证介绍常见油烟点 + 不饱和脂肪酸 + 家用配置建议；调性符合「生活之问」专栏。
-- 图文 ✅：2 处 `<p class="img-caption">`。
-- 排版 ✅：数学 / 百分比写法规范、`---` 分割线规范、无中文斜体。
-- 长期建议：无。
-
-**抽检 9/10 · `note`（生活攻略 · 鲜鱼 vs 冷冻鱼）· `_notes/life/fresh-vs-frozen-fish.md`**（314 行 / 22.2 KB · 2026-03-09）
-- 已修复：line 56 `\$1/100$` → `$1/100$`（同今日自动修复 #1）。
-- front-matter ✅：title「鲜鱼 vs 冷冻鱼到底差在哪？」/ sub_category=生活之问 / date=2026-03-09 / permalink=/life/fresh-vs-frozen-fish。
-- 内容观感 ✅：开篇用「现杀活鱼 vs 急冻鱼到底差在哪 → K 值 / TVB-N 衰减曲线」做循证 hook；中段对比 0 ℃ / 4 ℃ / 20 ℃ / -18 ℃ / -30 ℃ 五档温度下 K 值变化、配 SVG「三种处理方式下的鱼肉鲜度衰减」图。
-- 图文 ✅：2 处 `<p class="img-caption">`（K 值衰减 + 三档解冻方法对比），调性符合「生活之问」。
-- 排版：今日修复 1 处 KaTeX 数学转义错位（line 56）；其余 `$5\text{-}10\%$` / `$10\text{-}15\%$` / `$-18$ ℃` / `$60$ ℃` / `$21$ ℃` / `$70$ ℉` 等数学写法规范。
-- 长期建议：无。
-
-**抽检 10/10 · `lecture_note_full` · `_notes/study/causal-id/robustness-check.md`**（18 行 / 1.6 KB · 因果识别·稳健性检验 · PDF-only）
-- 已修复：无。
-- 一致性 ✅：`pdf_url: "/files/causal-id/robustness-check.pdf"` 路径有效；front-matter 完整（layout=post / sub_category=计量因果识别方法 / course / material_type=Notes / date=2023-09-01 / discipline=经济学 / permalink=/notes/causal-id/robustness-check / **有 `summary` 字段**：「因果推断实证审稿中的稳健性检验专题笔记：覆盖 placebo test、parallel trends pre-trend、leave-one-out、bandwidth sensitivity、alternative IV、外推 vs 内推、subsample heterogeneity 等十余种 robustness check 写法；可对照实证论文 5-section 工作流。」/ keywords ×35 充足覆盖中英文 + 教科书别名 + 错别字「稳健性检测」+ PKU 课程别名 + 各 robustness check 写法名）。
-- 正文 ✅：line 17 `<p class="img-caption">LaTeX 源码：<a href="/files/causal-id/source/robustness-check.tex">robustness-check.tex</a></p>` 提供源码下载入口；属 `_layouts/post.html` PDF 自动导语承接 + summary 双重背书的健康 PDF-only 形态。
-- 同 sub_category 互链 ✅：与同 `course=计量因果识别方法` 的其他笔记自动侧栏互链。
-- LaTeX 化建议：✅ **已 LaTeX 化**（同目录 `source/robustness-check.tex` 已有源）；属健康状态。
-- 长期建议：无。
-
----
