@@ -42,6 +42,8 @@ noindex: true
     </div>
 
     <div id="acc-list" class="acc-list"></div>
+
+    <section id="acc-settings" class="acc-settings"></section>
   </div>
 </article>
 
@@ -111,6 +113,16 @@ noindex: true
   .acc-empty, .acc-loading { text-align:center; color:var(--color-light); padding:3rem 1rem; font-size:0.9rem; }
   .acc-comment-body { font-size:0.92rem; color:var(--color-text); line-height:1.6; }
   .acc-comment-body :is(p) { margin:0.2rem 0; }
+
+  /* ── 账号设置 ── */
+  .acc-settings { margin-top:2.6rem; padding-top:1.6rem; border-top:1px solid var(--color-border); }
+  .acc-set-h { font-size:1.1rem; color:var(--color-ink); margin:0 0 0.8rem; }
+  .acc-set-row { display:flex; align-items:center; gap:1rem; padding:0.95rem 0; border-bottom:1px solid var(--color-border); }
+  .acc-set-info { flex:1; min-width:0; }
+  .acc-set-t { font-size:0.95rem; font-weight:600; color:var(--color-text); }
+  .acc-set-d { font-size:0.78rem; color:var(--color-light); margin-top:0.2rem; line-height:1.5; word-break:break-word; }
+  .acc-set-row .acc-tool-btn { flex-shrink:0; }
+  .acc-set-panel .acc-ef { margin:0.7rem 0 0.3rem; }
 </style>
 
 <script>
@@ -122,6 +134,7 @@ noindex: true
     var listEl = document.getElementById('acc-list');
     var subEl = document.getElementById('acc-sub');
     var profileEl = document.getElementById('acc-profile');
+    var settingsEl = document.getElementById('acc-settings');
     var toolbar = document.getElementById('acc-toolbar');
     var tabs = document.querySelectorAll('.acc-tab');
     var api = SiteAuth.API_BASE + '/me';
@@ -395,17 +408,120 @@ noindex: true
 
     tabs.forEach(function (t) { t.addEventListener('click', function () { loadKind(t.dataset.kind); }); });
 
+    // ── 账号设置：设置/修改密码、导出数据、注销账号 ──────────────────
+    function renderSettings(user) {
+      if (!user) { settingsEl.innerHTML = ''; return; }
+      settingsEl.innerHTML =
+        '<h2 class="acc-set-h">账号设置</h2>' +
+        '<div class="acc-set-row">' +
+          '<div class="acc-set-info"><div class="acc-set-t">登录密码</div>' +
+            '<div class="acc-set-d">' + (user.hasPassword ? '已设置，可修改。' : '你现在用 Google 登录；设置密码后也能用「邮箱 + 密码」登录。') + '</div></div>' +
+          '<button class="acc-tool-btn" id="acc-pw-btn">' + (user.hasPassword ? '修改密码' : '设置密码') + '</button>' +
+        '</div>' +
+        '<div class="acc-set-panel" id="acc-pw-panel" hidden></div>' +
+        '<div class="acc-set-row">' +
+          '<div class="acc-set-info"><div class="acc-set-t">导出我的数据</div>' +
+            '<div class="acc-set-d">下载你的资料、收藏、点赞、浏览记录（JSON）。</div></div>' +
+          '<button class="acc-tool-btn" id="acc-export-btn">导出</button>' +
+        '</div>' +
+        '<div class="acc-set-row">' +
+          '<div class="acc-set-info"><div class="acc-set-t" style="color:#b5483a;">注销账号</div>' +
+            '<div class="acc-set-d">永久删除账号及其收藏 / 点赞 / 浏览记录，不可恢复。</div></div>' +
+          '<button class="acc-tool-btn danger-ghost" id="acc-del-btn">注销</button>' +
+        '</div>' +
+        '<div class="acc-set-panel" id="acc-del-panel" hidden></div>';
+      document.getElementById('acc-pw-btn').addEventListener('click', function () { togglePwPanel(user); });
+      document.getElementById('acc-export-btn').addEventListener('click', doExport);
+      document.getElementById('acc-del-btn').addEventListener('click', function () { toggleDelPanel(user); });
+    }
+
+    function togglePwPanel(user) {
+      var p = document.getElementById('acc-pw-panel');
+      if (!p.hidden) { p.hidden = true; p.innerHTML = ''; return; }
+      p.hidden = false;
+      p.innerHTML =
+        '<div class="acc-ef">' +
+          (user.hasPassword ? '<div class="acc-ef-row"><label for="acc-pw-old">当前密码</label><input type="password" id="acc-pw-old" autocomplete="current-password"></div>' : '') +
+          '<div class="acc-ef-row"><label for="acc-pw-new">新密码（至少 6 位）</label><input type="password" id="acc-pw-new" autocomplete="new-password"></div>' +
+          '<div class="acc-ef-row"><label for="acc-pw-new2">确认新密码</label><input type="password" id="acc-pw-new2" autocomplete="new-password"></div>' +
+          '<div class="acc-ef-actions"><span class="acc-ef-err" id="acc-pw-err"></span>' +
+            '<button type="button" class="acc-tool-btn" id="acc-pw-cancel">取消</button>' +
+            '<button type="button" class="acc-pf-edit" id="acc-pw-save">保存</button></div>' +
+        '</div>';
+      document.getElementById('acc-pw-cancel').addEventListener('click', function () { p.hidden = true; p.innerHTML = ''; });
+      document.getElementById('acc-pw-save').addEventListener('click', async function () {
+        var err = document.getElementById('acc-pw-err'); err.textContent = '';
+        var oldP = user.hasPassword ? document.getElementById('acc-pw-old').value : '';
+        var n1 = document.getElementById('acc-pw-new').value, n2 = document.getElementById('acc-pw-new2').value;
+        if (n1.length < 6) { err.textContent = '新密码至少 6 位'; return; }
+        if (n1 !== n2) { err.textContent = '两次输入不一致'; return; }
+        var btn = this; btn.disabled = true;
+        var r; try { r = await SiteAuth.setPassword(oldP, n1); } catch (e) { r = { ok: false }; }
+        btn.disabled = false;
+        if (r.ok) { p.hidden = true; p.innerHTML = ''; alert(user.hasPassword ? '密码已修改' : '密码已设置，以后也能用邮箱 + 密码登录'); }
+        else err.textContent = r.error === 'bad_old_password' ? '当前密码不对'
+          : r.error === 'weak_password' ? '新密码至少 6 位' : '保存失败，再试一次';
+      });
+    }
+
+    async function doExport() {
+      var btn = document.getElementById('acc-export-btn');
+      var label = btn.textContent; btn.disabled = true; btn.textContent = '导出中…';
+      try {
+        var r = await SiteAuth.exportData();
+        if (r.ok) {
+          var blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = 'ruizhou-account-' + ((r.data.account && r.data.account.accountId) || 'me') + '.json';
+          document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+        } else alert('导出失败，稍后再试');
+      } catch (e) { alert('导出失败，稍后再试'); }
+      btn.disabled = false; btn.textContent = label;
+    }
+
+    function toggleDelPanel(user) {
+      var p = document.getElementById('acc-del-panel');
+      if (!p.hidden) { p.hidden = true; p.innerHTML = ''; return; }
+      p.hidden = false;
+      p.innerHTML =
+        '<div class="acc-ef" style="border-color:#e0b4ad;">' +
+          '<p style="margin:0 0 0.8rem; font-size:0.88rem; color:var(--color-text); line-height:1.6;">注销后，你的账号、收藏、点赞、浏览记录会被<strong>永久删除</strong>、无法恢复。（评论请在评论区自行删除）</p>' +
+          (user.hasPassword
+            ? '<div class="acc-ef-row"><label for="acc-del-pw">输入密码确认</label><input type="password" id="acc-del-pw" autocomplete="current-password"></div>'
+            : '<div class="acc-ef-row"><label for="acc-del-word">输入「注销」二字确认</label><input type="text" id="acc-del-word" placeholder="注销"></div>') +
+          '<div class="acc-ef-actions"><span class="acc-ef-err" id="acc-del-err"></span>' +
+            '<button type="button" class="acc-tool-btn" id="acc-del-cancel">取消</button>' +
+            '<button type="button" class="acc-tool-btn danger" id="acc-del-confirm">确认注销</button></div>' +
+        '</div>';
+      document.getElementById('acc-del-cancel').addEventListener('click', function () { p.hidden = true; p.innerHTML = ''; });
+      document.getElementById('acc-del-confirm').addEventListener('click', async function () {
+        var err = document.getElementById('acc-del-err'); err.textContent = '';
+        var pw = '';
+        if (user.hasPassword) { pw = document.getElementById('acc-del-pw').value; if (!pw) { err.textContent = '请输入密码'; return; } }
+        else if (document.getElementById('acc-del-word').value.trim() !== '注销') { err.textContent = '请输入「注销」二字'; return; }
+        if (!confirm('最后确认：真的要永久注销账号吗？此操作不可撤销。')) return;
+        var btn = this; btn.disabled = true;
+        var r; try { r = await SiteAuth.deleteAccount(pw); } catch (e) { r = { ok: false }; }
+        btn.disabled = false;
+        if (r.ok) alert('账号已注销。');   // clearSession 已触发 onChange → 回到游客态
+        else err.textContent = r.error === 'bad_password' ? '密码不对' : '注销失败，稍后再试';
+      });
+    }
+
     function applyAuth(user) {
       if (user) {
         guest.style.display = 'none';
         main.style.display = 'block';
         subEl.textContent = '你好，' + (user.nick || user.email) + '。';
         renderProfile(user);
+        renderSettings(user);
         loadKind(current);
       } else {
         main.style.display = 'none';
         guest.style.display = 'block';
         profileEl.innerHTML = '';
+        settingsEl.innerHTML = '';
         subEl.textContent = '收藏、点赞、浏览与评论，都在这里。';
       }
     }

@@ -175,6 +175,30 @@
       return { ok: true, user: r.data.user };
     },
 
+    // 设置 / 修改登录密码。oldPassword 仅在账号已有密码时需要。
+    setPassword: async function (oldPassword, newPassword) {
+      var r = await post('/auth?action=set-password', { oldPassword: oldPassword, newPassword: newPassword }, true);
+      if (!r.ok) return { ok: false, error: (r.data && r.data.error) || 'failed' };
+      if (r.data && r.data.user) setSession(null, r.data.user);   // 刷新 hasPassword
+      return { ok: true, hadPassword: !!(r.data && r.data.hadPassword) };
+    },
+
+    // 导出当前账号的全部数据（返回对象，由调用方生成下载）。
+    exportData: async function () {
+      var res = await SiteAuth.authedFetch(API + '/me?action=export');
+      if (!res.ok) return { ok: false };
+      var d = null; try { d = await res.json(); } catch (e) {}
+      return d && d.ok ? { ok: true, data: d.data } : { ok: false };
+    },
+
+    // 注销账号：成功后清本地登录态（触发 onChange → 回到游客态）。
+    deleteAccount: async function (password) {
+      var r = await post('/auth?action=delete', { password: password }, true);
+      if (!r.ok) return { ok: false, error: (r.data && r.data.error) || 'failed' };
+      clearSession();
+      return { ok: true };
+    },
+
     // 校验本地 token 是否仍有效；无效则登出。返回最新 user 或 null。
     refresh: async function () {
       var t = SiteAuth.getToken();
