@@ -66,17 +66,29 @@ noindex: true
     <section class="adm-sec">
       <div class="adm-sec-top">
         <h2>整体流量</h2>
-        <span class="adm-soon" id="cf-range">近 7 天 · Cloudflare</span>
+        <span class="adm-range" id="cf-range-pills">
+          <button type="button" data-days="7" class="on">近 7 天</button>
+          <button type="button" data-days="14">14 天</button>
+          <button type="button" data-days="30">30 天</button>
+        </span>
+        <span class="adm-soon" id="cf-range">Cloudflare</span>
       </div>
       <div class="adm-ov-row">
-        <div class="adm-ov"><div class="adm-ov-n" id="cf-visits">—</div><div class="adm-ov-l">访问 visits</div></div>
-        <div class="adm-ov"><div class="adm-ov-n" id="cf-pv">—</div><div class="adm-ov-l">页面浏览 PV</div></div>
+        <div class="adm-ov"><div class="adm-ov-n" id="cf-visits">—</div><div class="adm-ov-l">访问 visits</div><div class="adm-spark" id="cf-visits-spark"></div></div>
+        <div class="adm-ov"><div class="adm-ov-n" id="cf-pv">—</div><div class="adm-ov-l">页面浏览 PV</div><div class="adm-spark" id="cf-pv-spark"></div></div>
       </div>
+      <div class="adm-chart" id="cf-trend"><div class="adm-chart-fallback">加载趋势…</div></div>
+      <p class="adm-caption">趋势 = Cloudflare 页面浏览 PV（客户端 beacon，会被广告 / 隐私拦截器系统性低估，实际数偏高）。</p>
       <div class="adm-rank-grid">
         <div class="adm-rank"><h3>热门页面</h3><ol id="cf-pages" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
         <div class="adm-rank"><h3>来源</h3><ol id="cf-ref" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
         <div class="adm-rank"><h3>国家 / 地区</h3><ol id="cf-geo" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
-        <div class="adm-rank"><h3>设备</h3><ol id="cf-dev" class="adm-ol"><li class="adm-empty">加载中…</li></ol></div>
+        <div class="adm-rank"><h3>设备构成</h3><div class="adm-chart-sm" id="cf-dev-chart"><div class="adm-chart-fallback">加载…</div></div></div>
+      </div>
+      <div class="adm-rank" style="margin-top: var(--space-3)">
+        <h3>访客地理分布 · 世界</h3>
+        <div class="adm-map" id="cf-map"><div class="adm-chart-fallback">加载地图…</div></div>
+        <p class="adm-note" style="margin-top:0.4rem">数据源 Cloudflare 只到国家级——中国省级分布拿不到，故只做世界图。</p>
       </div>
       <p class="adm-note" id="cf-note" hidden></p>
     </section>
@@ -254,6 +266,20 @@ noindex: true
     :root:not([data-theme="light"]) .cm-pend { color: #d8b872; }
     :root:not([data-theme="light"]) .adm-ol { --adm-bar: rgba(150,190,235,0.14); }
   }
+
+  /* ── 图表容器（ECharts）── */
+  .adm-chart { width: 100%; height: 250px; margin: var(--space-3) 0 var(--space-4); }
+  .adm-map { width: 100%; height: 400px; margin: 0 0 var(--space-4); }
+  .adm-chart-sm { width: 100%; height: 190px; }
+  .adm-spark { width: 100%; height: 32px; margin-top: 0.5rem; }
+  .adm-chart-fallback { color: var(--color-light); font-size: 0.82rem; text-align: center;
+    display: flex; align-items: center; justify-content: center; height: 100%; padding: 1rem; }
+  .adm-range { display: inline-flex; gap: 0.25rem; }
+  .adm-range button { font: inherit; font-size: 0.72rem; cursor: pointer; padding: 0.15rem 0.6rem;
+    color: var(--color-muted); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-pill); }
+  .adm-range button:hover:not(.on) { border-color: var(--color-highlight); color: var(--color-highlight); }
+  .adm-range button.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .adm-caption { font-size: 0.7rem; color: var(--color-light); margin: -0.6rem 0 var(--space-4); }
 </style>
 
 <script>
@@ -412,6 +438,7 @@ noindex: true
   }
 
   function loadDashboard() {
+    wireRangePills();
     loadTitles().then(function () {
       // urge（Redis）：点赞榜 + 收藏榜 + 反应总量
       jget('/api/admin?action=overview').then(function (d) {
@@ -441,8 +468,166 @@ noindex: true
     });
   }
 
+  // ══ 图表（ECharts，仅数据看板用，懒加载 + 从 CSS 变量取色以贴合站点/跟随暗色）══
+  var ECHARTS_SRC = 'https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js';
+  var WORLD_JSON = 'https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/json/world.json';
+  var echartsP = null, worldP = null, chartInsts = {}, chartCache = {}, cfDays = 7, pillsWired = false, themeWired = false;
+
+  function loadScript(src) {
+    return new Promise(function (res, rej) {
+      var s = document.createElement('script'); s.src = src; s.async = true;
+      s.onload = function () { res(); }; s.onerror = function () { rej(new Error('script ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+  function ensureECharts() {
+    if (echartsP) return echartsP;
+    echartsP = (window.echarts ? Promise.resolve() : loadScript(ECHARTS_SRC)).then(function () {
+      if (!window.echarts) throw new Error('echarts missing');
+      registerZirconTheme();
+      if (!themeWired) { themeWired = true; wireThemeRerender(); }
+      return window.echarts;
+    });
+    return echartsP;
+  }
+  function ensureWorld() {
+    if (worldP) return worldP;
+    worldP = ensureECharts().then(function () {
+      if (window.echarts.getMap && window.echarts.getMap('world')) return true;
+      return fetch(WORLD_JSON).then(function (r) { return r.json(); }).then(function (geo) { window.echarts.registerMap('world', geo); return true; });
+    });
+    return worldP;
+  }
+  function cssVar(n, f) { try { var v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || f; } catch (e) { return f; } }
+  function palette() {
+    return {
+      accent: cssVar('--color-accent', '#1e3a5f'), gold: cssVar('--color-highlight', '#c9a96e'),
+      ink: cssVar('--color-ink', '#1a1918'), muted: cssVar('--color-muted', '#6b6b6b'),
+      light: cssVar('--color-light', '#9a9a9a'), border: cssVar('--color-border', '#e5e2dc'),
+      warm: cssVar('--color-bg-warm', '#f5f4f0'), bg: cssVar('--color-bg', '#ffffff'),
+    };
+  }
+  function registerZirconTheme() {
+    var p = palette();
+    window.echarts.registerTheme('zircon', {
+      color: [p.accent, p.gold, p.muted, p.light], backgroundColor: 'transparent',
+      textStyle: { fontFamily: '"Noto Serif SC", Georgia, serif', color: p.muted },
+      categoryAxis: { axisLine: { lineStyle: { color: p.border } }, axisTick: { show: false }, axisLabel: { color: p.light }, splitLine: { show: false } },
+      valueAxis: { axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: p.light }, splitLine: { lineStyle: { color: p.border, opacity: 0.5 } } },
+      tooltip: { backgroundColor: p.warm, borderColor: p.border, textStyle: { color: p.ink, fontSize: 12 } },
+    });
+  }
+  function makeChart(elId) {
+    var el = document.getElementById(elId); if (!el) return null;
+    if (chartInsts[elId]) { try { chartInsts[elId].dispose(); } catch (e) {} }
+    el.innerHTML = '';
+    var c = window.echarts.init(el, 'zircon', { renderer: 'canvas' });
+    chartInsts[elId] = c; return c;
+  }
+  function fallback(elId, msg) { var el = document.getElementById(elId); if (el) el.innerHTML = '<div class="adm-chart-fallback">' + esc(msg) + '</div>'; }
+
+  function renderTrend(series, days) {
+    chartCache.series = series; chartCache.days = days;
+    if (!document.getElementById('cf-trend')) return;
+    if (!series || !series.length) { fallback('cf-trend', '暂无趋势数据'); return; }
+    ensureECharts().then(function () {
+      var p = palette(), c = makeChart('cf-trend'); if (!c) return;
+      var dates = series.map(function (x) { return String(x.date || '').slice(5); });
+      c.setOption({
+        grid: { left: 6, right: 14, top: 30, bottom: 4, containLabel: true },
+        legend: { data: ['页面浏览 PV', '访问 visits'], right: 0, top: 0, itemWidth: 14, itemHeight: 8, textStyle: { color: p.muted, fontSize: 11 } },
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'category', data: dates, boundaryGap: false },
+        yAxis: { type: 'value', minInterval: 1 },
+        series: [
+          { name: '页面浏览 PV', type: 'line', smooth: false, symbol: 'circle', symbolSize: 4, data: series.map(function (x) { return x.pv || 0; }), lineStyle: { width: 2, color: p.accent }, itemStyle: { color: p.accent }, areaStyle: { color: p.accent, opacity: 0.12 } },
+          { name: '访问 visits', type: 'line', smooth: false, symbol: 'circle', symbolSize: 4, data: series.map(function (x) { return x.visits || 0; }), lineStyle: { width: 2, color: p.gold }, itemStyle: { color: p.gold } }
+        ]
+      });
+    }).catch(function () { fallback('cf-trend', '图表加载失败（ECharts CDN 不可达）'); });
+  }
+  function renderSpark(elId, series, key) {
+    if (!document.getElementById(elId) || !series || !series.length) return;
+    ensureECharts().then(function () {
+      var p = palette(), c = makeChart(elId); if (!c) return;
+      c.setOption({
+        grid: { left: 0, right: 0, top: 2, bottom: 2 }, tooltip: { show: false },
+        xAxis: { type: 'category', show: false, boundaryGap: false, data: series.map(function (_, i) { return i; }) },
+        yAxis: { type: 'value', show: false },
+        series: [{ type: 'line', showSymbol: false, smooth: false, data: series.map(function (x) { return x[key] || 0; }), lineStyle: { width: 1.5, color: p.accent }, areaStyle: { color: p.accent, opacity: 0.12 } }]
+      });
+    }).catch(function () {});
+  }
+  function renderDeviceDonut(items) {
+    chartCache.devices = items;
+    if (!document.getElementById('cf-dev-chart')) return;
+    if (!items || !items.length) { fallback('cf-dev-chart', '暂无数据'); return; }
+    ensureECharts().then(function () {
+      var p = palette(), c = makeChart('cf-dev-chart'); if (!c) return;
+      var data = items.map(function (x) { return { name: DEV[x.type] || x.type || '未知', value: x.views || x.n || 0 }; });
+      c.setOption({
+        color: [p.accent, p.gold, p.muted, p.light],
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+        legend: { bottom: 0, icon: 'circle', textStyle: { color: p.muted, fontSize: 11 } },
+        series: [{ type: 'pie', radius: ['52%', '72%'], center: ['50%', '42%'], avoidLabelOverlap: true,
+          itemStyle: { borderColor: p.bg, borderWidth: 2 }, label: { show: false }, labelLine: { show: false }, data: data }]
+      });
+    }).catch(function () { fallback('cf-dev-chart', '加载失败'); });
+  }
+  // CF countryName → echarts world.json 名称（常见分歧的别名；直配为主，未命中不着色，仍在国家榜里可见）
+  var CMAP = {
+    'United States of America': 'United States', 'USA': 'United States', 'Russian Federation': 'Russia',
+    'South Korea': 'Korea', 'Korea, Republic of': 'Korea', 'Viet Nam': 'Vietnam',
+    'Czechia': 'Czech Rep.', 'Czech Republic': 'Czech Rep.', 'Dominican Republic': 'Dominican Rep.',
+    'Bosnia and Herzegovina': 'Bosnia and Herz.', 'United Republic of Tanzania': 'Tanzania'
+  };
+  function mapCountry(n) { n = n || ''; return CMAP[n] || n; }
+  function renderWorldMap(countries) {
+    chartCache.countries = countries;
+    if (!document.getElementById('cf-map')) return;
+    if (!countries || !countries.length) { fallback('cf-map', '暂无地理数据'); return; }
+    ensureWorld().then(function () {
+      var p = palette(), c = makeChart('cf-map'); if (!c) return;
+      var maxV = countries.reduce(function (m, x) { return Math.max(m, x.visits || 0); }, 0) || 1;
+      var data = countries.map(function (x) { return { name: mapCountry(x.name), value: x.visits || 0, raw: x.name }; });
+      c.setOption({
+        tooltip: { trigger: 'item', formatter: function (o) { var v = (o.data && o.data.value != null) ? o.data.value : (o.value != null && !isNaN(o.value) ? o.value : 0); return (o.name || '') + '：' + v; } },
+        visualMap: { min: 0, max: maxV, left: 6, bottom: 6, orient: 'horizontal', calculable: false, text: ['多', '少'],
+          inRange: { color: [p.warm, p.gold, p.accent] }, textStyle: { color: p.muted, fontSize: 11 } },
+        series: [{ type: 'map', map: 'world', roam: false, data: data,
+          itemStyle: { areaColor: p.warm, borderColor: p.border, borderWidth: 0.5 },
+          emphasis: { itemStyle: { areaColor: p.gold }, label: { show: false } } }]
+      });
+    }).catch(function () { fallback('cf-map', '世界地图加载失败（地图数据 CDN 不可达）'); });
+  }
+  function resizeCharts() { Object.keys(chartInsts).forEach(function (k) { try { chartInsts[k].resize(); } catch (e) {} }); }
+  window.__admResizeCharts = resizeCharts;
+  function wireThemeRerender() {
+    var rerun = function () {
+      if (!window.echarts) return;
+      registerZirconTheme();
+      if (chartCache.series) { renderTrend(chartCache.series, chartCache.days); renderSpark('cf-visits-spark', chartCache.series, 'visits'); renderSpark('cf-pv-spark', chartCache.series, 'pv'); }
+      if (chartCache.devices) renderDeviceDonut(chartCache.devices);
+      if (chartCache.countries) renderWorldMap(chartCache.countries);
+    };
+    try { new MutationObserver(rerun).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
+    try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', rerun); } catch (e) {}
+    window.addEventListener('resize', resizeCharts);
+  }
+  function wireRangePills() {
+    if (pillsWired) return; pillsWired = true;
+    var box = document.getElementById('cf-range-pills'); if (!box) return;
+    Array.prototype.forEach.call(box.querySelectorAll('button'), function (b) {
+      b.addEventListener('click', function () {
+        cfDays = parseInt(b.getAttribute('data-days'), 10) || 7;
+        Array.prototype.forEach.call(box.querySelectorAll('button'), function (x) { x.classList.toggle('on', x === b); });
+        loadTraffic();
+      });
+    });
+  }
+
   function loadTraffic() {
-    jget('/api/admin?action=traffic').then(function (d) {
+    jget('/api/admin?action=traffic&days=' + cfDays).then(function (d) {
       var note = document.getElementById('cf-note');
       if (!d || !d.ok) {
         if (note) {
@@ -451,9 +636,10 @@ noindex: true
             ? '尚未配置 Cloudflare API Token（在 zircon-urge 设 CF_API_TOKEN / CF_ACCOUNT_ID 后即可）。'
             : '流量数据暂时取不到' + (d && d.error ? '（' + d.error + '）' : '') + '。';
         }
-        ['cf-pages', 'cf-ref', 'cf-geo', 'cf-dev'].forEach(function (id) {
+        ['cf-pages', 'cf-ref', 'cf-geo'].forEach(function (id) {
           var el = document.getElementById(id); if (el) el.innerHTML = '<li class="adm-empty">暂无数据</li>';
         });
+        renderTrend([], cfDays); renderDeviceDonut([]); renderWorldMap([]);
         return;
       }
       if (note) note.hidden = true;
@@ -463,7 +649,11 @@ noindex: true
       renderTrafficPages(d.pages || []);
       renderReferers(d.referers || []);
       renderSimple('cf-geo', (d.countries || []).map(function (x) { return { label: CC[x.name] || x.name || '(未知)', n: x.visits }; }), '');
-      renderSimple('cf-dev', (d.devices || []).map(function (x) { return { label: DEV[x.type] || x.type || '(未知)', n: x.views }; }), '次');
+      renderTrend(d.series || [], cfDays);
+      renderSpark('cf-visits-spark', d.series || [], 'visits');
+      renderSpark('cf-pv-spark', d.series || [], 'pv');
+      renderDeviceDonut(d.devices || []);
+      renderWorldMap(d.countries || []);
     });
   }
 
@@ -690,6 +880,8 @@ noindex: true
     var dd = document.getElementById('adm-board-data'), cc = document.getElementById('adm-board-content');
     if (dd) dd.hidden = (name !== 'data');
     if (cc) cc.hidden = (name !== 'content');
+    // 图表若在板块隐藏时初始化过，尺寸会是 0——切回数据板时重量一次
+    if (name === 'data' && window.__admResizeCharts) setTimeout(window.__admResizeCharts, 30);
   }
   function wireBoardTabs() {
     Array.prototype.forEach.call(document.querySelectorAll('.adm-board-tab'), function (t) {
