@@ -10,7 +10,7 @@ body_class: adm-page
 <article class="adm-wrap">
   <header class="adm-head">
     <h1>管理后台</h1>
-    <p class="adm-sub">站点内容与数据的统一管理入口。</p>
+    <span class="adm-whoami"><span id="adm-email"></span></span>
   </header>
 
   {%- comment -%} 加载中 {%- endcomment -%}
@@ -30,8 +30,6 @@ body_class: adm-page
 
   {%- comment -%} 管理员（后端 whoami 二次确认通过后才显示）{%- endcomment -%}
   <div id="adm-main" hidden>
-    <div class="adm-verified">已验证管理员：<strong id="adm-email"></strong></div>
-
     <div class="adm-console">
       <aside class="adm-nav" id="adm-nav">
         <button type="button" class="adm-nav-collapse" id="adm-nav-collapse" title="折叠 / 展开目录" aria-label="折叠目录">‹</button>
@@ -166,9 +164,13 @@ body_class: adm-page
   /* 管理后台不受正文栏宽限制：整页与顶栏都放宽，方便横向检索与对比 */
   body.adm-page main { max-width: 1320px; }
   body.adm-page .nav-inner { max-width: 1320px; }
-  .adm-wrap { max-width: 1280px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
-  .adm-head h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
-  .adm-sub { color: var(--color-light); margin-bottom: 2rem; }
+  .adm-wrap { max-width: 1280px; margin: 0 auto; padding: 1.1rem 1.5rem 3rem; }
+  /* 精简顶部：只留一条细标题栏（小标题 + 右侧管理员邮箱），不再占大块 title + 留白 */
+  .adm-head { display: flex; align-items: baseline; gap: 0.7rem; margin-bottom: 1.3rem;
+    padding-bottom: 0.55rem; border-bottom: 1px solid var(--color-border); }
+  .adm-head h1 { font-size: 1.15rem; color: var(--color-ink); margin: 0; }
+  .adm-whoami { margin-left: auto; font-size: 0.78rem; color: var(--color-light); white-space: nowrap; }
+  .adm-sub { display: none; }
   .adm-state { text-align: center; padding: 3rem 1rem; color: var(--color-muted);
     border: 1px dashed var(--color-border); border-radius: 14px; }
   .adm-state p { margin: 0 0 1rem; }
