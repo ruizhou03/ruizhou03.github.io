@@ -408,7 +408,7 @@ Sprintax 生成草稿 1040NR + 8843：
 
 **State College Borough** 收 ~1.45% **local earned income tax**：
 
-- 在 [Centre Tax Agency](https://centretax.net/) 申报
+- 在 [Centre Tax Agency](https://www.statecollegepa.us/167/Centre-Tax-Agency-Tax-Services) 申报
 - 自动从 PSU paystub 扣（多数情况）
 - 年底也要报 + 调和
 
@@ -523,8 +523,8 @@ Sprintax 生成草稿 1040NR + 8843：
 4. **[Where's My Refund](https://www.irs.gov/refunds)** —— 退税状态查询
 5. **[FreeTaxUSA.com](https://www.freetaxusa.com/)** —— RA 免费报税软件
 6. **[myPATH (PA)](https://mypath.pa.gov/)** —— PA 州税官方系统
-7. **[Centre Tax Agency](https://centretax.net/)** —— State College 当地税
-8. **[Penn State Global - Tax Information](https://global.psu.edu/tax-information)** —— PSU 国际生税务页
+7. **[Centre Tax Agency](https://www.statecollegepa.us/167/Centre-Tax-Agency-Tax-Services)** —— State College 当地税
+8. **[Penn State Global - Tax Information](https://global.psu.edu/landing/us-taxes)** —— PSU 国际生税务页
 9. **[一亩三分地“报税”版块](https://www.1point3acres.com/bbs/forum-208-1.html)** —— 中文圈实战经验
 
 **报税三部曲到这里走完了 $2/3$**——把三篇连起来：

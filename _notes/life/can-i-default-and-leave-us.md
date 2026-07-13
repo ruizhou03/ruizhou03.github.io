@@ -67,7 +67,7 @@ keywords: ["爆刷信用卡回国", "信用卡刷爆跑路", "回国前不还信
 - 美国本地律师起诉 → 拿到 default judgment（你不到庭）→ ~\$2,000-\$3,000 律师费
 - 在中国注册 / 翻译 / 公证 judgment → ~\$3,000-\$5,000
 - 中国本地律师代理执行 → ~\$5,000-\$10,000+
-- **最关键**：[中国法院不强制执行美国民事判决](https://www.judicialinformation.com/)（中美没有判决相互承认条约）—— 即便走完程序也几乎拿不回钱
+- **最关键**：[中国法院一般不强制执行美国民事判决](https://harris-sliwoski.com/chinalawblog/enforcing-u-s-judgments-in-china-what-you-need-to-know/)（中美没有判决相互承认条约，近年虽有个别互惠先例但门槛极高、极难执行）—— 即便走完程序也几乎拿不回钱
 
 **Chase 的实际选择**：把这笔 \$5,000 卖给 collection agency（按面值 5-15% 卖出，~\$250-\$750）。Collection agency 也不会跨境追，**主要工具是发英文催款信 + 上 credit report**。
 

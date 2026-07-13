@@ -132,7 +132,7 @@ keywords: ["美国租房", "留学生租房", "找房", "renting", "apartment", 
 | **[Apartment List](https://www.apartmentlist.com/)** | 个性化推荐 | 不知道想要什么的 | — |
 | **[Facebook Marketplace](https://www.facebook.com/marketplace/)** | 小房东 + 转租多 + 价格低 | 灵活 / 短期 | 诈骗多，一定面对面看 |
 | **Craigslist** | 传统 / 价格低 + 灵活 | 老派房东 / 转租 | 诈骗多，谨慎 |
-| **学校 Housing Portal**（Penn State 有 [Off-Campus Living](https://offcampus.psu.edu/)）| 学校 verified + 学生 friendly | 第一年留学生 | 选择有限 |
+| **学校 Housing Portal**（Penn State 有 [Off-Campus Living](https://livingoffcampus.psu.edu/)）| 学校 verified + 学生 friendly | 第一年留学生 | 选择有限 |
 | **一亩三分地 / 微信群** | 华人圈实战经验 + 转租 / 合租 | 找室友 / 转租 | 看具体房东 |
 | **本地房产中介（broker）** | 高端市场 / NYC 必经 | NYC / SF / 大城市 | NYC 收 broker fee（1 个月房租）|
 
@@ -460,7 +460,7 @@ NYC 多数 listing 通过 **broker** 中介：
 # 12. 参考来源
 
 1. **[Zillow](https://www.zillow.com/) / [Apartments.com](https://www.apartments.com/) / [Trulia](https://www.trulia.com/)** —— 最大的 3 个找房网站
-2. **[Penn State Off-Campus Living](https://offcampus.psu.edu/)** —— Penn State 学生租房专门服务
+2. **[Penn State Off-Campus Living](https://livingoffcampus.psu.edu/)** —— Penn State 学生租房专门服务
 3. **[r/USRenting / r/personalfinance](https://www.reddit.com/r/personalfinance/)** —— 英文社区实战
 4. **[一亩三分地“租房” 版块](https://www.1point3acres.com/bbs/forum.php)** —— 中文圈最大的留学生租房讨论
 5. **[Pennsylvania Tenant's Rights](https://www.attorneygeneral.gov/protect-yourself/landlord-tenant-resources/)** —— PA 租房法律权利

@@ -358,7 +358,7 @@ $$\text{今年在美国} + \tfrac{1}{3} \times \text{去年} + \tfrac{1}{6} \tim
 1. **[IRS - Foreign Students and Scholars](https://www.irs.gov/individuals/international-taxpayers/foreign-students-and-scholars)** —— IRS 官方留学生报税专页
 2. **[IRS Publication 519 - U.S. Tax Guide for Aliens](https://www.irs.gov/pub/irs-pdf/p519.pdf)** —— **NRA 报税圣经**
 3. **[IRS Publication 901 - U.S. Tax Treaties](https://www.irs.gov/pub/irs-pdf/p901.pdf)** —— Tax treaty 详解（含中美 Article 20）
-4. **[Penn State Global - Tax Information](https://global.psu.edu/tax-information)** —— PSU 国际生税务信息
+4. **[Penn State Global - Tax Information](https://global.psu.edu/landing/us-taxes)** —— PSU 国际生税务信息
 5. **学校 ISSO / Tax Workshop**——多数大学每年 2-3 月办免费报税工作坊（**强烈推荐参加**）
 6. **[一亩三分地“报税”版块](https://www.1point3acres.com/bbs/forum-208-1.html)** —— 中文圈最大的留学生报税讨论区
 7. **[Sprintax Blog](https://blog.sprintax.com/)** —— NRA 报税常识 + 案例

@@ -166,7 +166,7 @@ PennDOT 要求 **4 类文件全到位**才能办：
 - ❌ 不能开车去考路考**之外的任何州**
 
 **练车建议：**
-- 没车：联系 [HW Driving School](https://www.hwdrivingschool.com/) 等本地驾校（华人多的地区有中文教练，约 \$50-80/小时）
+- 没车：联系本地驾校（可查 [State College 驾校列表](https://www.yelp.com/search?find_desc=Driving+Schools&find_loc=State+College,+PA)，华人多的地区有中文教练，约 \$50-80/小时）
 - 有车：朋友 / 配偶 / 室友（持 PA 驾照成年人）陪你练
 - 重点练：**parallel parking（平行停车）**、变道前 blind spot 检查、完全停车（come to a complete stop）
 
