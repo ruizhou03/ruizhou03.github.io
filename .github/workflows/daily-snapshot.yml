@@ -1,0 +1,22 @@
+name: daily-stat-snapshot
+
+# 每天记一次全站指标快照（阅读/评论/点赞/收藏/催更/红心的当日总量）到 zircon-urge 的 Redis，
+# 让管理后台能画出这些指标的时间趋势（计数器本身只存当前值、无历史）。幂等：同日重跑覆盖。
+on:
+  schedule:
+    - cron: '10 1 * * *'   # 01:10 UTC ≈ 北京 09:10
+  workflow_dispatch: {}     # 也可在 Actions 页手动触发一次
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/admin?action=snapshot
+        run: |
+          code=$(curl -s -o /tmp/snap.json -w "%{http_code}" -X POST \
+            "https://zircon-urge.fly.dev/api/admin?action=snapshot" \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" --max-time 40)
+          echo "HTTP $code"
+          cat /tmp/snap.json 2>/dev/null || true
+          echo
+          test "$code" = "200"

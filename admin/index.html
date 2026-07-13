@@ -64,8 +64,13 @@ body_class: adm-page
             <button type="button" data-m="favs">收藏</button>
           </div>
         </div>
+        <div class="adm-rank-view" id="rk-view">
+          <button type="button" data-v="rank" class="on">📊 排行 Top 10</button>
+          <button type="button" data-v="trend">📈 时间趋势</button>
+        </div>
         <ol id="rk-active" class="adm-ol"><li class="adm-empty">加载中…</li></ol>
-        <p class="adm-note" id="rk-active-note" style="margin-top: 0.6rem">各指标暂未逐日记录、给不出单指标的时间趋势；<strong>页面浏览的时间趋势见下方「整体流量」折线</strong>。</p>
+        <div class="adm-chart" id="rk-trend" hidden><div class="adm-chart-fallback">加载趋势…</div></div>
+        <p class="adm-note" id="rk-active-note" style="margin-top: 0.6rem"></p>
       </div>
     </section>
 
@@ -309,6 +314,12 @@ body_class: adm-page
     color: var(--color-muted); background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: var(--radius-pill); }
   .adm-metric-tabs button:hover:not(.on) { border-color: var(--color-highlight); color: var(--color-highlight); }
   .adm-metric-tabs button.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .adm-rank-view { display: inline-flex; gap: 0.25rem; margin: 0 0 0.75rem; }
+  .adm-rank-view button { font: inherit; font-size: 0.74rem; cursor: pointer; padding: 0.2rem 0.7rem;
+    color: var(--color-muted); background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: var(--radius-pill); }
+  .adm-rank-view button:hover:not(.on) { border-color: var(--color-highlight); color: var(--color-highlight); }
+  .adm-rank-view button.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  #rk-trend { height: 240px; }
 
   /* 可见性面板：从竖排长列表改成可扫视的网格——板块横排小卡 + 工具分类网格，点一下切换 */
   .vis-block-h { font-size: 0.8rem; font-weight: 700; color: var(--color-muted); margin: 0 0 var(--space-2); }
@@ -505,11 +516,13 @@ body_class: adm-page
     likes: { key: 'likes', unit: '赞' }, favs: { key: 'favs', unit: '藏' }
   };
   var METRIC_NOTE = {
-    favs: '收藏数据从计数器上线起累计；要并入历史收藏，在后端跑一次 <code>backfill-favcount</code>。',
-    _default: '各指标暂未逐日记录、给不出单指标的时间趋势；<strong>页面浏览的时间趋势见下方「整体流量」折线</strong>。'
+    favs: '收藏从计数器上线起累计；要并入历史收藏，在后端跑一次 <code>backfill-favcount</code>。「时间趋势」＝每日快照（越用越全）。',
+    _default: '横向＝各文章排行 Top 10；纵向「时间趋势」＝全站该指标每日快照（从今天起每天记一次，越往后越全）。'
   };
+  var SNAP_KEY = { views: 'views', comments: 'comments', likes: 'like', favs: 'star' };
   var rankData = { views: null, comments: null, likes: null, favs: null };
-  var activeMetric = 'views', metricWired = false;
+  var activeMetric = 'views', rankView = 'rank', metricWired = false;
+  var metricSeries = null, metricSeriesLoaded = false;
   function renderActiveRank() {
     var m = METRICS[activeMetric], data = rankData[activeMetric];
     var ol = document.getElementById('rk-active');
@@ -524,12 +537,47 @@ body_class: adm-page
     var box = document.getElementById('adm-metric-tabs');
     if (box) Array.prototype.forEach.call(box.querySelectorAll('button'), function (b) { b.classList.toggle('on', b.getAttribute('data-m') === m); });
     renderActiveRank();
+    if (rankView === 'trend') renderMetricTrend();
+  }
+  function setRankView(v) {
+    rankView = (v === 'trend') ? 'trend' : 'rank';
+    var vb = document.getElementById('rk-view');
+    if (vb) Array.prototype.forEach.call(vb.querySelectorAll('button'), function (b) { b.classList.toggle('on', b.getAttribute('data-v') === rankView); });
+    var ol = document.getElementById('rk-active'), tr = document.getElementById('rk-trend');
+    if (ol) ol.hidden = (rankView !== 'rank');
+    if (tr) tr.hidden = (rankView !== 'trend');
+    if (rankView === 'trend') renderMetricTrend();
+  }
+  function renderMetricTrend() {
+    var el = document.getElementById('rk-trend'); if (!el) return;
+    var mkey = SNAP_KEY[activeMetric] || activeMetric;
+    function draw() {
+      var pts = (metricSeries || []).filter(function (x) { return x && x[mkey] != null; });
+      if (!pts.length) { fallback('rk-trend', metricSeriesLoaded ? '暂无历史——从今天起每天记一次，过几天就有趋势了' : '加载趋势…'); return; }
+      ensureECharts().then(function () {
+        var p = palette(), c = makeChart('rk-trend'); if (!c) return;
+        c.setOption({
+          grid: { left: 6, right: 14, top: 16, bottom: 4, containLabel: true },
+          tooltip: { trigger: 'axis' },
+          xAxis: { type: 'category', boundaryGap: false, data: pts.map(function (x) { return String(x.date || '').slice(5); }) },
+          yAxis: { type: 'value', minInterval: 1 },
+          series: [{ type: 'line', smooth: false, symbol: 'circle', symbolSize: 4, data: pts.map(function (x) { return x[mkey] || 0; }),
+            lineStyle: { width: 2, color: p.accent }, itemStyle: { color: p.accent }, areaStyle: { color: p.accent, opacity: 0.12 } }]
+        });
+      }).catch(function () { fallback('rk-trend', '图表加载失败'); });
+    }
+    if (metricSeriesLoaded) { draw(); return; }
+    jget('/api/admin?action=metric-series').then(function (d) { metricSeries = (d && d.series) || []; metricSeriesLoaded = true; draw(); });
   }
   function wireMetricTabs() {
     if (metricWired) return; metricWired = true;
     var box = document.getElementById('adm-metric-tabs');
     if (box) Array.prototype.forEach.call(box.querySelectorAll('button'), function (b) {
       b.addEventListener('click', function () { setMetric(b.getAttribute('data-m')); });
+    });
+    var vb = document.getElementById('rk-view');
+    if (vb) Array.prototype.forEach.call(vb.querySelectorAll('button'), function (b) {
+      b.addEventListener('click', function () { setRankView(b.getAttribute('data-v')); });
     });
     Array.prototype.forEach.call(document.querySelectorAll('.adm-mood[data-metric]'), function (a) {
       a.addEventListener('click', function () { setMetric(a.getAttribute('data-metric')); });   // 心情卡点赞/收藏 → 切指标
@@ -741,6 +789,7 @@ body_class: adm-page
       if (chartCache.series) { renderTrend(chartCache.series, chartCache.days); renderSpark('cf-visits-spark', chartCache.series, 'visits'); renderSpark('cf-pv-spark', chartCache.series, 'pv'); }
       if (chartCache.devices) renderDeviceDonut(chartCache.devices);
       if (chartCache.countries) renderWorldMap(chartCache.countries);
+      if (rankView === 'trend' && metricSeriesLoaded) renderMetricTrend();
     };
     try { new MutationObserver(rerun).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
     try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', rerun); } catch (e) {}
