@@ -745,7 +745,7 @@
 
   /* ===== Board tabs (粮食 / 体重 / 猫语) ===== */
   .board-tabs {
-    display: flex; gap: 0.2rem; margin-bottom: 1.3rem;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.2rem; margin-bottom: 1.3rem;
     border-bottom: 1px solid var(--color-border);
   }
   .board-tabs button {
@@ -754,7 +754,7 @@
     color: var(--color-muted); cursor: pointer;
     border-bottom: 2px solid transparent; margin-bottom: -1px;
     transition: color 0.18s, border-color 0.18s;
-    display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; white-space: nowrap;
   }
   .board-tabs button .bt-ico { display: inline-flex; }
   .board-tabs button .bt-ico svg { width: 1.15rem; height: 1.15rem; display: block; }

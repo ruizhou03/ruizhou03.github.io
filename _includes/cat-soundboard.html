@@ -73,6 +73,7 @@
     transition: border-color .2s, color .2s;
   }
   .cl-widget .cl-status.on { border-color: var(--st-c, var(--color-accent)); color: var(--color-ink); }
+  .cl-widget .cl-status.cl-idle { display: none; }   /* 空闲时不显示常驻提示，只在播放/失败时出现 */
   .cl-widget .cl-status .cl-stop {
     display: none; flex: 0 0 auto;
     font: inherit; font-size: 0.8rem; cursor: pointer;
@@ -198,8 +199,8 @@
     </section>
   </div>
 
-  <div class="cl-status" id="cl-status">
-    <span id="cl-status-text" aria-live="polite">点一下卡片开始播放</span>
+  <div class="cl-status cl-idle" id="cl-status">
+    <span id="cl-status-text" aria-live="polite"></span>
     <button class="cl-stop" id="cl-stop" type="button">停止</button>
   </div>
 
@@ -255,8 +256,9 @@
     for(var i=0;i<all.length;i++){ all[i].classList.remove('playing'); all[i].setAttribute('aria-pressed','false'); }
     current = null;
     statusBar.classList.remove('on');
+    statusBar.classList.add('cl-idle');   // 空闲不挂常驻提示——点卡片即播，无需一直停在那
     statusBar.style.removeProperty('--st-c');
-    statusText.textContent = '点一下卡片开始播放';
+    statusText.textContent = '';
   }
 
   // 播放失败兜底：把 UI 从假的「正在播放」复位到停止态，并提示加载失败。
@@ -265,7 +267,7 @@
     if(current){ current.classList.remove('playing'); current.setAttribute('aria-pressed','false'); }
     current = null;
     player.pause();
-    statusBar.classList.remove('on');
+    statusBar.classList.remove('on', 'cl-idle');   // 失败提示要显示出来
     statusBar.style.removeProperty('--st-c');
     statusText.textContent = '⚠️ 音频加载失败，请检查网络后再试';
   }
@@ -290,6 +292,7 @@
     btn.setAttribute('aria-pressed','true');
     current = btn;
     var cc = getComputedStyle(btn.closest('.cl-group')).getPropertyValue('--cc');
+    statusBar.classList.remove('cl-idle');
     statusBar.classList.add('on');
     statusBar.style.setProperty('--st-c', cc.trim());
     statusText.textContent = '🔊 正在循环播放：' + btn.getAttribute('data-name');
