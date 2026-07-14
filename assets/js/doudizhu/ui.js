@@ -3786,6 +3786,26 @@
   preloadNick();
   renderResumeOption();
 
+  // 开页自动回房：有近期联机会话(且 URL 未带 ?room=)→ 自动重连回房间/牌桌,不用手动重输房号
+  (function maybeResumeOnLoad() {
+    if (/[?&]room=\d{4}/.test(location.search)) return;         // ?room= 交给 autoJoinFromUrl
+    const sess = loadSession();
+    if (!sess || !sess.code) return;
+    if (sess.ts && Date.now() - sess.ts > 6 * 3600 * 1000) return;   // 太旧的会话不自动回
+    const nick = (sess.nick ||
+      (window.GamesShell && GamesShell.Identity && GamesShell.Identity.getNick && GamesShell.Identity.getNick()) || '').slice(0, 12);
+    if (!nick) return;                                          // 没昵称 → 保留手动「重新加入」卡片
+    try { document.querySelector('.ddz-playmode-btn[data-playmode="online"]').click(); } catch (e) {}
+    setOnlineHint('正在重连房间…');
+    setTimeout(async () => {
+      const r = await apiCall('join', { body: { code: sess.code, nick, deviceId: getDeviceId() } });
+      if (r && r.ok) { enterRoom(r.data); return; }
+      if (r && (r.error === 'room_not_found' || r.error === 'room_dissolved')) { clearSession(); setOnlineHint('原房间已解散', false); }
+      else setOnlineHint('', false);
+      renderResumeOption();
+    }, 60);
+  })();
+
   // ============================================================
   // 续局
   // ============================================================
