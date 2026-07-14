@@ -3420,6 +3420,7 @@
       ? `<img class="fc-photo" src="${escapeHtml(item.iconPhoto)}" alt="">`
       : escapeHtml((item && item.emoji) || fallback);
   }
+  let foodFilter = null;   // 分类筛选：null=全部，或某类别(foodGroup) id
   function renderFoodSelector() {
     const pet = currentPet();
     if (!pet) { $foodSelector.innerHTML = ''; return; }
@@ -3431,20 +3432,28 @@
     const canEdit = isAdminOrUp(pet);
     const kb = pet.kibble || {};
     const kbName = kb.name || '干粮';
-    // If the current selection sits inside a collapsed folder, force that folder open so the
-    // user never loses sight of what's selected.
-    let forceOpenGid = null;
-    if (recordFood !== 'kibble') {
-      const sel = lib.find(f => f.id === recordFood);
-      if (sel && sel.groupId && groupById.has(sel.groupId)) forceOpenGid = sel.groupId;
+    // ===== 分类筛选标签：全部 + 有食物的类别（用户自建；没建过就不显示筛选行）=====
+    const $foodFilter = document.getElementById('food-filter');
+    if ($foodFilter) {
+      const cats = groups.filter(g => lib.some(f => f.groupId === g.id));
+      if (cats.length === 0) { $foodFilter.style.display = 'none'; foodFilter = null; }
+      else {
+        if (foodFilter && !cats.some(g => g.id === foodFilter)) foodFilter = null;   // 该类别没食物了 → 回全部
+        $foodFilter.style.display = '';
+        $foodFilter.innerHTML = `<button type="button" class="ff${!foodFilter ? ' active' : ''}" data-cat="">全部</button>` +
+          cats.map(g => `<button type="button" class="ff${foodFilter === g.id ? ' active' : ''}" data-cat="${g.id}">${escapeHtml(g.name || '类别')}</button>`).join('');
+        $foodFilter.querySelectorAll('.ff').forEach(b => b.addEventListener('click', () => { foodFilter = b.dataset.cat || null; renderFoodSelector(); }));
+      }
     }
+    const visible = lib.filter(f => !foodFilter || f.groupId === foodFilter);
+
     // 圆食豆：一个头像圆点 + 名字；选中金环。编辑✎只在选中的食豆上冒出来。
     const foodCoin = (f) => `<div class="coin${recordFood===f.id?' on':''}" role="button" tabindex="0" data-food="${f.id}"><span class="disc">${foodIconHTML(f,'🍖')}</span><span class="cn">${escapeHtml(f.name)}</span>${canEdit ? `<button type="button" class="coin-edit" data-edit="${f.id}" aria-label="编辑 ${escapeHtml(f.name)}" title="编辑">✎</button>` : ''}</div>`;
 
-    // 干粮固定第一个
-    let html = `<div class="coin${recordFood==='kibble'?' on':''}" role="button" tabindex="0" data-food="kibble"><span class="disc">${foodIconHTML(kb,'🥣')}</span><span class="cn">${escapeHtml(kbName)}</span>${canEdit ? `<button type="button" class="coin-edit" data-edit="kibble" aria-label="编辑干粮" title="编辑">✎</button>` : ''}</div>`;
-    // 其余食物扁平横排（按种类分类筛选留待加了类别字段后再上）
-    lib.forEach(f => { html += foodCoin(f); });
+    // 干粮固定第一个（只在「全部」下出现）
+    let html = '';
+    if (!foodFilter) html += `<div class="coin${recordFood==='kibble'?' on':''}" role="button" tabindex="0" data-food="kibble"><span class="disc">${foodIconHTML(kb,'🥣')}</span><span class="cn">${escapeHtml(kbName)}</span>${canEdit ? `<button type="button" class="coin-edit" data-edit="kibble" aria-label="编辑干粮" title="编辑">✎</button>` : ''}</div>`;
+    visible.forEach(f => { html += foodCoin(f); });
     if (canEdit) html += `<div class="coin add" role="button" tabindex="0" data-food="__new"><span class="disc">＋</span><span class="cn">新建</span></div>`;
     $foodSelector.innerHTML = html;
     $foodSelector.querySelectorAll('.coin').forEach(coin => {
@@ -3481,7 +3490,7 @@
   function createFoodGroup(pet, name) {
     if (!Array.isArray(pet.foodGroups)) pet.foodGroups = [];
     const id = uuid('g');
-    pet.foodGroups.push({ id, name: (name || '分组').slice(0, 12), emoji: '🗂', collapsed: false });
+    pet.foodGroups.push({ id, name: (name || '类别').slice(0, 12), emoji: '🗂', collapsed: false });
     return id;
   }
   function toggleGroupCollapsed(gid) {
@@ -3494,7 +3503,7 @@
   function openGroupEditor(gid) {
     const pet = currentPet(); if (!pet || !isAdminOrUp(pet)) return;
     const g = (pet.foodGroups || []).find(x => x.id === gid); if (!g) return;
-    const next = prompt('分组名称（清空并确定＝删除分组，里面的食物升回顶层）：', g.name || '');
+    const next = prompt('类别名称（清空并确定＝删除类别，里面的食物回到「不分类」）：', g.name || '');
     if (next === null) return;
     const name = next.trim().slice(0, 12);
     if (!name) {
@@ -4478,9 +4487,9 @@
   function renderFmGroupOptions(pet, selectedGid) {
     if (!$fmGroup) return;
     const groups = Array.isArray(pet.foodGroups) ? pet.foodGroups : [];
-    let html = `<option value="">不分组（顶层单独一条）</option>`;
-    html += groups.map(g => `<option value="${g.id}"${g.id === selectedGid ? ' selected' : ''}>${escapeHtml((g.emoji || '🗂') + ' ' + (g.name || '分组'))}</option>`).join('');
-    html += `<option value="__new">＋ 新建分组…</option>`;
+    let html = `<option value="">不分类</option>`;
+    html += groups.map(g => `<option value="${g.id}"${g.id === selectedGid ? ' selected' : ''}>${escapeHtml((g.emoji || '🗂') + ' ' + (g.name || '类别'))}</option>`).join('');
+    html += `<option value="__new">＋ 新建类别…</option>`;
     $fmGroup.innerHTML = html;
     fmGroupId = selectedGid || null;
   }
@@ -4863,7 +4872,7 @@
   if ($fmGroup) $fmGroup.addEventListener('change', () => {
     if ($fmGroup.value === '__new') {
       const pet = currentPet();
-      const name = (prompt('新分组名称（如：大罐头）：', '') || '').trim();
+      const name = (prompt('新类别名称（如：湿粮 / 零食 / 罐头）：', '') || '').trim();
       if (!name || !pet) { $fmGroup.value = fmGroupId || ''; return; }
       const gid = createFoodGroup(pet, name);
       persist(); schedulePushMeta(pet);

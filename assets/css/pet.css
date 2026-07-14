@@ -2050,3 +2050,10 @@
   .food-card .wpage-mid { color:var(--fc-muted); white-space:nowrap; }
   .food-card .wpage-select { border:none; border-bottom:1px solid var(--fc-hair); background:none; color:var(--fc-navy); font-family:var(--font-body); font-weight:600; font-variant-numeric:tabular-nums; padding:0 .15rem .05rem; cursor:pointer; }
   .food-card .wpage-btn:focus-visible, .food-card .wpage-select:focus-visible { outline:2px solid var(--fc-navy); outline-offset:2px; }
+
+  /* 食物按类别筛选标签（食豆上方；有类别时才显示）*/
+  .food-card .food-filter { display:flex; gap:.7rem; font-family:var(--font-body); font-size:.8rem; flex-wrap:wrap; align-items:center; }
+  .food-card .food-filter .ff { border:none; background:none; padding:0; color:var(--fc-faint); cursor:pointer; font:inherit; }
+  .food-card .food-filter .ff.active { color:var(--fc-navy); font-weight:700; }
+  @media(hover:hover){ .food-card .food-filter .ff:not(.active):hover { color:var(--fc-muted); } }
+  .food-card .food-filter .ff:focus-visible { outline:2px solid var(--fc-navy); outline-offset:2px; border-radius:4px; }
