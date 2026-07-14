@@ -81,18 +81,33 @@
     trialDrops: 10,
   };
 
-  // ============ 游戏模式（三个并行排行榜） ============
-  // basic     - 严格模式：禁喷泉（按住空格 autorepeat 不生效）。计入主榜。
-  // fountain  - 喷泉模式：5s 长按 + 1s 冷却。计入喷泉榜。
-  // unlimited - 尽兴模式：跳过所有暗号 budget + 无喷泉限制。计入尽兴榜。
-  // 中途从 basic/fountain 输 unlimited 暗号 → unlimitedMode 升级 → 提交去尽兴榜
-  // （理由：开局更严格 = 玩起来更难，归到尽兴榜公平）。
-  const VALID_GAME_MODES = ['basic', 'fountain', 'unlimited'];
+  // ============ 游戏模式 ============
+  // 竞技层（锁死物理、人人同参数、各自独立榜）：
+  //   basic(经典)     - 标准物理 · 禁喷泉。主榜。
+  //   fountain(喷泉)  - 标准物理 · 5s 长按 + 1s 冷却。
+  //   earthquake(地震)- 标准物理 + 持续地震扰动。
+  // 自由层（不排名）：
+  //   free(自由)      - 随便调参 + 无限暗号 + 续局。只存本地个人最高分。
+  // 竞技局中途输 unlimited 暗号 → unlimitedMode → 本局转自由（跳过限制、不计入竞技榜）。
+  // 模式两层：竞技（锁死参数、各自独立榜、人人同物理）+ 自由（可调参、无限暗号、只存本地最高、不排名）。
+  // 内部 id 保留 basic/fountain 以复用旧榜数据；earthquake 新增竞技榜；free 取代旧 unlimited（不再上传后端）。
+  const VALID_GAME_MODES = ['basic', 'fountain', 'earthquake', 'free'];
+  // 每个模式的规范定义。竞技模式 physics 写死、玩家改不了；free 的 physics=null → 用玩家自己存的可调参数。
+  // mergeGapCapPx：合并「跨缝」的绝对像素上限（治大果幻影合并）；竞技锁 4px，自由不封顶（滑条完全生效）。
+  const MODE_PRESETS = {
+    basic:      { label: '经典', emoji: '🎯', ranked: true,  fountain: false, physics: { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0   }, mergeGapCapPx: 4 },
+    fountain:   { label: '喷泉', emoji: '🚿', ranked: true,  fountain: true,  physics: { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0   }, mergeGapCapPx: 4 },
+    earthquake: { label: '地震', emoji: '🌋', ranked: true,  fountain: false, physics: { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0.5 }, mergeGapCapPx: 4 },
+    free:       { label: '自由', emoji: '♾',  ranked: false, fountain: true,  physics: null, mergeGapCapPx: Infinity },
+  };
   function loadGameMode() {
-    const v = localStorage.getItem(GAMEMODE_KEY);
+    let v = localStorage.getItem(GAMEMODE_KEY);
+    if (v === 'unlimited') v = 'free';    // 旧「尽兴」偏好迁移到「自由」
     return VALID_GAME_MODES.includes(v) ? v : 'basic';
   }
   let gameMode = loadGameMode();
+  function currentPreset() { return MODE_PRESETS[gameMode] || MODE_PRESETS.basic; }
+  function isRankedMode() { return currentPreset().ranked; }
 
   // 排行榜后端（zircon-urge Vercel + Upstash Redis）。
   // 灭火开关：把 LEADERBOARD_ENABLED 改成 false 后 push，前端立即回到纯本地模式。
@@ -101,25 +116,35 @@
   // 后端 nick 校验：2-12 codepoint，正则与服务端保持一致。
   const NICK_REJECT_RE = /[<>&"'\/\\\x00-\x1F​-‏﻿‪-‮]/;
 
-  // 5 个用户可调参数（0-1 滑条 → 实际物理值） + 布尔开关 + 字符串 preset
+  // PHYSICS = 「自由模式」的可调参数（持久化到 localStorage）。竞技模式绝不改它。
+  // shakeView（护眼）/ canvasSize（屏幕舒适）不算竞技公平项，任何模式都跟随 PHYSICS。
   const PHYSICS = { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0, shakeView: true, canvasSize: 'medium' };
+  // activePhysics = 本局真正生效的 5 个物理量。竞技模式=该模式写死的预设；自由模式=PHYSICS 的当前值。
+  // mapPhysics 读它，所以切模式只需 syncActivePhysics() 一次，全局立即改用新参数。
+  let activePhysics = { bounce: 0.5, explosion: 0.5, gravity: 0.5, stickiness: 0.5, tremor: 0 };
+  function syncActivePhysics() {
+    const p = currentPreset();
+    const src = (p.ranked && p.physics) ? p.physics : PHYSICS;   // 竞技用预设，自由用玩家参数
+    activePhysics = {
+      bounce: src.bounce, explosion: src.explosion, gravity: src.gravity,
+      stickiness: src.stickiness, tremor: src.tremor,
+    };
+  }
   function mapPhysics() {
+    const A = activePhysics;
     return {
-      // 回弹：0-1 → 0.05-0.60（之前上限 0.40 太低，"跳跳球"档其实只是中等
-      // 橡胶。提到 0.60 才有真正"弹来弹去"的手感。MAX_VEL=22 clamp +
-      // positionIterations=16 兜得住，不会引发出界 / 嵌入）
-      restitution: PC.defaultRestitutionBase + PHYSICS.bounce * PC.defaultRestitutionRange,
+      // 回弹：0-1 → 0.05-0.60
+      restitution: PC.defaultRestitutionBase + A.bounce * PC.defaultRestitutionRange,
       // 合并爆炸：0-1 → 0.5x-1.8x（基础推力的乘数）
-      explosionMult: PC.defaultExplosionBase + PHYSICS.explosion * PC.defaultExplosionRange,
+      explosionMult: PC.defaultExplosionBase + A.explosion * PC.defaultExplosionRange,
       // 重力：0-1 → 0.0008-0.0022
-      gravityScale: PC.defaultGravityBase + PHYSICS.gravity * PC.defaultGravityRange,
-      // 合并粘性：0-1 → 1.02-1.15（合并触发距离倍率）
-      mergeTolerance: PC.defaultMergeTolBase + PHYSICS.stickiness * PC.defaultMergeTolRange,
-      // 地震：tremor=0 关，tremor=1 平均每 500ms 触发一次大扰动；
-      //       0-1 之间间隔反比例延长 + 幅度等比缩小，时间和幅度都带 ±30% 噪声
-      tremorIntervalMs: PHYSICS.tremor > 0 ? 500 / PHYSICS.tremor : Infinity,
-      tremorAmplitude: PC.defaultTremorAmp * PHYSICS.tremor,
-      tremorShakePx: PC.defaultTremorShakeBase + PHYSICS.tremor * PC.defaultTremorShakeRange,    // camera shake 像素幅度 5-18 px
+      gravityScale: PC.defaultGravityBase + A.gravity * PC.defaultGravityRange,
+      // 合并粘性：0-1 → 1.02-1.15（合并触发距离倍率，实际再受 mergeGapCapPx 封顶）
+      mergeTolerance: PC.defaultMergeTolBase + A.stickiness * PC.defaultMergeTolRange,
+      // 地震：tremor=0 关，tremor=1 平均每 500ms 触发一次大扰动
+      tremorIntervalMs: A.tremor > 0 ? 500 / A.tremor : Infinity,
+      tremorAmplitude: PC.defaultTremorAmp * A.tremor,
+      tremorShakePx: PC.defaultTremorShakeBase + A.tremor * PC.defaultTremorShakeRange,
     };
   }
   function loadPhysics() {
@@ -630,9 +655,9 @@
 
   async function triggerScoreQuery() {
     // ?score 是纯查询，无次数上限
-    // unlimited 模式下查询没意义（不上传），给特殊提示
+    // 自由玩法（自由模式 / unlimited 暗号转自由）不上传，查询没意义，给特殊提示
     if (unlimitedMode) {
-      showCheatToast('♾ unlimited 模式 · 玩的尽兴 · 本局不计入排名', '#d4a3ff');
+      showCheatToast('♾ 自由玩法 · 本局不计入排名', '#d4a3ff');
       return;
     }
     const nick = getNick();
@@ -648,16 +673,16 @@
     }
   }
 
-  // unlimited：跳过所有 budget + 喷泉限制；本局上传到尽兴模式（unlimited）榜
-  // 中途从 basic / fountain 触发：这局算"严格开局 + 尽兴收尾"，归到 unlimited 榜
+  // unlimited 暗号：把当前这一局「转自由」——跳过所有 budget + 喷泉限制。
+  // 代价：本局不再计入竞技榜（严格竞技局中途解限，归到自由玩法只当娱乐、只存本地最高）。
   function triggerUnlimited() {
     if (isOver) return;
     if (unlimitedMode) {
-      showCheatToast('♾ 已经在尽兴模式 · 本局上 unlimited 榜', '#d4a3ff');
+      showCheatToast('♾ 已经是自由玩法 · 本局不计入排名', '#d4a3ff');
       return;
     }
     unlimitedMode = true;
-    showCheatToast('♾ unlimited：跳过所有限制 · 本局上 unlimited 榜', '#d4a3ff');
+    showCheatToast('♾ 本局转自由 · 跳过所有限制 · 不计入排名', '#d4a3ff');
   }
 
   // 暗号映射表（注意：长前缀放后面，避免短前缀截胡 — 这里 7 个互不重叠，无所谓）
@@ -949,10 +974,13 @@
     currentRunNonce = String(save.currentRunNonce || newRunNonce());
     runCheatUsage = (save.runCheatUsage && typeof save.runCheatUsage === 'object') ? { ...save.runCheatUsage } : {};
     unlimitedMode = !!save.unlimitedMode;
-    if (VALID_GAME_MODES.includes(save.gameMode)) {
-      gameMode = save.gameMode;
+    let savedMode = save.gameMode;
+    if (savedMode === 'unlimited') savedMode = 'free';   // 旧存档迁移
+    if (VALID_GAME_MODES.includes(savedMode)) {
+      gameMode = savedMode;
       // 不写 localStorage：菜单偏好保留用户最后一次主动选择，不被存档恢复污染
     }
+    syncActivePhysics();   // 按恢复后的模式定下生效物理
 
     nextLevelQueue = Array.isArray(save.nextLevelQueue) ? save.nextLevelQueue.slice() : [];
     ensureQueueFilled();
@@ -1182,9 +1210,9 @@
       }
     }
 
-    // 基础版：延迟 spawn hover 防鼠标狂点；其它模式立刻 spawn。
+    // 无喷泉的竞技模式（经典/地震）：延迟 spawn hover 防鼠标狂点当喷泉；喷泉/自由立刻 spawn。
     clearHoverRespawn();
-    if (gameMode === 'basic' && !unlimitedMode) {
+    if (!currentPreset().fountain && !unlimitedMode) {
       hoverRespawnTimer = setTimeout(() => {
         hoverRespawnTimer = null;
         if (!isOver && gameStarted) spawnHoveringFruit();
@@ -1251,11 +1279,11 @@
       // 第一次按下（非 autorepeat）记录起始时间
       if (!e.repeat) spaceHeldSince = now;
       if (!unlimitedMode) {
-        if (gameMode === 'basic') {
-          // 基础版：完全禁喷泉。autorepeat（按住空格连发）一律拦截，
-          // 只让首次 keydown 落一颗。
+        if (!currentPreset().fountain) {
+          // 无喷泉的竞技模式（经典 / 地震）：完全禁喷泉。autorepeat（按住空格连发）
+          // 一律拦截，只让首次 keydown 落一颗。
           if (e.repeat) return;
-        } else if (gameMode === 'fountain') {
+        } else {
           // 喷泉模式：5s 长按 + 1s 冷却。
           if (now < fountainCooldownUntil) return;
           // 刚出冷却 + 按键按着没松：重新开 5s 窗
@@ -1271,8 +1299,7 @@
             return;
           }
         }
-        // gameMode === 'unlimited' 但 unlimitedMode 还没 set：不应该到这里
-        // （startGame 会同步 set），但万一也无限制走。
+        // 自由模式走 unlimitedMode 分支（上面的 !unlimitedMode 直接跳过），无限投放。
       }
       dropCurrent();
     } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -1432,6 +1459,10 @@
   // 每帧扫一次：所有同 level 水果对，距离 ≤ 半径和 × 用户设置粘性 → 合并
   function checkProximityMerges() {
     const tolerance = mapPhysics().mergeTolerance;
+    // 幻影合并修复：合并「跨缝」= (容差-1)×半径和，随半径线性放大，大果的缝可达 ~14px（看着没挨上就合了）。
+    // 改成对这条缝封顶 gapCap 像素：小果的缝本来就 <cap，维持原样（不会变得更容易）；只削大果那条夸张的缝。
+    // 自由模式 gapCap=Infinity → 完全等于旧行为，「合并粘性」滑条照样能玩出「靠近就合」。
+    const gapCap = currentPreset().mergeGapCapPx;
     const byLv = {};
     Composite.allBodies(world).forEach(b => {
       if (!b.fruitLevel) return;
@@ -1449,7 +1480,8 @@
           const dx = a.position.x - b.position.x;
           const dy = a.position.y - b.position.y;
           const dist = Math.hypot(dx, dy);
-          const touchDist = (a.circleRadius + b.circleRadius) * tolerance;
+          const sum = a.circleRadius + b.circleRadius;
+          const touchDist = sum + Math.min((tolerance - 1) * sum, gapCap);
           if (dist < touchDist) {
             recentMerges.add(a.id);
             recentMerges.add(b.id);
@@ -1502,7 +1534,7 @@
     };
   }
   function maybeTriggerTremor(now) {
-    if (PHYSICS.tremor <= 0) return;
+    if (activePhysics.tremor <= 0) return;
     if (isPaused || isOver) return;
     // 试玩模式也允许触发，方便用户调参时立刻感受效果
     if (!gameStarted && !trialMode) return;
@@ -1930,8 +1962,9 @@
     runMaxLevel = 0;
     runMelons = 0;
     runCheatUsage = {};
-    // 重开时 gameMode 沿用上局菜单选择；unlimited 模式重开仍是 unlimited。
-    unlimitedMode = (gameMode === 'unlimited');
+    // 重开时 gameMode 沿用上局菜单选择；自由模式重开仍是自由。
+    syncActivePhysics();
+    unlimitedMode = (gameMode === 'free');
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
     clearHoverRespawn();
@@ -1977,8 +2010,9 @@
     runMaxLevel = 0;
     runMelons = 0;
     runCheatUsage = {};
-    // 菜单选了尽兴模式 → 立即进 unlimitedMode（跳过暗号 budget），上 unlimited 榜。
-    unlimitedMode = (gameMode === 'unlimited');
+    // 菜单选了自由模式 → 立即进 unlimitedMode（跳过暗号 budget、无限投放）；本局不上传排名。
+    syncActivePhysics();
+    unlimitedMode = (gameMode === 'free');
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
     clearHoverRespawn();
@@ -2028,9 +2062,10 @@
 
   // ============ 模式选择器（segmented control）============
   const MODE_DESC_TEXT = {
-    basic:     '🎯 不能喷泉 · 计入基础榜',
-    fountain:  '🚿 长按空格喷 5s · 冷却 1s · 计入喷泉榜',
-    unlimited: '♾ 跳过所有限制 · 暗号无次数 · 计入尽兴榜',
+    basic:      '🎯 标准物理 · 禁喷泉 · 计入经典榜',
+    fountain:   '🚿 标准物理 · 长按空格喷 5s 冷却 1s · 计入喷泉榜',
+    earthquake: '🌋 标准物理 + 持续地震扰动 · 计入地震榜',
+    free:       '♾ 随便调参 · 无限暗号 · 可续局 · 只存本地最高（不排名）',
   };
   const $modePicker = document.getElementById('mode-picker');
   const $modeDesc = document.getElementById('mode-desc');
@@ -2050,10 +2085,11 @@
       if (m === gameMode) return;
       gameMode = m;
       try { localStorage.setItem(GAMEMODE_KEY, m); } catch (_) {}
+      syncActivePhysics();   // 切模式立即改用该模式的物理（竞技=预设，自由=玩家参数）
+      applyPhysicsLive();
       applyModeSelection();
-      // 同步右侧排行榜：菜单换模式时榜单跟着切（"看下我即将玩的这个榜什么样"）。
-      // setLbViewMode 内置去重；如果用户已经在看那个榜就不重拉。
-      setLbViewMode(m, true);
+      // 竞技模式：同步右侧排行榜到即将玩的这个榜；自由模式没有公开榜，保持当前视图。
+      if (MODE_PRESETS[m] && MODE_PRESETS[m].ranked) setLbViewMode(m, true);
     });
   });
   applyModeSelection();
@@ -2078,13 +2114,13 @@
   const LB_LIMIT = 5;
   const LB_PAGE_SIZE = 10;    // 展开模式每页条数
   const LB_MEDALS = ['🥇', '🥈', '🥉'];
-  // 当前看的是哪个模式的榜（独立于 gameMode：玩家可以一边玩 basic 一边看 unlimited 榜）。
-  // 初始 mirror gameMode，菜单换模式时跟着切；点榜单 tab 只切 lbViewMode 不动 gameMode。
-  let lbViewMode = gameMode;
-  let mineLastByMode = { basic: null, fountain: null, unlimited: null };
+  // 当前看的是哪个竞技榜（独立于 gameMode：可以一边玩经典一边看地震榜）。
+  // 初始 mirror gameMode；自由模式没有公开榜，初始退回经典榜。点榜单 tab 只切 lbViewMode 不动 gameMode。
+  let lbViewMode = isRankedMode() ? gameMode : 'basic';
+  let mineLastByMode = { basic: null, fountain: null, earthquake: null };
   // 也缓存 lb 拉到的 entries/total，以便在 loadMyRank 后续回来时拿到 nicks 集合
   // 重新渲染一次（淡色高亮"过去用过的名字"）；切 tab 也能立刻显示已缓存的榜。
-  let lbLastByMode = { basic: null, fountain: null, unlimited: null };
+  let lbLastByMode = { basic: null, fountain: null, earthquake: null };
 
   function paintCurrentLeaderboard() {
     const cached = lbLastByMode[lbViewMode];
@@ -2105,9 +2141,9 @@
     });
   }
 
-  // 切换到指定 mode 的榜：更新 UI、清缓存、可选立刻重拉。
+  // 切换到指定 mode 的榜：更新 UI、清缓存、可选立刻重拉。只接受竞技榜（自由模式无公开榜）。
   function setLbViewMode(mode, refetch) {
-    if (!VALID_GAME_MODES.includes(mode)) return;
+    if (!MODE_PRESETS[mode] || !MODE_PRESETS[mode].ranked) return;
     if (lbViewMode === mode && !refetch) return;
     lbViewMode = mode;
     lbPage = 1;        // 切榜时回第一页，避免跨榜页码越界
@@ -2324,8 +2360,17 @@
 
   // ============ 排行榜：上传 / 排名 / 截图 ============
   // 三态 UI：loading → success（"第 X 名 / 共 Y 人"）/ failed（"排行榜暂时不可用"）
-  // 三个榜的中文显示名（rank slot / 截图 / 排行榜 tab 通用）
-  const MODE_LABEL = { basic: '基础榜', fountain: '喷泉榜', unlimited: '尽兴榜' };
+  // 三个竞技榜的中文显示名（rank slot / 截图 / 排行榜 tab 通用）
+  const MODE_LABEL = { basic: '经典榜', fountain: '喷泉榜', earthquake: '地震榜' };
+
+  // 自由玩法（自由模式 / unlimited 暗号转自由）只存本地个人最高，不进任何公开榜。
+  const FREEBEST_KEY = 'tool.suika.freebest.v1';
+  function getFreeBest() { return parseInt(localStorage.getItem(FREEBEST_KEY) || '0', 10) || 0; }
+  function updateFreeBest(s) {
+    try { if (s > getFreeBest()) localStorage.setItem(FREEBEST_KEY, String(s)); } catch (_) {}
+  }
+  // 本局是不是「计入竞技榜」：竞技模式且没被 unlimited 暗号转自由。
+  function isRunRanked() { return currentPreset().ranked && !unlimitedMode; }
 
   function renderRankSlot(state, data) {
     if (state === 'hidden') {
@@ -2370,9 +2415,24 @@
       $ovRank.textContent = '想上排行榜？看下面的昵称表单 ↓';
       return;
     }
+    if (state === 'free') {
+      $ovRank.className = 'ov-rank-row';
+      $ovRank.innerHTML = '';
+      const a = document.createTextNode('♾ 自由玩法 · 不计入排名 · 你的最高 ');
+      const b = document.createElement('strong');
+      b.textContent = String(getFreeBest());
+      $ovRank.append(a, b);
+      return;
+    }
   }
 
   function setupNicknameUI() {
+    // 自由玩法不上榜 → 昵称表单/标签都不显示
+    if (!isRunRanked()) {
+      $ovNickForm.style.display = 'none';
+      $ovNickTag.style.display = 'none';
+      return;
+    }
     const nick = getNick();
     if (nick) {
       $ovNickForm.style.display = 'none';
@@ -2393,10 +2453,9 @@
     }
   }
 
-  // 当前局上传到哪个排行榜：unlimitedMode（菜单选尽兴 / 中途输 unlimited 暗号）→
-  // unlimited 榜；否则按 gameMode（basic/fountain）分别归桶。
+  // 竞技局归到哪个榜：直接就是 gameMode（basic/fountain/earthquake）。自由局不走这里。
   function effectiveSubmitMode() {
-    return unlimitedMode ? 'unlimited' : gameMode;
+    return gameMode;
   }
 
   // 把本局成绩 POST 到 /api/suika。失败时降级，不阻塞 UI。
@@ -2404,6 +2463,13 @@
     if (!LEADERBOARD_ENABLED) return;
     if (pendingSubmitForRun) return;
     if (score <= 0) { renderRankSlot('hidden'); return; }
+    // 自由玩法（自由模式 / unlimited 暗号转自由）：不上传，只更新并显示本地个人最高。
+    if (!isRunRanked()) {
+      updateFreeBest(score);
+      renderRankSlot('free');
+      refreshSnapshot({ free: true });
+      return;
+    }
     let nick = getNick();
     // autoSettle: "直接结算" 时没昵称就用随机的（不写 localStorage，下局还能起自己的）
     let nickIsAuto = false;
@@ -2622,6 +2688,8 @@
         rankText = modeLabel
           ? `第 ${rankInfo.rank} 名 · 共 ${rankInfo.total} 位 · ${modeLabel}`
           : `第 ${rankInfo.rank} 名 · 共 ${rankInfo.total} 位玩家`;
+      } else if (rankInfo && rankInfo.free) {
+        rankText = '♾ 自由玩法 · 不计入排名';
       } else if (rankInfo && rankInfo.failed) {
         rankText = '排行榜暂时不可用';
       } else if (rankInfo && rankInfo.pending) {
@@ -2766,17 +2834,27 @@
   const $tryPhysicsBtn = document.getElementById('try-physics-btn');
   const $startFromSettingsBtn = document.getElementById('start-from-settings-btn');
   const $settingsToMenuBtn = document.getElementById('settings-to-menu-btn');
+  const $resetPhysicsBtn = document.getElementById('reset-physics-btn');
+  const $settingsLockNote = document.getElementById('settings-lock-note');
+  // 竞技模式要锁死的物理调参控件（5 个滑条组，HTML 上标了 .settings-lockable）
+  const lockableEls = Array.from(document.querySelectorAll('#view-settings .settings-lockable'));
 
-  // 根据 inGameSettings 切换设置面板底部按钮组
+  // 根据 inGameSettings + 是否竞技模式 切换设置面板控件显隐
   function refreshSettingsActions() {
     const inGame = inGameSettings;
-    $tryPhysicsBtn.style.display       = inGame ? 'none' : '';
+    // 竞技模式（经典/喷泉/地震）锁死物理参数：隐藏 5 个滑条 + 试一试 + 默认(重置物理)，显示锁定提示。
+    // 只有自由模式能调。合成链换表情 / 画幅 / 护眼抖动 属外观/舒适项，任何模式都保留。
+    const ranked = isRankedMode();
+    $tryPhysicsBtn.style.display        = (inGame || ranked) ? 'none' : '';
+    $resetPhysicsBtn.style.display      = ranked ? 'none' : '';
     $startFromSettingsBtn.style.display = inGame ? 'none' : '';
     $resumeFromSettingsBtn.style.display = inGame ? '' : 'none';
     $restartFromSettingsBtn.style.display = inGame ? '' : 'none';
     // 「返回主菜单」只在非游戏中（开局前的调参）出现：游戏中要退出走 继续/重开，
     // 避免暂停中的对局被误跳回主菜单丢进度。（修复：调参/试玩进去后回不到模式选择器）
     $settingsToMenuBtn.style.display    = inGame ? 'none' : '';
+    lockableEls.forEach(el => { el.style.display = ranked ? 'none' : ''; });
+    if ($settingsLockNote) $settingsLockNote.style.display = ranked ? '' : 'none';
   }
 
   // 控制栏「⚙ 调参」按钮
@@ -2855,6 +2933,7 @@
       $val.textContent = PHYSICS[key].toFixed(2);
       $desc.textContent = describe(PHYSICS[key]);
       savePhysics();
+      syncActivePhysics();   // 滑条只在自由模式可动 → 立即让 activePhysics 跟上
       applyPhysicsLive();
     });
   });
@@ -2959,6 +3038,7 @@
     PHYSICS.shakeView = true;
     savePhysics();
     refreshSliderUI();
+    syncActivePhysics();
     applyPhysicsLive();
   });
   document.getElementById('custom-chain-reset-btn').addEventListener('click', resetChain);
@@ -2984,8 +3064,10 @@
   renderChainEditor();
   updateScoreUI();
   loadPhysics();
+  syncActivePhysics();   // 按当前 gameMode 定下本会话生效物理（竞技=预设，自由=玩家参数）
   fitCanvas();           // 保存的 canvasSize preset 在这里才被应用（之前 fitCanvas 用的是默认 standard）
   refreshSliderUI();
+  refreshSettingsActions();   // 初始化调参面板显隐（竞技模式先锁好物理滑条）
   setupWorld();
   // 不再立即 spawnHoveringFruit — 等用户点「开始游戏」
   $startBest.textContent = highScore;

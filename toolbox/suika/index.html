@@ -406,7 +406,7 @@ theme_color: "#fafaf9"
     border-radius: 999px;
     padding: 4px;
     margin: 0 auto 0.5rem;
-    max-width: 280px;
+    max-width: 340px;
   }
   .mode-tab {
     flex: 1;
@@ -494,6 +494,17 @@ theme_color: "#fafaf9"
     margin-bottom: 0.9rem;
   }
   .setting-item { margin-bottom: 0.95rem; }
+  .settings-lock-note {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(240, 198, 116, 0.12);
+    border: 1px solid rgba(240, 198, 116, 0.3);
+    border-radius: 10px;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.9rem;
+    line-height: 1.5;
+    text-align: left;
+  }
   .setting-row {
     display: flex; align-items: baseline; gap: 0.4rem;
     margin-bottom: 0.3rem;
@@ -1069,13 +1080,16 @@ theme_color: "#fafaf9"
         <!-- 模式选择：三个并行排行榜 -->
         <div class="mode-picker" id="mode-picker" role="radiogroup" aria-label="游戏模式">
           <button type="button" class="mode-tab" data-mode="basic" role="radio" aria-checked="true">
-            <span class="mode-emoji">🎯</span><span class="mode-name">基础</span>
+            <span class="mode-emoji">🎯</span><span class="mode-name">经典</span>
           </button>
           <button type="button" class="mode-tab" data-mode="fountain" role="radio" aria-checked="false">
             <span class="mode-emoji">🚿</span><span class="mode-name">喷泉</span>
           </button>
-          <button type="button" class="mode-tab" data-mode="unlimited" role="radio" aria-checked="false">
-            <span class="mode-emoji">♾</span><span class="mode-name">尽兴</span>
+          <button type="button" class="mode-tab" data-mode="earthquake" role="radio" aria-checked="false">
+            <span class="mode-emoji">🌋</span><span class="mode-name">地震</span>
+          </button>
+          <button type="button" class="mode-tab" data-mode="free" role="radio" aria-checked="false">
+            <span class="mode-emoji">♾</span><span class="mode-name">自由</span>
           </button>
         </div>
         <div class="mode-desc" id="mode-desc"></div>
@@ -1091,7 +1105,10 @@ theme_color: "#fafaf9"
         </div>
 
         <div class="settings-body">
-          <div class="setting-item">
+          <div class="settings-lock-note" id="settings-lock-note" style="display: none;">
+            🔒 竞技模式已锁定物理参数（人人同物理，排行榜才公平）。想随便调，回主菜单选「♾ 自由」模式。
+          </div>
+          <div class="setting-item settings-lockable">
             <div class="setting-row">
               <label>🎈 回弹</label>
               <span class="setting-desc" id="bounce-desc">中等</span>
@@ -1099,7 +1116,7 @@ theme_color: "#fafaf9"
             </div>
             <input type="range" id="bounce-slider" min="0" max="1" step="0.05" value="0.5" />
           </div>
-          <div class="setting-item">
+          <div class="setting-item settings-lockable">
             <div class="setting-row">
               <label>💥 合并爆炸</label>
               <span class="setting-desc" id="explosion-desc">中等</span>
@@ -1107,7 +1124,7 @@ theme_color: "#fafaf9"
             </div>
             <input type="range" id="explosion-slider" min="0" max="1" step="0.05" value="0.5" />
           </div>
-          <div class="setting-item">
+          <div class="setting-item settings-lockable">
             <div class="setting-row">
               <label>🌍 重力</label>
               <span class="setting-desc" id="gravity-desc">中等</span>
@@ -1115,7 +1132,7 @@ theme_color: "#fafaf9"
             </div>
             <input type="range" id="gravity-slider" min="0" max="1" step="0.05" value="0.5" />
           </div>
-          <div class="setting-item">
+          <div class="setting-item settings-lockable">
             <div class="setting-row">
               <label>🤝 合并粘性</label>
               <span class="setting-desc" id="stickiness-desc">标准</span>
@@ -1123,13 +1140,16 @@ theme_color: "#fafaf9"
             </div>
             <input type="range" id="stickiness-slider" min="0" max="1" step="0.05" value="0.5" />
           </div>
-          <div class="setting-item">
+          <div class="setting-item settings-lockable">
             <div class="setting-row">
               <label>🌋 地震</label>
               <span class="setting-desc" id="tremor-desc">关闭</span>
               <span class="setting-val" id="tremor-val">0.00</span>
             </div>
             <input type="range" id="tremor-slider" min="0" max="1" step="0.05" value="0" />
+          </div>
+          <!-- 画幅抖动是护眼/舒适开关（相机层，不改物理），竞技模式也保留（地震模式尤其需要） -->
+          <div class="setting-item">
             <label class="setting-checkbox-row">
               <input type="checkbox" id="shake-view-check" checked />
               <span>画幅抖动（关掉只保留水果物理扰动，护眼）</span>
@@ -1256,9 +1276,9 @@ theme_color: "#fafaf9"
 
     <!-- 模式 tab：三个并行榜 -->
     <div class="sk-lb-tabs" id="sk-lb-tabs" role="tablist">
-      <button type="button" class="sk-lb-tab" data-mode="basic" role="tab" aria-selected="true">🎯 基础</button>
+      <button type="button" class="sk-lb-tab" data-mode="basic" role="tab" aria-selected="true">🎯 经典</button>
       <button type="button" class="sk-lb-tab" data-mode="fountain" role="tab" aria-selected="false">🚿 喷泉</button>
-      <button type="button" class="sk-lb-tab" data-mode="unlimited" role="tab" aria-selected="false">♾ 尽兴</button>
+      <button type="button" class="sk-lb-tab" data-mode="earthquake" role="tab" aria-selected="false">🌋 地震</button>
     </div>
 
     <!-- 我的排名（按设备 ID 跨昵称追踪，按当前 tab 模式查） -->
