@@ -2562,6 +2562,29 @@
   }
   $cropStage.addEventListener('pointerup', endCropDrag);
   $cropStage.addEventListener('pointercancel', endCropDrag);
+  // 键盘替代（a11y-7）：裁剪框可聚焦，方向键平移、+/− 缩放，夹取同拖拽一致
+  function nudgeCropFrame(dx, dy, dsize) {
+    const dw = cropState.w, dh = cropState.h;
+    let size = Math.max(24, Math.min(cropState.frame.size + (dsize || 0), Math.min(dw, dh)));
+    let x = Math.max(0, Math.min(dw - size, cropState.frame.x + (dx || 0)));
+    let y = Math.max(0, Math.min(dh - size, cropState.frame.y + (dy || 0)));
+    cropState.frame = { x, y, size };
+    updateCropFrame();
+  }
+  $cropFrame.addEventListener('keydown', e => {
+    const step = e.shiftKey ? 20 : 6;
+    let handled = true;
+    switch (e.key) {
+      case 'ArrowLeft': nudgeCropFrame(-step, 0, 0); break;
+      case 'ArrowRight': nudgeCropFrame(step, 0, 0); break;
+      case 'ArrowUp': nudgeCropFrame(0, -step, 0); break;
+      case 'ArrowDown': nudgeCropFrame(0, step, 0); break;
+      case '+': case '=': nudgeCropFrame(0, 0, step); break;
+      case '-': case '_': nudgeCropFrame(0, 0, -step); break;
+      default: handled = false;
+    }
+    if (handled) e.preventDefault();
+  });
 
   $cropApply.addEventListener('click', () => {
     try {

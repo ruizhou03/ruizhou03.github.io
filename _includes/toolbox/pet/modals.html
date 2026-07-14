@@ -467,14 +467,14 @@
       <h2 id="crop-title">裁剪头像</h2>
       <div class="crop-stage" id="crop-stage">
         <img id="crop-img" alt="" />
-        <div class="crop-frame" id="crop-frame">
+        <div class="crop-frame" id="crop-frame" tabindex="0" role="group" aria-label="裁剪框：方向键移动，加号减号缩放">
           <div class="crop-handle h-nw" data-handle="nw"></div>
           <div class="crop-handle h-ne" data-handle="ne"></div>
           <div class="crop-handle h-sw" data-handle="sw"></div>
           <div class="crop-handle h-se" data-handle="se"></div>
         </div>
       </div>
-      <div class="crop-hint">拖动方框选择头像，四角可缩放</div>
+      <div class="crop-hint">拖动方框选择头像，四角可缩放（键盘：方向键移动、+ / − 缩放）</div>
       <div class="modal-actions">
         <button type="button" class="cancel" id="crop-cancel">取消</button>
         <button type="button" class="save" id="crop-apply">应用</button>
