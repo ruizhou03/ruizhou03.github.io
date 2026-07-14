@@ -36,6 +36,13 @@
   .cmt-drawer .wl-content { font-family:var(--font-body) !important; color:var(--color-text) !important; line-height:1.72 !important; }
   .cmt-drawer .wl-meta, .cmt-drawer .wl-time { color:var(--color-light) !important; }
   .cmt-drawer .wl-editor, .cmt-drawer .wl-input, .cmt-drawer .wl-btn { font-family:inherit !important; }
+  /* 评论逐条动作：原生 点赞(wl-like) / 回复(wl-reply) + 注入的 举报(cmt-report) */
+  .cmt-drawer .wl-comment-actions { display:flex !important; gap:1rem !important; align-items:center !important; margin-top:.35rem !important; }
+  .cmt-drawer .wl-comment-actions .wl-action, .cmt-drawer .cmt-report { font-size:.8rem !important; color:var(--color-light) !important;
+    background:none !important; border:0 !important; cursor:pointer !important; padding:0 !important; font-family:var(--font-body) !important; line-height:1.4 !important; }
+  .cmt-drawer .wl-comment-actions .wl-action:hover { color:var(--color-accent) !important; }
+  .cmt-drawer .wl-like:hover, .cmt-drawer .wl-like.active, .cmt-drawer .wl-like[class*="active"] { color:var(--color-highlight) !important; }
+  .cmt-drawer .cmt-report:hover { color:#b4453a !important; }
 </style>
 <div class="cmt-ov" id="cmt-ov"></div>
 <aside class="cmt-drawer" id="cmt-drawer" aria-hidden="true" aria-label="评论区">
@@ -56,5 +63,37 @@
   dr.querySelector('.cmt-drawer-x').addEventListener('click', close);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dr.classList.contains('on')) close(); });
   window.CommentDrawer = { open: open, close: close };
+})();
+// 举报注入：Waline 渲染后，给每条评论的动作区加一个「举报」→ POST /api/report
+(function () {
+  var host = document.getElementById('waline');
+  if (!host) return;
+  var API = (window.SiteAuth && SiteAuth.API_BASE) ? SiteAuth.API_BASE : 'https://zircon-urge.fly.dev/api';
+  function inject() {
+    host.querySelectorAll('.wl-card-item').forEach(function (card) {
+      var reply = card.querySelector('.wl-reply');
+      var actions = card.querySelector('.wl-comment-actions') || (reply && reply.parentNode);
+      if (!actions || actions.querySelector('.cmt-report')) return;
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'wl-action cmt-report'; b.textContent = '举报';
+      actions.appendChild(b);
+      b.addEventListener('click', function () {
+        var nick = (card.querySelector('.wl-nick') || {}).textContent || '';
+        var content = (card.querySelector('.wl-content') || {}).textContent || '';
+        var reason = window.prompt('举报这条评论的理由（可留空）：', '');
+        if (reason === null) return;
+        b.disabled = true; var old = b.textContent; b.textContent = '举报中…';
+        var f = (window.SiteAuth && SiteAuth.authedFetch) ? SiteAuth.authedFetch : window.fetch;
+        f(API + '/report', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: location.pathname, nick: nick.slice(0, 60), snippet: content.trim().slice(0, 300), reason: (reason || '').slice(0, 200) }),
+        }).then(function (r) { return r.json(); }).then(function (d) {
+          if (d && d.ok) { b.textContent = '已举报'; } else { b.textContent = old; b.disabled = false; }
+        }).catch(function () { b.textContent = old; b.disabled = false; });
+      });
+    });
+  }
+  new MutationObserver(inject).observe(host, { childList: true, subtree: true });
+  inject();
 })();
 </script>
