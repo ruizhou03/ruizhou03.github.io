@@ -346,6 +346,7 @@
       if (p.neutered === undefined) p.neutered = false;
       // Extras (treats/cans) folded into intake via kibble-equivalent grams.
       if (!Number.isFinite(p.kibbleKcalPerG) || p.kibbleKcalPerG <= 0) p.kibbleKcalPerG = 3.8;
+      if (!Array.isArray(p.entries)) p.entries = [];   // 最核心的字段也要兜底，否则 render() 里 [...pet.entries] 会崩
       if (!Array.isArray(p.foodLibrary)) p.foodLibrary = [];
       if (!Array.isArray(p.foodGroups)) p.foodGroups = [];   // 食物折叠分组（组织用，不带换算系数）
       // Back-fill measure/unitLabel on library items from the first extras version
@@ -1125,10 +1126,10 @@
       const pet = pmEditingPet() || currentPet();
       const food = (pet && pet.foodLibrary || []).find(f => f.id === pmBaseId);
       if (food && food.measure === 'count') {
-        $pmConvBase.style.borderColor = '#c0564b';
+        $pmConvBase.style.borderColor = 'var(--pet-danger)';
         $pmConvBase.parentElement.querySelector('.hint')?.remove();
         const hint = document.createElement('p');
-        hint.className = 'hint'; hint.style.cssText = 'margin:0.3rem 0 0; color:#c0564b;';
+        hint.className = 'hint'; hint.style.cssText = 'margin:0.3rem 0 0; color:var(--pet-danger);';
         hint.textContent = '⚠️ 「' + food.name + '」是按份记的，选了它每日目标会显示成「份/天」，建议还是用干粮当主粮。';
         $pmConvBase.parentElement.appendChild(hint);
         return;
@@ -1697,7 +1698,7 @@
         render();
         pushDeleteEntry(p, eid);
         // Undo toast
-        const entryLabel = kind === 'bodyweight' ? '⚖️ 体重' : '🍽 记录';
+        const entryLabel = kind === 'bodyweight' ? '⚖️ 体重' : '🍽️ 记录';
         showLinkToast('已删除一条' + entryLabel,
           () => { p.entries.push(snapshot.entry); p.entries.sort((a, b) => a.ts - b.ts); persist(); render(); });
       });
@@ -2685,7 +2686,7 @@
       renderShareSection(p);
       render();
     } catch (e) {
-      alert('操作失败：' + (e.message || 'unknown'));
+      console.error(e); alert('操作没成功，请检查网络后重试。');
     }
   }
 
@@ -2800,6 +2801,7 @@
           state.pets.push(ip);
         }
       });
+      migratePets();   // 规整导入进来的宠物（补 entries 数组等），避免 render() 撞到脏结构崩页
       if (data.contactNicknames) state.contactNicknames = Object.assign({}, data.contactNicknames, state.contactNicknames);
       if (!state.currentId && state.pets.length) state.currentId = state.pets[0].id;
       if (persist()) { render(); alert('恢复完成 ✓'); }
@@ -2872,6 +2874,9 @@
   function closeJoinModal() { $joinModal.classList.remove('open'); }
   $emptyJoin.addEventListener('click', openJoinModal);
   $joinCancel.addEventListener('click', closeJoinModal);
+  // 没有宠物码的新人，给一条回到「新建宠物」的出路
+  const $joinToNew = document.getElementById('join-to-new');
+  if ($joinToNew) $joinToNew.addEventListener('click', () => { closeJoinModal(); openModal(null); });
   $joinModal.addEventListener('click', e => { if (e.target === $joinModal) closeJoinModal(); });
   $joinCode.addEventListener('input', () => { $joinCode.value = $joinCode.value.toUpperCase(); });
   $joinCode.addEventListener('keydown', e => {
@@ -2887,10 +2892,14 @@
       const existing = state.pets.find(p => p.serverPetId === r.petId);
       if (existing) {
         await flushOps(existing);   // push any queued local records before merging
-        Object.assign(existing, r.pet || {}, {
-          shared: true, serverPetId: r.petId, serverCode: r.code,
-          members: r.members || [], entries: mergeServerEntries(existing.entries, r.entries),
-        });
+        // 只按字段合并服务端 meta，绝不整体展开 r.pet（否则会把本地稳定 id/createdAt 覆盖成 serverPetId，
+        // 与全局其它 join/pull 路径保持一致，见 META_FIELDS.forEach 用法）
+        META_FIELDS.forEach(k => { if (r.pet && r.pet[k] !== undefined) existing[k] = r.pet[k]; });
+        existing.shared = true;
+        existing.serverPetId = r.petId;
+        existing.serverCode = r.code;
+        existing.members = r.members || [];
+        existing.entries = mergeServerEntries(existing.entries, r.entries);
         if (r.myToken) existing.memberToken = r.myToken;
         existing.knownMemberIds = (r.members || []).map(m => m.deviceId);
         state.currentId = existing.id;
@@ -2922,7 +2931,7 @@
       render();
       closeJoinModal();
     } catch (e) {
-      const msg = e && e.message === 'code_not_found' ? '宠物码不存在' : ('加入失败：' + (e.message || 'unknown'));
+      const msg = e && e.message === 'code_not_found' ? '宠物码不存在' : '加入失败，请检查网络后重试。';
       alert(msg);
     } finally {
       $joinConfirm.disabled = false; $joinConfirm.textContent = '加入';
@@ -2949,7 +2958,7 @@
       // Refresh modal share UI
       renderShareSection(p);
     } catch (e) {
-      alert('生成失败：' + (e.message || 'unknown'));
+      console.error(e); alert('生成失败，请检查网络后重试。');
     } finally {
       $pmMakeShared.disabled = false; $pmMakeShared.textContent = '🔗 生成宠物码';
     }
@@ -2984,7 +2993,7 @@
       persist();
       renderShareSection(p);
     } catch (e) {
-      alert('失败：' + (e.message || 'unknown'));
+      console.error(e); alert('操作没成功，请检查网络后重试。');
     }
   });
 
@@ -3053,7 +3062,7 @@
     if (!Number.isFinite(bwRaw) || bwRaw <= 0) errs.push([$pmWeightField, '请填写体重（数字）']);
     else {
       bodyWeight = bwToKg(bwRaw, bwUnit);
-      if (!Number.isFinite(bodyWeight) || bodyWeight <= 0 || bodyWeight > 120) errs.push([$pmWeightField, '体重看起来不太对']);
+      if (!Number.isFinite(bodyWeight) || bodyWeight <= 0 || bodyWeight > 120) errs.push([$pmWeightField, '体重看起来不太对（应在 0–120 之间）']);
     }
     if (errs.length) {
       errs.forEach(([f, m]) => pmSetErr(f, m));
@@ -3188,7 +3197,7 @@
       if (isOwner(p)) {
         if (!confirm('彻底删除这只宠物？所有共享的人都会失去这只宠物（包含所有记录）。')) return;
         try { await api('delete', { petId: p.serverPetId, body: {} }); }
-        catch (e) { alert('删除失败：' + (e.message || 'unknown')); return; }
+        catch (e) { console.error(e); alert('删除失败，请检查网络后重试。'); return; }
       } else {
         if (!confirm('仅从你这边移除？其他人仍能继续记录。')) return;
         try { await apiRetry('leave', { petId: p.serverPetId, body: {} }); } catch (_) {}
@@ -3674,9 +3683,9 @@
   function renderConvBaseOptions(p) {
     const kbName = (p && p.kibble && p.kibble.name) ? p.kibble.name : '干粮';
     const kbEmoji = (p && p.kibble && p.kibble.emoji) ? p.kibble.emoji : '🥣';
-    let html = `<option value="kibble">${kbEmoji} ${escapeHtml(kbName)}（默认）</option>`;
+    let html = `<option value="kibble">${escapeHtml(kbEmoji)} ${escapeHtml(kbName)}（默认）</option>`;
     ((p && p.foodLibrary) || []).forEach(f => {
-      html += `<option value="${f.id}">${f.emoji || '🍖'} ${escapeHtml(f.name)}</option>`;
+      html += `<option value="${escapeHtml(f.id)}">${escapeHtml(f.emoji || '🍖')} ${escapeHtml(f.name)}</option>`;
     });
     $pmConvBase.innerHTML = html;
     const want = (p && p.conversionBase) || 'kibble';
@@ -3784,12 +3793,12 @@
       if (Number.isFinite(latest) && latest > 0) pet.bodyWeight = latest;
     }
   }
-  // Shared commit path for both weight-entry methods (直接称 / 做差).
+  // Shared commit path for both weight-entry methods (直接称 / 作差).
   // extra = optional fields to stash on the entry blob (e.g. diff readings).
   function commitWeight(kg, unit, extra) {
     const pet = currentPet();
     if (!pet) { alert('先添加一只宠物'); return; }
-    if (!Number.isFinite(kg) || kg <= 0 || kg > 200) { alert('体重看起来不太对'); return; }
+    if (!Number.isFinite(kg) || kg <= 0 || kg > 200) { alert('体重看起来不太对（应在 0–200 之间），检查一下数字和单位？'); return; }
     const prevWeight = Number.isFinite(pet.bodyWeight) && pet.bodyWeight > 0 ? pet.bodyWeight : null;
     const newEntry = Object.assign(
       { id: uuid('e'), ts: pickedEntryTs(), addedAt: Date.now(), kind: 'bodyweight', reading: null, kg, author: DEVICE_ID, note: '' },
@@ -3813,7 +3822,7 @@
     commitWeight(bwToKg(raw, unit), unit, null);
     $weightInput.value = '';
   }
-  // Reading the 做差 inputs into { a, b, kg, unit } (kg = |a-b| converted). Returns null if incomplete.
+  // Reading the 作差 inputs into { a, b, kg, unit } (kg = |a-b| converted). Returns null if incomplete.
   function readWeightDiff() {
     const a = parseFloat($weightDiffA.value);
     const b = parseFloat($weightDiffB.value);
@@ -3838,7 +3847,7 @@
   function saveWeightDiff() {
     const d = readWeightDiff();
     if (!d) { alert('两次读数都要填'); return; }
-    if (!Number.isFinite(d.kg) || d.kg <= 0) { alert('两次读数差出来不像体重，检查一下'); return; }
+    if (!Number.isFinite(d.kg) || d.kg <= 0) { alert('两次读数差出来不像体重，检查一下是不是把两次读数或单位弄反了？'); return; }
     commitWeight(d.kg, d.unit, { method: 'diff', diffA: d.a, diffB: d.b, diffUnit: d.unit });
     $weightDiffA.value = '';
     $weightDiffB.value = '';
@@ -3895,7 +3904,7 @@
       let s = state.weightCustomStart, e = state.weightCustomEnd;
       if (!s || !e) return null;
       if (s > e) { [s, e] = [e, s]; }
-      return { start: parseIsoDate(s), end: parseIsoDate(e) + DAY_MS };
+      return { start: parseIsoDate(s).getTime(), end: parseIsoDate(e).getTime() + DAY_MS };
     }
     const n = parseInt(p, 10) || 30;
     return { start: now - n * DAY_MS, end: now + DAY_MS };
@@ -3907,7 +3916,7 @@
     updateWeightTimeDisplay();  // sync time pill with pendingEntryTs
     const unit = pet.bodyWeightUnit || 'kg';
     $weightUnit.value = unit;
-    $weightDiffUnit.value = unit;   // 做差也跟随宠物偏好单位（默认别老是 kg）
+    $weightDiffUnit.value = unit;   // 作差也跟随宠物偏好单位（默认别老是 kg）
     // 占位文案用当前宠物的名字（「称一下橘座」「抱着橘座的读数」）
     const nm = pet.name || '宝贝';
     $weightInput.placeholder = '称一下' + nm;
@@ -3959,7 +3968,7 @@
       const recent = [...ws].reverse().slice(0, 8);
       $weightList.innerHTML = recent.map(e => {
         const kgStr = parseFloat(bwFromKg(Number(e.kg), unit).toFixed(2));
-        const tag = e.method === 'diff' ? ' <span class="er-raw">(做差)</span>' : '';
+        const tag = e.method === 'diff' ? ' <span class="er-raw">(作差)</span>' : '';
         return `<div class="entry-row">
           <span class="er-time">${isoDate(e.ts).slice(5)} ${fmtTime(e.ts)}</span>
           <span class="er-main"><span class="er-delta extra">⚖️ ${kgStr} ${unit}</span>${tag}</span>
@@ -4016,7 +4025,7 @@
       const yTop = y(target.max), yBot = y(target.min);
       const bandH = yBot - yTop;
       if (bandH > 0) {
-        const sage = getComputedStyle(document.documentElement).getPropertyValue('--sage').trim() || '#5c8a6a';
+        const sage = getComputedStyle(document.documentElement).getPropertyValue('--pet-chart-target').trim() || '#4a7c59';
         svg += `<rect x="${padL}" y="${yTop}" width="${(W - padL - padR)}" height="${bandH}" fill="${sage}" opacity="0.08" rx="2"/>`;
         svg += `<text x="${(W - padR - 2)}" y="${(yTop + 11)}" text-anchor="end" font-size="9.5" fill="${sage}" opacity="0.7">目标 ${parseFloat(bwFromKg(target.min, unit).toFixed(1))}–${parseFloat(bwFromKg(target.max, unit).toFixed(1))}</text>`;
       }
@@ -4166,7 +4175,7 @@
     persist(); renderWeight(pet);
   });
 
-  // Weight entry method (直接称 / 做差) toggle.
+  // Weight entry method (直接称 / 作差) toggle.
   function setWeightMethod(method) {
     const m = method === 'diff' ? 'diff' : 'direct';
     $weightMethod.querySelectorAll('label').forEach(l => {
@@ -4217,11 +4226,18 @@
   // ===== Board tabs (粮食 / 体重 / 猫语) =====
   function setBoard(board) {
     const b = ['food', 'weight', 'meow'].includes(board) ? board : 'food';
+    const changed = state.board !== b;
     state.board = b;
-    $boardTabs.querySelectorAll('button').forEach(btn => btn.classList.toggle('active', btn.dataset.board === b));
+    $boardTabs.querySelectorAll('button').forEach(btn => {
+      const on = btn.dataset.board === b;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
     document.querySelectorAll('.board-panel').forEach(p => p.classList.toggle('active', p.dataset.board === b));
     // 切走「猫语」时停止仍在循环的叫声
     if (b !== 'meow') document.dispatchEvent(new Event('cat-board-stop'));
+    // 切换面板时复位「待记录时间」，杜绝在粮食面板设过的补录时间泄漏到体重面板（反之亦然）
+    if (changed) resetEntryTime();
   }
   // 让每个板块可被链接直达：#food / #weight / #meow（兼容 #cat）。这样可以
   // 单独收藏/分享某个 tab，打开就停在那个板块，而不是总落回「粮食」。
@@ -5142,6 +5158,10 @@
     $inboxBtn.style.display = (pet && pet.shared && (pet.members || []).length > 1) ? '' : 'none';
     const n = inboxUnseenCount(pet);
     $inboxDot.style.display = n > 0 ? '' : 'none';
+    // 让读屏/无障碍也能知道有没有未读，不只靠那个纯色小红点
+    const label = n > 0 ? '家人动态（有新消息）' : '家人动态';
+    $inboxBtn.setAttribute('aria-label', label);
+    $inboxBtn.setAttribute('title', label);
   }
   $inboxBtn.addEventListener('click', openInbox);
   $inboxClose.addEventListener('click', closeInbox);
@@ -5480,12 +5500,99 @@
     $toggleHistory.textContent = state.historyOpen ? '收起 ▴' : '展开 ▾';
   });
 
+  // ===== 弹窗无障碍：焦点归还 + Tab 焦点陷阱（集中式，覆盖所有 .modal-backdrop）=====
+  (function initModalA11y() {
+    const openerStack = [];
+    const isOpen = bk => bk.classList.contains('open');
+    const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    function focusablesIn(modal) {
+      return Array.from(modal.querySelectorAll(FOCUSABLE)).filter(el => el.offsetParent !== null || el === document.activeElement);
+    }
+    function topOpenModal() {
+      const open = Array.from(document.querySelectorAll('.modal-backdrop.open'));
+      return open.length ? open[open.length - 1].querySelector('.modal') : null;
+    }
+    document.querySelectorAll('.modal-backdrop').forEach(bk => {
+      let was = isOpen(bk);
+      new MutationObserver(() => {
+        const now = isOpen(bk);
+        if (now && !was) {
+          openerStack.push(document.activeElement);
+          const m = bk.querySelector('.modal');
+          // 若弹窗自身没抢焦点，兜底把焦点送进去，读屏才会宣告「进入对话框」
+          setTimeout(() => {
+            if (!isOpen(bk) || !m || m.contains(document.activeElement)) return;
+            const f = focusablesIn(m);
+            if (f.length) { try { f[0].focus(); } catch (_) {} }
+          }, 60);
+        } else if (!now && was) {
+          const opener = openerStack.pop();
+          if (opener && typeof opener.focus === 'function' && document.contains(opener)) { try { opener.focus(); } catch (_) {} }
+        }
+        was = now;
+      }).observe(bk, { attributes: true, attributeFilter: ['class'] });
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Tab') return;
+      const m = topOpenModal();
+      if (!m) return;
+      const items = focusablesIn(m);
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1], active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || !m.contains(active)) { e.preventDefault(); last.focus(); }
+      } else {
+        if (active === last || !m.contains(active)) { e.preventDefault(); first.focus(); }
+      }
+    });
+  })();
+
+  // 初始化出错的友善兜底：任何脏数据/异常都不该让整页变成点不动的死页
+  function showFatalError(err) {
+    const wrap = document.querySelector('.pf-wrap');
+    if (!wrap) { alert('宠物中心加载出错，请稍后重试。'); return; }
+    let raw = '';
+    try { raw = localStorage.getItem(STORE_KEY) || ''; } catch (_) {}
+    const box = document.createElement('div');
+    box.style.cssText = 'max-width:520px;margin:3rem auto;padding:1.6rem;border:1px solid var(--color-border);border-radius:var(--pet-r-card,14px);background:var(--color-bg-warm);text-align:center;';
+    box.innerHTML =
+      '<div style="font-size:2.2rem;margin-bottom:0.5rem;">🐾</div>' +
+      '<h2 style="margin:0 0 0.5rem;font-size:1.2rem;color:var(--color-ink);">宠物中心没能正常打开</h2>' +
+      '<p style="color:var(--color-muted);font-size:0.9rem;line-height:1.7;margin:0 0 1.2rem;">本机保存的数据可能损坏了。可以先把它导出留底，再清空重来；导出的文件之后能在「我的档案 → 恢复」里导入找回。</p>' +
+      '<div style="display:flex;gap:0.6rem;justify-content:center;flex-wrap:wrap;">' +
+      '<button type="button" id="pf-fatal-export" style="font:inherit;padding:0.5rem 1.1rem;border-radius:999px;border:1px solid var(--color-accent);background:var(--color-accent);color:#fff;cursor:pointer;">导出留底</button>' +
+      '<button type="button" id="pf-fatal-reset" style="font:inherit;padding:0.5rem 1.1rem;border-radius:999px;border:1px solid var(--color-border);background:var(--color-bg);color:var(--pet-danger,#b07c75);cursor:pointer;">清空并重来</button>' +
+      '</div>';
+    wrap.innerHTML = '';
+    wrap.appendChild(box);
+    const exp = document.getElementById('pf-fatal-export');
+    if (exp) exp.addEventListener('click', () => {
+      try {
+        const blob = new Blob([raw || '{}'], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'pet-backup-broken.json'; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      } catch (_) { alert('导出失败，可手动在浏览器里备份后再清空。'); }
+    });
+    const rst = document.getElementById('pf-fatal-reset');
+    if (rst) rst.addEventListener('click', () => {
+      if (!confirm('确定清空本机宠物数据并重来吗？（清空前建议先导出留底）')) return;
+      try { localStorage.removeItem(STORE_KEY); } catch (_) {}
+      location.reload();
+    });
+  }
+
   // ===== Init =====
-  load();
-  // 打开时若链接带 #food/#weight/#meow，就停在那个板块（覆盖上次记住的）
-  const hashBoard = boardFromHash();
-  if (hashBoard) state.board = hashBoard;
-  render();
+  try {
+    load();
+    // 打开时若链接带 #food/#weight/#meow，就停在那个板块（覆盖上次记住的）
+    const hashBoard = boardFromHash();
+    if (hashBoard) state.board = hashBoard;
+    render();
+  } catch (err) {
+    console.error('宠物中心初始化失败', err);
+    showFatalError(err);
+  }
   // Pull profile + shared pet data (best-effort, parallel)
   loadProfile().catch(() => {});
   flushDirtyMeta().then(() => pullSharedPets()).then(() => render()).catch(() => {});

@@ -5,7 +5,7 @@
 
   <header>
     <h1>🐾 宠物中心</h1>
-    <p class="sub">记录爱宠的食量与体重 · 数据只存在你的设备上</p>
+    <p class="sub">记录爱宠的食量与体重 · 默认只存在本机，分享或登录后才同步</p>
   </header>
 
   <div class="pet-bar" id="pet-bar">
@@ -31,14 +31,14 @@
   </div>
 
   <div id="pet-view" style="display: none;">
-    <div class="board-tabs" id="board-tabs">
-      <button type="button" data-board="food" class="active"><span class="bt-ico">🥣</span>粮食</button>
-      <button type="button" data-board="weight"><span class="bt-ico">⚖️</span>体重</button>
-      <button type="button" data-board="meow"><span class="bt-ico">🐱</span>猫语</button>
+    <div class="board-tabs" id="board-tabs" role="tablist" aria-label="宠物中心面板">
+      <button type="button" role="tab" id="tab-food" aria-controls="panel-food" aria-selected="true" data-board="food" class="active"><span class="bt-ico" aria-hidden="true">🥣</span>粮食</button>
+      <button type="button" role="tab" id="tab-weight" aria-controls="panel-weight" aria-selected="false" data-board="weight"><span class="bt-ico" aria-hidden="true">⚖️</span>体重</button>
+      <button type="button" role="tab" id="tab-meow" aria-controls="panel-meow" aria-selected="false" data-board="meow"><span class="bt-ico" aria-hidden="true">🐱</span>猫语</button>
     </div>
     <div class="link-toast-mount" id="link-toast-mount"></div>
 
-    <div class="board-panel active" id="panel-food" data-board="food">
+    <div class="board-panel active" id="panel-food" data-board="food" role="tabpanel" aria-labelledby="tab-food">
     <div class="summary-row">
       <div class="sum-card sc-lead">
         <div class="sc-num" id="sc-today">— g</div>
@@ -221,7 +221,7 @@
     </div><!-- /panel-food -->
 
     <!-- ===== 体重 board ===== -->
-    <div class="board-panel" id="panel-weight" data-board="weight">
+    <div class="board-panel" id="panel-weight" data-board="weight" role="tabpanel" aria-labelledby="tab-weight">
       <div class="section-title">体重记录</div>
       <div class="weight-hero" id="weight-hero" style="display:none;">
         <div class="wh-main"><span class="wh-num" id="wh-num">—</span><span class="wh-unit" id="wh-unit">斤</span></div>
@@ -229,10 +229,10 @@
       </div>
       <div class="weight-box" id="weight-box">
         <div class="weight-cols">
-          <!-- LEFT: 直接称 / 做差 stacked as a column (mirrors the food-type column) -->
+          <!-- LEFT: 直接称 / 作差 stacked as a column (mirrors the food-type column) -->
           <div class="weight-method" id="weight-method">
             <label data-val="direct" class="active"><input type="radio" name="wmethod" value="direct" checked>直接称</label>
-            <label data-val="diff"><input type="radio" name="wmethod" value="diff">做差·抱着称</label>
+            <label data-val="diff"><input type="radio" name="wmethod" value="diff">作差·抱着称</label>
           </div>
 
           <!-- MIDDLE: fixed-width fill block -->
@@ -309,7 +309,7 @@
     </div><!-- /panel-weight -->
 
     <!-- ===== 猫语 board ===== -->
-    <div class="board-panel" id="panel-meow" data-board="meow">
+    <div class="board-panel" id="panel-meow" data-board="meow" role="tabpanel" aria-labelledby="tab-meow">
       {% include cat-soundboard.html %}
     </div><!-- /panel-meow -->
   </div>

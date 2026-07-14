@@ -1,6 +1,6 @@
   <!-- Pet modal -->
   <div class="modal-backdrop" id="pet-modal">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pm-title">
       <h2 id="pm-title">添加宠物</h2>
       <div class="field">
         <label>名字</label>
@@ -92,7 +92,7 @@
       <div class="sub-section" id="pm-share-section">分享给其他人</div>
       <div class="share-block" id="pm-share-block">
         <div id="pm-share-create" style="display:none;">
-          <p class="hint" style="margin: 0 0 0.5rem;">把宠物分享给家人，他们可以一起记录食量</p>
+          <p class="hint" style="margin: 0 0 0.5rem;">把宠物分享给家人一起记录。生成宠物码后，这只宠物的档案和记录会上传到服务器，凭码加入的人能看到它的全部记录和成员昵称，请只发给信任的家人。</p>
           <button type="button" class="share-mini-btn" id="pm-make-shared" style="font-size: 0.85rem; padding: 0.45rem 1rem;">🔗 生成宠物码</button>
         </div>
         <div id="pm-share-existing" style="display:none;">
@@ -120,8 +120,8 @@
 
   <!-- Intake / food-amount settings modal (opened from the 🎯 target strip) -->
   <div class="modal-backdrop" id="intake-modal">
-    <div class="modal">
-      <h2>🎯 食量设置</h2>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="im-title">
+      <h2 id="im-title">🎯 食量设置</h2>
       <div class="im-petcard">
         <span class="im-av" id="im-pet-av">🐱</span>
         <span class="im-meta">
@@ -139,7 +139,7 @@
       <div class="field" id="im-kibble-field">
         <label>干粮每克多少大卡</label>
         <input type="number" id="pm-kibble-kcal" step="0.1" min="0" placeholder="3.8" inputmode="decimal" />
-        <p class="hint" style="margin: 0.3rem 0 0;">看粮袋上的能量（一般 350–420 大卡/100 克）；不确定就按默认。</p>
+        <p class="hint" style="margin: 0.3rem 0 0;">按自家粮袋上标注的能量填；不确定就按默认。</p>
       </div>
 
       <div class="sub-section">每日目标食量（选填）</div>
@@ -157,6 +157,7 @@
         <span class="rec-preview" id="pm-rec-preview">完善宠物档案以估算</span>
         <button type="button" class="estimator-apply" id="pm-rec-apply" disabled>↑ 套用</button>
       </div>
+      <p class="hint" style="margin:0.35rem 0 0; font-size:0.72rem; line-height:1.5;">估算仅供大致参考，不构成兽医营养建议。幼崽、孕哺、肥胖或有慢性病的宝贝，请遵兽医方案。</p>
 
       <div class="modal-actions">
         <button type="button" class="cancel" id="im-cancel">取消</button>
@@ -167,16 +168,17 @@
 
   <!-- Profile modal -->
   <div class="modal-backdrop" id="profile-modal">
-    <div class="modal">
-      <h2>👤 我的档案</h2>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="prof-title">
+      <h2 id="prof-title">👤 我的档案</h2>
       <div class="field">
         <label>昵称</label>
-        <input type="text" id="profile-nickname" placeholder="比如 周睿" maxlength="40" />
+        <input type="text" id="profile-nickname" placeholder="比如 小明" maxlength="40" />
+        <p class="hint" style="margin:0.3rem 0 0;">昵称会显示给和你共享宠物的家人。</p>
       </div>
       <div class="sub-section" style="border-top: none; padding-top: 0; margin-top: 0.8rem;">我的宠物</div>
       <ul class="my-pets-list" id="my-pets-list"></ul>
       <div class="sub-section">数据备份</div>
-      <p class="hint" style="margin: 0 0 0.6rem;">记录存在本机。清缓存或换设备前先导出，换机后导入即可找回。</p>
+      <p class="hint" style="margin: 0 0 0.6rem;">未登录、未分享时记录只存在本机。清缓存或换设备前先导出，换机后导入即可找回。</p>
       <div class="backup-row">
         <button type="button" class="backup-btn" id="backup-export">⬇️ 导出备份</button>
         <button type="button" class="backup-btn" id="backup-import">⬆️ 从备份恢复</button>
@@ -190,10 +192,11 @@
 
   <!-- Join via code modal -->
   <div class="modal-backdrop join-modal" id="join-modal">
-    <div class="modal">
-      <h2>🔑 用宠物码添加</h2>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="join-title">
+      <h2 id="join-title">🔑 用宠物码添加</h2>
       <p class="hint" style="text-align: center; margin-bottom: 0.9rem;">向主人要 6 位宠物码，添加后可一起记录</p>
       <input type="text" id="join-code" class="code-input" maxlength="6" placeholder="ABCXYZ" autocomplete="off" />
+      <button type="button" id="join-to-new" class="linklike" style="display:block; margin:0.2rem auto 0.6rem; background:none; border:none; color:var(--color-accent); font:inherit; font-size:0.82rem; cursor:pointer;">还没有宠物码？先新建自己的宠物 ›</button>
       <div class="modal-actions">
         <button type="button" class="cancel" id="join-cancel">取消</button>
         <button type="button" class="save" id="join-confirm">加入</button>
@@ -203,8 +206,8 @@
 
   <!-- Mismatch prompt -->
   <div class="modal-backdrop mismatch-prompt" id="mismatch-modal">
-    <div class="modal">
-      <h2>📐 数字有点超常</h2>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mm-title">
+      <h2 id="mm-title">📐 数字有点超常</h2>
       <div class="mm-body" id="mm-body"></div>
       <div class="modal-actions">
         <button type="button" class="cancel" id="mm-keep">仍按当前模式</button>
@@ -215,7 +218,7 @@
 
   <!-- Time picker modal: date (calendar) + time (spinner) -->
   <div class="modal-backdrop" id="time-picker-modal">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="tp-title">
       <h2 id="tp-title">选择时间</h2>
       <div class="tp-fields">
         <div class="field">
@@ -239,9 +242,9 @@
        New foods are created through #food-wizard below; this modal is edit-only.
        Same field IDs + radio structure as before, so the fm* save/read JS is unchanged. -->
   <div class="modal-backdrop" id="food-modal">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fm-title">
       <h2 id="fm-title">编辑食物</h2>
-      <p class="hint" id="fm-kibble-hint" style="display:none; margin:0 0 0.6rem;">干粮是所有食物的「换算基准」。把它的真实热量填准，其它罐头 / 猫条换算成「等效干粮」才准。看粮袋上的能量，一般 350–420 大卡/100 克；没印能量就用「照成分估算」。</p>
+      <p class="hint" id="fm-kibble-hint" style="display:none; margin:0 0 0.6rem;">干粮是所有食物的「换算基准」。把它的真实热量填准，其它罐头 / 猫条换算成「等效干粮」才准。看粮袋上标注的能量填；没印能量就用「照成分估算」。</p>
       <div class="field">
         <label>名字</label>
         <input type="text" id="fm-name" placeholder="妙鲜猫条 / 希尔思罐头" maxlength="20" />
@@ -352,7 +355,7 @@
   <!-- Food wizard: FIRST-TIME new food, 3-step guided flow (C). On finish it
        hydrates the #food-modal inputs above and reuses saveFood() — one save path. -->
   <div class="modal-backdrop" id="food-wizard">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <div class="fw-steps" id="fw-dots"><span class="fw-dot active"></span><span class="fw-dot"></span><span class="fw-dot"></span></div>
 
       <!-- Step 1: name + icon -->
@@ -420,8 +423,8 @@
 
   <!-- Inbox modal: family activity + time-change notices -->
   <div class="modal-backdrop" id="inbox-modal">
-    <div class="modal">
-      <h2>🐾 家人动态</h2>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="inbox-title">
+      <h2 id="inbox-title">🐾 家人动态</h2>
       <div class="inbox-list" id="inbox-list"></div>
       <div class="modal-actions">
         <button type="button" class="cancel" id="inbox-close">关闭</button>
@@ -431,8 +434,8 @@
 
   <!-- Crop modal -->
   <div class="modal-backdrop crop-modal-bk" id="crop-modal">
-    <div class="modal">
-      <h2>裁剪头像</h2>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="crop-title">
+      <h2 id="crop-title">裁剪头像</h2>
       <div class="crop-stage" id="crop-stage">
         <img id="crop-img" alt="" />
         <div class="crop-frame" id="crop-frame">
