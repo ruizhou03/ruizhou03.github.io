@@ -71,6 +71,9 @@
   /* 逐条动作靠右对齐；回复补「回复」二字，别只有图标 */
   .cmt-drawer .wl-comment-actions { margin-left:auto !important; justify-content:flex-end !important; }
   .cmt-drawer .wl-reply::after { content:'回复' !important; margin-left:.25rem !important; font-size:.8rem !important; }
+  .cmt-drawer .cmt-report.cmt-reported { color:#b4453a !important; opacity:.65 !important; }
+  /* 预览按钮(放大镜)补「预览」二字，别让人猜 */
+  .cmt-drawer .wl-preview::after { content:'预览' !important; margin-left:.2rem !important; font-size:.78rem !important; vertical-align:middle !important; }
 </style>
 <div class="cmt-ov" id="cmt-ov"></div>
 <aside class="cmt-drawer" id="cmt-drawer" aria-hidden="true" aria-label="评论区">
@@ -111,18 +114,36 @@
         var content = (card.querySelector('.wl-content') || {}).textContent || '';
         var reason = window.prompt('举报这条评论的理由（可留空）：', '');
         if (reason === null) return;
-        b.disabled = true; var old = b.textContent; b.textContent = '举报中…';
+        b.disabled = true; b.title = '举报中…';   // 保留 SVG 图标，反馈走 title / class（别用 textContent 覆盖掉图标）
         var f = (window.SiteAuth && SiteAuth.authedFetch) ? SiteAuth.authedFetch : window.fetch;
         f(API + '/report', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: location.pathname, nick: nick.slice(0, 60), snippet: content.trim().slice(0, 300), reason: (reason || '').slice(0, 200) }),
         }).then(function (r) { return r.json(); }).then(function (d) {
-          if (d && d.ok) { b.textContent = '已举报'; } else { b.textContent = old; b.disabled = false; }
-        }).catch(function () { b.textContent = old; b.disabled = false; });
+          if (d && d.ok) { b.title = '已举报'; b.classList.add('cmt-reported'); }
+          else { b.disabled = false; b.title = '举报'; }
+        }).catch(function () { b.disabled = false; b.title = '举报'; });
       });
     });
   }
   new MutationObserver(inject).observe(host, { childList: true, subtree: true });
   inject();
+})();
+// 粘贴图片：Waline 会上传并插入 markdown 源码（能发能显示，但源码不直观）→ 给个明确反馈
+(function () {
+  var host = document.getElementById('waline');
+  if (!host) return;
+  function toast(msg) {
+    var t = document.getElementById('sa-toast');
+    if (!t) { t = document.createElement('div'); t.id = 'sa-toast'; t.className = 'sa-toast'; document.body.appendChild(t); }
+    t.textContent = msg; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('on'); }, 2400);
+  }
+  host.addEventListener('paste', function (e) {
+    var items = (e.clipboardData && e.clipboardData.items) || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type && items[i].type.indexOf('image') === 0) { toast('图片已插入，发布后即可显示 🖼'); break; }
+    }
+  }, true);
 })();
 </script>
