@@ -27,15 +27,34 @@
   .cmt-drawer-body { flex:1; overflow-y:auto; overflow-x:hidden; padding:1rem 1.25rem 2.4rem; }
   .cmt-drawer-body .cmt-fallback { color:var(--color-light); text-align:center; padding:3rem 1rem; font-family:var(--font-body); }
 
-  /* —— Waline 抽屉内清爽化 —— */
-  .cmt-drawer #waline { margin:0 !important; padding:0 !important; border-top:0 !important; }
-  .cmt-drawer .wl-panel { border:0 !important; box-shadow:none !important; margin-left:0 !important; width:100% !important; }
-  .cmt-drawer .wl-card { border-bottom:1px dashed var(--color-border) !important; padding:.9rem 0 !important; }
-  .cmt-drawer .wl-card:last-child { border-bottom:0 !important; }
-  .cmt-drawer .wl-nick { font-family:var(--font-body) !important; font-weight:600 !important; color:var(--color-ink) !important; }
-  .cmt-drawer .wl-content { font-family:var(--font-body) !important; color:var(--color-text) !important; line-height:1.72 !important; }
-  .cmt-drawer .wl-meta, .cmt-drawer .wl-time { color:var(--color-light) !important; }
+  /* —— Waline 抽屉内 · 仿知乎清爽版式 —— */
+  /* 优先用 Waline 自己的主题变量改色，稳；再配少量类覆盖调版式 */
+  .cmt-drawer #waline { margin:0 !important; padding:0 !important; border-top:0 !important;
+    --waline-font-size: 15px; --waline-avatar-size: 34px; --waline-m-avatar-size: 30px;
+    --waline-theme-color: var(--color-accent); --waline-active-color: var(--color-highlight);
+    --waline-color: var(--color-text); --waline-dark-grey: var(--color-muted);
+    --waline-border-color: var(--color-border); --waline-border: 1px solid var(--color-border);
+    --waline-bgcolor: transparent; --waline-bgcolor-light: var(--color-bg-warm); --waline-bgcolor-hover: var(--color-bg-warm);
+    --waline-avatar-radius: 50%; }
+  .cmt-drawer .wl-panel { border:0 !important; box-shadow:none !important; margin:0 !important; width:100% !important; }
+  .cmt-drawer .wl-cards { margin-top:.5rem !important; }
+  /* 每条评论：头像左 + 正文右，行间虚线分隔、去卡片边框/底色 */
+  .cmt-drawer .wl-card-item { padding:0 !important; }
+  .cmt-drawer .wl-card { border-bottom:1px dashed var(--color-border) !important; padding:.85rem 0 !important; margin:0 !important;
+    background:transparent !important; box-shadow:none !important; }
+  .cmt-drawer .wl-card-item:last-child > .wl-card { border-bottom:0 !important; }
+  .cmt-drawer .wl-avatar, .cmt-drawer img.wl-avatar { display:block !important; border-radius:50% !important; margin-right:.7rem !important; flex-shrink:0 !important; }
+  .cmt-drawer .wl-head { display:flex !important; align-items:center !important; gap:.5rem !important; flex-wrap:wrap !important; margin-bottom:.1rem !important; }
+  .cmt-drawer .wl-nick { font-family:var(--font-body) !important; font-weight:600 !important; font-size:.94rem !important; color:var(--color-ink) !important; }
+  .cmt-drawer .wl-badge, .cmt-drawer .wl-tag { background:var(--color-accent-soft) !important; color:var(--color-accent) !important;
+    border:0 !important; font-size:.66rem !important; padding:.06em .42em !important; border-radius:4px !important; }
+  .cmt-drawer .wl-time, .cmt-drawer .wl-meta { color:var(--color-light) !important; font-size:.76rem !important; }
+  .cmt-drawer .wl-meta span { background:none !important; padding:0 !important; margin:0 .5em 0 0 !important; color:var(--color-light) !important; border:0 !important; }
+  .cmt-drawer .wl-content { font-family:var(--font-body) !important; color:var(--color-text) !important; font-size:.95rem !important; line-height:1.72 !important; margin:.2rem 0 .4rem !important; }
+  .cmt-drawer .wl-content p { margin:0 0 .4rem !important; }
+  .cmt-drawer .wl-quote { border-left:2px solid var(--color-border) !important; padding-left:.85rem !important; margin-top:.55rem !important; }
   .cmt-drawer .wl-editor, .cmt-drawer .wl-input, .cmt-drawer .wl-btn { font-family:inherit !important; }
+  .cmt-drawer .wl-btn:hover, .cmt-drawer .wl-btn.primary { border-color:var(--color-accent) !important; }
   /* 评论逐条动作：原生 点赞(wl-like) / 回复(wl-reply) + 注入的 举报(cmt-report) */
   .cmt-drawer .wl-comment-actions { display:flex !important; gap:1rem !important; align-items:center !important; margin-top:.35rem !important; }
   .cmt-drawer .wl-comment-actions .wl-action, .cmt-drawer .cmt-report { font-size:.8rem !important; color:var(--color-light) !important;
