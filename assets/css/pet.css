@@ -1708,6 +1708,13 @@
   .pf-appbar .pf-appbar-title {
     font-family: var(--font-display); font-size: 1.18rem; font-weight: 600; color: var(--color-ink);
   }
+  /* 装成 APP 后站点导航被隐藏，这里给 App 顶栏一个明暗切换入口（mob-1）*/
+  .pf-appbar .pf-appbar-theme {
+    position: absolute; right: var(--pf-pad); bottom: 0.42rem;
+    background: none; border: none; color: var(--color-muted);
+    font-size: 1.25rem; line-height: 1; cursor: pointer; padding: 0.15rem 0.4rem; border-radius: 8px;
+  }
+  @media (hover: hover) { .pf-appbar .pf-appbar-theme:hover { color: var(--color-accent); } }
   @media (display-mode: standalone) {
     .pf-appbar { display: flex; }
     .pf-wrap > header { display: none; }

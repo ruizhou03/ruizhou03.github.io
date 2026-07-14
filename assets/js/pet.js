@@ -731,6 +731,7 @@
   const $scAvg = document.getElementById('sc-avg');
   const $scAvgLbl = document.getElementById('sc-avg-lbl');
   const $scBowl = document.getElementById('sc-bowl');
+  const $cardBowl = document.getElementById('card-bowl');
 
   const $recStrip = document.getElementById('rec-strip');
   const $recTitle = document.getElementById('rec-title');
@@ -1607,6 +1608,8 @@
 
     const weighEntries = [...pet.entries].filter(e => (e.kind || 'weigh') === 'weigh').sort((a, b) => b.ts - a.ts);
     const lastEntry = weighEntries[0] || null;
+    // 没有过「称碗」记录（比如只用「直接填」的用户）就别显示「当前碗中剩」这张永远为空的卡
+    if ($cardBowl) $cardBowl.style.display = lastEntry ? '' : 'none';
     if (lastEntry) {
       const fw = foodWeight(lastEntry, pet);
       if (fw === null) {
@@ -2883,6 +2886,9 @@
   if ($welcomePrivacy) $welcomePrivacy.addEventListener('click', openPrivacyModal);
   if ($privacyClose) $privacyClose.addEventListener('click', () => $privacyModal.classList.remove('open'));
   if ($privacyModal) $privacyModal.addEventListener('click', e => { if (e.target === $privacyModal) $privacyModal.classList.remove('open'); });
+  // PWA 独立窗口里站点导航被隐藏，用 App 顶栏的按钮切明暗（复用站点全局 toggleTheme）
+  const $pfThemeToggle = document.getElementById('pf-theme-toggle');
+  if ($pfThemeToggle) $pfThemeToggle.addEventListener('click', () => { if (typeof window.toggleTheme === 'function') window.toggleTheme(); });
   const $backupExport = document.getElementById('backup-export');
   const $backupImport = document.getElementById('backup-import');
   const $backupFile = document.getElementById('backup-file');
@@ -3196,7 +3202,7 @@
       const u = pet.bodyWeightUnit || 'kg';
       bits.push(parseFloat(bwFromKg(pet.bodyWeight, u).toFixed(2)) + ' ' + u);
     }
-    return bits.length ? bits.join(' · ') : '完善宠物档案以估算';
+    return bits.length ? bits.join(' · ') : '档案还没填';
   }
   function openIntakeModal() {
     const pet = currentPet();

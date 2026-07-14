@@ -1,7 +1,7 @@
   <!-- Standalone (installed PWA) app bar — only shown when launched as an APP; the
        decorative <header> below is hidden then. Gives a real app title bar that
        clears the notch and reads as a focused app, not a webpage. -->
-  <div class="pf-appbar"><span class="pf-appbar-title">🐾 宠物中心</span></div>
+  <div class="pf-appbar"><span class="pf-appbar-title">🐾 宠物中心</span><button type="button" class="pf-appbar-theme" id="pf-theme-toggle" title="切换明暗模式" aria-label="切换明暗模式">◑</button></div>
 
   <header>
     <h1>🐾 宠物中心</h1>
@@ -57,7 +57,7 @@
         <div class="sc-num" id="sc-avg">— g</div>
         <div class="sc-lbl" id="sc-avg-lbl">日均</div>
       </div>
-      <div class="sum-card">
+      <div class="sum-card" id="card-bowl">
         <div class="sc-num" id="sc-bowl">— g</div>
         <div class="sc-lbl">当前碗中剩</div>
       </div>
