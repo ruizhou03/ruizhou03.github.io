@@ -111,7 +111,8 @@
           <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
         </div>
 
-        <!-- 高级：含碗/不含碗 + 空碗（仅干粮称重时出现，同一纸面内细线分隔） -->
+        <!-- 高级 + 时间收成一条紧凑 meta 行：含碗/不含碗 · 空碗 · 换新 · 时间 -->
+        <div class="entry-meta">
         <div class="mode-bowl" id="mode-bowl-row">
           <div class="mode-toggle" id="mode-toggle">
             <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
@@ -150,6 +151,7 @@
             <span class="tp-clear" id="time-end-clear" title="去掉结束时间">✕</span>
           </button>
         </div>
+        </div><!-- /entry-meta -->
       </div>
 
       <div class="fc-rule"></div>
@@ -159,9 +161,10 @@
 
     </div><!-- /food-card -->
 
-    <div class="section-title">
-      趋势
-      <span class="right" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end;">
+    <div class="food-card food-card-review">
+    <div class="log-head trend-head">
+      <span class="log-lbl">趋势</span>
+      <span class="right">
         <span id="chart-range-lbl"></span>
         <button type="button" class="target-toggle" id="chart-target-toggle" style="display: none;">目标参考线</button>
         <button type="button" class="target-toggle" id="chart-fullscreen" title="横屏放大看图（可在里面切区间/日期）">⤢ 横屏</button>
@@ -226,10 +229,13 @@
       </div>
     </div>
 
-    <div class="section-title">
-      历史 <span class="right"><button type="button" class="icon-btn" id="toggle-history" style="border: none; background: none; padding: 0; color: var(--color-muted);">展开 ▾</button></span>
+    <div class="fc-rule"></div>
+    <div class="log-head">
+      <span class="log-lbl">历史</span>
+      <span class="right"><button type="button" class="icon-btn hist-toggle" id="toggle-history">展开 ▾</button></span>
     </div>
     <div class="entries-list scroll" id="entries-history" style="display: none;"></div>
+    </div><!-- /food-card review -->
     </div><!-- /panel-food -->
 
     <!-- ===== 体重 board ===== -->
