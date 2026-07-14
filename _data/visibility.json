@@ -2,8 +2,7 @@
   "_comment": "板块与小工具可见性 · 单一数据源。由管理后台 /admin/#content 的「板块与小工具可见性」面板读写（后端 /api/admin?action=visibility-get|visibility-set 走 GitHub 提交 main）。build 时全站据此对访客隐藏、对管理员变灰可预览：default.html 门控页面、admin-mode.html 提供 .sa-admin CSS、tool-card / 首页 / 导航据此打标记。sections 里的取值＝main_category（科研妙招 / 生活攻略 / 随笔漫谈…）或 '百宝箱'（整个工具箱入口）。tools 里的取值＝_data/toolbox.yml 的 id。",
   "sections": [
     "科研妙招",
-    "生活攻略",
-    "百宝箱"
+    "生活攻略"
   ],
   "tools": [
     "2048",
