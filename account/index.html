@@ -158,6 +158,36 @@ noindex: true
   .acc-search::placeholder { color:var(--color-light); }
   .acc-search:focus { outline:none; border-color:var(--color-accent); }
 
+  /* ── 收藏专辑（收藏夹）网格 ── */
+  .acc-albgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:0.9rem; padding:0.4rem 0; }
+  .acc-alb { position:relative; text-align:left; border:1px solid var(--color-border); border-radius:var(--radius-lg);
+    background:var(--color-bg); padding:0.95rem; cursor:pointer; overflow:hidden; font-family:inherit;
+    display:flex; flex-direction:column; min-height:118px; transition:border-color .18s, transform .18s, box-shadow .18s; }
+  .acc-alb::before { content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--color-highlight); opacity:.85; }
+  .acc-alb:hover { border-color:var(--color-highlight); transform:translateY(-2px); box-shadow:var(--shadow-1); }
+  .acc-alb-n { font-family:var(--font-display); font-weight:600; color:var(--color-ink); font-size:1.02rem; padding-left:0.35rem; }
+  .acc-alb-c { font-size:0.74rem; color:var(--color-light); padding-left:0.35rem; margin:0.1rem 0 0.5rem; }
+  .acc-alb-sps { display:flex; flex-direction:column; gap:0.24rem; padding-left:0.35rem; }
+  .acc-alb-sp { font-family:var(--font-body); font-size:0.76rem; color:var(--color-muted); white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis; padding-left:0.45rem; border-left:2px solid var(--color-accent-soft); }
+  .acc-alb-new { align-items:center; justify-content:center; color:var(--color-accent); border-style:dashed; background:var(--color-bg-warm); gap:0.3rem; }
+  .acc-alb-new::before { display:none; }
+  .acc-alb-plus { font-size:1.5rem; line-height:1; }
+  .acc-albhead { display:flex; align-items:center; gap:0.7rem; margin-bottom:0.7rem; }
+  .acc-alb-back { border:1px solid var(--color-border); background:var(--color-bg); color:var(--color-muted); cursor:pointer;
+    font-family:inherit; font-size:0.82rem; padding:0.28rem 0.7rem; border-radius:999px; }
+  .acc-alb-back:hover { border-color:var(--color-accent); color:var(--color-accent); }
+  .acc-albhead-n { font-family:var(--font-display); font-weight:600; color:var(--color-ink); font-size:1.1rem; }
+  .acc-albhead-del { margin-left:auto; border:none; background:none; color:var(--color-light); cursor:pointer; font-size:0.8rem; }
+  .acc-albhead-del:hover { color:#b4453a; }
+  .acc-alb-picklist { display:flex; flex-direction:column; gap:0.4rem; margin-top:0.8rem; }
+  .acc-alb-pick { display:flex; align-items:center; justify-content:space-between; border:1px solid var(--color-border);
+    background:var(--color-bg); border-radius:var(--radius-sm); padding:0.6rem 0.85rem; cursor:pointer; font-family:inherit;
+    font-size:0.95rem; color:var(--color-text); }
+  .acc-alb-pick:hover { border-color:var(--color-highlight); background:var(--color-bg-warm); }
+  .acc-alb-pick span { color:var(--color-light); font-size:0.78rem; }
+  .acc-alb-pick-new { color:var(--color-accent); border-style:dashed; justify-content:center; }
+
   /* ── 列表 ── */
   .acc-list { min-height:120px; }
   .acc-item { display:flex; align-items:center; gap:0.8rem; padding:0.85rem 0.2rem; border-bottom:1px solid var(--color-border); }
@@ -592,6 +622,11 @@ noindex: true
       state.kind = kind; state.page = 0; state.items = []; state.query = '';
       if (searchInput) searchInput.value = '';
       setManage(false);
+      // 离开收藏专辑视图时清理其专属 UI
+      state.favView = null; state.album = null;
+      removeAlbumHead();
+      var _mv = document.getElementById('acc-movesel'); if (_mv) _mv.style.display = 'none';
+      document.getElementById('acc-clear').style.display = '';
       var canManage = kind !== 'comment';
       toolbar.style.display = canManage ? 'flex' : 'none';
       if (canManage) document.getElementById('acc-clear').textContent = CLEAR_LABEL[kind] || '清空';
@@ -615,6 +650,145 @@ noindex: true
           ? '<div class="acc-empty">评论记录暂时拉不到，稍后再试。</div>'
           : '<div class="acc-empty">网络不太顺，稍后再试。</div>';
       }
+    }
+
+    // ── 收藏专辑（收藏夹）─────────────────────────────────────
+    // 收藏页先给出「收藏夹网格」；点进一个夹子 = 复用下面的列表机制（按 album 过滤）。
+    function ensureAlbBtns() {
+      var mv = document.getElementById('acc-movesel');
+      if (!mv) {
+        mv = document.createElement('button');
+        mv.id = 'acc-movesel'; mv.type = 'button'; mv.className = 'acc-tool-btn';
+        mv.textContent = '移动到…'; mv.style.display = 'none';
+        var delsel = document.getElementById('acc-delsel');
+        delsel.parentNode.insertBefore(mv, delsel);
+        mv.addEventListener('click', function () {
+          var posts = selectedPosts();
+          if (!posts.length) { alert('先勾选要移动的文章'); return; }
+          chooseAlbumModal(function (albId) { moveSelected(posts, albId); });
+        });
+      }
+      return mv;
+    }
+    function removeAlbumHead() { var h = document.getElementById('acc-albhead'); if (h) h.remove(); }
+    function showAlbumHead(album) {
+      removeAlbumHead();
+      var head = document.createElement('div');
+      head.id = 'acc-albhead'; head.className = 'acc-albhead';
+      head.innerHTML = '<button type="button" class="acc-alb-back">‹ 收藏夹</button>' +
+        '<span class="acc-albhead-n">' + esc(album.name) + '</span>' +
+        (album.id ? '<button type="button" class="acc-albhead-del">删除收藏夹</button>' : '');
+      listSec.insertBefore(head, toolbar);
+      head.querySelector('.acc-alb-back').addEventListener('click', showFavGrid);
+      var del = head.querySelector('.acc-albhead-del');
+      if (del) del.addEventListener('click', function () { deleteAlbum(album); });
+    }
+    function showFavGrid() {
+      state.kind = 'fav'; state.favView = 'grid'; state.album = null;
+      setManage(false);
+      toolbar.style.display = 'none';
+      searchRow.hidden = true; pagerEl.hidden = true;
+      removeAlbumHead();
+      var mv = document.getElementById('acc-movesel'); if (mv) mv.style.display = 'none';
+      document.getElementById('acc-clear').style.display = '';
+      listEl.classList.remove('manage');
+      listEl.innerHTML = '<div class="acc-loading">加载中…</div>';
+      SiteAuth.authedFetch(api + '?action=albums').then(function (r) { return r.json(); }).then(function (d) {
+        if (!d || !d.ok) { listEl.innerHTML = '<div class="acc-empty">加载失败，稍后再试。</div>'; return; }
+        renderFavGrid(d.albums || []);
+      }).catch(function () { listEl.innerHTML = '<div class="acc-empty">网络不太顺，稍后再试。</div>'; });
+    }
+    function renderFavGrid(albums) {
+      var tiles = albums.map(function (a) {
+        var sps = (a.samples || []).map(function (t) { return '<span class="acc-alb-sp">' + esc(t) + '</span>'; }).join('');
+        return '<button class="acc-alb" type="button" data-alb="' + esc(a.id) + '" data-name="' + esc(a.name) + '">' +
+          '<span class="acc-alb-n">' + esc(a.name) + '</span>' +
+          '<span class="acc-alb-c">' + (a.count || 0) + ' 篇</span>' +
+          '<span class="acc-alb-sps">' + sps + '</span></button>';
+      }).join('');
+      listEl.innerHTML = '<div class="acc-albgrid">' + tiles +
+        '<button class="acc-alb acc-alb-new" type="button" id="acc-alb-new"><span class="acc-alb-plus">＋</span><span>新建收藏夹</span></button></div>';
+      listEl.querySelectorAll('.acc-alb[data-alb]').forEach(function (t) {
+        t.addEventListener('click', function () { openFavAlbum({ id: t.dataset.alb, name: t.dataset.name }); });
+      });
+      document.getElementById('acc-alb-new').addEventListener('click', function () { promptNewAlbum(null); });
+    }
+    function openFavAlbum(album) {
+      state.kind = 'fav'; state.favView = 'list'; state.album = album;
+      state.page = 0; state.query = ''; state.items = [];
+      if (searchInput) searchInput.value = '';
+      setManage(false);
+      toolbar.style.display = 'flex';
+      document.getElementById('acc-clear').style.display = 'none';
+      ensureAlbBtns().style.display = '';
+      showAlbumHead(album);
+      listEl.innerHTML = '<div class="acc-loading">加载中…</div>'; pagerEl.hidden = true;
+      SiteAuth.authedFetch(api + '?action=list&kind=fav&album=' + encodeURIComponent(album.id))
+        .then(function (r) { return r.json(); }).then(function (d) {
+          if (d && d.ok) { state.items = d.items || []; renderPage(); }
+          else listEl.innerHTML = '<div class="acc-empty">加载失败，稍后再试。</div>';
+        }).catch(function () { listEl.innerHTML = '<div class="acc-empty">网络不太顺，稍后再试。</div>'; });
+    }
+    function promptNewAlbum(cb) {
+      var m = modal('<h3 class="acc-modal-title">新建收藏夹</h3>' +
+        '<div class="acc-ef-row"><input type="text" id="acc-newalb" maxlength="40" placeholder="收藏夹名字" autocomplete="off"></div>' +
+        '<div class="acc-ef-actions"><span class="acc-ef-err" id="acc-newalb-err"></span>' +
+        '<button type="button" class="acc-tool-btn" id="acc-newalb-cancel">取消</button>' +
+        '<button type="button" class="acc-save" id="acc-newalb-ok">创建</button></div>');
+      var inp = m.ov.querySelector('#acc-newalb'); setTimeout(function () { inp.focus(); }, 30);
+      var ok = m.ov.querySelector('#acc-newalb-ok');
+      m.ov.querySelector('#acc-newalb-cancel').addEventListener('click', m.close);
+      function submit() {
+        var name = inp.value.trim();
+        if (!name) { m.ov.querySelector('#acc-newalb-err').textContent = '起个名字吧'; return; }
+        ok.disabled = true;
+        SiteAuth.authedFetch(api + '?action=album-create', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name }),
+        }).then(function (r) { return r.json(); }).then(function (d) {
+          m.close();
+          if (d && d.ok && d.album) { if (cb) cb(d.album.id); else showFavGrid(); }
+          else if (cb) cb(null);
+        }).catch(function () { m.close(); if (cb) cb(null); });
+      }
+      ok.addEventListener('click', submit);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
+    }
+    function deleteAlbum(album) {
+      if (!album.id) return;
+      if (!confirm('删除「' + album.name + '」？里面的收藏会退回「默认收藏夹」，文章本身不会删。')) return;
+      SiteAuth.authedFetch(api + '?action=album-delete', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: album.id }),
+      }).then(function (r) { return r.json(); }).then(function () { showFavGrid(); }).catch(function () {});
+    }
+    function chooseAlbumModal(cb) {
+      SiteAuth.authedFetch(api + '?action=albums').then(function (r) { return r.json(); }).then(function (d) {
+        var albums = (d && d.ok && d.albums) || [{ id: '', name: '默认收藏夹', count: 0 }];
+        var opts = albums.map(function (a) {
+          return '<button class="acc-alb-pick" type="button" data-alb="' + esc(a.id) + '">' + esc(a.name) +
+            '<span>' + (a.count || 0) + ' 篇</span></button>';
+        }).join('');
+        var m = modal('<h3 class="acc-modal-title">移动到收藏夹</h3><div class="acc-alb-picklist">' + opts +
+          '<button class="acc-alb-pick acc-alb-pick-new" type="button" id="acc-pick-new">＋ 新建收藏夹</button></div>');
+        m.ov.querySelectorAll('.acc-alb-pick[data-alb]').forEach(function (b) {
+          b.addEventListener('click', function () { m.close(); cb(b.dataset.alb); });
+        });
+        m.ov.querySelector('#acc-pick-new').addEventListener('click', function () {
+          m.close(); promptNewAlbum(function (id) { if (id != null) cb(id); });
+        });
+      }).catch(function () {});
+    }
+    function moveSelected(posts, albId) {
+      var byPost = {}; state.items.forEach(function (it) { byPost[it.post] = it; });
+      Promise.all(posts.map(function (p) {
+        var it = byPost[p] || {};
+        return SiteAuth.authedFetch(api + '?action=fav-move', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ post: p, album: albId, title: it.title, url: it.url }),
+        }).then(function (r) { return r.json(); }).catch(function () { return null; });
+      })).then(function () {
+        setManage(false);
+        if (state.album) openFavAlbum(state.album);
+      });
     }
 
     // 翻页控件
@@ -697,6 +871,7 @@ noindex: true
     function showPane(pane) {
       navItems.forEach(function (n) { n.classList.toggle('on', n.dataset.pane === pane); });
       if (pane === 'settings') { listSec.hidden = true; setSec.hidden = false; }
+      else if (pane === 'fav') { setSec.hidden = true; listSec.hidden = false; showFavGrid(); }
       else { setSec.hidden = true; listSec.hidden = false; loadKind(pane); }
     }
     navItems.forEach(function (n) { n.addEventListener('click', function () { showPane(n.dataset.pane); }); });
@@ -821,7 +996,7 @@ noindex: true
         renderSettings(user);
         // 头像菜单「设置」深链 /account/#settings：首次进入直接落设置面板（在 renderSettings 之后，避免竞态画空面板）
         if (!startupHashDone && location.hash === '#settings') { startupHashDone = true; showPane('settings'); }
-        else if (setSec.hidden) loadKind(state.kind);
+        else if (setSec.hidden) { if (state.kind === 'fav') showFavGrid(); else loadKind(state.kind); }
       } else {
         main.style.display = 'none';
         guest.style.display = 'block';
