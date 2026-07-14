@@ -432,6 +432,7 @@
   // out so we never tell the user "已记录" for something that didn't actually save.
   function commitNewEntry(pet, newEntry) {
     pet.entries.push(newEntry);
+    recordsDay = null;   // 新记一笔 → 记录区跳回今天，好看到刚记的这条
     if (!persist()) {
       pet.entries.pop();
       alert('存储空间已满，这条没能保存。\n请到「👤 我的档案 → 导出备份」存一份，再清理旧数据后重试。');
@@ -855,6 +856,13 @@
   const $entriesToday = document.getElementById('entries-today');
   const $entriesHistory = document.getElementById('entries-history');
   const $toggleHistory = document.getElementById('toggle-history');
+  const $recCur = document.getElementById('rec-cur');
+  const $recDate = document.getElementById('rec-date');
+  const $recPrev = document.getElementById('rec-prev');
+  const $recNext = document.getElementById('rec-next');
+  const $recTotal = document.getElementById('rec-total');
+  let recordsDay = null;   // 记录区正在看的那天（null=今天）；按日翻用
+  let lastRecordsPetId = null;   // 切换宠物时把记录区跳回今天
   const $trendChart = document.getElementById('trend-chart');
   const $trendTabs = document.getElementById('trend-tabs');
   const $trendCustom = document.getElementById('trend-custom');
@@ -1633,8 +1641,7 @@
     renderRecommendation(pet, todayEaten);
     renderTargetToggle(pet);
     applyEntryFormLock();
-    renderEntriesList($entriesToday, todayDeltas, pet, '今天还没记录');
-    renderHistory(deltas, pet);
+    renderRecords(pet, deltas, eatenMap);
     renderWeight(pet);
     renderTrend(deltas, pet);
     if (trendFsOpen) syncTrendFs();   // 全屏横向看图开着时，把这一帧镜像过去
@@ -1758,6 +1765,39 @@
     const sorted = [...items].sort((a, b) => b.ts - a.ts);
     container.innerHTML = sorted.map(d => renderEntryRow(d, pet)).join('');
     wireEntryButtons(container, pet);
+  }
+
+  // 「记录」按日翻（方案 B）：默认今天，可用 ‹ › / 跳日期 翻看某一天；显示当天合计。
+  function renderRecords(pet, deltasArg, eatenMapArg) {
+    if (!pet) return;
+    if (pet.id !== lastRecordsPetId) { recordsDay = null; lastRecordsPetId = pet.id; }
+    const deltas = deltasArg || computeDeltas(pet);
+    const eatenMap = eatenMapArg || eatenByDate(deltas);
+    const todayIso = todayBucketIso();
+    let selIso = (recordsDay && recordsDay <= todayIso) ? recordsDay : todayIso;
+    if (selIso === todayIso) recordsDay = null;
+    const isToday = selIso === todayIso;
+    const dayDeltas = deltas.filter(d => bucketDateIso(d.ts) === selIso);
+    renderEntriesList($entriesToday, dayDeltas, pet, isToday ? '今天还没记录' : '这天没有记录');
+    if ($recCur) $recCur.textContent = isToday ? '今天' : recDayLabel(selIso);
+    if ($recDate) { $recDate.value = selIso; $recDate.max = todayIso; }
+    if ($recNext) $recNext.disabled = isToday;
+    const eaten = eatenMap.get(selIso) || 0;
+    if ($recTotal) $recTotal.innerHTML = dayDeltas.length ? `这天合计 <b>${fmtEq(pet, eaten)}</b>` : '';
+  }
+  function recDayLabel(iso) {
+    if (iso === isoDate(Date.now() - DAY_MS)) return '昨天';
+    const p = iso.split('-').map(Number);
+    return `${p[1]}月${p[2]}日`;
+  }
+  function shiftRecordsDay(n) {
+    const todayIso = todayBucketIso();
+    const cur = recordsDay || todayIso;
+    const p = cur.split('-').map(Number);
+    const nextIso = isoDate(new Date(p[0], p[1] - 1, p[2] + n).getTime());
+    if (nextIso > todayIso) return;
+    recordsDay = (nextIso === todayIso) ? null : nextIso;
+    renderRecords(currentPet());
   }
 
   function entryRowActions(e, pet) {
@@ -5575,10 +5615,22 @@
   });
   setupTrendInteraction();
 
-  $toggleHistory.addEventListener('click', () => {
+  if ($toggleHistory) $toggleHistory.addEventListener('click', () => {
     state.historyOpen = !state.historyOpen;
-    $entriesHistory.style.display = state.historyOpen ? '' : 'none';
+    if ($entriesHistory) $entriesHistory.style.display = state.historyOpen ? '' : 'none';
     $toggleHistory.textContent = state.historyOpen ? '收起更早 ▴' : '展开更早的记录 ▾';
+  });
+  // 记录「按日翻」接线
+  if ($recPrev) $recPrev.addEventListener('click', () => shiftRecordsDay(-1));
+  if ($recNext) $recNext.addEventListener('click', () => shiftRecordsDay(1));
+  if ($recDate) $recDate.addEventListener('change', () => {
+    const v = $recDate.value, todayIso = todayBucketIso();
+    if (!v || v > todayIso) { $recDate.value = recordsDay || todayIso; return; }
+    recordsDay = (v === todayIso) ? null : v;
+    renderRecords(currentPet());
+  });
+  if ($recCur) $recCur.addEventListener('click', () => {
+    try { $recDate.showPicker(); } catch (_) { try { $recDate.focus(); $recDate.click(); } catch (__) {} }
   });
 
   // ===== 弹窗无障碍：焦点归还 + Tab 焦点陷阱（集中式，覆盖所有 .modal-backdrop）=====

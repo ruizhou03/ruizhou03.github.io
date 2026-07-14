@@ -156,10 +156,17 @@
 
       <div class="fc-rule"></div>
 
-      <div class="log-head"><span class="log-lbl">记录</span></div>
+      <div class="log-head rec-head">
+        <span class="log-lbl">记录</span>
+        <span class="rec-daynav">
+          <button type="button" class="rn-arrow" id="rec-prev" aria-label="前一天">‹</button>
+          <button type="button" class="rn-cur" id="rec-cur">今天</button>
+          <input type="date" id="rec-date" class="rn-date-hidden" aria-label="跳到某一天" tabindex="-1" />
+          <button type="button" class="rn-arrow" id="rec-next" aria-label="后一天">›</button>
+        </span>
+      </div>
       <div class="entries-list" id="entries-today"></div>
-      <button type="button" class="more-history" id="toggle-history">展开更早的记录 ▾</button>
-      <div class="entries-list scroll" id="entries-history" style="display: none;"></div>
+      <div class="rec-total" id="rec-total"></div>
 
       <div class="fc-rule"></div>
 

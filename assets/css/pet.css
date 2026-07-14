@@ -1767,12 +1767,9 @@
     --fc-paper:#fbf8f2; --fc-raise:#fffefb; --fc-ink:#26313d; --fc-navy:var(--color-accent);
     --fc-gold:#bf9f57; --fc-sage:#5d8a6b; --fc-muted:#867f72; --fc-faint:#a9a293;
     --fc-hair:#e6ddcd; --fc-hair2:#efe8da;
-    background:var(--fc-paper);
-    border:1px solid var(--fc-hair);
-    border-radius:22px;
-    padding:1.6rem 1.5rem 1.4rem;
-    box-shadow:0 2px 4px rgba(40,30,20,.05), 0 30px 60px -42px rgba(40,40,60,.4), inset 0 0 0 1px rgba(255,255,255,.5);
-    margin-bottom:1.6rem;
+    /* 去掉卡片背景/边框/阴影 —— 整块开放地落在页面暖底上，纯靠细线+留白分区 */
+    background:none; border:none; border-radius:0; box-shadow:none;
+    padding:0; margin-bottom:0;
   }
   :root[data-theme="dark"] .pf-wrap .food-card,
   html:not([data-theme="light"]) .pf-wrap .food-card {
@@ -1780,11 +1777,9 @@
     --fc-paper:var(--color-bg-warm); --fc-raise:var(--color-bg); --fc-ink:var(--color-ink);
     --fc-muted:var(--color-muted); --fc-faint:var(--color-light);
     --fc-hair:var(--color-border); --fc-hair2:var(--color-border);
-    box-shadow:0 2px 4px rgba(0,0,0,.3), 0 30px 60px -42px rgba(0,0,0,.6);
   }
-  @media (max-width:560px){ .pf-wrap .food-card { padding:1.3rem 1.05rem 1.1rem; border-radius:18px; } }
 
-  .food-card .fc-rule { height:1px; background:var(--fc-hair); margin:1.25rem -.3rem; border:none; }
+  .food-card .fc-rule { height:1px; background:var(--fc-hair); margin:1.3rem 0; border:none; }
 
   /* ---- HERO ---- */
   .food-card .food-hero { text-align:center; }
@@ -1979,3 +1974,25 @@
     color:var(--fc-navy); font-family:var(--font-body); font-size:.8rem; cursor:pointer;
   }
   .food-card .more-history:focus-visible { outline:2px solid var(--fc-navy); outline-offset:2px; border-radius:4px; }
+
+  /* ================================================================
+     记录「按日翻」day-nav（方案 B）：默认今天，‹ › 翻天，可跳日期 + 当天合计
+     ================================================================ */
+  .food-card .log-head.rec-head { align-items:center; }
+  .food-card .rec-daynav { position:relative; display:inline-flex; align-items:center; gap:.4rem; font-family:var(--font-body); }
+  .food-card .rn-arrow {
+    width:1.85rem; height:1.85rem; border:1px solid var(--fc-hair); background:var(--fc-raise); color:var(--fc-muted);
+    border-radius:50%; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; font-size:1.05rem; padding:0;
+  }
+  .food-card .rn-arrow:disabled { opacity:.35; cursor:default; }
+  @media(hover:hover){ .food-card .rn-arrow:not(:disabled):hover { border-color:var(--fc-navy); color:var(--fc-navy); } }
+  .food-card .rn-cur {
+    border:none; background:none; color:var(--fc-navy); font-family:var(--font-body); font-size:.9rem; font-weight:600;
+    cursor:pointer; padding:.1rem .35rem; min-width:3.4rem; text-align:center;
+  }
+  .food-card .rn-cur::after { content:" ▾"; color:var(--fc-faint); font-size:.7em; }
+  .food-card .rn-date-hidden { position:absolute; left:50%; bottom:-4px; width:1px; height:1px; opacity:0; pointer-events:none; }
+  .food-card .rn-cur:focus-visible, .food-card .rn-arrow:focus-visible { outline:2px solid var(--fc-navy); outline-offset:2px; }
+  .food-card .rec-total { font-family:var(--font-body); font-size:.78rem; color:var(--fc-faint); text-align:center; margin-top:.9rem; }
+  .food-card .rec-total:empty { display:none; }
+  .food-card .rec-total b { color:var(--fc-ink); font-family:var(--font-display); font-variant-numeric:tabular-nums; }
