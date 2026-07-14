@@ -562,8 +562,8 @@ noindex: true
     }
     function renderPage() {
       var kind = state.kind, items = state.items;
-      // 搜索框显隐：本类记录 >10 条且非管理态才出现（与 pager 同量级门控；管理与搜索互斥）
-      searchRow.hidden = !(items.length > 10 && !state.manage);
+      // 搜索框显隐：本类记录 >10 条即出现（管理态下也保留——支持「搜出某话题→选中→删除」）
+      searchRow.hidden = !(items.length > 10);
       // 过滤视图：搜索只作用于当前类目
       var view = state.query ? items.filter(matchQuery) : items;
       if (!items.length) { listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY[kind] + '</div>'; pagerEl.hidden = true; return; }
@@ -585,6 +585,7 @@ noindex: true
           btn.addEventListener('click', function () { removePosts([decodeURIComponent(btn.closest('.acc-item').dataset.post)]); });
         });
       }
+      updateSelAllLabel();   // 每次重渲后复位「全选本页 / 取消全选」文案
     }
 
     async function loadKind(kind) {
@@ -623,16 +624,26 @@ noindex: true
 
     // 搜索：即输即滤，作用于当前类目、内存过滤零延迟
     searchInput.addEventListener('input', function () { state.query = this.value.trim().toLowerCase(); state.page = 0; renderPage(); });
+    // 勾选变化时同步「全选本页 / 取消全选」文案（事件委托，跨重渲存活）
+    listEl.addEventListener('change', function (e) {
+      if (e.target && e.target.classList && e.target.classList.contains('acc-cb')) updateSelAllLabel();
+    });
 
     // ── 批量管理 ─────────────────────────────────────────────
+    function updateSelAllLabel() {
+      var btn = document.getElementById('acc-selall');
+      if (!btn) return;
+      var boxes = listEl.querySelectorAll('.acc-cb');
+      var all = boxes.length && Array.prototype.every.call(boxes, function (b) { return b.checked; });
+      btn.textContent = all ? '取消全选' : '全选本页';
+    }
     function setManage(on) {
       state.manage = on;
       listEl.classList.toggle('manage', on);
       document.getElementById('acc-manage').style.display = on ? 'none' : '';
       document.getElementById('acc-manage-actions').style.display = on ? 'inline-flex' : 'none';
-      // 管理与搜索互斥：进管理态清掉过滤，避免「全选本页」在过滤视图下语义含糊导致误删
-      if (on) { state.query = ''; if (searchInput) searchInput.value = ''; }
       if (!on) listEl.querySelectorAll('.acc-cb').forEach(function (cb) { cb.checked = false; });
+      updateSelAllLabel();
     }
     function selectedPosts() {
       var out = [];
@@ -658,8 +669,10 @@ noindex: true
     document.getElementById('acc-mgr-done').addEventListener('click', function () { setManage(false); renderPage(); });
     document.getElementById('acc-selall').addEventListener('click', function () {
       var boxes = listEl.querySelectorAll('.acc-cb');
+      if (!boxes.length) return;
       var allChecked = Array.prototype.every.call(boxes, function (b) { return b.checked; });
       boxes.forEach(function (b) { b.checked = !allChecked; });
+      updateSelAllLabel();
     });
     document.getElementById('acc-delsel').addEventListener('click', async function () {
       var posts = selectedPosts();
