@@ -2057,3 +2057,8 @@
   .food-card .food-filter .ff.active { color:var(--fc-navy); font-weight:700; }
   @media(hover:hover){ .food-card .food-filter .ff:not(.active):hover { color:var(--fc-muted); } }
   .food-card .food-filter .ff:focus-visible { outline:2px solid var(--fc-navy); outline-offset:2px; border-radius:4px; }
+
+  /* 选中类别时旁边的「改名/删除」小 ✎（仅管理员）*/
+  .food-card .food-filter .ff-edit { border:none; background:none; padding:0; margin-left:-.4rem; color:var(--fc-faint); cursor:pointer; font-size:.76rem; line-height:1; }
+  @media(hover:hover){ .food-card .food-filter .ff-edit:hover { color:var(--fc-navy); } }
+  .food-card .food-filter .ff-edit:focus-visible { outline:2px solid var(--fc-navy); outline-offset:2px; border-radius:4px; }

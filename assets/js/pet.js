@@ -3440,9 +3440,15 @@
       else {
         if (foodFilter && !cats.some(g => g.id === foodFilter)) foodFilter = null;   // 该类别没食物了 → 回全部
         $foodFilter.style.display = '';
+        // 选中某类别时、标签旁给管理员一个小 ✎ → 改名 / 删除该类别（openGroupEditor）
         $foodFilter.innerHTML = `<button type="button" class="ff${!foodFilter ? ' active' : ''}" data-cat="">全部</button>` +
-          cats.map(g => `<button type="button" class="ff${foodFilter === g.id ? ' active' : ''}" data-cat="${g.id}">${escapeHtml(g.name || '类别')}</button>`).join('');
+          cats.map(g => {
+            const on = foodFilter === g.id;
+            const edit = (on && canEdit) ? `<button type="button" class="ff-edit" data-editcat="${g.id}" aria-label="改名或删除类别 ${escapeHtml(g.name || '')}" title="改名 / 删除">✎</button>` : '';
+            return `<button type="button" class="ff${on ? ' active' : ''}" data-cat="${g.id}">${escapeHtml(g.name || '类别')}</button>${edit}`;
+          }).join('');
         $foodFilter.querySelectorAll('.ff').forEach(b => b.addEventListener('click', () => { foodFilter = b.dataset.cat || null; renderFoodSelector(); }));
+        $foodFilter.querySelectorAll('.ff-edit').forEach(b => b.addEventListener('click', () => openGroupEditor(b.dataset.editcat)));
       }
     }
     const visible = lib.filter(f => !foodFilter || f.groupId === foodFilter);
