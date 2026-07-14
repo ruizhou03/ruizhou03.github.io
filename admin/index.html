@@ -44,6 +44,7 @@ body_class: adm-page
           <div class="adm-nav-gh">内容管理</div>
           <button type="button" class="adm-nav-item" data-pane="articles"><span class="i">📄</span><span class="t">文章内容</span></button>
           <button type="button" class="adm-nav-item" data-pane="visibility"><span class="i">👁</span><span class="t">板块与工具</span></button>
+          <button type="button" class="adm-nav-item" data-pane="reports"><span class="i">🚩</span><span class="t">举报审核</span></button>
         </div>
       </aside>
 
@@ -156,6 +157,15 @@ body_class: adm-page
           <p class="adm-note" style="margin:0 0 1rem;">「下架」＝对访客隐藏整个板块 / 小工具：顶栏导航、首页卡片、百宝箱列表、以及页面本身都不再对访客出现；你（管理员）登录后仍能看到（变灰）、可点进去预览。改动提交后约 1–2 分钟随 Pages 重建生效（这期间标「重建中」）。工具页的源码本身仍是公开仓库的一部分——这里是「下架 / 不列出」，不是加密。</p>
           <div id="vis-body" class="vis-body"><div class="cm-empty">加载中…</div></div>
         </section>
+
+        <section class="adm-sec adm-pane" data-pane="reports" hidden>
+          <div class="adm-sec-top">
+            <h2>举报审核</h2>
+            <button id="rep-refresh" class="adm-mini" type="button">刷新</button>
+          </div>
+          <p class="adm-note" style="margin:0 0 1rem;">读者对评论的举报（同一人对同一条去重后入队，<strong>不自动隐藏</strong>）。核实后如需处理，请到该文章评论区自行删除对应评论；此列表仅供参考，暂不联动删除。</p>
+          <div id="rep-body" class="rep-body"><div class="cm-empty">加载中…</div></div>
+        </section>
       </div>
     </div>
   </div>
@@ -179,6 +189,11 @@ body_class: adm-page
   .adm-btn { padding: 0.6rem 1.6rem; font-size: 0.95rem; font-weight: 700; font-family: inherit;
     cursor: pointer; background: var(--color-accent); color: #fff; border: none; border-radius: var(--radius-sm); box-shadow: var(--shadow-1); }
   .adm-btn:hover { filter: brightness(1.08); }
+  .rep-body { display: flex; flex-direction: column; gap: 0.6rem; }
+  .rep-item { border: 1px solid var(--color-border); border-radius: 10px; padding: 0.7rem 0.9rem; background: var(--color-bg); }
+  .rep-meta { font-size: 0.78rem; color: var(--color-light); margin-bottom: 0.35rem; word-break: break-all; }
+  .rep-snippet { color: var(--color-text); font-size: 0.92rem; line-height: 1.55; }
+  .rep-reason { margin-top: 0.35rem; font-size: 0.82rem; color: #b4453a; }
   .adm-verified { font-size: 0.9rem; color: var(--color-muted); background: var(--color-bg-warm);
     border: 1px solid var(--color-border); border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 2rem; }
   .adm-verified strong { color: var(--color-ink); }
@@ -1210,7 +1225,27 @@ body_class: adm-page
       .catch(function (e) { row.classList.remove('cm-busy'); alert('操作失败：' + ((e && e.error) || '请重试')); });
   }
   // ── 控制台路由：左侧目录点选 → 右侧显示对应子面板（hash 可直达 / 刷新保持 / 前进后退）──
-  var PANES = ['overview', 'rankings', 'traffic', 'geo', 'articles', 'visibility'];
+  var PANES = ['overview', 'rankings', 'traffic', 'geo', 'articles', 'visibility', 'reports'];
+  var reportsInited = false;
+  function loadReports() {
+    var body = document.getElementById('rep-body');
+    if (!body) return;
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    body.innerHTML = '<div class="cm-empty">加载中…</div>';
+    jget('/api/report?action=list').then(function (d) {
+      var items = (d && d.items) || [];
+      if (!items.length) { body.innerHTML = '<div class="cm-empty">还没有举报。</div>'; return; }
+      body.innerHTML = items.map(function (it) {
+        var when = it.ts ? new Date(it.ts).toLocaleString('zh-CN') : '';
+        var link = it.path ? '<a href="' + esc(it.path) + '" target="_blank" rel="noopener">' + esc(it.path) + '</a>' : '';
+        return '<div class="rep-item">' +
+          '<div class="rep-meta">' + esc(it.nick || '匿名') + ' · ' + when + (link ? ' · ' + link : '') + '</div>' +
+          '<div class="rep-snippet">' + esc(it.snippet || '') + '</div>' +
+          (it.reason ? '<div class="rep-reason">理由：' + esc(it.reason) + '</div>' : '') +
+        '</div>';
+      }).join('');
+    });
+  }
   function showPane(name) {
     if (PANES.indexOf(name) < 0) name = 'overview';
     Array.prototype.forEach.call(document.querySelectorAll('.adm-pane'), function (p) { p.hidden = (p.getAttribute('data-pane') !== name); });
@@ -1393,6 +1428,7 @@ body_class: adm-page
             if (!dashLoaded) { dashLoaded = true; loadDashboard(); }
             if (!cmLoaded) { cmLoaded = true; cmWireControls(); loadContent(); }
             if (!visInited) { visInited = true; visInit(); }
+            if (!reportsInited) { reportsInited = true; var rr = document.getElementById('rep-refresh'); if (rr) rr.addEventListener('click', loadReports); loadReports(); }
           } else {
             show(elDenied);
           }
