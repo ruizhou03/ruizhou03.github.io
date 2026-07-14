@@ -186,8 +186,35 @@
         <button type="button" class="backup-btn" id="backup-import">⬆️ 从备份恢复</button>
         <input type="file" id="backup-file" accept="application/json,.json" style="display:none;" />
       </div>
+      <button type="button" id="profile-privacy" class="linklike" style="display:block; margin:0.9rem auto 0; background:none; border:none; color:var(--color-accent); font:inherit; font-size:0.82rem; cursor:pointer;">🔒 隐私与数据说明</button>
       <div class="modal-actions">
         <button type="button" class="cancel" id="profile-close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy / data statement modal -->
+  <div class="modal-backdrop" id="privacy-modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
+      <h2 id="privacy-title">🔒 隐私与数据说明</h2>
+      <div class="privacy-body">
+        <p><b>默认只在你手机上。</b>不登录、不分享时，所有记录都只保存在这台设备的浏览器里，不会上传。</p>
+        <p><b>这些情况才会上传到服务器：</b></p>
+        <ul>
+          <li>登录账号后——宠物数据会随账号同步，换设备也能看到；</li>
+          <li>生成宠物码分享给家人——这只宠物的档案和全部记录会上传，凭码加入的人能看到它的记录和成员昵称；</li>
+          <li>填写昵称——昵称会上传，并显示给和你共享宠物的家人。</li>
+        </ul>
+        <p><b>谁能看到：</b>只有你自己（你的账号）和你主动分享给的家人。数据不会用于其它用途、不卖给第三方。服务器上按普通方式存储（未做端到端加密），所以请只把宠物码发给信任的人。</p>
+        <p><b>怎么删除：</b></p>
+        <ul>
+          <li>本机：在「我的宠物」里删除宠物，即从这台设备移除；</li>
+          <li>共享宠物：作为创建者删除会连同服务器上的数据一起删；作为成员「退出」只是把自己移出，不影响其他人；</li>
+          <li>换设备或清缓存前，先在上面「数据备份」里导出留底。</li>
+        </ul>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="privacy-close">知道了</button>
       </div>
     </div>
   </div>

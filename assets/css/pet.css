@@ -170,6 +170,13 @@
   .empty-zone .wc-txt b { color: var(--color-ink); font-weight: 600; font-size: 0.9rem; }
   .empty-zone .wc-txt span { color: var(--color-muted); font-size: 0.8rem; line-height: 1.45; }
   .empty-zone .wc-privacy { font-size: 0.76rem; color: var(--color-muted); margin: 0 0 1.35rem; }
+  .empty-zone .wc-privacy-link { font: inherit; font-size: 0.76rem; background: none; border: none; padding: 0; color: var(--color-accent); text-decoration: underline; cursor: pointer; }
+  /* 隐私说明弹窗正文 */
+  .modal .privacy-body { font-size: 0.86rem; line-height: 1.7; color: var(--color-text); text-align: left; max-height: 60vh; overflow-y: auto; }
+  .modal .privacy-body p { margin: 0 0 0.6rem; }
+  .modal .privacy-body b { color: var(--color-ink); font-weight: 600; }
+  .modal .privacy-body ul { margin: 0 0 0.7rem; padding-left: 1.1rem; }
+  .modal .privacy-body li { margin: 0.25rem 0; }
   .empty-zone .empty-emoji { font-size: 3rem; margin-bottom: 1rem; opacity: 0.55; }
   .empty-zone .empty-actions {
     margin-top: 1.4rem;

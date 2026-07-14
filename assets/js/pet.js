@@ -2873,6 +2873,16 @@
   $profileBtn.addEventListener('click', openProfileModal);
   $profileClose.addEventListener('click', closeProfileModal);
   $profileModal.addEventListener('click', e => { if (e.target === $profileModal) closeProfileModal(); });
+  // 隐私与数据说明弹窗（档案里 + 首屏欢迎卡 都能打开）
+  const $privacyModal = document.getElementById('privacy-modal');
+  function openPrivacyModal() { if ($privacyModal) $privacyModal.classList.add('open'); }
+  const $profilePrivacy = document.getElementById('profile-privacy');
+  const $welcomePrivacy = document.getElementById('welcome-privacy');
+  const $privacyClose = document.getElementById('privacy-close');
+  if ($profilePrivacy) $profilePrivacy.addEventListener('click', openPrivacyModal);
+  if ($welcomePrivacy) $welcomePrivacy.addEventListener('click', openPrivacyModal);
+  if ($privacyClose) $privacyClose.addEventListener('click', () => $privacyModal.classList.remove('open'));
+  if ($privacyModal) $privacyModal.addEventListener('click', e => { if (e.target === $privacyModal) $privacyModal.classList.remove('open'); });
   const $backupExport = document.getElementById('backup-export');
   const $backupImport = document.getElementById('backup-import');
   const $backupFile = document.getElementById('backup-file');
@@ -3050,6 +3060,7 @@
   $modal.addEventListener('click', e => { if (e.target === $modal) closeModal(); });
   // Close whichever modal is currently open (used by Esc and the ✕ buttons).
   function closeTopModal() {
+    if ($privacyModal && $privacyModal.classList.contains('open')) { $privacyModal.classList.remove('open'); return; }
     if ($cropModal.classList.contains('open')) closeCropModal();
     else if ($joinModal.classList.contains('open')) closeJoinModal();
     else if ($profileModal.classList.contains('open')) closeProfileModal();
