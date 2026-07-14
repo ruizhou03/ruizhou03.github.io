@@ -87,7 +87,7 @@ body_class: acc-page
   .acc-hero-card { display:flex; gap:1.5rem; align-items:center; justify-content:space-between; flex-wrap:wrap; padding: var(--space-5);
     background: var(--color-bg-warm); border:1px solid var(--color-border);
     border-radius: var(--radius-lg); box-shadow: var(--shadow-1); }
-  .acc-hero-id { flex:0 1 auto; display:flex; gap:1.3rem; align-items:flex-start; min-width:0; }
+  .acc-hero-id { flex:0 1 auto; display:flex; gap:1.3rem; align-items:center; min-width:0; }
   .acc-hero-av { width:80px; height:80px; border-radius:50%; flex-shrink:0;
     background:var(--color-accent); color:#fff; font-family:var(--font-display); font-size:2.3rem; font-weight:700;
     display:flex; align-items:center; justify-content:center; background-size:cover; background-position:center; }
@@ -99,10 +99,8 @@ body_class: acc-page
     font-variant-numeric: tabular-nums lining-nums; box-shadow: var(--shadow-1); }
   .acc-lv.shine { animation: acc-shine 2.4s linear infinite; background-size:200% 100%; }
   @keyframes acc-shine { to { background-position:200% 0; } }
-  .acc-lv-help { flex-shrink:0; width:20px; height:20px; border-radius:50%; border:1px solid var(--color-border);
-    background:var(--color-bg); color:var(--color-muted); font-size:0.72rem; font-weight:700; cursor:pointer;
-    display:inline-flex; align-items:center; justify-content:center; padding:0; font-family:inherit; }
-  .acc-lv-help:hover { color:var(--color-accent); border-color:var(--color-accent); }
+  .acc-lv { cursor:pointer; }
+  .acc-lv:hover { filter:brightness(1.08); }
   .acc-hero-joined { font-size:0.76rem; color:var(--color-light); }
   .acc-hero-bio { font-size:0.9rem; color:var(--color-text); line-height:1.6; margin:0.5rem 0 0; word-break:break-word; }
   .acc-hero-bio.empty { color:var(--color-light); }
@@ -111,9 +109,11 @@ body_class: acc-page
   .acc-lv-bar { height:7px; border-radius:999px; background:var(--color-border); overflow:hidden; }
   .acc-lv-fill { height:100%; background:var(--color-accent); border-radius:999px; transition:width .4s; }
   .acc-lv-note { font-size:0.72rem; color:var(--color-light); margin-top:0.35rem; font-variant-numeric: tabular-nums lining-nums; }
-  .acc-hero-stats { flex:0 0 auto; display:flex; gap:0.7rem; }
-  .acc-hero-stats > div { background:var(--color-bg); border:1px solid var(--color-border); border-radius:var(--radius-md);
-    padding:0.6rem 0.85rem; text-align:center; min-width:76px; }
+  /* B3′ 统计横幅：中段一整块卡，四项(收藏/点赞/浏览/评论)+竖分隔线，宽度适中不铺满 */
+  .acc-hero-stats { flex:0 1 auto; max-width:480px; display:flex; align-items:center; justify-content:space-around;
+    background:var(--color-bg); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:0.7rem 1.1rem; }
+  .acc-hstat { text-align:center; padding:0 0.35rem; }
+  .acc-hero-sdiv { width:1px; height:32px; background:var(--color-border); flex-shrink:0; }
   .acc-stat-n { font-family:var(--font-display); font-size:1.45rem; font-weight:700; color:var(--color-ink);
     line-height:1; font-variant-numeric: tabular-nums lining-nums; }
   .acc-stat-l { font-size:0.73rem; color:var(--color-muted); margin-top:0.28rem; }
@@ -264,6 +264,11 @@ body_class: acc-page
   .acc-set-d a { color:var(--color-accent); text-decoration:none; }
   .acc-set-d a:hover { text-decoration:underline; }
   .acc-set-row .acc-tool-btn { flex-shrink:0; }
+  /* 外观（明暗）三选一分段控件 */
+  .acc-theme-seg { display:inline-flex; flex-shrink:0; background:var(--color-bg); border:1px solid var(--color-border); border-radius: var(--radius-pill); padding:0.2rem; }
+  .acc-theme-seg button { font-family:inherit; padding:0.32rem 0.7rem; border:none; background:none; border-radius: var(--radius-pill);
+    font-size:0.82rem; color:var(--color-muted); cursor:pointer; white-space:nowrap; }
+  .acc-theme-seg button.on { background:var(--color-bg-warm); color:var(--color-accent); font-weight:700; box-shadow: var(--shadow-1); }
   .acc-set-panel { padding-bottom:0.2rem; }
   .acc-switch { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
   .acc-switch input { opacity:0; width:0; height:0; }
@@ -428,9 +433,7 @@ body_class: acc-page
       if (!user) { heroEl.innerHTML = ''; return; }
       var joined = user.createdAt ? fmtDate(user.createdAt) : '';
       var lv = levelOf(user), perk = perkOf(lv.level);
-      var lvNote = lv.next == null
-        ? '积分 ' + lv.points + ' · 已满级 🎉'
-        : '积分 ' + lv.points + ' · 距 Lv' + (lv.level + 1) + ' 还差 ' + (lv.next - lv.points);
+      var lvNote = lv.next == null ? '已满级 🎉' : '距 Lv' + (lv.level + 1) + ' 还差 ' + (lv.next - lv.points);
       heroEl.innerHTML =
         '<div class="acc-hero-card">' +
           '<div class="acc-hero-id">' +
@@ -438,21 +441,24 @@ body_class: acc-page
             '<div class="acc-hero-body">' +
               '<div class="acc-hero-top">' +
                 '<h1 class="acc-hero-nick">' + esc(user.nick || '锆友') + '</h1>' +
-                '<span class="acc-lv' + (perk.shine ? ' shine' : '') + '" id="acc-lv-badge" title="' + esc(perk.tier) + '">' + esc(lv.name) + '</span>' +
-                '<button class="acc-lv-help" id="acc-lv-help" type="button" title="升级细则" aria-label="升级细则">?</button>' +
+                '<span class="acc-lv' + (perk.shine ? ' shine' : '') + '" id="acc-lv-badge" title="查看等级说明">' + esc(lv.name) + '</span>' +
                 (joined ? '<span class="acc-hero-joined">加入于 ' + esc(joined) + '</span>' : '') +
               '</div>' +
               '<p class="acc-hero-bio' + (user.bio ? '' : ' empty') + '">' + esc(user.bio || '还没有简介，写一句介绍自己吧。') + '</p>' +
-              '<div class="acc-lv-wrap">' +
+              '<div class="acc-lv-wrap" id="acc-lv-wrap" title="查看等级说明">' +
                 '<div class="acc-lv-bar"><div class="acc-lv-fill" style="width:' + Math.round(lv.progress * 100) + '%"></div></div>' +
                 '<div class="acc-lv-note">' + lvNote + '</div>' +
               '</div>' +
             '</div>' +
           '</div>' +
           '<div class="acc-hero-stats">' +
-            '<div><div class="acc-stat-n" id="acc-stat-fav">–</div><div class="acc-stat-l">收藏</div></div>' +
-            '<div><div class="acc-stat-n" id="acc-stat-like">–</div><div class="acc-stat-l">点赞</div></div>' +
-            '<div><div class="acc-stat-n" id="acc-stat-hist">–</div><div class="acc-stat-l">浏览</div></div>' +
+            '<div class="acc-hstat"><div class="acc-stat-n" id="acc-stat-fav">–</div><div class="acc-stat-l">收藏</div></div>' +
+            '<div class="acc-hero-sdiv"></div>' +
+            '<div class="acc-hstat"><div class="acc-stat-n" id="acc-stat-like">–</div><div class="acc-stat-l">点赞</div></div>' +
+            '<div class="acc-hero-sdiv"></div>' +
+            '<div class="acc-hstat"><div class="acc-stat-n" id="acc-stat-hist">–</div><div class="acc-stat-l">浏览</div></div>' +
+            '<div class="acc-hero-sdiv"></div>' +
+            '<div class="acc-hstat"><div class="acc-stat-n" id="acc-stat-comment">–</div><div class="acc-stat-l">评论</div></div>' +
           '</div>' +
           '<div class="acc-hero-actions">' +
             '<button class="acc-primary acc-hero-edit" type="button">编辑资料</button>' +
@@ -464,8 +470,10 @@ body_class: acc-page
       av.style.boxShadow = '0 0 0 3px var(--color-bg-warm), 0 0 0 5px ' + perk.ring;   // 光环
       var badge = document.getElementById('acc-lv-badge');
       badge.style.background = perk.bg;
+      badge.addEventListener('click', openRulesModal);
+      var lvWrap = document.getElementById('acc-lv-wrap');
+      if (lvWrap) { lvWrap.style.cursor = 'pointer'; lvWrap.addEventListener('click', openRulesModal); }
       heroEl.querySelector('.acc-hero-edit').addEventListener('click', function () { openEditModal(user); });
-      document.getElementById('acc-lv-help').addEventListener('click', openRulesModal);
       document.getElementById('acc-hero-gear').addEventListener('click', function () { showPane('settings'); });
       loadStats();
     }
@@ -477,6 +485,12 @@ body_class: acc-page
           if (el && d && d.ok) el.textContent = (d.items || []).length;
         }).catch(function () {});
       });
+      // 评论数在另一后端（zircon-comments）
+      var cbase = SiteAuth.API_BASE.replace('zircon-urge', 'zircon-comments');
+      SiteAuth.authedFetch(cbase + '/my-comments').then(function (r) { return r.json(); }).then(function (d) {
+        var el = document.getElementById('acc-stat-comment');
+        if (el) el.textContent = (d && d.items) ? d.items.length : 0;
+      }).catch(function () {});
     }
 
     // ── 通用弹窗 ──────────────────────────────────────────────
@@ -971,6 +985,15 @@ body_class: acc-page
       if (!user) { settingsEl.innerHTML = ''; return; }
       settingsEl.innerHTML =
         '<div class="acc-set-row">' +
+          '<div class="acc-set-info"><div class="acc-set-t">外观</div>' +
+            '<div class="acc-set-d">明暗主题，按本设备记住（不跟账号走）。</div></div>' +
+          '<div class="acc-theme-seg" id="acc-theme-seg">' +
+            '<button type="button" data-mode="system">跟随系统</button>' +
+            '<button type="button" data-mode="light">浅色</button>' +
+            '<button type="button" data-mode="dark">深色</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="acc-set-row">' +
           '<div class="acc-set-info"><div class="acc-set-t">公开主页</div>' +
             '<div class="acc-set-d">开启后，别人可通过链接查看你的昵称、头像和简介（不含邮箱）；在评论区点你的名字也会跳到这里。' +
             '<br><a id="acc-pub-link" href="/u/?id=' + encodeURIComponent(user.accountId) + '" target="_blank" rel="noopener">查看我的公开主页 →</a></div></div>' +
@@ -993,6 +1016,17 @@ body_class: acc-page
           '<button class="acc-tool-btn danger-ghost" id="acc-del-btn">注销</button>' +
         '</div>' +
         '<div class="acc-set-panel" id="acc-del-panel" hidden></div>';
+      var themeSeg = document.getElementById('acc-theme-seg');
+      if (themeSeg) {
+        var curMode = (window.currentThemeMode ? window.currentThemeMode() : 'system');
+        themeSeg.querySelectorAll('button').forEach(function (b) {
+          b.classList.toggle('on', b.dataset.mode === curMode);
+          b.addEventListener('click', function () {
+            if (window.setTheme) window.setTheme(b.dataset.mode);
+            themeSeg.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
+          });
+        });
+      }
       var pubToggle = document.getElementById('acc-pub-toggle');
       if (pubToggle) pubToggle.addEventListener('change', async function () {
         pubToggle.disabled = true;

@@ -44,23 +44,30 @@
   .sa-avatar.sa-avatar-img { background-size: cover; background-position: center; color: transparent; }
   .sa-menu {
     position: absolute; right: 0; top: calc(100% + 8px);
-    min-width: 148px; background: var(--color-bg);
+    min-width: 218px; background: var(--color-bg);
     border: 1px solid var(--color-border); border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 0.35rem;
     display: none; z-index: 1090;
   }
   .sa-menu.open { display: block; }
   .sa-menu-name {
-    display: flex; align-items: center; gap: 0.4rem;
-    font-size: 0.78rem; color: var(--color-muted); padding: 0.35rem 0.6rem 0.45rem;
+    padding: 0.5rem 0.6rem 0.6rem;
     border-bottom: 1px solid var(--color-border); margin-bottom: 0.3rem;
   }
-  .sa-menu-nick { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sa-id-row { display: flex; align-items: center; gap: 0.5rem; }
+  .sa-id-av { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--color-accent); color: #fff; font-family: var(--font-display); font-size: 0.95rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; background-size: cover; background-position: center; }
+  .sa-menu-nick { flex: 1; min-width: 0; font-weight: 700; color: var(--color-ink); font-size: 1rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sa-lvpill {
-    flex-shrink: 0; font-family: var(--font-display); font-size: 0.68rem; font-weight: 700; line-height: 1;
-    color: #fff; background: var(--color-accent); border-radius: 999px; padding: 0.2rem 0.44rem;
+    flex-shrink: 0; font-family: var(--font-display); font-size: 0.7rem; font-weight: 700; line-height: 1;
+    color: #fff; background: var(--color-accent); border-radius: 999px; padding: 0.2rem 0.5rem;
     font-variant-numeric: tabular-nums lining-nums;
   }
+  .sa-lvbar { height: 4px; border-radius: 999px; background: var(--color-border); overflow: hidden; margin-top: 0.5rem; }
+  .sa-lvbar > i { display: block; height: 100%; background: var(--color-accent); border-radius: 999px; }
+  .sa-lvnote { font-size: 0.7rem; color: var(--color-light); margin-top: 0.3rem; font-variant-numeric: tabular-nums lining-nums; }
   .sa-menu a, .sa-menu button {
     display: block; width: 100%; text-align: left; box-sizing: border-box;
     padding: 0.45rem 0.6rem; font-size: 0.85rem; color: var(--color-text);
@@ -262,6 +269,13 @@
     if (!lv || typeof lv.level !== 'number') return '';
     return '<span class="sa-lvpill" style="background:' + menuPerkBg(lv.level) + '">' + esc(lv.name || ('Lv' + lv.level)) + '</span>';
   }
+  function lvProgressHtml(user) {
+    var lv = user && user.level;
+    if (!lv || typeof lv.level !== 'number') return '';
+    var pct = Math.round((typeof lv.progress === 'number' ? lv.progress : 0) * 100);
+    var note = (lv.next == null) ? '已满级 🎉' : '距 Lv' + (lv.level + 1) + ' 还差 ' + ((lv.next || 0) - (lv.points || 0));
+    return '<div class="sa-lvbar"><i style="width:' + pct + '%"></i></div><div class="sa-lvnote">' + esc(note) + '</div>';
+  }
   function syncAdminNav(user) {
     var controls = document.querySelector('.nav-controls');
     if (!controls) return;
@@ -292,7 +306,9 @@
         '<button class="sa-avatar" type="button" title="' + esc(user.nick || '') + '">' + esc(initial(user.nick)) + '</button>' +
         '<div class="sa-menu">' +
           '<div class="sa-menu-name">' +
-            '<span class="sa-menu-nick">' + esc(user.nick || user.email || '') + '</span>' + lvPill(user) +
+            '<div class="sa-id-row"><div class="sa-id-av" id="sa-id-av"></div>' +
+              '<span class="sa-menu-nick">' + esc(user.nick || user.email || '') + '</span>' + lvPill(user) +
+            '</div>' + lvProgressHtml(user) +
           '</div>' +
           '<a class="sa-mi" href="/account/">' + ICON_HOME + '我的主页</a>' +
           '<a class="sa-mi" href="/account/#settings">' + ICON_GEAR + '设置</a>' +
@@ -307,6 +323,12 @@
       avatarBtn.classList.add('sa-avatar-img');
       avatarBtn.style.backgroundImage = 'url("' + user.avatar + '")';
       avatarBtn.textContent = '';
+    }
+    // 下拉身份行里的小头像
+    var idAv = slot.querySelector('#sa-id-av');
+    if (idAv) {
+      if (user.avatar && /^data:image\//.test(user.avatar)) { idAv.style.backgroundImage = 'url("' + user.avatar + '")'; idAv.textContent = ''; }
+      else { idAv.textContent = initial(user.nick); }
     }
     avatarBtn.addEventListener('click', function (e) { e.stopPropagation(); menu.classList.toggle('open'); });
     document.addEventListener('click', function () { menu.classList.remove('open'); });

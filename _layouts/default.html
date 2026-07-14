@@ -191,8 +191,6 @@
         <div class="nav-controls">
           <div id="auth-slot"></div>
 
-          <button class="theme-toggle" data-theme-btn onclick="toggleTheme()" title="切换模式"><span class="tt-glyph">&#9680;</span></button>
-
           <a href="{{ site.baseurl }}/" class="lang-toggle" title="English homepage"
              style="font-size:0.8rem;font-weight:600;letter-spacing:0.04em;color:var(--color-muted);
                     border:1px solid var(--color-border);padding:0.3rem 0.5rem;border-radius:4px;
@@ -272,6 +270,17 @@
         btn.setAttribute('aria-label', '切换明暗，当前' + label);
       });
     }
+    // 供账号「设置 · 外观」调用：直接设某一档 + 读当前档（明暗仍是设备级 localStorage 偏好）
+    window.setTheme = function (mode) {
+      const root = document.documentElement;
+      if (mode === 'dark' || mode === 'light') { root.setAttribute('data-theme', mode); try { localStorage.setItem('theme', mode); } catch (e) {} }
+      else { root.removeAttribute('data-theme'); try { localStorage.removeItem('theme'); } catch (e) {} }
+      syncThemeUI();
+    };
+    window.currentThemeMode = function () {
+      const t = document.documentElement.getAttribute('data-theme');
+      return t === 'dark' ? 'dark' : t === 'light' ? 'light' : 'system';
+    };
     syncThemeUI();
 
   </script>
