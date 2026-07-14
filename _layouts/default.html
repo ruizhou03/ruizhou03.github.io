@@ -177,7 +177,7 @@
         <li{% if hide_toolbox %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/toolbox/">百宝箱</a></li>
         <li{% if hide_essays %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/essays/">随笔漫谈</a></li>
         <li class="nav-settings">
-          <button type="button" class="nav-set-btn" onclick="toggleTheme()" aria-label="切换明暗">&#9683; 主题</button>
+          <button type="button" class="nav-set-btn" data-theme-btn onclick="toggleTheme()" aria-label="切换明暗"><span class="tt-glyph">&#9680;</span> <span class="tt-label">主题</span></button>
           <a class="nav-set-btn" href="{{ site.baseurl }}/">EN 英文站</a>
         </li>
       </ul>
@@ -191,7 +191,7 @@
         <div class="nav-controls">
           <div id="auth-slot"></div>
 
-          <button class="theme-toggle" onclick="toggleTheme()" title="切换模式">&#9683;</button>
+          <button class="theme-toggle" data-theme-btn onclick="toggleTheme()" title="切换模式"><span class="tt-glyph">&#9680;</span></button>
 
           <a href="{{ site.baseurl }}/" class="lang-toggle" title="English homepage"
              style="font-size:0.8rem;font-weight:600;letter-spacing:0.04em;color:var(--color-muted);
@@ -238,7 +238,7 @@
       }
     });
 
-    // 亮度切换逻辑（持久化到 localStorage，跨页面保持）
+    // 亮度切换逻辑（持久化到 localStorage，跨页面保持；三态：跟随系统 → 深色 → 浅色）
     function toggleTheme() {
       const root = document.documentElement;
       const current = root.getAttribute('data-theme');
@@ -254,7 +254,25 @@
         root.removeAttribute('data-theme');
         try { localStorage.removeItem('theme'); } catch (e) {}
       }
+      syncThemeUI();
     }
+
+    // 让明暗按钮显示当前态（填充度=暗度：半○跟随系统 / 空○浅色 / 实●深色）+ 文案与 tooltip，
+    // 修掉「盲猜三态循环」——用户一眼看得出当前是哪一档、下一下会切到哪。
+    function syncThemeUI() {
+      const t = document.documentElement.getAttribute('data-theme');
+      const mode = t === 'dark' ? 'dark' : t === 'light' ? 'light' : 'system';
+      const label = mode === 'dark' ? '深色' : mode === 'light' ? '浅色' : '跟随系统';
+      const nextLabel = mode === 'system' ? '深色' : mode === 'dark' ? '浅色' : '跟随系统';
+      const glyph = mode === 'dark' ? '●' : mode === 'light' ? '○' : '◐';
+      document.querySelectorAll('[data-theme-btn]').forEach(function (btn) {
+        const g = btn.querySelector('.tt-glyph'); if (g) g.textContent = glyph;
+        const l = btn.querySelector('.tt-label'); if (l) l.textContent = '主题 · ' + label;
+        btn.title = '主题：' + label + '（点击切换到' + nextLabel + '）';
+        btn.setAttribute('aria-label', '切换明暗，当前' + label);
+      });
+    }
+    syncThemeUI();
 
   </script>
 

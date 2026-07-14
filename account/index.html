@@ -40,6 +40,9 @@ noindex: true
             </span>
             <button id="acc-clear" class="acc-tool-btn danger-ghost" type="button" style="margin-left:auto;">清空</button>
           </div>
+          <div id="acc-search-row" class="acc-search-row" hidden>
+            <input type="search" id="acc-search" class="acc-search" placeholder="搜标题…" autocomplete="off" aria-label="搜索本类记录">
+          </div>
           <div id="acc-list" class="acc-list"></div>
           <div id="acc-pager" class="acc-pager" hidden>
             <button class="acc-tool-btn" id="acc-prev" type="button">‹ 上一页</button>
@@ -103,12 +106,14 @@ noindex: true
     line-height:1; font-variant-numeric: tabular-nums lining-nums; }
   .acc-stat-l { font-size:0.74rem; color:var(--color-light); margin-top:0.3rem; }
   @media (max-width:560px) {
-    .acc-hero-card { flex-direction:column; align-items:center; text-align:center; }
-    .acc-hero-top { justify-content:center; }
-    .acc-hero-edit { margin-left:0; }
-    .acc-hero-meta, .acc-hero-bio { text-align:center; }
-    .acc-lv-wrap { max-width:none; }
-    .acc-hero-stats { justify-content:center; gap:1.6rem; }
+    /* 手机端把 hero 压成一行身份条：头像+昵称+等级+编辑，隐藏简介/邮箱/进度/统计，
+       让导航与列表尽快进入首屏。段位信息不丢——点等级旁「?」仍可看升级细则。 */
+    .acc-hero-card { gap:0.85rem; align-items:center; padding: var(--space-4); }
+    .acc-hero-av { width:52px; height:52px; font-size:1.5rem; }
+    .acc-hero-top { flex-wrap:wrap; gap:0.35rem 0.5rem; }
+    .acc-hero-nick { font-size:1.25rem; }
+    .acc-hero-edit { margin-left:auto; padding:0.32rem 0.7rem; }
+    .acc-hero-bio, .acc-hero-meta, .acc-lv-wrap, .acc-hero-stats { display:none; }
   }
 
   /* ── 控制台：左导航 + 内容 ── */
@@ -145,6 +150,13 @@ noindex: true
   .acc-save { padding:0.5rem 1.2rem; font-size:0.9rem; font-weight:700; font-family:inherit; cursor:pointer;
     color:#fff; background:var(--color-accent); border:none; border-radius: var(--radius-sm); }
   .acc-save:disabled { opacity:0.6; cursor:default; }
+
+  /* ── 搜索框（仅本类记录 >10 条且非管理态时出现）── */
+  .acc-search-row { margin-bottom:1rem; }
+  .acc-search { width:100%; box-sizing:border-box; padding:0.5rem 0.8rem; font-size:0.88rem; font-family:inherit;
+    color:var(--color-text); background:var(--color-bg); border:1px solid var(--color-border); border-radius: var(--radius-sm); }
+  .acc-search::placeholder { color:var(--color-light); }
+  .acc-search:focus { outline:none; border-color:var(--color-accent); }
 
   /* ── 列表 ── */
   .acc-list { min-height:120px; }
@@ -256,11 +268,13 @@ noindex: true
     var settingsEl = document.getElementById('acc-settings');
     var toolbar = document.getElementById('acc-toolbar');
     var pagerEl = document.getElementById('acc-pager');
+    var searchRow = document.getElementById('acc-search-row');
+    var searchInput = document.getElementById('acc-search');
     var navItems = document.querySelectorAll('.acc-nav-item');
     var api = SiteAuth.API_BASE + '/me';
 
     // 列表分页状态
-    var state = { kind: 'fav', items: [], page: 0, pageSize: 20, manage: false };
+    var state = { kind: 'fav', items: [], page: 0, pageSize: 20, manage: false, query: '' };
 
     document.getElementById('acc-login-btn').addEventListener('click', function () {
       SiteAuth.openLogin && SiteAuth.openLogin('login');
@@ -543,18 +557,26 @@ noindex: true
         '</div>';
     }
 
+    function matchQuery(it) {
+      return ((it.title || it.post || it.url || it.text || '') + '').toLowerCase().indexOf(state.query) >= 0;
+    }
     function renderPage() {
       var kind = state.kind, items = state.items;
+      // 搜索框显隐：本类记录 >10 条且非管理态才出现（与 pager 同量级门控；管理与搜索互斥）
+      searchRow.hidden = !(items.length > 10 && !state.manage);
+      // 过滤视图：搜索只作用于当前类目
+      var view = state.query ? items.filter(matchQuery) : items;
       if (!items.length) { listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY[kind] + '</div>'; pagerEl.hidden = true; return; }
-      var pages = Math.max(1, Math.ceil(items.length / state.pageSize));
+      if (state.query && !view.length) { listEl.innerHTML = '<div class="acc-empty">没有匹配的记录。</div>'; pagerEl.hidden = true; return; }
+      var pages = Math.max(1, Math.ceil(view.length / state.pageSize));
       if (state.page >= pages) state.page = pages - 1;
       var startI = state.page * state.pageSize;
-      var slice = items.slice(startI, startI + state.pageSize);
+      var slice = view.slice(startI, startI + state.pageSize);
       listEl.innerHTML = slice.map(function (it) { return itemHTML(kind, it); }).join('');
-      // 分页条：>1 页或可调页数时显示
-      pagerEl.hidden = items.length <= 10;
+      // 分页条：过滤后仍 >10 条才显示
+      pagerEl.hidden = view.length <= 10;
       document.getElementById('acc-pager-info').textContent =
-        '第 ' + (state.page + 1) + ' / ' + pages + ' 页 · 共 ' + items.length + ' 条';
+        '第 ' + (state.page + 1) + ' / ' + pages + ' 页 · 共 ' + view.length + ' 条';
       document.getElementById('acc-prev').disabled = state.page === 0;
       document.getElementById('acc-next').disabled = state.page >= pages - 1;
       // 逐条移除（收藏/点赞/浏览）
@@ -566,7 +588,8 @@ noindex: true
     }
 
     async function loadKind(kind) {
-      state.kind = kind; state.page = 0; state.items = [];
+      state.kind = kind; state.page = 0; state.items = []; state.query = '';
+      if (searchInput) searchInput.value = '';
       setManage(false);
       var canManage = kind !== 'comment';
       toolbar.style.display = canManage ? 'flex' : 'none';
@@ -598,12 +621,17 @@ noindex: true
     document.getElementById('acc-next').addEventListener('click', function () { state.page++; renderPage(); });
     document.getElementById('acc-pagesize').addEventListener('change', function () { state.pageSize = parseInt(this.value, 10) || 20; state.page = 0; renderPage(); });
 
+    // 搜索：即输即滤，作用于当前类目、内存过滤零延迟
+    searchInput.addEventListener('input', function () { state.query = this.value.trim().toLowerCase(); state.page = 0; renderPage(); });
+
     // ── 批量管理 ─────────────────────────────────────────────
     function setManage(on) {
       state.manage = on;
       listEl.classList.toggle('manage', on);
       document.getElementById('acc-manage').style.display = on ? 'none' : '';
       document.getElementById('acc-manage-actions').style.display = on ? 'inline-flex' : 'none';
+      // 管理与搜索互斥：进管理态清掉过滤，避免「全选本页」在过滤视图下语义含糊导致误删
+      if (on) { state.query = ''; if (searchInput) searchInput.value = ''; }
       if (!on) listEl.querySelectorAll('.acc-cb').forEach(function (cb) { cb.checked = false; });
     }
     function selectedPosts() {
@@ -626,8 +654,8 @@ noindex: true
         setManage(false); renderPage(); loadStats();
       } catch (e) {}
     }
-    document.getElementById('acc-manage').addEventListener('click', function () { if (state.items.length) setManage(true); });
-    document.getElementById('acc-mgr-done').addEventListener('click', function () { setManage(false); });
+    document.getElementById('acc-manage').addEventListener('click', function () { if (state.items.length) { setManage(true); renderPage(); } });
+    document.getElementById('acc-mgr-done').addEventListener('click', function () { setManage(false); renderPage(); });
     document.getElementById('acc-selall').addEventListener('click', function () {
       var boxes = listEl.querySelectorAll('.acc-cb');
       var allChecked = Array.prototype.every.call(boxes, function (b) { return b.checked; });
@@ -771,13 +799,16 @@ noindex: true
       });
     }
 
+    var startupHashDone = false;
     function applyAuth(user) {
       if (user) {
         guest.style.display = 'none';
         main.style.display = 'block';
         renderHero(user);
         renderSettings(user);
-        if (setSec.hidden) loadKind(state.kind);
+        // 头像菜单「设置」深链 /account/#settings：首次进入直接落设置面板（在 renderSettings 之后，避免竞态画空面板）
+        if (!startupHashDone && location.hash === '#settings') { startupHashDone = true; showPane('settings'); }
+        else if (setSec.hidden) loadKind(state.kind);
       } else {
         main.style.display = 'none';
         guest.style.display = 'block';
@@ -785,6 +816,8 @@ noindex: true
       }
     }
     SiteAuth.onChange(applyAuth);
+    // 已在本页时点「设置」深链（hash 变化不重载页面）也切到设置面板
+    window.addEventListener('hashchange', function () { if (location.hash === '#settings') showPane('settings'); });
   }
   start();
 })();

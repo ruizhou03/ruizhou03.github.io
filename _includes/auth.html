@@ -51,9 +51,15 @@
   }
   .sa-menu.open { display: block; }
   .sa-menu-name {
+    display: flex; align-items: center; gap: 0.4rem;
     font-size: 0.78rem; color: var(--color-muted); padding: 0.35rem 0.6rem 0.45rem;
     border-bottom: 1px solid var(--color-border); margin-bottom: 0.3rem;
-    word-break: break-all;
+  }
+  .sa-menu-nick { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sa-lvpill {
+    flex-shrink: 0; font-family: var(--font-display); font-size: 0.68rem; font-weight: 700; line-height: 1;
+    color: #fff; background: var(--color-accent); border-radius: 999px; padding: 0.2rem 0.44rem;
+    font-variant-numeric: tabular-nums lining-nums;
   }
   .sa-menu a, .sa-menu button {
     display: block; width: 100%; text-align: left; box-sizing: border-box;
@@ -241,6 +247,21 @@
   var NAV_ICON_ADMIN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>';
   var ICON_HOME = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>';
   var ICON_LOGOUT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>';
+  var ICON_GEAR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
+  // 等级段位色（镜像 account/index.html 的 TIERS/perkOf；改配色请两处同步）。下拉只做静态段位色点缀，无流光/无进度条。
+  function menuPerkBg(level) {
+    if (level >= 10) return 'linear-gradient(100deg,#e6c766,#c88a2d,#e6c766)';
+    if (level >= 9)  return '#2f8f6b';
+    if (level >= 7)  return '#c0912f';
+    if (level >= 5)  return '#6b7480';
+    if (level >= 3)  return '#9c6b3c';
+    return 'var(--color-accent)';
+  }
+  function lvPill(user) {
+    var lv = user && user.level;
+    if (!lv || typeof lv.level !== 'number') return '';
+    return '<span class="sa-lvpill" style="background:' + menuPerkBg(lv.level) + '">' + esc(lv.name || ('Lv' + lv.level)) + '</span>';
+  }
   function syncAdminNav(user) {
     var controls = document.querySelector('.nav-controls');
     if (!controls) return;
@@ -270,8 +291,11 @@
       '<div class="sa-avatar-wrap">' +
         '<button class="sa-avatar" type="button" title="' + esc(user.nick || '') + '">' + esc(initial(user.nick)) + '</button>' +
         '<div class="sa-menu">' +
-          '<div class="sa-menu-name">' + esc(user.nick || user.email || '') + '</div>' +
+          '<div class="sa-menu-name">' +
+            '<span class="sa-menu-nick">' + esc(user.nick || user.email || '') + '</span>' + lvPill(user) +
+          '</div>' +
           '<a class="sa-mi" href="/account/">' + ICON_HOME + '我的主页</a>' +
+          '<a class="sa-mi" href="/account/#settings">' + ICON_GEAR + '设置</a>' +
           (user.isAdmin ? '<a class="sa-mi sa-admin-link" href="/admin/">' + NAV_ICON_ADMIN + '管理后台</a>' : '') +
           '<button type="button" class="sa-logout sa-mi">' + ICON_LOGOUT + '退出登录</button>' +
         '</div>' +
