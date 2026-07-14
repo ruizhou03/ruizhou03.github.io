@@ -199,6 +199,31 @@
       return { ok: true };
     },
 
+    // 每日签到（+2；服务端每天只给一次）。本机按日期去重，避免每次访问都打接口。
+    checkin: async function () {
+      if (!SiteAuth.isLoggedIn()) return { ok: false };
+      var today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+      if (lsGet('site.auth.checkin.v1') === today) return { ok: true, skipped: true };
+      var r = await post('/points?action=checkin', {}, true);
+      if (r.ok && r.data) {
+        lsSet('site.auth.checkin.v1', today);
+        var u = SiteAuth.getUser();
+        if (u) { u.points = r.data.points; u.level = r.data.level; setSession(null, u); }  // 更新等级 → onChange
+      }
+      return r;
+    },
+
+    // 分享加分（+3，≤15/日）。调用方负责实际的复制/分享动作。
+    share: async function (postId) {
+      if (!SiteAuth.isLoggedIn()) return { ok: false };
+      var r = await post('/points?action=share', { post: postId || '' }, true);
+      if (r.ok && r.data) {
+        var u = SiteAuth.getUser();
+        if (u) { u.points = r.data.points; u.level = r.data.level; setSession(null, u); }
+      }
+      return r;
+    },
+
     // 校验本地 token 是否仍有效；无效则登出。返回最新 user 或 null。
     refresh: async function () {
       var t = SiteAuth.getToken();
@@ -240,6 +265,8 @@
   // 启动时：已登录则确保账号身份生效（幂等），再后台静默校验 token
   if (SiteAuth.isLoggedIn()) {
     adoptAccountIdentity(SiteAuth.getUser());
-    setTimeout(function () { SiteAuth.refresh(); }, 300);
+    setTimeout(function () {
+      SiteAuth.refresh().then(function () { if (SiteAuth.checkin) SiteAuth.checkin(); });
+    }, 300);
   }
 })();

@@ -77,7 +77,15 @@ noindex: true
   .acc-hero-body { flex:1; min-width:0; }
   .acc-hero-top { display:flex; align-items:center; gap:1rem; }
   .acc-hero-nick { font-family:var(--font-display); font-size:1.7rem; color:var(--color-ink); margin:0; line-height:1.15; word-break:break-word; }
+  .acc-lv { flex-shrink:0; font-family:var(--font-display); font-size:0.9rem; font-weight:700; line-height:1;
+    color:#fff; background:var(--color-accent); border-radius:999px; padding:0.28rem 0.6rem;
+    font-variant-numeric: tabular-nums lining-nums; box-shadow: var(--shadow-1); }
   .acc-hero-edit { margin-left:auto; flex-shrink:0; padding:0.4rem 0.95rem; font-size:0.85rem; }
+  .acc-lv-wrap { margin-top:0.9rem; max-width:340px; }
+  .acc-lv-bar { height:7px; border-radius:999px; background:var(--color-border); overflow:hidden; }
+  .acc-lv-fill { height:100%; background:var(--color-accent); border-radius:999px; transition:width .4s; }
+  .acc-lv-note { font-size:0.72rem; color:var(--color-light); margin-top:0.35rem; font-variant-numeric: tabular-nums lining-nums; }
+  @media (max-width:560px) { .acc-lv-wrap { max-width:none; margin-left:auto; margin-right:auto; } }
   .acc-hero-bio { font-size:0.92rem; color:var(--color-text); line-height:1.6; margin:0.5rem 0 0; word-break:break-word; }
   .acc-hero-bio.empty { color:var(--color-light); }
   .acc-hero-meta { font-size:0.78rem; color:var(--color-light); margin:0.55rem 0 0; word-break:break-all; }
@@ -252,19 +260,33 @@ noindex: true
     };
 
     // ── 资料 hero ─────────────────────────────────────────────
+    function levelOf(user) {
+      if (user.level && typeof user.level.level === 'number') return user.level;
+      return { level: 1, name: 'Lv1', points: user.points || 0, cur: 0, next: 50, progress: 0 };
+    }
+
     function renderHero(user) {
       if (!user) { heroEl.innerHTML = ''; return; }
       var joined = user.createdAt ? fmtDate(user.createdAt) : '';
+      var lv = levelOf(user);
+      var lvNote = lv.next == null
+        ? '积分 ' + lv.points + ' · 已满级 🎉'
+        : '积分 ' + lv.points + ' · 距 Lv' + (lv.level + 1) + ' 还差 ' + (lv.next - lv.points);
       heroEl.innerHTML =
         '<div class="acc-hero-card">' +
           '<div class="acc-hero-av" id="acc-hero-av"></div>' +
           '<div class="acc-hero-body">' +
             '<div class="acc-hero-top">' +
               '<h1 class="acc-hero-nick">' + esc(user.nick || '锆友') + '</h1>' +
+              '<span class="acc-lv" title="等级">' + esc(lv.name) + '</span>' +
               '<button class="acc-primary acc-hero-edit" type="button">编辑资料</button>' +
             '</div>' +
             '<p class="acc-hero-bio' + (user.bio ? '' : ' empty') + '">' + esc(user.bio || '还没有简介，写一句介绍自己吧。') + '</p>' +
             '<p class="acc-hero-meta">' + esc(user.email || '') + (joined ? ' · 加入于 ' + joined : '') + '</p>' +
+            '<div class="acc-lv-wrap">' +
+              '<div class="acc-lv-bar"><div class="acc-lv-fill" style="width:' + Math.round(lv.progress * 100) + '%"></div></div>' +
+              '<div class="acc-lv-note">' + lvNote + '</div>' +
+            '</div>' +
             '<div class="acc-hero-stats">' +
               '<div><div class="acc-stat-n" id="acc-stat-fav">–</div><div class="acc-stat-l">收藏</div></div>' +
               '<div><div class="acc-stat-n" id="acc-stat-like">–</div><div class="acc-stat-l">点赞</div></div>' +
