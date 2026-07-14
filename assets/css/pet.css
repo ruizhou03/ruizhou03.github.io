@@ -753,6 +753,10 @@
   }
   .board-tabs button .bt-ico { display: inline-flex; }
   .board-tabs button .bt-ico svg { width: 1.15rem; height: 1.15rem; display: block; }
+  /* 统一的细线图标（顶栏铃铛/档案、记一笔/记体重、时间药丸）——都用 currentColor 继承按钮色 */
+  .btn-ico { width: 1.15rem; height: 1.15rem; display: block; flex-shrink: 0; }
+  .pet-bar .icon-btn .btn-ico { width: 1.2rem; height: 1.2rem; }
+  .time-pill .tp-ico svg { width: 15px; height: 15px; display: block; }
   .board-tabs button.active {
     color: var(--color-accent); border-bottom-color: var(--color-accent); font-weight: 600;
   }
