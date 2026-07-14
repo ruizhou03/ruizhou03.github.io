@@ -89,13 +89,14 @@
     cat: {
       label: '猫',
       bodyWeightAware: true,
-      base: {
-        kitten_young:    { min: 40, max: 60 },   // 0–4 月：长身体猛
-        kitten:          { min: 25, max: 45 },   // 4–12 月：生长期
-        adult_intact:    { min: 14, max: 18 },   // 1–7 岁未绝育
-        adult_neutered:  { min: 11, max: 15 },   // 1–7 岁已绝育
-        senior:          { min: 10, max: 13 },   // 7–11 岁
-        geriatric:       { min:  9, max: 12 },   // 11 岁以上
+      method: 'mer',   // RER=70·kg^0.75 × 生命阶段 MER 系数（AAHA/WSAVA），再换算成克
+      merFactor: {
+        kitten_young:    { min: 2.2, max: 2.75 },  // 0–4 月：生长（~2.5×RER）
+        kitten:          { min: 1.8, max: 2.2 },   // 4–12 月：生长（~2.0×）
+        adult_intact:    { min: 1.3, max: 1.5 },   // 1–7 岁未绝育（~1.4×）
+        adult_neutered:  { min: 1.1, max: 1.3 },   // 1–7 岁已绝育（~1.2×）
+        senior:          { min: 1.0, max: 1.2 },   // 7–11 岁
+        geriatric:       { min: 1.0, max: 1.2 },   // 11 岁以上
       },
       breeds: {
         '英短':       { f: 0.95, aka: ['蓝猫', '蓝白', '金渐层', '银渐层'] },
@@ -115,11 +116,12 @@
     dog: {
       label: '狗',
       bodyWeightAware: true,
-      base: {
-        young:           { min: 30, max: 55 },
-        adult_intact:    { min: 18, max: 25 },
-        adult_neutered:  { min: 14, max: 20 },
-        senior:          { min: 12, max: 17 },
+      method: 'mer',
+      merFactor: {
+        young:           { min: 2.0, max: 3.0 },   // 幼犬生长（4–12 月 ~2×，<4 月 ~3×）
+        adult_intact:    { min: 1.7, max: 1.9 },   // 成年未绝育（~1.8×）
+        adult_neutered:  { min: 1.5, max: 1.7 },   // 成年已绝育（~1.6×）
+        senior:          { min: 1.2, max: 1.4 },   // 老年
       },
       breeds: {
         '泰迪 / 贵宾':   { f: 1.00 },
@@ -144,11 +146,13 @@
     rabbit: {
       label: '兔',
       bodyWeightAware: true,
+      method: 'grams',
+      note: '兔子应以无限量干草为主食；下面是「兔粮/颗粒」的建议限量（约体重的 1–2%），别拿它当全部口粮。',
       base: {
-        young:           { min: 30, max: 60 },
-        adult_intact:    { min: 20, max: 40 },
-        adult_neutered:  { min: 20, max: 35 },
-        senior:          { min: 20, max: 35 },
+        young:           { min: 25, max: 50 },   // 幼兔生长，颗粒可多些
+        adult_intact:    { min: 12, max: 25 },   // 成年限量（约体重 1–2%）
+        adult_neutered:  { min: 12, max: 25 },
+        senior:          { min: 12, max: 22 },
       },
       breeds: {
         '荷兰侏儒':     { f: 1.00 },
@@ -162,6 +166,8 @@
     hamster: {
       label: '仓鼠',
       bodyWeightAware: false,
+      method: 'grams',
+      note: '小宠能量数据有限，下面是大致参考；以自家鼠粮包装和体态为准。',
       base: {
         young:           { min: 8, max: 16 },
         adult_intact:    { min: 6, max: 12 },
@@ -179,6 +185,8 @@
     bird: {
       label: '鸟（鹦鹉等）',
       bodyWeightAware: true,
+      method: 'grams',
+      note: '鸟类品种间差异极大，下面是大致参考；以自家鸟粮和体态为准。',
       base: {
         young:           { min: 80, max: 150 },
         adult_intact:    { min: 50, max: 100 },
@@ -198,17 +206,18 @@
     ferret: {
       label: '雪貂',
       bodyWeightAware: true,
-      base: {
-        young:           { min: 30, max: 70 },
-        adult_intact:    { min: 30, max: 60 },
-        adult_neutered:  { min: 25, max: 50 },
-        senior:          { min: 25, max: 50 },
+      method: 'kcalPerKg',   // 雪貂不套 RER，按每公斤体重 200–300 kcal/天（幼年更高）
+      kcalPerKg: {
+        young:           { min: 250, max: 380 },
+        adult_intact:    { min: 200, max: 300 },
+        adult_neutered:  { min: 200, max: 280 },
+        senior:          { min: 180, max: 260 },
       },
       breeds: {},
     },
   };
 
-  const ACTIVITY_FACTOR = { low: 0.85, normal: 1.0, high: 1.15 };
+  const ACTIVITY_FACTOR = { low: 0.8, normal: 1.0, high: 1.3 };   // 放宽活动量档差（原 ±15% 过窄）
 
   // Body weight unit (display), stored internally as kg
   const WEIGHT_UNITS = { kg: 1, '斤': 0.5, lb: 0.453592, g: 0.001 };
@@ -633,25 +642,40 @@
     const age = Number.isFinite(opts.age) ? opts.age : parseFloat(opts.age);
     if (!Number.isFinite(age) || age < 0) return null;
     const stage = stageFromAge(opts.species, age, !!opts.neutered);
+    const actAdj = ACTIVITY_FACTOR[opts.activity] || 1.0;
+    let breedAdj = 1.0;
+    if (opts.breed && sp.breeds && sp.breeds[opts.breed]) breedAdj = sp.breeds[opts.breed].f || 1.0;
+    const method = sp.method || 'grams';
+
+    // 能量法（猫/狗：RER=70·kg^0.75 × MER 系数；雪貂：kcal/kg）→ 先算 kcal/天，再按
+    // 干粮能量密度换成「等效干粮克数」，与工具的 kcal 体系打通。
+    if (method === 'mer' || method === 'kcalPerKg') {
+      const bwKg = parseFloat(opts.bodyWeightKg);
+      if (!Number.isFinite(bwKg) || bwKg <= 0) return null;
+      let kcalMin, kcalMax;
+      if (method === 'mer') {
+        const rer = 70 * Math.pow(bwKg, 0.75);
+        const f = sp.merFactor[stage]; if (!f) return null;
+        kcalMin = rer * f.min; kcalMax = rer * f.max;
+      } else {
+        const f = sp.kcalPerKg[stage]; if (!f) return null;
+        kcalMin = bwKg * f.min; kcalMax = bwKg * f.max;
+      }
+      kcalMin *= actAdj * breedAdj; kcalMax *= actAdj * breedAdj;
+      const kpg = (Number.isFinite(opts.kibbleKcalPerG) && opts.kibbleKcalPerG > 0) ? opts.kibbleKcalPerG : kibbleDefaultFor(opts.species);
+      return { min: kcalMin / kpg, max: kcalMax / kpg, kcalMin, kcalMax, note: sp.note || null };
+    }
+
+    // 克数启发式（兔颗粒限量 / 仓鼠 / 鸟——能量数据太散，不假装精确）
     const base = sp.base[stage];
     if (!base) return null;
-    let mult;
+    let mult = 1;
     if (sp.bodyWeightAware) {
       const bwKg = parseFloat(opts.bodyWeightKg);
       if (!Number.isFinite(bwKg) || bwKg <= 0) return null;
       mult = bwKg;
-    } else {
-      mult = 1;
     }
-    let breedAdj = 1.0;
-    if (opts.breed && sp.breeds && sp.breeds[opts.breed]) {
-      breedAdj = sp.breeds[opts.breed].f || 1.0;
-    }
-    const actAdj = ACTIVITY_FACTOR[opts.activity] || 1.0;
-    return {
-      min: base.min * mult * breedAdj * actAdj,
-      max: base.max * mult * breedAdj * actAdj,
-    };
+    return { min: base.min * mult * breedAdj * actAdj, max: base.max * mult * breedAdj * actAdj, note: sp.note || null };
   }
 
   // Mismatch detection: returns { swapDelta, chosenDelta, chosenMag, swapMag, typical } or null
@@ -865,6 +889,7 @@
   const $pmActivity = document.getElementById('pm-activity');
   const $pmNeutered = document.getElementById('pm-neutered');
   const $pmRecPreview = document.getElementById('pm-rec-preview');
+  const $pmSpeciesNote = document.getElementById('pm-species-note');
   const $pmRecApply = document.getElementById('pm-rec-apply');
   const $pmSave = document.getElementById('pm-save');
   const $pmCancel = document.getElementById('pm-cancel');
@@ -1047,6 +1072,7 @@
       species: pet.species || '', breed: pet.breed || '',
       age: pet.ageYears, bodyWeightKg: pet.bodyWeight,
       activity: pet.activity || 'normal', neutered: !!pet.neutered,
+      kibbleKcalPerG: pet.kibbleKcalPerG,
     });
   }
   function pmKibbleKcalLive() { const v = parseFloat($pmKibbleKcal.value); return (Number.isFinite(v) && v > 0) ? v : 3.8; }
@@ -1075,14 +1101,21 @@
       $pmRecApply.disabled = true;
       $pmRecApply.dataset.min = '';
       $pmRecApply.dataset.max = '';
+      if ($pmSpeciesNote) { $pmSpeciesNote.textContent = ''; $pmSpeciesNote.style.display = 'none'; }
       return;
     }
     const M = pmConvM(pmBaseId), u = pmConvUnit(pmBaseId);
-    $pmRecPreview.textContent = `估算 ${fmtG(r.min * M)} – ${fmtG(r.max * M)} ${u}/天`;
+    let txt = `估算 ${fmtG(r.min * M)} – ${fmtG(r.max * M)} ${u}/天`;
+    if (Number.isFinite(r.kcalMin) && Number.isFinite(r.kcalMax)) txt += `（约 ${Math.round(r.kcalMin)}–${Math.round(r.kcalMax)} 大卡）`;
+    $pmRecPreview.textContent = txt;
     $pmRecPreview.classList.add('has-value');
     $pmRecApply.disabled = false;
     $pmRecApply.dataset.min = String(r.min);   // dataset 仍存 canonical 克数
     $pmRecApply.dataset.max = String(r.max);
+    if ($pmSpeciesNote) {
+      if (r.note) { $pmSpeciesNote.textContent = r.note; $pmSpeciesNote.style.display = ''; }
+      else { $pmSpeciesNote.textContent = ''; $pmSpeciesNote.style.display = 'none'; }
+    }
   }
   $pmSpecies.addEventListener('change', () => {
     buildBreedDropdown($pmSpecies.value, '');
@@ -3104,7 +3137,7 @@
       // 档案齐全（物种+年龄+体重都填了）才自动套用推荐并跟随；只填名字的先不设目标，
       // 看板会显示「点这里设定每日目标」的 CTA 引导稍后补。
       const est = (species && age != null && bw != null)
-        ? estimatorCompute({ species, breed: breed || '', age, bodyWeightKg: bw, activity, neutered })
+        ? estimatorCompute({ species, breed: breed || '', age, bodyWeightKg: bw, activity, neutered, kibbleKcalPerG: kibbleDefaultFor(species) })
         : null;
       state.pets.push({
         id, name,
