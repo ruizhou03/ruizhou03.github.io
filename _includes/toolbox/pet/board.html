@@ -156,12 +156,13 @@
 
       <div class="fc-rule"></div>
 
-      <div class="log-head"><span class="log-lbl">今天的记录</span></div>
+      <div class="log-head"><span class="log-lbl">记录</span></div>
       <div class="entries-list" id="entries-today"></div>
+      <button type="button" class="more-history" id="toggle-history">展开更早的记录 ▾</button>
+      <div class="entries-list scroll" id="entries-history" style="display: none;"></div>
 
-    </div><!-- /food-card -->
+      <div class="fc-rule"></div>
 
-    <div class="food-card food-card-review">
     <div class="log-head trend-head">
       <span class="log-lbl">趋势</span>
       <span class="right">
@@ -229,13 +230,7 @@
       </div>
     </div>
 
-    <div class="fc-rule"></div>
-    <div class="log-head">
-      <span class="log-lbl">历史</span>
-      <span class="right"><button type="button" class="icon-btn hist-toggle" id="toggle-history">展开 ▾</button></span>
-    </div>
-    <div class="entries-list scroll" id="entries-history" style="display: none;"></div>
-    </div><!-- /food-card review -->
+    </div><!-- /food-card -->
     </div><!-- /panel-food -->
 
     <!-- ===== 体重 board ===== -->

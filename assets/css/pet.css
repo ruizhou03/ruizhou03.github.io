@@ -1764,7 +1764,7 @@
      细线分区，作用域限定 .food-card，干净覆盖旧的「盒子汤」样式。
      ================================================================ */
   .pf-wrap .food-card {
-    --fc-paper:#f8f4ec; --fc-raise:#fffdf8; --fc-ink:#26313d; --fc-navy:var(--color-accent);
+    --fc-paper:#fbf8f2; --fc-raise:#fffefb; --fc-ink:#26313d; --fc-navy:var(--color-accent);
     --fc-gold:#bf9f57; --fc-sage:#5d8a6b; --fc-muted:#867f72; --fc-faint:#a9a293;
     --fc-hair:#e6ddcd; --fc-hair2:#efe8da;
     background:var(--fc-paper);
@@ -1950,3 +1950,32 @@
   /* 历史「展开」按钮 */
   .food-card .hist-toggle { border:none; background:none; padding:0; color:var(--fc-navy); font-family:var(--font-body); font-size:.82rem; cursor:pointer; }
   .food-card #entries-history { margin-top:.5rem; }
+
+  /* ================================================================
+     记录行细线化 + 历史并进「记录」（展开更早）—— 统一进纸卡
+     ================================================================ */
+  .food-card .entries-list .entry-row {
+    display:flex; align-items:center; gap:.75rem; padding:.68rem .15rem; margin:0;
+    background:none; border:none; border-bottom:1px solid var(--fc-hair2); border-radius:0; box-shadow:none;
+  }
+  .food-card .entries-list .entry-row:last-child { border-bottom:none; }
+  .food-card .er-time { font-family:var(--font-body); font-size:.74rem; color:var(--fc-faint); flex:0 0 auto; min-width:3rem; font-variant-numeric:tabular-nums; }
+  .food-card .er-main { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:.08rem; }
+  .food-card .er-delta { font-size:.95rem; line-height:1.35; }
+  .food-card .er-reading { font-family:var(--font-body); font-size:.72rem; color:var(--fc-muted); }
+  .food-card .er-raw { color:var(--fc-faint); font-size:.9em; }
+  .food-card .er-actions { flex:0 0 auto; display:inline-flex; gap:.15rem; }
+  .food-card .er-edit, .food-card .er-del {
+    border:none; background:none; color:var(--fc-faint); cursor:pointer;
+    font-size:.9rem; line-height:1; padding:.2rem .3rem; border-radius:6px;
+  }
+  @media (hover:hover){ .food-card .er-edit:hover, .food-card .er-del:hover { color:var(--fc-navy); } }
+  .food-card .er-edit:focus-visible, .food-card .er-del:focus-visible { outline:2px solid var(--fc-navy); outline-offset:2px; }
+  /* 历史滚动区（并进「记录」后，展开更早时用）*/
+  .food-card #entries-history.scroll { max-height:19rem; overflow-y:auto; }
+  /* 「展开更早的记录」素链接 */
+  .food-card .more-history {
+    display:inline-block; margin:.55rem 0 0; border:none; background:none; padding:0;
+    color:var(--fc-navy); font-family:var(--font-body); font-size:.8rem; cursor:pointer;
+  }
+  .food-card .more-history:focus-visible { outline:2px solid var(--fc-navy); outline-offset:2px; border-radius:4px; }

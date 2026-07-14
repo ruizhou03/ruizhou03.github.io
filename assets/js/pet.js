@@ -5578,7 +5578,7 @@
   $toggleHistory.addEventListener('click', () => {
     state.historyOpen = !state.historyOpen;
     $entriesHistory.style.display = state.historyOpen ? '' : 'none';
-    $toggleHistory.textContent = state.historyOpen ? '收起 ▴' : '展开 ▾';
+    $toggleHistory.textContent = state.historyOpen ? '收起更早 ▴' : '展开更早的记录 ▾';
   });
 
   // ===== 弹窗无障碍：焦点归还 + Tab 焦点陷阱（集中式，覆盖所有 .modal-backdrop）=====
