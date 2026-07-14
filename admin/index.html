@@ -85,6 +85,7 @@ body_class: adm-page
               <button type="button" data-v="trend">📈 全站趋势</button>
             </div>
             <ol id="rk-active" class="adm-ol"><li class="adm-empty">加载中…</li></ol>
+            <div class="adm-rk-trend-head" id="rk-trend-head" hidden></div>
             <div class="adm-chart" id="rk-trend" hidden><div class="adm-chart-fallback">加载趋势…</div></div>
             <p class="adm-note" id="rk-active-note" style="margin-top: 0.6rem"></p>
           </div>
@@ -371,6 +372,17 @@ body_class: adm-page
   .adm-rank-view button:hover:not(.on) { border-color: var(--color-highlight); color: var(--color-highlight); }
   .adm-rank-view button.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
   #rk-trend { height: 240px; }
+  /* 排行行尾的「看这一篇趋势」小按钮（默认淡、hover 才明显，不抢标题） */
+  .adm-rk-trend { flex: none; font-size: 0.82rem; line-height: 1; cursor: pointer; background: none; border: none;
+    padding: 0.15rem 0.25rem; opacity: 0.35; transition: opacity .15s; border-radius: var(--radius-sm); }
+  .adm-ol li:hover .adm-rk-trend { opacity: 0.85; }
+  .adm-rk-trend:hover { opacity: 1; background: var(--color-bg-warm); }
+  .adm-rk-trend-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin: 0.2rem 0 0.5rem; }
+  .adm-rk-trend-head[hidden] { display: none; }
+  .rk-th-t { font-size: 0.82rem; color: var(--color-ink); font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .adm-rk-back { flex: none; font: inherit; font-size: 0.72rem; cursor: pointer; padding: 0.15rem 0.6rem; color: var(--color-muted);
+    background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: var(--radius-pill); }
+  .adm-rk-back:hover { border-color: var(--color-accent); color: var(--color-accent); }
 
   /* 可见性面板：从竖排长列表改成可扫视的网格——板块横排小卡 + 工具分类网格，点一下切换 */
   .vis-block-h { font-size: 0.8rem; font-weight: 700; color: var(--color-muted); margin: 0 0 var(--space-2); }
@@ -506,13 +518,22 @@ body_class: adm-page
     var max = rows.reduce(function (m, x) { return Math.max(m, x.n); }, 0) || 1;
     el.innerHTML = rows.map(function (x, i) {
       var pct = Math.round(x.n / max * 100);
+      var trendBtn = (elId === 'rk-active')
+        ? '<button type="button" class="adm-rk-trend" data-url="' + esc(x.info.url) + '" data-title="' + esc(x.info.title) + '" title="看这一篇的时间趋势">📈</button>'
+        : '';
       return '<li style="--pct:' + pct + '%">' +
         '<span class="adm-rk-i">' + (i + 1) + '</span>' +
         typeTag(x.info.type) +
         '<a class="adm-rk-t" href="' + esc(x.info.url) + '" target="_blank" rel="noopener" title="' + esc(x.path) + '">' + esc(x.info.title) + '</a>' +
+        trendBtn +
         '<span class="adm-rk-n">' + fmt(x.n) + '<small>' + unit + '</small></span>' +
       '</li>';
     }).join('');
+    if (elId === 'rk-active') {
+      Array.prototype.forEach.call(el.querySelectorAll('.adm-rk-trend'), function (b) {
+        b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); showItemTrend(b.getAttribute('data-url'), b.getAttribute('data-title')); });
+      });
+    }
   }
   // 流量「热门页面」：排除内部页（/admin 等）；活页面带链接，已下线显示纯文本（不 404）。
   function renderTrafficPages(items) {
@@ -568,12 +589,14 @@ body_class: adm-page
   };
   var METRIC_NOTE = {
     favs: '收藏从计数器上线起累计；要并入历史收藏，在后端跑一次 <code>backfill-favcount</code>。「时间趋势」＝每日快照（越用越全）。',
-    _default: '横向＝各内容排行 Top 10（文章 / 工具 / 资料通排）；纵向「全站趋势」＝该指标全站每日快照，不限于上面 10 条（从今起每天记一次、越往后越全）。'
+    _default: '横向＝各内容排行 Top 10（文章 / 工具 / 资料通排）；纵向「全站趋势」＝该指标全站每日快照（不限上面 10 条）。点某行末尾的 📈 可单看那一篇的每日趋势。都从今起每天记一次、越往后越全。'
   };
   var SNAP_KEY = { views: 'views', comments: 'comments', likes: 'like', favs: 'star' };
   var rankData = { views: null, comments: null, likes: null, favs: null };
   var activeMetric = 'views', rankView = 'rank', metricWired = false;
   var metricSeries = null, metricSeriesLoaded = false;
+  var trendItem = null, itemSeriesCache = {};   // trendItem={url,title}=看单篇趋势；null=看全站
+  var METRIC_LABEL = { views: '阅读', comments: '评论', likes: '点赞', favs: '收藏' };
   function renderActiveRank() {
     var m = METRICS[activeMetric], data = rankData[activeMetric];
     var ol = document.getElementById('rk-active');
@@ -590,35 +613,67 @@ body_class: adm-page
     renderActiveRank();
     if (rankView === 'trend') renderMetricTrend();
   }
-  function setRankView(v) {
+  function setRankView(v, keepItem) {
     rankView = (v === 'trend') ? 'trend' : 'rank';
+    if (!keepItem) trendItem = null;   // 点「全站趋势」按钮 / 返回排行 = 清掉单篇、回到全站
     var vb = document.getElementById('rk-view');
     if (vb) Array.prototype.forEach.call(vb.querySelectorAll('button'), function (b) { b.classList.toggle('on', b.getAttribute('data-v') === rankView); });
-    var ol = document.getElementById('rk-active'), tr = document.getElementById('rk-trend');
+    var ol = document.getElementById('rk-active'), tr = document.getElementById('rk-trend'), th = document.getElementById('rk-trend-head');
     if (ol) ol.hidden = (rankView !== 'rank');
     if (tr) tr.hidden = (rankView !== 'trend');
+    if (th) th.hidden = !(rankView === 'trend' && trendItem);
     if (rankView === 'trend') renderMetricTrend();
   }
+  function showItemTrend(url, title) {
+    if (!url) return;
+    trendItem = { url: url, title: title || url };
+    setRankView('trend', true);
+    var th = document.getElementById('rk-trend-head');
+    if (th) {
+      th.innerHTML = '<span class="rk-th-t">「' + esc(trendItem.title) + '」· 单篇每日</span>' +
+        '<button type="button" class="adm-rk-back" id="rk-trend-back">× 看全站</button>';
+      var bk = document.getElementById('rk-trend-back');
+      if (bk) bk.addEventListener('click', function () { setRankView('trend', false); });
+    }
+  }
+  function drawTrendLine(pts, mkey) {
+    ensureECharts().then(function () {
+      var p = palette(), c = makeChart('rk-trend'); if (!c) return;
+      c.setOption({
+        grid: { left: 6, right: 14, top: 16, bottom: 4, containLabel: true },
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'category', boundaryGap: false, data: pts.map(function (x) { return String(x.date || '').slice(5); }) },
+        yAxis: { type: 'value', minInterval: 1 },
+        series: [{ type: 'line', smooth: false, symbol: 'circle', symbolSize: 4, data: pts.map(function (x) { return x[mkey] || 0; }),
+          lineStyle: { width: 2, color: p.accent }, itemStyle: { color: p.accent }, areaStyle: { color: p.accent, opacity: 0.12 } }]
+      });
+    }).catch(function () { fallback('rk-trend', '图表加载失败'); });
+  }
   function renderMetricTrend() {
+    if (trendItem) { renderItemTrend(); return; }   // 选了单篇 → 画单篇
     var el = document.getElementById('rk-trend'); if (!el) return;
     var mkey = SNAP_KEY[activeMetric] || activeMetric;
     function draw() {
       var pts = (metricSeries || []).filter(function (x) { return x && x[mkey] != null; });
       if (!pts.length) { fallback('rk-trend', metricSeriesLoaded ? '暂无历史——从今天起每天记一次，过几天就有趋势了' : '加载趋势…'); return; }
-      ensureECharts().then(function () {
-        var p = palette(), c = makeChart('rk-trend'); if (!c) return;
-        c.setOption({
-          grid: { left: 6, right: 14, top: 16, bottom: 4, containLabel: true },
-          tooltip: { trigger: 'axis' },
-          xAxis: { type: 'category', boundaryGap: false, data: pts.map(function (x) { return String(x.date || '').slice(5); }) },
-          yAxis: { type: 'value', minInterval: 1 },
-          series: [{ type: 'line', smooth: false, symbol: 'circle', symbolSize: 4, data: pts.map(function (x) { return x[mkey] || 0; }),
-            lineStyle: { width: 2, color: p.accent }, itemStyle: { color: p.accent }, areaStyle: { color: p.accent, opacity: 0.12 } }]
-        });
-      }).catch(function () { fallback('rk-trend', '图表加载失败'); });
+      drawTrendLine(pts, mkey);
     }
     if (metricSeriesLoaded) { draw(); return; }
     jget('/api/admin?action=metric-series').then(function (d) { metricSeries = (d && d.series) || []; metricSeriesLoaded = true; draw(); });
+  }
+  function renderItemTrend() {
+    var el = document.getElementById('rk-trend'); if (!el || !trendItem) return;
+    var url = trendItem.url, mkey = activeMetric;   // item-series 直接用 views/comments/likes/favs
+    function draw(series) {
+      var pts = (series || []).filter(function (x) { return x && x[mkey] != null; });
+      if (!pts.length) { fallback('rk-trend', '这一篇暂无「' + (METRIC_LABEL[activeMetric] || activeMetric) + '」历史（从今起每天记一次，越往后越全）'); return; }
+      drawTrendLine(pts, mkey);
+    }
+    if (itemSeriesCache[url]) { draw(itemSeriesCache[url]); return; }
+    fallback('rk-trend', '加载「' + esc(trendItem.title) + '」…');
+    jget('/api/admin?action=item-series&url=' + encodeURIComponent(url)).then(function (d) {
+      itemSeriesCache[url] = (d && d.series) || []; draw(itemSeriesCache[url]);
+    });
   }
   function wireMetricTabs() {
     if (metricWired) return; metricWired = true;
