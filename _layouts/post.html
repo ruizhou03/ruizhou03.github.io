@@ -929,22 +929,30 @@ layout: default
         } catch (e) {}
       }
 
-      async function toggle(kind, btn) {
+      var inflight = { like: 0, fav: 0 };
+      function flip(kind) {
+        if (kind === 'like') { state.liked = !state.liked; state.likeCount = Math.max(0, state.likeCount + (state.liked ? 1 : -1)); }
+        else { state.favorited = !state.favorited; if (typeof state.favCount === 'number') state.favCount = Math.max(0, state.favCount + (state.favorited ? 1 : -1)); }
+      }
+      // 乐观更新：点一下立刻翻转 UI（不等后端），再后台同步；失败 / 服务端不认才回滚。
+      function toggle(kind) {
         if (!SiteAuth.isLoggedIn()) { SiteAuth.openLogin && SiteAuth.openLogin('login'); return; }
-        btn.disabled = true;
-        try {
-          var r = await SiteAuth.authedFetch(api + '?action=' + kind, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ post: POST, title: TITLE, url: URL }),
-          });
-          var d = await r.json();
+        flip(kind); paint();
+        var seq = ++inflight[kind];
+        SiteAuth.authedFetch(api + '?action=' + kind, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ post: POST, title: TITLE, url: URL }),
+        }).then(function (r) { return r.json(); }).then(function (d) {
+          if (seq !== inflight[kind]) return;   // 有更新的点击，旧回执作废
           if (d && d.ok) {
             if (kind === 'like') { state.liked = d.active; state.likeCount = d.likeCount; }
             else { state.favorited = d.active; if (typeof d.favCount === 'number') state.favCount = d.favCount; }
-            paint();
-          }
-        } catch (e) {}
-        finally { btn.disabled = false; }
+          } else { flip(kind); }               // 服务端没成功 → 翻回去
+          paint();
+        }).catch(function () {
+          if (seq !== inflight[kind]) return;
+          flip(kind); paint();                 // 网络失败 → 回滚
+        });
       }
 
       likeBtn.addEventListener('click', function () { toggle('like', likeBtn); });
