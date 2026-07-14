@@ -3366,10 +3366,10 @@
       const sel = lib.find(f => f.id === recordFood);
       if (sel && sel.groupId && groupById.has(sel.groupId)) forceOpenGid = sel.groupId;
     }
-    const foodChip = (f, extra) => `<button type="button" class="extra-chip${canEdit ? ' fc-draggable' : ''}${extra || ''}${recordFood===f.id?' active':''}" data-food="${f.id}"><span class="fc-emoji">${foodIconHTML(f,'🍖')}</span><span class="fc-name">${escapeHtml(f.name)}</span>${canEdit ? `<span class="edit-food" data-edit="${f.id}" title="编辑">✎</span>` : ''}</button>`;
+    const foodChip = (f, extra) => `<div class="extra-chip${canEdit ? ' fc-draggable' : ''}${extra || ''}${recordFood===f.id?' active':''}" role="button" tabindex="0" data-food="${f.id}"><span class="fc-emoji">${foodIconHTML(f,'🍖')}</span><span class="fc-name">${escapeHtml(f.name)}</span>${canEdit ? `<button type="button" class="edit-food" data-edit="${f.id}" aria-label="编辑 ${escapeHtml(f.name)}" title="编辑">✎</button>` : ''}</div>`;
 
     // 干粮固定第一条（不可拖、不可入组）
-    let html = `<button type="button" class="extra-chip${recordFood==='kibble'?' active':''}" data-food="kibble"><span class="fc-emoji">${foodIconHTML(kb,'🥣')}</span><span class="fc-name">${escapeHtml(kbName)}</span>${canEdit ? `<span class="edit-food" data-edit="kibble" title="编辑">✎</span>` : ''}</button>`;
+    let html = `<div class="extra-chip${recordFood==='kibble'?' active':''}" role="button" tabindex="0" data-food="kibble"><span class="fc-emoji">${foodIconHTML(kb,'🥣')}</span><span class="fc-name">${escapeHtml(kbName)}</span>${canEdit ? `<button type="button" class="edit-food" data-edit="kibble" aria-label="编辑干粮" title="编辑">✎</button>` : ''}</div>`;
 
     // 顶层是「单品」与「折叠组」的混排：按 foodLibrary 顺序走，遇到某组的第一个成员就在此处
     // 落下组头 + 该组全部成员（折叠时只出组头）。子项渲染成扁平兄弟节点（加 .fc-child 缩进），
@@ -3383,10 +3383,10 @@
       const g = groupById.get(gid);
       const kids = lib.filter(x => x.groupId === gid);
       const collapsed = (g.collapsed === true) && gid !== forceOpenGid;
-      html += `<button type="button" class="extra-chip fc-folder${collapsed ? ' collapsed' : ''}" data-group="${gid}"><span class="fc-caret">${collapsed ? '▸' : '▾'}</span><span class="fc-emoji">${escapeHtml(g.emoji || '🗂')}</span><span class="fc-name">${escapeHtml(g.name || '分组')}</span><span class="fc-count">${kids.length}</span>${canEdit ? `<span class="edit-food" data-editgroup="${gid}" title="编辑分组">✎</span>` : ''}</button>`;
+      html += `<div class="extra-chip fc-folder${collapsed ? ' collapsed' : ''}" role="button" tabindex="0" aria-expanded="${collapsed ? 'false' : 'true'}" data-group="${gid}"><span class="fc-caret">${collapsed ? '▸' : '▾'}</span><span class="fc-emoji">${escapeHtml(g.emoji || '🗂')}</span><span class="fc-name">${escapeHtml(g.name || '分组')}</span><span class="fc-count">${kids.length}</span>${canEdit ? `<button type="button" class="edit-food" data-editgroup="${gid}" aria-label="编辑分组" title="编辑分组">✎</button>` : ''}</div>`;
       if (!collapsed) html += kids.map(k => foodChip(k, ' fc-child')).join('');
     });
-    if (canEdit) html += `<button type="button" class="extra-chip add-chip" data-food="__new"><span class="fc-emoji">➕</span><span class="fc-name">新建</span></button>`;
+    if (canEdit) html += `<div class="extra-chip add-chip" role="button" tabindex="0" data-food="__new"><span class="fc-emoji">➕</span><span class="fc-name">新建</span></div>`;
     $foodSelector.innerHTML = html;
     $foodSelector.querySelectorAll('.extra-chip').forEach(chip => {
       chip.addEventListener('click', e => {
@@ -3397,6 +3397,12 @@
         const f = chip.dataset.food;
         if (f === '__new') { openFoodModal(null); return; }
         selectRecordFood(f);
+      });
+      // 键盘可达：chip 是 role=button 的 div，Enter/Space 触发选择/展开；
+      // 内部的「编辑」是真 <button>，自己会响应回车，不走这里
+      chip.addEventListener('keydown', e => {
+        if (e.target !== chip) return;
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chip.click(); }
       });
     });
     updatePickerTrigger();
