@@ -1,0 +1,355 @@
+{%- comment -%}
+对猫喊话声音板 —— 仅用于宠物中心「猫语」tab（不进公开工具页）。
+53 条「猫语三百句」类喊话短音频，按功能分 7 组。素材来自网络、仅供娱乐。
+复用 cat-soundboard.html 的 .cl-* 样式（该组件同 panel 内先渲染，样式已就绪）；
+本组件自带独立播放器（#ccb-board），与「解读猫叫」板互斥：一处播另一处停。
+{%- endcomment -%}
+<div class="cl-widget ccb-widget">
+  <h2 class="ccb-title">🗣️ 对猫喊话 · 据说它能听懂</h2>
+  <p class="cl-tip">这些是网上流传的「猫语」喊话——<strong>放给你家猫听，看它什么反应</strong>。点卡片<strong>循环播放</strong>，再点停止；一次只放一种。建议外放、音量别太大。<br><span class="ccb-disc">⚠️ 纯属娱乐：猫未必真「听懂」，多是被声音/频率吸引。素材取自网络，仅供个人玩乐。</span></p>
+
+  <div id="ccb-board">
+    <section class="cl-group" style="--cc:#c98a5b;--cb:#f6efe6;">
+      <h3 class="cl-group-head">🐣 唤崽 · 母子 <span class="cl-group-sub">当妈妈唤小猫 / 小猫喊妈妈</span></h3>
+      <div class="cl-board">
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/kitten-1.mp3" data-name="唤崽">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🐣</span><span class="cl-label">唤崽</span><span class="cl-sub">当妈妈唤小猫</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/kitten-2.mp3" data-name="唤崽·当妈">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🐱</span><span class="cl-label">唤崽·当妈</span><span class="cl-sub">它把你当妈来找</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/kitten-3.mp3" data-name="唤崽·三百句">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🐾</span><span class="cl-label">唤崽·三百句</span><span class="cl-sub">另一个版本</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/kitten-4.mp3" data-name="喊妈妈">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🐈</span><span class="cl-label">喊妈妈</span><span class="cl-sub">像小猫在叫妈妈</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/kitten-5.mp3" data-name="到妈妈这来">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🏡</span><span class="cl-label">到妈妈这来</span><span class="cl-sub">唤崽·吸猫版</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="cl-group" style="--cc:#4a9d6e;--cb:#eef7f1;">
+      <h3 class="cl-group-head">📣 召唤 · 快过来 <span class="cl-group-sub">喊它到你身边来</span></h3>
+      <div class="cl-board">
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-1.mp3" data-name="快来">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">📣</span><span class="cl-label">快来</span><span class="cl-sub">召唤你的猫</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-2.mp3" data-name="快来·三百句">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">📣</span><span class="cl-label">快来·三百句</span><span class="cl-sub">另一个版本</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-3.mp3" data-name="快来呀">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🗣️</span><span class="cl-label">快来呀</span><span class="cl-sub">呼叫毛孩子</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-4.mp3" data-name="快来啊">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🗣️</span><span class="cl-label">快来啊</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-5.mp3" data-name="快来我这">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">👉</span><span class="cl-label">快来我这</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-6.mp3" data-name="快到我这来">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">👉</span><span class="cl-label">快到我这来</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-7.mp3" data-name="过来">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🐾</span><span class="cl-label">过来</span><span class="cl-sub">据说猫能听懂</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-8.mp3" data-name="你过来啊">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">👋</span><span class="cl-label">你过来啊</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-9.mp3" data-name="快快来">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🏃</span><span class="cl-label">快快来</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-10.mp3" data-name="你在哪里">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🔍</span><span class="cl-label">你在哪里</span><span class="cl-sub">召唤走丢的猫</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-11.mp3" data-name="来找我">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🙋</span><span class="cl-label">来找我</span><span class="cl-sub">猫不让摸时用</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-12.mp3" data-name="来陪我">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🫂</span><span class="cl-label">来陪我</span><span class="cl-sub">喊猫来陪你</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-13.mp3" data-name="呼唤家人">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">📢</span><span class="cl-label">呼唤家人</span><span class="cl-sub">召唤你的猫</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-14.mp3" data-name="有事找你">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🔔</span><span class="cl-label">有事找你</span><span class="cl-sub">逗猫神器</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-15.mp3" data-name="宝贝快过来">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">💝</span><span class="cl-label">宝贝快过来</span><span class="cl-sub">逗猫神器</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-16.mp3" data-name="找猫必放">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🧭</span><span class="cl-label">找猫必放</span><span class="cl-sub">找不到猫就放这段</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/call-17.mp3" data-name="召唤术·长版">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🎺</span><span class="cl-label">召唤术·长版</span><span class="cl-sub">58秒循环喊猫</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="cl-group" style="--cc:#3d9aa8;--cb:#e9f5f7;">
+      <h3 class="cl-group-head">🎾 邀你玩 <span class="cl-group-sub">逗它一起玩</span></h3>
+      <div class="cl-board">
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/play-1.mp3" data-name="跟我玩">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🎾</span><span class="cl-label">跟我玩</span><span class="cl-sub">据说猫会来玩</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/play-2.mp3" data-name="跟我玩·三百句">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🎾</span><span class="cl-label">跟我玩·三百句</span><span class="cl-sub">另一个版本</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/play-3.mp3" data-name="玩">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🧶</span><span class="cl-label">玩</span><span class="cl-sub">据说猫能听懂</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/play-4.mp3" data-name="玩儿">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🧶</span><span class="cl-label">玩儿</span><span class="cl-sub">让猫来陪你玩</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/play-5.mp3" data-name="玩儿·三百句">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🧶</span><span class="cl-label">玩儿·三百句</span><span class="cl-sub">另一个版本</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/play-6.mp3" data-name="玩耍啊">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🪀</span><span class="cl-label">玩耍啊</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/play-7.mp3" data-name="快来玩">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🎾</span><span class="cl-label">快来玩</span><span class="cl-sub">让毛孩子找你玩</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/play-8.mp3" data-name="和我玩">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🐭</span><span class="cl-label">和我玩</span><span class="cl-sub">它会来找你玩</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/play-9.mp3" data-name="来和我玩嘛">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🪶</span><span class="cl-label">来和我玩嘛</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="cl-group" style="--cc:#d16b8a;--cb:#fbeef2;">
+      <h3 class="cl-group-head">💗 示爱 · 贴贴 <span class="cl-group-sub">亲昵、表白、求抱抱</span></h3>
+      <div class="cl-board">
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-1.mp3" data-name="贴贴">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">💗</span><span class="cl-label">贴贴</span><span class="cl-sub">据说99%的猫会来蹭</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-2.mp3" data-name="贴贴·三百句">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">💗</span><span class="cl-label">贴贴·三百句</span><span class="cl-sub">另一个版本</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-3.mp3" data-name="我爱你">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">❤️</span><span class="cl-label">我爱你</span><span class="cl-sub">对猫表白</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-4.mp3" data-name="好喜欢你">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">😍</span><span class="cl-label">好喜欢你</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-5.mp3" data-name="表达爱意">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">💞</span><span class="cl-label">表达爱意</span><span class="cl-sub">对小猫说爱</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-6.mp3" data-name="你爱我吗">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">❓</span><span class="cl-label">你爱我吗</span><span class="cl-sub">问问你家主子</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-7.mp3" data-name="我需要你">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🥺</span><span class="cl-label">我需要你</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-8.mp3" data-name="快抱紧我">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🫂</span><span class="cl-label">快抱紧我</span><span class="cl-sub">猫会以为你藏了别的猫</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-9.mp3" data-name="来抱抱">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🤗</span><span class="cl-label">来抱抱</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-10.mp3" data-name="乖宝">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🥰</span><span class="cl-label">乖宝</span><span class="cl-sub">亲昵地喊猫</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-11.mp3" data-name="小乖乖">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">😽</span><span class="cl-label">小乖乖</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/love-12.mp3" data-name="宝宝">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">👶</span><span class="cl-label">宝宝</span><span class="cl-sub">亲昵地喊毛孩子</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="cl-group" style="--cc:#e08a3c;--cb:#fdf3e8;">
+      <h3 class="cl-group-head">🍚 催饭 · 开饭啦 <span class="cl-group-sub">喊它来吃饭</span></h3>
+      <div class="cl-board">
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/food-1.mp3" data-name="快来吃饭">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🍚</span><span class="cl-label">快来吃饭</span><span class="cl-sub">喊猫开饭</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="cl-group" style="--cc:#8d6cab;--cb:#f1ecf7;">
+      <h3 class="cl-group-head">😽 撒娇 · 咕噜 <span class="cl-group-sub">嗲声撒娇 / 放松呼噜</span></h3>
+      <div class="cl-board">
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/cute-1.mp3" data-name="撒娇声">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">😽</span><span class="cl-label">撒娇声</span><span class="cl-sub">嗲嗲地求关注</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/cute-2.mp3" data-name="咕噜声">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">😻</span><span class="cl-label">咕噜声</span><span class="cl-sub">放松解压 · 真实呼噜</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="cl-group" style="--cc:#c0504d;--cb:#f8ebea;">
+      <h3 class="cl-group-head">😹 趣味 · 整蛊 <span class="cl-group-sub">图一乐，看它什么反应</span></h3>
+      <div class="cl-board">
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/fun-1.mp3" data-name="猫界神曲">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🎵</span><span class="cl-label">猫界神曲</span><span class="cl-sub">放给哈基米听</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/fun-2.mp3" data-name="骂脏话">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🤬</span><span class="cl-label">骂脏话</span><span class="cl-sub">给不听话的猫</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/fun-3.mp3" data-name="气坏我了">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">😾</span><span class="cl-label">气坏我了</span><span class="cl-sub">猫生气的抱怨</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/fun-4.mp3" data-name="你在干嘛">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🤔</span><span class="cl-label">你在干嘛</span><span class="cl-sub">跟猫搭话</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/fun-5.mp3" data-name="藏了别的猫">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🙀</span><span class="cl-label">藏了别的猫</span><span class="cl-sub">让猫紧张警觉</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/fun-6.mp3" data-name="千万别放">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🚫</span><span class="cl-label">千万别放</span><span class="cl-sub">据说猫会炸毛</span>
+        </button>
+        <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-call/fun-7.mp3" data-name="试试这个">
+          <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
+          <span class="cl-emoji">🔊</span><span class="cl-label">试试这个</span><span class="cl-sub">看猫什么反应</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <div class="cl-status ccb-status" id="ccb-status">
+    <span id="ccb-status-text" aria-live="polite">点一下卡片开始播放</span>
+    <button class="cl-stop" id="ccb-stop" type="button">停止</button>
+  </div>
+
+  <div class="ccb-divider"><span>下面是「解读猫叫」——听懂它想跟你说啥 ↓</span></div>
+</div>
+
+<style>
+  .ccb-widget .ccb-title {
+    font-family: var(--font-display); font-size: 1.12rem; font-weight: 700;
+    color: var(--color-ink); text-align: center; margin: 0.2rem 0 0.6rem;
+  }
+  .ccb-widget .ccb-disc { display: inline-block; margin-top: 0.5rem; font-size: 0.78rem; color: var(--color-muted); }
+  .ccb-widget #ccb-board { }
+  .ccb-divider {
+    display: flex; align-items: center; text-align: center;
+    margin: 2.6rem auto 0.4rem; max-width: 36rem;
+    color: var(--color-muted); font-size: 0.8rem;
+  }
+  .ccb-divider::before, .ccb-divider::after {
+    content: ""; flex: 1; height: 1px; background: var(--color-border);
+  }
+  .ccb-divider span { padding: 0 0.9rem; }
+</style>
+
+<script>
+(function(){
+  var board = document.getElementById('ccb-board');
+  var statusBar = document.getElementById('ccb-status');
+  var statusText = document.getElementById('ccb-status-text');
+  var stopBtn = document.getElementById('ccb-stop');
+  if(!board || board.dataset.ccbInit) return;
+  board.dataset.ccbInit = '1';
+
+  var player = new Audio();
+  player.loop = true;
+  var current = null;
+  var suppress = false;  // 防止自己派发的 cat-board-stop 把自己也停掉
+
+  function reset(){
+    player.pause();
+    var all = board.querySelectorAll('.cl-sound');
+    for(var i=0;i<all.length;i++){ all[i].classList.remove('playing'); all[i].setAttribute('aria-pressed','false'); }
+    current = null;
+    statusBar.classList.remove('on');
+    statusBar.style.removeProperty('--st-c');
+    statusText.textContent = '点一下卡片开始播放';
+  }
+  function fail(){
+    if(current){ current.classList.remove('playing'); current.setAttribute('aria-pressed','false'); }
+    current = null; player.pause();
+    statusBar.classList.remove('on'); statusBar.style.removeProperty('--st-c');
+    statusText.textContent = '⚠️ 音频加载失败，请检查网络后再试';
+  }
+  player.addEventListener('error', function(){ if(current) fail(); });
+
+  function play(btn){
+    reset();
+    // 先停「解读猫叫」那块（它监听 cat-board-stop）；用 suppress 挡住自己的监听
+    suppress = true; document.dispatchEvent(new Event('cat-board-stop')); suppress = false;
+    player.src = btn.getAttribute('data-src');
+    var p = player.play();
+    if(p && p.catch){ p.catch(fail); }
+    btn.classList.add('playing');
+    btn.setAttribute('aria-pressed','true');
+    current = btn;
+    var cc = getComputedStyle(btn.closest('.cl-group')).getPropertyValue('--cc');
+    statusBar.classList.add('on');
+    statusBar.style.setProperty('--st-c', cc.trim());
+    statusText.textContent = '🔊 正在循环播放：' + btn.getAttribute('data-name');
+  }
+
+  var btns = board.querySelectorAll('.cl-sound');
+  for(var i=0;i<btns.length;i++){
+    (function(btn){
+      btn.addEventListener('click', function(){
+        if(current === btn){ reset(); } else { play(btn); }
+      });
+    })(btns[i]);
+  }
+  stopBtn.addEventListener('click', reset);
+  // 切走猫语 tab 时 pet.js 会派发 cat-board-stop —— 跟着停（忽略自己派发的那次）
+  document.addEventListener('cat-board-stop', function(){ if(!suppress) reset(); });
+  // 点「解读猫叫」板上的任意卡片 -> 停掉本板（那块不主动派发事件）
+  var edu = document.getElementById('cl-board');
+  if(edu){ edu.addEventListener('click', function(){ reset(); }); }
+})();
+</script>
