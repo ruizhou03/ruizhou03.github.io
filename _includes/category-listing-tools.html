@@ -504,3 +504,6 @@
   document.querySelectorAll('.download-toggle').forEach(wireDownload);
 })();
 </script>
+
+{%- comment -%} 列表行的互动数（赞 + 评论）水合 —— 数为 0 不显示 {%- endcomment -%}
+{% include social-counts.html %}

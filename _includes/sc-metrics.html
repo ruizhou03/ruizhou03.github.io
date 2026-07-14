@@ -1,0 +1,5 @@
+{%- comment -%} 互动数小挂件（赞 + 评论）。用法：{% include sc-metrics.html url=_u %}（_u 需先 assign 好带 relative_url 的路径）。由 social-counts.html 水合，数为 0 自动隐藏。 {%- endcomment -%}
+<span class="sc-metrics" data-url="{{ include.url }}">
+  <span class="sc-m sc-like"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11v9M2 12v7a1 1 0 0 0 1 1h3V11H3a1 1 0 0 0-1 1zM7 11l4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2l-2 7a1 1 0 0 1-1 1H7"/></svg><b>0</b><span class="sc-lab">赞</span></span>
+  <span class="sc-m sc-comment"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><b>0</b><span class="sc-lab">评论</span></span>
+</span>

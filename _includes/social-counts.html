@@ -1,0 +1,74 @@
+{%- comment -%}
+  列表卡片的互动数客户端水合：赞（来自 zircon-urge /me?action=counts）+ 评论（来自 Waline
+  /api/comment?type=count）。均按元素的 data-url 批量取，数为 0 就不显示，整块 .sc-metrics
+  在没有任何可见项时保持 display:none（不占位、不产生 flex 间隙）。
+  用法：在需要露互动数的行 / 卡里放
+    <span class="sc-metrics" data-url="{{ post.url | relative_url }}">
+      <span class="sc-m sc-like">…</span><span class="sc-m sc-comment">…</span>
+    </span>
+  然后在页面里 include 一次本文件即可（自带去重 + 分批，重复 include 安全）。
+{%- endcomment -%}
+<style>
+  .sc-metrics { display: none; align-items: center; gap: 0.75rem; }
+  .sc-metrics.has { display: inline-flex; }
+  .sc-m { display: none; align-items: center; gap: 0.26rem; color: var(--color-light);
+    font-size: 0.78rem; font-family: var(--font-body); font-variant-numeric: tabular-nums; }
+  .sc-m.on { display: inline-flex; }
+  .sc-m svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .sc-m .sc-lab { display: none; }              /* 行内默认只露图标+数字；卡片可 opt-in 显示 */
+  .sc-m.sc-like.hot { color: var(--color-accent); }
+</style>
+<script>
+(function () {
+  if (window.__scInit) return; window.__scInit = true;
+  var URGE = 'https://zircon-urge.fly.dev/api';
+  var WALINE = 'https://zircon-comments.fly.dev';
+  function show(el, v) {
+    if (!(v > 0)) return;
+    var b = el.querySelector('b'); if (b) b.textContent = v;
+    el.classList.add('on');
+    if (el.parentNode) el.parentNode.classList.add('has');
+  }
+  function run() {
+    var nodes = Array.prototype.slice.call(document.querySelectorAll('.sc-metrics[data-url]'));
+    if (!nodes.length) return;
+    var byUrl = {};
+    nodes.forEach(function (n) {
+      var u = n.getAttribute('data-url'); if (!u) return;
+      (byUrl[u] || (byUrl[u] = [])).push(n);
+    });
+    var urls = Object.keys(byUrl);
+    for (var i = 0; i < urls.length; i += 50) hydrate(urls.slice(i, i + 50), byUrl);
+  }
+  function hydrate(urls, byUrl) {
+    var q = encodeURIComponent(urls.join(','));
+    // 赞 / 收藏
+    fetch(URGE + '/me?action=counts&posts=' + q).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.counts) return;
+        urls.forEach(function (u) {
+          var c = d.counts[u]; if (!c) return;
+          (byUrl[u] || []).forEach(function (n) {
+            var el = n.querySelector('.sc-like');
+            if (el && c.like > 0) { show(el, c.like); el.classList.toggle('hot', c.like >= 20); }
+          });
+        });
+      }).catch(function () {});
+    // 评论（Waline，data 数组按 url 顺序对齐；单条时可能返回标量）
+    fetch(WALINE + '/api/comment?type=count&url=' + q).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || d.errno !== 0) return;
+        var arr = Array.isArray(d.data) ? d.data : (urls.length === 1 ? [d.data] : null);
+        if (!arr) return;
+        urls.forEach(function (u, idx) {
+          var cnt = (typeof arr[idx] === 'number') ? arr[idx] : (parseInt(arr[idx], 10) || 0);
+          (byUrl[u] || []).forEach(function (n) {
+            var el = n.querySelector('.sc-comment'); if (el) show(el, cnt);
+          });
+        });
+      }).catch(function () {});
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+</script>
