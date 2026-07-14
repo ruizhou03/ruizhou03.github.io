@@ -988,8 +988,8 @@
     if (pname) {
       const lbl = document.createElement('span');
       lbl.className = 'ddz-ptype';
-      if (pattern.type === T.BOMB) { lbl.classList.add('is-bomb'); lbl.textContent = '炸弹!'; }
-      else if (pattern.type === T.ROCKET) { lbl.classList.add('is-rocket'); lbl.textContent = '王炸!'; }
+      if (pattern.type === T.BOMB) { lbl.classList.add('is-bomb'); lbl.textContent = '炸弹!'; spawnFxBanner('bomb'); }
+      else if (pattern.type === T.ROCKET) { lbl.classList.add('is-rocket'); lbl.textContent = '王炸!'; spawnFxBanner('rocket'); }
       else lbl.textContent = pname;
       el.appendChild(lbl);
       setTimeout(() => {
@@ -2412,6 +2412,18 @@
       for (const c of sorted) el.appendChild(buildCardEl(c, 'size-mini'));
     }
   }
+  // 炸弹 / 王炸 中央大字（深红/琥珀金填充 · 发光 · 弹跳淡出）
+  function spawnFxBanner(kind) {
+    const tableEl = $('ddzTable');
+    if (!tableEl) return;
+    const prev = tableEl.querySelector('.ddz-fx-banner');
+    if (prev) prev.remove();
+    const b = document.createElement('div');
+    b.className = 'ddz-fx-banner ' + kind;
+    b.textContent = kind === 'rocket' ? '王炸' : '炸弹';
+    tableEl.appendChild(b);
+    setTimeout(() => { if (b.isConnected) b.remove(); }, 1100);
+  }
   // 大字"地主胜利 / 失败"banner（自动 ~2s 后消失）
   function showSettleBanner(playerWon) {
     const tableEl = $('ddzTable');
@@ -2543,10 +2555,23 @@
     const springBadge = state.spring > 0
       ? `<div class="ddz-spring-badge">${winnerRole === 'landlord' ? '🌸 春天' : '🍁 反春天'} ×2</div>`
       : '';
-    gameOverDetail.innerHTML =
-      springBadge +
-      `<div>${winText}获胜</div>` +
-      `<div>本局积分 <strong>${score}</strong></div>`;
+    // 结算面板：赢家在上·两行；地主一张占 2 列宽、两农民各 1 列；只显示净得分（+/−）
+    const lordSign2 = winnerRole === 'landlord' ? 1 : -1;
+    const lordTotal2 = pairAmts.reduce((a, b) => a + b, 0);
+    const settleCard = (seat, isLandlord, net, isWinner, wide) => {
+      const me = seat === 0;
+      const av = isLandlord ? '👑' : (me ? '👤' : '🤖');
+      const roleTxt = (isLandlord ? '地主' : '农民') + (me ? '·你' : '');
+      const amtTxt = (net >= 0 ? '+' : '−') + Math.abs(net);
+      return `<div class="ddz-settle-card${wide ? ' wide' : ''}${isWinner ? ' winner' : ''}">` +
+        `<span class="ddz-settle-av">${av}</span>` +
+        `<span class="ddz-settle-role${isLandlord ? ' ll' : ''}">${roleTxt}</span>` +
+        `<span class="ddz-settle-amt ${net >= 0 ? 'plus' : 'minus'}">${amtTxt}</span></div>`;
+    };
+    const lordCardHtml = settleCard(state.landlordIdx, true, lordSign2 * lordTotal2, winnerRole === 'landlord', true);
+    const peasantCardsHtml = peasantSeats.map((ps, i) => settleCard(ps, false, -lordSign2 * pairAmts[i], winnerRole === 'peasant', false)).join('');
+    gameOverDetail.innerHTML = springBadge +
+      `<div class="ddz-settle-grid">${winnerRole === 'landlord' ? lordCardHtml + peasantCardsHtml : peasantCardsHtml + lordCardHtml}</div>`;
     gameOverOverlay.classList.toggle('has-spring', state.spring > 0);
     // 平时不显示结算图按钮；只有春天 / 反春天才弹
     if (ddzSettleBtn && ddzSettleBtn.element) ddzSettleBtn.element.hidden = true;
@@ -3063,7 +3088,6 @@
     tableView.hidden = true;        // 联机大厅完全替代牌桌
     lobbyEl.hidden = false;
     $('ddzRoomCode').textContent = sess.code;
-    if (window.GamesShell && GamesShell.QR) GamesShell.QR.render($('ddzRoomQr'), location.origin + location.pathname + '?room=' + sess.code);
     startPolling();
   }
 

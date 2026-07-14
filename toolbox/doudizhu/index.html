@@ -1767,6 +1767,67 @@ permalink: /toolbox/doudizhu/
   @media (max-width: 600px) {
     .ddz-settle-banner { font-size: 1.9rem; letter-spacing: 0.16em; }
   }
+  /* 炸弹 / 王炸 中央大字（深红 / 琥珀金 填色 · 米色桌面上够"烫"） */
+  .ddz-fx-banner {
+    position: absolute; top: 40%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9; pointer-events: none;
+    font-family: var(--font-display);
+    font-weight: 900; font-size: 2.4rem;
+    letter-spacing: 0.16em; white-space: nowrap;
+    animation: ddz-fx-banner 1.1s ease-out forwards;
+  }
+  .ddz-fx-banner.bomb {
+    background: linear-gradient(135deg, #e0554d, #8b2e2e);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 6px rgba(230,120,60,0.55)) drop-shadow(0 2px 3px rgba(255,255,255,0.6)) drop-shadow(0 3px 8px rgba(139,46,46,0.4));
+  }
+  .ddz-fx-banner.rocket {
+    font-size: 2.7rem;
+    background: linear-gradient(135deg, #f5d142, #b9791f);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 8px rgba(245,200,80,0.7)) drop-shadow(0 2px 3px rgba(255,255,255,0.7)) drop-shadow(0 3px 8px rgba(150,100,20,0.4));
+  }
+  @keyframes ddz-fx-banner {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-6deg); }
+    22%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(0deg); }
+    55%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
+  }
+  @media (max-width: 600px) {
+    .ddz-fx-banner { font-size: 1.9rem; }
+    .ddz-fx-banner.rocket { font-size: 2.1rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { .ddz-fx-banner { animation-duration: 1ms; } }
+  /* 结算面板：赢家在上·两行；地主宽卡占 2 列、两农民各 1 列；只显示净得分 */
+  .ddz-overlay .ddz-settle-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0.5rem; width: 100%; max-width: 300px; margin: 0 auto;
+  }
+  .ddz-settle-card {
+    display: flex; flex-direction: column; align-items: center; gap: 0.08rem;
+    background: linear-gradient(180deg, #fafaf9, #f2f0ea);
+    border: 1px solid var(--ddz-frame); border-radius: 9px;
+    padding: 0.5rem 0.4rem; box-shadow: 0 2px 6px rgba(0,0,0,0.28);
+  }
+  .ddz-settle-card.wide {
+    grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 0.5rem;
+  }
+  .ddz-settle-card.winner {
+    border: 1.5px solid #f5d142; box-shadow: 0 0 16px rgba(245,209,66,0.5);
+  }
+  .ddz-settle-av { font-size: 1.4rem; line-height: 1.1; }
+  .ddz-settle-role {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.86rem;
+    color: var(--color-accent); letter-spacing: 0.03em;
+  }
+  .ddz-settle-role.ll { color: var(--ddz-accent-strong, #a87a2a); }
+  .ddz-settle-amt {
+    font-family: var(--font-display); font-weight: 800; font-size: 1.2rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .ddz-settle-amt.plus { color: #3fa34a; }
+  .ddz-settle-amt.minus { color: var(--ddz-suit-red); }
 
   /* 金币 +N / -N 飘字（挂在每家座位/头像容器上） */
   .ddz-coin-delta {
@@ -2110,7 +2171,6 @@ permalink: /toolbox/doudizhu/
         <button class="ddz-btn-mini" id="ddzCopyCodeBtn" type="button">📋 复制房号</button>
         <button class="ddz-btn-mini" id="ddzCopyLinkBtn" type="button">🔗 复制链接</button>
       </div>
-      <div class="gs-room-qr" id="ddzRoomQr"></div>
     </div>
     <div class="ddz-config-summary" id="ddzConfigSummary"></div>
     <div class="ddz-lobby-players-wrap">
