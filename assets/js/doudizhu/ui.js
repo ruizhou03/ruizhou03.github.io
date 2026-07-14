@@ -3186,9 +3186,11 @@
 
     if (srv.state === 'lobby') {
       state.online.lastSrvState = 'lobby';
+      state.online.lastSrv = srv;             // 供乐观更新克隆
       lobbyEl.hidden = false;
       tableView.hidden = true;
-      renderLobbyPlayers(srv);
+      ensureLobbyDelegation();
+      renderSpatialLobby(srv);
       return;
     }
 
@@ -3384,56 +3386,80 @@
   }
 
   // ── 大厅渲染 ────────────────────────────────────────────────────────
-  function renderLobbyPlayers(srv) {
-    const players = srv.players || [];
+  // ── 空间化 lobby(方案A:贴合牌桌真实座位) + 乐观更新 ─────────────────
+  function lobbySeatCardHtml(slot) {
+    if (!slot || slot.kind === 'empty') {
+      const add = state.online.isHost ? '<div class="seatbtns"><button class="sb ai" data-act="add_ai">🤖 加机器人</button></div>' : '';
+      return '<div class="av">＋</div><div class="nm">等待加入</div>' + add;
+    }
+    if (slot.kind === 'ai') {
+      const lvl = ({ normal: '普通', hard: '高手', master: '大神' })[slot.aiLevel] || '普通';
+      const rm = state.online.isHost ? '<div class="seatbtns"><button class="sb warn" data-act="remove_ai">移除</button></div>' : '';
+      return '<div class="av">🤖</div><div class="nm">机器人·' + lvl + '</div>' + rm;
+    }
+    const p = slot.player, isMe = p.id === state.online.playerId;
+    const av = p.isHost ? '👑' : (isMe ? '👤' : '🙂');
+    let badge = '';
+    if (p.isHost) badge = '<span class="badge host">房主</span>';
+    else if (isMe) badge = '<span class="badge me">你</span>';
+    else if (!p.online) badge = '<span class="badge offline">离线</span>';
+    let btns = '';
+    if (state.online.isHost && !isMe) btns = '<div class="seatbtns"><button class="sb" data-act="transfer" data-pid="' + p.id + '">设为房主</button><button class="sb warn" data-act="kick" data-pid="' + p.id + '">踢</button></div>';
+    return '<div class="av">' + av + '</div><div class="nm">' + escHtml(p.nick) + '</div>' + badge + btns;
+  }
+  function renderSpatialLobby(srv) {
+    const players = (srv.players || []).filter((p) => !p.kicked).slice().sort((a, b) => a.seat - b.seat);
     const cfg = srv.config || {};
     $('ddzRoomCode').textContent = srv.code;
-    // 配置 summary
-    const summaryEl = $('ddzConfigSummary');
-    if (summaryEl) summaryEl.innerHTML = configSummaryHtml(cfg);
-    // 真人需要的人数 = 3 - aiCount
-    const requiredHumans = 3 - (cfg.aiCount || 0);
-    const humanCount = players.length;
-    $('ddzLobbyCount').textContent = `${humanCount}/${requiredHumans}` + (cfg.aiCount > 0 ? ` (+${cfg.aiCount} AI)` : '');
-    const ul = $('ddzLobbyPlayers');
-    ul.innerHTML = '';
-    for (let s = 0; s < requiredHumans; s++) {
-      const li = document.createElement('li');
-      const p = players[s];
-      if (!p) {
-        li.className = 'empty';
-        li.innerHTML = `<span class="seat">座 ${s + 1}</span><span class="nick">— 等待加入 —</span>`;
-      } else {
-        const isMe = p.id === state.online.playerId;
-        const badges = [];
-        if (p.isHost) badges.push('<span class="badge host">房主</span>');
-        if (isMe) badges.push('<span class="badge me">我</span>');
-        if (!p.online) badges.push('<span class="badge offline">离线</span>');
-        li.innerHTML = `<span class="seat">座 ${p.seat}</span><span class="nick">${escHtml(p.nick)}</span>${badges.join('')}`;
-        if (state.online.isHost && !isMe) {
-          const kickBtn = document.createElement('button');
-          kickBtn.className = 'ddz-btn-mini';
-          kickBtn.textContent = '踢';
-          kickBtn.addEventListener('click', () => sendKick(p.id));
-          li.appendChild(kickBtn);
-        }
-      }
-      ul.appendChild(li);
+    const summaryEl = $('ddzConfigSummary'); if (summaryEl) summaryEl.innerHTML = configSummaryHtml(cfg);
+    const aiCount = cfg.aiCount || 0, humanCount = players.length;
+    const slots = [];
+    for (let s = 1; s <= 3; s++) {
+      if (s <= humanCount) slots.push({ kind: 'human', player: players[s - 1] });
+      else if (s <= humanCount + aiCount) slots.push({ kind: 'ai', aiLevel: cfg.aiLevel });
+      else slots.push({ kind: 'empty' });
     }
-    // AI 占位行
-    for (let i = 0; i < (cfg.aiCount || 0); i++) {
-      const li = document.createElement('li');
-      const seat = requiredHumans + i + 1;
-      li.innerHTML = `<span class="seat">座 ${seat}</span><span class="nick">🤖 AI · ${({ normal: '普通', hard: '高手', master: '大神' })[cfg.aiLevel] || '普通'}</span><span class="badge">AI</span>`;
-      ul.appendChild(li);
+    const mine = slots.find((sl) => sl.player && sl.player.id === state.online.playerId) || slots[0];
+    const others = slots.filter((sl) => sl !== mine);
+    const byPos = { bottom: mine, tr: others[0], tl: others[1] };
+    for (const pos of ['bottom', 'tr', 'tl']) {
+      const el = document.querySelector('.ddz-lseat[data-pos="' + pos + '"]');
+      if (!el) continue;
+      const slot = byPos[pos] || { kind: 'empty' };
+      el.className = 'ddz-lseat ' + slot.kind +
+        (slot.player && slot.player.id === state.online.playerId ? ' me' : '') +
+        (slot.player && slot.player.isHost ? ' host' : '');
+      el.innerHTML = lobbySeatCardHtml(slot);
     }
+    $('ddzLobbyCount').textContent = (humanCount + aiCount) + '/3';
     const startBtn = $('ddzLobbyStartBtn');
-    const ready = humanCount === requiredHumans && state.online.isHost;
-    startBtn.disabled = !ready;
+    const filled = humanCount + aiCount;
+    startBtn.disabled = !(filled === 3 && state.online.isHost);
     startBtn.textContent = state.online.isHost
-      ? (humanCount < requiredHumans ? `开始（需 ${requiredHumans} 人，已 ${humanCount} 人）` : '🎮 开始游戏')
+      ? (filled < 3 ? '开始（需坐满 3 座，已 ' + filled + '）' : '🎮 开始游戏')
       : '等待房主开始…';
   }
+  // 座位操作走事件委托 + 乐观更新:先改本地快照即时重画,SSE 回来的权威态自动对齐(失败即回退)
+  let _lobbyDelegated = false;
+  function ensureLobbyDelegation() {
+    if (_lobbyDelegated) return;
+    const table = $('ddzLobbyTable'); if (!table) return;
+    _lobbyDelegated = true;
+    table.addEventListener('click', (e) => {
+      const btn = e.target.closest && e.target.closest('button[data-act]');
+      if (!btn || !state.online || !state.online.lastSrv) return;
+      const act = btn.dataset.act, pid = btn.dataset.pid;
+      const opt = JSON.parse(JSON.stringify(state.online.lastSrv));
+      opt.config = opt.config || {};
+      if (act === 'add_ai') { opt.config.aiCount = (opt.config.aiCount || 0) + 1; renderSpatialLobby(opt); sendAddAi(); }
+      else if (act === 'remove_ai') { opt.config.aiCount = Math.max(0, (opt.config.aiCount || 0) - 1); renderSpatialLobby(opt); sendRemoveAi(); }
+      else if (act === 'kick' && pid) { opt.players = (opt.players || []).filter((p) => p.id !== pid); renderSpatialLobby(opt); sendKick(pid); }
+      else if (act === 'transfer' && pid) { (opt.players || []).forEach((p) => { p.isHost = (p.id === pid); }); renderSpatialLobby(opt); sendTransferHost(pid); }
+    });
+  }
+  async function sendAddAi() { if (!state.online) return; const r = await apiCall('add_ai', { body: { code: state.online.code, token: state.online.token } }); if (!r.ok && r.error !== 'room_full') setStatus('加机器人失败：' + r.error); }
+  async function sendRemoveAi() { if (!state.online) return; await apiCall('remove_ai', { body: { code: state.online.code, token: state.online.token } }); }
+  async function sendTransferHost(pid) { if (!state.online) return; const r = await apiCall('transfer_host', { body: { code: state.online.code, token: state.online.token, targetPid: pid } }); if (!r.ok) setStatus('转让房主失败：' + r.error); }
 
   function setAvatarEmoji(displaySeat, emoji) {
     const av = document.getElementById('ddzAvatar' + displaySeat);
