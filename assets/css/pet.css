@@ -1,7 +1,7 @@
   /* Chart & UI semantic colours — adapt to light/dark via CSS variables */
   .pf-wrap {
-    --pet-chart-target: #4a7c59;       /* 目标线/达标绿 */
-    --pet-chart-target-bg: rgba(74,124,89,0.10);
+    --pet-chart-target: #5d8a6b;       /* 目标线/达标绿（精修沉绿，全站唯一一支绿）*/
+    --pet-chart-target-bg: rgba(93,138,107,0.12);
     --pet-chart-bar: #c9a96e;          /* 普通日柱色 */
     --pet-chart-incomplete: #b9975f;   /* 不完整日标签 */
     --pet-danger: #b07c75;             /* 暖红：警告/超标 */
@@ -66,6 +66,11 @@
   .pf-wrap header { text-align: center; margin-bottom: 1.4rem; }
   .pf-wrap header h1 { font-size: 2.15rem; color: var(--color-ink); margin-bottom: 0.4rem; letter-spacing: 0.01em; }
   .pf-wrap header .sub { color: var(--color-muted); font-style: normal; }
+  /* 暖金细线：让朴素的页头多一点品牌精致度（vis-3）*/
+  .pf-wrap header::after {
+    content: ""; display: block; width: 34px; height: 2px;
+    background: var(--color-highlight); border-radius: 2px; margin: 0.75rem auto 0;
+  }
   /* Hidden build beacon: faint grey footer text, used to confirm the live deploy */
   .pf-wrap > .build-tag {
     text-align: center;
@@ -145,6 +150,26 @@
   }
 
   .empty-zone { text-align: center; padding: 3.5rem 2rem; color: var(--color-muted); }
+  /* 首屏欢迎卡（方案 A）：价值主张 + 三大能力 + 安全承诺 + 双 CTA */
+  .empty-zone.welcome { padding: 1.4rem 1rem 2.4rem; color: var(--color-muted); }
+  /* 档案里「选填」小标 */
+  .modal .field label .opt-tag { font-size: 0.68rem; font-weight: normal; color: var(--color-muted); margin-left: 0.15rem; }
+  .empty-zone.welcome .wc-lead {
+    font-family: var(--font-display); font-size: 1.18rem; line-height: 1.45;
+    color: var(--color-ink); margin: 0.2rem auto 1.1rem; max-width: 22em;
+  }
+  .empty-zone .wc-caps {
+    max-width: 340px; margin: 0 auto 0.95rem; text-align: left;
+    background: var(--color-bg-warm); border: 1px solid var(--color-border);
+    border-radius: var(--pet-r-card); padding: 0.25rem 0.95rem;
+  }
+  .empty-zone .wc-cap { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.62rem 0; }
+  .empty-zone .wc-cap + .wc-cap { border-top: 1px solid var(--color-border); }
+  .empty-zone .wc-emo { font-size: 1.2rem; line-height: 1.35; flex-shrink: 0; }
+  .empty-zone .wc-txt { display: flex; flex-direction: column; gap: 0.1rem; }
+  .empty-zone .wc-txt b { color: var(--color-ink); font-weight: 600; font-size: 0.9rem; }
+  .empty-zone .wc-txt span { color: var(--color-muted); font-size: 0.8rem; line-height: 1.45; }
+  .empty-zone .wc-privacy { font-size: 0.76rem; color: var(--color-muted); margin: 0 0 1.35rem; }
   .empty-zone .empty-emoji { font-size: 3rem; margin-bottom: 1rem; opacity: 0.55; }
   .empty-zone .empty-actions {
     margin-top: 1.4rem;
@@ -811,9 +836,9 @@
     white-space: nowrap;
   }
   .target-toggle.active {
-    background: rgba(74, 124, 89, 0.12);
-    border-color: #4a7c59;
-    color: #4a7c59;
+    background: var(--pet-chart-target-bg);
+    border-color: var(--pet-chart-target);
+    color: var(--pet-chart-target);
   }
   @media (hover: hover) {
     .target-toggle:hover:not(.active) { border-color: var(--color-accent); color: var(--color-accent); }
@@ -1112,7 +1137,7 @@
   }
   .tc-badge.pending  { color: var(--pet-gold); background: rgba(168,122,42,0.12); }
   .tc-badge.active   { color: var(--pet-brown); background: rgba(139,90,60,0.12); }
-  .tc-badge.approved { color: #4a7c59; background: rgba(74,124,89,0.12); }
+  .tc-badge.approved { color: var(--pet-chart-target); background: var(--pet-chart-target-bg); }
   .tc-badge.rejected { color: var(--pet-danger); background: rgba(176,124,117,0.14); }
   .tc-badge.act-badge { color: var(--color-muted); background: var(--color-bg-warm); }
   .tc-badge.act-new { color: #fff; background: var(--color-accent); margin-left: 0; }
@@ -1539,7 +1564,7 @@
     color: var(--color-muted);
     background: var(--color-bg-warm);
   }
-  .modal .members-list .m-role.owner { background: rgba(74, 124, 89, 0.18); color: #4a7c59; font-weight: 600; }
+  .modal .members-list .m-role.owner { background: var(--pet-chart-target-bg); color: var(--pet-chart-target); font-weight: 600; }
   .modal .members-list .m-role.admin { background: rgba(201, 169, 110, 0.2); color: var(--pet-gold); }
   .modal .members-list .m-actions { display: flex; gap: 0.3rem; }
   .modal .members-list .m-actions button {
@@ -1602,7 +1627,7 @@
     color: var(--color-muted);
     background: var(--color-bg-warm);
   }
-  .modal .my-pets-list .mp-role-badge.owner { background: rgba(74, 124, 89, 0.18); color: #4a7c59; font-weight: 600; }
+  .modal .my-pets-list .mp-role-badge.owner { background: var(--pet-chart-target-bg); color: var(--pet-chart-target); font-weight: 600; }
   .modal .my-pets-list .mp-role-badge.admin { background: rgba(201, 169, 110, 0.2); color: var(--pet-gold); }
   .modal .my-pets-list .mp-empty { padding: 1rem; text-align: center; color: var(--color-light); font-size: 0.85rem; }
   .modal .my-pets-list li { cursor: pointer; transition: background 0.15s; }

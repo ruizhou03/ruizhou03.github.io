@@ -18,9 +18,10 @@
         <input type="file" id="pm-avatar-file" accept="image/*" style="display:none;" />
       </div>
       <div class="sub-section">宠物档案</div>
+      <p class="hint" style="margin:-0.2rem 0 0.7rem;">下面几项都可以留空，用来估算每日推荐食量，也能之后再补。</p>
       <div class="field-grid">
         <div class="field">
-          <label>物种</label>
+          <label>物种 <span class="opt-tag">选填</span></label>
           <select id="pm-species">
             <option value=""></option>
             <option value="cat">猫</option>
@@ -32,7 +33,7 @@
           </select>
         </div>
         <div class="field">
-          <label>品种</label>
+          <label>品种 <span class="opt-tag">选填</span></label>
           <div class="custom-select" id="pm-breed-select">
             <button type="button" class="cs-trigger" id="pm-breed-trigger">
               <span class="cs-label placeholder" id="pm-breed-label"></span>
@@ -45,7 +46,7 @@
       </div>
       <div class="field-grid">
         <div class="field">
-          <label>年龄</label>
+          <label>年龄 <span class="opt-tag">选填</span></label>
           <div class="age-inputs">
             <div class="age-cell">
               <input type="number" id="pm-age-years" min="0" step="1" placeholder="0" inputmode="numeric" />
@@ -58,7 +59,7 @@
           </div>
         </div>
         <div class="field">
-          <label>体重</label>
+          <label>体重 <span class="opt-tag">选填</span></label>
           <div class="input-unit-group">
             <input type="number" id="pm-body-weight" step="0.1" min="0" placeholder="" inputmode="decimal" />
             <select id="pm-body-weight-unit">

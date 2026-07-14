@@ -3044,26 +3044,33 @@
   });
 
   $pmSave.addEventListener('click', () => {
-    // —— 宠物档案为必填：收集所有不合格项，用红框标出（仿表单校验），不弹窗 ——
+    // —— 只有「名字」必填；物种/品种/年龄/体重都选填（用于估算每日推荐量，可稍后补）——
     pmClearAllErrors();
     const errs = [];
     const name = $pmName.value.trim();
-    if (!name) errs.push([$pmNameField, '请填写名字']);
-    const species = $pmSpecies.value || null;
-    if (!species) errs.push([$pmSpeciesField, '请选择物种']);
-    const breed = $pmBreed.value || null;
-    if (!breed) errs.push([$pmBreedField, '请选择品种（不确定就选「其他」）']);
-    const ageYears = combineAge($pmAgeYears.value, $pmAgeMonths.value);
-    if (!Number.isFinite(ageYears) || ageYears <= 0) errs.push([$pmAgeField, '请填写年龄（数字）']);
-    else if (ageYears > 40) errs.push([$pmAgeField, '年龄看起来不太对（最多 40 岁）']);
+    if (!name) errs.push([$pmNameField, '给 TA 起个名字吧']);
+    const species = $pmSpecies.value || null;   // 选填
+    const breed = $pmBreed.value || null;        // 选填
+    const ageProvided = ($pmAgeYears.value !== '' || $pmAgeMonths.value !== '');
+    const ageYearsRaw = combineAge($pmAgeYears.value, $pmAgeMonths.value);
+    if (ageProvided) {
+      if (!Number.isFinite(ageYearsRaw) || ageYearsRaw <= 0) errs.push([$pmAgeField, '年龄填个数字，或者留空']);
+      else if (ageYearsRaw > 40) errs.push([$pmAgeField, '年龄看起来不太对（最多 40 岁）']);
+    }
     const bwUnit = $pmBodyWeightUnit.value || 'kg';
+    const weightProvided = ($pmBodyWeight.value.trim() !== '');
     const bwRaw = parseFloat($pmBodyWeight.value);
     let bodyWeight = NaN;
-    if (!Number.isFinite(bwRaw) || bwRaw <= 0) errs.push([$pmWeightField, '请填写体重（数字）']);
-    else {
-      bodyWeight = bwToKg(bwRaw, bwUnit);
-      if (!Number.isFinite(bodyWeight) || bodyWeight <= 0 || bodyWeight > 120) errs.push([$pmWeightField, '体重看起来不太对（应在 0–120 之间）']);
+    if (weightProvided) {
+      if (!Number.isFinite(bwRaw) || bwRaw <= 0) errs.push([$pmWeightField, '体重填个数字，或者留空']);
+      else {
+        bodyWeight = bwToKg(bwRaw, bwUnit);
+        if (!Number.isFinite(bodyWeight) || bodyWeight <= 0 || bodyWeight > 120) errs.push([$pmWeightField, '体重看起来不太对（应在 0–120 之间）']);
+      }
     }
+    // 归一成「有就用、没有就 null」，供下面档案与估算判断
+    const age = (ageProvided && Number.isFinite(ageYearsRaw) && ageYearsRaw > 0 && ageYearsRaw <= 40) ? ageYearsRaw : null;
+    const bw = (weightProvided && Number.isFinite(bodyWeight) && bodyWeight > 0 && bodyWeight <= 120) ? bodyWeight : null;
     if (errs.length) {
       errs.forEach(([f, m]) => pmSetErr(f, m));
       const first = errs[0][0];
@@ -3085,8 +3092,8 @@
       p.avatar = state.pendingAvatar || null;
       p.species = species;
       p.breed = breed;
-      p.ageYears = ageYears;
-      p.bodyWeight = bodyWeight;
+      p.ageYears = age;
+      p.bodyWeight = bw;
       p.bodyWeightUnit = bwUnit;
       p.activity = activity;
       p.neutered = neutered;
@@ -3094,8 +3101,11 @@
       delete p.lifeStage;
     } else {
       const id = uuid('pet');
-      // 档案已必填 → 估算一定算得出，新宠物默认套用推荐并跟随。
-      const est = estimatorCompute({ species, breed: breed || '', age: ageYears, bodyWeightKg: bodyWeight, activity, neutered });
+      // 档案齐全（物种+年龄+体重都填了）才自动套用推荐并跟随；只填名字的先不设目标，
+      // 看板会显示「点这里设定每日目标」的 CTA 引导稍后补。
+      const est = (species && age != null && bw != null)
+        ? estimatorCompute({ species, breed: breed || '', age, bodyWeightKg: bw, activity, neutered })
+        : null;
       state.pets.push({
         id, name,
         emoji: state.selectedEmoji,
@@ -3108,8 +3118,8 @@
         targetFollowsRecommendation: !!est,
         species,
         breed,
-        ageYears,
-        bodyWeight,
+        ageYears: age,
+        bodyWeight: bw,
         bodyWeightUnit: bwUnit,
         activity,
         neutered,
@@ -3260,7 +3270,7 @@
   function setMethodPref(pet, foodKey, method) {
     try { const m = JSON.parse(localStorage.getItem(methodPrefKey(pet)) || '{}'); m[pet.id + '|' + foodKey] = method; localStorage.setItem(methodPrefKey(pet), JSON.stringify(m)); } catch (_) {}
   }
-  function defaultMethodFor(foodKey) { return foodKey === 'kibble' ? 'diff' : 'direct'; }
+  function defaultMethodFor(foodKey) { return 'direct'; }   // 新手默认「直接填吃了多少」最直观；作差/称重仍可手动切，并按食物记住上次选择
   function lastRemainReading(pet, foodId) {
     const list = (pet.entries || []).filter(e => e.kind === 'remain' && e.foodId === foodId).sort((a, b) => b.ts - a.ts);
     return list.length ? Number(list[0].reading) : null;
