@@ -271,7 +271,33 @@ layout: default
         }
 
         likeBtn.addEventListener('click', function () { toggle('like', likeBtn); });
-        favBtn.addEventListener('click', function () { toggle('fav', favBtn); });
+        // 收藏：点一下即时点亮 + 落「默认收藏夹」，同时开选夹弹层可改夹 / 移除（已收藏再点直接开弹层）
+        function favMove(albumId) {
+          var seq = ++inflight.fav;
+          SiteAuth.authedFetch(api + '?action=fav-move', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ post: POST, album: albumId, title: TITLE, url: URL }),
+          }).then(function (r) { return r.json(); }).then(function (d) {
+            if (seq === inflight.fav && d && d.ok) { state.favorited = true; paint(); }
+          }).catch(function () {});
+        }
+        function onFavClick() {
+          if (!SiteAuth.isLoggedIn()) { SiteAuth.openLogin && SiteAuth.openLogin('login'); return; }
+          if (!state.favorited) {
+            state.favorited = true;
+            if (typeof state.favCount === 'number') state.favCount = state.favCount + 1;
+            paint();
+            favMove('');
+          }
+          if (window.FavPicker) window.FavPicker.open({ post: POST, title: TITLE, url: URL, onChange: function (fav) {
+            if (state.favorited !== fav) {
+              state.favorited = fav;
+              if (typeof state.favCount === 'number') state.favCount = Math.max(0, state.favCount + (fav ? 1 : -1));
+            }
+            paint();
+          } });
+        }
+        favBtn.addEventListener('click', onFavClick);
         commentBtn.addEventListener('click', function () {
           var w = document.getElementById('waline');
           if (w) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -341,6 +367,8 @@ layout: default
       #waline .wl-header { flex-wrap: wrap !important; }
     }
   </style>
+
+  {% include fav-album-picker.html %}
 
   <div id="waline" style="margin-top: 4rem; padding-top: 2rem; border-top: 1px dashed var(--color-border); display: none;"></div>
 

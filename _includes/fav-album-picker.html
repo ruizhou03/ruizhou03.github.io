@@ -1,0 +1,125 @@
+{%- comment -%}
+  阅读页「收藏时选夹」弹层（全站单例）。postbar 点收藏时调 window.FavPicker.open(...)。
+  单夹归属：一篇文章进一个收藏夹。落夹走 /me?action=fav-move；从收藏移除走 ?action=fav（toggle 删）。
+  Liquid 安全：JS 全用单引号 + 字符串拼接，不含 Liquid 定界符与反引号模板。
+{%- endcomment -%}
+<style>
+  .favp-ov { position:fixed; inset:0; z-index:1200; background:rgba(20,25,35,.32);
+    display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .favp-ov.on { opacity:1; pointer-events:auto; }
+  .favp { width:100%; max-width:420px; background:var(--color-bg); border:1px solid var(--color-border);
+    border-radius:16px 16px 0 0; box-shadow:0 -8px 40px -12px rgba(20,25,35,.4);
+    padding:1rem 1rem calc(1.2rem + env(safe-area-inset-bottom,0px)); transform:translateY(18px);
+    transition:transform .22s; max-height:72vh; overflow-y:auto; }
+  .favp-ov.on .favp { transform:none; }
+  @media (min-width:600px) { .favp-ov { align-items:center; } .favp { border-radius:16px; padding-bottom:1.2rem; } }
+  .favp-h { display:flex; align-items:center; justify-content:space-between; margin:0 0 .7rem; }
+  .favp-h h4 { margin:0; font-family:var(--font-display); font-size:1.1rem; color:var(--color-ink); font-weight:600; }
+  .favp-x { border:0; background:none; font-size:1.5rem; line-height:1; color:var(--color-light); cursor:pointer; padding:0 .2rem; }
+  .favp-list { display:flex; flex-direction:column; gap:.35rem; }
+  .favp-opt { display:flex; align-items:center; gap:.55rem; padding:.62rem .72rem; border:1px solid var(--color-border);
+    border-radius:10px; background:var(--color-bg); cursor:pointer; font-family:var(--font-body); font-size:.98rem;
+    color:var(--color-text); text-align:left; transition:border-color .15s, background .15s; }
+  .favp-opt:hover { border-color:var(--color-highlight); background:var(--color-bg-warm); }
+  .favp-opt .favp-star { color:var(--color-highlight); font-size:1rem; }
+  .favp-opt .favp-ct { margin-left:auto; font-size:.76rem; color:var(--color-light); font-variant-numeric:tabular-nums; }
+  .favp-new, .favp-remove { justify-content:center; border-style:dashed; }
+  .favp-new { color:var(--color-accent); }
+  .favp-remove { color:#b4453a; border-color:transparent; margin-top:.15rem; }
+  .favp-remove:hover { background:#fbeceb; border-color:transparent; }
+  .favp-newrow { display:flex; gap:.5rem; margin-bottom:.35rem; }
+  .favp-newrow input { flex:1; min-width:0; padding:.5rem .7rem; border:1px solid var(--color-border); border-radius:8px;
+    font-family:inherit; font-size:.95rem; background:var(--color-bg); color:var(--color-text); outline:none; }
+  .favp-newrow input:focus { border-color:var(--color-accent); }
+  .favp-newrow button { padding:.5rem .9rem; border:0; border-radius:8px; background:var(--color-accent); color:#fff;
+    font-family:inherit; cursor:pointer; white-space:nowrap; }
+  .favp-tip { font-size:.76rem; color:var(--color-light); margin:.6rem 0 0; }
+</style>
+<div class="favp-ov" id="favp-ov" role="dialog" aria-modal="true" aria-label="收藏到收藏夹">
+  <div class="favp">
+    <div class="favp-h"><h4>存入收藏夹</h4><button type="button" class="favp-x" aria-label="关闭">&times;</button></div>
+    <div class="favp-list" id="favp-list"><div class="favp-tip">加载中…</div></div>
+    <p class="favp-tip">选一个收藏夹归类；不选就留在「默认收藏夹」。</p>
+  </div>
+</div>
+<script>
+(function () {
+  var ov = document.getElementById('favp-ov');
+  if (!ov) return;
+  var API = (window.SiteAuth && SiteAuth.API_BASE) ? SiteAuth.API_BASE + '/me' : 'https://zircon-urge.fly.dev/api/me';
+  var listEl = document.getElementById('favp-list');
+  var cur = null;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function close() { ov.classList.remove('on'); }
+  ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+  ov.querySelector('.favp-x').addEventListener('click', close);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && ov.classList.contains('on')) close(); });
+
+  function move(albumId) {
+    if (!cur) return;
+    SiteAuth.authedFetch(API + '?action=fav-move', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post: cur.post, album: albumId, title: cur.title, url: cur.url }),
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d && d.ok && cur && cur.onChange) cur.onChange(true);
+    }).catch(function () {});
+    close();
+  }
+  function removeFav() {
+    if (!cur) return;
+    SiteAuth.authedFetch(API + '?action=fav', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post: cur.post, title: cur.title, url: cur.url }),
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d && d.ok && cur && cur.onChange) cur.onChange(d.active === true);
+    }).catch(function () {});
+    close();
+  }
+  function render(albums) {
+    var html = albums.map(function (a) {
+      return '<button type="button" class="favp-opt" data-alb="' + esc(a.id) + '">' +
+        '<span class="favp-star">' + String.fromCharCode(9733) + '</span>' + esc(a.name) +
+        '<span class="favp-ct">' + (a.count || 0) + ' 篇</span></button>';
+    }).join('');
+    html += '<button type="button" class="favp-opt favp-new" id="favp-new">' + String.fromCharCode(65291) + ' 新建收藏夹</button>';
+    html += '<button type="button" class="favp-opt favp-remove" id="favp-remove">从收藏移除</button>';
+    listEl.innerHTML = html;
+    listEl.querySelectorAll('.favp-opt[data-alb]').forEach(function (b) {
+      b.addEventListener('click', function () { move(b.dataset.alb); });
+    });
+    document.getElementById('favp-new').addEventListener('click', showNewRow);
+    document.getElementById('favp-remove').addEventListener('click', removeFav);
+  }
+  function showNewRow() {
+    if (listEl.querySelector('.favp-newrow')) return;
+    var row = document.createElement('div'); row.className = 'favp-newrow';
+    var inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 40; inp.placeholder = '新收藏夹名字';
+    var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = '创建';
+    row.appendChild(inp); row.appendChild(btn);
+    listEl.insertBefore(row, listEl.firstChild); inp.focus();
+    function create() {
+      var name = (inp.value || '').trim(); if (!name) { inp.focus(); return; }
+      btn.disabled = true;
+      SiteAuth.authedFetch(API + '?action=album-create', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name }),
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        if (d && d.ok && d.album) move(d.album.id); else btn.disabled = false;
+      }).catch(function () { btn.disabled = false; });
+    }
+    btn.addEventListener('click', create);
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') create(); });
+  }
+  window.FavPicker = {
+    open: function (opts) {
+      if (!window.SiteAuth || !SiteAuth.isLoggedIn()) { window.SiteAuth && SiteAuth.openLogin && SiteAuth.openLogin('login'); return; }
+      cur = opts || {};
+      listEl.innerHTML = '<div class="favp-tip">加载中…</div>';
+      ov.classList.add('on');
+      SiteAuth.authedFetch(API + '?action=albums').then(function (r) { return r.json(); }).then(function (d) {
+        render((d && d.ok && d.albums) || [{ id: '', name: '默认收藏夹', count: 0 }]);
+      }).catch(function () { render([{ id: '', name: '默认收藏夹', count: 0 }]); });
+    }
+  };
+})();
+</script>
