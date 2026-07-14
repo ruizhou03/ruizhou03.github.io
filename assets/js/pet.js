@@ -765,6 +765,14 @@
   const $weightChart = document.getElementById('weight-chart');
   const $weightEmpty = document.getElementById('weight-empty');
   const $weightList = document.getElementById('weight-list');
+  const $weightPage = document.getElementById('weight-page');
+  const $weightPageSelect = document.getElementById('weight-page-select');
+  const $weightPageTotal = document.getElementById('weight-page-total');
+  const $weightPagePrev = document.getElementById('weight-page-prev');
+  const $weightPageNext = document.getElementById('weight-page-next');
+  let weightPage = 0;
+  let lastWeightPetId = null;
+  const WEIGHT_PAGE_SIZE = 8;
   const $weightMethod = document.getElementById('weight-method');
   const $weightSingle = document.getElementById('weight-single');
   const $weightDiff = document.getElementById('weight-diff');
@@ -3927,6 +3935,7 @@
       extra || {}
     );
     if (!commitNewEntry(pet, newEntry)) return;
+    weightPage = 0;                  // 新记一笔 → 历史跳回第一页
     pet.bodyWeightUnit = unit;       // remember the unit the user weighs in
     reconcileBodyWeight(pet);
     // Weight → recommended food → target food linkage.
@@ -4085,12 +4094,17 @@
       ? ''
       : `${WEIGHT_PERIOD_LBL[state.weightPeriod] || ''} · ${wsWin.length} 条`;
     drawWeightTrend(pet, wsWin, unit, win === null);
-    // Recent list (latest first, up to 8), reusing the row action buttons.
-    if (ws.length === 0) {
+    // 历史记录：全部（最新在前）分页看，每页 WEIGHT_PAGE_SIZE 条
+    if (pet.id !== lastWeightPetId) { weightPage = 0; lastWeightPetId = pet.id; }
+    const allDesc = [...ws].reverse();
+    const totalPages = Math.max(1, Math.ceil(allDesc.length / WEIGHT_PAGE_SIZE));
+    if (weightPage > totalPages - 1) weightPage = totalPages - 1;
+    if (weightPage < 0) weightPage = 0;
+    if (allDesc.length === 0) {
       $weightList.innerHTML = '';
     } else {
-      const recent = [...ws].reverse().slice(0, 8);
-      $weightList.innerHTML = recent.map(e => {
+      const slice = allDesc.slice(weightPage * WEIGHT_PAGE_SIZE, weightPage * WEIGHT_PAGE_SIZE + WEIGHT_PAGE_SIZE);
+      $weightList.innerHTML = slice.map(e => {
         const kgStr = parseFloat(bwFromKg(Number(e.kg), unit).toFixed(2));
         const tag = e.method === 'diff' ? ' <span class="er-raw">(作差)</span>' : '';
         return `<div class="entry-row">
@@ -4101,7 +4115,20 @@
       }).join('');
       wireEntryButtons($weightList, pet);
     }
+    renderWeightPager(totalPages);
   }
+  function renderWeightPager(totalPages) {
+    if (!$weightPage) return;
+    if (totalPages <= 1) { $weightPage.style.display = 'none'; return; }
+    $weightPage.style.display = '';
+    let opts = '';
+    for (let i = 0; i < totalPages; i++) opts += `<option value="${i}"${i === weightPage ? ' selected' : ''}>${i + 1}</option>`;
+    $weightPageSelect.innerHTML = opts;
+    $weightPageTotal.textContent = `/ ${totalPages}`;
+    $weightPagePrev.disabled = weightPage === 0;
+    $weightPageNext.disabled = weightPage >= totalPages - 1;
+  }
+  function gotoWeightPage(p) { weightPage = p; renderWeight(currentPet()); }
 
   // Line chart of weight over the visible window (its own drawing, food charts are grams).
   // needRange: true when the user picked 自定义 but hasn't filled both dates.
@@ -5635,6 +5662,10 @@
   if ($recCur) $recCur.addEventListener('click', () => {
     try { $recDate.showPicker(); } catch (_) { try { $recDate.focus(); $recDate.click(); } catch (__) {} }
   });
+  // 体重历史记录分页
+  if ($weightPagePrev) $weightPagePrev.addEventListener('click', () => { if (weightPage > 0) gotoWeightPage(weightPage - 1); });
+  if ($weightPageNext) $weightPageNext.addEventListener('click', () => gotoWeightPage(weightPage + 1));
+  if ($weightPageSelect) $weightPageSelect.addEventListener('change', () => gotoWeightPage(parseInt($weightPageSelect.value, 10) || 0));
 
   // ===== 弹窗无障碍：焦点归还 + Tab 焦点陷阱（集中式，覆盖所有 .modal-backdrop）=====
   (function initModalA11y() {
