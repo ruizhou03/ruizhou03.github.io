@@ -3021,11 +3021,15 @@
 
   // ===== Copy + regen code =====
   $pmCopyCode.addEventListener('click', async () => {
-    const code = $pmShareCode.textContent;
+    const code = ($pmShareCode.textContent || '').trim();
+    if (!code) return;
+    // 复制成可点击的邀请链接——家人打开就自动填好宠物码、弹出加入框（disc-8）
+    const link = location.origin + '/toolbox/pet/?join=' + encodeURIComponent(code);
+    const text = '一起记录我家宝贝吧～打开链接加入：' + link + '（宠物码 ' + code + '）';
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(text);
       $pmCopyCode.textContent = '✓ 已复制';
-      setTimeout(() => { $pmCopyCode.textContent = '📋 复制'; }, 1600);
+      setTimeout(() => { $pmCopyCode.textContent = '📋 复制邀请'; }, 1600);
     } catch (_) { /* */ }
   });
   $pmRegenCode.addEventListener('click', async () => {
@@ -5655,6 +5659,11 @@
     const hashBoard = boardFromHash();
     if (hashBoard) state.board = hashBoard;
     render();
+    // 邀请链接 ?join=CODE：打开就自动填好宠物码 + 弹出「加入」框（disc-8）
+    try {
+      const joinCode = new URLSearchParams(location.search).get('join');
+      if (joinCode) { openJoinModal(); $joinCode.value = joinCode.trim().toUpperCase().slice(0, 6); }
+    } catch (_) {}
   } catch (err) {
     console.error('宠物中心初始化失败', err);
     showFatalError(err);
