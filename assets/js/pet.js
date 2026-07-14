@@ -3389,43 +3389,25 @@
       const sel = lib.find(f => f.id === recordFood);
       if (sel && sel.groupId && groupById.has(sel.groupId)) forceOpenGid = sel.groupId;
     }
-    const foodChip = (f, extra) => `<div class="extra-chip${canEdit ? ' fc-draggable' : ''}${extra || ''}${recordFood===f.id?' active':''}" role="button" tabindex="0" data-food="${f.id}"><span class="fc-emoji">${foodIconHTML(f,'🍖')}</span><span class="fc-name">${escapeHtml(f.name)}</span>${canEdit ? `<button type="button" class="edit-food" data-edit="${f.id}" aria-label="编辑 ${escapeHtml(f.name)}" title="编辑">✎</button>` : ''}</div>`;
+    // 圆食豆：一个头像圆点 + 名字；选中金环。编辑✎只在选中的食豆上冒出来。
+    const foodCoin = (f) => `<div class="coin${recordFood===f.id?' on':''}" role="button" tabindex="0" data-food="${f.id}"><span class="disc">${foodIconHTML(f,'🍖')}</span><span class="cn">${escapeHtml(f.name)}</span>${canEdit ? `<button type="button" class="coin-edit" data-edit="${f.id}" aria-label="编辑 ${escapeHtml(f.name)}" title="编辑">✎</button>` : ''}</div>`;
 
-    // 干粮固定第一条（不可拖、不可入组）
-    let html = `<div class="extra-chip${recordFood==='kibble'?' active':''}" role="button" tabindex="0" data-food="kibble"><span class="fc-emoji">${foodIconHTML(kb,'🥣')}</span><span class="fc-name">${escapeHtml(kbName)}</span>${canEdit ? `<button type="button" class="edit-food" data-edit="kibble" aria-label="编辑干粮" title="编辑">✎</button>` : ''}</div>`;
-
-    // 顶层是「单品」与「折叠组」的混排：按 foodLibrary 顺序走，遇到某组的第一个成员就在此处
-    // 落下组头 + 该组全部成员（折叠时只出组头）。子项渲染成扁平兄弟节点（加 .fc-child 缩进），
-    // 让既有的长按拖拽排序逻辑无需改动就能继续工作。
-    const rendered = new Set();
-    lib.forEach(f => {
-      const gid = (f.groupId && groupById.has(f.groupId)) ? f.groupId : null;
-      if (!gid) { html += foodChip(f, ''); return; }
-      if (rendered.has(gid)) return;
-      rendered.add(gid);
-      const g = groupById.get(gid);
-      const kids = lib.filter(x => x.groupId === gid);
-      const collapsed = (g.collapsed === true) && gid !== forceOpenGid;
-      html += `<div class="extra-chip fc-folder${collapsed ? ' collapsed' : ''}" role="button" tabindex="0" aria-expanded="${collapsed ? 'false' : 'true'}" data-group="${gid}"><span class="fc-caret">${collapsed ? '▸' : '▾'}</span><span class="fc-emoji">${escapeHtml(g.emoji || '🗂')}</span><span class="fc-name">${escapeHtml(g.name || '分组')}</span><span class="fc-count">${kids.length}</span>${canEdit ? `<button type="button" class="edit-food" data-editgroup="${gid}" aria-label="编辑分组" title="编辑分组">✎</button>` : ''}</div>`;
-      if (!collapsed) html += kids.map(k => foodChip(k, ' fc-child')).join('');
-    });
-    if (canEdit) html += `<div class="extra-chip add-chip" role="button" tabindex="0" data-food="__new"><span class="fc-emoji">➕</span><span class="fc-name">新建</span></div>`;
+    // 干粮固定第一个
+    let html = `<div class="coin${recordFood==='kibble'?' on':''}" role="button" tabindex="0" data-food="kibble"><span class="disc">${foodIconHTML(kb,'🥣')}</span><span class="cn">${escapeHtml(kbName)}</span>${canEdit ? `<button type="button" class="coin-edit" data-edit="kibble" aria-label="编辑干粮" title="编辑">✎</button>` : ''}</div>`;
+    // 其余食物扁平横排（按种类分类筛选留待加了类别字段后再上）
+    lib.forEach(f => { html += foodCoin(f); });
+    if (canEdit) html += `<div class="coin add" role="button" tabindex="0" data-food="__new"><span class="disc">＋</span><span class="cn">新建</span></div>`;
     $foodSelector.innerHTML = html;
-    $foodSelector.querySelectorAll('.extra-chip').forEach(chip => {
-      chip.addEventListener('click', e => {
-        if (fdDidReorder) return;   // 刚拖完那一下 click 不当选择处理
+    $foodSelector.querySelectorAll('.coin').forEach(coin => {
+      coin.addEventListener('click', e => {
         if (e.target.dataset.edit) { openFoodModal(e.target.dataset.edit); return; }
-        if (e.target.dataset.editgroup) { openGroupEditor(e.target.dataset.editgroup); return; }
-        if (chip.dataset.group) { toggleGroupCollapsed(chip.dataset.group); return; }   // 组头 → 展开/收起
-        const f = chip.dataset.food;
+        const f = coin.dataset.food;
         if (f === '__new') { openFoodModal(null); return; }
         selectRecordFood(f);
       });
-      // 键盘可达：chip 是 role=button 的 div，Enter/Space 触发选择/展开；
-      // 内部的「编辑」是真 <button>，自己会响应回车，不走这里
-      chip.addEventListener('keydown', e => {
-        if (e.target !== chip) return;
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chip.click(); }
+      coin.addEventListener('keydown', e => {
+        if (e.target !== coin) return;
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); coin.click(); }
       });
     });
     updatePickerTrigger();

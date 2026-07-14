@@ -44,101 +44,104 @@
     <div class="link-toast-mount" id="link-toast-mount"></div>
 
     <div class="board-panel active" id="panel-food" data-board="food" role="tabpanel" aria-labelledby="tab-food">
-    <div class="summary-row">
-      <div class="sum-card sc-lead">
-        <div class="sc-num" id="sc-today">— g</div>
-        <div class="sc-lbl">今日已吃</div>
-      </div>
-      <div class="sum-card">
-        <div class="sc-num" id="sc-count">—</div>
-        <div class="sc-lbl">今日记录</div>
-      </div>
-      <div class="sum-card">
-        <div class="sc-num" id="sc-avg">— g</div>
-        <div class="sc-lbl" id="sc-avg-lbl">日均</div>
-      </div>
-      <div class="sum-card" id="card-bowl">
-        <div class="sc-num" id="sc-bowl">— g</div>
-        <div class="sc-lbl">当前碗中剩</div>
-      </div>
-    </div>
+    <!-- ============ 食记面板（重做）：一张暖纸，衬线秤面数字 + 圆食豆 + 细线分区 ============ -->
+    <div class="food-card">
 
-    <div class="rec-strip" id="rec-strip" style="display:none;">
-      <div class="rec-strip-head">
-        <span class="rec-title" id="rec-title">推荐 — g/天</span>
-        <span class="rec-now" id="rec-now">今日 <strong>— g</strong></span>
+      <!-- HERO：今天吃了多少 —— 秤面读数 + 达标线 + 一行小字 -->
+      <div class="food-hero">
+        <div class="fh-lbl">今天吃了</div>
+        <div class="fh-num" id="sc-today">— g</div>
+        <!-- 目标 + 达标细线（由 renderRecommendation 填充；沿用原 rec-strip 结构与 id） -->
+        <div class="rec-strip" id="rec-strip" style="display:none;">
+          <div class="rec-strip-head">
+            <span class="rec-title" id="rec-title">推荐 — g/天</span>
+            <span class="rec-now" id="rec-now">今日 <strong>— g</strong></span>
+          </div>
+          <div class="rec-bar">
+            <div class="rec-band" id="rec-band"></div>
+            <div class="rec-fill" id="rec-fill"></div>
+            <div class="rec-marker" id="rec-marker" style="display:none;"></div>
+          </div>
+        </div>
+        <div class="fh-micro">
+          <span>记录 <b id="sc-count">—</b></span>
+          <span class="fh-dot">·</span>
+          <span><span id="sc-avg-lbl">日均</span> <b id="sc-avg">— g</b></span>
+          <span class="fh-dot" id="card-bowl-sep">·</span>
+          <span id="card-bowl">碗中约 <b id="sc-bowl">— g</b></span>
+        </div>
       </div>
-      <div class="rec-bar">
-        <div class="rec-band" id="rec-band"></div>
-        <div class="rec-fill" id="rec-fill"></div>
-        <div class="rec-marker" id="rec-marker" style="display:none;"></div>
-      </div>
-    </div>
 
-    <div class="first-hint" id="first-hint" style="display:none;">👋 记下今天第一笔吧——直接填「吃了多少克」最简单，也可以切「作差·称重」。</div>
-    <div class="entry-form">
-      <div class="entry-cols" id="entry-cols">
-        <!-- 手机端专用：显示当前所选食物，点它展开/收起下面的列表（桌面端 CSS 隐藏） -->
-        <button type="button" class="food-picker-trigger" id="food-picker-trigger"></button>
-        <!-- LEFT: food-type column (scrolls vertically when there are many) -->
-        <div class="food-selector" id="food-selector"></div>
+      <div class="fc-rule"></div>
 
-        <!-- MIDDLE: fixed-width fill area — same width in every food mode -->
-        <div class="fill-area">
-          <!-- 填法切换：每种食物都能「直接填吃了多少」或「作差·记现在还剩」 -->
-          <div class="method-toggle mode-toggle" id="method-toggle">
-            <label data-m="direct" class="active"><input type="radio" name="rec-method" value="direct" checked><span id="mt-direct-lbl">直接填吃了多少</span></label>
-            <label data-m="diff"><input type="radio" name="rec-method" value="diff"><span id="mt-diff-lbl">作差·记还剩</span></label>
-          </div>
-          <div class="entry-main-row">
-            <div class="reading-group">
-              <input type="number" class="reading" id="reading" step="any" min="0" placeholder="粮食称重" inputmode="decimal" />
-              <select class="unit-pick" id="unit-pick">
-                <option value="g">g</option>
-                <option value="kg">kg</option>
-                <option value="oz">oz</option>
-                <option value="lb">lb</option>
-              </select>
-              <span class="unit-suffix" id="unit-suffix" style="display:none;">份</span>
-            </div>
-          </div>
-          <!-- 含碗/不含碗 开关；选「含碗」时右侧附带空碗重量设置，选「不含碗」时收起 -->
-          <div class="mode-bowl" id="mode-bowl-row">
-            <div class="mode-toggle" id="mode-toggle">
-              <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
-              <label data-val="0"><input type="radio" name="with-bowl" value="0">不含碗</label>
-            </div>
-            <div class="bowl-row" id="bowl-row">
-              <span>空碗</span>
-              <input type="number" id="bowl-weight" step="any" min="0" placeholder="未设" inputmode="decimal" />
-              <select id="bowl-weight-unit">
-                <option value="g">g</option>
-                <option value="kg">kg</option>
-                <option value="oz">oz</option>
-                <option value="lb">lb</option>
-              </select>
-            </div>
-          </div>
-          <div class="extra-eq-row" id="extra-eq-row" style="display:none;">
-            <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
-          </div>
-          <!-- 作差/称重模式：倒掉旧粮重新开始 → 这次的量作为新起点，不和上次作差 -->
-          <label class="reset-row" id="reset-row" style="display:none;">
-            <input type="checkbox" id="reset-check">
-            <span>🗑 倒掉换新（这次的量作为新起点，不算「吃了」）</span>
-          </label>
+      <div class="first-hint" id="first-hint" style="display:none;">👋 记下今天第一笔吧——直接填「吃了多少克」最简单，也可以切「称重作差」。</div>
+
+      <!-- 记一笔 -->
+      <div class="log-sec" id="entry-cols">
+        <div class="log-head">
+          <span class="log-lbl">记一笔 · 选食物</span>
         </div>
 
-        <!-- RIGHT: save button + record-time stacked in one column (fixed) -->
-        <div class="action-col">
-          <button type="button" class="save-btn" id="save-entry"><svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1 1-4z"/><path d="M14.5 6.5l3 3"/></svg>记一笔</button>
+        <!-- 手机端保留（隐藏）触发条，避免破坏既有 JS -->
+        <button type="button" class="food-picker-trigger" id="food-picker-trigger" hidden></button>
+        <!-- 圆食豆：横向滑动挑食物（由 renderFoodSelector 填充） -->
+        <div class="food-selector coins" id="food-selector"></div>
+
+        <!-- 填法：文字标签下划线（保留 method-toggle + radio 供 JS） -->
+        <div class="method-toggle" id="method-toggle">
+          <label data-m="direct" class="active"><input type="radio" name="rec-method" value="direct" checked><span id="mt-direct-lbl">直接填吃了多少</span></label>
+          <label data-m="diff"><input type="radio" name="rec-method" value="diff"><span id="mt-diff-lbl">作差·记还剩</span></label>
+        </div>
+
+        <!-- 下划线大输入 + 圆形「记」按钮 -->
+        <div class="entry-line">
+          <div class="reading-group">
+            <input type="number" class="reading" id="reading" step="any" min="0" placeholder="吃了多少" inputmode="decimal" />
+            <select class="unit-pick" id="unit-pick">
+              <option value="g">g</option>
+              <option value="kg">kg</option>
+              <option value="oz">oz</option>
+              <option value="lb">lb</option>
+            </select>
+            <span class="unit-suffix" id="unit-suffix" style="display:none;">份</span>
+          </div>
+          <button type="button" class="go-btn" id="save-entry" aria-label="记一笔"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg></button>
+        </div>
+        <div class="extra-eq-row" id="extra-eq-row" style="display:none;">
+          <span class="extra-eq" id="extra-eq">≈ — g 等效干粮</span>
+        </div>
+
+        <!-- 高级：含碗/不含碗 + 空碗（仅干粮称重时出现，同一纸面内细线分隔） -->
+        <div class="mode-bowl" id="mode-bowl-row">
+          <div class="mode-toggle" id="mode-toggle">
+            <label data-val="1" class="active"><input type="radio" name="with-bowl" value="1" checked>含碗</label>
+            <label data-val="0"><input type="radio" name="with-bowl" value="0">不含碗</label>
+          </div>
+          <div class="bowl-row" id="bowl-row">
+            <span>空碗</span>
+            <input type="number" id="bowl-weight" step="any" min="0" placeholder="未设" inputmode="decimal" />
+            <select id="bowl-weight-unit">
+              <option value="g">g</option>
+              <option value="kg">kg</option>
+              <option value="oz">oz</option>
+              <option value="lb">lb</option>
+            </select>
+          </div>
+        </div>
+        <label class="reset-row" id="reset-row" style="display:none;">
+          <input type="checkbox" id="reset-check">
+          <span class="renew-chip"><svg class="renew-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9a8 8 0 0 1 13.5-3.2L20 8"/><path d="M20 3.2v4.8h-4.8"/><path d="M20 15a8 8 0 0 1-13.5 3.2L4 16"/><path d="M4 20.8v-4.8h4.8"/></svg>换新</span>
+          <span class="renew-hint">倒了旧粮换新的？这次当新起点、不算「吃了」</span>
+        </label>
+
+        <!-- 次要：记录时间 -->
+        <div class="entry-sub">
           <button type="button" class="time-pill" id="time-toggle">
             <span class="tp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.2 2"/></svg></span>
             <span class="tp-lbl">记录时间</span>
             <span class="tp-val" id="time-val">现在</span>
             <span class="tp-edit">✎</span>
           </button>
-          <!-- 直接填模式可选填一个结束时间，构成时间段（只影响今日曲线） -->
           <button type="button" class="time-add-end" id="time-add-end" style="display:none;">＋ 加结束时间</button>
           <button type="button" class="time-pill time-pill-end" id="time-end-toggle" style="display:none;">
             <span class="tp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.2 2"/></svg></span>
@@ -148,10 +151,13 @@
           </button>
         </div>
       </div>
-    </div>
 
-    <div class="section-title">今日记录</div>
-    <div class="entries-list" id="entries-today"></div>
+      <div class="fc-rule"></div>
+
+      <div class="log-head"><span class="log-lbl">今天的记录</span></div>
+      <div class="entries-list" id="entries-today"></div>
+
+    </div><!-- /food-card -->
 
     <div class="section-title">
       趋势

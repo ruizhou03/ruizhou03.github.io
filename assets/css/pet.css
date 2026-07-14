@@ -1758,3 +1758,145 @@
       animation: none !important;
     }
   }
+
+  /* ================================================================
+     食记 redesign（2026-07）—— 一张暖纸手账：衬线秤面数字 + 圆食豆 +
+     细线分区，作用域限定 .food-card，干净覆盖旧的「盒子汤」样式。
+     ================================================================ */
+  .pf-wrap .food-card {
+    --fc-paper:#f8f4ec; --fc-raise:#fffdf8; --fc-ink:#26313d; --fc-navy:var(--color-accent);
+    --fc-gold:#bf9f57; --fc-sage:#5d8a6b; --fc-muted:#867f72; --fc-faint:#a9a293;
+    --fc-hair:#e6ddcd; --fc-hair2:#efe8da;
+    background:var(--fc-paper);
+    border:1px solid var(--fc-hair);
+    border-radius:22px;
+    padding:1.6rem 1.5rem 1.4rem;
+    box-shadow:0 2px 4px rgba(40,30,20,.05), 0 30px 60px -42px rgba(40,40,60,.4), inset 0 0 0 1px rgba(255,255,255,.5);
+    margin-bottom:1.6rem;
+  }
+  :root[data-theme="dark"] .pf-wrap .food-card,
+  html:not([data-theme="light"]) .pf-wrap .food-card {
+    /* 暗色下沿用站点暗底，保持一张纸的观感 */
+    --fc-paper:var(--color-bg-warm); --fc-raise:var(--color-bg); --fc-ink:var(--color-ink);
+    --fc-muted:var(--color-muted); --fc-faint:var(--color-light);
+    --fc-hair:var(--color-border); --fc-hair2:var(--color-border);
+    box-shadow:0 2px 4px rgba(0,0,0,.3), 0 30px 60px -42px rgba(0,0,0,.6);
+  }
+  @media (max-width:560px){ .pf-wrap .food-card { padding:1.3rem 1.05rem 1.1rem; border-radius:18px; } }
+
+  .food-card .fc-rule { height:1px; background:var(--fc-hair); margin:1.25rem -.3rem; border:none; }
+
+  /* ---- HERO ---- */
+  .food-card .food-hero { text-align:center; }
+  .food-card .fh-lbl { font-family:var(--font-body); font-size:.68rem; letter-spacing:.22em; text-transform:uppercase; color:var(--fc-faint); }
+  .food-card .fh-num {
+    font-family:var(--font-display); font-weight:600; line-height:1; color:var(--fc-navy);
+    font-size:4rem; font-variant-numeric:tabular-nums; letter-spacing:-.01em; margin:.15rem 0 .1rem;
+  }
+  @media (max-width:560px){ .food-card .fh-num { font-size:3.3rem; } }
+  /* rec-strip 重塑成「目标行 + 一条细达标线」 */
+  .food-card .rec-strip { background:none; border:none; padding:0; margin:.5rem 1.4rem .2rem; font-size:.8rem; }
+  .food-card .rec-strip.editable { cursor:pointer; }
+  .food-card .rec-strip.no-target .rec-bar { display:none; }
+  .food-card .rec-strip.no-target .rec-title { color:var(--fc-navy); }
+  .food-card .rec-strip-head { display:flex; justify-content:center; gap:.5rem; align-items:baseline; margin-bottom:.55rem; flex-wrap:wrap; }
+  .food-card .rec-strip-head .rec-title { color:var(--fc-muted); font-weight:400; font-family:var(--font-body); }
+  .food-card .rec-strip-head .rec-now { display:none; }  /* 秤面已显示今日量，这里不重复 */
+  .food-card .rec-strip .rec-edit { color:var(--fc-faint); font-size:.72rem; }
+  .food-card .rec-bar { position:relative; height:6px; background:var(--fc-hair2); border-radius:999px; overflow:hidden; }
+  .food-card .rec-bar .rec-band { position:absolute; top:0; bottom:0; background:rgba(93,138,107,.16); }
+  .food-card .rec-bar .rec-fill { position:absolute; left:0; top:0; bottom:0; border-radius:999px; background:linear-gradient(90deg,#8fb59d,var(--fc-sage)); }
+  .food-card .rec-bar .rec-marker { position:absolute; top:-2px; width:2px; height:10px; background:var(--fc-navy); border-radius:2px; }
+  .food-card .fh-micro { display:flex; justify-content:center; align-items:baseline; gap:.5rem; flex-wrap:wrap; font-family:var(--font-body); font-size:.82rem; color:var(--fc-muted); margin-top:1rem; }
+  .food-card .fh-micro b { font-family:var(--font-display); font-size:1rem; color:var(--fc-ink); font-variant-numeric:tabular-nums; font-weight:600; }
+  .food-card .fh-micro .fh-dot { color:var(--fc-faint); }
+
+  /* ---- section label + filter ---- */
+  .food-card .log-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:.9rem; gap:.6rem; }
+  .food-card .log-lbl { font-family:var(--font-body); font-size:.68rem; letter-spacing:.16em; text-transform:uppercase; color:var(--fc-faint); }
+  .food-card .food-filter { display:flex; gap:.65rem; font-family:var(--font-body); font-size:.8rem; }
+  .food-card .food-filter .ff { border:none; background:none; padding:0; color:var(--fc-faint); cursor:pointer; font:inherit; }
+  .food-card .food-filter .ff.active { color:var(--fc-navy); font-weight:700; }
+
+  /* ---- 圆食豆 ---- */
+  .food-card .food-selector.coins { display:flex; gap:.9rem; overflow-x:auto; padding:.2rem .1rem .55rem; margin:0 -.1rem; scrollbar-width:none; }
+  .food-card .food-selector.coins::-webkit-scrollbar { display:none; }
+  .food-card .coin { flex:0 0 auto; width:58px; text-align:center; cursor:pointer; position:relative; background:none; border:none; padding:0; font:inherit; }
+  .food-card .coin .disc {
+    width:56px; height:56px; border-radius:50%; margin:0 auto; background:var(--fc-raise);
+    border:1px solid var(--fc-hair); display:flex; align-items:center; justify-content:center;
+    font-size:1.6rem; box-shadow:0 2px 5px rgba(40,30,20,.06); transition:box-shadow .15s, background .15s; overflow:hidden;
+  }
+  .food-card .coin .disc img { width:100%; height:100%; object-fit:cover; }
+  .food-card .coin .cn { display:block; font-family:var(--font-body); font-size:.68rem; color:var(--fc-muted); margin-top:.38rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .food-card .coin.on .disc { box-shadow:0 0 0 2px var(--fc-gold), 0 4px 12px rgba(191,159,87,.32); background:var(--fc-raise); }
+  .food-card .coin.on .cn { color:var(--fc-navy); font-weight:700; }
+  .food-card .coin.add .disc { border-style:dashed; color:var(--fc-faint); font-size:1.35rem; background:transparent; box-shadow:none; }
+  .food-card .coin .coin-edit { position:absolute; top:-2px; right:2px; width:20px; height:20px; border-radius:50%; border:1px solid var(--fc-hair); background:var(--fc-raise); color:var(--fc-muted); font-size:.66rem; line-height:1; display:none; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .food-card .coin.on .coin-edit { display:flex; }
+  .food-card .coin:focus-visible .disc, .food-card .coin .coin-edit:focus-visible { outline:2px solid var(--fc-navy); outline-offset:2px; }
+
+  /* ---- 填法：文字标签下划线（覆盖旧胶囊） ---- */
+  .food-card .method-toggle { display:flex; gap:1.6rem; background:none; border:none; padding:0; margin:1.3rem 0 .1rem; }
+  .food-card .method-toggle label {
+    position:relative; padding:0 0 .4rem; margin:0; border:none; background:none; cursor:pointer;
+    font-family:var(--font-body); font-size:.88rem; color:var(--fc-faint); border-radius:0; box-shadow:none;
+  }
+  .food-card .method-toggle label input { position:absolute; opacity:0; width:0; height:0; }
+  .food-card .method-toggle label.active { color:var(--fc-ink); font-weight:600; }
+  .food-card .method-toggle label.active::after { content:""; position:absolute; left:0; right:0; bottom:0; height:2px; background:var(--fc-navy); border-radius:2px; }
+
+  /* ---- 下划线大输入 + 圆形记 ---- */
+  .food-card .entry-line { display:flex; align-items:flex-end; gap:1rem; margin-top:.75rem; }
+  .food-card .reading-group { flex:1; display:flex; align-items:baseline; gap:.5rem; border:none; border-bottom:1.5px solid var(--fc-navy); border-radius:0; background:none; padding:.15rem .1rem .5rem; box-shadow:none; }
+  .food-card .reading-group .reading {
+    flex:1; border:none; background:none; box-shadow:none; padding:0; min-width:0;
+    font-family:var(--font-display); font-size:2.2rem; color:var(--fc-navy); font-variant-numeric:tabular-nums; font-weight:600; line-height:1;
+  }
+  .food-card .reading-group .reading::placeholder { color:#c8c0b0; font-weight:500; font-size:1.35rem; }
+  .food-card .reading-group .reading:focus { outline:none; }
+  .food-card .reading-group .unit-pick { border:none; background:none; box-shadow:none; color:var(--fc-muted); font-family:var(--font-body); font-size:.9rem; padding:0; }
+  .food-card .reading-group .unit-suffix { color:var(--fc-muted); font-family:var(--font-body); font-size:.9rem; }
+  .food-card .go-btn { flex:0 0 auto; width:54px; height:54px; border-radius:50%; background:var(--fc-navy); color:#fff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 6px 16px -6px rgba(30,58,95,.6); transition:transform .08s; }
+  .food-card .go-btn:active { transform:scale(.94); }
+  .food-card .go-btn svg { width:1.5rem; height:1.5rem; }
+  .food-card .extra-eq-row { margin-top:.7rem; padding:0; background:none; border:none; }
+  .food-card .extra-eq-row .extra-eq { font-family:var(--font-body); font-size:.78rem; color:var(--fc-muted); }
+
+  /* ---- 高级：含碗/称重（同一纸面，细线分隔，克制文字） ---- */
+  .food-card .mode-bowl { margin-top:1rem; padding-top:1rem; border-top:1px dashed var(--fc-hair); display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+  .food-card .mode-bowl .mode-toggle { display:inline-flex; gap:1.1rem; background:none; border:none; padding:0; }
+  .food-card .mode-bowl .mode-toggle label { position:relative; padding:0 0 2px; margin:0; border:none; background:none; box-shadow:none; border-radius:0; font-family:var(--font-body); font-size:.82rem; color:var(--fc-faint); cursor:pointer; }
+  .food-card .mode-bowl .mode-toggle label input { position:absolute; opacity:0; width:0; height:0; }
+  .food-card .mode-bowl .mode-toggle label.active { color:var(--fc-navy); font-weight:700; border-bottom:2px solid var(--fc-gold); }
+  .food-card .bowl-row { display:inline-flex; align-items:center; gap:.4rem; margin-left:auto; font-family:var(--font-body); font-size:.82rem; color:var(--fc-muted); }
+  .food-card .bowl-row input { width:4.5rem; border:none; border-bottom:1px solid var(--fc-hair); background:none; border-radius:0; box-shadow:none; padding:0 .2rem .1rem; color:var(--fc-ink); font-variant-numeric:tabular-nums; font-family:var(--font-body); }
+  .food-card .bowl-row input:focus { outline:none; border-bottom-color:var(--fc-navy); }
+  .food-card .bowl-row select { border:none; background:none; box-shadow:none; color:var(--fc-muted); font-family:var(--font-body); font-size:.8rem; padding:0; }
+  .food-card .bowl-row.needs-bowl input { border-bottom-color:var(--fc-gold); }
+  /* 方案 A：「换新」收成一个不起眼的小开关；点开才高亮 + 冒一句大白话（不再是整行长句） */
+  .food-card .reset-row { display:inline-flex; align-items:center; gap:.6rem; margin-top:.9rem; cursor:pointer; }
+  .food-card .reset-row input { position:absolute; opacity:0; width:0; height:0; }
+  .food-card .renew-chip { display:inline-flex; align-items:center; gap:.3rem; font-family:var(--font-body); font-size:.78rem; color:var(--fc-faint); border:1px solid var(--fc-hair); border-radius:999px; padding:.2rem .62rem .2rem .5rem; transition:color .15s, border-color .15s, background .15s; }
+  .food-card .renew-ico { width:.95rem; height:.95rem; flex:0 0 auto; }
+  .food-card .reset-row input:checked ~ .renew-chip { color:var(--fc-navy); border-color:var(--fc-gold); background:var(--pet-gold-bg); font-weight:600; }
+  .food-card .renew-hint { font-family:var(--font-body); font-size:.74rem; color:var(--fc-muted); display:none; }
+  .food-card .reset-row input:checked ~ .renew-hint { display:inline; }
+  .food-card .reset-row input:focus-visible ~ .renew-chip { outline:2px solid var(--fc-navy); outline-offset:2px; }
+
+  /* ---- 次要：时间 ---- */
+  .food-card .entry-sub { display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; margin-top:1rem; }
+  .food-card .entry-sub .time-pill { background:none; border:none; box-shadow:none; padding:0; min-height:0; color:var(--fc-muted); font-family:var(--font-body); font-size:.78rem; display:inline-flex; align-items:center; gap:.35rem; cursor:pointer; }
+  .food-card .entry-sub .time-pill .tp-ico { width:auto; height:auto; background:none; border-radius:0; }
+  .food-card .entry-sub .time-pill .tp-ico svg { width:14px; height:14px; }
+  .food-card .entry-sub .time-pill .tp-lbl { color:var(--fc-faint); }
+  .food-card .entry-sub .time-pill .tp-val { color:var(--fc-navy); border-bottom:1px dotted var(--fc-navy); }
+  .food-card .entry-sub .time-pill .tp-edit { color:var(--fc-faint); font-size:.72rem; }
+  .food-card .entry-sub .time-add-end { background:none; border:none; color:var(--fc-navy); font-family:var(--font-body); font-size:.78rem; cursor:pointer; text-decoration:underline dotted; padding:0; }
+
+  /* ---- 今天的记录：细线行 ---- */
+  .food-card #entries-today { display:block; }
+  .food-card #entries-today .empty-row { color:var(--fc-faint); font-family:var(--font-body); font-size:.85rem; padding:.6rem .1rem; text-align:center; }
+
+  /* first-hint 融进纸面（去掉独立盒子的重边框） */
+  .food-card .first-hint { background:var(--pet-gold-bg); border:none; border-left:3px solid var(--fc-gold); border-radius:0 8px 8px 0; margin:0 0 1.1rem; }
