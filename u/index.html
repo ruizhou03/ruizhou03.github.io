@@ -1,0 +1,87 @@
+---
+layout: default
+title: 公开主页 | Rui Zhou
+permalink: /u/
+sitemap: false
+noindex: true
+---
+
+<article style="max-width: 640px; margin: 0 auto; padding: 3rem 1rem;">
+  <div id="pu-loading" class="pu-state">加载中…</div>
+
+  <div id="pu-empty" class="pu-state" style="display:none;">
+    <div class="pu-empty-emoji">🌫️</div>
+    <p>这个主页不存在，或对方没有公开。</p>
+    <a href="/" class="pu-home">回首页</a>
+  </div>
+
+  <div id="pu-card" class="pu-card" style="display:none;">
+    <div class="pu-av" id="pu-av"></div>
+    <h1 class="pu-nick" id="pu-nick"></h1>
+    <p class="pu-bio" id="pu-bio"></p>
+    <p class="pu-meta" id="pu-meta"></p>
+    <div id="pu-self" class="pu-self" style="display:none;">
+      <a href="/account/" class="pu-edit">这是你的主页 · 去编辑</a>
+    </div>
+  </div>
+</article>
+
+<style>
+  .pu-state { text-align:center; color:var(--color-light); padding:3rem 1rem; }
+  .pu-empty-emoji { font-size:2.4rem; margin-bottom:0.8rem; }
+  .pu-home, .pu-edit { display:inline-block; margin-top:1rem; color:var(--color-highlight); text-decoration:none; font-weight:600; }
+  .pu-home:hover, .pu-edit:hover { text-decoration:underline; }
+  .pu-card { text-align:center; padding:2.2rem 1.4rem; border:1px solid var(--color-border);
+    border-radius:18px; background:var(--color-bg-warm); }
+  .pu-av { width:96px; height:96px; border-radius:50%; margin:0 auto 1.1rem;
+    background:var(--color-highlight); color:#fff; font-size:2.6rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center; background-size:cover; background-position:center; }
+  .pu-nick { font-size:1.5rem; color:var(--color-ink); margin:0 0 0.5rem; word-break:break-word; }
+  .pu-bio { font-size:0.98rem; color:var(--color-text); line-height:1.7; margin:0 auto; max-width:34ch; word-break:break-word; }
+  .pu-bio:empty { display:none; }
+  .pu-meta { font-size:0.8rem; color:var(--color-light); margin-top:1.1rem; }
+  .pu-self { margin-top:0.8rem; }
+</style>
+
+<script>
+(function () {
+  var API = (window.SiteAuth && SiteAuth.API_BASE) || 'https://zircon-urge.fly.dev/api';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function qs(k) { try { return new URLSearchParams(location.search).get(k) || ''; } catch (e) { return ''; } }
+  function fmtDate(ts) {
+    if (!ts) return '';
+    try { return new Date(ts).toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric' }); }
+    catch (e) { return ''; }
+  }
+  var loadingEl = document.getElementById('pu-loading');
+  var emptyEl = document.getElementById('pu-empty');
+  var cardEl = document.getElementById('pu-card');
+  function showEmpty() { loadingEl.style.display = 'none'; cardEl.style.display = 'none'; emptyEl.style.display = ''; }
+
+  var id = qs('id').trim();
+  if (!/^a_[a-z0-9]+$/i.test(id)) { showEmpty(); return; }
+
+  fetch(API + '/auth?action=public-profile&id=' + encodeURIComponent(id))
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var p = d && d.ok ? d.profile : null;
+      if (!p) { showEmpty(); return; }
+      document.title = (p.nick || '公开主页') + ' | Rui Zhou';
+      var av = document.getElementById('pu-av');
+      if (p.avatar && /^data:image\//.test(p.avatar)) {
+        av.style.backgroundImage = 'url("' + p.avatar + '")'; av.style.color = 'transparent'; av.textContent = '';
+      } else { av.textContent = (p.nick || '?').trim().charAt(0).toUpperCase(); }
+      document.getElementById('pu-nick').textContent = p.nick || '锆友';
+      document.getElementById('pu-bio').textContent = p.bio || '';
+      document.getElementById('pu-meta').textContent = p.createdAt ? '加入于 ' + fmtDate(p.createdAt) : '';
+      // 如果看的是自己的主页，给个去编辑的入口
+      try {
+        var me = window.SiteAuth && SiteAuth.getUser && SiteAuth.getUser();
+        if (me && me.accountId === p.accountId) document.getElementById('pu-self').style.display = '';
+      } catch (e) {}
+      loadingEl.style.display = 'none'; emptyEl.style.display = 'none'; cardEl.style.display = '';
+    })
+    .catch(function () { showEmpty(); });
+})();
+</script>

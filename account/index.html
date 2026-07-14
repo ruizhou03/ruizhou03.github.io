@@ -123,6 +123,14 @@ noindex: true
   .acc-set-d { font-size:0.78rem; color:var(--color-light); margin-top:0.2rem; line-height:1.5; word-break:break-word; }
   .acc-set-row .acc-tool-btn { flex-shrink:0; }
   .acc-set-panel .acc-ef { margin:0.7rem 0 0.3rem; }
+  .acc-set-d a { color:var(--color-highlight); text-decoration:none; }
+  .acc-set-d a:hover { text-decoration:underline; }
+  .acc-switch { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+  .acc-switch input { opacity:0; width:0; height:0; }
+  .acc-switch-slider { position:absolute; inset:0; background:var(--color-border); border-radius:24px; transition:.2s; cursor:pointer; }
+  .acc-switch-slider::before { content:''; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+  .acc-switch input:checked + .acc-switch-slider { background:var(--color-highlight); }
+  .acc-switch input:checked + .acc-switch-slider::before { transform:translateX(20px); }
 </style>
 
 <script>
@@ -414,6 +422,12 @@ noindex: true
       settingsEl.innerHTML =
         '<h2 class="acc-set-h">账号设置</h2>' +
         '<div class="acc-set-row">' +
+          '<div class="acc-set-info"><div class="acc-set-t">公开主页</div>' +
+            '<div class="acc-set-d">开启后，别人可通过链接查看你的昵称、头像和简介（不含邮箱）；在评论区点你的名字也会跳到这里。' +
+            '<br><a id="acc-pub-link" href="/u/?id=' + encodeURIComponent(user.accountId) + '" target="_blank" rel="noopener">查看我的公开主页 →</a></div></div>' +
+          '<label class="acc-switch"><input type="checkbox" id="acc-pub-toggle"' + (user.profilePublic !== false ? ' checked' : '') + '><span class="acc-switch-slider"></span></label>' +
+        '</div>' +
+        '<div class="acc-set-row">' +
           '<div class="acc-set-info"><div class="acc-set-t">登录密码</div>' +
             '<div class="acc-set-d">' + (user.hasPassword ? '已设置，可修改。' : '你现在用 Google 登录；设置密码后也能用「邮箱 + 密码」登录。') + '</div></div>' +
           '<button class="acc-tool-btn" id="acc-pw-btn">' + (user.hasPassword ? '修改密码' : '设置密码') + '</button>' +
@@ -430,6 +444,13 @@ noindex: true
           '<button class="acc-tool-btn danger-ghost" id="acc-del-btn">注销</button>' +
         '</div>' +
         '<div class="acc-set-panel" id="acc-del-panel" hidden></div>';
+      var pubToggle = document.getElementById('acc-pub-toggle');
+      if (pubToggle) pubToggle.addEventListener('change', async function () {
+        pubToggle.disabled = true;
+        var r; try { r = await SiteAuth.updateProfile({ profilePublic: pubToggle.checked }); } catch (e) { r = { ok: false }; }
+        if (!r.ok) { pubToggle.checked = !pubToggle.checked; pubToggle.disabled = false; alert('保存失败，再试一次'); }
+        // 成功时 onChange 会整块重渲染 settings（新开关已反映最新状态）
+      });
       document.getElementById('acc-pw-btn').addEventListener('click', function () { togglePwPanel(user); });
       document.getElementById('acc-export-btn').addEventListener('click', doExport);
       document.getElementById('acc-del-btn').addEventListener('click', function () { toggleDelPanel(user); });

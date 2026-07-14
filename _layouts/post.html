@@ -1027,6 +1027,8 @@ layout: default
         };
         lock('nick', u.nick);
         lock('mail', u.email);
+        // 网址填成本人公开主页 → Waline 把评论昵称渲染成可点链接，点开即看 TA 的资料
+        if (u.accountId) lock('link', location.origin + '/u/?id=' + u.accountId);
       }
     };
     new MutationObserver(patchMeta).observe(walineEl, { childList: true, subtree: true });
