@@ -1103,12 +1103,9 @@ layout: default
       placeholder: '欢迎交流！不填昵称也可以直接发布哦...',
       pageview: true,
       comment: true,
-      texRenderer: (blockMode, tex) => {
-        if (window.katex) {
-          return window.katex.renderToString(tex, { displayMode: blockMode, throwOnError: false });
-        }
-        return tex;
-      },
+      // 不设 texRenderer：Waline 服务端已把 $...$ 渲成 SVG 存进 comment。
+      // 一旦提供 texRenderer 会强制客户端拿 orig 重渲，刷新后常因 katex 时序 / marked 转义(\int→int)失效。
+      // 交给服务端渲染 → 提交时和刷新后都稳定显示。
       highlighter: (code) => code,
       locale: {
         reactionTitle: '',

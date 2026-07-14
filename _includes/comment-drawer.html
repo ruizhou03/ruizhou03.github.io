@@ -62,6 +62,15 @@
   .cmt-drawer .wl-comment-actions .wl-action:hover { color:var(--color-accent) !important; }
   .cmt-drawer .wl-like:hover, .cmt-drawer .wl-like.active, .cmt-drawer .wl-like[class*="active"] { color:var(--color-highlight) !important; }
   .cmt-drawer .cmt-report:hover { color:#b4453a !important; }
+  .cmt-drawer .cmt-report svg { width:15px !important; height:15px !important; display:block !important; }
+  /* 编辑器精简：已有登录系统 → 去掉昵称/邮箱/网址；去 GIF；表情面板不透明 */
+  .cmt-drawer .wl-header { display:none !important; }
+  .cmt-drawer .wl-gif { display:none !important; }
+  .cmt-drawer .wl-emoji-popup { background:var(--color-bg) !important; opacity:1 !important;
+    border:1px solid var(--color-border) !important; box-shadow:0 10px 32px -10px rgba(20,25,35,.35) !important; }
+  /* 逐条动作靠右对齐；回复补「回复」二字，别只有图标 */
+  .cmt-drawer .wl-comment-actions { margin-left:auto !important; justify-content:flex-end !important; }
+  .cmt-drawer .wl-reply::after { content:'回复' !important; margin-left:.25rem !important; font-size:.8rem !important; }
 </style>
 <div class="cmt-ov" id="cmt-ov"></div>
 <aside class="cmt-drawer" id="cmt-drawer" aria-hidden="true" aria-label="评论区">
@@ -94,7 +103,8 @@
       var actions = card.querySelector('.wl-comment-actions') || (reply && reply.parentNode);
       if (!actions || actions.querySelector('.cmt-report')) return;
       var b = document.createElement('button');
-      b.type = 'button'; b.className = 'wl-action cmt-report'; b.textContent = '举报';
+      b.type = 'button'; b.className = 'wl-action cmt-report'; b.title = '举报'; b.setAttribute('aria-label', '举报');
+      b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
       actions.appendChild(b);
       b.addEventListener('click', function () {
         var nick = (card.querySelector('.wl-nick') || {}).textContent || '';
