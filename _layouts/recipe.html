@@ -157,7 +157,8 @@ layout: default
     .sa-pb-btn.sa-pb-fav.active svg { fill: var(--color-highlight); stroke: var(--color-highlight); }
     .sa-pb-btn[disabled] { opacity: 0.55; cursor: default; }
     .sa-pb-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-    .sa-pb-hint { font-size: 0.72rem; color: var(--color-light); margin-left: auto; white-space: nowrap; }
+    .sa-pb-btn.sa-pb-share { margin-left: auto; }   /* 分享靠最右 */
+    .sa-pb-hint { font-size: 0.72rem; color: var(--color-light); margin-left: 0.55rem; white-space: nowrap; }
     @media (max-width: 768px) {
       .sa-postbar {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
@@ -168,13 +169,16 @@ layout: default
       }
       .sa-postbar.sa-pb-away { transform: translateY(130%); }
       .sa-pb-btn { flex: 1; justify-content: center; padding: 0.5rem 0.3rem; }
+      .sa-pb-btn.sa-pb-share { margin-left: 0; }   /* 手机端等分，不额外右推 */
       .sa-pb-hint { display: none; }
       body.has-postbar { padding-bottom: 3.6rem; }
     }
   </style>
+  {%- assign _share_cat = page.category | default: "菜谱" -%}
   <div id="sa-postbar" class="sa-postbar" style="display:none;"
        data-post="{{ page.permalink | default: page.url }}"
        data-title="{{ page.title | escape }}"
+       data-cat="{{ _share_cat }}"
        data-url="{{ page.url }}">
     <button type="button" class="sa-pb-btn" data-act="like" aria-pressed="false" aria-label="赞同">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11v9M2 12v7a1 1 0 0 0 1 1h3V11H3a1 1 0 0 0-1 1zM7 11l4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2l-2 7a1 1 0 0 1-1 1H7"/></svg>
@@ -188,8 +192,8 @@ layout: default
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <span class="sa-pb-num waline-comment-count" data-path="{{ page.url }}">·</span>
     </button>
-    <button type="button" class="sa-pb-btn" data-act="share" aria-label="分享">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+    <button type="button" class="sa-pb-btn sa-pb-share" data-act="share" aria-label="复制分享链接" title="复制「标题 + 链接」到剪贴板">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
     </button>
     <span class="sa-pb-hint"></span>
   </div>
@@ -321,19 +325,18 @@ layout: default
           }
           setTimeout(function () { paint(); }, 2200);
         }
+        // 分享 = 直接把「【栏目】标题 + 链接」复制到剪贴板，用户自己贴给别人（不弹系统分享面板）
+        var CAT = bar.dataset.cat || '';
         shareBtn.addEventListener('click', async function () {
           var link = location.origin + (URL || location.pathname);
-          if (navigator.share) {
-            try { await navigator.share({ title: TITLE, url: link }); } catch (e) { return; }
-            afterShare('已分享'); return;
-          }
+          var text = (CAT ? '【' + CAT + '】' : '') + TITLE + '\n' + link;
           var ok = false;
-          try { await navigator.clipboard.writeText(link); ok = true; }
+          try { await navigator.clipboard.writeText(text); ok = true; }
           catch (e) {
-            try { var t = document.createElement('textarea'); t.value = link; t.style.position = 'fixed'; t.style.opacity = '0';
+            try { var t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
               document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (e2) {}
           }
-          if (ok) afterShare('已复制链接');
+          if (ok) afterShare('已复制标题 + 链接');
         });
         // onChange 注册时会立即回调一次 → 完成首次加载；之后登录/登出再刷新状态
         SiteAuth.onChange(function () { loadStatus(); });
