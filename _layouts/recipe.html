@@ -159,6 +159,11 @@ layout: default
     .sa-pb-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
     .sa-pb-btn.sa-pb-share { margin-left: auto; }   /* 分享靠最右 */
     .sa-pb-hint { font-size: 0.72rem; color: var(--color-light); margin-left: 0.55rem; white-space: nowrap; }
+    .sa-toast { position: fixed; left: 50%; bottom: 4.6rem; transform: translateX(-50%) translateY(10px); z-index: 1300;
+      background: var(--color-ink); color: #fff; font-size: 0.86rem; font-family: var(--font-body);
+      padding: 0.55rem 1.1rem; border-radius: 999px; box-shadow: 0 6px 24px -8px rgba(20,25,35,.5);
+      opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; white-space: nowrap; }
+    .sa-toast.on { opacity: 1; transform: translateX(-50%); }
     @media (max-width: 768px) {
       .sa-postbar {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
@@ -287,12 +292,25 @@ layout: default
         }
         function onFavClick() {
           if (!SiteAuth.isLoggedIn()) { SiteAuth.openLogin && SiteAuth.openLogin('login'); return; }
-          if (!state.favorited) {
-            state.favorited = true;
-            if (typeof state.favCount === 'number') state.favCount = state.favCount + 1;
+          if (state.favorited) {
+            // 取消收藏：灭星 + 从收藏移除
+            state.favorited = false;
+            if (typeof state.favCount === 'number') state.favCount = Math.max(0, state.favCount - 1);
             paint();
-            favMove('');
+            var seq = ++inflight.fav;
+            SiteAuth.authedFetch(api + '?action=remove', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ kind: 'fav', post: POST }),
+            }).then(function (r) { return r.json(); }).then(function (d) {
+              if (seq === inflight.fav && (!d || !d.ok)) { state.favorited = true; if (typeof state.favCount === 'number') state.favCount += 1; paint(); }
+            }).catch(function () { if (seq === inflight.fav) { state.favorited = true; if (typeof state.favCount === 'number') state.favCount += 1; paint(); } });
+            return;
           }
+          // 收藏：点亮 + 落默认夹 + 开选夹弹层
+          state.favorited = true;
+          if (typeof state.favCount === 'number') state.favCount = state.favCount + 1;
+          paint();
+          favMove('');
           if (window.FavPicker) window.FavPicker.open({ post: POST, title: TITLE, url: URL, onChange: function (fav) {
             if (state.favorited !== fav) {
               state.favorited = fav;
@@ -313,19 +331,16 @@ layout: default
           if (e.target.closest && e.target.closest('#waline')) bar.classList.remove('sa-pb-away');
         });
 
-        // 分享：原生分享(手机) / 复制链接(桌面)；登录用户分享 +3（每日≤15）。桌面反馈走 hint。
+        // 分享 = 复制「【栏目】标题 + 链接」到剪贴板；反馈走一次性小浮窗（含经验，避免「已复制」后又蹦 +3）
         var shareBtn = bar.querySelector('[data-act="share"]');
-        function afterShare(msg) {
-          hint.textContent = msg;
-          if (SiteAuth.isLoggedIn() && SiteAuth.share) {
-            SiteAuth.share(POST).then(function (pr) {
-              if (pr && pr.data && pr.data.awarded > 0) hint.textContent = msg + ' +' + pr.data.awarded;
-            }).catch(function () {});
-          }
-          setTimeout(function () { paint(); }, 2200);
-        }
-        // 分享 = 直接把「【栏目】标题 + 链接」复制到剪贴板，用户自己贴给别人（不弹系统分享面板）
         var CAT = bar.dataset.cat || '';
+        function saToast(msg) {
+          var t = document.getElementById('sa-toast');
+          if (!t) { t = document.createElement('div'); t.id = 'sa-toast'; t.className = 'sa-toast'; document.body.appendChild(t); }
+          t.textContent = msg;
+          t.classList.remove('on'); void t.offsetWidth; t.classList.add('on');
+          clearTimeout(saToast._t); saToast._t = setTimeout(function () { t.classList.remove('on'); }, 2200);
+        }
         shareBtn.addEventListener('click', async function () {
           var link = location.origin + (URL || location.pathname);
           var text = (CAT ? '【' + CAT + '】' : '') + TITLE + '\n' + link;
@@ -335,7 +350,17 @@ layout: default
             try { var t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
               document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (e2) {}
           }
-          if (ok) afterShare('已复制标题 + 链接');
+          if (!ok) return;
+          if (SiteAuth.isLoggedIn() && SiteAuth.share) {
+            var done = false;
+            var finish = function (extra) { if (done) return; done = true; saToast('已复制链接' + (extra || '')); };
+            SiteAuth.share(POST).then(function (pr) {
+              finish(pr && pr.data && pr.data.awarded > 0 ? ' · 经验 +' + pr.data.awarded : '');
+            }).catch(function () { finish(''); });
+            setTimeout(function () { finish(''); }, 600);
+          } else {
+            saToast('已复制链接');
+          }
         });
         // onChange 注册时会立即回调一次 → 完成首次加载；之后登录/登出再刷新状态
         SiteAuth.onChange(function () { loadStatus(); });

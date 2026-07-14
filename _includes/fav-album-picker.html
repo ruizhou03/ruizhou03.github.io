@@ -66,16 +66,6 @@
     }).catch(function () {});
     close();
   }
-  function removeFav() {
-    if (!cur) return;
-    SiteAuth.authedFetch(API + '?action=fav', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ post: cur.post, title: cur.title, url: cur.url }),
-    }).then(function (r) { return r.json(); }).then(function (d) {
-      if (d && d.ok && cur && cur.onChange) cur.onChange(d.active === true);
-    }).catch(function () {});
-    close();
-  }
   function render(albums) {
     var html = albums.map(function (a) {
       return '<button type="button" class="favp-opt" data-alb="' + esc(a.id) + '">' +
@@ -83,13 +73,11 @@
         '<span class="favp-ct">' + (a.count || 0) + ' 篇</span></button>';
     }).join('');
     html += '<button type="button" class="favp-opt favp-new" id="favp-new">' + String.fromCharCode(65291) + ' 新建收藏夹</button>';
-    html += '<button type="button" class="favp-opt favp-remove" id="favp-remove">从收藏移除</button>';
     listEl.innerHTML = html;
     listEl.querySelectorAll('.favp-opt[data-alb]').forEach(function (b) {
       b.addEventListener('click', function () { move(b.dataset.alb); });
     });
     document.getElementById('favp-new').addEventListener('click', showNewRow);
-    document.getElementById('favp-remove').addEventListener('click', removeFav);
   }
   function showNewRow() {
     if (listEl.querySelector('.favp-newrow')) return;
