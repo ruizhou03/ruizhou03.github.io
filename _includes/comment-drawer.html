@@ -74,6 +74,13 @@
   .cmt-drawer .cmt-report.cmt-reported { color:#b4453a !important; opacity:.65 !important; }
   /* 预览按钮(放大镜)补「预览」二字，别让人猜 */
   .cmt-drawer .wl-preview::after { content:'预览' !important; margin-left:.2rem !important; font-size:.78rem !important; vertical-align:middle !important; }
+  /* 粘贴图片的缩略图预览条 */
+  .cmt-paste-strip { display:flex; flex-wrap:wrap; gap:.5rem; padding:.55rem 0 .1rem; }
+  .cmt-thumb { position:relative; display:inline-block; line-height:0; }
+  .cmt-thumb img { height:58px; width:58px; object-fit:cover; border-radius:8px; border:1px solid var(--color-border); display:block; }
+  .cmt-thumb-x { position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; border:0;
+    background:var(--color-ink); color:#fff; font-size:12px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
+  .cmt-thumb-x:hover { background:#b4453a; }
 </style>
 <div class="cmt-ov" id="cmt-ov"></div>
 <aside class="cmt-drawer" id="cmt-drawer" aria-hidden="true" aria-label="评论区">
@@ -129,7 +136,8 @@
   new MutationObserver(inject).observe(host, { childList: true, subtree: true });
   inject();
 })();
-// 粘贴图片：Waline 会上传并插入 markdown 源码（能发能显示，但源码不直观）→ 给个明确反馈
+// 粘贴图片：Waline 仍上传并在输入框插 markdown 源码；我们额外在输入框下方显示缩略图预览条，
+// 让用户一眼看到图进去了（不用盯着 markdown 源码）。发布 / 清空后自动移除。
 (function () {
   var host = document.getElementById('waline');
   if (!host) return;
@@ -139,11 +147,44 @@
     t.textContent = msg; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on');
     clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('on'); }, 2400);
   }
+  function clearStrip() {
+    var s = host.querySelector('.cmt-paste-strip');
+    if (!s) return;
+    Array.prototype.forEach.call(s.querySelectorAll('img'), function (im) { try { URL.revokeObjectURL(im.src); } catch (e) {} });
+    s.remove();
+  }
+  function addThumb(file, textarea) {
+    var url = URL.createObjectURL(file);
+    var strip = host.querySelector('.cmt-paste-strip');
+    if (!strip) {
+      strip = document.createElement('div'); strip.className = 'cmt-paste-strip';
+      var anchor = textarea || host.querySelector('textarea') || host.querySelector('.wl-editor');
+      if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(strip, anchor.nextSibling);
+      else host.appendChild(strip);
+    }
+    var wrap = document.createElement('span'); wrap.className = 'cmt-thumb';
+    var img = document.createElement('img'); img.src = url; img.alt = '粘贴的图片';
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'cmt-thumb-x'; x.title = '移除预览'; x.textContent = '×';
+    x.addEventListener('click', function () { try { URL.revokeObjectURL(url); } catch (e) {} wrap.remove(); if (strip && !strip.children.length) strip.remove(); });
+    wrap.appendChild(img); wrap.appendChild(x); strip.appendChild(wrap);
+  }
   host.addEventListener('paste', function (e) {
     var items = (e.clipboardData && e.clipboardData.items) || [];
     for (var i = 0; i < items.length; i++) {
-      if (items[i].type && items[i].type.indexOf('image') === 0) { toast('图片已插入，发布后即可显示 🖼'); break; }
+      if (items[i].type && items[i].type.indexOf('image') === 0) {
+        var file = items[i].getAsFile();
+        if (file) { addThumb(file, (e.target && e.target.tagName === 'TEXTAREA') ? e.target : null); toast('图片已插入，发布后即可显示 🖼'); }
+        break;
+      }
     }
+  }, true);
+  // 输入框清空（含提交后 Waline 重置）→ 移除预览条
+  host.addEventListener('input', function (e) {
+    if (e.target && e.target.tagName === 'TEXTAREA' && !(e.target.value || '').trim()) clearStrip();
+  }, true);
+  host.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('.wl-btn') : null;
+    if (btn && /提交|发送|发布/.test(btn.textContent || '')) setTimeout(clearStrip, 700);
   }, true);
 })();
 </script>
