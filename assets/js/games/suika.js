@@ -456,7 +456,9 @@
     }
   }
   function triggerKonami() {
-    if (isOver || !world) return;
+    if (isOver || !world || !gameStarted) return;
+    // 限每局 3 次：Konami 天降西瓜 = +100 分/次，不加 budget 可反复刷高分（与 full 暗号同理）。
+    if (!checkAndConsumeCheatBudget('konami', 3)) return;
     // 在画面中部丢一颗西瓜：西瓜 r=96，从 y=110 出发 top edge=14 仍在 canvas 内、
     // 且刚好在 DANGER_Y=100 下方，避免一出现就触发 game over。
     const watermelon = createFruitBody(11, $canvas.width / 2, 110);
@@ -737,6 +739,7 @@
   const $melonCount = document.getElementById('melon-count');
   const $melonEmoji = document.getElementById('melon-emoji');
   const $evoChain = document.getElementById('evo-chain');
+  const $evoChainWrap = document.getElementById('evo-chain-wrap');
   const $startOverlay = document.getElementById('start-overlay');
   const $startBtn = document.getElementById('start-btn');
   const $startBest = document.getElementById('start-best');
@@ -1023,6 +1026,7 @@
     $startOverlay.classList.remove('open');
     $pauseBtn.textContent = '⏸ 暂停';
     gameStarted = true;
+    setGameChromeVisible(true);
     setFocus(true);
     highlightEvoChain(runMaxLevel);
     updateScoreUI();
@@ -1243,6 +1247,8 @@
   let touchActive = false;
   $canvas.addEventListener('touchstart', e => {
     e.preventDefault();
+    // 多指防误触：已有活跃触点时忽略后续手指，不重置 hover 位置（否则第二指落下会跳位）
+    if (touchActive) return;
     touchActive = true;
     moveHover(getCanvasX(e));
     hoverVx = 0;
@@ -1253,6 +1259,8 @@
   }, { passive: false });
   $canvas.addEventListener('touchend', e => {
     e.preventDefault();
+    // 还有别的手指按着 → 不投放、不清 touchActive；只有最后一根手指抬起才落子
+    if (e.touches.length > 0) return;
     if (touchActive) dropCurrent();
     touchActive = false;
   }, { passive: false });
@@ -1745,6 +1753,13 @@
     if (typeof runMaxLevel !== 'undefined' && runMaxLevel > 0) {
       highlightEvoChain(runMaxLevel);
     }
+    updateEvoScrollHint();
+  }
+  // 溢出（窄屏放不下 11 级）时给 wrapper 加 .is-scrollable → 右缘渐隐提示可滑动。
+  function updateEvoScrollHint() {
+    if (!$evoChainWrap) return;
+    const scrollable = $evoChain.scrollWidth > $evoChain.clientWidth + 2;
+    $evoChainWrap.classList.toggle('is-scrollable', scrollable);
   }
   // 给本局合到的最高级水果在进化链里加 .reached 高亮。
   function highlightEvoChain(maxLv) {
@@ -1945,6 +1960,14 @@
     nextTremorAt = 0;
   }
 
+  // 控制栏 / 预览条只在开局后出现：未开局时藏起来，避免「重开」绕过模式选择器直接开局。
+  const $controlsRow = document.getElementById('controls-row');
+  const $previewRow = document.getElementById('preview-row');
+  function setGameChromeVisible(show) {
+    if ($controlsRow) $controlsRow.hidden = !show;
+    if ($previewRow) $previewRow.hidden = !show;
+  }
+
   function restart() {
     if (engine) {
       World.clear(world, false);
@@ -1992,6 +2015,7 @@
     updateScoreUI();
     updateNextFruitUI();
     gameStarted = true;
+    setGameChromeVisible(true);
     setFocus(true);
   }
 
@@ -2005,6 +2029,7 @@
     resetTransientRunState();   // 新局不继承上局暗号/地震残留
     $startOverlay.classList.remove('open');
     gameStarted = true;
+    setGameChromeVisible(true);
     setFocus(true);
     // 开局重置 leaderboard 相关本局状态（restart 也走这个分支）
     runMaxLevel = 0;
@@ -2026,15 +2051,20 @@
 
   // 回主菜单：清掉游戏结束幕 + 重置 run state + 打开 start-overlay 主视图
   // 让玩家在结算后能换模式/换链/换调参，不必刷新整页。
-  document.getElementById('ov-to-menu').addEventListener('click', () => {
+  // 回主菜单：结算页「回主菜单」+ 局中调参「放弃本局回主菜单」共用。
+  // 清干净一局状态、隐藏控制栏、收回持久模式偏好、显示主视图。
+  function backToMainMenu() {
     if (engine) {
       World.clear(world, false);
       Engine.clear(engine);
     }
     setupWorld();
     resetTransientRunState();   // 回主菜单也清干净暗号/地震残留
+    ++trialToken;               // 作废任何在途试玩定时器
+    trialMode = false;
     isOver = false;
     isPaused = false;
+    inGameSettings = false;
     score = 0;
     runMaxLevel = 0;
     runMelons = 0;
@@ -2042,6 +2072,7 @@
     unlimitedMode = false;
     gameStarted = false;
     hoverFruit = null;
+    hoverVx = 0;
     spaceHeldSince = null;
     fountainCooldownUntil = 0;
     clearHoverRespawn();
@@ -2049,16 +2080,23 @@
     nextLevelQueue = [];
     ensureQueueFilled();
     nextLevel = nextLevelQueue[0];
+    // 收回持久模式偏好：续局曾把内存 gameMode 改成存档模式而不落盘，回菜单时对齐持久值。
+    gameMode = loadGameMode();
+    syncActivePhysics();
+    setGameChromeVisible(false);
     $overlay.classList.remove('open');
     $gameZone.classList.remove('over');
+    $pauseBtn.textContent = '⏸ 暂停';
     $startOverlay.classList.add('open');
     showOverlayView('main');
     setFocus(false);
     updateScoreUI();
     updateNextFruitUI();
     highlightEvoChain(0);
-    applyModeSelection();   // 反映当前 gameMode（万一是从 unlimited 局回来）
-  });
+    applyModeSelection();      // 反映当前 gameMode
+    refreshSettingsActions();  // 面板锁定状态跟随模式
+  }
+  document.getElementById('ov-to-menu').addEventListener('click', backToMainMenu);
 
   // ============ 模式选择器（segmented control）============
   const MODE_DESC_TEXT = {
@@ -2109,6 +2147,7 @@
   const $lbTabs = document.getElementById('sk-lb-tabs');
   let lbLastFetch = 0;
   let lbInflight = false;
+  let lbReqSeq = 0;   // 榜单请求自增序号，落地时按它丢弃过期请求（防切 tab / 翻页错位渲染）
   let lbExpanded = false;
   let lbPage = 1;             // 1-based
   const LB_LIMIT = 5;
@@ -2216,17 +2255,17 @@
     if (lbInflight) return;
     if (!force && Date.now() - lbLastFetch < 10000) return; // 10s 内不重复打
     lbInflight = true;
+    const mySeq = ++lbReqSeq;   // 自增序号：任何被后发请求取代的旧请求一律丢弃（含 setLbViewMode 强清 inflight 后的并发）
     $lbRefresh.classList.add('spinning');
     // 折叠：top 5；展开：第 N 页 LB_PAGE_SIZE 条
     const limit = lbExpanded ? LB_PAGE_SIZE : LB_LIMIT;
     const offset = lbExpanded ? (lbPage - 1) * LB_PAGE_SIZE : 0;
-    const fetchMode = lbViewMode;   // 闭包冻住，防止 in-flight 时切 tab 错把结果渲染到新 tab
+    const fetchMode = lbViewMode;   // 闭包冻住，落地时按它归桶
     const url = `${LEADERBOARD_API}?action=top&mode=${encodeURIComponent(fetchMode)}&limit=${limit}&offset=${offset}`;
     const r = await callBackend(url, {}, 5000);
-    if (fetchMode !== lbViewMode) {
-      // 用户已经切到别的 tab，丢弃这次结果
-      lbInflight = false;
-      $lbRefresh.classList.remove('spinning');
+    if (mySeq !== lbReqSeq) {
+      // 已有更晚的请求发出（切 tab / 翻页 / 刷新）→ 丢弃本次，避免错位渲染 + 污染 10s 缓存窗。
+      // 不动 lbInflight / spinner：那由最新那个请求负责收尾。
       return;
     }
     $lbRefresh.classList.remove('spinning');
@@ -2286,9 +2325,8 @@
     if (!data || !data.exists) {
       const span = document.createElement('span');
       span.className = 'sk-lb-mine-label';
-      span.textContent = (data && data.plays > 0)
-        ? '上次成绩还没上传成功 ~'
-        : '还没玩过 — 来一局看看你的排名 ~';
+      // 单一中性文案：不再用 plays>0 猜「玩过但没上传」——那条基本触发不到、且会误伤反复失败的玩家
+      span.textContent = '还没上榜 — 来一局看看你的排名 ~';
       $lbMine.appendChild(span);
       return;
     }
@@ -2760,12 +2798,38 @@
   }
 
   // 截图按钮：把面板里冻结的 dataURL 触发下载（iOS Safari 走打开新 tab）
-  function takeSnapshot() {
+  // dataURL → Blob（同步，避免 fetch 异步破坏 navigator.share 的用户手势要求）
+  function dataURLToBlob(dataUrl) {
+    const [head, b64] = dataUrl.split(',');
+    const mime = (head.match(/data:([^;]+)/) || [])[1] || 'image/png';
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
+  async function takeSnapshot() {
     const dataUrl = $ovSnapshot.dataset && $ovSnapshot.dataset.dataUrl;
     if (!dataUrl) return;
     const filename = `suika_${score}_${Date.now()}.png`;
     const ua = String(navigator.userAgent || '');
     const isIos = /iPhone|iPad|iPod/i.test(ua);
+    const isStandalone = (typeof navigator.standalone === 'boolean' && navigator.standalone)
+      || (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches);
+    // iOS / Android / 已安装 PWA：优先系统分享——standalone 下 window.open 常被拦、下载也不便，
+    // 分享 PNG File 能直达「存储到照片」。桌面非 standalone 保持原下载逻辑。
+    if (navigator.share && typeof File === 'function' && (isIos || isStandalone || /Android/i.test(ua))) {
+      try {
+        const file = new File([dataURLToBlob(dataUrl)], filename, { type: 'image/png' });
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: '合成大西瓜', text: `我合成大西瓜得了 ${score} 分！` });
+          return;
+        }
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;   // 用户取消分享，静默
+        // 其它错误 → 落到下面的兜底路径
+      }
+    }
     if (isIos) {
       const w = window.open();
       if (w) {
@@ -2835,6 +2899,7 @@
   const $startFromSettingsBtn = document.getElementById('start-from-settings-btn');
   const $settingsToMenuBtn = document.getElementById('settings-to-menu-btn');
   const $resetPhysicsBtn = document.getElementById('reset-physics-btn');
+  const $settingsAbandonBtn = document.getElementById('settings-abandon-btn');
   const $settingsLockNote = document.getElementById('settings-lock-note');
   // 竞技模式要锁死的物理调参控件（5 个滑条组，HTML 上标了 .settings-lockable）
   const lockableEls = Array.from(document.querySelectorAll('#view-settings .settings-lockable'));
@@ -2853,6 +2918,8 @@
     // 「返回主菜单」只在非游戏中（开局前的调参）出现：游戏中要退出走 继续/重开，
     // 避免暂停中的对局被误跳回主菜单丢进度。（修复：调参/试玩进去后回不到模式选择器）
     $settingsToMenuBtn.style.display    = inGame ? 'none' : '';
+    // 游戏中：给一条明确出口「放弃本局回主菜单」（带 confirm），方便局中换玩法模式
+    $settingsAbandonBtn.style.display   = inGame ? '' : 'none';
     lockableEls.forEach(el => { el.style.display = ranked ? 'none' : ''; });
     if ($settingsLockNote) $settingsLockNote.style.display = ranked ? '' : 'none';
   }
@@ -2903,6 +2970,12 @@
     inGameSettings = false;
     showOverlayView('main');
     applyModeSelection();   // 保证模式 tab 高亮与 gameMode 一致（防御性）
+  });
+
+  // 局中调参幕「放弃本局回主菜单」：带确认，复用 backToMainMenu 清局 + 回主视图换模式。
+  $settingsAbandonBtn.addEventListener('click', () => {
+    if (score > 0 && !confirm('放弃本局回主菜单？当前分数会丢失。')) return;
+    backToMainMenu();
   });
 
   // 视图切换
@@ -3108,6 +3181,8 @@
     $startOverlay.classList.remove('open');
     try {
       applySavedState(save);
+      // 续局后把右侧竞技榜切到本局模式（自由模式无公开榜，不切）
+      if (isRankedMode()) setLbViewMode(gameMode, true);
       // 不清存档：玩家仍在玩，下次离开还是会自动 save 覆盖
     } catch (e) {
       console.error('[suika] applySavedState failed', e);
@@ -3244,7 +3319,7 @@
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(refitCanvas, 200);
+    resizeTimer = setTimeout(() => { refitCanvas(); updateEvoScrollHint(); }, 200);
   });
 
   // 画幅 preset 按钮

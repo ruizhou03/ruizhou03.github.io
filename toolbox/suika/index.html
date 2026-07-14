@@ -134,6 +134,22 @@ theme_color: "#fafaf9"
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
+  /* 未开局隐藏控制栏 / 预览条（都是 flex，[hidden] 需显式压过 display:flex，本站踩过多次） */
+  .controls-row[hidden], .preview-row[hidden] { display: none !important; }
+  /* 破坏性按钮（重开 / 结算）暖红描边，与暂停/调参视觉分层，降低误触；结算再拉开间距 */
+  .controls-row button.danger { border-color: rgba(199, 78, 57, 0.5); color: #c0503c; }
+  @media (hover: hover) {
+    .controls-row button.danger:hover { border-color: #c0503c; color: #a63a29; }
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .controls-row button.danger {
+      color: #e88a78; border-color: rgba(232, 138, 120, 0.45);
+    }
+  }
+  :root[data-theme="dark"] .controls-row button.danger {
+    color: #e88a78; border-color: rgba(232, 138, 120, 0.45);
+  }
+  .controls-row button#settle-btn { margin-left: 0.5rem; }
 
   .preview-row {
     display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
@@ -315,10 +331,18 @@ theme_color: "#fafaf9"
   }
 
   /* 进化链可视化（主游戏底部，单行 + 箭头，溢出时横向滚动 + 居中） */
+  .evo-chain-wrap { position: relative; margin-top: 0.8rem; }
+  /* 溢出时右缘渐隐，暗示可横向滑动看完 11 级；在 wrapper 上（不随内容滚动），
+     且只在真的溢出(.is-scrollable)时出现，避免宽屏放得下时把西瓜也淡掉 */
+  .evo-chain-wrap.is-scrollable::after {
+    content: ''; position: absolute; top: 0; right: 0; bottom: 0;
+    width: 2rem; border-radius: 0 10px 10px 0;
+    background: linear-gradient(to right, transparent, var(--color-bg-warm));
+    pointer-events: none;
+  }
   .evo-chain {
     display: flex; align-items: center;
     gap: 0.25rem;
-    margin-top: 0.8rem;
     padding: 0.55rem 0.7rem;
     background: var(--color-bg-warm);
     border-radius: 10px;
@@ -1187,6 +1211,7 @@ theme_color: "#fafaf9"
         <button type="button" class="ov-btn" id="resume-from-settings-btn" style="margin-top: 0.8rem; display: none;">▶ 继续游戏</button>
         <button type="button" class="settings-link" id="restart-from-settings-btn" style="margin-top: 0.8rem; display: none;">↻ 重新开始</button>
         <button type="button" class="settings-link" id="settings-to-menu-btn" style="margin-top: 0.6rem; display: none;">↶ 返回主菜单（换模式）</button>
+        <button type="button" class="settings-link" id="settings-abandon-btn" style="margin-top: 0.6rem; display: none;">⤺ 放弃本局回主菜单</button>
       </div>
 
       <!-- 试玩结束视图 -->
@@ -1250,21 +1275,24 @@ theme_color: "#fafaf9"
     </div>
   </div>
 
-  <div class="preview-row">
+  <div class="preview-row" id="preview-row" hidden>
     <span>下一个：<span class="next-fruit" id="next-fruit">🍒</span></span>
     <span style="opacity: 0.5;">·</span>
     <span class="melon-count">已合成 <strong id="melon-count">0</strong> 个 <span id="melon-emoji">🍉</span></span>
   </div>
 
-  <div class="controls-row">
-    <button type="button" id="restart-btn">🔄 重开</button>
+  <!-- 控制栏未开局时隐藏（避免「重开」绕过模式选择器直接开局）；重开/结算标 danger 防误触 -->
+  <div class="controls-row" id="controls-row" hidden>
+    <button type="button" id="restart-btn" class="danger">🔄 重开</button>
     <button type="button" id="pause-btn">⏸ 暂停</button>
-    <button type="button" id="settle-btn">🏁 结算</button>
     <button type="button" id="settings-btn">⚙ 调参</button>
+    <button type="button" id="settle-btn" class="danger">🏁 结算</button>
   </div>
 
-  <div class="evo-chain" id="evo-chain">
-    <!-- JS 填充进化链 -->
+  <div class="evo-chain-wrap" id="evo-chain-wrap">
+    <div class="evo-chain" id="evo-chain">
+      <!-- JS 填充进化链 -->
+    </div>
   </div>
 
   <!-- 排行榜面板（桌面端 fixed 浮在右侧空白处；窄屏 inline 显示在游戏下方） -->
