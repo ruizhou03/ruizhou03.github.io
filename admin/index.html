@@ -639,13 +639,28 @@ body_class: adm-page
   function drawTrendLine(pts, mkey) {
     ensureECharts().then(function () {
       var p = palette(), c = makeChart('rk-trend'); if (!c) return;
+      // 状态阴影：把连续的 下架(1)/删除(2) 天段做成 markArea——低流量下平线分不清「下架」还是「没人看」，这里明确标出来
+      var areas = [], run = null;
+      pts.forEach(function (x) {
+        var s = x.status || 0;
+        if (s > 0) {
+          if (!run || run.s !== s) { if (run) areas.push(run); run = { s: s, from: x.date, to: x.date }; }
+          else { run.to = x.date; }
+        } else if (run) { areas.push(run); run = null; }
+      });
+      if (run) areas.push(run);
+      var markArea = areas.length ? { silent: true, data: areas.map(function (a) {
+        return [{ xAxis: String(a.from).slice(5), itemStyle: { color: a.s === 2 ? 'rgba(181,72,58,0.12)' : 'rgba(201,169,110,0.18)' },
+          label: { show: true, position: 'insideTop', color: p.muted, fontSize: 10, formatter: (a.s === 2 ? '删除' : '下架') } },
+          { xAxis: String(a.to).slice(5) }];
+      }) } : undefined;
       c.setOption({
         grid: { left: 6, right: 14, top: 16, bottom: 4, containLabel: true },
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', boundaryGap: false, data: pts.map(function (x) { return String(x.date || '').slice(5); }) },
         yAxis: { type: 'value', minInterval: 1 },
         series: [{ type: 'line', smooth: false, symbol: 'circle', symbolSize: 4, data: pts.map(function (x) { return x[mkey] || 0; }),
-          lineStyle: { width: 2, color: p.accent }, itemStyle: { color: p.accent }, areaStyle: { color: p.accent, opacity: 0.12 } }]
+          lineStyle: { width: 2, color: p.accent }, itemStyle: { color: p.accent }, areaStyle: { color: p.accent, opacity: 0.12 }, markArea: markArea }]
       });
     }).catch(function () { fallback('rk-trend', '图表加载失败'); });
   }
