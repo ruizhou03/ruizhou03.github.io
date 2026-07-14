@@ -758,6 +758,7 @@
   const $weightTimeToggle = document.getElementById('weight-time-toggle');
   const $weightTimeVal = document.getElementById('weight-time-val');
   const $weightHero = document.getElementById('weight-hero');
+  const $weightHeroRule = document.getElementById('weight-hero-rule');
   const $whNum = document.getElementById('wh-num');
   const $whUnit = document.getElementById('wh-unit');
   const $whSub = document.getElementById('wh-sub');
@@ -4056,6 +4057,7 @@
     // Featured current-weight card: current weight + change vs ~30 days ago.
     if (ws.length === 0) {
       $weightHero.style.display = 'none';
+      if ($weightHeroRule) $weightHeroRule.style.display = 'none';
     } else {
       const curKg = Number(ws[ws.length - 1].kg);
       const curTs = ws[ws.length - 1].ts;
@@ -4074,6 +4076,7 @@
       $whUnit.textContent = unit;
       $whSub.innerHTML = subHtml;
       $weightHero.style.display = '';
+      if ($weightHeroRule) $weightHeroRule.style.display = '';
     }
     // Windowed entries drive the chart.
     const win = weightWindow();

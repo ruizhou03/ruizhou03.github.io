@@ -241,39 +241,42 @@
 
     <!-- ===== 体重 board ===== -->
     <div class="board-panel" id="panel-weight" data-board="weight" role="tabpanel" aria-labelledby="tab-weight">
-      <div class="section-title">体重记录</div>
-      <div class="weight-hero" id="weight-hero" style="display:none;">
-        <div class="wh-main"><span class="wh-num" id="wh-num">—</span><span class="wh-unit" id="wh-unit">斤</span></div>
-        <div class="wh-sub" id="wh-sub">当前体重</div>
-      </div>
-      <div class="weight-box" id="weight-box">
-        <div class="weight-cols">
-          <!-- LEFT: 直接称 / 作差 stacked as a column (mirrors the food-type column) -->
-          <div class="weight-method" id="weight-method">
-            <label data-val="direct" class="active"><input type="radio" name="wmethod" value="direct" checked>直接称</label>
-            <label data-val="diff"><input type="radio" name="wmethod" value="diff">作差·抱着称</label>
+      <div class="food-card">
+        <!-- HERO：当前体重（秤面）-->
+        <div class="food-hero weight-hero" id="weight-hero" style="display:none;">
+          <div class="fh-lbl">当前体重</div>
+          <div class="fh-num"><span id="wh-num">—</span> <em id="wh-unit">斤</em></div>
+          <div class="fh-wsub" id="wh-sub">当前体重</div>
+        </div>
+
+        <div class="fc-rule" id="weight-hero-rule" style="display:none;"></div>
+
+        <!-- 记体重 -->
+        <div class="log-sec">
+          <div class="log-head"><span class="log-lbl">记体重</span></div>
+          <div class="method-toggle weight-method" id="weight-method">
+            <label data-val="direct" class="active"><input type="radio" name="wmethod" value="direct" checked><span>直接称</span></label>
+            <label data-val="diff"><input type="radio" name="wmethod" value="diff"><span>抱着称·作差</span></label>
           </div>
 
-          <!-- MIDDLE: fixed-width fill block -->
-          <div class="weight-fill">
-            <!-- 直接称：宠物自己上秤，或已经自己算好差值直接填 -->
-            <div class="weight-single" id="weight-single">
-              <div class="reading-group weight-reading">
-                <input type="number" class="reading" id="weight-input" step="any" min="0" placeholder="称一下宝贝" inputmode="decimal" />
-                <select class="unit-pick" id="weight-unit">
-                  <option value="kg">kg</option>
-                  <option value="斤">斤</option>
-                  <option value="lb">lb</option>
-                  <option value="g">g</option>
-                </select>
-              </div>
+          <!-- 直接称：宠物自己上秤，或已算好差值直接填 -->
+          <div class="weight-single" id="weight-single">
+            <div class="reading-group weight-reading">
+              <input type="number" class="reading" id="weight-input" step="any" min="0" placeholder="称一下宝贝" inputmode="decimal" />
+              <select class="unit-pick" id="weight-unit">
+                <option value="kg">kg</option>
+                <option value="斤">斤</option>
+                <option value="lb">lb</option>
+                <option value="g">g</option>
+              </select>
             </div>
+          </div>
 
-            <!-- 做差：抱着宠物称一次、自己称一次，系统算差值（顺序不影响，取绝对值，
-                 所以不放左侧标签，占位文案已说明哪一行填什么） -->
-            <div class="weight-diff" id="weight-diff">
+          <!-- 抱着称·作差：抱着称一次 − 自己称一次 -->
+          <div class="weight-diff" id="weight-diff">
+            <div class="wdiff-row">
               <div class="reading-group weight-reading">
-                <input type="number" class="reading" id="weight-diff-a" step="any" min="0" placeholder="抱着宝贝的读数" inputmode="decimal" />
+                <input type="number" class="reading" id="weight-diff-a" step="any" min="0" placeholder="抱着的读数" inputmode="decimal" />
                 <select class="unit-pick" id="weight-diff-unit">
                   <option value="kg">kg</option>
                   <option value="斤">斤</option>
@@ -281,50 +284,57 @@
                   <option value="g">g</option>
                 </select>
               </div>
+              <span class="wdiff-minus">−</span>
               <div class="reading-group weight-reading">
                 <input type="number" class="reading" id="weight-diff-b" step="any" min="0" placeholder="你自己的读数" inputmode="decimal" />
                 <span class="unit-echo" id="weight-diff-unit-echo">kg</span>
               </div>
-              <div class="diff-result empty" id="weight-diff-result">两次读数都填上，自动算出宝贝体重</div>
             </div>
+            <div class="diff-result empty" id="weight-diff-result">两次读数都填上，自动算出宝贝体重</div>
           </div>
 
-          <div class="weight-action-row">
-            <button type="button" class="save-btn" id="weight-save"><svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v12.5"/><path d="M8 18.5h8"/><path d="M5 8h14"/><circle cx="12" cy="5" r=".7" fill="currentColor" stroke="none"/><path d="M5 8 3.2 12a2 2 0 0 0 3.6 0z"/><path d="M19 8 17.2 12a2 2 0 0 0 3.6 0z"/></svg>记体重</button>
+          <div class="wentry-foot">
             <button type="button" class="time-pill" id="weight-time-toggle">
               <span class="tp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.2 2"/></svg></span>
               <span class="tp-lbl">记录时间</span>
               <span class="tp-val" id="weight-time-val">现在</span>
               <span class="tp-edit">✎</span>
             </button>
+            <button type="button" class="go-btn" id="weight-save" aria-label="记体重"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg></button>
           </div>
         </div>
-      </div>
 
-      <div class="section-title">
-        体重趋势
-        <span class="right" id="weight-range-lbl"></span>
-      </div>
-      <div class="trend-tabs" id="weight-trend-tabs">
-        <button type="button" data-p="30" class="active">近 30 日</button>
-        <button type="button" data-p="90">近 3 月</button>
-        <button type="button" data-p="180">近半年</button>
-        <button type="button" data-p="365">近 1 年</button>
-        <button type="button" data-p="all">全部</button>
-        <button type="button" data-p="custom">自定义</button>
-      </div>
-      <div class="trend-custom" id="weight-trend-custom" style="display: none;">
-        <span>从</span>
-        <input type="date" id="weight-custom-start" />
-        <span>到</span>
-        <input type="date" id="weight-custom-end" />
-      </div>
-      <div class="weight-chart-wrap">
-        <svg viewBox="0 0 600 200" id="weight-chart" preserveAspectRatio="xMidYMid meet"></svg>
-        <div class="weight-empty" id="weight-empty">还没有体重记录</div>
-      </div>
-      <div class="section-title">最近记录</div>
-      <div class="weight-list" id="weight-list"></div>
+        <div class="fc-rule"></div>
+
+        <!-- 体重趋势 -->
+        <div class="log-head trend-head">
+          <span class="log-lbl">体重趋势</span>
+          <span class="right" id="weight-range-lbl"></span>
+        </div>
+        <div class="trend-tabs" id="weight-trend-tabs">
+          <button type="button" data-p="30" class="active">近 30 日</button>
+          <button type="button" data-p="90">近 3 月</button>
+          <button type="button" data-p="180">近半年</button>
+          <button type="button" data-p="365">近 1 年</button>
+          <button type="button" data-p="all">全部</button>
+          <button type="button" data-p="custom">自定义</button>
+        </div>
+        <div class="trend-custom" id="weight-trend-custom" style="display: none;">
+          <span>从</span>
+          <input type="date" id="weight-custom-start" />
+          <span>到</span>
+          <input type="date" id="weight-custom-end" />
+        </div>
+        <div class="weight-chart-wrap">
+          <svg viewBox="0 0 600 200" id="weight-chart" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="weight-empty" id="weight-empty">还没有体重记录</div>
+        </div>
+
+        <div class="fc-rule"></div>
+
+        <div class="log-head"><span class="log-lbl">最近记录</span></div>
+        <div class="weight-list" id="weight-list"></div>
+      </div><!-- /food-card -->
     </div><!-- /panel-weight -->
 
     <!-- ===== 猫语 board ===== -->
