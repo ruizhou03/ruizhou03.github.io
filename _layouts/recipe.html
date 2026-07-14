@@ -166,6 +166,9 @@ layout: default
     <button type="button" class="sa-pb-btn" data-act="fav" aria-pressed="false">
       <span class="sa-pb-ico">☆</span><span class="sa-pb-label">收藏</span>
     </button>
+    <button type="button" class="sa-pb-btn" data-act="share">
+      <span class="sa-pb-ico">🔗</span><span class="sa-pb-label">分享</span>
+    </button>
     <span class="sa-pb-hint"></span>
   </div>
   <script>
@@ -233,6 +236,33 @@ layout: default
 
         likeBtn.addEventListener('click', function () { toggle('like', likeBtn); });
         favBtn.addEventListener('click', function () { toggle('fav', favBtn); });
+
+        // 分享：原生分享(手机) / 复制链接(桌面)；登录用户分享 +3（每日≤15）。
+        var shareBtn = bar.querySelector('[data-act="share"]');
+        function afterShare(msg) {
+          var lbl = shareBtn.querySelector('.sa-pb-label');
+          lbl.textContent = msg;
+          if (SiteAuth.isLoggedIn() && SiteAuth.share) {
+            SiteAuth.share(POST).then(function (pr) {
+              if (pr && pr.data && pr.data.awarded > 0) lbl.textContent = msg + ' +' + pr.data.awarded;
+            }).catch(function () {});
+          }
+          setTimeout(function () { lbl.textContent = '分享'; }, 2200);
+        }
+        shareBtn.addEventListener('click', async function () {
+          var link = location.origin + (URL || location.pathname);
+          if (navigator.share) {
+            try { await navigator.share({ title: TITLE, url: link }); } catch (e) { return; }
+            afterShare('已分享'); return;
+          }
+          var ok = false;
+          try { await navigator.clipboard.writeText(link); ok = true; }
+          catch (e) {
+            try { var t = document.createElement('textarea'); t.value = link; t.style.position = 'fixed'; t.style.opacity = '0';
+              document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (e2) {}
+          }
+          if (ok) afterShare('已复制链接');
+        });
         // onChange 注册时会立即回调一次 → 完成首次加载；之后登录/登出再刷新状态
         SiteAuth.onChange(function () { loadStatus(); });
         recordView();

@@ -17,7 +17,6 @@ noindex: true
   {%- comment -%} 登录态：资料 hero + 控制台 {%- endcomment -%}
   <div id="acc-main" style="display:none;">
     <section id="acc-hero" class="acc-hero"></section>
-    <div class="acc-editwrap" id="acc-pf-edit-panel" hidden></div>
 
     <div class="acc-console">
       <nav class="acc-nav" id="acc-nav">
@@ -32,21 +31,27 @@ noindex: true
 
       <div class="acc-content">
         <section class="acc-sec" id="acc-listsec">
-          <div class="acc-sec-top"><h2 id="acc-sec-title">收藏</h2></div>
           <div id="acc-toolbar" class="acc-toolbar">
             <button id="acc-manage" class="acc-tool-btn" type="button">管理</button>
             <span id="acc-manage-actions" style="display:none;">
-              <button id="acc-selall" class="acc-tool-btn" type="button">全选</button>
+              <button id="acc-selall" class="acc-tool-btn" type="button">全选本页</button>
               <button id="acc-delsel" class="acc-tool-btn danger" type="button">删除所选</button>
               <button id="acc-mgr-done" class="acc-tool-btn" type="button">完成</button>
             </span>
             <button id="acc-clear" class="acc-tool-btn danger-ghost" type="button" style="margin-left:auto;">清空</button>
           </div>
           <div id="acc-list" class="acc-list"></div>
+          <div id="acc-pager" class="acc-pager" hidden>
+            <button class="acc-tool-btn" id="acc-prev" type="button">‹ 上一页</button>
+            <span class="acc-pager-info" id="acc-pager-info"></span>
+            <button class="acc-tool-btn" id="acc-next" type="button">下一页 ›</button>
+            <label class="acc-pager-size">每页
+              <select id="acc-pagesize"><option value="10">10</option><option value="20" selected>20</option><option value="50">50</option></select>
+            </label>
+          </div>
         </section>
 
         <section class="acc-sec" id="acc-setsec" hidden>
-          <div class="acc-sec-top"><h2>账号设置</h2></div>
           <div id="acc-settings"></div>
         </section>
       </div>
@@ -72,58 +77,44 @@ noindex: true
     border-radius: var(--radius-lg); box-shadow: var(--shadow-1); }
   .acc-hero-av { width:88px; height:88px; border-radius:50%; flex-shrink:0;
     background:var(--color-accent); color:#fff; font-family:var(--font-display); font-size:2.6rem; font-weight:700;
-    display:flex; align-items:center; justify-content:center; background-size:cover; background-position:center;
-    box-shadow: var(--shadow-1); }
+    display:flex; align-items:center; justify-content:center; background-size:cover; background-position:center; }
   .acc-hero-body { flex:1; min-width:0; }
-  .acc-hero-top { display:flex; align-items:center; gap:1rem; }
+  .acc-hero-top { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; }
   .acc-hero-nick { font-family:var(--font-display); font-size:1.7rem; color:var(--color-ink); margin:0; line-height:1.15; word-break:break-word; }
   .acc-lv { flex-shrink:0; font-family:var(--font-display); font-size:0.9rem; font-weight:700; line-height:1;
-    color:#fff; background:var(--color-accent); border-radius:999px; padding:0.28rem 0.6rem;
+    color:#fff; background:var(--color-accent); border-radius:999px; padding:0.28rem 0.62rem;
     font-variant-numeric: tabular-nums lining-nums; box-shadow: var(--shadow-1); }
+  .acc-lv.shine { animation: acc-shine 2.4s linear infinite; background-size:200% 100%; }
+  @keyframes acc-shine { to { background-position:200% 0; } }
+  .acc-lv-help { flex-shrink:0; width:20px; height:20px; border-radius:50%; border:1px solid var(--color-border);
+    background:var(--color-bg); color:var(--color-muted); font-size:0.72rem; font-weight:700; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; padding:0; font-family:inherit; }
+  .acc-lv-help:hover { color:var(--color-accent); border-color:var(--color-accent); }
   .acc-hero-edit { margin-left:auto; flex-shrink:0; padding:0.4rem 0.95rem; font-size:0.85rem; }
+  .acc-hero-bio { font-size:0.92rem; color:var(--color-text); line-height:1.6; margin:0.55rem 0 0; word-break:break-word; }
+  .acc-hero-bio.empty { color:var(--color-light); }
+  .acc-hero-meta { font-size:0.78rem; color:var(--color-light); margin:0.55rem 0 0; word-break:break-all; }
   .acc-lv-wrap { margin-top:0.9rem; max-width:340px; }
   .acc-lv-bar { height:7px; border-radius:999px; background:var(--color-border); overflow:hidden; }
   .acc-lv-fill { height:100%; background:var(--color-accent); border-radius:999px; transition:width .4s; }
   .acc-lv-note { font-size:0.72rem; color:var(--color-light); margin-top:0.35rem; font-variant-numeric: tabular-nums lining-nums; }
-  @media (max-width:560px) { .acc-lv-wrap { max-width:none; margin-left:auto; margin-right:auto; } }
-  .acc-hero-bio { font-size:0.92rem; color:var(--color-text); line-height:1.6; margin:0.5rem 0 0; word-break:break-word; }
-  .acc-hero-bio.empty { color:var(--color-light); }
-  .acc-hero-meta { font-size:0.78rem; color:var(--color-light); margin:0.55rem 0 0; word-break:break-all; }
   .acc-hero-stats { display:flex; gap:2rem; margin-top:1.1rem; padding-top:1rem; border-top:1px solid var(--color-border); }
   .acc-stat-n { font-family:var(--font-display); font-size:1.5rem; font-weight:700; color:var(--color-ink);
     line-height:1; font-variant-numeric: tabular-nums lining-nums; }
   .acc-stat-l { font-size:0.74rem; color:var(--color-light); margin-top:0.3rem; }
   @media (max-width:560px) {
     .acc-hero-card { flex-direction:column; align-items:center; text-align:center; }
-    .acc-hero-top { flex-direction:column; gap:0.5rem; }
+    .acc-hero-top { justify-content:center; }
     .acc-hero-edit { margin-left:0; }
     .acc-hero-meta, .acc-hero-bio { text-align:center; }
+    .acc-lv-wrap { max-width:none; }
     .acc-hero-stats { justify-content:center; gap:1.6rem; }
   }
-
-  /* ── 编辑资料 / 面板通用卡 ── */
-  .acc-editwrap { margin-top:1rem; }
-  .acc-ef { border:1px solid var(--color-border); border-radius: var(--radius-lg); padding:1.2rem; background:var(--color-bg); box-shadow: var(--shadow-1); }
-  .acc-ef-row { margin-bottom:0.95rem; }
-  .acc-ef-row > label { display:block; font-size:0.78rem; color:var(--color-muted); margin-bottom:0.35rem; }
-  .acc-ef-row input[type=text], .acc-ef-row input[type=password], .acc-ef-row textarea {
-    width:100%; box-sizing:border-box; padding:0.58rem 0.72rem; font-size:0.95rem; font-family:inherit;
-    color:var(--color-text); background:var(--color-bg); border:1px solid var(--color-border); border-radius: var(--radius-sm); resize:vertical; }
-  .acc-ef-row input:focus, .acc-ef-row textarea:focus { outline:none; border-color:var(--color-accent); }
-  .acc-ef-av-row { display:flex; align-items:center; gap:1rem; }
-  .acc-ef-av { width:72px; height:72px; border-radius:50%; flex-shrink:0; background:var(--color-accent); color:#fff;
-    font-family:var(--font-display); font-size:1.9rem; font-weight:700; display:flex; align-items:center; justify-content:center;
-    background-size:cover; background-position:center; }
-  .acc-ef-av-btns { display:flex; flex-direction:column; gap:0.45rem; }
-  .acc-ef-count { color:var(--color-light); font-weight:400; }
-  .acc-ef-actions { display:flex; align-items:center; gap:0.6rem; margin-top:0.3rem; }
-  .acc-ef-actions .acc-ef-err { flex:1; font-size:0.8rem; color:#c0392b; }
 
   /* ── 控制台：左导航 + 内容 ── */
   .acc-console { display:flex; gap: var(--space-4); align-items:flex-start; margin-top:1.6rem; }
   .acc-nav { flex:none; width:180px; position:sticky; top:5rem; display:flex; flex-direction:column; gap:0.15rem; }
-  .acc-nav-cap { font-size:0.68rem; font-weight:700; letter-spacing:0.08em; color:var(--color-light);
-    padding:0.6rem 0.65rem 0.25rem; }
+  .acc-nav-cap { font-size:0.68rem; font-weight:700; letter-spacing:0.08em; color:var(--color-light); padding:0.6rem 0.65rem 0.25rem; }
   .acc-nav-item { display:flex; align-items:center; gap:0.55rem; text-align:left; padding:0.55rem 0.7rem; border:none;
     background:none; border-radius: var(--radius-md); color:var(--color-muted); font-family:inherit; font-size:0.92rem;
     cursor:pointer; transition:background .12s, color .12s; }
@@ -133,9 +124,6 @@ noindex: true
   .acc-content { flex:1; min-width:0; }
   .acc-sec { padding: var(--space-5); background:var(--color-bg-warm); border:1px solid var(--color-border);
     border-radius: var(--radius-lg); box-shadow: var(--shadow-1); }
-  .acc-sec-top { display:flex; align-items:center; gap:0.6rem; margin-bottom:1.1rem;
-    padding-bottom:0.6rem; border-bottom:1px solid var(--color-border); }
-  .acc-sec-top h2 { font-family:var(--font-display); font-size:1.3rem; color:var(--color-ink); margin:0; }
   @media (max-width:720px) {
     .acc-console { flex-direction:column; gap: var(--space-3); }
     .acc-nav { width:100%; position:static; flex-direction:row; overflow-x:auto; gap:0.35rem; padding-bottom:0.3rem; }
@@ -150,16 +138,16 @@ noindex: true
   .acc-tool-btn { padding:0.42rem 0.85rem; font-size:0.82rem; font-weight:600; font-family:inherit; cursor:pointer;
     color:var(--color-muted); background:var(--color-bg); border:1px solid var(--color-border); border-radius: var(--radius-sm); }
   .acc-tool-btn:hover { color:var(--color-accent); border-color:var(--color-accent); }
-  .acc-tool-btn:disabled { opacity:0.5; cursor:default; }
+  .acc-tool-btn:disabled { opacity:0.4; cursor:default; }
   .acc-tool-btn.danger { color:#fff; background:#b5483a; border-color:#b5483a; }
   .acc-tool-btn.danger:hover { color:#fff; filter:brightness(1.05); }
   .acc-tool-btn.danger-ghost:hover { color:#b5483a; border-color:#b5483a; }
-  .acc-save { padding:0.42rem 1.1rem; font-size:0.85rem; font-weight:700; font-family:inherit; cursor:pointer;
+  .acc-save { padding:0.5rem 1.2rem; font-size:0.9rem; font-weight:700; font-family:inherit; cursor:pointer;
     color:#fff; background:var(--color-accent); border:none; border-radius: var(--radius-sm); }
   .acc-save:disabled { opacity:0.6; cursor:default; }
 
   /* ── 列表 ── */
-  .acc-list { min-height:140px; }
+  .acc-list { min-height:120px; }
   .acc-item { display:flex; align-items:center; gap:0.8rem; padding:0.85rem 0.2rem; border-bottom:1px solid var(--color-border); }
   .acc-item:last-child { border-bottom:none; }
   .acc-item .acc-cb { display:none; width:18px; height:18px; flex-shrink:0; accent-color:var(--color-accent); cursor:pointer; }
@@ -177,8 +165,17 @@ noindex: true
   .acc-comment-body { font-size:0.92rem; color:var(--color-text); line-height:1.6; margin-top:0.2rem; }
   .acc-comment-body :is(p) { margin:0.2rem 0; }
 
+  /* ── 翻页 ── */
+  .acc-pager { display:flex; align-items:center; gap:0.6rem; margin-top:1.1rem; padding-top:0.9rem;
+    border-top:1px solid var(--color-border); flex-wrap:wrap; }
+  .acc-pager-info { font-size:0.8rem; color:var(--color-light); font-variant-numeric: tabular-nums lining-nums; }
+  .acc-pager-size { margin-left:auto; font-size:0.8rem; color:var(--color-muted); display:inline-flex; align-items:center; gap:0.35rem; }
+  .acc-pager-size select { font-family:inherit; font-size:0.8rem; padding:0.25rem 0.4rem; color:var(--color-text);
+    background:var(--color-bg); border:1px solid var(--color-border); border-radius:6px; cursor:pointer; }
+
   /* ── 账号设置行 ── */
   .acc-set-row { display:flex; align-items:center; gap:1rem; padding:0.95rem 0; border-bottom:1px solid var(--color-border); }
+  .acc-set-row:first-child { padding-top:0.2rem; }
   .acc-set-row:last-child { border-bottom:none; }
   .acc-set-info { flex:1; min-width:0; }
   .acc-set-t { font-size:0.95rem; font-weight:600; color:var(--color-text); }
@@ -194,19 +191,53 @@ noindex: true
   .acc-switch input:checked + .acc-switch-slider { background:var(--color-accent); }
   .acc-switch input:checked + .acc-switch-slider::before { transform:translateX(20px); }
 
-  /* ── 头像裁剪弹窗 ── */
-  #acc-crop { position:fixed; inset:0; z-index:3000; background:rgba(20,28,40,0.5); backdrop-filter:blur(3px);
+  /* ── 通用弹窗（编辑资料 / 升级细则）── */
+  .acc-modal { position:fixed; inset:0; z-index:2600; background:rgba(20,28,40,0.5); backdrop-filter:blur(3px);
     display:flex; align-items:center; justify-content:center; padding:1rem; }
-  .acc-crop-card { background:var(--color-bg); border:1px solid var(--color-border); border-radius: var(--radius-lg);
-    box-shadow:0 18px 50px rgba(0,0,0,0.28); padding:1.4rem; width:340px; max-width:100%; }
+  .acc-modal-card { background:var(--color-bg); border:1px solid var(--color-border); border-radius:16px;
+    box-shadow:0 18px 50px rgba(0,0,0,0.28); padding:1.5rem; width:400px; max-width:100%; max-height:88vh; overflow:auto; position:relative; }
+  .acc-modal-x { position:absolute; top:0.7rem; right:0.85rem; border:none; background:none; font-size:1.4rem; line-height:1;
+    color:var(--color-muted); cursor:pointer; }
+  .acc-modal-title { font-family:var(--font-display); font-size:1.3rem; color:var(--color-ink); margin:0 0 1rem; }
+  .acc-ef-row { margin-bottom:0.95rem; }
+  .acc-ef-row > label { display:block; font-size:0.78rem; color:var(--color-muted); margin-bottom:0.35rem; }
+  .acc-ef-row input[type=text], .acc-ef-row input[type=password], .acc-ef-row textarea {
+    width:100%; box-sizing:border-box; padding:0.58rem 0.72rem; font-size:0.95rem; font-family:inherit;
+    color:var(--color-text); background:var(--color-bg); border:1px solid var(--color-border); border-radius: var(--radius-sm); resize:vertical; }
+  .acc-ef-row input:focus, .acc-ef-row textarea:focus { outline:none; border-color:var(--color-accent); }
+  .acc-ef-av-row { display:flex; align-items:center; gap:1rem; }
+  .acc-ef-av { width:72px; height:72px; border-radius:50%; flex-shrink:0; background:var(--color-accent); color:#fff;
+    font-family:var(--font-display); font-size:1.9rem; font-weight:700; display:flex; align-items:center; justify-content:center;
+    background-size:cover; background-position:center; }
+  .acc-ef-av-btns { display:flex; flex-direction:column; gap:0.45rem; }
+  .acc-ef-count { color:var(--color-light); font-weight:400; }
+  .acc-ef-actions { display:flex; align-items:center; gap:0.6rem; margin-top:0.4rem; }
+  .acc-ef-actions .acc-ef-err { flex:1; font-size:0.8rem; color:#c0392b; }
+
+  /* 升级细则 */
+  .acc-rules h4 { font-size:0.9rem; color:var(--color-ink); margin:1rem 0 0.5rem; }
+  .acc-rules h4:first-child { margin-top:0; }
+  .acc-rules-list { list-style:none; padding:0; margin:0; }
+  .acc-rules-list li { display:flex; justify-content:space-between; gap:1rem; padding:0.4rem 0;
+    border-bottom:1px dashed var(--color-border); font-size:0.86rem; color:var(--color-text); }
+  .acc-rules-list li span:last-child { color:var(--color-muted); font-variant-numeric: tabular-nums lining-nums; white-space:nowrap; }
+  .acc-tier-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:0.5rem; }
+  .acc-tier { display:flex; align-items:center; gap:0.5rem; font-size:0.82rem; color:var(--color-text); }
+  .acc-tier-dot { width:14px; height:14px; border-radius:50%; flex-shrink:0; }
+  .acc-rules-note { font-size:0.76rem; color:var(--color-light); margin:0.8rem 0 0; line-height:1.6; }
+
+  /* ── 头像裁剪弹窗 ── */
+  #acc-crop { position:fixed; inset:0; z-index:3000; background:rgba(20,28,40,0.55); backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center; padding:1rem; }
+  .acc-crop-card { background:var(--color-bg); border:1px solid var(--color-border); border-radius:16px;
+    box-shadow:0 18px 50px rgba(0,0,0,0.3); padding:1.4rem; width:340px; max-width:100%; }
   .acc-crop-title { font-family:var(--font-display); font-size:1.2rem; color:var(--color-ink); margin:0 0 0.3rem; }
   .acc-crop-sub { font-size:0.78rem; color:var(--color-light); margin:0 0 1rem; }
   .acc-crop-vp { position:relative; width:260px; height:260px; margin:0 auto; overflow:hidden; border-radius:12px;
     background:#0002; touch-action:none; cursor:grab; }
   .acc-crop-vp.dragging { cursor:grabbing; }
   .acc-crop-vp img { position:absolute; left:0; top:0; user-select:none; -webkit-user-drag:none; max-width:none; }
-  .acc-crop-mask { position:absolute; inset:0; pointer-events:none;
-    box-shadow:0 0 0 999px rgba(0,0,0,0.35) inset; border-radius:50%; }
+  .acc-crop-mask { position:absolute; inset:0; pointer-events:none; box-shadow:0 0 0 999px rgba(0,0,0,0.35) inset; border-radius:50%; }
   .acc-crop-zoom { display:flex; align-items:center; gap:0.6rem; margin:1rem 0 0.2rem; }
   .acc-crop-zoom input[type=range] { flex:1; accent-color:var(--color-accent); }
   .acc-crop-actions { display:flex; gap:0.6rem; justify-content:flex-end; margin-top:1rem; }
@@ -219,16 +250,17 @@ noindex: true
     var guest = document.getElementById('acc-guest');
     var main = document.getElementById('acc-main');
     var heroEl = document.getElementById('acc-hero');
-    var editWrap = document.getElementById('acc-pf-edit-panel');
     var listEl = document.getElementById('acc-list');
     var listSec = document.getElementById('acc-listsec');
     var setSec = document.getElementById('acc-setsec');
     var settingsEl = document.getElementById('acc-settings');
     var toolbar = document.getElementById('acc-toolbar');
-    var secTitle = document.getElementById('acc-sec-title');
+    var pagerEl = document.getElementById('acc-pager');
     var navItems = document.querySelectorAll('.acc-nav-item');
     var api = SiteAuth.API_BASE + '/me';
-    var current = 'fav';
+
+    // 列表分页状态
+    var state = { kind: 'fav', items: [], page: 0, pageSize: 20, manage: false };
 
     document.getElementById('acc-login-btn').addEventListener('click', function () {
       SiteAuth.openLogin && SiteAuth.openLogin('login');
@@ -245,7 +277,6 @@ noindex: true
     function paintInitial(el, nick) { el.style.backgroundImage = ''; el.style.color = ''; el.textContent = (nick || '?').trim().charAt(0).toUpperCase(); }
     function isAvatar(v) { return v && /^data:image\//.test(v); }
 
-    var LABEL = { fav:'收藏', like:'点赞', hist:'浏览记录', comment:'评论记录' };
     var KIND_EMPTY = {
       fav: '还没有收藏。读到喜欢的文章，点文末的「收藏」吧。',
       like: '还没有点赞过文章。',
@@ -259,16 +290,26 @@ noindex: true
       hist: '确定清空全部浏览记录吗？此操作不可撤销。',
     };
 
-    // ── 资料 hero ─────────────────────────────────────────────
+    // ── 等级特权：按等级分层的徽章配色 + 头像光环 + Lv10 闪光 ─────────
     function levelOf(user) {
       if (user.level && typeof user.level.level === 'number') return user.level;
       return { level: 1, name: 'Lv1', points: user.points || 0, cur: 0, next: 50, progress: 0 };
     }
+    var TIERS = [
+      { min: 10, tier: '钻石', ring: '#d9b44a', bg: 'linear-gradient(100deg,#e6c766,#c88a2d,#e6c766)', shine: true },
+      { min: 9,  tier: '翡翠', ring: '#2f8f6b', bg: '#2f8f6b' },
+      { min: 7,  tier: '琥珀金', ring: '#c0912f', bg: '#c0912f' },
+      { min: 5,  tier: '白银', ring: '#6b7480', bg: '#6b7480' },
+      { min: 3,  tier: '青铜', ring: '#9c6b3c', bg: '#9c6b3c' },
+      { min: 1,  tier: '藏蓝', ring: 'var(--color-accent)', bg: 'var(--color-accent)' },
+    ];
+    function perkOf(level) { for (var i = 0; i < TIERS.length; i++) if (level >= TIERS[i].min) return TIERS[i]; return TIERS[TIERS.length - 1]; }
 
+    // ── 资料 hero ─────────────────────────────────────────────
     function renderHero(user) {
       if (!user) { heroEl.innerHTML = ''; return; }
       var joined = user.createdAt ? fmtDate(user.createdAt) : '';
-      var lv = levelOf(user);
+      var lv = levelOf(user), perk = perkOf(lv.level);
       var lvNote = lv.next == null
         ? '积分 ' + lv.points + ' · 已满级 🎉'
         : '积分 ' + lv.points + ' · 距 Lv' + (lv.level + 1) + ' 还差 ' + (lv.next - lv.points);
@@ -278,7 +319,8 @@ noindex: true
           '<div class="acc-hero-body">' +
             '<div class="acc-hero-top">' +
               '<h1 class="acc-hero-nick">' + esc(user.nick || '锆友') + '</h1>' +
-              '<span class="acc-lv" title="等级">' + esc(lv.name) + '</span>' +
+              '<span class="acc-lv' + (perk.shine ? ' shine' : '') + '" id="acc-lv-badge" title="' + esc(perk.tier) + '">' + esc(lv.name) + '</span>' +
+              '<button class="acc-lv-help" id="acc-lv-help" type="button" title="升级细则" aria-label="升级细则">?</button>' +
               '<button class="acc-primary acc-hero-edit" type="button">编辑资料</button>' +
             '</div>' +
             '<p class="acc-hero-bio' + (user.bio ? '' : ' empty') + '">' + esc(user.bio || '还没有简介，写一句介绍自己吧。') + '</p>' +
@@ -296,7 +338,11 @@ noindex: true
         '</div>';
       var av = heroEl.querySelector('.acc-hero-av');
       if (isAvatar(user.avatar)) paintAvatar(av, user.avatar); else paintInitial(av, user.nick);
-      heroEl.querySelector('.acc-hero-edit').addEventListener('click', function () { openEdit(user); });
+      av.style.boxShadow = '0 0 0 3px var(--color-bg-warm), 0 0 0 5px ' + perk.ring;   // 光环
+      var badge = document.getElementById('acc-lv-badge');
+      badge.style.background = perk.bg;
+      heroEl.querySelector('.acc-hero-edit').addEventListener('click', function () { openEditModal(user); });
+      document.getElementById('acc-lv-help').addEventListener('click', openRulesModal);
       loadStats();
     }
 
@@ -309,51 +355,60 @@ noindex: true
       });
     }
 
-    // ── 编辑资料 ──────────────────────────────────────────────
-    function openEdit(user) {
-      if (!editWrap.hidden) { editWrap.hidden = true; editWrap.innerHTML = ''; return; }
-      editWrap.hidden = false;
-      editWrap.innerHTML =
-        '<div class="acc-ef">' +
-          '<div class="acc-ef-row acc-ef-av-row">' +
-            '<div class="acc-ef-av" id="acc-ef-av"></div>' +
-            '<div class="acc-ef-av-btns">' +
-              '<label class="acc-tool-btn" style="cursor:pointer;text-align:center;">上传头像<input type="file" id="acc-ef-file" accept="image/*" hidden></label>' +
-              '<button type="button" class="acc-tool-btn" id="acc-ef-rmav">移除头像</button>' +
-            '</div>' +
+    // ── 通用弹窗 ──────────────────────────────────────────────
+    function modal(innerHTML) {
+      var ov = document.createElement('div');
+      ov.className = 'acc-modal';
+      ov.innerHTML = '<div class="acc-modal-card"><button class="acc-modal-x" type="button" aria-label="关闭">&times;</button>' + innerHTML + '</div>';
+      document.body.appendChild(ov);
+      function close() { if (ov.parentNode) ov.parentNode.removeChild(ov); document.removeEventListener('keydown', onKey); }
+      function onKey(e) { if (e.key === 'Escape') close(); }
+      ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+      ov.querySelector('.acc-modal-x').addEventListener('click', close);
+      document.addEventListener('keydown', onKey);
+      return { ov: ov, close: close };
+    }
+
+    // ── 编辑资料（弹窗）───────────────────────────────────────
+    function openEditModal(user) {
+      var m = modal(
+        '<h3 class="acc-modal-title">编辑资料</h3>' +
+        '<div class="acc-ef-row acc-ef-av-row">' +
+          '<div class="acc-ef-av" id="acc-ef-av"></div>' +
+          '<div class="acc-ef-av-btns">' +
+            '<label class="acc-tool-btn" style="cursor:pointer;text-align:center;">上传头像<input type="file" id="acc-ef-file" accept="image/*" hidden></label>' +
+            '<button type="button" class="acc-tool-btn" id="acc-ef-rmav">移除头像</button>' +
           '</div>' +
-          '<div class="acc-ef-row"><label for="acc-ef-nick">昵称</label>' +
-            '<input type="text" id="acc-ef-nick" maxlength="16" value="' + esc(user.nick || '') + '"></div>' +
-          '<div class="acc-ef-row"><label for="acc-ef-bio">一句话简介 <span id="acc-ef-count" class="acc-ef-count"></span></label>' +
-            '<textarea id="acc-ef-bio" maxlength="80" rows="2" placeholder="介绍一下自己…">' + esc(user.bio || '') + '</textarea></div>' +
-          '<div class="acc-ef-actions">' +
-            '<span class="acc-ef-err" id="acc-ef-err"></span>' +
-            '<button type="button" class="acc-tool-btn" id="acc-ef-cancel">取消</button>' +
-            '<button type="button" class="acc-save" id="acc-ef-save">保存</button>' +
-          '</div>' +
-        '</div>';
+        '</div>' +
+        '<div class="acc-ef-row"><label for="acc-ef-nick">昵称</label>' +
+          '<input type="text" id="acc-ef-nick" maxlength="16" value="' + esc(user.nick || '') + '"></div>' +
+        '<div class="acc-ef-row"><label for="acc-ef-bio">一句话简介 <span id="acc-ef-count" class="acc-ef-count"></span></label>' +
+          '<textarea id="acc-ef-bio" maxlength="80" rows="2" placeholder="介绍一下自己…">' + esc(user.bio || '') + '</textarea></div>' +
+        '<div class="acc-ef-actions">' +
+          '<span class="acc-ef-err" id="acc-ef-err"></span>' +
+          '<button type="button" class="acc-tool-btn" id="acc-ef-cancel">取消</button>' +
+          '<button type="button" class="acc-save" id="acc-ef-save">保存</button>' +
+        '</div>');
 
       var pendingAvatar;   // undefined=不变，''=移除，dataURL=新头像
-      var avEl = document.getElementById('acc-ef-av');
-      var nickEl = document.getElementById('acc-ef-nick');
-      var bioEl = document.getElementById('acc-ef-bio');
-      var countEl = document.getElementById('acc-ef-count');
-      var errEl = document.getElementById('acc-ef-err');
+      var avEl = m.ov.querySelector('#acc-ef-av');
+      var nickEl = m.ov.querySelector('#acc-ef-nick');
+      var bioEl = m.ov.querySelector('#acc-ef-bio');
+      var countEl = m.ov.querySelector('#acc-ef-count');
+      var errEl = m.ov.querySelector('#acc-ef-err');
       if (isAvatar(user.avatar)) paintAvatar(avEl, user.avatar); else paintInitial(avEl, user.nick);
       function updateCount() { countEl.textContent = bioEl.value.length + '/80'; }
       updateCount(); bioEl.addEventListener('input', updateCount);
 
-      document.getElementById('acc-ef-file').addEventListener('change', function (e) {
+      m.ov.querySelector('#acc-ef-file').addEventListener('change', function (e) {
         var f = e.target.files && e.target.files[0];
         if (!f) return;
         openCropper(f, function (dataUrl) { pendingAvatar = dataUrl; paintAvatar(avEl, dataUrl); });
-        e.target.value = '';   // 允许再次选同一张
+        e.target.value = '';
       });
-      document.getElementById('acc-ef-rmav').addEventListener('click', function () {
-        pendingAvatar = ''; paintInitial(avEl, nickEl.value);
-      });
-      document.getElementById('acc-ef-cancel').addEventListener('click', function () { editWrap.hidden = true; editWrap.innerHTML = ''; });
-      document.getElementById('acc-ef-save').addEventListener('click', async function () {
+      m.ov.querySelector('#acc-ef-rmav').addEventListener('click', function () { pendingAvatar = ''; paintInitial(avEl, nickEl.value); });
+      m.ov.querySelector('#acc-ef-cancel').addEventListener('click', m.close);
+      m.ov.querySelector('#acc-ef-save').addEventListener('click', async function () {
         errEl.textContent = '';
         var nick = nickEl.value.trim();
         if (!nick) { errEl.textContent = '昵称不能为空'; return; }
@@ -363,13 +418,37 @@ noindex: true
         var r;
         try { r = await SiteAuth.updateProfile(fields); } catch (e) { r = { ok: false, error: 'network' }; }
         this.disabled = false;
-        if (r.ok) { editWrap.hidden = true; editWrap.innerHTML = ''; }  // onChange → renderHero 重渲染
+        if (r.ok) m.close();   // onChange → renderHero 重渲染
         else errEl.textContent = r.error === 'bad_avatar' ? '头像格式不支持或太大'
           : r.error === 'empty_nick' ? '昵称不能为空' : '保存失败，再试一次';
       });
     }
 
-    // ── 头像裁剪：拖动 + 缩放，输出 160×160 圆形（方图，圆由 CSS 呈现）──────
+    // ── 升级细则（弹窗）───────────────────────────────────────
+    function openRulesModal() {
+      var THRESHOLDS = [0, 50, 150, 300, 500, 800, 1200, 1800, 2600, 4000];
+      var rules = [
+        ['每日登录签到', '+2 / 天'],
+        ['发表评论', '+5（每日至多 20）'],
+        ['收藏文章', '+2 / 篇（每日至多 20）'],
+        ['分享链接', '+3（每日至多 15）'],
+      ];
+      var lvRows = THRESHOLDS.map(function (t, i) {
+        var perk = perkOf(i + 1);
+        return '<li><span><span class="acc-tier-dot" style="background:' + perk.ring + '"></span> Lv' + (i + 1) + ' · ' + perk.tier + '</span><span>' + t + ' 分</span></li>';
+      }).join('');
+      modal(
+        '<h3 class="acc-modal-title">升级细则</h3>' +
+        '<div class="acc-rules">' +
+          '<h4>怎么攒积分</h4>' +
+          '<ul class="acc-rules-list">' + rules.map(function (r) { return '<li><span>' + r[0] + '</span><span>' + r[1] + '</span></li>'; }).join('') + '</ul>' +
+          '<h4>等级与专属配色</h4>' +
+          '<ul class="acc-rules-list">' + lvRows + '</ul>' +
+          '<p class="acc-rules-note">升到对应等级，头像光环与等级徽章会换成该段位的专属配色；Lv10「钻石」还有流光特效。更多等级特权在路上。</p>' +
+        '</div>');
+    }
+
+    // ── 头像裁剪 ──────────────────────────────────────────────
     function openCropper(file, onDone) {
       var reader = new FileReader();
       reader.onload = function () {
@@ -402,8 +481,7 @@ noindex: true
           '</div>' +
         '</div>';
       document.body.appendChild(ov);
-      var vp = ov.querySelector('#cropvp');
-      var zoom = ov.querySelector('#cropzoom');
+      var vp = ov.querySelector('#cropvp'), zoom = ov.querySelector('#cropzoom');
       vp.insertBefore(img, vp.firstChild);
 
       function clamp() {
@@ -413,10 +491,8 @@ noindex: true
       }
       function render() {
         clamp();
-        img.style.width = (natW * scale) + 'px';
-        img.style.height = (natH * scale) + 'px';
-        img.style.left = offX + 'px';
-        img.style.top = offY + 'px';
+        img.style.width = (natW * scale) + 'px'; img.style.height = (natH * scale) + 'px';
+        img.style.left = offX + 'px'; img.style.top = offY + 'px';
       }
       function setScale(ns, fx, fy) {
         ns = Math.max(minScale, Math.min(maxScale, ns));
@@ -425,97 +501,106 @@ noindex: true
       }
       render();
 
-      // 拖动
       var dragging = false, lastX = 0, lastY = 0;
-      vp.addEventListener('pointerdown', function (e) {
-        dragging = true; lastX = e.clientX; lastY = e.clientY; vp.classList.add('dragging');
-        vp.setPointerCapture && vp.setPointerCapture(e.pointerId);
-      });
-      vp.addEventListener('pointermove', function (e) {
-        if (!dragging) return;
-        offX += e.clientX - lastX; offY += e.clientY - lastY; lastX = e.clientX; lastY = e.clientY; render();
-      });
+      vp.addEventListener('pointerdown', function (e) { dragging = true; lastX = e.clientX; lastY = e.clientY; vp.classList.add('dragging'); vp.setPointerCapture && vp.setPointerCapture(e.pointerId); });
+      vp.addEventListener('pointermove', function (e) { if (!dragging) return; offX += e.clientX - lastX; offY += e.clientY - lastY; lastX = e.clientX; lastY = e.clientY; render(); });
       function endDrag() { dragging = false; vp.classList.remove('dragging'); }
-      vp.addEventListener('pointerup', endDrag);
-      vp.addEventListener('pointercancel', endDrag);
-      // 缩放
+      vp.addEventListener('pointerup', endDrag); vp.addEventListener('pointercancel', endDrag);
       zoom.addEventListener('input', function () { setScale(coverScale * parseFloat(zoom.value), VP / 2, VP / 2); });
-      vp.addEventListener('wheel', function (e) {
-        e.preventDefault();
-        var ns = scale * (e.deltaY < 0 ? 1.06 : 0.94);
-        setScale(ns, VP / 2, VP / 2);
-        zoom.value = Math.max(1, Math.min(4, scale / coverScale));
-      }, { passive: false });
+      vp.addEventListener('wheel', function (e) { e.preventDefault(); setScale(scale * (e.deltaY < 0 ? 1.06 : 0.94), VP / 2, VP / 2); zoom.value = Math.max(1, Math.min(4, scale / coverScale)); }, { passive: false });
 
       function close() { if (ov.parentNode) ov.parentNode.removeChild(ov); }
       ov.querySelector('#cropcancel').addEventListener('click', close);
       ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
       ov.querySelector('#cropok').addEventListener('click', function () {
-        var out = 160;
-        var canvas = document.createElement('canvas'); canvas.width = out; canvas.height = out;
+        var out = 160, canvas = document.createElement('canvas'); canvas.width = out; canvas.height = out;
         var ctx = canvas.getContext('2d');
         var srcSize = VP / scale, srcX = -offX / scale, srcY = -offY / scale;
         ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, out, out);
-        var url;
-        try { url = canvas.toDataURL('image/jpeg', 0.85); } catch (e) { url = null; }
+        var url; try { url = canvas.toDataURL('image/jpeg', 0.85); } catch (e) { url = null; }
         close();
         if (url) onDone(url);
       });
     }
 
-    // ── 列表渲染 ─────────────────────────────────────────────
-    function renderList(kind, items) {
-      if (!items.length) { listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY[kind] + '</div>'; return; }
-      listEl.innerHTML = items.map(function (it) {
-        var url = it.url || it.post || '#';
-        return '<div class="acc-item" data-post="' + encodeURIComponent(it.post) + '">' +
-            '<input type="checkbox" class="acc-cb" aria-label="选择">' +
-            '<div class="acc-item-main">' +
-              '<a class="acc-item-title" href="' + esc(url) + '">' + esc(it.title || it.post) + '</a>' +
-              '<div class="acc-item-meta">' + fmtDate(it.ts) + '</div>' +
-            '</div>' +
-            '<button class="acc-item-rm" title="移除" aria-label="移除">×</button>' +
-          '</div>';
-      }).join('');
-      listEl.querySelectorAll('.acc-item-rm').forEach(function (btn) {
-        btn.addEventListener('click', async function () {
-          var item = btn.closest('.acc-item');
-          var post = decodeURIComponent(item.dataset.post);
-          item.style.opacity = '0.4';
-          try {
-            await SiteAuth.authedFetch(api + '?action=remove', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ kind: kind, post: post }),
-            });
-            item.remove();
-            if (!listEl.querySelector('.acc-item')) listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY[kind] + '</div>';
-            loadStats();
-          } catch (e) { item.style.opacity = '1'; }
-        });
-      });
+    // ── 列表渲染 + 分页 ───────────────────────────────────────
+    function itemHTML(kind, it) {
+      if (kind === 'comment') {
+        return '<div class="acc-item"><div class="acc-item-main">' +
+          '<a class="acc-item-title" href="' + esc(it.url || '#') + '">' + esc(it.title || it.url || '某篇文章') + '</a>' +
+          '<div class="acc-comment-body">' + (it.html || esc(it.text || '')) + '</div>' +
+          '<div class="acc-item-meta">' + fmtDate(it.ts) + '</div>' +
+        '</div></div>';
+      }
+      var url = it.url || it.post || '#';
+      return '<div class="acc-item" data-post="' + encodeURIComponent(it.post) + '">' +
+          '<input type="checkbox" class="acc-cb" aria-label="选择">' +
+          '<div class="acc-item-main">' +
+            '<a class="acc-item-title" href="' + esc(url) + '">' + esc(it.title || it.post) + '</a>' +
+            '<div class="acc-item-meta">' + fmtDate(it.ts) + '</div>' +
+          '</div>' +
+          '<button class="acc-item-rm" title="移除" aria-label="移除">×</button>' +
+        '</div>';
     }
 
-    async function loadKind(kind) {
-      current = kind;
-      setManage(false);
-      secTitle.textContent = LABEL[kind] || '';
-      var canManage = kind !== 'comment';
-      toolbar.style.display = canManage ? 'flex' : 'none';
-      if (canManage) document.getElementById('acc-clear').textContent = CLEAR_LABEL[kind] || '清空';
-      listEl.innerHTML = '<div class="acc-loading">加载中…</div>';
-      if (kind === 'comment') { loadComments(); return; }
-      try {
-        var r = await SiteAuth.authedFetch(api + '?action=list&kind=' + kind);
-        var d = await r.json();
-        if (d && d.ok) renderList(kind, d.items || []);
-        else listEl.innerHTML = '<div class="acc-empty">加载失败，稍后再试。</div>';
-      } catch (e) {
-        listEl.innerHTML = '<div class="acc-empty">网络不太顺，稍后再试。</div>';
+    function renderPage() {
+      var kind = state.kind, items = state.items;
+      if (!items.length) { listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY[kind] + '</div>'; pagerEl.hidden = true; return; }
+      var pages = Math.max(1, Math.ceil(items.length / state.pageSize));
+      if (state.page >= pages) state.page = pages - 1;
+      var startI = state.page * state.pageSize;
+      var slice = items.slice(startI, startI + state.pageSize);
+      listEl.innerHTML = slice.map(function (it) { return itemHTML(kind, it); }).join('');
+      // 分页条：>1 页或可调页数时显示
+      pagerEl.hidden = items.length <= 10;
+      document.getElementById('acc-pager-info').textContent =
+        '第 ' + (state.page + 1) + ' / ' + pages + ' 页 · 共 ' + items.length + ' 条';
+      document.getElementById('acc-prev').disabled = state.page === 0;
+      document.getElementById('acc-next').disabled = state.page >= pages - 1;
+      // 逐条移除（收藏/点赞/浏览）
+      if (kind !== 'comment') {
+        listEl.querySelectorAll('.acc-item-rm').forEach(function (btn) {
+          btn.addEventListener('click', function () { removePosts([decodeURIComponent(btn.closest('.acc-item').dataset.post)]); });
+        });
       }
     }
 
+    async function loadKind(kind) {
+      state.kind = kind; state.page = 0; state.items = [];
+      setManage(false);
+      var canManage = kind !== 'comment';
+      toolbar.style.display = canManage ? 'flex' : 'none';
+      if (canManage) document.getElementById('acc-clear').textContent = CLEAR_LABEL[kind] || '清空';
+      listEl.innerHTML = '<div class="acc-loading">加载中…</div>'; pagerEl.hidden = true;
+      try {
+        if (kind === 'comment') {
+          var base = SiteAuth.API_BASE.replace('zircon-urge', 'zircon-comments');
+          var rc = await SiteAuth.authedFetch(base + '/my-comments');
+          if (!rc.ok) throw new Error('comment endpoint');
+          var dc = await rc.json();
+          state.items = (dc && dc.items) || [];
+          renderPage();
+          return;
+        }
+        var r = await SiteAuth.authedFetch(api + '?action=list&kind=' + kind);
+        var d = await r.json();
+        if (d && d.ok) { state.items = d.items || []; renderPage(); }
+        else listEl.innerHTML = '<div class="acc-empty">加载失败，稍后再试。</div>';
+      } catch (e) {
+        listEl.innerHTML = kind === 'comment'
+          ? '<div class="acc-empty">评论记录暂时拉不到，稍后再试。</div>'
+          : '<div class="acc-empty">网络不太顺，稍后再试。</div>';
+      }
+    }
+
+    // 翻页控件
+    document.getElementById('acc-prev').addEventListener('click', function () { if (state.page > 0) { state.page--; renderPage(); } });
+    document.getElementById('acc-next').addEventListener('click', function () { state.page++; renderPage(); });
+    document.getElementById('acc-pagesize').addEventListener('change', function () { state.pageSize = parseInt(this.value, 10) || 20; state.page = 0; renderPage(); });
+
     // ── 批量管理 ─────────────────────────────────────────────
     function setManage(on) {
+      state.manage = on;
       listEl.classList.toggle('manage', on);
       document.getElementById('acc-manage').style.display = on ? 'none' : '';
       document.getElementById('acc-manage-actions').style.display = on ? 'inline-flex' : 'none';
@@ -525,14 +610,23 @@ noindex: true
       var out = [];
       listEl.querySelectorAll('.acc-item').forEach(function (item) {
         var cb = item.querySelector('.acc-cb');
-        if (cb && cb.checked) out.push(decodeURIComponent(item.dataset.post));
+        if (cb && cb.checked && item.dataset.post) out.push(decodeURIComponent(item.dataset.post));
       });
       return out;
     }
-    document.getElementById('acc-manage').addEventListener('click', function () {
-      if (!listEl.querySelector('.acc-item')) return;
-      setManage(true);
-    });
+    async function removePosts(posts) {
+      if (!posts.length) return;
+      try {
+        await SiteAuth.authedFetch(api + '?action=remove-batch', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind: state.kind, posts: posts }),
+        });
+        var gone = {}; posts.forEach(function (p) { gone[p] = 1; });
+        state.items = state.items.filter(function (it) { return !gone[it.post]; });
+        setManage(false); renderPage(); loadStats();
+      } catch (e) {}
+    }
+    document.getElementById('acc-manage').addEventListener('click', function () { if (state.items.length) setManage(true); });
     document.getElementById('acc-mgr-done').addEventListener('click', function () { setManage(false); });
     document.getElementById('acc-selall').addEventListener('click', function () {
       var boxes = listEl.querySelectorAll('.acc-cb');
@@ -543,55 +637,20 @@ noindex: true
       var posts = selectedPosts();
       if (!posts.length) return;
       if (!confirm('删除所选的 ' + posts.length + ' 条？此操作不可撤销。')) return;
-      var btn = this; btn.disabled = true;
-      try {
-        var r = await SiteAuth.authedFetch(api + '?action=remove-batch', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ kind: current, posts: posts }),
-        });
-        if (r.ok) {
-          posts.forEach(function (p) {
-            var item = listEl.querySelector('.acc-item[data-post="' + encodeURIComponent(p).replace(/"/g, '\\"') + '"]');
-            if (item) item.remove();
-          });
-          if (!listEl.querySelector('.acc-item')) listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY[current] + '</div>';
-          setManage(false); loadStats();
-        }
-      } catch (e) {}
-      btn.disabled = false;
+      this.disabled = true; await removePosts(posts); this.disabled = false;
     });
     document.getElementById('acc-clear').addEventListener('click', async function () {
-      if (!confirm(CLEAR_CONFIRM[current] || '确定清空吗？此操作不可撤销。')) return;
-      var btn = this; btn.disabled = true;
+      if (!confirm(CLEAR_CONFIRM[state.kind] || '确定清空吗？此操作不可撤销。')) return;
+      this.disabled = true;
       try {
         var r = await SiteAuth.authedFetch(api + '?action=clear', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ kind: current }),
+          body: JSON.stringify({ kind: state.kind }),
         });
-        if (r.ok) { listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY[current] + '</div>'; setManage(false); loadStats(); }
+        if (r.ok) { state.items = []; setManage(false); renderPage(); loadStats(); }
       } catch (e) {}
-      btn.disabled = false;
+      this.disabled = false;
     });
-
-    async function loadComments() {
-      listEl.innerHTML = '<div class="acc-loading">加载中…</div>';
-      try {
-        var base = SiteAuth.API_BASE.replace('zircon-urge', 'zircon-comments');
-        var r = await SiteAuth.authedFetch(base + '/my-comments');
-        if (!r.ok) throw new Error('not ready');
-        var d = await r.json();
-        if (!d.items || !d.items.length) { listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY.comment + '</div>'; return; }
-        listEl.innerHTML = d.items.map(function (c) {
-          return '<div class="acc-item"><div class="acc-item-main">' +
-            '<a class="acc-item-title" href="' + esc(c.url || '#') + '">' + esc(c.title || c.url || '某篇文章') + '</a>' +
-            '<div class="acc-comment-body">' + (c.html || esc(c.text || '')) + '</div>' +
-            '<div class="acc-item-meta">' + fmtDate(c.ts) + '</div>' +
-          '</div></div>';
-        }).join('');
-      } catch (e) {
-        listEl.innerHTML = '<div class="acc-empty">评论记录正在接入中，敬请期待。</div>';
-      }
-    }
 
     // ── 左导航切换 ────────────────────────────────────────────
     function showPane(pane) {
@@ -644,7 +703,7 @@ noindex: true
       if (!p.hidden) { p.hidden = true; p.innerHTML = ''; return; }
       p.hidden = false;
       p.innerHTML =
-        '<div class="acc-ef">' +
+        '<div style="padding:0.4rem 0 0.6rem;">' +
           (user.hasPassword ? '<div class="acc-ef-row"><label for="acc-pw-old">当前密码</label><input type="password" id="acc-pw-old" autocomplete="current-password"></div>' : '') +
           '<div class="acc-ef-row"><label for="acc-pw-new">新密码（至少 6 位）</label><input type="password" id="acc-pw-new" autocomplete="new-password"></div>' +
           '<div class="acc-ef-row"><label for="acc-pw-new2">确认新密码</label><input type="password" id="acc-pw-new2" autocomplete="new-password"></div>' +
@@ -663,8 +722,7 @@ noindex: true
         var r; try { r = await SiteAuth.setPassword(oldP, n1); } catch (e) { r = { ok: false }; }
         this.disabled = false;
         if (r.ok) { p.hidden = true; p.innerHTML = ''; alert(user.hasPassword ? '密码已修改' : '密码已设置，以后也能用邮箱 + 密码登录'); }
-        else err.textContent = r.error === 'bad_old_password' ? '当前密码不对'
-          : r.error === 'weak_password' ? '新密码至少 6 位' : '保存失败，再试一次';
+        else err.textContent = r.error === 'bad_old_password' ? '当前密码不对' : r.error === 'weak_password' ? '新密码至少 6 位' : '保存失败，再试一次';
       });
     }
 
@@ -689,7 +747,7 @@ noindex: true
       if (!p.hidden) { p.hidden = true; p.innerHTML = ''; return; }
       p.hidden = false;
       p.innerHTML =
-        '<div class="acc-ef" style="border-color:#e0b4ad;">' +
+        '<div style="border:1px solid #e0b4ad; border-radius:var(--radius-md); padding:1rem; margin:0.4rem 0;">' +
           '<p style="margin:0 0 0.8rem; font-size:0.88rem; color:var(--color-text); line-height:1.6;">注销后，你的账号、收藏、点赞、浏览记录会被<strong>永久删除</strong>、无法恢复。（评论请在评论区自行删除）</p>' +
           (user.hasPassword
             ? '<div class="acc-ef-row"><label for="acc-del-pw">输入密码确认</label><input type="password" id="acc-del-pw" autocomplete="current-password"></div>'
@@ -719,12 +777,11 @@ noindex: true
         main.style.display = 'block';
         renderHero(user);
         renderSettings(user);
-        if (setSec.hidden !== false) loadKind(current);   // 若不在设置页则刷新当前列表
+        if (setSec.hidden) loadKind(state.kind);
       } else {
         main.style.display = 'none';
         guest.style.display = 'block';
         heroEl.innerHTML = ''; settingsEl.innerHTML = '';
-        editWrap.hidden = true; editWrap.innerHTML = '';
       }
     }
     SiteAuth.onChange(applyAuth);
