@@ -3088,7 +3088,7 @@
     tableView.hidden = true;        // 联机大厅完全替代牌桌
     lobbyEl.hidden = false;
     $('ddzRoomCode').textContent = sess.code;
-    startPolling();
+    startOnlineSync();
   }
 
   // ── 长轮询循环 ──────────────────────────────────────────────────────
@@ -3123,6 +3123,40 @@
       state.online.polling = false;
       if (state.online.pollAbort) try { state.online.pollAbort.abort(); } catch {}
     }
+  }
+  // SSE 优先(他人出牌约 1 个网络往返就到)；连不上/被代理屏蔽/断开 → 自动回退长轮询,绝不卡住
+  function closeSse() {
+    if (state.online && state.online.sse) { try { state.online.sse.close(); } catch (e) {} state.online.sse = null; }
+  }
+  function startOnlineSync() {
+    if (!state.online || !state.online.token) return;
+    if (window.EventSource) {
+      try {
+        const url = DDZ_API + '?action=stream&code=' + encodeURIComponent(state.online.code) + '&token=' + encodeURIComponent(state.online.token);
+        const es = new EventSource(url);
+        state.online.sse = es;
+        let opened = false;
+        es.onmessage = (ev) => {
+          if (!ev.data || ev.data.charCodeAt(0) !== 123) return;   // 123='{' — 忽略心跳/裸标记帧
+          opened = true;
+          try { applyServerState(JSON.parse(ev.data)); } catch (e) {}
+        };
+        es.addEventListener('gone', () => { closeSse(); leaveOnlineRoom(true); });
+        es.onerror = () => {
+          // 永久关闭 / 从没连上 → 回退长轮询；瞬断(CONNECTING)交给浏览器自动重连
+          if (es.readyState === EventSource.CLOSED || !opened) {
+            closeSse();
+            if (state.online && state.online.token) startPolling();
+          }
+        };
+        return;
+      } catch (e) { /* 落到长轮询 */ }
+    }
+    startPolling();
+  }
+  function stopOnlineSync() {
+    closeSse();
+    stopPolling();
   }
 
   // ── 服务端 → 本地状态映射 ──────────────────────────────────────────
@@ -3466,7 +3500,7 @@
       try {
         await apiCall('leave', { body: { code: state.online.code, token: state.online.token } });
       } catch {}
-      stopPolling();
+      stopOnlineSync();
     }
     clearSession();
     state.online = null;
