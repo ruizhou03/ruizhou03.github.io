@@ -1,0 +1,60 @@
+{%- comment -%}
+  评论抽屉：文末动作栏点「评论」→ 右侧(桌面) / 底部(手机)滑出，内嵌 Waline。全站单例。
+  含 div#waline（Waline init 仍挂到它上面），头部评论数复用 .waline-comment-count。
+  Liquid 安全：JS 无模板字面量、无花括号定界符。
+{%- endcomment -%}
+<style>
+  .cmt-ov { position:fixed; inset:0; z-index:1100; background:rgba(20,25,35,.34); opacity:0; pointer-events:none; transition:opacity .25s; }
+  .cmt-ov.on { opacity:1; pointer-events:auto; }
+  .cmt-drawer { position:fixed; top:0; right:0; height:100dvh; width:min(460px,100vw); z-index:1101;
+    background:var(--color-bg); box-shadow:-10px 0 44px -14px rgba(20,25,35,.45);
+    transform:translateX(102%); transition:transform .3s cubic-bezier(.4,0,.2,1);
+    display:flex; flex-direction:column; }
+  .cmt-drawer.on { transform:none; }
+  @media (max-width:600px) {
+    .cmt-drawer { width:100vw; height:86dvh; top:auto; bottom:0; right:0; border-radius:18px 18px 0 0;
+      transform:translateY(102%); box-shadow:0 -10px 44px -14px rgba(20,25,35,.45); }
+  }
+  .cmt-drawer-grip { display:none; }
+  @media (max-width:600px) { .cmt-drawer-grip { display:block; width:38px; height:4px; border-radius:2px;
+    background:var(--color-border); margin:.55rem auto -.15rem; flex-shrink:0; } }
+  .cmt-drawer-h { display:flex; align-items:center; justify-content:space-between; gap:1rem;
+    padding:0.95rem 1.25rem; border-bottom:1px solid var(--color-border); flex-shrink:0; }
+  .cmt-drawer-t { font-family:var(--font-display); font-size:1.18rem; font-weight:600; color:var(--color-ink); }
+  .cmt-drawer-t b { color:var(--color-muted); font-weight:400; font-size:.86em; font-variant-numeric:tabular-nums; margin-left:.1em; }
+  .cmt-drawer-x { border:0; background:none; font-size:1.7rem; line-height:1; color:var(--color-light); cursor:pointer; padding:0 .3rem; }
+  .cmt-drawer-x:hover { color:var(--color-ink); }
+  .cmt-drawer-body { flex:1; overflow-y:auto; overflow-x:hidden; padding:1rem 1.25rem 2.4rem; }
+  .cmt-drawer-body .cmt-fallback { color:var(--color-light); text-align:center; padding:3rem 1rem; font-family:var(--font-body); }
+
+  /* —— Waline 抽屉内清爽化 —— */
+  .cmt-drawer #waline { margin:0 !important; padding:0 !important; border-top:0 !important; }
+  .cmt-drawer .wl-panel { border:0 !important; box-shadow:none !important; margin-left:0 !important; width:100% !important; }
+  .cmt-drawer .wl-card { border-bottom:1px dashed var(--color-border) !important; padding:.9rem 0 !important; }
+  .cmt-drawer .wl-card:last-child { border-bottom:0 !important; }
+  .cmt-drawer .wl-nick { font-family:var(--font-body) !important; font-weight:600 !important; color:var(--color-ink) !important; }
+  .cmt-drawer .wl-content { font-family:var(--font-body) !important; color:var(--color-text) !important; line-height:1.72 !important; }
+  .cmt-drawer .wl-meta, .cmt-drawer .wl-time { color:var(--color-light) !important; }
+  .cmt-drawer .wl-editor, .cmt-drawer .wl-input, .cmt-drawer .wl-btn { font-family:inherit !important; }
+</style>
+<div class="cmt-ov" id="cmt-ov"></div>
+<aside class="cmt-drawer" id="cmt-drawer" aria-hidden="true" aria-label="评论区">
+  <div class="cmt-drawer-grip" aria-hidden="true"></div>
+  <header class="cmt-drawer-h">
+    <span class="cmt-drawer-t">评论 <b class="waline-comment-count" data-path="{{ page.url }}"></b></span>
+    <button type="button" class="cmt-drawer-x" aria-label="关闭评论">&times;</button>
+  </header>
+  <div class="cmt-drawer-body"><div id="waline"><p class="cmt-fallback" id="cmt-fallback">评论区加载中…</p></div></div>
+</aside>
+<script>
+(function () {
+  var ov = document.getElementById('cmt-ov'), dr = document.getElementById('cmt-drawer');
+  if (!ov || !dr) return;
+  function open() { ov.classList.add('on'); dr.classList.add('on'); dr.setAttribute('aria-hidden', 'false'); document.documentElement.style.overflow = 'hidden'; }
+  function close() { ov.classList.remove('on'); dr.classList.remove('on'); dr.setAttribute('aria-hidden', 'true'); document.documentElement.style.overflow = ''; }
+  ov.addEventListener('click', close);
+  dr.querySelector('.cmt-drawer-x').addEventListener('click', close);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dr.classList.contains('on')) close(); });
+  window.CommentDrawer = { open: open, close: close };
+})();
+</script>

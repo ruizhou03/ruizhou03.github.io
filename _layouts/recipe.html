@@ -303,8 +303,7 @@ layout: default
         }
         favBtn.addEventListener('click', onFavClick);
         commentBtn.addEventListener('click', function () {
-          var w = document.getElementById('waline');
-          if (w) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (window.CommentDrawer) window.CommentDrawer.open();
         });
         // 手机端：写评论时把吸底栏让开，别挡输入 / 发送
         document.addEventListener('focusin', function (e) {
@@ -373,7 +372,7 @@ layout: default
 
   {% include fav-album-picker.html %}
 
-  <div id="waline" style="margin-top: 4rem; padding-top: 2rem; border-top: 1px dashed var(--color-border); display: none;"></div>
+  {% include comment-drawer.html %}
 
   <script type="module">
     import { init } from 'https://unpkg.com/@waline/client@v2/dist/waline.mjs';
@@ -395,7 +394,7 @@ layout: default
     };
 
     reachable('https://zircon-comments.fly.dev/api/comment?type=count&path=/', 4000).then(ok => {
-      if (!ok) return;
+      if (!ok) { const fb = document.getElementById('cmt-fallback'); if (fb) fb.textContent = '评论区暂时打不开，稍后再试'; return; }
 
       const walineEl = document.getElementById('waline');
       if (walineEl) walineEl.style.display = '';
@@ -409,10 +408,7 @@ layout: default
         placeholder: '欢迎交流！不填昵称也可以直接发布哦...',
         pageview: true,
         comment: true,
-        reaction: [
-          'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f44d.png',
-          'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f44e.png'
-        ],
+        reaction: false,   // 点赞 / 点彩表情互动已下线（动作栏已有点赞 / 收藏）
         requiredMeta: [],
         locale: {
           reactionTitle: '',
