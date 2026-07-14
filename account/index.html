@@ -21,27 +21,31 @@ noindex: true
     <div class="acc-console">
       <nav class="acc-nav" id="acc-nav">
         <div class="acc-nav-cap">我的内容</div>
-        <button class="acc-nav-item on" type="button" data-pane="fav"><span class="acc-nav-ic">⭐</span>收藏</button>
-        <button class="acc-nav-item" type="button" data-pane="like"><span class="acc-nav-ic">👍</span>点赞</button>
-        <button class="acc-nav-item" type="button" data-pane="hist"><span class="acc-nav-ic">🕘</span>浏览记录</button>
-        <button class="acc-nav-item" type="button" data-pane="comment"><span class="acc-nav-ic">💬</span>评论记录</button>
-        <div class="acc-nav-cap">账号</div>
-        <button class="acc-nav-item" type="button" data-pane="settings"><span class="acc-nav-ic">⚙️</span>设置</button>
+        <button class="acc-nav-item on" type="button" data-pane="fav"><span class="acc-nav-ic">★</span><span class="acc-nav-tx">收藏</span></button>
+        <button class="acc-nav-item" type="button" data-pane="like"><span class="acc-nav-ic">♡</span><span class="acc-nav-tx">点赞</span></button>
+        <button class="acc-nav-item" type="button" data-pane="hist"><span class="acc-nav-ic">◷</span><span class="acc-nav-tx">浏览记录</span></button>
+        <button class="acc-nav-item" type="button" data-pane="comment"><span class="acc-nav-ic">✎</span><span class="acc-nav-tx">评论记录</span></button>
       </nav>
 
       <div class="acc-content">
         <section class="acc-sec" id="acc-listsec">
-          <div id="acc-toolbar" class="acc-toolbar">
-            <button id="acc-manage" class="acc-tool-btn" type="button">管理</button>
-            <span id="acc-manage-actions" style="display:none;">
-              <button id="acc-selall" class="acc-tool-btn" type="button">全选本页</button>
-              <button id="acc-delsel" class="acc-tool-btn danger" type="button">删除所选</button>
-              <button id="acc-mgr-done" class="acc-tool-btn" type="button">完成</button>
-            </span>
-            <button id="acc-clear" class="acc-tool-btn danger-ghost" type="button" style="margin-left:auto;">清空</button>
-          </div>
-          <div id="acc-search-row" class="acc-search-row" hidden>
-            <input type="search" id="acc-search" class="acc-search" placeholder="搜标题…" autocomplete="off" aria-label="搜索本类记录">
+          <div class="acc-main-head" id="acc-main-head">
+            <div class="acc-sec-heading" id="acc-sec-heading"><h2 class="acc-sec-title" id="acc-sec-title">收藏</h2><span class="acc-sec-count" id="acc-sec-count"></span></div>
+            <div class="acc-head-tools">
+              <div id="acc-search-row" class="acc-search-row" hidden>
+                <svg class="acc-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="search" id="acc-search" class="acc-search" placeholder="搜标题…" autocomplete="off" aria-label="搜索本类记录">
+              </div>
+              <div id="acc-toolbar" class="acc-toolbar">
+                <button id="acc-manage" class="acc-tool-btn" type="button">管理</button>
+                <span id="acc-manage-actions" style="display:none;">
+                  <button id="acc-selall" class="acc-tool-btn" type="button">全选本页</button>
+                  <button id="acc-delsel" class="acc-tool-btn danger" type="button">删除所选</button>
+                  <button id="acc-mgr-done" class="acc-tool-btn" type="button">完成</button>
+                </span>
+                <button id="acc-clear" class="acc-tool-btn danger-ghost" type="button">清空</button>
+              </div>
+            </div>
           </div>
           <div id="acc-list" class="acc-list"></div>
           <div id="acc-pager" class="acc-pager" hidden>
@@ -55,6 +59,7 @@ noindex: true
         </section>
 
         <section class="acc-sec" id="acc-setsec" hidden>
+          <div class="acc-main-head"><div class="acc-sec-heading"><h2 class="acc-sec-title">设置</h2></div></div>
           <div id="acc-settings"></div>
         </section>
       </div>
@@ -63,7 +68,7 @@ noindex: true
 </article>
 
 <style>
-  .acc-wrap { max-width: 940px; margin: 0 auto; padding: 2.4rem 1rem 4rem; }
+  .acc-wrap { max-width: 1160px; margin: 0 auto; padding: 2.4rem 1.25rem 4rem; }
 
   /* ── 游客态 ── */
   .acc-guest { text-align:center; padding:4rem 1.5rem; border:1px dashed var(--color-border);
@@ -74,18 +79,19 @@ noindex: true
     background:var(--color-accent); color:#fff; border:none; border-radius: var(--radius-sm); box-shadow: var(--shadow-1); }
   .acc-primary:hover { filter:brightness(1.06); }
 
-  /* ── 资料 hero ── */
-  .acc-hero-card { display:flex; gap:1.4rem; align-items:flex-start; padding: var(--space-5);
+  /* ── 资料 hero（左身份+进度 ｜ 中统计 ｜ 右操作：编辑+齿轮设置）── */
+  .acc-hero-card { display:flex; gap:1.5rem; align-items:center; flex-wrap:wrap; padding: var(--space-5);
     background: var(--color-bg-warm); border:1px solid var(--color-border);
     border-radius: var(--radius-lg); box-shadow: var(--shadow-1); }
-  .acc-hero-av { width:88px; height:88px; border-radius:50%; flex-shrink:0;
-    background:var(--color-accent); color:#fff; font-family:var(--font-display); font-size:2.6rem; font-weight:700;
+  .acc-hero-id { flex:0 1 auto; display:flex; gap:1.3rem; align-items:flex-start; min-width:0; }
+  .acc-hero-av { width:80px; height:80px; border-radius:50%; flex-shrink:0;
+    background:var(--color-accent); color:#fff; font-family:var(--font-display); font-size:2.3rem; font-weight:700;
     display:flex; align-items:center; justify-content:center; background-size:cover; background-position:center; }
   .acc-hero-body { flex:1; min-width:0; }
-  .acc-hero-top { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; }
-  .acc-hero-nick { font-family:var(--font-display); font-size:1.7rem; color:var(--color-ink); margin:0; line-height:1.15; word-break:break-word; }
-  .acc-lv { flex-shrink:0; font-family:var(--font-display); font-size:0.9rem; font-weight:700; line-height:1;
-    color:#fff; background:var(--color-accent); border-radius:999px; padding:0.28rem 0.62rem;
+  .acc-hero-top { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+  .acc-hero-nick { font-family:var(--font-display); font-size:1.55rem; color:var(--color-ink); margin:0; line-height:1.15; word-break:break-word; }
+  .acc-lv { flex-shrink:0; font-family:var(--font-display); font-size:0.86rem; font-weight:700; line-height:1;
+    color:#fff; background:var(--color-accent); border-radius:999px; padding:0.26rem 0.6rem;
     font-variant-numeric: tabular-nums lining-nums; box-shadow: var(--shadow-1); }
   .acc-lv.shine { animation: acc-shine 2.4s linear infinite; background-size:200% 100%; }
   @keyframes acc-shine { to { background-position:200% 0; } }
@@ -93,27 +99,38 @@ noindex: true
     background:var(--color-bg); color:var(--color-muted); font-size:0.72rem; font-weight:700; cursor:pointer;
     display:inline-flex; align-items:center; justify-content:center; padding:0; font-family:inherit; }
   .acc-lv-help:hover { color:var(--color-accent); border-color:var(--color-accent); }
-  .acc-hero-edit { margin-left:auto; flex-shrink:0; padding:0.4rem 0.95rem; font-size:0.85rem; }
-  .acc-hero-bio { font-size:0.92rem; color:var(--color-text); line-height:1.6; margin:0.55rem 0 0; word-break:break-word; }
+  .acc-hero-joined { font-size:0.76rem; color:var(--color-light); }
+  .acc-hero-bio { font-size:0.9rem; color:var(--color-text); line-height:1.6; margin:0.5rem 0 0; word-break:break-word; }
   .acc-hero-bio.empty { color:var(--color-light); }
-  .acc-hero-meta { font-size:0.78rem; color:var(--color-light); margin:0.55rem 0 0; word-break:break-all; }
-  .acc-lv-wrap { margin-top:0.9rem; max-width:340px; }
+  .acc-hero-meta { display:none; }
+  .acc-lv-wrap { margin-top:0.85rem; max-width:380px; }
   .acc-lv-bar { height:7px; border-radius:999px; background:var(--color-border); overflow:hidden; }
   .acc-lv-fill { height:100%; background:var(--color-accent); border-radius:999px; transition:width .4s; }
   .acc-lv-note { font-size:0.72rem; color:var(--color-light); margin-top:0.35rem; font-variant-numeric: tabular-nums lining-nums; }
-  .acc-hero-stats { display:flex; gap:2rem; margin-top:1.1rem; padding-top:1rem; border-top:1px solid var(--color-border); }
-  .acc-stat-n { font-family:var(--font-display); font-size:1.5rem; font-weight:700; color:var(--color-ink);
+  .acc-hero-stats { flex:1 1 auto; display:flex; gap:0.7rem; justify-content:center; }
+  .acc-hero-stats > div { background:var(--color-bg); border:1px solid var(--color-border); border-radius:var(--radius-md);
+    padding:0.6rem 0.85rem; text-align:center; min-width:76px; }
+  .acc-stat-n { font-family:var(--font-display); font-size:1.45rem; font-weight:700; color:var(--color-ink);
     line-height:1; font-variant-numeric: tabular-nums lining-nums; }
-  .acc-stat-l { font-size:0.74rem; color:var(--color-light); margin-top:0.3rem; }
+  .acc-stat-l { font-size:0.73rem; color:var(--color-muted); margin-top:0.28rem; }
+  .acc-hero-actions { flex:0 0 auto; align-self:flex-start; display:flex; gap:0.5rem; align-items:center; }
+  .acc-hero-edit { flex-shrink:0; padding:0.4rem 0.95rem; font-size:0.85rem; }
+  .acc-hero-gear { width:38px; height:38px; border-radius:50%; border:1px solid var(--color-border); background:var(--color-bg);
+    color:var(--color-muted); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; padding:0; }
+  .acc-hero-gear:hover { color:var(--color-accent); border-color:var(--color-accent); }
+  .acc-hero-gear svg { width:19px; height:19px; }
   @media (max-width:560px) {
-    /* 手机端把 hero 压成一行身份条：头像+昵称+等级+编辑，隐藏简介/邮箱/进度/统计，
-       让导航与列表尽快进入首屏。段位信息不丢——点等级旁「?」仍可看升级细则。 */
-    .acc-hero-card { gap:0.85rem; align-items:center; padding: var(--space-4); }
+    /* 手机端 hero 瘦身：头像+昵称+等级+进度条 + 右上角(编辑/齿轮)，隐藏简介/统计 */
+    .acc-hero-card { position:relative; flex-direction:column; align-items:stretch; gap:0.7rem; padding: var(--space-4); }
+    .acc-hero-id { align-items:center; gap:0.85rem; }
     .acc-hero-av { width:52px; height:52px; font-size:1.5rem; }
-    .acc-hero-top { flex-wrap:wrap; gap:0.35rem 0.5rem; }
-    .acc-hero-nick { font-size:1.25rem; }
-    .acc-hero-edit { margin-left:auto; padding:0.32rem 0.7rem; }
-    .acc-hero-bio, .acc-hero-meta, .acc-lv-wrap, .acc-hero-stats { display:none; }
+    .acc-hero-top { flex-wrap:wrap; gap:0.3rem 0.5rem; padding-right:7rem; }
+    .acc-hero-nick { font-size:1.2rem; }
+    .acc-hero-bio, .acc-hero-stats { display:none; }
+    .acc-lv-wrap { max-width:none; margin-top:0.2rem; }
+    .acc-hero-actions { position:absolute; top:0.85rem; right:0.9rem; gap:0.4rem; }
+    .acc-hero-edit { padding:0.3rem 0.6rem; font-size:0.78rem; }
+    .acc-hero-gear { width:34px; height:34px; }
   }
 
   /* ── 控制台：左导航 + 内容 ── */
@@ -129,12 +146,32 @@ noindex: true
   .acc-content { flex:1; min-width:0; }
   .acc-sec { padding: var(--space-5); background:var(--color-bg-warm); border:1px solid var(--color-border);
     border-radius: var(--radius-lg); box-shadow: var(--shadow-1); }
+
+  /* ── 内容区标题头（标题+条数 ｜ 搜索+工具）── */
+  .acc-main-head { display:flex; align-items:center; gap:0.7rem 1rem; flex-wrap:wrap; margin-bottom:1.1rem; }
+  .acc-sec-heading { display:flex; align-items:center; gap:0.55rem; min-width:0; }
+  .acc-sec-title { font-family:var(--font-display); font-size:1.5rem; color:var(--color-ink); margin:0; font-weight:600; line-height:1.2;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .acc-sec-count { font-size:0.8rem; color:var(--color-light); font-variant-numeric:tabular-nums lining-nums; flex-shrink:0; }
+  .acc-head-tools { display:flex; align-items:center; gap:0.5rem; margin-left:auto; flex-wrap:wrap; }
+  /* 分类圆点 */
+  .acc-cat { display:inline-flex; align-items:center; gap:0.32rem; color:var(--color-muted); }
+  .acc-cat-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
   @media (max-width:720px) {
     .acc-console { flex-direction:column; gap: var(--space-3); }
-    .acc-nav { width:100%; position:static; flex-direction:row; overflow-x:auto; gap:0.35rem; padding-bottom:0.3rem; }
+    /* 分段控件式导航（收藏/点赞/浏览/评论）*/
+    .acc-nav { width:100%; position:static; flex-direction:row; gap:0.15rem;
+      background:var(--color-bg-warm); border:1px solid var(--color-border); border-radius:var(--radius-pill); padding:0.25rem; overflow-x:auto; }
     .acc-nav-cap { display:none; }
-    .acc-nav-item { white-space:nowrap; border:1px solid var(--color-border); flex-shrink:0; }
-    .acc-nav-item.on { border-color:var(--color-accent); }
+    .acc-nav-item { flex:1 0 auto; justify-content:center; white-space:nowrap; padding:0.42rem 0.7rem; border-radius:var(--radius-pill); color:var(--color-muted); }
+    .acc-nav-ic { display:none; }
+    .acc-nav-item.on { background:var(--color-bg); color:var(--color-accent); box-shadow:var(--shadow-1); }
+  }
+  @media (max-width:560px) {
+    .acc-head-tools { width:100%; margin-left:0; }
+    .acc-search-row { flex:1; }
+    .acc-search { width:100% !important; }
   }
 
   /* ── 工具条 / 批量管理 ── */
@@ -151,34 +188,32 @@ noindex: true
     color:#fff; background:var(--color-accent); border:none; border-radius: var(--radius-sm); }
   .acc-save:disabled { opacity:0.6; cursor:default; }
 
-  /* ── 搜索框（仅本类记录 >10 条且非管理态时出现）── */
-  .acc-search-row { margin-bottom:1rem; }
-  .acc-search { width:100%; box-sizing:border-box; padding:0.5rem 0.8rem; font-size:0.88rem; font-family:inherit;
-    color:var(--color-text); background:var(--color-bg); border:1px solid var(--color-border); border-radius: var(--radius-sm); }
+  /* ── 搜索框（并入内容头部；仅本类记录 >10 条时出现）── */
+  .acc-search-row { position:relative; display:flex; align-items:center; }
+  .acc-search-ic { position:absolute; left:0.65rem; width:15px; height:15px; color:var(--color-light); pointer-events:none; }
+  .acc-search { width:210px; max-width:100%; box-sizing:border-box; padding:0.46rem 0.8rem 0.46rem 2rem; font-size:0.88rem; font-family:inherit;
+    color:var(--color-text); background:var(--color-bg); border:1px solid var(--color-border); border-radius: var(--radius-pill); }
   .acc-search::placeholder { color:var(--color-light); }
-  .acc-search:focus { outline:none; border-color:var(--color-accent); }
+  .acc-search:focus { outline:none; border-color:var(--color-accent); box-shadow:0 0 0 3px var(--color-accent-soft); }
 
-  /* ── 收藏专辑（收藏夹）网格 ── */
-  .acc-albgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:0.9rem; padding:0.4rem 0; }
-  .acc-alb { position:relative; text-align:left; border:1px solid var(--color-border); border-radius:var(--radius-lg);
-    background:var(--color-bg); padding:0.95rem; cursor:pointer; overflow:hidden; font-family:inherit;
-    display:flex; flex-direction:column; min-height:118px; transition:border-color .18s, transform .18s, box-shadow .18s; }
-  .acc-alb::before { content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--color-highlight); opacity:.85; }
-  .acc-alb:hover { border-color:var(--color-highlight); transform:translateY(-2px); box-shadow:var(--shadow-1); }
-  .acc-alb-n { font-family:var(--font-display); font-weight:600; color:var(--color-ink); font-size:1.02rem; padding-left:0.35rem; }
-  .acc-alb-c { font-size:0.74rem; color:var(--color-light); padding-left:0.35rem; margin:0.1rem 0 0.5rem; }
-  .acc-alb-sps { display:flex; flex-direction:column; gap:0.24rem; padding-left:0.35rem; }
-  .acc-alb-sp { font-family:var(--font-body); font-size:0.76rem; color:var(--color-muted); white-space:nowrap; overflow:hidden;
-    text-overflow:ellipsis; padding-left:0.45rem; border-left:2px solid var(--color-accent-soft); }
+  /* ── 收藏夹网格（简卡：文件夹图标 + 名字两行截断 + 篇数）── */
+  .acc-albgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:0.9rem; padding:0.2rem 0; }
+  .acc-alb { min-width:0; text-align:left; border:1px solid var(--color-border); border-radius:var(--radius-md);
+    background:var(--color-bg); padding:0.9rem 1rem; cursor:pointer; font-family:inherit;
+    display:flex; flex-direction:column; gap:0.4rem; min-height:96px; justify-content:center;
+    box-shadow:var(--shadow-1); transition:border-color .18s, transform .18s, box-shadow .18s; }
+  .acc-alb:hover { border-color:var(--color-highlight); transform:translateY(-2px); box-shadow:var(--shadow-2); }
+  .acc-alb-top { display:flex; align-items:flex-start; gap:0.5rem; min-width:0; }
+  .acc-alb-fold { width:20px; height:20px; color:var(--color-highlight); flex-shrink:0; margin-top:0.1rem; }
+  .acc-alb-n { flex:1; min-width:0; font-family:var(--font-display); font-weight:600; color:var(--color-ink); font-size:1.05rem; line-height:1.3;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .acc-alb-c { font-size:0.74rem; color:var(--color-light); }
   .acc-alb-new { align-items:center; justify-content:center; color:var(--color-accent); border-style:dashed; background:var(--color-bg-warm); gap:0.3rem; }
-  .acc-alb-new::before { display:none; }
   .acc-alb-plus { font-size:1.5rem; line-height:1; }
-  .acc-albhead { display:flex; align-items:center; gap:0.7rem; margin-bottom:0.7rem; }
   .acc-alb-back { border:1px solid var(--color-border); background:var(--color-bg); color:var(--color-muted); cursor:pointer;
-    font-family:inherit; font-size:0.82rem; padding:0.28rem 0.7rem; border-radius:999px; }
+    font-family:inherit; font-size:0.82rem; padding:0.28rem 0.7rem; border-radius:999px; flex-shrink:0; }
   .acc-alb-back:hover { border-color:var(--color-accent); color:var(--color-accent); }
-  .acc-albhead-n { font-family:var(--font-display); font-weight:600; color:var(--color-ink); font-size:1.1rem; }
-  .acc-albhead-del { margin-left:auto; border:none; background:none; color:var(--color-light); cursor:pointer; font-size:0.8rem; }
+  .acc-albhead-del { border:none; background:none; color:var(--color-light); cursor:pointer; font-size:0.8rem; flex-shrink:0; }
   .acc-albhead-del:hover { color:#b4453a; }
   .acc-alb-picklist { display:flex; flex-direction:column; gap:0.4rem; margin-top:0.8rem; }
   .acc-alb-pick { display:flex; align-items:center; justify-content:space-between; border:1px solid var(--color-border);
@@ -333,6 +368,41 @@ noindex: true
       like: '确定取消全部点赞吗？此操作不可撤销。',
       hist: '确定清空全部浏览记录吗？此操作不可撤销。',
     };
+    var KIND_TITLE = { fav: '收藏', like: '点赞', hist: '浏览记录', comment: '评论记录' };
+    var GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
+    var FOLDER_SVG = '<svg class="acc-alb-fold" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>';
+    // 记录所属板块 → 分类圆点（名字+颜色），从 URL 路径推断；未知则不显示
+    function catOf(it) {
+      var u = ((it && (it.url || it.post)) || '') + '';
+      if (/\/toolbox\/recipes\//.test(u) || /\/recipes?\//.test(u)) return { name: '菜谱', color: '#b5744a' };
+      if (/\/toolbox\//.test(u)) return { name: '百宝箱', color: '#2d5a8e' };
+      if (/\/research\//.test(u)) return { name: '科研妙招', color: '#1e3a5f' };
+      if (/\/life\//.test(u)) return { name: '生活攻略', color: '#5d8a6b' };
+      if (/\/essays\//.test(u)) return { name: '随笔漫谈', color: '#8a6d9c' };
+      if (/\/notes\/|\/files\//.test(u)) return { name: '学习资料', color: '#c0912f' };
+      return null;
+    }
+    function catMetaHtml(it) {
+      var c = catOf(it);
+      return c ? '<span class="acc-cat"><span class="acc-cat-dot" style="background:' + c.color + '"></span>' + esc(c.name) + '</span> · ' : '';
+    }
+    function setCount(txt) { var el = document.getElementById('acc-sec-count'); if (el) el.textContent = txt || ''; }
+    function plainHeading(title) {
+      var h = document.getElementById('acc-sec-heading');
+      if (h) h.innerHTML = '<h2 class="acc-sec-title" id="acc-sec-title">' + esc(title) + '</h2><span class="acc-sec-count" id="acc-sec-count"></span>';
+    }
+    function folderHeading(album) {
+      var h = document.getElementById('acc-sec-heading');
+      if (!h) return;
+      h.innerHTML =
+        '<button type="button" class="acc-alb-back" id="acc-alb-back">‹ 收藏夹</button>' +
+        '<h2 class="acc-sec-title" id="acc-sec-title">' + esc(album.name) + '</h2>' +
+        '<span class="acc-sec-count" id="acc-sec-count"></span>' +
+        (album.id ? '<button type="button" class="acc-albhead-del" id="acc-albhead-del">删除收藏夹</button>' : '');
+      document.getElementById('acc-alb-back').addEventListener('click', showFavGrid);
+      var del = document.getElementById('acc-albhead-del');
+      if (del) del.addEventListener('click', function () { deleteAlbum(album); });
+    }
 
     // ── 等级特权：按等级分层的徽章配色 + 头像光环 + Lv10 闪光 ─────────
     function levelOf(user) {
@@ -359,25 +429,30 @@ noindex: true
         : '积分 ' + lv.points + ' · 距 Lv' + (lv.level + 1) + ' 还差 ' + (lv.next - lv.points);
       heroEl.innerHTML =
         '<div class="acc-hero-card">' +
-          '<div class="acc-hero-av" id="acc-hero-av"></div>' +
-          '<div class="acc-hero-body">' +
-            '<div class="acc-hero-top">' +
-              '<h1 class="acc-hero-nick">' + esc(user.nick || '锆友') + '</h1>' +
-              '<span class="acc-lv' + (perk.shine ? ' shine' : '') + '" id="acc-lv-badge" title="' + esc(perk.tier) + '">' + esc(lv.name) + '</span>' +
-              '<button class="acc-lv-help" id="acc-lv-help" type="button" title="升级细则" aria-label="升级细则">?</button>' +
-              '<button class="acc-primary acc-hero-edit" type="button">编辑资料</button>' +
+          '<div class="acc-hero-id">' +
+            '<div class="acc-hero-av" id="acc-hero-av"></div>' +
+            '<div class="acc-hero-body">' +
+              '<div class="acc-hero-top">' +
+                '<h1 class="acc-hero-nick">' + esc(user.nick || '锆友') + '</h1>' +
+                '<span class="acc-lv' + (perk.shine ? ' shine' : '') + '" id="acc-lv-badge" title="' + esc(perk.tier) + '">' + esc(lv.name) + '</span>' +
+                '<button class="acc-lv-help" id="acc-lv-help" type="button" title="升级细则" aria-label="升级细则">?</button>' +
+                (joined ? '<span class="acc-hero-joined">加入于 ' + esc(joined) + '</span>' : '') +
+              '</div>' +
+              '<p class="acc-hero-bio' + (user.bio ? '' : ' empty') + '">' + esc(user.bio || '还没有简介，写一句介绍自己吧。') + '</p>' +
+              '<div class="acc-lv-wrap">' +
+                '<div class="acc-lv-bar"><div class="acc-lv-fill" style="width:' + Math.round(lv.progress * 100) + '%"></div></div>' +
+                '<div class="acc-lv-note">' + lvNote + '</div>' +
+              '</div>' +
             '</div>' +
-            '<p class="acc-hero-bio' + (user.bio ? '' : ' empty') + '">' + esc(user.bio || '还没有简介，写一句介绍自己吧。') + '</p>' +
-            '<p class="acc-hero-meta">' + esc(user.email || '') + (joined ? ' · 加入于 ' + joined : '') + '</p>' +
-            '<div class="acc-lv-wrap">' +
-              '<div class="acc-lv-bar"><div class="acc-lv-fill" style="width:' + Math.round(lv.progress * 100) + '%"></div></div>' +
-              '<div class="acc-lv-note">' + lvNote + '</div>' +
-            '</div>' +
-            '<div class="acc-hero-stats">' +
-              '<div><div class="acc-stat-n" id="acc-stat-fav">–</div><div class="acc-stat-l">收藏</div></div>' +
-              '<div><div class="acc-stat-n" id="acc-stat-like">–</div><div class="acc-stat-l">点赞</div></div>' +
-              '<div><div class="acc-stat-n" id="acc-stat-hist">–</div><div class="acc-stat-l">浏览</div></div>' +
-            '</div>' +
+          '</div>' +
+          '<div class="acc-hero-stats">' +
+            '<div><div class="acc-stat-n" id="acc-stat-fav">–</div><div class="acc-stat-l">收藏</div></div>' +
+            '<div><div class="acc-stat-n" id="acc-stat-like">–</div><div class="acc-stat-l">点赞</div></div>' +
+            '<div><div class="acc-stat-n" id="acc-stat-hist">–</div><div class="acc-stat-l">浏览</div></div>' +
+          '</div>' +
+          '<div class="acc-hero-actions">' +
+            '<button class="acc-primary acc-hero-edit" type="button">编辑资料</button>' +
+            '<button class="acc-hero-gear" id="acc-hero-gear" type="button" title="设置" aria-label="设置">' + GEAR_SVG + '</button>' +
           '</div>' +
         '</div>';
       var av = heroEl.querySelector('.acc-hero-av');
@@ -387,6 +462,7 @@ noindex: true
       badge.style.background = perk.bg;
       heroEl.querySelector('.acc-hero-edit').addEventListener('click', function () { openEditModal(user); });
       document.getElementById('acc-lv-help').addEventListener('click', openRulesModal);
+      document.getElementById('acc-hero-gear').addEventListener('click', function () { showPane('settings'); });
       loadStats();
     }
 
@@ -573,7 +649,7 @@ noindex: true
         return '<div class="acc-item"><div class="acc-item-main">' +
           '<a class="acc-item-title" href="' + esc(it.url || '#') + '">' + esc(it.title || it.url || '某篇文章') + '</a>' +
           '<div class="acc-comment-body">' + (it.html || esc(it.text || '')) + '</div>' +
-          '<div class="acc-item-meta">' + fmtDate(it.ts) + '</div>' +
+          '<div class="acc-item-meta">' + catMetaHtml(it) + fmtDate(it.ts) + '</div>' +
         '</div></div>';
       }
       var url = it.url || it.post || '#';
@@ -581,7 +657,7 @@ noindex: true
           '<input type="checkbox" class="acc-cb" aria-label="选择">' +
           '<div class="acc-item-main">' +
             '<a class="acc-item-title" href="' + esc(url) + '">' + esc(it.title || it.post) + '</a>' +
-            '<div class="acc-item-meta">' + fmtDate(it.ts) + '</div>' +
+            '<div class="acc-item-meta">' + catMetaHtml(it) + fmtDate(it.ts) + '</div>' +
           '</div>' +
           '<button class="acc-item-rm" title="移除" aria-label="移除">×</button>' +
         '</div>';
@@ -594,6 +670,7 @@ noindex: true
       var kind = state.kind, items = state.items;
       // 搜索框显隐：本类记录 >10 条即出现（管理态下也保留——支持「搜出某话题→选中→删除」）
       searchRow.hidden = !(items.length > 10);
+      setCount(items.length ? '共 ' + items.length + ' 条' : '');
       // 过滤视图：搜索只作用于当前类目
       var view = state.query ? items.filter(matchQuery) : items;
       if (!items.length) { listEl.innerHTML = '<div class="acc-empty">' + KIND_EMPTY[kind] + '</div>'; pagerEl.hidden = true; return; }
@@ -624,8 +701,9 @@ noindex: true
       setManage(false);
       // 离开收藏专辑视图时清理其专属 UI
       state.favView = null; state.album = null;
-      removeAlbumHead();
-      var _mv = document.getElementById('acc-movesel'); if (_mv) _mv.style.display = 'none';
+      plainHeading(KIND_TITLE[kind] || '');
+      document.getElementById('acc-delsel').textContent = '删除所选';
+      var _ab = document.getElementById('acc-albactions'); if (_ab) _ab.style.display = 'none';
       document.getElementById('acc-clear').style.display = '';
       var canManage = kind !== 'comment';
       toolbar.style.display = canManage ? 'flex' : 'none';
@@ -655,56 +733,68 @@ noindex: true
     // ── 收藏专辑（收藏夹）─────────────────────────────────────
     // 收藏页先给出「收藏夹网格」；点进一个夹子 = 复用下面的列表机制（按 album 过滤）。
     function ensureAlbBtns() {
-      var mv = document.getElementById('acc-movesel');
-      if (!mv) {
-        mv = document.createElement('button');
-        mv.id = 'acc-movesel'; mv.type = 'button'; mv.className = 'acc-tool-btn';
-        mv.textContent = '移动到…'; mv.style.display = 'none';
+      var wrap = document.getElementById('acc-albactions');
+      if (!wrap) {
+        wrap = document.createElement('span');
+        wrap.id = 'acc-albactions'; wrap.style.display = 'none';
+        wrap.innerHTML =
+          '<button type="button" class="acc-tool-btn" id="acc-alb-move">移动到…</button>' +
+          '<button type="button" class="acc-tool-btn" id="acc-alb-add">加入…</button>' +
+          '<button type="button" class="acc-tool-btn" id="acc-alb-out">移出本夹</button>';
         var delsel = document.getElementById('acc-delsel');
-        delsel.parentNode.insertBefore(mv, delsel);
-        mv.addEventListener('click', function () {
+        delsel.parentNode.insertBefore(wrap, delsel);
+        document.getElementById('acc-alb-move').addEventListener('click', function () {
           var posts = selectedPosts();
           if (!posts.length) { alert('先勾选要移动的文章'); return; }
-          chooseAlbumModal(function (albId) { moveSelected(posts, albId); });
+          chooseAlbumModal(function (albId) { albumEdit(posts, { add: albId, remove: (state.album && state.album.id) || '' }); }, '移动到收藏夹');
+        });
+        document.getElementById('acc-alb-add').addEventListener('click', function () {
+          var posts = selectedPosts();
+          if (!posts.length) { alert('先勾选要加入的文章'); return; }
+          chooseAlbumModal(function (albId) { if (albId) albumEdit(posts, { add: albId }); }, '加入收藏夹（原夹保留）', true);
+        });
+        document.getElementById('acc-alb-out').addEventListener('click', function () {
+          var posts = selectedPosts();
+          if (!posts.length) { alert('先勾选要移出的文章'); return; }
+          var cur = (state.album && state.album.id) || '';
+          if (!cur) { alert('「默认收藏夹」里的文章本就未归入任何夹'); return; }
+          albumEdit(posts, { remove: cur });
         });
       }
-      return mv;
+      return wrap;
     }
-    function removeAlbumHead() { var h = document.getElementById('acc-albhead'); if (h) h.remove(); }
-    function showAlbumHead(album) {
-      removeAlbumHead();
-      var head = document.createElement('div');
-      head.id = 'acc-albhead'; head.className = 'acc-albhead';
-      head.innerHTML = '<button type="button" class="acc-alb-back">‹ 收藏夹</button>' +
-        '<span class="acc-albhead-n">' + esc(album.name) + '</span>' +
-        (album.id ? '<button type="button" class="acc-albhead-del">删除收藏夹</button>' : '');
-      listSec.insertBefore(head, toolbar);
-      head.querySelector('.acc-alb-back').addEventListener('click', showFavGrid);
-      var del = head.querySelector('.acc-albhead-del');
-      if (del) del.addEventListener('click', function () { deleteAlbum(album); });
+    // 批量改所属夹：{add} 加入 / {remove} 移出 / 两者都给 = 移动（原子）
+    function albumEdit(posts, opts) {
+      if (!posts.length) return;
+      SiteAuth.authedFetch(api + '?action=fav-album-edit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ posts: posts, add: opts.add || '', remove: opts.remove || '' }),
+      }).then(function (r) { return r.json(); }).then(function () {
+        setManage(false);
+        if (state.album) openFavAlbum(state.album);
+      }).catch(function () {});
     }
     function showFavGrid() {
       state.kind = 'fav'; state.favView = 'grid'; state.album = null;
       setManage(false);
       toolbar.style.display = 'none';
       searchRow.hidden = true; pagerEl.hidden = true;
-      removeAlbumHead();
-      var mv = document.getElementById('acc-movesel'); if (mv) mv.style.display = 'none';
+      plainHeading('收藏');
+      var ab = document.getElementById('acc-albactions'); if (ab) ab.style.display = 'none';
       document.getElementById('acc-clear').style.display = '';
       listEl.classList.remove('manage');
       listEl.innerHTML = '<div class="acc-loading">加载中…</div>';
       SiteAuth.authedFetch(api + '?action=albums').then(function (r) { return r.json(); }).then(function (d) {
         if (!d || !d.ok) { listEl.innerHTML = '<div class="acc-empty">加载失败，稍后再试。</div>'; return; }
         renderFavGrid(d.albums || []);
+        setCount((d.albums || []).length + ' 个收藏夹 · ' + (d.total || 0) + ' 篇');
       }).catch(function () { listEl.innerHTML = '<div class="acc-empty">网络不太顺，稍后再试。</div>'; });
     }
     function renderFavGrid(albums) {
       var tiles = albums.map(function (a) {
-        var sps = (a.samples || []).map(function (t) { return '<span class="acc-alb-sp">' + esc(t) + '</span>'; }).join('');
         return '<button class="acc-alb" type="button" data-alb="' + esc(a.id) + '" data-name="' + esc(a.name) + '">' +
-          '<span class="acc-alb-n">' + esc(a.name) + '</span>' +
-          '<span class="acc-alb-c">' + (a.count || 0) + ' 篇</span>' +
-          '<span class="acc-alb-sps">' + sps + '</span></button>';
+          '<span class="acc-alb-top">' + FOLDER_SVG + '<span class="acc-alb-n">' + esc(a.name) + '</span></span>' +
+          '<span class="acc-alb-c">' + (a.count || 0) + ' 篇</span></button>';
       }).join('');
       listEl.innerHTML = '<div class="acc-albgrid">' + tiles +
         '<button class="acc-alb acc-alb-new" type="button" id="acc-alb-new"><span class="acc-alb-plus">＋</span><span>新建收藏夹</span></button></div>';
@@ -720,8 +810,9 @@ noindex: true
       setManage(false);
       toolbar.style.display = 'flex';
       document.getElementById('acc-clear').style.display = 'none';
-      ensureAlbBtns().style.display = '';
-      showAlbumHead(album);
+      document.getElementById('acc-delsel').textContent = '取消收藏';
+      ensureAlbBtns();
+      folderHeading(album);
       listEl.innerHTML = '<div class="acc-loading">加载中…</div>'; pagerEl.hidden = true;
       SiteAuth.authedFetch(api + '?action=list&kind=fav&album=' + encodeURIComponent(album.id))
         .then(function (r) { return r.json(); }).then(function (d) {
@@ -760,14 +851,15 @@ noindex: true
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: album.id }),
       }).then(function (r) { return r.json(); }).then(function () { showFavGrid(); }).catch(function () {});
     }
-    function chooseAlbumModal(cb) {
+    function chooseAlbumModal(cb, title, excludeDefault) {
       SiteAuth.authedFetch(api + '?action=albums').then(function (r) { return r.json(); }).then(function (d) {
         var albums = (d && d.ok && d.albums) || [{ id: '', name: '默认收藏夹', count: 0 }];
-        var opts = albums.map(function (a) {
+        var curId = state.album ? state.album.id : null;   // 排除当前所在夹（移/加到自己无意义）
+        var opts = albums.filter(function (a) { return a.id !== curId && !(excludeDefault && !a.id); }).map(function (a) {
           return '<button class="acc-alb-pick" type="button" data-alb="' + esc(a.id) + '">' + esc(a.name) +
             '<span>' + (a.count || 0) + ' 篇</span></button>';
         }).join('');
-        var m = modal('<h3 class="acc-modal-title">移动到收藏夹</h3><div class="acc-alb-picklist">' + opts +
+        var m = modal('<h3 class="acc-modal-title">' + esc(title || '选择收藏夹') + '</h3><div class="acc-alb-picklist">' + opts +
           '<button class="acc-alb-pick acc-alb-pick-new" type="button" id="acc-pick-new">＋ 新建收藏夹</button></div>');
         m.ov.querySelectorAll('.acc-alb-pick[data-alb]').forEach(function (b) {
           b.addEventListener('click', function () { m.close(); cb(b.dataset.alb); });
@@ -775,20 +867,7 @@ noindex: true
         m.ov.querySelector('#acc-pick-new').addEventListener('click', function () {
           m.close(); promptNewAlbum(function (id) { if (id != null) cb(id); });
         });
-      }).catch(function () {});
-    }
-    function moveSelected(posts, albId) {
-      var byPost = {}; state.items.forEach(function (it) { byPost[it.post] = it; });
-      Promise.all(posts.map(function (p) {
-        var it = byPost[p] || {};
-        return SiteAuth.authedFetch(api + '?action=fav-move', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ post: p, album: albId, title: it.title, url: it.url }),
-        }).then(function (r) { return r.json(); }).catch(function () { return null; });
-      })).then(function () {
-        setManage(false);
-        if (state.album) openFavAlbum(state.album);
-      });
+      }).catch(function () { alert('收藏夹加载失败，请检查网络后重试'); });
     }
 
     // 翻页控件
@@ -816,6 +895,9 @@ noindex: true
       listEl.classList.toggle('manage', on);
       document.getElementById('acc-manage').style.display = on ? 'none' : '';
       document.getElementById('acc-manage-actions').style.display = on ? 'inline-flex' : 'none';
+      // 收藏夹内的管理态才显示「移动到 / 加入 / 移出本夹」
+      var ab = document.getElementById('acc-albactions');
+      if (ab) ab.style.display = (on && state.kind === 'fav' && state.album && state.favView === 'list') ? 'inline-flex' : 'none';
       if (!on) listEl.querySelectorAll('.acc-cb').forEach(function (cb) { cb.checked = false; });
       updateSelAllLabel();
     }
@@ -851,7 +933,11 @@ noindex: true
     document.getElementById('acc-delsel').addEventListener('click', async function () {
       var posts = selectedPosts();
       if (!posts.length) return;
-      if (!confirm('删除所选的 ' + posts.length + ' 条？此操作不可撤销。')) return;
+      var inAlbum = state.kind === 'fav' && state.favView === 'list' && state.album;
+      var msg = inAlbum
+        ? '取消收藏所选的 ' + posts.length + ' 篇？将从「全部收藏」及其所在的所有收藏夹中移除，不可撤销。'
+        : '删除所选的 ' + posts.length + ' 条？此操作不可撤销。';
+      if (!confirm(msg)) return;
       this.disabled = true; await removePosts(posts); this.disabled = false;
     });
     document.getElementById('acc-clear').addEventListener('click', async function () {
