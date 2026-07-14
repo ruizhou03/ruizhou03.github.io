@@ -822,37 +822,59 @@ layout: default
 
 {%- comment -%} 收藏 / 点赞栏 —— 登录后归账号，"我的主页"可回看。匿名点击唤起登录弹窗。 {%- endcomment -%}
 <style>
+  /* 方案 C·极简计数：描边图标 + 计数，无底色无文字标签。桌面文末一排，手机吸底跟随。 */
   .sa-postbar {
-    display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap;
-    margin: 3rem 0 0; padding-top: 1.6rem; border-top: 1px dashed var(--color-border);
+    display: flex; align-items: center; gap: 0.35rem;
+    margin: 3rem 0 0; padding-top: 1.3rem; border-top: 1px dashed var(--color-border);
   }
   .sa-pb-btn {
-    display: inline-flex; align-items: center; gap: 0.45rem;
-    padding: 0.5rem 0.95rem; font-size: 0.92rem; font-family: inherit; cursor: pointer;
-    color: var(--color-text); background: var(--color-bg);
-    border: 1px solid var(--color-border); border-radius: 999px;
-    transition: border-color .2s, color .2s, background .2s;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.42rem 0.55rem; font-size: 0.9rem; font-family: inherit; cursor: pointer;
+    color: var(--color-muted); background: transparent; border: 0; border-radius: 8px;
+    transition: color .18s, background .18s; line-height: 1;
   }
-  .sa-pb-btn:hover { border-color: var(--color-highlight); }
-  .sa-pb-btn .sa-pb-ico { font-size: 1.05rem; line-height: 1; }
-  .sa-pb-btn .sa-pb-num { font-variant-numeric: tabular-nums; color: var(--color-muted); }
-  .sa-pb-btn.active { border-color: var(--color-highlight); color: var(--color-highlight); background: var(--color-bg-warm); }
-  .sa-pb-btn.active .sa-pb-num { color: var(--color-highlight); }
+  .sa-pb-btn:hover { color: var(--color-accent); background: var(--color-bg-warm); }
+  .sa-pb-btn svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .sa-pb-btn .sa-pb-num { font-variant-numeric: tabular-nums; font-size: 0.85rem; }
+  .sa-pb-btn.active { color: var(--color-accent); }
+  .sa-pb-btn.active svg { fill: var(--color-accent-soft); stroke: var(--color-accent); }
+  .sa-pb-btn.sa-pb-fav.active { color: var(--color-highlight); }
+  .sa-pb-btn.sa-pb-fav.active svg { fill: var(--color-highlight); stroke: var(--color-highlight); }
   .sa-pb-btn[disabled] { opacity: 0.55; cursor: default; }
-  .sa-pb-hint { font-size: 0.78rem; color: var(--color-light); margin-left: auto; }
+  .sa-pb-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  .sa-pb-hint { font-size: 0.72rem; color: var(--color-light); margin-left: auto; white-space: nowrap; }
+  @media (max-width: 768px) {
+    .sa-postbar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+      margin: 0; padding: 0.42rem 0.5rem calc(0.42rem + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid var(--color-border);
+      background: var(--color-nav-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      gap: 0.15rem; transition: transform .22s ease;
+    }
+    .sa-postbar.sa-pb-away { transform: translateY(130%); }
+    .sa-pb-btn { flex: 1; justify-content: center; padding: 0.5rem 0.3rem; }
+    .sa-pb-hint { display: none; }
+    body.has-postbar { padding-bottom: 3.6rem; }
+  }
 </style>
 <div id="sa-postbar" class="sa-postbar" style="display:none;"
      data-post="{{ page.permalink | default: page.url }}"
      data-title="{{ page.title | escape }}"
      data-url="{{ page.url }}">
-  <button type="button" class="sa-pb-btn" data-act="like" aria-pressed="false">
-    <span class="sa-pb-ico">👍</span><span class="sa-pb-label">点赞</span><span class="sa-pb-num" data-num="like">·</span>
+  <button type="button" class="sa-pb-btn" data-act="like" aria-pressed="false" aria-label="赞同">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11v9M2 12v7a1 1 0 0 0 1 1h3V11H3a1 1 0 0 0-1 1zM7 11l4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2l-2 7a1 1 0 0 1-1 1H7"/></svg>
+    <span class="sa-pb-num" data-num="like">·</span>
   </button>
-  <button type="button" class="sa-pb-btn" data-act="fav" aria-pressed="false">
-    <span class="sa-pb-ico">☆</span><span class="sa-pb-label">收藏</span>
+  <button type="button" class="sa-pb-btn sa-pb-fav" data-act="fav" aria-pressed="false" aria-label="收藏">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 6.5 7 .6-5.3 4.6 1.6 6.8L12 17.3 5.7 20.5l1.6-6.8L2 9.1l7-.6z"/></svg>
+    <span class="sa-pb-num" data-num="fav"></span>
   </button>
-  <button type="button" class="sa-pb-btn" data-act="share">
-    <span class="sa-pb-ico">🔗</span><span class="sa-pb-label">分享</span>
+  <button type="button" class="sa-pb-btn" data-act="comment" aria-label="评论">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span class="sa-pb-num waline-comment-count" data-path="{{ page.url }}">·</span>
+  </button>
+  <button type="button" class="sa-pb-btn" data-act="share" aria-label="分享">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
   </button>
   <span class="sa-pb-hint"></span>
 </div>
@@ -865,8 +887,11 @@ layout: default
       var likeBtn = bar.querySelector('[data-act="like"]');
       var favBtn = bar.querySelector('[data-act="fav"]');
       var likeNum = bar.querySelector('[data-num="like"]');
+      var favNum = bar.querySelector('[data-num="fav"]');
+      var commentBtn = bar.querySelector('[data-act="comment"]');
       var hint = bar.querySelector('.sa-pb-hint');
-      var state = { liked: false, favorited: false, likeCount: 0 };
+      var state = { liked: false, favorited: false, likeCount: 0, favCount: null };
+      var mq = window.matchMedia('(max-width: 768px)');
       var api = SiteAuth.API_BASE + '/me';
 
       function paint() {
@@ -875,8 +900,7 @@ layout: default
         likeBtn.setAttribute('aria-pressed', String(state.liked));
         favBtn.classList.toggle('active', state.favorited);
         favBtn.setAttribute('aria-pressed', String(state.favorited));
-        favBtn.querySelector('.sa-pb-ico').textContent = state.favorited ? '★' : '☆';
-        favBtn.querySelector('.sa-pb-label').textContent = state.favorited ? '已收藏' : '收藏';
+        favNum.textContent = (typeof state.favCount === 'number' && state.favCount > 0) ? state.favCount : '';
         hint.textContent = SiteAuth.isLoggedIn() ? '' : '登录后可同步收藏 / 点赞';
       }
 
@@ -884,9 +908,13 @@ layout: default
         try {
           var r = await SiteAuth.authedFetch(api + '?action=status&post=' + encodeURIComponent(POST));
           var d = await r.json();
-          if (d && d.ok) { state.liked = d.liked; state.favorited = d.favorited; state.likeCount = d.likeCount; }
+          if (d && d.ok) {
+            state.liked = d.liked; state.favorited = d.favorited; state.likeCount = d.likeCount;
+            if (typeof d.favCount === 'number') state.favCount = d.favCount;
+          }
         } catch (e) {}
         bar.style.display = 'flex';
+        document.body.classList.add('has-postbar');
         paint();
       }
 
@@ -912,7 +940,7 @@ layout: default
           var d = await r.json();
           if (d && d.ok) {
             if (kind === 'like') { state.liked = d.active; state.likeCount = d.likeCount; }
-            else { state.favorited = d.active; }
+            else { state.favorited = d.active; if (typeof d.favCount === 'number') state.favCount = d.favCount; }
             paint();
           }
         } catch (e) {}
@@ -921,18 +949,28 @@ layout: default
 
       likeBtn.addEventListener('click', function () { toggle('like', likeBtn); });
       favBtn.addEventListener('click', function () { toggle('fav', favBtn); });
+      commentBtn.addEventListener('click', function () {
+        var w = document.getElementById('waline');
+        if (w) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      // 手机端：写评论时把吸底栏让开，别挡输入 / 发送
+      document.addEventListener('focusin', function (e) {
+        if (mq.matches && e.target.closest && e.target.closest('#waline')) bar.classList.add('sa-pb-away');
+      });
+      document.addEventListener('focusout', function (e) {
+        if (e.target.closest && e.target.closest('#waline')) bar.classList.remove('sa-pb-away');
+      });
 
-      // 分享：原生分享(手机) / 复制链接(桌面)；登录用户分享 +3（每日≤15）。
+      // 分享：原生分享(手机) / 复制链接(桌面)；登录用户分享 +3（每日≤15）。桌面反馈走 hint。
       var shareBtn = bar.querySelector('[data-act="share"]');
       function afterShare(msg) {
-        var lbl = shareBtn.querySelector('.sa-pb-label');
-        lbl.textContent = msg;
+        hint.textContent = msg;
         if (SiteAuth.isLoggedIn() && SiteAuth.share) {
           SiteAuth.share(POST).then(function (pr) {
-            if (pr && pr.data && pr.data.awarded > 0) lbl.textContent = msg + ' +' + pr.data.awarded;
+            if (pr && pr.data && pr.data.awarded > 0) hint.textContent = msg + ' +' + pr.data.awarded;
           }).catch(function () {});
         }
-        setTimeout(function () { lbl.textContent = '分享'; }, 2200);
+        setTimeout(function () { paint(); }, 2200);
       }
       shareBtn.addEventListener('click', async function () {
         var link = location.origin + (URL || location.pathname);
