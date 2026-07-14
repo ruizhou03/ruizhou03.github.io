@@ -4,6 +4,7 @@ title: 我的主页 | Rui Zhou
 permalink: /account/
 sitemap: false
 noindex: true
+body_class: acc-page
 ---
 
 <article class="acc-wrap">
@@ -68,6 +69,9 @@ noindex: true
 </article>
 
 <style>
+  /* 账号页放宽画幅：站点全局 main 默认卡在 --max-width(800px)，这里像 /admin 一样为本页放宽 */
+  body.acc-page main { max-width: 1240px; }
+  body.acc-page .nav-inner { max-width: 1240px; }
   .acc-wrap { max-width: 1160px; margin: 0 auto; padding: 2.4rem 1.25rem 4rem; }
 
   /* ── 游客态 ── */
@@ -80,7 +84,7 @@ noindex: true
   .acc-primary:hover { filter:brightness(1.06); }
 
   /* ── 资料 hero（左身份+进度 ｜ 中统计 ｜ 右操作：编辑+齿轮设置）── */
-  .acc-hero-card { display:flex; gap:1.5rem; align-items:center; flex-wrap:wrap; padding: var(--space-5);
+  .acc-hero-card { display:flex; gap:1.5rem; align-items:center; justify-content:space-between; flex-wrap:wrap; padding: var(--space-5);
     background: var(--color-bg-warm); border:1px solid var(--color-border);
     border-radius: var(--radius-lg); box-shadow: var(--shadow-1); }
   .acc-hero-id { flex:0 1 auto; display:flex; gap:1.3rem; align-items:flex-start; min-width:0; }
@@ -107,7 +111,7 @@ noindex: true
   .acc-lv-bar { height:7px; border-radius:999px; background:var(--color-border); overflow:hidden; }
   .acc-lv-fill { height:100%; background:var(--color-accent); border-radius:999px; transition:width .4s; }
   .acc-lv-note { font-size:0.72rem; color:var(--color-light); margin-top:0.35rem; font-variant-numeric: tabular-nums lining-nums; }
-  .acc-hero-stats { flex:1 1 auto; display:flex; gap:0.7rem; justify-content:center; }
+  .acc-hero-stats { flex:0 0 auto; display:flex; gap:0.7rem; }
   .acc-hero-stats > div { background:var(--color-bg); border:1px solid var(--color-border); border-radius:var(--radius-md);
     padding:0.6rem 0.85rem; text-align:center; min-width:76px; }
   .acc-stat-n { font-family:var(--font-display); font-size:1.45rem; font-weight:700; color:var(--color-ink);
