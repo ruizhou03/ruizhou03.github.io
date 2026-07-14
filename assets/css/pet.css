@@ -199,6 +199,12 @@
     .empty-zone .join-btn:hover { color: var(--color-accent); }
   }
 
+  /* 新宠物首笔引导条（onb-3）*/
+  .first-hint {
+    background: var(--pet-gold-bg); border: 1px solid var(--color-highlight);
+    border-radius: var(--pet-r-card); padding: 0.6rem 0.9rem; margin-bottom: 0.9rem;
+    font-size: 0.85rem; color: var(--color-ink); line-height: 1.55;
+  }
   .summary-row {
     /* auto-fit: 4-across on desktop, naturally reflows to 2×2 on phones — one rule,
        no breakpoint fight with the form/weight folds. */

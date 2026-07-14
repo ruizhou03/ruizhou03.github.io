@@ -732,6 +732,7 @@
   const $scAvgLbl = document.getElementById('sc-avg-lbl');
   const $scBowl = document.getElementById('sc-bowl');
   const $cardBowl = document.getElementById('card-bowl');
+  const $firstHint = document.getElementById('first-hint');
 
   const $recStrip = document.getElementById('rec-strip');
   const $recTitle = document.getElementById('rec-title');
@@ -1610,6 +1611,11 @@
     const lastEntry = weighEntries[0] || null;
     // 没有过「称碗」记录（比如只用「直接填」的用户）就别显示「当前碗中剩」这张永远为空的卡
     if ($cardBowl) $cardBowl.style.display = lastEntry ? '' : 'none';
+    // 新宠物还没有任何食量记录时，在录入区上方给一次性引导（记了第一笔就消失）
+    if ($firstHint) {
+      const hasFood = (pet.entries || []).some(e => { const k = e.kind || 'weigh'; return k === 'weigh' || k === 'extra' || k === 'remain'; });
+      $firstHint.style.display = hasFood ? 'none' : '';
+    }
     if (lastEntry) {
       const fw = foodWeight(lastEntry, pet);
       if (fw === null) {
@@ -2000,9 +2006,9 @@
     yTicks.forEach(v => {
       const y = yScale(v);
       html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--color-border)" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6"/>`;
-      html += `<text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" fill="var(--color-light)" font-size="9.5">${fmtG(v * M)}</text>`;
+      html += `<text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" fill="var(--color-light)" font-size="12">${fmtG(v * M)}</text>`;
     });
-    html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="9.5">${escapeHtml(U)}</text>`;
+    html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="12">${escapeHtml(U)}</text>`;
 
     html += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + innerH}" y2="${m.t + innerH}" stroke="var(--color-border)"/>`;
     for (let off = 0; off <= 24; off += 6) {
@@ -2011,7 +2017,7 @@
       const dt = new Date(ts);
       const hh = pad2(dt.getHours());
       html += `<line x1="${x}" x2="${x}" y1="${m.t + innerH}" y2="${m.t + innerH + 3}" stroke="var(--color-border)"/>`;
-      html += `<text x="${x}" y="${H - 14}" text-anchor="middle" fill="var(--color-light)" font-size="9.5">${hh}:00</text>`;
+      html += `<text x="${x}" y="${H - 14}" text-anchor="middle" fill="var(--color-light)" font-size="12">${hh}:00</text>`;
     }
 
     // Target wedge: from (00:00, 0) to (24h, target_min/max). Diagonal "ideal pace".
@@ -2033,7 +2039,7 @@
       const targetLbl = target.min === target.max
         ? `目标 ${fmtG(target.min * M)}${U}`
         : `目标 ${fmtG(target.min * M)}–${fmtG(target.max * M)}${U}`;
-      html += `<text x="${xB - 4}" y="${lblY - 4}" text-anchor="end" fill="var(--pet-chart-target)" font-size="10">${targetLbl}</text>`;
+      html += `<text x="${xB - 4}" y="${lblY - 4}" text-anchor="end" fill="var(--pet-chart-target)" font-size="12">${targetLbl}</text>`;
     }
 
     if (points.length >= 2) {
@@ -2056,13 +2062,13 @@
     if (now >= dayStart && now < dayEnd) {
       const nx = xScale(now);
       html += `<line x1="${nx}" x2="${nx}" y1="${m.t}" y2="${m.t + innerH}" stroke="var(--color-highlight)" stroke-width="1" stroke-dasharray="2 3"/>`;
-      html += `<text x="${nx}" y="${m.t - 4}" text-anchor="middle" fill="var(--color-highlight)" font-size="9">现在</text>`;
+      html += `<text x="${nx}" y="${m.t - 4}" text-anchor="middle" fill="var(--color-highlight)" font-size="12">现在</text>`;
     }
 
     if (cum > 0) {
       const lx = xScale(endT);
       const ly = yScale(cum);
-      html += `<text x="${Math.min(lx + 4, W - m.r - 4)}" y="${Math.max(ly - 6, m.t + 10)}" text-anchor="${lx > W - 60 ? 'end' : 'start'}" fill="var(--color-accent)" font-size="10.5" font-weight="600">${fmtG(cum * M)} ${escapeHtml(U)}</text>`;
+      html += `<text x="${Math.min(lx + 4, W - m.r - 4)}" y="${Math.max(ly - 6, m.t + 10)}" text-anchor="${lx > W - 60 ? 'end' : 'start'}" fill="var(--color-accent)" font-size="12.5" font-weight="600">${fmtG(cum * M)} ${escapeHtml(U)}</text>`;
     }
 
     trendHit = { kind: 'intraday', m, innerW, innerH, dayStart, dayEnd, endT, niceMax, points, M, U };
@@ -2191,9 +2197,9 @@
     yTicks.forEach(v => {
       const y = yScale(v);
       html += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--color-border)" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6"/>`;
-      html += `<text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" fill="var(--color-light)" font-size="9.5">${fmtG(v * M)}</text>`;
+      html += `<text x="${m.l - 6}" y="${y + 3.5}" text-anchor="end" fill="var(--color-light)" font-size="12">${fmtG(v * M)}</text>`;
     });
-    html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="9.5">${escapeHtml(U)}</text>`;
+    html += `<text x="6" y="${m.t + 4}" fill="var(--color-light)" font-size="12">${escapeHtml(U)}</text>`;
     html += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + innerH}" y2="${m.t + innerH}" stroke="var(--color-border)"/>`;
 
     // Per-bucket target band (drawn behind bars): each bar is drawn against the target that
@@ -2227,7 +2233,7 @@
       const tLbl = target.min === target.max
         ? `目标 ${fmtG(target.min * M)}${U}/${unitName}`
         : `目标 ${fmtG(target.min * M)}–${fmtG(target.max * M)} ${U}/${unitName}`;
-      html += `<text x="${W - m.r - 4}" y="${Math.max(yMaxCur, m.t + 10) - 4}" text-anchor="end" fill="var(--pet-chart-target)" font-size="10">${tLbl}</text>`;
+      html += `<text x="${W - m.r - 4}" y="${Math.max(yMaxCur, m.t + 10) - 4}" text-anchor="end" fill="var(--pet-chart-target)" font-size="12">${tLbl}</text>`;
     }
 
     let anyIncomplete = false, anyProjected = false;
@@ -2252,7 +2258,7 @@
       const incAttr = b.incomplete ? ' fill-opacity="0.5" stroke="' + baseFill + '" stroke-width="1" stroke-dasharray="3 2"' : '';
       html += `<rect x="${x}" y="${y}" width="${w}" height="${bh}" fill="${baseFill}"${incAttr} rx="2"/>`;
       if (i % labelEvery === 0 || i === n - 1) {
-        html += `<text x="${x + w / 2}" y="${H - 14}" text-anchor="middle" fill="${b.incomplete ? 'var(--pet-chart-incomplete)' : 'var(--color-light)'}" font-size="9.5">${escapeHtml(b.label)}</text>`;
+        html += `<text x="${x + w / 2}" y="${H - 14}" text-anchor="middle" fill="${b.incomplete ? 'var(--pet-chart-incomplete)' : 'var(--color-light)'}" font-size="12">${escapeHtml(b.label)}</text>`;
       }
       // 悬停命中区：整列（含柱间空隙）都算这根柱，浮窗里给读数
       const lbl = `<strong>${escapeHtml(b.label)}</strong>`;
@@ -4075,7 +4081,7 @@
     [hi, (hi + lo) / 2, lo].forEach(kv => {
       const yy = y(kv);
       svg += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W - padR}" y2="${yy.toFixed(1)}" stroke="${grid}" stroke-width="1" stroke-dasharray="3 3"/>`;
-      svg += `<text x="${padL - 6}" y="${(yy + 3).toFixed(1)}" text-anchor="end" font-size="11" fill="${muted}">${parseFloat(bwFromKg(kv, unit).toFixed(1))}</text>`;
+      svg += `<text x="${padL - 6}" y="${(yy + 3).toFixed(1)}" text-anchor="end" font-size="12.5" fill="${muted}">${parseFloat(bwFromKg(kv, unit).toFixed(1))}</text>`;
     });
     // Weight range band: use pet's target if available, else auto-compute from data
     const target = pet.weightTargetMin && pet.weightTargetMax
@@ -4087,7 +4093,7 @@
       if (bandH > 0) {
         const sage = getComputedStyle(document.documentElement).getPropertyValue('--pet-chart-target').trim() || '#4a7c59';
         svg += `<rect x="${padL}" y="${yTop}" width="${(W - padL - padR)}" height="${bandH}" fill="${sage}" opacity="0.08" rx="2"/>`;
-        svg += `<text x="${(W - padR - 2)}" y="${(yTop + 11)}" text-anchor="end" font-size="9.5" fill="${sage}" opacity="0.7">目标 ${parseFloat(bwFromKg(target.min, unit).toFixed(1))}–${parseFloat(bwFromKg(target.max, unit).toFixed(1))}</text>`;
+        svg += `<text x="${(W - padR - 2)}" y="${(yTop + 11)}" text-anchor="end" font-size="12" fill="${sage}" opacity="0.7">目标 ${parseFloat(bwFromKg(target.min, unit).toFixed(1))}–${parseFloat(bwFromKg(target.max, unit).toFixed(1))}</text>`;
       }
     }
     // Line segments: dashes when gap > 70 days (don't fake continuous measurement)
@@ -4103,7 +4109,7 @@
     ws.forEach((w, i) => {
       if (i % labelStep !== 0 && i !== ws.length - 1) return;  // always show last
       const anchor = i === 0 ? 'start' : (i === ws.length - 1 ? 'end' : 'middle');
-      svg += `<text x="${x(w.ts).toFixed(1)}" y="${H - 8}" text-anchor="${anchor}" font-size="10.5" fill="${muted}">${shortMD(isoDate(w.ts))}</text>`;
+      svg += `<text x="${x(w.ts).toFixed(1)}" y="${H - 8}" text-anchor="${anchor}" font-size="12.5" fill="${muted}">${shortMD(isoDate(w.ts))}</text>`;
     });
     // Invisible hit areas for hover/touch tooltip
     ws.forEach(w => {
