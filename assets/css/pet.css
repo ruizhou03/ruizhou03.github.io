@@ -745,7 +745,8 @@
     transition: color 0.18s, border-color 0.18s;
     display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;
   }
-  .board-tabs button .bt-ico { font-size: 1.05rem; }
+  .board-tabs button .bt-ico { display: inline-flex; }
+  .board-tabs button .bt-ico svg { width: 1.15rem; height: 1.15rem; display: block; }
   .board-tabs button.active {
     color: var(--color-accent); border-bottom-color: var(--color-accent); font-weight: 600;
   }
