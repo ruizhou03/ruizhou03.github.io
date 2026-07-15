@@ -139,6 +139,16 @@ def count_bare_dollars(body):
                     if p > k + 1 and p < n and body[p] == "$":
                         i = p + 1
                         continue
+                # 启发式：$<数字> 紧跟数学运算符/字母/括号（无空格）且同行有配对 $、
+                # 且中间不含 CJK → 内联数学公式（如 $1-F(x)$、$5x$、$2(n-1)$），跳过。
+                # 金额则是「$100 」这类数字后接空格/中文/标点，不会命中本分支。
+                if k < n and (body[k] in "-+*/=<>()[]"
+                              or ("a" <= body[k] <= "z") or ("A" <= body[k] <= "Z")):
+                    close = _find_closing_dollar(body, i + 1, line_end_pos)
+                    if close != -1 and not any("一" <= c <= "鿿"
+                                               for c in body[i + 1:close]):
+                        i = close + 1
+                        continue
                 m = k
                 while m < n and body[m] in " \t":
                     m += 1

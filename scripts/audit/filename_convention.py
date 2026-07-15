@@ -54,6 +54,8 @@ ACCEPTED_UNDATED = {
     "files/linear-algebra/linear-algebra-strang.pdf",
     "files/mao-thought/mao-thought-principles.pdf",
     "files/marxism/marxism-principles.pdf",
+    # 原创教材（8 Part / 42 章），按主题组织、无单一年份
+    "files/econ-math-toolkit/econ-math-toolkit.pdf",
 }
 
 YEAR_SUFFIX_RE = re.compile(r"-(19|20)\d{2}$")

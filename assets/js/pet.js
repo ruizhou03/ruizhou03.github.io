@@ -1308,9 +1308,16 @@
     metaDirtyKeys(pet).forEach(k => { patch[k] = pet[k]; });
     return patch;
   }
+  // ⚠️ 铁律：pet[k] 与 pet._syncedMeta[k] 必须永不共享同一个数组/对象引用。
+  // 否则「就地 mutate」（foodGroups.push(...)、f.groupId=... 改 foodLibrary 元素）会同时
+  // 改到脏检测基线，metaDirtyKeys 的 JSON.stringify(pet[k]) vs stringify(_syncedMeta[k])
+  // 永远相等 → 新类别/归类被判「没脏」→ schedulePushMeta 空 patch 不推 → 只活在本机 →
+  // 约 60s 后 pullSharedPets 的 applyServerMeta 判 localDirty=false → 用服务器旧值覆盖 →
+  // 类别集体消失。所以凡是写入基线 _syncedMeta、或从 serverMeta 采纳，一律深拷贝隔断引用。
+  const cloneMeta = v => (v && typeof v === 'object') ? JSON.parse(JSON.stringify(v)) : v;
   function markMetaSynced(pet, patch) {
     pet._syncedMeta = pet._syncedMeta || {};
-    Object.keys(patch).forEach(k => { pet._syncedMeta[k] = patch[k]; });
+    Object.keys(patch).forEach(k => { pet._syncedMeta[k] = cloneMeta(patch[k]); });
   }
   // Fold a freshly-pulled server meta into the pet: adopt the server value for every field
   // we DON'T have a local unsynced edit on; keep (and later re-push) the ones we do. Also
@@ -1321,15 +1328,16 @@
       // First fold under the per-field scheme. Adopt server wholesale UNLESS a legacy
       // whole-pet dirty flag says we have an unsynced edit (then keep local; it'll diff-push).
       const hadLegacyDirty = pet._metaDirty === true;
-      META_FIELDS.forEach(k => { if (!hadLegacyDirty && serverMeta[k] !== undefined) pet[k] = serverMeta[k]; });
+      META_FIELDS.forEach(k => { if (!hadLegacyDirty && serverMeta[k] !== undefined) pet[k] = cloneMeta(serverMeta[k]); });
       pet._syncedMeta = {};
-      META_FIELDS.forEach(k => { pet._syncedMeta[k] = serverMeta[k]; });
+      META_FIELDS.forEach(k => { pet._syncedMeta[k] = cloneMeta(serverMeta[k]); });   // 独立副本，绝不与 pet[k] 共享引用
       delete pet._metaDirty;   // retire the old boolean; dirtiness now derives from _syncedMeta
       return;
     }
     META_FIELDS.forEach(k => {
       const localDirty = JSON.stringify(pet[k]) !== JSON.stringify(pet._syncedMeta[k]);
-      if (!localDirty && serverMeta[k] !== undefined) { pet[k] = serverMeta[k]; pet._syncedMeta[k] = serverMeta[k]; }
+      // 两次独立深拷贝：pet[k] 与 _syncedMeta[k] 互不共享引用，之后就地 mutate 才能被判脏
+      if (!localDirty && serverMeta[k] !== undefined) { pet[k] = cloneMeta(serverMeta[k]); pet._syncedMeta[k] = cloneMeta(serverMeta[k]); }
       // dirty field → keep local value, leave _syncedMeta stale so it still counts as dirty and gets pushed
     });
   }
@@ -5893,8 +5901,19 @@
     const unchanged = merged.length === state.pets.length &&
       merged.every((p, i) => state.pets[i] && state.pets[i].id === p.id &&
                              (state.pets[i].entries || []).length === (p.entries || []).length);
-    if (unchanged) {                                                  // 没有新宠物 / 新条目
-      if (contactsNeedWrite) { persist(); render(); }                 // 但本地备注要写回，别被 pull 盖掉
+    if (unchanged) {                                                  // 宠物数 / 条目数没变
+      // ⚠️ unchanged 只比宠物数与 entries 长度，看不到 foodGroups/foodLibrary 被 CloudSync 覆写进来的
+      // 旧 blob 抹掉。若内存（权威、已 union）的类别/食物库与刚被覆盖进 localStorage 的 incoming 不一致，
+      // 必须把内存写回，否则下次 load()/CloudSync push 会把这份被污染的 localStorage 坐实、把类别丢死。
+      // 只在类别/食物库真有差异时写（UI 状态差异不触发，避免两标签页互相 persist 乒乓）。
+      const incById = new Map((incoming.pets || []).map(p => [p && p.id, p]));
+      const foodDiff = merged.some(p => {
+        const ip = incById.get(p.id) || {};
+        return JSON.stringify(p.foodGroups || []) !== JSON.stringify(ip.foodGroups || []) ||
+               JSON.stringify(p.foodLibrary || []) !== JSON.stringify(ip.foodLibrary || []);
+      });
+      if (contactsNeedWrite || foodDiff) persist();                   // 本地备注 / 类别归类要写回，别被 pull 盖掉
+      if (contactsNeedWrite) render();
       return;
     }
     state.pets = merged;
