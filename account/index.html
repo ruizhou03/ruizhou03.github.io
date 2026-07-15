@@ -675,11 +675,21 @@ body_class: acc-page
       });
     }
 
+    // 评论记录里把文章 path 渲染成文章标题 / 工具名字（Jekyll 生成的 path→title 表）
+    var POST_TITLES = {
+      {%- for n in site.notes -%}{%- if n.published != false -%}{{ n.url | jsonify }}: {{ n.title | jsonify }},{% endif %}{%- endfor -%}
+      {%- for t in site.data.toolbox -%}{%- if t.url and t.name -%}{{ t.url | jsonify }}: {{ t.name | jsonify }},{% endif %}{%- endfor -%}
+    };
+    function resolveTitle(url) {
+      if (!url) return '某篇文章';
+      var u = ('' + url).replace(/#.*$/, '');
+      return POST_TITLES[u] || POST_TITLES[u.replace(/\/$/, '')] || POST_TITLES[u.replace(/\/?$/, '/')] || u;
+    }
     // ── 列表渲染 + 分页 ───────────────────────────────────────
     function itemHTML(kind, it) {
       if (kind === 'comment') {
         return '<div class="acc-item"><div class="acc-item-main">' +
-          '<a class="acc-item-title" href="' + esc(it.url || '#') + '">' + esc(it.title || it.url || '某篇文章') + '</a>' +
+          '<a class="acc-item-title" href="' + esc(it.url || '#') + '">' + esc(resolveTitle(it.url)) + '</a>' +
           '<div class="acc-comment-body">' + transformCommentImages(it.html || esc(it.text || '')) + '</div>' +
           '<div class="acc-item-meta">' + catMetaHtml(it) + fmtDate(it.ts) + '</div>' +
         '</div></div>';
