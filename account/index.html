@@ -110,7 +110,7 @@ body_class: acc-page
   .acc-lv-fill { height:100%; background:var(--color-accent); border-radius:999px; transition:width .4s; }
   .acc-lv-note { font-size:0.72rem; color:var(--color-light); margin-top:0.35rem; font-variant-numeric: tabular-nums lining-nums; }
   /* B3′ 统计横幅：中段一整块卡，四项(收藏/点赞/浏览/评论)+竖分隔线，宽度适中不铺满 */
-  .acc-hero-stats { flex:0 1 auto; max-width:480px; display:flex; align-items:center; justify-content:space-around;
+  .acc-hero-stats { flex:1 1 auto; max-width:560px; display:flex; align-items:center; justify-content:space-around;
     background:var(--color-bg); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:0.7rem 1.1rem; }
   .acc-hstat { text-align:center; padding:0 0.35rem; }
   .acc-hero-sdiv { width:1px; height:32px; background:var(--color-border); flex-shrink:0; }
@@ -243,8 +243,11 @@ body_class: acc-page
     padding:0.2rem 0.4rem; border-radius:6px; flex-shrink:0; }
   .acc-item-rm:hover { color:#b5483a; background:var(--color-bg); }
   .acc-empty, .acc-loading { text-align:center; color:var(--color-light); padding:2.6rem 1rem; font-size:0.9rem; }
-  .acc-comment-body { font-size:0.92rem; color:var(--color-text); line-height:1.6; margin-top:0.2rem; }
+  .acc-comment-body { font-size:0.92rem; color:var(--color-text); line-height:1.6; margin-top:0.2rem;
+    overflow-wrap:anywhere; word-break:break-word; }
   .acc-comment-body :is(p) { margin:0.2rem 0; }
+  .acc-comment-body img, .acc-cmt-img { display:block; max-width:180px; max-height:140px; margin-top:0.35rem; border-radius:8px;
+    border:1px solid var(--color-border); object-fit:cover; }
 
   /* ── 翻页 ── */
   .acc-pager { display:flex; align-items:center; gap:0.6rem; margin-top:1.1rem; padding-top:0.9rem;
@@ -394,6 +397,17 @@ body_class: acc-page
     function catMetaHtml(it) {
       var c = catOf(it);
       return c ? '<span class="acc-cat"><span class="acc-cat-dot" style="background:' + c.color + '"></span>' + esc(c.name) + '</span> · ' : '';
+    }
+    // 评论体里的图片 markdown ![alt](url)：可识别的图（data:image/http(s)）转小缩略图，其余用「【图片】」占位
+    function transformCommentImages(html) {
+      if (!html) return '';
+      return String(html).replace(/!\[[^\]]*\]\(([^)]+)\)/g, function (m, url) {
+        url = String(url).trim().replace(/["'<>]/g, '');
+        if (/^data:image\//i.test(url) || /^https?:\/\//i.test(url)) {
+          return '<img class="acc-cmt-img" src="' + url + '" alt="图片" loading="lazy">';
+        }
+        return '【图片】';
+      });
     }
     function setCount(txt) { var el = document.getElementById('acc-sec-count'); if (el) el.textContent = txt || ''; }
     function plainHeading(title) {
@@ -666,7 +680,7 @@ body_class: acc-page
       if (kind === 'comment') {
         return '<div class="acc-item"><div class="acc-item-main">' +
           '<a class="acc-item-title" href="' + esc(it.url || '#') + '">' + esc(it.title || it.url || '某篇文章') + '</a>' +
-          '<div class="acc-comment-body">' + (it.html || esc(it.text || '')) + '</div>' +
+          '<div class="acc-comment-body">' + transformCommentImages(it.html || esc(it.text || '')) + '</div>' +
           '<div class="acc-item-meta">' + catMetaHtml(it) + fmtDate(it.ts) + '</div>' +
         '</div></div>';
       }
