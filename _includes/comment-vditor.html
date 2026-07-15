@@ -1,0 +1,100 @@
+{%- comment -%}
+  把 Waline 的纯文本评论框升级成 Vditor（IR 即时渲染，Typora 式：$公式$ 就地渲染、图片内联）。
+  懒加载（评论抽屉首次打开才拉 Vditor，省流量）。双向同步到隐藏的原 textarea——Waline 的
+  提交/字数/校验照旧走 textarea（靠派发 input 事件更新其内部状态，跟 patchMeta 同一招）。
+  稳字第一：任何一步出错 / CDN 挂 → 自动回退成原生 textarea，评论功能绝不因此坏。
+  临时关闭：控制台 window.CMT_NO_VDITOR = true 再刷新。
+  Liquid 安全：JS 无花括号定界符、无反引号模板。
+{%- endcomment -%}
+<style>
+  .cmt-drawer .cmt-vditor { margin-bottom:.35rem; }
+  .cmt-drawer .cmt-vditor .vditor { border:1px solid var(--color-border) !important; border-radius:8px !important; }
+  .cmt-drawer .cmt-vditor .vditor-reset { font-family:var(--font-body) !important; font-size:15px !important; color:var(--color-text) !important; }
+  .cmt-drawer .cmt-vditor .vditor-toolbar { background:var(--color-bg-warm) !important; border-bottom:1px solid var(--color-border) !important; }
+  /* Vditor 接管后，隐藏 Waline 自带的表情/图片/GIF/预览按钮（Vditor 有自己的） */
+  .cmt-vd-panel .wl-emoji, .cmt-vd-panel .wl-gif, .cmt-vd-panel .wl-image, .cmt-vd-panel .wl-preview { display:none !important; }
+</style>
+<script>
+(function () {
+  var host = document.getElementById('waline'), dr = document.getElementById('cmt-drawer');
+  if (!host || window.CMT_NO_VDITOR) return;
+  var CSS = 'https://unpkg.com/vditor@3/dist/index.css';
+  var JS = 'https://unpkg.com/vditor@3/dist/index.min.js';
+  var loadState = 'idle', cbs = [];
+  var darkMode = (document.documentElement.getAttribute('data-theme') === 'dark') ||
+    (window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches);
+
+  function ensure(cb) {
+    if (loadState === 'ready') return cb();
+    if (loadState === 'failed') return;
+    cbs.push(cb);
+    if (loadState === 'loading') return;
+    loadState = 'loading';
+    try {
+      var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = CSS; document.head.appendChild(l);
+      var s = document.createElement('script'); s.src = JS;
+      s.onload = function () { loadState = 'ready'; var q = cbs; cbs = []; q.forEach(function (f) { try { f(); } catch (e) {} }); };
+      s.onerror = function () { loadState = 'failed'; cbs = []; };   // CDN 挂 → 保持原生 textarea
+      document.head.appendChild(s);
+    } catch (e) { loadState = 'failed'; }
+  }
+
+  function attach(ta) {
+    if (ta.__vd || !window.Vditor) return;
+    ta.__vd = true;
+    try {
+      var panel = ta.closest ? ta.closest('.wl-panel') : null;
+      var mount = document.createElement('div'); mount.className = 'cmt-vditor';
+      ta.parentNode.insertBefore(mount, ta);
+      var vd = new Vditor(mount, {
+        mode: 'ir', minHeight: 110, theme: darkMode ? 'dark' : 'classic',
+        placeholder: ta.getAttribute('placeholder') || '写评论…支持 Markdown 和 $数学公式$',
+        cache: { enable: false }, counter: { enable: false }, toolbarConfig: { pin: false },
+        toolbar: ['emoji', 'bold', 'italic', 'strike', 'link', 'list', 'ordered-list', 'code', 'inline-code', 'quote', '|', 'preview'],
+        math: { engine: 'KaTeX', inlineDigit: true },
+        value: ta.value || '',
+        input: function (val) {
+          if (ta.__vdLock) return;
+          ta.value = val;
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+        },
+        after: function () {
+          ta.style.display = 'none';
+          if (panel) panel.classList.add('cmt-vd-panel');
+          ta.__vdInstance = vd;
+        },
+      });
+    } catch (e) { ta.__vd = false; ta.style.display = ''; }   // 出错 → 回退原生 textarea
+  }
+
+  function scan() {
+    Array.prototype.forEach.call(host.querySelectorAll('textarea'), function (ta) {
+      if (!ta.__vd) ensure(function () { attach(ta); });
+    });
+  }
+
+  // Waline 提交后会把 textarea 清空（编程式，不触发事件）→ 同步清空 Vditor
+  host.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest ? e.target.closest('.wl-btn') : null;
+    if (!btn || !/提交|发送|发布/.test(btn.textContent || '')) return;
+    setTimeout(function () {
+      Array.prototype.forEach.call(host.querySelectorAll('textarea'), function (ta) {
+        if (ta.__vdInstance && !(ta.value || '').trim()) {
+          try { ta.__vdLock = true; ta.__vdInstance.setValue(''); } catch (e) {}
+          ta.__vdLock = false;
+        }
+      });
+    }, 900);
+  }, true);
+
+  // 懒加载：首次打开评论抽屉才拉 Vditor + 挂编辑器；之后监听回复框等新编辑器
+  var started = false;
+  function start() {
+    if (started) return; started = true;
+    scan();
+    new MutationObserver(scan).observe(host, { childList: true, subtree: true });
+  }
+  if (dr) new MutationObserver(function () { if (dr.classList.contains('on')) start(); }).observe(dr, { attributes: true, attributeFilter: ['class'] });
+  else start();
+})();
+</script>

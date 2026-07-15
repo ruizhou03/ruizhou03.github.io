@@ -169,6 +169,7 @@
     wrap.appendChild(img); wrap.appendChild(x); strip.appendChild(wrap);
   }
   host.addEventListener('paste', function (e) {
+    if (host.querySelector('.cmt-vd-panel')) return;   // Vditor 接管时它自己内联显示图片，别重复弹缩略图
     var items = (e.clipboardData && e.clipboardData.items) || [];
     for (var i = 0; i < items.length; i++) {
       if (items[i].type && items[i].type.indexOf('image') === 0) {
@@ -188,3 +189,6 @@
   }, true);
 })();
 </script>
+
+{%- comment -%} 评论框升级为 Typora 式 Vditor（失败自动回退原生输入框） {%- endcomment -%}
+{% include comment-vditor.html %}
