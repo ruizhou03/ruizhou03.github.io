@@ -24,6 +24,35 @@
   var darkMode = (document.documentElement.getAttribute('data-theme') === 'dark') ||
     (window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches);
 
+  // 块级公式规范化：把每个 $$...$$ 挤成独占一行 + 前后空行——服务端只对这样的块渲成 SVG，
+  // 才能刷新后照常显示（行内混排的 $$ 服务端不渲、且反斜杠会被存储吃掉）。只动隐藏的 textarea，用户在 Vditor 里看到的不变。
+  function normBlockMath(md) {
+    if (!md || md.indexOf('$$') < 0) return md;
+    var out = md.replace(/[ \t]*\$\$([\s\S]+?)\$\$[ \t]*/g, function (m, inner) {
+      return '\n\n$$' + inner.replace(/^\s+|\s+$/g, '') + '$$\n\n';
+    });
+    return out.replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '');
+  }
+  // 图片降采样：把粘贴/上传的图缩到 ≤900px 再转 webp/jpeg，得到一条干净短小的 ![](...)，
+  // 消除「一大串 base64 当文字显示」+ 臃肿（真·图床见修复方案，需 R2 凭证）。
+  function downscale(file, cb) {
+    try {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var max = 900, w = img.width, h = img.height;
+        if (w > max || h > max) { var r = Math.min(max / w, max / h); w = Math.round(w * r); h = Math.round(h * r); }
+        var c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        var out = ''; try { out = c.toDataURL('image/webp', 0.75); } catch (e) {}
+        if (!out || out.indexOf('image/webp') < 0) out = c.toDataURL('image/jpeg', 0.82);
+        cb(out);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); cb(null); };
+      img.src = url;
+    } catch (e) { cb(null); }
+  }
+
   function ensure(cb) {
     if (loadState === 'ready') return cb();
     if (loadState === 'failed') return;
@@ -50,12 +79,21 @@
         mode: 'ir', minHeight: 110, theme: darkMode ? 'dark' : 'classic',
         placeholder: ta.getAttribute('placeholder') || '写评论…支持 Markdown 和 $数学公式$',
         cache: { enable: false }, counter: { enable: false }, toolbarConfig: { pin: false },
-        toolbar: ['emoji', 'bold', 'italic', 'strike', 'link', 'list', 'ordered-list', 'code', 'inline-code', 'quote', '|', 'preview'],
+        toolbar: ['emoji', 'bold', 'italic', 'strike', 'link', 'list', 'ordered-list', 'code', 'inline-code', 'quote', 'upload', '|', 'preview'],
         math: { engine: 'KaTeX', inlineDigit: true },
+        upload: {
+          accept: 'image/*',
+          handler: function (files) {
+            var file = files && files[0];
+            if (!file) return '没有图片';
+            downscale(file, function (dataUrl) { if (dataUrl && ta.__vdInstance) ta.__vdInstance.insertValue('\n![图片](' + dataUrl + ')\n'); });
+            return null;   // 返回 null=无错误；我们在 downscale 回调里自己 insertValue
+          },
+        },
         value: ta.value || '',
         input: function (val) {
           if (ta.__vdLock) return;
-          ta.value = val;
+          ta.value = normBlockMath(val);   // 规范化块级公式，保证刷新后能渲染
           ta.dispatchEvent(new Event('input', { bubbles: true }));
         },
         after: function () {

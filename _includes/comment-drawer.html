@@ -71,6 +71,17 @@
   /* 逐条动作靠右对齐；回复补「回复」二字，别只有图标 */
   .cmt-drawer .wl-comment-actions { margin-left:auto !important; justify-content:flex-end !important; }
   .cmt-drawer .wl-reply::after { content:'回复' !important; margin-left:.25rem !important; font-size:.8rem !important; }
+  /* 回复按钮：藏掉原生聊天气泡图标，换成向前分享箭头 */
+  .cmt-drawer .wl-reply { --reply-arrow: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg>'); }
+  .cmt-drawer .wl-reply > svg { display:none !important; }
+  .cmt-drawer .wl-reply::before { content:''; display:inline-block; width:15px; height:15px; vertical-align:-2px;
+    background-color:currentColor; -webkit-mask:var(--reply-arrow) center/contain no-repeat; mask:var(--reply-arrow) center/contain no-repeat; }
+  /* 回复框：仿知乎——缩进浅底小框 */
+  .cmt-drawer .wl-reply-wrapper, .cmt-drawer .wl-edit-wrapper { margin:.5rem 0 .2rem; padding:.55rem .7rem;
+    background:var(--color-bg-warm); border:1px solid var(--color-border); border-radius:10px; }
+  .cmt-drawer .wl-reply-wrapper .wl-panel, .cmt-drawer .wl-edit-wrapper .wl-panel { border:0 !important; box-shadow:none !important; background:transparent !important; }
+  .cmt-drawer .wl-reply-wrapper .cmt-vditor .vditor, .cmt-drawer .wl-reply-wrapper textarea.wl-editor { min-height:52px !important; }
+  .cmt-drawer .wl-reply-wrapper .vditor-toolbar { padding:2px 4px !important; }
   .cmt-drawer .cmt-report.cmt-reported { color:#b4453a !important; opacity:.65 !important; }
   /* 预览按钮(放大镜)补「预览」二字，别让人猜 */
   .cmt-drawer .wl-preview::after { content:'预览' !important; margin-left:.2rem !important; font-size:.78rem !important; vertical-align:middle !important; }
@@ -187,6 +198,34 @@
     var btn = e.target && e.target.closest ? e.target.closest('.wl-btn') : null;
     if (btn && /提交|发送|发布/.test(btn.textContent || '')) setTimeout(clearStrip, 700);
   }, true);
+})();
+// 评论数实时同步：Waline 内部 .wl-num 是响应式的(发帖即自增)，但外部 .waline-comment-count 只 init 时算一次 → 镜像过去
+(function () {
+  var host = document.getElementById('waline'); if (!host) return;
+  function sync() {
+    var num = host.querySelector('.wl-count .wl-num'); if (!num) return;
+    var n = (num.textContent || '').trim(); if (!/^\d+$/.test(n)) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.waline-comment-count'), function (el) {
+      if (el.innerText !== n) el.innerText = n;
+    });
+  }
+  new MutationObserver(sync).observe(host, { childList: true, subtree: true, characterData: true });
+  sync();
+})();
+// 作者徽章：站主评论时网址被锁成 /u/?id=<OWNER_ID>，据此在其评论头注入「作者」
+(function () {
+  var host = document.getElementById('waline'); if (!host) return;
+  var OWNER_ID = '{{ site.comment_author_id }}';
+  if (!OWNER_ID) return;
+  function mark() {
+    Array.prototype.forEach.call(host.querySelectorAll('a.wl-nick[href*="/u/?id=' + OWNER_ID + '"]'), function (a) {
+      var head = a.closest('.wl-head'); if (!head || head.querySelector('.cmt-author-badge')) return;
+      var b = document.createElement('span'); b.className = 'wl-badge cmt-author-badge'; b.textContent = '作者';
+      a.insertAdjacentElement('afterend', b);
+    });
+  }
+  new MutationObserver(mark).observe(host, { childList: true, subtree: true });
+  mark();
 })();
 </script>
 

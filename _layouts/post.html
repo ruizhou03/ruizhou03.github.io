@@ -1103,10 +1103,12 @@ layout: default
       placeholder: '欢迎交流！不填昵称也可以直接发布哦...',
       pageview: true,
       comment: true,
-      // 不设 texRenderer：Waline 服务端已把 $...$ 渲成 SVG 存进 comment。
-      // 一旦提供 texRenderer 会强制客户端拿 orig 重渲，刷新后常因 katex 时序 / marked 转义(\int→int)失效。
-      // 交给服务端渲染 → 提交时和刷新后都稳定显示。
+      login: 'disable',   // 去掉编辑器里 Waline 自带的「登录」按钮 + wl-login-info 块（本站用自有 SiteAuth）
       highlighter: (code) => code,
+      // texRenderer 只作用于「输入框实时预览」；已发评论始终用服务端渲染好的 comment HTML(innerHTML)，与此无关。
+      texRenderer: (blockMode, tex) =>
+        window.katex ? window.katex.renderToString(tex, { displayMode: blockMode, throwOnError: false })
+                     : (blockMode ? '$$' + tex + '$$' : '$' + tex + '$'),
       locale: {
         reactionTitle: '',
         preview: '👀 开启 Markdown 预览',
