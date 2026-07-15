@@ -461,6 +461,19 @@
     </div>
   </div>
 
+  <!-- 加现有食物到某类别（在某类别下点「＋」时打开）-->
+  <div class="modal-backdrop" id="cat-add-modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cat-add-title">
+      <h2 id="cat-add-title">加食物到类别</h2>
+      <button type="button" class="cat-add-new" id="cat-add-new">＋ 新建一个食物（直接归入本类别）</button>
+      <div class="cat-add-hint">或从现有食物里选，点一下就加进来：</div>
+      <div class="cat-add-list" id="cat-add-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="cat-add-close">完成</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Crop modal -->
   <div class="modal-backdrop crop-modal-bk" id="crop-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="crop-title">

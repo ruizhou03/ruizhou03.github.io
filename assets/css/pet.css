@@ -2062,3 +2062,15 @@
   .food-card .food-filter .ff-edit { border:none; background:none; padding:0; margin-left:-.4rem; color:var(--fc-faint); cursor:pointer; font-size:.76rem; line-height:1; }
   @media(hover:hover){ .food-card .food-filter .ff-edit:hover { color:var(--fc-navy); } }
   .food-card .food-filter .ff-edit:focus-visible { outline:2px solid var(--fc-navy); outline-offset:2px; border-radius:4px; }
+
+  /* 「加现有食物到某类别」弹窗（在某类别下点「＋」时打开）*/
+  #cat-add-modal .cat-add-new { display:block; width:100%; text-align:center; font:inherit; font-size:.9rem; padding:.6rem; border:1px dashed var(--color-border); border-radius:10px; background:var(--color-bg); color:var(--color-accent); cursor:pointer; margin-bottom:1rem; }
+  #cat-add-modal .cat-add-hint { font-size:.8rem; color:var(--color-muted); margin-bottom:.6rem; }
+  #cat-add-modal .cat-add-list { display:flex; flex-direction:column; gap:.4rem; max-height:50vh; overflow-y:auto; }
+  #cat-add-modal .cat-add-row { display:flex; align-items:center; gap:.6rem; padding:.55rem .7rem; border:1px solid var(--color-border); border-radius:10px; background:var(--color-bg); cursor:pointer; font:inherit; text-align:left; }
+  @media(hover:hover){ #cat-add-modal .cat-add-row:hover { border-color:var(--color-accent); } }
+  #cat-add-modal .cat-add-row .ca-emoji { font-size:1.15rem; flex:0 0 auto; display:inline-flex; }
+  #cat-add-modal .cat-add-row .ca-emoji .fc-photo { width:1.4em; height:1.4em; object-fit:cover; border-radius:5px; display:block; }
+  #cat-add-modal .cat-add-row .ca-name { flex:1; color:var(--color-ink); }
+  #cat-add-modal .cat-add-row .ca-plus { color:var(--color-accent); font-size:.82rem; font-weight:600; flex:0 0 auto; }
+  #cat-add-modal .cat-add-empty { color:var(--color-muted); font-size:.85rem; text-align:center; padding:1.2rem .5rem; line-height:1.6; }

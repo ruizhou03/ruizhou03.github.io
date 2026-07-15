@@ -3148,6 +3148,7 @@
   $modal.addEventListener('click', e => { if (e.target === $modal) closeModal(); });
   // Close whichever modal is currently open (used by Esc and the ✕ buttons).
   function closeTopModal() {
+    if ($catAddModal && $catAddModal.classList.contains('open')) { $catAddModal.classList.remove('open'); return; }
     if ($privacyModal && $privacyModal.classList.contains('open')) { $privacyModal.classList.remove('open'); return; }
     if ($cropModal.classList.contains('open')) closeCropModal();
     else if ($joinModal.classList.contains('open')) closeJoinModal();
@@ -3466,7 +3467,7 @@
       coin.addEventListener('click', e => {
         if (e.target.dataset.edit) { openFoodModal(e.target.dataset.edit); return; }
         const f = coin.dataset.food;
-        if (f === '__new') { openFoodModal(null); return; }
+        if (f === '__new') { if (foodFilter) openCatAddModal(foodFilter); else openFoodModal(null); return; }
         selectRecordFood(f);
       });
       coin.addEventListener('keydown', e => {
@@ -3521,6 +3522,42 @@
     persist(); schedulePushMeta(pet);
     renderFoodSelector();
   }
+  // 「加现有食物到某类别」——在某类别下点「＋」时打开，省得挨个编辑食物去归类
+  const $catAddModal = document.getElementById('cat-add-modal');
+  const $catAddTitle = document.getElementById('cat-add-title');
+  const $catAddNew = document.getElementById('cat-add-new');
+  const $catAddList = document.getElementById('cat-add-list');
+  const $catAddClose = document.getElementById('cat-add-close');
+  let catAddGid = null;
+  let pendingCatForNewFood = null;   // 从某类别里「新建食物」时，让新食物默认归入该类别
+  function openCatAddModal(gid) {
+    const pet = currentPet(); if (!pet || !isAdminOrUp(pet)) return;
+    const g = (pet.foodGroups || []).find(x => x.id === gid); if (!g) return;
+    catAddGid = gid;
+    if ($catAddTitle) $catAddTitle.textContent = `加食物到「${g.name || '类别'}」`;
+    renderCatAddList();
+    if ($catAddModal) $catAddModal.classList.add('open');
+  }
+  function renderCatAddList() {
+    const pet = currentPet(); if (!pet || !$catAddList) return;
+    const others = (pet.foodLibrary || []).filter(f => f.groupId !== catAddGid);
+    if (others.length === 0) {
+      $catAddList.innerHTML = '<div class="cat-add-empty">现有食物都已在这个类别里了——可以「新建一个食物」。</div>';
+      return;
+    }
+    $catAddList.innerHTML = others.map(f => `<button type="button" class="cat-add-row" data-fid="${escapeHtml(f.id)}"><span class="ca-emoji">${foodIconHTML(f, '🍖')}</span><span class="ca-name">${escapeHtml(f.name)}</span><span class="ca-plus">＋ 加入</span></button>`).join('');
+    $catAddList.querySelectorAll('.cat-add-row').forEach(b => b.addEventListener('click', () => {
+      const f = (pet.foodLibrary || []).find(x => x.id === b.dataset.fid);
+      if (f) { f.groupId = catAddGid; persist(); schedulePushMeta(pet); renderCatAddList(); renderFoodSelector(); }
+    }));
+  }
+  if ($catAddNew) $catAddNew.addEventListener('click', () => {
+    pendingCatForNewFood = catAddGid;
+    if ($catAddModal) $catAddModal.classList.remove('open');
+    openFoodModal(null);
+  });
+  if ($catAddClose) $catAddClose.addEventListener('click', () => { if ($catAddModal) $catAddModal.classList.remove('open'); });
+  if ($catAddModal) $catAddModal.addEventListener('click', e => { if (e.target === $catAddModal) $catAddModal.classList.remove('open'); });
 
   // ===== 长按拖拽给食物排序（干粮固定顶、新建固定底；仅管理员；松手即生效）=====
   let fdDidReorder = false;          // 刚拖完抑制随之而来的 click
@@ -4993,7 +5030,8 @@
   function finishFoodWizard() {
     // Funnel wizard answers into the canonical edit-modal inputs, then save once.
     fmEditingId = null;
-    fmGroupId = null;       // 向导新建的食物默认不分组（之后可在编辑里归入某组）
+    fmGroupId = pendingCatForNewFood || null;   // 从某类别里「新建食物」→ 默认归入该类别；否则不分类
+    pendingCatForNewFood = null;
     fmKibbleMode = false;   // 向导永远存的是库内食物，绝不能误走干粮分支
     $fmName.value = $fwName.value.trim();
     fmEmoji = fwEmoji;
