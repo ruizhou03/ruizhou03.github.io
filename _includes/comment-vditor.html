@@ -52,6 +52,20 @@
       img.src = url;
     } catch (e) { cb(null); }
   }
+  // 全站共用的图片上传：降采样 → 传 /api/upload 到 R2 → 拿短链接；上传/网络失败则回退 base64。
+  // Waline 的 imageUploader 也调它（见 post.html / recipe.html）。
+  window.__cmtUpload = function (file) {
+    return new Promise(function (resolve) {
+      downscale(file, function (dataUrl) {
+        if (!dataUrl) return resolve(null);
+        var API = (window.SiteAuth && SiteAuth.API_BASE) ? SiteAuth.API_BASE : 'https://zircon-urge.fly.dev/api';
+        fetch(API + '/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl: dataUrl }) })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { resolve((d && d.ok && d.url) ? d.url : dataUrl); })
+          .catch(function () { resolve(dataUrl); });
+      });
+    });
+  };
 
   function ensure(cb) {
     if (loadState === 'ready') return cb();
@@ -86,8 +100,8 @@
           handler: function (files) {
             var file = files && files[0];
             if (!file) return '没有图片';
-            downscale(file, function (dataUrl) { if (dataUrl && ta.__vdInstance) ta.__vdInstance.insertValue('\n![图片](' + dataUrl + ')\n'); });
-            return null;   // 返回 null=无错误；我们在 downscale 回调里自己 insertValue
+            window.__cmtUpload(file).then(function (src) { if (src && ta.__vdInstance) ta.__vdInstance.insertValue('\n![图片](' + src + ')\n'); });
+            return null;   // 返回 null=无错误；上传成功后自己 insertValue 短链接
           },
         },
         value: ta.value || '',

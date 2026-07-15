@@ -435,6 +435,7 @@ layout: default
         comment: true,
         reaction: false,   // 点赞 / 点彩表情互动已下线（动作栏已有点赞 / 收藏）
         login: 'disable',  // 去掉编辑器里 Waline 自带的「登录」按钮（本站用自有 SiteAuth）
+        imageUploader: (file) => (window.__cmtUpload ? window.__cmtUpload(file) : Promise.reject(new Error('uploader'))),
         highlighter: (code) => code,
         texRenderer: (blockMode, tex) =>
           window.katex ? window.katex.renderToString(tex, { displayMode: blockMode, throwOnError: false })

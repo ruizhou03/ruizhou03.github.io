@@ -1104,6 +1104,7 @@ layout: default
       pageview: true,
       comment: true,
       login: 'disable',   // 去掉编辑器里 Waline 自带的「登录」按钮 + wl-login-info 块（本站用自有 SiteAuth）
+      imageUploader: (file) => (window.__cmtUpload ? window.__cmtUpload(file) : Promise.reject(new Error('uploader'))),   // 图片传 R2 拿短链，不内嵌 base64
       highlighter: (code) => code,
       // texRenderer 只作用于「输入框实时预览」；已发评论始终用服务端渲染好的 comment HTML(innerHTML)，与此无关。
       texRenderer: (blockMode, tex) =>
