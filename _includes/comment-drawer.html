@@ -57,12 +57,12 @@
   .cmt-drawer .wl-btn:hover, .cmt-drawer .wl-btn.primary { border-color:var(--color-accent) !important; }
   /* 评论逐条动作：原生 点赞(wl-like) / 回复(wl-reply) + 注入的 举报(cmt-report) */
   .cmt-drawer .wl-comment-actions { display:flex !important; gap:1rem !important; align-items:center !important; margin-top:.35rem !important; }
-  .cmt-drawer .wl-comment-actions .wl-action, .cmt-drawer .cmt-report { font-size:.8rem !important; color:var(--color-light) !important;
+  .cmt-drawer .wl-comment-actions .wl-action, .cmt-drawer .cmt-report, .cmt-drawer .cmt-del { font-size:.8rem !important; color:var(--color-light) !important;
     background:none !important; border:0 !important; cursor:pointer !important; padding:0 !important; font-family:var(--font-body) !important; line-height:1.4 !important; }
   .cmt-drawer .wl-comment-actions .wl-action:hover { color:var(--color-accent) !important; }
   .cmt-drawer .wl-like:hover, .cmt-drawer .wl-like.active, .cmt-drawer .wl-like[class*="active"] { color:var(--color-highlight) !important; }
-  .cmt-drawer .cmt-report:hover { color:#b4453a !important; }
-  .cmt-drawer .cmt-report svg { width:15px !important; height:15px !important; display:block !important; }
+  .cmt-drawer .cmt-report:hover, .cmt-drawer .cmt-del:hover { color:#b4453a !important; }
+  .cmt-drawer .cmt-report svg, .cmt-drawer .cmt-del svg { width:15px !important; height:15px !important; display:block !important; }
   /* 编辑器精简：已有登录系统 → 去掉昵称/邮箱/网址；去 GIF；表情面板不透明 */
   .cmt-drawer .wl-header { display:none !important; }
   .cmt-drawer .wl-gif { display:none !important; }
@@ -113,35 +113,70 @@
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dr.classList.contains('on')) close(); });
   window.CommentDrawer = { open: open, close: close };
 })();
-// 举报注入：Waline 渲染后，给每条评论的动作区加一个「举报」→ POST /api/report
+// 逐条动作注入：Waline 渲染后，给每条评论的动作区加一个按钮——
+//   站主(管理员) → 「删除」(POST zircon-comments/api/delete-comment，adm JWT 鉴权，连回复一起删)；
+//   普通访客     → 「举报」(POST urge/api/report，并带 objectId=评论主键，让举报中心能定位去删)。
+// 每条评论卡片的 DOM id 就是它的 objectId（见 Waline 存储层 objectId↔列 id 的映射）。
 (function () {
   var host = document.getElementById('waline');
   if (!host) return;
   var API = (window.SiteAuth && SiteAuth.API_BASE) ? SiteAuth.API_BASE : 'https://zircon-urge.fly.dev/api';
+  var COMMENTS = 'https://zircon-comments.fly.dev';
+  function isAdmin() { try { var u = window.SiteAuth && SiteAuth.getUser && SiteAuth.getUser(); return !!(u && u.isAdmin); } catch (e) { return false; } }
+  function bumpCount(delta) {
+    Array.prototype.forEach.call(document.querySelectorAll('.waline-comment-count'), function (el) {
+      var n = parseInt(el.innerText, 10); if (!isNaN(n)) el.innerText = String(Math.max(0, n + delta));
+    });
+  }
+  function delBtn(card) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'wl-action cmt-del'; b.title = '删除'; b.setAttribute('aria-label', '删除');
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+    b.addEventListener('click', function () {
+      var oid = card.id;
+      if (!oid) { window.alert('无法定位这条评论'); return; }
+      if (!window.confirm('确定删除这条评论？连同它的回复一起删除，不可恢复。')) return;
+      b.disabled = true; b.title = '删除中…';
+      var removed = card.querySelectorAll('.wl-card-item').length + 1;   // 自己 + 嵌套回复
+      var f = (window.SiteAuth && SiteAuth.authedFetch) ? SiteAuth.authedFetch : window.fetch;
+      f(COMMENTS + '/api/delete-comment', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ objectId: oid }),
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        if (d && d.ok) { card.remove(); bumpCount(-removed); }
+        else { b.disabled = false; b.title = '删除'; window.alert('删除失败' + (d && d.error ? '：' + d.error : '')); }
+      }).catch(function () { b.disabled = false; b.title = '删除'; window.alert('删除失败，请稍后重试'); });
+    });
+    return b;
+  }
+  function reportBtn(card) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'wl-action cmt-report'; b.title = '举报'; b.setAttribute('aria-label', '举报');
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    b.addEventListener('click', function () {
+      var nick = (card.querySelector('.wl-nick') || {}).textContent || '';
+      var content = (card.querySelector('.wl-content') || {}).textContent || '';
+      var reason = window.prompt('举报这条评论的理由（可留空）：', '');
+      if (reason === null) return;
+      b.disabled = true; b.title = '举报中…';   // 保留 SVG 图标，反馈走 title / class（别用 textContent 覆盖掉图标）
+      var f = (window.SiteAuth && SiteAuth.authedFetch) ? SiteAuth.authedFetch : window.fetch;
+      f(API + '/report', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: location.pathname, objectId: card.id || '', nick: nick.slice(0, 60), snippet: content.trim().slice(0, 300), reason: (reason || '').slice(0, 200) }),
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        if (d && d.ok) { b.title = '已举报'; b.classList.add('cmt-reported'); }
+        else { b.disabled = false; b.title = '举报'; }
+      }).catch(function () { b.disabled = false; b.title = '举报'; });
+    });
+    return b;
+  }
   function inject() {
+    var admin = isAdmin();
     host.querySelectorAll('.wl-card-item').forEach(function (card) {
       var reply = card.querySelector('.wl-reply');
       var actions = card.querySelector('.wl-comment-actions') || (reply && reply.parentNode);
-      if (!actions || actions.querySelector('.cmt-report')) return;
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'wl-action cmt-report'; b.title = '举报'; b.setAttribute('aria-label', '举报');
-      b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-      actions.appendChild(b);
-      b.addEventListener('click', function () {
-        var nick = (card.querySelector('.wl-nick') || {}).textContent || '';
-        var content = (card.querySelector('.wl-content') || {}).textContent || '';
-        var reason = window.prompt('举报这条评论的理由（可留空）：', '');
-        if (reason === null) return;
-        b.disabled = true; b.title = '举报中…';   // 保留 SVG 图标，反馈走 title / class（别用 textContent 覆盖掉图标）
-        var f = (window.SiteAuth && SiteAuth.authedFetch) ? SiteAuth.authedFetch : window.fetch;
-        f(API + '/report', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: location.pathname, nick: nick.slice(0, 60), snippet: content.trim().slice(0, 300), reason: (reason || '').slice(0, 200) }),
-        }).then(function (r) { return r.json(); }).then(function (d) {
-          if (d && d.ok) { b.title = '已举报'; b.classList.add('cmt-reported'); }
-          else { b.disabled = false; b.title = '举报'; }
-        }).catch(function () { b.disabled = false; b.title = '举报'; });
-      });
+      if (!actions || actions.querySelector('.cmt-report') || actions.querySelector('.cmt-del')) return;
+      actions.appendChild(admin ? delBtn(card) : reportBtn(card));
     });
   }
   new MutationObserver(inject).observe(host, { childList: true, subtree: true });

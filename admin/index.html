@@ -163,7 +163,7 @@ body_class: adm-page
             <h2>举报审核</h2>
             <button id="rep-refresh" class="adm-mini" type="button">刷新</button>
           </div>
-          <p class="adm-note" style="margin:0 0 1rem;">读者对评论的举报（同一人对同一条去重后入队，<strong>不自动隐藏</strong>）。核实后如需处理，请到该文章评论区自行删除对应评论；此列表仅供参考，暂不联动删除。</p>
+          <p class="adm-note" style="margin:0 0 1rem;">读者对评论的举报（同一人对同一条去重后入队，<strong>不自动隐藏</strong>）。核实后可直接「删除评论」（连同回复一并删，不可恢复）或「忽略」把这条举报移出队列。</p>
           <div id="rep-body" class="rep-body"><div class="cm-empty">加载中…</div></div>
         </section>
       </div>
@@ -194,6 +194,13 @@ body_class: adm-page
   .rep-meta { font-size: 0.78rem; color: var(--color-light); margin-bottom: 0.35rem; word-break: break-all; }
   .rep-snippet { color: var(--color-text); font-size: 0.92rem; line-height: 1.55; }
   .rep-reason { margin-top: 0.35rem; font-size: 0.82rem; color: #b4453a; }
+  .rep-actions { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.6rem; }
+  .rep-act { font-size: 0.8rem; padding: 0.28rem 0.7rem; border-radius: 7px; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); cursor: pointer; font-family: var(--font-body); }
+  .rep-act:hover { border-color: var(--color-accent); }
+  .rep-act.rep-del { color: #b4453a; border-color: #e2b6b0; }
+  .rep-act.rep-del:hover { background: #b4453a; color: #fff; border-color: #b4453a; }
+  .rep-act[disabled] { opacity: 0.55; cursor: default; }
+  .rep-act-na { font-size: 0.78rem; color: var(--color-light); }
   .adm-verified { font-size: 0.9rem; color: var(--color-muted); background: var(--color-bg-warm);
     border: 1px solid var(--color-border); border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 2rem; }
   .adm-verified strong { color: var(--color-ink); }
@@ -1238,12 +1245,51 @@ body_class: adm-page
       body.innerHTML = items.map(function (it) {
         var when = it.ts ? new Date(it.ts).toLocaleString('zh-CN') : '';
         var link = it.path ? '<a href="' + esc(it.path) + '" target="_blank" rel="noopener">' + esc(it.path) + '</a>' : '';
-        return '<div class="rep-item">' +
+        var oid = esc(it.objectId || ''), ts = esc(it.ts || '');
+        var delBtn = oid
+          ? '<button type="button" class="rep-act rep-del" data-oid="' + oid + '" data-ts="' + ts + '">删除评论</button>'
+          : '<span class="rep-act-na" title="这条举报没有记录评论 ID（旧数据）；请点上方链接到评论区手动删除">无法定位（旧数据）</span>';
+        return '<div class="rep-item" data-ts="' + ts + '">' +
           '<div class="rep-meta">' + esc(it.nick || '匿名') + ' · ' + when + (link ? ' · ' + link : '') + '</div>' +
           '<div class="rep-snippet">' + esc(it.snippet || '') + '</div>' +
           (it.reason ? '<div class="rep-reason">理由：' + esc(it.reason) + '</div>' : '') +
+          '<div class="rep-actions">' + delBtn +
+            '<button type="button" class="rep-act rep-ignore" data-ts="' + ts + '" data-oid="' + oid + '">忽略举报</button>' +
+          '</div>' +
         '</div>';
       }).join('');
+    });
+  }
+  // 举报中心的动作（删评论 / 忽略）——事件委托，挂一次即可（loadReports 会重渲染列表）。
+  function wireReportActions() {
+    var body = document.getElementById('rep-body');
+    if (!body) return;
+    function dismiss(ts, oid) {   // 把这条举报移出队列
+      return window.SiteAuth.authedFetch('/api/report?action=dismiss', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ts: Number(ts), objectId: oid || '' }),
+      }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    }
+    body.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('.rep-act') : null;
+      if (!btn) return;
+      var item = btn.closest('.rep-item'), ts = btn.getAttribute('data-ts'), oid = btn.getAttribute('data-oid') || '';
+      if (btn.classList.contains('rep-ignore')) {
+        btn.disabled = true; btn.textContent = '处理中…';
+        dismiss(ts, oid).then(function () { if (item) item.remove(); });
+        return;
+      }
+      if (btn.classList.contains('rep-del')) {
+        if (!window.confirm('确定删除这条评论？连同它的回复一起删除，不可恢复。')) return;
+        btn.disabled = true; btn.textContent = '删除中…';
+        window.SiteAuth.authedFetch('https://zircon-comments.fly.dev/api/delete-comment', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ objectId: oid }),
+        }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+          if (d && d.ok) { dismiss(ts, oid).then(function () { if (item) item.remove(); }); }
+          else { btn.disabled = false; btn.textContent = '删除评论'; window.alert('删除失败' + (d && d.error ? '：' + d.error : '')); }
+        }).catch(function () { btn.disabled = false; btn.textContent = '删除评论'; window.alert('删除失败，请稍后重试'); });
+      }
     });
   }
   function showPane(name) {
@@ -1428,7 +1474,7 @@ body_class: adm-page
             if (!dashLoaded) { dashLoaded = true; loadDashboard(); }
             if (!cmLoaded) { cmLoaded = true; cmWireControls(); loadContent(); }
             if (!visInited) { visInited = true; visInit(); }
-            if (!reportsInited) { reportsInited = true; var rr = document.getElementById('rep-refresh'); if (rr) rr.addEventListener('click', loadReports); loadReports(); }
+            if (!reportsInited) { reportsInited = true; var rr = document.getElementById('rep-refresh'); if (rr) rr.addEventListener('click', loadReports); wireReportActions(); loadReports(); }
           } else {
             show(elDenied);
           }
