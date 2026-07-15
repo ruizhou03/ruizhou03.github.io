@@ -51,9 +51,9 @@
   .btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
   .btn{flex:1;min-width:150px;text-align:center;font-family:var(--serif);font-size:.98rem;font-weight:600;border-radius:11px;padding:11px 14px;cursor:pointer;text-decoration:none;display:inline-block}
   .btn.primary{background:var(--navy);color:#fff;border:1px solid var(--gold)}
-  .btn.primary:hover{background:var(--navy-l)}
+  @media (hover: hover){.btn.primary:hover{background:var(--navy-l)}}
   .btn.ghost{background:#fff;color:var(--navy);border:1px solid #d9d2c4}
-  .btn.ghost:hover{background:var(--warm)}
+  @media (hover: hover){.btn.ghost:hover{background:var(--warm)}}
 
   .share{display:flex;gap:10px;align-items:center}
   .share input{flex:1;font-family:var(--mono);font-size:.82rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px}

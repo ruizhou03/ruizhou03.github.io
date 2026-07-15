@@ -20,7 +20,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 ROOT = REPO / "toolbox"
 
-HOVER_MEDIA_RE = re.compile(r"@media\s*\([^)]*hover\s*:\s*hover[^)]*\)\s*\{")
+HOVER_MEDIA_RE = re.compile(r"@media\s*\([^)]*hover\s*:\s*hover[^)]*\)[^{]*\{")
 ANY_MEDIA_RE = re.compile(r"@media\b[^{]*\{")
 HOVER_RULE_RE = re.compile(r":hover\b[^{]*\{")
 COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
@@ -38,10 +38,10 @@ def find_hover_violations(text):
     # 先找所有 @media (hover: hover) 的字符区间 (start, end)
     hover_media_ranges = []
     for m in HOVER_MEDIA_RE.finditer(text):
-        start = m.end() - 1  # 指到 '{' 位置
+        brace = m.end() - 1  # 指到 '{' 位置
         # 找配对的 '}' —— 简单大括号栈
         depth = 1
-        i = start + 1
+        i = brace + 1
         while i < len(text) and depth > 0:
             c = text[i]
             if c == "{":
@@ -50,7 +50,10 @@ def find_hover_violations(text):
                 depth -= 1
             i += 1
         end = i  # 越过 '}'
-        hover_media_ranges.append((start, end))
+        # 区间从 @media 关键字起（含 media 前奏），这样
+        # `@media(hover:hover) and (pointer:fine){...}` 这类复合查询前奏里的
+        # "hover:hover" 特征本身不会被 HOVER_RULE_RE 误当成未包裹的 :hover 规则
+        hover_media_ranges.append((m.start(), end))
 
     for m in HOVER_RULE_RE.finditer(text):
         pos = m.start()
