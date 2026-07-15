@@ -12,6 +12,9 @@ author:
 # 文章 front-matter 没写 image/cover 时回退到这张
 default_share_image: /assets/share/share-default.png
 
+# 站主(作者)的账号 accountId：评论区据此给站主评论打「作者」徽章（评论网址锁成 /u/?id=<此值>）
+comment_author_id: "a_mpw2mdbs6e2qrc44"
+
 # Build settings
 markdown: kramdown
 

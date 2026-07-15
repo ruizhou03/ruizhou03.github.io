@@ -199,6 +199,16 @@
     if (btn && /提交|发送|发布/.test(btn.textContent || '')) setTimeout(clearStrip, 700);
   }, true);
 })();
+// 评论数提速：不等 Waline 加载，页面一进来就直接拉一次 count 秒填(像知乎那样立刻出数字)；之后 Waline 加载 + 发帖由下面的镜像刷新
+(function () {
+  var path = '{{ page.url }}';
+  fetch('https://zircon-comments.fly.dev/api/comment?type=count&url=' + encodeURIComponent(path))
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      var n = d && d.data; if (Array.isArray(n)) n = n[0];
+      if (typeof n === 'number') Array.prototype.forEach.call(document.querySelectorAll('.waline-comment-count'), function (el) { el.innerText = String(n); });
+    }).catch(function () {});
+})();
 // 评论数实时同步：Waline 内部 .wl-num 是响应式的(发帖即自增)，但外部 .waline-comment-count 只 init 时算一次 → 镜像过去
 (function () {
   var host = document.getElementById('waline'); if (!host) return;
