@@ -9,7 +9,8 @@
 <style>
   .cmt-drawer .cmt-vditor { margin-bottom:.35rem; }
   .cmt-drawer .cmt-vditor .vditor { border:1px solid var(--color-border) !important; border-radius:8px !important; }
-  .cmt-drawer .cmt-vditor .vditor-reset { font-family:var(--font-body) !important; font-size:15px !important; color:var(--color-text) !important; }
+  .cmt-drawer .cmt-vditor .vditor-reset { font-family:var(--font-body) !important; font-size:15px !important; color:var(--color-text) !important; padding:8px 12px !important; }
+  .cmt-drawer .cmt-vditor .vditor-ir, .cmt-drawer .cmt-vditor .vditor-wysiwyg, .cmt-drawer .cmt-vditor .vditor-content { padding:0 !important; }
   .cmt-drawer .cmt-vditor .vditor-toolbar { background:var(--color-bg-warm) !important; border-bottom:1px solid var(--color-border) !important; }
   /* Vditor 接管后，隐藏 Waline 自带的表情/图片/GIF/预览按钮（Vditor 有自己的） */
   .cmt-vd-panel .wl-emoji, .cmt-vd-panel .wl-gif, .cmt-vd-panel .wl-image, .cmt-vd-panel .wl-preview { display:none !important; }
@@ -125,18 +126,22 @@
     });
   }
 
-  // Waline 提交后会把 textarea 清空（编程式，不触发事件）→ 同步清空 Vditor
+  // Waline 提交成功后会把 textarea 清空(编程式、不触发事件) → 轮询检测到清空就清 Vditor。
+  // 用轮询而非单次延时：网络快慢不一，单次 setTimeout 容易错过；只在检测到"确实被清空"(=提交成功)时才清，提交失败不误清用户输入。
   host.addEventListener('click', function (e) {
     var btn = e.target && e.target.closest ? e.target.closest('.wl-btn') : null;
     if (!btn || !/提交|发送|发布/.test(btn.textContent || '')) return;
-    setTimeout(function () {
-      Array.prototype.forEach.call(host.querySelectorAll('textarea'), function (ta) {
-        if (ta.__vdInstance && !(ta.value || '').trim()) {
+    Array.prototype.forEach.call(host.querySelectorAll('textarea'), function (ta) {
+      if (!ta.__vdInstance) return;
+      var before = (ta.value || ''), tries = 0;
+      var iv = setInterval(function () {
+        tries++;
+        if (before.trim() && !(ta.value || '').trim()) {   // 原来有内容、现在空了 = 提交成功
           try { ta.__vdLock = true; ta.__vdInstance.setValue(''); } catch (e) {}
-          ta.__vdLock = false;
-        }
-      });
-    }, 900);
+          ta.__vdLock = false; clearInterval(iv);
+        } else if (tries > 40) { clearInterval(iv); }       // 4s 还没清 = 提交失败/被拦，放弃(不误清)
+      }, 100);
+    });
   }, true);
 
   // 懒加载：首次打开评论抽屉才拉 Vditor + 挂编辑器；之后监听回复框等新编辑器
