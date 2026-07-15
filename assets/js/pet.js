@@ -5806,11 +5806,25 @@
     const seen = new Set((a || []).map(e => e && e.id).filter(Boolean));
     return (a || []).concat((b || []).filter(e => e && e.id && !seen.has(e.id)));
   }
+  // 按 id 取并集，本地优先（本地有的都留、另一方多出来的补进来）。用于食物库/类别这种
+  // 「本设备正在编辑、又不是 append-only」的数组——不能像条目那样简单以「更全者为准」。
+  function unionById(localArr, remoteArr) {
+    const out = [], seen = new Set();
+    (Array.isArray(localArr) ? localArr : []).forEach(x => { if (x && x.id != null && !seen.has(x.id)) { out.push(x); seen.add(x.id); } });
+    (Array.isArray(remoteArr) ? remoteArr : []).forEach(x => { if (x && x.id != null && !seen.has(x.id)) { out.push(x); seen.add(x.id); } });
+    return out;
+  }
   function mergePetPair(local, remote) {
     // 条目更全的一方做底，另一方补齐它缺的条目；其余字段以条目更全者为准。
     const base  = (remote.entries || []).length >= (local.entries || []).length ? remote : local;
     const other = base === remote ? local : remote;
-    return Object.assign({}, base, { entries: mergeEntries(base.entries, other.entries) });
+    const merged = Object.assign({}, base, { entries: mergeEntries(base.entries, other.entries) });
+    // ⚠️ 食物库 / 类别是本设备正在编辑的字段：绝不能被一份可能陈旧的云端快照按「条目更全者」
+    // 整份盖掉（否则刚建的类别、刚给食物归的类，会在一次后台 CloudSync 拉取里凭空消失）。
+    // 按 id 取并集、本地优先——护住本地刚做的改动，同时把另一台设备新增的食物/类别也收进来。
+    merged.foodLibrary = unionById(local.foodLibrary, remote.foodLibrary);
+    merged.foodGroups = unionById(local.foodGroups, remote.foodGroups);
+    return merged;
   }
   function mergeInRemotePets() {
     let incoming = null;
