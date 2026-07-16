@@ -144,12 +144,24 @@
     var pendings = [];   // { snap:{ta,vd,md,sent}, done, fetchStarted }
     function drop(rec) { rec.done = true; var k = pendings.indexOf(rec); if (k >= 0) pendings.splice(k, 1); }
     function restore(rec) {
-      var s = rec.snap, cur = '';
-      try { cur = s.vd.getValue() || ''; } catch (e) {}
-      if (cur.trim()) return;                                  // 用户已在此编辑器打了新内容 → 别覆盖
-      try { s.ta.__vdLock = true; s.vd.setValue(s.md); } catch (e) {}
-      s.ta.__vdLock = false; try { s.vd.focus(); } catch (e) {}
-      toast('评论没发出去，内容已放回编辑器');
+      var s = rec.snap;
+      var alive = !!(s.ta && s.vd && document.contains(s.ta));   // 回复/编辑框可能已被关掉 → 编辑器已不在
+      var cur = '';
+      if (alive) { try { cur = s.vd.getValue() || ''; } catch (e) { alive = false; } }
+      if (alive) {
+        // 用户可能已在这个(被清空的)编辑器打了不同的新内容 → 把失败草稿并到末尾:既不覆盖新内容,也绝不丢失败草稿
+        var merged = !!(cur.trim() && cur.trim() !== (s.md || '').trim());
+        var target = merged ? (cur.replace(/\s+$/, '') + '\n\n' + s.md) : s.md;
+        var ok = false;
+        try { s.ta.__vdLock = true; s.vd.setValue(target); ok = (s.vd.getValue() || '').trim() !== ''; } catch (e) {}
+        s.ta.__vdLock = false;
+        try { s.ta.value = normBlockMath(target); s.ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}   // 让 Waline 隐藏 textarea 跟上,重发即为编辑器现内容
+        try { s.vd.focus(); } catch (e) {}
+        if (ok) { toast(merged ? '评论没发出去，原内容已并回编辑器末尾' : '评论没发出去，内容已放回编辑器'); return; }
+      }
+      // 编辑器已不在或写回失败 → 不谎报"已放回",把草稿塞剪贴板兜底(绝不静默丢失)
+      try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s.md); } catch (e) {}
+      toast('评论没发出去，草稿已复制到剪贴板');
     }
     function findBySent(text) {                                // 按提交内容精确关联(后进先出,防同文重复)
       for (var i = pendings.length - 1; i >= 0; i--) { var r = pendings[i]; if (!r.done && r.snap.sent === text) return r; }
