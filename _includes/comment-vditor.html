@@ -105,8 +105,8 @@
             if (!file) return '没有图片';
             ta.__vdUploading = (ta.__vdUploading || 0) + 1;   // 记在飞上传数:图片插入是异步的,发布前要挡住(否则发出去的评论少了图、图还会串到下一条)
             window.__cmtUpload(file).then(function (src) {
-              if (src && ta.__vdInstance) ta.__vdInstance.insertValue('\n![图片](' + src + ')\n');
-            }, function () {}).then(function () { ta.__vdUploading = Math.max(0, (ta.__vdUploading || 1) - 1); });
+              try { if (src && ta.__vdInstance) ta.__vdInstance.insertValue('\n![图片](' + src + ')\n'); } catch (e) {}
+            }, function () {}).then(function () { ta.__vdUploading = Math.max(0, (ta.__vdUploading || 1) - 1); });   // 无论成败都减回,绝不把计数卡死(否则永远挡住发布)
             return null;   // 返回 null=无错误；上传成功后自己 insertValue 短链接
           },
         },
