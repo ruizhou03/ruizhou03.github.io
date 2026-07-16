@@ -232,9 +232,14 @@
       toast('评论发送中…');
       var rec = { snap: { ta: ta, vd: vd, md: md, sent: sent }, done: false, fetchStarted: false };
       pendings.push(rec);
-      // 兜底:仅针对"请求根本没发出去(fetchStarted=false)且永挂"的极罕见情况先回填再丢弃。
-      // 一旦请求真发出去了,成败一律交给 fetch 判——否则一个 >120s 才成功的慢请求会被这里误当失败回填 → 用户重发 → 重复评论。
-      setTimeout(function () { if (!rec.done && !rec.fetchStarted) { restore(rec); drop(rec); } }, 120000);
+      // 兜底(120s):只处理"请求根本没发出去"的极罕见泄漏。已被 fetch/alert 处理(done)或请求已真发出(fetchStarted)一律不碰
+      // ——后者哪怕慢挂也交给 fetch 最终判(别在这丢弃,否则它晚点失败时 settle 已 return、就回填不了了)。
+      // 对没发出的那条:textarea 还有内容=确实没发出去 → 回填;textarea 已空=其实已成功(万一没匹配上 fetch)→ 别回填免得复活成重复。
+      setTimeout(function () {
+        if (rec.done || rec.fetchStarted) return;
+        if ((rec.snap.ta.value || '').trim()) restore(rec);
+        drop(rec);
+      }, 120000);
     }
     // 鼠标点「提交」:capture 阶段抢在 Waline 自己的 @click 之前清
     host.addEventListener('click', function (e) {
