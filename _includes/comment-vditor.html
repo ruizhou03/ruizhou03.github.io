@@ -155,7 +155,8 @@
       for (var i = pendings.length - 1; i >= 0; i--) { var r = pendings[i]; if (!r.done && r.snap.sent === text) return r; }
       return null;
     }
-    // 拦 Waline 评论 POST。只碰 POST 到 /comment 的请求,其余一律原样放行;任何解析出错都不影响真实请求。
+    // 拦 Waline 评论提交请求。新评论=POST /comment、编辑=PUT /comment/:id;其余(含点赞/置顶的 PUT)体里没 comment 字段,
+    // 会被 sent!=null 挡掉。只碰这两类,其余一律原样放行;任何解析出错都不影响真实请求。
     var origFetch = window.fetch;
     window.fetch = function (input, init) {
       var url = '', method = 'GET', bodyStr = null;
@@ -164,24 +165,23 @@
         method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
         bodyStr = (init && init.body) || null;
       } catch (e) {}
-      var isPost = method === 'POST' && /\/comment(\?|$)/.test(url);
+      var isCmt = (method === 'POST' || method === 'PUT') && /\/comment(\/|\?|$)/.test(url);
       var sent = null;
-      if (isPost && typeof bodyStr === 'string') { try { sent = JSON.parse(bodyStr).comment; } catch (e) {} }
+      if (isCmt && typeof bodyStr === 'string') { try { sent = JSON.parse(bodyStr).comment; } catch (e) {} }
       var pr = origFetch.apply(this, arguments);
-      if (isPost && sent != null) {
-        var hit = findBySent(sent); if (hit) hit.fetchStarted = true;   // 标记"已发出请求"→ 交给 fetch 判,alert 别再兜底
-        pr.then(function (res) {
-          var r = findBySent(sent); if (!r) return;
-          var ok = !!(res && res.ok), clone = null;
-          try { clone = res.clone(); } catch (e) {}
-          if (clone) {
-            clone.json().then(function (j) {
-              if (ok && !(j && j.errmsg)) drop(r); else { drop(r); restore(r); }
-            }, function () { if (ok) drop(r); else { drop(r); restore(r); } });
-          } else { if (ok) drop(r); else { drop(r); restore(r); } }
-        }, function () {                                        // 网络错误(fetch reject)
-          var r = findBySent(sent); if (r) { drop(r); restore(r); }
-        });
+      if (isCmt && sent != null) {
+        // 关联到本次提交那条(此刻它必是最近压入的匹配项);之后一律用捕获的 hit,不再按内容重查 → 同文并发也不会错配
+        var hit = findBySent(sent);
+        if (hit) {
+          hit.fetchStarted = true;                             // 已发出请求 → 交给 fetch 判,alert 兜底别再碰它
+          var settle = function (fail) { if (hit.done) return; drop(hit); if (fail) restore(hit); };
+          pr.then(function (res) {
+            var ok = !!(res && res.ok), clone = null;
+            try { clone = res.clone(); } catch (e) {}
+            if (clone) clone.json().then(function (j) { settle(!(ok && !(j && j.errmsg))); }, function () { settle(!ok); });
+            else settle(!ok);
+          }, function () { settle(true); });                   // 网络错误(fetch reject)
+        }
       }
       return pr;
     };
@@ -214,7 +214,8 @@
       toast('评论发送中…');
       var rec = { snap: { ta: ta, vd: vd, md: md, sent: sent }, done: false, fetchStarted: false };
       pendings.push(rec);
-      setTimeout(function () { if (!rec.done) drop(rec); }, 120000);   // 兜底:极罕见的永挂请求,清引用防泄漏(此时 UI 已清)
+      // 兜底:极罕见的永挂请求(>120s)。先回填再丢弃 → 慢挂后失败也不丢草稿;restore 自带"用户已打新内容则跳过"护栏
+      setTimeout(function () { if (!rec.done) { restore(rec); drop(rec); } }, 120000);
     }
     // 鼠标点「提交」:capture 阶段抢在 Waline 自己的 @click 之前清
     host.addEventListener('click', function (e) {
