@@ -101,13 +101,16 @@
         upload: {
           accept: 'image/*',
           handler: function (files) {
-            var file = files && files[0];
-            if (!file) return '没有图片';
-            ta.__vdUploading = (ta.__vdUploading || 0) + 1;   // 记在飞上传数:图片插入是异步的,发布前要挡住(否则发出去的评论少了图、图还会串到下一条)
-            window.__cmtUpload(file).then(function (src) {
-              try { if (src && ta.__vdInstance) ta.__vdInstance.insertValue('\n![图片](' + src + ')\n'); } catch (e) {}
-            }, function () {}).then(function () { ta.__vdUploading = Math.max(0, (ta.__vdUploading || 1) - 1); });   // 无论成败都减回,绝不把计数卡死(否则永远挡住发布)
-            return null;   // 返回 null=无错误；上传成功后自己 insertValue 短链接
+            var list = files ? Array.prototype.slice.call(files) : [];
+            if (!list.length) return '没有图片';
+            // 逐张处理(多图粘贴/拖拽/多选时 files 会有多个;只取 files[0] 会静默丢掉其余的)
+            list.forEach(function (file) {
+              ta.__vdUploading = (ta.__vdUploading || 0) + 1;   // 每张各记一次在飞:图片插入是异步的,发布前要挡住(否则评论少了图、图还会串到下一条)
+              window.__cmtUpload(file).then(function (src) {
+                try { if (src && ta.__vdInstance) ta.__vdInstance.insertValue('\n![图片](' + src + ')\n'); } catch (e) {}
+              }, function () {}).then(function () { ta.__vdUploading = Math.max(0, (ta.__vdUploading || 1) - 1); });   // 无论成败都减回,绝不把计数卡死(否则永远挡住发布)
+            });
+            return null;   // 返回 null=无错误；每张上传成功后各自 insertValue 短链接
           },
         },
         value: ta.value || '',
