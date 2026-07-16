@@ -19,8 +19,8 @@
 (function () {
   var host = document.getElementById('waline'), dr = document.getElementById('cmt-drawer');
   if (!host || window.CMT_NO_VDITOR) return;
-  var CSS = 'https://unpkg.com/vditor@3/dist/index.css';
-  var JS = 'https://unpkg.com/vditor@3/dist/index.min.js';
+  var CSS = 'https://unpkg.com/vditor@3.11.2/dist/index.css';   // 锁版本:IR/wysiwyg DOM 类名与 insertValue 内部会随版本漂移
+  var JS = 'https://unpkg.com/vditor@3.11.2/dist/index.min.js';
   var loadState = 'idle', cbs = [];
   var darkMode = (document.documentElement.getAttribute('data-theme') === 'dark') ||
     (window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches);
@@ -91,11 +91,13 @@
       var mount = document.createElement('div'); mount.className = 'cmt-vditor';
       ta.parentNode.insertBefore(mount, ta);
       var vd = new Vditor(mount, {
-        mode: 'ir', minHeight: 110, theme: darkMode ? 'dark' : 'classic',
+        // wysiwyg(所见即所得)而非 ir:点图片不再亮出 ![](url) 源码,图片就是纯图片对象(点它只弹小的编辑/删除气泡,像 Word)
+        mode: 'wysiwyg', minHeight: 110, theme: darkMode ? 'dark' : 'classic',
         placeholder: ta.getAttribute('placeholder') || '写评论…支持 Markdown 和 $数学公式$',
         cache: { enable: false }, counter: { enable: false }, toolbarConfig: { pin: false },
-        toolbar: ['emoji', 'bold', 'italic', 'strike', 'link', 'list', 'ordered-list', 'code', 'inline-code', 'quote', 'upload', '|', 'preview'],
+        toolbar: ['emoji', 'bold', 'italic', 'strike', 'link', 'list', 'ordered-list', 'code', 'inline-code', 'quote', 'upload'],
         math: { engine: 'KaTeX', inlineDigit: true },
+        image: { isPreview: false },   // 关掉点图弹全屏预览层(它挂到 document.body 会盖到抽屉后面的主页面上)
         upload: {
           accept: 'image/*',
           handler: function (files) {
@@ -126,23 +128,66 @@
     });
   }
 
-  // Waline 提交成功后会把 textarea 清空(编程式、不触发事件) → 轮询检测到清空就清 Vditor。
-  // 用轮询而非单次延时：网络快慢不一，单次 setTimeout 容易错过；只在检测到"确实被清空"(=提交成功)时才清，提交失败不误清用户输入。
-  host.addEventListener('click', function (e) {
-    var btn = e.target && e.target.closest ? e.target.closest('.wl-btn') : null;
-    if (!btn || !/提交|发送|发布/.test(btn.textContent || '')) return;
-    Array.prototype.forEach.call(host.querySelectorAll('textarea'), function (ta) {
-      if (!ta.__vdInstance) return;
-      var before = (ta.value || ''), tries = 0;
-      var iv = setInterval(function () {
-        tries++;
-        if (before.trim() && !(ta.value || '').trim()) {   // 原来有内容、现在空了 = 提交成功
-          try { ta.__vdLock = true; ta.__vdInstance.setValue(''); } catch (e) {}
-          ta.__vdLock = false; clearInterval(iv);
-        } else if (tries > 40) { clearInterval(iv); }       // 4s 还没清 = 提交失败/被拦，放弃(不误清)
-      }, 100);
-    });
-  }, true);
+  // 提交即清 + 失败回填(乐观清空)。旧的"轮询等 textarea 变空"不可靠:防抖的 input 回调会把 ta.value 回填、
+  // 键盘提交不经过 .wl-btn 点击、且慢/失败时测不准。改为:提交触发瞬间就清空 Vditor(用户立刻看到清爽=秒级反馈),
+  // 内容照常由 Waline 发出(清 UI 时上了 __vdLock,input 回调早退,不动 ta.value);Waline 每条失败路径都弹
+  // window.alert、成功从不弹 → 用它当唯一失败信号,弹了就把内容回填到编辑器(绝不丢草稿)。
+  (function () {
+    function toast(msg) {
+      var t = document.getElementById('sa-toast');
+      if (!t) { t = document.createElement('div'); t.id = 'sa-toast'; t.className = 'sa-toast'; document.body.appendChild(t); }
+      t.textContent = msg; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on');
+      clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('on'); }, 2000);
+    }
+    var origAlert = window.alert, pending = null;
+    window.alert = function () {                              // 全局只包一次;非提交期间 pending 为空,直接透传
+      if (pending && !pending.done) { pending.done = true; pending.restore(); pending = null; }
+      return origAlert.apply(window, arguments);
+    };
+    function panelOf(el) { return el && el.closest ? el.closest('.wl-panel') : null; }
+    function submitBtnIn(scope) {
+      var btns = (scope || host).querySelectorAll('.wl-btn');
+      for (var i = 0; i < btns.length; i++) if (/提交|发送|发布/.test(btns[i].textContent || '')) return btns[i];
+      return null;
+    }
+    function optimisticClear(scope) {
+      var snaps = [];
+      Array.prototype.forEach.call((scope || host).querySelectorAll('textarea'), function (ta) {
+        var vd = ta.__vdInstance; if (!vd) return;
+        var md = ''; try { md = vd.getValue() || ''; } catch (e) {}
+        if (!md.trim()) return;                                // 空的不动
+        ta.value = normBlockMath(md);                          // 先把最新内容 flush 给 Waline(防抖可能还没跟上)
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+        try { ta.__vdLock = true; vd.setValue(''); } catch (e) {}   // 再瞬间清 UI;__vdLock 让 input 回调不回写 ta.value → 不影响要发的内容
+        ta.__vdLock = false;
+        snaps.push({ ta: ta, vd: vd, md: md });
+      });
+      if (!snaps.length) return;
+      toast('评论发送中…');
+      var rec = { done: false, restore: function () {
+        snaps.forEach(function (s) {
+          try { s.ta.__vdLock = true; s.vd.setValue(s.md); } catch (e) {}
+          s.ta.__vdLock = false; try { s.vd.focus(); } catch (e) {}
+        });
+      } };
+      pending = rec;
+      setTimeout(function () { if (rec === pending) { rec.done = true; pending = null; } }, 12000);   // 12s 没弹 alert = 成功,丢快照
+    }
+    // 鼠标点「提交」:capture 阶段抢在 Waline 自己的 @click 之前清
+    host.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('.wl-btn') : null;
+      if (btn && /提交|发送|发布/.test(btn.textContent || '')) optimisticClear(panelOf(btn));
+    }, true);
+    // 键盘 Cmd/Ctrl+Enter:焦点在 Vditor 的编辑区,Waline textarea 的 onKeydown 收不到 → 代为点提交按钮(顺带补上快捷键提交)
+    host.addEventListener('keydown', function (e) {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key !== 'Enter' && e.keyCode !== 13) return;
+      var panel = panelOf(document.activeElement) || panelOf(e.target);
+      if (!panel) return;
+      var b = submitBtnIn(panel);
+      if (b) { e.preventDefault(); e.stopPropagation(); b.click(); }
+    }, true);
+  })();
 
   // 懒加载：首次打开评论抽屉才拉 Vditor + 挂编辑器；之后监听回复框等新编辑器
   var started = false;
