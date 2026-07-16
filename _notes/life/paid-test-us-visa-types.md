@@ -1,11 +1,11 @@
 ---
 layout: post
-title: 美国签证完全指南：从 F-1 到绿卡，每种身份能做什么、不能做什么（付费）
-main_category: 生活攻略
-sub_category: 留学攻略
+title: "美国签证完全指南：从 F-1 到绿卡，每种身份能做什么、不能做什么（付费）"
+main_category: "生活攻略"
+sub_category: "留学攻略"
 date: 2026-03-18
-author: 周睿
-permalink: /life/paid-test/us-visa-types
+author: "周睿"
+permalink: "/life/paid-test/us-visa-types"
 published: true
 keywords:
 - 美国签证

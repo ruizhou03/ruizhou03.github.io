@@ -42,6 +42,31 @@ try:
 except ImportError:
     requests = None
 
+
+class _Quoted(str):
+    """标记「输出时要带双引号」的字符串值。"""
+
+
+def _represent_quoted(dumper, data):
+    return dumper.represent_scalar("tag:yaml.org,2002:str", str(data), style='"')
+
+
+yaml.SafeDumper.add_representer(_Quoted, _represent_quoted)
+
+
+def _quote_values(v):
+    # 只给字符串「值」（含列表里的字符串项）加引号，键保持裸值——与站点其余 note
+    # 的 front-matter 惯例一致（PyYAML 默认对中文纯量不加引号，会让 main_category
+    # 等字段掉引号，成为全站唯一的裸值 outlier）。bool / int / date 原样保留类型。
+    if isinstance(v, str):
+        return _Quoted(v)
+    if isinstance(v, list):
+        return [_quote_values(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _quote_values(x) for k, x in v.items()}
+    return v
+
+
 REPO = Path(__file__).resolve().parents[2]
 PAID_DIR = REPO / "_paid"
 MARKER = "<!-- PAYWALL -->"
@@ -82,6 +107,7 @@ def build_preview_frontmatter(fm: dict) -> str:
     out["paid"] = True
     if fm.get("published") is None:
         out["published"] = True
+    out = {k: _quote_values(v) for k, v in out.items()}
     dumped = yaml.safe_dump(out, allow_unicode=True, sort_keys=False, default_flow_style=False)
     return f"---\n{dumped}---\n"
 
