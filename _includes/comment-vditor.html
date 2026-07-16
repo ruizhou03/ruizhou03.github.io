@@ -103,7 +103,10 @@
           handler: function (files) {
             var file = files && files[0];
             if (!file) return '没有图片';
-            window.__cmtUpload(file).then(function (src) { if (src && ta.__vdInstance) ta.__vdInstance.insertValue('\n![图片](' + src + ')\n'); });
+            ta.__vdUploading = (ta.__vdUploading || 0) + 1;   // 记在飞上传数:图片插入是异步的,发布前要挡住(否则发出去的评论少了图、图还会串到下一条)
+            window.__cmtUpload(file).then(function (src) {
+              if (src && ta.__vdInstance) ta.__vdInstance.insertValue('\n![图片](' + src + ')\n');
+            }, function () {}).then(function () { ta.__vdUploading = Math.max(0, (ta.__vdUploading || 1) - 1); });
             return null;   // 返回 null=无错误；上传成功后自己 insertValue 短链接
           },
         },
@@ -119,7 +122,10 @@
           ta.__vdInstance = vd;
         },
       });
-    } catch (e) { ta.__vd = false; ta.style.display = ''; }   // 出错 → 回退原生 textarea
+    } catch (e) {   // 出错 → 移除已插入的空挂载点、回退原生 textarea;__vd 保持 true 不再重试(否则每次 DOM 变动都叠插一个空框)
+      try { if (mount && mount.parentNode) mount.parentNode.removeChild(mount); } catch (e2) {}
+      ta.style.display = '';
+    }
   }
 
   function scan() {
@@ -226,13 +232,19 @@
       toast('评论发送中…');
       var rec = { snap: { ta: ta, vd: vd, md: md, sent: sent }, done: false, fetchStarted: false };
       pendings.push(rec);
-      // 兜底:极罕见的永挂请求(>120s)。先回填再丢弃 → 慢挂后失败也不丢草稿;restore 自带"用户已打新内容则跳过"护栏
-      setTimeout(function () { if (!rec.done) { restore(rec); drop(rec); } }, 120000);
+      // 兜底:仅针对"请求根本没发出去(fetchStarted=false)且永挂"的极罕见情况先回填再丢弃。
+      // 一旦请求真发出去了,成败一律交给 fetch 判——否则一个 >120s 才成功的慢请求会被这里误当失败回填 → 用户重发 → 重复评论。
+      setTimeout(function () { if (!rec.done && !rec.fetchStarted) { restore(rec); drop(rec); } }, 120000);
     }
     // 鼠标点「提交」:capture 阶段抢在 Waline 自己的 @click 之前清
     host.addEventListener('click', function (e) {
       var btn = e.target && e.target.closest ? e.target.closest('.wl-btn') : null;
-      if (btn && /提交|发送|发布/.test(btn.textContent || '')) optimisticClear(panelOf(btn));
+      if (!btn || !/提交|发送|发布/.test(btn.textContent || '')) return;
+      var panel = panelOf(btn), ta0 = panel && panel.querySelector('textarea');
+      if (ta0 && ta0.__vdUploading > 0) {   // 图片还在上传:挡住 Waline 的提交,别发出少图的评论
+        e.preventDefault(); e.stopImmediatePropagation(); toast('图片上传中，请稍候再发'); return;
+      }
+      optimisticClear(panel);
     }, true);
     // 键盘 Cmd/Ctrl+Enter:焦点在 Vditor 的编辑区,Waline textarea 的 onKeydown 收不到 → 代为点提交按钮(顺带补上快捷键提交)
     host.addEventListener('keydown', function (e) {
