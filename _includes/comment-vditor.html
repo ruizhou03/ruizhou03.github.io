@@ -128,10 +128,12 @@
     });
   }
 
-  // 提交即清 + 失败回填(乐观清空)。旧的"轮询等 textarea 变空"不可靠:防抖的 input 回调会把 ta.value 回填、
-  // 键盘提交不经过 .wl-btn 点击、且慢/失败时测不准。改为:提交触发瞬间就清空 Vditor(用户立刻看到清爽=秒级反馈),
-  // 内容照常由 Waline 发出(清 UI 时上了 __vdLock,input 回调早退,不动 ta.value);Waline 每条失败路径都弹
-  // window.alert、成功从不弹 → 用它当唯一失败信号,弹了就把内容回填到编辑器(绝不丢草稿)。
+  // 乐观清空 + 零丢失回填。提交那一刻先清空编辑器(秒级反馈),内容照常由 Waline 发出(清 UI 时上 __vdLock,
+  // input 回调早退、不动 ta.value)。成败按"请求体里的 comment 文本"精确关联到对应草稿——并发提交(主评论+回复框)
+  // 也不会张冠李戴:
+  //  · 异步成败:拦 Waline 发去 /comment 的 POST。响应无 errmsg=成功(丢快照);有 errmsg/网络错=失败(回填)。按内容认领,与并发无关。
+  //  · 同步校验失败(空/太短/缺昵称):Waline 不发请求、直接弹 alert → 这条 rec 的 fetchStarted 仍为 false → 用 alert 兜底回填。
+  //  · 无关/迟到的 alert:rec 要么 fetchStarted 已 true(交给 fetch 判)、要么 textarea 已被清空(=已成功),都会被跳过,不会误回填。
   (function () {
     function toast(msg) {
       var t = document.getElementById('sa-toast');
@@ -139,32 +141,61 @@
       t.textContent = msg; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on');
       clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('on'); }, 2200);
     }
-    // Waline 的真实信号在它读写的那个隐藏 textarea 上:提交成功→它把 value 静默置空;失败(同步校验/errmsg/网络)→value 原样保留 + 弹 window.alert。
-    // 据此:成功靠轮询 textarea 变空来确认(丢快照);失败靠 alert 边沿触发,且只回填"内容还在(=没发出去)"的那条,
-    // 避免误伤已成功的提交、无关的迟到 alert。用一条队列(而非单槽)存多个在飞的提交(主评论 + 回复框可能并发)。
-    var origAlert = window.alert, pendings = [];
+    var pendings = [];   // { snap:{ta,vd,md,sent}, done, fetchStarted }
+    function drop(rec) { rec.done = true; var k = pendings.indexOf(rec); if (k >= 0) pendings.splice(k, 1); }
+    function restore(rec) {
+      var s = rec.snap, cur = '';
+      try { cur = s.vd.getValue() || ''; } catch (e) {}
+      if (cur.trim()) return;                                  // 用户已在此编辑器打了新内容 → 别覆盖
+      try { s.ta.__vdLock = true; s.vd.setValue(s.md); } catch (e) {}
+      s.ta.__vdLock = false; try { s.vd.focus(); } catch (e) {}
+      toast('评论没发出去，内容已放回编辑器');
+    }
+    function findBySent(text) {                                // 按提交内容精确关联(后进先出,防同文重复)
+      for (var i = pendings.length - 1; i >= 0; i--) { var r = pendings[i]; if (!r.done && r.snap.sent === text) return r; }
+      return null;
+    }
+    // 拦 Waline 评论 POST。只碰 POST 到 /comment 的请求,其余一律原样放行;任何解析出错都不影响真实请求。
+    var origFetch = window.fetch;
+    window.fetch = function (input, init) {
+      var url = '', method = 'GET', bodyStr = null;
+      try {
+        url = (typeof input === 'string') ? input : (input && input.url) || '';
+        method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+        bodyStr = (init && init.body) || null;
+      } catch (e) {}
+      var isPost = method === 'POST' && /\/comment(\?|$)/.test(url);
+      var sent = null;
+      if (isPost && typeof bodyStr === 'string') { try { sent = JSON.parse(bodyStr).comment; } catch (e) {} }
+      var pr = origFetch.apply(this, arguments);
+      if (isPost && sent != null) {
+        var hit = findBySent(sent); if (hit) hit.fetchStarted = true;   // 标记"已发出请求"→ 交给 fetch 判,alert 别再兜底
+        pr.then(function (res) {
+          var r = findBySent(sent); if (!r) return;
+          var ok = !!(res && res.ok), clone = null;
+          try { clone = res.clone(); } catch (e) {}
+          if (clone) {
+            clone.json().then(function (j) {
+              if (ok && !(j && j.errmsg)) drop(r); else { drop(r); restore(r); }
+            }, function () { if (ok) drop(r); else { drop(r); restore(r); } });
+          } else { if (ok) drop(r); else { drop(r); restore(r); } }
+        }, function () {                                        // 网络错误(fetch reject)
+          var r = findBySent(sent); if (r) { drop(r); restore(r); }
+        });
+      }
+      return pr;
+    };
+    // 同步校验失败:Waline 没发请求就弹 alert → 回填"没发出请求(fetchStarted=false)且内容还在"的那条(最近一条)
+    var origAlert = window.alert;
     window.alert = function () {
-      for (var i = pendings.length - 1; i >= 0; i--) {         // 后进先出:最近这次提交最可能是刚失败的(同步校验失败尤其如此)
+      for (var i = pendings.length - 1; i >= 0; i--) {
         var r = pendings[i];
-        if (r.done) continue;
-        var unsent = r.snaps.filter(function (s) { return (s.ta.value || '').trim() !== ''; });   // 内容还在 = 这条没发成功
-        if (!unsent.length) continue;                          // 已被 Waline 清空=成功了 → 跳过(无关/迟到 alert 不误触发回填)
-        r.done = true; r.snaps = unsent; pendings.splice(i, 1); restore(r);
-        break;                                                 // 一次 alert 只对应一次失败提交
+        if (r.done || r.fetchStarted) continue;                // 已发请求的交给 fetch 判,别在这误回填
+        if (!(r.snap.ta.value || '').trim()) continue;          // textarea 已空 = 已成功,跳过
+        drop(r); restore(r); break;                             // 一次 alert 对应一次(同步失败的)提交
       }
       return origAlert.apply(window, arguments);
     };
-    function restore(rec) {
-      var any = false;
-      rec.snaps.forEach(function (s) {
-        var cur = ''; try { cur = s.vd.getValue() || ''; } catch (e) {}
-        if (cur.trim()) return;                                // 用户已在此编辑器打了新内容 → 别拿旧草稿覆盖
-        try { s.ta.__vdLock = true; s.vd.setValue(s.md); } catch (e) {}
-        s.ta.__vdLock = false; try { s.vd.focus(); } catch (e) {}
-        any = true;
-      });
-      if (any) toast('评论没发出去，内容已放回编辑器');
-    }
     function panelOf(el) { return el && el.closest ? el.closest('.wl-panel') : null; }
     function submitBtnIn(scope) {
       var btns = (scope || host).querySelectorAll('.wl-btn');
@@ -172,30 +203,18 @@
       return null;
     }
     function optimisticClear(scope) {
-      var snaps = [];
-      Array.prototype.forEach.call((scope || host).querySelectorAll('textarea'), function (ta) {
-        var vd = ta.__vdInstance; if (!vd) return;
-        var md = ''; try { md = vd.getValue() || ''; } catch (e) {}
-        ta.value = normBlockMath(md);                          // 先无条件把当前内容(可能刚被删空)flush 给 Waline
-        ta.dispatchEvent(new Event('input', { bubbles: true }));
-        if (!md.trim()) return;                                // 空的:flush 完就返回(Waline 会拒空),不清 UI/不快照 → 绝不误发删掉的旧内容
-        try { ta.__vdLock = true; vd.setValue(''); } catch (e) {}   // 瞬间清 UI;__vdLock 让 input 回调不回写 ta.value → 不影响要发出的内容
-        ta.__vdLock = false;
-        snaps.push({ ta: ta, vd: vd, md: md });
-      });
-      if (!snaps.length) return;
+      var ta = (scope || host).querySelector('textarea'), vd = ta && ta.__vdInstance;
+      if (!vd) return;
+      var md = ''; try { md = vd.getValue() || ''; } catch (e) {}
+      var sent = normBlockMath(md);
+      ta.value = sent; ta.dispatchEvent(new Event('input', { bubbles: true }));   // 先无条件 flush(含刚删空)给 Waline
+      if (!md.trim()) return;                                   // 空:让 Waline 拒空,不清 UI/不快照 → 绝不误发删掉的旧内容
+      try { ta.__vdLock = true; vd.setValue(''); } catch (e) {}   // 瞬间清 UI(秒级反馈);__vdLock 让 input 回调不回写 → 不影响要发出的内容
+      ta.__vdLock = false;
       toast('评论发送中…');
-      var rec = { done: false, snaps: snaps };
+      var rec = { snap: { ta: ta, vd: vd, md: md, sent: sent }, done: false, fetchStarted: false };
       pendings.push(rec);
-      // 轮询 Waline 的成功信号(它把 textarea 清空)。清空=成功→丢快照;失败时 textarea 一直非空,rec 留队列等 alert 回填。
-      (function poll(tries) {
-        if (rec.done) return;
-        if (rec.snaps.every(function (s) { return !(s.ta.value || '').trim(); })) {   // 全被清空 = 成功
-          rec.done = true; var k = pendings.indexOf(rec); if (k >= 0) pendings.splice(k, 1); return;
-        }
-        if (tries <= 0) { rec.done = true; var k2 = pendings.indexOf(rec); if (k2 >= 0) pendings.splice(k2, 1); return; }   // ~120s 兜底(极罕见的永挂请求)
-        setTimeout(function () { poll(tries - 1); }, 400);
-      })(300);
+      setTimeout(function () { if (!rec.done) drop(rec); }, 120000);   // 兜底:极罕见的永挂请求,清引用防泄漏(此时 UI 已清)
     }
     // 鼠标点「提交」:capture 阶段抢在 Waline 自己的 @click 之前清
     host.addEventListener('click', function (e) {
