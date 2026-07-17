@@ -12,8 +12,8 @@
   .cmt-drawer .cmt-vditor .vditor-reset { font-family:var(--font-body) !important; font-size:15px !important; color:var(--color-text) !important; padding:8px 12px !important; }
   .cmt-drawer .cmt-vditor .vditor-ir, .cmt-drawer .cmt-vditor .vditor-wysiwyg, .cmt-drawer .cmt-vditor .vditor-content { padding:0 !important; }
   .cmt-drawer .cmt-vditor .vditor-toolbar { background:var(--color-bg-warm) !important; border-bottom:1px solid var(--color-border) !important; }
-  /* Vditor 接管后，隐藏 Waline 自带的表情/图片/GIF/预览按钮（Vditor 有自己的） */
-  .cmt-vd-panel .wl-emoji, .cmt-vd-panel .wl-gif, .cmt-vd-panel .wl-image, .cmt-vd-panel .wl-preview { display:none !important; }
+  /* Vditor 接管后，隐藏 Waline 自带底部那一排按钮（表情/GIF/图片/预览/Markdown 指南）——功能已被上面 Vditor 工具栏覆盖 */
+  .cmt-vd-panel .wl-footer .wl-actions { display:none !important; }
 </style>
 <script>
 (function () {
@@ -24,6 +24,9 @@
   var loadState = 'idle', cbs = [];
   var darkMode = (document.documentElement.getAttribute('data-theme') === 'dark') ||
     (window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches);
+  // 工具栏自定义图标(内联 SVG,强制描边式渲染以防 Vditor 给 fill)
+  var SMILEY_SVG = '<svg viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></svg>';
+  var PICTURE_SVG = '<svg viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 16l-4.5-4.5L7 21"/></svg>';
 
   // 块级公式规范化：把每个 $$...$$ 挤成独占一行 + 前后空行——服务端只对这样的块渲成 SVG，
   // 才能刷新后照常显示（行内混排的 $$ 服务端不渲、且反斜杠会被存储吃掉）。只动隐藏的 textarea，用户在 Vditor 里看到的不变。
@@ -95,7 +98,15 @@
         mode: 'wysiwyg', minHeight: 110, theme: darkMode ? 'dark' : 'classic',
         placeholder: ta.getAttribute('placeholder') || '写评论…支持 Markdown 和 $数学公式$',
         cache: { enable: false }, counter: { enable: false }, toolbarConfig: { pin: false },
-        toolbar: ['emoji', 'bold', 'italic', 'strike', 'link', 'list', 'ordered-list', 'code', 'inline-code', 'quote', 'upload'],
+        toolbar: [
+          { name: 'zemoji', tip: '表情', icon: SMILEY_SVG, click: function () {   // 自建分类全量 emoji 选择器(内置的只有 8 个、且不分类)
+            var tb = mount.querySelector('.vditor-toolbar');
+            var a = tb ? (tb.querySelector('[data-type="zemoji"]') || tb) : mount;
+            if (window.CmtEmoji) window.CmtEmoji.open(ta.__vdInstance, a);
+          } },
+          'bold', 'italic', 'strike', 'link', 'list', 'ordered-list', 'code', 'inline-code', 'quote',
+          { name: 'upload', tip: '上传图片', icon: PICTURE_SVG },   // 只支持图片,图标换成图片、提示改「上传图片」
+        ],
         math: { engine: 'KaTeX', inlineDigit: true },
         image: { isPreview: false },   // 关掉点图弹全屏预览层(它挂到 document.body 会盖到抽屉后面的主页面上)
         upload: {
@@ -123,6 +134,13 @@
           ta.style.display = 'none';
           if (panel) panel.classList.add('cmt-vd-panel');
           ta.__vdInstance = vd;
+          // 回复框:Waline 把 textarea 的 placeholder 设成「@被回复人」。把它预填进正文,
+          // 这样发出去的回复正文里带「@某人」→ 别人一眼看出你在回复谁(服务端不返回 at、客户端也不渲染,只能靠这招)。
+          var ph = ta.getAttribute('placeholder') || '';
+          if (ph.charAt(0) === '@' && !(ta.value || '').trim()) {
+            try { vd.setValue(ph.trim() + ' '); } catch (e) {}
+            try { vd.focus(); } catch (e) {}
+          }
         },
       });
     } catch (e) {   // 出错 → 移除已插入的空挂载点、回退原生 textarea;__vd 保持 true 不再重试(否则每次 DOM 变动都叠插一个空框)
@@ -276,3 +294,5 @@
   else start();
 })();
 </script>
+{%- comment -%} 分类全量 emoji 选择器（Vditor 表情按钮调用 window.CmtEmoji.open） {%- endcomment -%}
+{% include comment-emoji.html %}

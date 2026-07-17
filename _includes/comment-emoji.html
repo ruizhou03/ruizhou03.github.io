@@ -1,0 +1,97 @@
+{%- comment -%}
+  分类全量 emoji 选择器（给评论区 Vditor 用）。window.CmtEmoji.open(vditorInstance, anchorEl) 打开，
+  点某个 emoji 就 insertValue 进对应编辑器。像输入法那样按通用分类分页（笑脸/人物/动物/食物/活动/旅行/物品/符号）。
+  Liquid 安全：JS 无花括号定界符、无反引号模板；emoji 用空格分隔的字符串再 split(' ')（能正确保住多码点/带变体符的 emoji）。
+{%- endcomment -%}
+<style>
+  .cmt-emoji-pop { position: fixed; z-index: 100000; width: 336px; max-width: calc(100vw - 24px); max-height: 340px;
+    display: none; flex-direction: column; background: var(--color-bg); border: 1px solid var(--color-border);
+    border-radius: 12px; box-shadow: 0 14px 40px -12px rgba(20,25,35,.4); overflow: hidden; }
+  .cmt-emoji-pop.on { display: flex; }
+  .cmt-emoji-tabs { display: flex; gap: 2px; padding: 6px 6px 4px; border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg-warm); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cmt-emoji-tabs button { flex: 0 0 auto; border: 0; background: none; cursor: pointer; font-size: 19px; line-height: 1;
+    padding: 5px 7px; border-radius: 8px; opacity: .62; }
+  .cmt-emoji-tabs button.on { opacity: 1; background: var(--color-accent-soft); }
+  .cmt-emoji-grid { padding: 6px 8px 10px; overflow-y: auto; display: grid; grid-template-columns: repeat(8, 1fr); gap: 1px; }
+  .cmt-emoji-grid button { border: 0; background: none; cursor: pointer; font-size: 22px; line-height: 1.15;
+    padding: 4px 0; border-radius: 8px; }
+  .cmt-emoji-grid button:hover { background: var(--color-accent-soft); }
+  .cmt-emoji-cat { grid-column: 1 / -1; font-size: .72rem; color: var(--color-light); margin: 6px 2px 1px; }
+  @media (max-width: 768px) {
+    .cmt-emoji-pop { left: 8px !important; right: 8px !important; width: auto; bottom: 8px !important; top: auto !important; max-height: 46vh; }
+  }
+</style>
+<script>
+(function () {
+  if (window.CmtEmoji) return;
+  // 分类 emoji（空格分隔；split(' ') 能保住 ❤️、0️⃣、👨‍👩‍👧 这类多码点/变体符 emoji 不被拆开）
+  var CATS = [
+    { tab: '😀', name: '笑脸', list: '😀 😃 😄 😁 😆 😅 🤣 😂 🙂 🙃 😉 😊 😇 🥰 😍 🤩 😘 😗 😚 😙 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 🤥 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🤮 🤧 🥵 🥶 🥴 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 ☹️ 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 💩 🤡 👹 👺 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾' },
+    { tab: '👋', name: '人物', list: '👋 🤚 🖐️ ✋ 🖖 👌 🤌 🤏 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦾 🦵 🦶 👂 🦻 👃 🧠 🦷 🦴 👀 👁️ 👅 👄 👶 🧒 👦 👧 🧑 👨 👩 🧓 👴 👵 🙍 🙎 🙅 🙆 💁 🙋 🧏 🙇 🤦 🤷 👮 🕵️ 💂 👷 🤴 👸 👳 👲 🧕 🤵 👰 🤰 🤱 👼 🎅 🤶 🦸 🦹 🧙 🧚 🧛 🧜 🧝 🧞 🧟 💆 💇 🚶 🧍 🧎 🏃 💃 🕺 👯 🧖 🧗 🤺 🏇 🏌️ 🏄 🚣 🏊 ⛹️ 🏋️ 🚴 🚵 🤸 🤼 🤽 🤾 🤹 🧘 👪 👫 👬 👭 💏 💑' },
+    { tab: '🐻', name: '动物自然', list: '🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐽 🐸 🐵 🙈 🙉 🙊 🐒 🐔 🐧 🐦 🐤 🐣 🐥 🦆 🦅 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🐛 🦋 🐌 🐞 🐜 🦟 🦗 🕷️ 🕸️ 🦂 🐢 🐍 🦎 🦖 🦕 🐙 🦑 🦐 🦞 🦀 🐡 🐠 🐟 🐬 🐳 🐋 🦈 🐊 🐅 🐆 🦓 🦍 🦧 🐘 🦛 🦏 🐪 🐫 🦒 🦘 🐃 🐂 🐄 🐎 🐖 🐏 🐑 🦙 🐐 🦌 🐕 🐩 🦮 🐈 🐓 🦃 🦚 🦜 🦢 🦩 🕊️ 🐇 🦝 🦨 🦡 🦦 🦥 🐁 🐀 🐿️ 🦔 🐾 🐉 🐲 🌵 🎄 🌲 🌳 🌴 🌱 🌿 ☘️ 🍀 🎍 🎋 🍃 🍂 🍁 🍄 🌾 💐 🌷 🌹 🥀 🌺 🌸 🌼 🌻 🌞 🌝 🌛 🌜 🌚 🌕 🌙 🌎 🌍 🌏 ⭐ 🌟 💫 ✨ ☄️ ☀️ 🌤️ ⛅ ☁️ 🌦️ 🌧️ ⛈️ 🌨️ ❄️ ☃️ ⛄ 🌬️ 💨 🌪️ 🌫️ 🌈 💧 💦 ☔' },
+    { tab: '🍔', name: '食物饮料', list: '🍏 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🍈 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🍆 🥑 🥦 🥬 🥒 🌶️ 🌽 🥕 🧄 🧅 🥔 🍠 🥐 🥯 🍞 🥖 🥨 🧀 🥚 🍳 🧈 🥞 🧇 🥓 🥩 🍗 🍖 🌭 🍔 🍟 🍕 🥪 🥙 🧆 🌮 🌯 🥗 🥘 🥫 🍝 🍜 🍲 🍛 🍣 🍱 🥟 🦪 🍤 🍙 🍚 🍘 🍥 🥠 🥮 🍢 🍡 🍧 🍨 🍦 🥧 🧁 🍰 🎂 🍮 🍭 🍬 🍫 🍿 🍩 🍪 🌰 🥜 🍯 🥛 🍼 ☕ 🍵 🧃 🥤 🍶 🍺 🍻 🥂 🍷 🥃 🍸 🍹 🧉 🍾 🥄 🍴 🍽️ 🥢 🧂' },
+    { tab: '⚽', name: '活动', list: '⚽ 🏀 🏈 ⚾ 🥎 🎾 🏐 🏉 🥏 🎱 🪀 🏓 🏸 🏒 🏑 🥍 🏏 🥅 ⛳ 🪁 🏹 🎣 🤿 🥊 🥋 🎽 🛹 🛷 ⛸️ 🥌 🎿 ⛷️ 🏂 🪂 🏋️ 🤼 🤸 ⛹️ 🤺 🤾 🏌️ 🏇 🧘 🏄 🏊 🤽 🚣 🧗 🚵 🚴 🏆 🥇 🥈 🥉 🏅 🎖️ 🏵️ 🎗️ 🎫 🎟️ 🎪 🤹 🎭 🩰 🎨 🎬 🎤 🎧 🎼 🎹 🥁 🎷 🎺 🎸 🪕 🎻 🎲 ♟️ 🎯 🎳 🎮 🎰 🧩' },
+    { tab: '🚗', name: '旅行地点', list: '🚗 🚕 🚙 🚌 🚎 🏎️ 🚓 🚑 🚒 🚐 🚚 🚛 🚜 🛴 🚲 🛵 🏍️ 🛺 🚨 🚔 🚍 🚘 🚖 🚡 🚠 🚟 🚃 🚋 🚞 🚝 🚄 🚅 🚈 🚂 🚆 🚇 🚊 🚉 ✈️ 🛫 🛬 🛩️ 💺 🛰️ 🚀 🛸 🚁 🛶 ⛵ 🚤 🛥️ 🛳️ ⛴️ 🚢 ⚓ ⛽ 🚧 🚦 🚥 🗺️ 🗿 🗽 🗼 🏰 🏯 🏟️ 🎡 🎢 🎠 ⛲ ⛱️ 🏖️ 🏝️ 🏜️ 🌋 ⛰️ 🏔️ 🗻 🏕️ ⛺ 🏠 🏡 🏘️ 🏚️ 🏗️ 🏭 🏢 🏬 🏣 🏥 🏦 🏨 🏪 🏫 🏩 💒 🏛️ ⛪ 🕌 🕍 🛕 🕋 ⛩️ 🌅 🌄 🌠 🎇 🎆 🌇 🌆 🏙️ 🌃 🌌 🌉 🌁' },
+    { tab: '💡', name: '物品', list: '⌚ 📱 📲 💻 ⌨️ 🖥️ 🖨️ 🖱️ 🕹️ 💽 💾 💿 📀 📼 📷 📸 📹 🎥 📽️ 🎞️ 📞 ☎️ 📟 📠 📺 📻 🎙️ 🎚️ 🎛️ 🧭 ⏱️ ⏲️ ⏰ 🕰️ ⌛ ⏳ 📡 🔋 🔌 💡 🔦 🕯️ 🧯 🛢️ 💸 💵 💴 💶 💷 💰 💳 🧾 💎 ⚖️ 🧰 🔧 🔨 ⚒️ 🛠️ ⛏️ 🔩 ⚙️ 🧱 ⛓️ 🧲 🔫 💣 🧨 🪓 🔪 🗡️ ⚔️ 🛡️ 🚬 ⚰️ ⚱️ 🏺 🔮 📿 🧿 💈 ⚗️ 🔭 🔬 🕳️ 🩹 🩺 💊 💉 🩸 🧬 🦠 🧫 🧪 🌡️ 🧹 🧺 🧻 🚽 🚿 🛁 🛀 🧼 🪒 🧽 🧴 🛎️ 🔑 🗝️ 🚪 🪑 🛋️ 🛏️ 🛌 🧸 🖼️ 🛍️ 🛒 🎁 🎈 🎏 🎀 🎊 🎉 🎎 🏮 🎐 🧧 ✉️ 📩 📨 📧 💌 📥 📤 📦 🏷️ 📪 📫 📬 📭 📮 📜 📃 📄 📑 📊 📈 📉 🗒️ 🗓️ 📆 📅 📇 🗃️ 🗳️ 🗄️ 📋 📁 📂 🗂️ 🗞️ 📰 📓 📔 📒 📕 📗 📘 📙 📚 📖 🔖 🔗 📎 🖇️ 📐 📏 🧮 📌 📍 ✂️ 🖊️ 🖋️ ✒️ 🖌️ 🖍️ 📝 ✏️ 🔍 🔎 🔒 🔓 🔏 🔐 🔑' },
+    { tab: '❤️', name: '符号', list: '❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ☮️ ✝️ ☪️ 🕉️ ☸️ ✡️ 🔯 🕎 ☯️ ☦️ 🛐 ⛎ ♈ ♉ ♊ ♋ ♌ ♍ ♎ ♏ ♐ ♑ ♒ ♓ 🆔 ⚛️ 🉑 ☢️ ☣️ 📴 📳 🈶 🈚 🈸 🈺 🈷️ ✴️ 🆚 💮 🉐 ㊙️ ㊗️ 🈴 🈵 🈹 🈲 🅰️ 🅱️ 🆎 🆑 🅾️ 🆘 ❌ ⭕ 🛑 ⛔ 📛 🚫 💯 💢 ♨️ 🚷 🚯 🚳 🚱 🔞 📵 🚭 ❗ ❕ ❓ ❔ ‼️ ⁉️ 🔅 🔆 〽️ ⚠️ 🚸 🔱 ⚜️ 🔰 ♻️ ✅ 🈯 💹 ❇️ ✳️ ❎ 🌐 💠 Ⓜ️ 🌀 💤 🏧 🚾 ♿ 🅿️ 🈳 🈂️ 🛂 🛃 🛄 🛅 🚹 🚺 🚼 🚻 🚮 🎦 📶 🈁 🔣 ℹ️ 🔤 🔡 🔠 🆖 🆗 🆙 🆒 🆕 🆓 0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🔢 ▶️ ⏸️ ⏯️ ⏹️ ⏺️ ⏭️ ⏮️ ⏩ ⏪ 🔼 🔽 ➡️ ⬅️ ⬆️ ⬇️ ↗️ ↘️ ↙️ ↖️ ↕️ ↔️ ↪️ ↩️ ⤴️ ⤵️ 🔀 🔁 🔂 🔄 ➕ ➖ ➗ ✖️ ♾️ 💲 💱 ™️ ©️ ®️ 〰️ ➰ ➿ 🔚 🔙 🔛 🔝 🔜 ✔️ ☑️ 🔘 ⚪ ⚫ 🔴 🔵 🟤 🟣 🟢 🟡 🟠 🔺 🔻 🔸 🔹 🔶 🔷 🔳 🔲 ▪️ ▫️ ◼️ ◻️ ⬛ ⬜ 🟧 🟦 🟥 🟩 🟨 🟫 🔈 🔇 🔉 🔊 🔔 🔕 📣 📢' }
+  ];
+
+  var pop = null, curVd = null, built = false;
+  function build() {
+    if (built) return; built = true;
+    pop = document.createElement('div'); pop.className = 'cmt-emoji-pop';
+    var tabs = document.createElement('div'); tabs.className = 'cmt-emoji-tabs';
+    var grid = document.createElement('div'); grid.className = 'cmt-emoji-grid';
+    pop.appendChild(tabs); pop.appendChild(grid); document.body.appendChild(pop);
+
+    var tabBtns = [];
+    function renderCat(idx) {
+      grid.innerHTML = ''; grid.scrollTop = 0;
+      tabBtns.forEach(function (b, i) { b.classList.toggle('on', i === idx); });
+      CATS[idx].list.split(' ').forEach(function (em) {
+        if (!em) return;
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = em;
+        b.addEventListener('click', function () { insert(em); });
+        grid.appendChild(b);
+      });
+    }
+    CATS.forEach(function (c, i) {
+      var t = document.createElement('button'); t.type = 'button'; t.textContent = c.tab; t.title = c.name;
+      t.addEventListener('click', function () { renderCat(i); });
+      tabs.appendChild(t); tabBtns.push(t);
+    });
+    renderCat(0);
+
+    // 点外面 / 滚动 / Esc 关闭；点面板内部不关（可连点多个）
+    document.addEventListener('mousedown', function (e) {
+      if (pop.classList.contains('on') && !pop.contains(e.target) && !(curAnchor && curAnchor.contains(e.target))) close();
+    }, true);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  }
+  function insert(em) {
+    if (!curVd) return;
+    try { curVd.insertValue(em); } catch (e) {}
+    try { curVd.focus(); } catch (e) {}
+  }
+  var curAnchor = null;
+  function place(anchorEl) {
+    if (!anchorEl || window.innerWidth <= 768) return;   // 手机端靠 CSS 吸底
+    var r = anchorEl.getBoundingClientRect();
+    var w = pop.offsetWidth || 336, h = pop.offsetHeight || 320;
+    var left = Math.min(Math.max(8, r.left), window.innerWidth - w - 8);
+    var top = r.bottom + 6;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);   // 下方放不下就翻上去
+    pop.style.left = left + 'px'; pop.style.top = top + 'px'; pop.style.right = 'auto'; pop.style.bottom = 'auto';
+  }
+  function close() { if (pop) pop.classList.remove('on'); }
+  window.CmtEmoji = {
+    open: function (vd, anchorEl) {
+      build(); curVd = vd; curAnchor = anchorEl || null;
+      if (pop.classList.contains('on')) { close(); return; }   // 再点一下=收起
+      pop.classList.add('on'); place(anchorEl);
+    },
+    close: close
+  };
+})();
+</script>
