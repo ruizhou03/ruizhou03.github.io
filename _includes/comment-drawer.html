@@ -71,10 +71,10 @@
   /* 逐条动作靠右对齐；回复补「回复」二字，别只有图标 */
   .cmt-drawer .wl-comment-actions { margin-left:auto !important; justify-content:flex-end !important; }
   .cmt-drawer .wl-reply::after { content:'回复' !important; margin-left:.25rem !important; font-size:.8rem !important; }
-  /* 回复按钮：藏掉原生聊天气泡图标，换成向前分享箭头 */
-  .cmt-drawer .wl-reply { --reply-arrow: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg>'); }
+  /* 回复按钮：藏掉原生聊天气泡图标，换成朝左上的「回复」箭头（区别于朝右上的「转发」，与邮件系统约定一致） */
+  .cmt-drawer .wl-reply { --reply-arrow: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 6 5 6 5 12"/><path d="M5 6c6 6 14 6 14 13"/></svg>'); }
   .cmt-drawer .wl-reply > svg { display:none !important; }
-  .cmt-drawer .wl-reply::before { content:''; display:inline-block; width:15px; height:15px; vertical-align:-2px;
+  .cmt-drawer .wl-reply::before { content:''; display:inline-block; width:16px; height:16px; vertical-align:-3px;
     background-color:currentColor; -webkit-mask:var(--reply-arrow) center/contain no-repeat; mask:var(--reply-arrow) center/contain no-repeat; }
   /* 回复框：仿知乎——缩进浅底小框 */
   .cmt-drawer .wl-reply-wrapper, .cmt-drawer .wl-edit-wrapper { margin:.5rem 0 .2rem; padding:.55rem .7rem;
