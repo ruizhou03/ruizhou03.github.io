@@ -87,8 +87,9 @@
   function close() { if (pop) pop.classList.remove('on'); }
   window.CmtEmoji = {
     open: function (vd, anchorEl) {
-      build(); curVd = vd; curAnchor = anchorEl || null;
-      if (pop.classList.contains('on')) { close(); return; }   // 再点一下=收起
+      build();
+      if (pop.classList.contains('on') && curAnchor === anchorEl) { close(); return; }   // 同一个按钮再点=收起
+      curVd = vd; curAnchor = anchorEl || null;                 // 换成另一个编辑器的表情按钮=切过去
       pop.classList.add('on'); place(anchorEl);
     },
     close: close
