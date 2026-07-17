@@ -1,3 +1,65 @@
+## 2026-07-17
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套。距 7-16 巡检共 **10 个新 commit**（`6e32d71..a6e492e`）—— 承接 7-16 12-commit 收口批次后，**继续围绕评论 Vditor 编辑器做深度加固**，本轮全部集中在两个文件、一条主线：**评论 comment 9 commit**（`54c1300` 图片改所见即所得（点图不再出源码、不弹全屏）+ 提交即清可靠化 → `049adb1` **乐观清空防丢草稿加固**（对抗式复查发现 7 处数据丢失/误发全部修复，改用 Waline 真实信号：成功→它清 textarea、失败→保留内容并弹 alert）→ `6528823` **按请求内容精确关联提交成败**，根除并发提交的误回填/丢草稿（拦 Waline 发 `/comment` POST，按请求体 `comment` 文本精确认领对应草稿，alert 仅兜底"同步校验失败"）→ `5e915ee` 三处剩余边界（拦截扩到 PUT 编辑提交、fetch 关联捕获该条 rec 响应回来直接用不再按内容重查、120s 兜底改"先回填再丢弃"挂过 120s 也不丢草稿）→ `61e8463` restore 绝不静默丢草稿（在飞时打新内容→并回末尾；回复框已关→剪贴板兜底+不谎报）→ `5184a3f` **第五轮复查**（图片上传中挡发布 + watchdog 仅管未发出的请求 + Vditor 构造失败清空框）→ `eafe784` `insertValue` 加 `try/catch` 保证上传计数一定减回、不卡死发布 → `49063d5` watchdog 只清未发出的 leak、已发出的交给 fetch（含慢挂）避免误丢或复活 → `a6e492e` **多图粘贴/拖拽逐张处理**（原来只取 `files[0]` 会静默丢其余图））；**paywall 1 commit**（`7751313` 付费墙预览文件 front-matter 补引号 + 修生成脚本根因——手动给 `_notes/life/paid-test-us-{banking-guide,visa-types}.md` 两文件的 5 个字符串字段补双引号；`scripts/paywall/build_paid.py` 加 `_Quoted` 值包装，只给字符串值（含列表项）加引号、键保持裸值、bool/int/date 类型不变，将来付费墙恢复真正重生时输出自带引号，**根除承接 6-30 / 7-14 / 7-15 / 7-16 共 5 轮的 7-16 P2 #6**）。文件新增：无（10 commit 触及 2 个既有文件 + 1 个脚本共 300 余行变更，其中 `_includes/comment-vditor.html` 净变动约 200 行连续 9 轮对抗式复查加固）。
+>
+> **build 健康度**：`bundle install` ✅（`Bundle complete! 7 Gemfile dependencies, 39 gems now installed.`）+ `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（**6.599 s cold build** —— 低于 7-16 的 22.526 s 与 7-15 的 7.763 s，与本轮沙箱冷启动差异一致，`_site/` 产物完整度一致）。`_site/` 顶层 **28 项**（与 7-16 一致：`404.html` `CNAME` `account` `admin` `admin-manifest.json` `assets` `assistant-fulltext.json` `assistant-index.json` `en` `essays` `feed.xml` `files` `flight` `google5306…` `index.html` `life` `manifest.json` `notes` `pdfjs` `redirects.json` `research` `robots.txt` `search.json` `sitemap.xml` `sw.js` `toolbox` `u` `zh`）。`_notes/` 全 **270 篇 md** 仍 100% 覆盖 `keywords:`（`find _notes -name '*.md' -exec grep -L '^keywords:' {} \;` 空），搜索体系闭环。`_paid/` + `_flight-staging/` 在 `_config.yml` L50 / L52 exclude 双保险稳固、`find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空。**maskable 图标 md5 核验**：三对文件仍不 byte-identical（`forest-icon-512.png` `63df7becb4ddc57e2b95e88305a33a18` vs `forest-icon-maskable-512.png` `36ada6c2364827c1455260f7d42ae6f1`、`ledger-icon-512.png` `fad6da15326e5fbf54adb03663f78be2` vs `ledger-icon-maskable-512.png` `433f42fc5748a0b16747e12ddbb4b47a`、`pindou-icon-512.png` `fed25167c04f65fc5ce80f28bd12ddf6` vs `pindou-icon-maskable-512.png` `f4ef2d70dbf297809aa5f76c23836f5b`）与 7-16 / 7-15 / 7-14 完全一致；`python3 scripts/audit/maskable_icon_consistency.py` 报「✅ 已检查 9 个 maskable 图标声明，均与 any 图标不同」。**`study_order`**：`_config.yml` 26 条、`ls _notes/study/` 26 目录、`comm -23` 差集空 —— 与 7-16 一致。全套 `scripts/audit/run.sh`（今日周五 DOW=5，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=17 非月初，未加跑 monthly_stats）14 项每日 audit **全 clean 无一命中**：`keywords_coverage` 121/121 散文类全覆盖 / `images`（2 处 2M+ PDF 备忘列出、非命中）/ `backend_pulse`（curl 56 HTTP 403 承接沙箱无 fly.io 出口）/ `spotcheck`（10 项配额抽检——game×3 + pdf_archive×4 + lecture_note_pdf_only×2 + note×1）/ `material_type_enum` 117 项全在 9 项枚举内 / `filename_convention` / `maskable_icon_consistency` / `hover_no_media` / `sibling_crosslink`（≥3 篇的 10 个 sub_category 组全互链）/ `bare_dollar` / `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` **均 ✅**。**尤其值得记录**：昨日 P2 #6「`_notes/life/paid-test-us-{banking-guide,visa-types}.md` L4 `main_category:` 未加引号」承接 6-30 / 7-14 / 7-15 / 7-16 共 5 轮的老待办，**今日由站主 `7751313` 修复并加脚本根因防复发**——手动给 2 个 committed 预览文件的 title / main_category / sub_category / author / permalink 5 个字符串字段补双引号（不重生：重生会因脚本强制 `paid=True` 翻转当前手动关闭的 `paid=false` 重新激活已暂停付费墙）；`scripts/paywall/build_paid.py` +26 行加 `_Quoted` 值包装 + PyYAML representer，只给字符串值（含列表项）加引号、键保持裸值、bool/int/date 类型不变，将来付费墙恢复真正重生时输出自带引号、不再复发。核对 `head -15 _notes/life/paid-test-us-*.md` 两文件的 `title/main_category/sub_category/date/author/permalink` 6 字段现全带双引号（`date` 因是 `date` 类型不加），全站 270 篇 front-matter 恢复"字符串一律带引号"一致性。**5 轮老待办同日归零**。
+>
+> **今日 0 项自动修复**：仓库处于极健康状态——build ✅、14 项每日 audit 全 clean 无一命中、`keywords_coverage` 270/270、`study_order` 26/26 完整、maskable 图标一致、无 junk / 无 stub / 无泄露；10 个新 commit 全部合规、无遗漏收尾、且已解决昨日一条老 P2。没有可动的「小而无争议」改动。
+>
+> **P0 承接**：无。
+>
+> **P1 承接**：无。
+>
+> **P2 更新**（一项消除、一项新增，其余承接）：
+>
+> - **消除**：7-16 P2 #6「`_notes/life/paid-test-us-{banking-guide,visa-types}.md` L4 `main_category:` 未加引号」→ `7751313` 已修（手动补引号 + 脚本根因 `_Quoted` 值包装）。
+>
+> - **新增**：**评论 Vditor 编辑器 9 轮对抗式复查加固需真机验收**（**今日新增**，来自 `54c1300`~`a6e492e` 9 commit）—— 本轮修复的关键场景：① 图片所见即所得（点图不再出源码、不弹全屏）② 乐观清空防丢草稿（7 处数据丢失全修，用 Waline 真实信号：成功→清 textarea、失败→保留内容并弹 alert）③ 按请求内容精确关联提交成败（拦 Waline 发 `/comment` POST，按请求体 `comment` 文本精确认领对应草稿；alert 仅兜底"同步校验失败"）④ 覆盖编辑 PUT 拦截（点赞/置顶 PUT 体无 `comment` 字段自动跳过、真编辑正确关联）⑤ 慢挂 120s 兜底"先回填再丢弃"⑥ 同文并发提交不再张冠李戴⑦ restore 绝不静默丢草稿（在飞时打新内容→并回末尾；回复框已关→剪贴板兜底）⑧ 图片上传中挡发布 + `insertValue` `try/catch` 保证计数减回 + Vditor 构造失败清空框 ⑨ watchdog 只清未发出的 leak、已发出的交给 fetch ⑩ 多图粘贴/拖拽逐张处理（`a6e492e` 修 `files[0]` 只取第一张、其余静默丢的老 bug）。需验证：① 桌面 Chrome / Firefox + iOS Safari + Android Chrome 至少四组合下过一遍"打字→贴多图→发出→重来一条→并发第二条→回复某评论→编辑已发→网络中断慢挂→网络恢复→点赞置顶"全链路；② 特别看：并发主评论 + 回复框各自提交时草稿绝不错发/回填错；120s 慢挂 alert 到时草稿是否先回填再丢弃；点图不再弹全屏 lightbox；`insertValue` 抛错时上传中提示是否消失、不卡死。沙箱无浏览器 + 无 fly.io Waline 出口跑不了；属**评论核心链路 9 轮对抗式加固**、紧要程度高于一般 UI 收口。
+>
+> - **承接 7-16 未消除的老 P2**（去掉已消除的 #6，其余全部承接、编号顺移）：① 图片走 R2 图床新链路需真机验收（`5abd7c3`）；② 站主可删任意评论 + 举报中心联动需管理员端流程真机走一遍（`5177e24`）；③ 51 commit 里 admin / account / pet / post / comment 五大高交互面重做需六组合真机验收（今日再加 9 轮 Vditor 复查、验收面已达 17 大项）；④ 新增顶层 `/u/` 公开主页需验证降级 / CTA / noindex 三件事；⑤ `_data/visibility.json` 当前状态（`sections:[]`、`tools:[47 项]`）—— 备忘不擅动；⑥ doudizhu DouZero 神经网络权重 ~20 MB 二进制承接观察；⑦ 承接 7-14 / 7-11 全部老 P2（六组合真机验收 / forest 双视图 / 掼蛋联机 / 机票监控 mac 端到端 / jukebox 问题首 / DNS NameResolutionError / dead_links SVG xmlns 误判 等）。今日无新观察消除、承接不变。
+>
+> **仓库卫生**：目录结构**较昨日无变化**——工作副本足印 **549 MB**（含 `.git` 140 MB + `_site` 233 MB + 源码约 176 MB，与 7-16 的 177 MB 源码一致，10 commit 净增约 300 行前端脚本、散落 `_includes/comment-vditor.html` 与 `scripts/paywall/build_paid.py`，未突破 1 MB 量级触发 `du` 变动）。`.git` **140 MB**（较 7-16 的 141 MB 微降 −1 MB，属 GC 抖动）、`_site/` **233 MB**（较 7-16 的 231 MB 微增 +2 MB，属纯 build 元数据抖动）。**新增/删除文件均为 0**（10 commit 全为既有文件修改）。`git status` clean、`git ls-files --others --exclude-standard` 空、`find` `.DS_Store` / `*.bak` / `*.orig` / `*.tmp` / `*~` / `* 2.*` / `.env*` / `*.log` 全空。**大文件盘点**：`files/or/or-2023.pdf` 5.4 MB（唯一 5 MB+）、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB、`files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB、`pdfjs/build/pdf.worker.mjs` 2.1 MB、`assets/js/doudizhu/weights/` 6 个 `.qw`（2.6 MB × 3 + 3.5 MB × 3 ≈ 18.4 MB）、`assets/echarts/` 2.0 MB —— 与 7-16 一致，无新增大文件。**`/Users/zhourui` 本机路径痕迹核对**：`grep -rE '/Users/zhourui'` 排除 `.git/` + `DAILY_REVIEW.md` + `SPOTCHECK_*` 后仍见 4 处 `.claude/skills/{search-keywords,recipe,fix-quotes,new-post}/SKILL.md` 首页元数据行「仓库根：`/Users/zhourui/Desktop/ruizhou03.github.io`」—— `.claude/` 已在 `_config.yml` L43 exclude 出 Jekyll build（`_site/` 内 `grep -r '/Users/zhourui' _site/` 空），属**仓库内部 skill 手册的本机 root 备注**、面向站主自己的会话工具、非公开泄露；且 4 处均由更早 commit 引入，非本轮迭代新增；不擅动。**结论**：目录结构较昨日 zero delta，纯代码修改批次；仓库处于健康稳态。
+
+### ✅ 本次已自动修复
+
+无。
+
+站点处于极健康状态：build ✅、14 项每日 audit 全 clean 无一命中（含昨日 P2 #6 承接 6-30 / 7-14 / 7-15 / 7-16 共 5 轮的老待办由站主 `7751313` 修复归零并加脚本根因防复发）、keywords 270/270、study_order 26/26 完整、maskable 图标一致、无 junk / 无 stub / 无泄露；10 个新 commit 全为评论 Vditor 编辑器 9 轮对抗式加固 + paywall 引号根因修复、无遗漏、无可动的「小而无争议」改动。
+
+### 📋 待你把关
+
+#### P0（紧急）
+
+无。
+
+#### P1（重要）
+
+无。仓库当前 P1 队列为空。
+
+#### P2（建议）
+
+1. **评论 Vditor 编辑器 9 轮对抗式复查加固需真机验收**（**今日新增**，来自 `54c1300`~`a6e492e` 9 commit）—— 本轮修复的关键场景：① 图片所见即所得（点图不再出源码、不弹全屏）② 乐观清空防丢草稿（对抗式复查发现 7 处数据丢失/误发全部修复，改用 Waline 真实信号：成功→它清 textarea、失败→保留内容并弹 alert）③ 按请求内容精确关联提交成败（拦 Waline 发 `/comment` POST，按请求体 `comment` 文本精确认领对应草稿；alert 仅兜底"同步校验失败"）④ 覆盖编辑 PUT 拦截（点赞/置顶 PUT 体无 `comment` 字段自动跳过、真编辑正确关联）⑤ 慢挂 120s 兜底"先回填再丢弃"、请求挂过 120s 再失败也不丢草稿 ⑥ 同文并发提交不再张冠李戴（fetch 关联时捕获该条 rec、响应回来直接用它不再按内容重查）⑦ restore 绝不静默丢草稿（在飞时打新内容→并回末尾；回复框已关→剪贴板兜底 + 不谎报）⑧ 图片上传中挡发布 + `insertValue` `try/catch` 保证计数一定减回不卡死发布 + Vditor 构造失败清空框（`5184a3f` 第五轮复查）⑨ watchdog 只清未发出的 leak、已发出的交给 fetch（含慢挂）避免误丢或复活 ⑩ 多图粘贴/拖拽逐张处理（`a6e492e` 修 `files[0]` 只取第一张、其余静默丢的老 bug——粘 5 张图现在真进 5 张）。需验证：① 桌面 Chrome / Firefox + iOS Safari + Android Chrome 至少四组合下过一遍"打字→贴多图→发出→重来一条→并发第二条→回复某评论→编辑已发→网络中断慢挂→网络恢复→点赞置顶"全链路；② 特别看：并发主评论 + 回复框各自提交时草稿绝不错发/回填错；120s 慢挂 alert 到时草稿是否先回填再丢弃；点图不再弹全屏 lightbox；`insertValue` 抛错时上传中提示是否消失、不卡死；watchdog 是否只清未发出的 leak，已发出请求即使慢挂也不误清；多图粘贴的 5 张是否都插入不再丢。沙箱无浏览器 + 无 fly.io Waline 出口跑不了；属**评论核心链路 9 轮对抗式加固**、紧要程度高于一般 UI 收口，与昨日 P2 #1 / P2 #2 三条评论加固形成完整验收面。
+
+2. **图片走 R2 图床新链路需真机验收**（承接 7-16 P2 #1，来自 `5abd7c3`）—— 评论区图片改走 `window.__cmtUpload`（全站共用）：客户端 `downscale` 降采样 → POST `/api/upload` 到 R2 拿短链（`https://xxx.r2.dev/comments/...`）→ Vditor `upload.handler` 与 Waline `imageUploader` 都指过去；上传/网络失败回退 base64 保证功能不阻断。需验证：① 三条上传路径（本机粘贴 / 移动端拍照 / 桌面拖拽）均能顺利拿到 R2 短链；② 后端 503 / 429 / 网络超时回退 base64 是否透明；③ 已发布的 R2 短链在国内外访问稳定（`curl -I xxx.r2.dev/comments/*` 应 200）；④ 后端 `/api/upload` 是否有防未登录/越权上传的鉴权。属新增外部依赖，紧要程度高于一般 UI 收口。沙箱无 fly.io 出口 + 无浏览器跑不了。（与今日 P2 #1 的多图粘贴/拖拽逐张处理形成完整链路：a6e492e 保证浏览器端多图不丢、5abd7c3 保证每张图都上 R2。）
+
+3. **站主可删任意评论 + 举报中心联动需管理员端流程真机走一遍**（承接 7-16 P2 #2，来自 `5177e24`）—— 评论抽屉管理员每条显示「删除」（连回复一并删）、普通访客仍是「举报」；`/admin` 举报审核加「删除评论 / 忽略举报」按钮走 `zircon-comments/api/delete-comment` adm JWT + `report?action=dismiss`。需验证：① 管理员未登录 / 会话过期时按钮只对 adm 可见（不误开给游客）；② 误删是否有二次确认或恢复窗口（当前 commit 未提及）；③ 举报中心删除是否原子（删评论 + 移出队列 + 撤回举报计数一次成功，无残留脏状态）；④ 删除后评论数镜像 `wl-num → .waline-comment-count` 是否即时下降。沙箱无后端出口跑不了。
+
+4. **7-15 P2 #1「51 commit 五大高交互面重做需六组合真机验收」进一步放大范围**（承接 7-16 P2 #3，加今日 10 commit）—— 昨日已列覆盖 iPhone Safari + Android Chrome + iPad + 桌面 Chrome + 桌面 Firefox + PWA standalone 至少六组合的 17 大验收面，今日再叠加：⑱ 评论 Vditor 编辑器 9 轮对抗式复查加固（含所见即所得图片 / 乐观清空防丢草稿 / 精确关联提交成败 / 覆盖编辑 PUT 拦截 / 慢挂 120s 兜底 / 并发提交 rec 捕获 / restore 剪贴板兜底 / 上传中挡发布 + insertValue try/catch + Vditor 构造失败清空 / watchdog 只清 leak / 多图逐张处理 —— 详见今日 P2 #1）；⑲ paywall 生成脚本 `_Quoted` 值包装（`7751313`）待付费墙下次真正重生时验证输出字符串一律带引号、键裸值、bool/int/date 类型不变。沙箱无 GUI / 无触屏 / 无 fly.io 后端出口跑不了。
+
+5. **新增顶层 `/u/` 公开主页**（承接 7-15 / 7-16 P2 #4）—— `u/index.html` 4730 B、`permalink: /u/`、`noindex: true`、`sitemap: false`，由 `account/index.html` L999 与 `_layouts/{post,recipe}.html` 三处 lock('link') 分享链拉出、参数化 `/u/?id=<accountId>` 渲染读者个人页。需验证：① 不存在的 accountId 是否降级到「这个主页不存在，或对方没有公开」空态；② 自己的 accountId 是否走「这是你的主页 · 去编辑」CTA；③ `noindex + sitemap:false` 双保险是否让搜索引擎不收录。沙箱无后端跑不了。
+
+6. **`_data/visibility.json` 当前状态**（承接 7-15 / 7-16 P2 #5）：`sections: []`（全部四大板块对访客可见）；`tools: [47 项]`（`_data/toolbox.yml` 53 个工具中的 47 个当前对访客隐藏、仅 6 个含 `pet` / `doudizhu` / `suika` 等对外可见）。是站主分批放出、管理后台 7 次连续 `chore(admin)` 调整的产物、仅备忘。如为长期状态可考虑给 `/toolbox/` landing 加「其它工具临时下架、逐步开放中」的极小提示条 —— 属 IA 设计判断、不擅动。
+
+7. **doudizhu DouZero 神经网络权重 ~20 MB 二进制**（承接 7-14 / 7-15 / 7-16 P2 #7）—— `assets/js/doudizhu/weights/` 6 组 `.qw` + `.f32` + `.json` 仍 ~20 MB；仓库工作副本约 176 MB 源码 + 140 MB `.git`。是否评估 Git LFS / CDN 拆分承接观察不变。
+
+8. **承接 7-16 / 7-15 / 7-14 / 7-11 全部老 P2 未消除项**：7-11 冲刺日新增 `/zh/about/` + `404.html` + 首页照片堆叠 3 张预渲染 + reduce-motion 翻页 + forest「grow」暗号 + forest ∞ 灵活模式的六组合真机验收 6 项 / `452797e` 书架 commit 声明「现 7 本」实际 6 本的意图确认 / 7-14 admin 控制台 & 账号中心 12 commit 数据看板浏览量趋势折线 + 世界地图 + 设备环形 + ECharts 自托管 + 密码/导出/注销流程的六组合真机验收；7-10 / 7-07 / 7-06 承接的 forest 两轮对抗式审查 6 处 / 「对抗式审查 → 反驳式核验」自动化 QA 循环写进 `MAINTENANCE.md` / forest 双视图 App / 五主题 / PWA 图标 v2 六组合真机验收、forest / pet / picker / connect4 / feixingqi / chess / xiangqi 真机验收、tutoring / paid-test-visa / mao-thought-principles summary、random hover 缩进、mid-2015 / anova-R 互链、掼蛋联机回归、宠物中心多浏览器、机票监控 mac 端到端、flight 5 HTML 多浏览器、经济学工具箱三项确认、jukebox 问题首、DNS NameResolutionError、dead_links SVG xmlns 误判、connect4 canvas 无键盘落子、linear-algebra-strang.md summary 引用、`_flight-staging/` 命名等 —— 今日无新观察消除、承接不变。
+
+### 🗂 仓库卫生
+
+**目录结构较昨日无变化**——工作副本足印 **549 MB**（含 `.git` 140 MB + `_site` 233 MB + 源码约 176 MB，与 7-16 的 177 MB 源码一致，10 commit 净增约 300 行前端脚本、散落在 `_includes/comment-vditor.html`（9 commit 累计约 +150 行含大幅重构）+ `scripts/paywall/build_paid.py`（+26 行）+ `_notes/life/paid-test-us-*.md`（+10/-10 引号补齐），未突破 1 MB 量级触发 `du` 变动）。`.git` **140 MB**（较 7-16 微降 −1 MB，属 GC 抖动）、`_site/` **233 MB**（较 7-16 +2 MB，纯 build 元数据抖动）。**新增/删除文件 = 0**（10 commit 全为既有文件修改，无新目录、无删除文件）。`git status` clean（本地 = origin/main、`up to date`）、`git ls-files --others --exclude-standard` 空、`find` `.DS_Store` / `*.bak` / `*.orig` / `*.tmp` / `*~` / `* 2.*` / `.env*` / `*.log` 全空。**大文件盘点**：`files/or/or-2023.pdf` 5.4 MB（唯一 5 MB+）、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB、`files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB、`pdfjs/build/pdf.worker.mjs` 2.1 MB、`assets/js/doudizhu/weights/` 6 个 `.qw`（2.6 MB × 3 + 3.5 MB × 3 ≈ 18.4 MB）、`assets/echarts/` 2.0 MB —— 与 7-16 完全一致，无新增大文件。**maskable 图标 md5 核验**：三对文件仍不 byte-identical（forest 主 `63df7bec…` vs maskable `36ada6c2…`、ledger 主 `fad6da15…` vs maskable `433f42fc…`、pindou 主 `fed25167…` vs maskable `f4ef2d70…`）与 7-16 / 7-15 / 7-14 完全一致。`_paid/` + `_flight-staging/` 在 `_config.yml` L50 / L52 exclude 双保险稳固、`_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空。`_config.yml` 的 `exclude:` 已含 `DAILY_REVIEW.md`（L35）、`EMAIL_SUMMARY.md`（L36）等所有内部产物。**`/Users/zhourui` 本机路径痕迹核对**：`grep -rE '/Users/zhourui'` 排除 `.git/` + `DAILY_REVIEW.md` + `SPOTCHECK_*` 后仍见 4 处 `.claude/skills/{search-keywords,recipe,fix-quotes,new-post}/SKILL.md` 首页元数据行「仓库根：`/Users/zhourui/Desktop/ruizhou03.github.io`」—— `.claude/` 已在 `_config.yml` L43 exclude 出 Jekyll build（`_site/` 内 `grep -r '/Users/zhourui' _site/` 空），属**仓库内部 skill 手册的本机 root 备注**、面向站主自己的会话工具、非公开泄露；且 4 处均由更早 commit 引入，非本轮迭代新增；不擅动。**paywall 修复副作用核对**：`head -15 _notes/life/paid-test-us-{banking-guide,visa-types}.md` 两文件的 `title / main_category / sub_category / author / permalink` 5 字符串字段现全带双引号，`date` 类型字段不带引号（`date: 2026-04-22` / `date: 2026-03-18` 保持裸值符合 YAML `date` 类型规范）；全站 270 篇 front-matter 恢复"字符串一律带引号"一致性。**结论**：目录结构较昨日 zero delta，纯代码修改批次；仓库处于健康稳态、无冗余可清理。
+
+---
+
 ## 2026-07-16
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套。距 7-15 巡检共 **12 个新 commit**（`726e013..5177e24`）—— 承接 7-15 51-commit 冲刺日的收尾修复批次，围绕昨日新落地的 Vditor 评论编辑器与宠物 CloudSync 数据丢失做加固与 UX 收口，无新目录/新板块。改动集中在四条主线：**评论 comment ~6 commit**（`92054ab` 修数学公式刷新真因 + 去 Waline 登录钮 + 评论数实时 + 回复箭头/框 + Vditor 图片降采样 → `10e2d2f` 作者徽章 `comment_author_id=a_mpw2mdbs6e2qrc44` 填入 + 评论数秒出直拉 count 不等 Waline → `5abd7c3` 图片走 R2 图床短链接不再内嵌 base64（新增 `window.__cmtUpload` 全站共用降采样→POST `/api/upload` 到 R2，失败回退 base64）→ `f8aef2d` 评论记录里 `path` 渲成标题（生成 `path→title` 表覆盖 `site.notes` + toolbox 工具名）→ `8521833` Vditor 缩进减小 + 发表后可靠清空编辑器（轮询 textarea 从"有内容"变空才清 Vditor）→ `5177e24` **站主可删任意评论**（管理员抽屉「删除」连回复一并删）+ 举报中心「删除评论 / 忽略举报」联动，走 `zircon-comments/api/delete-comment` adm JWT 鉴权）；**宠物 pet ~3 commit**（`3c84734` 修类别/食物归类被后台 CloudSync 拉取凭空盖掉（`foodLibrary` / `foodGroups` 改按 id 取并集本地优先）→ `77f7ce3` 类别下点「＋」批量归类现有食物（不用挨个编辑）→ `92ad0de` **彻底修类别 60s 后消失**——真凶是 `pet[k]` 与 `pet._syncedMeta[k]` 共享同一数组引用致脏检测失效，`markMetaSynced` / `applyServerMeta` 首折与常规折凡写入 `_syncedMeta` 一律 `cloneMeta` 深拷贝；顺带修 `bare_dollar.py` 启发式漏判 `$1-F(x)$` 型内联数学、`filename_convention.py` 把 `econ-math-toolkit.pdf` 加进 `ACCEPTED_UNDATED`）；**账号 account ~1 commit**（`90873d7` hero 统计横幅 `flex:1 1 auto + max-width:560` 不再塌太窄 + 评论记录里 `![](data:image/http)` 转小缩略图显示、评论体 `overflow-wrap/word-break` 防长 base64 横向溢出）；**flight ~1 commit**（`99e53ba` **15 处 `:hover` 补 `@media (hover: hover)` 触屏守卫**——`toolbox/flight/{handoff,index,manual,ticket-detail}.html` 全部 `:hover` 规则包进 `@media (hover: hover)`、`index.html` L163 `.dcard:hover` 与 `.dcard.on` 串写处只拆包 `:hover` 段不动常驻态；`scripts/audit/hover_no_media.py` 识别复合 `@media (hover:hover) and (...)` 守卫 + 守卫区间从 `@media` 关键字起算，L152 `.t-arr` 复合查询不再误报，flight 已放出前清障）；外加 `fcef3a9` 7-15 daily-review 自动巡检提交。文件新增：无（12 commit 全为既有文件修改）。
@@ -809,79 +871,3 @@
 ### 💓 后端脉搏 / 📬 读者来信
 
 17 个 commit 均为前端工具代码打磨（forest 种树深度产品化 10 连 / picker 收口 3 连 / pet 同步加固 2 连 / connect4 文案配色 2 连），pet 客户端同步加固 2 连是**配合已上线的后端原子 CAS 的客户端侧补齐**（发件箱 opId 幂等 / 墓碑感知合并 / 云同步不覆盖 / per-field meta / 成员操作 apiRetry），逻辑上仍走 pet-food fly.io 后端；未**新增**任何对 zircon-urge / leaderboards / zircon-comments waline / 付费墙 `/api/paid` `/api/redeem` 端点的依赖。`backend_pulse.py` 本次未主动跑（沙箱无 fly.io 出口，承接 6-04 ~ 7-03 每次巡检结论），站点后端配置维持稳定。
-
----
-
-## 2026-07-03
-
-> 例行无人值守巡检：build 健康度 + 仓库卫生。距 7-02 巡检共 **7 个 commit**（`965babf` 之后 → `f65264a` 为止），全部是**前端小工具的 UX/视觉打磨**，一行内容 / IA / `_data/` / `_config.yml` / `_notes/` / `files/` 都未动（`git diff --stat 965babf..HEAD -- '*.md' '_data/*' '_config.yml'` 空）。三条主线：① **`toolbox/picker` 抽签工具三连迭代**（`75b6f3e` → `9c4d134` → `f65264a`）—— 权重模型从"直编占比 + 联动补足 + 可锁定 + 长名图例 + 空选项禁抽 + 转盘居中→首抽滑左 + 平均分配按钮"→ 滑块量程改动态"可占区间"（锁定 50% 后拖第二条按剩余池分）+ 转盘文字改沿辐条排布 → 再回归**绝对语义**（相同占比→相同位置，四项 25% 时四滑块对齐；上限时该行回填真实值），配合选项名 8 字上限、转盘字号只看扇区大小与字符实际宽度（1~8 字同样大小、cap8 逻辑），resvg 无头验证。② **`toolbox/chess + xiangqi` 象棋 / 中象共 3 项修复 + 1 新模式**（`8d032f0`）—— (a) `pointerdown` 重入清理 + `move/up/cancel` 挂 window + `try/finally` + 兜底扫除孤儿幽灵，根除多指触屏拖拽后卡死在视口的幽灵棋子；(b) 回合超时托管改「始终给完整倒计时、再次超时才代走一手 + 任何手动落子即解除托管」，修复连超两轮后人被永久夺权；(c) 新增「对坐模式」（触屏默认开 + 桌面手动开关），本机双人时把对面棋子转 180°，与「每回合翻转」互斥；(d) 手机端(≤600px)缩小楚河汉界 / 中央倒计时药丸不再盖住中路棋子。③ **`toolbox/connect4` 四子棋棋盘视觉重做 + 4 个 bug 修复**（`6172d78`）—— 满宽正方棋盘 + 竖向渐变蓝板 + 底部暗边模拟板厚 + 凹陷洞（顶部内阴影 + 底部受光）+ 红/黄玻璃糖果质感 + 悬停幽灵子 + 获胜四连改「发光连线 + 逐子光环」+ DPR 视网膜清晰渲染 + 深色模式棋盘配色 + 分享结算图同步 + 静态棋盘层离屏缓存；bug 修复（多 agent 对抗式评审 + DOM 模拟回归确认）：P2 换局/换难度时在途 AI 思考链未取消 → 新盘幽灵落子（加 gen 代号 + 可取消定时器）、P2 aiMove 缺 aiThinking 守卫 → 暂停秒续可能重复落子（加守卫 + 落子前重校验列）、P3 下落动画改用「行」为单位（resize 不再让棋子瞬移）、P3 C4_DIFF_LABEL "简单/困难" → "新手/高手"与全站 UI 统一。④ **`toolbox/pet` 宠物中心手机端 UX 两连**（`74c2537` + `261b0cb`）—— 手机端选食物先改「展开式全宽列表·选完自动收起」（方案 B：顶部触发条 `#food-picker-trigger`、点它整宽铺开、组头独立展开、`selectRecordFood` 收回），随后改进为**悬浮展开**（绝对定位在触发条正下方、盖住下面填写区、不再把页面撑长/推下去；触发条定高 48px + 列表 max-height 46vh/360px、可滚、带阴影实底；`▾ ↔ ▴` 切换；点列表 / 触发条以外自动收起；桌面端完全不变）。改动 8 个文件共 +662 / -284 行——`assets/js/games/picker.js` (+291/-...) / `toolbox/picker/index.html` / `toolbox/connect4/index.html` / `toolbox/chess/index.html` / `toolbox/xiangqi/index.html` / `_includes/toolbox/pet/board.html` / `assets/css/pet.css` / `assets/js/pet.js`（净新增 29 行）。
->
-> `bundle install` ✅ + `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（15.29 s cold build）。`_site/` 顶层仍 26 项（与 7-02 完全一致：`account` `admin` `admin-manifest.json` `assets` `assistant-fulltext.json` `assistant-index.json` `CNAME` `en` `essays` `feed.xml` `files` `flight` `google5306…` `index.html` `life` `manifest.json` `notes` `pdfjs` `redirects.json` `research` `robots.txt` `search.json` `sitemap.xml` `sw.js` `toolbox` `zh`），未新增 / 未删减顶级路径；`_site/toolbox/{picker,connect4,chess,xiangqi}/index.html` 全部渲染，`_site/toolbox/chess/ai-worker.js` 仍在（原引用未受本次改动波及）。**未发现 `_flight-staging/` / `_paid/` 泄露**（`_site/life/paid-test/` 内 2 个 HTML 属付费预览，已上线，不是泄露）。**代码质量核对**：改动集中于 5 个游戏/工具文件，`grep "console.log\|debugger\|TODO\|FIXME\|XXX"` 仅命中 `assets/js/pet.js:5` 那条有意的品牌 log（`console.log('%c🐾 宠物中心 ' + BUILD_VERSION, ...)`，宠物中心一直有）、无新增 debug 遗留。**今日 0 项自动修复**——7 个 commit 全部是站主亲手打磨的 UX/视觉迭代，属工具设计取向 / 交互决策范畴，不属本 agent 应擅动的"小而无争议"改动；build 健康、`_site/` 结构无异常、workspace 干净（`git status` clean、`git ls-files --others --exclude-standard` 空）、无任何低风险小修可做。**P1 队列**：唯一 P1 承接 20 日的 `_config.yml`.`study_order` 未列 `interm-econometrics`（今日**第 21 日承接**），`_notes/study/interm-econometrics/interm-econometrics-2023.md` 仍在、`comm -23 <(ls _notes/study/) <(sed -n '/^study_order:/,/^[a-z]/p' _config.yml | grep '^  - ')` 差集仍只此一条——纯 IA 设计判断（保留 / 加进 study_order / 合并 `interm-metrics`），不擅动。**P2 队列**：承接 7-02 全部 P2（`linear-algebra-strang.md` 提到「本站中文《线性代数讲义》」但对应中文材料只以《经济学数学工具箱》线性代数部分 ch1-ch7 存在、`_flight-staging/` 目录名与 runner 生产后端角色不匹配、`bare_dollar.py` 启发式漏判、`spotcheck.py` `.tex` 探测启发式、`tutoring/` 7 篇缺 summary、`paid-test-us-visa-types.md` 缺 summary 且无法直接改、`mao-thought-principles.md` 无 summary 字段但正文有介绍段、`toolbox/random/` hover 缩进 cosmetic、mid-2015 与 anova-R 互链、掼蛋真机联机回归、宠物中心多浏览器验收、机票监控 mac 装机 / 卸装 / 更新真机验收、`toolbox/flight/` 5 HTML 多浏览器验收、《经济学数学工具箱》三项内容确认、jukebox 16 首问题首 + 3 失败首、5 条 DNS NameResolutionError 外链、`dead_links.py` SVG xmlns 命名空间误判），今日均**无新观察**、承接不变。此外今日改动新出以下**P2 新观察**：⑤ picker 权重语义在 7-02 一天内三连迭代（占比联动+锁定 → 动态量程 → 回归绝对语义）说明交互设计尚在收敛，建议真机 iPhone Safari + 桌面 Chrome 各拉一次 3~10 选项 / 锁 1~2 项 / 4 项等权对齐 / 长名 8 字 / 空选项禁抽 / 转盘 1% 细扇区 6 种场景手感回归；⑥ connect4 canvas 无 `keydown` / `tabindex` / `role=button` / `aria-label` —— 是历史状态、并非本次视觉重做引入的回归（`git show 6172d78 -- toolbox/connect4/index.html` diff 未涉及 a11y 属性），但既然 flight/pet 都有 a11y 通道，四子棋是否补一条键盘落子（← / → 移动列指示 + Enter 落子 + 焦点方框可视）可挪进"游戏 a11y 补齐"这条内容待办；⑦ 象棋/中象「对坐模式」新加了 CSS 转 180° + 触屏默认开的启发，仍需真机 iPad 竖 / 横屏、以及 iPhone Safari 横屏两台面对面下一整局验收（沙箱无触屏无法替代）。
-
-### ✅ 本次已自动修复
-
-无。
-
-7 个 commit 全部由站主亲手打磨（picker 权重模型 / 转盘排文语义收敛、connect4 视觉重做与 4 bug 修、chess+xiangqi 幽灵子/超时托管/对坐模式、pet 手机端食物列表悬浮展开）——均属 UX/视觉设计取向决策，不属"小而无争议"范畴；build ✅ / `_site/` 结构与 7-02 一致 / workspace 干净 / 无低风险小修可做。
-
-### 📋 待你把关
-
-#### P0（紧急）
-
-无。
-
-#### P1（重要）
-
-1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 ~ 7-02，**第 21 日承接**）。`/notes/` landing 渲染遍历 `site.study_order`（`notes/index.html` L81），所以 `interm-econometrics-2023.md`（sub_category =「中级计量经济学」、120 页 Wooldridge 体系英文讲义、94 keywords 厚足覆盖）在 `/notes/index.html` 里**渲染不出来**（sitemap / search.json 仍正常工作，**仅** landing 缺）。今日核对：`ls _notes/study/` 仍 26 个目录（较昨日不变）、`study_order` 仍 25 条，`comm -23` 差集仍只 `interm-econometrics` 一条。改否、改成什么名（保留现状 / 加进 `study_order` / 与 `interm-metrics/` 合并）仍属设计判断，请你拍板 —— 承接 21 日，是仓库里最久的 P1。
-
-#### P2（建议）
-
-1. **`linear-algebra-strang.md` summary 里「本站中文《线性代数讲义》」的引用**（承接 6-24 ~ 7-02，性质与 7-02 一致）—— 站上线代中文材料以《经济学数学工具箱》里 ch1-ch7 存在（`ch1_vector_spaces` / `ch2_rank_linear_systems` / `ch3_projection_ols` / `ch4_eigen_diagonalization` / `ch5_spectral_quadratic` / `ch6_svd` / `ch7_matrix_calculus` 7 章），但书名不同、面向经济学博士、并非独立线代教材。三种改法：① 保留字面等以后写独立中文《线性代数讲义》；② 改字面为「本站《经济学数学工具箱》线性代数部分（ch1-ch7）」并链过去；③ 删引用改自足介绍。**属内容写作 + 结构映射决策，请你拍板**。
-
-2. **`_flight-staging/` 目录名与其内容实际角色不匹配**（承接 7-02，性质不变）—— 目录里的 `runner/` 已是**已上线机票监控工具的生产后端**（`flight/get:21` 硬编码从 `raw.githubusercontent.com/…/main/_flight-staging/runner/` 拉取，走 GitHub raw 而非 Jekyll，`_config.yml` exclude 拦不住外部 curl 读取），但目录名沿用「设计稿暂存」语义会误导。三种改法：① 保留名字（沉默约定）；② `runner/` 挪出到 `flightwatch/runner/` 需同步改 `flight/get:21` SRC 常量 + 新旧 URL 平滑迁移；③ `_flight-staging/` 改名 `_flightwatch/` 保 `_-`前缀防收录，只改 URL 前缀。**命名 / 迁移决策，请你拍板**。
-
-3. **picker 权重语义 7-02 一天内三连迭代（占比联动+锁定 → 动态量程 → 绝对语义）待真机手感回归验收**（**今日新观察**）—— 建议 iPhone Safari + 桌面 Chrome 各拉一次 3~10 选项 / 锁 1~2 项 / 4 项等权对齐 / 长名 8 字 / 空选项禁抽 / 转盘 1% 细扇区**六种场景**手感回归，特别看：滑块拖动过程中"上限时该行回填真实值"是否直觉、锁定后未锁定项按比例补足是否与预期一致、转盘 8 字全角字排满半径的 cap8 上限在 1~8 字下字号是否稳定、空选项禁抽提示是否清晰、`resvg` 无头预览与真机浏览器渲染是否吻合。沙箱无 GUI / 无触屏跑不了。
-
-4. **connect4 canvas 无键盘落子通道**（**今日新观察**）—— 历史状态、非本次视觉重做引入（`git show 6172d78 -- toolbox/connect4/index.html` diff 未涉及 a11y 属性），但既然 flight/pet 有 a11y 通道，四子棋可挪进"游戏 a11y 补齐"内容待办：补 `← / →` 移动列指示 + Enter 落子 + 焦点方框可视，是否加请你拍板。
-
-5. **chess + xiangqi「对坐模式」新加的 CSS 转 180° 待真机 iPad / iPhone 横屏面对面下一整局验收**（**今日新观察**）—— 触屏默认开 + 桌面手动开关的启发是否合适、旋转后棋子拾放热区是否仍精准、与「每回合翻转」互斥切换是否顺滑、手机端(≤600px)中央倒计时药丸缩小后是否仍能清楚看到、超时托管夺权改「再次超时才代走 + 任何手动落子即解除」是否让"想走却走不了"消失。沙箱无触屏跑不了。
-
-6. **`toolbox/pet` 宠物中心手机端食物列表**「悬浮展开」**新姿态待真机 iOS Safari + Android Chrome 双端验收**（**今日新观察**）—— 触发条定高 48px + 列表 max-height 46vh/360px 是否在 iPhone SE / iPhone 15 Pro Max / Pixel 5 各屏幕比例下都够展开数量、绝对定位盖住填写区是否遮挡关键 CTA、`▾ ↔ ▴` 切换与点外收起是否顺滑、桌面端"完全不变"承诺（`display: none`）是否 CSS 层面无泄漏。沙箱无触屏跑不了。
-
-7. **`scripts/audit/bare_dollar.py` 启发式漏判 `$\d+-...$` 类数学配对**（承接 6-30 ~ 7-02）—— 今日**未跑** audit 脚本，老待办承接。
-
-8. **`scripts/audit/spotcheck.py` 的 `.tex 源` 探测启发式仍漏判带主题后缀和异目录情形**（承接 6-27 ~ 7-02）—— 今日**未跑** audit 脚本，老待办承接。
-
-9. **`_notes/tutoring/` 10 篇里 7 篇缺 `summary` 字段**（承接 6-30 ~ 7-02）—— 老文盘扫，内容写作决策。
-
-10. **`_notes/life/paid-test-us-visa-types.md` 缺 `summary` 字段且无法直接改**（承接 6-30 ~ 7-02）—— 需改源文件 `_paid/liuxue-test-visa.md` 或改 `scripts/paywall/build_paid.py`。
-
-11. **`_notes/study/mao-thought/mao-thought-principles.md` 无 `summary:` 字段但正文 L17 是介绍段落**（承接 6-29 ~ 7-02）—— 写作偏好；PDF-only 页面有正文时 `post.html` 兜底不触发，渲染上不缺。
-
-12. **`toolbox/random/` hover 守卫内层缩进 cosmetic** —— 承接 6-03 ~ 7-02，功能正确、纯排版风格小差异，可忽略。
-
-13. **mid-2015 与 anova-R 纯 PDF 存档可加同课程互链入口** —— 承接 6-03 ~ 7-02，内容写作决策。
-
-14. **掼蛋 6-18 ~ 6-24 联机改造 + 6-30 四象限版型迁移待真机 / 微信内置浏览器跑两局完整联机回归**（承接 6-27 ~ 7-02）。沙箱无浏览器 / 无音频出口无法替代真机回归。
-
-15. **宠物中心近期多轮更新待多浏览器 / 多设备验收**（承接 6-29 ~ 7-02；本轮再加手机端食物列表悬浮展开两连；建议 iPhone Safari + Android Chrome + 桌面 Chrome + 桌面 Firefox + PWA standalone 至少五组合下过一遍）。沙箱无 GUI / 无真触屏，跑不了。
-
-16. **机票监控 Phase 3 一键安装器 `flight/get` + Phase 2 后端 pipeline 待 mac 真机端到端跑一轮验收**（承接 7-02）—— `curl -fsSL https://ruizhou03.com/flight/get | bash -s -- <盯票码>` 完整入口 = 建 venv + Playwright + LaunchAgent + 首轮 + 定时的**装机链路**是否在**空白 mac**（未预装任何 flightwatch 相关物）上一次成功、以及**已装用户后续 flightwatch 命令**更新 runner 会不会因 `_flight-staging/` 名字变动等回归，建议真机装机 / 卸装 / 更新三步整流一次。沙箱无 mac 出口跑不了。
-
-17. **`toolbox/flight/` 5 个 HTML 页 UX 待多浏览器 / 多屏幕跑一遍**（承接 7-02）—— `index.html` / `manual.html` / `handoff.html` / `ticket-detail.html` / `email-digest.html`，建议 iPhone Safari + Android Chrome + 桌面 Chrome + 桌面 Firefox + PWA "加装到主屏" 至少五组合下过完整配置→保存→交接→查看单票四步骤一遍。
-
-18. **《经济学博士的数学工具箱》教材首发三项确认**（承接 7-02）—— ① summary 里 800 字长概述（现 L4）内容详实但对 landing 页 note-card 可能偏长（`_layouts/post.html` 与 `_includes/note-card.html` 处理超长 summary 的行为需核对）；② `sub_category=经济学数学基础` 是**新分类字符串**，若将来还有相邻教材（如"经济学统计基础"）值得先想清楚这条侧栏走向；③ `course=经济学数学工具箱` 是否要挂进 `_data/course_aliases.yml`（让读者搜"经济数学"、"math for economists" 等口语词也能找到）建议与 `search-keywords` skill 一并处理。
-
-19. **jukebox 16 首问题首 + 3 失败首待逐类修复** —— 承接 6-18 ~ 7-02。
-
-20. **5 条 DNS NameResolutionError 外链需站主在生产环境复验** —— 承接 6-08 ~ 7-02；今日**未跑** `dead_links.py`。
-
-21. **`dead_links.py` 把 SVG `xmlns="http://www.w3.org/2000/svg"` 命名空间字符串误判为外链** —— 承接 6-08 ~ 7-02，cosmetic 非阻塞。
-
-### 🗂 仓库卫生
-
-**仓库结构较昨日无变化，无需再优化。** `git diff --stat 965babf..HEAD` 覆盖的 8 个文件全在 `toolbox/{picker,connect4,chess,xiangqi}/index.html` + `_includes/toolbox/pet/board.html` + `assets/{css/pet.css,js/pet.js,js/games/picker.js}`——纯代码改动，**未新增 / 未删除任何目录、未新增 / 未删除任何 `_notes/` `_data/` `files/` 条目**（`git diff --stat 965babf..HEAD -- '*.md' '_data/*' '_config.yml'` 空）。`git status` clean、`git ls-files --others --exclude-standard` 空、`find . -name '.DS_Store' -o -name '*.bak' -o -name '*.orig' -o -name '*.tmp' -o -name '*~'` 全空、`find . -name "* 2.*"` 全空，无编辑器 / 系统垃圾。大文件核对：`files/or/or-2023.pdf` 5.55 MB 仍是唯一 5 MB 以上文件（`images.py` 潜在 pdfslim 候选、承接昨日）、`files/econ-math-toolkit/econ-math-toolkit.pdf` 3.02 MB + `files/interm-macro/interm-macro-2022-zh.pdf` 2.23 MB 仍是 2 MB 以上二人组、均低于 5 MB 阈值。`_paid/` + `_flight-staging/` 双双在 `_config.yml` L50/L52 exclude 列表内且 `_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空——七月首日双保险仍稳固。**结论**：目录结构与文件架构与 7-02 完全一致，仅工具/游戏代码行内调整，无仓库卫生可动项。
-
-### 💓 后端脉搏 / 📬 读者来信
-
-7 个 commit 均为前端工具代码打磨（picker 权重语义与转盘排文、connect4 canvas 视觉重做、chess/xiangqi 拖拽与超时托管、pet 手机端食物列表 UX），**未新增任何对 zircon-urge / leaderboards / zircon-comments waline / 付费墙 `/api/paid` `/api/redeem` 端点的依赖**。`backend_pulse.py` 本次未主动跑（沙箱无 fly.io 出口，承接 6-04 ~ 7-02 每次巡检结论），站点后端配置维持稳定。
