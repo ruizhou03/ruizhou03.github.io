@@ -96,6 +96,11 @@
 [data-hidden="true"]{ display:none !important; }
 /* ---- local helpers (same hues as tokens; alpha for scrims/keylines only) ---- */
 :root{
+  /* auth.html（账号组件）用 --color-* 命名；首页用短名 --ink/--gold，
+     这里补一层别名，让登录/头像组件在首页也能正确上色。 */
+  --color-ink:var(--ink); --color-text:var(--text); --color-muted:var(--muted); --color-light:var(--light);
+  --color-border:var(--border); --color-bg:var(--bg); --color-bg-warm:var(--bg-warm);
+  --color-accent:var(--accent); --color-highlight:var(--gold);
   --bar-h: clamp(52px, 7.2vh, 64px);
 
   /* ---- right-hand rail (檐廊) -------------------------------------------
@@ -462,6 +467,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
   <div class="util">
     <button class="ico js-theme" aria-label="切换深浅主题" type="button">◑</button>
     <a class="en" href="/" aria-label="切换到英文站"><b>EN</b><span>英文站</span></a>
+    <div id="auth-slot"></div>
   </div>
 </header>
 
@@ -726,6 +732,10 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
   }); }
 })();
 </script>
+
+<!-- 统一账号：登录 / 头像（与全站一致，头像下拉含管理入口） -->
+<script src="{{ '/assets/js/auth/auth.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
+{% include auth.html %}
 
 <!-- Service Worker（与全站一致，scope '/'） -->
 <script>
