@@ -1,250 +1,741 @@
 ---
-layout: default
-title: 锆铌 | Rui Zhou
 ---
+{%- assign valid_notes = "" | split: "" -%}
+{%- assign total = 0 -%}
+{%- assign notes_count = 0 -%}
+{%- for n in site.notes -%}
+  {%- assign _sec_hidden = false -%}
+  {%- if n.main_category and site.data.visibility.sections contains n.main_category -%}{%- assign _sec_hidden = true -%}{%- endif -%}
+  {%- if n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true -%}{%- assign total = total | plus: 1 -%}{%- endif -%}
+  {%- if n.date and n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true -%}{%- assign valid_notes = valid_notes | push: n -%}{%- endif -%}
+  {%- if n.discipline -%}{%- assign notes_count = notes_count | plus: 1 -%}{%- endif -%}
+{%- endfor -%}
+{%- assign all_content = valid_notes | sort: "date" | reverse -%}
+{%- assign hot_posts = all_content | where: "hot", true -%}
+{%- assign featured = hot_posts | first -%}
+{%- unless featured -%}{%- assign featured = all_content | first -%}{%- endunless -%}
+{%- assign tool_count = site.data.toolbox | where: "status", "live" | size -%}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-L6TCM0XFJ9"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-L6TCM0XFJ9');
+  </script>
+  <title>锆铌 · 周睿作品馆</title>
+  <meta name="description" content="锆铌——周睿（Rui Zhou）的个人作品馆：硬核课程讲义、科研心得、生活攻略，和五十多件亲手做的小工具，都排得像一本书。">
+  <meta name="author" content="周睿 Rui Zhou">
+  <link rel="canonical" href="https://ruizhou03.com/zh/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="锆铌 · 周睿作品馆">
+  <meta property="og:description" content="锆铌——周睿（Rui Zhou）的个人作品馆：硬核课程讲义、科研心得、生活攻略，和五十多件亲手做的小工具，都排得像一本书。">
+  <meta property="og:url" content="https://ruizhou03.com/zh/">
+  <meta property="og:image" content="https://ruizhou03.com/assets/share/share-default.png">
+  <meta property="og:locale" content="zh_CN">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/files/cormorant-garamond-latin-700-normal.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/files/cormorant-garamond-latin-600-normal.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/files/cormorant-garamond-latin-400-normal.woff2">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/400.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/500.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/600.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/700.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/400-italic.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/500-italic.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='82' font-family='Georgia, serif' font-size='95' font-weight='bold' fill='%23c9a96e' text-anchor='middle'>Zr</text></svg>">
+  <meta name="theme-color" content="#1e3a5f" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1a1918" media="(prefers-color-scheme: dark)">
+  <script>
+    // 主题持久化：body 渲染前同步读 localStorage，避免闪烁（与全站一致）
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+:root{
+  --ink:#1a1a2e;--text:#374151;--muted:#6b7280;--light:#9ca3af;
+  --border:#e5e7eb;--bg:#fafaf9;--bg-warm:#f5f4f0;--card:#ffffff;
+  --accent:#1e3a5f;--accent-light:#2d5a8e;--accent-soft:rgba(30,58,95,0.12);
+  --gold:#c9a96e;--gold-soft:rgba(201,169,110,0.16);
+  --shadow-1:0 1px 3px rgba(0,0,0,.05);--shadow-2:0 4px 16px rgba(0,0,0,.07);
+  --shadow-3:0 12px 40px rgba(0,0,0,.10);
+  --font-display:'Cormorant Garamond','Noto Serif SC','Source Han Serif SC','Songti SC','STSong',Georgia,serif;
+  --font-body:'Cormorant Garamond','Noto Serif SC','Source Han Serif SC','Songti SC','STSong',Georgia,serif;
+  --radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-pill:999px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#e8e6e3;--text:#b8b5b0;--muted:#8a8680;--light:#6b6762;
+  --border:#2e2c2a;--bg:#1a1918;--bg-warm:#222120;--card:#232221;
+  --accent:#7aaddb;--accent-light:#9dc4e8;--accent-soft:rgba(122,173,219,.14);
+  --gold:#c9a96e;--gold-soft:rgba(201,169,110,.14);
+  --shadow-1:0 1px 3px rgba(0,0,0,.25);--shadow-2:0 4px 16px rgba(0,0,0,.30);
+  --shadow-3:0 12px 40px rgba(0,0,0,.45);
+}}
+:root[data-theme="dark"]{
+  --ink:#e8e6e3;--text:#b8b5b0;--muted:#8a8680;--light:#6b6762;
+  --border:#2e2c2a;--bg:#1a1918;--bg-warm:#222120;--card:#232221;
+  --accent:#7aaddb;--accent-light:#9dc4e8;--accent-soft:rgba(122,173,219,.14);
+  --gold:#c9a96e;--gold-soft:rgba(201,169,110,.14);
+  --shadow-1:0 1px 3px rgba(0,0,0,.25);--shadow-2:0 4px 16px rgba(0,0,0,.30);
+  --shadow-3:0 12px 40px rgba(0,0,0,.45);
+}
 
-<link rel="stylesheet" href="{{ '/assets/css/home.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+/* [data-hidden] 供板块可见性门控（visibility.json）隐藏访客不可见入口 */
+[data-hidden="true"]{ display:none !important; }
+/* ---- local helpers (same hues as tokens; alpha for scrims/keylines only) ---- */
+:root{
+  --bar-h: clamp(52px, 7.2vh, 64px);
 
-<style>
-  /* 近期更新 · 方案 B 卡片（标题 + 摘要 + 底部日期/互动数） */
-  .feed-cards { display: flex; flex-direction: column; }
-  .feed-card { border-bottom: 1px dashed var(--color-border); padding: 1.15rem 0; }
-  .feed-card:last-child { border-bottom: 0; }
-  .fc-title { margin: 0 0 .4rem; font-family: var(--font-display); font-weight: 600; font-size: 1.14rem; line-height: 1.4; }
-  .fc-title a { color: var(--color-accent); text-decoration: none; }
-  .fc-title a:hover { color: var(--color-highlight); }
-  .fc-ex { margin: 0 0 .65rem; font-family: var(--font-body); color: var(--color-muted); font-size: .93rem; line-height: 1.65;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .fc-foot { display: flex; align-items: center; gap: 1rem; }
-  .fc-date { font-family: 'Cormorant Garamond', var(--font-body); font-size: .92rem; color: var(--color-light); }
-  /* 卡片 / 精选里露出「赞 · 评论」文字标签（列表行只留图标+数字） */
-  .fc-foot .sc-m .sc-lab, .featured-card .featured-meta .sc-m .sc-lab { display: inline; margin-left: .12rem; }
-  .featured-card .featured-meta { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-</style>
+  /* ---- right-hand rail (檐廊) -------------------------------------------
+     The dot nav is fixed to the viewport, so the rail must be RESERVED, not
+     guessed. It is derived from the dot nav's own measurements:
+       inset + dot + gap + label + slack
+     Every surface that could collide with it (cover diptych, bookplate frame,
+     bento, feed, footer) is pushed off this one variable. */
+  --dot-inset: clamp(14px, 1.5vw, 22px);
+  --dot-size: 9px;
+  --dot-gap: .55rem;
+  --dot-label: 3.1rem;   /* 2 CJK glyphs @ .72rem + .26em tracking, with slack */
+  --rail: calc(var(--dot-inset) + var(--dot-size) + var(--dot-gap) + var(--dot-label) + 12px);
 
-{% assign valid_notes = "" | split: "" %}
-{% assign total = 0 %}
-{% assign notes_count = 0 %}
-{% assign research_count = 0 %}
-{% assign life_count = 0 %}
-{% assign essay_count = 0 %}
+  --pad-x: clamp(20px, 4.4vw, 66px);
+  /* interior pages stop on exactly the same vertical line as the cover's
+     bookplate frame: cover is inset by --rail, plate by a further 12px. */
+  --pad-r: max(var(--pad-x), calc(var(--rail) + 12px));
 
-{% for n in site.notes %}
-  {% comment %} 只统计 / 收录「访客可见」的：排除下架 hidden、回收 trashed、未发布 published:false，以及所属板块被整体下架的（visibility.sections）—— 隐藏的不进近期更新，后面的自动递补 {% endcomment %}
-  {% assign _sec_hidden = false %}
-  {% if n.main_category and site.data.visibility.sections contains n.main_category %}{% assign _sec_hidden = true %}{% endif %}
-  {% if n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true %}{% assign total = total | plus: 1 %}{% endif %}
-  {% if n.date and n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true %}{% assign valid_notes = valid_notes | push: n %}{% endif %}
-  {% if n.discipline %}{% assign notes_count = notes_count | plus: 1 %}{% endif %}
-  {% assign _is_research = false %}
-  {% if n.main_category == "科研妙招" %}{% assign _is_research = true %}{% endif %}
-  {% if n.extra_categories contains "科研妙招" %}{% assign _is_research = true %}{% endif %}
-  {% if _is_research %}{% assign research_count = research_count | plus: 1 %}{% endif %}
-  {% assign _is_life = false %}
-  {% if n.main_category == "生活攻略" %}{% assign _is_life = true %}{% endif %}
-  {% if n.extra_categories contains "生活攻略" %}{% assign _is_life = true %}{% endif %}
-  {% if _is_life %}{% assign life_count = life_count | plus: 1 %}{% endif %}
-  {% assign _is_essay = false %}
-  {% if n.main_category == "随笔漫谈" %}{% assign _is_essay = true %}{% endif %}
-  {% if n.extra_categories contains "随笔漫谈" %}{% assign _is_essay = true %}{% endif %}
-  {% if _is_essay %}{% assign essay_count = essay_count | plus: 1 %}{% endif %}
-{% endfor %}
+  --gl-1: rgba(201,169,110,.46);   /* gold hairline */
+  --gl-2: rgba(201,169,110,.24);   /* fainter gold */
+  --gl-3: rgba(201,169,110,.66);   /* brighter gold keyline */
+  --navy-1: rgba(11,21,38,.88);    /* strong navy scrim */
+  --navy-0: rgba(11,21,38,0);
+  --on-dark: #f2ead6;              /* warm cream ink over photos */
+  --on-dark-mut: #cdc4b0;
+  --on-gold: #16233c;              /* fixed dark ink for text sitting on gold */
+}
 
-{% assign all_content = valid_notes | sort: "date" | reverse %}
-{% assign hot_posts = all_content | where: "hot", true %}
-{% assign featured = hot_posts | first %}
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--font-body); }
 
-<section class="bio-section">
-  {% assign tool_count = site.data.toolbox | where: "status", "live" | size %}
-  <div class="hero-wrap">
-    <div class="hero-text">
-      <p class="home-kicker">锆铌 · Zircon</p>
-      <h1 class="home-lead">一个永不过期的地方——硬核讲义、科研心得、生活折腾，和五十多件亲手做的小工具，都排得像一本书。</h1>
-      <p class="home-dek">
-        博主周睿，在宾夕法尼亚州立大学（Penn State，不是 UPenn 宾大！）攻读经济学博士，研究行为经济学与微观经济理论。平时喜欢跑步、健身和唱歌，热衷探索未知的风景，也是个重度强迫症患者——不然也不会有这个地方。
-      </p>
-      <div class="home-pills">
-        <span>永不过期</span>
-        <span>全文搜索</span>
-        <span>学习资料可下载</span>
-        <span>篇篇有评论区</span>
+a{ color:inherit; text-decoration:none; }
+img{ display:block; max-width:100%; }
+h1,h2,h3,p{ margin:0; text-wrap:balance; }
+
+:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; border-radius:2px; }
+
+.kicker{
+  font-family:var(--font-display);
+  font-size:.72rem; letter-spacing:.34em; text-transform:uppercase;
+  color:var(--gold); font-weight:600; display:block;
+}
+.num-r{ font-family:var(--font-display); font-weight:600; font-feature-settings:"lnum" 1; }
+.tnum{ font-variant-numeric:tabular-nums lining-nums; }
+
+/* ============================= top bar ============================= */
+.topbar{
+  position:fixed; inset:0 0 auto 0; height:var(--bar-h); z-index:60;
+  display:flex; align-items:center; gap:1.4rem;
+  padding:0 clamp(16px,3.4vw,44px);
+  background:rgba(250,248,243,.72);
+  -webkit-backdrop-filter:blur(16px) saturate(1.06);
+  backdrop-filter:blur(16px) saturate(1.06);
+  border-bottom:1px solid var(--border);
+}
+@media (prefers-color-scheme:dark){ .topbar{ background:rgba(18,20,26,.72); } }
+:root[data-theme="light"] .topbar{ background:rgba(250,248,243,.72); }
+:root[data-theme="dark"]  .topbar{ background:rgba(18,20,26,.72); }
+
+.brand{ display:flex; align-items:baseline; gap:.5rem; margin-right:auto; }
+.brand__zh{ font-family:var(--font-display); font-weight:600; font-size:1.34rem; letter-spacing:.14em; color:var(--ink); }
+.brand__la{ font-family:var(--font-display); font-size:.74rem; letter-spacing:.32em; text-transform:uppercase; color:var(--gold); }
+
+.mainnav{ display:flex; gap:clamp(.9rem,1.8vw,1.7rem); }
+.mainnav a{ font-family:var(--font-display); font-size:.98rem; letter-spacing:.06em; color:var(--text); position:relative; padding:.2rem 0; }
+.mainnav a::after{ content:""; position:absolute; left:0; right:100%; bottom:-2px; height:1px; background:var(--gold); transition:right .3s ease; }
+.mainnav a:hover::after, .mainnav a:focus-visible::after{ right:0; }
+
+.util{ display:flex; align-items:center; gap:.7rem; margin-left:1rem; }
+.ico{ width:34px; height:34px; display:grid; place-items:center; border:1px solid var(--border); border-radius:50%; background:transparent; color:var(--text); cursor:pointer; }
+.ico:hover{ border-color:var(--gold); color:var(--gold); }
+.ico svg{ width:16px; height:16px; }
+.en{ display:inline-flex; align-items:baseline; gap:.35rem; font-family:var(--font-display); font-size:.86rem; letter-spacing:.14em; color:var(--text); padding:.32rem .66rem; border:1px solid var(--gl-1); border-radius:var(--radius-pill); }
+.en b{ font-weight:600; color:var(--gold); }
+.en span{ font-size:.74rem; color:var(--muted); }
+.en:hover{ background:var(--gold); color:var(--on-gold); border-color:var(--gold); }
+.en:hover b, .en:hover span{ color:var(--on-gold); }
+
+/* ============================= dot nav ============================= */
+/* Lives strictly inside --rail. Its box is capped to the rail width, so an
+   expanded label can never reach page content or a frame line. */
+.dots{ position:fixed; z-index:60; right:var(--dot-inset); top:50%; transform:translateY(-50%);
+  width:calc(var(--rail) - var(--dot-inset) - 12px);
+  display:flex; flex-direction:column; align-items:flex-end; gap:16px; }
+.dots a{ display:flex; align-items:center; justify-content:flex-end; gap:var(--dot-gap); }
+.dots .lbl{ font-family:var(--font-display); font-size:.72rem; letter-spacing:.26em; color:var(--muted);
+  white-space:nowrap; opacity:0; transform:translateX(4px); transition:opacity .3s, transform .3s, color .3s; }
+.dots .pt{ position:relative; flex:none; width:var(--dot-size); height:var(--dot-size); border-radius:50%;
+  border:1px solid var(--gold); background:transparent; transition:background .3s, box-shadow .3s; }
+.dots a:hover .lbl, .dots a[aria-current="true"] .lbl{ opacity:1; transform:none; color:var(--gold); }
+.dots a[aria-current="true"] .pt{ background:var(--gold); box-shadow:0 0 0 4px var(--gl-2); }
+
+/* ============================= deck / pages ======================= */
+.deck{
+  height:100dvh; overflow-y:auto; overflow-x:hidden;
+  scroll-snap-type:y mandatory; scroll-behavior:smooth; -webkit-overflow-scrolling:touch;
+}
+.page{ height:100dvh; scroll-snap-align:start; scroll-snap-stop:always; position:relative; overflow:hidden; }
+
+/* ===================== PAGE 1 — double cover ===================== */
+/* Diptych: left portrait pillar × right wordmark stage. It stops at the rail,
+   so the bookplate frame never meets the dots. */
+.cover{ height:100%; margin-right:var(--rail); position:relative;
+  display:grid; grid-template-columns:minmax(0,.84fr) minmax(0,1.16fr); }
+
+/* The gold seam IS the book's spine — the leaf's principal fold. It sits on
+   the diptych join (42%), which is also the left edge of the fold field's
+   viewBox, so seam and crease geometry are literally the same line. Brightest
+   across the band the folds fan from (38%–61%), whose centre (~43%) is the
+   hinge vertex P where every crease meets the spine. */
+.cover::after{ content:""; position:absolute; z-index:5; top:0; bottom:0; left:42%;
+  width:1px; pointer-events:none;
+  background:linear-gradient(180deg,
+    transparent 0%, var(--gl-2) 13%, var(--gl-1) 28%,
+    var(--gl-3) 38%, var(--gl-3) 61%,
+    var(--gl-1) 72%, var(--gl-2) 87%, transparent 100%); }
+/* one very slow sheen travelling down the spine; no rotation anywhere */
+.cover::before{ content:""; position:absolute; z-index:6; left:42%; top:0; width:1px; height:30%;
+  pointer-events:none;
+  background:linear-gradient(180deg, transparent, rgba(201,169,110,.9) 50%, transparent);
+  transform:translateY(-110%); animation:sheen 165s linear infinite; }
+@keyframes sheen{ from{ transform:translateY(-110%); } to{ transform:translateY(440%); } }
+
+/* left — cinematic portrait pillar */
+.portrait{ position:relative; overflow:hidden; background:var(--accent); }
+.portrait img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 20%; }
+.portrait::after{ content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:
+    linear-gradient(180deg, var(--navy-1) 0%, var(--navy-0) 32%),
+    linear-gradient(0deg,   var(--navy-1) 0%, var(--navy-0) 50%),
+    linear-gradient(90deg,  rgba(11,21,38,.36), rgba(11,21,38,0) 42%),
+    radial-gradient(120% 78% at 50% 30%, transparent 52%, rgba(11,21,38,.42)); }
+.portrait__key{ position:absolute; z-index:2; inset:clamp(14px,1.5vw,22px); border:1px solid var(--gl-3); pointer-events:none; }
+.portrait__cap{ position:absolute; z-index:3; left:clamp(24px,2.4vw,40px); bottom:clamp(24px,3.4vh,42px); color:var(--on-dark); }
+.portrait__cap .t{ display:block; width:34px; height:1px; background:var(--gold); margin-bottom:.7rem; }
+.portrait__cap .k{ font-family:var(--font-display); font-size:.78rem; letter-spacing:.4em; text-transform:uppercase; color:var(--gold); }
+.portrait__cap .z{ font-family:var(--font-display); font-size:1.16rem; letter-spacing:.28em; color:var(--on-dark); margin-top:.28rem; }
+
+/* right — coronation wordmark stage (the hero) */
+/* Two explicit rows: [1fr] the centred type block, [auto] the scroll hint.
+   The hint is a grid item in normal flow, so overlap with .lead is structurally
+   impossible — a taller wordmark grows row 1 and PUSHES row 2, it can never
+   slide under it. */
+.stage{ position:relative; background:var(--bg); overflow:hidden;
+  display:grid; grid-template-rows:1fr auto; row-gap:clamp(14px,2.6vh,30px);
+  padding:var(--bar-h) clamp(30px,5.2vw,96px) clamp(22px,3.6vh,42px); }
+.stage__body{ grid-row:1; align-self:center; }
+.stage__body, .scrollhint{ position:relative; z-index:1; }
+
+/* ---- the fold field (folded leaf) -------------------------------------
+   The facets ARE the folds of a leaf of paper hinged at the book's spine.
+   The gold seam is that spine (this field's x=0); the hinge vertex P sits on
+   it, 43% down. From P an accordion of creases fans into the right-hand void
+   at an EQUAL 12° angular pitch — the pitch of a hand-fan pleat — so
+   Kawasaki's flat-fold condition (alternate sector-angle sums equal) holds
+   at the hinge and the sheet genuinely folds. Creases alternate mountain /
+   valley and are drawn to the drafting convention: mountains solid, valleys
+   chain-dashed. Concentric arcs about P are the folded page-edges (the fan's
+   rim); the shadowed faces between them carry fine parallel ruling whose
+   spacing tightens on the steeper folds — light and shade, not noise. Four
+   line weights = four ranks: spine seam ▸ mountain ▸ valley ▸ ruling.
+   Undistorted: the viewBox scales UNIFORMLY (slice) and is anchored xMin, so
+   P stays pinned to the seam and every fold angle is true at any aspect. */
+.facets{ position:absolute; inset:0; display:block; width:100%; height:100%;
+  z-index:0; pointer-events:none; color:var(--gold);
+  -webkit-mask-image:radial-gradient(132% 124% at 0% 43%,
+     rgba(0,0,0,.4) 0%, rgba(0,0,0,.92) 12%, rgba(0,0,0,.98) 20%, rgba(0,0,0,.62) 48%, rgba(0,0,0,.3) 76%, rgba(0,0,0,.12) 100%);
+          mask-image:radial-gradient(132% 124% at 0% 43%,
+     rgba(0,0,0,.4) 0%, rgba(0,0,0,.92) 12%, rgba(0,0,0,.98) 20%, rgba(0,0,0,.62) 48%, rgba(0,0,0,.3) 76%, rgba(0,0,0,.12) 100%); }
+.facets line, .facets path{
+  fill:none; stroke:currentColor; stroke-linejoin:round; stroke-linecap:round;
+  vector-effect:non-scaling-stroke; }
+.facets .cr-m{ stroke-width:1;   opacity:.5;  }                             /* mountain creases — solid, the primary folds */
+.facets .cr-v{ stroke-width:.75; opacity:.34; stroke-dasharray:9 4 1 4; }   /* valley creases — chain-dashed (山折实·谷折点划) */
+.facets .rim{ stroke-width:.55;  opacity:.22; }                             /* folded page-edges — the fan rim, ⟂ the creases */
+.facets .rim-far{ stroke-width:.55; opacity:.12; }                          /* outermost page, lifting away */
+.facets .hatch{ stroke-width:.5; opacity:.16; }                             /* face ruling on the shadowed folds */
+.facets .fold-light{ stroke-width:1.2; opacity:0; }                         /* light crossing the folds as the leaf turns */
+
+.eyebrow{ font-family:var(--font-display); font-size:clamp(.82rem,1vw,.98rem); letter-spacing:.28em; text-transform:uppercase; color:var(--muted); margin-bottom:clamp(.7rem,1.6vh,1.3rem); }
+.eyebrow .fx{ display:inline-block; width:6px; height:6px; border:1px solid var(--gold); transform:rotate(45deg); margin-right:1em; vertical-align:middle; }
+.wordmark{ font-family:var(--font-display); font-weight:600; color:var(--ink);
+  font-size:clamp(5rem,16vh + 3vw,14rem); line-height:.82; letter-spacing:.08em; }
+.latin{ display:flex; align-items:baseline; gap:.9rem; margin-top:clamp(.6rem,1.6vh,1.15rem); }
+.latin .w{ font-family:var(--font-display); font-size:clamp(1.6rem,2.6vw,2.7rem); letter-spacing:.42em; text-transform:uppercase; color:var(--text); }
+.latin .t{ align-self:center; flex:none; width:clamp(20px,2.6vw,40px); height:1px; background:var(--gl-1); }
+.latin .e{ font-family:var(--font-display); font-size:clamp(.8rem,1vw,1rem); letter-spacing:.24em; color:var(--gold); }
+.rule{ display:flex; align-items:center; gap:.8rem; margin:clamp(1rem,2.4vh,1.7rem) 0 clamp(1rem,2.2vh,1.5rem); max-width:min(30em,66%); }
+.rule .gem{ position:relative; width:10px; height:10px; border:1px solid var(--gold); transform:rotate(45deg); flex:none; }
+.rule .gem::after{ content:""; position:absolute; inset:2px; background:var(--gold); }
+.rule .line{ height:1px; flex:1; background:linear-gradient(90deg,var(--gold),transparent); }
+.lead{ font-family:var(--font-body); font-size:clamp(1.02rem,1.15vw,1.24rem); line-height:1.85; color:var(--text); max-width:31em; }
+.lead b{ color:var(--ink); font-weight:600; }
+
+/* in-flow scroll hint — row 2 of .stage, never overlaps the type block */
+.scrollhint{ grid-row:2; align-self:end; justify-self:start;
+  display:inline-flex; align-items:center; gap:.6rem;
+  font-family:var(--font-display); font-size:.82rem; letter-spacing:.28em; text-transform:uppercase; color:var(--muted);
+  transition:color .3s; }
+.scrollhint:hover{ color:var(--gold); }
+.scrollhint .arw{ display:inline-grid; place-items:center; width:26px; height:26px; border:1px solid var(--gl-1); border-radius:50%; color:var(--gold); animation:bob 1.8s ease-in-out infinite; }
+@keyframes bob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(4px); } }
+
+/* bookplate double frame — scoped to the diptych, so its right edge lands on
+   the rail line, i.e. the same vertical as the interior pages' content edge */
+.plate{ position:absolute; z-index:40; inset:calc(var(--bar-h) + 12px) 12px 12px; border:1px solid var(--gl-2); pointer-events:none; }
+.plate::before{ content:""; position:absolute; inset:5px; border:1px solid var(--gl-2); }
+
+/* ===================== PAGE 2 — collection bento ================= */
+.wrap{ height:100%; display:grid; grid-template-rows:auto minmax(0,1fr) auto;
+  gap:clamp(12px,2vh,22px);
+  padding:calc(var(--bar-h) + clamp(18px,3.2vh,36px)) var(--pad-r) clamp(18px,3vh,34px); }
+
+.s-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:1.5rem; flex-wrap:wrap; }
+.s-title{ font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:clamp(2rem,3.6vw,3.2rem); line-height:1.02; margin-top:.3rem; letter-spacing:.02em; }
+.pills{ font-family:var(--font-display); font-size:clamp(.86rem,1.05vw,1.02rem); color:var(--muted); letter-spacing:.04em; }
+.pills i{ color:var(--gold); font-style:normal; margin:0 .5rem; }
+
+/* connected gold-keyline bento */
+.bento{ display:grid; grid-template-columns:1.42fr 1fr 1fr; grid-template-rows:1fr 1fr;
+  gap:1px; background:var(--gl-1); border:1px solid var(--gl-1); border-radius:var(--radius-lg); overflow:hidden; }
+.cell{ background:var(--card); position:relative; display:flex; flex-direction:column; padding:clamp(1rem,2vw,1.7rem); transition:background .3s; }
+.cell:hover{ background:var(--bg-warm); }
+.cell .go{ position:absolute; right:clamp(1rem,2vw,1.7rem); bottom:clamp(1rem,2vw,1.5rem); color:var(--gold); font-family:var(--font-display); font-size:1.3rem; opacity:.55; transition:opacity .3s, transform .3s; }
+.cell:hover .go{ opacity:1; transform:translateX(3px); }
+.cell__num{ font-family:var(--font-display); font-weight:600; font-size:clamp(1rem,1.3vw,1.2rem); letter-spacing:.2em; color:var(--gold); }
+.cell__name{ font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:clamp(1.3rem,1.9vw,1.75rem); margin-top:auto; letter-spacing:.02em; }
+.cell__desc{ font-size:clamp(.86rem,1vw,.98rem); color:var(--muted); line-height:1.6; margin-top:.35rem; max-width:26em; }
+.cell__mark{ position:absolute; top:clamp(1rem,2vw,1.7rem); right:clamp(1rem,2vw,1.7rem); font-size:1rem; filter:grayscale(.5) opacity(.55); }
+.cell__count{ margin-top:.55rem; font-family:var(--font-display); font-size:.82rem; letter-spacing:.12em; color:var(--gold); text-transform:uppercase; }
+
+/* flagship image cell */
+.cell--flag{ grid-row:1 / span 2; padding:0; overflow:hidden; }
+.cell--flag:hover{ background:var(--accent); }
+.flag__media{ position:absolute; inset:0; }
+.flag__media img{ width:100%; height:100%; object-fit:cover; object-position:50% 30%; }
+.flag__media::after{ content:""; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(11,21,38,.34) 0%,rgba(11,21,38,.30) 34%,var(--navy-1) 100%); }
+.flag__key{ position:absolute; inset:clamp(12px,1vw,16px); border:1px solid var(--gl-1); z-index:2; pointer-events:none; }
+.flag__body{ position:absolute; z-index:2; left:0; right:0; bottom:0; padding:clamp(1.3rem,2.4vw,2.1rem); color:var(--on-dark); }
+.flag__num{ font-family:var(--font-display); font-weight:600; letter-spacing:.2em; color:var(--gold); font-size:1.1rem; }
+.flag__name{ font-family:var(--font-display); font-weight:600; font-size:clamp(2rem,3.2vw,3rem); line-height:1.02; margin-top:.2rem; }
+.flag__desc{ margin-top:.5rem; font-size:clamp(.92rem,1.05vw,1.05rem); line-height:1.6; color:var(--on-dark-mut); max-width:24em; }
+.flag__meta{ display:flex; align-items:center; gap:.9rem; margin-top:.9rem; }
+.flag__count{ font-family:var(--font-display); font-size:.9rem; letter-spacing:.14em; text-transform:uppercase; color:var(--on-dark); }
+.flag__count b{ color:var(--gold); font-weight:600; }
+.flag__go{ font-family:var(--font-display); font-size:.9rem; letter-spacing:.2em; text-transform:uppercase; color:var(--gold); }
+
+/* stats strip */
+.stats{ display:grid; grid-template-columns:repeat(3,1fr); align-items:center; border-top:1px solid var(--gl-1); padding-top:clamp(10px,1.6vh,18px); }
+.stat{ display:flex; align-items:baseline; gap:.6rem; padding:0 clamp(.6rem,1.5vw,1.4rem); }
+.stat:first-child{ padding-left:0; }
+.stat + .stat{ border-left:1px solid var(--gl-2); }
+.stat b{ font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:clamp(1.8rem,3vw,2.7rem); line-height:1; }
+.stat span{ font-size:clamp(.82rem,1vw,.98rem); color:var(--muted); line-height:1.3; }
+
+/* ===================== PAGE 3 — latest + footer ================= */
+.latest{ grid-template-rows:auto minmax(0,1fr) auto; padding-bottom:0; }
+.latest .s-head .more{ font-family:var(--font-display); font-size:.92rem; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); }
+.latest .s-head .more:hover{ text-decoration:underline; text-underline-offset:4px; }
+
+.latest__grid{ display:grid; grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr); gap:clamp(20px,3vw,48px); min-height:0; }
+
+/* featured card */
+.feat{ position:relative; display:flex; flex-direction:column; border:1px solid var(--gl-1); border-radius:var(--radius-lg); overflow:hidden; background:var(--card); min-height:0; }
+.feat__media{ position:relative; flex:1 1 auto; min-height:0; }
+.feat__media img{ width:100%; height:100%; object-fit:cover; object-position:50% 32%; }
+.feat__media::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(11,21,38,.12),rgba(11,21,38,.42)); }
+.feat__flag{ position:absolute; top:clamp(14px,1.4vw,20px); left:clamp(14px,1.4vw,20px); z-index:2;
+  font-family:var(--font-display); font-size:.78rem; letter-spacing:.24em; text-transform:uppercase; color:var(--on-gold);
+  background:var(--gold); padding:.34rem .7rem; border-radius:var(--radius-pill); font-weight:600; }
+.feat__body{ padding:clamp(1rem,1.8vw,1.5rem); border-top:1px solid var(--gl-2); }
+.feat__cat{ font-family:var(--font-display); font-size:.76rem; letter-spacing:.2em; text-transform:uppercase; color:var(--gold); }
+.feat__title{ font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:clamp(1.3rem,1.9vw,1.85rem); line-height:1.2; margin-top:.35rem; }
+.feat__date{ display:block; margin-top:.5rem; font-size:.86rem; color:var(--muted); letter-spacing:.08em; }
+
+/* feed list */
+.feed{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; justify-content:space-between; min-height:0; overflow:hidden; }
+.feed li{ border-top:1px solid var(--border); }
+.feed li:first-child{ border-top:0; }
+.feed a{ display:block; padding:clamp(.5rem,1.3vh,.9rem) 0; }
+.feed a:hover .fd__title{ color:var(--gold); }
+.fd__title{ font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:clamp(.98rem,1.15vw,1.14rem); line-height:1.4;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; transition:color .25s; }
+.fd__meta{ display:flex; align-items:center; gap:.7rem; margin-top:.3rem; }
+.fd__cat{ font-family:var(--font-display); font-size:.72rem; letter-spacing:.16em; color:var(--gold); }
+.fd__cat::before{ content:""; display:inline-block; width:14px; height:1px; background:var(--gold); vertical-align:middle; margin-right:.5rem; }
+.fd__date{ font-size:.8rem; color:var(--muted); letter-spacing:.06em; }
+
+/* footer */
+.foot{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+  border-top:1px solid var(--gl-1); padding:clamp(12px,2vh,18px) 0 clamp(14px,2.4vh,20px); margin-top:clamp(10px,1.6vh,16px); }
+.foot span{ font-family:var(--font-display); font-size:.9rem; letter-spacing:.06em; color:var(--muted); }
+.foot .c{ color:var(--text); }
+
+/* ============================= responsive ======================== */
+@media (max-width:1080px){ .mainnav{ display:none; } }
+
+@media (max-width:860px){
+  /* dots are gone → the rail collapses; --pad-r falls back to --pad-x */
+  :root{ --rail: 0px; }
+
+  .deck{ scroll-snap-type:none; }
+  .page{ height:auto; min-height:100dvh; overflow:visible; }
+  .dots{ display:none; }
+  .plate{ inset:calc(var(--bar-h) + 8px) 8px 8px; }
+
+  .cover{ grid-template-columns:1fr; }
+  .cover::after, .cover::before{ display:none; }
+  .portrait{ position:absolute; inset:0; z-index:0; }
+  .portrait__cap{ display:none; }
+  .stage{ position:relative; z-index:1; background:transparent; min-height:100dvh;
+    padding:calc(var(--bar-h) + 10dvh) clamp(22px,7vw,40px) clamp(26px,5vh,44px); }
+  .stage__body{ align-self:end; }
+  .facets{ display:none; }
+  .eyebrow{ color:var(--on-dark-mut); }
+  .wordmark{ color:var(--on-dark); font-size:clamp(4.2rem,27vw,7.5rem); }
+  .latin .w{ color:var(--on-dark); }
+  .lead{ color:var(--on-dark); }
+  .lead b{ color:#fff; }
+  .scrollhint{ color:var(--on-dark-mut); }
+
+  .wrap{ padding-top:calc(var(--bar-h) + 28px); grid-template-rows:none; gap:22px; }
+  .bento{ grid-template-columns:1fr 1fr; grid-template-rows:auto; }
+  .cell{ min-height:150px; }
+  .cell--flag{ grid-column:1 / -1; grid-row:auto; min-height:300px; }
+  .stats{ grid-template-columns:1fr; gap:10px; }
+  .stat{ padding-left:0; }
+  .stat + .stat{ border-left:0; border-top:1px solid var(--gl-2); padding-top:10px; }
+
+  .latest__grid{ grid-template-columns:1fr; }
+  .feed{ overflow:visible; }
+  .feat__media{ min-height:200px; }
+}
+@media (max-width:460px){
+  .bento{ grid-template-columns:1fr; }
+  .util .en span{ display:none; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .scrollhint .arw{ animation:none; }
+  .cover::before{ animation:none; opacity:0; }
+  .facets .fold-light{ display:none; }
+  .deck{ scroll-behavior:auto; }
+  *{ transition:none !important; }
+}
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/zh/" aria-label="锆铌 首页">
+    <span class="brand__zh">锆铌</span>
+    <span class="brand__la">Zircon</span>
+  </a>
+  <nav class="mainnav" aria-label="板块导航">
+    <a href="/notes/">学习资料</a>
+    <a href="/research/"{% if site.data.visibility.sections contains '科研妙招' %} data-hidden="true"{% endif %}>科研妙招</a>
+    <a href="/life/"{% if site.data.visibility.sections contains '生活攻略' %} data-hidden="true"{% endif %}>生活攻略</a>
+    <a href="/essays/"{% if site.data.visibility.sections contains '随笔漫谈' %} data-hidden="true"{% endif %}>随笔漫谈</a>
+    <a href="/toolbox/"{% if site.data.visibility.sections contains '百宝箱' %} data-hidden="true"{% endif %}>百宝箱</a>
+  </nav>
+  <div class="util">
+    <button class="ico js-theme" aria-label="切换深浅主题" type="button">◑</button>
+    <a class="en" href="/" aria-label="切换到英文站"><b>EN</b><span>英文站</span></a>
+  </div>
+</header>
+
+<nav class="dots" aria-label="翻页导航">
+  <a href="#p1" aria-current="true"><span class="lbl">欢迎</span><span class="pt"></span></a>
+  <a href="#p2"><span class="lbl">馆藏</span><span class="pt"></span></a>
+  <a href="#p3"><span class="lbl">近期</span><span class="pt"></span></a>
+</nav>
+
+<main class="deck" id="deck">
+
+  <!-- ============ PAGE 1 — double cover (portrait pillar × wordmark) ============ -->
+  <section class="page" id="p1" aria-label="欢迎">
+    <div class="cover">
+      <div class="portrait">
+        <img src="{{ '/files/zh/images/portrait-huabiao.jpg' | relative_url }}" alt="周睿在北大华表前抛起学位帽">
+        <div class="portrait__key"></div>
+        <div class="portrait__cap">
+          <span class="t"></span>
+          <span class="k">华表 · 毕业</span>
+          <span class="z">北京大学</span>
+        </div>
       </div>
-      <div class="home-stats">
-        <span>📚 {{ notes_count }} 份课程资料与讲义</span>
-        <span>🧰 {{ tool_count }} 件原创工具</span>
-        <span>✍️ {{ total }} 份内容</span>
+
+      <div class="stage">
+        <!-- Fold field. The gold seam (this field's x=0) is the book's spine;
+             the hinge P(0,430) sits on it, 43% down. An accordion of creases
+             fans right at an equal 12° pitch (Kawasaki-valid → it truly folds),
+             alternating mountain (solid) and valley (chain-dash), per the
+             drafting convention 山折实·谷折点划. Concentric arcs about P are the
+             folded page-edges (fan rim); the shadowed faces carry fine ruling
+             whose endpoints sit exactly on the two bounding creases. Uniform
+             slice + xMin pins P to the seam → every fold angle is true at any
+             stage aspect. Coordinates generated, not eyeballed. -->
+        <svg class="facets" viewBox="0 0 860 1000" preserveAspectRatio="xMinYMid slice" aria-hidden="true" focusable="false">
+          <!-- outermost page, lifting away from the stack -->
+          <path class="rim-far" d="M432.02 -164.63 A735 735 0 0 1 298.95 1101.46"/>
+          <!-- folded page-edges: concentric arcs about the hinge P(0,430) = the fan's rim, ⟂ every crease -->
+          <g class="rim">
+            <path d="M176.34 187.29 A300 300 0 0 1 122.02 704.06"/>
+            <path d="M305.65 9.31 A520 520 0 0 1 211.50 905.04"/>
+          </g>
+          <!-- face ruling on the shadowed folds: parallel chords, both ends on the bounding creases, spacing ∝ fold steepness -->
+          <g class="hatch">
+            <line x1="162.37" y1="283.80" x2="189.22" y2="320.75"/>
+            <line x1="232.81" y1="220.38" x2="271.31" y2="273.36"/>
+            <line x1="303.25" y1="156.95" x2="353.40" y2="225.97"/>
+            <line x1="373.69" y1="93.53" x2="435.48" y2="178.57"/>
+            <line x1="444.13" y1="30.10" x2="517.57" y2="131.18"/>
+            <line x1="279.62" y1="339.15" x2="292.40" y2="399.27"/>
+            <line x1="441.36" y1="286.59" x2="461.53" y2="381.49"/>
+            <line x1="603.10" y1="234.04" x2="630.67" y2="363.71"/>
+            <line x1="764.84" y1="181.49" x2="799.80" y2="345.94"/>
+            <line x1="292.40" y1="460.73" x2="279.62" y2="520.85"/>
+            <line x1="461.53" y1="478.51" x2="441.36" y2="573.41"/>
+            <line x1="630.67" y1="496.29" x2="603.10" y2="625.96"/>
+            <line x1="799.80" y1="514.06" x2="764.84" y2="678.51"/>
+            <line x1="250.83" y1="574.81" x2="215.24" y2="623.80"/>
+            <line x1="359.64" y1="637.64" x2="308.61" y2="707.88"/>
+            <line x1="468.46" y1="700.46" x2="401.99" y2="791.95"/>
+            <line x1="577.27" y1="763.29" x2="495.36" y2="876.03"/>
+            <line x1="686.08" y1="826.11" x2="588.74" y2="960.10"/>
+            <line x1="124.69" y1="601.63" x2="86.29" y2="623.80"/>
+            <line x1="178.79" y1="676.08" x2="123.72" y2="707.88"/>
+            <line x1="232.88" y1="750.54" x2="161.15" y2="791.95"/>
+            <line x1="286.98" y1="824.99" x2="198.58" y2="876.03"/>
+            <line x1="341.07" y1="899.45" x2="236.02" y2="960.10"/>
+          </g>
+          <!-- valley creases: chain-dashed, the returning folds -->
+          <g class="cr-v">
+            <line x1="0" y1="430" x2="477.56" y2="0"/>
+            <line x1="0" y1="430" x2="860" y2="150.57"/>
+            <line x1="0" y1="430" x2="860" y2="520.39"/>
+            <line x1="0" y1="430" x2="860" y2="926.52"/>
+            <line x1="0" y1="430" x2="414.13" y2="1000"/>
+          </g>
+          <!-- mountain creases: solid, the primary folds; the two outer ones are the leaf's cover ridges -->
+          <g class="cr-m">
+            <line x1="0" y1="430" x2="312.41" y2="0"/>
+            <line x1="0" y1="430" x2="744.78" y2="0"/>
+            <line x1="0" y1="430" x2="860" y2="339.61"/>
+            <line x1="0" y1="430" x2="860" y2="709.43"/>
+            <line x1="0" y1="430" x2="633.05" y2="1000"/>
+            <line x1="0" y1="430" x2="253.78" y2="1000"/>
+          </g>
+          <!-- light travelling across the folds as the leaf turns; hidden under reduced-motion -->
+          <line class="fold-light" x1="0" y1="430" x2="1000" y2="430">
+            <animateTransform attributeName="transform" attributeType="XML" type="rotate"
+              values="-52 0 430;64 0 430;-52 0 430" keyTimes="0;0.5;1" dur="120s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0;.42;.4;.42;0" keyTimes="0;0.14;0.5;0.86;1" dur="120s" repeatCount="indefinite"/>
+          </line>
+        </svg>
+
+        <div class="stage__body">
+          <p class="eyebrow"><span class="fx" aria-hidden="true"></span>周睿的个人作品馆</p>
+          <h1 class="wordmark">锆铌</h1>
+          <p class="latin"><span class="w">Zircon</span><span class="t" aria-hidden="true"></span><span class="e num-r">MMXXVI</span></p>
+          <div class="rule"><span class="gem"></span><span class="line"></span></div>
+          <p class="lead">一个<b>永不过期</b>的地方——硬核讲义、科研心得、生活折腾，和五十多件亲手做的小工具，都排得像一本书。</p>
+        </div>
+
+        <a class="scrollhint" href="#p2"><span class="arw">↓</span>下滑翻页</a>
+      </div>
+
+      <div class="plate" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <!-- ============ PAGE 2 — collection bento ============ -->
+  <section class="page" id="p2" aria-label="五大板块">
+    <div class="wrap">
+      <header class="s-head">
+        <div>
+          <span class="kicker">馆藏 · Collections</span>
+          <h2 class="s-title">五大板块</h2>
+        </div>
+        <p class="pills">永不过期<i>·</i>全文搜索<i>·</i>学习资料可下载<i>·</i>篇篇有评论区</p>
+      </header>
+
+      <div class="bento">
+        <a class="cell cell--flag" href="/notes/">
+          <div class="flag__media"><img src="{{ '/files/zh/images/portrait-boya.jpg' | relative_url }}" alt="北大未名湖与博雅塔"></div>
+          <div class="flag__key"></div>
+          <div class="flag__body">
+            <span class="flag__num">I · 馆藏之首</span>
+            <h3 class="flag__name">学习资料</h3>
+            <p class="flag__desc">硬核课程笔记与自写 LaTeX 讲义，排版工整、可直接下载。</p>
+            <div class="flag__meta"><span class="flag__count"><b>{{ notes_count }}</b> 份讲义</span><span class="flag__go">进入书库 →</span></div>
+          </div>
+        </a>
+
+        <a class="cell" href="/research/"{% if site.data.visibility.sections contains '科研妙招' %} data-hidden="true"{% endif %}>
+          <span class="cell__num">II</span>
+          <span class="cell__mark">🔬</span>
+          <h3 class="cell__name">科研妙招</h3>
+          <p class="cell__desc">一个 PhD 的科研工具与踩坑心得。</p>
+          <span class="go">→</span>
+        </a>
+
+        <a class="cell" href="/life/"{% if site.data.visibility.sections contains '生活攻略' %} data-hidden="true"{% endif %}>
+          <span class="cell__num">III</span>
+          <span class="cell__mark">☕</span>
+          <h3 class="cell__name">生活攻略</h3>
+          <p class="cell__desc">把日子过明白的循证攻略。</p>
+          <span class="go">→</span>
+        </a>
+
+        <a class="cell" href="/essays/"{% if site.data.visibility.sections contains '随笔漫谈' %} data-hidden="true"{% endif %}>
+          <span class="cell__num">IV</span>
+          <span class="cell__mark">✍️</span>
+          <h3 class="cell__name">随笔漫谈</h3>
+          <p class="cell__desc">想到哪写到哪的碎念。</p>
+          <span class="go">→</span>
+        </a>
+
+        <a class="cell" href="/toolbox/"{% if site.data.visibility.sections contains '百宝箱' %} data-hidden="true"{% endif %}>
+          <span class="cell__num">V</span>
+          <span class="cell__mark">🧰</span>
+          <h3 class="cell__name">百宝箱</h3>
+          <p class="cell__desc">亲手做的工具与小游戏。</p>
+          <span class="cell__count">{{ tool_count }} 件原创</span>
+          <span class="go">→</span>
+        </a>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b class="tnum">{{ notes_count }}</b><span>份课程资料<br>与讲义</span></div>
+        <div class="stat"><b class="tnum">{{ tool_count }}</b><span>件原创<br>工具</span></div>
+        <div class="stat"><b class="tnum">{{ total }}</b><span>份内容<br>持续增长</span></div>
       </div>
     </div>
-    <figure class="hero-portrait">
-      <div class="photo-stack">
-        <div class="ps-deck">
-          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="周睿在北京大学光华管理学院" width="760" height="1140" loading="eager" data-i="0"></div>
-          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-boya.jpg' | relative_url }}" alt="周睿在未名湖与博雅塔前" width="760" height="1140" loading="eager" data-i="1"></div>
-          <div class="ps-card"><img src="{{ '/files/zh/images/portrait-huabiao.jpg' | relative_url }}" alt="周睿在华表前抛学位帽" width="760" height="1140" loading="eager" data-i="2"></div>
+  </section>
+
+  <!-- ============ PAGE 3 — latest + footer ============ -->
+  <section class="page" id="p3" aria-label="近期更新">
+    <div class="wrap latest">
+      <header class="s-head">
+        <div>
+          <span class="kicker">近期 · Latest</span>
+          <h2 class="s-title">近期更新</h2>
         </div>
+        <a class="more" href="/notes/">查看更多 →</a>
+      </header>
+
+      <div class="latest__grid">
+        {%- if featured -%}
+        {%- assign _furl = featured.url | relative_url -%}
+        {%- assign _fimg = featured.image | default: featured.cover -%}
+        <a class="feat" href="{{ _furl }}">
+          <div class="feat__media">
+            <span class="feat__flag">★ 精选</span>
+            <img src="{% if _fimg %}{{ _fimg | relative_url }}{% else %}{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}{% endif %}" alt="{{ featured.title | strip_html | escape }}">
+          </div>
+          <div class="feat__body">
+            <span class="feat__cat">{{ featured.main_category | default: '学习资料' }}</span>
+            <h3 class="feat__title">{% include latex-logo.html title=featured.title %}</h3>
+            <time class="feat__date">{{ featured.date | date: "%Y-%m-%d" }}</time>
+          </div>
+        </a>
+        {%- endif -%}
+
+        <ol class="feed">
+          {%- assign _limit = 6 -%}{%- assign _shown = 0 -%}
+          {%- for post in all_content -%}
+            {%- if _shown >= _limit -%}{%- break -%}{%- endif -%}
+            {%- if featured and post.url == featured.url -%}{%- continue -%}{%- endif -%}
+            <li><a href="{{ post.url | relative_url }}">
+              <p class="fd__title">{% include latex-logo.html title=post.title %}</p>
+              <div class="fd__meta"><span class="fd__cat">{{ post.main_category | default: '学习资料' }}</span><time class="fd__date tnum">{{ post.date | date: "%Y-%m-%d" }}</time></div>
+            </a></li>
+            {%- assign _shown = _shown | plus: 1 -%}
+          {%- endfor -%}
+        </ol>
       </div>
-    </figure>
-  </div>
 
-  <p class="home-cta">文章下方都能留言——这是我更新最大的动力，欢迎路过留一句。</p>
+      <footer class="foot">
+        <span class="c">© {{ site.time | date: "%Y" }} 周睿</span>
+        <span>文章下方都能留言，欢迎路过留一句。</span>
+      </footer>
+    </div>
+  </section>
 
-  <details class="name-note">
-    <summary>关于「锆铌」这个名字</summary>
-    <p>锆（Zr）是我名字首字母对应的元素，铌（Nb）紧排在锆后面……拼在一起大概就是一个高中化学竞赛生留下来的中二遗产——我承认确实挺蠢的，但由于历史原因就一直沿用至今了。</p>
-  </details>
-
-  <p class="home-about-link"><a href="{{ '/zh/about/' | relative_url }}">关于我，和这个站的来历 →</a></p>
-</section>
-
-<section style="margin-bottom: 3.5rem;">
-  <div class="cat-grid">
-    <a href="/notes/" class="cat-card">
-      <span class="cat-icon">📚</span>
-      <div>
-        <div class="cat-name">学习资料</div>
-        <div class="cat-desc">硬核课程笔记与自写 LaTeX 讲义 · 可直接下载</div>
-      </div>
-    </a>
-    <a href="/research/" class="cat-card"{% if site.data.visibility.sections contains '科研妙招' %} data-hidden="true"{% endif %}>
-      <span class="cat-icon">🔬</span>
-      <div>
-        <div class="cat-name">科研妙招</div>
-        <div class="cat-desc">一个 PhD 的科研工具与踩坑心得</div>
-      </div>
-    </a>
-    <a href="/life/" class="cat-card"{% if site.data.visibility.sections contains '生活攻略' %} data-hidden="true"{% endif %}>
-      <span class="cat-icon">☕</span>
-      <div>
-        <div class="cat-name">生活攻略</div>
-        <div class="cat-desc">把日子过明白的循证攻略</div>
-      </div>
-    </a>
-    <a href="/essays/" class="cat-card">
-      <span class="cat-icon">✍️</span>
-      <div>
-        <div class="cat-name">随笔漫谈</div>
-        <div class="cat-desc">想到哪写到哪的碎念</div>
-      </div>
-    </a>
-    <a href="/toolbox/" class="cat-card cat-card--wide"{% if site.data.visibility.sections contains '百宝箱' %} data-hidden="true"{% endif %}>
-      <span class="cat-icon">🧰</span>
-      <div>
-        <div class="cat-name">百宝箱</div>
-        <div class="cat-desc">为解决自己的问题，亲手做的 {{ tool_count }} 件工具与小游戏</div>
-      </div>
-    </a>
-  </div>
-</section>
-
-<section class="blog-preview">
-  <h2 style="margin-bottom: 1.5rem;">✨ 近期更新</h2>
-
-  {% if featured %}
-  <div class="featured-card">
-    <div class="featured-label">✦ 精选</div>
-    <h3>
-      {% include post-cat-badge.html post=featured %}
-      <a href="{{ featured.url | relative_url }}">{% include latex-logo.html title=featured.title %}</a>
-    </h3>
-    {%- assign _fu = featured.url | relative_url -%}
-    <div class="featured-meta">{{ featured.date | date: "%Y-%m-%d" }}{% include sc-metrics.html url=_fu %}</div>
-    {% assign excerpt_text = featured.content | strip_html | strip | truncate: 120 %}
-    {% if excerpt_text and excerpt_text != "" %}
-    <p class="featured-excerpt">{{ excerpt_text }}</p>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  <ul class="post-list feed-cards" style="list-style: none; padding: 0;">
-    {% assign limit = 8 %}
-    {% assign shown = 0 %}
-
-    {% for post in all_content %}
-      {% if shown >= limit %}{% break %}{% endif %}
-      {% if featured and post.url == featured.url %}{% continue %}{% endif %}
-      {%- assign _u = post.url | relative_url -%}
-      {%- assign _ex = post.content | strip_html | strip | truncate: 96 -%}
-
-      <li class="feed-card">
-        <h3 class="fc-title">
-          {% include post-cat-badge.html post=post %}
-          <a href="{{ _u }}">{% include latex-logo.html title=post.title %}</a>
-        </h3>
-        {% if _ex and _ex != "" %}<p class="fc-ex">{{ _ex }}</p>{% endif %}
-        <div class="fc-foot">
-          <span class="fc-date">{{ post.date | date: "%Y-%m-%d" }}</span>
-          {% include sc-metrics.html url=_u %}
-        </div>
-      </li>
-      {% assign shown = shown | plus: 1 %}
-    {% endfor %}
-  </ul>
-
-  {%- comment -%} 卡片互动数（赞 + 评论）水合，数为 0 不显示 {%- endcomment -%}
-  {% include social-counts.html %}
-</section>
+</main>
 
 <script>
-  // 首页 hero 照片堆叠：一叠真实毕业照，背后两张是预渲染的真图；只保持当前 3 张已加载
-  //（顶 + 背后 2 张·省内存·以后更多张也不会一次全加载）。点一下 / Enter / → 顶张淡出上移、
-  // 背后真图递补上来；离场那张回收后载入新进入的照片（3 张循环窗口）。
-  (function () {
-    var stack = document.querySelector('.photo-stack');
-    if (!stack) return;
-    var deck = stack.querySelector('.ps-deck');
-    var cards = Array.prototype.slice.call(deck.querySelectorAll('.ps-card'));
-    if (cards.length < 2) return;
-    var base = '/files/zh/images/';
-    var photos = [
-      { s: 'portrait-guanghua.jpg', a: '周睿在北京大学光华管理学院' },
-      { s: 'portrait-boya.jpg',     a: '周睿在未名湖与博雅塔前' },
-      { s: 'portrait-huabiao.jpg',  a: '周睿在华表前抛学位帽' },
-      { s: 'portrait-window.jpg',   a: '周睿在窗边看毕业证书' },
-      { s: 'portrait-stair.jpg',    a: '周睿在楼梯窗边远望' }
-    ];
-    var n = photos.length;
-    var VIS = Math.min(cards.length, 3);   // 同时呈现/加载的张数（最多 3）
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var DEPTH = [
-      { t: 'translate(0px,0px) rotate(0deg) scale(1)',        z: 30 },
-      { t: 'translate(0px,11px) rotate(1.8deg) scale(0.955)', z: 20 },
-      { t: 'translate(0px,21px) rotate(-1.8deg) scale(0.91)', z: 10 }
-    ];
-    var order = cards.slice(0, VIS);       // 深度顺序：[顶, 背后1, 背后2]
-    var idx = 0, busy = false;
-    function load(card, pIdx) {            // 按需载入某卡的照片（只在真正要显示时加载）
-      var m = ((pIdx % n) + n) % n, im = card.querySelector('img');
-      if (im && im.getAttribute('data-i') !== String(m)) { im.src = base + photos[m].s; im.alt = photos[m].a; im.setAttribute('data-i', m); }
-    }
-    function place(card, d, anim) {
-      card.style.transition = anim ? '' : 'none';
-      card.style.zIndex = String(DEPTH[d].z);
-      card.style.transform = DEPTH[d].t;
-      card.style.opacity = '1';
-    }
-    for (var k = 0; k < VIS; k++) { load(order[k], idx + k); place(order[k], k, false); }
-    function next() {
-      if (busy) return; busy = true;
-      var leaving = order[0];
-      leaving.style.transition = '';
-      leaving.style.zIndex = '40';
-      leaving.style.opacity = '0';
-      leaving.style.transform = 'translate(0px,-10px) rotate(-1.6deg) scale(1.02)';
-      for (var d = 1; d < VIS; d++) place(order[d], d - 1, true);   // 背后真图上移递补
-      idx = (idx + 1) % n;
-      window.setTimeout(function () {
-        load(leaving, idx + (VIS - 1));       // 离场卡回收 + 载入新进入的照片
-        place(leaving, VIS - 1, false);       // 归位到最底（已被上层遮住）
-        order.push(order.shift());            // 轮换深度顺序
-        busy = false;
-      }, reduce ? 0 : 340);
-    }
-    stack.addEventListener('click', next);
-    stack.setAttribute('tabindex', '0');
-    stack.setAttribute('role', 'button');
-    stack.setAttribute('aria-label', '点一下看下一张毕业照');
-    stack.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); next(); }
+(function(){
+  var deck = document.getElementById('deck');
+  var pages = Array.prototype.slice.call(deck.querySelectorAll('.page'));
+  var dots = Array.prototype.slice.call(document.querySelectorAll('.dots a'));
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // smooth in-deck scroll for hash links (dots + scroll hint)
+  Array.prototype.forEach.call(document.querySelectorAll('a[href^="#"]'), function(a){
+    a.addEventListener('click', function(e){
+      var id = a.getAttribute('href').slice(1);
+      var el = document.getElementById(id);
+      if(el){ e.preventDefault(); el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' }); }
     });
-  })();
+  });
+
+  // active dot via IntersectionObserver rooted on the deck
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          var id = '#' + en.target.id;
+          dots.forEach(function(d){ d.setAttribute('aria-current', d.getAttribute('href') === id ? 'true' : 'false'); });
+        }
+      });
+    }, { root: deck, threshold: 0.55 });
+    pages.forEach(function(p){ io.observe(p); });
+  }
+
+  // theme toggle
+  var tbtn = document.querySelector('.js-theme');
+  if(tbtn){ tbtn.addEventListener('click', function(){
+    var r = document.documentElement;
+    var cur = r.getAttribute('data-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    r.setAttribute('data-theme', next);
+    try{ localStorage.setItem('theme', next); }catch(e){}
+  }); }
+})();
 </script>
+
+<!-- Service Worker（与全站一致，scope '/'） -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
+    });
+  }
+</script>
+<!-- Cloudflare Web Analytics（全站统一统计）-->
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "707b3caaba08406c9cba84b86f396715"}'></script>
+</body>
+</html>
