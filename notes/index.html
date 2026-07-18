@@ -96,7 +96,7 @@ title: "学习资料"
   {% assign shelf_books = site.notes | where: "author", "Rui Zhou" | where_exp: "n", "n.published != false" %}
   {% if shelf_books.size > 0 %}
   <section class="lecture-shelf" aria-label="自写教材讲义">
-    <div class="ls-intro">📚 自写教材 · 用 LaTeX 从头重排的讲义，点开可直接下载</div>
+    <div class="ls-intro"><span class="gold-diamond" style="margin-right:0.5em" aria-hidden="true"></span>自写教材 · 用 LaTeX 从头重排的讲义，点开可直接下载</div>
     {% assign shelf_by_disc = shelf_books | group_by: "discipline" %}
     {% assign shelf_order = "数学|经济学|管理学|心理学|思政|通识|体育" | split: "|" %}
     {% for dname in shelf_order %}

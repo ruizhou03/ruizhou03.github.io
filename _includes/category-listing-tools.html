@@ -294,7 +294,7 @@
     for (var i = 0; i < secs.length; i++) { if (secs[i].getAttribute('data-sub') === sub) return secs[i].querySelector('.paginated-list'); }
     var sec = document.createElement('section');   // 该 sub 的文章被删光了、小节不存在 → 新建一个
     sec.className = 'post-list-section'; sec.setAttribute('data-sub', sub || '其他');
-    sec.innerHTML = '<div class="post-list-head"><h2 class="post-list-title"><span class="sec-icon">📂</span>' + escHtml(sub || '其他') + '</h2></div><ul class="paginated-list"></ul>';
+    sec.innerHTML = '<div class="post-list-head"><h2 class="post-list-title"><span class="sec-icon" aria-hidden="true" style="display:inline-block;width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin-right:0.6em;vertical-align:middle;"></span>' + escHtml(sub || '其他') + '</h2></div><ul class="paginated-list"></ul>';
     article.appendChild(sec);
     return sec.querySelector('.paginated-list');
   }

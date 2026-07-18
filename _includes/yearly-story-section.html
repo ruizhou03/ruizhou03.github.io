@@ -11,7 +11,7 @@ inputs:
 {%- for _p in include.posts -%}{%- if _p.published != false -%}{%- assign _ystory_count = _ystory_count | plus: 1 -%}{%- endif -%}{%- endfor -%}
 <section class="yearly-story-section">
   <div class="yearly-section-head">
-    <h2 class="yearly-section-title"><span class="yearly-section-icon">📂</span>{{ include.sub }}</h2>
+    <h2 class="yearly-section-title"><span class="yearly-section-icon" aria-hidden="true" style="display:inline-block;width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin-right:0.6em;vertical-align:middle;"></span>{{ include.sub }}</h2>
     <button type="button" class="download-toggle yearly-download-toggle" aria-label="下载本分类全部文章" title="缓存「{{ include.sub }}」{{ _ystory_count }} 篇文章到本地，飞机上 / 没网时也能看">
       <svg class="dl-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
