@@ -189,12 +189,14 @@
         </button>
 
         <div class="nav-controls">
-          <div id="auth-slot"></div>
+          <button type="button" class="nav-theme-btn" onclick="toggleTheme()" aria-label="切换深浅主题" title="切换深浅主题">&#9680;</button>
 
           <a href="{{ site.baseurl }}/" class="lang-toggle" title="English homepage"
-             style="font-family:var(--font-display);font-size:0.86rem;font-weight:600;letter-spacing:0.14em;color:var(--color-muted);
+             style="font-family:var(--font-display);font-size:0.86rem;font-weight:600;letter-spacing:0.14em;color:var(--color-highlight);
                     border:1px solid var(--gold-soft);padding:0.32rem 0.66rem;border-radius:var(--radius-pill);
                     text-decoration:none;white-space:nowrap;">EN</a>
+
+          <div id="auth-slot"></div>
         </div>
       </div>
     </div>

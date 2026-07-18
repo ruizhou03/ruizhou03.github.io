@@ -138,6 +138,9 @@
        只是为了给 theme + EN 收一点更紧的 gap（0.6rem 比 box 整体的 1rem 紧）。 */
     .nav-right-box { display: flex; align-items: center; gap: 0.75rem; justify-self: end; }   /* 网格右列：搜索/头像/EN 靠右 */
     .nav-controls { display: flex; align-items: center; gap: 0.5rem; }
+    /* 桌面主题切换键：与搜索键同款 34px 圆钮（手机端主题在 ☰ 菜单里，故隐藏） */
+    .nav-theme-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; font-size: 1rem; line-height: 1; background: var(--color-bg); color: var(--color-muted); border: 1px solid var(--color-border); border-radius: 50%; cursor: pointer; transition: color 0.2s, border-color 0.2s, background 0.2s; }
+    .nav-theme-btn:hover { color: var(--color-highlight); border-color: var(--color-highlight); background: var(--color-bg-warm); }
 
     /* 响应式：手机端调整 */
     @media (max-width: 768px) {
@@ -181,6 +184,7 @@
       .nav-links.open { display: flex; }
       /* 顶栏右侧只留 搜索 + 头像；主题/EN 移到 ☰ 菜单底部，管理后台移到头像下拉 */
       .nav-controls .theme-toggle,
+      .nav-controls .nav-theme-btn,
       .nav-controls .lang-toggle,
       #nav-admin-links { display: none; }
       .nav-link-home { display: none; }   /* 菜单里的「锆铌」与左上品牌重复，隐去 */
