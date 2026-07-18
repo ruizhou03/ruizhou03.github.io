@@ -103,8 +103,12 @@
        而更小字号的返回链居中，两者一比就显得返回链"偏低"。 */
     .nav-left-zone { display: flex; align-items: center; gap: 0.6rem; }
     .nav-links { display: flex; list-style: none; gap: 1.4rem; flex-wrap: nowrap; align-items: center; }
-    .nav-links a { text-decoration: none; font-size: 0.95rem; font-weight: 500; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
-    .nav-links a:hover { color: var(--color-accent); }
+    .nav-links a { position: relative; text-decoration: none; font-size: 0.96rem; font-weight: 500; color: var(--color-text); letter-spacing: 0.05em; white-space: nowrap; transition: color 0.2s; }
+    /* 板块链接：hover 金色下划线（与首页 .topbar 同一交互签名）；不给品牌 / 设置项加线 */
+    .nav-links li:not(.nav-link-home):not(.nav-settings) a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -3px; height: 1px; background: var(--color-highlight); transition: right 0.3s ease; }
+    .nav-links li:not(.nav-link-home):not(.nav-settings) a:hover::after,
+    .nav-links li:not(.nav-link-home):not(.nav-settings) a:focus-visible::after { right: 0; }
+    .nav-links a:hover { color: var(--color-ink); }
 
     /* 返回链接：低调的层级指示——细 chevron + 灰字 + 永不换行，hover 才点亮成强调色，不与品牌抢眼 */
     .nav-back { font-size: 0.85rem; line-height: 1; font-weight: 500; color: var(--color-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; transition: color 0.2s; }
@@ -711,13 +715,16 @@
     .nav-links .nav-link-home a { display: inline-flex; align-items: center; }
     .nav-brand:hover,
     .nav-links .nav-link-home a:hover { color: var(--color-accent); }
+    /* 品牌不再挂「Zr」元素符（低调化、与新首页一致）：改为纯衬线「锆铌」，
+       桌面在其后缀一枚金色小型大写「ZIRCON」副名（手机端 .nav-brand 保持精简，不加）。 */
     .nav-brand::before,
-    .nav-links .nav-link-home a::before {
-      content: "Zr";
+    .nav-links .nav-link-home a::before { content: none; }
+    .nav-links .nav-link-home a::after {
+      content: "Zircon";
       font-family: 'Cormorant Garamond', var(--font-display);
-      font-weight: 700; font-size: 1.05em;
-      color: #b8934e;                 /* 金色 Zr、无背景，和浏览器 tab 的 favicon 一致 */
-      margin-right: 0.32em; letter-spacing: 0.01em;
+      font-variant: small-caps; text-transform: uppercase;
+      font-size: 0.6em; letter-spacing: 0.22em; font-weight: 600;
+      color: var(--color-highlight); margin-left: 0.5em;
     }
 
     /* ─── 成熟度 pill：常青（定稿）暖金描边 / 更新中 藏蓝——由管理后台 set-flag(evergreen) 控制 ─── */
@@ -741,3 +748,66 @@
       margin: 0 0 0.9rem;
     }
     .post-goldrule { width: 44px; height: 2px; background: #a9822f; margin: 1.5rem auto 0; border-radius: 1px; }
+
+    /* ============================================================
+       锆铌 · 全站门面适配 · 共享组件（2026-07）
+       —— 增量新增：token 别名层 + 门面组件类。未被引用即无观感变化。
+       —— 别名层：让首页那套 --ink/--gold 组件在内页(main.css)也能用；
+          只把短名映射到既有 --color-*，不改任何现有变量与规则。
+       ============================================================ */
+    :root {
+      --ink: var(--color-ink);
+      --text: var(--color-text);
+      --muted: var(--color-muted);
+      --light: var(--color-light);
+      --gold: var(--color-highlight);
+      --accent: var(--color-accent);
+      --accent-light: var(--color-accent-light);
+      --accent-soft: var(--color-accent-soft);
+      --bg: var(--color-bg);
+      --bg-warm: var(--color-bg-warm);
+      --border: var(--color-border);
+      --gold-soft: rgba(201, 169, 110, 0.16);
+      --color-card: #ffffff;
+      --card: var(--color-card);
+    }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --color-card: #232221; } }
+    :root[data-theme="dark"] { --color-card: #232221; }
+    :root[data-theme="light"] { --color-card: #ffffff; }
+
+    /* —— M1 加冕页眉：eyebrow + 大衬线标题 + 金 hairline（板块/文章/菜谱通用）—— */
+    .page-hero { margin-bottom: 2.4rem; }
+    .page-hero--center { text-align: center; }
+    .ph-eyebrow {
+      font-family: var(--font-display); font-weight: 600;
+      font-size: 0.72rem; letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--gold); display: inline-flex; align-items: center; gap: 0.6em;
+    }
+    .ph-eyebrow::before { content: ""; width: 20px; height: 1px; background: var(--gold); }
+    .page-hero--center .ph-eyebrow::after { content: ""; width: 20px; height: 1px; background: var(--gold); }
+    .ph-title {
+      font-family: var(--font-display); font-weight: 600; color: var(--color-ink);
+      font-size: clamp(2rem, 4.4vw, 2.9rem); line-height: 1.08; letter-spacing: 0.02em;
+      margin: 0.35rem 0 0.2rem; text-wrap: balance;
+    }
+    .ph-latin {
+      font-family: var(--font-display); font-size: 0.74rem; letter-spacing: 0.32em;
+      text-transform: uppercase; color: var(--color-muted);
+    }
+    .gold-rule { height: 1px; width: 56px; background: linear-gradient(90deg, var(--gold), transparent); margin: 1rem 0 0; border: 0; }
+    .page-hero--center .gold-rule { margin-inline: auto; }
+
+    /* —— M3 记号：罗马数字 / 金菱（替代 emoji 分类符）—— */
+    .roman-mark { font-family: var(--font-display); font-weight: 600; color: var(--gold); letter-spacing: 0.1em; }
+    .gold-diamond { display: inline-block; width: 7px; height: 7px; background: var(--gold); transform: rotate(45deg); vertical-align: middle; }
+    .gold-diamond--hollow { background: transparent; border: 1px solid var(--gold); }
+
+    /* —— M4 keyline 卡片：共享金线外框、1px 分隔（取代逐卡描边）—— */
+    .keyline-grid { display: grid; gap: 1px; background: var(--gold-soft); border: 1px solid var(--gold-soft); border-radius: var(--radius-lg); overflow: hidden; }
+    .keyline-card { background: var(--card); padding: 1rem 1.15rem; display: flex; flex-direction: column; gap: 0.25rem; text-decoration: none; color: inherit; transition: background var(--dur-base) var(--ease); }
+    .keyline-card:hover { background: var(--bg-warm); }
+
+    /* —— M2 藏书票双框：仅门面页（landing / about / 404），内页不套 —— */
+    .plate { position: relative; }
+    .plate::before { content: ""; position: absolute; inset: 0; border: 1px solid var(--gold-soft); border-radius: var(--radius-md); pointer-events: none; }
+    .plate::after { content: ""; position: absolute; inset: 5px; border: 1px solid var(--gold-soft); border-radius: calc(var(--radius-md) - 4px); pointer-events: none; }

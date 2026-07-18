@@ -1,0 +1,15 @@
+{%- comment -%}
+  共享加冕页眉（M1）· 全站门面统一用它，替代各页手写的「居中 h1 + 斜体英文」。
+  参数：
+    title    必填  中文大标题（如「科研妙招」）
+    latin    选填  拉丁小型大写副题（如「Research · Tools & Pitfalls」）
+    eyebrow  选填  金色 eyebrow 小标（如「馆藏 · 第二栏」或分类名）
+    center   选填  传 "true" 居中（默认左对齐，更编辑气）
+  样式在 assets/css/main.css 的 .page-hero / .ph-* / .gold-rule。
+{%- endcomment -%}
+<header class="page-hero{% if include.center == 'true' %} page-hero--center{% endif %}">
+  {%- if include.eyebrow -%}<span class="ph-eyebrow">{{ include.eyebrow }}</span>{%- endif -%}
+  <h1 class="ph-title">{{ include.title }}</h1>
+  {%- if include.latin -%}<div class="ph-latin">{{ include.latin }}</div>{%- endif -%}
+  <hr class="gold-rule">
+</header>
