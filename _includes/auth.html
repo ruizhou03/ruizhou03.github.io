@@ -7,8 +7,8 @@
 <style>
   /* ── 导航里的账号入口 ── */
   #auth-slot { display: flex; align-items: center; }
-  /* 管理员专属「数据分析 / 内容管理」按钮（EN 旁），样式对齐 EN/搜索 */
-  .nav-admin-links { display: inline-flex; align-items: center; }
+  /* 管理入口不再单列在顶栏（避免与 EN/头像挤在一起），统一收进头像下拉 */
+  .nav-admin-links { display: none; }
   .nav-dash-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.28rem;
     color: var(--color-muted); border: 1px solid var(--color-border); border-radius: 4px;
     padding: 0.26rem 0.5rem; margin-left: 0.4rem; cursor: pointer; text-decoration: none;
@@ -18,14 +18,9 @@
   /* 头像下拉项：图标 + 文字对齐 */
   .sa-menu .sa-mi { display: flex; align-items: center; gap: 0.6rem; }
   .sa-menu .sa-mi svg { width: 16px; height: 16px; flex-shrink: 0; }
-  .sa-menu .sa-admin-link { display: none; }                                  /* 桌面：管理入口在顶栏，下拉不显示 */
-  @media (max-width: 768px) { .sa-menu .sa-admin-link { display: flex; } }     /* 手机：管理入口收进头像下拉 */
-  /* 桌面端：账号入口绝对定位到导航最右（脱离 flex 流 → 主题/语言切换完全不受影响、
-     与英文站绝对位置一致）。锚定 position:fixed 的 <nav>，距视口右缘 2.2rem。
-     ≤980px 退回内联（窄屏右侧无富余空间，绝对定位会和 EN 重叠）。 */
-  @media (min-width: 981px) {
-    #auth-slot { position: absolute; right: 2.2rem; top: 50%; transform: translateY(-50%); }
-  }
+  .sa-menu .sa-admin-link { display: flex; }   /* 管理入口统一收进头像下拉（桌面 + 手机都在这里） */
+  /* 账号入口（头像/登录）随控件内联排布，与搜索 / EN 一起靠右——不再绝对定位，
+     避免整幅顶栏下头像与 EN 重叠。 */
   .sa-login-btn {
     font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em;
     color: var(--color-muted); background: none;
