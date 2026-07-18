@@ -248,6 +248,9 @@ body_class: acc-page
   .acc-comment-body :is(p) { margin:0.2rem 0; }
   .acc-comment-body img, .acc-cmt-img { display:block; max-width:180px; max-height:140px; margin-top:0.35rem; border-radius:8px;
     border:1px solid var(--color-border); object-fit:cover; }
+  .acc-cmt-at { color:var(--color-light); font-size:0.86rem; margin-right:0.1rem; }
+  .acc-comment-body .katex { font-size:1em; }
+  .acc-comment-body .katex-display { margin:0.35rem 0; text-align:left; }
 
   /* ── 翻页 ── */
   .acc-pager { display:flex; align-items:center; gap:0.6rem; margin-top:1.1rem; padding-top:0.9rem;
@@ -398,15 +401,74 @@ body_class: acc-page
       var c = catOf(it);
       return c ? '<span class="acc-cat"><span class="acc-cat-dot" style="background:' + c.color + '"></span>' + esc(c.name) + '</span> · ' : '';
     }
-    // 评论体里的图片 markdown ![alt](url)：可识别的图（data:image/http(s)）转小缩略图，其余用「【图片】」占位
-    function transformCommentImages(html) {
-      if (!html) return '';
-      return String(html).replace(/!\[[^\]]*\]\(([^)]+)\)/g, function (m, url) {
-        url = String(url).trim().replace(/["'<>]/g, '');
-        if (/^data:image\//i.test(url) || /^https?:\/\//i.test(url)) {
-          return '<img class="acc-cmt-img" src="' + url + '" alt="图片" loading="lazy">';
+    // 评论正文渲染：① 剥掉 Waline 回复前缀里让人困惑的「(#序号)」，只留干净的 @昵称；
+    // ② 图片 markdown / 图床裸链接收成小缩略图或「【图片】」占位，绝不把无意义的长链接甩给用户；
+    // ③ 其余按纯文本转义（$…$ 数学分隔符原样保留，随后交给 KaTeX 渲染）。
+    function renderCommentBody(raw) {
+      if (!raw) return '';
+      var s = String(raw), slots = [];
+      function keep(html) { slots.push(html); return '' + (slots.length - 1) + ''; }
+      // ① Waline 回复前缀 [@昵称](#父评论id): —— 去掉括号序号，只保留可读的「@昵称」
+      s = s.replace(/^\s*\[@([^\]\n]{1,40})\]\(#[^)\n]*\)\s*:\s*/, function (m, name) {
+        return keep('<span class="acc-cmt-at">@' + esc(name.trim()) + '</span> ');
+      });
+      // ② 完整图片 markdown ![alt](url [title])：可识别的图转小缩略图，其余占位
+      s = s.replace(/!\[[^\]]*\]\(\s*([^)\s]+)[^)]*\)/g, function (m, url) {
+        var u = String(url).trim().replace(/["'<>]/g, '');
+        if (/^data:image\//i.test(u) || /^https?:\/\//i.test(u)) {
+          return keep('<img class="acc-cmt-img" src="' + esc(u) + '" alt="图片" loading="lazy">');
         }
         return '【图片】';
+      });
+      // ③ 裸露的图床上传链接（R2）——这串地址对用户无意义，收成占位
+      s = s.replace(/https?:\/\/pub-[0-9a-z]+\.r2\.dev\/\S+/gi, '【图片】');
+      // ④ 残留的截断图片 markdown 碎片（如未闭合的 ![图片](https://…）也一并占位
+      s = s.replace(/!\[[^\]]*\](\([^)]*)?/g, '【图片】');
+      // ⑤ 其余转义为纯文本；⑥ 还原白名单 HTML；⑦ 合并相邻的「【图片】」占位
+      s = esc(s).replace(/(\d+)/g, function (m, i) { return slots[+i] || ''; });
+      return s.replace(/(?:【图片】\s*){2,}/g, '【图片】');
+    }
+
+    // KaTeX 按需加载（账号页平时不引入这套重库，首次进「评论记录」再拉）
+    var _katexReady = null;
+    function ensureKatex() {
+      if (window.renderMathInElement) return Promise.resolve(true);
+      if (_katexReady) return _katexReady;
+      _katexReady = new Promise(function (resolve) {
+        if (!document.getElementById('acc-katex-css')) {
+          var l = document.createElement('link');
+          l.id = 'acc-katex-css'; l.rel = 'stylesheet';
+          l.href = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css';
+          document.head.appendChild(l);
+        }
+        function load(src, cb) {
+          var sc = document.createElement('script');
+          sc.src = src; sc.onload = cb; sc.onerror = function () { cb(); };
+          document.head.appendChild(sc);
+        }
+        load('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js', function () {
+          load('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js', function () {
+            resolve(!!window.renderMathInElement);
+          });
+        });
+      });
+      return _katexReady;
+    }
+    var KATEX_DELIMS = [
+      { left: '$$', right: '$$', display: true },
+      { left: '\\[', right: '\\]', display: true },
+      { left: '$', right: '$', display: false },
+      { left: '\\(', right: '\\)', display: false }
+    ];
+    // 渲染当前评论列表里的数学公式（浏览评论记录时也要正确出公式）
+    function renderCommentMath() {
+      var nodes = listEl.querySelectorAll('.acc-comment-body');
+      if (!nodes.length) return;
+      ensureKatex().then(function (ok) {
+        if (!ok || !window.renderMathInElement) return;
+        listEl.querySelectorAll('.acc-comment-body').forEach(function (el) {
+          try { window.renderMathInElement(el, { delimiters: KATEX_DELIMS, throwOnError: false }); } catch (e) {}
+        });
       });
     }
     function setCount(txt) { var el = document.getElementById('acc-sec-count'); if (el) el.textContent = txt || ''; }
@@ -690,7 +752,7 @@ body_class: acc-page
       if (kind === 'comment') {
         return '<div class="acc-item"><div class="acc-item-main">' +
           '<a class="acc-item-title" href="' + esc(it.url || '#') + '">' + esc(resolveTitle(it.url)) + '</a>' +
-          '<div class="acc-comment-body">' + transformCommentImages(it.html || esc(it.text || '')) + '</div>' +
+          '<div class="acc-comment-body">' + renderCommentBody(it.html || it.text || '') + '</div>' +
           '<div class="acc-item-meta">' + catMetaHtml(it) + fmtDate(it.ts) + '</div>' +
         '</div></div>';
       }
@@ -722,6 +784,7 @@ body_class: acc-page
       var startI = state.page * state.pageSize;
       var slice = view.slice(startI, startI + state.pageSize);
       listEl.innerHTML = slice.map(function (it) { return itemHTML(kind, it); }).join('');
+      if (kind === 'comment') renderCommentMath();   // 评论记录里的数学公式按需渲染
       // 分页条：过滤后仍 >10 条才显示
       pagerEl.hidden = view.length <= 10;
       document.getElementById('acc-pager-info').textContent =
