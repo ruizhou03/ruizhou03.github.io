@@ -91,9 +91,9 @@
     /* 导航栏核心布局 */
     nav { position: fixed; top: 0; width: 100%; z-index: 1000; background: var(--color-nav-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--color-border); }
     .nav-inner {
-      max-width: 960px; margin: 0 auto; padding: 0.7rem 2rem;
-      display: flex; justify-content: space-between; align-items: center;
-      flex-wrap: nowrap; gap: 1rem;   /* 各区块之间留一道最小间距、整条永不换行 */
+      max-width: none; margin: 0; padding: 0.55rem clamp(16px, 3.4vw, 44px);
+      display: flex; justify-content: flex-start; align-items: center;
+      flex-wrap: nowrap; gap: clamp(0.9rem, 1.8vw, 1.7rem);   /* 整幅铺满、与首页 .topbar 同宽同款 */
     }
 
     /* 导航链接 (PC端显示，手机端隐藏)。
@@ -101,7 +101,7 @@
        装不下时由 @media(max-width:960) 整条收进 ☰，中间没有"挤压断字"的过渡态。 */
     /* 左区（品牌 + 返回链）与中间导航都显式垂直居中——否则 ul 项被 stretch、文字贴顶，
        而更小字号的返回链居中，两者一比就显得返回链"偏低"。 */
-    .nav-left-zone { display: flex; align-items: center; gap: 0.6rem; }
+    .nav-left-zone { display: flex; align-items: center; gap: 0.6rem; margin-right: auto; }   /* 品牌靠左，链接+控件被推到右侧（与首页同布局） */
     .nav-links { display: flex; list-style: none; gap: 1.4rem; flex-wrap: nowrap; align-items: center; }
     .nav-links a { position: relative; text-decoration: none; font-size: 0.96rem; font-weight: 500; color: var(--color-text); letter-spacing: 0.05em; white-space: nowrap; transition: color 0.2s; }
     /* 板块链接：hover 金色下划线（与首页 .topbar 同一交互签名）；不给品牌 / 设置项加线 */
@@ -117,7 +117,10 @@
     .nav-back .chev { display: inline-block; box-sizing: border-box; width: 0.4em; height: 0.4em;
       border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(135deg); margin-right: 0.1em; }
     /* 手机端左上角品牌「锆铌」→ 中文首页（桌面隐藏，桌面靠 .nav-links 里的锆铌） */
-    .nav-brand { display: none; font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; color: var(--color-ink); text-decoration: none; letter-spacing: 0.02em; }
+    /* 品牌统一走左上 .nav-brand（桌面+手机都显示，与首页 .topbar 品牌同款）；
+       .nav-link-home（菜单里重复的「锆铌」）全端隐去。 */
+    .nav-brand { display: inline-flex; align-items: baseline; font-family: var(--font-display); font-size: 1.3rem; font-weight: 600; color: var(--color-ink); text-decoration: none; letter-spacing: 0.06em; }
+    .nav-link-home { display: none; }
     .nav-settings { display: none; }   /* ☰ 菜单底部设置区，只手机端显示 */
 
     /* 汉堡菜单按钮 (默认隐藏) */
@@ -705,26 +708,20 @@
        把只存在于 16px favicon 里的 Zr 符号升级成导航常驻的视觉签名。
        桌面走菜单首项 .nav-link-home（在最左）、手机走左上角 .nav-brand，
        两者本就互斥（各自的 display 由既有规则控制，这里不碰 display）。 */
-    .nav-brand,
-    .nav-links .nav-link-home a {
+    .nav-brand {
       font-family: 'Cormorant Garamond', var(--font-display);
-      font-weight: 600; font-size: 1.12rem; letter-spacing: 0.02em;
+      font-weight: 600; font-size: 1.3rem; letter-spacing: 0.06em;
       color: var(--color-ink); text-transform: none;
     }
-    /* 桌面菜单首项用 flex 精确居中 tile 与「锆铌」（修 tile 掉到基线下的错位） */
-    .nav-links .nav-link-home a { display: inline-flex; align-items: center; }
-    .nav-brand:hover,
-    .nav-links .nav-link-home a:hover { color: var(--color-accent); }
-    /* 品牌不再挂「Zr」元素符（低调化、与新首页一致）：改为纯衬线「锆铌」，
-       桌面在其后缀一枚金色小型大写「ZIRCON」副名（手机端 .nav-brand 保持精简，不加）。 */
-    .nav-brand::before,
-    .nav-links .nav-link-home a::before { content: none; }
-    .nav-links .nav-link-home a::after {
+    .nav-brand:hover { color: var(--color-accent); }
+    /* 品牌不再挂「Zr」元素符；缀一枚金色小型大写「Zircon」副名，与首页 .topbar 品牌完全一致 */
+    .nav-brand::before { content: none; }
+    .nav-brand::after {
       content: "Zircon";
       font-family: 'Cormorant Garamond', var(--font-display);
       font-variant: small-caps; text-transform: uppercase;
-      font-size: 0.6em; letter-spacing: 0.22em; font-weight: 600;
-      color: var(--color-highlight); margin-left: 0.5em;
+      font-size: 0.56em; letter-spacing: 0.22em; font-weight: 600;
+      color: var(--color-highlight); margin-left: 0.5em; align-self: center;
     }
 
     /* ─── 成熟度 pill：常青（定稿）暖金描边 / 更新中 藏蓝——由管理后台 set-flag(evergreen) 控制 ─── */
