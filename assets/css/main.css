@@ -121,7 +121,7 @@
     /* 手机端左上角品牌「锆铌」→ 中文首页（桌面隐藏，桌面靠 .nav-links 里的锆铌） */
     /* 品牌统一走左上 .nav-brand（桌面+手机都显示，与首页 .topbar 品牌同款）；
        .nav-link-home（菜单里重复的「锆铌」）全端隐去。 */
-    .nav-brand { display: inline-flex; align-items: baseline; font-family: var(--font-display); font-size: 1.3rem; font-weight: 600; color: var(--color-ink); text-decoration: none; letter-spacing: 0.06em; }
+    .nav-brand { display: inline-flex; align-items: baseline; font-family: var(--font-display); font-size: 1.34rem; font-weight: 600; color: var(--color-ink); text-decoration: none; letter-spacing: 0.14em; }
     .nav-link-home { display: none; }
     .nav-settings { display: none; }   /* ☰ 菜单底部设置区，只手机端显示 */
 
@@ -712,18 +712,19 @@
        两者本就互斥（各自的 display 由既有规则控制，这里不碰 display）。 */
     .nav-brand {
       font-family: 'Cormorant Garamond', var(--font-display);
-      font-weight: 600; font-size: 1.3rem; letter-spacing: 0.06em;
+      font-weight: 600; font-size: 1.34rem; letter-spacing: 0.14em;
       color: var(--color-ink); text-transform: none;
     }
     .nav-brand:hover { color: var(--color-accent); }
-    /* 品牌不再挂「Zr」元素符；缀一枚金色小型大写「Zircon」副名，与首页 .topbar 品牌完全一致 */
+    /* 品牌数值与首页 .brand__zh / .brand__la 完全一致，两处像素级重合：
+       锆铌 1.34rem/.14em·600；Zircon 0.74rem/.32em·400·大写；间隔 0.5rem；基线对齐。 */
     .nav-brand::before { content: none; }
     .nav-brand::after {
       content: "Zircon";
       font-family: 'Cormorant Garamond', var(--font-display);
-      font-variant: small-caps; text-transform: uppercase;
-      font-size: 0.56em; letter-spacing: 0.22em; font-weight: 600;
-      color: var(--color-highlight); margin-left: 0.5em; align-self: center;
+      text-transform: uppercase; font-weight: 400;
+      font-size: 0.74rem; letter-spacing: 0.32em;
+      color: var(--color-highlight); margin-left: 0.5rem;
     }
 
     /* ─── 成熟度 pill：常青（定稿）暖金描边 / 更新中 藏蓝——由管理后台 set-flag(evergreen) 控制 ─── */
