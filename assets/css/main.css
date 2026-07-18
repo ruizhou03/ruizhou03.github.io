@@ -744,10 +744,10 @@
     .post-eyebrow {
       font-family: 'Cormorant Garamond', var(--font-display);
       font-variant: small-caps; letter-spacing: 0.16em;
-      font-size: 0.9rem; color: var(--color-accent);
+      font-size: 0.9rem; color: var(--color-highlight);
       margin: 0 0 0.9rem;
     }
-    .post-goldrule { width: 44px; height: 2px; background: #a9822f; margin: 1.5rem auto 0; border-radius: 1px; }
+    .post-goldrule { width: 48px; height: 1.5px; background: var(--color-highlight); margin: 1.5rem auto 0; border-radius: 1px; }
 
     /* ============================================================
        锆铌 · 全站门面适配 · 共享组件（2026-07）
