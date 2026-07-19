@@ -6,8 +6,8 @@
 {%- for n in site.notes -%}
   {%- assign _sec_hidden = false -%}
   {%- if n.main_category and site.data.visibility.sections contains n.main_category -%}{%- assign _sec_hidden = true -%}{%- endif -%}
-  {%- if n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true -%}{%- assign total = total | plus: 1 -%}{%- endif -%}
-  {%- if n.date and n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true -%}{%- assign valid_notes = valid_notes | push: n -%}{%- endif -%}
+  {%- if n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true and n.main_category != '站务公告' -%}{%- assign total = total | plus: 1 -%}{%- endif -%}
+  {%- if n.date and n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true and n.main_category != '站务公告' -%}{%- assign valid_notes = valid_notes | push: n -%}{%- endif -%}
   {%- if n.discipline -%}{%- assign notes_count = notes_count | plus: 1 -%}{%- endif -%}
 {%- endfor -%}
 {%- assign all_content = valid_notes | sort: "date" | reverse -%}
@@ -418,6 +418,9 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
   border-top:1px solid var(--gl-1); padding:clamp(12px,2vh,18px) 0 clamp(14px,2.4vh,20px); margin-top:clamp(10px,1.6vh,16px); }
 .foot span{ font-family:var(--font-display); font-size:.9rem; letter-spacing:.06em; color:var(--muted); }
 .foot .c{ color:var(--text); }
+.foot .foot-notice{ font-family:var(--font-display); font-size:.9rem; letter-spacing:.06em; color:var(--muted);
+  text-decoration:none; border-bottom:1px solid transparent; transition:color .2s, border-color .2s; }
+.foot .foot-notice:hover{ color:var(--gold); border-bottom-color:var(--gl-1); }
 
 /* ---- 精选张数自适应（0–4）：只切换布局，卡片/feed 样式共用 ---- */
 .latest[data-n="0"] .feat-zone, .latest[data-n="1"] .feat-zone{ grid-template-rows:1fr; }
@@ -690,6 +693,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
 
       <footer class="foot">
         <span class="c">© {{ site.time | date: "%Y" }} 周睿</span>
+        <a class="foot-notice" href="{{ '/zh/notice/' | relative_url }}">站务公告</a>
         <span>文章下方都能留言，欢迎路过留一句。</span>
       </footer>
     </div>
