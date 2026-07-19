@@ -45,10 +45,13 @@
     display: none; z-index: 1090;
   }
   .sa-menu.open { display: block; }
-  .sa-menu-name {
-    padding: 0.5rem 0.6rem 0.6rem;
-    border-bottom: 1px solid var(--color-border); margin-bottom: 0.3rem;
+  /* 身份行做成「进入我的主页」的入口：整块可点，保留卡头样式 + 悬停反馈 */
+  .sa-menu a.sa-menu-name {
+    display: block; padding: 0.5rem 0.6rem 0.6rem; margin-bottom: 0.3rem;
+    border: none; border-bottom: 1px solid var(--color-border); border-radius: 6px 6px 0 0;
+    text-decoration: none; cursor: pointer; transition: background 0.15s;
   }
+  .sa-menu a.sa-menu-name:hover { background: var(--color-bg-warm); }
   .sa-id-row { display: flex; align-items: center; gap: 0.5rem; }
   .sa-id-av { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
     background: var(--color-accent); color: #fff; font-family: var(--font-display); font-size: 0.95rem; font-weight: 700;
@@ -301,11 +304,11 @@
       '<div class="sa-avatar-wrap">' +
         '<button class="sa-avatar" type="button" title="' + esc(user.nick || '') + '">' + esc(initial(user.nick)) + '</button>' +
         '<div class="sa-menu">' +
-          '<div class="sa-menu-name">' +
+          '<a class="sa-menu-name" href="/account/" title="进入我的主页">' +
             '<div class="sa-id-row"><div class="sa-id-av" id="sa-id-av"></div>' +
               '<span class="sa-menu-nick">' + esc(user.nick || user.email || '') + '</span>' + lvPill(user) +
             '</div>' + lvProgressHtml(user) +
-          '</div>' +
+          '</a>' +
           '<a class="sa-mi" href="/account/">' + ICON_HOME + '我的主页</a>' +
           '<a class="sa-mi" href="/board/">' + ICON_NOTICE + '站务公告</a>' +
           '<a class="sa-mi" href="/account/#settings">' + ICON_GEAR + '设置</a>' +

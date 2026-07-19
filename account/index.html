@@ -91,9 +91,20 @@ body_class: acc-page
   .acc-hero-av { width:80px; height:80px; border-radius:50%; flex-shrink:0;
     background:var(--color-accent); color:#fff; font-family:var(--font-display); font-size:2.3rem; font-weight:700;
     display:flex; align-items:center; justify-content:center; background-size:cover; background-position:center; }
+  /* 头像可点换图：悬停/聚焦浮出相机蒙层 */
+  .acc-hero-av-edit { cursor:pointer; position:relative; }
+  .acc-hero-av-edit::after { content:''; position:absolute; inset:0; border-radius:50%;
+    background-color:rgba(20,28,40,0.45);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'/%3E%3Ccircle cx='12' cy='13' r='4'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:center; background-size:42%;
+    opacity:0; transition:opacity 0.18s; pointer-events:none; }
+  .acc-hero-av-edit:hover::after, .acc-hero-av-edit:focus-visible::after { opacity:1; }
+  .acc-hero-av-edit:focus-visible { outline:none; }
   .acc-hero-body { flex:1; min-width:0; }
   .acc-hero-top { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
   .acc-hero-nick { font-family:var(--font-display); font-size:1.55rem; color:var(--color-ink); margin:0; line-height:1.15; word-break:break-word; }
+  .acc-hero-nick-edit { cursor:pointer; transition:color 0.15s; }
+  .acc-hero-nick-edit:hover { color:var(--color-accent); }
   .acc-lv { flex-shrink:0; font-family:var(--font-display); font-size:0.86rem; font-weight:700; line-height:1;
     color:#fff; background:var(--color-accent); border-radius:999px; padding:0.26rem 0.6rem;
     font-variant-numeric: tabular-nums lining-nums; box-shadow: var(--shadow-1); }
@@ -567,6 +578,20 @@ body_class: acc-page
       var av = heroEl.querySelector('.acc-hero-av');
       if (isAvatar(user.avatar)) paintAvatar(av, user.avatar); else paintInitial(av, user.nick);
       av.style.boxShadow = '0 0 0 3px var(--color-bg-warm), 0 0 0 5px ' + perk.ring;   // 光环
+      // 头像、昵称皆可点进「编辑资料」（头像悬停出相机提示，主打「换头像」）
+      av.classList.add('acc-hero-av-edit');
+      av.title = '点击更换头像';
+      av.setAttribute('role', 'button'); av.setAttribute('tabindex', '0');
+      av.addEventListener('click', function () { openEditModal(user); });
+      av.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEditModal(user); }
+      });
+      var nickEl = heroEl.querySelector('.acc-hero-nick');
+      if (nickEl) {
+        nickEl.classList.add('acc-hero-nick-edit');
+        nickEl.title = '点击编辑资料';
+        nickEl.addEventListener('click', function () { openEditModal(user); });
+      }
       var badge = document.getElementById('acc-lv-badge');
       badge.style.background = perk.bg;
       badge.addEventListener('click', openRulesModal);
