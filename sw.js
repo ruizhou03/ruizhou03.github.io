@@ -245,7 +245,7 @@ function extractAssetUrls(html, baseUrl) {
 
 // 抓一个页面 + 它引用的同源资源，写进目标 cache。返回抓到的字节数。
 async function fetchBundle(rawUrl, opts) {
-  const { pageCache, assetCache, excludeAssets, force, onOne } = opts;
+  const { pageCache, assetCache, excludeAssets, force, onOne, collect } = opts;
   let bytes = 0;
   let absUrl;
   try { absUrl = new URL(rawUrl, self.location.origin).toString(); }
@@ -261,6 +261,7 @@ async function fetchBundle(rawUrl, opts) {
       const buf = await res.clone().arrayBuffer();
       bytes += buf.byteLength;
       await pageCache.put(absUrl, res.clone()).catch(() => {});
+      if (collect) collect.add(absUrl);
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('text/html')) {
         const text = await res.clone().text();
@@ -276,6 +277,7 @@ async function fetchBundle(rawUrl, opts) {
               const b = await r.clone().arrayBuffer();
               bytes += b.byteLength;
               await assetCache.put(au, r.clone()).catch(() => {});
+              if (collect) collect.add(au);
             }
           } catch {}
         }));
@@ -326,6 +328,9 @@ self.addEventListener('message', async (event) => {
     const savedCache = await caches.open(SAVED_CACHE);
     const total = urls.length;
     let done = 0, bytes = 0;
+    // 记下这次实际缓存进书架的所有 URL（页面 + 资源），随 SAVE_DONE 回给客户端，
+    // 客户端存进离线索引；日后删除时据此只清该项独占的资源、不误删共享外壳。
+    const collect = new Set();
 
     // manifest 显式列出的额外资源先塞进书架
     if (extraAssets.length) {
@@ -333,23 +338,23 @@ self.addEventListener('message', async (event) => {
         try {
           const absUrl = new URL(rawUrl, self.location.origin).toString();
           if (new URL(absUrl).origin !== self.location.origin) continue;
-          if (!force) { const ex = await savedCache.match(absUrl); if (ex) continue; }
+          if (!force) { const ex = await savedCache.match(absUrl); if (ex) { collect.add(absUrl); continue; } }
           const r = await fetch(absUrl, { cache: 'no-cache' });
-          if (r && r.ok) { bytes += (await r.clone().arrayBuffer()).byteLength; await savedCache.put(absUrl, r.clone()).catch(() => {}); }
+          if (r && r.ok) { bytes += (await r.clone().arrayBuffer()).byteLength; await savedCache.put(absUrl, r.clone()).catch(() => {}); collect.add(absUrl); }
         } catch {}
       }
     }
 
     for (const rawUrl of urls) {
       bytes += await fetchBundle(rawUrl, {
-        pageCache: savedCache, assetCache: savedCache, excludeAssets, force,
+        pageCache: savedCache, assetCache: savedCache, excludeAssets, force, collect,
         onOne: (u, ok, skipped) => {
           done++;
           if (!silent) reply({ type: 'SAVE_PROGRESS', done, total, url: u, ok, skipped });
         }
       });
     }
-    reply({ type: 'SAVE_DONE', total, bytes });
+    reply({ type: 'SAVE_DONE', total, bytes, assets: [...collect] });
     return;
   }
 
