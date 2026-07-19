@@ -69,9 +69,10 @@ body_class: acc-page
 </article>
 
 <style>
-  /* 账号页放宽画幅：站点全局 main 默认卡在 --max-width(800px)，这里像 /admin 一样为本页放宽 */
+  /* 账号页放宽画幅：站点全局 main 默认卡在 --max-width(800px)，这里像 /admin 一样为本页放宽。
+     顶栏 .nav-inner 保持站点全局的满幅（max-width:none）——绝不在本页收窄，否则右侧
+     控件（头像/搜索/明暗/EN）会随之左移，和其它页面对不齐。 */
   body.acc-page main { max-width: 1240px; }
-  body.acc-page .nav-inner { max-width: 1240px; }
   .acc-wrap { max-width: 1160px; margin: 0 auto; padding: 2.4rem 1.25rem 4rem; }
 
   /* ── 游客态 ── */
