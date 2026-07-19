@@ -397,14 +397,6 @@
   category: 生活
   status: live
 
-- id: goals
-  name: 目标进度跟踪
-  icon: 🚩
-  tagline: 长期目标 + 周打卡
-  url: /toolbox/goals/
-  category: 生活
-  status: live
-
 - id: pet
   name: 宠物中心
   icon: 🐾
