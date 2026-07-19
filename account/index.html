@@ -243,12 +243,20 @@ body_class: acc-page
     padding:0.2rem 0.4rem; border-radius:6px; flex-shrink:0; }
   .acc-item-rm:hover { color:#b5483a; background:var(--color-bg); }
   .acc-empty, .acc-loading { text-align:center; color:var(--color-light); padding:2.6rem 1rem; font-size:0.9rem; }
-  .acc-comment-body { font-size:0.92rem; color:var(--color-text); line-height:1.6; margin-top:0.2rem;
+  /* 评论记录条目（A2 版式）：栏目·日期眉标 → 文章大标题 → 金线引文块 */
+  .acc-citem { align-items:stretch; padding:1rem 0.2rem; }
+  .acc-cmt-eyebrow { font-size:0.75rem; color:var(--color-light); margin-bottom:0.4rem; }
+  .acc-cmt-title { display:block; font-size:1.02rem; font-weight:600; color:var(--color-ink);
+    text-decoration:none; line-height:1.4; margin-bottom:0.55rem; }
+  .acc-cmt-title:hover { color:var(--color-accent); }
+  .acc-comment-body { font-size:1rem; color:var(--color-ink); line-height:1.6;
+    border-left:2.5px solid var(--color-highlight); padding-left:0.85rem;
     overflow-wrap:anywhere; word-break:break-word; }
   .acc-comment-body :is(p) { margin:0.2rem 0; }
   .acc-comment-body img, .acc-cmt-img { display:block; max-width:180px; max-height:140px; margin-top:0.35rem; border-radius:8px;
     border:1px solid var(--color-border); object-fit:cover; }
   .acc-cmt-at { color:var(--color-light); font-size:0.86rem; margin-right:0.1rem; }
+  .acc-cmt-imgfail { color:var(--color-light); font-size:0.86rem; }
   .acc-comment-body .katex { font-size:1em; }
   .acc-comment-body .katex-display { margin:0.35rem 0; text-align:left; }
 
@@ -402,31 +410,32 @@ body_class: acc-page
       return c ? '<span class="acc-cat"><span class="acc-cat-dot" style="background:' + c.color + '"></span>' + esc(c.name) + '</span> · ' : '';
     }
     // 评论正文渲染：① 剥掉 Waline 回复前缀里让人困惑的「(#序号)」，只留干净的 @昵称；
-    // ② 图片 markdown / 图床裸链接收成小缩略图或「【图片】」占位，绝不把无意义的长链接甩给用户；
-    // ③ 其余按纯文本转义（$…$ 数学分隔符原样保留，随后交给 KaTeX 渲染）。
+    // ② 图片（markdown 或裸露的 R2 图床链接）尽量还原成小缩略图，实在认不出的才用「【图片】」占位，
+    //    绝不把无意义的长链接甩给用户；③ 其余按纯文本转义（$…$ 数学分隔符原样保留，交给 KaTeX 渲染）。
     function renderCommentBody(raw) {
       if (!raw) return '';
       var s = String(raw), slots = [];
-      function keep(html) { slots.push(html); return '' + (slots.length - 1) + ''; }
+      function keep(html) { slots.push(html); return '\uE000' + (slots.length - 1) + '\uE001'; }
+      function imgTag(u) {
+        u = String(u).trim().replace(/["'<>]/g, '');
+        return keep('<img class="acc-cmt-img" src="' + esc(u) + '" alt="图片" loading="lazy">');
+      }
       // ① Waline 回复前缀 [@昵称](#父评论id): —— 去掉括号序号，只保留可读的「@昵称」
       s = s.replace(/^\s*\[@([^\]\n]{1,40})\]\(#[^)\n]*\)\s*:\s*/, function (m, name) {
         return keep('<span class="acc-cmt-at">@' + esc(name.trim()) + '</span> ');
       });
-      // ② 完整图片 markdown ![alt](url [title])：可识别的图转小缩略图，其余占位
+      // ② 完整图片 markdown ![alt](url [title])：http/data 图转缩略图；blob:/相对路径等无法异地显示 → 占位
       s = s.replace(/!\[[^\]]*\]\(\s*([^)\s]+)[^)]*\)/g, function (m, url) {
-        var u = String(url).trim().replace(/["'<>]/g, '');
-        if (/^data:image\//i.test(u) || /^https?:\/\//i.test(u)) {
-          return keep('<img class="acc-cmt-img" src="' + esc(u) + '" alt="图片" loading="lazy">');
-        }
-        return '【图片】';
+        return /^(?:data:image\/|https?:\/\/)/i.test(url.trim()) ? imgTag(url) : '【图片】';
       });
-      // ③ 裸露的图床上传链接（R2）——这串地址对用户无意义，收成占位
-      s = s.replace(/https?:\/\/pub-[0-9a-z]+\.r2\.dev\/\S+/gi, '【图片】');
-      // ④ 残留的截断图片 markdown 碎片（如未闭合的 ![图片](https://…）也一并占位
-      s = s.replace(/!\[[^\]]*\](\([^)]*)?/g, '【图片】');
-      // ⑤ 其余转义为纯文本；⑥ 还原白名单 HTML；⑦ 合并相邻的「【图片】」占位
-      s = esc(s).replace(/(\d+)/g, function (m, i) { return slots[+i] || ''; });
-      return s.replace(/(?:【图片】\s*){2,}/g, '【图片】');
+      // ③ 裸露的 R2 图床链接（我们自己的图片桶，是能显示的真图）——连同紧邻的「【图片】」占位一起，直接显示成缩略图
+      s = s.replace(/(?:【图片】\s*)?(https?:\/\/pub-[0-9a-z]+\.r2\.dev\/[^\s\uE000\uE001]+)/gi, function (m, url) { return imgTag(url); });
+      // ④ 残留的截断图片 markdown 碎片（未闭合的 ![图片](…）→ 占位（不吞掉已还原的图片标记）
+      s = s.replace(/!\[[^\]]*\](\([^)\uE000\uE001]*)?/g, '【图片】');
+      // ⑤ 转义为纯文本；⑥ 还原白名单 HTML
+      s = esc(s).replace(/\uE000(\d+)\uE001/g, function (m, i) { return slots[+i] || ''; });
+      // ⑦ 图已显示就不再留占位；相邻的多个占位合并成一个
+      return s.replace(/【图片】\s*(?=<img)/g, '').replace(/(?:【图片】\s*){2,}/g, '【图片】');
     }
 
     // KaTeX 按需加载（账号页平时不引入这套重库，首次进「评论记录」再拉）
@@ -469,6 +478,19 @@ body_class: acc-page
         listEl.querySelectorAll('.acc-comment-body').forEach(function (el) {
           try { window.renderMathInElement(el, { delimiters: KATEX_DELIMS, throwOnError: false }); } catch (e) {}
         });
+      });
+    }
+    // 评论里的缩略图若加载失败（图被删 / 防盗链 / 网断）就退回「【图片】」，不留一个碎图图标
+    function attachImgFallback() {
+      listEl.querySelectorAll('.acc-cmt-img').forEach(function (img) {
+        if (img.__fb) return; img.__fb = 1;
+        function fail() {
+          if (!img.parentNode) return;
+          var sp = document.createElement('span'); sp.className = 'acc-cmt-imgfail'; sp.textContent = '【图片】';
+          img.replaceWith(sp);
+        }
+        img.addEventListener('error', fail);
+        if (img.complete && img.naturalWidth === 0) fail();   // 已缓存的失败：error 事件可能早已过去
       });
     }
     function setCount(txt) { var el = document.getElementById('acc-sec-count'); if (el) el.textContent = txt || ''; }
@@ -750,10 +772,11 @@ body_class: acc-page
     // ── 列表渲染 + 分页 ───────────────────────────────────────
     function itemHTML(kind, it) {
       if (kind === 'comment') {
-        return '<div class="acc-item"><div class="acc-item-main">' +
-          '<a class="acc-item-title" href="' + esc(it.url || '#') + '">' + esc(resolveTitle(it.url)) + '</a>' +
+        var d = fmtDate(it.ts);
+        return '<div class="acc-item acc-citem"><div class="acc-item-main">' +
+          '<div class="acc-cmt-eyebrow">' + catMetaHtml(it) + (d ? '评论于 ' + d : '') + '</div>' +
+          '<a class="acc-cmt-title" href="' + esc(it.url || '#') + '">' + esc(resolveTitle(it.url)) + '</a>' +
           '<div class="acc-comment-body">' + renderCommentBody(it.html || it.text || '') + '</div>' +
-          '<div class="acc-item-meta">' + catMetaHtml(it) + fmtDate(it.ts) + '</div>' +
         '</div></div>';
       }
       var url = it.url || it.post || '#';
@@ -784,7 +807,7 @@ body_class: acc-page
       var startI = state.page * state.pageSize;
       var slice = view.slice(startI, startI + state.pageSize);
       listEl.innerHTML = slice.map(function (it) { return itemHTML(kind, it); }).join('');
-      if (kind === 'comment') renderCommentMath();   // 评论记录里的数学公式按需渲染
+      if (kind === 'comment') { renderCommentMath(); attachImgFallback(); }   // 公式按需渲染 + 缩略图失败兜底
       // 分页条：过滤后仍 >10 条才显示
       pagerEl.hidden = view.length <= 10;
       document.getElementById('acc-pager-info').textContent =
