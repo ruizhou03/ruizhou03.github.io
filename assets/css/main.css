@@ -112,12 +112,6 @@
     .nav-links li:not(.nav-link-home):not(.nav-settings) a:focus-visible::after { right: 0; }
     .nav-links a:hover { color: var(--color-ink); }
 
-    /* 返回链接：低调的层级指示——细 chevron + 灰字 + 永不换行，hover 才点亮成强调色，不与品牌抢眼 */
-    .nav-back { font-size: 0.85rem; line-height: 1; font-weight: 500; color: var(--color-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; transition: color 0.2s; }
-    .nav-back:hover { color: var(--color-accent); }
-    /* 用边框画的几何 chevron（不是字形）：随文字整体垂直居中，不再"沉底对齐"；随 currentColor 变色 */
-    .nav-back .chev { display: inline-block; box-sizing: border-box; width: 0.4em; height: 0.4em;
-      border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(135deg); margin-right: 0.1em; }
     /* 手机端左上角品牌「锆铌」→ 中文首页（桌面隐藏，桌面靠 .nav-links 里的锆铌） */
     /* 品牌统一走左上 .nav-brand（桌面+手机都显示，与首页 .topbar 品牌同款）；
        .nav-link-home（菜单里重复的「锆铌」）全端隐去。 */
@@ -165,7 +159,6 @@
       }
 
       .nav-brand { display: inline-block; justify-self: start; }   /* 左：锆铌 */
-      .nav-left-zone .nav-back { display: none; }                  /* 手机端不显示返回链接，左上角统一锆铌 */
       .nav-toggle { display: block; justify-self: center; } /* 居中汉堡包 */
       .nav-right-box { justify-self: end; } /* 右：只剩头像 */
 
