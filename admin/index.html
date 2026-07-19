@@ -194,9 +194,10 @@ body_class: adm-page
 </article>
 
 <style>
-  /* 管理后台不受正文栏宽限制：整页与顶栏都放宽，方便横向检索与对比 */
+  /* 管理后台不受正文栏宽限制：正文放宽方便横向检索与对比。
+     顶栏 .nav-inner 保持站点全局满幅（max-width:none）——绝不在本页收窄，否则右侧
+     控件（头像/搜索/明暗/EN）会随之左移，和其它页面对不齐。 */
   body.adm-page main { max-width: 1320px; }
-  body.adm-page .nav-inner { max-width: 1320px; }
   .adm-wrap { max-width: 1280px; margin: 0 auto; padding: 1.1rem 1.5rem 3rem; }
   /* 精简顶部：只留一条细标题栏（小标题 + 右侧管理员邮箱），不再占大块 title + 留白 */
   .adm-head { display: flex; align-items: baseline; gap: 0.7rem; margin-bottom: 1.3rem;
