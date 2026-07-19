@@ -193,6 +193,7 @@ body_class: acc-page
 
     Z.on('change', render);
     render();
+    Z.reconcile();  // 把整栏/分组等途径存进书架、账本还没记的项补进来（会触发 change→重渲）
 
     async function render() {
       var items = Z.index.list();

@@ -36,6 +36,10 @@
     return (n / 1024 / 1024).toFixed(1) + ' MB';
   }
 
+  function unescapeHtml(s) {
+    return String(s == null ? '' : s).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  }
+
   // 有没有新版：两个版本号都在、且不相等，才算「有更新」。缺任一个一律当「没更新」，
   // 宁可漏报也不误报（避免版本清单临时拉不到时把所有东西标成有更新）。
   function versionsDiffer(saved, live) {
@@ -238,6 +242,31 @@
     if (urls.length) emit('change');
   }
 
+  // 自愈：把书架里已存、但 localStorage 账本还没记的页（整栏 / 分组 / 任何途径存的）补进索引，
+  // 让「离线内容库」和文章按钮/页脚点都能反映出来。已在账本的项保留其完整数据不动。
+  // 回填项的 size 只含页面本身、assets 为空（删除时只清页面，属可接受的降级）。
+  async function reconcile() {
+    var res = await ask({ type: 'LIST_SAVED' }, 15000);
+    if (!res || !Array.isArray(res.pages)) return false;
+    var ix = readIndex(), changed = false;
+    res.pages.forEach(function (p) {
+      var url = normUrl(p.url);
+      if (ix.items[url]) return;
+      var isGame = url.indexOf('/toolbox/') === 0;
+      var title = unescapeHtml(p.title || url).replace(/\s*[|｜]\s*[^|｜]*$/, '') || url;
+      ix.items[url] = {
+        url: url, title: title,
+        category: p.category ? unescapeHtml(p.category) : (isGame ? '百宝箱' : '其他'),
+        kind: isGame ? 'game' : 'article',
+        savedAt: p.savedAt ? Date.parse(p.savedAt) : Date.now(),
+        version: p.version || null, size: p.size || 0, assets: []
+      };
+      changed = true;
+    });
+    if (changed) { writeIndex(ix); emit('change'); }
+    return changed;
+  }
+
   // ───────────────────────── SVG 图标（手绘矢量，无 emoji） ─────────────────────────
   var PATHS = {
     download: '<path d="M12 3.5V14"/><path d="M7.5 10l4.5 4.5L16.5 10"/><path d="M5 19h14"/>',
@@ -417,7 +446,12 @@
       if (W.caches) caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
       return;
     }
-    ready().then(function () { maybeAutoUpdate(); });  // 注册 SW + 连 WiFi 时静默更新已保存项
+    ready().then(function () {
+      maybeAutoUpdate();  // 连 WiFi 时静默更新已保存项
+      // 每会话自愈一次索引（整栏/分组等非本模块保存的项补进内容库），避免每页都扫书架
+      try { if (!sessionStorage.getItem('zoff.reconciled')) { sessionStorage.setItem('zoff.reconciled', '1'); reconcile(); } }
+      catch (e) { reconcile(); }
+    });
     var dot = document.getElementById('offline-status-dot'); if (dot) initFooterDot(dot);
     var btn = document.getElementById('offline-toggle'); if (btn) wireButton(btn);
     var notice = document.getElementById('offline-article-notice'); if (notice) wireArticleNotice(notice);
@@ -433,7 +467,7 @@
     ready: ready, ask: ask, liveVersions: liveVersions,
     index: index, save: save, saveMany: saveMany, update: update, remove: remove,
     checkUpdates: checkUpdates, stats: stats, clearAmbient: clearAmbient, clearSaved: clearSaved,
-    autoWifiOn: autoWifiOn, setAutoWifi: setAutoWifi,
+    autoWifiOn: autoWifiOn, setAutoWifi: setAutoWifi, reconcile: reconcile,
     icon: icon, injectStyles: injectStyles,
     wireButton: wireButton, wireArticleNotice: wireArticleNotice, initFooterDot: initFooterDot,
     on: on, emit: emit

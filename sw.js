@@ -387,6 +387,40 @@ self.addEventListener('message', async (event) => {
     return;
   }
 
+  // 列出书架里所有已保存的「页面」（供前端自愈离线索引：整栏 / 分组 / 任何途径存进
+  // 书架、但还没记进 localStorage 账本的项，据此补进「离线内容库」）。
+  // 只挑 text/html 的条目（页面），跳过 js/css/图片等资源；元数据从缓存的 HTML 里解析。
+  if (data.type === 'LIST_SAVED') {
+    const savedCache = await caches.open(SAVED_CACHE);
+    const keys = await savedCache.keys();
+    const pages = [];
+    for (const req of keys) {
+      const res = await savedCache.match(req);
+      if (!res) continue;
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('text/html')) continue;
+      let text = '';
+      try { text = await res.clone().text(); } catch {}
+      const grab = (re) => { const m = text.match(re); return m ? m[1] : null; };
+      let title = grab(/<meta\s+name=["']zircon-title["']\s+content=["']([^"']*)["']/i);
+      if (!title) title = grab(/<title>([^<]*)<\/title>/i);
+      let size = 0;
+      const len = res.headers.get('content-length');
+      if (len && !isNaN(+len)) size = +len;
+      else { try { size = (await res.clone().arrayBuffer()).byteLength; } catch {} }
+      pages.push({
+        url: req.url,
+        title: title || req.url,
+        category: grab(/<meta\s+name=["']zircon-category["']\s+content=["']([^"']*)["']/i) || '',
+        version: grab(/<meta\s+name=["']zircon-page-version["']\s+content=["']([^"']*)["']/i),
+        savedAt: res.headers.get('date') || null,
+        size: size
+      });
+    }
+    reply({ type: 'LIST_SAVED_RESULT', pages });
+    return;
+  }
+
   if (data.type === 'GET_SAVED_INFO') {
     const url = data.url;
     let absUrl;

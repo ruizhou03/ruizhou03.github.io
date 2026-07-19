@@ -1127,6 +1127,11 @@ body_class: acc-page
       if (!user) { settingsEl.innerHTML = ''; return; }
       settingsEl.innerHTML =
         '<div class="acc-set-row">' +
+          '<div class="acc-set-info"><div class="acc-set-t">离线内容库</div>' +
+            '<div class="acc-set-d">管理保存到本地的文章 / 游戏 / 讲义——看占用、更新、删除，飞机 / 没网时随时打开。</div></div>' +
+          '<a class="acc-tool-btn" href="/account/offline/" style="text-decoration:none;">打开</a>' +
+        '</div>' +
+        '<div class="acc-set-row">' +
           '<div class="acc-set-info"><div class="acc-set-t">外观</div>' +
             '<div class="acc-set-d">明暗主题，按本设备记住（不跟账号走）。</div></div>' +
           '<div class="acc-theme-seg" id="acc-theme-seg">' +

@@ -90,6 +90,9 @@
   {%- elsif page.date -%}{%- assign _ver = page.date | date: '%s' -%}
   {%- else -%}{%- assign _ver = site.time | date: '%s' -%}{%- endif -%}
   <meta name="zircon-page-version" content="{{ _ver }}">
+  {%- comment -%} 供 SW 在书架里解析、自愈离线索引（整栏/分组存的项也能显示进内容库）{%- endcomment -%}
+  <meta name="zircon-title" content="{{ page.title | strip_html | escape }}">
+  {%- if page.main_category -%}<meta name="zircon-category" content="{{ page.main_category | escape }}">{%- endif -%}
 
   <script>
     // 主题持久化：在 <body> 渲染前同步读取 localStorage，避免闪烁
