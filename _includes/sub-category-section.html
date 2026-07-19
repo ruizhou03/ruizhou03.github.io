@@ -34,7 +34,7 @@ inputs:
       {%- capture _base -%}{{ post.title }} {{ post.keywords | join: ' ' }} {{ post.tags | join: ' ' }}{%- endcapture -%}
       {%- capture _exp -%}{% include search-expand.html text=_base %}{%- endcapture -%}
       {%- assign _u = post.url | relative_url -%}
-      <li class="paginated-item" data-title="{{ _exp | downcase }}" data-url="{{ _u }}" data-hidden="{% if post.hidden %}true{% else %}false{% endif %}" data-trashed="{% if post.trashed %}true{% else %}false{% endif %}" data-paid="{% if post.paid %}true{% else %}false{% endif %}" data-path="{{ post.path }}" data-date="{{ post.date | date: '%Y-%m-%d' }}">
+      <li class="paginated-item" data-title="{{ _exp | downcase }}" data-url="{{ _u }}" data-hidden="{% if post.hidden %}true{% else %}false{% endif %}" data-trashed="{% if post.trashed %}true{% else %}false{% endif %}" data-paid="{% if post.paid %}true{% else %}false{% endif %}" data-featured="{% if post.featured %}true{% else %}false{% endif %}" data-path="{{ post.path }}" data-date="{{ post.date | date: '%Y-%m-%d' }}">
         <span class="pl-no{% if post.featured %} star{% endif %}" aria-hidden="true">{% if post.featured %}★{% else %}{{ _n | prepend: '00' | slice: -2, 2 }}{% endif %}</span>
         <a href="{{ _u }}" class="pl-link">{% include latex-logo.html title=post.title %}</a>
         <span class="pl-meta">{% include sc-metrics.html url=_u %}<span class="post-date">{% if post.date %}{{ post.date | date: "%Y/%m/%d" }}{% endif %}</span></span>
