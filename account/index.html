@@ -113,7 +113,10 @@ body_class: acc-page
   .acc-lv { cursor:pointer; }
   .acc-lv:hover { filter:brightness(1.08); }
   .acc-hero-joined { font-size:0.76rem; color:var(--color-light); }
-  .acc-hero-bio { font-size:0.9rem; color:var(--color-text); line-height:1.6; margin:0.5rem 0 0; word-break:break-word; }
+  /* 简介：宽度封顶 + 折行 + 至多两行省略，绝不横向挤占统计/操作区；完整内容靠 title 悬停查看 */
+  .acc-hero-bio { font-size:0.9rem; color:var(--color-text); line-height:1.6; margin:0.5rem 0 0;
+    max-width:32rem; overflow-wrap:anywhere;
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
   .acc-hero-bio.empty { color:var(--color-light); }
   .acc-hero-meta { display:none; }
   .acc-lv-wrap { margin-top:0.85rem; max-width:380px; }
@@ -554,7 +557,7 @@ body_class: acc-page
                 '<span class="acc-lv' + (perk.shine ? ' shine' : '') + '" id="acc-lv-badge" title="查看等级说明">' + esc(lv.name) + '</span>' +
                 (joined ? '<span class="acc-hero-joined">加入于 ' + esc(joined) + '</span>' : '') +
               '</div>' +
-              '<p class="acc-hero-bio' + (user.bio ? '' : ' empty') + '">' + esc(user.bio || '还没有简介，写一句介绍自己吧。') + '</p>' +
+              '<p class="acc-hero-bio' + (user.bio ? '' : ' empty') + '"' + (user.bio ? ' title="' + esc(user.bio) + '"' : '') + '>' + esc(user.bio || '还没有简介，写一句介绍自己吧。') + '</p>' +
               '<div class="acc-lv-wrap" id="acc-lv-wrap" title="查看等级说明">' +
                 '<div class="acc-lv-bar"><div class="acc-lv-fill" style="width:' + Math.round(lv.progress * 100) + '%"></div></div>' +
                 '<div class="acc-lv-note">' + lvNote + '</div>' +
