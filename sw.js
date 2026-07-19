@@ -1,33 +1,56 @@
-/* ruizhou03.github.io site service worker
+/* ruizhou03.github.io site service worker — 双层缓存模型
  *
- * 关键约束（曾经踩过的坑）：
- *  1. 部署新版本绝对不能清空用户已有缓存。之前用 v1/v2/v3/v4 命名空间，
- *     activate 阶段把不在白名单里的全删掉，结果用户上飞机前的"全站离线"
- *     一遇到我推新版就归零。永远不要再这样。
- *  2. cache-first 会让 CSS/JS 卡死在旧版本，stale-while-revalidate 是底线。
+ * ─────────────────────────────────────────────────────────────────────────
+ * 两层泾渭分明（2026-07 重构，核心设计）：
+ *
+ *   Layer 1「离线书架」SAVED_CACHE —— 用户亲手点「保存离线」的文章 / 游戏 / 讲义。
+ *     · cache-first：命中即秒开、不等网（飞机上真能用），联网也不偷偷替换。
+ *     · 永不自动淘汰。只有用户在「离线内容库」里删除、或点「更新」时才变。
+ *     · 「有没有新版」由前端拿 /offline-versions.json 比对判断，不靠 SW 后台重拉。
+ *
+ *   Layer 0「浏览缓存」PAGE_CACHE / ASSET_CACHE —— 随手浏览留下的临时加速副本。
+ *     · HTML network-first（在线永远看最新）、静态资源 stale-while-revalidate。
+ *     · 有界：超过条数上限按最早插入淘汰(FIFO)；activate 时按 TTL 清过期。
+ *     · 不叫「已离线」、不进内容库、随时可被回收——纯粹是弱网 / 秒回退的兜底。
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * 曾经踩过的坑（务必守住）：
+ *  1. 部署新版本绝不清空用户已有缓存。别再用 v1/v2 命名空间在 activate 全删。
+ *  2. HTML network-first 不能裸 await：弱网「连上了、传一半挂住」会永久转圈、
+ *     连缓存都不回退。必须给硬超时 + 有缓存时先给网络几秒、超时吐缓存。
  *  3. 跨域请求一律透传，不缓存（评论 / Waline 反代 / CDN 都靠这条豁免）。
+ * ─────────────────────────────────────────────────────────────────────────
  *
- * 策略：
- *  - 同源 HTML：network-first，更新缓存；离线时回缓存
- *  - 同源静态资源：stale-while-revalidate
- *  - 手动批量：listing 页 / 文章页的下载按钮 postMessage('PREFETCH_URLS')；
- *    传 force:true 才强制重 fetch（"点击刷新缓存"分支），默认遇到 existing 跳过。
- *  - 查询缓存状态：postMessage('IS_CACHED' / 'IS_CACHED_BATCH')
+ * 消息接口（postMessage，配 MessageChannel 单次问答）：
+ *   保存书架：  SAVE_OFFLINE {url|urls, assets?, excludeAssets?, force?} → 进度 + 完成(带字节数)
+ *              REMOVE_OFFLINE {urls[]}      从书架删除这些 URL（页面 + 其独占资源）
+ *              IS_SAVED_BATCH {urls[]}      这些 URL 哪些在书架里
+ *              GET_SAVED_INFO {url}         书架里这份的版本戳 + 缓存时间
+ *              CLEAR_SAVED                  清空整个书架
+ *   临时缓存：  CLEAR_AMBIENT               清空浏览缓存两层
+ *   统计：      GET_CACHE_STATS             书架 / 浏览缓存各自的项数与字节数
+ *   —— 以下为旧接口，迁移期保留兼容 ——
+ *   PREFETCH_URLS（＝老版「下载离线 / 下载全部」按钮）现在也写进书架：那本就是
+ *   用户的显式保存动作，不该被有界临时层的上限淘汰。IS_CACHED* / GET_CACHE_INFO
+ *   先查书架再查浏览缓存，让老 UI 的「已离线」标记依旧准确。
  */
 
-// 缓存名故意不带版本号——同一个 cache 一直滚动用，靠 SWR 自然刷新内容。
-// LEGACY_PREFIXES 命中的旧命名空间在 activate 时一次性清理：
-//   zirconeey-shell- / zirconeey-pages-v / zirconeey-assets-v 是更早的 v1–v4 残留；
-//   zirconeey-pages  / zirconeey-assets  是 2026-05 仓库从 zirconeey.github.io 改名为
-//   ruizhou03.github.io 之前的命名空间，老用户首次访问新版时清掉，下次访问按 ruizhou03-
-//   命名空间自动重建（离线副本会丢一次，是这次跨域名改名的必要代价）。
+// 浏览缓存（临时层，有界）
 const PAGE_CACHE  = 'ruizhou03-pages';
 const ASSET_CACHE = 'ruizhou03-assets';
+// 离线书架（显式保存，永久）
+const SAVED_CACHE = 'ruizhou03-saved';
+// 更早的历史命名空间，activate 时一次性清理
 const LEGACY_PREFIXES = ['zirconeey-'];
 
+// 浏览缓存上限：超过就按最早插入淘汰。图片多的页面一次会塞好几张，
+// ASSET 上限给宽些。TTL 只在 activate 时清一次过期项。
+const MAX_PAGES  = 60;
+const MAX_ASSETS = 400;
+const AMBIENT_TTL_MS = 21 * 24 * 60 * 60 * 1000; // 三周没被刷新到的浏览缓存视为过期
+
 self.addEventListener('install', (event) => {
-  // 全站预缓存交给前端 idle 调度；这里只兜底缓一份首页，
-  // 之后任何陌生 URL 在网络挂掉时还能给用户一个"回首页"的出口
+  // 只兜底缓一份首页（进浏览缓存），网络挂掉时给个「回首页」的出口。
   event.waitUntil((async () => {
     try {
       const res = await fetch('/', { cache: 'no-cache' });
@@ -35,7 +58,7 @@ self.addEventListener('install', (event) => {
         const cache = await caches.open(PAGE_CACHE);
         await cache.put('/', res.clone());
       }
-    } catch (_) { /* 装 SW 时离线就跳过，不阻塞 install */ }
+    } catch (_) { /* 装 SW 时离线就跳过 */ }
     await self.skipWaiting();
   })());
 });
@@ -48,11 +71,42 @@ self.addEventListener('activate', (event) => {
         .filter((n) => LEGACY_PREFIXES.some((p) => n.startsWith(p)))
         .map((n) => caches.delete(n))
     );
-    // 注意：除了上面这批历史命名空间，其它一律不删。即使将来此文件再迭代，
-    // PAGE_CACHE / ASSET_CACHE 保持不变，用户的离线副本就一直在。
+    // 书架(SAVED_CACHE)永不在这里动。只清理浏览缓存里的过期项 + 收敛到上限。
+    await pruneAmbientByTTL();
+    await trimCache(PAGE_CACHE, MAX_PAGES);
+    await trimCache(ASSET_CACHE, MAX_ASSETS);
     await self.clients.claim();
   })());
 });
+
+// 超过上限：cache.keys() 按插入顺序返回，删最前面（最早）的若干个。
+async function trimCache(cacheName, max) {
+  try {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    if (keys.length <= max) return;
+    const overflow = keys.length - max;
+    for (let i = 0; i < overflow; i++) await cache.delete(keys[i]);
+  } catch (_) {}
+}
+
+// 按响应的 date 头清理过期浏览缓存（书架不清）。
+async function pruneAmbientByTTL() {
+  const now = Date.now();
+  for (const name of [PAGE_CACHE, ASSET_CACHE]) {
+    try {
+      const cache = await caches.open(name);
+      const keys = await cache.keys();
+      for (const req of keys) {
+        const res = await cache.match(req);
+        const d = res && res.headers.get('date');
+        if (!d) continue;
+        const t = Date.parse(d);
+        if (!isNaN(t) && now - t > AMBIENT_TTL_MS) await cache.delete(req);
+      }
+    } catch (_) {}
+  }
+}
 
 const isHTMLRequest = (req) => {
   if (req.mode === 'navigate') return true;
@@ -68,88 +122,104 @@ self.addEventListener('fetch', (event) => {
   try { url = new URL(req.url); } catch { return; }
   if (url.origin !== self.location.origin) return;
 
-  if (isHTMLRequest(req)) {
-    event.respondWith((async () => {
-      // 'no-cache'：HTML 导航总是向服务器复验（带 ETag，未变则 304，几乎零成本）。
-      // 否则 GitHub Pages 的 max-age=600 会让浏览器/SW 把页面缓存 10 分钟，刚部署
-      // 的更新要等缓存过期或硬刷新才出现——多次被误判成「改了没生效」。
-      //
-      // 但 network-first 不能裸 await：弱网下大页面常「连上了、传一半挂住、迟迟不返回」，
-      // 裸 await 会永久挂着、respondWith 永不 resolve，浏览器就一直转圈、连缓存都不回退
-      // （曾让全站最大的 /toolbox/pet/ ≈347KB 在手机上完全打不开）。所以：
-      //   ① 给网络请求一个硬上限（AbortController），保证不会无限挂；
-      //   ② 有离线副本时先给网络几秒，没及时返回就立刻吐缓存、网络留到后台刷新。
-      const cached = await caches.match(req);
+  event.respondWith(handleFetch(req, url));
+});
 
-      const ctrl = new AbortController();
-      const hardStop = setTimeout(() => ctrl.abort(), 20000);
-      const netFetch = fetch(req, { cache: 'no-cache', signal: ctrl.signal })
-        .then((res) => {
-          if (res && res.ok) {
-            const copy = res.clone();
-            caches.open(PAGE_CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
-          }
-          return res;
-        })
-        .finally(() => clearTimeout(hardStop));
-
-      if (cached) {
-        // 给网络一个短窗口抢答；超时或失败就用缓存，网络留到后台跑完更新缓存。
-        const timeout = new Promise((resolve) => setTimeout(() => resolve('__TIMEOUT__'), 4000));
-        const winner = await Promise.race([
-          netFetch.then((res) => res || '__ERR__').catch(() => '__ERR__'),
-          timeout,
-        ]);
-        if (winner && typeof winner !== 'string') return winner; // 网络先返回了真正的响应
-        netFetch.catch(() => {});                                // 让它在后台跑完、刷新缓存
-        return cached;
-      }
-
-      // 没有离线副本：只能等网络（最多到硬上限），失败再走回退。
-      try {
-        const res = await netFetch;
-        if (res) return res;
-      } catch (e) { /* 网络失败 / 被 abort，落到下面的回退 */ }
-
-      // 带上 query string 的 URL（如 ?room=1234）大概率是同一个 HTML 页面。
-      // 网络失败时回退到无 query 参数的缓存副本，避免用户看到"没缓存过"的 503 错误。
-      if (url.search) {
-        const baseUrl = url.origin + url.pathname;
-        const baseCached = await caches.match(baseUrl);
-        if (baseCached) return baseCached;
-      }
-
-      return new Response(
-        '<!doctype html><meta charset="utf-8"><title>离线</title>' +
-        '<p style="font-family:serif;text-align:center;margin-top:30vh;color:#666;">' +
-        '🥲 这一页还没缓存过，等有网了再来吧。<br>' +
-        '或者 <a href="/" style="color:#1e3a5f;">回到首页看看</a>。</p>',
-        { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-      );
-    })());
-    return;
+async function handleFetch(req, url) {
+  // 版本清单：前端判断「有没有新版」的真相来源。已保存页被 cache-first 后
+  // 无法自证过期，必须靠这个联网拿到的小文件比对——所以它走 network-only，
+  // 离线时才回退到上次缓存（给个能用的近似），从不进书架、从不被 cache-first。
+  if (url.pathname === '/offline-versions.json') {
+    try {
+      const res = await fetch(req, { cache: 'no-cache' });
+      if (res && res.ok) { caches.open(ASSET_CACHE).then((c) => c.put(req, res.clone())).catch(() => {}); return res; }
+    } catch (_) {}
+    const cached = await caches.match(req);
+    if (cached) return cached;
+    return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
   }
 
-  // stale-while-revalidate：有缓存立即返回，同时后台拉新版本写回缓存。
-  // 下一次访问就能拿到刚部署的更新，不需要 Cmd+Shift+R。
-  event.respondWith((async () => {
-    const cache = await caches.open(ASSET_CACHE);
-    const cached = await cache.match(req);
-    const fetchPromise = fetch(req).then((res) => {
-      if (res && res.ok && res.type === 'basic') {
-        cache.put(req, res.clone()).catch(() => {});
+  const html = isHTMLRequest(req);
+
+  // ── Layer 1：书架命中 → cache-first，秒开、不联网、不偷偷更新 ──
+  // 导航带 query（?room=1234 等）时按无 query 的干净 URL 命中书架副本。
+  const saved = await caches.open(SAVED_CACHE);
+  let savedHit = await saved.match(req);
+  if (!savedHit && html && url.search) savedHit = await saved.match(url.origin + url.pathname);
+  if (savedHit) return savedHit;
+
+  // ── Layer 0：浏览缓存 ──
+  if (html) return handleHtmlAmbient(req, url);
+  return handleAssetAmbient(req);
+}
+
+// HTML：network-first，写入有界浏览缓存；离线回退缓存。
+async function handleHtmlAmbient(req, url) {
+  const cached = await caches.match(req);
+
+  const ctrl = new AbortController();
+  const hardStop = setTimeout(() => ctrl.abort(), 20000);
+  const netFetch = fetch(req, { cache: 'no-cache', signal: ctrl.signal })
+    .then((res) => {
+      if (res && res.ok) {
+        const copy = res.clone();
+        caches.open(PAGE_CACHE).then(async (cache) => {
+          await cache.put(req, copy);
+          await trimCache(PAGE_CACHE, MAX_PAGES);
+        }).catch(() => {});
       }
       return res;
-    }).catch(() => null);
-    if (cached) {
-      fetchPromise.catch(() => {});
-      return cached;
-    }
-    const res = await fetchPromise;
+    })
+    .finally(() => clearTimeout(hardStop));
+
+  if (cached) {
+    // 给网络一个短窗口抢答；超时 / 失败就吐缓存，网络留后台跑完刷新缓存。
+    const timeout = new Promise((resolve) => setTimeout(() => resolve('__TIMEOUT__'), 4000));
+    const winner = await Promise.race([
+      netFetch.then((res) => res || '__ERR__').catch(() => '__ERR__'),
+      timeout,
+    ]);
+    if (winner && typeof winner !== 'string') return winner;
+    netFetch.catch(() => {});
+    return cached;
+  }
+
+  try {
+    const res = await netFetch;
     if (res) return res;
-    return new Response('', { status: 504 });
-  })());
-});
+  } catch (e) { /* 落到下面的回退 */ }
+
+  // 带 query 的 URL 网络失败时回退到无 query 的缓存副本
+  if (url.search) {
+    const baseCached = await caches.match(url.origin + url.pathname);
+    if (baseCached) return baseCached;
+  }
+
+  return new Response(
+    '<!doctype html><meta charset="utf-8"><title>离线</title>' +
+    '<p style="font-family:serif;text-align:center;margin-top:30vh;color:#666;">' +
+    '🥲 这一页还没保存离线，等有网了再来吧。<br>' +
+    '或者 <a href="/" style="color:#1e3a5f;">回到首页看看</a>。</p>',
+    { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
+}
+
+// 静态资源：stale-while-revalidate，写入有界浏览缓存。
+async function handleAssetAmbient(req) {
+  const cache = await caches.open(ASSET_CACHE);
+  const cached = await cache.match(req);
+  const fetchPromise = fetch(req).then(async (res) => {
+    if (res && res.ok && res.type === 'basic') {
+      await cache.put(req, res.clone()).catch(() => {});
+      await trimCache(ASSET_CACHE, MAX_ASSETS);
+    }
+    return res;
+  }).catch(() => null);
+  if (cached) { fetchPromise.catch(() => {}); return cached; }
+  const res = await fetchPromise;
+  if (res) return res;
+  return new Response('', { status: 504 });
+}
 
 // 提取 HTML 里的 <img src/srcset> + 同源 CSS / JS / 字体链接
 function extractAssetUrls(html, baseUrl) {
@@ -173,6 +243,68 @@ function extractAssetUrls(html, baseUrl) {
   }).filter(Boolean);
 }
 
+// 抓一个页面 + 它引用的同源资源，写进目标 cache。返回抓到的字节数。
+async function fetchBundle(rawUrl, opts) {
+  const { pageCache, assetCache, excludeAssets, force, onOne } = opts;
+  let bytes = 0;
+  let absUrl;
+  try { absUrl = new URL(rawUrl, self.location.origin).toString(); }
+  catch { if (onOne) onOne(rawUrl, false, false); return 0; }
+
+  try {
+    if (!force) {
+      const existing = await pageCache.match(absUrl);
+      if (existing) { if (onOne) onOne(absUrl, true, true); return 0; }
+    }
+    const res = await fetch(absUrl, { cache: 'no-cache' });
+    if (res && res.ok) {
+      const buf = await res.clone().arrayBuffer();
+      bytes += buf.byteLength;
+      await pageCache.put(absUrl, res.clone()).catch(() => {});
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('text/html')) {
+        const text = await res.clone().text();
+        const assetUrls = extractAssetUrls(text, absUrl);
+        await Promise.all(assetUrls.map(async (au) => {
+          try {
+            const auUrl = new URL(au);
+            if (auUrl.origin !== self.location.origin) return;
+            if (excludeAssets && excludeAssets.test(auUrl.pathname)) return;
+            if (!force) { const ex = await assetCache.match(au); if (ex) return; }
+            const r = await fetch(au, { cache: 'no-cache' });
+            if (r && r.ok) {
+              const b = await r.clone().arrayBuffer();
+              bytes += b.byteLength;
+              await assetCache.put(au, r.clone()).catch(() => {});
+            }
+          } catch {}
+        }));
+      }
+    }
+    if (onOne) onOne(absUrl, !!(res && res.ok), false);
+  } catch (e) {
+    if (onOne) onOne(absUrl, false, false);
+  }
+  return bytes;
+}
+
+async function sumCacheBytes(cacheName) {
+  let items = 0, bytes = 0;
+  try {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    items = keys.length;
+    for (const req of keys) {
+      const res = await cache.match(req);
+      if (!res) continue;
+      const len = res.headers.get('content-length');
+      if (len && !isNaN(+len)) { bytes += +len; continue; }
+      try { bytes += (await res.clone().arrayBuffer()).byteLength; } catch {}
+    }
+  } catch (_) {}
+  return { items, bytes };
+}
+
 self.addEventListener('message', async (event) => {
   const data = event.data || {};
   const port = event.ports && event.ports[0];
@@ -181,86 +313,150 @@ self.addEventListener('message', async (event) => {
     else if (event.source) { try { event.source.postMessage(msg); } catch {} }
   };
 
+  // ─────────── 新接口：离线书架 ───────────
+  if (data.type === 'SAVE_OFFLINE') {
+    const urls = Array.isArray(data.urls) ? data.urls : (data.url ? [data.url] : []);
+    const extraAssets = Array.isArray(data.assets) ? data.assets : [];
+    const force = !!data.force;
+    const silent = !!data.silent;
+    let excludeAssets = null;
+    if (typeof data.excludeAssets === 'string' && data.excludeAssets) {
+      try { excludeAssets = new RegExp(data.excludeAssets); } catch {}
+    }
+    const savedCache = await caches.open(SAVED_CACHE);
+    const total = urls.length;
+    let done = 0, bytes = 0;
+
+    // manifest 显式列出的额外资源先塞进书架
+    if (extraAssets.length) {
+      for (const rawUrl of extraAssets) {
+        try {
+          const absUrl = new URL(rawUrl, self.location.origin).toString();
+          if (new URL(absUrl).origin !== self.location.origin) continue;
+          if (!force) { const ex = await savedCache.match(absUrl); if (ex) continue; }
+          const r = await fetch(absUrl, { cache: 'no-cache' });
+          if (r && r.ok) { bytes += (await r.clone().arrayBuffer()).byteLength; await savedCache.put(absUrl, r.clone()).catch(() => {}); }
+        } catch {}
+      }
+    }
+
+    for (const rawUrl of urls) {
+      bytes += await fetchBundle(rawUrl, {
+        pageCache: savedCache, assetCache: savedCache, excludeAssets, force,
+        onOne: (u, ok, skipped) => {
+          done++;
+          if (!silent) reply({ type: 'SAVE_PROGRESS', done, total, url: u, ok, skipped });
+        }
+      });
+    }
+    reply({ type: 'SAVE_DONE', total, bytes });
+    return;
+  }
+
+  if (data.type === 'REMOVE_OFFLINE') {
+    const urls = Array.isArray(data.urls) ? data.urls : [];
+    const savedCache = await caches.open(SAVED_CACHE);
+    let removed = 0;
+    await Promise.all(urls.map(async (rawUrl) => {
+      try {
+        const absUrl = new URL(rawUrl, self.location.origin).toString();
+        const ok = await savedCache.delete(absUrl);
+        if (ok) removed++;
+      } catch {}
+    }));
+    reply({ type: 'REMOVE_DONE', removed });
+    return;
+  }
+
+  if (data.type === 'IS_SAVED_BATCH') {
+    const urls = Array.isArray(data.urls) ? data.urls : [];
+    const savedCache = await caches.open(SAVED_CACHE);
+    const results = await Promise.all(urls.map(async (rawUrl) => {
+      let absUrl;
+      try { absUrl = new URL(rawUrl, self.location.origin).toString(); }
+      catch { return { url: rawUrl, cached: false }; }
+      const m = await savedCache.match(absUrl);
+      return { url: rawUrl, cached: !!m };
+    }));
+    reply({ type: 'IS_SAVED_BATCH_RESULT', results, cached: results.filter((r) => r.cached).length, total: urls.length });
+    return;
+  }
+
+  if (data.type === 'GET_SAVED_INFO') {
+    const url = data.url;
+    let absUrl;
+    try { absUrl = new URL(url, self.location.origin).toString(); }
+    catch { reply({ type: 'SAVED_INFO', url, cached: false }); return; }
+    const savedCache = await caches.open(SAVED_CACHE);
+    const res = await savedCache.match(absUrl);
+    if (!res) { reply({ type: 'SAVED_INFO', url: absUrl, cached: false }); return; }
+    let cachedVersion = null;
+    try {
+      const text = await res.clone().text();
+      const m = text.match(/<meta\s+name=["']zircon-page-version["']\s+content=["']([^"']+)["']/i);
+      if (m) cachedVersion = m[1];
+    } catch {}
+    reply({ type: 'SAVED_INFO', url: absUrl, cached: true, cachedVersion, cachedAt: res.headers.get('date') || null });
+    return;
+  }
+
+  if (data.type === 'CLEAR_SAVED') {
+    await caches.delete(SAVED_CACHE);
+    reply({ type: 'CLEAR_SAVED_DONE' });
+    return;
+  }
+
+  if (data.type === 'CLEAR_AMBIENT') {
+    await Promise.all([caches.delete(PAGE_CACHE), caches.delete(ASSET_CACHE)]);
+    reply({ type: 'CLEAR_AMBIENT_DONE' });
+    return;
+  }
+
+  if (data.type === 'GET_CACHE_STATS') {
+    const [savedS, pageS, assetS] = await Promise.all([
+      sumCacheBytes(SAVED_CACHE), sumCacheBytes(PAGE_CACHE), sumCacheBytes(ASSET_CACHE)
+    ]);
+    reply({
+      type: 'CACHE_STATS',
+      saved: savedS,
+      ambient: { items: pageS.items + assetS.items, bytes: pageS.bytes + assetS.bytes }
+    });
+    return;
+  }
+
+  // ─────────── 旧接口：迁移期兼容 ───────────
+  // PREFETCH_URLS = 老版显式下载按钮 → 写进书架（不是有界临时层）。
   if (data.type === 'PREFETCH_URLS') {
     const urls = Array.isArray(data.urls) ? data.urls : [];
     const extraAssets = Array.isArray(data.assets) ? data.assets : [];
-    // silent=true 时不发 PREFETCH_PROGRESS，只发最终 PREFETCH_DONE。
     const silent = !!data.silent;
-    // force=true 时跳过 existing 检查，强制重 fetch（"刷新缓存"按钮走这条）
     const force = !!data.force;
-    // 自动预取要跳过 /files/ 下的大照片（150+ MB）；手动"下载文章配图"按钮则不传，全要。
     let excludeAssets = null;
     if (typeof data.excludeAssets === 'string' && data.excludeAssets) {
       try { excludeAssets = new RegExp(data.excludeAssets); } catch {}
     }
     const total = urls.length;
     let done = 0;
-    const pageCache = await caches.open(PAGE_CACHE);
-    const assetCache = await caches.open(ASSET_CACHE);
-
-    // 先把 manifest 显式列出的资源（非 HTML）批量塞进 asset cache
+    const savedCache = await caches.open(SAVED_CACHE);
     if (extraAssets.length) {
       await Promise.all(extraAssets.map(async (rawUrl) => {
         try {
           const absUrl = new URL(rawUrl, self.location.origin).toString();
           if (new URL(absUrl).origin !== self.location.origin) return;
-          if (!force) {
-            const existing = await assetCache.match(absUrl);
-            if (existing) return;
-          }
+          if (!force) { const ex = await savedCache.match(absUrl); if (ex) return; }
           const r = await fetch(absUrl, { cache: 'no-cache' });
-          if (r && r.ok) await assetCache.put(absUrl, r.clone()).catch(() => {});
+          if (r && r.ok) await savedCache.put(absUrl, r.clone()).catch(() => {});
         } catch {}
       }));
     }
-
     for (const rawUrl of urls) {
-      let absUrl;
-      try { absUrl = new URL(rawUrl, self.location.origin).toString(); }
-      catch {
-        done++;
-        if (!silent) reply({ type: 'PREFETCH_PROGRESS', done, total, url: rawUrl, ok: false });
-        continue;
-      }
-
-      try {
-        // 默认遇到 existing 跳过省流量；force=true 时强制重 fetch（"刷新缓存"按钮）。
-        if (!force) {
-          const existing = await pageCache.match(absUrl);
-          if (existing) {
-            done++;
-            if (!silent) reply({ type: 'PREFETCH_PROGRESS', done, total, url: absUrl, ok: true, skipped: true });
-            continue;
-          }
+      await fetchBundle(rawUrl, {
+        pageCache: savedCache, assetCache: savedCache, excludeAssets, force,
+        onOne: (u, ok, skipped) => {
+          done++;
+          if (!silent) reply({ type: 'PREFETCH_PROGRESS', done, total, url: u, ok, skipped });
         }
-        const res = await fetch(absUrl, { cache: 'no-cache' });
-        if (res && res.ok) {
-          await pageCache.put(absUrl, res.clone()).catch(() => {});
-          const ct = res.headers.get('content-type') || '';
-          if (ct.includes('text/html')) {
-            const text = await res.clone().text();
-            const assetUrls = extractAssetUrls(text, absUrl);
-            await Promise.all(assetUrls.map(async (au) => {
-              try {
-                const auUrl = new URL(au);
-                if (auUrl.origin !== self.location.origin) return;
-                if (excludeAssets && excludeAssets.test(auUrl.pathname)) return;
-                if (!force) {
-                  const existing = await assetCache.match(au);
-                  if (existing) return;
-                }
-                const r = await fetch(au, { cache: 'no-cache' });
-                if (r && r.ok) await assetCache.put(au, r.clone()).catch(() => {});
-              } catch {}
-            }));
-          }
-        }
-        done++;
-        if (!silent) reply({ type: 'PREFETCH_PROGRESS', done, total, url: absUrl, ok: !!(res && res.ok) });
-      } catch (e) {
-        done++;
-        if (!silent) reply({ type: 'PREFETCH_PROGRESS', done, total, url: absUrl, ok: false });
-      }
+      });
     }
     reply({ type: 'PREFETCH_DONE', total });
     return;
@@ -276,15 +472,13 @@ self.addEventListener('message', async (event) => {
     return;
   }
 
-  // 单 URL 详情：是否缓存 + 缓存里嵌入的版本戳 + Response.Date。
-  // 用于文章/页面的"已离线·最新 / 旧版"徽标。
   if (data.type === 'GET_CACHE_INFO') {
     const url = data.url;
     let absUrl;
     try { absUrl = new URL(url, self.location.origin).toString(); }
     catch { reply({ type: 'CACHE_INFO', url, cached: false }); return; }
-    const cache = await caches.open(PAGE_CACHE);
-    const res = await cache.match(absUrl);
+    let res = await (await caches.open(SAVED_CACHE)).match(absUrl);
+    if (!res) res = await (await caches.open(PAGE_CACHE)).match(absUrl);
     if (!res) { reply({ type: 'CACHE_INFO', url: absUrl, cached: false }); return; }
     let cachedVersion = null;
     try {
@@ -292,33 +486,22 @@ self.addEventListener('message', async (event) => {
       const m = text.match(/<meta\s+name=["']zircon-page-version["']\s+content=["']([^"']+)["']/i);
       if (m) cachedVersion = m[1];
     } catch {}
-    reply({
-      type: 'CACHE_INFO',
-      url: absUrl,
-      cached: true,
-      cachedVersion,
-      cachedAt: res.headers.get('date') || null
-    });
+    reply({ type: 'CACHE_INFO', url: absUrl, cached: true, cachedVersion, cachedAt: res.headers.get('date') || null });
     return;
   }
 
   if (data.type === 'IS_CACHED_BATCH') {
     const urls = Array.isArray(data.urls) ? data.urls : [];
     const pageCache = await caches.open(PAGE_CACHE);
+    const savedCache = await caches.open(SAVED_CACHE);
     const results = await Promise.all(urls.map(async (rawUrl) => {
       let absUrl;
       try { absUrl = new URL(rawUrl, self.location.origin).toString(); }
       catch { return { url: rawUrl, cached: false }; }
-      const m = await pageCache.match(absUrl);
+      const m = (await savedCache.match(absUrl)) || (await pageCache.match(absUrl));
       return { url: rawUrl, cached: !!m };
     }));
-    const cached = results.filter((r) => r.cached).length;
-    reply({
-      type: 'IS_CACHED_BATCH_RESULT',
-      results,
-      cached,
-      total: urls.length
-    });
+    reply({ type: 'IS_CACHED_BATCH_RESULT', results, cached: results.filter((r) => r.cached).length, total: urls.length });
     return;
   }
 
