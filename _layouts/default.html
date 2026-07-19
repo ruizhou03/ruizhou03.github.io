@@ -298,114 +298,11 @@
     });
   </script>
 
-  <script>
-    // Service Worker — 网络优先缓存 + 手动离线下载
-    (function () {
-      if (!('serviceWorker' in navigator)) return;
-
-      // 本地预览（jekyll serve）一律不挂 SW，并清掉可能已注册的旧实例。
-      // 否则 stale-while-revalidate 会让 localhost 也先给旧版资源，违背"本地即时预览"的初衷。
-      if (['localhost', '127.0.0.1', '0.0.0.0'].includes(location.hostname)) {
-        navigator.serviceWorker.getRegistrations?.().then((regs) => regs.forEach((r) => r.unregister()));
-        if (window.caches) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k)));
-        return;
-      }
-
-      const SW_URL = '{{ "/sw.js" | relative_url }}';
-      const SCOPE = '{{ "/" | relative_url }}';
-      const statusDot = document.getElementById('offline-status-dot');
-
-      function liveVersion() {
-        const m = document.querySelector('meta[name="zircon-page-version"]');
-        return m ? m.getAttribute('content') : null;
-      }
-
-      function postToSW(reg, payload, timeoutMs) {
-        return new Promise((resolve) => {
-          if (!reg.active) { resolve(null); return; }
-          const ch = new MessageChannel();
-          let done = false;
-          const timer = setTimeout(() => {
-            if (done) return; done = true; resolve(null);
-          }, timeoutMs || 60000);
-          ch.port1.onmessage = (ev) => {
-            if (done) return; done = true; clearTimeout(timer);
-            resolve(ev.data || null);
-          };
-          reg.active.postMessage(payload, [ch.port2]);
-        });
-      }
-
-      async function refreshPageStatus(reg) {
-        if (!statusDot && !document.getElementById('offline-toggle')) return;
-        if (!reg) {
-          try { reg = await navigator.serviceWorker.ready; } catch { return; }
-        }
-        const info = await postToSW(reg, { type: 'GET_CACHE_INFO', url: location.pathname }, 5000);
-        const live = liveVersion();
-        let state;
-        if (!info || info.type !== 'CACHE_INFO' || !info.cached) {
-          state = 'absent';
-        } else if (live && info.cachedVersion && live !== info.cachedVersion) {
-          state = 'stale';
-        } else {
-          state = 'fresh';
-        }
-        applyStatus(state, info && info.cachedAt);
-      }
-
-      function applyStatus(state, cachedAt) {
-        if (statusDot) {
-          if (state === 'fresh') {
-            statusDot.style.background = '#6fa878';
-            statusDot.title = '这一页已离线（最新版本）';
-          } else if (state === 'stale') {
-            statusDot.style.background = '#b8943e';
-            statusDot.title = '这一页已离线，但有更新——下次联网时会自动刷新';
-          } else {
-            statusDot.style.background = '#cbd5e1';
-            statusDot.title = '这一页未离线';
-          }
-        }
-        const btn = document.getElementById('offline-toggle');
-        if (btn && !btn.disabled) {
-          const labelEl = btn.querySelector('.tool-label');
-          const iconEl = btn.querySelector('.tool-icon');
-          btn.classList.remove('cached');
-          if (state === 'fresh') {
-            iconEl.textContent = '\u2713';
-            labelEl.textContent = '已离线';
-            btn.classList.add('cached');
-            btn.title = cachedAt ? '已缓存最新版（' + new Date(cachedAt).toLocaleString('zh-CN') + '）' : '已缓存最新版';
-          } else if (state === 'stale') {
-            iconEl.textContent = '\u21bb';
-            labelEl.textContent = '有更新';
-            btn.title = '已离线但有新版本，点这里刷新缓存';
-          } else {
-            iconEl.textContent = '\uD83D\uDCE5';
-            labelEl.textContent = '下载离线';
-            btn.title = '把这篇缓存到本地，飞机/没网时可看';
-          }
-        }
-      }
-
-      window.__zirconRefreshOfflineStatus = () => refreshPageStatus();
-
-      window.addEventListener('load', async () => {
-        try {
-          await navigator.serviceWorker.register(SW_URL, { scope: SCOPE });
-        } catch (err) { console.warn('SW register failed:', err); return; }
-        const reg = await navigator.serviceWorker.ready;
-        if (!reg.active) {
-          await new Promise((r) => {
-            const t = setTimeout(r, 1500);
-            navigator.serviceWorker.addEventListener('controllerchange', () => { clearTimeout(t); r(); }, { once: true });
-          });
-        }
-        setTimeout(() => refreshPageStatus(reg).catch(() => {}), 800);
-      });
-    })();
-  </script>
+  {%- comment -%}
+    统一离线客户端：注册双层 SW、页脚离线状态点、文章「保存离线」按钮与「有新版」通知，
+    全部由 offline.js 接管（取代此处早先的内联 SW 逻辑）。本地预览时它会自卸 SW + 清缓存。
+  {%- endcomment -%}
+  <script src="{{ '/assets/js/offline/offline.js' | relative_url }}?v={{ site.time | date: '%s' }}" defer></script>
 
   <!-- Cloudflare Web Analytics（整站访客/来源/设备统计；外链脚本，不走 SW 缓存）-->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "707b3caaba08406c9cba84b86f396715"}'></script>

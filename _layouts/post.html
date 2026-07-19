@@ -29,7 +29,7 @@ layout: default
 
     <div style="display: flex; justify-content: space-between; align-items: center; color: var(--color-muted); font-family: 'Cormorant Garamond', serif; font-variant: small-caps; letter-spacing: 0.09em; margin-top: 1.6rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);">
 
-      <span style="font-size: 1.05rem;">{{ page.date | date: "%B %d, %Y" }}{% if page.updated and page.updated != page.date %} <span style="opacity:0.68;">· Updated {{ page.updated | date: "%B %d, %Y" }}</span>{% endif %}</span>
+      <span style="font-size: 1.05rem;">{{ page.date | date: "%B %d, %Y" }}{% if page.updated and page.updated != page.date %} <span style="opacity:0.68;">· Updated {{ page.updated | date: "%B %d, %Y" }}</span>{% endif %}<span id="offline-article-notice"></span></span>
 
       <span style="font-size: 1.05rem; letter-spacing: 0.08rem;">
         By {{ page.author | default: "Zircon" }}
@@ -164,9 +164,13 @@ layout: default
       <span class="tool-label">停止</span>
     </button>
     {% endunless %}
-    <button type="button" id="offline-toggle" class="post-tool-btn" title="缓存这篇到本地，飞机上 / 没网时也能看">
-      <span class="tool-icon" aria-hidden="true">📥</span>
-      <span class="tool-label">下载离线</span>
+    <button type="button" id="offline-toggle" class="post-tool-btn"
+            data-offline-title="{{ page.title | strip_html | escape }}"
+            data-offline-category="{{ page.main_category | default: '文章' }}"
+            data-offline-kind="{% if page.pdf_url or page.download_url %}pdf{% else %}article{% endif %}"
+            title="把这篇存到本地，飞机上 / 没网时也能看">
+      <span class="tool-icon" aria-hidden="true"></span>
+      <span class="tool-label">保存离线</span>
     </button>
   </div>
 
@@ -1377,81 +1381,6 @@ layout: default
     window.addEventListener('beforeunload', () => synth.cancel());
   })();
 
-  // ============================================================
-  // 离线下载（与 Service Worker 通信）
-  //
-  // 三态：
-  //   📥 下载离线   — 未缓存
-  //   ✓ 已离线     — 已缓存且版本号 == 当前页 <meta zircon-page-version>
-  //   ↻ 有更新     — 已缓存但版本号过期（点一下重新拉）
-  //
-  // 状态显示由 default.html 的全局 helper 统一管 —— 这里只负责
-  // "用户点 📥 时把这篇 + 文章里所有大照片喂给 SW" 这一项动作。
-  // ============================================================
-  (function () {
-    const btn = document.getElementById('offline-toggle');
-    if (!btn) return;
-    if (!('serviceWorker' in navigator)) {
-      btn.disabled = true;
-      btn.title = '当前浏览器不支持离线缓存';
-      btn.querySelector('.tool-label').textContent = '不支持离线';
-      return;
-    }
-
-    const url = location.pathname;
-
-    function setBusy(label, icon) {
-      btn.querySelector('.tool-label').textContent = label;
-      btn.querySelector('.tool-icon').textContent = icon;
-      btn.disabled = true;
-      btn.classList.add('active');
-    }
-    function clearBusy() {
-      btn.disabled = false;
-      btn.classList.remove('active');
-    }
-
-    async function downloadOffline() {
-      const reg = await navigator.serviceWorker.ready;
-      if (!reg.active) {
-        btn.title = '请刷新页面后再试';
-        btn.querySelector('.tool-label').textContent = '刷新页面后再点';
-        btn.disabled = true;
-        return;
-      }
-      setBusy('缓存中…', '⏳');
-      // 收集本页同源图片，连同当前 URL 一起交给 SW。
-      // 这是手动按钮 —— 不传 excludeAssets，所以 /files/ 下的大照片也会下。
-      const imgs = [...document.querySelectorAll('#post-content img')]
-        .map((i) => i.currentSrc || i.src)
-        .filter((u) => {
-          try { return new URL(u, location.href).origin === location.origin; }
-          catch { return false; }
-        });
-      const urls = [url, ...imgs];
-
-      const ch = new MessageChannel();
-      ch.port1.onmessage = (e) => {
-        const d = e.data || {};
-        if (d.type === 'PREFETCH_DONE') {
-          clearBusy();
-          // 让全局 helper 重新查 cache info、刷新按钮 + 页脚状态
-          if (typeof window.__zirconRefreshOfflineStatus === 'function') {
-            window.__zirconRefreshOfflineStatus();
-          } else {
-            // 退路：直接置已离线
-            btn.querySelector('.tool-label').textContent = '已离线';
-            btn.querySelector('.tool-icon').textContent = '✓';
-            btn.classList.add('cached');
-          }
-        }
-      };
-      reg.active.postMessage({ type: 'PREFETCH_URLS', urls }, [ch.port2]);
-    }
-
-    btn.addEventListener('click', downloadOffline);
-    // 状态查询交给 default.html 统一做，不在这里重复
-  })();
 </script>
 
 </article>
