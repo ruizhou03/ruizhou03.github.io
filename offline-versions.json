@@ -1,0 +1,29 @@
+---
+layout: null
+permalink: /offline-versions.json
+sitemap: false
+---
+{%- comment -%}
+  离线内容库 / 文章头「有更新」判断的版本清单（前端联网拉这一个小文件，跟本地保存时记的号比对）。
+  由 Jekyll 正常构建时生成——它天生知道每页真实 URL，无需额外整站渲染。
+    · 游戏 / 工具页 → _data/game_versions.json 的内容哈希；
+    · 文章 → updated（改过就是当天）| date（发布日期）。
+  只收录「可保存」的内容页（游戏、或有 date、或 layout=post），把体积压住。
+{%- endcomment -%}
+{%- assign items = site.pages | concat: site.documents -%}
+{%- assign first = true -%}
+{
+{%- for p in items -%}
+  {%- assign gv = site.data.game_versions[p.url] -%}
+  {%- comment -%}只收录真正可保存的：游戏(有哈希) 或 用 layout=post 的文章/讲义。
+     不靠 p.date 判断——那会把 files/ 下带 date 字段的源文件也卷进来。{%- endcomment -%}
+  {%- if gv or p.layout == 'post' -%}
+    {%- if gv -%}{%- assign v = gv -%}
+    {%- elsif p.updated -%}{%- assign v = p.updated | date: '%s' -%}
+    {%- elsif p.date -%}{%- assign v = p.date | date: '%s' -%}
+    {%- else -%}{%- assign v = site.time | date: '%s' -%}{%- endif -%}
+    {%- unless first -%},{%- endunless -%}{%- assign first = false -%}
+{{ p.url | jsonify }}:{{ v | jsonify }}
+  {%- endif -%}
+{%- endfor -%}
+}

@@ -29,7 +29,7 @@ layout: default
 
     <div style="display: flex; justify-content: space-between; align-items: center; color: var(--color-muted); font-family: 'Cormorant Garamond', serif; font-variant: small-caps; letter-spacing: 0.09em; margin-top: 1.6rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);">
 
-      <span style="font-size: 1.05rem;">{{ page.date | date: "%B %d, %Y" }}</span>
+      <span style="font-size: 1.05rem;">{{ page.date | date: "%B %d, %Y" }}{% if page.updated and page.updated != page.date %} <span style="opacity:0.68;">· Updated {{ page.updated | date: "%B %d, %Y" }}</span>{% endif %}</span>
 
       <span style="font-size: 1.05rem; letter-spacing: 0.08rem;">
         By {{ page.author | default: "Zircon" }}

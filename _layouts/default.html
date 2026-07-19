@@ -78,11 +78,18 @@
   <meta name="apple-mobile-web-app-title" content="{{ page.app_title | default: '锆铌' }}">
 
   {%- comment -%}
-    每页的离线版本戳：文章用 page.date（写完后稳定）；
-    没有 date 的页（toolbox 游戏、列表页）退到 site.time——这种页会被
-    每次 deploy 标成"旧版"，由前端的自动后台预取自动刷新。
+    每页的离线版本戳，前端据此判断「已保存的这份有没有新版」：
+      · 游戏 / 工具页 → _data/game_versions.json 里的内容哈希（改了代码才变，部署不误报）；
+      · 文章 → updated（做过实质修改时更到当天），没改过退回 date（发布日期）；
+      · 都没有 → site.time 兜底。
+    与 /offline-versions.json 用同一套表达式，保证当前页与内容库判断一致。
   {%- endcomment -%}
-  <meta name="zircon-page-version" content="{{ page.date | default: site.time | date: '%s' }}">
+  {%- assign _gv = site.data.game_versions[page.url] -%}
+  {%- if _gv -%}{%- assign _ver = _gv -%}
+  {%- elsif page.updated -%}{%- assign _ver = page.updated | date: '%s' -%}
+  {%- elsif page.date -%}{%- assign _ver = page.date | date: '%s' -%}
+  {%- else -%}{%- assign _ver = site.time | date: '%s' -%}{%- endif -%}
+  <meta name="zircon-page-version" content="{{ _ver }}">
 
   <script>
     // 主题持久化：在 <body> 渲染前同步读取 localStorage，避免闪烁
