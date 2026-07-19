@@ -8,18 +8,64 @@ redirect_from:
 ---
 
 <style>
-  .tm-wrap { max-width: 760px; margin: 0 auto; padding: 1rem; }
-  .tm-wrap header { text-align: center; margin-bottom: 1.6rem; }
-  .tm-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem; }
-  .tm-wrap header .sub { color: var(--color-light); font-style: normal; }
+  .tm-wrap { max-width: 760px; margin: 0 auto; padding: 2.2rem 1rem 3rem; }
+
+  /* ── board 风 hero ── */
+  .otd-hero { margin-bottom: 2.8rem; }
+  .otd-crumb {
+    font-family: 'Cormorant Garamond', serif;
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    font-size: 0.92rem;
+    color: var(--color-light);
+    margin: 0 0 1.4rem;
+  }
+  .otd-crumb a { color: var(--color-highlight); text-decoration: none; transition: color 0.18s; }
+  @media (hover: hover) { .otd-crumb a:hover { color: var(--color-accent); } }
+  .otd-crumb .sep { margin: 0 0.5em; opacity: 0.55; }
+  .otd-eyebrow {
+    font-family: 'Cormorant Garamond', var(--font-display);
+    font-variant: small-caps;
+    letter-spacing: 0.18em;
+    font-size: 0.86rem;
+    color: var(--color-highlight);
+    margin: 0 0 0.55rem;
+  }
+  .otd-eyebrow::before {
+    content: ""; display: inline-block; width: 6px; height: 6px;
+    background: var(--color-highlight); transform: rotate(45deg);
+    margin-right: 0.65em; vertical-align: middle;
+  }
+  .otd-htitle {
+    font-family: var(--font-display);
+    font-size: clamp(2.2rem, 5vw, 2.9rem);
+    font-weight: 700;
+    color: var(--color-ink);
+    letter-spacing: 0.02em;
+    line-height: 1.15;
+    margin: 0;
+  }
+  .otd-rule { display: flex; align-items: center; gap: 0.6rem; margin: 1.05rem 0 1.35rem; }
+  .otd-gem { width: 9px; height: 9px; flex: none; background: var(--color-highlight); transform: rotate(45deg); }
+  .otd-line {
+    height: 1px; width: 84px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--color-highlight) 75%, transparent), transparent);
+  }
+  .otd-lead {
+    font-size: 1.08rem;
+    line-height: 1.85;
+    color: var(--color-muted);
+    margin: 0;
+    max-width: 32em;
+  }
 
   .date-bar {
     display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: center;
-    justify-content: center;
-    margin-bottom: 1.4rem;
+    justify-content: flex-start;
+    margin-bottom: 1.6rem;
     padding: 1rem 1.2rem;
-    background: var(--color-bg); border: 1px solid var(--color-border);
-    border-radius: 14px;
+    background: var(--color-bg-warm); border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg, 14px);
   }
   .date-bar .label { font-size: 0.92rem; color: var(--color-muted); }
   .date-bar input[type="date"] {
@@ -41,19 +87,20 @@ redirect_from:
   }
 
   .featured-date {
-    text-align: center;
-    margin-bottom: 2rem;
+    text-align: left;
+    margin: 0 0 1.6rem;
   }
   .featured-date .display {
     font-family: var(--font-display);
-    font-size: 2.4rem; font-weight: 600;
+    font-size: 1.85rem; font-weight: 700;
     color: var(--color-ink);
-    line-height: 1.1;
+    line-height: 1.15;
   }
   .featured-date .hint {
-    margin-top: 0.4rem;
-    color: var(--color-muted);
-    font-size: 0.9rem;
+    margin-top: 0.35rem;
+    color: var(--color-highlight);
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
   }
 
   .results-zone { margin-top: 1.5rem; }
@@ -196,17 +243,22 @@ redirect_from:
   }
 
   @media (max-width: 600px) {
-    .featured-date .display { font-size: 1.9rem; }
+    .tm-wrap { padding: 1.4rem 1rem 2.4rem; }
+    .otd-hero { margin-bottom: 2.2rem; }
+    .otd-lead { font-size: 1rem; }
+    .featured-date .display { font-size: 1.55rem; }
     .heatmap-zone { padding: 1rem 0.8rem; }
     .heatmap { gap: 2px; }
   }
 </style>
 
 <div class="tm-wrap">
-  <header>
-    <h1>🕰️ 那年今日</h1>
-    <p class="sub">同一天，本站在过去几年写下的文字。</p>
-    <p class="sub"><a href="/board/" style="color: var(--color-highlight); text-decoration: none;">← 回到站务公告</a></p>
+  <header class="otd-hero">
+    <p class="otd-crumb"><a href="/board/">站务公告</a><span class="sep" aria-hidden="true">／</span>那年今日</p>
+    <p class="otd-eyebrow">那年今日 · On This Day</p>
+    <h1 class="otd-htitle">那年今日</h1>
+    <div class="otd-rule"><span class="otd-gem"></span><span class="otd-line"></span></div>
+    <p class="otd-lead">同一天，本站在过去几年写下的文字。选一个日子，回望历年的这一天，也看看这些年写作的疏密。</p>
   </header>
 
   <div class="date-bar">
