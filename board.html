@@ -36,6 +36,16 @@ redirect_from:
   <p class="board-empty">还没有发布过公告。</p>
   {%- endif -%}
 
+  <aside class="board-onthisday">
+    <div class="board-rule"><span class="board-gem"></span><span class="board-line"></span></div>
+    <a class="otd-card" href="/board/onthisday/">
+      <p class="otd-eyebrow">那年今日 · On This Day</p>
+      <h2 class="otd-title">翻历年同一天</h2>
+      <p class="otd-desc">站务公告记的是这个站的大事；那年今日记的是它写下的文字——同一天，回望过去几年发过的文章，看一张写作热力图。</p>
+      <span class="otd-more">走进那年今日<span class="otd-arrow" aria-hidden="true">→</span></span>
+    </a>
+  </aside>
+
 </article>
 
 <style>
@@ -176,6 +186,73 @@ redirect_from:
 
   .board-empty { color: var(--color-muted); font-size: 1rem; padding: 1.5rem 0; }
 
+  /* ── 那年今日 · 入口卡 ── */
+  .board-onthisday { margin-top: 3rem; }
+  .board-onthisday .board-rule { margin: 0 0 1.5rem; }
+  .otd-card {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    padding: 1.5rem 1.7rem 1.4rem;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg, 14px);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+  .otd-card::after {
+    content: "🕰️";
+    position: absolute;
+    right: 1.3rem; top: 50%;
+    transform: translateY(-50%);
+    font-size: 2.7rem;
+    opacity: 0.12;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .otd-card:hover {
+    border-color: color-mix(in srgb, var(--color-highlight) 55%, var(--color-border));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-2, 0 4px 16px rgba(0,0,0,0.07));
+  }
+  .otd-card:hover::after { opacity: 0.22; transform: translateY(-50%) rotate(-8deg); }
+  .otd-eyebrow {
+    font-family: 'Cormorant Garamond', var(--font-display);
+    font-variant: small-caps;
+    letter-spacing: 0.14em;
+    font-size: 0.82rem;
+    color: var(--color-highlight);
+    margin: 0 0 0.45rem;
+  }
+  .otd-title {
+    font-family: var(--font-display);
+    font-size: 1.32rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    margin: 0;
+    transition: color 0.2s;
+  }
+  .otd-card:hover .otd-title { color: var(--color-accent); }
+  .otd-desc {
+    font-size: 0.95rem;
+    line-height: 1.72;
+    color: var(--color-muted);
+    margin: 0.5rem 0 0;
+    max-width: 33em;
+  }
+  .otd-more {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    margin-top: 0.95rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.9rem;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: var(--color-highlight);
+  }
+  .otd-arrow { transition: transform 0.2s; }
+  .otd-card:hover .otd-arrow { transform: translateX(4px); }
+
   @media (max-width: 560px) {
     .board { padding: 1.4rem 0 2.4rem; }
     .board-hero { margin-bottom: 2.4rem; }
@@ -185,5 +262,10 @@ redirect_from:
     .bl-card { padding: 1.15rem 1.2rem; }
     .bl-title { font-size: 1.22rem; }
     .bl-blurb { font-size: 0.92rem; }
+    .board-onthisday { margin-top: 2.2rem; }
+    .otd-card { padding: 1.2rem 1.25rem; }
+    .otd-card::after { font-size: 2rem; right: 0.9rem; opacity: 0.1; }
+    .otd-title { font-size: 1.18rem; }
+    .otd-desc { font-size: 0.9rem; }
   }
 </style>

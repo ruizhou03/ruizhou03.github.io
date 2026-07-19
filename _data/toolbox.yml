@@ -415,14 +415,6 @@
   featured: true
   featured_note: 多设备原子同步的养宠记录，可装成独立 App
 
-- id: timemachine
-  name: X 年前的今天
-  icon: 🕰️
-  tagline: 翻历年同一天
-  url: /toolbox/timemachine/
-  category: 生活
-  status: live
-
 - id: font-style
   name: 花式字体
   icon: ✒️
