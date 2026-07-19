@@ -1,0 +1,287 @@
+---
+layout: default
+title: 离线内容库 | Rui Zhou
+permalink: /account/offline/
+sitemap: false
+noindex: true
+body_class: acc-page
+---
+
+<article class="lib-wrap">
+  <header class="lib-head">
+    <h1 class="lib-title">离线内容库</h1>
+    <p class="lib-sub">你亲手保存下来的文章、游戏、讲义，飞机上 / 没网时随时打开。</p>
+  </header>
+
+  {%- comment -%} 不支持 SW 的浏览器（微信 / 部分第三方）{%- endcomment -%}
+  <div id="lib-unsupported" class="lib-note" style="display:none;">
+    当前浏览器不支持离线缓存。请改用 Safari、Chrome、Edge 或 Firefox 打开本站。
+  </div>
+
+  <div id="lib-app" style="display:none;">
+    <div class="lib-summary">
+      <div class="lib-stat"><span class="v" id="lib-count">0</span><span class="k">已保存</span></div>
+      <div class="lib-stat"><span class="v" id="lib-size">0<small> MB</small></span><span class="k">占用空间</span></div>
+      <div class="lib-stat lib-stat-warn"><span class="v" id="lib-updc">0</span><span class="k">可更新</span></div>
+    </div>
+
+    <div class="lib-actionbar">
+      <div class="lib-ab-left">
+        <button type="button" class="lib-btn-primary" id="lib-update-all" style="display:none;"></button>
+        <button type="button" class="lib-chip" id="lib-only-upd">只看可更新</button>
+      </div>
+      <label class="lib-toggle" id="lib-wifi-label">
+        <span class="lib-switch off" id="lib-wifi-sw"></span>连 WiFi 时自动更新
+      </label>
+    </div>
+
+    <div id="lib-groups"></div>
+
+    <div id="lib-empty" class="lib-empty" style="display:none;">
+      还没有保存任何离线内容。<br>
+      在文章或游戏页点「<span style="color:var(--color-accent)">保存离线</span>」，它就会出现在这里。
+    </div>
+
+    <div class="lib-ambient" id="lib-ambient" style="display:none;">
+      <span class="lib-amb-lab">浏览缓存 · 临时加速 <b id="lib-amb-size">0 MB</b></span>
+      <button type="button" class="lib-amb-clear" id="lib-clear-ambient">立即清空</button>
+      <span class="lib-amb-sub">随手翻过的页面留下的加速副本，满了会自动清理，不占用上面的离线书架。</span>
+    </div>
+
+    <div class="lib-danger" id="lib-danger" style="display:none;">
+      <button type="button" class="lib-clear-all" id="lib-clear-all">清空全部离线内容</button>
+    </div>
+  </div>
+</article>
+
+<style>
+  .lib-wrap { max-width: 760px; margin: 0 auto; padding: 1rem 0 4rem; }
+  .lib-head { margin-bottom: 1.6rem; }
+  .lib-title { font-family: var(--font-display, 'Cormorant Garamond', serif); font-size: 2rem; color: var(--color-ink); margin: 0 0 .3rem; }
+  .lib-sub { color: var(--color-muted); font-size: .95rem; margin: 0; }
+  .lib-note { background: var(--gold-soft, #f3ecdb); border: 1px solid var(--color-border); border-radius: 12px; padding: 1rem 1.2rem; color: var(--color-muted); font-size: .92rem; }
+
+  .lib-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; padding: 1.2rem 0 1.3rem; border-bottom: 1px solid var(--color-border); }
+  .lib-stat { display: flex; flex-direction: column; gap: .2rem; }
+  .lib-stat .v { font-family: var(--font-display, serif); font-size: 1.7rem; font-weight: 600; line-height: 1; color: var(--color-accent); font-variant-numeric: tabular-nums; }
+  .lib-stat .v small { font-size: .9rem; color: var(--color-muted); font-weight: 400; }
+  .lib-stat .k { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--color-light); }
+  .lib-stat-warn .v { color: #b0862f; }
+
+  .lib-actionbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; padding: 1rem 0; border-bottom: 1px solid var(--color-border); }
+  .lib-ab-left { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; }
+  .lib-btn-primary { display: inline-flex; align-items: center; gap: .45rem; font-family: var(--font-body, inherit); font-size: .9rem; cursor: pointer; padding: .5rem 1rem; border-radius: 9px; border: 1px solid transparent; background: var(--color-accent); color: #f4efe4; }
+  .lib-btn-primary:hover { filter: brightness(1.12); }
+  .lib-btn-primary .zoff-ic { width: 1em; height: 1em; }
+  .lib-chip { font-size: .8rem; color: var(--color-muted); background: transparent; border: 1px solid var(--color-border); border-radius: 999px; padding: .4rem .8rem; cursor: pointer; transition: all .15s; }
+  .lib-chip:hover { border-color: #b0862f; color: #b0862f; }
+  .lib-chip.on { background: #f6edd6; border-color: rgba(176,134,47,.4); color: #b0862f; }
+  .lib-toggle { display: inline-flex; align-items: center; gap: .55rem; font-size: .84rem; color: var(--color-muted); cursor: pointer; user-select: none; }
+  .lib-switch { width: 38px; height: 22px; border-radius: 999px; background: var(--color-accent); position: relative; flex: none; transition: background .18s; }
+  .lib-switch::after { content: ""; position: absolute; top: 2px; left: 18px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: left .18s; }
+  .lib-switch.off { background: var(--color-border); }
+  .lib-switch.off::after { left: 2px; }
+
+  .lib-cat { border-bottom: 1px solid var(--color-border); }
+  .lib-cat-head { width: 100%; display: flex; align-items: center; gap: .6rem; padding: .95rem .2rem; background: transparent; border: 0; cursor: pointer; font-family: var(--font-body, inherit); color: var(--color-ink); text-align: left; }
+  .lib-cat-head:hover { color: var(--color-accent); }
+  .lib-chev { width: .8em; height: .8em; color: var(--color-light); transition: transform .18s; transform: rotate(90deg); }
+  .lib-cat.collapsed .lib-chev { transform: rotate(0deg); }
+  .lib-diamond { width: 6px; height: 6px; background: var(--gold, #c1a468); transform: rotate(45deg); flex: none; }
+  .lib-cat-name { font-size: 1rem; font-weight: 600; }
+  .lib-cat-count { font-size: .76rem; color: var(--color-light); font-variant-numeric: tabular-nums; }
+  .lib-cat-upd { margin-left: auto; font-size: .74rem; color: #b0862f; background: #f6edd6; border-radius: 999px; padding: .15rem .55rem; display: inline-flex; align-items: center; gap: .3rem; }
+  .lib-cat-upd .d { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .lib-cat.collapsed .lib-cat-body { display: none; }
+
+  .lib-row { display: flex; align-items: center; gap: .9rem; padding: .7rem .2rem .7rem 1.4rem; border-top: 1px solid var(--gold-soft, #f0ebe0); }
+  .lib-row:first-child { border-top: 0; }
+  .lib-row-main { min-width: 0; flex: 1; }
+  .lib-row-name { font-size: .95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lib-row-name a { color: inherit; text-decoration: none; }
+  .lib-row-name a:hover { color: var(--color-accent); }
+  .lib-row-meta { font-size: .77rem; color: var(--color-light); font-variant-numeric: tabular-nums; margin-top: .1rem; }
+  .lib-row-right { display: flex; align-items: center; gap: .55rem; flex: none; }
+
+  .lib-st-fresh { display: inline-flex; align-items: center; gap: .3rem; font-size: .8rem; color: #5d8a6b; }
+  .lib-st-fresh .zoff-ic { width: .88em; height: .88em; }
+  .lib-st-stale { display: inline-flex; align-items: center; gap: .34rem; font-family: var(--font-body, inherit); font-size: .82rem; color: #b0862f; background: #f6edd6; border: 1px solid rgba(176,134,47,.32); border-radius: 999px; padding: .3rem .7rem; cursor: pointer; transition: filter .15s; }
+  .lib-st-stale:hover { filter: brightness(1.05); }
+  .lib-st-stale .zoff-ic { width: .9em; height: .9em; }
+  .lib-del { background: transparent; border: 0; cursor: pointer; color: var(--color-light); font-size: .8rem; padding: .35rem .3rem; border-radius: 6px; transition: color .15s; }
+  .lib-del:hover { color: #b4544e; }
+
+  .lib-empty { padding: 3rem 1rem; text-align: center; color: var(--color-light); font-size: .95rem; line-height: 1.8; }
+
+  .lib-ambient { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; padding: 1.2rem 0 .4rem; margin-top: .6rem; border-top: 1px dashed var(--color-border); color: var(--color-light); }
+  .lib-amb-lab { font-size: .84rem; }
+  .lib-amb-lab b { color: var(--color-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .lib-amb-clear { margin-left: auto; font-size: .78rem; color: var(--color-light); background: transparent; border: 1px solid var(--color-border); border-radius: 7px; padding: .3rem .6rem; cursor: pointer; }
+  .lib-amb-clear:hover { color: var(--color-muted); border-color: var(--color-muted); }
+  .lib-amb-sub { flex-basis: 100%; font-size: .76rem; color: var(--color-light); }
+
+  .lib-danger { margin-top: 1.6rem; text-align: center; }
+  .lib-clear-all { font-size: .82rem; color: var(--color-light); background: transparent; border: 1px solid var(--color-border); border-radius: 8px; padding: .5rem 1rem; cursor: pointer; }
+  .lib-clear-all:hover { color: #b4544e; border-color: #b4544e; }
+
+  @media (max-width: 560px) {
+    .lib-summary { grid-template-columns: 1fr 1fr; row-gap: 1rem; }
+    .lib-row { flex-wrap: wrap; padding-left: .2rem; }
+    .lib-row-right { width: 100%; justify-content: flex-end; }
+  }
+</style>
+
+<script>
+(function () {
+  var CAT_ORDER = ['生活攻略', '科研妙招', '生活之问', '科研之问', '随笔漫谈', '学习资料', '百宝箱工具', '百宝箱', '文章', '其他'];
+  var app, groupsEl, onlyUpd = false;
+
+  function whenReady(cb) {
+    if (window.ZirconOffline) return cb(window.ZirconOffline);
+    var n = 0, t = setInterval(function () {
+      if (window.ZirconOffline) { clearInterval(t); cb(window.ZirconOffline); }
+      else if (++n > 120) clearInterval(t);
+    }, 50);
+  }
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function fmtDate(ts) { try { return new Date(ts).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' }); } catch (e) { return ''; } }
+
+  function catRank(c) { var i = CAT_ORDER.indexOf(c); return i === -1 ? CAT_ORDER.length : i; }
+
+  whenReady(function (Z) {
+    if (!('serviceWorker' in navigator)) {
+      document.getElementById('lib-unsupported').style.display = '';
+      return;
+    }
+    app = document.getElementById('lib-app');
+    groupsEl = document.getElementById('lib-groups');
+    app.style.display = '';
+
+    // WiFi 自动更新开关
+    var wifiSw = document.getElementById('lib-wifi-sw');
+    function paintWifi() { wifiSw.classList.toggle('off', !Z.autoWifiOn()); }
+    paintWifi();
+    document.getElementById('lib-wifi-label').addEventListener('click', function (e) {
+      e.preventDefault(); Z.setAutoWifi(!Z.autoWifiOn()); paintWifi();
+    });
+
+    document.getElementById('lib-only-upd').addEventListener('click', function () {
+      onlyUpd = !onlyUpd;
+      this.classList.toggle('on', onlyUpd);
+      render();
+    });
+    document.getElementById('lib-clear-ambient').addEventListener('click', async function () {
+      this.disabled = true; this.textContent = '清理中…';
+      await Z.clearAmbient(); render();
+    });
+    document.getElementById('lib-clear-all').addEventListener('click', async function () {
+      if (!window.confirm('清空全部离线内容？本地保存的文章 / 游戏都会删除（随时可重新保存）。')) return;
+      this.disabled = true; this.textContent = '清空中…';
+      await Z.clearSaved(); render();
+    });
+    document.getElementById('lib-update-all').addEventListener('click', async function () {
+      var btn = this; btn.disabled = true;
+      var upd = await Z.checkUpdates();
+      var urls = Object.keys(upd), i = 0;
+      for (; i < urls.length; i++) {
+        btn.innerHTML = Z.icon('spinner') + '更新中… ' + (i + 1) + '/' + urls.length;
+        var it = Z.index.get(urls[i]); if (it) { try { await Z.update(it, { force: true }); } catch (e) {} }
+      }
+      render();
+    });
+
+    Z.on('change', render);
+    render();
+
+    async function render() {
+      var items = Z.index.list();
+      var updates = await Z.checkUpdates();
+      var st = null; try { st = await Z.stats(); } catch (e) {}
+
+      // 概览
+      document.getElementById('lib-count').textContent = items.length;
+      var savedBytes = (st && st.saved && st.saved.bytes) || items.reduce(function (a, b) { return a + (b.size || 0); }, 0);
+      document.getElementById('lib-size').innerHTML = fmtSize(savedBytes);
+      var updCount = Object.keys(updates).length;
+      document.getElementById('lib-updc').textContent = updCount;
+
+      var updAll = document.getElementById('lib-update-all');
+      if (updCount > 0) { updAll.style.display = ''; updAll.disabled = false; updAll.innerHTML = Z.icon('refresh') + '更新全部（' + updCount + '）'; }
+      else updAll.style.display = 'none';
+
+      document.getElementById('lib-empty').style.display = items.length ? 'none' : '';
+      document.getElementById('lib-danger').style.display = items.length ? '' : 'none';
+
+      // 浏览缓存行
+      var amb = document.getElementById('lib-ambient');
+      if (st && st.ambient && st.ambient.bytes > 0) {
+        amb.style.display = '';
+        document.getElementById('lib-amb-size').innerHTML = fmtSize(st.ambient.bytes);
+      } else amb.style.display = 'none';
+
+      // 分组
+      var groups = {};
+      items.forEach(function (it) { (groups[it.category || '其他'] = groups[it.category || '其他'] || []).push(it); });
+      var cats = Object.keys(groups).sort(function (a, b) { return catRank(a) - catRank(b) || a.localeCompare(b); });
+
+      var html = '';
+      cats.forEach(function (cat) {
+        var rows = groups[cat].slice().sort(function (a, b) { return (b.savedAt || 0) - (a.savedAt || 0); });
+        var staleRows = rows.filter(function (r) { return updates[Z.normUrl(r.url)]; });
+        if (onlyUpd && staleRows.length === 0) return;
+        var shown = onlyUpd ? staleRows : rows;
+        html += '<div class="lib-cat">';
+        html += '<button type="button" class="lib-cat-head" data-cat="' + esc(cat) + '">' +
+          '<svg class="zoff-ic lib-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>' +
+          '<span class="lib-diamond"></span><span class="lib-cat-name">' + esc(cat) + '</span>' +
+          '<span class="lib-cat-count">' + rows.length + '</span>' +
+          (staleRows.length ? '<span class="lib-cat-upd"><span class="d"></span>' + staleRows.length + ' 可更新</span>' : '') +
+          '</button>';
+        html += '<div class="lib-cat-body">';
+        shown.forEach(function (it) {
+          var stale = !!updates[Z.normUrl(it.url)];
+          html += '<div class="lib-row" data-url="' + esc(it.url) + '">' +
+            '<div class="lib-row-main"><div class="lib-row-name"><a href="' + esc(it.url) + '">' + esc(it.title) + '</a></div>' +
+            '<div class="lib-row-meta">' + fmtSizePlain(it.size) + ' · 保存于 ' + fmtDate(it.savedAt) + '</div></div>' +
+            '<div class="lib-row-right">' +
+            (stale
+              ? '<button type="button" class="lib-st-stale" data-act="update">' + Z.icon('refresh') + '有更新</button>'
+              : '<span class="lib-st-fresh">' + Z.icon('check') + '最新</span>') +
+            '<button type="button" class="lib-del" data-act="remove">删除</button>' +
+            '</div></div>';
+        });
+        html += '</div></div>';
+      });
+      groupsEl.innerHTML = html;
+      wireGroups();
+    }
+
+    function wireGroups() {
+      groupsEl.querySelectorAll('.lib-cat-head').forEach(function (h) {
+        h.addEventListener('click', function () { h.closest('.lib-cat').classList.toggle('collapsed'); });
+      });
+      groupsEl.querySelectorAll('.lib-row').forEach(function (row) {
+        var url = row.getAttribute('data-url');
+        row.querySelectorAll('[data-act]').forEach(function (btn) {
+          btn.addEventListener('click', async function (e) {
+            e.preventDefault(); e.stopPropagation();
+            var act = btn.getAttribute('data-act');
+            if (act === 'remove') {
+              btn.disabled = true; btn.textContent = '…';
+              await Z.remove(url); render();
+            } else if (act === 'update') {
+              btn.innerHTML = Z.icon('spinner') + '更新中';
+              var it = Z.index.get(url); if (it) { try { await Z.update(it, { force: true }); } catch (e2) {} }
+              render();
+            }
+          });
+        });
+      });
+    }
+  });
+
+  function fmtSize(n) { n = +n || 0; if (n < 1024 * 1024) return Math.max(1, Math.round(n / 1024)) + '<small> KB</small>'; return (n / 1048576).toFixed(1) + '<small> MB</small>'; }
+  function fmtSizePlain(n) { n = +n || 0; if (n < 1024) return n + ' B'; if (n < 1048576) return Math.round(n / 1024) + ' KB'; return (n / 1048576).toFixed(1) + ' MB'; }
+})();
+</script>

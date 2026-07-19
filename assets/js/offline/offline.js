@@ -206,6 +206,38 @@
     return r;
   }
 
+  // 批量保存（整栏 / 分组按钮用）：逐项走 save()，每项各自入索引，进度回调 (done,total)
+  async function saveMany(items, opts) {
+    opts = opts || {};
+    var total = items.length, done = 0, bytes = 0;
+    for (var i = 0; i < items.length; i++) {
+      if (opts.onProgress) opts.onProgress(done, total);
+      try { var r = await save(items[i], { force: !!opts.force }); if (r) bytes += r.bytes || 0; } catch (e) {}
+      done++;
+    }
+    if (opts.onProgress) opts.onProgress(done, total);
+    emit('change');
+    return { total: total, done: done, bytes: bytes };
+  }
+
+  // 连 WiFi 自动更新（默认关）。best-effort：Network Information API 缺失时按「不省流量」处理。
+  function autoWifiOn() { try { return localStorage.getItem('zircon.offline.autowifi') === '1'; } catch (e) { return false; } }
+  function setAutoWifi(on) { try { localStorage.setItem('zircon.offline.autowifi', on ? '1' : '0'); } catch (e) {} }
+  function unmetered() {
+    var c = navigator.connection || navigator.webkitConnection;
+    if (!c) return true;
+    if (c.saveData) return false;
+    if (c.type) return c.type === 'wifi' || c.type === 'ethernet';
+    return c.effectiveType === '4g';
+  }
+  async function maybeAutoUpdate() {
+    if (!autoWifiOn() || !unmetered()) return;
+    var upd = await checkUpdates();
+    var urls = Object.keys(upd);
+    for (var i = 0; i < urls.length; i++) { var it = index.get(urls[i]); if (it) { try { await update(it, { force: true }); } catch (e) {} } }
+    if (urls.length) emit('change');
+  }
+
   // ───────────────────────── SVG 图标（手绘矢量，无 emoji） ─────────────────────────
   var PATHS = {
     download: '<path d="M12 3.5V14"/><path d="M7.5 10l4.5 4.5L16.5 10"/><path d="M5 19h14"/>',
@@ -385,7 +417,7 @@
       if (W.caches) caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
       return;
     }
-    ready();  // 注册 SW
+    ready().then(function () { maybeAutoUpdate(); });  // 注册 SW + 连 WiFi 时静默更新已保存项
     var dot = document.getElementById('offline-status-dot'); if (dot) initFooterDot(dot);
     var btn = document.getElementById('offline-toggle'); if (btn) wireButton(btn);
     var notice = document.getElementById('offline-article-notice'); if (notice) wireArticleNotice(notice);
@@ -399,8 +431,9 @@
   W.ZirconOffline = {
     normUrl: normUrl, fmtBytes: fmtBytes, versionsDiffer: versionsDiffer, orphanAssets: orphanAssets,
     ready: ready, ask: ask, liveVersions: liveVersions,
-    index: index, save: save, update: update, remove: remove,
+    index: index, save: save, saveMany: saveMany, update: update, remove: remove,
     checkUpdates: checkUpdates, stats: stats, clearAmbient: clearAmbient, clearSaved: clearSaved,
+    autoWifiOn: autoWifiOn, setAutoWifi: setAutoWifi,
     icon: icon, injectStyles: injectStyles,
     wireButton: wireButton, wireArticleNotice: wireArticleNotice, initFooterDot: initFooterDot,
     on: on, emit: emit
