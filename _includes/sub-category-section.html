@@ -1,22 +1,20 @@
 {%- comment -%}
-渲染一个 sub_category 小节：标题 + 折叠搜索 icon + 分页文章列表 + 翻页 UI
+渲染一个 sub_category 小节：书目式列表（序号/★ + 衬线标题 + 赞评/日期）+ 折叠搜索 + 分页。
 inputs:
   - sub: 小节标题（中文）
   - posts: 已排序的文章对象数组
   - page_size: 每页几条（默认 5）
-搜索/翻页 UI 仅在 posts.size > page_size 时渲染；阈值之下文章数太少，没必要再加一层 UI。
-JS 逻辑保留兜底：当 search-wrap 缺失时，filter/分页仍会安全降级。
-{%- endcomment -%}
-{%- comment -%}
-  额外参数：
   - zone_url: 指定后小节标题变成通往该专区的链接
+序号按「已发布」连续编号；标了 featured 的文章占位显示 ★（编号不跳号），同时出现在栏顶精品带（保栏目完整）。
+搜索/翻页 UI 由 category-listing-tools.html 的 JS 兜底：search-wrap 缺失时 filter/分页安全降级。
 {%- endcomment -%}
 {%- assign _ps = include.page_size | default: 5 -%}
 {%- assign _published_count = 0 -%}
 {%- for _p in include.posts -%}{%- if _p.published != false -%}{%- assign _published_count = _published_count | plus: 1 -%}{%- endif -%}{%- endfor -%}
 <section class="post-list-section" data-sub="{{ include.sub }}">
   <div class="post-list-head">
-    <h2 class="post-list-title"><span class="sec-icon" aria-hidden="true" style="display:inline-block;width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin-right:0.6em;vertical-align:middle;"></span>{% if include.zone_url %}<a href="{{ include.zone_url | relative_url }}" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--color-border);">{{ include.sub }}</a>{% else %}{{ include.sub }}{% endif %}</h2>
+    <h2 class="post-list-title"><span class="sec-icon" aria-hidden="true" style="display:inline-block;width:8px;height:8px;background:var(--gold);transform:rotate(45deg);margin-right:0.6em;vertical-align:middle;box-shadow:0 0 0 4px var(--gold-soft);"></span>{% if include.zone_url %}<a href="{{ include.zone_url | relative_url }}" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--color-border);">{{ include.sub }}</a>{% else %}{{ include.sub }}{% endif %}</h2>
+    <span class="post-list-count">{{ _published_count }} 篇</span>
     <div class="section-tools">
       <button type="button" class="download-toggle" aria-label="下载本分类全部文章" title="缓存「{{ include.sub }}」{{ _published_count }} 篇文章到本地，飞机上 / 没网时也能看">
         <svg class="dl-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -29,15 +27,17 @@ JS 逻辑保留兜底：当 search-wrap 缺失时，filter/分页仍会安全降
     </div>
   </div>
   <ul class="paginated-list" data-page-size="{{ _ps }}">
+    {%- assign _n = 0 -%}
     {% for post in include.posts %}
       {% if post.published != false %}
+      {%- assign _n = _n | plus: 1 -%}
       {%- capture _base -%}{{ post.title }} {{ post.keywords | join: ' ' }} {{ post.tags | join: ' ' }}{%- endcapture -%}
       {%- capture _exp -%}{% include search-expand.html text=_base %}{%- endcapture -%}
       {%- assign _u = post.url | relative_url -%}
       <li class="paginated-item" data-title="{{ _exp | downcase }}" data-url="{{ _u }}" data-hidden="{% if post.hidden %}true{% else %}false{% endif %}" data-trashed="{% if post.trashed %}true{% else %}false{% endif %}" data-paid="{% if post.paid %}true{% else %}false{% endif %}" data-path="{{ post.path }}" data-date="{{ post.date | date: '%Y-%m-%d' }}">
-        <a href="{{ _u }}">{% include latex-logo.html title=post.title %}</a>
-        {% include sc-metrics.html url=_u %}
-        <span class="post-date">{% if post.date %}{{ post.date | date: "%Y/%m/%d" }}{% endif %}</span>
+        <span class="pl-no{% if post.featured %} star{% endif %}" aria-hidden="true">{% if post.featured %}★{% else %}{{ _n | prepend: '00' | slice: -2, 2 }}{% endif %}</span>
+        <a href="{{ _u }}" class="pl-link">{% include latex-logo.html title=post.title %}</a>
+        <span class="pl-meta">{% include sc-metrics.html url=_u %}<span class="post-date">{% if post.date %}{{ post.date | date: "%Y/%m/%d" }}{% endif %}</span></span>
       </li>
       {% endif %}
     {% endfor %}

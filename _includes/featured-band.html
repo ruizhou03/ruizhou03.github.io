@@ -1,0 +1,29 @@
+{%- comment -%}
+栏顶精品带：把本栏目标了 featured 的文章做成 keyline 卡（★ 栏目名 + 衬线标题 + 日期/赞评）。
+自适应：N=0 整段不渲染 / 1 横向大卡 / 2 并排 / 3 三列 / 4 = 2×2。
+精选文章同时照常出现在下方分类书目里（★ 占位），本带只是把它们置顶陈列、保栏目完整。
+inputs: posts = 该栏目已算好的 featured 文章数组（已按日期倒序）。
+{%- endcomment -%}
+{%- assign _fp = include.posts -%}
+{%- assign _fn = _fp | size -%}
+{%- if _fn > 4 -%}{%- assign _fn = 4 -%}{%- endif -%}
+{%- if _fn > 0 -%}
+<section class="feat-section" data-fn="{{ _fn }}">
+  <div class="post-list-head">
+    <h2 class="post-list-title"><span class="sec-icon" aria-hidden="true" style="display:inline-block;width:8px;height:8px;background:var(--gold);transform:rotate(45deg);margin-right:0.6em;vertical-align:middle;box-shadow:0 0 0 4px var(--gold-soft);"></span>精选</h2>
+    <span class="post-list-count">Featured · {{ _fn }} 篇</span>
+  </div>
+  <div class="feat-band">
+    {%- for p in _fp limit: 4 -%}
+      {%- assign _pu = p.url | relative_url -%}
+      <a class="fcard" href="{{ _pu }}">
+        <div class="fcard-main">
+          <span class="tag">{{ p.sub_category | default: p.main_category }}</span>
+          <h3>{% include latex-logo.html title=p.title %}</h3>
+        </div>
+        <div class="ft"><time>{% if p.date %}{{ p.date | date: "%Y/%m/%d" }}{% endif %}</time>{% include sc-metrics.html url=_pu %}</div>
+      </a>
+    {%- endfor -%}
+  </div>
+</section>
+{%- endif -%}

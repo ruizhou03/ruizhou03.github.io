@@ -3,6 +3,7 @@ layout: post
 title: "在平行时空的梦里，重拾快乐"
 main_category: "随笔漫谈"
 sub_category: "生命故事"
+featured: true
 date: "2024-12-19"
 author: "Zircon"
 permalink: "/essays/birthday-21"

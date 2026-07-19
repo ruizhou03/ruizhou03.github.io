@@ -3,6 +3,7 @@ layout: post
 title: "没有“标准答案”之后"
 main_category: "随笔漫谈"
 sub_category: "生命故事"
+featured: true
 date: "2022-12-19"
 author: "Zircon"
 permalink: "/essays/birthday-19"

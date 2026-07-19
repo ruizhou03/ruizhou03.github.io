@@ -13,6 +13,9 @@ title: 生活攻略 | Rui Zhou
   {% assign undated_posts = raw_posts | where_exp: "item", "item.date == nil" %}
   {% assign category_posts = dated_posts | concat: undated_posts %}
 
+  {% assign featured_posts = category_posts | where: "featured", true %}
+  {% include featured-band.html posts=featured_posts %}
+
   {% assign sub_categories = category_posts | map: "sub_category" | compact | uniq %}
 
   {% for sub in sub_categories %}
