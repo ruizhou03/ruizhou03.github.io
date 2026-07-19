@@ -34,6 +34,10 @@ body_class: adm-page
       <aside class="adm-nav" id="adm-nav">
         <button type="button" class="adm-nav-collapse" id="adm-nav-collapse" title="折叠 / 展开目录" aria-label="折叠目录">‹</button>
         <div class="adm-nav-group">
+          <div class="adm-nav-gh">互动</div>
+          <button type="button" class="adm-nav-item" data-pane="inbox"><span class="i">📥</span><span class="t">收件箱</span></button>
+        </div>
+        <div class="adm-nav-group">
           <div class="adm-nav-gh">数据分析</div>
           <button type="button" class="adm-nav-item" data-pane="overview"><span class="i">📈</span><span class="t">总览</span></button>
           <button type="button" class="adm-nav-item" data-pane="rankings"><span class="i">🏆</span><span class="t">内容排行</span></button>
@@ -166,6 +170,23 @@ body_class: adm-page
           <p class="adm-note" style="margin:0 0 1rem;">读者对评论的举报（同一人对同一条去重后入队，<strong>不自动隐藏</strong>）。核实后可直接「删除评论」（连同回复一并删，不可恢复）或「忽略」把这条举报移出队列。</p>
           <div id="rep-body" class="rep-body"><div class="cm-empty">加载中…</div></div>
         </section>
+
+        {%- comment -%} 收件箱：全站互动（评论 / 点赞 / 收藏）统一时间线 {%- endcomment -%}
+        <section class="adm-sec adm-pane" data-pane="inbox" hidden>
+          <div class="adm-sec-top">
+            <h2>收件箱</h2>
+            <button id="ib-refresh" class="adm-mini" type="button">刷新</button>
+          </div>
+          <p class="adm-note" style="margin:0 0 1rem;">读者对你内容的最新互动，按时间倒序。点文章名跳到那篇；点昵称看用户公开主页；评论可直接删除。「标为已读」只清本机的未读提示，不改动任何数据。点赞 / 收藏只记录自本功能上线后发生的（更早的没有留痕）。</p>
+          <div class="ib-tabs" id="ib-tabs">
+            <button type="button" class="ib-tab ib-on" data-cat="all">全部</button>
+            <button type="button" class="ib-tab" data-cat="comment">评论<span class="ib-badge" id="ib-badge-comment" hidden>0</span></button>
+            <button type="button" class="ib-tab" data-cat="like">点赞<span class="ib-badge" id="ib-badge-like" hidden>0</span></button>
+            <button type="button" class="ib-tab" data-cat="fav">收藏<span class="ib-badge" id="ib-badge-fav" hidden>0</span></button>
+            <button type="button" class="ib-mark" id="ib-markread">全部标为已读</button>
+          </div>
+          <div id="ib-body" class="ib-body"><div class="cm-empty">加载中…</div></div>
+        </section>
       </div>
     </div>
   </div>
@@ -201,6 +222,45 @@ body_class: adm-page
   .rep-act.rep-del:hover { background: #b4453a; color: #fff; border-color: #b4453a; }
   .rep-act[disabled] { opacity: 0.55; cursor: default; }
   .rep-act-na { font-size: 0.78rem; color: var(--color-light); }
+  /* ── 收件箱 ── */
+  .ib-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; align-items: center; }
+  .ib-tab { font-family: inherit; font-size: 0.8rem; cursor: pointer; padding: 0.3rem 0.85rem; border-radius: 999px;
+    border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text);
+    display: inline-flex; align-items: center; gap: 0.35rem; }
+  .ib-tab:hover { border-color: var(--color-accent); }
+  .ib-tab.ib-on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .ib-badge { display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px;
+    border-radius: 999px; background: #b4453a; color: #fff; font-size: 0.62rem; line-height: 1; font-variant-numeric: tabular-nums; }
+  .ib-tab.ib-on .ib-badge { background: #fff; color: var(--color-accent); }
+  .ib-mark { margin-left: auto; font-family: inherit; font-size: 0.78rem; cursor: pointer; color: var(--color-muted);
+    background: none; border: 1px solid var(--color-border); border-radius: 7px; padding: 0.28rem 0.7rem; }
+  .ib-mark:hover { color: var(--color-highlight); border-color: var(--color-highlight); }
+  .ib-body { display: flex; flex-direction: column; gap: 0.6rem; }
+  .ib-item { position: relative; display: flex; gap: 0.7rem; border: 1px solid var(--color-border);
+    border-radius: 10px; padding: 0.7rem 0.9rem; background: var(--color-bg); }
+  .ib-item.ib-unread { border-color: var(--color-highlight); }
+  .ib-item.ib-unread::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    border-radius: 10px 0 0 10px; background: var(--color-highlight); }
+  .ib-av { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: var(--color-bg-warm) center/cover no-repeat;
+    display: grid; place-items: center; font-size: 0.92rem; color: var(--color-muted); }
+  .ib-main { flex: 1; min-width: 0; }
+  .ib-head { display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap; font-size: 0.82rem; }
+  .ib-user { color: var(--color-ink); font-weight: 600; text-decoration: none; }
+  a.ib-user:hover { color: var(--color-accent); text-decoration: underline; }
+  .ib-cat { font-size: 0.68rem; padding: 0.05rem 0.45rem; border-radius: 999px; }
+  .ib-cat.c-comment { background: var(--color-accent-soft); color: var(--color-accent); }
+  .ib-cat.c-like { background: rgba(77, 127, 179, 0.16); color: #4d7fb3; }
+  .ib-cat.c-fav { background: rgba(201, 169, 110, 0.20); color: #a9853f; }
+  .ib-time { color: var(--color-light); }
+  .ib-art { margin-top: 0.25rem; font-size: 0.9rem; color: var(--color-muted); overflow-wrap: anywhere; }
+  .ib-art a { color: var(--color-accent); text-decoration: none; }
+  .ib-art a:hover { text-decoration: underline; }
+  .ib-snip { margin-top: 0.35rem; color: var(--color-text); font-size: 0.9rem; line-height: 1.55; overflow-wrap: anywhere; }
+  .ib-acts { margin-top: 0.5rem; }
+  .ib-del { font-family: inherit; font-size: 0.78rem; cursor: pointer; padding: 0.24rem 0.65rem; border-radius: 7px;
+    border: 1px solid #e2b6b0; background: var(--color-bg); color: #b4453a; }
+  .ib-del:hover { background: #b4453a; color: #fff; border-color: #b4453a; }
+  .ib-del[disabled] { opacity: 0.55; cursor: default; }
   .adm-verified { font-size: 0.9rem; color: var(--color-muted); background: var(--color-bg-warm);
     border: 1px solid var(--color-border); border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 2rem; }
   .adm-verified strong { color: var(--color-ink); }
@@ -1232,7 +1292,7 @@ body_class: adm-page
       .catch(function (e) { row.classList.remove('cm-busy'); alert('操作失败：' + ((e && e.error) || '请重试')); });
   }
   // ── 控制台路由：左侧目录点选 → 右侧显示对应子面板（hash 可直达 / 刷新保持 / 前进后退）──
-  var PANES = ['overview', 'rankings', 'traffic', 'geo', 'articles', 'visibility', 'reports'];
+  var PANES = ['inbox', 'overview', 'rankings', 'traffic', 'geo', 'articles', 'visibility', 'reports'];
   var reportsInited = false;
   function loadReports() {
     var body = document.getElementById('rep-body');
@@ -1291,6 +1351,150 @@ body_class: adm-page
         }).catch(function () { btn.disabled = false; btn.textContent = '删除评论'; window.alert('删除失败，请稍后重试'); });
       }
     });
+  }
+
+  // ── 收件箱：全站互动（评论 / 点赞 / 收藏）统一时间线 ──
+  var ibState = { comment: [], like: [], fav: [] };
+  var ibCat = 'all';
+  var inboxInited = false;
+  var IB_LREAD = 'adm.inbox.lastread.v1';   // 本机「各类已读到的时间戳」{ comment, like, fav }
+  function ibReadMap() {
+    try { var m = JSON.parse(localStorage.getItem(IB_LREAD) || '{}'); return (m && typeof m === 'object') ? m : {}; }
+    catch (e) { return {}; }
+  }
+  function ibSetRead(m) { try { localStorage.setItem(IB_LREAD, JSON.stringify(m)); } catch (e) {} }
+  function ibEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function ibWhen(ts) {
+    if (!ts) return '';
+    var d = Date.now() - ts;
+    if (d < 60000) return '刚刚';
+    if (d < 3600000) return Math.floor(d / 60000) + ' 分钟前';
+    if (d < 86400000) return Math.floor(d / 3600000) + ' 小时前';
+    if (d < 7 * 86400000) return Math.floor(d / 86400000) + ' 天前';
+    try { return new Date(ts).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }); } catch (e) { return ''; }
+  }
+  // 评论 link(/u/?id=a_xxx) → accountId（登录用户才有；匿名/外链评论无主页）
+  function ibAccFromLink(link) { var m = /[?&]id=(a_[0-9a-z]+)/i.exec(String(link || '')); return m ? m[1] : ''; }
+  var IB_CATLABEL = { comment: '评论', like: '点赞', fav: '收藏' };
+  var IB_CATVERB = { comment: '评论了', like: '点赞了', fav: '收藏了' };
+  function ibAvatar(item) {
+    if (item.avatar) return '<span class="ib-av" style="background-image:url(\'' + ibEsc(item.avatar) + '\')"></span>';
+    if (item.nick) return '<span class="ib-av">' + ibEsc(item.nick.slice(0, 1)) + '</span>';
+    return '<span class="ib-av">' + (item.cat === 'comment' ? '💬' : item.cat === 'like' ? '👍' : '⭐') + '</span>';
+  }
+  function ibUserHtml(item) {
+    var name = item.nick || (item.anon ? '匿名读者' : '读者');
+    var href = item.accountId ? ('/u/?id=' + encodeURIComponent(item.accountId)) : '';
+    return href
+      ? '<a class="ib-user" href="' + ibEsc(href) + '" target="_blank" rel="noopener">' + ibEsc(name) + '</a>'
+      : '<span class="ib-user">' + ibEsc(name) + '</span>';
+  }
+  function ibItemHtml(item, unread) {
+    var info = resolve(item.url);
+    var art = info.live
+      ? '<a href="' + ibEsc(info.url) + '" target="_blank" rel="noopener" title="' + ibEsc(item.url) + '">' + ibEsc(info.title) + '</a>'
+      : '<span title="' + ibEsc(item.url) + '">' + ibEsc(info.title) + '</span>';
+    var snip = (item.cat === 'comment' && item.comment)
+      ? '<div class="ib-snip">' + ibEsc(item.comment) + '</div>' : '';
+    var del = (item.cat === 'comment' && item.id)
+      ? '<div class="ib-acts"><button type="button" class="ib-del" data-oid="' + ibEsc(item.id) + '">删除评论</button></div>' : '';
+    return '<div class="ib-item' + (unread ? ' ib-unread' : '') + '">' +
+      ibAvatar(item) +
+      '<div class="ib-main">' +
+        '<div class="ib-head">' + ibUserHtml(item) +
+          '<span class="ib-cat c-' + item.cat + '">' + IB_CATLABEL[item.cat] + '</span>' +
+          '<span class="ib-time">' + ibWhen(item.ts) + '</span>' +
+        '</div>' +
+        '<div class="ib-art">' + IB_CATVERB[item.cat] + '《' + art + '》</div>' +
+        snip + del +
+      '</div>' +
+    '</div>';
+  }
+  function ibAll() {
+    return ibState.comment.concat(ibState.like, ibState.fav).sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+  }
+  function ibUnreadCount(cat) {
+    var last = ibReadMap()[cat] || 0;
+    return ibState[cat].filter(function (x) { return (x.ts || 0) > last; }).length;
+  }
+  function ibRenderBadges() {
+    ['comment', 'like', 'fav'].forEach(function (cat) {
+      var b = document.getElementById('ib-badge-' + cat);
+      if (!b) return;
+      var n = ibUnreadCount(cat);
+      if (n > 0) { b.textContent = n > 99 ? '99+' : String(n); b.hidden = false; } else b.hidden = true;
+    });
+  }
+  function ibRender() {
+    var body = document.getElementById('ib-body');
+    if (!body) return;
+    var read = ibReadMap();
+    var list = ibCat === 'all' ? ibAll() : ibState[ibCat].slice();
+    if (!list.length) {
+      body.innerHTML = '<div class="cm-empty">' + (ibCat === 'all' ? '还没有互动记录。' : '这一类还没有记录。') + '</div>';
+      ibRenderBadges(); return;
+    }
+    body.innerHTML = list.map(function (it) { return ibItemHtml(it, (it.ts || 0) > (read[it.cat] || 0)); }).join('');
+    ibRenderBadges();
+  }
+  function ibNorm() {
+    ibState.comment.forEach(function (x) { x.cat = 'comment'; if (!x.accountId) x.accountId = ibAccFromLink(x.link); });
+    ibState.like.forEach(function (x) { x.cat = 'like'; });
+    ibState.fav.forEach(function (x) { x.cat = 'fav'; });
+  }
+  function loadInbox() {
+    var body = document.getElementById('ib-body');
+    var empty = !ibState.comment.length && !ibState.like.length && !ibState.fav.length;
+    if (body && empty) body.innerHTML = '<div class="cm-empty">加载中…</div>';
+    return loadTitles().then(function () {
+      return Promise.all([
+        cmtGet('recent', 50),
+        jget('/api/admin?action=inbox-feed&kind=like&limit=50'),
+        jget('/api/admin?action=inbox-feed&kind=fav&limit=50'),
+      ]);
+    }).then(function (r) {
+      ibState.comment = (r[0] && r[0].items) || [];
+      ibState.like = (r[1] && r[1].items) || [];
+      ibState.fav = (r[2] && r[2].items) || [];
+      ibNorm();
+      ibRender();
+    });
+  }
+  function ibInit() {
+    Array.prototype.forEach.call(document.querySelectorAll('.ib-tab'), function (t) {
+      t.addEventListener('click', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.ib-tab'), function (x) { x.classList.remove('ib-on'); });
+        t.classList.add('ib-on');
+        ibCat = t.getAttribute('data-cat');
+        ibRender();
+      });
+    });
+    var mk = document.getElementById('ib-markread');
+    if (mk) mk.addEventListener('click', function () {
+      var read = ibReadMap(), now = Date.now();
+      if (ibCat === 'all') { read.comment = now; read.like = now; read.fav = now; } else read[ibCat] = now;
+      ibSetRead(read); ibRender();
+    });
+    var rf = document.getElementById('ib-refresh');
+    if (rf) rf.addEventListener('click', loadInbox);
+    var body = document.getElementById('ib-body');
+    if (body) body.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('.ib-del') : null;
+      if (!btn) return;
+      var oid = btn.getAttribute('data-oid');
+      if (!oid || !window.confirm('确定删除这条评论？连同它的回复一起删除，不可恢复。')) return;
+      btn.disabled = true; btn.textContent = '删除中…';
+      window.SiteAuth.authedFetch('https://zircon-comments.fly.dev/api/delete-comment', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ objectId: Number(oid) }),
+      }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        if (d && d.ok) {
+          ibState.comment = ibState.comment.filter(function (x) { return String(x.id) !== String(oid); });
+          ibRender();
+        } else { btn.disabled = false; btn.textContent = '删除评论'; window.alert('删除失败' + (d && d.error ? '：' + d.error : '')); }
+      }).catch(function () { btn.disabled = false; btn.textContent = '删除评论'; window.alert('删除失败，请稍后重试'); });
+    });
+    loadInbox();
   }
   function showPane(name) {
     if (PANES.indexOf(name) < 0) name = 'overview';
@@ -1475,6 +1679,7 @@ body_class: adm-page
             if (!cmLoaded) { cmLoaded = true; cmWireControls(); loadContent(); }
             if (!visInited) { visInited = true; visInit(); }
             if (!reportsInited) { reportsInited = true; var rr = document.getElementById('rep-refresh'); if (rr) rr.addEventListener('click', loadReports); wireReportActions(); loadReports(); }
+            if (!inboxInited) { inboxInited = true; ibInit(); }
           } else {
             show(elDenied);
           }
