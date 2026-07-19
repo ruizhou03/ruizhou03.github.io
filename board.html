@@ -1,0 +1,189 @@
+---
+layout: default
+title: 站务公告 · 锆铌
+permalink: /board/
+description: 锆铌站的站务公告——网站的上线、改版与每一次重要更新，都按时间收在这里。
+redirect_from:
+  - /zh/notice/
+---
+
+<article class="board">
+
+  <header class="board-hero">
+    <p class="board-eyebrow">站务 · Notices</p>
+    <h1 class="board-title">站务公告</h1>
+    <div class="board-rule"><span class="board-gem"></span><span class="board-line"></span></div>
+    <p class="board-lead">网站的上线、改版，和每一次值得记上一笔的更新，都按时间收在这里。</p>
+  </header>
+
+  {%- assign notices = site.notes | where: "main_category", "站务公告" | sort: "date" | reverse -%}
+
+  {%- if notices.size > 0 -%}
+  <ol class="board-log">
+    {%- for n in notices -%}
+    <li class="bl-item">
+      <time class="bl-date" datetime="{{ n.date | date: '%Y-%m-%d' }}">{{ n.date | date: "%Y / %m / %d" }}</time>
+      <a class="bl-card" href="{{ n.url | relative_url }}">
+        <h2 class="bl-title">{% include latex-logo.html title=n.title %}</h2>
+        {%- assign _blurb = n.summary | default: n.description -%}
+        {%- if _blurb -%}<p class="bl-blurb">{{ _blurb | strip_html }}</p>{%- endif -%}
+        <span class="bl-more">阅读全文<span class="bl-arrow" aria-hidden="true">→</span></span>
+      </a>
+    </li>
+    {%- endfor -%}
+  </ol>
+  {%- else -%}
+  <p class="board-empty">还没有发布过公告。</p>
+  {%- endif -%}
+
+</article>
+
+<style>
+  .board {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2.2rem 0 3rem;
+  }
+
+  /* ── hero ── */
+  .board-hero { margin-bottom: 3.2rem; }
+  .board-eyebrow {
+    font-family: 'Cormorant Garamond', var(--font-display);
+    font-variant: small-caps;
+    letter-spacing: 0.18em;
+    font-size: 0.86rem;
+    color: var(--color-highlight);
+    margin: 0 0 0.55rem;
+  }
+  .board-eyebrow::before {
+    content: ""; display: inline-block; width: 6px; height: 6px;
+    background: var(--color-highlight); transform: rotate(45deg);
+    margin-right: 0.65em; vertical-align: middle;
+  }
+  .board-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.2rem, 5vw, 2.9rem);
+    font-weight: 700;
+    color: var(--color-ink);
+    letter-spacing: 0.02em;
+    line-height: 1.15;
+    margin: 0;
+  }
+  .board-rule { display: flex; align-items: center; gap: 0.6rem; margin: 1.05rem 0 1.35rem; }
+  .board-gem { width: 9px; height: 9px; flex: none; background: var(--color-highlight); transform: rotate(45deg); }
+  .board-line {
+    height: 1px; width: 84px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--color-highlight) 75%, transparent), transparent);
+  }
+  .board-lead {
+    font-size: 1.08rem;
+    line-height: 1.85;
+    color: var(--color-muted);
+    margin: 0;
+    max-width: 30em;
+  }
+
+  /* ── timeline log ── */
+  .board-log {
+    list-style: none;
+    margin: 0;
+    padding: 0.4rem 0 0.4rem 2.2rem;
+    position: relative;
+  }
+  .board-log::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0.7rem; bottom: 0.7rem;
+    width: 2px;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-highlight) 55%, transparent),
+      color-mix(in srgb, var(--color-highlight) 18%, transparent)
+    );
+  }
+
+  .bl-item { position: relative; margin-bottom: 1.8rem; }
+  .bl-item:last-child { margin-bottom: 0; }
+  /* gold diamond node punched onto the spine */
+  .bl-item::before {
+    content: "";
+    position: absolute;
+    left: -2.2rem;
+    margin-left: -4px;
+    top: 2.35rem;
+    width: 11px; height: 11px;
+    background: var(--color-highlight);
+    transform: rotate(45deg);
+    box-shadow: 0 0 0 4px var(--color-bg);
+    transition: transform 0.2s;
+  }
+  .bl-item:hover::before { transform: rotate(45deg) scale(1.18); }
+
+  .bl-date {
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-size: 0.9rem;
+    letter-spacing: 0.12em;
+    color: var(--color-light);
+    margin: 0 0 0.5rem 0.1rem;
+  }
+
+  .bl-card {
+    display: block;
+    padding: 1.4rem 1.6rem 1.3rem;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg, 14px);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+  .bl-card:hover {
+    border-color: color-mix(in srgb, var(--color-highlight) 55%, var(--color-border));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-2, 0 4px 16px rgba(0,0,0,0.07));
+  }
+  .bl-title {
+    font-family: var(--font-display);
+    font-size: 1.42rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--color-ink);
+    margin: 0;
+    transition: color 0.2s;
+  }
+  .bl-card:hover .bl-title { color: var(--color-accent); }
+  .bl-blurb {
+    font-size: 0.98rem;
+    line-height: 1.75;
+    color: var(--color-muted);
+    margin: 0.55rem 0 0;
+  }
+  .bl-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 1rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.92rem;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: var(--color-highlight);
+  }
+  .bl-arrow { transition: transform 0.2s; }
+  .bl-card:hover .bl-arrow { transform: translateX(4px); }
+
+  .board-empty { color: var(--color-muted); font-size: 1rem; padding: 1.5rem 0; }
+
+  @media (max-width: 560px) {
+    .board { padding: 1.4rem 0 2.4rem; }
+    .board-hero { margin-bottom: 2.4rem; }
+    .board-lead { font-size: 1rem; }
+    .board-log { padding-left: 1.7rem; }
+    .bl-item::before { left: -1.7rem; top: 2.05rem; }
+    .bl-card { padding: 1.15rem 1.2rem; }
+    .bl-title { font-size: 1.22rem; }
+    .bl-blurb { font-size: 0.92rem; }
+  }
+</style>
