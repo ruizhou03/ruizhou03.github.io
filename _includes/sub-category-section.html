@@ -37,7 +37,7 @@ JS 逻辑保留兜底：当 search-wrap 缺失时，filter/分页仍会安全降
       <li class="paginated-item" data-title="{{ _exp | downcase }}" data-url="{{ _u }}" data-hidden="{% if post.hidden %}true{% else %}false{% endif %}" data-trashed="{% if post.trashed %}true{% else %}false{% endif %}" data-paid="{% if post.paid %}true{% else %}false{% endif %}" data-path="{{ post.path }}" data-date="{{ post.date | date: '%Y-%m-%d' }}">
         <a href="{{ _u }}">{% include latex-logo.html title=post.title %}</a>
         {% include sc-metrics.html url=_u %}
-        <span class="post-date">{% if post.date %}{{ post.date | date: "%Y-%m-%d" }}{% endif %}</span>
+        <span class="post-date">{% if post.date %}{{ post.date | date: "%Y/%m/%d" }}{% endif %}</span>
       </li>
       {% endif %}
     {% endfor %}

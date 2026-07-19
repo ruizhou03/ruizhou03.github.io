@@ -657,7 +657,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
               <a class="feat" href="{{ _c.url | relative_url }}">
                 <div class="feat__media"><span class="feat__flag">最新</span>
                   <img src="{% if _cimg %}{{ _cimg | relative_url }}{% else %}{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}{% endif %}" alt="{{ _c.title | strip_html | escape }}"></div>
-                <div class="feat__body"><span class="feat__cat">{{ _c.main_category | default: '学习资料' }}</span><h3 class="feat__title">{% include latex-logo.html title=_c.title %}</h3><time class="feat__date">{{ _c.date | date: "%Y-%m-%d" }}</time></div>
+                <div class="feat__body"><span class="feat__cat">{{ _c.main_category | default: '学习资料' }}</span><h3 class="feat__title">{% include latex-logo.html title=_c.title %}</h3><time class="feat__date">{{ _c.date | date: "%Y/%m/%d" }}</time></div>
               </a>
             {%- else -%}
               {%- for _c in spotlight limit: 4 -%}
@@ -666,7 +666,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
                   <div class="feat__media"><span class="feat__flag">★ 精选</span>
                     {%- if _cimg %}<img src="{{ _cimg | relative_url }}" alt="{{ _c.title | strip_html | escape }}">{% elsif forloop.first %}<img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="{{ _c.title | strip_html | escape }}">{% endif -%}
                   </div>
-                  <div class="feat__body"><span class="feat__cat">{{ _c.main_category | default: '学习资料' }}</span><h3 class="feat__title">{% include latex-logo.html title=_c.title %}</h3><time class="feat__date">{{ _c.date | date: "%Y-%m-%d" }}</time></div>
+                  <div class="feat__body"><span class="feat__cat">{{ _c.main_category | default: '学习资料' }}</span><h3 class="feat__title">{% include latex-logo.html title=_c.title %}</h3><time class="feat__date">{{ _c.date | date: "%Y/%m/%d" }}</time></div>
                 </a>
               {%- endfor -%}
             {%- endif -%}
@@ -683,7 +683,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
               {%- if shown_urls contains _pu -%}{%- continue -%}{%- endif -%}
               <li><a href="{{ post.url | relative_url }}">
                 <p class="fd__title">{% include latex-logo.html title=post.title %}</p>
-                <div class="fd__meta"><span class="fd__cat">{{ post.main_category | default: '学习资料' }}</span><time class="fd__date tnum">{{ post.date | date: "%Y-%m-%d" }}</time></div>
+                <div class="fd__meta"><span class="fd__cat">{{ post.main_category | default: '学习资料' }}</span><time class="fd__date tnum">{{ post.date | date: "%Y/%m/%d" }}</time></div>
               </a></li>
               {%- assign _shown = _shown | plus: 1 -%}
             {%- endfor -%}
