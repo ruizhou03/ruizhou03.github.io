@@ -40,11 +40,21 @@ body_class: notes-wide
   .u-orn, .u-latin, .u-seal { display: none; }
 
   /* ============ 卡片视图（藏书票卡 · 定高） ============ */
-  .archive[data-view="cards"] .arch-rail { display: none; }
+  /* 左侧学科跳转点导航（仿首页 dots）：滚动到哪个学科哪个点亮成金色实心+光晕、标签变金；其余灰色空心。点击平滑跳转。 */
+  .archive[data-view="cards"] .arch-main { display: grid; grid-template-columns: 138px minmax(0, 1fr); gap: 0; }
+  .archive[data-view="cards"] .arch-rail { display: block; position: sticky; top: 88px; align-self: start; border: none; padding: .1rem 1rem 0 0; }
+  .archive[data-view="cards"] .arch-rail a { display: flex; align-items: center; justify-content: flex-end; gap: .55rem; padding: .48rem 0; text-decoration: none; color: var(--color-muted); font-family: 'Cormorant Garamond', var(--font-display); font-size: .82rem; letter-spacing: .08em; white-space: nowrap; transition: color .25s; }
+  .archive[data-view="cards"] .arch-rail a .rc { display: none; }
+  .archive[data-view="cards"] .arch-rail a::after { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--color-highlight); background: transparent; transition: background .25s, box-shadow .25s; }
+  .archive[data-view="cards"] .arch-rail a:hover { color: var(--color-accent); }
+  .archive[data-view="cards"] .arch-rail a.rail-dim { opacity: .35; }
+  .archive[data-view="cards"] .arch-rail a.dot-active { color: var(--color-highlight); }
+  .archive[data-view="cards"] .arch-rail a.dot-active::after { background: var(--color-highlight); box-shadow: 0 0 0 4px rgba(201,169,110,.22); }
+  .archive[data-view="cards"] .disc { scroll-margin-top: 92px; }
   .archive[data-view="cards"] .disc-h { font-size: 1.05rem; margin: 2.1rem 0 1.1rem; }
   .archive[data-view="cards"] .disc-h::after { content: ""; flex: 1; height: 1px; background: var(--color-border); }
   .archive[data-view="cards"] .disc:first-child .disc-h { margin-top: .3rem; }
-  .archive[data-view="cards"] .courses { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .8rem; }
+  .archive[data-view="cards"] .courses { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; }
   .archive[data-view="cards"] .u-head { display: none; }
   .archive[data-view="cards"] .u-mark { display: none; }
 
@@ -97,6 +107,12 @@ body_class: notes-wide
   .archive[data-view="table"] .u-types { display: flex; flex-wrap: wrap; gap: .3rem; }
   .archive[data-view="table"] .u-count { text-align: right; color: var(--color-muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
 
+  @media (max-width: 900px) {
+    /* 放不下「导航 + 4 张卡」时，收起点导航、卡片降到 3 列 */
+    .archive[data-view="cards"] .arch-main { grid-template-columns: 1fr; }
+    .archive[data-view="cards"] .arch-rail { display: none; }
+    .archive[data-view="cards"] .courses { grid-template-columns: repeat(3, 1fr); }
+  }
   @media (max-width: 640px) {
     .arch-page { padding: 1rem .6rem 3rem; }
     .archive[data-view="table"] .arch-main { grid-template-columns: 1fr; }
@@ -107,7 +123,7 @@ body_class: notes-wide
     .archive[data-view="table"] .courses { --cols: 1.1rem minmax(0, 1fr) auto; }
     .archive[data-view="table"] .u-head span:nth-child(3), .archive[data-view="table"] .u-head span:nth-child(4) { display: none; }
     .archive[data-view="table"] .u-types { display: none; }
-    .archive[data-view="cards"] .courses { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .archive[data-view="cards"] .courses { grid-template-columns: repeat(2, 1fr); }
   }
 
   /* ============ 课程浮层 ============ */
@@ -335,18 +351,43 @@ body_class: notes-wide
       try { localStorage.setItem('notesView', v); } catch (e) {}
       toggleBtns.forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.view === v ? 'true' : 'false'); });
       render();
+      updateSpy();
     }
 
     toggleBtns.forEach(function (b) { b.addEventListener('click', function () { setView(b.dataset.view); }); });
     railLinks.forEach(function (a) {
       a.addEventListener('click', function (e) {
         e.preventDefault();
-        if (search.value) search.value = '';
-        activeId = a.dataset.target;
-        render();
+        if (archive.dataset.view === 'cards') {
+          // 卡片视图：点导航 → 平滑滚到该学科
+          var t = document.getElementById(a.dataset.target);
+          if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          // 目录视图：点侧栏 → 过滤到该学科
+          if (search.value) search.value = '';
+          activeId = a.dataset.target;
+          render();
+        }
       });
     });
     if (search) search.addEventListener('input', render);
+
+    // 卡片视图：随滚动高亮当前学科的点
+    function updateSpy() {
+      if (archive.dataset.view !== 'cards') return;
+      var line = 150, cur = null;
+      for (var i = 0; i < discs.length; i++) {
+        if (discs[i].classList.contains('d-hidden')) continue;
+        if (discs[i].getBoundingClientRect().top <= line) cur = discs[i];
+      }
+      if (!cur) { for (var j = 0; j < discs.length; j++) { if (!discs[j].classList.contains('d-hidden')) { cur = discs[j]; break; } } }
+      railLinks.forEach(function (a) { a.classList.toggle('dot-active', !!cur && a.dataset.target === cur.id); });
+    }
+    var spyTick = false;
+    window.addEventListener('scroll', function () {
+      if (spyTick) return; spyTick = true;
+      requestAnimationFrame(function () { updateSpy(); spyTick = false; });
+    }, { passive: true });
 
     /* ---- 课程浮层 ---- */
     var ov = document.getElementById('arch-ov');
