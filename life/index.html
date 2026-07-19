@@ -25,12 +25,6 @@ title: 生活攻略 | Rui Zhou
     {% include sub-category-section.html sub="其他" posts=no_sub_posts %}
   {% endif %}
 
-  {%- comment -%} 菜谱专区并进搜索：平时不列出（菜谱有独立页），搜索命中才显示 {%- endcomment -%}
-  {% assign recipe_posts = site.notes | where: "sub_category", "菜谱" | where_exp: "p", "p.published != false" | sort: "date" | reverse %}
-  {% if recipe_posts.size > 0 %}
-    {% include sub-category-section.html sub="菜谱" posts=recipe_posts search_only=true zone_url="/toolbox/recipes/" page_size=999 %}
-  {% endif %}
-
   {%- assign life_dl = category_posts | where_exp: "p", "p.url" | where_exp: "p", "p.published != false" -%}
   {% include bulk-offline.html id="bulk-offline" items=life_dl noun="篇" what="生活攻略" hint="文字部分会随全站自动缓存。这个按钮专门把这一栏所有<strong>大照片</strong>也存到本地（约 50MB），适合出门前一次到位。" %}
 </article>

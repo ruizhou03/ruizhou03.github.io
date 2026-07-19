@@ -19,36 +19,8 @@
     display: flex; align-items: center;
     flex-shrink: 0; gap: 0.15rem;
   }
-  /* 分类内筛选框（次要 UI——主搜走顶栏 ⌘K，这里只在本栏内按标题缩小范围）
-     设计上嵌入 <header> 内部，由 header 的 margin-bottom 控制到下方内容的间距 */
-  .cat-search-wrap { margin: 1.2rem auto 0; text-align: center; }
-  .cat-search-input {
-    width: 100%; max-width: 260px;
-    padding: 0.32rem 0.85rem;
-    border: 1px solid var(--color-border);
-    border-radius: 16px;
-    background: transparent;
-    color: var(--color-muted);
-    font-family: var(--font-body);
-    font-size: 0.82rem;
-    outline: none;
-    transition: border-color 0.2s, color 0.2s, background 0.2s;
-  }
-  .cat-search-input::placeholder { color: var(--color-light); }
-  .cat-search-input:focus {
-    border-color: var(--color-accent); color: var(--color-text);
-    background: var(--color-bg);
-  }
-  .cat-search-empty {
-    margin-top: 0.8rem; color: var(--color-light);
-    font-style: normal; font-size: 0.88rem;
-  }
   .post-list-section.cat-hidden,
   .yearly-story-section.cat-hidden { display: none; }
-  /* 专区小节：平时隐藏，仅顶部搜索命中时由 JS 加 .cat-shown 显示 */
-  .post-list-section.cat-search-only { display: none; }
-  .post-list-section.cat-search-only.cat-shown { display: block; }
-  .cat-search-only .download-toggle { display: none; }
 
   .download-toggle {
     background: transparent; border: 0; cursor: pointer;
@@ -361,34 +333,6 @@
         if (a) injectDeletedTombstones();
       });
     } else { setTimeout(waitAuth, 150); }
-  })();
-
-  // ─── 顶部全局搜索：跨所有小节按标题筛选，空小节整块隐藏 ───
-  (function () {
-    var input = document.getElementById('cat-search');
-    if (!input) return;
-    var emptyEl = document.getElementById('cat-search-empty');
-    var qEl = document.getElementById('cat-search-q');
-    // 时间线型小节（随笔·生命故事）不按标题搜 —— 搜索时整块收起，清空后恢复
-    var timelines = document.querySelectorAll('.yearly-story-section');
-    var t;
-
-    function run() {
-      GQ = (input.value || '').trim().toLowerCase();
-      sections.forEach(function (s) { s.apply(); });
-      var total = sections.reduce(function (a, s) { return a + s.count(); }, 0);
-      timelines.forEach(function (el) { el.classList.toggle('cat-hidden', !!GQ); });
-      if (emptyEl) emptyEl.hidden = !(GQ && total === 0);
-      if (qEl) qEl.textContent = GQ;
-    }
-
-    input.addEventListener('input', function () {
-      clearTimeout(t);
-      t = setTimeout(run, 120);
-    });
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { input.value = ''; run(); }
-    });
   })();
 
   // ─── 每个分组的下载按钮：把该组所有文章 + 同源图片缓存到本地 ───
