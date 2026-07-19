@@ -1,3 +1,77 @@
+## 2026-07-19
+
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套。距 7-18 巡检共 **18 个新 commit**（`e579488..e2edca8`）—— 由昨日「评论体感层收口 + `visibility` 全放开」小批次，切入到**「全站门面观感统一 + 中文首页翻页式双联封面重做」的一个完整大项目**：`c419da7` **中文首页翻页式双联封面重做（O3 刻面构成）** → `e72bfd9` **P0 基建 + P1 统一顶栏观感（全站门面适配第一期）** → `a379b85` **P2a 五板块 landing 换加冕页眉**（引入 `_includes/page-hero.html`）→ `3a9db8e` **P2b 板块页去 emoji 分节符 → 金菱记号** → `61719c0` **P3 文章/菜谱标题区统一到金色页眉语言** → `dcad82b` **P4 about + 404 收尾（全站门面适配收官）** → `d30969c` **内页顶栏版式对齐首页 `.topbar`（真正统一，不只是调色）** → `1b53bc7` **内页板块链接居中 + 管理入口收进头像下拉 + 头像内联去重叠** → `29eb277` **首页顶栏补账号头像位（登录 / 头像 + 管理入口下拉）** → `f69f906` **首页顶栏也改居中网格——与内页完全一致，消除翻页跳变** → `101b17d` **内页顶栏字号/高度对齐首页——修「首页偏大、内页偏小」** → `18a6ae2` **封面背景线条换成「叠影」莫尔纹 + 去个人化** → `d664b95` **右上控件完全统一 `[🔍 ◑ EN 头像]` + 头像对齐 + 去「作品馆」** → `ab71aad` **封面叠影改为动态涟漪（水滴入池）+ reduced-motion 静态兜底** → `7d58c7c` **删掉栏目页内的搜索条（与顶部全局搜索重复）** → `c825514` **栏目页 eyebrow「馆藏」→「Zircon」** → `e2edca8` **修 account 评论记录：清理裸链接/回复序号并渲染公式**。P0..P4 五阶命名 + 之后 12 处收口的节奏说明这是一条「预先规划的门面适配路线」而非零散修补，站主已按阶段推进到 P4 完成 + 后续 12 项对齐 / 收口 / 匹配。文件层：新增 1 个共享 include `_includes/page-hero.html`（15 行，把五板块 landing 的 `<h1>` 统一到「加冕页眉」）；其余全为既有文件修改，`zh/index.html` 一日累计 +72 / -65（封面重做）+ 后续 6 处递归收口、`_includes/auth.html`、`_layouts/default.html`、`assets/css/main.css`、四板块 landing、`_layouts/{post,recipe}.html`、`account/index.html` 等散落改动。18 commit 全部在 `main` 上主干推进，与 `CLAUDE.md` 主干开发约定一致。
+>
+> **build 健康度**：`bundle install` ✅ + `jekyll build` ✅ 通过、**零 warning、零 error**（**18.714 s cold build** —— 与 7-18 的 18.456 s 相仿）。`_site/` 顶层 **28 项**（与 7-18 一致：`404.html` `CNAME` `account` `admin` `admin-manifest.json` `assets` `assistant-fulltext.json` `assistant-index.json` `en` `essays` `feed.xml` `files` `flight` `google5306…` `index.html` `life` `manifest.json` `notes` `pdfjs` `redirects.json` `research` `robots.txt` `search.json` `sitemap.xml` `sw.js` `toolbox` `u` `zh`）。`_notes/` 全 **270 篇 md** 仍 100% 覆盖 `keywords:`（`find _notes -name '*.md' -exec grep -L '^keywords:' {} \;` 空），搜索体系闭环。`_paid/` + `_flight-staging/` 在 `_config.yml` L53 / L55 exclude 双保险稳固、`find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空。**maskable 图标 md5 核验**：三对文件仍不 byte-identical（forest 主 `63df7bec…` vs maskable `36ada6c2…`、ledger 主 `fad6da15…` vs maskable `433f42fc…`、pindou 主 `fed25167…` vs maskable `f4ef2d70…`）与 7-18 / 7-17 / 7-16 / 7-15 完全一致；`python3 scripts/audit/maskable_icon_consistency.py` 报「✅ 已检查 9 个 maskable 图标声明，均与 any 图标不同」。**`study_order`**：`_config.yml` 26 条、`ls _notes/study/` 26 目录、`comm -23` 差集空 —— 与 7-18 一致。全套 `scripts/audit/run.sh`（今日周日 DOW=7，未跑 dead_links / orphan_files / pii_scan 三项周一项；DOM=19 非月初，未加跑 monthly_stats）14 项每日 audit **全 clean 无一命中**：`keywords_coverage` 121/121 散文类全覆盖 / `images`（2 处 2M+ PDF 备忘列出、非命中）/ `backend_pulse`（curl 56 HTTP 403 承接沙箱无 fly.io 出口）/ `spotcheck`（10 项配额抽检——game×2 + pdf_archive×4 + lecture_note_pdf_only×1 + note×3）/ `material_type_enum` 117 项全在 9 项枚举内（当前分布 Notes×47 / Exams×40 / 课程测评×18 / 经验之谈×5 / 错题本×3 / 写作×2 / 口语×1 / 词汇×1）/ `filename_convention` / `maskable_icon_consistency` / `hover_no_media`（只扫 `toolbox/`）/ `sibling_crosslink`（≥3 篇的 10 个 sub_category 组全互链）/ `bare_dollar` / `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` **均 ✅**。
+>
+> **今日 0 项自动修复**：仓库处于极健康状态——build ✅、14 项每日 audit 全 clean 无一命中、`keywords_coverage` 270/270、`study_order` 26/26 完整、maskable 图标一致、无 junk / 无 stub / 无凭证泄露；18 个新 commit 全部合规、无遗漏收尾。识别出的三条观察项 **① 门面适配 18 commit 需真机验收**（大批 CSS / 顶栏 / 首页封面 / 头像下拉 / 涟漪动画 / reduced-motion 兜底，视觉与交互属设计判断范畴）**② `_includes/category-search.html` 在 `7d58c7c` 之后成为孤儿文件（不再被任何页 `include`）**（是清理还是保留待将来复用属站主拍板）**③ `life/index.html:31` 仍向 `sub-category-section.html` 传 `search_only=true` 让菜谱专区永久隐藏**（因搜索条已删、`.cat-search-only` 永远无法被 `#cat-search` 输入切成 `.cat-shown`）—— 均需站主判断，属设计取向 / 非「小而无争议」，一律写进 P2、不擅动。
+>
+> **P0 承接**：无。
+>
+> **P1 承接**：无。
+>
+> **P2 更新**（三项新增，其余承接）：
+>
+> - **新增 #1**：**门面适配 P0–P4 + 12 处收口共 18 commit 需六组合真机验收**（**今日新增**，来自 `c419da7`~`e2edca8` 全批）—— ① 中文首页 `/zh/` 翻页式双联封面（O3 刻面构成 `.facets` + 「叠影」莫尔纹 + `ab71aad` 后动态涟漪 + `prefers-reduced-motion` 静态兜底 `.mo-static`）在 iPhone Safari / Android Chrome / iPad / 桌面 Chrome / 桌面 Firefox / PWA standalone 六组合下：刻面 SVG 是否始终吻合 `viewBox slice + xMin` 拉伸不变形、涟漪帧率与耗电、`reduced-motion` 用户是否只见静态叠影不见涟漪；② 顶栏首页 vs 内页版式统一（`f69f906` 首页改居中网格、`d30969c` 内页对齐 `.topbar`、`101b17d` 字号/高度对齐、`d664b95` 右上控件统一 `[🔍 ◑ EN 头像]`）翻页跳变是否消除；③ 板块 landing 加冕页眉 `_includes/page-hero.html`（essays/life/notes/research 四板块 `eyebrow="Zircon"`、toolbox 保持 `eyebrow="馆藏"`——见下段解释）；④ 文章/菜谱标题区金色页眉 (`61719c0`) 视觉一致；⑤ about + 404 页 (`dcad82b`) 收尾；⑥ 账号头像下拉「登录 / 头像 + 管理入口」(`1b53bc7` + `29eb277`) 展开与折叠、去「作品馆」条目；⑦ 评论记录清理裸链接/回复序号 (`e2edca8`) 里 `![](data:image)` 转小缩略图 + `$…$` 数学公式渲染是否正确、KaTeX 是否在 account 页面被加载。沙箱无浏览器 + 无 fly.io Waline 后端出口全跑不了；紧要程度高于一般 UI 收口——门面观感是首访者的第一印象。
+>
+> - **新增 #2**：**`_includes/category-search.html` 在 `7d58c7c` 后成为孤儿 include**（**今日新观察**）—— `7d58c7c refactor(zh): 删掉栏目页内的搜索条（与顶部全局搜索重复）` 删掉了 `life/index.html` `notes/index.html` `research/index.html` 里对 `category-search.html` 的调用（`essays/index.html` 本就没含），但 `_includes/category-search.html` 本身（12 行，`#cat-search` input + `#cat-search-empty` 空态）未一并删。同时 `_includes/category-listing-tools.html` L24-51 的 `.cat-search-wrap` / `.cat-search-input` / `.cat-search-empty` / `.cat-search-only` **CSS 定义**、L139-393 的 `#cat-search` 输入监听 **JS 处理**均仍在——JS 有 `if (!input) return;` 兜底、不报错；CSS 是死代码。是清理（rm 一个 12 行 include + trim `category-listing-tools.html` 里 5 处 `cat-search-*` CSS + `input` 输入监听 JS）还是保留（将来若想再挂回搜索条即可 `{% include %}` 恢复）属**站主拍板**、不擅动。
+>
+> - **新增 #3**：**`life/index.html:31` 仍向 `sub-category-section.html` 传 `search_only=true` 让菜谱专区永久隐藏**（**今日新观察**）—— `life/index.html:31` `{% include sub-category-section.html sub="菜谱" posts=recipe_posts search_only=true zone_url="/toolbox/recipes/" page_size=999 %}` 让菜谱 section 挂 `.cat-search-only { display: none; }`（`_includes/category-listing-tools.html` L49），**原设计意图**是「平时不列出、搜索命中才 `.cat-shown` 显示」（顶部注释）；但 `7d58c7c` 删掉搜索条后，`#cat-search` 输入监听触发的 `.cat-shown` 切换永远走不到，菜谱专区**在 `/life/` 上永久不可见**。功能层面并未 break（菜谱有独立 `/toolbox/recipes/` landing 页 + 全站顶部搜索），只是原本「在 /life/ 搜索菜谱名能顺手命中」的设计意图失效。三种改法（① 移除该 `search_only=true` 行让菜谱常显于 `/life/` ② 保留 `search_only` 语义但恢复搜索条 ③ 直接删该行、菜谱只走独立页）属**设计取向**、请站主拍板。
+>
+> - **`eyebrow` 未统一**核对：`c825514` 把 `essays/life/notes/research` 四板块 landing 的 `eyebrow` 从「馆藏」改成「Zircon」，但 `toolbox/index.html:8` 仍是 `eyebrow="馆藏"`。核对 commit message 「栏目页 eyebrow」+ 站点 IA 结构（四大 `main_category` = 内容型板块 vs 百宝箱 = 工具类馆藏），**判定为刻意保留**——「百宝箱是 collection 类馆藏」与「四大内容板块是 Zircon 品牌门面」是不同调性，不擅动。
+>
+> - **承接 7-18 未消除的老 P2**（全部承接，编号顺移）：① 评论体感层 3 commit 需真机验收（7-18 P2 #1，`bd7f9f9` / `585ea8b` / `c14100f`）；② 评论 Vditor 编辑器 9 轮对抗式复查加固需真机验收（7-17 P2 #1，`54c1300`~`a6e492e` 9 commit）；③ 图片走 R2 图床新链路需真机验收（7-17 P2 #2）；④ 站主可删任意评论 + 举报中心联动需管理员端流程真机走一遍（7-17 P2 #3）；⑤ 51 commit 五大高交互面重做需六组合真机验收；⑥ 新增顶层 `/u/` 公开主页需验证降级 / CTA / noindex 三件事；⑦ `_data/visibility.json` 全放开策略生效后需真机走一遍工具箱可见性（7-18 P2 #7，`dfddb2c`）；⑧ doudizhu DouZero 神经网络权重 ~20 MB 二进制承接观察；⑨ 承接 7-14 / 7-11 全部老 P2（六组合真机验收 / forest 双视图 / 掼蛋联机 / 机票监控 mac 端到端 / jukebox 问题首 / DNS NameResolutionError / dead_links SVG xmlns 误判 等）。今日无新观察消除、承接不变。
+>
+> **仓库卫生**：目录结构**较昨日仅 +1 新 include 文件**（`_includes/page-hero.html`，15 行，为五板块 landing 提供统一「加冕页眉」组件）——工作副本足印 **553 MB**（含 `.git` 140 MB + `_site` 236 MB + 源码约 177 MB，与 7-18 完全一致的量级）。**新增文件 = 1**（`_includes/page-hero.html`）**删除文件 = 0**。18 commit 全部触及既有文件 + 1 个新 include，无新目录、无删除文件。`git status` clean、`git ls-files --others --exclude-standard` 空、`find` `.DS_Store` / `*.bak` / `*.orig` / `*.tmp` / `*~` / `* 2.*` / `.env*` / `*.log` 全空。**大文件盘点**：`files/or/or-2023.pdf` 5.4 MB（唯一 5 MB+）、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB、`files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB、`pdfjs/build/pdf.worker.mjs` 2.1 MB、`assets/js/doudizhu/weights/` 6 个 `.qw`（2.6 MB × 3 + 3.5 MB × 3 ≈ 18.4 MB）、`assets/echarts/` 2.0 MB —— 与 7-18 完全一致，无新增大文件。**孤儿 include 观察**：`_includes/category-search.html` 12 行在 `7d58c7c` 后已无 `{% include %}` 引用点（`grep -rn 'category-search'` 只匹配自身 + `category-listing-tools.html` 里的 CSS/JS 支持代码）——是死代码但保留在仓库、不影响 build、不进 `_site/`；是否清理属**站主拍板**、写进 P2。**`/Users/zhourui` 本机路径痕迹核对**：`grep -rE '/Users/zhourui'` 排除 `.git/` + `DAILY_REVIEW.md` + `SPOTCHECK_*` 后仍见 4 处 `.claude/skills/{search-keywords,recipe,fix-quotes,new-post}/SKILL.md` 首页元数据行「仓库根：`/Users/zhourui/Desktop/ruizhou03.github.io`」—— `.claude/` 已在 `_config.yml` L44 exclude 出 Jekyll build（`_site/` 内 `grep -r '/Users/zhourui' _site/` 空），属**仓库内部 skill 手册的本机 root 备注**、面向站主自己的会话工具、非公开泄露；且 4 处均由更早 commit 引入，非本轮迭代新增；不擅动。**凭证泄露核对**：`grep -rE '(BEGIN [A-Z]+ PRIVATE KEY|(sk|pk|api[_-]?key|secret)[_ -][a-zA-Z0-9]{20,})' -i` 全空——无真实凭证泄露。**结论**：目录结构较昨日仅 +1 个 include 挂载文件，纯代码修改批次；仓库处于健康稳态。
+
+### ✅ 本次已自动修复
+
+无。
+
+站点处于极健康状态：build ✅、14 项每日 audit 全 clean 无一命中、keywords 270/270、study_order 26/26 完整、maskable 图标一致、无 junk / 无 stub / 无凭证泄露；18 个新 commit 全为**门面适配路线 P0–P4 + 12 处收口 + 中文首页翻页式双联封面重做**、无遗漏。三条今日新观察（门面适配需真机验收 / `category-search.html` 孤儿 / `life/index.html` 菜谱 `search_only` 永久隐藏）均属设计取向 / 站主拍板范畴、非「小而无争议」自动修复项。
+
+### 📋 待你把关
+
+#### P0（紧急）
+
+无。
+
+#### P1（重要）
+
+无。仓库当前 P1 队列为空。
+
+#### P2（建议）
+
+1. **门面适配 P0–P4 + 12 处收口共 18 commit 需六组合真机验收**（**今日新增**，来自 `c419da7`~`e2edca8` 全批）—— 详见上文 P2 更新 #1；重点验：① `/zh/` 翻页式双联封面刻面 SVG 拉伸不变形 + 「叠影」莫尔纹涟漪帧率 + `reduced-motion` 静态兜底；② 首页 vs 内页顶栏字号 / 高度 / 版式跨页无跳变；③ 板块 landing 加冕页眉 `page-hero` 在浅深模式 + 中英文长副题下换行正常；④ 头像下拉登录 / 管理入口在未登录 / 已登录 / 站主态三身份下正确出现或隐藏；⑤ 账号页评论记录 `![](data:image)` 缩略图 + `$…$` 公式渲染。iPhone Safari / Android Chrome / iPad / 桌面 Chrome / 桌面 Firefox / PWA standalone 六组合。沙箱无 GUI / 无触屏 / 无 fly.io 后端出口跑不了；紧要程度**高于一般 UI 收口**——门面观感是首访者的第一印象。
+
+2. **`_includes/category-search.html` 在 `7d58c7c` 后成为孤儿 include**（**今日新增**）—— 12 行 include 已无 `{% include %}` 引用点；`_includes/category-listing-tools.html` L24-51 的 `.cat-search-*` CSS 与 L139-393 的 `#cat-search` 监听 JS 也一并变成死代码（JS 有 `if (!input) return;` 兜底不报错）。是清理（rm `category-search.html` + trim `category-listing-tools.html` 里 5 处 cat-search CSS + input 输入监听 JS）还是保留（将来若想再挂回搜索条可 `{% include %}` 恢复）属站主拍板。
+
+3. **`life/index.html:31` 仍向 `sub-category-section.html` 传 `search_only=true` 让菜谱专区永久隐藏**（**今日新增**）—— 因 `7d58c7c` 删掉搜索条后 `#cat-search` 输入监听触发的 `.cat-shown` 切换永远走不到，菜谱专区**在 `/life/` 上永久不可见**。功能未 break（菜谱有独立 `/toolbox/recipes/` landing + 顶部全站搜索），但原本「在 /life/ 搜索菜谱名能顺手命中」的设计意图失效。三种改法（① 移除 `search_only=true` 让菜谱常显 ② 保留 `search_only` 但恢复搜索条 ③ 直接删该行、菜谱只走独立页）属设计取向、请拍板。
+
+4. **评论体感层 3 commit 收口需真机验收**（承接 7-18 P2 #1，来自 `bd7f9f9` / `585ea8b` / `c14100f`）—— 8 类 ~1156 emoji 分类选择器 + 同按钮再点收起 + 换编辑器切换 anchor + 回复框预填「@被回复人」+ 隐藏 Waline 底部旧按钮排 + 回复箭头改朝左上等；详见 7-18 记录。沙箱跑不了。
+
+5. **评论 Vditor 编辑器 9 轮对抗式复查加固需真机验收**（承接 7-17 P2 #1，来自 `54c1300`~`a6e492e` 9 commit）—— 图片所见即所得 + 乐观清空防丢草稿 + 按请求内容精确关联提交成败 + 覆盖编辑 PUT 拦截 + 慢挂 120s 兜底 + 同文并发 rec 捕获 + restore 剪贴板兜底 + 上传中挡发布 + watchdog 只清 leak + 多图逐张处理 10 项。四组合下过全链路。沙箱跑不了。
+
+6. **图片走 R2 图床新链路需真机验收**（承接 7-17 P2 #2，来自 `5abd7c3`）—— 三条上传路径 + 503/429/超时回退 base64 + R2 短链国内外访问 + `/api/upload` 鉴权。沙箱无 fly.io 出口跑不了。
+
+7. **站主可删任意评论 + 举报中心联动需管理员端流程真机走一遍**（承接 7-17 P2 #3，来自 `5177e24`）—— 鉴权可见性 + 二次确认 + 原子性 + 评论数镜像即时下降。沙箱无后端出口跑不了。
+
+8. **51 commit 五大高交互面重做需六组合真机验收**（承接 7-15 / 7-16 / 7-17 / 7-18 P2）—— 17 大验收面继续叠加今日的门面适配 18 commit 观察面，构成完整门面 + 评论 + 账号 + 宠物 + 管理端全站验收面。沙箱跑不了。
+
+9. **新增顶层 `/u/` 公开主页**（承接 7-15 / 7-16 / 7-17 / 7-18 P2）—— 降级 / CTA / noindex 三件事验证。沙箱跑不了。
+
+10. **`_data/visibility.json` 全放开策略生效后需真机走一遍工具箱可见性**（承接 7-18 P2 #7，来自 `dfddb2c`）—— 访客态 + 站主态双身份对比 53 项 tool-card + `/toolbox/` landing 四大板块分组 + 首页近期更新 + 分享链 slug。沙箱跑不了。
+
+11. **doudizhu DouZero 神经网络权重 ~20 MB 二进制**（承接 7-14 / 7-15 / 7-16 / 7-17 / 7-18 P2）—— `assets/js/doudizhu/weights/` 6 组 `.qw` + `.f32` + `.json` 仍 ~20 MB，是否评估 Git LFS / CDN 拆分承接观察不变。
+
+12. **承接 7-18 / 7-17 / 7-16 / 7-15 / 7-14 / 7-11 全部老 P2 未消除项**：7-11 冲刺日新增 `/zh/about/` + `404.html` + 首页照片堆叠 3 张预渲染 + reduce-motion 翻页 + forest「grow」暗号 + forest ∞ 灵活模式的六组合真机验收 6 项 / `452797e` 书架 commit 声明「现 7 本」实际 6 本的意图确认 / 7-14 admin 控制台 & 账号中心 12 commit 数据看板 / 7-10 / 7-07 / 7-06 承接的 forest 两轮对抗式审查 6 处 / forest / pet / picker / connect4 / feixingqi / chess / xiangqi 真机验收、tutoring / paid-test-visa / mao-thought-principles summary、random hover 缩进、mid-2015 / anova-R 互链、掼蛋联机回归、宠物中心多浏览器、机票监控 mac 端到端、flight 5 HTML 多浏览器、经济学工具箱三项确认、jukebox 问题首、DNS NameResolutionError、dead_links SVG xmlns 误判、connect4 canvas 无键盘落子、linear-algebra-strang.md summary 引用、`_flight-staging/` 命名等 —— 今日无新观察消除、承接不变。
+
+### 🗂 仓库卫生
+
+**目录结构较昨日仅 +1 新 include 文件**（`_includes/page-hero.html` 15 行，为五板块 landing 提供统一「加冕页眉」组件，`_includes/` 本就是 include 类模板挂载点、无需入 exclude/sitemap 特殊配置）——工作副本足印 **553 MB**（含 `.git` 140 MB + `_site` 236 MB + 源码约 177 MB，与 7-18 完全一致的量级；18 commit 净变动分散在 CSS / 顶栏 / 头像下拉 / 首页封面 SVG / 板块 landing / 文章标题区 / about + 404 / 账号页评论记录多处，纯代码修改无量级突破）。`.git` **140 MB**（与 7-18 一致）、`_site/` **236 MB**（与 7-18 一致，纯 build 元数据）。**新增文件 = 1**（`_includes/page-hero.html`）**删除文件 = 0**。`git status` clean（本地 = origin/main、`up to date`）、`git ls-files --others --exclude-standard` 空、`find` `.DS_Store` / `*.bak` / `*.orig` / `*.tmp` / `*~` / `* 2.*` / `.env*` / `*.log` 全空。**大文件盘点**：`files/or/or-2023.pdf` 5.4 MB（唯一 5 MB+）、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB、`files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB、`pdfjs/build/pdf.worker.mjs` 2.1 MB、`assets/js/doudizhu/weights/` 6 个 `.qw`（2.6 MB × 3 + 3.5 MB × 3 ≈ 18.4 MB）、`assets/echarts/` 2.0 MB —— 与 7-18 完全一致，无新增大文件。**maskable 图标 md5 核验**：三对文件仍不 byte-identical（forest 主 `63df7bec…` vs maskable `36ada6c2…`、ledger 主 `fad6da15…` vs maskable `433f42fc…`、pindou 主 `fed25167…` vs maskable `f4ef2d70…`）与 7-18 / 7-17 / 7-16 / 7-15 完全一致。`_paid/` + `_flight-staging/` 在 `_config.yml` L53 / L55 exclude 双保险稳固、`_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空。`_config.yml` 的 `exclude:` 已含 `DAILY_REVIEW.md`（L38）、`EMAIL_SUMMARY.md`（L39）等所有内部产物。**孤儿 include 观察**：`_includes/category-search.html`（12 行）在 `7d58c7c` 之后已无 `{% include %}` 引用点（`grep -rn 'category-search'` 只匹配自身 + `_includes/category-listing-tools.html` 里的 CSS/JS 支持代码）；build 未受影响、`_site/` 内没有独立渲染；是死代码但保留在仓库、清理与否属站主拍板、已写进上方 P2 #2、不擅动。**`/Users/zhourui` 本机路径痕迹核对**：4 处 `.claude/skills/{search-keywords,recipe,fix-quotes,new-post}/SKILL.md` 首页元数据行「仓库根：`/Users/zhourui/Desktop/ruizhou03.github.io`」—— `.claude/` 已在 `_config.yml` L44 exclude 出 Jekyll build（`_site/` 内 `grep -r '/Users/zhourui' _site/` 空），属**仓库内部 skill 手册的本机 root 备注**、面向站主自己的会话工具、非公开泄露；且 4 处均由更早 commit 引入，非本轮迭代新增；不擅动。**凭证泄露核对**：`grep -rE '(BEGIN [A-Z]+ PRIVATE KEY|(sk|pk|api[_-]?key|secret)[_ -][a-zA-Z0-9]{20,})' -i` 全空——无真实凭证泄露。**结论**：目录结构较昨日仅 +1 新 include 挂载文件、纯代码修改批次；仓库处于健康稳态、无冗余可清理。
+
+---
+
 ## 2026-07-18
 
 > 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套。距 7-17 巡检共 **4 个新 commit**（`eff1480..c14100f`）—— 承接 7-17 10-commit「评论 Vditor 9 轮对抗式加固 + paywall 引号根因」批次后，**继续围绕评论体验做体感层收口 + 一次可见性策略调整**，4 commit 全部集中在 5 个文件、两条主线：**评论 comment 3 commit**（`bd7f9f9` **去 Waline 底部旧按钮 + 上传项换图标 + 分类全量 emoji 选择器 + 回复框预填 `@被回复人`**——隐藏 Waline 底部那排原生按钮（表情/GIF/图片/预览/MD 指南）功能已被 Vditor 工具栏覆盖、工具栏上传项图标换图片、提示改「上传图片」，新增 `_includes/comment-emoji.html` **8 类 ~1156 个 emoji 分类选择器**（Vditor 内置只有 8 个且不分类），回复框把 placeholder 的「@被回复人」预填进正文让发出的回复显示回复谁（含回复的回复；服务端不返回 at 只能这样）→ `585ea8b` **emoji 面板同按钮再点=收起、换编辑器按钮=切换目标**（`open` 里判断 `pop.classList.contains('on') && curAnchor === anchorEl` 才 close、否则切 anchor+VD 并 open）→ `c14100f` **回复箭头改朝左上（回复约定，区别朝右上的「转发」，与邮件系统一致）+ 重绘更干净的矢量**（`polyline points="11 6 5 6 5 12"` + `path d="M5 6c6 6 14 6 14 13"`，宽高 15→16 vertical-align -2→-3，不再像转发）；**visibility 1 commit**（`dfddb2c` **百宝箱全部工具对访客开放**——清空 `_data/visibility.json` 的 `tools` 数组从原隐藏 47 项到 `[]`，让 `_data/toolbox.yml` 全部 53 个工具对访客可见；`sections` 保持 `[]`（板块本就全可见），按站主决定统一放开——**同时消除昨日 P2 #5「visibility 当前状态承接观察」**）。文件新增：**+1 新文件**（`_includes/comment-emoji.html` 98 行），4 commit 触及 4 个既有文件 + 1 新文件共 133 行净变更。
@@ -765,90 +839,3 @@
 ### 💓 后端脉搏 / 📬 读者来信
 
 11 个 commit 均为前端 / 组件层打磨（forest 主题氛围景观 10 连纯前端 + pet 趋势图下载 / 全屏横向看图属客户端渲染 + Canvas 栅格化，无新增 API 调用），未新增任何对 zircon-urge / leaderboards / zircon-comments waline / 付费墙 `/api/paid` `/api/redeem` / pet-food fly.io 后端端点的依赖变化。`backend_pulse.py` 本次未主动跑（沙箱无 fly.io 出口，承接 6-04 ~ 7-05 每次巡检结论），站点后端配置维持稳定。
-
----
-
-## 2026-07-05
-
-> 例行无人值守巡检：build 健康度 + 仓库卫生。距 7-04 巡检共 **7 个 commit**（`cdac174` 之后 → `a17c509` 为止），**0 文章 / 0 IA / 0 `_data/` / 0 `_config.yml` / 0 `_notes/` / 0 `files/` 改动**（`git diff --stat cdac174..HEAD -- '*.md' '_data/*' '_config.yml' '_notes/**' 'files/**'` 空）——7 个 commit 全部锁在 3 个前端文件里：`toolbox/forest/index.html`（+602 / -429 行 / 5 commit）、`toolbox/connect4/index.html`（1 commit 换色）、`toolbox/feixingqi/index.html`（1 commit 骰子色）。三条主线：
->
-> ① **`toolbox/forest/` 种树专注计时器视觉与玩法再迭代 5 连**（`fe9ce0b` → `ff042a5` → `e57a07c` → `193e414` → `a17c509`）——承接 7-04 首日 10 连产品化后的第二波打磨：(a) **主题色板辨识度 + 悬浮备注 + 树提示不出框 + 时长/自定义/严格开关改良**（fe9ce0b）—— 每种主题（森林 / 草原 / 湖畔 / 竹林 / 沙漠 / 雪原 / 樱花 / 秋叶）拉开辨识色差、田地上的树支持悬浮显示备注、树 popover 位置约束不再溢出容器、时长选择器与自定义分钟数交互对齐、严格度切换 UI 微调；(b) **重做生长树美术**（ff042a5）—— 五种树（松 / 枫 / 樱 / 竹 / 沙）的初芽 → 幼树 → 成树三阶段美术全部重画；(c) **落地所选方案——双叶苗 logo / 沉浸舞台 / 草坡田地 + 田地树同款重做**（e57a07c）—— logo 换成双叶苗 SVG、专注舞台改为沉浸背景、田地改草坡渐变、田地上的树用同款矢量重画；(d) **新玩法「合并 / 培养」——把小树整合成参天巨树**（193e414）—— 新增合并玩法，把多棵小树合成一棵参天巨树，是 forest 首个内容层玩法而非纯 UI 迭代；(e) **图标与树木美术 v3——图标重做 + 五树精修 + 高级树装饰阶梯**（a17c509）—— 应用图标（apple-touch / 192 / 512 / maskable）配套重做、五树精修 + 高级树多级装饰阶梯（花 / 果 / 星饰）。5 天内 forest 已从「首发 10 连产品化」→「玩法层扩展 5 连」，工具已具备 iOS / iPad / macOS / 安卓 / 桌面五端 PWA + 内容玩法 + 视觉主题体系的完整个人产品形态。 ② **`toolbox/connect4` 四子棋棋盘换成奶油浅色系贴合站点奶油底**（`c864aa2`）—— 承接 7-04 的藏蓝棋盘 → 奶油浅板（#f5efe3 → #e6dcc8）+ 凹洞改暖色「浅杯」（顶部暖阴影 + 底部受光）、AI 棋子暖金 → 琥珀金（#cf8a20）+ 在浅板上对比更足、获胜连线在浅板上白线不清 → 藏蓝发光线 + 藏蓝光环、hover 列高亮浅板用暖色压深、卡片投影藏蓝 → 暖棕（更浮）、深色模式给暖调不刺眼的深棕板对应、分享结算图同步；行为回归 DOM 模拟 11 项全绿，异步竞态既修 bug 未回退。是 7-04 视觉重做后又一次色板重定向——从「藏蓝深板厚重工业感」改为「奶油浅板贴合站点整体温润奶油底」。 ③ **`toolbox/feixingqi` 中央骰子点数改用当前玩家颜色兼作轮次提示**（`36ea411`）—— 轮到谁掷骰、骰面点数就用谁的座位色（红 / 黄 / 蓝 / 绿），配合原有的呼吸光环一起提醒当前是谁的回合；给点子加一圈极淡描边保证浅色的黄点在白骰面上依然清晰；掷骰翻滚动画与落定结果都跟随当前玩家色。是一次小而准的可用性微调，属"三秒钟看清是谁的回合"的直觉性设计。
->
-> `bundle install` ✅ + `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（12.957 s cold build）。`_site/` 顶层仍 **26 项**（与 7-04 / 7-03 / 7-02 完全一致：`CNAME` `account` `admin` `admin-manifest.json` `assets` `assistant-fulltext.json` `assistant-index.json` `en` `essays` `feed.xml` `files` `flight` `google5306…` `index.html` `life` `manifest.json` `notes` `pdfjs` `redirects.json` `research` `robots.txt` `search.json` `sitemap.xml` `sw.js` `toolbox` `zh`），未新增 / 未删减顶级路径。`_site/toolbox/forest/index.html` 249.2 KB（源 163.5 KB + Jekyll layout 注入）、`_site/toolbox/connect4/index.html` 124.7 KB、`_site/toolbox/feixingqi/index.html` 213.2 KB 三处均渲染完整；`_site/toolbox/index.html` grep `/toolbox/forest/` 命中 2 次（生活工具组 tool-card + bulk-offline shortcut）；`_site/sitemap.xml` + `_site/search.json` forest / connect4 / feixingqi 各命中——搜索体系闭环。**未发现 `_flight-staging/` / `_paid/` 泄露**（`find _site -path "*_flight-staging*" -o -path "*_paid*"` 空）。**代码质量核对**：改动集中于 3 个前端文件，HTML 结构 parser 检查（`html.parser` 栈跟踪）forest / connect4 / feixingqi 三处 open tags 全部归零 ✅；`grep "console.log\|debugger\|TODO\|FIXME\|XXX"` 仅 feixingqi:L2932 一条邀请链接注释（`Opening a ?room=XXXX invite link ...`，XXXX 为占位符）、多处 `typeof x !== 'undefined'` 是合法 JS 存在性检查，均无新增 debug 遗留。**今日 0 项自动修复**——7 个 commit 全部由站主亲手打磨（forest 玩法 + 视觉 5 连深化 / connect4 换色 / feixingqi 骰色），属工具设计取向 / 交互决策 / 视觉品味范畴，一律不属本 agent 应擅动的"小而无争议"改动；build 健康、`_site/` 结构无异常、workspace 干净（`git status` clean、`git ls-files --others --exclude-standard` 空、无编辑器 / 系统垃圾 / `* 2.*` 副本）、无任何低风险小修可做。**P1 队列**：唯一 P1 仍是承接 6-13 的 `_config.yml`.`study_order` 未列 `interm-econometrics`（今日**第 23 日承接**），`_notes/study/interm-econometrics/interm-econometrics-2023.md` 仍在，`comm -23 <(ls _notes/study/) <(sed -n '/^study_order:/,/^[a-z]/p' _config.yml | grep '^  - ')` 差集仍只此一条——纯 IA 设计判断，不擅动。**P2 队列**：承接 7-04 全部 P2（含 forest / pet 真机验收、picker 一周 6 commit 手感回归、connect4 藏蓝配色抽 palette、chess / xiangqi 对坐模式验收、pet 手机端悬浮列表验收、bare_dollar / spotcheck 启发式漏判、tutoring 缺 summary、paid-test-visa 缺 summary、mao-thought-principles 无 summary、random hover 缩进、mid-2015/anova-R 互链、掼蛋联机回归、宠物中心多浏览器、机票监控 mac 端到端、flight 5 HTML 多浏览器、经济学工具箱三项确认、jukebox 问题首、DNS NameResolutionError、dead_links SVG xmlns 误判、connect4 canvas 无键盘落子共 20 余条）——今日无新观察消除、承接不变。此外今日新出 **P2 新观察**：⑤ forest 一天再迭代 5 连（主题色 / 生长树美术 / 沉浸舞台 / 合并培养玩法 / 图标与树 v3）后**再次拉开与 7-04 真机验收清单的距离**，建议 iPhone / Android / iPad / 桌面 Chrome / 桌面 Firefox / PWA standalone 六组合验收清单本次要补：8 种主题色板辨识度是否直觉、悬浮备注 popover 定位是否始终在容器内、树 popover 长时间悬浮的性能、五树三阶段美术在多主题背景下的对比度、logo 双叶苗 SVG 在多分辨率下清晰度、田地草坡渐变在浅 / 深模式的调性、**合并玩法**（多小树合成参天巨树）的操作发现性 / 撤销机制 / 是否会误伤番茄链累计、图标 v3 在主屏 icon 网格中的观感、高级树装饰阶梯（花 / 果 / 星饰）在稀有度上的辨识度，沙箱无 GUI / 无触屏跑不了；⑥ connect4 从藏蓝深板改到奶油浅板是站点视觉「与主底色更贴合」的选择——但 7-04 P2#6 提出「是否把 藏蓝 + 暖红 / 暖金 抽成 `--game-board-*` 共享 palette」的假设本次直接被推翻（本次 connect4 不再走藏蓝路线），若日后要抽 palette 应以「奶油浅底 + 暖色棋子 + 藏蓝点缀」为新基准，本条待重新拟定；⑦ feixingqi 骰子点数染当前玩家色是一次极小而准的可用性微调，与「呼吸光环 / 座位色」构成三层"是谁的回合"信号冗余，是否要把这套「玩家色系统」抽成 `_data/players.yml` 或 CSS 变量供其他多人回合制工具（掼蛋 / 跳棋 / 五子棋 / 反棋）复用可拍板——目前 feixingqi 是「红 / 黄 / 蓝 / 绿」座位色、掼蛋是「东南西北」四方位色、跳棋是六色，各自独立。
-
-### ✅ 本次已自动修复
-
-无。
-
-7 个 commit 全部由站主亲手打磨（forest 视觉+玩法 5 连 / connect4 奶油浅板配色重定向 / feixingqi 骰子点色跟随当前玩家）——均属 UX / 视觉 / 玩法层设计取向决策，不属"小而无争议"范畴；build ✅ / `_site/` 26 项结构与 7-04 / 7-03 / 7-02 完全一致 / workspace 干净 / 无低风险小修可做。
-
-### 📋 待你把关
-
-#### P0（紧急）
-
-无。
-
-#### P1（重要）
-
-1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 ~ 7-04，**第 23 日承接**）。`/notes/` landing 渲染遍历 `site.study_order`（`notes/index.html` L81），所以 `interm-econometrics-2023.md`（sub_category =「中级计量经济学」、120 页 Wooldridge 体系英文讲义、94 keywords 厚足覆盖）在 `/notes/index.html` 里**渲染不出来**（sitemap / search.json 仍正常工作，**仅** landing 缺）。今日核对：`ls _notes/study/` 仍 26 个目录（较昨日不变）、`study_order` 仍 25 条，`comm -23` 差集仍只 `interm-econometrics` 一条。改否、改成什么名（保留现状 / 加进 `study_order` / 与 `interm-metrics/` 合并）仍属设计判断，请你拍板 —— 承接 23 日，是仓库里最久的 P1。
-
-#### P2（建议）
-
-1. **`linear-algebra-strang.md` summary 里「本站中文《线性代数讲义》」的引用**（承接 6-24 ~ 7-04，性质与 7-04 一致）—— 站上线代中文材料以《经济学数学工具箱》里 ch1-ch7 存在，但书名不同、面向经济学博士。三种改法：① 保留字面等以后写独立中文《线性代数讲义》；② 改字面为「本站《经济学数学工具箱》线性代数部分（ch1-ch7）」并链过去；③ 删引用改自足介绍。**属内容写作 + 结构映射决策，请你拍板**。
-
-2. **`_flight-staging/` 目录名与其内容实际角色不匹配**（承接 7-02 ~ 7-04，性质不变）—— 目录里的 `runner/` 已是**已上线机票监控工具的生产后端**，但目录名沿用「设计稿暂存」语义会误导。三种改法：① 保留名字（沉默约定）；② `runner/` 挪出到 `flightwatch/runner/` 需同步改 `flight/get:21` SRC 常量 + 新旧 URL 平滑迁移；③ `_flight-staging/` 改名 `_flightwatch/` 保 `_-`前缀防收录，只改 URL 前缀。**命名 / 迁移决策，请你拍板**。
-
-3. **`toolbox/forest/` 种树专注计时器再迭代 5 连后待真机 / PWA 六组合验收再补 10 项**（**今日新观察 + 承接 7-04 P2#3**）—— 建议 iPhone Safari + Android Chrome + iPad + 桌面 Chrome + 桌面 Firefox + 「加装到主屏」PWA standalone 六组合下过完整流程一遍并补：① 8 种主题色板辨识度是否直觉、② 悬浮备注 popover 定位是否始终在容器内、③ 树 popover 长时间悬浮的性能、④ 五树三阶段美术在多主题背景下的对比度、⑤ logo 双叶苗 SVG 在多分辨率下清晰度、⑥ 田地草坡渐变在浅 / 深模式的调性、⑦ **合并玩法**（多小树合成参天巨树）的操作发现性 / 撤销机制 / 是否会误伤番茄链累计、⑧ 图标 v3 在主屏 icon 网格中的观感、⑨ 高级树装饰阶梯（花 / 果 / 星饰）在稀有度上的辨识度、⑩ PWA standalone 下装到主屏后是否具备完整独立体验，并叠加 7-04 P2#3 的 13 项手感与状态回归。沙箱无 GUI / 无触屏跑不了。
-
-4. **`assets/js/pet.js` 宠物中心同步加固 2 连待真机双人 / 双端互测验收**（承接 7-04 P2#4，性质不变）—— 6 项互测清单（发件箱 opId 幂等 / 一台删除另一台不复活 / per-field meta 双管理员不互相覆盖 / propose 改时间 opId 幂等 / 云同步不冲掉共享宠物 / 成员 API 失败重试幂等），沙箱无双端真机跑不了。
-
-5. **`toolbox/connect4` 从藏蓝改到奶油浅板后共享 palette 抽取方案需重新拟定**（**今日新观察**，替换 7-04 P2#6）—— 7-04 假设「站点主色 `--color-accent` 藏蓝、connect4 与其对齐、其他棋类（gomoku / chess / xiangqi / tiaoqi / reversi）也可复用」本次直接被推翻（connect4 改奶油浅板 + 藏蓝仅作获胜连线点缀）。若日后要抽 `assets/css/main.css` 的 `--game-board-*` 共享 token，应以「奶油浅底 + 暖色棋子 + 藏蓝点缀」为新基准，本条待你重新拟定拍板方向。
-
-6. **`toolbox/feixingqi` 骰子点色跟随玩家的「玩家色系统」是否抽出**（**今日新观察**）—— feixingqi 骰点色 + 呼吸光环 + 座位色三层"是谁的回合"信号已冗余到位，是否要把「玩家色系统」抽成 `_data/players.yml` 或 CSS 变量供其他多人回合制工具（掼蛋 / 跳棋 / 五子棋 / 反棋）复用属设计决策，请你拍板——目前 feixingqi「红 / 黄 / 蓝 / 绿」、掼蛋「东南西北」、跳棋六色各自独立。
-
-7. **`toolbox/picker` 一周 6 commit 完整重构后待真机手感回归**（承接 7-04 P2#5，性质不变）—— 8 场景真机手感回归清单，沙箱无 GUI / 无触屏跑不了。
-
-8. **chess + xiangqi「对坐模式」新加的 CSS 转 180° 待真机 iPad / iPhone 横屏面对面下一整局验收**（承接 7-03 ~ 7-04）—— 沙箱无触屏跑不了。
-
-9. **`toolbox/pet` 宠物中心手机端食物列表「悬浮展开」新姿态待真机 iOS Safari + Android Chrome 双端验收**（承接 7-03 ~ 7-04）—— 沙箱无触屏跑不了。
-
-10. **`scripts/audit/bare_dollar.py` 启发式漏判 `$\d+-...$` 类数学配对**（承接 6-30 ~ 7-04）—— 今日**未跑** audit 脚本，老待办承接。
-
-11. **`scripts/audit/spotcheck.py` 的 `.tex 源` 探测启发式仍漏判带主题后缀和异目录情形**（承接 6-27 ~ 7-04）—— 今日**未跑** audit 脚本，老待办承接。
-
-12. **`_notes/tutoring/` 10 篇里 7 篇缺 `summary` 字段**（承接 6-30 ~ 7-04）—— 老文盘扫，内容写作决策。
-
-13. **`_notes/life/paid-test-us-visa-types.md` 缺 `summary` 字段且无法直接改**（承接 6-30 ~ 7-04）—— 需改源文件 `_paid/liuxue-test-visa.md` 或改 `scripts/paywall/build_paid.py`。
-
-14. **`_notes/study/mao-thought/mao-thought-principles.md` 无 `summary:` 字段但正文 L17 是介绍段落**（承接 6-29 ~ 7-04）—— 写作偏好；PDF-only 页面有正文时 `post.html` 兜底不触发，渲染上不缺。
-
-15. **`toolbox/random/` hover 守卫内层缩进 cosmetic** —— 承接 6-03 ~ 7-04，功能正确、纯排版风格小差异，可忽略。
-
-16. **mid-2015 与 anova-R 纯 PDF 存档可加同课程互链入口** —— 承接 6-03 ~ 7-04，内容写作决策。
-
-17. **掼蛋 6-18 ~ 6-24 联机改造 + 6-30 四象限版型迁移待真机 / 微信内置浏览器跑两局完整联机回归**（承接 6-27 ~ 7-04）。沙箱无浏览器 / 无音频出口无法替代真机回归。
-
-18. **宠物中心近期多轮更新待多浏览器 / 多设备验收**（承接 6-29 ~ 7-04）。沙箱无 GUI / 无真触屏，跑不了。
-
-19. **机票监控 Phase 3 一键安装器 `flight/get` + Phase 2 后端 pipeline 待 mac 真机端到端跑一轮验收**（承接 7-02 ~ 7-04）。沙箱无 mac 出口跑不了。
-
-20. **`toolbox/flight/` 5 个 HTML 页 UX 待多浏览器 / 多屏幕跑一遍**（承接 7-02 ~ 7-04）。
-
-21. **《经济学博士的数学工具箱》教材首发三项确认**（承接 7-02 ~ 7-04）—— summary 长度 / `sub_category=经济学数学基础` 新分类走向 / `course=经济学数学工具箱` 是否挂进 `_data/course_aliases.yml`。
-
-22. **jukebox 16 首问题首 + 3 失败首待逐类修复** —— 承接 6-18 ~ 7-04。
-
-23. **5 条 DNS NameResolutionError 外链需站主在生产环境复验** —— 承接 6-08 ~ 7-04；今日**未跑** `dead_links.py`。
-
-24. **`dead_links.py` 把 SVG `xmlns="http://www.w3.org/2000/svg"` 命名空间字符串误判为外链** —— 承接 6-08 ~ 7-04，cosmetic 非阻塞。
-
-25. **`toolbox/connect4` canvas 无键盘落子通道**（承接 7-03 ~ 7-04）—— 历史状态、非本次配色改动引入，可挪进"游戏 a11y 补齐"内容待办。
-
-### 🗂 仓库卫生
-
-**仓库结构较昨日无变化，无需再优化。** `git diff --stat cdac174..HEAD` 覆盖的 3 个文件全在 `toolbox/{forest,connect4,feixingqi}/index.html`——纯前端代码改动，**未新增 / 未删除任何目录、未新增 / 未删除任何 `_notes/` `_data/` `files/` 条目**（`git diff --stat cdac174..HEAD -- '*.md' '_data/*' '_config.yml' '_notes/**' 'files/**'` 空）。`git status` clean、`git ls-files --others --exclude-standard` 空、`find . -name '.DS_Store' -o -name '*.bak' -o -name '*.orig' -o -name '*.tmp' -o -name '*~'` 全空、`find . -name "* 2.*"` 全空，无编辑器 / 系统垃圾。大文件核对：仍与 7-04 一致——`files/or/or-2023.pdf` 5.55 MB 唯一 5 MB 以上（承接 `images.py` 潜在 pdfslim 候选）、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB + `files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB 仍是 2 MB 以上二人组。`_paid/` + `_flight-staging/` 双双在 `_config.yml` L50/L52 exclude 列表内且 `_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空——双保险仍稳固。`toolbox/forest/` 目录仍 2 项（`index.html` 163.5 KB / 5 天从 143.8 KB 增长 20 KB 反映玩法 + 视觉扩展 + `manifest.json` 758 B）、`assets/icons/forest-{apple-touch,icon-192,icon-512,icon-maskable-512}.png` 4 张图 7-01 首发时已到位（**注**：a17c509 commit message 提到「图标重做」但**这 4 个 PNG 文件的 mtime 仍是 6-30 首发日、size 未变**——可能是 commit message 说的「图标」指 SVG logo / 应用内图标而非站点 PWA 主 icon，请你留意本条以确认没有需要更新的 PWA icon 资源被漏 push）、`_data/toolbox.yml` L…「工作」分类 forest entry 已挂 status=live、`_site/toolbox/index.html` 生活工具组 tool-card + bulk-offline shortcut 已渲染到位（`grep -c "/toolbox/forest/"` 命中 2 次），forest 已完成从「新工具首发」到「玩法层扩展」的连续 5 天完整落地。**结论**：目录结构与文件架构与 7-04 完全一致，仅前端代码行内调整，无仓库卫生可动项。
-
-### 💓 后端脉搏 / 📬 读者来信
-
-7 个 commit 均为前端工具代码打磨（forest 视觉 + 玩法 5 连 / connect4 换色 / feixingqi 骰色），未新增任何对 zircon-urge / leaderboards / zircon-comments waline / 付费墙 `/api/paid` `/api/redeem` / pet-food fly.io 后端端点的依赖变化。`backend_pulse.py` 本次未主动跑（沙箱无 fly.io 出口，承接 6-04 ~ 7-04 每次巡检结论），站点后端配置维持稳定。
-
