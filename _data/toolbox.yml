@@ -321,14 +321,6 @@
   category: 工作
   status: live
 
-- id: vocab
-  name: 生词本
-  icon: 📖
-  tagline: Leitner 间隔重复
-  url: /toolbox/vocab/
-  category: 工作
-  status: live
-
 - id: forest
   name: 种树
   icon: /assets/icons/forest-icon-192.png
@@ -436,14 +428,6 @@
   icon: ✒️
   tagline: Unicode 花体 · 微信可见
   url: /toolbox/font-style/
-  category: 生活
-  status: live
-
-- id: cat-language
-  name: 猫语板
-  icon: 🐱
-  tagline: 点一下，循环听各种猫叫
-  url: /toolbox/cat-language/
   category: 生活
   status: live
 
