@@ -11,9 +11,13 @@
   {%- if n.discipline -%}{%- assign notes_count = notes_count | plus: 1 -%}{%- endif -%}
 {%- endfor -%}
 {%- assign all_content = valid_notes | sort: "date" | reverse -%}
-{%- assign hot_posts = all_content | where: "hot", true -%}
-{%- assign featured = hot_posts | first -%}
-{%- unless featured -%}{%- assign featured = all_content | first -%}{%- endunless -%}
+{%- comment -%} 首页③精选：手动 spotlight 标记驱动，自适应 0–4 张；hot 已解耦不再参与 {%- endcomment -%}
+{%- assign spotlight = all_content | where: "spotlight", true -%}
+{%- assign spot_count = spotlight | size -%}
+{%- assign n = spot_count -%}{%- if n > 4 -%}{%- assign n = 4 -%}{%- endif -%}
+{%- assign shown_urls = '' -%}
+{%- if n == 0 -%}{%- assign _hero = all_content | first -%}{%- assign shown_urls = _hero.url | append: '|' -%}
+{%- else -%}{%- for s in spotlight -%}{%- assign shown_urls = shown_urls | append: s.url | append: '|' -%}{%- endfor -%}{%- endif -%}
 {%- assign tool_count = site.data.toolbox | where: "status", "live" | size -%}
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -365,15 +369,27 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
 .stat span{ font-size:clamp(.82rem,1vw,.98rem); color:var(--muted); line-height:1.3; }
 
 /* ===================== PAGE 3 — latest + footer ================= */
-.latest{ grid-template-rows:auto minmax(0,1fr) auto; padding-bottom:0; }
-.latest .s-head .more{ font-family:var(--font-display); font-size:.92rem; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); }
-.latest .s-head .more:hover{ text-decoration:underline; text-underline-offset:4px; }
+.latest{ grid-template-rows:minmax(0,1fr) auto; padding-bottom:0; }
+.latest[data-n="0"]{ grid-template-rows:auto minmax(0,1fr) auto; }   /* 无精选时顶部多一条单一大标 */
 
 .latest__grid{ display:grid; grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr); gap:clamp(20px,3vw,48px); min-height:0; }
+.feat-col,.feed-col{ display:flex; flex-direction:column; min-height:0; }
+.feat-col .feat-zone{ flex:1 1 auto; min-height:0; } .feed-col .feed{ flex:1 1 auto; }
+
+/* 分区标题：金菱 ◇ + 衬线名 + 拉丁 + 金线（+ 查看更多），与栏目页分节同源 */
+.zone-head{ display:flex; align-items:center; gap:.8rem; margin-bottom:clamp(.6rem,1.4vh,1rem); }
+.solo-head{ display:none; }
+.zone-head .dia{ width:8px; height:8px; background:var(--gold); transform:rotate(45deg); flex:none; box-shadow:0 0 0 4px var(--gold-soft); }
+.zone-head .nm{ font-family:var(--font-display); font-weight:600; font-size:clamp(1.4rem,2.2vw,1.9rem); letter-spacing:.04em; color:var(--ink); white-space:nowrap; line-height:1.05; }
+.zone-head .la{ font-family:var(--font-display); font-size:.66rem; letter-spacing:.28em; text-transform:uppercase; color:var(--gold); white-space:nowrap; align-self:flex-end; padding-bottom:.28rem; }
+.zone-head .ln{ flex:1; height:1px; background:linear-gradient(90deg,var(--gl-2),transparent); min-width:16px; }
+.zone-head .more{ font-family:var(--font-display); font-size:.86rem; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); white-space:nowrap; }
+.zone-head .more:hover{ text-decoration:underline; text-underline-offset:4px; }
 
 /* featured card */
+.feat-zone{ display:grid; min-height:0; gap:clamp(14px,1.6vw,20px); }
 .feat{ position:relative; display:flex; flex-direction:column; border:1px solid var(--gl-1); border-radius:var(--radius-lg); overflow:hidden; background:var(--card); min-height:0; }
-.feat__media{ position:relative; flex:1 1 auto; min-height:0; }
+.feat__media{ position:relative; flex:1 1 auto; min-height:0; background:linear-gradient(150deg,#1e3a5f,#2d4a6e); }
 .feat__media img{ width:100%; height:100%; object-fit:cover; object-position:50% 32%; }
 .feat__media::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(11,21,38,.12),rgba(11,21,38,.42)); }
 .feat__flag{ position:absolute; top:clamp(14px,1.4vw,20px); left:clamp(14px,1.4vw,20px); z-index:2;
@@ -402,6 +418,29 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
   border-top:1px solid var(--gl-1); padding:clamp(12px,2vh,18px) 0 clamp(14px,2.4vh,20px); margin-top:clamp(10px,1.6vh,16px); }
 .foot span{ font-family:var(--font-display); font-size:.9rem; letter-spacing:.06em; color:var(--muted); }
 .foot .c{ color:var(--text); }
+
+/* ---- 精选张数自适应（0–4）：只切换布局，卡片/feed 样式共用 ---- */
+.latest[data-n="0"] .feat-zone, .latest[data-n="1"] .feat-zone{ grid-template-rows:1fr; }
+.latest[data-n="2"] .feat-zone{ grid-template-rows:1fr 1fr; }
+.latest[data-n="2"] .feat__title{ font-size:clamp(1.15rem,1.5vw,1.5rem); }
+
+/* N=0：一篇精选都没设 → 顶部单一「近期更新」大标 + 最新一篇做带图大卡 */
+.latest[data-n="0"] .solo-head{ display:flex; }
+.latest[data-n="0"] .feat-col > .zone-head, .latest[data-n="0"] .feed-col > .zone-head{ display:none; }
+
+/* N=3/4：精选转顶排；近期更新写死为 2列×3行=6 篇的定格网格，行高等分填满剩余(repeat(3,1fr))，网格总高≡可用区，几何上不可能溢出 */
+.latest[data-n="3"] .latest__grid, .latest[data-n="4"] .latest__grid{ grid-template-columns:1fr; grid-template-rows:minmax(196px,.86fr) minmax(0,1.14fr); }
+.latest[data-n="3"] .feat-zone{ grid-template-columns:repeat(3,1fr); }
+.latest[data-n="4"] .feat-zone{ grid-template-columns:repeat(4,1fr); }
+.latest[data-n="3"] .feat__title, .latest[data-n="4"] .feat__title{ font-size:clamp(1.02rem,1.15vw,1.24rem); margin-top:.25rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.latest[data-n="3"] .feat__body, .latest[data-n="4"] .feat__body{ padding:clamp(.7rem,1vw,1rem); }
+.latest[data-n="4"] .feat__date{ display:none; }
+.latest[data-n="3"] .feed-col .feed, .latest[data-n="4"] .feed-col .feed{
+  display:grid; grid-template-columns:1fr 1fr; grid-template-rows:repeat(3,minmax(0,1fr));
+  column-gap:clamp(24px,3.2vw,52px); overflow:hidden; }
+.latest[data-n="3"] .feed-col .feed li, .latest[data-n="4"] .feed-col .feed li{ min-height:0; overflow:hidden; }
+.latest[data-n="3"] .feed-col .feed a, .latest[data-n="4"] .feed-col .feed a{ height:100%; display:flex; flex-direction:column; justify-content:center; }
+.latest[data-n="3"] .feed-col .feed li:nth-child(-n+2), .latest[data-n="4"] .feed-col .feed li:nth-child(-n+2){ border-top:0; }
 
 /* ============================= responsive ======================== */
 @media (max-width:1080px){ .mainnav{ display:none; } }
@@ -441,6 +480,12 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
   .latest__grid{ grid-template-columns:1fr; }
   .feed{ overflow:visible; }
   .feat__media{ min-height:200px; }
+  /* page-3 自适应网格在手机上一律拉直成单列流，避免定格网格塌陷 */
+  .latest, .latest[data-n="0"]{ grid-template-rows:none; }
+  .feat-zone{ grid-template-columns:1fr; grid-template-rows:none; }
+  .latest[data-n="3"] .latest__grid, .latest[data-n="4"] .latest__grid{ grid-template-columns:1fr; grid-template-rows:none; }
+  .latest[data-n="3"] .feed-col .feed, .latest[data-n="4"] .feed-col .feed{ display:flex; grid-template-columns:none; grid-template-rows:none; }
+  .latest[data-n="3"] .feed-col .feed a, .latest[data-n="4"] .feed-col .feed a{ height:auto; display:block; }
 }
 @media (max-width:460px){
   .bento{ grid-template-columns:1fr; }
@@ -591,44 +636,56 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
 
   <!-- ============ PAGE 3 — latest + footer ============ -->
   <section class="page" id="p3" aria-label="近期更新">
-    <div class="wrap latest">
-      <header class="s-head">
-        <div>
-          <span class="kicker">近期 · Latest</span>
-          <h2 class="s-title">近期更新</h2>
-        </div>
+    <div class="wrap latest" data-n="{{ n }}">
+
+      <!-- N=0（无精选）时用的单一大标 -->
+      <div class="solo-head zone-head">
+        <span class="dia"></span><span class="nm">近期更新</span><span class="la">Recent</span><span class="ln"></span>
         <a class="more" href="/notes/">查看更多 →</a>
-      </header>
+      </div>
 
       <div class="latest__grid">
-        {%- if featured -%}
-        {%- assign _furl = featured.url | relative_url -%}
-        {%- assign _fimg = featured.image | default: featured.cover -%}
-        <a class="feat" href="{{ _furl }}">
-          <div class="feat__media">
-            <span class="feat__flag">★ 精选</span>
-            <img src="{% if _fimg %}{{ _fimg | relative_url }}{% else %}{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}{% endif %}" alt="{{ featured.title | strip_html | escape }}">
+        <div class="feat-col">
+          <div class="zone-head"><span class="dia"></span><span class="nm">精选</span><span class="la">Featured</span><span class="ln"></span></div>
+          <div class="feat-zone">
+            {%- if n == 0 -%}
+              {%- assign _c = all_content | first -%}
+              {%- assign _cimg = _c.image | default: _c.cover -%}
+              <a class="feat" href="{{ _c.url | relative_url }}">
+                <div class="feat__media"><span class="feat__flag">最新</span>
+                  <img src="{% if _cimg %}{{ _cimg | relative_url }}{% else %}{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}{% endif %}" alt="{{ _c.title | strip_html | escape }}"></div>
+                <div class="feat__body"><span class="feat__cat">{{ _c.main_category | default: '学习资料' }}</span><h3 class="feat__title">{% include latex-logo.html title=_c.title %}</h3><time class="feat__date">{{ _c.date | date: "%Y-%m-%d" }}</time></div>
+              </a>
+            {%- else -%}
+              {%- for _c in spotlight limit: 4 -%}
+                {%- assign _cimg = _c.image | default: _c.cover -%}
+                <a class="feat" href="{{ _c.url | relative_url }}">
+                  <div class="feat__media"><span class="feat__flag">★ 精选</span>
+                    {%- if _cimg %}<img src="{{ _cimg | relative_url }}" alt="{{ _c.title | strip_html | escape }}">{% elsif forloop.first %}<img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="{{ _c.title | strip_html | escape }}">{% endif -%}
+                  </div>
+                  <div class="feat__body"><span class="feat__cat">{{ _c.main_category | default: '学习资料' }}</span><h3 class="feat__title">{% include latex-logo.html title=_c.title %}</h3><time class="feat__date">{{ _c.date | date: "%Y-%m-%d" }}</time></div>
+                </a>
+              {%- endfor -%}
+            {%- endif -%}
           </div>
-          <div class="feat__body">
-            <span class="feat__cat">{{ featured.main_category | default: '学习资料' }}</span>
-            <h3 class="feat__title">{% include latex-logo.html title=featured.title %}</h3>
-            <time class="feat__date">{{ featured.date | date: "%Y-%m-%d" }}</time>
-          </div>
-        </a>
-        {%- endif -%}
+        </div>
 
-        <ol class="feed">
-          {%- assign _limit = 6 -%}{%- assign _shown = 0 -%}
-          {%- for post in all_content -%}
-            {%- if _shown >= _limit -%}{%- break -%}{%- endif -%}
-            {%- if featured and post.url == featured.url -%}{%- continue -%}{%- endif -%}
-            <li><a href="{{ post.url | relative_url }}">
-              <p class="fd__title">{% include latex-logo.html title=post.title %}</p>
-              <div class="fd__meta"><span class="fd__cat">{{ post.main_category | default: '学习资料' }}</span><time class="fd__date tnum">{{ post.date | date: "%Y-%m-%d" }}</time></div>
-            </a></li>
-            {%- assign _shown = _shown | plus: 1 -%}
-          {%- endfor -%}
-        </ol>
+        <div class="feed-col">
+          <div class="zone-head"><span class="dia"></span><span class="nm">近期更新</span><span class="la">Recent</span><span class="ln"></span><a class="more" href="/notes/">查看更多 →</a></div>
+          <ol class="feed">
+            {%- assign _limit = 6 -%}{%- assign _shown = 0 -%}
+            {%- for post in all_content -%}
+              {%- if _shown >= _limit -%}{%- break -%}{%- endif -%}
+              {%- assign _pu = post.url | append: '|' -%}
+              {%- if shown_urls contains _pu -%}{%- continue -%}{%- endif -%}
+              <li><a href="{{ post.url | relative_url }}">
+                <p class="fd__title">{% include latex-logo.html title=post.title %}</p>
+                <div class="fd__meta"><span class="fd__cat">{{ post.main_category | default: '学习资料' }}</span><time class="fd__date tnum">{{ post.date | date: "%Y-%m-%d" }}</time></div>
+              </a></li>
+              {%- assign _shown = _shown | plus: 1 -%}
+            {%- endfor -%}
+          </ol>
+        </div>
       </div>
 
       <footer class="foot">
