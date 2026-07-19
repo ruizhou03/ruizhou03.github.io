@@ -4,382 +4,383 @@ title: "学习资料"
 ---
 
 <style>
-  .kb-page-wrap { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
-  .kb-header { margin-bottom: 3rem; text-align: center; }
-  .kb-header h1 { font-size: 2.2rem; color: var(--color-ink); margin-bottom: 1rem; }
-  .kb-header p { color: var(--color-light); font-style: italic; }
+  /* ============ 学习资料 · 卡片 / 目录 双视图 + 课程浮层 ============ */
+  .arch-page { max-width: 1120px; margin: 0 auto; padding: 2rem 1.2rem 4rem; }
 
-  /* 桌面端层级缩进 */
-  .knowledge-base .discipline-content { padding: 0.8rem 0 0.8rem 1rem; }
-  .knowledge-base .course-block { margin: 0.5rem 0.5rem 1rem 0.5rem !important; }
-  .knowledge-base .course-content { padding: 0.8rem 0 0.8rem 1rem; }
-  .knowledge-base .type-section { padding-left: 1.5rem !important; margin-bottom: 1.5rem; }
-  .knowledge-base .type-title {
-    font-size: 0.9rem; color: var(--color-light); text-transform: uppercase;
-    letter-spacing: 1px; margin-bottom: 0.8rem;
-    border-bottom: 1px solid var(--color-border); display: inline-block;
-  }
-  .knowledge-base .file-list { list-style: none; padding: 0; margin: 0; }
-  .knowledge-base .file-list li { margin-bottom: 0.6rem; }
-  .knowledge-base .file-list a {
-    color: var(--color-text); text-decoration: none;
-    border-bottom: 1px solid transparent; transition: all 0.2s;
-  }
-  .knowledge-base .file-list a:hover {
-    color: var(--color-accent); border-bottom-color: var(--color-accent);
+  /* 工具条：搜索 + 视图切换 */
+  .arch-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 1.4rem 0 1.6rem; }
+  .arch-search { position: relative; flex: 1; min-width: 200px; max-width: 380px; }
+  .arch-search input { width: 100%; padding: .5rem 1rem .5rem 2rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); font-size: .92rem; outline: none; transition: border-color .2s; }
+  .arch-search input:focus { border-color: var(--color-accent); }
+  .arch-search::before { content: ""; position: absolute; left: .8rem; top: 50%; width: 11px; height: 11px; margin-top: -7px; border: 1.5px solid var(--color-light); border-radius: 50%; }
+  .arch-search::after { content: ""; position: absolute; left: 1.55rem; top: 50%; width: 5px; height: 1.5px; margin-top: 3px; background: var(--color-light); transform: rotate(45deg); }
+
+  .view-toggle { display: inline-flex; border: 1px solid var(--color-border); border-radius: var(--radius-pill); overflow: hidden; background: var(--color-bg); flex: none; }
+  .view-toggle button { appearance: none; border: 0; background: transparent; color: var(--color-muted); font-family: var(--font-body); font-size: .86rem; padding: .4rem .95rem; cursor: pointer; display: inline-flex; align-items: center; gap: .35rem; transition: color .2s, background .2s; }
+  .view-toggle button + button { border-left: 1px solid var(--color-border); }
+  .view-toggle button[aria-pressed="true"] { background: var(--color-accent); color: #fff; }
+  .view-toggle .vt-ico { font-size: .9rem; line-height: 1; }
+
+  /* ---- 共享元素 ---- */
+  .chip { font-family: var(--font-body); font-size: .72rem; padding: .05rem .5rem; border-radius: var(--radius-pill); border: 1px solid var(--color-border); color: var(--color-muted); background: var(--color-bg-warm); white-space: nowrap; }
+  .chip.lec { color: #a07d38; border-color: var(--color-highlight); }
+  .gd { display: inline-block; width: 6px; height: 6px; background: var(--color-highlight); transform: rotate(45deg); vertical-align: middle; }
+
+  .disc-h { font-family: 'Cormorant Garamond', var(--font-display); font-variant: small-caps; letter-spacing: .13em; color: var(--color-accent); font-weight: 600; display: flex; align-items: center; gap: .7rem; }
+  .disc-h .dh-cn { font-family: var(--font-display); font-variant: normal; letter-spacing: .04em; }
+  .disc-h .dh-latin { font-variant: normal; font-size: .78rem; color: var(--color-light); letter-spacing: .1em; }
+
+  .unit { text-decoration: none; color: inherit; -webkit-tap-highlight-color: transparent; }
+  .u-hidden { display: none !important; }
+  .d-hidden { display: none !important; }
+  /* 「另一视图专用」的碎片默认隐藏，避免闪现 */
+  .u-orn, .u-latin, .u-seal { display: none; }
+
+  /* ============ 卡片视图（藏书票卡 · 定高） ============ */
+  .archive[data-view="cards"] .arch-rail { display: none; }
+  .archive[data-view="cards"] .disc-h { font-size: 1.05rem; margin: 2.1rem 0 1.1rem; }
+  .archive[data-view="cards"] .disc-h::after { content: ""; flex: 1; height: 1px; background: var(--color-border); }
+  .archive[data-view="cards"] .disc:first-child .disc-h { margin-top: .3rem; }
+  .archive[data-view="cards"] .courses { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .8rem; }
+  .archive[data-view="cards"] .u-head { display: none; }
+  .archive[data-view="cards"] .u-mark { display: none; }
+
+  .archive[data-view="cards"] .unit { position: relative; height: 176px; display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); padding: 1.2rem 1rem 1.15rem; box-shadow: var(--shadow-1); transition: transform .18s, border-color .18s, box-shadow .18s; overflow: hidden; cursor: pointer; }
+  .archive[data-view="cards"] .unit::before { content: ""; position: absolute; inset: 6px; border: 1px solid var(--color-highlight); opacity: .34; border-radius: 3px; pointer-events: none; }
+  .archive[data-view="cards"] .unit:hover { border-color: var(--color-accent); transform: translateY(-2px); box-shadow: var(--shadow-2); }
+  .archive[data-view="cards"] .unit:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  .archive[data-view="cards"] .u-orn { display: block; color: var(--color-highlight); font-size: .82rem; letter-spacing: .3em; height: 1.05em; }
+  .archive[data-view="cards"] .u-latin { display: block; font-family: 'Cormorant Garamond', var(--font-display); font-variant: small-caps; letter-spacing: .12em; color: var(--color-light); font-size: .68rem; margin-top: .1rem; }
+  .archive[data-view="cards"] .u-name { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; margin: .3rem 0; }
+  .archive[data-view="cards"] .u-name .u-nm { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-family: var(--font-display); font-weight: 600; color: var(--color-ink); font-size: 1.02rem; line-height: 1.3; text-wrap: balance; }
+  .archive[data-view="cards"] .u-meta, .archive[data-view="cards"] .u-types { display: flex; flex-wrap: wrap; gap: .3rem; justify-content: center; min-height: 1.05rem; }
+  .archive[data-view="cards"] .authored .u-types { display: none; }
+  .archive[data-view="cards"] .u-seal { display: inline-block; font-family: 'Cormorant Garamond', var(--font-display); font-variant: small-caps; letter-spacing: .08em; color: #a07d38; border: 1px solid var(--color-highlight); border-radius: var(--radius-pill); padding: .02rem .6rem; font-size: .72rem; }
+  .archive[data-view="cards"] .u-count { display: block; font-size: .72rem; color: var(--color-light); margin-top: .45rem; }
+  /* 学科染色 */
+  .archive[data-view="cards"] .unit.econ  { background: linear-gradient(180deg, rgba(106,83,64,.07), transparent 60%); }
+  .archive[data-view="cards"] .unit.math  { background: linear-gradient(180deg, rgba(42,79,120,.07), transparent 60%); }
+  .archive[data-view="cards"] .unit.psy   { background: linear-gradient(180deg, rgba(43,83,73,.07), transparent 60%); }
+  .archive[data-view="cards"] .unit.mgmt  { background: linear-gradient(180deg, rgba(70,85,98,.06), transparent 60%); }
+  .archive[data-view="cards"] .unit.lang  { background: linear-gradient(180deg, rgba(58,74,46,.07), transparent 60%); }
+  .archive[data-view="cards"] .unit.tutor { background: linear-gradient(180deg, rgba(106,74,46,.07), transparent 60%); }
+  .archive[data-view="cards"] .unit.review{ background: linear-gradient(180deg, rgba(74,69,80,.06), transparent 60%); }
+  .archive[data-view="cards"] .unit.misc  { background: linear-gradient(180deg, rgba(58,58,64,.05), transparent 60%); }
+
+  /* ============ 目录视图（检索表 · 独立标记列） ============ */
+  .archive[data-view="table"] .arch-main { display: grid; grid-template-columns: 178px 1fr; gap: 0; }
+  .archive[data-view="table"] .arch-rail { border-right: 1px solid var(--color-border); padding-right: 1rem; align-self: start; position: sticky; top: 76px; }
+  .archive[data-view="table"] .arch-body { padding-left: 1.3rem; min-width: 0; }
+  .archive[data-view="table"] .arch-rail a { display: block; text-decoration: none; color: var(--color-muted); padding: .45rem .55rem; border-radius: var(--radius-sm); font-size: .93rem; white-space: nowrap; transition: color .15s, background .15s; }
+  .archive[data-view="table"] .arch-rail a .rc { float: right; color: var(--color-light); font-size: .76rem; font-variant-numeric: tabular-nums; }
+  .archive[data-view="table"] .arch-rail a.active { background: var(--color-bg-warm); color: var(--color-accent); font-weight: 600; box-shadow: inset 2px 0 0 var(--color-highlight); }
+  .archive[data-view="table"] .arch-rail a:hover { color: var(--color-accent); }
+  .archive[data-view="table"] .arch-rail a.rail-dim { opacity: .4; }
+
+  .archive[data-view="table"] .disc-h { font-size: 1.1rem; margin: 0 0 1rem; }
+  .archive[data-view="table"] .disc-h::after { content: none; }
+  .archive[data-view="table"] .courses { --cols: 1.4rem minmax(0, 1fr) minmax(5rem, 12rem) 3.4rem; display: block; }
+  .archive[data-view="table"] .u-head { display: grid; grid-template-columns: var(--cols); gap: .5rem; align-items: center; padding: .2rem .1rem .45rem; border-bottom: 1px solid var(--color-border); }
+  .archive[data-view="table"] .u-head span { font-family: 'Cormorant Garamond', var(--font-display); font-variant: small-caps; letter-spacing: .08em; color: var(--color-light); font-size: .72rem; }
+  .archive[data-view="table"] .u-head span:nth-child(4) { text-align: right; }
+
+  .archive[data-view="table"] .unit { display: grid; grid-template-columns: var(--cols); gap: .5rem; align-items: center; padding: .58rem .1rem; border-bottom: 1px solid var(--color-bg-warm); cursor: pointer; }
+  .archive[data-view="table"] .unit:hover { background: var(--color-bg-warm); }
+  .archive[data-view="table"] .unit:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+  .archive[data-view="table"] .u-mark { text-align: center; }
+  .archive[data-view="table"] .u-name { min-width: 0; }
+  .archive[data-view="table"] .u-name .u-nm { font-family: var(--font-display); color: var(--color-ink); font-size: 1rem; line-height: 1.3; }
+  .archive[data-view="table"] .u-types { display: flex; flex-wrap: wrap; gap: .3rem; }
+  .archive[data-view="table"] .u-count { text-align: right; color: var(--color-muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 640px) {
+    .arch-page { padding: 1rem .6rem 3rem; }
+    .archive[data-view="table"] .arch-main { grid-template-columns: 1fr; }
+    .archive[data-view="table"] .arch-rail { border-right: none; border-bottom: 1px solid var(--color-border); padding: 0 0 .5rem; margin-bottom: 1rem; display: flex; gap: .4rem; overflow-x: auto; position: static; }
+    .archive[data-view="table"] .arch-rail a { flex: none; }
+    .archive[data-view="table"] .arch-rail a .rc { display: none; }
+    .archive[data-view="table"] .arch-body { padding-left: 0; }
+    .archive[data-view="table"] .courses { --cols: 1.1rem minmax(0, 1fr) auto; }
+    .archive[data-view="table"] .u-head span:nth-child(3), .archive[data-view="table"] .u-head span:nth-child(4) { display: none; }
+    .archive[data-view="table"] .u-types { display: none; }
+    .archive[data-view="cards"] .courses { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   }
 
-  .kb-search-wrap { margin-top: 1.2rem; }
-  .kb-search-input {
-    width: 100%; max-width: 360px;
-    padding: 0.55rem 1rem;
-    border: 1px solid var(--color-border);
-    border-radius: 20px;
-    background: var(--color-bg);
-    color: var(--color-text);
-    font-family: var(--font-body);
-    font-size: 0.92rem;
-    outline: none;
-    transition: border-color 0.2s;
+  /* ============ 课程浮层 ============ */
+  .arch-ov { position: fixed; inset: 0; background: rgba(20,20,34,.46); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; padding: 1.4rem; z-index: 3000; }
+  .arch-ov.show { display: flex; animation: archOvIn .18s ease; }
+  @keyframes archOvIn { from { opacity: 0; } to { opacity: 1; } }
+  .arch-sheet { width: min(520px, 100%); max-height: 88vh; display: flex; flex-direction: column; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 16px; box-shadow: var(--shadow-3); position: relative; animation: archSheetIn .24s cubic-bezier(.2,.8,.25,1); }
+  .arch-sheet:focus { outline: none; }
+  @keyframes archSheetIn { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+  .arch-sheet::before { content: ""; position: absolute; inset: 11px; border: 1px solid var(--color-highlight); opacity: .3; border-radius: 10px; pointer-events: none; }
+  .arch-sheet .sh-x { position: absolute; top: .9rem; right: 1.05rem; border: 0; background: none; color: var(--color-light); font-size: 1.4rem; line-height: 1; cursor: pointer; z-index: 3; width: 1.9rem; height: 1.9rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: color .15s, background .15s; }
+  .arch-sheet .sh-x:hover { color: var(--color-ink); background: var(--color-bg-warm); }
+  .arch-sheet .sh-x:focus-visible { outline: 2px solid var(--color-highlight); outline-offset: 1px; }
+  .arch-sheet .sh-head { text-align: center; padding: 2.5rem 2.4rem 1.4rem; flex: none; }
+  .arch-sheet .sh-orn { color: var(--color-highlight); letter-spacing: .35em; font-size: .92rem; }
+  .arch-sheet .sh-latin { font-family: 'Cormorant Garamond', var(--font-display); font-variant: small-caps; letter-spacing: .14em; color: var(--color-light); font-size: .74rem; margin-top: .4rem; }
+  .arch-sheet .sh-name { font-family: var(--font-display); font-weight: 600; color: var(--color-ink); font-size: 1.42rem; line-height: 1.32; margin: .6rem 0 .85rem; }
+  .arch-sheet .sh-sub { color: var(--color-muted); font-size: .84rem; display: flex; gap: .5rem; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .arch-sheet .sh-rule { width: 44px; height: 1.5px; background: var(--color-highlight); margin: 1.2rem auto 0; }
+  .arch-sheet .sh-scroll { overflow: auto; padding: .8rem 2.4rem 2rem; }
+  .arch-sheet .sh-files { list-style: none; margin: 0; padding: 0; }
+  .arch-sheet .sh-files li { display: grid; grid-template-columns: 1.4rem minmax(0, 1fr) auto; align-items: center; gap: 1.1rem; padding: .95rem .1rem; border-bottom: 1px solid var(--color-border); }
+  .arch-sheet .sh-files li:last-child { border-bottom: none; }
+  .arch-sheet .sf-mark { text-align: center; }
+  .arch-sheet .sf-open { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; color: var(--color-ink); font-family: var(--font-display); font-weight: 500; font-size: .98rem; transition: color .15s; }
+  .arch-sheet .sf-open:hover { color: var(--color-accent); }
+  .arch-sheet .sf-dl { flex: none; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: .14rem .62rem; color: var(--color-accent); background: var(--color-bg-warm); font-family: 'Cormorant Garamond', var(--font-display); font-variant: small-caps; letter-spacing: .05em; font-size: .8rem; white-space: nowrap; transition: border-color .15s, background .15s; }
+  .arch-sheet .sf-dl:hover { border-color: var(--color-accent); }
+  @media (max-width: 560px) {
+    .arch-ov { align-items: flex-end; padding: 0; }
+    .arch-sheet { width: 100%; max-height: 90vh; border-radius: 18px 18px 0 0; }
+    .arch-sheet .sh-head { padding: 2rem 1.6rem 1.2rem; }
+    .arch-sheet .sh-scroll { padding: .6rem 1.6rem 1.6rem; }
   }
-  .kb-search-input:focus { border-color: var(--color-accent); }
-  .course-block.kb-hidden { display: none; }
-  .discipline-block.kb-hidden { display: none; }
-
-  /* 手机端：让笔记与课程名对齐 (课程文字≈2.8rem，笔记文字≈3.1rem 稍微缩进一点) */
-  @media (max-width: 768px) {
-    .kb-page-wrap { padding: 1rem 0.5rem; }
-    .knowledge-base summary { padding: 0.7rem !important; }
-    .knowledge-base .discipline-content { padding-left: 0.3rem; }
-    .knowledge-base .course-block { margin: 0.3rem 0.3rem 0.6rem 0.3rem !important; }
-    .knowledge-base .course-content { padding-left: 1rem; }
-    .knowledge-base .type-section { padding-left: 1.5rem !important; }
-  }
+  @media (prefers-reduced-motion: reduce) { .arch-ov.show, .arch-sheet { animation: none; } .unit, .view-toggle button { transition: none; } }
 </style>
 
-<article class="kb-page-wrap">
+<article class="arch-page">
   {% include page-hero.html title="学习资料" latin="Academic Archives &amp; Knowledge Base" eyebrow="Zircon" center="true" %}
 
-  <style>
-    /* 讲义书架：自写教材（author=Rui Zhou）皮面按学科变色的自动生成封面卡 */
-    .lecture-shelf { margin: 0 0 2.8rem; }
-    .ls-intro { font-size: 0.9rem; color: var(--color-muted); text-align: center; margin-bottom: 0.3rem; }
-    .ls-disc { font-family: 'Cormorant Garamond', var(--font-display); font-variant: small-caps; letter-spacing: 0.13em; font-size: 0.88rem; color: var(--color-accent); margin: 1.4rem 0 0.7rem; display: flex; align-items: center; gap: 0.5rem; }
-    .ls-disc::after { content: ""; flex: 1; height: 1px; background: var(--color-border); }
-    .ls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
-    @media (max-width: 560px) { .ls-grid { grid-template-columns: 1fr; } }
-    .lecture-card { display: flex; gap: 0.85rem; align-items: center; background: linear-gradient(180deg, var(--color-bg-warm), var(--color-bg)); border: 1px solid var(--color-border); border-radius: 10px; padding: 0.8rem 0.85rem; box-shadow: 0 1px 2px rgba(26,26,46,0.05); text-decoration: none; transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; }
-    .lecture-card:hover { border-color: var(--color-accent); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(26,26,46,0.09); }
-    .lec-cover { flex: none; width: 56px; height: 76px; border-radius: 3px 6px 6px 3px; position: relative; overflow: hidden; box-shadow: 0 3px 9px rgba(26,26,46,0.24); display: flex; flex-direction: column; justify-content: space-between; padding: 8px 6px 7px 10px; color: #fff; }
-    .lec-cover::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: rgba(255,255,255,0.16); }
-    .lec-cover::after { content: ""; position: absolute; left: 8px; right: 6px; bottom: 15px; height: 1px; background: #c9a96e; opacity: 0.85; }
-    .lec-cover .lc-disc { font-family: 'Cormorant Garamond', serif; font-variant: small-caps; letter-spacing: 0.05em; font-size: 0.46rem; opacity: 0.72; line-height: 1.1; }
-    .lec-cover .lc-title { font-family: var(--font-display); font-weight: 600; font-size: 0.66rem; line-height: 1.16; text-shadow: 0 1px 1px rgba(0,0,0,0.25); overflow: hidden; }
-    .lec-cover .lc-year { font-family: 'Cormorant Garamond', serif; font-size: 0.46rem; opacity: 0.68; }
-    .lec-cover.c-navy { background: linear-gradient(155deg, #24466e, #16293f); }
-    .lec-cover.c-slate { background: linear-gradient(155deg, #3c4a57, #2a333c); }
-    .lec-cover.c-brown { background: linear-gradient(155deg, #5a4636, #3a2c22); }
-    .lec-cover.c-teal { background: linear-gradient(155deg, #22463f, #152e29); }
-    .lc-body { min-width: 0; flex: 1; }
-    .lc-body .lc-name { font-family: var(--font-display); font-weight: 600; color: var(--color-ink); font-size: 0.95rem; line-height: 1.3; display: block; margin-bottom: 0.3rem; }
-    .lc-body .lc-meta { font-size: 0.75rem; color: var(--color-muted); display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; align-items: center; }
-    .lc-body .lc-meta .mat { font-family: 'Cormorant Garamond', serif; font-variant: small-caps; letter-spacing: 0.05em; font-size: 0.66rem; border-radius: 999px; padding: 0.02rem 0.45rem; }
-    .lc-body .lc-meta .mat.ever { color: #a9822f; border: 1px solid #a9822f; }
-    .lc-body .lc-meta .mat.grow { color: var(--color-accent); border: 1px solid var(--color-border); }
-    .lc-body .lc-meta .lc-pdf { font-family: 'Cormorant Garamond', serif; font-variant: small-caps; letter-spacing: 0.05em; color: var(--color-accent); }
-  </style>
+  {%- comment -%} ===== 构建各学科单元 + 左侧学科栏 ===== {%- endcomment -%}
+  {%- assign rail_html = "" -%}
+  {%- capture body_html -%}
+    {%- for disc in site.discipline_order -%}
+      {%- case disc -%}
+        {%- when "经济学" -%}{%- assign color = "econ" -%}{%- assign latin = "Economics" -%}
+        {%- when "数学" -%}{%- assign color = "math" -%}{%- assign latin = "Mathematics" -%}
+        {%- when "心理学" -%}{%- assign color = "psy" -%}{%- assign latin = "Psychology" -%}
+        {%- when "管理学" -%}{%- assign color = "mgmt" -%}{%- assign latin = "Management" -%}
+        {%- when "TOEFL & GRE" -%}{%- assign color = "lang" -%}{%- assign latin = "Language Tests" -%}
+        {%- when "学习辅导资料" -%}{%- assign color = "tutor" -%}{%- assign latin = "Tutoring" -%}
+        {%- when "其他" -%}{%- assign color = "misc" -%}{%- assign latin = "Miscellany" -%}
+        {%- when "课程测评" -%}{%- assign color = "review" -%}{%- assign latin = "Course Reviews" -%}
+        {%- else -%}{%- assign color = "misc" -%}{%- assign latin = "" -%}
+      {%- endcase -%}
 
-  {% assign shelf_books = site.notes | where: "author", "Rui Zhou" | where_exp: "n", "n.published != false" %}
-  {% if shelf_books.size > 0 %}
-  <section class="lecture-shelf" aria-label="自写教材讲义">
-    <div class="ls-intro"><span class="gold-diamond" style="margin-right:0.5em" aria-hidden="true"></span>自写教材 · 用 LaTeX 从头重排的讲义，点开可直接下载</div>
-    {% assign shelf_by_disc = shelf_books | group_by: "discipline" %}
-    {% assign shelf_order = "数学|经济学|管理学|心理学|思政|通识|体育" | split: "|" %}
-    {% for dname in shelf_order %}
-      {% assign dgrp = shelf_by_disc | where: "name", dname | first %}
-      {% if dgrp %}
-        {% case dname %}
-          {% when "数学" %}{% assign cvc = "c-navy" %}
-          {% when "经济学" %}{% assign cvc = "c-brown" %}
-          {% when "管理学" %}{% assign cvc = "c-slate" %}
-          {% when "心理学" %}{% assign cvc = "c-teal" %}
-          {% else %}{% assign cvc = "c-navy" %}
-        {% endcase %}
-        <div class="ls-disc">{{ dname }}</div>
-        <div class="ls-grid">
-          {% assign dsorted = dgrp.items | sort: "date" | reverse %}
-          {% for lec in dsorted %}
-            {% assign lt = lec.list_title | default: lec.title %}
-            <a class="lecture-card" href="{{ lec.url | relative_url }}">
-              <span class="lec-cover {{ cvc }}">
-                <span class="lc-disc">{{ dname }}</span>
-                <span class="lc-title">{{ lec.course | default: lt }}</span>
-                <span class="lc-year">{{ lec.date | date: "%Y" }}</span>
-              </span>
-              <span class="lc-body">
-                <span class="lc-name">{{ lt }}</span>
-                <span class="lc-meta">
-                  {% if lec.evergreen == true %}<span class="mat ever">常青</span>{% elsif lec.evergreen == false %}<span class="mat grow">更新中</span>{% endif %}
-                  {% if lec.pdf_url %}<span class="lc-pdf">PDF ↓</span>{% endif %}
-                </span>
-              </span>
-            </a>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endfor %}
-  </section>
-  {% endif %}
+      {%- capture units_html -%}
+        {%- if disc == "其他" -%}
+          {%- for folder in site.study_order -%}
+            {%- assign match_path = "/" | append: folder | append: "/" -%}
+            {%- assign raw_folder_notes = site.notes | where_exp: "n", "n.path contains match_path" -%}
+            {%- assign folder_notes = raw_folder_notes | where_exp: "n", "n.material_type != '课程测评'" -%}
+            {%- if folder_notes.size > 0 -%}
+              {%- assign fn0 = folder_notes[0] -%}
+              {%- assign _d = fn0.discipline -%}
+              {%- if _d == "通识" or _d == "体育" or _d == "思政" or _d == "其他" or _d == "计算机" -%}
+                {%- assign uname = fn0.course | default: folder -%}
+                {%- assign alias = site.data.course_aliases[uname] -%}
+                {%- include archive-unit.html notes=folder_notes name=uname color=color latin=latin search=alias -%}
+              {%- endif -%}
+            {%- endif -%}
+          {%- endfor -%}
 
-  <div class="knowledge-base">
-    {%- comment -%}
-      按学科（discipline）分组：顺序由 _config.yml 的 discipline_order 控制。
-      前四个学科（经济学/数学/心理学/管理学）走默认渲染——按 study_order 列出课程；
-      后四个（其他、TOEFL & GRE、课程测评、学习辅导资料）各有专门的渲染分支。
-    {%- endcomment -%}
-    {% for disc in site.discipline_order %}
+        {%- elsif disc == "TOEFL & GRE" -%}
+          {%- assign lang_notes = site.notes | where: "discipline", "语言考试" -%}
+          {%- assign tg_order = "TOEFL|GRE" | split: "|" -%}
+          {%- for cname in tg_order -%}
+            {%- assign course_notes = lang_notes | where: "course", cname -%}
+            {%- if course_notes.size > 0 -%}
+              {%- assign alias = site.data.course_aliases[cname] -%}
+              {%- include archive-unit.html notes=course_notes name=cname color=color latin=latin search=alias -%}
+            {%- endif -%}
+          {%- endfor -%}
 
-      {%- comment -%} ===== 其他：合并 通识/体育/思政/其他/计算机 ===== {%- endcomment -%}
-      {% if disc == "其他" %}
-        {% capture disc_blocks %}
-          {% for folder in site.study_order %}
-            {% assign match_path = "/" | append: folder | append: "/" %}
-            {% assign raw_folder_notes = site.notes | where_exp: "n", "n.path contains match_path" %}
-            {% assign folder_notes = raw_folder_notes | where_exp: "n", "n.material_type != '课程测评'" %}
-            {% if folder_notes.size > 0 %}
-              {% assign first_note = folder_notes[0] %}
-              {% assign _d = first_note.discipline %}
-              {% if _d == "通识" or _d == "体育" or _d == "思政" or _d == "其他" or _d == "计算机" %}
-                {% assign _alias = site.data.course_aliases[first_note.course] %}
-                <details class="course-block" data-search="{{ first_note.course | default: folder }} {{ _d }} {{ _alias }}">
-                  <summary class="course-title">{{ first_note.course | default: folder }}</summary>
-                  <div class="course-content">
-                    {% assign grouped_types = folder_notes | group_by: "material_type" %}
-                    {% for type in grouped_types %}
-                      <div class="type-section">
-                        <h4 class="type-title">{{ type.name | default: "其他" }}</h4>
-                        <ul class="file-list">
-                          {% for item in type.items %}
-                            {% if item.published != false %}
-                            <li>
-                              <a href="{{ item.url | relative_url }}">{% assign _t = item.list_title | default: item.title %}{% include latex-logo.html title=_t %}</a>
-                            </li>
-                            {% endif %}
-                          {% endfor %}
-                        </ul>
-                      </div>
-                    {% endfor %}
-                  </div>
-                </details>
-              {% endif %}
-            {% endif %}
-          {% endfor %}
-        {% endcapture %}
+        {%- elsif disc == "学习辅导资料" -%}
+          {%- assign phs_notes = site.notes | where: "discipline", "初升高" -%}
+          {%- assign phs_order = "数学|物理|经验" | split: "|" -%}
+          {%- for cname in phs_order -%}
+            {%- assign course_notes = phs_notes | where: "course", cname -%}
+            {%- if course_notes.size > 0 -%}
+              {%- include archive-unit.html notes=course_notes name=cname color=color latin=latin search="初升高 高中 衔接 辅导 家教" -%}
+            {%- endif -%}
+          {%- endfor -%}
 
-        {% assign disc_blocks_trim = disc_blocks | strip %}
-        {% if disc_blocks_trim != "" %}
-          <details class="discipline-block">
-            <summary class="discipline-title">其他</summary>
-            <div class="discipline-content">
-              {{ disc_blocks }}
-            </div>
-          </details>
-        {% endif %}
+        {%- elsif disc == "课程测评" -%}
+          {%- assign all_reviews = site.notes | where: "material_type", "课程测评" -%}
+          {%- assign cat_order = "经济学|思政|英语|体育|其他" | split: "|" -%}
+          {%- for cat in cat_order -%}
+            {%- assign cat_reviews = all_reviews | where: "review_category", cat -%}
+            {%- if cat_reviews.size > 0 -%}
+              {%- include archive-unit.html notes=cat_reviews name=cat color=color latin=latin search="课程测评 选课 review 避雷" -%}
+            {%- endif -%}
+          {%- endfor -%}
 
-      {%- comment -%} ===== TOEFL & GRE：按 TOEFL/GRE 两门课分组，内部按 material_type ===== {%- endcomment -%}
-      {% elsif disc == "TOEFL & GRE" %}
-        {% assign lang_notes = site.notes | where: "discipline", "语言考试" | where_exp: "n", "n.published != false" %}
-        {% if lang_notes.size > 0 %}
-          {% assign tg_order = "TOEFL|GRE" | split: "|" %}
-          <details class="discipline-block">
-            <summary class="discipline-title">TOEFL &amp; GRE</summary>
-            <div class="discipline-content">
-              {% for cname in tg_order %}
-                {% assign course_notes = lang_notes | where: "course", cname %}
-                {% if course_notes.size > 0 %}
-                  <details class="course-block" data-search="{{ cname }} TOEFL GRE 语言考试 出国 留学">
-                    <summary class="course-title">{{ cname }}</summary>
-                    <div class="course-content">
-                      {% assign grouped_types = course_notes | group_by: "material_type" %}
-                      {% for type in grouped_types %}
-                        <div class="type-section">
-                          <h4 class="type-title">{{ type.name | default: "其他" }}</h4>
-                          <ul class="file-list">
-                            {% assign sorted_items = type.items | sort: "date" %}
-                            {% for item in sorted_items %}
-                              {% if item.published != false %}
-                              <li>
-                                <a href="{{ item.url | relative_url }}">{% assign _t = item.list_title | default: item.title %}{% include latex-logo.html title=_t %}</a>
-                              </li>
-                              {% endif %}
-                            {% endfor %}
-                          </ul>
-                        </div>
-                      {% endfor %}
-                    </div>
-                  </details>
-                {% endif %}
-              {% endfor %}
-            </div>
-          </details>
-        {% endif %}
+        {%- else -%}
+          {%- comment -%} 按课程名去重：同一 course 可能拆在多个文件夹（如中级计量=讲义+课程笔记），合并成一个单元 {%- endcomment -%}
+          {%- assign seen_courses = "" -%}
+          {%- for folder in site.study_order -%}
+            {%- assign match_path = "/" | append: folder | append: "/" -%}
+            {%- assign raw_folder_notes = site.notes | where_exp: "n", "n.path contains match_path" -%}
+            {%- assign folder_notes = raw_folder_notes | where_exp: "n", "n.material_type != '课程测评'" -%}
+            {%- if folder_notes.size > 0 -%}
+              {%- assign fn0 = folder_notes[0] -%}
+              {%- if fn0.discipline == disc -%}
+                {%- assign uname = fn0.course | default: folder -%}
+                {%- capture ckey -%}|{{ uname }}|{%- endcapture -%}
+                {%- unless seen_courses contains ckey -%}
+                  {%- assign seen_courses = seen_courses | append: ckey -%}
+                  {%- if fn0.course -%}
+                    {%- assign course_notes = site.notes | where: "course", uname | where: "discipline", disc | where_exp: "n", "n.material_type != '课程测评'" -%}
+                  {%- else -%}
+                    {%- assign course_notes = folder_notes -%}
+                  {%- endif -%}
+                  {%- assign alias = site.data.course_aliases[uname] -%}
+                  {%- include archive-unit.html notes=course_notes name=uname color=color latin=latin search=alias -%}
+                {%- endunless -%}
+              {%- endif -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endcapture -%}
 
-      {%- comment -%} ===== 课程测评：按 review_category 分课，内部按 semester ===== {%- endcomment -%}
-      {% elsif disc == "课程测评" %}
-        {% assign all_reviews = site.notes | where: "material_type", "课程测评" | where_exp: "n", "n.published != false" %}
-        {% if all_reviews.size > 0 %}
-          {% assign cat_order = "经济学|思政|英语|体育|其他" | split: "|" %}
-          {% assign sem_order = "2022 秋|2023 春|2023 夏" | split: "|" %}
-          <details class="discipline-block">
-            <summary class="discipline-title">课程测评</summary>
-            <div class="discipline-content">
-              {% for cat in cat_order %}
-                {% assign cat_reviews = all_reviews | where: "review_category", cat %}
-                {% if cat_reviews.size > 0 %}
-                  <details class="course-block" data-search="{{ cat }} 课程测评 选课 review">
-                    <summary class="course-title">{{ cat }}</summary>
-                    <div class="course-content">
-                      {% for sem in sem_order %}
-                        {% assign sem_reviews = cat_reviews | where: "semester", sem %}
-                        {% if sem_reviews.size > 0 %}
-                          <div class="type-section">
-                            <h4 class="type-title">{{ sem }}</h4>
-                            <ul class="file-list">
-                              {% assign sorted_sem = sem_reviews | sort: "date" %}
-                              {% for item in sorted_sem %}
-                                {% if item.published != false %}
-                                <li>
-                                  <a href="{{ item.url | relative_url }}">{% assign _t = item.course | default: item.title %}{% include latex-logo.html title=_t %}</a>
-                                </li>
-                                {% endif %}
-                              {% endfor %}
-                            </ul>
-                          </div>
-                        {% endif %}
-                      {% endfor %}
-                    </div>
-                  </details>
-                {% endif %}
-              {% endfor %}
-            </div>
-          </details>
-        {% endif %}
+      {%- assign units_trim = units_html | strip -%}
+      {%- if units_trim != "" -%}
+        {%- assign uct = units_html | split: 'class="unit ' | size | minus: 1 -%}
+        <section class="disc" id="disc-{{ forloop.index }}">
+          <h2 class="disc-h"><span class="dh-cn">{{ disc }}</span><span class="dh-latin">{{ latin }}</span></h2>
+          <div class="courses">
+            <div class="u-head" aria-hidden="true"><span></span><span>课程</span><span>内容</span><span>份数</span></div>
+            {{ units_html }}
+          </div>
+        </section>
+        {%- capture rlink -%}<a href="#disc-{{ forloop.index }}" data-target="disc-{{ forloop.index }}">{{ disc }}<span class="rc">{{ uct }}</span></a>{%- endcapture -%}
+        {%- assign rail_html = rail_html | append: rlink -%}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endcapture -%}
 
-      {%- comment -%} ===== 学习辅导资料：按 数学/物理/经验 分课，内部按 material_type ===== {%- endcomment -%}
-      {% elsif disc == "学习辅导资料" %}
-        {% assign phs_notes = site.notes | where: "discipline", "初升高" | where_exp: "n", "n.published != false" %}
-        {% if phs_notes.size > 0 %}
-          {% assign phs_order = "数学|物理|经验" | split: "|" %}
-          <details class="discipline-block">
-            <summary class="discipline-title">学习辅导资料</summary>
-            <div class="discipline-content">
-              {% for cname in phs_order %}
-                {% assign course_notes = phs_notes | where: "course", cname %}
-                {% if course_notes.size > 0 %}
-                  <details class="course-block" data-search="{{ cname }} 初升高 高中 衔接 辅导 学习辅导资料 家教">
-                    <summary class="course-title">{{ cname }}</summary>
-                    <div class="course-content">
-                      {% assign grouped_types = course_notes | group_by: "material_type" %}
-                      {% for type in grouped_types %}
-                        <div class="type-section">
-                          <h4 class="type-title">{{ type.name | default: "其他" }}</h4>
-                          <ul class="file-list">
-                            {% assign sorted_items = type.items | sort: "date" %}
-                            {% for item in sorted_items %}
-                              {% if item.published != false %}
-                              <li>
-                                <a href="{{ item.url | relative_url }}">{% assign _t = item.list_title | default: item.title %}{% include latex-logo.html title=_t %}</a>
-                              </li>
-                              {% endif %}
-                            {% endfor %}
-                          </ul>
-                        </div>
-                      {% endfor %}
-                    </div>
-                  </details>
-                {% endif %}
-              {% endfor %}
-            </div>
-          </details>
-        {% endif %}
-
-      {%- comment -%} ===== 默认：经济学/数学/心理学/管理学，按 study_order 列课程 ===== {%- endcomment -%}
-      {% else %}
-        {% capture disc_blocks %}
-          {% for folder in site.study_order %}
-            {% assign match_path = "/" | append: folder | append: "/" %}
-            {% assign raw_folder_notes = site.notes | where_exp: "n", "n.path contains match_path" %}
-            {% assign folder_notes = raw_folder_notes | where_exp: "n", "n.material_type != '课程测评'" %}
-            {%- comment -%} 去重：自写教材(author=Rui Zhou)已在顶部书架展示，树里不再重复；某课若全是自写讲义则被下方 size>0 守卫整块跳过 {%- endcomment -%}
-            {% assign folder_notes = folder_notes | where_exp: "n", "n.author != 'Rui Zhou'" %}
-            {% if folder_notes.size > 0 %}
-              {% assign first_note = folder_notes[0] %}
-              {% if first_note.discipline == disc %}
-                {% assign _alias = site.data.course_aliases[first_note.course] %}
-                <details class="course-block" data-search="{{ first_note.course | default: folder }} {{ disc }} {{ _alias }}">
-                  <summary class="course-title">{{ first_note.course | default: folder }}</summary>
-                  <div class="course-content">
-                    {% assign grouped_types = folder_notes | group_by: "material_type" %}
-                    {% for type in grouped_types %}
-                      <div class="type-section">
-                        <h4 class="type-title">{{ type.name | default: "其他" }}</h4>
-                        <ul class="file-list">
-                          {% for item in type.items %}
-                            {% if item.published != false %}
-                            <li>
-                              <a href="{{ item.url | relative_url }}">{% assign _t = item.list_title | default: item.title %}{% include latex-logo.html title=_t %}</a>
-                            </li>
-                            {% endif %}
-                          {% endfor %}
-                        </ul>
-                      </div>
-                    {% endfor %}
-                  </div>
-                </details>
-              {% endif %}
-            {% endif %}
-          {% endfor %}
-        {% endcapture %}
-
-        {% assign disc_blocks_trim = disc_blocks | strip %}
-        {% if disc_blocks_trim != "" %}
-          <details class="discipline-block">
-            <summary class="discipline-title">{{ disc }}</summary>
-            <div class="discipline-content">
-              {{ disc_blocks }}
-            </div>
-          </details>
-        {% endif %}
-      {% endif %}
-
-    {% endfor %}
+  <div class="arch-toolbar">
+    <div class="arch-search"><input type="search" id="arch-search" placeholder="搜课程 / 讲义…（支持英文、拼音、简称）" aria-label="搜索学习资料"></div>
+    <div class="view-toggle" role="group" aria-label="视图切换">
+      <button type="button" data-view="cards" aria-pressed="true"><span class="vt-ico" aria-hidden="true">&#9638;</span>卡片</button>
+      <button type="button" data-view="table" aria-pressed="false"><span class="vt-ico" aria-hidden="true">&#9776;</span>目录</button>
+    </div>
   </div>
 
-  <script>
-    (function() {
-      var input = document.getElementById('kb-search');
-      if (!input) return;
-      input.addEventListener('input', function() {
-        var q = this.value.trim().toLowerCase();
-        document.querySelectorAll('.course-block[data-search]').forEach(function(b) {
-          var txt = (b.getAttribute('data-search') || '').toLowerCase();
-          b.classList.toggle('kb-hidden', !!q && txt.indexOf(q) === -1);
-        });
-        // 学科分组：本组没有命中的课程就整组隐藏；有命中时自动展开，
-        // 让搜索结果直接可见（不必再手动点开折叠的学科 / 课程）
-        document.querySelectorAll('.discipline-block').forEach(function(d) {
-          var courses = d.querySelectorAll('.course-block');
-          var anyVisible = Array.prototype.some.call(courses, function(c) {
-            return !c.classList.contains('kb-hidden');
-          });
-          d.classList.toggle('kb-hidden', !anyVisible);
-          if (q && anyVisible) {
-            if (!d.open) { d.open = true; d.dataset.kbAutoOpen = '1'; }
-          } else if (!q && d.dataset.kbAutoOpen) {
-            d.open = false; delete d.dataset.kbAutoOpen;
-          }
-        });
-      });
-    })();
-  </script>
+  <div class="archive" data-view="cards">
+    <div class="arch-main">
+      <nav class="arch-rail" aria-label="学科索引">{{ rail_html }}</nav>
+      <div class="arch-body">{{ body_html }}</div>
+    </div>
+  </div>
+
+  <p class="arch-empty" id="arch-empty" hidden style="text-align:center;color:var(--color-light);margin-top:2rem;">没有匹配的课程，换个词试试。</p>
 </article>
+
+<!-- 课程浮层 -->
+<div class="arch-ov" id="arch-ov">
+  <div class="arch-sheet" role="dialog" aria-modal="true" aria-labelledby="arch-sh-name" tabindex="-1">
+    <button class="sh-x" id="arch-sh-x" type="button" aria-label="关闭">&times;</button>
+    <div class="sh-head">
+      <div class="sh-orn" aria-hidden="true">&#10086;</div>
+      <div class="sh-latin" id="arch-sh-latin"></div>
+      <div class="sh-name" id="arch-sh-name"></div>
+      <div class="sh-sub" id="arch-sh-sub"></div>
+      <div class="sh-rule"></div>
+    </div>
+    <div class="sh-scroll"><ul class="sh-files" id="arch-sh-files"></ul></div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var archive = document.querySelector('.archive');
+    if (!archive) return;
+    var discs = Array.prototype.slice.call(archive.querySelectorAll('.disc'));
+    var railLinks = Array.prototype.slice.call(archive.querySelectorAll('.arch-rail a'));
+    var units = Array.prototype.slice.call(archive.querySelectorAll('.unit'));
+    var toggleBtns = Array.prototype.slice.call(document.querySelectorAll('.view-toggle button'));
+    var search = document.getElementById('arch-search');
+    var empty = document.getElementById('arch-empty');
+    var activeId = discs.length ? discs[0].id : null;
+
+    function render() {
+      var q = (search.value || '').trim().toLowerCase();
+      var view = archive.dataset.view;
+      units.forEach(function (u) {
+        var hit = !q || (u.getAttribute('data-search') || '').toLowerCase().indexOf(q) !== -1;
+        u.classList.toggle('u-hidden', !hit);
+      });
+      var anyShown = false;
+      discs.forEach(function (d) {
+        var hasHit = d.querySelectorAll('.unit:not(.u-hidden)').length > 0;
+        var show;
+        if (!hasHit) show = false;
+        else if (q) show = true;
+        else if (view === 'table') show = (d.id === activeId);
+        else show = true;
+        d.classList.toggle('d-hidden', !show);
+        if (show) anyShown = true;
+      });
+      railLinks.forEach(function (a) {
+        var target = document.getElementById(a.dataset.target);
+        var hasHit = target ? target.querySelectorAll('.unit:not(.u-hidden)').length > 0 : true;
+        a.classList.toggle('rail-dim', !hasHit);
+        a.classList.toggle('active', a.dataset.target === activeId && !q);
+      });
+      if (empty) empty.hidden = anyShown;
+    }
+
+    function setView(v) {
+      archive.dataset.view = v;
+      try { localStorage.setItem('notesView', v); } catch (e) {}
+      toggleBtns.forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.view === v ? 'true' : 'false'); });
+      render();
+    }
+
+    toggleBtns.forEach(function (b) { b.addEventListener('click', function () { setView(b.dataset.view); }); });
+    railLinks.forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (search.value) search.value = '';
+        activeId = a.dataset.target;
+        render();
+      });
+    });
+    if (search) search.addEventListener('input', render);
+
+    /* ---- 课程浮层 ---- */
+    var ov = document.getElementById('arch-ov');
+    var sheet = ov.querySelector('.arch-sheet');
+    var shLatin = document.getElementById('arch-sh-latin');
+    var shName = document.getElementById('arch-sh-name');
+    var shSub = document.getElementById('arch-sh-sub');
+    var shFiles = document.getElementById('arch-sh-files');
+    var lastFocus = null;
+
+    function openSheet(unit) {
+      var tpl = unit.nextElementSibling;
+      if (!tpl || tpl.tagName !== 'TEMPLATE') return;
+      var n = tpl.content.children.length;
+      shLatin.textContent = unit.dataset.latin || '';
+      shName.textContent = unit.dataset.name || '';
+      var types = unit.querySelector('.u-types');
+      shSub.innerHTML = (types ? types.innerHTML : '') + '<span>共 ' + n + ' 份</span>';
+      shFiles.innerHTML = '';
+      shFiles.appendChild(tpl.content.cloneNode(true));
+      lastFocus = document.activeElement;
+      ov.classList.add('show');
+      sheet.focus();
+    }
+    function closeSheet() {
+      ov.classList.remove('show');
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    archive.addEventListener('click', function (e) {
+      var u = e.target.closest('.unit');
+      if (!u) return;
+      e.preventDefault();
+      openSheet(u);
+    });
+    ov.addEventListener('click', function (e) { if (e.target === ov) closeSheet(); });
+    document.getElementById('arch-sh-x').addEventListener('click', closeSheet);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && ov.classList.contains('show')) closeSheet(); });
+
+    var saved = 'cards';
+    try { saved = localStorage.getItem('notesView') || 'cards'; } catch (e) {}
+    setView(saved === 'table' ? 'table' : 'cards');
+  })();
+</script>

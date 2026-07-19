@@ -1,0 +1,29 @@
+{%- comment -%}
+  学习资料 · 单门课程单元。卡片视图（藏书票卡）与目录视图（检索表行）共用同一 <a class="unit">；
+  点击任意单元由 notes/index.html 的脚本打开「课程浮层」，浮层内容克隆自紧随其后的 <template class="unit-files">。
+  无 JS 时 <a> 退化为直达该课首篇（讲义优先）。
+  参数：notes(数组) name(课名) color(学科色 class) latin(拉丁副题) search(搜索别名)
+  规则：author=="Rui Zhou" 视为自著讲义 → 排最前、带 ◆ 金菱、标「讲义」。
+{%- endcomment -%}
+{%- assign _pub = include.notes | where_exp: "n", "n.published != false" -%}
+{%- if _pub.size > 0 -%}
+  {%- assign _auth = _pub | where: "author", "Rui Zhou" -%}
+  {%- assign _rest = _pub | where_exp: "n", "n.author != 'Rui Zhou'" -%}
+  {%- assign _ordered = _auth | concat: _rest -%}
+  {%- assign _isauth = false -%}{%- if _auth.size > 0 -%}{%- assign _isauth = true -%}{%- endif -%}
+  {%- assign _primary = _ordered[0] -%}
+  {%- assign _hasExam = false -%}{%- assign _hasNote = false -%}{%- assign _hasHw = false -%}{%- assign _hasCheat = false -%}{%- assign _hasReview = false -%}
+  {%- for f in _pub -%}
+    {%- assign t = f.title -%}
+    {%- if t contains "真题" or t contains "试题" or t contains "样卷" or t contains "Midterm" or t contains "Final" or t contains "Exam" -%}{%- assign _hasExam = true -%}{%- endif -%}
+    {%- if t contains "笔记" or t contains "Notes" or t contains "Lecture" or t contains "梳理" or t contains "提纲" or t contains "复习" -%}{%- assign _hasNote = true -%}{%- endif -%}
+    {%- if t contains "作业" or t contains "Homework" or t contains "习题" -%}{%- assign _hasHw = true -%}{%- endif -%}
+    {%- if t contains "Cheat" or t contains "速查" -%}{%- assign _hasCheat = true -%}{%- endif -%}
+    {%- if f.material_type == "课程测评" -%}{%- assign _hasReview = true -%}{%- endif -%}
+  {%- endfor -%}
+  {%- capture _chips -%}{%- if _isauth -%}<span class="chip lec">讲义</span>{%- endif -%}{%- if _hasNote -%}<span class="chip">笔记</span>{%- endif -%}{%- if _hasExam -%}<span class="chip">真题</span>{%- endif -%}{%- if _hasHw -%}<span class="chip">作业</span>{%- endif -%}{%- if _hasCheat -%}<span class="chip">速查</span>{%- endif -%}{%- if _hasReview -%}<span class="chip">测评</span>{%- endif -%}{%- endcapture -%}
+  {%- assign _chips_trim = _chips | strip -%}
+  {%- capture _face -%}<span class="u-mark">{%- if _isauth -%}<span class="gd" aria-hidden="true"></span>{%- endif -%}</span><span class="u-orn" aria-hidden="true">&#10086;</span><span class="u-latin">{{ include.latin }}</span><span class="u-name"><span class="u-nm">{{ include.name }}</span></span><span class="u-types">{% if _chips_trim != "" %}{{ _chips_trim }}{% else %}<span class="chip">资料</span>{% endif %}</span><span class="u-count">{{ _pub.size }} 份</span>{% if _isauth %}<span class="u-seal">自著讲义</span>{% endif %}{%- endcapture -%}
+  {%- capture _search -%}{{ include.name }} {{ include.latin }} {{ include.search }}{%- endcapture -%}
+  <a class="unit {{ include.color }}{% if _isauth %} authored{% endif %}" href="{{ _primary.url | relative_url }}" data-name="{{ include.name }}" data-latin="{{ include.latin }}" data-search="{{ _search | strip }}">{{ _face }}</a><template class="unit-files">{%- for f in _ordered -%}<li>{% if f.author == 'Rui Zhou' %}<span class="sf-mark"><span class="gd" aria-hidden="true"></span></span>{% else %}<span class="sf-mark"></span>{% endif %}<a class="sf-open" href="{{ f.url | relative_url }}">{%- assign _t = f.list_title | default: f.title -%}{% include latex-logo.html title=_t %}</a>{% if f.pdf_url %}<a class="sf-dl" href="{{ f.pdf_url | relative_url }}">PDF ↓</a>{% else %}<span></span>{% endif %}</li>{%- endfor -%}</template>
+{%- endif -%}
