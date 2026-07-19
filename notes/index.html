@@ -8,10 +8,11 @@ body_class: notes-wide
   /* ============ 学习资料 · 卡片 / 目录 双视图 + 课程浮层 ============ */
   /* 突破全站 main 的 --max-width:800px 上限，让本页真正拓宽（否则卡片一行只挤得下 2 张） */
   body.notes-wide > main { max-width: none; padding: 0; }
-  .arch-page { max-width: 1180px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .arch-page { max-width: 1220px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .arch-right { min-width: 0; }
 
-  /* 工具条：搜索 + 视图切换 */
-  .arch-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 1.4rem 0 1.6rem; }
+  /* 工具条：搜索 + 视图切换（现在位于右栏、卡片/目录正上方，学科栏单独在左） */
+  .arch-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 0 0 1.5rem; }
   .arch-search { position: relative; flex: 1; min-width: 200px; max-width: 380px; }
   .arch-search input { width: 100%; padding: .5rem 1rem .5rem 2rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); font-size: .92rem; outline: none; transition: border-color .2s; }
   .arch-search input:focus { border-color: var(--color-accent); }
@@ -41,11 +42,13 @@ body_class: notes-wide
 
   /* ============ 卡片视图（藏书票卡 · 定高） ============ */
   /* 左侧学科跳转点导航（仿首页 dots）：滚动到哪个学科哪个点亮成金色实心+光晕、标签变金；其余灰色空心。点击平滑跳转。 */
-  .archive[data-view="cards"] .arch-main { display: grid; grid-template-columns: 138px minmax(0, 1fr); gap: 0; }
-  .archive[data-view="cards"] .arch-rail { display: block; position: sticky; top: 88px; align-self: start; border: none; padding: .1rem 1rem 0 0; }
-  .archive[data-view="cards"] .arch-rail a { display: flex; align-items: center; justify-content: flex-end; gap: .55rem; padding: .48rem 0; text-decoration: none; color: var(--color-muted); font-family: 'Cormorant Garamond', var(--font-display); font-size: .82rem; letter-spacing: .08em; white-space: nowrap; transition: color .25s; }
+  .archive[data-view="cards"] .arch-main { display: grid; grid-template-columns: 150px minmax(0, 1fr); column-gap: 2rem; }
+  .archive[data-view="cards"] .arch-rail { display: block; position: sticky; top: 88px; align-self: start; border: none; padding: .1rem 0 0 0; }
+  /* 串联圆点的细线：中间实、两端渐隐 */
+  .archive[data-view="cards"] .arch-rail::before { content: ""; position: absolute; top: 0; bottom: 0; right: 3.75px; width: 1.5px; background: linear-gradient(to bottom, transparent 0%, rgba(201,169,110,.55) 15%, rgba(201,169,110,.55) 85%, transparent 100%); pointer-events: none; }
+  .archive[data-view="cards"] .arch-rail a { position: relative; z-index: 1; display: flex; align-items: center; justify-content: flex-end; gap: .55rem; padding: .5rem 0; text-decoration: none; color: var(--color-muted); font-family: 'Cormorant Garamond', var(--font-display); font-size: .82rem; letter-spacing: .08em; white-space: nowrap; transition: color .25s; }
   .archive[data-view="cards"] .arch-rail a .rc { display: none; }
-  .archive[data-view="cards"] .arch-rail a::after { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--color-highlight); background: transparent; transition: background .25s, box-shadow .25s; }
+  .archive[data-view="cards"] .arch-rail a::after { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--color-highlight); background: var(--color-bg); transition: background .25s, box-shadow .25s; }
   .archive[data-view="cards"] .arch-rail a:hover { color: var(--color-accent); }
   .archive[data-view="cards"] .arch-rail a.rail-dim { opacity: .35; }
   .archive[data-view="cards"] .arch-rail a.dot-active { color: var(--color-highlight); }
@@ -81,9 +84,8 @@ body_class: notes-wide
   .archive[data-view="cards"] .unit.misc  { background: linear-gradient(180deg, rgba(58,58,64,.05), transparent 60%); }
 
   /* ============ 目录视图（检索表 · 独立标记列） ============ */
-  .archive[data-view="table"] .arch-main { display: grid; grid-template-columns: 178px 1fr; gap: 0; }
+  .archive[data-view="table"] .arch-main { display: grid; grid-template-columns: 178px 1fr; column-gap: 1.3rem; }
   .archive[data-view="table"] .arch-rail { border-right: 1px solid var(--color-border); padding-right: 1rem; align-self: start; position: sticky; top: 76px; }
-  .archive[data-view="table"] .arch-body { padding-left: 1.3rem; min-width: 0; }
   .archive[data-view="table"] .arch-rail a { display: block; text-decoration: none; color: var(--color-muted); padding: .45rem .55rem; border-radius: var(--radius-sm); font-size: .93rem; white-space: nowrap; transition: color .15s, background .15s; }
   .archive[data-view="table"] .arch-rail a .rc { float: right; color: var(--color-light); font-size: .76rem; font-variant-numeric: tabular-nums; }
   .archive[data-view="table"] .arch-rail a.active { background: var(--color-bg-warm); color: var(--color-accent); font-weight: 600; box-shadow: inset 2px 0 0 var(--color-highlight); }
@@ -274,22 +276,22 @@ body_class: notes-wide
     {%- endfor -%}
   {%- endcapture -%}
 
-  <div class="arch-toolbar">
-    <div class="arch-search"><input type="search" id="arch-search" placeholder="搜课程 / 讲义…（支持英文、拼音、简称）" aria-label="搜索学习资料"></div>
-    <div class="view-toggle" role="group" aria-label="视图切换">
-      <button type="button" data-view="cards" aria-pressed="true"><span class="vt-ico" aria-hidden="true">&#9638;</span>卡片</button>
-      <button type="button" data-view="table" aria-pressed="false"><span class="vt-ico" aria-hidden="true">&#9776;</span>目录</button>
-    </div>
-  </div>
-
   <div class="archive" data-view="cards">
     <div class="arch-main">
       <nav class="arch-rail" aria-label="学科索引">{{ rail_html }}</nav>
-      <div class="arch-body">{{ body_html }}</div>
+      <div class="arch-right">
+        <div class="arch-toolbar">
+          <div class="arch-search"><input type="search" id="arch-search" placeholder="搜课程 / 讲义…（支持英文、拼音、简称）" aria-label="搜索学习资料"></div>
+          <div class="view-toggle" role="group" aria-label="视图切换">
+            <button type="button" data-view="cards" aria-pressed="true"><span class="vt-ico" aria-hidden="true">&#9638;</span>卡片</button>
+            <button type="button" data-view="table" aria-pressed="false"><span class="vt-ico" aria-hidden="true">&#9776;</span>目录</button>
+          </div>
+        </div>
+        <div class="arch-body">{{ body_html }}</div>
+        <p class="arch-empty" id="arch-empty" hidden style="text-align:center;color:var(--color-light);margin-top:2rem;">没有匹配的课程，换个词试试。</p>
+      </div>
     </div>
   </div>
-
-  <p class="arch-empty" id="arch-empty" hidden style="text-align:center;color:var(--color-light);margin-top:2rem;">没有匹配的课程，换个词试试。</p>
 </article>
 
 <!-- 课程浮层 -->
