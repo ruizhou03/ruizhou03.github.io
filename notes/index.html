@@ -1,11 +1,14 @@
 ---
 layout: default
 title: "学习资料"
+body_class: notes-wide
 ---
 
 <style>
   /* ============ 学习资料 · 卡片 / 目录 双视图 + 课程浮层 ============ */
-  .arch-page { max-width: 1120px; margin: 0 auto; padding: 2rem 1.2rem 4rem; }
+  /* 突破全站 main 的 --max-width:800px 上限，让本页真正拓宽（否则卡片一行只挤得下 2 张） */
+  body.notes-wide > main { max-width: none; padding: 0; }
+  .arch-page { max-width: 1180px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
 
   /* 工具条：搜索 + 视图切换 */
   .arch-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 1.4rem 0 1.6rem; }
@@ -79,7 +82,8 @@ title: "学习资料"
 
   .archive[data-view="table"] .disc-h { font-size: 1.1rem; margin: 0 0 1rem; }
   .archive[data-view="table"] .disc-h::after { content: none; }
-  .archive[data-view="table"] .courses { --cols: 1.4rem minmax(0, 1fr) minmax(5rem, 12rem) 3.4rem; display: block; }
+  /* 目录视图·甲：单列限宽靠左，避免铺满整宽后课名与份数拉开大空隙 */
+  .archive[data-view="table"] .courses { --cols: 1.4rem minmax(0, 1fr) minmax(5rem, 12rem) 3.4rem; display: block; max-width: 840px; }
   .archive[data-view="table"] .u-head { display: grid; grid-template-columns: var(--cols); gap: .5rem; align-items: center; padding: .2rem .1rem .45rem; border-bottom: 1px solid var(--color-border); }
   .archive[data-view="table"] .u-head span { font-family: 'Cormorant Garamond', var(--font-display); font-variant: small-caps; letter-spacing: .08em; color: var(--color-light); font-size: .72rem; }
   .archive[data-view="table"] .u-head span:nth-child(4) { text-align: right; }
