@@ -44,11 +44,12 @@ body_class: notes-wide
   /* 左侧学科跳转点导航（仿首页 dots）：滚动到哪个学科哪个点亮成金色实心+光晕、标签变金；其余灰色空心。点击平滑跳转。 */
   .archive[data-view="cards"] .arch-main { display: grid; grid-template-columns: 150px minmax(0, 1fr); column-gap: 2rem; }
   .archive[data-view="cards"] .arch-rail { display: block; position: sticky; top: 88px; align-self: start; border: none; padding: .1rem 0 0 0; }
-  /* 串联圆点的细线：中间实、两端渐隐 */
-  .archive[data-view="cards"] .arch-rail::before { content: ""; position: absolute; top: 0; bottom: 0; right: 3.75px; width: 1.5px; background: linear-gradient(to bottom, transparent 0%, rgba(201,169,110,.55) 15%, rgba(201,169,110,.55) 85%, transparent 100%); pointer-events: none; }
-  .archive[data-view="cards"] .arch-rail a { position: relative; z-index: 1; display: flex; align-items: center; justify-content: flex-end; gap: .55rem; padding: .5rem 0; text-decoration: none; color: var(--color-muted); font-family: 'Cormorant Garamond', var(--font-display); font-size: .82rem; letter-spacing: .08em; white-space: nowrap; transition: color .25s; }
+  .archive[data-view="cards"] .arch-rail a { position: relative; display: flex; align-items: center; justify-content: flex-end; gap: .55rem; padding: .5rem 18px .5rem 0; text-decoration: none; color: var(--color-muted); font-family: 'Cormorant Garamond', var(--font-display); font-size: .82rem; letter-spacing: .08em; white-space: nowrap; transition: color .25s; }
   .archive[data-view="cards"] .arch-rail a .rc { display: none; }
-  .archive[data-view="cards"] .arch-rail a::after { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--color-highlight); background: var(--color-bg); transition: background .25s, box-shadow .25s; }
+  /* 圆点：绝对定位在右侧固定 x，与连接段严格同心 */
+  .archive[data-view="cards"] .arch-rail a::after { content: ""; position: absolute; right: 0; top: 50%; transform: translateY(-50%); box-sizing: border-box; width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--color-highlight); background: var(--color-bg); z-index: 2; transition: background .25s, box-shadow .25s; }
+  /* 相邻两圆之间的连接段：纵向椭圆＝中间粗、贴着两个圆处渐细（尖点被圆点盖住） */
+  .archive[data-view="cards"] .arch-rail a:not(:last-child)::before { content: ""; position: absolute; right: 2px; top: 50%; width: 5px; height: 100%; border-radius: 50%; background: rgba(201,169,110,.5); z-index: 0; pointer-events: none; }
   .archive[data-view="cards"] .arch-rail a:hover { color: var(--color-accent); }
   .archive[data-view="cards"] .arch-rail a.rail-dim { opacity: .35; }
   .archive[data-view="cards"] .arch-rail a.dot-active { color: var(--color-highlight); }
