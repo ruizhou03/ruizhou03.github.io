@@ -125,9 +125,10 @@ title: "学习资料"
   .arch-sheet .sh-rule { width: 44px; height: 1.5px; background: var(--color-highlight); margin: 1.2rem auto 0; }
   .arch-sheet .sh-scroll { overflow: auto; padding: .8rem 2.4rem 2rem; }
   .arch-sheet .sh-files { list-style: none; margin: 0; padding: 0; }
-  .arch-sheet .sh-files li { display: grid; grid-template-columns: 1.4rem minmax(0, 1fr) auto; align-items: center; gap: 1.1rem; padding: .95rem .1rem; border-bottom: 1px solid var(--color-border); }
+  .arch-sheet .sh-files li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1.1rem; padding: .95rem 0; border-bottom: 1px solid var(--color-border); }
   .arch-sheet .sh-files li:last-child { border-bottom: none; }
-  .arch-sheet .sf-mark { text-align: center; }
+  /* 精选 ◆ 悬挂到文字左侧留白里，不占布局宽度（分割线/文字/PDF 都不因它错位） */
+  .arch-sheet .sf-mark { position: absolute; left: -1.1rem; top: 0; bottom: 0; display: flex; align-items: center; }
   .arch-sheet .sf-open { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; color: var(--color-ink); font-family: var(--font-display); font-weight: 500; font-size: .98rem; transition: color .15s; }
   .arch-sheet .sf-open:hover { color: var(--color-accent); }
   .arch-sheet .sf-dl { flex: none; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-pill); padding: .14rem .62rem; color: var(--color-accent); background: var(--color-bg-warm); font-family: 'Cormorant Garamond', var(--font-display); font-variant: small-caps; letter-spacing: .05em; font-size: .8rem; white-space: nowrap; transition: border-color .15s, background .15s; }
@@ -136,7 +137,8 @@ title: "学习资料"
     .arch-ov { align-items: flex-end; padding: 0; }
     .arch-sheet { width: 100%; max-height: 90vh; border-radius: 18px 18px 0 0; }
     .arch-sheet .sh-head { padding: 2rem 1.6rem 1.2rem; }
-    .arch-sheet .sh-scroll { padding: .6rem 1.6rem 1.6rem; }
+    .arch-sheet .sh-scroll { padding: .6rem 1.8rem 1.6rem; }
+    .arch-sheet .sf-mark { left: -0.9rem; }
   }
   @media (prefers-reduced-motion: reduce) { .arch-ov.show, .arch-sheet { animation: none; } .unit, .view-toggle button { transition: none; } }
 </style>
