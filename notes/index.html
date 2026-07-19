@@ -48,8 +48,8 @@ body_class: notes-wide
   .archive[data-view="cards"] .arch-rail a .rc { display: none; }
   /* 圆点：绝对定位在右侧固定 x，与连接段严格同心 */
   .archive[data-view="cards"] .arch-rail a::after { content: ""; position: absolute; right: 0; top: 50%; transform: translateY(-50%); box-sizing: border-box; width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--color-highlight); background: var(--color-bg); z-index: 2; transition: background .25s, box-shadow .25s; }
-  /* 相邻两圆之间的连接段：纵向椭圆＝中间粗、贴着两个圆处渐细（尖点被圆点盖住） */
-  .archive[data-view="cards"] .arch-rail a:not(:last-child)::before { content: ""; position: absolute; right: 3px; top: 50%; width: 3px; height: 100%; border-radius: 50%; background: rgba(201,169,110,.5); z-index: 0; pointer-events: none; }
+  /* 相邻两圆之间：极细纺锤悬于两圆之间，中段最粗、贴近两圆处渐细到近乎断开（要断不断、要连不连） */
+  .archive[data-view="cards"] .arch-rail a:not(:last-child)::before { content: ""; position: absolute; right: 3.75px; top: 100%; transform: translateY(-50%); width: 1.5px; height: 88%; border-radius: 50%; background: rgba(201,169,110,.5); z-index: 0; pointer-events: none; }
   /* 悬停非当前学科：标签变金 + 圆点浅金填充（区别于当前项的实心+光晕） */
   .archive[data-view="cards"] .arch-rail a:not(.dot-active):hover { color: var(--color-highlight); }
   .archive[data-view="cards"] .arch-rail a:not(.dot-active):hover::after { background: rgba(201,169,110,.4); box-shadow: 0 0 0 3px rgba(201,169,110,.12); }
