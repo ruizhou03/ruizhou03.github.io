@@ -186,6 +186,7 @@ body_class: adm-page
             <button type="button" class="ib-mark" id="ib-markread">全部标为已读</button>
           </div>
           <div id="ib-body" class="ib-body"><div class="cm-empty">加载中…</div></div>
+          <div id="ib-pager" class="cm-pager"></div>
         </section>
       </div>
     </div>
@@ -236,11 +237,9 @@ body_class: adm-page
     background: none; border: 1px solid var(--color-border); border-radius: 7px; padding: 0.28rem 0.7rem; }
   .ib-mark:hover { color: var(--color-highlight); border-color: var(--color-highlight); }
   .ib-body { display: flex; flex-direction: column; gap: 0.6rem; }
-  .ib-item { position: relative; display: flex; gap: 0.7rem; border: 1px solid var(--color-border);
-    border-radius: 10px; padding: 0.7rem 0.9rem; background: var(--color-bg); }
-  .ib-item.ib-unread { border-color: var(--color-highlight); }
-  .ib-item.ib-unread::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-    border-radius: 10px 0 0 10px; background: var(--color-highlight); }
+  .ib-item { display: flex; align-items: flex-start; gap: 0.75rem; border: 1px solid var(--color-border);
+    border-radius: 10px; padding: 0.75rem 0.95rem; background: var(--color-bg); }
+  .ib-item.ib-unread { border-color: var(--color-highlight); background: rgba(201, 169, 110, 0.06); }
   .ib-av { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: var(--color-bg-warm) center/cover no-repeat;
     display: grid; place-items: center; font-size: 0.92rem; color: var(--color-muted); }
   .ib-main { flex: 1; min-width: 0; }
@@ -261,6 +260,13 @@ body_class: adm-page
     border: 1px solid #e2b6b0; background: var(--color-bg); color: #b4453a; }
   .ib-del:hover { background: #b4453a; color: #fff; border-color: #b4453a; }
   .ib-del[disabled] { opacity: 0.55; cursor: default; }
+  /* 评论正文（与账号页「评论记录」一致：图转缩略图、公式渲染、回复前缀清洗） */
+  .ib-cmt-img { display: block; max-width: 180px; max-height: 140px; margin-top: 0.35rem; border-radius: 8px;
+    border: 1px solid var(--color-border); object-fit: cover; }
+  .ib-cmt-at { color: var(--color-light); font-size: 0.86rem; margin-right: 0.1rem; }
+  .ib-cmt-imgfail { color: var(--color-light); font-size: 0.86rem; }
+  .ib-snip .katex { font-size: 1em; }
+  .ib-snip .katex-display { margin: 0.35rem 0; text-align: left; }
   .adm-verified { font-size: 0.9rem; color: var(--color-muted); background: var(--color-bg-warm);
     border: 1px solid var(--color-border); border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 2rem; }
   .adm-verified strong { color: var(--color-ink); }
@@ -1356,6 +1362,7 @@ body_class: adm-page
   // ── 收件箱：全站互动（评论 / 点赞 / 收藏）统一时间线 ──
   var ibState = { comment: [], like: [], fav: [] };
   var ibCat = 'all';
+  var ibPage = 1, ibPageSize = 20;
   var inboxInited = false;
   var IB_LREAD = 'adm.inbox.lastread.v1';   // 本机「各类已读到的时间戳」{ comment, like, fav }
   function ibReadMap() {
@@ -1389,13 +1396,75 @@ body_class: adm-page
       ? '<a class="ib-user" href="' + ibEsc(href) + '" target="_blank" rel="noopener">' + ibEsc(name) + '</a>'
       : '<span class="ib-user">' + ibEsc(name) + '</span>';
   }
+  // 评论正文渲染（与账号页「评论记录」同一套：剥回复前缀括号序号、图片/R2 图床链接转缩略图、保留 $…$ 交 KaTeX）
+  function ibRenderCommentBody(raw) {
+    if (!raw) return '';
+    var s = String(raw), slots = [];
+    function keep(html) { slots.push(html); return '\uE000' + (slots.length - 1) + '\uE001'; }
+    function imgTag(u) {
+      u = String(u).trim().replace(/["'<>]/g, '');
+      return keep('<img class="ib-cmt-img" src="' + ibEsc(u) + '" alt="图片" loading="lazy">');
+    }
+    s = s.replace(/^\s*\[@([^\]\n]{1,40})\]\(#[^)\n]*\)\s*:\s*/, function (m, name) {
+      return keep('<span class="ib-cmt-at">@' + ibEsc(name.trim()) + '</span> ');
+    });
+    s = s.replace(/!\[[^\]]*\]\(\s*([^)\s]+)[^)]*\)/g, function (m, url) {
+      return /^(?:data:image\/|https?:\/\/)/i.test(url.trim()) ? imgTag(url) : '【图片】';
+    });
+    s = s.replace(/(?:【图片】\s*)?(https?:\/\/pub-[0-9a-z]+\.r2\.dev\/[^\s\uE000\uE001]+)/gi, function (m, url) { return imgTag(url); });
+    s = s.replace(/!\[[^\]]*\](\([^)\uE000\uE001]*)?/g, '【图片】');
+    s = ibEsc(s).replace(/\uE000(\d+)\uE001/g, function (m, i) { return slots[+i] || ''; });
+    return s.replace(/【图片】\s*(?=<img)/g, '').replace(/(?:【图片】\s*){2,}/g, '【图片】');
+  }
+  // KaTeX 按需加载（后台平时不引入这套重库，首次进收件箱看到公式再拉）
+  var _ibKatex = null;
+  function ibEnsureKatex() {
+    if (window.renderMathInElement) return Promise.resolve(true);
+    if (_ibKatex) return _ibKatex;
+    _ibKatex = new Promise(function (resolve) {
+      if (!document.getElementById('ib-katex-css')) {
+        var l = document.createElement('link');
+        l.id = 'ib-katex-css'; l.rel = 'stylesheet';
+        l.href = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css';
+        document.head.appendChild(l);
+      }
+      function load(src, cb) { var sc = document.createElement('script'); sc.src = src; sc.onload = cb; sc.onerror = function () { cb(); }; document.head.appendChild(sc); }
+      load('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js', function () {
+        load('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js', function () { resolve(!!window.renderMathInElement); });
+      });
+    });
+    return _ibKatex;
+  }
+  var IB_KATEX_DELIMS = [
+    { left: '$$', right: '$$', display: true }, { left: '\\[', right: '\\]', display: true },
+    { left: '$', right: '$', display: false }, { left: '\\(', right: '\\)', display: false }
+  ];
+  // 渲染当前页评论里的图片失败兜底 + 数学公式
+  function ibRenderMathAndImg() {
+    var body = document.getElementById('ib-body');
+    if (!body) return;
+    Array.prototype.forEach.call(body.querySelectorAll('.ib-cmt-img'), function (img) {
+      if (img.__fb) return; img.__fb = 1;
+      function fail() { if (!img.parentNode) return; var sp = document.createElement('span'); sp.className = 'ib-cmt-imgfail'; sp.textContent = '【图片】'; img.replaceWith(sp); }
+      img.addEventListener('error', fail);
+      if (img.complete && img.naturalWidth === 0) fail();
+    });
+    if (!body.querySelector('.ib-snip')) return;
+    ibEnsureKatex().then(function (ok) {
+      if (!ok || !window.renderMathInElement) return;
+      var b = document.getElementById('ib-body'); if (!b) return;
+      Array.prototype.forEach.call(b.querySelectorAll('.ib-snip'), function (el) {
+        try { window.renderMathInElement(el, { delimiters: IB_KATEX_DELIMS, throwOnError: false }); } catch (e) {}
+      });
+    });
+  }
   function ibItemHtml(item, unread) {
     var info = resolve(item.url);
     var art = info.live
       ? '<a href="' + ibEsc(info.url) + '" target="_blank" rel="noopener" title="' + ibEsc(item.url) + '">' + ibEsc(info.title) + '</a>'
       : '<span title="' + ibEsc(item.url) + '">' + ibEsc(info.title) + '</span>';
     var snip = (item.cat === 'comment' && item.comment)
-      ? '<div class="ib-snip">' + ibEsc(item.comment) + '</div>' : '';
+      ? '<div class="ib-snip">' + ibRenderCommentBody(item.comment) + '</div>' : '';
     var del = (item.cat === 'comment' && item.id)
       ? '<div class="ib-acts"><button type="button" class="ib-del" data-oid="' + ibEsc(item.id) + '">删除评论</button></div>' : '';
     return '<div class="ib-item' + (unread ? ' ib-unread' : '') + '">' +
@@ -1429,13 +1498,44 @@ body_class: adm-page
     var body = document.getElementById('ib-body');
     if (!body) return;
     var read = ibReadMap();
-    var list = ibCat === 'all' ? ibAll() : ibState[ibCat].slice();
-    if (!list.length) {
+    var full = ibCat === 'all' ? ibAll() : ibState[ibCat].slice();
+    if (!full.length) {
       body.innerHTML = '<div class="cm-empty">' + (ibCat === 'all' ? '还没有互动记录。' : '这一类还没有记录。') + '</div>';
-      ibRenderBadges(); return;
+      ibRenderPager(0, 1); ibRenderBadges(); return;
     }
-    body.innerHTML = list.map(function (it) { return ibItemHtml(it, (it.ts || 0) > (read[it.cat] || 0)); }).join('');
+    var pages = Math.max(1, Math.ceil(full.length / ibPageSize));
+    if (ibPage > pages) ibPage = pages;
+    if (ibPage < 1) ibPage = 1;
+    var pageList = full.slice((ibPage - 1) * ibPageSize, ibPage * ibPageSize);
+    body.innerHTML = pageList.map(function (it) { return ibItemHtml(it, (it.ts || 0) > (read[it.cat] || 0)); }).join('');
+    ibRenderPager(full.length, pages);
     ibRenderBadges();
+    ibRenderMathAndImg();   // 缩略图兜底 + 公式渲染（只作用当前页）
+  }
+  function ibRenderPager(total, pages) {
+    var el = document.getElementById('ib-pager'); if (!el) return;
+    if (!total) { el.innerHTML = ''; return; }
+    var html = '<span class="cm-pg-info">共 ' + total + ' 条</span>每页 <select class="cm-pg-size">';
+    [10, 20, 50, 100].forEach(function (n) { html += '<option value="' + n + '"' + (n === ibPageSize ? ' selected' : '') + '>' + n + '</option>'; });
+    html += '</select>';
+    if (pages > 1) {
+      html += '<button class="cm-pg-btn" data-pg="prev"' + (ibPage <= 1 ? ' disabled' : '') + '>‹</button>';
+      pagerNums(ibPage, pages).forEach(function (p) {
+        html += (p === '...') ? '<span style="padding:0 .15rem">…</span>'
+          : '<button class="cm-pg-btn ' + (p === ibPage ? 'cm-pg-on' : '') + '" data-pg="' + p + '">' + p + '</button>';
+      });
+      html += '<button class="cm-pg-btn" data-pg="next"' + (ibPage >= pages ? ' disabled' : '') + '>›</button>';
+    }
+    el.innerHTML = html;
+    var sizeSel = el.querySelector('.cm-pg-size');
+    if (sizeSel) sizeSel.addEventListener('change', function () { ibPageSize = parseInt(sizeSel.value, 10) || 20; ibPage = 1; ibRender(); });
+    Array.prototype.forEach.call(el.querySelectorAll('.cm-pg-btn'), function (btn) {
+      btn.addEventListener('click', function () {
+        var pg = btn.getAttribute('data-pg');
+        ibPage = pg === 'prev' ? ibPage - 1 : (pg === 'next' ? ibPage + 1 : (parseInt(pg, 10) || 1));
+        ibRender();
+      });
+    });
   }
   function ibNorm() {
     ibState.comment.forEach(function (x) { x.cat = 'comment'; if (!x.accountId) x.accountId = ibAccFromLink(x.link); });
@@ -1448,9 +1548,9 @@ body_class: adm-page
     if (body && empty) body.innerHTML = '<div class="cm-empty">加载中…</div>';
     return loadTitles().then(function () {
       return Promise.all([
-        cmtGet('recent', 50),
-        jget('/api/admin?action=inbox-feed&kind=like&limit=50'),
-        jget('/api/admin?action=inbox-feed&kind=fav&limit=50'),
+        cmtGet('recent', 100),
+        jget('/api/admin?action=inbox-feed&kind=like&limit=100'),
+        jget('/api/admin?action=inbox-feed&kind=fav&limit=100'),
       ]);
     }).then(function (r) {
       ibState.comment = (r[0] && r[0].items) || [];
@@ -1466,6 +1566,7 @@ body_class: adm-page
         Array.prototype.forEach.call(document.querySelectorAll('.ib-tab'), function (x) { x.classList.remove('ib-on'); });
         t.classList.add('ib-on');
         ibCat = t.getAttribute('data-cat');
+        ibPage = 1;
         ibRender();
       });
     });
