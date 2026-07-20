@@ -29,13 +29,39 @@ body_class: acc-page
       <div class="lib-ab-left">
         <button type="button" class="lib-btn-primary" id="lib-update-all" style="display:none;"></button>
         <button type="button" class="lib-chip" id="lib-only-upd">只看可更新</button>
+        <button type="button" class="lib-chip" id="lib-select-page">全选本页</button>
       </div>
       <label class="lib-toggle" id="lib-wifi-label">
         <span class="lib-switch off" id="lib-wifi-sw"></span>连 WiFi 时自动更新
       </label>
     </div>
 
+    {%- comment -%} 批量操作条：选中任意项才出现 {%- endcomment -%}
+    <div class="lib-batchbar" id="lib-batchbar" style="display:none;">
+      <span class="lib-batch-count" id="lib-batch-count">已选 0 项</span>
+      <button type="button" class="lib-batch-btn" id="lib-batch-update">批量更新</button>
+      <button type="button" class="lib-batch-btn lib-batch-danger" id="lib-batch-remove">批量删除</button>
+      <button type="button" class="lib-batch-btn lib-batch-ghost" id="lib-batch-clear">取消选择</button>
+    </div>
+
     <div id="lib-groups"></div>
+
+    {%- comment -%} 翻页：每页条数 + 上一页/下一页 {%- endcomment -%}
+    <div class="lib-pager" id="lib-pager" style="display:none;">
+      <label class="lib-pagesize">每页
+        <select id="lib-pagesize">
+          <option value="10">10 条</option>
+          <option value="20">20 条</option>
+          <option value="50">50 条</option>
+          <option value="0">全部</option>
+        </select>
+      </label>
+      <div class="lib-pager-nav">
+        <button type="button" class="lib-pg-btn" id="lib-prev">上一页</button>
+        <span class="lib-pageinfo" id="lib-pageinfo">第 1 / 1 页</span>
+        <button type="button" class="lib-pg-btn" id="lib-next">下一页</button>
+      </div>
+    </div>
 
     <div id="lib-empty" class="lib-empty" style="display:none;">
       还没有保存任何离线内容。<br>
@@ -82,6 +108,17 @@ body_class: acc-page
   .lib-switch.off { background: var(--color-border); }
   .lib-switch.off::after { left: 2px; }
 
+  /* 批量操作条 */
+  .lib-batchbar { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .7rem .9rem; margin-top: .8rem;
+    background: var(--gold-soft, #f3ecdb); border: 1px solid rgba(176,134,47,.3); border-radius: 10px; }
+  .lib-batch-count { font-size: .86rem; color: #8a6a2a; font-variant-numeric: tabular-nums; margin-right: auto; }
+  .lib-batch-btn { font-size: .82rem; padding: .38rem .8rem; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--color-border); background: var(--color-bg, #fff); color: var(--color-ink); }
+  .lib-batch-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .lib-batch-danger:hover { border-color: #b4544e; color: #b4544e; }
+  .lib-batch-ghost { border-color: transparent; color: var(--color-light); }
+  .lib-batch-ghost:hover { color: var(--color-muted); border-color: var(--color-border); }
+
   .lib-cat { border-bottom: 1px solid var(--color-border); }
   .lib-cat-head { width: 100%; display: flex; align-items: center; gap: .6rem; padding: .95rem .2rem; background: transparent; border: 0; cursor: pointer; font-family: var(--font-body, inherit); color: var(--color-ink); text-align: left; }
   .lib-cat-head:hover { color: var(--color-accent); }
@@ -94,12 +131,15 @@ body_class: acc-page
   .lib-cat-upd .d { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
   .lib-cat.collapsed .lib-cat-body { display: none; }
 
-  .lib-row { display: flex; align-items: center; gap: .9rem; padding: .7rem .2rem .7rem 1.4rem; border-top: 1px solid var(--gold-soft, #f0ebe0); }
+  .lib-row { display: flex; align-items: center; gap: .7rem; padding: .7rem .2rem .7rem .6rem; border-top: 1px solid var(--gold-soft, #f0ebe0); }
   .lib-row:first-child { border-top: 0; }
+  .lib-row.is-sel { background: var(--gold-soft, #f7f3e8); }
+  .lib-check { flex: none; display: inline-flex; align-items: center; cursor: pointer; }
+  .lib-check input { width: 15px; height: 15px; accent-color: var(--color-accent); cursor: pointer; }
   .lib-row-main { min-width: 0; flex: 1; }
   .lib-row-name { font-size: .95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lib-row-name a { color: inherit; text-decoration: none; }
-  .lib-row-name a:hover { color: var(--color-accent); }
+  .lib-row-name a:hover { color: var(--color-accent); text-decoration: underline; }
   .lib-row-meta { font-size: .77rem; color: var(--color-light); font-variant-numeric: tabular-nums; margin-top: .1rem; }
   .lib-row-right { display: flex; align-items: center; gap: .55rem; flex: none; }
 
@@ -108,10 +148,22 @@ body_class: acc-page
   .lib-st-stale { display: inline-flex; align-items: center; gap: .34rem; font-family: var(--font-body, inherit); font-size: .82rem; color: #b0862f; background: #f6edd6; border: 1px solid rgba(176,134,47,.32); border-radius: 999px; padding: .3rem .7rem; cursor: pointer; transition: filter .15s; }
   .lib-st-stale:hover { filter: brightness(1.05); }
   .lib-st-stale .zoff-ic { width: .9em; height: .9em; }
-  .lib-del { background: transparent; border: 0; cursor: pointer; color: var(--color-light); font-size: .8rem; padding: .35rem .3rem; border-radius: 6px; transition: color .15s; }
+  .lib-del { background: transparent; border: 1px solid transparent; cursor: pointer; color: var(--color-light); font-size: .8rem; padding: .3rem .5rem; border-radius: 7px; transition: all .15s; white-space: nowrap; }
   .lib-del:hover { color: #b4544e; }
+  /* 二次确认态：点第一下变成「确认删除」，再点才真删，4 秒自动取消 */
+  .lib-del.lib-del-armed { color: #fff; background: #b4544e; border-color: #b4544e; }
 
   .lib-empty { padding: 3rem 1rem; text-align: center; color: var(--color-light); font-size: .95rem; line-height: 1.8; }
+
+  /* 翻页 */
+  .lib-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; padding: 1rem .2rem; }
+  .lib-pagesize { font-size: .82rem; color: var(--color-muted); display: inline-flex; align-items: center; gap: .4rem; }
+  .lib-pagesize select { font: inherit; font-size: .82rem; padding: .28rem .5rem; border-radius: 7px; border: 1px solid var(--color-border); background: var(--color-bg, #fff); color: var(--color-ink); cursor: pointer; }
+  .lib-pager-nav { display: inline-flex; align-items: center; gap: .6rem; }
+  .lib-pg-btn { font-size: .82rem; padding: .35rem .8rem; border-radius: 8px; border: 1px solid var(--color-border); background: transparent; color: var(--color-ink); cursor: pointer; }
+  .lib-pg-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
+  .lib-pg-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .lib-pageinfo { font-size: .82rem; color: var(--color-muted); font-variant-numeric: tabular-nums; }
 
   .lib-ambient { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; padding: 1.2rem 0 .4rem; margin-top: .6rem; border-top: 1px dashed var(--color-border); color: var(--color-light); }
   .lib-amb-lab { font-size: .84rem; }
@@ -126,15 +178,19 @@ body_class: acc-page
 
   @media (max-width: 560px) {
     .lib-summary { grid-template-columns: 1fr 1fr; row-gap: 1rem; }
-    .lib-row { flex-wrap: wrap; padding-left: .2rem; }
+    .lib-row { flex-wrap: wrap; }
     .lib-row-right { width: 100%; justify-content: flex-end; }
+    .lib-pager { justify-content: center; }
   }
 </style>
 
 <script>
 (function () {
   var CAT_ORDER = ['生活攻略', '科研妙招', '生活之问', '科研之问', '随笔漫谈', '学习资料', '百宝箱工具', '百宝箱', '文章', '其他'];
-  var app, groupsEl, onlyUpd = false;
+  var PS_KEY = 'zircon.offline.pagesize';
+  var groupsEl, state = { page: 1, pageSize: 20, onlyUpd: false, selected: {}, collapsed: {} };
+
+  try { var saved = parseInt(localStorage.getItem(PS_KEY), 10); if (!isNaN(saved)) state.pageSize = saved; } catch (e) {}
 
   function whenReady(cb) {
     if (window.ZirconOffline) return cb(window.ZirconOffline);
@@ -143,48 +199,84 @@ body_class: acc-page
       else if (++n > 120) clearInterval(t);
     }, 50);
   }
-
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function fmtDate(ts) { try { return new Date(ts).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' }); } catch (e) { return ''; } }
-
   function catRank(c) { var i = CAT_ORDER.indexOf(c); return i === -1 ? CAT_ORDER.length : i; }
+  function fmtSize(n) { n = +n || 0; if (n < 1024 * 1024) return Math.max(1, Math.round(n / 1024)) + '<small> KB</small>'; return (n / 1048576).toFixed(1) + '<small> MB</small>'; }
+  function fmtSizePlain(n) { n = +n || 0; if (n < 1024) return n + ' B'; if (n < 1048576) return Math.round(n / 1024) + ' KB'; return (n / 1048576).toFixed(1) + ' MB'; }
+  function selCount() { return Object.keys(state.selected).length; }
 
   whenReady(function (Z) {
-    if (!('serviceWorker' in navigator)) {
-      document.getElementById('lib-unsupported').style.display = '';
-      return;
-    }
-    app = document.getElementById('lib-app');
+    if (!('serviceWorker' in navigator)) { document.getElementById('lib-unsupported').style.display = ''; return; }
+    var app = document.getElementById('lib-app');
     groupsEl = document.getElementById('lib-groups');
     app.style.display = '';
 
-    // WiFi 自动更新开关
-    var wifiSw = document.getElementById('lib-wifi-sw');
+    var el = function (id) { return document.getElementById(id); };
+
+    // WiFi 自动更新
+    var wifiSw = el('lib-wifi-sw');
     function paintWifi() { wifiSw.classList.toggle('off', !Z.autoWifiOn()); }
     paintWifi();
-    document.getElementById('lib-wifi-label').addEventListener('click', function (e) {
-      e.preventDefault(); Z.setAutoWifi(!Z.autoWifiOn()); paintWifi();
+    el('lib-wifi-label').addEventListener('click', function (e) { e.preventDefault(); Z.setAutoWifi(!Z.autoWifiOn()); paintWifi(); });
+
+    el('lib-only-upd').addEventListener('click', function () {
+      state.onlyUpd = !state.onlyUpd; state.page = 1;
+      this.classList.toggle('on', state.onlyUpd); render();
     });
 
-    document.getElementById('lib-only-upd').addEventListener('click', function () {
-      onlyUpd = !onlyUpd;
-      this.classList.toggle('on', onlyUpd);
+    // 每页条数 / 翻页
+    var psSel = el('lib-pagesize');
+    psSel.value = String(state.pageSize);
+    psSel.addEventListener('change', function () {
+      state.pageSize = parseInt(psSel.value, 10) || 0; state.page = 1;
+      try { localStorage.setItem(PS_KEY, String(state.pageSize)); } catch (e) {}
       render();
     });
-    document.getElementById('lib-clear-ambient').addEventListener('click', async function () {
+    el('lib-prev').addEventListener('click', function () { if (state.page > 1) { state.page--; render(); } });
+    el('lib-next').addEventListener('click', function () { state.page++; render(); });
+
+    // 批量
+    el('lib-select-page').addEventListener('click', function () {
+      var boxes = groupsEl.querySelectorAll('input[data-sel]');
+      var allOn = boxes.length > 0 && Array.prototype.every.call(boxes, function (b) { return state.selected[b.getAttribute('data-sel')]; });
+      Array.prototype.forEach.call(boxes, function (b) {
+        var u = b.getAttribute('data-sel');
+        if (allOn) delete state.selected[u]; else state.selected[u] = true;
+      });
+      render();
+    });
+    el('lib-batch-clear').addEventListener('click', function () { state.selected = {}; render(); });
+    el('lib-batch-remove').addEventListener('click', async function () {
+      var urls = Object.keys(state.selected); if (!urls.length) return;
+      if (!window.confirm('删除选中的 ' + urls.length + ' 项离线内容？（内容本身还在网上，随时可以重新保存）')) return;
+      var btn = this; btn.disabled = true;
+      for (var i = 0; i < urls.length; i++) { btn.textContent = '删除中… ' + (i + 1) + '/' + urls.length; try { await Z.remove(urls[i]); } catch (e) {} }
+      state.selected = {}; btn.disabled = false; btn.textContent = '批量删除'; render();
+    });
+    el('lib-batch-update').addEventListener('click', async function () {
+      var urls = Object.keys(state.selected); if (!urls.length) return;
+      var btn = this; btn.disabled = true;
+      for (var i = 0; i < urls.length; i++) {
+        btn.textContent = '更新中… ' + (i + 1) + '/' + urls.length;
+        var it = Z.index.get(urls[i]); if (it) { try { await Z.update(it, { force: true }); } catch (e) {} }
+      }
+      btn.disabled = false; btn.textContent = '批量更新'; render();
+    });
+
+    el('lib-clear-ambient').addEventListener('click', async function () {
       this.disabled = true; this.textContent = '清理中…';
       await Z.clearAmbient(); render();
     });
-    document.getElementById('lib-clear-all').addEventListener('click', async function () {
+    el('lib-clear-all').addEventListener('click', async function () {
       if (!window.confirm('清空全部离线内容？本地保存的文章 / 游戏都会删除（随时可重新保存）。')) return;
       this.disabled = true; this.textContent = '清空中…';
-      await Z.clearSaved(); render();
+      await Z.clearSaved(); state.selected = {}; render();
     });
-    document.getElementById('lib-update-all').addEventListener('click', async function () {
+    el('lib-update-all').addEventListener('click', async function () {
       var btn = this; btn.disabled = true;
-      var upd = await Z.checkUpdates();
-      var urls = Object.keys(upd), i = 0;
-      for (; i < urls.length; i++) {
+      var upd = await Z.checkUpdates(); var urls = Object.keys(upd);
+      for (var i = 0; i < urls.length; i++) {
         btn.innerHTML = Z.icon('spinner') + '更新中… ' + (i + 1) + '/' + urls.length;
         var it = Z.index.get(urls[i]); if (it) { try { await Z.update(it, { force: true }); } catch (e) {} }
       }
@@ -193,62 +285,81 @@ body_class: acc-page
 
     Z.on('change', render);
     render();
-    Z.reconcile();  // 把整栏/分组等途径存进书架、账本还没记的项补进来（会触发 change→重渲）
+    Z.reconcile();  // 把整栏/分组等途径存进书架、账本还没记的项补进来（顺带清掉失效的假条目）
 
     async function render() {
-      var items = Z.index.list();
+      var all = Z.index.list();
       var updates = await Z.checkUpdates();
       var st = null; try { st = await Z.stats(); } catch (e) {}
 
-      // 概览
-      document.getElementById('lib-count').textContent = items.length;
-      var savedBytes = (st && st.saved && st.saved.bytes) || items.reduce(function (a, b) { return a + (b.size || 0); }, 0);
-      document.getElementById('lib-size').innerHTML = fmtSize(savedBytes);
+      // 概览（始终按全量算）
+      el('lib-count').textContent = all.length;
+      var savedBytes = (st && st.saved && st.saved.bytes) || all.reduce(function (a, b) { return a + (b.size || 0); }, 0);
+      el('lib-size').innerHTML = fmtSize(savedBytes);
       var updCount = Object.keys(updates).length;
-      document.getElementById('lib-updc').textContent = updCount;
+      el('lib-updc').textContent = updCount;
 
-      var updAll = document.getElementById('lib-update-all');
+      var updAll = el('lib-update-all');
       if (updCount > 0) { updAll.style.display = ''; updAll.disabled = false; updAll.innerHTML = Z.icon('refresh') + '更新全部（' + updCount + '）'; }
       else updAll.style.display = 'none';
 
-      document.getElementById('lib-empty').style.display = items.length ? 'none' : '';
-      document.getElementById('lib-danger').style.display = items.length ? '' : 'none';
+      el('lib-empty').style.display = all.length ? 'none' : '';
+      el('lib-danger').style.display = all.length ? '' : 'none';
 
       // 浏览缓存行
-      var amb = document.getElementById('lib-ambient');
-      if (st && st.ambient && st.ambient.bytes > 0) {
-        amb.style.display = '';
-        document.getElementById('lib-amb-size').innerHTML = fmtSize(st.ambient.bytes);
-      } else amb.style.display = 'none';
+      var amb = el('lib-ambient');
+      if (st && st.ambient && st.ambient.bytes > 0) { amb.style.display = ''; el('lib-amb-size').innerHTML = fmtSize(st.ambient.bytes); }
+      else amb.style.display = 'none';
 
-      // 分组
+      // 过滤 → 排序 → 分页
+      var items = state.onlyUpd ? all.filter(function (i) { return updates[Z.normUrl(i.url)]; }) : all.slice();
+      items.sort(function (a, b) { return (b.savedAt || 0) - (a.savedAt || 0); });
+      var ps = state.pageSize | 0;
+      var totalPages = ps > 0 ? Math.max(1, Math.ceil(items.length / ps)) : 1;
+      if (state.page > totalPages) state.page = totalPages;
+      if (state.page < 1) state.page = 1;
+      var pageItems = ps > 0 ? items.slice((state.page - 1) * ps, state.page * ps) : items;
+
+      // 翻页控件
+      var pager = el('lib-pager');
+      pager.style.display = items.length ? '' : 'none';
+      el('lib-pageinfo').textContent = '第 ' + state.page + ' / ' + totalPages + ' 页 · 共 ' + items.length + ' 项';
+      el('lib-prev').disabled = state.page <= 1;
+      el('lib-next').disabled = state.page >= totalPages;
+
+      // 批量条
+      var n = selCount();
+      el('lib-batchbar').style.display = n ? 'flex' : 'none';
+      el('lib-batch-count').textContent = '已选 ' + n + ' 项';
+
+      // 当前页按栏目分组
       var groups = {};
-      items.forEach(function (it) { (groups[it.category || '其他'] = groups[it.category || '其他'] || []).push(it); });
+      pageItems.forEach(function (it) { (groups[it.category || '其他'] = groups[it.category || '其他'] || []).push(it); });
       var cats = Object.keys(groups).sort(function (a, b) { return catRank(a) - catRank(b) || a.localeCompare(b); });
 
       var html = '';
       cats.forEach(function (cat) {
-        var rows = groups[cat].slice().sort(function (a, b) { return (b.savedAt || 0) - (a.savedAt || 0); });
-        var staleRows = rows.filter(function (r) { return updates[Z.normUrl(r.url)]; });
-        if (onlyUpd && staleRows.length === 0) return;
-        var shown = onlyUpd ? staleRows : rows;
-        html += '<div class="lib-cat">';
+        var rows = groups[cat];
+        var staleN = rows.filter(function (r) { return updates[Z.normUrl(r.url)]; }).length;
+        var isCollapsed = !!state.collapsed[cat];
+        html += '<div class="lib-cat' + (isCollapsed ? ' collapsed' : '') + '">';
         html += '<button type="button" class="lib-cat-head" data-cat="' + esc(cat) + '">' +
           '<svg class="zoff-ic lib-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>' +
           '<span class="lib-diamond"></span><span class="lib-cat-name">' + esc(cat) + '</span>' +
           '<span class="lib-cat-count">' + rows.length + '</span>' +
-          (staleRows.length ? '<span class="lib-cat-upd"><span class="d"></span>' + staleRows.length + ' 可更新</span>' : '') +
-          '</button>';
-        html += '<div class="lib-cat-body">';
-        shown.forEach(function (it) {
-          var stale = !!updates[Z.normUrl(it.url)];
-          html += '<div class="lib-row" data-url="' + esc(it.url) + '">' +
+          (staleN ? '<span class="lib-cat-upd"><span class="d"></span>' + staleN + ' 可更新</span>' : '') +
+          '</button><div class="lib-cat-body">';
+        rows.forEach(function (it) {
+          var u = Z.normUrl(it.url);
+          var stale = !!updates[u];
+          var sel = !!state.selected[u];
+          html += '<div class="lib-row' + (sel ? ' is-sel' : '') + '" data-url="' + esc(u) + '">' +
+            '<label class="lib-check"><input type="checkbox" data-sel="' + esc(u) + '"' + (sel ? ' checked' : '') + ' aria-label="选择"></label>' +
             '<div class="lib-row-main"><div class="lib-row-name"><a href="' + esc(it.url) + '">' + esc(it.title) + '</a></div>' +
             '<div class="lib-row-meta">' + fmtSizePlain(it.size) + ' · 保存于 ' + fmtDate(it.savedAt) + '</div></div>' +
             '<div class="lib-row-right">' +
-            (stale
-              ? '<button type="button" class="lib-st-stale" data-act="update">' + Z.icon('refresh') + '有更新</button>'
-              : '<span class="lib-st-fresh">' + Z.icon('check') + '最新</span>') +
+            (stale ? '<button type="button" class="lib-st-stale" data-act="update">' + Z.icon('refresh') + '有更新</button>'
+                   : '<span class="lib-st-fresh">' + Z.icon('check') + '最新</span>') +
             '<button type="button" class="lib-del" data-act="remove">删除</button>' +
             '</div></div>';
         });
@@ -260,7 +371,21 @@ body_class: acc-page
 
     function wireGroups() {
       groupsEl.querySelectorAll('.lib-cat-head').forEach(function (h) {
-        h.addEventListener('click', function () { h.closest('.lib-cat').classList.toggle('collapsed'); });
+        h.addEventListener('click', function () {
+          var cat = h.getAttribute('data-cat');
+          state.collapsed[cat] = !state.collapsed[cat];
+          h.closest('.lib-cat').classList.toggle('collapsed', !!state.collapsed[cat]);
+        });
+      });
+      groupsEl.querySelectorAll('input[data-sel]').forEach(function (box) {
+        box.addEventListener('change', function () {
+          var u = box.getAttribute('data-sel');
+          if (box.checked) state.selected[u] = true; else delete state.selected[u];
+          var n = selCount();
+          document.getElementById('lib-batchbar').style.display = n ? 'flex' : 'none';
+          document.getElementById('lib-batch-count').textContent = '已选 ' + n + ' 项';
+          box.closest('.lib-row').classList.toggle('is-sel', box.checked);
+        });
       });
       groupsEl.querySelectorAll('.lib-row').forEach(function (row) {
         var url = row.getAttribute('data-url');
@@ -268,21 +393,34 @@ body_class: acc-page
           btn.addEventListener('click', async function (e) {
             e.preventDefault(); e.stopPropagation();
             var act = btn.getAttribute('data-act');
-            if (act === 'remove') {
-              btn.disabled = true; btn.textContent = '…';
-              await Z.remove(url); render();
-            } else if (act === 'update') {
+            if (act === 'update') {
               btn.innerHTML = Z.icon('spinner') + '更新中';
               var it = Z.index.get(url); if (it) { try { await Z.update(it, { force: true }); } catch (e2) {} }
-              render();
+              render(); return;
             }
+            // 删除：二次确认，点第一下先武装，再点才真删，4 秒自动取消
+            if (btn.getAttribute('data-armed') !== '1') {
+              btn.setAttribute('data-armed', '1');
+              btn.classList.add('lib-del-armed');
+              btn.textContent = '确认删除';
+              btn.title = '再点一下确认删除；4 秒后自动取消';
+              clearTimeout(btn._disarm);
+              btn._disarm = setTimeout(function () {
+                btn.setAttribute('data-armed', '0');
+                btn.classList.remove('lib-del-armed');
+                btn.textContent = '删除'; btn.title = '';
+              }, 4000);
+              return;
+            }
+            clearTimeout(btn._disarm);
+            btn.disabled = true; btn.textContent = '删除中…';
+            await Z.remove(url);
+            delete state.selected[url];
+            render();
           });
         });
       });
     }
   });
-
-  function fmtSize(n) { n = +n || 0; if (n < 1024 * 1024) return Math.max(1, Math.round(n / 1024)) + '<small> KB</small>'; return (n / 1048576).toFixed(1) + '<small> MB</small>'; }
-  function fmtSizePlain(n) { n = +n || 0; if (n < 1024) return n + ' B'; if (n < 1048576) return Math.round(n / 1024) + ' KB'; return (n / 1048576).toFixed(1) + ' MB'; }
 })();
 </script>

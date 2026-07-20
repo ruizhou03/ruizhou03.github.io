@@ -17,16 +17,23 @@
   if (W.ZirconOffline) return;
 
   // ───────────────────────── 纯工具（可离线单测） ─────────────────────────
-  // URL 归一：只留 path，去掉 query/hash；非文件路径补尾斜杠，让「保存键 / 版本清单键 /
-  // 浏览器导航键」三者对齐（否则 /notes/x 与 /notes/x/ 会各存一份、离线命不中）。
+  // URL 归一：只去掉 origin/query/hash，路径**原样保留**。
+  // 绝不擅自补尾斜杠——本站文章的真实 URL 是「无扩展名、无尾斜杠」(/essays/xxx，
+  // 由 Pages 自动补 .html 提供)，补了斜杠会变成 /essays/xxx/ → 404，
+  // 既让保存抓不到内容、又让内容库里的链接点开是 404。游戏页(/toolbox/x/)本就带斜杠，原样即可。
   function normUrl(u) {
     if (!u) return u;
-    try { var a = new URL(u, W.location.origin); u = a.pathname; } catch (e) { u = String(u).split('#')[0].split('?')[0]; }
-    if (u.length > 1) {
-      var last = u.split('/').pop();
-      if (last.indexOf('.') === -1 && u.charAt(u.length - 1) !== '/') u += '/';
-    }
-    return u;
+    try { var a = new URL(u, W.location.origin); return a.pathname; }
+    catch (e) { return String(u).split('#')[0].split('?')[0]; }
+  }
+
+  // 版本清单的 key 来自 Jekyll page.url，与真实 URL 一致；仍做一次容错查找，
+  // 兼容个别页尾斜杠不一致的情况。
+  function lookupVersion(map, url) {
+    if (!map) return undefined;
+    if (map[url] !== undefined) return map[url];
+    var alt = url.charAt(url.length - 1) === '/' ? url.slice(0, -1) : url + '/';
+    return map[alt];
   }
 
   function fmtBytes(n) {
@@ -161,6 +168,10 @@
       function (d) { if (d.type === 'SAVE_PROGRESS' && opts.onProgress) opts.onProgress(d.done, d.total); }
     );
     if (!done) return null;
+    // 必须确认页面真的进了书架才记账本。否则（比如 URL 抓成 404）会出现
+    // 「按钮显示已离线、实际什么都没缓存、点进去还 404」的假象。
+    var chk = await ask({ type: 'IS_SAVED_BATCH', urls: [url] }, 8000);
+    if (!(chk && chk.results && chk.results[0] && chk.results[0].cached)) return null;
     // 合并已有元数据：更新（force）时保留首次保存记下的标题/栏目/类型，只刷新版本/大小/资源。
     var existing = index.get(url) || {};
     index.put({
@@ -169,7 +180,7 @@
       category: item.category || existing.category || '其他',
       kind: item.kind || existing.kind || 'article',
       savedAt: Date.now(),
-      version: (lv[url] != null ? lv[url] : (item.version != null ? item.version : existing.version)) || null,
+      version: (function(){var v=lookupVersion(lv,url);return (v!=null?v:(item.version!=null?item.version:existing.version))||null;})(),
       size: done.bytes || existing.size || 0,
       assets: (done.assets && done.assets.length) ? done.assets : (existing.assets || [])
     });
@@ -197,7 +208,7 @@
     var lv = await liveVersions();
     var out = {};
     index.list().forEach(function (it) {
-      if (versionsDiffer(it.version, lv[normUrl(it.url)])) out[normUrl(it.url)] = true;
+      if (versionsDiffer(it.version, lookupVersion(lv, normUrl(it.url)))) out[normUrl(it.url)] = true;
     });
     return out;
   }
@@ -245,7 +256,25 @@
   // 自愈：把书架里已存、但 localStorage 账本还没记的页（整栏 / 分组 / 任何途径存的）补进索引，
   // 让「离线内容库」和文章按钮/页脚点都能反映出来。已在账本的项保留其完整数据不动。
   // 回填项的 size 只含页面本身、assets 为空（删除时只清页面，属可接受的降级）。
+  // 清理「幽灵条目」：账本记着、但书架里其实没有的项。
+  // 2026-07 的尾斜杠 bug 曾让文章抓成 404、没缓存成却记了账，导致「显示已离线、点进去 404」。
+  // 这一步把这类假条目摘掉，用户重新保存即可（此后 save() 也会先验证再记账，不会再产生）。
+  async function prunePhantoms() {
+    var items = index.list();
+    if (!items.length) return false;
+    var urls = items.map(function (i) { return i.url; });
+    var res = await ask({ type: 'IS_SAVED_BATCH', urls: urls }, 15000);
+    if (!res || !Array.isArray(res.results)) return false;   // 问不到就什么都别删
+    var ix = readIndex(), changed = false;
+    res.results.forEach(function (r) {
+      if (!r.cached) { delete ix.items[normUrl(r.url)]; changed = true; }
+    });
+    if (changed) { writeIndex(ix); emit('change'); }
+    return changed;
+  }
+
   async function reconcile() {
+    await prunePhantoms();   // 先摘假条目，再回填真条目
     var res = await ask({ type: 'LIST_SAVED' }, 15000);
     if (!res || !Array.isArray(res.pages)) return false;
     var ix = readIndex(), changed = false;
@@ -355,7 +384,7 @@
       if (!saved) { paintButton(btn, 'idle'); return; }
       var lv = await liveVersions();
       var it = index.get(url);
-      paintButton(btn, versionsDiffer(it && it.version, lv[url]) ? 'update' : 'saved');
+      paintButton(btn, versionsDiffer(it && it.version, lookupVersion(lv, url)) ? 'update' : 'saved');
     }
 
     btn.addEventListener('click', async function () {
@@ -370,10 +399,16 @@
       }
       paintButton(btn, 'busy');
       var labelEl = btn.querySelector('.tool-label');
-      await (isUpdate ? update : save)(item, {
+      var res = await (isUpdate ? update : save)(item, {
         force: isUpdate,
         onProgress: function (d, t) { if (labelEl) labelEl.textContent = (isUpdate ? '更新中… ' : '保存中… ') + d + '/' + t; }
       });
+      if (!res) {   // 没真存下来就如实告诉用户，绝不假装成功
+        if (labelEl) labelEl.textContent = '没存成，重试';
+        btn.title = '这一页没能存下来（网络中断或页面暂时取不到）。再点一下重试。';
+        setTimeout(function () { refresh(); }, 2800);
+        return;
+      }
       await refresh();
       await paintNotice();  // 更新后把文章头通知收起来
       emit('change');
@@ -395,7 +430,7 @@
     var sep = '<span class="zoff-sep">·</span>';
     var lv = await liveVersions();
     var html = sep + '<span class="zoff-ok">' + icon('check') + '已离线</span>';
-    var stale = versionsDiffer(it.version, lv[url]);
+    var stale = versionsDiffer(it.version, lookupVersion(lv, url));
     if (stale) html += sep + '<button type="button" class="zoff-notice">' + icon('refresh') + '有新版，点此更新</button>';
     _noticeEl.innerHTML = html;
     var b = _noticeEl.querySelector('.zoff-notice');
@@ -429,7 +464,7 @@
       var it = index.get(url);
       if (!it) { dot.style.background = '#cbd5e1'; dot.title = '这一页未离线'; return; }
       var lv = await liveVersions();
-      if (versionsDiffer(it.version, lv[url])) { dot.style.background = '#b0862f'; dot.title = '这一页已离线，但有新版可更新'; }
+      if (versionsDiffer(it.version, lookupVersion(lv, url))) { dot.style.background = '#b0862f'; dot.title = '这一页已离线，但有新版可更新'; }
       else { dot.style.background = '#5d8a6b'; dot.title = '这一页已离线（最新）'; }
     }
     on('change', paint);
@@ -467,7 +502,8 @@
     ready: ready, ask: ask, liveVersions: liveVersions,
     index: index, save: save, saveMany: saveMany, update: update, remove: remove,
     checkUpdates: checkUpdates, stats: stats, clearAmbient: clearAmbient, clearSaved: clearSaved,
-    autoWifiOn: autoWifiOn, setAutoWifi: setAutoWifi, reconcile: reconcile,
+    autoWifiOn: autoWifiOn, setAutoWifi: setAutoWifi, reconcile: reconcile, prunePhantoms: prunePhantoms,
+    lookupVersion: lookupVersion,
     icon: icon, injectStyles: injectStyles,
     wireButton: wireButton, wireArticleNotice: wireArticleNotice, initFooterDot: initFooterDot,
     on: on, emit: emit
