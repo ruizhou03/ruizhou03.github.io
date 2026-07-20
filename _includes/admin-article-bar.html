@@ -2,10 +2,10 @@
   管理员就地编辑控件 —— 右下角悬浮齿轮，点开小面板。仅管理员（SiteAuth.isAdmin）可见
   （默认 display:none，靠 .ab-show 显示，绝不泄露给访客）。由 post.html / recipe.html 引入。
   本块：隐藏/公开（/api/admin?action=set-flag 提交 main，page.path 定位源文件，~1-2min 生效）。
-  付费/编辑/删除占位「即将上线」，下一块接。下方 JS 用 raw 包裹保护。
+  另含正文编辑、成熟度和删除操作。下方 JS 用 raw 包裹保护。
 {%- endcomment -%}
 {%- if page.path -%}
-<div id="admin-fab" data-path="{{ page.path }}" data-hidden="{% if page.hidden %}true{% else %}false{% endif %}" data-trashed="{% if page.trashed %}true{% else %}false{% endif %}" data-paid="{{ page.paid }}" data-evergreen="{{ page.evergreen }}" data-url="{{ page.url }}" data-title="{{ page.title | escape }}">
+<div id="admin-fab" data-path="{{ page.path }}" data-hidden="{% if page.hidden %}true{% else %}false{% endif %}" data-trashed="{% if page.trashed %}true{% else %}false{% endif %}" data-evergreen="{{ page.evergreen }}" data-url="{{ page.url }}" data-title="{{ page.title | escape }}">
   <button id="ab-gear" class="ab-gear" type="button" title="管理本文" aria-label="管理本文">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
   </button>
@@ -17,14 +17,6 @@
       <div class="ab-seg" id="ab-seg-vis" role="group" aria-label="可见性">
         <button type="button" class="ab-seg-btn" data-vis="show">公开</button>
         <button type="button" class="ab-seg-btn ab-seg-danger" data-vis="hide">下架</button>
-      </div>
-    </div>
-
-    <div class="ab-seg-block">
-      <div class="ab-seg-lab">定价</div>
-      <div class="ab-seg" id="ab-seg-paid" role="group" aria-label="定价">
-        <button type="button" class="ab-seg-btn" data-paid="free">免费</button>
-        <button type="button" class="ab-seg-btn" data-paid="paid">付费</button>
       </div>
     </div>
 
@@ -44,7 +36,6 @@
 <div id="ab-edit-mask" class="ab-edit-mask">
   <div class="ab-edit-card">
     <div class="ab-edit-h">编辑源文件 · <span id="abe-path"></span></div>
-    <div class="abe-paid-hint" id="abe-paid-hint" hidden>设为付费：在免费 / 付费的分界处<b>单独一行</b>插入 <code>&lt;!-- PAYWALL --&gt;</code> —— 上面留作免费预览（提交进仓库），下面是付费正文（<b>只存后端、不进仓库</b>）。填好价格后点「设为付费并提交」。</div>
     <div class="ab-edit-panes">
       <textarea id="abe-text" class="ab-edit-text" spellcheck="false" wrap="off"></textarea>
       <div id="abe-preview" class="markdown-content ab-edit-preview" aria-label="实时预览"></div>
@@ -52,10 +43,8 @@
     <div class="ab-edit-foot">
       <span class="ab-edit-msg" id="abe-msg"></span>
       <span style="flex:1"></span>
-      <label class="abe-price-wrap" id="abe-price-wrap" hidden>价格 ¥<input type="number" id="abe-price" class="abe-price" min="0" step="0.1" placeholder="9.9"></label>
       <button type="button" class="ab-edit-btn" id="abe-cancel">取消</button>
       <button type="button" class="ab-edit-btn ab-edit-primary" id="abe-save" disabled>保存并提交</button>
-      <button type="button" class="ab-edit-btn ab-edit-primary" id="abe-paid-save" hidden>设为付费并提交</button>
     </div>
   </div>
 </div>
@@ -139,14 +128,6 @@
   .ab-edit-btn:hover:not(:disabled) { border-color: var(--color-highlight); }
   .ab-edit-primary { background: var(--color-highlight); color: #fff; border-color: var(--color-highlight); font-weight: 700; }
   .ab-edit-btn:disabled { opacity: 0.5; cursor: default; }
-  .abe-paid-hint { font-size: 0.74rem; line-height: 1.5; color: var(--color-muted);
-    background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 8px;
-    padding: 0.5rem 0.7rem; margin-bottom: 0.6rem; }
-  .abe-paid-hint code { font-family: ui-monospace, Menlo, monospace; font-size: 0.72rem;
-    background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 4px; padding: 0.02rem 0.3rem; }
-  .abe-price-wrap { font-size: 0.78rem; color: var(--color-muted); display: inline-flex; align-items: center; gap: 0.25rem; }
-  .abe-price { width: 5.5em; font-family: inherit; font-size: 0.82rem; padding: 0.3rem 0.5rem;
-    border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); color: var(--color-text); }
 </style>
 {% raw %}
 <script>
@@ -166,11 +147,9 @@
     var stt = window.SaPending ? window.SaPending.stateFlag(path, 'trashed', buildTrashed) : { value: buildTrashed, pending: false };
     var hidden = sh.value, pending = sh.pending;
     var trashed = stt.value, tPending = stt.pending;
-    var paid = fab.getAttribute('data-paid') === 'true';
 
     // ── 分段开关：segSelect 把当前值那一段高亮；segBusy 提交期间禁用整组 ──
     var segVis = document.getElementById('ab-seg-vis');
-    var segPaid = document.getElementById('ab-seg-paid');
     var segEver = document.getElementById('ab-seg-ever');
     var visDot = document.getElementById('ab-vis-dot');
     var visNote = document.getElementById('ab-vis-note');
@@ -185,7 +164,6 @@
       if (visDot) visDot.style.background = hidden ? '#b5483a' : '#38a169';
       if (visNote) visNote.textContent = pending ? ' · 重建中' : '';
       segSelect(segVis, 'data-vis', hidden ? 'hide' : 'show');
-      segSelect(segPaid, 'data-paid', paid ? 'paid' : 'free');
     }
 
     // ── 成熟度：常青（定稿）/ 更新中（front-matter evergreen，走通用 set-flag）；分段开关，未标注＝两段皆不高亮 ──
@@ -255,12 +233,7 @@
     var eMsg = document.getElementById('abe-msg');
     var saveBtn = document.getElementById('abe-save');
     var cancelBtn = document.getElementById('abe-cancel');
-    var paidHint = document.getElementById('abe-paid-hint');
-    var priceWrap = document.getElementById('abe-price-wrap');
-    var priceInput = document.getElementById('abe-price');
-    var paidSaveBtn = document.getElementById('abe-paid-save');
     var editSha = null;
-    var editMode = 'edit';   // 'edit' = 整文件覆盖写；'paid' = 设为付费（劈分上传）
     var HINT = '左边编源码、右边实时预览；保存即提交到 main，约 1–2 分钟生效。改开头 --- 之间的 front-matter 请保持 YAML 格式正确。';
 
     // ── 分栏编辑器：左 CodeMirror 源码 + 右实时预览(marked+KaTeX)。库按需懒加载；加载失败回退 textarea ──
@@ -305,39 +278,28 @@
       });
     }
 
-    function openEdit(mode) {
-      editMode = mode === 'paid' ? 'paid' : 'edit';
-      var isPaid = editMode === 'paid';
+    function openEdit() {
       fab.classList.remove('ab-open');
       mask.classList.add('open');
       pathEl.textContent = path;
       setEditorValue(''); eMsg.textContent = '加载中…';
-      saveBtn.hidden = isPaid; saveBtn.disabled = true;
-      paidSaveBtn.hidden = !isPaid; paidSaveBtn.disabled = true;
-      priceWrap.hidden = !isPaid; paidHint.hidden = !isPaid;
+      saveBtn.disabled = true;
       ensureEditor();   // 懒加载分栏编辑器（库没到位则回退纯 textarea）
       window.SiteAuth.authedFetch('/api/admin?action=gh-get&path=' + encodeURIComponent(path))
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
         .then(function (d) {
           setEditorValue(d.content || ''); editSha = d.sha;
           if (cm) cm.refresh();
-          if (isPaid) {
-            var pm = (d.content || '').match(/^[ \t]*price[ \t]*:[ \t]*(.*)$/m);
-            if (pm) priceInput.value = pm[1].trim().replace(/^["']|["']$/g, '');
-            paidSaveBtn.disabled = false;
-            eMsg.textContent = '在分界处插入一行 <!-- PAYWALL --> 后点「设为付费并提交」。';
-          } else {
-            saveBtn.disabled = false;
-            eMsg.textContent = /^[ \t]*bodyremote[ \t]*:[ \t]*true/m.test(getEditorValue())
-              ? '注意：本文正文已隐藏到后端，这里只是空壳；要改正文请先「取消隐藏 / 从回收站恢复」再编辑。'
-              : HINT;
-          }
+          saveBtn.disabled = false;
+          eMsg.textContent = /^[ \t]*bodyremote[ \t]*:[ \t]*true/m.test(getEditorValue())
+            ? '注意：本文正文已隐藏到后端，这里只是空壳；要改正文请先「取消隐藏 / 从回收站恢复」再编辑。'
+            : HINT;
         })
         .catch(function (e) { eMsg.textContent = '加载失败：' + ((e && e.error) || '请重试'); });
     }
     function closeEdit() { mask.classList.remove('open'); }
 
-    editBtn.addEventListener('click', function () { openEdit('edit'); });
+    editBtn.addEventListener('click', openEdit);
     cancelBtn.addEventListener('click', closeEdit);
     mask.addEventListener('click', function (e) { if (e.target === mask) closeEdit(); });
     saveBtn.addEventListener('click', function () {
@@ -352,51 +314,6 @@
           saveBtn.disabled = false;
           eMsg.textContent = '保存失败：' + ((e && e.error) || '请重试') + '（若提示冲突，请关闭重开再编辑）';
         });
-    });
-
-    // 设为付费并提交：把编辑框整源文件按 <!-- PAYWALL --> 劈分，锁定正文存后端、预览提交 main
-    paidSaveBtn.addEventListener('click', function () {
-      if (getEditorValue().indexOf('<!-- PAYWALL -->') === -1) {
-        eMsg.textContent = '请先在免费/付费分界处单独插入一行 <!-- PAYWALL -->'; return;
-      }
-      paidSaveBtn.disabled = true; eMsg.textContent = '提交中…';
-      var priceVal = priceInput.value.trim();
-      window.SiteAuth.authedFetch('/api/admin?action=paid-publish', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: path, content: getEditorValue(), sha: editSha, price: priceVal === '' ? null : Number(priceVal) })
-      })
-        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
-        .then(function () {
-          paid = true; paint();
-          eMsg.textContent = '已设为付费，约 1–2 分钟生效。付费正文已存后端、不进仓库。';
-          setTimeout(closeEdit, 1400);
-        })
-        .catch(function (e) {
-          paidSaveBtn.disabled = false;
-          var m = (e && e.error) || '请重试';
-          if (m === 'need_marker') m = '没找到 <!-- PAYWALL --> 分界标记';
-          if (m === 'empty_locked') m = '标记后面没有付费正文';
-          eMsg.textContent = '设为付费失败：' + m;
-        });
-    });
-
-    // 定价分段：点「付费」→ 打开付费编辑器；点「免费」（当前付费时）→ 取回后端正文改回免费。点当前段不动作。
-    if (segPaid) segPaid.addEventListener('click', function (e) {
-      var b = e.target.closest('.ab-seg-btn'); if (!b) return;
-      var v = b.getAttribute('data-paid');
-      if (v === 'paid' && !paid) { openEdit('paid'); return; }
-      if (v === 'free' && paid) {
-        if (!window.confirm('取消付费、改回免费？将从后端取回付费正文、合并还原进文章，付费正文随之下架。')) return;
-        msg.textContent = '提交中…'; segBusy(segPaid, true);
-        window.SiteAuth.authedFetch('/api/admin?action=paid-unpublish', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: path })
-        })
-          .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
-          .then(function () { paid = false; msg.textContent = '已取消付费，约 1–2 分钟后全文免费。'; })
-          .catch(function (e) { msg.textContent = '失败：' + ((e && e.error) || '请重试'); })
-          .then(function () { segBusy(segPaid, false); paint(); });
-      }
     });
 
     // ── 删除：真 404 = published:false（文章不构建）。页面将打不开 → 提交后回到本栏目（那里有带删除线的墓碑条目）。
@@ -459,7 +376,7 @@
         .catch(function (e) { box.innerHTML = '<p style="color:#b5483a">隐藏正文载入失败：' + ((e && e.error) || '请重试') + '</p>'; });
     }
 
-    var openedOnce = false, paidHashDone = false;
+    var openedOnce = false;
     window.SiteAuth.onChange(function (user) {
       if (user && user.isAdmin) {
         paint();
@@ -467,12 +384,6 @@
         if (pending && !msg.textContent) msg.textContent = '上次改动重建中，约 1–2 分钟生效';
         fab.classList.add('ab-show');
         if (!openedOnce) { openedOnce = true; fab.classList.add('ab-open'); }  // 进文章默认展开一次
-        // 从栏目列表「设为付费」跳进来：自动打开付费编辑器
-        if (!paidHashDone && location.hash === '#ab-set-paid') {
-          paidHashDone = true;
-          if (history.replaceState) history.replaceState(null, '', location.pathname + location.search);
-          if (!paid) openEdit('paid');
-        }
       } else {
         fab.classList.remove('ab-show'); fab.classList.remove('ab-open');
       }

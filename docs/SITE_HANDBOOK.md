@@ -90,7 +90,7 @@ bundle exec jekyll serve --livereload    # → http://localhost:4000
 2. **主干开发，不开长命分支**。GitHub Pages 只构建 `main`，其它分支线上完全不可见。要隔离用 `git worktree` 开短命分支，同一会话内**真合并**（`git merge`）回 main，合完立刻删。
 3. **绝不把分支改动「重抄一遍」到 main**。会制造「同内容不同 SHA」的提交，此后每次合并都在相同几行重复冲突。这个坑犯过两次。
 4. **别擅动字体栈**（Cormorant + Noto Serif SC）。是站点视觉标志，改前先问。
-5. **付费正文与版权音频绝不进仓库**。`_paid/` 和音频走 gitignore + 构建排除双保险。
+5. **遗留私有正文与版权音频绝不进仓库**。`_paid/` 和音频走 gitignore + 构建排除双保险。
 
 ### 工作区是脏的又要上线
 
@@ -264,9 +264,9 @@ Upstash Redis。**已知陷阱**：Upstash 的 `get` 会自动反序列化，`JS
 
 `/admin/`，仅 Google 登录 + `ADMIN_EMAILS` 白名单 + 独立 adm JWT。功能：鉴权、看板、文章就地编辑（写回 GitHub）、可见性面板。真隐藏的内容正文搬到后端，不留在公开仓库。
 
-### 付费墙
+### 已退役的付费墙
 
-`_paid/` + `_includes/paywall.html`，兑换码机制。**2026-06 起整体暂停**（无支付渠道密钥）。铁律：付费正文绝不进公开仓库。
+旧付费墙、兑换码和支付路由已于 **2026-07-20** 退役。`_paid/` 仅保留可能存在的历史私有源并继续被 gitignore/Jekyll exclude；不得把其中正文加入公开仓库。
 
 ---
 

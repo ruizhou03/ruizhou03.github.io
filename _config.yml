@@ -49,7 +49,7 @@ exclude:
   - audio/
   # 网站后端：urge / comments / mcp 三个 fly app 的本机工作副本，独立 git，不进 Jekyll 构建
   - backends/
-  # 付费文章全文源（含锁定正文）：gitignore + 构建排除双保险，绝不进站
+  # 已退役付费系统的遗留私有源：继续保持 gitignore + 构建排除，绝不进站
   - _paid/
   # 机票捡漏（设计稿）：暂存在 _-prefixed 目录，仅本地/设计评审，绝不进站
   - _flight-staging/

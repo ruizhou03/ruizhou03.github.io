@@ -65,7 +65,7 @@ bootstrap 加载，并等 `http://localhost:4000` 起来。
 ## localhost 看不准 / 看不到的几类（要看线上）
 
 - **SW / 离线 / 缓存行为本身** —— 本地故意关了 SW，测不了。
-- **后端联机功能**（评论、排行榜、登录、付费解锁、cloud-sync、小助手）—— 样子能看，
+- **后端联机功能**（评论、排行榜、登录、cloud-sync、小助手）—— 样子能看，
   但联机行为可能因跨域/origin 校验跟线上不同甚至失效。
 - **线上能否 build** —— 本地是 Jekyll 4，线上是 GitHub Pages 的 Jekyll 3 / Liquid 3，
   改 `_layouts`/`_includes`/Liquid 后本地能渲染 ≠ 线上能 build，推后要看 Pages 构建状态。

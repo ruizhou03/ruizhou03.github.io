@@ -143,7 +143,6 @@ body_class: adm-page
           <div class="cm-tabs">
             <button type="button" class="cm-tab cm-on" data-f="all">全部</button>
             <button type="button" class="cm-tab" data-f="offshelf">已下架</button>
-            <button type="button" class="cm-tab" data-f="paid">付费</button>
             <button type="button" class="cm-tab" data-f="trash">回收站</button>
           </div>
           <div id="cm-batch" class="cm-batch" hidden></div>
@@ -400,7 +399,6 @@ body_class: adm-page
   .cm-badge { font-size: 0.62rem; padding: 0.03rem 0.4rem; border-radius: 4px; border: 1px solid var(--color-border); color: var(--color-muted); }
   /* 徽章底改半透明叠加（不吃背景色）→ 暗色模式下不再像贴纸一样爆白；文字色见下方暗色块提亮 */
   .cm-badge.b-hidden { color: #9a6a00; border-color: rgba(201,169,110,0.5); background: rgba(201,169,110,0.13); }
-  .cm-badge.b-paid { color: #1d6f5c; border-color: rgba(45,143,120,0.45); background: rgba(45,143,120,0.12); }
   .cm-badge.b-off { color: #b5483a; border-color: rgba(181,72,58,0.45); background: rgba(181,72,58,0.12); }
   .cm-acts { display: flex; gap: 0.3rem; flex-shrink: 0; }
   .cm-btn { font-family: inherit; font-size: 0.7rem; cursor: pointer; padding: 0.22rem 0.55rem;
@@ -416,13 +414,11 @@ body_class: adm-page
 
   /* ── 暗色模式修正：徽章 / 待生效字 文字提亮；排行数据墨水条改亮蓝（否则暗底上看不见） ── */
   [data-theme="dark"] .cm-badge.b-hidden { color: #d8b872; }
-  [data-theme="dark"] .cm-badge.b-paid { color: #6fd0b4; }
   [data-theme="dark"] .cm-badge.b-off { color: #e79488; }
   [data-theme="dark"] .cm-pend { color: #d8b872; }
   [data-theme="dark"] .adm-ol { --adm-bar: rgba(150,190,235,0.14); }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .cm-badge.b-hidden { color: #d8b872; }
-    :root:not([data-theme="light"]) .cm-badge.b-paid { color: #6fd0b4; }
     :root:not([data-theme="light"]) .cm-badge.b-off { color: #e79488; }
     :root:not([data-theme="light"]) .cm-pend { color: #d8b872; }
     :root:not([data-theme="light"]) .adm-ol { --adm-bar: rgba(150,190,235,0.14); }
@@ -1098,16 +1094,16 @@ body_class: adm-page
       var delMap = {}; (((res[3] || {}).items) || []).forEach(function (d) { if (d && d.path) delMap[d.path] = d; });  // 已删除(真404)墓碑元数据
       var items = manifest.map(function (m) {
         onSet[m.path] = 1;
-        return { path: m.path, title: m.title || cmSlug(m.path), url: m.url, hidden: !!m.hidden, paid: !!m.paid, trashed: !!m.trashed, off: false, sub: m.sub || m.cat || '', date: m.date || '' };
+        return { path: m.path, title: m.title || cmSlug(m.path), url: m.url, hidden: !!m.hidden, trashed: !!m.trashed, off: false, sub: m.sub || m.cat || '', date: m.date || '' };
       });
       hiddenList.forEach(function (h) {
         if (onSet[h.path]) return;
         onSet[h.path] = 1;
         var isTrash = h.flag === 'trashed';
-        items.push({ path: h.path, title: h.title || cmSlug(h.path), url: h.url || '', hidden: !isTrash, paid: false, trashed: isTrash, off: false, sub: '', date: '' });
+        items.push({ path: h.path, title: h.title || cmSlug(h.path), url: h.url || '', hidden: !isTrash, trashed: isTrash, off: false, sub: '', date: '' });
       });
       paths.forEach(function (p) {
-        if (!onSet[p]) { var dm = delMap[p]; items.push({ path: p, title: (dm && dm.title) || cmSlug(p), url: (dm && dm.url) || '', hidden: false, paid: false, off: true, deleted: !!dm, sub: '', date: '' }); }
+        if (!onSet[p]) { var dm = delMap[p]; items.push({ path: p, title: (dm && dm.title) || cmSlug(p), url: (dm && dm.url) || '', hidden: false, off: true, deleted: !!dm, sub: '', date: '' }); }
       });
       items.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
       cmItems = items;
@@ -1119,7 +1115,6 @@ body_class: adm-page
     if (cmFilter === 'trash') return it.trashed || it.off;   // 回收站：删除的 + 旧硬下架/未发布
     if (it.trashed || it.off) return false;                  // 其它 tab 都不显示回收站里的
     if (cmFilter === 'offshelf') return it.hidden;           // 已下架：真隐藏(下架)的
-    if (cmFilter === 'paid') return it.paid;
     return true;                                             // 全部：公开 + 下架(变灰)
   }
   function cmRowHtml(it) {
@@ -1127,7 +1122,6 @@ body_class: adm-page
     if (it.off) badges += '<span class="cm-badge b-off">' + (it.deleted ? '回收站' : '未发布') + '</span>';
     else if (it.trashed) badges += '<span class="cm-badge b-off">回收站</span>';
     else if (it.hidden) badges += '<span class="cm-badge b-hidden">已下架</span>';
-    if (it.paid) badges += '<span class="cm-badge b-paid">付费</span>';
     if (it.pending) badges += '<span class="cm-pend">重建中</span>';
     var titleHtml = it.url
       ? '<a class="cm-title" href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a>'
@@ -1135,9 +1129,7 @@ body_class: adm-page
     var acts = (it.trashed || it.off)
       ? '<button type="button" class="cm-btn" data-a="restore">还原</button>' +
         '<button type="button" class="cm-btn danger" data-a="purge">彻底删除</button>'
-      : (it.paid ? '<button type="button" class="cm-btn" data-a="unpay">取消付费</button>'
-                 : '<button type="button" class="cm-btn" data-a="setpaid">设为付费</button>') +
-        '<button type="button" class="cm-btn" data-a="hide">' + (it.hidden ? '恢复（公开）' : '下架') + '</button>' +
+      : '<button type="button" class="cm-btn" data-a="hide">' + (it.hidden ? '恢复（公开）' : '下架') + '</button>' +
         '<button type="button" class="cm-btn danger" data-a="trash">删除</button>';
     return '<div class="cm-row">' +
       '<input type="checkbox" class="cm-check"' + (cmSel[it.path] ? ' checked' : '') + ' aria-label="选择">' +
@@ -1146,7 +1138,7 @@ body_class: adm-page
       '<div class="cm-acts">' + acts + '</div>' +
     '</div>';
   }
-  var CM_TAB_NAME = { all: '全部', offshelf: '已下架', paid: '付费', trash: '回收站' };
+  var CM_TAB_NAME = { all: '全部', offshelf: '已下架', trash: '回收站' };
   function cmVisibleRows() {
     var q = ((document.getElementById('cm-search') || {}).value || '').trim().toLowerCase();
     return cmItems.filter(cmMatch).filter(function (it) { return !q || (it.title + ' ' + it.path).toLowerCase().indexOf(q) !== -1; });
@@ -1217,9 +1209,8 @@ body_class: adm-page
     bar.hidden = false;
     var btns;
     if (cmFilter === 'trash') btns = [['restore', '批量还原', ''], ['purge', '批量彻底删除', 'danger']];
-    else if (cmFilter === 'offshelf') btns = [['restore', '批量恢复', ''], ['unpay', '批量取消付费', ''], ['trash', '批量删除', 'danger']];
-    else if (cmFilter === 'paid') btns = [['unpay', '批量取消付费', ''], ['hide', '批量下架', ''], ['trash', '批量删除', 'danger']];
-    else btns = [['hide', '批量下架', ''], ['unpay', '批量取消付费', ''], ['trash', '批量删除', 'danger']];   // 全部
+    else if (cmFilter === 'offshelf') btns = [['restore', '批量恢复', ''], ['trash', '批量删除', 'danger']];
+    else btns = [['hide', '批量下架', ''], ['trash', '批量删除', 'danger']];   // 全部
     var html = '<span class="cm-batch-n">已选 ' + sel.length + ' 篇</span>' +
       '<button type="button" class="cm-btn" data-b="all">全选本页</button>' +
       '<button type="button" class="cm-btn" data-b="none">清空</button><span class="cm-spacer"></span>';
@@ -1237,11 +1228,10 @@ body_class: adm-page
       if (key === 'hide') return !it.hidden && !it.off && !it.trashed;     // 只下架还公开的
       if (key === 'restore') return it.hidden || it.off || it.trashed;     // 只还原下架/删除的
       if (key === 'trash') return !it.off && !it.trashed;                  // 只删非回收站的
-      if (key === 'unpay') return it.paid;                                 // 只取消已付费的
       if (key === 'purge') return true;
       return false;
     });
-    var label = { hide: '下架', restore: '还原', trash: '删除', purge: '彻底删除', unpay: '取消付费' }[key];
+    var label = { hide: '下架', restore: '还原', trash: '删除', purge: '彻底删除' }[key];
     if (!ops.length) { alert('选中的文章里没有可「批量' + label + '」的。'); return; }
     var warn = key === 'trash' ? '（变真 404，可在回收站还原）' : (key === 'purge' ? '（从仓库抹除文件、不可恢复！）' : '');
     if (!window.confirm('确定批量' + label + ' ' + ops.length + ' 篇？' + warn)) return;
@@ -1263,7 +1253,6 @@ body_class: adm-page
   }
   // 把一个动作映射成 {后端 action, body}。hide/restore 按当前状态选方向。
   function cmActionParams(it, a) {
-    if (a === 'unpay') return { action: 'paid-unpublish', body: { path: it.path } };
     if (a === 'hide') return it.hidden ? { action: 'hide-restore', body: { path: it.path } } : { action: 'hide-publish', body: { path: it.path, flag: 'hidden' } };
     if (a === 'trash') return { action: 'del-publish', body: { path: it.path, url: it.url || '', title: it.title || '' } };
     if (a === 'purge') return { action: 'purge', body: { path: it.path } };
@@ -1272,8 +1261,7 @@ body_class: adm-page
   }
   function cmApplyLocal(it, a) {
     if (a === 'purge') { var i = cmItems.indexOf(it); if (i >= 0) cmItems.splice(i, 1); return; }
-    if (a === 'unpay') it.paid = false;
-    else if (a === 'hide') { it.hidden = !it.hidden; if (!it.hidden) it.trashed = false; }
+    if (a === 'hide') { it.hidden = !it.hidden; if (!it.hidden) it.trashed = false; }
     else if (a === 'trash') { it.off = true; it.trashed = false; it.hidden = false; }   // 真404 → off(回收站)
     else if (a === 'restore') { it.off = false; it.trashed = false; it.hidden = false; }
     it.pending = true;
@@ -1287,9 +1275,7 @@ body_class: adm-page
       .then(function () { cmApplyLocal(it, a); return true; });
   }
   function cmAction(it, row, a) {
-    if (a === 'setpaid') { if (it.url) window.open(it.url + '#ab-set-paid', '_blank', 'noopener'); return; }   // 设付费要去文章页放分界标记
     var cm = {
-      unpay: '取消付费「' + it.title + '」、改回免费？将从后端取回付费正文、合并还原进文章。',
       trash: '删除「' + it.title + '」到回收站？将变成真 404（不再构建），访客和你都打不开；可随时还原或彻底删除。',
       purge: '彻底删除「' + it.title + '」？将从仓库当前版本抹除该文件、真 404，站内无法再恢复（只能从 git 历史找回）。确定？'
     }[a];

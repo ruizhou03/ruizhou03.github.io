@@ -74,13 +74,13 @@
 </style>
 {% raw %}
 <script>
-// 待生效缓冲：管理员翻 hidden/trashed/paid 后要等 Pages 重建(~1-2min)；这期间刷新会读到旧构建。
+// 待生效缓冲：管理员翻 hidden/trashed 后要等 Pages 重建(~1-2min)；这期间刷新会读到旧构建。
 // 把"意图状态"按 flag 存本地，刷新时优先显示意图(标注重建中)，等构建追上(构建值==意图)再归位。
 window.SaPending = window.SaPending || (function () {
   var KEY = 'sa.pending.v2', TTL = 20 * 60 * 1000;
   function load() { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } }
   function save(o) { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
-  // 每条 entry：{ flags: { hidden:0/1, trashed:0/1, paid:0/1 }, t }
+  // 每条 entry：{ flags: { hidden:0/1, trashed:0/1 }, t }
   function stateFlag(path, flag, buildVal) {
     var all = load(), e = all[path], bv = !!buildVal;
     if (!e || !e.flags || e.flags[flag] === undefined) return { value: bv, pending: false };
@@ -134,28 +134,6 @@ window.SaPending = window.SaPending || (function () {
     hideBtn.type = 'button'; hideBtn.className = 'sa-item-toggle';
     var delBtn = document.createElement('button');
     delBtn.type = 'button'; delBtn.className = 'sa-item-toggle sa-danger';
-    var bPaid = el.getAttribute('data-paid') === 'true';
-    var paid = window.SaPending.stateFlag(path, 'paid', bPaid).value;
-    var paidBtn = document.createElement('button');
-    paidBtn.type = 'button'; paidBtn.className = 'sa-item-toggle';
-    function paidLabel() { paidBtn.textContent = paid ? '取消付费' : '设为付费'; }
-    paidLabel();
-    paidBtn.addEventListener('click', function (e) {
-      e.preventDefault(); e.stopPropagation();
-      if (!paid) {                       // 设为付费要在文章里放分界标记 → 跳到文章页用齿轮付费流程
-        var u = el.getAttribute('data-url'); if (u) location.href = u + '#ab-set-paid';
-        return;
-      }
-      if (!window.confirm('取消付费、改回免费？将从后端取回付费正文、合并还原进文章。')) return;
-      paidBtn.disabled = true; paidBtn.textContent = '…';
-      window.SiteAuth.authedFetch('/api/admin?action=paid-unpublish', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: path })
-      })
-        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
-        .then(function () { paid = false; window.SaPending.markFlag(path, 'paid', false); el.setAttribute('data-paid', 'false'); })
-        .catch(function () {})
-        .then(function () { paidBtn.disabled = false; paidLabel(); });
-    });
 
     function labels() {
       hideBtn.disabled = false;
@@ -193,7 +171,7 @@ window.SaPending = window.SaPending || (function () {
         .then(function () {
           if (a) a.style.textDecoration = 'line-through';
           el.style.opacity = '0.5';
-          hideBtn.style.display = 'none'; paidBtn.style.display = 'none';   // 删除态不再有 下架/付费
+          hideBtn.style.display = 'none';
           delBtn.textContent = '已删除·重建中'; delBtn.disabled = true;
         })
         .catch(function () { hideBtn.disabled = false; delBtn.disabled = false; labels(); });
@@ -201,7 +179,7 @@ window.SaPending = window.SaPending || (function () {
 
     hideBtn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); flipHide(); });
     delBtn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); doDelete(); });
-    tools.appendChild(hideBtn); tools.appendChild(delBtn); tools.appendChild(paidBtn);
+    tools.appendChild(hideBtn); tools.appendChild(delBtn);
     el.appendChild(tools);
   }
 

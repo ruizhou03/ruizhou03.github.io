@@ -1,12 +1,12 @@
 ---
 layout: post
-title: "美国银行账户完全指南：开户、汇款、HYSA 与回国处理（付费）"
+title: "美国银行账户完全指南：开户、汇款、HYSA 与回国处理（旧测试稿）"
 main_category: "生活攻略"
 sub_category: "留学攻略"
 date: 2026-04-22
 author: "周睿"
 permalink: "/life/paid-test/us-banking-guide"
-published: true
+published: false
 keywords:
 - 美国银行开户
 - 美国银行账户指南
@@ -53,16 +53,8 @@ keywords:
 - 美国银行 routing number
 - wire transfer 怎么发
 - 美国银行回国销户流程
-paid: false
-paid_slug: liuxue-test-banking
-price: 6
-column: liuxue
-column_price: 39
-member_price: 15
-afdian_url: https://afdian.com/a/ruizhou03
 ---
 
-<!-- ⚠ 本文件由 scripts/paywall/build_paid.py 从 _paid/liuxue-test-banking.md 自动生成：只含免费预览，锁定正文在后端。请勿手改这里，改源文件后重跑脚本。 -->
 # 1. 这篇文章给谁看
 
 写给三类人：
