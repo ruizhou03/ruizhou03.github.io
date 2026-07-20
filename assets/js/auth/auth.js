@@ -178,7 +178,7 @@
       return { ok: true, user: r.data.user };
     },
 
-    // 设置 / 修改登录密码。oldPassword 仅在账号已有密码时需要。
+    // 仅历史密码账号可在验证旧密码后修改；Google-only 账号不创建本站密码。
     setPassword: async function (oldPassword, newPassword) {
       var r = await post('/auth?action=set-password', { oldPassword: oldPassword, newPassword: newPassword }, true);
       if (!r.ok) return { ok: false, error: (r.data && r.data.error) || 'failed' };

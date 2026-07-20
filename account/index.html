@@ -1157,10 +1157,15 @@ body_class: acc-page
         '</div>' +
         '<div class="acc-set-row">' +
           '<div class="acc-set-info"><div class="acc-set-t">登录密码</div>' +
-            '<div class="acc-set-d">' + (user.hasPassword ? '已设置，可修改。新用户不再开放密码注册。' : '你现在用 Google 登录；设置密码后也能用「邮箱 + 密码」登录。') + '</div></div>' +
-          '<button class="acc-tool-btn" id="acc-pw-btn">' + (user.hasPassword ? '修改密码' : '设置密码') + '</button>' +
+            '<div class="acc-set-d">' + (user.hasPassword ? '历史账号可验证当前密码后修改；建议先关联 Google，避免密码遗失后无法自动恢复。' : '这是 Google-only 账号，不保存本站密码。') + '</div></div>' +
+          (user.hasPassword ? '<button class="acc-tool-btn" id="acc-pw-btn">修改密码</button>' : '<span style="font-size:0.82rem;color:#2f8f6b;font-weight:700;">Google-only</span>') +
         '</div>' +
         '<div class="acc-set-panel" id="acc-pw-panel" hidden></div>' +
+        '<div class="acc-set-row">' +
+          '<div class="acc-set-info"><div class="acc-set-t">隐私与数据</div>' +
+            '<div class="acc-set-d">查看本站收集哪些数据、保存在哪里，以及如何导出或删除。</div></div>' +
+          '<a class="acc-tool-btn" href="/privacy/" style="text-decoration:none;">查看</a>' +
+        '</div>' +
         '<div class="acc-set-row">' +
           '<div class="acc-set-info"><div class="acc-set-t">导出我的数据</div>' +
             '<div class="acc-set-d">下载你的资料、收藏、点赞、浏览记录（JSON）。</div></div>' +
@@ -1193,7 +1198,8 @@ body_class: acc-page
       if (verifyEmailBtn) verifyEmailBtn.addEventListener('click', function () {
         if (SiteAuth.openEmailVerification) SiteAuth.openEmailVerification();
       });
-      document.getElementById('acc-pw-btn').addEventListener('click', function () { togglePwPanel(user); });
+      var pwBtn = document.getElementById('acc-pw-btn');
+      if (pwBtn) pwBtn.addEventListener('click', function () { togglePwPanel(user); });
       document.getElementById('acc-export-btn').addEventListener('click', doExport);
       document.getElementById('acc-del-btn').addEventListener('click', function () { toggleDelPanel(user); });
     }
@@ -1204,8 +1210,8 @@ body_class: acc-page
       p.hidden = false;
       p.innerHTML =
         '<div style="padding:0.4rem 0 0.6rem;">' +
-          (user.hasPassword ? '<div class="acc-ef-row"><label for="acc-pw-old">当前密码</label><input type="password" id="acc-pw-old" autocomplete="current-password"></div>' : '') +
-          '<div class="acc-ef-row"><label for="acc-pw-new">新密码（至少 6 位）</label><input type="password" id="acc-pw-new" autocomplete="new-password"></div>' +
+          '<div class="acc-ef-row"><label for="acc-pw-old">当前密码</label><input type="password" id="acc-pw-old" autocomplete="current-password"></div>' +
+          '<div class="acc-ef-row"><label for="acc-pw-new">新密码（12–128 位）</label><input type="password" id="acc-pw-new" autocomplete="new-password"></div>' +
           '<div class="acc-ef-row"><label for="acc-pw-new2">确认新密码</label><input type="password" id="acc-pw-new2" autocomplete="new-password"></div>' +
           '<div class="acc-ef-actions"><span class="acc-ef-err" id="acc-pw-err"></span>' +
             '<button type="button" class="acc-tool-btn" id="acc-pw-cancel">取消</button>' +
@@ -1214,15 +1220,15 @@ body_class: acc-page
       document.getElementById('acc-pw-cancel').addEventListener('click', function () { p.hidden = true; p.innerHTML = ''; });
       document.getElementById('acc-pw-save').addEventListener('click', async function () {
         var err = document.getElementById('acc-pw-err'); err.textContent = '';
-        var oldP = user.hasPassword ? document.getElementById('acc-pw-old').value : '';
+        var oldP = document.getElementById('acc-pw-old').value;
         var n1 = document.getElementById('acc-pw-new').value, n2 = document.getElementById('acc-pw-new2').value;
-        if (n1.length < 6) { err.textContent = '新密码至少 6 位'; return; }
+        if (n1.length < 12 || n1.length > 128) { err.textContent = '新密码需为 12–128 位'; return; }
         if (n1 !== n2) { err.textContent = '两次输入不一致'; return; }
         this.disabled = true;
         var r; try { r = await SiteAuth.setPassword(oldP, n1); } catch (e) { r = { ok: false }; }
         this.disabled = false;
-        if (r.ok) { p.hidden = true; p.innerHTML = ''; alert(user.hasPassword ? '密码已修改' : '密码已设置，以后也能用邮箱 + 密码登录'); }
-        else err.textContent = r.error === 'bad_old_password' ? '当前密码不对' : r.error === 'weak_password' ? '新密码至少 6 位' : '保存失败，再试一次';
+        if (r.ok) { p.hidden = true; p.innerHTML = ''; alert('密码已修改'); }
+        else err.textContent = r.error === 'bad_old_password' ? '当前密码不对' : r.error === 'weak_password' ? '新密码需为 12–128 位' : r.error === 'password_login_disabled' ? '此账号只使用 Google 登录' : '保存失败，再试一次';
       });
     }
 

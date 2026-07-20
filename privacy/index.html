@@ -1,0 +1,76 @@
+---
+layout: default
+title: 隐私与数据说明 | 锆铌
+description: 锆铌个人网站的数据收集、用途、存储、导出与删除说明。
+permalink: /privacy/
+---
+
+<style>
+  .privacy-page { max-width: 820px; margin: 0 auto; padding: 3.4rem 1.4rem 5rem; }
+  .privacy-page h1 { margin: 0 0 .45rem; font-size: clamp(2rem, 5vw, 3rem); }
+  .privacy-updated { color: var(--color-light); margin: 0 0 2.5rem; font-size: .9rem; }
+  .privacy-lead { font-size: 1.05rem; line-height: 1.9; }
+  .privacy-card { margin-top: 1.35rem; padding: 1.25rem 1.4rem; border: 1px solid var(--gold-soft); border-radius: var(--radius-lg); background: var(--card); }
+  .privacy-card h2 { margin: 0 0 .65rem; font-size: 1.25rem; }
+  .privacy-card p, .privacy-card li { line-height: 1.8; }
+  .privacy-card ul { margin: .45rem 0 0; padding-left: 1.25rem; }
+  .privacy-card a { color: var(--color-accent); }
+  .privacy-note { color: var(--color-light); font-size: .9rem; }
+  @media (max-width: 640px) { .privacy-page { padding-top: 2.2rem; } .privacy-card { padding: 1rem; } }
+</style>
+
+<article class="privacy-page">
+  <h1>隐私与数据说明</h1>
+  <p class="privacy-updated">最后更新：2026 年 7 月 20 日</p>
+  <p class="privacy-lead">这是周睿维护的个人网站。你可以不注册直接阅读绝大多数内容；只有在登录、评论、上传或使用云同步功能时，网站才会保存与你有关的数据。</p>
+
+  <section class="privacy-card">
+    <h2>会保存什么</h2>
+    <ul>
+      <li><strong>账号：</strong>邮箱、Google 账号的稳定标识、昵称、头像、简介，以及积分、收藏、点赞、阅读记录和部分游戏存档。</li>
+      <li><strong>历史密码账号：</strong>只保存经 scrypt 处理的密码哈希，不保存明文密码。新账号只使用 Google 登录，不创建本站密码。</li>
+      <li><strong>评论：</strong>评论内容、昵称、可选邮箱、回复关系和页面阅读计数。</li>
+      <li><strong>上传与同步：</strong>你主动上传的图片、音频或工具数据；某些工具只在浏览器本地保存，开启云同步后才上传。</li>
+      <li><strong>访问统计：</strong>Cloudflare Web Analytics 用于全站匿名流量趋势；中英文首页另有 Google Analytics 4，用于历史口径对照。</li>
+      <li><strong>本机数据：</strong>主题、离线内容、工具设置和登录令牌可能保存在 localStorage、IndexedDB 或浏览器缓存中。</li>
+    </ul>
+  </section>
+
+  <section class="privacy-card">
+    <h2>为什么使用这些数据</h2>
+    <p>用于登录和识别你的账号、同步你主动选择的数据、显示评论与公开主页、计算站内互动和积分、排查故障、防止滥用，以及了解网站哪些内容真正有人使用。不会出售个人数据，也不会把它用于站外广告画像。</p>
+  </section>
+
+  <section class="privacy-card">
+    <h2>数据放在哪里</h2>
+    <ul>
+      <li>账号与互动数据：Upstash Redis；</li>
+      <li>评论与阅读计数：Neon PostgreSQL，经 Waline 服务处理；</li>
+      <li>上传文件：Cloudflare R2；</li>
+      <li>应用运行：Fly.io；静态网站与源码：GitHub Pages；</li>
+      <li>登录和访问统计：Google、Cloudflare。</li>
+    </ul>
+    <p class="privacy-note">这些服务可能在不同国家或地区处理数据，并受各自隐私条款约束。</p>
+  </section>
+
+  <section class="privacy-card">
+    <h2>保存、备份与安全</h2>
+    <p>账号和用户内容通常保存到你主动删除，或网站停止提供相应功能。Redis、PostgreSQL 与 R2 会进入加密的灾难恢复备份；备份不用于日常访问，删除线上数据后，旧备份中的副本可能仍保留一段时间，并只会在灾难恢复时重新载入。登录令牌有有效期，敏感配置不写入公开仓库。</p>
+  </section>
+
+  <section class="privacy-card">
+    <h2>你可以怎么控制</h2>
+    <ul>
+      <li>在<a href="/account/#settings">个人中心</a>修改资料、关闭公开主页、导出账号数据或注销账号；</li>
+      <li>评论可在评论区删除；若无法自行处理，可以联系站主；</li>
+      <li>浏览器本地数据可通过相应工具的清除功能，或清除本站存储与缓存删除；</li>
+      <li>你可以使用浏览器的防跟踪或内容拦截功能限制第三方统计。</li>
+    </ul>
+    <p>账号注销会删除账号、收藏、点赞和阅读记录；评论与灾难恢复备份需按上述方式另行处理。</p>
+  </section>
+
+  <section class="privacy-card">
+    <h2>联系与变更</h2>
+    <p>如需查询、更正或删除数据，或遇到账号恢复问题，请发邮件至 <a href="mailto:ruizhou@psu.edu">ruizhou@psu.edu</a>。说明会在数据用途或服务发生实质变化时更新，并在本页标出日期。</p>
+  </section>
+</article>
