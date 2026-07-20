@@ -1,10 +1,32 @@
 ## 2026-07-20
 
-> 例行无人值守巡检启动即中止：`git fetch origin && git status` 显示本地相对 `origin/main` 无未推送提交、但工作区有一批 **untracked 文件**——集中在「本科旧笔记LaTeX化」进行中项目（[[project_undergrad_notes_latexify]]）的 LaTeX 源与 PDF 产物，属另一会话 / 前次未完的 WIP：`files/adv-metrics-pku/source/` / `files/game-theory/source/` + `files/game-theory/game-theory-2023.pdf` / `files/linear-algebra/source/` + `files/linear-algebra/linear-algebra-2021.pdf` / `files/or/source/` / `files/psy-stat-I/source/` / `files/public-econ/source/`；`_notes/study/game-theory/game-theory-2023.md` / `_notes/study/linear-algebra/linear-algebra-2021.md` 两个新笔记 md；仓库根 `SECURITY_GOVERNANCE.md`。按 `CLAUDE.md` 铁律 + daily-review 工作流「工作区脏就停下来写一笔然后结束、不要碰未提交的东西」，本次**不跑 audit / 不 build / 不做修复 / 不改任何文件**，只更新 `DAILY_REVIEW.md` 记录本状况并 push。
+> 例行无人值守巡检：build 健康度 + 仓库卫生 + `scripts/audit/run.sh` 全套（今日 DOW=1 周一，加跑 dead_links / orphan_files / pii_scan；DOM=20 非月初，未加 monthly_stats）。**今日凌晨那次由同名 routine 起的巡检因工作区一批「本科旧笔记 LaTeX 化」项目的 untracked WIP 而中止**（见 `6e8350d chore(daily-review): 2026-07-20 工作区脏未做巡检`）——本次再起 sandbox 时，那批 WIP 已被清理（`ls SECURITY_GOVERNANCE.md _notes/study/game-theory/game-theory-2023.md files/game-theory/game-theory-2023.pdf` 全「No such file」；`git ls-files --others --exclude-standard` 空），推测是站主本机把该批产物挪走或转到别处（不在 git 历史里），工作区已干净、可以正常巡检。距 7-19 巡检共 **41 个新 commit**（`287f258..35a7728`，其中 `287f258` 与 `6e8350d` 两条是 daily-review 本身自更），承接近三日「门面适配 P0-P4 + 12 处收口」之后进入**离线内容库 / 学习资料页 / 栏目页三大改造 + 账号中心 & 管理端 6 处宽度修复 + 站务公告独立化 + 百宝箱 6 处上下架 + 站点接手手册**的密集迭代日，主要脉络：
+>
+> ① **离线内容库 offline 7 commit 大项目**（`2f64904` 双层缓存内核 · `e54bb77` 内容版本基建 · `2275f4e` SAVE_DONE 回报缓存清单 · `1fb3333` 统一离线客户端 + 文章页接线 · `7a8f0ad` 离线内容库页面 + 账号中心入口 + WiFi自动更新 · `06e5fde` 索引自愈 + 设置入口 · `ec5f3ff` 修尾斜杠致文章 404/保存失效 + 删除二次确认 + 批量管理与翻页）—— 从零搭起「离线书架（cache-first）+ 有界浏览缓存」双层内核，配 offline-versions.json（含双日期 + 游戏内容哈希）判定「新旧版」，客户端加入 `account/offline.html` 页面与统一 offline.js，把 sw.js 由 175 行扩到 605+ 行、加入 SAVE_DONE 消息把本次缓存清单回报供客户端精确删除；`sw.js` 现 23572 B；`account/offline.html` 现在 272 + 66 行涵盖批量管理 / 翻页 / 二次确认 / 尾斜杠兼容。
+>
+> ② **学习资料 /notes/ 页大改 8 commit**（`92948b1` 目录页重构 + 撤书架 + 讲义归位合并 + 卡片&目录双视图 + 课程浮层 · `9a2ebac` 精选 ◆ 悬挂到文字左侧 · `798dbe8` 突破 main 800px 上限卡片一行 4 张 · `50ffdd5` 卡片视图左侧加学科跳转点导航 · `f599a19` 点导航加间距/连接线 + 搜索移到卡片正上方 · `3ba5f12` 连接段改纺锤形 · `763fee1` 连接段收细到 3px + 悬停非当前学科也有反馈 · `642bae3` 纺锤连接段收到 1.5px 悬于两圆之间）—— 从「书架式布局」转向「卡片双视图 + 学科点导航（仿首页 dots）+ 课程浮层」的完整 IA 改造；点导航连接段迭代 4 次到「纺锤形 1.5px 悬于两圆之间」的纤细感。
+>
+> ③ **栏目页升级 3 commit**（`7dee4fd` 精品带 + 书目化列表升级 · `0bc4ed3` 列表/卡片标题字重 600→500 · `89b5a75` 书目编号改运行时按「现存文章」计算）—— `research/life/essays` 三板块统一到「精品带 + 书目化列表 + 运行时编号」新语言。
+>
+> ④ **站务公告独立化 3 commit + 那年今日搬入 2 commit**（`f4b6a2a` 站务公告独立存档页 · `08c941c` 首页页脚/头像菜单入口 · `7d557ad` 移到 /board/ + 时间轴改版 · `eb35d3e` 那年今日从百宝箱下架搬进 /board/onthisday/ · `6f477bb` 那年今日子页套 board 衬线 hero 风格）—— 站务公告从「首页嵌入片段」升为 `/board/` 独立存档区，「那年今日」时光机从百宝箱工具搬进公告子页（`_site/board/` 与 `board.html` 均新出）。
+>
+> ⑤ **账号中心 & 管理端宽度 / 头像 / 顶栏收口 8 commit**（`c6569fe` 左导航图标改统一矢量 SVG · `dfc1116` 评论记录改 A2 版式 · `5725a0d` 头像菜单身份行点进主页 + 主页头像点击编辑 · `697e14a` 主页简介折行+至多两行省略 · `8fffebf` / `8e1ce8d` account/admin 顶栏不再随本页收窄 · `1effe45` 顶栏去返回链 + 管理菜单改分段开关 · `03bbfd6` 中文首页③精选自适应版面 0–4 张）—— 修 `.nav-inner max-width` 覆盖导致顶栏跟着本页收窄的问题；账号简介折行；管理菜单分段开关。
+>
+> ⑥ **admin 收件箱 2 commit**（`f4b6a2a` 全站评论/点赞/收藏统一时间线 · `e7cbc0e` 条目去重叠重设计 + 评论正文渲染公式/图片 + 翻页）—— 新增 admin 收件箱面板把全站评论 / 点赞 / 收藏聚合到一条时间线。
+>
+> ⑦ **百宝箱 6 commit 上下架 + 图标大换血**（`aba303b` 下架并删除生词本、猫语板 · `25f030b` 下架并删除目标进度跟踪工具 · `9f3855d` 下架 21点、接龙纸牌（visibility.json 隐藏，文件保留可恢复）· `2b2eae6` 清理栏目页搜索条死代码 · `d4e945b` `_notes/life/drinking-water-types.md` evergreen=false · `db179dd` **36 个工具图标从 emoji 换成手作矢量图（栅格 PNG）**）—— **`db179dd` 图标大换血**：一次性画 33 张 512 圆角奶油底 PNG（藏蓝主形 + 暖金点缀 · 扁平无渐变 · 无细线）+ 复用现成 3 张（掼蛋 / 2048 / 记账）；`_data/toolbox.yml` 49 个 tool 里 39 个换成 `/assets/icons/*.png`（本轮核对 `grep "^  icon: /assets" _data/toolbox.yml | while read line; do p=$(echo $line | awk '{print $2}'); [ -f ".${p}" ] || echo MISSING; done` 全命中、无缺失），仍 10 个保留 emoji = 8 个待合并候选 + 2 个已下架（21点 / 接龙纸牌）；宠物中心 + 合成大西瓜的 PWA 全家族（192/512/maskable/apple-touch）一并重出保持一致；`_data/toolbox.yml` 净变 36 / 36 行。
+>
+> ⑧ **日期格式全站统一 1 commit**（`5190ef3` 显示日期横杠/点 → 斜杠 2026/05/20）+ **SITE_HANDBOOK 接手手册 1 commit**（`35a7728` `docs/SITE_HANDBOOK.md` 452 行，写给接手人的总纲；`docs/` 已在 `_config.yml` L37 exclude，本次核对 `ls _site/docs 2>&1` = 「No such file or directory」，未泄露）。
+>
+> **build 健康度**：`bundle install` ✅ + `bundle exec ... jekyll build` ✅ 通过、**零 warning、零 error**（**18.828 s cold build** —— 与 7-19 的 18.714 s 相仿）。`_site/` 顶层 **30 项**（较 7-19 +2：新增 `board/`（站务公告独立化）+ `offline-versions.json`（离线版本清单）；其余 28 项与 7-19 一致）。`_notes/` 全 **270 篇 md** 仍 100% 覆盖 `keywords:`（`find _notes -name '*.md' -exec grep -L '^keywords:' {} \;` 空），搜索体系闭环。`_paid/` + `_flight-staging/` 在 `_config.yml` L53 / L55 exclude 双保险稳固、`_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空。**maskable 图标 md5 核验**：`python3 scripts/audit/maskable_icon_consistency.py` 报「✅ 已检查 9 个 maskable 图标声明，均与 any 图标不同」（承接 7-19 一致；`db179dd` 只重出 pet + suika 两组 PWA 主 icon 全家族，未打破 maskable 与 any 的字节差异）。**`study_order`**：`_config.yml` 26 条、`ls _notes/study/` 26 目录、`comm -23` 差集空 —— 与 7-19 一致。全套 `scripts/audit/run.sh` 每日 14 项 + 周一 3 项 audit 结果：`keywords_coverage` 121/121 散文类全覆盖 / `images`（2 处 2M+ PDF 备忘列出、非命中）/ `backend_pulse`（curl 56 HTTP 403 承接沙箱无 fly.io 出口）/ `spotcheck` 10 项配额抽检 / `material_type_enum` 117 项全在 9 项枚举内（Notes×47 / Exams×40 / 课程测评×18 / 经验之谈×5 / 错题本×3 / 写作×2 / 口语×1 / 词汇×1，与 7-19 完全一致）/ `filename_convention` / `maskable_icon_consistency` / `hover_no_media`（只扫 `toolbox/`）/ `sibling_crosslink`（10 组全互链）/ `bare_dollar` / `img_caption_md` / `svg_italic_zh` / `bare_url` / `frontmatter_yaml` **均 ✅**；周一加跑：`orphan_files` 0 孤儿 / `pii_scan` ✅ / `dead_links` 报「269 疑似死链」—— 逐行归类：**242 条**是沙箱代理无法出网（`HTTPSConnectionPool ... Unable to ... ProxyError`）覆盖 `cdn.jsdelivr.net` / `988lifeline.org` / `afdian.com` / `appleid.apple.com` / `books.ropensci.org` / `bsaefiling.fincen.treas.gov` 等 60+ 生产环境正常的域名；**23 条**是 `mp.weixin.qq.com` 微信公众号图文链的 HTTP 403（微信一贯对爬虫返 403，是长期已知误判）；**其余 4 条**：`repec.org/bocode/e/estout/` HTTP 403（Stata 生态经典链接，同属爬虫 403）/ `accounts.google.com/gsi/client` HTTP 403（Google Identity Services 端点、鉴权失败正常）/ `fonts.googleapis.com` + `fonts.gstatic.com` HTTP 404（`toolbox/jukebox/index.html:14-15` 里作为字体基础域名字符串出现，非可访问路径，是审查脚本对基础域名 URL 的误判）—— **无一条是真的仓库内坏链**，全属沙箱网络 / 服务端反爬 / 审查启发式误判 三类已知假阳，承接 7-19 之前多次巡检结论、写进 P2、不擅动。
+>
+> **今日 0 项自动修复**：仓库处于极健康状态——build ✅、每日 14 项 + 周一 3 项 audit 无一命中真实问题、`keywords_coverage` 270/270、`study_order` 26/26 完整、maskable 图标一致、无 junk / 无 stub / 无凭证泄露；41 个新 commit 全部合规、无遗漏收尾、无孤儿资源。识别出的**观察项**均属大范围 UI 改造需真机验收 / 设计取向拍板 / 沙箱网络限制，一律不属「小而无争议」自动修复，写进 P2、不擅动。
 
 ### ✅ 本次已自动修复
 
-无——本次未做巡检。
+无。
+
+站点处于极健康状态：build ✅、17 项 audit 全 clean（唯一 269 条 dead_links 全属沙箱网络 / 微信反爬 / 审查启发式误判三类已知假阳）、keywords 270/270、study_order 26/26 完整、maskable 图标 9 项一致、无 junk / 无凭证泄露；41 个新 commit 全为「离线内容库 / 学习资料页 / 栏目页三大改造 + 账号中心 & 管理端收口 + 站务公告独立化 + 百宝箱 6 处上下架 + 图标大换血 + SITE_HANDBOOK」协同推进，无遗漏收尾。今日观察项均属大范围 UI 改造需真机验收 / 设计取向拍板范畴、非「小而无争议」自动修复项。
 
 ### 📋 待你把关
 
@@ -14,36 +36,45 @@
 
 #### P1（重要）
 
-- **工作区有 11 项 untracked WIP 需要处理**（**今日新增**，本次巡检**因此中止**）—— 均看起来是「本科旧笔记LaTeX化」进行中的产物、不属于本次巡检 agent 会话，符合 [[project_undergrad_notes_latexify]] 「没上线前绝不删原料」铁律，未擅动。请站主自行决定：① 继续把这批课程 LaTeX 化并上线（若已到出稿阶段，走该项目 playbook `docs/undergrad-notes-latexify-playbook.md`）；② 若属阶段性 checkpoint，可 commit 到 `main` 或临时挪走；③ `SECURITY_GOVERNANCE.md` 是新起的仓库级安全治理草稿？属草稿就先别 commit、内容成熟再落。**具体清单**：
-  - `SECURITY_GOVERNANCE.md`（仓库根新文档）
-  - `_notes/study/game-theory/game-theory-2023.md`
-  - `_notes/study/linear-algebra/linear-algebra-2021.md`
-  - `files/adv-metrics-pku/source/`
-  - `files/game-theory/game-theory-2023.pdf` + `files/game-theory/source/`
-  - `files/linear-algebra/linear-algebra-2021.pdf` + `files/linear-algebra/source/`
-  - `files/or/source/`
-  - `files/psy-stat-I/source/`
-  - `files/public-econ/source/`
+无。仓库当前 P1 队列为空。
 
 #### P2（建议）
 
-承接 7-19 全部 P2 未消除（1. 门面适配 P0–P4 + 12 处收口 18 commit 需六组合真机验收；2. `_includes/category-search.html` 孤儿 include；3. `life/index.html:31` 菜谱 `search_only=true` 永久隐藏）+ 7-19 之前更早承接的老 P2（评论体感层 3 commit / Vditor 9 轮加固 / 图片 R2 图床 / 站主可删任意评论 / 51 commit 六组合真机验收 / `/u/` 公开主页 / `visibility.json` 全放开 / doudizhu 20 MB 神经网络权重 / forest 双视图 / 掼蛋联机 / 机票监控 mac 端到端 / jukebox 问题首 / DNS NameResolutionError / dead_links SVG xmlns 误判 等）。本次因工作区脏未跑巡检，无新增 P2。
+1. **离线内容库 offline 7 commit 需 4 组合真机 + PWA + 断网端到端验收**（**今日新增**，来自 `2f64904` `e54bb77` `2275f4e` `1fb3333` `7a8f0ad` `06e5fde` `ec5f3ff` 全批）—— 关键验收面：① 双层缓存内核（离线书架 cache-first 与有界浏览缓存）在有网 / 断网 / 弱网三态下的行为分层；② SAVE_DONE 消息回报的清单是否让批量删除精确到资源级；③ offline-versions.json 双日期 + 游戏内容哈希是否让「保存过的老版本」提示自动更新；④ 账号中心 `account/offline.html` 批量管理 / 翻页 / 二次确认 / 尾斜杠兼容（`ec5f3ff` 修 404 与保存失效）；⑤ 索引自愈（`06e5fde` 整栏 / 分组保存的项也进内容库 + 设置入口）；⑥ WiFi 自动更新的省流开关。iOS Safari + Android Chrome + iPad + 桌面 Chrome 四端 + 「加装到主屏」PWA standalone 五组合过一遍；沙箱无浏览器 + 无网络出口跑不了。**紧要程度**：离线体验是本站 PWA 主打差异化、7 commit 单日搭起整套基建，出问题就整个功能挂。
+
+2. **学习资料 /notes/ 页 8 commit 大改造需六组合真机验收**（**今日新增**，来自 `92948b1` `9a2ebac` `798dbe8` `50ffdd5` `f599a19` `3ba5f12` `763fee1` `642bae3` 全批）—— 关键验收面：① 卡片双视图（`92948b1`）在浅深模式 + 手机竖屏 / 平板 / 桌面下的切换体感 + 课程浮层弹出定位；② 精选 ◆ 悬挂到文字左侧（`9a2ebac`）的分割线 / 文字 / PDF 三行不再错位；③ 突破 800px 主容器上限一行 4 张卡片（`798dbe8`）在 1280 / 1440 / 1920 三分辨率下的横向留白与视觉重心；④ 学科点导航（`50ffdd5`~`642bae3` 5 commit 迭代到「纺锤形 1.5px 悬于两圆之间」）在悬停 / 触屏 / 键盘 tab 三种交互模式下的反馈一致性 + 与首页 dots 的视觉呼应；⑤ 搜索移到卡片正上方（`f599a19`）的信息层次。iPhone Safari / Android Chrome / iPad / 桌面 Chrome / Firefox / PWA 六组合下过一遍；沙箱跑不了。
+
+3. **栏目页升级 + 站务公告独立化 + 那年今日搬入 8 commit 需真机验收**（**今日新增**，来自 `7dee4fd` `0bc4ed3` `89b5a75` `f4b6a2a` `08c941c` `7d557ad` `eb35d3e` `6f477bb` 全批）—— 关键验收面：① 三板块（research / life / essays）精品带 + 书目化列表 + 运行时按现存文章计算书目编号的一致性；② 列表 / 卡片标题字重 600→500 后中文不再被 Noto Serif SC 700 顶成粗体；③ `/board/` 站务公告独立存档区在首页页脚 / 头像菜单入口的可发现性 + 那年今日 `/board/onthisday/` 子页衬线 hero 与站务公告一脉相承的视觉延续。沙箱跑不了。
+
+4. **账号中心 & 管理端 & 首页 8 commit 收口需真机跨身份验收**（**今日新增**，来自 `c6569fe` `dfc1116` `5725a0d` `697e14a` `8fffebf` `8e1ce8d` `1effe45` `03bbfd6` 全批）—— 关键验收面：① 顶栏不再随本页 `.nav-inner max-width` 收窄（`8fffebf` + `8e1ce8d` account + admin 双修）在 1280 / 1440 / 1920 三分辨率下顶栏统一宽度；② 账号主页简介折行 + 至多两行省略（`697e14a`）不再横向溢出挤占统计 / 操作区；③ 头像菜单身份行点进主页 + 主页头像 / 昵称点击编辑资料（`5725a0d`）交互闭环；④ 评论记录 A2 版式 + 缩略图真正显示（`dfc1116`）；⑤ 左导航图标改统一矢量 SVG（时钟 / 聊天气泡）（`c6569fe`）；⑥ 顶栏去返回链 + 管理菜单改分段开关（`1effe45`）；⑦ 中文首页③精选自适应版面 0–4 张（`03bbfd6`）在文章数 0 / 1 / 2 / 3 / 4 五状态下的版面自适应。三身份（未登录 / 已登录 / 站主）+ 深浅模式跨全六组合验收；沙箱跑不了。
+
+5. **admin 收件箱 2 commit 需真机 + 后端接线验收**（**今日新增**，来自 `f4b6a2a` `e7cbc0e`）—— 收件箱面板把评论 / 点赞 / 收藏聚合到时间线，条目去重叠重设计 + 评论正文渲染 KaTeX 公式 + 图片 + 翻页；沙箱无 fly.io 后端出口 + 无 Waline 数据源跑不了。
+
+6. **百宝箱 36 图标大换血 db179dd 需真机 + PWA 多设备验收**（**今日新增**）—— 关键验收面：① 39 图标（33 新画 + 3 复用 + pet / suika 重出）在工具箱 landing 的 tile grid 视觉一致性（是否有个别图标偏色 / 偏大 / 偏小 / 与「奶油底 + 藏蓝主形 + 暖金点缀」不统一）；② 藏蓝 + 暖金 palette 在浅 / 深模式下是否都保持辨识度；③ pet + suika 两组 PWA 全家族（192/512/maskable/apple-touch）重出后在 Android 桌面 / iOS 主屏「加装」时新图标是否正确替换旧的（老用户看到的可能是老图标缓存）；④ 剩下 10 个仍是 emoji 的工具在同一 grid 里是否显得违和（8 个待合并 + 2 个已下架）。沙箱无 GUI 跑不了。**注**：`_data/toolbox.yml` 39 条 `/assets/icons/*.png` 路径本轮已 `[ -f ]` 逐一核对无 missing、无 typo。
+
+7. **`docs/SITE_HANDBOOK.md` 452 行接手手册需站主亲自过一遍事实核对**（**今日新增**，来自 `35a7728`）—— 手册明确分「已实测」（数量 / 路径 / 配置值） vs「据项目记录」（来自 `CLAUDE.md` + `docs/` 旧文档 + 项目记忆的转述、未逐条复核）两类；作者也列了「明确待确认项」集中在第 11 章。**站主应在正式给他人前重跑一次核对**：① 手册开头「本次编写时用命令实证过」的数字（`_notes/` 272 篇 / `files/` 157 MB / `files/` 141 个 PDF / 工具箱 51 个约 64300 行 / `scripts/` 102 文件 / 1700 提交起于 2026-04-16）与今日实际（本轮 `find _notes -name '*.md' | wc -l = 270` 差 2、其余未逐一核对）是否仍一致；② 后端应用清单（`zircon-urge` / `zircon-comments` / mcp）与实际 fly.io 部署是否一致；③ 域名注册商「待确认」等实际待确认项。**属内部文档、面向接手人**、`docs/` 已 exclude 出 Jekyll build（本轮核对 `ls _site/docs 2>&1` = 「No such file」），不泄露到公开站。
+
+8. **7-19 承接 P2**：① 门面适配 P0–P4 + 12 处收口共 18 commit 需六组合真机验收（`c419da7`~`e2edca8`）；② `_includes/category-search.html` 孤儿 include（`2b2eae6` 本次已在部分清理死代码方向上推了一步、`refactor(landing): 清理栏目页搜索条死代码,菜谱走独立页`——但该 commit 未删 include 文件本身也未 trim `_includes/category-listing-tools.html` 里的 5 处 `cat-search-*` CSS 与 JS 监听，仍是死代码半清；进一步清不清仍属站主拍板）；③ `life/index.html` 菜谱 `search_only=true` 永久隐藏（`2b2eae6` 说明「菜谱走独立页」应已通过下架该分区解决，需站主二次核对本 P2 是否已消除）。
+
+9. **评论体感层 + Vditor 加固 + 图片 R2 + 站主可删评论 + 51 commit 六组合真机验收 + `/u/` 公开主页 + `visibility.json` 全放开 + doudizhu 20 MB 权重 + forest 双视图 + 掼蛋联机 + 机票监控 mac 端到端 + jukebox 问题首 + DNS NameResolutionError + dead_links SVG xmlns 误判**（承接 7-19 之前全部老 P2 未消除项）—— 今日无新观察消除、承接不变。
+
+10. **`dead_links.py` 269 条几乎全是沙箱假阳，考虑增强误判过滤**（**今日新观察**，性质承接 7-19）—— 三类假阳可在脚本层过滤或加白名单：① 沙箱代理错误 `HTTPSConnectionPool ... ProxyError`（可识别 error string 前缀，在沙箱环境下降级为 warning 而非「dead」）；② `mp.weixin.qq.com` HTTP 403（微信一贯反爬，可加白名单域名列表）；③ 用作 CSS/JS 基础域名字符串出现但非可访问路径的 `fonts.googleapis.com` / `fonts.gstatic.com` HTTP 404（同白名单）。是否加过滤属工具决策，请站主拍板；不加也没关系、本 audit 输出已由 daily-review 逐条分类。
 
 ### 🗂 仓库卫生
 
-本次未跑仓库卫生扫描。仅报告 `git status` 观察：本地 `main` 与 `origin/main` 同步；工作区有 11 项 untracked（详见上方 P1 清单），属另一会话 WIP，未擅动。
+**目录结构较昨日 +2 顶级路径**（`_site/board/` 站务公告独立化 + `offline-versions.json` 离线版本清单，均是内容 / 功能新落地，非工具垃圾），工作副本足印本轮实测 `du -sh _site .git` = **`_site` 235 MB + `.git` 141 MB**（与 7-19 的 236 MB + 140 MB 完全一致的量级；41 commit 净变动主要在 CSS / JS / HTML / 33 张新 PNG 图标 + 1 新 include + `docs/` 已 exclude 的 SITE_HANDBOOK 452 行 markdown）。**新增文件**：33 张 `assets/icons/*-icon-192.png`（每张 4-10 KB · 合计约 200 KB）+ 4 张 pet PWA 全家族重出 + 4 张 suika PWA 全家族重出 + `docs/SITE_HANDBOOK.md`（452 行）+ `docs/ARCHITECTURE_REVIEW.md` `docs/MAINTENANCE.md` 等（此前的 `f69f906` 已把根 MAINTENANCE.md 系列内部维护文档搬进 `docs/` 集中管理）+ `board/onthisday/index.html`（那年今日搬入）+ `board.html`（站务公告页）+ `board/index.html` 等；**删除文件**：`toolbox/goals/`（进度跟踪下架并删除）+ `toolbox/vocab/`（生词本）+ `toolbox/catlang/`（猫语板）+ `toolbox/timemachine/`（那年今日搬进 /board/）—— 均已在 commit message 里注明「下架并删除」，非误删。`git status` clean（本地 = origin/main、`up to date`）、`git ls-files --others --exclude-standard` 空、`find . -maxdepth 3 -name '.DS_Store' -o -name '*.bak' -o -name '*.orig' -o -name '*.tmp' -o -name '*~'` 全空、`find . -maxdepth 3 -name "* 2.*"` 全空。**大文件盘点**（承接 7-19 完全一致）：`files/or/or-2023.pdf` 5.4 MB（唯一 5 MB+）、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB、`files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB、`pdfjs/build/pdf.worker.mjs` 2.1 MB、`assets/js/doudizhu/weights/` 6 个 `.qw`（合计约 18.4 MB）、`assets/echarts/` 2.0 MB —— 与 7-19 完全一致，无新增大文件；**33 张新 PNG 图标 4-10 KB 每张、合计约 200 KB，量级健康、不进大文件档**。`_paid/` + `_flight-staging/` 在 `_config.yml` L53 / L55 exclude 双保险稳固、`_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空。`_config.yml` 的 `exclude:` 已含 `docs/`（L37）+ `DAILY_REVIEW.md`（L38）+ `EMAIL_SUMMARY.md`（L39）+ 其他内部产物；`docs/SITE_HANDBOOK.md` + `docs/ARCHITECTURE_REVIEW.md` + `docs/MAINTENANCE.md` 等均在 `docs/` 内、本轮核对 `ls _site/docs 2>&1` = 「No such file or directory」，未渲染 / 未 leak。**凭证泄露核对**：`grep -rE "(BEGIN [A-Z]+ PRIVATE KEY|(sk|pk|api[_-]?key|secret)[_ -][a-zA-Z0-9]{20,})" -i` 全空——无真实凭证泄露。**结论**：目录结构较昨日 +2 顶级路径均为内容 / 功能新落地非垃圾、`docs/` 内部维护文档集中管理 + 已 exclude、图标大换血新增 33 张小 PNG 量级健康、下架 4 个工具已删除、无仓库卫生可动项。
 
 ### 💓 后端脉搏
 
-本次未跑（工作区脏、跳过 audit）。
+`backend_pulse.py` 报「未能拉取：network: curl exit 56 (curl: (56) CONNECT tunnel failed, response 403)」×3（zircon-urge / 排行榜 / waline）—— 承接沙箱无 fly.io 出口的长期现象。今日 41 commit 里 admin 收件箱 2 commit（`f4b6a2a` + `e7cbc0e`）新增对全站评论 / 点赞 / 收藏后端数据的时间线聚合、offline 7 commit 里 sw.js 逻辑升级需 API 端点稳定，是否有新增依赖变化沙箱看不到、请站主自查 fly.io 日志与端点响应。
 
 ### 📬 读者来信
 
-本次未跑（工作区脏、跳过 audit；也未调 Gmail MCP）。
+沙箱无 Gmail MCP + 无 IMAP 出口，本次未跑读者来信抽检。承接 7-19 之前的说明不变。
 
 ### 🔬 抽检专项
 
-本次未跑（工作区脏、跳过 spotcheck）。
+`spotcheck.py` 今日种子命中 10 项（3 类保底：game / pdf_archive / lecture_note_pdf_only + 7 项纯随机），covering `toolbox/guandan/index.html` 掼蛋 / `files/corp-fin/cheat-sheet-mid-2022.pdf` 财务管理小抄 等；沙箱以静态扫描形式过一遍无 build / lint / a11y / 逻辑硬伤命中、无待人工深审项——**本次未升级为 P2**。抽检 markdown 完整 payload 见 `/tmp/claude-0/-home-user-ruizhou03-github-io/.../scratchpad/audit.md` 的 38-208 行区间。
 
 ---
 
@@ -798,93 +829,3 @@
 ### 💓 后端脉搏 / 📬 读者来信
 
 后端三件套（zircon-urge / leaderboards / zircon-comments waline）+ 付费墙 `/api/paid` / `/api/redeem` 端点承接沙箱无 fly.io 出口现象、不阻塞巡检、未主动重启 fly app。**今日 7 个 commit 全部前端 forest（HTML + PWA 图标 + toolbox.yml 版本号）**，后端无新增依赖、无对外流量增益。
-
----
-
-## 2026-07-06
-
-> 例行无人值守巡检：build 健康度 + 仓库卫生。距 7-05 巡检共 **11 个 commit**（`50a650c` 之后 → `e741f76` 为止），**0 文章 / 0 IA / 0 `_data/` / 0 `_config.yml` / 0 `_notes/` / 0 `files/` 改动**（`git diff --stat 50a650c..HEAD -- '*.md' '_data/*' '_config.yml' '_notes/**' 'files/**'` 空）——11 个 commit 全部锁在 4 个前端文件里：`toolbox/forest/index.html`（+2385 / -286 行 / 10 commit）、`_includes/toolbox/pet/board.html`（+34 / -0）、`assets/css/pet.css`（+41 / -0）、`assets/js/pet.js`（+212 / -9）—— 一条主线：
->
-> ① **`toolbox/forest/` 种树专注计时器主题氛围景观再一波 10 连深度打磨**（`912a959` → `323b0dc` → `eceaf0e` → `b3c97eb` → `c538cde` → `4072c56` → `4cc6bd0` → `730e659` → `4d1d3f9` → `e741f76`）—— 承接 7-04（10 连产品化）+ 7-05（玩法 5 连深化）之后**再一天 10 commit** 从主题氛围景观层继续拉高美术：(a) **主题全部重做为氛围小景大图景 + 按钮小景**（912a959）—— 月夜 / 日出 / 极光 / 气泡 / 雨 / 星空 / 晴 7 主题从纯色板重画为「按钮上是小景、点开后是全屏氛围大图景」的双层预览体系；(b) **高级树装饰全重做——果实 / 灯串 / 小鸟 / 蝴蝶 / 落瓣**（323b0dc）—— 删掉之前 v3 的「廉价光晕光环」路线，改用高辨识度实物装饰（果实密度分布 / 灯串弧线走位 / 蝴蝶落点 / 樱花落瓣飘）拉开高级树档次；(c) **下架极光主题**（eceaf0e）—— 用户觉得极光「显廉价」直接下架；(d) **下架星空主题**（b3c97eb）—— 已有月夜主题，星空显冗余下架；(e) **整合上线 v1——主题呼吸动效 + 五树种专属装饰 + 新缩略图 + 樱花持续落樱**（c538cde）—— 大合并 commit（+1350 / -162 行），把前面几条路线整合上线；(f) **星点去掉十字光芒**（4072c56）—— 放大到全屏时那个「✛」像廉价准星，改成柔和圆点；(g) **夜景月亮去掉环形山圈点**（4cc6bd0）—— 还原成用户认可的干净月牙；(h) **5 主题专业化打磨上线**（730e659）—— 体积云 / 大气景深 / 月晕星尘 / 雨的地面水花 / 水下焦散 5 项专业渲染细节（+788 / -74，本次最大 commit）；(i) **专注遮罩沉浸布局上线**（4d1d3f9）—— 计时移顶部、树种在前景地面带上、落雨水花可见（专注全屏视觉重排）；(j) **专注遮罩场景铺满整屏**（e741f76）—— fix 收尾，删掉遗留的 `.focus-overlay svg` 一刀切尺寸规则让场景铺满不留边。10 连之后 forest 的主题氛围景观层从「基础色板 + 简单装饰」跃升为「按钮小景 + 全屏大图景 + 呼吸动效 + 5 主题专业渲染 + 沉浸布局」的完整景观美术体系；至今 forest 已连续 6 天迭代（7-01 首发 → 7-02 视觉打磨 → 7-04 产品化 10 连 → 7-05 玩法 5 连 → 7-06 主题氛围景观 10 连）共 40+ commit，是站点近期最活跃工具。 ② **`assets/js/pet.js` + `_includes/toolbox/pet/board.html` + `assets/css/pet.css` 宠物中心趋势图可下载 + 全屏横向看图**（`81dcfa9` 单 commit +284 / -12 行三文件联动）—— 新增两项功能：(A) **下载趋势图**：任何能点开的趋势视图（今日时段 24h / 近 7 日 / 近 30 日 / 近半年 / 近 1 年 / 自定义）都能一键存成图片。把当前 SVG 栅格化（解析掉 CSS 变量、按 2× 设备像素渲染保证清晰），合成一张卡片：宠物头像 + 名字、物种 / 年龄 / 体重 / 目标一行、区间名 + 具体日期范围、总量·日均汇总、站点署名与导出日期，文件名自动带宠物名与区间；(B) **全屏横向看图**：趋势区新增「⤢ 横屏」按钮，点开进全屏；手机竖屏时把面板旋转 90° 变成一块横屏画布，图更大、信息更清楚——顶部有完整区间 tab（今日 / 7 日 / 30 日 / 半年 / 1 年 / 自定义）、底部有今日逐日翻看（‹ 日期 › / 今天）与自定义起止日期，以及下载按钮；复用同一套渲染（把内嵌图每帧镜像到全屏 SVG，不重写绘制逻辑），Esc / ✕ 退出。区间切换重构出 `setTrendPeriod()` 供内嵌与全屏 tab 共用。是宠物中心继 7-04 客户端同步加固之后的第一个 UX 层新功能。
->
-> `bundle install` ✅ + `bundle exec ruby -e Jekyll::Commands::Build.process(...)` ✅ 通过、零 warning、零 error（13.927 s cold build）。`_site/` 顶层仍 **26 项**（与 7-05 / 7-04 / 7-03 / 7-02 完全一致：`CNAME` `account` `admin` `admin-manifest.json` `assets` `assistant-fulltext.json` `assistant-index.json` `en` `essays` `feed.xml` `files` `flight` `google5306…` `index.html` `life` `manifest.json` `notes` `pdfjs` `redirects.json` `research` `robots.txt` `search.json` `sitemap.xml` `sw.js` `toolbox` `zh`），未新增 / 未删减顶级路径。`_site/toolbox/forest/index.html` 364 KB（源 5801 行 / 163.5 KB → 200+ KB 前端源，一天 +2385 / -286 行主题氛围景观 10 连之后再次膨胀，Jekyll layout 注入后 364 KB），渲染完整；`_site/toolbox/index.html` grep `/toolbox/forest/` 命中 2 次（生活工具组 tool-card + bulk-offline shortcut）；`_site/sitemap.xml` + `_site/search.json` forest 各命中 —— 搜索体系闭环。`_site/toolbox/pet/index.html` grep `trend-fs` 命中 2 次（新增全屏横向看图容器 `<div class="trend-fs" id="trend-fs" hidden>` + `<svg id="trend-chart-fs">`）—— 全屏看图 UI 渲染到位。**未发现 `_flight-staging/` / `_paid/` 泄露**（`find _site -path "*_flight-staging*" -o -path "*_paid*"` 空）。**代码质量核对**：改动集中于 4 个前端文件，`grep "console.log\|debugger\|TODO\|FIXME\|XXX"` 仅 `assets/js/pet.js:5` 一条有意的品牌 log（`console.log('%c🐾 宠物中心 ' + BUILD_VERSION, ...)`，宠物中心一直有）、`toolbox/forest/index.html` 全 0 命中；`_includes/toolbox/pet/board.html` 全屏面板 DOM 与 `assets/js/pet.js` L5240 起的 `$tfsTabs` / `$tfsDaynav` / `$tfsPrev` / `$tfsDate` / `$tfsNext` / `$tfsToday` / `$tfsCustom` / `$tfsCustomStart` / `$tfsCustomEnd` 全部 id 一致 ✅、`setTrendPeriod` 双入口（内嵌 tab + 全屏 tab）绑定齐 ✅、`svgToPng` CSS 变量解析 + 2× 设备像素栅格化实现完整 ✅、`downloadTrendImage` 导出卡片含宠物头像 + 名字 + 物种年龄体重目标 + 区间日期 + 总量日均 + 站点署名 + 导出日期，无新增 debug 遗留。**今日 0 项自动修复**——11 个 commit 全部由站主亲手打磨（forest 主题氛围景观 10 连 + pet 趋势图下载 / 全屏横向看图 1 大 commit），属 UX / 视觉 / 交互层设计取向决策，一律不属本 agent 应擅动的“小而无争议”改动；build 健康、`_site/` 结构无异常、workspace 干净（`git status` clean、`git ls-files --others --exclude-standard` 空、`find . -name '.DS_Store' -o -name '*.bak' -o -name '*.orig' -o -name '*.tmp' -o -name '*~'` 全空、`find . -name "* 2.*"` 全空）、无任何低风险小修可做。**P1 队列**：唯一 P1 仍是承接 6-13 的 `_config.yml`.`study_order` 未列 `interm-econometrics`（今日**第 24 日承接**），`_notes/study/interm-econometrics/interm-econometrics-2023.md` 仍在，`comm -23 <(ls _notes/study/) <(sed -n '/^study_order:/,/^[a-z]/p' _config.yml | grep '^  - ')` 差集仍只此一条——纯 IA 设计判断，不擅动。**P2 队列**：承接 7-05 全部 P2（含 forest / pet / picker / connect4 / feixingqi / chess / xiangqi 真机验收、bare_dollar / spotcheck 启发式漏判、tutoring / paid-test-visa / mao-thought-principles summary、random hover 缩进、mid-2015 / anova-R 互链、掼蛋联机回归、宠物中心多浏览器、机票监控 mac 端到端、flight 5 HTML 多浏览器、经济学工具箱三项确认、jukebox 问题首、DNS NameResolutionError、dead_links SVG xmlns 误判、connect4 canvas 无键盘落子、linear-algebra-strang.md summary 引用、`_flight-staging/` 命名共 25 条）——今日无新观察消除、承接不变。此外今日新出 **P2 新观察**：⑤ forest 主题氛围景观 10 连后再次**大幅拉开与真机 / PWA 验收清单的距离**（今日 +2385 行、其中 `730e659` 单条 +788 行体积云 / 大气景深 / 月晕星尘 / 雨的地面水花 / 水下焦散渲染），六组合真机验收清单本次要补：① 5 主题（月夜 / 日出 / 气泡 / 雨 / 晴）专业化渲染在 iPhone / Android / iPad / 桌面五端下的视觉一致性与性能（体积云 / 大气景深 / 月晕星尘 / 焦散 5 项高级渲染有无掉帧 / 电量占用）、② 主题按钮小景在 8 主题按钮 grid 里的辨识度、③ 高级树装饰（果实 / 灯串 / 小鸟 / 蝴蝶 / 落瓣）在 5 主题背景下的对比度、④ 樱花持续落樱在长时番茄 25/45/90min 下的性能长跑、⑤ 主题呼吸动效在 PWA standalone 下的丝滑度、⑥ 沉浸专注遮罩布局（计时移顶部、树种在前景地面带上、落雨水花可见）在竖屏 / 横屏 / 平板 / 桌面全屏四种下的层次感与是否遮挡关键 UI、⑦ 场景铺满整屏（e741f76 修的一刀切尺寸规则）在多分辨率下是否留边 / 或反向溢出、⑧ 极光 / 星空下架后 8 → 7 → 6 主题的用户可能吐槽（“我喜欢的主题不见了”）与迁移路径（老存档指向已下架主题时降级为 default），沙箱无 GUI / 无触屏跑不了；⑥ pet 趋势图下载 + 全屏横向看图是宠物中心继同步加固之后**第一个 UX 层新功能**（+284 / -12 行三文件联动），建议真机验收：(a) 6 种区间（今日 24h / 近 7 日 / 30 日 / 半年 / 1 年 / 自定义）分别导出图片卡片的清晰度与文字排布不错位、(b) 手机竖屏点「⤢ 横屏」进全屏时旋转 90° 的手感与横屏顶部 tab / 底部 daynav / 自定义起止日期在小屏上的可点击性、(c) 全屏内切区间 tab 与内嵌 tab 数据是否同步一致（共用 `setTrendPeriod`，理论上是）、(d) 导出卡片的宠物头像加载失败时的兜底（`loadImage` 返回 null 时是否降级为无头像卡片而非崩）、(e) 大数据量（近 1 年逐日）时 SVG 栅格化到 2× 设备像素的性能与生成图片尺寸是否过大、(f) 深色模式下卡片配色 token（`--color-bg` / `--color-bg-warm` / `--color-ink` / `--color-muted` / `--color-accent` / `--color-border`）解析是否正确，沙箱无浏览器跑不了。
->
-> **仓库卫生**：目录结构与文件架构**较昨日无变化**——11 个 commit 全部锁在 4 个前端文件里，未新增 / 未删除任何目录、未新增 / 未删除任何 `_notes/` `_data/` `files/` 条目、未引入新二进制。工作树纯净（`git status` clean、`git ls-files --others --exclude-standard` 空、无编辑器 / 系统垃圾 / `* 2.*` 副本）。大文件核对与 7-05 / 7-04 完全一致：`files/or/or-2023.pdf` 5.3 MB 唯一 5 MB 以上、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB + `files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB 仍是 2 MB 以上二人组。`_paid/` + `_flight-staging/` 双双在 `_config.yml` L50/L52 exclude 列表内且 `_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空—— 双保险仍稳固。`_config.yml` 的 `exclude:` 列表已含 `DAILY_REVIEW.md`（L15）、`EMAIL_SUMMARY.md` 等所有内部产物。`assets/icons/forest-{apple-touch,icon-192,icon-512,icon-maskable-512}.png` 4 张图 mtime 仍是 6-30 首发日、size 未变（承接 7-05 观察 —— 本次 forest 10 连主题氛围重做未触发 PWA 主 icon 资源更新，若日后要为新的沉浸主题重画 icon 需另行安排）。**结论**：目录结构与文件架构与 7-05 完全一致，仅前端代码行内调整，无仓库卫生可动项。
-
-### ✅ 本次已自动修复
-
-无。
-
-11 个 commit 全部由站主亲手打磨（forest 主题氛围景观 10 连 / pet 趋势图下载 + 全屏横向看图 1 大功能 commit）—— 均属 UX / 视觉 / 交互层设计取向决策，不属“小而无争议”范畴；build ✅ / `_site/` 26 项结构与 7-05 / 7-04 / 7-03 / 7-02 完全一致 / workspace 干净 / 无低风险小修可做。
-
-### 📋 待你把关
-
-#### P0（紧急）
-
-无。
-
-#### P1（重要）
-
-1. **`_config.yml` 的 `study_order` 仍未列 `interm-econometrics` 文件夹**（承接 6-13 ~ 7-05，**第 24 日承接**）。`/notes/` landing 渲染遍历 `site.study_order`（`notes/index.html` L81），所以 `interm-econometrics-2023.md`（sub_category =「中级计量经济学」、120 页 Wooldridge 体系英文讲义、94 keywords 厚足覆盖）在 `/notes/index.html` 里**渲染不出来**（sitemap / search.json 仍正常工作，**仅** landing 缺）。今日核对：`ls _notes/study/` 仍 26 个目录（较昨日不变）、`study_order` 仍 25 条，`comm -23` 差集仍只 `interm-econometrics` 一条。改否、改成什么名（保留现状 / 加进 `study_order` / 与 `interm-metrics/` 合并）仍属设计判断，请你拍板 —— 承接 24 日，是仓库里最久的 P1。
-
-#### P2（建议）
-
-1. **`toolbox/forest/` 主题氛围景观 10 连之后待真机 / PWA 六组合验收再补 8 项**（**今日新观察 + 承接 7-05 P2#3**）—— 建议 iPhone Safari + Android Chrome + iPad + 桌面 Chrome + 桌面 Firefox + 「加装到主屏」PWA standalone 六组合下过完整流程一遍并补：① 5 主题专业渲染（体积云 / 大气景深 / 月晕星尘 / 雨的地面水花 / 水下焦散）在各端下的视觉一致性与性能、② 主题按钮小景在 7 主题按钮 grid 里的辨识度、③ 高级树装饰（果实 / 灯串 / 小鸟 / 蝴蝶 / 落瓣）在多主题背景下的对比度、④ 樱花持续落樱在长时番茄下的性能、⑤ 主题呼吸动效在 PWA standalone 下的丝滑度、⑥ 沉浸专注遮罩布局（计时移顶部、树种在前景地面带上、落雨水花可见）在四种尺寸下的层次感、⑦ 场景铺满整屏（e741f76）在多分辨率下是否留边或反向溢出、⑧ 极光 / 星空下架后老存档指向已下架主题的降级路径，并叠加 7-05 P2#3 的 10 项与 7-04 P2#3 的 13 项。沙箱无 GUI / 无触屏跑不了。
-
-2. **`toolbox/pet` 趋势图下载 + 全屏横向看图待真机双端 6 项验收**（**今日新观察**）—— (a) 6 种区间（今日 24h / 近 7 日 / 30 日 / 半年 / 1 年 / 自定义）分别导出图片卡片的清晰度与文字排布不错位、(b) 手机竖屏点「⤢ 横屏」进全屏时旋转 90° 的手感与横屏顶部 tab / 底部 daynav / 自定义起止日期在小屏上的可点击性、(c) 全屏内切区间 tab 与内嵌 tab 数据是否同步一致（共用 `setTrendPeriod`，理论上是）、(d) 导出卡片的宠物头像加载失败时的兜底（`loadImage` 返回 null 时是否降级为无头像卡片而非崩）、(e) 大数据量（近 1 年逐日）时 SVG 栅格化到 2× 设备像素的性能与生成图片尺寸是否过大、(f) 深色模式下卡片配色 token 解析是否正确，沙箱无浏览器跑不了。
-
-3. **`linear-algebra-strang.md` summary 里「本站中文《线性代数讲义》」的引用**（承接 6-24 ~ 7-05，性质与 7-05 一致）—— 站上线代中文材料以《经济学数学工具箱》里 ch1-ch7 存在，但书名不同、面向经济学博士。三种改法：① 保留字面等以后写独立中文《线性代数讲义》；② 改字面为「本站《经济学数学工具箱》线性代数部分（ch1-ch7）」并链过去；③ 删引用改自足介绍。**属内容写作 + 结构映射决策，请你拍板**。
-
-4. **`_flight-staging/` 目录名与其内容实际角色不匹配**（承接 7-02 ~ 7-05，性质不变）—— 目录里的 `runner/` 已是**已上线机票监控工具的生产后端**，但目录名沿用「设计稿暂存」语义会误导。三种改法：① 保留名字（沉默约定）；② `runner/` 挪出到 `flightwatch/runner/` 需同步改 `flight/get:21` SRC 常量 + 新旧 URL 平滑迁移；③ `_flight-staging/` 改名 `_flightwatch/` 保 `_-`前缀防收录，只改 URL 前缀。**命名 / 迁移决策，请你拍板**。
-
-5. **`assets/js/pet.js` 宠物中心 7-04 同步加固 2 连待真机双人 / 双端互测验收**（承接 7-04 ~ 7-05 P2#4，性质不变）—— 6 项互测清单（发件箱 opId 幂等 / 一台删除另一台不复活 / per-field meta 双管理员不互相覆盖 / propose 改时间 opId 幂等 / 云同步不冲掉共享宠物 / 成员 API 失败重试幂等），沙箱无双端真机跑不了。
-
-6. **`toolbox/connect4` 从藏蓝改到奶油浅板后共享 palette 抽取方案需重新拟定**（承接 7-05 P2#5）—— 若日后要抽 `assets/css/main.css` 的 `--game-board-*` 共享 token，应以「奶油浅底 + 暖色棋子 + 藏蓝点缀」为新基准，本条待你重新拟定拍板方向。
-
-7. **`toolbox/feixingqi` 骰子点色跟随玩家的「玩家色系统」是否抽出**（承接 7-05 P2#6）—— 是否要把「玩家色系统」抽成 `_data/players.yml` 或 CSS 变量供其他多人回合制工具（掼蛋 / 跳棋 / 五子棋 / 反棋）复用属设计决策，请你拍板。
-
-8. **`toolbox/picker` 一周 6 commit 完整重构后待真机手感回归**（承接 7-04 ~ 7-05）—— 8 场景真机手感回归清单，沙箱无 GUI / 无触屏跑不了。
-
-9. **chess + xiangqi「对坐模式」新加的 CSS 转 180° 待真机 iPad / iPhone 横屏面对面下一整局验收**（承接 7-03 ~ 7-05）—— 沙箱无触屏跑不了。
-
-10. **`toolbox/pet` 宠物中心手机端食物列表「悬浮展开」新姿态待真机 iOS Safari + Android Chrome 双端验收**（承接 7-03 ~ 7-05）—— 沙箱无触屏跑不了。
-
-11. **`scripts/audit/bare_dollar.py` 启发式漏判 `$\d+-...$` 类数学配对**（承接 6-30 ~ 7-05）—— 今日**未跑** audit 脚本，老待办承接。
-
-12. **`scripts/audit/spotcheck.py` 的 `.tex 源` 探测启发式仍漏判带主题后缀和异目录情形**（承接 6-27 ~ 7-05）—— 今日**未跑** audit 脚本，老待办承接。
-
-13. **`_notes/tutoring/` 10 篇里 7 篇缺 `summary` 字段**（承接 6-30 ~ 7-05）—— 老文盘扫，内容写作决策。
-
-14. **`_notes/life/paid-test-us-visa-types.md` 缺 `summary` 字段且无法直接改**（承接 6-30 ~ 7-05）—— 需改源文件 `_paid/liuxue-test-visa.md` 或改 `scripts/paywall/build_paid.py`。
-
-15. **`_notes/study/mao-thought/mao-thought-principles.md` 无 `summary:` 字段但正文 L17 是介绍段落**（承接 6-29 ~ 7-05）—— 写作偏好；PDF-only 页面有正文时 `post.html` 兜底不触发，渲染上不缺。
-
-16. **`toolbox/random/` hover 守卫内层缩进 cosmetic** —— 承接 6-03 ~ 7-05，功能正确、纯排版风格小差异，可忽略。
-
-17. **mid-2015 与 anova-R 纯 PDF 存档可加同课程互链入口** —— 承接 6-03 ~ 7-05，内容写作决策。
-
-18. **掼蛋 6-18 ~ 6-24 联机改造 + 6-30 四象限版型迁移待真机 / 微信内置浏览器跑两局完整联机回归**（承接 6-27 ~ 7-05）。沙箱无浏览器 / 无音频出口无法替代真机回归。
-
-19. **宠物中心近期多轮更新待多浏览器 / 多设备验收**（承接 6-29 ~ 7-05）。沙箱无 GUI / 无真触屏，跑不了。
-
-20. **机票监控 Phase 3 一键安装器 `flight/get` + Phase 2 后端 pipeline 待 mac 真机端到端跑一轮验收**（承接 7-02 ~ 7-05）。沙箱无 mac 出口跑不了。
-
-21. **`toolbox/flight/` 5 个 HTML 页 UX 待多浏览器 / 多屏幕跑一遍**（承接 7-02 ~ 7-05）。
-
-22. **《经济学博士的数学工具箱》教材首发三项确认**（承接 7-02 ~ 7-05）—— summary 长度 / `sub_category=经济学数学基础` 新分类走向 / `course=经济学数学工具箱` 是否挂进 `_data/course_aliases.yml`。
-
-23. **jukebox 16 首问题首 + 3 失败首待逐类修复** —— 承接 6-18 ~ 7-05。
-
-24. **5 条 DNS NameResolutionError 外链需站主在生产环境复验** —— 承接 6-08 ~ 7-05；今日**未跑** `dead_links.py`。
-
-25. **`dead_links.py` 把 SVG `xmlns="http://www.w3.org/2000/svg"` 命名空间字符串误判为外链** —— 承接 6-08 ~ 7-05，cosmetic 非阻塞。
-
-26. **`toolbox/connect4` canvas 无键盘落子通道**（承接 7-03 ~ 7-05）—— 历史状态、非本次改动引入，可挪进“游戏 a11y 补齐”内容待办。
-
-### 🗂 仓库卫生
-
-**仓库结构较昨日无变化，无需再优化。** `git diff --stat 50a650c..HEAD` 覆盖的 4 个文件全在 `toolbox/forest/index.html` + `_includes/toolbox/pet/board.html` + `assets/css/pet.css` + `assets/js/pet.js`——纯前端 / 组件 / 样式 / JS 改动，**未新增 / 未删除任何目录、未新增 / 未删除任何 `_notes/` `_data/` `files/` 条目**（`git diff --stat 50a650c..HEAD -- '*.md' '_data/*' '_config.yml' '_notes/**' 'files/**'` 空）。`git status` clean、`git ls-files --others --exclude-standard` 空、`find . -name '.DS_Store' -o -name '*.bak' -o -name '*.orig' -o -name '*.tmp' -o -name '*~'` 全空、`find . -name "* 2.*"` 全空，无编辑器 / 系统垃圾。大文件核对：仍与 7-05 / 7-04 一致——`files/or/or-2023.pdf` 5.3 MB 唯一 5 MB 以上、`files/econ-math-toolkit/econ-math-toolkit.pdf` 2.9 MB + `files/interm-macro/interm-macro-2022-zh.pdf` 2.2 MB 仍是 2 MB 以上二人组。`_paid/` + `_flight-staging/` 双双在 `_config.yml` L50/L52 exclude 列表内且 `_site/` 内 `find _site -path "*_flight-staging*" -o -path "*_paid*"` 全空——双保险仍稳固。`toolbox/forest/` 目录仍 2 项（`index.html` 一天从 163.5 KB 长至约 200 KB / 5801 行 + `manifest.json` 758 B）、`assets/icons/forest-{apple-touch,icon-192,icon-512,icon-maskable-512}.png` 4 张 icon 仍 mtime 6-30 未变（本次 10 连主题氛围重做未触发 PWA 主 icon 资源更新——若日后要为新的沉浸主题重画 icon 需另行安排，承接 7-05 观察）。**结论**：目录结构与文件架构与 7-05 完全一致，仅前端代码行内调整，无仓库卫生可动项。
-
-### 💓 后端脉搏 / 📬 读者来信
-
-11 个 commit 均为前端 / 组件层打磨（forest 主题氛围景观 10 连纯前端 + pet 趋势图下载 / 全屏横向看图属客户端渲染 + Canvas 栅格化，无新增 API 调用），未新增任何对 zircon-urge / leaderboards / zircon-comments waline / 付费墙 `/api/paid` `/api/redeem` / pet-food fly.io 后端端点的依赖变化。`backend_pulse.py` 本次未主动跑（沙箱无 fly.io 出口，承接 6-04 ~ 7-05 每次巡检结论），站点后端配置维持稳定。
