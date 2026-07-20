@@ -10,6 +10,8 @@
 
 Redis 与 PostgreSQL 文件会连同校验清单打包，经 GnuPG AES-256 对称加密后才上传。工作流会从 R2 下载一遍密文并核对 SHA-256；PostgreSQL dump 在上传前用 `pg_restore --list` 验证。备份 bucket 不启用 public access，也不能与业务 bucket 相同。
 
+首次生产验证于 2026-07-20 完成（GitHub Actions run `29716366155`）：Redis 快照前后 key 数一致，PostgreSQL custom dump 可由 `pg_restore --list` 读取，R2 的 151 个对象全部匹配，密文上传后下载回读 SHA-256 一致。该验证证明自动链路可运行，但不替代恢复到临时服务的季度演练。
+
 ## GitHub Actions secrets
 
 工作流需要：

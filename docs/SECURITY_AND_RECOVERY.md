@@ -22,14 +22,14 @@
 - JWT 使用 HS256；2026-07-20 已删除公开的默认密钥，`AUTH_JWT_SECRET` 缺失时后端拒绝启动。线上部署仍须先核实 fly secret。
 - 密码用 scrypt 加盐、Google token 严格验签；账号支持数据导出和真注销。
 - CORS `*` 是当前 Bearer-token 模型下的刻意约束；若未来改 cookie 鉴权，必须同步收紧。
-- Redis、PostgreSQL 与 R2 的每周备份和恢复工具位于 `scripts/backup/`；只有首次工作流成功并完成恢复演练后，才能把“可恢复”标成绿色。
+- Redis、PostgreSQL 与 R2 的每周备份和恢复工具位于 `scripts/backup/`；2026-07-20 首次自动备份与上传回读校验成功，仍须完成恢复到临时服务的演练后才能把“可恢复”标成绿色。
 - 全站流量主口径为 Cloudflare Web Analytics；GA4 仅两个独立首页，不作为全站总量。
 
 ## 风险台账
 
 | 优先级 | 风险 | 当前动作 / 完成标准 |
 |---|---|---|
-| P0 | Redis / PostgreSQL / R2 数据丢失 | 每周加密备份首次成功；季度恢复到临时资源并记录结果 |
+| P0 | Redis / PostgreSQL / R2 数据丢失 | 每周加密备份已首次成功；下一步恢复到临时资源并记录季度演练 |
 | P0 | 服务账号和密钥只在原作者手里 | 按 `OPERATIONS_INVENTORY.md` 补齐所有权、恢复邮箱、第二管理员 |
 | P0 | JWT 生产密钥缺失 | 代码已 fail-closed；核实 fly secret 后部署并做健康检查 |
 | P1 | 密码登录无找回流程、最低 6 位 | 优先评估 magic link / 邮箱验证码，最终移除密码哈希负担；过渡期至少提高最低长度并补找回 |

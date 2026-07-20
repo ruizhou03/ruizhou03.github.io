@@ -381,7 +381,7 @@ LaunchAgent plist 模板在 `scripts/io.github.zirconeey.*.plist.template`（标
 
 1. **密钥全在原作者手上**：fly secrets、Upstash、Google OAuth、R2、域名。任何一个交接不到位，对应功能就永久失效且无法恢复。
 2. **本机依赖**：邮件总结、机票监控、部分巡检跑在原作者 Mac 的 LaunchAgent 上，换人接手要重装。
-3. **动态数据恢复链路刚建立、尚待首次成功与演练**。每周工作流覆盖 Upstash、Waline PostgreSQL 与 R2，但只有首次成功并恢复到临时资源后才能算真正可恢复。
+3. **动态数据恢复链路已首次跑通、尚待真实恢复演练**。2026-07-20 每周工作流首次成功覆盖 Upstash、Waline PostgreSQL 与 R2，并完成密文上传回读；只有恢复到临时资源后才能算真正可恢复。
 4. **内容备份**只有 GitHub 一处（待确认是否有异地副本）。
 
 ### 待确认项（别当事实用）
@@ -401,7 +401,7 @@ LaunchAgent plist 模板在 `scripts/io.github.zirconeey.*.plist.template`（标
 | 事 | 为什么 | 工作量 |
 |---|---|---|
 | **确认 Cloudflare 统计后台可读** | beacon 已全站覆盖；需核实 API token、账号权限和历史数据 | 30 分钟 |
-| **跑通首次三源备份 + 恢复演练** | Redis、评论 PostgreSQL、R2 缺一不可 | 半天起 |
+| **完成三源真实恢复演练** | 首次自动备份已成功；仍要把 Redis、评论 PostgreSQL、R2 恢复到临时资源验证 | 半天起 |
 | **补齐服务 / 密钥清单的账号归属** | 名称已成册，注册商、账单账号、恢复邮箱仍待人工补齐 | 1 小时 |
 | **根目录报告归档进 `docs/`** | 卫生 | 10 分钟 |
 

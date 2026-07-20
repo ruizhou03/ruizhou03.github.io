@@ -10,7 +10,7 @@
 | GitHub | `ruizhou03/zircon-urge` | `backends/urge/` 独立仓库 | 主动态后端源码 | 2026-07-20 已把本机领先提交推回远端 |
 | GitHub | `ruizhou03/zircon-comments` | `backends/comments/` 独立仓库 | Waline 后端源码 | 2026-07-20 已把本机领先提交推回远端 |
 | GitHub | `zirconeey/zircon-mcp` | `backends/mcp/` 独立仓库 | 只读 MCP 包装源码 | 远端与本机一致 |
-| GitHub Actions | 主仓库 Actions secrets | `.github/workflows/` | 每日快照、每周数据备份 | secrets 只能覆盖、不能读回；值另存密码管理器 |
+| GitHub Actions | 主仓库 Actions secrets | `.github/workflows/` | 每日快照、每周数据备份 | 2026-07-20 首次三源备份成功；secrets 只能覆盖、不能读回 |
 | GitHub Pages | `ruizhou03.com` | `_config.yml`、`CNAME` | 全站静态生产环境 | push `main` 自动部署 |
 | fly.io | `zircon-urge`（Singapore） | `backends/urge/fly.toml` | 账号、积分、收藏、游戏、后台、小助手 | `flyctl deploy --depot=false --remote-only --wg` |
 | fly.io | `zircon-comments`（Singapore） | `backends/comments/fly.toml` | Waline 与评论管理接口 | 同上 |
@@ -70,4 +70,4 @@ git -C backends/comments status --short --branch
 - PostgreSQL 的实际服务商、套餐、快照能力与恢复入口。
 - Cloudflare / Upstash / fly.io 的账单账号与第二管理员。
 - 是否还需要部署 `zircon-mcp`；当前 fly 账号下没有同名 app。
-- 第一次成功的自动备份日期与第一次真实恢复演练日期。
+- 第一次真实恢复演练日期；自动备份首次成功日期为 2026-07-20。

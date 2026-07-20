@@ -44,7 +44,7 @@ jobs:
       RCLONE_CONFIG_R2BACKUP_NO_CHECK_BUCKET: 'true'
       BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Verify required secrets
         shell: bash
@@ -65,9 +65,20 @@ jobs:
           fi
 
       - name: Install R2 client
+        env:
+          RCLONE_VERSION: 1.74.2
+          RCLONE_LINUX_AMD64_SHA256: 72a806370072015ccbe4d81bcd348cc5eaf3beca6c65ba693fd43fb31fcca5b1
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq rclone
+          archive="$RUNNER_TEMP/rclone.zip"
+          curl --fail --location --silent --show-error \
+            --output "$archive" \
+            "https://github.com/rclone/rclone/releases/download/v${RCLONE_VERSION}/rclone-v${RCLONE_VERSION}-linux-amd64.zip"
+          printf '%s  %s\n' "$RCLONE_LINUX_AMD64_SHA256" "$archive" | sha256sum --check
+          unzip -q "$archive" -d "$RUNNER_TEMP/rclone"
+          sudo install -m 0755 \
+            "$RUNNER_TEMP/rclone/rclone-v${RCLONE_VERSION}-linux-amd64/rclone" \
+            /usr/local/bin/rclone
+          rclone version
 
       - name: Verify private backup bucket access
         shell: bash
@@ -100,7 +111,7 @@ jobs:
           set -euo pipefail
           rclone copy "r2source:$R2_SOURCE_BUCKET" \
             "r2backup:$R2_BACKUP_BUCKET/r2-mirror/current" \
-            --fast-list --checkers 8 --transfers 4 --stats 30s
+            --disable Copy --fast-list --checkers 8 --transfers 4 --stats 30s
           rclone check "r2source:$R2_SOURCE_BUCKET" \
             "r2backup:$R2_BACKUP_BUCKET/r2-mirror/current" \
             --one-way --size-only
