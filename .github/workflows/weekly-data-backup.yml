@@ -85,7 +85,7 @@ jobs:
           python3 scripts/backup/upstash_snapshot.py validate "$BACKUP_DIR/upstash.json.gz"
 
           docker run --rm \
-            -e PGPASSWORD -e PGSSLMODE \
+            -e PGPASSWORD="$POSTGRES_PASSWORD" -e PGSSLMODE="$POSTGRES_SSLMODE" \
             -v "$BACKUP_DIR:/backup" postgres:17 \
             pg_dump --format=custom --no-owner --no-acl \
               --host "$POSTGRES_HOST" --port "${POSTGRES_PORT:-5432}" \
