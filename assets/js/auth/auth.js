@@ -1,6 +1,6 @@
 /* SiteAuth —— 全站统一账号前端模块。
  * 挂在 window.SiteAuth，所有页面（博客 + 百宝箱）共用一个登录态。
- * 新账号只由已验签的 Google 身份创建；密码只作为历史账号的过渡登录方式。
+ * 新账号由邮件验证码或已验签的 Google 身份创建；本站不再接受或保存登录密码。
  * token 存 localStorage，登录后所有受保护请求用 authedFetch 自动带 Authorization。
  * 与小游戏的 gs.did.v1 / 文末点赞的 rxn-uid 解耦：登录后调 claim 把这台设备的
  * 历史数据认领到账号名下（首次登录自动认领）。
@@ -146,8 +146,14 @@
       return function () { listeners = listeners.filter(function (f) { return f !== cb; }); };
     },
 
-    login: async function (email, password) {
-      var r = await post('/auth?action=login', { email: email, password: password });
+    requestEmailCode: async function (email) {
+      var r = await post('/auth?action=request-email-code', { email: email });
+      if (!r.ok) return { ok: false, error: (r.data && r.data.error) || 'failed', status: r.status };
+      return { ok: true };
+    },
+
+    verifyEmailCode: async function (email, code) {
+      var r = await post('/auth?action=verify-email-code', { email: email, code: code });
       return afterAuth(r);
     },
 
@@ -157,8 +163,7 @@
       return afterAuth(r);
     },
 
-    // 已用密码登录的旧账号，必须在同一会话内再验一次同名 Google 邮箱。
-    // 后端按 Google sub 绑定，不会仅因邮箱文本相同就自动合并。
+    // 已验证邮箱的账号可以再关联同名 Google 身份；后端按稳定 sub 绑定。
     linkGoogle: async function (idToken) {
       var r = await post('/auth?action=link-google', { idToken: idToken }, true);
       return afterAuth(r);
@@ -178,14 +183,6 @@
       return { ok: true, user: r.data.user };
     },
 
-    // 仅历史密码账号可在验证旧密码后修改；Google-only 账号不创建本站密码。
-    setPassword: async function (oldPassword, newPassword) {
-      var r = await post('/auth?action=set-password', { oldPassword: oldPassword, newPassword: newPassword }, true);
-      if (!r.ok) return { ok: false, error: (r.data && r.data.error) || 'failed' };
-      if (r.data && r.data.user) setSession(null, r.data.user);   // 刷新 hasPassword
-      return { ok: true, hadPassword: !!(r.data && r.data.hadPassword) };
-    },
-
     // 导出当前账号的全部数据（返回对象，由调用方生成下载）。
     exportData: async function () {
       var res = await SiteAuth.authedFetch(API + '/me?action=export');
@@ -195,8 +192,8 @@
     },
 
     // 注销账号：成功后清本地登录态（触发 onChange → 回到游客态）。
-    deleteAccount: async function (password) {
-      var r = await post('/auth?action=delete', { password: password }, true);
+    deleteAccount: async function () {
+      var r = await post('/auth?action=delete', {}, true);
       if (!r.ok) return { ok: false, error: (r.data && r.data.error) || 'failed' };
       clearSession();
       return { ok: true };

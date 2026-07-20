@@ -1147,20 +1147,21 @@ body_class: acc-page
           '<label class="acc-switch"><input type="checkbox" id="acc-pub-toggle"' + (user.profilePublic !== false ? ' checked' : '') + '><span class="acc-switch-slider"></span></label>' +
         '</div>' +
         '<div class="acc-set-row">' +
-          '<div class="acc-set-info"><div class="acc-set-t">邮箱归属</div>' +
+          '<div class="acc-set-info"><div class="acc-set-t">邮箱登录</div>' +
             '<div class="acc-set-d">' + (user.emailVerified
-              ? '已通过 Google 验证。按邮箱查询的评论记录只会对已验证身份开放。'
-              : '尚未验证。请关联同名 Google 邮箱；本站不会仅因邮箱文本相同就合并账号。') + '</div></div>' +
+              ? '邮箱已经验证。以后使用 10 分钟有效、单次使用的邮件验证码登录；本站不保存登录密码。'
+              : '当前旧会话尚未验证邮箱；验证后才能按邮箱查询评论记录。本站不再接受密码登录。') + '</div></div>' +
           (user.emailVerified
             ? '<span style="font-size:0.82rem;color:#2f8f6b;font-weight:700;">已验证</span>'
             : '<button class="acc-tool-btn" id="acc-verify-email-btn">立即验证</button>') +
         '</div>' +
         '<div class="acc-set-row">' +
-          '<div class="acc-set-info"><div class="acc-set-t">登录密码</div>' +
-            '<div class="acc-set-d">' + (user.hasPassword ? '历史账号可验证当前密码后修改；建议先关联 Google，避免密码遗失后无法自动恢复。' : '这是 Google-only 账号，不保存本站密码。') + '</div></div>' +
-          (user.hasPassword ? '<button class="acc-tool-btn" id="acc-pw-btn">修改密码</button>' : '<span style="font-size:0.82rem;color:#2f8f6b;font-weight:700;">Google-only</span>') +
+          '<div class="acc-set-info"><div class="acc-set-t">Google 登录</div>' +
+            '<div class="acc-set-d">可选。关联同名 Google 邮箱后可以直接使用 Google 登录；管理员权限仍要求 Google 验证。</div></div>' +
+          (user.googleLinked
+            ? '<span style="font-size:0.82rem;color:#2f8f6b;font-weight:700;">已关联</span>'
+            : '<button class="acc-tool-btn" id="acc-google-link-btn">关联</button>') +
         '</div>' +
-        '<div class="acc-set-panel" id="acc-pw-panel" hidden></div>' +
         '<div class="acc-set-row">' +
           '<div class="acc-set-info"><div class="acc-set-t">隐私与数据</div>' +
             '<div class="acc-set-d">查看本站收集哪些数据、保存在哪里，以及如何导出或删除。</div></div>' +
@@ -1194,42 +1195,16 @@ body_class: acc-page
         var r; try { r = await SiteAuth.updateProfile({ profilePublic: pubToggle.checked }); } catch (e) { r = { ok: false }; }
         if (!r.ok) { pubToggle.checked = !pubToggle.checked; pubToggle.disabled = false; alert('保存失败，再试一次'); }
       });
+      var googleLinkBtn = document.getElementById('acc-google-link-btn');
+      if (googleLinkBtn) googleLinkBtn.addEventListener('click', function () {
+        if (SiteAuth.openGoogleLink) SiteAuth.openGoogleLink();
+      });
       var verifyEmailBtn = document.getElementById('acc-verify-email-btn');
       if (verifyEmailBtn) verifyEmailBtn.addEventListener('click', function () {
         if (SiteAuth.openEmailVerification) SiteAuth.openEmailVerification();
       });
-      var pwBtn = document.getElementById('acc-pw-btn');
-      if (pwBtn) pwBtn.addEventListener('click', function () { togglePwPanel(user); });
       document.getElementById('acc-export-btn').addEventListener('click', doExport);
       document.getElementById('acc-del-btn').addEventListener('click', function () { toggleDelPanel(user); });
-    }
-
-    function togglePwPanel(user) {
-      var p = document.getElementById('acc-pw-panel');
-      if (!p.hidden) { p.hidden = true; p.innerHTML = ''; return; }
-      p.hidden = false;
-      p.innerHTML =
-        '<div style="padding:0.4rem 0 0.6rem;">' +
-          '<div class="acc-ef-row"><label for="acc-pw-old">当前密码</label><input type="password" id="acc-pw-old" autocomplete="current-password"></div>' +
-          '<div class="acc-ef-row"><label for="acc-pw-new">新密码（12–128 位）</label><input type="password" id="acc-pw-new" autocomplete="new-password"></div>' +
-          '<div class="acc-ef-row"><label for="acc-pw-new2">确认新密码</label><input type="password" id="acc-pw-new2" autocomplete="new-password"></div>' +
-          '<div class="acc-ef-actions"><span class="acc-ef-err" id="acc-pw-err"></span>' +
-            '<button type="button" class="acc-tool-btn" id="acc-pw-cancel">取消</button>' +
-            '<button type="button" class="acc-save" id="acc-pw-save">保存</button></div>' +
-        '</div>';
-      document.getElementById('acc-pw-cancel').addEventListener('click', function () { p.hidden = true; p.innerHTML = ''; });
-      document.getElementById('acc-pw-save').addEventListener('click', async function () {
-        var err = document.getElementById('acc-pw-err'); err.textContent = '';
-        var oldP = document.getElementById('acc-pw-old').value;
-        var n1 = document.getElementById('acc-pw-new').value, n2 = document.getElementById('acc-pw-new2').value;
-        if (n1.length < 12 || n1.length > 128) { err.textContent = '新密码需为 12–128 位'; return; }
-        if (n1 !== n2) { err.textContent = '两次输入不一致'; return; }
-        this.disabled = true;
-        var r; try { r = await SiteAuth.setPassword(oldP, n1); } catch (e) { r = { ok: false }; }
-        this.disabled = false;
-        if (r.ok) { p.hidden = true; p.innerHTML = ''; alert('密码已修改'); }
-        else err.textContent = r.error === 'bad_old_password' ? '当前密码不对' : r.error === 'weak_password' ? '新密码需为 12–128 位' : r.error === 'password_login_disabled' ? '此账号只使用 Google 登录' : '保存失败，再试一次';
-      });
     }
 
     async function doExport() {
@@ -1255,9 +1230,7 @@ body_class: acc-page
       p.innerHTML =
         '<div style="border:1px solid #e0b4ad; border-radius:var(--radius-md); padding:1rem; margin:0.4rem 0;">' +
           '<p style="margin:0 0 0.8rem; font-size:0.88rem; color:var(--color-text); line-height:1.6;">注销后，你的账号、收藏、点赞、浏览记录会被<strong>永久删除</strong>、无法恢复。（评论请在评论区自行删除）</p>' +
-          (user.hasPassword
-            ? '<div class="acc-ef-row"><label for="acc-del-pw">输入密码确认</label><input type="password" id="acc-del-pw" autocomplete="current-password"></div>'
-            : '<div class="acc-ef-row"><label for="acc-del-word">输入「注销」二字确认</label><input type="text" id="acc-del-word" placeholder="注销"></div>') +
+          '<div class="acc-ef-row"><label for="acc-del-word">输入「注销」二字确认</label><input type="text" id="acc-del-word" placeholder="注销"></div>' +
           '<div class="acc-ef-actions"><span class="acc-ef-err" id="acc-del-err"></span>' +
             '<button type="button" class="acc-tool-btn" id="acc-del-cancel">取消</button>' +
             '<button type="button" class="acc-tool-btn danger" id="acc-del-confirm">确认注销</button></div>' +
@@ -1265,15 +1238,13 @@ body_class: acc-page
       document.getElementById('acc-del-cancel').addEventListener('click', function () { p.hidden = true; p.innerHTML = ''; });
       document.getElementById('acc-del-confirm').addEventListener('click', async function () {
         var err = document.getElementById('acc-del-err'); err.textContent = '';
-        var pw = '';
-        if (user.hasPassword) { pw = document.getElementById('acc-del-pw').value; if (!pw) { err.textContent = '请输入密码'; return; } }
-        else if (document.getElementById('acc-del-word').value.trim() !== '注销') { err.textContent = '请输入「注销」二字'; return; }
+        if (document.getElementById('acc-del-word').value.trim() !== '注销') { err.textContent = '请输入「注销」二字'; return; }
         if (!confirm('最后确认：真的要永久注销账号吗？此操作不可撤销。')) return;
         this.disabled = true;
-        var r; try { r = await SiteAuth.deleteAccount(pw); } catch (e) { r = { ok: false }; }
+        var r; try { r = await SiteAuth.deleteAccount(); } catch (e) { r = { ok: false }; }
         this.disabled = false;
         if (r.ok) alert('账号已注销。');
-        else err.textContent = r.error === 'bad_password' ? '密码不对' : '注销失败，稍后再试';
+        else err.textContent = '注销失败，稍后再试';
       });
     }
 

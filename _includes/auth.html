@@ -110,6 +110,10 @@
   }
   .sa-submit:disabled { opacity: 0.6; cursor: default; }
   .sa-error { min-height: 1.1rem; font-size: 0.8rem; color: #c0392b; margin: 0.5rem 0 0; text-align: center; }
+  .sa-error.ok { color: #2f8f6b; }
+  .sa-resend { display: block; margin: 0.65rem auto 0; border: none; background: none;
+    color: var(--color-muted); font: inherit; font-size: 0.78rem; cursor: pointer; }
+  .sa-resend:hover { color: var(--color-highlight); }
   .sa-hint { font-size: 0.74rem; color: var(--color-light); text-align: center; margin-top: 0.9rem; line-height: 1.5; }
   .sa-google-wrap { margin-top: 1rem; }
   .sa-divider { display: flex; align-items: center; gap: 0.6rem; margin: 0.2rem 0 0.9rem; color: var(--color-light); font-size: 0.78rem; }
@@ -143,11 +147,12 @@
           <label for="sa-email">邮箱</label>
           <input type="email" id="sa-email" autocomplete="email" required placeholder="you@example.com">
         </div>
-        <div class="sa-field">
-          <label for="sa-password">密码</label>
-          <input type="password" id="sa-password" autocomplete="current-password" required placeholder="至少 6 位">
+        <div class="sa-field" id="sa-code-field" hidden>
+          <label for="sa-code">邮件验证码</label>
+          <input type="text" id="sa-code" autocomplete="one-time-code" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" placeholder="8 位数字">
         </div>
-        <button type="submit" class="sa-submit" id="sa-submit">登录</button>
+        <button type="submit" class="sa-submit" id="sa-submit">发送验证码</button>
+        <button type="button" class="sa-resend" id="sa-resend" hidden>重新发送验证码</button>
         <p class="sa-error" id="sa-error"></p>
       </form>
       <!-- Google 登录：仅当配置了 client_id 且 GIS 脚本加载成功才显示（国内被墙时自动隐藏） -->
@@ -155,7 +160,7 @@
         <div class="sa-divider"><span>或</span></div>
         <div id="sa-google-btn"></div>
       </div>
-      <p class="sa-hint">新账号请使用 Google 验证邮箱。已有密码账号可继续登录，并在登录后关联 Google。</p>
+      <p class="sa-hint">验证码 10 分钟内有效且只能使用一次。也可以直接使用 Google 登录。</p>
       <div class="sa-loading" id="sa-loading" hidden>
         <div class="sa-spinner" aria-hidden="true"></div>
         <p>正在登录…</p>
@@ -172,37 +177,58 @@
   var subEl = document.getElementById('sa-sub');
   var form = document.getElementById('sa-form');
   var emailEl = document.getElementById('sa-email');
-  var pwEl = document.getElementById('sa-password');
+  var codeField = document.getElementById('sa-code-field');
+  var codeEl = document.getElementById('sa-code');
   var submitBtn = document.getElementById('sa-submit');
+  var resendBtn = document.getElementById('sa-resend');
   var errorEl = document.getElementById('sa-error');
   var loadingEl = document.getElementById('sa-loading');
+  var emailStage = 'request';
+  var activeEmail = '';
 
   function setLoading(on) { if (loadingEl) loadingEl.hidden = !on; }
 
+  function setMessage(message, ok) {
+    errorEl.textContent = message || '';
+    errorEl.classList.toggle('ok', !!ok);
+  }
+  function resetEmailForm() {
+    emailStage = 'request'; activeEmail = '';
+    emailEl.readOnly = false;
+    codeField.hidden = true;
+    codeEl.required = false;
+    codeEl.value = '';
+    submitBtn.textContent = '发送验证码';
+    resendBtn.hidden = true;
+  }
   function setView(view) {
-    var verifying = view === 'verify';
-    titleEl.textContent = verifying ? '验证邮箱' : '登录';
-    subEl.textContent = verifying
-      ? '请点击下方 Google 按钮，确认你同时拥有该密码账号和同名 Google 邮箱。'
+    var linkingGoogle = view === 'google-link';
+    overlay.dataset.googleLink = linkingGoogle ? '1' : '0';
+    titleEl.textContent = linkingGoogle ? '关联 Google' : '登录';
+    subEl.textContent = linkingGoogle
+      ? '请用与当前账号相同的 Google 邮箱完成验证。'
       : '一个账号，打通收藏、点赞、浏览记录与百宝箱。';
-    form.style.display = verifying ? 'none' : '';
-    errorEl.textContent = '';
+    form.style.display = linkingGoogle ? 'none' : '';
+    if (!linkingGoogle) resetEmailForm();
+    setMessage('');
   }
   function open(view) {
     setView(view || 'login');
     overlay.classList.add('open');
-    if (view !== 'verify') setTimeout(function () { emailEl.focus(); }, 50);
+    if (view !== 'google-link') setTimeout(function () { emailEl.focus(); }, 50);
   }
-  function close() { overlay.classList.remove('open'); errorEl.textContent = ''; setLoading(false); form.reset(); }
+  function close() { overlay.classList.remove('open'); setMessage(''); setLoading(false); form.reset(); resetEmailForm(); }
 
   overlay.querySelector('.sa-close').addEventListener('click', close);
   overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('open')) close(); });
 
   var ERRORS = {
-    bad_credentials: '邮箱或密码不对',
-    missing_fields: '请把邮箱和密码填完', login_required: '请先登录',
-    account_link_required: '该邮箱已有密码账号。请先用邮箱密码登录，再点 Google 完成验证；忘记密码请联系站长恢复。',
+    invalid_email: '请输入有效邮箱',
+    invalid_or_expired_code: '验证码无效或已过期，请重新获取',
+    email_delivery_failed: '邮件暂时发送失败，请稍后重试',
+    login_required: '请先登录',
+    account_link_required: '该邮箱已有历史账号。请先用邮件验证码登录，再关联 Google。',
     identity_conflict: '该 Google 身份已关联其他账号，请联系站长处理。',
     google_email_mismatch: 'Google 邮箱与当前账号邮箱不一致。',
     google_email_changed: 'Google 邮箱发生变化，请联系站长确认。',
@@ -210,30 +236,47 @@
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
-    errorEl.textContent = '';
+    setMessage('');
     submitBtn.disabled = true;
     setLoading(true);
     var email = emailEl.value.trim();
-    var pw = pwEl.value;
     var r;
     try {
-      r = await SiteAuth.login(email, pw);
+      r = emailStage === 'request'
+        ? await SiteAuth.requestEmailCode(email)
+        : await SiteAuth.verifyEmailCode(activeEmail, codeEl.value.trim());
     } catch (err) {
       r = { ok: false, error: 'network' };
     }
     submitBtn.disabled = false;
     if (r.ok) {
-      if (r.user && !r.user.emailVerified) {
+      if (emailStage === 'request') {
         setLoading(false);
-        setView('verify');
-        errorEl.textContent = '密码已验证；再点一次 Google 即可确认邮箱归属。';
+        emailStage = 'verify'; activeEmail = email.toLowerCase();
+        emailEl.value = activeEmail; emailEl.readOnly = true;
+        codeField.hidden = false; codeEl.required = true;
+        submitBtn.textContent = '验证并登录'; resendBtn.hidden = false;
+        setMessage('如果地址可用，验证码邮件已发送。', true);
+        setTimeout(function () { codeEl.focus(); }, 30);
         return;
       }
       close(); return;
     }
     setLoading(false);
-    errorEl.textContent = ERRORS[r.error] || (r.error === 'network' ? '网络不太顺，再试一次' : '出错了，再试一次');
+    setMessage(ERRORS[r.error] || (r.error === 'network' ? '网络不太顺，再试一次' : '出错了，再试一次'));
   });
+
+  resendBtn.addEventListener('click', async function () {
+    setMessage(''); resendBtn.disabled = true; setLoading(true);
+    var r;
+    try { r = await SiteAuth.requestEmailCode(activeEmail); }
+    catch (e) { r = { ok: false, error: 'network' }; }
+    resendBtn.disabled = false; setLoading(false);
+    if (r.ok) codeEl.value = '';
+    setMessage(r.ok ? '如果地址可用，新的验证码邮件已发送。' :
+      (ERRORS[r.error] || (r.error === 'network' ? '网络不太顺，再试一次' : '发送失败，再试一次')), r.ok);
+  });
+  codeEl.addEventListener('input', function () { codeEl.value = codeEl.value.replace(/\D/g, '').slice(0, 8); });
 
   // ── 导航入口渲染 ──
   var slot = document.getElementById('auth-slot');
@@ -332,11 +375,16 @@
 
   // 对外暴露：任何按钮都能 SiteAuth.openLogin() 唤起弹窗
   window.SiteAuth.openLogin = open;
-  window.SiteAuth.openEmailVerification = function () { open('verify'); };
+  window.SiteAuth.openEmailVerification = function () {
+    open('login');
+    var user = SiteAuth.getUser();
+    if (user && user.email) emailEl.value = user.email;
+  };
+  window.SiteAuth.openGoogleLink = function () { open('google-link'); };
 
   // ── Google 登录（Google Identity Services）──
   // 填上 Google Cloud 的 OAuth Web Client ID 即启用；留空则整块不出现。
-  // 国内 gsi/client 脚本被墙，加载失败时按钮静默隐藏，不影响邮箱密码登录。
+  // 国内 gsi/client 脚本被墙，加载失败时按钮静默隐藏，不影响邮件验证码登录。
   var GOOGLE_CLIENT_ID = '845656839887-f6d403jvh63a2vg7bjrdikblrs3u7ufp.apps.googleusercontent.com';
   // 提前与 Google / 后端建立连接（DNS+TLS），等用户走完 Google 弹窗时这几条链路已是热的
   function preconnect(href, cors) {
@@ -364,8 +412,7 @@
           setLoading(true);   // 弹窗刚关、正在向后端换 token：立刻给"登录中"反馈，别让用户以为失败了
           var r;
           try {
-            var current = SiteAuth.getUser();
-            r = current && !current.emailVerified
+            r = overlay.dataset.googleLink === '1'
               ? await SiteAuth.linkGoogle(resp.credential)
               : await SiteAuth.loginWithGoogle(resp.credential);
           }
