@@ -1,0 +1,146 @@
+name: weekly-data-backup
+
+on:
+  schedule:
+    - cron: '25 2 * * 0' # 周日 02:25 UTC / 北京 10:25
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-data-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+      POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+      POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_DATABASE: ${{ secrets.POSTGRES_DATABASE }}
+      POSTGRES_SSLMODE: require
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_SOURCE_BUCKET: ${{ secrets.R2_SOURCE_BUCKET }}
+      R2_BACKUP_BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
+      RCLONE_CONFIG_R2SOURCE_TYPE: s3
+      RCLONE_CONFIG_R2SOURCE_PROVIDER: Cloudflare
+      RCLONE_CONFIG_R2SOURCE_ACCESS_KEY_ID: ${{ secrets.R2_SOURCE_ACCESS_KEY_ID }}
+      RCLONE_CONFIG_R2SOURCE_SECRET_ACCESS_KEY: ${{ secrets.R2_SOURCE_SECRET_ACCESS_KEY }}
+      RCLONE_CONFIG_R2SOURCE_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      RCLONE_CONFIG_R2SOURCE_REGION: auto
+      RCLONE_CONFIG_R2SOURCE_NO_CHECK_BUCKET: 'true'
+      RCLONE_CONFIG_R2BACKUP_TYPE: s3
+      RCLONE_CONFIG_R2BACKUP_PROVIDER: Cloudflare
+      RCLONE_CONFIG_R2BACKUP_ACCESS_KEY_ID: ${{ secrets.R2_BACKUP_ACCESS_KEY_ID }}
+      RCLONE_CONFIG_R2BACKUP_SECRET_ACCESS_KEY: ${{ secrets.R2_BACKUP_SECRET_ACCESS_KEY }}
+      RCLONE_CONFIG_R2BACKUP_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      RCLONE_CONFIG_R2BACKUP_REGION: auto
+      RCLONE_CONFIG_R2BACKUP_NO_CHECK_BUCKET: 'true'
+      BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(UPSTASH_REDIS_REST_URL UPSTASH_REDIS_REST_TOKEN
+                    POSTGRES_HOST POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DATABASE
+                    R2_ENDPOINT R2_SOURCE_BUCKET R2_BACKUP_BUCKET
+                    RCLONE_CONFIG_R2SOURCE_ACCESS_KEY_ID RCLONE_CONFIG_R2SOURCE_SECRET_ACCESS_KEY
+                    RCLONE_CONFIG_R2BACKUP_ACCESS_KEY_ID RCLONE_CONFIG_R2BACKUP_SECRET_ACCESS_KEY
+                    BACKUP_ENCRYPTION_PASSPHRASE)
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then echo "missing GitHub Actions secret: $name" >&2; exit 1; fi
+          done
+          if [[ "$R2_SOURCE_BUCKET" == "$R2_BACKUP_BUCKET" ]]; then
+            echo "R2_SOURCE_BUCKET and R2_BACKUP_BUCKET must differ" >&2
+            exit 1
+          fi
+
+      - name: Install R2 client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rclone
+
+      - name: Verify private backup bucket access
+        shell: bash
+        run: |
+          set -euo pipefail
+          rclone lsf "r2backup:$R2_BACKUP_BUCKET" --max-depth 1 >/dev/null
+
+      - name: Export Redis and PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          BACKUP_DIR="$RUNNER_TEMP/zircon-backup"
+          mkdir -p "$BACKUP_DIR"
+          python3 scripts/backup/upstash_snapshot.py snapshot --output "$BACKUP_DIR/upstash.json.gz"
+          python3 scripts/backup/upstash_snapshot.py validate "$BACKUP_DIR/upstash.json.gz"
+
+          docker run --rm \
+            -e PGPASSWORD -e PGSSLMODE \
+            -v "$BACKUP_DIR:/backup" postgres:17 \
+            pg_dump --format=custom --no-owner --no-acl \
+              --host "$POSTGRES_HOST" --port "${POSTGRES_PORT:-5432}" \
+              --username "$POSTGRES_USER" --dbname "$POSTGRES_DATABASE" \
+              --file /backup/waline.dump
+          docker run --rm -v "$BACKUP_DIR:/backup:ro" postgres:17 \
+            pg_restore --list /backup/waline.dump >/dev/null
+
+      - name: Mirror R2 business objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          rclone copy "r2source:$R2_SOURCE_BUCKET" \
+            "r2backup:$R2_BACKUP_BUCKET/r2-mirror/current" \
+            --fast-list --checkers 8 --transfers 4 --stats 30s
+          rclone check "r2source:$R2_SOURCE_BUCKET" \
+            "r2backup:$R2_BACKUP_BUCKET/r2-mirror/current" \
+            --one-way --size-only
+
+      - name: Package, encrypt, upload, and read back
+        shell: bash
+        run: |
+          set -euo pipefail
+          BACKUP_DIR="$RUNNER_TEMP/zircon-backup"
+          stamp="$(date -u '+%Y%m%dT%H%M%SZ')"
+          key="site-backups/$(date -u '+%Y/%m')/zircon-${stamp}-${GITHUB_RUN_ID}.tar.gz.gpg"
+
+          python3 - "$BACKUP_DIR" "$stamp" <<'PY'
+          import hashlib, json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          files = {}
+          for name in ("upstash.json.gz", "waline.dump"):
+              path = root / name
+              files[name] = {"bytes": path.stat().st_size, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+          (root / "manifest.json").write_text(json.dumps({"created_at": sys.argv[2], "files": files}, indent=2) + "\n")
+          PY
+
+          tar -C "$BACKUP_DIR" -czf "$RUNNER_TEMP/zircon-${stamp}.tar.gz" \
+            upstash.json.gz waline.dump manifest.json
+          printf '%s' "$BACKUP_ENCRYPTION_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+            --passphrase-fd 0 --symmetric --cipher-algo AES256 \
+            --output "$RUNNER_TEMP/zircon-${stamp}.tar.gz.gpg" "$RUNNER_TEMP/zircon-${stamp}.tar.gz"
+          encrypted_sha="$(sha256sum "$RUNNER_TEMP/zircon-${stamp}.tar.gz.gpg" | awk '{print $1}')"
+
+          rclone copyto "$RUNNER_TEMP/zircon-${stamp}.tar.gz.gpg" \
+            "r2backup:$R2_BACKUP_BUCKET/$key"
+          rclone copyto "r2backup:$R2_BACKUP_BUCKET/$key" "$RUNNER_TEMP/roundtrip.gpg"
+          roundtrip_sha="$(sha256sum "$RUNNER_TEMP/roundtrip.gpg" | awk '{print $1}')"
+          [[ "$encrypted_sha" == "$roundtrip_sha" ]]
+
+          python3 - "$key" "$encrypted_sha" "$stamp" >"$RUNNER_TEMP/latest.json" <<'PY'
+          import json, sys
+          print(json.dumps({"key": sys.argv[1], "sha256": sys.argv[2], "created_at": sys.argv[3]}, indent=2))
+          PY
+          rclone copyto "$RUNNER_TEMP/latest.json" \
+            "r2backup:$R2_BACKUP_BUCKET/site-backups/latest.json"
+          rm -f "$RUNNER_TEMP/zircon-${stamp}.tar.gz" "$RUNNER_TEMP/roundtrip.gpg"
+          echo "backup uploaded and verified: $key"

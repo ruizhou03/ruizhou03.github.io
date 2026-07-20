@@ -25,20 +25,20 @@
 | 身份 | 面向谁 | 体现在哪 |
 |---|---|---|
 | **学术门面** | 学术同行、招聘方 | 根 `index.html` 英文主页、CV、research |
-| **资料档案库** | 中文学生读者、自己 | 272 篇笔记 + 141 个 PDF 的课程资料与自著讲义 |
-| **玩具箱 / 产品试验场** | 少量真实用户、自己 | 51 个工具与小游戏、账号体系、积分、收藏、评论 |
+| **资料档案库** | 中文学生读者、自己 | 生产分支 270 篇笔记 + 125 个 PDF 的课程资料与自著讲义 |
+| **玩具箱 / 产品试验场** | 少量真实用户、自己 | 49 个目录工具与小游戏、账号体系、积分、收藏、评论 |
 
-第三重是这个站的异常之处。多数个人站没有用户系统和后端；这个站有完整的账号、JWT 鉴权、积分等级、多收藏夹、联机对战和管理后台，跑在三个 fly.io 应用上。**接手成本主要来自第三重。**
+第三重是这个站的异常之处。多数个人站没有用户系统和后端；这个站有完整的账号、JWT 鉴权、积分等级、多收藏夹、联机对战和管理后台，动态生产环境目前跑在两个 fly.io 应用上。**接手成本主要来自第三重。**
 
 ### 规模（已实测）
 
 | 维度 | 数字 |
 |---|---|
-| 内容 | `_notes/` 272 篇 markdown，约 2.9 MB 正文 |
-| 资料 | `files/` 157 MB，141 个 PDF |
-| 工具箱 | 51 个工具，约 64,300 行 HTML/JS |
+| 内容 | 生产分支 `_notes/` 270 篇 markdown（本机另有 2 篇未跟踪 WIP） |
+| 资料 | 生产分支 `files/` 126 MB，125 个 PDF（本机另有未跟踪资料） |
+| 工具箱 | `_data/toolbox.yml` 49 个目录项，约 64,300 行 HTML/JS；另有兼容/附属路由 |
 | 模板 | 3 个 layout，28 个 include |
-| 脚本 | `scripts/` 102 个文件 |
+| 脚本 | 生产分支 `scripts/` 约 88 个文件（含 2026-07 新增备份工具） |
 | 仓库 | 1.0 GB 总体积，其中 `.git` 275 MB |
 | 历史 | 1700 次提交，起于 2026-04-16 |
 
@@ -46,9 +46,9 @@
 
 ### 谁在用（诚实版）
 
-**目前答不上来。** 站上装了 GA4（`G-L6TCM0XFJ9`），但**只埋在 `index.html` 和 `zh/index.html` 两个首页**——`_layouts/default.html` 里没有。也就是说 272 篇文章、51 个工具、账号中心的访问**全部没有统计**（已实测：`grep -c 'gtag' _layouts/default.html` = 0，而 70 个页面用 default layout）。
+**用户规模仍待从控制台核实，但并非完全没有统计。** GA4（`G-L6TCM0XFJ9`）只埋在 `index.html` 和 `zh/index.html` 两个首页；与此同时，Cloudflare Web Analytics 已埋入 `default.html` 和两个独立首页，覆盖全站页面。当前口径定为：**Cloudflare 是全站访客 / 来源 / 设备的主统计，GA4 只作两个首页的历史辅助口径。** 管理后台读取 Cloudflare 数据还依赖 urge 的 `CF_API_TOKEN` / `CF_ACCOUNT_ID`。
 
-能间接反映真实用户存在的证据：账号系统、评论、排行榜都是真跑着的，后端有实际数据。要知道用户规模，去查 Upstash 里的账号/评论键，或者先把 GA 补进 `default.html`（见第 12 章 A 档）。
+账号规模在 Upstash Redis；评论与阅读量在 Waline PostgreSQL，不在 Redis。真实用户数、评论数与日活仍需从两个数据源分别核实。
 
 ---
 
@@ -60,8 +60,9 @@
 |---|---|---|
 | GitHub `ruizhou03/ruizhou03.github.io` | 代码 + 部署 | push main 即上线 |
 | 域名注册商 | `ruizhou03.com` | 具体注册商**待确认** |
-| fly.io | `zircon-urge`、`zircon-comments`（据记录还有 mcp） | 后端与密钥 |
-| Upstash Redis | 后端全部数据 | 账号、积分、收藏、排行榜、评论 |
+| fly.io | `zircon-urge`、`zircon-comments` | 动态生产后端与密钥；2026-07-20 账号下未发现 `zircon-mcp` app |
+| Upstash Redis | urge 动态数据 | 账号、积分、收藏、排行榜、存档；**不含评论** |
+| PostgreSQL 服务商（待确认） | Waline 数据 | 评论、回复、评论邮箱、页面阅读量 |
 | Cloudflare R2 | 音频托管（歌单、播客） | 公共域名见 `_config.yml` 的 `podcast_base` |
 | Google Cloud | OAuth 登录 + GA4 | 登录靠它，挂了全站登录挂 |
 
@@ -120,9 +121,9 @@ land 完回主工作区把本地 main 收回去：`git fetch origin main && git 
    GitHub Pages   Service Worker   fly.io 后端
    (静态托管)      (离线缓存)      (动态能力)
         │                             │
-        │                        Upstash Redis
-   Jekyll 构建                   (账号/积分/收藏/
-        │                         排行榜/评论)
+        │                   Upstash Redis + PostgreSQL
+   Jekyll 构建              (账号/积分/收藏/排行 / 评论)
+        │
    ┌────┴────┐
 _notes/   toolbox/   files/   assets/
 (内容)    (工具)     (PDF)    (样式图片)
@@ -134,7 +135,7 @@ _notes/   toolbox/   files/   assets/
 - **内容层**：全部在 `_notes/` collection，**没有用 `_posts/`**。分类靠 front-matter 字段，见第 4 章。
 - **模板层**：`_layouts/`（3 个）+ `_includes/`（28 个）+ `assets/css/`。CSS 已从内联抽成外部文件可跨页缓存。
 - **客户端增强层**：`sw.js`（23 KB）做 PWA 与离线缓存。整站是 PWA，单个工具还能装成独立 APP。
-- **后端层**：三个 fly app，见第 6 章。前端通过 fetch 调用，CORS 全开（`*`），**所以换域名不用改后端**。
+- **后端层**：两个 fly 生产 app，见第 6 章。前端通过 fetch 调用，CORS 全开（`*`），**所以换域名不用改后端**。另有未部署的 MCP 包装源码。
 - **自动化层**：`scripts/` 下的巡检、每日 review、邮件总结、机票监控，靠 LaunchAgent 和远程 routine 调度。
 
 **关键边界**：静态层挂了整站挂；后端挂了只影响评论/排行榜/登录，**文章和工具照常可读可玩**。这个降级特性是有意的，别把核心内容依赖搬到后端去。
@@ -148,7 +149,7 @@ _notes/   toolbox/   files/   assets/
 | 目录 | 篇数 | 栏目 |
 |---|---|---|
 | `_notes/life/` | 122 | 生活攻略 |
-| `_notes/study/` | 78 | 学习资料 |
+| `_notes/study/` | 76 | 学习资料 |
 | `_notes/research/` | 24 | 科研妙招 |
 | `_notes/course-reviews/` | 18 | 课程测评 |
 | `_notes/tutoring/` | 10 | 学习辅导资料 |
@@ -201,7 +202,7 @@ _notes/   toolbox/   files/   assets/
 
 ## 5. 百宝箱
 
-51 个工具，单一数据源是 `_data/toolbox.yml`。字段：`id` / `name` / `icon` / `tagline` / `url` / `category`（游戏/工作/生活）/ `subcategory` / `status`（live|coming）。**YAML 里的顺序就是页面渲染顺序。**
+49 个目录工具，单一数据源是 `_data/toolbox.yml`。字段：`id` / `name` / `icon` / `tagline` / `url` / `category`（游戏/工作/生活）/ `subcategory` / `status`（live|coming）。**YAML 里的顺序就是页面渲染顺序。** `game_versions.json` 还包含兼容入口、附属页和弹珠机子桌，不能拿它的 URL 数当目录工具数。
 
 游戏子类：棋类对战、牌类游戏、单人小游戏、派对多人。
 
@@ -231,13 +232,13 @@ _notes/   toolbox/   files/   assets/
 
 > 本章多为据记录转述，动手前请读 `backends/` 源码核实。
 
-### 三个 fly app
+### 两个 fly 生产 app + 一个未部署 MCP 源码仓库
 
 | app | 职责 |
 |---|---|
 | `zircon-urge` | 排行榜、催更、文末表情、站内助手、联机 relay、账号、积分、收藏、admin |
 | `zircon-comments` | 评论（Waline） |
-| `zircon-mcp` | 把公开 GET 接口包装成 5 个 MCP tool |
+| `zircon-mcp` | 本机 / GitHub 有把公开 GET 包成 5 个 MCP tool 的源码；2026-07-20 `flyctl apps list` 未发现同名 app，不能当线上服务 |
 
 源码在仓库 `backends/{urge,comments,mcp}`，**这些是独立 git 仓库的本机工作副本**，被 Jekyll 构建排除。要部署得 `cd` 进去再 `fly deploy`——别去 `~/Desktop/zircon-*` 找老副本。
 
@@ -250,7 +251,7 @@ flyctl deploy --depot=false --remote-only --wg
 
 ### 数据存储
 
-Upstash Redis。**已知陷阱**：Upstash 的 `get` 会自动反序列化，`JSON.parse` 前必须先 `typeof raw === 'string'` 守卫，否则全线 500。另外它把字符串 `'0'` 反序列化成数字，需要 `String()` 兜回来。这两个坑都实际炸过。
+urge 主数据使用 Upstash Redis；评论与页面阅读量使用 Waline PostgreSQL。**已知陷阱**：Upstash SDK 的 `get` 会自动反序列化，`JSON.parse` 前必须先 `typeof raw === 'string'` 守卫，否则全线 500。另外它把字符串 `'0'` 反序列化成数字，需要 `String()` 兜回来。这两个坑都实际炸过。
 
 ### 账号体系
 
@@ -329,7 +330,7 @@ playbook 在 `docs/`。**LaTeX 坑**：`\mat` 会吞大写希腊字母，要用 
 |---|---|---|
 | 每日巡检 | 远程 routine 08:00 + 本机 LaunchAgent 08:30 让位 | `scripts/daily_review.sh`，结果进 `DAILY_REVIEW.md` |
 | 邮件总结 | 每天 9am / 9pm | `scripts/email_summary*`，IMAP 读信 + 总结 + 建草稿 + SMTP |
-| audit 十一件套 | 8 个每天、3 个周一、1 个月初 | `scripts/audit/` |
+| audit 巡检 | 当前 14 个每天、3 个周一、1 个每月 1 日 | `scripts/audit/` |
 | 机票监控 | 按需 | `scripts/flight_watch*` |
 
 LaunchAgent plist 模板在 `scripts/io.github.zirconeey.*.plist.template`（标识符还带旧名 `zirconeey`，是本地标识符，不影响线上，没必要改）。
@@ -368,7 +369,7 @@ LaunchAgent plist 模板在 `scripts/io.github.zirconeey.*.plist.template`（标
 | 债 | 说明 |
 |---|---|
 | **`.git` 275 MB** | 需要 force-push 改写历史才能瘦，一直没做。clone 体验差。 |
-| **统计基本失效** | GA 只在两个首页，272 篇文章 + 51 个工具零埋点。**这是最该先修的。** |
+| **统计口径分裂** | Cloudflare 已全站覆盖，GA 只在两个首页。以 Cloudflare 为主；待确认后台 API token 与历史数据完整性。 |
 | **旧文档过时** | `docs/MAINTENANCE.md`（2026-05）里说「英文站 `en/` 靠 CI sync 到独立仓库」等描述已不符现状；`docs/ARCHITECTURE_REVIEW.md` 是 5 月的状态快照。本手册写作时未逐条修订它们，**优先信本手册**。 |
 | **根目录堆积** | `SPOTCHECK_100_REPORT.md`（101 KB）、`SPOTCHECK_100_AGENT_REPORTS.md`（113 KB）、`TOOLBOX_AUDIT_REPORT.md`、`DAILY_REVIEW.md`（251 KB）挤在仓库根。已排除出构建，但该归档进 `docs/`。 |
 | **未提交工作区** | 编写时有 11 项未跟踪文件（`SECURITY_GOVERNANCE.md`、几门课的 `source/`、两篇新笔记）。**归属未确认**，别顺手提交。 |
@@ -380,7 +381,7 @@ LaunchAgent plist 模板在 `scripts/io.github.zirconeey.*.plist.template`（标
 
 1. **密钥全在原作者手上**：fly secrets、Upstash、Google OAuth、R2、域名。任何一个交接不到位，对应功能就永久失效且无法恢复。
 2. **本机依赖**：邮件总结、机票监控、部分巡检跑在原作者 Mac 的 LaunchAgent 上，换人接手要重装。
-3. **后端数据无已知备份机制**（待确认）。Upstash 里的账号、积分、收藏、评论如果丢了，**没有副本**。这是我认为最严重的风险。
+3. **动态数据恢复链路刚建立、尚待首次成功与演练**。每周工作流覆盖 Upstash、Waline PostgreSQL 与 R2，但只有首次成功并恢复到临时资源后才能算真正可恢复。
 4. **内容备份**只有 GitHub 一处（待确认是否有异地副本）。
 
 ### 待确认项（别当事实用）
@@ -399,9 +400,9 @@ LaunchAgent plist 模板在 `scripts/io.github.zirconeey.*.plist.template`（标
 
 | 事 | 为什么 | 工作量 |
 |---|---|---|
-| **GA 补进 `_layouts/default.html`** | 现在完全不知道谁在用什么。所有产品决策都在盲飞。 | 10 分钟 |
-| **给 Upstash 加定期导出** | 唯一一处数据无备份，丢了不可恢复。 | 半天 |
-| **写下密钥清单**（只记「叫什么、在哪」，不记值） | 交接时最大的断点 | 1 小时 |
+| **确认 Cloudflare 统计后台可读** | beacon 已全站覆盖；需核实 API token、账号权限和历史数据 | 30 分钟 |
+| **跑通首次三源备份 + 恢复演练** | Redis、评论 PostgreSQL、R2 缺一不可 | 半天起 |
+| **补齐服务 / 密钥清单的账号归属** | 名称已成册，注册商、账单账号、恢复邮箱仍待人工补齐 | 1 小时 |
 | **根目录报告归档进 `docs/`** | 卫生 | 10 分钟 |
 
 ### B 档 · 中期结构性
@@ -448,5 +449,7 @@ LaunchAgent plist 模板在 `scripts/io.github.zirconeey.*.plist.template`（标
 | `docs/MAINTENANCE.md` | 2026-05 维护说明，部分过时 |
 | `docs/ARCHITECTURE_REVIEW.md` | 2026-05 架构审查与失败复盘 |
 | `docs/*-playbook.md` | 各专项生产线操作手册 |
-| `SECURITY_GOVERNANCE.md` | 安全治理（未提交，归属待确认） |
+| `docs/SECURITY_AND_RECOVERY.md` | 当前安全与恢复基线 |
+| `docs/OPERATIONS_INVENTORY.md` | 服务、密钥名称、账号与恢复位置清单 |
+| `SECURITY_GOVERNANCE.md` | 根目录未跟踪旧草稿，不是当前权威文档，勿顺手提交 |
 | `DAILY_REVIEW.md` | 每日巡检流水账 |
