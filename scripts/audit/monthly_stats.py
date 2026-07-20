@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""月度内容统计：各分类发文数、最近一个月新增、字数分布、互动数据（如果后端可达）。
+"""月度运维快照：内容、公开互动、服务可用性与关键 GitHub Actions。
 
 输出 markdown 报告到 stdout。不修改文件。
 
@@ -12,15 +12,17 @@ import time
 import datetime
 import urllib.request
 import json
+import subprocess
 from pathlib import Path
 from collections import Counter
 
 REPO = Path(__file__).resolve().parents[2]
 NOTES_ROOT = REPO / "_notes"
 
-# 后端聚合接口（如有；不可达就跳过这段，不影响主体报告）
-COMMENT_API = "https://zircon-comments.fly.dev/api/stats"
-URGE_API = "https://zircon-urge.fly.dev/api/stats"
+SITE_URL = "https://ruizhou03.com/"
+COMMENT_URL = "https://zircon-comments.fly.dev/"
+URGE_URL = "https://zircon-urge.fly.dev/api/urge"
+REPO_SLUG = "ruizhou03/ruizhou03.github.io"
 
 
 def split_fm(text):
@@ -55,15 +57,83 @@ def get_subcat(fm):
 def try_fetch(url):
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "zirconeey-monthly-stats"})
-        with urllib.request.urlopen(req, timeout=6) as r:
+        with urllib.request.urlopen(req, timeout=12) as r:
             return json.loads(r.read().decode("utf-8"))
     except Exception as e:
         return {"_error": str(e)[:80]}
 
 
+def probe(url):
+    """用 curl 记录 HTTP 状态和总耗时；失败也只写入报告。"""
+    try:
+        run = subprocess.run(
+            ["curl", "-sS", "-L", "--max-time", "12", "-o", "/dev/null",
+             "-w", "%{http_code} %{time_total}", url],
+            capture_output=True, text=True, timeout=15,
+        )
+        if run.returncode != 0:
+            return "失败", run.stderr.strip()[:80] or f"curl exit {run.returncode}"
+        code, elapsed = run.stdout.strip().split(maxsplit=1)
+        label = "正常" if code.startswith("2") else f"HTTP {code}"
+        return label, f"{float(elapsed):.2f}s"
+    except Exception as e:
+        return "失败", f"{type(e).__name__}: {str(e)[:60]}"
+
+
+def latest_workflow_run(workflow):
+    """读取最近一次 Actions 运行；未安装/未登录 gh 时降级。"""
+    try:
+        run = subprocess.run(
+            ["gh", "run", "list", "--repo", REPO_SLUG, "--workflow", workflow,
+             "--limit", "1", "--json", "status,conclusion,createdAt,url,headSha"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if run.returncode != 0:
+            return {"_error": run.stderr.strip()[:100] or f"gh exit {run.returncode}"}
+        rows = json.loads(run.stdout)
+        return rows[0] if rows else {"_error": "no runs"}
+    except Exception as e:
+        return {"_error": f"{type(e).__name__}: {str(e)[:80]}"}
+
+
+def git_activity():
+    try:
+        run = subprocess.run(
+            ["git", "-C", str(REPO), "rev-list", "--count", "--since=30 days ago", "HEAD"],
+            capture_output=True, text=True, timeout=10, check=True,
+        )
+        return int(run.stdout.strip())
+    except Exception:
+        return None
+
+
 def main():
     today = datetime.date.today()
-    print(f"# 月度内容统计（{today.strftime('%Y-%m-%d')}）\n")
+    print(f"# 月度运维快照（{today.strftime('%Y-%m-%d')}）\n")
+    print("本报告只读取公开接口、Git 历史和 GitHub Actions 元数据，不读取或输出任何密钥。\n")
+
+    print("## 服务可用性\n")
+    print("| 服务 | 状态 | 本次请求耗时 |")
+    print("|---|---:|---:|")
+    for label, url in [("主站", SITE_URL), ("账号 / 互动后端", URGE_URL), ("评论后端", COMMENT_URL)]:
+        status, detail = probe(url)
+        print(f"| {label} | {status} | {detail} |")
+    print()
+
+    print("## 自动化与恢复信号\n")
+    for label, workflow in [("每周数据备份", "weekly-data-backup.yml"), ("Pages 构建检查", "pages-build-check.yml")]:
+        run = latest_workflow_run(workflow)
+        if "_error" in run:
+            print(f"- **{label}**：未能读取（{run['_error']}）")
+        else:
+            result = run.get("conclusion") or run.get("status") or "unknown"
+            sha = str(run.get("headSha") or "")[:8]
+            print(f"- **{label}**：[{result}]({run.get('url', '')})，{run.get('createdAt', '?')}，commit `{sha}`")
+    commits = git_activity()
+    print(f"- **最近 30 天主仓库提交数**：{commits if commits is not None else '未能读取'}")
+    print("- **人工复核项**：域名续费、账单、2FA / 恢复码、恢复联系人（见 `docs/OPERATIONS_INVENTORY.md`）\n")
+
+    print("## 内容规模\n")
 
     all_posts = []
     for root, _, files in os.walk(NOTES_ROOT):
@@ -123,14 +193,17 @@ def main():
         print(f"- 平均: {sum(wcs)/len(wcs):.0f} 字")
         print()
 
-    # 后端互动数据（best-effort）
-    print("## 互动数据（后端聚合接口，可能未实现）\n")
-    for label, url in [("评论", COMMENT_API), ("催更", URGE_API)]:
-        data = try_fetch(url)
-        if "_error" in data:
-            print(f"- **{label}**：未能拉取 ({data['_error']})")
-        else:
-            print(f"- **{label}**：{json.dumps(data, ensure_ascii=False)}")
+    # 公开互动数据（best-effort；评论详情已受保护，不在这里绕过权限）
+    print("## 公开互动数据\n")
+    data = try_fetch(URGE_URL)
+    if "_error" in data:
+        print(f"- **首页反应**：未能拉取 ({data['_error']})")
+    else:
+        print(f"- **催更**：{data.get('urge', 0)}")
+        print(f"- **赞 / 爱心 / 收藏星**：{data.get('like', 0)} / {data.get('heart', 0)} / {data.get('star', 0)}")
+        recent = sum(int(day.get("count", 0)) for day in data.get("last15days", []) if isinstance(day, dict))
+        print(f"- **最近 15 天催更**：{recent}")
+    print("- **评论**：公开聚合接口已关闭；需在 Waline 管理端人工复核，快照不绕过访问控制。")
     print()
 
     return 0

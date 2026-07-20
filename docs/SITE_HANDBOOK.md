@@ -59,10 +59,10 @@
 | 服务 | 用途 | 备注 |
 |---|---|---|
 | GitHub `ruizhou03/ruizhou03.github.io` | 代码 + 部署 | push main 即上线 |
-| 域名注册商 | `ruizhou03.com` | 具体注册商**待确认** |
+| Cloudflare Registrar | `ruizhou03.com` | RDAP 到期日 2027-05-27；仍须确认自动续费与付款方式 |
 | fly.io | `zircon-urge`、`zircon-comments` | 动态生产后端与密钥；2026-07-20 账号下未发现 `zircon-mcp` app |
 | Upstash Redis | urge 动态数据 | 账号、积分、收藏、排行榜、存档；**不含评论** |
-| PostgreSQL 服务商（待确认） | Waline 数据 | 评论、回复、评论邮箱、页面阅读量 |
+| Neon PostgreSQL | Waline 数据 | 评论、回复、评论邮箱、页面阅读量 |
 | Cloudflare R2 | 音频托管（歌单、播客） | 公共域名见 `_config.yml` 的 `podcast_base` |
 | Google Cloud | OAuth 登录 + GA4 | 登录靠它，挂了全站登录挂 |
 
@@ -255,7 +255,7 @@ urge 主数据使用 Upstash Redis；评论与页面阅读量使用 Waline Postg
 
 ### 账号体系
 
-- 登录：新账号仅通过已验签的 Google ID token 创建，并按 Google `sub` 绑定；旧密码账号可过渡登录，但邮箱验证前不能读取按邮箱关联的评论。SiteAuth 使用无状态 JWT，支持多设备。
+- 登录：新账号仅通过已验签的 Google ID token 创建，并按 Google `sub` 绑定；Google-only 账号不能反向设置本站密码。旧密码账号可过渡登录，改密码需验证旧密码且新密码为 12–128 位，邮箱验证前不能读取按邮箱关联的评论。SiteAuth 使用无状态 JWT，支持多设备。
 - 个人中心 `/account/`：资料编辑、隐私档（密码/导出/注销）、社交档（公开主页 `/u/`）。2026-07-14 做过一次大重设计（桌面宽版三区 hero + 手机分段）。
 - 积分等级：数字十级，签到/评论/收藏加分。评论加分靠 Waline 的 `postSave` 用共享密钥 `POINTS_SECRET` 回调 urge。
 - 收藏夹：多收藏夹模型，一篇可属多夹（`meta.a` 数组）。
@@ -381,13 +381,13 @@ LaunchAgent plist 模板在 `scripts/io.github.zirconeey.*.plist.template`（标
 
 1. **密钥全在原作者手上**：fly secrets、Upstash、Google OAuth、R2、域名。任何一个交接不到位，对应功能就永久失效且无法恢复。
 2. **本机依赖**：邮件总结、机票监控、部分巡检跑在原作者 Mac 的 LaunchAgent 上，换人接手要重装。
-3. **动态数据恢复链路已首次跑通、尚待真实恢复演练**。2026-07-20 每周工作流首次成功覆盖 Upstash、Waline PostgreSQL 与 R2，并完成密文上传回读；只有恢复到临时资源后才能算真正可恢复。
+3. **动态数据恢复链路已完整跑通**。2026-07-20 每周工作流首次成功覆盖 Upstash、Waline PostgreSQL 与 R2，并完成密文上传回读；同日又把三源全部恢复到临时环境并核对后销毁临时资源。此后按季度重演，避免工具或服务漂移。
 4. **内容备份**只有 GitHub 一处（待确认是否有异地副本）。
 
 ### 待确认项（别当事实用）
 
 - `published: false` 实测为 **0 篇**，但项目记录说性科普专栏「全部 published:false 待批量上线」。要么稿子还没落盘，要么记录已过时。
-- 域名注册商是哪家。
+- 域名自动续费与付款方式是否正常（注册商已确认是 Cloudflare，到期 2027-05-27）。
 - fly.io / R2 / 域名的实际月成本与付费账号。
 - Upstash 是否有备份/快照。
 - 实际用户数、评论数、日活。
@@ -401,8 +401,8 @@ LaunchAgent plist 模板在 `scripts/io.github.zirconeey.*.plist.template`（标
 | 事 | 为什么 | 工作量 |
 |---|---|---|
 | **确认 Cloudflare 统计后台可读** | beacon 已全站覆盖；需核实 API token、账号权限和历史数据 | 30 分钟 |
-| **完成三源真实恢复演练** | 首次自动备份已成功；仍要把 Redis、评论 PostgreSQL、R2 恢复到临时资源验证 | 半天起 |
-| **补齐服务 / 密钥清单的账号归属** | 名称已成册，注册商、账单账号、恢复邮箱仍待人工补齐 | 1 小时 |
+| **保持季度三源恢复演练** | 2026-07-20 首次完整演练通过；下次最迟 2026-10-20 | 每季度半天 |
+| **补齐服务 / 密钥清单的账号归属** | 注册商、GitHub / Fly / Cloudflare 所有权已核对，2FA、账单、恢复邮箱和第二管理员仍待人工确认 | 1 小时 |
 | **根目录报告归档进 `docs/`** | 卫生 | 10 分钟 |
 
 ### B 档 · 中期结构性

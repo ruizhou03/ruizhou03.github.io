@@ -16,12 +16,12 @@
 | fly.io | `zircon-comments`（Singapore） | `backends/comments/fly.toml` | Waline 与评论管理接口 | 同上 |
 | fly.io | MCP | `backends/mcp/` | 五个只读 MCP tools 的源码 | 2026-07-20 `flyctl apps list` 未发现 `zircon-mcp`，当前不能视为已部署 |
 | Upstash Redis | urge 生产库 | urge 的 fly secrets | 账号、JWT 关联数据、积分、收藏、排行榜、存档等 | 每周逻辑快照；`scripts/backup/upstash_snapshot.py` |
-| PostgreSQL | Waline 生产库，服务商待确认 | comments 的 fly secrets | 评论、回复、页面阅读量 | 每周 `pg_dump` custom archive |
+| Neon PostgreSQL | Waline 生产库 | comments 的 fly secrets | 评论、回复、页面阅读量 | 每周 `pg_dump` custom archive；2026-07-20 已真实导入临时 PostgreSQL 17 |
 | Cloudflare R2 | 业务 bucket | urge 的 fly secrets、`_config.yml` 公共音频基址 | 上传图片、歌单 / 播客音频 | 镜像到独立私有 backup bucket |
 | Cloudflare Web Analytics | token `707b…715`（公开 site tag） | `default.html`、两个独立首页 | 全站访客 / 来源 / 设备统计 | 作为主流量口径；后台查询另需 API token |
 | Google Cloud | OAuth client + GA4 `G-L6TCM0XFJ9` | Google 控制台、首页 HTML | Google 登录；GA4 仅两个首页 | OAuth 是登录单点；GA4 作为历史 / 辅助口径 |
 | DeepSeek | API key | urge fly secret | 锆石小助手生成式回答 | 无 key 时应降级到站内检索 |
-| 域名注册商 | `ruizhou03.com` | 注册商待确认 | 域名解析与续费 | 必须补登记账号、续费日、恢复邮箱 |
+| Cloudflare Registrar | `ruizhou03.com` | Cloudflare 控制台；DNS 也由 Cloudflare 托管 | 域名解析与续费 | RDAP 到期日 2027-05-27；transfer lock 已开启；仍须确认自动续费与付款方式 |
 | 原作者 Mac | LaunchAgents / Keychain | `scripts/*.plist.template` | 邮件总结、机票监控、部分巡检 | 换机要重装；本机不是唯一数据副本 |
 
 ## 密钥名称与存放位置
@@ -64,10 +64,31 @@ git -C backends/comments status --short --branch
 
 只检查名称、更新时间和仓库同步状态，终端与文档都不要打印密钥值。
 
+## 账号所有权、恢复与 2FA
+
+`已确认` 表示本次能从当前登录会话或权威登记数据读到；`待控制台确认` 不等于未开启。恢复码、密码、完整 token 永远不写进本表。
+
+| 服务 | 当前所有权 / 登录线索 | 续费或账单 | 恢复与 2FA 状态 |
+|---|---|---|---|
+| GitHub | CLI 当前账号 `zirconeey` | Pages / Actions 用量需在 Billing 核对 | 2FA、恢复邮箱、恢复码存放位置待控制台确认 |
+| Cloudflare（含域名、DNS、R2、Analytics） | `ruizhou0312@gmail.com`，本次以 Google 登录确认；Account ID 结尾 `5598` | 域名 2027-05-27 到期；自动续费、R2 账单待确认 | 登录依赖 Google；需确认 Google 2FA、Cloudflare 恢复方式及第二管理员 |
+| fly.io | CLI 当前账号 `ruizhou0312@gmail.com` | 两个生产 app 的付款方式 / 限额待确认 | 2FA、恢复方式、第二管理员待控制台确认 |
+| Upstash | 生产凭据可用，控制台账号未从 CLI 读取 | 套餐与超额策略待确认 | 登录方式、2FA、恢复邮箱、第二管理员待控制台确认 |
+| Neon | 从真实恢复的 Waline 库确认服务商；控制台账号待确认 | 套餐、内置快照与计算休眠策略待确认 | 登录方式、2FA、恢复邮箱、第二管理员待控制台确认 |
+| Google Cloud / GA4 | OAuth client 与 GA4 配置可用，控制台所有者待确认 | 配额 / Billing 待确认 | Google 2FA、恢复邮箱、第二管理员待控制台确认 |
+| DeepSeek | fly secret 存在，控制台所有者待确认 | 余额、自动充值与限额待确认 | 登录方式、2FA、恢复方式待确认 |
+
+人工核对时只把状态更新为“已开启 / 已保存到密码管理器 / 第二管理员是哪个账号”，不要抄入恢复码本身。建议每季度与恢复演练一起复核一次。
+
+## 恢复演练记录
+
+- **2026-07-20：完整通过。** Redis 507 个 key 恢复到临时 Redis，类型分布完全一致且非空目标保护生效；Waline dump 导入临时 PostgreSQL 17，4 张 public 表及行数可查询；R2 151 个对象、889,720,768 字节经本机下载 / 上传恢复到独立临时桶，检查为 0 差异。
+- 临时 Redis、PostgreSQL、R2 bucket、解密明文和本机临时凭据均在核验后销毁。Cloudflare 演练 token 必须由账号主人在控制台撤销。
+- 下一次演练最迟：**2026-10-20**。
+
 ## 尚待人工补齐
 
-- 域名注册商、续费日、恢复邮箱。
-- PostgreSQL 的实际服务商、套餐、快照能力与恢复入口。
-- Cloudflare / Upstash / fly.io 的账单账号与第二管理员。
+- Cloudflare 域名自动续费、付款方式与账号恢复方式。
+- Neon、Upstash、Google Cloud、DeepSeek 的控制台所有者、套餐与恢复入口。
+- 所有关键服务的 2FA、恢复码离线副本和第二管理员。
 - 是否还需要部署 `zircon-mcp`；当前 fly 账号下没有同名 app。
-- 第一次真实恢复演练日期；自动备份首次成功日期为 2026-07-20。

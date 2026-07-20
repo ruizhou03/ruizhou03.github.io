@@ -10,9 +10,9 @@
 
 Redis 与 PostgreSQL 文件会连同校验清单打包，经 GnuPG AES-256 对称加密后才上传。工作流会从 R2 下载一遍密文并核对 SHA-256；PostgreSQL dump 在上传前用 `pg_restore --list` 验证。备份 bucket 不启用 public access，也不能与业务 bucket 相同。
 
-首次生产验证于 2026-07-20 完成（GitHub Actions run `29716366155`）：Redis 快照前后 key 数一致，PostgreSQL custom dump 可由 `pg_restore --list` 读取，R2 的 151 个对象全部匹配，密文上传后下载回读 SHA-256 一致。该验证证明自动链路可运行，但不替代恢复到临时服务的季度演练。
+首次生产验证于 2026-07-20 完成；当前权威成功运行是 GitHub Actions run `29716665551`：Redis 快照前后 key 数一致，PostgreSQL custom dump 可由 `pg_restore --list` 读取，R2 的 151 个对象全部匹配，密文上传后下载回读 SHA-256 一致。
 
-同日又从 R2 取回最新密文，用 macOS Keychain 中的独立口令成功解密，并重新核对 manifest、Redis 507 条记录与 Waline dump 的 SHA-256；临时明文随后删除。本机没有 Docker / PostgreSQL，所以“把 dump 真正导入临时库并查询表”仍列为下一次恢复演练的完成条件。
+同日完成第一次完整恢复演练：从 R2 取回最新密文，用 macOS Keychain 中的独立口令解密并重新核对 manifest 与 SHA-256；把 Redis 507 个 key 真实恢复到临时 Redis（hash 343、list 2、set 18、string 101、zset 43），再次写入非空目标时保护逻辑正确拒绝；把 Waline dump 真实导入临时 PostgreSQL 17，核对 `wl_comment` 49、`wl_counter` 339、`wl_users` 1、`playing_with_neon` 20，共 4 张 public 表；再把 R2 镜像经本机下载 / 上传恢复到独立临时桶，151 个对象、889,720,768 字节、逐对象检查 0 差异。演练产生的明文、临时数据库、临时桶与本机临时凭据随后全部销毁。
 
 ## GitHub Actions secrets
 
@@ -83,4 +83,4 @@ scripts/backup/restore_r2.sh --apply
 
 ## 恢复演练
 
-至少每季度做一次：新建临时 Redis / PostgreSQL / R2 bucket，恢复最新备份，核对 key 数、Waline 表与对象数，再销毁临时资源。自动工作流的下载回读和格式校验不能替代真实恢复演练。
+至少每季度做一次：新建临时 Redis / PostgreSQL / R2 bucket，恢复最新备份，核对 key 数、Waline 表与对象数，再销毁临时资源。自动工作流的下载回读和格式校验不能替代真实恢复演练。首次完整演练为 2026-07-20，下一次最迟 2026-10-20；演练用 Cloudflare token 也必须在控制台撤销。

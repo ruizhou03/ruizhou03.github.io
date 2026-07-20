@@ -10,7 +10,7 @@
 
 ## 每日工作流
 1. **先 sync**：`git fetch origin && git status`。如果本地相对 `origin/main` 有未推送的提交，先 `git push`；如果工作区脏（未提交改动），停下来在 DAILY_REVIEW 写一句「工作区有未提交改动，未做巡检」然后结束，**不要碰**那些未提交的东西。
-2. **跑自动巡检脚本**：`bash scripts/audit/run.sh > /tmp/audit_report.md 2>&1`。一组按日期智能调度的 audit：keywords 漏检 + 图片可发现性与体积 + 后端脉搏（zircon-urge / zircon-comments 公开接口）每天跑；死链巡检每周一加跑；月度内容统计每月 1 号加跑。把 `/tmp/audit_report.md` 完整读进来，作为本次巡检的客观依据。**这份报告里挑出来的具体问题，逐项判断是修是留**：
+2. **跑自动巡检脚本**：`bash scripts/audit/run.sh > /tmp/audit_report.md 2>&1`。一组按日期智能调度的 audit：keywords 漏检 + 图片可发现性与体积 + 后端脉搏（zircon-urge / zircon-comments 公开接口）每天跑；死链巡检每周一加跑；月度运维快照每月 1 号加跑。把 `/tmp/audit_report.md` 完整读进来，作为本次巡检的客观依据。**这份报告里挑出来的具体问题，逐项判断是修是留**：
    - keywords 完全缺 → 直接 `python3 scripts/seed_keywords.py`，build 通过后纳入“已自动修复”。
    - 单篇 keywords 太薄 → 写进待办，请站主决定是否手动补。
    - 图片“疑似漏 `<p class="img-caption">` 配文”→ 实际打开文件确认是配文之后，按 [[feedback_image_caption_style]] 包裹。无法 100% 判断的，写进待办。

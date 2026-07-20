@@ -8,7 +8,7 @@
 #                  sibling_crosslink.py、bare_dollar.py、img_caption_md.py、
 #                  svg_italic_zh.py、bare_url.py、frontmatter_yaml.py
 #   每周一(dow=1) → 加跑 dead_links.py、orphan_files.py、pii_scan.py
-#   每月 1 号     → 加跑 monthly_stats.py
+#   每月 1 号     → 加跑 monthly_stats.py（月度运维快照）
 #
 # 全部输出到 stdout（markdown 格式），daily-review Claude 把它读进 context
 # 再决定哪些项进 DAILY_REVIEW.md。
