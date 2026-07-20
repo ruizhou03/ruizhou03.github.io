@@ -59,7 +59,7 @@
 | 服务 | 用途 | 备注 |
 |---|---|---|
 | GitHub `ruizhou03/ruizhou03.github.io` | 代码 + 部署 | push main 即上线 |
-| Cloudflare Registrar | `ruizhou03.com` | RDAP 到期日 2027-05-27；仍须确认自动续费与付款方式 |
+| Cloudflare Registrar | `ruizhou03.com` | RDAP 到期日 2027-05-27；2026-07-20 已确认自动续费、付款方式与联系人正常 |
 | fly.io | `zircon-urge`、`zircon-comments` | 动态生产后端与密钥；2026-07-20 账号下未发现 `zircon-mcp` app |
 | Upstash Redis | urge 动态数据 | 账号、积分、收藏、排行榜、存档；**不含评论** |
 | Neon PostgreSQL | Waline 数据 | 评论、回复、评论邮箱、页面阅读量 |
@@ -71,13 +71,13 @@
 ### 本地起环境
 
 ```bash
-git clone git@github.com:ruizhou03/ruizhou03.github.io.git
+git clone https://github.com/ruizhou03/ruizhou03.github.io.git
 cd ruizhou03.github.io
 bundle install
 bundle exec jekyll serve --livereload    # → http://localhost:4000
 ```
 
-据记录：仓库大（约 185 MB），**全量 clone 走 SSH 可能被掐断**；断了就改走 HTTPS 并关沙箱重试。
+本机已用 `gh auth login` 登录 `ruizhou03`，Git 凭据由 macOS Keychain 保存，仓库默认使用 HTTPS。旧 SSH 私钥仍保留，但不再作为本仓库的发布凭据。
 
 ### 最小上线闭环
 
@@ -387,7 +387,6 @@ LaunchAgent plist 模板在 `scripts/io.github.zirconeey.*.plist.template`（标
 ### 待确认项（别当事实用）
 
 - `published: false` 实测为 **0 篇**，但项目记录说性科普专栏「全部 published:false 待批量上线」。要么稿子还没落盘，要么记录已过时。
-- 域名自动续费与付款方式是否正常（注册商已确认是 Cloudflare，到期 2027-05-27）。
 - fly.io / R2 / 域名的实际月成本与付费账号。
 - Upstash 是否有备份/快照。
 - 实际用户数、评论数、日活。
@@ -402,7 +401,7 @@ LaunchAgent plist 模板在 `scripts/io.github.zirconeey.*.plist.template`（标
 |---|---|---|
 | **确认 Cloudflare 统计后台可读** | beacon 已全站覆盖；需核实 API token、账号权限和历史数据 | 30 分钟 |
 | **保持季度三源恢复演练** | 2026-07-20 首次完整演练通过；下次最迟 2026-10-20 | 每季度半天 |
-| **补齐服务 / 密钥清单的账号归属** | 注册商、GitHub / Fly / Cloudflare 所有权已核对，2FA、账单、恢复邮箱和第二管理员仍待人工确认 | 1 小时 |
+| **补齐服务 / 密钥清单的账号归属** | GitHub 已迁移到所有者账号；Google 与 Cloudflare 2FA / 恢复码、域名续费已确认；Fly、Upstash、Neon、DeepSeek 及第二管理员仍待核对 | 1 小时 |
 | **根目录报告归档进 `docs/`** | 卫生 | 10 分钟 |
 
 ### B 档 · 中期结构性

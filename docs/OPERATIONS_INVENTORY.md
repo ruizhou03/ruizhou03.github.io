@@ -21,7 +21,7 @@
 | Cloudflare Web Analytics | token `707b…715`（公开 site tag） | `default.html`、两个独立首页 | 全站访客 / 来源 / 设备统计 | 作为主流量口径；后台查询另需 API token |
 | Google Cloud | OAuth client + GA4 `G-L6TCM0XFJ9` | Google 控制台、首页 HTML | Google 登录；GA4 仅两个首页 | OAuth 是登录单点；GA4 作为历史 / 辅助口径 |
 | DeepSeek | API key | urge fly secret | 锆石小助手生成式回答 | 无 key 时应降级到站内检索 |
-| Cloudflare Registrar | `ruizhou03.com` | Cloudflare 控制台；DNS 也由 Cloudflare 托管 | 域名解析与续费 | RDAP 到期日 2027-05-27；transfer lock 已开启；仍须确认自动续费与付款方式 |
+| Cloudflare Registrar | `ruizhou03.com` | Cloudflare 控制台；DNS 也由 Cloudflare 托管 | 域名解析与续费 | RDAP 到期日 2027-05-27；transfer lock 已开启；2026-07-20 已确认自动续费、付款方式与联系人正常 |
 | 原作者 Mac | LaunchAgents / Keychain | `scripts/*.plist.template` | 邮件总结、机票监控、部分巡检 | 换机要重装；本机不是唯一数据副本 |
 
 ## 密钥名称与存放位置
@@ -70,8 +70,8 @@ git -C backends/comments status --short --branch
 
 | 服务 | 当前所有权 / 登录线索 | 续费或账单 | 恢复与 2FA 状态 |
 |---|---|---|---|
-| GitHub | CLI 当前账号 `zirconeey` | Pages / Actions 用量需在 Billing 核对 | 2FA、恢复邮箱、恢复码存放位置待控制台确认 |
-| Cloudflare（含域名、DNS、R2、Analytics） | `ruizhou0312@gmail.com`，本次以 Google 登录确认；Account ID 结尾 `5598` | 域名 2027-05-27 到期；自动续费、R2 账单待确认 | 登录依赖 Google；需确认 Google 2FA、Cloudflare 恢复方式及第二管理员 |
+| GitHub | 仓库所有者和 CLI 当前账号均为 `ruizhou03`；本仓库使用 HTTPS + macOS Keychain；旧协作者 `zirconeey` 的写权限已撤销 | Pages / Actions 用量需在 Billing 核对 | `ruizhou03` 的 2FA 已开启，恢复码已保存；第二管理员待决定 |
+| Cloudflare（含域名、DNS、R2、Analytics） | `ruizhou0312@gmail.com`，本次以 Google 登录确认；Account ID 结尾 `5598` | 域名 2027-05-27 到期；自动续费、付款方式与联系人已确认正常；R2 Paid 为 Active | Google 2-Step Verification 与备用码、Cloudflare 原生 2FA 与备用码均已确认；第二管理员待决定 |
 | fly.io | CLI 当前账号 `ruizhou0312@gmail.com` | 两个生产 app 的付款方式 / 限额待确认 | 2FA、恢复方式、第二管理员待控制台确认 |
 | Upstash | 生产凭据可用，控制台账号未从 CLI 读取 | 套餐与超额策略待确认 | 登录方式、2FA、恢复邮箱、第二管理员待控制台确认 |
 | Neon | 从真实恢复的 Waline 库确认服务商；控制台账号待确认 | 套餐、内置快照与计算休眠策略待确认 | 登录方式、2FA、恢复邮箱、第二管理员待控制台确认 |
@@ -83,12 +83,12 @@ git -C backends/comments status --short --branch
 ## 恢复演练记录
 
 - **2026-07-20：完整通过。** Redis 507 个 key 恢复到临时 Redis，类型分布完全一致且非空目标保护生效；Waline dump 导入临时 PostgreSQL 17，4 张 public 表及行数可查询；R2 151 个对象、889,720,768 字节经本机下载 / 上传恢复到独立临时桶，检查为 0 差异。
-- 临时 Redis、PostgreSQL、R2 bucket、解密明文和本机临时凭据均在核验后销毁。Cloudflare 演练 token 必须由账号主人在控制台撤销。
+- 临时 Redis、PostgreSQL、R2 bucket、解密明文和本机临时凭据均在核验后销毁；Cloudflare 演练 token 已由账号主人在控制台撤销。
 - 下一次演练最迟：**2026-10-20**。
 
 ## 尚待人工补齐
 
-- Cloudflare 域名自动续费、付款方式与账号恢复方式。
-- Neon、Upstash、Google Cloud、DeepSeek 的控制台所有者、套餐与恢复入口。
-- 所有关键服务的 2FA、恢复码离线副本和第二管理员。
+- fly.io、Neon、Upstash、Google Cloud、DeepSeek 的控制台所有者、套餐 / 账单与恢复入口。
+- fly.io、Neon、Upstash、DeepSeek 的 2FA 与恢复码状态；Google Cloud 仍需核对项目级所有者和 Billing。
+- 所有关键服务是否需要配置第二管理员。
 - 是否还需要部署 `zircon-mcp`；当前 fly 账号下没有同名 app。

@@ -27,6 +27,7 @@
 - Redis、PostgreSQL 与 R2 的每周备份和恢复工具位于 `scripts/backup/`；2026-07-20 首次自动备份、上传回读和完整临时环境恢复均成功，可恢复性已标绿，下一次演练最迟 2026-10-20。
 - 公开隐私说明位于 `/privacy/`，全站页脚和个人中心均有入口。
 - 全站流量主口径为 Cloudflare Web Analytics；GA4 仅两个独立首页，不作为全站总量。
+- GitHub 发布身份已迁移到仓库所有者 `ruizhou03`，本仓库使用 HTTPS + macOS Keychain，旧协作者 `zirconeey` 的写权限已撤销；GitHub、Google 与 Cloudflare 的 2FA 和恢复码均已确认，恢复演练使用的 Cloudflare 临时 token 已撤销。
 
 ## 风险台账
 
