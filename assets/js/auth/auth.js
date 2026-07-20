@@ -1,5 +1,6 @@
 /* SiteAuth —— 全站统一账号前端模块。
  * 挂在 window.SiteAuth，所有页面（博客 + 百宝箱）共用一个登录态。
+ * 新账号只由已验签的 Google 身份创建；密码只作为历史账号的过渡登录方式。
  * token 存 localStorage，登录后所有受保护请求用 authedFetch 自动带 Authorization。
  * 与小游戏的 gs.did.v1 / 文末点赞的 rxn-uid 解耦：登录后调 claim 把这台设备的
  * 历史数据认领到账号名下（首次登录自动认领）。
@@ -111,7 +112,7 @@
     return { ok: res.ok, status: res.status, data: data || {} };
   }
 
-  // 登录/注册成功后：存 session + 认领本机设备数据（失败不阻塞登录）
+  // 登录/验证成功后：存 session + 认领本机设备数据（失败不阻塞登录）
   async function afterAuth(r) {
     if (!r.ok || !r.data.token) {
       return { ok: false, error: (r.data && r.data.error) || 'auth_failed', status: r.status };
@@ -145,19 +146,21 @@
       return function () { listeners = listeners.filter(function (f) { return f !== cb; }); };
     },
 
-    register: async function (email, password, nick) {
-      var r = await post('/auth?action=register', { email: email, password: password, nick: nick });
-      return afterAuth(r);
-    },
-
     login: async function (email, password) {
       var r = await post('/auth?action=login', { email: email, password: password });
       return afterAuth(r);
     },
 
-    // 用 Google ID token 登录/注册（前端由 Google Identity Services 拿到 credential）
+    // 用 Google ID token 登录，或在首次验证时创建账号。
     loginWithGoogle: async function (idToken) {
       var r = await post('/auth?action=google', { idToken: idToken });
+      return afterAuth(r);
+    },
+
+    // 已用密码登录的旧账号，必须在同一会话内再验一次同名 Google 邮箱。
+    // 后端按 Google sub 绑定，不会仅因邮箱文本相同就自动合并。
+    linkGoogle: async function (idToken) {
+      var r = await post('/auth?action=link-google', { idToken: idToken }, true);
       return afterAuth(r);
     },
 

@@ -255,7 +255,7 @@ urge 主数据使用 Upstash Redis；评论与页面阅读量使用 Waline Postg
 
 ### 账号体系
 
-- 登录：Google OAuth，SiteAuth 无状态 JWT，支持多设备。
+- 登录：新账号仅通过已验签的 Google ID token 创建，并按 Google `sub` 绑定；旧密码账号可过渡登录，但邮箱验证前不能读取按邮箱关联的评论。SiteAuth 使用无状态 JWT，支持多设备。
 - 个人中心 `/account/`：资料编辑、隐私档（密码/导出/注销）、社交档（公开主页 `/u/`）。2026-07-14 做过一次大重设计（桌面宽版三区 hero + 手机分段）。
 - 积分等级：数字十级，签到/评论/收藏加分。评论加分靠 Waline 的 `postSave` 用共享密钥 `POINTS_SECRET` 回调 urge。
 - 收藏夹：多收藏夹模型，一篇可属多夹（`meta.a` 数组）。

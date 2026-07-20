@@ -1,5 +1,5 @@
 {%- comment -%}
-  统一账号 —— 登录/注册弹窗 + 导航头像组件，由 default.html 全站挂载。
+  统一账号 —— 登录/邮箱验证弹窗 + 导航头像组件，由 default.html 全站挂载。
   依赖 /assets/js/auth/auth.js（window.SiteAuth）。导航里放一个 #auth-slot 占位，
   本组件在其中渲染「登录」按钮或登录后的头像菜单。下方 JS 整段用 raw 包裹保护。
 {%- endcomment -%}
@@ -95,13 +95,6 @@
   }
   .sa-title { font-size: 1.25rem; font-weight: 700; color: var(--color-ink); margin: 0 0 0.3rem; }
   .sa-sub { font-size: 0.82rem; color: var(--color-muted); margin: 0 0 1.2rem; }
-  .sa-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.1rem; }
-  .sa-tab {
-    flex: 1; padding: 0.5rem; font-size: 0.9rem; font-weight: 600; cursor: pointer;
-    background: var(--color-bg-warm); color: var(--color-muted);
-    border: 1px solid var(--color-border); border-radius: 7px; font-family: inherit;
-  }
-  .sa-tab.active { background: var(--color-highlight); color: #fff; border-color: var(--color-highlight); }
   .sa-field { margin-bottom: 0.85rem; }
   .sa-field label { display: block; font-size: 0.78rem; color: var(--color-muted); margin-bottom: 0.3rem; }
   .sa-field input {
@@ -140,20 +133,12 @@
 </style>
 
 <div id="auth-modal-root">
-  <div id="sa-overlay" role="dialog" aria-modal="true" aria-label="登录或注册">
+  <div id="sa-overlay" role="dialog" aria-modal="true" aria-label="登录或验证邮箱">
     <div class="sa-card">
       <button class="sa-close" type="button" aria-label="关闭">&times;</button>
       <h3 class="sa-title" id="sa-title">登录</h3>
-      <p class="sa-sub">一个账号，打通收藏、点赞、浏览记录与百宝箱。</p>
-      <div class="sa-tabs">
-        <button type="button" class="sa-tab active" data-mode="login">登录</button>
-        <button type="button" class="sa-tab" data-mode="register">注册</button>
-      </div>
+      <p class="sa-sub" id="sa-sub">一个账号，打通收藏、点赞、浏览记录与百宝箱。</p>
       <form id="sa-form" autocomplete="on">
-        <div class="sa-field" id="sa-nick-field" style="display:none;">
-          <label for="sa-nick">昵称（选填）</label>
-          <input type="text" id="sa-nick" maxlength="16" autocomplete="nickname" placeholder="留空就用邮箱前缀">
-        </div>
         <div class="sa-field">
           <label for="sa-email">邮箱</label>
           <input type="email" id="sa-email" autocomplete="email" required placeholder="you@example.com">
@@ -170,7 +155,7 @@
         <div class="sa-divider"><span>或</span></div>
         <div id="sa-google-btn"></div>
       </div>
-      <p class="sa-hint">密码经加盐哈希存储，本站看不到你的明文密码。</p>
+      <p class="sa-hint">新账号请使用 Google 验证邮箱。已有密码账号可继续登录，并在登录后关联 Google。</p>
       <div class="sa-loading" id="sa-loading" hidden>
         <div class="sa-spinner" aria-hidden="true"></div>
         <p>正在登录…</p>
@@ -184,40 +169,43 @@
   if (!window.SiteAuth) return;
   var overlay = document.getElementById('sa-overlay');
   var titleEl = document.getElementById('sa-title');
+  var subEl = document.getElementById('sa-sub');
   var form = document.getElementById('sa-form');
   var emailEl = document.getElementById('sa-email');
   var pwEl = document.getElementById('sa-password');
-  var nickEl = document.getElementById('sa-nick');
-  var nickField = document.getElementById('sa-nick-field');
   var submitBtn = document.getElementById('sa-submit');
   var errorEl = document.getElementById('sa-error');
   var loadingEl = document.getElementById('sa-loading');
-  var tabs = overlay.querySelectorAll('.sa-tab');
-  var mode = 'login';
 
   function setLoading(on) { if (loadingEl) loadingEl.hidden = !on; }
 
-  function setMode(m) {
-    mode = m;
-    titleEl.textContent = m === 'login' ? '登录' : '注册';
-    submitBtn.textContent = m === 'login' ? '登录' : '注册并登录';
-    nickField.style.display = m === 'register' ? 'block' : 'none';
-    pwEl.setAttribute('autocomplete', m === 'login' ? 'current-password' : 'new-password');
-    tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.mode === m); });
+  function setView(view) {
+    var verifying = view === 'verify';
+    titleEl.textContent = verifying ? '验证邮箱' : '登录';
+    subEl.textContent = verifying
+      ? '请点击下方 Google 按钮，确认你同时拥有该密码账号和同名 Google 邮箱。'
+      : '一个账号，打通收藏、点赞、浏览记录与百宝箱。';
+    form.style.display = verifying ? 'none' : '';
     errorEl.textContent = '';
   }
-  function open(m) { setMode(m || 'login'); overlay.classList.add('open'); setTimeout(function () { emailEl.focus(); }, 50); }
+  function open(view) {
+    setView(view || 'login');
+    overlay.classList.add('open');
+    if (view !== 'verify') setTimeout(function () { emailEl.focus(); }, 50);
+  }
   function close() { overlay.classList.remove('open'); errorEl.textContent = ''; setLoading(false); form.reset(); }
 
-  tabs.forEach(function (t) { t.addEventListener('click', function () { setMode(t.dataset.mode); }); });
   overlay.querySelector('.sa-close').addEventListener('click', close);
   overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('open')) close(); });
 
   var ERRORS = {
-    invalid_email: '邮箱格式不对', weak_password: '密码至少 6 位',
-    email_taken: '这个邮箱已经注册过了，直接登录吧', bad_credentials: '邮箱或密码不对',
+    bad_credentials: '邮箱或密码不对',
     missing_fields: '请把邮箱和密码填完', login_required: '请先登录',
+    account_link_required: '该邮箱已有密码账号。请先用邮箱密码登录，再点 Google 完成验证；忘记密码请联系站长恢复。',
+    identity_conflict: '该 Google 身份已关联其他账号，请联系站长处理。',
+    google_email_mismatch: 'Google 邮箱与当前账号邮箱不一致。',
+    google_email_changed: 'Google 邮箱发生变化，请联系站长确认。',
   };
 
   form.addEventListener('submit', async function (e) {
@@ -227,17 +215,22 @@
     setLoading(true);
     var email = emailEl.value.trim();
     var pw = pwEl.value;
-    var nick = nickEl.value.trim();
     var r;
     try {
-      r = mode === 'login'
-        ? await SiteAuth.login(email, pw)
-        : await SiteAuth.register(email, pw, nick);
+      r = await SiteAuth.login(email, pw);
     } catch (err) {
       r = { ok: false, error: 'network' };
     }
     submitBtn.disabled = false;
-    if (r.ok) { close(); return; }
+    if (r.ok) {
+      if (r.user && !r.user.emailVerified) {
+        setLoading(false);
+        setView('verify');
+        errorEl.textContent = '密码已验证；再点一次 Google 即可确认邮箱归属。';
+        return;
+      }
+      close(); return;
+    }
     setLoading(false);
     errorEl.textContent = ERRORS[r.error] || (r.error === 'network' ? '网络不太顺，再试一次' : '出错了，再试一次');
   });
@@ -339,6 +332,7 @@
 
   // 对外暴露：任何按钮都能 SiteAuth.openLogin() 唤起弹窗
   window.SiteAuth.openLogin = open;
+  window.SiteAuth.openEmailVerification = function () { open('verify'); };
 
   // ── Google 登录（Google Identity Services）──
   // 填上 Google Cloud 的 OAuth Web Client ID 即启用；留空则整块不出现。
@@ -369,12 +363,19 @@
           errorEl.textContent = '';
           setLoading(true);   // 弹窗刚关、正在向后端换 token：立刻给"登录中"反馈，别让用户以为失败了
           var r;
-          try { r = await SiteAuth.loginWithGoogle(resp.credential); }
+          try {
+            var current = SiteAuth.getUser();
+            r = current && !current.emailVerified
+              ? await SiteAuth.linkGoogle(resp.credential)
+              : await SiteAuth.loginWithGoogle(resp.credential);
+          }
           catch (e) { r = { ok: false, error: 'network' }; }
           if (r.ok) { close(); }
           else {
             setLoading(false);
-            errorEl.textContent = r.error === 'google_not_configured' ? 'Google 登录暂未开启' : 'Google 登录失败，换邮箱试试';
+            errorEl.textContent = r.error === 'google_not_configured'
+              ? 'Google 登录暂未开启'
+              : (ERRORS[r.error] || (r.error === 'network' ? '网络不太顺，再试一次' : 'Google 登录或验证失败'));
           }
         },
       });

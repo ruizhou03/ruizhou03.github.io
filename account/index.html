@@ -1147,8 +1147,17 @@ body_class: acc-page
           '<label class="acc-switch"><input type="checkbox" id="acc-pub-toggle"' + (user.profilePublic !== false ? ' checked' : '') + '><span class="acc-switch-slider"></span></label>' +
         '</div>' +
         '<div class="acc-set-row">' +
+          '<div class="acc-set-info"><div class="acc-set-t">邮箱归属</div>' +
+            '<div class="acc-set-d">' + (user.emailVerified
+              ? '已通过 Google 验证。按邮箱查询的评论记录只会对已验证身份开放。'
+              : '尚未验证。请关联同名 Google 邮箱；本站不会仅因邮箱文本相同就合并账号。') + '</div></div>' +
+          (user.emailVerified
+            ? '<span style="font-size:0.82rem;color:#2f8f6b;font-weight:700;">已验证</span>'
+            : '<button class="acc-tool-btn" id="acc-verify-email-btn">立即验证</button>') +
+        '</div>' +
+        '<div class="acc-set-row">' +
           '<div class="acc-set-info"><div class="acc-set-t">登录密码</div>' +
-            '<div class="acc-set-d">' + (user.hasPassword ? '已设置，可修改。' : '你现在用 Google 登录；设置密码后也能用「邮箱 + 密码」登录。') + '</div></div>' +
+            '<div class="acc-set-d">' + (user.hasPassword ? '已设置，可修改。新用户不再开放密码注册。' : '你现在用 Google 登录；设置密码后也能用「邮箱 + 密码」登录。') + '</div></div>' +
           '<button class="acc-tool-btn" id="acc-pw-btn">' + (user.hasPassword ? '修改密码' : '设置密码') + '</button>' +
         '</div>' +
         '<div class="acc-set-panel" id="acc-pw-panel" hidden></div>' +
@@ -1179,6 +1188,10 @@ body_class: acc-page
         pubToggle.disabled = true;
         var r; try { r = await SiteAuth.updateProfile({ profilePublic: pubToggle.checked }); } catch (e) { r = { ok: false }; }
         if (!r.ok) { pubToggle.checked = !pubToggle.checked; pubToggle.disabled = false; alert('保存失败，再试一次'); }
+      });
+      var verifyEmailBtn = document.getElementById('acc-verify-email-btn');
+      if (verifyEmailBtn) verifyEmailBtn.addEventListener('click', function () {
+        if (SiteAuth.openEmailVerification) SiteAuth.openEmailVerification();
       });
       document.getElementById('acc-pw-btn').addEventListener('click', function () { togglePwPanel(user); });
       document.getElementById('acc-export-btn').addEventListener('click', doExport);
