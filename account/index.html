@@ -308,7 +308,7 @@ body_class: acc-page
   .acc-switch-slider::before { content:''; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
   .acc-switch input:checked + .acc-switch-slider { background:var(--color-accent); }
   .acc-switch input:checked + .acc-switch-slider::before { transform:translateX(20px); }
-  .acc-switch input:disabled + .acc-switch-slider { opacity:0.55; cursor:wait; }
+  .acc-switch input:disabled + .acc-switch-slider { opacity:0.55; cursor:default; }
   .acc-sub-state { font-size:0.74rem; color:var(--color-light); margin-top:0.28rem; min-height:1em; }
   .acc-sub-state.ok { color:#2f8f6b; }
   .acc-sub-state.warn { color:#9a6a20; }
@@ -1246,25 +1246,69 @@ body_class: acc-page
         newsletterState.textContent = ''; return;
       }
       var current = loaded.preferences;
+      var saveVersion = 0;
       paint(current);
+
+      function matches(prefs, desired) {
+        return !!prefs &&
+          !!prefs.articleUpdates === !!desired.articleUpdates &&
+          !!prefs.newsletter === !!desired.newsletter;
+      }
+
+      function watchBackgroundSync(version, desired, attempt) {
+        var delays = [600, 1200, 2400];
+        if (attempt >= delays.length) return;
+        window.setTimeout(async function () {
+          if (version !== saveVersion) return;
+          var checked;
+          try { checked = await SiteAuth.getSubscriptions(); } catch (e) { checked = { ok:false }; }
+          if (version !== saveVersion || !checked.ok || !matches(checked.preferences, desired)) return;
+          current = checked.preferences;
+          if (!current.syncPending) {
+            paint(current, '已保存。', 'ok');
+            return;
+          }
+          if (attempt + 1 < delays.length) {
+            watchBackgroundSync(version, desired, attempt + 1);
+          } else {
+            paint(current, '偏好已保存，邮件服务稍后继续同步。', 'warn');
+          }
+        }, delays[attempt]);
+      }
 
       async function save() {
         var before = current;
+        var desired = {
+          articleUpdates: article.checked,
+          newsletter: newsletter.checked,
+        };
+        var version = ++saveVersion;
         article.disabled = true; newsletter.disabled = true;
         articleState.textContent = '保存中…'; articleState.className = 'acc-sub-state';
         var result;
         try {
-          result = await SiteAuth.updateSubscriptions({
-            articleUpdates: article.checked,
-            newsletter: newsletter.checked,
-          });
+          result = await SiteAuth.updateSubscriptions(desired);
         } catch (e) { result = { ok:false }; }
+        if (version !== saveVersion) return;
         if (!result.ok) {
-          paint(before, '保存失败，请再试一次。', 'warn');
+          // POST 可能已经在服务器成功，只是浏览器丢了响应。先回读权威状态，
+          // 避免出现“实际已订阅、界面却报失败”的假警报。
+          articleState.textContent = '正在确认保存结果…';
+          var confirmed;
+          try { confirmed = await SiteAuth.getSubscriptions(); } catch (e) { confirmed = { ok:false }; }
+          if (version !== saveVersion) return;
+          if (confirmed.ok && matches(confirmed.preferences, desired)) {
+            current = confirmed.preferences;
+            paint(current, current.syncPending ? '已保存，邮件服务正在同步…' : '已保存。', 'ok');
+            if (current.syncPending) watchBackgroundSync(version, desired, 0);
+          } else {
+            paint(before, '保存失败，请再试一次。', 'warn');
+          }
           return;
         }
         current = result.preferences;
-        paint(current, current.syncPending ? '偏好已保存，邮件服务正在同步。' : '已保存。', current.syncPending ? 'warn' : 'ok');
+        paint(current, current.syncPending ? '已保存，邮件服务正在同步…' : '已保存。', 'ok');
+        if (current.syncPending) watchBackgroundSync(version, desired, 0);
       }
       article.addEventListener('change', save);
       newsletter.addEventListener('change', save);
