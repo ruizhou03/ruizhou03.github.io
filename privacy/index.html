@@ -28,7 +28,7 @@ permalink: /privacy/
     <h2>会保存什么</h2>
     <ul>
       <li><strong>账号：</strong>邮箱、可选的 Google 账号稳定标识、昵称、头像、简介，以及积分、收藏、点赞、阅读记录和部分游戏存档。</li>
-      <li><strong>登录验证：</strong>本站不保存登录密码。邮件验证码只以不可逆摘要短暂保存在 Redis，10 分钟到期且使用一次即删除；也可以使用 Google 登录。</li>
+      <li><strong>登录验证：</strong>本站不再创建或使用登录密码；少量历史账号可能暂存旧密码哈希，并会在该账号下一次完成邮件验证码或 Google 登录时清除。邮件验证码只以不可逆摘要短暂保存在 Redis，10 分钟到期且使用一次即删除；也可以使用 Google 登录。</li>
       <li><strong>评论：</strong>评论内容、昵称、可选邮箱、回复关系和页面阅读计数。</li>
       <li><strong>上传与同步：</strong>你主动上传的图片、音频或工具数据；某些工具只在浏览器本地保存，开启云同步后才上传。</li>
       <li><strong>访问统计：</strong>Cloudflare Web Analytics 用于全站匿名流量趋势；中英文首页另有 Google Analytics 4，用于历史口径对照。</li>
