@@ -148,7 +148,7 @@ body_class: adm-page
           <div id="cm-batch" class="cm-batch" hidden></div>
           <div id="cm-list" class="cm-list"><div class="cm-empty">加载中…</div></div>
           <div id="cm-pager" class="cm-pager"></div>
-          <p class="adm-note">下架＝正文搬后端、访客（含查看源码）看不到、你仍可预览、可随时恢复（栏目里变灰）；删除＝真 404（文章不再构建），访客和你都打不开，栏目里就地留一条带删除线的墓碑、可还原或彻底删除；彻底删除＝从仓库抹除文件，站内不可恢复（只能从 git 历史找回）。改动提交后约 1–2 分钟生效（这期间列表可能仍显旧态，已就地标「重建中」）。也可在文章页用右下角齿轮就地操作。</p>
+          <p class="adm-note">推送＝在文章已经公开后，单独选择是否给“新文章通知”订阅者发邮件；默认不发，发送前会显示标题、摘要、链接和人数，并要求再次确认。同一文章版本只允许推送一次。下架＝正文搬后端、访客（含查看源码）看不到、你仍可预览、可随时恢复（栏目里变灰）；删除＝真 404（文章不再构建），访客和你都打不开，栏目里就地留一条带删除线的墓碑、可还原或彻底删除；彻底删除＝从仓库抹除文件，站内不可恢复（只能从 git 历史找回）。改动提交后约 1–2 分钟生效（这期间列表可能仍显旧态，已就地标「重建中」）。</p>
         </section>
 
         {%- comment -%} 板块与小工具可见性（数据源 _data/visibility.json）{%- endcomment -%}
@@ -191,6 +191,33 @@ body_class: adm-page
     </div>
   </div>
 </article>
+
+<div id="mail-modal" class="mail-modal" hidden>
+  <div class="mail-dialog" role="dialog" aria-modal="true" aria-labelledby="mail-dialog-title">
+    <button type="button" class="mail-close" id="mail-close" aria-label="关闭">×</button>
+    <div class="mail-kicker">新文章通知</div>
+    <h2 id="mail-dialog-title">发送前预览</h2>
+    <div id="mail-loading" class="mail-loading">正在读取线上文章和订阅人数…</div>
+    <div id="mail-preview" hidden>
+      <div class="mail-preview-card">
+        <div class="mail-preview-label">邮件主题</div>
+        <h3 id="mail-title"></h3>
+        <p id="mail-summary"></p>
+        <a id="mail-link" href="#" target="_blank" rel="noopener"></a>
+      </div>
+      <div class="mail-audience" id="mail-audience"></div>
+      <p class="mail-status" id="mail-status"></p>
+      <label class="mail-confirm" id="mail-confirm-wrap">
+        <input type="checkbox" id="mail-confirm">
+        <span id="mail-confirm-text">我确认发送这封通知</span>
+      </label>
+      <div class="mail-actions">
+        <button type="button" class="cm-btn" id="mail-cancel">取消</button>
+        <button type="button" class="adm-btn" id="mail-send" disabled>确认发送</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <style>
   /* 管理后台不受正文栏宽限制：正文放宽方便横向检索与对比。
@@ -411,6 +438,37 @@ body_class: adm-page
   .cm-empty { padding: 2rem 1rem; text-align: center; color: var(--color-light); font-size: 0.85rem; }
   .cm-sub-h { padding: 0.5rem 0.85rem; font-size: 0.72rem; font-weight: 700; color: var(--color-muted);
     background: var(--color-bg-warm); border-bottom: 1px solid var(--color-border); }
+
+  /* 文章通知预览：真正发送前先看内容与人数，再勾选确认。 */
+  .mail-modal { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center;
+    padding: 1rem; background: rgba(20, 28, 40, 0.58); backdrop-filter: blur(3px); }
+  .mail-modal[hidden] { display: none; }
+  .mail-dialog { position: relative; width: min(620px, 100%); max-height: calc(100vh - 2rem); overflow: auto;
+    padding: 1.6rem; border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-bg);
+    color: var(--color-text); box-shadow: 0 22px 65px rgba(16, 24, 40, 0.28); }
+  .mail-close { position: absolute; top: 0.65rem; right: 0.75rem; border: 0; background: transparent;
+    color: var(--color-light); cursor: pointer; font: inherit; font-size: 1.5rem; line-height: 1; }
+  .mail-kicker { color: var(--color-highlight); font-size: 0.68rem; font-weight: 700; letter-spacing: .12em; }
+  .mail-dialog h2 { margin: 0.25rem 0 1.1rem; color: var(--color-ink); font-size: 1.25rem; }
+  .mail-loading { padding: 2rem 0; color: var(--color-light); text-align: center; font-size: 0.86rem; }
+  .mail-preview-card { padding: 1.05rem 1.1rem; border: 1px solid var(--color-border); border-radius: 12px;
+    background: var(--color-bg-warm); }
+  .mail-preview-label { color: var(--color-light); font-size: 0.68rem; margin-bottom: 0.35rem; }
+  .mail-preview-card h3 { margin: 0 0 0.55rem; color: var(--color-ink); font-size: 1.05rem; line-height: 1.45; }
+  .mail-preview-card p { margin: 0 0 0.65rem; color: var(--color-muted); font-size: 0.84rem; line-height: 1.65; }
+  .mail-preview-card a { color: var(--color-highlight); font-size: 0.76rem; word-break: break-all; }
+  .mail-audience { margin: 0.9rem 0 0; color: var(--color-ink); font-size: 0.88rem; font-weight: 700; }
+  .mail-status { min-height: 1.2em; margin: 0.35rem 0 0.8rem; color: var(--color-muted); font-size: 0.78rem; }
+  .mail-status.warn { color: #9a6a00; }
+  .mail-status.ok { color: #347658; }
+  .mail-status.err { color: #b5483a; }
+  .mail-confirm { display: flex; gap: 0.55rem; align-items: flex-start; padding: 0.7rem 0.8rem;
+    border: 1px solid var(--color-border); border-radius: 9px; color: var(--color-text); font-size: 0.82rem; cursor: pointer; }
+  .mail-confirm input { margin-top: 0.15rem; accent-color: var(--color-accent); }
+  .mail-confirm.disabled { opacity: 0.5; cursor: default; }
+  .mail-actions { display: flex; justify-content: flex-end; gap: 0.55rem; margin-top: 1rem; }
+  .mail-actions .adm-btn { padding: 0.48rem 1rem; font-size: 0.82rem; box-shadow: none; }
+  .mail-actions .adm-btn:disabled { opacity: 0.45; cursor: default; filter: none; }
 
   /* ── 暗色模式修正：徽章 / 待生效字 文字提亮；排行数据墨水条改亮蓝（否则暗底上看不见） ── */
   [data-theme="dark"] .cm-badge.b-hidden { color: #d8b872; }
@@ -1126,6 +1184,9 @@ body_class: adm-page
     var titleHtml = it.url
       ? '<a class="cm-title" href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a>'
       : '<span class="cm-title">' + esc(it.title) + '</span>';
+    var mailAct = (!it.hidden && !it.trashed && !it.off && it.url)
+      ? '<button type="button" class="cm-btn" data-a="mail"' + (it.mailSent ? ' disabled' : '') + '>' + (it.mailSent ? '已推送' : '推送') + '</button>'
+      : '';
     var acts = (it.trashed || it.off)
       ? '<button type="button" class="cm-btn" data-a="restore">还原</button>' +
         '<button type="button" class="cm-btn danger" data-a="purge">彻底删除</button>'
@@ -1135,7 +1196,7 @@ body_class: adm-page
       '<input type="checkbox" class="cm-check"' + (cmSel[it.path] ? ' checked' : '') + ' aria-label="选择">' +
       '<div class="cm-main">' + titleHtml + '<div class="cm-meta">' + (it.sub ? esc(it.sub) + ' · ' : '') + (it.date ? it.date + ' · ' : '') + esc(it.path) + '</div></div>' +
       '<div class="cm-badges">' + badges + '</div>' +
-      '<div class="cm-acts">' + acts + '</div>' +
+      '<div class="cm-acts">' + mailAct + acts + '</div>' +
     '</div>';
   }
   var CM_TAB_NAME = { all: '全部', offshelf: '已下架', trash: '回收站' };
@@ -1164,7 +1225,10 @@ body_class: adm-page
       var chk = row.querySelector('.cm-check');
       if (chk) chk.addEventListener('change', function () { if (chk.checked) cmSel[it.path] = 1; else delete cmSel[it.path]; renderBatchBar(pageRows); });
       Array.prototype.forEach.call(row.querySelectorAll('.cm-btn'), function (btn) {
-        btn.addEventListener('click', function () { cmAction(it, row, btn.getAttribute('data-a')); });
+        btn.addEventListener('click', function () {
+          var action = btn.getAttribute('data-a');
+          if (action === 'mail') cmMailOpen(it); else cmAction(it, row, action);
+        });
       });
     });
     renderBatchBar(pageRows);
@@ -1283,6 +1347,114 @@ body_class: adm-page
     row.classList.add('cm-busy');
     cmExec(it, a).then(function () { renderContent(); })
       .catch(function (e) { row.classList.remove('cm-busy'); alert('操作失败：' + ((e && e.error) || '请重试')); });
+  }
+
+  // ── 文章通知：服务器预览 → 勾选确认 → 发送。默认永远不随发布自动发送。──
+  var mailItem = null, mailData = null, mailSending = false;
+  function mailEl(id) { return document.getElementById(id); }
+  function mailError(error) {
+    return {
+      article_not_public: '这篇文章当前不是公开状态，不能推送。',
+      article_changed: '文章在预览后又有修改，请关闭并重新预览。',
+      no_subscribers: '目前没有订阅“新文章通知”的读者。',
+      audience_sync_pending: '订阅名单仍在同步，请稍后再试。',
+      send_in_progress: '这篇文章正在发送，请不要重复操作。',
+      already_sent: '这个版本已经推送过，不能重复发送。',
+      mail_service_failed: '邮件服务暂时失败，请稍后重试。'
+    }[error] || '加载失败，请稍后重试。';
+  }
+  function cmMailClose() {
+    if (mailSending) return;
+    var modal = mailEl('mail-modal'); if (modal) modal.hidden = true;
+    document.documentElement.style.overflow = '';
+    mailItem = null; mailData = null;
+  }
+  function cmMailCanSend() {
+    if (!mailData || mailSending || mailData.alreadySent) return false;
+    if (!mailData.audience || !mailData.audience.subscribers || mailData.audience.pending) return false;
+    return !!(mailEl('mail-confirm') && mailEl('mail-confirm').checked);
+  }
+  function cmMailSyncButton() {
+    var button = mailEl('mail-send'); if (!button) return;
+    button.disabled = !cmMailCanSend();
+  }
+  function cmMailShowError(message) {
+    var loading = mailEl('mail-loading'), preview = mailEl('mail-preview');
+    if (preview) preview.hidden = true;
+    if (loading) { loading.textContent = message; loading.className = 'mail-loading mail-status err'; }
+  }
+  function cmMailRender(data) {
+    mailData = data;
+    var loading = mailEl('mail-loading'), preview = mailEl('mail-preview');
+    if (loading) loading.hidden = true;
+    if (preview) preview.hidden = false;
+    mailEl('mail-title').textContent = '新文章｜' + data.article.title;
+    mailEl('mail-summary').textContent = data.article.summary || '站点刚刚发布了一篇新文章。';
+    var link = mailEl('mail-link'); link.href = data.article.url; link.textContent = data.article.url;
+    var count = Number(data.audience && data.audience.subscribers) || 0;
+    mailEl('mail-audience').textContent = '将发送给 ' + count + ' 位“新文章通知”订阅者';
+    var status = mailEl('mail-status'), wrap = mailEl('mail-confirm-wrap'), check = mailEl('mail-confirm');
+    check.checked = false; check.disabled = false; wrap.classList.remove('disabled'); status.className = 'mail-status';
+    if (data.alreadySent) {
+      status.textContent = '这个文章版本已经推送过，不会再次发送。'; status.classList.add('ok');
+      check.disabled = true; wrap.classList.add('disabled');
+    } else if (!count) {
+      status.textContent = '当前没有可接收这类通知的订阅者。'; status.classList.add('warn');
+      check.disabled = true; wrap.classList.add('disabled');
+    } else if (Number(data.audience.pending) > 0) {
+      status.textContent = data.audience.pending + ' 位订阅者仍在同步，请稍后重新打开预览。'; status.classList.add('warn');
+      check.disabled = true; wrap.classList.add('disabled');
+    } else if (data.send && data.send.status === 'draft') {
+      status.textContent = '上次已创建草稿但没有发出；确认后会继续发送这同一份草稿。'; status.classList.add('warn');
+    } else {
+      status.textContent = '发送后无法撤回；邮件只发给主动开启该订阅的读者。';
+    }
+    mailEl('mail-confirm-text').textContent = '我确认把这封通知发送给 ' + count + ' 位订阅者';
+    mailEl('mail-send').textContent = data.alreadySent ? '已经推送' : '确认发送';
+    cmMailSyncButton();
+  }
+  function cmMailOpen(it) {
+    mailItem = it; mailData = null; mailSending = false;
+    var modal = mailEl('mail-modal'), loading = mailEl('mail-loading'), preview = mailEl('mail-preview');
+    if (!modal) return;
+    modal.hidden = false; document.documentElement.style.overflow = 'hidden';
+    if (preview) preview.hidden = true;
+    if (loading) { loading.hidden = false; loading.className = 'mail-loading'; loading.textContent = '正在读取线上文章和订阅人数…'; }
+    var query = '?action=preview&path=' + encodeURIComponent(it.path) + '&url=' + encodeURIComponent(it.url || '');
+    window.SiteAuth.authedFetch('/api/admin-mail' + query)
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+      .then(cmMailRender)
+      .catch(function (error) { cmMailShowError(mailError(error && error.error)); });
+  }
+  function cmMailSend() {
+    if (!cmMailCanSend() || !mailItem) return;
+    mailSending = true; var button = mailEl('mail-send'), status = mailEl('mail-status');
+    button.disabled = true; button.textContent = '发送中…';
+    status.textContent = '正在创建并提交邮件，请不要关闭窗口。'; status.className = 'mail-status';
+    window.SiteAuth.authedFetch('/api/admin-mail?action=send', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: mailItem.path, url: mailItem.url || '', sha: mailData.article.sha, confirmed: true })
+    }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw j; return j; }); })
+      .then(function () {
+        mailSending = false; mailItem.mailSent = true;
+        status.textContent = '已提交发送。Resend 会自动排除已退订的读者。'; status.className = 'mail-status ok';
+        mailEl('mail-confirm-wrap').classList.add('disabled'); mailEl('mail-confirm').disabled = true;
+        button.textContent = '已推送'; button.disabled = true;
+        renderContent();
+      })
+      .catch(function (error) {
+        mailSending = false; status.textContent = mailError(error && error.error); status.className = 'mail-status err';
+        button.textContent = '重新确认发送'; cmMailSyncButton();
+      });
+  }
+  function cmMailWire() {
+    var close = mailEl('mail-close'), cancel = mailEl('mail-cancel'), send = mailEl('mail-send'), check = mailEl('mail-confirm'), modal = mailEl('mail-modal');
+    if (close) close.addEventListener('click', cmMailClose);
+    if (cancel) cancel.addEventListener('click', cmMailClose);
+    if (send) send.addEventListener('click', cmMailSend);
+    if (check) check.addEventListener('change', cmMailSyncButton);
+    if (modal) modal.addEventListener('click', function (event) { if (event.target === modal) cmMailClose(); });
+    document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && modal && !modal.hidden) cmMailClose(); });
   }
   // ── 控制台路由：左侧目录点选 → 右侧显示对应子面板（hash 可直达 / 刷新保持 / 前进后退）──
   var PANES = ['inbox', 'overview', 'rankings', 'traffic', 'geo', 'articles', 'visibility', 'reports'];
@@ -1610,6 +1782,7 @@ body_class: adm-page
   }
   function cmWireControls() {
     wireBoardTabs();
+    cmMailWire();
     Array.prototype.forEach.call(document.querySelectorAll('.cm-tab'), function (t) {
       t.addEventListener('click', function () {
         Array.prototype.forEach.call(document.querySelectorAll('.cm-tab'), function (x) { x.classList.remove('cm-on'); });
