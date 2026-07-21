@@ -1,7 +1,8 @@
 /* SiteAuth —— 全站统一账号前端模块。
  * 挂在 window.SiteAuth，所有页面（博客 + 百宝箱）共用一个登录态。
  * 新账号由邮件验证码或已验签的 Google 身份创建；本站不再接受或保存登录密码。
- * token 存 localStorage，登录后所有受保护请求用 authedFetch 自动带 Authorization。
+ * 短期 access token 与一次性 refresh token 暂存 localStorage；登录后所有受保护请求
+ * 用 authedFetch 自动带 Authorization，并在 access 过期时轮换 refresh token。
  * 与小游戏的 gs.did.v1 / 文末点赞的 rxn-uid 解耦：登录后调 claim 把这台设备的
  * 历史数据认领到账号名下（首次登录自动认领）。
  */
@@ -10,6 +11,7 @@
 
   var API = 'https://zircon-urge.fly.dev/api';
   var K_TOKEN = 'site.auth.token.v1';
+  var K_REFRESH = 'site.auth.refresh.v1';
   var K_USER = 'site.auth.user.v1';
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -22,14 +24,17 @@
     listeners.forEach(function (cb) { try { cb(u); } catch (e) {} });
   }
 
-  function setSession(token, user) {
+  function setSession(token, user, refreshToken) {
     if (token) lsSet(K_TOKEN, token);
+    if (refreshToken) lsSet(K_REFRESH, refreshToken);
+    else if (refreshToken === '') lsDel(K_REFRESH);
     if (user) lsSet(K_USER, JSON.stringify(user));
     emit();
   }
 
   function clearSession() {
     lsDel(K_TOKEN);
+    lsDel(K_REFRESH);
     lsDel(K_USER);
     restoreAnonIdentity();   // 还原匿名身份（登出/登录态失效时）
     emit();
@@ -94,19 +99,59 @@
     } catch (e) { return false; }
   }
 
+  // 同一页面只允许一个 refresh 请求在飞；跨标签页时再比较 localStorage 中的
+  // refresh token，避免另一个标签已经轮换成功后，本标签的重放 401 误清新会话。
+  var refreshPromise = null;
+  async function rotateAccessToken() {
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = (async function () {
+      var attempted = lsGet(K_REFRESH);
+      if (!attempted) return { ok: false, definitive: false };
+      try {
+        var res = await fetch(API + '/auth?action=refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: attempted }),
+        });
+        var data = null;
+        try { data = await res.json(); } catch (e) {}
+        if (res.ok && data && data.token && data.refreshToken && data.user) {
+          setSession(data.token, data.user, data.refreshToken);
+          return { ok: true, token: data.token };
+        }
+        if (res.status === 401) {
+          var currentRefresh = lsGet(K_REFRESH);
+          if (currentRefresh && currentRefresh !== attempted && SiteAuth.getToken()) {
+            return { ok: true, token: SiteAuth.getToken() };
+          }
+          clearSession();
+          return { ok: false, definitive: true };
+        }
+      } catch (e) {}
+      return { ok: false, definitive: false };
+    })();
+    try { return await refreshPromise; }
+    finally { refreshPromise = null; }
+  }
+
   async function post(path, body, withAuth) {
-    var headers = { 'Content-Type': 'application/json' };
-    if (withAuth) {
-      var t = SiteAuth.getToken();
-      if (t) headers['Authorization'] = 'Bearer ' + t;
-    }
     var did = lsGet('gs.did.v1');
-    if (did) headers['X-Device-Id'] = did;
-    var res = await fetch(API + path, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(body || {}),
-    });
+    async function send(token) {
+      var headers = { 'Content-Type': 'application/json' };
+      if (withAuth && token) headers['Authorization'] = 'Bearer ' + token;
+      if (did) headers['X-Device-Id'] = did;
+      return fetch(API + path, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body || {}),
+      });
+    }
+    var t = withAuth ? SiteAuth.getToken() : '';
+    var res = await send(t);
+    if (withAuth && res.status === 401 && lsGet(K_REFRESH)) {
+      var rotated = await rotateAccessToken();
+      if (rotated.ok) res = await send(rotated.token);
+    }
     var data = null;
     try { data = await res.json(); } catch (e) {}
     return { ok: res.ok, status: res.status, data: data || {} };
@@ -117,7 +162,7 @@
     if (!r.ok || !r.data.token) {
       return { ok: false, error: (r.data && r.data.error) || 'auth_failed', status: r.status };
     }
-    setSession(r.data.token, r.data.user);
+    setSession(r.data.token, r.data.user, r.data.refreshToken || '');
     // 认领是 best-effort，不该挡在登录关键路径上：fire-and-forget，让弹窗能立刻关。
     // 必须在 adopt 之前发起——post() 同步读取匿名 gs.did.v1 作 X-Device-Id（在首个 await 前），
     // 之后再 adopt 覆写成 accountId，已发出的请求头不受影响。
@@ -131,6 +176,7 @@
 
   var SiteAuth = {
     getToken: function () { return lsGet(K_TOKEN); },
+    getRefreshToken: function () { return lsGet(K_REFRESH); },
     getUser: function () {
       var raw = lsGet(K_USER);
       if (!raw) return null;
@@ -169,7 +215,12 @@
       return afterAuth(r);
     },
 
-    logout: function () { clearSession(); },
+    logout: async function () {
+      try { if (SiteAuth.getToken()) await post('/auth?action=logout', {}, true); }
+      catch (e) {}
+      clearSession();
+      return { ok: true };
+    },
 
     // 更新资料：{ nick?, bio?, avatar? }。成功后刷新本地 user 缓存 + 同步昵称到小游戏身份，
     // 触发 onChange 让导航头像/账号页即时重渲染。
@@ -224,14 +275,23 @@
       return r;
     },
 
-    // 校验本地 token 是否仍有效；无效则登出。返回最新 user 或 null。
+    // 校验本地 access token；过期时先轮换一次性 refresh token，再重试 /me。
     refresh: async function () {
       var t = SiteAuth.getToken();
       if (!t) return null;
       try {
-        var res = await fetch(API + '/auth?action=me', {
-          headers: { 'Authorization': 'Bearer ' + t },
-        });
+        async function currentUser(token) {
+          return fetch(API + '/auth?action=me', {
+            headers: { 'Authorization': 'Bearer ' + token },
+          });
+        }
+        var res = await currentUser(t);
+        if (res.status === 401 && lsGet(K_REFRESH)) {
+          var rotated = await rotateAccessToken();
+          if (rotated.ok) res = await currentUser(rotated.token);
+          else if (rotated.definitive) return null;
+          else return SiteAuth.getUser();
+        }
         if (res.status === 401) { clearSession(); return null; }
         var data = await res.json();
         if (data && data.user) { setSession(null, data.user); return data.user; }
@@ -239,21 +299,28 @@
       return SiteAuth.getUser();
     },
 
-    // 受保护请求统一入口：自动带 Authorization + X-Device-Id；401 时登出。
+    // 受保护请求统一入口：自动带 Authorization + X-Device-Id；401 时先刷新并重试一次。
     authedFetch: async function (url, opts) {
       opts = opts || {};
-      var headers = Object.assign({}, opts.headers || {});
-      var t = SiteAuth.getToken();
-      if (t) headers['Authorization'] = 'Bearer ' + t;
       var did = lsGet('gs.did.v1');
-      if (did && !headers['X-Device-Id']) headers['X-Device-Id'] = did;
-      opts.headers = headers;
       var full = url.indexOf('http') === 0 ? url : (API.replace(/\/api$/, '') + url);
-      var res = await fetch(full, opts);
-      // 别一遇到 401 就登出：某个接口的鉴权/时序问题、后端瞬断都可能返回 401，
-      // 而 token 其实还有效。只有向 /me 复核确认 token 真失效时才清登录态，
-      // 这样多设备（各持一张独立 token）不会被偶发 401 误登出。
-      if (res.status === 401 && t && await tokenRevokedLive(t)) clearSession();
+      async function send(token) {
+        var requestOpts = Object.assign({}, opts);
+        var headers = Object.assign({}, opts.headers || {});
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        if (did && !headers['X-Device-Id']) headers['X-Device-Id'] = did;
+        requestOpts.headers = headers;
+        return fetch(full, requestOpts);
+      }
+      var t = SiteAuth.getToken();
+      var res = await send(t);
+      if (res.status === 401 && t && lsGet(K_REFRESH)) {
+        var rotated = await rotateAccessToken();
+        if (rotated.ok) return send(rotated.token);
+        if (rotated.definitive) return res;
+      }
+      // 兼容切换前签发、没有 refresh token 的旧登录态：只在 /me 明确确认失效后清除。
+      if (res.status === 401 && t && !lsGet(K_REFRESH) && await tokenRevokedLive(t)) clearSession();
       return res;
     },
 
