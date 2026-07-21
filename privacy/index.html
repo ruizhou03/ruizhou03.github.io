@@ -21,7 +21,7 @@ permalink: /privacy/
 
 <article class="privacy-page">
   <h1>隐私与数据说明</h1>
-  <p class="privacy-updated">最后更新：2026 年 7 月 20 日</p>
+  <p class="privacy-updated">最后更新：2026 年 7 月 21 日</p>
   <p class="privacy-lead">这是周睿维护的个人网站。你可以不注册直接阅读绝大多数内容；只有在登录、评论、上传或使用云同步功能时，网站才会保存与你有关的数据。</p>
 
   <section class="privacy-card">
@@ -29,6 +29,7 @@ permalink: /privacy/
     <ul>
       <li><strong>账号：</strong>邮箱、可选的 Google 账号稳定标识、昵称、头像、简介，以及积分、收藏、点赞、阅读记录和部分游戏存档。</li>
       <li><strong>登录验证：</strong>本站不再创建或使用登录密码，生产账号记录中的历史密码哈希已经清除。邮件验证码只以不可逆摘要短暂保存在 Redis，10 分钟到期且成功验证后删除；也可以使用 Google 登录。</li>
+      <li><strong>邮件订阅：</strong>新文章通知与站长来信均默认关闭。主动订阅后会保存订阅状态、同意或退订时间，并把邮箱与对应 Topic 同步到邮件服务；注册或登录本身不会自动订阅。</li>
       <li><strong>评论：</strong>评论内容、昵称、可选邮箱、回复关系和页面阅读计数。</li>
       <li><strong>上传与同步：</strong>你主动上传的图片、音频或工具数据；某些工具只在浏览器本地保存，开启云同步后才上传。</li>
       <li><strong>访问统计：</strong>Cloudflare Web Analytics 用于全站匿名流量趋势；中英文首页另有 Google Analytics 4，用于历史口径对照。</li>
@@ -38,7 +39,7 @@ permalink: /privacy/
 
   <section class="privacy-card">
     <h2>为什么使用这些数据</h2>
-    <p>用于登录和识别你的账号、同步你主动选择的数据、显示评论与公开主页、计算站内互动和积分、排查故障、防止滥用，以及了解网站哪些内容真正有人使用。不会出售个人数据，也不会把它用于站外广告画像。</p>
+    <p>用于登录和识别你的账号、同步你主动选择的数据、发送你主动订阅的内容通知、显示评论与公开主页、计算站内互动和积分、排查故障、防止滥用，以及了解网站哪些内容真正有人使用。不会出售个人数据，也不会把它用于站外广告画像。</p>
   </section>
 
   <section class="privacy-card">
@@ -49,6 +50,7 @@ permalink: /privacy/
       <li>上传文件：Cloudflare R2；</li>
       <li>应用运行：Fly.io；静态网站与源码：GitHub Pages；</li>
       <li>登录和访问统计：Google、Cloudflare。</li>
+      <li>邮件订阅联系人与投递：Resend。</li>
     </ul>
     <p class="privacy-note">这些服务可能在不同国家或地区处理数据，并受各自隐私条款约束。</p>
   </section>
@@ -62,11 +64,12 @@ permalink: /privacy/
     <h2>你可以怎么控制</h2>
     <ul>
       <li>在<a href="/account/#settings">个人中心</a>修改资料、关闭公开主页、导出账号数据或注销账号；</li>
+      <li>新文章通知和站长来信可分别开启或关闭；关闭全部订阅会在投递服务中全局停止营销邮件；</li>
       <li>评论可在评论区删除；若无法自行处理，可以联系站主；</li>
       <li>浏览器本地数据可通过相应工具的清除功能，或清除本站存储与缓存删除；</li>
       <li>你可以使用浏览器的防跟踪或内容拦截功能限制第三方统计。</li>
     </ul>
-    <p>账号注销会删除账号、收藏、点赞和阅读记录；评论与灾难恢复备份需按上述方式另行处理。</p>
+    <p>账号注销会删除账号、收藏、点赞、阅读记录和 Resend 邮件联系人；评论与灾难恢复备份需按上述方式另行处理。</p>
   </section>
 
   <section class="privacy-card">

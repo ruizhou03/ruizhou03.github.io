@@ -308,6 +308,10 @@ body_class: acc-page
   .acc-switch-slider::before { content:''; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
   .acc-switch input:checked + .acc-switch-slider { background:var(--color-accent); }
   .acc-switch input:checked + .acc-switch-slider::before { transform:translateX(20px); }
+  .acc-switch input:disabled + .acc-switch-slider { opacity:0.55; cursor:wait; }
+  .acc-sub-state { font-size:0.74rem; color:var(--color-light); margin-top:0.28rem; min-height:1em; }
+  .acc-sub-state.ok { color:#2f8f6b; }
+  .acc-sub-state.warn { color:#9a6a20; }
 
   /* ── 通用弹窗（编辑资料 / 升级细则）── */
   .acc-modal { position:fixed; inset:0; z-index:2600; background:rgba(20,28,40,0.5); backdrop-filter:blur(3px);
@@ -1163,6 +1167,18 @@ body_class: acc-page
             : '<button class="acc-tool-btn" id="acc-google-link-btn">关联</button>') +
         '</div>' +
         '<div class="acc-set-row">' +
+          '<div class="acc-set-info"><div class="acc-set-t">新文章通知</div>' +
+            '<div class="acc-set-d">有新文章时收到邮件。是否发送由站长在每次发布时单独决定；注册账号不会自动订阅。</div>' +
+            '<div class="acc-sub-state" id="acc-sub-article-state">正在读取订阅状态…</div></div>' +
+          '<label class="acc-switch"><input type="checkbox" id="acc-sub-article" disabled><span class="acc-switch-slider"></span></label>' +
+        '</div>' +
+        '<div class="acc-set-row">' +
+          '<div class="acc-set-info"><div class="acc-set-t">站长来信 / Newsletter</div>' +
+            '<div class="acc-set-d">接收不一定对应新文章的定向来信与专题内容。与“新文章通知”互相独立，可单独退订。</div>' +
+            '<div class="acc-sub-state" id="acc-sub-newsletter-state"></div></div>' +
+          '<label class="acc-switch"><input type="checkbox" id="acc-sub-newsletter" disabled><span class="acc-switch-slider"></span></label>' +
+        '</div>' +
+        '<div class="acc-set-row">' +
           '<div class="acc-set-info"><div class="acc-set-t">隐私与数据</div>' +
             '<div class="acc-set-d">查看本站收集哪些数据、保存在哪里，以及如何导出或删除。</div></div>' +
           '<a class="acc-tool-btn" href="/privacy/" style="text-decoration:none;">查看</a>' +
@@ -1205,6 +1221,53 @@ body_class: acc-page
       });
       document.getElementById('acc-export-btn').addEventListener('click', doExport);
       document.getElementById('acc-del-btn').addEventListener('click', function () { toggleDelPanel(user); });
+      loadSubscriptions();
+    }
+
+    async function loadSubscriptions() {
+      var article = document.getElementById('acc-sub-article');
+      var newsletter = document.getElementById('acc-sub-newsletter');
+      var articleState = document.getElementById('acc-sub-article-state');
+      var newsletterState = document.getElementById('acc-sub-newsletter-state');
+      if (!article || !newsletter) return;
+
+      function paint(prefs, message, tone) {
+        article.checked = !!prefs.articleUpdates;
+        newsletter.checked = !!prefs.newsletter;
+        article.disabled = false; newsletter.disabled = false;
+        articleState.textContent = message || (prefs.syncPending ? '偏好已保存，邮件服务正在同步。' : '');
+        articleState.className = 'acc-sub-state' + (tone ? ' ' + tone : (prefs.syncPending ? ' warn' : ''));
+        newsletterState.textContent = '';
+      }
+      var loaded;
+      try { loaded = await SiteAuth.getSubscriptions(); } catch (e) { loaded = { ok:false }; }
+      if (!loaded.ok) {
+        articleState.textContent = '暂时无法读取，请刷新后重试。'; articleState.className = 'acc-sub-state warn';
+        newsletterState.textContent = ''; return;
+      }
+      var current = loaded.preferences;
+      paint(current);
+
+      async function save() {
+        var before = current;
+        article.disabled = true; newsletter.disabled = true;
+        articleState.textContent = '保存中…'; articleState.className = 'acc-sub-state';
+        var result;
+        try {
+          result = await SiteAuth.updateSubscriptions({
+            articleUpdates: article.checked,
+            newsletter: newsletter.checked,
+          });
+        } catch (e) { result = { ok:false }; }
+        if (!result.ok) {
+          paint(before, '保存失败，请再试一次。', 'warn');
+          return;
+        }
+        current = result.preferences;
+        paint(current, current.syncPending ? '偏好已保存，邮件服务正在同步。' : '已保存。', current.syncPending ? 'warn' : 'ok');
+      }
+      article.addEventListener('change', save);
+      newsletter.addEventListener('change', save);
     }
 
     async function doExport() {

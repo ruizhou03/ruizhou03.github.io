@@ -234,6 +234,24 @@
       return { ok: true, user: r.data.user };
     },
 
+    // 邮件订阅与账号注册分离：两个 Topic 默认关闭，只在用户主动操作后更新。
+    getSubscriptions: async function () {
+      var res = await SiteAuth.authedFetch(API + '/subscriptions?action=me');
+      var data = null; try { data = await res.json(); } catch (e) {}
+      if (!res.ok || !data || !data.preferences) {
+        return { ok: false, error: (data && data.error) || 'load_failed' };
+      }
+      return { ok: true, preferences: data.preferences };
+    },
+
+    updateSubscriptions: async function (fields) {
+      var r = await post('/subscriptions?action=update', fields || {}, true);
+      if (!r.ok || !r.data || !r.data.preferences) {
+        return { ok: false, error: (r.data && r.data.error) || 'update_failed' };
+      }
+      return { ok: true, preferences: r.data.preferences, pending: r.status === 202 };
+    },
+
     // 导出当前账号的全部数据（返回对象，由调用方生成下载）。
     exportData: async function () {
       var res = await SiteAuth.authedFetch(API + '/me?action=export');
