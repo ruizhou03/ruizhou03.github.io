@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import re
 import subprocess
 import sys
@@ -75,10 +76,88 @@ def convert_caption(text: str) -> str:
     )
 
 
+def convert_export_blocks(text: str) -> str:
+    """把站内交互组件替换成公众号可渲染的静态内容。"""
+    text = re.sub(
+        r'<!--\s*wx:image\|([^|]+)\|([^\s]+)\s*-->.*?<!--\s*/wx:image\s*-->',
+        lambda m: f"![{m.group(1).strip()}]({m.group(2).strip()})",
+        text,
+        flags=re.DOTALL,
+    )
+
+    def mermaid_repl(match: re.Match) -> str:
+        source = html.unescape(match.group(1)).strip()
+        return f"```mermaid\n{source}\n```"
+
+    text = re.sub(
+        r'<details\s+class=["\']dg-rules-details["\']>.*?'
+        r'<pre\s+class=["\']mermaid dg-rules-flow["\'][^>]*>(.*?)</pre>.*?</details>',
+        mermaid_repl,
+        text,
+        flags=re.DOTALL,
+    )
+    text = re.sub(r'^<(?:link|script)\b[^>]*>.*?</script>\s*$', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^<link\b[^>]*>\s*$', '', text, flags=re.MULTILINE)
+
+    def summary_repl(match: re.Match) -> str:
+        items = re.findall(
+            r'<div class=["\']dg-stat["\']><strong>(.*?)</strong>'
+            r'<span>(.*?)</span></div>',
+            match.group(1),
+            flags=re.DOTALL,
+        )
+        lines = []
+        for heading, detail in items:
+            clean_detail = re.sub(r'<br\s*/?>', '：', detail).strip()
+            lines.append(f"> **{html.unescape(heading)}**｜{html.unescape(clean_detail)}")
+        return "\n\n".join(lines)
+
+    text = re.sub(
+        r'<div\s+class=["\']dg-summary["\']>\s*'
+        r'((?:<div\s+class=["\']dg-stat["\']>.*?</div>\s*)+)</div>',
+        summary_repl,
+        text,
+        flags=re.DOTALL,
+    )
+
+    def links_repl(match: re.Match) -> str:
+        links = re.findall(r'<a\s+href=["\']([^"\']+)["\']>(.*?)</a>', match.group(1))
+        return "\n".join(f"- [{html.unescape(label)}]({href})" for href, label in links)
+
+    text = re.sub(
+        r'<div\s+class=["\']dg-data-links["\']>(.*?)</div>',
+        links_repl,
+        text,
+        flags=re.DOTALL,
+    )
+    text = re.sub(
+        r'<div\s+class=["\']dg-note["\']>(.*?)</div>',
+        lambda m: '> ' + re.sub(r'<code>(.*?)</code>', r'`\1`', m.group(1), flags=re.DOTALL),
+        text,
+        flags=re.DOTALL,
+    )
+    return text
+
+
+def absolutize_links(text: str) -> str:
+    text = re.sub(
+        r'\[([^\]]+)\]\((/[^)]+)\)',
+        lambda m: f"[{m.group(1)}]({SITE_BASE}{m.group(2)})",
+        text,
+    )
+    return re.sub(
+        r'href=(["\'])(/[^"\']+)\1',
+        lambda m: f'href={m.group(1)}{SITE_BASE}{m.group(2)}{m.group(1)}',
+        text,
+    )
+
+
 def render(md_path: Path) -> str:
     text = md_path.read_text(encoding="utf-8")
     text = strip_frontmatter(text)
+    text = convert_export_blocks(text)
     text = absolutize_images(text)
+    text = absolutize_links(text)
     text = convert_caption(text)
     return text
 

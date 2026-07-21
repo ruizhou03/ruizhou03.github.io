@@ -1,0 +1,224 @@
+.dg-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.dg-rules-details {
+  margin: 1rem 0 1.6rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dg-rules-details summary {
+  cursor: pointer;
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.dg-rules-details[open] summary {
+  margin-bottom: 0.75rem;
+}
+
+.dg-rules-flow {
+  min-height: 8rem;
+  margin: 0;
+  padding: 0.75rem;
+  overflow-x: auto;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-bg-warm);
+  color: var(--color-text);
+  white-space: pre-wrap;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.dg-rules-flow svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.dg-rules-flow.is-loading::before {
+  content: "正在绘制规则流程图…";
+  display: block;
+  color: var(--color-muted);
+}
+
+.dg-rules-flow.is-loading {
+  color: transparent;
+}
+
+.dg-rules-flow.is-error {
+  color: var(--color-text);
+}
+
+.dg-stat,
+.dg-chart-card,
+.dg-note {
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg) 92%, var(--color-accent) 8%);
+  border-radius: 12px;
+}
+
+.dg-stat {
+  padding: 0.9rem 0.8rem;
+  text-align: center;
+}
+
+.dg-stat strong {
+  display: block;
+  color: var(--color-accent);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.dg-stat span {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.dg-chart-card {
+  margin: 1.6rem 0;
+  padding: 1rem 1rem 0.75rem;
+  overflow: hidden;
+}
+
+.dg-chart-title {
+  margin: 0 0 0.15rem !important;
+  color: var(--color-ink);
+  font-size: 1rem !important;
+  line-height: 1.4;
+}
+
+.dg-chart-subtitle {
+  margin: 0 0 0.65rem;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.dg-chart {
+  position: relative;
+  min-height: 330px;
+  width: 100%;
+}
+
+.dg-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.dg-chart-tooltip {
+  position: absolute;
+  z-index: 2;
+  max-width: min(19rem, calc(100% - 12px));
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-2);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.dg-chart-tooltip[hidden] { display: none; }
+
+.dg-chart .dg-grid { stroke: var(--color-border); stroke-width: 1; }
+.dg-chart .dg-axis { stroke: var(--color-muted); stroke-width: 1.1; }
+.dg-chart .dg-label { fill: var(--color-muted); font-family: var(--font-body); font-size: 11px; }
+.dg-chart .dg-label-strong { fill: var(--color-ink); font-weight: 600; }
+.dg-chart .dg-line-a { fill: none; stroke: #b77a2a; stroke-width: 2.5; }
+.dg-chart .dg-line-b { fill: none; stroke: #467aa1; stroke-width: 2.5; }
+.dg-chart .dg-line-c { fill: none; stroke: #a85757; stroke-width: 2.5; }
+.dg-chart .dg-area { fill: color-mix(in srgb, var(--color-accent) 14%, transparent); }
+.dg-chart .dg-dot { fill: var(--color-bg); stroke: #b77a2a; stroke-width: 1.7; }
+.dg-chart .dg-dot-front { fill: #b77a2a; stroke: var(--color-bg); stroke-width: 1.6; }
+.dg-chart .dg-threshold { stroke: var(--color-muted); stroke-width: 1; stroke-dasharray: 5 5; opacity: 0.72; }
+.dg-chart .dg-event { stroke: #a85757; stroke-width: 1.2; stroke-dasharray: 3 4; opacity: 0.8; }
+.dg-chart .dg-band { fill: color-mix(in srgb, #b77a2a 9%, transparent); }
+.dg-chart .dg-loading,
+.dg-chart .dg-error {
+  display: grid;
+  min-height: 300px;
+  place-items: center;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+}
+
+.dg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0.45rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+}
+
+.dg-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 1.15rem;
+  height: 3px;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+  border-radius: 2px;
+  background: var(--legend-color);
+}
+
+.dg-note {
+  padding: 0.8rem 1rem;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.dg-data-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 1rem 0 1.6rem;
+}
+
+.dg-data-links a {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.36rem 0.72rem;
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+@media (max-width: 620px) {
+  .dg-summary { grid-template-columns: 1fr; }
+  .dg-rules-flow { padding: 0.35rem; font-size: 0.72rem; }
+  .dg-chart-card { margin-left: -0.35rem; margin-right: -0.35rem; padding: 0.8rem 0.55rem 0.65rem; }
+  .dg-chart { min-height: 270px; }
+  .dg-chart .dg-label { font-size: 10px; }
+  .dg-chart-tooltip { font-size: 0.72rem; white-space: normal; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .dg-chart .dg-line-a { stroke: #d7aa66; }
+  :root:not([data-theme="light"]) .dg-chart .dg-line-b { stroke: #75a8d0; }
+  :root:not([data-theme="light"]) .dg-chart .dg-line-c { stroke: #d47f7f; }
+  :root:not([data-theme="light"]) .dg-chart .dg-dot-front { fill: #d7aa66; }
+}
+
+:root[data-theme="dark"] .dg-chart .dg-line-a { stroke: #d7aa66; }
+:root[data-theme="dark"] .dg-chart .dg-line-b { stroke: #75a8d0; }
+:root[data-theme="dark"] .dg-chart .dg-line-c { stroke: #d47f7f; }
+:root[data-theme="dark"] .dg-chart .dg-dot-front { fill: #d7aa66; }
