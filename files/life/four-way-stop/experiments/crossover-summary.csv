@@ -1,0 +1,16 @@
+parameter,value,crossover_flow
+left_turn_share,0.0,1618.88
+left_turn_share,0.1,1521.16
+left_turn_share,0.2,1437.39
+left_turn_share,0.3,1391.34
+left_turn_share,0.4,1311.07
+pedestrian_rate,0,1525.99
+pedestrian_rate,50,1407.61
+pedestrian_rate,100,1304.71
+pedestrian_rate,200,1159.74
+pedestrian_rate,400,990.35
+stop_compliance,0.6,1717.51
+stop_compliance,0.7,1617.33
+stop_compliance,0.8,1527.39
+stop_compliance,0.9,1445.04
+stop_compliance,1.0,1389.71
