@@ -1,0 +1,114 @@
+.fws-demo {
+  --fws-stop: #c65d4b;
+  --fws-signal: #347d67;
+  --fws-road: #d7dbe0;
+  --fws-lane: #f7f7f5;
+  margin: 1.5em 0;
+  color: var(--color-text);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fws-demo {
+    --fws-stop: #ef8c78;
+    --fws-signal: #65b99d;
+    --fws-road: #45484d;
+    --fws-lane: #767a80;
+  }
+}
+
+:root[data-theme="dark"] .fws-demo {
+  --fws-stop: #ef8c78;
+  --fws-signal: #65b99d;
+  --fws-road: #45484d;
+  --fws-lane: #767a80;
+}
+
+.fws-demo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-bottom: 0.9rem;
+}
+
+.fws-demo button {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.38em 0.8em;
+  color: var(--color-text);
+  background: var(--color-bg);
+  cursor: pointer;
+  font-size: 0.88em;
+}
+
+.fws-demo button[aria-pressed="true"] {
+  color: var(--color-bg);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.fws-demo button:focus-visible {
+  outline: 2px solid var(--color-highlight);
+  outline-offset: 2px;
+}
+
+.fws-demo-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.fws-demo-panel {
+  min-width: 0;
+  text-align: center;
+}
+
+.fws-demo-panel h3 {
+  margin: 0 0 0.55rem;
+  color: var(--color-ink);
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.fws-demo canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--color-bg-warm);
+  border-radius: var(--radius-md);
+}
+
+.fws-demo-metric {
+  min-height: 2.8em;
+  margin: 0.55rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.82em;
+  line-height: 1.45;
+}
+
+.fws-demo-note {
+  margin: 0.9rem 0 0;
+  color: var(--color-muted);
+  text-align: center;
+  font-size: 0.78em;
+  line-height: 1.5;
+}
+
+@media (max-width: 620px) {
+  .fws-demo-panels {
+    grid-template-columns: 1fr;
+  }
+
+  .fws-demo-panel {
+    max-width: 390px;
+    width: 100%;
+    margin-inline: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fws-demo-note::before {
+    content: "已按系统设置暂停动画。";
+  }
+}
