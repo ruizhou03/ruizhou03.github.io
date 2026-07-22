@@ -1,6 +1,7 @@
 (() => {
   const E = window.DDZEngine;
   const AI = window.DDZAI;
+  const NET = window.DDZNet;
   const T = E.TYPES;
 
   // ============================================================
@@ -24,6 +25,8 @@
     bottom: [],                   // 3 张底牌（揭示后并入地主手牌）
     bottomRevealed: false,
     bottomPlayed: new Set(),      // 已被地主打出去的底牌 cid 集合（顶部那 3 张要灰掉）
+    netPlayed: [[], [], []],      // DouZero：每个座位累计打出的牌
+    netSeq: [],                   // DouZero：完整行动序列（pass 记为空数组）
     // 抢地主
     landlordIdx: -1,             // 最终地主
     landlordCandidate: -1,       // 当前抢到的候选地主
@@ -350,8 +353,19 @@
       document.querySelectorAll('.ddz-mode-tab').forEach(x => x.classList.remove('active'));
       t.classList.add('active');
       state.difficulty = t.dataset.diff;
+      preloadSelectedModel();
     });
   });
+
+  function selectedModel() {
+    return state.difficulty === 'master' ? 'resnet' : (state.difficulty === 'hard' ? 'adp' : null);
+  }
+
+  function preloadSelectedModel() {
+    const model = selectedModel();
+    if (!model || !NET) return Promise.resolve(false);
+    return NET.ensureModel(model);
+  }
 
   $('ddzStartBtn').addEventListener('click', () => startNewGame());
   // 明牌开始 ×5：发牌前就锁定明牌；和发牌阶段按钮（×5/×4/×3/×2 递减）共存
@@ -459,6 +473,8 @@
     state.bottom = [];
     state.bottomRevealed = false;
     state.bottomPlayed = new Set();
+    state.netPlayed = [[], [], []];
+    state.netSeq = [];
     state.landlordIdx = -1;
     state.lastTrick = null;
     state.declared = false;
@@ -1247,6 +1263,8 @@
     state.bottom = [];
     state.bottomRevealed = false;
     state.bottomPlayed = new Set();
+    state.netPlayed = [[], [], []];
+    state.netSeq = [];
     state.landlordIdx = -1;
     state.landlordCandidate = -1;
     state.bidActions = [];
@@ -1278,6 +1296,9 @@
     state.runNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
     state.result = null;
     state.resumed = false;
+
+    // 权重异步加载与发牌/叫地主并行；真正轮到 AI 出牌时还会 await，绝不静默降级。
+    preloadSelectedModel();
 
     if (ddzSettleBtn) ddzSettleBtn.setEnabled(false);
 
@@ -2088,7 +2109,7 @@
     }
   }
 
-  function aiTakeTurn(seat) {
+  async function aiTakeTurn(seat) {
     if (state.phase !== PHASE.PLAYING || state.turnIdx !== seat) return;
     const prev = (state.lastTrick && state.lastTrick.seat !== seat) ? state.lastTrick.pattern : null;
     // v3: ctx.seen 喂真实 seen + ctx.memoryMask 把 AI 自己的盲区告诉 ai.js
@@ -2103,7 +2124,23 @@
       lastTrickSeat: state.lastTrick ? state.lastTrick.seat : -1,
       memoryMask: state.memoryMaskBySeat ? state.memoryMaskBySeat[seat] : null,
     };
-    const play = AI.chooseMove(state.hands[seat], prev, ctx, state.difficulty);
+    let play;
+    const model = selectedModel();
+    if (model && NET) {
+      try {
+        const loaded = await NET.ensureModel(model);
+        // 等待权重期间玩家可能已离开/恢复了另一局，重新确认回合仍然有效。
+        if (state.phase !== PHASE.PLAYING || state.turnIdx !== seat) return;
+        play = loaded ? NET.choose(model, seat, state.hands[seat], prev, state) : undefined;
+      } catch (err) {
+        console.warn('[DDZNet] inference failed; using heuristic fallback', err);
+        play = undefined;
+      }
+    }
+    if (play === undefined) {
+      play = AI.chooseMove(state.hands[seat], prev, ctx,
+        state.difficulty === 'normal' ? 'hard' : state.difficulty);
+    }
     if (!play) {
       // pass — 但如果 prev=null（即 AI 是首出）不允许 pass，强制出最小单牌
       if (!prev) {
@@ -2119,6 +2156,10 @@
 
   function commitPlay(seat, pattern) {
     stopTurnCountdown();   // 任何人出牌都关闹钟（下个 proceedTurn 会再开）
+    if (!state.netPlayed) state.netPlayed = [[], [], []];
+    if (!state.netSeq) state.netSeq = [];
+    state.netPlayed[seat].push(...pattern.cards);
+    state.netSeq.push({ seat, cards: pattern.cards.slice() });
     state.hands[seat] = E.removeCards(state.hands[seat], pattern.cards);
     for (const c of pattern.cards) state.seen[E.cardWeight(c)]++;
     updateAiPerception(pattern);          // AI 感知（带噪声）
@@ -2171,6 +2212,8 @@
 
   function commitPass(seat) {
     stopTurnCountdown();   // 任何人出牌都关闹钟（下个 proceedTurn 会再开）
+    if (!state.netSeq) state.netSeq = [];
+    state.netSeq.push({ seat, cards: [] });
     // 玩家自己 pass → 立即拿掉灰授 + 按钮恢复（不要等 700ms 后 proceedTurn 才清）
     if (seat === 0) {
       const hand = document.getElementById('ddzHand');
@@ -3879,6 +3922,8 @@
       bottom: state.bottom.slice(),
       bottomRevealed: state.bottomRevealed,
       bottomPlayed: Array.from(state.bottomPlayed || []),
+      netPlayed: (state.netPlayed || [[],[],[]]).map(cards => cards.slice()),
+      netSeq: (state.netSeq || []).map(move => ({ seat: move.seat, cards: move.cards.slice() })),
       landlordIdx: state.landlordIdx,
       landlordCandidate: state.landlordCandidate,
       bidStartSeat: state.bidStartSeat,
@@ -3914,6 +3959,8 @@
       bottom: saved.bottom || [],
       bottomRevealed: !!saved.bottomRevealed,
       bottomPlayed: new Set(saved.bottomPlayed || []),
+      netPlayed: saved.netPlayed || [[], [], []],
+      netSeq: saved.netSeq || [],
       landlordIdx: typeof saved.landlordIdx === 'number' ? saved.landlordIdx : -1,
       landlordCandidate: typeof saved.landlordCandidate === 'number' ? saved.landlordCandidate : -1,
       bidStartSeat: saved.bidStartSeat || 0,
@@ -3943,6 +3990,7 @@
       result: null,
       resumed: true,
     });
+    preloadSelectedModel();
     document.querySelectorAll('.ddz-mode-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.diff === state.difficulty);
     });
