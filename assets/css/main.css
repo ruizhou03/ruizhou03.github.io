@@ -184,15 +184,6 @@
       /* ☰ 菜单底部设置区：主题 / 中英文（人人可用，没登录也够得着） */
       .nav-settings { display: flex; justify-content: center; gap: 0.7rem;
         margin-top: 0.4rem; padding-top: 1rem; border-top: 1px solid var(--color-border); }
-      .nav-theme-segment { display: inline-flex; align-items: stretch; }
-      .nav-theme-segment button { display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem;
-        font: inherit; font-size: 0.82rem; color: var(--color-text); background: none; cursor: pointer;
-        border: 1px solid var(--color-border); padding: 0.38rem 0.62rem; }
-      .nav-theme-segment button:first-child { border-radius: 999px 0 0 999px; }
-      .nav-theme-segment button:last-child { border-radius: 0 999px 999px 0; }
-      .nav-theme-segment button + button { border-left: 0; }
-      .nav-theme-segment button.on { color: var(--color-highlight); background: var(--color-bg-warm);
-        box-shadow: inset 0 -2px var(--color-highlight); }
       .nav-set-btn { display: inline-flex; align-items: center; gap: 0.35rem; font-family: inherit; font-size: 0.9rem;
         color: var(--color-text); text-decoration: none; cursor: pointer; background: none;
         border: 1px solid var(--color-border); border-radius: 999px; padding: 0.35rem 0.9rem; }

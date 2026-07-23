@@ -6,6 +6,7 @@
   var MARKER = /\[\[zi:([a-z0-9-]+)(?::([a-z0-9-]+))?\]\]/gi;
   var SKIP = /^(SCRIPT|STYLE|TEXTAREA|PRE|CODE|SVG|MATH)$/;
   var scheduled = false;
+  var started = false;
   var pendingRoots = [];
 
   function icon(name, variant) {
@@ -90,13 +91,15 @@
   }
 
   function start() {
-    hydrate(document.body);
+    if (started) return;
+    started = true;
     new MutationObserver(function (records) {
       records.forEach(function (record) {
         if (record.type === 'characterData') schedule(record.target);
         Array.prototype.forEach.call(record.addedNodes || [], schedule);
       });
     }).observe(document.documentElement, {subtree: true, childList: true, characterData: true});
+    hydrate(document.body || document.documentElement);
   }
 
   window.ZirconIcons = {
@@ -107,6 +110,5 @@
     }
   };
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once: true});
-  else start();
+  start();
 }());

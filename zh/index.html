@@ -57,7 +57,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='82' font-family='Georgia, serif' font-size='95' font-weight='bold' fill='%23c9a96e' text-anchor='middle'>Zr</text></svg>">
   <link rel="stylesheet" href="/assets/css/zircon-icons.css">
-  <script defer src="/assets/js/zircon-icons.js"></script>
+  <script src="/assets/js/zircon-icons.js"></script>
   <meta name="theme-color" content="#1e3a5f" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#1a1918" media="(prefers-color-scheme: dark)">
   <script>
@@ -521,7 +521,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
   </nav>
   <div class="util">
     <button class="ico" id="nav-search-btn" type="button" aria-label="搜索" title="搜索"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>
-    <button class="ico js-theme" aria-label="切换深浅主题" type="button">[[zi:moon]]</button>
+    <button class="ico js-theme" aria-label="切换深浅主题" type="button">◑</button>
     <a class="en" href="/" aria-label="切换到英文站"><b>EN</b></a>
     <div id="auth-slot"></div>
   </div>
@@ -734,36 +734,13 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
 
   // theme toggle
   var tbtn = document.querySelector('.js-theme');
-  function resolvedTheme(){
+  if(tbtn){ tbtn.addEventListener('click', function(){
     var r = document.documentElement;
-    return r.getAttribute('data-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  }
-  function syncThemeButton(){
-    if(!tbtn) return;
-    var current = resolvedTheme();
-    var target = current === 'dark' ? 'light' : 'dark';
-    tbtn.textContent = target === 'dark' ? '[[zi:moon]]' : '[[zi:sun]]';
-    tbtn.setAttribute('aria-label', '切换到' + (target === 'dark' ? '深色' : '浅色') + '主题');
-    tbtn.setAttribute('title', '切换到' + (target === 'dark' ? '深色' : '浅色') + '主题');
-    if(window.ZirconIcons) window.ZirconIcons.hydrate(tbtn);
-  }
-  if(tbtn){
-    syncThemeButton();
-    tbtn.addEventListener('click', function(){
-    var r = document.documentElement;
-    var cur = resolvedTheme();
+    var cur = r.getAttribute('data-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     var next = cur === 'dark' ? 'light' : 'dark';
     r.setAttribute('data-theme', next);
     try{ localStorage.setItem('theme', next); }catch(e){}
-    syncThemeButton();
-  });
-    var themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
-    var onSystemThemeChange = function(){
-      if(!document.documentElement.hasAttribute('data-theme')) syncThemeButton();
-    };
-    if(themeMedia.addEventListener) themeMedia.addEventListener('change', onSystemThemeChange);
-    else if(themeMedia.addListener) themeMedia.addListener(onSystemThemeChange);
-  }
+  }); }
 })();
 </script>
 

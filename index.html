@@ -78,6 +78,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Noto+Serif+SC:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/zircon-icons.css">
+  <script src="/assets/js/zircon-icons.js"></script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='82' font-family='Georgia, serif' font-size='95' font-weight='bold' fill='%23c9a96e' text-anchor='middle'>Zr</text></svg>">
   <style>
      /* 精准补丁：导航栏三段式与汉堡图标 */
@@ -455,7 +456,7 @@
     </ul>
 
     <div class="nav-right-box" style="display:flex;align-items:center;gap:0.6rem;">
-      <button class="theme-toggle" onclick="toggleTheme()" title="Switch mode" aria-label="Switch color theme">[[zi:moon]]</button>
+      <button class="theme-toggle" onclick="toggleTheme()" title="Switch mode">&#9683;</button>
       <a href="/zh/" title="中文博客"
          style="font-family:'Noto Serif SC','Songti SC','STSong',serif;font-size:0.85rem;font-weight:600;
                 color:var(--color-muted);border:1px solid var(--color-border);padding:0.3rem 0.5rem;
@@ -1042,21 +1043,7 @@
         root.removeAttribute('data-theme');
         try { localStorage.removeItem('theme'); } catch (e) {}
       }
-      syncThemeButton();
     }
-
-    function syncThemeButton() {
-      const btn = document.querySelector('.theme-toggle');
-      if (!btn) return;
-      const mode = document.documentElement.getAttribute('data-theme');
-      btn.textContent = mode === 'dark' ? '[[zi:sun]]' : mode === 'light' ? 'System' : '[[zi:moon]]';
-      if (window.ZirconIcons) window.ZirconIcons.hydrate(btn);
-      const current = mode === 'dark' ? 'dark' : mode === 'light' ? 'light' : 'system';
-      const next = current === 'system' ? 'dark' : current === 'dark' ? 'light' : 'system';
-      btn.title = 'Theme: ' + current + ' (switch to ' + next + ')';
-      btn.setAttribute('aria-label', btn.title);
-    }
-    syncThemeButton();
 
         // 菜单切换：控制导航栏打开/关闭，并配合 CSS 实现变 X 效果
       function toggleMenu() {
@@ -1097,7 +1084,6 @@
       });
     });
   </script>
-  <script defer src="/assets/js/zircon-icons.js"></script>
   <!-- Cloudflare Web Analytics（与中文站一致，全站统一统计）-->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "707b3caaba08406c9cba84b86f396715"}'></script>
   <!-- End Cloudflare Web Analytics -->

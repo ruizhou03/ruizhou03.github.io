@@ -114,6 +114,7 @@
 
   <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}?v={{ site.time | date: '%s' }}">
   <link rel="stylesheet" href="{{ '/assets/css/zircon-icons.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+  <script src="{{ '/assets/js/zircon-icons.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
   {%- comment -%}
     Waline 评论的 CSS 异步加载——unpkg.com 在国内时不时被墙，同步 link 会阻塞首屏。
     media="print" + onload 切回 "all" 是 web.dev 推荐的异步 CSS 模式；
@@ -167,11 +168,7 @@
         <li{% if hide_toolbox %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/toolbox/">百宝箱</a></li>
         <li{% if hide_essays %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/essays/">随笔漫谈</a></li>
         <li class="nav-settings">
-          <div class="nav-theme-segment" aria-label="主题">
-            <button type="button" data-theme-choice="system" onclick="setTheme('system')">系统</button>
-            <button type="button" data-theme-choice="dark" onclick="setTheme('dark')">[[zi:moon]] 深色</button>
-            <button type="button" data-theme-choice="light" onclick="setTheme('light')">[[zi:sun]] 浅色</button>
-          </div>
+          <button type="button" class="nav-set-btn" data-theme-btn onclick="toggleTheme()" aria-label="切换明暗"><span class="tt-glyph">&#9680;</span> <span class="tt-label">主题</span></button>
           <a class="nav-set-btn" href="{{ site.baseurl }}/">EN 英文站</a>
         </li>
       </ul>
@@ -183,7 +180,7 @@
         </button>
 
         <div class="nav-controls">
-          <button type="button" class="nav-theme-btn" data-theme-btn onclick="toggleTheme()" aria-label="切换深浅主题" title="切换深浅主题">[[zi:moon]]</button>
+          <button type="button" class="nav-theme-btn" onclick="toggleTheme()" aria-label="切换深浅主题" title="切换深浅主题">&#9680;</button>
 
           <a href="{{ site.baseurl }}/" class="lang-toggle" title="English homepage"
              style="font-family:var(--font-display);font-size:0.86rem;font-weight:600;letter-spacing:0.14em;color:var(--color-highlight);
@@ -253,23 +250,19 @@
       syncThemeUI();
     }
 
-    // 桌面按钮显示下一档；移动端三段选择器同时标明当前档。
+    // 让明暗按钮显示当前态（填充度=暗度：半○跟随系统 / 空○浅色 / 实●深色）+ 文案与 tooltip，
+    // 修掉「盲猜三态循环」——用户一眼看得出当前是哪一档、下一下会切到哪。
     function syncThemeUI() {
       const t = document.documentElement.getAttribute('data-theme');
       const mode = t === 'dark' ? 'dark' : t === 'light' ? 'light' : 'system';
       const label = mode === 'dark' ? '深色' : mode === 'light' ? '浅色' : '跟随系统';
       const nextLabel = mode === 'system' ? '深色' : mode === 'dark' ? '浅色' : '跟随系统';
+      const glyph = mode === 'dark' ? '●' : mode === 'light' ? '○' : '◐';
       document.querySelectorAll('[data-theme-btn]').forEach(function (btn) {
-        const target = mode === 'system' ? 'moon' : mode === 'dark' ? 'sun' : '';
-        btn.textContent = target ? '[[zi:' + target + ']]' : '系统';
-        if (window.ZirconIcons) window.ZirconIcons.hydrate(btn);
+        const g = btn.querySelector('.tt-glyph'); if (g) g.textContent = glyph;
+        const l = btn.querySelector('.tt-label'); if (l) l.textContent = '主题 · ' + label;
         btn.title = '主题：' + label + '（点击切换到' + nextLabel + '）';
         btn.setAttribute('aria-label', '切换明暗，当前' + label);
-      });
-      document.querySelectorAll('[data-theme-choice]').forEach(function (btn) {
-        const active = btn.getAttribute('data-theme-choice') === mode;
-        btn.classList.toggle('on', active);
-        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
       });
     }
     // 供账号「设置 · 外观」调用：直接设某一档 + 读当前档（明暗仍是设备级 localStorage 偏好）
@@ -316,7 +309,6 @@
     统一离线客户端：注册双层 SW、页脚离线状态点、文章「保存离线」按钮与「有新版」通知，
     全部由 offline.js 接管（取代此处早先的内联 SW 逻辑）。本地预览时它会自卸 SW + 清缓存。
   {%- endcomment -%}
-  <script src="{{ '/assets/js/zircon-icons.js' | relative_url }}?v={{ site.time | date: '%s' }}" defer></script>
   <script src="{{ '/assets/js/offline/offline.js' | relative_url }}?v={{ site.time | date: '%s' }}" defer></script>
 
   <!-- Cloudflare Web Analytics（整站访客/来源/设备统计；外链脚本，不走 SW 缓存）-->
