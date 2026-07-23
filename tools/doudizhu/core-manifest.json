@@ -1,0 +1,7 @@
+{
+  "coreVersion": "ddz-core-1.0.0",
+  "sha256": "f088b429d7106eaf2bcd766ea1a0cbec17db29f3dd8b91ec70de6708d10c04cb",
+  "douzeroReferenceCommit": "718a5c920bf3361e34178a38f3b80458e176b351",
+  "fixedDifferentialStates": 10000,
+  "fixedInvariantStates": 100000
+}

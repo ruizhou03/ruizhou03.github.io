@@ -17,6 +17,7 @@
 (function () {
   'use strict';
 
+  const CORE_VERSION = 'ddz-core-1.0.0';
   const RANK_LABELS = ['3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2'];
   const SUIT_LABELS = ['♠', '♥', '♦', '♣'];
   // Unicode 扑克牌起点：U+1F0A1 黑桃 A，按花色每色 16 个 codepoint
@@ -206,14 +207,14 @@
     }
     if (n >= 8 && n % 4 === 0) {
       const length = n / 4;
-      const planeWeights = groups[3] || [];
-      if (length >= 2 && planeWeights.length === length &&
-          isConsecutive(planeWeights) && noBigCards(planeWeights)) {
-        const planeSet = new Set(planeWeights);
-        const wings = cards.filter(c => !planeSet.has(cardWeight(c)));
-        if (wings.length === length) {
+      for (let start = 0; length >= 2 && start + length - 1 < 12; start++) {
+        const planeWeights = Array.from({ length }, (_, i) => start + i);
+        if (planeWeights.every(w => hist[w] === 3)) {
+          const planeSet = new Set(planeWeights);
+          const wings = cards.filter(c => !planeSet.has(cardWeight(c)));
+          if (wings.length !== length) continue;
           return {
-            type: TYPES.PLANE_ONE, weight: planeWeights[0],
+            type: TYPES.PLANE_ONE, weight: start,
             length, kickerCount: 1, cards: cards.slice(),
           };
         }
@@ -221,14 +222,17 @@
     }
     if (n >= 10 && n % 5 === 0) {
       const length = n / 5;
-      const planeWeights = groups[3] || [];
-      const pairWeights = groups[2] || [];
-      if (length >= 2 && planeWeights.length === length && pairWeights.length === length &&
-          isConsecutive(planeWeights) && noBigCards(planeWeights)) {
-        return {
-          type: TYPES.PLANE_PAIR, weight: planeWeights[0],
-          length, kickerCount: 2, cards: cards.slice(),
-        };
+      for (let start = 0; length >= 2 && start + length - 1 < 12; start++) {
+        const planeWeights = Array.from({ length }, (_, i) => start + i);
+        if (!planeWeights.every(w => hist[w] === 3)) continue;
+        const planeSet = new Set(planeWeights);
+        const pairWeights = weights.filter(w => !planeSet.has(w) && hist[w] === 2);
+        if (pairWeights.length === length && pairWeights.length + length === weights.length) {
+          return {
+            type: TYPES.PLANE_PAIR, weight: start,
+            length, kickerCount: 2, cards: cards.slice(),
+          };
+        }
       }
     }
     // 4 张：炸弹 / 三带一
@@ -397,7 +401,7 @@
   // 返回 PlayPattern[]，**不含** PASS。
   // 实现思路：根据 prev 的 type/length/kickerCount 反推枚举模板。
   // ============================================================
-  function enumerateBeats(hand, prev) {
+  function enumerateBeatsLegacy(hand, prev) {
     const out = [];
     const hist = histByWeight(hand);
     const weights = Object.keys(hist).map(Number).sort((a, b) => a - b);
@@ -711,6 +715,161 @@
     }
   }
 
+  // 完整动作生成器：与 DouZero 的 rank-multiset 动作空间对齐，但返回当前
+  // 手牌里的确定性物理牌 ID。花色不影响斗地主语义，同一 rank multiset 只保留一项。
+  function enumerateBeats(hand, prev, options) {
+    if (!Array.isArray(hand) || new Set(hand).size !== hand.length ||
+        hand.some(c => !Number.isInteger(c) || c < 0 || c > 53)) return [];
+    const allowFourTwo = !options || options.allowFourTwo !== false;
+    const hist = histByWeight(hand);
+    const weights = Object.keys(hist).map(Number).sort((a, b) => a - b);
+    const byWeight = {};
+    for (const c of hand.slice().sort((a, b) => cardWeight(a) - cardWeight(b) || a - b)) {
+      const w = cardWeight(c);
+      (byWeight[w] || (byWeight[w] = [])).push(c);
+    }
+    const actions = new Map();
+
+    function semanticKey(cards) {
+      return cards.map(cardWeight).sort((a, b) => a - b).join(',');
+    }
+    function add(cards) {
+      const pattern = parsePattern(cards);
+      if (!pattern || !canBeat(pattern, prev || null)) return;
+      const key = semanticKey(pattern.cards);
+      if (!actions.has(key)) actions.set(key, pattern);
+    }
+    function cardsForWeights(rankList) {
+      const used = {};
+      const cards = [];
+      for (const w of rankList) {
+        const index = used[w] || 0;
+        const card = byWeight[w] && byWeight[w][index];
+        if (card == null) return null;
+        used[w] = index + 1;
+        cards.push(card);
+      }
+      return cards;
+    }
+    function chooseUnique(items, count, keyOf) {
+      const result = [];
+      const seen = new Set();
+      function visit(start, chosen) {
+        if (chosen.length === count) {
+          const key = keyOf(chosen);
+          if (!seen.has(key)) {
+            seen.add(key);
+            result.push(chosen.slice());
+          }
+          return;
+        }
+        for (let i = start; i <= items.length - (count - chosen.length); i++) {
+          chosen.push(items[i]);
+          visit(i + 1, chosen);
+          chosen.pop();
+        }
+      }
+      visit(0, []);
+      return result;
+    }
+    function addRanks(rankList) {
+      const cards = cardsForWeights(rankList);
+      if (cards) add(cards);
+    }
+    function repeatedSequence(start, length, repeat) {
+      const ranks = [];
+      for (let i = 0; i < length; i++) {
+        for (let n = 0; n < repeat; n++) ranks.push(start + i);
+      }
+      return ranks;
+    }
+
+    for (const w of weights) {
+      addRanks([w]);
+      if (hist[w] >= 2) addRanks([w, w]);
+      if (hist[w] >= 3) addRanks([w, w, w]);
+      if (hist[w] === 4) addRanks([w, w, w, w]);
+    }
+    if (hist[13] && hist[14]) addRanks([13, 14]);
+
+    for (const tripleW of weights.filter(w => hist[w] >= 3)) {
+      for (const kickerW of weights) {
+        if (kickerW !== tripleW) addRanks([tripleW, tripleW, tripleW, kickerW]);
+        if (kickerW !== tripleW && hist[kickerW] >= 2) {
+          addRanks([tripleW, tripleW, tripleW, kickerW, kickerW]);
+        }
+      }
+    }
+
+    for (const repeat of [1, 2, 3]) {
+      const minLength = repeat === 1 ? 5 : (repeat === 2 ? 3 : 2);
+      for (let length = minLength; length <= 12; length++) {
+        for (let start = 0; start + length - 1 < 12; start++) {
+          let available = true;
+          for (let i = 0; i < length; i++) {
+            if ((hist[start + i] || 0) < repeat) { available = false; break; }
+          }
+          if (available) addRanks(repeatedSequence(start, length, repeat));
+        }
+      }
+    }
+
+    // 飞机翼牌：DouZero 会从飞机点数以外的物理余牌中任选 length 张，
+    // 因而单翼可以来自同点的对子/三张；按 rank multiset 去重即可。
+    for (let length = 2; length <= 6; length++) {
+      for (let start = 0; start + length - 1 < 12; start++) {
+        const planeWeights = Array.from({ length }, (_, i) => start + i);
+        if (!planeWeights.every(w => (hist[w] || 0) >= 3)) continue;
+        const planeSet = new Set(planeWeights);
+        const planeRanks = repeatedSequence(start, length, 3);
+        const remainingCards = hand
+          .filter(c => !planeSet.has(cardWeight(c)))
+          .sort((a, b) => cardWeight(a) - cardWeight(b) || a - b);
+        for (const wings of chooseUnique(
+          remainingCards,
+          length,
+          cards => cards.map(cardWeight).sort((a, b) => a - b).join(','),
+        )) {
+          const planeCards = cardsForWeights(planeRanks);
+          if (planeCards) add(planeCards.concat(wings));
+        }
+        const pairCandidates = weights.filter(w => !planeSet.has(w) && hist[w] >= 2);
+        for (const pairWeights of chooseUnique(
+          pairCandidates,
+          length,
+          ranks => ranks.slice().sort((a, b) => a - b).join(','),
+        )) {
+          addRanks(planeRanks.concat(pairWeights.flatMap(w => [w, w])));
+        }
+      }
+    }
+
+    if (allowFourTwo) {
+      for (const bombW of weights.filter(w => hist[w] === 4)) {
+        const remainingCards = hand
+          .filter(c => cardWeight(c) !== bombW)
+          .sort((a, b) => cardWeight(a) - cardWeight(b) || a - b);
+        for (const wings of chooseUnique(
+          remainingCards,
+          2,
+          cards => cards.map(cardWeight).sort((a, b) => a - b).join(','),
+        )) {
+          add(byWeight[bombW].slice(0, 4).concat(wings));
+        }
+        const pairCandidates = weights.filter(w => w !== bombW && hist[w] >= 2);
+        for (const pairWeights of chooseUnique(
+          pairCandidates,
+          2,
+          ranks => ranks.slice().sort((a, b) => a - b).join(','),
+        )) {
+          addRanks([bombW, bombW, bombW, bombW].concat(pairWeights.flatMap(w => [w, w])));
+        }
+      }
+    }
+
+    return Array.from(actions.values());
+  }
+
   // ============================================================
   // decomposeHand(hand) — 把手牌分解成尽量少手数的组合（贪心 + 局部回溯）
   // 返回 PlayPattern[]，按 cards 的总和应等于 hand。
@@ -896,17 +1055,67 @@
     }
   }
 
+  // 规则内核唯一的不可变出牌入口。UI、HTTP、AI 都应提交 command，
+  // 由这里同时校验牌局代次、revision、阶段、座位和牌型后再生成下一状态。
+  function applyAction(state, command) {
+    if (!state || !command) throw new Error('invalid_command');
+    if (command.gameEpoch !== state.gameEpoch) throw new Error('stale_epoch');
+    if (command.expectedRevision !== state.revision) throw new Error('stale_revision');
+    if (state.phase !== 'playing') throw new Error('invalid_phase');
+    if (!Number.isInteger(command.seat) || command.seat !== state.turnIdx) {
+      throw new Error('not_your_turn');
+    }
+    if (!Array.isArray(state.hands) || state.hands.length !== 3) throw new Error('invalid_hands');
+    const seat = command.seat;
+    const prev = state.lastTrick && state.lastTrick.seat !== seat
+      ? state.lastTrick.pattern
+      : null;
+    const next = {
+      ...state,
+      revision: state.revision + 1,
+      hands: state.hands.map(hand => hand.slice()),
+      playedCards: (state.playedCards || []).slice(),
+    };
+
+    if (command.type === 'pass') {
+      if (!prev) throw new Error('cannot_pass_first');
+      next.passCount = (state.passCount || 0) + 1;
+      if (next.passCount >= 2) {
+        next.lastTrick = null;
+        next.passCount = 0;
+      }
+      next.turnIdx = (seat + 1) % 3;
+      return next;
+    }
+    if (command.type !== 'play') throw new Error('unknown_action');
+
+    const validated = validatePlay(state.hands[seat], command.cards, prev);
+    if (!validated) throw new Error('invalid_play');
+    next.hands[seat] = validated.remaining;
+    next.playedCards.push(...validated.pattern.cards);
+    next.lastTrick = { seat, pattern: validated.pattern };
+    next.passCount = 0;
+    if (validated.remaining.length === 0) {
+      next.phase = 'settlement';
+      next.winnerSeat = seat;
+    } else {
+      next.turnIdx = (seat + 1) % 3;
+    }
+    return next;
+  }
+
   // ============================================================
   // 公开 API
   // ============================================================
   const api = {
+    CORE_VERSION,
     TYPES,
     cardId, cardRank, cardSuit, cardWeight,
     cardGlyph, cardLabel,
     fullDeck, shuffle, deal, sortHand,
     histByWeight, groupByCount,
     parsePattern, canBeat, enumerateBeats, decomposeHand,
-    removeCards, validatePlay,
+    removeCards, validatePlay, applyAction,
   };
 
   if (typeof window !== 'undefined') window.DDZEngine = api;

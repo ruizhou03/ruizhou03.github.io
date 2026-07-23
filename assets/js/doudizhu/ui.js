@@ -19,6 +19,9 @@
 
   const state = {
     phase: PHASE.IDLE,
+    gameEpoch: 0,
+    revision: 0,
+    playedCards: [],
     difficulty: 'normal',
     autopilot: false,            // 托管：true 时所有"我"的决策都由 AI 代打
     hands: [[], [], []],         // 索引 0=玩家, 1=右上 AI(下家), 2=左上 AI(上家)
@@ -1307,6 +1310,9 @@
     setupView.hidden = true;
     tableView.hidden = false;
     state.phase = PHASE.DEALING;
+    state.gameEpoch += 1;
+    state.revision = 0;
+    state.playedCards = [];
     // 托管开关每局自动重置，避免上局开了忘关
     state.autopilot = false;
     state.consecutiveTimeouts = 0;
@@ -2207,22 +2213,53 @@
     }
   }
 
+  function applyCoreAction(command) {
+    const coreState = {
+      gameEpoch: state.gameEpoch,
+      revision: state.revision,
+      phase: state.phase,
+      hands: state.hands,
+      playedCards: state.playedCards,
+      turnIdx: state.turnIdx,
+      lastTrick: state.lastTrick,
+      passCount: state.passCount,
+    };
+    const next = E.applyAction(coreState, {
+      ...command,
+      gameEpoch: state.gameEpoch,
+      expectedRevision: state.revision,
+    });
+    state.revision = next.revision;
+    state.phase = next.phase;
+    state.hands = next.hands;
+    state.playedCards = next.playedCards;
+    state.turnIdx = next.turnIdx;
+    state.lastTrick = next.lastTrick;
+    state.passCount = next.passCount;
+    return next;
+  }
+
   function commitPlay(seat, pattern) {
-    const hand = state.hands[seat] || [];
     const prev = (state.lastTrick && state.lastTrick.seat !== seat) ? state.lastTrick.pattern : null;
-    const validated = E.validatePlay(hand, pattern && pattern.cards, prev);
-    if (!validated) {
-      console.warn('[DDZ] blocked invalid play', { seat, cards: pattern && pattern.cards, prev });
+    let next;
+    try {
+      next = applyCoreAction({ type: 'play', seat, cards: pattern && pattern.cards });
+    } catch (err) {
+      console.warn('[DDZ] blocked invalid play', {
+        seat,
+        cards: pattern && pattern.cards,
+        prev,
+        reason: err && err.message,
+      });
       setStatus('检测到非法出牌，已阻止本次操作');
       return false;
     }
-    pattern = validated.pattern;
+    pattern = next.lastTrick.pattern;
     stopTurnCountdown();   // 任何人出牌都关闹钟（下个 proceedTurn 会再开）
     if (!state.netPlayed) state.netPlayed = [[], [], []];
     if (!state.netSeq) state.netSeq = [];
     state.netPlayed[seat].push(...pattern.cards);
     state.netSeq.push({ seat, cards: pattern.cards.slice() });
-    state.hands[seat] = validated.remaining;
     for (const c of pattern.cards) state.seen[E.cardWeight(c)]++;
     updateAiPerception(pattern);          // AI 感知（带噪声）
     if (pattern.type === T.BOMB || pattern.type === T.ROCKET) state.bombCount++;
@@ -2267,7 +2304,6 @@
     }
     setTimeout(() => {
       // 下一家：清空他的"上次出牌"显示？保留 — 三人出牌区独立
-      state.turnIdx = (seat + 1) % 3;
       proceedTurn();
     }, 800);
     return true;
@@ -2289,6 +2325,13 @@
   }
 
   function commitPass(seat) {
+    try {
+      applyCoreAction({ type: 'pass', seat });
+    } catch (err) {
+      console.warn('[DDZ] blocked invalid pass', { seat, reason: err && err.message });
+      setStatus('当前不能不出，已阻止本次操作');
+      return false;
+    }
     stopTurnCountdown();   // 任何人出牌都关闹钟（下个 proceedTurn 会再开）
     if (!state.netSeq) state.netSeq = [];
     state.netSeq.push({ seat, cards: [] });
@@ -2299,21 +2342,18 @@
       if (hand) hand.classList.remove('no-play');
       if (acts) acts.classList.remove('no-play');
     }
-    state.passCount++;
     renderPlayedAt(seat, 'pass');
     playSfx('pass');
-    if (state.passCount >= 2) {
-      state.lastTrick = null;
-      state.passCount = 0;
+    if (!state.lastTrick) {
       setTimeout(() => clearAllPlayed(), 400);
     }
     resetHintCycle();
     if (ddzSave) ddzSave.tick();
     audioAfterTurn();
     setTimeout(() => {
-      state.turnIdx = (seat + 1) % 3;
       proceedTurn();
     }, 700);
+    return true;
   }
 
   function playerPlay() {
@@ -4047,6 +4087,9 @@
     return {
       v: 2,
       phase: state.phase,
+      gameEpoch: state.gameEpoch,
+      revision: state.revision,
+      playedCards: (state.playedCards || []).slice(),
       difficulty: state.difficulty,
       hands: state.hands.map(h => h.slice()),
       bottom: state.bottom.slice(),
@@ -4084,6 +4127,10 @@
   function ddzRestore(saved) {
     Object.assign(state, {
       phase: saved.phase,
+      gameEpoch: Number.isInteger(saved.gameEpoch) ? saved.gameEpoch : 1,
+      revision: Number.isInteger(saved.revision) ? saved.revision : (saved.netSeq || []).length,
+      playedCards: saved.playedCards ||
+        (saved.netPlayed || [[], [], []]).flatMap(cards => cards || []),
       difficulty: saved.difficulty || 'normal',
       hands: saved.hands || [[],[],[]],
       bottom: saved.bottom || [],
