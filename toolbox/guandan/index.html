@@ -68,6 +68,20 @@ body_class: gd-game-fullscreen
     --gd-joker-grey: #4a4a4a;
     --gd-team-you: #1e6f4f;
     --gd-team-opp: #8b2e2e;
+    /* 游戏桌固定使用自己的浅色语义色；不继承全站暗色变量，避免浅羊皮纸上出现浅字。 */
+    --gd-ui-ink: #1f2a3d;
+    --gd-ui-text: #374151;
+    --gd-ui-muted: #667085;
+    --gd-ui-bg: #fffdf7;
+    --gd-ui-border: #bcae8d;
+    /* 组件内所有旧样式仍可继续读通用变量，但值固定为浅色桌语义，不受站点主题切换影响。 */
+    --color-ink: var(--gd-ui-ink);
+    --color-text: var(--gd-ui-text);
+    --color-muted: var(--gd-ui-muted);
+    --color-light: #7a756b;
+    --color-bg: var(--gd-ui-bg);
+    --color-bg-warm: #f7f1e3;
+    --color-border: var(--gd-ui-border);
   }
   :root[data-theme="dark"] .guandan-wrap {
     --gd-card-bg: #ece8de;
@@ -1720,13 +1734,13 @@ body_class: gd-game-fullscreen
      永久全屏不跳出游戏外；玩法/战绩榜/评论改在游戏内浮层看，按钮挂头部角上。 */
   .guandan-wrap header { position: relative; }
   /* 设置(⚙️) / 榜单(🏆) / 退出(✕) 角标圆钮：去文字、纯图标 */
-  .gd-board-btn, .gd-exit-btn, .gd-settings-btn {
+  .gd-board-btn, .gd-mute-btn, .gd-exit-btn, .gd-settings-btn {
     position: absolute; top: 0.6rem;
     display: inline-flex; align-items: center; justify-content: center;
     width: 1.95rem; height: 1.95rem; padding: 0;
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    color: var(--color-muted);
+    background: var(--gd-ui-bg);
+    color: var(--gd-ui-muted);
     border-radius: 50%;
     font-size: 1rem; line-height: 1;
     cursor: pointer;
@@ -1737,10 +1751,12 @@ body_class: gd-game-fullscreen
     z-index: 20;
   }
   .gd-board-btn { left: 0.6rem; }
+  .gd-mute-btn { left: 3rem; }
   .gd-exit-btn  { right: 0.6rem; }
   .gd-settings-btn { right: 3rem; }
   @media (hover: hover) {
     .gd-board-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .gd-mute-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
     .gd-exit-btn:hover  { border-color: var(--gd-team-opp); color: var(--gd-team-opp); }
     .gd-settings-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
@@ -1820,7 +1836,7 @@ body_class: gd-game-fullscreen
     padding: 1.3rem 1.7rem 1.5rem;
     width: min(360px, 90vw);
     box-shadow: none;
-    color: var(--color-ink);   /* 文字一律深字（覆盖 games-shell 的白字默认） */
+    color: var(--gd-ui-ink);   /* 文字一律深字（覆盖全站暗色主题的浅字） */
   }
   /* 掌踋 app 图标（暖奶油 tile 风），圆角方形 */
   .gd-pgo-applogo {
@@ -1828,36 +1844,43 @@ body_class: gd-game-fullscreen
     box-shadow: 0 4px 14px rgba(141,110,55,0.3);
   }
   /* 卡片内文字翻成深字（羊皮纸底） */
-  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-title { color: var(--color-ink); }
-  body.gd-game-fullscreen .gs-pgo-view .gd-pgo-label { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-title { color: var(--gd-ui-ink); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-pgo-label { color: var(--gd-ui-muted); }
   body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-picker { background: rgba(20,37,63,0.06); }
-  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab { color: var(--color-muted); }
-  @media (hover: hover) { body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab:hover { color: var(--color-ink); } }
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab { color: var(--gd-ui-muted); }
+  @media (hover: hover) { body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab:hover { color: var(--gd-ui-ink); } }
   body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab.selected {
-    background: var(--gd-accent); color: #fff; box-shadow: 0 1px 4px rgba(141,110,55,0.4);
+    background: #8b641f; color: #fff; box-shadow: 0 1px 4px rgba(141,110,55,0.4);
   }
   /* 开始/创建按钮：暖金实心；联机输入框翻成浅底深字 */
   body.gd-game-fullscreen .gs-pgo-view .gs-pgo-start-btn { background: var(--gd-accent-strong); box-shadow: 0 3px 10px rgba(141,110,55,0.35); }
-  body.gd-game-fullscreen .gs-pgo-view .gd-online-tab { color: var(--color-muted); }
-  body.gd-game-fullscreen .gs-pgo-view .gd-online-tab.active { color: var(--color-ink); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-online-tab { color: var(--gd-ui-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-online-tab.active { color: var(--gd-ui-ink); }
   body.gd-game-fullscreen .gs-pgo-view .gd-online-input {
-    background: rgba(20,37,63,0.05); border-color: var(--gd-frame-2); color: var(--color-ink);
+    background: rgba(255,255,255,0.72); border-color: var(--gd-ui-border); color: var(--gd-ui-ink);
   }
-  body.gd-game-fullscreen .gs-pgo-view .gd-online-input::placeholder { color: var(--color-muted); }
-  body.gd-game-fullscreen .gs-pgo-view .gd-gameopts-toggle { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-online-input::placeholder { color: var(--gd-ui-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-gameopts-toggle { color: var(--gd-ui-muted); }
   /* 「玩法设置」那行的小结（同队进贡·分不限·20秒）原本是浅金 #ffe18d，落在暖色羊皮纸上
      几乎看不清 —— 换成深琥珀，跟暖底拉开对比。下方「本难度累计」分数同理（原来是白字）。 */
   body.gd-game-fullscreen .gs-pgo-view .gd-gameopts-toggle .go-sum { color: #8a6312; opacity: 1; }
-  body.gd-game-fullscreen .gs-pgo-view .gd-pgo-score { color: var(--color-muted); }
+  body.gd-game-fullscreen .gs-pgo-view .gd-pgo-score { color: var(--gd-ui-muted); }
   body.gd-game-fullscreen .gs-pgo-view .gd-pgo-score strong { color: var(--gd-accent-strong); }
   /* 对局进行中从 ⚙️ 调出设置时，卡片左上角的「返回游戏」（关掉设置续局） */
   .gd-pgo-close {
     position: absolute; top: 0.7rem; left: 0.9rem;
-    background: none; border: none; color: var(--color-muted);
+    background: none; border: none; color: var(--gd-ui-muted);
     font-size: 0.82rem; cursor: pointer; padding: 0; font-family: inherit;
   }
   .gd-pgo-close[hidden] { display: none; }
   body.gd-game-fullscreen .gs-pgo-view { position: relative; }
+  .gd-overlay-timing-note {
+    margin: 0.3rem auto 0.65rem; padding: 0.42rem 0.65rem;
+    max-width: 25rem; border-radius: 8px;
+    background: rgba(139,100,31,0.12); color: #674b18;
+    font-size: 0.78rem; line-height: 1.4; text-align: center;
+  }
+  .gd-overlay-timing-note[hidden] { display: none; }
 
   body.gd-game-fullscreen { overflow: hidden; }
   body.gd-game-fullscreen .guandan-wrap {
@@ -1933,6 +1956,11 @@ body_class: gd-game-fullscreen
       top: calc(0.45rem + env(safe-area-inset-top, 0px));
     }
     body.gd-game-fullscreen .gd-settings-btn {
+      right: calc(7.7rem + env(safe-area-inset-right, 0px));
+      top: calc(0.45rem + env(safe-area-inset-top, 0px));
+    }
+    body.gd-game-fullscreen .gd-mute-btn {
+      left: auto;
       right: calc(5.3rem + env(safe-area-inset-right, 0px));
       top: calc(0.45rem + env(safe-area-inset-top, 0px));
     }
@@ -2068,7 +2096,7 @@ body_class: gd-game-fullscreen
     <button type="button" class="gd-exit-btn" id="gdExitBtn" title="退出本局" aria-label="退出本局">
       <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M6 6 L18 18 M18 6 L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
-    <button type="button" class="gd-board-btn" id="gdMuteBtn" title="音效" aria-label="音效">🔊</button>
+    <button type="button" class="gd-mute-btn" id="gdMuteBtn" title="音效" aria-label="音效">🔊</button>
     <h1>🀄 掼蛋</h1>
     <div class="sub">2 打 2 · 你与对家联手，打级牌到 A 取胜 · 三档 AI</div>
   </header>
@@ -2187,6 +2215,7 @@ body_class: gd-game-fullscreen
         <button class="gd-pgo-close" id="gdPgoClose" type="button" hidden aria-label="返回游戏">← 返回游戏</button>
         <img class="gd-pgo-applogo" src="/assets/icons/guandan-icon-192.png" alt="掼蛋" width="72" height="72" />
         <h2 class="gs-pgo-title">掼蛋</h2>
+        <div class="gd-overlay-timing-note" id="gdPgoTimingNote" hidden></div>
 
         <!-- 玩法模式：单机 / 联机 -->
         <div class="gs-pgo-mode-picker" id="gdPgoPlayMode" style="margin-bottom:0.6rem;">
@@ -2222,8 +2251,8 @@ body_class: gd-game-fullscreen
             <div class="gd-gameopts-body" id="gdGameOptsBody" hidden>
               <div class="gd-pgo-label">同队进贡</div>
               <div class="gs-pgo-mode-picker" id="gdPgoTeamTrib">
-                <button class="gs-pgo-mode-tab" data-value="off" type="button">关</button>
-                <button class="gs-pgo-mode-tab selected" data-value="on" type="button">开</button>
+                <button class="gs-pgo-mode-tab selected" data-value="off" type="button">关</button>
+                <button class="gs-pgo-mode-tab" data-value="on" type="button">开</button>
               </div>
               <!-- 单局积分上限已隐藏：积分玩法不再用（元素保留供 JS 引用，默认"不限"=0） -->
               <div class="gd-pgo-label" hidden>单局积分上限</div>
@@ -2368,6 +2397,7 @@ body_class: gd-game-fullscreen
     <div class="gd-board-backdrop" id="gdBoardBackdrop"></div>
     <div class="gd-board-panel">
       <button class="gd-board-close" id="gdBoardClose" type="button" aria-label="关闭">×</button>
+      <div class="gd-overlay-timing-note" id="gdBoardTimingNote" hidden></div>
       <details class="about">
         <summary>游戏规则</summary>
         <div class="body" id="gdRulesBody"></div>

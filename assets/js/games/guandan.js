@@ -938,6 +938,19 @@
   // ===========================================================
   const TEAM = c => (c % 2 === 0) ? 0 : 1; // 座 0/2 → team0(你方)；1/3 → team1(对方)
   const PHASE = { IDLE: 'idle', TRIBUTE: 'tribute', PLAYING: 'playing', ROUND_END: 'round_end', MATCH_END: 'match_end' };
+  const NAV_VIEW = Object.freeze({
+    SETUP: 'setup',
+    LOBBY: 'lobby',
+    PLAYING: 'playing',
+    TRIBUTE: 'tribute',
+    SETTLEMENT: 'settlement',
+  });
+  const navState = { current: NAV_VIEW.SETUP };
+  function setNavView(view) {
+    if (!Object.values(NAV_VIEW).includes(view)) throw new Error('invalid_guandan_nav_view:' + view);
+    navState.current = view;
+    document.body.dataset.guandanView = view;
+  }
 
   const stored = (() => {
     try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
@@ -960,11 +973,11 @@
   const SCORE_CAP_OPTS = [0, 3, 5, 8];     // 0 = 不限
   // 出牌时间统一为「25 秒上限 / 不限」两档（旧的 10/20/30 一律归一为 25；0 = 不限）。
   const TURN_SEC_OPTS = [25, 0];
-  // 同队进贡默认开（按官方名次规则，1、4 同队那局末游仍给队友头游进贡）
+  // 同队进贡是本站娱乐变体，默认关闭；房主可显式开启。
   function normalizeOptions(o) {
     o = o || {};
     return {
-      teamTribute: (o.teamTribute === undefined) ? true : !!o.teamTribute,
+      teamTribute: (o.teamTribute === undefined) ? false : !!o.teamTribute,
       scoreCap: SCORE_CAP_OPTS.includes(o.scoreCap) ? o.scoreCap : 0,
       // 旧存档/旧房间的 10/20/30 都不在新档里 → 归一到 25（仍限时）；只有显式 0 才是不限。
       turnSec: (o.turnSec === 0) ? 0 : 25,
@@ -2290,6 +2303,8 @@
     state.phase = (gv.phase === 'tribute') ? PHASE.TRIBUTE
                 : (gv.phase === 'playing') ? PHASE.PLAYING
                 : gv.phase;
+    setNavView(gv.phase === 'tribute' ? NAV_VIEW.TRIBUTE
+      : (gv.phase === 'playing' ? NAV_VIEW.PLAYING : NAV_VIEW.SETTLEMENT));
     state.matchOptions = normalizeOptions(state.options || { teamTribute: false, scoreCap: 0, turnSec: state.matchOptions ? state.matchOptions.turnSec : 20 });
     state.levels = gv.levels.slice();
     state.actingTeam = gv.actingTeam;
@@ -2336,6 +2351,8 @@
     // 服务器给的「本回合已用时」(turnElapsedMs)：armTurnClock 据此算统一剩余倒计时（切视角不重置）
     state._turnElapsedMs = (typeof gv.turnElapsedMs === 'number') ? gv.turnElapsedMs : 0;
     state.phase = gv.phase === 'tribute' ? PHASE.TRIBUTE : gv.phase;
+    setNavView(gv.phase === 'tribute' ? NAV_VIEW.TRIBUTE
+      : (gv.phase === 'playing' ? NAV_VIEW.PLAYING : NAV_VIEW.SETTLEMENT));
     state.out = gv.out.slice();
     const _prevLastPlay = Array.isArray(state.lastPlay) ? state.lastPlay.slice() : [null, null, null, null];
     const _nextLastPlay = gv.lastPlay ? gv.lastPlay.slice() : [null, null, null, null];
@@ -2697,6 +2714,11 @@
   function isNetworked() { return !!state.isNetworked; }
 
   function startMatch() {
+    if (onlineState) {
+      toast('请先成功离开联机房间');
+      return false;
+    }
+    resetLocalPause();
     // 回到本地单机局：清掉联机闩。state.isNetworked 是单向写入（只在 startNetworkedGame
     // 置 true、此前从无复位），若同一会话先玩过联机再回单机，残留的 true 会让 scheduleAI()
     // 顶部的 `if (isNetworked()) return;` 把 AI 调度整条吞掉 → 轮到 AI 永不出牌、游戏卡死。
@@ -2721,11 +2743,13 @@
     state.lastRanking = null;
     clearSession();
     startRound(null);
+    return true;
   }
 
   // tributeResult: null（首局）| { from, to, card }（含还贡后）
   function startRound(prevRanking) {
     state.phase = PHASE.PLAYING;
+    setNavView(NAV_VIEW.PLAYING);
     state._endHandled = false;       // 复位本局结算闩（见 endRound）
     state.revealHands = false;       // 新局：关掉上一局的局终摊牌
 
@@ -2777,6 +2801,7 @@
     state._needDoubleChoice = false;
     state.openMult = 1;
     state.phase = PHASE.PLAYING;
+    setNavView(NAV_VIEW.PLAYING);
     state.turn = leader;
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
     state.busy = false;
@@ -2955,6 +2980,7 @@
   // 单贡：末游(fourth) → 头游(first)
   function handleSingleTribute(first, fourth) {
     state.phase = PHASE.TRIBUTE;
+    setNavView(NAV_VIEW.TRIBUTE);
     renderAll();
     // 抗贡：末游独握双大王 → 免贡，头游先出
     if (countBigJokers([fourth]) >= 2) {
@@ -2974,6 +3000,7 @@
   // 双贡（双下）：fourth & third 都进贡
   function handleDoubleTribute(first, second, third, fourth) {
     state.phase = PHASE.TRIBUTE;
+    setNavView(NAV_VIEW.TRIBUTE);
     renderAll();
     // 抗贡：贡方（3rd+4th）合计握有 2 大王 → 免贡，头游先出
     if (countBigJokers([third, fourth]) >= 2) {
@@ -3717,6 +3744,7 @@
   }
 
   function showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon) {
+    setNavView(NAV_VIEW.SETTLEMENT);
     const youWon = winTeam === 0;
     if (matchWon) _gaSfxMatchEnd(youWon);
     else if (youWon) _gaSfxWin(); else _gaSfxLose();
@@ -3792,6 +3820,7 @@
     if (state._matchEnded) return;   // 幂等用独立闩（同 endRound 理由：phase 已被联机预设，不能拿它判）
     state._matchEnded = true;
     state.phase = PHASE.MATCH_END;
+    setNavView(NAV_VIEW.SETTLEMENT);
     // 整局结束 → 关托管，重置超时计数（下一局从头来）
     state.autopilot = false;
     state._consecutiveTimeouts = 0;
@@ -3870,7 +3899,16 @@
   let turnClockTimer = null;
   let turnClockEndAt = 0;
   let turnClockSeat = -1;
+  let turnClockOnTimeout = null;
   let turnClockLastSec = 10;   // 上轮 tick 的剩余秒数，防止同秒内多次滴答（tick 每 250ms 一次）
+  let gameplayAiTimer = null;
+  let gameplayAiDueAt = 0;
+  let gameplayAiFire = null;
+  const localPause = {
+    reasons: new Set(),
+    clock: null,
+    ai: null,
+  };
 
   function clockEl(seat) {
     if (seat === 0) return els.selfClock || null;
@@ -3906,6 +3944,7 @@
     stopTurnClock();
     turnClockEndAt = Date.now() + (durationMs || TURN_TIMEOUT_MS);
     turnClockSeat = seat;
+    turnClockOnTimeout = onTimeout || null;
     turnClockLastSec = 10;
     const el = clockEl(seat);
     if (!el) return;
@@ -3920,8 +3959,9 @@
       el.classList.toggle('urgent', s <= 5);
       if (s <= 5 && s !== turnClockLastSec) { turnClockLastSec = s; _gaSfxTick(); }
       if (left <= 0) {
+        const timeout = turnClockOnTimeout;
         stopTurnClock();
-        try { onTimeout && onTimeout(); } catch (e) { console.warn(e); }
+        try { timeout && timeout(); } catch (e) { console.warn(e); }
       }
     }
     tick();
@@ -3931,8 +3971,87 @@
     if (turnClockTimer) clearInterval(turnClockTimer);
     turnClockTimer = null;
     turnClockSeat = -1;
+    turnClockEndAt = 0;
+    turnClockOnTimeout = null;
     turnClockLastSec = 10;
     hideAllClocks();
+  }
+  function scheduleGameplayAi(fire, delay) {
+    gameplayAiFire = fire;
+    gameplayAiDueAt = Date.now() + Math.max(0, delay);
+    gameplayAiTimer = setTimeout(() => {
+      gameplayAiTimer = null;
+      gameplayAiDueAt = 0;
+      const run = gameplayAiFire;
+      gameplayAiFire = null;
+      if (localPause.reasons.size) {
+        localPause.ai = { fire: run, remaining: 0, phase: state.phase, turn: state.turn };
+        return;
+      }
+      if (run) run();
+    }, Math.max(0, delay));
+  }
+  function pauseLocalGame(reason) {
+    if (isNetworked()) return false;
+    if (localPause.reasons.has(reason)) return true;
+    const wasRunning = localPause.reasons.size === 0;
+    localPause.reasons.add(reason);
+    if (!wasRunning) return true;
+    if (turnClockTimer && turnClockSeat >= 0) {
+      localPause.clock = {
+        seat: turnClockSeat,
+        onTimeout: turnClockOnTimeout,
+        remaining: Math.max(1, turnClockEndAt - Date.now()),
+        phase: state.phase,
+        turn: state.turn,
+      };
+      stopTurnClock();
+    }
+    if (gameplayAiTimer && gameplayAiFire) {
+      localPause.ai = {
+        fire: gameplayAiFire,
+        remaining: Math.max(0, gameplayAiDueAt - Date.now()),
+        phase: state.phase,
+        turn: state.turn,
+      };
+      clearTimeout(gameplayAiTimer);
+      gameplayAiTimer = null;
+      gameplayAiDueAt = 0;
+      gameplayAiFire = null;
+    }
+    return true;
+  }
+  function resumeLocalGame(reason) {
+    localPause.reasons.delete(reason);
+    if (localPause.reasons.size || isNetworked()) return;
+    const clock = localPause.clock;
+    const ai = localPause.ai;
+    localPause.clock = null;
+    localPause.ai = null;
+    let restoredClock = false;
+    let restoredAi = false;
+    if (clock && clock.phase === state.phase && clock.turn === state.turn) {
+      startTurnClock(clock.seat, clock.onTimeout, clock.remaining);
+      restoredClock = true;
+    }
+    if (ai && ai.phase === state.phase && ai.turn === state.turn && ai.fire) {
+      scheduleGameplayAi(ai.fire, ai.remaining);
+      restoredAi = true;
+    }
+    if (state.phase === PHASE.PLAYING && !state.busy) {
+      if (state.turn === 0 && !restoredClock) armTurnClock();
+      else if (state.turn !== 0 && !restoredAi) scheduleAI();
+    }
+  }
+  function resetLocalPause() {
+    localPause.reasons.clear();
+    localPause.clock = null;
+    localPause.ai = null;
+    if (gameplayAiTimer) clearTimeout(gameplayAiTimer);
+    gameplayAiTimer = null;
+    gameplayAiDueAt = 0;
+    gameplayAiFire = null;
+    stopTurnClock();
   }
   // 轮到某座位时挂上对应时钟。玩家超时 → 自动"不出"或打出最小单张领出
   // 本回合「剩余」时长：联机用服务器下发的已用时(state._turnElapsedMs)算 上限-已用，
@@ -3945,6 +4064,7 @@
     return Math.max(800, tm - elapsed);
   }
   function armTurnClock() {
+    if (!isNetworked() && localPause.reasons.size) return;
     if (state.phase !== PHASE.PLAYING) { stopTurnClock(); return; }
     if (state._doublingActive) return;     // 加倍阶段已挂 5s 时钟，别覆盖
     if (state.out.includes(state.turn)) { stopTurnClock(); return; }
@@ -3956,7 +4076,7 @@
         // 托管模式：不挂时钟，~450ms 后直接自动出牌
         stopTurnClock();
         setTimeout(() => {
-          if (state.autopilot && state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy) {
+          if (!localPause.reasons.size && state.autopilot && state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy) {
             doAutoPlayPick();
           }
         }, 450);
@@ -4076,6 +4196,7 @@
 
   function scheduleAI() {
     if (isNetworked()) return;   // 联网模式：AI 在服务器跑，客户端只等轮询
+    if (localPause.reasons.size) return;
     if (state.busy) return;
     state.busy = true;
     renderAll();
@@ -4100,7 +4221,7 @@
     }
     // 「快进」去掉拟人思考延迟；「正常」保留 360-680ms
     const delay = (_gdAiCtl.mode === 'fast') ? 0 : (360 + Math.random() * 320);
-    setTimeout(fire, delay);
+    scheduleGameplayAi(fire, delay);
   }
 
   function aiAct(seat) {
@@ -4860,7 +4981,16 @@
     els.gameOptsBody.hidden = !open;
     els.gameOptsToggle.setAttribute('aria-expanded', String(open));
   });
-  els.pgoStart.addEventListener('click', () => {
+  els.pgoStart.addEventListener('click', async () => {
+    // 从联机大厅切回单机时，必须先得到服务端确认离房；临时网络错误时保留会话，
+    // 防止本地 AI 与仍存活的联机同步同时驱动同一张桌。
+    if (onlineState) {
+      const left = await leaveRoom(false);
+      if (!left) {
+        setOnlineHint('未能离开联机房间，已保留会话；恢复网络后重试', true);
+        return;
+      }
+    }
     // 高手档若神经网络还没下好：原地显示下载进度,下完才开始,不让「假高手」(启发式)上桌
     const needNet = state.aiLevel === 'hard' && typeof GuandanDMC !== 'undefined' && !GuandanDMC.ready();
     if (!needNet) { els.pgo.classList.remove('open'); startMatch(); return; }
@@ -4888,6 +5018,7 @@
   els.matchSetup.addEventListener('click', () => {
     els.matchOverlay.classList.remove('open');
     state.phase = PHASE.IDLE;
+    setNavView(NAV_VIEW.SETUP);
     renderAll();
     refreshPgoStats();
     syncPgoDiff();
@@ -5343,13 +5474,14 @@
     '<strong>四王炸（天王炸）</strong>压一切。</p>' +
     '<p><strong>一圈</strong>：领出任意合法牌型，其余依次出更大同型或炸弹，或「不要」。' +
     '在场玩家中连续 (人数−1) 家不要后，本圈最大者收圈并领出新一圈。打空手牌即出局，按出完先后定名次。</p>' +
-    '<p><strong>进贡 / 还贡</strong>（实现）：上一局若一队「双下」（其两人是三游+末游），由末游把' +
-    '<strong>最大的非红桃级牌</strong>进贡给头游，头游回还一张 ≤10 的牌。若头游一方两人合计握有两个大王则<strong>抗贡</strong>免贡。' +
-    '（其余进贡情形本实现从简略过。）</p>' +
+    '<p><strong>进贡 / 还贡</strong>：单贡时末游向头游进贡；双下时三游、末游分别向二游、头游进贡，' +
+    '较大贡牌交给头游。贡牌须是手中最大的非红桃级牌；收贡方还一张点数不高于 10 的非级牌，' +
+    '若手中没有这类牌则可还任意非王。单贡看末游本人、双贡看两名贡方合计：持有两个大王即抗贡。' +
+    '“同队进贡”是默认关闭的娱乐变体，可在玩法设置中开启。</p>' +
     '<p><strong>升级</strong>：拿到头游的队伍按队友名次升级 —— 队友二游 +3 级、三游 +2 级、末游 +1 级。' +
     '级牌依 2,3,…,10,J,Q,K,A 递进。</p>' +
     '<p><strong>本实现的取胜规则</strong>：当一队级牌已到 <code>A</code>，' +
-    '只要在该局再次<strong>拿到头游</strong>即「打过 A」，立刻赢下整局（不要求 A 上双下）。' +
+    '该队必须取得 1+2 或 1+3 才能「打过 A」；1+4 不能过 A，下一局继续打 A。' +
     '你方打过 A → 战绩 +1 胜并上传战绩榜；对方打过 A → 记一负。</p>' +
     '<p>键盘：Enter 出牌 · Space 不要 · H 提示。手牌按点数竖向成列；点牌选中、横拖多选。' +
     '<strong>🔀 理牌</strong>：选中若干张点一下，把它们摞成一摞 —— 炸弹自动摞到最左（多个炸弹按强度从大到小排）、其他牌摞到最右。' +
@@ -5359,32 +5491,62 @@
   //      玩法 / 战绩榜 / 评论改在游戏内「🏆 榜单」浮层看，不用跳出游戏外。 ----
   document.body.classList.add('gd-game-fullscreen');
   const boardModal = $('gdBoardModal');
-  function openBoard() { if (boardModal) boardModal.hidden = false; }
-  function closeBoard() { if (boardModal) boardModal.hidden = true; }
+  const pgoTimingNote = $('gdPgoTimingNote');
+  const boardTimingNote = $('gdBoardTimingNote');
+  function setOverlayTimingNote(el) {
+    if (!el) return;
+    const inGame = navState.current === NAV_VIEW.PLAYING || navState.current === NAV_VIEW.TRIBUTE;
+    if (!inGame) { el.hidden = true; el.textContent = ''; return; }
+    el.hidden = false;
+    el.textContent = isNetworked()
+      ? '联机对局由服务器继续计时；请尽快返回牌桌。'
+      : '单机对局已暂停；关闭此面板后继续。';
+  }
+  function openBoard() {
+    if (!isNetworked()) pauseLocalGame('board');
+    setOverlayTimingNote(boardTimingNote);
+    if (boardModal) boardModal.hidden = false;
+  }
+  function closeBoard() {
+    if (boardModal) boardModal.hidden = true;
+    resumeLocalGame('board');
+  }
   if ($('gdBoardBtn')) $('gdBoardBtn').addEventListener('click', openBoard);
   if ($('gdBoardClose')) $('gdBoardClose').addEventListener('click', closeBoard);
   if ($('gdBoardBackdrop')) $('gdBoardBackdrop').addEventListener('click', closeBoard);
   // ⚙️ 设置：调出 Pre-Game 页（含全部设置）。对局进行中露出「返回游戏」让你能关掉续局。
   const gdPgoCloseBtn = $('gdPgoClose');
   if ($('gdSettingsBtn')) $('gdSettingsBtn').addEventListener('click', () => {
-    const mid = state.phase === PHASE.PLAYING || state.phase === PHASE.TRIBUTE;
-    if (gdPgoCloseBtn) gdPgoCloseBtn.hidden = !mid;
+    const returnable = navState.current !== NAV_VIEW.SETUP;
+    if (!isNetworked()) pauseLocalGame('settings');
+    setOverlayTimingNote(pgoTimingNote);
+    if (gdPgoCloseBtn) {
+      gdPgoCloseBtn.hidden = !returnable;
+      gdPgoCloseBtn.textContent = navState.current === NAV_VIEW.LOBBY ? '← 返回大厅' : '← 返回游戏';
+      gdPgoCloseBtn.setAttribute('aria-label', navState.current === NAV_VIEW.LOBBY ? '返回大厅' : '返回游戏');
+    }
     els.pgo.classList.add('open');
   });
   if (gdPgoCloseBtn) gdPgoCloseBtn.addEventListener('click', () => {
     els.pgo.classList.remove('open');
     gdPgoCloseBtn.hidden = true;
+    resumeLocalGame('settings');
   });
   // 中途退出本局：随时弃掉当前这副牌，回到难度选择页（PGO）。复用 matchSetup 那套
   // 收尾——停时钟、关托管、回 IDLE、重渲、亮起 PGO。不弹确认窗（用户讨厌弹窗）；
   // 旧对局快照留着不清，万一手滑还能靠 resume 救回来，开新局时 startMatch 自会覆盖。
-  function quitToSetup() {
+  async function quitToSetup() {
     closeBoard();
-    stopTurnClock();
+    resetLocalPause();
     // 联机时「退出本局」= 退房：交给 leaveRoom 正规收尾（发 leave、停轮询、清联机会话、解联机闩、回 PGO）。
     // 否则会残留 onlineState + 还在跑的长轮询，后续容易把状态搅乱。
-    if (onlineState) { leaveRoom(false); return; }
+    if (onlineState) {
+      const left = await leaveRoom(false);
+      if (!left) toast('未能离开房间；会话已保留');
+      return;
+    }
     state.phase = PHASE.IDLE;
+    setNavView(NAV_VIEW.SETUP);
     state.autopilot = false;
     state._consecutiveTimeouts = 0;
     refreshAutopilotBtn();
@@ -5396,8 +5558,14 @@
   }
   // 右上角「退出本局」按钮 → 先弹确认窗（用户明确要求确认），确认后才 quitToSetup
   const confirmExit = $('gdConfirmExit');
-  function openConfirmExit() { if (confirmExit) confirmExit.hidden = false; }
-  function closeConfirmExit() { if (confirmExit) confirmExit.hidden = true; }
+  function openConfirmExit() {
+    if (!isNetworked()) pauseLocalGame('exit-confirm');
+    if (confirmExit) confirmExit.hidden = false;
+  }
+  function closeConfirmExit() {
+    if (confirmExit) confirmExit.hidden = true;
+    resumeLocalGame('exit-confirm');
+  }
   if ($('gdExitBtn')) $('gdExitBtn').addEventListener('click', openConfirmExit);
   if ($('gdMuteBtn')) $('gdMuteBtn').addEventListener('click', toggleMute);
   if ($('gdConfirmExitCancel')) $('gdConfirmExitCancel').addEventListener('click', closeConfirmExit);
@@ -5440,6 +5608,7 @@
   // 给下载争取时间，保证点「开始」时高手档已就绪（不用假高手顶替）。
   function showPgo() {
     state.phase = PHASE.IDLE;
+    setNavView(NAV_VIEW.SETUP);
     renderAll();
     refreshPgoStats();
     syncPgoDiff();
@@ -5512,6 +5681,7 @@
     state.matchOptions = normalizeOptions(snap.matchOptions || snap.options);
     if ([1,2,3].includes(snap.openMult)) state.openMult = snap.openMult;
     state.phase = snap.phase;
+    setNavView(snap.phase === PHASE.PLAYING ? NAV_VIEW.PLAYING : NAV_VIEW.SETTLEMENT);
     state.levels = Array.isArray(snap.levels) ? snap.levels.slice() : [0, 0];
     state.actingTeam = snap.actingTeam | 0;
     state.firstLeader = snap.firstLeader | 0;
@@ -5656,22 +5826,62 @@
       return s;
     } catch { return null; }
   }
+  let reconnectTimer = null;
+  let reconnectAttempt = 0;
+  function isTerminalOnlineFailure(r) {
+    return !!r && (r.status === 403 || r.status === 404 ||
+      r.error === 'room_not_found' || r.error === 'room_dissolved' ||
+      r.error === 'invalid_token' || r.error === 'session_revoked' ||
+      r.error === 'not_in_room');
+  }
+  function clearOnlineSessionLocal(message) {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    reconnectAttempt = 0;
+    clearSwapTimers();
+    stopOnlineSync();
+    onlineSessionClear();
+    onlineState = null;
+    state.isNetworked = false;
+    if (onlineEls.lobby) {
+      onlineEls.lobby.hidden = true;
+      onlineEls.lobby.classList.remove('starting');
+    }
+    if (els.table) els.table.classList.remove('gd-in-lobby');
+    setNavView(NAV_VIEW.SETUP);
+    if (els.pgo) els.pgo.classList.add('open');
+    if (message) setOnlineHint(message);
+  }
 
   // 刷新 / PWA 重开后用存下的 token+code 重连回原房间。后端 resolvePlayer 支持凭 token 续连，
-  // 服务器是唯一信任源——重连成功就用服务端真状态重建大厅 / 进牌桌；失败（房间过期/被踢/解散/
-  // 网络）则清掉联机会话，退回单机续局或 PGO。绝不退化成本地 3-AI 假局。
+  // 服务器是唯一信任源——重连成功就用服务端真状态重建大厅 / 进牌桌。
+  // 只有房间/凭证明确终止才清会话；网络、限流和 5xx 保留凭证并退避重试。
   async function tryReconnectOnline(online) {
     setOnlineHint('正在重连房间…');
     const r = await gdApi('state', { qs: { code: online.code, token: online.token, since: 0 } });
     const srv = (r && r.ok) ? r.data : null;
+    if (!r.ok && !isTerminalOnlineFailure(r)) {
+      reconnectAttempt++;
+      const delay = Math.min(15000, 1000 * Math.pow(2, Math.min(4, reconnectAttempt - 1)));
+      setOnlineHint('网络暂时不可用，房间会话已保留，正在重试…', true);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        const saved = onlineSessionLoad();
+        if (saved && saved.code === online.code && saved.token === online.token) tryReconnectOnline(saved);
+      }, delay);
+      return;
+    }
     if (!srv || srv.state === 'dissolved' || !srv.me) {
       onlineSessionClear();
-      setOnlineHint(srv && srv.state === 'dissolved' ? '原房间已解散' : '');
+      reconnectAttempt = 0;
+      setOnlineHint(srv && srv.state === 'dissolved' ? '原房间已解散' : '原联机会话已失效');
       const snap = loadSession();      // 退回单机续局（若有）或 PGO
       if (snap) { showResumeOverlay(snap); ensureDMC(); }
       else showPgo();
       return;
     }
+    reconnectAttempt = 0;
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
     // 重建联机会话句柄。srvState 故意先置 'lobby'：让 applyServerOnlineState 对一个已经
     // playing 的房间触发 lobby→playing 跃迁 → 进牌桌（startNetworkedGame）；lobby 态则揭开大厅。
     onlineState = {
@@ -5877,6 +6087,7 @@
 
   // 揭开联机大厅：关掉 PGO 浮层、显示大厅、给牌桌挂 gd-in-lobby（藏掉牌局 UI）。
   function revealLobby() {
+    setNavView(NAV_VIEW.LOBBY);
     if (els.pgo) els.pgo.classList.remove('open');
     if (onlineEls.lobby) onlineEls.lobby.hidden = false;
     if (els.table) els.table.classList.add('gd-in-lobby');
@@ -5906,25 +6117,19 @@
       onlineEls.lobby.hidden = true;
       if (els.table) els.table.classList.remove('gd-in-lobby');
       els.pgo && els.pgo.classList.add('open');
-      return;
+      setNavView(NAV_VIEW.SETUP);
+      return true;
     }
     const body = { code: onlineState.code, token: onlineState.token };
     if (opts.transferTo) body.transferTo = opts.transferTo;
     if (opts.dissolveOnLeave) body.dissolveOnLeave = true;
-    try { await gdApi('leave', { body }); } catch {}
-    clearSwapTimers();
-    stopOnlineSync();
-    onlineSessionClear();
-    onlineState = null;
-    // 退房即解除联机闩，避免接下来开单机局时 AI 调度被 scheduleAI 的 isNetworked 早退吞掉。
-    state.isNetworked = false;
-    if (onlineEls.lobby) {
-      onlineEls.lobby.hidden = true;
-      onlineEls.lobby.classList.remove('starting');
+    const r = await gdApi('leave', { body });
+    if (!r.ok && !isTerminalOnlineFailure(r)) {
+      if (!silent) setOnlineHint('离开失败：网络暂不可用，房间会话仍保留', true);
+      return false;
     }
-    if (els.table) els.table.classList.remove('gd-in-lobby');
-    if (els.pgo) els.pgo.classList.add('open');
-    if (!silent) setOnlineHint('已离开房间');
+    clearOnlineSessionLocal(!silent ? '已离开房间' : '');
+    return true;
   }
 
   if (onlineEls.leaveBtn) {
@@ -5994,7 +6199,7 @@
         applyServerOnlineState(r.data);
       } else if (r.status === 403 || r.status === 404) {
         toast(r.error === 'room_not_found' ? '房间已过期' : '会话失效');
-        await leaveRoom(true);
+        clearOnlineSessionLocal('');
         break;
       } else if (r.error === 'aborted') {
         // 主动 abort：刚发了一次操作，立刻发新长轮询拉最新状态，不睡 1.5s
@@ -6055,7 +6260,10 @@
       try { applyServerOnlineState(JSON.parse(ev.data)); } catch {}
     };
     es.addEventListener('gone', () => {
-      if (onlineState === sess && sess._sse === es) { toast('房间已过期'); leaveRoom(true); }
+      if (onlineState === sess && sess._sse === es) {
+        toast('房间已过期');
+        clearOnlineSessionLocal('');
+      }
     });
     es.onerror = () => {
       if (onlineState !== sess || sess._sse !== es) return;
@@ -6257,12 +6465,12 @@
     } else if (onlineState.playerId && srv.state !== 'dissolved') {
       // 我在服端 projection 里没了 → 我被踢/移除了 → 强退房
       toast('你已离开房间');
-      leaveRoom(true);
+      clearOnlineSessionLocal('');
       return;
     }
     if (srv.state === 'dissolved') {
       toast('房间已解散');
-      leaveRoom(true);
+      clearOnlineSessionLocal('');
       return;
     }
     // 加入者：第一条 server state 到了，现在才揭开大厅（之前停在 PGO「加入中…」）。
@@ -6904,16 +7112,8 @@
     else toast('请手动复制：' + t);
   }
 
-  // ---- beforeunload: best-effort 用 sendBeacon 通知 leave ----
-  window.addEventListener('beforeunload', () => {
-    if (onlineState && onlineState.token) {
-      try {
-        const body = JSON.stringify({ code: onlineState.code, token: onlineState.token });
-        const blob = new Blob([body], { type: 'application/json' });
-        navigator.sendBeacon(GUANDAN_API + '?action=leave', blob);
-      } catch {}
-    }
-  });
+  // 刷新、关闭标签和 PWA 切后台都不是“离开房间”：保留联机会话，下一次加载按 token 重连。
+  // 只有用户明确点击“离开房间/退出本局”才调用 leave。
 
   // ---- URL ?room=xxxx 自动进入"加入"流程 ----
   (function autoJoinFromUrl() {
