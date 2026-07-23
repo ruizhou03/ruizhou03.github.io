@@ -155,6 +155,9 @@
 
   function parsePattern(cards) {
     if (!cards || cards.length === 0) return null;
+    if (!Array.isArray(cards) ||
+        cards.some(c => !Number.isInteger(c) || c < 0 || c > 53) ||
+        new Set(cards).size !== cards.length) return null;
     const n = cards.length;
 
     // 王炸
@@ -183,6 +186,50 @@
         return { type: TYPES.TRIPLE, weight: groups[3][0], cards: cards.slice() };
       }
       return null;
+    }
+    // 通用连续牌型必须在按张数分支之前识别。连对可以超过 6 连，
+    // 若只在 n=6/8/10/12 的特例里识别，枚举器会生成解析器拒绝的合法 7+ 连对。
+    if (n >= 5 && n <= 12 &&
+        (groups[1] || []).length === n &&
+        isConsecutive(weights) && noBigCards(weights)) {
+      return { type: TYPES.STRAIGHT, weight: weights[0], length: n, cards: cards.slice() };
+    }
+    if (n >= 6 && n % 2 === 0 &&
+        (groups[2] || []).length === n / 2 &&
+        isConsecutive(groups[2]) && noBigCards(groups[2])) {
+      return { type: TYPES.PAIR_STRAIGHT, weight: groups[2][0], length: n / 2, cards: cards.slice() };
+    }
+    if (n >= 6 && n % 3 === 0 &&
+        (groups[3] || []).length === n / 3 &&
+        isConsecutive(groups[3]) && noBigCards(groups[3])) {
+      return { type: TYPES.PLANE, weight: groups[3][0], length: n / 3, cards: cards.slice() };
+    }
+    if (n >= 8 && n % 4 === 0) {
+      const length = n / 4;
+      const planeWeights = groups[3] || [];
+      if (length >= 2 && planeWeights.length === length &&
+          isConsecutive(planeWeights) && noBigCards(planeWeights)) {
+        const planeSet = new Set(planeWeights);
+        const wings = cards.filter(c => !planeSet.has(cardWeight(c)));
+        if (wings.length === length) {
+          return {
+            type: TYPES.PLANE_ONE, weight: planeWeights[0],
+            length, kickerCount: 1, cards: cards.slice(),
+          };
+        }
+      }
+    }
+    if (n >= 10 && n % 5 === 0) {
+      const length = n / 5;
+      const planeWeights = groups[3] || [];
+      const pairWeights = groups[2] || [];
+      if (length >= 2 && planeWeights.length === length && pairWeights.length === length &&
+          isConsecutive(planeWeights) && noBigCards(planeWeights)) {
+        return {
+          type: TYPES.PLANE_PAIR, weight: planeWeights[0],
+          length, kickerCount: 2, cards: cards.slice(),
+        };
+      }
     }
     // 4 张：炸弹 / 三带一
     if (n === 4) {
@@ -482,8 +529,6 @@
         // 选 len 张单作 kicker：从 weights 里挑 len 个非 plane 的（每个 weight 只取 1 张，王也算）
         const kickerPool = weights.filter(ww => !planeRange.has(ww));
         const allKickers = kickerPool.slice();
-        if (hand.includes(52)) allKickers.push(13);
-        if (hand.includes(53)) allKickers.push(14);
         if (allKickers.length < len) continue;
         // v1 简化：只挑最小 len 个作为代表（AI 出牌不需要枚举所有组合）
         const chosen = allKickers.slice(0, len);
@@ -627,8 +672,6 @@
         // 带单
         const singleWs = weights.filter(ww => !planeRange.has(ww));
         const allK = singleWs.slice();
-        if (hand.includes(52)) allK.push(13);
-        if (hand.includes(53)) allK.push(14);
         if (allK.length >= len) {
           const chosen = allK.slice(0, len);
           const kCards = [];
@@ -834,9 +877,23 @@
     const out = hand.slice();
     for (const c of cards) {
       const idx = out.indexOf(c);
-      if (idx >= 0) out.splice(idx, 1);
+      if (idx < 0) throw new Error(`card_not_in_hand:${c}`);
+      out.splice(idx, 1);
     }
     return out;
+  }
+
+  // 唯一的 fail-closed 出牌校验入口。调用方必须使用返回的规范化 pattern
+  // 和 remaining，不能先写历史、倍数或计数再尝试移牌。
+  function validatePlay(hand, cards, prev) {
+    if (!Array.isArray(hand) || new Set(hand).size !== hand.length) return null;
+    const pattern = parsePattern(cards);
+    if (!pattern || !canBeat(pattern, prev || null)) return null;
+    try {
+      return { pattern, remaining: removeCards(hand, pattern.cards) };
+    } catch {
+      return null;
+    }
   }
 
   // ============================================================
@@ -849,7 +906,7 @@
     fullDeck, shuffle, deal, sortHand,
     histByWeight, groupByCount,
     parsePattern, canBeat, enumerateBeats, decomposeHand,
-    removeCards,
+    removeCards, validatePlay,
   };
 
   if (typeof window !== 'undefined') window.DDZEngine = api;

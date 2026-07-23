@@ -1271,6 +1271,24 @@ permalink: /toolbox/doudizhu/
     opacity: 0.35;
     cursor: not-allowed;
   }
+  .ddz-status-msg {
+    position: absolute;
+    left: 50%;
+    top: 4.25rem;
+    transform: translateX(-50%);
+    max-width: min(92vw, 32rem);
+    padding: 0.38rem 0.72rem;
+    border-radius: 999px;
+    background: rgba(20, 37, 63, 0.9);
+    color: #fff;
+    font-size: 0.82rem;
+    line-height: 1.25;
+    text-align: center;
+    box-shadow: 0 3px 10px rgba(20, 37, 63, 0.24);
+    pointer-events: none;
+    white-space: normal;
+    z-index: 50;
+  }
   /* 明牌 badge：明牌的玩家头像左侧挂红色「明牌」 */
   .ddz-declared-badge {
     position: absolute;
@@ -2243,7 +2261,7 @@ permalink: /toolbox/doudizhu/
                 <option value="easy">🌱 新手</option>
                 <option value="normal" selected>🙂 普通</option>
                 <option value="hard">🔥 高手</option>
-                <option value="master">👑 大神</option>
+                <option value="master" disabled>👑 大神（联机维护中）</option>
               </select>
             </div>
             <div class="cfg-row">
@@ -2366,6 +2384,7 @@ permalink: /toolbox/doudizhu/
       </span>
     </div>
 
+    <div class="ddz-status-msg" id="ddzStatusMsg" role="status" aria-live="polite" hidden></div>
     <div class="ddz-actions" id="ddzPlayActions">
       <button class="ddz-btn declare" id="ddzDealDeclareBtn" type="button" hidden>明牌 ×5</button>
       <button class="ddz-btn declare" id="ddzDeclareBtn" type="button" hidden>明牌 ×2</button>

@@ -383,7 +383,7 @@
   const autopilotBtn = $('ddzAutopilotBtn');
   // 发牌阶段 + 空闲（setup 浮层）禁用托管/理牌，避免牌还没发完就乱点
   function cornerChipsShouldDisable() {
-    return state.phase === PHASE.IDLE || state.phase === PHASE.DEALING;
+    return state.mode === 'online' || state.phase === PHASE.IDLE || state.phase === PHASE.DEALING;
   }
   function refreshCornerChipsDisabled() {
     const disable = cornerChipsShouldDisable();
@@ -402,6 +402,8 @@
   }
   function refreshAutopilotBtn() {
     if (!autopilotBtn) return;
+    autopilotBtn.hidden = state.mode === 'online';
+    if (state.mode === 'online') state.autopilot = false;
     if (state.autopilot) {
       autopilotBtn.classList.add('active');
       autopilotBtn.textContent = '✓ 托管中';
@@ -425,6 +427,7 @@
   //   - 叫/抢地主：把当前按钮面板的 AI 决策路径走起
   //   - 加倍：把"我"加进 doubling AI 决策队列
   function triggerAutopilotIfMyTurn() {
+    if (state.mode === 'online') return;
     if (state.phase === PHASE.PLAYING && state.turnIdx === 0) {
       // 立刻让 AI 出牌：复用 autoPlayOnTimeout
       autoPlayOnTimeout();
@@ -452,11 +455,39 @@
   if ($('ddzBoardBtn')) $('ddzBoardBtn').addEventListener('click', ddzOpenBoard);
   if ($('ddzBoardClose')) $('ddzBoardClose').addEventListener('click', ddzCloseBoard);
   if ($('ddzBoardBackdrop')) $('ddzBoardBackdrop').addEventListener('click', ddzCloseBoard);
-  $('ddzPlayAgainBtn').addEventListener('click', () => {
+  async function handlePrimarySettlementAction() {
+    if (state.mode === 'online' && state.online) {
+      gameOverOverlay.classList.remove('show', 'has-spring');
+      if (state.result && state.result.gameEnded) {
+        await leaveOnlineRoom(false);
+        return;
+      }
+      if (!state.online.isHost) {
+        setStatus('只有房主可以开始下一盘');
+        gameOverOverlay.classList.add('show');
+        return;
+      }
+      const btn = $('ddzPlayAgainBtn');
+      btn.disabled = true;
+      const r = await apiCall('rematch', {
+        body: { code: state.online.code, token: state.online.token },
+      });
+      btn.disabled = false;
+      if (!r.ok) {
+        setStatus(r.error === 'match_complete' ? '本局已结束，不能再开下一盘' : '下一盘失败：' + r.error);
+        gameOverOverlay.classList.add('show');
+      }
+      return;
+    }
     gameOverOverlay.classList.remove('show', 'has-spring');
     startNewGame();
-  });
-  $('ddzBackToSetupBtn').addEventListener('click', () => {
+  }
+  async function handleSecondarySettlementAction() {
+    if (state.mode === 'online' && state.online) {
+      gameOverOverlay.classList.remove('show', 'has-spring');
+      if (!(state.result && state.result.gameEnded)) await leaveOnlineRoom(false);
+      return;
+    }
     gameOverOverlay.classList.remove('show', 'has-spring');
     state.phase = PHASE.IDLE;
     refreshCornerChipsDisabled();   // 回到 setup → 重新禁用托管/理牌
@@ -464,7 +495,9 @@
     setupView.hidden = false;
     resetTableToIdle();
     if (ddzSettleBtn) ddzSettleBtn.setEnabled(false);
-  });
+  }
+  $('ddzPlayAgainBtn').addEventListener('click', handlePrimarySettlementAction);
+  $('ddzBackToSetupBtn').addEventListener('click', handleSecondarySettlementAction);
 
   // 把牌桌还原成"初始化"状态（清手牌 / 清出牌区 / 清角标 / 隐操作按钮）
   // 给"换难度"和将来的"重玩"用，避免上局画面残留在 setup 浮层背后
@@ -1159,9 +1192,28 @@
   }
 
   function setStatus(msg) {
-    // 已删除 .ddz-status-msg 视觉元素（信息冗余）；保留函数以兼容上百个调用点
-    // 真正需要弹给用户看的关键错误请用 alert()，其它直接静默
-    if (statusMsg) statusMsg.textContent = msg;
+    if (!statusMsg) return;
+    statusMsg.textContent = msg || '';
+    statusMsg.hidden = !msg;
+    const lobby = document.getElementById('ddzLobby');
+    const onlineHint = document.getElementById('ddzOnlineHint');
+    if (onlineHint && lobby && !lobby.hidden) {
+      onlineHint.textContent = msg || '';
+      onlineHint.className = 'ddz-online-hint' + (msg ? ' error' : '');
+    }
+    clearTimeout(setStatus.clearTimer);
+    if (msg) {
+      setStatus.clearTimer = setTimeout(() => {
+        if (statusMsg.textContent === msg) {
+          statusMsg.textContent = '';
+          statusMsg.hidden = true;
+        }
+        if (onlineHint && onlineHint.textContent === msg) {
+          onlineHint.textContent = '';
+          onlineHint.className = 'ddz-online-hint';
+        }
+      }, 4500);
+    }
   }
 
   function renderMultiplier() {
@@ -1822,7 +1874,8 @@
     //   - 出牌阶段 + 我是地主 + 未明牌
     //   - 地主还没出过牌（landlordPlayCount === 0）
     //   - 必须轮到我（playActions 可见时才有意义）
-    const visible = state.phase === PHASE.PLAYING
+    const visible = state.mode !== 'online'
+      && state.phase === PHASE.PLAYING
       && state.landlordIdx === 0
       && !state.declared
       && state.landlordPlayCount === 0
@@ -2145,22 +2198,31 @@
       // pass — 但如果 prev=null（即 AI 是首出）不允许 pass，强制出最小单牌
       if (!prev) {
         const smallest = state.hands[seat].reduce((b, c) => E.cardWeight(c) < E.cardWeight(b) ? c : b, state.hands[seat][0]);
-        commitPlay(seat, { type: T.SINGLE, weight: E.cardWeight(smallest), cards: [smallest] });
+        commitAutomatedPlay(seat, { type: T.SINGLE, weight: E.cardWeight(smallest), cards: [smallest] });
       } else {
         commitPass(seat);
       }
     } else {
-      commitPlay(seat, play);
+      commitAutomatedPlay(seat, play);
     }
   }
 
   function commitPlay(seat, pattern) {
+    const hand = state.hands[seat] || [];
+    const prev = (state.lastTrick && state.lastTrick.seat !== seat) ? state.lastTrick.pattern : null;
+    const validated = E.validatePlay(hand, pattern && pattern.cards, prev);
+    if (!validated) {
+      console.warn('[DDZ] blocked invalid play', { seat, cards: pattern && pattern.cards, prev });
+      setStatus('检测到非法出牌，已阻止本次操作');
+      return false;
+    }
+    pattern = validated.pattern;
     stopTurnCountdown();   // 任何人出牌都关闹钟（下个 proceedTurn 会再开）
     if (!state.netPlayed) state.netPlayed = [[], [], []];
     if (!state.netSeq) state.netSeq = [];
     state.netPlayed[seat].push(...pattern.cards);
     state.netSeq.push({ seat, cards: pattern.cards.slice() });
-    state.hands[seat] = E.removeCards(state.hands[seat], pattern.cards);
+    state.hands[seat] = validated.remaining;
     for (const c of pattern.cards) state.seen[E.cardWeight(c)]++;
     updateAiPerception(pattern);          // AI 感知（带噪声）
     if (pattern.type === T.BOMB || pattern.type === T.ROCKET) state.bombCount++;
@@ -2201,13 +2263,29 @@
     audioAfterTurn();
     if (state.hands[seat].length === 0) {
       setTimeout(() => finishGame(seat), 600);
-      return;
+      return true;
     }
     setTimeout(() => {
       // 下一家：清空他的"上次出牌"显示？保留 — 三人出牌区独立
       state.turnIdx = (seat + 1) % 3;
       proceedTurn();
     }, 800);
+    return true;
+  }
+
+  function commitAutomatedPlay(seat, candidate) {
+    if (candidate && commitPlay(seat, candidate)) return true;
+    const hand = state.hands[seat] || [];
+    const prev = (state.lastTrick && state.lastTrick.seat !== seat) ? state.lastTrick.pattern : null;
+    const fallback = E.enumerateBeats(hand, prev).find(p => E.validatePlay(hand, p.cards, prev));
+    if (fallback && commitPlay(seat, fallback)) return true;
+    if (prev) {
+      commitPass(seat);
+      return true;
+    }
+    setStatus('自动出牌失败：没有可验证的合法首出');
+    console.error('[DDZ] no legal automated lead', { seat, hand });
+    return false;
   }
 
   function commitPass(seat) {
@@ -2527,14 +2605,11 @@
   }
   // 联机模式飘金币：用 state.result.multiplier 估算每家本盘净增减
   function showOnlineCoinDeltas(result, online) {
-    if (!result) return;
-    const lordSign = result.winnerRole === 'landlord' ? +1 : -1;
-    const peasantSign = -lordSign;
-    const m = result.multiplier || 1;
-    // 简化估算：地主 ±2m，两农民各 ±m。加倍 / 春天通过 multiplier 已并入。
-    const peasantSeats = [0,1,2].filter(s => s !== state.landlordIdx);
-    spawnCoinDelta(state.landlordIdx, lordSign * 2 * m);
-    for (const ps of peasantSeats) spawnCoinDelta(ps, peasantSign * m);
+    if (!result || !online || !result.deltasByPlayer) return;
+    for (const p of online.players || []) {
+      const delta = Number(result.deltasByPlayer[p.id]);
+      if (Number.isFinite(delta)) spawnCoinDelta(rotateSeat(p.seat - 1), delta);
+    }
   }
   // 倍数翻倍 toast（炸弹 / 王炸 / 春天即将命中 时调用）
   function spawnMultiplierToast(seat, label) {
@@ -2936,19 +3011,40 @@
     const isGet = !opts.body;
     const url = `${DDZ_API}?action=${encodeURIComponent(action)}` +
       (opts.qs ? '&' + new URLSearchParams(opts.qs).toString() : '');
+    const ctrl = new AbortController();
+    let externallyAborted = false;
+    const abortFromCaller = () => {
+      externallyAborted = true;
+      ctrl.abort();
+    };
+    if (opts.signal) {
+      if (opts.signal.aborted) abortFromCaller();
+      else opts.signal.addEventListener('abort', abortFromCaller, { once: true });
+    }
+    const timeout = setTimeout(() => ctrl.abort(), opts.timeoutMs || 10000);
     const init = {
       method: isGet ? 'GET' : 'POST',
       headers: isGet ? {} : { 'Content-Type': 'application/json' },
       body: isGet ? undefined : JSON.stringify(opts.body),
-      signal: opts.signal,
+      signal: ctrl.signal,
     };
-    const res = await fetch(url, init);
-    let data = null;
-    try { data = await res.json(); } catch {}
-    if (!res.ok) {
-      return { ok: false, status: res.status, error: (data && data.error) || 'http_error', data };
+    try {
+      const res = await fetch(url, init);
+      let data = null;
+      try { data = await res.json(); } catch {}
+      if (!res.ok) {
+        return { ok: false, status: res.status, error: (data && data.error) || 'http_error', data };
+      }
+      return { ok: true, data };
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        return { ok: false, status: 0, error: externallyAborted ? 'aborted' : 'timeout' };
+      }
+      return { ok: false, status: 0, error: 'network_error' };
+    } finally {
+      clearTimeout(timeout);
+      if (opts.signal) opts.signal.removeEventListener('abort', abortFromCaller);
     }
-    return { ok: true, data };
   }
 
   // ── Mode toggle ─────────────────────────────────────────────────────
@@ -2968,6 +3064,8 @@
         state.mode = 'online';
         renderResumeOption();
       }
+      refreshAutopilotBtn();
+      updateDeclareBtn();
     });
   });
 
@@ -3039,33 +3137,53 @@
     if (nickFromIdentity) $('ddzOnlineNick').value = nickFromIdentity;
   }
 
+  let onlineSubmitPending = false;
   $('ddzOnlineSubmit').addEventListener('click', async () => {
+    if (onlineSubmitPending) return;
     const nick = $('ddzOnlineNick').value.trim();
     if (!nick || nick.length > 12) { setOnlineHint('昵称 1-12 字', true); return; }
     if (window.GamesShell && GamesShell.Identity) GamesShell.Identity.setNick(nick);
-    if (onlineTab === 'create') {
-      setOnlineHint('创建中…');
-      const config = collectRoomConfig();
-      const r = await apiCall('create', { body: { nick, deviceId: getDeviceId(), config } });
-      if (!r.ok) { setOnlineHint('创建失败：' + (r.error || ''), true); return; }
-      enterRoom(r.data);
-    } else {
-      const code = $('ddzOnlineCode').value.trim();
-      if (!/^\d{4}$/.test(code)) { setOnlineHint('请输入 4 位房号', true); return; }
-      setOnlineHint('加入中…');
-      const r = await apiCall('join', { body: { code, nick, deviceId: getDeviceId() } });
-      if (!r.ok) {
-        const msg = ({
-          'room_not_found': '房间不存在或已过期',
-          'room_in_progress': '游戏已开始，无法加入',
-          'room_full': '房间已满，换一个房号试试',
-          'nick_taken_in_room': '昵称已被占用，换一个试试',
-          'invalid_nick': '昵称不合法',
-        })[r.error] || ('加入失败：' + r.error);
-        setOnlineHint(msg, true);
-        return;
+    const submit = $('ddzOnlineSubmit');
+    onlineSubmitPending = true;
+    submit.disabled = true;
+    try {
+      if (onlineTab === 'create') {
+        setOnlineHint('创建中…');
+        const config = collectRoomConfig();
+        const r = await apiCall('create', { body: { nick, deviceId: getDeviceId(), config } });
+        if (!r.ok) {
+          const msg = ({
+            master_online_temporarily_unavailable: '大神 AI 联机版维护中，请先选高手',
+            timeout: '请求超时，请重试',
+            network_error: '网络不可用，请检查连接后重试',
+          })[r.error] || ('创建失败：' + (r.error || ''));
+          setOnlineHint(msg, true);
+          return;
+        }
+        enterRoom(r.data);
+      } else {
+        const code = $('ddzOnlineCode').value.trim();
+        if (!/^\d{4}$/.test(code)) { setOnlineHint('请输入 4 位房号', true); return; }
+        setOnlineHint('加入中…');
+        const r = await apiCall('join', { body: { code, nick, deviceId: getDeviceId() } });
+        if (!r.ok) {
+          const msg = ({
+            'room_not_found': '房间不存在或已过期',
+            'room_in_progress': '游戏已开始，无法加入',
+            'room_full': '房间已满，换一个房号试试',
+            'nick_taken_in_room': '昵称已被占用，换一个试试',
+            'invalid_nick': '昵称不合法',
+            'timeout': '请求超时，请重试',
+            'network_error': '网络不可用，请检查连接后重试',
+          })[r.error] || ('加入失败：' + r.error);
+          setOnlineHint(msg, true);
+          return;
+        }
+        enterRoom(r.data);
       }
-      enterRoom(r.data);
+    } finally {
+      onlineSubmitPending = false;
+      submit.disabled = false;
     }
   });
 
@@ -3123,6 +3241,7 @@
       doubleChoice: [null, null, null],
       doubleEndAt: 0,
       turnEndAt: 0,
+      phaseEndAt: 0,
       lastSrvState: null,
       pollAbort: null,
     };
@@ -3131,6 +3250,8 @@
     tableView.hidden = true;        // 联机大厅完全替代牌桌
     lobbyEl.hidden = false;
     $('ddzRoomCode').textContent = sess.code;
+    refreshAutopilotBtn();
+    updateDeclareBtn();
     startOnlineSync();
   }
 
@@ -3144,6 +3265,7 @@
       const r = await apiCall('state', {
         qs: { code: state.online.code, token: state.online.token, since: state.online.lastVersion },
         signal: ctrl.signal,
+        timeoutMs: 30000,
       }).catch(() => ({ ok: false, error: 'aborted' }));
       if (!state.online || !state.online.polling) break;
       if (r.ok && r.data) {
@@ -3210,6 +3332,8 @@
 
   function applyServerState(srv) {
     if (!srv || !state.online) return;
+    const incomingVersion = Number(srv.version) || 0;
+    if (state.online.lastVersion > 0 && incomingVersion <= state.online.lastVersion) return;
     state.online.lastVersion = srv.version || 0;
     state.online.players = srv.players || [];
     state.online.hostPlayerId = srv.hostPlayerId;
@@ -3256,6 +3380,7 @@
                     srv.phase === 'doubling' ? PHASE.DOUBLING :
                     srv.phase === 'playing' ? PHASE.PLAYING :
                     srv.phase === 'settlement' ? PHASE.SETTLEMENT : PHASE.IDLE;
+      state.online.phaseEndAt = Number(srv.deadlineTs) || 0;
 
       // hand 数据
       if (srv.me && srv.me.hand) state.hands[0] = srv.me.hand.slice();
@@ -3345,10 +3470,10 @@
       if (srv.phase === 'settlement' && srv.result) {
         const r = srv.result;
         state.result = {
+          ...r,
           winnerSeat: rotateSeat(r.winnerSeat),
-          winnerRole: r.winnerRole,
-          multiplier: r.multiplier,
-          score: r.score,
+          scoreDelta: Number(r.scoreDelta) || 0,
+          score: Math.abs(Number(r.scoreDelta) || 0),
         };
         state.spring = r.spring || state.spring;
         state.bombCount = r.bombCount || state.bombCount;
@@ -3581,19 +3706,14 @@
     tableView.hidden = false;
     setupView.hidden = false;
     gameOverOverlay.classList.remove('show', 'has-spring');
+    $('ddzPlayAgainBtn').disabled = false;
+    $('ddzPlayAgainBtn').textContent = '再来一局';
+    $('ddzBackToSetupBtn').textContent = '换难度';
     if (!silent) setOnlineHint('已离开房间');
+    refreshAutopilotBtn();
+    updateDeclareBtn();
     renderResumeOption();
   }
-  window.addEventListener('beforeunload', () => {
-    if (state.online && state.online.token) {
-      // 用 sendBeacon 让 leave 在页面卸载时也能发出去
-      try {
-        const body = JSON.stringify({ code: state.online.code, token: state.online.token });
-        const blob = new Blob([body], { type: 'application/json' });
-        navigator.sendBeacon(`${DDZ_API}?action=leave`, blob);
-      } catch {}
-    }
-  });
 
   // ── 联机抢地主 / 叫分 面板 ───────────────────────────────────────
   function renderOnlineBidPanel() {
@@ -3663,11 +3783,18 @@
 
   async function sendOnlineDouble(choice) {
     if (!state.online) return;
+    const prevDecided = state.online.doubleDecided[0];
+    const prevChoice = state.online.doubleChoice[0];
     state.online.doubleDecided[0] = true;
     state.online.doubleChoice[0] = choice;
     renderOnlineDoublePanel();
     const r = await apiCall('double', { body: { code: state.online.code, token: state.online.token, action: choice } });
-    if (!r.ok && r.error !== 'already_decided') alert('加倍失败：' + r.error);
+    if (!r.ok && r.error !== 'already_decided') {
+      state.online.doubleDecided[0] = prevDecided;
+      state.online.doubleChoice[0] = prevChoice;
+      renderOnlineDoublePanel();
+      setStatus('加倍失败：' + r.error);
+    }
   }
 
   // ── 联机出牌 / pass ────────────────────────────────────────────────
@@ -3681,6 +3808,11 @@
         'card_not_in_hand': '有牌不在手里',
       })[r.error] || ('出牌失败：' + r.error);
       setStatus(msg);
+      if (state.online && state.phase === PHASE.PLAYING && state.turnIdx === 0) {
+        playActions.hidden = false;
+        renderHand();
+        updatePlayBtnState();
+      }
     }
   }
   async function sendOnlinePass() {
@@ -3691,13 +3823,19 @@
         'not_your_turn': '还没轮到你',
       })[r.error] || ('不出失败：' + r.error);
       setStatus(msg);
+      if (state.online && state.phase === PHASE.PLAYING && state.turnIdx === 0) {
+        playActions.hidden = false;
+        updatePlayBtnState();
+      }
     }
   }
 
   // ── 联机结算 ────────────────────────────────────────────────────────
   function showOnlineGameOver() {
     if (!state.result) return;
-    const playerWon = state.result.winnerSeat === 0;
+    const playerWon = typeof state.result.isWinner === 'boolean'
+      ? state.result.isWinner
+      : state.result.scoreDelta > 0;
     const cfg = state.online.config || {};
     const totalRounds = state.result.totalRounds || cfg.rounds || 1;
     const roundN = state.result.round || 1;
@@ -3708,16 +3846,13 @@
       : (playerWon ? '🎉 你赢了' : '😢 你输了') + `（${roundN} / ${totalRounds}）`;
     setTimeout(() => playSfx(playerWon ? 'win' : 'lose'), 300);
 
-    const myRole = state.landlordIdx === 0 ? '地主' : '农民';
     const winText = state.result.winnerRole === 'landlord' ? '地主' : '农民';
     const springBadge = state.spring > 0
       ? `<div class="ddz-spring-badge">${state.result.winnerRole === 'landlord' ? '🌸 春天' : '🍁 反春天'} ×2</div>`
       : '';
-    const roleMul = state.result.winnerRole === 'landlord' ? 2 : 1;
-
     let html = springBadge +
-      `<div>${winText}获胜 · 倍数 ×${state.result.multiplier} · 你是${myRole}</div>` +
-      `<div>本盘积分 <strong>${state.result.score}</strong>（角色加权 ×${roleMul}）</div>`;
+      `<div>${winText}获胜</div>` +
+      `<div>本盘净分 <strong>${state.result.scoreDelta >= 0 ? '+' : ''}${state.result.scoreDelta}</strong></div>`;
 
     // 累计积分排行（永远显示，最少 1 行）
     const cum = state.online.cumulativeScores || {};
@@ -3759,23 +3894,17 @@
     setTimeout(() => { gameOverOverlay.classList.add('show'); }, 1800);
     if (ddzSettleBtn) ddzSettleBtn.setEnabled(true);
 
-    // 按钮
+    // 按钮行为只由初始化时绑定的统一 handler 处理，避免一次点击触发两套逻辑。
     const playAgainBtn = $('ddzPlayAgainBtn');
     const backBtn = $('ddzBackToSetupBtn');
     if (isLastRound) {
       playAgainBtn.textContent = '退出大厅';
-      playAgainBtn.onclick = () => { gameOverOverlay.classList.remove('show', 'has-spring'); leaveOnlineRoom(false); };
       backBtn.textContent = '关闭';
-      backBtn.onclick = () => { gameOverOverlay.classList.remove('show', 'has-spring'); };
+      playAgainBtn.disabled = false;
     } else {
       playAgainBtn.textContent = '下一盘';
-      playAgainBtn.onclick = async () => {
-        if (!state.online.isHost) { alert('只有房主可以开始下一盘'); return; }
-        const r = await apiCall('rematch', { body: { code: state.online.code, token: state.online.token } });
-        if (!r.ok) alert('下一盘失败：' + r.error);
-      };
+      playAgainBtn.disabled = !state.online.isHost;
       backBtn.textContent = '退出';
-      backBtn.onclick = () => { gameOverOverlay.classList.remove('show', 'has-spring'); leaveOnlineRoom(false); };
     }
 
     if (playerWon) tryAutoSubmitOnline();
@@ -3790,7 +3919,7 @@
     if (!nick) nick = state.online && (state.online.players.find(p => p.id === state.online.playerId) || {}).nick;
     if (!nick) return;
     const weight = difficultyWeight('online');                // 联机权重 = 3
-    const score = Math.min(4096, state.result.score * weight);
+    const score = Math.min(4096, Math.max(0, state.result.scoreDelta) * weight);
     GamesShell.WinsLeaderboard.submit({
       gameId: 'doudizhu-online',
       nick,
@@ -3815,10 +3944,10 @@
     let endAt;
     if (state.phase === PHASE.PLAYING) {
       seat = state.turnIdx;
-      endAt = state.online.turnEndAt;
+      endAt = state.online.phaseEndAt || state.online.turnEndAt;
     } else if (state.phase === PHASE.BIDDING) {
       seat = state.bidTurnIdx;
-      endAt = state.online.turnEndAt;       // bidding 也用 turnEndAt（server.deadlineTs）
+      endAt = state.online.phaseEndAt;
     } else return;
     const cdEl = clockEl(seat);
     if (!cdEl) return;
@@ -3827,7 +3956,8 @@
     function tick() {
       const left = Math.max(0, (endAt || 0) - Date.now());
       const s = Math.ceil(left / 1000);
-      cdEl.textContent = s + 's';
+      const num = cdEl.querySelector('.ddz-self-clock-num, .num');
+      if (num) num.textContent = String(s);
       cdEl.classList.toggle('urgent', s <= 5);
       // 只在自己（seat===0）轮次的最后 3 秒播心跳音
       if (seat === 0 && s !== lastTickedSec && s > 0 && s <= 3) {
