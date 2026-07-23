@@ -318,8 +318,8 @@ permalink: /toolbox/feixingqi/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
   .fxq-rules {
     margin-top: 0.5rem;
@@ -358,13 +358,13 @@ permalink: /toolbox/feixingqi/
 
 <div class="fxq-wrap">
   <header>
-    <h1>✈️ 飞行棋</h1>
+    <h1>[[zi:plane]] 飞行棋</h1>
   </header>
 
   <div class="fxq-statusbar">
     <div class="fxq-turn" id="fxqTurn">— 请配置玩家 —</div>
     <button class="fxq-lobby-room-chip" id="fxqRoomChip" hidden>房号<strong id="fxqRoomCodeNum">----</strong></button>
-    <button class="fxq-btn primary" id="fxqStartBtn" hidden>▶ 开始游戏</button>
+    <button class="fxq-btn primary" id="fxqStartBtn" hidden>[[zi:play]] 开始游戏</button>
   </div>
   <div class="fxq-lobby-hint" id="fxqLobbyHint" hidden></div>
   <div class="fxq-lobby-err" id="fxqLobbyErr"></div>
@@ -374,7 +374,7 @@ permalink: /toolbox/feixingqi/
   <div class="fxq-board-stage">
     <div class="fxq-board-wrap">
       <svg class="fxq-svg" id="fxqSvg" viewBox="0 0 660 660" preserveAspectRatio="xMidYMid meet"></svg>
-      <button class="fxq-center-dice" id="fxqCenterDice" hidden aria-label="掷骰"><span class="face" id="fxqCenterDiceFace">🎲</span></button>
+      <button class="fxq-center-dice" id="fxqCenterDice" hidden aria-label="掷骰"><span class="face" id="fxqCenterDiceFace">[[zi:dice]]</span></button>
 
       <!-- Setup / lobby overlay (shown until the game starts): one config card
            filling each home base. All controls live on the bases — start +
@@ -393,16 +393,16 @@ permalink: /toolbox/feixingqi/
         <button class="fxq-btn" id="fxqOvBtn">再来一局</button>
       </div>
       <div class="fxq-overlay fxq-paused-overlay" id="fxqPausedOverlay">
-        <h2>⏸ 已暂停</h2>
-        <button class="fxq-btn" id="fxqResumeBtn">▶ 继续</button>
+        <h2>[[zi:pause]] 已暂停</h2>
+        <button class="fxq-btn" id="fxqResumeBtn">[[zi:play]] 继续</button>
       </div>
     </div>
   </div>
 
   <div id="fxqGameControls" hidden>
     <div class="fxq-controls" style="margin-top: 0.9rem;">
-      <button class="fxq-btn" id="fxqPauseBtn" hidden>⏸ 暂停</button>
-      <button class="fxq-btn" id="fxqNewBtn">🔄 重新配置</button>
+      <button class="fxq-btn" id="fxqPauseBtn" hidden>[[zi:pause]] 暂停</button>
+      <button class="fxq-btn" id="fxqNewBtn">[[zi:refresh]] 重新配置</button>
     </div>
   </div>
 
@@ -1019,16 +1019,16 @@ permalink: /toolbox/feixingqi/
       const activeCount = Object.values(state.setupConfig).filter(v => v !== 'empty').length;
       label = activeCount < 2 ? '— 请配置玩家（至少 2 角）—' : `— 请配置玩家（${activeCount} 人，可继续调整）—`;
     } else if (state.paused) {
-      label = '⏸ 已暂停';
+      label = '[[zi:pause]] 已暂停';
     } else if (state.over) {
       const w = state.winner;
-      label = w ? `🎉 ${COLOR_INFO[w].label}方（${COLOR_INFO[w].name}）夺冠！` : '— 游戏结束 —';
+      label = w ? `[[zi:sparkle]] ${COLOR_INFO[w].label}方（${COLOR_INFO[w].name}）夺冠！` : '— 游戏结束 —';
     } else if (state.aiThinking) {
-      label = '🤖 AI 思考中…';
+      label = '[[zi:bot]] AI 思考中…';
     } else {
       const p = currentPlayer();
       const info = COLOR_INFO[p];
-      const phase = state.awaitingPick ? `选飞机（点亮的可走，🎲 ${state.dice}）` : '掷骰';
+      const phase = state.awaitingPick ? `选飞机（点亮的可走，[[zi:dice]] ${state.dice}）` : '掷骰';
       label = `轮到 <span class="swatch" style="background:${info.hex}"></span>${info.label}方 — ${phase}`;
     }
     turnEl.innerHTML = label;
@@ -1046,14 +1046,14 @@ permalink: /toolbox/feixingqi/
       sw.style.background = info.hex;
       const txt = document.createElement('span');
       const kind = state.playerKinds[p];
-      txt.innerHTML = `${info.label}${kind === 'ai' ? ' 🤖' : ' 👤'} <span class="ct">${inGoal}/4</span>`;
+      txt.innerHTML = `${info.label}${kind === 'ai' ? ' [[zi:bot]]' : ' [[zi:user]]'} <span class="ct">${inGoal}/4</span>`;
       item.appendChild(sw);
       item.appendChild(txt);
       rosterEl.appendChild(item);
     });
 
     diceBtn.disabled = !state.started || state.over || state.paused || state.awaitingPick || state.aiThinking || fxqPassing || currentKindIsAi() || fxqReplaying || !fxqControlsCurrent();
-    pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    pauseBtn.textContent = state.paused ? '[[zi:play]] 继续' : '[[zi:pause]] 暂停';
     pauseBtn.disabled = state.over || !Object.values(state.playerKinds).includes('ai');
     pausedOverlay.classList.toggle('show', state.paused && !state.over);
     fxqRenderCenterDice();
@@ -2214,16 +2214,16 @@ permalink: /toolbox/feixingqi/
       fxqLastResult = 'lose';
     }
     if (fxqSettleBtn) fxqSettleBtn.setEnabled(true);
-    ovTitle.textContent = `🎉 ${COLOR_INFO[state.winner].label}方夺冠！`;
+    ovTitle.textContent = `[[zi:sparkle]] ${COLOR_INFO[state.winner].label}方夺冠！`;
     ovRanking.innerHTML = renderRankingHtml();
     overlay.classList.add('show');
   }
 
   function renderRankingHtml() {
-    const medals = ['🥇', '🥈', '🥉', '🏅'];
+    const medals = ['[[zi:medal:gold]]', '[[zi:medal:silver]]', '[[zi:medal:bronze]]', '[[zi:medal]]'];
     return state.finalRanking.map((c, i) => {
       const info = COLOR_INFO[c];
-      const kind = state.playerKinds[c] === 'ai' ? '🤖 AI' : '👤 人类';
+      const kind = state.playerKinds[c] === 'ai' ? '[[zi:bot]] AI' : '[[zi:user]] 人类';
       const inGoal = state.pieces[c].filter(p => p.status === 'goal').length;
       return `<div>${medals[i] || '·'} ${info.label} ${kind} <span style="opacity:0.7;font-size:0.85em">— 已到 ${inGoal}/4</span></div>`;
     }).join('');
@@ -2328,7 +2328,7 @@ permalink: /toolbox/feixingqi/
       opponent = `${state.players.length} 人对局` + (aiCount > 0 ? ` · AI ${FXQ_DIFF_LABEL[state.difficulty] || state.difficulty}` : '');
     }
 
-    const medals = ['🥇 1st', '🥈 2nd', '🥉 3rd', '🏅 4th'];
+    const medals = ['[[zi:medal:gold]] 1st', '[[zi:medal:silver]] 2nd', '[[zi:medal:bronze]] 3rd', '[[zi:medal]] 4th'];
     const stats = state.finalRanking.map((c, i) => {
       const info = COLOR_INFO[c];
       const kind = state.playerKinds[c] === 'ai' ? 'AI' : '人类';
@@ -2342,7 +2342,7 @@ permalink: /toolbox/feixingqi/
       kind: 'duel',
       gameId: 'feixingqi',
       title: '飞行棋',
-      emoji: '✈️',
+      emoji: '[[zi:plane]]',
       nick: (window.GamesShell && GamesShell.Identity.getNick()) || '匿名',
       opponent,
       result: fxqLastResult || 'draw',
@@ -2398,13 +2398,13 @@ permalink: /toolbox/feixingqi/
     fxqWlbWidget = GamesShell.WinsLeaderboard.mount({
       container: document.getElementById('fxq-wlb-mount'),
       gameId: 'feixingqi',
-      title: '🏆 飞行棋 战绩榜（vs AI）',
+      title: '[[zi:trophy]] 飞行棋 战绩榜（vs AI）',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });
     GamesShell.Comments.mount({
       container: document.getElementById('fxq-cm-mount'),
       path: '/toolbox/feixingqi/',
-      title: '💬 棋友交流',
+      title: '[[zi:comment]] 棋友交流',
       intro: '聊聊飞行棋的开局策略、堵截 / 大飞跃的小技巧，或者吐槽 AI ~',
       placeholder: '聊聊你的飞行棋心得 ~',
     });
@@ -2525,7 +2525,7 @@ permalink: /toolbox/feixingqi/
     SE: document.getElementById('fxqSeatSE'), SW: document.getElementById('fxqSeatSW'),
   };
   // Seat kinds: empty / human (本机真人) / ai (电脑) / remote (邀请→联机真人).
-  const KIND_ICON = { empty: '➕', human: '👤', ai: '🤖', remote: '🔗' };
+  const KIND_ICON = { empty: '[[zi:users]]', human: '[[zi:user]]', ai: '[[zi:bot]]', remote: '[[zi:link]]' };
   const DIFF3 = { easy: '新手', normal: '普通', hard: '高手' };
   const LOCAL_SUB = { empty: '空位', human: '本机真人', ai: '电脑', remote: '邀请加入' };
   const LOCAL_CYCLE = ['empty', 'human', 'ai', 'remote'];
@@ -2556,7 +2556,7 @@ permalink: /toolbox/feixingqi/
       + (m.me ? ' is-me' : '') + (m.sel ? ' swap-sel' : ''));
     card.style.setProperty('--seat', info.hex);
     if (h.onTap) card.onclick = h.onTap;
-    card.appendChild(fxqEl('span', 'ico', m.icon || KIND_ICON[m.kind] || '👤'));
+    card.appendChild(fxqEl('span', 'ico', m.icon || KIND_ICON[m.kind] || '[[zi:user]]'));
     card.appendChild(fxqEl('span', 'lbl', m.label || (info.label + '方')));
     if (m.host || m.off) {
       const tags = fxqEl('div', 'fxq-seat-badges');
@@ -2566,8 +2566,8 @@ permalink: /toolbox/feixingqi/
     }
     card.appendChild(fxqEl('span', 'sub', m.sub || ''));
     if (m.kind === 'ai' && h.onDiff) card.appendChild(fxqDiffChips(m.aiDiff, h.onDiff));
-    if (m.showCopy && h.onCopy) { const b = fxqEl('button', 'fxq-seat-mini', '🔗 复制链接'); b.onclick = (e) => { e.stopPropagation(); h.onCopy(); }; card.appendChild(b); }
-    if (m.showKick && h.onKick) { const b = fxqEl('button', 'fxq-seat-mini kick', '✕ 踢出'); b.onclick = (e) => { e.stopPropagation(); h.onKick(); }; card.appendChild(b); }
+    if (m.showCopy && h.onCopy) { const b = fxqEl('button', 'fxq-seat-mini', '[[zi:link]] 复制链接'); b.onclick = (e) => { e.stopPropagation(); h.onCopy(); }; card.appendChild(b); }
+    if (m.showKick && h.onKick) { const b = fxqEl('button', 'fxq-seat-mini kick', '[[zi:stop]] 踢出'); b.onclick = (e) => { e.stopPropagation(); h.onKick(); }; card.appendChild(b); }
     return card;
   }
 
@@ -2608,11 +2608,11 @@ permalink: /toolbox/feixingqi/
     fxqStartBtn.onclick = fxqStartLocalGame;
     if (remoteNoRoom) {
       fxqStartBtn.disabled = true;
-      fxqStartBtn.textContent = '▶ 开始游戏';
-      fxqLobbyHint.textContent = '点「邀请」基地里的「🔗 复制链接」即可建房、邀请好友联机';
+      fxqStartBtn.textContent = '[[zi:play]] 开始游戏';
+      fxqLobbyHint.textContent = '点「邀请」基地里的「[[zi:link]] 复制链接」即可建房、邀请好友联机';
     } else {
       fxqStartBtn.disabled = n < 2;
-      fxqStartBtn.textContent = n < 2 ? '▶ 开始游戏' : ('▶ 开始游戏（' + n + ' 人）');
+      fxqStartBtn.textContent = n < 2 ? '[[zi:play]] 开始游戏' : ('[[zi:play]] 开始游戏（' + n + ' 人）');
       fxqLobbyHint.textContent = '点基地切换 空 / 本机真人 / 电脑（可设难度）/ 邀请联机';
     }
     fxqSetErr('');
@@ -2678,10 +2678,10 @@ permalink: /toolbox/feixingqi/
     // First 复制链接 tap (no room yet): pick a code, copy the link instantly
     // (in-gesture), then create the room with that code in the background.
     function startInvite() {
-      if (net) { writeClip(inviteUrl(net.code)); fxqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入'; return; }
+      if (net) { writeClip(inviteUrl(net.code)); fxqLobbyHint.textContent = '[[zi:check]] 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入'; return; }
       const code = String(Math.floor(1000 + Math.random() * 9000));
       writeClip(inviteUrl(code));
-      fxqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + code + '），正在建房…';
+      fxqLobbyHint.textContent = '[[zi:check]] 已复制邀请链接（房号 ' + code + '），正在建房…';
       goOnline(code);
     }
 
@@ -2698,7 +2698,7 @@ permalink: /toolbox/feixingqi/
       startPolling();
       fxqRenderLobby();
       if (presetCode && cr.code !== presetCode) { writeClip(inviteUrl(cr.code)); fxqLobbyHint.textContent = '房号已更新为 ' + cr.code + '（已复制新链接，旧号失效）'; }
-      else fxqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + cr.code + '），发给好友打开即加入';
+      else fxqLobbyHint.textContent = '[[zi:check]] 已复制邀请链接（房号 ' + cr.code + '），发给好友打开即加入';
     }
 
     async function join(rawCode) {
@@ -2732,7 +2732,7 @@ permalink: /toolbox/feixingqi/
     function copyLink() {
       if (!net) return;
       writeClip(inviteUrl(net.code));   // existing room → in-gesture copy
-      fxqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入';
+      fxqLobbyHint.textContent = '[[zi:check]] 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入';
     }
 
     // host: keep remote seats in sync with relay membership
@@ -2861,9 +2861,9 @@ permalink: /toolbox/feixingqi/
       if (s.kind === 'empty') return { kind: 'empty', sub: '空位', sel };
       if (s.kind === 'human') return { kind: 'human', sub: '本机真人', sel };
       if (s.kind === 'ai') return { kind: 'ai', sub: '电脑', aiDiff: s.aiDiff || 'normal', sel };
-      if (!s.pid) return { kind: 'remote', icon: '🔗', sub: '等待加入…', showCopy: true, sel };
+      if (!s.pid) return { kind: 'remote', icon: '[[zi:link]]', sub: '等待加入…', showCopy: true, sel };
       const me = s.pid === net.playerId;
-      return { kind: 'remote', icon: '🌐', label: nickOf(s.pid) + (me ? '（你）' : ''), sub: '联机真人', me, off: !onlineOf(s.pid), host: hostOf(s.pid), showKick: net.isHost && !me, sel };
+      return { kind: 'remote', icon: '[[zi:globe]]', label: nickOf(s.pid) + (me ? '（你）' : ''), sub: '联机真人', me, off: !onlineOf(s.pid), host: hostOf(s.pid), showKick: net.isHost && !me, sel };
     }
 
     function renderLobby() {
@@ -2883,7 +2883,7 @@ permalink: /toolbox/feixingqi/
       if (net.isHost) {
         const ok = seatedCount() >= 2 && remoteJoined();
         fxqStartBtn.hidden = false; fxqStartBtn.disabled = !ok;
-        fxqStartBtn.textContent = '▶ 开始游戏（' + seatedCount() + '）';
+        fxqStartBtn.textContent = '[[zi:play]] 开始游戏（' + seatedCount() + '）';
         fxqStartBtn.onclick = start;
         fxqLobbyHint.textContent = net.swapSel ? '再点另一块领地完成换位'
           : '点基地切模式（改联机真人要先「踢出」）· 点两个已入座者换位 · 房号 ' + net.code;

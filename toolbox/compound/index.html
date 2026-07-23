@@ -120,11 +120,11 @@ permalink: /toolbox/compound/
   }
   .footnote summary::-webkit-details-marker { display: none; }
   .footnote summary::after {
-    content: '▸'; float: right;
+    content: '+'; float: right;
     color: var(--color-light);
     transition: transform 0.2s;
   }
-  .footnote[open] summary::after { transform: rotate(90deg); }
+  .footnote[open] summary::after { content: '−'; }
   @media (hover: hover) {
     .footnote summary:hover { color: var(--color-accent); }
   }
@@ -144,12 +144,12 @@ permalink: /toolbox/compound/
 
 <div class="cp-wrap">
   <header>
-    <h1>📈 复利 / 现值</h1>
+    <h1>[[zi:chart]] 复利 / 现值</h1>
   </header>
 
   <div class="tab-bar">
-    <button type="button" data-tab="fv" class="active" aria-label="切换到复利累计">📈 复利累计</button>
-    <button type="button" data-tab="pv" aria-label="切换到现值贴现">⏪ 现值贴现</button>
+    <button type="button" data-tab="fv" class="active" aria-label="切换到复利累计">[[zi:chart]] 复利累计</button>
+    <button type="button" data-tab="pv" aria-label="切换到现值贴现">[[zi:transfer]] 现值贴现</button>
   </div>
 
   <!-- ============ FV ============ -->

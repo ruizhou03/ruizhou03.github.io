@@ -202,11 +202,17 @@ redirect_from:
     transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
   }
   .otd-card::after {
-    content: "🕰️";
+    content: "";
     position: absolute;
     right: 1.3rem; top: 50%;
     transform: translateY(-50%);
-    font-size: 2.7rem;
+    width: 2.5rem; height: 2.25rem;
+    border: 2px solid currentColor;
+    border-radius: 0.38rem;
+    background:
+      linear-gradient(currentColor, currentColor) 0 28% / 100% 2px no-repeat,
+      linear-gradient(currentColor, currentColor) 25% 0 / 2px 22% no-repeat,
+      linear-gradient(currentColor, currentColor) 75% 0 / 2px 22% no-repeat;
     opacity: 0.12;
     pointer-events: none;
     transition: opacity 0.2s, transform 0.2s;

@@ -25,7 +25,7 @@
   const GS = window.GamesShell = window.GamesShell || {};
   const API_BASE = 'https://zircon-urge.fly.dev/api/wins';
   const ENABLED = true;
-  const MEDALS = ['🥇', '🥈', '🥉'];
+  const MEDALS = ['[[zi:medal:gold]]', '[[zi:medal:silver]]', '[[zi:medal:bronze]]'];
   const TOP_LIMIT = 5;
   const PAGE_SIZE = 10;
   const REFRESH_INTERVAL_MS = 60_000;
@@ -62,19 +62,19 @@
     c.classList.add('gs-leaderboard');
     c.innerHTML = `
       <div class="gs-lb-header">
-        <h3>${opts.title || '🏆 战绩榜'} <span class="gs-lb-total"></span></h3>
-        <button type="button" class="gs-lb-refresh" title="刷新">↻</button>
+        <h3>${opts.title || '[[zi:trophy]] 战绩榜'} <span class="gs-lb-total"></span></h3>
+        <button type="button" class="gs-lb-refresh" title="刷新">[[zi:refresh]]</button>
       </div>
       <div class="gs-lb-mine">
         <span class="gs-lb-mine-label">还没赢过 — 来一局看看 ~</span>
       </div>
       <ol class="gs-lb-list gs-wlb-list"><li class="gs-lb-empty">榜单加载中…</li></ol>
       <div class="gs-lb-controls">
-        <button type="button" class="gs-lb-expand">展开完整榜 ↓</button>
+        <button type="button" class="gs-lb-expand" aria-expanded="false">展开完整榜 [[zi:chevron]]</button>
         <div class="gs-lb-pager" style="display: none;">
-          <button type="button" class="gs-lb-pgbtn gs-lb-prev">‹ 上一页</button>
+          <button type="button" class="gs-lb-pgbtn gs-lb-prev">[[zi:chevron]] 上一页</button>
           <span class="gs-lb-pginfo">1 / 1</span>
-          <button type="button" class="gs-lb-pgbtn gs-lb-next">下一页 ›</button>
+          <button type="button" class="gs-lb-pgbtn gs-lb-next">下一页 [[zi:chevron]]</button>
         </div>
       </div>
       <div class="gs-lb-footer"></div>
@@ -141,13 +141,15 @@
     function updatePagerUI(total) {
       if (!state.expanded) {
         ui.pager.style.display = 'none';
-        ui.expand.textContent = '展开完整榜 ↓';
+        ui.expand.setAttribute('aria-expanded', 'false');
+        ui.expand.textContent = '展开完整榜 [[zi:chevron]]';
         return;
       }
       const totalPages = Math.max(1, Math.ceil((total || 0) / PAGE_SIZE));
       if (state.page > totalPages) state.page = totalPages;
       ui.pager.style.display = '';
-      ui.expand.textContent = '收起 ↑';
+      ui.expand.setAttribute('aria-expanded', 'true');
+      ui.expand.textContent = '收起 [[zi:chevron]]';
       ui.pginfo.textContent = `${state.page} / ${totalPages}`;
       ui.prev.disabled = state.page <= 1;
       ui.next.disabled = state.page >= totalPages;

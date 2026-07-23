@@ -22,8 +22,8 @@
   'use strict';
   const GS = window.GamesShell = window.GamesShell || {};
 
-  const PAUSE_LABEL = '⏸ 暂停';
-  const RESUME_LABEL = '▶ 继续';
+  const PAUSE_LABEL = '[[zi:pause]] 暂停';
+  const RESUME_LABEL = '[[zi:play]] 继续';
 
   function attachPause(opts) {
     if (!opts || !opts.button) throw new Error('attachPause: button required');

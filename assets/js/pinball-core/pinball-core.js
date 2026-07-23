@@ -836,7 +836,7 @@
     function togglePause() {
       if (state.status === 'gameover') return;
       state.paused = !state.paused;
-      if (hud.pauseBtn) hud.pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+      if (hud.pauseBtn) hud.pauseBtn.textContent = state.paused ? '[[zi:play]] 继续' : '[[zi:pause]] 暂停';
       if (state.paused) {
         showOverlay({ title: '暂停中', msg: '按 P 或继续按钮恢复', btn: false });
         if (hud.overlay) hud.overlay.classList.add('pb-overlay--pause');
@@ -866,7 +866,7 @@
       pbSetRank('hidden');
       if (pbNickPrompt) pbNickPrompt.hide();
       if (pbSettleBtn) pbSettleBtn.setEnabled(false);
-      if (hud.pauseBtn) hud.pauseBtn.textContent = '⏸ 暂停';
+      if (hud.pauseBtn) hud.pauseBtn.textContent = '[[zi:pause]] 暂停';
       hideOverlay();
       if (hooks.onStart) hooks.onStart(state, game);
       updateHud();
@@ -1027,7 +1027,7 @@
       pbLbWidget = GamesShell.Leaderboard.mount({
         container: shell.lbMount,
         gameId: shell.gameId,
-        title: shell.lbTitle || ('🏆 ' + (shell.title || '弹珠机') + ' 排行榜'),
+        title: shell.lbTitle || ('[[zi:trophy]] ' + (shell.title || '弹珠机') + ' 排行榜'),
         scoreFormatter: v => Number(v).toLocaleString(),
         getCurrentNick: () => GamesShell.Identity.getNick(),
       });
@@ -1035,7 +1035,7 @@
         GamesShell.Comments.mount({
           container: shell.commentsMount,
           path: shell.commentsPath,
-          title: shell.commentsTitle || '💬 玩家交流',
+          title: shell.commentsTitle || '[[zi:comment]] 玩家交流',
           intro: shell.commentsIntro || '聊聊你的心得 ~',
           placeholder: shell.commentsPlaceholder || '聊聊心得 ~',
         });
@@ -1054,7 +1054,7 @@
             kind: 'single',
             gameId: shell.gameId,
             title: shell.title || '弹珠机',
-            emoji: shell.emoji || '🎱',
+            emoji: shell.emoji || '[[zi:ball]]',
             nick: GamesShell.Identity.getNick(),
             score: state.score,
             scoreLabel: '本 局 得 分',

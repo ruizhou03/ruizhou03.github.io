@@ -263,14 +263,14 @@ permalink: /toolbox/fruit-ninja/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="fn-wrap">
   <header>
-    <h1>🍉 水果忍者</h1>
+    <h1>[[zi:citrus-cut]] 水果忍者</h1>
   </header>
 
   <section id="game-stage" class="fn-stage-wrap">
@@ -278,7 +278,7 @@ permalink: /toolbox/fruit-ninja/
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="fnPreGameOverlay">
       <div class="gs-pgo-view active" id="fnPgoViewMain">
-        <div class="gs-pgo-icon">🍉🔪</div>
+        <div class="gs-pgo-icon">[[zi:citrus-cut]]</div>
         <h2 class="gs-pgo-title">水果忍者</h2>
         <div class="gs-pgo-subtitle">滑动切水果 · 六种模式</div>
         <div class="fn-pgo-mode-grid" id="fnPgoModePicker">
@@ -290,24 +290,24 @@ permalink: /toolbox/fruit-ninja/
           <button class="gs-pgo-mode-tab" data-value="precision" style="grid-area: 3 / 2">精准模式</button>
         </div>
         <div class="gs-pgo-mode-desc" id="fnPgoModeDesc" style="font-size:0.82rem;color:rgba(255,255,255,0.55);margin-bottom:1rem;">限时 60 秒，连切水果加奖励分。切到炸弹立即结束。</div>
-        <button class="gs-pgo-start-btn" id="fnPgoStartBtn">▶ 开始游戏</button>
-        <button class="gs-pgo-settings-link" id="fnPgoSettingsLink" type="button">⚙ 调参</button>
+        <button class="gs-pgo-start-btn" id="fnPgoStartBtn">[[zi:play]] 开始游戏</button>
+        <button class="gs-pgo-settings-link" id="fnPgoSettingsLink" type="button">[[zi:settings]] 调参</button>
       </div>
       <div class="gs-pgo-view" id="fnPgoViewSettings">
-        <h2 class="gs-pgo-settings-title">⚙ 调参</h2>
+        <h2 class="gs-pgo-settings-title">[[zi:settings]] 调参</h2>
         <div class="gs-pgo-settings-body" id="fnPgoSettingsBody"></div>
         <button class="gs-pgo-back-link" id="fnPgoBackLink" type="button">← 返回</button>
       </div>
     </div>
     <div class="hud">
-      <span class="hud-timer" hidden><span class="label">⏱</span><span data-bind="timer">60</span></span>
-      <span class="hud-lives" hidden><span class="label">❤</span><span data-bind="lives">❤❤❤</span></span>
+      <span class="hud-timer" hidden><span class="label">[[zi:clock]]</span><span data-bind="timer">60</span></span>
+      <span class="hud-lives" hidden><span class="label">[[zi:heart]]</span><span data-bind="lives">[[zi:heart]][[zi:heart]][[zi:heart]]</span></span>
       <span class="hud-stage" hidden><span class="label">阶</span><span data-bind="stage">1</span></span>
       <span class="hud-score"><span class="label">分</span><span class="score-value" data-bind="score">0</span></span>
       <span class="hud-combo combo hidden">×<span data-bind="combo">0</span></span>
     </div>
-    <button class="pause-btn" id="pause-btn" type="button" aria-label="暂停">⏸</button>
-    <button class="mute-btn" id="mute-btn" type="button" aria-label="静音切换">🔊</button>
+    <button class="pause-btn" id="pause-btn" type="button" aria-label="暂停">[[zi:pause]]</button>
+    <button class="mute-btn" id="mute-btn" type="button" aria-label="静音切换">[[zi:volume]]</button>
 
 
     <div class="overlay" id="paused-overlay" hidden>
@@ -332,22 +332,22 @@ permalink: /toolbox/fruit-ninja/
     <div class="fn-mode-bar-header"><span>切换模式</span></div>
     <div class="fn-mode-tabs">
       <button class="fn-mode-tab active" type="button" data-mode="classic">
-        <span class="emoji">⏱️</span><span class="name">经典 60 秒</span>
+        <span class="emoji">[[zi:clock]]</span><span class="name">经典 60 秒</span>
       </button>
       <button class="fn-mode-tab" type="button" data-mode="arcade">
-        <span class="emoji">❤️</span><span class="name">街机三命</span>
+        <span class="emoji">[[zi:heart]]</span><span class="name">街机三命</span>
       </button>
       <button class="fn-mode-tab" type="button" data-mode="endless">
-        <span class="emoji">🔥</span><span class="name">无尽闯关</span>
+        <span class="emoji">[[zi:flame]]</span><span class="name">无尽闯关</span>
       </button>
       <button class="fn-mode-tab" type="button" data-mode="zen">
-        <span class="emoji">🧘</span><span class="name">禅意无炸弹</span>
+        <span class="emoji">[[zi:user]]</span><span class="name">禅意无炸弹</span>
       </button>
       <button class="fn-mode-tab" type="button" data-mode="comborush">
-        <span class="emoji">⚡</span><span class="name">连击狂飙</span>
+        <span class="emoji">[[zi:lightning]]</span><span class="name">连击狂飙</span>
       </button>
       <button class="fn-mode-tab" type="button" data-mode="precision">
-        <span class="emoji">🎯</span><span class="name">精准模式</span>
+        <span class="emoji">[[zi:pin]]</span><span class="name">精准模式</span>
       </button>
     </div>
     <div class="fn-mode-desc" id="fn-mode-desc">限时 60 秒，连切水果加奖励分。切到炸弹立即结束。</div>

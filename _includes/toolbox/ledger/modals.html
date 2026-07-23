@@ -34,7 +34,7 @@
     <input type="text" id="lg-note" class="lg-text-input" placeholder="备注（可留空）" maxlength="80" autocomplete="off">
 
     <!-- 更多（精细记录） -->
-    <button type="button" class="lg-more-toggle" id="lg-more-toggle" aria-expanded="false">更多 ▾</button>
+    <button type="button" class="lg-more-toggle" id="lg-more-toggle" aria-expanded="false">更多 +</button>
     <div class="lg-more" id="lg-more" hidden>
       <label class="lg-field" id="lg-account-field" hidden>
         <span>账户 / 钱包</span>
@@ -142,8 +142,23 @@
     </div>
     <p class="lg-hint">支出类目可填月预算（留空=不限）；↑↓ 调顺序。</p>
     <div class="lg-cat-manage" id="lg-cat-manage"></div>
+    <div class="lg-icon-picker-row">
+      <span class="lg-icon-picker-label">图标</span>
+      <div class="lg-icon-picker" id="lg-cat-icon-picker" role="radiogroup" aria-label="选择类目图标">
+        <button type="button" class="active" data-icon="[[zi:bowl]]" aria-label="餐饮" aria-checked="true">[[zi:bowl]]</button>
+        <button type="button" data-icon="[[zi:cart]]" aria-label="生活" aria-checked="false">[[zi:cart]]</button>
+        <button type="button" data-icon="[[zi:train]]" aria-label="交通" aria-checked="false">[[zi:train]]</button>
+        <button type="button" data-icon="[[zi:bag]]" aria-label="购物" aria-checked="false">[[zi:bag]]</button>
+        <button type="button" data-icon="[[zi:home]]" aria-label="居住" aria-checked="false">[[zi:home]]</button>
+        <button type="button" data-icon="[[zi:gamepad]]" aria-label="娱乐" aria-checked="false">[[zi:gamepad]]</button>
+        <button type="button" data-icon="[[zi:medical]]" aria-label="医疗" aria-checked="false">[[zi:medical]]</button>
+        <button type="button" data-icon="[[zi:book]]" aria-label="学习" aria-checked="false">[[zi:book]]</button>
+        <button type="button" data-icon="[[zi:gift]]" aria-label="人情" aria-checked="false">[[zi:gift]]</button>
+        <button type="button" data-icon="[[zi:receipt]]" aria-label="其他" aria-checked="false">[[zi:receipt]]</button>
+      </div>
+    </div>
     <div class="lg-cat-add">
-      <input type="text" id="lg-cat-emoji" class="lg-cat-emoji-in" maxlength="2" placeholder="🍜">
+      <input type="hidden" id="lg-cat-emoji" value="[[zi:bowl]]">
       <input type="text" id="lg-cat-name" maxlength="12" placeholder="新类目名">
       <button type="button" class="lg-btn-primary lg-btn-sm" id="lg-cat-add-btn">添加</button>
     </div>
@@ -160,8 +175,18 @@
     </div>
     <p class="lg-hint">分开管现金、银行卡、支付宝等。建了多个账户后，记账时可指定钱从哪个账户走，还能「转账」在账户间移钱。</p>
     <div class="lg-cat-manage" id="lg-acc-manage"></div>
+    <div class="lg-icon-picker-row">
+      <span class="lg-icon-picker-label">图标</span>
+      <div class="lg-icon-picker" id="lg-acc-icon-picker" role="radiogroup" aria-label="选择账户图标">
+        <button type="button" class="active" data-icon="[[zi:wallet]]" aria-label="钱包" aria-checked="true">[[zi:wallet]]</button>
+        <button type="button" data-icon="[[zi:briefcase]]" aria-label="工作账户" aria-checked="false">[[zi:briefcase]]</button>
+        <button type="button" data-icon="[[zi:home]]" aria-label="家庭账户" aria-checked="false">[[zi:home]]</button>
+        <button type="button" data-icon="[[zi:globe]]" aria-label="外币账户" aria-checked="false">[[zi:globe]]</button>
+        <button type="button" data-icon="[[zi:receipt]]" aria-label="其他账户" aria-checked="false">[[zi:receipt]]</button>
+      </div>
+    </div>
     <div class="lg-cat-add">
-      <input type="text" id="lg-acc-emoji" class="lg-cat-emoji-in" maxlength="2" placeholder="💳">
+      <input type="hidden" id="lg-acc-emoji" value="[[zi:wallet]]">
       <input type="text" id="lg-acc-name" maxlength="12" placeholder="新账户名">
       <button type="button" class="lg-btn-primary lg-btn-sm" id="lg-acc-add-btn">添加</button>
     </div>
@@ -241,7 +266,7 @@
       <button type="button" class="lg-btn-ghost lg-btn-sm" id="lg-rec-open">周期记账…</button>
     </div>
     <div class="lg-sync-box">
-      <div class="lg-sync-title">☁️ 云同步（端到端加密）</div>
+      <div class="lg-sync-title">[[zi:cloud]] 云同步（端到端加密）</div>
       <div class="lg-hint" id="lg-sync-status">…</div>
       <input type="password" id="lg-sync-pass" class="lg-text-input" autocomplete="new-password" placeholder="同步密码" hidden>
       <div class="lg-sync-btns">
@@ -249,7 +274,7 @@
         <button type="button" class="lg-btn-ghost lg-btn-sm lg-del" id="lg-sync-off" hidden>关闭同步</button>
       </div>
     </div>
-    <p class="lg-hint lg-privacy-note">🔒 默认数据只存这台设备、永不上传。开启云同步后，上传的也是<b>加密密文</b>（密码只在本机），站长读不到。换设备也可用「备份 / 导入」文件。</p>
+    <p class="lg-hint lg-privacy-note">[[zi:lock]] 默认数据只存这台设备、永不上传。开启云同步后，上传的也是<b>加密密文</b>（密码只在本机），站长读不到。换设备也可用「备份 / 导入」文件。</p>
     <div class="lg-modal-foot"><span class="lg-foot-spacer"></span><button type="button" class="lg-btn-primary" id="lg-set-save">保存</button></div>
   </div>
 </div>

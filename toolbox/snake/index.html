@@ -33,8 +33,8 @@ permalink: /toolbox/snake/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
@@ -185,7 +185,7 @@ permalink: /toolbox/snake/
 
 <div class="sn-wrap">
   <header>
-    <h1>🐍 贪吃蛇</h1>
+    <h1>[[zi:user]] 贪吃蛇</h1>
     <div class="sub">吃豆子，别撞墙也别咬到自己</div>
   </header>
 
@@ -206,8 +206,8 @@ permalink: /toolbox/snake/
       <button class="sn-speed-tab active" data-speed="mid">中</button>
       <button class="sn-speed-tab" data-speed="fast">快</button>
     </div>
-    <button class="sn-btn" id="snPauseBtn">⏸ 暂停</button>
-    <button class="sn-btn" id="snNewBtn">🔄 新游戏</button>
+    <button class="sn-btn" id="snPauseBtn">[[zi:pause]] 暂停</button>
+    <button class="sn-btn" id="snNewBtn">[[zi:refresh]] 新游戏</button>
   </div>
 
   <div class="sn-canvas-wrap">
@@ -220,7 +220,7 @@ permalink: /toolbox/snake/
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="snPreGameOverlay">
       <div class="gs-pgo-view active" id="snPgoViewMain">
-        <div class="gs-pgo-icon">🐍</div>
+        <div class="gs-pgo-icon">[[zi:user]]</div>
         <h2 class="gs-pgo-title">贪吃蛇</h2>
         <div class="gs-pgo-subtitle">吃豆子，别撞墙也别咬到自己</div>
         <div class="gs-pgo-highscore">
@@ -232,14 +232,14 @@ permalink: /toolbox/snake/
           <button class="gs-pgo-mode-tab selected" data-value="mid">中</button>
           <button class="gs-pgo-mode-tab" data-value="fast">快</button>
         </div>
-        <button class="gs-pgo-start-btn" id="snPgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="snPgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
       <div class="gs-pgo-view" id="snPgoViewResume">
-        <div class="gs-pgo-icon">👋</div>
+        <div class="gs-pgo-icon">[[zi:user]]</div>
         <h2 class="gs-pgo-title">上次还没玩完</h2>
         <div class="gs-pgo-resume-summary" id="snPgoResumeSummary"></div>
-        <button class="gs-pgo-start-btn" id="snPgoResumeContinueBtn">▶ 继续上次</button>
-        <button class="gs-pgo-start-btn" id="snPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;">🔄 重新开始</button>
+        <button class="gs-pgo-start-btn" id="snPgoResumeContinueBtn">[[zi:play]] 继续上次</button>
+        <button class="gs-pgo-start-btn" id="snPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;">[[zi:refresh]] 重新开始</button>
       </div>
     </div>
   </div>
@@ -411,7 +411,7 @@ permalink: /toolbox/snake/
     placeFood();
     overlay.classList.remove('show');
     overlay.classList.remove('sn-overlay--pause');
-    pauseBtn.textContent = '⏸ 暂停';
+    pauseBtn.textContent = '[[zi:pause]] 暂停';
     updateScores();
     startLoop();
     startAnim();
@@ -620,7 +620,7 @@ permalink: /toolbox/snake/
   function togglePause() {
     if (state.over) return;
     state.paused = !state.paused;
-    pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    pauseBtn.textContent = state.paused ? '[[zi:play]] 继续' : '[[zi:pause]] 暂停';
     if (state.paused) {
       ovTitle.textContent = '暂停中';
       ovMsg.textContent = '按空格或继续按钮恢复';
@@ -754,7 +754,7 @@ permalink: /toolbox/snake/
       kind: 'single',
       gameId: 'snake',
       title: '贪吃蛇',
-      emoji: '🐍',
+      emoji: '[[zi:user]]',
       nick: GamesShell.Identity.getNick(),
       score: state.score,
       scoreLabel: '本 局 得 分',
@@ -875,7 +875,7 @@ permalink: /toolbox/snake/
     state.running = true;
     overlay.classList.remove('show');
     overlay.classList.remove('sn-overlay--pause');
-    pauseBtn.textContent = '⏸ 暂停';
+    pauseBtn.textContent = '[[zi:pause]] 暂停';
     persist();
     updateScores();
     startLoop();
@@ -962,7 +962,7 @@ permalink: /toolbox/snake/
     snLbWidget = GamesShell.Leaderboard.mount({
       container: document.getElementById('sn-lb-mount'),
       gameId: 'snake',
-      title: '🏆 贪吃蛇 排行榜',
+      title: '[[zi:trophy]] 贪吃蛇 排行榜',
       scoreFormatter: v => Number(v).toLocaleString(),
       getCurrentNick: () => GamesShell.Identity.getNick(),
       getSplit: () => state.speed,
@@ -975,7 +975,7 @@ permalink: /toolbox/snake/
     GamesShell.Comments.mount({
       container: document.getElementById('sn-cm-mount'),
       path: '/toolbox/snake/',
-      title: '💬 蛇友交流',
+      title: '[[zi:comment]] 蛇友交流',
       intro: '聊聊你的最高分、追大食物的玄学手感 ~',
       placeholder: '聊聊你的贪吃蛇心得 ~',
     });

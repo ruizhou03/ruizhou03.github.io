@@ -92,8 +92,8 @@
     text-align: center; transition: color .15s, border-color .15s;
   }
   .cl-widget .cl-more > summary::-webkit-details-marker { display: none; }
-  .cl-widget .cl-more > summary::after { content: " ▾"; opacity: .6; }
-  .cl-widget .cl-more[open] > summary::after { content: " ▴"; }
+  .cl-widget .cl-more > summary::after { content: " +"; opacity: .6; }
+  .cl-widget .cl-more[open] > summary::after { content: " −"; }
   @media (hover: hover) { .cl-widget .cl-more > summary:hover { color: var(--color-ink); border-color: var(--color-muted); } }
   .cl-widget .cl-more-body { padding: 0.4rem 0.2rem 0; }
   .cl-widget .cl-more-body p.cl-note { color: var(--color-muted); font-size: 0.82rem; line-height: 1.6; margin: 0.8rem 0 1rem; }
@@ -115,85 +115,85 @@
 
   <div id="cl-board">
     <section class="cl-group" style="--cc:#4a9d6e;--cb:#eef7f1;">
-      <h3 class="cl-group-head">🟢 友好 · 想亲近你 <span class="cl-group-sub">放松、打招呼、邀请</span></h3>
+      <h3 class="cl-group-head"> 友好 · 想亲近你 <span class="cl-group-sub">放松、打招呼、邀请</span></h3>
       <div class="cl-board">
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/meow.mp3" data-name="喵">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">🐱</span><span class="cl-label">喵</span><span class="cl-sub">打招呼</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">喵</span><span class="cl-sub">打招呼</span>
         </button>
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/trill.mp3" data-name="颤音">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">😸</span><span class="cl-label">颤音</span><span class="cl-sub">跟我来</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">颤音</span><span class="cl-sub">跟我来</span>
         </button>
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/purr.mp3" data-name="呼噜">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">😻</span><span class="cl-label">呼噜</span><span class="cl-sub">放松 · 自我安抚</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">呼噜</span><span class="cl-sub">放松 · 自我安抚</span>
         </button>
       </div>
     </section>
 
     <section class="cl-group" style="--cc:#e08a3c;--cb:#fdf3e8;">
-      <h3 class="cl-group-head">🟠 讨要 · 想要东西 <span class="cl-group-sub">催饭、开门、求关注</span></h3>
+      <h3 class="cl-group-head"> 讨要 · 想要东西 <span class="cl-group-sub">催饭、开门、求关注</span></h3>
       <div class="cl-board">
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/demand.mp3" data-name="连环喵">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">🙀</span><span class="cl-label">连环喵</span><span class="cl-sub">急切地催你</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">连环喵</span><span class="cl-sub">急切地催你</span>
         </button>
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/pleading.mp3" data-name="委屈喵">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">😿</span><span class="cl-label">委屈喵</span><span class="cl-sub">可怜巴巴地恳求</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">委屈喵</span><span class="cl-sub">可怜巴巴地恳求</span>
         </button>
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/meow-food.mp3" data-name="等饭喵">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">🍽️</span><span class="cl-label">等饭喵</span><span class="cl-sub">守着饭点催饭</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">等饭喵</span><span class="cl-sub">守着饭点催饭</span>
         </button>
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/meow-lonely.mp3" data-name="落单喵">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">🚪</span><span class="cl-label">落单喵</span><span class="cl-sub">被单独留下 · 喊人来陪</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">落单喵</span><span class="cl-sub">被单独留下 · 喊人来陪</span>
         </button>
       </div>
     </section>
 
     <section class="cl-group" style="--cc:#c0504d;--cb:#f8ebea;">
-      <h3 class="cl-group-head">🔴 警告 · 别过来 <span class="cl-group-sub">请求你停下、退后</span></h3>
+      <h3 class="cl-group-head"> 警告 · 别过来 <span class="cl-group-sub">请求你停下、退后</span></h3>
       <div class="cl-board">
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/hiss.mp3" data-name="哈气">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">😾</span><span class="cl-label">哈气</span><span class="cl-sub">警告 · 到此为止</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">哈气</span><span class="cl-sub">警告 · 到此为止</span>
         </button>
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/growl.mp3" data-name="低吼">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">😼</span><span class="cl-label">低吼</span><span class="cl-sub">再进一步就动手</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">低吼</span><span class="cl-sub">再进一步就动手</span>
         </button>
       </div>
     </section>
 
     <section class="cl-group" style="--cc:#a23b3b;--cb:#f6e9e9;">
-      <h3 class="cl-group-head">🟥 激动 · 冲突或发情 <span class="cl-group-sub">拉长的低嚎</span></h3>
+      <h3 class="cl-group-head"> 激动 · 冲突或发情 <span class="cl-group-sub">拉长的低嚎</span></h3>
       <div class="cl-board">
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/yowl.mp3" data-name="嚎叫">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">🐈‍⬛</span><span class="cl-label">嚎叫</span><span class="cl-sub">对峙 / 求偶</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">嚎叫</span><span class="cl-sub">对峙 / 求偶</span>
         </button>
       </div>
     </section>
 
     <section class="cl-group" style="--cc:#3d9aa8;--cb:#e9f5f7;">
-      <h3 class="cl-group-head">🔵 狩猎 · 盯上猎物 <span class="cl-group-sub">隔着窗户看鸟</span></h3>
+      <h3 class="cl-group-head"> 狩猎 · 盯上猎物 <span class="cl-group-sub">隔着窗户看鸟</span></h3>
       <div class="cl-board">
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/chatter.mp3" data-name="咯咯">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">🐦</span><span class="cl-label">咯咯</span><span class="cl-sub">盯着窗外的鸟</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">咯咯</span><span class="cl-sub">盯着窗外的鸟</span>
         </button>
       </div>
     </section>
 
     <section class="cl-group" style="--cc:#8d6cab;--cb:#f1ecf7;">
-      <h3 class="cl-group-head">🟣 趣味 · 不同的嗓门 <span class="cl-group-sub">同一句喵，换只猫就两样</span></h3>
+      <h3 class="cl-group-head"> 趣味 · 不同的嗓门 <span class="cl-group-sub">同一句喵，换只猫就两样</span></h3>
       <div class="cl-board">
         <button type="button" aria-pressed="false" class="cl-sound" data-src="/files/audio/cat-language/siamese.mp3" data-name="暹罗喵">
           <span class="cl-eq"><span></span><span></span><span></span><span></span></span>
-          <span class="cl-emoji">🐈</span><span class="cl-label">暹罗喵</span><span class="cl-sub">暹罗猫嗓门最大</span>
+          <span class="cl-emoji">[[zi:wave]]</span><span class="cl-label">暹罗喵</span><span class="cl-sub">暹罗猫嗓门最大</span>
         </button>
       </div>
     </section>
@@ -269,7 +269,7 @@
     player.pause();
     statusBar.classList.remove('on', 'cl-idle');   // 失败提示要显示出来
     statusBar.style.removeProperty('--st-c');
-    statusText.textContent = '⚠️ 音频加载失败，请检查网络后再试';
+    statusText.textContent = ' 音频加载失败，请检查网络后再试';
   }
 
   function play(btn){
@@ -295,7 +295,7 @@
     statusBar.classList.remove('cl-idle');
     statusBar.classList.add('on');
     statusBar.style.setProperty('--st-c', cc.trim());
-    statusText.textContent = '🔊 正在循环播放：' + btn.getAttribute('data-name');
+    statusText.textContent = ' 正在循环播放：' + btn.getAttribute('data-name');
   }
 
   var btns = board.querySelectorAll('.cl-sound');

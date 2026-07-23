@@ -95,10 +95,10 @@ permalink: /toolbox/tax-bracket/
   }
   .extra-deductions summary::-webkit-details-marker { display: none; }
   .extra-deductions summary::before {
-    content: '▸'; margin-right: 0.5rem; color: var(--color-accent);
+    content: '+'; margin-right: 0.5rem; color: var(--color-accent);
     transition: transform 0.2s; display: inline-block;
   }
-  .extra-deductions[open] summary::before { transform: rotate(90deg); }
+  .extra-deductions[open] summary::before { content: '−'; }
   .extra-deductions .ed-body {
     padding: 0 1rem 1rem; display: grid;
     grid-template-columns: 1fr 1fr; gap: 0.8rem;
@@ -224,12 +224,12 @@ permalink: /toolbox/tax-bracket/
   }
   .footnote summary::-webkit-details-marker { display: none; }
   .footnote summary::after {
-    content: '▸'; float: right;
+    content: '+'; float: right;
     color: var(--color-light);
     transition: transform 0.2s;
     display: inline-block;
   }
-  .footnote[open] summary::after { transform: rotate(90deg); }
+  .footnote[open] summary::after { content: '−'; }
   @media (hover: hover) {
     .footnote summary:hover { color: var(--color-accent); }
   }
@@ -275,18 +275,18 @@ permalink: /toolbox/tax-bracket/
 
 <div class="tx-wrap">
   <header>
-    <h1>📊 报税档位估算</h1>
+    <h1> 报税档位估算</h1>
   </header>
 
   <div class="country-bar">
     <label for="country">国家 / 地区</label>
     <select id="country">
-      <option value="us">🇺🇸 美国 (Federal + State)</option>
-      <option value="cn">🇨🇳 中国 (综合所得)</option>
+      <option value="us"> 美国 (Federal + State)</option>
+      <option value="cn"> 中国 (综合所得)</option>
       <option value="" disabled>—— 即将支持 ——</option>
-      <option value="uk" disabled>🇬🇧 英国 (即将)</option>
-      <option value="ca" disabled>🇨🇦 加拿大 (即将)</option>
-      <option value="au" disabled>🇦🇺 澳洲 (即将)</option>
+      <option value="uk" disabled> 英国 (即将)</option>
+      <option value="ca" disabled> 加拿大 (即将)</option>
+      <option value="au" disabled> 澳洲 (即将)</option>
     </select>
   </div>
 
@@ -462,14 +462,14 @@ permalink: /toolbox/tax-bracket/
 
   <!-- ============ Disclaimers (折叠) ============ -->
   <details class="footnote" data-country="us">
-    <summary>⚠️ 仅供估算 · 点开看免责声明</summary>
+    <summary> 仅供估算 · 点开看免责声明</summary>
     <div class="footnote-body">
       本工具按 2026 IRS brackets + 各州 top marginal rate 简化计算，不考虑：FICA / Medicare、EITC / 子女抵免、retirement contribution、AMT、qualified dividends 不同税率、phase-out 规则、签证身份（F-1 vs H-1B）、treaty benefits 等。州税按 top marginal rate 估算，CA/NY 等累进州实际可能略低。<strong>2026 IRS bracket 数字会随通胀每年调整、各州 rate 也会受新立法影响（如 KS 2024 SB 1 从 5.7% 降到 5.58%），每年初务必比对最新版</strong>。复杂情况请用 TurboTax / FreeTaxUSA / 找会计。
     </div>
   </details>
 
   <details class="footnote" data-country="cn" style="display: none;">
-    <summary>⚠️ 仅供估算 · 点开看免责声明</summary>
+    <summary> 仅供估算 · 点开看免责声明</summary>
     <div class="footnote-body">
       本工具按 2024–2026 现行《个人所得税法》及实施条例的<strong>居民个人综合所得</strong>（工资薪金、劳务报酬、稿酬、特许权使用费合并年度汇算）计算。<strong>不包含</strong>：经营所得（5%–35% 单独税率表）、利息股息红利（20% flat）、财产转让所得、年终奖单独计税选项、外籍员工 / 港澳台居民身份差异、税收协定优惠、年度一次性奖金的"全年一次性奖金计税方法"等。各地五险一金缴费基数和比例差异较大，本工具按 22% 估算。如需精确数字，请登录 <a href="https://etax.chinatax.gov.cn/" target="_blank" rel="noopener">个人所得税 APP</a> 查实际汇算结果。
     </div>
@@ -493,7 +493,7 @@ permalink: /toolbox/tax-bracket/
     _storageWarnShown = true;
     const b = document.createElement('div');
     b.className = 'storage-warn';
-    b.innerHTML = '\u26A0\uFE0F 浏览器存储空间已满，新数据可能保存失败。建议先导出现有数据再清理浏览器存储。 <button type="button" class="storage-warn-close">关闭</button>';
+    b.innerHTML = '[[zi:warning]] 浏览器存储空间已满，新数据可能保存失败。建议先导出现有数据再清理浏览器存储。 <button type="button" class="storage-warn-close">关闭</button>';
     b.querySelector('.storage-warn-close').addEventListener('click', () => b.remove());
     document.body.appendChild(b);
   }
@@ -865,7 +865,7 @@ window.addEventListener('DOMContentLoaded', () => {
     GamesShell.Comments.mount({
       container: document.getElementById('tax-cm-mount'),
       path: '/toolbox/tax-bracket/',
-      title: '💬 税表交流',
+      title: '[[zi:comment]] 税表交流',
       intro: '聊聊你算出来的数字 / 各州反差 / IRS / 国税最新政策、bug 反馈～',
       placeholder: '指出 bracket 错算、州税过时数据、想加的功能…',
     });

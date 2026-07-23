@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/700.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css">
+<link rel="stylesheet" href="/assets/css/zircon-icons.css">
+<script defer src="/assets/js/zircon-icons.js"></script>
 <style>
   :root{
     --ink:#1a1a2e;--text:#374151;--muted:#6b7280;--line:#e5e7eb;
@@ -139,8 +141,8 @@
       <p>把上一步那行粘进终端、回车。它会自动装好浏览器内核和依赖，然后<b>一步步问你几个问题</b>：</p>
       <div class="term">
         <div class="bar"><i></i><i></i><i></i></div>
-        <div class="scr"><span class="g">✓</span> 正在安装盯票运行器…（约 1–2 分钟）
-<span class="g">✓</span> 已读取你的盯票配置：你的出发地 → 你的目的地
+        <div class="scr"><span class="g">[[zi:check]]</span> 正在安装盯票运行器…（约 1–2 分钟）
+<span class="g">[[zi:check]]</span> 已读取你的盯票配置：你的出发地 → 你的目的地
 
 <span class="only-full-note"><span class="q">?</span> 选择模式：  <span class="y">› 完整（AI+邮件）</span>
 <span class="q">?</span> AI 模型（FLIGHTWATCH_MODEL）：  <span class="y">anthropic:claude-opus-4-8</span>
@@ -150,8 +152,8 @@
 </span><span class="only-simple-note"><span class="q">?</span> 选择模式：  <span class="y">› 简单（价格阈值，无需密钥）</span>
 <span class="q">?</span> 结果怎么看：  <span class="y">› 本地面板 + 桌面通知</span>
 </span>
-<span class="g">✓</span> 已设好定时：每天 10:00 / 22:00 自动盯票
-<span class="g">✓</span> 安装完成！正在跑第一轮抓取（约 15–30 分钟，期间无输出属正常，别关窗口）…</div>
+<span class="g">[[zi:check]]</span> 已设好定时：每天 10:00 / 22:00 自动盯票
+<span class="g">[[zi:check]]</span> 安装完成！正在跑第一轮抓取（约 15–30 分钟，期间无输出属正常，别关窗口）…</div>
       </div>
       <p class="tip only-simple-note">简单模式到这里就装完了，没有下面要密钥的两步——可以直接跳到最后一步。</p>
     </li>
@@ -176,7 +178,7 @@
           <div class="mp-val"><code id="mpVal">FLIGHTWATCH_MODEL=anthropic:claude-opus-4-8</code><button type="button" class="copy" id="mpCopy">复制</button></div>
           <p class="tip">各厂商模型 ID 随时更新，务必以官方文档为准（Claude 的下拉是最新；其它厂商点上面链接查当前 ID）。</p>
         </div>
-        <div class="cost">💡 用量很省：每天 2 轮、判断几十条航班，通常一个月几美元（具体看你选的厂商 / 模型定价）。</div>
+        <div class="cost">[[zi:bulb]] 用量很省：每天 2 轮、判断几十条航班，通常一个月几美元（具体看你选的厂商 / 模型定价）。</div>
       </div>
     </li>
 

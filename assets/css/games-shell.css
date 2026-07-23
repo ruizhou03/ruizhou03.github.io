@@ -254,6 +254,8 @@ body { font-synthesis: weight; }
   transition: all 0.18s;
 }
 .gs-lb-expand:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.gs-lb-expand .zi-icon { transition: transform 0.18s; }
+.gs-lb-expand[aria-expanded="true"] .zi-icon { transform: rotate(180deg); }
 .gs-lb-pager {
   display: flex; align-items: center; justify-content: center;
   gap: 0.45rem;
@@ -275,6 +277,8 @@ body { font-synthesis: weight; }
   border-color: var(--color-accent); color: var(--color-accent);
 }
 .gs-lb-pgbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.gs-lb-prev .zi-icon { transform: rotate(90deg); }
+.gs-lb-next .zi-icon { transform: rotate(-90deg); }
 .gs-lb-pginfo {
   font-variant-numeric: tabular-nums;
   min-width: 3rem; text-align: center;

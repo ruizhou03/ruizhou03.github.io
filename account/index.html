@@ -10,7 +10,7 @@ body_class: acc-page
 <article class="acc-wrap">
   {%- comment -%} 未登录态 {%- endcomment -%}
   <div id="acc-guest" class="acc-guest" style="display:none;">
-    <div class="acc-guest-emoji">🔐</div>
+    <div class="acc-guest-emoji">[[zi:lock]]</div>
     <p class="acc-guest-t">登录后管理你的资料，回看收藏、点赞、浏览与评论。</p>
     <button id="acc-login-btn" class="acc-primary" type="button">登录 / 注册</button>
   </div>
@@ -553,7 +553,7 @@ body_class: acc-page
       if (!user) { heroEl.innerHTML = ''; return; }
       var joined = user.createdAt ? fmtDate(user.createdAt) : '';
       var lv = levelOf(user), perk = perkOf(lv.level);
-      var lvNote = lv.next == null ? '已满级 🎉' : '距 Lv' + (lv.level + 1) + ' 还差 ' + (lv.next - lv.points);
+      var lvNote = lv.next == null ? '已满级 ' : '距 Lv' + (lv.level + 1) + ' 还差 ' + (lv.next - lv.points);
       heroEl.innerHTML =
         '<div class="acc-hero-card">' +
           '<div class="acc-hero-id">' +

@@ -13,14 +13,14 @@ permalink: /toolbox/pinball/temple/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="pb-wrap pb-theme-temple">
   <header>
-    <h1>🏛️ 黄金神庙</h1>
+    <h1>[[zi:library]] 黄金神庙</h1>
   </header>
 
   <div class="pb-scorebar">
@@ -31,8 +31,8 @@ permalink: /toolbox/pinball/temple/
   <div class="pb-goal-bar" id="pbGoal">宝箱 <strong>0/3</strong> · spinner 每转 +50</div>
 
   <div class="pb-toolbar">
-    <button class="pb-btn" id="pbPauseBtn">⏸ 暂停</button>
-    <button class="pb-btn" id="pbNewBtn">🔄 新游戏</button>
+    <button class="pb-btn" id="pbPauseBtn">[[zi:pause]] 暂停</button>
+    <button class="pb-btn" id="pbNewBtn">[[zi:refresh]] 新游戏</button>
   </div>
 
   <div class="pb-canvas-wrap">
@@ -45,19 +45,19 @@ permalink: /toolbox/pinball/temple/
   </div>
 
   <div class="pb-controls">
-    <button class="pb-flip-btn" id="pbFlipL">◀</button>
+    <button class="pb-flip-btn" id="pbFlipL">[[zi:arrow]]</button>
     <button class="pb-plunger-btn" id="pbPlungerBtn"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar"></div></button>
-    <button class="pb-flip-btn" id="pbFlipR">▶</button>
+    <button class="pb-flip-btn" id="pbFlipR">[[zi:play]]</button>
   </div>
 
   <div class="pb-tp-wrap">
     <div class="pb-tp-header"><span>切换桌台</span></div>
     <div class="pb-table-picker">
-      <a href="/toolbox/pinball/"><span class="pb-tp-emoji">🚀</span><span class="pb-tp-name">反应堆</span></a>
-      <span class="active"><span class="pb-tp-emoji">🏛️</span><span class="pb-tp-name">神庙</span></span>
-      <a href="/toolbox/pinball/cyber/"><span class="pb-tp-emoji">🌃</span><span class="pb-tp-name">赛博克</span></a>
-      <a href="/toolbox/pinball/pachinko/"><span class="pb-tp-emoji">🎰</span><span class="pb-tp-name">机厅</span></a>
-      <a href="/toolbox/pinball/rain/"><span class="pb-tp-emoji">🌧️</span><span class="pb-tp-name">弹珠雨</span></a>
+      <a href="/toolbox/pinball/"><span class="pb-tp-emoji">[[zi:rocket]]</span><span class="pb-tp-name">反应堆</span></a>
+      <span class="active"><span class="pb-tp-emoji">[[zi:library]]</span><span class="pb-tp-name">神庙</span></span>
+      <a href="/toolbox/pinball/cyber/"><span class="pb-tp-emoji">[[zi:home]]</span><span class="pb-tp-name">赛博克</span></a>
+      <a href="/toolbox/pinball/pachinko/"><span class="pb-tp-emoji">[[zi:dice]]</span><span class="pb-tp-name">机厅</span></a>
+      <a href="/toolbox/pinball/rain/"><span class="pb-tp-emoji">[[zi:cloud]]</span><span class="pb-tp-name">弹珠雨</span></a>
     </div>
   </div>
 
@@ -245,7 +245,7 @@ permalink: /toolbox/pinball/temple/
     } else if (state.templeAwakened) {
       html = '<strong>TEMPLE ACTIVATED</strong>';
     } else {
-      const r = state.rolloverCounts.map((n, i) => state.chestsOpen[i] ? '✓' : `${n}/3`).join(' · ');
+      const r = state.rolloverCounts.map((n, i) => state.chestsOpen[i] ? '[[zi:check]]' : `${n}/3`).join(' · ');
       html = `宝箱 <strong>${open}/3</strong>　[${r}]`;
     }
     game.setGoal(html);
@@ -330,14 +330,14 @@ permalink: /toolbox/pinball/temple/
   function onTempleLaneReturn(now, ball, gameRef, tier) {
     if (tier === 'T3') {
       game.addScore(3000, 458, 140, 'temple-laser-t3');
-      game.addPopup(458, 110, '🌅 GRAND +3000', 1600);
+      game.addPopup(458, 110, 'GRAND +3000', 1600);
       state.laneReturnFlashTill = now + 800;
       // T3 顺手把 spinner 升 2 阶
       state.spinnerHits = Math.min(state.spinnerHits + 2, SPIN_FIB.length);
       state.spinnerLastHit = now;
     } else if (tier === 'T2') {
       game.addScore(1000, 458, 140, 'temple-laser-t2');
-      game.addPopup(458, 110, '⛩️ +1000', 1300);
+      game.addPopup(458, 110, '宝箱 +1000', 1300);
       state.laneReturnFlashTill = now + 500;
       // T2 把 spinner 升 1 阶
       state.spinnerHits = Math.min(state.spinnerHits + 1, SPIN_FIB.length);
@@ -557,13 +557,13 @@ permalink: /toolbox/pinball/temple/
     shell: {
       gameId: 'pinball-temple',
       title: '弹珠机·黄金神庙',
-      emoji: '🏛️',
+      emoji: '[[zi:library]]',
       rankRow: document.getElementById('pb-rank-row'),
       lbMount: document.getElementById('pb-lb-mount'),
-      lbTitle: '🏆 黄金神庙 排行榜',
+      lbTitle: '[[zi:trophy]] 黄金神庙 排行榜',
       commentsMount: document.getElementById('pb-cm-mount'),
       commentsPath: '/toolbox/pinball/temple/',
-      commentsTitle: '💬 神庙玩家交流',
+      commentsTitle: '[[zi:comment]] 神庙玩家交流',
       commentsIntro: '聊聊你的宝箱集齐 / Temple Awakens 心得 ~',
       commentsPlaceholder: '聊聊心得 ~',
       nickMount: document.getElementById('pb-nick-mount'),

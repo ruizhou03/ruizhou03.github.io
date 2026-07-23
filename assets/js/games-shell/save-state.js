@@ -113,11 +113,10 @@
   // ============ 续局浮层 ============
   // opts: {
   //   summaryHtml | summaryText  -> 卡片中段说明
-  //   continueLabel? = '▶ 继续上次'
-  //   discardLabel? = '🗑 丢掉重新开始'
-  //   settleLabel?  = '🏁 直接结算'   (传了 onSettle 才显示)
+  //   continueLabel? = '继续上次'
+  //   discardLabel? = '丢弃存档'
+  //   settleLabel?  = '直接结算'   (传了 onSettle 才显示)
   //   onResume, onDiscard, onSettle
-  //   icon? = '👋'
   //   title? = '上次还没玩完'
   // }
   function showResumeModal(opts) {
@@ -128,12 +127,8 @@
     overlay.className = 'gs-resume-overlay';
     const card = document.createElement('div');
     card.className = 'gs-resume-card';
-    const icon = document.createElement('div');
-    icon.className = 'gs-resume-icon';
-    icon.textContent = opts.icon || '👋';
-    card.appendChild(icon);
     const h = document.createElement('h2');
-    h.textContent = opts.title || '上次还没玩完';
+    h.textContent = opts.title || '继续上次未完成的游戏？';
     card.appendChild(h);
     const summary = document.createElement('div');
     summary.className = 'gs-resume-summary';
@@ -146,7 +141,7 @@
     const btnContinue = document.createElement('button');
     btnContinue.type = 'button';
     btnContinue.className = 'gs-resume-primary';
-    btnContinue.textContent = opts.continueLabel || '▶ 继续上次';
+    btnContinue.textContent = opts.continueLabel || '继续上次';
     btnContinue.addEventListener('click', () => {
       close();
       try { opts.onResume && opts.onResume(); } catch (e) { console.error('[games-shell:save] onResume', e); }
@@ -157,7 +152,7 @@
       const btnSettle = document.createElement('button');
       btnSettle.type = 'button';
       btnSettle.className = 'gs-resume-secondary';
-      btnSettle.textContent = opts.settleLabel || '🏁 直接结算';
+      btnSettle.textContent = opts.settleLabel || '直接结算';
       btnSettle.addEventListener('click', () => {
         close();
         try { opts.onSettle(); } catch (e) { console.error('[games-shell:save] onSettle', e); }
@@ -168,7 +163,7 @@
     const btnDiscard = document.createElement('button');
     btnDiscard.type = 'button';
     btnDiscard.className = 'gs-resume-discard';
-    btnDiscard.textContent = opts.discardLabel || '🗑 丢掉重新开始';
+    btnDiscard.textContent = opts.discardLabel || '[[zi:trash]] 丢弃存档';
     btnDiscard.addEventListener('click', () => {
       close();
       try { opts.onDiscard && opts.onDiscard(); } catch (e) { console.error('[games-shell:save] onDiscard', e); }

@@ -268,9 +268,9 @@ theme_color: "#fafaf9"
 
   <div class="pb-step pb-hidden" id="sharedBanner" style="border-color:var(--color-accent);background:rgba(30,58,95,.05);">
     <div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;">
-      <div style="font-size:1.4rem;">📤</div>
+      <div style="font-size:1.4rem;">[[zi:upload]]</div>
       <div style="flex:1 1 200px;font-size:.9rem;color:var(--color-ink);line-height:1.5;">这是别人分享的拼豆图纸——下面可直接看图纸、配色清单，或下载 / 打印。</div>
-      <button class="pb-btn pri" id="makeOwn">✏️ 创建我的拼豆图</button>
+      <button class="pb-btn pri" id="makeOwn">[[zi:pencil]] 创建我的拼豆图</button>
     </div>
   </div>
 
@@ -283,7 +283,7 @@ theme_color: "#fafaf9"
     <input type="file" id="file" accept="image/*" class="pb-hidden">
     <!-- 上传前：大投放框 -->
     <div class="pb-drop" id="drop">
-      <div class="pb-drop-icon">🖼️</div>
+      <div class="pb-drop-icon">[[zi:image]]</div>
       <div class="pb-drop-main">点这里选图 / 拖进来</div>
       <div class="pb-drop-sub">图片只在你自己浏览器里处理，不上传服务器</div>
     </div>
@@ -315,26 +315,26 @@ theme_color: "#fafaf9"
       <div class="pb-tools-title"><b>擦掉</b>＝变透明（不放珠）· <b>补回</b>＝加回主体。笔刷大小可滚轮 / 双指捏合。</div>
       <div class="pb-tools-row">
         <div class="pb-seg pb-mode" id="modeSeg">
-          <button class="on" id="modeErase" data-mode="erase" title="把涂到的地方变透明，不放珠子">🩹 擦掉</button>
-          <button id="modeRestore" data-mode="restore" title="把涂到的地方加回主体，会放珠子">↩︎ 补回</button>
+          <button class="on" id="modeErase" data-mode="erase" title="把涂到的地方变透明，不放珠子">[[zi:medical]] 擦掉</button>
+          <button id="modeRestore" data-mode="restore" title="把涂到的地方加回主体，会放珠子">[[zi:refresh]] 补回</button>
         </div>
         <label class="pb-brush-lab">笔刷<input type="range" id="brush" min="10" max="150" value="50"><span id="brushVal">50</span></label>
-        <button class="pb-btn sm" id="undoBtn" disabled>↶ 撤销一步</button>
-        <button class="pb-btn sm" id="resetMask" title="丢弃所有手动涂抹，回到 AI 抠出的结果">↺ 重置涂抹</button>
+        <button class="pb-btn sm" id="undoBtn" disabled>[[zi:skip-back]] 撤销一步</button>
+        <button class="pb-btn sm" id="resetMask" title="丢弃所有手动涂抹，回到 AI 抠出的结果">[[zi:refresh]] 重置涂抹</button>
       </div>
     </div>
 
     <div class="pb-hidden" id="cutBtns">
       <!-- 主行动：选路径态=抠出主体；已选底图态=下一步（大按钮，独占一行） -->
-      <button class="pb-btn pri pb-cta" id="aiCut">✨ 抠出主体</button>
+      <button class="pb-btn pri pb-cta" id="aiCut">[[zi:sparkle]] 抠出主体</button>
       <button class="pb-btn pri pb-cta pb-hidden" id="goStep3">下一步：做成拼豆图 →</button>
       <!-- 次要：不满意时的微调入口（小按钮） -->
       <div class="pb-subrow">
         <span class="pb-sub-lab pb-hidden" id="tweakLab">不满意可：</span>
-        <button class="pb-btn sm pb-hidden" id="toggleManual">🖌️ 手动修</button>
-        <button class="pb-btn sm pb-hidden" id="aiCutSmall">✨ 改抠主体</button>
-        <button class="pb-btn sm" id="useWhole">🖼 用整张图</button>
-        <button class="pb-btn sm" id="changeImg">↻ 换一张</button>
+        <button class="pb-btn sm pb-hidden" id="toggleManual">[[zi:pencil]] 手动修</button>
+        <button class="pb-btn sm pb-hidden" id="aiCutSmall">[[zi:sparkle]] 改抠主体</button>
+        <button class="pb-btn sm" id="useWhole">[[zi:image]] 用整张图</button>
+        <button class="pb-btn sm" id="changeImg">[[zi:refresh]] 换一张</button>
       </div>
     </div>
     <div class="pb-msg pb-hidden" id="cutMsg"></div>
@@ -346,7 +346,7 @@ theme_color: "#fafaf9"
 
     <!-- 调整：色卡/精细度/颜色/背景 收进可折叠面板（手机端默认折叠 + 压缩；桌面常展开） -->
     <div class="pb-adjust collapsed" id="adjustWrap">
-      <button class="pb-adjust-toggle" id="adjustToggle" type="button" aria-expanded="false"><span class="pb-adjust-ico">⚙</span><span class="pb-adjust-lab">调整参数</span><span class="pb-adjust-sum" id="adjustSum"></span><span class="pb-adjust-caret">▾</span></button>
+      <button class="pb-adjust-toggle" id="adjustToggle" type="button" aria-expanded="false"><span class="pb-adjust-ico">[[zi:settings]]</span><span class="pb-adjust-lab">调整参数</span><span class="pb-adjust-sum" id="adjustSum"></span><span class="pb-adjust-caret">[[zi:chevron]]</span></button>
       <div class="pb-adjust-body">
     <div class="pb-panel">
       <div class="pb-brandrow">
@@ -379,7 +379,7 @@ theme_color: "#fafaf9"
     <div class="pb-link-arrow" id="linkArrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="la-down" d="M9 5V19L12.6 15.3"/><path class="la-up" d="M15 19V5L11.4 8.7"/></svg></div>
     <!-- 预计耗时：双向。上面两项→耗时；也能拖它反推上面两项（关系靠 ⇅ 箭头表达，不再赘述文字） -->
     <div class="pb-timebar">
-      <div class="pb-timebar-top"><b>⏱ 预计耗时</b><span id="timeEst">约 …</span></div>
+      <div class="pb-timebar-top"><b>[[zi:clock]] 预计耗时</b><span id="timeEst">约 …</span></div>
       <input type="range" class="pb-range" id="timeTarget" min="15" max="900" step="5" value="120">
     </div>
       </div>
@@ -389,8 +389,8 @@ theme_color: "#fafaf9"
     <div class="pb-work-main">
       <div class="pb-toolrow">
         <div class="pb-seg" id="previewMode">
-          <button class="on" data-mode="effect">🧩 效果图</button>
-          <button data-mode="chart">🔢 坐标图</button>
+          <button class="on" data-mode="effect">[[zi:puzzle]] 效果图</button>
+          <button data-mode="chart">[[zi:grid]] 坐标图</button>
         </div>
         <span class="pb-spring"></span>
         <span class="pb-stats-line" id="statsLine"></span>
@@ -401,14 +401,14 @@ theme_color: "#fafaf9"
           <button class="pb-btn sm" id="zoomOut" title="缩小">－</button>
           <button class="pb-btn sm" id="zoomFit" title="整张铺满">⤢ 适应</button>
           <button class="pb-btn sm" id="zoomIn" title="放大">＋</button>
-          <button class="pb-btn sm" id="fsOpen" title="全屏">⛶ 全屏</button>
+          <button class="pb-btn sm" id="fsOpen" title="全屏">[[zi:expand]] 全屏</button>
         </div>
       </div>
       <div class="pb-cap pb-hidden" id="shareMsg" style="text-align:left;margin-top:.4rem;"></div>
     </div>
     <div class="pb-actions" id="pbActions">
-      <button class="pb-btn sm pri" id="dlCurrent">⬇︎ 下载（带图例）</button>
-      <button class="pb-btn sm" id="shareBtn">🔗 分享</button>
+      <button class="pb-btn sm pri" id="dlCurrent">[[zi:download]] 下载（带图例）</button>
+      <button class="pb-btn sm" id="shareBtn">[[zi:link]] 分享</button>
     </div>
     <div class="pb-msg pb-hidden" id="genMsg"></div>
 
@@ -437,12 +437,12 @@ theme_color: "#fafaf9"
   <!-- 全屏看图纸（对着拼） -->
   <div class="pb-fs pb-hidden" id="fsOverlay">
     <div class="pb-fs-bar">
-      <div class="pb-seg" id="fsMode"><button data-mode="effect">🧩 效果图</button><button data-mode="chart">🔢 坐标图</button></div>
+      <div class="pb-seg" id="fsMode"><button data-mode="effect">[[zi:puzzle]] 效果图</button><button data-mode="chart">[[zi:grid]] 坐标图</button></div>
       <span style="flex:1 1 auto;"></span>
       <button class="pb-btn sm" id="fsOut">－</button>
       <button class="pb-btn sm" id="fsFit">适应</button>
       <button class="pb-btn sm" id="fsIn">＋</button>
-      <button class="pb-btn sm" id="fsClose">✕ 关闭</button>
+      <button class="pb-btn sm" id="fsClose">[[zi:exit]] 关闭</button>
     </div>
     <div class="pb-fs-scroll" id="fsScroll"><canvas id="fsCanvas"></canvas></div>
   </div>
@@ -702,13 +702,13 @@ theme_color: "#fafaf9"
     // 主行动按钮：null→抠出主体(大)；cut/whole→下一步(大)
     $('aiCut').classList.toggle('pb-hidden', m!==null);
     $('goStep3').classList.toggle('pb-hidden', m===null);
-    if(m===null){ $('aiCut').textContent = ready ? '✨ 抠出主体 · 已就绪' : '✨ 抠出主体'; $('aiCut').classList.toggle('ready', !!ready); }
+    if(m===null){ $('aiCut').textContent = ready ? '[[zi:sparkle]] 抠出主体 · 已就绪' : '[[zi:sparkle]] 抠出主体'; $('aiCut').classList.toggle('ready', !!ready); }
     // 次要操作行
     $('tweakLab').classList.toggle('pb-hidden', m===null);
     $('toggleManual').classList.toggle('pb-hidden', m===null);
     $('aiCutSmall').classList.toggle('pb-hidden', m!=='whole');   // 仅整张态露出「改抠主体」(已抠态确定性、无需重抠)
     $('useWhole').classList.toggle('pb-hidden', m==='whole');
-    $('useWhole').textContent = m==='cut' ? '🖼 改用整张图' : '🖼 用整张图';
+    $('useWhole').textContent = m==='cut' ? '[[zi:image]] 改用整张图' : '[[zi:image]] 用整张图';
   }
   function applyCut(){
     if(!S.cutMask) return;
@@ -832,7 +832,7 @@ theme_color: "#fafaf9"
   $('resetMask').addEventListener('click', ()=>{ // 复原到 AI 抠图结果
     if(S.cutMask){ S.painted=false; S.applyMode='cut'; S.mask=S.cutMask.slice(); clearUndo(); renderEdit();
       $('split').classList.remove('pb-single'); updateCutBtns();
-      if(!$('step2').classList.contains('pb-locked')) regenerate(); showMsg('cutMsg','✓ 已复原到 AI 抠图结果。'); }
+    if(!$('step2').classList.contains('pb-locked')) regenerate(); showMsg('cutMsg','[[zi:check]] 已复原到 AI 抠图结果。'); }
     else clickAICut(); });
 
   function sizeCursor(){ const r=editCanvas.getBoundingClientRect(); const sc=r.width/(editCanvas.width||1);
@@ -889,7 +889,7 @@ theme_color: "#fafaf9"
     // 整张图==原图，无需前后对比 → 收回单图态（不分裂出两张一样的）
     $('split').classList.add('pb-single');
     updateCutBtns();
-    showMsg('cutMsg','✓ 用整张图（背景也会做成珠子）。');
+    showMsg('cutMsg','[[zi:check]] 用整张图（背景也会做成珠子）。');
     if(!$('step2').classList.contains('pb-locked')) regenerate();
   });
   $('goStep3').addEventListener('click', ()=>{ if(!S.mask) return;
@@ -1354,7 +1354,7 @@ theme_color: "#fafaf9"
     const code=encodeShare(); if(!code){ showShareMsg('还没有图纸可分享。'); return; }
     const url=location.origin+location.pathname+'#p='+code;
     if(url.length>16000){ showShareMsg('这张图纸太精细，链接会过长、未必能正常打开——建议改用「下载带坐标图纸」分享图片。'); return; }
-    try{ await navigator.clipboard.writeText(url); showShareMsg('✅ 链接已复制（'+url.length+' 字符），发给朋友即可直接打开这张图纸。'); }
+    try{ await navigator.clipboard.writeText(url); showShareMsg('[[zi:check]] 链接已复制（'+url.length+' 字符），发给朋友即可直接打开这张图纸。'); }
     catch(e){ history.replaceState(null,'','#p='+code); showShareMsg('已写入地址栏，手动复制网址即可分享。'); }
   });
   $('makeOwn').addEventListener('click', ()=>{ location.href=location.origin+location.pathname; });

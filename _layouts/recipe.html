@@ -5,6 +5,39 @@ layout: default
 {%- assign _diff = page.difficulty | default: 0 | plus: 0 -%}
 {%- assign _time = page.total_time | default: 0 | plus: 0 -%}
 
+<style>
+  .recipe-meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38em;
+    padding: 0.28em 0.62em;
+    border: 1px solid var(--color-border);
+    border-radius: 0.55em;
+    background: var(--color-bg-warm);
+    color: var(--color-muted);
+  }
+  .recipe-meta-chip .zi-icon {
+    color: var(--color-highlight);
+  }
+  .recipe-difficulty {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.18em;
+    color: var(--color-highlight);
+  }
+  .recipe-difficulty .zi-icon {
+    width: 1em;
+    height: 1em;
+    vertical-align: 0;
+    fill: currentColor;
+    fill-opacity: 0.14;
+  }
+  .recipe-difficulty .is-empty {
+    color: var(--color-border);
+    fill: none;
+  }
+</style>
+
 <article class="recipe-container" style="max-width: 760px; margin: 0 auto; padding: 1.5rem 1rem 4rem;">
 
   {% include admin-article-bar.html %}
@@ -30,7 +63,7 @@ layout: default
                                     padding: 0.8rem 0; border-top: 1px dashed var(--color-border);
                                     border-bottom: 1px dashed var(--color-border);">
       {% if page.cuisine or page.category %}
-      <span>🍜
+      <span class="recipe-meta-chip">[[zi:bowl]]
         {%- if page.cuisine %} {{ page.cuisine }}{% endif -%}
         {%- if page.cuisine and page.category %} · {% endif -%}
         {%- if page.category %}{{ page.category }}{% endif -%}
@@ -38,12 +71,12 @@ layout: default
       {% endif %}
 
       {% if _time > 0 %}
-      <span>⏱ {{ _time }} min</span>
+      <span class="recipe-meta-chip">[[zi:clock]] {{ _time }} min</span>
       {% endif %}
 
       {% if _diff > 0 %}
-      <span title="难度 {{ _diff }} / 5">
-        {% for i in (1.._diff) %}★{% endfor %}{% assign _rest = 5 | minus: _diff %}{% if _rest > 0 %}{% for i in (1.._rest) %}☆{% endfor %}{% endif %}
+      <span class="recipe-difficulty" title="难度 {{ _diff }} / 5" aria-label="难度 {{ _diff }} / 5">
+        {% for i in (1.._diff) %}[[zi:star]]{% endfor %}{% assign _rest = 5 | minus: _diff %}{% if _rest > 0 %}{% for i in (1.._rest) %}<span class="is-empty">[[zi:star]]</span>{% endfor %}{% endif %}
       </span>
       {% endif %}
 
@@ -444,7 +477,7 @@ layout: default
         requiredMeta: [],
         locale: {
           reactionTitle: '',
-          preview: '👀 开启 Markdown 预览',
+          preview: '[[zi:eye]] 开启 Markdown 预览',
           anonymous: '神秘学者'
         },
       });

@@ -266,11 +266,11 @@
       el('button', {
         class: 'dg-btn primary',
         on: { click: () => nav('#/create') },
-      }, '🎨 创建房间'),
+      }, '[[zi:pencil]] 创建房间'),
       el('button', {
         class: 'dg-btn ghost',
         on: { click: () => nav('#/join') },
-      }, '🚪 加入房间'),
+      }, '[[zi:door]] 加入房间'),
     ]));
 
     wrap.appendChild(el('div', { class: 'dg-tip' }, [
@@ -352,7 +352,7 @@
         class: 'dg-btn primary',
         disabled: createForm.nick.trim() ? null : '',
         on: { click: doCreate },
-      }, '🎨 创建房间'),
+      }, '[[zi:pencil]] 创建房间'),
     ]));
     wrap.appendChild(card);
     return wrap;
@@ -464,7 +464,7 @@
   function viewLobby() {
     const r = state.roomState;
     if (!r) {
-      return el('div', { style: { textAlign: 'center', padding: '2rem' } }, '⏳ 加载房间…');
+      return el('div', { style: { textAlign: 'center', padding: '2rem' } }, '[[zi:hourglass]] 加载房间…');
     }
     const wrap = el('div');
 
@@ -480,11 +480,11 @@
         el('button', {
           class: 'dg-btn tiny',
           on: { click: () => copyToClipboard(r.code, '已复制房号') },
-        }, '📋 复制房号'),
+        }, '[[zi:copy]] 复制房号'),
         el('button', {
           class: 'dg-btn tiny',
           on: { click: () => copyShareLink(r.code) },
-        }, '🔗 复制链接'),
+        }, '[[zi:link]] 复制链接'),
       ]),
       qrBox,
     ]);
@@ -503,13 +503,13 @@
           class: 'dg-btn primary',
           disabled: enough ? null : '',
           on: { click: doStart },
-        }, enough ? '▶️ 开始游戏' : '至少需要 2 人'),
+        }, enough ? '[[zi:play]] 开始游戏' : '至少需要 2 人'),
         el('div', { style: { fontSize: '0.8rem', color: 'var(--color-muted)', marginTop: '0.5rem' } },
           '不预设人数，邀请到位就开。中途加入者下一轮上场。'),
       ]));
     } else {
       card.appendChild(el('div', { style: { marginTop: '0.7rem', textAlign: 'center', color: 'var(--color-muted)', fontSize: '0.9rem' } },
-        '⏳ 等待房主开始游戏…'));
+        '[[zi:hourglass]] 等待房主开始游戏…'));
     }
     wrap.appendChild(card);
 
@@ -533,7 +533,7 @@
       isHost ? el('button', {
         class: 'dg-btn danger tiny',
         on: { click: () => doDissolve(false) },
-      }, '🗑 解散房间') : null,
+      }, '[[zi:trash]] 解散房间') : null,
     ]));
 
     return wrap;
@@ -549,14 +549,14 @@
       if (!p.online) cls.push('offline');
       const node = el('div', { class: cls.join(' ') }, [
         el('div', { class: 'seat-num' }, String(p.seat)),
-        p.isHost ? el('span', { class: 'crown' }, '👑') : null,
+        p.isHost ? el('span', { class: 'crown' }, '[[zi:crown]]') : null,
         el('div', { class: 'nick' }, p.nick),
         (p.score || 0) > 0 ? el('div', { class: 'score' }, String(p.score)) : null,
         (isHost && !p.isHost && !isMe) ? el('button', {
           class: 'kick',
           title: '踢出',
           on: { click: () => doKick(p.id, p.nick) },
-        }, '✕') : null,
+        }, '[[zi:stop]]') : null,
       ]);
       list.appendChild(node);
     }
@@ -646,7 +646,7 @@
   // ====================================================================
   function viewPlay() {
     const r = state.roomState;
-    if (!r) return el('div', { style: { textAlign: 'center', padding: '2rem' } }, '⏳ 加载…');
+    if (!r) return el('div', { style: { textAlign: 'center', padding: '2rem' } }, '[[zi:hourglass]] 加载…');
 
     const wrap = el('div');
 
@@ -655,9 +655,9 @@
     const topActions = el('div', { class: 'dg-row', style: { justifyContent: 'space-between', marginBottom: '0.6rem', fontSize: '0.85rem', color: 'var(--color-muted)' } }, [
       el('div', null, `房号 ${r.code} · ${(r.players || []).filter((p) => !p.kicked).length} 人`),
       el('div', { class: 'dg-row', style: { gap: '0.3rem' } }, [
-        el('button', { class: 'dg-btn ghost tiny', on: { click: () => copyShareLink(r.code) } }, '📤 邀请'),
-        isHost ? el('button', { class: 'dg-btn ghost tiny', on: { click: doSkip } }, '⏭ 跳过本回合') : null,
-        isHost ? el('button', { class: 'dg-btn danger tiny', on: { click: doEnd } }, '🏁 结束游戏') : null,
+        el('button', { class: 'dg-btn ghost tiny', on: { click: () => copyShareLink(r.code) } }, '[[zi:upload]] 邀请'),
+        isHost ? el('button', { class: 'dg-btn ghost tiny', on: { click: doSkip } }, '[[zi:skip-forward]] 跳过本回合') : null,
+        isHost ? el('button', { class: 'dg-btn danger tiny', on: { click: doEnd } }, '[[zi:flag]] 结束游戏') : null,
         el('button', { class: 'dg-btn ghost tiny', on: { click: doLeave } }, '退出'),
       ]),
     ]);
@@ -700,7 +700,7 @@
         if (round.phase === 'pick-word') {
           wordNode = el('div', { class: 'word-display drawer-word' }, '↓ 请选词 ↓');
         } else if (round.phase === 'drawing' && r.me && r.me.currentWord) {
-          wordNode = el('div', { class: 'word-display drawer-word' }, `🖌 ${r.me.currentWord}`);
+          wordNode = el('div', { class: 'word-display drawer-word' }, `[[zi:pencil]] ${r.me.currentWord}`);
         } else if (round.phase === 'reveal' && r.round.wordRevealed) {
           wordNode = el('div', { class: 'word-display drawer-word' }, `答案：${r.round.wordRevealed}`);
         }
@@ -709,7 +709,7 @@
           wordNode = el('div', { class: 'word-display' }, `${round.wordHint.mask}（${round.wordHint.len} 字）`);
         } else if (round.phase === 'pick-word') {
           const drawer = (r.players || []).find((p) => p.id === round.drawerPid);
-          wordNode = el('div', { class: 'word-display' }, `🎨 ${drawer ? drawer.nick : ''} 在选词…`);
+          wordNode = el('div', { class: 'word-display' }, `[[zi:pencil]] ${drawer ? drawer.nick : ''} 在选词…`);
         } else if (round.phase === 'reveal' && round.wordRevealed) {
           wordNode = el('div', { class: 'word-display' }, `答案：${round.wordRevealed}`);
         }
@@ -735,7 +735,7 @@
         const overlay = el('div', { class: 'dg-canvas-overlay' });
         const panel = el('div', { class: 'panel' });
         if (amIDrawer() && r.me && r.me.wordChoices) {
-          panel.appendChild(el('h2', null, '🎨 你来画！'));
+          panel.appendChild(el('h2', null, '[[zi:pencil]] 你来画！'));
           panel.appendChild(el('div', null, '从下面三个词里选一个：'));
           const choices = el('div', { class: 'word-choices' });
           r.me.wordChoices.forEach((w, i) => {
@@ -746,7 +746,7 @@
           panel.appendChild(choices);
         } else {
           const drawer = (r.players || []).find((p) => p.id === round.drawerPid);
-          panel.appendChild(el('h2', null, '🎨 ' + (drawer ? drawer.nick : '画手') + ' 正在选词…'));
+          panel.appendChild(el('h2', null, '[[zi:pencil]] ' + (drawer ? drawer.nick : '画手') + ' 正在选词…'));
           panel.appendChild(el('div', { style: { color: 'var(--color-muted)' } }, '稍等片刻就开始'));
         }
         overlay.appendChild(panel);
@@ -791,16 +791,16 @@
     bar.appendChild(el('button', {
       class: 'size-btn' + (state.eraseMode ? ' active' : ''),
       on: { click: () => { state.eraseMode = !state.eraseMode; render(); } },
-    }, '🧽 橡皮'));
+    }, '[[zi:trash]] 橡皮'));
     bar.appendChild(el('div', { class: 'tool-spacer' }));
     bar.appendChild(el('button', {
       class: 'dg-btn ghost tiny',
       on: { click: doUndo },
-    }, '↩ 撤销'));
+    }, '[[zi:history]] 撤销'));
     bar.appendChild(el('button', {
       class: 'dg-btn ghost tiny',
       on: { click: doClear },
-    }, '🗑 清空'));
+    }, '[[zi:trash]] 清空'));
     return bar;
   }
 
@@ -814,7 +814,7 @@
 
   function renderScoreboard(r) {
     const score = el('div', { class: 'dg-scoreboard' });
-    score.appendChild(el('h4', null, '📊 计分板'));
+    score.appendChild(el('h4', null, '[[zi:chart]] 计分板'));
     const sorted = [...(r.players || [])]
       .filter((p) => !p.kicked)
       .sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -827,8 +827,8 @@
       else if (correctSet.has(p.id)) cls.push('correct');
       if (isMe) cls.push('me');
       score.appendChild(el('div', { class: cls.join(' ') }, [
-        el('span', { class: 'icon' }, p.id === drawerPid ? '🖌' : (correctSet.has(p.id) ? '✓' : (p.online ? '·' : '○'))),
-        el('span', { class: 'nick' }, p.nick + (p.isHost ? ' 👑' : '')),
+        el('span', { class: 'icon' }, p.id === drawerPid ? '[[zi:pencil]]' : (correctSet.has(p.id) ? '[[zi:check]]' : (p.online ? '·' : '[[zi:check]]'))),
+        el('span', { class: 'nick' }, p.nick + (p.isHost ? ' [[zi:crown]]' : '')),
         el('span', { class: 'score' }, String(p.score || 0)),
       ]));
     });
@@ -889,7 +889,7 @@
       return el('div', { class: 'msg system' }, m.text);
     }
     if (m.kind === 'correct') {
-      const tag = m.order === 1 ? '🥇' : m.order === 2 ? '🥈' : m.order === 3 ? '🥉' : '✓';
+      const tag = m.order === 1 ? '[[zi:medal:gold]]' : m.order === 2 ? '[[zi:medal:silver]]' : m.order === 3 ? '[[zi:medal:bronze]]' : '[[zi:check]]';
       return el('div', { class: 'msg system correct-cheer' },
         `${tag} ${m.nick} 猜中了！+${m.score} 分`);
     }
@@ -966,10 +966,10 @@
   // ====================================================================
   function viewEnd() {
     const r = state.roomState;
-    if (!r) return el('div', null, '⏳');
+    if (!r) return el('div', null, '[[zi:hourglass]]');
     const wrap = el('div');
     const card = el('section', { class: 'dg-card' });
-    card.appendChild(el('h3', null, '🏆 最终排行榜'));
+    card.appendChild(el('h3', null, '[[zi:trophy]] 最终排行榜'));
     const list = el('ul', { class: 'dg-final-list' });
     (r.finalScores || []).forEach((row) => {
       const cls = ['rank-' + row.rank];
@@ -990,7 +990,7 @@
       isHost ? el('button', {
         class: 'dg-btn primary',
         on: { click: doRematch },
-      }, '🔁 再来一局') : null,
+      }, '[[zi:refresh]] 再来一局') : null,
     ]));
     wrap.appendChild(card);
     return wrap;
@@ -1372,7 +1372,7 @@
       GamesShell.Comments.mount({
         container: document.getElementById('dg-cm-mount'),
         path: '/toolbox/drawing/',
-        title: '💬 玩法吐槽 / 词库求增',
+        title: '[[zi:comment]] 玩法吐槽 / 词库求增',
         intro: '说说你想加什么词、遇到什么 bug ~',
         placeholder: '聊聊你画我猜心得 ~',
       });

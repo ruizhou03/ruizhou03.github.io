@@ -182,11 +182,27 @@ permalink: /toolbox/minesweeper/
     box-shadow: var(--ms-cell-revealed-shadow);
     cursor: default;
   }
-  .ms-cell.flagged::before { content: '🚩'; font-size: calc(var(--ms-cell-size) * 0.55); }
+  .ms-cell.flagged::before {
+    content: ''; width: 58%; height: 62%; color: currentColor;
+    background:
+      linear-gradient(currentColor, currentColor) 30% 50% / 2px 92% no-repeat,
+      linear-gradient(145deg, currentColor 0 52%, transparent 54%) 38% 12% / 58% 48% no-repeat;
+  }
   .ms-cell.mine { background: var(--ms-mine-bg); color: #fff; box-shadow: none; }
-  .ms-cell.mine::before { content: '💣'; font-size: calc(var(--ms-cell-size) * 0.55); }
+  .ms-cell.mine::before {
+    content: ''; width: 62%; height: 62%;
+    background:
+      radial-gradient(circle, currentColor 0 34%, transparent 37%),
+      linear-gradient(currentColor, currentColor) center / 10% 100% no-repeat,
+      linear-gradient(90deg, currentColor, currentColor) center / 100% 10% no-repeat;
+  }
   .ms-cell.wrong { background: var(--ms-wrong-bg); }
-  .ms-cell.wrong::before { content: '❌'; font-size: calc(var(--ms-cell-size) * 0.55); }
+  .ms-cell.wrong::before {
+    content: ''; width: 58%; height: 58%;
+    background:
+      linear-gradient(45deg, transparent 44%, currentColor 46% 54%, transparent 56%),
+      linear-gradient(-45deg, transparent 44%, currentColor 46% 54%, transparent 56%);
+  }
   .ms-cell.n1 { color: var(--ms-n1); }
   .ms-cell.n2 { color: var(--ms-n2); }
   .ms-cell.n3 { color: var(--ms-n3); }
@@ -223,14 +239,14 @@ permalink: /toolbox/minesweeper/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="ms-wrap">
   <header>
-    <h1>💣 扫雷</h1>
+    <h1>[[zi:warning]] 扫雷</h1>
     <div class="sub">数字代表周围 8 格的雷数 — 推理排雷</div>
   </header>
 
@@ -240,7 +256,7 @@ permalink: /toolbox/minesweeper/
       <button class="ms-diff-tab" data-diff="mid">中等 16×16</button>
       <button class="ms-diff-tab" data-diff="hard">高级 16×30</button>
     </div>
-    <button class="ms-btn" id="msNewBtn">🔄 新游戏</button>
+    <button class="ms-btn" id="msNewBtn">[[zi:refresh]] 新游戏</button>
   </div>
 
   <div class="ms-statusbar">
@@ -254,7 +270,7 @@ permalink: /toolbox/minesweeper/
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="msPreGameOverlay">
       <div class="gs-pgo-view active" id="msPgoViewMain">
-        <div class="gs-pgo-icon">💣</div>
+        <div class="gs-pgo-icon">[[zi:warning]]</div>
         <h2 class="gs-pgo-title">扫雷</h2>
         <div class="gs-pgo-subtitle">Win 经典三难度 · 揭格插旗</div>
         <div class="gs-pgo-highscore">
@@ -266,14 +282,14 @@ permalink: /toolbox/minesweeper/
           <button class="gs-pgo-mode-tab" data-value="mid">16×16</button>
           <button class="gs-pgo-mode-tab" data-value="hard">16×30</button>
         </div>
-        <button class="gs-pgo-start-btn" id="msPgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="msPgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
       <div class="gs-pgo-view" id="msPgoViewResume">
-        <div class="gs-pgo-icon">👋</div>
+        <div class="gs-pgo-icon">[[zi:user]]</div>
         <h2 class="gs-pgo-title">上次还没玩完</h2>
         <div class="gs-pgo-resume-summary" id="msPgoResumeSummary"></div>
-        <button class="gs-pgo-start-btn" id="msPgoResumeContinueBtn">▶ 继续上次</button>
-        <button class="gs-pgo-start-btn" id="msPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;">🔄 重新开始</button>
+        <button class="gs-pgo-start-btn" id="msPgoResumeContinueBtn">[[zi:play]] 继续上次</button>
+        <button class="gs-pgo-start-btn" id="msPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;">[[zi:refresh]] 重新开始</button>
       </div>
     </div>
   </div>
@@ -660,7 +676,7 @@ permalink: /toolbox/minesweeper/
       state.mustGuess = !simulateLogicSolver(state.grid, state.firstR, state.firstC, state.rows, state.cols);
     }
     if (won) {
-      const prefix = state.mustGuess ? '🍀' : '🎉';
+      const prefix = state.mustGuess ? '[[zi:leaf]]' : '[[zi:sparkle]]';
       const suffix = state.mustGuess ? '，运气真好' : '';
       modalEl.textContent = `${prefix} ${state.elapsed} 秒通关${suffix}！`;
       modalEl.className = 'ms-modal-wrap win';
@@ -675,7 +691,7 @@ permalink: /toolbox/minesweeper/
         for (let c = 0; c < state.cols; c++)
           if (state.grid[r][c] === -1) state.flagged[r][c] = true;
     } else {
-      modalEl.textContent = state.mustGuess ? '💔 这局本来就要靠猜，不怪你' : '💥 踩到雷了';
+      modalEl.textContent = state.mustGuess ? '[[zi:heart]] 这局本来就要靠猜，不怪你' : '[[zi:warning]] 踩到雷了';
       modalEl.className = 'ms-modal-wrap lose';
       // Reveal all mines + mark wrong flags via state (paintCell will render)
       for (let r = 0; r < state.rows; r++) {
@@ -859,14 +875,47 @@ permalink: /toolbox/minesweeper/
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         if (flagged) {
-          ctx.fillStyle = '#d32f2f';
-          ctx.font = `${Math.max(8, cell * 0.6)}px sans-serif`;
-          ctx.fillText(wrong && revealed ? '✗' : '⚑', cx + cell / 2, cy + cell / 2 + cell * 0.04);
+          const mx = cx + cell / 2, my = cy + cell / 2;
+          ctx.save();
+          ctx.strokeStyle = wrong && revealed ? '#9b3d3d' : '#b3262e';
+          ctx.fillStyle = ctx.strokeStyle;
+          ctx.lineWidth = Math.max(1.5, cell * 0.065);
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          if (wrong && revealed) {
+            ctx.beginPath();
+            ctx.moveTo(mx - cell * 0.18, my - cell * 0.18);
+            ctx.lineTo(mx + cell * 0.18, my + cell * 0.18);
+            ctx.moveTo(mx + cell * 0.18, my - cell * 0.18);
+            ctx.lineTo(mx - cell * 0.18, my + cell * 0.18);
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.moveTo(mx - cell * 0.16, my + cell * 0.22);
+            ctx.lineTo(mx - cell * 0.16, my - cell * 0.24);
+            ctx.lineTo(mx + cell * 0.2, my - cell * 0.1);
+            ctx.lineTo(mx - cell * 0.16, my + cell * 0.02);
+            ctx.stroke();
+          }
+          ctx.restore();
         } else if (revealed) {
           if (v === -1) {
+            const mx = cx + cell / 2, my = cy + cell / 2;
+            ctx.save();
+            ctx.strokeStyle = '#212121';
             ctx.fillStyle = '#212121';
-            ctx.font = `${Math.max(8, cell * 0.55)}px sans-serif`;
-            ctx.fillText('💣', cx + cell / 2, cy + cell / 2 + cell * 0.04);
+            ctx.lineWidth = Math.max(1.2, cell * 0.055);
+            ctx.beginPath();
+            ctx.arc(mx, my, cell * 0.16, 0, Math.PI * 2);
+            ctx.fill();
+            for (let ray = 0; ray < 8; ray++) {
+              const a = ray * Math.PI / 4;
+              ctx.beginPath();
+              ctx.moveTo(mx + Math.cos(a) * cell * 0.2, my + Math.sin(a) * cell * 0.2);
+              ctx.lineTo(mx + Math.cos(a) * cell * 0.29, my + Math.sin(a) * cell * 0.29);
+              ctx.stroke();
+            }
+            ctx.restore();
           } else if (v > 0) {
             ctx.fillStyle = MS_NUMBER_COLORS[v] || '#212121';
             ctx.font = `700 ${Math.max(8, cell * 0.6)}px Georgia, serif`;
@@ -882,13 +931,13 @@ permalink: /toolbox/minesweeper/
     const won = state.won;
     const mustGuess = state.mustGuess;
     const resultLabel = won
-      ? (mustGuess ? '🍀 运气通关' : '🎉 通关')
-      : (mustGuess ? '💔 必猜遗憾' : '💥 踩雷');
+      ? (mustGuess ? '[[zi:leaf]] 运气通关' : '[[zi:sparkle]] 通关')
+      : (mustGuess ? '[[zi:heart]] 必猜遗憾' : '[[zi:warning]] 踩雷');
     return {
       kind: 'single',
       gameId: 'minesweeper',
       title: '扫雷',
-      emoji: '💣',
+      emoji: '[[zi:warning]]',
       nick: GamesShell.Identity.getNick(),
       score: state.elapsed,
       scoreLabel: won ? '通 关 用 时' : '坚 持 用 时',
@@ -1009,7 +1058,7 @@ permalink: /toolbox/minesweeper/
     msLbWidget = GamesShell.Leaderboard.mount({
       container: document.getElementById('ms-lb-mount'),
       gameId: 'minesweeper',
-      title: '🏆 扫雷 排行榜',
+      title: '[[zi:trophy]] 扫雷 排行榜',
       scoreFormatter: v => (Number(v) / 1000).toFixed(1) + ' s',
       getCurrentNick: () => GamesShell.Identity.getNick(),
       getSplit: () => state.diff,
@@ -1022,7 +1071,7 @@ permalink: /toolbox/minesweeper/
         if (!e || !e.extra || !e.extra.lucky) return;
         const clover = document.createElement('span');
         clover.className = 'gs-lb-clover ' + (e.extra.won ? 'gs-clover-win' : 'gs-clover-loss');
-        clover.textContent = '🍀';
+        clover.textContent = '[[zi:leaf]]';
         clover.title = e.extra.won ? '运气好通关' : '必猜遗憾失败';
         li.appendChild(clover);
       },
@@ -1030,7 +1079,7 @@ permalink: /toolbox/minesweeper/
     GamesShell.Comments.mount({
       container: document.getElementById('ms-cm-mount'),
       path: '/toolbox/minesweeper/',
-      title: '💬 扫雷心得',
+      title: '[[zi:comment]] 扫雷心得',
       intro: '聊聊 hard 难度的最佳成绩、经典开局、踩雷大笑话 ~',
       placeholder: '聊聊你的扫雷心得 ~',
     });

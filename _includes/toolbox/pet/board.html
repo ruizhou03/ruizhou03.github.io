@@ -1,20 +1,20 @@
   <!-- Standalone (installed PWA) app bar — only shown when launched as an APP; the
        decorative <header> below is hidden then. Gives a real app title bar that
        clears the notch and reads as a focused app, not a webpage. -->
-  <div class="pf-appbar"><span class="pf-appbar-title">🐾 宠物中心</span><button type="button" class="pf-appbar-theme" id="pf-theme-toggle" title="切换明暗模式" aria-label="切换明暗模式">◑</button></div>
+  <div class="pf-appbar"><span class="pf-appbar-title"><span class="pf-brand-mark" aria-hidden="true">P</span>宠物中心</span><button type="button" class="pf-appbar-theme" id="pf-theme-toggle" title="切换明暗模式" aria-label="切换明暗模式">[[zi:moon]]</button></div>
 
   <header>
-    <h1>🐾 宠物中心</h1>
+    <h1><span class="pf-brand-mark" aria-hidden="true">P</span>宠物中心</h1>
     <p class="sub">记录爱宠的食量与体重 · 默认只存在本机，分享或登录后才同步</p>
   </header>
 
   <div class="pet-bar" id="pet-bar">
     <div class="pet-tabs" id="pet-tabs"></div>
     <div class="pet-add-wrap" id="pet-add-wrap">
-      <button type="button" class="icon-btn" id="pet-add">+ 宠物 ▾</button>
+      <button type="button" class="icon-btn" id="pet-add" aria-expanded="false">宠物 +</button>
       <div class="pet-add-menu" id="pet-add-menu">
-        <button type="button" data-act="new">🆕 新建宠物</button>
-        <button type="button" data-act="join">🔑 用宠物码添加</button>
+        <button type="button" data-act="new">新建宠物</button>
+        <button type="button" data-act="join">[[zi:key]] 用宠物码添加</button>
       </div>
     </div>
     <button type="button" class="icon-btn inbox-btn" id="inbox-btn" style="display:none;" title="家人动态" aria-label="家人动态"><svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-2.5 8-2.5 8h17S18 15 18 8z"/><path d="M10.3 20.5a2 2 0 0 0 3.4 0"/></svg><span class="inbox-dot" id="inbox-dot" style="display:none;"></span></button>
@@ -22,13 +22,13 @@
   </div>
 
   <div class="empty-zone welcome" id="pet-empty">
-    <div class="wc-lead">先添加一只宝贝，开始记录 TA 的日常 🐾</div>
+    <div class="wc-lead">先添加一只宝贝，开始记录 TA 的日常 [[zi:paw]]</div>
     <div class="wc-caps">
-      <div class="wc-cap"><span class="wc-emo" aria-hidden="true">🥣</span><span class="wc-txt"><b>吃了多少</b><span>够不够、有没有多喂，一眼看懂</span></span></div>
-      <div class="wc-cap"><span class="wc-emo" aria-hidden="true">⚖️</span><span class="wc-txt"><b>体重变化</b><span>胖了瘦了，趋势自动画成曲线</span></span></div>
-      <div class="wc-cap"><span class="wc-emo" aria-hidden="true">🐱</span><span class="wc-txt"><b>猫语翻译</b><span>听听 TA 这声喵大概想说什么</span></span></div>
+      <div class="wc-cap"><span class="wc-emo" aria-hidden="true">[[zi:bowl]]</span><span class="wc-txt"><b>吃了多少</b><span>够不够、有没有多喂，一眼看懂</span></span></div>
+      <div class="wc-cap"><span class="wc-emo" aria-hidden="true">[[zi:scale]]</span><span class="wc-txt"><b>体重变化</b><span>胖了瘦了，趋势自动画成曲线</span></span></div>
+      <div class="wc-cap"><span class="wc-emo" aria-hidden="true">[[zi:cat]]</span><span class="wc-txt"><b>猫语翻译</b><span>听听 TA 这声喵大概想说什么</span></span></div>
     </div>
-    <div class="wc-privacy">🔒 默认只存在你手机上；分享或登录后才会同步 · <button type="button" id="welcome-privacy" class="wc-privacy-link">隐私说明</button></div>
+    <div class="wc-privacy">[[zi:lock]] 默认只存在你手机上；分享或登录后才会同步 · <button type="button" id="welcome-privacy" class="wc-privacy-link">隐私说明</button></div>
     <div class="empty-actions">
       <button type="button" class="add-btn" id="empty-add">＋ 添加我的第一只宝贝</button>
       <button type="button" class="join-btn" id="empty-join">用宠物码加入家人的记录</button>
@@ -74,7 +74,7 @@
 
       <div class="fc-rule"></div>
 
-      <div class="first-hint" id="first-hint" style="display:none;">👋 记下今天第一笔吧——直接填「吃了多少克」最简单，也可以切「称重作差」。</div>
+      <div class="first-hint" id="first-hint" style="display:none;">[[zi:user]] 记下今天第一笔吧——直接填「吃了多少克」最简单，也可以切「称重作差」。</div>
 
       <!-- 记一笔 -->
       <div class="log-sec" id="entry-cols">
@@ -141,14 +141,14 @@
             <span class="tp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.2 2"/></svg></span>
             <span class="tp-lbl">记录时间</span>
             <span class="tp-val" id="time-val">现在</span>
-            <span class="tp-edit">✎</span>
+            <span class="tp-edit">[[zi:pencil]]</span>
           </button>
           <button type="button" class="time-add-end" id="time-add-end" style="display:none;">＋ 加结束时间</button>
           <button type="button" class="time-pill time-pill-end" id="time-end-toggle" style="display:none;">
             <span class="tp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.2 2"/></svg></span>
             <span class="tp-lbl">结束</span>
             <span class="tp-val" id="time-end-val">—</span>
-            <span class="tp-clear" id="time-end-clear" title="去掉结束时间">✕</span>
+            <span class="tp-clear" id="time-end-clear" title="去掉结束时间">[[zi:stop]]</span>
           </button>
         </div>
         </div><!-- /entry-meta -->
@@ -176,7 +176,7 @@
         <span id="chart-range-lbl"></span>
         <button type="button" class="target-toggle" id="chart-target-toggle" style="display: none;">目标参考线</button>
         <button type="button" class="target-toggle" id="chart-fullscreen" title="横屏放大看图（可在里面切区间/日期）">⤢ 横屏</button>
-        <button type="button" class="target-toggle" id="chart-download" title="把当前这张趋势图存成图片">⬇ 下载</button>
+        <button type="button" class="target-toggle" id="chart-download" title="把当前这张趋势图存成图片">[[zi:download]] 下载</button>
       </span>
     </div>
     <div class="trend-tabs" id="trend-tabs">
@@ -218,8 +218,8 @@
             <button type="button" data-p="365">近 1 年</button>
             <button type="button" data-p="custom">自定义</button>
           </div>
-          <button type="button" class="tfs-icon" id="tfs-download" title="下载这张图">⬇</button>
-          <button type="button" class="tfs-icon" id="tfs-close" title="退出横屏" aria-label="退出横屏">✕</button>
+          <button type="button" class="tfs-icon" id="tfs-download" title="下载这张图">[[zi:download]]</button>
+          <button type="button" class="tfs-icon" id="tfs-close" title="退出横屏" aria-label="退出横屏">[[zi:stop]]</button>
         </div>
         <div class="tfs-chart"><svg viewBox="0 0 600 240" id="trend-chart-fs" preserveAspectRatio="xMidYMid meet"></svg></div>
         <div class="tfs-bottom">
@@ -299,7 +299,7 @@
               <span class="tp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.6V12l3.2 2"/></svg></span>
               <span class="tp-lbl">记录时间</span>
               <span class="tp-val" id="weight-time-val">现在</span>
-              <span class="tp-edit">✎</span>
+              <span class="tp-edit">[[zi:pencil]]</span>
             </button>
             <button type="button" class="go-btn" id="weight-save" aria-label="记体重"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="M13 6l6 6-6 6"/></svg></button>
           </div>

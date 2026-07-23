@@ -198,7 +198,11 @@ async function handleHtmlAmbient(req, url) {
   return new Response(
     '<!doctype html><meta charset="utf-8"><title>离线</title>' +
     '<p style="font-family:serif;text-align:center;margin-top:30vh;color:#666;">' +
-    '🥲 这一页还没保存离线，等有网了再来吧。<br>' +
+    '<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" ' +
+    'style="display:block;margin:0 auto .7rem;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round">' +
+    '<path d="M8 17H6a4 4 0 0 1-.4-8A6.5 6.5 0 0 1 18 10.5"/>' +
+    '<path d="M11 10h6l3 3v8h-9Z M17 10v3h3M13.5 18.5l4-4"/></svg>' +
+    '这一页还没保存离线，等有网了再来吧。<br>' +
     '或者 <a href="/" style="color:#1e3a5f;">回到首页看看</a>。</p>',
     { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   );
@@ -224,6 +228,9 @@ async function handleAssetAmbient(req) {
 // 提取 HTML 里的 <img src/srcset> + 同源 CSS / JS / 字体链接
 function extractAssetUrls(html, baseUrl) {
   const urls = new Set();
+  // 全站界面图标由外部 SVG sprite 渲染；它不直接出现在服务端 HTML，
+  // 但任何显式保存的离线页面都必须把它一并带走。
+  urls.add('/assets/icons/zircon-ui.svg');
   const reImg    = /<img[^>]+src=["']([^"']+)["']/gi;
   const reSrcset = /<img[^>]+srcset=["']([^"']+)["']/gi;
   const reCss    = /<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["']/gi;

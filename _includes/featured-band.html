@@ -18,7 +18,7 @@ inputs: posts = 该栏目已算好的 featured 文章数组（已按日期倒序
       {%- assign _pu = p.url | relative_url -%}
       <a class="fcard" href="{{ _pu }}">
         <div class="fcard-main">
-          <span class="tag">{{ p.sub_category | default: p.main_category }}</span>
+          <span class="tag"><i class="feature-stamp">精选</i>{{ p.sub_category | default: p.main_category }}</span>
           <h3>{% include latex-logo.html title=p.title %}</h3>
         </div>
         <div class="ft"><time>{% if p.date %}{{ p.date | date: "%Y/%m/%d" }}{% endif %}</time>{% include sc-metrics.html url=_pu %}</div>

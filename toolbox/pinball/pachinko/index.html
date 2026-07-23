@@ -13,14 +13,14 @@ permalink: /toolbox/pinball/pachinko/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="pb-wrap pb-theme-pachinko">
   <header>
-    <h1>🎰 弹珠·机厅</h1>
+    <h1>[[zi:dice]] 弹珠·机厅</h1>
   </header>
 
   <div class="pb-scorebar">
@@ -31,8 +31,8 @@ permalink: /toolbox/pinball/pachinko/
   <div class="pb-goal-bar" id="pbGoal">本发 <strong>×1</strong> · 中央 JKPT 槽 <strong>0/3</strong> → MULTIBALL · JKPT 现值 <strong>2000</strong> · 剩 <strong>10</strong> 发</div>
 
   <div class="pb-toolbar">
-    <button class="pb-btn" id="pbPauseBtn">⏸ 暂停</button>
-    <button class="pb-btn" id="pbNewBtn">🔄 新游戏</button>
+    <button class="pb-btn" id="pbPauseBtn">[[zi:pause]] 暂停</button>
+    <button class="pb-btn" id="pbNewBtn">[[zi:refresh]] 新游戏</button>
   </div>
 
   <div class="pb-canvas-wrap">
@@ -45,19 +45,19 @@ permalink: /toolbox/pinball/pachinko/
   </div>
 
   <div class="pb-controls">
-    <button class="pb-flip-btn" id="pbFlipL">◀</button>
+    <button class="pb-flip-btn" id="pbFlipL">[[zi:arrow]]</button>
     <button class="pb-plunger-btn" id="pbPlungerBtn"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar"></div></button>
-    <button class="pb-flip-btn" id="pbFlipR">▶</button>
+    <button class="pb-flip-btn" id="pbFlipR">[[zi:play]]</button>
   </div>
 
   <div class="pb-tp-wrap">
     <div class="pb-tp-header"><span>切换桌台</span></div>
     <div class="pb-table-picker">
-      <a href="/toolbox/pinball/"><span class="pb-tp-emoji">🚀</span><span class="pb-tp-name">反应堆</span></a>
-      <a href="/toolbox/pinball/temple/"><span class="pb-tp-emoji">🏛️</span><span class="pb-tp-name">神庙</span></a>
-      <a href="/toolbox/pinball/cyber/"><span class="pb-tp-emoji">🌃</span><span class="pb-tp-name">赛博克</span></a>
-      <span class="active"><span class="pb-tp-emoji">🎰</span><span class="pb-tp-name">机厅</span></span>
-      <a href="/toolbox/pinball/rain/"><span class="pb-tp-emoji">🌧️</span><span class="pb-tp-name">弹珠雨</span></a>
+      <a href="/toolbox/pinball/"><span class="pb-tp-emoji">[[zi:rocket]]</span><span class="pb-tp-name">反应堆</span></a>
+      <a href="/toolbox/pinball/temple/"><span class="pb-tp-emoji">[[zi:library]]</span><span class="pb-tp-name">神庙</span></a>
+      <a href="/toolbox/pinball/cyber/"><span class="pb-tp-emoji">[[zi:home]]</span><span class="pb-tp-name">赛博克</span></a>
+      <span class="active"><span class="pb-tp-emoji">[[zi:dice]]</span><span class="pb-tp-name">机厅</span></span>
+      <a href="/toolbox/pinball/rain/"><span class="pb-tp-emoji">[[zi:cloud]]</span><span class="pb-tp-name">弹珠雨</span></a>
     </div>
   </div>
 
@@ -250,12 +250,12 @@ permalink: /toolbox/pinball/pachinko/
   function onPachinkoLaneReturn(now, ball, gameRef, tier) {
     if (tier === 'T3') {
       game.addScore(3000, 458, 140, 'pachinko-laser-t3');
-      game.addPopup(458, 110, '🎰 GRAND +3000', 1600);
+      game.addPopup(458, 110, 'GRAND +3000', 1600);
       state.laneReturnFlashTill = now + 800;
       state.jackpotStreak = Math.min(state.jackpotStreak + 1, 5);
     } else if (tier === 'T2') {
       game.addScore(1000, 458, 140, 'pachinko-laser-t2');
-      game.addPopup(458, 110, '🪙 +1000', 1300);
+      game.addPopup(458, 110, '大奖 +1000', 1300);
       state.laneReturnFlashTill = now + 500;
     } else {
       game.addScore(100, 458, 140, 'pachinko-laser-t1');
@@ -491,13 +491,13 @@ permalink: /toolbox/pinball/pachinko/
     shell: {
       gameId: 'pinball-pachinko',
       title: '弹珠机·机厅',
-      emoji: '🎰',
+      emoji: '[[zi:dice]]',
       rankRow: document.getElementById('pb-rank-row'),
       lbMount: document.getElementById('pb-lb-mount'),
-      lbTitle: '🏆 机厅 排行榜',
+      lbTitle: '[[zi:trophy]] 机厅 排行榜',
       commentsMount: document.getElementById('pb-cm-mount'),
       commentsPath: '/toolbox/pinball/pachinko/',
-      commentsTitle: '💬 机厅玩家交流',
+      commentsTitle: '[[zi:comment]] 机厅玩家交流',
       commentsIntro: '聊聊你的 JACKPOT × ×20 大爆发 ~',
       commentsPlaceholder: '聊聊心得 ~',
       nickMount: document.getElementById('pb-nick-mount'),

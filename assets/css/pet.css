@@ -65,6 +65,17 @@
   }
   .pf-wrap header { text-align: center; margin-bottom: 1.4rem; }
   .pf-wrap header h1 { font-size: 2.15rem; color: var(--color-ink); margin-bottom: 0.4rem; letter-spacing: 0.01em; }
+  .pf-brand-mark {
+    display: inline-grid; place-items: center;
+    width: 1.62em; height: 1.62em; box-sizing: border-box;
+    margin-right: 0.38em; border: 1px solid var(--color-highlight);
+    border-radius: 0.42em; color: var(--color-highlight);
+    font-family: var(--font-display);
+    font-size: 0.58em;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: 0.16em;
+  }
   .pf-wrap header .sub { color: var(--color-muted); font-style: normal; }
   /* 暖金细线：让朴素的页头多一点品牌精致度（vis-3）*/
   .pf-wrap header::after {
@@ -522,9 +533,9 @@
     .entry-form .food-picker-trigger .fpt-emoji .fc-photo { width: 1.4em; height: 1.4em; object-fit: cover; border-radius: 5px; display: block; }
     .entry-form .food-picker-trigger .fpt-name { flex: 1 1 auto; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .entry-form .food-picker-trigger .fpt-caret { flex: 0 0 auto; color: var(--color-muted); font-size: 0.85rem; }
-    .entry-form .food-picker-trigger .fpt-caret::after { content: ' ▾'; }
+    .entry-form .food-picker-trigger .fpt-caret::after { content: ' +'; }
     .entry-form .entry-cols.fs-open .food-picker-trigger { border-color: var(--color-accent); }
-    .entry-form .entry-cols.fs-open .food-picker-trigger .fpt-caret::after { content: ' ▴'; }
+    .entry-form .entry-cols.fs-open .food-picker-trigger .fpt-caret::after { content: ' −'; }
     /* 列表：默认收起；.fs-open 时【绝对定位悬浮】在触发条正下方，盖住下面的填写区、不把
        页面撑长——逼用户先选好再往下填，也不显臃肿。复用桌面竖列的 chip 与折叠样式。 */
     .entry-form .food-selector { display: none; }
@@ -627,9 +638,9 @@
      steps or option choices (and the edit modal matches it). */
   #food-modal .modal, #food-wizard .modal { width: 440px; max-width: calc(100vw - 2rem); }
 
-  /* Icon picker: fixed 5-column grid → always tidy 2 rows of 5 (no ragged wrap). */
+  /* 获批的“照片 + 名字首字”：只显示照片入口和自动首字预览。 */
   #food-modal .emoji-pick, #food-wizard .emoji-pick {
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem;
+    display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: 0.55rem;
   }
   #food-modal .emoji-pick button, #food-wizard .emoji-pick button {
     font-size: 1.25rem; line-height: 1; padding: 0.45rem 0; cursor: pointer;
@@ -641,11 +652,26 @@
   }
   /* 图标网格里的「拍照 / 选图」格：未选显示 📷，选了显示缩略图铺满。 */
   #food-modal .emoji-pick .photo-cell, #food-wizard .emoji-pick .photo-cell {
-    padding: 0; overflow: hidden; color: var(--color-muted); position: relative;
+    min-height: 3rem; padding: 0; overflow: hidden; color: var(--color-muted); position: relative;
   }
   #food-modal .emoji-pick .photo-cell img, #food-wizard .emoji-pick .photo-cell img {
     width: 100%; height: 100%; object-fit: cover; display: block;
   }
+  #food-modal .food-initial-preview, #food-wizard .food-initial-preview {
+    min-height: 3rem; display: flex; align-items: center; gap: 0.7rem;
+    padding: 0.35rem 0.8rem; border: 1px solid var(--color-border); border-radius: 8px;
+    color: var(--color-muted); background: var(--color-bg);
+  }
+  #food-modal .food-initial-preview.active, #food-wizard .food-initial-preview.active {
+    border-color: var(--color-accent); background: var(--color-bg-warm);
+  }
+  .food-initial-preview b, .fc-initial {
+    display: inline-grid; place-items: center;
+    width: 1.8em; height: 1.8em; border-radius: 50%;
+    color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    font-family: var(--font-display); font-weight: 700;
+  }
+  .food-initial-preview small { font-size: 0.78rem; }
 
   /* A layout (edit modal): tappable option cards replace the old pill toggles. */
   #food-modal .opt-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
@@ -657,7 +683,12 @@
     border-radius: 12px; background: var(--color-bg); color: var(--color-text); cursor: pointer;
   }
   #food-modal .opt-card input { display: none; }
-  #food-modal .opt-card .oc-ico { font-size: 1.4rem; line-height: 1; }
+  #food-modal .opt-card .oc-ico {
+    display: inline-grid; place-items: center; min-width: 2.6em; height: 2em; padding: 0 0.35em;
+    border: 1px solid currentColor; border-radius: 0.5em; color: var(--color-accent);
+    font-size: 0.72rem; line-height: 1; font-weight: 700; letter-spacing: 0.02em;
+    box-sizing: border-box;
+  }
   #food-modal .opt-card .oc-txt { display: flex; flex-direction: column; gap: 0.15rem; }
   #food-modal .opt-card .oc-txt b { font-size: 0.95rem; color: var(--color-ink); font-weight: 600; }
   #food-modal .opt-card .oc-txt small { font-size: 0.74rem; color: var(--color-light); }
@@ -665,9 +696,9 @@
   #food-modal .opt-card.active { border-color: var(--color-accent); background: var(--color-bg-warm); }
   #food-modal .opt-card.active .oc-txt b { color: var(--color-accent); }
   #food-modal .opt-card.active .oc-check {
-    display: flex; position: absolute; top: 0.5rem; right: 0.5rem; width: 18px; height: 18px;
-    border-radius: 50%; background: var(--color-accent); color: #fff; font-size: 0.7rem;
-    align-items: center; justify-content: center;
+    display: block; position: absolute; top: 0.62rem; right: 0.62rem; width: 10px; height: 5px;
+    border-left: 2px solid var(--color-accent); border-bottom: 2px solid var(--color-accent);
+    transform: rotate(-45deg);
   }
 
   /* Shared: inline "unit name / grams" rows and the kcal input with a unit suffix. */
@@ -722,7 +753,12 @@
     font: inherit; width: 100%; padding: 1.2rem; border: 1.5px solid var(--color-border);
     border-radius: 14px; background: var(--color-bg); color: var(--color-text); cursor: pointer;
   }
-  #food-wizard .big-choice .bc-ico { font-size: 2rem; line-height: 1; }
+  #food-wizard .big-choice .bc-ico {
+    display: inline-grid; place-items: center; min-width: 3em; height: 2.2em; padding: 0 0.4em;
+    border: 1px solid currentColor; border-radius: 0.55em; color: var(--color-accent);
+    font-size: 0.78rem; line-height: 1; font-weight: 700; letter-spacing: 0.02em;
+    box-sizing: border-box;
+  }
   #food-wizard .big-choice .bc-title { font-size: 1.05rem; font-weight: 600; color: var(--color-ink); }
   #food-wizard .big-choice .bc-sub { font-size: 0.8rem; color: var(--color-light); }
   #food-wizard .big-choice.active { border-color: var(--color-accent); background: var(--color-bg-warm); }
@@ -1268,13 +1304,13 @@
   }
   .modal .estimator > summary::-webkit-details-marker { display: none; }
   .modal .estimator > summary::after {
-    content: '▾';
+    content: '+';
     margin-left: auto;
     color: var(--color-muted);
     transition: transform 0.18s;
     font-size: 0.78rem;
   }
-  .modal .estimator[open] > summary::after { transform: rotate(180deg); }
+  .modal .estimator[open] > summary::after { content: '−'; }
   .modal .estimator-body { padding-top: 0.7rem; }
   .modal .rec-preview {
     font-size: 0.85rem; color: var(--color-muted);
@@ -1722,8 +1758,10 @@
     background: var(--color-bg); border-bottom: 1px solid var(--color-border);
   }
   .pf-appbar .pf-appbar-title {
+    display: inline-flex; align-items: center;
     font-family: var(--font-display); font-size: 1.18rem; font-weight: 600; color: var(--color-ink);
   }
+  .pf-appbar .pf-brand-mark { vertical-align: 0; }
   /* 装成 APP 后站点导航被隐藏，这里给 App 顶栏一个明暗切换入口（mob-1）*/
   .pf-appbar .pf-appbar-theme {
     position: absolute; right: var(--pf-pad); bottom: 0.42rem;
@@ -1823,6 +1861,7 @@
     font-size:1.6rem; box-shadow:0 2px 5px rgba(40,30,20,.06); transition:box-shadow .15s, background .15s; overflow:hidden;
   }
   .food-card .coin .disc img { width:100%; height:100%; object-fit:cover; }
+  .food-card .coin .disc .fc-initial { font-size: 0.84em; }
   .food-card .coin .cn { display:block; font-family:var(--font-body); font-size:.68rem; color:var(--fc-muted); margin-top:.38rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
   .food-card .coin.on .disc { box-shadow:0 0 0 2px var(--fc-gold), 0 4px 12px rgba(191,159,87,.32); background:var(--fc-raise); }
   .food-card .coin.on .cn { color:var(--fc-navy); font-weight:700; }
@@ -1990,7 +2029,7 @@
     border:none; background:none; color:var(--fc-navy); font-family:var(--font-body); font-size:.9rem; font-weight:600;
     cursor:pointer; padding:.1rem .35rem; min-width:3.4rem; text-align:center;
   }
-  .food-card .rn-cur::after { content:" ▾"; color:var(--fc-faint); font-size:.7em; }
+  .food-card .rn-cur::after { content:" +"; color:var(--fc-faint); font-size:.7em; }
   .food-card .rn-date-hidden { position:absolute; left:50%; bottom:-4px; width:1px; height:1px; opacity:0; pointer-events:none; }
   .food-card .rn-cur:focus-visible, .food-card .rn-arrow:focus-visible { outline:2px solid var(--fc-navy); outline-offset:2px; }
   .food-card .rec-total { font-family:var(--font-body); font-size:.78rem; color:var(--fc-faint); text-align:center; margin-top:.9rem; }

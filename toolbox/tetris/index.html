@@ -33,8 +33,8 @@ permalink: /toolbox/tetris/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
@@ -246,7 +246,7 @@ permalink: /toolbox/tetris/
 
 <div class="tetris-wrap">
   <header>
-    <h1>🧱 俄罗斯方块</h1>
+    <h1>[[zi:grid]] 俄罗斯方块</h1>
     <div class="sub">堆满一行就消除，别让方块顶到天花板</div>
   </header>
 
@@ -286,25 +286,25 @@ permalink: /toolbox/tetris/
       <!-- 预进入界面 -->
       <div class="gs-pgo-overlay open" id="ttPreGameOverlay">
         <div class="gs-pgo-view active" id="ttPgoViewMain">
-          <div class="gs-pgo-icon">🧱</div>
+          <div class="gs-pgo-icon">[[zi:grid]]</div>
           <h2 class="gs-pgo-title">俄罗斯方块</h2>
           <div class="gs-pgo-subtitle">堆满一行就消除，别让方块顶到天花板</div>
           <div class="gs-pgo-highscore">
             <div class="gs-pgo-hs-value" id="ttPgoHighScore">0</div>
             <div class="gs-pgo-hs-label">历史最高分</div>
           </div>
-          <button class="gs-pgo-start-btn" id="ttPgoStartBtn">▶ 开始游戏</button>
-          <button class="gs-pgo-settings-link" id="ttPgoSettingsLink" type="button">⚙ 设置</button>
+          <button class="gs-pgo-start-btn" id="ttPgoStartBtn">[[zi:play]] 开始游戏</button>
+          <button class="gs-pgo-settings-link" id="ttPgoSettingsLink" type="button">[[zi:settings]] 设置</button>
         </div>
         <div class="gs-pgo-view" id="ttPgoViewResume">
-          <div class="gs-pgo-icon">👋</div>
+          <div class="gs-pgo-icon">[[zi:user]]</div>
           <h2 class="gs-pgo-title">上次还没玩完</h2>
           <div class="gs-pgo-resume-summary" id="ttPgoResumeSummary"></div>
-          <button class="gs-pgo-start-btn" id="ttPgoResumeContinueBtn">▶ 继续上次</button>
+          <button class="gs-pgo-start-btn" id="ttPgoResumeContinueBtn">[[zi:play]] 继续上次</button>
           <button class="gs-pgo-start-btn" id="ttPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;"><svg viewBox="0 0 24 24" width="0.95em" height="0.95em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em;margin-right:0.35em" aria-hidden="true"><polyline points="2 4 2 10 8 10"/><path d="M3.6 15a9 9 0 1 0 2-9.4L2 10"/></svg>重新开始</button>
         </div>
         <div class="gs-pgo-view" id="ttPgoViewSettings">
-          <h2 class="gs-pgo-settings-title">⚙ 设置</h2>
+          <h2 class="gs-pgo-settings-title">[[zi:settings]] 设置</h2>
           <div class="gs-pgo-settings-body" id="ttPgoSettingsBody"></div>
           <button class="gs-pgo-back-link" id="ttPgoBackLink" type="button">← 返回</button>
         </div>
@@ -334,7 +334,7 @@ permalink: /toolbox/tetris/
 
   <details class="about" style="max-width:480px;margin-left:auto;margin-right:auto;">
     <summary>游戏规则</summary>
-    <p>方块从顶部落下，把它们拼成完整的一整行就会消除并得分。<kbd>←</kbd> <kbd>→</kbd> 左右移动，<kbd>↓</kbd> 软降（每格 +1 分），<kbd>↑</kbd> 或 <kbd>X</kbd> 顺时针旋转，<kbd>Z</kbd> 逆时针旋转，<kbd>空格</kbd> 硬降（每格 +2 分并立即锁定），<kbd>C</kbd> 暂存方块 Hold（需在 ⚙ 设置里开启，一回合限一次），<kbd>P</kbd> 或 <kbd>Esc</kbd> 暂停。手机端直接在棋盘上滑动操作：左右滑实时左右移（跟手，一格一格走）、下滑软降、快速下甩硬降、轻点旋转；开启 Hold 后可点右侧 Hold 框暂存。</p>
+    <p>方块从顶部落下，把它们拼成完整的一整行就会消除并得分。<kbd>←</kbd> <kbd>→</kbd> 左右移动，<kbd>↓</kbd> 软降（每格 +1 分），<kbd>↑</kbd> 或 <kbd>X</kbd> 顺时针旋转，<kbd>Z</kbd> 逆时针旋转，<kbd>空格</kbd> 硬降（每格 +2 分并立即锁定），<kbd>C</kbd> 暂存方块 Hold（需在 [[zi:settings]] 设置里开启，一回合限一次），<kbd>P</kbd> 或 <kbd>Esc</kbd> 暂停。手机端直接在棋盘上滑动操作：左右滑实时左右移（跟手，一格一格走）、下滑软降、快速下甩硬降、轻点旋转；开启 Hold 后可点右侧 Hold 框暂存。</p>
     <p>消行得分按一次消除的行数计：1 行 100、2 行 300、3 行 500、4 行（Tetris）800，再乘以当前等级。每累计消除 10 行升一级，方块下落速度随等级加快。半透明的「幽灵」方块显示当前方块会落到哪里。采用 7-bag 随机：每 7 个方块为一组保证每种各出现一次。方块堆到顶部、新方块无处生成时游戏结束。</p>
   </details>
 
@@ -623,7 +623,7 @@ permalink: /toolbox/tetris/
   }
 
   function holdSwap() {
-    if (!holdAllowed) return;   // Hold 默认关，需在 ⚙ 设置里开启
+    if (!holdAllowed) return;   // Hold 默认关，需在 [[zi:settings]] 设置里开启
     if (state.holdUsed || !state.current) return;
     const curType = state.current.type;
     if (state.holdPiece == null) {
@@ -1014,7 +1014,7 @@ permalink: /toolbox/tetris/
       kind: 'single',
       gameId: 'tetris',
       title: '俄罗斯方块',
-      emoji: '🧱',
+      emoji: '[[zi:grid]]',
       nick: GamesShell.Identity.getNick(),
       score: state.score,
       scoreLabel: '本 局 得 分',
@@ -1231,7 +1231,7 @@ permalink: /toolbox/tetris/
     ttLbWidget = GamesShell.Leaderboard.mount({
       container: document.getElementById('tt-lb-mount'),
       gameId: 'tetris',
-      title: '🏆 俄罗斯方块 排行榜',
+      title: '[[zi:trophy]] 俄罗斯方块 排行榜',
       scoreFormatter: v => Number(v).toLocaleString(),
       scoreAsc: false,
       getCurrentNick: () => GamesShell.Identity.getNick(),
@@ -1239,7 +1239,7 @@ permalink: /toolbox/tetris/
     GamesShell.Comments.mount({
       container: document.getElementById('tt-cm-mount'),
       path: '/toolbox/tetris/',
-      title: '💬 方块交流',
+      title: '[[zi:comment]] 方块交流',
       intro: '聊聊你的最高分、Tetris 四连消的手感 ~',
       placeholder: '聊聊你的俄罗斯方块心得 ~',
     });

@@ -272,7 +272,7 @@ permalink: /toolbox/countdown/
 
 <div class="cd-wrap">
   <header>
-    <h1>⏳ 倒计时面板</h1>
+    <h1>[[zi:hourglass-fine]] 倒计时面板</h1>
   </header>
 
   <div class="toolbar">
@@ -283,15 +283,15 @@ permalink: /toolbox/countdown/
       <button type="button" data-filter="past">已过</button>
     </div>
     <span class="spacer"></span>
-    <button type="button" class="secondary-btn" id="presets-btn">🎉 节日</button>
-    <button type="button" class="secondary-btn" id="export-btn">📤 导出</button>
-    <button type="button" class="secondary-btn" id="import-btn">📥 导入</button>
+    <button type="button" class="secondary-btn" id="presets-btn">[[zi:calendar]] 节日</button>
+    <button type="button" class="secondary-btn" id="export-btn">[[zi:download]] 导出</button>
+    <button type="button" class="secondary-btn" id="import-btn">[[zi:transfer]] 导入</button>
   </div>
 
   <div class="events-grid" id="events-grid"></div>
 
   <div class="empty-zone" id="empty-zone" style="display: none;">
-    <div class="empty-emoji">⏳</div>
+    <div class="empty-emoji">[[zi:hourglass-fine]]</div>
     <div class="empty-text">还没有事件——点上面「+ 添加事件」开始吧</div>
     <button type="button" class="add-btn" onclick="document.getElementById('add-btn').click()">+ 添加第一个事件</button>
   </div>
@@ -309,7 +309,7 @@ permalink: /toolbox/countdown/
         <input type="datetime-local" id="m-date" />
       </div>
       <div class="field">
-        <label>Emoji</label>
+        <label>图形</label>
         <div class="emoji-picker" id="m-emoji"></div>
       </div>
       <div class="field">
@@ -317,7 +317,7 @@ permalink: /toolbox/countdown/
         <div class="color-picker" id="m-color"></div>
       </div>
       <div class="modal-actions">
-        <button type="button" class="delete-btn" id="m-delete" style="display: none;">🗑 删除</button>
+        <button type="button" class="delete-btn" id="m-delete" style="display: none;">[[zi:trash]] 删除</button>
         <button type="button" class="cancel" id="m-cancel">取消</button>
         <button type="button" class="save" id="m-save">保存</button>
       </div>
@@ -343,12 +343,12 @@ permalink: /toolbox/countdown/
   <!-- Holiday Presets Modal -->
   <div class="modal-backdrop" id="presets-modal">
     <div class="modal" style="max-width: 540px;">
-      <h2>🎉 导入节日预设</h2>
+      <h2>导入节日预设</h2>
       <p style="font-size: 0.85rem; color: var(--color-muted); margin-bottom: 1rem; line-height: 1.55;">勾选要添加的节日。系统会按今天日期自动算出每个节日的<strong>下一次发生</strong>，加为倒计时事件。</p>
 
       <div style="margin-bottom: 1rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-          <strong style="color: var(--color-ink); font-family: var(--font-display);">🇨🇳 中国节日</strong>
+          <strong style="color: var(--color-ink); font-family: var(--font-display);">中国节日</strong>
           <span style="flex-grow: 1;"></span>
           <button type="button" class="secondary-btn" data-toggle-section="cn">全选 / 全不选</button>
         </div>
@@ -357,7 +357,7 @@ permalink: /toolbox/countdown/
 
       <div style="margin-bottom: 1rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-          <strong style="color: var(--color-ink); font-family: var(--font-display);">🇺🇸 美国节日</strong>
+          <strong style="color: var(--color-ink); font-family: var(--font-display);">美国节日</strong>
           <span style="flex-grow: 1;"></span>
           <button type="button" class="secondary-btn" data-toggle-section="us">全选 / 全不选</button>
         </div>
@@ -400,13 +400,21 @@ permalink: /toolbox/countdown/
   @media (hover: hover) {
     .preset-list label:hover { background: var(--color-bg); }
   }
-  .preset-list label .pl-emoji { font-size: 1rem; }
+  .preset-list label .pl-badge {
+    width: 2.35rem; min-height: 2.35rem; box-sizing: border-box; flex: 0 0 auto;
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+    border: 1px solid var(--color-highlight); border-radius: 0.38rem;
+    color: var(--color-accent); background: var(--color-bg);
+    font-variant-numeric: tabular-nums; letter-spacing: 0.03em; line-height: 1.02;
+  }
+  .preset-list label .pl-badge b { font-size: 0.58rem; font-weight: 700; }
+  .preset-list label .pl-badge small { font-size: 0.68rem; margin-top: 0.14rem; }
   .preset-list label .pl-name { color: var(--color-ink); flex-grow: 1; }
   .preset-list label .pl-date { font-size: 0.75rem; color: var(--color-light); font-variant-numeric: tabular-nums; }
   .preset-list input[type="checkbox"] { cursor: pointer; }
   .preset-list .pl-existing { opacity: 0.5; }
   .preset-list .pl-existing .pl-name::after {
-    content: ' ✓';
+    content: ' · 已添加';
     color: #4a7c59;
     font-size: 0.7rem;
   }
@@ -432,20 +440,40 @@ permalink: /toolbox/countdown/
     _storageWarnShown = true;
     const b = document.createElement('div');
     b.className = 'storage-warn';
-    b.innerHTML = '\u26A0\uFE0F 浏览器存储空间已满，新数据可能保存失败。建议先导出现有数据再清理浏览器存储。 <button type="button" class="storage-warn-close">关闭</button>';
+    b.innerHTML = '[[zi:warning]] 浏览器存储空间已满，新数据可能保存失败。建议先导出现有数据再清理浏览器存储。 <button type="button" class="storage-warn-close">关闭</button>';
     b.querySelector('.storage-warn-close').addEventListener('click', () => b.remove());
     document.body.appendChild(b);
   }
 
   const STORE_KEY = 'tool.countdown.events.v1';
-  const EMOJIS = ['📚', '✈️', '🎂', '💼', '🎓', '💍', '🏠', '🎯', '💪', '🎉', '⏰', '📅'];
+  const EMOJIS = ['[[zi:book]]', '[[zi:plane]]', '[[zi:cake]]', '[[zi:briefcase]]', '[[zi:graduation]]', '[[zi:ring-double]]', '[[zi:home]]', '[[zi:pin]]', '[[zi:dumbbell]]', '[[zi:sparkle]]', '[[zi:clock]]', '[[zi:calendar]]'];
+  const LEGACY_EVENT_ICONS = {
+    '\u{1F4DA}': '[[zi:book]]', '\u{2708}\u{FE0F}': '[[zi:plane]]', '\u{2708}': '[[zi:plane]]',
+    '\u{1F382}': '[[zi:cake]]', '\u{1F4BC}': '[[zi:briefcase]]', '\u{1F393}': '[[zi:graduation]]',
+    '\u{1F48D}': '[[zi:ring-double]]', '\u{1F3E0}': '[[zi:home]]', '\u{1F3AF}': '[[zi:pin]]',
+    '\u{1F4AA}': '[[zi:dumbbell]]', '\u{1F389}': '[[zi:sparkle]]', '\u{23F0}': '[[zi:clock]]',
+    '\u{1F4C5}': '[[zi:calendar]]', '\u{1F38A}': '[[zi:sparkle]]', '\u{1F9E7}': '[[zi:gift]]',
+    '\u{1F3EE}': '[[zi:bulb]]', '\u{1F337}': '[[zi:heart]]', '\u{1F33F}': '[[zi:leaf]]',
+    '\u{1F6E0}\u{FE0F}': '[[zi:toolbox]]', '\u{1F6E0}': '[[zi:toolbox]]', '\u{1F409}': '[[zi:gift]]',
+    '\u{1F388}': '[[zi:gift]]', '\u{1F495}': '[[zi:heart]]', '\u{1F315}': '[[zi:moon]]',
+    '\u{1F1E8}\u{1F1F3}': '[[zi:flag]]', '\u{1F342}': '[[zi:leaf]]', '\u{270A}': '[[zi:user]]',
+    '\u{1F49D}': '[[zi:heart]]', '\u{1F1FA}\u{1F1F8}': '[[zi:flag]]', '\u{1F340}': '[[zi:leaf]]',
+    '\u{1F339}': '[[zi:heart]]', '\u{1F338}': '[[zi:heart]]', '\u{1F454}': '[[zi:user]]',
+    '\u{1F386}': '[[zi:sparkle]]', '\u{1F383}': '[[zi:clown]]', '\u{1F396}\u{FE0F}': '[[zi:medal]]',
+    '\u{1F396}': '[[zi:medal]]', '\u{1F983}': '[[zi:gift]]', '\u{1F384}': '[[zi:gift]]',
+    '\u{1F381}': '[[zi:gift]]', '\u{1F387}': '[[zi:sparkle]]'
+  };
+  function normalizeEventIcon(value) {
+    if (/^\[\[zi:[a-z0-9-]+(?::[a-z0-9-]+)?\]\]$/.test(String(value || ''))) return value;
+    return LEGACY_EVENT_ICONS[value] || '[[zi:calendar]]';
+  }
   const COLORS = ['#1e3a5f', '#c9a96e', '#4a7c59', '#a04030', '#2d5a8e', '#8b5a3c', '#9b6d5e', '#5e7eb3'];
 
   const state = {
     events: [],
     filter: 'all',
     editingId: null,
-    selectedEmoji: '📅',
+    selectedEmoji: '[[zi:calendar]]',
     selectedColor: '#1e3a5f',
   };
 
@@ -477,6 +505,7 @@ permalink: /toolbox/countdown/
     try {
       const raw = localStorage.getItem(STORE_KEY);
       state.events = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(state.events)) state.events.forEach(ev => { ev.emoji = normalizeEventIcon(ev.emoji); });
     } catch (e) { state.events = []; }
   }
   function save() {
@@ -583,7 +612,7 @@ permalink: /toolbox/countdown/
       return `
         <div class="event-card ${cls}" style="--ev-color: ${ev.color};" data-id="${ev.id}">
           <div class="ev-actions">
-            <button type="button" class="edit" data-id="${ev.id}" title="编辑">✎</button>
+            <button type="button" class="edit" data-id="${ev.id}" title="编辑">[[zi:pencil]]</button>
           </div>
           <div class="ev-emoji">${ev.emoji}</div>
           <div class="ev-title">${escapeHtml(ev.title)}</div>
@@ -729,8 +758,8 @@ permalink: /toolbox/countdown/
     const json = JSON.stringify(state.events, null, 2);
     try {
       await navigator.clipboard.writeText(json);
-      $exportBtn.textContent = '✓ 已复制 JSON';
-      setTimeout(() => { $exportBtn.textContent = '📤 导出'; }, 1800);
+      $exportBtn.textContent = '[[zi:check]] 已复制 JSON';
+      setTimeout(() => { $exportBtn.textContent = '[[zi:upload]] 导出'; }, 1800);
     } catch (e) {
       const w = window.open();
       if (w) {
@@ -761,7 +790,7 @@ permalink: /toolbox/countdown/
           id: ev.id || uuid(),
           title: String(ev.title),
           date: String(ev.date),
-          emoji: ev.emoji || '📅',
+          emoji: ev.emoji || '[[zi:calendar]]',
           color: ev.color || '#1e3a5f',
           createdAt: ev.createdAt || new Date().toISOString(),
         });
@@ -769,10 +798,10 @@ permalink: /toolbox/countdown/
       });
       save();
       render();
-      $importFeedback.textContent = `✓ 已合并 ${added} 个事件`;
+      $importFeedback.textContent = `[[zi:check]] 已合并 ${added} 个事件`;
       setTimeout(() => $importModal.classList.remove('open'), 1200);
     } catch (e) {
-      $importFeedback.textContent = '❌ JSON 解析失败：' + e.message;
+      $importFeedback.textContent = '[[zi:warning]] JSON 解析失败：' + e.message;
     }
   });
 
@@ -831,37 +860,37 @@ permalink: /toolbox/countdown/
 
   const PRESETS = {
     cn: [
-      { name: '元旦', emoji: '🎊', color: '#a04030', kind: 'fixed', month: 1, day: 1 },
-      { name: '春节', emoji: '🧧', color: '#a04030', kind: 'lunar' },
-      { name: '元宵节', emoji: '🏮', color: '#a04030', kind: 'lunar' },
-      { name: '三八妇女节', emoji: '🌷', color: '#a04030', kind: 'fixed', month: 3, day: 8 },
-      { name: '清明节', emoji: '🌿', color: '#4a7c59', kind: 'lunar' },
-      { name: '五一劳动节', emoji: '🛠️', color: '#a04030', kind: 'fixed', month: 5, day: 1 },
-      { name: '端午节', emoji: '🐉', color: '#a04030', kind: 'lunar' },
-      { name: '六一儿童节', emoji: '🎈', color: '#c9a96e', kind: 'fixed', month: 6, day: 1 },
-      { name: '七夕', emoji: '💕', color: '#a04030', kind: 'lunar' },
-      { name: '教师节', emoji: '📚', color: '#1e3a5f', kind: 'fixed', month: 9, day: 10 },
-      { name: '中秋节', emoji: '🌕', color: '#c9a96e', kind: 'lunar' },
-      { name: '国庆节', emoji: '🇨🇳', color: '#a04030', kind: 'fixed', month: 10, day: 1 },
-      { name: '重阳节', emoji: '🍂', color: '#8b5a3c', kind: 'lunar' },
+      { name: '元旦', color: '#a04030', kind: 'fixed', month: 1, day: 1 },
+      { name: '春节', color: '#a04030', kind: 'lunar', badge: ['正月', '初一'] },
+      { name: '元宵节', color: '#a04030', kind: 'lunar', badge: ['正月', '十五'] },
+      { name: '三八妇女节', color: '#a04030', kind: 'fixed', month: 3, day: 8 },
+      { name: '清明节', color: '#4a7c59', kind: 'lunar' },
+      { name: '五一劳动节', color: '#a04030', kind: 'fixed', month: 5, day: 1 },
+      { name: '端午节', color: '#a04030', kind: 'lunar', badge: ['五月', '初五'] },
+      { name: '六一儿童节', color: '#c9a96e', kind: 'fixed', month: 6, day: 1 },
+      { name: '七夕', color: '#a04030', kind: 'lunar', badge: ['七月', '初七'] },
+      { name: '教师节', color: '#1e3a5f', kind: 'fixed', month: 9, day: 10 },
+      { name: '中秋节', color: '#c9a96e', kind: 'lunar', badge: ['八月', '十五'] },
+      { name: '国庆节', color: '#a04030', kind: 'fixed', month: 10, day: 1 },
+      { name: '重阳节', color: '#8b5a3c', kind: 'lunar', badge: ['九月', '初九'] },
     ],
     us: [
-      { name: "New Year's Day", emoji: '🎊', color: '#1e3a5f', kind: 'fixed', month: 1, day: 1 },
-      { name: 'MLK Day', emoji: '✊', color: '#1e3a5f', kind: 'nth', month: 1, weekday: 1, n: 3 },
-      { name: "Valentine's Day", emoji: '💝', color: '#a04030', kind: 'fixed', month: 2, day: 14 },
-      { name: 'Presidents Day', emoji: '🇺🇸', color: '#1e3a5f', kind: 'nth', month: 2, weekday: 1, n: 3 },
-      { name: "St. Patrick's Day", emoji: '🍀', color: '#4a7c59', kind: 'fixed', month: 3, day: 17 },
-      { name: 'Memorial Day', emoji: '🌹', color: '#a04030', kind: 'last', month: 5, weekday: 1 },
-      { name: "Mother's Day", emoji: '🌸', color: '#a04030', kind: 'nth', month: 5, weekday: 0, n: 2 },
-      { name: "Father's Day", emoji: '👔', color: '#1e3a5f', kind: 'nth', month: 6, weekday: 0, n: 3 },
-      { name: 'Independence Day', emoji: '🎆', color: '#1e3a5f', kind: 'fixed', month: 7, day: 4 },
-      { name: 'Labor Day', emoji: '🛠️', color: '#1e3a5f', kind: 'nth', month: 9, weekday: 1, n: 1 },
-      { name: 'Halloween', emoji: '🎃', color: '#8b5a3c', kind: 'fixed', month: 10, day: 31 },
-      { name: 'Veterans Day', emoji: '🎖️', color: '#1e3a5f', kind: 'fixed', month: 11, day: 11 },
-      { name: 'Thanksgiving', emoji: '🦃', color: '#8b5a3c', kind: 'nth', month: 11, weekday: 4, n: 4 },
-      { name: 'Christmas Eve', emoji: '🎄', color: '#a04030', kind: 'fixed', month: 12, day: 24 },
-      { name: 'Christmas', emoji: '🎁', color: '#a04030', kind: 'fixed', month: 12, day: 25 },
-      { name: "New Year's Eve", emoji: '🎇', color: '#1e3a5f', kind: 'fixed', month: 12, day: 31 },
+      { name: "New Year's Day", color: '#1e3a5f', kind: 'fixed', month: 1, day: 1 },
+      { name: 'MLK Day', color: '#1e3a5f', kind: 'nth', month: 1, weekday: 1, n: 3 },
+      { name: "Valentine's Day", color: '#a04030', kind: 'fixed', month: 2, day: 14 },
+      { name: 'Presidents Day', color: '#1e3a5f', kind: 'nth', month: 2, weekday: 1, n: 3 },
+      { name: "St. Patrick's Day", color: '#4a7c59', kind: 'fixed', month: 3, day: 17 },
+      { name: 'Memorial Day', color: '#a04030', kind: 'last', month: 5, weekday: 1 },
+      { name: "Mother's Day", color: '#a04030', kind: 'nth', month: 5, weekday: 0, n: 2 },
+      { name: "Father's Day", color: '#1e3a5f', kind: 'nth', month: 6, weekday: 0, n: 3 },
+      { name: 'Independence Day', color: '#1e3a5f', kind: 'fixed', month: 7, day: 4 },
+      { name: 'Labor Day', color: '#1e3a5f', kind: 'nth', month: 9, weekday: 1, n: 1 },
+      { name: 'Halloween', color: '#8b5a3c', kind: 'fixed', month: 10, day: 31 },
+      { name: 'Veterans Day', color: '#1e3a5f', kind: 'fixed', month: 11, day: 11 },
+      { name: 'Thanksgiving', color: '#8b5a3c', kind: 'nth', month: 11, weekday: 4, n: 4 },
+      { name: 'Christmas Eve', color: '#a04030', kind: 'fixed', month: 12, day: 24 },
+      { name: 'Christmas', color: '#a04030', kind: 'fixed', month: 12, day: 25 },
+      { name: "New Year's Eve", color: '#1e3a5f', kind: 'fixed', month: 12, day: 31 },
     ],
   };
 
@@ -869,6 +898,12 @@ permalink: /toolbox/countdown/
   const $presetsModal = document.getElementById('presets-modal');
   const $presetsConfirm = document.getElementById('presets-confirm');
   const $presetsFeedback = document.getElementById('presets-feedback');
+  const MONTH_CODES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+  function presetBadge(spec, iso) {
+    const parts = spec.badge || [MONTH_CODES[Number(iso.slice(5, 7)) - 1], iso.slice(8, 10)];
+    return `<span class="pl-badge" aria-hidden="true"><b>${parts[0]}</b><small>${parts[1]}</small></span>`;
+  }
 
   function buildPresetList(section) {
     const $container = document.getElementById('preset-list-' + section);
@@ -884,7 +919,7 @@ permalink: /toolbox/countdown/
       return `
         <label class="${exists ? 'pl-existing' : ''}">
           <input type="checkbox" data-section="${section}" data-idx="${i}" ${exists ? 'disabled' : ''} />
-          <span class="pl-emoji">${spec.emoji}</span>
+          ${presetBadge(spec, iso)}
           <span class="pl-name">${spec.name}</span>
           <span class="pl-date">${dateLabel}</span>
         </label>
@@ -926,7 +961,7 @@ permalink: /toolbox/countdown/
         id: uuid(),
         title: spec.name,
         date: dt,
-        emoji: spec.emoji,
+        emoji: '[[zi:calendar]]',
         color: spec.color,
         createdAt: new Date().toISOString(),
       });
@@ -934,7 +969,7 @@ permalink: /toolbox/countdown/
     });
     save();
     render();
-    $presetsFeedback.textContent = `✓ 已添加 ${added} 个节日事件`;
+    $presetsFeedback.textContent = `已添加 ${added} 个节日事件`;
     setTimeout(() => $presetsModal.classList.remove('open'), 1200);
   });
 
@@ -962,7 +997,7 @@ window.addEventListener('DOMContentLoaded', () => {
     GamesShell.Comments.mount({
       container: document.getElementById('countdown-cm-mount'),
       path: '/toolbox/countdown/',
-      title: '💬 倒计时交流',
+      title: '[[zi:comment]] 倒计时交流',
       intro: '分享你在追的截止日、好用的倒计时玩法、bug 反馈～',
       placeholder: '聊聊你的倒计时清单 / 想加的事件类型 / 想到的功能…',
     });

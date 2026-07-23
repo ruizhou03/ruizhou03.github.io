@@ -72,6 +72,94 @@
     ctx.closePath();
   }
 
+  function markerName(value) {
+    const match = /^\[\[zi:([a-z0-9-]+)(?::[a-z0-9-]+)?\]\]$/i.exec(String(value || '').trim());
+    return match ? match[1].toLowerCase() : '';
+  }
+
+  // Settlement cards are exported from canvas, so DOM SVG markers cannot be
+  // hydrated there. Draw the approved line-icon language directly on canvas.
+  function drawHeaderIcon(ctx, name, x, y, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 1.7;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const line = (points, close) => {
+      ctx.beginPath();
+      points.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+      if (close) ctx.closePath();
+      ctx.stroke();
+    };
+    const dot = (dx, dy, r) => { ctx.beginPath(); ctx.arc(dx, dy, r || 1.1, 0, Math.PI * 2); ctx.fill(); };
+    if (name === 'user') {
+      ctx.beginPath(); ctx.arc(12, 8, 3.2, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(12, 22, 7, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+    } else if (name === 'star') {
+      const pts = [];
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 4.2 : 9;
+        pts.push([12 + Math.cos(a) * r, 12 + Math.sin(a) * r]);
+      }
+      line(pts, true);
+    } else if (name === 'pin') {
+      ctx.beginPath(); ctx.arc(12, 9, 5.5, 0, Math.PI * 2); ctx.stroke();
+      line([[12, 14.5], [12, 22]]);
+      dot(12, 9, 1.2);
+    } else if (name === 'library') {
+      line([[3, 9], [12, 3], [21, 9]], true);
+      line([[4, 21], [20, 21], [20, 18], [4, 18]], true);
+      [7, 12, 17].forEach(px => line([[px, 10], [px, 18]]));
+    } else if (name === 'rocket') {
+      ctx.beginPath(); ctx.ellipse(13, 10, 4.2, 7.5, Math.PI / 4, 0, Math.PI * 2); ctx.stroke();
+      line([[8.5, 14.5], [5, 17.5], [9.7, 17]]);
+      line([[15.5, 7.5], [19, 4.5], [19.5, 9.2]]);
+      ctx.beginPath(); ctx.arc(14, 9, 1.4, 0, Math.PI * 2); ctx.stroke();
+      line([[7, 18], [4, 21]], false);
+    } else if (name === 'cloud') {
+      ctx.beginPath();
+      ctx.moveTo(5, 18);
+      ctx.bezierCurveTo(1, 18, 1.5, 12.5, 5.5, 12.5);
+      ctx.bezierCurveTo(7, 6, 16.5, 7, 17.5, 12.5);
+      ctx.bezierCurveTo(22, 12.5, 22.5, 18, 18, 18);
+      ctx.closePath(); ctx.stroke();
+    } else if (name === 'home') {
+      line([[3, 11], [12, 4], [21, 11]]);
+      line([[6, 10], [6, 21], [18, 21], [18, 10]]);
+      line([[10, 21], [10, 15], [14, 15], [14, 21]]);
+    } else if (name === 'dice') {
+      pathRoundRect(ctx, 4, 4, 16, 16, 3); ctx.stroke();
+      dot(8, 8); dot(16, 8); dot(12, 12); dot(8, 16); dot(16, 16);
+    } else if (name === 'warning') {
+      line([[12, 3], [22, 21], [2, 21]], true);
+      line([[12, 9], [12, 15]]); dot(12, 18, 1);
+    } else if (name === 'plane') {
+      line([[3, 13], [10, 11], [14, 3], [17, 4], [15, 11], [21, 13], [20, 16], [14, 15], [11, 21], [9, 20], [10, 15], [4, 16]], true);
+    } else if (name === 'citrus-cut') {
+      ctx.beginPath(); ctx.arc(12, 12, 8, 0, Math.PI * 2); ctx.stroke();
+      line([[12, 4], [12, 20]]); line([[4, 12], [20, 12]]); line([[6.4, 6.4], [17.6, 17.6]]);
+    } else if (name === 'sparkle') {
+      line([[12, 3], [12, 21]]); line([[3, 12], [21, 12]]);
+      line([[6.2, 6.2], [17.8, 17.8]]); line([[17.8, 6.2], [6.2, 17.8]]);
+      ctx.beginPath(); ctx.arc(12, 12, 3, 0, Math.PI * 2); ctx.stroke();
+    } else if (name === 'leaf') {
+      ctx.beginPath();
+      ctx.moveTo(4, 18);
+      ctx.bezierCurveTo(5.5, 7, 13, 3.5, 21, 4);
+      ctx.bezierCurveTo(20.5, 13, 14, 20, 4, 18);
+      ctx.closePath(); ctx.stroke();
+      line([[5, 18], [17, 8]]);
+    } else if (name === 'ball') {
+      ctx.beginPath(); ctx.arc(12, 12, 7.5, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(9.5, 9.5, 1, 0, Math.PI * 2); ctx.fill();
+    } else {
+      [[5, 5], [13, 5], [5, 13], [13, 13]].forEach(([gx, gy]) => { ctx.strokeRect(gx, gy, 6, 6); });
+    }
+    ctx.restore();
+  }
+
   // 合成结算图，返回 PNG dataURL（失败返回 ''）。
   function compose(opts) {
     if (!opts || typeof opts.paintBoard !== 'function') {
@@ -116,9 +204,13 @@
       ctx.textAlign = 'left';
       let tx = PAD;
       if (opts.emoji) {
-        ctx.fillStyle = colors.ink;
-        ctx.font = `26px ${FONT}`;
-        ctx.fillText(opts.emoji, tx, HEADER_H / 2);
+        const iconName = markerName(opts.emoji);
+        if (iconName) drawHeaderIcon(ctx, iconName, tx, HEADER_H / 2 - 12, colors.ink);
+        else {
+          ctx.fillStyle = colors.ink;
+          ctx.font = `26px ${FONT}`;
+          ctx.fillText(opts.emoji, tx, HEADER_H / 2);
+        }
         tx += 38;
       }
       ctx.fillStyle = colors.ink;
@@ -307,7 +399,7 @@
     const btnDownload = document.createElement('button');
     btnDownload.type = 'button';
     btnDownload.className = 'gs-settle-primary';
-    btnDownload.textContent = isIosUA() ? '🌐 在新标签打开' : '⬇ 下载 PNG';
+    btnDownload.textContent = isIosUA() ? '[[zi:globe]] 在新标签打开' : '[[zi:download]] 下载 PNG';
     btnDownload.addEventListener('click', () => doDownload(opts.dataURL, opts.filename));
 
     const btnClose = document.createElement('button');
@@ -342,8 +434,8 @@
       btn.className = 'gs-settle-btn';
       if (opts.gameId) btn.dataset.game = opts.gameId;
       const labelText = opts.label || '保存这局结算图';
-      btn.innerHTML = '<span class="gs-settle-btn-emoji">📸</span><span>'
-        + labelText.replace(/^📸\s*/, '') + '</span>';
+      btn.innerHTML = '<span class="gs-settle-btn-emoji">[[zi:camera]]</span><span>'
+        + labelText.replace(/^\[\[zi:camera\]\]\s*/, '') + '</span>';
       btn.addEventListener('click', () => {
         if (btn.disabled) return;
         const settleOpts = opts.getOpts();
@@ -364,8 +456,8 @@
       element: btn,
       setEnabled(enabled) { btn.disabled = !enabled; },
       setLabel(text) {
-        btn.innerHTML = '<span class="gs-settle-btn-emoji">📸</span><span>'
-          + String(text).replace(/^📸\s*/, '') + '</span>';
+        btn.innerHTML = '<span class="gs-settle-btn-emoji">[[zi:camera]]</span><span>'
+          + String(text).replace(/^\[\[zi:camera\]\]\s*/, '') + '</span>';
       },
       remove() { btn.remove(); },
     };

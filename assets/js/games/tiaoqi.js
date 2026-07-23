@@ -503,18 +503,18 @@
         ? '— 请配置玩家（至少 2 角）—'
         : `— 请配置玩家（${activeCount} 人，可继续调整）—`;
     } else if (state.paused) {
-      label = '⏸ 已暂停';
+      label = '[[zi:pause]] 已暂停';
     } else if (state.over) {
       const winC = state.winner;
       label = winC
-        ? `🎉 ${CORNERS[winC].label}方（${CORNERS[winC].name}角）胜！`
+        ? `[[zi:sparkle]] ${CORNERS[winC].label}方（${CORNERS[winC].name}角）胜！`
         : '— 游戏结束 —';
     } else if (state.aiThinking) {
-      label = '🤖 AI 思考中…';
+      label = '[[zi:bot]] AI 思考中…';
     } else if (state.chainPiece) {
       const p = currentPlayer();
       const c = CORNERS[p];
-      label = `<span class="swatch" style="background:${c.color}"></span>${c.label}方连跳中——继续点目标格，或点「✓ 结束跳跃」`;
+      label = `<span class="swatch" style="background:${c.color}"></span>${c.label}方连跳中——继续点目标格，或点「[[zi:check]] 结束跳跃」`;
     } else {
       const p = currentPlayer();
       const c = CORNERS[p];
@@ -534,14 +534,14 @@
       sw.style.background = c.color;
       const txt = document.createElement('span');
       const kind = state.playerKinds[p];
-      txt.textContent = c.label + (kind === 'ai' ? ' 🤖' : ' 👤');
+      txt.textContent = c.label + (kind === 'ai' ? ' [[zi:bot]]' : ' [[zi:user]]');
       item.appendChild(sw);
       item.appendChild(txt);
       rosterEl.appendChild(item);
     });
 
     undoBtn.disabled = state.history.length === 0 || state.aiThinking || state.paused || state.over || !!state.chainPiece;
-    pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    pauseBtn.textContent = state.paused ? '[[zi:play]] 继续' : '[[zi:pause]] 暂停';
     pauseBtn.disabled = state.over || !Object.values(state.playerKinds).includes('ai') || !!state.chainPiece;
     pausedOverlay.classList.toggle('show', state.paused && !state.over);
     endChainBtn.hidden = !state.chainPiece;
@@ -947,16 +947,16 @@
     if (typeof tqSettleBtn !== 'undefined' && tqSettleBtn) tqSettleBtn.setEnabled(true);
 
     // Show overlay
-    ovTitle.textContent = `🎉 ${CORNERS[state.winner].label}方（${CORNERS[state.winner].name}角）胜！`;
+    ovTitle.textContent = `[[zi:sparkle]] ${CORNERS[state.winner].label}方（${CORNERS[state.winner].name}角）胜！`;
     ovRanking.innerHTML = renderRankingHtml();
     overlay.classList.add('show');
   }
 
   function renderRankingHtml() {
-    const medals = ['🥇', '🥈', '🥉', '🏅', '🏅', '🏅'];
+    const medals = ['[[zi:medal]]', '[[zi:medal]]', '[[zi:medal]]', '[[zi:medal]]', '[[zi:medal]]', '[[zi:medal]]'];
     return state.finalRanking.map((r, i) => {
       const c = CORNERS[r.player];
-      const kind = state.playerKinds[r.player] === 'ai' ? '🤖 AI' : '👤 人类';
+      const kind = state.playerKinds[r.player] === 'ai' ? '[[zi:bot]] AI' : '[[zi:user]] 人类';
       return `<div>${medals[i] || '·'} ${c.label} ${kind} <span style="opacity:0.7;font-size:0.85em">— 已到 ${r.inGoal}/10</span></div>`;
     }).join('');
   }
@@ -1171,7 +1171,7 @@
     }
 
     // Stats: rank list with medal + corner color label + kind
-    const medals = ['🥇 1st', '🥈 2nd', '🥉 3rd', '🏅 4th', '🏅 5th', '🏅 6th'];
+    const medals = ['[[zi:medal]] 1st', '[[zi:medal]] 2nd', '[[zi:medal]] 3rd', '[[zi:medal]] 4th', '[[zi:medal]] 5th', '[[zi:medal]] 6th'];
     const stats = state.finalRanking.map((r, i) => {
       const c = CORNERS[r.player];
       const kind = state.playerKinds[r.player] === 'ai' ? 'AI' : '人类';
@@ -1183,7 +1183,7 @@
       kind: 'duel',
       gameId: 'tiaoqi',
       title: '跳棋',
-      emoji: '⭐',
+      emoji: '[[zi:star]]',
       nick: (window.GamesShell && GamesShell.Identity.getNick()) || '匿名',
       opponent,
       result: tqLastResult || 'draw',
@@ -1239,13 +1239,13 @@
     tqWlbWidget = GamesShell.WinsLeaderboard.mount({
       container: document.getElementById('tq-wlb-mount'),
       gameId: 'tiaoqi',
-      title: '🏆 跳棋 战绩榜（vs AI）',
+      title: '[[zi:trophy]] 跳棋 战绩榜（vs AI）',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });
     GamesShell.Comments.mount({
       container: document.getElementById('tq-cm-mount'),
       path: '/toolbox/tiaoqi/',
-      title: '💬 棋友交流',
+      title: '[[zi:comment]] 棋友交流',
       intro: '聊聊跳棋的开局思路、围堵 / 跳跳跳的小技巧，或者吐槽 AI ~',
       placeholder: '聊聊你的跳棋心得 ~',
     });
@@ -1336,7 +1336,7 @@
   const tqSeatEls = {};
   for (const ck of CORNER_KEYS) tqSeatEls[ck] = document.getElementById('tqSeat' + ck);
 
-  const KIND_ICON = { empty: '➕', human: '👤', ai: '🤖', remote: '🔗' };
+  const KIND_ICON = { empty: '[[zi:users]]', human: '[[zi:user]]', ai: '[[zi:bot]]', remote: '[[zi:link]]' };
   const DIFF3 = { easy: '新手', normal: '普通', hard: '高手' };
   const LOCAL_SUB = { empty: '空位', human: '本机真人', ai: '电脑', remote: '邀请加入' };
   const LOCAL_CYCLE = ['empty', 'human', 'ai', 'remote'];
@@ -1367,7 +1367,7 @@
       + (m.me ? ' is-me' : '') + (m.sel ? ' swap-sel' : ''));
     card.style.setProperty('--seat', info.color);
     if (h.onTap) card.onclick = h.onTap;
-    card.appendChild(tqEl('span', 'ico', m.icon || KIND_ICON[m.kind] || '👤'));
+    card.appendChild(tqEl('span', 'ico', m.icon || KIND_ICON[m.kind] || '[[zi:user]]'));
     card.appendChild(tqEl('span', 'lbl', m.label || (info.label + '方')));
     if (m.host || m.off) {
       const tags = tqEl('div', 'tq-seat-badges');
@@ -1377,8 +1377,8 @@
     }
     card.appendChild(tqEl('span', 'sub', m.sub || ''));
     if (m.kind === 'ai' && h.onDiff) card.appendChild(tqDiffChips(m.aiDiff, h.onDiff));
-    if (m.showCopy && h.onCopy) { const b = tqEl('button', 'tq-seat-mini', '🔗 复制链接'); b.onclick = (e) => { e.stopPropagation(); h.onCopy(); }; card.appendChild(b); }
-    if (m.showKick && h.onKick) { const b = tqEl('button', 'tq-seat-mini kick', '✕ 踢出'); b.onclick = (e) => { e.stopPropagation(); h.onKick(); }; card.appendChild(b); }
+    if (m.showCopy && h.onCopy) { const b = tqEl('button', 'tq-seat-mini', '[[zi:link]] 复制链接'); b.onclick = (e) => { e.stopPropagation(); h.onCopy(); }; card.appendChild(b); }
+    if (m.showKick && h.onKick) { const b = tqEl('button', 'tq-seat-mini kick', '[[zi:stop]] 踢出'); b.onclick = (e) => { e.stopPropagation(); h.onKick(); }; card.appendChild(b); }
     return card;
   }
 
@@ -1419,11 +1419,11 @@
     tqStartBtn.onclick = tqStartLocalGame;
     if (remoteNoRoom) {
       tqStartBtn.disabled = true;
-      tqStartBtn.textContent = '▶ 开始游戏';
-      tqLobbyHint.textContent = '点「邀请」领地里的「🔗 复制链接」即可建房、邀请好友联机';
+      tqStartBtn.textContent = '[[zi:play]] 开始游戏';
+      tqLobbyHint.textContent = '点「邀请」领地里的「[[zi:link]] 复制链接」即可建房、邀请好友联机';
     } else {
       tqStartBtn.disabled = n < 2;
-      tqStartBtn.textContent = n < 2 ? '▶ 开始游戏' : ('▶ 开始游戏（' + n + ' 人）');
+      tqStartBtn.textContent = n < 2 ? '[[zi:play]] 开始游戏' : ('[[zi:play]] 开始游戏（' + n + ' 人）');
       tqLobbyHint.textContent = '点六角领地切换 空 / 本机真人 / 电脑（可设难度）/ 邀请联机';
     }
     tqSetErr('');
@@ -1486,10 +1486,10 @@
     // (in-gesture), then create the room with that code in the background. If
     // the room already exists, just re-copy its link.
     function startInvite() {
-      if (net) { writeClip(inviteUrl(net.code)); tqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入'; return; }
+      if (net) { writeClip(inviteUrl(net.code)); tqLobbyHint.textContent = '[[zi:check]] 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入'; return; }
       const code = String(Math.floor(1000 + Math.random() * 9000));
       writeClip(inviteUrl(code));
-      tqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + code + '），正在建房…';
+      tqLobbyHint.textContent = '[[zi:check]] 已复制邀请链接（房号 ' + code + '），正在建房…';
       goOnline(code);
     }
 
@@ -1507,7 +1507,7 @@
       startPolling();
       tqRenderLobby();
       if (presetCode && cr.code !== presetCode) { writeClip(inviteUrl(cr.code)); tqLobbyHint.textContent = '房号已更新为 ' + cr.code + '（已复制新链接，旧号失效）'; }
-      else tqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + cr.code + '），发给好友打开即加入';
+      else tqLobbyHint.textContent = '[[zi:check]] 已复制邀请链接（房号 ' + cr.code + '），发给好友打开即加入';
     }
 
     async function join(rawCode) {
@@ -1540,7 +1540,7 @@
     function copyLink() {
       if (!net) return;
       writeClip(inviteUrl(net.code));   // existing room → in-gesture copy
-      tqLobbyHint.textContent = '✓ 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入';
+      tqLobbyHint.textContent = '[[zi:check]] 已复制邀请链接（房号 ' + net.code + '），发给好友打开即加入';
     }
 
     function hostReconcile() {
@@ -1664,9 +1664,9 @@
       if (s.kind === 'empty') return { kind: 'empty', sub: '空位', sel };
       if (s.kind === 'human') return { kind: 'human', sub: '本机真人', sel };
       if (s.kind === 'ai') return { kind: 'ai', sub: '电脑', aiDiff: s.aiDiff || 'normal', sel };
-      if (!s.pid) return { kind: 'remote', icon: '🔗', sub: '等待加入…', showCopy: true, sel };
+      if (!s.pid) return { kind: 'remote', icon: '[[zi:link]]', sub: '等待加入…', showCopy: true, sel };
       const me = s.pid === net.playerId;
-      return { kind: 'remote', icon: '🌐', label: nickOf(s.pid) + (me ? '（你）' : ''), sub: '联机真人', me, off: !onlineOf(s.pid), host: hostOf(s.pid), showKick: net.isHost && !me, sel };
+      return { kind: 'remote', icon: '[[zi:globe]]', label: nickOf(s.pid) + (me ? '（你）' : ''), sub: '联机真人', me, off: !onlineOf(s.pid), host: hostOf(s.pid), showKick: net.isHost && !me, sel };
     }
 
     function renderLobby() {
@@ -1686,7 +1686,7 @@
       if (net.isHost) {
         const ok = seatedCount() >= 2 && remoteJoined();
         tqStartBtn.hidden = false; tqStartBtn.disabled = !ok;
-        tqStartBtn.textContent = '▶ 开始游戏（' + seatedCount() + '）';
+        tqStartBtn.textContent = '[[zi:play]] 开始游戏（' + seatedCount() + '）';
         tqStartBtn.onclick = start;
         tqLobbyHint.textContent = net.swapSel ? '再点另一块领地完成换位'
           : '点领地切模式（改联机真人要先「踢出」）· 点两个已入座者换位 · 房号 ' + net.code;

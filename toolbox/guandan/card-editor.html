@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;700;800&display=swap" rel="stylesheet"><style>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="/assets/css/zircon-icons.css"><script defer src="/assets/js/zircon-icons.js"></script><style>
   /* ============================================================
      掼蛋 调色板：与主站协调
      - 牌桌：浅奶油羊皮纸 + 暖金细边（呼应斗地主页）
@@ -1449,7 +1449,8 @@
     list-style: none;
   }
   .guandan-wrap details.about summary::-webkit-details-marker { display: none; }
-  .guandan-wrap details.about summary::before { content: '📖 '; }
+  .guandan-wrap details.about summary::before { content: '+ '; }
+  .guandan-wrap details.about[open] summary::before { content: '− '; }
   .guandan-wrap details.about[open] summary { border-bottom: 1px solid var(--color-border); }
   .guandan-wrap details.about .body {
     padding: 0.8rem 1.1rem; font-size: 0.88rem;
@@ -2185,7 +2186,7 @@ document.getElementById('reset').addEventListener('click',()=>{location.reload()
 document.getElementById('exp').addEventListener('click',()=>{
   const line='GD2-CARDS '+JSON.stringify({struct:ST.struct,suits:{spade:ST.suits[0],heart:ST.suits[1],diamond:ST.suits[2],club:ST.suits[3]},level:ST.level,joker:ST.joker});
   document.getElementById('out').value=line;
-  navigator.clipboard.writeText(line).then(()=>{document.getElementById('msg').textContent='✓ 已复制,粘贴给我';},()=>{document.getElementById('msg').textContent='复制失败,手动选下方';});
+  navigator.clipboard.writeText(line).then(()=>{document.getElementById('msg').textContent='[[zi:check]] 已复制,粘贴给我';},()=>{document.getElementById('msg').textContent='复制失败,手动选下方';});
 });
 applyGlobals();buildCtl();renderPrev();
 </script></body></html>

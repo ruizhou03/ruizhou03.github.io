@@ -148,7 +148,7 @@ permalink: /toolbox/roll-call/
 
 <div class="rc-wrap">
   <header>
-    <h1>🎤 随机点名</h1>
+    <h1>[[zi:mic]] 随机点名</h1>
   </header>
 
   <div class="panel">
@@ -156,11 +156,11 @@ permalink: /toolbox/roll-call/
       <select id="profile-select" aria-label="选择保存的名单">
         <option value="">— 未保存名单 —</option>
       </select>
-      <button type="button" id="profile-save">💾 保存</button>
-      <button type="button" id="profile-rename">✎ 重命名</button>
-      <button type="button" id="profile-delete" class="danger">🗑 删除</button>
-      <button type="button" id="profile-export" style="margin-left:auto;">📤 导出</button>
-      <button type="button" id="profile-import-btn">📥 导入</button>
+      <button type="button" id="profile-save">[[zi:save]] 保存</button>
+      <button type="button" id="profile-rename">[[zi:pencil]] 重命名</button>
+      <button type="button" id="profile-delete" class="danger">[[zi:trash]] 删除</button>
+      <button type="button" id="profile-export" style="margin-left:auto;">[[zi:upload]] 导出</button>
+      <button type="button" id="profile-import-btn">[[zi:download]] 导入</button>
       <input type="file" id="profile-import-file" accept=".json" style="display:none;" />
     </div>
 
@@ -188,14 +188,14 @@ permalink: /toolbox/roll-call/
   </div>
 
   <div class="action-row">
-    <button type="button" id="draw-btn" class="action-btn">🎤 抽一个</button>
+    <button type="button" id="draw-btn" class="action-btn">[[zi:mic]] 抽一个</button>
   </div>
 
   <div class="history-zone" id="history-zone" style="display: none;">
     <div class="history-toolbar">
       <div class="progress" id="progress-text"></div>
-      <button type="button" id="reset-btn">🔄 重置已抽</button>
-      <button type="button" id="copy-btn">📋 复制顺序</button>
+      <button type="button" id="reset-btn">[[zi:refresh]] 重置已抽</button>
+      <button type="button" id="copy-btn">[[zi:copy]] 复制顺序</button>
     </div>
     <div class="name-chips" id="name-chips"></div>
   </div>
@@ -385,11 +385,11 @@ permalink: /toolbox/roll-call/
     const txt = state.drawn.map((n, i) => `${i + 1}. ${n}`).join('\n');
     try {
       await navigator.clipboard.writeText(txt);
-      $copy.textContent = '✓ 已复制';
-      setTimeout(() => { $copy.textContent = '📋 复制顺序'; }, 1600);
+      $copy.textContent = '[[zi:check]] 已复制';
+      setTimeout(() => { $copy.textContent = '[[zi:copy]] 复制顺序'; }, 1600);
     } catch (e) {
       $copy.textContent = '复制失败';
-      setTimeout(() => { $copy.textContent = '📋 复制顺序'; }, 1600);
+      setTimeout(() => { $copy.textContent = '[[zi:copy]] 复制顺序'; }, 1600);
     }
   });
 

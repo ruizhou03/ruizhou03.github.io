@@ -124,10 +124,10 @@ permalink: /toolbox/citation/
   }
   .footnote summary::-webkit-details-marker { display: none; }
   .footnote summary::after {
-    content: '▸'; float: right;
+    content: '+'; float: right;
     color: var(--color-light); transition: transform 0.2s;
   }
-  .footnote[open] summary::after { transform: rotate(90deg); }
+  .footnote[open] summary::after { content: '−'; }
   @media (hover: hover) {
     .footnote summary:hover { color: var(--color-accent); }
   }
@@ -180,7 +180,7 @@ permalink: /toolbox/citation/
 
 <div class="ct-wrap">
   <header>
-    <h1>🔖 引用格式转换器</h1>
+    <h1>[[zi:bookmark]] 引用格式转换器</h1>
   </header>
 
   <div class="layout-2col">
@@ -188,8 +188,8 @@ permalink: /toolbox/citation/
       <div class="panel-title">
         <span>BibTeX 输入</span>
         <div class="actions">
-          <button type="button" id="sample-btn">🎲 示例</button>
-          <button type="button" id="clear-btn">🗑 清空</button>
+          <button type="button" id="sample-btn">[[zi:dice]] 示例</button>
+          <button type="button" id="clear-btn">[[zi:trash]] 清空</button>
         </div>
       </div>
       <textarea class="bib-input" id="bib-input" placeholder="@article{einstein1905,
@@ -207,7 +207,7 @@ permalink: /toolbox/citation/
       <div class="panel-title">
         <span>输出</span>
         <div class="actions">
-          <button type="button" id="copy-all-btn">📋 复制全部</button>
+          <button type="button" id="copy-all-btn">[[zi:copy]] 复制全部</button>
         </div>
       </div>
       <div class="format-tabs" id="format-tabs">
@@ -726,7 +726,7 @@ permalink: /toolbox/citation/
       return `
         <div class="output-item">
           <div class="key">${escapeHtml(e.key || '(no key)')} · ${escapeHtml(e.type)}</div>
-          <button type="button" class="copy-btn" data-idx="${i}">📋 复制</button>
+          <button type="button" class="copy-btn" data-idx="${i}">[[zi:copy]] 复制</button>
           <div class="citation">${html}</div>
         </div>
       `;
@@ -739,11 +739,11 @@ permalink: /toolbox/citation/
         const text = item.querySelector('.citation').textContent.trim();
         try {
           await navigator.clipboard.writeText(text);
-          btn.textContent = '✓ 已复制';
-          setTimeout(() => { btn.textContent = '📋 复制'; }, 1500);
+          btn.textContent = '[[zi:check]] 已复制';
+          setTimeout(() => { btn.textContent = '[[zi:copy]] 复制'; }, 1500);
         } catch (e) {
           btn.textContent = '失败';
-          setTimeout(() => { btn.textContent = '📋 复制'; }, 1500);
+          setTimeout(() => { btn.textContent = '[[zi:copy]] 复制'; }, 1500);
         }
       });
     });
@@ -754,8 +754,8 @@ permalink: /toolbox/citation/
     try {
       currentEntries = parseBibTeX(text);
       $parseMeta.textContent = currentEntries.length === 0 && text.trim()
-        ? '⚠️ 没解析出 entries——检查 BibTeX 语法'
-        : `✓ 解析出 ${currentEntries.length} 条引用`;
+        ? '[[zi:warning]] 没解析出 entries——检查 BibTeX 语法'
+        : `[[zi:check]] 解析出 ${currentEntries.length} 条引用`;
       $parseMeta.style.color = currentEntries.length === 0 && text.trim() ? '#b07c75' : 'var(--color-light)';
     } catch (e) {
       currentEntries = [];
@@ -824,8 +824,8 @@ permalink: /toolbox/citation/
     });
     try {
       await navigator.clipboard.writeText(lines.join('\n\n'));
-      $copyAll.textContent = '✓ 已复制全部';
-      setTimeout(() => { $copyAll.textContent = '📋 复制全部'; }, 1800);
+      $copyAll.textContent = '[[zi:check]] 已复制全部';
+      setTimeout(() => { $copyAll.textContent = '[[zi:copy]] 复制全部'; }, 1800);
     } catch (e) { /* noop */ }
   });
 

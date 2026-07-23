@@ -254,8 +254,8 @@ permalink: /toolbox/metronome/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
   details.about code {
     background: var(--color-bg-warm);
@@ -291,7 +291,7 @@ permalink: /toolbox/metronome/
 
 <article class="metro-wrap">
   <header class="metro-header">
-    <h1>🥁 节拍器</h1>
+    <h1>[[zi:wave]] 节拍器</h1>
     <p>Metronome</p>
   </header>
 
@@ -300,7 +300,7 @@ permalink: /toolbox/metronome/
 
     <div class="start-row">
       <button type="button" class="start-btn" id="start-btn">
-        <span id="start-icon">▶</span>
+        <span id="start-icon">[[zi:play]]</span>
         <span id="start-text">开始</span>
       </button>
       <div class="start-hint">空格键也可以启停</div>
@@ -361,7 +361,7 @@ permalink: /toolbox/metronome/
     </div>
 
     <div class="tap-row">
-      <button type="button" class="tap-btn" id="tap-btn">👆 轻敲</button>
+      <button type="button" class="tap-btn" id="tap-btn">[[zi:pin]] 轻敲</button>
       <span class="tap-feedback" id="tap-feedback">连续点 4 次以上可反推 BPM</span>
     </div>
   </div>
@@ -580,11 +580,11 @@ permalink: /toolbox/metronome/
   function updateStartBtn() {
     if (state.running) {
       $startBtn.classList.add('running');
-      $startIcon.textContent = '⏸';
+      $startIcon.textContent = '[[zi:pause]]';
       $startText.textContent = '停止';
     } else {
       $startBtn.classList.remove('running');
-      $startIcon.textContent = '▶';
+      $startIcon.textContent = '[[zi:play]]';
       $startText.textContent = '开始';
     }
   }

@@ -113,11 +113,11 @@
       if (pass) pass.hidden = true; if (act) act.hidden = true; if (off) off.hidden = true; return;
     }
     if (unlocked) {
-      st.innerHTML = '✅ 云同步已开启（端到端加密，密码只存本机）。改账会自动加密上传。';
+      st.innerHTML = '[[zi:check]] 云同步已开启（端到端加密，密码只存本机）。改账会自动加密上传。';
       if (pass) pass.hidden = true; if (act) act.hidden = true; if (off) off.hidden = false; return;
     }
     if (hasEncBlob()) {
-      st.innerHTML = '☁️ 云端已有加密账本。输入<b>同步密码</b>在本机解锁并合并。';
+      st.innerHTML = '[[zi:cloud]] 云端已有加密账本。输入<b>同步密码</b>在本机解锁并合并。';
       if (pass) { pass.hidden = false; pass.placeholder = '同步密码'; }
       if (act) { act.hidden = false; act.textContent = '解锁并同步'; act.dataset.mode = 'unlock'; }
       if (off) off.hidden = true; return;

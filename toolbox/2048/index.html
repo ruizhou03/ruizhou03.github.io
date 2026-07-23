@@ -225,14 +225,14 @@ theme_color: "#fafaf9"
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="g2048-wrap">
   <header>
-    <h1>🎯 2048</h1>
+    <h1>[[zi:pin]] 2048</h1>
     <div class="sub">滑动合并相同数字 — 凑出 2048</div>
   </header>
 
@@ -254,7 +254,7 @@ theme_color: "#fafaf9"
       <button class="size-tab" data-size="5">5×5</button>
     </div>
     <button class="gbtn" id="undoBtn" title="撤销一步">↶ 撤销</button>
-    <button class="gbtn" id="newBtn">🔄 新游戏</button>
+    <button class="gbtn" id="newBtn">[[zi:refresh]] 新游戏</button>
   </div>
 
   <div class="board" id="board">
@@ -279,14 +279,14 @@ theme_color: "#fafaf9"
           <button class="gs-pgo-mode-tab selected" data-value="4">4×4</button>
           <button class="gs-pgo-mode-tab" data-value="5">5×5</button>
         </div>
-        <button class="gs-pgo-start-btn" id="pgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="pgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
       <div class="gs-pgo-view" id="pgoViewResume">
-        <div class="gs-pgo-icon">👋</div>
+        <div class="gs-pgo-icon">[[zi:user]]</div>
         <h2 class="gs-pgo-title">上次还没玩完</h2>
         <div class="gs-pgo-resume-summary" id="pgoResumeSummary"></div>
-        <button class="gs-pgo-start-btn" id="pgoResumeContinueBtn">▶ 继续上次</button>
-        <button class="gs-pgo-start-btn" id="pgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;">🔄 重新开始</button>
+        <button class="gs-pgo-start-btn" id="pgoResumeContinueBtn">[[zi:play]] 继续上次</button>
+        <button class="gs-pgo-start-btn" id="pgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;">[[zi:refresh]] 重新开始</button>
       </div>
     </div>
   </div>
@@ -583,7 +583,7 @@ theme_color: "#fafaf9"
     if (!state.won && hasValue(state.board, 2048)) {
       state.won = true;
       save();
-      showOverlay('🎉 You Made It!', `凑出了 2048，得分 ${state.score}`, [
+      showOverlay('[[zi:sparkle]] You Made It!', `凑出了 2048，得分 ${state.score}`, [
         { label: '继续到 4096', action: () => { state.keepGoing = true; save(); } },
         { label: '再来一局', action: () => newGame() }
       ]);
@@ -689,7 +689,7 @@ theme_color: "#fafaf9"
       kind: 'single',
       gameId: '2048',
       title: '2048',
-      emoji: '🎯',
+      emoji: '[[zi:pin]]',
       nick: GamesShell.Identity.getNick(),
       score: state.score,
       scoreLabel: '本 局 得 分',
@@ -924,7 +924,7 @@ theme_color: "#fafaf9"
       lbWidget = GamesShell.Leaderboard.mount({
         container: document.getElementById('lbMount'),
         gameId: '2048',
-        title: '🏆 2048 排行榜',
+        title: '[[zi:trophy]] 2048 排行榜',
         scoreFormatter: v => Number(v).toLocaleString(),
         getCurrentNick: () => GamesShell.Identity.getNick(),
         getSplit: () => String(state.size),
@@ -940,7 +940,7 @@ theme_color: "#fafaf9"
       GamesShell.Comments.mount({
         container: document.getElementById('cmMount'),
         path: '/toolbox/2048/',
-        title: '💬 来玩玩交流',
+        title: '[[zi:comment]] 来玩玩交流',
         intro: '分享你最高分的小窍门、卡 1024 上不去的复盘 ~',
         placeholder: '聊聊你的 2048 心得 ~',
       });

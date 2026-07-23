@@ -267,14 +267,14 @@ permalink: /toolbox/dontdoit/
   details.about summary {
     cursor: pointer; padding: 0.4rem 0; color: var(--color-muted); font-weight: 500; list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <article class="dare-wrap">
   <header class="dare-header">
-    <h1>🃏 不要做挑战 <span class="dare-en">Don't Do It</span></h1>
+    <h1>[[zi:cards]] 不要做挑战 <span class="dare-en">Don't Do It</span></h1>
     <p>手机屏幕朝外，你看不到自己的牌——别人想方设法诱导你做牌上那件事。</p>
   </header>
 
@@ -282,11 +282,11 @@ permalink: /toolbox/dontdoit/
   <section id="mode-screen">
     <div class="mode-cards">
       <button type="button" class="mode-card" id="mode-single">
-        <div class="mc-title">📱 单机 · 各玩各的</div>
+        <div class="mc-title">[[zi:phone]] 单机 · 各玩各的</div>
         <div class="mc-desc">每个人在自己手机上开一局，举着屏幕朝外。被诱导做了一次就烧一张，烧光就出局、接受惩罚。最方便，不用联网。</div>
       </button>
       <button type="button" class="mode-card" id="mode-online">
-        <div class="mc-title">🌐 联机 · 同房间比谁撑得久</div>
+        <div class="mc-title">[[zi:globe]] 联机 · 同房间比谁撑得久</div>
         <div class="mc-desc">每人一台手机进同一个房号，实时看到大家的进度条。先烧光的先出局，坚持到最后的人第一名。</div>
       </button>
     </div>
@@ -300,7 +300,7 @@ permalink: /toolbox/dontdoit/
   <!-- ===== 单机配置 ===== -->
   <section id="single-setup" hidden>
     <div class="dare-panel">
-      <h2>📱 单机一局</h2>
+      <h2>[[zi:phone]] 单机一局</h2>
       <div class="setup-row">
         <label class="field-label">这一局你有几张牌</label>
         <div class="cpp-row">
@@ -329,13 +329,13 @@ permalink: /toolbox/dontdoit/
     <div class="dare-stage">
       <div class="stage-screen" id="stage">
         <div class="scene scene-idle" id="scene-idle">
-          <div class="icon">🙈</div>
+          <div class="icon">[[zi:user-off]]</div>
           <div class="hint">举起手机，屏幕朝外对着大家——别偷看自己的牌。准备好就点「开始」。</div>
         </div>
 
         <div class="scene scene-countdown hidden" id="scene-countdown">
           <div class="num" id="cd-num">3</div>
-          <div class="sub">把屏幕转向大家，别让本人看到 👀</div>
+          <div class="sub">把屏幕转向大家，别让本人看到 [[zi:eye]]</div>
         </div>
 
         <div class="scene scene-card hidden" id="scene-card">
@@ -343,7 +343,7 @@ permalink: /toolbox/dontdoit/
         </div>
 
         <div class="scene scene-out hidden" id="scene-out">
-          <div class="icon">💀</div>
+          <div class="icon">[[zi:tombstone]]</div>
           <div class="big" id="out-big">出局！</div>
           <div class="sub" id="out-sub">牌烧光了。</div>
         </div>
@@ -503,7 +503,7 @@ permalink: /toolbox/dontdoit/
     .then(cards => {
       state.cards = cards;
       $('single-start').disabled = false;
-      $('single-start').textContent = '🎬 开始这一局';
+      $('single-start').textContent = '[[zi:play]] 开始这一局';
       boot();
     })
     .catch(err => {
@@ -550,7 +550,7 @@ permalink: /toolbox/dontdoit/
     engine.onBurn = hooks.onBurn || null;
     engine.onOut = hooks.onOut || null;
     setScene('idle');
-    setAdvance('▶ 开始（翻第一张）', engineCountdown, 'primary');
+    setAdvance('[[zi:play]] 开始（翻第一张）', engineCountdown, 'primary');
     renderBanner();
   }
 
@@ -630,7 +630,7 @@ permalink: /toolbox/dontdoit/
     const remain = Math.max(0, total - burned);
     let dots = '';
     const shown = Math.min(total, 16);
-    for (let i = 0; i < shown; i++) dots += (i < burned ? '●' : '○');
+    for (let i = 0; i < shown; i++) dots += (i < burned ? '[[zi:check]]' : '[[zi:check]]');
     if (total > shown) dots += ` +${total - shown}`;
     if (engine.phase === 'card') {
       $playBanner.innerHTML = `第 <span class="hi">${burned + 1}</span> / ${total} 张 · 还剩 ${remain} 张<br><span class="play-dots">${dots}</span>`;
@@ -668,7 +668,7 @@ permalink: /toolbox/dontdoit/
     engineStart(total, {
       onBurn: null,
       onOut: () => {
-        $outBig.textContent = '💀 出局！';
+        $outBig.textContent = '[[zi:tombstone]] 出局！';
         $outSub.textContent = `${total} 张全烧光了，接受惩罚吧。`;
         showSingleResult(total);
       },
@@ -676,7 +676,7 @@ permalink: /toolbox/dontdoit/
   });
 
   function showSingleResult(total) {
-    $resultTitle.textContent = '💀 你出局了';
+    $resultTitle.textContent = '[[zi:tombstone]] 你出局了';
     $resultBody.innerHTML = `<div class="modal-ranking" style="text-align:center">全部 <strong>${total}</strong> 张都被诱导做掉了。<br>愿赌服输，接受惩罚！</div>`;
     $resultActions.innerHTML = '';
     $resultActions.appendChild(el('button', { class: 'dare-btn primary', on: { click: () => { $modal.hidden = true; $('single-start').click(); } } }, '再来一局'));
@@ -748,12 +748,12 @@ permalink: /toolbox/dontdoit/
   function renderLanding() {
     $onlineView.innerHTML = '';
     const panel = el('div', { class: 'dare-panel' }, [
-      el('h2', null, '🌐 联机房间'),
+      el('h2', null, '[[zi:globe]] 联机房间'),
       el('p', { style: { color: 'var(--color-muted)', fontSize: '0.9rem', textAlign: 'center', margin: '0 0 1.1rem' } },
         '一人开房，其他人凭 4 位房号或链接加入。每人用自己的手机。'),
       el('div', { class: 'btn-row' }, [
-        el('button', { class: 'dare-btn primary', on: { click: () => { state.onlineView = 'create'; renderOnline(); } } }, '🛠️ 创建房间'),
-        el('button', { class: 'dare-btn ghost', on: { click: () => { state.onlineView = 'join'; renderOnline(); } } }, '🚪 加入房间'),
+        el('button', { class: 'dare-btn primary', on: { click: () => { state.onlineView = 'create'; renderOnline(); } } }, '[[zi:settings]] 创建房间'),
+        el('button', { class: 'dare-btn ghost', on: { click: () => { state.onlineView = 'join'; renderOnline(); } } }, '[[zi:door]] 加入房间'),
       ]),
     ]);
     $onlineView.appendChild(panel);
@@ -790,7 +790,7 @@ permalink: /toolbox/dontdoit/
     });
 
     $onlineView.appendChild(el('div', { class: 'dare-panel' }, [
-      el('h2', null, '🛠️ 创建房间'),
+      el('h2', null, '[[zi:settings]] 创建房间'),
       el('div', { class: 'setup-row' }, [el('label', { class: 'field-label' }, '你的昵称'), nickInput]),
       el('div', { class: 'setup-row' }, [
         el('label', { class: 'field-label' }, '每人几张牌'),
@@ -828,7 +828,7 @@ permalink: /toolbox/dontdoit/
     });
 
     $onlineView.appendChild(el('div', { class: 'dare-panel' }, [
-      el('h2', null, '🚪 加入房间'),
+      el('h2', null, '[[zi:door]] 加入房间'),
       el('div', { class: 'setup-row' }, [el('label', { class: 'field-label' }, '房号'), codeInput]),
       el('div', { class: 'setup-row' }, [el('label', { class: 'field-label' }, '你的昵称'), nickInput]),
       err, btn,
@@ -933,7 +933,7 @@ permalink: /toolbox/dontdoit/
       `每人 ${room.config.cardsPerPlayer} 张牌 · ${room.players.length} 人在房（最多 12）`));
 
     if (host) {
-      const startBtn = el('button', { class: 'dare-btn primary block' }, room.players.length < 2 ? '至少 2 人才能开始' : '🎬 开始游戏');
+      const startBtn = el('button', { class: 'dare-btn primary block' }, room.players.length < 2 ? '至少 2 人才能开始' : '[[zi:play]] 开始游戏');
       startBtn.disabled = room.players.length < 2;
       startBtn.addEventListener('click', async () => {
         startBtn.disabled = true;
@@ -960,7 +960,7 @@ permalink: /toolbox/dontdoit/
     engineStart(total, {
       onBurn: (burned) => { api('POST', 'progress', { token: state.session.token, burned }).catch(() => {}); },
       onOut: () => {
-        $outBig.textContent = '💀 你出局了';
+        $outBig.textContent = '[[zi:tombstone]] 你出局了';
         $outSub.textContent = '牌烧光了，等其他人也烧完就出排名。';
       },
     });
@@ -991,20 +991,20 @@ permalink: /toolbox/dontdoit/
     const myId = state.session && state.session.playerId;
     // outOrder 越大 = 越晚出局 = 排名越高
     const ranked = room.players.slice().sort((a, b) => (b.outOrder || 0) - (a.outOrder || 0));
-    const medals = ['🥇', '🥈', '🥉'];
-    $resultTitle.textContent = '🏁 本局结束';
+    const medals = ['[[zi:medal:gold]]', '[[zi:medal:silver]]', '[[zi:medal:bronze]]'];
+    $resultTitle.textContent = '[[zi:flag]] 本局结束';
     const rows = ranked.map((p, i) => {
       const place = medals[i] || `#${i + 1}`;
       const cls = 'rk' + (i === 0 ? ' champ' : '') + (p.id === myId ? ' me' : '');
       return `<div class="${cls}"><span class="rk-name">${place} ${escapeHtml(p.nick)}</span><span>烧完 ${total} 张${p.outOrder ? ' · 第 ' + p.outOrder + ' 个出局' : ''}</span></div>`;
     }).join('');
-    $resultBody.innerHTML = `<div class="modal-ranking">${rows}</div><div style="color:var(--color-muted);font-size:0.85rem">坚持到最后的人获胜 🎉</div>`;
+    $resultBody.innerHTML = `<div class="modal-ranking">${rows}</div><div style="color:var(--color-muted);font-size:0.85rem">坚持到最后的人获胜 [[zi:sparkle]]</div>`;
 
     $resultActions.innerHTML = '';
     if (amIHost()) {
       $resultActions.appendChild(el('button', { class: 'dare-btn primary', on: { click: async () => {
         try { await api('POST', 'restart', { token: state.session.token }); $modal.hidden = true; } catch (e) { toast(errMsg(e)); }
-      } } }, '🔄 再来一局'));
+      } } }, '[[zi:refresh]] 再来一局'));
     } else {
       $resultActions.appendChild(el('div', { style: { color: 'var(--color-muted)', fontSize: '0.85rem', width: '100%' } }, '等房主开下一局…'));
     }
@@ -1043,7 +1043,7 @@ window.addEventListener('DOMContentLoaded', () => {
     GamesShell.Comments.mount({
       container: document.getElementById('dare-cm-mount'),
       path: '/toolbox/dare/',
-      title: '💬 玩友交流',
+      title: '[[zi:comment]] 玩友交流',
       intro: '聊聊最离谱的中招瞬间、最阴险的诱导套路 ~',
       placeholder: '聊聊你的「不要做挑战」战绩 ~',
     });

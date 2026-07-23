@@ -308,7 +308,7 @@
     var lv = user && user.level;
     if (!lv || typeof lv.level !== 'number') return '';
     var pct = Math.round((typeof lv.progress === 'number' ? lv.progress : 0) * 100);
-    var note = (lv.next == null) ? '已满级 🎉' : '距 Lv' + (lv.level + 1) + ' 还差 ' + ((lv.next || 0) - (lv.points || 0));
+    var note = (lv.next == null) ? '已满级 ' : '距 Lv' + (lv.level + 1) + ' 还差 ' + ((lv.next || 0) - (lv.points || 0));
     return '<div class="sa-lvbar"><i style="width:' + pct + '%"></i></div><div class="sa-lvnote">' + esc(note) + '</div>';
   }
   function syncAdminNav(user) {

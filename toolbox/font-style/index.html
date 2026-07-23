@@ -101,10 +101,10 @@ permalink: /toolbox/font-style/
   }
   .fs-footnote summary::-webkit-details-marker { display: none; }
   .fs-footnote summary::before {
-    content: '▸'; display: inline-block; margin-right: 0.45rem;
+    content: '+'; display: inline-block; margin-right: 0.45rem;
     color: var(--color-light); transition: transform 0.2s;
   }
-  .fs-footnote[open] summary::before { transform: rotate(90deg); }
+  .fs-footnote[open] summary::before { content: '−'; }
   @media (hover: hover) {
     .fs-footnote summary:hover { color: var(--color-accent); }
   }
@@ -121,7 +121,7 @@ permalink: /toolbox/font-style/
 
 <article class="fs-wrap">
   <header>
-    <h1>✒️ 花式字体</h1>
+    <h1>F 花式字体</h1>
   </header>
 
   <div class="fs-input-panel">
@@ -251,7 +251,7 @@ permalink: /toolbox/font-style/
     card.innerHTML = `
       <div class="label"></div>
       <div class="preview"></div>
-      <button class="copy-btn" type="button">📋 复制</button>
+      <button class="copy-btn" type="button">[[zi:copy]] 复制</button>
     `;
     card.querySelector('.label').textContent = label;
     card.querySelector('.preview').textContent = text || ' ';
@@ -260,15 +260,15 @@ permalink: /toolbox/font-style/
       if (!text) return;
       try {
         await navigator.clipboard.writeText(text);
-        btn.textContent = '✓ 已复制';
+        btn.textContent = '[[zi:check]] 已复制';
         btn.classList.add('done');
         setTimeout(() => {
-          btn.textContent = '📋 复制';
+          btn.textContent = '[[zi:copy]] 复制';
           btn.classList.remove('done');
         }, 1500);
       } catch (e) {
         btn.textContent = '失败';
-        setTimeout(() => { btn.textContent = '📋 复制'; }, 1500);
+        setTimeout(() => { btn.textContent = '[[zi:copy]] 复制'; }, 1500);
       }
     });
     return card;

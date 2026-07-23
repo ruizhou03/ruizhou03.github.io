@@ -379,8 +379,8 @@ permalink: /toolbox/pitch/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
   details.about code {
     background: var(--color-bg-warm);
@@ -398,17 +398,17 @@ permalink: /toolbox/pitch/
 
 <article class="pitch-wrap">
   <header class="pitch-header">
-    <h1>🎵 音高测量</h1>
+    <h1>[[zi:wave]] 音高测量</h1>
     <p>Pitch Detector</p>
   </header>
 
   <div class="privacy-bar">
-    🔒 <strong>麦克风音频只在你的浏览器里跑算法</strong>，不上传、不存储、不联网。关掉页面就消失。
+    [[zi:lock]] <strong>麦克风音频只在你的浏览器里跑算法</strong>，不上传、不存储、不联网。关掉页面就消失。
   </div>
 
   <div class="mode-tabs" role="tablist">
-    <button type="button" id="tab-live" class="active" role="tab">🎤 实时</button>
-    <button type="button" id="tab-file" role="tab">📁 文件</button>
+    <button type="button" id="tab-live" class="active" role="tab">[[zi:mic]] 实时</button>
+    <button type="button" id="tab-file" role="tab">[[zi:file]] 文件</button>
   </div>
 
   <div class="pitch-card">
@@ -448,7 +448,7 @@ permalink: /toolbox/pitch/
 
       <div class="live-control">
         <button type="button" class="live-btn" id="live-btn">
-          <span id="live-icon">🎤</span><span id="live-text">开始</span>
+          <span id="live-icon">[[zi:mic]]</span><span id="live-text">开始</span>
         </button>
         <div class="live-status" id="live-status">点击开始 → 浏览器会问你麦克风权限</div>
       </div>
@@ -466,7 +466,7 @@ permalink: /toolbox/pitch/
       <input type="file" id="file-input" accept="audio/*" class="visually-hidden" />
       <button type="button" class="drop-zone" id="drop-zone" aria-label="选择或拖入音频文件">
         <div class="drop-content" id="drop-content">
-          <div class="drop-icon">📁</div>
+          <div class="drop-icon">[[zi:file]]</div>
           <div class="drop-title">拖入音频文件，或点这里选择</div>
           <div class="drop-hint">支持 mp3 / wav / m4a / ogg / flac，单声道或立体声都行</div>
         </div>
@@ -502,7 +502,7 @@ permalink: /toolbox/pitch/
         </div>
 
         <div class="contour-warning">
-          ⚠️ <strong>提示：</strong>autocorrelation 假设输入是单一周期信号。复音（和弦、人声 + 伴奏、多人合唱）会让结果跳来跳去，仅供参考。最准的输入是单人清唱、独奏乐器、或纯音。
+          [[zi:warning]] <strong>提示：</strong>autocorrelation 假设输入是单一周期信号。复音（和弦、人声 + 伴奏、多人合唱）会让结果跳来跳去，仅供参考。最准的输入是单人清唱、独奏乐器、或纯音。
         </div>
       </div>
     </div>
@@ -661,11 +661,11 @@ permalink: /toolbox/pitch/
   function setLiveBtn(running) {
     if (running) {
       $liveBtn.classList.add('recording');
-      $liveIcon.textContent = '⏹';
+      $liveIcon.textContent = '[[zi:stop]]';
       $liveText.textContent = '停止';
     } else {
       $liveBtn.classList.remove('recording');
-      $liveIcon.textContent = '🎤';
+      $liveIcon.textContent = '[[zi:mic]]';
       $liveText.textContent = '开始';
     }
   }
@@ -732,9 +732,9 @@ permalink: /toolbox/pitch/
       return 'iOS 怎么重开：① 设置 → Safari → 相机和麦克风 → 允许；如果还不行 ② 设置 → 隐私与安全性 → 麦克风 → 把 Safari 打开。改完回这页面刷新一下。';
     }
     if (isAndroid) {
-      return 'Android Chrome 怎么重开：点地址栏左侧 🔒 → 站点设置 → 麦克风 → 允许；或系统设置 → 应用 → Chrome → 权限 → 麦克风 → 允许。改完刷新此页。';
+      return 'Android Chrome 怎么重开：点地址栏左侧的网站设置图标 → 站点设置 → 麦克风 → 允许；或系统设置 → 应用 → Chrome → 权限 → 麦克风 → 允许。改完刷新此页。';
     }
-    return '点地址栏左侧 🔒 / ⓘ 图标 → 网站设置 → 麦克风 → 允许。改完刷新此页。';
+    return '点地址栏左侧的网站设置图标 → 网站设置 → 麦克风 → 允许。改完刷新此页。';
   }
 
   function stopLive() {

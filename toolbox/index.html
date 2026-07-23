@@ -142,7 +142,7 @@ permalink: /toolbox/
   <!-- ============ ✦ 招牌 ============ -->
   {%- if featured.size > 0 -%}
   <div class="section-divider">
-    <h2>✦ 招牌</h2>
+    <h2>[[zi:sparkle]] 招牌</h2>
     <div class="sub">为解决自己的问题、亲手造的原创，别处没有</div>
   </div>
   <div class="featured-grid">
@@ -163,7 +163,7 @@ permalink: /toolbox/
 
   <!-- ============ 一、工作 / 效率 ============ -->
   <div class="section-divider">
-    <h2>📚 工作 / 效率</h2>
+    <h2>[[zi:book]] 工作 / 效率</h2>
     <div class="sub">学术 / 财务 / 学习 / 专注</div>
   </div>
   <div class="tool-grid">
@@ -174,7 +174,7 @@ permalink: /toolbox/
 
   <!-- ============ 二、生活 ============ -->
   <div class="section-divider">
-    <h2>🌿 生活</h2>
+    <h2>[[zi:leaf]] 生活</h2>
     <div class="sub">健康 / 兴趣 / 日常 / 回顾</div>
   </div>
   <div class="tool-grid">
@@ -185,12 +185,12 @@ permalink: /toolbox/
 
   <!-- ============ 三、游戏 ============ -->
   <div class="section-divider">
-    <h2>🎮 游戏</h2>
+    <h2>[[zi:gamepad]] 游戏</h2>
     <div class="sub">棋类 / 牌类 / 单人 / 派对，纯离线</div>
   </div>
 
   {%- assign chess_games = games | where: "subcategory", "棋类对战" -%}
-  <h3 class="subsection-title">♟ 棋类对战</h3>
+        <h3 class="subsection-title">[[zi:grid]] 棋类对战</h3>
   <div class="tool-grid">
     {%- for t in chess_games -%}
       {%- include tool-card.html tool=t -%}
@@ -198,7 +198,7 @@ permalink: /toolbox/
   </div>
 
   {%- assign card_games = games | where: "subcategory", "牌类游戏" -%}
-  <h3 class="subsection-title">🃏 牌类游戏</h3>
+  <h3 class="subsection-title">[[zi:cards]] 牌类游戏</h3>
   <div class="tool-grid">
     {%- for t in card_games -%}
       {%- include tool-card.html tool=t -%}
@@ -206,7 +206,7 @@ permalink: /toolbox/
   </div>
 
   {%- assign solo_games = games | where: "subcategory", "单人小游戏" -%}
-  <h3 class="subsection-title">🎮 单人小游戏</h3>
+  <h3 class="subsection-title">[[zi:gamepad]] 单人小游戏</h3>
   <div class="tool-grid">
     {%- for t in solo_games -%}
       {%- include tool-card.html tool=t -%}
@@ -214,7 +214,7 @@ permalink: /toolbox/
   </div>
 
   {%- assign party_games = games | where: "subcategory", "派对多人" -%}
-  <h3 class="subsection-title">🎉 派对 / 多人</h3>
+  <h3 class="subsection-title">[[zi:sparkle]] 派对 / 多人</h3>
   <div class="tool-grid">
     {%- for t in party_games -%}
       {%- include tool-card.html tool=t -%}

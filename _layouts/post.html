@@ -14,7 +14,7 @@ layout: default
   <ul id="toc-ul"></ul>
 </nav>
 
-<button id="toc-toggle" onclick="toggleTOC(event)" title="Toggle Index">☰</button>
+<button id="toc-toggle" onclick="toggleTOC(event)" title="Toggle Index">[[zi:list]]</button>
 <div id="toc-backdrop"></div>
 
 <article class="post-container" style="max-width: 720px; margin: 0 auto;">
@@ -23,7 +23,7 @@ layout: default
     <h1 style="font-size: 2.3rem; color: var(--color-ink); line-height: 1.3;">
       {% include latex-logo.html title=page.title %}
     </h1>
-    {% if page.evergreen == true %}<div style="margin-top: 0.8rem;"><span class="maturity-pill maturity-evergreen">🌲 常青 · 定稿</span></div>{% elsif page.evergreen == false %}<div style="margin-top: 0.8rem;"><span class="maturity-pill maturity-growing">✏️ 更新中</span></div>{% endif %}
+    {% if page.evergreen == true %}<div style="margin-top: 0.8rem;"><span class="maturity-pill maturity-evergreen">[[zi:leaf]] 常青 · 定稿</span></div>{% elsif page.evergreen == false %}<div style="margin-top: 0.8rem;"><span class="maturity-pill maturity-growing">[[zi:sprout]] 更新中</span></div>{% endif %}
 
     <div class="post-goldrule"></div>
 
@@ -70,12 +70,12 @@ layout: default
   {%- endif -%}
   <div class="podcast-player" id="podcast-player">
     <div class="pp-top">
-      <span class="pp-mic" aria-hidden="true">🎙️</span>
+      <span class="pp-mic" aria-hidden="true">[[zi:wave:seal]]</span>
       <span class="pp-label">听周睿读这篇</span>
       <button type="button" class="pp-speed" id="pp-speed" title="播放速度">1×</button>
     </div>
     <div class="pp-controls">
-      <button type="button" class="pp-play" id="pp-play" aria-label="播放 / 暂停">▶</button>
+      <button type="button" class="pp-play" id="pp-play" aria-label="播放 / 暂停">[[zi:play]]</button>
       <div class="pp-bar" id="pp-bar" role="slider" aria-label="进度" tabindex="0">
         <div class="pp-fill" id="pp-fill"></div>
         <div class="pp-knob" id="pp-knob"></div>
@@ -114,7 +114,7 @@ layout: default
     audio.addEventListener('loadedmetadata', render);
     audio.addEventListener('timeupdate', render);
     audio.addEventListener('ended', function () {
-      play.textContent = '▶';
+      play.textContent = '[[zi:play]]';
       play.classList.remove('playing');
     });
     // 音频还没上线 / 网络挂了 —— 整块静默隐藏，不在页面上留半截播放器
@@ -123,11 +123,11 @@ layout: default
     play.addEventListener('click', function () {
       if (audio.paused) {
         audio.play();
-        play.textContent = '❚❚';
+        play.textContent = '[[zi:pause]]';
         play.classList.add('playing');
       } else {
         audio.pause();
-        play.textContent = '▶';
+        play.textContent = '[[zi:play]]';
         play.classList.remove('playing');
       }
     });
@@ -156,11 +156,11 @@ layout: default
     {%- endcomment -%}
     {% unless page.podcast %}
     <button type="button" id="tts-toggle" class="post-tool-btn" title="朗读 / 暂停 / 继续">
-      <span class="tool-icon" aria-hidden="true">🔊</span>
+      <span class="tool-icon" aria-hidden="true">[[zi:volume]]</span>
       <span class="tool-label">朗读</span>
     </button>
     <button type="button" id="tts-stop" class="post-tool-btn" title="停止朗读" style="display: none;">
-      <span class="tool-icon" aria-hidden="true">⏹</span>
+      <span class="tool-icon" aria-hidden="true">[[zi:stop]]</span>
       <span class="tool-label">停止</span>
     </button>
     {% endunless %}
@@ -181,7 +181,7 @@ layout: default
   {%- endcomment -%}
   {% if page.outdated %}
   <aside class="outdated-banner" role="note">
-    <span class="ob-icon" aria-hidden="true">⚠️</span>
+    <span class="ob-icon" aria-hidden="true">[[zi:warning]]</span>
     <div class="ob-body">
       <p class="ob-title">这篇文章发表于 {{ page.date | date: "%Y 年 %-m 月" }}，里面提到的具体做法可能已经过时。</p>
       {% if page.outdated_note %}<p class="ob-note">{{ page.outdated_note }}</p>{% endif %}
@@ -261,7 +261,7 @@ layout: default
              style="padding: 10px 20px; border: 1px solid var(--color-ink);
                     text-decoration: none; color: var(--color-ink);
                     font-family: var(--font-display); transition: 0.3s;">
-            📥 {{ _btn_label }}
+            [[zi:download]] {{ _btn_label }}
           </a>
         </div>
       </div>
@@ -293,9 +293,9 @@ layout: default
       {%- assign cr_exams_arr = cr_related | where: "material_type", "Exams" -%}
       {%- assign cr_reviews_arr = cr_related | where: "material_type", "课程测评" -%}
       <aside class="course-related" aria-label="同课程其他资料">
-        <button type="button" class="cr-tab" aria-label="展开同课程其他资料" title="展开">📚 同课程资料</button>
+        <button type="button" class="cr-tab" aria-label="展开同课程其他资料" title="展开">[[zi:book]] 同课程资料</button>
         <div class="cr-body">
-        <h4 class="cr-head">📚 同课程其他资料<button type="button" class="cr-toggle" aria-label="收起同课程其他资料" title="收起">×</button></h4>
+        <h4 class="cr-head">[[zi:book]] 同课程其他资料<button type="button" class="cr-toggle" aria-label="收起同课程其他资料" title="收起">×</button></h4>
         <p class="cr-course">{{ cr_course }}</p>
 
         {%- if cr_notes_arr.size > 0 -%}
@@ -1115,7 +1115,7 @@ layout: default
                      : (blockMode ? '$$' + tex + '$$' : '$' + tex + '$'),
       locale: {
         reactionTitle: '',
-        preview: '👀 开启 Markdown 预览',
+        preview: '[[zi:eye]] 开启 Markdown 预览',
         anonymous: '神秘学者'
       },
       reaction: reactionConfig,
@@ -1459,7 +1459,7 @@ layout: default
     // 宽屏自动常驻：同步 open 类状态
     if (window.innerWidth >= 1400) {
       document.getElementById('toc-container').classList.add('open');
-      document.getElementById('toc-toggle').innerHTML = '&times;';
+      setTocButtonIcon(true);
     }
 
     // 点击遮罩关闭抽屉（手机端）
@@ -1489,7 +1489,14 @@ layout: default
     toc.classList.toggle('open');
     const isOpen = toc.classList.contains('open');
     if (backdrop) backdrop.classList.toggle('active', isOpen && window.innerWidth <= 768);
-    btn.innerHTML = isOpen ? '&times;' : '&#9776;';
+    setTocButtonIcon(isOpen);
+  }
+
+  function setTocButtonIcon(isOpen) {
+    const btn = document.getElementById('toc-toggle');
+    if (!btn) return;
+    btn.textContent = isOpen ? '[[zi:exit]]' : '[[zi:list]]';
+    if (window.ZirconIcons) window.ZirconIcons.hydrate(btn);
   }
 </script>
 

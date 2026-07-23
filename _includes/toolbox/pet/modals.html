@@ -10,7 +10,7 @@
         <label>头像</label>
         <div class="avatar-row" id="pm-avatar-row">
           <button type="button" class="avatar-cell photo-cell" id="pm-photo-btn" title="拍照 / 从相册选">
-            <span class="ph-icon" id="pm-photo-icon">📷</span>
+            <span class="ph-icon" id="pm-photo-icon">[[zi:camera]]</span>
             <img id="pm-photo-thumb" style="display:none;" alt="" />
           </button>
           <!-- emoji cells appended at runtime -->
@@ -37,7 +37,7 @@
           <div class="custom-select" id="pm-breed-select">
             <button type="button" class="cs-trigger" id="pm-breed-trigger">
               <span class="cs-label placeholder" id="pm-breed-label"></span>
-              <span class="cs-chevron">▾</span>
+              <span class="cs-chevron">[[zi:chevron]]</span>
             </button>
             <ul class="cs-menu" id="pm-breed-menu" role="listbox"></ul>
           </div>
@@ -94,14 +94,14 @@
       <div class="share-block" id="pm-share-block">
         <div id="pm-share-create" style="display:none;">
           <p class="hint" style="margin: 0 0 0.5rem;">把宠物分享给家人一起记录。生成宠物码后，这只宠物的档案和记录会上传到服务器，凭码加入的人能看到它的全部记录和成员昵称，请只发给信任的家人。</p>
-          <button type="button" class="share-mini-btn" id="pm-make-shared" style="font-size: 0.85rem; padding: 0.45rem 1rem;">🔗 生成宠物码</button>
+          <button type="button" class="share-mini-btn" id="pm-make-shared" style="font-size: 0.85rem; padding: 0.45rem 1rem;">[[zi:link]] 生成宠物码</button>
         </div>
         <div id="pm-share-existing" style="display:none;">
           <div class="share-code-row">
             <span class="hint" style="margin: 0;">宠物码</span>
             <code class="pet-code" id="pm-share-code">XXXXXX</code>
-            <button type="button" class="share-mini-btn" id="pm-copy-code">📋 复制邀请</button>
-            <button type="button" class="share-mini-btn" id="pm-regen-code">🔄 重新生成</button>
+            <button type="button" class="share-mini-btn" id="pm-copy-code">[[zi:copy]] 复制邀请</button>
+            <button type="button" class="share-mini-btn" id="pm-regen-code">[[zi:refresh]] 重新生成</button>
           </div>
           <div>
             <span class="hint" style="margin: 0;">成员</span>
@@ -112,7 +112,7 @@
       </div>
 
       <div class="modal-actions">
-        <button type="button" class="del" id="pm-delete" style="display: none;">🗑 删除</button>
+        <button type="button" class="del" id="pm-delete" style="display: none;">[[zi:trash]] 删除</button>
         <button type="button" class="cancel" id="pm-cancel">取消</button>
         <button type="button" class="save" id="pm-save">保存</button>
       </div>
@@ -122,7 +122,7 @@
   <!-- Intake / food-amount settings modal (opened from the 🎯 target strip) -->
   <div class="modal-backdrop" id="intake-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="im-title">
-      <h2 id="im-title">🎯 食量设置</h2>
+      <h2 id="im-title">[[zi:pin]] 食量设置</h2>
       <div class="im-petcard">
         <span class="im-av" id="im-pet-av">🐱</span>
         <span class="im-meta">
@@ -171,7 +171,7 @@
   <!-- Profile modal -->
   <div class="modal-backdrop" id="profile-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="prof-title">
-      <h2 id="prof-title">👤 我的档案</h2>
+      <h2 id="prof-title">[[zi:user]] 我的档案</h2>
       <div class="field">
         <label>昵称</label>
         <input type="text" id="profile-nickname" placeholder="比如 小明" maxlength="40" />
@@ -182,11 +182,11 @@
       <div class="sub-section">数据备份</div>
       <p class="hint" style="margin: 0 0 0.6rem;">未登录、未分享时记录只存在本机。清缓存或换设备前先导出，换机后导入即可找回。</p>
       <div class="backup-row">
-        <button type="button" class="backup-btn" id="backup-export">⬇️ 导出备份</button>
-        <button type="button" class="backup-btn" id="backup-import">⬆️ 从备份恢复</button>
+        <button type="button" class="backup-btn" id="backup-export">[[zi:download]] 导出备份</button>
+        <button type="button" class="backup-btn" id="backup-import">[[zi:upload]] 从备份恢复</button>
         <input type="file" id="backup-file" accept="application/json,.json" style="display:none;" />
       </div>
-      <button type="button" id="profile-privacy" class="linklike" style="display:block; margin:0.9rem auto 0; background:none; border:none; color:var(--color-accent); font:inherit; font-size:0.82rem; cursor:pointer;">🔒 隐私与数据说明</button>
+      <button type="button" id="profile-privacy" class="linklike" style="display:block; margin:0.9rem auto 0; background:none; border:none; color:var(--color-accent); font:inherit; font-size:0.82rem; cursor:pointer;">[[zi:lock]] 隐私与数据说明</button>
       <div class="modal-actions">
         <button type="button" class="cancel" id="profile-close">关闭</button>
       </div>
@@ -196,7 +196,7 @@
   <!-- Privacy / data statement modal -->
   <div class="modal-backdrop" id="privacy-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="privacy-title">
-      <h2 id="privacy-title">🔒 隐私与数据说明</h2>
+      <h2 id="privacy-title">[[zi:lock]] 隐私与数据说明</h2>
       <div class="privacy-body">
         <p><b>默认只在你手机上。</b>不登录、不分享时，所有记录都只保存在这台设备的浏览器里，不会上传。</p>
         <p><b>这些情况才会上传到服务器：</b></p>
@@ -222,7 +222,7 @@
   <!-- Join via code modal -->
   <div class="modal-backdrop join-modal" id="join-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="join-title">
-      <h2 id="join-title">🔑 用宠物码添加</h2>
+      <h2 id="join-title">[[zi:key]] 用宠物码添加</h2>
       <p class="hint" style="text-align: center; margin-bottom: 0.9rem;">向主人要 6 位宠物码，添加后可一起记录</p>
       <input type="text" id="join-code" class="code-input" maxlength="6" placeholder="ABCXYZ" autocomplete="off" />
       <button type="button" id="join-to-new" class="linklike" style="display:block; margin:0.2rem auto 0.6rem; background:none; border:none; color:var(--color-accent); font:inherit; font-size:0.82rem; cursor:pointer;">还没有宠物码？先新建自己的宠物 ›</button>
@@ -236,7 +236,7 @@
   <!-- Mismatch prompt -->
   <div class="modal-backdrop mismatch-prompt" id="mismatch-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mm-title">
-      <h2 id="mm-title">📐 这个数字好像不太对</h2>
+      <h2 id="mm-title">[[zi:ruler]] 这个数字好像不太对</h2>
       <div class="mm-body" id="mm-body"></div>
       <div class="modal-actions">
         <button type="button" class="cancel" id="mm-keep">仍按当前模式</button>
@@ -283,7 +283,7 @@
         <select id="fm-group"></select>
       </div>
       <div class="field">
-        <label>图标</label>
+        <label>照片 / 默认首字</label>
         <div class="emoji-pick" id="fm-emoji-pick"></div>
       </div>
       <!-- 食物图标的「拍照/选图」用同一个隐藏输入，编辑弹窗与向导共用（裁剪结果按回调写到对应那个） -->
@@ -293,15 +293,15 @@
         <div class="opt-cards fm-measure" id="fm-measure">
           <label class="opt-card active" data-val="count">
             <input type="radio" name="fm-measure" value="count" checked>
-            <span class="oc-ico">🍢</span>
+            <span class="oc-ico">份</span>
             <span class="oc-txt"><b>按个 / 根 / 份</b><small>猫条 · 冻干 · 整罐</small></span>
-            <span class="oc-check">✓</span>
+            <span class="oc-check" aria-hidden="true"></span>
           </label>
           <label class="opt-card" data-val="gram">
             <input type="radio" name="fm-measure" value="gram">
-            <span class="oc-ico">⚖️</span>
+            <span class="oc-ico">克</span>
             <span class="oc-txt"><b>按克数</b><small>用秤称的主粮</small></span>
-            <span class="oc-check">✓</span>
+            <span class="oc-check" aria-hidden="true"></span>
           </label>
         </div>
         <div class="inline-unit" id="fm-unit-label-field">
@@ -315,21 +315,21 @@
         <div class="opt-cards fm-source" id="fm-source">
           <label class="opt-card active" data-val="direct">
             <input type="radio" name="fm-source" value="direct" checked>
-            <span class="oc-ico">✏️</span>
+            <span class="oc-ico">kcal</span>
             <span class="oc-txt"><b>直接填</b><small>包装上有大卡</small></span>
-            <span class="oc-check">✓</span>
+            <span class="oc-check" aria-hidden="true"></span>
           </label>
           <label class="opt-card" data-val="analysis">
             <input type="radio" name="fm-source" value="analysis">
-            <span class="oc-ico">🧮</span>
+            <span class="oc-ico">%</span>
             <span class="oc-txt"><b>照成分估算</b><small>只有蛋白脂肪%</small></span>
-            <span class="oc-check">✓</span>
+            <span class="oc-check" aria-hidden="true"></span>
           </label>
           <label class="opt-card" data-val="equiv" id="fm-source-equiv">
             <input type="radio" name="fm-source" value="equiv">
-            <span class="oc-ico">🥣</span>
+            <span class="oc-ico">≈</span>
             <span class="oc-txt"><b>折成干粮</b><small>一份≈几克干粮</small></span>
-            <span class="oc-check">✓</span>
+            <span class="oc-check" aria-hidden="true"></span>
           </label>
         </div>
 
@@ -395,17 +395,17 @@
           <input type="text" id="fw-name" placeholder="妙鲜猫条 / 希尔思罐头" maxlength="20" />
         </div>
         <div class="field">
-          <label>图标</label>
+          <label>照片 / 默认首字</label>
           <div class="emoji-pick" id="fw-emoji-pick"></div>
         </div>
       </div>
 
       <!-- Step 2: how to measure -->
       <div class="fw-step" id="fw-step2" hidden>
-        <h2>这<span id="fw-emoji-echo">🍖</span>怎么记？</h2>
+        <h2>这<span id="fw-emoji-echo">食</span>怎么记？</h2>
         <div class="big-choices" id="fw-measure">
-          <button type="button" class="big-choice active" data-val="count"><span class="bc-ico">🍢</span><span class="bc-title">按个 / 根 / 份</span><span class="bc-sub">猫条、冻干、整罐这类，数着喂</span></button>
-          <button type="button" class="big-choice" data-val="gram"><span class="bc-ico">⚖️</span><span class="bc-title">按克数</span><span class="bc-sub">用秤称的主粮，按克算</span></button>
+          <button type="button" class="big-choice active" data-val="count"><span class="bc-ico">份</span><span class="bc-title">按个 / 根 / 份</span><span class="bc-sub">猫条、冻干、整罐这类，数着喂</span></button>
+          <button type="button" class="big-choice" data-val="gram"><span class="bc-ico">克</span><span class="bc-title">按克数</span><span class="bc-sub">用秤称的主粮，按克算</span></button>
         </div>
         <div class="inline-unit fw-unit" id="fw-unit-field">一份叫作<input type="text" id="fw-unit-label" maxlength="4" value="份" placeholder="份 / 根 / 个" /></div>
       </div>
@@ -414,9 +414,9 @@
       <div class="fw-step" id="fw-step3" hidden>
         <h2>多少热量？</h2>
         <div class="big-choices" id="fw-source">
-          <button type="button" class="big-choice active" data-val="direct"><span class="bc-ico">✏️</span><span class="bc-title">直接填大卡</span><span class="bc-sub">包装上印了「每份 / 每100克 热量」</span></button>
-          <button type="button" class="big-choice" data-val="analysis"><span class="bc-ico">🧮</span><span class="bc-title">照成分估算</span><span class="bc-sub">只有蛋白、脂肪、水分百分比</span></button>
-          <button type="button" class="big-choice" data-val="equiv"><span class="bc-ico">🥣</span><span class="bc-title">折成干粮</span><span class="bc-sub">直接说一份 ≈ 几克干粮</span></button>
+          <button type="button" class="big-choice active" data-val="direct"><span class="bc-ico">kcal</span><span class="bc-title">直接填大卡</span><span class="bc-sub">包装上印了「每份 / 每100克 热量」</span></button>
+          <button type="button" class="big-choice" data-val="analysis"><span class="bc-ico">%</span><span class="bc-title">照成分估算</span><span class="bc-sub">只有蛋白、脂肪、水分百分比</span></button>
+          <button type="button" class="big-choice" data-val="equiv"><span class="bc-ico">≈</span><span class="bc-title">折成干粮</span><span class="bc-sub">直接说一份 ≈ 几克干粮</span></button>
         </div>
         <div class="kcal-input" id="fw-direct">
           <input type="number" id="fw-kcal" step="any" min="0" placeholder="比如 100" inputmode="decimal" />
@@ -453,7 +453,7 @@
   <!-- Inbox modal: family activity + time-change notices -->
   <div class="modal-backdrop" id="inbox-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="inbox-title">
-      <h2 id="inbox-title">🐾 家人动态</h2>
+      <h2 id="inbox-title">[[zi:history]] 家人动态</h2>
       <div class="inbox-list" id="inbox-list"></div>
       <div class="modal-actions">
         <button type="button" class="cancel" id="inbox-close">关闭</button>

@@ -33,8 +33,8 @@ permalink: /toolbox/blackjack/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
@@ -215,13 +215,15 @@ permalink: /toolbox/blackjack/
     animation: bj-card-in 0.26s cubic-bezier(0.25,0.5,0.3,1.0) backwards;
   }
   .bj-card-back::after {
-    content: '♦';
+    content: '';
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
+    width: 14px; height: 18px;
+    border: 1.5px solid currentColor;
+    border-radius: 2px;
+    box-shadow: -4px 4px 0 -2px #203754, -4px 4px 0 -0.5px currentColor;
     color: rgba(201,169,110,0.9);
-    font-size: 22px;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
   }
 
   /* 结果横幅 */
@@ -331,7 +333,7 @@ permalink: /toolbox/blackjack/
 
 <div class="blackjack-wrap">
   <header>
-    <h1>🃏 21点</h1>
+    <h1>[[zi:cards]] 21点</h1>
     <div class="sub">和庄家比点数，越接近 21 越好，别爆牌</div>
   </header>
 
@@ -354,7 +356,7 @@ permalink: /toolbox/blackjack/
     <div class="bj-table">
       <div class="bj-side">
         <div class="bj-side-head">
-          <span class="who">🤵 庄家</span>
+          <span class="who">[[zi:user]] 庄家</span>
           <span class="bj-total" id="bjDealerTotal">--</span>
         </div>
         <div class="bj-hand-row" id="bjDealerRow"></div>
@@ -364,7 +366,7 @@ permalink: /toolbox/blackjack/
 
       <div class="bj-side">
         <div class="bj-side-head">
-          <span class="who">🧑 你</span>
+          <span class="who">[[zi:user]] 你</span>
           <span class="bj-total" id="bjPlayerTotal">--</span>
         </div>
         <div class="bj-hands" id="bjPlayerHands"></div>
@@ -374,7 +376,7 @@ permalink: /toolbox/blackjack/
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="bjPgo">
       <div class="gs-pgo-view active" id="bjPgoMain">
-        <div class="gs-pgo-icon">🃏</div>
+        <div class="gs-pgo-icon">[[zi:cards]]</div>
         <h2 class="gs-pgo-title">21点</h2>
         <div class="gs-pgo-subtitle">1000 筹码起步，把它做大，破产即一局结束</div>
         <div class="gs-pgo-highscore">
@@ -382,7 +384,7 @@ permalink: /toolbox/blackjack/
           <div class="gs-pgo-hs-label">历史最佳峰值</div>
         </div>
         <div class="gs-pgo-subtitle" id="bjPgoBankrollLine" style="margin-top:0.6rem;">当前筹码 1000</div>
-        <button class="gs-pgo-start-btn" id="bjPgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="bjPgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
     </div>
   </div>
@@ -407,7 +409,7 @@ permalink: /toolbox/blackjack/
   </div>
 
   <div class="bj-actions" style="margin-top:0.2rem;">
-    <button class="bj-btn ghost" id="bjSubmitBtn">🏆 上榜</button>
+    <button class="bj-btn ghost" id="bjSubmitBtn">[[zi:trophy]] 上榜</button>
   </div>
 
   <div class="bj-help">
@@ -444,7 +446,7 @@ permalink: /toolbox/blackjack/
   const MIN_BET = 10;
   const RESHUFFLE_FRAC = 0.25; // 牌靴剩余不足 25% 时洗牌（即用掉约 75%）
   const SUITS = ['S', 'H', 'D', 'C'];
-  const SUIT_GLYPH = { S: '♠', H: '♥', D: '♦', C: '♣' };
+  const SUIT_GLYPH = { S: '[[zi:cards]]', H: '[[zi:cards]]', D: '[[zi:cards]]', C: '[[zi:cards]]' };
   const RED_SUITS = { H: true, D: true };
   const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
   const CHIP_AMTS = [10, 25, 50, 100];
@@ -940,7 +942,7 @@ permalink: /toolbox/blackjack/
     pgoBankrollLine.textContent = '本轮峰值 ' + state.peak.toLocaleString() + ' 筹码 · 已玩 ' + state.rounds + ' 手';
     document.querySelector('#bjPgoMain .gs-pgo-title').textContent = '破产了';
     document.querySelector('#bjPgoMain .gs-pgo-subtitle').textContent = '本轮结束，峰值已尝试上榜';
-    startBtn.textContent = '🔄 重新开始（1000 筹码）';
+    startBtn.textContent = '[[zi:refresh]] 重新开始（1000 筹码）';
     pgo.classList.add('open');
     render();
   }
@@ -1113,7 +1115,7 @@ permalink: /toolbox/blackjack/
     bjLbWidget = GamesShell.Leaderboard.mount({
       container: $('bj-lb-mount'),
       gameId: GAME_ID,
-      title: '🏆 21点 峰值榜',
+      title: '[[zi:trophy]] 21点 峰值榜',
       scoreFormatter: v => Number(v).toLocaleString(),
       scoreAsc: false,
       getCurrentNick: () => GamesShell.Identity.getNick(),
@@ -1121,7 +1123,7 @@ permalink: /toolbox/blackjack/
     GamesShell.Comments.mount({
       container: $('bj-cm-mount'),
       path: '/toolbox/blackjack/',
-      title: '💬 牌桌交流',
+      title: '[[zi:comment]] 牌桌交流',
       intro: '聊聊你的最高峰值、要不要分牌的玄学、爆牌血泪史 ~',
       placeholder: '聊聊你的 21 点心得 ~',
     });

@@ -208,8 +208,8 @@ permalink: /toolbox/chess/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 
   .ch-cell:focus-visible { outline: 3px solid #3b82f6; outline-offset: -3px; z-index: 3; }
@@ -322,24 +322,24 @@ permalink: /toolbox/chess/
   <div class="ch-controls ch-difficulty-row" id="chDifficultyRow" hidden>
     <span class="ch-row-label">难度</span>
     <div class="ch-mode-tabs" id="chDifficultyTabs">
-      <button class="ch-mode-tab" data-diff="easy">🌱 新手</button>
-      <button class="ch-mode-tab active" data-diff="normal">🙂 普通</button>
-      <button class="ch-mode-tab" data-diff="hard">🔥 高手</button>
+      <button class="ch-mode-tab" data-diff="easy">[[zi:sprout]] 新手</button>
+      <button class="ch-mode-tab active" data-diff="normal">[[zi:user]] 普通</button>
+      <button class="ch-mode-tab" data-diff="hard">[[zi:flame]] 高手</button>
     </div>
   </div>
 
   <div class="ch-controls">
     <button class="ch-btn" id="chUndoBtn">↶ 悔棋</button>
-    <button class="ch-btn" id="chPauseBtn" hidden>⏸ 暂停</button>
-    <button class="ch-btn" id="chNewBtn">🔄 重新开始</button>
-    <button class="ch-btn" id="chPgnBtn" title="导出本局棋谱为 PGN 文件">📋 PGN</button>
-    <button class="ch-btn" id="chFaceBtn" hidden title="对坐模式：两人面对面时，把对面一方的棋子转正，双方都好认">🔁 对坐</button>
+    <button class="ch-btn" id="chPauseBtn" hidden>[[zi:pause]] 暂停</button>
+    <button class="ch-btn" id="chNewBtn">[[zi:refresh]] 重新开始</button>
+    <button class="ch-btn" id="chPgnBtn" title="导出本局棋谱为 PGN 文件">[[zi:copy]] PGN</button>
+    <button class="ch-btn" id="chFaceBtn" hidden title="对坐模式：两人面对面时，把对面一方的棋子转正，双方都好认">[[zi:refresh]] 对坐</button>
     <button class="ch-btn" id="chFlipBtn" hidden title="PvP 走子后自动翻转棋盘，让当前走方在底部">⟳ 翻转</button>
-    <button class="ch-btn" id="chSfxBtn" title="走子/吃子/将军音效">🔊</button>
+    <button class="ch-btn" id="chSfxBtn" title="走子/吃子/将军音效">[[zi:volume]]</button>
   </div>
 
   <div class="ch-statusbar">
-    <div class="ch-turn" id="chTurn" aria-live="polite" aria-atomic="true">⚪ 白方走子</div>
+    <div class="ch-turn" id="chTurn" aria-live="polite" aria-atomic="true">[[zi:user]] 白方走子</div>
     <div class="ch-tally">
       <span>白胜 <b id="chTallyW">0</b></span>
       <span>黑胜 <b id="chTallyB">0</b></span>
@@ -350,14 +350,14 @@ permalink: /toolbox/chess/
   <div class="ch-board-wrap">
     <div class="ch-board" id="chBoard"></div>
     <!-- 回合倒计时闹钟（棋盘中央），颜色随当前走子方 -->
-    <div class="ch-clock" id="chClock" hidden><span class="ch-clock-ico">⏱</span><span class="ch-clock-num">60</span></div>
+    <div class="ch-clock" id="chClock" hidden><span class="ch-clock-ico">[[zi:clock]]</span><span class="ch-clock-num">60</span></div>
     <div class="ch-overlay" id="chOverlay">
       <h2 id="chOvTitle">游戏结束</h2>
       <button class="ch-btn" id="chOvBtn">再来一局</button>
     </div>
     <div class="ch-overlay ch-paused-overlay" id="chPausedOverlay">
-      <h2>⏸ 已暂停</h2>
-      <button class="ch-btn" id="chResumeBtn">▶ 继续</button>
+      <h2>[[zi:pause]] 已暂停</h2>
+      <button class="ch-btn" id="chResumeBtn">[[zi:play]] 继续</button>
     </div>
     <div class="ch-promotion-overlay" id="chPromotionOverlay" role="dialog" aria-modal="true" aria-label="选择升变棋子">
       <div class="ch-promotion-modal">
@@ -381,8 +381,8 @@ permalink: /toolbox/chess/
           <button class="gs-pgo-mode-tab" data-value="hard">高手</button>
         </div>
         <div class="gs-pgo-room-tabs" id="chPgoRoomTabs">
-          <button class="gs-pgo-room-tab selected" data-tab="local">🏠 本地</button>
-          <button class="gs-pgo-room-tab" data-tab="online">🌐 联机</button>
+          <button class="gs-pgo-room-tab selected" data-tab="local">[[zi:home]] 本地</button>
+          <button class="gs-pgo-room-tab" data-tab="online">[[zi:globe]] 联机</button>
         </div>
         <div class="gs-pgo-room-panel active" id="chPgoLocalPanel"></div>
         <div class="gs-pgo-room-panel" id="chPgoOnlinePanel">
@@ -392,7 +392,7 @@ permalink: /toolbox/chess/
             <div class="gs-pgo-room-error" id="chPgoRoomError"></div>
           </div>
           <div id="chPgoRoomLobby" style="display:none;">
-            <div class="gs-pgo-room-code">房号：<strong id="chPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="chPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="chPgoRoomCopyBtn">🔗 复制链接</button></div>
+            <div class="gs-pgo-room-code">房号：<strong id="chPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="chPgoRoomCopyCodeBtn">[[zi:copy]] 复制房号</button> <button class="gs-pgo-room-copy-btn" id="chPgoRoomCopyBtn">[[zi:link]] 复制链接</button></div>
             <div class="gs-room-qr" id="chPgoRoomQr"></div><ul class="gs-pgo-room-players" id="chPgoRoomPlayers"></ul>
             <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
               <button class="gs-pgo-room-btn primary" id="chPgoRoomStartBtn" disabled>需要 2 人</button>
@@ -400,14 +400,14 @@ permalink: /toolbox/chess/
             </div>
           </div>
         </div>
-        <button class="gs-pgo-start-btn" id="chPgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="chPgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
       <!-- 盘面领地卡：上半盘黑方、下半盘白方 -->
       <div class="ch-terr-layer" id="chTerrLayer">
         <div class="ch-terr-seat at-black" id="chSeatBlack"></div>
         <div class="ch-terr-seat at-white" id="chSeatWhite"></div>
         <div class="ch-terr-startbar">
-          <button class="ch-terr-start" id="chTerrStart">▶ 开始游戏</button>
+          <button class="ch-terr-start" id="chTerrStart">[[zi:play]] 开始游戏</button>
         </div>
       </div>
     </div>
@@ -681,10 +681,10 @@ permalink: /toolbox/chess/
     const turn = state.game.turn();
     let label;
     if (state.paused) {
-      label = '⏸ 已暂停';
+      label = '[[zi:pause]] 已暂停';
     } else if (state.over) {
       if (state.game.in_checkmate()) {
-        label = (turn === 'w' ? '⚫ 黑方将死 — 黑胜' : '⚪ 白方将死 — 白胜');
+        label = (turn === 'w' ? '[[zi:user]] 黑方将死 — 黑胜' : '[[zi:user]] 白方将死 — 白胜');
       } else if (state.game.in_stalemate()) {
         label = '— 逼和 —';
       } else if (state.game.in_threefold_repetition()) {
@@ -697,10 +697,10 @@ permalink: /toolbox/chess/
         label = '— 游戏结束 —';
       }
     } else if (state.aiThinking) {
-      label = '🤖 AI 思考中…';
+      label = '[[zi:bot]] AI 思考中…';
     } else {
       const inCheck = state.game.in_check();
-      label = (turn === 'w' ? '⚪ 白方走子' : '⚫ 黑方走子') + (inCheck ? ' — 将军！' : '');
+      label = (turn === 'w' ? '[[zi:user]] 白方走子' : '[[zi:user]] 黑方走子') + (inCheck ? ' — 将军！' : '');
       // Online PvP: hint whose turn it is from your perspective
       if (chIsOnline && chMyColor) {
         label += (turn === chMyColor ? '（你的回合）' : '（等对手）');
@@ -724,7 +724,7 @@ permalink: /toolbox/chess/
     const isAi = aiSide() !== null;
     difficultyRow.hidden = !isAi;
     pauseBtn.hidden = !isAi;
-    pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    pauseBtn.textContent = state.paused ? '[[zi:play]] 继续' : '[[zi:pause]] 暂停';
     pauseBtn.disabled = state.over;
     pausedOverlay.classList.toggle('show', state.paused && !state.over);
 
@@ -737,11 +737,11 @@ permalink: /toolbox/chess/
     const faceBtn = document.getElementById('chFaceBtn');
     if (faceBtn) {
       faceBtn.hidden = !(state.mode === 'pvp' && !chIsOnline);
-      faceBtn.textContent = state.faceToFace ? '🔁 对坐：开' : '🔁 对坐：关';
+      faceBtn.textContent = state.faceToFace ? '[[zi:refresh]] 对坐：开' : '[[zi:refresh]] 对坐：关';
     }
     const sfxBtn = document.getElementById('chSfxBtn');
     if (sfxBtn && window.GamesShell && GamesShell.Sfx) {
-      sfxBtn.textContent = GamesShell.Sfx.isEnabled() ? '🔊' : '🔇';
+      sfxBtn.textContent = GamesShell.Sfx.isEnabled() ? '[[zi:volume]]' : '[[zi:volume]]';
     }
   }
 
@@ -782,8 +782,8 @@ permalink: /toolbox/chess/
     if (state.game.in_checkmate()) {
       // The side that just moved won (opposite of current turn)
       const winner = state.game.turn() === 'w' ? 'b' : 'w';
-      if (winner === 'w') { state.tally.w++; title = '⚪ 白方将死黑方'; }
-      else { state.tally.b++; title = '⚫ 黑方将死白方'; }
+      if (winner === 'w') { state.tally.w++; title = '[[zi:user]] 白方将死黑方'; }
+      else { state.tally.b++; title = '[[zi:user]] 黑方将死白方'; }
       // 仅当 AI 模式下"人类方"获胜，才上传战绩榜
       const humanIsW = state.mode === 'ai-black';
       const humanIsB = state.mode === 'ai-white';
@@ -1405,13 +1405,13 @@ permalink: /toolbox/chess/
     chWlbWidget = GamesShell.WinsLeaderboard.mount({
       container: document.getElementById('ch-wlb-mount'),
       gameId: 'chess',
-      title: '🏆 国际象棋 战绩榜',
+      title: '[[zi:trophy]] 国际象棋 战绩榜',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });
     GamesShell.Comments.mount({
       container: document.getElementById('ch-cm-mount'),
       path: '/toolbox/chess/',
-      title: '💬 棋友交流',
+      title: '[[zi:comment]] 棋友交流',
       intro: 'AI 在 hard 难度下的真实水平如何？开局心得 · 残局技巧 ~',
       placeholder: '聊聊你的国际象棋心得 ~',
     });
@@ -1580,13 +1580,13 @@ permalink: /toolbox/chess/
       const isMe = p.id === chRoomPlayerId, isHost = p.isHost;
       let h = '<li>';
       if (chRoomHost && room.state === 'lobby' && !isMe) {
-        if (i > 0) h += `<button class="ch-room-act up" data-act="up" data-id="${p.id}">▲</button>`;
-        if (i < room.players.length - 1) h += `<button class="ch-room-act down" data-act="down" data-id="${p.id}">▼</button>`;
+        if (i > 0) h += `<button class="ch-room-act up" data-act="up" data-id="${p.id}">[[zi:chevron]]</button>`;
+        if (i < room.players.length - 1) h += `<button class="ch-room-act down" data-act="down" data-id="${p.id}">[[zi:chevron]]</button>`;
       }
       h += gsEsc(p.nick);
       if (isMe) h += ' (你)';
       if (isHost) h += ' <span class="gs-pgo-room-host-badge">房主</span>';
-      if (chRoomHost && room.state === 'lobby' && !isMe) h += `<button class="ch-room-kick" data-act="kick" data-id="${p.id}">✕</button>`;
+      if (chRoomHost && room.state === 'lobby' && !isMe) h += `<button class="ch-room-kick" data-act="kick" data-id="${p.id}">[[zi:stop]]</button>`;
       h += '</li>';
       return h;
     }).join('');
@@ -1673,12 +1673,12 @@ permalink: /toolbox/chess/
   document.getElementById('chPgoRoomLeaveBtn').addEventListener('click', chLeaveRoom);
   document.getElementById('chPgoRoomCopyBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(`${location.origin}/toolbox/chess/?room=${chRoomCode}`).then(() => {
-      const btn = document.getElementById('chPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '🔗 复制链接'; }, 2000);
+      const btn = document.getElementById('chPgoRoomCopyBtn'); btn.textContent = '[[zi:check]] 已复制'; setTimeout(() => { btn.textContent = '[[zi:link]] 复制链接'; }, 2000);
     }).catch(() => {});
   });
   document.getElementById('chPgoRoomCopyCodeBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(chRoomCode).then(() => {
-      const btn = document.getElementById('chPgoRoomCopyCodeBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制房号'; }, 2000);
+      const btn = document.getElementById('chPgoRoomCopyCodeBtn'); btn.textContent = '[[zi:check]] 已复制'; setTimeout(() => { btn.textContent = '[[zi:copy]] 复制房号'; }, 2000);
     }).catch(() => {});
   });
   document.getElementById('chPgoRoomStartBtn').addEventListener('click', async () => {
@@ -1716,8 +1716,8 @@ permalink: /toolbox/chess/
   };
   const CH_KIND_CYCLE = ['human', 'ai', 'remote'];
   const CH_KIND_SUB = { human: '本机真人', ai: '电脑', remote: '邀请联机' };
-  const CH_KIND_ICO = { human: '👤', ai: '🤖', remote: '🔗' };
-  const CH_DIFF3 = { easy: '🌱 新手', normal: '🙂 普通', hard: '🔥 高手' };
+  const CH_KIND_ICO = { human: '[[zi:user]]', ai: '[[zi:bot]]', remote: '[[zi:link]]' };
+  const CH_DIFF3 = { easy: '[[zi:sprout]] 新手', normal: '[[zi:user]] 普通', hard: '[[zi:flame]] 高手' };
   const chRoles = { white: 'human', black: 'ai' };
   const chDiffSide = { white: state.difficulty || 'normal', black: state.difficulty || 'normal' };
   let chRemoteSide = null;
@@ -1767,7 +1767,7 @@ permalink: /toolbox/chess/
     bH.appendChild(chTerrCard('black'));
     wH.appendChild(chTerrCard('white'));
     const startBtn = document.getElementById('chTerrStart');
-    startBtn.style.display = ''; startBtn.disabled = (chTerrComputeMode().mode === null); startBtn.textContent = '▶ 开始游戏';
+    startBtn.style.display = ''; startBtn.disabled = (chTerrComputeMode().mode === null); startBtn.textContent = '[[zi:play]] 开始游戏';
   }
 
   function chRenderOnlineLobby() {
@@ -1782,7 +1782,7 @@ permalink: /toolbox/chess/
     if (chRoomHost) {
       startBtn.style.display = '';
       startBtn.disabled = !(nPlayers >= 2 && chReordered);
-      startBtn.textContent = nPlayers >= 2 ? '▶ 开始游戏' : '▶ 等对手加入';
+      startBtn.textContent = nPlayers >= 2 ? '[[zi:play]] 开始游戏' : '[[zi:play]] 等对手加入';
     } else { startBtn.style.display = 'none'; }
   }
 
@@ -1799,21 +1799,21 @@ permalink: /toolbox/chess/
       const mySide = (myIdx === 0) ? 'white' : 'black';
       occ = (side === mySide) ? 'me' : 'host';
     }
-    card.appendChild(chEl('span', 'ico', occ === 'invite' ? '🔗' : (occ === 'me' ? '👤' : '🌐')));
+    card.appendChild(chEl('span', 'ico', occ === 'invite' ? '[[zi:link]]' : (occ === 'me' ? '[[zi:user]]' : '[[zi:globe]]')));
     card.appendChild(chEl('span', 'lbl', info.label));
     if (chRoomHost && (occ === 'me' || occ === 'invite')) card.onclick = () => chCancelInvite();
     if (occ === 'me') { card.appendChild(chEl('span', 'sub', '你')); }
     else if (occ === 'host') { card.appendChild(chEl('span', 'sub', '房主')); card.appendChild(chEl('span', 'sub2', '等房主开始…')); }
     else if (occ === 'guest') {
       card.appendChild(chEl('span', 'sub', (guest && guest.nick) ? guest.nick : '对手'));
-      card.appendChild(chEl('span', 'sub2', '已加入 ✓'));
+      card.appendChild(chEl('span', 'sub2', '已加入 [[zi:check]]'));
       if (chRoomHost) { const sw = chEl('button', 'ch-terr-mini', '⇅ 交换黑白'); sw.onclick = (e) => { e.stopPropagation(); chSwapSides(); }; card.appendChild(sw); }
     } else {
       card.appendChild(chEl('span', 'sub', '邀请联机'));
       card.appendChild(chEl('div', 'ch-room-code', '房号 ' + (chRoomCode || '…')));
-      const copy = chEl('button', 'ch-terr-mini', '🔗 复制链接'); copy.onclick = (e) => { e.stopPropagation(); chCopyInvite(chRoomCode, copy); }; card.appendChild(copy);
+      const copy = chEl('button', 'ch-terr-mini', '[[zi:link]] 复制链接'); copy.onclick = (e) => { e.stopPropagation(); chCopyInvite(chRoomCode, copy); }; card.appendChild(copy);
       card.appendChild(chEl('div', 'ch-room-status', !chRoomReady ? '建房中…' : '等对手加入…'));
-      const cancel = chEl('button', 'ch-terr-mini ghost', '✕ 取消邀请'); cancel.onclick = (e) => { e.stopPropagation(); chCancelInvite(); }; card.appendChild(cancel);
+      const cancel = chEl('button', 'ch-terr-mini ghost', '[[zi:stop]] 取消邀请'); cancel.onclick = (e) => { e.stopPropagation(); chCancelInvite(); }; card.appendChild(cancel);
     }
     return card;
   }
@@ -1833,7 +1833,7 @@ permalink: /toolbox/chess/
   function chInviteUrl(code) { return location.origin + '/toolbox/chess/?room=' + code; }
   function chRand4() { return String(Math.floor(Math.random() * 9000) + 1000); }
   function chCopyInvite(code, btn) {
-    navigator.clipboard.writeText(chInviteUrl(code)).then(() => { if (btn) { const t = btn.textContent; btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = t; }, 1800); } }).catch(() => {});
+    navigator.clipboard.writeText(chInviteUrl(code)).then(() => { if (btn) { btn.textContent = '[[zi:check]] 已复制'; setTimeout(() => { btn.textContent = '[[zi:link]] 复制链接'; }, 1800); } }).catch(() => {});
   }
   function chInviteStart(side) {
     chRemoteSide = side; chIsOnline = true; chOnlineBegun = false;

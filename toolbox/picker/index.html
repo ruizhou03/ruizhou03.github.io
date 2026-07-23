@@ -600,7 +600,11 @@ permalink: /toolbox/picker/
     border-color: var(--color-accent); color: var(--color-accent);
     background: rgba(232,200,40,0.12);
   }
-  .board-btn.dirty::after { content: ' ●'; font-size: 0.7em; vertical-align: 0.15em; }
+  .board-btn.dirty::after {
+    content: ''; display: inline-block; width: 0.55em; height: 0.3em; margin-left: 0.35em;
+    border-left: 2px solid currentColor; border-bottom: 2px solid currentColor;
+    transform: translateY(-0.12em) rotate(-45deg);
+  }
 
   /* —— 档案板块 —— */
   .archive-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.4rem; }
@@ -670,14 +674,14 @@ permalink: /toolbox/picker/
 
 <article class="picker-wrap">
   <header class="picker-header">
-    <h1>🎲 遇事不决</h1>
+    <h1>[[zi:dice]] 遇事不决</h1>
     <p>Weighted Random Picker</p>
   </header>
 
   <div class="picker-card">
     <div class="weights-bar">
       <span class="wb-label">选项与占比</span>
-      <button type="button" class="equal-btn" id="equal-btn" title="把所有选项的占比拉平成一样（每项 100÷选项数）">⚖ 平均分配</button>
+      <button type="button" class="equal-btn" id="equal-btn" title="把所有选项的占比拉平成一样（每项 100÷选项数）">[[zi:scale]] 平均分配</button>
     </div>
     <div class="options-list" id="options-list"></div>
     <div class="add-row">
@@ -697,7 +701,7 @@ permalink: /toolbox/picker/
     </div>
 
     <div class="spin-zone">
-      <button type="button" class="spin-btn" id="spin-btn">🎲 抽！</button>
+      <button type="button" class="spin-btn" id="spin-btn">[[zi:dice]] 抽！</button>
       <div class="spin-hint" id="spin-hint">
         <span id="spin-hint-text"></span>
       </div>
@@ -718,7 +722,7 @@ permalink: /toolbox/picker/
     <div class="outcome-col">
       <div class="result-zone">
         <div class="result-line" id="result-line" aria-live="polite" aria-atomic="true">&nbsp;</div>
-        <button type="button" class="result-copy" id="result-copy-btn" style="display:none;" title="复制结果到剪贴板">📋 复制结果</button>
+        <button type="button" class="result-copy" id="result-copy-btn" style="display:none;" title="复制结果到剪贴板">[[zi:copy]] 复制结果</button>
       </div>
 
       <div class="tally-panel" id="tally-panel">
@@ -727,28 +731,28 @@ permalink: /toolbox/picker/
       </div>
 
       <div class="reset-row" id="reset-row" style="display: none;">
-        <button type="button" class="reset-btn" id="reset-btn">🔁 再抽一次</button>
+        <button type="button" class="reset-btn" id="reset-btn">[[zi:refresh]] 再抽一次</button>
       </div>
     </div>
   </div>
 
   <section class="board" id="archive-board">
     <div class="board-head">
-      <h2 class="board-title">🗂 我的档案</h2>
+      <h2 class="board-title">[[zi:file]] 我的档案</h2>
       <span class="profile-toast" id="profile-toast" style="display:none;"></span>
     </div>
     <div class="archive-list" id="profile-list"></div>
     <p class="archive-empty" id="archive-empty">还没有保存的档案。把当前这套选项「存为新档案」，之后就能一键调取。</p>
     <div class="archive-actions">
       <button type="button" class="board-btn" id="profile-new-btn" title="把当前选项另存为一个新档案">+ 存为新档案</button>
-      <button type="button" class="board-btn" id="profile-save-btn" style="display:none;" title="把当前改动保存回正在使用的档案">💾 保存改动</button>
-      <button type="button" class="board-btn" id="profile-share-btn" title="复制当前选项的分享链接（别人打开即同步）">🔗 复制分享链接</button>
+      <button type="button" class="board-btn" id="profile-save-btn" style="display:none;" title="把当前改动保存回正在使用的档案">[[zi:save]] 保存改动</button>
+      <button type="button" class="board-btn" id="profile-share-btn" title="复制当前选项的分享链接（别人打开即同步）">[[zi:link]] 复制分享链接</button>
     </div>
   </section>
 
   <section class="board" id="history-board">
     <div class="board-head">
-      <h2 class="board-title">📜 抽签历史 <span class="history-count" id="history-count"></span></h2>
+      <h2 class="board-title">[[zi:file]] 抽签历史 <span class="history-count" id="history-count"></span></h2>
       <div class="board-head-actions">
         <label class="perpage-label">每页
           <select id="history-perpage" aria-label="每页条数"></select>

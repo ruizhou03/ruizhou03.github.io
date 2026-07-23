@@ -135,8 +135,8 @@ permalink: /toolbox/runner/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
   details.about ul { margin: 0.4rem 0 0.8rem; padding-left: 1.2rem; }
   details.about li { margin: 0.25rem 0; }
@@ -144,7 +144,7 @@ permalink: /toolbox/runner/
 
 <article class="runner-wrap">
   <header class="runner-header">
-    <h1>🎓 Deadline 大逃亡</h1>
+    <h1>[[zi:graduation]] Deadline 大逃亡</h1>
   </header>
 
   <div class="runner-card">
@@ -159,7 +159,7 @@ permalink: /toolbox/runner/
       <!-- 开始 / 暂停 / GG 遮罩：三态共享一层 gs-pgo-overlay，切换 view -->
       <div class="gs-pgo-overlay open" id="runner-pgo">
         <div class="gs-pgo-view active" id="runnerPgoMain">
-          <div class="gs-pgo-icon">🏃</div>
+          <div class="gs-pgo-icon">[[zi:user]]</div>
           <h2 class="gs-pgo-title">Deadline 大逃亡</h2>
           <div class="gs-pgo-subtitle">跳过文献综述，钻过 Reviewer 2 的飞邮件，能跑多远？</div>
           <div class="gs-pgo-highscore">
@@ -171,22 +171,22 @@ permalink: /toolbox/runner/
             <button class="gs-pgo-mode-tab selected" data-value="normal">标准</button>
             <button class="gs-pgo-mode-tab" data-value="hard">噩梦</button>
           </div>
-          <button type="button" class="gs-pgo-start-btn" id="runnerPgoStartBtn">▶ 开始游戏</button>
+          <button type="button" class="gs-pgo-start-btn" id="runnerPgoStartBtn">[[zi:play]] 开始游戏</button>
         </div>
         <div class="gs-pgo-view" id="runnerPgoPause">
-          <div class="gs-pgo-icon" aria-hidden="true">⏸</div>
+          <div class="gs-pgo-icon" aria-hidden="true">[[zi:pause]]</div>
           <h2 class="gs-pgo-title">暂停中</h2>
           <div class="gs-pgo-subtitle">按 P 或空格继续</div>
-          <button type="button" class="gs-pgo-start-btn" id="runnerPgoResumeBtn">▶ 继续</button>
+          <button type="button" class="gs-pgo-start-btn" id="runnerPgoResumeBtn">[[zi:play]] 继续</button>
         </div>
         <div class="gs-pgo-view" id="runnerPgoOver">
-          <div class="gs-pgo-icon" aria-hidden="true">💥</div>
+          <div class="gs-pgo-icon" aria-hidden="true">[[zi:warning]]</div>
           <h2 class="gs-pgo-title">GG，被 deadline 撞了</h2>
           <div class="gs-pgo-subtitle">
             本次 <strong id="over-score" style="color:#fff;">0 米</strong>
             · 最高 <strong id="over-best" style="color:var(--color-highlight);">0 米</strong>
           </div>
-          <button type="button" class="gs-pgo-start-btn" id="btn-restart">▶ 再来 (空格)</button>
+          <button type="button" class="gs-pgo-start-btn" id="btn-restart">[[zi:play]] 再来 (空格)</button>
         </div>
       </div>
     </div>
@@ -198,8 +198,8 @@ permalink: /toolbox/runner/
     </div>
 
     <div class="mobile-controls">
-      <button type="button" id="btn-jump" aria-label="跳跃">⬆</button>
-      <button type="button" id="btn-duck" aria-label="蹲下">⬇</button>
+      <button type="button" id="btn-jump" aria-label="跳跃">[[zi:upload]]</button>
+      <button type="button" id="btn-duck" aria-label="蹲下">[[zi:download]]</button>
     </div>
   </div>
 
@@ -924,7 +924,7 @@ permalink: /toolbox/runner/
       kind: 'single',
       gameId: 'runner',
       title: 'Deadline 大逃亡',
-      emoji: '🏃',
+      emoji: '[[zi:user]]',
       nick: GamesShell.Identity.getNick(),
       score: runnerLastFinalScore || Math.floor(state.score),
       scoreLabel: '本 局 距 离',
@@ -1016,14 +1016,14 @@ permalink: /toolbox/runner/
     runnerLbWidget = GamesShell.Leaderboard.mount({
       container: document.getElementById('runner-lb-mount'),
       gameId: 'runner',
-      title: '🏆 Deadline 大逃亡 排行榜',
+      title: '[[zi:trophy]] Deadline 大逃亡 排行榜',
       scoreFormatter: v => v + ' 米',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });
     GamesShell.Comments.mount({
       container: document.getElementById('runner-cm-mount'),
       path: '/toolbox/runner/',
-      title: '💬 你跑了多远',
+      title: '[[zi:comment]] 你跑了多远',
       intro: '聊聊你最大的连跳、被哪种 deadline 撞死最多 ~',
       placeholder: '聊聊你的跑酷心得 ~',
     });

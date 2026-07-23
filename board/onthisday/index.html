@@ -264,7 +264,7 @@ redirect_from:
   <div class="date-bar">
     <span class="label">查看日期：</span>
     <input type="date" id="date-input" />
-    <button type="button" class="reset-btn" id="today-btn">📍 跳到今天</button>
+    <button type="button" class="reset-btn" id="today-btn">[[zi:pin]] 跳到今天</button>
   </div>
 
   <div class="featured-date">
@@ -276,7 +276,7 @@ redirect_from:
 
   <div class="heatmap-zone" id="heatmap-zone" style="display: none;">
     <div class="heatmap-title">
-      <span>📊 写作热力图</span>
+      <span>[[zi:chart]] 写作热力图</span>
       <small id="heatmap-subtitle"></small>
     </div>
     <div id="heatmap-body"></div>
@@ -349,7 +349,7 @@ redirect_from:
       });
       return true;
     } catch (e) {
-      $results.innerHTML = `<div class="empty"><div class="icon">⚠️</div>加载文章索引失败：${escapeHtml(e.message)}</div>`;
+      $results.innerHTML = `<div class="empty"><div class="icon">[[zi:warning]]</div>加载文章索引失败：${escapeHtml(e.message)}</div>`;
       return false;
     }
   }
@@ -368,7 +368,7 @@ redirect_from:
         const nearestHits = byMmdd[nearest] || [];
         $results.innerHTML = `
           <div class="empty">
-            <div class="icon">🤔</div>
+            <div class="icon">[[zi:question]]</div>
             <div>这一天没有历史文章。</div>
           </div>
           <div class="nearest-fallback">
@@ -379,7 +379,7 @@ redirect_from:
       } else {
         $results.innerHTML = `
           <div class="empty">
-            <div class="icon">🌱</div>
+            <div class="icon">[[zi:sprout]]</div>
             <div>这一天还没有历史文章——也许就在今年开始？</div>
           </div>
         `;

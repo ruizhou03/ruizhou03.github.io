@@ -182,14 +182,14 @@ permalink: /toolbox/leap/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <article class="leap-wrap">
   <header class="leap-header">
-    <h1>📅 跳过 Deadline</h1>
+    <h1>[[zi:calendar]] 跳过 Deadline</h1>
   </header>
 
   <div class="leap-card">
@@ -203,19 +203,19 @@ permalink: /toolbox/leap/
 
       <div class="game-overlay gs-pgo-overlay open" id="overlay-start">
         <div class="gs-pgo-view active">
-          <div class="gs-pgo-icon">📅</div>
+          <div class="gs-pgo-icon">[[zi:calendar]]</div>
           <h2 class="gs-pgo-title">跳过 Deadline</h2>
           <div class="gs-pgo-subtitle">长按蓄力，松手起跳。落点正中桩心额外加分。</div>
           <div class="gs-pgo-highscore">
             <div class="gs-pgo-hs-value" id="leapPgoBest">0 跳</div>
             <div class="gs-pgo-hs-label">历史最佳</div>
           </div>
-          <button type="button" class="gs-pgo-start-btn" id="leapPgoStartBtn">▶ 开始游戏</button>
+          <button type="button" class="gs-pgo-start-btn" id="leapPgoStartBtn">[[zi:play]] 开始游戏</button>
         </div>
       </div>
 
       <div class="game-overlay hidden" id="overlay-over">
-        <div class="overlay-title" id="over-title">💥 没跨过去</div>
+        <div class="overlay-title" id="over-title">[[zi:warning]] 没跨过去</div>
         <div class="overlay-stats">
           <span><span class="label">本次：</span><span class="value" id="over-score">0 跳</span></span>
           <span><span class="label">最高：</span><span class="value" id="over-best">0 跳</span></span>
@@ -472,11 +472,11 @@ permalink: /toolbox/leap/
     // 落到地面以下不要陷下去；撞墙时保留挂在桩侧的位置
     if (state.player.y > GROUND_Y) state.player.y = GROUND_Y;
     $overTitle.textContent =
-      reason === 'short' ? '💥 蓄力不够，掉空隙了' :
-      reason === 'long'  ? '💥 飞过头了' :
-      reason === 'wall'  ? '💥 撞到桩侧面了' :
-      reason === 'edge'  ? '💥 差一点没站稳' :
-                            '💥 没跨过去';
+      reason === 'short' ? '[[zi:warning]] 蓄力不够，掉空隙了' :
+      reason === 'long'  ? '[[zi:warning]] 飞过头了' :
+      reason === 'wall'  ? '[[zi:warning]] 撞到桩侧面了' :
+      reason === 'edge'  ? '[[zi:warning]] 差一点没站稳' :
+                            '[[zi:warning]] 没跨过去';
     $overScore.textContent = `${state.score} 跳`;
     $overBest.textContent  = `${state.best} 跳`;
     updateScoreUI();
@@ -974,7 +974,7 @@ permalink: /toolbox/leap/
       kind: 'single',
       gameId: 'leap',
       title: '跳过 Deadline',
-      emoji: '🐦',
+      emoji: '[[zi:user]]',
       nick: GamesShell.Identity.getNick(),
       score: state.score,
       scoreLabel: '本 局 跳 数',
@@ -1065,14 +1065,14 @@ permalink: /toolbox/leap/
     leapLbWidget = GamesShell.Leaderboard.mount({
       container: document.getElementById('leap-lb-mount'),
       gameId: 'leap',
-      title: '🏆 跳过 Deadline 排行榜',
+      title: '[[zi:trophy]] 跳过 Deadline 排行榜',
       scoreFormatter: v => v + ' 跳',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });
     GamesShell.Comments.mount({
       container: document.getElementById('leap-cm-mount'),
       path: '/toolbox/leap/',
-      title: '💬 跳得怎么样',
+      title: '[[zi:comment]] 跳得怎么样',
       intro: '聊聊你的最佳跳法、踩点心得、被哪类 deadline 卡死过 ~',
       placeholder: '聊聊你的跳点心得 ~',
     });

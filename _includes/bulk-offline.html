@@ -13,7 +13,7 @@
 <div id="{{ include.id }}" class="bulk-offline" style="margin: 2.2rem auto 0; text-align: center;">
   <button type="button" class="bulk-offline-btn" id="{{ include.id }}-btn"
           data-noun="{{ include.noun }}" data-what="{{ include.what }}">
-    <span class="bulk-icon">📥</span>
+    <span class="bulk-icon">[[zi:download]]</span>
     <span class="bulk-label">下载全部{{ include.what }}到本地（{{ include.items | size }} {{ include.noun }}）</span>
   </button>
   <p class="bulk-hint">{{ include.hint }}</p>
@@ -63,9 +63,9 @@
 
   function setState(s) {
     btn.classList.remove('bulk-done', 'bulk-partial');
-    if (s === 'done') { iconEl.textContent = '✓'; btn.classList.add('bulk-done'); }
-    else if (s === 'partial') { iconEl.textContent = '↻'; btn.classList.add('bulk-partial'); }
-    else { iconEl.textContent = '📥'; }
+    if (s === 'done') { iconEl.textContent = '[[zi:check]]'; btn.classList.add('bulk-done'); }
+    else if (s === 'partial') { iconEl.textContent = '[[zi:refresh]]'; btn.classList.add('bulk-partial'); }
+    else { iconEl.textContent = '[[zi:download]]'; }
   }
 
   function updateLabel(cached, total) {
@@ -102,7 +102,7 @@
     }
 
     btn.disabled = true;
-    iconEl.textContent = '⏳';
+    iconEl.textContent = '[[zi:hourglass]]';
     labelEl.textContent = (isRefresh ? '刷新中… 0 / ' : '缓存中… 0 / ') + urlsToFetch.length;
     progress.style.display = '';
     progress.textContent = isRefresh ? '正在重新拉取最新版本，别关闭页面' : '正在下载内容和图片，别关闭页面';
@@ -117,7 +117,7 @@
         var fresh = await askSW({ type: 'IS_CACHED_BATCH', urls: urls });
         if (fresh && fresh.type === 'IS_CACHED_BATCH_RESULT') updateLabel(fresh.cached, fresh.total);
         else updateLabel(urls.length, urls.length);
-        progress.textContent = '✅ 飞机上 / 没网时直接打开网址即可';
+        progress.textContent = '[[zi:check]] 飞机上 / 没网时直接打开网址即可';
       }
     };
     reg.active.postMessage({ type: 'PREFETCH_URLS', urls: urlsToFetch, force: isRefresh }, [ch.port2]);

@@ -33,8 +33,8 @@ permalink: /toolbox/memory/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
@@ -196,7 +196,7 @@ permalink: /toolbox/memory/
 
 <div class="memory-wrap">
   <header>
-    <h1>🃏 记忆翻牌</h1>
+    <h1>[[zi:cards]] 记忆翻牌</h1>
     <div class="sub">翻开两张相同的牌，用最短时间清空牌桌</div>
   </header>
 
@@ -221,7 +221,7 @@ permalink: /toolbox/memory/
       <button class="mem-size-tab" data-size="4x6">4×6</button>
       <button class="mem-size-tab" data-size="6x6">6×6</button>
     </div>
-    <button class="mem-btn" id="memNewBtn">🔄 重开</button>
+    <button class="mem-btn" id="memNewBtn">[[zi:refresh]] 重开</button>
   </div>
 
   <div class="mem-board-wrap">
@@ -229,7 +229,7 @@ permalink: /toolbox/memory/
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="memPreGameOverlay">
       <div class="gs-pgo-view active" id="memPgoViewMain">
-        <div class="gs-pgo-icon">🃏</div>
+        <div class="gs-pgo-icon">[[zi:cards]]</div>
         <h2 class="gs-pgo-title">记忆翻牌</h2>
         <div class="gs-pgo-subtitle">配对所有卡牌，用时越短越好</div>
         <div class="gs-pgo-highscore">
@@ -241,7 +241,7 @@ permalink: /toolbox/memory/
           <button class="gs-pgo-mode-tab" data-value="4x6">4×6</button>
           <button class="gs-pgo-mode-tab" data-value="6x6">6×6</button>
         </div>
-        <button class="gs-pgo-start-btn" id="memPgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="memPgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
     </div>
   </div>
@@ -627,11 +627,11 @@ permalink: /toolbox/memory/
   function memShowFinishOverlay() {
     memPgoSelectedSize = state.size;
     const main = document.getElementById('memPgoViewMain');
-    main.querySelector('.gs-pgo-icon').textContent = '🎉';
+    main.querySelector('.gs-pgo-icon').textContent = '[[zi:sparkle]]';
     main.querySelector('.gs-pgo-title').textContent = '全部配对！';
     main.querySelector('.gs-pgo-subtitle').textContent =
       `用时 ${fmtTime(state.elapsedMs)} · ${state.moves} 步 · ${SIZES[state.size].label}`;
-    document.getElementById('memPgoStartBtn').textContent = '🔄 再来一局';
+    document.getElementById('memPgoStartBtn').textContent = '[[zi:refresh]] 再来一局';
     memUpdatePgoHighScore();
     memPgoOverlay.classList.add('open');
   }
@@ -644,10 +644,10 @@ permalink: /toolbox/memory/
     state.over = false;
     memPgoSelectedSize = state.size;
     const main = document.getElementById('memPgoViewMain');
-    main.querySelector('.gs-pgo-icon').textContent = '🃏';
+    main.querySelector('.gs-pgo-icon').textContent = '[[zi:cards]]';
     main.querySelector('.gs-pgo-title').textContent = '记忆翻牌';
     main.querySelector('.gs-pgo-subtitle').textContent = '配对所有卡牌，用时越短越好';
-    document.getElementById('memPgoStartBtn').textContent = '▶ 开始游戏';
+    document.getElementById('memPgoStartBtn').textContent = '[[zi:play]] 开始游戏';
     memSetRank('hidden');
     if (memNickPrompt) memNickPrompt.hide();
     memUpdatePgoHighScore();
@@ -679,7 +679,7 @@ permalink: /toolbox/memory/
     memLbWidget = GamesShell.Leaderboard.mount({
       container: document.getElementById('mem-lb-mount'),
       gameId: 'memory',
-      title: '🏆 记忆翻牌 排行榜',
+      title: '[[zi:trophy]] 记忆翻牌 排行榜',
       scoreAsc: true,
       scoreFormatter: v => fmtTime(Number(v)),
       getCurrentNick: () => GamesShell.Identity.getNick(),
@@ -693,7 +693,7 @@ permalink: /toolbox/memory/
     GamesShell.Comments.mount({
       container: document.getElementById('mem-cm-mount'),
       path: '/toolbox/memory/',
-      title: '💬 记忆翻牌交流',
+      title: '[[zi:comment]] 记忆翻牌交流',
       intro: '晒晒你的最快通关时间，聊聊记牌的小技巧 ~',
       placeholder: '聊聊你的记忆翻牌心得 ~',
     });

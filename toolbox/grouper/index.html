@@ -154,7 +154,7 @@ permalink: /toolbox/grouper/
 
 <div class="grouper-wrap">
   <header>
-    <h1>👥 随机分组器</h1>
+    <h1>[[zi:users]] 随机分组器</h1>
   </header>
 
   <div class="panel">
@@ -162,9 +162,9 @@ permalink: /toolbox/grouper/
       <select id="profile-select" aria-label="选择保存的名单">
         <option value="">— 未保存名单 —</option>
       </select>
-      <button type="button" id="profile-save">💾 保存当前</button>
-      <button type="button" id="profile-rename">✎ 重命名</button>
-      <button type="button" id="profile-delete" class="danger">🗑 删除</button>
+      <button type="button" id="profile-save">[[zi:save]] 保存当前</button>
+      <button type="button" id="profile-rename">[[zi:pencil]] 重命名</button>
+      <button type="button" id="profile-delete" class="danger">[[zi:trash]] 删除</button>
       <span class="spacer"></span>
     </div>
 
@@ -197,13 +197,13 @@ permalink: /toolbox/grouper/
   </div>
 
   <div class="action-row">
-    <button type="button" id="shuffle-btn" class="action-btn">🎲 开始分组</button>
+    <button type="button" id="shuffle-btn" class="action-btn">[[zi:dice]] 开始分组</button>
   </div>
 
   <div id="results-zone" style="display: none;">
     <div class="results-toolbar">
-      <button type="button" id="reshuffle-btn">🔁 再洗一次</button>
-      <button type="button" id="copy-btn">📋 复制结果</button>
+      <button type="button" id="reshuffle-btn">[[zi:refresh]] 再洗一次</button>
+      <button type="button" id="copy-btn">[[zi:copy]] 复制结果</button>
     </div>
     <div class="groups-grid" id="groups-grid"></div>
   </div>
@@ -437,11 +437,11 @@ permalink: /toolbox/grouper/
     }).join('\n\n');
     try {
       await navigator.clipboard.writeText(txt);
-      $copy.textContent = '✓ 已复制';
-      setTimeout(() => { $copy.textContent = '📋 复制结果'; }, 1600);
+      $copy.textContent = '[[zi:check]] 已复制';
+      setTimeout(() => { $copy.textContent = '[[zi:copy]] 复制结果'; }, 1600);
     } catch (e) {
       $copy.textContent = '复制失败';
-      setTimeout(() => { $copy.textContent = '📋 复制结果'; }, 1600);
+      setTimeout(() => { $copy.textContent = '[[zi:copy]] 复制结果'; }, 1600);
     }
   });
 

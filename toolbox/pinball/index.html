@@ -13,14 +13,14 @@ permalink: /toolbox/pinball/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="pb-wrap pb-theme-reactor">
   <header>
-    <h1>🚀 太空反应堆</h1>
+    <h1>[[zi:rocket]] 太空反应堆</h1>
   </header>
 
   <div class="pb-scorebar">
@@ -31,8 +31,8 @@ permalink: /toolbox/pinball/
   <div class="pb-goal-bar" id="pbGoal">堆芯 <strong>0/5</strong> · ramp 待开 · 击中 3 个 drop targets 解锁 jackpot</div>
 
   <div class="pb-toolbar">
-    <button class="pb-btn" id="pbPauseBtn">⏸ 暂停</button>
-    <button class="pb-btn" id="pbNewBtn">🔄 新游戏</button>
+    <button class="pb-btn" id="pbPauseBtn">[[zi:pause]] 暂停</button>
+    <button class="pb-btn" id="pbNewBtn">[[zi:refresh]] 新游戏</button>
   </div>
 
   <div class="pb-canvas-wrap">
@@ -45,19 +45,19 @@ permalink: /toolbox/pinball/
   </div>
 
   <div class="pb-controls">
-    <button class="pb-flip-btn" id="pbFlipL">◀</button>
+    <button class="pb-flip-btn" id="pbFlipL">[[zi:arrow]]</button>
     <button class="pb-plunger-btn" id="pbPlungerBtn"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar"></div></button>
-    <button class="pb-flip-btn" id="pbFlipR">▶</button>
+    <button class="pb-flip-btn" id="pbFlipR">[[zi:play]]</button>
   </div>
 
   <div class="pb-tp-wrap">
     <div class="pb-tp-header"><span>切换桌台</span></div>
     <div class="pb-table-picker">
-      <span class="active"><span class="pb-tp-emoji">🚀</span><span class="pb-tp-name">反应堆</span></span>
-      <a href="/toolbox/pinball/temple/"><span class="pb-tp-emoji">🏛️</span><span class="pb-tp-name">神庙</span></a>
-      <a href="/toolbox/pinball/cyber/"><span class="pb-tp-emoji">🌃</span><span class="pb-tp-name">赛博克</span></a>
-      <a href="/toolbox/pinball/pachinko/"><span class="pb-tp-emoji">🎰</span><span class="pb-tp-name">机厅</span></a>
-      <a href="/toolbox/pinball/rain/"><span class="pb-tp-emoji">🌧️</span><span class="pb-tp-name">弹珠雨</span></a>
+      <span class="active"><span class="pb-tp-emoji">[[zi:rocket]]</span><span class="pb-tp-name">反应堆</span></span>
+      <a href="/toolbox/pinball/temple/"><span class="pb-tp-emoji">[[zi:library]]</span><span class="pb-tp-name">神庙</span></a>
+      <a href="/toolbox/pinball/cyber/"><span class="pb-tp-emoji">[[zi:home]]</span><span class="pb-tp-name">赛博克</span></a>
+      <a href="/toolbox/pinball/pachinko/"><span class="pb-tp-emoji">[[zi:dice]]</span><span class="pb-tp-name">机厅</span></a>
+      <a href="/toolbox/pinball/rain/"><span class="pb-tp-emoji">[[zi:cloud]]</span><span class="pb-tp-name">弹珠雨</span></a>
     </div>
   </div>
 
@@ -248,7 +248,7 @@ permalink: /toolbox/pinball/
   function addEnergy(now, x, y) {
     if (state.reactorOnline) return;
     state.energy++;
-    game.addPopup(x, y - 24, `+1 ⚡ (${state.energy}/${state.ENERGY_MAX})`);
+    game.addPopup(x, y - 24, `+1 能量 (${state.energy}/${state.ENERGY_MAX})`);
     if (state.energy >= state.ENERGY_MAX) {
       reactorOnline(now);
     }
@@ -308,7 +308,7 @@ permalink: /toolbox/pinball/
   function onLaserHit(now, ball, gameRef, tier) {
     if (tier === 'T3') {
       game.addScore(3000, 458, 140, 'laser-t3');
-      game.addPopup(458, 110, '🎯 GRAND +3000', 1600);
+      game.addPopup(458, 110, 'GRAND +3000', 1600);
       state.laserFlashTill = now + 800;
     } else if (tier === 'T2') {
       game.addScore(1000, 458, 140, 'laser-t2');
@@ -530,13 +530,13 @@ permalink: /toolbox/pinball/
     shell: {
       gameId: 'pinball-reactor',
       title: '弹珠机·太空反应堆',
-      emoji: '🚀',
+      emoji: '[[zi:rocket]]',
       rankRow: document.getElementById('pb-rank-row'),
       lbMount: document.getElementById('pb-lb-mount'),
-      lbTitle: '🏆 太空反应堆 排行榜',
+      lbTitle: '[[zi:trophy]] 太空反应堆 排行榜',
       commentsMount: document.getElementById('pb-cm-mount'),
       commentsPath: '/toolbox/pinball/',
-      commentsTitle: '💬 反应堆玩家交流',
+      commentsTitle: '[[zi:comment]] 反应堆玩家交流',
       commentsIntro: '聊聊你的 jackpot 和 multiball ~',
       commentsPlaceholder: '聊聊心得 ~',
       nickMount: document.getElementById('pb-nick-mount'),

@@ -14,6 +14,8 @@ noindex: true
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/zircon-icons.css">
+<script defer src="/assets/js/zircon-icons.js"></script>
 <style>
   :root{--serif:'Cormorant','Noto Serif SC',serif;--ink:#1d1b18;--ink2:#6b6259;--line:#e7e1d8;--paper:#faf7f2;--accent:#9a3b2e}
   *{box-sizing:border-box;margin:0;padding:0}
@@ -182,10 +184,10 @@ noindex: true
       <div class="mmeta"><div class="nm" id="mNm"></div><div class="st" id="mSt"></div></div>
     </div>
     <div class="mctrl">
-      <button class="mbtn" id="mPrev">⏮</button>
-      <button class="mpp" id="mPP">▶</button>
-      <button class="mbtn" id="mNext">⏭</button>
-      <button class="mbtn expand" id="mExpand" title="展开">⌃</button>
+      <button class="mbtn" id="mPrev">[[zi:skip-back]]</button>
+      <button class="mpp" id="mPP">[[zi:play]]</button>
+      <button class="mbtn" id="mNext">[[zi:skip-forward]]</button>
+      <button class="mbtn expand" id="mExpand" title="展开">[[zi:chevron]]</button>
     </div>
   </div>
 </div>
@@ -195,7 +197,7 @@ noindex: true
   <div class="topbar">
     <button id="back">‹ 选歌</button>
     <span class="where">NOW&nbsp;PLAYING</span>
-    <button id="viewtog">☰ 列表</button>
+    <button id="viewtog">[[zi:list]] 列表</button>
   </div>
   <div class="stage">
     <div class="viewC" id="viewC">
@@ -209,8 +211,8 @@ noindex: true
       <div class="transport">
         <div class="seekrow"><span class="tm" id="cCur">0:00</span><div class="bar" id="cSeek"><i id="cFill"></i><span class="knob" id="cKnob"></span></div><span class="tm" id="cDur">0:00</span></div>
         <div class="ctrl">
-          <button class="mode" id="cMode"><span class="lab" id="cModeLab">列表循环</span><span id="cModeIco">↻</span></button>
-          <button id="cPrev">⏮</button><button class="pp" id="cPP">▶</button><button id="cNext">⏭</button>
+          <button class="mode" id="cMode"><span class="lab" id="cModeLab">列表循环</span><span id="cModeIco">[[zi:repeat]]</span></button>
+          <button id="cPrev">[[zi:skip-back]]</button><button class="pp" id="cPP">[[zi:play]]</button><button id="cNext">[[zi:skip-forward]]</button>
           <button class="lyric" id="cLyric" title="暂无歌词"><span class="lab">歌词</span>词</button>
         </div>
       </div>
@@ -224,8 +226,8 @@ noindex: true
       <div class="transport">
         <div class="seekrow"><span class="tm" id="bCur">0:00</span><div class="bar" id="bSeek"><i id="bFill"></i><span class="knob" id="bKnob"></span></div><span class="tm" id="bDur">0:00</span></div>
         <div class="ctrl">
-          <button class="mode" id="bMode"><span class="lab" id="bModeLab">列表循环</span><span id="bModeIco">↻</span></button>
-          <button id="bPrev">⏮</button><button class="pp" id="bPP">▶</button><button id="bNext">⏭</button>
+          <button class="mode" id="bMode"><span class="lab" id="bModeLab">列表循环</span><span id="bModeIco">[[zi:repeat]]</span></button>
+          <button id="bPrev">[[zi:skip-back]]</button><button class="pp" id="bPP">[[zi:play]]</button><button id="bNext">[[zi:skip-forward]]</button>
           <button class="lyric" id="bLyric" title="暂无歌词"><span class="lab">歌词</span>词</button>
         </div>
       </div>
@@ -239,7 +241,7 @@ const AUDIO_BASE="https://pub-6ce548df24434edb9fea591e78eecdbd.r2.dev/jj/";
 const $=id=>document.getElementById(id);
 function url(f){return AUDIO_BASE+f.split('/').map(encodeURIComponent).join('/');}
 function grad(str){let h=0;for(const c of str)h=(h*31+c.charCodeAt(0))>>>0;const a=h%360,b=(a+38+(h>>3)%50)%360;return `linear-gradient(135deg,hsl(${a} 58% 52%),hsl(${b} 62% 38%))`;}
-function fc(t){const m=t.match(/[A-Za-z一-龥]/);return m?m[0].toUpperCase():'♪';}
+function fc(t){const m=t.match(/[A-Za-z一-龥]/);return m?m[0].toUpperCase():'[[zi:wave]]';}
 function fmt(s){if(!s||isNaN(s)||!isFinite(s))return'0:00';s=Math.floor(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
 
 const aud=$('aud');
@@ -247,7 +249,7 @@ let TRACKS=[], cur=-1, mode='list', view='C';
 let LYRICS={}, lyLines=[], lyActive=-1, lyOffset=0, lyricsOn=false;
 const LYRIC_LEAD=0.15;  // 小提前量(秒)：主要靠下面把高亮动画改快来消除延迟，这里只留一点点
 const lrcHash=s=>{let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h.toString(36).slice(0,4);};
-const MODES={list:{ico:'↻',lab:'列表循环'},one:{ico:'¹↻',lab:'单曲循环'},shuffle:{ico:'⇄',lab:'随机播放'}};
+const MODES={list:{ico:'[[zi:repeat]]',lab:'列表循环'},one:{ico:'[[zi:repeat-one]]',lab:'单曲循环'},shuffle:{ico:'[[zi:shuffle]]',lab:'随机播放'}};
 
 // 加 cache-busting 绕过 service worker 的 stale-while-revalidate，保证歌单总是最新；
 // 失败(如离线)再退回普通请求走 SW 缓存。
@@ -269,7 +271,7 @@ function init(){
   for(const g in groups){
     html+='<div class="grp"><h3>'+g+' <span class="n">'+groups[g].length+' 首</span></h3><div class="wall">';
     groups[g].forEach(i=>{const t=TRACKS[i];
-      html+='<div class="card" data-i="'+i+'"><div class="cover" style="background:'+grad(t.t)+'"><span class="ch">'+fc(t.t)+'</span><span class="play">▶</span><span class="eq"><i></i><i></i><i></i><i></i></span></div><div class="t">'+t.t+'</div><div><span class="chip">'+t.tag+'</span></div></div>';});
+      html+='<div class="card" data-i="'+i+'"><div class="cover" style="background:'+grad(t.t)+'"><span class="ch">'+fc(t.t)+'</span><span class="play">[[zi:play]]</span><span class="eq"><i></i><i></i><i></i><i></i></span></div><div class="t">'+t.t+'</div><div><span class="chip">'+t.tag+'</span></div></div>';});
     html+='</div></div>';
   }
   $('walls').innerHTML=html;
@@ -283,7 +285,7 @@ function init(){
 }
 
 function applyView(){$('np').classList.toggle('modeC',view==='C');$('np').classList.toggle('modeB',view==='B');
-  $('viewtog').textContent=view==='C'?'☰ 列表':'▦ 封面';if(view==='B')scrollToCur();}
+  $('viewtog').textContent=view==='C'?'[[zi:list]] 列表':'[[zi:grid]] 封面';if(view==='B')scrollToCur();}
 function openPlayer(i){applyView();$('np').classList.add('open');$('mini').classList.remove('show');if(i!=null)load(i,true);}
 function expandPlayer(){applyView();$('np').classList.add('open');$('mini').classList.remove('show');}
 $('back').onclick=()=>{$('np').classList.remove('open');if(cur>=0)$('mini').classList.add('show');};
@@ -322,8 +324,8 @@ aud.addEventListener('ended',()=>{
   if(mode==='shuffle'){nav(1);return;}
   load((cur+1)%TRACKS.length,true);
 });
-aud.addEventListener('play',()=>{document.body.classList.add('is-playing');['cPP','bPP','mPP'].forEach(id=>$(id).textContent='❚❚');});
-aud.addEventListener('pause',()=>{document.body.classList.remove('is-playing');['cPP','bPP','mPP'].forEach(id=>$(id).textContent='▶');});
+aud.addEventListener('play',()=>{document.body.classList.add('is-playing');['cPP','bPP','mPP'].forEach(id=>$(id).textContent='[[zi:pause]][[zi:pause]]');});
+aud.addEventListener('pause',()=>{document.body.classList.remove('is-playing');['cPP','bPP','mPP'].forEach(id=>$(id).textContent='[[zi:play]]');});
 aud.addEventListener('timeupdate',()=>{
   const p=aud.duration?aud.currentTime/aud.duration*100:0;
   ['c','b'].forEach(pre=>{$(pre+'Fill').style.width=p+'%';$(pre+'Knob').style.left=p+'%';$(pre+'Cur').textContent=fmt(aud.currentTime);});

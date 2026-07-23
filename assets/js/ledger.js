@@ -46,26 +46,37 @@
 
   function defaultCategories() {
     return [
-      { id: 'c-food', emoji: '🍜', name: '餐饮', type: 'expense', order: 0 },
-      { id: 'c-life', emoji: '🛒', name: '生活', type: 'expense', order: 1 },
-      { id: 'c-trans', emoji: '🚇', name: '交通', type: 'expense', order: 2 },
-      { id: 'c-shop', emoji: '🛍️', name: '购物', type: 'expense', order: 3 },
-      { id: 'c-home', emoji: '🏠', name: '居住', type: 'expense', order: 4 },
-      { id: 'c-fun', emoji: '🎮', name: '娱乐', type: 'expense', order: 5 },
-      { id: 'c-med', emoji: '💊', name: '医疗', type: 'expense', order: 6 },
-      { id: 'c-study', emoji: '📚', name: '学习', type: 'expense', order: 7 },
-      { id: 'c-social', emoji: '🧧', name: '人情', type: 'expense', order: 8 },
-      { id: 'c-other-e', emoji: '💸', name: '其他', type: 'expense', order: 9 },
-      { id: 'c-salary', emoji: '💰', name: '工资', type: 'income', order: 0 },
-      { id: 'c-parttime', emoji: '💼', name: '兼职', type: 'income', order: 1 },
-      { id: 'c-reimb', emoji: '🧾', name: '报销', type: 'income', order: 2 },
-      { id: 'c-gift', emoji: '🎁', name: '红包', type: 'income', order: 3 },
-      { id: 'c-interest', emoji: '📈', name: '利息', type: 'income', order: 4 },
-      { id: 'c-other-i', emoji: '✨', name: '其他', type: 'income', order: 5 }
+      { id: 'c-food', emoji: '[[zi:bowl]]', name: '餐饮', type: 'expense', order: 0 },
+      { id: 'c-life', emoji: '[[zi:cart]]', name: '生活', type: 'expense', order: 1 },
+      { id: 'c-trans', emoji: '[[zi:train]]', name: '交通', type: 'expense', order: 2 },
+      { id: 'c-shop', emoji: '[[zi:bag]]', name: '购物', type: 'expense', order: 3 },
+      { id: 'c-home', emoji: '[[zi:home]]', name: '居住', type: 'expense', order: 4 },
+      { id: 'c-fun', emoji: '[[zi:gamepad]]', name: '娱乐', type: 'expense', order: 5 },
+      { id: 'c-med', emoji: '[[zi:medical]]', name: '医疗', type: 'expense', order: 6 },
+      { id: 'c-study', emoji: '[[zi:book]]', name: '学习', type: 'expense', order: 7 },
+      { id: 'c-social', emoji: '[[zi:gift]]', name: '人情', type: 'expense', order: 8 },
+      { id: 'c-other-e', emoji: '[[zi:receipt]]', name: '其他', type: 'expense', order: 9 },
+      { id: 'c-salary', emoji: '[[zi:wallet]]', name: '工资', type: 'income', order: 0 },
+      { id: 'c-parttime', emoji: '[[zi:briefcase]]', name: '兼职', type: 'income', order: 1 },
+      { id: 'c-reimb', emoji: '[[zi:receipt]]', name: '报销', type: 'income', order: 2 },
+      { id: 'c-gift', emoji: '[[zi:gift]]', name: '红包', type: 'income', order: 3 },
+      { id: 'c-interest', emoji: '[[zi:chart]]', name: '利息', type: 'income', order: 4 },
+      { id: 'c-other-i', emoji: '[[zi:sparkle]]', name: '其他', type: 'income', order: 5 }
     ];
   }
   function defaultAccounts() {
-    return [{ id: 'a-cash', name: '钱包', emoji: '👛', order: 0 }];
+    return [{ id: 'a-cash', name: '钱包', emoji: '[[zi:wallet]]', order: 0 }];
+  }
+  var CATEGORY_ICON_BY_NAME = {
+    '餐饮': '[[zi:bowl]]', '生活': '[[zi:cart]]', '交通': '[[zi:train]]',
+    '购物': '[[zi:bag]]', '居住': '[[zi:home]]', '娱乐': '[[zi:gamepad]]',
+    '医疗': '[[zi:medical]]', '学习': '[[zi:book]]', '人情': '[[zi:gift]]',
+    '工资': '[[zi:wallet]]', '兼职': '[[zi:briefcase]]', '报销': '[[zi:receipt]]',
+    '红包': '[[zi:gift]]', '利息': '[[zi:chart]]', '其他': '[[zi:receipt]]'
+  };
+  function normalizedIcon(value, fallback) {
+    return typeof value === 'string' && /^\[\[zi:[a-z0-9-]+(?::[a-z0-9-]+)?\]\]$/.test(value)
+      ? value : fallback;
   }
 
   function defaultState() {
@@ -118,6 +129,11 @@
   function migrate() {
     if (!Array.isArray(state.accounts) || !state.accounts.length) state.accounts = defaultAccounts();
     if (!Array.isArray(state.recurring)) state.recurring = [];
+    state.categories.forEach(function (c) {
+      var fallback = CATEGORY_ICON_BY_NAME[c.name] || (c.type === 'income' ? '[[zi:sparkle]]' : '[[zi:receipt]]');
+      c.emoji = normalizedIcon(c.emoji, fallback);
+    });
+    state.accounts.forEach(function (a) { a.emoji = normalizedIcon(a.emoji, '[[zi:wallet]]'); });
     var defAcc = state.accounts[0].id;
     state.transactions.forEach(function (t) {
       if (!t.currency) t.currency = 'CNY';
@@ -508,7 +524,7 @@
     box.hidden = false;
     box.innerHTML = state.accounts.slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); }).map(function (a) {
       var bal = accountBalance(a.id);
-      return '<div class="lg-acc-chip"><span>' + escapeHtml(a.emoji || '👛') + ' ' + escapeHtml(a.name) + '</span>' +
+      return '<div class="lg-acc-chip"><span>' + escapeHtml(a.emoji || '[[zi:wallet]]') + ' ' + escapeHtml(a.name) + '</span>' +
         '<b class="' + (bal < 0 ? 'lg-c-exp' : '') + '">' + escapeHtml(fmtMoney(bal, cur)) + '</b></div>';
     }).join('');
   }
@@ -597,18 +613,18 @@
     var timeStr = pad2(p.h) + ':' + pad2(p.min);
     var badge = '';
     if (state.settings.showZoneBadges && t.tz !== curTz) {
-      badge = '<span class="lg-zone" title="' + escapeHtml(t.tz + ' ' + offsetLabel(t.ts, t.tz)) + '">🌐 ' + escapeHtml(tzShort(t.tz)) + '</span>';
+      badge = '<span class="lg-zone" title="' + escapeHtml(t.tz + ' ' + offsetLabel(t.ts, t.tz)) + '">' + escapeHtml(tzShort(t.tz)) + ' 时区</span>';
     }
     if (t.type === 'transfer') {
       var fa = accById(t.fromAccountId), ta = accById(t.toAccountId);
       return '<div class="lg-row" data-edit="' + t.id + '">' +
-        '<div class="lg-row-emoji">🔄</div>' +
+        '<div class="lg-row-mark" aria-hidden="true"></div>' +
         '<div class="lg-row-mid"><div class="lg-row-title">转账 ' + badge + '</div>' +
         '<div class="lg-row-sub">' + escapeHtml((fa ? fa.name : '?') + ' → ' + (ta ? ta.name : '?')) + ' · ' + timeStr + (t.note ? ' · ' + escapeHtml(t.note) : '') + '</div></div>' +
         '<div class="lg-row-amt lg-c-neu">' + escapeHtml(fmtMoney(num(t.amount), t.currency)) + '</div></div>';
     }
     var c = catById(t.categoryId);
-    var emoji = c ? c.emoji : (t.type === 'income' ? '✨' : '💸');
+    var emoji = c ? c.emoji : (t.type === 'income' ? '[[zi:sparkle]]' : '[[zi:receipt]]');
     var catName = c ? c.name : '未分类';
     var title = escapeHtml(t.note || t.merchant || catName);
     var sub = [];
@@ -633,7 +649,7 @@
         chip = '<button type="button" class="lg-chip" data-settle="' + t.id + '">' + label + ' ' + fmtMoney(grossMag(t), t.currency) + '·' + (t.type === 'expense' ? '待收' : '待付') + escapeHtml(fmtMoney(oo, t.currency).replace('-', '')) + '</button>';
       }
     }
-    var recur = t.recurringId ? '<span class="lg-zone">🔁 周期</span>' : '';
+    var recur = t.recurringId ? '<span class="lg-zone">周期账</span>' : '';
     return '<div class="lg-row" data-edit="' + t.id + '">' +
       '<div class="lg-row-emoji">' + escapeHtml(emoji) + '</div>' +
       '<div class="lg-row-mid"><div class="lg-row-title">' + title + ' ' + badge + ' ' + recur + '</div>' +
@@ -756,7 +772,7 @@
   }
   function fillAccSelect(sel, accId) {
     sel.innerHTML = state.accounts.slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); })
-      .map(function (a) { return '<option value="' + a.id + '"' + (a.id === accId ? ' selected' : '') + '>' + escapeHtml(a.emoji + ' ' + a.name) + '</option>'; }).join('');
+      .map(function (a) { return '<option value="' + a.id + '"' + (a.id === accId ? ' selected' : '') + '>' + escapeHtml(a.name) + '</option>'; }).join('');
     if (accId) sel.value = accId;
   }
   function renderCatChips() {
@@ -835,7 +851,7 @@
     var fine = txn && (txn.merchant || txn.method || (txn.tags && txn.tags.length) || hasSettle || (txn.accountId && txn.accountId !== state.accounts[0].id));
     $('lg-more').hidden = !fine;
     $('lg-more-toggle').setAttribute('aria-expanded', fine ? 'true' : 'false');
-    $('lg-more-toggle').textContent = fine ? '更多 ▴' : '更多 ▾';
+    $('lg-more-toggle').textContent = fine ? '更多 −' : '更多 +';
 
     $('lg-entry-del').hidden = !txn;
     renderCatChips(); applyTypeUI(); updateSettleLabels();
@@ -971,7 +987,7 @@
     var accs = state.accounts.slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
     $('lg-acc-manage').innerHTML = accs.map(function (a) {
       var canDel = state.accounts.length > 1;
-      return '<div class="lg-cat-item"><span class="lg-cat-item-e">' + escapeHtml(a.emoji || '👛') + '</span>' +
+      return '<div class="lg-cat-item"><span class="lg-cat-item-e">' + escapeHtml(a.emoji || '[[zi:wallet]]') + '</span>' +
         '<span class="lg-cat-item-n">' + escapeHtml(a.name) + ' <small>' + escapeHtml(fmtMoney(accountBalance(a.id), state.settings.baseCurrency)) + '</small></span>' +
         (canDel ? '<button type="button" class="lg-cat-del" data-accdel="' + a.id + '" aria-label="删除">删除</button>' : '') + '</div>';
     }).join('');
@@ -987,7 +1003,7 @@
     var list = state.recurring.slice();
     $('lg-rec-list').innerHTML = list.length ? list.map(function (r) {
       var c = catById(r.categoryId);
-      return '<div class="lg-cat-item"><span class="lg-cat-item-e">' + (r.type === 'income' ? '📥' : '📤') + '</span>' +
+      return '<div class="lg-cat-item"><span class="lg-cat-item-rule" aria-hidden="true"></span>' +
         '<span class="lg-cat-item-n">' + escapeHtml((c ? c.emoji + c.name + ' · ' : '') + fmtMoney(num(r.amount), r.currency)) + '<small> ' + freqLabel(r) + (r.active ? '' : ' · 已停') + '</small></span>' +
         '<button type="button" class="lg-cat-mv" data-rectoggle="' + r.id + '">' + (r.active ? '停用' : '启用') + '</button>' +
         '<button type="button" class="lg-cat-del" data-recdel="' + r.id + '" aria-label="删除">删除</button></div>';
@@ -996,7 +1012,7 @@
     var sel = $('lg-rec-cat');
     var rt = $('lg-rec-type').value;
     sel.innerHTML = state.categories.filter(function (c) { return c.type === rt; }).sort(function (a, b) { return (a.order || 0) - (b.order || 0); })
-      .map(function (c) { return '<option value="' + c.id + '">' + escapeHtml(c.emoji + ' ' + c.name) + '</option>'; }).join('');
+      .map(function (c) { return '<option value="' + c.id + '">' + escapeHtml(c.name) + '</option>'; }).join('');
     var freq = $('lg-rec-freq').value;
     $('lg-rec-day-wrap').hidden = freq === 'daily';
     if (freq === 'weekly') {
@@ -1136,7 +1152,7 @@
     });
     $('lg-entry-cur').onclick = function () { ui.entryCur = ui.entryCur === 'CNY' ? 'USD' : 'CNY'; this.textContent = curSym(ui.entryCur); updateSettleLabels(); };
     $('lg-cat-chips').onclick = function (e) { var chip = e.target.closest('[data-cat]'); if (!chip) return; ui.selectedCat = chip.dataset.cat; renderCatChips(); };
-    $('lg-more-toggle').onclick = function () { var box = $('lg-more'); box.hidden = !box.hidden; this.setAttribute('aria-expanded', box.hidden ? 'false' : 'true'); this.textContent = box.hidden ? '更多 ▾' : '更多 ▴'; };
+    $('lg-more-toggle').onclick = function () { var box = $('lg-more'); box.hidden = !box.hidden; this.setAttribute('aria-expanded', box.hidden ? 'false' : 'true'); this.textContent = box.hidden ? '更多 +' : '更多 −'; };
     $('lg-settle-on').onchange = function () { $('lg-settle-fields').hidden = !this.checked; updateSettleLabels(); };
     $('lg-aa-on').onchange = function () { $('lg-aa-fields').hidden = !this.checked; if (this.checked) computeAA(); };
     $('lg-aa-people').oninput = computeAA;
@@ -1168,12 +1184,23 @@
     // 类目管理
     $('lg-cat-open').onclick = function () { ui.catManageType = 'expense'; renderCatManage(); openModal('lg-cat-modal'); };
     document.querySelectorAll('#lg-cat-tabs button').forEach(function (b) { b.onclick = function () { ui.catManageType = b.dataset.ctype; renderCatManage(); }; });
+    document.querySelectorAll('.lg-icon-picker').forEach(function (picker) {
+      picker.onclick = function (e) {
+        var button = e.target.closest('[data-icon]'); if (!button) return;
+        picker.querySelectorAll('[data-icon]').forEach(function (item) {
+          var selected = item === button;
+          item.classList.toggle('active', selected);
+          item.setAttribute('aria-checked', selected ? 'true' : 'false');
+        });
+        $(picker.id === 'lg-cat-icon-picker' ? 'lg-cat-emoji' : 'lg-acc-emoji').value = button.dataset.icon;
+      };
+    });
     $('lg-cat-add-btn').onclick = function () {
       var name = $('lg-cat-name').value.trim(); if (!name) { $('lg-cat-name').focus(); return; }
-      var emoji = $('lg-cat-emoji').value.trim() || (ui.catManageType === 'income' ? '✨' : '💸');
+      var emoji = $('lg-cat-emoji').value.trim() || (ui.catManageType === 'income' ? '[[zi:sparkle]]' : '[[zi:receipt]]');
       var maxOrder = state.categories.filter(function (c) { return c.type === ui.catManageType; }).reduce(function (m, c) { return Math.max(m, c.order || 0); }, -1);
       state.categories.push({ id: uuid('c'), emoji: emoji, name: name, type: ui.catManageType, order: maxOrder + 1 });
-      $('lg-cat-name').value = ''; $('lg-cat-emoji').value = ''; persist(); renderCatManage();
+      $('lg-cat-name').value = ''; persist(); renderCatManage();
     };
     $('lg-cat-manage').onclick = function (e) {
       var up = e.target.closest('[data-catup]'), down = e.target.closest('[data-catdown]'), del = e.target.closest('[data-catdel]');
@@ -1198,10 +1225,10 @@
     $('lg-acc-open').onclick = function () { renderAccManage(); openModal('lg-acc-modal'); };
     $('lg-acc-add-btn').onclick = function () {
       var name = $('lg-acc-name').value.trim(); if (!name) { $('lg-acc-name').focus(); return; }
-      var emoji = $('lg-acc-emoji').value.trim() || '👛';
+      var emoji = $('lg-acc-emoji').value.trim() || '[[zi:wallet]]';
       var maxOrder = state.accounts.reduce(function (m, a) { return Math.max(m, a.order || 0); }, -1);
       state.accounts.push({ id: uuid('a'), name: name, emoji: emoji, order: maxOrder + 1 });
-      $('lg-acc-name').value = ''; $('lg-acc-emoji').value = ''; persist(); renderAccManage(); render();
+      $('lg-acc-name').value = ''; persist(); renderAccManage(); render();
     };
     $('lg-acc-manage').onclick = function (e) {
       var del = e.target.closest('[data-accdel]'); if (!del) return;

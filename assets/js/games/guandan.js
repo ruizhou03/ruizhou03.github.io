@@ -526,7 +526,7 @@
     return _gaCtx;
   }
   function _gaMuteBtnEl() { return document.getElementById('gdMuteBtn'); }
-  function _gaRefreshMuteBtn() { const b = _gaMuteBtnEl(); if (b) b.textContent = _gaMuted ? '🔇' : '🔊'; }
+  function _gaRefreshMuteBtn() { const b = _gaMuteBtnEl(); if (b) b.textContent = _gaMuted ? '[[zi:volume]]' : '[[zi:volume]]'; }
   _gaRefreshMuteBtn();
   function toggleMute() {
     _gaMuted = !_gaMuted;
@@ -2480,7 +2480,7 @@
         _applyTableNow();
         renderAll();
         const names = (_rev.seats || []).map(s => seatName(s)).join(' & ');
-        showTributeBanner('🛡️ 抗贡成功', (names ? names + ' ' : '') + '握双大王，免进贡', 1900);
+        showTributeBanner('[[zi:shield]] 抗贡成功', (names ? names + ' ' : '') + '握双大王，免进贡', 1900);
         state._tableTimer = setTimeout(_finishReveal, 2000);
       } else {
         // 把交换的两张牌摆到各自出牌区（进/还角标），只显示这桩交换，停留约 1.9s 让人看清。
@@ -2937,10 +2937,10 @@
   }
   // 座位头像 emoji：我恒 😎；联机真人 👤、联机 AI 🤖；单机退回 🤖。
   function seatAvatarFor(s) {
-    if (s === 0) return '😎';
+    if (s === 0) return '[[zi:user]]';
     const p = netPlayerForLocalSeat(s);
     if (p) return playerAvatarOf(p, false);   // 与大厅同一套稳定头像（真人按服务端下标、AI🤖）
-    return '🤖';
+    return '[[zi:bot]]';
   }
 
   // ---- 进贡 / 还贡 ----
@@ -2984,7 +2984,7 @@
     renderAll();
     // 抗贡：末游独握双大王 → 免贡，头游先出
     if (countBigJokers([fourth]) >= 2) {
-      showTributeBanner('🛡️ 抗贡成功', seatName(fourth) + ' 握双大王，免进贡', 2000);
+      showTributeBanner('[[zi:shield]] 抗贡成功', seatName(fourth) + ' 握双大王，免进贡', 2000);
       setTimeout(() => { beginPlay(first); }, 2000);   // 收贡者（头游）先出
       return;
     }
@@ -3004,7 +3004,7 @@
     renderAll();
     // 抗贡：贡方（3rd+4th）合计握有 2 大王 → 免贡，头游先出
     if (countBigJokers([third, fourth]) >= 2) {
-      showTributeBanner('🛡️ 抗贡成功', seatName(third) + ' & ' + seatName(fourth) + ' 握双大王，免进贡', 2000);
+      showTributeBanner('[[zi:shield]] 抗贡成功', seatName(third) + ' & ' + seatName(fourth) + ' 握双大王，免进贡', 2000);
       setTimeout(() => { beginPlay(first); }, 2000);   // 双贡抗贡 → 头游先出
       return;
     }
@@ -3248,7 +3248,7 @@
     ban.className = 'gd-fx-banner gd-jiefeng-banner';
     // 只显示「接风」两字（去掉「X 领出」副标题，多余）
     ban.innerHTML =
-      '<span class="gd-jiefeng-icon">🪁</span>' +
+      '<span class="gd-jiefeng-icon">[[zi:transfer]]</span>' +
       '<span class="gd-jiefeng-text">接风</span>';
     els.table.appendChild(ban);
     setTimeout(() => ban.remove(), 1500);
@@ -3636,7 +3636,7 @@
   }
 
   // 座位 avatar 表（跟桌面 .gd-avatar 里的 emoji 一致）
-  const SEAT_AVATARS = ['😎', '🤖', '🤖', '🤖'];
+  const SEAT_AVATARS = ['[[zi:user]]', '[[zi:bot]]', '[[zi:bot]]', '[[zi:bot]]'];
   const POS_NAMES = ['头游', '二游', '三游', '末游'];
 
   // 给一个 .gd-result-players 容器渲染 [seat0, seat2] 或 [seat1, seat3] 的玩家卡
@@ -3799,7 +3799,7 @@
       }
     }
 
-    els.roundNext.textContent = matchWon ? '查看战报 ▶' : '继续 ▶';
+    els.roundNext.textContent = matchWon ? '查看战报 [[zi:play]]' : '继续 [[zi:play]]';
     stopTurnClock();
     els.roundOverlay.classList.add('open');
     els.roundNext.onclick = () => {
@@ -4490,7 +4490,7 @@
     }
     let ai = '';
     const lv = state && state.aiLevel;
-    if (lv === 'hard') ai = ' · 高手 ' + (_dmcState === 2 ? 'DanZero🧠' : _dmcState === 1 ? '载入中…' : _dmcState === 3 ? '启发式·载入失败' : '启发式');
+    if (lv === 'hard') ai = ' · 高手 ' + (_dmcState === 2 ? 'DanZero[[zi:bot]]' : _dmcState === 1 ? '载入中…' : _dmcState === 3 ? '启发式·载入失败' : '启发式');
     else if (lv) ai = ' · ' + (lv === 'normal' ? '普通' : '新手') + ' 启发式';
     el.textContent = 'v' + GD_BUILD + ai;
   }
@@ -4980,6 +4980,8 @@
     const open = els.gameOptsBody.hidden;          // 当前收起 → 要展开
     els.gameOptsBody.hidden = !open;
     els.gameOptsToggle.setAttribute('aria-expanded', String(open));
+    const indicator = els.gameOptsToggle.querySelector('.go-chev');
+    if (indicator) indicator.textContent = open ? '−' : '+';
   });
   els.pgoStart.addEventListener('click', async () => {
     // 从联机大厅切回单机时，必须先得到服务端确认离房；临时网络错误时保留会话，
@@ -5077,7 +5079,7 @@
     updateActions();
     armTurnClock();
     buildTestPanel();
-    toast('🧪 测试模式：已发全牌型手牌，AI 会自动过');
+    toast('[[zi:flask]] 测试模式：已发全牌型手牌，AI 会自动过');
   }
 
   function demoOtherPlay(seat, cards, label) {
@@ -5114,7 +5116,7 @@
       'background:rgba(20,30,45,0.92);border:1px solid #c9a96e;border-radius:10px;padding:8px;' +
       'display:flex;flex-direction:column;gap:4px;font-family:var(--font-body,sans-serif);box-shadow:0 4px 14px rgba(0,0,0,0.4);';
     const title = document.createElement('div');
-    title.textContent = '🧪 测试台'; title.style.cssText = 'color:#f5d142;font-weight:700;font-size:13px;text-align:center;margin-bottom:2px;';
+    title.textContent = '[[zi:flask]] 测试台'; title.style.cssText = 'color:#f5d142;font-weight:700;font-size:13px;text-align:center;margin-bottom:2px;';
     p.appendChild(title);
     const grp = (t) => { const d = document.createElement('div'); d.textContent = t; d.style.cssText = 'color:#c9a96e;font-size:10px;margin-top:5px;border-top:1px solid rgba(201,169,110,0.4);padding-top:3px;'; p.appendChild(d); };
     const btn = (t, fn) => { const b = document.createElement('button'); b.textContent = t; b.style.cssText = 'font-size:11.5px;padding:5px 4px;border-radius:6px;border:1px solid rgba(201,169,110,0.5);background:#f7f2e6;color:#2b2a26;cursor:pointer;'; b.addEventListener('click', fn); p.appendChild(b); };
@@ -5128,7 +5130,7 @@
 
     grp('流程/动画');
     btn('接风', () => { if (typeof showJiefengFx === 'function') showJiefengFx(2, 0); });
-    btn('抗贡', () => { if (typeof showTributeBanner === 'function') showTributeBanner('🛡️ 抗贡成功', '握双大王，免进贡', 2200); });
+    btn('抗贡', () => { if (typeof showTributeBanner === 'function') showTributeBanner('[[zi:shield]] 抗贡成功', '握双大王，免进贡', 2200); });
     btn('进贡(单)', () => demoTribute(false));
     btn('进贡(双下)', () => demoTribute(true));
     btn('结算面板', () => demoResult());
@@ -5181,7 +5183,7 @@
     p.id = 'gdDbgPanel';
     // 标题
     const head = _gdEl('div', 'display:flex;align-items:center;justify-content:space-between;');
-    head.appendChild(_gdEl('div', 'color:#f5d142;font-weight:700;font-size:15px;', '🛠 调试台'));
+    head.appendChild(_gdEl('div', 'color:#f5d142;font-weight:700;font-size:15px;', '[[zi:settings]] 调试台'));
     head.appendChild(_gdBtn('×', 'padding:0 9px;font-size:17px;line-height:1;', closeDebugPanel));
     p.appendChild(head);
     // Tab 栏
@@ -5198,22 +5200,22 @@
 
     // ===== Tab 1：种子·节奏 =====
     const t1 = mkBody('种子·节奏');
-    _gdGrp(t1, '🎲 固定牌局（种子）');
+    _gdGrp(t1, '[[zi:dice]] 固定牌局（种子）');
     const seedLabel = _gdEl('div', 'font-size:12px;'); seedLabel.id = 'gdDbgSeedLabel'; t1.appendChild(seedLabel);
     const seedIn = _gdEl('input', 'width:100%;box-sizing:border-box;font-size:13px;padding:5px 7px;border-radius:6px;border:1px solid #889;background:#0d141f;color:#e8eef5;'); seedIn.id = 'gdDbgSeedInput'; seedIn.placeholder = '种子(数字或任意字串)'; t1.appendChild(seedIn);
     const seedRow = _gdEl('div', 'display:flex;gap:5px;');
     seedRow.appendChild(_gdBtn('用此种子重开', 'flex:1;', () => { const v = seedIn.value.trim(); if (!v) { toast('请先输入种子'); return; } gdSetSeed(v); _gdCloseOverlays(); _gdAiCtl.pending = null; startMatch(); _gdUpdateSeedLabel(); }));
-    seedRow.appendChild(_gdBtn('🎲随机重开', 'flex:1;', () => { const s = (Math.floor(Math.random() * 4294967295)) >>> 0; gdSetSeed(s); seedIn.value = String(s); _gdCloseOverlays(); _gdAiCtl.pending = null; startMatch(); _gdUpdateSeedLabel(); }));
+    seedRow.appendChild(_gdBtn('[[zi:dice]]随机重开', 'flex:1;', () => { const s = (Math.floor(Math.random() * 4294967295)) >>> 0; gdSetSeed(s); seedIn.value = String(s); _gdCloseOverlays(); _gdAiCtl.pending = null; startMatch(); _gdUpdateSeedLabel(); }));
     t1.appendChild(seedRow);
     const seedRow2 = _gdEl('div', 'display:flex;gap:5px;');
     seedRow2.appendChild(_gdBtn('复制种子', 'flex:1;', () => { if (_gdSeed == null) { toast('当前未锁定种子'); return; } try { navigator.clipboard.writeText(String(_gdSeed)); toast('已复制种子 ' + _gdSeed); } catch (e) { toast('复制失败'); } }));
     seedRow2.appendChild(_gdBtn('清除(真随机)', 'flex:1;', () => { gdSetSeed(null); seedIn.value = ''; _gdUpdateSeedLabel(); toast('已回到真随机'); }));
     t1.appendChild(seedRow2);
-    _gdGrp(t1, '⏯ 节奏（单步 / 快进）');
+    _gdGrp(t1, '[[zi:play]] 节奏（单步 / 快进）');
     const paceRow = _gdEl('div', 'display:flex;gap:5px;');
     [['正常', 'run'], ['快进', 'fast'], ['单步', 'step']].forEach(([t, m]) => { const b = _gdBtn(t, 'flex:1;', () => { _gdSetAiMode(m); _gdSyncPaceBtns(); }); b.dataset.mode = m; b.className = 'gd-dbg-pace'; paceRow.appendChild(b); });
     t1.appendChild(paceRow);
-    const stepBtn = _gdBtn('▶ 下一步 (AI)', '', _gdStep); stepBtn.id = 'gdDbgStepBtn'; t1.appendChild(stepBtn);
+    const stepBtn = _gdBtn('[[zi:play]] 下一步 (AI)', '', _gdStep); stepBtn.id = 'gdDbgStepBtn'; t1.appendChild(stepBtn);
 
     // ===== Tab 2：AI 透视 =====
     const t2 = mkBody('AI 透视');
@@ -5226,13 +5228,13 @@
 
     // ===== Tab 3：造局面 =====
     const t3 = mkBody('造局面');
-    _gdGrp(t3, '🧩 导出 / 导入局面');
+    _gdGrp(t3, '[[zi:puzzle]] 导出 / 导入局面');
     const ioRow = _gdEl('div', 'display:flex;gap:5px;');
     ioRow.appendChild(_gdBtn('导出局面', 'flex:1;', _gdExportState));
     ioRow.appendChild(_gdBtn('导入局面', 'flex:1;', _gdImportState));
     t3.appendChild(ioRow);
     const ta = _gdEl('textarea', 'width:100%;box-sizing:border-box;height:64px;font-size:10px;font-family:monospace;background:#0d141f;color:#bcd;border:1px solid #889;border-radius:6px;'); ta.id = 'gdDbgIO'; ta.placeholder = '局面 JSON（导出后可手改 hands 再导入）'; t3.appendChild(ta);
-    _gdGrp(t3, '✋ 替换某家手牌');
+    _gdGrp(t3, '[[zi:user]] 替换某家手牌');
     const dealRow = _gdEl('div', 'display:flex;gap:5px;');
     const sel = _gdEl('select', 'font-size:12.5px;border-radius:6px;background:#0d141f;color:#e8eef5;border:1px solid #889;padding:4px;');
     [['我(0)', '0'], ['下家(1)', '1'], ['对家(2)', '2'], ['上家(3)', '3']].forEach(([t, v]) => { const o = _gdEl('option', null, t); o.value = v; sel.appendChild(o); });
@@ -5240,7 +5242,7 @@
     const tokIn = _gdEl('input', 'flex:1;min-width:0;font-size:12.5px;padding:5px 7px;border-radius:6px;border:1px solid #889;background:#0d141f;color:#e8eef5;'); tokIn.placeholder = '如 9 9 9 9 大王'; dealRow.appendChild(tokIn);
     t3.appendChild(dealRow);
     t3.appendChild(_gdBtn('替换该家手牌（不校验张数）', '', () => { _gdDealTokensToSeat(parseInt(sel.value, 10), tokIn.value); }));
-    _gdGrp(t3, '🧪 测试牌型 / 他家演示');
+    _gdGrp(t3, '[[zi:flask]] 测试牌型 / 他家演示');
     t3.appendChild(_gdBtn('发全牌型测试手牌（座0）', '', _gdDealTestHand));
     const C = (s, r) => s * 13 + r, SJ = 52, BJ = 53, R = { '2': 0, '3': 1, '4': 2, '5': 3, '6': 4, '7': 5, '8': 6, '9': 7, '10': 8, 'J': 9, 'Q': 10, 'K': 11, 'A': 12 };
     const demoGrid = _gdEl('div', 'display:grid;grid-template-columns:1fr 1fr;gap:5px;');
@@ -5250,7 +5252,7 @@
     dbtn('上家·同花顺', () => demoOtherPlay(3, [C(0, R['4']), C(0, R['5']), C(0, R['6']), C(0, R['7']), C(0, R['8'])], '同花顺'));
     dbtn('对家·天王炸', () => demoOtherPlay(2, [SJ, SJ + 54, BJ, BJ + 54], '天王炸'));
     dbtn('接风特效', () => { if (typeof showJiefengFx === 'function') showJiefengFx(2, 0); });
-    dbtn('抗贡横幅', () => { if (typeof showTributeBanner === 'function') showTributeBanner('🛡️ 抗贡成功', '握双大王，免进贡', 2200); });
+    dbtn('抗贡横幅', () => { if (typeof showTributeBanner === 'function') showTributeBanner('[[zi:shield]] 抗贡成功', '握双大王，免进贡', 2200); });
     dbtn('进贡(单)', () => demoTribute(false));
     dbtn('进贡(双下)', () => demoTribute(true));
     dbtn('结算面板', () => demoResult());
@@ -5258,9 +5260,9 @@
 
     // ===== Tab 4：联机 =====
     const t4 = mkBody('联机');
-    _gdGrp(t4, '🛰 联机四视角测试');
+    _gdGrp(t4, '[[zi:globe]] 联机四视角测试');
     t4.appendChild(_gdEl('div', 'font-size:11.5px;opacity:.75;line-height:1.5;', '一台机子开一间 4 人房、自己扮四家走真实联机流程；开局后用顶部切换条切视角逐座出牌。等同暗号 quad。'));
-    t4.appendChild(_gdBtn('🚀 启动联机四视角测试', '', () => { closeDebugPanel(); enterOnlineTestMode(); }));
+    t4.appendChild(_gdBtn('[[zi:plane]] 启动联机四视角测试', '', () => { closeDebugPanel(); enterOnlineTestMode(); }));
 
     document.body.appendChild(p);
     _gdPanelOn = true;
@@ -5286,7 +5288,7 @@
     state.phase = PHASE.PLAYING; state.turn = 0;
     state.trick = { lead: 0, best: null, bestSeat: -1, passes: 0 };
     renderAll(); updateActions(); armTurnClock();
-    toast('🧪 已发全牌型测试手牌（座0），AI 自动过');
+    toast('[[zi:flask]] 已发全牌型测试手牌（座0），AI 自动过');
   }
 
   function _gdUpdateSeedLabel() {
@@ -5352,7 +5354,7 @@
     for (const m of top) {
       const bg = m.chosen ? 'background:rgba(245,209,66,0.22)' : '';
       h += '<tr style="' + bg + '">';
-      h += '<td style="text-align:right;color:#9be39b;padding:1px 4px;white-space:nowrap;font-variant-numeric:tabular-nums">' + (m.chosen ? '★' : '') + m.score.toFixed(2) + '</td>';
+      h += '<td style="text-align:right;color:#9be39b;padding:1px 4px;white-space:nowrap;font-variant-numeric:tabular-nums">' + (m.chosen ? '[[zi:star]]' : '') + m.score.toFixed(2) + '</td>';
       h += '<td style="padding:1px 3px;white-space:nowrap;opacity:.85">' + _gdComboNameOf(m) + '</td>';
       h += '<td style="padding:1px 2px;color:#bcd">' + (m.pass ? '—' : m.cards.map(cardText).join(' ')) + '</td></tr>';
     }
@@ -5404,7 +5406,7 @@
       wlb = GamesShell.WinsLeaderboard.mount({
         container: $('gd-wlb-mount'),
         gameId: 'guandan',
-        title: '🏆 掼蛋 战绩榜',
+        title: '[[zi:trophy]] 掼蛋 战绩榜',
         unit: '胜',
         getCurrentNick: () => GamesShell.Identity.getNick(),
       });
@@ -5421,7 +5423,7 @@
       GamesShell.Comments.mount({
         container: $('gd-cm-mount'),
         path: '/toolbox/guandan/',
-        title: '💬 掼蛋交流',
+        title: '[[zi:comment]] 掼蛋交流',
         intro: '聊聊你的逢人配妙手、惊天大炸弹与队友配合 ~',
         placeholder: '说说你这局是怎么打过 A 的 ~',
       });
@@ -5484,8 +5486,8 @@
     '该队必须取得 1+2 或 1+3 才能「打过 A」；1+4 不能过 A，下一局继续打 A。' +
     '你方打过 A → 战绩 +1 胜并上传战绩榜；对方打过 A → 记一负。</p>' +
     '<p>键盘：Enter 出牌 · Space 不要 · H 提示。手牌按点数竖向成列；点牌选中、横拖多选。' +
-    '<strong>🔀 理牌</strong>：选中若干张点一下，把它们摞成一摞 —— 炸弹自动摞到最左（多个炸弹按强度从大到小排）、其他牌摞到最右。' +
-    '<strong>↩ 还原</strong>：选中某一摞的所有牌后点击，把它解散回默认位置。<strong>🧩 一键理牌</strong>：把所有自定义摞清掉，全部回默认排序。</p>';
+    '<strong>[[zi:transfer]] 理牌</strong>：选中若干张点一下，把它们摞成一摞 —— 炸弹自动摞到最左（多个炸弹按强度从大到小排）、其他牌摞到最右。' +
+    '<strong>[[zi:history]] 还原</strong>：选中某一摞的所有牌后点击，把它解散回默认位置。<strong>[[zi:puzzle]] 一键理牌</strong>：把所有自定义摞清掉，全部回默认排序。</p>';
 
   // ---- 永久全屏：进页面即铺满 viewport，不再提供退出全屏（最佳体验就是全屏玩）。
   //      玩法 / 战绩榜 / 评论改在游戏内「🏆 榜单」浮层看，不用跳出游戏外。 ----
@@ -6350,7 +6352,7 @@
       if (!st.ok) throw new Error(st.error || 'start_failed');
       testMode = { on: true, code, seats, active: 0 };
       await switchTestSeat(0);
-      toast('测试模式就绪：座1 视角，▶ 标记当前该出牌的座位');
+      toast('测试模式就绪：座1 视角，[[zi:play]] 标记当前该出牌的座位');
     } catch (e) {
       testMode = null;
       toast('测试房搭建失败：' + ((e && e.message) || e));
@@ -6412,7 +6414,7 @@
     const serverTurn = (typeof testMode.serverTurn === 'number') ? testMode.serverTurn : -1;
     bar.innerHTML = '';
     const lbl = document.createElement('span');
-    lbl.textContent = '🔬';
+    lbl.textContent = '[[zi:flask]]';
     lbl.style.cssText = 'margin-right:1px;';
     bar.appendChild(lbl);
     for (let i = 0; i < 4; i++) {
@@ -6420,7 +6422,7 @@
       const isTurn = i === serverTurn;
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = '座' + (i + 1) + (isTurn ? ' ▶' : '');
+      b.textContent = '座' + (i + 1) + (isTurn ? ' [[zi:play]]' : '');
       b.style.cssText = 'border:none;border-radius:999px;padding:4px 9px;cursor:pointer;font:600 13px/1 inherit;' +
         (isActive ? 'background:#e8b84b;color:#1a1a1a;' : 'background:rgba(255,255,255,.14);color:#fff;') +
         (isTurn && !isActive ? 'box-shadow:0 0 0 2px #4ade80;' : '');
@@ -6627,15 +6629,15 @@
   // 不会出现「别人视角里把房主摆在底部」。还没落座（mySeat 未知）时退回绝对映射，抢座前不乱跳。
   // 队伍颜色按奇偶（同奇偶 = 同队，mySeat 已知时跟随；未坐下时按 0/2 默认同队）。
   const LOBBY_POSITIONS = ['bottom', 'right', 'top', 'left'];
-  const LOBBY_AI_ICONS = ['🤖', '🦊', '🤝', '🐱'];   // 旧·按座位（已弃用，见 playerAvatarOf）
+  const LOBBY_AI_ICONS = ['[[zi:bot]]', '[[zi:user]]', '[[zi:users]]', '[[zi:cat]]'];   // 旧·按座位（已弃用，见 playerAvatarOf）
   // 稳定头像池：服务端给每个玩家分配一个固定下标(avatar)，和玩家绑死、和座位无关——换座/被移动头像都不变。
-  const GD_AVATAR_POOL = ['🦊', '🐯', '🐼', '🐱', '🐸', '🦁', '🐵', '🐶', '🐰', '🐷', '🐮', '🐔'];
+  const GD_AVATAR_POOL = ['[[zi:user]]', '[[zi:user]]', '[[zi:user]]', '[[zi:cat]]', '[[zi:user]]', '[[zi:user]]', '[[zi:user]]', '[[zi:dog]]', '[[zi:rabbit]]', '[[zi:user]]', '[[zi:user]]', '[[zi:drumstick]]'];
   function avatarEmoji(idx) { const n = GD_AVATAR_POOL.length; return GD_AVATAR_POOL[(((idx | 0) % n) + n) % n]; }
   // 本人恒 😎（自我标记）；AI 恒 🤖；其余真人按服务端稳定下标取固定头像（换座不变）。lobby 与牌桌共用。
   function playerAvatarOf(p, isMe) {
-    if (isMe) return '😎';
-    if (!p || p.isAi) return '🤖';
-    return (typeof p.avatar === 'number') ? avatarEmoji(p.avatar) : '👤';
+    if (isMe) return '[[zi:user]]';
+    if (!p || p.isAi) return '[[zi:bot]]';
+    return (typeof p.avatar === 'number') ? avatarEmoji(p.avatar) : '[[zi:user]]';
   }
 
   // 给定 server seat 号，返回它当前应该落在哪个 display cell（DOM 元素）。
@@ -6703,7 +6705,7 @@
         cell.classList.add('empty');
         const av = document.createElement('div');
         av.className = 'avatar';
-        av.textContent = '👤';
+        av.textContent = '[[zi:user]]';
         const nick = document.createElement('div');
         nick.className = 'nick';
         const badges = document.createElement('div');
@@ -6741,7 +6743,7 @@
         if (isHost) {
           const aiBtn = document.createElement('button');
           aiBtn.className = 'add-ai-btn';
-          aiBtn.textContent = '🤖 加机器人';
+          aiBtn.textContent = '[[zi:bot]] 加机器人';
           aiBtn.addEventListener('click', (e) => { e.stopPropagation(); sendAddAi(s); });
           cell.appendChild(aiBtn);
         }
@@ -6815,7 +6817,7 @@
         inviteBtn.hidden = true;
         onlineEls.startBtn.hidden = false;
         onlineEls.startBtn.disabled = false;
-        onlineEls.startBtn.textContent = '🎮 开始游戏';
+        onlineEls.startBtn.textContent = '[[zi:gamepad]] 开始游戏';
       } else {
         inviteBtn.hidden = false;
         onlineEls.startBtn.hidden = true;
@@ -6829,7 +6831,7 @@
         // 用昵称而非绝对座号——大厅已是自视角，绝对座号和玩家眼前位置对不上。
         const flP = seatedMap[srv.firstLeader];
         const flName = flP ? flP.nick : ('座 ' + (srv.firstLeader + 1));
-        onlineEls.startBtn.textContent = '🎲 抽签：' + flName + ' 首出';
+        onlineEls.startBtn.textContent = '[[zi:dice]] 抽签：' + flName + ' 首出';
       }
     }
   }

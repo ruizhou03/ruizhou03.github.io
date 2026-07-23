@@ -257,20 +257,20 @@ permalink: /toolbox/tiaoqi/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="tq-wrap">
   <header>
-    <h1>⭐ 跳棋</h1>
+    <h1>[[zi:star]] 跳棋</h1>
   </header>
 
   <div class="tq-statusbar">
     <div class="tq-turn" id="tqTurn">— 请配置玩家 —</div>
     <button class="tq-lobby-room-chip" id="tqRoomChip" hidden>房号<strong id="tqRoomCodeNum">----</strong></button>
-    <button class="tq-btn primary" id="tqStartBtn" hidden>▶ 开始游戏</button>
+    <button class="tq-btn primary" id="tqStartBtn" hidden>[[zi:play]] 开始游戏</button>
   </div>
   <div class="tq-lobby-hint" id="tqLobbyHint" hidden></div>
   <div class="tq-lobby-err" id="tqLobbyErr"></div>
@@ -297,8 +297,8 @@ permalink: /toolbox/tiaoqi/
         <button class="tq-btn" id="tqOvBtn">再来一局</button>
       </div>
       <div class="tq-overlay tq-paused-overlay" id="tqPausedOverlay">
-        <h2>⏸ 已暂停</h2>
-        <button class="tq-btn" id="tqResumeBtn">▶ 继续</button>
+        <h2>[[zi:pause]] 已暂停</h2>
+        <button class="tq-btn" id="tqResumeBtn">[[zi:play]] 继续</button>
       </div>
     </div>
   </div>
@@ -306,10 +306,10 @@ permalink: /toolbox/tiaoqi/
   <!-- Game-only controls (hidden until a game starts) -->
   <div id="tqGameControls" hidden>
     <div class="tq-controls" style="margin-top: 0.9rem;">
-      <button class="tq-btn primary" id="tqEndChainBtn" hidden>✓ 结束跳跃</button>
+      <button class="tq-btn primary" id="tqEndChainBtn" hidden>[[zi:check]] 结束跳跃</button>
       <button class="tq-btn" id="tqUndoBtn">↶ 悔棋</button>
-      <button class="tq-btn" id="tqPauseBtn" hidden>⏸ 暂停</button>
-      <button class="tq-btn" id="tqNewBtn">🔄 重新配置</button>
+      <button class="tq-btn" id="tqPauseBtn" hidden>[[zi:pause]] 暂停</button>
+      <button class="tq-btn" id="tqNewBtn">[[zi:refresh]] 重新配置</button>
     </div>
   </div>
 

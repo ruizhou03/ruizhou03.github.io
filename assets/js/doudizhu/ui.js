@@ -152,7 +152,7 @@
     const btn = document.getElementById('ddzSfxToggle');
     if (!btn) return;
     btn.classList.toggle('on', sfxEnabled);
-    btn.textContent = sfxEnabled ? '🔊 音效' : '🔇 静音';
+    btn.textContent = sfxEnabled ? '[[zi:volume]] 音效' : '[[zi:volume]] 静音';
   }
   loadSfxPref();
   // setup 一次后再绑定按钮
@@ -406,10 +406,10 @@
     if (state.mode === 'online') state.autopilot = false;
     if (state.autopilot) {
       autopilotBtn.classList.add('active');
-      autopilotBtn.textContent = '✓ 托管中';
+      autopilotBtn.textContent = '[[zi:check]] 托管中';
     } else {
       autopilotBtn.classList.remove('active');
-      autopilotBtn.textContent = '🤖 托管';
+      autopilotBtn.textContent = '[[zi:bot]] 托管';
     }
     refreshCornerChipsDisabled();
   }
@@ -802,7 +802,7 @@
     const btn = document.getElementById('ddzGroupSortToggle');
     if (!btn) return;
     btn.classList.toggle('on', groupSortEnabled);
-    btn.textContent = groupSortEnabled ? '🧩 理牌：开' : '🧩 理牌：关';
+    btn.textContent = groupSortEnabled ? '[[zi:puzzle]] 理牌：开' : '[[zi:puzzle]] 理牌：关';
     btn.classList.toggle('active', groupSortEnabled);
     refreshCornerChipsDisabled();
   }
@@ -1073,7 +1073,7 @@
     stars.className = 'ddz-fullscreen-stars';
     for (let i = 0; i < 24; i++) {
       const s = document.createElement('span');
-      s.textContent = '✦';
+      s.textContent = '[[zi:sparkle]]';
       const x = Math.random() * 100;
       const y = Math.random() * 100;
       const size = 22 + Math.random() * 26;
@@ -2589,7 +2589,7 @@
     const overlay = document.createElement('div');
     overlay.className = 'ddz-sakura-overlay';
     document.body.appendChild(overlay);
-    const glyphs = ['🌸', '🌺', '🌷', '🌼'];
+    const glyphs = ['[[zi:sparkle]]', '[[zi:sparkle]]', '[[zi:sparkle]]', '[[zi:sparkle]]'];
     for (let i = 0; i < n; i++) {
       const p = document.createElement('span');
       p.className = 'petal';
@@ -2663,7 +2663,7 @@
 
     const playerWon = (winnerRole === 'landlord' && state.landlordIdx === 0) ||
                       (winnerRole === 'peasant' && state.landlordIdx !== 0);
-    gameOverTitle.textContent = playerWon ? '🎉 你赢了！' : '😢 你输了';
+    gameOverTitle.textContent = playerWon ? '[[zi:sparkle]] 你赢了！' : '[[zi:user]] 你输了';
     setTimeout(() => playSfx(playerWon ? 'win' : 'lose'), 300);
     // BGM 淡出 + 胜负 sfx
     audioOnGameOver(playerWon);
@@ -2671,14 +2671,14 @@
     const winText = winnerRole === 'landlord' ? '地主' : '农民';
     // 春天 / 反春天用专门的庆祝 badge
     const springBadge = state.spring > 0
-      ? `<div class="ddz-spring-badge">${winnerRole === 'landlord' ? '🌸 春天' : '🍁 反春天'} ×2</div>`
+      ? `<div class="ddz-spring-badge">${winnerRole === 'landlord' ? '[[zi:sparkle]] 春天' : '[[zi:leaf]] 反春天'} ×2</div>`
       : '';
     // 结算面板：赢家在上·两行；地主一张占 2 列宽、两农民各 1 列；只显示净得分（+/−）
     const lordSign2 = winnerRole === 'landlord' ? 1 : -1;
     const lordTotal2 = pairAmts.reduce((a, b) => a + b, 0);
     const settleCard = (seat, isLandlord, net, isWinner, wide) => {
       const me = seat === 0;
-      const av = isLandlord ? '👑' : (me ? '👤' : '🤖');
+      const av = isLandlord ? '[[zi:crown]]' : (me ? '[[zi:user]]' : '[[zi:bot]]');
       const roleTxt = (isLandlord ? '地主' : '农民') + (me ? '·你' : '');
       const amtTxt = (net >= 0 ? '+' : '−') + Math.abs(net);
       return `<div class="ddz-settle-card${wide ? ' wide' : ''}${isWinner ? ' winner' : ''}">` +
@@ -2728,7 +2728,7 @@
     GamesShell.Settlement.present({ dataURL, filename });
   }
 
-  function difficultyLabel(d) { return { easy: '🌱 新手', normal: '🙂 普通', hard: '🔥 高手 · AI', master: '👑 大神 · AI' }[d] || d; }
+  function difficultyLabel(d) { return { easy: '[[zi:sprout]] 新手', normal: '[[zi:user]] 普通', hard: '[[zi:flame]] 高手 · AI', master: '[[zi:crown]] 大神 · AI' }[d] || d; }
   function seatLabel(s) { return s === 0 ? '你' : 'AI'; }
   function formatDuration(ms) {
     const s = Math.floor(ms / 1000);
@@ -2747,7 +2747,7 @@
   function ddzGetSpringOpts() {
     if (!state.result || state.spring <= 0 || !state.initialHands) return null;
     const isSpring = state.result.winnerRole === 'landlord';   // 春天=地主胜
-    const subtitle = isSpring ? '🌸 春天' : '🍁 反春天';
+    const subtitle = isSpring ? '[[zi:sparkle]] 春天' : '[[zi:leaf]] 反春天';
     // 收集要展示的「赢家」初始手牌
     let rows;
     if (isSpring) {
@@ -2766,7 +2766,7 @@
       kind: 'duel',
       gameId: 'doudizhu',
       title: '斗地主 · ' + subtitle,
-      emoji: isSpring ? '🌸' : '🍁',
+      emoji: isSpring ? '[[zi:sparkle]]' : '[[zi:leaf]]',
       nick: (window.GamesShell && GamesShell.Identity.getNick()) || '匿名',
       opponent: 'AI · ' + difficultyLabel(state.difficulty),
       result: state.landlordIdx === 0
@@ -2961,14 +2961,14 @@
     ddzWlb = GamesShell.WinsLeaderboard.mount({
       container: $('ddz-wlb-mount'),
       gameId: 'doudizhu',
-      title: '🏆 斗地主 · 积分榜',
+      title: '[[zi:trophy]] 斗地主 · 积分榜',
       unit: '分',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });
     GamesShell.Comments.mount({
       container: $('ddz-cm-mount'),
       path: '/toolbox/doudizhu/',
-      title: '💬 牌友交流',
+      title: '[[zi:comment]] 牌友交流',
       intro: '聊聊斗地主的开局思路、地主 / 农民的取舍，或者吐槽 AI ~',
       placeholder: '聊聊你的斗地主心得 ~',
     });
@@ -3557,16 +3557,16 @@
   // ── 空间化 lobby(方案A:贴合牌桌真实座位) + 乐观更新 ─────────────────
   function lobbySeatCardHtml(slot) {
     if (!slot || slot.kind === 'empty') {
-      const add = state.online.isHost ? '<div class="seatbtns"><button class="sb ai" data-act="add_ai">🤖 加机器人</button></div>' : '';
+      const add = state.online.isHost ? '<div class="seatbtns"><button class="sb ai" data-act="add_ai">[[zi:bot]] 加机器人</button></div>' : '';
       return '<div class="av">＋</div><div class="nm">等待加入</div>' + add;
     }
     if (slot.kind === 'ai') {
       const lvl = ({ normal: '普通', hard: '高手', master: '大神' })[slot.aiLevel] || '普通';
       const rm = state.online.isHost ? '<div class="seatbtns"><button class="sb warn" data-act="remove_ai">移除</button></div>' : '';
-      return '<div class="av">🤖</div><div class="nm">机器人·' + lvl + '</div>' + rm;
+      return '<div class="av">[[zi:bot]]</div><div class="nm">机器人·' + lvl + '</div>' + rm;
     }
     const p = slot.player, isMe = p.id === state.online.playerId;
-    const av = p.isHost ? '👑' : (isMe ? '👤' : '🙂');
+    const av = p.isHost ? '[[zi:crown]]' : (isMe ? '[[zi:user]]' : '[[zi:user]]');
     let badge = '';
     if (p.isHost) badge = '<span class="badge host">房主</span>';
     else if (isMe) badge = '<span class="badge me">你</span>';
@@ -3604,7 +3604,7 @@
     const filled = humanCount + aiCount;
     startBtn.disabled = !(filled === 3 && state.online.isHost);
     startBtn.textContent = state.online.isHost
-      ? (filled < 3 ? '开始（需坐满 3 座，已 ' + filled + '）' : '🎮 开始游戏')
+      ? (filled < 3 ? '开始（需坐满 3 座，已 ' + filled + '）' : '[[zi:gamepad]] 开始游戏')
       : '等待房主开始…';
   }
   // 座位操作走事件委托 + 乐观更新:先改本地快照即时重画,SSE 回来的权威态自动对齐(失败即回退)
@@ -3641,10 +3641,10 @@
     for (const p of srv.players || []) {
       const ds = rotateSeat(p.seat - 1);
       if (ds === 0) {
-        setAvatarEmoji(0, p.isAi ? '🤖' : '😎');
+        setAvatarEmoji(0, p.isAi ? '[[zi:bot]]' : '[[zi:user]]');
         // 自家 name 在 renderRoles 里管：保留「我（地主/农民）」
       } else {
-        setAvatarEmoji(ds, p.isAi ? '🤖' : '🧑');
+        setAvatarEmoji(ds, p.isAi ? '[[zi:bot]]' : '[[zi:user]]');
         const nameEl = $('ddzName' + ds);
         if (nameEl) {
           const baseName = p.nick;
@@ -3842,13 +3842,13 @@
     const isLastRound = !!state.result.gameEnded;
 
     gameOverTitle.textContent = isLastRound
-      ? (playerWon ? '🏆 整局结束！你赢了' : '🏁 整局结束')
-      : (playerWon ? '🎉 你赢了' : '😢 你输了') + `（${roundN} / ${totalRounds}）`;
+      ? (playerWon ? '[[zi:trophy]] 整局结束！你赢了' : '[[zi:flag]] 整局结束')
+      : (playerWon ? '[[zi:sparkle]] 你赢了' : '[[zi:user]] 你输了') + `（${roundN} / ${totalRounds}）`;
     setTimeout(() => playSfx(playerWon ? 'win' : 'lose'), 300);
 
     const winText = state.result.winnerRole === 'landlord' ? '地主' : '农民';
     const springBadge = state.spring > 0
-      ? `<div class="ddz-spring-badge">${state.result.winnerRole === 'landlord' ? '🌸 春天' : '🍁 反春天'} ×2</div>`
+      ? `<div class="ddz-spring-badge">${state.result.winnerRole === 'landlord' ? '[[zi:sparkle]] 春天' : '[[zi:leaf]] 反春天'} ×2</div>`
       : '';
     let html = springBadge +
       `<div>${winText}获胜</div>` +
@@ -3860,13 +3860,13 @@
     if (players.length > 0) {
       html += '<div style="margin-top:0.6rem; padding:0.5rem 0.7rem; background:rgba(255,255,255,0.05); border:1px solid var(--ddz-frame-2); border-radius:8px;">';
       html += `<div style="font-size:0.85rem; color:var(--ddz-text-on-felt-mute); margin-bottom:0.3rem;">累计积分 · 第 ${roundN} / ${totalRounds} 盘</div>`;
-      const medals = ['🥇', '🥈', '🥉'];
+      const medals = ['[[zi:medal:gold]]', '[[zi:medal:silver]]', '[[zi:medal:bronze]]'];
       for (let i = 0; i < players.length; i++) {
         const p = players[i];
         const sc = cum[p.id] || 0;
         const isMe = p.id === state.online.playerId;
         html += `<div style="display:flex; justify-content:space-between; padding:0.18rem 0; ${isMe ? 'color:var(--ddz-accent-strong); font-weight:600;' : ''}">`;
-        html += `<span>${medals[i] || ('#' + (i + 1))} ${escHtml(p.nick)}${p.isAi ? ' 🤖' : ''}${isMe ? ' (我)' : ''}</span>`;
+        html += `<span>${medals[i] || ('#' + (i + 1))} ${escHtml(p.nick)}${p.isAi ? ' [[zi:bot]]' : ''}${isMe ? ' (我)' : ''}</span>`;
         html += `<span>${sc >= 0 ? '+' : ''}${sc} 分</span>`;
         html += '</div>';
       }
@@ -3985,7 +3985,7 @@
     ddzWlbOnline = GamesShell.WinsLeaderboard.mount({
       container: onlineMountWrap,
       gameId: 'doudizhu-online',
-      title: '🌐 斗地主 · 联机积分榜',
+      title: '[[zi:globe]] 斗地主 · 联机积分榜',
       unit: '分',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });

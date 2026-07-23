@@ -199,24 +199,24 @@ permalink: /toolbox/reversi/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="reversi-wrap">
   <header>
-    <h1>⚫⚪ 黑白棋</h1>
+    <h1>[[zi:user]][[zi:user]] 黑白棋</h1>
     <div class="sub">Reversi / Othello — 夹住翻面，终局子多者胜</div>
   </header>
 
   <div class="rv-controls">
-    <button class="rv-btn" id="rvNewBtn">🔄 重新开始</button>
-    <button class="rv-btn" id="rvHomeBtn">⚙ 换难度</button>
+    <button class="rv-btn" id="rvNewBtn">[[zi:refresh]] 重新开始</button>
+    <button class="rv-btn" id="rvHomeBtn">[[zi:settings]] 换难度</button>
   </div>
 
   <div class="rv-statusbar">
-    <div class="rv-turn" id="rvTurn">⚫ 你的回合</div>
+    <div class="rv-turn" id="rvTurn">[[zi:user]] 你的回合</div>
     <div class="rv-tally">
       <span class="rv-score" id="rvScoreB"><span class="rv-chip black"></span>你 <b id="rvCntB">2</b></span>
       <span class="rv-score" id="rvScoreW"><span class="rv-chip white"></span>AI <b id="rvCntW">2</b></span>
@@ -236,7 +236,7 @@ permalink: /toolbox/reversi/
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="rvPgo">
       <div class="gs-pgo-view active" id="rvPgoMain">
-        <div class="gs-pgo-icon">⚫⚪</div>
+        <div class="gs-pgo-icon">[[zi:user]][[zi:user]]</div>
         <h2 class="gs-pgo-title">黑白棋</h2>
         <div class="gs-pgo-subtitle">你执黑先手 · 把对手的子夹在中间即可翻面 · 终局子多者胜</div>
         <div class="gs-pgo-highscore">
@@ -244,11 +244,11 @@ permalink: /toolbox/reversi/
           <div class="gs-pgo-hs-label" id="rvPgoStatLabel">对战「普通」战绩</div>
         </div>
         <div class="gs-pgo-mode-picker" id="rvPgoDiffPicker">
-          <button class="gs-pgo-mode-tab" data-value="easy">🌱 新手</button>
-          <button class="gs-pgo-mode-tab selected" data-value="normal">🙂 普通</button>
-          <button class="gs-pgo-mode-tab" data-value="hard">🔥 高手</button>
+          <button class="gs-pgo-mode-tab" data-value="easy">[[zi:sprout]] 新手</button>
+          <button class="gs-pgo-mode-tab selected" data-value="normal">[[zi:user]] 普通</button>
+          <button class="gs-pgo-mode-tab" data-value="hard">[[zi:flame]] 高手</button>
         </div>
-        <button class="gs-pgo-start-btn" id="rvPgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="rvPgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
     </div>
   </div>
@@ -464,13 +464,13 @@ permalink: /toolbox/reversi/
     if (!state.started) {
       turnEl.textContent = '选择难度开始';
     } else if (state.over) {
-      if (b > w) turnEl.textContent = '⚫ 你赢了';
-      else if (w > b) turnEl.textContent = '⚪ AI 获胜';
+      if (b > w) turnEl.textContent = '[[zi:user]] 你赢了';
+      else if (w > b) turnEl.textContent = '[[zi:user]] AI 获胜';
       else turnEl.textContent = '— 平局 —';
     } else if (state.aiThinking) {
-      turnEl.textContent = '🤖 AI 思考中…';
+      turnEl.textContent = '[[zi:bot]] AI 思考中…';
     } else {
-      turnEl.textContent = state.turn === HUMAN ? '⚫ 你的回合' : '⚪ AI 回合';
+      turnEl.textContent = state.turn === HUMAN ? '[[zi:user]] 你的回合' : '[[zi:user]] AI 回合';
     }
 
     newBtn.disabled = !state.started;
@@ -543,11 +543,11 @@ permalink: /toolbox/reversi/
     let result;
     if (b > w) {
       result = 'win';
-      ovTitle.textContent = '⚫ 你赢了！';
+      ovTitle.textContent = '[[zi:user]] 你赢了！';
       state.stats[state.difficulty].w++;
     } else if (w > b) {
       result = 'lose';
-      ovTitle.textContent = '⚪ AI 获胜';
+      ovTitle.textContent = '[[zi:user]] AI 获胜';
       state.stats[state.difficulty].l++;
     } else {
       result = 'draw';
@@ -842,7 +842,7 @@ permalink: /toolbox/reversi/
     rvWlbWidget = GamesShell.WinsLeaderboard.mount({
       container: document.getElementById('rv-wlb-mount'),
       gameId: 'reversi',
-      title: '🏆 黑白棋 战绩榜',
+      title: '[[zi:trophy]] 黑白棋 战绩榜',
       unit: '胜',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });
@@ -855,7 +855,7 @@ permalink: /toolbox/reversi/
     GamesShell.Comments.mount({
       container: document.getElementById('rv-cm-mount'),
       path: '/toolbox/reversi/',
-      title: '💬 棋友交流',
+      title: '[[zi:comment]] 棋友交流',
       intro: '聊聊你翻盘的关键一手、抢角心得 ~',
       placeholder: '聊聊你的黑白棋心得 ~',
     });
@@ -906,7 +906,7 @@ permalink: /toolbox/reversi/
       kind: 'duel',
       gameId: 'reversi',
       title: '黑白棋',
-      emoji: '⚫',
+      emoji: '[[zi:user]]',
       nick: GamesShell.Identity.getNick() || '匿名',
       opponent: 'vs AI · ' + (DIFF_LABEL[state.difficulty] || state.difficulty),
       result: rvLastResult,

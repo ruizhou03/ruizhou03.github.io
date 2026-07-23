@@ -33,8 +33,8 @@ permalink: /toolbox/typing/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
@@ -214,7 +214,7 @@ permalink: /toolbox/typing/
 
 <div class="typing-wrap">
   <header>
-    <h1>⌨️ 打字速度测试</h1>
+    <h1>[[zi:grid]] 打字速度测试</h1>
     <div class="sub">照着段落敲，从第一个字符开始计时</div>
   </header>
 
@@ -240,8 +240,8 @@ permalink: /toolbox/typing/
   <div class="typing-progress"><i id="tpProgress"></i></div>
 
   <div class="typing-controls">
-    <button class="typing-btn" id="tpNewBtn">🔀 换一段</button>
-    <button class="typing-btn" id="tpRetryBtn">↻ 重测</button>
+    <button class="typing-btn" id="tpNewBtn">[[zi:transfer]] 换一段</button>
+    <button class="typing-btn" id="tpRetryBtn">[[zi:refresh]] 重测</button>
   </div>
 
   <div class="typing-stage">
@@ -257,15 +257,15 @@ permalink: /toolbox/typing/
       <div class="big" id="tpResSpeed">0 <small>WPM</small></div>
       <div class="res-meta" id="tpResMeta"></div>
       <div class="res-btns">
-        <button class="primary" id="tpResNew">🔀 换一段</button>
-        <button id="tpResRetry">↻ 重测本段</button>
+        <button class="primary" id="tpResNew">[[zi:transfer]] 换一段</button>
+        <button id="tpResRetry">[[zi:refresh]] 重测本段</button>
       </div>
     </div>
 
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="tpPgo">
       <div class="gs-pgo-view active" id="tpPgoMain">
-        <div class="gs-pgo-icon">⌨️</div>
+        <div class="gs-pgo-icon">[[zi:grid]]</div>
         <h2 class="gs-pgo-title">打字速度测试</h2>
         <div class="gs-pgo-subtitle">照着段落敲，越快越准越高分</div>
         <div class="gs-pgo-highscore">
@@ -276,7 +276,7 @@ permalink: /toolbox/typing/
           <button class="gs-pgo-mode-tab selected" data-value="en">英文</button>
           <button class="gs-pgo-mode-tab" data-value="zh">中文</button>
         </div>
-        <button class="gs-pgo-start-btn" id="tpPgoStart">▶ 开始</button>
+        <button class="gs-pgo-start-btn" id="tpPgoStart">[[zi:play]] 开始</button>
       </div>
     </div>
   </div>
@@ -712,7 +712,7 @@ permalink: /toolbox/typing/
     tpLbWidget = GamesShell.Leaderboard.mount({
       container: document.getElementById('tp-lb-mount'),
       gameId: 'typing',
-      title: '🏆 打字速度 排行榜',
+      title: '[[zi:trophy]] 打字速度 排行榜',
       scoreFormatter: v => Number(v).toLocaleString(),
       getCurrentNick: () => GamesShell.Identity.getNick(),
       getSplit: () => state.mode,
@@ -724,7 +724,7 @@ permalink: /toolbox/typing/
     GamesShell.Comments.mount({
       container: document.getElementById('tp-cm-mount'),
       path: '/toolbox/typing/',
-      title: '💬 打字交流',
+      title: '[[zi:comment]] 打字交流',
       intro: '晒晒你的 WPM / 字分，聊聊键位、指法和提速心得 ~',
       placeholder: '聊聊你的打字心得 ~',
     });

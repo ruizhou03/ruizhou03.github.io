@@ -196,8 +196,8 @@ permalink: /toolbox/xiangqi/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 
   /* === 开局：盘面领地卡（上黑下红，铺在各自半盘上）=== */
@@ -285,7 +285,7 @@ permalink: /toolbox/xiangqi/
 
 <div class="xq-wrap">
   <header>
-    <h1>♟ 中国象棋 v5</h1>
+    <h1>[[zi:grid]] 中国象棋 v5</h1>
     <div class="sub">楚河汉界</div>
   </header>
 
@@ -300,21 +300,21 @@ permalink: /toolbox/xiangqi/
   <div class="xq-controls xq-difficulty-row" id="xqDifficultyRow" hidden>
     <span class="xq-row-label">难度</span>
     <div class="xq-mode-tabs" id="xqDifficultyTabs">
-      <button class="xq-mode-tab" data-diff="easy">🌱 新手</button>
-      <button class="xq-mode-tab active" data-diff="normal">🙂 普通</button>
-      <button class="xq-mode-tab" data-diff="hard">🔥 高手</button>
+      <button class="xq-mode-tab" data-diff="easy">[[zi:sprout]] 新手</button>
+      <button class="xq-mode-tab active" data-diff="normal">[[zi:user]] 普通</button>
+      <button class="xq-mode-tab" data-diff="hard">[[zi:flame]] 高手</button>
     </div>
   </div>
 
   <div class="xq-controls">
     <button class="xq-btn" id="xqUndoBtn">↶ 悔棋</button>
-    <button class="xq-btn" id="xqPauseBtn" hidden>⏸ 暂停</button>
-    <button class="xq-btn" id="xqNewBtn">🔄 重新开始</button>
-    <button class="xq-btn" id="xqFaceBtn" hidden title="对坐模式：两人面对面时，把对面一方的棋子字转正，双方都好认">🔁 对坐</button>
+    <button class="xq-btn" id="xqPauseBtn" hidden>[[zi:pause]] 暂停</button>
+    <button class="xq-btn" id="xqNewBtn">[[zi:refresh]] 重新开始</button>
+    <button class="xq-btn" id="xqFaceBtn" hidden title="对坐模式：两人面对面时，把对面一方的棋子字转正，双方都好认">[[zi:refresh]] 对坐</button>
   </div>
 
   <div class="xq-statusbar">
-    <div class="xq-turn" id="xqTurn">🔴 红方走子</div>
+    <div class="xq-turn" id="xqTurn">[[zi:warning]] 红方走子</div>
     <div class="xq-tally">
       <span>红胜 <b id="xqTallyR">0</b></span>
       <span>黑胜 <b id="xqTallyB">0</b></span>
@@ -324,14 +324,14 @@ permalink: /toolbox/xiangqi/
   <div class="xq-board-wrap">
     <svg class="xq-svg" id="xqSvg" viewBox="0 0 720 800" preserveAspectRatio="xMidYMid meet"></svg>
     <!-- 回合倒计时闹钟（楚河汉界中央），颜色随当前走子方 -->
-    <div class="xq-clock" id="xqClock" hidden><span class="xq-clock-ico">⏱</span><span class="xq-clock-num">60</span></div>
+    <div class="xq-clock" id="xqClock" hidden><span class="xq-clock-ico">[[zi:clock]]</span><span class="xq-clock-num">60</span></div>
     <div class="xq-overlay" id="xqOverlay">
       <h2 id="xqOvTitle">游戏结束</h2>
       <button class="xq-btn" id="xqOvBtn">再来一局</button>
     </div>
     <div class="xq-overlay xq-paused-overlay" id="xqPausedOverlay">
-      <h2>⏸ 已暂停</h2>
-      <button class="xq-btn" id="xqResumeBtn">▶ 继续</button>
+      <h2>[[zi:pause]] 已暂停</h2>
+      <button class="xq-btn" id="xqResumeBtn">[[zi:play]] 继续</button>
     </div>
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="xqPreGameOverlay">
@@ -349,8 +349,8 @@ permalink: /toolbox/xiangqi/
           <button class="gs-pgo-mode-tab" data-value="hard">高手</button>
         </div>
         <div class="gs-pgo-room-tabs" id="xqPgoRoomTabs">
-          <button class="gs-pgo-room-tab selected" data-tab="local">🏠 本地</button>
-          <button class="gs-pgo-room-tab" data-tab="online">🌐 联机</button>
+          <button class="gs-pgo-room-tab selected" data-tab="local">[[zi:home]] 本地</button>
+          <button class="gs-pgo-room-tab" data-tab="online">[[zi:globe]] 联机</button>
         </div>
         <div class="gs-pgo-room-panel active" id="xqPgoLocalPanel"></div>
         <div class="gs-pgo-room-panel" id="xqPgoOnlinePanel">
@@ -360,7 +360,7 @@ permalink: /toolbox/xiangqi/
             <div class="gs-pgo-room-error" id="xqPgoRoomError"></div>
           </div>
           <div id="xqPgoRoomLobby" style="display:none;">
-            <div class="gs-pgo-room-code">房号：<strong id="xqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="xqPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="xqPgoRoomCopyBtn">🔗 复制链接</button></div>
+            <div class="gs-pgo-room-code">房号：<strong id="xqPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="xqPgoRoomCopyCodeBtn">[[zi:copy]] 复制房号</button> <button class="gs-pgo-room-copy-btn" id="xqPgoRoomCopyBtn">[[zi:link]] 复制链接</button></div>
             <div class="gs-room-qr" id="xqPgoRoomQr"></div><ul class="gs-pgo-room-players" id="xqPgoRoomPlayers"></ul>
             <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
               <button class="gs-pgo-room-btn primary" id="xqPgoRoomStartBtn" disabled>需要 2 人</button>
@@ -368,14 +368,14 @@ permalink: /toolbox/xiangqi/
             </div>
           </div>
         </div>
-        <button class="gs-pgo-start-btn" id="xqPgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="xqPgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
       <!-- 盘面领地卡（pilot）：覆盖在棋盘上，上半盘黑方、下半盘红方 -->
       <div class="xq-terr-layer" id="xqTerrLayer">
         <div class="xq-terr-seat at-black" id="xqSeatBlack"></div>
         <div class="xq-terr-seat at-red" id="xqSeatRed"></div>
         <div class="xq-terr-startbar">
-          <button class="xq-terr-start" id="xqTerrStart">▶ 开始游戏</button>
+          <button class="xq-terr-start" id="xqTerrStart">[[zi:play]] 开始游戏</button>
         </div>
       </div>
     </div>
@@ -998,14 +998,14 @@ permalink: /toolbox/xiangqi/
 
   function updateStatus() {
     let label;
-    const turnPhrase = state.turn === RED ? '🔴 红方走子' : '⚫ 黑方走子';
+    const turnPhrase = state.turn === RED ? '[[zi:warning]] 红方走子' : '[[zi:user]] 黑方走子';
     if (state.paused) {
-      label = '⏸ 已暂停';
+      label = '[[zi:pause]] 已暂停';
     } else if (state.over) {
       // Determined by last winner stored on overlay; reuse ovTitle text
       label = ovTitle.textContent;
     } else if (state.aiThinking) {
-      label = '🤖 AI 思考中…';
+      label = '[[zi:bot]] AI 思考中…';
     } else {
       const inChk = isInCheck(state.board, state.turn);
       label = turnPhrase + (inChk ? ' — 将军！' : '');
@@ -1024,13 +1024,13 @@ permalink: /toolbox/xiangqi/
     const isAi = aiSide() !== null;
     difficultyRow.hidden = !isAi;
     pauseBtn.hidden = !isAi;
-    pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    pauseBtn.textContent = state.paused ? '[[zi:play]] 继续' : '[[zi:pause]] 暂停';
     pauseBtn.disabled = state.over;
     pausedOverlay.classList.toggle('show', state.paused && !state.over);
     const faceBtn = document.getElementById('xqFaceBtn');
     if (faceBtn) {
       faceBtn.hidden = !(state.mode === 'pvp' && !xqIsOnline);
-      faceBtn.textContent = state.faceToFace ? '🔁 对坐：开' : '🔁 对坐：关';
+      faceBtn.textContent = state.faceToFace ? '[[zi:refresh]] 对坐：开' : '[[zi:refresh]] 对坐：关';
     }
   }
 
@@ -1068,8 +1068,8 @@ permalink: /toolbox/xiangqi/
     if (winner === RED) state.tally.r++; else state.tally.b++;
     persist();
     let title;
-    if (inChk) title = (winner === RED ? '🔴 红方将死黑方' : '⚫ 黑方将死红方');
-    else title = (winner === RED ? '🔴 黑方困毙 — 红胜' : '⚫ 红方困毙 — 黑胜');
+    if (inChk) title = (winner === RED ? '[[zi:warning]] 红方将死黑方' : '[[zi:user]] 黑方将死红方');
+    else title = (winner === RED ? '[[zi:warning]] 黑方困毙 — 红胜' : '[[zi:user]] 红方困毙 — 黑胜');
     ovTitle.textContent = title;
     overlay.classList.add('show');
     // 仅当 AI 模式下"人类方"获胜，才上传战绩榜
@@ -1360,7 +1360,7 @@ permalink: /toolbox/xiangqi/
       kind: 'duel',
       gameId: 'xiangqi',
       title: '中国象棋',
-      emoji: '♘',
+      emoji: '[[zi:user]]',
       nick: GamesShell.Identity.getNick() || '匿名',
       opponent: 'vs AI · ' + (XQ_DIFF_LABEL[state.difficulty] || state.difficulty),
       result: xqLastResult,
@@ -1418,13 +1418,13 @@ permalink: /toolbox/xiangqi/
     xqWlbWidget = GamesShell.WinsLeaderboard.mount({
       container: document.getElementById('xq-wlb-mount'),
       gameId: 'xiangqi',
-      title: '🏆 中国象棋 战绩榜',
+      title: '[[zi:trophy]] 中国象棋 战绩榜',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });
     GamesShell.Comments.mount({
       container: document.getElementById('xq-cm-mount'),
       path: '/toolbox/xiangqi/',
-      title: '💬 棋友交流',
+      title: '[[zi:comment]] 棋友交流',
       intro: '聊聊击败 AI 的开局、跑炮 / 飞马心得 ~',
       placeholder: '聊聊你的中国象棋心得 ~',
     });
@@ -1548,13 +1548,13 @@ permalink: /toolbox/xiangqi/
       const isMe = p.id === xqRoomPlayerId, isHost = p.isHost;
       let h = '<li>';
       if (xqRoomHost && room.state === 'lobby' && !isMe) {
-        if (i > 0) h += `<button class="xq-room-act up" data-act="up" data-id="${p.id}">▲</button>`;
-        if (i < room.players.length - 1) h += `<button class="xq-room-act down" data-act="down" data-id="${p.id}">▼</button>`;
+        if (i > 0) h += `<button class="xq-room-act up" data-act="up" data-id="${p.id}">[[zi:chevron]]</button>`;
+        if (i < room.players.length - 1) h += `<button class="xq-room-act down" data-act="down" data-id="${p.id}">[[zi:chevron]]</button>`;
       }
       h += gsEsc(p.nick);
       if (isMe) h += ' (你)';
       if (isHost) h += ' <span class="gs-pgo-room-host-badge">房主</span>';
-      if (xqRoomHost && room.state === 'lobby' && !isMe) h += `<button class="xq-room-kick" data-act="kick" data-id="${p.id}">✕</button>`;
+      if (xqRoomHost && room.state === 'lobby' && !isMe) h += `<button class="xq-room-kick" data-act="kick" data-id="${p.id}">[[zi:stop]]</button>`;
       h += '</li>';
       return h;
     }).join('');
@@ -1610,12 +1610,12 @@ permalink: /toolbox/xiangqi/
   document.getElementById('xqPgoRoomLeaveBtn').addEventListener('click', xqLeaveRoom);
   document.getElementById('xqPgoRoomCopyBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(`${location.origin}/toolbox/xiangqi/?room=${xqRoomCode}`).then(() => {
-      const btn = document.getElementById('xqPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '🔗 复制链接'; }, 2000);
+      const btn = document.getElementById('xqPgoRoomCopyBtn'); btn.textContent = '[[zi:check]] 已复制'; setTimeout(() => { btn.textContent = '[[zi:link]] 复制链接'; }, 2000);
     }).catch(() => {});
   });
   document.getElementById('xqPgoRoomCopyCodeBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(xqRoomCode).then(() => {
-      const btn = document.getElementById('xqPgoRoomCopyCodeBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制房号'; }, 2000);
+      const btn = document.getElementById('xqPgoRoomCopyCodeBtn'); btn.textContent = '[[zi:check]] 已复制'; setTimeout(() => { btn.textContent = '[[zi:copy]] 复制房号'; }, 2000);
     }).catch(() => {});
   });
   document.getElementById('xqPgoRoomStartBtn').addEventListener('click', async () => {
@@ -1645,13 +1645,13 @@ permalink: /toolbox/xiangqi/
   // red+black combo maps onto the existing mode (pvp / ai-red / ai-black) and the
   // local-start + room-invite machinery below is reused verbatim.
   const XQ_SIDE = {
-    red:   { label: '红方', color: '#c0392b', ico: '🔴' },
-    black: { label: '黑方', color: '#33373d', ico: '⚫' },
+    red:   { label: '红方', color: '#c0392b', ico: '[[zi:warning]]' },
+    black: { label: '黑方', color: '#33373d', ico: '[[zi:user]]' },
   };
   const XQ_KIND_CYCLE = ['human', 'ai', 'remote'];
   const XQ_KIND_SUB = { human: '本机真人', ai: '电脑', remote: '邀请联机' };
-  const XQ_KIND_ICO = { human: '👤', ai: '🤖', remote: '🔗' };
-  const XQ_DIFF3 = { easy: '🌱 新手', normal: '🙂 普通', hard: '🔥 高手' };
+  const XQ_KIND_ICO = { human: '[[zi:user]]', ai: '[[zi:bot]]', remote: '[[zi:link]]' };
+  const XQ_DIFF3 = { easy: '[[zi:sprout]] 新手', normal: '[[zi:user]] 普通', hard: '[[zi:flame]] 高手' };
   const xqRoles = { red: 'human', black: 'ai' };
   const xqDiffSide = { red: state.difficulty || 'normal', black: state.difficulty || 'normal' };
   let xqRemoteSide = null;   // which side currently holds the invited online seat
@@ -1699,13 +1699,13 @@ permalink: /toolbox/xiangqi/
   // The invited side's card: room code + copy-link + join status + (host) start.
   function xqRoomPanel() {
     const room = xqEl('div', 'xq-terr-room');
-    if (!xqRoomCode) { room.appendChild(xqEl('div', 'xq-room-status', xqRoomError || '🔗 建房中…')); return room; }
+    if (!xqRoomCode) { room.appendChild(xqEl('div', 'xq-room-status', xqRoomError || '[[zi:link]] 建房中…')); return room; }
     room.appendChild(xqEl('div', 'xq-room-code', '房号 ' + xqRoomCode));
-    const copy = xqEl('button', 'xq-terr-mini', '🔗 复制邀请链接');
+    const copy = xqEl('button', 'xq-terr-mini', '[[zi:link]] 复制邀请链接');
     copy.onclick = (e) => { e.stopPropagation(); xqCopyInvite(xqRoomCode, copy); };
     room.appendChild(copy);
     room.appendChild(xqEl('div', 'xq-room-status',
-      !xqRoomReady ? '建房中…' : (xqRoomPlayers >= 2 ? '✓ 对手已加入' : '等对手加入…')));
+      !xqRoomReady ? '建房中…' : (xqRoomPlayers >= 2 ? '[[zi:check]] 对手已加入' : '等对手加入…')));
     return room;   // start button stays on the river (楚河汉界), not in the card
   }
 
@@ -1718,7 +1718,7 @@ permalink: /toolbox/xiangqi/
     const startBtn = document.getElementById('xqTerrStart');   // always on the river
     startBtn.style.display = '';
     startBtn.disabled = (xqTerrComputeMode().mode === null);   // both 电脑: nothing to start
-    startBtn.textContent = '▶ 开始游戏';
+    startBtn.textContent = '[[zi:play]] 开始游戏';
   }
 
   // ── Online lobby: render the two side cards from the live room state ──
@@ -1734,7 +1734,7 @@ permalink: /toolbox/xiangqi/
     if (xqRoomHost) {
       startBtn.style.display = '';
       startBtn.disabled = !(nPlayers >= 2 && xqReordered);
-      startBtn.textContent = nPlayers >= 2 ? '▶ 开始游戏' : '▶ 等对手加入';
+      startBtn.textContent = nPlayers >= 2 ? '[[zi:play]] 开始游戏' : '[[zi:play]] 等对手加入';
     } else {
       startBtn.style.display = 'none';   // only the host starts
     }
@@ -1753,7 +1753,7 @@ permalink: /toolbox/xiangqi/
       const mySide = (myIdx === 0) ? 'red' : 'black';
       occ = (side === mySide) ? 'me' : 'host';
     }
-    card.appendChild(xqEl('span', 'ico', occ === 'invite' ? '🔗' : (occ === 'me' ? '👤' : '🌐')));
+    card.appendChild(xqEl('span', 'ico', occ === 'invite' ? '[[zi:link]]' : (occ === 'me' ? '[[zi:user]]' : '[[zi:globe]]')));
     card.appendChild(xqEl('span', 'lbl', info.label));
     // Host can click its own / the invite card to back out of online → local config.
     if (xqRoomHost && (occ === 'me' || occ === 'invite')) card.onclick = () => xqCancelInvite();
@@ -1764,7 +1764,7 @@ permalink: /toolbox/xiangqi/
       card.appendChild(xqEl('span', 'sub2', '等房主开始…'));
     } else if (occ === 'guest') {
       card.appendChild(xqEl('span', 'sub', (guest && guest.nick) ? guest.nick : '对手'));
-      card.appendChild(xqEl('span', 'sub2', '已加入 ✓'));
+      card.appendChild(xqEl('span', 'sub2', '已加入 [[zi:check]]'));
       if (xqRoomHost) {
         const sw = xqEl('button', 'xq-terr-mini', '⇅ 交换红黑');
         sw.onclick = (e) => { e.stopPropagation(); xqSwapSides(); };
@@ -1773,11 +1773,11 @@ permalink: /toolbox/xiangqi/
     } else {   // invite slot (host only, before the guest joins)
       card.appendChild(xqEl('span', 'sub', '邀请联机'));
       card.appendChild(xqEl('div', 'xq-room-code', '房号 ' + (xqRoomCode || '…')));
-      const copy = xqEl('button', 'xq-terr-mini', '🔗 复制链接');
+      const copy = xqEl('button', 'xq-terr-mini', '[[zi:link]] 复制链接');
       copy.onclick = (e) => { e.stopPropagation(); xqCopyInvite(xqRoomCode, copy); };
       card.appendChild(copy);
       card.appendChild(xqEl('div', 'xq-room-status', !xqRoomReady ? '建房中…' : '等对手加入…'));
-      const cancel = xqEl('button', 'xq-terr-mini ghost', '✕ 取消邀请');
+      const cancel = xqEl('button', 'xq-terr-mini ghost', '[[zi:stop]] 取消邀请');
       cancel.onclick = (e) => { e.stopPropagation(); xqCancelInvite(); };
       card.appendChild(cancel);
     }
@@ -1936,7 +1936,7 @@ permalink: /toolbox/xiangqi/
   function xqRand4() { return String(Math.floor(Math.random() * 9000) + 1000); }
   function xqCopyInvite(code, btn) {
     navigator.clipboard.writeText(xqInviteUrl(code)).then(() => {
-      if (btn) { const t = btn.textContent; btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = t; }, 1800); }
+      if (btn) { btn.textContent = '[[zi:check]] 已复制'; setTimeout(() => { btn.textContent = '[[zi:link]] 复制链接'; }, 1800); }
     }).catch(() => {});
   }
 

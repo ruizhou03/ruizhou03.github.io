@@ -312,14 +312,14 @@
   <div class="zs-foot">
     <div class="zs-foot-tip"><kbd>↑</kbd><kbd>↓</kbd> 选择 · <kbd>Enter</kbd> 打开 · <kbd>Esc</kbd> 关闭</div>
     <button class="zs-ask-bridge" id="zs-ask-bridge" type="button">
-      <span class="zs-ask-spark">✦</span> 让小助手帮我找
+      <span class="zs-ask-spark">[[zi:sparkle]]</span> 让小助手帮我找
     </button>
   </div>
 </div>
 
 <div id="za-panel" role="dialog" aria-label="站内小助手">
   <div class="za-head">
-    <h3>锆铌小助手<span class="za-spark"> ✦ </span><span class="za-sub">站内检索</span></h3>
+    <h3>锆铌小助手<span class="za-spark"> [[zi:sparkle]] </span><span class="za-sub">站内检索</span></h3>
     <button class="za-close" aria-label="关闭">×</button>
   </div>
   <div class="za-body" id="za-body"></div>
@@ -457,7 +457,7 @@
     return x.msg;
   }
 
-  var TYPE_LABEL = { article: '📄 文章', material: '📎 资料', tool: '🧩 小工具' };
+  var TYPE_LABEL = { article: '[[zi:file]] 文章', material: '[[zi:attachment]] 资料', tool: '[[zi:puzzle]] 小工具' };
 
   function makeCard(it) {
     var isMat = it.type === 'material';
@@ -467,7 +467,7 @@
 
     var type = document.createElement('div');
     type.className = 'za-ctype';
-    type.textContent = TYPE_LABEL[it.type] || '📄 文章';
+    type.textContent = TYPE_LABEL[it.type] || '[[zi:file]] 文章';
     card.appendChild(type);
 
     var title = document.createElement('div');
@@ -495,7 +495,7 @@
         dl.className = 'za-btn-dl';
         dl.href = it.download;
         dl.setAttribute('download', '');
-        dl.textContent = '⬇ 下载文件';
+        dl.textContent = '[[zi:download]] 下载文件';
         act.appendChild(dl);
       }
       var more = document.createElement('a');
@@ -538,14 +538,14 @@
     up.type = 'button';
     up.setAttribute('aria-label', '有帮助');
     up.title = '有帮助';
-    up.innerHTML = '<span aria-hidden="true">👍</span>';
+    up.innerHTML = '<span aria-hidden="true">[[zi:thumbs]]</span>';
 
     var down = document.createElement('button');
     down.className = 'za-fb-btn';
     down.type = 'button';
     down.setAttribute('aria-label', '不好');
     down.title = '不好';
-    down.innerHTML = '<span aria-hidden="true">👎</span>';
+    down.innerHTML = '<span aria-hidden="true">[[zi:thumbs]]</span>';
 
     // 当前用户态：null = 没投 / 'up' / 'down'。允许反复切换；点同一个再点 = 取消。
     var current = null;
@@ -618,7 +618,7 @@
   // 纯检索渲染（AI 不可用时的降级路径，也是 DeepSeek 接入前的原始行为）
   function renderLocal(r, q) {
     if (!r.hits.length) {
-      pushBot('没找到和「' + q + '」直接相关的内容 🥲\n换个说法试试，或者点下面的标签逛逛：');
+      pushBot('没找到和「' + q + '」直接相关的内容 [[zi:offline]]\n换个说法试试，或者点下面的标签逛逛：');
       pushChips();
       return;
     }
@@ -630,10 +630,10 @@
   }
 
   // ---------- 对话主流程 ----------
-  var INTRO = '你好，我是锆铌小助手 ✦\n' +
+  var INTRO = '你好，我是锆铌小助手 [[zi:sparkle]]\n' +
     '告诉我你想找什么，我帮你从站里翻出来：\n' +
-    '📄 想读的文章（比如「VPN 原理」「报税怎么弄」）\n' +
-    '📎 想下载的课程资料（比如「实分析讲义」「中级宏观往年题」）\n' +
+    '[[zi:file]] 想读的文章（比如「VPN 原理」「报税怎么弄」）\n' +
+    '[[zi:attachment]] 想下载的课程资料（比如「实分析讲义」「中级宏观往年题」）\n' +
     '直接打字问我就行。';
 
   var ABOUT = '我是这个网站的站内小助手——你问我问题，我会在周睿写过的文章、课程资料和百宝箱小工具里帮你找：' +
@@ -648,7 +648,7 @@
 
     if (/^(你好|您好|hi|hello|hey|嗨|哈喽|在吗)/i.test(q)) { pushBot(INTRO); pushChips(); return; }
     if (/你是谁|你是什么|你能(做什么|干什么)|怎么用你|你叫什么|你会什么|帮助/.test(q)) { pushBot(ABOUT); return; }
-    if (/^(谢谢|多谢|thx|thanks|感谢)/i.test(q)) { pushBot('不客气～还想找别的随时问我 🙂'); return; }
+    if (/^(谢谢|多谢|thx|thanks|感谢)/i.test(q)) { pushBot('不客气～还想找别的随时问我 [[zi:user]]'); return; }
 
     var typing = showTyping();
     askAI(q).then(function (ai) {
@@ -668,7 +668,7 @@
       });
     }).catch(function () {
       if (typing.parentNode) body.removeChild(typing);
-      pushBot('一时没连上，可以先用页面顶部的搜索框找找 🙏');
+      pushBot('一时没连上，可以先用页面顶部的搜索框找找 [[zi:heart]]');
     });
   }
 
@@ -763,7 +763,7 @@
   var navBtn  = document.getElementById('nav-search-btn');
 
   if (mask && modal && zsInput && zsBody) {
-    var TYPE_ICON = { article: '📄', material: '📎', tool: '🧩' };
+    var TYPE_ICON = { article: '[[zi:file]]', material: '[[zi:attachment]]', tool: '[[zi:puzzle]]' };
     var TYPE_NAME = { article: '文章', material: '资料', tool: '小工具' };
     var EMPTY_CHIPS = ['摩擦圆', 'VPN 原理', '报税', '高微讲义', '小游戏'];
     var curHits = [];
@@ -797,7 +797,7 @@
       zsBody.innerHTML = '';
       var wrap = document.createElement('div');
       wrap.className = 'zs-empty';
-      wrap.innerHTML = '没找到和「' + escapeHtml(q) + '」直接匹配的内容 🥲<br>'
+      wrap.innerHTML = '没找到和「' + escapeHtml(q) + '」直接匹配的内容 [[zi:offline]]<br>'
         + '可以让小助手帮你想想——它能跨措辞猜你的意图。';
       zsBody.appendChild(wrap);
       updateAskLabel(q);
@@ -822,7 +822,7 @@
         if (!groups[t].length) return;
         var head = document.createElement('div');
         head.className = 'zs-group';
-        head.textContent = (TYPE_ICON[t] || '📄') + ' ' + TYPE_NAME[t];
+        head.textContent = (TYPE_ICON[t] || '[[zi:file]]') + ' ' + TYPE_NAME[t];
         zsBody.appendChild(head);
         groups[t].forEach(function (it) {
           var row = makeRow(it, globalIdx);
@@ -840,7 +840,7 @@
       row.setAttribute('data-idx', idx);
       var icon = document.createElement('div');
       icon.className = 'zs-row-icon';
-      icon.textContent = TYPE_ICON[it.type] || '📄';
+      icon.textContent = TYPE_ICON[it.type] || '[[zi:file]]';
       var text = document.createElement('div');
       text.className = 'zs-row-text';
       var title = document.createElement('div');
@@ -858,7 +858,7 @@
         dl.className = 'zs-row-dl';
         dl.href = it.download;
         dl.setAttribute('download', '');
-        dl.innerHTML = '<span aria-hidden="true">⬇</span> 下载';
+        dl.innerHTML = '<span aria-hidden="true">[[zi:download]]</span> 下载';
         dl.title = '直接下载文件';
         // 阻止冒泡，避免点下载触发到 goToHit
         dl.addEventListener('click', function (e) { e.stopPropagation(); });
@@ -892,9 +892,9 @@
 
     function updateAskLabel(q) {
       if (q && q.trim()) {
-        zsAsk.innerHTML = '<span class="zs-ask-spark">✦</span> 让小助手回答「' + escapeHtml(q.length > 14 ? q.slice(0, 14) + '…' : q) + '」';
+        zsAsk.innerHTML = '<span class="zs-ask-spark">[[zi:sparkle]]</span> 让小助手回答「' + escapeHtml(q.length > 14 ? q.slice(0, 14) + '…' : q) + '」';
       } else {
-        zsAsk.innerHTML = '<span class="zs-ask-spark">✦</span> 让小助手帮我找';
+        zsAsk.innerHTML = '<span class="zs-ask-spark">[[zi:sparkle]]</span> 让小助手帮我找';
       }
     }
 

@@ -35,20 +35,20 @@ body_class: adm-page
         <button type="button" class="adm-nav-collapse" id="adm-nav-collapse" title="折叠 / 展开目录" aria-label="折叠目录">‹</button>
         <div class="adm-nav-group">
           <div class="adm-nav-gh">互动</div>
-          <button type="button" class="adm-nav-item" data-pane="inbox"><span class="i">📥</span><span class="t">收件箱</span></button>
+          <button type="button" class="adm-nav-item" data-pane="inbox"><span class="i">[[zi:inbox:seal]]</span><span class="t">收件箱</span></button>
         </div>
         <div class="adm-nav-group">
           <div class="adm-nav-gh">数据分析</div>
-          <button type="button" class="adm-nav-item" data-pane="overview"><span class="i">📈</span><span class="t">总览</span></button>
-          <button type="button" class="adm-nav-item" data-pane="rankings"><span class="i">🏆</span><span class="t">内容排行</span></button>
-          <button type="button" class="adm-nav-item" data-pane="traffic"><span class="i">🌐</span><span class="t">整体流量</span></button>
-          <button type="button" class="adm-nav-item" data-pane="geo"><span class="i">🗺️</span><span class="t">访客地理</span></button>
+          <button type="button" class="adm-nav-item" data-pane="overview"><span class="i">[[zi:chart:seal]]</span><span class="t">总览</span></button>
+          <button type="button" class="adm-nav-item" data-pane="rankings"><span class="i">[[zi:trophy:seal]]</span><span class="t">内容排行</span></button>
+          <button type="button" class="adm-nav-item" data-pane="traffic"><span class="i">[[zi:globe:seal]]</span><span class="t">整体流量</span></button>
+          <button type="button" class="adm-nav-item" data-pane="geo"><span class="i">[[zi:map:seal]]</span><span class="t">访客地理</span></button>
         </div>
         <div class="adm-nav-group">
           <div class="adm-nav-gh">内容管理</div>
-          <button type="button" class="adm-nav-item" data-pane="articles"><span class="i">📄</span><span class="t">文章内容</span></button>
-          <button type="button" class="adm-nav-item" data-pane="visibility"><span class="i">👁</span><span class="t">板块与工具</span></button>
-          <button type="button" class="adm-nav-item" data-pane="reports"><span class="i">🚩</span><span class="t">举报审核</span></button>
+          <button type="button" class="adm-nav-item" data-pane="articles"><span class="i">[[zi:file:seal]]</span><span class="t">文章内容</span></button>
+          <button type="button" class="adm-nav-item" data-pane="visibility"><span class="i">[[zi:eye:seal]]</span><span class="t">板块与工具</span></button>
+          <button type="button" class="adm-nav-item" data-pane="reports"><span class="i">[[zi:flag:seal]]</span><span class="t">举报审核</span></button>
         </div>
       </aside>
 
@@ -64,10 +64,10 @@ body_class: adm-page
             <div class="adm-ov"><div class="adm-ov-n" id="ov-comments">—</div><div class="adm-ov-l">总评论数</div></div>
           </div>
           <div class="adm-mood-grid">
-            <div class="adm-mood"><div class="adm-mood-n" id="ov-urge">—</div><div class="adm-mood-l">🔔 催更</div></div>
-            <a class="adm-mood" href="#rankings" data-metric="likes"><div class="adm-mood-n" id="ov-like">—</div><div class="adm-mood-l">👍 点赞</div></a>
-            <div class="adm-mood"><div class="adm-mood-n" id="ov-heart">—</div><div class="adm-mood-l">❤️ 红心</div></div>
-            <a class="adm-mood" href="#rankings" data-metric="favs"><div class="adm-mood-n" id="ov-star">—</div><div class="adm-mood-l">⭐ 收藏</div></a>
+            <div class="adm-mood"><div class="adm-mood-n" id="ov-urge">—</div><div class="adm-mood-l">[[zi:bell]] 催更</div></div>
+            <a class="adm-mood" href="#rankings" data-metric="likes"><div class="adm-mood-n" id="ov-like">—</div><div class="adm-mood-l">[[zi:thumbs]] 点赞</div></a>
+            <div class="adm-mood"><div class="adm-mood-n" id="ov-heart">—</div><div class="adm-mood-l">[[zi:heart]] 红心</div></div>
+            <a class="adm-mood" href="#rankings" data-metric="favs"><div class="adm-mood-n" id="ov-star">—</div><div class="adm-mood-l">[[zi:star]] 收藏</div></a>
           </div>
           <p class="adm-note" style="margin-top:1rem">点上面的「点赞 / 收藏」，或左侧「内容排行」，可看各内容排行与全站趋势。</p>
         </section>
@@ -86,8 +86,8 @@ body_class: adm-page
               </div>
             </div>
             <div class="adm-rank-view" id="rk-view">
-              <button type="button" data-v="rank" class="on">📊 排行 Top 10</button>
-              <button type="button" data-v="trend">📈 全站趋势</button>
+              <button type="button" data-v="rank" class="on">全站 TOP 10</button>
+              <button type="button" data-v="trend">全站走势</button>
             </div>
             <ol id="rk-active" class="adm-ol"><li class="adm-empty">加载中…</li></ol>
             <div class="adm-rk-trend-head" id="rk-trend-head" hidden></div>
@@ -356,7 +356,11 @@ body_class: adm-page
   .adm-mood-l { font-size: 0.74rem; color: var(--color-light); margin-top: 0.25rem; }
   a.adm-mood { transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
   a.adm-mood:hover { border-color: var(--color-accent); box-shadow: var(--shadow-2); transform: translateY(-1px); }
-  a.adm-mood .adm-mood-l::after { content: ' ↗'; color: var(--color-highlight); }
+  a.adm-mood .adm-mood-l::after {
+    content: ''; display: inline-block; width: 0.42em; height: 0.42em;
+    margin-left: 0.38em; border-top: 1px solid var(--color-highlight);
+    border-right: 1px solid var(--color-highlight); transform: translateY(-0.12em);
+  }
 
   .adm-rank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-3); }
   .adm-rank { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.2rem 1.3rem; background: var(--color-bg); box-shadow: var(--shadow-1); }
@@ -515,11 +519,13 @@ body_class: adm-page
   .adm-rank-view button:hover:not(.on) { border-color: var(--color-highlight); color: var(--color-highlight); }
   .adm-rank-view button.on { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
   #rk-trend { height: 240px; }
-  /* 排行行尾的「看这一篇趋势」小按钮（默认淡、hover 才明显，不抢标题） */
-  .adm-rk-trend { flex: none; font-size: 0.82rem; line-height: 1; cursor: pointer; background: none; border: none;
-    padding: 0.15rem 0.25rem; opacity: 0.35; transition: opacity .15s; border-radius: var(--radius-sm); }
-  .adm-ol li:hover .adm-rk-trend { opacity: 0.85; }
-  .adm-rk-trend:hover { opacity: 1; background: var(--color-bg-warm); }
+  /* 行内折线读取每篇内容的真实每日序列，不使用装饰性写死图形。 */
+  .adm-rk-trend { flex: none; width: 72px; height: 28px; cursor: pointer; background: none; border: 1px solid transparent;
+    color: var(--color-highlight); opacity: 0.72; padding: 2px 3px; border-radius: 5px; transition: opacity .15s; }
+  .adm-ol li:hover .adm-rk-trend { opacity: 1; border-color: var(--color-border); background: var(--color-bg-warm); }
+  .adm-rk-trend svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .adm-rk-trend path { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .adm-rk-trend .adm-rk-nohistory { display: block; color: var(--color-light); font-size: 0.62rem; white-space: nowrap; }
   .adm-rk-trend-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin: 0.2rem 0 0.5rem; }
   .adm-rk-trend-head[hidden] { display: none; }
   .rk-th-t { font-size: 0.82rem; color: var(--color-ink); font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -662,7 +668,9 @@ body_class: adm-page
     el.innerHTML = rows.map(function (x, i) {
       var pct = Math.round(x.n / max * 100);
       var trendBtn = (elId === 'rk-active')
-        ? '<button type="button" class="adm-rk-trend" data-url="' + esc(x.info.url) + '" data-title="' + esc(x.info.title) + '" title="看这一篇的时间趋势">📈</button>'
+        ? '<button type="button" class="adm-rk-trend" data-url="' + esc(x.info.url) + '" data-title="' + esc(x.info.title) +
+          '" data-metric="' + esc(key) + '" title="查看这一篇的真实每日趋势" aria-label="查看这一篇的真实每日趋势">' +
+          '<span class="adm-rk-nohistory">加载中</span></button>'
         : '';
       return '<li style="--pct:' + pct + '%">' +
         '<span class="adm-rk-i">' + (i + 1) + '</span>' +
@@ -676,6 +684,7 @@ body_class: adm-page
       Array.prototype.forEach.call(el.querySelectorAll('.adm-rk-trend'), function (b) {
         b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); showItemTrend(b.getAttribute('data-url'), b.getAttribute('data-title')); });
       });
+      renderRowSparklines(el);
     }
   }
   // 流量「热门页面」：排除内部页（/admin 等）；活页面带链接，已下线显示纯文本（不 404）。
@@ -732,14 +741,55 @@ body_class: adm-page
   };
   var METRIC_NOTE = {
     favs: '收藏从计数器上线起累计；要并入历史收藏，在后端跑一次 <code>backfill-favcount</code>。「时间趋势」＝每日快照（越用越全）。',
-    _default: '横向＝各内容排行 Top 10（文章 / 工具 / 资料通排）；纵向「全站趋势」＝该指标全站每日快照（不限上面 10 条）。点某行末尾的 📈 可单看那一篇的每日趋势。都从今起每天记一次、越往后越全。'
+    _default: '「全站 TOP 10」＝各内容当前排行（文章 / 工具 / 资料通排）；「全站走势」＝该指标全站每日快照（不限前 10 条）。每行数值前的小折线来自该内容的真实每日历史，点击可展开查看。快照从启用之日起每天积累。'
   };
   var SNAP_KEY = { views: 'views', comments: 'comments', likes: 'like', favs: 'star' };
   var rankData = { views: null, comments: null, likes: null, favs: null };
   var activeMetric = 'views', rankView = 'rank', metricWired = false;
   var metricSeries = null, metricSeriesLoaded = false;
-  var trendItem = null, itemSeriesCache = {};   // trendItem={url,title}=看单篇趋势；null=看全站
+  var trendItem = null, itemSeriesCache = {}, itemSeriesPromise = {};   // trendItem={url,title}=看单篇趋势；null=看全站
   var METRIC_LABEL = { views: '阅读', comments: '评论', likes: '点赞', favs: '收藏' };
+  function loadItemSeries(url) {
+    if (itemSeriesCache[url]) return Promise.resolve(itemSeriesCache[url]);
+    if (itemSeriesPromise[url]) return itemSeriesPromise[url];
+    itemSeriesPromise[url] = jget('/api/admin?action=item-series&url=' + encodeURIComponent(url)).then(function (d) {
+      var rows = (d && d.series) || [];
+      itemSeriesCache[url] = rows;
+      delete itemSeriesPromise[url];
+      return rows;
+    }).catch(function () {
+      delete itemSeriesPromise[url];
+      return [];
+    });
+    return itemSeriesPromise[url];
+  }
+  function sparkPath(values) {
+    if (values.length < 2) return '';
+    var lo = Math.min.apply(null, values), hi = Math.max.apply(null, values), span = hi - lo;
+    return values.map(function (value, index) {
+      var x = 2 + index * (64 / Math.max(1, values.length - 1));
+      var y = span ? 22 - ((value - lo) / span) * 18 : 13;
+      return (index ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }).join(' ');
+  }
+  function renderRowSparklines(root) {
+    Array.prototype.forEach.call(root.querySelectorAll('.adm-rk-trend'), function (button) {
+      var url = button.getAttribute('data-url'), metric = button.getAttribute('data-metric');
+      loadItemSeries(url).then(function (series) {
+        if (!button.isConnected) return;
+        // item-series uses ranking keys (likes/favs); fall back to the global
+        // snapshot keys only for compatibility with older backend rows.
+        var field = (series || []).some(function (row) { return row && row[metric] != null; })
+          ? metric : (SNAP_KEY[metric] || metric);
+        var values = (series || []).filter(function (row) { return row && row[field] != null; })
+          .slice(-14).map(function (row) { return Number(row[field]) || 0; });
+        var path = sparkPath(values);
+        button.innerHTML = path
+          ? '<svg viewBox="0 0 68 26" aria-hidden="true" focusable="false"><path d="' + path + '"></path></svg>'
+          : '<span class="adm-rk-nohistory">暂无历史</span>';
+      });
+    });
+  }
   function renderActiveRank() {
     var m = METRICS[activeMetric], data = rankData[activeMetric];
     var ol = document.getElementById('rk-active');
@@ -827,11 +877,8 @@ body_class: adm-page
       if (!pts.length) { fallback('rk-trend', '这一篇暂无「' + (METRIC_LABEL[activeMetric] || activeMetric) + '」历史（从今起每天记一次，越往后越全）'); return; }
       drawTrendLine(pts, mkey);
     }
-    if (itemSeriesCache[url]) { draw(itemSeriesCache[url]); return; }
     fallback('rk-trend', '加载「' + esc(trendItem.title) + '」…');
-    jget('/api/admin?action=item-series&url=' + encodeURIComponent(url)).then(function (d) {
-      itemSeriesCache[url] = (d && d.series) || []; draw(itemSeriesCache[url]);
-    });
+    loadItemSeries(url).then(draw);
   }
   function wireMetricTabs() {
     if (metricWired) return; metricWired = true;
@@ -1546,7 +1593,7 @@ body_class: adm-page
   function ibAvatar(item) {
     if (item.avatar) return '<span class="ib-av" style="background-image:url(\'' + ibEsc(item.avatar) + '\')"></span>';
     if (item.nick) return '<span class="ib-av">' + ibEsc(item.nick.slice(0, 1)) + '</span>';
-    return '<span class="ib-av">' + (item.cat === 'comment' ? '💬' : item.cat === 'like' ? '👍' : '⭐') + '</span>';
+    return '<span class="ib-av">' + (item.cat === 'comment' ? '[[zi:comment]]' : item.cat === 'like' ? '[[zi:thumbs]]' : '[[zi:star]]') + '</span>';
   }
   function ibUserHtml(item) {
     var name = item.nick || (item.anon ? '匿名读者' : '读者');

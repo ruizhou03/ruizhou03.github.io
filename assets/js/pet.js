@@ -2,7 +2,7 @@
   'use strict';
 
   const BUILD_VERSION = 'v2026.07.14';
-  console.log('%c🐾 宠物中心 ' + BUILD_VERSION, 'color:#1e3a5f;font-weight:bold;font-size:13px');
+  console.log('%cP 宠物中心 ' + BUILD_VERSION, 'color:#1e3a5f;font-weight:bold;font-size:13px');
 
   const STORE_KEY = 'tool.pet-food.v1';
   const DEVICE_KEY = 'tool.pet-food.deviceId';
@@ -276,7 +276,7 @@
     b.className = 'storage-warn';
     // Persistent (re-shows next time too): closing only hides this instance, the
     // flag resets so a later failed write surfaces it again.
-    b.innerHTML = '⚠️ 存储空间已满，新记录会保存失败。请到「👤 我的档案 → 导出备份」存一份再清理旧数据。 <button type="button" class="close-btn">知道了</button>';
+    b.innerHTML = '[[zi:warning]] 存储空间已满，新记录会保存失败。请到「[[zi:user]] 我的档案 → 导出备份」存一份再清理旧数据。 <button type="button" class="close-btn">知道了</button>';
     b.querySelector('.close-btn').addEventListener('click', () => { b.remove(); _storageWarnShown = false; });
     document.body.appendChild(b);
   }
@@ -435,7 +435,7 @@
     recordsDay = null;   // 新记一笔 → 记录区跳回今天，好看到刚记的这条
     if (!persist()) {
       pet.entries.pop();
-      alert('存储空间已满，这条没能保存。\n请到「👤 我的档案 → 导出备份」存一份，再清理旧数据后重试。');
+      alert('存储空间已满，这条没能保存。\n请到「我的档案 → 导出备份」存一份，再清理旧数据后重试。');
       return false;
     }
     return true;
@@ -1182,7 +1182,7 @@
         $pmConvBase.parentElement.querySelector('.hint')?.remove();
         const hint = document.createElement('p');
         hint.className = 'hint'; hint.style.cssText = 'margin:0.3rem 0 0; color:var(--pet-danger);';
-        hint.textContent = '⚠️ 「' + food.name + '」是按份记的，选了它每日目标会显示成「份/天」，建议还是用干粮当主粮。';
+        hint.textContent = '[[zi:warning]] 「' + food.name + '」是按份记的，选了它每日目标会显示成「份/天」，建议还是用干粮当主粮。';
         $pmConvBase.parentElement.appendChild(hint);
         return;
       }
@@ -1675,7 +1675,7 @@
     $chartTargetToggle.style.display = '';
     const on = pet.showTargetOnChart !== false;
     $chartTargetToggle.classList.toggle('active', on);
-    $chartTargetToggle.textContent = on ? '✓ 目标参考线' : '目标参考线';
+    $chartTargetToggle.textContent = on ? '[[zi:check]] 目标参考线' : '目标参考线';
   }
 
   $chartTargetToggle.addEventListener('click', () => {
@@ -1694,7 +1694,7 @@
       if (!canEdit) { $recStrip.style.display = 'none'; return; }
       $recStrip.style.display = '';
       $recStrip.classList.add('editable', 'no-target');
-      $recTitle.innerHTML = '🎯 点这里设定每日目标';
+      $recTitle.innerHTML = '[[zi:pin]] 点这里设定每日目标';
       $recNow.innerHTML = '';
       $recMarker.style.display = 'none';
       return;
@@ -1704,10 +1704,10 @@
     const isPoint = rec.min === rec.max;
     const M = convM(pet), U = convUnit(pet);
     const titleText = isPoint
-      ? `🎯 目标 ${fmtG(rec.min * M)} ${U}/天`
-      : `🎯 目标 ${fmtG(rec.min * M)}–${fmtG(rec.max * M)} ${U}/天`;
+      ? `[[zi:pin]] 目标 ${fmtG(rec.min * M)} ${U}/天`
+      : `[[zi:pin]] 目标 ${fmtG(rec.min * M)}–${fmtG(rec.max * M)} ${U}/天`;
     // 目标栏可点击修改（管理员及以上）：标题后挂个 ✎ 提示，整条加 editable 手势。
-    $recTitle.innerHTML = titleText + (canEdit ? '<span class="rec-edit">✎ 改目标</span>' : '');
+    $recTitle.innerHTML = titleText + (canEdit ? '<span class="rec-edit">[[zi:pencil]] 改目标</span>' : '');
     $recStrip.classList.toggle('editable', canEdit);
     $recNow.innerHTML = `今日 <strong>${fmtEq(pet, todayEaten)}</strong>`;
     const scale = Math.max(rec.max * 1.3, todayEaten * 1.1, rec.max + 5);
@@ -1764,7 +1764,7 @@
         render();
         pushDeleteEntry(p, eid);
         // Undo toast
-        const entryLabel = kind === 'bodyweight' ? '⚖️ 体重' : '🍽️ 记录';
+        const entryLabel = kind === 'bodyweight' ? '[[zi:scale]] 体重' : '[[zi:bowl]] 记录';
         showLinkToast('已删除一条' + entryLabel,
           () => { p.entries.push(snapshot.entry); p.entries.sort((a, b) => a.ts - b.ts); persist(); render(); });
       });
@@ -1822,7 +1822,7 @@
     // a regular member only their own (mirrors the backend gate).
     const mine = canEditEntryTime(e, pet);
     const edit = mine
-      ? `<button type="button" class="er-edit" data-eid="${e.id}" title="改时间" aria-label="修改这条记录的时间">✎</button>` : '';
+      ? `<button type="button" class="er-edit" data-eid="${e.id}" title="改时间" aria-label="修改这条记录的时间">[[zi:pencil]]</button>` : '';
     const del = mine
       ? `<button type="button" class="er-del" data-eid="${e.id}" title="删除" aria-label="删除这条记录">×</button>` : '';
     return `<span class="er-actions">${edit}${del}</span>`;
@@ -1834,7 +1834,7 @@
     const eq = Number(e.kibbleEqG) || 0;
     const cntStr = fmtAmt(Number(e.count) || 1);
     const name = escapeHtml(e.foodName || '零食');
-    const emoji = escapeHtml(e.emoji || '🍖');
+    const foodMark = foodIconHTML({ name: e.foodName }, e.foodName || '零食');
     // gram-measured: "罐头 40g" ; count-measured: "猫条 ×2 根"
     const amountStr = (e.measure === 'gram') ? `${cntStr}g` : `×${cntStr} ${escapeHtml(e.unitLabel || '份')}`;
     // 有结束时间戳 → 显示成时间段
@@ -1843,7 +1843,7 @@
       <div class="entry-row entry-row-extra">
         <span class="er-time">${timeStr}</span>
         <span class="er-main">
-          <span class="er-delta extra">${emoji} ${name} ${amountStr}</span>
+          <span class="er-delta extra">${foodMark} ${name} ${amountStr}</span>
           <span class="er-reading">≈ ${fmtEq(pet, eq)} 等效${escapeHtml(convName(pet))}</span>
         </span>
         ${entryRowActions(e, pet)}
@@ -1854,14 +1854,14 @@
   function renderRemainRow(d, pet) {
     const e = d.entry;
     const name = escapeHtml(e.foodName || '食物');
-    const emoji = escapeHtml(e.emoji || '🍖');
+    const foodMark = foodIconHTML({ name: e.foodName }, e.foodName || '食物');
     const unit = e.measure === 'gram' ? 'g' : escapeHtml(e.unitLabel || '份');
     const remStr = `${fmtAmt(Number(e.reading))} ${unit}`;
     let deltaHtml;
-    if (d.type === 'remain-first') deltaHtml = `<span class="er-delta first">${emoji} ${name} · ${d.reset ? '🗑 倒掉换新·起点' : '记下起点'}</span>`;
-    else if (d.type === 'remain-refill') deltaHtml = `<span class="er-delta refill">${emoji} ${name} · 又开了一份</span>`;
-    else if (!(d.amount > 0)) deltaHtml = `<span class="er-delta eat">${emoji} ${name} · 没变化</span>`;
-    else deltaHtml = `<span class="er-delta eat">${emoji} ${name} 吃了 ${fmtEq(pet, d.amount)}</span>`;
+    if (d.type === 'remain-first') deltaHtml = `<span class="er-delta first">${foodMark} ${name} · ${d.reset ? '[[zi:trash]] 倒掉换新·起点' : '记下起点'}</span>`;
+    else if (d.type === 'remain-refill') deltaHtml = `<span class="er-delta refill">${foodMark} ${name} · 又开了一份</span>`;
+    else if (!(d.amount > 0)) deltaHtml = `<span class="er-delta eat">${foodMark} ${name} · 没变化</span>`;
+    else deltaHtml = `<span class="er-delta eat">${foodMark} ${name} 吃了 ${fmtEq(pet, d.amount)}</span>`;
     return `
       <div class="entry-row entry-row-extra">
         <span class="er-time">${fmtTime(e.ts)}</span>
@@ -1879,7 +1879,7 @@
     if (e.kind === 'extra') return renderExtraRow(d, pet);
     if (e.kind === 'remain') return renderRemainRow(d, pet);
     let deltaHtml;
-    if (d.type === 'first') deltaHtml = `<span class="er-delta first">${d.reset ? '🗑 倒掉换新 · 起点' : '起点'}</span>`;
+    if (d.type === 'first') deltaHtml = `<span class="er-delta first">${d.reset ? '[[zi:trash]] 倒掉换新 · 起点' : '起点'}</span>`;
     else if (d.type === 'unknown') deltaHtml = `<span class="er-delta unknown">无法换算</span>`;
     else if (d.amount === 0) deltaHtml = `<span class="er-delta eat">没变化</span>`;
     else if (d.type === 'eat') deltaHtml = `<span class="er-delta eat">吃了 ${fmtEq(pet, d.amount)}</span>`;
@@ -2337,8 +2337,8 @@
 
     const totalEaten = bars.reduce((s, b) => s + b.value, 0);
     const aggName = agg === 'day' ? '日' : (agg === 'week' ? '周' : '月');
-    const incLegend = anyProjected ? ' · <span style="color:var(--pet-chart-target);">┈ 折算满' + periodName + '</span>'
-      : (anyIncomplete ? ' · <span style="color:var(--pet-chart-incomplete);">┈ 不完整</span>' : '');
+    const incLegend = anyProjected ? ' · <span style="color:var(--pet-chart-target);"> 折算满' + periodName + '</span>'
+      : (anyIncomplete ? ' · <span style="color:var(--pet-chart-incomplete);"> 不完整</span>' : '');
     $chartMeta.innerHTML = `
       <span><span class="legend-dot" style="background:var(--pet-chart-bar);"></span>每${aggName}吃量 <span class="legend-dot" style="background:var(--color-accent);margin-left:0.5rem;"></span>今日${incLegend}</span>
       <span>共 ${fmtG(totalEaten * M)} ${U} · 日均 ${fmtG(avgCompleteDay * M)} ${U}<span style="color:var(--color-light);">（仅完整天）</span></span>
@@ -2683,11 +2683,11 @@
       $pmShareCreate.style.display = 'none';
       $pmShareExisting.style.display = '';
       const hasCode = !!p.serverCode;
-      $pmShareCode.textContent = hasCode ? p.serverCode : '已用 · 点 🔄 生成新码';
+      $pmShareCode.textContent = hasCode ? p.serverCode : '已用 · 点 [[zi:refresh]] 生成新码';
       $pmShareCode.style.opacity = hasCode ? '' : '0.55';
       $pmCopyCode.style.display = hasCode ? '' : 'none';
       $pmRegenCode.style.display = owner ? '' : 'none';
-      $pmRegenCode.textContent = hasCode ? '🔄 重新生成' : '🔄 生成';
+      $pmRegenCode.textContent = hasCode ? '[[zi:refresh]] 重新生成' : '[[zi:refresh]] 生成';
       // Members list
       const meId = DEVICE_ID;
       const members = p.members || [];
@@ -2709,7 +2709,7 @@
         const actions = [];
         // Anyone (except for themselves) can set a local alias for any other member
         if (!self) {
-          actions.push(`<button data-act="alias" data-target="${m.deviceId}" title="本地备注">✎ 备注</button>`);
+          actions.push(`<button data-act="alias" data-target="${m.deviceId}" title="本地备注">[[zi:pencil]] 备注</button>`);
         }
         if (owner && !self) {
           if (m.role === 'admin') actions.push(`<button data-act="role" data-target="${m.deviceId}" data-role="regular">取消管理</button>`);
@@ -2755,8 +2755,8 @@
 
     // Delete button: text adapts
     $pmDelete.style.display = '';
-    if (p.shared && !owner) $pmDelete.textContent = '🚪 退出共享';
-    else $pmDelete.textContent = '🗑 删除';
+    if (p.shared && !owner) $pmDelete.textContent = '[[zi:exit]] 退出共享';
+    else $pmDelete.textContent = '[[zi:trash]] 删除';
   }
 
   // Set a local-only alias for another member. Reused by the member list AND the
@@ -2926,7 +2926,7 @@
       migratePets();   // 规整导入进来的宠物（补 entries 数组等），避免 render() 撞到脏结构崩页
       if (data.contactNicknames) state.contactNicknames = Object.assign({}, data.contactNicknames, state.contactNicknames);
       if (!state.currentId && state.pets.length) state.currentId = state.pets[0].id;
-      if (persist()) { render(); alert('恢复完成 ✓'); }
+      if (persist()) { render(); alert('恢复完成'); }
     };
     reader.readAsText(file);
   }
@@ -3095,7 +3095,7 @@
     } catch (e) {
       console.error(e); alert('生成失败，请检查网络后重试。');
     } finally {
-      $pmMakeShared.disabled = false; $pmMakeShared.textContent = '🔗 生成宠物码';
+      $pmMakeShared.disabled = false; $pmMakeShared.textContent = '[[zi:link]] 生成宠物码';
     }
   });
 
@@ -3108,8 +3108,8 @@
     const text = '一起记录我家宝贝吧～打开链接加入：' + link + '（宠物码 ' + code + '）';
     try {
       await navigator.clipboard.writeText(text);
-      $pmCopyCode.textContent = '✓ 已复制';
-      setTimeout(() => { $pmCopyCode.textContent = '📋 复制邀请'; }, 1600);
+      $pmCopyCode.textContent = '[[zi:check]] 已复制';
+      setTimeout(() => { $pmCopyCode.textContent = '[[zi:copy]] 复制邀请'; }, 1600);
     } catch (_) { /* */ }
   });
   $pmRegenCode.addEventListener('click', async () => {
@@ -3136,20 +3136,26 @@
     }
   });
 
-  // + 宠物 → dropdown 菜单（新建 / 用宠物码加入）
+  function setPetAddMenu(open) {
+    $petAddMenu.classList.toggle('open', open);
+    $petAdd.textContent = '宠物 ' + (open ? '−' : '+');
+    $petAdd.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  // 宠物 + → dropdown 菜单（新建 / 用宠物码加入）
   $petAdd.addEventListener('click', (e) => {
     e.stopPropagation();
-    $petAddMenu.classList.toggle('open');
+    setPetAddMenu(!$petAddMenu.classList.contains('open'));
   });
   $petAddMenu.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
-    $petAddMenu.classList.remove('open');
+    setPetAddMenu(false);
     if (btn.dataset.act === 'new') openModal(null);
     else if (btn.dataset.act === 'join') openJoinModal();
   });
   document.addEventListener('click', (e) => {
-    if (!$petAddWrap.contains(e.target)) $petAddMenu.classList.remove('open');
+    if (!$petAddWrap.contains(e.target)) setPetAddMenu(false);
   });
   $emptyAdd.addEventListener('click', () => openModal(null));
   $pmCancel.addEventListener('click', closeModal);
@@ -3171,7 +3177,7 @@
   }
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if ($petAddMenu.classList.contains('open')) { $petAddMenu.classList.remove('open'); return; }
+    if ($petAddMenu.classList.contains('open')) { setPetAddMenu(false); return; }
     closeTopModal();
   });
   // Inject a top-right ✕ close button into every modal header (so users don't have
@@ -3179,7 +3185,7 @@
   document.querySelectorAll('.modal-backdrop > .modal > h2').forEach(h2 => {
     if (h2.querySelector('.modal-close')) return;
     const b = document.createElement('button');
-    b.type = 'button'; b.className = 'modal-close'; b.setAttribute('aria-label', '关闭'); b.textContent = '✕';
+    b.type = 'button'; b.className = 'modal-close'; b.setAttribute('aria-label', '关闭'); b.textContent = '[[zi:stop]]';
     b.addEventListener('click', () => closeTopModal());
     h2.appendChild(b);
   });
@@ -3422,12 +3428,15 @@
     const pet = currentPet();
     return ((pet && pet.foodLibrary) || []).find(f => f.id === recordFood) || null;
   }
-  // 食物图标：有照片用照片(小方图)，否则用 emoji。
-  function foodIconHTML(item, fallback) {
-    // emoji / iconPhoto come from synced foodLibrary (any member can set them) → escape.
+  // 获批方案 B：有照片用照片；否则自动使用食物名称首字，不再维护 emoji 图库。
+  function foodInitial(name) {
+    const chars = Array.from(String(name || '').trim());
+    return chars[0] || '食';
+  }
+  function foodIconHTML(item, fallbackName) {
     return (item && item.iconPhoto)
       ? `<img class="fc-photo" src="${escapeHtml(item.iconPhoto)}" alt="">`
-      : escapeHtml((item && item.emoji) || fallback);
+      : `<span class="fc-initial" aria-hidden="true">${escapeHtml(foodInitial((item && item.name) || fallbackName))}</span>`;
   }
   let foodFilter = null;   // 分类筛选：null=全部，或某类别(foodGroup) id
   function renderFoodSelector() {
@@ -3449,11 +3458,11 @@
       else {
         if (foodFilter && !cats.some(g => g.id === foodFilter)) foodFilter = null;   // 该类别没食物了 → 回全部
         $foodFilter.style.display = '';
-        // 选中某类别时、标签旁给管理员一个小 ✎ → 改名 / 删除该类别（openGroupEditor）
+        // 选中某类别时，标签旁给管理员一个矢量编辑按钮。
         $foodFilter.innerHTML = `<button type="button" class="ff${!foodFilter ? ' active' : ''}" data-cat="">全部</button>` +
           cats.map(g => {
             const on = foodFilter === g.id;
-            const edit = (on && canEdit) ? `<button type="button" class="ff-edit" data-editcat="${g.id}" aria-label="改名或删除类别 ${escapeHtml(g.name || '')}" title="改名 / 删除">✎</button>` : '';
+            const edit = (on && canEdit) ? `<button type="button" class="ff-edit" data-editcat="${g.id}" aria-label="改名或删除类别 ${escapeHtml(g.name || '')}" title="改名 / 删除">[[zi:pencil]]</button>` : '';
             return `<button type="button" class="ff${on ? ' active' : ''}" data-cat="${g.id}">${escapeHtml(g.name || '类别')}</button>${edit}`;
           }).join('');
         $foodFilter.querySelectorAll('.ff').forEach(b => b.addEventListener('click', () => { foodFilter = b.dataset.cat || null; renderFoodSelector(); }));
@@ -3462,12 +3471,12 @@
     }
     const visible = lib.filter(f => !foodFilter || f.groupId === foodFilter);
 
-    // 圆食豆：一个头像圆点 + 名字；选中金环。编辑✎只在选中的食豆上冒出来。
-    const foodCoin = (f) => `<div class="coin${recordFood===f.id?' on':''}" role="button" tabindex="0" data-food="${f.id}"><span class="disc">${foodIconHTML(f,'🍖')}</span><span class="cn">${escapeHtml(f.name)}</span>${canEdit ? `<button type="button" class="coin-edit" data-edit="${f.id}" aria-label="编辑 ${escapeHtml(f.name)}" title="编辑">✎</button>` : ''}</div>`;
+    // 圆食豆：一个头像圆点 + 名字；选中金环。编辑按钮只在选中的食豆上冒出来。
+    const foodCoin = (f) => `<div class="coin${recordFood===f.id?' on':''}" role="button" tabindex="0" data-food="${f.id}"><span class="disc">${foodIconHTML(f, f.name)}</span><span class="cn">${escapeHtml(f.name)}</span>${canEdit ? `<button type="button" class="coin-edit" data-edit="${f.id}" aria-label="编辑 ${escapeHtml(f.name)}" title="编辑">[[zi:pencil]]</button>` : ''}</div>`;
 
     // 干粮固定第一个（只在「全部」下出现）
     let html = '';
-    if (!foodFilter) html += `<div class="coin${recordFood==='kibble'?' on':''}" role="button" tabindex="0" data-food="kibble"><span class="disc">${foodIconHTML(kb,'🥣')}</span><span class="cn">${escapeHtml(kbName)}</span>${canEdit ? `<button type="button" class="coin-edit" data-edit="kibble" aria-label="编辑干粮" title="编辑">✎</button>` : ''}</div>`;
+    if (!foodFilter) html += `<div class="coin${recordFood==='kibble'?' on':''}" role="button" tabindex="0" data-food="kibble"><span class="disc">${foodIconHTML(kb, kbName)}</span><span class="cn">${escapeHtml(kbName)}</span>${canEdit ? `<button type="button" class="coin-edit" data-edit="kibble" aria-label="编辑干粮" title="编辑">[[zi:pencil]]</button>` : ''}</div>`;
     visible.forEach(f => { html += foodCoin(f); });
     if (canEdit) html += `<div class="coin add" role="button" tabindex="0" data-food="__new"><span class="disc">＋</span><span class="cn">新建</span></div>`;
     $foodSelector.innerHTML = html;
@@ -3492,11 +3501,11 @@
     if (!pet) { $foodPickerTrigger.innerHTML = ''; return; }
     let icon, name;
     if (recordFood === 'kibble') {
-      const kb = pet.kibble || {}; icon = foodIconHTML(kb, '🥣'); name = kb.name || '干粮';
+      const kb = pet.kibble || {}; name = kb.name || '干粮'; icon = foodIconHTML(kb, name);
     } else {
       const f = (pet.foodLibrary || []).find(x => x.id === recordFood);
-      if (f) { icon = foodIconHTML(f, '🍖'); name = f.name; }
-      else { const kb = pet.kibble || {}; icon = foodIconHTML(kb, '🥣'); name = kb.name || '干粮'; }
+      if (f) { name = f.name; icon = foodIconHTML(f, name); }
+      else { const kb = pet.kibble || {}; name = kb.name || '干粮'; icon = foodIconHTML(kb, name); }
     }
     $foodPickerTrigger.innerHTML = `<span class="fpt-emoji">${icon}</span><span class="fpt-name">${escapeHtml(name)}</span><span class="fpt-caret">换</span>`;
   }
@@ -3505,7 +3514,7 @@
   function createFoodGroup(pet, name) {
     if (!Array.isArray(pet.foodGroups)) pet.foodGroups = [];
     const id = uuid('g');
-    pet.foodGroups.push({ id, name: (name || '类别').slice(0, 12), emoji: '🗂', collapsed: false });
+    pet.foodGroups.push({ id, name: (name || '类别').slice(0, 12), emoji: '', collapsed: false });
     return id;
   }
   function toggleGroupCollapsed(gid) {
@@ -3553,7 +3562,7 @@
       $catAddList.innerHTML = '<div class="cat-add-empty">现有食物都已在这个类别里了——可以「新建一个食物」。</div>';
       return;
     }
-    $catAddList.innerHTML = others.map(f => `<button type="button" class="cat-add-row" data-fid="${escapeHtml(f.id)}"><span class="ca-emoji">${foodIconHTML(f, '🍖')}</span><span class="ca-name">${escapeHtml(f.name)}</span><span class="ca-plus">＋ 加入</span></button>`).join('');
+    $catAddList.innerHTML = others.map(f => `<button type="button" class="cat-add-row" data-fid="${escapeHtml(f.id)}"><span class="ca-emoji">${foodIconHTML(f, f.name)}</span><span class="ca-name">${escapeHtml(f.name)}</span><span class="ca-plus">＋ 加入</span></button>`).join('');
     $catAddList.querySelectorAll('.cat-add-row').forEach(b => b.addEventListener('click', () => {
       const f = (pet.foodLibrary || []).find(x => x.id === b.dataset.fid);
       if (f) { f.groupId = catAddGid; persist(); schedulePushMeta(pet); renderCatAddList(); renderFoodSelector(); }
@@ -3872,10 +3881,9 @@
   // 宠物弹窗里「换算基准」下拉的选项：干粮（默认）+ 食物库全部
   function renderConvBaseOptions(p) {
     const kbName = (p && p.kibble && p.kibble.name) ? p.kibble.name : '干粮';
-    const kbEmoji = (p && p.kibble && p.kibble.emoji) ? p.kibble.emoji : '🥣';
-    let html = `<option value="kibble">${escapeHtml(kbEmoji)} ${escapeHtml(kbName)}（默认）</option>`;
+    let html = `<option value="kibble">${escapeHtml(kbName)}（默认）</option>`;
     ((p && p.foodLibrary) || []).forEach(f => {
-      html += `<option value="${escapeHtml(f.id)}">${escapeHtml(f.emoji || '🍖')} ${escapeHtml(f.name)}</option>`;
+      html += `<option value="${escapeHtml(f.id)}">${escapeHtml(f.name)}</option>`;
     });
     $pmConvBase.innerHTML = html;
     const want = (p && p.conversionBase) || 'kibble';
@@ -3902,7 +3910,7 @@
       reading: null,           // keep null so legacy clients mark it 无法换算, not pollute deltas
       foodId: food.id,
       foodName: food.name,
-      emoji: food.emoji || '🍖',
+      emoji: '',
       measure: food.measure || 'count',
       unitLabel: food.measure === 'gram' ? 'g' : (food.unitLabel || '份'),
       count,
@@ -3931,7 +3939,7 @@
     const newEntry = {
       id: uuid('e'), ts: pickedEntryTs(), tsEnd: endTs, addedAt: Date.now(),
       kind: 'extra', reading: null,
-      foodId: 'kibble', foodName: kb.name || '干粮', emoji: kb.emoji || '🥣',
+      foodId: 'kibble', foodName: kb.name || '干粮', emoji: '',
       measure: 'gram', unitLabel: 'g', count: grams,
       kcalPerUnit: kibbleKcalPerGOf(pet), kibbleEqG: grams,
       note: '', author: DEVICE_ID,
@@ -3954,7 +3962,7 @@
       id: uuid('e'), ts: pickedEntryTs(), addedAt: Date.now(),
       kind: 'remain', reading: val,
       reset: !!$resetCheck.checked,   // 倒掉换新 → 作为新起点
-      foodId: food.id, foodName: food.name, emoji: food.emoji || '🍖',
+      foodId: food.id, foodName: food.name, emoji: '',
       measure: food.measure || 'count',
       unitLabel: food.measure === 'gram' ? 'g' : (food.unitLabel || '份'),
       kcalPerUnit: food.kcalPerUnit,
@@ -4169,7 +4177,7 @@
         const tag = e.method === 'diff' ? ' <span class="er-raw">(作差)</span>' : '';
         return `<div class="entry-row">
           <span class="er-time">${isoDate(e.ts).slice(5)} ${fmtTime(e.ts)}</span>
-          <span class="er-main"><span class="er-delta extra">⚖️ ${kgStr} ${unit}</span>${tag}</span>
+          <span class="er-main"><span class="er-delta extra">[[zi:scale]] ${kgStr} ${unit}</span>${tag}</span>
           ${entryRowActions(e, pet)}
         </div>`;
       }).join('');
@@ -4530,8 +4538,6 @@
   });
 
   // ===== Food (treat/can) modal =====
-  // 5 列网格，保持整行：图标格(📷)+14 emoji = 15 格 = 3 整行（同头像那套 13+拍照格=14）。
-  const FOOD_EMOJIS = ['🥣','🍚','🥫','🍗','🐔','🥩','🐟','🦐','🦴','🥚','🧀','🥛','🍪','💊'];
   let fmEditingId = null;
   let fmGroupId = null;   // 编辑食物时选中的「所属分组」（null=不分组）
   // 填充食物弹窗里的「分组」下拉：不分组 + 现有各组 + 新建分组。
@@ -4539,12 +4545,11 @@
     if (!$fmGroup) return;
     const groups = Array.isArray(pet.foodGroups) ? pet.foodGroups : [];
     let html = `<option value="">不分类</option>`;
-    html += groups.map(g => `<option value="${g.id}"${g.id === selectedGid ? ' selected' : ''}>${escapeHtml((g.emoji || '🗂') + ' ' + (g.name || '类别'))}</option>`).join('');
+    html += groups.map(g => `<option value="${g.id}"${g.id === selectedGid ? ' selected' : ''}>${escapeHtml(g.name || '类别')}</option>`).join('');
     html += `<option value="__new">＋ 新建类别…</option>`;
     $fmGroup.innerHTML = html;
     fmGroupId = selectedGid || null;
   }
-  let fmEmoji = '🍖';
   let fmIconPhoto = null;             // 食物图标用的照片(160px JPEG dataURL)；存在则优先于 emoji
   let fmKibbleMode = false;          // 编辑「干粮」基准时为 true（写 pet.kibbleKcalPerG，不进 foodLibrary）
 
@@ -4691,19 +4696,18 @@
     try { const dataUrl = await readAsDataURL(f); openCropModal(dataUrl, cb); }
     catch (err) { alert('读取图片失败：' + (err && err.message || err)); }
   });
-  // 图标网格 = 照片格（拍照/选图）+ emoji；选 emoji 会清掉照片，反之照片优先、emoji 不再高亮。
+  // 获批方案 B：照片优先；无照片时自动显示食物名称首字。
   function fmRenderEmoji() {
+    const initial = foodInitial($fmName.value);
     const photo = fmIconPhoto
       ? `<button type="button" class="photo-cell active" data-photo="1" title="换图标照片"><img src="${escapeHtml(fmIconPhoto)}" alt=""></button>`
-      : `<button type="button" class="photo-cell" data-photo="1" title="拍照 / 从相册选">📷</button>`;
-    $fmEmojiPick.innerHTML = photo + FOOD_EMOJIS.map(e =>
-      `<button type="button" class="${!fmIconPhoto && e === fmEmoji ? 'active' : ''}" data-emoji="${e}">${e}</button>`).join('');
-    $fmEmojiPick.querySelectorAll('button[data-emoji]').forEach(b => b.addEventListener('click', () => {
-      fmEmoji = b.dataset.emoji; fmIconPhoto = null; fmRenderEmoji();
-    }));
+      : `<button type="button" class="photo-cell" data-photo="1" title="拍照 / 从相册选">[[zi:camera]]</button>`;
+    const generated = `<span class="food-initial-preview${fmIconPhoto ? '' : ' active'}"><b>${escapeHtml(initial)}</b><small>自动首字</small></span>`;
+    $fmEmojiPick.innerHTML = photo + generated;
     $fmEmojiPick.querySelector('button[data-photo]').addEventListener('click', () =>
       pickFoodPhoto(url => { fmIconPhoto = url; fmRenderEmoji(); }));
   }
+  $fmName.addEventListener('input', fmRenderEmoji);
   function setFmMeasure(m) {
     const r = $fmMeasure.querySelector(`input[value="${m}"]`);
     if (r) r.checked = true;
@@ -4736,7 +4740,6 @@
     $fmTitle.textContent = '编辑干粮';
     $fmKibbleHint.style.display = '';
     $fmName.value = k.name || '干粮';
-    fmEmoji = k.emoji || '🥣';
     fmIconPhoto = k.iconPhoto || null;
     setFmMeasure('gram');                       // 干粮永远按克
     $fmMeasureField.style.display = 'none';      // 隐藏「怎么算量」整块
@@ -4768,7 +4771,6 @@
     $fmTitle.textContent = '编辑食物';
     renderFmGroupOptions(pet, f.groupId || '');
     $fmName.value = f.name || '';
-    fmEmoji = f.emoji || '🍖';
     fmIconPhoto = f.iconPhoto || null;
     const measure = f.measure || 'count';
     setFmMeasure(measure);
@@ -4817,7 +4819,7 @@
       perG = k100 / 100;
     }
     pet.kibbleKcalPerG = perG;                  // 换算基准（kcal/g）—— 全局换算都读它
-    pet.kibble = { name, emoji: fmEmoji, iconPhoto: fmIconPhoto || null, kcalSource: source, analysis };
+    pet.kibble = { name, emoji: '', iconPhoto: fmIconPhoto || null, kcalSource: source, analysis };
     persist();
     schedulePushMeta(pet);
     closeFoodModal();
@@ -4885,7 +4887,7 @@
       }
     }
 
-    const data = { name, emoji: fmEmoji, iconPhoto: fmIconPhoto || null, measure, unitLabel, kcalPerUnit, kcalSource: source, analysis, gramsPerUnit, equivGrams, groupId: fmGroupId || null };
+    const data = { name, emoji: '', iconPhoto: fmIconPhoto || null, measure, unitLabel, kcalPerUnit, kcalSource: source, analysis, gramsPerUnit, equivGrams, groupId: fmGroupId || null };
     pet.foodLibrary = pet.foodLibrary || [];
     let savedId;
     if (fmEditingId) {
@@ -4966,7 +4968,7 @@
   const $fwBack = document.getElementById('fw-back');
   const $fwNext = document.getElementById('fw-next');
   const $fwCancel = document.getElementById('fw-cancel');
-  let fwStep = 1, fwMeasure = 'count', fwSource = 'direct', fwEmoji = '🍖', fwIconPhoto = null;
+  let fwStep = 1, fwMeasure = 'count', fwSource = 'direct', fwIconPhoto = null;
 
   function fwReadAnalysis() {
     const o = {};
@@ -4974,17 +4976,16 @@
     return o;
   }
   function fwRenderEmoji() {
+    const initial = foodInitial($fwName.value);
     const photo = fwIconPhoto
       ? `<button type="button" class="photo-cell active" data-photo="1" title="换图标照片"><img src="${escapeHtml(fwIconPhoto)}" alt=""></button>`
-      : `<button type="button" class="photo-cell" data-photo="1" title="拍照 / 从相册选">📷</button>`;
-    $fwEmojiPick.innerHTML = photo + FOOD_EMOJIS.map(e =>
-      `<button type="button" class="${!fwIconPhoto && e === fwEmoji ? 'active' : ''}" data-emoji="${e}">${e}</button>`).join('');
-    $fwEmojiPick.querySelectorAll('button[data-emoji]').forEach(b => b.addEventListener('click', () => {
-      fwEmoji = b.dataset.emoji; fwIconPhoto = null; fwRenderEmoji(); $fwEmojiEcho.textContent = fwEmoji;
-    }));
+      : `<button type="button" class="photo-cell" data-photo="1" title="拍照 / 从相册选">[[zi:camera]]</button>`;
+    const generated = `<span class="food-initial-preview${fwIconPhoto ? '' : ' active'}"><b>${escapeHtml(initial)}</b><small>自动首字</small></span>`;
+    $fwEmojiPick.innerHTML = photo + generated;
     $fwEmojiPick.querySelector('button[data-photo]').addEventListener('click', () =>
-      pickFoodPhoto(url => { fwIconPhoto = url; fwRenderEmoji(); $fwEmojiEcho.textContent = '📷'; }));
+      pickFoodPhoto(url => { fwIconPhoto = url; fwRenderEmoji(); $fwEmojiEcho.textContent = ''; }));
   }
+  $fwName.addEventListener('input', () => { fwRenderEmoji(); $fwEmojiEcho.textContent = foodInitial($fwName.value); });
   function fwUpdateEstimate() {
     if (fwSource !== 'analysis') return;
     const a = fwReadAnalysis();
@@ -5007,8 +5008,8 @@
     [1, 2, 3].forEach(n => document.getElementById('fw-step' + n).hidden = (n !== fwStep));
     $fwDots.forEach((d, i) => { d.classList.toggle('active', i === fwStep - 1); d.classList.toggle('done', i < fwStep - 1); });
     $fwBack.style.visibility = fwStep === 1 ? 'hidden' : 'visible';
-    $fwNext.textContent = fwStep === 3 ? '保存 ✓' : '下一步 →';
-    $fwEmojiEcho.textContent = fwEmoji;
+    $fwNext.textContent = fwStep === 3 ? '保存 ' : '下一步 →';
+    $fwEmojiEcho.textContent = foodInitial($fwName.value);
     const lb = $fwUnitLabel.value.trim() || '份';
     $fwUnitField.style.display = fwMeasure === 'count' ? '' : 'none';
     $fwSuffix.textContent = fwMeasure === 'gram' ? '大卡 / 100 克' : ('大卡 / 每' + lb);
@@ -5023,7 +5024,7 @@
     fwUpdateEstimate();
   }
   function openFoodWizard() {
-    fwStep = 1; fwMeasure = 'count'; fwSource = 'direct'; fwEmoji = '🍖'; fwIconPhoto = null;
+    fwStep = 1; fwMeasure = 'count'; fwSource = 'direct'; fwIconPhoto = null;
     $fwName.value = ''; $fwUnitLabel.value = '份'; $fwKcal.value = ''; $fwGpu.value = '';
     $fwEquivGrams.value = ''; $fwEquivGrams100.value = '';
     $fwAnalysis.querySelectorAll('.fw-an').forEach(i => i.value = '');
@@ -5042,7 +5043,6 @@
     pendingCatForNewFood = null;
     fmKibbleMode = false;   // 向导永远存的是库内食物，绝不能误走干粮分支
     $fmName.value = $fwName.value.trim();
-    fmEmoji = fwEmoji;
     fmIconPhoto = fwIconPhoto;
     setFmMeasure(fwMeasure);
     $fmUnitLabel.value = fwMeasure === 'gram' ? '份' : ($fwUnitLabel.value.trim() || '份');
@@ -5195,19 +5195,19 @@
     return isoDate(ts).slice(5);
   }
   // Plain-language description of a record for the activity feed.
-  // NB: emoji/unitLabel/foodName are member-supplied free text → always escapeHtml.
+  // NB: unitLabel/foodName are member-supplied free text → always escapeHtml.
   function describeEntry(e, pet) {
-    const emoji = escapeHtml(e.emoji || '🍖');
+    const mark = escapeHtml(foodInitial(e.foodName));
     if (e.kind === 'extra') {
       const cnt = Number(e.count) || 0;
       const amt = e.measure === 'gram'
         ? `${parseFloat(cnt.toFixed(1))} g`
         : `${parseFloat(cnt.toFixed(2))} ${escapeHtml(e.unitLabel || '份')}`;
-      return `喂了 ${emoji} ${escapeHtml(e.foodName || '零食')} ${amt}`;
+      return `喂了 ${mark} · ${escapeHtml(e.foodName || '零食')} ${amt}`;
     }
     if (e.kind === 'remain') {
       const unit = e.measure === 'gram' ? 'g' : escapeHtml(e.unitLabel || '份');
-      return `记了 ${emoji} ${escapeHtml(e.foodName || '食物')} 还剩 ${fmtAmt(Number(e.reading) || 0)} ${unit}`;
+      return `记了 ${mark} · ${escapeHtml(e.foodName || '食物')} 还剩 ${fmtAmt(Number(e.reading) || 0)} ${unit}`;
     }
     if (e.kind === 'bodyweight') {
       const unit = pet.bodyWeightUnit || 'kg';
@@ -5225,7 +5225,7 @@
   function tcEntryBrief(pet, tc) {
     const e = (pet.entries || []).find(x => x.id === tc.entryId);
     if (!e) return '（记录已删除）';
-    if (e.kind === 'extra') return `${e.emoji || '🍖'} ${escapeHtml(e.foodName || '零食')}`;
+    if (e.kind === 'extra') return `${escapeHtml(foodInitial(e.foodName))} · ${escapeHtml(e.foodName || '零食')}`;
     if (e.kind === 'bodyweight') return '一次体重记录';
     return e.withBowl ? '一次称重（含碗）' : '一次称重';
   }
@@ -5257,7 +5257,7 @@
     let html = '';
     // Section 0: new members who just joined (so a stranger can't slip in unnoticed)
     if (newMembers.length) {
-      html += '<div class="inbox-sec-title">✦ 新成员加入</div>';
+      html += '<div class="inbox-sec-title">[[zi:sparkle]] 新成员加入</div>';
       html += newMembers.map(id => {
         const noName = hasNoNameFor(pet, id);
         const nameBtn = noName
@@ -5268,7 +5268,7 @@
     }
     // Section 1: time-change requests / notices (actionable)
     if (tcs.length) {
-      html += '<div class="inbox-sec-title">⏱ 改了记录时间</div>';
+      html += '<div class="inbox-sec-title">[[zi:clock]] 改了记录时间</div>';
       html += tcs.map(tc => {
         const st = tcStatusLabel(tc);
         const who = memberDisplayName(pet, tc.byDevice);
@@ -5299,7 +5299,7 @@
     if (acts.length) {
       // Only label this section when something sits above it — otherwise the modal
       // title「家人动态」already says it and a repeated header reads redundant.
-      if (newMembers.length || tcs.length) html += '<div class="inbox-sec-title">🐾 最近记录</div>';
+      if (newMembers.length || tcs.length) html += '<div class="inbox-sec-title">[[zi:history]] 最近记录</div>';
       html += acts.map(e => {
         const mine = e.author === DEVICE_ID;
         const isNew = !mine && (e.addedAt || 0) > seenAt;   // your own records never show 「新」
@@ -5585,7 +5585,7 @@
         } else {
           roundRectPath(ctx, PAD, y, avSize, avSize, 12); ctx.fillStyle = C.warm; ctx.fill();
           ctx.font = Math.round(avSize * 0.6) + 'px ' + font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillStyle = C.ink; ctx.fillText(pet.emoji || '🐾', PAD + avSize / 2, y + avSize / 2 + 2); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+          ctx.fillStyle = C.ink; ctx.fillText(pet.emoji || 'P', PAD + avSize / 2, y + avSize / 2 + 2); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
         }
         ctx.textBaseline = 'middle';
         ctx.font = '600 30px ' + font; ctx.fillStyle = C.ink;
@@ -5601,8 +5601,14 @@
         y += chartH + 14;
         if (stats) { ctx.font = '15px ' + font; ctx.fillStyle = C.ink; ctx.fillText(stats, PAD, y + 16); y += 22; }
         y += 18;
+        const brandY = y - 2;
+        ctx.strokeStyle = C.accent; ctx.lineWidth = 1;
+        roundRectPath(ctx, PAD, brandY, 18, 18, 4); ctx.stroke();
+        ctx.font = '700 10px ' + font; ctx.fillStyle = C.accent;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('P', PAD + 9, brandY + 9);
         ctx.font = '12.5px ' + font; ctx.fillStyle = C.muted;
-        ctx.fillText('🐾 宠物中心 · ruizhou03.com', PAD, y + 12);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        ctx.fillText('宠物中心 · ruizhou03.com', PAD + 26, y + 12);
         ctx.textAlign = 'right'; ctx.fillText(genStamp, W - PAD, y + 12); ctx.textAlign = 'left';
         cv.toBlob((blob) => {
           if (!blob) { alert('导出失败'); return; }
@@ -5709,7 +5715,7 @@
   if ($toggleHistory) $toggleHistory.addEventListener('click', () => {
     state.historyOpen = !state.historyOpen;
     if ($entriesHistory) $entriesHistory.style.display = state.historyOpen ? '' : 'none';
-    $toggleHistory.textContent = state.historyOpen ? '收起更早 ▴' : '展开更早的记录 ▾';
+    $toggleHistory.textContent = state.historyOpen ? '收起更早 −' : '展开更早的记录 +';
   });
   // 记录「按日翻」接线
   if ($recPrev) $recPrev.addEventListener('click', () => shiftRecordsDay(-1));
@@ -5784,7 +5790,7 @@
     const box = document.createElement('div');
     box.style.cssText = 'max-width:520px;margin:3rem auto;padding:1.6rem;border:1px solid var(--color-border);border-radius:var(--pet-r-card,14px);background:var(--color-bg-warm);text-align:center;';
     box.innerHTML =
-      '<div style="font-size:2.2rem;margin-bottom:0.5rem;">🐾</div>' +
+      '<div style="font-size:2.2rem;margin-bottom:0.5rem;">P</div>' +
       '<h2 style="margin:0 0 0.5rem;font-size:1.2rem;color:var(--color-ink);">宠物中心没能正常打开</h2>' +
       '<p style="color:var(--color-muted);font-size:0.9rem;line-height:1.7;margin:0 0 1.2rem;">本机保存的数据可能损坏了。可以先把它导出留底，再清空重来；导出的文件之后能在「我的档案 → 恢复」里导入找回。</p>' +
       '<div style="display:flex;gap:0.6rem;justify-content:center;flex-wrap:wrap;">' +

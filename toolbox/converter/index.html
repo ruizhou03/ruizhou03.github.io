@@ -200,16 +200,16 @@ permalink: /toolbox/converter/
 
 <div class="cv-wrap">
   <header>
-    <h1>💱 汇率 + 单位换算</h1>
+    <h1>[[zi:transfer]] 汇率 + 单位换算</h1>
   </header>
 
   <div class="tab-bar">
-    <button type="button" data-tab="currency" class="active">💱 货币</button>
-    <button type="button" data-tab="weight">⚖️ 重量</button>
-    <button type="button" data-tab="temperature">🌡️ 温度</button>
-    <button type="button" data-tab="length">📏 长度</button>
-    <button type="button" data-tab="volume">🥛 体积</button>
-    <button type="button" data-tab="energy">⚡ 能量</button>
+    <button type="button" data-tab="currency" class="active">[[zi:transfer]] 货币</button>
+    <button type="button" data-tab="weight">[[zi:scale]] 重量</button>
+    <button type="button" data-tab="temperature">[[zi:thermometer]] 温度</button>
+    <button type="button" data-tab="length">[[zi:ruler]] 长度</button>
+    <button type="button" data-tab="volume">[[zi:bowl]] 体积</button>
+    <button type="button" data-tab="energy">[[zi:lightning]] 能量</button>
   </div>
 
   <!-- Currency -->
@@ -231,7 +231,7 @@ permalink: /toolbox/converter/
         <span class="tag" id="cur-tag">…</span>
         <span id="cur-source-text">加载中…</span>
       </div>
-      <button type="button" id="cur-refresh">↻ 刷新</button>
+      <button type="button" id="cur-refresh">[[zi:refresh]] 刷新</button>
     </div>
     <div class="quick-row">
       <button type="button" class="quick" data-cur-quick="USD,CNY">USD → CNY</button>
@@ -346,7 +346,7 @@ permalink: /toolbox/converter/
   </details>
 
   <details class="footnote rules-table">
-    <summary>📋 全部换算规则一览（不含汇率）</summary>
+    <summary>[[zi:copy]] 全部换算规则一览（不含汇率）</summary>
     <div class="footnote-body">
       <p><strong>重量</strong></p>
       <ul>
@@ -497,7 +497,7 @@ permalink: /toolbox/converter/
 
   async function fetchLiveRates() {
     $curRefresh.disabled = true;
-    $curRefresh.textContent = '⏳ 刷新中';
+    $curRefresh.textContent = '[[zi:hourglass]] 刷新中';
     try {
       const res = await fetch('https://open.er-api.com/v6/latest/USD', { cache: 'no-store' });
       if (!res.ok) throw new Error('http ' + res.status);
@@ -523,7 +523,7 @@ permalink: /toolbox/converter/
       $curText.textContent = `汇率截至 ${fxDate}（实时拉取失败）`;
     } finally {
       $curRefresh.disabled = false;
-      $curRefresh.textContent = '↻ 刷新';
+      $curRefresh.textContent = '[[zi:refresh]] 刷新';
     }
   }
 

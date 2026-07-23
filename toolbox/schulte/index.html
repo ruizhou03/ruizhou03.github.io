@@ -33,8 +33,8 @@ permalink: /toolbox/schulte/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
@@ -201,7 +201,7 @@ permalink: /toolbox/schulte/
 
 <div class="schulte-wrap">
   <header>
-    <h1>🔢 舒尔特方格</h1>
+    <h1>[[zi:grid]] 舒尔特方格</h1>
     <div class="sub">从 1 按顺序点到底，越快越好——注意力与视幅训练</div>
   </header>
 
@@ -228,7 +228,7 @@ permalink: /toolbox/schulte/
       <button class="sch-size-tab" data-size="6">6×6</button>
       <button class="sch-size-tab" data-size="7">7×7</button>
     </div>
-    <button class="sch-btn" id="schNewBtn">🔄 重开</button>
+    <button class="sch-btn" id="schNewBtn">[[zi:refresh]] 重开</button>
   </div>
 
   <div class="sch-board-wrap">
@@ -242,7 +242,7 @@ permalink: /toolbox/schulte/
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="schPreGameOverlay">
       <div class="gs-pgo-view active" id="schPgoViewMain">
-        <div class="gs-pgo-icon">🔢</div>
+        <div class="gs-pgo-icon">[[zi:grid]]</div>
         <h2 class="gs-pgo-title">舒尔特方格</h2>
         <div class="gs-pgo-subtitle">视线别移动，用余光从 1 找到底</div>
         <div class="gs-pgo-highscore">
@@ -256,7 +256,7 @@ permalink: /toolbox/schulte/
           <button class="gs-pgo-mode-tab" data-value="6">6×6</button>
           <button class="gs-pgo-mode-tab" data-value="7">7×7</button>
         </div>
-        <button class="gs-pgo-start-btn" id="schPgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="schPgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
     </div>
   </div>
@@ -372,7 +372,7 @@ permalink: /toolbox/schulte/
     timeEl.textContent = state.running
       ? fmtClock(performance.now() - state.startedAt)
       : (state.over ? fmtMs(state.elapsed) : '0.00s');
-    nextEl.textContent = state.over ? '✓' : (state.next <= state.total ? String(state.next) : '✓');
+    nextEl.textContent = state.over ? '[[zi:check]]' : (state.next <= state.total ? String(state.next) : '[[zi:check]]');
     const b = state.best[state.size];
     bestEl.textContent = (b != null) ? fmtMs(b) : '--';
     document.querySelectorAll('.sch-size-tab').forEach(t => {
@@ -426,7 +426,7 @@ permalink: /toolbox/schulte/
       state.best[state.size] = state.elapsed;
       persist();
     }
-    ovTitle.textContent = isPb ? '🎉 新纪录！' : '完成！';
+    ovTitle.textContent = isPb ? '[[zi:sparkle]] 新纪录！' : '完成！';
     ovTime.textContent = fmtMs(state.elapsed);
     const bestNow = state.best[state.size];
     ovSub.textContent = state.size + '×' + state.size + ' · 本档最佳 ' + fmtMs(bestNow);
@@ -604,7 +604,7 @@ permalink: /toolbox/schulte/
     schLbWidget = GamesShell.Leaderboard.mount({
       container: document.getElementById('sch-lb-mount'),
       gameId: 'schulte',
-      title: '🏆 舒尔特方格 排行榜',
+      title: '[[zi:trophy]] 舒尔特方格 排行榜',
       scoreFormatter: v => (Number(v) / 1000).toFixed(2) + 's',
       scoreAsc: true,
       getCurrentNick: () => GamesShell.Identity.getNick(),
@@ -620,7 +620,7 @@ permalink: /toolbox/schulte/
     GamesShell.Comments.mount({
       container: document.getElementById('sch-cm-mount'),
       path: '/toolbox/schulte/',
-      title: '💬 训练交流',
+      title: '[[zi:comment]] 训练交流',
       intro: '晒晒你的最快用时，聊聊练视幅的心得 ~',
       placeholder: '聊聊你的舒尔特方格成绩与技巧 ~',
     });

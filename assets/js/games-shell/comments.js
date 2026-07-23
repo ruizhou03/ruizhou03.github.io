@@ -25,7 +25,7 @@
     }
     const wrap = opts.container;
     wrap.classList.add('gs-comments-wrap');
-    const title = opts.title || '💬 评论交流';
+    const title = opts.title || '[[zi:comment]] 评论交流';
     const intro = opts.intro || '欢迎留言交流游戏心得。';
     const placeholder = opts.placeholder || '说点什么…';
     const mountId = 'gs-cm-' + Math.random().toString(36).slice(2, 8);
@@ -50,7 +50,7 @@
         pageview: true,
         comment: true,
         requiredMeta: [],
-        locale: { reactionTitle: '', preview: '👀 开启 Markdown 预览', anonymous: '神秘玩家' },
+        locale: { reactionTitle: '', preview: '[[zi:eye]] 开启 Markdown 预览', anonymous: '神秘玩家' },
       });
       // 用占位符标记的 meta 字段——便于在窄屏隐藏 mail/link 只留 nick
       const fields = { nick: '昵称（可选）', mail: '邮箱（可选）', link: '网址（可选）' };

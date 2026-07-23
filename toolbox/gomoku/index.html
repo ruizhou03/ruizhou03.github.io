@@ -140,14 +140,14 @@ permalink: /toolbox/gomoku/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="gm-wrap">
   <header>
-    <h1>⚫ 五子棋</h1>
+    <h1>[[zi:user]] 五子棋</h1>
     <div class="sub">先连成五子者胜 — 横、竖、斜均可</div>
   </header>
 
@@ -162,20 +162,20 @@ permalink: /toolbox/gomoku/
   <div class="gm-controls gm-difficulty-row" id="gmDifficultyRow" hidden>
     <span class="gm-row-label">难度</span>
     <div class="gm-mode-tabs" id="gmDifficultyTabs">
-      <button class="gm-mode-tab" data-diff="easy">🌱 新手</button>
-      <button class="gm-mode-tab active" data-diff="normal">🙂 普通</button>
-      <button class="gm-mode-tab" data-diff="hard">🔥 高手</button>
+      <button class="gm-mode-tab" data-diff="easy">[[zi:sprout]] 新手</button>
+      <button class="gm-mode-tab active" data-diff="normal">[[zi:user]] 普通</button>
+      <button class="gm-mode-tab" data-diff="hard">[[zi:flame]] 高手</button>
     </div>
   </div>
 
   <div class="gm-controls">
     <button class="gm-btn" id="gmUndoBtn">↶ 悔棋</button>
-    <button class="gm-btn" id="gmPauseBtn" hidden>⏸ 暂停</button>
-    <button class="gm-btn" id="gmNewBtn">🔄 重新开始</button>
+    <button class="gm-btn" id="gmPauseBtn" hidden>[[zi:pause]] 暂停</button>
+    <button class="gm-btn" id="gmNewBtn">[[zi:refresh]] 重新开始</button>
   </div>
 
   <div class="gm-statusbar">
-    <div class="gm-turn" id="gmTurn">⚫ 黑方下子</div>
+    <div class="gm-turn" id="gmTurn">[[zi:user]] 黑方下子</div>
     <div class="gm-tally">
       <span>黑 <b id="gmTallyB">0</b></span>
       <span>白 <b id="gmTallyW">0</b></span>
@@ -189,13 +189,13 @@ permalink: /toolbox/gomoku/
       <button class="gm-btn" id="gmOvBtn">再来一局</button>
     </div>
     <div class="gm-overlay gm-paused-overlay" id="gmPausedOverlay">
-      <h2>⏸ 已暂停</h2>
-      <button class="gm-btn" id="gmResumeBtn">▶ 继续</button>
+      <h2>[[zi:pause]] 已暂停</h2>
+      <button class="gm-btn" id="gmResumeBtn">[[zi:play]] 继续</button>
     </div>
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="gmPreGameOverlay">
       <div class="gs-pgo-view active" id="gmPgoViewMain">
-        <div class="gs-pgo-icon">⚫⚪</div>
+        <div class="gs-pgo-icon">[[zi:user]][[zi:user]]</div>
         <h2 class="gs-pgo-title">五子棋</h2>
         <div class="gs-pgo-subtitle">先连成五子者胜 · 横、竖、斜均可</div>
         <div class="gs-pgo-mode-picker" id="gmPgoModePicker">
@@ -210,8 +210,8 @@ permalink: /toolbox/gomoku/
         </div>
         <!-- 本地 / 联机切换 -->
         <div class="gs-pgo-room-tabs" id="gmPgoRoomTabs">
-          <button class="gs-pgo-room-tab selected" data-tab="local">🏠 本地</button>
-          <button class="gs-pgo-room-tab" data-tab="online">🌐 联机</button>
+          <button class="gs-pgo-room-tab selected" data-tab="local">[[zi:home]] 本地</button>
+          <button class="gs-pgo-room-tab" data-tab="online">[[zi:globe]] 联机</button>
         </div>
         <!-- 本地面板（现有 mode/diff） -->
         <div class="gs-pgo-room-panel active" id="gmPgoLocalPanel"></div>
@@ -223,7 +223,7 @@ permalink: /toolbox/gomoku/
             <div class="gs-pgo-room-error" id="gmPgoRoomError"></div>
           </div>
           <div id="gmPgoRoomLobby" style="display:none;">
-            <div class="gs-pgo-room-code">房号：<strong id="gmPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyCodeBtn">📋 复制房号</button> <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyBtn">🔗 复制链接</button></div>
+            <div class="gs-pgo-room-code">房号：<strong id="gmPgoRoomCodeNum"></strong> <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyCodeBtn">[[zi:copy]] 复制房号</button> <button class="gs-pgo-room-copy-btn" id="gmPgoRoomCopyBtn">[[zi:link]] 复制链接</button></div>
             <div class="gs-room-qr" id="gmPgoRoomQr"></div><ul class="gs-pgo-room-players" id="gmPgoRoomPlayers"></ul>
             <div style="display:flex;gap:0.5rem;width:100%;margin-top:0.3rem;">
               <button class="gs-pgo-room-btn primary" id="gmPgoRoomStartBtn" disabled>需要 2 人</button>
@@ -231,7 +231,7 @@ permalink: /toolbox/gomoku/
             </div>
           </div>
         </div>
-        <button class="gs-pgo-start-btn" id="gmPgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="gmPgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
     </div>
   </div>
@@ -347,15 +347,15 @@ permalink: /toolbox/gomoku/
 
   function updateStatus() {
     if (state.paused) {
-      turnEl.textContent = '⏸ 已暂停';
+      turnEl.textContent = '[[zi:pause]] 已暂停';
     } else if (state.over) {
       turnEl.textContent = state.winLine
-        ? (state.winLine.who === BLACK ? '⚫ 黑方胜' : '⚪ 白方胜')
+        ? (state.winLine.who === BLACK ? '[[zi:user]] 黑方胜' : '[[zi:user]] 白方胜')
         : '— 平局 —';
     } else if (state.aiThinking) {
-      turnEl.textContent = '🤖 AI 思考中…';
+      turnEl.textContent = '[[zi:bot]] AI 思考中…';
     } else {
-      let label = state.turn === BLACK ? '⚫ 黑方下子' : '⚪ 白方下子';
+      let label = state.turn === BLACK ? '[[zi:user]] 黑方下子' : '[[zi:user]] 白方下子';
       if (gmIsOnline && gmMyColor !== null) {
         label += (state.turn === gmMyColor ? '（你的回合）' : '（等对手）');
       }
@@ -375,7 +375,7 @@ permalink: /toolbox/gomoku/
     const isAi = aiSide() !== null;
     difficultyRow.hidden = !isAi;
     pauseBtn.hidden = !isAi;
-    pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    pauseBtn.textContent = state.paused ? '[[zi:play]] 继续' : '[[zi:pause]] 暂停';
     pauseBtn.disabled = state.over;
     pausedOverlay.classList.toggle('show', state.paused && !state.over);
   }
@@ -484,7 +484,7 @@ permalink: /toolbox/gomoku/
       state.winLine = { cells: win, who };
       if (who === BLACK) state.tally.black++; else state.tally.white++;
       persist();
-      ovTitle.textContent = (who === BLACK ? '⚫ 黑方胜' : '⚪ 白方胜');
+      ovTitle.textContent = (who === BLACK ? '[[zi:user]] 黑方胜' : '[[zi:user]] 白方胜');
       overlay.classList.add('show');
       // 仅当 AI 模式下"人类方"获胜，才上传战绩榜
       const human = humanSide();
@@ -860,7 +860,7 @@ permalink: /toolbox/gomoku/
       kind: 'duel',
       gameId: 'gomoku',
       title: '五子棋',
-      emoji: '⚫',
+      emoji: '[[zi:user]]',
       nick: GamesShell.Identity.getNick() || '匿名',
       opponent: 'vs AI · ' + (GM_DIFF_LABEL[state.difficulty] || state.difficulty),
       result: gmLastResult,
@@ -918,13 +918,13 @@ permalink: /toolbox/gomoku/
     gmWlbWidget = GamesShell.WinsLeaderboard.mount({
       container: document.getElementById('gm-wlb-mount'),
       gameId: 'gomoku',
-      title: '🏆 五子棋 战绩榜',
+      title: '[[zi:trophy]] 五子棋 战绩榜',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });
     GamesShell.Comments.mount({
       container: document.getElementById('gm-cm-mount'),
       path: '/toolbox/gomoku/',
-      title: '💬 棋友交流',
+      title: '[[zi:comment]] 棋友交流',
       intro: '聊聊你击败 AI 的开局、决胜手 ~',
       placeholder: '聊聊你的五子棋心得 ~',
     });
@@ -1107,14 +1107,14 @@ permalink: /toolbox/gomoku/
       const isMe = p.id === gmRoomPlayerId, isHost = p.isHost;
       let h = '<li>';
       if (gmRoomHost && room.state === 'lobby' && !isMe) {
-        if (i > 0) h += `<button class="gm-room-act up" data-act="up" data-id="${p.id}">▲</button>`;
-        if (i < room.players.length - 1) h += `<button class="gm-room-act down" data-act="down" data-id="${p.id}">▼</button>`;
+        if (i > 0) h += `<button class="gm-room-act up" data-act="up" data-id="${p.id}">[[zi:chevron]]</button>`;
+        if (i < room.players.length - 1) h += `<button class="gm-room-act down" data-act="down" data-id="${p.id}">[[zi:chevron]]</button>`;
       }
       h += gsEsc(p.nick);
       if (isMe) h += ' (你)';
       if (isHost) h += ' <span class="gs-pgo-room-host-badge">房主</span>';
       if (gmRoomHost && room.state === 'lobby' && !isMe) {
-        h += `<button class="gm-room-kick" data-act="kick" data-id="${p.id}" title="踢出">✕</button>`;
+        h += `<button class="gm-room-kick" data-act="kick" data-id="${p.id}" title="踢出">[[zi:stop]]</button>`;
       }
       h += '</li>';
       return h;
@@ -1213,12 +1213,12 @@ permalink: /toolbox/gomoku/
   document.getElementById('gmPgoRoomLeaveBtn').addEventListener('click', gmLeaveRoom);
   document.getElementById('gmPgoRoomCopyBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(`${location.origin}/toolbox/gomoku/?room=${gmRoomCode}`).then(() => {
-      const btn = document.getElementById('gmPgoRoomCopyBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '🔗 复制链接'; }, 2000);
+      const btn = document.getElementById('gmPgoRoomCopyBtn'); btn.textContent = '[[zi:check]] 已复制'; setTimeout(() => { btn.textContent = '[[zi:link]] 复制链接'; }, 2000);
     }).catch(() => {});
   });
   document.getElementById('gmPgoRoomCopyCodeBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(gmRoomCode).then(() => {
-      const btn = document.getElementById('gmPgoRoomCopyCodeBtn'); btn.textContent = '✓ 已复制'; setTimeout(() => { btn.textContent = '📋 复制房号'; }, 2000);
+      const btn = document.getElementById('gmPgoRoomCopyCodeBtn'); btn.textContent = '[[zi:check]] 已复制'; setTimeout(() => { btn.textContent = '[[zi:copy]] 复制房号'; }, 2000);
     }).catch(() => {});
   });
   document.getElementById('gmPgoRoomStartBtn').addEventListener('click', async () => {

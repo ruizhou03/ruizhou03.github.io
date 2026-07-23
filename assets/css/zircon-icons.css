@@ -1,0 +1,77 @@
+/* Approved site-wide vector icon system.
+   Source text uses bracketed zi markers so dynamic textContent and innerHTML
+   share the same rendering path. zircon-icons.js replaces each marker with
+   an external SVG <use>; every icon follows currentColor and the active theme. */
+.zi-icon {
+  display: inline-block;
+  width: 1.08em;
+  height: 1.08em;
+  flex: 0 0 auto;
+  vertical-align: -0.16em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+
+.zi-icon--seal {
+  width: 1.72em;
+  height: 1.72em;
+  padding: 0.28em;
+  border: 1px solid currentColor;
+  border-radius: 0.38em;
+  color: var(--color-highlight, #a77a32);
+  vertical-align: -0.48em;
+}
+
+.zi-icon--solid {
+  width: 1.72em;
+  height: 1.72em;
+  padding: 0.34em;
+  border-radius: 50%;
+  background: var(--color-accent, #1e3a5f);
+  color: var(--color-bg, #fff);
+  stroke-width: 1.9;
+  vertical-align: -0.48em;
+}
+
+.zi-icon--gold { color: #c9a96e; }
+.zi-icon--silver { color: #aeb7c0; }
+.zi-icon--bronze { color: #ad744d; }
+
+.zi-icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+.zi-micro-mark {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.75em;
+  height: 1.75em;
+  border: 1px solid currentColor;
+  border-radius: 0.35em;
+  color: var(--color-highlight, #a77a32);
+  font: 700 0.68em/1 Georgia, serif;
+  letter-spacing: 0.03em;
+}
+
+.zi-data-rule {
+  display: inline-block;
+  width: 3px;
+  height: 1.9em;
+  border-radius: 2px;
+  background: var(--color-highlight, #a77a32);
+  vertical-align: middle;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .zi-icon--spin { animation: zi-icon-spin 1.1s linear infinite; }
+}
+
+@keyframes zi-icon-spin {
+  to { transform: rotate(1turn); }
+}

@@ -176,7 +176,7 @@ permalink: /toolbox/recipes/
 
 <article class="recipes-wrap">
   <header class="recipes-header">
-    <h1>🍳 菜谱专区</h1>
+    <h1>[[zi:bowl]] 菜谱专区</h1>
     <p>Recipes &amp; Kitchen Notes</p>
   </header>
 
@@ -215,11 +215,11 @@ permalink: /toolbox/recipes/
         <label>难度
           <select id="filter-diff">
             <option value="">全部</option>
-            <option value="1">★</option>
-            <option value="2">★★</option>
-            <option value="3">★★★</option>
-            <option value="4">★★★★</option>
-            <option value="5">★★★★★</option>
+            <option value="1">1 星</option>
+            <option value="2">2 星</option>
+            <option value="3">3 星</option>
+            <option value="4">4 星</option>
+            <option value="5">5 星</option>
           </select>
         </label>
         <button type="button" id="filter-reset">重置</button>
@@ -251,7 +251,7 @@ permalink: /toolbox/recipes/
             {% endif %}
             <div class="recipe-card-body">
               <div class="recipe-card-title">{% include latex-logo.html title=r.title %}</div>
-              {% if _t > 0 %}<div class="recipe-card-foot">⏱ {{ _t }} min</div>{% endif %}
+              {% if _t > 0 %}<div class="recipe-card-foot">[[zi:clock]] {{ _t }} min</div>{% endif %}
             </div>
           </a>
         {% endfor %}

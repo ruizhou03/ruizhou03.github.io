@@ -410,8 +410,8 @@ permalink: /toolbox/random/
     font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
   details.about code {
     background: var(--color-bg-warm);
@@ -423,7 +423,7 @@ permalink: /toolbox/random/
 
 <article class="rng-wrap">
   <header class="rng-header">
-    <h1>🎰 随机数生成器</h1>
+    <h1>[[zi:dice]] 随机数生成器</h1>
     <p>Distribution sampler with PDF visualization</p>
   </header>
 
@@ -434,7 +434,7 @@ permalink: /toolbox/random/
       <select id="dist-select" class="dist-select"></select>
       <span id="dist-formula" class="dist-formula"></span>
       <button id="btn-new-custom" class="custom-trigger">+ 新建自定义分布</button>
-      <button id="btn-del-custom" class="custom-delete cf-hidden">🗑 删除当前</button>
+      <button id="btn-del-custom" class="custom-delete cf-hidden">[[zi:trash]] 删除当前</button>
     </div>
     <div class="params" id="params"></div>
 
@@ -1814,7 +1814,7 @@ permalink: /toolbox/random/
       const m = trapezoid((x) => x * safePDF(x), a, b, 4000);
       const m2 = trapezoid((x) => x * x * safePDF(x), a, b, 4000);
       dist = {
-        label: '★ ' + spec.name,
+        label: '[[zi:star]] ' + spec.name,
         formula: spec.expr,
         discrete: false, params: [],
         validate: () => true,
@@ -1843,7 +1843,7 @@ permalink: /toolbox/random/
       const m = trapezoid((x) => x * pdfFn(x), a, b, 4000);
       const m2 = trapezoid((x) => x * x * pdfFn(x), a, b, 4000);
       dist = {
-        label: '★ ' + spec.name + ' (CDF)',
+        label: '[[zi:star]] ' + spec.name + ' (CDF)',
         formula: 'F(x) = ' + spec.expr,
         discrete: false, params: [],
         validate: () => true,
@@ -1865,7 +1865,7 @@ permalink: /toolbox/random/
       const minK = Math.min(...ks), maxK = Math.max(...ks);
       const span = Math.max(1, maxK - minK);
       dist = {
-        label: '★ ' + spec.name + ' (离散)',
+        label: '[[zi:star]] ' + spec.name + ' (离散)',
         formula: norm.length + ' 点离散分布',
         discrete: true, params: [],
         validate: () => true,

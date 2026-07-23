@@ -306,8 +306,8 @@
           <span class="archive-meta">${nOpt} 项</span>
           <span class="archive-item-actions">
             <button type="button" class="ar-btn ar-load" data-act="load">调取</button>
-            <button type="button" class="ar-btn ar-icon" data-act="rename" title="重命名" aria-label="重命名">✏️</button>
-            <button type="button" class="ar-btn ar-icon" data-act="del" title="删除" aria-label="删除">🗑️</button>
+            <button type="button" class="ar-btn ar-icon" data-act="rename" title="重命名" aria-label="重命名">[[zi:pencil]]</button>
+            <button type="button" class="ar-btn ar-icon" data-act="del" title="删除" aria-label="删除">[[zi:trash]]</button>
           </span>
         </div>`;
       }).join('');
@@ -517,12 +517,12 @@
       const color = SLICE_COLORS[idx % SLICE_COLORS.length];
       const locked = !!opt.locked;
       row.innerHTML = `
-        <button type="button" class="opt-del" aria-label="删除选项" ${state.options.length <= 2 ? 'disabled' : ''}>✕</button>
+        <button type="button" class="opt-del" aria-label="删除选项" ${state.options.length <= 2 ? 'disabled' : ''}>[[zi:stop]]</button>
         <span class="opt-chip" style="background:${color}" aria-hidden="true"></span>
         <input type="text" class="opt-text" value="${escapeHtml(opt.text)}" placeholder="选项 ${idx + 1}" maxlength="40" />
         <input type="range" class="opt-weight" min="${MIN_PCT}" max="100" step="1" value="${pcts[idx]}" aria-label="占比滑块" ${locked ? 'disabled' : ''} />
         <span class="wnum"><input type="number" class="opt-weight-num" min="${MIN_PCT}" max="100" step="1" value="${pcts[idx]}" inputmode="numeric" aria-label="占比（百分比）" ${locked ? 'disabled' : ''} /><i class="wpct">%</i></span>
-        <button type="button" class="opt-lock ${locked ? 'locked' : ''}" aria-label="${locked ? '解锁占比' : '锁定占比'}" title="${locked ? '已锁定：改别的选项时它保持不变' : '锁定这一项占比（调别的选项时它不变）'}">${locked ? '🔒' : '🔓'}</button>
+        <button type="button" class="opt-lock ${locked ? 'locked' : ''}" aria-label="${locked ? '解锁占比' : '锁定占比'}" title="${locked ? '已锁定：改别的选项时它保持不变' : '锁定这一项占比（调别的选项时它不变）'}">${locked ? '[[zi:lock]]' : '[[zi:lock]]'}</button>
       `;
       // 删除
       row.querySelector('.opt-del').addEventListener('click', () => {
@@ -830,7 +830,7 @@
       const name = o.text || ('选项' + (i + 1));
       return `
         <div class="tally-col" data-idx="${i}">
-          <div class="tally-medal">🥇</div>
+          <div class="tally-medal">[[zi:medal]]</div>
           <div class="tally-bar-bg">
             <div class="tally-bar-fill" style="background:${color};"></div>
             <div class="tally-count">0</div>
@@ -873,7 +873,7 @@
     $resetRow.style.display = 'none';
     $resultCopyBtn.style.display = 'none';
     $resultCopyBtn.classList.remove('copied');
-    $resultCopyBtn.textContent = '📋 复制结果';
+    $resultCopyBtn.textContent = '[[zi:copy]] 复制结果';
     clearHighlights();
     $result.innerHTML = '&nbsp;';
 
@@ -894,8 +894,8 @@
       $spinHintText.textContent = '';
       highlightSlice(winnerIdx);
       const name = state.options[winnerIdx].text || ('选项' + (winnerIdx + 1));
-      $result.innerHTML = `🎉 选中：<span class="winner-name">${escapeHtml(name)}</span>`;
-      resultText = `🎉 抽中：${name}`;
+      $result.innerHTML = `[[zi:sparkle]] 选中：<span class="winner-name">${escapeHtml(name)}</span>`;
+      resultText = `[[zi:sparkle]] 抽中：${name}`;
       recordHistory({
         ts: Date.now(),
         winner: name,
@@ -964,11 +964,11 @@
       highlightSlice(winnerIdx);
       const name = state.options[winnerIdx].text || ('选项' + (winnerIdx + 1));
       if (tied) {
-        $result.innerHTML = `🤝 平票（${max} 票，共 ${tiedIdxs.length} 项并列），<span class="winner-name">${escapeHtml(name)}</span> 第一时间达到 → 算它赢`;
-        resultText = `🤝 平票 ${max} 票（${tiedIdxs.length} 项并列），${name} 首先到达`;
+        $result.innerHTML = `[[zi:users]] 平票（${max} 票，共 ${tiedIdxs.length} 项并列），<span class="winner-name">${escapeHtml(name)}</span> 第一时间达到 → 算它赢`;
+        resultText = `[[zi:users]] 平票 ${max} 票（${tiedIdxs.length} 项并列），${name} 首先到达`;
       } else {
-        $result.innerHTML = `🥇 <span class="winner-name">${escapeHtml(name)}</span> 拿下 ${max} / ${state.draws} 票`;
-        resultText = `🥇 ${name} 拿下 ${max} / ${state.draws} 票`;
+        $result.innerHTML = `[[zi:medal]] <span class="winner-name">${escapeHtml(name)}</span> 拿下 ${max} / ${state.draws} 票`;
+        resultText = `[[zi:medal]] ${name} 拿下 ${max} / ${state.draws} 票`;
       }
       recordHistory({
         ts: Date.now(),
@@ -1012,7 +1012,7 @@
     $resetRow.style.display = 'none';
     $resultCopyBtn.style.display = 'none';
     $resultCopyBtn.classList.remove('copied');
-    $resultCopyBtn.textContent = '📋 复制结果';
+    $resultCopyBtn.textContent = '[[zi:copy]] 复制结果';
     $tallyPnl.classList.remove('show');
     $spinHintText.textContent = '';
     $skipBtn.style.display = 'none';
@@ -1203,10 +1203,10 @@
     if (!state.lastResultText) return;
     try {
       await navigator.clipboard.writeText(state.lastResultText);
-      $resultCopyBtn.textContent = '✓ 已复制';
+      $resultCopyBtn.textContent = '[[zi:check]] 已复制';
       $resultCopyBtn.classList.add('copied');
       setTimeout(() => {
-        $resultCopyBtn.textContent = '📋 复制结果';
+        $resultCopyBtn.textContent = '[[zi:copy]] 复制结果';
         $resultCopyBtn.classList.remove('copied');
       }, 1600);
     } catch (e) {

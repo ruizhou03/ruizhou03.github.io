@@ -267,8 +267,8 @@ permalink: /toolbox/bazi/
     list-style: none; user-select: none;
   }
   details.bz-why > summary::-webkit-details-marker { display: none; }
-  details.bz-why > summary::before { content: '▸ '; }
-  details.bz-why[open] > summary::before { content: '▾ '; }
+  details.bz-why > summary::before { content: '+ '; }
+  details.bz-why[open] > summary::before { content: '− '; }
   details.bz-why .why-body {
     font-size: 0.82rem; line-height: 1.7; color: var(--color-muted);
     background: var(--color-bg-warm, #faf6f0); border-radius: 8px;
@@ -420,12 +420,12 @@ permalink: /toolbox/bazi/
   <a class="bz-back" href="{{ '/toolbox/' | relative_url }}">← 返回百宝箱</a>
 
   <header class="bz-head">
-    <h1>🔮 八字排盘 · 命理推演</h1>
+    <h1>[[zi:crystal]] 八字排盘 · 命理推演</h1>
     <p class="sub">生辰八字 · 五行喜忌 · 大运流年 · 双人合婚</p>
   </header>
 
   <p class="bz-disclaimer">
-    <b>友情提示：</b>八字命理是中国传统文化与民俗，本工具仅供文化体验与<b>娱乐</b>，所有"吉凶趋势"均由固定规则自动生成，<b>不构成任何预测、医疗、投资或人生建议</b>。命运在自己手里，开心就好 🙂
+    <b>友情提示：</b>八字命理是中国传统文化与民俗，本工具仅供文化体验与<b>娱乐</b>，所有"吉凶趋势"均由固定规则自动生成，<b>不构成任何预测、医疗、投资或人生建议</b>。命运在自己手里，开心就好 [[zi:user]]
   </p>
 
   <div class="bz-tabs-wrap">
@@ -459,7 +459,7 @@ permalink: /toolbox/bazi/
       <div class="bz-cols">
         <!-- 左：按生日推算 -->
         <div class="bz-col bz-col-left">
-          <div class="bz-col-head">📅 按生日推算</div>
+          <div class="bz-col-head">[[zi:calendar]] 按生日推算</div>
 
           <div class="bz-field">
             <span class="bz-field-label">历法</span>
@@ -505,7 +505,7 @@ permalink: /toolbox/bazi/
 
         <!-- 右：已知八字直接填 -->
         <div class="bz-col bz-col-right">
-          <div class="bz-col-head">🀄 已知八字 · 直接填<small>填了的柱覆盖左边推算</small></div>
+          <div class="bz-col-head">已知八字 · 直接填<small>填了的柱覆盖左边推算</small></div>
           <div class="bz-known-grid" id="manual-pillars"></div>
           <p class="bz-known-hint">知道哪几柱就填哪几柱，留空的会用左边生日自动补齐。四柱都填了，左边生日就可以不用管（但「起运年龄」需要真实生日才能算准）。</p>
         </div>
@@ -995,7 +995,7 @@ function readBirthForm(prefix){
 }
 function showFormError(errs){
   var box=$('#form-error');
-  box.innerHTML='<b>⚠ 右边「已知八字」还没填好：</b>'+errs.map(function(e){ return '· '+e; }).join('<br>');
+  box.innerHTML='<b>[[zi:warning]] 右边「已知八字」还没填好：</b>'+errs.map(function(e){ return '· '+e; }).join('<br>');
   box.classList.add('show');
   box.scrollIntoView({behavior:'smooth',block:'center'});
 }
@@ -1058,7 +1058,7 @@ function renderResult(b,gender,f){
   if(sslist.length){
     var ssw=el('div','shensha-wrap');
     ssw.innerHTML='<div class="ss-title">命带神煞</div><div class="ss-tags">'
-      +sslist.map(function(s){ return '<span class="ss-tag'+(s.lucky?' lucky':'')+'" title="'+SHENSHA_DESC[s.name]+'"><b>'+s.name+'</b> · '+s.where+'柱'+(s.lucky?' ✦':'')+'</span>'; }).join('')
+      +sslist.map(function(s){ return '<span class="ss-tag'+(s.lucky?' lucky':'')+'" title="'+SHENSHA_DESC[s.name]+'"><b>'+s.name+'</b> · '+s.where+'柱'+(s.lucky?' [[zi:sparkle]]':'')+'</span>'; }).join('')
       +'</div>';
     var ssWhy=el('details','bz-why');
     ssWhy.innerHTML='<summary>这些神煞分别什么意思</summary><div class="why-body">'
@@ -1153,7 +1153,7 @@ function renderResult(b,gender,f){
       var why=el('details','bz-why'); why.innerHTML='<summary>展开推理过程：为什么是这个判断</summary><div class="why-body">'+pl.reasons.map(function(r){return '· '+r;}).join('<br>')+'</div>';
       decadeHost.appendChild(why);
       if(startYr!=null){
-        decadeHost.appendChild(el('div','tl-sub','▾ 这一步大运的十年，拆成逐年流年（'+startYr+'–'+(startYr+9)+'）：'));
+        decadeHost.appendChild(el('div','tl-sub','[[zi:chevron]] 这一步大运的十年，拆成逐年流年（'+startYr+'–'+(startYr+9)+'）：'));
         decadeHost.appendChild(yearTimeline(startYr,startYr+9));
       } else {
         decadeHost.appendChild(el('div','tl-sub','（没有真实生日，这步大运对不到具体年份）下面是今年起未来十年的逐年流年：'));
@@ -1169,7 +1169,7 @@ function renderResult(b,gender,f){
       node.innerHTML='<div class="dy-top"><span class="dy-gz">'+gzHTML(p.gan,p.zhi)+'</span><span class="dy-shi">'+shiShen(b.day[0],p.gan)+'</span></div>'
         +'<div class="dy-dotrow"><span class="dy-dot"></span></div>'
         +'<div class="dy-meta">'+(startA!=null?startA+'岁':((i*10)+'+岁'))+(startYr?'<br>'+startYr:'')+(isNow?'<br><b style="color:var(--color-accent)">· 现在</b>':'')+'</div>'
-        +'<div class="dy-caret">▾</div>';
+        +'<div class="dy-caret">[[zi:chevron]]</div>';
       node.addEventListener('click',function(){ selectDecade(i); });
       dyLine.appendChild(node);
     });
@@ -1196,7 +1196,7 @@ function renderResult(b,gender,f){
   var c6=el('div','bz-card');
   c6.innerHTML='<h3>可能要留意的方面 <span class="em">娱乐向温馨提示</span></h3>';
   c6.appendChild(el('p','bz-p',cautionText(an)));
-  c6.appendChild(el('p','bz-p muted','以上由五行喜忌规则自动生成，请当作传统文化里的"提个醒"，真有健康/重大决策困惑还是要找专业的人 🙂'));
+  c6.appendChild(el('p','bz-p muted','以上由五行喜忌规则自动生成，请当作传统文化里的"提个醒"，真有健康/重大决策困惑还是要找专业的人 [[zi:user]]'));
   box.appendChild(c6);
 
   box.scrollIntoView({behavior:'smooth',block:'start'});
@@ -1204,7 +1204,7 @@ function renderResult(b,gender,f){
 
 function rateChip(label){
   var c=label==='吉'?'#3a7d4e':(label==='凶'?'#c0504d':'#b0892f');
-  var t=label==='吉'?'◎ 较顺':(label==='凶'?'△ 宜稳':'○ 平稳');
+  var t=label==='吉'?'[[zi:check]] 较顺':(label==='凶'?'[[zi:warning]] 宜稳':'[[zi:check]] 平稳');
   return '<span class="nr-rate" style="color:'+c+'">'+t+'</span>';
 }
 function nearRow(head,label,txt){
@@ -1332,11 +1332,11 @@ function buildMini(prefixId,title){
   var scs=el('select'); SHICHEN.forEach(function(t,i){ var o=document.createElement('option'); o.value=i; o.textContent=t; scs.appendChild(o); }); scs.value=6;
   scRow.appendChild(scs); host.appendChild(scRow);
   // 已知八字直接填（折叠）
-  var manToggle=el('button','bz-mini-adv','🀄 或：已知八字，直接填四柱 ›');
+  var manToggle=el('button','bz-mini-adv','或：已知八字，直接填四柱 +');
   host.appendChild(manToggle);
   var manBox=el('div','bz-mini-manual'); host.appendChild(manBox);
   buildPillarPickers(manBox, clearMatchError);
-  function setManOpen(open){ manBox.classList.toggle('show',open); manToggle.innerHTML='🀄 或：已知八字，直接填四柱 '+(open?'‹':'›'); }
+  function setManOpen(open){ manBox.classList.toggle('show',open); manToggle.textContent='或：已知八字，直接填四柱 '+(open?'−':'+'); }
   manToggle.addEventListener('click',function(){ setManOpen(!manBox.classList.contains('show')); });
 
   function setState(data){
@@ -1384,7 +1384,7 @@ function sameSanhe(a,b){ return SANHE.some(function(g){ return g.indexOf(a)>=0&&
 function liuchong(a,b){ return (a+6)%12===b; }
 function showMatchError(errs){
   var box=$('#match-error');
-  box.innerHTML='<b>⚠ 八字还没填好：</b>'+errs.map(function(e){ return '· '+e; }).join('<br>');
+  box.innerHTML='<b>[[zi:warning]] 八字还没填好：</b>'+errs.map(function(e){ return '· '+e; }).join('<br>');
   box.classList.add('show'); box.scrollIntoView({behavior:'smooth',block:'center'});
 }
 function clearMatchError(){ var b=$('#match-error'); if(b) b.classList.remove('show'); }
@@ -1445,7 +1445,7 @@ $('#go-match').addEventListener('click',function(){
     p.innerHTML=badge+' '+l[2];
     c2.appendChild(p);
   });
-  c2.appendChild(el('p','bz-p muted','合婚自古是图个好彩头与相处参考，真正长久靠的还是两个人的用心。分数低也别当真，般配是磨出来的 🙂'));
+  c2.appendChild(el('p','bz-p muted','合婚自古是图个好彩头与相处参考，真正长久靠的还是两个人的用心。分数低也别当真，般配是磨出来的 [[zi:user]]'));
   box.appendChild(c2);
   box.scrollIntoView({behavior:'smooth',block:'start'});
 });

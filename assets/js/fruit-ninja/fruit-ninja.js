@@ -1287,7 +1287,7 @@
       let html = '';
 
       // Background
-      html += '<div class="fn-setting-group"><div class="fn-setting-label">🎨 背景主题</div>';
+      html += '<div class="fn-setting-group"><div class="fn-setting-label">[[zi:pencil]] 背景主题</div>';
       html += '<div class="fn-setting-seg">';
       for (const [k, v] of Object.entries(BG_PREVIEWS)) {
         html += `<button class="fn-setting-seg-btn" data-key="bg" data-val="${k}">${Bg.labels[k] || k}</button>`;
@@ -1297,7 +1297,7 @@
       html += '</div>';
 
       // Speed
-      html += '<div class="fn-setting-group"><div class="fn-setting-label">⚡ 游戏速度</div>';
+      html += '<div class="fn-setting-group"><div class="fn-setting-label">[[zi:lightning]] 游戏速度</div>';
       html += '<div class="fn-setting-seg">';
       for (const [k, v] of Object.entries(speedMap)) {
         html += `<button class="fn-setting-seg-btn" data-key="speed" data-val="${k}">${k === 'slow' ? '慢' : k === 'mid' ? '中' : '快'}</button>`;
@@ -1306,7 +1306,7 @@
       html += `<div class="fn-setting-desc" id="fnSpeedDesc"></div></div>`;
 
       // Quality
-      html += '<div class="fn-setting-group"><div class="fn-setting-label">🖥 画质档位</div>';
+      html += '<div class="fn-setting-group"><div class="fn-setting-label">[[zi:monitor]] 画质档位</div>';
       html += '<div class="fn-setting-seg">';
       for (const [k, v] of Object.entries(PERF_LABELS)) {
         html += `<button class="fn-setting-seg-btn" data-key="perf" data-val="${k}">${k === 'auto' ? '自动' : k === 'high' ? '高' : k === 'med' ? '中' : '低'}</button>`;
@@ -1688,7 +1688,7 @@
           state.slowMoUntil = until;
           state.slowMoFactor = Math.min(state.slowMoFactor || 1, 0.78);
         }
-        showPopup(LOG_W / 2, LOG_H * 0.24, '🎆 来了！', '#ff90d0', true);
+        showPopup(LOG_W / 2, LOG_H * 0.24, '来了！', '#ff90d0', true);
       }
       this.nextSpawnAt = now + (this.act === 'Calm' ? 700 : 250);
     },
@@ -2117,7 +2117,7 @@
     if (state.mode === 'endless') {
       state.lives -= 1;
       updateHud();
-      showPopup(LOG_W / 2, LOG_H * 0.4, '💥 炸弹 -1 命', '#ff7878', true);
+      showPopup(LOG_W / 2, LOG_H * 0.4, '炸弹 -1 命', '#ff7878', true);
       if (state.lives <= 0) setTimeout(() => endRun('boom'), 400);
       return;
     }
@@ -2137,9 +2137,9 @@
     // 每过 5 阶里程碑回 1 命（最多 3）
     if (state.stage % 5 === 1 && state.stage > 1 && state.lives < 3) {
       state.lives += 1;
-      lifeMsg = ' · ❤+1';
+      lifeMsg = ' · 生命 +1';
     }
-    showPopup(LOG_W / 2, LOG_H * 0.30, '🔥 STAGE ' + state.stage, '#ff9a44', true);
+    showPopup(LOG_W / 2, LOG_H * 0.30, 'STAGE ' + state.stage, '#ff9a44', true);
     showPopup(LOG_W / 2, LOG_H * 0.30 + 50, '难度提升 +100' + lifeMsg, '#fff');
     updateHud();
   }
@@ -2631,7 +2631,7 @@
       bind.timer.textContent = state.timeLeft.toFixed(1);
     }
     if (state.mode === 'arcade' || state.mode === 'endless') {
-      bind.lives.textContent = '❤'.repeat(state.lives) + '🤍'.repeat(Math.max(0, 3 - state.lives));
+      bind.lives.textContent = '[[zi:heart]]'.repeat(state.lives) + '[[zi:heart]]'.repeat(Math.max(0, 3 - state.lives));
     }
     if (state.mode === 'endless') {
       bind.stage.textContent = String(state.stage);
@@ -2733,7 +2733,7 @@
     hudStage.hidden = mode !== 'endless';
     bind.score.textContent = '0';
     bind.timer.textContent = ((mode === 'comborush') ? 90 : 60).toFixed(1);
-    bind.lives.textContent = '❤❤❤';
+    bind.lives.textContent = '[[zi:heart]][[zi:heart]][[zi:heart]]';
     bind.stage.textContent = '1';
     hudCombo.classList.add('hidden');
 
@@ -2753,7 +2753,7 @@
     cancelAnimationFrame(rafId);
 
     let title = '时间到';
-    if (reason === 'boom') title = state.mode === 'endless' ? '撑住了，但还是炸了 💥' : '炸弹被切到了！';
+    if (reason === 'boom') title = state.mode === 'endless' ? '撑住了，但还是炸了 [[zi:warning]]' : '炸弹被切到了！';
     else if (reason === 'lives') title = state.mode === 'endless' ? `撑到 Stage ${state.stage}！` : '漏切太多';
     else if (reason === 'manual') title = '本局结束';
 
@@ -3060,12 +3060,26 @@
     drawSlash('rgba(255, 255, 255, 0.95)', minDim * 0.004);
     ctx2.restore();
 
-    // 中心 🍉
-    ctx2.fillStyle = '#fff';
-    ctx2.font = `${minDim * 0.18}px Georgia, serif`;
-    ctx2.textAlign = 'center';
-    ctx2.textBaseline = 'middle';
-    ctx2.fillText('🍉', sunCx, sunCy);
+    // 中心使用获批的几何柑橘切面，不依赖平台 Emoji 字体。
+    const citrusR = minDim * 0.075;
+    ctx2.save();
+    ctx2.strokeStyle = '#fff';
+    ctx2.lineWidth = Math.max(1.5, minDim * 0.004);
+    ctx2.beginPath();
+    ctx2.arc(sunCx, sunCy, citrusR, 0, Math.PI * 2);
+    ctx2.stroke();
+    for (let segment = 0; segment < 4; segment++) {
+      const a = segment * Math.PI / 2;
+      ctx2.beginPath();
+      ctx2.moveTo(sunCx - Math.cos(a) * citrusR, sunCy - Math.sin(a) * citrusR);
+      ctx2.lineTo(sunCx + Math.cos(a) * citrusR, sunCy + Math.sin(a) * citrusR);
+      ctx2.stroke();
+    }
+    ctx2.beginPath();
+    ctx2.moveTo(sunCx - citrusR * 1.2, sunCy + citrusR * 1.2);
+    ctx2.lineTo(sunCx + citrusR * 1.2, sunCy - citrusR * 1.2);
+    ctx2.stroke();
+    ctx2.restore();
   }
 
   function getSettlementOpts() {
@@ -3075,7 +3089,7 @@
       kind: 'single',
       gameId: 'fruit-ninja',
       title: '水果忍者',
-      emoji: '🍉',
+      emoji: '[[zi:citrus-cut]]',
       nick: GamesShell.Identity.getNick(),
       score: getSubmitScore(),
       scoreLabel: mode === 'zen' ? '最 高 连 击 × 100' : '本 局 得 分',
@@ -3107,7 +3121,7 @@
       lbWidget = GamesShell.Leaderboard.mount({
         container: document.getElementById('lb-mount'),
         gameId: 'fruit-ninja',
-        title: '🏆 水果忍者排行榜',
+        title: '[[zi:trophy]] 水果忍者排行榜',
         scoreFormatter: fmtScore,
         getCurrentNick: () => GamesShell.Identity.getNick(),
         getSplit: () => state.mode || 'classic',
@@ -3125,7 +3139,7 @@
       GamesShell.Comments.mount({
         container: document.getElementById('cm-mount'),
         path: '/toolbox/fruit-ninja/',
-        title: '💬 来玩玩交流',
+        title: '[[zi:comment]] 来玩玩交流',
         intro: '聊聊你的最高分、最长连击，或者哪种模式最上头 ~',
         placeholder: '说点什么 ~',
       });

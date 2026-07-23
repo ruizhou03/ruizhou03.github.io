@@ -16,8 +16,8 @@ permalink: /toolbox/solitaire/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 
   .so-rank-row {
@@ -264,7 +264,7 @@ permalink: /toolbox/solitaire/
 
 <div class="so-wrap">
   <header>
-    <h1><span aria-hidden="true">🃏</span> 接龙纸牌</h1>
+    <h1><span aria-hidden="true">[[zi:cards]]</span> 接龙纸牌</h1>
     <div class="sub">经典 Klondike — 把四花色从 A 摞到 K，越快越好</div>
   </header>
 
@@ -285,9 +285,9 @@ permalink: /toolbox/solitaire/
 
   <div class="so-controls">
     <button class="so-btn" id="soUndoBtn"><span aria-hidden="true">↶</span> 撤销</button>
-    <button class="so-btn" id="soHintBtn"><span aria-hidden="true">💡</span> 提示</button>
-    <button class="so-btn primary" id="soAutoBtn"><span aria-hidden="true">⤴</span> 自动收牌</button>
-    <button class="so-btn" id="soNewBtn"><span aria-hidden="true">🔄</span> 重新发牌</button>
+    <button class="so-btn" id="soHintBtn"><span aria-hidden="true">[[zi:bulb]]</span> 提示</button>
+    <button class="so-btn primary" id="soAutoBtn"><span aria-hidden="true">[[zi:upload]]</span> 自动收牌</button>
+    <button class="so-btn" id="soNewBtn"><span aria-hidden="true">[[zi:refresh]]</span> 重新发牌</button>
   </div>
 
   <div class="so-table-wrap" id="soTableWrap">
@@ -311,7 +311,7 @@ permalink: /toolbox/solitaire/
     </div>
 
     <div class="so-win-overlay" id="soWinOverlay">
-      <div style="font-size:2.6rem;" aria-hidden="true">🎉</div>
+      <div style="font-size:2.6rem;" aria-hidden="true">[[zi:sparkle]]</div>
       <h2>通关啦！</h2>
       <div class="so-win-stats" id="soWinStats"></div>
       <button class="so-btn primary" id="soWinNewBtn">再来一局</button>
@@ -320,7 +320,7 @@ permalink: /toolbox/solitaire/
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="soPgo">
       <div class="gs-pgo-view active" id="soPgoMain">
-        <div class="gs-pgo-icon" aria-hidden="true">🃏</div>
+        <div class="gs-pgo-icon" aria-hidden="true">[[zi:cards]]</div>
         <h2 class="gs-pgo-title">接龙纸牌</h2>
         <div class="gs-pgo-subtitle">点牌选中，再点目标牌堆移动 · 越快越好</div>
         <div class="gs-pgo-highscore">
@@ -332,14 +332,14 @@ permalink: /toolbox/solitaire/
           <button class="gs-pgo-mode-tab" data-value="draw3">翻 3 张</button>
         </div>
         <div class="gs-pgo-mode-desc" id="soPgoModeDesc">翻 1 张：每次从牌库翻一张到弃牌堆，较易。</div>
-        <button class="gs-pgo-start-btn" id="soPgoStartBtn"><span aria-hidden="true">▶</span> 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="soPgoStartBtn"><span aria-hidden="true">[[zi:play]]</span> 开始游戏</button>
       </div>
       <div class="gs-pgo-view" id="soPgoResume">
-        <div class="gs-pgo-icon" aria-hidden="true">👋</div>
+        <div class="gs-pgo-icon" aria-hidden="true">[[zi:user]]</div>
         <h2 class="gs-pgo-title">上次还没玩完</h2>
         <div class="gs-pgo-resume-summary" id="soPgoResumeSummary"></div>
-        <button class="gs-pgo-start-btn" id="soPgoResumeContinueBtn"><span aria-hidden="true">▶</span> 继续上次</button>
-        <button class="gs-pgo-start-btn" id="soPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;"><span aria-hidden="true">🔄</span> 重新发牌</button>
+        <button class="gs-pgo-start-btn" id="soPgoResumeContinueBtn"><span aria-hidden="true">[[zi:play]]</span> 继续上次</button>
+        <button class="gs-pgo-start-btn" id="soPgoResumeNewBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);margin-top:0.5rem;"><span aria-hidden="true">[[zi:refresh]]</span> 重新发牌</button>
       </div>
     </div>
   </div>
@@ -379,7 +379,7 @@ permalink: /toolbox/solitaire/
   const SAVE_KEY = 'tool.solitaire.savestate.v1';
 
   const SUITS = ['S', 'H', 'D', 'C'];                 // 黑桃/红心/方块/梅花
-  const SUIT_SYM = { S: '♠', H: '♥', D: '♦', C: '♣' };
+  const SUIT_SYM = { S: '[[zi:cards]]', H: '[[zi:cards]]', D: '[[zi:cards]]', C: '[[zi:cards]]' };
   const RED = { H: true, D: true, S: false, C: false };
   const RANK_STR = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K' };
   const MODE_DESC = {
@@ -727,7 +727,7 @@ permalink: /toolbox/solitaire/
     } else {
       const mark = document.createElement('div');
       mark.className = 'so-foundation-mark';
-      mark.textContent = state.waste.length ? '↻' : '○';
+      mark.textContent = state.waste.length ? '[[zi:refresh]]' : '[[zi:check]]';
       stockEl.appendChild(mark);
     }
     const stockHit = document.createElement('div');
@@ -1092,7 +1092,7 @@ permalink: /toolbox/solitaire/
     const h = findHint();
     if (!h) {
       hintBtn.textContent = '无法走牌';
-      setTimeout(() => { hintBtn.innerHTML = '<span aria-hidden="true">💡</span> 提示'; }, 1400);
+      setTimeout(() => { hintBtn.innerHTML = '<span aria-hidden="true">[[zi:bulb]]</span> 提示'; }, 1400);
       return;
     }
     const { from, to } = h;
@@ -1343,7 +1343,7 @@ permalink: /toolbox/solitaire/
     soLbWidget = GamesShell.Leaderboard.mount({
       container: document.getElementById('so-lb-mount'),
       gameId: 'solitaire',
-      title: '🏆 接龙纸牌 排行榜',
+      title: '[[zi:trophy]] 接龙纸牌 排行榜',
       scoreAsc: true,
       scoreFormatter: v => fmtTime(Number(v)),
       getCurrentNick: () => GamesShell.Identity.getNick(),
@@ -1356,7 +1356,7 @@ permalink: /toolbox/solitaire/
     GamesShell.Comments.mount({
       container: document.getElementById('so-cm-mount'),
       path: '/toolbox/solitaire/',
-      title: '💬 牌友交流',
+      title: '[[zi:comment]] 牌友交流',
       intro: '晒晒你的最快通关时间，聊聊翻 3 张的破局思路 ~',
       placeholder: '聊聊你的接龙心得 ~',
     });

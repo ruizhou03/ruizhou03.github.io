@@ -29,7 +29,7 @@ inputs:
       <a class="yearly-card{% if _has_cover %} yearly-card--cover{% endif %}{% if _has_age %} yearly-card--age{% endif %}" href="{{ post.url | relative_url }}" data-url="{{ post.url | relative_url }}" data-hidden="{% if post.hidden %}true{% else %}false{% endif %}" data-trashed="{% if post.trashed %}true{% else %}false{% endif %}" data-path="{{ post.path }}">
         <div class="yearly-card-banner"
           {%- if _has_cover %} style="background-image: url('{{ post.cover | relative_url }}'); background-position: {{ post.cover_position | default: 'center' }};"{% endif %}>
-          <span class="yearly-deco">✦</span>
+          <span class="yearly-deco">[[zi:sparkle]]</span>
           {% if _has_age %}
             <span class="yearly-age">{{ post.age }}</span>
             <div class="yearly-year-frame">

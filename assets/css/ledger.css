@@ -215,12 +215,38 @@ body.lg-modal-open { overflow: hidden; }
 .lg-cat-tabs button.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
 .lg-cat-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--color-border); }
 .lg-cat-item-e { font-size: 1.2rem; }
+.lg-row-mark, .lg-cat-item-rule {
+  display: block;
+  width: 3px;
+  height: 1.9rem;
+  align-self: center;
+  justify-self: center;
+  border-radius: 2px;
+  background: var(--color-highlight);
+}
+.lg-cat-item-rule { height: 1.45rem; }
 .lg-cat-item-n { flex: 1; color: var(--color-ink); }
 .lg-cat-del { font: inherit; font-size: 0.78rem; background: none; border: none; color: var(--lg-exp); cursor: pointer; }
 .lg-cat-add { display: flex; gap: 0.4rem; margin-top: 0.8rem; }
-.lg-cat-emoji-in { width: 3rem !important; text-align: center; }
 .lg-cat-add input { font: inherit; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-bg); color: var(--color-ink); }
 .lg-cat-add input:nth-child(2) { flex: 1; }
+.lg-icon-picker-row { margin-top: 0.8rem; }
+.lg-icon-picker-label { display: block; margin-bottom: 0.4rem; font-size: 0.78rem; color: var(--color-muted); }
+.lg-icon-picker { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.lg-icon-picker button {
+  display: inline-grid; place-items: center;
+  width: 2.25rem; height: 2.25rem; padding: 0;
+  border: 1px solid var(--color-border); border-radius: 0.55rem;
+  color: var(--color-muted); background: var(--color-bg);
+  cursor: pointer;
+}
+.lg-icon-picker button:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.lg-icon-picker button.active {
+  color: var(--color-accent); border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg));
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+.lg-icon-picker .zi-icon { width: 1.15rem; height: 1.15rem; }
 
 /* 备份/导入 */
 .lg-io-btns { display: flex; gap: 0.6rem; margin: 0.8rem 0; }

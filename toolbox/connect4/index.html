@@ -138,33 +138,33 @@ permalink: /toolbox/connect4/
     color: var(--color-muted); font-weight: 500;
     list-style: none;
   }
-  details.about summary::before { content: '▸ '; transition: 0.2s; }
-  details[open].about summary::before { content: '▾ '; }
+  details.about summary::before { content: '+ '; transition: 0.2s; }
+  details[open].about summary::before { content: '− '; }
   details.about p { margin: 0.6rem 0; }
 </style>
 
 <div class="connect4-wrap">
   <header>
-    <h1>🔴 四子棋</h1>
+    <h1>[[zi:warning]] 四子棋</h1>
     <div class="sub">重力四连 — 横、竖、斜任一方向连成四子者胜</div>
   </header>
 
   <div class="c4-controls c4-difficulty-row" id="c4DifficultyRow" hidden>
     <span class="c4-row-label">难度</span>
     <div class="c4-mode-tabs" id="c4DifficultyTabs">
-      <button class="c4-mode-tab" data-diff="easy">🌱 新手</button>
-      <button class="c4-mode-tab active" data-diff="normal">🙂 普通</button>
-      <button class="c4-mode-tab" data-diff="hard">🔥 高手</button>
+      <button class="c4-mode-tab" data-diff="easy">[[zi:sprout]] 新手</button>
+      <button class="c4-mode-tab active" data-diff="normal">[[zi:user]] 普通</button>
+      <button class="c4-mode-tab" data-diff="hard">[[zi:flame]] 高手</button>
     </div>
   </div>
 
   <div class="c4-controls">
-    <button class="c4-btn" id="c4PauseBtn" hidden>⏸ 暂停</button>
-    <button class="c4-btn" id="c4NewBtn">🔄 重新开始</button>
+    <button class="c4-btn" id="c4PauseBtn" hidden>[[zi:pause]] 暂停</button>
+    <button class="c4-btn" id="c4NewBtn">[[zi:refresh]] 重新开始</button>
   </div>
 
   <div class="c4-statusbar">
-    <div class="c4-turn" id="c4Turn">🔴 你先手</div>
+    <div class="c4-turn" id="c4Turn">[[zi:warning]] 你先手</div>
     <div class="c4-tally">
       <span>胜 <b id="c4TallyW">0</b></span>
       <span>负 <b id="c4TallyL">0</b></span>
@@ -179,13 +179,13 @@ permalink: /toolbox/connect4/
       <button class="c4-btn" id="c4OvBtn">再来一局</button>
     </div>
     <div class="c4-overlay c4-paused-overlay" id="c4PausedOverlay">
-      <h2>⏸ 已暂停</h2>
-      <button class="c4-btn" id="c4ResumeBtn">▶ 继续</button>
+      <h2>[[zi:pause]] 已暂停</h2>
+      <button class="c4-btn" id="c4ResumeBtn">[[zi:play]] 继续</button>
     </div>
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="c4PreGameOverlay">
       <div class="gs-pgo-view active" id="c4PgoViewMain">
-        <div class="gs-pgo-icon">🔴🟡</div>
+        <div class="gs-pgo-icon">[[zi:warning]][[zi:user]]</div>
         <h2 class="gs-pgo-title">四子棋</h2>
         <div class="gs-pgo-subtitle">点击一列让棋子落下 · 先连成四子者胜</div>
         <div class="gs-pgo-mode-picker" id="c4PgoDiffPicker">
@@ -194,12 +194,12 @@ permalink: /toolbox/connect4/
           <button class="gs-pgo-mode-tab" data-value="hard">高手</button>
         </div>
         <div class="c4-pgo-stat" id="c4PgoStat">--</div>
-        <button class="gs-pgo-start-btn" id="c4PgoStartBtn">▶ 开始游戏</button>
+        <button class="gs-pgo-start-btn" id="c4PgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
     </div>
   </div>
 
-  <div class="c4-help">点击某一列落子 · 你执 🔴 红、先手 · AI 执 🟡 黄</div>
+  <div class="c4-help">点击某一列落子 · 你执 [[zi:warning]] 红、先手 · AI 执 [[zi:user]] 黄</div>
 
   <details class="about">
     <summary>游戏规则</summary>
@@ -322,17 +322,17 @@ permalink: /toolbox/connect4/
 
   function updateStatus() {
     if (!state.started) {
-      turnEl.textContent = '🔴 你先手';
+      turnEl.textContent = '[[zi:warning]] 你先手';
     } else if (state.paused) {
-      turnEl.textContent = '⏸ 已暂停';
+      turnEl.textContent = '[[zi:pause]] 已暂停';
     } else if (state.over) {
       turnEl.textContent = !state.winCells ? '— 平局 —'
-        : (state.winCells.who === HUMAN ? '🔴 你赢了！' : '🟡 AI 胜');
+        : (state.winCells.who === HUMAN ? '[[zi:warning]] 你赢了！' : '[[zi:user]] AI 胜');
     } else if (state.aiThinking || state.anim) {
       turnEl.textContent = state.turn === AI || (state.anim && state.anim.who === AI)
-        ? '🤖 AI 思考中…' : '🔴 落子中…';
+        ? '[[zi:bot]] AI 思考中…' : '[[zi:warning]] 落子中…';
     } else {
-      turnEl.textContent = state.turn === HUMAN ? '🔴 轮到你' : '🟡 AI 回合';
+      turnEl.textContent = state.turn === HUMAN ? '[[zi:warning]] 轮到你' : '[[zi:user]] AI 回合';
     }
     const t = curTally();
     tallyW.textContent = t.w;
@@ -345,7 +345,7 @@ permalink: /toolbox/connect4/
 
     difficultyRow.hidden = !state.started;
     pauseBtn.hidden = !state.started;
-    pauseBtn.textContent = state.paused ? '▶ 继续' : '⏸ 暂停';
+    pauseBtn.textContent = state.paused ? '[[zi:play]] 继续' : '[[zi:pause]] 暂停';
     pauseBtn.disabled = state.over || !state.started;
     pausedOverlay.classList.toggle('show', state.paused && !state.over);
   }
@@ -575,7 +575,7 @@ permalink: /toolbox/connect4/
       if (who === HUMAN) { t.w++; c4LastResult = 'win'; }
       else { t.l++; c4LastResult = 'lose'; }
       persist();
-      ovTitle.textContent = who === HUMAN ? '🎉 你赢了！' : '🤖 AI 获胜';
+      ovTitle.textContent = who === HUMAN ? '[[zi:sparkle]] 你赢了！' : '[[zi:bot]] AI 获胜';
       overlay.classList.add('show');
       if (who === HUMAN) c4TryAutoSubmit();
       if (c4SettleBtn) c4SettleBtn.setEnabled(true);
@@ -896,7 +896,7 @@ permalink: /toolbox/connect4/
       kind: 'duel',
       gameId: 'connect4',
       title: '四子棋',
-      emoji: '🔴',
+      emoji: '[[zi:warning]]',
       nick: GamesShell.Identity.getNick() || '匿名',
       opponent: 'vs AI · ' + (C4_DIFF_LABEL[state.difficulty] || state.difficulty),
       result: c4LastResult,
@@ -953,14 +953,14 @@ permalink: /toolbox/connect4/
     c4WlbWidget = GamesShell.WinsLeaderboard.mount({
       container: document.getElementById('c4-wlb-mount'),
       gameId: 'connect4',
-      title: '🏆 四子棋 战绩榜',
+      title: '[[zi:trophy]] 四子棋 战绩榜',
       unit: '胜',
       getCurrentNick: () => GamesShell.Identity.getNick(),
     });
     GamesShell.Comments.mount({
       container: document.getElementById('c4-cm-mount'),
       path: '/toolbox/connect4/',
-      title: '💬 棋友交流',
+      title: '[[zi:comment]] 棋友交流',
       intro: '聊聊你击败 AI 的开局套路、决胜一手 ~',
       placeholder: '聊聊你的四子棋心得 ~',
     });
