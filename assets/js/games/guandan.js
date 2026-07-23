@@ -13,6 +13,10 @@
   // 联机会话（房间 token/code/playerId）。提到顶部声明，使启动期 maybeResumeOnLoad
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
+  const RULES_VERSION = 'gd-huaian-2025-site-v1';
+  const PROTOCOL_VERSION = 'guandan-protocol-v2';
+  const SAVE_SCHEMA_VERSION = 2;
+  const ROOM_SCHEMA_VERSION = 2;
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
   const GD_BUILD = '2026.06.23.audio';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
@@ -175,20 +179,21 @@
   }
 
   // 对外的 classify：保证返回的 combo 一定带 cards 字段（多处依赖 combo.cards）。
-  function classify(cards, level) {
-    const cb = classifyRaw(cards, level);
+  function classify(cards, level, context) {
+    const cb = classifyRaw(cards, level, context);
     if (cb && !cb.cards) cb.cards = cards.slice();
     return cb;
   }
 
   // 判定并返回该组合的牌型（取最强解读）。cards 不可为空。
-  function classifyRaw(cards, level) {
+  function classifyRaw(cards, level, context) {
     if (!cards || !cards.length) return null;
     const n = cards.length;
     const tg = tally(cards, level);
     const { counts, wild } = tg;
     const totalJ = tg.bigJ.length + tg.smallJ.length;
     const distinct = [...counts.keys()];
+    const contextType = typeof context === 'string' ? context : (context && context.type);
 
     // ===== 四王炸 =====
     if (n === 4 && totalJ === 4) {
@@ -217,6 +222,33 @@
         return null; // 大小王混（非四张）不成型
       }
       return null; // 王 + 普通牌：不成型（wild 不替王）
+    }
+
+    // 炸弹是物理牌的强制分类，不能借普通牌型上下文降级。
+    if (n >= 4 && distinct.length <= 1) {
+      const r = distinct.length === 1 ? distinct[0] : null;
+      if (r != null && (counts.get(r) + wild) === n) {
+        const rw = rankIdxWeight(r, level);
+        return { type: T.BOMB, len: n, key: bombStrengthN(n, rw), bombStrength: bombStrengthN(n, rw), cards };
+      }
+    }
+    if (n === 5) {
+      const sf = tryStraightFlush(cards, tg, level);
+      if (sf) return sf;
+    }
+
+    // 非炸弹的逢人配多义组合按当前出牌上下文解释；自由领出沿用默认优先级。
+    if (contextType && n === 5) {
+      let contextual = null;
+      if (contextType === T.STRAIGHT) contextual = tryStraight(tg, level, 5);
+      else if (contextType === T.TRIPLE_PAIR) contextual = tryTriplePair(tg, level);
+      if (contextual) return contextual;
+    }
+    if (contextType && n === 6) {
+      let contextual = null;
+      if (contextType === T.PAIR_STR) contextual = tryPairStraight(tg, level, 3);
+      else if (contextType === T.TRIPLE_STR) contextual = tryTripleStraight(tg, level, 2);
+      if (contextual) return contextual;
     }
 
     // ===== 不含王 =====
@@ -257,29 +289,11 @@
       return null;
     }
 
-    // ---- 4+ 同张 = 炸弹（先验证是否单一 rank） ----
-    if (n >= 4) {
-      if (distinct.length <= 1) {
-        let r = distinct.length === 1 ? distinct[0] : null;
-        if (r != null && (counts.get(r) + wild) === n) {
-          const rw = rankIdxWeight(r, level);
-          return { type: T.BOMB, len: n, key: bombStrengthN(n, rw), bombStrength: bombStrengthN(n, rw), cards };
-        }
-        if (r == null && wild === n) {
-          // 全 wild 凑炸（最多 2 张，不会到 4）→ 不可能
-          return null;
-        }
-      }
-    }
-
     // ---- 5 张：可能是 顺子 / 三带二 / 同花顺 / 5 炸 ----
     if (n === 5) {
       // 三带二
       const tp = tryTriplePair(tg, level);
       if (tp) return tp;
-      // 同花顺（5 张同花色连续）—— 优先于普通顺子（它是炸）
-      const sf = tryStraightFlush(cards, tg, level);
-      if (sf) return sf;
       // 普通顺子
       const st = tryStraight(tg, level, 5);
       if (st) return st;
@@ -771,9 +785,9 @@
     opts = opts || {};
     const res = [];
     const seenKey = new Set();
-    function consider(cards) {
+    function consider(cards, contextType) {
       if (!cards || !cards.length) return;
-      const cb = classify(cards, level);
+      const cb = classify(cards, level, contextType || (prev && prev.type));
       if (!cb) return;
       if (prev && !beats(cb, prev)) return;
       if (!prev && opts.leadType && cb.type !== opts.leadType) return;
@@ -889,7 +903,7 @@
             for (let m = 0; m < grp.miss; m++) cards.push(wilds[wi++]);
           }
         }
-        if (cards.length === groups * per) consider(cards);
+        if (cards.length === groups * per) consider(cards, type);
       }
     }
 
@@ -899,9 +913,9 @@
       for (const r of ranks) {
         const a = byRank.get(r);
         for (let sz = 4; sz <= a.length + wilds.length; sz++) {
-          if (a.length >= 4 && sz <= a.length) consider(a.slice(0, sz));
+          if (a.length >= 4 && sz <= a.length) consider(a.slice(0, sz), T.BOMB);
           else if (sz - a.length >= 1 && sz - a.length <= wilds.length && a.length >= 2)
-            consider([...a, ...wilds.slice(0, sz - a.length)]);
+            consider([...a, ...wilds.slice(0, sz - a.length)], T.BOMB);
         }
       }
       // 同花顺
@@ -923,11 +937,11 @@
             if (arr && arr.length) cards.push(arr[0]);
             else { need++; if (need > wilds.length) { cards.length = 0; break; } cards.push(wilds[need - 1]); }
           }
-          if (cards.length === 5) consider(cards);
+          if (cards.length === 5) consider(cards, T.STR_FLUSH);
         }
       }
       // 四王炸
-      if (jokers.length === 4) consider(jokers.slice());
+      if (jokers.length === 4) consider(jokers.slice(), T.JOKER_BOMB);
     }
 
     return res;
@@ -1089,9 +1103,22 @@
     if (!Array.isArray(snap.hands) || snap.hands.length !== 4) return false;
     return true;
   }
+  function migrateSessionSnapshot(input) {
+    if (!input || typeof input !== 'object') return null;
+    const snap = Object.assign({}, input);
+    const version = Number(snap.schemaVersion || snap.v || 1);
+    if (version > SAVE_SCHEMA_VERSION) return null;
+    if (snap.rulesVersion && snap.rulesVersion !== RULES_VERSION) return null;
+    snap.v = SAVE_SCHEMA_VERSION;
+    snap.schemaVersion = SAVE_SCHEMA_VERSION;
+    snap.rulesVersion = RULES_VERSION;
+    return snap;
+  }
   function buildSessionSnapshot() {
     return {
-      v: 1,
+      v: SAVE_SCHEMA_VERSION,
+      schemaVersion: SAVE_SCHEMA_VERSION,
+      rulesVersion: RULES_VERSION,
       savedAt: Date.now(),
       aiLevel: state.aiLevel,
       options: state.options,
@@ -1159,7 +1186,7 @@
     try {
       const raw = localStorage.getItem(SESSION_KEY);
       if (!raw) return null;
-      const snap = JSON.parse(raw);
+      const snap = migrateSessionSnapshot(JSON.parse(raw));
       if (!isResumableSnapshot(snap)) { clearSession(); return null; }
       return snap;
     } catch (e) { clearSession(); return null; }
@@ -2107,7 +2134,7 @@
       const level = currentLevelLabel();
       let ok = false;
       if (sel.length) {
-        const cb = classify(sel, level);
+        const cb = classify(sel, level, trick && trick.best);
         if (cb) {
           if (!trick || trick.best == null || trick.bestSeat === 0) ok = true;
           else ok = beats(cb, trick.best);
@@ -2591,7 +2618,7 @@
   // 乐观渲染我（本地座 0）的一手：立刻反映到画面，不等服务器；之后由 applyServerGameState 校准。
   function applyOptimisticMove(action, cards) {
     if (action === 'play' && Array.isArray(cards) && cards.length) {
-      const combo = classify(cards.slice(), currentLevelLabel());
+      const combo = classify(cards.slice(), currentLevelLabel(), state.trick && state.trick.best);
       if (!combo) return;   // 兜不出牌型就不乐观渲染，老老实实等服务器
       for (const c of cards) { const i = state.hands[0].indexOf(c); if (i >= 0) state.hands[0].splice(i, 1); }
       state.lastPlay[0] = combo;
@@ -3296,7 +3323,7 @@
     for (const c of hand) {
       if (isJoker(c)) continue;
       const lab = RANK_LABELS[cardRankIdx(c)];
-      const lowOk = lab !== level && ['2','3','4','5','6','7','8','9','10'].includes(lab);  // 级牌是大牌，不算小牌
+      const lowOk = ['2','3','4','5','6','7','8','9','10'].includes(lab);
       if (!lowOk) continue;
       const w = singleWeight(c, level);
       if (w < bw) { bw = w; best = c; }
@@ -3320,11 +3347,10 @@
   function isValidReturnCard(c) {
     if (isJoker(c)) return false;
     const level = currentLevelLabel();
-    // 小牌 = 点数 2~10 且【不是级牌】。级牌即便数字 ≤10，本局也是大牌（凌驾于 10 之上），不算小牌。
+    // 还贡按牌面数字判断：2~10 均可，包括当前数字级牌。
     const isLow = x => {
       if (isJoker(x)) return false;
       const rl = RANK_LABELS[cardRankIdx(x)];
-      if (rl === level) return false;
       return ['2','3','4','5','6','7','8','9','10'].includes(rl);
     };
     const handHasLow = state.hands[0].some(isLow);
@@ -4721,7 +4747,7 @@
     const sel = selectedCards();
     if (!sel.length) { toast('请先选牌'); return; }
     const level = currentLevelLabel();
-    const cb = classify(sel, level);
+    const cb = classify(sel, level, state.trick && state.trick.best);
     if (!cb) { toast('选择不成牌型'); return; }
     const trick = state.trick;
     const needBeat = trick.best != null && trick.bestSeat !== 0;
@@ -5371,7 +5397,7 @@
   }
   function _gdImportState() {
     const ta = document.getElementById('gdDbgIO'); if (!ta) return;
-    let snap; try { snap = JSON.parse(ta.value); } catch (e) { toast('JSON 解析失败'); return; }
+    let snap; try { snap = migrateSessionSnapshot(JSON.parse(ta.value)); } catch (e) { toast('JSON 解析失败'); return; }
     if (!isResumableSnapshot(snap)) { toast('局面无效（需 phase=playing/round_end + 4 家手牌）'); return; }
     _gdCloseOverlays(); _gdAiCtl.pending = null; state._testMode = false;
     restoreFromSession(snap);
@@ -5814,7 +5840,13 @@
 
   // ---- session ----
   function onlineSessionSave(s) {
-    try { localStorage.setItem(ONLINE_SESSION_KEY, JSON.stringify(s)); } catch {}
+    try {
+      localStorage.setItem(ONLINE_SESSION_KEY, JSON.stringify(Object.assign({
+        schemaVersion: SAVE_SCHEMA_VERSION,
+        rulesVersion: RULES_VERSION,
+        protocolVersion: PROTOCOL_VERSION,
+      }, s)));
+    } catch {}
   }
   function onlineSessionClear() {
     try { localStorage.removeItem(ONLINE_SESSION_KEY); } catch {}
@@ -5825,6 +5857,8 @@
       if (!raw) return null;
       const s = JSON.parse(raw);
       if (!s || !s.code || !s.token || !s.playerId) return null;
+      if (s.rulesVersion && s.rulesVersion !== RULES_VERSION) return null;
+      if (s.protocolVersion && s.protocolVersion !== PROTOCOL_VERSION) return null;
       return s;
     } catch { return null; }
   }
@@ -5835,6 +5869,11 @@
       r.error === 'room_not_found' || r.error === 'room_dissolved' ||
       r.error === 'invalid_token' || r.error === 'session_revoked' ||
       r.error === 'not_in_room');
+  }
+  function isCompatibleServerContract(srv) {
+    return !!srv && srv.rulesVersion === RULES_VERSION &&
+      srv.protocolVersion === PROTOCOL_VERSION &&
+      Number(srv.roomSchemaVersion) === ROOM_SCHEMA_VERSION;
   }
   function clearOnlineSessionLocal(message) {
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
@@ -5871,6 +5910,10 @@
         const saved = onlineSessionLoad();
         if (saved && saved.code === online.code && saved.token === online.token) tryReconnectOnline(saved);
       }, delay);
+      return;
+    }
+    if (srv && !isCompatibleServerContract(srv)) {
+      clearOnlineSessionLocal('游戏规则版本已更新，请刷新页面后重新进入房间');
       return;
     }
     if (!srv || srv.state === 'dissolved' || !srv.me) {
@@ -6011,14 +6054,26 @@
       gdSetNick(nick);
       if (onlineTab === 'create') {
         setOnlineHint('创建中…');
-        const r = await gdApi('create', { body: { nick, deviceId: gdGetDeviceId(), config: { aiLevel: state.aiLevel, options: state.options } } });
+        const r = await gdApi('create', { body: {
+          nick,
+          deviceId: gdGetDeviceId(),
+          rulesVersion: RULES_VERSION,
+          protocolVersion: PROTOCOL_VERSION,
+          config: { aiLevel: state.aiLevel, options: state.options },
+        } });
         if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
         enterRoom(r.data, nick);
       } else {
         const code = onlineEls.code.value.trim();
         if (!/^\d{4}$/.test(code)) { setOnlineHint('请输入 4 位房号', true); return; }
         setOnlineHint('加入中…');
-        const r = await gdApi('join', { body: { code, nick, deviceId: gdGetDeviceId() } });
+        const r = await gdApi('join', { body: {
+          code,
+          nick,
+          deviceId: gdGetDeviceId(),
+          rulesVersion: RULES_VERSION,
+          protocolVersion: PROTOCOL_VERSION,
+        } });
         if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
         enterRoom(r.data, nick);
       }
@@ -6032,6 +6087,10 @@
 
   // ---- enter / leave ----
   function enterRoom(joinData, nick) {
+    if (!isCompatibleServerContract(joinData)) {
+      setOnlineHint('服务器规则版本不兼容，请刷新后重试', true);
+      return;
+    }
     onlineSessionSave({
       code: joinData.code,
       token: joinData.playerToken,
@@ -6439,6 +6498,11 @@
 
   function applyServerOnlineState(srv) {
     if (!srv || !onlineState) return;
+    if (!isCompatibleServerContract(srv)) {
+      toast('服务器规则版本已更新');
+      clearOnlineSessionLocal('请刷新页面后重新进入房间');
+      return;
+    }
     // 防止"过期"的轮询响应回滚乐观状态：
     // - 乐观操作后置 onlineState._expectedVersion = lastVersion + 1（"我期望服端 version 至少这么大"）
     // - 在 POST 真的把 version 推到 _expectedVersion 之前，如果 in-flight 长轮询的 4s 超时先返回，

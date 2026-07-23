@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+const RULES_VERSION = 'gd-huaian-2025-site-v1';
+
 /*
  * 掼蛋 self-play 模拟 + AI 权重调参（coordinate descent）
  *
@@ -71,13 +73,14 @@ function tally(cards, level) {
   return { counts, wild, bigJ, smallJ, normals };
 }
 
-function classifyRaw(cards, level) {
+function classifyRaw(cards, level, context) {
   if (!cards || !cards.length) return null;
   const n = cards.length;
   const tg = tally(cards, level);
   const { counts, wild } = tg;
   const totalJ = tg.bigJ.length + tg.smallJ.length;
   const distinct = [...counts.keys()];
+  const contextType = typeof context === 'string' ? context : (context && context.type);
   if (n === 4 && totalJ === 4) return { type: T.JOKER_BOMB, len: 4, key: 99999, bombStrength: 99999, cards };
   if (totalJ > 0) {
     if (tg.normals.length === 0 && wild === 0) {
@@ -93,6 +96,29 @@ function classifyRaw(cards, level) {
       return null;
     }
     return null;
+  }
+  if (n >= 4 && distinct.length <= 1) {
+    const r = distinct.length === 1 ? distinct[0] : null;
+    if (r != null && (counts.get(r) + wild) === n) {
+      const rw = rankIdxWeight(r, level);
+      return { type: T.BOMB, len: n, key: bombStrengthN(n, rw), bombStrength: bombStrengthN(n, rw), cards };
+    }
+  }
+  if (n === 5) {
+    const sf = tryStraightFlush(cards, tg, level);
+    if (sf) { sf.cards = cards; return sf; }
+  }
+  if (contextType && n === 5) {
+    let contextual = null;
+    if (contextType === T.STRAIGHT) contextual = tryStraight(tg, level, 5);
+    else if (contextType === T.TRIPLE_PAIR) contextual = tryTriplePair(tg, level);
+    if (contextual) return contextual;
+  }
+  if (contextType && n === 6) {
+    let contextual = null;
+    if (contextType === T.PAIR_STR) contextual = tryPairStraight(tg, level, 3);
+    else if (contextType === T.TRIPLE_STR) contextual = tryTripleStraight(tg, level, 2);
+    if (contextual) return contextual;
   }
   if (n === 1) return { type: T.SINGLE, len: 1, key: singleWeight(cards[0], level), bombStrength: 0, cards };
   if (n === 2) {
@@ -111,20 +137,9 @@ function classifyRaw(cards, level) {
     }
     return null;
   }
-  if (n >= 4) {
-    if (distinct.length <= 1) {
-      const r = distinct.length === 1 ? distinct[0] : null;
-      if (r != null && (counts.get(r) + wild) === n) {
-        const rw = rankIdxWeight(r, level);
-        return { type: T.BOMB, len: n, key: bombStrengthN(n, rw), bombStrength: bombStrengthN(n, rw), cards };
-      }
-    }
-  }
   if (n === 5) {
     const tp = tryTriplePair(tg, level);
     if (tp) { tp.cards = cards; return tp; }
-    const sf = tryStraightFlush(cards, tg, level);
-    if (sf) { sf.cards = cards; return sf; }
     const st = tryStraight(tg, level, 5);
     if (st) { st.cards = cards; return st; }
     return null;
@@ -139,8 +154,8 @@ function classifyRaw(cards, level) {
   return null;
 }
 
-function classify(cards, level) {
-  const cb = classifyRaw(cards, level);
+function classify(cards, level, context) {
+  const cb = classifyRaw(cards, level, context);
   if (cb && !cb.cards) cb.cards = cards.slice();
   return cb;
 }
@@ -418,9 +433,9 @@ function decompose(hand, level) {
 function genMoves(hand, prev, level) {
   const res = [];
   const seenKey = new Set();
-  function consider(cards) {
+  function consider(cards, contextType) {
     if (!cards || !cards.length) return;
-    const cb = classify(cards, level);
+    const cb = classify(cards, level, contextType || (prev && prev.type));
     if (!cb) return;
     if (prev && !beats(cb, prev)) return;
     const k = cb.type + ':' + cb.len + ':' + cb.key + ':' + cards.slice().sort((a,b)=>a-b).join(',');
@@ -478,21 +493,50 @@ function genMoves(hand, prev, level) {
       }
     }
   }
-  // Bombs (all sizes)
+  // 炸弹（与浏览器/后端权威规则完全一致）
   for (const r of ranks) {
     const a = byRank.get(r);
-    if (a.length >= 4) {
-      for (let n = 4; n <= a.length; n++) consider(a.slice(0, n));
+    for (let size = 4; size <= a.length + wilds.length; size++) {
+      if (a.length >= 4 && size <= a.length) consider(a.slice(0, size), T.BOMB);
+      else if (size - a.length >= 1 && size - a.length <= wilds.length && a.length >= 2) {
+        consider([...a, ...wilds.slice(0, size - a.length)], T.BOMB);
+      }
     }
-    // BOMB with wild
-    if (a.length >= 3 && wilds.length >= 1) consider([...a.slice(0, 3), wilds[0]]);
   }
   // Joker bomb
-  if (jokers.length === 4) consider(jokers.slice());
+  if (jokers.length === 4) consider(jokers.slice(), T.JOKER_BOMB);
   // Straights (5 cards continuous)
   genSeq(5, 1, T.STRAIGHT, hand, prev, level, ranks, byRank, wilds, consider);
   genSeq(3, 2, T.PAIR_STR, hand, prev, level, ranks, byRank, wilds, consider);
   genSeq(2, 3, T.TRIPLE_STR, hand, prev, level, ranks, byRank, wilds, consider);
+  // 同花顺
+  const bySuitPts = [new Map(), new Map(), new Map(), new Map()];
+  for (const c of hand) {
+    if (isJoker(c) || isWild(c, level)) continue;
+    const suit = cardSuit(c);
+    const point = cardRankIdx(c) + 2;
+    if (!bySuitPts[suit].has(point)) bySuitPts[suit].set(point, []);
+    bySuitPts[suit].get(point).push(c);
+  }
+  for (let suit = 0; suit < 4; suit++) {
+    const points = bySuitPts[suit];
+    for (let start = 1; start + 4 <= 14; start++) {
+      let need = 0;
+      const cards = [];
+      for (let offset = 0; offset < 5; offset++) {
+        const point = start + offset;
+        const real = point === 1 ? 14 : point;
+        const available = points.get(real);
+        if (available && available.length) cards.push(available[0]);
+        else {
+          need++;
+          if (need > wilds.length) { cards.length = 0; break; }
+          cards.push(wilds[need - 1]);
+        }
+      }
+      if (cards.length === 5) consider(cards, T.STR_FLUSH);
+    }
+  }
   return res;
 }
 function genSeq(groups, per, type, hand, prev, level, ranks, byRank, wilds, consider) {
@@ -517,7 +561,7 @@ function genSeq(groups, per, type, hand, prev, level, ranks, byRank, wilds, cons
       if (Array.isArray(grp)) cards.push(...grp);
       else { cards.push(...grp.real); for (let m = 0; m < grp.miss; m++) cards.push(wilds[wi++]); }
     }
-    consider(cards);
+    consider(cards, type);
   }
 }
 
@@ -1400,6 +1444,7 @@ function sanity() {
 // 不影响直接 `node sim-guandan.js <cmd>` 运行（下面 CLI 用 require.main 守卫）
 // ===========================================================
 module.exports = {
+  RULES_VERSION,
   RANK_LABELS, LEVEL_SEQ,
   isJoker, jokerKind, cardSuit, cardRankIdx, singleWeight, isWild,
   buildDeck, shuffle, tally,

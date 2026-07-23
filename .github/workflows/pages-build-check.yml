@@ -22,6 +22,11 @@ jobs:
       - name: Test Doudizhu rules and UI invariants
         run: node --test tools/doudizhu/engine.test.mjs
 
+      - name: Guandan release contracts
+        run: |
+          node scripts/test-guandan-p0.mjs
+          node scripts/test-guandan-differential.mjs --count=10000
+
       - name: Trial build (mirrors GitHub Pages exactly)
         uses: actions/jekyll-build-pages@v1
         with:
