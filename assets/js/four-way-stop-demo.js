@@ -145,18 +145,20 @@
   }
 
   function carPoint(approach, distance, center) {
-    if (approach === "N") return [center, 96 - distance];
-    if (approach === "S") return [center, 164 + distance];
-    if (approach === "E") return [center + 34 + distance, 130];
-    return [center - 34 - distance, 130];
+    var laneOffset = 11;
+    if (approach === "N") return [center - laneOffset, 96 - distance];
+    if (approach === "S") return [center + laneOffset, 164 + distance];
+    if (approach === "E") return [center + 34 + distance, 130 - laneOffset];
+    return [center - 34 - distance, 130 + laneOffset];
   }
 
   function moverPoint(car, center) {
     var p = car.progress;
-    if (car.approach === "N") return [center, 96 + p * 68];
-    if (car.approach === "S") return [center, 164 - p * 68];
-    if (car.approach === "E") return [center + 34 - p * 68, 130];
-    return [center - 34 + p * 68, 130];
+    var laneOffset = 11;
+    if (car.approach === "N") return [center - laneOffset, 96 + p * 68];
+    if (car.approach === "S") return [center + laneOffset, 164 - p * 68];
+    if (car.approach === "E") return [center + 34 - p * 68, 130 - laneOffset];
+    return [center - 34 + p * 68, 130 + laneOffset];
   }
 
   function drawCar(ctx, x, y, approach, color, alpha) {
@@ -188,13 +190,37 @@
     ctx.strokeStyle = palette.background;
     ctx.lineWidth = 3;
     ctx.strokeRect(158, 108, 44, 44);
+
+    ctx.strokeStyle = palette.lane;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(158, 102); ctx.lineTo(180, 102); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(180, 158); ctx.lineTo(202, 158); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(208, 108); ctx.lineTo(208, 130); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(152, 130); ctx.lineTo(152, 152); ctx.stroke();
+
+    function laneArrow(x, y, dx, dy) {
+      var sideX = -dy * 4;
+      var sideY = dx * 4;
+      ctx.fillStyle = palette.lane;
+      ctx.beginPath();
+      ctx.moveTo(x + dx * 7, y + dy * 7);
+      ctx.lineTo(x - dx * 5 + sideX, y - dy * 5 + sideY);
+      ctx.lineTo(x - dx * 5 - sideX, y - dy * 5 - sideY);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    laneArrow(169, 54, 0, 1);
+    laneArrow(191, 206, 0, -1);
+    laneArrow(290, 119, -1, 0);
+    laneArrow(70, 141, 1, 0);
   }
 
   function drawQueues(ctx, state, palette, accent) {
     approaches.forEach(function (key) {
       var visible = state.queues[key].slice(0, 7);
       visible.forEach(function (_car, index) {
-        var point = carPoint(key, 13 + index * 16, 180);
+        var point = carPoint(key, index * 16, 180);
         drawCar(ctx, point[0], point[1], key, accent, Math.max(0.38, 1 - index * 0.08));
       });
       if (state.queues[key].length > 7) {
@@ -214,21 +240,27 @@
   function drawStop(palette) {
     drawRoad(stopCtx, palette);
     drawQueues(stopCtx, stopState, palette, palette.stop);
-    stopCtx.fillStyle = palette.stop;
-    stopCtx.beginPath();
-    for (var i = 0; i < 8; i++) {
-      var angle = Math.PI / 8 + i * Math.PI / 4;
-      var x = 215 + Math.cos(angle) * 12;
-      var y = 91 + Math.sin(angle) * 12;
-      if (i === 0) stopCtx.moveTo(x, y); else stopCtx.lineTo(x, y);
+
+    function stopSign(x0, y0) {
+      stopCtx.fillStyle = palette.stop;
+      stopCtx.beginPath();
+      for (var i = 0; i < 8; i++) {
+        var angle = Math.PI / 8 + i * Math.PI / 4;
+        var x = x0 + Math.cos(angle) * 7;
+        var y = y0 + Math.sin(angle) * 7;
+        if (i === 0) stopCtx.moveTo(x, y); else stopCtx.lineTo(x, y);
+      }
+      stopCtx.closePath();
+      stopCtx.fill();
     }
-    stopCtx.closePath(); stopCtx.fill();
-    stopCtx.fillStyle = palette.background;
-    stopCtx.font = "bold 7px sans-serif";
-    stopCtx.textAlign = "center";
-    stopCtx.fillText("STOP", 215, 94);
+
+    stopSign(147, 98);
+    stopSign(213, 162);
+    stopSign(212, 97);
+    stopSign(148, 163);
     stopCtx.fillStyle = palette.text;
     stopCtx.font = "12px sans-serif";
+    stopCtx.textAlign = "center";
     stopCtx.fillText(stopState.lastChoice || "按到达顺序逐轮判断", 180, 246);
   }
 

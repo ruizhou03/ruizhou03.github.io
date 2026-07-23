@@ -342,15 +342,24 @@ def make_delay_figure(rows: list[dict[str, object]]) -> None:
             for r in subset:
                 if r["mode"] != mode:
                     continue
+                mean_delay = float(r["mean_delay"])
+                ci_high = float(r["ci_high"])
+                ci_low = float(r["ci_low"])
+                if mean_delay < 0 or mean_delay > ymax:
+                    continue
                 x = x0 + (int(r["total_flow"]) - 200) / 2400 * panel_w
-                y = top + panel_h - min(ymax, float(r["mean_delay"])) / ymax * panel_h
-                yu = top + panel_h - min(ymax, float(r["ci_high"])) / ymax * panel_h
-                yl = top + panel_h - min(ymax, float(r["ci_low"])) / ymax * panel_h
-                pts.append((x, y)); upper.append((x, yu)); lower.append((x, yl))
+                y = top + panel_h - mean_delay / ymax * panel_h
+                pts.append((x, y))
+                if 0 <= ci_low <= ci_high <= ymax:
+                    yu = top + panel_h - ci_high / ymax * panel_h
+                    yl = top + panel_h - ci_low / ymax * panel_h
+                    upper.append((x, yu)); lower.append((x, yl))
             polygon = upper + list(reversed(lower))
             fill_class = "awsc-fill" if mode == "AWSC" else "signal-fill"
-            chunks.append(f'<path d="{line_path(polygon)} Z" class="{fill_class}" opacity="0.12"/>')
-            chunks.append(f'<path d="{line_path(pts)}" class="{css}" stroke-width="2.5"/>')
+            if len(upper) >= 2:
+                chunks.append(f'<path d="{line_path(polygon)} Z" class="{fill_class}" opacity="0.12"/>')
+            if pts:
+                chunks.append(f'<path d="{line_path(pts)}" class="{css}" stroke-width="2.5"/>')
         for flow in [200, 800, 1400, 2000, 2600]:
             x = x0 + (flow - 200) / 2400 * panel_w
             chunks.append(f'<text class="muted" x="{x:.1f}" y="{top+panel_h+18}" text-anchor="middle" font-size="10">{flow}</text>')
@@ -361,7 +370,7 @@ def make_delay_figure(rows: list[dict[str, object]]) -> None:
         '<line class="signal" x1="395" y1="493" x2="425" y2="493" stroke-width="3"/><text x="432" y="497" font-size="12">定时信号</text>',
         '<text class="muted" x="660" y="497" text-anchor="end" font-size="10">阴影：95% Monte Carlo CI</text>',
     ]
-    svg = svg_shell(width, height, "".join(chunks), "四向停车与信号灯的平均延误曲线", "平衡和偏流两种需求结构下，平均控制延误随总进入流量变化，并显示百分之九十五蒙特卡洛置信区间。")
+    svg = svg_shell(width, height, "".join(chunks), "四向停车与信号灯的平均延误曲线", "平衡和偏流两种需求结构下，平均控制延误随总进入流量变化，并显示百分之九十五蒙特卡洛置信区间。超过纵轴三百秒范围的点不绘制。")
     (IMAGE_DIR / "delay-curves.svg").write_text(svg, encoding="utf-8")
 
 
@@ -532,7 +541,6 @@ def main() -> None:
         writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader(); writer.writerows(rows)
     make_delay_figure(rows)
-    make_phase_map(rows)
     make_peak_figure()
 
     print("Selected scenarios (mean seconds per vehicle):")
