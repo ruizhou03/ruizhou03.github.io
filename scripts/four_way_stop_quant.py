@@ -319,6 +319,47 @@ def line_path(points: list[tuple[float, float]]) -> str:
     return " ".join(("M" if i == 0 else "L") + f"{x:.1f},{y:.1f}" for i, (x, y) in enumerate(points))
 
 
+def clip_polyline_at_ymax(
+    points: list[tuple[float, float]], ymax: float
+) -> list[tuple[float, float]]:
+    clipped: list[tuple[float, float]] = []
+    previous: tuple[float, float] | None = None
+    for x, y in points:
+        if y <= ymax:
+            clipped.append((x, y))
+        elif previous is not None and previous[1] <= ymax:
+            prev_x, prev_y = previous
+            fraction = (ymax - prev_y) / (y - prev_y)
+            clipped.append((prev_x + fraction * (x - prev_x), ymax))
+            break
+        else:
+            break
+        previous = (x, y)
+    return clipped
+
+
+def clip_polygon_at_ymax(
+    points: list[tuple[float, float]], ymax: float
+) -> list[tuple[float, float]]:
+    if not points:
+        return []
+    clipped: list[tuple[float, float]] = []
+    previous = points[-1]
+    previous_inside = previous[1] <= ymax
+    for current in points:
+        current_inside = current[1] <= ymax
+        if current_inside != previous_inside:
+            prev_x, prev_y = previous
+            curr_x, curr_y = current
+            fraction = (ymax - prev_y) / (curr_y - prev_y)
+            clipped.append((prev_x + fraction * (curr_x - prev_x), ymax))
+        if current_inside:
+            clipped.append(current)
+        previous = current
+        previous_inside = current_inside
+    return clipped
+
+
 def make_delay_figure(rows: list[dict[str, object]]) -> None:
     width, height = 760, 520
     panels = [(0.5, 55, "四向均衡：主路占 50%"), (0.8, 400, "明显偏流：主路占 80%")]
@@ -336,27 +377,39 @@ def make_delay_figure(rows: list[dict[str, object]]) -> None:
         chunks.append(f'<line class="axis" x1="{x0}" y1="{top+panel_h}" x2="{x0+panel_w}" y2="{top+panel_h}"/>')
         subset = [r for r in rows if r["major_share"] == share]
         for mode, css in [("AWSC", "awsc"), ("Signal", "signal")]:
-            pts = []
-            upper = []
-            lower = []
-            for r in subset:
-                if r["mode"] != mode:
-                    continue
-                mean_delay = float(r["mean_delay"])
-                ci_high = float(r["ci_high"])
-                ci_low = float(r["ci_low"])
-                if mean_delay < 0 or mean_delay > ymax:
-                    continue
-                x = x0 + (int(r["total_flow"]) - 200) / 2400 * panel_w
-                y = top + panel_h - mean_delay / ymax * panel_h
-                pts.append((x, y))
-                if 0 <= ci_low <= ci_high <= ymax:
-                    yu = top + panel_h - ci_high / ymax * panel_h
-                    yl = top + panel_h - ci_low / ymax * panel_h
-                    upper.append((x, yu)); lower.append((x, yl))
-            polygon = upper + list(reversed(lower))
+            mode_rows = sorted(
+                (r for r in subset if r["mode"] == mode),
+                key=lambda r: int(r["total_flow"]),
+            )
+            mean_data = [
+                (float(r["total_flow"]), float(r["mean_delay"]))
+                for r in mode_rows
+            ]
+            band_data = [
+                (float(r["total_flow"]), float(r["ci_high"]))
+                for r in mode_rows
+            ] + [
+                (float(r["total_flow"]), float(r["ci_low"]))
+                for r in reversed(mode_rows)
+            ]
+            mean_data = clip_polyline_at_ymax(mean_data, ymax)
+            band_data = clip_polygon_at_ymax(band_data, ymax)
+            pts = [
+                (
+                    x0 + (flow - 200) / 2400 * panel_w,
+                    top + panel_h - delay / ymax * panel_h,
+                )
+                for flow, delay in mean_data
+            ]
+            polygon = [
+                (
+                    x0 + (flow - 200) / 2400 * panel_w,
+                    top + panel_h - delay / ymax * panel_h,
+                )
+                for flow, delay in band_data
+            ]
             fill_class = "awsc-fill" if mode == "AWSC" else "signal-fill"
-            if len(upper) >= 2:
+            if len(polygon) >= 3:
                 chunks.append(f'<path d="{line_path(polygon)} Z" class="{fill_class}" opacity="0.12"/>')
             if pts:
                 chunks.append(f'<path d="{line_path(pts)}" class="{css}" stroke-width="2.5"/>')
@@ -370,7 +423,7 @@ def make_delay_figure(rows: list[dict[str, object]]) -> None:
         '<line class="signal" x1="395" y1="493" x2="425" y2="493" stroke-width="3"/><text x="432" y="497" font-size="12">定时信号</text>',
         '<text class="muted" x="660" y="497" text-anchor="end" font-size="10">阴影：95% Monte Carlo CI</text>',
     ]
-    svg = svg_shell(width, height, "".join(chunks), "四向停车与信号灯的平均延误曲线", "平衡和偏流两种需求结构下，平均控制延误随总进入流量变化，并显示百分之九十五蒙特卡洛置信区间。超过纵轴三百秒范围的点不绘制。")
+    svg = svg_shell(width, height, "".join(chunks), "四向停车与信号灯的平均延误曲线", "平衡和偏流两种需求结构下，平均控制延误随总进入流量变化，并显示百分之九十五蒙特卡洛置信区间。曲线和置信区间在纵轴三百秒的上边界处截断，超出范围的数据不绘制。")
     (IMAGE_DIR / "delay-curves.svg").write_text(svg, encoding="utf-8")
 
 
