@@ -45,3 +45,11 @@ test('online gameplay commands use one idempotent envelope and signed settlement
   assert.doesNotMatch(ui, /apiCall\('(start|bid|double|play|pass|rematch)'/);
   assert.match(ui, /state\.result\.roundDeltasByPlayer \|\| state\.result\.deltasByPlayer/);
 });
+
+test('online turn rendering restores the human play controls', async () => {
+  const ui = await readFile(new URL('../../assets/js/doudizhu/ui.js', import.meta.url), 'utf8');
+  assert.match(
+    ui,
+    /state\.phase === PHASE\.PLAYING[\s\S]*?const meTurn = state\.turnIdx === 0;[\s\S]*?playBtn\.hidden = !meTurn;[\s\S]*?hintBtn\.hidden = !meTurn;[\s\S]*?updatePlayBtnState\(\);[\s\S]*?refreshNoPlayState\(\);/,
+  );
+});

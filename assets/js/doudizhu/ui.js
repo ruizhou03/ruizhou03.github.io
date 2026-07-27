@@ -3593,9 +3593,12 @@
         bidPanel.hidden = true;
         updateOnlineCountdown();
         const meTurn = state.turnIdx === 0;
+        playBtn.hidden = !meTurn;
+        hintBtn.hidden = !meTurn;
         if (meTurn) setStatus('轮到你 — 出牌或不出');
         else setStatus(`等待 ${seatLabel(state.turnIdx)} 出牌…`);
         updatePlayBtnState();
+        refreshNoPlayState();
       } else if (state.phase === PHASE.SETTLEMENT) {
         playActions.hidden = true;
         bidPanel.hidden = true;
