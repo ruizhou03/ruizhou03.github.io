@@ -53,6 +53,22 @@
 - 一次干净冷启动没有大于等于 50ms 的 long task；同步初始化约 2ms。
 - 普通档缓存完成后停止本机服务，页面仍从 23 项 hash 校验资源启动。
 
+## 生产发布证据
+
+- site commit: `944da28e09d47dd3477758dcf53367bcf327a64e`
+- Pages build/deploy run: `30258502711`，build、deploy、report 均成功。
+- release gate run: `30258503761`，完整合同与生产 marker/API gate 均成功。
+- 生产页面：HTTP 200，`20260727p7a` 的 10 个 runtime 脚本全部加载，进入
+  `playing` 后手牌 27 张。
+- 后端 readiness：HTTP 200，`guandanProtocol: strict`，
+  `guandanAi: worker-ready`。
+- unknown action：HTTP 400，不是 500。
+- 四客户端专用生产房：47 项检查通过；四个视角各只获得自己的 27 张手牌，
+  无全手牌泄露；幂等开局、resume secret 轮换、旧 token 立即失效和 hard
+  worker 均通过；房间已解散。
+- SSE 生产 50 样本：P50 306ms、P95 390ms、max 407ms，P95 低于
+  500ms 门槛；测试房已解散。
+
 ## 仍需真实设备完成的强制验收
 
 以下项目不能由当前 macOS 内置浏览器会话等价替代，发布完成后必须在真实环境记录：
@@ -61,6 +77,5 @@
 - iPhone、Android、iPad；
 - macOS VoiceOver、Windows NVDA；
 - 对应设备的 200% zoom、刘海/安全区、极端宽高比；
-- 四客户端生产房间的最终 release-marker 验收。
 
 在这些证据齐全前，长期目标不得标记为 complete。
