@@ -1,5 +1,10 @@
 (() => {
   'use strict';
+  const IS_LOCAL_RUNTIME = typeof location !== 'undefined' &&
+    (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+  if (IS_LOCAL_RUNTIME) {
+    try { performance.mark('gd-js-start'); } catch (_) {}
+  }
 
   // ===========================================================
   //  掼蛋引擎
@@ -22,7 +27,7 @@
   const AI_STRATEGIES = (typeof GuandanAIContract !== 'undefined')
     ? GuandanAIContract.strategies : null;
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.07.27.ai-v5';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.07.27.ux-v6';  // 版本号：刷新后看左下角徽标即可确认已加载最新版
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -1009,6 +1014,11 @@
     if (!Object.values(NAV_VIEW).includes(view)) throw new Error('invalid_guandan_nav_view:' + view);
     navState.current = view;
     document.body.dataset.guandanView = view;
+    const wrap = document.querySelector('.guandan-wrap');
+    if (wrap) {
+      for (const name of Object.values(NAV_VIEW)) wrap.classList.remove(`gd-view-${name}`);
+      wrap.classList.add(`gd-view-${view}`);
+    }
   }
 
   const stored = (() => {
@@ -1101,11 +1111,16 @@
     playBtn: $('gdPlayBtn'), passBtn: $('gdPassBtn'),
     hintBtn: $('gdHintBtn'), sortBtn: $('gdSortBtn'),
     arrangeBtn: $('gdArrangeBtn'), restoreBtn: $('gdRestoreBtn'),
+    orderBtn: $('gdOrderBtn'), orderActions: $('gdOrderActions'),
+    orderLeft: $('gdOrderLeft'), orderRight: $('gdOrderRight'),
+    orderDone: $('gdOrderDone'), orderStatus: $('gdOrderStatus'),
+    liveRegion: $('gdLiveRegion'),
     selfClock: $('gdSelfClock'),
     spectateNote: $('gdSpectateNote'),
     autopilotBtn: $('gdAutopilotBtn'),
     pgo: $('gdPgo'), pgoStart: $('gdPgoStart'),
     pgoDiff: $('gdPgoDiff'), pgoStats: $('gdPgoStats'), hs: $('gdHs'),
+    hardOfflineStatus: $('gdHardOfflineStatus'), offlineCacheBtn: $('gdOfflineCacheBtn'),
     pgoTeamTrib: $('gdPgoTeamTrib'), pgoScoreCap: $('gdPgoScoreCap'), pgoTurnSec: $('gdPgoTurnSec'), pgoCardSize: $('gdPgoCardSize'),
     gameOpts: $('gdGameOpts'), gameOptsToggle: $('gdGameOptsToggle'),
     gameOptsBody: $('gdGameOptsBody'), gameOptsSum: $('gdGameOptsSum'),
@@ -1273,9 +1288,17 @@
   }
 
   let toastTimer = null;
+  let announceTimer = null;
+  function announce(msg) {
+    if (!els.liveRegion) return;
+    els.liveRegion.textContent = '';
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(() => { els.liveRegion.textContent = msg; }, 20);
+  }
   function toast(msg) {
     els.toast.textContent = msg;
     els.toast.classList.add('show');
+    announce(msg);
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => els.toast.classList.remove('show'), 1600);
   }
@@ -1284,6 +1307,17 @@
   // 牌面 V2：四象限版型。常规牌 = 左上点数(正方形) + 右上花色 + 左下花色(靠上) + 右下超大花色(贴底出血)；
   // 级牌/逢人配 = 整张深色(is-level)；逢人配出牌时用 repRank/repSuit 画成它顶替的牌、仍深色。
   // 大小王沿用原样(★ + JOKER + ♛/♚)，横排被盖时由 CSS 切到左条竖排 JOKER。
+  function cardAriaLabel(c, level) {
+    const deck = Math.floor(c / 54) + 1;
+    if (isJoker(c)) return `第${deck}副牌${jokerKind(c) === 'big' ? '大王' : '小王'}`;
+    const suits = ['黑桃', '红桃', '方片', '梅花'];
+    const rank = RANK_LABELS[cardRankIdx(c)];
+    const tags = [];
+    if (rank === level) tags.push('级牌');
+    if (isWild(c, level)) tags.push('逢人配');
+    return `第${deck}副牌${suits[cardSuit(c)]}${rank}${tags.length ? `，${tags.join('，')}` : ''}`;
+  }
+
   function buildCardEl(c, sizeClass, level, opts) {
     opts = opts || {};
     const el = document.createElement('span');
@@ -1293,6 +1327,12 @@
       if (opts.cid != null) el.dataset.cid = opts.cid;
       if (opts.selected) el.classList.add('selected');
       if (opts.groupStart) el.classList.add('group-start');
+      if (opts.cid != null) {
+        el.setAttribute('role', 'button');
+        el.tabIndex = -1;
+        el.setAttribute('aria-label', cardAriaLabel(c, level));
+        el.setAttribute('aria-pressed', opts.selected ? 'true' : 'false');
+      }
       // 四象限版型：左上 ★；右上横排 JOKER(竖排时露)；左下竖排 JOKER(横排时露)；右下皇冠
       const crown = (kind === 'big') ? '♛' : '♚';
       el.innerHTML =
@@ -1317,6 +1357,12 @@
     if (opts.cid != null) el.dataset.cid = opts.cid;
     if (opts.selected) el.classList.add('selected');
     if (opts.groupStart) el.classList.add('group-start');
+    if (opts.cid != null) {
+      el.setAttribute('role', 'button');
+      el.tabIndex = -1;
+      el.setAttribute('aria-label', cardAriaLabel(c, level));
+      el.setAttribute('aria-pressed', opts.selected ? 'true' : 'false');
+    }
     const p = SUITP[dSuit];
     el.style.setProperty('--gd-tr', p.tr);
     el.style.setProperty('--gd-bl', p.bl);
@@ -1391,6 +1437,9 @@
   }
 
   function renderHand() {
+    const activeCard = document.activeElement && document.activeElement.closest
+      ? document.activeElement.closest('.gd-card[data-cid]') : null;
+    const focusCid = activeCard ? parseInt(activeCard.dataset.cid, 10) : state._focusCardId;
     els.hand.innerHTML = '';
     els.hand.style.removeProperty('--gd-card-w');
     els.hand.style.removeProperty('--gd-card-h');
@@ -1469,6 +1518,14 @@
     for (const g of normalGroups) {
       const disp = comboDisplay(g.cards.slice(), classifyType(g.cards, level), level);
       renderCol(disp, { customClass: 'gd-custom-col gd-custom-normal', customId: g.id });
+    }
+    const focusableCards = [...els.hand.querySelectorAll('.gd-card[data-cid]')];
+    const focusTarget = focusableCards.find(card => parseInt(card.dataset.cid, 10) === focusCid)
+      || focusableCards[0];
+    if (focusTarget) {
+      focusTarget.tabIndex = 0;
+      state._focusCardId = parseInt(focusTarget.dataset.cid, 10);
+      if (activeCard) focusTarget.focus({ preventScroll: true });
     }
     adaptHandSize();
   }
@@ -1902,14 +1959,12 @@
     }
   }
 
-  // ---- 选牌 + 拖列交互 ----
-  // 三种模式：
-  //   PENDING       —— pointerdown 后等待
-  //   MULTI_SELECT  —— 快速横/竖向移动 → 多选连刷（沿用旧体验）
-  //   COL_DRAG      —— 在原地长按 380ms → 列整体可拖到新位置
-  const LONG_PRESS_MS = 380;
+  // ---- 选牌 + 显式调整顺序 ----
+  // PENDING=点选；MULTI_SELECT=拖框多选；顺序移动只通过可见的「调整顺序」
+  // 按钮和左右移动键完成，不依赖没有可发现性的长按手势。
   const MOVE_THRESHOLD = 10;
-  let pState = null;     // { startX, startY, startCid, startCol, dragMode, mode, lpTimer, gapIdx, gapMarker }
+  let pState = null;
+  let orderMode = false;
 
   // 矩形框选（仿桌面文件管理器）：按下后从起点到当前点画一个虚线矩形，
   // 凡是与矩形相交的牌都进入选中（或反向：起点已选 → 进入"删"模式，移出已选）。
@@ -1959,42 +2014,6 @@
       else state.selected.delete(cid);
     });
     updateActions();
-  }
-
-  function colsRectsX() {
-    const arr = [];
-    els.hand.querySelectorAll('.gd-rank-col').forEach((col, i) => {
-      const r = col.getBoundingClientRect();
-      arr.push({ idx: i, weight: parseInt(col.dataset.weight, 10), left: r.left, right: r.right, mid: (r.left + r.right) / 2, el: col });
-    });
-    return arr;
-  }
-  function computeGapIndex(rects, clientX, draggingIdx) {
-    // 返回插入索引 i：把 dragging 放在 i 位置（i ∈ [0, rects.length]）。
-    // 用 mid 比较来分边。
-    let gap = rects.length;
-    for (let i = 0; i < rects.length; i++) {
-      if (clientX < rects[i].mid) { gap = i; break; }
-    }
-    // 同位置或紧邻当前位置的两端视为不变（避免视觉抖动）
-    if (gap === draggingIdx || gap === draggingIdx + 1) return draggingIdx;
-    return gap;
-  }
-  function placeGapMarker(rects, gap) {
-    if (!pState.gapMarker) {
-      const m = document.createElement('div');
-      m.className = 'gd-col-gap-marker';
-      els.hand.appendChild(m);
-      pState.gapMarker = m;
-    }
-    const handRect = els.hand.getBoundingClientRect();
-    let x;
-    if (gap >= rects.length) x = (rects[rects.length - 1].right - handRect.left + els.hand.scrollLeft + 2);
-    else x = (rects[gap].left - handRect.left + els.hand.scrollLeft - 3);
-    pState.gapMarker.style.left = x + 'px';
-  }
-  function removeGapMarker() {
-    if (pState && pState.gapMarker) { pState.gapMarker.remove(); pState.gapMarker = null; }
   }
 
   function onHandPointerDown(e) {
@@ -2100,6 +2119,16 @@
         // 杜绝 give/pair 都为 null 时落到下面无校验的普通选牌分支、把非法牌选中
         //（这正是"第一次点弹窗没选中、第二次却能选中并真把大牌进贡出去"的根因）。
         if (state.phase === PHASE.TRIBUTE) { pState = null; return; }
+        if (orderMode) {
+          state.selected.clear();
+          state.selected.add(pState.startCid);
+          state._focusCardId = pState.startCid;
+          renderHand();
+          updateOrderStatus();
+          announce(cardAriaLabel(pState.startCid, currentLevelLabel()) + '，已选作顺序调整');
+          pState = null;
+          return;
+        }
         // 正常切换该卡选中。smartSnap 只在用户"刚加进一张牌"时触发，自动补齐成
         // 复合牌型；如果用户是"去掉一张已选牌"，听用户的，别再把那张牌补回来。
         const wasSelected = state.selected.has(pState.startCid);
@@ -2130,6 +2159,132 @@
   window.addEventListener('touchend', onHandPointerUp);
   // 跨出 hand 时也要兜底（防止指针离开导致 ghost marker）
   window.addEventListener('touchcancel', onHandPointerUp);
+
+  function updateOrderStatus() {
+    if (!els.orderStatus) return;
+    const cid = [...state.selected][0];
+    if (cid == null) {
+      els.orderStatus.textContent = '先选一张牌，再向左或向右移动整列。';
+      return;
+    }
+    const label = cardAriaLabel(cid, currentLevelLabel());
+    const weight = columnKey(cid, currentLevelLabel());
+    const index = Array.isArray(state.handOrder) ? state.handOrder.indexOf(weight) : -1;
+    els.orderStatus.textContent = index < 0
+      ? `${label}在自定义牌组中；请先还原该组。`
+      : `${label}所在列：第 ${index + 1} 列，共 ${state.handOrder.length} 列。`;
+  }
+
+  function setOrderMode(on) {
+    orderMode = !!on;
+    if (els.orderActions) els.orderActions.classList.toggle('open', orderMode);
+    if (els.orderBtn) els.orderBtn.setAttribute('aria-expanded', String(orderMode));
+    if (orderMode) {
+      state.selected.clear();
+      renderHand();
+      updateOrderStatus();
+      announce('已进入调整顺序模式。选择一张牌，再使用左移或右移。');
+      if (els.orderActions) {
+        const first = els.orderActions.querySelector('button');
+        if (first) first.focus();
+      }
+    } else {
+      state.selected.clear();
+      renderHand();
+      announce('已完成手牌顺序调整');
+      if (els.orderBtn) els.orderBtn.focus();
+    }
+  }
+
+  function moveSelectedColumn(delta) {
+    const cid = [...state.selected][0];
+    if (cid == null || !Array.isArray(state.handOrder)) {
+      announce('请先选择一张牌');
+      return;
+    }
+    const weight = columnKey(cid, currentLevelLabel());
+    const from = state.handOrder.indexOf(weight);
+    if (from < 0) {
+      announce('这张牌在自定义牌组中，请先还原该组');
+      return;
+    }
+    const to = Math.max(0, Math.min(state.handOrder.length - 1, from + delta));
+    if (to === from) {
+      announce(delta < 0 ? '已经在最左边' : '已经在最右边');
+      return;
+    }
+    const next = state.handOrder.slice();
+    next.splice(from, 1);
+    next.splice(to, 0, weight);
+    state.handOrder = next;
+    state._focusCardId = cid;
+    renderHand();
+    persist();
+    updateOrderStatus();
+    announce(`已移动到第 ${to + 1} 列`);
+  }
+
+  if (els.orderBtn) els.orderBtn.addEventListener('click', () => setOrderMode(!orderMode));
+  if (els.orderLeft) els.orderLeft.addEventListener('click', () => moveSelectedColumn(-1));
+  if (els.orderRight) els.orderRight.addEventListener('click', () => moveSelectedColumn(1));
+  if (els.orderDone) els.orderDone.addEventListener('click', () => setOrderMode(false));
+
+  function keyboardToggleCard(cid) {
+    const giveCtx = activeTributeGive();
+    const returnCtx = activeTributePair();
+    if (giveCtx && !giveCtx.validCards.includes(cid)) return;
+    if (returnCtx && !isValidReturnCard(cid)) return;
+    if (state.phase === PHASE.TRIBUTE && !giveCtx && !returnCtx) return;
+    if (giveCtx || returnCtx || orderMode) {
+      state.selected.clear();
+      state.selected.add(cid);
+    } else if (state.selected.has(cid)) {
+      state.selected.delete(cid);
+    } else {
+      state.selected.add(cid);
+      smartSnap(false);
+    }
+    state._focusCardId = cid;
+    renderHand();
+    updateSelHint();
+    updateActions();
+    updateOrderStatus();
+    announce(cardAriaLabel(cid, currentLevelLabel()) + (state.selected.has(cid) ? '，已选中' : '，已取消'));
+  }
+
+  els.hand.addEventListener('keydown', e => {
+    const current = e.target.closest('.gd-card[data-cid]');
+    if (!current) return;
+    const cards = [...els.hand.querySelectorAll('.gd-card[data-cid]')];
+    let target = null;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const i = cards.indexOf(current);
+      target = cards[Math.max(0, Math.min(cards.length - 1, i + (e.key === 'ArrowLeft' ? -1 : 1)))];
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      const inCol = [...current.parentElement.querySelectorAll('.gd-card[data-cid]')];
+      const i = inCol.indexOf(current);
+      target = inCol[Math.max(0, Math.min(inCol.length - 1, i + (e.key === 'ArrowUp' ? -1 : 1)))];
+    } else if (e.key === 'Home') {
+      target = cards[0];
+    } else if (e.key === 'End') {
+      target = cards[cards.length - 1];
+    } else if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      keyboardToggleCard(parseInt(current.dataset.cid, 10));
+      return;
+    } else {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    if (target) {
+      current.tabIndex = -1;
+      target.tabIndex = 0;
+      state._focusCardId = parseInt(target.dataset.cid, 10);
+      target.focus();
+    }
+  });
 
   function selectedCards() {
     return [...state.selected].filter(c => state.hands[0].includes(c));
@@ -3946,7 +4101,9 @@
     els.roundNext.textContent = matchWon ? '查看战报 [[zi:play]]' : '继续 [[zi:play]]';
     stopTurnClock();
     els.roundOverlay.classList.add('open');
+    activateDialog(els.roundOverlay, null, '#gdRoundNext');
     els.roundNext.onclick = () => {
+      deactivateDialog(els.roundOverlay);
       els.roundOverlay.classList.remove('open');
       if (isNetworked()) {
         // 服务器权威：发 next_round → 服务器开下一局 → 轮询拉回新状态
@@ -4023,6 +4180,7 @@
     // 联机整盘已结束：后端不支持原房重开整盘，把「再来一局」改成「离开房间」，点击退回房外。
     if (els.matchAgain) els.matchAgain.textContent = isNetworked() ? '离开房间' : '再来一局';
     els.matchOverlay.classList.add('open');
+    activateDialog(els.matchOverlay, null, '#gdMatchAgain');
     if (youWon && !isNetworked()) submitWin();   // 排行榜只记单机 vs AI 战绩
   }
 
@@ -4565,6 +4723,91 @@
   let _dmcState = 0, _dmcProgress = 0, _dmcPromise = null, _dmcProgressCb = null;
   let _dmcWorker = null, _dmcResolve = null, _dmcRequestSeq = 0, _dmcRetryCount = 0;
   const _dmcRequests = new Map();
+  const HARD_OFFLINE_KEY = 'tool.guandan.hardOffline.v1';
+  const HARD_OFFLINE_BUILD = `20260727ux6:${GuandanAIContract.modelSha256}`;
+  const OFFLINE_MANIFEST_URL = '/toolbox/guandan/offline-assets.json?v=20260727ux6';
+  let hardOfflinePromise = null;
+  function updateHardOfflineStatus(text) {
+    if (!els.hardOfflineStatus) return;
+    if (text) {
+      els.hardOfflineStatus.textContent = text;
+      return;
+    }
+    let ready = false;
+    try {
+      ready = localStorage.getItem(HARD_OFFLINE_KEY) === HARD_OFFLINE_BUILD;
+    } catch (_) {}
+    els.hardOfflineStatus.textContent = state.aiLevel === 'hard'
+      ? (ready ? '高手模型已校验并缓存，可离线使用。' : '高手档首次需要联网下载并校验模型；完成前不承诺离线。')
+      : '新手与普通档无需下载高手模型，可冷离线使用。';
+  }
+  function bytesToHex(buffer) {
+    return [...new Uint8Array(buffer)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+  async function fetchOfflineManifest() {
+    const response = await fetch(OFFLINE_MANIFEST_URL, { cache: 'no-store' });
+    if (!response.ok) throw new Error('offline_manifest_unavailable');
+    const manifest = await response.clone().json();
+    if (manifest.rulesVersion !== RULES_VERSION ||
+        manifest.modelSha256 !== GuandanAIContract.modelSha256 ||
+        manifest.version !== '20260727ux6' ||
+        !Array.isArray(manifest.core) ||
+        !Array.isArray(manifest.hard)) {
+      throw new Error('offline_manifest_mismatch');
+    }
+    return { manifest, response };
+  }
+  async function cacheVerifiedAssetGroup(saved, assets, progress) {
+    for (let i = 0; i < assets.length; i++) {
+      const asset = assets[i];
+      if (progress) progress(i + 1, assets.length);
+      let response = await caches.match(asset.url);
+      if (!response) response = await fetch(asset.url, { cache: 'no-store' });
+      if (!response || !response.ok) throw new Error('offline_asset_unavailable');
+      let digest = bytesToHex(await crypto.subtle.digest('SHA-256', await response.clone().arrayBuffer()));
+      if (digest !== asset.sha256) {
+        response = await fetch(asset.url, { cache: 'reload' });
+        if (!response || !response.ok) throw new Error('offline_asset_unavailable');
+        digest = bytesToHex(await crypto.subtle.digest('SHA-256', await response.clone().arrayBuffer()));
+      }
+      if (digest !== asset.sha256) throw new Error('offline_asset_hash_mismatch');
+      await saved.put(asset.url, response.clone());
+    }
+  }
+  async function cacheCoreOfflineAssets() {
+    if (!('caches' in window) || !crypto.subtle) throw new Error('offline_cache_unavailable');
+    const { manifest, response: manifestResponse } = await fetchOfflineManifest();
+    const saved = await caches.open('ruizhou03-saved');
+    await cacheVerifiedAssetGroup(saved, manifest.core, (done, total) => {
+      updateHardOfflineStatus(`正在缓存基础离线资源 ${done}/${total}…`);
+    });
+    const pageResponse = await fetch('/toolbox/guandan/', { cache: 'no-store' });
+    if (!pageResponse.ok) throw new Error('offline_page_unavailable');
+    await saved.put('/toolbox/guandan/', pageResponse.clone());
+    await saved.put(OFFLINE_MANIFEST_URL, manifestResponse.clone());
+    return true;
+  }
+  async function cacheHardOfflineAssets() {
+    if (hardOfflinePromise) return hardOfflinePromise;
+    hardOfflinePromise = (async () => {
+      if (!('caches' in window) || !crypto.subtle) throw new Error('offline_cache_unavailable');
+      updateHardOfflineStatus('正在校验高手离线资源…');
+      const { manifest, response: manifestResponse } = await fetchOfflineManifest();
+      const saved = await caches.open('ruizhou03-saved');
+      await cacheVerifiedAssetGroup(saved, manifest.hard, (done, total) => {
+        updateHardOfflineStatus(`正在缓存高手离线资源 ${done}/${total}…`);
+      });
+      await saved.put(OFFLINE_MANIFEST_URL, manifestResponse.clone());
+      localStorage.setItem(HARD_OFFLINE_KEY, HARD_OFFLINE_BUILD);
+      updateHardOfflineStatus('高手模型已校验并缓存，可离线使用。');
+      return true;
+    })().catch(error => {
+      hardOfflinePromise = null;
+      updateHardOfflineStatus('高手模型已载入，但离线缓存未完成；联网后可重试。');
+      throw error;
+    });
+    return hardOfflinePromise;
+  }
   function ensureDmcWorker() {
     if (_dmcWorker) return _dmcWorker;
     if (typeof Worker === 'undefined' || !AI_STRATEGIES) throw new Error('dmc_worker_unavailable');
@@ -5196,6 +5439,7 @@
       t.classList.toggle('selected', t.dataset.value === state.aiLevel));
     syncPgoOptions();
     syncPgoScoreSummary();
+    updateHardOfflineStatus();
   }
   // 段选组：把 value 对应的 tab 设为 selected
   function selectSeg(container, value) {
@@ -5240,6 +5484,27 @@
     refreshScoreChip();
     if (state.aiLevel === 'hard') ensureDMC();
   });
+  if (els.offlineCacheBtn) els.offlineCacheBtn.addEventListener('click', async () => {
+    const btn = els.offlineCacheBtn;
+    btn.disabled = true;
+    try {
+      await cacheCoreOfflineAssets();
+      if (state.aiLevel === 'hard') {
+        updateHardOfflineStatus('正在载入高手模型…');
+        await ensureDMC();
+        if (_dmcState !== 2) throw new Error('dmc_model_unavailable');
+        await cacheHardOfflineAssets();
+      } else {
+        updateHardOfflineStatus('当前档位基础资源已校验并缓存，可离线使用。');
+      }
+      announce('离线版缓存完成');
+    } catch (_) {
+      updateHardOfflineStatus('离线缓存未完成；请联网后重试。');
+      announce('离线缓存未完成，请联网后重试');
+    } finally {
+      btn.disabled = false;
+    }
+  });
   // 玩法设置段选：同队进贡 / 单局积分上限 / 出牌时间
   if (els.pgoTeamTrib) els.pgoTeamTrib.addEventListener('click', e => {
     const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
@@ -5282,19 +5547,31 @@
     }
     // 高手档若神经网络还没下好：原地显示下载进度,下完才开始,不让「假高手」(启发式)上桌
     const needNet = state.aiLevel === 'hard' && _dmcState !== 2;
-    if (!needNet) { els.pgo.classList.remove('open'); startMatch(); return; }
+    if (!needNet) {
+      deactivateDialog(els.pgo);
+      els.pgo.classList.remove('open');
+      startMatch();
+      return;
+    }
     const btn = els.pgoStart;
     if (!btn.dataset.orig) btn.dataset.orig = btn.innerHTML;
     btn.style.pointerEvents = 'none'; btn.style.opacity = '0.85';
     const tick = p => { btn.textContent = '下载高手模型 ' + Math.round(p * 100) + '%'; };
     tick(_dmcProgress);
-    ensureDMC(tick).then(() => {
+    ensureDMC(tick).then(async () => {
       btn.style.pointerEvents = ''; btn.style.opacity = '';
-      if (_dmcState === 2) { btn.innerHTML = btn.dataset.orig; els.pgo.classList.remove('open'); startMatch(); }
+      if (_dmcState === 2) {
+        try { await cacheHardOfflineAssets(); } catch (_) { /* 在线可玩，但绝不标记为可离线 */ }
+        btn.innerHTML = btn.dataset.orig;
+        deactivateDialog(els.pgo);
+        els.pgo.classList.remove('open');
+        startMatch();
+      }
       else { _dmcState = 0; _dmcPromise = null; btn.textContent = '下载失败,点击重试（或改选普通档）'; }   // 不回退假高手：重试或换档
     });
   });
   els.matchAgain.addEventListener('click', () => {
+    deactivateDialog(els.matchOverlay);
     els.matchOverlay.classList.remove('open');
     if (isNetworked()) {
       // 联机整盘已结束：后端 next_round 只在 round_end 生效、不支持原房重开整盘，
@@ -5305,6 +5582,7 @@
     }
   });
   els.matchSetup.addEventListener('click', () => {
+    deactivateDialog(els.matchOverlay);
     els.matchOverlay.classList.remove('open');
     state.phase = PHASE.IDLE;
     setNavView(NAV_VIEW.SETUP);
@@ -5436,6 +5714,8 @@
   // 连打暗号触发测试模式：test = 单机测试；quad = 联机「四视角」测试（一人扮四家走真实联机流程）。
   // 两个暗号都是「最近 4 个字母」匹配；quad 不含 test 后缀，互不误触。
   (function () {
+    const devToolsEnabled = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!devToolsEnabled) return;
     let buf = '';
     document.addEventListener('keydown', (e) => {
       const tag = e.target && e.target.tagName;
@@ -5686,10 +5966,43 @@
   // ===========================================================
   //  games-shell：战绩榜 / 昵称 / 评论
   // ===========================================================
-  let wlb = null, np = null;
-  function initShell() {
+  let wlb = null, np = null, shellMounted = false, commentsMounted = false;
+  const shellLoads = new Map();
+  function loadScriptOnce(id, src) {
+    if (window.GamesShell && (
+      (id === 'wins' && GamesShell.WinsLeaderboard) ||
+      (id === 'nick' && GamesShell.NickPrompt) ||
+      (id === 'comments' && GamesShell.Comments)
+    )) return Promise.resolve();
+    if (shellLoads.has(id)) return shellLoads.get(id);
+    const promise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = true;
+      script.dataset.guandanLazy = id;
+      script.onload = resolve;
+      script.onerror = () => reject(new Error(`shell_load_${id}`));
+      document.head.appendChild(script);
+    });
+    shellLoads.set(id, promise);
+    return promise;
+  }
+  async function ensureShellModules(withComments) {
+    const jobs = [
+      loadScriptOnce('wins', '/assets/js/games-shell/wins-leaderboard.js?v=20260727ux6'),
+      loadScriptOnce('nick', '/assets/js/games-shell/nick-prompt.js?v=20260727ux6'),
+    ];
+    if (withComments) jobs.push(loadScriptOnce('comments', '/assets/js/games-shell/comments.js?v=20260727ux6'));
+    try {
+      await Promise.all(jobs);
+      initShell(withComments);
+    } catch (_) {
+      if (withComments) announce('榜单或交流暂时无法载入，稍后再试');
+    }
+  }
+  function initShell(withComments) {
     if (!window.GamesShell) return;
-    if (GamesShell.WinsLeaderboard) {
+    if (!shellMounted && GamesShell.WinsLeaderboard) {
       wlb = GamesShell.WinsLeaderboard.mount({
         container: $('gd-wlb-mount'),
         gameId: 'guandan',
@@ -5698,7 +6011,7 @@
         getCurrentNick: () => GamesShell.Identity.getNick(),
       });
     }
-    if (GamesShell.NickPrompt) {
+    if (!shellMounted && GamesShell.NickPrompt) {
       np = GamesShell.NickPrompt.mount({
         container: $('gd-nick-mount'),
         prompt: '想上掼蛋战绩榜？起个昵称吧',
@@ -5706,7 +6019,8 @@
         onSkip: () => {},
       });
     }
-    if (GamesShell.Comments) {
+    shellMounted = !!(wlb && np);
+    if (withComments && !commentsMounted && GamesShell.Comments) {
       GamesShell.Comments.mount({
         container: $('gd-cm-mount'),
         path: '/toolbox/guandan/',
@@ -5714,15 +6028,18 @@
         intro: '聊聊你的逢人配妙手、惊天大炸弹与队友配合 ~',
         placeholder: '说说你这局是怎么打过 A 的 ~',
       });
+      commentsMounted = true;
     }
   }
 
   function submitWin() {
-    if (!window.GamesShell || !GamesShell.WinsLeaderboard) return;
     if (!['easy','normal','hard'].includes(state.aiLevel)) return;
-    const nick = GamesShell.Identity.getNick();
-    if (!nick) { if (np) np.show(); return; }
-    doSubmit(nick);
+    ensureShellModules(false).then(() => {
+      if (!window.GamesShell || !GamesShell.WinsLeaderboard) return;
+      const nick = GamesShell.Identity.getNick();
+      if (!nick) { if (np) np.show(); return; }
+      doSubmit(nick);
+    });
   }
   function doSubmit(nick) {
     if (!window.GamesShell || !GamesShell.WinsLeaderboard) return;
@@ -5764,7 +6081,7 @@
     '<p><strong>一圈</strong>：领出任意合法牌型，其余依次出更大同型或炸弹，或「不要」。' +
     '在场玩家中连续 (人数−1) 家不要后，本圈最大者收圈并领出新一圈。打空手牌即出局，按出完先后定名次。</p>' +
     '<p><strong>进贡 / 还贡</strong>：单贡时末游向头游进贡；双下时三游、末游分别向二游、头游进贡，' +
-    '较大贡牌交给头游。贡牌须是手中最大的非红桃级牌；收贡方还一张点数不高于 10 的非级牌，' +
+    '较大贡牌交给头游。贡牌须是手中最大的非红桃级牌；收贡方还一张牌面点数不高于 10 的牌（包括数字级牌），' +
     '若手中没有这类牌则可还任意非王。单贡看末游本人、双贡看两名贡方合计：持有两个大王即抗贡。' +
     '“同队进贡”是默认关闭的娱乐变体，可在玩法设置中开启。</p>' +
     '<p><strong>升级</strong>：拿到头游的队伍按队友名次升级 —— 队友二游 +3 级、三游 +2 级、末游 +1 级。' +
@@ -5772,9 +6089,9 @@
     '<p><strong>本实现的取胜规则</strong>：当一队级牌已到 <code>A</code>，' +
     '该队必须取得 1+2 或 1+3 才能「打过 A」；1+4 不能过 A，下一局继续打 A。' +
     '你方打过 A → 战绩 +1 胜并上传战绩榜；对方打过 A → 记一负。</p>' +
-    '<p>键盘：Enter 出牌 · Space 不要 · H 提示。手牌按点数竖向成列；点牌选中、横拖多选。' +
+    '<p>键盘：方向键浏览手牌，Enter/Space 选牌；焦点不在牌上时 Enter 出牌、Space 不要、H 提示。手牌按点数竖向成列；点牌选中、横拖多选。' +
     '<strong>[[zi:transfer]] 理牌</strong>：选中若干张点一下，把它们摞成一摞 —— 炸弹自动摞到最左（多个炸弹按强度从大到小排）、其他牌摞到最右。' +
-    '<strong>[[zi:history]] 还原</strong>：选中某一摞的所有牌后点击，把它解散回默认位置。<strong>[[zi:puzzle]] 一键理牌</strong>：把所有自定义摞清掉，全部回默认排序。</p>';
+    '<strong>[[zi:history]] 还原</strong>：选中某一摞的所有牌后点击，把它解散回默认位置。<strong>调整顺序</strong>：进入显式模式，选择任意牌后用左右按钮移动整列；不依赖长按。<strong>[[zi:puzzle]] 一键理牌</strong>：把所有自定义摞清掉，全部回默认排序。</p>';
 
   // ---- 永久全屏：进页面即铺满 viewport，不再提供退出全屏（最佳体验就是全屏玩）。
   //      玩法 / 战绩榜 / 评论改在游戏内「🏆 榜单」浮层看，不用跳出游戏外。 ----
@@ -5782,6 +6099,80 @@
   const boardModal = $('gdBoardModal');
   const pgoTimingNote = $('gdPgoTimingNote');
   const boardTimingNote = $('gdBoardTimingNote');
+  let activeDialog = null;
+  let activeDialogClose = null;
+  let dialogReturnFocus = null;
+  let inertedForDialog = new Map();
+  const dialogFocusable = [
+    'button:not([disabled]):not([hidden])',
+    'a[href]',
+    'input:not([disabled]):not([hidden])',
+    'select:not([disabled]):not([hidden])',
+    'textarea:not([disabled]):not([hidden])',
+    'summary',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
+
+  function deactivateDialog(dialog) {
+    if (!dialog || activeDialog !== dialog) return;
+    for (const [node, wasInert] of inertedForDialog) node.inert = wasInert;
+    inertedForDialog = new Map();
+    activeDialog = null;
+    activeDialogClose = null;
+    const target = dialogReturnFocus;
+    dialogReturnFocus = null;
+    if (target && target.isConnected) target.focus({ preventScroll: true });
+  }
+
+  function activateDialog(dialog, closeFn, preferredFocus) {
+    if (!dialog) return;
+    if (activeDialog && activeDialog !== dialog) deactivateDialog(activeDialog);
+    dialogReturnFocus = document.activeElement;
+    activeDialog = dialog;
+    activeDialogClose = closeFn || null;
+    inertedForDialog = new Map();
+    let node = dialog;
+    while (node && node.parentElement) {
+      const parent = node.parentElement;
+      for (const sibling of parent.children) {
+        if (sibling === node || inertedForDialog.has(sibling)) continue;
+        inertedForDialog.set(sibling, !!sibling.inert);
+        sibling.inert = true;
+      }
+      node = parent;
+      if (node.classList && node.classList.contains('guandan-wrap')) break;
+    }
+    const focusTarget = (preferredFocus && dialog.querySelector(preferredFocus))
+      || dialog.querySelector(dialogFocusable);
+    if (focusTarget) requestAnimationFrame(() => focusTarget.focus({ preventScroll: true }));
+  }
+
+  document.addEventListener('keydown', e => {
+    if (!activeDialog) return;
+    if (e.key === 'Escape' && activeDialogClose) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      activeDialogClose();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const focusables = [...activeDialog.querySelectorAll(dialogFocusable)]
+      .filter(el => !el.hidden && el.getClientRects().length);
+    if (!focusables.length) {
+      e.preventDefault();
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }, true);
+
   function setOverlayTimingNote(el) {
     if (!el) return;
     const inGame = navState.current === NAV_VIEW.PLAYING || navState.current === NAV_VIEW.TRIBUTE;
@@ -5794,10 +6185,17 @@
   function openBoard() {
     if (!isNetworked()) pauseLocalGame('board');
     setOverlayTimingNote(boardTimingNote);
-    if (boardModal) boardModal.hidden = false;
+    ensureShellModules(true);
+    if (boardModal) {
+      boardModal.hidden = false;
+      activateDialog(boardModal, closeBoard, '#gdBoardClose');
+    }
   }
   function closeBoard() {
-    if (boardModal) boardModal.hidden = true;
+    if (boardModal) {
+      deactivateDialog(boardModal);
+      boardModal.hidden = true;
+    }
     resumeLocalGame('board');
   }
   if ($('gdBoardBtn')) $('gdBoardBtn').addEventListener('click', openBoard);
@@ -5815,8 +6213,10 @@
       gdPgoCloseBtn.setAttribute('aria-label', navState.current === NAV_VIEW.LOBBY ? '返回大厅' : '返回游戏');
     }
     els.pgo.classList.add('open');
+    if (returnable) activateDialog(els.pgo, () => gdPgoCloseBtn.click(), '#gdPgoClose');
   });
   if (gdPgoCloseBtn) gdPgoCloseBtn.addEventListener('click', () => {
+    deactivateDialog(els.pgo);
     els.pgo.classList.remove('open');
     gdPgoCloseBtn.hidden = true;
     resumeLocalGame('settings');
@@ -5849,10 +6249,16 @@
   const confirmExit = $('gdConfirmExit');
   function openConfirmExit() {
     if (!isNetworked()) pauseLocalGame('exit-confirm');
-    if (confirmExit) confirmExit.hidden = false;
+    if (confirmExit) {
+      confirmExit.hidden = false;
+      activateDialog(confirmExit, closeConfirmExit, '#gdConfirmExitCancel');
+    }
   }
   function closeConfirmExit() {
-    if (confirmExit) confirmExit.hidden = true;
+    if (confirmExit) {
+      deactivateDialog(confirmExit);
+      confirmExit.hidden = true;
+    }
     resumeLocalGame('exit-confirm');
   }
   if ($('gdExitBtn')) $('gdExitBtn').addEventListener('click', openConfirmExit);
@@ -5940,10 +6346,12 @@
         '<span class="sep">·</span>保存于 <span class="key">' + mins + '</span> 分钟前</span>';
     }
     els.resumeOverlay.classList.add('open');
+    activateDialog(els.resumeOverlay, null, '#gdResumeContinue');
   }
   if (els.resumeContinue) {
     els.resumeContinue.addEventListener('click', () => {
       const snap = loadSession();
+      deactivateDialog(els.resumeOverlay);
       if (!snap) {
         els.resumeOverlay.classList.remove('open');
         els.pgo.classList.remove('open');
@@ -5957,6 +6365,7 @@
   }
   if (els.resumeDiscard) {
     els.resumeDiscard.addEventListener('click', () => {
+      deactivateDialog(els.resumeOverlay);
       clearSession();
       els.resumeOverlay.classList.remove('open');
       // 放弃续局 → 回到 Pregame（难度选择）页让用户重选档（同时后台已在预下载模型）
@@ -6045,6 +6454,9 @@
   // ONLINE_SESSION_KEY 已提到文件顶部声明（见 STORE_KEY 附近），此处不再重复定义。
 
   // 当前联机会话（null = 不在线）
+  if (IS_LOCAL_RUNTIME) {
+    try { performance.mark('gd-online-start'); } catch (_) {}
+  }
   let onlineState = null;
   // 联机「四视角测试模式」（暗号 quad 触发）：本机一人持 4 个真人会话、可切换视角逐座出牌，
   // 用真实后端跑完整联机流程来自测。null = 未开。
@@ -7868,4 +8280,11 @@
     }
   })();
 
+  if (IS_LOCAL_RUNTIME) {
+    try {
+      performance.mark('gd-js-end');
+      performance.measure('gd-sync-init', 'gd-js-start', 'gd-js-end');
+      performance.measure('gd-online-init', 'gd-online-start', 'gd-js-end');
+    } catch (_) {}
+  }
 })();

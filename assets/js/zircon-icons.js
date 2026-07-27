@@ -67,11 +67,23 @@
       hydrateText(root);
       return;
     }
-    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     var nodes = [];
-    var node;
-    while ((node = walker.nextNode())) {
-      if (node.nodeValue && node.nodeValue.indexOf('[[zi:') !== -1) nodes.push(node);
+    // XPath 直接筛出含 marker 的文本节点，避免在 JS 中遍历大型牌桌的全部文本。
+    try {
+      var result = document.evaluate(
+        './/text()[contains(., "[[zi:")]',
+        root,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null
+      );
+      for (var i = 0; i < result.snapshotLength; i++) nodes.push(result.snapshotItem(i));
+    } catch (_) {
+      var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      var node;
+      while ((node = walker.nextNode())) {
+        if (node.nodeValue && node.nodeValue.indexOf('[[zi:') !== -1) nodes.push(node);
+      }
     }
     nodes.forEach(hydrateText);
   }
@@ -80,14 +92,44 @@
     scheduled = false;
     var roots = pendingRoots;
     pendingRoots = [];
-    roots.forEach(hydrate);
+    // HTML parser 会逐节点触发 MutationObserver。逐个子树在同一帧全部处理会把大型
+    // 游戏页放大成 >50ms 任务；按帧限量处理，同时仍在首屏几帧内完成 hydration。
+    if (roots.length > 24) {
+      var batch = [];
+      while (roots.length && batch.length < 3) {
+        var next = roots.shift();
+        var element = next && next.nodeType === 3 ? next.parentNode : next;
+        if (element && element.children && element.children.length > 8) {
+          roots = Array.prototype.slice.call(element.children).concat(roots);
+        } else {
+          batch.push(next);
+        }
+      }
+      batch.forEach(hydrate);
+      pendingRoots = roots.concat(pendingRoots);
+      scheduled = true;
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(flush);
+      else setTimeout(flush, 0);
+      return;
+    }
+    var minimal = [];
+    roots.forEach(function (root) {
+      var candidate = root && root.nodeType === 3 ? root.parentNode : root;
+      if (!candidate || !candidate.isConnected) return;
+      if (minimal.some(function (kept) { return kept === candidate || kept.contains(candidate); })) return;
+      minimal = minimal.filter(function (kept) { return !candidate.contains(kept); });
+      minimal.push(candidate);
+    });
+    minimal.forEach(hydrate);
   }
 
   function schedule(root) {
     pendingRoots.push(root);
     if (scheduled) return;
     scheduled = true;
-    Promise.resolve().then(flush);
+    // rAF 在首帧绘制前执行，既保持 marker 无闪烁，又把同一解析帧的变更合并。
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(flush);
+    else setTimeout(flush, 0);
   }
 
   function start() {

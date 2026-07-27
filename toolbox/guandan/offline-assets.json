@@ -1,0 +1,81 @@
+{
+  "version": "20260727ux6",
+  "rulesVersion": "gd-huaian-2025-site-v1",
+  "modelSha256": "ca389e89e8db98d9968705b0e4495620e025c852cf4db4b4c2e66b086ae03da5",
+  "core": [
+    {
+      "url": "/assets/css/main.css?v=20260727ux6",
+      "sha256": "7e3cd84c2730d60fb174e516db0f6df59b715637ed3c8821a8415191f58aff0a"
+    },
+    {
+      "url": "/assets/css/guandan.css?v=20260727ux6",
+      "sha256": "33f3b7a8471a9a92e6e618cd090eb0d0590bd3dec1e20b2e16b876a21108cc33"
+    },
+    {
+      "url": "/assets/css/zircon-icons.css?v=20260727ux6",
+      "sha256": "0538dc18024cdadb6908a1489565825baaa384400be55390e6f8079af68c489b"
+    },
+    {
+      "url": "/assets/css/games-shell.css?v=20260727ux6",
+      "sha256": "13a6e8a5282dc860fd57f6be9168d455983678416be101bc379b2ef429f164a6"
+    },
+    {
+      "url": "/assets/icons/zircon-ui.svg",
+      "sha256": "1eee83ccb46ca685038e640f008c3f430e4ea0dfa52e12f897e49395b71d20bf"
+    },
+    {
+      "url": "/assets/icons/guandan-icon-192.png",
+      "sha256": "090ecb6ca1066dd5f1901c8957fef0488d314bea28c269e8447581f81a0ccc5d"
+    },
+    {
+      "url": "/assets/icons/guandan-icon-512.png",
+      "sha256": "da67eb4982bec95db79c7c7a86e244d302b68dbf5d806a9de9f5aa6fe20a4a2b"
+    },
+    {
+      "url": "/assets/icons/guandan-icon-maskable-512.png",
+      "sha256": "697e49e3f6f1317f88838f2a07bb0dc03083e3bb17a61d6e1d0e5d31bfef264c"
+    },
+    {
+      "url": "/assets/icons/guandan-apple-touch-icon.png",
+      "sha256": "4f07835078148d365efa3408acc84fb56a709eaea4f3d3974d8c45fc7a46a486"
+    },
+    {
+      "url": "/assets/js/games-shell/identity.js?v=20260727ux6",
+      "sha256": "8abd1228e92b5ce94064fbe95a8ac4fec176638ac35d474037dae88a3a1c1004"
+    },
+    {
+      "url": "/assets/js/zircon-icons.js?v=20260727ux6",
+      "sha256": "23846b01965c6628c66d01e2843fd9b783f24880b6f3032aee5e1bad73474014"
+    },
+    {
+      "url": "/assets/js/offline/offline.js?v=20260727ux6",
+      "sha256": "72fb40fe45f56bd9e3b3efed2c4c6541cece8450628a968a5fdc1264be1977f9"
+    },
+    {
+      "url": "/assets/js/games/guandan-ai-contract.js?v=20260727ai5",
+      "sha256": "7a574df2a54ed4851116489a278135519017f9146bda27ff6690c171aed34f13"
+    },
+    {
+      "url": "/assets/js/games/guandan.min.js?v=20260727ux6",
+      "sha256": "746d2762a74dd3bbf9fcb098d28645eb22bce83a49e11d95bbb706ff5e96817b"
+    },
+    {
+      "url": "/toolbox/guandan/manifest.json",
+      "sha256": "48fb82a8ec0e5774726e8a6ecc68aa1c9dfbf379e38876bdf84742c09ee9e4d9"
+    }
+  ],
+  "hard": [
+    {
+      "url": "/assets/js/games/guandan-dmc-worker.js?v=20260727ai5",
+      "sha256": "76be320882e087c5aa585e1fd8d43a688c614bbbd9aa52a174ca127346592b89"
+    },
+    {
+      "url": "/assets/js/games/guandan-dmc.js?v=20260727ai5",
+      "sha256": "303b8f1e57c11ed66b2792b7ede4e8af3d0c206042d125fe08659b7b9d30b2a4"
+    },
+    {
+      "url": "/assets/js/games/guandan-dmc.bin?v=ca389e89e8db",
+      "sha256": "ca389e89e8db98d9968705b0e4495620e025c852cf4db4b4c2e66b086ae03da5"
+    }
+  ]
+}

@@ -590,6 +590,9 @@ function moveBreakCost(move, hand, level) {
 // ===========================================================
 // AI 决策（参数化）
 // ===========================================================
+// 模拟器从这里起只调用浏览器同一份权威规则核心。上方旧实现暂留作逐步拆分期间的
+// 可读迁移参照，但不再参与任何模拟结果；差分门禁会阻止调用路径回退。
+const CORE = require('./load-guandan-authoritative-rules.cjs');
 
 // 默认权重 = 当前 guandan.js 用的那一组
 const DEFAULT_W = {
@@ -621,18 +624,18 @@ const DEFAULT_W = {
 function groupValue(g, level, w) {
   if (!g || !g.cards || !g.cards.length) return 0;
   const len = g.cards.length;
-  const maxRankW = Math.max(...g.cards.map(c => singleWeight(c, level)));
+  const maxRankW = Math.max(...g.cards.map(c => CORE.singleWeight(c, level)));
   switch (g.type) {
-    case T.JOKER_BOMB: return 60;
-    case T.STR_FLUSH:  return 35;
-    case T.BOMB:       return w.groupBombBase + (len - 4) * w.groupBombPerExtra + maxRankW * 0.05;
-    case T.TRIPLE_STR: return 12;
-    case T.PAIR_STR:   return 10;
-    case T.STRAIGHT:   return 8;
-    case T.TRIPLE_PAIR:return 7;
-    case T.TRIPLE:     return 4;
-    case T.PAIR:       return 3;
-    case T.SINGLE:
+    case CORE.T.JOKER_BOMB: return 60;
+    case CORE.T.STR_FLUSH:  return 35;
+    case CORE.T.BOMB:       return w.groupBombBase + (len - 4) * w.groupBombPerExtra + maxRankW * 0.05;
+    case CORE.T.TRIPLE_STR: return 12;
+    case CORE.T.PAIR_STR:   return 10;
+    case CORE.T.STRAIGHT:   return 8;
+    case CORE.T.TRIPLE_PAIR:return 7;
+    case CORE.T.TRIPLE:     return 4;
+    case CORE.T.PAIR:       return 3;
+    case CORE.T.SINGLE:
       if (maxRankW >= 16) return 4;
       if (maxRankW >= 15) return 2.5;
       if (maxRankW >= 14) return 1;
@@ -643,7 +646,7 @@ function groupValue(g, level, w) {
 
 function evaluateHand(hand, level, w) {
   if (!hand || !hand.length) return 100;
-  const groups = decompose(hand, level);
+  const groups = CORE.decompose(hand, level);
   let v = 0;
   for (const g of groups) v += groupValue(g, level, w);
   v -= w.handLenPenalty * hand.length;
@@ -672,13 +675,13 @@ function moveUtility(move, hand, prev, leading, level, ctx, w, lvl, rng) {
     u += move.cards.length * w.playFollowLength;
   }
   u -= moveBreakCost(move, hand, level) * w.breakMult;
-  const wildUsed = move.cards.filter(c => isWild(c, level)).length;
+  const wildUsed = move.cards.filter(c => CORE.isWild(c, level)).length;
   u -= wildUsed * w.wildCost;
-  const jokerUsed = move.cards.filter(isJoker).length;
+  const jokerUsed = move.cards.filter(CORE.isJoker).length;
   u -= jokerUsed * w.jokerCost;
   if (isBomb) {
-    const bombBase = (combo.type === T.JOKER_BOMB) ? 30
-                   : (combo.type === T.STR_FLUSH) ? 16
+    const bombBase = (combo.type === CORE.T.JOKER_BOMB) ? 30
+                   : (combo.type === CORE.T.STR_FLUSH) ? 16
                    : (w.bombBase4 + (combo.len - 4) * w.bombPerExtra);
     if (leading) {
       u -= bombBase * w.bombLeadMult;
@@ -719,10 +722,10 @@ function chooseAIMoveGreedy(seat, hand, prev, leading, level, state, w, lvl, rng
     opponentMin,
     myCount: state.hands[seat].length,
   };
-  const moves = genMoves(hand, prev, level);
+  const moves = CORE.genMoves(hand, prev, level);
   if (leading && !moves.length) {
-    const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
-    return classify([c], level);
+    const c = hand.slice().sort((a, b) => CORE.singleWeight(a, level) - CORE.singleWeight(b, level))[0];
+    return CORE.classify([c], level);
   }
   let bestU = -Infinity, bestMove = null;
   for (const m of moves) {
@@ -812,10 +815,10 @@ function teamValueAt(state, level, w, myTeam) {
 function chooseAIMoveLookahead(seat, hand, prev, leading, level, state, w, lvl, rng) {
   const depth = w.lookaheadDepth | 0;
   const myTeam = seat % 2;
-  const moves = genMoves(hand, prev, level);
+  const moves = CORE.genMoves(hand, prev, level);
   if (leading && !moves.length) {
-    const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
-    return classify([c], level);
+    const c = hand.slice().sort((a, b) => CORE.singleWeight(a, level) - CORE.singleWeight(b, level))[0];
+    return CORE.classify([c], level);
   }
   // 也算 greedy utility 作为 tiebreaker / 即时性奖励（防纯 lookahead 忽视一手出完）
   const greedyU = new Map();
@@ -878,8 +881,8 @@ function chooseAIMoveLookahead(seat, hand, prev, leading, level, state, w, lvl, 
 function pickTributeCard(hand, level) {
   let best = null, bw = -1;
   for (const c of hand) {
-    if (isWild(c, level)) continue;
-    const w = singleWeight(c, level);
+    if (CORE.isWild(c, level)) continue;
+    const w = CORE.singleWeight(c, level);
     if (w > bw) { bw = w; best = c; }
   }
   if (best == null) best = hand[0];
@@ -889,15 +892,15 @@ function pickReturnCard(hand, level) {
   const LOW = new Set(['2','3','4','5','6','7','8','9','10']);
   let best = null, bw = 1e9;
   for (const c of hand) {
-    if (isJoker(c)) continue;
-    if (!LOW.has(RANK_LABELS[cardRankIdx(c)])) continue;
-    const w = singleWeight(c, level);
+    if (CORE.isJoker(c)) continue;
+    if (!LOW.has(CORE.RANK_LABELS[CORE.cardRankIdx(c)])) continue;
+    const w = CORE.singleWeight(c, level);
     if (w < bw) { bw = w; best = c; }
   }
   if (best == null) {
     for (const c of hand) {
-      if (isJoker(c)) continue;
-      const w = singleWeight(c, level);
+      if (CORE.isJoker(c)) continue;
+      const w = CORE.singleWeight(c, level);
       if (w < bw) { bw = w; best = c; }
     }
   }
@@ -912,12 +915,12 @@ function handleTribute(hands, ranking, level) {
   const doubleDown = (third % 2) === (fourth % 2) && (third % 2) !== winTeam;
   if (!doubleDown) return { newLeader: first };
   let bigJokers = 0;
-  for (const s of [third, fourth]) for (const c of hands[s]) if (isJoker(c) && jokerKind(c) === 'big') bigJokers++;
+  for (const s of [third, fourth]) for (const c of hands[s]) if (CORE.isJoker(c) && CORE.jokerKind(c) === 'big') bigJokers++;
   if (bigJokers >= 2) return { newLeader: first };
   const fourthCard = pickTributeCard(hands[fourth], level);
   const thirdCard = pickTributeCard(hands[third], level);
-  const fw = singleWeight(fourthCard, level);
-  const tw = singleWeight(thirdCard, level);
+  const fw = CORE.singleWeight(fourthCard, level);
+  const tw = CORE.singleWeight(thirdCard, level);
   let bigGiver, bigCard, smallGiver, smallCard;
   if (fw >= tw) { bigGiver = fourth; bigCard = fourthCard; smallGiver = third; smallCard = thirdCard; }
   else { bigGiver = third; bigCard = thirdCard; smallGiver = fourth; smallCard = fourthCard; }
@@ -942,7 +945,7 @@ function handleTribute(hands, ranking, level) {
 // ===========================================================
 function simulateRound({ weightsByTeam, level = '2', firstLeader = 0, hands = null, rng = Math.random, collect = null }) {
   if (!hands) {
-    const deck = shuffle(buildDeck(), rng);
+    const deck = shuffle(CORE.buildDeck(), rng);
     hands = [[], [], [], []];
     for (let i = 0; i < 108; i++) hands[i % 4].push(deck[i]);
   }
@@ -1038,9 +1041,9 @@ function simulateMatch({ weightsByTeam, rng = Math.random, maxRounds = 25, colle
   let firstLeader = Math.floor(rng() * 4);
   let totalIter = 0;
   for (let round = 0; round < maxRounds; round++) {
-    const level = LEVEL_SEQ[levels[actingTeam]];
+    const level = CORE.LEVEL_SEQ[levels[actingTeam]];
     // Deal
-    const deck = shuffle(buildDeck(), rng);
+    const deck = shuffle(CORE.buildDeck(), rng);
     const hands = [[], [], [], []];
     for (let i = 0; i < 108; i++) hands[i % 4].push(deck[i]);
     // Tribute（非首局）
@@ -1058,12 +1061,12 @@ function simulateMatch({ weightsByTeam, rng = Math.random, maxRounds = 25, colle
     const partnerPos = ranking.indexOf(partner);
     const advance = (partnerPos === 1) ? 3 : (partnerPos === 2) ? 2 : 1;
     const beforeIdx = levels[winTeam];
-    const wasAtA = LEVEL_SEQ[beforeIdx] === 'A';
+    const wasAtA = CORE.LEVEL_SEQ[beforeIdx] === 'A';
     if (wasAtA) {
       // 打过 A → 整副结束
       return { winner: winTeam, rounds: round + 1, totalIter };
     }
-    levels[winTeam] = Math.min(LEVEL_SEQ.length - 1, beforeIdx + advance);
+    levels[winTeam] = Math.min(CORE.LEVEL_SEQ.length - 1, beforeIdx + advance);
     actingTeam = winTeam;
     firstLeader = first;
   }
@@ -1445,12 +1448,14 @@ function sanity() {
 // ===========================================================
 const AUTHORITATIVE_RULES = require('./load-guandan-authoritative-rules.cjs');
 module.exports = {
-  RULES_VERSION,
-  RANK_LABELS, LEVEL_SEQ,
-  isJoker, jokerKind, cardSuit, cardRankIdx, singleWeight, isWild,
-  buildDeck, shuffle, tally,
-  classify, classifyRaw, beats, isBombType,
-  genMoves, decompose, DEFAULT_W,
+  RULES_VERSION: CORE.RULES_VERSION,
+  RANK_LABELS: CORE.RANK_LABELS, LEVEL_SEQ: CORE.LEVEL_SEQ,
+  isJoker: CORE.isJoker, jokerKind: CORE.jokerKind, cardSuit: CORE.cardSuit,
+  cardRankIdx: CORE.cardRankIdx, singleWeight: CORE.singleWeight, isWild: CORE.isWild,
+  buildDeck: CORE.buildDeck, shuffle, tally,
+  classify: CORE.classify, classifyRaw: CORE.classifyRaw, beats: CORE.beats,
+  isBombType: CORE.isBombType,
+  genMoves: CORE.genMoves, decompose: CORE.decompose, DEFAULT_W,
   evaluateHand, groupValue, moveUtility,
   chooseAIMove, chooseAIMoveGreedy, chooseAIMoveLookahead,
   pickTributeCard, pickReturnCard, handleTribute,

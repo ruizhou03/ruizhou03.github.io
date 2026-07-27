@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../toolbox/guandan/index.html', import.meta.url), 'utf8');
+const css = await readFile(new URL('../assets/css/guandan.css', import.meta.url), 'utf8');
 const js = await readFile(new URL('../assets/js/games/guandan.js', import.meta.url), 'utf8');
 const rulesFixture = JSON.parse(await readFile(
   new URL('../tests/fixtures/guandan-rules-golden.json', import.meta.url),
@@ -11,8 +12,9 @@ const rulesFixture = JSON.parse(await readFile(
 assert.match(html, /class="gd-board-btn" id="gdBoardBtn"/, '榜单按钮应使用独立定位类');
 assert.match(html, /class="gd-mute-btn" id="gdMuteBtn"/, '音效按钮应使用独立定位类');
 assert.doesNotMatch(html, /class="gd-board-btn" id="gdMuteBtn"/, '音效按钮不得复用榜单定位类');
-assert.match(html, /--gd-ui-ink:\s*#1f2a3d/, '固定浅色牌桌应使用独立深色文字变量');
-assert.match(html, /guandan\.js\?v=20260727ai5/, '生产页面应使用 AI 同构内容标记，避免旧 JS 缓存');
+assert.match(css, /@media \(prefers-color-scheme: dark\)[\s\S]*--gd-felt-1:\s*#1c3933/,
+  '系统自适应方案必须提供真正深色牌桌');
+assert.match(html, /guandan\.min\.js\?v=20260727ux6/, '生产页面应使用 UX6 压缩内容标记，避免旧 JS 缓存');
 assert.match(html, /data-value="off"[^>]*class="[^"]*selected|class="[^"]*selected"[^>]*data-value="off"/,
   '同队进贡 UI 默认应关闭');
 

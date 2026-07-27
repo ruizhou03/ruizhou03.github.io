@@ -90,6 +90,8 @@
 
   // ───────────────────────── Service Worker 通道 ─────────────────────────
   var isLocal = ['localhost', '127.0.0.1', '0.0.0.0'].indexOf(W.location.hostname) !== -1;
+  // 日常本地预览仍自动卸载 SW，避免旧缓存干扰；PWA 验收可显式开启受控环境。
+  var localPwaTest = isLocal && new URLSearchParams(W.location.search).get('pwa-test') === '1';
   var _readyPromise = null;
   function ready() {
     if (_readyPromise) return _readyPromise;
@@ -374,7 +376,7 @@
   async function wireButton(btn) {
     if (!btn || btn.__zoffWired) return;
     btn.__zoffWired = true;
-    if (isLocal || !('serviceWorker' in navigator)) { btn.style.display = 'none'; return; }
+    if ((isLocal && !localPwaTest) || !('serviceWorker' in navigator)) { btn.style.display = 'none'; return; }
     injectStyles();
     var item = itemFromEl(btn);
     var url = normUrl(item.url);
@@ -442,7 +444,7 @@
     });
   }
   async function wireArticleNotice(el) {
-    if (!el || isLocal) return;
+    if (!el || (isLocal && !localPwaTest)) return;
     injectStyles();
     _noticeEl = el;
     _noticeItem = {
@@ -458,7 +460,7 @@
   // ───────────────────────── 页脚离线状态点 ─────────────────────────
   async function initFooterDot(dot) {
     if (!dot) return;
-    if (isLocal || !('serviceWorker' in navigator)) { dot.style.display = 'none'; return; }
+    if ((isLocal && !localPwaTest) || !('serviceWorker' in navigator)) { dot.style.display = 'none'; return; }
     async function paint() {
       var url = normUrl(W.location.pathname);
       var it = index.get(url);
@@ -473,7 +475,7 @@
 
   // ───────────────────────── 自动初始化 ─────────────────────────
   function boot() {
-    if (isLocal) {
+    if (isLocal && !localPwaTest) {
       // 本地预览：卸掉 SW + 清缓存，保证「本地即时预览」不被离线缓存干扰
       if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
         navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { r.unregister(); }); });

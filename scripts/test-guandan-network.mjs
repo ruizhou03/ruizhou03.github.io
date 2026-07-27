@@ -69,7 +69,7 @@ assert.doesNotMatch(js, /\/\^\\d\{4\}\$\//,
   '严格协议前端不得接受可枚举的裸四位房号');
 assert.match(js, /new URLSearchParams\(location\.search\)\.get\('room'\)/,
   '自动加入必须安全解析 URLSearchParams 中的完整邀请码');
-assert.match(html, /guandan\.js\?v=20260727ai5/,
-  '生产页面必须引用本次安全协议构建标记');
+assert.match(html, /guandan\.min\.js\?v=20260727ux6/,
+  '生产页面必须引用本次安全协议压缩构建标记');
 
 console.log('guandan network contracts: ok');

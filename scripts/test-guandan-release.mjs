@@ -1,0 +1,98 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+
+const root = new URL('../', import.meta.url);
+const read = path => readFile(new URL(path, root), 'utf8');
+const html = await read('toolbox/guandan/index.html');
+const css = await read('assets/css/guandan.css');
+const presentation = `${html}\n${css}`;
+const js = await read('assets/js/games/guandan.js');
+const simulator = await read('scripts/sim-guandan.js');
+const sw = await read('sw.js');
+const offlineClient = await read('assets/js/offline/offline.js');
+const pwa = JSON.parse(await read('toolbox/guandan/manifest.json'));
+const offline = JSON.parse(await read('toolbox/guandan/offline-assets.json'));
+
+assert.doesNotMatch(html, /user-scalable\s*=\s*no|maximum-scale\s*=\s*1/,
+  'viewport 不得禁止 200% 缩放');
+assert.doesNotMatch(html, /gesture(start|change)[\s\S]{0,100}preventDefault/,
+  '不得拦截系统缩放手势');
+assert.match(presentation, /prefers-color-scheme:\s*dark[\s\S]*--gd-felt-1:\s*#1c3933/,
+  '必须实现系统自适应深色牌桌');
+assert.match(presentation, /prefers-reduced-motion:\s*reduce/,
+  '必须尊重 reduced motion');
+assert.match(presentation, /min-block-size:\s*44px/,
+  '非牌面触控目标必须至少 44px');
+assert.match(html, /perf-test[\s\S]*PerformanceObserver[\s\S]*gdPerfProbe/,
+  '必须保留仅本机可启用的 long task 与 INP 验收探针');
+
+for (const id of ['gdResumeOverlay', 'gdBoardModal', 'gdConfirmExit', 'gdTributeOverlay', 'gdRoundOverlay', 'gdMatchOverlay']) {
+  assert.match(html, new RegExp(`id="${id}"[^>]*role="dialog"[^>]*aria-modal="true"`),
+    `${id} 必须暴露为模态 dialog`);
+}
+assert.match(html, /id="gdLiveRegion"[^>]*aria-live="polite"/,
+  '必须提供读屏 live region');
+assert.match(js, /activateDialog\([\s\S]*sibling\.inert = true/,
+  'dialog 必须隔离背景内容');
+assert.match(js, /e\.key === 'Escape'/, '可关闭 dialog 必须支持 Escape');
+assert.match(js, /e\.key !== 'Tab'[\s\S]*focusables/, 'dialog 必须有焦点循环');
+assert.match(js, /els\.hand\.addEventListener\('keydown'/, '手牌必须支持键盘导航');
+assert.match(js, /aria-pressed/, '牌面选中状态必须向辅助技术公开');
+
+assert.match(html, /id="gdOrderBtn"[^>]*aria-expanded="false"/,
+  '必须提供显式调整顺序模式');
+assert.match(js, /function moveSelectedColumn/, '调整顺序必须实际移动牌列');
+assert.doesNotMatch(js, /LONG_PRESS_MS|COL_DRAG/, '不得继续宣称不存在的长按排序');
+
+assert.doesNotMatch(html, /games-shell\/qrcode\.js/,
+  '生产掼蛋不得加载未使用的 QR 库');
+assert.doesNotMatch(html, /games-shell\/(wins-leaderboard|comments|nick-prompt)\.js/,
+  '榜单与交流不得首屏同步加载');
+assert.match(js, /loadScriptOnce\('comments'/, '交流组件必须按需加载');
+assert.match(js, /loadScriptOnce\('wins'/, '榜单必须按需加载');
+assert.doesNotMatch(html, /guandan-dmc\.js/, '新手/普通首屏不得下载 DMC');
+assert.match(html, /guandan\.min\.js\?v=20260727ux6/,
+  '生产页面必须加载经过门禁校验的压缩脚本');
+assert.match(js, /devToolsEnabled = location\.hostname === 'localhost'/,
+  '生产调试入口必须被本机环境门禁');
+
+assert.equal(pwa.display, 'standalone');
+assert.equal(pwa.scope, '/toolbox/guandan/');
+assert.equal(pwa.theme_color, '#173a30');
+assert.equal(offline.version, '20260727ux6');
+assert.equal(offline.rulesVersion, 'gd-huaian-2025-site-v1');
+assert.equal(offline.modelSha256, 'ca389e89e8db98d9968705b0e4495620e025c852cf4db4b4c2e66b086ae03da5');
+assert.match(html, /asset_version:\s*"20260727ux6"/,
+  '掼蛋 PWA 的全站依赖必须使用确定版本');
+assert.ok(offline.core.length >= 5, '冷离线 core 清单不完整');
+assert.ok(offline.hard.length >= 3, '高手离线清单不完整');
+assert.ok(!offline.core.some(asset => asset.url.includes('guandan-dmc.bin')),
+  'easy/normal 冷离线包不得包含模型');
+assert.ok(offline.hard.some(asset => asset.url.includes('guandan-dmc.bin')),
+  'hard 离线包必须包含模型');
+assert.match(sw, /offline-assets\.json\?v=20260727ux6/,
+  'SW 必须消费确定性离线清单');
+assert.match(js, /offline_asset_hash_mismatch/,
+  'hard 离线承诺前必须校验资源 hash');
+assert.match(simulator, /const CORE = require\('\.\/load-guandan-authoritative-rules\.cjs'\)/,
+  '模拟器必须直接消费浏览器权威规则核心');
+assert.match(offlineClient, /localPwaTest[\s\S]*pwa-test/,
+  '本地验收必须能显式启用 Service Worker，同时保留普通预览自清理');
+
+for (const group of [offline.core, offline.hard]) {
+  for (const asset of group) {
+    const pathname = new URL(asset.url, 'https://ruizhou03.com').pathname.replace(/^\//, '');
+    const data = await readFile(new URL(pathname, root));
+    const digest = createHash('sha256').update(data).digest('hex');
+    assert.equal(digest, asset.sha256, `离线资源 hash 漂移: ${asset.url}`);
+  }
+}
+
+console.log(JSON.stringify({
+  ok: true,
+  releaseMarker: offline.version,
+  coreAssets: offline.core.length,
+  hardAssets: offline.hard.length,
+}));

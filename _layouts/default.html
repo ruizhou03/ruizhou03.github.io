@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+  {%- assign _asset_v = page.asset_version -%}
+  {%- unless _asset_v -%}{%- assign _asset_v = site.time | date: '%s' -%}{%- endunless -%}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>{{ page.title | default: site.title }}</title>
@@ -11,6 +13,7 @@
     分片，思源宋体 CN 子集只在中文页按需下载（~1MB 而非整套 ~8MB）。
     pin @5 主版本号，自动吃 5.x 补丁更新，不会跨大版本 break。
   {%- endcomment -%}
+  {%- unless page.minimal_app_shell -%}
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   {%- comment -%} 预加载 Cormorant 拉丁主字重：尽早就绪、缩短首屏 FOUT（牌面点数等"先变粗→再恢复"的字体换装闪烁）。Noto 中文是 101 个按字形范围懒加载的子集，无法实际预加载。 {%- endcomment -%}
   <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/files/cormorant-garamond-latin-700-normal.woff2">
@@ -24,6 +27,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/500-italic.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css">
+  {%- endunless -%}
 
   {%- comment -%}
     ─── 分享卡片 meta（微信/朋友圈/Twitter/通用 OG）───
@@ -112,16 +116,18 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}?v={{ site.time | date: '%s' }}">
-  <link rel="stylesheet" href="{{ '/assets/css/zircon-icons.css' | relative_url }}?v={{ site.time | date: '%s' }}">
-  <script src="{{ '/assets/js/zircon-icons.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
+  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}?v={{ _asset_v }}">
+  <link rel="stylesheet" href="{{ '/assets/css/zircon-icons.css' | relative_url }}?v={{ _asset_v }}">
+  <script src="{{ '/assets/js/zircon-icons.js' | relative_url }}?v={{ _asset_v }}"></script>
   {%- comment -%}
     Waline 评论的 CSS 异步加载——unpkg.com 在国内时不时被墙，同步 link 会阻塞首屏。
     media="print" + onload 切回 "all" 是 web.dev 推荐的异步 CSS 模式；
     Waline 评论组件本身只在 post.html 里且要 ping 后端通才 init，CSS 早晚到都不影响功能。
   {%- endcomment -%}
-  <link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css" media="print" onload="this.media='all'">
-  <noscript><link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css"></noscript>
+  {%- unless page.minimal_app_shell -%}
+    <link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://unpkg.com/@waline/client@v2/dist/waline.css"></noscript>
+  {%- endunless -%}
 </head>
 <body class="{% if page.manifest %}app-shell {% endif %}{% if page.url contains '/toolbox/' %}is-toolbox{% endif %}{% if page.body_class %} {{ page.body_class }}{% endif %}">
 
@@ -280,14 +286,13 @@
 
   </script>
 
-  <script src="{{ '/assets/js/auth/auth.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
-  <script src="{{ '/assets/js/auth/cloud-sync.js' | relative_url }}?v={{ site.time | date: '%s' }}" defer></script>
-  {% include auth.html %}
-
-  {% include assistant.html %}
-  {% include admin-mode.html %}
-  
-  <script>
+  {%- unless page.minimal_app_shell -%}
+    <script src="{{ '/assets/js/auth/auth.js' | relative_url }}?v={{ _asset_v }}"></script>
+    <script src="{{ '/assets/js/auth/cloud-sync.js' | relative_url }}?v={{ _asset_v }}" defer></script>
+    {% include auth.html %}
+    {% include assistant.html %}
+    {% include admin-mode.html %}
+    <script>
     // 接管所有 details 的点击事件，实现完美双向动画
     document.querySelectorAll('details summary').forEach(summary => {
       summary.addEventListener('click', function(e) {
@@ -303,13 +308,14 @@
         }
       });
     });
-  </script>
+    </script>
+  {%- endunless -%}
 
   {%- comment -%}
     统一离线客户端：注册双层 SW、页脚离线状态点、文章「保存离线」按钮与「有新版」通知，
     全部由 offline.js 接管（取代此处早先的内联 SW 逻辑）。本地预览时它会自卸 SW + 清缓存。
   {%- endcomment -%}
-  <script src="{{ '/assets/js/offline/offline.js' | relative_url }}?v={{ site.time | date: '%s' }}" defer></script>
+  <script src="{{ '/assets/js/offline/offline.js' | relative_url }}?v={{ _asset_v }}" defer></script>
 
   <!-- Cloudflare Web Analytics（整站访客/来源/设备统计；外链脚本，不走 SW 缓存）-->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "707b3caaba08406c9cba84b86f396715"}'></script>

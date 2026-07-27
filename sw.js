@@ -325,7 +325,24 @@ self.addEventListener('message', async (event) => {
   // ─────────── 新接口：离线书架 ───────────
   if (data.type === 'SAVE_OFFLINE') {
     const urls = Array.isArray(data.urls) ? data.urls : (data.url ? [data.url] : []);
-    const extraAssets = Array.isArray(data.assets) ? data.assets : [];
+    let extraAssets = Array.isArray(data.assets) ? data.assets.slice() : [];
+    // 掼蛋的 easy/normal 冷离线包使用版本化、带 SHA-256 的确定性清单。
+    // hard 的 Worker/模型不在这里下载；只有页面完成模型校验后才写入 SAVED_CACHE。
+    if (urls.some((rawUrl) => {
+      try { return new URL(rawUrl, self.location.origin).pathname === '/toolbox/guandan/'; }
+      catch { return false; }
+    })) {
+      try {
+        const manifestUrl = '/toolbox/guandan/offline-assets.json?v=20260727ux6';
+        const response = await fetch(manifestUrl, { cache: 'no-store' });
+        if (response.ok) {
+          const manifest = await response.clone().json();
+          if (manifest && Array.isArray(manifest.core)) {
+            extraAssets = extraAssets.concat(manifest.core.map((asset) => asset.url), [manifestUrl]);
+          }
+        }
+      } catch (_) {}
+    }
     const force = !!data.force;
     const silent = !!data.silent;
     let excludeAssets = null;
