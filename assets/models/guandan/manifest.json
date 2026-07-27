@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "modelId": "danzero-dmc-567x512x5-int8-v1",
+  "strategyId": "gd-danzero-ca389e89e8db-v1",
+  "architecture": {
+    "input": 567,
+    "hidden": [512, 512, 512, 512, 512],
+    "output": 1,
+    "activation": "tanh"
+  },
+  "source": {
+    "repository": "https://github.com/submit-paper/Danzero_plus",
+    "commit": "427decec14a877e28e4006aeb465e84a48a2fd70",
+    "path": "actor_torch/q_network.ckpt",
+    "bytes": 5368401,
+    "sha256": "a6f132e50e205709c0efdb1b550d935c5bfc313b21726b0e70e300b6cd7ea1a3"
+  },
+  "upstreamCode": {
+    "repository": "https://github.com/AltmanD/guandan_mcc",
+    "commit": "e816ca3af431678903d051365d7c19a6dd4ebdb8",
+    "license": "Apache-2.0"
+  },
+  "conversion": {
+    "script": "scripts/convert-guandan-danzero.py",
+    "format": "int8 weights by output column, then float32 biases, then float32 column scales",
+    "quantization": "symmetric round-to-nearest, range [-127,127]"
+  },
+  "artifact": {
+    "path": "assets/js/games/guandan-dmc.bin",
+    "bytes": 1359880,
+    "sha256": "ca389e89e8db98d9968705b0e4495620e025c852cf4db4b4c2e66b086ae03da5"
+  }
+}

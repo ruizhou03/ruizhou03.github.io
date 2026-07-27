@@ -1,0 +1,29 @@
+Guandan DanZero model provenance notice
+=======================================
+
+The Guandan inference architecture and feature layout in this repository are
+adapted from DanZero:
+
+  Yudong Lu, Jian Zhao, Youpeng Zhao, Wengang Zhou, and Houqiang Li,
+  "DanZero: Mastering GuanDan Game with Reinforcement Learning."
+  https://arxiv.org/abs/2210.17087
+
+The upstream DanZero code repository is AltmanD/guandan_mcc at commit
+e816ca3af431678903d051365d7c19a6dd4ebdb8 and is distributed under the
+Apache License, Version 2.0:
+
+  https://github.com/AltmanD/guandan_mcc
+  https://www.apache.org/licenses/LICENSE-2.0
+
+The checkpoint used to produce guandan-dmc.bin was obtained from
+submit-paper/Danzero_plus, actor_torch/q_network.ckpt, at commit
+427decec14a877e28e4006aeb465e84a48a2fd70. That repository describes itself
+as based on AltmanD/guandan_mcc but does not contain a standalone LICENSE file
+as of the pinned commit. This notice therefore does not represent the
+checkpoint itself as independently Apache-2.0 licensed. Its exact source and
+hash are recorded in manifest.json so that provenance and redistribution risk
+remain explicit.
+
+Local changes include deterministic browser/Node inference, public-information
+feature reconstruction, per-column int8 packing, and integration with this
+site's rules engine. No new model was trained.

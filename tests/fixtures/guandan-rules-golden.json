@@ -1,8 +1,8 @@
 {
   "rulesVersion": "gd-huaian-2025-site-v1",
   "protocolVersion": "guandan-protocol-v2",
-  "roomSchemaVersion": 2,
-  "saveSchemaVersion": 2,
+  "roomSchemaVersion": 3,
+  "saveSchemaVersion": 3,
   "classification": [
     {
       "id": "two-wilds-adjacent-pairs-default",

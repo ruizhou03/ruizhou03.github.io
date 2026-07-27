@@ -1443,6 +1443,7 @@ function sanity() {
 // 作为库被 require 时导出纯引擎函数（给 RL 环境 / Python 移植做 parity oracle 用）
 // 不影响直接 `node sim-guandan.js <cmd>` 运行（下面 CLI 用 require.main 守卫）
 // ===========================================================
+const AUTHORITATIVE_RULES = require('./load-guandan-authoritative-rules.cjs');
 module.exports = {
   RULES_VERSION,
   RANK_LABELS, LEVEL_SEQ,
@@ -1455,12 +1456,16 @@ module.exports = {
   pickTributeCard, pickReturnCard, handleTribute,
   simulateRound, simulateMatch, runMatches,
   makeRng, regress,
+  ...AUTHORITATIVE_RULES,
+  LEGACY_STRENGTH_RESULTS_VALID: false,
 };
 
 // ===========================================================
 // CLI（仅在直接 `node sim-guandan.js ...` 运行时执行）
 // ===========================================================
 if (require.main === module) {
+console.error('This independent simulator is retired: its historical Elo/win-rate outputs are invalid. Use the server-authoritative strength simulator in backends/urge.');
+process.exit(2);
 const cmd = process.argv[2] || 'sanity';
 if (cmd === 'sanity') sanity();
 else if (cmd === 'tune') tune({ matchesPerTrial: parseInt(process.argv[3], 10) || 60, iterations: 2 });

@@ -1,10 +1,12 @@
 # 掼蛋开发者调试台 · 使用说明
 
-给「改掼蛋 AI / 验收功能改动」用的一套开发者工具。分两半：浏览器内的**调试台**（暗号 `dbug` 触发）和命令行的**自对弈回归**（`sim-guandan.js regress`）。两者都对线上真实玩家不可见、对正常游戏零影响。
+> 2026-07-27 状态：本文记录的 `sim-guandan.js` 独立模拟器及其全部 Elo/胜率结果已经失效。它使用过非权威规则和完美信息 rollout，命令现已主动拒绝执行。新的强度验收只使用后端权威引擎。
+
+给「改掼蛋 AI / 验收功能改动」用的一套历史开发记录。浏览器内的**调试台**（暗号 `dbug` 触发）仍可使用；下文旧命令仅供追溯，不是当前验收方法。
 
 代码位置：
 - 浏览器调试台：`assets/js/games/guandan.js`（整文件包在 IIFE 闭包里，所以调试代码必须写在文件内部——`state`/`genMoves`/`chooseAIMove` 在 `window` 上访问不到）；神经网络 Q 值出口在 `assets/js/games/guandan-dmc.js` 的 `choose(..., dbgOut)`。
-- 命令行回归：`scripts/sim-guandan.js`。
+- 旧模拟器退役闩：`scripts/sim-guandan.js`；当前命令行强度入口在后端仓库的 `scripts/sim-guandan-strength.mjs`。
 
 ---
 
@@ -42,60 +44,44 @@
 
 ---
 
-## 二、命令行自对弈回归（`regress`）
+## 二、命令行权威强度回归
 
-改完 AI 给它一道**自动体检**，不用人肉打几十局凭感觉判断强弱。
+旧 `sim-guandan.js` 已退役，任何子命令都会以非零状态退出，防止误把漂移规则或开天眼 rollout 的结果当产品证据。当前强度实验位于后端仓库，由服务器权威 `guandan-engine.js` 和 `guandan-rules.js` 驱动：
 
 ```bash
-node scripts/sim-guandan.js regress <候选.json> [N=400] [基线.json|DEFAULT_W] [seed=20260622]
+npm run sim:guandan:strength -- --pairs=1000 --workers=8
 ```
 
-输出：
-- **胜率 ± 95%CI + 退化判定**：候选 vs 基线对打 N 副（每副自动 swap 座位消除先手优势）。CI 整段低于 50% → 🔴 退化；整段高于 → ✅ 更强；跨过 50% → ⚪ 无显著差异（加大 N）。
-- **出牌风格对比**：并列两列的 pass 率 / 均牌数每手 / 炸弹率 / 各牌型占比——两套权重可能胜率接近但风格迥异，这表能看出来。
+固定验收合同：
 
-固定种子 ＝ 同一批牌局，**可复现**（同种子两次跑逐字一致），所以改前 / 改后能逐次对拍。
+- 比较 `hard-normal` 和 `normal-easy`，每组至少 1,000 个种子对。
+- 每个种子交换双方座位各打一盘，因此每组是 2,000 局。
+- 用固定种子和 20,000 次 paired bootstrap 计算 95% CI。
+- 只有两组强档胜率的 95% CI 下界都大于 50% 才通过。
+- DanZero 的批量 NumPy 评分器仅加速同一模型推理；golden test 会逐分数证明它与浏览器/Node 推理一致。
 
-例（候选=部署的 hard 权重，基线=DEFAULT_W）：
-
-```
-$ node scripts/sim-guandan.js regress scripts/sim-guandan-best.json 400 DEFAULT_W
-胜率（候选 vs 基线）：62.x% ± 5.x%   ✅ 候选显著更强
-  指标          候选    基线
-  pass率        55.6%   58.0%
-  炸弹率        12.6%   13.1%
-  三带二        18.6%   18.9%   …
-```
-
-### ⚠️ 一个前提：sim 自带一套引擎副本
-`sim-guandan.js` 里有一份**独立的引擎实现**（`classify`/`beats`/`genMoves`/`moveUtility`/`rolloutValue`），镜像 `guandan.js` 的启发式 AI。所以：
-- **改的是权重向量**（`WEIGHTS_BY_DIFFICULTY` 那些数）→ 直接 `regress` 测，准。
-- **改的是引擎逻辑**（genMoves / 评分函数本身）→ 必须同步改 `sim-guandan.js` 那份引擎，否则 `regress` 测的还是旧逻辑。
-- DanZero 神经网络（hard 档实战用的）不在 sim 里——sim 只测启发式权重。神经网络的行为只能在浏览器透视镜里看。
-
-### 运行成本
-lookahead depth-2 较重，约 3.8s/副。要 ±5% 置信度需 ~400 副（约 20 分钟）；快速看趋势用小 N（如 40，约 2.5 分钟，CI ±15%）。
-
-`sim-guandan.js` 其它子命令不受影响：`sanity` / `tune` / `es-tune` / `pop-gen` / `tournament` / `compare`。
+最终报告写入后端的 `artifacts/guandan-ai-strength.json`，包含策略 ID、规则版本、种子、局数、胜率、置信区间、轮数和决策数。
 
 ---
 
 ## 三、典型工作流
 
-**「我调了 hard 难度的权重，想确认没变弱」**
-1. 把当前部署的 hard 权重存成 `baseline.json`，调好的存成 `cand.json`。
-2. `node scripts/sim-guandan.js regress cand.json 400 baseline.json` → 看胜率判定 + 风格表。
-3. 浏览器里开 hard 局、`dbug`、开透视镜，锁个种子实际打几手，看新权重的候选评分是否符合预期。
+**「我改了任意难度的策略，想确认强度顺序」**
+1. 先跑前后端 AI golden test，确认模型、特征、策略 ID 和评分器同构。
+2. 再跑至少 1,000 个配对种子的权威强度实验。
+3. 两个相邻档位都必须满足 95% CI 下界大于 50%，不能用点估计或旧 Elo 代替。
+4. 浏览器里开对应档位、`dbug`、开透视镜，锁定种子检查具体出牌理由。
 
 **「AI 在某个局面出了一手蠢牌，想查为什么」**
 1. 浏览器复现到那个局面（或用「局面注入」直接摆出来）。
 2. `dbug` → 开透视镜 → 单步走到那一手 → 看候选列表里它给每手打了多少分、为什么选了那手（评分最高的就是它选的）。
 
 **「改了出牌逻辑（不只是权重）」**
-1. 同步改 `sim-guandan.js` 里对应的引擎函数。
-2. `regress` 跑回归（cand=改后逻辑需要落成可加载的形式，或直接改 DEFAULT_W 对比）。
-3. 浏览器透视镜核对候选生成是否正确（`genMoves` 应 ≈ 平台 actionList）。
+1. 更新前端、后端及共享 golden fixtures。
+2. 跑 10,000 条种子化规则差分，要求前端、后端、模拟器零分歧。
+3. 跑权威强度实验并检查置信区间。
+4. 浏览器透视镜核对候选生成和评分。
 
 ---
 
-相关：`docs/guandan-ai-upgrade-memo.md`（DanZero 权重白嫖与集成备忘）。
+相关：`docs/guandan-ai-upgrade-memo.md`（历史研究备忘）、`scripts/guandan-legacy-results-invalid.md`（旧结果失效声明）。

@@ -27,6 +27,7 @@ jobs:
           node scripts/test-guandan-p0.mjs
           node scripts/test-guandan-network.mjs
           node scripts/test-guandan-differential.mjs --count=10000
+          node scripts/test-guandan-ai.mjs
 
       - name: Trial build (mirrors GitHub Pages exactly)
         uses: actions/jekyll-build-pages@v1

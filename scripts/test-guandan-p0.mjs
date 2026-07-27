@@ -3,12 +3,16 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../toolbox/guandan/index.html', import.meta.url), 'utf8');
 const js = await readFile(new URL('../assets/js/games/guandan.js', import.meta.url), 'utf8');
+const rulesFixture = JSON.parse(await readFile(
+  new URL('../tests/fixtures/guandan-rules-golden.json', import.meta.url),
+  'utf8',
+));
 
 assert.match(html, /class="gd-board-btn" id="gdBoardBtn"/, '榜单按钮应使用独立定位类');
 assert.match(html, /class="gd-mute-btn" id="gdMuteBtn"/, '音效按钮应使用独立定位类');
 assert.doesNotMatch(html, /class="gd-board-btn" id="gdMuteBtn"/, '音效按钮不得复用榜单定位类');
 assert.match(html, /--gd-ui-ink:\s*#1f2a3d/, '固定浅色牌桌应使用独立深色文字变量');
-assert.match(html, /guandan\.js\?v=20260727net3/, '生产页面应使用安全协议内容标记，避免旧 JS 缓存');
+assert.match(html, /guandan\.js\?v=20260727ai5/, '生产页面应使用 AI 同构内容标记，避免旧 JS 缓存');
 assert.match(html, /data-value="off"[^>]*class="[^"]*selected|class="[^"]*selected"[^>]*data-value="off"/,
   '同队进贡 UI 默认应关闭');
 
@@ -28,5 +32,6 @@ assert.match(js, /gd-huaian-2025-site-v1/, '前端必须声明不可变 rulesVer
 assert.match(js, /guandan-protocol-v2/, '前端必须声明 protocolVersion');
 assert.match(js, /migrateSessionSnapshot/, '旧存档必须经过显式 schema migration');
 assert.match(js, /rulesVersion:\s*RULES_VERSION/, '单机和联机会话必须保存 rulesVersion');
+assert.equal(rulesFixture.saveSchemaVersion, 3, 'golden fixture 必须跟随当前单机存档 schema');
 
 console.log('guandan P0 contracts: ok');

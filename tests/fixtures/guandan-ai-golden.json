@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "aiContractVersion": "gd-ai-contract-v1",
+  "strategyId": "gd-danzero-ca389e89e8db-v1",
+  "modelSha256": "ca389e89e8db98d9968705b0e4495620e025c852cf4db4b4c2e66b086ae03da5",
+  "cases": [
+    {
+      "id": "opening-public-information",
+      "input": {
+        "seat": 3,
+        "hand": [0, 5, 9, 11, 15, 22, 23, 25, 26, 27, 30, 33, 35, 39, 45, 48, 54, 58, 63, 73, 74, 79, 84, 94, 95, 104, 106],
+        "counts": [27, 27, 27, 27],
+        "over": [],
+        "level": "2",
+        "selfLevel": "2",
+        "opponentLevel": "2",
+        "history": [],
+        "unknownPlayed": []
+      },
+      "leading": true,
+      "moves": [
+        {"cards": [0], "type": "single", "len": 1, "key": 15},
+        {"cards": [5], "type": "single", "len": 1, "key": 7},
+        {"cards": [9], "type": "single", "len": 1, "key": 11},
+        {"cards": [11], "type": "single", "len": 1, "key": 13}
+      ],
+      "scores": [-0.6588654, -0.2963171, -0.7360306, -0.6899293],
+      "choice": [5]
+    },
+    {
+      "id": "pass-action",
+      "input": {
+        "seat": 2,
+        "hand": [1, 2, 3, 5, 7, 9, 15, 16, 23, 27, 28, 35, 37, 41, 43, 57, 70, 72, 74, 76, 78, 81, 88, 89, 97, 98, 105],
+        "counts": [22, 22, 27, 22],
+        "over": [],
+        "level": "2",
+        "selfLevel": "2",
+        "opponentLevel": "2",
+        "history": [
+          {"seat": 3, "kind": "play", "cards": [38, 66, 79, 22, 48]},
+          {"seat": 0, "kind": "play", "cards": [0, 26, 54, 25, 92]},
+          {"seat": 1, "kind": "play", "cards": [51, 93, 94, 95, 42]}
+        ],
+        "unknownPlayed": []
+      },
+      "leading": false,
+      "moves": [],
+      "scores": [0.0278956],
+      "choice": null
+    },
+    {
+      "id": "legacy-history-and-endgame-placeholder",
+      "input": {
+        "seat": 0,
+        "hand": [0, 1, 2, 3, 4],
+        "counts": [5, 4, 0, 3],
+        "over": [2],
+        "level": "5",
+        "selfLevel": "7",
+        "opponentLevel": "9",
+        "history": [
+          {"seat": 1, "kind": "play", "cards": [13, 67]},
+          {"seat": 2, "kind": "placeholder", "cards": []},
+          {"seat": 3, "kind": "pass", "cards": []}
+        ],
+        "unknownPlayed": [10, 11, 12]
+      },
+      "leading": false,
+      "moves": [
+        {"cards": [0], "type": "single", "len": 1, "key": 2},
+        {"cards": [1], "type": "single", "len": 1, "key": 3},
+        {"cards": [2], "type": "single", "len": 1, "key": 4}
+      ],
+      "scores": [-0.880458, -0.7678794, -1.0191785, -0.7861049],
+      "choice": [1]
+    }
+  ]
+}

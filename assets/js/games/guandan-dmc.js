@@ -12,7 +12,12 @@
   var TROW = [1, 0, 3, 2];
   function card2array(cards) {
     var v = new Float32Array(54);
+    if (cards && cards.length === 1 && cards[0] === -1) {
+      v.fill(-1);
+      return v;
+    }
     for (var i = 0; i < cards.length; i++) {
+      if (!Number.isInteger(cards[i]) || cards[i] < 0) continue;
       var d = cards[i] % 54;
       if (d === 52) { v[52] += 1; continue; }
       if (d === 53) { v[53] += 1; continue; }
@@ -66,29 +71,70 @@
   function oneHotLevel(lbl) { var v = new Float32Array(13), r = LEVEL_RANK[lbl]; if (r) v[r - 1] = 1; return v; }
   function oneHotCount(c) { var v = new Float32Array(28); v[Math.max(0, Math.min(27, c | 0))] = 1; return v; }
 
-  // ---- per-seat play tracker (maintained by the host game via record/reset) ----
-  var track = { played: [[], [], [], []], seq: [], lastAct: [null, null, null, null] };
-  function resetRound() { track = { played: [[], [], [], []], seq: [], lastAct: [null, null, null, null] }; }
+  // Legacy record methods remain for old saved pages, but current callers pass an
+  // explicit public history so refresh/reconnect and the server rebuild the same features.
+  var track = { played: [[], [], [], []], seq: [], lastAct: [null, null, null, null], unknownPlayed: [] };
+  function resetRound() { track = { played: [[], [], [], []], seq: [], lastAct: [null, null, null, null], unknownPlayed: [] }; }
   function recordPlay(seat, cards) { for (var i = 0; i < cards.length; i++) track.played[seat].push(cards[i]); track.seq.push(cards.slice()); track.lastAct[seat] = cards.slice(); }
   function recordPass(seat) { track.seq.push([]); track.lastAct[seat] = []; }
+  function trackerFromHistory(history, unknownPlayed) {
+    var out = { played: [[], [], [], []], seq: [], lastAct: [null, null, null, null], unknownPlayed: Array.isArray(unknownPlayed) ? unknownPlayed.slice() : [] };
+    (history || []).forEach(function (event) {
+      var seat = Number(event && event.seat);
+      if (!Number.isInteger(seat) || seat < 0 || seat > 3) return;
+      if (event.kind === 'placeholder') {
+        out.seq.push([-1]);
+        out.lastAct[seat] = null;
+        return;
+      }
+      var cards = Array.isArray(event.cards) ? event.cards.filter(Number.isInteger) : [];
+      if (cards.length) out.played[seat].push.apply(out.played[seat], cards);
+      out.seq.push(cards);
+      out.lastAct[seat] = cards;
+    });
+    return out;
+  }
+  function aggregateOtherHands(myHand, tracker) {
+    var remaining = new Int8Array(54);
+    remaining.fill(2);
+    function remove(cards) {
+      (cards || []).forEach(function (card) {
+        if (!Number.isInteger(card) || card < 0) return;
+        var normalized = card % 54;
+        if (remaining[normalized] > 0) remaining[normalized]--;
+      });
+    }
+    remove(myHand);
+    tracker.played.forEach(remove);
+    remove(tracker.unknownPlayed);
+    var aggregate = [];
+    for (var card = 0; card < 54; card++) {
+      for (var count = 0; count < remaining[card]; count++) aggregate.push(card);
+    }
+    return aggregate;
+  }
 
-  function build513(seat, hands, over, level, selfLevel, oppoLevel) {
+  function build513(input) {
+    input = input || {};
+    var seat = input.seat | 0, hands = input.hands || [[], [], [], []], over = input.over || [];
+    var counts = input.counts || hands.map(function (hand) { return hand.length; });
+    var level = input.level, selfLevel = input.selfLevel, oppoLevel = input.opponentLevel;
+    var tracker = input.history ? trackerFromHistory(input.history, input.unknownPlayed) : track;
     var down = (seat + 1) % 4, tm = (seat + 2) % 4, up = (seat + 3) % 4;
-    var myHand54 = card2array(hands[seat]);
+    var myHand = (hands[seat] || []).filter(function (card) { return Number.isInteger(card) && card >= 0; });
+    var myHand54 = card2array(myHand);
     var wild = procUniversal(myHand54, LEVEL_RANK[level]);
-    var others = []; for (var s = 0; s < 4; s++) if (s !== seat) for (var i = 0; i < hands[s].length; i++) others.push(hands[s][i]);
-    var last54;
-    if (track.seq.length === 0) { last54 = new Float32Array(54); last54.fill(-1); }
-    else { var a = track.seq[track.seq.length - 1]; last54 = (a && a.length) ? card2array(a) : new Float32Array(54); }
-    var tm54, ta = track.lastAct[tm];
-    if (ta != null && over.indexOf(tm) < 0) tm54 = (ta.length ? card2array(ta) : new Float32Array(54));
-    else { tm54 = new Float32Array(54); tm54.fill(-1); }
+    var lastAction = tracker.seq.length ? tracker.seq[tracker.seq.length - 1] : [-1];
+    var ta = tracker.lastAct[tm];
+    var teammateAction = ta != null && over.indexOf(tm) < 0 ? ta : [-1];
     var out = new Float32Array(513), o = 0;
     function put(arr) { out.set(arr, o); o += arr.length; }
-    put(myHand54); put(Float32Array.from(wild)); put(card2array(others)); put(last54); put(tm54);
-    put(card2array(track.played[down])); put(card2array(track.played[tm])); put(card2array(track.played[up]));
-    put(oneHotCount(hands[down].length)); put(oneHotCount(hands[tm].length)); put(oneHotCount(hands[up].length));
+    put(myHand54); put(Float32Array.from(wild)); put(card2array(aggregateOtherHands(myHand, tracker)));
+    put(card2array(lastAction)); put(card2array(teammateAction));
+    put(card2array(tracker.played[down])); put(card2array(tracker.played[tm])); put(card2array(tracker.played[up]));
+    put(oneHotCount(counts[down])); put(oneHotCount(counts[tm])); put(oneHotCount(counts[up]));
     put(oneHotLevel(selfLevel || level)); put(oneHotLevel(oppoLevel || level)); put(oneHotLevel(level));
+    if (o !== out.length) throw new Error('DMC feature length mismatch ' + o);
     return out;
   }
 
@@ -148,9 +194,9 @@
 
   // moves: array of {combo,cards} (from the host's genMoves). Returns chosen combo (with .cards) or null (pass).
   // dbgOut（可选）：传一个数组进来，会逐手 push {cards,type,len,score,pass}（每手的网络 Q 值），供调试台 AI 透视镜用。
-  function choose(seat, hands, over, level, selfLevel, oppoLevel, moves, leading, dbgOut) {
+  function choose(input, moves, leading, dbgOut) {
     if (!L) return undefined;        // not loaded
-    precompute(build513(seat, hands, over, level, selfLevel, oppoLevel));
+    precompute(build513(input));
     var bestQ = -Infinity, best = null, q, m;
     for (var i = 0; i < moves.length; i++) {
       m = moves[i]; q = scoreAction(card2array(m.cards));
@@ -165,5 +211,5 @@
     return best ? best.combo : null;
   }
 
-  return { loadWeights: loadWeights, ready: ready, resetRound: resetRound, recordPlay: recordPlay, recordPass: recordPass, choose: choose, _build513: build513, _card2array: card2array, _track: function () { return track; } };
+  return { loadWeights: loadWeights, ready: ready, resetRound: resetRound, recordPlay: recordPlay, recordPass: recordPass, choose: choose, _build513: build513, _card2array: card2array, _trackerFromHistory: trackerFromHistory, _track: function () { return track; } };
 }));

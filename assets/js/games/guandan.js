@@ -16,10 +16,13 @@
   const ONLINE_SESSION_SCHEMA_VERSION = 2;
   const RULES_VERSION = 'gd-huaian-2025-site-v1';
   const PROTOCOL_VERSION = 'guandan-protocol-v2';
-  const SAVE_SCHEMA_VERSION = 2;
-  const ROOM_SCHEMA_VERSION = 2;
+  const SAVE_SCHEMA_VERSION = 3;
+  const ROOM_SCHEMA_VERSION = 3;
+  const AI_CONTRACT_VERSION = 'gd-ai-contract-v1';
+  const AI_STRATEGIES = (typeof GuandanAIContract !== 'undefined')
+    ? GuandanAIContract.strategies : null;
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.07.27.net-v3';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.07.27.ai-v5';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -786,13 +789,60 @@
     opts = opts || {};
     const res = [];
     const seenKey = new Set();
+    const variantLimit = opts.physicalVariants === false ? 1 : 12;
+    const sequenceVariantLimit = opts.physicalVariants === false ? 1 : 16;
+    const physicalKey = cards => cards
+      .map(card => card % 54)
+      .sort((a, b) => a - b)
+      .join(',');
+    function selections(cards, count, limit) {
+      const source = cards.slice().sort((a, b) => a - b);
+      const output = [];
+      const seen = new Set();
+      const picked = [];
+      function visit(start) {
+        if (output.length >= (limit || variantLimit)) return;
+        if (picked.length === count) {
+          const key = physicalKey(picked);
+          if (!seen.has(key)) {
+            seen.add(key);
+            output.push(picked.slice());
+          }
+          return;
+        }
+        for (let index = start; index < source.length; index++) {
+          picked.push(source[index]);
+          visit(index + 1);
+          picked.pop();
+          if (output.length >= (limit || variantLimit)) return;
+        }
+      }
+      visit(0);
+      return output;
+    }
+    function combineGroups(groups, limit) {
+      let combined = [[]];
+      for (const variants of groups) {
+        const next = [];
+        for (const prefix of combined) {
+          for (const variant of variants) {
+            next.push(prefix.concat(variant));
+            if (next.length >= (limit || sequenceVariantLimit)) break;
+          }
+          if (next.length >= (limit || sequenceVariantLimit)) break;
+        }
+        combined = next;
+        if (!combined.length) break;
+      }
+      return combined;
+    }
     function consider(cards, contextType) {
       if (!cards || !cards.length) return;
       const cb = classify(cards, level, contextType || (prev && prev.type));
       if (!cb) return;
       if (prev && !beats(cb, prev)) return;
       if (!prev && opts.leadType && cb.type !== opts.leadType) return;
-      const k = cb.type + ':' + cb.len + ':' + cb.key + ':' + cards.slice().sort((a,b)=>a-b).join(',');
+      const k = cb.type + ':' + cb.len + ':' + cb.key + ':' + physicalKey(cards);
       if (seenKey.has(k)) return;
       seenKey.add(k);
       res.push({ combo: cb, cards: cards.slice() });
@@ -822,7 +872,7 @@
     if (!prev || prev.type === T.PAIR) {
       for (const r of ranks) {
         const a = byRank.get(r);
-        if (a.length >= 2) consider([a[0], a[1]]);
+        if (a.length >= 2) for (const picked of selections(a, 2)) consider(picked);
         else if (a.length === 1 && wilds.length >= 1) consider([a[0], wilds[0]]);
       }
       // 王对
@@ -836,7 +886,7 @@
     if (!prev || prev.type === T.TRIPLE) {
       for (const r of ranks) {
         const a = byRank.get(r);
-        if (a.length >= 3) consider([a[0], a[1], a[2]]);
+        if (a.length >= 3) for (const picked of selections(a, 3)) consider(picked);
         else if (a.length === 2 && wilds.length >= 1) consider([a[0], a[1], wilds[0]]);
         else if (a.length === 1 && wilds.length >= 2) consider([a[0], wilds[0], wilds[1]]);
       }
@@ -845,17 +895,20 @@
     if (!prev || prev.type === T.TRIPLE_PAIR) {
       for (const r of ranks) {
         const a = byRank.get(r);
-        let triple = null;
-        if (a.length >= 3) triple = [a[0], a[1], a[2]];
-        else if (a.length === 2 && wilds.length >= 1) triple = [a[0], a[1], wilds[0]];
-        if (!triple) continue;
-        const usedW = triple.filter(x => isWild(x, level)).length;
-        const remW = wilds.filter(w => !triple.includes(w));
-        for (const r2 of ranks) {
-          if (r2 === r) continue;
-          const b = byRank.get(r2);
-          if (b.length >= 2) consider([...triple, b[0], b[1]]);
-          else if (b.length === 1 && remW.length >= 1) consider([...triple, b[0], remW[0]]);
+        let triples = [];
+        if (a.length >= 3) triples = selections(a, 3);
+        else if (a.length === 2 && wilds.length >= 1) triples = [[a[0], a[1], wilds[0]]];
+        for (const triple of triples) {
+          const remW = wilds.filter(w => !triple.includes(w));
+          for (const r2 of ranks) {
+            if (r2 === r) continue;
+            const b = byRank.get(r2);
+            if (b.length >= 2) {
+              for (const pair of selections(b, 2)) consider([...triple, ...pair]);
+            } else if (b.length === 1 && remW.length >= 1) {
+              consider([...triple, b[0], remW[0]]);
+            }
+          }
         }
       }
     }
@@ -876,35 +929,24 @@
     function genSeq(groups, per, type) {
       const pointCards = new Map(); // 点(2..14) -> [cards]
       for (const r of ranks) pointCards.set(r + 2, byRank.get(r).slice());
-      const aceLow = pointCards.has(14);
       for (let s = 1; s + groups - 1 <= 14; s++) {
-        let need = 0; const pick = []; let okShape = true;
+        let need = 0; const variants = [];
         for (let k = 0; k < groups; k++) {
           const p = s + k;
           const realPt = (p === 1) ? 14 : p;
           const avail = pointCards.get(realPt) || [];
-          if (avail.length >= per) { pick.push(avail.slice(0, per)); }
+          if (avail.length >= per) variants.push(selections(avail, per, opts.physicalVariants === false ? 1 : 8));
           else {
             const miss = per - avail.length;
             need += miss;
-            if (avail.length > 0 && type !== T.STRAIGHT && avail.length > 0) {
-              // 部分真实 + wild 补
-            }
-            pick.push({ real: avail.slice(), miss });
+            variants.push([avail.slice()]);
           }
         }
         if (need > wilds.length) continue;
-        // 组装
-        const cards = [];
-        let wi = 0;
-        for (const grp of pick) {
-          if (Array.isArray(grp)) cards.push(...grp);
-          else {
-            cards.push(...grp.real);
-            for (let m = 0; m < grp.miss; m++) cards.push(wilds[wi++]);
-          }
+        for (const realCards of combineGroups(variants, sequenceVariantLimit)) {
+          const cards = realCards.concat(wilds.slice(0, need));
+          if (cards.length === groups * per) consider(cards, type);
         }
-        if (cards.length === groups * per) consider(cards, type);
       }
     }
 
@@ -914,9 +956,11 @@
       for (const r of ranks) {
         const a = byRank.get(r);
         for (let sz = 4; sz <= a.length + wilds.length; sz++) {
-          if (a.length >= 4 && sz <= a.length) consider(a.slice(0, sz), T.BOMB);
-          else if (sz - a.length >= 1 && sz - a.length <= wilds.length && a.length >= 2)
+          if (a.length >= 4 && sz <= a.length) {
+            for (const picked of selections(a, sz)) consider(picked, T.BOMB);
+          } else if (sz - a.length >= 1 && sz - a.length <= wilds.length && a.length >= 2) {
             consider([...a, ...wilds.slice(0, sz - a.length)], T.BOMB);
+          }
         }
       }
       // 同花顺
@@ -1002,6 +1046,7 @@
   const CARD_SIZE_OPTS = [0.85, 1, 1.25, 1.5];
   const state = {
     aiLevel: ['easy','normal','hard'].includes(stored.lastDiff) ? stored.lastDiff : 'normal',
+    matchAiLevel: ['easy','normal','hard'].includes(stored.lastDiff) ? stored.lastDiff : 'normal',
     options: normalizeOptions(stored.options),       // PGO 里可编辑的「下一盘」玩法设置
     matchOptions: normalizeOptions(stored.options),  // 当前这盘冻结的玩法设置（startMatch 时从 options 拷贝）
     openMult: [1, 2, 3].includes(stored.lastMult) ? stored.lastMult : 1,
@@ -1031,6 +1076,13 @@
     bombMult: 1,                          // 本副对局内炸弹累乘倍数（startMatch 重置）
     lastRoundScore: null,                 // 上一小局结算分（含正负，供下一局展示后清）
     lastRoundDetail: null,                // { openMult, bombMult, advance, winTeam }
+    aiContractVersion: AI_CONTRACT_VERSION,
+    activeStrategyId: AI_STRATEGIES
+      ? (AI_STRATEGIES[['easy','normal','hard'].includes(stored.lastDiff) ? stored.lastDiff : 'normal']
+        || AI_STRATEGIES.normal).id : null,
+    aiHistory: [],
+    unknownPlayed: [],
+    historyComplete: true,
   };
 
   // 当前“打的级牌”label：行动方（actingTeam）的级牌
@@ -1113,6 +1165,22 @@
     snap.v = SAVE_SCHEMA_VERSION;
     snap.schemaVersion = SAVE_SCHEMA_VERSION;
     snap.rulesVersion = RULES_VERSION;
+    if (!Array.isArray(snap.aiHistory)) snap.aiHistory = [];
+    if (!Array.isArray(snap.unknownPlayed)) {
+      const held = new Set(Array.isArray(snap.hands) ? snap.hands.flat() : []);
+      snap.unknownPlayed = Array.from({ length: 108 }, (_, card) => card)
+        .filter(card => !held.has(card));
+      snap.historyComplete = false;
+    }
+    if (typeof snap.historyComplete !== 'boolean') {
+      snap.historyComplete = snap.aiHistory.length > 0 || snap.unknownPlayed.length === 0;
+    }
+    snap.aiContractVersion = AI_CONTRACT_VERSION;
+    snap.matchAiLevel = ['easy','normal','hard'].includes(snap.matchAiLevel)
+      ? snap.matchAiLevel
+      : (['easy','normal','hard'].includes(snap.aiLevel) ? snap.aiLevel : 'normal');
+    snap.activeStrategyId = AI_STRATEGIES
+      ? (AI_STRATEGIES[snap.matchAiLevel] || AI_STRATEGIES.normal).id : null;
     return snap;
   }
   function buildSessionSnapshot() {
@@ -1120,8 +1188,12 @@
       v: SAVE_SCHEMA_VERSION,
       schemaVersion: SAVE_SCHEMA_VERSION,
       rulesVersion: RULES_VERSION,
+      aiContractVersion: AI_CONTRACT_VERSION,
+      activeStrategyId: AI_STRATEGIES
+        ? (AI_STRATEGIES[state.matchAiLevel] || AI_STRATEGIES.normal).id : null,
       savedAt: Date.now(),
       aiLevel: state.aiLevel,
+      matchAiLevel: state.matchAiLevel,
       options: state.options,
       matchOptions: state.matchOptions,
       openMult: state.openMult,
@@ -1152,6 +1224,13 @@
       lastRoundDetail: state.lastRoundDetail || null,
       lastRanking: Array.isArray(state.lastRanking) ? state.lastRanking.slice() : null,
       _pendingMatchWin: (state._pendingMatchWin == null) ? null : state._pendingMatchWin,
+      aiHistory: state.aiHistory.map(event => ({
+        seat: event.seat,
+        kind: event.kind,
+        cards: (event.cards || []).slice(),
+      })),
+      unknownPlayed: state.unknownPlayed.slice(),
+      historyComplete: state.historyComplete !== false,
     };
   }
   let _saveSessionPending = false;
@@ -2266,6 +2345,11 @@
     if (Array.isArray(gv.counts)) r.counts = rotArr4(gv.counts);
     if (typeof gv.turn === 'number') r.turn = L(gv.turn);
     if (Array.isArray(gv.out)) r.out = gv.out.map(L);
+    if (Array.isArray(gv.aiHistory)) r.aiHistory = gv.aiHistory.map(event => ({
+      seat: L(event.seat),
+      kind: event.kind,
+      cards: Array.isArray(event.cards) ? event.cards.slice() : [],
+    }));
     if (Array.isArray(gv.lastPlay)) r.lastPlay = rotArr4(gv.lastPlay);
     if (gv.trick) r.trick = {
       lead: L(gv.trick.lead),
@@ -2318,6 +2402,14 @@
   function startNetworkedGame(gv) {
     gv = rotateGvToSelf(gv);
     state.isNetworked = true;
+    const serverDifficulty = ['easy','normal','hard'].includes(gv.difficulty)
+      ? gv.difficulty
+      : (onlineState && onlineState.config && ['easy','normal','hard'].includes(onlineState.config.aiLevel)
+        ? onlineState.config.aiLevel : state.aiLevel);
+    state.matchAiLevel = serverDifficulty;
+    state.activeStrategyId = gv.activeStrategyId || (
+      AI_STRATEGIES ? (AI_STRATEGIES[state.matchAiLevel] || AI_STRATEGIES.normal).id : null
+    );
     clearSession();                  // 抹掉进联机前可能残留的单机存档，避免日后刷新被它劫持
     state._endHandled = false;       // 复位本局结算/战报闩（见 endRound / endMatch）
     state._matchEnded = false;
@@ -2367,6 +2459,17 @@
       const cur = (state.hands[s] && state.hands[s].length) || 0;
       if (cur !== want) state.hands[s] = new Array(want).fill(-1);
     }
+    state.aiHistory = Array.isArray(gv.aiHistory) ? gv.aiHistory.map(event => ({
+      seat: event.seat,
+      kind: event.kind,
+      cards: (event.cards || []).slice(),
+    })) : [];
+    state.unknownPlayed = Array.isArray(gv.unknownPlayed) ? gv.unknownPlayed.slice() : [];
+    state.historyComplete = gv.historyComplete !== false;
+    state.aiContractVersion = gv.aiContractVersion || AI_CONTRACT_VERSION;
+    state.activeStrategyId = gv.activeStrategyId || (
+      AI_STRATEGIES ? (AI_STRATEGIES[state.matchAiLevel] || AI_STRATEGIES.normal).id : null
+    );
     // 局终：服务端下发了各家剩牌(revealHands)，用真牌替换占位 → 出牌区可摊真牌（否则只有 -1 占位被跳过）
     if (Array.isArray(gv.revealHands)) {
       for (let s = 0; s < 4; s++) {
@@ -2753,6 +2856,9 @@
     // 冻结这一盘的玩法设置：只在开新一盘时从可编辑的 options 拷贝一次。
     // 这盘进行中（含局与局之间）engine 只读 matchOptions，改 PGO 设置要等下一盘才生效。
     state.matchOptions = normalizeOptions(state.options);
+    state.matchAiLevel = state.aiLevel;
+    state.activeStrategyId = AI_STRATEGIES
+      ? (AI_STRATEGIES[state.matchAiLevel] || AI_STRATEGIES.normal).id : null;
     state.levels = [0, 0];           // 都从 '2'
     state.actingTeam = 0;            // 你方先做主级（首局由座 0 起手）
     state.firstLeader = 0;
@@ -2791,6 +2897,9 @@
     state.lastRoundScore = null;
     state.lastRoundDetail = null;
     state.customGroups = [];         // 每小局重发 → 清掉手动摞起来的组
+    state.aiHistory = [];
+    state.unknownPlayed = [];
+    state.historyComplete = true;
     // 新一局重置智能选牌门闩，避免新局首手与上局某一刻 trick 状态 + 手牌张数偶然碰撞
     state._autoTurnKey = null;
     // 每小局都让用户选一次加倍；resume 路径不走 startRound，所以不会重新弹
@@ -2802,7 +2911,6 @@
     const deck = shuffle(buildDeck());
     state.hands = [[], [], [], []];
     for (let i = 0; i < 108; i++) state.hands[i % 4].push(deck[i]);
-    if (typeof GuandanDMC !== 'undefined') { GuandanDMC.resetRound(); ensureDMC(); }
     // 小局开打一瞬不放发牌音，只在玩家第一次"摸牌"时放（beginPlay 渲染时本函数已返回）
 
     // 决定先手：首局随机抽一家；之后由进贡/抗贡规则在 handleTribute 里改写
@@ -3408,10 +3516,10 @@
     }
     const afterLen = state.hands[seat].length;
     state.lastPlay[seat] = combo;
+    state.aiHistory.push({ seat, kind: 'play', cards: combo.cards.slice() });
     state.trick.best = combo;
     state.trick.bestSeat = seat;
     state.trick.passes = 0;
-    if (typeof GuandanDMC !== 'undefined') GuandanDMC.recordPlay(seat, combo.cards);
     if (afterLen === 0 && !state.out.includes(seat)) {
       state.out.push(seat);
     }
@@ -3476,9 +3584,9 @@
   function commitPass(seat) {
     if (isNetworked()) { sendNetworkedMove('pass'); return; }
     state.lastPlay[seat] = 'pass';
+    state.aiHistory.push({ seat, kind: 'pass', cards: [] });
     state.trick.passes++;
     _gaSfxPass();
-    if (typeof GuandanDMC !== 'undefined') GuandanDMC.recordPass(seat);
     renderAll();
     if (seat === 0) hidePlayActionsImmediate();
     saveSession();
@@ -3487,6 +3595,17 @@
 
   function alivePlayers() {
     return [0,1,2,3].filter(s => !state.out.includes(s));
+  }
+
+  function appendSkippedPlaceholders(fromSeat, toSeat) {
+    let skipped = fromSeat;
+    for (let step = 0; step < 3; step++) {
+      skipped = (skipped + 1) % 4;
+      if (skipped === toSeat) break;
+      if (state.out.includes(skipped)) {
+        state.aiHistory.push({ seat: skipped, kind: 'placeholder', cards: [] });
+      }
+    }
   }
 
   function afterMove(seat) {
@@ -3518,6 +3637,7 @@
         }
       }
       if (jiefengTo >= 0) showJiefengFx(bestSeat, jiefengTo);
+      appendSkippedPlaceholders(seat, nextLeader);
       // 延迟一会儿再 clearTrick，让"第三家不出"那条 lastPlay 在画面上有时间
       // 被用户看到——不然 commitPass 一渲完，afterMove 立刻清空所有 play 区。
       state.busy = true;
@@ -3527,6 +3647,7 @@
 
     // 轮到下一个在场玩家
     let nx = nextAlive(seat);
+    appendSkippedPlaceholders(seat, nx);
     state.turn = nx;
     state.trick.lead = nx;
     // 又轮到这家出牌了 → 把他/她上一手的残留清掉，不论那是"不出"还是出过的牌。
@@ -4182,16 +4303,34 @@
     });
   }
 
-  function doAutoPlayPick() {
+  async function doAutoPlayPick() {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
     const level = currentLevelLabel();
     const trick = state.trick;
     const prev = (trick && trick.best != null && trick.bestSeat !== 0) ? trick.best : null;
     const leading = !prev;
     state.selected.clear();
+    const turnKey = `${state.turn}:${state.aiHistory.length}:${state.hands[0].length}`;
+    state.busy = true;
+    renderAll();
     // 借用 AI 决策——领出走 decompose + orderLeadGroups（不会把对子拆成单张），
     // 跟牌按当前难度行为；与三家 AI 体验一致
-    const decision = chooseAIMove(0, state.hands[0], prev, leading, level);
+    let decision;
+    try {
+      decision = await chooseAIMove(0, state.hands[0], prev, leading, level);
+    } catch (error) {
+      console.error('[guandan] autoplay AI', error);
+      state.busy = false;
+      renderAll();
+      toast('高手模型暂不可用，请重试或改选普通档');
+      armTurnClock();
+      return;
+    }
+    if (turnKey !== `${state.turn}:${state.aiHistory.length}:${state.hands[0].length}`) {
+      state.busy = false;
+      return;
+    }
+    state.busy = false;
     if (!decision) {
       // 不出（仅跟牌时合法）
       if (prev) commitPass(0);
@@ -4225,14 +4364,22 @@
     renderAll();
     armTurnClock();    // 给当前 AI 座挂时钟
     const seat = state.turn;
-    const fire = () => {
-      // 先释放 busy ——否则 aiAct → commitPlay → afterMove → scheduleAI 这条链
-      // 会被自己的 busy 守卫拦截，导致出完一手就卡住（图五 bug）。
-      // aiAct 是同步的，期间没有事件循环让玩家插队，所以释放是安全的。
-      state.busy = false;
+    const fire = async () => {
       stopTurnClock();
-      try { aiAct(seat); }
-      catch (e) { console.error('[guandan] aiAct', e); }
+      try { await aiAct(seat); }
+      catch (e) {
+        state.busy = false;
+        console.error('[guandan] aiAct', e);
+        // 不降级成启发式假装高手；保留同一回合并重建 Worker 后重试。
+        if (state.matchAiLevel === 'hard') failDmc(e);
+        if (_dmcRetryCount < 2) {
+          _dmcRetryCount++;
+          toast('高手模型暂不可用，正在重试');
+          scheduleGameplayAi(() => scheduleAI(), 1200);
+        } else {
+          toast('高手模型连续失败，请从设置改选普通档后重开');
+        }
+      }
       updateActions();
     };
     // 调试台「单步」：不自动出，把这一步存起来，等面板点「下一步」再 fire（见 _gdStep）
@@ -4247,30 +4394,37 @@
     scheduleGameplayAi(fire, delay);
   }
 
-  function aiAct(seat) {
-    if (state.phase !== PHASE.PLAYING) return;
+  async function aiAct(seat) {
+    if (state.phase !== PHASE.PLAYING || state.turn !== seat) { state.busy = false; return; }
     if (state._testMode) {
       // 测试模式：被压就过、轮到领出就打最小单张兜底，让玩家能反复领出各种牌型
-      if (state.out.includes(seat)) { afterMove(seat); return; }
+      if (state.out.includes(seat)) { state.busy = false; afterMove(seat); return; }
       const tr = state.trick;
       const leading = !(tr.best && tr.bestSeat !== seat);
-      if (!leading) { commitPass(seat); return; }
+      if (!leading) { state.busy = false; commitPass(seat); return; }
       const th = state.hands[seat];
-      if (!th.length) { afterMove(seat); return; }
+      if (!th.length) { state.busy = false; afterMove(seat); return; }
       const tlv = currentLevelLabel();
       let sm = th[0], sw = singleWeight(th[0], tlv);
       for (const c of th) { const w = singleWeight(c, tlv); if (w < sw) { sw = w; sm = c; } }
+      state.busy = false;
       commitPlay(seat, classify([sm], tlv));
       return;
     }
-    if (state.out.includes(seat)) { afterMove(seat); return; }
+    if (state.out.includes(seat)) { state.busy = false; afterMove(seat); return; }
     const level = currentLevelLabel();
     const hand = state.hands[seat];
     const trick = state.trick;
     const prev = (trick.best && trick.bestSeat !== seat) ? trick.best : null;
     const leading = !prev;
 
-    const decision = chooseAIMove(seat, hand, prev, leading, level);
+    const turnKey = `${state.turn}:${state.aiHistory.length}:${hand.length}`;
+    const decision = await chooseAIMove(seat, hand, prev, leading, level);
+    if (turnKey !== `${state.turn}:${state.aiHistory.length}:${state.hands[seat].length}`) {
+      state.busy = false;
+      return;
+    }
+    state.busy = false;
     if (!decision) {
       commitPass(seat);
     } else {
@@ -4284,63 +4438,17 @@
   //  每个候选 move 算 U(m) = ΔV - Cost + Bonus，argmax U(m) 决定出牌
   //  pass 也作为候选参与 argmax（仅跟牌时合法）
   //
-  //  三档难度（easy/normal/hard）对应**不同的权重向量**——来自独立 ES self-play
-  //  训练终点+早中段快照，按 tournament Elo 排出强弱后选定。差异化来自策略偏好
-  //  （更/不愿意拆组、更/不愿意炸、更/不愿意 pass），不是噪声或硬编码降级，
-  //  所以 easy AI 始终按其"较弱但连贯"的策略打，不会有同一局面突然下莫名其妙
-  //  一手的"变笨"感。
+  //  三档都是不可变策略：easy/normal 使用不同启发式参数，hard 使用 DanZero。
+  //  历史独立模拟器的 Elo/胜率因规则漂移和完美信息 rollout 已失效；当前档位顺序
+  //  只接受服务器权威引擎、固定种子、换座配对和 95% CI 的强度证据。
   // ============================================================
 
-  // 三档权重来自群体训练 + 锦标赛分级（K=8 ES runs × 4 gen × 16 pop × 50 matches
-  // → 26 候选 round-robin → Elo 排名；2026-06-12 新大训练 run15_gen6 替代旧 hard（胜率 +6%））：
-  //   hard   = run2_gen0 (Elo 1544, rank 1/26)  战术家：敢拆组、保炸、拼走完
-  //   normal = run3_gen3 (Elo 1480, rank 16/26) 守成派：极不拆组、狠让队友
-  //   hard   = coord-best  (Elo 1576, #1/62,  62.6% win)
-  //   normal = run12_gen6  (Elo 1493, #31/62, 47.0% win)
-  //   easy   = run9_gen0   (Elo 1385, #62/62, 30.8% win)
-  // 62 候选 × 1891 对 × 20 局 tournament，2026-06-12
-  const WEIGHTS_BY_DIFFICULTY = {
-    hard: {
-      passBase: -4.658, passPartnerWin: 13.685, passPartnerLow: 4,
-      playFollowActive: 2.125, playFinish: 51,
-      playFinishPartnerWin: 35, playPartnerWinPenalty: -19.305,
-      playLeadLength: 0.35, playFollowLength: -0.12,
-      breakMult: 1.316, wildCost: 7, jokerCost: 5,
-      bombBase4: 6.8, bombPerExtra: 4,
-      bombLeadMult: 1, bombLeadLateBonus: 0.6,
-      bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
-      groupBombBase: 14, groupBombPerExtra: 8,
-      handLenPenalty: 0.325, lookaheadDepth: 2,
-    },
-    // 普通 = 原困难档 coord-best (Elo 1575.8)：神经网络上线后整体台阶上移
-    normal: {
-      passBase: -4.658, passPartnerWin: 13.685, passPartnerLow: 4,
-      playFollowActive: 2.125, playFinish: 51,
-      playFinishPartnerWin: 35, playPartnerWinPenalty: -19.305,
-      playLeadLength: 0.35, playFollowLength: -0.12,
-      breakMult: 1.316, wildCost: 7, jokerCost: 5,
-      bombBase4: 6.8, bombPerExtra: 4,
-      bombLeadMult: 1, bombLeadLateBonus: 0.6,
-      bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
-      groupBombBase: 14, groupBombPerExtra: 8,
-      handLenPenalty: 0.325, lookaheadDepth: 2,
-    },
-    // 新手 = 原普通档 run12_gen6 (Elo 1493)
-    easy: {
-      passBase: -4.135, passPartnerWin: 11.089, passPartnerLow: 4,
-      playFollowActive: 2.255, playFinish: 27.101,
-      playFinishPartnerWin: 35, playPartnerWinPenalty: -23.474,
-      playLeadLength: 0.35, playFollowLength: -0.12,
-      breakMult: 1.285, wildCost: 7, jokerCost: 5,
-      bombBase4: 8.420, bombPerExtra: 4,
-      bombLeadMult: 1, bombLeadLateBonus: 0.6,
-      bombFollowMult: 0.6, bombFollowOppLow: 1.3, bombFollowOppMed: 0.3,
-      groupBombBase: 14, groupBombPerExtra: 8,
-      handLenPenalty: 0.319, lookaheadDepth: 2,
-    },
-  };
+  // easy/normal 保留两组历史启发式参数作为不可变策略。旧独立模拟器使用了
+  // 非权威规则与完美信息 rollout，因此其 Elo/胜率已经明确失效，不能再作强度文案；
+  // 新强度结论只来自服务端权威引擎的可复现配对赛。
+  const WEIGHTS_BY_DIFFICULTY = GuandanAIContract.heuristicWeights;
   function aiWeights() {
-    return WEIGHTS_BY_DIFFICULTY[state.aiLevel] || WEIGHTS_BY_DIFFICULTY.normal;
+    return WEIGHTS_BY_DIFFICULTY[state.matchAiLevel] || WEIGHTS_BY_DIFFICULTY.normal;
   }
 
   function groupValue(g, level, w) {
@@ -4450,53 +4558,131 @@
 
   // 选牌核心：argmax over candidates ∪ {pass}
   //
-  // 所有三档难度都用 lookahead depth=2（差异完全来自 WEIGHTS_BY_DIFFICULTY 里的
-  // 权重组不同，不再用深度或噪声制造区别）。depth=2 在 self-play 模拟里相对
-  // greedy 100% 胜，相对 depth=1 +9%，depth=3 不显著 → 甜蜜点。
+  // easy/normal 共用 depth=2 的公开信息 rollout，但使用不同不可变权重；
+  // hard 完全走 DanZero Worker，不用启发式 fallback。
   const LOOKAHEAD_DEPTH = 2;
-  // DanZero DMC 神经网络（高手档）。进游戏即后台预下载；带进度；返回 Promise（永不 reject，
-  // 失败置 _dmcState=3）。下完才让高手上桌，期间不用「假高手」。
-  let _dmcState = 0, _dmcProgress = 0, _dmcPromise = null, _dmcProgressCb = null; // 0 idle,1 loading,2 ready,3 failed
+  // DanZero DMC 神经网络（高手档）只在专用 Worker 内加载和推理，避免阻塞牌桌主线程。
+  let _dmcState = 0, _dmcProgress = 0, _dmcPromise = null, _dmcProgressCb = null;
+  let _dmcWorker = null, _dmcResolve = null, _dmcRequestSeq = 0, _dmcRetryCount = 0;
+  const _dmcRequests = new Map();
+  function ensureDmcWorker() {
+    if (_dmcWorker) return _dmcWorker;
+    if (typeof Worker === 'undefined' || !AI_STRATEGIES) throw new Error('dmc_worker_unavailable');
+    _dmcWorker = new Worker('/assets/js/games/guandan-dmc-worker.js?v=20260727ai5');
+    _dmcWorker.onmessage = event => {
+      const message = event.data || {};
+      if (message.type === 'progress') {
+        _dmcProgress = message.value || 0;
+        if (_dmcProgressCb) _dmcProgressCb(_dmcProgress);
+        return;
+      }
+      if (message.type === 'ready') {
+        if (message.modelSha256 !== GuandanAIContract.modelSha256) {
+          failDmc(new Error('dmc_worker_model_mismatch'));
+          return;
+        }
+        _dmcState = 2;
+        _dmcProgress = 1;
+        _dmcRetryCount = 0;
+        if ((state.phase === PHASE.IDLE ? state.aiLevel : state.matchAiLevel) === 'hard') {
+          state.activeStrategyId = message.strategyId;
+        }
+        if (_dmcProgressCb) _dmcProgressCb(1);
+        if (_dmcResolve) _dmcResolve();
+        _dmcResolve = null;
+        updateBuildBadge();
+        return;
+      }
+      if (message.type === 'error') {
+        failDmc(new Error(message.error || 'dmc_worker_load'));
+        return;
+      }
+      if (message.type === 'choice' || message.type === 'choice-error') {
+        const pending = _dmcRequests.get(message.requestId);
+        if (!pending) return;
+        _dmcRequests.delete(message.requestId);
+        clearTimeout(pending.timer);
+        if (message.type === 'choice-error') pending.reject(new Error(message.error || 'dmc_choice'));
+        else pending.resolve(message);
+      }
+    };
+    _dmcWorker.onerror = event => failDmc(new Error(event.message || 'dmc_worker_error'));
+    return _dmcWorker;
+  }
+  function failDmc(error) {
+    console.warn('[guandan] DMC Worker failed:', error);
+    _dmcState = 3;
+    if (_dmcResolve) _dmcResolve();
+    _dmcResolve = null;
+    for (const pending of _dmcRequests.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(error);
+    }
+    _dmcRequests.clear();
+    if (_dmcWorker) _dmcWorker.terminate();
+    _dmcWorker = null;
+    _dmcPromise = null;
+    updateBuildBadge();
+  }
   function ensureDMC(onProgress) {
     if (onProgress) _dmcProgressCb = onProgress;
-    if (typeof GuandanDMC === 'undefined') { _dmcState = 3; return Promise.resolve(); }
-    if (GuandanDMC.ready()) { _dmcState = 2; _dmcProgress = 1; return Promise.resolve(); }
+    if (_dmcState === 2) return Promise.resolve();
     if (_dmcPromise) return _dmcPromise;
-    _dmcState = 1; _dmcProgress = 0;
-    _dmcPromise = fetch('/assets/js/games/guandan-dmc.bin?v=20260616int8')
-      .then(r => {
-        if (!r.ok) throw new Error('http ' + r.status);
-        const total = +r.headers.get('content-length') || 1359880;
-        if (!r.body || !r.body.getReader) return r.arrayBuffer();
-        const reader = r.body.getReader(); let got = 0; const chunks = [];
-        return (function pump() {
-          return reader.read().then(({ done, value }) => {
-            if (done) { const out = new Uint8Array(got); let o = 0; for (const c of chunks) { out.set(c, o); o += c.length; } return out.buffer; }
-            chunks.push(value); got += value.length; _dmcProgress = Math.min(0.999, got / total);
-            if (_dmcProgressCb) { try { _dmcProgressCb(_dmcProgress); } catch (e) {} }
-            return pump();
-          });
-        })();
-      })
-      .then(buf => { GuandanDMC.loadWeights(buf); _dmcState = 2; _dmcProgress = 1; if (_dmcProgressCb) { try { _dmcProgressCb(1); } catch (e) {} } updateBuildBadge(); })
-      .catch(e => { console.warn('[guandan] DMC weights load failed:', e); _dmcState = 3; _dmcPromise = null; updateBuildBadge(); });
-    return _dmcPromise;
+    _dmcState = 1;
+    _dmcProgress = 0;
+    const promise = new Promise(resolve => { _dmcResolve = resolve; });
+    _dmcPromise = promise;
+    try {
+      ensureDmcWorker().postMessage({ type: 'load' });
+    } catch (error) {
+      failDmc(error);
+    }
+    return promise;
   }
-  function chooseAIMove(seat, hand, prev, leading, level) {
-    // 高手档用 DanZero 神经网络；网络只看公开信息（自己手牌+已出牌+张数+级牌）。
-    if (state.aiLevel === 'hard' && typeof GuandanDMC !== 'undefined') {
-      ensureDMC();
-      if (GuandanDMC.ready()) {
-        const moves = genMoves(hand, prev, level);
-        const selfLv = LEVEL_SEQ[state.levels[seat % 2]];
-        const oppoLv = LEVEL_SEQ[state.levels[1 - (seat % 2)]];
-        const dbg = _gdXray.on ? [] : null;   // 透视镜开启时让 DMC 顺手吐出每手 Q 值
-        const pick = GuandanDMC.choose(seat, state.hands, state.out, level, selfLv, oppoLv, moves, leading, dbg);
-        if (!(leading && pick == null)) {     // pick=combo 或 null(pass)；只拦「领出却想pass」
-          if (dbg) _gdRecordXray(seat, prev, leading, level, 'dmc', dbg, pick ? pick.cards : null);
-          return pick;
-        }
+  function chooseDmcInWorker(seat, moves, leading, level) {
+    return new Promise((resolve, reject) => {
+      const requestId = ++_dmcRequestSeq;
+      const timer = setTimeout(() => {
+        _dmcRequests.delete(requestId);
+        reject(new Error('dmc_choice_timeout'));
+      }, 15000);
+      _dmcRequests.set(requestId, { resolve, reject, timer });
+      ensureDmcWorker().postMessage({
+        type: 'choose',
+        requestId,
+        state: {
+          seat,
+          hands: state.hands.map((cards, index) => index === seat ? cards : []),
+          counts: state.hands.map(cards => cards.length),
+          over: state.out,
+          level,
+          selfLevel: LEVEL_SEQ[state.levels[seat % 2]],
+          opponentLevel: LEVEL_SEQ[state.levels[1 - (seat % 2)]],
+          history: state.aiHistory,
+          unknownPlayed: state.unknownPlayed,
+        },
+        moves,
+        leading,
+        debug: _gdXray.on,
+      });
+    });
+  }
+  async function chooseAIMove(seat, hand, prev, leading, level) {
+    const strategy = AI_STRATEGIES
+      ? (AI_STRATEGIES[state.matchAiLevel] || AI_STRATEGIES.normal) : null;
+    state.activeStrategyId = strategy ? strategy.id : null;
+    if (strategy && strategy.engine === 'danzero-dmc') {
+      await ensureDMC();
+      if (_dmcState !== 2) throw new Error('dmc_model_unavailable');
+      const moves = genMoves(hand, prev, level);
+      const result = await chooseDmcInWorker(seat, moves, leading, level);
+      const key = cards => (cards || []).slice().sort((a, b) => a - b).join(',');
+      const pick = result.cards == null ? null : moves.find(move => key(move.cards) === key(result.cards));
+      if (result.debug) {
+        _gdRecordXray(seat, prev, leading, level, 'dmc', result.debug, pick ? pick.cards : null);
       }
+      if (leading && !pick) throw new Error('dmc_illegal_leading_pass');
+      return pick ? pick.combo : null;
     }
     const w = aiWeights();
     return chooseAIMoveLookahead(seat, hand, prev, leading, level, w, LOOKAHEAD_DEPTH);
@@ -4512,14 +4698,14 @@
       document.body.appendChild(el);
     }
     let ai = '';
-    const lv = state && state.aiLevel;
-    if (lv === 'hard') ai = ' · 高手 ' + (_dmcState === 2 ? 'DanZero[[zi:bot]]' : _dmcState === 1 ? '载入中…' : _dmcState === 3 ? '启发式·载入失败' : '启发式');
+    const lv = state && (state.phase === PHASE.IDLE ? state.aiLevel : state.matchAiLevel);
+    if (lv === 'hard') ai = ' · 高手 ' + (_dmcState === 2 ? 'DanZero Worker' : _dmcState === 1 ? '载入中…' : _dmcState === 3 ? '模型不可用' : '待加载');
     else if (lv) ai = ' · ' + (lv === 'normal' ? '普通' : '新手') + ' 启发式';
     el.textContent = 'v' + GD_BUILD + ai;
   }
   function chooseAIMoveGreedy(seat, hand, prev, leading, level, w) {
     const ctx = moveContext(seat);
-    const moves = genMoves(hand, prev, level);
+    const moves = genMoves(hand, prev, level, { physicalVariants: false });
     if (leading && !moves.length) {
       const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
       return classify([c], level);
@@ -4538,9 +4724,56 @@
 
   // ---- 1-step lookahead ----
   // 每个候选 move 模拟 depth 个 ply（含对手回应），用 teamValueAt 评估最终状态，argmax
-  function cloneStateMinLA() {
+  function publicBeliefHands(perspectiveSeat) {
+    const hands = [[], [], [], []];
+    hands[perspectiveSeat] = state.hands[perspectiveSeat]
+      .filter(card => Number.isInteger(card) && card >= 0)
+      .slice();
+    const unavailable = new Set(hands[perspectiveSeat]);
+    for (const event of state.aiHistory || []) {
+      for (const card of event.cards || []) unavailable.add(card);
+    }
+    for (const card of state.unknownPlayed || []) unavailable.add(card);
+    const pool = Array.from({ length: 108 }, (_, card) => card)
+      .filter(card => !unavailable.has(card));
+    const visibleSeed = JSON.stringify({
+      perspectiveSeat,
+      own: hands[perspectiveSeat],
+      counts: state.hands.map(hand => hand.length),
+      out: state.out,
+      trick: state.trick,
+      history: state.aiHistory || [],
+      unknownPlayed: state.unknownPlayed || [],
+    });
+    let hash = 2166136261;
+    for (let index = 0; index < visibleSeed.length; index++) {
+      hash ^= visibleSeed.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    let seed = hash >>> 0;
+    const rng = () => {
+      seed |= 0;
+      seed = (seed + 0x6D2B79F5) | 0;
+      let value = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
+      return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    };
+    for (let index = pool.length - 1; index > 0; index--) {
+      const swap = Math.floor(rng() * (index + 1));
+      [pool[index], pool[swap]] = [pool[swap], pool[index]];
+    }
+    let cursor = 0;
+    for (let seat = 0; seat < 4; seat++) {
+      if (seat === perspectiveSeat) continue;
+      const count = state.hands[seat].length;
+      hands[seat] = pool.slice(cursor, cursor + count);
+      cursor += count;
+    }
+    return hands;
+  }
+  function cloneStateMinLA(perspectiveSeat) {
     return {
-      hands: state.hands.map(h => h.slice()),
+      hands: publicBeliefHands(perspectiveSeat),
       out: state.out.slice(),
       trick: state.trick ? { lead: state.trick.lead, best: state.trick.best, bestSeat: state.trick.bestSeat, passes: state.trick.passes } : null,
       lastPlay: state.lastPlay.slice(),
@@ -4570,7 +4803,8 @@
   }
   function nextSeatLA(s, seat) {
     const alive = [0,1,2,3].filter(x => !s.out.includes(x));
-    if (s.trick.bestSeat >= 0 && s.trick.passes >= alive.length - 1 && alive.length >= 1) {
+    const needPass = alive.length - (s.out.includes(s.trick.bestSeat) ? 0 : 1);
+    if (s.trick.bestSeat >= 0 && s.trick.passes >= needPass && alive.length >= 1) {
       let next = s.trick.bestSeat;
       if (s.out.includes(next)) {
         const partner = (next + 2) % 4;
@@ -4609,7 +4843,7 @@
   }
   // 模拟某座对决策 decision（null=pass）应用后再走 depth 步 ply，返回终值
   function rolloutValue(seat, decision, level, depth, myTeam, w) {
-    const s = cloneStateMinLA();
+    const s = cloneStateMinLA(seat);
     applyDecisionLA(s, seat, decision);
     if (didRoundEndLA(s)) return teamValueAtLA(s, level, myTeam, w);
     let curSeat = seat;
@@ -4642,7 +4876,7 @@
       opponentMin,
       myCount: simState.hands[seat].length,
     };
-    const moves = genMoves(hand, prev, level);
+    const moves = genMoves(hand, prev, level, { physicalVariants: false });
     if (leading && !moves.length) {
       const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
       return classify([c], level);
@@ -4661,7 +4895,21 @@
   function chooseAIMoveLookahead(seat, hand, prev, leading, level, w, depth) {
     const myTeam = seat % 2;
     const ctx = moveContext(seat);
-    const moves = genMoves(hand, prev, level);
+    const generated = genMoves(hand, prev, level);
+    const bySemanticMove = new Map();
+    for (const move of generated) {
+      const key = `${move.combo.type}:${move.combo.len}:${move.combo.key}`;
+      if (!bySemanticMove.has(key)) bySemanticMove.set(key, []);
+      bySemanticMove.get(key).push({
+        move,
+        immediate: moveUtility(move, seat, hand, prev, leading, level, ctx, w),
+      });
+    }
+    const moves = [];
+    for (const variants of bySemanticMove.values()) {
+      variants.sort((a, b) => b.immediate - a.immediate);
+      moves.push(...variants.slice(0, 2).map(item => item.move));
+    }
     if (leading && !moves.length) {
       const c = hand.slice().sort((a, b) => singleWeight(a, level) - singleWeight(b, level))[0];
       return classify([c], level);
@@ -4767,7 +5015,7 @@
     commitPass(0);
   }
 
-  function playerHint() {
+  async function playerHint() {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
     const level = currentLevelLabel();
     const trick = state.trick;
@@ -4799,7 +5047,18 @@
     // 把「当前难度 AI(=托管)会出的那一手」提到候选首位 —— 第一次按提示即托管推荐，再按则循环看其它选择。
     // 与三家电脑、托管同一决策(chooseAIMove)：新手/普通=权重+lookahead，高手=DanZero 神经网络。
     // AI 选择「不要」时(跟牌且压不过/战略保留)无牌可提，回退到上面的启发式最便宜一手。
-    const aiPick = chooseAIMove(0, state.hands[0], prev, !prev, level);
+    const turnKey = `${state.turn}:${state.aiHistory.length}:${state.hands[0].length}`;
+    state.busy = true;
+    renderAll();
+    let aiPick = null;
+    try {
+      aiPick = await chooseAIMove(0, state.hands[0], prev, !prev, level);
+    } catch (error) {
+      console.error('[guandan] hint AI', error);
+      toast('高手模型暂不可用，请重试或改选普通档');
+    }
+    state.busy = false;
+    if (turnKey !== `${state.turn}:${state.aiHistory.length}:${state.hands[0].length}`) return;
     if (aiPick && Array.isArray(aiPick.cards) && aiPick.cards.length) {
       const key = m => m.cards.slice().sort((a, b) => a - b).join(',');
       const ak = key(aiPick);
@@ -4972,9 +5231,14 @@
     const t = e.target.closest('.gs-pgo-mode-tab');
     if (!t) return;
     state.aiLevel = t.dataset.value;
+    if (state.phase === PHASE.IDLE) {
+      state.activeStrategyId = AI_STRATEGIES
+        ? (AI_STRATEGIES[state.aiLevel] || AI_STRATEGIES.normal).id : null;
+    }
     persist();
     syncPgoDiff();
     refreshScoreChip();
+    if (state.aiLevel === 'hard') ensureDMC();
   });
   // 玩法设置段选：同队进贡 / 单局积分上限 / 出牌时间
   if (els.pgoTeamTrib) els.pgoTeamTrib.addEventListener('click', e => {
@@ -5017,7 +5281,7 @@
       }
     }
     // 高手档若神经网络还没下好：原地显示下载进度,下完才开始,不让「假高手」(启发式)上桌
-    const needNet = state.aiLevel === 'hard' && typeof GuandanDMC !== 'undefined' && !GuandanDMC.ready();
+    const needNet = state.aiLevel === 'hard' && _dmcState !== 2;
     if (!needNet) { els.pgo.classList.remove('open'); startMatch(); return; }
     const btn = els.pgoStart;
     if (!btn.dataset.orig) btn.dataset.orig = btn.innerHTML;
@@ -5629,8 +5893,7 @@
 
   // 进入游戏即全屏：有未完成对局 → 弹恢复 modal；否则跳过 PGO 设置面板，直接发一局单机掼蛋。
   // （难度 / 玩法 / 联机仍可随时点右上角 ⚙️ 设置进 PGO 调整，下一盘生效。）
-  // 每次进入游戏都先走 Pregame（难度选择）页 + 后台预下载高手神经网络模型，
-  // 给下载争取时间，保证点「开始」时高手档已就绪（不用假高手顶替）。
+  // 普通/新手档不下载模型；只有用户选高手档或恢复高手对局时才按需缓存。
   function showPgo() {
     state.phase = PHASE.IDLE;
     setNavView(NAV_VIEW.SETUP);
@@ -5639,7 +5902,6 @@
     syncPgoDiff();
     refreshHs();
     if (els.pgo) els.pgo.classList.add('open');
-    ensureDMC();   // 后台预下载,不阻塞
   }
   (function maybeResumeOnLoad() {
     // 优先级：有联机会话 → 重连回房间（绝不把联机局当单机存档恢复，否则就退化成 1 人对 3 AI）；
@@ -5652,7 +5914,11 @@
       return;
     }
     const snap = loadSession();
-    if (snap) { showResumeOverlay(snap); ensureDMC(); return; }
+    if (snap) {
+      showResumeOverlay(snap);
+      if ((snap.matchAiLevel || snap.aiLevel) === 'hard') ensureDMC();
+      return;
+    }
     showPgo();
   })();
 
@@ -5701,6 +5967,8 @@
   function restoreFromSession(snap) {
     // 写回 state 数据字段
     if (['easy','normal','hard'].includes(snap.aiLevel)) state.aiLevel = snap.aiLevel;
+    state.matchAiLevel = ['easy','normal','hard'].includes(snap.matchAiLevel)
+      ? snap.matchAiLevel : state.aiLevel;
     if (snap.options) state.options = normalizeOptions(snap.options);
     // 恢复这盘冻结的设置；旧 session 没有 matchOptions 就退回 options
     state.matchOptions = normalizeOptions(snap.matchOptions || snap.options);
@@ -5734,6 +6002,17 @@
     state._activeTributeGive = null;
     state._activeTributePair = null;
     state._pendingMatchWin = (snap._pendingMatchWin == null) ? null : snap._pendingMatchWin;
+    state.aiHistory = Array.isArray(snap.aiHistory) ? snap.aiHistory.map(event => ({
+      seat: event.seat,
+      kind: event.kind,
+      cards: (event.cards || []).slice(),
+    })) : [];
+    state.unknownPlayed = Array.isArray(snap.unknownPlayed) ? snap.unknownPlayed.slice() : [];
+    state.historyComplete = snap.historyComplete !== false;
+    state.aiContractVersion = snap.aiContractVersion || AI_CONTRACT_VERSION;
+    state.activeStrategyId = snap.activeStrategyId || (
+      AI_STRATEGIES ? (AI_STRATEGIES[state.matchAiLevel] || AI_STRATEGIES.normal).id : null
+    );
 
     syncPgoDiff();
     refreshAutopilotBtn();
@@ -5848,6 +6127,7 @@
         sessionSchemaVersion: ONLINE_SESSION_SCHEMA_VERSION,
         rulesVersion: RULES_VERSION,
         protocolVersion: PROTOCOL_VERSION,
+        aiContractVersion: AI_CONTRACT_VERSION,
       }, s, { accessToken });
       delete stored.token;
       localStorage.setItem(ONLINE_SESSION_KEY, JSON.stringify(stored));
@@ -5865,9 +6145,11 @@
       if (!s || !s.code || !accessToken || !s.playerId) return null;
       if (s.rulesVersion && s.rulesVersion !== RULES_VERSION) return null;
       if (s.protocolVersion && s.protocolVersion !== PROTOCOL_VERSION) return null;
+      if (s.aiContractVersion && s.aiContractVersion !== AI_CONTRACT_VERSION) return null;
       const migrated = Object.assign({}, s, {
         accessToken,
         sessionSchemaVersion: ONLINE_SESSION_SCHEMA_VERSION,
+        aiContractVersion: AI_CONTRACT_VERSION,
       });
       delete migrated.token;
       return migrated;
@@ -5880,7 +6162,8 @@
       r.error === 'room_not_found' || r.error === 'room_dissolved' ||
       r.error === 'invalid_token' || r.error === 'session_revoked' ||
       r.error === 'invalid_resume' || r.error === 'not_in_room' ||
-      r.error === 'legacy_room_requires_recreate');
+      r.error === 'legacy_room_requires_recreate' ||
+      r.error === 'room_version_unsupported');
   }
   function shouldResumeOnlineFailure(r) {
     return !!r && (r.status === 401 || r.error === 'invalid_token' ||
@@ -5889,7 +6172,11 @@
   function isCompatibleServerContract(srv) {
     return !!srv && srv.rulesVersion === RULES_VERSION &&
       srv.protocolVersion === PROTOCOL_VERSION &&
-      Number(srv.roomSchemaVersion) === ROOM_SCHEMA_VERSION;
+      Number(srv.roomSchemaVersion) === ROOM_SCHEMA_VERSION &&
+      srv.aiContractVersion === AI_CONTRACT_VERSION &&
+      !!srv.strategyIds &&
+      Object.entries(AI_STRATEGIES || {}).every(([difficulty, strategy]) =>
+        srv.strategyIds[difficulty] === strategy.id);
   }
   function clearOnlineSessionLocal(message) {
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
@@ -6040,7 +6327,10 @@
       reconnectAttempt = 0;
       setOnlineHint(srv && srv.state === 'dissolved' ? '原房间已解散' : '原联机会话已失效');
       const snap = loadSession();      // 退回单机续局（若有）或 PGO
-      if (snap) { showResumeOverlay(snap); ensureDMC(); }
+      if (snap) {
+        showResumeOverlay(snap);
+        if ((snap.matchAiLevel || snap.aiLevel) === 'hard') ensureDMC();
+      }
       else showPgo();
       return;
     }
@@ -6081,7 +6371,7 @@
       if (srv.config.options) state.options = normalizeOptions(srv.config.options);
       try { syncPgoDiff(); persist(); } catch {}
     }
-    ensureDMC();
+    if (state.aiLevel === 'hard') ensureDMC();
     setOnlineHint('');
     // 交给既有机器：揭开大厅 / 触发进牌桌 / 起持续同步（SSE 或长轮询）
     applyServerOnlineState(srv);
@@ -6202,6 +6492,7 @@
           deviceId: gdGetDeviceId(),
           rulesVersion: RULES_VERSION,
           protocolVersion: PROTOCOL_VERSION,
+          aiContractVersion: AI_CONTRACT_VERSION,
           config: { aiLevel: state.aiLevel, options: state.options },
         } });
         if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
@@ -6216,6 +6507,7 @@
           deviceId: gdGetDeviceId(),
           rulesVersion: RULES_VERSION,
           protocolVersion: PROTOCOL_VERSION,
+          aiContractVersion: AI_CONTRACT_VERSION,
         };
         if (invite.inviteCode) joinBody.inviteCode = invite.inviteCode;
         const r = await gdApi('join', { body: joinBody });
@@ -6680,6 +6972,7 @@
         deviceId: base + '-t0',
         rulesVersion: RULES_VERSION,
         protocolVersion: PROTOCOL_VERSION,
+        aiContractVersion: AI_CONTRACT_VERSION,
         config: { aiLevel: state.aiLevel, options: opts },
       } });
       if (!c.ok) throw new Error(c.error || 'create_failed');
@@ -6703,6 +6996,7 @@
           deviceId: base + '-t' + i,
           rulesVersion: RULES_VERSION,
           protocolVersion: PROTOCOL_VERSION,
+          aiContractVersion: AI_CONTRACT_VERSION,
         } });
         if (!j.ok) throw new Error(j.error || 'join_failed');
         const guest = {

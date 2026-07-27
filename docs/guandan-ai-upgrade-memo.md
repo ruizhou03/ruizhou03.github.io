@@ -1,6 +1,12 @@
 <!-- 工作流产出:15-agent 研究(6 份外部材料精读 + 4 路代码诊断 + 3 路对抗审稿),2026-06-16 -->
 <!-- 核心论断已在实际部署代码中验证:assets/js/games/guandan.js 的 chooseAIMoveLookahead→cloneStateMinLA(L3703) 复制全部 state.hands(开天眼);clone 不含 levels/弃牌堆(无记牌/无级牌态) -->
 
+> Historical analysis notice (2026-07-27): every Elo and win-rate number below
+> came from the retired independent simulator and is invalid for the current
+> product. The simulator used non-authoritative rules and perfect-information
+> rollout. These figures are retained only as historical context and must not
+> be reused as product or release evidence.
+
 # Decision Memo: Should We Train a New Guandan Bot?
 
 **To:** Project owner
