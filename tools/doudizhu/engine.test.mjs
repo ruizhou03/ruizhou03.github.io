@@ -53,3 +53,11 @@ test('online turn rendering restores the human play controls', async () => {
     /state\.phase === PHASE\.PLAYING[\s\S]*?const meTurn = state\.turnIdx === 0;[\s\S]*?playBtn\.hidden = !meTurn;[\s\S]*?hintBtn\.hidden = !meTurn;[\s\S]*?updatePlayBtnState\(\);[\s\S]*?refreshNoPlayState\(\);/,
   );
 });
+
+test('online rematch clears settlement UI on every client', async () => {
+  const ui = await readFile(new URL('../../assets/js/doudizhu/ui.js', import.meta.url), 'utf8');
+  assert.match(
+    ui,
+    /state\.online\.lastSrvState = 'playing';[\s\S]*?srv\.phase !== 'settlement'[\s\S]*?gameOverOverlay\.classList\.remove\('show', 'has-spring'\)/,
+  );
+});

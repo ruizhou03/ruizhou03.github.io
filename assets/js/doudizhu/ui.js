@@ -3456,6 +3456,10 @@
         state.runNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
       }
       state.online.lastSrvState = 'playing';
+      if (srv.phase !== 'settlement') {
+        gameOverOverlay.classList.remove('show', 'has-spring');
+        if (ddzSettleBtn) ddzSettleBtn.setEnabled(false);
+      }
 
       // phase 映射
       state.phase = srv.phase === 'bidding' ? PHASE.BIDDING :
