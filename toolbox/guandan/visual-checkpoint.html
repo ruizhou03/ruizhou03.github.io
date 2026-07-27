@@ -1,0 +1,903 @@
+---
+layout: default
+title: "掼蛋牌桌视觉方案 · 选择点"
+permalink: /toolbox/guandan/visual-checkpoint/
+noindex: true
+---
+
+<style>
+  .gd-vc {
+    --vc-ink: #182231;
+    --vc-muted: #687386;
+    --vc-line: rgba(30, 42, 61, 0.14);
+    position: relative;
+    left: 50%;
+    width: min(1440px, calc(100vw - 1.5rem));
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: clamp(1rem, 2.4vw, 2.4rem);
+    color: var(--vc-ink);
+    transform: translateX(-50%);
+  }
+  .gd-vc * { box-sizing: border-box; }
+  .gd-vc-intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: end;
+    margin-bottom: 1.3rem;
+  }
+  .gd-vc-kicker {
+    margin: 0 0 0.35rem;
+    color: #8b641f;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .gd-vc h1 {
+    margin: 0;
+    font-size: clamp(1.65rem, 3vw, 2.55rem);
+    line-height: 1.08;
+  }
+  .gd-vc-lede {
+    max-width: 760px;
+    margin: 0.75rem 0 0;
+    color: var(--vc-muted);
+    line-height: 1.7;
+  }
+  .gd-vc-choice {
+    min-width: 230px;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--vc-line);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.76);
+    box-shadow: 0 8px 24px rgba(31,42,61,0.06);
+    font-size: 0.82rem;
+    color: var(--vc-muted);
+  }
+  .gd-vc-choice strong {
+    display: block;
+    margin-top: 0.22rem;
+    color: var(--vc-ink);
+    font-size: 0.96rem;
+  }
+  .gd-vc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+  }
+  .gd-vc-proposal {
+    min-width: 0;
+    border: 1px solid var(--vc-line);
+    border-radius: 20px;
+    padding: 0.72rem;
+    background: rgba(255,255,255,0.62);
+    box-shadow: 0 14px 38px rgba(31,42,61,0.08);
+    transition: border-color .18s, box-shadow .18s, transform .18s;
+  }
+  .gd-vc-proposal[data-selected="true"] {
+    border-color: #b4832d;
+    box-shadow: 0 0 0 3px rgba(180,131,45,0.14), 0 18px 44px rgba(31,42,61,0.12);
+    transform: translateY(-2px);
+  }
+  .gd-vc-proposal-head {
+    display: flex;
+    gap: 0.7rem;
+    align-items: flex-start;
+    padding: 0.35rem 0.35rem 0.75rem;
+  }
+  .gd-vc-number {
+    display: grid;
+    place-items: center;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #1f2a3d;
+    color: #fff;
+    font: 700 0.82rem/1 Georgia, serif;
+  }
+  .gd-vc-proposal h2 {
+    margin: 0;
+    font-size: 1.02rem;
+    line-height: 1.3;
+  }
+  .gd-vc-proposal p {
+    margin: 0.25rem 0 0;
+    color: var(--vc-muted);
+    font-size: 0.76rem;
+    line-height: 1.5;
+  }
+  .gd-vc-recommended {
+    display: inline-flex;
+    margin-left: 0.35rem;
+    padding: 0.1rem 0.38rem;
+    border-radius: 999px;
+    background: rgba(180,131,45,0.13);
+    color: #765317;
+    font-size: 0.64rem;
+    vertical-align: 0.1rem;
+  }
+
+  .gd-vc-table {
+    --felt-1: #f5f1e6;
+    --felt-2: #ebe5d3;
+    --felt-3: #ddd5be;
+    --frame: #c9a96e;
+    --frame-soft: rgba(201,169,110,0.48);
+    --ink: #1f2a3d;
+    --muted: #667085;
+    --surface: #fffdf7;
+    --surface-2: rgba(255,253,247,0.78);
+    --surface-3: rgba(255,255,255,0.5);
+    --line: rgba(126,105,67,0.32);
+    --you: #1e6f4f;
+    --opp: #8b2e2e;
+    --accent: #a87a2a;
+    --card: #fafaf9;
+    --card-2: #f1efe8;
+    --card-line: rgba(151,120,68,0.38);
+    --shadow: rgba(58,47,27,0.16);
+    position: relative;
+    min-height: 690px;
+    overflow: hidden;
+    border: 1px solid var(--frame);
+    border-radius: 16px;
+    background:
+      radial-gradient(ellipse at 50% 33%, rgba(255,255,255,0.55), transparent 49%),
+      linear-gradient(160deg, var(--felt-1) 0%, var(--felt-2) 64%, var(--felt-3) 100%);
+    color: var(--ink);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+  }
+  .gd-vc-table::before {
+    content: "";
+    position: absolute;
+    inset: 9px;
+    z-index: 0;
+    border: 1px solid var(--frame-soft);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+  .gd-vc-table.theme-dark {
+    --felt-1: #173a30;
+    --felt-2: #0e2c25;
+    --felt-3: #071c17;
+    --frame: #9d8250;
+    --frame-soft: rgba(203,172,107,0.35);
+    --ink: #f1f7f4;
+    --muted: #abc0b7;
+    --surface: #132c26;
+    --surface-2: rgba(15,39,32,0.88);
+    --surface-3: rgba(255,255,255,0.07);
+    --line: rgba(203,172,107,0.25);
+    --you: #72c5a0;
+    --opp: #ef9a91;
+    --accent: #e0bd75;
+    --card: #f4f0e7;
+    --card-2: #ddd6c8;
+    --card-line: rgba(218,190,128,0.58);
+    --shadow: rgba(0,0,0,0.42);
+    background:
+      radial-gradient(ellipse at 50% 31%, rgba(73,133,111,0.24), transparent 50%),
+      linear-gradient(155deg, var(--felt-1), var(--felt-2) 59%, var(--felt-3));
+    box-shadow: inset 0 0 55px rgba(0,0,0,0.2), 0 12px 32px rgba(0,0,0,0.16);
+  }
+  .gd-vc-table.theme-adaptive {
+    --felt-1: #f3efe2;
+    --felt-2: #e8e0ca;
+    --felt-3: #d8ccb0;
+  }
+  @media (prefers-color-scheme: dark) {
+    .gd-vc-table.theme-adaptive:not([data-system-preview="light"]) {
+      --felt-1: #1c3933;
+      --felt-2: #122a26;
+      --felt-3: #0b1d1a;
+      --frame: #a78a55;
+      --frame-soft: rgba(203,172,107,0.32);
+      --ink: #eef6f3;
+      --muted: #adc1ba;
+      --surface: #152c28;
+      --surface-2: rgba(17,40,35,0.88);
+      --surface-3: rgba(255,255,255,0.07);
+      --line: rgba(203,172,107,0.24);
+      --you: #75c7a4;
+      --opp: #f1a098;
+      --accent: #dfbd79;
+      --shadow: rgba(0,0,0,0.38);
+      background:
+        radial-gradient(ellipse at 50% 31%, rgba(77,132,116,0.22), transparent 50%),
+        linear-gradient(155deg, var(--felt-1), var(--felt-2) 59%, var(--felt-3));
+    }
+  }
+  .gd-vc-table.theme-adaptive[data-system-preview="dark"] {
+    --felt-1: #1c3933;
+    --felt-2: #122a26;
+    --felt-3: #0b1d1a;
+    --frame: #a78a55;
+    --frame-soft: rgba(203,172,107,0.32);
+    --ink: #eef6f3;
+    --muted: #adc1ba;
+    --surface: #152c28;
+    --surface-2: rgba(17,40,35,0.88);
+    --surface-3: rgba(255,255,255,0.07);
+    --line: rgba(203,172,107,0.24);
+    --you: #75c7a4;
+    --opp: #f1a098;
+    --accent: #dfbd79;
+    --shadow: rgba(0,0,0,0.38);
+    background:
+      radial-gradient(ellipse at 50% 31%, rgba(77,132,116,0.22), transparent 50%),
+      linear-gradient(155deg, var(--felt-1), var(--felt-2) 59%, var(--felt-3));
+  }
+  .gd-vc-table.theme-adaptive[data-system-preview="light"] {
+    --ink: #1f2a3d;
+    --muted: #667085;
+    --surface: #fffdf7;
+    --surface-2: rgba(255,253,247,0.78);
+    --surface-3: rgba(255,255,255,0.5);
+    --line: rgba(126,105,67,0.32);
+    --you: #1e6f4f;
+    --opp: #8b2e2e;
+    --accent: #a87a2a;
+    --shadow: rgba(58,47,27,0.16);
+  }
+
+  .gd-vc-toolbar {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 58px;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface-2);
+    backdrop-filter: blur(10px);
+  }
+  .gd-vc-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 0.42rem;
+    min-width: 0;
+    margin-right: auto;
+  }
+  .gd-vc-brand strong { font: 700 1.05rem/1 Georgia, "Noto Serif SC", serif; }
+  .gd-vc-brand span { color: var(--muted); font-size: 0.68rem; white-space: nowrap; }
+  .gd-vc-icon,
+  .gd-vc-tab,
+  .gd-vc-action,
+  .gd-vc-move,
+  .gd-vc-select,
+  .gd-vc-system {
+    min-width: 44px;
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+    transition: transform .12s, border-color .12s, background .12s;
+  }
+  .gd-vc-icon:hover,
+  .gd-vc-tab:hover,
+  .gd-vc-action:hover,
+  .gd-vc-move:hover,
+  .gd-vc-select:hover,
+  .gd-vc-system:hover { border-color: var(--accent); }
+  .gd-vc-icon:active,
+  .gd-vc-tab:active,
+  .gd-vc-action:active,
+  .gd-vc-move:active,
+  .gd-vc-select:active,
+  .gd-vc-system:active { transform: translateY(1px); }
+  .gd-vc-icon[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--surface);
+  }
+  .gd-vc-tabs {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.35rem;
+    padding: 0.45rem 0.6rem 0;
+  }
+  .gd-vc-tab {
+    min-height: 42px;
+    font-size: 0.72rem;
+  }
+  .gd-vc-tab[aria-selected="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--surface);
+    font-weight: 700;
+  }
+  .gd-vc-panel {
+    position: relative;
+    z-index: 2;
+    min-height: 113px;
+    margin: 0.4rem 0.6rem 0;
+    padding: 0.7rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-2);
+    backdrop-filter: blur(8px);
+    font-size: 0.72rem;
+    line-height: 1.55;
+  }
+  .gd-vc-panel[hidden] { display: none; }
+  .gd-vc-panel strong { color: var(--ink); }
+  .gd-vc-panel ul {
+    display: grid;
+    gap: 0.24rem;
+    margin: 0;
+    padding-left: 1.1rem;
+    color: var(--muted);
+  }
+  .gd-vc-rank-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.28rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .gd-vc-rank-row:last-child { border-bottom: 0; }
+  .gd-vc-chat {
+    display: flex;
+    gap: 0.35rem;
+    margin-top: 0.45rem;
+  }
+  .gd-vc-chat span {
+    flex: 1;
+    padding: 0.52rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--muted);
+  }
+  .gd-vc-chat button {
+    min-width: 44px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--accent);
+    color: var(--surface);
+  }
+  .gd-vc-arena {
+    position: relative;
+    z-index: 1;
+    min-height: 210px;
+    padding: 0.7rem;
+  }
+  .gd-vc-levels {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .gd-vc-level {
+    padding: 0.24rem 0.55rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-3);
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+  .gd-vc-level.you { color: var(--you); }
+  .gd-vc-level.opp { color: var(--opp); }
+  .gd-vc-seat {
+    position: absolute;
+    display: grid;
+    justify-items: center;
+    gap: 0.2rem;
+    color: var(--muted);
+    font-size: 0.65rem;
+  }
+  .gd-vc-seat.top { top: 0.8rem; left: 50%; transform: translateX(-50%); }
+  .gd-vc-seat.left { left: 0.7rem; top: 48%; transform: translateY(-50%); }
+  .gd-vc-seat.right { right: 0.7rem; top: 48%; transform: translateY(-50%); }
+  .gd-vc-avatar {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--ink);
+    font-size: 1.08rem;
+  }
+  .gd-vc-play {
+    position: absolute;
+    left: 50%;
+    top: 53%;
+    display: flex;
+    transform: translate(-50%, -50%);
+  }
+  .gd-vc-mini-card {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 48px;
+    margin-left: -12px;
+    border: 1px solid var(--card-line);
+    border-radius: 6px;
+    background: linear-gradient(150deg, var(--card), var(--card-2));
+    box-shadow: 0 4px 9px var(--shadow);
+    color: #1a1a2e;
+    font: 700 0.78rem/1 Georgia, serif;
+  }
+  .gd-vc-mini-card:first-child { margin-left: 0; }
+  .gd-vc-mini-card.red { color: #8b2e2e; }
+  .gd-vc-turn {
+    position: absolute;
+    left: 50%;
+    bottom: 0.7rem;
+    transform: translateX(-50%);
+    padding: 0.34rem 0.65rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 0.67rem;
+    white-space: nowrap;
+  }
+  .gd-vc-hand-zone {
+    position: relative;
+    z-index: 2;
+    padding: 0.65rem 0.6rem 0.55rem;
+    border-top: 1px solid var(--line);
+    background: linear-gradient(to bottom, transparent, var(--surface-3));
+  }
+  .gd-vc-sortbar {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.45rem;
+  }
+  .gd-vc-action {
+    min-height: 44px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.7rem;
+  }
+  .gd-vc-action[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--surface);
+  }
+  .gd-vc-sort-help {
+    flex: 1;
+    min-width: 0;
+    color: var(--muted);
+    font-size: 0.63rem;
+    line-height: 1.35;
+  }
+  .gd-vc-move {
+    display: none;
+    width: 44px;
+    font-size: 1rem;
+  }
+  .gd-vc-table.is-arranging .gd-vc-move { display: inline-grid; place-items: center; }
+  .gd-vc-hand {
+    display: flex;
+    gap: 0.2rem;
+    min-height: 93px;
+    padding: 0.45rem 0.2rem 0.1rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+  }
+  .gd-vc-stack {
+    position: relative;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 82px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    scroll-snap-align: start;
+  }
+  .gd-vc-stack:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .gd-vc-stack.is-focus::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    z-index: 5;
+    border: 2px solid var(--accent);
+    border-radius: 10px;
+    pointer-events: none;
+  }
+  .gd-vc-card {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 44px;
+    height: 68px;
+    padding: 0.28rem 0 0 0.28rem;
+    border: 1px solid var(--card-line);
+    border-radius: 7px;
+    background: linear-gradient(150deg, var(--card), var(--card-2));
+    box-shadow: 0 5px 10px var(--shadow);
+    color: #1a1a2e;
+    font: 800 0.82rem/1 Georgia, serif;
+    text-align: left;
+  }
+  .gd-vc-card.red { color: #8b2e2e; }
+  .gd-vc-card small {
+    display: block;
+    margin-top: 0.18rem;
+    font-size: 0.68rem;
+  }
+  .gd-vc-card.joker { font-size: 0.53rem; letter-spacing: 0.04em; }
+  .gd-vc-card:nth-child(2) { bottom: 7px; }
+  .gd-vc-card:nth-child(3) { bottom: 14px; }
+  .gd-vc-table.is-arranging .gd-vc-stack { cursor: grab; }
+  .gd-vc-table.is-arranging .gd-vc-stack:hover { transform: translateY(-3px); }
+  .gd-vc-foot {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.65rem;
+    border-top: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  .gd-vc-select {
+    flex: 1;
+    padding: 0.6rem 0.75rem;
+    color: var(--ink);
+    font-size: 0.73rem;
+    font-weight: 750;
+  }
+  .gd-vc-proposal[data-selected="true"] .gd-vc-select {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--surface);
+  }
+  .gd-vc-system {
+    padding: 0.5rem 0.68rem;
+    font-size: 0.66rem;
+    white-space: nowrap;
+  }
+  .gd-vc-note {
+    margin: 1.2rem 0 0;
+    padding: 0.9rem 1rem;
+    border-left: 3px solid #b4832d;
+    background: rgba(180,131,45,0.08);
+    color: var(--vc-muted);
+    font-size: 0.78rem;
+    line-height: 1.65;
+  }
+  @media (max-width: 1150px) {
+    .gd-vc-grid { grid-template-columns: 1fr; }
+    .gd-vc-table { min-height: 650px; }
+  }
+  @media (max-width: 650px) {
+    .gd-vc { padding: 0.75rem; }
+    .gd-vc-intro { grid-template-columns: 1fr; }
+    .gd-vc-choice { min-width: 0; }
+    .gd-vc-proposal { padding: 0.45rem; border-radius: 16px; }
+    .gd-vc-table { min-height: 680px; }
+    .gd-vc-brand span { display: none; }
+    .gd-vc-toolbar { gap: 0.22rem; padding-inline: 0.4rem; }
+    .gd-vc-icon { min-width: 44px; width: 44px; }
+    .gd-vc-panel { min-height: 125px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gd-vc *, .gd-vc *::before, .gd-vc *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+
+<main class="gd-vc">
+  <section class="gd-vc-intro" aria-labelledby="gd-vc-title">
+    <div>
+      <p class="gd-vc-kicker">Guandan · Visual checkpoint</p>
+      <h1 id="gd-vc-title">牌桌主题，三选一</h1>
+      <p class="gd-vc-lede">三套方案使用同一副真实牌桌结构、27 张手牌、工具栏与面板。你可以切换“规则 / 榜单 / 交流”，也可以进入“调整顺序”模式，选中一列后用左右按钮移动。</p>
+    </div>
+    <div class="gd-vc-choice" aria-live="polite">
+      当前预选
+      <strong id="gdVcChoice">尚未选择</strong>
+    </div>
+  </section>
+
+  <section class="gd-vc-grid" aria-label="三套牌桌视觉方案">
+    <article class="gd-vc-proposal" data-proposal="固定浅色牌桌" data-selected="false">
+      <header class="gd-vc-proposal-head">
+        <span class="gd-vc-number">01</span>
+        <div>
+          <h2>固定浅色牌桌 <span class="gd-vc-recommended">默认推荐</span></h2>
+          <p>延续现有羊皮纸桌面；网站切暗色时，游戏仍保持稳定浅色。</p>
+        </div>
+      </header>
+      <div class="gd-vc-table theme-light" data-table>
+        <div class="gd-vc-toolbar">
+          <div class="gd-vc-brand"><strong>掼蛋</strong><span>我方 2 · 对方 2</span></div>
+          <button class="gd-vc-icon" type="button" aria-label="游戏设置">⚙</button>
+          <button class="gd-vc-icon" type="button" aria-label="榜单" aria-pressed="true">♛</button>
+          <button class="gd-vc-icon" type="button" aria-label="交流">◌</button>
+          <button class="gd-vc-icon" type="button" aria-label="音效" aria-pressed="false">♪</button>
+        </div>
+        <div class="gd-vc-tabs" role="tablist" aria-label="牌桌信息">
+          <button class="gd-vc-tab" type="button" role="tab" aria-selected="true" data-tab="rules">规则</button>
+          <button class="gd-vc-tab" type="button" role="tab" aria-selected="false" data-tab="rank">榜单</button>
+          <button class="gd-vc-tab" type="button" role="tab" aria-selected="false" data-tab="chat">交流</button>
+        </div>
+        <div data-panels></div>
+        <div class="gd-vc-arena">
+          <div class="gd-vc-levels"><span class="gd-vc-level you">我方 2</span><span class="gd-vc-level opp">对方 2</span></div>
+          <div class="gd-vc-seat top"><span class="gd-vc-avatar">♟</span><span>AI 2 · 24</span></div>
+          <div class="gd-vc-seat left"><span class="gd-vc-avatar">♟</span><span>AI 3 · 22</span></div>
+          <div class="gd-vc-seat right"><span class="gd-vc-avatar">♟</span><span>AI 1 · 21</span></div>
+          <div class="gd-vc-play"><span class="gd-vc-mini-card red">Q♥</span><span class="gd-vc-mini-card">Q♠</span></div>
+          <span class="gd-vc-turn">轮到你 · 18s</span>
+        </div>
+        <div class="gd-vc-hand-zone">
+          <div class="gd-vc-sortbar">
+            <button class="gd-vc-action" type="button" data-arrange aria-pressed="false">调整顺序</button>
+            <span class="gd-vc-sort-help" data-help>27 张 · 点牌可选中</span>
+            <button class="gd-vc-move" type="button" data-move="-1" aria-label="向左移动">←</button>
+            <button class="gd-vc-move" type="button" data-move="1" aria-label="向右移动">→</button>
+          </div>
+          <div class="gd-vc-hand" data-hand aria-label="27 张演示手牌"></div>
+        </div>
+      </div>
+      <footer class="gd-vc-foot">
+        <button class="gd-vc-select" type="button" data-select>选择固定浅色牌桌</button>
+      </footer>
+    </article>
+
+    <article class="gd-vc-proposal" data-proposal="真正暗色牌桌" data-selected="false">
+      <header class="gd-vc-proposal-head">
+        <span class="gd-vc-number">02</span>
+        <div>
+          <h2>真正暗色牌桌</h2>
+          <p>深墨绿绒面、暖金边与象牙牌面；暗色不是把浅色桌简单反相。</p>
+        </div>
+      </header>
+      <div class="gd-vc-table theme-dark" data-table>
+        <div class="gd-vc-toolbar">
+          <div class="gd-vc-brand"><strong>掼蛋</strong><span>我方 2 · 对方 2</span></div>
+          <button class="gd-vc-icon" type="button" aria-label="游戏设置">⚙</button>
+          <button class="gd-vc-icon" type="button" aria-label="榜单" aria-pressed="true">♛</button>
+          <button class="gd-vc-icon" type="button" aria-label="交流">◌</button>
+          <button class="gd-vc-icon" type="button" aria-label="音效" aria-pressed="false">♪</button>
+        </div>
+        <div class="gd-vc-tabs" role="tablist" aria-label="牌桌信息">
+          <button class="gd-vc-tab" type="button" role="tab" aria-selected="true" data-tab="rules">规则</button>
+          <button class="gd-vc-tab" type="button" role="tab" aria-selected="false" data-tab="rank">榜单</button>
+          <button class="gd-vc-tab" type="button" role="tab" aria-selected="false" data-tab="chat">交流</button>
+        </div>
+        <div data-panels></div>
+        <div class="gd-vc-arena">
+          <div class="gd-vc-levels"><span class="gd-vc-level you">我方 2</span><span class="gd-vc-level opp">对方 2</span></div>
+          <div class="gd-vc-seat top"><span class="gd-vc-avatar">♟</span><span>AI 2 · 24</span></div>
+          <div class="gd-vc-seat left"><span class="gd-vc-avatar">♟</span><span>AI 3 · 22</span></div>
+          <div class="gd-vc-seat right"><span class="gd-vc-avatar">♟</span><span>AI 1 · 21</span></div>
+          <div class="gd-vc-play"><span class="gd-vc-mini-card red">Q♥</span><span class="gd-vc-mini-card">Q♠</span></div>
+          <span class="gd-vc-turn">轮到你 · 18s</span>
+        </div>
+        <div class="gd-vc-hand-zone">
+          <div class="gd-vc-sortbar">
+            <button class="gd-vc-action" type="button" data-arrange aria-pressed="false">调整顺序</button>
+            <span class="gd-vc-sort-help" data-help>27 张 · 点牌可选中</span>
+            <button class="gd-vc-move" type="button" data-move="-1" aria-label="向左移动">←</button>
+            <button class="gd-vc-move" type="button" data-move="1" aria-label="向右移动">→</button>
+          </div>
+          <div class="gd-vc-hand" data-hand aria-label="27 张演示手牌"></div>
+        </div>
+      </div>
+      <footer class="gd-vc-foot">
+        <button class="gd-vc-select" type="button" data-select>选择真正暗色牌桌</button>
+      </footer>
+    </article>
+
+    <article class="gd-vc-proposal" data-proposal="系统自适应牌桌" data-selected="false">
+      <header class="gd-vc-proposal-head">
+        <span class="gd-vc-number">03</span>
+        <div>
+          <h2>系统自适应牌桌</h2>
+          <p>随系统浅色 / 暗色自动切换；下方按钮可模拟另一种系统状态。</p>
+        </div>
+      </header>
+      <div class="gd-vc-table theme-adaptive" data-table data-system-preview="light">
+        <div class="gd-vc-toolbar">
+          <div class="gd-vc-brand"><strong>掼蛋</strong><span>我方 2 · 对方 2</span></div>
+          <button class="gd-vc-icon" type="button" aria-label="游戏设置">⚙</button>
+          <button class="gd-vc-icon" type="button" aria-label="榜单" aria-pressed="true">♛</button>
+          <button class="gd-vc-icon" type="button" aria-label="交流">◌</button>
+          <button class="gd-vc-icon" type="button" aria-label="音效" aria-pressed="false">♪</button>
+        </div>
+        <div class="gd-vc-tabs" role="tablist" aria-label="牌桌信息">
+          <button class="gd-vc-tab" type="button" role="tab" aria-selected="true" data-tab="rules">规则</button>
+          <button class="gd-vc-tab" type="button" role="tab" aria-selected="false" data-tab="rank">榜单</button>
+          <button class="gd-vc-tab" type="button" role="tab" aria-selected="false" data-tab="chat">交流</button>
+        </div>
+        <div data-panels></div>
+        <div class="gd-vc-arena">
+          <div class="gd-vc-levels"><span class="gd-vc-level you">我方 2</span><span class="gd-vc-level opp">对方 2</span></div>
+          <div class="gd-vc-seat top"><span class="gd-vc-avatar">♟</span><span>AI 2 · 24</span></div>
+          <div class="gd-vc-seat left"><span class="gd-vc-avatar">♟</span><span>AI 3 · 22</span></div>
+          <div class="gd-vc-seat right"><span class="gd-vc-avatar">♟</span><span>AI 1 · 21</span></div>
+          <div class="gd-vc-play"><span class="gd-vc-mini-card red">Q♥</span><span class="gd-vc-mini-card">Q♠</span></div>
+          <span class="gd-vc-turn">轮到你 · 18s</span>
+        </div>
+        <div class="gd-vc-hand-zone">
+          <div class="gd-vc-sortbar">
+            <button class="gd-vc-action" type="button" data-arrange aria-pressed="false">调整顺序</button>
+            <span class="gd-vc-sort-help" data-help>27 张 · 点牌可选中</span>
+            <button class="gd-vc-move" type="button" data-move="-1" aria-label="向左移动">←</button>
+            <button class="gd-vc-move" type="button" data-move="1" aria-label="向右移动">→</button>
+          </div>
+          <div class="gd-vc-hand" data-hand aria-label="27 张演示手牌"></div>
+        </div>
+      </div>
+      <footer class="gd-vc-foot">
+        <button class="gd-vc-select" type="button" data-select>选择系统自适应牌桌</button>
+        <button class="gd-vc-system" type="button" data-system>模拟：浅色</button>
+      </footer>
+    </article>
+  </section>
+
+  <p class="gd-vc-note">这是唯一的视觉选择点。这里的选择只决定牌桌主题策略；规则、安全、AI、无障碍与 PWA 工作不会因主题选择而缩减。</p>
+</main>
+
+<script>
+  (function () {
+    'use strict';
+
+    var HAND = [
+      ['JOKER', '★', 'red'], ['JOKER', '♛', ''],
+      ['A', '♥', 'red'], ['A', '♠', ''],
+      ['K', '♦', 'red'], ['K', '♣', ''],
+      ['Q', '♥', 'red'], ['Q', '♠', ''], ['Q', '♣', ''],
+      ['J', '♦', 'red'], ['J', '♠', ''],
+      ['10', '♥', 'red'], ['10', '♣', ''],
+      ['9', '♦', 'red'], ['9', '♠', ''],
+      ['8', '♣', ''],
+      ['7', '♥', 'red'], ['7', '♠', ''], ['7', '♣', ''],
+      ['6', '♦', 'red'], ['6', '♠', ''],
+      ['5', '♥', 'red'], ['5', '♣', ''],
+      ['4', '♦', 'red'], ['4', '♠', ''],
+      ['3', '♥', 'red'], ['3', '♣', '']
+    ];
+    var PANEL_HTML = {
+      rules: '<div class="gd-vc-panel" data-panel="rules"><ul><li><strong>1+2、1+3 可过 A</strong>，1+4 不过</li><li>还贡可选任意不大于 10 的牌</li><li>本站数字适配：随机首家 · 超时托管</li></ul></div>',
+      rank: '<div class="gd-vc-panel" data-panel="rank" hidden><div class="gd-vc-rank-row"><span>本周连胜</span><strong>周睿 · 8</strong></div><div class="gd-vc-rank-row"><span>最快过 A</span><strong>11 局</strong></div><div class="gd-vc-rank-row"><span>我的记录</span><strong>4 胜 2 负</strong></div></div>',
+      chat: '<div class="gd-vc-panel" data-panel="chat" hidden><strong>牌桌交流</strong><div class="gd-vc-chat"><span>选择一句快捷消息…</span><button type="button" aria-label="发送快捷消息">↑</button></div><p>“配合得漂亮！” · “我来接风”</p></div>'
+    };
+
+    function groupHand() {
+      var groups = [];
+      HAND.forEach(function (card) {
+        var key = card[0];
+        var group = groups.find(function (candidate) { return candidate.key === key; });
+        if (!group) {
+          group = { key: key, cards: [] };
+          groups.push(group);
+        }
+        group.cards.push(card);
+      });
+      return groups;
+    }
+
+    function renderHand(hand, groups) {
+      hand.innerHTML = '';
+      groups.forEach(function (group) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'gd-vc-stack';
+        button.dataset.rank = group.key;
+        button.setAttribute('aria-label', group.key + '，' + group.cards.length + ' 张');
+        group.cards.forEach(function (card) {
+          var face = document.createElement('span');
+          face.className = 'gd-vc-card ' + (card[2] || '') + (card[0] === 'JOKER' ? ' joker' : '');
+          face.innerHTML = card[0] + '<small>' + card[1] + '</small>';
+          button.appendChild(face);
+        });
+        hand.appendChild(button);
+      });
+    }
+
+    document.querySelectorAll('[data-table]').forEach(function (table) {
+      var panels = table.querySelector('[data-panels]');
+      panels.innerHTML = PANEL_HTML.rules + PANEL_HTML.rank + PANEL_HTML.chat;
+
+      table.querySelectorAll('[data-tab]').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          table.querySelectorAll('[data-tab]').forEach(function (candidate) {
+            candidate.setAttribute('aria-selected', String(candidate === tab));
+          });
+          table.querySelectorAll('[data-panel]').forEach(function (panel) {
+            panel.hidden = panel.dataset.panel !== tab.dataset.tab;
+          });
+        });
+      });
+
+      table.querySelectorAll('.gd-vc-icon').forEach(function (button) {
+        button.addEventListener('click', function () {
+          if (button.hasAttribute('aria-pressed')) {
+            button.setAttribute('aria-pressed', button.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+          }
+        });
+      });
+
+      var hand = table.querySelector('[data-hand]');
+      var groups = groupHand();
+      var focusedRank = null;
+      renderHand(hand, groups);
+
+      hand.addEventListener('click', function (event) {
+        var stack = event.target.closest('.gd-vc-stack');
+        if (!stack) return;
+        hand.querySelectorAll('.gd-vc-stack').forEach(function (candidate) {
+          candidate.classList.toggle('is-focus', candidate === stack);
+        });
+        focusedRank = stack.dataset.rank;
+        table.querySelector('[data-help]').textContent = table.classList.contains('is-arranging')
+          ? '已选 ' + focusedRank + ' · 用箭头移动整列'
+          : '已选 ' + focusedRank + ' · 再点可换列';
+      });
+
+      var arrange = table.querySelector('[data-arrange]');
+      arrange.addEventListener('click', function () {
+        var active = !table.classList.contains('is-arranging');
+        table.classList.toggle('is-arranging', active);
+        arrange.setAttribute('aria-pressed', String(active));
+        arrange.textContent = active ? '完成调整' : '调整顺序';
+        table.querySelector('[data-help]').textContent = active
+          ? (focusedRank ? '已选 ' + focusedRank + ' · 用箭头移动整列' : '先点一列，再用箭头移动')
+          : '27 张 · 点牌可选中';
+      });
+
+      table.querySelectorAll('[data-move]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          if (!focusedRank) {
+            table.querySelector('[data-help]').textContent = '请先点一列牌';
+            return;
+          }
+          var index = groups.findIndex(function (group) { return group.key === focusedRank; });
+          var next = index + Number(button.dataset.move);
+          if (index < 0 || next < 0 || next >= groups.length) return;
+          var moved = groups.splice(index, 1)[0];
+          groups.splice(next, 0, moved);
+          renderHand(hand, groups);
+          var current = hand.querySelector('[data-rank="' + focusedRank + '"]');
+          if (current) current.classList.add('is-focus');
+          table.querySelector('[data-help]').textContent = focusedRank + ' 已移到第 ' + (next + 1) + ' 列';
+        });
+      });
+    });
+
+    document.querySelectorAll('[data-select]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var proposal = button.closest('.gd-vc-proposal');
+        document.querySelectorAll('.gd-vc-proposal').forEach(function (candidate) {
+          candidate.dataset.selected = String(candidate === proposal);
+          var selectButton = candidate.querySelector('[data-select]');
+          selectButton.setAttribute('aria-pressed', String(candidate === proposal));
+        });
+        document.getElementById('gdVcChoice').textContent = proposal.dataset.proposal;
+      });
+    });
+
+    var systemButton = document.querySelector('[data-system]');
+    if (systemButton) {
+      systemButton.addEventListener('click', function () {
+        var table = systemButton.closest('.gd-vc-proposal').querySelector('[data-table]');
+        var dark = table.dataset.systemPreview !== 'dark';
+        table.dataset.systemPreview = dark ? 'dark' : 'light';
+        systemButton.textContent = dark ? '模拟：暗色' : '模拟：浅色';
+        systemButton.setAttribute('aria-pressed', String(dark));
+      });
+    }
+  })();
+</script>
