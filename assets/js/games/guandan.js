@@ -19,7 +19,7 @@
   const SAVE_SCHEMA_VERSION = 2;
   const ROOM_SCHEMA_VERSION = 2;
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.07.27.net-v2';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.07.27.net-v3';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -5919,6 +5919,7 @@
       playerId: sess.playerId,
       nick: sess.nick || gdGetNick(),
       inviteCode: sess.inviteCode || null,
+      resumeRequestId: sess._resumeRequestId || sess.resumeRequestId || null,
       ts: Date.now(),
     });
   }
@@ -5930,16 +5931,38 @@
       return { ok: false, status: 403, error: 'resume_unavailable' };
     }
     if (sess._resumePromise) return sess._resumePromise;
-    const attemptedSecret = sess.resumeSecret;
-    const pending = (async () => {
+    const execute = async () => {
+      // Web Lock 内再次读取共享存储：另一标签若已轮换，直接采用赢家凭证，
+      // 不得拿旧 secret 覆盖 localStorage 后再发起第二次轮换。
+      if (!sess._isTest) {
+        const latest = onlineSessionLoad();
+        if (latest && latest.code === sess.code && latest.playerId === sess.playerId &&
+            latest.resumeSecret && latest.resumeSecret !== sess.resumeSecret) {
+          sess.accessToken = latest.accessToken;
+          sess.resumeSecret = latest.resumeSecret;
+          sess.inviteCode = latest.inviteCode || sess.inviteCode;
+          sess._resumeRequestId = null;
+          sess.resumeRequestId = null;
+          return { ok: true, reused: true };
+        }
+      }
+      const attemptedSecret = sess.resumeSecret;
+      sess._resumeRequestId = sess._resumeRequestId || sess.resumeRequestId || newOnlineRequestId();
+      sess.resumeRequestId = sess._resumeRequestId;
+      // 请求发出前先落盘。同一请求若服务端已轮换但响应丢失，刷新或退避重试
+      // 仍会携带相同 requestId，由服务端安全重放同一组凭证。
+      saveOnlineCredentials(sess);
       const r = await gdApi('resume', { body: {
         code: sess.code,
         playerId: sess.playerId,
         resumeSecret: attemptedSecret,
+        requestId: sess._resumeRequestId,
       } });
       if (r.ok && r.data && isCompatibleServerContract(r.data)) {
         sess.accessToken = r.data.accessToken || r.data.playerToken;
         sess.resumeSecret = r.data.resumeSecret;
+        sess._resumeRequestId = null;
+        sess.resumeRequestId = null;
         saveOnlineCredentials(sess);
         return { ok: true, data: r.data };
       }
@@ -5952,11 +5975,17 @@
           sess.accessToken = latest.accessToken;
           sess.resumeSecret = latest.resumeSecret;
           sess.inviteCode = latest.inviteCode || sess.inviteCode;
+          sess._resumeRequestId = null;
+          sess.resumeRequestId = null;
           return { ok: true, reused: true };
         }
       }
       return r;
-    })();
+    };
+    const lockName = 'guandan-resume:' + sess.code + ':' + sess.playerId;
+    const pending = (!sess._isTest && navigator.locks && navigator.locks.request)
+      ? navigator.locks.request(lockName, execute)
+      : execute();
     sess._resumePromise = pending;
     try { return await pending; }
     finally { if (sess._resumePromise === pending) sess._resumePromise = null; }
@@ -6156,7 +6185,6 @@
       }
     } catch { return null; }
     value = value.trim();
-    if (/^\d{4}$/.test(value)) return { code: value, inviteCode: null, legacy: true };
     const match = /^(\d{4})-([A-Za-z0-9_-]{24,256})$/.exec(value);
     return match ? { code: match[1], inviteCode: value, legacy: false } : null;
   }
@@ -6337,14 +6365,9 @@
       let r = await gdApi(action, { token: sess.accessToken, body });
       if (shouldResumeOnlineFailure(r) && sess.resumeSecret) {
         const resumed = await resumeOnlineCredentials(sess);
-        if (resumed.ok) {
-          // resume 会旋转 session epoch 并推进 room.version；沿用旧 expectedVersion
-          // 必然产生假冲突，所以先以新 bearer 同步权威版本再重放同一 requestId。
-          const synced = await fetchOnlineStateForSession(sess);
-          if (!synced.ok) return synced;
-          body.expectedVersion = Math.max(0, sess.lastVersion | 0);
-          r = await gdApi(action, { token: sess.accessToken, body });
-        }
+        // 凭证轮换不改变公开 room.version；保留原 requestId + expectedVersion。
+        // 若首次请求已执行但响应丢失，服务端返回原结果；未执行则安全执行一次。
+        if (resumed.ok) r = await gdApi(action, { token: sess.accessToken, body });
       }
       if (!r.ok && (r.status === 0 || r.status >= 500)) {
         await new Promise(resolve => setTimeout(resolve, 250));
@@ -7498,8 +7521,11 @@
   if (onlineEls.copyCodeBtn) {
     onlineEls.copyCodeBtn.addEventListener('click', () => {
       if (!onlineState) return;
-      copyText(onlineState.inviteCode || onlineState.code,
-        onlineState.inviteCode ? '邀请码已复制' : '房号已复制');
+      if (!onlineState.inviteCode) {
+        toast('当前房间没有安全邀请码，请由房主重新创建');
+        return;
+      }
+      copyText(onlineState.inviteCode, '邀请码已复制');
     });
   }
   if (onlineEls.copyLinkBtn) {

@@ -8,7 +8,7 @@ assert.match(html, /class="gd-board-btn" id="gdBoardBtn"/, '榜单按钮应使�
 assert.match(html, /class="gd-mute-btn" id="gdMuteBtn"/, '音效按钮应使用独立定位类');
 assert.doesNotMatch(html, /class="gd-board-btn" id="gdMuteBtn"/, '音效按钮不得复用榜单定位类');
 assert.match(html, /--gd-ui-ink:\s*#1f2a3d/, '固定浅色牌桌应使用独立深色文字变量');
-assert.match(html, /guandan\.js\?v=20260727net2/, '生产页面应使用安全协议内容标记，避免旧 JS 缓存');
+assert.match(html, /guandan\.js\?v=20260727net3/, '生产页面应使用安全协议内容标记，避免旧 JS 缓存');
 assert.match(html, /data-value="off"[^>]*class="[^"]*selected|class="[^"]*selected"[^>]*data-value="off"/,
   '同队进贡 UI 默认应关闭');
 

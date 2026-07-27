@@ -23,8 +23,8 @@ assert.match(js, /requestId,\s*\n\s*expectedVersion:/,
   '所有 mutation 必须携带 requestId 与 expectedVersion');
 assert.match(js, /const previous = sess\._mutationTail/,
   '同一会话的 mutation 必须串行化');
-assert.match(js, /resume 会旋转 session epoch[\s\S]{0,260}body\.expectedVersion/,
-  '凭证轮换后必须重新同步 expectedVersion 再重试 mutation');
+assert.match(js, /凭证轮换不改变公开 room\.version[\s\S]{0,260}gdApi\(action/,
+  '凭证轮换后必须保留原 requestId 与 expectedVersion 重试 mutation');
 const terminalFailureFn = js.match(/function isTerminalOnlineFailure\(r\) \{[\s\S]*?\n  \}/)?.[0] || '';
 assert.ok(terminalFailureFn, '必须定义会话终止错误分类器');
 assert.doesNotMatch(terminalFailureFn, /r\.status === 403|r\.status === 404/,
@@ -33,6 +33,12 @@ assert.match(js, /shouldResumeOnlineFailure\(r\) && sess\.resumeSecret/,
   'mutation 只能在凭证错误时轮换 resume secret');
 assert.match(js, /resumeSecret:\s*attemptedSecret/,
   'access token 过期后必须使用独立 resume secret 轮换凭证');
+assert.match(js, /resumeRequestId:\s*sess\._resumeRequestId/,
+  'resume requestId 必须在请求发出前持久化');
+assert.match(js, /requestId:\s*sess\._resumeRequestId/,
+  'resume 重试必须复用同一 requestId');
+assert.match(js, /navigator\.locks\.request\(lockName,\s*execute\)/,
+  '同源多标签页必须串行轮换 resume secret');
 assert.match(js, /sessionSchemaVersion:\s*ONLINE_SESSION_SCHEMA_VERSION/,
   '本地联机会话必须带 schema 版本');
 
@@ -51,9 +57,11 @@ assert.doesNotMatch(html, /id="gdOnlineCode"[\s\S]{0,180}pattern="\\d\{4\}"/,
   '加入界面不得把输入限制为可枚举的四位房号');
 assert.match(js, /searchParams\.set\('room',\s*onlineState\.inviteCode\)/,
   '分享链接必须包含完整安全邀请码');
+assert.doesNotMatch(js, /\/\^\\d\{4\}\$\//,
+  '严格协议前端不得接受可枚举的裸四位房号');
 assert.match(js, /new URLSearchParams\(location\.search\)\.get\('room'\)/,
   '自动加入必须安全解析 URLSearchParams 中的完整邀请码');
-assert.match(html, /guandan\.js\?v=20260727net2/,
+assert.match(html, /guandan\.js\?v=20260727net3/,
   '生产页面必须引用本次安全协议构建标记');
 
 console.log('guandan network contracts: ok');
