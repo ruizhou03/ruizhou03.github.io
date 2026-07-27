@@ -2284,8 +2284,8 @@ body_class: gd-game-fullscreen
             <input type="text" class="gd-online-input" id="gdOnlineNick"
                    placeholder="昵称（1-12 字）" maxlength="12" autocomplete="off" />
             <input type="text" class="gd-online-input" id="gdOnlineCode"
-                   placeholder="4 位房号" maxlength="4" inputmode="numeric"
-                   pattern="\d{4}" autocomplete="off" hidden />
+                   placeholder="粘贴邀请码或邀请链接" maxlength="320"
+                   inputmode="text" autocomplete="off" spellcheck="false" hidden />
             <button class="gs-pgo-start-btn" id="gdOnlineSubmit" type="button">创建房间</button>
             <div class="gd-online-hint" id="gdOnlineHint"></div>
           </div>
@@ -2295,8 +2295,8 @@ body_class: gd-game-fullscreen
 
     <!-- 联机大厅：跟正常牌桌同尺寸 + 同座位布局，中央正中两个按钮（邀请好友 / 离开房间） -->
     <div class="gd-lobby" id="gdLobby" hidden>
-      <!-- 右上角房号 chip：点击即复制房号（替代单独的"复制房号"按钮） -->
-      <button class="gd-lobby-room-chip" id="gdCopyCodeBtn" type="button" title="点击复制房号">
+      <!-- 右上角房号 chip：界面只显示短房号，点击复制完整安全邀请码 -->
+      <button class="gd-lobby-room-chip" id="gdCopyCodeBtn" type="button" title="点击复制邀请码">
         房号<span id="gdRoomCode">----</span>
       </button>
       <!-- 4 个座位（按正常牌桌位置：partner top / opp left / opp right / me bottom-left） -->
@@ -2430,4 +2430,4 @@ body_class: gd-game-fullscreen
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 
 <script src="/assets/js/games/guandan-dmc.js?v=20260622dbgxray"></script>
-<script src="/assets/js/games/guandan.js?v=20260723rules1"></script>
+<script src="/assets/js/games/guandan.js?v=20260727net2"></script>

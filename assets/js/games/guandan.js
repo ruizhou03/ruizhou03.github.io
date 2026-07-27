@@ -13,12 +13,13 @@
   // 联机会话（房间 token/code/playerId）。提到顶部声明，使启动期 maybeResumeOnLoad
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
   const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
+  const ONLINE_SESSION_SCHEMA_VERSION = 2;
   const RULES_VERSION = 'gd-huaian-2025-site-v1';
   const PROTOCOL_VERSION = 'guandan-protocol-v2';
   const SAVE_SCHEMA_VERSION = 2;
   const ROOM_SCHEMA_VERSION = 2;
   const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.06.23.audio';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
+  const GD_BUILD = '2026.07.27.net-v2';  // 版本号：每次改动递增；刷新后看左下角徽标即可确认已加载最新版（含 AI 引擎状态）
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -2652,9 +2653,7 @@
     applyOptimisticMove(action, cards);
     state.busy = true;
     updateActions();
-    const r = await gdApi('move', {
-      body: { code: onlineState.code, token: onlineState.token, move: { action, cards } }
-    });
+    const r = await gdMutation('move', { move: { action, cards } });
     state.busy = false;
     if (!r.ok) {
       const err = r.error || 'illegal_move';
@@ -2689,9 +2688,7 @@
     state._activeTributePair = null;
     stopTurnClock();
     updateActions();
-    const r = await gdApi('tribute', {
-      body: { code: onlineState.code, token: onlineState.token, tribute: { type, card } }
-    });
+    const r = await gdMutation('tribute', { tribute: { type, card } });
     state.busy = false;
     if (!r.ok) {
       if (r.data && r.data.state && r.data.state.game) {
@@ -2715,7 +2712,7 @@
     if (!state.isNetworked || !onlineState) return;
     state.phase = PHASE.IDLE;
     renderAll();
-    const r = await gdApi('next_round', { body: { code: onlineState.code, token: onlineState.token } });
+    const r = await gdMutation('next_round', {});
     if (r.ok && r.data && r.data.state && r.data.state.game) {
       state.selected.clear();
       state.hands = [[], [], [], []];
@@ -5771,7 +5768,8 @@
   // 当前联机会话（null = 不在线）
   let onlineState = null;
   // 联机「四视角测试模式」（暗号 quad 触发）：本机一人持 4 个真人会话、可切换视角逐座出牌，
-  // 用真实后端跑完整联机流程来自测。null = 未开。{ on, code, seats:[{token,playerId,seat}], active }
+  // 用真实后端跑完整联机流程来自测。null = 未开。
+  // { on, code, inviteCode, seats:[{accessToken,resumeSecret,playerId,seat}], active }
   let testMode = null;
 
   const onlineEls = {
@@ -5818,14 +5816,18 @@
   // ---- API ----
   async function gdApi(action, opts) {
     opts = opts || {};
-    const isGet = !opts.body;
+    const method = opts.method || (opts.body === undefined ? 'GET' : 'POST');
     const url = GUANDAN_API + '?action=' + encodeURIComponent(action) +
       (opts.qs ? '&' + new URLSearchParams(opts.qs).toString() : '');
+    const headers = {};
+    if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
+    if (opts.token) headers.Authorization = 'Bearer ' + opts.token;
     const init = {
-      method: isGet ? 'GET' : 'POST',
-      headers: isGet ? {} : { 'Content-Type': 'application/json' },
-      body: isGet ? undefined : JSON.stringify(opts.body),
+      method,
+      headers,
+      body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
       signal: opts.signal,
+      cache: 'no-store',
     };
     try {
       const res = await fetch(url, init);
@@ -5841,11 +5843,14 @@
   // ---- session ----
   function onlineSessionSave(s) {
     try {
-      localStorage.setItem(ONLINE_SESSION_KEY, JSON.stringify(Object.assign({
-        schemaVersion: SAVE_SCHEMA_VERSION,
+      const accessToken = s && (s.accessToken || s.token);
+      const stored = Object.assign({
+        sessionSchemaVersion: ONLINE_SESSION_SCHEMA_VERSION,
         rulesVersion: RULES_VERSION,
         protocolVersion: PROTOCOL_VERSION,
-      }, s)));
+      }, s, { accessToken });
+      delete stored.token;
+      localStorage.setItem(ONLINE_SESSION_KEY, JSON.stringify(stored));
     } catch {}
   }
   function onlineSessionClear() {
@@ -5856,19 +5861,30 @@
       const raw = localStorage.getItem(ONLINE_SESSION_KEY);
       if (!raw) return null;
       const s = JSON.parse(raw);
-      if (!s || !s.code || !s.token || !s.playerId) return null;
+      const accessToken = s && (s.accessToken || s.token);
+      if (!s || !s.code || !accessToken || !s.playerId) return null;
       if (s.rulesVersion && s.rulesVersion !== RULES_VERSION) return null;
       if (s.protocolVersion && s.protocolVersion !== PROTOCOL_VERSION) return null;
-      return s;
+      const migrated = Object.assign({}, s, {
+        accessToken,
+        sessionSchemaVersion: ONLINE_SESSION_SCHEMA_VERSION,
+      });
+      delete migrated.token;
+      return migrated;
     } catch { return null; }
   }
   let reconnectTimer = null;
   let reconnectAttempt = 0;
   function isTerminalOnlineFailure(r) {
-    return !!r && (r.status === 403 || r.status === 404 ||
+    return !!r && (r.status === 401 ||
       r.error === 'room_not_found' || r.error === 'room_dissolved' ||
       r.error === 'invalid_token' || r.error === 'session_revoked' ||
-      r.error === 'not_in_room');
+      r.error === 'invalid_resume' || r.error === 'not_in_room' ||
+      r.error === 'legacy_room_requires_recreate');
+  }
+  function shouldResumeOnlineFailure(r) {
+    return !!r && (r.status === 401 || r.error === 'invalid_token' ||
+      r.error === 'session_revoked' || r.error === 'missing_token');
   }
   function isCompatibleServerContract(srv) {
     return !!srv && srv.rulesVersion === RULES_VERSION &&
@@ -5893,23 +5909,97 @@
     if (message) setOnlineHint(message);
   }
 
+  function saveOnlineCredentials(sess) {
+    // 四视角测试房的四套凭证只存在于当前内存，不得覆盖用户真实联机会话。
+    if (!sess || sess._isTest) return;
+    onlineSessionSave({
+      code: sess.code,
+      accessToken: sess.accessToken,
+      resumeSecret: sess.resumeSecret || null,
+      playerId: sess.playerId,
+      nick: sess.nick || gdGetNick(),
+      inviteCode: sess.inviteCode || null,
+      ts: Date.now(),
+    });
+  }
+
+  // access token 仅短时有效；恢复密钥每次使用即轮换。所有调用共享同一个
+  // in-flight promise，避免轮询、SSE 与多次点击同时旋转凭证互相踢下线。
+  async function resumeOnlineCredentials(sess) {
+    if (!sess || !sess.resumeSecret) {
+      return { ok: false, status: 403, error: 'resume_unavailable' };
+    }
+    if (sess._resumePromise) return sess._resumePromise;
+    const attemptedSecret = sess.resumeSecret;
+    const pending = (async () => {
+      const r = await gdApi('resume', { body: {
+        code: sess.code,
+        playerId: sess.playerId,
+        resumeSecret: attemptedSecret,
+      } });
+      if (r.ok && r.data && isCompatibleServerContract(r.data)) {
+        sess.accessToken = r.data.accessToken || r.data.playerToken;
+        sess.resumeSecret = r.data.resumeSecret;
+        saveOnlineCredentials(sess);
+        return { ok: true, data: r.data };
+      }
+      // 另一个同源标签页可能刚完成轮换。若 localStorage 已出现更新的一代，
+      // 采用那一代而不是把赢家的会话清掉。
+      if (isTerminalOnlineFailure(r)) {
+        const latest = onlineSessionLoad();
+        if (latest && latest.code === sess.code && latest.playerId === sess.playerId &&
+            latest.resumeSecret && latest.resumeSecret !== attemptedSecret) {
+          sess.accessToken = latest.accessToken;
+          sess.resumeSecret = latest.resumeSecret;
+          sess.inviteCode = latest.inviteCode || sess.inviteCode;
+          return { ok: true, reused: true };
+        }
+      }
+      return r;
+    })();
+    sess._resumePromise = pending;
+    try { return await pending; }
+    finally { if (sess._resumePromise === pending) sess._resumePromise = null; }
+  }
+
+  function scheduleOnlineReconnect(online, message) {
+    reconnectAttempt++;
+    const delay = Math.min(15000, 1000 * Math.pow(2, Math.min(4, reconnectAttempt - 1)));
+    setOnlineHint(message || '网络暂时不可用，房间会话已保留，正在重试…', true);
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      const saved = onlineSessionLoad();
+      if (saved && saved.code === online.code && saved.playerId === online.playerId) {
+        tryReconnectOnline(saved);
+      }
+    }, delay);
+  }
+
   // 刷新 / PWA 重开后用存下的 token+code 重连回原房间。后端 resolvePlayer 支持凭 token 续连，
   // 服务器是唯一信任源——重连成功就用服务端真状态重建大厅 / 进牌桌。
   // 只有房间/凭证明确终止才清会话；网络、限流和 5xx 保留凭证并退避重试。
   async function tryReconnectOnline(online) {
     setOnlineHint('正在重连房间…');
-    const r = await gdApi('state', { qs: { code: online.code, token: online.token, since: 0 } });
+    online.accessToken = online.accessToken || online.token;
+    if (online.resumeSecret) {
+      const resumed = await resumeOnlineCredentials(online);
+      if (!resumed.ok) {
+        if (!isTerminalOnlineFailure(resumed)) {
+          scheduleOnlineReconnect(online);
+          return;
+        }
+        clearOnlineSessionLocal('原联机会话已失效');
+        return;
+      }
+    }
+    const r = await gdApi('state', {
+      token: online.accessToken,
+      body: { code: online.code, since: 0 },
+    });
     const srv = (r && r.ok) ? r.data : null;
     if (!r.ok && !isTerminalOnlineFailure(r)) {
-      reconnectAttempt++;
-      const delay = Math.min(15000, 1000 * Math.pow(2, Math.min(4, reconnectAttempt - 1)));
-      setOnlineHint('网络暂时不可用，房间会话已保留，正在重试…', true);
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(() => {
-        reconnectTimer = null;
-        const saved = onlineSessionLoad();
-        if (saved && saved.code === online.code && saved.token === online.token) tryReconnectOnline(saved);
-      }, delay);
+      scheduleOnlineReconnect(online);
       return;
     }
     if (srv && !isCompatibleServerContract(srv)) {
@@ -5931,8 +6021,11 @@
     // playing 的房间触发 lobby→playing 跃迁 → 进牌桌（startNetworkedGame）；lobby 态则揭开大厅。
     onlineState = {
       code: online.code,
-      token: online.token,
+      accessToken: online.accessToken,
+      resumeSecret: online.resumeSecret || null,
       playerId: online.playerId,
+      nick: online.nick || (srv.me && srv.me.nick) || gdGetNick(),
+      inviteCode: online.inviteCode || null,
       isHost: !!(srv.me && srv.me.isHost),
       mySeat: (srv.me && typeof srv.me.seat === 'number') ? srv.me.seat : null,
       lastVersion: 0,
@@ -5999,12 +6092,20 @@
     nick_taken_in_room: '昵称已被占用，换一个试试',
     invalid_nick: '昵称不合法（1-12 字，禁特殊符号）',
     invalid_code: '房号格式不对（4 位数字）',
+    invalid_invite: '邀请码无效，请让房主重新分享完整邀请链接',
+    legacy_room_requires_recreate: '这个旧房间需要由房主重新创建',
+    unsupported_rules_version: '游戏规则版本不兼容，请刷新页面后重试',
+    unsupported_protocol_version: '联机协议版本不兼容，请刷新页面后重试',
     invalid_device: '设备标识异常，请刷新页面',
     not_host: '只有房主才能这样做',
     not_in_lobby: '当前阶段不允许',
     seat_taken: '这个座位已经有人',
     seats_not_full: '4 座没坐满，还不能开始',
     host_must_transfer_or_dissolve: '房主退出需选择转交或解散',
+    version_conflict: '房间状态刚刚更新，请重试',
+    idempotency_conflict: '请求编号冲突，请重试',
+    invalid_request_id: '请求编号无效，请刷新后重试',
+    invalid_expected_version: '房间版本无效，请重新进入',
     network: '网络异常，请重试',
   };
   const errText = e => ERR_MSG[e] || ('错误：' + e);
@@ -6046,6 +6147,20 @@
   }
   placeGameOpts();   // 初始（默认单机）把玩法设置放到难度下方
 
+  function parseInviteInput(raw) {
+    let value = String(raw || '').trim();
+    if (!value) return null;
+    try {
+      if (/^https?:\/\//i.test(value)) {
+        value = new URL(value).searchParams.get('room') || '';
+      }
+    } catch { return null; }
+    value = value.trim();
+    if (/^\d{4}$/.test(value)) return { code: value, inviteCode: null, legacy: true };
+    const match = /^(\d{4})-([A-Za-z0-9_-]{24,256})$/.exec(value);
+    return match ? { code: match[1], inviteCode: value, legacy: false } : null;
+  }
+
   // ---- submit (create/join) ----
   if (onlineEls.submit) {
     onlineEls.submit.addEventListener('click', async () => {
@@ -6064,18 +6179,20 @@
         if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
         enterRoom(r.data, nick);
       } else {
-        const code = onlineEls.code.value.trim();
-        if (!/^\d{4}$/.test(code)) { setOnlineHint('请输入 4 位房号', true); return; }
+        const invite = parseInviteInput(onlineEls.code.value);
+        if (!invite) { setOnlineHint('请粘贴房主分享的完整邀请码或邀请链接', true); return; }
         setOnlineHint('加入中…');
-        const r = await gdApi('join', { body: {
-          code,
+        const joinBody = {
+          code: invite.code,
           nick,
           deviceId: gdGetDeviceId(),
           rulesVersion: RULES_VERSION,
           protocolVersion: PROTOCOL_VERSION,
-        } });
+        };
+        if (invite.inviteCode) joinBody.inviteCode = invite.inviteCode;
+        const r = await gdApi('join', { body: joinBody });
         if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
-        enterRoom(r.data, nick);
+        enterRoom(r.data, nick, invite.inviteCode);
       }
     });
   }
@@ -6086,27 +6203,32 @@
   });
 
   // ---- enter / leave ----
-  function enterRoom(joinData, nick) {
+  function enterRoom(joinData, nick, enteredInviteCode) {
     if (!isCompatibleServerContract(joinData)) {
       setOnlineHint('服务器规则版本不兼容，请刷新后重试', true);
       return;
     }
     onlineSessionSave({
       code: joinData.code,
-      token: joinData.playerToken,
+      accessToken: joinData.accessToken || joinData.playerToken,
+      resumeSecret: joinData.resumeSecret,
       playerId: joinData.playerId,
       nick: nick,
+      inviteCode: joinData.inviteCode || enteredInviteCode || null,
       ts: Date.now(),
     });
     // create 响应必带 config；join 不带。靠这个判断本人是不是房主，免去等第一轮轮询
     const isCreate = !!(joinData && joinData.config);
     onlineState = {
       code: joinData.code,
-      token: joinData.playerToken,
+      accessToken: joinData.accessToken || joinData.playerToken,
+      resumeSecret: joinData.resumeSecret || null,
       playerId: joinData.playerId,
+      nick,
+      inviteCode: joinData.inviteCode || enteredInviteCode || null,
       isHost: isCreate,            // create 时本人就是房主
       mySeat: isCreate ? 0 : null, // 创房默认占座 0；join 时未坐下
-      lastVersion: 0,
+      lastVersion: isCreate ? 1 : 0,
       polling: false,
       pollAbort: null,
       // 创房时构造一个最小 srv 投影，使 renderLobby 能立刻画出"我已在 bottom + 三空座 + 加机器人"
@@ -6171,6 +6293,73 @@
     sendSit(emptySeat);
   }
 
+  function newOnlineRequestId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      return 'gd_' + window.crypto.randomUUID().replace(/-/g, '');
+    }
+    const bytes = new Uint8Array(18);
+    if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+      window.crypto.getRandomValues(bytes);
+      return 'gd_' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    }
+    return 'gd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 14);
+  }
+
+  async function fetchOnlineStateForSession(sess) {
+    const r = await gdApi('state', {
+      token: sess.accessToken,
+      body: { code: sess.code, since: 0 },
+    });
+    if (!r.ok) return r;
+    if (!isCompatibleServerContract(r.data)) {
+      return { ok: false, status: 409, error: 'unsupported_protocol_version' };
+    }
+    if (typeof r.data.version === 'number') sess.lastVersion = r.data.version;
+    return r;
+  }
+
+  // 每个会话只允许一条 mutation 在途：请求携带 expectedVersion，网络不确定时
+  // 以同一个 requestId 重试。这样既不会双执行，也不会让两个乐观点击绕过 CAS。
+  function gdMutation(action, payload, sess) {
+    sess = sess || onlineState;
+    if (!sess) return Promise.resolve({ ok: false, status: 403, error: 'not_in_room' });
+    const requestId = newOnlineRequestId();
+    const previous = sess._mutationTail || Promise.resolve();
+    const current = previous.catch(() => {}).then(async () => {
+      if (sess !== onlineState && !sess._isTest) {
+        return { ok: false, status: 409, error: 'session_changed' };
+      }
+      const body = Object.assign({
+        code: sess.code,
+        requestId,
+        expectedVersion: Math.max(0, sess.lastVersion | 0),
+      }, payload || {});
+      let r = await gdApi(action, { token: sess.accessToken, body });
+      if (shouldResumeOnlineFailure(r) && sess.resumeSecret) {
+        const resumed = await resumeOnlineCredentials(sess);
+        if (resumed.ok) {
+          // resume 会旋转 session epoch 并推进 room.version；沿用旧 expectedVersion
+          // 必然产生假冲突，所以先以新 bearer 同步权威版本再重放同一 requestId。
+          const synced = await fetchOnlineStateForSession(sess);
+          if (!synced.ok) return synced;
+          body.expectedVersion = Math.max(0, sess.lastVersion | 0);
+          r = await gdApi(action, { token: sess.accessToken, body });
+        }
+      }
+      if (!r.ok && (r.status === 0 || r.status >= 500)) {
+        await new Promise(resolve => setTimeout(resolve, 250));
+        r = await gdApi(action, { token: sess.accessToken, body });
+      }
+      const responseState = r && r.data && r.data.state;
+      if (responseState && typeof responseState.version === 'number') {
+        sess.lastVersion = Math.max(sess.lastVersion || 0, responseState.version);
+      }
+      return r;
+    });
+    sess._mutationTail = current.then(() => undefined, () => undefined);
+    return current;
+  }
+
   async function leaveRoom(silent, opts) {
     opts = opts || {};
     if (!onlineState) {
@@ -6181,16 +6370,16 @@
       setNavView(NAV_VIEW.SETUP);
       return true;
     }
-    const body = { code: onlineState.code, token: onlineState.token };
+    const body = {};
     if (opts.transferTo) body.transferTo = opts.transferTo;
     if (opts.dissolveOnLeave) body.dissolveOnLeave = true;
-    const r = await gdApi('leave', { body });
-    if (!r.ok && !isTerminalOnlineFailure(r)) {
-      if (!silent) setOnlineHint('离开失败：网络暂不可用，房间会话仍保留', true);
-      return false;
-    }
-    clearOnlineSessionLocal(!silent ? '已离开房间' : '');
-    return true;
+    const r = await gdMutation('leave', body);
+    // 用户明确退出后，本机凭证必须立即删除；即使网络失败，presence 会按 TTL
+    // 过期、服务端回合/贡牌 deadline 会接管，不能把用户困在无法退出的本地会话里。
+    clearOnlineSessionLocal(!silent
+      ? (r.ok || isTerminalOnlineFailure(r) ? '已离开房间' : '已从本机退出；服务器将自动托管离线座位')
+      : '');
+    return !!(r.ok || isTerminalOnlineFailure(r));
   }
 
   if (onlineEls.leaveBtn) {
@@ -6248,17 +6437,24 @@
     // 本循环的 myState !== onlineState，会干净地退出，不会与新会话的轮询并存（双轮询）。
     const myState = onlineState;
     myState.polling = true;
-    while (myState === onlineState && myState.polling && myState.token) {
+    while (myState === onlineState && myState.polling && myState.accessToken) {
       const ctrl = new AbortController();
       myState.pollAbort = ctrl;
       const r = await gdApi('state', {
-        qs: { code: myState.code, token: myState.token, since: myState.lastVersion },
+        token: myState.accessToken,
+        body: { code: myState.code, since: myState.lastVersion },
         signal: ctrl.signal,
       }).catch(() => ({ ok: false, error: 'aborted' }));
       if (myState !== onlineState || !myState.polling) break;
       if (r.ok && r.data) {
         applyServerOnlineState(r.data);
-      } else if (r.status === 403 || r.status === 404) {
+      } else if (r.status === 403 && myState.resumeSecret) {
+        const resumed = await resumeOnlineCredentials(myState);
+        if (resumed.ok) continue;
+        toast('会话失效');
+        clearOnlineSessionLocal('');
+        break;
+      } else if (r.status === 401 || r.status === 403 || r.status === 404) {
         toast(r.error === 'room_not_found' ? '房间已过期' : '会话失效');
         clearOnlineSessionLocal('');
         break;
@@ -6304,20 +6500,65 @@
     stopSseSync();
     stopOnlinePolling();
   }
-  function startSseSync() {
-    if (!onlineState || onlineState._sse) return;
-    if (typeof EventSource === 'undefined') { startOnlinePolling(); return; }   // 老环境无 SSE → 轮询
-    const sess = onlineState;   // 绑定本次会话对象；切座/退房换掉 onlineState 后忽略旧连接
+  async function startSseSync() {
+    if (!onlineState || onlineState._sse || onlineState._sseStarting) return;
+    if (typeof EventSource === 'undefined') { startOnlinePolling(); return; }
+    const sess = onlineState;
+    sess._sseStarting = true;
+    let ticketResponse = await gdApi('stream_ticket', {
+      token: sess.accessToken,
+      body: { code: sess.code },
+    });
+    if (ticketResponse.status === 403 && sess.resumeSecret) {
+      const resumed = await resumeOnlineCredentials(sess);
+      if (resumed.ok && onlineState === sess) {
+        ticketResponse = await gdApi('stream_ticket', {
+          token: sess.accessToken,
+          body: { code: sess.code },
+        });
+      }
+    }
+    sess._sseStarting = false;
+    if (onlineState !== sess) return;
+    if (!ticketResponse.ok || !ticketResponse.data || !ticketResponse.data.ticket) {
+      if (isTerminalOnlineFailure(ticketResponse)) {
+        toast('会话失效');
+        clearOnlineSessionLocal('');
+        return;
+      }
+      startOnlinePolling();
+      scheduleSseRetry(sess);
+      return;
+    }
     let es;
     try {
+      // URL 里只有 30 秒、单次消费的 stream ticket；access token 永不进入 URL/日志。
       es = new EventSource(GUANDAN_API + '?action=stream&code=' +
-        encodeURIComponent(sess.code) + '&token=' + encodeURIComponent(sess.token));
-    } catch (e) { startOnlinePolling(); return; }
+        encodeURIComponent(sess.code) + '&ticket=' +
+        encodeURIComponent(ticketResponse.data.ticket));
+    } catch (e) {
+      startOnlinePolling();
+      scheduleSseRetry(sess);
+      return;
+    }
     sess._sse = es;
     sess._sseOk = false;
+    const failToPolling = () => {
+      if (onlineState !== sess || sess._sse !== es) return;
+      try { es.close(); } catch {}
+      sess._sse = null;
+      if (sess._sseTimer) { clearTimeout(sess._sseTimer); sess._sseTimer = null; }
+      startOnlinePolling();
+      scheduleSseRetry(sess);
+    };
     es.onmessage = (ev) => {
-      if (onlineState !== sess || sess._sse !== es) return;   // 旧会话的残留消息，丢弃
-      if (!sess._sseOk) { sess._sseOk = true; if (sess._sseTimer) { clearTimeout(sess._sseTimer); sess._sseTimer = null; } }
+      if (onlineState !== sess || sess._sse !== es) return;
+      if (!sess._sseOk) {
+        sess._sseOk = true;
+        sess._sseAttempt = 0;
+        stopOnlinePolling();
+        if (sess._sseTimer) { clearTimeout(sess._sseTimer); sess._sseTimer = null; }
+      }
       try { applyServerOnlineState(JSON.parse(ev.data)); } catch {}
     };
     es.addEventListener('gone', () => {
@@ -6326,27 +6567,32 @@
         clearOnlineSessionLocal('');
       }
     });
-    es.onerror = () => {
-      if (onlineState !== sess || sess._sse !== es) return;
-      // CLOSED = 彻底断开(端点不存在/被拒)，不会自己重连 → 降级长轮询；CONNECTING = 正在自动重连，不动。
-      if (es.readyState === EventSource.CLOSED) {
-        sess._sse = null;
-        if (sess._sseTimer) { clearTimeout(sess._sseTimer); sess._sseTimer = null; }
-        startOnlinePolling();
+    es.addEventListener('revoked', () => {
+      if (onlineState === sess && sess._sse === es) {
+        failToPolling();
       }
-    };
-    // 初连兜底：3s 内一条都没收到 → SSE 多半不通（端点未部署/代理屏蔽）→ 关掉、降级轮询。
+    });
+    // EventSource 自带重连会重复使用已消费 ticket，必然失败；任何断流都主动
+    // 关闭并重新申请 ticket，期间用 bearer POST 长轮询兜底。
+    es.onerror = failToPolling;
     sess._sseTimer = setTimeout(() => {
-      if (onlineState === sess && sess._sse === es && !sess._sseOk) {
-        try { es.close(); } catch {}
-        sess._sse = null;
-        startOnlinePolling();
-      }
+      if (onlineState === sess && sess._sse === es && !sess._sseOk) failToPolling();
     }, 3000);
+  }
+  function scheduleSseRetry(sess) {
+    if (!sess || onlineState !== sess || sess._sseRetryTimer || !sseEnabled()) return;
+    sess._sseAttempt = (sess._sseAttempt || 0) + 1;
+    const delay = Math.min(15000, 750 * Math.pow(2, Math.min(4, sess._sseAttempt - 1)));
+    sess._sseRetryTimer = setTimeout(() => {
+      sess._sseRetryTimer = null;
+      if (onlineState === sess) startSseSync();
+    }, delay);
   }
   function stopSseSync() {
     if (!onlineState) return;
     if (onlineState._sseTimer) { clearTimeout(onlineState._sseTimer); onlineState._sseTimer = null; }
+    if (onlineState._sseRetryTimer) { clearTimeout(onlineState._sseRetryTimer); onlineState._sseRetryTimer = null; }
+    onlineState._sseStarting = false;
     if (onlineState._sse) { try { onlineState._sse.close(); } catch {} onlineState._sse = null; }
   }
 
@@ -6359,13 +6605,11 @@
   //  重新拉该座视图渲染。游戏开始后牌桌 UI 与单机/普通联机完全一致，只多这条测试条。
   // ===========================================================
   function makeTestOnlineState(seatInfo) {
-    return {
+    return Object.assign(seatInfo, {
       code: testMode.code,
-      token: seatInfo.token,
-      playerId: seatInfo.playerId,
       isHost: seatInfo.seat === 0,
       mySeat: seatInfo.seat,
-      lastVersion: 0,
+      lastVersion: Math.max(0, seatInfo.lastVersion | 0),
       polling: false,
       pollAbort: null,
       players: [],
@@ -6382,7 +6626,20 @@
       _startedTransition: false,
       _netGameReady: false,
       _isTest: true,
-    };
+    });
+  }
+
+  async function refreshTestSession(sess) {
+    const r = await fetchOnlineStateForSession(sess);
+    if (!r.ok) return r;
+    sess._srv = r.data;
+    return r;
+  }
+
+  async function testMutation(action, payload, sess) {
+    const current = await refreshTestSession(sess);
+    if (!current.ok) return current;
+    return gdMutation(action, payload, sess);
   }
 
   async function enterOnlineTestMode() {
@@ -6395,21 +6652,52 @@
     // 25s 足够手动切视角、出每一座的牌；超时才会自动出（也顺便验了超时逻辑）。
     const opts = Object.assign({}, normalizeOptions(state.options), { turnSec: 25 });
     try {
-      const c = await gdApi('create', { body: { nick: '测试·1', deviceId: base + '-t0', config: { aiLevel: state.aiLevel, options: opts } } });
+      const c = await gdApi('create', { body: {
+        nick: '测试·1',
+        deviceId: base + '-t0',
+        rulesVersion: RULES_VERSION,
+        protocolVersion: PROTOCOL_VERSION,
+        config: { aiLevel: state.aiLevel, options: opts },
+      } });
       if (!c.ok) throw new Error(c.error || 'create_failed');
       const code = c.data.code;
-      const seats = [{ token: c.data.playerToken, playerId: c.data.playerId, seat: 0 }];
+      const inviteCode = c.data.inviteCode;
+      if (!inviteCode) throw new Error('missing_invite');
+      const seats = [{
+        code,
+        accessToken: c.data.accessToken || c.data.playerToken,
+        resumeSecret: c.data.resumeSecret,
+        playerId: c.data.playerId,
+        seat: 0,
+        lastVersion: 1,
+        _isTest: true,
+      }];
       for (let i = 1; i < 4; i++) {
-        const j = await gdApi('join', { body: { code, nick: '测试·' + (i + 1), deviceId: base + '-t' + i } });
+        const j = await gdApi('join', { body: {
+          code,
+          inviteCode,
+          nick: '测试·' + (i + 1),
+          deviceId: base + '-t' + i,
+          rulesVersion: RULES_VERSION,
+          protocolVersion: PROTOCOL_VERSION,
+        } });
         if (!j.ok) throw new Error(j.error || 'join_failed');
-        const token = j.data.playerToken;
-        const sr = await gdApi('sit', { body: { code, token, seat: i } });
+        const guest = {
+          code,
+          accessToken: j.data.accessToken || j.data.playerToken,
+          resumeSecret: j.data.resumeSecret,
+          playerId: j.data.playerId,
+          seat: i,
+          lastVersion: 0,
+          _isTest: true,
+        };
+        const sr = await testMutation('sit', { seat: i }, guest);
         if (!sr.ok) throw new Error(sr.error || 'sit_failed');
-        seats.push({ token, playerId: j.data.playerId, seat: i });
+        seats.push(guest);
       }
-      const st = await gdApi('start', { body: { code, token: seats[0].token } });
+      const st = await testMutation('start', {}, seats[0]);
       if (!st.ok) throw new Error(st.error || 'start_failed');
-      testMode = { on: true, code, seats, active: 0 };
+      testMode = { on: true, code, inviteCode, seats, active: 0 };
       await switchTestSeat(0);
       toast('测试模式就绪：座1 视角，[[zi:play]] 标记当前该出牌的座位');
     } catch (e) {
@@ -6444,8 +6732,8 @@
     const bar = document.getElementById('gdTestBar');
     if (bar) bar.remove();
     stopOnlineSync();
-    if (tm && tm.seats && tm.seats[0]) {           // 用房主 token 解散整间测试房
-      try { await gdApi('leave', { body: { code: tm.code, token: tm.seats[0].token, dissolveOnLeave: true } }); } catch {}
+    if (tm && tm.seats && tm.seats[0]) {           // 用房主凭证解散整间测试房
+      try { await testMutation('leave', { dissolveOnLeave: true }, tm.seats[0]); } catch {}
     }
     onlineState = null;
     state.isNetworked = false;
@@ -6510,7 +6798,12 @@
     // - 现在 srv.version < expectedVersion 时直接忽略整条响应，等 POST 自己把状态推上来
     const expV = onlineState._expectedVersion || 0;
     const srvV = typeof srv.version === 'number' ? srv.version : 0;
-    if (srvV > 0 && expV > 0 && srvV < expV) return;
+    if (srvV > 0 && expV > 0 && srvV < expV) {
+      // 串行 CAS 队列仍需看见这一版，下一条 mutation 才能以 V+1 提交；
+      // 这里只延后视觉覆盖，不延后权威版本游标。
+      onlineState.lastVersion = Math.max(onlineState.lastVersion || 0, srvV);
+      return;
+    }
     // 同一 version 重复推也不用做事
     if (srvV > 0 && srvV < (onlineState.lastVersion || 0)) return;
 
@@ -6968,6 +7261,11 @@
       return;
     }
     revertOptimistic(snap);
+    if (r.data && r.data.state) {
+      if (onlineState) onlineState._expectedVersion = 0;
+      applyServerOnlineState(r.data.state);
+    }
+    if (isTerminalOnlineFailure(r)) clearOnlineSessionLocal('');
     toast(errText(r.error));
   }
   async function sendSit(seat) {
@@ -6977,9 +7275,14 @@
       if (me) me.seat = seat;
     });
     onlineState.mySeat = seat;
-    const r = await gdApi('sit', { body: { code: onlineState.code, token: onlineState.token, seat } });
+    const r = await gdMutation('sit', { seat });
     if (!r.ok) {
       revertOptimistic(snap);
+      if (r.data && r.data.state) {
+        if (onlineState) onlineState._expectedVersion = 0;
+        applyServerOnlineState(r.data.state);
+      }
+      if (isTerminalOnlineFailure(r)) clearOnlineSessionLocal('');
       // 落座失败（多半是座位被抢）→ 解除「自动落座只试一次」的闩，下一次大厅状态到来时
       // 重试找别的空座，避免加入者卡在站着、开局时被当成未落座者而看不到真正的房间对局。
       if (onlineState) onlineState._autoSatTried = false;
@@ -7002,8 +7305,16 @@
     const meNow = (onlineState.players || []).find(p => p.id === onlineState.playerId);
     if (meNow && typeof meNow.seat === 'number') onlineState.mySeat = meNow.seat;
     renderLobbyOptimistic();
-    const r = await gdApi('move_seat', { body: { code: onlineState.code, token: onlineState.token, seatFrom: fromSeat, seatTo: toSeat } });
-    if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
+    const r = await gdMutation('move_seat', { seatFrom: fromSeat, seatTo: toSeat });
+    if (!r.ok) {
+      revertOptimistic(snap);
+      if (r.data && r.data.state) {
+        if (onlineState) onlineState._expectedVersion = 0;
+        applyServerOnlineState(r.data.state);
+      }
+      if (isTerminalOnlineFailure(r)) clearOnlineSessionLocal('');
+      toast(errText(r.error));
+    }
     else applyActionResult(r);
   }
   async function sendAddAi(seat) {
@@ -7018,7 +7329,7 @@
         isHost: false,
       });
     });
-    const r = await gdApi('add_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
+    const r = await gdMutation('add_ai', { seat });
     handleAiActionResp(r, snap);
   }
   async function sendRemoveAi(seat) {
@@ -7027,7 +7338,7 @@
       const i = players.findIndex(p => p.seat === seat && p.isAi);
       if (i >= 0) players.splice(i, 1);
     });
-    const r = await gdApi('remove_ai', { body: { code: onlineState.code, token: onlineState.token, seat } });
+    const r = await gdMutation('remove_ai', { seat });
     handleAiActionResp(r, snap);
   }
   async function sendKick(targetPid) {
@@ -7037,16 +7348,28 @@
       const i = players.findIndex(p => p.id === targetPid);
       if (i >= 0) players.splice(i, 1);
     });
-    const r = await gdApi('kick', { body: { code: onlineState.code, token: onlineState.token, targetPid } });
-    if (!r.ok) { revertOptimistic(snap); toast(errText(r.error)); }
+    const r = await gdMutation('kick', { targetPid });
+    if (!r.ok) {
+      revertOptimistic(snap);
+      if (r.data && r.data.state) {
+        if (onlineState) onlineState._expectedVersion = 0;
+        applyServerOnlineState(r.data.state);
+      }
+      if (isTerminalOnlineFailure(r)) clearOnlineSessionLocal('');
+      toast(errText(r.error));
+    }
     else applyActionResult(r);
   }
   async function sendTransferHost(targetPid) {
     if (!onlineState) return;
     if (!confirm('确认把房主让给这位玩家？')) return;
     // 转交房主是状态变化大、和客户端身份判定耦合的动作 —— 不做乐观，等服务端 reconcile。
-    const r = await gdApi('transfer_host', { body: { code: onlineState.code, token: onlineState.token, targetPid } });
-    if (!r.ok) toast(errText(r.error));
+    const r = await gdMutation('transfer_host', { targetPid });
+    if (!r.ok) {
+      if (r.data && r.data.state) applyServerOnlineState(r.data.state);
+      if (isTerminalOnlineFailure(r)) clearOnlineSessionLocal('');
+      toast(errText(r.error));
+    }
     else applyActionResult(r);
   }
   // swap 的两阶段时间线：
@@ -7107,7 +7430,7 @@
       }, SWAP_HOLD_MS);
     }, animMs);
 
-    const r = await gdApi('swap_seats', { body: { code: onlineState.code, token: onlineState.token, seatA, seatB } });
+    const r = await gdMutation('swap_seats', { seatA, seatB });
     if (!r.ok) {
       // 罕见：服端拒绝（房间已解散等）→ 取消计时器 + 回滚 + 报错
       if (onlineState) {
@@ -7116,6 +7439,11 @@
         onlineState._animating = false;
       }
       revertOptimistic(snap);
+      if (r.data && r.data.state) {
+        if (onlineState) onlineState._expectedVersion = 0;
+        applyServerOnlineState(r.data.state);
+      }
+      if (isTerminalOnlineFailure(r)) clearOnlineSessionLocal('');
       toast(errText(r.error));
       return;
     }
@@ -7158,40 +7486,58 @@
   if (onlineEls.startBtn) {
     onlineEls.startBtn.addEventListener('click', async () => {
       if (!onlineState || !onlineState.isHost) return;
-      const r = await gdApi('start', { body: { code: onlineState.code, token: onlineState.token } });
-      if (!r.ok) toast(errText(r.error));
-      else pokePoll();
+      const r = await gdMutation('start', {});
+      if (!r.ok) {
+        if (r.data && r.data.state) applyServerOnlineState(r.data.state);
+        if (isTerminalOnlineFailure(r)) clearOnlineSessionLocal('');
+        toast(errText(r.error));
+      }
+      else applyActionResult(r);
     });
   }
   if (onlineEls.copyCodeBtn) {
-    onlineEls.copyCodeBtn.addEventListener('click', () => copyText(onlineState && onlineState.code));
+    onlineEls.copyCodeBtn.addEventListener('click', () => {
+      if (!onlineState) return;
+      copyText(onlineState.inviteCode || onlineState.code,
+        onlineState.inviteCode ? '邀请码已复制' : '房号已复制');
+    });
   }
   if (onlineEls.copyLinkBtn) {
     onlineEls.copyLinkBtn.addEventListener('click', () => {
       if (!onlineState) return;
-      copyText(location.origin + location.pathname + '?room=' + onlineState.code);
+      if (!onlineState.inviteCode) {
+        toast('当前房间没有安全邀请码，请由房主重新创建');
+        return;
+      }
+      const inviteUrl = new URL(location.href);
+      inviteUrl.search = '';
+      inviteUrl.hash = '';
+      inviteUrl.searchParams.set('room', onlineState.inviteCode);
+      copyText(inviteUrl.toString(), '邀请链接已复制');
     });
   }
-  function copyText(t) {
+  function copyText(t, successMessage) {
     if (!t) return;
-    if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => toast('已复制')).catch(() => toast('复制失败，请手动'));
+    if (navigator.clipboard) navigator.clipboard.writeText(t)
+      .then(() => toast(successMessage || '已复制'))
+      .catch(() => toast('复制失败，请手动'));
     else toast('请手动复制：' + t);
   }
 
   // 刷新、关闭标签和 PWA 切后台都不是“离开房间”：保留联机会话，下一次加载按 token 重连。
   // 只有用户明确点击“离开房间/退出本局”才调用 leave。
 
-  // ---- URL ?room=xxxx 自动进入"加入"流程 ----
+  // ---- URL ?room=<完整邀请码> 自动进入"加入"流程 ----
   (function autoJoinFromUrl() {
-    const m = location.search.match(/[?&]room=(\d{4})/);
-    if (!m) return;
-    const code = m[1];
+    const rawInvite = new URLSearchParams(location.search).get('room');
+    const invite = parseInviteInput(rawInvite);
+    if (!invite) return;
     // 切到联机 + 加入 tab
     const onlineBtn = onlineEls.pgoPlayMode && onlineEls.pgoPlayMode.querySelector('[data-playmode="online"]');
     if (onlineBtn) onlineBtn.click();
     const joinTab = onlineEls.tabs && onlineEls.tabs.querySelector('[data-tab="join"]');
     if (joinTab) joinTab.click();
-    if (onlineEls.code) onlineEls.code.value = code;
+    if (onlineEls.code) onlineEls.code.value = rawInvite;
     const savedNick = gdGetNick();
     if (savedNick) {
       onlineEls.nick.value = savedNick;

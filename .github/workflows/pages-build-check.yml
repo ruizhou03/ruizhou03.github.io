@@ -25,6 +25,7 @@ jobs:
       - name: Guandan release contracts
         run: |
           node scripts/test-guandan-p0.mjs
+          node scripts/test-guandan-network.mjs
           node scripts/test-guandan-differential.mjs --count=10000
 
       - name: Trial build (mirrors GitHub Pages exactly)
