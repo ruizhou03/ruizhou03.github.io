@@ -4,7 +4,7 @@ const wait = process.argv.includes('--wait');
 const attempts = wait ? 40 : 1;
 const delayMs = 15000;
 const base = 'https://ruizhou03.com';
-const marker = '20260727ux6';
+const marker = '20260727p7a';
 
 async function probe() {
   const page = await fetch(`${base}/toolbox/guandan/`, { cache: 'no-store' });

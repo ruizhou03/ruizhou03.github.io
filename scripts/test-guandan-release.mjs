@@ -9,6 +9,14 @@ const html = await read('toolbox/guandan/index.html');
 const css = await read('assets/css/guandan.css');
 const presentation = `${html}\n${css}`;
 const js = await read('assets/js/games/guandan.js');
+const contract = await read('assets/js/games/guandan-contract.js');
+const storageModule = await read('assets/js/games/guandan-storage.js');
+const netModule = await read('assets/js/games/guandan-net.js');
+const audioModule = await read('assets/js/games/guandan-audio.js');
+const rulesModule = await read('assets/js/games/guandan-rules.js');
+const engineModule = await read('assets/js/games/guandan-engine.js');
+const uiModule = await read('assets/js/games/guandan-ui.js');
+const debugModule = await read('assets/js/games/guandan-debug.js');
 const simulator = await read('scripts/sim-guandan.js');
 const sw = await read('sw.js');
 const offlineClient = await read('assets/js/offline/offline.js');
@@ -34,10 +42,10 @@ for (const id of ['gdResumeOverlay', 'gdBoardModal', 'gdConfirmExit', 'gdTribute
 }
 assert.match(html, /id="gdLiveRegion"[^>]*aria-live="polite"/,
   '必须提供读屏 live region');
-assert.match(js, /activateDialog\([\s\S]*sibling\.inert = true/,
+assert.match(uiModule, /function activate\([\s\S]*sibling\.inert = true/,
   'dialog 必须隔离背景内容');
-assert.match(js, /e\.key === 'Escape'/, '可关闭 dialog 必须支持 Escape');
-assert.match(js, /e\.key !== 'Tab'[\s\S]*focusables/, 'dialog 必须有焦点循环');
+assert.match(uiModule, /event\.key === 'Escape'/, '可关闭 dialog 必须支持 Escape');
+assert.match(uiModule, /event\.key !== 'Tab'[\s\S]*focusables/, 'dialog 必须有焦点循环');
 assert.match(js, /els\.hand\.addEventListener\('keydown'/, '手牌必须支持键盘导航');
 assert.match(js, /aria-pressed/, '牌面选中状态必须向辅助技术公开');
 
@@ -53,18 +61,43 @@ assert.doesNotMatch(html, /games-shell\/(wins-leaderboard|comments|nick-prompt)\
 assert.match(js, /loadScriptOnce\('comments'/, '交流组件必须按需加载');
 assert.match(js, /loadScriptOnce\('wins'/, '榜单必须按需加载');
 assert.doesNotMatch(html, /guandan-dmc\.js/, '新手/普通首屏不得下载 DMC');
-assert.match(html, /guandan\.min\.js\?v=20260727ux6/,
+for (const module of ['contract', 'storage', 'net', 'audio', 'rules', 'engine', 'ui', 'debug']) {
+  assert.match(html, new RegExp(`guandan-${module}\\.js\\?v=20260727p7a`),
+    `${module} 模块必须在主程序前独立加载`);
+}
+assert.match(js, /const gdApi = NET\.api/, '主程序必须真实消费独立网络模块');
+assert.match(js, /const toggleMute = AUDIO\.toggle/, '主程序必须真实消费独立音频模块');
+assert.match(js, /STORAGE\.writeJson\(SESSION_KEY/, '主程序必须真实消费独立存储模块');
+assert.match(contract, /Object\.freeze/, '版本与协议合同必须不可变');
+assert.match(storageModule, /window\.GuandanStorage = Object\.freeze/, '存储 API 必须冻结');
+assert.match(netModule, /credentials:\s*'omit'[\s\S]*referrerPolicy:\s*'no-referrer'/,
+  '网络模块不得隐式携带站点凭证或 referrer');
+assert.match(audioModule, /aria-pressed[\s\S]*aria-label/,
+  '音效模块必须同步无障碍状态');
+assert.match(rulesModule, /window\.GuandanRules = Object\.freeze/,
+  '规则基础层必须以不可变 API 独立发布');
+assert.match(engineModule, /createNavigationController[\s\S]*invalid_guandan_nav_view/,
+  '引擎层必须拥有显式导航状态机');
+assert.match(js, /bombStrengthN, isBombType, bombMultiplierFor[\s\S]*\} = RULES/,
+  '主程序必须真实消费独立规则基础层');
+assert.match(js, /ENGINE\.createNavigationController\(\)/,
+  '主程序必须真实消费独立引擎状态机');
+assert.match(js, /UI\.createDialogController\(\)/,
+  '主程序必须真实消费独立 UI/dialog 模块');
+assert.match(js, /DEBUG\.bindSecretChords\(/,
+  '主程序必须真实消费独立 debug 模块');
+assert.match(html, /guandan\.min\.js\?v=20260727p7a/,
   '生产页面必须加载经过门禁校验的压缩脚本');
-assert.match(js, /devToolsEnabled = location\.hostname === 'localhost'/,
+assert.match(debugModule, /enabled = location\.hostname === 'localhost'/,
   '生产调试入口必须被本机环境门禁');
 
 assert.equal(pwa.display, 'standalone');
 assert.equal(pwa.scope, '/toolbox/guandan/');
 assert.equal(pwa.theme_color, '#173a30');
-assert.equal(offline.version, '20260727ux6');
+assert.equal(offline.version, '20260727p7a');
 assert.equal(offline.rulesVersion, 'gd-huaian-2025-site-v1');
 assert.equal(offline.modelSha256, 'ca389e89e8db98d9968705b0e4495620e025c852cf4db4b4c2e66b086ae03da5');
-assert.match(html, /asset_version:\s*"20260727ux6"/,
+assert.match(html, /asset_version:\s*"20260727p7a"/,
   '掼蛋 PWA 的全站依赖必须使用确定版本');
 assert.ok(offline.core.length >= 5, '冷离线 core 清单不完整');
 assert.ok(offline.hard.length >= 3, '高手离线清单不完整');
@@ -72,7 +105,7 @@ assert.ok(!offline.core.some(asset => asset.url.includes('guandan-dmc.bin')),
   'easy/normal 冷离线包不得包含模型');
 assert.ok(offline.hard.some(asset => asset.url.includes('guandan-dmc.bin')),
   'hard 离线包必须包含模型');
-assert.match(sw, /offline-assets\.json\?v=20260727ux6/,
+assert.match(sw, /offline-assets\.json\?v=20260727p7a/,
   'SW 必须消费确定性离线清单');
 assert.match(js, /offline_asset_hash_mismatch/,
   'hard 离线承诺前必须校验资源 hash');

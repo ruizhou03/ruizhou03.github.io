@@ -26,6 +26,8 @@ jobs:
         run: |
           npx --yes terser@5.43.1 assets/js/games/guandan.js --compress --mangle --comments false -o /tmp/guandan.min.js
           cmp /tmp/guandan.min.js assets/js/games/guandan.min.js
+          node scripts/generate-guandan-offline-manifest.mjs
+          git diff --exit-code -- toolbox/guandan/offline-assets.json
 
       - name: Guandan release contracts
         run: |

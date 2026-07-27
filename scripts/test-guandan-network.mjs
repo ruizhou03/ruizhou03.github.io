@@ -3,20 +3,22 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../toolbox/guandan/index.html', import.meta.url), 'utf8');
 const js = await readFile(new URL('../assets/js/games/guandan.js', import.meta.url), 'utf8');
+const net = await readFile(new URL('../assets/js/games/guandan-net.js', import.meta.url), 'utf8');
+const runtime = `${net}\n${js}`;
 
-assert.match(js, /headers\.Authorization\s*=\s*'Bearer '\s*\+\s*opts\.token/,
+assert.match(net, /headers\.Authorization\s*=\s*'Bearer '\s*\+\s*options\.token/,
   '受保护请求必须通过 Authorization bearer 发送 access token');
-assert.match(js, /cache:\s*'no-store'/,
+assert.match(net, /cache:\s*'no-store'/,
   '牌面请求必须显式禁用浏览器缓存');
 assert.match(js, /gdApi\('stream_ticket',[\s\S]{0,180}token:\s*sess\.accessToken/,
   'SSE 必须先用 bearer token 换取短效 stream ticket');
 assert.match(js, /new EventSource\([\s\S]{0,240}&ticket=/,
   'EventSource URL 只能携带短效 stream ticket');
-assert.doesNotMatch(js, /[?&]token=/,
+assert.doesNotMatch(runtime, /[?&]token=/,
   '长期 access token 不得进入 URL');
-assert.doesNotMatch(js, /qs:\s*\{[^}]*\btoken\b/s,
+assert.doesNotMatch(runtime, /qs:\s*\{[^}]*\btoken\b/s,
   '长期 access token 不得通过 query 参数发送');
-assert.doesNotMatch(js, /body:\s*\{[^}]{0,300}\btoken\s*:/s,
+assert.doesNotMatch(runtime, /body:\s*\{[^}]{0,300}\btoken\s*:/s,
   '长期 access token 不得放入请求体');
 
 assert.match(js, /requestId,\s*\n\s*expectedVersion:/,
@@ -69,7 +71,7 @@ assert.doesNotMatch(js, /\/\^\\d\{4\}\$\//,
   '严格协议前端不得接受可枚举的裸四位房号');
 assert.match(js, /new URLSearchParams\(location\.search\)\.get\('room'\)/,
   '自动加入必须安全解析 URLSearchParams 中的完整邀请码');
-assert.match(html, /guandan\.min\.js\?v=20260727ux6/,
+assert.match(html, /guandan\.min\.js\?v=20260727p7a/,
   '生产页面必须引用本次安全协议压缩构建标记');
 
 console.log('guandan network contracts: ok');

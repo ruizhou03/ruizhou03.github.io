@@ -1,5 +1,22 @@
 (() => {
   'use strict';
+  const CONTRACT = window.GuandanContract;
+  const STORAGE = window.GuandanStorage;
+  const NET = window.GuandanNet;
+  const AUDIO = window.GuandanAudio;
+  const UI = window.GuandanUI;
+  const DEBUG = window.GuandanDebug;
+  const RULES = window.GuandanRules;
+  const ENGINE = window.GuandanEngine;
+  if (!CONTRACT || !STORAGE || !NET || !AUDIO || !UI || !DEBUG || !RULES || !ENGINE) {
+    throw new Error('guandan_runtime_module_missing');
+  }
+  const {
+    RANK_LABELS, LEVEL_SEQ, T,
+    isJoker, jokerKind, cardDeck, cardSuit, cardRankIdx,
+    singleWeight, isWild, columnKey, straightPoint, rankIdxWeight,
+    bombStrengthN, isBombType, bombMultiplierFor,
+  } = RULES;
   const IS_LOCAL_RUNTIME = typeof location !== 'undefined' &&
     (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
   if (IS_LOCAL_RUNTIME) {
@@ -13,21 +30,20 @@
   //     suit: 0♠ 1♥ 2♦ 3♣ ; rank: 0=2,1=3,...,8=10,9=J,10=Q,11=K,12=A
   //   - 小王: deck*54 + 52 ; 大王: deck*54 + 53
   // ===========================================================
-  const STORE_KEY = 'tool.guandan.v1';
-  const SESSION_KEY = 'tool.guandan.session.v1';
+  const STORE_KEY = CONTRACT.storageKeys.preferences;
+  const SESSION_KEY = CONTRACT.storageKeys.localSession;
   // 联机会话（房间 token/code/playerId）。提到顶部声明，使启动期 maybeResumeOnLoad
   // 能在所有模块级常量初始化前就安全读取它来决定走「联机重连」还是「单机续局」。
-  const ONLINE_SESSION_KEY = 'tool.guandan.online.session.v1';
-  const ONLINE_SESSION_SCHEMA_VERSION = 2;
-  const RULES_VERSION = 'gd-huaian-2025-site-v1';
-  const PROTOCOL_VERSION = 'guandan-protocol-v2';
-  const SAVE_SCHEMA_VERSION = 3;
-  const ROOM_SCHEMA_VERSION = 3;
-  const AI_CONTRACT_VERSION = 'gd-ai-contract-v1';
+  const ONLINE_SESSION_KEY = CONTRACT.storageKeys.onlineSession;
+  const ONLINE_SESSION_SCHEMA_VERSION = CONTRACT.onlineSessionSchemaVersion;
+  const RULES_VERSION = CONTRACT.rulesVersion;
+  const PROTOCOL_VERSION = CONTRACT.protocolVersion;
+  const SAVE_SCHEMA_VERSION = CONTRACT.saveSchemaVersion;
+  const ROOM_SCHEMA_VERSION = CONTRACT.roomSchemaVersion;
+  const AI_CONTRACT_VERSION = CONTRACT.aiContractVersion;
   const AI_STRATEGIES = (typeof GuandanAIContract !== 'undefined')
     ? GuandanAIContract.strategies : null;
-  const RANK_LABELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const GD_BUILD = '2026.07.27.ux-v6';  // 版本号：刷新后看左下角徽标即可确认已加载最新版
+  const GD_BUILD = CONTRACT.build;  // 版本号：刷新后看左下角徽标即可确认已加载最新版
   const SUIT_LABELS = ['♠','♥','♦','♣'];
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓；♠♣ 底脚重设计、不越两瓣最低线）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -57,82 +73,6 @@
   const SUIT_TRY_ALL = 0.02;  // 右上花色(竖排手牌) 整体上下
   const SUIT_BLY_ALL = -0.2;  // 左下花色(横排出牌) 整体上下
   const GD_S_RATIO = 0.38;   // 左上正方形 / 横纵分割线 = 0.39W；竖排错位也用它（露横分割线以上）
-  const LEVEL_SEQ = ['2','3','4','5','6','7','8','9','10','J','Q','K','A']; // 级牌进阶序
-
-  // 炸弹 → 倍数（仿斗地主：每出一次累乘到 state.bombMult）
-  //   4 炸 ×2  5 炸 ×3  6 炸 ×4  7 炸 ×5  8+ 炸 ×6
-  //   同花顺 ×4   天王炸 ×8
-  function bombMultiplierFor(combo) {
-    if (!combo) return 1;
-    if (combo.type === T.JOKER_BOMB) return 8;
-    if (combo.type === T.STR_FLUSH) return 4;
-    if (combo.type === T.BOMB) {
-      const n = combo.len | 0;
-      if (n === 4) return 2;
-      if (n === 5) return 3;
-      if (n === 6) return 4;
-      if (n === 7) return 5;
-      return 6; // 8+
-    }
-    return 1;
-  }
-
-  // ---- 基础解码 ----
-  function isJoker(c) { const m = c % 54; return m === 52 || m === 53; }
-  function jokerKind(c) { return (c % 54) === 53 ? 'big' : 'small'; } // big=大王 small=小王
-  function cardDeck(c) { return Math.floor(c / 54); }
-  function cardSuit(c) { return Math.floor((c % 54) / 13); }   // 仅非王有效
-  function cardRankIdx(c) { return (c % 54) % 13; }            // 0..12，仅非王有效
-
-  // 牌“自然点数权重”：用于顺子/连对里的位置 + 普通比较的基线。
-  // 2..A → 0..11(A) ；级牌不在此处抬升（顺子里级牌保持自然位）。
-  // 这里 rank index 0..12 = 2,3,...,A，自然顺序里 2 最小、A 最大。
-  // 顺子用的是 RANK_LABELS 顺序里的“连续点”，A 可高(10JQKA)可低(A2345)。
-
-  // 单牌比较权重（含级牌抬升 + 王）。level = 当前打的级牌 label (e.g. 'A')
-  // 顺序：2 < 3 < ... < K < A < 级牌 < 小王 < 大王
-  function singleWeight(c, level) {
-    if (isJoker(c)) return jokerKind(c) === 'big' ? 17 : 16;
-    const r = cardRankIdx(c);                // 0..12 = 2..A
-    const label = RANK_LABELS[r];
-    if (label === level) return 15;          // 级牌抬到 A 之上、王之下
-    // 2..A 自然： r=0(2)..12(A) → 映射到 2..14
-    return r + 2;                            // 2→2 ... A→14
-  }
-
-  // 是否“红桃级牌”→ 逢人配 wild
-  function isWild(c, level) {
-    if (isJoker(c)) return false;
-    return cardSuit(c) === 1 && RANK_LABELS[cardRankIdx(c)] === level;
-  }
-
-  // 仅用于"列分组"和"列排序"。红桃级牌（逢人配）独占一列、排在小王(16)与
-  // 普通级牌(15)之间(15.5)。其余牌沿用 singleWeight（牌力比较仍是单一标量，
-  // 所有级牌都是 15 — 牌力不变）。
-  function columnKey(c, level) {
-    if (!isJoker(c) && isWild(c, level)) return 15.5;
-    return singleWeight(c, level);
-  }
-
-  // 牌型常量
-  const T = {
-    SINGLE: 'single', PAIR: 'pair', TRIPLE: 'triple',
-    TRIPLE_PAIR: 'triple_pair',   // 三带二（三同 + 一对）
-    PAIR_STR: 'pair_str',         // 三连对 木板 (e.g. 334455)
-    TRIPLE_STR: 'triple_str',     // 二连三 钢板 (e.g. 333444)
-    STRAIGHT: 'straight',         // 五张顺子
-    BOMB: 'bomb',                 // 4+ 同张炸弹
-    STR_FLUSH: 'str_flush',       // 同花顺
-    JOKER_BOMB: 'joker_bomb',     // 四王炸（天王炸）
-  };
-
-  // ---- 顺子点位：把一张非王牌映射成“顺子点 1..13”（A 既是 1 也是 14 由调用方处理）
-  // 顺子里：级牌保持自然位置（题面要求），所以这里直接用 rank label 顺序。
-  // 顺序点：2=2,3=3,...,10=10,J=11,Q=12,K=13,A=14；A 也可当 1。
-  function straightPoint(c) {
-    const r = cardRankIdx(c); // 0..12 → 2..A
-    return r + 2;             // 2..14
-  }
 
   // ---- 组合判定 ----
   // 给定一组牌 id（已含 wild），返回所有可能的“牌型对象”里**最优**的一个，
@@ -153,12 +93,6 @@
   //  7 炸 = 500 + ...
   //  n(>=6) 炸 = (n-1)*100 + rankWeight
   //  四王炸 = 99999（天王，压一切）
-  function bombStrengthN(n, rankW) {
-    if (n === 4) return 100 + rankW;
-    if (n === 5) return 200 + rankW;
-    // 6 及以上
-    return (n - 1) * 100 + rankW;
-  }
   const STR_FLUSH_STRENGTH_BASE = 300; // + topPoint(2..14)
 
   // 把一组牌做统计；返回 { counts:Map(rankIdx->n), wild:int, jokers:[big/small...], normals:[...] }
@@ -178,13 +112,6 @@
       normals.push(c);
     }
     return { counts, wild, bigJ, smallJ, normals };
-  }
-
-  // rankIdx → 比较权重（用于对/三/炸的“点”）：与 singleWeight 一致（级牌抬升）
-  function rankIdxWeight(r, level) {
-    const label = RANK_LABELS[r];
-    if (label === level) return 15;
-    return r + 2;
   }
 
   // 对外的 classify：保证返回的 combo 一定带 cards 字段（多处依赖 combo.cards）。
@@ -468,11 +395,6 @@
     return best;
   }
 
-  // 是否炸弹类（炸 / 同花顺 / 四王）
-  function isBombType(t) {
-    return t === T.BOMB || t === T.STR_FLUSH || t === T.JOKER_BOMB;
-  }
-
   // beats：cand 能否压过 prev（prev 为本轮当前最大；prev=null 表示自由出）
   function beats(cand, prev) {
     if (!cand) return false;
@@ -540,92 +462,16 @@
   // ===========================================================
   //  Web Audio 音效（纯代码合成，零外部文件；按用户偏好 localStorage 记静音态）
   // ===========================================================
-  let _gaCtx = null, _gaMuted = false;
-  try { _gaMuted = localStorage.getItem('tool.guandan.muted') === '1'; } catch (e) { /* ignore */ }
-  function _gaCtxEnsure() {
-    if (_gaCtx) return _gaCtx;
-    try { _gaCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* autoplay policy */ }
-    if (_gaCtx && _gaCtx.state === 'suspended') _gaCtx.resume();
-    return _gaCtx;
-  }
-  function _gaMuteBtnEl() { return document.getElementById('gdMuteBtn'); }
-  function _gaRefreshMuteBtn() { const b = _gaMuteBtnEl(); if (b) b.textContent = _gaMuted ? '[[zi:volume]]' : '[[zi:volume]]'; }
-  _gaRefreshMuteBtn();
-  function toggleMute() {
-    _gaMuted = !_gaMuted;
-    try { localStorage.setItem('tool.guandan.muted', _gaMuted ? '1' : '0'); } catch (e) {}
-    _gaRefreshMuteBtn();
-  }
-  // 核心合成：振荡器 + 增益包络
-  function _gaBeep(freq, dur, type, vol, ramp) {
-    if (_gaMuted) return;
-    const ctx = _gaCtxEnsure(); if (!ctx) return;
-    const t = ctx.currentTime;
-    const osc = ctx.createOscillator(); osc.type = type || 'sine'; osc.frequency.setValueAtTime(freq, t);
-    const g = ctx.createGain(); g.gain.setValueAtTime(vol || 0.12, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + (dur || 0.08));
-    osc.connect(g); g.connect(ctx.destination);
-    osc.start(t); osc.stop(t + (dur || 0.08) + 0.01);
-  }
-  function _gaNoise(dur, vol) {
-    if (_gaMuted) return;
-    const ctx = _gaCtxEnsure(); if (!ctx) return;
-    const t = ctx.currentTime; const len = (dur || 0.06) * ctx.sampleRate;
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
-    const src = ctx.createBufferSource(); src.buffer = buf;
-    const g = ctx.createGain(); g.gain.setValueAtTime(vol || 0.08, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + (dur || 0.06));
-    const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.setValueAtTime(2000, t);
-    src.connect(f); f.connect(g); g.connect(ctx.destination);
-    src.start(t); src.stop(t + (dur || 0.06) + 0.01);
-  }
-  // 具体音效
-  function _gaSfxPlay() { _gaBeep(660, 0.07, 'square', 0.08); _gaNoise(0.04, 0.05); }
-  function _gaSfxBomb() {
-    if (_gaMuted) return;
-    const ctx = _gaCtxEnsure(); if (!ctx) return;
-    const t = ctx.currentTime;
-    // 低音轰
-    for (let i = 0; i < 3; i++) {
-      const o = ctx.createOscillator(); o.type = 'sawtooth';
-      o.frequency.setValueAtTime(50 + i * 10, t + i * 0.06);
-      o.frequency.exponentialRampToValueAtTime(30, t + i * 0.06 + 0.15);
-      const g = ctx.createGain(); g.gain.setValueAtTime(0.18, t + i * 0.06);
-      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.2);
-      o.connect(g); g.connect(ctx.destination);
-      o.start(t + i * 0.06); o.stop(t + i * 0.06 + 0.2);
-    }
-    // 高音炸裂
-    _gaBeep(1200, 0.1, 'square', 0.10);
-    setTimeout(() => _gaBeep(800, 0.06, 'square', 0.06), 50);
-    _gaNoise(0.1, 0.12);
-  }
-  function _gaSfxPass() { _gaBeep(300, 0.05, 'triangle', 0.06); }
-  function _gaSfxDeal() {
-    const notes = [440, 554, 659, 880]; let t = 0;
-    for (const f of notes) { setTimeout(() => _gaBeep(f, 0.1, 'sine', 0.07), t); t += 60; }
-  }
-  function _gaSfxWin() {
-    const notes = [523, 659, 784, 1047]; let t = 0;
-    for (const f of notes) { setTimeout(() => _gaBeep(f, 0.18, 'triangle', 0.1), t); t += 120; }
-  }
-  function _gaSfxLose() {
-    _gaBeep(330, 0.2, 'triangle', 0.08);
-    setTimeout(() => _gaBeep(262, 0.3, 'triangle', 0.08), 200);
-  }
-  function _gaSfxTick() { _gaBeep(1000, 0.03, 'square', 0.06); }
-  // 整局战报页专用退场音（不打 round end 的 win/lose，战报更隆重）
-  function _gaSfxMatchEnd(win) {
-    if (win) {
-      const notes = [523, 659, 784, 1047, 1319]; let t = 0;
-      for (const f of notes) { setTimeout(() => _gaBeep(f, 0.2, 'triangle', 0.12), t); t += 150; }
-    } else {
-      const notes = [440, 349, 330, 262]; let t = 0;
-      for (const f of notes) { setTimeout(() => _gaBeep(f, 0.25, 'triangle', 0.1), t); t += 200; }
-    }
-  }
+  const toggleMute = AUDIO.toggle;
+  const _gaRefreshMuteBtn = AUDIO.refreshButton;
+  const _gaSfxPlay = AUDIO.effects.play;
+  const _gaSfxBomb = AUDIO.effects.bomb;
+  const _gaSfxPass = AUDIO.effects.pass;
+  const _gaSfxDeal = AUDIO.effects.deal;
+  const _gaSfxWin = AUDIO.effects.win;
+  const _gaSfxLose = AUDIO.effects.lose;
+  const _gaSfxTick = AUDIO.effects.tick;
+  const _gaSfxMatchEnd = AUDIO.effects.matchEnd;
 
   function shuffle(a) {
     for (let i = a.length - 1; i > 0; i--) {
@@ -1000,31 +846,14 @@
   // ===========================================================
   //  游戏状态机
   // ===========================================================
-  const TEAM = c => (c % 2 === 0) ? 0 : 1; // 座 0/2 → team0(你方)；1/3 → team1(对方)
-  const PHASE = { IDLE: 'idle', TRIBUTE: 'tribute', PLAYING: 'playing', ROUND_END: 'round_end', MATCH_END: 'match_end' };
-  const NAV_VIEW = Object.freeze({
-    SETUP: 'setup',
-    LOBBY: 'lobby',
-    PLAYING: 'playing',
-    TRIBUTE: 'tribute',
-    SETTLEMENT: 'settlement',
-  });
-  const navState = { current: NAV_VIEW.SETUP };
-  function setNavView(view) {
-    if (!Object.values(NAV_VIEW).includes(view)) throw new Error('invalid_guandan_nav_view:' + view);
-    navState.current = view;
-    document.body.dataset.guandanView = view;
-    const wrap = document.querySelector('.guandan-wrap');
-    if (wrap) {
-      for (const name of Object.values(NAV_VIEW)) wrap.classList.remove(`gd-view-${name}`);
-      wrap.classList.add(`gd-view-${view}`);
-    }
-  }
+  const TEAM = ENGINE.teamOf; // 座 0/2 → team0(你方)；1/3 → team1(对方)
+  const PHASE = ENGINE.PHASE;
+  const NAV_VIEW = ENGINE.NAV_VIEW;
+  const navigation = ENGINE.createNavigationController();
+  const navState = navigation.state;
+  const setNavView = navigation.set;
 
-  const stored = (() => {
-    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
-    catch { return {}; }
-  })();
+  const stored = STORAGE.readJson(STORE_KEY, {});
 
   // stats per-difficulty 给每个难度补 totalScore 兼容字段
   function normalizeStats(raw) {
@@ -1154,13 +983,11 @@
   }));
 
   function persist() {
-    try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({
-        lastDiff: state.aiLevel, lastMult: state.openMult,
-        sortMode: state.sortMode, stats: state.stats,
-        options: state.options, cardSizeMult: state.cardSizeMult,
-      }));
-    } catch (e) { /* ignore */ }
+    STORAGE.writeJson(STORE_KEY, {
+      lastDiff: state.aiLevel, lastMult: state.openMult,
+      sortMode: state.sortMode, stats: state.stats,
+      options: state.options, cardSizeMult: state.cardSizeMult,
+    });
   }
 
   // ---- session（中断保留）：只在 PLAYING/ROUND_END 阶段保存 ----
@@ -1260,31 +1087,24 @@
     _saveSessionPending = true;
     setTimeout(() => {
       _saveSessionPending = false;
-      try {
-        const snap = buildSessionSnapshot();
-        localStorage.setItem(SESSION_KEY, JSON.stringify(snap));
-      } catch (e) { /* ignore quota / serialization */ }
+      STORAGE.writeJson(SESSION_KEY, buildSessionSnapshot());
     }, 0);
   }
   function saveSessionSync() {
     if (state.isNetworked) return;   // 同 saveSession：联机局不落单机存档
     if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.ROUND_END) return;
     if (state._doublingActive) return;
-    try {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(buildSessionSnapshot()));
-    } catch (e) { /* ignore */ }
+    STORAGE.writeJson(SESSION_KEY, buildSessionSnapshot());
   }
   function clearSession() {
-    try { localStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
+    STORAGE.remove(SESSION_KEY);
   }
   function loadSession() {
-    try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      if (!raw) return null;
-      const snap = migrateSessionSnapshot(JSON.parse(raw));
-      if (!isResumableSnapshot(snap)) { clearSession(); return null; }
-      return snap;
-    } catch (e) { clearSession(); return null; }
+    const raw = STORAGE.readJson(SESSION_KEY);
+    if (!raw) return null;
+    const snap = migrateSessionSnapshot(raw);
+    if (!isResumableSnapshot(snap)) { clearSession(); return null; }
+    return snap;
   }
 
   let toastTimer = null;
@@ -4723,9 +4543,9 @@
   let _dmcState = 0, _dmcProgress = 0, _dmcPromise = null, _dmcProgressCb = null;
   let _dmcWorker = null, _dmcResolve = null, _dmcRequestSeq = 0, _dmcRetryCount = 0;
   const _dmcRequests = new Map();
-  const HARD_OFFLINE_KEY = 'tool.guandan.hardOffline.v1';
-  const HARD_OFFLINE_BUILD = `20260727ux6:${GuandanAIContract.modelSha256}`;
-  const OFFLINE_MANIFEST_URL = '/toolbox/guandan/offline-assets.json?v=20260727ux6';
+  const HARD_OFFLINE_KEY = CONTRACT.storageKeys.hardOffline;
+  const HARD_OFFLINE_BUILD = `${CONTRACT.releaseMarker}:${GuandanAIContract.modelSha256}`;
+  const OFFLINE_MANIFEST_URL = `/toolbox/guandan/offline-assets.json?v=${CONTRACT.releaseMarker}`;
   let hardOfflinePromise = null;
   function updateHardOfflineStatus(text) {
     if (!els.hardOfflineStatus) return;
@@ -4735,7 +4555,7 @@
     }
     let ready = false;
     try {
-      ready = localStorage.getItem(HARD_OFFLINE_KEY) === HARD_OFFLINE_BUILD;
+      ready = STORAGE.readText(HARD_OFFLINE_KEY) === HARD_OFFLINE_BUILD;
     } catch (_) {}
     els.hardOfflineStatus.textContent = state.aiLevel === 'hard'
       ? (ready ? '高手模型已校验并缓存，可离线使用。' : '高手档首次需要联网下载并校验模型；完成前不承诺离线。')
@@ -4750,7 +4570,7 @@
     const manifest = await response.clone().json();
     if (manifest.rulesVersion !== RULES_VERSION ||
         manifest.modelSha256 !== GuandanAIContract.modelSha256 ||
-        manifest.version !== '20260727ux6' ||
+        manifest.version !== CONTRACT.releaseMarker ||
         !Array.isArray(manifest.core) ||
         !Array.isArray(manifest.hard)) {
       throw new Error('offline_manifest_mismatch');
@@ -4798,7 +4618,7 @@
         updateHardOfflineStatus(`正在缓存高手离线资源 ${done}/${total}…`);
       });
       await saved.put(OFFLINE_MANIFEST_URL, manifestResponse.clone());
-      localStorage.setItem(HARD_OFFLINE_KEY, HARD_OFFLINE_BUILD);
+      STORAGE.writeText(HARD_OFFLINE_KEY, HARD_OFFLINE_BUILD);
       updateHardOfflineStatus('高手模型已校验并缓存，可离线使用。');
       return true;
     })().catch(error => {
@@ -5713,22 +5533,11 @@
 
   // 连打暗号触发测试模式：test = 单机测试；quad = 联机「四视角」测试（一人扮四家走真实联机流程）。
   // 两个暗号都是「最近 4 个字母」匹配；quad 不含 test 后缀，互不误触。
-  (function () {
-    const devToolsEnabled = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    if (!devToolsEnabled) return;
-    let buf = '';
-    document.addEventListener('keydown', (e) => {
-      const tag = e.target && e.target.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      const k = (e.key || '').toLowerCase();
-      if (k.length === 1 && k >= 'a' && k <= 'z') {
-        buf = (buf + k).slice(-4);
-        if (buf === 'test') { buf = ''; enterTestMode(); }
-        else if (buf === 'quad') { buf = ''; enterOnlineTestMode(); }
-        else if (buf === 'dbug') { buf = ''; toggleDebugPanel(); }
-      }
-    });
-  })();
+  DEBUG.bindSecretChords({
+    test: enterTestMode,
+    quad: enterOnlineTestMode,
+    dbug: toggleDebugPanel,
+  });
 
   // ===========================================================
   //  🛠 调试台（暗号 dbug 切换显隐；仅开发用，对线上真实玩家完全不可见）
@@ -5989,10 +5798,10 @@
   }
   async function ensureShellModules(withComments) {
     const jobs = [
-      loadScriptOnce('wins', '/assets/js/games-shell/wins-leaderboard.js?v=20260727ux6'),
-      loadScriptOnce('nick', '/assets/js/games-shell/nick-prompt.js?v=20260727ux6'),
+      loadScriptOnce('wins', `/assets/js/games-shell/wins-leaderboard.js?v=${CONTRACT.releaseMarker}`),
+      loadScriptOnce('nick', `/assets/js/games-shell/nick-prompt.js?v=${CONTRACT.releaseMarker}`),
     ];
-    if (withComments) jobs.push(loadScriptOnce('comments', '/assets/js/games-shell/comments.js?v=20260727ux6'));
+    if (withComments) jobs.push(loadScriptOnce('comments', `/assets/js/games-shell/comments.js?v=${CONTRACT.releaseMarker}`));
     try {
       await Promise.all(jobs);
       initShell(withComments);
@@ -6099,79 +5908,9 @@
   const boardModal = $('gdBoardModal');
   const pgoTimingNote = $('gdPgoTimingNote');
   const boardTimingNote = $('gdBoardTimingNote');
-  let activeDialog = null;
-  let activeDialogClose = null;
-  let dialogReturnFocus = null;
-  let inertedForDialog = new Map();
-  const dialogFocusable = [
-    'button:not([disabled]):not([hidden])',
-    'a[href]',
-    'input:not([disabled]):not([hidden])',
-    'select:not([disabled]):not([hidden])',
-    'textarea:not([disabled]):not([hidden])',
-    'summary',
-    '[tabindex]:not([tabindex="-1"])',
-  ].join(',');
-
-  function deactivateDialog(dialog) {
-    if (!dialog || activeDialog !== dialog) return;
-    for (const [node, wasInert] of inertedForDialog) node.inert = wasInert;
-    inertedForDialog = new Map();
-    activeDialog = null;
-    activeDialogClose = null;
-    const target = dialogReturnFocus;
-    dialogReturnFocus = null;
-    if (target && target.isConnected) target.focus({ preventScroll: true });
-  }
-
-  function activateDialog(dialog, closeFn, preferredFocus) {
-    if (!dialog) return;
-    if (activeDialog && activeDialog !== dialog) deactivateDialog(activeDialog);
-    dialogReturnFocus = document.activeElement;
-    activeDialog = dialog;
-    activeDialogClose = closeFn || null;
-    inertedForDialog = new Map();
-    let node = dialog;
-    while (node && node.parentElement) {
-      const parent = node.parentElement;
-      for (const sibling of parent.children) {
-        if (sibling === node || inertedForDialog.has(sibling)) continue;
-        inertedForDialog.set(sibling, !!sibling.inert);
-        sibling.inert = true;
-      }
-      node = parent;
-      if (node.classList && node.classList.contains('guandan-wrap')) break;
-    }
-    const focusTarget = (preferredFocus && dialog.querySelector(preferredFocus))
-      || dialog.querySelector(dialogFocusable);
-    if (focusTarget) requestAnimationFrame(() => focusTarget.focus({ preventScroll: true }));
-  }
-
-  document.addEventListener('keydown', e => {
-    if (!activeDialog) return;
-    if (e.key === 'Escape' && activeDialogClose) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      activeDialogClose();
-      return;
-    }
-    if (e.key !== 'Tab') return;
-    const focusables = [...activeDialog.querySelectorAll(dialogFocusable)]
-      .filter(el => !el.hidden && el.getClientRects().length);
-    if (!focusables.length) {
-      e.preventDefault();
-      return;
-    }
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  }, true);
+  const dialogController = UI.createDialogController();
+  const activateDialog = dialogController.activate;
+  const deactivateDialog = dialogController.deactivate;
 
   function setOverlayTimingNote(el) {
     if (!el) return;
@@ -6450,7 +6189,7 @@
   //  后端：https://zircon-urge.fly.dev/api/guandan
   //  长轮询拉 state；本地用 onlineState 单独存房间快照，不污染单机 state
   // ===========================================================
-  const GUANDAN_API = 'https://zircon-urge.fly.dev/api/guandan';
+  const GUANDAN_API = CONTRACT.apiUrl;
   // ONLINE_SESSION_KEY 已提到文件顶部声明（见 STORE_KEY 附近），此处不再重复定义。
 
   // 当前联机会话（null = 不在线）
@@ -6505,31 +6244,7 @@
   }
 
   // ---- API ----
-  async function gdApi(action, opts) {
-    opts = opts || {};
-    const method = opts.method || (opts.body === undefined ? 'GET' : 'POST');
-    const url = GUANDAN_API + '?action=' + encodeURIComponent(action) +
-      (opts.qs ? '&' + new URLSearchParams(opts.qs).toString() : '');
-    const headers = {};
-    if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
-    if (opts.token) headers.Authorization = 'Bearer ' + opts.token;
-    const init = {
-      method,
-      headers,
-      body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
-      signal: opts.signal,
-      cache: 'no-store',
-    };
-    try {
-      const res = await fetch(url, init);
-      let data = null;
-      try { data = await res.json(); } catch {}
-      if (!res.ok) return { ok: false, status: res.status, error: (data && data.error) || 'http_error', data };
-      return { ok: true, data };
-    } catch (e) {
-      return { ok: false, status: 0, error: 'network', err: String(e) };
-    }
-  }
+  const gdApi = NET.api;
 
   // ---- session ----
   function onlineSessionSave(s) {
@@ -6542,17 +6257,16 @@
         aiContractVersion: AI_CONTRACT_VERSION,
       }, s, { accessToken });
       delete stored.token;
-      localStorage.setItem(ONLINE_SESSION_KEY, JSON.stringify(stored));
+      STORAGE.writeJson(ONLINE_SESSION_KEY, stored);
     } catch {}
   }
   function onlineSessionClear() {
-    try { localStorage.removeItem(ONLINE_SESSION_KEY); } catch {}
+    STORAGE.remove(ONLINE_SESSION_KEY);
   }
   function onlineSessionLoad() {
     try {
-      const raw = localStorage.getItem(ONLINE_SESSION_KEY);
-      if (!raw) return null;
-      const s = JSON.parse(raw);
+      const s = STORAGE.readJson(ONLINE_SESSION_KEY);
+      if (!s) return null;
       const accessToken = s && (s.accessToken || s.token);
       if (!s || !s.code || !accessToken || !s.playerId) return null;
       if (s.rulesVersion && s.rulesVersion !== RULES_VERSION) return null;
@@ -6795,10 +6509,10 @@
     if (window.GamesShell && GamesShell.Identity && GamesShell.Identity.getDeviceId) {
       return GamesShell.Identity.getDeviceId();
     }
-    let did = localStorage.getItem('gs.did.v1');
+    let did = STORAGE.readText('gs.did.v1');
     if (!did) {
       did = 'd-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now().toString(36);
-      try { localStorage.setItem('gs.did.v1', did); } catch {}
+      STORAGE.writeText('gs.did.v1', did);
     }
     return did;
   }
@@ -7025,17 +6739,7 @@
     sendSit(emptySeat);
   }
 
-  function newOnlineRequestId() {
-    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-      return 'gd_' + window.crypto.randomUUID().replace(/-/g, '');
-    }
-    const bytes = new Uint8Array(18);
-    if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
-      window.crypto.getRandomValues(bytes);
-      return 'gd_' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-    }
-    return 'gd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 14);
-  }
+  const newOnlineRequestId = NET.requestId;
 
   async function fetchOnlineStateForSession(sess) {
     const r = await gdApi('state', {
@@ -7217,7 +6921,7 @@
   // 想对比/退回长轮询：localStorage.setItem('tool.guandan.sse','0') 后重连房间即可。
   // SSE 连不上/被代理屏蔽 → 自动回退长轮询，绝不卡住。
   function sseEnabled() {
-    try { return localStorage.getItem('tool.guandan.sse') !== '0'; } catch { return true; }
+    return STORAGE.readText('tool.guandan.sse') !== '0';
   }
   function startOnlineSync() {
     if (sseEnabled()) startSseSync();

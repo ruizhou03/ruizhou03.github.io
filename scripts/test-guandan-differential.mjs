@@ -35,6 +35,22 @@ function loadFrontendRules() {
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
+  for (const moduleName of [
+    'guandan-contract.js',
+    'guandan-storage.js',
+    'guandan-net.js',
+    'guandan-audio.js',
+    'guandan-rules.js',
+    'guandan-engine.js',
+  ]) {
+    const moduleSource = fs.readFileSync(
+      path.join(siteRoot, 'assets/js/games', moduleName),
+      'utf8',
+    );
+    vm.runInContext(moduleSource, sandbox, { filename: moduleName, timeout: 10000 });
+  }
+  sandbox.GuandanUI = { createDialogController() { return { activate() {}, deactivate() {} }; } };
+  sandbox.GuandanDebug = { bindSecretChords() {} };
   vm.runInContext(instrumented, sandbox, { filename: file, timeout: 10000 });
   return sandbox.__guandanRules;
 }
