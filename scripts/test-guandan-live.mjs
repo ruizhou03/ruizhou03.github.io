@@ -10,7 +10,7 @@ async function probe() {
   const page = await fetch(`${base}/toolbox/guandan/`, { cache: 'no-store' });
   const html = await page.text();
   assert.equal(page.status, 200, '生产掼蛋页面必须返回 200');
-  assert.match(html, new RegExp(`guandan\\.js\\?v=${marker}`), '生产 HTML 尚未出现当前 marker');
+  assert.match(html, new RegExp(`guandan\\.min\\.js\\?v=${marker}`), '生产 HTML 尚未出现当前 marker');
   for (const path of [
     `/assets/js/games/guandan.min.js?v=${marker}`,
     `/toolbox/guandan/offline-assets.json?v=${marker}`,
@@ -19,7 +19,7 @@ async function probe() {
     const response = await fetch(base + path, { cache: 'no-store' });
     assert.equal(response.status, 200, `${path} 必须返回 200`);
   }
-  const readiness = await fetch('https://zircon-urge.fly.dev/api/readiness', { cache: 'no-store' });
+  const readiness = await fetch('https://zircon-urge.fly.dev/health/ready', { cache: 'no-store' });
   assert.equal(readiness.status, 200, '后端 readiness 必须返回 200');
   const unknown = await fetch('https://zircon-urge.fly.dev/api/guandan?action=release_gate_unknown', {
     cache: 'no-store',
