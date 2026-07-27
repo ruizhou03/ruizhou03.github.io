@@ -28,3 +28,20 @@ test('browser play and pass mutations route through canonical applyAction', asyn
   assert.match(ui, /function commitPass\(seat\)[\s\S]*?applyCoreAction\(\{ type: 'pass'/);
   assert.doesNotMatch(ui, /state\.hands\[seat\]\s*=\s*validated\.remaining/);
 });
+
+test('online gameplay commands use one idempotent envelope and signed settlement fields', async () => {
+  const ui = await readFile(new URL('../../assets/js/doudizhu/ui.js', import.meta.url), 'utf8');
+  assert.match(
+    ui,
+    /async function onlineCommand\(action, payload\)[\s\S]*?commandId: newOnlineCommandId\(\)[\s\S]*?expectedVersion: state\.online\.lastVersion/,
+  );
+  assert.match(
+    ui,
+    /result\.error === 'timeout' \|\| result\.error === 'network_error'[\s\S]*?apiCall\(action, \{ body \}\)/,
+  );
+  for (const action of ['start', 'bid', 'double', 'play', 'pass', 'rematch']) {
+    assert.match(ui, new RegExp(`onlineCommand\\('${action}'`));
+  }
+  assert.doesNotMatch(ui, /apiCall\('(start|bid|double|play|pass|rematch)'/);
+  assert.match(ui, /state\.result\.roundDeltasByPlayer \|\| state\.result\.deltasByPlayer/);
+});

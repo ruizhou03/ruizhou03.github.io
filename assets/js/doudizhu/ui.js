@@ -472,9 +472,7 @@
       }
       const btn = $('ddzPlayAgainBtn');
       btn.disabled = true;
-      const r = await apiCall('rematch', {
-        body: { code: state.online.code, token: state.online.token },
-      });
+      const r = await onlineCommand('rematch');
       btn.disabled = false;
       if (!r.ok) {
         setStatus(r.error === 'match_complete' ? '本局已结束，不能再开下一盘' : '下一盘失败：' + r.error);
@@ -3087,6 +3085,50 @@
     }
   }
 
+  function newOnlineCommandId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      return window.crypto.randomUUID().replace(/-/g, '_');
+    }
+    return `cmd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+  }
+
+  async function refreshOnlineState() {
+    if (!state.online) return;
+    const r = await apiCall('state', {
+      qs: {
+        code: state.online.code,
+        token: state.online.token,
+        since: state.online.lastVersion,
+      },
+      timeoutMs: 8000,
+    });
+    if (r.ok && r.data) applyServerState(r.data);
+  }
+
+  const onlineCommandsInFlight = new Set();
+  async function onlineCommand(action, payload) {
+    if (!state.online) return { ok: false, error: 'not_online' };
+    if (onlineCommandsInFlight.has(action)) return { ok: false, error: 'command_in_flight' };
+    onlineCommandsInFlight.add(action);
+    const body = {
+      code: state.online.code,
+      token: state.online.token,
+      ...(payload || {}),
+      commandId: newOnlineCommandId(),
+      expectedVersion: state.online.lastVersion,
+    };
+    try {
+      let result = await apiCall(action, { body });
+      if (!result.ok && (result.error === 'timeout' || result.error === 'network_error')) {
+        result = await apiCall(action, { body });
+      }
+      if (!result.ok && result.error === 'state_version_conflict') await refreshOnlineState();
+      return result;
+    } finally {
+      onlineCommandsInFlight.delete(action);
+    }
+  }
+
   // ── Mode toggle ─────────────────────────────────────────────────────
   document.querySelectorAll('.ddz-playmode-btn').forEach(b => {
     b.addEventListener('click', () => {
@@ -3718,7 +3760,7 @@
 
   $('ddzLobbyStartBtn').addEventListener('click', async () => {
     if (!state.online) return;
-    const r = await apiCall('start', { body: { code: state.online.code, token: state.online.token } });
+    const r = await onlineCommand('start');
     if (!r.ok) alert('开始失败：' + r.error);
   });
   $('ddzLobbyLeaveBtn').addEventListener('click', () => leaveOnlineRoom(false));
@@ -3779,7 +3821,7 @@
       }
       renderBidButtons(items, async (act) => {
         bidPanel.hidden = true;
-        const r = await apiCall('bid', { body: { code: state.online.code, token: state.online.token, action: act } });
+        const r = await onlineCommand('bid', { action: act });
         if (!r.ok) setStatus('叫分失败：' + r.error);
       });
     } else {
@@ -3789,7 +3831,7 @@
         { label: isFirst ? '不叫' : '不抢', value: 'pass' },
       ], async (act) => {
         bidPanel.hidden = true;
-        const r = await apiCall('bid', { body: { code: state.online.code, token: state.online.token, action: act } });
+        const r = await onlineCommand('bid', { action: act });
         if (!r.ok) setStatus('叫地主失败：' + r.error);
       });
     }
@@ -3828,7 +3870,7 @@
     state.online.doubleDecided[0] = true;
     state.online.doubleChoice[0] = choice;
     renderOnlineDoublePanel();
-    const r = await apiCall('double', { body: { code: state.online.code, token: state.online.token, action: choice } });
+    const r = await onlineCommand('double', { action: choice });
     if (!r.ok && r.error !== 'already_decided') {
       state.online.doubleDecided[0] = prevDecided;
       state.online.doubleChoice[0] = prevChoice;
@@ -3839,7 +3881,7 @@
 
   // ── 联机出牌 / pass ────────────────────────────────────────────────
   async function sendOnlinePlay(cards) {
-    const r = await apiCall('play', { body: { code: state.online.code, token: state.online.token, cards } });
+    const r = await onlineCommand('play', { cards });
     if (!r.ok) {
       const msg = ({
         'invalid_pattern': '牌型不合法',
@@ -3856,7 +3898,7 @@
     }
   }
   async function sendOnlinePass() {
-    const r = await apiCall('pass', { body: { code: state.online.code, token: state.online.token } });
+    const r = await onlineCommand('pass');
     if (!r.ok) {
       const msg = ({
         'cannot_pass_first': '首出不能不出',
@@ -3894,6 +3936,15 @@
       `<div>${winText}获胜</div>` +
       `<div>本盘净分 <strong>${state.result.scoreDelta >= 0 ? '+' : ''}${state.result.scoreDelta}</strong></div>`;
 
+    const pairRows = Array.isArray(state.result.pairAmounts) ? state.result.pairAmounts : [];
+    if (pairRows.length) {
+      const pairText = pairRows.map(pair => {
+        const farmer = (state.online.players || []).find(p => p.seat - 1 === pair.peasantSeat);
+        return `地主 ↔ ${escHtml(farmer ? farmer.nick : `农民${pair.peasantSeat + 1}`)}：${pair.amount}`;
+      }).join(' · ');
+      html += `<div style="margin-top:0.28rem;font-size:0.8rem;opacity:0.75;">${pairText}</div>`;
+    }
+
     // 累计积分排行（永远显示，最少 1 行）
     const cum = state.online.cumulativeScores || {};
     const players = (state.online.players || []).slice().sort((a, b) => (cum[b.id] || 0) - (cum[a.id] || 0));
@@ -3904,10 +3955,13 @@
       for (let i = 0; i < players.length; i++) {
         const p = players[i];
         const sc = cum[p.id] || 0;
+        const roundDelta = Number(
+          (state.result.roundDeltasByPlayer || state.result.deltasByPlayer || {})[p.id],
+        ) || 0;
         const isMe = p.id === state.online.playerId;
         html += `<div style="display:flex; justify-content:space-between; padding:0.18rem 0; ${isMe ? 'color:var(--ddz-accent-strong); font-weight:600;' : ''}">`;
         html += `<span>${medals[i] || ('#' + (i + 1))} ${escHtml(p.nick)}${p.isAi ? ' [[zi:bot]]' : ''}${isMe ? ' (我)' : ''}</span>`;
-        html += `<span>${sc >= 0 ? '+' : ''}${sc} 分</span>`;
+        html += `<span>本盘 ${roundDelta >= 0 ? '+' : ''}${roundDelta} · 累计 ${sc >= 0 ? '+' : ''}${sc}</span>`;
         html += '</div>';
       }
       html += '</div>';
