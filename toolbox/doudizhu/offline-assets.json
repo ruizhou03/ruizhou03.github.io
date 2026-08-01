@@ -59,7 +59,7 @@
     {
       "url": "/assets/js/doudizhu/ai-runtime.js?v=20260801g8b",
       "bytes": 5370,
-      "sha256": "a8b10fc272bccf2ab7cee64862dc04675517189ff34e33ad9d42d76cee5b4a55"
+      "sha256": "55d7c1e9ba209000c64ff272ddaae7238ff194c47bff1d7bf5f01462660eb200"
     },
     {
       "url": "/assets/js/doudizhu/storage.js?v=20260801g8b",
@@ -74,7 +74,7 @@
     {
       "url": "/assets/js/doudizhu/extras.js?v=20260801g8b",
       "bytes": 1305,
-      "sha256": "36decc4e810b733f7fb609b755e33dd3fcc75c9c6d909225d60b49b860feb2ed"
+      "sha256": "07cad88a22a488feb36adf8b93beeb41c5c7b785582abfa0a3593c15e3759e30"
     },
     {
       "url": "/assets/js/doudizhu/rules-content.js?v=20260801g8b",
@@ -83,8 +83,8 @@
     },
     {
       "url": "/assets/js/doudizhu/ui.js?v=20260801g8b",
-      "bytes": 204846,
-      "sha256": "e5ba6f0fa5cd684ca6dc0232b975755d5d197b4066c7ffcea1eff9999397c562"
+      "bytes": 205124,
+      "sha256": "7eb135ab0d846a0bf07629cf45d440e98987e1ec6165294d7982534bc21e25c1"
     },
     {
       "url": "/toolbox/doudizhu/manifest.json",
@@ -117,7 +117,7 @@
     {
       "url": "/assets/js/doudizhu/ai-worker.js?v=20260801g8b",
       "bytes": 7322,
-      "sha256": "3568b5e4e8cf0f0b92380fb8ea4284358262b0cc1089581055aa0d3349563c6b"
+      "sha256": "dd50a925daed2054a44ebc50ffb9cc97f50fe81884180ee6a7648a2318804240"
     },
     {
       "url": "/assets/js/doudizhu/net.js?v=20260801g8b",
@@ -164,7 +164,7 @@
     {
       "url": "/assets/js/doudizhu/ai-worker.js?v=20260801g8b",
       "bytes": 7322,
-      "sha256": "3568b5e4e8cf0f0b92380fb8ea4284358262b0cc1089581055aa0d3349563c6b"
+      "sha256": "dd50a925daed2054a44ebc50ffb9cc97f50fe81884180ee6a7648a2318804240"
     },
     {
       "url": "/assets/js/doudizhu/ai-eval-worker.js?v=20260801g8b",
