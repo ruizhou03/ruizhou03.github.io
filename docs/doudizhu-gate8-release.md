@@ -6,10 +6,10 @@
 
 - 前端资源标记：`20260801g8c`
 - 前端 Git SHA：`02a92e678179c1b2e8e8869d40c712225d013cac`
-- 后端 Git SHA：`6c6d9069511103c70b3e77ffab2da0fefd83eb30`
-- 后端 Fly release：`v150`，image `deployment-01KYYNG94QB6HBCR11YVXWGYDQ`
+- 后端 Git SHA：`9efbcbadd40c33867a5c6facd39ae7542dbf3093`
+- 后端 Fly release：`v153`，image `deployment-01KYYS2S6VBX7PGW9PZCDWG89S`
 - 兼容前端回退点：`01322a9f`（Gate 7）
-- 最近后端回退点：Git `412df0bad2de4b2a1140172f8ab239213784aa8d`，Fly release `v149`，image `deployment-01KYYMQYXZP5KEXBXVKESKETY9`
+- 最近后端回退点：Git `6c6d9069511103c70b3e77ffab2da0fefd83eb30`，Fly release `v150`，image `deployment-01KYYNG94QB6HBCR11YVXWGYDQ`
 - Gate 7 兼容基线：Git `4dde65d3176543b841720699e271ecd1efd337ed`，Fly release `v147`，image `deployment-01KYYJ5R8X906033QYCBXKE7C1`
 
 ## Canary 顺序
@@ -22,12 +22,13 @@
 
 ## Canary 结果
 
-- 最终 GitHub Pages deploy run `30701720540` 与 build-check run `30701720925` 均成功；前一版 `g8b` 的 deploy `30701169776` 与 build-check `30701170177` 亦成功。
+- 最终功能版 GitHub Pages deploy run `30701720540` 与 build-check run `30701720925` 均成功；证据版 deploy `30701892707` 与 build-check `30701892983` 亦成功，前一版 `g8b` 的 deploy `30701169776` 与 build-check `30701170177` 同样成功。
 - Chrome 生产页面完成 `g7a` 到 `g8a` 的离线缓存迁移，“大神”联机选项可用；房间 `3708` 完成 1 真人 + 2 大神 AI 整局，农民获胜，净分 `+16 / +8 / -24 = 0`，浏览器无 warning/error。
 - 两个不同本地 origin 的隔离 Chrome 客户端经生产 Pages 资源与生产 Fly API 完成房间 `3331` 的 2 真人 + 1 普通 AI 整局；大厅双方均显示 `3/3`，结算为 Gate8B `+1`、AI `+1`、Gate8A `-2`，两端角色、胜负与累计积分一致且总和为 `0`，应用 warning/error 为 `0`。
 - 终验发现并消灭两个 P0：`804b66d3` 将斗地主焦点陷阱限定到自身两个 dialog，避免站点级隐藏搜索/助手面板夺走昵称焦点；`02a92e67` 让最终结算后的房主退出发送 `dissolveOnLeave + purgeCompleted`。修复版 `g8c` 恢复房间 `3331` 后执行真实退出，Redis 精确验证 `ddz:room:3331=0`、`ddz:fence:3331=0`。
 - 三客户端两盘生产 synthetic 房间 `7717` 到达第 2 盘最终 settlement，幂等重放、陈旧版本拒绝、客户端榜单伪造拒绝、零和结算和完成房间清理均通过。首次最终 readiness 连接遇到 10 秒 TCP timeout；随后有界重试通过，并已把相同的一次重试固化到定时 synthetic。
-- 最终 readiness build 与本节 SHA 一致；`errors5xx=0`、`lockConflicts=0`、`casConflicts=0`、`aiFallbacks=0`，无 code lease 泄漏。
+- 监控终验发现第三个 P0：SSE `stream` 与 `state` 长轮询的连接寿命被误计入动作延迟。`9efbcbad` 仅从动作延迟样本中排除这两类长连接，同时保留它们的 5xx 统计；v153 上三客户端两盘生产 smoke 自然完成 371 次服务端动作后，readiness 的 `actionLatencyP95Ms=2458`（门槛 5000 ms）。
+- 最终 readiness build 与本节 SHA 一致；`errors5xx=0`、`lockConflicts=0`、`casConflicts=0`、`aiFallbacks=0`，`streams=0`、`polls=0`、`roomWatchers=0`，无 code lease 泄漏。
 - 后端全量测试：97 项 Node 测试、27 项规则测试、2002 项引擎测试、5524 项房间桥接测试，全部通过。
 
 ## 运行时开关
@@ -43,7 +44,7 @@
 回滚目标已经通过 `flyctl releases -a zircon-urge --json` 解析到具体 release 与不可变 image；演练只解析目标，不对生产流量执行破坏性切换。
 
 1. 首选止血：把对应 Fly secret/variable 设为 `0`，部署并核对 readiness 中的 feature 值。
-2. 后端二进制回滚：优先 `flyctl releases rollback 149 -a zircon-urge`，随后确认 `/health/ready` 的 build 为 `412df0b...`，并跑斗地主生产 smoke；若协议兼容性异常，再回到已验证的 Gate 7 `v147`。
+2. 后端二进制回滚：优先 `flyctl releases rollback 150 -a zircon-urge`，随后确认 `/health/ready` 的 build 为 `6c6d906...`，并跑斗地主生产 smoke；若协议兼容性异常，再回到已验证的 Gate 7 `v147`。
 3. 前端回滚：在隔离 worktree 中对 `01322a9f` 做正常的反向发布提交并推到 `main`；不得清空 Redis，也不得删除活跃房间。
 4. 恢复前验证旧、新前端都能读取保留字段；只有 orphan 房间逐个核验后才可清理。
 
