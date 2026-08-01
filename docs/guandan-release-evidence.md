@@ -2,8 +2,8 @@
 
 ## 当前发布合同
 
-- release marker: `20260801p7b`
-- build: `2026.08.01.phase7-b`
+- release marker: `20260801p7c`
+- build: `2026.08.01.phase7-c`
 - rulesVersion: `gd-huaian-2025-site-v1`
 - protocolVersion: `guandan-protocol-v2`
 - roomSchemaVersion: `3`
@@ -70,6 +70,23 @@
 - Chrome 控制台只出现扩展消息通道关闭噪声；一次 Waline 读取超时后重试，
   交流区已正常渲染，因此记录为外部服务瞬时非阻断风险。
 
+## 真实 Safari 阶段 7C 证据（2026-08-01）
+
+- 系统 Safari 26.5.2 通过原生 `safaridriver` 驱动生产版本
+  `20260801p7c`；不是 Playwright WebKit 替身。
+- 首轮真实验收发现 Safari 鼠标点击按钮时不会像 Chrome 一样自动更新
+  `document.activeElement`，导致 dialog 关闭后回到旧焦点。UI 控制器现由调用方
+  显式传入触发按钮；榜单、设置、退出确认三个 dialog 均验证 Escape 后回到各自
+  触发按钮。
+- 普通档开局 27 张手牌；Enter 键真实改变 `aria-pressed`；调整顺序将第一牌列
+  移至第二列，DOM 牌列顺序与 live region 同时变化。
+- 榜单 dialog 打开时焦点为关闭按钮、背景 7 个区域 `inert`、body 滚动锁定；
+  关闭后 `inert` 清零。设置和退出确认关闭后同样无残留 `inert`。
+- 1440×848 真实 Safari 视口下四个工具栏按钮均为 44×44px，相邻间距 4px，
+  页面无横向溢出。
+- 尚未由自动 WebDriver 覆盖：Safari 200% zoom、VoiceOver、真实断网切换；这些
+  继续保留在实体/人工强制矩阵中。
+
 ## 生产发布证据
 
 - site commit: `944da28e09d47dd3477758dcf53367bcf327a64e`
@@ -92,15 +109,20 @@
   规则差分、AI、Jekyll 和生产 marker/API gate 均成功。
 - stage 7B 生产探针：页面 200、readiness 200、unknown action 400；
   marker `20260801p7b` 首次探测即通过。
+- stage 7C site commit: `2f23b9357be1fa243a01ecf1af0a1c013cd9c09f`。
+- stage 7C Pages build/deploy run: `30689394862`，build、deploy、report
+  均成功。
+- stage 7C release gate run: `30689395055`；确定性压缩包、PWA hash、
+  10,000 条规则差分、AI、Jekyll 和生产 marker/API gate 均成功。
+- stage 7C 真实 Safari 生产验收：Safari 26.5.2，全部自动检查通过，且测试结束
+  后 WebDriver session 与临时 `safaridriver` 均已销毁。
 
 ## 仍需真实设备完成的强制验收
 
 以下项目不能由当前 Chrome 会话和响应式视口模拟等价替代，必须在真实环境记录：
 
-- 2026-08-01 能力探测：系统 Safari 26.5.2 已安装；`safaridriver` 创建会话时
-  明确返回必须先在 Safari 设置中开启“允许远程自动化”。当前 Mac 未安装
-  Firefox。已提供 `scripts/test-guandan-safari.mjs`，权限开启后可直接驱动系统
-  Safari；它不自行修改系统设置。完整人工矩阵见
+- 2026-08-01 能力探测：系统 Safari 26.5.2 的“允许远程自动化”已由用户开启，
+  自动验收通过；当前 Mac 未安装 Firefox。完整人工矩阵见
   `docs/guandan-device-acceptance.md`。
 
 - Safari、Firefox；

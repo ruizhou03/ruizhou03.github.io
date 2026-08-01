@@ -32,7 +32,7 @@ Safari 仍需人工完成以下三项，因为标准 WebDriver 不提供对应�
 | 环境 | 必测项 | 版本/设备 | 结果 | 证据/备注 |
 | --- | --- | --- | --- | --- |
 | Chrome macOS | 键盘、dialog、390px、性能 | Chrome 实际版本 | 已通过 | 见 `guandan-release-evidence.md` |
-| Safari macOS | 自动脚本、200% zoom、离线 | 待填 | 待验收 | 需开启允许远程自动化 |
+| Safari macOS | 自动脚本、200% zoom、离线 | Safari 26.5.2 | 自动通过；人工待验收 | 生产 `20260801p7c`；剩余 zoom、VoiceOver、断网 |
 | Firefox desktop | 键盘、dialog、200% zoom、离线 | 待填 | 待验收 | 当前 Mac 未安装 Firefox |
 | iPhone Safari | 刘海安全区、横竖屏、27 张牌、PWA | 待填 | 待验收 | 必须实体设备 |
 | Android Chrome | 横竖屏、27 张牌、PWA、断网恢复 | 待填 | 待验收 | 必须实体设备 |

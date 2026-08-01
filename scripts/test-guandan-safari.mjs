@@ -152,6 +152,10 @@ async function run() {
     `return window.GuandanContract?.releaseMarker === ${JSON.stringify(marker)}`,
     `Safari 未加载 release marker ${marker}`,
   );
+  await waitFor(
+    `return document.body.classList.contains('gd-game-fullscreen')`,
+    'Safari 主运行时尚未完成事件绑定',
+  );
 
   const hasResume = await execute(`
     const el = document.querySelector('#gdResumeDiscard');
