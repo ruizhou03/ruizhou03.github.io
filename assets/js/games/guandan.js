@@ -1401,6 +1401,9 @@
       renderRevealedHand(seat);
       return;
     }
+    slot.classList.remove('gd-revealing');
+    slot.classList.remove('gd-reveal-rows-2', 'gd-reveal-rows-3');
+    slot.style.removeProperty('--gd-reveal-max-w');
     const lp = state.lastPlay[seat];
     // 状态哈希：renderAll 被频繁调用，同一手"不要"/同一组牌不应每次重建 DOM —
     // 那会让 gd-pass-pop 动画反复重放（用户看到别人弃出时，自己的"不要"也跟着闪）
@@ -1447,9 +1450,9 @@
     }
   }
 
-  // 局终摊牌：把某座剩余整手牌平铺到它的出牌区。先按默认叠盖渲染，再测量实际宽度；
-  // 若超出目标宽度（剩特别多牌时）就给每张追加负 margin 挤进上限，绝不横向铺满。
-  // 出牌区本身 overflow:hidden 再兜底。card 宽度走测量、不写死，兼容卡面缩放设置。
+  // 局终摊牌：把某座剩余整手牌摊到专用可展开出牌槽。普通桌面均分两行；200% zoom
+  // 等紧凑视口均分三行，避免每行过度叠压。逐行测量后只压缩横向间距，不裁牌面。
+  // card 宽度走测量、不写死，兼容卡面缩放设置。
   const REVEAL_MAX_W = 264;   // 摊牌行宽度上限(px)，略小于侧位出牌槽 320
   function renderRevealedHand(seat) {
     const slot = seatEls[seat].play;
@@ -1458,14 +1461,25 @@
     const level = currentLevelLabel();
     const sorted = hand.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
     const key = 'reveal2:' + seat + ':' + sorted.join(',');
-    if (slot.dataset.lpKey === key) return;
+    if (slot.dataset.lpKey === key && slot.classList.contains('gd-revealing')) return;
     slot.dataset.lpKey = key;
     slot.innerHTML = '';
-    // 分两行摊牌：整手平均劈成上/下两行，各自再压缩进 REVEAL_MAX_W —— 牌多时挤成一行根本看不清，两行每张露得更多
+    const compact = window.innerWidth <= 700 || window.innerHeight <= 400;
+    const rowCount = compact ? 3 : 2;
+    const sideMax = Math.max(150, (window.innerWidth - 180) / 2);
+    const maxWidth = Math.min(REVEAL_MAX_W, seat === 2 ? window.innerWidth * 0.52 : sideMax);
+    slot.classList.add('gd-revealing');
+    slot.classList.add('gd-reveal-rows-' + rowCount);
+    slot.style.setProperty('--gd-reveal-max-w', Math.round(maxWidth) + 'px');
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;flex-direction:column;gap:3px;align-items:center;';
-    const half = Math.ceil(sorted.length / 2);
-    const groups = sorted.length > 1 ? [sorted.slice(0, half), sorted.slice(half)] : [sorted];
+    wrap.className = 'gd-reveal-wrap';
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', seatName(seat) + '剩余' + sorted.length + '张牌');
+    const groupSize = Math.ceil(sorted.length / rowCount);
+    const groups = [];
+    for (let start = 0; start < sorted.length; start += groupSize) {
+      groups.push(sorted.slice(start, start + groupSize));
+    }
     for (const cards of groups) {
       if (!cards.length) continue;
       const row = document.createElement('div');
@@ -1478,9 +1492,10 @@
     for (const row of wrap.children) {
       const n = row.children.length;
       if (n <= 1) continue;
-      const w = row.scrollWidth;
-      if (w > REVEAL_MAX_W) {
-        const extra = (w - REVEAL_MAX_W) / (n - 1);
+      const before = [...row.children].map(card => card.getBoundingClientRect());
+      const w = Math.max(...before.map(rect => rect.right)) - Math.min(...before.map(rect => rect.left));
+      if (w > maxWidth) {
+        const extra = (w - maxWidth) / (n - 1);
         for (let i = 1; i < n; i++) {
           const cur = parseFloat(getComputedStyle(row.children[i]).marginLeft) || 0;
           row.children[i].style.marginLeft = (cur - extra) + 'px';
@@ -1674,15 +1689,22 @@
     });
   }
 
-  // 写座位头像 emoji，但保留头像 div 里的时钟 <span>（首子节点是 emoji 文本）。
-  function setSeatAvatarEmoji(se, emoji) {
+  // 写座位头像图标，但保留头像 div 里的时钟 <span>。图标系统会把 marker hydration
+  // 成 SVG，不能再假定首子节点永远是文本；否则每次 renderAll 都会在旧 SVG 前再插
+  // 一个 marker，最终叠出多个机器人。父节点用 dataset 记录当前 marker，只在变化时
+  // 重建唯一的受控图标容器。
+  function setSeatAvatarIcon(se, marker) {
     if (!se || !se.av) return;
-    const first = se.av.firstChild;
-    if (first && first.nodeType === 3) {
-      if (first.nodeValue !== emoji) first.nodeValue = emoji;
-    } else {
-      se.av.insertBefore(document.createTextNode(emoji), se.av.firstChild);
+    if (se.av.dataset.avatarMarker === marker && se.av.querySelector('.gd-avatar-icon')) return;
+    se.av.dataset.avatarMarker = marker;
+    for (const child of [...se.av.childNodes]) {
+      if (child !== se.clk) child.remove();
     }
+    const host = document.createElement('span');
+    host.className = 'gd-avatar-icon';
+    host.textContent = marker;
+    se.av.insertBefore(host, se.clk || null);
+    if (window.ZirconIcons) window.ZirconIcons.hydrate(host);
   }
   // 写座位昵称（仅对座 1/2/3：它们的 .gd-name 是纯文本；座 0 含 tag span，不动）。
   function setSeatNameText(seatEl, name) {
@@ -1692,6 +1714,7 @@
 
   function renderAll() {
     updateBuildBadge();
+    if (els.table) els.table.classList.toggle('gd-showing-reveal', !!state.revealHands);
     const youLv = LEVEL_SEQ[state.levels[0]];
     const oppLv = LEVEL_SEQ[state.levels[1]];
     els.levelYou.textContent = youLv;
@@ -1725,7 +1748,7 @@
       // 座 1/2/3 的头像/昵称：联机时填真实玩家（真人 👤+昵称、AI 🤖+其名），
       // 单机或联机信息暂缺时退回写死的 🤖 / AI 1·2·3——保证回到单机局不残留上一把的联机昵称。
       if (s !== 0) {
-        setSeatAvatarEmoji(se, seatAvatarFor(s));
+        setSeatAvatarIcon(se, seatAvatarFor(s));
         setSeatNameText(se.seat, seatName(s));
       }
       renderPlayArea(s);
@@ -3698,6 +3721,7 @@
     if (state._endHandled) return;
     state._endHandled = true;
     stopTurnClock();                 // 本局已结束，收掉任何残留的出牌倒计时
+    if (orderMode) setOrderMode(false);
     state.phase = PHASE.ROUND_END;
     const ranking = state.out.slice(0, 4);
     const first = ranking[0];

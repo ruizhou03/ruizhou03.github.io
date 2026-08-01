@@ -2,8 +2,8 @@
 
 ## 当前发布合同
 
-- release marker: `20260801p7d`
-- build: `2026.08.01.phase7-d`
+- release marker: `20260801p7e`
+- build: `2026.08.01.phase7-e`
 - rulesVersion: `gd-huaian-2025-site-v1`
 - protocolVersion: `guandan-protocol-v2`
 - roomSchemaVersion: `3`
@@ -87,7 +87,7 @@
 - 尚未由自动 WebDriver 覆盖：Safari 200% zoom、VoiceOver、真实断网切换；这些
   继续保留在实体/人工强制矩阵中。
 
-## Safari 200% 紧凑布局阶段 7D 候选证据（2026-08-01）
+## Safari 200% 紧凑布局阶段 7D 证据（2026-08-01）
 
 - 用户在生产 `20260801p7c` 的真实 Safari 200% 页面缩放下发现牌桌、中央出牌区、
   右侧理牌键和底部手牌相互挤压，核心对局体验不可接受；该次人工验收记为失败，
@@ -99,8 +99,25 @@
 - 系统 Safari 26.5.2 在 1024×620 WebDriver 窗口（实际 `innerHeight=568`）通过：
   27 张牌、Enter 选牌、显式换列、三个 dialog 焦点/Escape/inert、四个 44×44
   工具栏按钮及 6px 间距、无页面横向溢出；牌桌底等于视口底，手牌底位于视口内。
-- 该自动窗口是 200% 后有效视口的布局等价测试，不替代用户浏览器真实页面缩放。
-  生产部署后仍须由用户在实际 Safari 200% 状态复验，才可把 zoom 项标为通过。
+- 该自动窗口没有替代真实页面缩放：生产部署后用户在 Safari 实际 200% 状态完成
+  一局核心操作并明确回复 `p7d 200%通过`，因此 Safari zoom 项已通过。
+
+## Safari 图标与局终长手牌阶段 7E 候选证据（2026-08-01）
+
+- 用户在 `p7d` 真实验收中发现机器人图标异常、局终未出完玩家的手牌有时被截断。
+  定位结果：头像刷新仍假定首节点是 emoji 文本，SVG hydration 后会反复插入新
+  marker；局终明明渲染两行牌，父出牌槽却仍固定 70–80px 且 `overflow:hidden`。
+- 头像改为单一 `.gd-avatar-icon` 受控容器，以 `data-avatar-marker` 去重并显式调用
+  ZirconIcons hydration；真实 Safari 经多次手牌重绘、换列和 dialog 往返后，三个
+  AI 座位均为恰好 1 个容器、1 个 SVG、0 个残留 marker 文本。
+- 局终出牌槽进入 `gd-revealing` 专用状态：普通牌桌两行高度 147px，紧凑牌桌两行
+  高度 135px，取消固定槽裁切；每行按真实卡宽压缩到不超过 264px。摊牌期间自动
+  收起理牌、调整顺序和已失效的出牌操作，避免遮住右侧剩余手牌。
+- 系统 Safari 26.5.2 在 1440×848 与 1024×568 两种实际 CSS 视口完成长手牌回归：
+  三个 AI 座位分别保留 21–27 张牌，每张均存在、两行均完整包含于展开槽、页面无
+  横向溢出；同时保留原有键盘、dialog、焦点恢复和 44×44 工具栏检查。
+- `p7e` 提交前 P0、网络合同、AI 模型合同、PWA hash、Jekyll 构建及 10,000 条
+  前端/模拟器规则差分全部通过。生产部署与用户视觉复验待本次发布后补录。
 
 ## 生产发布证据
 
@@ -131,8 +148,12 @@
   10,000 条规则差分、AI、Jekyll 和生产 marker/API gate 均成功。
 - stage 7C 真实 Safari 生产验收：Safari 26.5.2，全部自动检查通过，且测试结束
   后 WebDriver session 与临时 `safaridriver` 均已销毁。
-- stage 7D 候选在提交前通过本地完整 P0、网络、AI、PWA hash、Jekyll 与 10,000
-  条前端/模拟器规则差分；生产 commit、CI 和人工 200% 复验待本次发布后补录。
+- stage 7D site commit: `fd067551a85191b91713795d666a01c28cda0368`。
+- stage 7D Pages build/deploy run: `30690157837`；release gate run:
+  `30690158186`；完整合同、生产 marker/API gate 均成功。
+- stage 7D 人工 200% 复验：Safari 26.5.2，用户明确确认通过。
+- stage 7E 候选在提交前通过本地完整 P0、网络、AI、PWA hash、Jekyll、真实 Safari
+  普通/紧凑长手牌回归与 10,000 条规则差分；生产记录待发布后补录。
 
 ## 仍需真实设备完成的强制验收
 
@@ -142,9 +163,9 @@
   自动验收通过；当前 Mac 未安装 Firefox。完整人工矩阵见
   `docs/guandan-device-acceptance.md`。
 
-- Safari、Firefox；
+- Safari VoiceOver/真实离线切换、Firefox；
 - iPhone、Android、iPad；
 - macOS VoiceOver、Windows NVDA；
-- 真实浏览器 200% zoom，以及对应实体设备的刘海/安全区和极端宽高比；
+- Firefox/平板的 200% zoom，以及对应实体设备的刘海/安全区和极端宽高比；
 
 在这些证据齐全前，长期目标不得标记为 complete。

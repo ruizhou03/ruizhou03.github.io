@@ -1,22 +1,22 @@
 {
-  "version": "20260801p7d",
+  "version": "20260801p7e",
   "rulesVersion": "gd-huaian-2025-site-v1",
   "modelSha256": "ca389e89e8db98d9968705b0e4495620e025c852cf4db4b4c2e66b086ae03da5",
   "core": [
     {
-      "url": "/assets/css/main.css?v=20260801p7d",
+      "url": "/assets/css/main.css?v=20260801p7e",
       "sha256": "7e3cd84c2730d60fb174e516db0f6df59b715637ed3c8821a8415191f58aff0a"
     },
     {
-      "url": "/assets/css/guandan.css?v=20260801p7d",
-      "sha256": "fe1a7520f1d11fc5283b6c2256b91ebe4bc9ef175f9b4043e26528a0bed4e874"
+      "url": "/assets/css/guandan.css?v=20260801p7e",
+      "sha256": "0fd28f6624819bb5859a551007ab4e3cb5caf7744304ccbd41bf938909b5c6bd"
     },
     {
-      "url": "/assets/css/zircon-icons.css?v=20260801p7d",
+      "url": "/assets/css/zircon-icons.css?v=20260801p7e",
       "sha256": "0538dc18024cdadb6908a1489565825baaa384400be55390e6f8079af68c489b"
     },
     {
-      "url": "/assets/css/games-shell.css?v=20260801p7d",
+      "url": "/assets/css/games-shell.css?v=20260801p7e",
       "sha256": "13a6e8a5282dc860fd57f6be9168d455983678416be101bc379b2ef429f164a6"
     },
     {
@@ -40,47 +40,47 @@
       "sha256": "4f07835078148d365efa3408acc84fb56a709eaea4f3d3974d8c45fc7a46a486"
     },
     {
-      "url": "/assets/js/games-shell/identity.js?v=20260801p7d",
+      "url": "/assets/js/games-shell/identity.js?v=20260801p7e",
       "sha256": "8abd1228e92b5ce94064fbe95a8ac4fec176638ac35d474037dae88a3a1c1004"
     },
     {
-      "url": "/assets/js/zircon-icons.js?v=20260801p7d",
+      "url": "/assets/js/zircon-icons.js?v=20260801p7e",
       "sha256": "23846b01965c6628c66d01e2843fd9b783f24880b6f3032aee5e1bad73474014"
     },
     {
-      "url": "/assets/js/offline/offline.js?v=20260801p7d",
+      "url": "/assets/js/offline/offline.js?v=20260801p7e",
       "sha256": "72fb40fe45f56bd9e3b3efed2c4c6541cece8450628a968a5fdc1264be1977f9"
     },
     {
-      "url": "/assets/js/games/guandan-contract.js?v=20260801p7d",
-      "sha256": "e16f2eea44cc097075122ae6025a6d9f5fbc03f6ea89a5bda275e91631b61aa1"
+      "url": "/assets/js/games/guandan-contract.js?v=20260801p7e",
+      "sha256": "d6f68ddffe6c84ff2e4e0d28b9202079d0305864aec923d49cc89b9d823d6e8f"
     },
     {
-      "url": "/assets/js/games/guandan-storage.js?v=20260801p7d",
+      "url": "/assets/js/games/guandan-storage.js?v=20260801p7e",
       "sha256": "09ccb080794805a2ea0f20751972cb4dbba392b31e166d11425197eca72b7dcf"
     },
     {
-      "url": "/assets/js/games/guandan-net.js?v=20260801p7d",
+      "url": "/assets/js/games/guandan-net.js?v=20260801p7e",
       "sha256": "8b3515f8b1fcab6276d550464fcb62ad069f3a10f05a24503e60722bf56d1efb"
     },
     {
-      "url": "/assets/js/games/guandan-audio.js?v=20260801p7d",
+      "url": "/assets/js/games/guandan-audio.js?v=20260801p7e",
       "sha256": "84c44ab568cb88f32ae5e4a49f8aab4de75b4c4e6299e69f593d4e1d0f65ef5c"
     },
     {
-      "url": "/assets/js/games/guandan-rules.js?v=20260801p7d",
+      "url": "/assets/js/games/guandan-rules.js?v=20260801p7e",
       "sha256": "801edb382aeeaeb37c923a9eaeb414fe3143f197ae34d9b21bd8769a44f46342"
     },
     {
-      "url": "/assets/js/games/guandan-engine.js?v=20260801p7d",
+      "url": "/assets/js/games/guandan-engine.js?v=20260801p7e",
       "sha256": "320da02613c351c8b8355c65e9336ef2cd821a1f90d9a6231f4e6c02dff9a22e"
     },
     {
-      "url": "/assets/js/games/guandan-ui.js?v=20260801p7d",
+      "url": "/assets/js/games/guandan-ui.js?v=20260801p7e",
       "sha256": "5eb5658e55ff70472716bb52b9998028281ffdf9ff16deca82ed599dd7c47483"
     },
     {
-      "url": "/assets/js/games/guandan-debug.js?v=20260801p7d",
+      "url": "/assets/js/games/guandan-debug.js?v=20260801p7e",
       "sha256": "3c2aa58e514b5c7bedd69bdc7a3b0e4851d5649c09f399a666ffb4ef9b0b6808"
     },
     {
@@ -88,8 +88,8 @@
       "sha256": "7a574df2a54ed4851116489a278135519017f9146bda27ff6690c171aed34f13"
     },
     {
-      "url": "/assets/js/games/guandan.min.js?v=20260801p7d",
-      "sha256": "67584d8687af78bb8431771c661a785c497181d687e3730d05dd0a09fe3d8553"
+      "url": "/assets/js/games/guandan.min.js?v=20260801p7e",
+      "sha256": "7bdd284405a75a41584078b93d9f6b15177d7e6fcdddafeed2ce15d622de0f6e"
     },
     {
       "url": "/toolbox/guandan/manifest.json",

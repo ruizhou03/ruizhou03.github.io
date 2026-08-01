@@ -9,11 +9,13 @@ const args = new Map(process.argv.slice(2).map((arg) => {
   return [key, rest.join('=')];
 }));
 const baseUrl = args.get('--url') || 'https://ruizhou03.com/toolbox/guandan/';
-const marker = args.get('--marker') || '20260801p7d';
+const marker = args.get('--marker') || '20260801p7e';
 const port = Number(args.get('--port') || 4445);
 const windowWidth = Number(args.get('--width') || 1440);
 const windowHeight = Number(args.get('--height') || 900);
 const expectCompact = args.has('--expect-compact');
+const checkReveal = args.has('--check-reveal');
+const screenshotPath = args.get('--screenshot');
 const webdriverBase = `http://127.0.0.1:${port}`;
 const elementKey = 'element-6066-11e4-a52e-4f735466cecf';
 
@@ -175,6 +177,18 @@ async function run() {
     'Safari 开局后没有 27 张手牌',
   );
 
+  const avatarIcons = await execute(`return [1, 2, 3].map((seat) => {
+    const avatar = document.querySelector('#gdAv' + seat);
+    return {
+      seat,
+      iconHosts: avatar?.querySelectorAll('.gd-avatar-icon').length || 0,
+      icons: avatar?.querySelectorAll('.gd-avatar-icon .zi-icon').length || 0,
+      markerText: avatar?.textContent.includes('[[zi:') || false,
+    };
+  })`);
+  assert.ok(avatarIcons.every((avatar) => avatar.iconHosts === 1 && avatar.icons === 1 && !avatar.markerText),
+    'Safari 每个 AI 座位必须且只能渲染一个机器人图标');
+
   const firstCard = '#gdHand [role="button"][data-cid]';
   await sendKey(firstCard, '\uE007');
   const keyboardSelected = await execute(`
@@ -317,6 +331,58 @@ async function run() {
     assert.ok(layout.compact.handBottom <= layout.innerHeight + 1, '紧凑手牌不得被视口底部裁断');
   }
 
+  let reveal = null;
+  if (checkReveal) {
+    for (const key of ['d', 'b', 'u', 'g']) await pressKey(key);
+    await waitFor(`return !!document.querySelector('#gdDbgRevealBtn')`, 'Safari 本地调试台没有打开', 2000);
+    await execute(`document.querySelector('#gdDbgRevealBtn').click()`);
+    await waitFor(
+      `return document.querySelectorAll('.gd-played.gd-revealing').length === 3`,
+      'Safari 局终剩余手牌没有进入专用展开槽',
+      2000,
+    );
+    for (const key of ['d', 'b', 'u', 'g']) await pressKey(key);
+    await waitFor(`return !document.querySelector('#gdDbgPanel')`, 'Safari 本地调试台没有收起', 2000);
+    reveal = await execute(`return [1, 2, 3].map((seat) => {
+      const slot = document.querySelector('#gdPlay' + seat);
+      const rows = [...slot.querySelectorAll('.gd-reveal-row')];
+      const cards = [...slot.querySelectorAll('.gd-reveal-row .gd-card')];
+      const slotRect = slot.getBoundingClientRect();
+      const cardRects = cards.map((card) => card.getBoundingClientRect());
+      const top = Math.min(...cardRects.map((rect) => rect.top));
+      const bottom = Math.max(...cardRects.map((rect) => rect.bottom));
+      const rowWidths = rows.map((row) => {
+        const rects = [...row.children].map((card) => card.getBoundingClientRect());
+        return Math.max(...rects.map((rect) => rect.right)) - Math.min(...rects.map((rect) => rect.left));
+      });
+      return {
+        seat,
+        cards: cards.length,
+        rows: rows.length,
+        overflow: getComputedStyle(slot).overflow,
+        slotHeight: slotRect.height,
+        cardsTop: top,
+        cardsBottom: bottom,
+        containedVertically: top >= slotRect.top - 1 && bottom <= slotRect.bottom + 1,
+        maxWidth: parseFloat(getComputedStyle(slot).getPropertyValue('--gd-reveal-max-w')),
+        rowWidths,
+      };
+    })`);
+    const expectedRows = layout.innerWidth <= 700 || layout.innerHeight <= 400 ? 3 : 2;
+    assert.ok(reveal.every((item) => item.cards >= 20),
+      'Safari 局终长手牌回归必须让每个 AI 座位至少保留 20 张测试牌');
+    assert.ok(reveal.every((item) => item.rows === expectedRows), 'Safari 局终摊牌行数必须匹配当前视口');
+    assert.ok(reveal.every((item) => item.overflow === 'visible' && item.containedVertically),
+      'Safari 局终摊牌不得被固定高度出牌槽裁断');
+    assert.ok(reveal.every((item) => item.rowWidths.every((width) => width <= item.maxWidth + 1)),
+      'Safari 局终摊牌不得超出为各座分配的横向区域：' + JSON.stringify(reveal));
+  }
+
+  if (screenshotPath) {
+    const screenshot = await request(`/session/${sessionId}/screenshot`);
+    await writeFile(screenshotPath, screenshot, 'base64');
+  }
+
   console.log(JSON.stringify({
     ok: true,
     browser: session.capabilities.browserVersion,
@@ -324,6 +390,7 @@ async function run() {
     marker,
     window: { width: windowWidth, height: windowHeight, expectCompact },
     handCount: 27,
+    avatarIcons,
     keyboardSelected,
     orderStatus,
     orderBefore: orderBefore.slice(0, 3),
@@ -333,6 +400,7 @@ async function run() {
     settingsDialog,
     exitDialog,
     layout,
+    reveal,
     pendingManual: ['200% zoom', 'VoiceOver', 'offline network transition'],
   }, null, 2));
 }

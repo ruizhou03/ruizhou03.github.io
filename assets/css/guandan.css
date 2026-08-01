@@ -329,6 +329,39 @@
   .gd-side-left  .gd-played-row { justify-content: flex-start; }
   .gd-side-right .gd-played-row { justify-content: flex-end; }
 
+  /* 局终剩余手牌不是普通的一手出牌：两/三行高度必然超过 70–80px 的普通出牌槽。
+     进入 gd-revealing 后允许槽随行数展开并取消裁切；横向仍由 JS 按实际卡宽压缩到
+     --gd-reveal-max-w，避免长手牌穿过整张桌。 */
+  .gd-played.gd-revealing {
+    height: auto;
+    min-height: calc(var(--gd-card-h) + var(--gd-card-h) + 3px);
+    overflow: visible;
+  }
+  .gd-played.gd-revealing.gd-reveal-rows-3 {
+    min-height: calc(var(--gd-card-h) + var(--gd-card-h) + var(--gd-card-h) + 6px);
+  }
+  .gd-reveal-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+    max-width: var(--gd-reveal-max-w, 264px);
+  }
+  .gd-reveal-row { max-width: var(--gd-reveal-max-w, 264px); }
+
+  /* 摊牌只停留片刻，收起会遮住右侧玩家余牌的理牌/顺序面板与已经失效的出牌按钮。 */
+  .gd-table.gd-showing-reveal .gd-sort-actions,
+  .gd-table.gd-showing-reveal .gd-order-actions,
+  .gd-table.gd-showing-reveal .gd-play-band { display: none; }
+
+  /* 头像图标由单一容器持有，时钟仍是头像的独立兄弟节点。 */
+  .gd-avatar-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
   /* ======== 注意力锁定（仿斗地主 applyAttentionFocus）========
      轮到我时四家全亮；轮到 AI 时只亮当前 AI，其余三家 + 我的手牌都 dim 一档。
      4 人桌 + 27 张手牌，视觉拥挤，dim 是大幅可读性提升。 */
