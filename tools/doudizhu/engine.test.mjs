@@ -37,7 +37,7 @@ test('online gameplay commands use one idempotent envelope and signed settlement
   );
   assert.match(
     ui,
-    /result\.error === 'timeout' \|\| result\.error === 'network_error'[\s\S]*?apiCall\(action, \{ body \}\)/,
+    /result\.error === 'timeout' \|\| result\.error === 'network_error'[\s\S]*?apiCall\(action, \{ token: state\.online\.token, body \}\)/,
   );
   for (const action of ['start', 'bid', 'double', 'play', 'pass', 'rematch']) {
     assert.match(ui, new RegExp(`onlineCommand\\('${action}'`));
