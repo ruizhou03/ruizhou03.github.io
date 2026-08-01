@@ -14,9 +14,15 @@ const rulesFixture = JSON.parse(await readFile(
 assert.match(html, /class="gd-board-btn" id="gdBoardBtn"/, '榜单按钮应使用独立定位类');
 assert.match(html, /class="gd-mute-btn" id="gdMuteBtn"/, '音效按钮应使用独立定位类');
 assert.doesNotMatch(html, /class="gd-board-btn" id="gdMuteBtn"/, '音效按钮不得复用榜单定位类');
+assert.match(css, /\.gd-mute-btn\s*\{\s*left:\s*calc\(0\.6rem \+ 48px\)/,
+  '竖屏榜单与音效按钮必须为 44px 目标保留至少 4px 间距');
+assert.match(css, /\.gd-settings-btn\s*\{\s*right:\s*calc\(0\.6rem \+ 48px\)/,
+  '竖屏设置与退出按钮必须为 44px 目标保留至少 4px 间距');
+assert.match(css, /\.gd-mute-btn\s*\{[\s\S]*right:\s*calc\(0\.5rem \+ 100px \+ env\(safe-area-inset-right, 0px\)\)/,
+  '触屏横屏工具栏必须按 50px 节距排列，避免 44px 目标重叠');
 assert.match(css, /@media \(prefers-color-scheme: dark\)[\s\S]*--gd-felt-1:\s*#1c3933/,
   '系统自适应方案必须提供真正深色牌桌');
-assert.match(html, /guandan\.min\.js\?v=20260727p7a/, '生产页面应使用阶段 7 压缩内容标记，避免旧 JS 缓存');
+assert.match(html, /guandan\.min\.js\?v=20260801p7b/, '生产页面应使用阶段 7B 压缩内容标记，避免旧 JS 缓存');
 assert.match(html, /data-value="off"[^>]*class="[^"]*selected|class="[^"]*selected"[^>]*data-value="off"/,
   '同队进贡 UI 默认应关闭');
 
