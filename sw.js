@@ -40,6 +40,9 @@ const PAGE_CACHE  = 'ruizhou03-pages';
 const ASSET_CACHE = 'ruizhou03-assets';
 // 离线书架（显式保存，永久）
 const SAVED_CACHE = 'ruizhou03-saved';
+// Gate 6 修复旧版斗地主的“更新按钮仍命中旧 HTML”闭环。迁移成功后写入
+// SAVED_CACHE 哨兵，只执行一次；不清理或改写其他离线书架内容。
+const DDZ_SAVED_MIGRATION = '/__zircon_migrations__/doudizhu-20260801g6h';
 // 更早的历史命名空间，activate 时一次性清理
 const LEGACY_PREFIXES = ['zirconeey-'];
 
@@ -75,9 +78,31 @@ self.addEventListener('activate', (event) => {
     await pruneAmbientByTTL();
     await trimCache(PAGE_CACHE, MAX_PAGES);
     await trimCache(ASSET_CACHE, MAX_ASSETS);
+    await migrateSavedDoudizhu();
     await self.clients.claim();
   })());
 });
+
+async function migrateSavedDoudizhu() {
+  try {
+    const cache = await caches.open(SAVED_CACHE);
+    if (await cache.match(DDZ_SAVED_MIGRATION)) return;
+    if (!await cache.match('/toolbox/doudizhu/')) return;
+    await fetchBundle('/toolbox/doudizhu/', {
+      pageCache: cache,
+      assetCache: cache,
+      excludeAssets: null,
+      force: true,
+      collect: new Set(),
+      onOne: null,
+    });
+    await cache.put(DDZ_SAVED_MIGRATION, new Response('ok', {
+      headers: { 'content-type': 'text/plain', 'x-zircon-migration': '20260801g6h' },
+    }));
+  } catch (_) {
+    // 离线激活时保留旧副本且不写哨兵；下次联网激活再试。
+  }
+}
 
 // 超过上限：cache.keys() 按插入顺序返回，删最前面（最早）的若干个。
 async function trimCache(cacheName, max) {

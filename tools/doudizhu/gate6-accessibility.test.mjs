@@ -6,6 +6,7 @@ const page = fs.readFileSync(new URL('../../toolbox/doudizhu/index.html', import
 const css = fs.readFileSync(new URL('../../assets/css/doudizhu.css', import.meta.url), 'utf8');
 const ui = fs.readFileSync(new URL('../../assets/js/doudizhu/ui.js', import.meta.url), 'utf8');
 const offline = fs.readFileSync(new URL('../../assets/js/doudizhu/offline.js', import.meta.url), 'utf8');
+const serviceWorker = fs.readFileSync(new URL('../../sw.js', import.meta.url), 'utf8');
 
 function luminance(hex) {
   const channels = hex.slice(1).match(/../g).map(part => parseInt(part, 16) / 255)
@@ -74,4 +75,7 @@ test('Gate 6 offline upgrade replaces a previously saved HTML shell', () => {
   assert.match(offline, /new MessageChannel\(\)/);
   assert.match(offline, /type:\s*'SAVE_OFFLINE'[\s\S]*force:\s*true[\s\S]*silent:\s*true/);
   assert.match(offline, /data\.type !== 'SAVE_DONE'/);
+  assert.match(serviceWorker, /DDZ_SAVED_MIGRATION\s*=\s*'\/__zircon_migrations__\/doudizhu-20260801g6h'/);
+  assert.match(serviceWorker, /await migrateSavedDoudizhu\(\)/);
+  assert.match(serviceWorker, /fetchBundle\('\/toolbox\/doudizhu\/'[\s\S]*force:\s*true/);
 });
