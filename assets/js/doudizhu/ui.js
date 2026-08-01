@@ -150,8 +150,6 @@
     try { localStorage.setItem(SFX_KEY, sfxEnabled ? '1' : '0'); } catch {}
     refreshSfxToggle();
     if (sfxEnabled) playSfx('click');
-    // BGM / 高级音效系统同步静音
-    if (window.DDZAudio) window.DDZAudio.setMuted(!sfxEnabled);
   }
   function refreshSfxToggle() {
     const btn = document.getElementById('ddzSfxToggle');
@@ -168,66 +166,34 @@
   }, 0);
 
   // ============================================================
-  // BGM / 进阶音效集成（DDZAudio 由 audio.js 暴露在 window 上）
-  // ------------------------------------------------------------
-  // 设计：
-  //   - DDZAudio 的"静音 getter"复用现有 sfxEnabled 开关（一个 toggle 管全部）
-  //   - 用户第一次手势（点"开始游戏"或牌）后 unlockOnGesture（iOS/Chrome 自动播放限制）
-  //   - 文件不存在 → DDZAudio 静默不响，不报错；不阻塞 UI
+  // 牌局音效只使用上面的 procedural Web Audio 合成器。
+  // 不在启动或首个手势时请求音频文件，离线与联网行为完全一致。
   // ============================================================
-  if (window.DDZAudio) {
-    window.DDZAudio.init({ mutedGetter: () => !sfxEnabled });
-  }
-  // 出过炸弹/王炸 → tense BGM 维持几轮再退；用 "已记录的轮次截止时间" 衡量。
-  // 每次轮转（commitPlay / commitPass）+1，过了 tenseUntilTurn 就切回 default。
   let _turnCounter = 0;
-  let _tenseUntilTurn = 0;
   let _alarmTriggered = false;       // 警报：本局只响一次
   function audioOnNewGame() {
     _turnCounter = 0;
-    _tenseUntilTurn = 0;
     _alarmTriggered = false;
-    if (window.DDZAudio) window.DDZAudio.playBgm('default');
   }
   function audioOnPattern(pattern) {
-    if (!window.DDZAudio) return;
     const t = pattern && pattern.type;
     if (t === T.BOMB) {
-      window.DDZAudio.playSfx('bomb');
-      _tenseUntilTurn = _turnCounter + 6;        // 2 轮 × 3 家 = 6 次轮转
-      window.DDZAudio.playBgm('tense');
+      playSfx('bomb');
     } else if (t === T.ROCKET) {
-      window.DDZAudio.playSfx('rocket');
-      _tenseUntilTurn = _turnCounter + 6;
-      window.DDZAudio.playBgm('tense');
-    } else if (t === T.STRAIGHT) {
-      window.DDZAudio.playSfx('straight');
-    } else if (t === T.PAIR_STRAIGHT) {
-      window.DDZAudio.playSfx('pair-straight');
-    } else if (t === T.PLANE || t === T.PLANE_ONE || t === T.PLANE_PAIR) {
-      window.DDZAudio.playSfx('plane');
+      playSfx('rocket');
     }
   }
   function audioAfterTurn() {
-    if (!window.DDZAudio) return;
     _turnCounter++;
-    // ≤ 2 张警报（一局一次）+ 切 tense
+    // <= 2 张时用短促 tick 提醒；一局只响一次。
     const lowSeat = [0,1,2].find(s => state.hands[s].length > 0 && state.hands[s].length <= 2);
     if (lowSeat !== undefined && !_alarmTriggered) {
       _alarmTriggered = true;
-      window.DDZAudio.playSfx('alarm');
-      _tenseUntilTurn = Math.max(_tenseUntilTurn, _turnCounter + 9999);   // 一直 tense 到结算
-      window.DDZAudio.playBgm('tense');
-    }
-    // 炸弹冷却到点 → 切回 default（除非低牌警报还在持续）
-    if (_turnCounter >= _tenseUntilTurn && !_alarmTriggered) {
-      window.DDZAudio.playBgm('default');
+      playSfx('tick');
     }
   }
   function audioOnGameOver(playerWon) {
-    if (!window.DDZAudio) return;
-    window.DDZAudio.stopBgm();
-    window.DDZAudio.playSfx(playerWon ? 'win' : 'lose');
+    playSfx(playerWon ? 'win' : 'lose');
   }
 
   // ============================================================
@@ -470,7 +436,10 @@
   // 玩法 / 战绩榜 / 评论改在游戏内「🏆 榜单」浮层看，不用跳出游戏外。
   document.body.classList.add('ddz-game-fullscreen');
   const ddzBoardModal = $('ddzBoardModal');
-  function ddzOpenBoard() { if (ddzBoardModal) ddzBoardModal.hidden = false; }
+  function ddzOpenBoard() {
+    if (ddzBoardModal) ddzBoardModal.hidden = false;
+    initShell().catch(error => console.warn('[doudizhu] extras unavailable:', error.message || error));
+  }
   function ddzCloseBoard() { if (ddzBoardModal) ddzBoardModal.hidden = true; }
   if ($('ddzBoardBtn')) $('ddzBoardBtn').addEventListener('click', ddzOpenBoard);
   if ($('ddzBoardClose')) $('ddzBoardClose').addEventListener('click', ddzCloseBoard);
@@ -1399,7 +1368,6 @@
     if (handDealEl) handDealEl.classList.add('dealing');
     startDealDeclareWatcher(opts.declareStart);
     // BGM：用户点了"开始游戏" → 解锁 AudioContext + 切到 default 循环
-    if (window.DDZAudio) window.DDZAudio.unlockOnGesture();
     audioOnNewGame();
   }
 
@@ -2348,7 +2316,7 @@
     renderPlayedAt(seat, pattern);
     playSfx(pattern.type === T.BOMB ? 'bomb' :
             pattern.type === T.ROCKET ? 'rocket' : 'play');
-    // BGM/SFX 层（DDZAudio）：按牌型触发 sfx；炸弹/王炸切 tense BGM
+    // Procedural SFX：炸弹与王炸使用更强反馈。
     audioOnPattern(pattern);
     // 炸弹 / 王炸：倍数翻倍 → 飘 toast + chip 闪光（参考欢乐斗地主 image 11 ×2 badge）
     if (pattern.type === T.BOMB || pattern.type === T.ROCKET) {
@@ -3071,7 +3039,8 @@
     return ({ easy: 1, normal: 2, hard: 3, master: 4, online: 3 })[d] || 1;
   }
 
-  function ddzSubmitWins(nick) {
+  async function ddzSubmitWins(nick) {
+    try { await initShell(); } catch { return; }
     const submittedNick = nick;
     if (!state.result) return;
     const aiLevel = state.difficulty;
@@ -3106,7 +3075,7 @@
     });
   }
 
-  function tryAutoSubmit() {
+  async function tryAutoSubmit() {
     if (!window.GamesShell) return;
     if (!state.result) return;
     const playerRole = state.landlordIdx === 0 ? 'landlord' : 'peasant';
@@ -3115,42 +3084,61 @@
     if (!['easy', 'normal', 'hard', 'master'].includes(aiLevel)) return;
     const nick = GamesShell.Identity.getNick();
     if (nick) {
-      ddzSubmitWins(nick);
+      await ddzSubmitWins(nick);
       return;
     }
+    try { await initShell(); } catch { return; }
     if (ddzNickPrompt) ddzNickPrompt.show();
   }
 
+  let shellInitPromise = null;
   function initShell() {
-    if (!window.GamesShell || !GamesShell.WinsLeaderboard) return;
-    ddzWlb = GamesShell.WinsLeaderboard.mount({
-      container: $('ddz-wlb-mount'),
-      gameId: 'doudizhu',
-      title: '[[zi:trophy]] 斗地主 · 积分榜',
-      unit: '分',
-      getCurrentNick: () => GamesShell.Identity.getNick(),
-    });
-    GamesShell.Comments.mount({
-      container: $('ddz-cm-mount'),
-      path: '/toolbox/doudizhu/',
-      title: '[[zi:comment]] 牌友交流',
-      intro: '聊聊斗地主的开局思路、地主 / 农民的取舍，或者吐槽 AI ~',
-      placeholder: '聊聊你的斗地主心得 ~',
-    });
-    if (GamesShell.NickPrompt) {
-      ddzNickPrompt = GamesShell.NickPrompt.mount({
-        container: document.getElementById('ddz-nick-mount'),
-        prompt: '赢一局！起个昵称上榜吧',
-        onSubmit: nick => ddzSubmitWins(nick),
-        onSkip: () => { if (ddzNickPrompt) ddzNickPrompt.hide(); },
+    if (shellInitPromise) return shellInitPromise;
+    shellInitPromise = (async () => {
+      if (window.DDZExtras) await window.DDZExtras.ensure();
+      if (!window.GamesShell || !GamesShell.WinsLeaderboard) throw new Error('leaderboard_unavailable');
+      ddzWlb = GamesShell.WinsLeaderboard.mount({
+        container: $('ddz-wlb-mount'),
+        gameId: 'doudizhu',
+        title: '[[zi:trophy]] 斗地主 · 积分榜',
+        unit: '分',
+        getCurrentNick: () => GamesShell.Identity.getNick(),
       });
-    }
-    if (GamesShell.Settlement) {
-      // 平时不挂结算按钮，只在春天时主动 compose+present
+      GamesShell.Comments.mount({
+        container: $('ddz-cm-mount'),
+        path: '/toolbox/doudizhu/',
+        title: '[[zi:comment]] 牌友交流',
+        intro: '聊聊斗地主的开局思路、地主 / 农民的取舍，或者吐槽 AI ~',
+        placeholder: '聊聊你的斗地主心得 ~',
+      });
+      if (GamesShell.NickPrompt) {
+        ddzNickPrompt = GamesShell.NickPrompt.mount({
+          container: document.getElementById('ddz-nick-mount'),
+          prompt: '赢一局！起个昵称上榜吧',
+          onSubmit: nick => ddzSubmitWins(nick),
+          onSkip: () => { if (ddzNickPrompt) ddzNickPrompt.hide(); },
+        });
+      }
+      const onlineMountWrap = document.createElement('div');
+      onlineMountWrap.id = 'ddz-wlb-online-mount';
+      onlineMountWrap.style.cssText = 'max-width: 600px; margin: 1rem auto 0;';
+      const oldMount = $('ddz-wlb-mount');
+      if (oldMount && oldMount.parentNode) oldMount.parentNode.insertBefore(onlineMountWrap, oldMount.nextSibling);
+      ddzWlbOnline = GamesShell.WinsLeaderboard.mount({
+        container: onlineMountWrap,
+        gameId: 'doudizhu-online',
+        title: '[[zi:globe]] 斗地主 · 联机积分榜',
+        unit: '分',
+        getCurrentNick: () => GamesShell.Identity.getNick(),
+      });
       ddzSettleBtn = null;
-    }
+      return true;
+    })().catch(error => {
+      shellInitPromise = null;
+      throw error;
+    });
+    return shellInitPromise;
   }
-  initShell();
 
   // ============================================================
   // 联机模式（HTTP 长轮询 + 服务端权威）
@@ -4363,8 +4351,9 @@
     if (playerWon) tryAutoSubmitOnline();
   }
 
-  function tryAutoSubmitOnline() {
+  async function tryAutoSubmitOnline() {
     if (!window.GamesShell || !state.result) return;
+    try { await initShell(); } catch { return; }
     const totalActions = state.landlordPlayCount + state.peasantPlayCount;
     const moves = Math.max(4, Math.min(500, totalActions));
     const durationMs = Math.max(5000, Date.now() - state.runStartedAt);
@@ -4426,23 +4415,8 @@
     onlineTurnTimer = setInterval(tick, 250);
   }
 
-  // ── 挂载额外的联机榜（在初始化时一并） ───────────────────────────────
+  // ── 联机榜随榜单面板或首次提交一起延迟挂载 ──────────────────────────
   let ddzWlbOnline = null;
-  if (window.GamesShell && GamesShell.WinsLeaderboard) {
-    // 找一个挂载点：复用 wlb-mount 下方再加一个
-    const onlineMountWrap = document.createElement('div');
-    onlineMountWrap.id = 'ddz-wlb-online-mount';
-    onlineMountWrap.style.cssText = 'max-width: 600px; margin: 1rem auto 0;';
-    const oldMount = $('ddz-wlb-mount');
-    if (oldMount && oldMount.parentNode) oldMount.parentNode.insertBefore(onlineMountWrap, oldMount.nextSibling);
-    ddzWlbOnline = GamesShell.WinsLeaderboard.mount({
-      container: onlineMountWrap,
-      gameId: 'doudizhu-online',
-      title: '[[zi:globe]] 斗地主 · 联机积分榜',
-      unit: '分',
-      getCurrentNick: () => GamesShell.Identity.getNick(),
-    });
-  }
 
   // ── URL ?room=xxxx 自动加入房间 ────────────────────────────────
   (function autoJoinFromUrl() {
@@ -4517,7 +4491,7 @@
     if (state.mode !== 'single') return null;
     if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.BIDDING && state.phase !== PHASE.DOUBLING) return null;
     return {
-      v: 2,
+      v: 3,
       phase: state.phase,
       gameEpoch: state.gameEpoch,
       revision: state.revision,
@@ -4557,6 +4531,9 @@
   }
 
   function ddzRestore(saved) {
+    const migrated = window.DDZStorage && window.DDZStorage.migrateSingle(saved);
+    if (window.DDZStorage && !migrated) throw new Error('ddz_save_invalid');
+    saved = migrated || saved;
     Object.assign(state, {
       phase: saved.phase,
       gameEpoch: Number.isInteger(saved.gameEpoch) ? saved.gameEpoch : 1,
@@ -4629,7 +4606,7 @@
 
   if (window.GamesShell && GamesShell.SaveState) {
     ddzSave = GamesShell.SaveState.create({
-      key: 'tool.doudizhu.savestate.v1',
+      key: (window.DDZStorage && window.DDZStorage.SINGLE_KEY) || 'tool.doudizhu.savestate.v1',
       ttlMs: 48 * 3600 * 1000,
       serialize: ddzSerialize,
     });
@@ -4637,7 +4614,7 @@
     if (state.mode === 'online') {
       // 保留已有的合法单机存档，但在线重连时绝不展示或恢复它。
       ddzSave.start();
-    } else if (peek && peek.data && peek.data.phase && (peek.data.v == null || peek.data.v >= 2)) {
+    } else if (peek && peek.data && window.DDZStorage && window.DDZStorage.migrateSingle(peek.data)) {
       const handsTotal = (peek.data.hands || []).reduce((s, h) => s + (h ? h.length : 0), 0);
       const phaseLabel = peek.data.phase === 'bidding' ? '抢地主中' :
                           peek.data.phase === 'doubling' ? '加倍中' : '出牌中';
@@ -4647,7 +4624,7 @@
         onDiscard: () => { ddzSave.discard(); ddzSave.start(); },
       });
     } else {
-      // 旧版 (v=1) 存档不兼容新流程，丢弃
+      // 无法迁移或校验失败的存档拒绝恢复。
       if (peek) ddzSave.discard();
       ddzSave.start();
     }

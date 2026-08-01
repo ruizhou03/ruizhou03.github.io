@@ -20,7 +20,10 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Test Doudizhu rules and UI invariants
-        run: node --test tools/doudizhu/engine.test.mjs
+        run: |
+          node scripts/generate-doudizhu-offline-manifest.mjs
+          git diff --exit-code -- toolbox/doudizhu/offline-assets.json
+          node --test tools/doudizhu/engine.test.mjs tools/doudizhu/ai-contract.test.mjs tools/doudizhu/online-security.test.mjs tools/doudizhu/gate5-contract.test.mjs
 
       - name: Verify deterministic Guandan production bundle
         run: |

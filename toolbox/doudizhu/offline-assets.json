@@ -1,0 +1,185 @@
+{
+  "version": "20260801g5a",
+  "core": [
+    {
+      "url": "/assets/css/games-shell.css?v=20260801g5a",
+      "bytes": 34565,
+      "sha256": "13a6e8a5282dc860fd57f6be9168d455983678416be101bc379b2ef429f164a6"
+    },
+    {
+      "url": "/assets/css/doudizhu.css?v=20260801g5a",
+      "bytes": 86383,
+      "sha256": "39c651bfbc1552cd59465025dcb469ffd66dc50ada78187ab653b70703702b40"
+    },
+    {
+      "url": "/assets/js/games-shell/identity.js?v=20260801g5a",
+      "bytes": 3183,
+      "sha256": "8abd1228e92b5ce94064fbe95a8ac4fec176638ac35d474037dae88a3a1c1004"
+    },
+    {
+      "url": "/assets/js/games-shell/wins-leaderboard.js?v=20260801g5a",
+      "bytes": 13297,
+      "sha256": "56b7fa482ba9c0adc0e46241a6dc5208ef08d8f57cd02fda6d551f70295b0edc"
+    },
+    {
+      "url": "/assets/js/games-shell/comments.js?v=20260801g5a",
+      "bytes": 2910,
+      "sha256": "56f8a82466e50f999637e89082954325a19c5f4223dc5b25925a4c65110178ba"
+    },
+    {
+      "url": "/assets/js/games-shell/nick-prompt.js?v=20260801g5a",
+      "bytes": 4101,
+      "sha256": "f1bd6af5bb038bc6f89a191d281f1c6cbedd4fec9ceb5e82d0e79976b35212e4"
+    },
+    {
+      "url": "/assets/js/games-shell/save-state.js?v=20260801g5a",
+      "bytes": 6498,
+      "sha256": "24ca6017a7a1ec01335c7575ffca2b313d2deda01de087495d3279d103ae320b"
+    },
+    {
+      "url": "/assets/js/games-shell/settlement.js?v=20260801g5a",
+      "bytes": 17131,
+      "sha256": "ca260afb1bca65613116b79f00ff541f249d29c397703f94fe4ababd283bb779"
+    },
+    {
+      "url": "/assets/js/doudizhu/engine.js?v=20260801g5a",
+      "bytes": 45279,
+      "sha256": "f088b429d7106eaf2bcd766ea1a0cbec17db29f3dd8b91ec70de6708d10c04cb"
+    },
+    {
+      "url": "/assets/js/doudizhu/ai.js?v=20260801g5a",
+      "bytes": 38746,
+      "sha256": "9f8b6f53c71277ede9c8ce32d134e8d76a7b5f0bb4db690ddd5de2e8cb05a8c4"
+    },
+    {
+      "url": "/assets/js/doudizhu/policy.js?v=20260801g5a",
+      "bytes": 1686,
+      "sha256": "61858c7782bc92a0c72bb0f2e1c78fd97203f89a118d3ae1a1648b5ef3ae18d1"
+    },
+    {
+      "url": "/assets/js/doudizhu/ai-runtime.js?v=20260801g5a",
+      "bytes": 5370,
+      "sha256": "7f58d93e17bc78461242c97cb898e5681b07e65c94164740a14ddb205ed652fd"
+    },
+    {
+      "url": "/assets/js/doudizhu/storage.js?v=20260801g5a",
+      "bytes": 2601,
+      "sha256": "9150e3c1305621092ba651478d3cd8103ba8e9a7f53f60f812cf98e84a452995"
+    },
+    {
+      "url": "/assets/js/doudizhu/offline.js?v=20260801g5a",
+      "bytes": 3704,
+      "sha256": "f14a9079d19c3208d369f6d8a1c57e1c68b436b43079dc980af1e12414b2b48c"
+    },
+    {
+      "url": "/assets/js/doudizhu/extras.js?v=20260801g5a",
+      "bytes": 1305,
+      "sha256": "3c76086bb06692a2e0f66acdf0f58bb01d3a7b76785cc7f2a411b37de4dc17e6"
+    },
+    {
+      "url": "/assets/js/doudizhu/ui.js?v=20260801g5a",
+      "bytes": 197381,
+      "sha256": "8d773ce7300aaec8f3644aaf399ea065c6a55e7241b21e5e9dadc5087f0549bb"
+    }
+  ],
+  "base": [],
+  "hard": [
+    {
+      "url": "/assets/js/doudizhu/ai-worker.js?v=20260801g5a",
+      "bytes": 7322,
+      "sha256": "b28f2669f63c73feac1ebdef152c5216fe2fbb0b9976f521ab5d87e9e7933188"
+    },
+    {
+      "url": "/assets/js/doudizhu/net.js?v=20260801g5a",
+      "bytes": 18993,
+      "sha256": "d8a84496c3df16c53c8fea2bd90823b6606e2b87637c4d2faa1d51eb2273a84b"
+    },
+    {
+      "url": "/assets/js/doudizhu/model-manifest.json",
+      "bytes": 3883,
+      "sha256": "aeee3ccef112e7f58d3213a8f73372c81ca98207b2984799523606f74206635d"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/adp_landlord.json",
+      "bytes": 1660,
+      "sha256": "e33b3640f1c0a43215bbb8aa465bde0d0b3687df3b97585622e1fa8835601be2"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/adp_landlord.qw",
+      "bytes": 2611200,
+      "sha256": "f1b2834c47434f2af31a2ec492aa15d5fc4ee938821b7db8487d307cf47b88c9"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/adp_landlord_down.json",
+      "bytes": 1660,
+      "sha256": "9c95c6c324f49b2f53a0356670f195474a9a18e92aa39e9ef7d315116c0ea7c5"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/adp_landlord_down.qw",
+      "bytes": 2724864,
+      "sha256": "7f45f9344a59e1a371dee26a56bf500ab82c95cb6b933c90e040cfa436b13dfb"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/adp_landlord_up.json",
+      "bytes": 1660,
+      "sha256": "9c95c6c324f49b2f53a0356670f195474a9a18e92aa39e9ef7d315116c0ea7c5"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/adp_landlord_up.qw",
+      "bytes": 2724864,
+      "sha256": "66d55c1fb2866e451e947e0be89f35a5367de8f0135a1a7692000ed2a0ad455a"
+    }
+  ],
+  "master": [
+    {
+      "url": "/assets/js/doudizhu/ai-worker.js?v=20260801g5a",
+      "bytes": 7322,
+      "sha256": "b28f2669f63c73feac1ebdef152c5216fe2fbb0b9976f521ab5d87e9e7933188"
+    },
+    {
+      "url": "/assets/js/doudizhu/ai-eval-worker.js?v=20260801g5a",
+      "bytes": 1214,
+      "sha256": "50056e4102e0078c8ae2f7e1fc63f134f5afe5359104755fa28ba3cbde034d8f"
+    },
+    {
+      "url": "/assets/js/doudizhu/net.js?v=20260801g5a",
+      "bytes": 18993,
+      "sha256": "d8a84496c3df16c53c8fea2bd90823b6606e2b87637c4d2faa1d51eb2273a84b"
+    },
+    {
+      "url": "/assets/js/doudizhu/model-manifest.json",
+      "bytes": 3883,
+      "sha256": "aeee3ccef112e7f58d3213a8f73372c81ca98207b2984799523606f74206635d"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/resnet_landlord.json",
+      "bytes": 10654,
+      "sha256": "ca60657ed9f7cd34a284aaae48b07622a20e41f4bef538df51c88cdef5332626"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/resnet_landlord.qw",
+      "bytes": 3528576,
+      "sha256": "26414ea961f1ed284b3dcff83ad32fe9af2b0812bca79ec1a46fe1b35d507e52"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/resnet_landlord_down.json",
+      "bytes": 10654,
+      "sha256": "ca60657ed9f7cd34a284aaae48b07622a20e41f4bef538df51c88cdef5332626"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/resnet_landlord_down.qw",
+      "bytes": 3528576,
+      "sha256": "8f81c5875dae9ed18b50b7f4f7d2d56b76088666345cdeb3efef04c306d2db57"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/resnet_landlord_up.json",
+      "bytes": 10654,
+      "sha256": "ca60657ed9f7cd34a284aaae48b07622a20e41f4bef538df51c88cdef5332626"
+    },
+    {
+      "url": "/assets/js/doudizhu/weights/resnet_landlord_up.qw",
+      "bytes": 3528576,
+      "sha256": "f6d6a60e7ad6ccb7da7a2a024dae9edd06e449d72bcbdd5008ce37c1526d6f55"
+    }
+  ]
+}
