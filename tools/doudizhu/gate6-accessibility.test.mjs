@@ -37,6 +37,10 @@ test('Gate 6 exposes persistent navigation, dialog semantics and live state', ()
   assert.match(ui, /showModal/);
   assert.match(ui, /event\.key === 'Escape'/);
   assert.match(ui, /restoreDialogFocus/);
+  assert.match(ui, /const dialogs = \[ddzBoardModal, gameOverOverlay\]/,
+    '斗地主焦点陷阱只能管理自己的对话框');
+  assert.doesNotMatch(ui, /querySelectorAll\('\[role="dialog"\]'\)/,
+    '不得把站点级搜索或小助手的隐藏 dialog 误判为打开');
 });
 
 test('Gate 6 hand uses roving tabindex and named multi-selection', () => {
@@ -75,7 +79,7 @@ test('Gate 6 offline upgrade replaces a previously saved HTML shell', () => {
   assert.match(offline, /new MessageChannel\(\)/);
   assert.match(offline, /type:\s*'SAVE_OFFLINE'[\s\S]*force:\s*true[\s\S]*silent:\s*true/);
   assert.match(offline, /data\.type !== 'SAVE_DONE'/);
-  assert.match(serviceWorker, /DDZ_SAVED_MIGRATION\s*=\s*'\/__zircon_migrations__\/doudizhu-20260801g8a'/);
+  assert.match(serviceWorker, /DDZ_SAVED_MIGRATION\s*=\s*'\/__zircon_migrations__\/doudizhu-20260801g8b'/);
   assert.match(serviceWorker, /await migrateSavedDoudizhu\(\)/);
   assert.match(serviceWorker, /fetchBundle\('\/toolbox\/doudizhu\/'[\s\S]*force:\s*true/);
 });

@@ -492,8 +492,13 @@
     ddzCloseBoard();
   });
   function topVisibleDialog() {
-    const dialogs = Array.from(document.querySelectorAll('[role="dialog"]'))
-      .filter(dialog => !dialog.hidden && dialog.getClientRects().length && (dialog.classList.contains('show') || dialog.id !== 'ddzGameOverOverlay'));
+    // Only trap focus inside dialogs owned by Doudizhu. Site-level search and
+    // assistant panels also expose role="dialog" while visually closed; treating
+    // those as active made every form field (including the online nickname) lose
+    // focus immediately.
+    const dialogs = [ddzBoardModal, gameOverOverlay]
+      .filter(dialog => dialog && !dialog.hidden && dialog.getClientRects().length)
+      .filter(dialog => dialog === ddzBoardModal ? dialog.open : dialog.classList.contains('show'));
     return dialogs[dialogs.length - 1] || null;
   }
   function closeDialogFromEscape(dialog, event) {

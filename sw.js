@@ -42,7 +42,7 @@ const ASSET_CACHE = 'ruizhou03-assets';
 const SAVED_CACHE = 'ruizhou03-saved';
 // Gate 6 修复旧版斗地主的“更新按钮仍命中旧 HTML”闭环。迁移成功后写入
 // SAVED_CACHE 哨兵，只执行一次；不清理或改写其他离线书架内容。
-const DDZ_SAVED_MIGRATION = '/__zircon_migrations__/doudizhu-20260801g8a';
+const DDZ_SAVED_MIGRATION = '/__zircon_migrations__/doudizhu-20260801g8b';
 // 更早的历史命名空间，activate 时一次性清理
 const LEGACY_PREFIXES = ['zirconeey-'];
 
@@ -97,7 +97,7 @@ async function migrateSavedDoudizhu() {
       onOne: null,
     });
     await cache.put(DDZ_SAVED_MIGRATION, new Response('ok', {
-      headers: { 'content-type': 'text/plain', 'x-zircon-migration': '20260801g8a' },
+      headers: { 'content-type': 'text/plain', 'x-zircon-migration': '20260801g8b' },
     }));
   } catch (_) {
     // 离线激活时保留旧副本且不写哨兵；下次联网激活再试。

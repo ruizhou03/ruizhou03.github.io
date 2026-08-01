@@ -1,88 +1,88 @@
 {
-  "version": "20260801g8a",
+  "version": "20260801g8b",
   "core": [
     {
-      "url": "/assets/css/games-shell.css?v=20260801g8a",
+      "url": "/assets/css/games-shell.css?v=20260801g8b",
       "bytes": 34565,
       "sha256": "13a6e8a5282dc860fd57f6be9168d455983678416be101bc379b2ef429f164a6"
     },
     {
-      "url": "/assets/css/doudizhu.css?v=20260801g8a",
+      "url": "/assets/css/doudizhu.css?v=20260801g8b",
       "bytes": 97015,
       "sha256": "1cd4a2127d214be803d0e19b395c5e9a259ce3680e9e51b327ac8c26c933df56"
     },
     {
-      "url": "/assets/js/games-shell/identity.js?v=20260801g8a",
+      "url": "/assets/js/games-shell/identity.js?v=20260801g8b",
       "bytes": 3183,
       "sha256": "8abd1228e92b5ce94064fbe95a8ac4fec176638ac35d474037dae88a3a1c1004"
     },
     {
-      "url": "/assets/js/games-shell/wins-leaderboard.js?v=20260801g8a",
+      "url": "/assets/js/games-shell/wins-leaderboard.js?v=20260801g8b",
       "bytes": 13525,
       "sha256": "1befc51e702b6707bf22b4b2c69c6ba0f1eda57be2f1492e97f4c5992578b066"
     },
     {
-      "url": "/assets/js/games-shell/comments.js?v=20260801g8a",
+      "url": "/assets/js/games-shell/comments.js?v=20260801g8b",
       "bytes": 2910,
       "sha256": "56f8a82466e50f999637e89082954325a19c5f4223dc5b25925a4c65110178ba"
     },
     {
-      "url": "/assets/js/games-shell/nick-prompt.js?v=20260801g8a",
+      "url": "/assets/js/games-shell/nick-prompt.js?v=20260801g8b",
       "bytes": 4101,
       "sha256": "f1bd6af5bb038bc6f89a191d281f1c6cbedd4fec9ceb5e82d0e79976b35212e4"
     },
     {
-      "url": "/assets/js/games-shell/save-state.js?v=20260801g8a",
+      "url": "/assets/js/games-shell/save-state.js?v=20260801g8b",
       "bytes": 6498,
       "sha256": "24ca6017a7a1ec01335c7575ffca2b313d2deda01de087495d3279d103ae320b"
     },
     {
-      "url": "/assets/js/games-shell/settlement.js?v=20260801g8a",
+      "url": "/assets/js/games-shell/settlement.js?v=20260801g8b",
       "bytes": 17131,
       "sha256": "ca260afb1bca65613116b79f00ff541f249d29c397703f94fe4ababd283bb779"
     },
     {
-      "url": "/assets/js/doudizhu/engine.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/engine.js?v=20260801g8b",
       "bytes": 45279,
       "sha256": "f088b429d7106eaf2bcd766ea1a0cbec17db29f3dd8b91ec70de6708d10c04cb"
     },
     {
-      "url": "/assets/js/doudizhu/ai.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/ai.js?v=20260801g8b",
       "bytes": 38746,
       "sha256": "9f8b6f53c71277ede9c8ce32d134e8d76a7b5f0bb4db690ddd5de2e8cb05a8c4"
     },
     {
-      "url": "/assets/js/doudizhu/policy.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/policy.js?v=20260801g8b",
       "bytes": 1686,
       "sha256": "61858c7782bc92a0c72bb0f2e1c78fd97203f89a118d3ae1a1648b5ef3ae18d1"
     },
     {
-      "url": "/assets/js/doudizhu/ai-runtime.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/ai-runtime.js?v=20260801g8b",
       "bytes": 5370,
       "sha256": "a8b10fc272bccf2ab7cee64862dc04675517189ff34e33ad9d42d76cee5b4a55"
     },
     {
-      "url": "/assets/js/doudizhu/storage.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/storage.js?v=20260801g8b",
       "bytes": 2601,
       "sha256": "9150e3c1305621092ba651478d3cd8103ba8e9a7f53f60f812cf98e84a452995"
     },
     {
-      "url": "/assets/js/doudizhu/offline.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/offline.js?v=20260801g8b",
       "bytes": 4376,
       "sha256": "2e8bb5e918390ebba9554aff34a99a7a741207ba5097f5dbb639a311fc2929c3"
     },
     {
-      "url": "/assets/js/doudizhu/extras.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/extras.js?v=20260801g8b",
       "bytes": 1305,
       "sha256": "36decc4e810b733f7fb609b755e33dd3fcc75c9c6d909225d60b49b860feb2ed"
     },
     {
-      "url": "/assets/js/doudizhu/rules-content.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/rules-content.js?v=20260801g8b",
       "bytes": 1315,
       "sha256": "87a1f961669dd1b323ff10ad8e37ca598a10bee26e3cd07715bc983c4b473aa4"
     },
     {
-      "url": "/assets/js/doudizhu/ui.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/ui.js?v=20260801g8b",
       "bytes": 204846,
       "sha256": "e5ba6f0fa5cd684ca6dc0232b975755d5d197b4066c7ffcea1eff9999397c562"
     },
@@ -115,12 +115,12 @@
   "base": [],
   "hard": [
     {
-      "url": "/assets/js/doudizhu/ai-worker.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/ai-worker.js?v=20260801g8b",
       "bytes": 7322,
       "sha256": "3568b5e4e8cf0f0b92380fb8ea4284358262b0cc1089581055aa0d3349563c6b"
     },
     {
-      "url": "/assets/js/doudizhu/net.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/net.js?v=20260801g8b",
       "bytes": 18993,
       "sha256": "d8a84496c3df16c53c8fea2bd90823b6606e2b87637c4d2faa1d51eb2273a84b"
     },
@@ -162,17 +162,17 @@
   ],
   "master": [
     {
-      "url": "/assets/js/doudizhu/ai-worker.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/ai-worker.js?v=20260801g8b",
       "bytes": 7322,
       "sha256": "3568b5e4e8cf0f0b92380fb8ea4284358262b0cc1089581055aa0d3349563c6b"
     },
     {
-      "url": "/assets/js/doudizhu/ai-eval-worker.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/ai-eval-worker.js?v=20260801g8b",
       "bytes": 1214,
       "sha256": "50056e4102e0078c8ae2f7e1fc63f134f5afe5359104755fa28ba3cbde034d8f"
     },
     {
-      "url": "/assets/js/doudizhu/net.js?v=20260801g8a",
+      "url": "/assets/js/doudizhu/net.js?v=20260801g8b",
       "bytes": 18993,
       "sha256": "d8a84496c3df16c53c8fea2bd90823b6606e2b87637c4d2faa1d51eb2273a84b"
     },
