@@ -2077,6 +2077,8 @@
   .ddz-board-modal {
     position: fixed; inset: 0; z-index: 10001;
     display: flex; align-items: center; justify-content: center;
+    width: 100vw; height: 100dvh; max-width: none; max-height: none;
+    margin: 0; padding: 0; border: 0; background: transparent;
   }
   .ddz-board-modal[hidden] { display: none; }
   .ddz-board-backdrop {
@@ -2166,4 +2168,338 @@
     }
     .ddz-rotate-title { font-size: 1.3rem; font-weight: 700; }
     .ddz-rotate-sub { font-size: 0.9rem; color: var(--ddz-text-on-felt-mute, var(--color-muted)); max-width: 17rem; line-height: 1.65; }
+  }
+
+  /* ============================================================
+     Gate 6 · 方案 A：暖纸三角围桌
+     ============================================================ */
+  .ddz-visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  body.ddz-game-fullscreen .ddz-wrap {
+    padding: 0 1.2rem 1.2rem;
+    overflow-x: hidden;
+    justify-content: flex-start;
+  }
+  .ddz-wrap {
+    --ddz-text-on-felt-mute: #5d594f;
+    --ddz-focus: #0b61a4;
+  }
+  .ddz-wrap header {
+    position: relative;
+    flex: 0 0 64px;
+    width: 100%;
+    min-height: 64px;
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ddz-wrap header h1 {
+    margin: 0;
+    font-size: 1.25rem !important;
+    letter-spacing: 0.08em;
+  }
+  .ddz-exit-btn,
+  .ddz-board-btn,
+  .ddz-sfx-toggle {
+    top: 50%;
+    transform: translateY(-50%);
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    line-height: 1;
+  }
+  .ddz-exit-btn {
+    position: absolute;
+    left: 0;
+    color: var(--color-muted);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    text-decoration: none;
+  }
+  .ddz-board-btn { left: 4.5rem; }
+  .ddz-sfx-toggle { right: 0; }
+
+  body.ddz-game-fullscreen .ddz-table {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 1400px;
+    min-height: min(690px, calc(100dvh - 84px));
+    margin: 0 auto;
+    border-radius: 30px;
+    padding: 1.25rem clamp(0.75rem, 2.8vw, 2.5rem) 1rem;
+  }
+  .ddz-table::before {
+    opacity: 0.75;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.28) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 72% 62%, rgba(141,110,55,0.12) 0 1px, transparent 1.7px);
+    background-size: 43px 43px, 57px 57px;
+  }
+  .ddz-table::after {
+    inset: 2rem clamp(2.5rem, 7vw, 7rem) 4.6rem;
+    border-color: rgba(168,122,42,0.28);
+    border-radius: 50%;
+  }
+  .ddz-tops {
+    min-height: 236px;
+    margin: 0;
+    gap: 0;
+  }
+  .ddz-tops-avatars {
+    padding: 2.2rem clamp(1rem, 7vw, 7rem) 0;
+    align-items: flex-start;
+  }
+  .ddz-seat-ai,
+  .ddz-self {
+    padding: 0.35rem 0.5rem;
+    border-radius: 14px;
+  }
+  .ddz-tops-plays {
+    min-height: 90px;
+    padding: 0 clamp(5rem, 15vw, 13rem);
+  }
+  .ddz-tops-plays .ddz-played {
+    min-height: 82px;
+    max-height: 82px;
+  }
+  .ddz-decision-slot { min-height: 82px; }
+  .ddz-decision-slot .ddz-played { min-height: 78px; max-height: 78px; }
+  .ddz-self { left: clamp(0.75rem, 5vw, 4.5rem); bottom: 1.1rem; }
+  .ddz-hand {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.35rem;
+    width: 100%;
+    padding-inline: clamp(4rem, 10vw, 9rem);
+  }
+  .ddz-actions {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--ddz-card-h) + 1.05rem);
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100% - 1rem);
+    margin: 0;
+  }
+  .ddz-self-clock-row {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--ddz-card-h) + 4.15rem);
+    transform: translateX(-50%);
+    width: max-content;
+    margin: 0;
+  }
+  .ddz-actions .ddz-btn,
+  .ddz-bid-buttons .ddz-btn,
+  .ddz-lobby-actions .ddz-btn {
+    min-height: 44px;
+    min-width: 84px;
+  }
+  .ddz-corner-chips { right: 1.2rem; top: 50%; bottom: auto; transform: translateY(-50%); }
+  .ddz-autopilot-toggle { min-height: 32px; }
+
+  .ddz-card[role="option"]:focus-visible {
+    outline: 3px solid var(--ddz-focus);
+    outline-offset: 3px;
+    z-index: 20;
+    transform: translateY(-12px);
+  }
+  .ddz-card[role="option"][aria-selected="true"] {
+    box-shadow: 0 8px 16px rgba(20,37,63,0.38), inset 0 0 0 3px var(--ddz-accent-strong);
+  }
+  .ddz-wrap :where(a, button, input, select, summary, [tabindex]):focus-visible {
+    outline: 3px solid var(--ddz-focus);
+    outline-offset: 3px;
+  }
+  .ddz-board-panel,
+  .ddz-setup-inner,
+  .ddz-overlay { color: var(--color-ink); }
+
+  .ddz-mode-tab,
+  .ddz-playmode-btn,
+  .ddz-online-tab,
+  .ddz-btn-mini,
+  .ddz-lseat .sb,
+  .ddz-board-close {
+    min-height: 32px;
+    min-width: 32px;
+  }
+  .ddz-online-input,
+  .ddz-online-config select { min-height: 44px; }
+  .ddz-bid-buttons button,
+  .ddz-actions .ddz-btn,
+  .ddz-setup .ddz-btn,
+  .ddz-lobby-actions .ddz-btn { min-height: 44px; }
+  .ddz-lseat .seatbtns { gap: 0.4rem; }
+  .ddz-lseat .sb { padding: 0.45rem 0.65rem; }
+
+  :root[data-theme="dark"] .ddz-wrap {
+    --ddz-felt-1: #343027;
+    --ddz-felt-2: #29261f;
+    --ddz-felt-3: #1e1c18;
+    --ddz-frame-2: rgba(218,184,116,0.62);
+    --ddz-text-on-felt: #fff8e8;
+    --ddz-text-on-felt-mute: #ddd3bf;
+    --ddz-focus: #79bfff;
+  }
+  :root[data-theme="dark"] .ddz-table {
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 0 100px rgba(0,0,0,0.28), 0 10px 32px rgba(0,0,0,0.32);
+  }
+  :root[data-theme="dark"] .ddz-table::after { border-color: rgba(229,195,126,0.35); }
+  :root[data-theme="dark"] .ddz-handcount,
+  :root[data-theme="dark"] .ddz-chip,
+  :root[data-theme="dark"] .ddz-autopilot-toggle {
+    background: rgba(255,248,232,0.10);
+    color: #fff8e8;
+    border-color: rgba(229,195,126,0.48);
+  }
+  :root[data-theme="dark"] .ddz-avatar {
+    background: linear-gradient(160deg, #4b4538, #2f2c25);
+    color: #fff8e8;
+  }
+
+  /* 200% zoom、平板和低高度桌面：保留完整操作，不裁掉动作区。 */
+  @media (max-width: 900px), (max-height: 700px) {
+    body.ddz-game-fullscreen .ddz-wrap { padding: 0 0.5rem 0.5rem; }
+    .ddz-wrap header { flex-basis: 54px; min-height: 54px; }
+    body.ddz-game-fullscreen .ddz-table {
+      min-height: calc(100dvh - 60px);
+      border-radius: 20px;
+      padding: 0.5rem 0.6rem;
+    }
+    .ddz-table::after { inset: 1rem 2.5rem 3.5rem; }
+    .ddz-tops { min-height: 150px; }
+    .ddz-tops-avatars { padding: 0.6rem 1rem 0; }
+    .ddz-tops-plays { min-height: 54px; padding: 0 12%; }
+    .ddz-tops-plays .ddz-played { min-height: 52px; max-height: 52px; }
+    .ddz-decision-slot { min-height: 58px; }
+    .ddz-decision-slot .ddz-played { min-height: 56px; max-height: 56px; }
+    .ddz-self-clock-row { min-height: 1.65rem; margin-top: 0; }
+    .ddz-actions { min-height: 44px; margin-top: 0; }
+    .ddz-hand { min-height: calc(var(--ddz-card-h) + 16px); padding: 0.15rem 4.5rem; }
+    .ddz-self { left: 0.35rem; bottom: 0.35rem; }
+    .ddz-corner-chips { right: 0.35rem; top: 50%; bottom: auto; }
+  }
+
+  /* 竖屏是真正可玩的紧凑三角桌；不再显示方向阻断层。 */
+  .ddz-rotate-hint { display: none !important; }
+  @media (orientation: portrait) and (max-width: 600px) {
+    body.ddz-game-fullscreen .ddz-wrap {
+      padding: 0 0.25rem 0.25rem;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .ddz-wrap header {
+      flex-basis: 52px;
+      min-height: 52px;
+      padding-inline: 0.1rem;
+    }
+    .ddz-wrap header h1 { display: none; }
+    .ddz-exit-btn,
+    .ddz-board-btn,
+    .ddz-sfx-toggle {
+      position: static;
+      transform: none;
+      min-height: 44px;
+      padding: 0.5rem 0.68rem;
+      margin: 0 0.15rem;
+    }
+    .ddz-wrap header { justify-content: space-between; }
+    body.ddz-game-fullscreen .ddz-table {
+      min-height: max(510px, calc(100dvh - 55px));
+      border-radius: 18px;
+      padding: 0.35rem 0.3rem 0.25rem;
+      overflow: hidden;
+    }
+    .ddz-table::after { inset: 0.7rem 1rem 4.2rem; border-radius: 42%; }
+    .ddz-tops { min-height: 138px; }
+    .ddz-tops-avatars { padding: 0.35rem 0.15rem 0; }
+    .ddz-seat-ai { min-width: 76px; padding: 0.2rem; }
+    .ddz-avatar { width: 42px; height: 42px; font-size: 1.2rem; }
+    .ddz-name { margin-top: 0.2rem; font-size: 0.68rem; }
+    .ddz-handcount { margin-top: 0.15rem; padding: 0.08rem 0.42rem; font-size: 0.68rem; }
+    .ddz-tops-plays { min-height: 45px; padding: 0 2.7rem; }
+    .ddz-tops-plays .ddz-played { min-height: 44px; max-height: 44px; }
+    .ddz-decision-slot { min-height: 52px; margin-top: 0; }
+    .ddz-decision-slot .ddz-played { min-height: 50px; max-height: 50px; }
+    .ddz-self-clock-row { min-height: 1.6rem; margin-top: 0; }
+    .ddz-actions {
+      min-height: 46px;
+      margin: 0;
+      gap: 0.35rem;
+      flex-wrap: nowrap;
+    }
+    .ddz-actions .ddz-btn,
+    .ddz-bid-buttons .ddz-btn { min-width: 72px; min-height: 44px; padding: 0.45rem 0.7rem; }
+    .ddz-hand {
+      padding: 0.15rem 3.2rem 0.15rem 3.4rem;
+      min-height: calc(var(--ddz-card-h) + 13px);
+      overflow: visible;
+    }
+    .ddz-self {
+      left: 0.2rem;
+      bottom: 0.25rem;
+      padding: 0.15rem;
+      gap: 0.1rem;
+    }
+    .ddz-self .ddz-avatar { width: 40px; height: 40px; }
+    .ddz-self .ddz-name { display: none; }
+    .ddz-self-info { align-items: center; }
+    .ddz-corner-chips { right: 0.2rem; top: 49%; bottom: auto; gap: 0.25rem; }
+    .ddz-autopilot-toggle { min-height: 28px; padding: 0.25rem 0.42rem; font-size: 0.67rem; }
+    .ddz-score-hint { font-size: 0.7rem; }
+    .ddz-bid-panel { max-width: calc(100% - 0.7rem); }
+    .ddz-setup { padding: 0.35rem; align-items: stretch; }
+    .ddz-setup .ddz-setup-inner {
+      max-height: calc(100dvh - 60px);
+      padding: 0.75rem;
+      border-radius: 12px;
+    }
+    .ddz-setup-step { margin-bottom: 0.7rem; }
+    .ddz-mode-row { display: flex; }
+    .ddz-playmode-btn { flex: 1 1 0; min-height: 44px; padding-inline: 0.45rem; }
+    .ddz-mode-tab, .ddz-online-tab { min-height: 44px; }
+    .ddz-lobby { padding-inline: 0.25rem; }
+    .ddz-lobby-table { min-height: 290px; }
+    .ddz-lseat { width: 102px; }
+    .ddz-lseat .sb { min-height: 44px; }
+    .ddz-lobby-actions { flex-wrap: wrap; }
+    .ddz-board-panel { width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); }
+  }
+
+  @media (pointer: coarse) {
+    .ddz-mode-tab,
+    .ddz-playmode-btn,
+    .ddz-online-tab,
+    .ddz-btn-mini,
+    .ddz-lseat .sb,
+    .ddz-board-close,
+    .ddz-autopilot-toggle { min-height: 44px; min-width: 44px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ddz-wrap *,
+    .ddz-wrap *::before,
+    .ddz-wrap *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
   }

@@ -23,7 +23,7 @@ jobs:
         run: |
           node scripts/generate-doudizhu-offline-manifest.mjs
           git diff --exit-code -- toolbox/doudizhu/offline-assets.json
-          node --test tools/doudizhu/engine.test.mjs tools/doudizhu/ai-contract.test.mjs tools/doudizhu/online-security.test.mjs tools/doudizhu/gate5-contract.test.mjs
+          node --test tools/doudizhu/engine.test.mjs tools/doudizhu/ai-contract.test.mjs tools/doudizhu/online-security.test.mjs tools/doudizhu/gate5-contract.test.mjs tools/doudizhu/gate6-accessibility.test.mjs
 
       - name: Verify deterministic Guandan production bundle
         run: |

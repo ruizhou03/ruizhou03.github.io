@@ -2,7 +2,7 @@
   'use strict';
 
   const POLICY = window.DDZPolicy;
-  const WORKER_URL = '/assets/js/doudizhu/ai-worker.js?v=20260801g5a';
+  const WORKER_URL = '/assets/js/doudizhu/ai-worker.js?v=20260801g6g';
   const REQUEST_TIMEOUT_MS = 30_000;
   let worker = null;
   let workerModel = null;

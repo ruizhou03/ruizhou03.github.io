@@ -4,26 +4,23 @@ title: "斗地主 | Rui Zhou"
 permalink: /toolbox/doudizhu/
 ---
 
-<link rel="stylesheet" href="/assets/css/games-shell.css?v=20260801g5a">
+<link rel="stylesheet" href="/assets/css/games-shell.css?v=20260801g6g">
 
-<link rel="stylesheet" href="/assets/css/doudizhu.css?v=20260801g5a">
+<link rel="stylesheet" href="/assets/css/doudizhu.css?v=20260801g6g">
 
 <div class="ddz-wrap">
-  <!-- 手机竖屏引导：仅触屏竖屏显示（CSS 控制），盖住整屏提示转横屏 -->
-  <div class="ddz-rotate-hint" aria-hidden="true">
-    <div class="ddz-rotate-phone"></div>
-    <div class="ddz-rotate-title">请把手机横过来</div>
-    <div class="ddz-rotate-sub">斗地主牌桌横屏才放得下 · 转一下就开打<br>（若没自动旋转，请关掉控制中心里的「竖排方向锁定」）</div>
-  </div>
   <header>
+    <a class="ddz-exit-btn" id="ddzExitBtn" href="/toolbox/" aria-label="退出斗地主并返回百宝箱">返回</a>
     <button type="button" class="ddz-board-btn" id="ddzBoardBtn" title="榜单 / 玩法 / 评论">[[zi:trophy]] 榜单</button>
-  <button type="button" class="ddz-sfx-toggle" id="ddzSfxToggle" title="切换音效">[[zi:volume]] 静音</button>
+    <button type="button" class="ddz-sfx-toggle" id="ddzSfxToggle" title="切换音效" aria-pressed="false">[[zi:volume]] 静音</button>
     <h1>[[zi:cards]] 斗地主</h1>
   </header>
+  <p class="ddz-visually-hidden" id="ddzTurnAnnounce" aria-live="polite" aria-atomic="true"></p>
+  <p class="ddz-visually-hidden" id="ddzA11yLive" aria-live="polite" aria-atomic="true"></p>
 
   <!-- Setup 视图：模式 → 参数 → 开始（一屏内分阶段） -->
   <!-- 大厅视图（联机模式，3 人未集齐） -->
-  <div class="ddz-lobby" id="ddzLobby" hidden>
+  <div class="ddz-lobby" id="ddzLobby" aria-label="斗地主联机大厅" hidden>
     <div class="ddz-room-banner">
       <div class="label">房号</div>
       <div class="code" id="ddzRoomCode">----</div>
@@ -47,17 +44,18 @@ permalink: /toolbox/doudizhu/
   </div>
 
   <!-- 牌桌视图 — 进页面就显示，初始化阶段会被 ddzSetup 浮层盖住 -->
-  <div class="ddz-table" id="ddzTable">
+  <div class="ddz-table" id="ddzTable" aria-label="斗地主三人牌桌" aria-describedby="ddzTurnAnnounce">
 
     <!-- Setup 浮层：进页面就在这里，点"开始游戏"后 hidden=true 让出牌桌 -->
-    <div class="ddz-setup" id="ddzSetup">
+    <div class="ddz-setup" id="ddzSetup" role="region" aria-labelledby="ddzSetupTitle">
      <div class="ddz-setup-inner">
+      <h2 class="ddz-visually-hidden" id="ddzSetupTitle">开始斗地主</h2>
       <!-- ① 模式选择 -->
       <div class="ddz-setup-step">
         <div class="ddz-setup-step-label">① 选择模式</div>
-        <div class="ddz-mode-row">
-          <button class="ddz-playmode-btn active" data-playmode="single" type="button">[[zi:cards]] 经典模式</button>
-          <button class="ddz-playmode-btn" data-playmode="online" type="button">[[zi:users]] 好友共玩</button>
+        <div class="ddz-mode-row" role="tablist" aria-label="游戏模式">
+          <button class="ddz-playmode-btn active" data-playmode="single" type="button" role="tab" aria-selected="true" aria-controls="ddzSingleSetup">[[zi:cards]] 经典模式</button>
+          <button class="ddz-playmode-btn" data-playmode="online" type="button" role="tab" aria-selected="false" aria-controls="ddzOnlineSetup">[[zi:users]] 好友共玩</button>
         </div>
       </div>
 
@@ -65,11 +63,11 @@ permalink: /toolbox/doudizhu/
       <div id="ddzSingleSetup">
         <div class="ddz-setup-step">
           <div class="ddz-setup-step-label">② AI 难度</div>
-          <div class="ddz-mode-tabs" id="ddzDifficultyTabs">
-            <button class="ddz-mode-tab" data-diff="easy" type="button">[[zi:sprout]] 新手</button>
-            <button class="ddz-mode-tab active" data-diff="normal" type="button">[[zi:user]] 普通</button>
-            <button class="ddz-mode-tab" data-diff="hard" type="button">[[zi:flame]] 高手</button>
-            <button class="ddz-mode-tab" data-diff="master" type="button">[[zi:crown]] 大神</button>
+          <div class="ddz-mode-tabs" id="ddzDifficultyTabs" role="radiogroup" aria-label="AI 难度">
+            <button class="ddz-mode-tab" data-diff="easy" type="button" role="radio" aria-checked="false">[[zi:sprout]] 新手</button>
+            <button class="ddz-mode-tab active" data-diff="normal" type="button" role="radio" aria-checked="true">[[zi:user]] 普通</button>
+            <button class="ddz-mode-tab" data-diff="hard" type="button" role="radio" aria-checked="false">[[zi:flame]] 高手</button>
+            <button class="ddz-mode-tab" data-diff="master" type="button" role="radio" aria-checked="false">[[zi:crown]] 大神</button>
           </div>
           <div class="ddz-offline-status" id="ddzOfflineStatus" aria-live="polite">基础离线包不含神经模型；高手与大神需分别下载约 9.46 / 10.33 MiB。</div>
           <button class="ddz-btn" id="ddzOfflineCacheBtn" type="button">缓存当前档位离线版</button>
@@ -85,12 +83,14 @@ permalink: /toolbox/doudizhu/
 
       <!-- 联机入口 -->
       <div id="ddzOnlineSetup" hidden>
-        <div class="ddz-online-tabs" id="ddzOnlineTabs">
-          <button class="ddz-online-tab active" data-tab="create" type="button">[[zi:settings]] 创建房间</button>
-          <button class="ddz-online-tab" data-tab="join" type="button">[[zi:door]] 加入房间</button>
+        <div class="ddz-online-tabs" id="ddzOnlineTabs" role="tablist" aria-label="联机操作">
+          <button class="ddz-online-tab active" data-tab="create" type="button" role="tab" aria-selected="true">[[zi:settings]] 创建房间</button>
+          <button class="ddz-online-tab" data-tab="join" type="button" role="tab" aria-selected="false">[[zi:door]] 加入房间</button>
         </div>
         <div class="ddz-online-form">
+          <label class="ddz-visually-hidden" for="ddzOnlineNick">昵称</label>
           <input type="text" class="ddz-online-input" id="ddzOnlineNick" placeholder="昵称（1-12 字）" maxlength="12" autocomplete="off" />
+          <label class="ddz-visually-hidden" for="ddzOnlineCode">四位房号</label>
           <input type="text" class="ddz-online-input" id="ddzOnlineCode" placeholder="4 位房号" maxlength="4" inputmode="numeric" pattern="\d{4}" autocomplete="off" hidden />
 
           <!-- 房间配置（仅创建时显示） -->
@@ -155,7 +155,7 @@ permalink: /toolbox/doudizhu/
           </div>
 
           <button class="ddz-btn primary" id="ddzOnlineSubmit" type="button">创建房间</button>
-          <div class="ddz-online-hint" id="ddzOnlineHint"></div>
+          <div class="ddz-online-hint" id="ddzOnlineHint" role="status" aria-live="polite"></div>
         </div>
         <!-- 之前进过的房间 -->
         <div class="ddz-online-resume" id="ddzOnlineResume" hidden>
@@ -174,7 +174,7 @@ permalink: /toolbox/doudizhu/
          出牌行固定高度，出/收/思考切换都不改变 table 高度（防画幅跳）。 -->
     <div class="ddz-tops">
       <div class="ddz-tops-avatars">
-        <div class="ddz-seat-ai" data-seat="2">
+        <div class="ddz-seat-ai" data-seat="2" role="group" aria-label="北座玩家">
           <div class="ddz-avatar" id="ddzAvatar2">[[zi:bot]]<span class="ddz-doubled-badge" id="ddzDoubled2" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared2" hidden>明牌</span></div>
           <div class="ddz-name" id="ddzName2">AI</div>
           <div class="ddz-handcount" id="ddzCount2">17</div>
@@ -186,7 +186,7 @@ permalink: /toolbox/doudizhu/
             <span class="card-back"></span>
           </div>
         </div>
-        <div class="ddz-seat-ai" data-seat="1">
+        <div class="ddz-seat-ai" data-seat="1" role="group" aria-label="东座玩家">
           <div class="ddz-avatar" id="ddzAvatar1">[[zi:bot]]<span class="ddz-doubled-badge" id="ddzDoubled1" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared1" hidden>明牌</span></div>
           <div class="ddz-name" id="ddzName1">AI</div>
           <div class="ddz-handcount" id="ddzCount1">17</div>
@@ -199,7 +199,7 @@ permalink: /toolbox/doudizhu/
     </div>
 
     <!-- 我的座位 -->
-    <div class="ddz-self">
+    <div class="ddz-self" role="group" aria-label="我的座位">
       <div class="ddz-avatar" id="ddzAvatar0">[[zi:user]]<span class="ddz-doubled-badge" id="ddzDoubled0" hidden>×2</span><span class="ddz-declared-badge" id="ddzDeclared0" hidden>明牌</span></div>
       <div class="ddz-self-info">
         <div class="ddz-name" id="ddzName0">我</div>
@@ -222,7 +222,7 @@ permalink: /toolbox/doudizhu/
     <!-- 自己的回合倒计时独占一行、居中固定 — 跟具体哪些按钮在显示无关，
          不出/提示/出牌的任意组合都不会改变时钟的位置 -->
     <div class="ddz-self-clock-row">
-      <span class="ddz-self-clock" id="ddzSelfClock" hidden>
+      <span class="ddz-self-clock" id="ddzSelfClock" role="timer" aria-live="off" aria-label="回合剩余时间" hidden>
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
           <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
           <path d="M12 13 V8 M12 13 L15.4 14.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
@@ -241,12 +241,12 @@ permalink: /toolbox/doudizhu/
       <button class="ddz-btn primary" id="ddzPlayBtn" type="button" hidden>出牌</button>
     </div>
 
-    <div class="ddz-hand" id="ddzHand"></div>
+    <div class="ddz-hand" id="ddzHand" role="listbox" aria-label="我的手牌，可用左右方向键移动，空格选择" aria-multiselectable="true"></div>
 
     <!-- 叫地主/抢地主/加倍 面板 ── 绝对定位在动作行级别（贴 .ddz-table 底沿往上一段），
          跟"不出/提示/出牌"按钮一个高度，避免每个阶段按钮"忽上忽下"。
          加倍面板自带 3 列网格，宽度自适应，max-width 不超出桌沿。 -->
-    <div class="ddz-bid-panel" id="ddzBidPanel" hidden>
+    <div class="ddz-bid-panel" id="ddzBidPanel" role="group" aria-labelledby="ddzBidTitle" hidden>
       <span class="ddz-bid-countdown" id="ddzDoubleCountdown" hidden>
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
           <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
@@ -261,13 +261,13 @@ permalink: /toolbox/doudizhu/
 
     <!-- 右下角积分提示 + 托管 / 理牌 开关 -->
     <div class="ddz-corner-chips">
-      <button class="ddz-autopilot-toggle" id="ddzAutopilotBtn" type="button" title="托管：交给电脑接管打牌">[[zi:bot]] 托管</button>
-      <button class="ddz-autopilot-toggle" id="ddzGroupSortToggle" type="button" title="按可能的牌型自动分组排列手牌">[[zi:puzzle]] 理牌：关</button>
+      <button class="ddz-autopilot-toggle" id="ddzAutopilotBtn" type="button" title="托管：交给电脑接管打牌" aria-pressed="false">[[zi:bot]] 托管</button>
+      <button class="ddz-autopilot-toggle" id="ddzGroupSortToggle" type="button" title="按可能的牌型自动分组排列手牌" aria-pressed="false">[[zi:puzzle]] 理牌：关</button>
       <div class="ddz-score-hint" id="ddzMultiplier"></div>
     </div>
 
     <!-- 浮层：游戏结束 -->
-    <div class="ddz-overlay" id="ddzGameOverOverlay">
+    <div class="ddz-overlay" id="ddzGameOverOverlay" role="dialog" aria-modal="true" aria-labelledby="ddzGameOverTitle" tabindex="-1">
       <h2 id="ddzGameOverTitle">游戏结束</h2>
       <div class="ddz-result-detail" id="ddzGameOverDetail"></div>
       <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center;">
@@ -278,9 +278,10 @@ permalink: /toolbox/doudizhu/
   </div>
 
   <!-- 游戏内「榜单 / 玩法 / 评论」浮层：替代退出全屏（永久全屏，不再跳到游戏外） -->
-  <div class="ddz-board-modal" id="ddzBoardModal" hidden>
+  <dialog class="ddz-board-modal" id="ddzBoardModal" aria-labelledby="ddzBoardTitle" hidden>
     <div class="ddz-board-backdrop" id="ddzBoardBackdrop"></div>
     <div class="ddz-board-panel">
+      <h2 class="ddz-visually-hidden" id="ddzBoardTitle">斗地主榜单、玩法与评论</h2>
       <button class="ddz-board-close" id="ddzBoardClose" type="button" aria-label="关闭">×</button>
       <details class="about" style="font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
         <summary>游戏规则</summary>
@@ -293,17 +294,17 @@ permalink: /toolbox/doudizhu/
       <div id="ddz-nick-mount"></div>
       <div id="ddz-cm-mount"></div>
     </div>
-  </div>
+  </dialog>
 </div>
 
-<script src="/assets/js/games-shell/identity.js?v=20260801g5a"></script>
-<script src="/assets/js/games-shell/save-state.js?v=20260801g5a"></script>
-<script src="/assets/js/games-shell/settlement.js?v=20260801g5a"></script>
-<script src="/assets/js/doudizhu/engine.js?v=20260801g5a"></script>
-<script src="/assets/js/doudizhu/ai.js?v=20260801g5a"></script>
-<script src="/assets/js/doudizhu/policy.js?v=20260801g5a"></script>
-<script src="/assets/js/doudizhu/ai-runtime.js?v=20260801g5a"></script>
-<script src="/assets/js/doudizhu/storage.js?v=20260801g5a"></script>
-<script src="/assets/js/doudizhu/offline.js?v=20260801g5a"></script>
-<script src="/assets/js/doudizhu/extras.js?v=20260801g5a"></script>
-<script src="/assets/js/doudizhu/ui.js?v=20260801g5a"></script>
+<script src="/assets/js/games-shell/identity.js?v=20260801g6g"></script>
+<script src="/assets/js/games-shell/save-state.js?v=20260801g6g"></script>
+<script src="/assets/js/games-shell/settlement.js?v=20260801g6g"></script>
+<script src="/assets/js/doudizhu/engine.js?v=20260801g6g"></script>
+<script src="/assets/js/doudizhu/ai.js?v=20260801g6g"></script>
+<script src="/assets/js/doudizhu/policy.js?v=20260801g6g"></script>
+<script src="/assets/js/doudizhu/ai-runtime.js?v=20260801g6g"></script>
+<script src="/assets/js/doudizhu/storage.js?v=20260801g6g"></script>
+<script src="/assets/js/doudizhu/offline.js?v=20260801g6g"></script>
+<script src="/assets/js/doudizhu/extras.js?v=20260801g6g"></script>
+<script src="/assets/js/doudizhu/ui.js?v=20260801g6g"></script>

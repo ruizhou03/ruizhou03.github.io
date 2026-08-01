@@ -4,6 +4,14 @@
   const POLICY = window.DDZPolicy;
   const AI_WORKER = window.DDZAIWorker;
   const T = E.TYPES;
+  const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function announceA11y(message) {
+    const live = document.getElementById('ddzA11yLive');
+    if (!live || !message) return;
+    live.textContent = '';
+    requestAnimationFrame(() => { live.textContent = String(message); });
+  }
 
   // ============================================================
   // State
@@ -156,6 +164,7 @@
     if (!btn) return;
     btn.classList.toggle('on', sfxEnabled);
     btn.textContent = sfxEnabled ? '[[zi:volume]] 音效' : '[[zi:volume]] 静音';
+    btn.setAttribute('aria-pressed', String(sfxEnabled));
   }
   loadSfxPref();
   // setup 一次后再绑定按钮
@@ -321,8 +330,12 @@
   document.querySelectorAll('.ddz-mode-tab').forEach(t => {
     t.addEventListener('click', () => {
       if (state.phase !== PHASE.IDLE && state.phase !== PHASE.SETTLEMENT) return;
-      document.querySelectorAll('.ddz-mode-tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.ddz-mode-tab').forEach(x => {
+        x.classList.remove('active');
+        x.setAttribute('aria-checked', 'false');
+      });
       t.classList.add('active');
+      t.setAttribute('aria-checked', 'true');
       state.difficulty = t.dataset.diff;
       preloadSelectedModel();
     });
@@ -397,6 +410,7 @@
       autopilotBtn.classList.remove('active');
       autopilotBtn.textContent = '[[zi:bot]] 托管';
     }
+    autopilotBtn.setAttribute('aria-pressed', String(!!state.autopilot));
     refreshCornerChipsDisabled();
   }
   function setAutopilot(on) {
@@ -436,14 +450,111 @@
   // 玩法 / 战绩榜 / 评论改在游戏内「🏆 榜单」浮层看，不用跳出游戏外。
   document.body.classList.add('ddz-game-fullscreen');
   const ddzBoardModal = $('ddzBoardModal');
+  let dialogReturnFocus = null;
+  function dialogFocusable(dialog) {
+    return Array.from(dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      .filter(el => !el.hidden && el.getClientRects().length);
+  }
+  function focusDialog(dialog, preferred) {
+    if (!dialog) return;
+    dialogReturnFocus = document.activeElement;
+    requestAnimationFrame(() => {
+      const target = preferred || dialogFocusable(dialog)[0] || dialog;
+      if (target && target.focus) target.focus();
+    });
+  }
+  function restoreDialogFocus() {
+    const target = dialogReturnFocus;
+    dialogReturnFocus = null;
+    if (target && target.focus && document.contains(target)) target.focus();
+  }
   function ddzOpenBoard() {
-    if (ddzBoardModal) ddzBoardModal.hidden = false;
+    if (ddzBoardModal) {
+      dialogReturnFocus = $('ddzBoardBtn');
+      ddzBoardModal.hidden = false;
+      if (ddzBoardModal.showModal && !ddzBoardModal.open) ddzBoardModal.showModal();
+      requestAnimationFrame(() => $('ddzBoardClose').focus());
+    }
     initShell().catch(error => console.warn('[doudizhu] extras unavailable:', error.message || error));
   }
-  function ddzCloseBoard() { if (ddzBoardModal) ddzBoardModal.hidden = true; }
+  function ddzCloseBoard() {
+    if (ddzBoardModal) {
+      if (ddzBoardModal.open && ddzBoardModal.close) ddzBoardModal.close();
+      ddzBoardModal.hidden = true;
+    }
+    restoreDialogFocus();
+  }
   if ($('ddzBoardBtn')) $('ddzBoardBtn').addEventListener('click', ddzOpenBoard);
   if ($('ddzBoardClose')) $('ddzBoardClose').addEventListener('click', ddzCloseBoard);
   if ($('ddzBoardBackdrop')) $('ddzBoardBackdrop').addEventListener('click', ddzCloseBoard);
+  if (ddzBoardModal) ddzBoardModal.addEventListener('cancel', event => {
+    event.preventDefault();
+    ddzCloseBoard();
+  });
+  function topVisibleDialog() {
+    const dialogs = Array.from(document.querySelectorAll('[role="dialog"]'))
+      .filter(dialog => !dialog.hidden && dialog.getClientRects().length && (dialog.classList.contains('show') || dialog.id !== 'ddzGameOverOverlay'));
+    return dialogs[dialogs.length - 1] || null;
+  }
+  function closeDialogFromEscape(dialog, event) {
+    if (dialog === ddzBoardModal) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      ddzCloseBoard();
+      return true;
+    }
+    if (dialog === gameOverOverlay) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      gameOverOverlay.classList.remove('show');
+      restoreDialogFocus();
+      return true;
+    }
+    return false;
+  }
+  document.addEventListener('keydown', event => {
+    const dialog = topVisibleDialog();
+    if (!dialog) return;
+    if (event.key === 'Escape') {
+      closeDialogFromEscape(dialog, event);
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = dialogFocusable(dialog);
+    if (!focusable.length) {
+      event.preventDefault();
+      dialog.focus();
+      return;
+    }
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault(); event.stopImmediatePropagation(); last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault(); event.stopImmediatePropagation(); first.focus();
+    }
+  }, true);
+  // 某些浏览器/扩展会在 keydown 之后自行移动焦点；focusin 是最终防线。
+  document.addEventListener('focusin', event => {
+    const dialog = topVisibleDialog();
+    if (!dialog || dialog.contains(event.target)) return;
+    event.stopImmediatePropagation();
+    const target = dialogFocusable(dialog)[0] || dialog;
+    if (target && target.focus) target.focus();
+  }, true);
+  // 站点级快捷键可能截断 keydown；keyup 再兜底一次 Escape。
+  document.addEventListener('keyup', event => {
+    if (event.key !== 'Escape') return;
+    const dialog = topVisibleDialog();
+    if (dialog) closeDialogFromEscape(dialog, event);
+  }, true);
+  if (gameOverOverlay && window.MutationObserver) {
+    new MutationObserver(() => {
+      if (gameOverOverlay.classList.contains('show')) {
+        focusDialog(gameOverOverlay, $('ddzPlayAgainBtn'));
+        announceA11y(`${gameOverTitle.textContent}. ${gameOverDetail.textContent}`);
+      }
+    }).observe(gameOverOverlay, { attributes: true, attributeFilter: ['class'] });
+  }
   async function handlePrimarySettlementAction() {
     if (state.mode === 'online' && state.online) {
       gameOverOverlay.classList.remove('show', 'has-spring');
@@ -543,6 +654,7 @@
   // ============================================================
   const RANK_LABELS = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
   const SUIT_LABELS = ['♠','♥','♦','♣'];
+  const SUIT_NAMES = ['黑桃','红桃','方块','梅花'];
 
   // ===== 牌面 V2：四象限版型用的「真实矢量花色」（从 Apple Symbols 字体提取轮廓）=====
   // viewBox 0 0 1000 1000；按 1em 缩放，fill=currentColor 跟随红/黑。
@@ -585,10 +697,24 @@
     };
   }
 
+  function cardAriaLabel(c) {
+    if (c === 52) return '小王';
+    if (c === 53) return '大王';
+    const info = cardDisplayInfo(c);
+    return SUIT_NAMES[info.suitIdx] + info.rank;
+  }
+
   function buildCardEl(c, sizeClass, opts) {
     opts = opts || {};
     const info = cardDisplayInfo(c);
     const el = document.createElement('span');
+    if (opts.interactive) {
+      el.setAttribute('role', 'option');
+      el.setAttribute('aria-label', cardAriaLabel(c));
+      el.setAttribute('aria-selected', String(!!opts.selected));
+    } else {
+      el.setAttribute('aria-hidden', 'true');
+    }
 
     if (info.isJoker) {
       el.className = 'ddz-card ' + sizeClass + ' is-joker ' + (info.jokerKind === 'big' ? 'joker-big' : 'joker-small');
@@ -753,6 +879,8 @@
   window.addEventListener('orientationchange', () => scheduleRefit(260));
 
   function renderHand() {
+    const focusedCid = document.activeElement && handEl.contains(document.activeElement)
+      ? document.activeElement.dataset.cid : null;
     handEl.innerHTML = '';
     if (!state.hands[0].length) return;
     // 是否启用智能分组（默认关，玩家自己排）— setup 屏 toggle 可开
@@ -760,11 +888,15 @@
     const arranged = useGroups
       ? arrangeHandByGroups(state.hands[0])
       : sortHandDesc(state.hands[0]).map((c, i) => ({ card: c, groupId: 0, isStart: false }));
-    arranged.forEach((item) => {
+    arranged.forEach((item, index) => {
       const c = item.card;
-      const cardEl = buildCardEl(c, 'size-full', { cid: c, selected: state.selected.has(c) });
+      const cardEl = buildCardEl(c, 'size-full', { cid: c, selected: state.selected.has(c), interactive: true });
+      cardEl.tabIndex = (String(c) === focusedCid || (!focusedCid && index === 0)) ? 0 : -1;
+      cardEl.setAttribute('aria-posinset', String(index + 1));
+      cardEl.setAttribute('aria-setsize', String(arranged.length));
       if (item.isStart) cardEl.classList.add('group-start');
       cardEl.addEventListener('pointerdown', e => onCardPointerDown(e, cardEl, c));
+      cardEl.addEventListener('keydown', e => onCardKeyDown(e, cardEl, c));
       cardEl.addEventListener('mouseenter', () => {
         if (!canSelectCards()) return;
         if (state.selected.has(c)) return;
@@ -773,7 +905,46 @@
       cardEl.addEventListener('mouseleave', () => cardEl.classList.remove('hover-preview'));
       handEl.appendChild(cardEl);
     });
+    if (focusedCid) {
+      const restoredFocus = handEl.querySelector(`[data-cid="${focusedCid}"]`);
+      if (restoredFocus) requestAnimationFrame(() => restoredFocus.focus());
+    }
     requestAnimationFrame(fitDoudizhuRows);
+  }
+
+  function setRovingCard(cardEl) {
+    handEl.querySelectorAll('[role="option"]').forEach(el => { el.tabIndex = el === cardEl ? 0 : -1; });
+  }
+
+  function toggleCardFromKeyboard(cardEl, cid) {
+    if (!canSelectCards()) return;
+    if (state.selected.has(cid)) state.selected.delete(cid);
+    else state.selected.add(cid);
+    cardEl.classList.toggle('selected', state.selected.has(cid));
+    cardEl.setAttribute('aria-selected', String(state.selected.has(cid)));
+    setRovingCard(cardEl);
+    playSfx('click');
+    updatePlayBtnState();
+    scheduleSmartSnap();
+  }
+
+  function onCardKeyDown(event, cardEl, cid) {
+    const cards = Array.from(handEl.querySelectorAll('[role="option"]'));
+    const index = cards.indexOf(cardEl);
+    let next = null;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = cards[Math.min(cards.length - 1, index + 1)];
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = cards[Math.max(0, index - 1)];
+    else if (event.key === 'Home') next = cards[0];
+    else if (event.key === 'End') next = cards[cards.length - 1];
+    else if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleCardFromKeyboard(cardEl, cid);
+      return;
+    } else return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (next) { setRovingCard(next); next.focus(); }
   }
 
   // 智能分组开关（默认关；玩家可在 setup 屏 toggle）
@@ -791,6 +962,7 @@
     btn.classList.toggle('on', groupSortEnabled);
     btn.textContent = groupSortEnabled ? '[[zi:puzzle]] 理牌：开' : '[[zi:puzzle]] 理牌：关';
     btn.classList.toggle('active', groupSortEnabled);
+    btn.setAttribute('aria-pressed', String(groupSortEnabled));
     refreshCornerChipsDisabled();
   }
 
@@ -828,6 +1000,7 @@
     if (dragMode === 'add') state.selected.add(cid);
     else { state.selected.delete(cid); snapLockedThisTrick = true; }   // 任何"取消"动作 → 锁
     cardEl.classList.toggle('selected', state.selected.has(cid));
+    cardEl.setAttribute('aria-selected', String(state.selected.has(cid)));
     playSfx('click');
     updatePlayBtnState();
   }
@@ -948,6 +1121,24 @@
       $('ddzName0').textContent = '我（' + role + '）';
     } else {
       $('ddzName0').textContent = '我';
+    }
+    const actor = state.phase === PHASE.PLAYING ? state.turnIdx
+      : state.phase === PHASE.BIDDING ? state.bidTurnIdx
+      : state.phase === PHASE.DOUBLING ? state.doubleTurnIdx : -1;
+    const phaseName = state.phase === PHASE.PLAYING ? '出牌阶段'
+      : state.phase === PHASE.BIDDING ? '叫地主阶段'
+      : state.phase === PHASE.DOUBLING ? '加倍阶段'
+      : state.phase === PHASE.SETTLEMENT ? '结算阶段' : '';
+    const turnText = phaseName && actor >= 0 ? `${phaseName}，${actor === 0 ? '轮到你' : '轮到 AI'}` : phaseName;
+    const turnLive = $('ddzTurnAnnounce');
+    if (turnLive && turnLive.textContent !== turnText) turnLive.textContent = turnText;
+    for (let i = 0; i < 3; i++) {
+      const seat = document.querySelector(i === 0 ? '.ddz-self' : `.ddz-seat-ai[data-seat="${i}"]`);
+      if (!seat) continue;
+      const name = $('ddzName' + i).textContent;
+      const count = $('ddzCount' + i).textContent;
+      const role = state.landlordIdx < 0 ? '身份未定' : (state.landlordIdx === i ? '地主' : '农民');
+      seat.setAttribute('aria-label', `${name}，${role}，剩余 ${count} 张${actor === i ? '，当前行动' : ''}`);
     }
     applyAttentionFocus();
   }
@@ -1074,7 +1265,7 @@
     document.body.appendChild(stars);
     setTimeout(() => stars.remove(), 1600);
     // 设备震动（手机）
-    try { if (navigator.vibrate) navigator.vibrate([60, 40, 80, 30, 100]); } catch {}
+    try { if (!REDUCED_MOTION && navigator.vibrate) navigator.vibrate([60, 40, 80, 30, 100]); } catch {}
   }
 
   function patternFxClass(type) {
@@ -1187,6 +1378,7 @@
       : (msg || fallbackLabel);
     statusMsg.textContent = display;
     statusMsg.hidden = !display;
+    if (display) announceA11y(display);
     const lobby = document.getElementById('ddzLobby');
     const onlineHint = document.getElementById('ddzOnlineHint');
     if (onlineHint && lobby && !lobby.hidden) {
@@ -3344,8 +3536,12 @@
   document.querySelectorAll('.ddz-playmode-btn').forEach(b => {
     b.addEventListener('click', () => {
       if (state.phase !== PHASE.IDLE && state.phase !== PHASE.SETTLEMENT) return;
-      document.querySelectorAll('.ddz-playmode-btn').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.ddz-playmode-btn').forEach(x => {
+        x.classList.remove('active');
+        x.setAttribute('aria-selected', 'false');
+      });
       b.classList.add('active');
+      b.setAttribute('aria-selected', 'true');
       const m = b.dataset.playmode;
       if (m === 'single') {
         singleSetupEl.hidden = false;
@@ -3366,8 +3562,12 @@
   let onlineTab = 'create';
   document.querySelectorAll('.ddz-online-tab').forEach(b => {
     b.addEventListener('click', () => {
-      document.querySelectorAll('.ddz-online-tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.ddz-online-tab').forEach(x => {
+        x.classList.remove('active');
+        x.setAttribute('aria-selected', 'false');
+      });
       b.classList.add('active');
+      b.setAttribute('aria-selected', 'true');
       onlineTab = b.dataset.tab;
       $('ddzOnlineCode').hidden = onlineTab === 'create';
       $('ddzOnlineConfig').hidden = onlineTab !== 'create';
@@ -3984,12 +4184,12 @@
   // ── 空间化 lobby(方案A:贴合牌桌真实座位) + 乐观更新 ─────────────────
   function lobbySeatCardHtml(slot) {
     if (!slot || slot.kind === 'empty') {
-      const add = state.online.isHost ? '<div class="seatbtns"><button class="sb ai" data-act="add_ai">[[zi:bot]] 加机器人</button></div>' : '';
+      const add = state.online.isHost ? '<div class="seatbtns"><button type="button" class="sb ai" data-act="add_ai">[[zi:bot]] 加机器人</button></div>' : '';
       return '<div class="av">＋</div><div class="nm">等待加入</div>' + add;
     }
     if (slot.kind === 'ai') {
       const lvl = ({ normal: '普通', hard: '高手', master: '大神' })[slot.aiLevel] || '普通';
-      const rm = state.online.isHost ? '<div class="seatbtns"><button class="sb warn" data-act="remove_ai">移除</button></div>' : '';
+      const rm = state.online.isHost ? '<div class="seatbtns"><button type="button" class="sb warn" data-act="remove_ai">移除机器人</button></div>' : '';
       return '<div class="av">[[zi:bot]]</div><div class="nm">机器人·' + lvl + '</div>' + rm;
     }
     const p = slot.player, isMe = p.id === state.online.playerId;
@@ -3999,7 +4199,7 @@
     else if (isMe) badge = '<span class="badge me">你</span>';
     else if (!p.online) badge = '<span class="badge offline">离线</span>';
     let btns = '';
-    if (state.online.isHost && !isMe) btns = '<div class="seatbtns"><button class="sb" data-act="transfer" data-pid="' + p.id + '">设为房主</button><button class="sb warn" data-act="kick" data-pid="' + p.id + '">踢</button></div>';
+    if (state.online.isHost && !isMe) btns = '<div class="seatbtns"><button type="button" class="sb" data-act="transfer" data-pid="' + p.id + '">设为房主</button><button type="button" class="sb warn" data-act="kick" data-pid="' + p.id + '">移出玩家</button></div>';
     return '<div class="av">' + av + '</div><div class="nm">' + escHtml(p.nick) + '</div>' + badge + btns;
   }
   function renderSpatialLobby(srv) {
@@ -4044,6 +4244,10 @@
       const btn = e.target.closest && e.target.closest('button[data-act]');
       if (!btn || !state.online || !state.online.lastSrv) return;
       const act = btn.dataset.act, pid = btn.dataset.pid;
+      const confirmation = act === 'remove_ai' ? '确定移除这个机器人座位吗？'
+        : act === 'kick' ? '确定把这位玩家移出房间吗？'
+        : act === 'transfer' ? '确定将房主权限转让给这位玩家吗？' : '';
+      if (confirmation && !window.confirm(confirmation)) return;
       const opt = JSON.parse(JSON.stringify(state.online.lastSrv));
       opt.config = opt.config || {};
       if (act === 'add_ai') { opt.config.aiCount = (opt.config.aiCount || 0) + 1; renderSpatialLobby(opt); sendAddAi(); }
@@ -4102,6 +4306,7 @@
   function flashStatus(msg) {
     const old = $('ddzOnlineHint').textContent;
     $('ddzOnlineHint').textContent = msg;
+    announceA11y(msg);
     setTimeout(() => { if ($('ddzOnlineHint').textContent === msg) $('ddzOnlineHint').textContent = old; }, 1400);
   }
 
@@ -4110,7 +4315,9 @@
     const r = await onlineCommand('start');
     if (!r.ok) alert('开始失败：' + r.error);
   });
-  $('ddzLobbyLeaveBtn').addEventListener('click', () => leaveOnlineRoom(false));
+  $('ddzLobbyLeaveBtn').addEventListener('click', () => {
+    if (window.confirm('确定离开当前房间吗？')) leaveOnlineRoom(false);
+  });
 
   async function sendKick(targetPid) {
     if (!state.online) return;
@@ -4128,7 +4335,11 @@
     clearSession();
     state.online = null;
     state.mode = 'single';
-    document.querySelectorAll('.ddz-playmode-btn').forEach(x => x.classList.toggle('active', x.dataset.playmode === 'single'));
+    document.querySelectorAll('.ddz-playmode-btn').forEach(x => {
+      const selected = x.dataset.playmode === 'single';
+      x.classList.toggle('active', selected);
+      x.setAttribute('aria-selected', String(selected));
+    });
     singleSetupEl.hidden = false;
     onlineSetupEl.hidden = true;
     lobbyEl.hidden = true;
@@ -4578,7 +4789,9 @@
     });
     preloadSelectedModel();
     document.querySelectorAll('.ddz-mode-tab').forEach(t => {
-      t.classList.toggle('active', t.dataset.diff === state.difficulty);
+      const selected = t.dataset.diff === state.difficulty;
+      t.classList.toggle('active', selected);
+      t.setAttribute('aria-checked', String(selected));
     });
     setupView.hidden = true;
     tableView.hidden = false;
