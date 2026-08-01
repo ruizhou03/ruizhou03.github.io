@@ -17,8 +17,10 @@ assert.match(source, /Authorization: 'Bearer ' \+ opts\.token/);
 assert.match(source, /invite=' \+ encodeURIComponent\(online\.inviteSecret\)/);
 assert.match(source, /tool\.doudizhu\.sse/);
 assert.match(source, /onlineAuthenticatedCall/);
+assert.match(source, /function ddzSerialize\(\)[\s\S]*?state\.mode !== 'single'/);
+assert.match(source, /if \(state\.mode === 'online'\)[\s\S]*?ddzSave\.start\(\)/);
 assert.doesNotMatch(source, /action=stream[^;\n]*[?&]token=/);
 assert.doesNotMatch(source, /qs: \{[^\n]*token:/);
 assert.doesNotMatch(source, /beforeunload/);
 
-console.log('斗地主联机安全契约：14 通过, 0 失败');
+console.log('斗地主联机安全契约：16 通过, 0 失败');

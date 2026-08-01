@@ -4374,6 +4374,9 @@
   // 续局
   // ============================================================
   function ddzSerialize() {
+    // 联机牌局由服务端权威状态与联机会话凭证恢复，不能写进单机存档。
+    // 否则刷新联机牌桌时会弹出单机“继续上次”遮罩，并可能覆盖在线状态。
+    if (state.mode !== 'single') return null;
     if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.BIDDING && state.phase !== PHASE.DOUBLING) return null;
     return {
       v: 2,
@@ -4493,7 +4496,10 @@
       serialize: ddzSerialize,
     });
     const peek = ddzSave.peek();
-    if (peek && peek.data && peek.data.phase && (peek.data.v == null || peek.data.v >= 2)) {
+    if (state.mode === 'online') {
+      // 保留已有的合法单机存档，但在线重连时绝不展示或恢复它。
+      ddzSave.start();
+    } else if (peek && peek.data && peek.data.phase && (peek.data.v == null || peek.data.v >= 2)) {
       const handsTotal = (peek.data.hands || []).reduce((s, h) => s + (h ? h.length : 0), 0);
       const phaseLabel = peek.data.phase === 'bidding' ? '抢地主中' :
                           peek.data.phase === 'doubling' ? '加倍中' : '出牌中';
