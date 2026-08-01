@@ -2,8 +2,8 @@
 
 ## 当前发布合同
 
-- release marker: `20260801p7c`
-- build: `2026.08.01.phase7-c`
+- release marker: `20260801p7d`
+- build: `2026.08.01.phase7-d`
 - rulesVersion: `gd-huaian-2025-site-v1`
 - protocolVersion: `guandan-protocol-v2`
 - roomSchemaVersion: `3`
@@ -87,6 +87,21 @@
 - 尚未由自动 WebDriver 覆盖：Safari 200% zoom、VoiceOver、真实断网切换；这些
   继续保留在实体/人工强制矩阵中。
 
+## Safari 200% 紧凑布局阶段 7D 候选证据（2026-08-01）
+
+- 用户在生产 `20260801p7c` 的真实 Safari 200% 页面缩放下发现牌桌、中央出牌区、
+  右侧理牌键和底部手牌相互挤压，核心对局体验不可接受；该次人工验收记为失败，
+  未用“游戏属于二维布局”例外掩盖功能损失。
+- `20260801p7d` 在桌面精细指针且 CSS 视口不大于 1100×700 时复用横屏紧凑牌桌：
+  收起标题、归拢四个工具栏按钮、以当前玩家和手牌为中心、收起重复的一键理牌，
+  并为桌面手牌保留可见横向滚动提示。牌面仍为 46×66 CSS px，不靠缩成微型牌
+  冒充适配。
+- 系统 Safari 26.5.2 在 1024×620 WebDriver 窗口（实际 `innerHeight=568`）通过：
+  27 张牌、Enter 选牌、显式换列、三个 dialog 焦点/Escape/inert、四个 44×44
+  工具栏按钮及 6px 间距、无页面横向溢出；牌桌底等于视口底，手牌底位于视口内。
+- 该自动窗口是 200% 后有效视口的布局等价测试，不替代用户浏览器真实页面缩放。
+  生产部署后仍须由用户在实际 Safari 200% 状态复验，才可把 zoom 项标为通过。
+
 ## 生产发布证据
 
 - site commit: `944da28e09d47dd3477758dcf53367bcf327a64e`
@@ -116,6 +131,8 @@
   10,000 条规则差分、AI、Jekyll 和生产 marker/API gate 均成功。
 - stage 7C 真实 Safari 生产验收：Safari 26.5.2，全部自动检查通过，且测试结束
   后 WebDriver session 与临时 `safaridriver` 均已销毁。
+- stage 7D 候选在提交前通过本地完整 P0、网络、AI、PWA hash、Jekyll 与 10,000
+  条前端/模拟器规则差分；生产 commit、CI 和人工 200% 复验待本次发布后补录。
 
 ## 仍需真实设备完成的强制验收
 

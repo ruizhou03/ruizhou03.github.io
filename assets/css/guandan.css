@@ -2020,11 +2020,12 @@
     .gd-rotate-sub { font-size: 0.9rem; color: var(--color-muted); max-width: 17rem; line-height: 1.65; }
   }
 
-  /* ======== 触屏设备横屏：纵向收紧 + 给左下"我/托管"、右下理牌键让位 ========
-     用 (pointer: coarse) 判定「触屏 + 横屏」，不再用 max-height:560px —— 旋转时浏览器
-     会短暂报旧的竖屏高度(>560)，导致这套横屏布局瞬间失配、退回非全屏的「网页」样式
-     （表头露出、牌桌居中）。pointer/orientation 在旋转时更新更可靠，不会再掉出全屏。 */
-  @media (orientation: landscape) and (pointer: coarse) {
+  /* ======== 横屏紧凑牌桌：触屏横屏 + 桌面 200% zoom ========
+     触屏继续用 pointer/orientation 判断；桌面浏览器放大到 200% 后，CSS 视口通常会缩到
+     1100×700 以下，复用同一套以当前玩家为中心的紧凑牌桌。游戏本体仍保持二维关系，
+     但不再让标题、四家座位、操作键和 27 张手牌彼此挤压或被视口裁掉。 */
+  @media (orientation: landscape) and (pointer: coarse),
+         (orientation: landscape) and (pointer: fine) and (max-width: 1100px) and (max-height: 700px) {
     body.gd-game-fullscreen .guandan-wrap header { margin: 0; min-height: 0; }
     body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
     /* 横屏右上角从右到左：退出(✕) → 榜单(🏆) → 设置(⚙️) */
@@ -2164,4 +2165,15 @@
     .gd-result-score .delta { font-size: 1.15rem; }
     .gd-result-score .breakdown { font-size: 0.72rem; }
     .gd-result-actions { margin-top: 0.35rem; }
+  }
+
+  /* 桌面紧凑布局保留一条可见的手牌横向滚动条。触屏仍使用无滚动条的手势滑动；
+     键盘用户也可以逐张聚焦，因而不依赖精细指针拖拽。 */
+  @media (orientation: landscape) and (pointer: fine) and (max-width: 1100px) and (max-height: 700px) {
+    body.gd-game-fullscreen .gd-hand { scrollbar-width: thin; }
+    body.gd-game-fullscreen .gd-hand::-webkit-scrollbar { display: block; height: 10px; }
+    body.gd-game-fullscreen .gd-hand::-webkit-scrollbar-thumb {
+      background: rgba(141,110,55,0.55);
+      border-radius: 999px;
+    }
   }

@@ -9,8 +9,11 @@ const args = new Map(process.argv.slice(2).map((arg) => {
   return [key, rest.join('=')];
 }));
 const baseUrl = args.get('--url') || 'https://ruizhou03.com/toolbox/guandan/';
-const marker = args.get('--marker') || '20260801p7c';
+const marker = args.get('--marker') || '20260801p7d';
 const port = Number(args.get('--port') || 4445);
+const windowWidth = Number(args.get('--width') || 1440);
+const windowHeight = Number(args.get('--height') || 900);
+const expectCompact = args.has('--expect-compact');
 const webdriverBase = `http://127.0.0.1:${port}`;
 const elementKey = 'element-6066-11e4-a52e-4f735466cecf';
 
@@ -139,7 +142,7 @@ async function run() {
   assert.equal(String(session.capabilities.browserName).toLowerCase(), 'safari');
   await request(`/session/${sessionId}/window/rect`, {
     method: 'POST',
-    body: { x: 0, y: 0, width: 1440, height: 900 },
+    body: { x: 0, y: 0, width: windowWidth, height: windowHeight },
   });
 
   const url = new URL(baseUrl);
@@ -287,23 +290,39 @@ async function run() {
       const rect = el.getBoundingClientRect();
       return { name, x: rect.x, right: rect.right, width: rect.width, height: rect.height };
     });
+    const orderedToolbar = rects.slice().sort((a, b) => a.x - b.x);
     return {
       innerWidth,
       innerHeight,
       horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-      toolbarGaps: [rects[1].x - rects[0].right, rects[3].x - rects[2].right],
+      compact: {
+        headerHidden: getComputedStyle(document.querySelector('.guandan-wrap header h1')).display === 'none',
+        oneClickSortHidden: getComputedStyle(document.querySelector('#gdSortBtn')).display === 'none',
+        cardWidth: document.querySelector('#gdHand .gd-card')?.getBoundingClientRect().width || 0,
+        tableBottom: document.querySelector('#gdTable').getBoundingClientRect().bottom,
+        handBottom: document.querySelector('#gdHand').getBoundingClientRect().bottom,
+      },
+      toolbarGaps: orderedToolbar.slice(1).map((rect, index) => rect.x - orderedToolbar[index].right),
       rects,
     };
   `);
   assert.equal(layout.horizontalOverflow, false);
   assert.ok(layout.rects.every((rect) => rect.width >= 44 && rect.height >= 44));
   assert.ok(layout.toolbarGaps.every((gap) => gap >= 4));
+  if (expectCompact) {
+    assert.equal(layout.compact.headerHidden, true, '紧凑布局必须隐藏占高的桌面标题');
+    assert.equal(layout.compact.oneClickSortHidden, true, '紧凑布局必须移除重复的一键理牌按钮');
+    assert.ok(layout.compact.cardWidth >= 44, '紧凑布局牌面不能缩到无法辨认');
+    assert.ok(layout.compact.tableBottom <= layout.innerHeight + 1, '紧凑牌桌不得被视口底部裁断');
+    assert.ok(layout.compact.handBottom <= layout.innerHeight + 1, '紧凑手牌不得被视口底部裁断');
+  }
 
   console.log(JSON.stringify({
     ok: true,
     browser: session.capabilities.browserVersion,
     platform: session.capabilities.platformName,
     marker,
+    window: { width: windowWidth, height: windowHeight, expectCompact },
     handCount: 27,
     keyboardSelected,
     orderStatus,
