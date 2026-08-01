@@ -4,7 +4,7 @@
 
 ## 发布候选
 
-- 前端资源标记：`20260801g8b`
+- 前端资源标记：`20260801g8c`
 - 后端 Git SHA：`6c6d9069511103c70b3e77ffab2da0fefd83eb30`
 - 后端 Fly release：`v150`，image `deployment-01KYYNG94QB6HBCR11YVXWGYDQ`
 - 兼容前端回退点：`01322a9f`（Gate 7）

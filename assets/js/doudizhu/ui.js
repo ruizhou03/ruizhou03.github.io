@@ -4335,7 +4335,10 @@
   async function leaveOnlineRoom(silent) {
     if (state.online) {
       try {
-        await onlineAuthenticatedCall('leave');
+        const purgeCompleted = !!(state.online.isHost && state.result && state.result.gameEnded);
+        await onlineAuthenticatedCall('leave', purgeCompleted
+          ? { dissolveOnLeave: true, purgeCompleted: true }
+          : undefined);
       } catch {}
       stopOnlineSync();
     }

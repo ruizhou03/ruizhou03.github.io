@@ -4,14 +4,14 @@ self.window = self;
 importScripts(
   '/assets/js/doudizhu/engine.js?v=20260801g4b',
   '/assets/js/doudizhu/policy.js?v=20260801g4b',
-  '/assets/js/doudizhu/net.js?v=20260801g8b'
+  '/assets/js/doudizhu/net.js?v=20260801g8c'
 );
 
 let activeModel = null;
 let loadPromise = null;
 let evaluators = [];
 let evaluatorSequence = 0;
-const EVALUATOR_URL = '/assets/js/doudizhu/ai-eval-worker.js?v=20260801g8b';
+const EVALUATOR_URL = '/assets/js/doudizhu/ai-eval-worker.js?v=20260801g8c';
 
 function errorCode(error) {
   const message = String(error && error.message ? error.message : error);
