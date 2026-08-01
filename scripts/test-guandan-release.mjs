@@ -18,6 +18,7 @@ const engineModule = await read('assets/js/games/guandan-engine.js');
 const uiModule = await read('assets/js/games/guandan-ui.js');
 const debugModule = await read('assets/js/games/guandan-debug.js');
 const simulator = await read('scripts/sim-guandan.js');
+const safariAcceptance = await read('scripts/test-guandan-safari.mjs');
 const sw = await read('sw.js');
 const offlineClient = await read('assets/js/offline/offline.js');
 const pwa = JSON.parse(await read('toolbox/guandan/manifest.json'));
@@ -113,6 +114,14 @@ assert.match(simulator, /const CORE = require\('\.\/load-guandan-authoritative-r
   '模拟器必须直接消费浏览器权威规则核心');
 assert.match(offlineClient, /localPwaTest[\s\S]*pwa-test/,
   '本地验收必须能显式启用 Service Worker，同时保留普通预览自清理');
+assert.match(safariAcceptance, /spawn\('\/usr\/bin\/safaridriver'/,
+  '真实 Safari 验收必须驱动系统 Safari，而不是 WebKit 替身');
+assert.doesNotMatch(safariAcceptance, /safaridriver[^\n]*--enable/,
+  'Safari 验收不得擅自修改系统远程自动化设置');
+assert.match(safariAcceptance, /request\(`\/session\/\$\{sessionId\}`[^]*method:\s*'DELETE'/,
+  'Safari 验收必须销毁 WebDriver session');
+assert.match(safariAcceptance, /driver\.kill\('SIGTERM'\)/,
+  'Safari 验收必须停止临时 safaridriver');
 
 for (const group of [offline.core, offline.hard]) {
   for (const asset of group) {

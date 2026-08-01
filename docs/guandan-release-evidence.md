@@ -97,6 +97,12 @@
 
 以下项目不能由当前 Chrome 会话和响应式视口模拟等价替代，必须在真实环境记录：
 
+- 2026-08-01 能力探测：系统 Safari 26.5.2 已安装；`safaridriver` 创建会话时
+  明确返回必须先在 Safari 设置中开启“允许远程自动化”。当前 Mac 未安装
+  Firefox。已提供 `scripts/test-guandan-safari.mjs`，权限开启后可直接驱动系统
+  Safari；它不自行修改系统设置。完整人工矩阵见
+  `docs/guandan-device-acceptance.md`。
+
 - Safari、Firefox；
 - iPhone、Android、iPad；
 - macOS VoiceOver、Windows NVDA；
