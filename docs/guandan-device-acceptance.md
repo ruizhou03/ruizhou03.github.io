@@ -21,11 +21,19 @@ node scripts/test-guandan-safari.mjs --check-offline \
   --offline-dir=/tmp/guandan-safari-offline-site --offline-port=4191
 ```
 
+VoiceOver 人工听读前，先用同一系统 Safari 跑可自动判定的语义前置项：
+
+```sh
+node scripts/test-guandan-safari.mjs --check-a11y \
+  --offline-dir=/tmp/guandan-safari-offline-site --offline-port=4192
+```
+
 脚本直接驱动系统 Safari，验证生产 marker、普通档 27 张手牌、Enter 键选牌、
 显式调整顺序、dialog 焦点、Escape、`inert`、44×44px 工具栏、按钮间距和横向
 溢出。离线模式还验证普通档断源重载后开出 27 张牌，以及未缓存高手模型时保持
-阻断、不降级发牌。脚本始终销毁 WebDriver session，并停止临时 `safaridriver`
-和它自己创建的本机源站。
+阻断、不降级发牌；无障碍模式验证牌名和选中 live region、可查询但不逐秒打断的
+倒计时、托管开关状态，以及小局结算的 dialog 名称、焦点和完整结果摘要。脚本始终
+销毁 WebDriver session，并停止临时 `safaridriver` 和它自己创建的本机源站。
 
 Safari 200% zoom 已由用户在 `p7d` 生产版本完成并确认通过；真实离线切换已由
 Safari 26.5.2 的上述断源模式通过。剩余唯一需要人工完成的是 VoiceOver，因为
@@ -41,7 +49,7 @@ Safari 26.5.2 的上述断源模式通过。剩余唯一需要人工完成的是
 | 环境 | 必测项 | 版本/设备 | 结果 | 证据/备注 |
 | --- | --- | --- | --- | --- |
 | Chrome macOS | 键盘、dialog、390px、性能、真实离线 | Chrome 150.0.7871.187 | 已通过 | `p7e` 关闭本机源站后由 SW 重载并开出普通档 27 张牌；见 `guandan-release-evidence.md` |
-| Safari macOS | 自动脚本、200% zoom、离线 | Safari 26.5.2 | 自动、200% 与真实离线通过；VoiceOver 待验收 | `p7d` 生产 200% 人工通过；`p7e` 图标/长手牌及断源离线自动通过 |
+| Safari macOS | 自动脚本、200% zoom、离线 | Safari 26.5.2 | 自动、200% 与真实离线通过；VoiceOver 待验收 | `p7d` 生产 200% 人工通过；`p7h` 读屏语义前置回归通过 |
 | Firefox desktop | 键盘、dialog、200% zoom、离线 | 待填 | 待验收 | 当前 Mac 未安装 Firefox |
 | iPhone Safari | 刘海安全区、横竖屏、27 张牌、PWA | 待填 | 待验收 | 必须实体设备 |
 | Android Chrome | 横竖屏、27 张牌、PWA、断网恢复 | 待填 | 待验收 | 必须实体设备 |

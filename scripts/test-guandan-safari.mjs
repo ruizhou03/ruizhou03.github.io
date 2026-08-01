@@ -8,13 +8,14 @@ const args = new Map(process.argv.slice(2).map((arg) => {
   const [key, ...rest] = arg.split('=');
   return [key, rest.join('=')];
 }));
-const marker = args.get('--marker') || '20260801p7e';
+const marker = args.get('--marker') || '20260801p7h';
 const port = Number(args.get('--port') || 4445);
 const windowWidth = Number(args.get('--width') || 1440);
 const windowHeight = Number(args.get('--height') || 900);
 const expectCompact = args.has('--expect-compact');
 const checkReveal = args.has('--check-reveal');
 const checkOffline = args.has('--check-offline');
+const checkA11y = args.has('--check-a11y');
 const offlineDir = args.get('--offline-dir');
 const offlinePort = Number(args.get('--offline-port') || 4191);
 const baseUrl = args.get('--url') || (offlineDir
@@ -153,14 +154,17 @@ async function waitFor(predicateScript, message, timeoutMs = 15000) {
 }
 
 async function run() {
-  if (checkOffline) {
-    assert.ok(offlineDir, '--check-offline 必须同时提供 --offline-dir=<Jekyll 构建目录>');
+  assert.ok(!checkA11y || !checkOffline, '--check-a11y 与 --check-offline 请分两次运行');
+  if (offlineDir) {
     sourceServer = spawn('/usr/bin/python3', [
       '-m', 'http.server', String(offlinePort), '--bind', '127.0.0.1', '--directory', offlineDir,
     ], { stdio: ['ignore', 'ignore', 'pipe'] });
     sourceServer.stderr.setEncoding('utf8');
     sourceServer.stderr.on('data', (chunk) => { sourceError += chunk; });
     await waitForSource(baseUrl);
+  }
+  if (checkOffline) {
+    assert.ok(offlineDir, '--check-offline 必须同时提供 --offline-dir=<Jekyll 构建目录>');
   }
 
   driver = spawn('/usr/bin/safaridriver', ['-p', String(port)], {
@@ -243,10 +247,16 @@ async function run() {
 
   const firstCard = '#gdHand [role="button"][data-cid]';
   await sendKey(firstCard, '\uE007');
+  await waitFor(
+    `return /已选中/.test(document.querySelector('#gdLiveRegion')?.textContent || '')`,
+    'Safari 键盘选牌没有发布可听读的选中状态',
+    2000,
+  );
   const keyboardSelected = await execute(`
     return document.querySelector('#gdHand [role="button"][data-cid]')?.getAttribute('aria-pressed') === 'true';
   `);
   assert.equal(keyboardSelected, true, 'Safari Enter 键没有选中手牌');
+  const selectedAnnouncement = await execute(`return document.querySelector('#gdLiveRegion')?.textContent || ''`);
   await sendKey(firstCard, '\uE007');
 
   await click('#gdOrderBtn');
@@ -430,6 +440,77 @@ async function run() {
       'Safari 局终摊牌不得超出为各座分配的横向区域：' + JSON.stringify(reveal));
   }
 
+  let a11y = null;
+  if (checkA11y) {
+    for (const key of ['t', 'e', 's', 't']) await pressKey(key);
+    await waitFor(`return !!document.querySelector('#gdTestPanel')`, 'Safari 无障碍测试台没有打开', 2000);
+    const timer = await execute(`
+      const clock = document.querySelector('#gdSelfClock');
+      return {
+        hidden: clock.hidden,
+        role: clock.getAttribute('role'),
+        live: clock.getAttribute('aria-live'),
+        atomic: clock.getAttribute('aria-atomic'),
+        label: clock.getAttribute('aria-label'),
+      };
+    `);
+    assert.equal(timer.hidden, false, 'Safari 测试回合没有显示玩家倒计时');
+    assert.equal(timer.role, 'timer', '玩家倒计时必须向辅助技术公开为 timer');
+    assert.equal(timer.live, 'off', '逐秒倒计时不得每秒打断读屏');
+    assert.equal(timer.atomic, 'true');
+    assert.match(timer.label, /你的出牌倒计时，剩余\d+秒/);
+
+    await click('#gdAutopilotBtn');
+    await waitFor(
+      `return document.querySelector('#gdAutopilotBtn')?.getAttribute('aria-pressed') === 'true' &&
+        /托管已开启/.test(document.querySelector('#gdLiveRegion')?.textContent || '')`,
+      'Safari 托管开启后没有公开 pressed 状态和可听读提示',
+      2000,
+    );
+    const autopilotOn = await execute(`return {
+      pressed: document.querySelector('#gdAutopilotBtn')?.getAttribute('aria-pressed'),
+      label: document.querySelector('#gdAutopilotBtn')?.getAttribute('aria-label'),
+      live: document.querySelector('#gdLiveRegion')?.textContent || '',
+    }`);
+    assert.match(autopilotOn.label, /托管已开启/);
+    assert.match(autopilotOn.live, /托管已开启/);
+    await click('#gdAutopilotBtn');
+    await waitFor(
+      `return document.querySelector('#gdAutopilotBtn')?.getAttribute('aria-pressed') === 'false'`,
+      'Safari 托管取消后没有公开 pressed 状态',
+      2000,
+    );
+    const autopilotOff = await execute(`return {
+      pressed: document.querySelector('#gdAutopilotBtn')?.getAttribute('aria-pressed'),
+      label: document.querySelector('#gdAutopilotBtn')?.getAttribute('aria-label'),
+    }`);
+    assert.match(autopilotOff.label, /托管未开启/);
+
+    await execute(`
+      [...document.querySelectorAll('#gdTestPanel button')]
+        .find((button) => button.textContent.trim() === '结算面板')?.click();
+    `);
+    await waitFor(
+      `return document.querySelector('#gdRoundOverlay')?.classList.contains('open') &&
+        /本小局我方获胜/.test(document.querySelector('#gdLiveRegion')?.textContent || '')`,
+      'Safari 小局结算没有发布可听读结果',
+      2000,
+    );
+    const settlement = await execute(`return {
+      dialog: document.querySelector('#gdRoundOverlay')?.getAttribute('role'),
+      labelledBy: document.querySelector('#gdRoundOverlay')?.getAttribute('aria-labelledby'),
+      title: document.querySelector('#gdRoundTitle')?.textContent || '',
+      live: document.querySelector('#gdLiveRegion')?.textContent || '',
+      focus: document.activeElement?.id || '',
+    }`);
+    assert.equal(settlement.dialog, 'dialog');
+    assert.equal(settlement.labelledBy, 'gdRoundTitle');
+    assert.equal(settlement.title, '本小局我方获胜');
+    assert.match(settlement.live, /本小局我方获胜.*你头游.*升到3级/);
+    assert.equal(settlement.focus, 'gdRoundNext');
+    a11y = { timer, autopilotOn, autopilotOff, settlement };
+  }
+
   let offline = null;
   if (checkOffline) {
     await stopSourceServer();
@@ -520,6 +601,7 @@ async function run() {
     handCount: 27,
     avatarIcons,
     keyboardSelected,
+    selectedAnnouncement,
     orderStatus,
     orderBefore: orderBefore.slice(0, 3),
     orderAfter: orderAfter.slice(0, 3),
@@ -529,8 +611,10 @@ async function run() {
     exitDialog,
     layout,
     reveal,
+    a11y,
     offline,
-    pendingManual: checkOffline ? ['VoiceOver'] : ['VoiceOver', 'offline network transition'],
+    checkedThisRun: { a11y: checkA11y, offline: checkOffline, reveal: checkReveal },
+    pendingManual: ['VoiceOver'],
   }, null, 2));
 }
 

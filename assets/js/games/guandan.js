@@ -3895,8 +3895,11 @@
     for (let i = 0; i < 4; i++) seatToRank[ranking[i]] = i + 1;
 
     // 大标题：整局结束才显示"胜利/失败"；每小局不写"我方头游"标题
+    const roundLabel = matchWon
+      ? (youWon ? '胜利' : '失败')
+      : (youWon ? '本小局我方获胜' : '本小局对方获胜');
+    els.roundTitle.textContent = roundLabel;
     if (matchWon) {
-      els.roundTitle.textContent = youWon ? '胜利' : '失败';
       els.roundTitle.style.display = '';
       els.roundTitle.classList.toggle('win', youWon);
       els.roundTitle.classList.toggle('lose', !youWon);
@@ -3946,6 +3949,13 @@
     stopTurnClock();
     els.roundOverlay.classList.add('open');
     activateDialog(els.roundOverlay, null, '#gdRoundNext');
+    const rankSummary = ranking.map((seat, index) => seatName(seat) + POS_NAMES[index]).join('，');
+    const scoreSummary = els.roundScore ? els.roundScore.textContent.replace(/\s+/g, ' ').trim() : '';
+    announce(
+      roundLabel + '。' + rankSummary + '。' +
+      (winTeam === 0 ? '我方' : '对方') + '从' + winnerBefore + '级升到' + winnerAfter + '级' +
+      (scoreSummary ? '。' + scoreSummary : ''),
+    );
     els.roundNext.onclick = () => {
       deactivateDialog(els.roundOverlay);
       els.roundOverlay.classList.remove('open');
@@ -4025,6 +4035,11 @@
     if (els.matchAgain) els.matchAgain.textContent = isNetworked() ? '离开房间' : '再来一局';
     els.matchOverlay.classList.add('open');
     activateDialog(els.matchOverlay, null, '#gdMatchAgain');
+    const matchScoreSummary = els.matchScore ? els.matchScore.textContent.replace(/\s+/g, ' ').trim() : '';
+    announce(
+      '整局' + (youWon ? '胜利' : '失败') + '。我方打' + youLv + '级，对方打' + oppLv + '级' +
+      (matchScoreSummary ? '。' + matchScoreSummary : ''),
+    );
     if (youWon && !isNetworked()) submitWin();   // 排行榜只记单机 vs AI 战绩
   }
 
@@ -4067,6 +4082,9 @@
       playedEl.dataset.lpKey = '__clock__';
       clock = document.createElement('span');
       clock.className = 'gd-played-clock';
+      clock.setAttribute('role', 'timer');
+      clock.setAttribute('aria-live', 'off');
+      clock.setAttribute('aria-atomic', 'true');
       clock.innerHTML =
         '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">' +
           '<circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
@@ -4097,11 +4115,26 @@
     el.hidden = false;
     el.classList.remove('urgent');
     const numEl = el.querySelector('.gd-self-clock-num, .gd-played-clock-num');
+    const purpose = state._doublingActive ? '加倍选择'
+      : (state.phase === PHASE.TRIBUTE ? '贡牌选择' : '出牌');
+    const turnA11yKey = [state.phase, state.turn, purpose, state.aiHistory.length,
+      state.hands[0] ? state.hands[0].length : 0, state.trick ? state.trick.passes : 0].join(':');
     function tick() {
       const left = Math.max(0, turnClockEndAt - Date.now());
       const s = Math.ceil(left / 1000);
       if (numEl) numEl.textContent = String(s);
       else el.textContent = s + 's';
+      el.setAttribute('aria-label', seat === 0
+        ? `你的${purpose}倒计时，剩余${s}秒`
+        : `${seatName(seat)}的出牌倒计时，剩余${s}秒`);
+      if (seat === 0 && s > 0 && state._a11yTurnKey !== turnA11yKey) {
+        state._a11yTurnKey = turnA11yKey;
+        announce(`轮到你${purpose}，剩余${s}秒`);
+      }
+      if (seat === 0 && s === 5 && state._a11yUrgentKey !== turnA11yKey) {
+        state._a11yUrgentKey = turnA11yKey;
+        announce(`你的${purpose}时间还剩5秒`);
+      }
       el.classList.toggle('urgent', s <= 5);
       if (s <= 5 && s !== turnClockLastSec) { turnClockLastSec = s; _gaSfxTick(); }
       if (left <= 0) {
@@ -4346,8 +4379,10 @@
     state._consecutiveTimeouts = (state._consecutiveTimeouts || 0) + 1;
     if (!state.autopilot && state._consecutiveTimeouts >= 2) {
       state.autopilot = true;
-      // 不弹提示：靠托管按钮持续橙色高亮(.on)表示已进入托管即可（用户不喜欢弹窗）
       refreshAutopilotBtn();
+      announce('连续两次出牌超时，已开启托管并自动处理');
+    } else {
+      announce('出牌超时，已自动处理');
     }
     doAutoPlayPick();
   }
@@ -4356,6 +4391,8 @@
     // 纯机器人图标，不再改文字；托管中靠 .on 的橙色高亮表示，点一下即切换。
     els.autopilotBtn.classList.toggle('on', !!state.autopilot);
     els.autopilotBtn.title = state.autopilot ? '正在托管中 · 点一下取消' : '托管：让 AI 替你打牌';
+    els.autopilotBtn.setAttribute('aria-pressed', state.autopilot ? 'true' : 'false');
+    els.autopilotBtn.setAttribute('aria-label', state.autopilot ? '托管已开启，点击取消' : '托管未开启');
   }
 
   function scheduleAI() {
@@ -5177,6 +5214,7 @@
       state.autopilot = !state.autopilot;
       state._consecutiveTimeouts = 0;
       refreshAutopilotBtn();
+      announce(state.autopilot ? '托管已开启' : '托管已取消');
       if (state.autopilot && state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy) {
         // 立即接管：停时钟后短延迟自动出
         stopTurnClock();
@@ -5472,6 +5510,8 @@
     state.handOrder = null;
     state.lastPlay = [null, null, null, null];
     state.busy = false;
+    resetLocalPause();
+    if (orderMode) setOrderMode(false);
     state.bombMult = 1;
     const h0 = buildTestHand();
     const used = new Set(h0);

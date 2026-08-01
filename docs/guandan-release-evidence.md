@@ -146,6 +146,24 @@
   高手开局得到“下载失败,点击重试（或改选普通档）”，手牌数保持 0，没有启发式
   fallback。脚本最终销毁 Safari session，并停止 `safaridriver` 和隔离源站。
 
+## Safari 读屏语义阶段 7H 候选证据（2026-08-01）
+
+- VoiceOver 人工验收前置审查发现，原可见倒计时带 `aria-hidden="true"`，读屏完全
+  不可见；托管按钮只靠橙色表达开关；非终局的小局结算隐藏标题仍可能保留错误的
+  “胜利”名称。这三项不能等到人工听读时用主观解释绕过。
+- `p7h` 将玩家和 AI 倒计时公开为 `role="timer"`，逐秒更新明确的可访问名称，
+  但保持 `aria-live="off"`，避免每秒打断读屏；玩家回合开始和最后 5 秒通过共用
+  polite live region 各播报一次。
+- 托管按钮现在同步维护 `aria-pressed` 和“托管已开启/未开启”名称；手动切换、
+  首次超时自动处理及连续两次超时开启托管都有不可见 live region 提示，不增加
+  用户不喜欢的视觉 toast。
+- 小局和整局结算生成与真实胜负、名次、升级和积分一致的 dialog 名称及 live
+  摘要。系统 Safari 26.5.2 的 `--check-a11y` 回归实际得到：键盘选牌完整牌名及
+  “已选中”、25 秒 timer、托管 true/false 状态、小局“我方获胜”名称、焦点落在
+  “继续”，以及包含四家名次和 2→3 升级的结果摘要。
+- 同一 `p7h` 构建再次通过 Safari 断源离线：普通档 27 张、高手档 0 张且不降级。
+  人工 VoiceOver 发音和操作体验仍必须由用户真实听读，自动语义检查不替代该项。
+
 ## 生产发布证据
 
 - site commit: `944da28e09d47dd3477758dcf53367bcf327a64e`
@@ -185,6 +203,9 @@
   规则差分、AI、Jekyll、生产 marker/API gate 均成功。
 - stage 7E 生产页面和压缩资源均返回 `20260801p7e`；线上 bundle 已确认包含
   `gd-avatar-icon`、`gd-revealing` 与 `gd-reveal-rows-` 修复标记。
+- stage 7G site commit: `13c4970b33ec4a2a75b307f2b28a9756659e6287`。
+- stage 7G Pages build/deploy run: `30695207951`；release gate run:
+  `30695208239`；完整合同、Jekyll、10,000 条规则差分和生产 API gate 均成功。
 
 ## 仍需真实设备完成的强制验收
 

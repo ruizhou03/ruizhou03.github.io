@@ -75,7 +75,7 @@ assert.match(js, /loadScriptOnce\('comments'/, '交流组件必须按需加载')
 assert.match(js, /loadScriptOnce\('wins'/, '榜单必须按需加载');
 assert.doesNotMatch(html, /guandan-dmc\.js/, '新手/普通首屏不得下载 DMC');
 for (const module of ['contract', 'storage', 'net', 'audio', 'rules', 'engine', 'ui', 'debug']) {
-  assert.match(html, new RegExp(`guandan-${module}\\.js\\?v=20260801p7e`),
+  assert.match(html, new RegExp(`guandan-${module}\\.js\\?v=20260801p7h`),
     `${module} 模块必须在主程序前独立加载`);
 }
 assert.match(js, /const gdApi = NET\.api/, '主程序必须真实消费独立网络模块');
@@ -101,7 +101,7 @@ assert.match(js, /openBoard\(event\.currentTarget\)/,
   '榜单 dialog 必须显式传递触发按钮，保证 Safari 焦点恢复');
 assert.match(js, /DEBUG\.bindSecretChords\(/,
   '主程序必须真实消费独立 debug 模块');
-assert.match(html, /guandan\.min\.js\?v=20260801p7e/,
+assert.match(html, /guandan\.min\.js\?v=20260801p7h/,
   '生产页面必须加载经过门禁校验的压缩脚本');
 assert.match(debugModule, /enabled = location\.hostname === 'localhost'/,
   '生产调试入口必须被本机环境门禁');
@@ -109,10 +109,10 @@ assert.match(debugModule, /enabled = location\.hostname === 'localhost'/,
 assert.equal(pwa.display, 'standalone');
 assert.equal(pwa.scope, '/toolbox/guandan/');
 assert.equal(pwa.theme_color, '#173a30');
-assert.equal(offline.version, '20260801p7e');
+assert.equal(offline.version, '20260801p7h');
 assert.equal(offline.rulesVersion, 'gd-huaian-2025-site-v1');
 assert.equal(offline.modelSha256, 'ca389e89e8db98d9968705b0e4495620e025c852cf4db4b4c2e66b086ae03da5');
-assert.match(html, /asset_version:\s*"20260801p7e"/,
+assert.match(html, /asset_version:\s*"20260801p7h"/,
   '掼蛋 PWA 的全站依赖必须使用确定版本');
 assert.ok(offline.core.length >= 5, '冷离线 core 清单不完整');
 assert.ok(offline.hard.length >= 3, '高手离线清单不完整');
@@ -120,7 +120,7 @@ assert.ok(!offline.core.some(asset => asset.url.includes('guandan-dmc.bin')),
   'easy/normal 冷离线包不得包含模型');
 assert.ok(offline.hard.some(asset => asset.url.includes('guandan-dmc.bin')),
   'hard 离线包必须包含模型');
-assert.match(sw, /offline-assets\.json\?v=20260801p7e/,
+assert.match(sw, /offline-assets\.json\?v=20260801p7h/,
   'SW 必须消费确定性离线清单');
 assert.match(js, /offline_asset_hash_mismatch/,
   'hard 离线承诺前必须校验资源 hash');
@@ -140,6 +140,8 @@ assert.match(safariAcceptance, /checkOffline[\s\S]*http\.server[\s\S]*stopSource
   'Safari 真实离线验收必须拥有并停止隔离源站');
 assert.match(safariAcceptance, /sourceDown[\s\S]*normalHandCount[\s\S]*hardHandCount/,
   'Safari 真实离线验收必须证明断源、普通档 27 张牌与高手档不降级');
+assert.match(safariAcceptance, /checkA11y[\s\S]*role, 'timer'[\s\S]*autopilotOn[\s\S]*settlement/,
+  'Safari 无障碍验收必须覆盖倒计时、托管状态与结算 live region');
 
 for (const group of [offline.core, offline.hard]) {
   for (const asset of group) {
