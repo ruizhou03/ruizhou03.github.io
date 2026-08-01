@@ -1833,9 +1833,9 @@
     z-index: 20;
   }
   .gd-board-btn { left: 0.6rem; }
-  .gd-mute-btn { left: 3rem; }
+  .gd-mute-btn { left: calc(0.6rem + 48px); }
   .gd-exit-btn  { right: 0.6rem; }
-  .gd-settings-btn { right: 3rem; }
+  .gd-settings-btn { right: calc(0.6rem + 48px); }
   @media (hover: hover) {
     .gd-board-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
     .gd-mute-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
@@ -2034,16 +2034,16 @@
     }
     body.gd-game-fullscreen .gd-board-btn {
       left: auto;
-      right: calc(2.9rem + env(safe-area-inset-right, 0px));
+      right: calc(0.5rem + 50px + env(safe-area-inset-right, 0px));
       top: calc(0.45rem + env(safe-area-inset-top, 0px));
     }
     body.gd-game-fullscreen .gd-settings-btn {
-      right: calc(7.7rem + env(safe-area-inset-right, 0px));
+      right: calc(0.5rem + 150px + env(safe-area-inset-right, 0px));
       top: calc(0.45rem + env(safe-area-inset-top, 0px));
     }
     body.gd-game-fullscreen .gd-mute-btn {
       left: auto;
-      right: calc(5.3rem + env(safe-area-inset-right, 0px));
+      right: calc(0.5rem + 100px + env(safe-area-inset-right, 0px));
       top: calc(0.45rem + env(safe-area-inset-top, 0px));
     }
     /* 横屏：三颗角钮全在右上，左上角空着（级牌角标在大厅里已隐藏）→ 房号挪去左上，
