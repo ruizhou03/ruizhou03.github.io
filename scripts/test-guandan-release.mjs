@@ -136,6 +136,10 @@ assert.match(safariAcceptance, /request\(`\/session\/\$\{sessionId\}`[^]*method:
   'Safari 验收必须销毁 WebDriver session');
 assert.match(safariAcceptance, /driver\.kill\('SIGTERM'\)/,
   'Safari 验收必须停止临时 safaridriver');
+assert.match(safariAcceptance, /checkOffline[\s\S]*http\.server[\s\S]*stopSourceServer/,
+  'Safari 真实离线验收必须拥有并停止隔离源站');
+assert.match(safariAcceptance, /sourceDown[\s\S]*normalHandCount[\s\S]*hardHandCount/,
+  'Safari 真实离线验收必须证明断源、普通档 27 张牌与高手档不降级');
 
 for (const group of [offline.core, offline.hard]) {
   for (const asset of group) {

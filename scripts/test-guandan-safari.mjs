@@ -8,20 +8,27 @@ const args = new Map(process.argv.slice(2).map((arg) => {
   const [key, ...rest] = arg.split('=');
   return [key, rest.join('=')];
 }));
-const baseUrl = args.get('--url') || 'https://ruizhou03.com/toolbox/guandan/';
 const marker = args.get('--marker') || '20260801p7e';
 const port = Number(args.get('--port') || 4445);
 const windowWidth = Number(args.get('--width') || 1440);
 const windowHeight = Number(args.get('--height') || 900);
 const expectCompact = args.has('--expect-compact');
 const checkReveal = args.has('--check-reveal');
+const checkOffline = args.has('--check-offline');
+const offlineDir = args.get('--offline-dir');
+const offlinePort = Number(args.get('--offline-port') || 4191);
+const baseUrl = args.get('--url') || (offlineDir
+  ? `http://127.0.0.1:${offlinePort}/toolbox/guandan/`
+  : 'https://ruizhou03.com/toolbox/guandan/');
 const screenshotPath = args.get('--screenshot');
 const webdriverBase = `http://127.0.0.1:${port}`;
 const elementKey = 'element-6066-11e4-a52e-4f735466cecf';
 
 let driver;
+let sourceServer;
 let sessionId;
 let driverError = '';
+let sourceError = '';
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -56,6 +63,31 @@ async function waitForDriver() {
     }
   }
   throw lastError || new Error('safaridriver did not become ready');
+}
+
+async function waitForSource(url) {
+  let lastError;
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(500) });
+      if (response.ok) return;
+    } catch (error) {
+      lastError = error;
+    }
+    await delay(100);
+  }
+  throw lastError || new Error('offline source server did not become ready');
+}
+
+async function stopSourceServer() {
+  if (!sourceServer || sourceServer.exitCode !== null) return;
+  const exited = new Promise((resolve) => sourceServer.once('exit', resolve));
+  sourceServer.kill('SIGTERM');
+  await Promise.race([exited, delay(3000)]);
+  if (sourceServer.exitCode === null) {
+    sourceServer.kill('SIGKILL');
+    await Promise.race([exited, delay(1000)]);
+  }
 }
 
 async function execute(script, args = []) {
@@ -121,6 +153,16 @@ async function waitFor(predicateScript, message, timeoutMs = 15000) {
 }
 
 async function run() {
+  if (checkOffline) {
+    assert.ok(offlineDir, '--check-offline 必须同时提供 --offline-dir=<Jekyll 构建目录>');
+    sourceServer = spawn('/usr/bin/python3', [
+      '-m', 'http.server', String(offlinePort), '--bind', '127.0.0.1', '--directory', offlineDir,
+    ], { stdio: ['ignore', 'ignore', 'pipe'] });
+    sourceServer.stderr.setEncoding('utf8');
+    sourceServer.stderr.on('data', (chunk) => { sourceError += chunk; });
+    await waitForSource(baseUrl);
+  }
+
   driver = spawn('/usr/bin/safaridriver', ['-p', String(port)], {
     stdio: ['ignore', 'ignore', 'pipe'],
   });
@@ -149,6 +191,7 @@ async function run() {
 
   const url = new URL(baseUrl);
   url.searchParams.set('release-check', marker);
+  if (checkOffline) url.searchParams.set('pwa-test', '1');
   await request(`/session/${sessionId}/url`, {
     method: 'POST',
     body: { url: url.href },
@@ -169,6 +212,15 @@ async function run() {
       getComputedStyle(overlay).display !== 'none' && getComputedStyle(overlay).visibility !== 'hidden';
   `);
   if (hasResume) await click('#gdResumeDiscard');
+
+  if (checkOffline) {
+    await click('#gdOfflineCacheBtn');
+    await waitFor(
+      `return /当前档位基础资源已校验并缓存/.test(document.querySelector('#gdHardOfflineStatus')?.textContent || '')`,
+      'Safari 普通档离线资源没有完成 hash 校验缓存',
+      30000,
+    );
+  }
 
   await click('#gdPgoDiff button[data-value="normal"]');
   await click('#gdPgoStart');
@@ -378,6 +430,82 @@ async function run() {
       'Safari 局终摊牌不得超出为各座分配的横向区域：' + JSON.stringify(reveal));
   }
 
+  let offline = null;
+  if (checkOffline) {
+    await stopSourceServer();
+    let sourceDown = false;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      try {
+        await fetch(baseUrl, { cache: 'no-store', signal: AbortSignal.timeout(500) });
+      } catch (_) {
+        sourceDown = true;
+        break;
+      }
+      await delay(100);
+    }
+    assert.equal(sourceDown, true, 'Safari 离线回归前本机源站仍可连接');
+
+    await request(`/session/${sessionId}/refresh`, { method: 'POST', body: {} });
+    await waitFor(
+      `return window.GuandanContract?.releaseMarker === ${JSON.stringify(marker)}`,
+      'Safari 断源后没有从 Service Worker 重载 release marker',
+    );
+    await waitFor(
+      `return document.body.classList.contains('gd-game-fullscreen')`,
+      'Safari 断源后主运行时没有恢复',
+    );
+    const hasOfflineResume = await execute(`
+      const el = document.querySelector('#gdResumeDiscard');
+      const overlay = el?.closest('#gdResumeOverlay');
+      return !!el && !!overlay && !overlay.hidden && overlay.getClientRects().length > 0 &&
+        getComputedStyle(overlay).display !== 'none' && getComputedStyle(overlay).visibility !== 'hidden';
+    `);
+    if (hasOfflineResume) await click('#gdResumeDiscard');
+    await click('#gdPgoDiff button[data-value="normal"]');
+    await click('#gdPgoStart');
+    await waitFor(
+      `return document.querySelectorAll('#gdHand [role="button"][data-cid]').length === 27`,
+      'Safari 断源重载后普通档没有开出 27 张牌',
+    );
+    const normalHandCount = await execute(
+      `return document.querySelectorAll('#gdHand [role="button"][data-cid]').length`,
+    );
+
+    await click('#gdExitBtn');
+    await waitFor(
+      `return document.querySelector('#gdConfirmExit')?.hidden === false`,
+      'Safari 离线牌局没有打开退出确认',
+      2000,
+    );
+    await click('#gdConfirmExitOk');
+    await waitFor(
+      `return document.querySelector('#gdPgo')?.classList.contains('open') === true`,
+      'Safari 离线牌局退出后没有返回设置页',
+      2000,
+    );
+    await click('#gdPgoDiff button[data-value="hard"]');
+    await waitFor(
+      `return /完成前不承诺离线/.test(document.querySelector('#gdHardOfflineStatus')?.textContent || '')`,
+      'Safari 未缓存高手模型时错误承诺离线',
+      2000,
+    );
+    const hardStatus = await execute(
+      `return document.querySelector('#gdHardOfflineStatus')?.textContent || ''`,
+    );
+    await click('#gdPgoStart');
+    await waitFor(
+      `return /下载失败/.test(document.querySelector('#gdPgoStart')?.textContent || '')`,
+      'Safari 断源时高手档没有保持模型下载阻断',
+      15000,
+    );
+    const hardButton = await execute(`return document.querySelector('#gdPgoStart')?.textContent || ''`);
+    const hardHandCount = await execute(
+      `return document.querySelectorAll('#gdHand [role="button"][data-cid]').length`,
+    );
+    assert.equal(hardHandCount, 0, 'Safari 高手模型不可用时不得静默降级并发牌');
+    offline = { sourceDown, normalHandCount, hardStatus, hardButton, hardHandCount };
+  }
+
   if (screenshotPath) {
     const screenshot = await request(`/session/${sessionId}/screenshot`);
     await writeFile(screenshotPath, screenshot, 'base64');
@@ -401,7 +529,8 @@ async function run() {
     exitDialog,
     layout,
     reveal,
-    pendingManual: ['200% zoom', 'VoiceOver', 'offline network transition'],
+    offline,
+    pendingManual: checkOffline ? ['VoiceOver'] : ['VoiceOver', 'offline network transition'],
   }, null, 2));
 }
 
@@ -422,5 +551,7 @@ try {
   if (sessionId) {
     await request(`/session/${sessionId}`, { method: 'DELETE', allowError: true }).catch(() => {});
   }
+  await stopSourceServer();
+  if (sourceError.trim() && process.exitCode) console.error(sourceError.trim());
   if (driver && !driver.killed) driver.kill('SIGTERM');
 }

@@ -134,6 +134,18 @@
 - 控制台仅有两条预期的 `dmc_worker_error` 警告，均来自断源后刻意触发的高手模型
   加载失败；普通档离线重载和开局没有错误。
 
+## 真实 Safari 冷离线阶段 7G 证据（2026-08-01）
+
+- 扩展原生 `safaridriver` 验收脚本的 `--check-offline` 模式：脚本自己启动隔离的
+  Python 静态源站，驱动系统 Safari 26.5.2 完成缓存，再终止源站并从 Node 侧确认
+  同一端口已经拒绝连接。它不修改整机网络设置，也不把 WebKit 替身当成 Safari。
+- 源站终止后，同一 Safari WebDriver session 成功从 Service Worker 重载
+  `20260801p7e`，普通档重新开局得到 27 张牌；原有键盘选牌、显式换列、dialog
+  焦点/Escape/inert、44×44px 工具栏和机器人唯一 SVG 检查仍同时通过。
+- 返回设置页后，未缓存高手模型的状态明确为“完成前不承诺离线”；断源状态尝试
+  高手开局得到“下载失败,点击重试（或改选普通档）”，手牌数保持 0，没有启发式
+  fallback。脚本最终销毁 Safari session，并停止 `safaridriver` 和隔离源站。
+
 ## 生产发布证据
 
 - site commit: `944da28e09d47dd3477758dcf53367bcf327a64e`
@@ -182,7 +194,7 @@
   自动验收通过；当前 Mac 未安装 Firefox。完整人工矩阵见
   `docs/guandan-device-acceptance.md`。
 
-- Safari VoiceOver/真实离线切换、Firefox；
+- Safari VoiceOver、Firefox；
 - iPhone、Android、iPad；
 - macOS VoiceOver、Windows NVDA；
 - Firefox/平板的 200% zoom，以及对应实体设备的刘海/安全区和极端宽高比；

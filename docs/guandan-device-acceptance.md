@@ -12,19 +12,27 @@ DOM 检查不能替代 Safari、Firefox、实体移动设备或读屏验收。
 node scripts/test-guandan-safari.mjs
 ```
 
+真实离线验收先构建站点，再让脚本拥有一个隔离的本机源站；脚本会在基础资源完成
+hash 校验缓存后停止该源站、确认端口不可连接、重载并开局：
+
+```sh
+/opt/homebrew/opt/ruby/bin/bundle exec jekyll build --destination /tmp/guandan-safari-offline-site
+node scripts/test-guandan-safari.mjs --check-offline \
+  --offline-dir=/tmp/guandan-safari-offline-site --offline-port=4191
+```
+
 脚本直接驱动系统 Safari，验证生产 marker、普通档 27 张手牌、Enter 键选牌、
 显式调整顺序、dialog 焦点、Escape、`inert`、44×44px 工具栏、按钮间距和横向
-溢出。脚本始终销毁 WebDriver session 并停止临时 `safaridriver`。
+溢出。离线模式还验证普通档断源重载后开出 27 张牌，以及未缓存高手模型时保持
+阻断、不降级发牌。脚本始终销毁 WebDriver session，并停止临时 `safaridriver`
+和它自己创建的本机源站。
 
-Safari 仍需人工完成以下三项，因为标准 WebDriver 不提供对应真实浏览器控制：
+Safari 200% zoom 已由用户在 `p7d` 生产版本完成并确认通过；真实离线切换已由
+Safari 26.5.2 的上述断源模式通过。剩余唯一需要人工完成的是 VoiceOver，因为
+标准 WebDriver 不能控制或替代真实读屏：
 
-1. 浏览器缩放设为 200%，确认进入以当前玩家为中心的紧凑牌桌；工具栏、手牌、
-   操作区和所有 dialog 可见、可操作，焦点样式没有被裁切。页面本身不应出现无关的
-   双向滚动；手牌横向滚动及牌桌必要的二维空间属于明确保留的游戏交互。
-2. 开启 VoiceOver，以 Tab、VO+方向键和 Enter 完成开局、选牌、调整顺序、打开并
-   关闭榜单；确认手牌名称、选中状态、倒计时与结果 live region 均可听懂。
-3. 普通档完成“缓存当前档位离线版”后断网重载并开局；高手档只有模型 hash 校验
-   完成后才允许显示离线承诺。
+- 开启 VoiceOver，以 Tab、VO+方向键和 Enter 完成开局、选牌、调整顺序、打开并
+  关闭榜单；确认手牌名称、选中状态、倒计时与结果 live region 均可听懂。
 
 ## 强制矩阵
 
@@ -33,7 +41,7 @@ Safari 仍需人工完成以下三项，因为标准 WebDriver 不提供对应�
 | 环境 | 必测项 | 版本/设备 | 结果 | 证据/备注 |
 | --- | --- | --- | --- | --- |
 | Chrome macOS | 键盘、dialog、390px、性能、真实离线 | Chrome 150.0.7871.187 | 已通过 | `p7e` 关闭本机源站后由 SW 重载并开出普通档 27 张牌；见 `guandan-release-evidence.md` |
-| Safari macOS | 自动脚本、200% zoom、离线 | Safari 26.5.2 | 自动与 200% 通过；VoiceOver/离线待验收 | `p7c` 首验失败；`p7d` 生产 200% 人工通过；`p7e` 图标/长手牌自动与发布门禁通过 |
+| Safari macOS | 自动脚本、200% zoom、离线 | Safari 26.5.2 | 自动、200% 与真实离线通过；VoiceOver 待验收 | `p7d` 生产 200% 人工通过；`p7e` 图标/长手牌及断源离线自动通过 |
 | Firefox desktop | 键盘、dialog、200% zoom、离线 | 待填 | 待验收 | 当前 Mac 未安装 Firefox |
 | iPhone Safari | 刘海安全区、横竖屏、27 张牌、PWA | 待填 | 待验收 | 必须实体设备 |
 | Android Chrome | 横竖屏、27 张牌、PWA、断网恢复 | 待填 | 待验收 | 必须实体设备 |
