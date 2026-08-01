@@ -2,8 +2,8 @@
 
 ## 当前发布合同
 
-- release marker: `20260727p7a`
-- build: `2026.07.27.phase7-a`
+- release marker: `20260801p7b`
+- build: `2026.08.01.phase7-b`
 - rulesVersion: `gd-huaian-2025-site-v1`
 - protocolVersion: `guandan-protocol-v2`
 - roomSchemaVersion: `3`
@@ -53,6 +53,23 @@
 - 一次干净冷启动没有大于等于 50ms 的 long task；同步初始化约 2ms。
 - 普通档缓存完成后停止本机服务，页面仍从 23 项 hash 校验资源启动。
 
+## 真实 Chrome 阶段 7B 证据（2026-08-01）
+
+- 通过 Chrome 扩展控制用户真实 Chrome；生产环境完成 27 张手牌、键盘 Enter
+  选牌、显式“调整顺序”真实换列。
+- 榜单 dialog 打开后焦点落在关闭按钮，背景有 7 个 `inert` 区域；Escape
+  关闭后 `inert` 为 0，焦点回到“榜单”。榜单与交流均按需加载并成功渲染。
+- 真实 Chrome 的 CSS 视口覆盖 844×390、915×412、1024×768、
+  1366×300、390×844；均无页面横向溢出。该项只是 Chrome 响应式视口证据，
+  不能代替对应实体手机和平板验收。
+- 390×844 发现并修复 44px 工具栏按钮仍重叠 5.6px 的回归；生产
+  `20260801p7b` 复测为榜单/音效和设置/退出各有 4px 间距，四个按钮均为
+  44×44px，页面无横向溢出。
+- 本机真实 Chrome 的 `?perf-test=1`：3 个交互样本，p75 INP 88ms；
+  long task max 0ms；同步初始化 1ms。满足 INP <200ms、long task <50ms。
+- Chrome 控制台只出现扩展消息通道关闭噪声；一次 Waline 读取超时后重试，
+  交流区已正常渲染，因此记录为外部服务瞬时非阻断风险。
+
 ## 生产发布证据
 
 - site commit: `944da28e09d47dd3477758dcf53367bcf327a64e`
@@ -68,14 +85,21 @@
   worker 均通过；房间已解散。
 - SSE 生产 50 样本：P50 306ms、P95 390ms、max 407ms，P95 低于
   500ms 门槛；测试房已解散。
+- stage 7B site commit: `c79e41af8766634bbf9d2e9a6b4fdfa38c6afd6b`。
+- stage 7B Pages build/deploy run: `30687721330`，build、deploy、report
+  均成功。
+- stage 7B release gate run: `30687721718`；确定性压缩包、PWA hash、
+  规则差分、AI、Jekyll 和生产 marker/API gate 均成功。
+- stage 7B 生产探针：页面 200、readiness 200、unknown action 400；
+  marker `20260801p7b` 首次探测即通过。
 
 ## 仍需真实设备完成的强制验收
 
-以下项目不能由当前 macOS 内置浏览器会话等价替代，发布完成后必须在真实环境记录：
+以下项目不能由当前 Chrome 会话和响应式视口模拟等价替代，必须在真实环境记录：
 
 - Safari、Firefox；
 - iPhone、Android、iPad；
 - macOS VoiceOver、Windows NVDA；
-- 对应设备的 200% zoom、刘海/安全区、极端宽高比；
+- 真实浏览器 200% zoom，以及对应实体设备的刘海/安全区和极端宽高比；
 
 在这些证据齐全前，长期目标不得标记为 complete。
