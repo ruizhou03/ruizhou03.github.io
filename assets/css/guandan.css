@@ -349,6 +349,14 @@
   }
   .gd-reveal-row { max-width: var(--gd-reveal-max-w, 264px); }
 
+  .gd-reveal-gallery[hidden] { display: none; }
+  .gd-reveal-gallery { position: absolute; }
+  .gd-reveal-gallery-seat { min-width: 0; }
+  .gd-reveal-gallery-label {
+    color: var(--gd-text-on-felt); font-size: 0.72rem; font-weight: 700;
+    text-align: center; white-space: nowrap; margin-bottom: 3px;
+  }
+
   /* 摊牌只停留片刻，收起会遮住右侧玩家余牌的理牌/顺序面板与已经失效的出牌按钮。 */
   .gd-table.gd-showing-reveal .gd-sort-actions,
   .gd-table.gd-showing-reveal .gd-order-actions,
@@ -2198,6 +2206,44 @@
     .gd-result-score .delta { font-size: 1.15rem; }
     .gd-result-score .breakdown { font-size: 0.72rem; }
     .gd-result-actions { margin-top: 0.35rem; }
+  }
+
+  /* 720×393 一类真实 Firefox 200% 有效视口无法同时容纳牌桌四方位和三/四手
+     多行余牌。局终短暂摊牌时把整桌切换为等宽画廊：每位未出完玩家占一列，
+     3 人时每手 3 行，4 人调试/异常恢复态每手 4 行；牌面不缩小、不互相覆盖。 */
+  @media (orientation: landscape) and (max-width: 700px),
+         (orientation: landscape) and (max-height: 400px) {
+    body.gd-game-fullscreen .gd-table.gd-showing-reveal > .gd-levelbar-corner,
+    body.gd-game-fullscreen .gd-table.gd-showing-reveal > .gd-seats-top,
+    body.gd-game-fullscreen .gd-table.gd-showing-reveal > .gd-seats-mid,
+    body.gd-game-fullscreen .gd-table.gd-showing-reveal > .gd-side,
+    body.gd-game-fullscreen .gd-table.gd-showing-reveal > .gd-self-bar,
+    body.gd-game-fullscreen .gd-table.gd-showing-reveal > .gd-play-band,
+    body.gd-game-fullscreen .gd-table.gd-showing-reveal > .gd-hand,
+    body.gd-game-fullscreen .gd-table.gd-showing-reveal > .gd-sort-actions,
+    body.gd-game-fullscreen .gd-table.gd-showing-reveal > .gd-order-actions { display: none; }
+    body.gd-game-fullscreen .gd-table.gd-showing-reveal .gd-reveal-gallery {
+      display: grid;
+      grid-template-columns: repeat(var(--gd-reveal-seat-count, 1), minmax(0, 1fr));
+      gap: 6px;
+      inset: calc(0.35rem + env(safe-area-inset-top, 0px))
+             calc(0.35rem + env(safe-area-inset-right, 0px))
+             calc(0.35rem + env(safe-area-inset-bottom, 0px))
+             calc(0.35rem + env(safe-area-inset-left, 0px));
+      z-index: 12;
+      align-items: center;
+      overflow: hidden;
+    }
+    body.gd-game-fullscreen .gd-reveal-gallery-seat {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 0; overflow: hidden;
+    }
+    body.gd-game-fullscreen .gd-reveal-gallery .gd-played {
+      --gd-card-w: 46px; --gd-card-h: 66px;
+      height: auto; min-height: 0; width: 100%; overflow: visible;
+    }
+    body.gd-game-fullscreen .gd-reveal-gallery .gd-reveal-wrap,
+    body.gd-game-fullscreen .gd-reveal-gallery .gd-reveal-row { width: 100%; }
   }
 
   /* 桌面紧凑布局保留一条可见的手牌横向滚动条。触屏仍使用无滚动条的手势滑动；

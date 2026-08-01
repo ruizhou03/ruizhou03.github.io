@@ -8,7 +8,13 @@ const args = new Map(process.argv.slice(2).map((arg) => {
   const [key, ...rest] = arg.split('=');
   return [key, rest.join('=')];
 }));
-const marker = args.get('--marker') || '20260801p7h';
+const marker = args.get('--marker') || '20260801p7i';
+const browserName = args.get('--browser') || 'safari';
+const browserLabel = browserName === 'firefox' ? 'Firefox' : 'Safari';
+const driverPath = args.get('--driver') || (browserName === 'firefox'
+  ? 'geckodriver'
+  : '/usr/bin/safaridriver');
+const browserBinary = args.get('--browser-binary');
 const port = Number(args.get('--port') || 4445);
 const windowWidth = Number(args.get('--width') || 1440);
 const windowHeight = Number(args.get('--height') || 900);
@@ -16,6 +22,7 @@ const expectCompact = args.has('--expect-compact');
 const checkReveal = args.has('--check-reveal');
 const checkOffline = args.has('--check-offline');
 const checkA11y = args.has('--check-a11y');
+const zoomPercent = Number(args.get('--zoom') || 100);
 const offlineDir = args.get('--offline-dir');
 const offlinePort = Number(args.get('--offline-port') || 4191);
 const baseUrl = args.get('--url') || (offlineDir
@@ -119,14 +126,6 @@ async function click(selector) {
   }
 }
 
-async function sendKey(selector, key) {
-  const id = await find(selector);
-  await request(`/session/${sessionId}/element/${id}/value`, {
-    method: 'POST',
-    body: { text: key, value: [key] },
-  });
-}
-
 async function pressKey(key) {
   await request(`/session/${sessionId}/actions`, {
     method: 'POST',
@@ -154,6 +153,11 @@ async function waitFor(predicateScript, message, timeoutMs = 15000) {
 }
 
 async function run() {
+  assert.ok(['safari', 'firefox'].includes(browserName), '--browser 只支持 safari 或 firefox');
+  assert.ok([100, 200].includes(zoomPercent), '--zoom 只支持 100 或 200');
+  if (browserName === 'firefox') {
+    assert.ok(browserBinary, 'Firefox 验收必须提供 --browser-binary=<Firefox 可执行文件>');
+  }
   assert.ok(!checkA11y || !checkOffline, '--check-a11y 与 --check-offline 请分两次运行');
   if (offlineDir) {
     sourceServer = spawn('/usr/bin/python3', [
@@ -167,7 +171,10 @@ async function run() {
     assert.ok(offlineDir, '--check-offline 必须同时提供 --offline-dir=<Jekyll 构建目录>');
   }
 
-  driver = spawn('/usr/bin/safaridriver', ['-p', String(port)], {
+  const driverArgs = browserName === 'firefox'
+    ? ['--port', String(port), '--log', 'error', '--allow-system-access']
+    : ['-p', String(port)];
+  driver = spawn(driverPath, driverArgs, {
     stdio: ['ignore', 'ignore', 'pipe'],
   });
   driver.stderr.setEncoding('utf8');
@@ -176,9 +183,21 @@ async function run() {
 
   let session;
   try {
+    const alwaysMatch = { browserName };
+    if (browserName === 'firefox') {
+      alwaysMatch['moz:firefoxOptions'] = {
+        binary: browserBinary,
+        prefs: {
+          'browser.shell.checkDefaultBrowser': false,
+          'browser.startup.homepage_override.mstone': 'ignore',
+          'datareporting.policy.dataSubmissionEnabled': false,
+          'toolkit.telemetry.reportingpolicy.firstRun': false,
+        },
+      };
+    }
     session = await request('/session', {
       method: 'POST',
-      body: { capabilities: { alwaysMatch: { browserName: 'safari' } } },
+      body: { capabilities: { alwaysMatch } },
     });
   } catch (error) {
     if (/Allow remote automation/i.test(error.message)) {
@@ -187,7 +206,7 @@ async function run() {
     throw error;
   }
   sessionId = session.sessionId;
-  assert.equal(String(session.capabilities.browserName).toLowerCase(), 'safari');
+  assert.equal(String(session.capabilities.browserName).toLowerCase(), browserName);
   await request(`/session/${sessionId}/window/rect`, {
     method: 'POST',
     body: { x: 0, y: 0, width: windowWidth, height: windowHeight },
@@ -206,8 +225,36 @@ async function run() {
   );
   await waitFor(
     `return document.body.classList.contains('gd-game-fullscreen')`,
-    'Safari 主运行时尚未完成事件绑定',
+    browserLabel + ' 主运行时尚未完成事件绑定',
   );
+
+  let zoom = null;
+  if (zoomPercent === 200) {
+    const before = await execute(`return {
+      innerWidth, innerHeight, outerWidth, outerHeight, devicePixelRatio
+    }`);
+    assert.equal(browserName, 'firefox', '--zoom=200 当前只由 Firefox UI 自动化支持');
+    // Firefox 138+ 要求 --allow-system-access 才能进入 chrome context。FullZoom 是
+    // Firefox 浏览器前端本身的页面缩放实现，不是缩小 WebDriver 窗口的替代模拟。
+    await request(`/session/${sessionId}/moz/context`, {
+      method: 'POST',
+      body: { context: 'chrome' },
+    });
+    await execute('FullZoom.setZoom(2.0); return true;');
+    await request(`/session/${sessionId}/moz/context`, {
+      method: 'POST',
+      body: { context: 'content' },
+    });
+    await waitFor(
+      `return innerWidth <= ${Math.floor(windowWidth * 0.58)}`,
+      browserLabel + ' 没有进入 200% 页面缩放',
+      5000,
+    );
+    const after = await execute(`return {
+      innerWidth, innerHeight, outerWidth, outerHeight, devicePixelRatio
+    }`);
+    zoom = { percent: zoomPercent, before, after };
+  }
 
   const hasResume = await execute(`
     const el = document.querySelector('#gdResumeDiscard');
@@ -246,7 +293,8 @@ async function run() {
     'Safari 每个 AI 座位必须且只能渲染一个机器人图标');
 
   const firstCard = '#gdHand [role="button"][data-cid]';
-  await sendKey(firstCard, '\uE007');
+  await execute(`document.querySelector(${JSON.stringify(firstCard)})?.focus()`);
+  await pressKey('\uE007');
   await waitFor(
     `return /已选中/.test(document.querySelector('#gdLiveRegion')?.textContent || '')`,
     'Safari 键盘选牌没有发布可听读的选中状态',
@@ -257,7 +305,7 @@ async function run() {
   `);
   assert.equal(keyboardSelected, true, 'Safari Enter 键没有选中手牌');
   const selectedAnnouncement = await execute(`return document.querySelector('#gdLiveRegion')?.textContent || ''`);
-  await sendKey(firstCard, '\uE007');
+  await pressKey('\uE007');
 
   await click('#gdOrderBtn');
   const orderBefore = await execute(`
@@ -398,14 +446,58 @@ async function run() {
     for (const key of ['d', 'b', 'u', 'g']) await pressKey(key);
     await waitFor(`return !!document.querySelector('#gdDbgRevealBtn')`, 'Safari 本地调试台没有打开', 2000);
     await execute(`document.querySelector('#gdDbgRevealBtn').click()`);
+    for (const key of ['d', 'b', 'u', 'g']) await pressKey(key);
+    await waitFor(`return !document.querySelector('#gdDbgPanel')`, 'Safari 本地调试台没有收起', 2000);
+    const compactGallery = layout.innerWidth <= 700 || layout.innerHeight <= 400;
     await waitFor(
-      `return document.querySelectorAll('.gd-played.gd-revealing').length === 3`,
+      compactGallery
+        ? `return !document.querySelector('#gdRevealGallery').hidden &&
+            document.querySelectorAll('#gdRevealGallery .gd-reveal-gallery-seat').length >= 3`
+        : `return document.querySelectorAll('.gd-side > .gd-played.gd-revealing, .gd-center > .gd-played.gd-revealing').length === 3`,
       'Safari 局终剩余手牌没有进入专用展开槽',
       2000,
     );
-    for (const key of ['d', 'b', 'u', 'g']) await pressKey(key);
-    await waitFor(`return !document.querySelector('#gdDbgPanel')`, 'Safari 本地调试台没有收起', 2000);
-    reveal = await execute(`return [1, 2, 3].map((seat) => {
+    if (compactGallery) {
+      reveal = await execute(`
+        const gallery = document.querySelector('#gdRevealGallery');
+        const galleryRect = gallery.getBoundingClientRect();
+        return [...gallery.querySelectorAll('.gd-reveal-gallery-seat')].map((section, index, all) => {
+          const slot = section.querySelector('.gd-played');
+          const rows = [...slot.querySelectorAll('.gd-reveal-row')];
+          const cards = [...slot.querySelectorAll('.gd-reveal-row .gd-card')];
+          const sectionRect = section.getBoundingClientRect();
+          const cardRects = cards.map((card) => card.getBoundingClientRect());
+          const left = Math.min(...cardRects.map((rect) => rect.left));
+          const right = Math.max(...cardRects.map((rect) => rect.right));
+          const top = Math.min(...cardRects.map((rect) => rect.top));
+          const bottom = Math.max(...cardRects.map((rect) => rect.bottom));
+          const rowWidths = rows.map((row) => {
+            const rects = [...row.children].map((card) => card.getBoundingClientRect());
+            return Math.max(...rects.map((rect) => rect.right)) - Math.min(...rects.map((rect) => rect.left));
+          });
+          return {
+            label: section.querySelector('.gd-reveal-gallery-label')?.textContent || '',
+            cards: cards.length,
+            rows: rows.length,
+            maxWidth: parseFloat(getComputedStyle(slot).getPropertyValue('--gd-reveal-max-w')),
+            rowWidths,
+            containedHorizontally: left >= sectionRect.left - 1 && right <= sectionRect.right + 1,
+            containedVertically: top >= galleryRect.top - 1 && bottom <= galleryRect.bottom + 1,
+            separatedFromNext: !all[index + 1] || sectionRect.right <= all[index + 1].getBoundingClientRect().left + 1,
+          };
+        });
+      `);
+      const expectedRows = reveal.length >= 4 ? 4 : 3;
+      assert.ok(reveal.length >= 3, browserLabel + ' 紧凑摊牌画廊必须覆盖所有未出完玩家');
+      assert.ok(reveal.every((item) => item.cards >= 20),
+        browserLabel + ' 紧凑摊牌必须使用长手牌回归场景：' + JSON.stringify(reveal));
+      assert.ok(reveal.every((item) => item.rows === expectedRows),
+        browserLabel + ' 紧凑摊牌行数必须按玩家数自适应');
+      assert.ok(reveal.every((item) => item.containedHorizontally && item.containedVertically && item.separatedFromNext),
+        browserLabel + ' 紧凑摊牌不得裁切或覆盖相邻玩家：' + JSON.stringify(reveal));
+      assert.ok(reveal.every((item) => item.rowWidths.every((width) => width <= item.maxWidth + 1)),
+        browserLabel + ' 紧凑摊牌行不得超过玩家列宽：' + JSON.stringify(reveal));
+    } else reveal = await execute(`return [1, 2, 3].map((seat) => {
       const slot = document.querySelector('#gdPlay' + seat);
       const rows = [...slot.querySelectorAll('.gd-reveal-row')];
       const cards = [...slot.querySelectorAll('.gd-reveal-row .gd-card')];
@@ -430,14 +522,15 @@ async function run() {
         rowWidths,
       };
     })`);
-    const expectedRows = layout.innerWidth <= 700 || layout.innerHeight <= 400 ? 3 : 2;
-    assert.ok(reveal.every((item) => item.cards >= 20),
-      'Safari 局终长手牌回归必须让每个 AI 座位至少保留 20 张测试牌');
-    assert.ok(reveal.every((item) => item.rows === expectedRows), 'Safari 局终摊牌行数必须匹配当前视口');
-    assert.ok(reveal.every((item) => item.overflow === 'visible' && item.containedVertically),
-      'Safari 局终摊牌不得被固定高度出牌槽裁断');
-    assert.ok(reveal.every((item) => item.rowWidths.every((width) => width <= item.maxWidth + 1)),
-      'Safari 局终摊牌不得超出为各座分配的横向区域：' + JSON.stringify(reveal));
+    if (!compactGallery) {
+      assert.ok(reveal.every((item) => item.cards >= 20),
+        browserLabel + ' 局终长手牌回归必须让每个 AI 座位至少保留 20 张测试牌');
+      assert.ok(reveal.every((item) => item.rows === 2), browserLabel + ' 局终摊牌行数必须匹配当前视口');
+      assert.ok(reveal.every((item) => item.overflow === 'visible' && item.containedVertically),
+        browserLabel + ' 局终摊牌不得被固定高度出牌槽裁断');
+      assert.ok(reveal.every((item) => item.rowWidths.every((width) => width <= item.maxWidth + 1)),
+        browserLabel + ' 局终摊牌不得超出为各座分配的横向区域：' + JSON.stringify(reveal));
+    }
   }
 
   let a11y = null;
@@ -513,6 +606,12 @@ async function run() {
 
   let offline = null;
   if (checkOffline) {
+    const serviceWorker = await execute(`return {
+      controlled: !!navigator.serviceWorker?.controller,
+      scriptURL: navigator.serviceWorker?.controller?.scriptURL || '',
+    }`);
+    assert.equal(serviceWorker.controlled, true,
+      browserLabel + ' 离线承诺前当前页面必须已被 Service Worker 接管');
     await stopSourceServer();
     let sourceDown = false;
     for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -526,7 +625,15 @@ async function run() {
     }
     assert.equal(sourceDown, true, 'Safari 离线回归前本机源站仍可连接');
 
-    await request(`/session/${sessionId}/refresh`, { method: 'POST', body: {} });
+    if (browserName === 'firefox') {
+      const previousTimeOrigin = await execute('return performance.timeOrigin;');
+      await execute('location.reload(); return true;');
+      await waitFor(
+        `return performance.timeOrigin !== ${previousTimeOrigin} && document.readyState === 'complete' &&
+          !!document.querySelector('#gdPgoStart')`,
+        'Firefox 断源后没有完成新的 Service Worker 文档导航',
+      );
+    } else await request(`/session/${sessionId}/refresh`, { method: 'POST', body: {} });
     await waitFor(
       `return window.GuandanContract?.releaseMarker === ${JSON.stringify(marker)}`,
       'Safari 断源后没有从 Service Worker 重载 release marker',
@@ -584,7 +691,7 @@ async function run() {
       `return document.querySelectorAll('#gdHand [role="button"][data-cid]').length`,
     );
     assert.equal(hardHandCount, 0, 'Safari 高手模型不可用时不得静默降级并发牌');
-    offline = { sourceDown, normalHandCount, hardStatus, hardButton, hardHandCount };
+    offline = { serviceWorker, sourceDown, normalHandCount, hardStatus, hardButton, hardHandCount };
   }
 
   if (screenshotPath) {
@@ -597,7 +704,9 @@ async function run() {
     browser: session.capabilities.browserVersion,
     platform: session.capabilities.platformName,
     marker,
-    window: { width: windowWidth, height: windowHeight, expectCompact },
+    browserName,
+    window: { width: windowWidth, height: windowHeight, expectCompact, zoomPercent },
+    zoom,
     handCount: 27,
     avatarIcons,
     keyboardSelected,
@@ -614,7 +723,7 @@ async function run() {
     a11y,
     offline,
     checkedThisRun: { a11y: checkA11y, offline: checkOffline, reveal: checkReveal },
-    pendingManual: ['VoiceOver'],
+    pendingManual: browserName === 'safari' ? ['VoiceOver'] : [],
   }, null, 2));
 }
 
@@ -626,8 +735,9 @@ try {
   if (sessionId) {
     try {
       const screenshot = await request(`/session/${sessionId}/screenshot`);
-      await writeFile('/tmp/guandan-safari-failure.png', screenshot, 'base64');
-      console.error('失败截图：/tmp/guandan-safari-failure.png');
+      const failurePath = `/tmp/guandan-${browserName}-failure.png`;
+      await writeFile(failurePath, screenshot, 'base64');
+      console.error('失败截图：' + failurePath);
     } catch {}
   }
   process.exitCode = 1;

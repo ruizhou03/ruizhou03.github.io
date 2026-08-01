@@ -937,6 +937,7 @@
     chipYou: $('gdChipYou'), chipOpp: $('gdChipOpp'),
     chipScore: $('gdChipScore'), scoreVal: $('gdScoreVal'),
     hand: $('gdHand'),
+    revealGallery: $('gdRevealGallery'),
     playBtn: $('gdPlayBtn'), passBtn: $('gdPassBtn'),
     hintBtn: $('gdHintBtn'), sortBtn: $('gdSortBtn'),
     arrangeBtn: $('gdArrangeBtn'), restoreBtn: $('gdRestoreBtn'),
@@ -1454,20 +1455,15 @@
   // 等紧凑视口均分三行，避免每行过度叠压。逐行测量后只压缩横向间距，不裁牌面。
   // card 宽度走测量、不写死，兼容卡面缩放设置。
   const REVEAL_MAX_W = 264;   // 摊牌行宽度上限(px)，略小于侧位出牌槽 320
-  function renderRevealedHand(seat) {
-    const slot = seatEls[seat].play;
+  function fillRevealedHand(slot, seat, rowCount, maxWidth, keyPrefix = 'reveal2') {
     if (!slot) return;
     const hand = state.hands[seat];
     const level = currentLevelLabel();
     const sorted = hand.slice().sort((a, b) => singleWeight(b, level) - singleWeight(a, level));
-    const key = 'reveal2:' + seat + ':' + sorted.join(',');
+    const key = keyPrefix + ':' + seat + ':' + rowCount + ':' + Math.round(maxWidth) + ':' + sorted.join(',');
     if (slot.dataset.lpKey === key && slot.classList.contains('gd-revealing')) return;
     slot.dataset.lpKey = key;
     slot.innerHTML = '';
-    const compact = window.innerWidth <= 700 || window.innerHeight <= 400;
-    const rowCount = compact ? 3 : 2;
-    const sideMax = Math.max(150, (window.innerWidth - 180) / 2);
-    const maxWidth = Math.min(REVEAL_MAX_W, seat === 2 ? window.innerWidth * 0.52 : sideMax);
     slot.classList.add('gd-revealing');
     slot.classList.add('gd-reveal-rows-' + rowCount);
     slot.style.setProperty('--gd-reveal-max-w', Math.round(maxWidth) + 'px');
@@ -1501,6 +1497,53 @@
           row.children[i].style.marginLeft = (cur - extra) + 'px';
         }
       }
+    }
+  }
+
+  function renderRevealedHand(seat) {
+    const compact = window.innerWidth <= 700 || window.innerHeight <= 400;
+    const rowCount = compact ? 3 : 2;
+    const sideMax = Math.max(150, (window.innerWidth - 180) / 2);
+    const maxWidth = Math.min(REVEAL_MAX_W, seat === 2 ? window.innerWidth * 0.52 : sideMax);
+    fillRevealedHand(seatEls[seat].play, seat, rowCount, maxWidth);
+  }
+
+  function renderRevealGallery() {
+    const gallery = els.revealGallery;
+    if (!gallery) return;
+    const compact = window.innerWidth <= 700 || window.innerHeight <= 400;
+    const seats = [0, 1, 2, 3].filter(seat => {
+      const hand = state.hands[seat];
+      return hand && hand.length > 0 && hand[0] !== -1;
+    });
+    if (!state.revealHands || !compact || seats.length === 0) {
+      gallery.hidden = true;
+      gallery.innerHTML = '';
+      gallery.dataset.revealKey = '';
+      return;
+    }
+    const key = seats.map(seat => seat + ':' + state.hands[seat].join(',')).join('|');
+    if (gallery.dataset.revealKey === key && !gallery.hidden) return;
+    gallery.dataset.revealKey = key;
+    gallery.hidden = false;
+    gallery.innerHTML = '';
+    gallery.style.setProperty('--gd-reveal-seat-count', String(seats.length));
+    const gapTotal = Math.max(0, seats.length - 1) * 6;
+    const maxWidth = Math.max(132, (window.innerWidth - 12 - gapTotal) / seats.length);
+    const rowCount = seats.length >= 4 ? 4 : 3;
+    for (const seat of seats) {
+      const section = document.createElement('section');
+      section.className = 'gd-reveal-gallery-seat';
+      section.setAttribute('aria-label', seatName(seat) + '的剩余手牌');
+      const label = document.createElement('div');
+      label.className = 'gd-reveal-gallery-label';
+      label.textContent = seatName(seat) + ' · ' + state.hands[seat].length + ' 张';
+      const slot = document.createElement('div');
+      slot.className = 'gd-played';
+      section.appendChild(label);
+      section.appendChild(slot);
+      gallery.appendChild(section);
+      fillRevealedHand(slot, seat, rowCount, maxWidth, 'gallery2');
     }
   }
 
@@ -1754,6 +1797,7 @@
       renderPlayArea(s);
     }
     renderHand();
+    renderRevealGallery();
     updateActions();
     applyAttentionFocus();
   }

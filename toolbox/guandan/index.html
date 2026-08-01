@@ -8,14 +8,14 @@ apple_touch_icon: /assets/icons/guandan-apple-touch-icon.png
 app_title: 掼蛋
 theme_color: "#173a30"
 theme_color_dark: "#0b1d1a"
-asset_version: "20260801p7h"
+asset_version: "20260801p7i"
 minimal_app_shell: true
 # 服务端就给 <body> 带上全屏类：进页面首帧即全屏，杜绝"先停在非全屏再跳全屏"的闪烁。
 # （JS 启动时也会再加一次，幂等兜底。）
 body_class: gd-game-fullscreen
 ---
 
-<link rel="stylesheet" href="/assets/css/games-shell.css?v=20260801p7h">
+<link rel="stylesheet" href="/assets/css/games-shell.css?v=20260801p7i">
 
 <script>
   /* 游戏仍须遵守浏览器缩放与系统辅助功能。只覆盖 viewport-fit，不限制 200%+
@@ -82,7 +82,7 @@ body_class: gd-game-fullscreen
   })();
 </script>
 
-<link rel="stylesheet" href="/assets/css/guandan.css?v=20260801p7h">
+<link rel="stylesheet" href="/assets/css/guandan.css?v=20260801p7i">
 
 <div class="guandan-wrap gd-view-setup">
   <!-- 手机竖屏引导：仅触屏竖屏显示（CSS 控制），盖住整屏提示转横屏 -->
@@ -112,6 +112,10 @@ body_class: gd-game-fullscreen
       <div class="gd-level-chip you" id="gdChipYou"><span class="lab">我方</span><span class="val" id="gdLevelYou">2</span></div>
       <div class="gd-level-chip opp" id="gdChipOpp"><span class="lab">对方</span><span class="val" id="gdLevelOpp">2</span></div>
     </div>
+
+    <!-- 200% zoom / 极矮视口的局终摊牌：改用整桌等宽画廊，避免把多行余牌继续
+         塞进三个绝对定位的普通出牌槽而互相覆盖。普通视口仍保留牌桌方位摊牌。 -->
+    <div class="gd-reveal-gallery" id="gdRevealGallery" role="group" aria-label="本局剩余手牌" hidden></div>
 
     <!-- 上家：对家。头像 + (名字/张数) 横排 —— 张数挪到头像右边，整块更扁，
          让出一整行高度给对家出牌区往上挪。 -->
@@ -438,15 +442,15 @@ body_class: gd-game-fullscreen
   <output id="gdPerfProbe" hidden aria-hidden="true"></output>
 </div>
 
-<script src="/assets/js/games-shell/identity.js?v=20260801p7h" defer></script>
+<script src="/assets/js/games-shell/identity.js?v=20260801p7i" defer></script>
 
-<script src="/assets/js/games/guandan-contract.js?v=20260801p7h" defer></script>
-<script src="/assets/js/games/guandan-storage.js?v=20260801p7h" defer></script>
-<script src="/assets/js/games/guandan-net.js?v=20260801p7h" defer></script>
-<script src="/assets/js/games/guandan-audio.js?v=20260801p7h" defer></script>
-<script src="/assets/js/games/guandan-rules.js?v=20260801p7h" defer></script>
-<script src="/assets/js/games/guandan-engine.js?v=20260801p7h" defer></script>
-<script src="/assets/js/games/guandan-ui.js?v=20260801p7h" defer></script>
-<script src="/assets/js/games/guandan-debug.js?v=20260801p7h" defer></script>
+<script src="/assets/js/games/guandan-contract.js?v=20260801p7i" defer></script>
+<script src="/assets/js/games/guandan-storage.js?v=20260801p7i" defer></script>
+<script src="/assets/js/games/guandan-net.js?v=20260801p7i" defer></script>
+<script src="/assets/js/games/guandan-audio.js?v=20260801p7i" defer></script>
+<script src="/assets/js/games/guandan-rules.js?v=20260801p7i" defer></script>
+<script src="/assets/js/games/guandan-engine.js?v=20260801p7i" defer></script>
+<script src="/assets/js/games/guandan-ui.js?v=20260801p7i" defer></script>
+<script src="/assets/js/games/guandan-debug.js?v=20260801p7i" defer></script>
 <script src="/assets/js/games/guandan-ai-contract.js?v=20260727ai5" defer></script>
-<script src="/assets/js/games/guandan.min.js?v=20260801p7h" defer></script>
+<script src="/assets/js/games/guandan.min.js?v=20260801p7i" defer></script>

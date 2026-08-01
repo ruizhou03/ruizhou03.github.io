@@ -2,8 +2,8 @@
 
 ## 当前发布合同
 
-- release marker: `20260801p7e`
-- build: `2026.08.01.phase7-e`
+- release marker: `20260801p7i`
+- build: `2026.08.01.phase7-i`
 - rulesVersion: `gd-huaian-2025-site-v1`
 - protocolVersion: `guandan-protocol-v2`
 - roomSchemaVersion: `3`
@@ -164,6 +164,26 @@
 - 同一 `p7h` 构建再次通过 Safari 断源离线：普通档 27 张、高手档 0 张且不降级。
   人工 VoiceOver 发音和操作体验仍必须由用户真实听读，自动语义检查不替代该项。
 
+## 真实 Firefox 与紧凑摊牌阶段 7I 证据（2026-08-01）
+
+- 从 Mozilla 官方下载的 Firefox 153.0.1 与 geckodriver 0.37.1 只解压到临时目录，
+  使用 geckodriver 独立 profile 驱动真实 Firefox，不用 Playwright Firefox 替身。
+- Firefox 138+ 的 UI 自动化按 Mozilla 合同显式使用 `--allow-system-access`，仅访问本机
+  隔离站点；测试在 chrome context 调用 Firefox 前端自己的 `FullZoom.setZoom(2.0)`。
+  `1440×900` 窗口从 `1440×786`、DPR 2 真实变为 `720×393`、DPR 4，证明不是只
+  缩小窗口冒充页面缩放。
+- 该真实 200% 视口发现旧三方位局终摊牌会互相覆盖。`p7i` 在宽不大于 700px 或高
+  不大于 400px 时切换为整桌等宽画廊，隐藏已失效的牌桌操作；3 名未出完玩家各
+  3 行，4 名调试/异常恢复态各 4 行，牌面仍保持 46×66px。
+- Firefox 153.0.1 的四手 27 张极端回归中，每列宽 173px、四行实际宽度均不超过
+  173px，全部卡牌同时满足横向/纵向 containment，四列互不相交；键盘选牌、调整
+  顺序、dialog 焦点循环/Escape/inert、44×44px 工具栏也由同一次验收通过。
+- Firefox 还发现离线客户端只看 `registration.active`、没有确认当前页面已有
+  `navigator.serviceWorker.controller` 的竞态。修复后按钮必须等 `controllerchange`；
+  Firefox 断源前确认 controller 指向 `/sw.js`，源站停止后完成新的 SW 文档导航，
+  普通档开出 27 张；未缓存高手模型时仍为 0 张并明确失败。Safari 26.5.2 随后
+  复跑同一断源合同也通过。
+
 ## 生产发布证据
 
 - site commit: `944da28e09d47dd3477758dcf53367bcf327a64e`
@@ -212,12 +232,12 @@
 以下项目不能由当前 Chrome 会话和响应式视口模拟等价替代，必须在真实环境记录：
 
 - 2026-08-01 能力探测：系统 Safari 26.5.2 的“允许远程自动化”已由用户开启，
-  自动验收通过；当前 Mac 未安装 Firefox。完整人工矩阵见
+  自动验收通过；Firefox 使用 Mozilla 官方临时发行版完成，不写入 `/Applications`。完整人工矩阵见
   `docs/guandan-device-acceptance.md`。
 
-- Safari VoiceOver、Firefox；
+- Safari VoiceOver；
 - iPhone、Android、iPad；
 - macOS VoiceOver、Windows NVDA；
-- Firefox/平板的 200% zoom，以及对应实体设备的刘海/安全区和极端宽高比；
+- 平板的 200% zoom，以及对应实体设备的刘海/安全区和极端宽高比；
 
 在这些证据齐全前，长期目标不得标记为 complete。

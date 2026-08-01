@@ -42,6 +42,23 @@ Safari 26.5.2 的上述断源模式通过。剩余唯一需要人工完成的是
 - 开启 VoiceOver，以 Tab、VO+方向键和 Enter 完成开局、选牌、调整顺序、打开并
   关闭榜单；确认手牌名称、选中状态、倒计时与结果 live region 均可听懂。
 
+## Firefox 自动验收
+
+Firefox 使用 Mozilla 官方发行版与 geckodriver 的临时路径，不需要安装到
+`/Applications`。200% 模式通过 Firefox 自己的 `FullZoom` UI 路径设置真实页面
+缩放；离线模式与 Safari 一样由脚本拥有并停止隔离源站。示例：
+
+```sh
+FIREFOX_BIN=/tmp/firefox/Firefox.app/Contents/MacOS/firefox
+GECKODRIVER_BIN=/tmp/firefox/geckodriver
+node scripts/test-guandan-firefox.mjs --driver="$GECKODRIVER_BIN" \
+  --browser-binary="$FIREFOX_BIN" --zoom=200 --expect-compact --check-reveal \
+  --offline-dir=/tmp/guandan-firefox-site --offline-port=4194
+node scripts/test-guandan-firefox.mjs --driver="$GECKODRIVER_BIN" \
+  --browser-binary="$FIREFOX_BIN" --check-offline \
+  --offline-dir=/tmp/guandan-firefox-site --offline-port=4194
+```
+
 ## 强制矩阵
 
 每一行必须填写真实版本、设备和结果；“模拟”“静态通过”或空白均不算通过。
@@ -50,7 +67,7 @@ Safari 26.5.2 的上述断源模式通过。剩余唯一需要人工完成的是
 | --- | --- | --- | --- | --- |
 | Chrome macOS | 键盘、dialog、390px、性能、真实离线 | Chrome 150.0.7871.187 | 已通过 | `p7e` 关闭本机源站后由 SW 重载并开出普通档 27 张牌；见 `guandan-release-evidence.md` |
 | Safari macOS | 自动脚本、200% zoom、离线 | Safari 26.5.2 | 自动、200% 与真实离线通过；VoiceOver 待验收 | `p7d` 生产 200% 人工通过；`p7h` 读屏语义前置回归通过 |
-| Firefox desktop | 键盘、dialog、200% zoom、离线 | 待填 | 待验收 | 当前 Mac 未安装 Firefox |
+| Firefox desktop | 键盘、dialog、200% zoom、离线 | Firefox 153.0.1 / macOS 26.5.2 | 已通过 | 官方临时发行版；真实 FullZoom 后为 720×393、DPR 4；四手各 27 张画廊无裁切/覆盖；断源后 SW 重载普通档 27 张、高手档 0 张且不降级 |
 | iPhone Safari | 刘海安全区、横竖屏、27 张牌、PWA | 待填 | 待验收 | 必须实体设备 |
 | Android Chrome | 横竖屏、27 张牌、PWA、断网恢复 | 待填 | 待验收 | 必须实体设备 |
 | iPad Safari | 分屏、横竖屏、200% zoom、PWA | 待填 | 待验收 | 必须实体设备 |

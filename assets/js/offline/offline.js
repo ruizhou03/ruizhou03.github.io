@@ -100,12 +100,16 @@
       try { await navigator.serviceWorker.register('/sw.js', { scope: '/' }); }
       catch (e) { return null; }
       var reg = await navigator.serviceWorker.ready;
-      if (!reg.active) {
+      // Firefox 可能先把 registration 标成 active，随后才完成 activate 事件里的
+      // clients.claim()。只检查 reg.active 会让“保存离线”在当前页面尚未被 controller
+      // 接管时提前报成功：源站一停，下一次导航仍会落进浏览器网络错误页。
+      if (!navigator.serviceWorker.controller) {
         await new Promise(function (r) {
-          var t = setTimeout(r, 1500);
+          var t = setTimeout(r, 5000);
           navigator.serviceWorker.addEventListener('controllerchange', function () { clearTimeout(t); r(); }, { once: true });
         });
       }
+      if (!navigator.serviceWorker.controller) return null;
       return reg;
     })();
     return _readyPromise;

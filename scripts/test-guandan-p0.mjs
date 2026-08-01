@@ -26,7 +26,7 @@ assert.match(css, /\.gd-mute-btn\s*\{[\s\S]*right:\s*calc\(0\.5rem \+ 100px \+ e
   '触屏横屏工具栏必须按 50px 节距排列，避免 44px 目标重叠');
 assert.match(css, /@media \(prefers-color-scheme: dark\)[\s\S]*--gd-felt-1:\s*#1c3933/,
   '系统自适应方案必须提供真正深色牌桌');
-assert.match(html, /guandan\.min\.js\?v=20260801p7h/, '生产页面应使用阶段 7C 压缩内容标记，避免旧 JS 缓存');
+assert.match(html, /guandan\.min\.js\?v=20260801p7i/, '生产页面应使用阶段 7C 压缩内容标记，避免旧 JS 缓存');
 assert.match(html, /data-value="off"[^>]*class="[^"]*selected|class="[^"]*selected"[^>]*data-value="off"/,
   '同队进贡 UI 默认应关闭');
 
