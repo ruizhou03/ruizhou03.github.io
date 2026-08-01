@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const root = resolve(new URL('..', import.meta.url).pathname);
-const version = '20260801g6g';
+const version = '20260801g6h';
 const own = path => ({ path, url: `/${path}?v=${version}` });
 const raw = path => ({ path, url: `/${path}` });
 

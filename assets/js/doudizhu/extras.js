@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const VERSION = '20260801g6g';
+  const VERSION = '20260801g6h';
   const SOURCES = [
     '/assets/js/games-shell/wins-leaderboard.js',
     '/assets/js/games-shell/comments.js',

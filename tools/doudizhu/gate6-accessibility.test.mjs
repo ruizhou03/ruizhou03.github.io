@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const page = fs.readFileSync(new URL('../../toolbox/doudizhu/index.html', import.meta.url), 'utf8');
 const css = fs.readFileSync(new URL('../../assets/css/doudizhu.css', import.meta.url), 'utf8');
 const ui = fs.readFileSync(new URL('../../assets/js/doudizhu/ui.js', import.meta.url), 'utf8');
+const offline = fs.readFileSync(new URL('../../assets/js/doudizhu/offline.js', import.meta.url), 'utf8');
 
 function luminance(hex) {
   const channels = hex.slice(1).match(/../g).map(part => parseInt(part, 16) / 255)
@@ -67,4 +68,10 @@ test('Gate 6 light and dark table palettes exceed WCAG AA body contrast', () => 
     ['#8b2e2e', '#f5f4f0'],
     ['#1a1a2e', '#f5f4f0'],
   ]) assert.ok(contrast(foreground, background) >= 4.5, `${foreground} on ${background}`);
+});
+
+test('Gate 6 offline upgrade replaces a previously saved HTML shell', () => {
+  assert.match(offline, /new MessageChannel\(\)/);
+  assert.match(offline, /type:\s*'SAVE_OFFLINE'[\s\S]*force:\s*true[\s\S]*silent:\s*true/);
+  assert.match(offline, /data\.type !== 'SAVE_DONE'/);
 });

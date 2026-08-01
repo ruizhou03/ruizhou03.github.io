@@ -21,6 +21,37 @@
     return response;
   }
 
+  async function refreshSavedPage() {
+    const url = '/toolbox/doudizhu/';
+    if (navigator.serviceWorker && navigator.serviceWorker.controller && typeof MessageChannel !== 'undefined') {
+      await new Promise((resolve, reject) => {
+        const channel = new MessageChannel();
+        const timer = setTimeout(() => {
+          channel.port1.close();
+          reject(new Error('offline_page_refresh_timeout'));
+        }, 20000);
+        channel.port1.onmessage = event => {
+          const data = event.data || {};
+          if (data.type !== 'SAVE_DONE') return;
+          clearTimeout(timer);
+          channel.port1.close();
+          resolve();
+        };
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SAVE_OFFLINE',
+          url,
+          force: true,
+          silent: true,
+        }, [channel.port2]);
+      });
+      return;
+    }
+    const page = await fetch(url, { cache: 'no-store' });
+    if (!page.ok) throw new Error('offline_page_unavailable');
+    const cache = await caches.open(SAVED_CACHE);
+    await cache.put(url, page.clone());
+  }
+
   async function cacheTier(tier, onProgress) {
     if (!('caches' in window) || !crypto.subtle) throw new Error('offline_cache_unavailable');
     const manifestResponse = await fetch(MANIFEST_URL, { cache: 'no-store' });
@@ -36,16 +67,7 @@
       await cache.put(assets[i].url, (await verifiedResponse(assets[i])).clone());
     }
     await cache.put(MANIFEST_URL, manifestResponse.clone());
-    const page = await fetch('/toolbox/doudizhu/', { cache: 'no-store' });
-    if (!page.ok) throw new Error('offline_page_unavailable');
-    await cache.put('/toolbox/doudizhu/', page.clone());
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'SAVE_OFFLINE',
-        url: '/toolbox/doudizhu/',
-        assets: assets.map(asset => asset.url),
-      });
-    }
+    await refreshSavedPage();
     return { tier, bytes: assets.reduce((sum, asset) => sum + (asset.bytes || 0), 0) };
   }
 
