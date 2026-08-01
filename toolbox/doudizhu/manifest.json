@@ -1,0 +1,15 @@
+{
+  "name": "斗地主 · Rui Zhou",
+  "short_name": "斗地主",
+  "description": "四档 AI 陪练与三人真实联机斗地主",
+  "start_url": "/toolbox/doudizhu/",
+  "scope": "/toolbox/doudizhu/",
+  "display": "standalone",
+  "background_color": "#f2e1bd",
+  "theme_color": "#7a1f22",
+  "icons": [
+    { "src": "/assets/icons/doudizhu-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/doudizhu-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/doudizhu-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

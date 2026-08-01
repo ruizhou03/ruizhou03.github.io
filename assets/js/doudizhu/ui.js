@@ -3294,6 +3294,7 @@
         gameId: 'doudizhu',
         title: '[[zi:trophy]] 斗地主 · 积分榜',
         unit: '分',
+        levels: ['master', 'hard', 'normal', 'easy'],
         getCurrentNick: () => GamesShell.Identity.getNick(),
       });
       GamesShell.Comments.mount({
@@ -3321,6 +3322,7 @@
         gameId: 'doudizhu-online',
         title: '[[zi:globe]] 斗地主 · 联机积分榜',
         unit: '分',
+        levels: ['master', 'hard', 'normal', 'easy'],
         getCurrentNick: () => GamesShell.Identity.getNick(),
       });
       ddzSettleBtn = null;
@@ -4494,15 +4496,6 @@
       `<div>${winText}获胜</div>` +
       `<div>本盘净分 <strong>${state.result.scoreDelta >= 0 ? '+' : ''}${state.result.scoreDelta}</strong></div>`;
 
-    const pairRows = Array.isArray(state.result.pairAmounts) ? state.result.pairAmounts : [];
-    if (pairRows.length) {
-      const pairText = pairRows.map(pair => {
-        const farmer = (state.online.players || []).find(p => p.seat - 1 === pair.peasantSeat);
-        return `地主 ↔ ${escHtml(farmer ? farmer.nick : `农民${pair.peasantSeat + 1}`)}：${pair.amount}`;
-      }).join(' · ');
-      html += `<div style="margin-top:0.28rem;font-size:0.8rem;opacity:0.75;">${pairText}</div>`;
-    }
-
     // 累计积分排行（永远显示，最少 1 行）
     const cum = state.online.cumulativeScores || {};
     const players = (state.online.players || []).slice().sort((a, b) => (cum[b.id] || 0) - (cum[a.id] || 0));
@@ -4537,9 +4530,7 @@
     // —— Reveal 阶段（同单机 finishGame）：先翻开手牌 + 大字 + 飘金币，再弹浮层
     revealOpponentHandsForSettlement();
     showSettleBanner(playerWon);
-    // 联机也按 pair 计算，但服务器已直接给了 score（我视角的净分）；
-    // 视觉上每家飘自己的净增减：地主家 = ±|score|×（若是地主则用 score；若我是农民则反推不准）
-    // 折中：用 cumulativeScores 的「本盘增量」如果有；否则用我视角 score 推地主 / 两农民
+    // 结算只展示服务端签名净分；累计排名保持为独立区域。
     showOnlineCoinDeltas(state.result, state.online);
     if (state.spring > 0) spawnSakuraPetals(40);
 
@@ -4559,32 +4550,6 @@
       backBtn.textContent = '退出';
     }
 
-    if (playerWon) tryAutoSubmitOnline();
-  }
-
-  async function tryAutoSubmitOnline() {
-    if (!window.GamesShell || !state.result) return;
-    try { await initShell(); } catch { return; }
-    const totalActions = state.landlordPlayCount + state.peasantPlayCount;
-    const moves = Math.max(4, Math.min(500, totalActions));
-    const durationMs = Math.max(5000, Date.now() - state.runStartedAt);
-    let nick = GamesShell.Identity.getNick();
-    if (!nick) nick = state.online && (state.online.players.find(p => p.id === state.online.playerId) || {}).nick;
-    if (!nick) return;
-    const weight = difficultyWeight('online');                // 联机权重 = 3
-    const score = Math.min(4096, Math.max(0, state.result.scoreDelta) * weight);
-    GamesShell.WinsLeaderboard.submit({
-      gameId: 'doudizhu-online',
-      nick,
-      did: GamesShell.Identity.getDeviceId(),
-      aiLevel: 'hard',                  // 联机投到 hard 桶（排序优先级最高）
-      moves,
-      durationMs,
-      clientNonce: state.runNonce,
-      score,
-    }).then(r => {
-      if (r && r.ok && ddzWlbOnline) ddzWlbOnline.refresh();
-    });
   }
 
   // ── 联机倒计时（贴在当前出牌玩家头像上）─────────────────────────────

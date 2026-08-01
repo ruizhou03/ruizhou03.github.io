@@ -81,7 +81,7 @@
 - id: doudizhu
   name: 斗地主
   icon: /assets/icons/doudizhu-icon-192.png
-  tagline: 你 + 2 AI 三档难度
+  tagline: 四档 AI · 三人真联机
   url: /toolbox/doudizhu/
   category: 游戏
   subcategory: 牌类游戏

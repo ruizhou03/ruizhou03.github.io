@@ -75,7 +75,7 @@ test('Gate 6 offline upgrade replaces a previously saved HTML shell', () => {
   assert.match(offline, /new MessageChannel\(\)/);
   assert.match(offline, /type:\s*'SAVE_OFFLINE'[\s\S]*force:\s*true[\s\S]*silent:\s*true/);
   assert.match(offline, /data\.type !== 'SAVE_DONE'/);
-  assert.match(serviceWorker, /DDZ_SAVED_MIGRATION\s*=\s*'\/__zircon_migrations__\/doudizhu-20260801g6h'/);
+  assert.match(serviceWorker, /DDZ_SAVED_MIGRATION\s*=\s*'\/__zircon_migrations__\/doudizhu-20260801g7a'/);
   assert.match(serviceWorker, /await migrateSavedDoudizhu\(\)/);
   assert.match(serviceWorker, /fetchBundle\('\/toolbox\/doudizhu\/'[\s\S]*force:\s*true/);
 });

@@ -2,11 +2,18 @@
 layout: default
 title: "斗地主 | Rui Zhou"
 permalink: /toolbox/doudizhu/
+description: "免费斗地主：四档 AI 陪练与三人真实联机，支持叫分、加倍、多盘累计、离线保存和无障碍键盘操作。"
+image: /assets/images/doudizhu-og.png
+manifest: /toolbox/doudizhu/manifest.json
+apple_touch_icon: /assets/icons/doudizhu-apple-touch-icon.png
+app_title: 斗地主
+theme_color: "#7a1f22"
+theme_color_dark: "#2c1715"
 ---
 
-<link rel="stylesheet" href="/assets/css/games-shell.css?v=20260801g6h">
+<link rel="stylesheet" href="/assets/css/games-shell.css?v=20260801g7a">
 
-<link rel="stylesheet" href="/assets/css/doudizhu.css?v=20260801g6h">
+<link rel="stylesheet" href="/assets/css/doudizhu.css?v=20260801g7a">
 
 <div class="ddz-wrap">
   <header>
@@ -285,9 +292,7 @@ permalink: /toolbox/doudizhu/
       <button class="ddz-board-close" id="ddzBoardClose" type="button" aria-label="关闭">×</button>
       <details class="about" style="font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
         <summary>游戏规则</summary>
-        <p>3 人一副牌（54 张，含大小王）。叫分最高者为地主，其余两人为农民合作对抗。地主先出完牌则地主胜，任一农民先出完则农民胜。</p>
-        <p>牌型：单张、对子、三条、三带一、三带二、顺子（≥5 张）、连对（≥3 对）、飞机（≥2 个连续三条带等量单/对）、炸弹（4 张同点）、火箭（大小王）。炸弹和火箭可压任何牌型。</p>
-        <p>倍数：叫地主（1/2/3 分）、炸弹和火箭每次翻倍、春天（对手一张未出）×2。最终输赢 = 底分 × 倍数。</p>
+        <div id="ddzRulesContent"></div>
       </details>
       <div id="ddz-settle-btn-mount"></div>
       <div id="ddz-wlb-mount"></div>
@@ -297,14 +302,15 @@ permalink: /toolbox/doudizhu/
   </dialog>
 </div>
 
-<script src="/assets/js/games-shell/identity.js?v=20260801g6h"></script>
-<script src="/assets/js/games-shell/save-state.js?v=20260801g6h"></script>
-<script src="/assets/js/games-shell/settlement.js?v=20260801g6h"></script>
-<script src="/assets/js/doudizhu/engine.js?v=20260801g6h"></script>
-<script src="/assets/js/doudizhu/ai.js?v=20260801g6h"></script>
-<script src="/assets/js/doudizhu/policy.js?v=20260801g6h"></script>
-<script src="/assets/js/doudizhu/ai-runtime.js?v=20260801g6h"></script>
-<script src="/assets/js/doudizhu/storage.js?v=20260801g6h"></script>
-<script src="/assets/js/doudizhu/offline.js?v=20260801g6h"></script>
-<script src="/assets/js/doudizhu/extras.js?v=20260801g6h"></script>
-<script src="/assets/js/doudizhu/ui.js?v=20260801g6h"></script>
+<script src="/assets/js/games-shell/identity.js?v=20260801g7a"></script>
+<script src="/assets/js/games-shell/save-state.js?v=20260801g7a"></script>
+<script src="/assets/js/games-shell/settlement.js?v=20260801g7a"></script>
+<script src="/assets/js/doudizhu/engine.js?v=20260801g7a"></script>
+<script src="/assets/js/doudizhu/ai.js?v=20260801g7a"></script>
+<script src="/assets/js/doudizhu/policy.js?v=20260801g7a"></script>
+<script src="/assets/js/doudizhu/ai-runtime.js?v=20260801g7a"></script>
+<script src="/assets/js/doudizhu/storage.js?v=20260801g7a"></script>
+<script src="/assets/js/doudizhu/offline.js?v=20260801g7a"></script>
+<script src="/assets/js/doudizhu/extras.js?v=20260801g7a"></script>
+<script src="/assets/js/doudizhu/rules-content.js?v=20260801g7a"></script>
+<script src="/assets/js/doudizhu/ui.js?v=20260801g7a"></script>

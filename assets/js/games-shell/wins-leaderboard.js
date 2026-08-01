@@ -1,6 +1,6 @@
 /* games-shell/wins-leaderboard.js
  * 对弈类游戏专用排行榜（chess / gomoku / xiangqi / doudizhu）。
- * 每条记录展示 easy / medium / hard 三档积分，按"高难度优先"排序。
+ * 每条记录按 mount 的 levels 展示积分，按"高难度优先"排序。
  *
  * 默认每局 +1 胜（"胜"为单位）；可在 mount 时传 unit:'分' 切换文案，
  * 同时 submit 时传 score 作为本局得分（默认 1）。
@@ -101,6 +101,13 @@
     const ui = renderSkeleton(opts.container, opts);
     const getNick = opts.getCurrentNick || (() => null);
     const unit = opts.unit || '胜';
+    const levels = Array.isArray(opts.levels) && opts.levels.length
+      ? opts.levels.filter(level => ['master', 'hard', 'normal', 'easy'].includes(level))
+      : ['hard', 'normal', 'easy'];
+    const levelLabels = { master: 'M', hard: 'H', normal: 'N', easy: 'E' };
+    const tallyHtml = data => levels.map(level => (
+      `<span title="${level}">${levelLabels[level]}${Number(data[level]) || 0}</span>`
+    )).join(' · ');
     const state = { lastFetch: 0, inflight: false, expanded: false, page: 1, mineLast: null };
 
     function renderEntries(entries, total, currentNick) {
@@ -126,12 +133,11 @@
         nk.title = e.nick;
         const wins = document.createElement('span');
         wins.className = 'gs-lb-score gs-wlb-tally';
-        // 显示三档：H / M / E（hard 优先因为它对排序最关键）
-        wins.innerHTML = `<span title="hard">H${e.hard}</span> · <span title="normal">N${e.normal}</span> · <span title="easy">E${e.easy}</span>`;
+        wins.innerHTML = tallyHtml(e);
         const tm = document.createElement('span');
         tm.className = 'gs-lb-time';
-        const total = e.easy + e.normal + e.hard;
-        tm.textContent = `共 ${total} ${unit}${e.ts ? ' · ' + relTime(e.ts) : ''}`;
+        const totalScore = levels.reduce((sum, level) => sum + (Number(e[level]) || 0), 0);
+        tm.textContent = `共 ${totalScore} ${unit}${e.ts ? ' · ' + relTime(e.ts) : ''}`;
         li.append(rk, nk, wins, tm);
         ui.list.appendChild(li);
       });
@@ -197,7 +203,7 @@
       lbl.textContent = '我的战绩';
       const line = document.createElement('span');
       line.className = 'gs-lb-mine-line';
-      line.innerHTML = `<strong>H${data.hard}</strong> · <strong>N${data.normal}</strong> · <strong>E${data.easy}</strong> · 第 <strong>${data.rank}</strong> / 共 ${data.totalPlayers || 0} 人`;
+      line.innerHTML = `${tallyHtml(data)} · 第 <strong>${data.rank}</strong> / 共 ${data.totalPlayers || 0} 人`;
       ui.mine.append(lbl, line);
       if (data.bestNick || data.plays || data.lastTs) {
         const meta = document.createElement('span');
@@ -274,6 +280,7 @@
         moves: payload.moves,
         durationMs: payload.durationMs,
         clientNonce: payload.clientNonce,
+        score: payload.score,
       }),
     }, 8000);
   }

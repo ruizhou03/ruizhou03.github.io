@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const root = resolve(new URL('..', import.meta.url).pathname);
-const version = '20260801g6h';
+const version = '20260801g7a';
 const own = path => ({ path, url: `/${path}?v=${version}` });
 const raw = path => ({ path, url: `/${path}` });
 
@@ -24,7 +24,13 @@ const groups = {
     own('assets/js/doudizhu/storage.js'),
     own('assets/js/doudizhu/offline.js'),
     own('assets/js/doudizhu/extras.js'),
+    own('assets/js/doudizhu/rules-content.js'),
     own('assets/js/doudizhu/ui.js'),
+    raw('toolbox/doudizhu/manifest.json'),
+    raw('assets/icons/doudizhu-icon-192.png'),
+    raw('assets/icons/doudizhu-icon-512.png'),
+    raw('assets/icons/doudizhu-icon-maskable-512.png'),
+    raw('assets/icons/doudizhu-apple-touch-icon.png'),
   ],
   base: [],
   hard: [
