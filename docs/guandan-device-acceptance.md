@@ -32,8 +32,8 @@ Safari 仍需人工完成以下三项，因为标准 WebDriver 不提供对应�
 
 | 环境 | 必测项 | 版本/设备 | 结果 | 证据/备注 |
 | --- | --- | --- | --- | --- |
-| Chrome macOS | 键盘、dialog、390px、性能 | Chrome 实际版本 | 已通过 | 见 `guandan-release-evidence.md` |
-| Safari macOS | 自动脚本、200% zoom、离线 | Safari 26.5.2 | 自动与 200% 通过；VoiceOver/离线待验收 | `p7c` 首验失败；`p7d` 生产 200% 人工通过；`p7e` 图标/长手牌候选自动通过 |
+| Chrome macOS | 键盘、dialog、390px、性能、真实离线 | Chrome 150.0.7871.187 | 已通过 | `p7e` 关闭本机源站后由 SW 重载并开出普通档 27 张牌；见 `guandan-release-evidence.md` |
+| Safari macOS | 自动脚本、200% zoom、离线 | Safari 26.5.2 | 自动与 200% 通过；VoiceOver/离线待验收 | `p7c` 首验失败；`p7d` 生产 200% 人工通过；`p7e` 图标/长手牌自动与发布门禁通过 |
 | Firefox desktop | 键盘、dialog、200% zoom、离线 | 待填 | 待验收 | 当前 Mac 未安装 Firefox |
 | iPhone Safari | 刘海安全区、横竖屏、27 张牌、PWA | 待填 | 待验收 | 必须实体设备 |
 | Android Chrome | 横竖屏、27 张牌、PWA、断网恢复 | 待填 | 待验收 | 必须实体设备 |
