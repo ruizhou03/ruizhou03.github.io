@@ -28,10 +28,12 @@
       if (target && target.isConnected) target.focus({ preventScroll: true });
     }
 
-    function activate(dialog, close, preferredFocus) {
+    function activate(dialog, close, preferredFocus, returnTarget) {
       if (!dialog) return;
       if (activeDialog && activeDialog !== dialog) deactivate(activeDialog);
-      returnFocus = document.activeElement;
+      returnFocus = returnTarget && returnTarget.isConnected
+        ? returnTarget
+        : document.activeElement;
       activeDialog = dialog;
       activeClose = close || null;
       inerted = new Map();

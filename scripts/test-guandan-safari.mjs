@@ -2,13 +2,14 @@
 
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { writeFile } from 'node:fs/promises';
 
 const args = new Map(process.argv.slice(2).map((arg) => {
   const [key, ...rest] = arg.split('=');
   return [key, rest.join('=')];
 }));
 const baseUrl = args.get('--url') || 'https://ruizhou03.com/toolbox/guandan/';
-const marker = args.get('--marker') || '20260801p7b';
+const marker = args.get('--marker') || '20260801p7c';
 const port = Number(args.get('--port') || 4445);
 const webdriverBase = `http://127.0.0.1:${port}`;
 const elementKey = 'element-6066-11e4-a52e-4f735466cecf';
@@ -25,10 +26,14 @@ async function request(path, { method = 'GET', body, allowError = false } = {}) 
     headers: body === undefined ? undefined : { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const payload = await response.json().catch(() => ({}));
+  const raw = await response.text();
+  const payload = (() => {
+    try { return JSON.parse(raw); } catch { return {}; }
+  })();
   const failed = !response.ok || payload?.value?.error;
   if (failed && !allowError) {
-    const message = payload?.value?.message || `${method} ${path} returned ${response.status}`;
+    const message = payload?.value?.message || payload?.message || raw.trim() ||
+      `${method} ${path} returned ${response.status}`;
     throw new Error(message);
   }
   return payload?.value;
@@ -65,11 +70,15 @@ async function find(selector) {
 }
 
 async function click(selector) {
-  const id = await find(selector);
-  await request(`/session/${sessionId}/element/${id}/click`, {
-    method: 'POST',
-    body: {},
-  });
+  try {
+    const id = await find(selector);
+    await request(`/session/${sessionId}/element/${id}/click`, {
+      method: 'POST',
+      body: {},
+    });
+  } catch (error) {
+    throw new Error(`点击 ${selector} 失败：${error.message}`);
+  }
 }
 
 async function sendKey(selector, key) {
@@ -128,6 +137,10 @@ async function run() {
   }
   sessionId = session.sessionId;
   assert.equal(String(session.capabilities.browserName).toLowerCase(), 'safari');
+  await request(`/session/${sessionId}/window/rect`, {
+    method: 'POST',
+    body: { x: 0, y: 0, width: 1440, height: 900 },
+  });
 
   const url = new URL(baseUrl);
   url.searchParams.set('release-check', marker);
@@ -142,32 +155,53 @@ async function run() {
 
   const hasResume = await execute(`
     const el = document.querySelector('#gdResumeDiscard');
-    return !!el && !el.closest('#gdResumeOverlay').hidden;
+    const overlay = el?.closest('#gdResumeOverlay');
+    return !!el && !!overlay && !overlay.hidden && overlay.getClientRects().length > 0 &&
+      getComputedStyle(overlay).display !== 'none' && getComputedStyle(overlay).visibility !== 'hidden';
   `);
   if (hasResume) await click('#gdResumeDiscard');
 
   await click('#gdPgoDiff button[data-value="normal"]');
   await click('#gdPgoStart');
   await waitFor(
-    `return document.querySelectorAll('#gdHand button').length === 27`,
+    `return document.querySelectorAll('#gdHand [role="button"][data-cid]').length === 27`,
     'Safari 开局后没有 27 张手牌',
   );
 
-  const firstCard = '#gdHand button:first-child';
+  const firstCard = '#gdHand [role="button"][data-cid]';
   await sendKey(firstCard, '\uE007');
   const keyboardSelected = await execute(`
-    return document.querySelector('#gdHand button:first-child')?.getAttribute('aria-pressed') === 'true';
+    return document.querySelector('#gdHand [role="button"][data-cid]')?.getAttribute('aria-pressed') === 'true';
   `);
   assert.equal(keyboardSelected, true, 'Safari Enter 键没有选中手牌');
   await sendKey(firstCard, '\uE007');
 
   await click('#gdOrderBtn');
-  await click('#gdHand button:nth-child(3)');
+  const orderBefore = await execute(`
+    return [...document.querySelectorAll('#gdHand .gd-rank-col')]
+      .map((column) => column.querySelector('[role="button"][data-cid]')?.getAttribute('aria-label'));
+  `);
+  await click('#gdHand .gd-rank-col:first-child [role="button"][data-cid]:last-child');
   await click('#gdOrderRight');
+  await waitFor(
+    `return /已移动到第 2 列/.test(document.querySelector('#gdLiveRegion')?.textContent || '')`,
+    'Safari 调整顺序没有发布移动完成状态',
+    2000,
+  );
   const orderStatus = await execute(`return document.querySelector('#gdOrderStatus')?.textContent || ''`);
-  assert.match(orderStatus, /已移动到第 \d+ 列/, 'Safari 调整顺序没有真实换列');
+  const orderAfter = await execute(`
+    return [...document.querySelectorAll('#gdHand .gd-rank-col')]
+      .map((column) => column.querySelector('[role="button"][data-cid]')?.getAttribute('aria-label'));
+  `);
+  assert.match(orderStatus, /第 2 列/, 'Safari 调整顺序没有移动到第二列');
+  assert.notDeepEqual(orderAfter, orderBefore, 'Safari 调整顺序没有真实改变 DOM 牌列顺序');
 
   await click('#gdBoardBtn');
+  await waitFor(
+    `return document.activeElement?.getAttribute('aria-label') === '关闭'`,
+    'Safari dialog 打开后焦点没有落到关闭按钮',
+    2000,
+  );
   const dialogOpen = await execute(`
     return {
       hidden: document.querySelector('#gdBoardModal').hidden,
@@ -182,16 +216,64 @@ async function run() {
   assert.equal(dialogOpen.bodyOverflow, 'hidden');
 
   await pressKey('\uE00C');
+  await waitFor(
+    `return document.activeElement?.id === 'gdBoardBtn'`,
+    'Safari Escape 关闭后焦点没有回到榜单按钮',
+    2000,
+  );
   const dialogClosed = await execute(`
     return {
       hidden: document.querySelector('#gdBoardModal').hidden,
       active: document.activeElement?.getAttribute('aria-label'),
+      activeId: document.activeElement?.id,
+      triggerLabel: document.querySelector('#gdBoardBtn')?.getAttribute('aria-label'),
       inertCount: document.querySelectorAll('[inert]').length,
     };
   `);
   assert.equal(dialogClosed.hidden, true);
-  assert.equal(dialogClosed.active, '榜单');
+  assert.equal(dialogClosed.activeId, 'gdBoardBtn');
+  assert.equal(dialogClosed.triggerLabel, '榜单');
   assert.equal(dialogClosed.inertCount, 0);
+
+  await click('#gdSettingsBtn');
+  await waitFor(
+    `return document.activeElement?.id === 'gdPgoClose'`,
+    'Safari 设置 dialog 打开后焦点没有落到返回按钮',
+    2000,
+  );
+  await pressKey('\uE00C');
+  await waitFor(
+    `return document.activeElement?.id === 'gdSettingsBtn'`,
+    'Safari 设置 dialog 关闭后焦点没有回到设置按钮',
+    2000,
+  );
+  const settingsDialog = await execute(`return {
+    open: document.querySelector('#gdPgo').classList.contains('open'),
+    activeId: document.activeElement?.id,
+    inertCount: document.querySelectorAll('[inert]').length,
+  }`);
+  assert.equal(settingsDialog.open, false);
+  assert.equal(settingsDialog.inertCount, 0);
+
+  await click('#gdExitBtn');
+  await waitFor(
+    `return document.activeElement?.id === 'gdConfirmExitCancel'`,
+    'Safari 退出确认 dialog 打开后焦点没有落到取消按钮',
+    2000,
+  );
+  await pressKey('\uE00C');
+  await waitFor(
+    `return document.activeElement?.id === 'gdExitBtn'`,
+    'Safari 退出确认 dialog 关闭后焦点没有回到退出按钮',
+    2000,
+  );
+  const exitDialog = await execute(`return {
+    hidden: document.querySelector('#gdConfirmExit').hidden,
+    activeId: document.activeElement?.id,
+    inertCount: document.querySelectorAll('[inert]').length,
+  }`);
+  assert.equal(exitDialog.hidden, true);
+  assert.equal(exitDialog.inertCount, 0);
 
   const layout = await execute(`
     const names = ['榜单', '关闭音效', '游戏设置', '退出本局'];
@@ -221,8 +303,12 @@ async function run() {
     handCount: 27,
     keyboardSelected,
     orderStatus,
+    orderBefore: orderBefore.slice(0, 3),
+    orderAfter: orderAfter.slice(0, 3),
     dialogOpen,
     dialogClosed,
+    settingsDialog,
+    exitDialog,
     layout,
     pendingManual: ['200% zoom', 'VoiceOver', 'offline network transition'],
   }, null, 2));
@@ -233,6 +319,13 @@ try {
 } catch (error) {
   console.error(error.message);
   if (driverError.trim()) console.error(driverError.trim());
+  if (sessionId) {
+    try {
+      const screenshot = await request(`/session/${sessionId}/screenshot`);
+      await writeFile('/tmp/guandan-safari-failure.png', screenshot, 'base64');
+      console.error('失败截图：/tmp/guandan-safari-failure.png');
+    } catch {}
+  }
   process.exitCode = 1;
 } finally {
   if (sessionId) {

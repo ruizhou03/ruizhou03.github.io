@@ -5906,6 +5906,9 @@
   //      玩法 / 战绩榜 / 评论改在游戏内「🏆 榜单」浮层看，不用跳出游戏外。 ----
   document.body.classList.add('gd-game-fullscreen');
   const boardModal = $('gdBoardModal');
+  const gdBoardBtn = $('gdBoardBtn');
+  const gdSettingsBtn = $('gdSettingsBtn');
+  const gdExitBtn = $('gdExitBtn');
   const pgoTimingNote = $('gdPgoTimingNote');
   const boardTimingNote = $('gdBoardTimingNote');
   const dialogController = UI.createDialogController();
@@ -5921,13 +5924,13 @@
       ? '联机对局由服务器继续计时；请尽快返回牌桌。'
       : '单机对局已暂停；关闭此面板后继续。';
   }
-  function openBoard() {
+  function openBoard(returnTarget) {
     if (!isNetworked()) pauseLocalGame('board');
     setOverlayTimingNote(boardTimingNote);
     ensureShellModules(true);
     if (boardModal) {
       boardModal.hidden = false;
-      activateDialog(boardModal, closeBoard, '#gdBoardClose');
+      activateDialog(boardModal, closeBoard, '#gdBoardClose', returnTarget);
     }
   }
   function closeBoard() {
@@ -5937,12 +5940,12 @@
     }
     resumeLocalGame('board');
   }
-  if ($('gdBoardBtn')) $('gdBoardBtn').addEventListener('click', openBoard);
+  if (gdBoardBtn) gdBoardBtn.addEventListener('click', event => openBoard(event.currentTarget));
   if ($('gdBoardClose')) $('gdBoardClose').addEventListener('click', closeBoard);
   if ($('gdBoardBackdrop')) $('gdBoardBackdrop').addEventListener('click', closeBoard);
   // ⚙️ 设置：调出 Pre-Game 页（含全部设置）。对局进行中露出「返回游戏」让你能关掉续局。
   const gdPgoCloseBtn = $('gdPgoClose');
-  if ($('gdSettingsBtn')) $('gdSettingsBtn').addEventListener('click', () => {
+  if (gdSettingsBtn) gdSettingsBtn.addEventListener('click', event => {
     const returnable = navState.current !== NAV_VIEW.SETUP;
     if (!isNetworked()) pauseLocalGame('settings');
     setOverlayTimingNote(pgoTimingNote);
@@ -5952,7 +5955,12 @@
       gdPgoCloseBtn.setAttribute('aria-label', navState.current === NAV_VIEW.LOBBY ? '返回大厅' : '返回游戏');
     }
     els.pgo.classList.add('open');
-    if (returnable) activateDialog(els.pgo, () => gdPgoCloseBtn.click(), '#gdPgoClose');
+    if (returnable) activateDialog(
+      els.pgo,
+      () => gdPgoCloseBtn.click(),
+      '#gdPgoClose',
+      event.currentTarget,
+    );
   });
   if (gdPgoCloseBtn) gdPgoCloseBtn.addEventListener('click', () => {
     deactivateDialog(els.pgo);
@@ -5986,11 +5994,11 @@
   }
   // 右上角「退出本局」按钮 → 先弹确认窗（用户明确要求确认），确认后才 quitToSetup
   const confirmExit = $('gdConfirmExit');
-  function openConfirmExit() {
+  function openConfirmExit(returnTarget) {
     if (!isNetworked()) pauseLocalGame('exit-confirm');
     if (confirmExit) {
       confirmExit.hidden = false;
-      activateDialog(confirmExit, closeConfirmExit, '#gdConfirmExitCancel');
+      activateDialog(confirmExit, closeConfirmExit, '#gdConfirmExitCancel', returnTarget);
     }
   }
   function closeConfirmExit() {
@@ -6000,7 +6008,7 @@
     }
     resumeLocalGame('exit-confirm');
   }
-  if ($('gdExitBtn')) $('gdExitBtn').addEventListener('click', openConfirmExit);
+  if (gdExitBtn) gdExitBtn.addEventListener('click', event => openConfirmExit(event.currentTarget));
   if ($('gdMuteBtn')) $('gdMuteBtn').addEventListener('click', toggleMute);
   if ($('gdConfirmExitCancel')) $('gdConfirmExitCancel').addEventListener('click', closeConfirmExit);
   if ($('gdConfirmExitBackdrop')) $('gdConfirmExitBackdrop').addEventListener('click', closeConfirmExit);
