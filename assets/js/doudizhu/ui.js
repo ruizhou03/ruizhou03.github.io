@@ -3062,7 +3062,11 @@
     const timeout = setTimeout(() => ctrl.abort(), opts.timeoutMs || 10000);
     const init = {
       method: isGet ? 'GET' : 'POST',
-      headers: isGet ? {} : { 'Content-Type': 'application/json' },
+      headers: Object.assign(
+        {},
+        isGet ? {} : { 'Content-Type': 'application/json' },
+        opts.token ? { Authorization: 'Bearer ' + opts.token } : {},
+      ),
       body: isGet ? undefined : JSON.stringify(opts.body),
       signal: ctrl.signal,
     };
@@ -3089,7 +3093,76 @@
     if (window.crypto && typeof window.crypto.randomUUID === 'function') {
       return window.crypto.randomUUID().replace(/-/g, '_');
     }
-    return `cmd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+    const bytes = new Uint32Array(2);
+    if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(bytes);
+    return `cmd_${Date.now().toString(36)}_${bytes[0].toString(36)}${bytes[1].toString(36)}`;
+  }
+
+  function saveOnlineCredentials(sess) {
+    if (!sess) return;
+    saveSession({
+      code: sess.code,
+      accessToken: sess.token,
+      token: sess.token,
+      resumeSecret: sess.resumeSecret || null,
+      resumeRequestId: sess.resumeRequestId || null,
+      playerId: sess.playerId,
+      nick: sess.nick || $('ddzOnlineNick').value.trim(),
+      inviteSecret: sess.inviteSecret || null,
+      ts: Date.now(),
+    });
+  }
+
+  async function resumeOnlineCredentials(sess) {
+    if (!sess || !sess.resumeSecret) return { ok: false, status: 403, error: 'resume_unavailable' };
+    if (sess.resumePromise) return sess.resumePromise;
+    const execute = async () => {
+      const latest = loadSession();
+      if (
+        latest && latest.code === sess.code && latest.playerId === sess.playerId
+        && latest.resumeSecret && latest.resumeSecret !== sess.resumeSecret
+      ) {
+        sess.token = latest.accessToken || latest.token;
+        sess.resumeSecret = latest.resumeSecret;
+        sess.resumeRequestId = null;
+        return { ok: true, reused: true };
+      }
+      const attemptedSecret = sess.resumeSecret;
+      sess.resumeRequestId = sess.resumeRequestId || newOnlineCommandId();
+      saveOnlineCredentials(sess);
+      const r = await apiCall('resume', { body: {
+        code: sess.code,
+        playerId: sess.playerId,
+        resumeSecret: attemptedSecret,
+        requestId: sess.resumeRequestId,
+      } });
+      if (r.ok && r.data) {
+        sess.token = r.data.accessToken || r.data.playerToken;
+        sess.resumeSecret = r.data.resumeSecret;
+        sess.resumeRequestId = null;
+        saveOnlineCredentials(sess);
+        return r;
+      }
+      const after = loadSession();
+      if (
+        (r.status === 403 || r.status === 404)
+        && after && after.code === sess.code && after.playerId === sess.playerId
+        && after.resumeSecret && after.resumeSecret !== attemptedSecret
+      ) {
+        sess.token = after.accessToken || after.token;
+        sess.resumeSecret = after.resumeSecret;
+        sess.resumeRequestId = null;
+        return { ok: true, reused: true };
+      }
+      return r;
+    };
+    const lockName = 'doudizhu-resume:' + sess.code + ':' + sess.playerId;
+    const pending = (navigator.locks && navigator.locks.request)
+      ? navigator.locks.request(lockName, execute)
+      : execute();
+    sess.resumePromise = pending;
+    try { return await pending; }
+    finally { if (sess.resumePromise === pending) sess.resumePromise = null; }
   }
 
   async function refreshOnlineState() {
@@ -3097,32 +3170,55 @@
     const r = await apiCall('state', {
       qs: {
         code: state.online.code,
-        token: state.online.token,
         since: state.online.lastVersion,
       },
+      token: state.online.token,
       timeoutMs: 8000,
     });
     if (r.ok && r.data) applyServerState(r.data);
+    else if (r.status === 403 && state.online.resumeSecret) {
+      const resumed = await resumeOnlineCredentials(state.online);
+      if (resumed.ok) return refreshOnlineState();
+    }
   }
 
   const onlineCommandsInFlight = new Set();
+  async function onlineAuthenticatedCall(action, payload) {
+    if (!state.online) return { ok: false, status: 403, error: 'not_online' };
+    const sess = state.online;
+    const body = { code: sess.code, ...(payload || {}) };
+    let result = await apiCall(action, { token: sess.token, body });
+    if (result.status === 403 && sess.resumeSecret) {
+      const resumed = await resumeOnlineCredentials(sess);
+      if (resumed.ok && state.online === sess) {
+        result = await apiCall(action, { token: sess.token, body });
+      }
+    }
+    return result;
+  }
+
   async function onlineCommand(action, payload) {
     if (!state.online) return { ok: false, error: 'not_online' };
     if (onlineCommandsInFlight.has(action)) return { ok: false, error: 'command_in_flight' };
     onlineCommandsInFlight.add(action);
     const body = {
       code: state.online.code,
-      token: state.online.token,
       ...(payload || {}),
       commandId: newOnlineCommandId(),
       expectedVersion: state.online.lastVersion,
     };
     try {
-      let result = await apiCall(action, { body });
-      if (!result.ok && (result.error === 'timeout' || result.error === 'network_error')) {
-        result = await apiCall(action, { body });
+      let result = await apiCall(action, { token: state.online.token, body });
+      if (result.status === 403 && state.online.resumeSecret) {
+        const resumed = await resumeOnlineCredentials(state.online);
+        if (resumed.ok) result = await apiCall(action, { token: state.online.token, body });
       }
-      if (!result.ok && result.error === 'state_version_conflict') await refreshOnlineState();
+      if (!result.ok && (result.error === 'timeout' || result.error === 'network_error')) {
+        result = await apiCall(action, { token: state.online.token, body });
+      }
+      if (!result.ok && (result.error === 'state_version_conflict' || result.error === 'version_conflict')) {
+        await refreshOnlineState();
+      }
       return result;
     } finally {
       onlineCommandsInFlight.delete(action);
@@ -3220,6 +3316,9 @@
   }
 
   let onlineSubmitPending = false;
+  function inviteSecretFromUrl() {
+    try { return new URLSearchParams(location.search).get('invite') || ''; } catch { return ''; }
+  }
   $('ddzOnlineSubmit').addEventListener('click', async () => {
     if (onlineSubmitPending) return;
     const nick = $('ddzOnlineNick').value.trim();
@@ -3247,7 +3346,13 @@
         const code = $('ddzOnlineCode').value.trim();
         if (!/^\d{4}$/.test(code)) { setOnlineHint('请输入 4 位房号', true); return; }
         setOnlineHint('加入中…');
-        const r = await apiCall('join', { body: { code, nick, deviceId: getDeviceId() } });
+        const inviteSecret = inviteSecretFromUrl();
+        const r = await apiCall('join', { body: {
+          code,
+          nick,
+          deviceId: getDeviceId(),
+          ...(inviteSecret ? { inviteSecret } : {}),
+        } });
         if (!r.ok) {
           const msg = ({
             'room_not_found': '房间不存在或已过期',
@@ -3255,12 +3360,15 @@
             'room_full': '房间已满，换一个房号试试',
             'nick_taken_in_room': '昵称已被占用，换一个试试',
             'invalid_nick': '昵称不合法',
+            'invalid_invite': '邀请链接无效或已被修改',
+            'recently_kicked': '刚被移出该房间，请稍后再试',
             'timeout': '请求超时，请重试',
             'network_error': '网络不可用，请检查连接后重试',
           })[r.error] || ('加入失败：' + r.error);
           setOnlineHint(msg, true);
           return;
         }
+        r.data.inviteSecret = inviteSecret || null;
         enterRoom(r.data);
       }
     } finally {
@@ -3289,30 +3397,46 @@
     const nick = ($('ddzOnlineNick').value.trim() || sess.nick || '').slice(0, 12);
     if (!nick) { setOnlineHint('请输入昵称', true); return; }
     setOnlineHint('重新加入中…');
-    const r = await apiCall('join', { body: { code: sess.code, nick, deviceId: getDeviceId() } });
+    const working = {
+      ...sess,
+      token: sess.accessToken || sess.token,
+      nick,
+    };
+    const r = working.resumeSecret
+      ? await resumeOnlineCredentials(working)
+      : await apiCall('join', { body: { code: sess.code, nick, deviceId: getDeviceId() } });
     if (!r.ok) {
       setOnlineHint('重连失败：' + r.error, true);
       if (r.error === 'room_not_found' || r.error === 'room_dissolved') clearSession();
       renderResumeOption();
       return;
     }
-    enterRoom(r.data);
+    enterRoom(r.reused ? {
+      code: working.code,
+      playerId: working.playerId,
+      accessToken: working.token,
+      resumeSecret: working.resumeSecret,
+      inviteSecret: working.inviteSecret,
+    } : r.data, working);
   });
   $('ddzResumeForget').addEventListener('click', () => { clearSession(); renderResumeOption(); });
 
-  function enterRoom(joinData) {
+  function enterRoom(joinData, previousSession) {
     const sess = {
       code: joinData.code,
-      token: joinData.playerToken,
+      token: joinData.accessToken || joinData.playerToken,
+      resumeSecret: joinData.resumeSecret || (previousSession && previousSession.resumeSecret) || null,
       playerId: joinData.playerId,
-      nick: $('ddzOnlineNick').value.trim(),
+      nick: $('ddzOnlineNick').value.trim() || (previousSession && previousSession.nick) || '',
+      inviteSecret: joinData.inviteSecret || (previousSession && previousSession.inviteSecret) || null,
       ts: Date.now(),
     };
-    saveSession(sess);
+    saveOnlineCredentials(sess);
     state.mode = 'online';
     state.online = {
       code: sess.code,
       token: sess.token,
+      resumeSecret: sess.resumeSecret,
       playerId: sess.playerId,
       mySeat: 0,         // will be set on first state apply
       isHost: false,
@@ -3326,6 +3450,10 @@
       phaseEndAt: 0,
       lastSrvState: null,
       pollAbort: null,
+      inviteSecret: sess.inviteSecret,
+      sseAttempt: 0,
+      sseRetryTimer: null,
+      sseStarting: false,
     };
     setOnlineHint('');
     setupView.hidden = true;
@@ -3340,30 +3468,39 @@
   // ── 长轮询循环 ──────────────────────────────────────────────────────
   async function startPolling() {
     if (!state.online || state.online.polling) return;
-    state.online.polling = true;
-    while (state.online && state.online.polling && state.online.token) {
+    const sess = state.online;
+    sess.polling = true;
+    while (state.online === sess && sess.polling && sess.token) {
       const ctrl = new AbortController();
-      state.online.pollAbort = ctrl;
+      sess.pollAbort = ctrl;
       const r = await apiCall('state', {
-        qs: { code: state.online.code, token: state.online.token, since: state.online.lastVersion },
+        qs: { code: sess.code, since: sess.lastVersion },
+        token: sess.token,
         signal: ctrl.signal,
         timeoutMs: 30000,
       }).catch(() => ({ ok: false, error: 'aborted' }));
-      if (!state.online || !state.online.polling) break;
+      if (state.online !== sess || !sess.polling) break;
       if (r.ok && r.data) {
         applyServerState(r.data);
+      } else if (r.status === 403 && sess.resumeSecret) {
+        const resumed = await resumeOnlineCredentials(sess);
+        if (resumed.ok) continue;
+        setStatus('会话失效');
+        await leaveOnlineRoom(true);
+        break;
       } else if (r.status === 403 || r.status === 404) {
-        // Token失效或房间不存在
         const errMsg = r.error === 'room_not_found' ? '房间已过期' : '会话失效';
         setStatus(errMsg);
         await leaveOnlineRoom(true);
         break;
+      } else if (r.error === 'aborted') {
+        continue;
       } else {
-        // 网络抖动 → 退避后重试
-        await new Promise(r => setTimeout(r, 1500));
+        const jitter = Math.floor(Math.random() * 500);
+        await new Promise(resolve => setTimeout(resolve, 1250 + jitter));
       }
     }
-    if (state.online) { state.online.polling = false; state.online.pollAbort = null; }
+    if (state.online === sess) { sess.polling = false; sess.pollAbort = null; }
   }
   function stopPolling() {
     if (state.online) {
@@ -3373,33 +3510,108 @@
   }
   // SSE 优先(他人出牌约 1 个网络往返就到)；连不上/被代理屏蔽/断开 → 自动回退长轮询,绝不卡住
   function closeSse() {
-    if (state.online && state.online.sse) { try { state.online.sse.close(); } catch (e) {} state.online.sse = null; }
+    if (!state.online) return;
+    if (state.online.sseOpenTimer) {
+      clearTimeout(state.online.sseOpenTimer);
+      state.online.sseOpenTimer = null;
+    }
+    if (state.online.sseRetryTimer) {
+      clearTimeout(state.online.sseRetryTimer);
+      state.online.sseRetryTimer = null;
+    }
+    if (state.online.sse) {
+      try { state.online.sse.close(); } catch (e) {}
+      state.online.sse = null;
+    }
+  }
+  function sseEnabled() {
+    try { return localStorage.getItem('tool.doudizhu.sse') !== '0'; } catch { return true; }
   }
   function startOnlineSync() {
     if (!state.online || !state.online.token) return;
-    if (window.EventSource) {
-      try {
-        const url = DDZ_API + '?action=stream&code=' + encodeURIComponent(state.online.code) + '&token=' + encodeURIComponent(state.online.token);
-        const es = new EventSource(url);
-        state.online.sse = es;
-        let opened = false;
-        es.onmessage = (ev) => {
-          if (!ev.data || ev.data.charCodeAt(0) !== 123) return;   // 123='{' — 忽略心跳/裸标记帧
-          opened = true;
-          try { applyServerState(JSON.parse(ev.data)); } catch (e) {}
-        };
-        es.addEventListener('gone', () => { closeSse(); leaveOnlineRoom(true); });
-        es.onerror = () => {
-          // 永久关闭 / 从没连上 → 回退长轮询；瞬断(CONNECTING)交给浏览器自动重连
-          if (es.readyState === EventSource.CLOSED || !opened) {
-            closeSse();
-            if (state.online && state.online.token) startPolling();
-          }
-        };
-        return;
-      } catch (e) { /* 落到长轮询 */ }
+    if (sseEnabled()) startSseSync();
+    else startPolling();
+  }
+  function scheduleSseRetry(sess) {
+    if (!sess || state.online !== sess || sess.sseRetryTimer || !sseEnabled()) return;
+    sess.sseAttempt = (sess.sseAttempt || 0) + 1;
+    const base = Math.min(15000, 750 * Math.pow(2, Math.min(4, sess.sseAttempt - 1)));
+    const delay = Math.floor(base * (0.75 + Math.random() * 0.5));
+    sess.sseRetryTimer = setTimeout(() => {
+      sess.sseRetryTimer = null;
+      if (state.online === sess) startSseSync();
+    }, delay);
+  }
+  async function startSseSync() {
+    if (!state.online || !state.online.token) return;
+    if (!window.EventSource) { startPolling(); return; }
+    const sess = state.online;
+    if (sess.sse || sess.sseStarting) return;
+    sess.sseStarting = true;
+    let ticket = await apiCall('stream_ticket', {
+      token: sess.token,
+      body: { code: sess.code },
+    });
+    if (ticket.status === 403 && sess.resumeSecret) {
+      const resumed = await resumeOnlineCredentials(sess);
+      if (resumed.ok && state.online === sess) {
+        ticket = await apiCall('stream_ticket', {
+          token: sess.token,
+          body: { code: sess.code },
+        });
+      }
     }
-    startPolling();
+    sess.sseStarting = false;
+    if (state.online !== sess) return;
+    if (!ticket.ok || !ticket.data || !ticket.data.ticket) {
+      startPolling();
+      scheduleSseRetry(sess);
+      return;
+    }
+    let es;
+    try {
+      es = new EventSource(
+        DDZ_API + '?action=stream&code=' + encodeURIComponent(sess.code)
+        + '&ticket=' + encodeURIComponent(ticket.data.ticket),
+      );
+    } catch (e) {
+      startPolling();
+      scheduleSseRetry(sess);
+      return;
+    }
+    sess.sse = es;
+    let opened = false;
+    const failToPolling = () => {
+      if (state.online !== sess || sess.sse !== es) return;
+      try { es.close(); } catch {}
+      sess.sse = null;
+      if (sess.sseOpenTimer) {
+        clearTimeout(sess.sseOpenTimer);
+        sess.sseOpenTimer = null;
+      }
+      startPolling();
+      scheduleSseRetry(sess);
+    };
+    es.onmessage = (ev) => {
+      if (state.online !== sess || sess.sse !== es) return;
+      if (!ev.data || ev.data.charCodeAt(0) !== 123) return;
+      opened = true;
+      sess.sseAttempt = 0;
+      stopPolling();
+      if (sess.sseOpenTimer) {
+        clearTimeout(sess.sseOpenTimer);
+        sess.sseOpenTimer = null;
+      }
+      try { applyServerState(JSON.parse(ev.data)); } catch (e) {}
+    };
+    es.addEventListener('gone', () => { if (state.online === sess) leaveOnlineRoom(true); });
+    es.addEventListener('revoked', failToPolling);
+    es.addEventListener('reconnect', failToPolling);
+    // EventSource 会复用已消费的 ticket 自动重连；主动关闭后重新申请 ticket。
+    es.onerror = failToPolling;
+    sess.sseOpenTimer = setTimeout(() => {
+      if (!opened) failToPolling();
+    }, 3000);
   }
   function stopOnlineSync() {
     closeSse();
@@ -3714,9 +3926,9 @@
       else if (act === 'transfer' && pid) { (opt.players || []).forEach((p) => { p.isHost = (p.id === pid); }); renderSpatialLobby(opt); sendTransferHost(pid); }
     });
   }
-  async function sendAddAi() { if (!state.online) return; const r = await apiCall('add_ai', { body: { code: state.online.code, token: state.online.token } }); if (!r.ok && r.error !== 'room_full') setStatus('加机器人失败：' + r.error); }
-  async function sendRemoveAi() { if (!state.online) return; await apiCall('remove_ai', { body: { code: state.online.code, token: state.online.token } }); }
-  async function sendTransferHost(pid) { if (!state.online) return; const r = await apiCall('transfer_host', { body: { code: state.online.code, token: state.online.token, targetPid: pid } }); if (!r.ok) setStatus('转让房主失败：' + r.error); }
+  async function sendAddAi() { if (!state.online) return; const r = await onlineAuthenticatedCall('add_ai'); if (!r.ok && r.error !== 'room_full') setStatus('加机器人失败：' + r.error); }
+  async function sendRemoveAi() { if (!state.online) return; await onlineAuthenticatedCall('remove_ai'); }
+  async function sendTransferHost(pid) { if (!state.online) return; const r = await onlineAuthenticatedCall('transfer_host', { targetPid: pid }); if (!r.ok) setStatus('转让房主失败：' + r.error); }
 
   function setAvatarEmoji(displaySeat, emoji) {
     const av = document.getElementById('ddzAvatar' + displaySeat);
@@ -3751,7 +3963,9 @@
   // 复制按钮
   $('ddzCopyCodeBtn').addEventListener('click', () => copyText(state.online && state.online.code));
   $('ddzCopyLinkBtn').addEventListener('click', () => {
-    const url = location.origin + location.pathname + '?room=' + (state.online && state.online.code);
+    const online = state.online;
+    const url = location.origin + location.pathname + '?room=' + (online && online.code)
+      + (online && online.inviteSecret ? '&invite=' + encodeURIComponent(online.inviteSecret) : '');
     copyText(url);
   });
   function copyText(t) {
@@ -3774,14 +3988,14 @@
 
   async function sendKick(targetPid) {
     if (!state.online) return;
-    const r = await apiCall('kick', { body: { code: state.online.code, token: state.online.token, targetPid } });
+    const r = await onlineAuthenticatedCall('kick', { targetPid });
     if (!r.ok) alert('踢人失败：' + r.error);
   }
 
   async function leaveOnlineRoom(silent) {
     if (state.online) {
       try {
-        await apiCall('leave', { body: { code: state.online.code, token: state.online.token } });
+        await onlineAuthenticatedCall('leave');
       } catch {}
       stopOnlineSync();
     }
@@ -4132,8 +4346,24 @@
     try { document.querySelector('.ddz-playmode-btn[data-playmode="online"]').click(); } catch (e) {}
     setOnlineHint('正在重连房间…');
     setTimeout(async () => {
-      const r = await apiCall('join', { body: { code: sess.code, nick, deviceId: getDeviceId() } });
-      if (r && r.ok) { enterRoom(r.data); return; }
+      const working = {
+        ...sess,
+        token: sess.accessToken || sess.token,
+        nick,
+      };
+      const r = working.resumeSecret
+        ? await resumeOnlineCredentials(working)
+        : await apiCall('join', { body: { code: sess.code, nick, deviceId: getDeviceId() } });
+      if (r && r.ok) {
+        enterRoom(r.reused ? {
+          code: working.code,
+          playerId: working.playerId,
+          accessToken: working.token,
+          resumeSecret: working.resumeSecret,
+          inviteSecret: working.inviteSecret,
+        } : r.data, working);
+        return;
+      }
       if (r && (r.error === 'room_not_found' || r.error === 'room_dissolved')) { clearSession(); setOnlineHint('原房间已解散', false); }
       else setOnlineHint('', false);
       renderResumeOption();
