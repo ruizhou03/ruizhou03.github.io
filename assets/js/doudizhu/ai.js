@@ -612,25 +612,38 @@
 
   function sampleOpponentHandsWeights(ctx, myHand) {
     const myHist = E.histByWeight(myHand);
+    const knownBySeat = ctx.knownCardsBySeat || [[], [], []];
+    const ownKnownHist = E.histByWeight(knownBySeat[ctx.myIdx] || []);
     const remaining = [];
     for (let w = 0; w < 15; w++) {
       // 注意：ctx.seen 已经被 perceiveSeen 过滤过（v3）
       // 对于 AI 没盯的 rank，seen[w]=0 → 计算出 left 偏大（"我以为这 rank 没出过"）
       // 全局 remaining.length 可能比真实剩余牌总数大
-      let left = TOTAL_BY_WEIGHT[w] - (ctx.seen[w] || 0) - (myHist[w] || 0);
+      // `seen` contains public bottom cards.  When I am landlord those same
+      // unplayed cards are also in my hand, so remove that overlap exactly once.
+      const seenOutsideMyHand = Math.max(0, (ctx.seen[w] || 0) - (ownKnownHist[w] || 0));
+      let left = TOTAL_BY_WEIGHT[w] - seenOutsideMyHand - (myHist[w] || 0);
       if (left < 0) left = 0;
       for (let i = 0; i < left; i++) remaining.push(w);
     }
     const otherSeats = [0, 1, 2].filter(i => i !== ctx.myIdx);
-    const total = ctx.handSizes[otherSeats[0]] + ctx.handSizes[otherSeats[1]];
+    const fixed = {};
+    let total = 0;
+    for (const seat of otherSeats) {
+      fixed[seat] = (knownBySeat[seat] || []).map(card => E.cardWeight(card));
+      const unknownSlots = ctx.handSizes[seat] - fixed[seat].length;
+      if (unknownSlots < 0) return null;
+      total += unknownSlots;
+    }
     // v3 容差：remaining 比实际多 → 取前 total 张（AI 想象的对手手牌池更广，符合"记不清"）
     // remaining 比实际少 → 矛盾，放弃这次采样
     if (remaining.length < total) return null;
     shuffleArray(remaining);
     const taken = remaining.slice(0, total);
+    const firstUnknown = ctx.handSizes[otherSeats[0]] - fixed[otherSeats[0]].length;
     return {
-      [otherSeats[0]]: taken.slice(0, ctx.handSizes[otherSeats[0]]),
-      [otherSeats[1]]: taken.slice(ctx.handSizes[otherSeats[0]]),
+      [otherSeats[0]]: fixed[otherSeats[0]].concat(taken.slice(0, firstUnknown)),
+      [otherSeats[1]]: fixed[otherSeats[1]].concat(taken.slice(firstUnknown)),
     };
   }
 
@@ -870,6 +883,7 @@
     chooseEasy, chooseNormal, chooseHard, chooseMaster,
     evaluateHand, bid,
     remainingByWeight, minBeaterIn,
+    _sampleOpponentHandsWeights: sampleOpponentHandsWeights,
     PLAY_PRIORITY, LEVEL_PROFILES,
     WEIGHTS_BY_DIFFICULTY, aiWeights, _W_BASELINE,
     generateMemoryMask, perceiveSeen,   // v3 记牌器

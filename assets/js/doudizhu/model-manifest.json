@@ -1,0 +1,71 @@
+{
+  "manifestVersion": "ddz-models-1.0.0",
+  "models": {
+    "adp": {
+      "displayName": "DouZero-ADP",
+      "quantization": "int16 per-output-channel; LSTM tensors retained float32",
+      "expectedBytes": 9921420,
+      "source": {
+        "repository": "https://github.com/kwai/DouZero",
+        "commit": "718a5c920bf3361e34178a38f3b80458e176b351",
+        "license": "Apache-2.0",
+        "licensePath": "/assets/js/doudizhu/licenses/DouZero-APACHE-2.0.txt",
+        "checkpoints": {
+          "landlord": "0013495862cd853d6a9f108a27043cde0b0a2c6ee15e9fa649f92348d2c5bbc7",
+          "landlord_up": "bdb6f7d820ac2cfc1d73cf985fa36c3b0a44eb15b3ca4fd35211d2ebe7bfbe8f",
+          "landlord_down": "ef3ea2fbfe5c0286bd9fd27abc40daf702f939b1cd2beddf96ad0fde8b4fb4c7"
+        }
+      },
+      "artifacts": {
+        "landlord": {
+          "json": {"bytes": 1660, "sha256": "e33b3640f1c0a43215bbb8aa465bde0d0b3687df3b97585622e1fa8835601be2"},
+          "qw": {"bytes": 2611200, "sha256": "f1b2834c47434f2af31a2ec492aa15d5fc4ee938821b7db8487d307cf47b88c9"},
+          "f32": {"bytes": 618504, "sha256": "8aad20a26721344a2d0bf37ff4aabc7b489c759f44ed96b46da5de490176775b"}
+        },
+        "landlord_up": {
+          "json": {"bytes": 1660, "sha256": "9c95c6c324f49b2f53a0356670f195474a9a18e92aa39e9ef7d315116c0ea7c5"},
+          "qw": {"bytes": 2724864, "sha256": "66d55c1fb2866e451e947e0be89f35a5367de8f0135a1a7692000ed2a0ad455a"},
+          "f32": {"bytes": 618504, "sha256": "f44e145f5589ad297fe2580934226787b26641c75a5324b2614e36e8b35b91c4"}
+        },
+        "landlord_down": {
+          "json": {"bytes": 1660, "sha256": "9c95c6c324f49b2f53a0356670f195474a9a18e92aa39e9ef7d315116c0ea7c5"},
+          "qw": {"bytes": 2724864, "sha256": "7f45f9344a59e1a371dee26a56bf500ab82c95cb6b933c90e040cfa436b13dfb"},
+          "f32": {"bytes": 618504, "sha256": "e6de7dc09de852ddf20cc899442f4bb82c432e32fa6429edab806cefa359fd79"}
+        }
+      }
+    },
+    "resnet": {
+      "displayName": "AlphaDou DouZero-ResNet",
+      "quantization": "int8 per-output-channel; biases and batch-normalization tensors float32",
+      "expectedBytes": 10833714,
+      "source": {
+        "repository": "https://github.com/RuBP17/AlphaDou",
+        "commit": "13e740c08c3b653c2bef6ca345fc8fa6adc7d362",
+        "license": "GPL-3.0-only",
+        "licensePath": "/assets/js/doudizhu/licenses/AlphaDou-GPL-3.0.txt",
+        "checkpoints": {
+          "landlord": "df11501facc740b10bb5f8ea32e7476b4aa32af9eff4371ffb6c27aef85009ef",
+          "landlord_up": "a4b502fa1a7a04b2cce34c404e7f6f5c5c6b54e7865c1129b136e1e5aa28e72c",
+          "landlord_down": "ab356cd313e871f2cc0ad33018e5aa3b2a8b5524e22c5731a6465152c7ff20b7"
+        }
+      },
+      "artifacts": {
+        "landlord": {
+          "json": {"bytes": 10654, "sha256": "ca60657ed9f7cd34a284aaae48b07622a20e41f4bef538df51c88cdef5332626"},
+          "qw": {"bytes": 3528576, "sha256": "26414ea961f1ed284b3dcff83ad32fe9af2b0812bca79ec1a46fe1b35d507e52"},
+          "f32": {"bytes": 72008, "sha256": "91b71f5ec0c313a7b449fa5b094664b24597187b309a80cb21db9fc69a4b2e46"}
+        },
+        "landlord_up": {
+          "json": {"bytes": 10654, "sha256": "ca60657ed9f7cd34a284aaae48b07622a20e41f4bef538df51c88cdef5332626"},
+          "qw": {"bytes": 3528576, "sha256": "f6d6a60e7ad6ccb7da7a2a024dae9edd06e449d72bcbdd5008ce37c1526d6f55"},
+          "f32": {"bytes": 72008, "sha256": "46d95fb0b2494eb1ed5f261fd09d47b4ac9798b24a6bd23082b53e7a2c6e7e52"}
+        },
+        "landlord_down": {
+          "json": {"bytes": 10654, "sha256": "ca60657ed9f7cd34a284aaae48b07622a20e41f4bef538df51c88cdef5332626"},
+          "qw": {"bytes": 3528576, "sha256": "8f81c5875dae9ed18b50b7f4f7d2d56b76088666345cdeb3efef04c306d2db57"},
+          "f32": {"bytes": 72008, "sha256": "242886a32c1d485570976b4ba5f5e62e2b25f5cb71531d21be0b5e02e38dd780"}
+        }
+      }
+    }
+  }
+}

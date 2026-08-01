@@ -72,7 +72,14 @@ function linear(W, b, x, outDim, inDim) {
   const y = new Float32Array(outDim);
   for (let o = 0; o < outDim; o++) {
     let s = b ? b[o] : 0; const base = o * inDim;
-    for (let i = 0; i < inDim; i++) s += W[base + i] * x[i];
+    let i = 0;
+    for (; i + 3 < inDim; i += 4) {
+      s += W[base + i] * x[i];
+      s += W[base + i + 1] * x[i + 1];
+      s += W[base + i + 2] * x[i + 2];
+      s += W[base + i + 3] * x[i + 3];
+    }
+    for (; i < inDim; i++) s += W[base + i] * x[i];
     y[o] = s;
   }
   return y;
@@ -198,35 +205,110 @@ function chooseResnet(W, infoset) {
 }
 
 
-  // ---- weights fetch loader (int8/int16 dequant -> f32 W map; forward unchanged) ----
+  // ---- verified weights loader (int8/int16 dequant -> f32 W map) ----
   const WEIGHTS_BASE = (typeof window!=='undefined' && window.DDZNET_WEIGHTS_BASE) || '/assets/js/doudizhu/weights/';
-  async function _fetchBuf(u){ const r=await fetch(u); if(!r.ok) throw new Error('fetch '+u+' '+r.status); return await r.arrayBuffer(); }
-  async function loadNetQ8(prefix){
-    const man = await (await fetch(prefix+'.json')).json();
+  const MODEL_MANIFEST_URL = (typeof window!=='undefined' && window.DDZNET_MANIFEST_URL) || '/assets/js/doudizhu/model-manifest.json';
+  let modelManifestPromise = null;
+  function hex(bytes) {
+    return Array.from(new Uint8Array(bytes), value => value.toString(16).padStart(2, '0')).join('');
+  }
+  async function digest(bytes) {
+    if (!globalThis.crypto || !crypto.subtle) throw new Error('model_crypto_unavailable');
+    return hex(await crypto.subtle.digest('SHA-256', bytes));
+  }
+  async function fetchVerified(url, expected, options) {
+    options = options || {};
+    const response = await fetch(url, { cache: 'force-cache', signal: options.signal });
+    if (!response.ok) throw new Error('model_http_' + response.status + ':' + url);
+    const bytes = await response.arrayBuffer();
+    if (!expected || bytes.byteLength !== expected.bytes) {
+      throw new Error('model_size_' + bytes.byteLength + ':' + url);
+    }
+    const actual = await digest(bytes);
+    if (actual !== expected.sha256) throw new Error('model_sha256_' + actual + ':' + url);
+    if (options.onBytes) options.onBytes(bytes.byteLength);
+    return bytes;
+  }
+  async function loadModelManifest(options) {
+    if (!modelManifestPromise) {
+      modelManifestPromise = fetch(MODEL_MANIFEST_URL, {
+        cache: 'force-cache', signal: options && options.signal,
+      }).then(response => {
+        if (!response.ok) throw new Error('model_manifest_http_' + response.status);
+        return response.json();
+      }).then(manifest => {
+        if (!manifest || manifest.manifestVersion !== 'ddz-models-1.0.0' || !manifest.models) {
+          throw new Error('model_manifest_invalid');
+        }
+        return manifest;
+      }).catch(error => {
+        modelManifestPromise = null;
+        throw error;
+      });
+    }
+    return modelManifestPromise;
+  }
+  async function loadNetQ8(prefix, artifacts, options){
+    const manBytes = await fetchVerified(prefix+'.json', artifacts.json, options);
+    let man;
+    try { man = JSON.parse(new TextDecoder().decode(manBytes)); }
+    catch { throw new Error('model_metadata_invalid:' + prefix); }
+    if (!Array.isArray(man.params) || (man.bits !== 8 && man.bits !== 16)) {
+      throw new Error('model_metadata_shape:' + prefix);
+    }
     const QT = man.bits===8 ? Int8Array : Int16Array;
-    const qw = new QT(await _fetchBuf(prefix+'.qw'));
-    const f32 = new Float32Array(await _fetchBuf(prefix+'.f32'));
+    const qw = new QT(await fetchVerified(prefix+'.qw', artifacts.qw, options));
+    const f32 = new Float32Array(await fetchVerified(prefix+'.f32', artifacts.f32, options));
+    for (let i=0;i<f32.length;i++) if (!Number.isFinite(f32[i])) throw new Error('model_non_finite:' + prefix);
     const W = {};
     for (const p of man.params){
+      if (!p || typeof p.name !== 'string' || !Number.isInteger(p.count) || p.count <= 0) {
+        throw new Error('model_param_invalid:' + prefix);
+      }
       if (p.q){ const OC=p.nscale, rest=p.count/OC, out=new Float32Array(p.count);
+        if (!Number.isInteger(OC) || OC <= 0 || !Number.isInteger(rest) ||
+            p.off < 0 || p.off + p.count > qw.length ||
+            p.scale_off < 0 || p.scale_off + OC > f32.length) throw new Error('model_param_bounds:' + prefix);
         for(let oc=0;oc<OC;oc++){ const s=f32[p.scale_off+oc], b=oc*rest, ib=p.off+b;
           for(let i=0;i<rest;i++) out[b+i]=qw[ib+i]*s; }
         W[p.name]=out;
-      } else W[p.name]=f32.subarray(p.f32_off, p.f32_off+p.count);
+      } else {
+        if (p.f32_off < 0 || p.f32_off + p.count > f32.length) throw new Error('model_param_bounds:' + prefix);
+        W[p.name]=f32.subarray(p.f32_off, p.f32_off+p.count);
+      }
     }
     return W;
   }
   const cache={}, loading={};
   function ready(model){ return !!cache[model]; }
-  function ensureModel(model){
+  function releaseExcept(model) {
+    for (const key of Object.keys(cache)) if (key !== model) delete cache[key];
+    for (const key of Object.keys(loading)) if (key !== model) delete loading[key];
+  }
+  function ensureModel(model, options){
+    options = options || {};
     if (cache[model]) return Promise.resolve(true);
     if (loading[model]) return loading[model];
     loading[model] = (async()=>{
+      const manifest = await loadModelManifest(options);
+      const spec = manifest.models[model];
+      if (!spec || !spec.artifacts) throw new Error('model_unknown:' + model);
+      releaseExcept(model);
+      let received = 0;
+      const onBytes = count => {
+        received += count;
+        if (options.onProgress) options.onProgress(Math.min(1, received / spec.expectedBytes));
+      };
       const parts={};
       for (const pos of ['landlord','landlord_up','landlord_down'])
-        parts[pos]=await loadNetQ8(WEIGHTS_BASE+model+'_'+pos);
-      cache[model]=parts; return true;
-    })().catch(e=>{ console.warn('[DDZNet] load failed',model,e); loading[model]=null; return false; });
+        parts[pos]=await loadNetQ8(WEIGHTS_BASE+model+'_'+pos, spec.artifacts[pos], {
+          signal: options.signal, onBytes,
+        });
+      cache[model]=parts;
+      loading[model]=null;
+      if (options.onProgress) options.onProgress(1);
+      return true;
+    })().catch(e=>{ loading[model]=null; throw e; });
     return loading[model];
   }
 
@@ -263,19 +345,51 @@ function chooseResnet(W, infoset) {
     };
   }
 
+  function boundedCandidates(model, candidates, prev) {
+    if (model !== 'resnet' || candidates.length <= 2) return candidates;
+    const plays = candidates.filter(candidate => candidate.move).sort((a, b) => {
+      const aBomb = a.move.type === E.TYPES.BOMB || a.move.type === E.TYPES.ROCKET;
+      const bBomb = b.move.type === E.TYPES.BOMB || b.move.type === E.TYPES.ROCKET;
+      if (aBomb !== bBomb) return aBomb ? 1 : -1;
+      if (!prev && a.move.cards.length !== b.move.cards.length) {
+        return b.move.cards.length - a.move.cards.length;
+      }
+      return a.move.weight - b.move.weight || a.move.cards.length - b.move.cards.length;
+    });
+    if (prev) {
+      const pass = candidates.find(candidate => !candidate.move);
+      return pass ? [plays[0], pass] : plays.slice(0, 2);
+    }
+    return plays.slice(0, 2);
+  }
+
+  function scoreActions(model, seat, hand, prev, state, actionCards) {
+    if (!cache[model]) throw new Error('model_not_ready:' + model);
+    const legalRanks = actionCards.map(cards => cards ? toRanks(cards) : []);
+    const infoset = buildInfoset(seat, hand, prev, state, legalRanks);
+    const W = cache[model][infoset.position];
+    const result = model === 'adp' ? chooseBase(W, infoset) : chooseResnet(W, infoset);
+    if (!result || !result.qs.every(Number.isFinite)) throw new Error('model_output_invalid:' + model);
+    return result.qs;
+  }
+
   // ---- choose: our move object (or null=pass); undefined if net not loaded ----
   function choose(model, seat, hand, prev, state){
     if (!cache[model]) return undefined;
     const legal = E.enumerateBeats(hand, prev) || [];
-    const cands = legal.map(m=>({move:m, ranks: toRanks(m.cards)}));
+    let cands = legal.map(m=>({move:m, ranks: toRanks(m.cards)}));
     if (prev) cands.push({move:null, ranks:[]});
     if (!cands.length) return null;
+    cands = boundedCandidates(model, cands, prev);
     const infoset = buildInfoset(seat, hand, prev, state, cands.map(c=>c.ranks));
     const W = cache[model][infoset.position];
     const r = (model==='adp') ? chooseBase(W, infoset) : chooseResnet(W, infoset);
+    if (!r || !Number.isInteger(r.argmax) || r.argmax < 0 || r.argmax >= cands.length ||
+        !r.qs.every(Number.isFinite)) throw new Error('model_output_invalid:' + model);
     return cands[r.argmax].move;
   }
-  window.DDZNet = { ensureModel, ready, choose,
-    _buildInfoset: buildInfoset, _chooseBase: chooseBase, _chooseResnet: chooseResnet, _loadNetQ8: loadNetQ8 };
+  window.DDZNet = { ensureModel, ready, choose, releaseExcept,
+    _buildInfoset: buildInfoset, _chooseBase: chooseBase, _chooseResnet: chooseResnet,
+    _scoreActions: scoreActions, _loadNetQ8: loadNetQ8 };
 
 })();

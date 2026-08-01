@@ -1,7 +1,8 @@
 (() => {
   const E = window.DDZEngine;
   const AI = window.DDZAI;
-  const NET = window.DDZNet;
+  const POLICY = window.DDZPolicy;
+  const AI_WORKER = window.DDZAIWorker;
   const T = E.TYPES;
 
   // ============================================================
@@ -68,6 +69,7 @@
     // 模式
     mode: 'single',              // 'single' | 'online'
     online: null,                // { code, token, playerId, mySeat, isHost, lastVersion, polling, sessionKey }
+    aiStatus: null,              // 最近实际使用的策略或可见降级原因
   };
 
   // ============================================================
@@ -360,14 +362,29 @@
     });
   });
 
-  function selectedModel() {
-    return state.difficulty === 'master' ? 'resnet' : (state.difficulty === 'hard' ? 'adp' : null);
+  function resolvedPolicy(context) {
+    return POLICY.resolve(context || 'opponent', state.difficulty);
   }
 
   function preloadSelectedModel() {
-    const model = selectedModel();
-    if (!model || !NET) return Promise.resolve(false);
-    return NET.ensureModel(model);
+    const strategy = resolvedPolicy('opponent');
+    if (!AI_WORKER || strategy.engine !== 'douzero') {
+      if (AI_WORKER) AI_WORKER.selectDifficulty(state.difficulty);
+      return Promise.resolve(false);
+    }
+    setStatus(`正在准备${strategy.difficulty === 'master' ? '大神' : '高手'}模型…`);
+    return AI_WORKER.selectDifficulty(state.difficulty, progress => {
+      const pct = Math.max(0, Math.min(100, Math.round(progress * 100)));
+      setStatus(`正在准备${strategy.difficulty === 'master' ? '大神' : '高手'}模型… ${pct}%`);
+    }).then(() => {
+      state.aiStatus = { strategyId: strategy.strategyId, degraded: false };
+      setStatus(`${strategy.difficulty === 'master' ? '大神' : '高手'}模型已就绪`);
+      return true;
+    }).catch(error => {
+      state.aiStatus = { strategyId: strategy.fallback.strategyId, degraded: true, reason: error.message };
+      setStatus(`模型不可用，已明确降级为普通策略（${error.message}）`);
+      return false;
+    });
   }
 
   $('ddzStartBtn').addEventListener('click', () => startNewGame());
@@ -432,8 +449,8 @@
   function triggerAutopilotIfMyTurn() {
     if (state.mode === 'online') return;
     if (state.phase === PHASE.PLAYING && state.turnIdx === 0) {
-      // 立刻让 AI 出牌：复用 autoPlayOnTimeout
-      autoPlayOnTimeout();
+      // 立刻让同档策略接管；神经网络会在 Worker 内推理。
+      aiTakeTurn(0, 'autopilot');
     } else if (state.phase === PHASE.BIDDING && state.bidTurnIdx === 0
                && !bidPanel.hidden) {
       // 当前正在等我点叫/抢；直接走 AI 阈值决定
@@ -1194,22 +1211,27 @@
 
   function setStatus(msg) {
     if (!statusMsg) return;
-    statusMsg.textContent = msg || '';
-    statusMsg.hidden = !msg;
+    const degraded = !!(state.aiStatus && state.aiStatus.degraded);
+    const fallbackLabel = degraded ? 'AI 已降级为普通策略' : '';
+    const display = degraded && msg && !String(msg).includes('降级')
+      ? `${msg} · ${fallbackLabel}`
+      : (msg || fallbackLabel);
+    statusMsg.textContent = display;
+    statusMsg.hidden = !display;
     const lobby = document.getElementById('ddzLobby');
     const onlineHint = document.getElementById('ddzOnlineHint');
     if (onlineHint && lobby && !lobby.hidden) {
-      onlineHint.textContent = msg || '';
-      onlineHint.className = 'ddz-online-hint' + (msg ? ' error' : '');
+      onlineHint.textContent = display;
+      onlineHint.className = 'ddz-online-hint' + (display ? ' error' : '');
     }
     clearTimeout(setStatus.clearTimer);
-    if (msg) {
+    if (display && !degraded) {
       setStatus.clearTimer = setTimeout(() => {
-        if (statusMsg.textContent === msg) {
+        if (statusMsg.textContent === display) {
           statusMsg.textContent = '';
           statusMsg.hidden = true;
         }
-        if (onlineHint && onlineHint.textContent === msg) {
+        if (onlineHint && onlineHint.textContent === display) {
           onlineHint.textContent = '';
           onlineHint.className = 'ddz-online-hint';
         }
@@ -2161,13 +2183,37 @@
         seen: state.seen.slice(),
         lastTrickSeat: state.lastTrick ? state.lastTrick.seat : -1,
       };
-      const play = AI.chooseNormal(state.hands[0], null, ctx);
+      const policy = POLICY.resolve('timeout', state.difficulty);
+      const play = AI.chooseMove(state.hands[0], null, ctx, policy.heuristicLevel);
       if (play) { state.selected.clear(); commitPlay(0, play); }
     }
   }
 
-  async function aiTakeTurn(seat) {
+  function workerStateSnapshot() {
+    return {
+      hands: state.hands.map(hand => hand.slice()),
+      landlordIdx: state.landlordIdx,
+      bombCount: state.bombCount || 0,
+      bottom: state.bottom.slice(),
+      bottomPlayed: new Set(state.bottomPlayed || []),
+      netPlayed: (state.netPlayed || [[], [], []]).map(cards => cards.slice()),
+      netSeq: (state.netSeq || []).map(entry => ({ seat: entry.seat, cards: entry.cards.slice() })),
+    };
+  }
+
+  function knownCurrentCardsBySeat() {
+    const known = [[], [], []];
+    if (state.landlordIdx >= 0) {
+      const played = state.bottomPlayed || new Set();
+      known[state.landlordIdx] = (state.bottom || []).filter(card => !played.has(card));
+    }
+    return known;
+  }
+
+  async function aiTakeTurn(seat, context = 'opponent') {
     if (state.phase !== PHASE.PLAYING || state.turnIdx !== seat) return;
+    const requestedEpoch = state.gameEpoch;
+    const requestedRevision = state.revision;
     const prev = (state.lastTrick && state.lastTrick.seat !== seat) ? state.lastTrick.pattern : null;
     // v3: ctx.seen 喂真实 seen + ctx.memoryMask 把 AI 自己的盲区告诉 ai.js
     // chooseMove 内部 perceiveSeen 会用 mask 过滤
@@ -2180,23 +2226,49 @@
       trickHistory: [],
       lastTrickSeat: state.lastTrick ? state.lastTrick.seat : -1,
       memoryMask: state.memoryMaskBySeat ? state.memoryMaskBySeat[seat] : null,
+      knownCardsBySeat: knownCurrentCardsBySeat(),
     };
     let play;
-    const model = selectedModel();
-    if (model && NET) {
+    const strategy = resolvedPolicy(context);
+    if (strategy.engine === 'douzero' && AI_WORKER) {
       try {
-        const loaded = await NET.ensureModel(model);
-        // 等待权重期间玩家可能已离开/恢复了另一局，重新确认回合仍然有效。
-        if (state.phase !== PHASE.PLAYING || state.turnIdx !== seat) return;
-        play = loaded ? NET.choose(model, seat, state.hands[seat], prev, state) : undefined;
+        setStatus(`${strategy.difficulty === 'master' ? '大神' : '高手'}模型思考中…`);
+        const choice = await AI_WORKER.choose({
+          context,
+          difficulty: state.difficulty,
+          gameEpoch: requestedEpoch,
+          turnRevision: requestedRevision,
+          seat,
+          hand: state.hands[seat].slice(),
+          prev,
+          state: workerStateSnapshot(),
+          onProgress: progress => setStatus(`模型加载中… ${Math.round(progress * 100)}%`),
+        });
+        // 等待期间玩家可能离开、恢复另一局，或后续命令已推进 revision。
+        if (state.phase !== PHASE.PLAYING || state.turnIdx !== seat ||
+            state.gameEpoch !== requestedEpoch || state.revision !== requestedRevision) return;
+        play = choice.cards == null ? null : E.parsePattern(choice.cards);
+        if (choice.cards && !play) throw new Error('model_invalid_pattern');
+        state.aiStatus = {
+          strategyId: strategy.strategyId,
+          degraded: false,
+          durationMs: choice.durationMs,
+        };
+        console.info(`[DDZAI] ${strategy.strategyId} ${choice.durationMs.toFixed(1)}ms`);
+        setStatus('');
       } catch (err) {
-        console.warn('[DDZNet] inference failed; using heuristic fallback', err);
+        console.warn('[DDZNet] Worker inference failed; using visible fallback', err);
+        state.aiStatus = {
+          strategyId: strategy.fallback.strategyId,
+          degraded: true,
+          reason: err && err.message,
+        };
+        setStatus(`模型不可用，已明确降级为普通策略（${err && err.message}）`);
         play = undefined;
       }
     }
     if (play === undefined) {
-      play = AI.chooseMove(state.hands[seat], prev, ctx,
-        state.difficulty === 'normal' ? 'hard' : state.difficulty);
+      play = AI.chooseMove(state.hands[seat], prev, ctx, strategy.heuristicLevel);
     }
     if (!play) {
       // pass — 但如果 prev=null（即 AI 是首出）不允许 pass，强制出最小单牌
@@ -2258,7 +2330,12 @@
     if (!state.netSeq) state.netSeq = [];
     state.netPlayed[seat].push(...pattern.cards);
     state.netSeq.push({ seat, cards: pattern.cards.slice() });
-    for (const c of pattern.cards) state.seen[E.cardWeight(c)]++;
+    const revealedBottom = new Set(state.bottom || []);
+    for (const c of pattern.cards) {
+      // Bottom cards were already counted when revealed; a later play is not a
+      // second physical card and must not inflate the MCTS unseen-card pool.
+      if (!revealedBottom.has(c)) state.seen[E.cardWeight(c)]++;
+    }
     updateAiPerception(pattern);          // AI 感知（带噪声）
     if (pattern.type === T.BOMB || pattern.type === T.ROCKET) state.bombCount++;
     if (seat === state.landlordIdx) state.landlordPlayCount++;
@@ -2424,14 +2501,20 @@
       + '|' + p.cards.slice().sort((a, b) => a - b).join(',');
   }
 
-  function playerHint() {
+  async function playerHint() {
     if (state.phase !== PHASE.PLAYING || state.turnIdx !== 0) return;
+    const requestedEpoch = state.gameEpoch;
+    const requestedRevision = state.revision;
     const sig = trickSignature();
     if (sig !== state.hintForPrev || !state.hintCycle.length) {
+      hintBtn.disabled = true;
+      setStatus('正在计算提示…');
+      try {
       // 重新枚举候选
       const prev = (state.lastTrick && state.lastTrick.seat !== 0) ? state.lastTrick.pattern : null;
       const beats = E.enumerateBeats(state.hands[0], prev);
       if (!beats.length) {
+        hintBtn.disabled = false;
         setStatus(sig === 'first' ? '没合法牌型，请检查' : '没牌可出，请「不出」');
         return;
       }
@@ -2444,7 +2527,10 @@
         seen.add(k); uniq.push(p);
       }
       // 调 AI 同档难度作为「首选」推荐（避免无谓推炸弹）
-      const level = (state.mode === 'online') ? 'normal' : (state.difficulty || 'normal');
+      const policy = POLICY.resolve(
+        state.mode === 'online' ? 'online-hint' : 'hint',
+        state.difficulty || 'normal'
+      );
       const myRole = state.landlordIdx === 0 ? 'landlord' : 'peasant';
       const ctx = {
         myIdx: 0, myRole,
@@ -2452,8 +2538,46 @@
         handSizes: state.hands.map(h => h.length),
         seen: state.seen ? state.seen.slice() : new Array(15).fill(0),
         lastTrickSeat: state.lastTrick ? state.lastTrick.seat : -1,
+        knownCardsBySeat: knownCurrentCardsBySeat(),
       };
-      const aiPick = AI.chooseMove(state.hands[0], prev, ctx, level);
+      let aiPick;
+      if (policy.engine === 'douzero' && AI_WORKER) {
+        try {
+          const choice = await AI_WORKER.choose({
+            context: 'hint',
+            difficulty: state.difficulty,
+            gameEpoch: requestedEpoch,
+            turnRevision: requestedRevision,
+            seat: 0,
+            hand: state.hands[0].slice(),
+            prev,
+            state: workerStateSnapshot(),
+            onProgress: progress => setStatus(`正在准备提示模型… ${Math.round(progress * 100)}%`),
+          });
+          if (state.gameEpoch !== requestedEpoch || state.revision !== requestedRevision ||
+              state.phase !== PHASE.PLAYING || state.turnIdx !== 0) {
+            hintBtn.disabled = false;
+            return;
+          }
+          aiPick = choice.cards == null ? null : E.parsePattern(choice.cards);
+          state.aiStatus = {
+            strategyId: policy.strategyId,
+            degraded: false,
+            durationMs: choice.durationMs,
+          };
+          console.info(`[DDZAI] hint ${policy.strategyId} ${choice.durationMs.toFixed(1)}ms`);
+        } catch (error) {
+          state.aiStatus = {
+            strategyId: policy.fallback.strategyId,
+            degraded: true,
+            reason: error && error.message,
+          };
+          setStatus(`提示模型不可用，已用普通策略（${error && error.message}）`);
+        }
+      }
+      if (aiPick === undefined) {
+        aiPick = AI.chooseMove(state.hands[0], prev, ctx, policy.heuristicLevel);
+      }
       // 把 AI 推荐排到最前；剩下的按 comparePlay 排
       let primary = null;
       if (aiPick) {
@@ -2464,6 +2588,9 @@
       state.hintCycle = primary ? [primary, ...rest] : rest;
       state.hintIdx = -1;
       state.hintForPrev = sig;
+      } finally {
+        hintBtn.disabled = false;
+      }
     }
     state.hintIdx = (state.hintIdx + 1) % state.hintCycle.length;
     const pick = state.hintCycle[state.hintIdx];
@@ -3656,6 +3783,17 @@
     }
 
     if (srv.state === 'playing') {
+      if (srv.aiStatus) {
+        const prior = state.aiStatus && JSON.stringify(state.aiStatus);
+        state.aiStatus = { ...srv.aiStatus };
+        if (JSON.stringify(state.aiStatus) !== prior) {
+          if (srv.aiStatus.pending) {
+            setStatus('服务器 AI 正在独立 Worker 中思考…');
+          } else if (srv.aiStatus.degraded) {
+            setStatus(`服务器模型不可用，已明确降级为普通策略（${srv.aiStatus.reason || 'model_unavailable'}）`);
+          }
+        }
+      }
       // 大厅 → 牌桌切换
       if (state.online.lastSrvState !== 'playing') {
         lobbyEl.hidden = true;

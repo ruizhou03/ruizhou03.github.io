@@ -47,6 +47,7 @@ function runOneGame(landlordLevel, peasantLevel) {
   const d = E.deal();
   const hands = [d.hands[0].slice(), d.hands[1].slice(), d.hands[2].slice()];
   const bottom = d.bottom.slice();
+  const bottomPlayed = new Set();
   const landlordIdx = 0;
 
   // 地主拿底牌
@@ -77,6 +78,7 @@ function runOneGame(landlordLevel, peasantLevel) {
       seen: perceived[turn].slice(),
       trickHistory: [],
       lastTrickSeat: lastTrick ? lastTrick.seat : -1,
+      knownCardsBySeat: [bottom.filter(card => !bottomPlayed.has(card)), [], []],
     };
     let play = AI.chooseMove(hands[turn], prev, ctx, levels[turn]);
 
@@ -100,7 +102,12 @@ function runOneGame(landlordLevel, peasantLevel) {
 
     // 全员更新感知
     for (let s = 0; s < 3; s++) {
-      for (const c of play.cards) perceiveWeight(perceived[s], E.cardWeight(c), levels[s]);
+      for (const c of play.cards) {
+        if (!bottom.includes(c)) perceiveWeight(perceived[s], E.cardWeight(c), levels[s]);
+      }
+    }
+    if (turn === landlordIdx) {
+      for (const c of play.cards) if (bottom.includes(c)) bottomPlayed.add(c);
     }
 
     turn = (turn + 1) % 3;
