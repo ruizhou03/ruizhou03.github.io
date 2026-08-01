@@ -110,7 +110,7 @@ async function find(selector) {
     method: 'POST',
     body: { using: 'css selector', value: selector },
   });
-  assert.ok(value?.[elementKey], `Safari 找不到元素：${selector}`);
+  assert.ok(value?.[elementKey], `${browserLabel} 找不到元素：${selector}`);
   return value[elementKey];
 }
 
@@ -221,7 +221,7 @@ async function run() {
   });
   await waitFor(
     `return window.GuandanContract?.releaseMarker === ${JSON.stringify(marker)}`,
-    `Safari 未加载 release marker ${marker}`,
+    `${browserLabel} 未加载 release marker ${marker}`,
   );
   await waitFor(
     `return document.body.classList.contains('gd-game-fullscreen')`,
@@ -268,7 +268,7 @@ async function run() {
     await click('#gdOfflineCacheBtn');
     await waitFor(
       `return /当前档位基础资源已校验并缓存/.test(document.querySelector('#gdHardOfflineStatus')?.textContent || '')`,
-      'Safari 普通档离线资源没有完成 hash 校验缓存',
+      `${browserLabel} 普通档离线资源没有完成 hash 校验缓存`,
       30000,
     );
   }
@@ -277,7 +277,7 @@ async function run() {
   await click('#gdPgoStart');
   await waitFor(
     `return document.querySelectorAll('#gdHand [role="button"][data-cid]').length === 27`,
-    'Safari 开局后没有 27 张手牌',
+    `${browserLabel} 开局后没有 27 张手牌`,
   );
 
   const avatarIcons = await execute(`return [1, 2, 3].map((seat) => {
@@ -290,20 +290,20 @@ async function run() {
     };
   })`);
   assert.ok(avatarIcons.every((avatar) => avatar.iconHosts === 1 && avatar.icons === 1 && !avatar.markerText),
-    'Safari 每个 AI 座位必须且只能渲染一个机器人图标');
+    `${browserLabel} 每个 AI 座位必须且只能渲染一个机器人图标`);
 
   const firstCard = '#gdHand [role="button"][data-cid]';
   await execute(`document.querySelector(${JSON.stringify(firstCard)})?.focus()`);
   await pressKey('\uE007');
   await waitFor(
     `return /已选中/.test(document.querySelector('#gdLiveRegion')?.textContent || '')`,
-    'Safari 键盘选牌没有发布可听读的选中状态',
+    `${browserLabel} 键盘选牌没有发布可听读的选中状态`,
     2000,
   );
   const keyboardSelected = await execute(`
     return document.querySelector('#gdHand [role="button"][data-cid]')?.getAttribute('aria-pressed') === 'true';
   `);
-  assert.equal(keyboardSelected, true, 'Safari Enter 键没有选中手牌');
+  assert.equal(keyboardSelected, true, `${browserLabel} Enter 键没有选中手牌`);
   const selectedAnnouncement = await execute(`return document.querySelector('#gdLiveRegion')?.textContent || ''`);
   await pressKey('\uE007');
 
@@ -316,7 +316,7 @@ async function run() {
   await click('#gdOrderRight');
   await waitFor(
     `return /已移动到第 2 列/.test(document.querySelector('#gdLiveRegion')?.textContent || '')`,
-    'Safari 调整顺序没有发布移动完成状态',
+    `${browserLabel} 调整顺序没有发布移动完成状态`,
     2000,
   );
   const orderStatus = await execute(`return document.querySelector('#gdOrderStatus')?.textContent || ''`);
@@ -324,13 +324,13 @@ async function run() {
     return [...document.querySelectorAll('#gdHand .gd-rank-col')]
       .map((column) => column.querySelector('[role="button"][data-cid]')?.getAttribute('aria-label'));
   `);
-  assert.match(orderStatus, /第 2 列/, 'Safari 调整顺序没有移动到第二列');
-  assert.notDeepEqual(orderAfter, orderBefore, 'Safari 调整顺序没有真实改变 DOM 牌列顺序');
+  assert.match(orderStatus, /第 2 列/, `${browserLabel} 调整顺序没有移动到第二列`);
+  assert.notDeepEqual(orderAfter, orderBefore, `${browserLabel} 调整顺序没有真实改变 DOM 牌列顺序`);
 
   await click('#gdBoardBtn');
   await waitFor(
     `return document.activeElement?.getAttribute('aria-label') === '关闭'`,
-    'Safari dialog 打开后焦点没有落到关闭按钮',
+    `${browserLabel} dialog 打开后焦点没有落到关闭按钮`,
     2000,
   );
   const dialogOpen = await execute(`
@@ -343,13 +343,13 @@ async function run() {
   `);
   assert.equal(dialogOpen.hidden, false);
   assert.equal(dialogOpen.active, '关闭');
-  assert.ok(dialogOpen.inertCount > 0, 'Safari dialog 打开后背景没有 inert');
+  assert.ok(dialogOpen.inertCount > 0, `${browserLabel} dialog 打开后背景没有 inert`);
   assert.equal(dialogOpen.bodyOverflow, 'hidden');
 
   await pressKey('\uE00C');
   await waitFor(
     `return document.activeElement?.id === 'gdBoardBtn'`,
-    'Safari Escape 关闭后焦点没有回到榜单按钮',
+    `${browserLabel} Escape 关闭后焦点没有回到榜单按钮`,
     2000,
   );
   const dialogClosed = await execute(`
@@ -369,13 +369,13 @@ async function run() {
   await click('#gdSettingsBtn');
   await waitFor(
     `return document.activeElement?.id === 'gdPgoClose'`,
-    'Safari 设置 dialog 打开后焦点没有落到返回按钮',
+    `${browserLabel} 设置 dialog 打开后焦点没有落到返回按钮`,
     2000,
   );
   await pressKey('\uE00C');
   await waitFor(
     `return document.activeElement?.id === 'gdSettingsBtn'`,
-    'Safari 设置 dialog 关闭后焦点没有回到设置按钮',
+    `${browserLabel} 设置 dialog 关闭后焦点没有回到设置按钮`,
     2000,
   );
   const settingsDialog = await execute(`return {
@@ -389,13 +389,13 @@ async function run() {
   await click('#gdExitBtn');
   await waitFor(
     `return document.activeElement?.id === 'gdConfirmExitCancel'`,
-    'Safari 退出确认 dialog 打开后焦点没有落到取消按钮',
+    `${browserLabel} 退出确认 dialog 打开后焦点没有落到取消按钮`,
     2000,
   );
   await pressKey('\uE00C');
   await waitFor(
     `return document.activeElement?.id === 'gdExitBtn'`,
-    'Safari 退出确认 dialog 关闭后焦点没有回到退出按钮',
+    `${browserLabel} 退出确认 dialog 关闭后焦点没有回到退出按钮`,
     2000,
   );
   const exitDialog = await execute(`return {
@@ -443,18 +443,21 @@ async function run() {
 
   let reveal = null;
   if (checkReveal) {
+    const debugEnabled = await execute('return window.GuandanDebug?.enabled === true;');
+    assert.equal(debugEnabled, true,
+      `${browserLabel} 局终展开回归只能在 localhost/127.0.0.1 的隔离测试站运行`);
     for (const key of ['d', 'b', 'u', 'g']) await pressKey(key);
-    await waitFor(`return !!document.querySelector('#gdDbgRevealBtn')`, 'Safari 本地调试台没有打开', 2000);
+    await waitFor(`return !!document.querySelector('#gdDbgRevealBtn')`, `${browserLabel} 本地调试台没有打开`, 2000);
     await execute(`document.querySelector('#gdDbgRevealBtn').click()`);
     for (const key of ['d', 'b', 'u', 'g']) await pressKey(key);
-    await waitFor(`return !document.querySelector('#gdDbgPanel')`, 'Safari 本地调试台没有收起', 2000);
+    await waitFor(`return !document.querySelector('#gdDbgPanel')`, `${browserLabel} 本地调试台没有收起`, 2000);
     const compactGallery = layout.innerWidth <= 700 || layout.innerHeight <= 400;
     await waitFor(
       compactGallery
         ? `return !document.querySelector('#gdRevealGallery').hidden &&
             document.querySelectorAll('#gdRevealGallery .gd-reveal-gallery-seat').length >= 3`
         : `return document.querySelectorAll('.gd-side > .gd-played.gd-revealing, .gd-center > .gd-played.gd-revealing').length === 3`,
-      'Safari 局终剩余手牌没有进入专用展开槽',
+      `${browserLabel} 局终剩余手牌没有进入专用展开槽`,
       2000,
     );
     if (compactGallery) {
@@ -536,7 +539,7 @@ async function run() {
   let a11y = null;
   if (checkA11y) {
     for (const key of ['t', 'e', 's', 't']) await pressKey(key);
-    await waitFor(`return !!document.querySelector('#gdTestPanel')`, 'Safari 无障碍测试台没有打开', 2000);
+    await waitFor(`return !!document.querySelector('#gdTestPanel')`, `${browserLabel} 无障碍测试台没有打开`, 2000);
     const timer = await execute(`
       const clock = document.querySelector('#gdSelfClock');
       return {
@@ -547,7 +550,7 @@ async function run() {
         label: clock.getAttribute('aria-label'),
       };
     `);
-    assert.equal(timer.hidden, false, 'Safari 测试回合没有显示玩家倒计时');
+    assert.equal(timer.hidden, false, `${browserLabel} 测试回合没有显示玩家倒计时`);
     assert.equal(timer.role, 'timer', '玩家倒计时必须向辅助技术公开为 timer');
     assert.equal(timer.live, 'off', '逐秒倒计时不得每秒打断读屏');
     assert.equal(timer.atomic, 'true');
@@ -557,7 +560,7 @@ async function run() {
     await waitFor(
       `return document.querySelector('#gdAutopilotBtn')?.getAttribute('aria-pressed') === 'true' &&
         /托管已开启/.test(document.querySelector('#gdLiveRegion')?.textContent || '')`,
-      'Safari 托管开启后没有公开 pressed 状态和可听读提示',
+      `${browserLabel} 托管开启后没有公开 pressed 状态和可听读提示`,
       2000,
     );
     const autopilotOn = await execute(`return {
@@ -570,7 +573,7 @@ async function run() {
     await click('#gdAutopilotBtn');
     await waitFor(
       `return document.querySelector('#gdAutopilotBtn')?.getAttribute('aria-pressed') === 'false'`,
-      'Safari 托管取消后没有公开 pressed 状态',
+      `${browserLabel} 托管取消后没有公开 pressed 状态`,
       2000,
     );
     const autopilotOff = await execute(`return {
@@ -586,7 +589,7 @@ async function run() {
     await waitFor(
       `return document.querySelector('#gdRoundOverlay')?.classList.contains('open') &&
         /本小局我方获胜/.test(document.querySelector('#gdLiveRegion')?.textContent || '')`,
-      'Safari 小局结算没有发布可听读结果',
+      `${browserLabel} 小局结算没有发布可听读结果`,
       2000,
     );
     const settlement = await execute(`return {
@@ -623,7 +626,7 @@ async function run() {
       }
       await delay(100);
     }
-    assert.equal(sourceDown, true, 'Safari 离线回归前本机源站仍可连接');
+    assert.equal(sourceDown, true, `${browserLabel} 离线回归前本机源站仍可连接`);
 
     if (browserName === 'firefox') {
       const previousTimeOrigin = await execute('return performance.timeOrigin;');
@@ -636,11 +639,11 @@ async function run() {
     } else await request(`/session/${sessionId}/refresh`, { method: 'POST', body: {} });
     await waitFor(
       `return window.GuandanContract?.releaseMarker === ${JSON.stringify(marker)}`,
-      'Safari 断源后没有从 Service Worker 重载 release marker',
+      `${browserLabel} 断源后没有从 Service Worker 重载 release marker`,
     );
     await waitFor(
       `return document.body.classList.contains('gd-game-fullscreen')`,
-      'Safari 断源后主运行时没有恢复',
+      `${browserLabel} 断源后主运行时没有恢复`,
     );
     const hasOfflineResume = await execute(`
       const el = document.querySelector('#gdResumeDiscard');
@@ -653,7 +656,7 @@ async function run() {
     await click('#gdPgoStart');
     await waitFor(
       `return document.querySelectorAll('#gdHand [role="button"][data-cid]').length === 27`,
-      'Safari 断源重载后普通档没有开出 27 张牌',
+      `${browserLabel} 断源重载后普通档没有开出 27 张牌`,
     );
     const normalHandCount = await execute(
       `return document.querySelectorAll('#gdHand [role="button"][data-cid]').length`,
@@ -662,19 +665,19 @@ async function run() {
     await click('#gdExitBtn');
     await waitFor(
       `return document.querySelector('#gdConfirmExit')?.hidden === false`,
-      'Safari 离线牌局没有打开退出确认',
+      `${browserLabel} 离线牌局没有打开退出确认`,
       2000,
     );
     await click('#gdConfirmExitOk');
     await waitFor(
       `return document.querySelector('#gdPgo')?.classList.contains('open') === true`,
-      'Safari 离线牌局退出后没有返回设置页',
+      `${browserLabel} 离线牌局退出后没有返回设置页`,
       2000,
     );
     await click('#gdPgoDiff button[data-value="hard"]');
     await waitFor(
       `return /完成前不承诺离线/.test(document.querySelector('#gdHardOfflineStatus')?.textContent || '')`,
-      'Safari 未缓存高手模型时错误承诺离线',
+      `${browserLabel} 未缓存高手模型时错误承诺离线`,
       2000,
     );
     const hardStatus = await execute(
@@ -683,14 +686,14 @@ async function run() {
     await click('#gdPgoStart');
     await waitFor(
       `return /下载失败/.test(document.querySelector('#gdPgoStart')?.textContent || '')`,
-      'Safari 断源时高手档没有保持模型下载阻断',
+      `${browserLabel} 断源时高手档没有保持模型下载阻断`,
       15000,
     );
     const hardButton = await execute(`return document.querySelector('#gdPgoStart')?.textContent || ''`);
     const hardHandCount = await execute(
       `return document.querySelectorAll('#gdHand [role="button"][data-cid]').length`,
     );
-    assert.equal(hardHandCount, 0, 'Safari 高手模型不可用时不得静默降级并发牌');
+    assert.equal(hardHandCount, 0, `${browserLabel} 高手模型不可用时不得静默降级并发牌`);
     offline = { serviceWorker, sourceDown, normalHandCount, hardStatus, hardButton, hardHandCount };
   }
 

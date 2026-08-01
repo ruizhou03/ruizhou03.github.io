@@ -159,6 +159,10 @@ assert.match(safariAcceptance, /--allow-system-access[\s\S]*FullZoom\.setZoom\(2
   'Firefox 200% 验收必须调用浏览器真实 FullZoom，不能只缩小窗口');
 assert.match(safariAcceptance, /compactGallery[\s\S]*containedHorizontally[\s\S]*separatedFromNext/,
   'Firefox 紧凑局终画廊必须自动验证不裁切且不覆盖相邻玩家');
+assert.match(safariAcceptance, /GuandanDebug\?\.enabled === true[\s\S]*localhost\/127\.0\.0\.1/,
+  '局终伪造状态只能在明确启用调试模块的本机隔离站运行');
+assert.match(safariAcceptance, /browserLabel.*未加载 release marker[\s\S]*browserLabel.*开局后没有 27 张手牌/s,
+  '共享 Safari/Firefox runner 的错误必须标识真实浏览器');
 assert.match(safariAcceptance, /serviceWorker\.controlled[\s\S]*performance\.timeOrigin[\s\S]*normalHandCount/,
   'Firefox 断源验收必须证明 controller、生效后的新文档导航和普通档开局');
 

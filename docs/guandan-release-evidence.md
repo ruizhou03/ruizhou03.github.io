@@ -226,6 +226,15 @@
 - stage 7G site commit: `13c4970b33ec4a2a75b307f2b28a9756659e6287`。
 - stage 7G Pages build/deploy run: `30695207951`；release gate run:
   `30695208239`；完整合同、Jekyll、10,000 条规则差分和生产 API gate 均成功。
+- stage 7I site commit: `868b4f8878619edc91570eafc05a8534f2fec033`。
+- stage 7I Pages build/deploy run: `30696793207`；release gate run:
+  `30696793386`；确定性生产包、PWA hash、Jekyll、10,000 条规则差分、AI、
+  生产 marker 与 API gate 均成功。
+- stage 7I 生产页面和资源均返回 `20260801p7i`；Firefox 153.0.1 在生产环境以
+  真实 200% FullZoom 复验为 `720×393`、DPR 4，27 张手牌、三个单一 SVG
+  机器人头像、键盘选牌/调整顺序、dialog、44×44px 工具栏和无横向溢出均通过。
+  局终四手各 27 张的极端展开使用同一生产包在本机隔离站验证；生产域名按安全
+  合同禁用秘密调试面板，不在生产伪造局终状态。
 
 ## 仍需真实设备完成的强制验收
 
