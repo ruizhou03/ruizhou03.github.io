@@ -71,13 +71,13 @@ test('offline Worker URLs exactly match runtime requests', async () => {
   const runtime = await readFile(new URL('../../assets/js/doudizhu/ai-runtime.js', import.meta.url), 'utf8');
   const worker = await readFile(new URL('../../assets/js/doudizhu/ai-worker.js', import.meta.url), 'utf8');
   for (const url of [
-    '/assets/js/doudizhu/ai-worker.js?v=20260801g7a',
-    '/assets/js/doudizhu/net.js?v=20260801g7a',
-    '/assets/js/doudizhu/ai-eval-worker.js?v=20260801g7a',
+    '/assets/js/doudizhu/ai-worker.js?v=20260801g8a',
+    '/assets/js/doudizhu/net.js?v=20260801g8a',
+    '/assets/js/doudizhu/ai-eval-worker.js?v=20260801g8a',
   ]) {
     assert.ok(manifest.hard.some(asset => asset.url === url) || manifest.master.some(asset => asset.url === url), url);
   }
-  assert.match(runtime, /ai-worker\.js\?v=20260801g7a/);
-  assert.match(worker, /net\.js\?v=20260801g7a/);
-  assert.match(worker, /ai-eval-worker\.js\?v=20260801g7a/);
+  assert.match(runtime, /ai-worker\.js\?v=20260801g8a/);
+  assert.match(worker, /net\.js\?v=20260801g8a/);
+  assert.match(worker, /ai-eval-worker\.js\?v=20260801g8a/);
 });

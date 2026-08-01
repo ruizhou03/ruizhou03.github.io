@@ -45,6 +45,6 @@ test('Gate 7 model provenance and offline bundle remain reproducible', async () 
   assert.match(notice, /license/i);
   assert.match(build, /sha-?256/i);
   assert.ok(Object.keys(modelManifest).length > 0);
-  assert.equal(offline.version, '20260801g7a');
-  assert.ok(offline.core.some(asset => asset.url.includes('rules-content.js?v=20260801g7a')));
+  assert.equal(offline.version, '20260801g8a');
+  assert.ok(offline.core.some(asset => asset.url.includes('rules-content.js?v=20260801g8a')));
 });
