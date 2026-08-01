@@ -8,14 +8,14 @@ apple_touch_icon: /assets/icons/guandan-apple-touch-icon.png
 app_title: 掼蛋
 theme_color: "#173a30"
 theme_color_dark: "#0b1d1a"
-asset_version: "20260801p7i"
+asset_version: "20260801p7j"
 minimal_app_shell: true
 # 服务端就给 <body> 带上全屏类：进页面首帧即全屏，杜绝"先停在非全屏再跳全屏"的闪烁。
 # （JS 启动时也会再加一次，幂等兜底。）
 body_class: gd-game-fullscreen
 ---
 
-<link rel="stylesheet" href="/assets/css/games-shell.css?v=20260801p7i">
+<link rel="stylesheet" href="/assets/css/games-shell.css?v=20260801p7j">
 
 <script>
   /* 游戏仍须遵守浏览器缩放与系统辅助功能。只覆盖 viewport-fit，不限制 200%+
@@ -82,7 +82,7 @@ body_class: gd-game-fullscreen
   })();
 </script>
 
-<link rel="stylesheet" href="/assets/css/guandan.css?v=20260801p7i">
+<link rel="stylesheet" href="/assets/css/guandan.css?v=20260801p7j">
 
 <div class="guandan-wrap gd-view-setup">
   <!-- 手机竖屏引导：仅触屏竖屏显示（CSS 控制），盖住整屏提示转横屏 -->
@@ -232,28 +232,28 @@ body_class: gd-game-fullscreen
         <div class="gd-overlay-timing-note" id="gdPgoTimingNote" hidden></div>
 
         <!-- 玩法模式：单机 / 联机 -->
-        <div class="gs-pgo-mode-picker" id="gdPgoPlayMode" style="margin-bottom:0.6rem;">
-          <button class="gs-pgo-mode-tab selected" data-playmode="single" type="button">[[zi:cards]] 单机</button>
-          <button class="gs-pgo-mode-tab" data-playmode="online" type="button">[[zi:users]] 联机</button>
+        <div class="gs-pgo-mode-picker" id="gdPgoPlayMode" aria-label="玩法模式" style="margin-bottom:0.6rem;">
+          <button class="gs-pgo-mode-tab selected" data-playmode="single" type="button" aria-pressed="true">[[zi:cards]] 单机</button>
+          <button class="gs-pgo-mode-tab" data-playmode="online" type="button" aria-pressed="false">[[zi:users]] 联机</button>
         </div>
 
         <!-- 单机：AI 难度 + 开始 -->
         <div id="gdSingleSetup">
           <div class="gd-pgo-label">难度</div>
-          <div class="gs-pgo-mode-picker" id="gdPgoDiff">
-            <button class="gs-pgo-mode-tab" data-value="easy">[[zi:sprout]] 新手</button>
-            <button class="gs-pgo-mode-tab selected" data-value="normal">[[zi:user]] 普通</button>
-            <button class="gs-pgo-mode-tab" data-value="hard">[[zi:flame]] 高手</button>
+          <div class="gs-pgo-mode-picker" id="gdPgoDiff" aria-label="难度">
+            <button class="gs-pgo-mode-tab" data-value="easy" aria-pressed="false">[[zi:sprout]] 新手</button>
+            <button class="gs-pgo-mode-tab selected" data-value="normal" aria-pressed="true">[[zi:user]] 普通</button>
+            <button class="gs-pgo-mode-tab" data-value="hard" aria-pressed="false">[[zi:flame]] 高手</button>
           </div>
           <div class="gd-pgo-score" id="gdHardOfflineStatus" aria-live="polite"></div>
           <button class="gd-btn" id="gdOfflineCacheBtn" type="button">缓存当前档位离线版</button>
 
           <div class="gd-pgo-label">手牌大小</div>
-          <div class="gs-pgo-mode-picker" id="gdPgoCardSize">
-            <button class="gs-pgo-mode-tab" data-value="0.85" type="button">小</button>
-            <button class="gs-pgo-mode-tab selected" data-value="1" type="button">中</button>
-            <button class="gs-pgo-mode-tab" data-value="1.25" type="button">大</button>
-            <button class="gs-pgo-mode-tab" data-value="1.5" type="button">特大</button>
+          <div class="gs-pgo-mode-picker" id="gdPgoCardSize" aria-label="手牌大小">
+            <button class="gs-pgo-mode-tab" data-value="0.85" type="button" aria-pressed="false">小</button>
+            <button class="gs-pgo-mode-tab selected" data-value="1" type="button" aria-pressed="true">中</button>
+            <button class="gs-pgo-mode-tab" data-value="1.25" type="button" aria-pressed="false">大</button>
+            <button class="gs-pgo-mode-tab" data-value="1.5" type="button" aria-pressed="false">特大</button>
           </div>
 
           <!-- 玩法设置：默认折叠，单机 + 联机「创建房间」共用（JS 把它在两处间搬移）。
@@ -266,22 +266,22 @@ body_class: gd-game-fullscreen
             </button>
             <div class="gd-gameopts-body" id="gdGameOptsBody" hidden>
               <div class="gd-pgo-label">同队进贡</div>
-              <div class="gs-pgo-mode-picker" id="gdPgoTeamTrib">
-                <button class="gs-pgo-mode-tab selected" data-value="off" type="button">关</button>
-                <button class="gs-pgo-mode-tab" data-value="on" type="button">开</button>
+              <div class="gs-pgo-mode-picker" id="gdPgoTeamTrib" aria-label="同队进贡">
+                <button class="gs-pgo-mode-tab selected" data-value="off" type="button" aria-pressed="true">关</button>
+                <button class="gs-pgo-mode-tab" data-value="on" type="button" aria-pressed="false">开</button>
               </div>
               <!-- 单局积分上限已隐藏：积分玩法不再用（元素保留供 JS 引用，默认"不限"=0） -->
               <div class="gd-pgo-label" hidden>单局积分上限</div>
-              <div class="gs-pgo-mode-picker" id="gdPgoScoreCap" hidden>
-                <button class="gs-pgo-mode-tab selected" data-value="0" type="button">不限</button>
-                <button class="gs-pgo-mode-tab" data-value="3" type="button">3</button>
-                <button class="gs-pgo-mode-tab" data-value="5" type="button">5</button>
-                <button class="gs-pgo-mode-tab" data-value="8" type="button">8</button>
+              <div class="gs-pgo-mode-picker" id="gdPgoScoreCap" aria-label="单局积分上限" hidden>
+                <button class="gs-pgo-mode-tab selected" data-value="0" type="button" aria-pressed="true">不限</button>
+                <button class="gs-pgo-mode-tab" data-value="3" type="button" aria-pressed="false">3</button>
+                <button class="gs-pgo-mode-tab" data-value="5" type="button" aria-pressed="false">5</button>
+                <button class="gs-pgo-mode-tab" data-value="8" type="button" aria-pressed="false">8</button>
               </div>
               <div class="gd-pgo-label">出牌时间</div>
-              <div class="gs-pgo-mode-picker" id="gdPgoTurnSec">
-                <button class="gs-pgo-mode-tab selected" data-value="25" type="button">25秒</button>
-                <button class="gs-pgo-mode-tab" data-value="0" type="button">不限</button>
+              <div class="gs-pgo-mode-picker" id="gdPgoTurnSec" aria-label="出牌时间">
+                <button class="gs-pgo-mode-tab selected" data-value="25" type="button" aria-pressed="true">25秒</button>
+                <button class="gs-pgo-mode-tab" data-value="0" type="button" aria-pressed="false">不限</button>
               </div>
             </div>
           </div>
@@ -292,9 +292,9 @@ body_class: gd-game-fullscreen
 
         <!-- 联机：创建 / 加入 房间 -->
         <div id="gdOnlineSetup" hidden>
-          <div class="gd-online-tabs" id="gdOnlineTabs">
-            <button class="gd-online-tab active" data-tab="create" type="button">[[zi:settings]] 创建房间</button>
-            <button class="gd-online-tab" data-tab="join" type="button">[[zi:door]] 加入房间</button>
+          <div class="gd-online-tabs" id="gdOnlineTabs" aria-label="联机方式">
+            <button class="gd-online-tab active" data-tab="create" type="button" aria-pressed="true">[[zi:settings]] 创建房间</button>
+            <button class="gd-online-tab" data-tab="join" type="button" aria-pressed="false">[[zi:door]] 加入房间</button>
           </div>
           <div class="gd-online-form">
             <input type="text" class="gd-online-input" id="gdOnlineNick"
@@ -442,15 +442,15 @@ body_class: gd-game-fullscreen
   <output id="gdPerfProbe" hidden aria-hidden="true"></output>
 </div>
 
-<script src="/assets/js/games-shell/identity.js?v=20260801p7i" defer></script>
+<script src="/assets/js/games-shell/identity.js?v=20260801p7j" defer></script>
 
-<script src="/assets/js/games/guandan-contract.js?v=20260801p7i" defer></script>
-<script src="/assets/js/games/guandan-storage.js?v=20260801p7i" defer></script>
-<script src="/assets/js/games/guandan-net.js?v=20260801p7i" defer></script>
-<script src="/assets/js/games/guandan-audio.js?v=20260801p7i" defer></script>
-<script src="/assets/js/games/guandan-rules.js?v=20260801p7i" defer></script>
-<script src="/assets/js/games/guandan-engine.js?v=20260801p7i" defer></script>
-<script src="/assets/js/games/guandan-ui.js?v=20260801p7i" defer></script>
-<script src="/assets/js/games/guandan-debug.js?v=20260801p7i" defer></script>
+<script src="/assets/js/games/guandan-contract.js?v=20260801p7j" defer></script>
+<script src="/assets/js/games/guandan-storage.js?v=20260801p7j" defer></script>
+<script src="/assets/js/games/guandan-net.js?v=20260801p7j" defer></script>
+<script src="/assets/js/games/guandan-audio.js?v=20260801p7j" defer></script>
+<script src="/assets/js/games/guandan-rules.js?v=20260801p7j" defer></script>
+<script src="/assets/js/games/guandan-engine.js?v=20260801p7j" defer></script>
+<script src="/assets/js/games/guandan-ui.js?v=20260801p7j" defer></script>
+<script src="/assets/js/games/guandan-debug.js?v=20260801p7j" defer></script>
 <script src="/assets/js/games/guandan-ai-contract.js?v=20260727ai5" defer></script>
-<script src="/assets/js/games/guandan.min.js?v=20260801p7i" defer></script>
+<script src="/assets/js/games/guandan.min.js?v=20260801p7j" defer></script>

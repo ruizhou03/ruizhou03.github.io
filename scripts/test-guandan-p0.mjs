@@ -17,6 +17,15 @@ assert.match(html, /id="gdSelfClock"[^>]*role="timer"[^>]*aria-live="off"/,
   '玩家倒计时必须可查询但不能逐秒打断读屏');
 assert.match(html, /id="gdAutopilotBtn"[^>]*aria-label="托管未开启"[^>]*aria-pressed="false"/,
   '托管按钮必须公开初始开关状态');
+for (const [id, label] of [
+  ['gdPgoPlayMode', '玩法模式'], ['gdPgoDiff', '难度'], ['gdPgoCardSize', '手牌大小'],
+  ['gdPgoTeamTrib', '同队进贡'], ['gdPgoTurnSec', '出牌时间'], ['gdOnlineTabs', '联机方式'],
+]) {
+  assert.match(html, new RegExp(`id="${id}"[^>]*aria-label="${label}"`),
+    `${label}分段按钮组必须有可访问名称`);
+}
+assert.match(js, /setExclusiveButtonState[\s\S]*setAttribute\('aria-pressed'/,
+  '所有分段按钮的选择状态必须同时公开给辅助技术');
 assert.doesNotMatch(html, /class="gd-board-btn" id="gdMuteBtn"/, '音效按钮不得复用榜单定位类');
 assert.match(css, /\.gd-mute-btn\s*\{\s*left:\s*calc\(0\.6rem \+ 48px\)/,
   '竖屏榜单与音效按钮必须为 44px 目标保留至少 4px 间距');
@@ -26,7 +35,7 @@ assert.match(css, /\.gd-mute-btn\s*\{[\s\S]*right:\s*calc\(0\.5rem \+ 100px \+ e
   '触屏横屏工具栏必须按 50px 节距排列，避免 44px 目标重叠');
 assert.match(css, /@media \(prefers-color-scheme: dark\)[\s\S]*--gd-felt-1:\s*#1c3933/,
   '系统自适应方案必须提供真正深色牌桌');
-assert.match(html, /guandan\.min\.js\?v=20260801p7i/, '生产页面应使用阶段 7C 压缩内容标记，避免旧 JS 缓存');
+assert.match(html, /guandan\.min\.js\?v=20260801p7j/, '生产页面应使用当前压缩内容标记，避免旧 JS 缓存');
 assert.match(html, /data-value="off"[^>]*class="[^"]*selected|class="[^"]*selected"[^>]*data-value="off"/,
   '同队进贡 UI 默认应关闭');
 

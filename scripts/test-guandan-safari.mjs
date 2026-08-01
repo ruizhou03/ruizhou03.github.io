@@ -8,7 +8,7 @@ const args = new Map(process.argv.slice(2).map((arg) => {
   const [key, ...rest] = arg.split('=');
   return [key, rest.join('=')];
 }));
-const marker = args.get('--marker') || '20260801p7i';
+const marker = args.get('--marker') || '20260801p7j';
 const browserName = args.get('--browser') || 'safari';
 const browserLabel = browserName === 'firefox' ? 'Firefox' : 'Safari';
 const driverPath = args.get('--driver') || (browserName === 'firefox'
@@ -263,6 +263,49 @@ async function run() {
       getComputedStyle(overlay).display !== 'none' && getComputedStyle(overlay).visibility !== 'hidden';
   `);
   if (hasResume) await click('#gdResumeDiscard');
+
+  const readSegmentSelections = () => execute(`return [
+    ['gdPgoPlayMode', 'selected'],
+    ['gdPgoDiff', 'selected'],
+    ['gdPgoCardSize', 'selected'],
+    ['gdPgoTeamTrib', 'selected'],
+    ['gdPgoScoreCap', 'selected'],
+    ['gdPgoTurnSec', 'selected'],
+    ['gdOnlineTabs', 'active'],
+  ].map(([id, selectedClass]) => {
+    const group = document.getElementById(id);
+    const buttons = [...group.querySelectorAll('button')];
+    return {
+      id,
+      label: group.getAttribute('aria-label'),
+      pressed: buttons.filter(button => button.getAttribute('aria-pressed') === 'true').length,
+      visual: buttons.filter(button => button.classList.contains(selectedClass)).length,
+      synchronized: buttons.every(button =>
+        (button.getAttribute('aria-pressed') === 'true') === button.classList.contains(selectedClass)),
+    };
+  })`);
+  let segmentSelections = await readSegmentSelections();
+  assert.ok(segmentSelections.every(group => group.label && group.pressed === 1 &&
+    group.visual === 1 && group.synchronized),
+  `${browserLabel} 设置分段按钮必须公开唯一且与视觉一致的 pressed 状态`);
+
+  await click('#gdPgoDiff button[data-value="easy"]');
+  await waitFor(`return document.querySelector('#gdPgoDiff [data-value="easy"]')?.getAttribute('aria-pressed') === 'true'`,
+    `${browserLabel} 切换难度后没有更新 pressed 状态`, 2000);
+  await click('#gdPgoDiff button[data-value="normal"]');
+  await click('#gdPgoPlayMode button[data-playmode="online"]');
+  await waitFor(`return document.querySelector('#gdPgoPlayMode [data-playmode="online"]')?.getAttribute('aria-pressed') === 'true' &&
+    document.querySelector('#gdOnlineSetup')?.hidden === false`,
+  `${browserLabel} 切换联机模式后没有更新 pressed 状态`, 2000);
+  await click('#gdOnlineTabs button[data-tab="join"]');
+  await waitFor(`return document.querySelector('#gdOnlineTabs [data-tab="join"]')?.getAttribute('aria-pressed') === 'true'`,
+    `${browserLabel} 切换加入房间后没有更新 pressed 状态`, 2000);
+  await click('#gdOnlineTabs button[data-tab="create"]');
+  await click('#gdPgoPlayMode button[data-playmode="single"]');
+  segmentSelections = await readSegmentSelections();
+  assert.ok(segmentSelections.every(group => group.label && group.pressed === 1 &&
+    group.visual === 1 && group.synchronized),
+  `${browserLabel} 分段按钮往返切换后 pressed 状态与视觉不一致`);
 
   if (checkOffline) {
     await click('#gdOfflineCacheBtn');
@@ -708,6 +751,7 @@ async function run() {
     platform: session.capabilities.platformName,
     marker,
     browserName,
+    segmentSelections,
     window: { width: windowWidth, height: windowHeight, expectCompact, zoomPercent },
     zoom,
     handCount: 27,

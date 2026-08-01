@@ -5360,18 +5360,23 @@
   // 当 no-op 即可，state.stats 仍在后台累计、上传战绩榜。
   function refreshHs() { /* no-op：已移除 UI */ }
   function refreshPgoStats() { /* no-op：已移除 UI */ }
+  function setExclusiveButtonState(container, selectedValue, valueKey, selectedClass = 'selected') {
+    if (!container) return;
+    [...container.querySelectorAll('button')].forEach(button => {
+      const selected = button.dataset[valueKey] === String(selectedValue);
+      button.classList.toggle(selectedClass, selected);
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+  }
   function syncPgoDiff() {
-    [...els.pgoDiff.querySelectorAll('.gs-pgo-mode-tab')].forEach(t =>
-      t.classList.toggle('selected', t.dataset.value === state.aiLevel));
+    setExclusiveButtonState(els.pgoDiff, state.aiLevel, 'value');
     syncPgoOptions();
     syncPgoScoreSummary();
     updateHardOfflineStatus();
   }
   // 段选组：把 value 对应的 tab 设为 selected
   function selectSeg(container, value) {
-    if (!container) return;
-    [...container.querySelectorAll('.gs-pgo-mode-tab')].forEach(t =>
-      t.classList.toggle('selected', t.dataset.value === value));
+    setExclusiveButtonState(container, value, 'value');
   }
   function syncPgoOptions() {
     const o = state.options;
@@ -6675,9 +6680,8 @@
   if (onlineEls.tabs) {
     [...onlineEls.tabs.querySelectorAll('.gd-online-tab')].forEach(b => {
       b.addEventListener('click', () => {
-        [...onlineEls.tabs.querySelectorAll('.gd-online-tab')].forEach(x => x.classList.remove('active'));
-        b.classList.add('active');
         onlineTab = b.dataset.tab;
+        setExclusiveButtonState(onlineEls.tabs, onlineTab, 'tab', 'active');
         onlineEls.code.hidden = (onlineTab === 'create');
         onlineEls.submit.textContent = (onlineTab === 'create') ? '创建房间' : '加入房间';
         placeGameOpts();   // 创建房间显示玩法设置，加入房间隐藏
@@ -6689,10 +6693,9 @@
   if (onlineEls.pgoPlayMode) {
     [...onlineEls.pgoPlayMode.querySelectorAll('.gs-pgo-mode-tab')].forEach(b => {
       b.addEventListener('click', () => {
-        [...onlineEls.pgoPlayMode.querySelectorAll('.gs-pgo-mode-tab')].forEach(x => x.classList.remove('selected'));
-        b.classList.add('selected');
         const m = b.dataset.playmode;
         playMode = m;
+        setExclusiveButtonState(onlineEls.pgoPlayMode, playMode, 'playmode');
         if (m === 'online') {
           onlineEls.singleSetup.hidden = true;
           onlineEls.onlineSetup.hidden = false;
