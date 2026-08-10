@@ -1,0 +1,202 @@
+.markdown-content .ais-routes {
+  --ais-wine: #7f2635;
+  --ais-wine-dark: #4b1822;
+  --ais-gold: #d5a846;
+  --ais-green: #3f735d;
+  background: var(--color-bg-warm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin: 2.1rem 0;
+  padding: clamp(1rem, 3vw, 1.6rem);
+}
+
+.markdown-content .ais-routes figcaption {
+  align-items: baseline;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.9rem;
+}
+
+.markdown-content .ais-routes figcaption strong {
+  color: var(--color-ink);
+  font-size: 1.04rem;
+}
+
+.markdown-content .ais-routes figcaption span {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.markdown-content .ais-route-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.markdown-content .ais-route-panel {
+  background: color-mix(in srgb, var(--color-bg) 78%, var(--ais-gold) 22%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, var(--ais-gold) 22%);
+  border-radius: var(--radius-md);
+  min-width: 0;
+  padding: 0.9rem;
+}
+
+.markdown-content .ais-route-title {
+  align-items: center;
+  display: grid;
+  gap: 0.45rem 0.55rem;
+  grid-template-columns: auto 1fr;
+  margin-bottom: 1rem;
+}
+
+.markdown-content .ais-route-title > span {
+  align-items: center;
+  background: var(--ais-wine-dark);
+  border-radius: 50%;
+  color: #fff9ed;
+  display: flex;
+  font-size: 0.65rem;
+  font-weight: 700;
+  grid-row: 1 / 3;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.markdown-content .ais-route-title strong {
+  color: var(--color-ink);
+  font-size: 0.96rem;
+  line-height: 1.2;
+}
+
+.markdown-content .ais-route-title small {
+  color: var(--color-muted);
+  font-size: 0.66rem;
+  line-height: 1.2;
+}
+
+.markdown-content .ais-route-body {
+  align-items: center;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.markdown-content .ais-money-node {
+  align-items: center;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  height: 52px;
+  justify-content: center;
+  width: 52px;
+}
+
+.markdown-content .ais-money-node strong,
+.markdown-content .ais-money-node b {
+  color: inherit;
+  font-size: 0.94rem;
+  line-height: 1;
+}
+
+.markdown-content .ais-money-node small {
+  color: var(--color-muted);
+  font-size: 0.5rem;
+  line-height: 1.1;
+  margin-top: 0.16rem;
+  white-space: nowrap;
+}
+
+.markdown-content .ais-money-start {
+  background: var(--ais-gold);
+  border-color: var(--ais-gold);
+  color: var(--ais-wine-dark);
+}
+
+.markdown-content .ais-money-start small {
+  color: var(--ais-wine-dark);
+}
+
+.markdown-content .ais-money-goal {
+  background: var(--ais-green);
+  border-color: var(--ais-green);
+  color: #fff9ed;
+}
+
+.markdown-content .ais-money-zero {
+  background: var(--ais-wine-dark);
+  border-color: var(--ais-wine-dark);
+  color: #fff9ed;
+}
+
+.markdown-content .ais-money-goal small,
+.markdown-content .ais-money-zero small {
+  color: rgba(255, 249, 237, 0.78);
+}
+
+.markdown-content .ais-route-branches {
+  display: grid;
+  gap: 0.62rem;
+  min-width: 0;
+}
+
+.markdown-content .ais-route-branch {
+  align-items: center;
+  display: grid;
+  gap: 0.3rem;
+  grid-template-columns: minmax(58px, 1fr) auto 52px;
+}
+
+.markdown-content .ais-route-branch > span {
+  font-size: 0.64rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.markdown-content .ais-route-branch > b {
+  font-size: 1rem;
+}
+
+.markdown-content .ais-route-win > span,
+.markdown-content .ais-route-win > b {
+  color: var(--ais-green);
+}
+
+.markdown-content .ais-route-loss > span,
+.markdown-content .ais-route-loss > b {
+  color: var(--ais-wine);
+}
+
+@media (max-width: 680px) {
+  .markdown-content .ais-route-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .markdown-content .ais-routes figcaption {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .markdown-content .ais-routes figcaption span {
+    text-align: left;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .markdown-content .ais-route-panel {
+    background: color-mix(in srgb, var(--color-bg-warm) 88%, var(--ais-gold) 12%);
+  }
+}
+
+:root[data-theme="dark"] .markdown-content .ais-route-panel {
+  background: color-mix(in srgb, var(--color-bg-warm) 88%, var(--ais-gold) 12%);
+}
