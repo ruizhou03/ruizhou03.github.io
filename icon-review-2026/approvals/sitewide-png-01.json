@@ -1,0 +1,27 @@
+{
+  "format": "ICON_REVIEW_V2",
+  "batch": "sitewide-png-01",
+  "revision": 1,
+  "audited_commit": "dfbb5042",
+  "exported_at": "2026-08-19T02:21:41.888Z",
+  "global_note": "很多图标不懂是不是显示的问题，感觉好像它有种被截断了的感觉。但是我觉得整体设计都很棒。",
+  "scenes": [
+    { "id": "toolbox.blackjack", "category": "toolbox", "decision": "B", "note": "" },
+    { "id": "toolbox.solitaire", "category": "toolbox", "decision": "B", "note": "" },
+    { "id": "toolbox.random", "category": "toolbox", "decision": "A", "note": "右下角的那个球有点不明所以。" },
+    { "id": "toolbox.time", "category": "toolbox", "decision": "C", "note": "设计得很好，但是就是C选项似乎给人一种被截断了的感觉。" },
+    { "id": "toolbox.metronome", "category": "toolbox", "decision": "A", "note": "" },
+    { "id": "toolbox.pitch", "category": "toolbox", "decision": "B", "note": "设计得很好，但是有一种被切断了的感觉。" },
+    { "id": "toolbox.picker", "category": "toolbox", "decision": "A", "note": "设计得很好，但是有种被截断了的感觉。" },
+    { "id": "toolbox.grouper", "category": "toolbox", "decision": "C", "note": "设计得很好，但是有种被截断了的感觉。" },
+    { "id": "toolbox.roll-call", "category": "toolbox", "decision": "C", "note": "设计得很好，但是有种被截断了的感觉。" },
+    { "id": "toolbox.countdown", "category": "toolbox", "decision": "B", "note": "设计得很好，但是有种被截断了的感觉。" },
+    { "id": "site.feature-marker", "category": "site", "decision": "A", "note": "" },
+    { "id": "site.theme-control", "category": "site", "decision": "C", "note": "" },
+    { "id": "flight.itinerary-heading", "category": "flight", "decision": "B", "note": "" },
+    { "id": "flight.date-heading", "category": "flight", "decision": "A", "note": "" },
+    { "id": "flight.transfer-heading", "category": "flight", "decision": "B", "note": "" },
+    { "id": "flight.calendar-priority", "category": "flight", "decision": "C", "note": "" },
+    { "id": "flight.sort-controls", "category": "flight", "decision": "A", "note": "" }
+  ]
+}

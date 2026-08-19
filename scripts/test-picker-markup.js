@@ -22,6 +22,9 @@ for (const [, targets] of html.matchAll(/\saria-controls="([^"]+)"/g)) {
 
 assert.ok(html.includes('免费在线随机转盘'), 'picker-specific meta description must be rendered');
 assert.ok(html.includes('https://ruizhou03.com/assets/images/picker-og.png'), 'picker-specific OG image must be rendered');
+assert.ok(html.includes('<body class="is-toolbox picker-page-body">'), 'picker body class must widen the outer site canvas');
+assert.ok(html.includes('<div class="picker-workspace">'), 'picker workspace must not be a nested main element');
+assert.ok(!html.includes('<main class="picker-workspace">'), 'nested main would reapply global layout spacing');
 assert.ok(html.indexOf('/assets/js/games/picker-core.js') < html.indexOf('/assets/js/games/picker.js'), 'core script must load before UI script');
 
 function pngSize(file) {
@@ -38,4 +41,4 @@ for (const line of uiSource.split('\n').filter(line => line.includes('lastResult
   assert.ok(!line.includes('[[zi:'), 'copied result text must not contain icon markers');
 }
 
-console.log(`picker markup: ${ids.length} unique ids and 10 contract checks passed`);
+console.log(`picker markup: ${ids.length} unique ids and 13 contract checks passed`);

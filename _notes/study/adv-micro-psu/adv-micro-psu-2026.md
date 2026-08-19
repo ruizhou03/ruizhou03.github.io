@@ -19,7 +19,7 @@ pdf_url: "/files/adv-micro-psu/adv-micro-psu-lecture-notes.pdf"
 
 ## 起因
 
-两天前我贴了一份 [计量 8 天自救指南](/notes/adv-metrics-psu/survival-guide)。那本是临考前赶出来的应试讲义——目标是 B-、活下去、把时间留给研究。
+两天前我刚完成一次高级计量期末冲刺。那次目标是 B-、活下去、把时间留给研究。
 
 这本不一样。这本是**跟着 Krishna 教授一整学期，每周写一点、每章迭代两三遍**写出来的高微讲义。从一月开学到现在四个多月，最终是一本 299 页的 PDF：9 章、5 个 part，外加 13 套 problem set 和 6 套考试的完整解答。
 

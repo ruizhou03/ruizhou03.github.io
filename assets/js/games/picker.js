@@ -212,7 +212,7 @@
       row.dataset.id = option.id;
       var color = COLORS[index % COLORS.length];
       row.innerHTML =
-        '<span class="picker-option-chip" style="background:' + color + '" aria-hidden="true"></span>' +
+        '<span class="picker-option-marker" aria-hidden="true"><span class="picker-option-chip" style="background:' + color + '"></span><small>' + String(index + 1).padStart(2, '0') + '</small></span>' +
         '<input class="picker-option-input" type="text" maxlength="' + Core.MAX_NAME_LENGTH + '" value="' + escapeHtml(option.text) + '" placeholder="选项 ' + (index + 1) + '" aria-label="选项 ' + (index + 1) + '">' +
         '<button type="button" class="picker-option-delete" aria-label="删除' + (option.text ? '“' + escapeHtml(option.text) + '”' : '选项 ' + (index + 1)) + '"' + (state.options.length <= 2 ? ' disabled' : '') + '>[[zi:trash]]</button>' +
         '<div class="picker-weight-row"' + (state.weighted ? '' : ' hidden') + '>' +

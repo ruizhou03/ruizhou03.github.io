@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f4ecdc">
+  <title>全站图标改造 · 第二轮裁切修复</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <a class="back" href="../">← 返回第一轮</a>
+      <p class="eyebrow">ICON REVIEW · REFINE 02</p>
+      <h1>这次不裁图：每个图标都是完整独立 PNG</h1>
+      <p class="lead">你的判断是对的：上一轮是评审页把纵向联系表强行裁成方形，才让很多物件看起来缺边。这一轮已经按你选定的风格逐个重新生成，原图、192px、64px、32px 四种尺度同时展示。</p>
+      <div class="stats">
+        <div><strong>10</strong><span>张独立 PNG</span></div>
+        <div><strong>1254²</strong><span>每张原始像素</span></div>
+        <div><strong>0</strong><span>处 CSS 联系表裁切</span></div>
+        <div><strong>7</strong><span>项 SVG 选择已锁定</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="family" aria-labelledby="family-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">FAMILY CHECK</p>
+          <h2 id="family-title">先看放在一起是否协调</h2>
+          <p>这里全部使用独立文件直接缩小，没有背景定位或截取。点击任一图标会滚动到它的详细卡片。</p>
+        </div>
+        <button type="button" class="approve-all" id="approve-all">这 10 张全部批准</button>
+      </div>
+      <div id="family-grid" class="family-grid"></div>
+    </section>
+
+    <section class="locked" aria-labelledby="locked-title">
+      <div>
+        <p class="eyebrow">LOCKED FROM ROUND 1</p>
+        <h2 id="locked-title">7 项非 PNG 方案已经按你的选择锁定</h2>
+        <p>这些方案没有收到修改意见，会在 10 张 PNG 最终批准后一起实施到正式页面；本轮不要求重复选择。</p>
+      </div>
+      <div id="locked-grid" class="locked-grid"></div>
+    </section>
+
+    <section class="review" aria-labelledby="review-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">REVISION 2</p>
+          <h2 id="review-title">逐项确认完整轮廓与小尺寸表现</h2>
+        </div>
+        <div class="progress" aria-live="polite">
+          <strong id="done-count">0</strong><span>/ 10 已处理</span>
+          <i><b id="progress-fill"></b></i>
+        </div>
+      </div>
+      <div class="filters" aria-label="筛选">
+        <button type="button" class="is-active" data-filter="all">全部</button>
+        <button type="button" data-filter="unreviewed">未处理</button>
+        <button type="button" data-filter="approve">已批准</button>
+        <button type="button" data-filter="revise">还要修改</button>
+      </div>
+      <div id="review-list" class="review-list"></div>
+      <p id="empty" class="empty" hidden>这个筛选下没有项目。</p>
+    </section>
+
+    <section class="export" id="export">
+      <div>
+        <p class="eyebrow">EXPORT</p>
+        <h2>确认完以后，一键发回第二轮结果</h2>
+        <p>导出仍使用 <code>ICON_REVIEW_V2</code>，批次为 <code>sitewide-png-refine-02</code>。未处理项会明确写成 <code>unreviewed</code>。</p>
+        <label class="global-note">
+          <span>第二轮总体意见（可选）</span>
+          <textarea id="global-note" rows="4" placeholder="例如：都不再截断，但整体再缩小 5%；或某几张背景色不一致……"></textarea>
+        </label>
+      </div>
+      <div class="export-actions">
+        <button type="button" class="primary" id="copy-export">复制全部批注</button>
+        <button type="button" id="download-export">下载 JSON 文件</button>
+        <button type="button" class="quiet" id="preview-export">预览导出内容</button>
+        <p id="export-status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+    <pre id="export-preview" class="export-preview" hidden></pre>
+  </main>
+
+  <footer>第二轮精修批阅台 · 尚未修改正式页面 · 选择保存在当前浏览器</footer>
+</body>
+</html>
