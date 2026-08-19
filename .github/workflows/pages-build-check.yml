@@ -25,6 +25,16 @@ jobs:
           git diff --exit-code -- toolbox/doudizhu/offline-assets.json
           node --test tools/doudizhu/engine.test.mjs tools/doudizhu/ai-contract.test.mjs tools/doudizhu/online-security.test.mjs tools/doudizhu/gate5-contract.test.mjs tools/doudizhu/gate6-accessibility.test.mjs
 
+      - name: Test Forest state, storage, and release contracts
+        run: |
+          node --test tests/forest-core.test.mjs tests/forest-storage.test.mjs tests/forest-cloud-sync.test.mjs tests/forest-ui-contract.test.mjs
+          node --check assets/js/forest/app.js
+          node --check assets/js/forest/core.js
+          node --check assets/js/forest/storage.js
+          node --check assets/js/forest/scenes.js
+          node scripts/benchmark-forest.mjs
+          node scripts/test-forest-release.mjs
+
       - name: Verify deterministic Guandan production bundle
         run: |
           npx --yes terser@5.43.1 assets/js/games/guandan.js --compress --mangle --comments false -o /tmp/guandan.min.js
