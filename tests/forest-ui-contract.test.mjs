@@ -14,6 +14,7 @@ test('primary flow exposes task, field, valid duration, result preview, and comp
   assert.match(html, /<label for="target-field-select">种到<\/label>/);
   assert.match(html, /aria-describedby="custom-min-unit custom-min-error"/);
   assert.match(app, /Core\.validateMinutes/);
+  assert.match(app, /\$customMin\.value\.trim\(\) !== ''[\s\S]*\$durationTabs\.forEach\(b => b\.classList\.remove\('active'\)\)/);
 });
 
 test('mobile duration and focus overlay use reflowing grids without the old cascade conflict', () => {
@@ -57,5 +58,21 @@ test('navigation and fields expose current state semantics', () => {
   assert.match(app, /setAttribute\('aria-current', 'page'\)/);
   assert.match(app, /aria-pressed="\$\{active \? 'true' : 'false'\}"/);
   assert.match(app, /aria-label=.*次专注/);
+  assert.match(app, /scrollIntoView\(\{ behavior: 'auto', block: 'center' \}\);[\s\S]*requestAnimationFrame\(\(\) => showDetail/);
+  assert.match(app, /performance\.now\(\) < detailScrollGuardUntil/);
+  assert.match(app, /\$startBtn\.disabled = !!state\.session \|\| state\.externalSessionReadonly/);
 });
 
+test('signature visual system follows site light and dark mode with an explicit override', () => {
+  assert.match(html, /data-value="auto"[\s\S]*跟随系统/);
+  assert.match(html, /data-value="default"[\s\S]*节气山水/);
+  assert.match(html, /data-value="night"[\s\S]*萤火夜林/);
+  assert.doesNotMatch(html, /data-value="(?:bubbles|sunrise|rain)"/);
+  assert.match(app, /function resolvedBackground\(\)/);
+  assert.match(app, /state\.theme\.background === 'auto'/);
+  assert.match(app, /MutationObserver\(refreshAutomaticTheme\)/);
+  assert.match(css, /\.ft-wrap\.visual-day/);
+  assert.match(css, /\.ft-wrap\.visual-night/);
+  assert.match(css, /\.firefly/);
+  assert.match(css, /\.season-leaf/);
+});

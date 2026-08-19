@@ -301,7 +301,7 @@
     fields: [],         // 田块列表 [{id, name, createdAt}]
     activeFieldId: null,
     flexible: false,    // 灵活模式：不设目标·正计时·不失败·锁松树
-    theme: { background: 'default', timer: 'countdown' },
+    theme: { background: 'auto', timer: 'countdown', visualVersion: 3 },
     autoStartBreak: true,
     autoStartFocus: false,
     wakeLock: true,
@@ -313,6 +313,7 @@
     syncTombstones: [],
     pendingTakeover: null,
     storageReadOnly: false,
+    externalSessionReadonly: false,
     activityReturnDraft: null,
   };
 
@@ -789,16 +790,18 @@
   function loadTheme() {
     if (forestSnapshot && forestSnapshot.theme) {
       state.theme = Object.assign({}, state.theme, forestSnapshot.theme);
-      return;
+    } else {
+      try {
+        const raw = localStorage.getItem(THEME_KEY);
+        if (raw) state.theme = Object.assign({}, state.theme, JSON.parse(raw));
+      } catch (e) {}
     }
-    try {
-      const raw = localStorage.getItem(THEME_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.background) state.theme.background = (parsed.background === 'aurora' || parsed.background === 'stars') ? 'default' : parsed.background;
-        if (parsed.timer) state.theme.timer = parsed.timer;
-      }
-    } catch (e) {}
+    // v3 将旧版五套场景收敛成两个完整视觉系统。旧默认升级为自动；明确选过夜景的用户仍固定夜景。
+    const fromOldVisualSystem = Number(state.theme.visualVersion || 0) < 3;
+    if (fromOldVisualSystem && state.theme.background !== 'night') state.theme.background = 'auto';
+    if (!['auto', 'default', 'night'].includes(state.theme.background)) state.theme.background = 'auto';
+    if (!['countdown', 'countup', 'hidden'].includes(state.theme.timer)) state.theme.timer = 'countdown';
+    state.theme.visualVersion = 3;
   }
   function saveTheme() {
     queueStoreSave('theme');
@@ -808,9 +811,37 @@
   function _sceneSvg(name) {
     return `<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">${_themeScene(name)}</svg>`;
   }
+  const systemDarkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  function siteUsesDarkMode() {
+    const explicit = document.documentElement.getAttribute('data-theme');
+    if (explicit === 'dark') return true;
+    if (explicit === 'light') return false;
+    return !!(systemDarkQuery && systemDarkQuery.matches);
+  }
+  function resolvedBackground() {
+    return state.theme.background === 'auto' ? (siteUsesDarkMode() ? 'night' : 'default') : state.theme.background;
+  }
+  function applyVisualShell(theme) {
+    const wrap = document.querySelector('.ft-wrap');
+    if (!wrap) return;
+    wrap.classList.toggle('visual-day', theme === 'default');
+    wrap.classList.toggle('visual-night', theme === 'night');
+    wrap.dataset.visualTheme = theme;
+    document.body.dataset.forestVisual = theme;
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute('content', theme === 'night' ? '#06141e' : '#f3eee3');
+    const help = document.getElementById('theme-choice-help');
+    if (help) {
+      help.textContent = state.theme.background === 'auto'
+        ? `正在跟随系统：${theme === 'night' ? '萤火夜林' : '节气山水'}`
+        : `已固定为${theme === 'night' ? '萤火夜林' : '节气山水'}。`;
+    }
+  }
   // 前景地面带（让树扎实种在地里）；落雨主题在带上加可见的涟漪+落地水花
-  const _OVGROUND = { default:['#b9cb90','#a6ba79','#d0dcac'], night:['#2f3e30','#1e2b1f','#435c45'], sunrise:['#cf9a63','#ad7842','#e8c48c'], rain:['#3c4e60','#2a3947','#566b7d'], bubbles:['#1e5f7d','#123f52','#3080a0'] };
+  const _OVGROUND = { default:['#768b62','#4f6953','#d7d3a0'], night:['#0b2a23','#061912','#648a72'], sunrise:['#cf9a63','#ad7842','#e8c48c'], rain:['#3c4e60','#2a3947','#566b7d'], bubbles:['#1e5f7d','#123f52','#3080a0'] };
   function _overlayGroundSvg(theme){
+    // v3 的两套签名场景已经把可种植的地面画进背景；保留透明定位层，避免再盖一条平涂色带。
+    if (theme === 'default' || theme === 'night') return '<svg viewBox="0 0 400 100" preserveAspectRatio="none" aria-hidden="true"></svg>';
     const g = _OVGROUND[theme] || _OVGROUND.default;
     let rip = '';
     if (theme === 'rain') {
@@ -838,21 +869,25 @@
   }
   function applyTheme() {
     if (!$overlay) return;
+    const background = resolvedBackground();
     // 清掉所有 theme-* 类，只加当前
     $overlay.className = $overlay.className.replace(/\btheme-\w+\b/g, '').replace(/\btimer-\w+\b/g, '');
-    $overlay.classList.add('theme-' + state.theme.background);
+    $overlay.classList.add('theme-' + background);
     $overlay.classList.add('timer-' + state.theme.timer);
-    _swapScene(document.getElementById('overlay-scene'), _sceneSvg(state.theme.background));
-    _swapScene(document.getElementById('overlay-ground'), _overlayGroundSvg(state.theme.background));
+    _swapScene(document.getElementById('overlay-scene'), _sceneSvg(background));
+    _swapScene(document.getElementById('overlay-ground'), _overlayGroundSvg(background));
+    applyVisualShell(background);
   }
 
   function applyStageTheme() {
     const $stage = document.getElementById('stage');
     if (!$stage) return;
+    const background = resolvedBackground();
     $stage.className = $stage.className.replace(/\btheme-\w+\b/g, '');
-    $stage.classList.add('theme-' + state.theme.background);
-    _swapScene(document.getElementById('stage-scene'), _sceneSvg(state.theme.background));
-    _swapScene(document.getElementById('stage-ground'), _overlayGroundSvg(state.theme.background));
+    $stage.classList.add('theme-' + background);
+    _swapScene(document.getElementById('stage-scene'), _sceneSvg(background));
+    _swapScene(document.getElementById('stage-ground'), _overlayGroundSvg(background));
+    applyVisualShell(background);
   }
 
   // ============ Tree SVG ============
@@ -1678,7 +1713,7 @@
     if (state.flexible) {
       $customMin.removeAttribute('aria-invalid');
       if ($customMinError) $customMinError.textContent = '';
-      $startBtn.disabled = !!state.session;
+      $startBtn.disabled = !!state.session || state.externalSessionReadonly;
       return true;
     }
     const customIsActive = $customMin.value.trim() !== '' && !Array.from($durationTabs).some((button) => button.classList.contains('active'));
@@ -1692,7 +1727,7 @@
     $customMin.removeAttribute('aria-invalid');
     if ($customMinError) $customMinError.textContent = '';
     if (customIsActive) state.duration = result.value;
-    $startBtn.disabled = !!state.session;
+    $startBtn.disabled = !!state.session || state.externalSessionReadonly;
     return true;
   }
 
@@ -1785,9 +1820,11 @@
   $customMin.addEventListener('input', () => {
     if (state.session) return;
     exitFlexibleUI();
+    // 一旦用户开始输入自定义值，就不再让旧预设保持“选中”；否则 200 之类的非法值
+    // 会被 validateDurationUI 误判为仍在使用 30 分钟，既不报错也不禁用开始按钮。
+    if ($customMin.value.trim() !== '') $durationTabs.forEach(b => b.classList.remove('active'));
     const result = Core.validateMinutes($customMin.value, 1, 180);
     if (result.ok) {
-      $durationTabs.forEach(b => b.classList.remove('active'));
       state.duration = result.value;
       $timerDisplay.textContent = fmtTime(result.value * 60);
       updatePomodoroHint();
@@ -1826,6 +1863,7 @@
 
   let editMode = false;
   let openDetailId = null;
+  let detailScrollGuardUntil = 0;
   let detailInvoker = null;
   let $snapPreview = null;  // 拖动时的目标 cell 预览
   const treeNodeCache = new Map();
@@ -2438,7 +2476,10 @@
     openDetailId = null;
     window.removeEventListener('scroll', hideDetailOnScroll);
   }
-  function hideDetailOnScroll() { hideDetail(false); }
+  function hideDetailOnScroll() {
+    if (performance.now() < detailScrollGuardUntil) return;
+    hideDetail(false);
+  }
 
   document.addEventListener('click', e => {
     if (!openDetailId) return;
@@ -2535,6 +2576,8 @@
   if ('ResizeObserver' in window) new ResizeObserver(scheduleForestGeometry).observe($field);
 
   function renderAfterExternalData() {
+    const externalLeaseOwner = Core.leaseOwner(forestStore.readLease(), Date.now());
+    state.externalSessionReadonly = !!(forestSnapshot && forestSnapshot.active && externalLeaseOwner && externalLeaseOwner !== _tabId);
     hideDetail(false);
     renderFieldTabs();
     renderTargetFieldSelect();
@@ -2645,6 +2688,7 @@
     const lease = forestStore.readLease();
     const liveOwner = Core.leaseOwner(lease, Date.now());
     if (liveOwner && liveOwner !== _tabId) {
+      state.externalSessionReadonly = true;
       $startBtn.disabled = true;
       showToast('另一个标签页正在专注中；本页保持只读');
       return;
@@ -2973,6 +3017,16 @@
       if (state.session) applyTheme();
     });
   });
+  function refreshAutomaticTheme() {
+    if (state.theme.background !== 'auto') return;
+    applyStageTheme();
+    if (state.session) applyTheme();
+  }
+  if (systemDarkQuery) {
+    if (typeof systemDarkQuery.addEventListener === 'function') systemDarkQuery.addEventListener('change', refreshAutomaticTheme);
+    else if (typeof systemDarkQuery.addListener === 'function') systemDarkQuery.addListener(refreshAutomaticTheme);
+  }
+  new MutationObserver(refreshAutomaticTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
   // ============ 专注严格度（离开是否枯萎）============
   const $strictTabs = document.getElementById('strict-tabs');
@@ -3221,7 +3275,14 @@
           saveFields(); renderFieldTabs(); renderField();
           requestAnimationFrame(() => {
             const node = treeNodeCache.get(linkedTree.id);
-            if (node) { node.scrollIntoView({ behavior: 'smooth', block: 'center' }); showDetail(linkedTree.id, node.querySelector('.tree-open')); }
+            // 先瞬时定位再开详情；smooth scroll 的后续 scroll 事件会触发 hideDetailOnScroll，
+            // 导致详情刚打开就被关闭、aria-expanded 又变回 false。
+            if (node) {
+              detailScrollGuardUntil = performance.now() + 700;
+              node.scrollIntoView({ behavior: 'auto', block: 'center' });
+              // Chrome 会在 scrollIntoView 返回后才派发 scroll；再等一帧，避免该事件关闭刚打开的详情。
+              requestAnimationFrame(() => showDetail(linkedTree.id, node.querySelector('.tree-open')));
+            }
           });
         });
         li.appendChild(openTree);

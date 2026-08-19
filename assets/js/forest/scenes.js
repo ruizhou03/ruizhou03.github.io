@@ -1191,11 +1191,99 @@ function _scene_bubbles(){
   <rect width="400" height="400" filter="url(#bubGrain)" opacity="0.05"/>`;
 }
 
-function _themeScene(name){ const f={default:_scene_default,night:_scene_night,bubbles:_scene_bubbles,sunrise:_scene_sunrise,rain:_scene_rain}[name]||_scene_default; return f(); }
+// ===== v3 signature scenes =====
+// 两套场景共享同一条“水岸—树—远山”叙事：白昼是纸上节气，夜晚是萤火星轨。
+// 这样系统切换深浅色时不是换一张无关壁纸，而是同一片土地从昼走到夜。
+function _scene_seasonal(){
+  const leaves = [
+    [54,116,-18,.55],[116,74,14,.38],[282,126,-26,.42],[344,92,18,.5],
+    [84,208,24,.34],[318,218,-12,.32]
+  ].map(([x,y,r,o],i)=>`<g class="season-leaf" style="--leaf-delay:-${i*1.7}s;--leaf-drift:${i%2?10:-9}px" transform="translate(${x} ${y}) rotate(${r})" opacity="${o}"><path d="M0 0 C5 -5 11 -4 13 1 C8 5 3 5 0 0Z" fill="${i%2?'#b77949':'#738567'}"/><path d="M1 1 L11 0" stroke="#f4e8d1" stroke-width=".6" opacity=".65"/></g>`).join('');
+  const birds = [[92,106,.7],[140,132,.48],[328,150,.55]].map(([x,y,s])=>`<path d="M${x} ${y} q ${5*s} ${-4*s} ${10*s} 0 q ${5*s} ${-4*s} ${10*s} 0" fill="none" stroke="#596d66" stroke-width="${1.2*s}" stroke-linecap="round" opacity=".42"/>`).join('');
+  return `<defs>
+    <linearGradient id="ss-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5ead6"/><stop offset=".48" stop-color="#e7e7d6"/><stop offset="1" stop-color="#cad8c5"/></linearGradient>
+    <radialGradient id="ss-sun" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff8dc"/><stop offset=".54" stop-color="#efbd72" stop-opacity=".86"/><stop offset="1" stop-color="#e6ad5c" stop-opacity="0"/></radialGradient>
+    <linearGradient id="ss-far" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b8c7b9"/><stop offset="1" stop-color="#819a8c"/></linearGradient>
+    <linearGradient id="ss-mid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#829a88"/><stop offset="1" stop-color="#526f62"/></linearGradient>
+    <linearGradient id="ss-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6efdb"/><stop offset=".5" stop-color="#d5ded2"/><stop offset="1" stop-color="#9fb9aa"/></linearGradient>
+    <linearGradient id="ss-bank" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8d9f72"/><stop offset="1" stop-color="#536d54"/></linearGradient>
+    <linearGradient id="ss-mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf0" stop-opacity="0"/><stop offset=".5" stop-color="#fffaf0" stop-opacity=".68"/><stop offset="1" stop-color="#fffaf0" stop-opacity="0"/></linearGradient>
+    <filter id="ss-paper"><feTurbulence type="fractalNoise" baseFrequency=".72" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+  </defs>
+  <rect width="400" height="400" fill="url(#ss-sky)"/>
+  <circle cx="318" cy="82" r="52" fill="url(#ss-sun)"/><circle cx="318" cy="82" r="21" fill="#eebd72" opacity=".58"/>
+  <path d="M-20 244 L18 181 L48 202 L82 142 L118 188 L158 132 L198 198 L238 154 L278 201 L322 148 L355 190 L420 124 L420 278 L-20 278Z" fill="url(#ss-far)" opacity=".48"/>
+  <path d="M-16 273 Q36 216 92 229 Q132 237 167 278 L-16 315Z" fill="url(#ss-mid)" opacity=".88"/>
+  <path d="M416 268 Q362 210 312 229 Q270 246 238 281 L416 318Z" fill="url(#ss-mid)" opacity=".86"/>
+  <path d="M0 263 Q104 247 187 269 Q211 275 238 263 Q319 233 400 256 L400 303 Q312 282 242 296 Q210 304 176 294 Q90 270 0 291Z" fill="url(#ss-mist)" class="season-mist"/>
+  <path d="M155 248 C181 270 172 310 132 400 L286 400 C248 327 226 283 249 246 C218 262 188 263 155 248Z" fill="url(#ss-water)"/>
+  <path d="M0 286 Q80 269 159 296 Q145 343 116 400 L0 400Z" fill="url(#ss-bank)"/>
+  <path d="M400 278 Q323 267 243 298 Q258 345 286 400 L400 400Z" fill="url(#ss-bank)"/>
+  <path d="M151 281 Q92 269 25 298 M247 284 Q323 264 389 292" fill="none" stroke="#d9d4a8" stroke-width="2" opacity=".65"/>
+  <g fill="none" stroke="#6f8268" stroke-linecap="round" opacity=".62"><path d="M20 250 Q34 210 31 166" stroke-width="2.2"/><path d="M31 198 q-16 -6 -23 -20 M32 214 q18 -7 25 -23 M30 181 q13 -4 19 -17"/><path d="M378 248 Q364 205 370 164" stroke-width="2.2"/><path d="M368 202 q-17 -8 -23 -23 M368 217 q19 -8 24 -25 M370 184 q15 -4 21 -18"/></g>
+  ${birds}${leaves}
+  <g opacity=".48" fill="#f4e9cf"><circle cx="118" cy="330" r="1.5"/><circle cx="303" cy="326" r="1.2"/><circle cx="74" cy="352" r="1"/><circle cx="334" cy="359" r="1.4"/></g>
+  <rect width="400" height="400" filter="url(#ss-paper)" opacity=".035"/>
+  <path d="M12 12 H388 V388 H12Z" fill="none" stroke="#866f49" stroke-width="1" opacity=".14"/>
+  <path d="M19 19 h23 M19 19 v23 M381 19 h-23 M381 19 v23 M19 381 h23 M19 381 v-23 M381 381 h-23 M381 381 v-23" fill="none" stroke="#866f49" stroke-width="1.4" opacity=".28"/>`;
+}
+
+function _scene_firefly(){
+  const fireflies = [[42,122,2.2],[86,184,1.5],[128,88,1.4],[154,246,2.1],[205,214,1.6],[244,105,1.8],[276,190,2.3],[326,142,1.5],[361,224,2],[104,298,1.8],[302,305,1.5],[222,324,1.3]];
+  const glow = fireflies.map(([x,y,r],i)=>`<g class="firefly" style="--fly-delay:-${(i*.83).toFixed(2)}s;--fly-x:${i%2?8:-7}px;--fly-y:${i%3?10:-8}px"><circle cx="${x}" cy="${y}" r="${r*5}" fill="url(#ff-glow)"/><circle cx="${x}" cy="${y}" r="${r}" fill="#f7e9a6"/></g>`).join('');
+  const pines = (x,flip=1)=>[0,24,47,72].map((dx,i)=>{const px=x+dx*flip,h=48+(i%3)*19,b=330-i*7;return `<g opacity="${.72-i*.07}" transform="translate(${px} ${b}) scale(${flip} 1)"><path d="M0 0 L-${h*.34} ${h*.82} H${h*.34}Z" fill="#071a20"/><path d="M0 ${h*.18} L-${h*.28} ${h} H${h*.28}Z" fill="#092229"/><rect x="-2" y="${h*.76}" width="4" height="${h*.32}" fill="#07171b"/></g>`;}).join('');
+  const arcs=[74,103,132].map((r,i)=>`<circle class="star-arc" cx="202" cy="160" r="${r}" fill="none" stroke="#b8cfcb" stroke-width="${i?0.6:0.9}" stroke-dasharray="${5+i*3} ${10+i*4}" opacity="${.21-i*.035}"/>`).join('');
+  return `<defs>
+    <linearGradient id="ff-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#020b17"/><stop offset=".5" stop-color="#071d2b"/><stop offset="1" stop-color="#0a2a2b"/></linearGradient>
+    <radialGradient id="ff-halo" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#b8d99b" stop-opacity=".2"/><stop offset=".55" stop-color="#7fb68d" stop-opacity=".08"/><stop offset="1" stop-color="#4b8a7d" stop-opacity="0"/></radialGradient>
+    <radialGradient id="ff-glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff4aa" stop-opacity=".72"/><stop offset=".22" stop-color="#e0e98d" stop-opacity=".32"/><stop offset="1" stop-color="#a6d887" stop-opacity="0"/></radialGradient>
+    <linearGradient id="ff-water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#183f45"/><stop offset="1" stop-color="#061a20"/></linearGradient>
+    <filter id="ff-grain"><feTurbulence type="fractalNoise" baseFrequency=".86" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+  </defs>
+  <rect width="400" height="400" fill="url(#ff-sky)"/><ellipse cx="202" cy="182" rx="177" ry="152" fill="url(#ff-halo)"/>
+  ${arcs}
+  <g fill="#dceadf" opacity=".58">${[[36,50,1],[75,86,.7],[122,44,1.2],[171,102,.7],[224,58,.9],[272,82,1.1],[318,46,.7],[362,94,1.2],[344,176,.6],[59,214,.7]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}"/>`).join('')}</g>
+  <path d="M0 260 Q75 213 148 251 Q196 276 246 242 Q318 202 400 252 L400 332 L0 332Z" fill="#0b2b31"/>
+  <path d="M0 286 Q86 242 170 281 Q211 300 252 274 Q326 229 400 278 L400 352 L0 352Z" fill="#081f25"/>
+  ${pines(-4,1)}${pines(404,-1)}
+  <path d="M145 272 C178 289 170 329 133 400 H280 C243 334 226 294 257 269 C224 283 182 284 145 272Z" fill="url(#ff-water)"/>
+  <path d="M0 329 Q88 297 158 323 Q151 357 132 400 H0Z M400 324 Q321 293 245 326 Q255 360 280 400 H400Z" fill="#09251f"/>
+  <path d="M144 321 Q94 304 28 331 M253 320 Q326 300 386 329" fill="none" stroke="#4d7767" stroke-width="1.6" opacity=".42"/>
+  ${glow}
+  <g class="sc-bloom"><ellipse cx="202" cy="352" rx="49" ry="13" fill="url(#ff-glow)" opacity=".5"/><ellipse cx="202" cy="352" rx="23" ry="5" fill="#abc98f" opacity=".18"/></g>
+  <rect width="400" height="400" filter="url(#ff-grain)" opacity=".045"/>
+  <path d="M12 12 H388 V388 H12Z" fill="none" stroke="#a9cbb8" stroke-width="1" opacity=".1"/>`;
+}
+
+function _scene_seasonal_art(){
+  const leaves=[[47,108,-16,.58],[116,66,11,.38],[286,122,-24,.45],[348,88,18,.52],[73,216,24,.34],[327,224,-12,.32]];
+  return `<defs>
+    <linearGradient id="ssa-readable" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8e7" stop-opacity=".2"/><stop offset=".25" stop-color="#fff8e7" stop-opacity=".08"/><stop offset=".62" stop-color="#fff8e7" stop-opacity="0"/><stop offset="1" stop-color="#405543" stop-opacity=".08"/></linearGradient>
+    <filter id="ssa-soft"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <image href="/assets/images/forest/seasonal-landscape-v3.webp" width="400" height="400" preserveAspectRatio="xMidYMid slice"/>
+  <rect width="400" height="400" fill="url(#ssa-readable)"/>
+  <path class="season-mist" d="M-28 248 C74 219 130 255 205 244 C278 233 337 209 430 244 L430 291 C337 264 284 286 204 282 C121 278 65 251 -28 282Z" fill="#fffaf0" opacity=".12" filter="url(#ssa-soft)"/>
+  ${leaves.map(([x,y,r,o],i)=>`<g class="season-leaf" style="--leaf-delay:-${i*1.7}s;--leaf-drift:${i%2?10:-9}px" transform="translate(${x} ${y}) rotate(${r})" opacity="${o}"><path d="M0 0 C5 -5 11 -4 13 1 C8 5 3 5 0 0Z" fill="${i%2?'#b56f3f':'#6e8567'}"/><path d="M1 1 L11 0" stroke="#f7ead3" stroke-width=".6" opacity=".7"/></g>`).join('')}
+  <path d="M12 12 H388 V388 H12Z" fill="none" stroke="#755f42" stroke-width="1" opacity=".14"/><path d="M19 19 h23 M19 19 v23 M381 19 h-23 M381 19 v23 M19 381 h23 M19 381 v-23 M381 381 h-23 M381 381 v-23" fill="none" stroke="#755f42" stroke-width="1.4" opacity=".3"/>`;
+}
+
+function _scene_firefly_art(){
+  const flies=[[40,116,2],[86,186,1.4],[136,95,1.3],[154,248,1.8],[244,112,1.5],[282,194,2],[326,142,1.4],[360,226,1.7],[102,304,1.5],[302,306,1.3]];
+  return `<defs><radialGradient id="ffa-glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff3a6" stop-opacity=".82"/><stop offset=".24" stop-color="#dce98b" stop-opacity=".34"/><stop offset="1" stop-color="#9fcf7e" stop-opacity="0"/></radialGradient><linearGradient id="ffa-readable" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#020713" stop-opacity=".08"/><stop offset=".35" stop-color="#020713" stop-opacity=".16"/><stop offset=".72" stop-color="#020713" stop-opacity="0"/></linearGradient></defs>
+  <image href="/assets/images/forest/firefly-night-v3.webp" width="400" height="400" preserveAspectRatio="xMidYMid slice"/>
+  <rect width="400" height="400" fill="url(#ffa-readable)"/>
+  ${flies.map(([x,y,r],i)=>`<g class="firefly" style="--fly-delay:-${(i*.83).toFixed(2)}s;--fly-x:${i%2?8:-7}px;--fly-y:${i%3?10:-8}px"><circle cx="${x}" cy="${y}" r="${r*5}" fill="url(#ffa-glow)"/><circle cx="${x}" cy="${y}" r="${r}" fill="#f8e9a3"/></g>`).join('')}
+  <path d="M12 12 H388 V388 H12Z" fill="none" stroke="#a9cbb8" stroke-width="1" opacity=".12"/>`;
+}
+
+function _themeScene(name){ const f={default:_scene_seasonal_art,night:_scene_firefly_art,bubbles:_scene_bubbles,sunrise:_scene_sunrise,rain:_scene_rain}[name]||_scene_seasonal_art; return f(); }
   // —— 选择器专用缩略图(突出主角) ——
   function _st(list){ return list.map(([x,y,r,br])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${br||0.9}"/>`).join(''); }
   
   function _themeThumb(name){
+    if(name==='default') return _scene_seasonal_art();
+    if(name==='night') return _scene_firefly_art();
     if(name==='night') return `<defs>
       <linearGradient id="tn-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d3b46"/><stop offset="0.55" stop-color="#122731"/><stop offset="1" stop-color="#0a141a"/></linearGradient>
       <radialGradient id="tn-m" cx="42%" cy="40%" r="62%"><stop offset="0" stop-color="#fdfbef"/><stop offset="0.7" stop-color="#efe6c6"/><stop offset="1" stop-color="#e4d7ad"/></radialGradient>

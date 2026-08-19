@@ -11,6 +11,8 @@ body_class: forest-page
 ---
 
 <link rel="stylesheet" href="/assets/css/forest.css?v={{ site.time | date: '%s' }}">
+<link rel="preload" as="image" type="image/webp" href="/assets/images/forest/seasonal-landscape-v3.webp">
+<link rel="preload" as="image" type="image/webp" href="/assets/images/forest/firefly-night-v3.webp">
 
 <div class="ft-wrap">
   <header>
@@ -122,12 +124,11 @@ body_class: forest-page
           <div class="setting-row setting-stack">
             <label>主题背景</label>
             <div class="pill-group" id="theme-bg-pills" role="group" aria-label="主题背景">
-              <button type="button" data-value="default"><span class="theme-swatch" data-scene="default"></span><span class="opt-cap">晴日</span></button>
-              <button type="button" data-value="night"><span class="theme-swatch" data-scene="night"></span><span class="opt-cap">月夜</span></button>
-              <button type="button" data-value="bubbles"><span class="theme-swatch" data-scene="bubbles"></span><span class="opt-cap">气泡</span></button>
-              <button type="button" data-value="sunrise"><span class="theme-swatch" data-scene="sunrise"></span><span class="opt-cap">日出</span></button>
-              <button type="button" data-value="rain"><span class="theme-swatch" data-scene="rain"></span><span class="opt-cap">落雨</span></button>
+              <button type="button" data-value="auto"><span class="theme-swatch theme-swatch-auto" aria-hidden="true"></span><span class="opt-cap">跟随系统</span></button>
+              <button type="button" data-value="default"><span class="theme-swatch" data-scene="default"></span><span class="opt-cap">节气山水</span></button>
+              <button type="button" data-value="night"><span class="theme-swatch" data-scene="night"></span><span class="opt-cap">萤火夜林</span></button>
             </div>
+            <p class="setting-help theme-choice-help" id="theme-choice-help">亮色显示节气山水，暗色显示萤火夜林。</p>
           </div>
           <div class="setting-row setting-stack feedback-settings">
             <label>设备反馈</label>

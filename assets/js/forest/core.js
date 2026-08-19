@@ -492,7 +492,7 @@
         vibration: false,
         notifications: false,
       },
-      theme: { background: 'default', timer: 'countdown' },
+      theme: { background: 'auto', timer: 'countdown', visualVersion: 3 },
       active: null,
       activity: null,
       pendingTakeover: null,
