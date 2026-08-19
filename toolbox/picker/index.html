@@ -4,21 +4,28 @@ title: "遇事不决｜随机转盘与权重抽签"
 description: "免费在线随机转盘：批量粘贴选项，支持等概率或自定义权重、抽出多个不重复结果、多轮决胜、本地档案和分享链接。名单只保存在你的浏览器中。"
 image: /assets/images/picker-og.png
 permalink: /toolbox/picker/
+body_class: picker-page-body
 ---
 
 <link rel="stylesheet" href="/assets/css/picker.css?v={{ site.time | date: '%s' }}">
 
 <article class="picker-page" id="picker-app">
   <header class="picker-hero">
-    <img class="picker-hero-icon" src="/assets/icons/picker-icon-192.png" width="72" height="72" alt="">
-    <div>
-      <p class="picker-kicker">RANDOM PICKER</p>
-      <h1>遇事不决</h1>
-      <p class="picker-subtitle">输入选项，按权重公平抽取。无需登录，数据只留在本机。</p>
+    <div class="picker-hero-lockup">
+      <img class="picker-hero-icon" src="/assets/icons/picker-icon-192.png" width="72" height="72" alt="">
+      <div>
+        <p class="picker-kicker">RANDOM PICKER · 决策仪</p>
+        <h1>遇事不决</h1>
+        <p class="picker-subtitle">把犹豫写下来，其余交给概率。</p>
+      </div>
+    </div>
+    <div class="picker-hero-note">
+      <span>LOCAL · FAIR · SHAREABLE</span>
+      <p>无需登录，名单只留在本机。<br>需要时，再把这一局分享出去。</p>
     </div>
   </header>
 
-  <main class="picker-workspace">
+  <div class="picker-workspace">
     <section class="picker-panel picker-editor" aria-labelledby="options-title">
       <div class="picker-panel-head">
         <div><p class="picker-step">01</p><h2 id="options-title">准备选项</h2></div>
@@ -75,13 +82,16 @@ permalink: /toolbox/picker/
         <div><p class="picker-step">03</p><h2 id="draw-title">让转盘决定</h2></div>
         <span class="picker-probability-label" id="probability-label">等概率</span>
       </div>
+      <div class="picker-stage-meta" aria-hidden="true"><span>CHANCE CHAMBER</span><span>LOCAL RANDOM</span></div>
       <div class="picker-wheel-wrap">
         <div class="picker-pointer" aria-hidden="true"></div>
         <svg class="picker-wheel" id="wheel" viewBox="0 0 240 240" role="img" aria-labelledby="wheel-title wheel-desc"><title id="wheel-title">随机抽取转盘</title><desc id="wheel-desc">转盘扇区对应左侧选项和概率</desc></svg>
       </div>
-      <button type="button" class="picker-spin" id="spin-btn">[[zi:shuffle]] 开始抽取</button>
-      <button type="button" class="picker-skip" id="skip-btn" hidden>跳过动画</button>
-      <p class="picker-shortcut">桌面端可按空格键快速抽取</p>
+      <div class="picker-action-dock">
+        <button type="button" class="picker-spin" id="spin-btn">[[zi:shuffle]] 开始抽取</button>
+        <button type="button" class="picker-skip" id="skip-btn" hidden>跳过动画</button>
+        <p class="picker-shortcut">SPACE · 快速抽取</p>
+      </div>
       <div class="picker-result" id="result-card" hidden>
         <p class="picker-result-eyebrow" id="result-eyebrow">抽取结果</p>
         <div class="picker-result-main" id="result-main" aria-live="polite" aria-atomic="true"></div>
@@ -94,9 +104,13 @@ permalink: /toolbox/picker/
       </div>
       <p class="picker-status" id="picker-status" role="status" aria-live="polite"></p>
     </section>
-  </main>
+  </div>
 
   <section class="picker-secondary" aria-label="保存和历史">
+    <div class="picker-secondary-head">
+      <span>AFTER THE DRAW</span>
+      <p>留住常用的选择，也保留每一次答案。</p>
+    </div>
     <details class="picker-board" id="profiles-board">
       <summary><span>[[zi:save]] 我的档案</span><span class="picker-board-count" id="profile-count">0</span></summary>
       <div class="picker-board-body">
