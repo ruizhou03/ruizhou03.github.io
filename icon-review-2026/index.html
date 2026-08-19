@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f4ecdc">
+  <title>全站图标改造 · 第一轮批阅</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__inner">
+      <p class="eyebrow">ICON REVIEW · 2026-08-18</p>
+      <h1>把 Emoji 换成真正设计过的图像</h1>
+      <p class="hero__lead">这一版重新扫描了当前线上源码。百宝箱的 10 个残留 Emoji 各有三套完整 PNG 候选；站内其他 UI 符号也按真实场景给出矢量化方向。这里只做选择和批注，不会自动改正式页面。</p>
+      <div class="audit-strip" aria-label="扫描摘要">
+        <div><strong>179</strong><span>处广义候选</span></div>
+        <div><strong>59</strong><span>处进入本轮设计</span></div>
+        <div><strong>17</strong><span>个可见审批场景</span></div>
+        <div><strong>51</strong><span>个实际候选方案</span></div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="页面区域">
+    <div class="tabs__inner">
+      <a href="#review">逐项批阅</a>
+      <a href="#audit">扫描边界</a>
+      <a href="#export">导出反馈</a>
+    </div>
+  </nav>
+
+  <main>
+    <section id="review" class="section section--review">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">ROUND 1</p>
+          <h2>逐项选择，或全部打回</h2>
+          <p>选择会自动保存在当前浏览器。候选图均放回接近真实尺寸的卡片或控件中，同时保留大图观察材质。</p>
+        </div>
+        <div class="progress-card" aria-live="polite">
+          <div class="progress-card__numbers"><strong id="done-count">0</strong><span>/ <span id="total-count">17</span> 已处理</span></div>
+          <div class="progress-track"><span id="progress-fill"></span></div>
+        </div>
+      </div>
+
+      <aside class="style-guide">
+        <div>
+          <p class="eyebrow">百宝箱统一方向</p>
+          <h3>先看三套家族气质</h3>
+          <p>A 更像真实微缩物；B 是更克制的编辑部立体插画；C 强调陶土、纸张和木材的手工感。你既可以整套选，也可以逐个混搭。</p>
+        </div>
+        <div class="family-actions" role="group" aria-label="整套选择">
+          <button type="button" data-apply-family="A">百宝箱全部选 A</button>
+          <button type="button" data-apply-family="B">百宝箱全部选 B</button>
+          <button type="button" data-apply-family="C">百宝箱全部选 C</button>
+        </div>
+      </aside>
+
+      <div class="filter-bar" aria-label="筛选审批场景">
+        <button type="button" class="is-active" data-filter="all">全部</button>
+        <button type="button" data-filter="unreviewed">未处理</button>
+        <button type="button" data-filter="toolbox">百宝箱</button>
+        <button type="button" data-filter="site">全站公共 UI</button>
+        <button type="button" data-filter="flight">机票工具</button>
+        <button type="button" data-filter="rejected">全部打回</button>
+      </div>
+
+      <div id="review-root" class="review-list"></div>
+      <p id="empty-filter" class="empty-filter" hidden>这个筛选条件下没有项目。</p>
+    </section>
+
+    <section id="audit" class="section section--audit">
+      <div class="section-heading section-heading--compact">
+        <div>
+          <p class="eyebrow">SCAN BOUNDARY</p>
+          <h2>为什么不是把 179 处全部画成图标</h2>
+          <p>扫描先找字符，再按它在页面里的真实角色分类。这样既能抓到遗漏，也不会把牌面、记忆游戏素材或宠物种类误当成廉价 UI。</p>
+        </div>
+      </div>
+      <div id="audit-grid" class="audit-grid"></div>
+      <details class="scan-details">
+        <summary>查看本轮准确来源与统计口径</summary>
+        <div class="scan-details__body">
+          <p>扫描对象为 <code>origin/main@dfbb5042</code> 的 HTML、Liquid、JavaScript、CSS、YAML 运行时源文件；排除依赖、构建产物、文档和注释。广义候选 179 处 / 82 种字符 / 13 个源文件。</p>
+          <p>本轮进入设计的 59 处包括：百宝箱数据 10 处、机票工具及邮件摘要 42 处、全站精选与主题符号 7 处。其余候选被明确登记为内容素材、未来独立插画家族或非运行时检查页。</p>
+        </div>
+      </details>
+    </section>
+
+    <section id="export" class="section section--export">
+      <div class="export-panel">
+        <div>
+          <p class="eyebrow">EXPORT</p>
+          <h2>把你的选择一键交回给我</h2>
+          <p>“复制批注”会生成可直接粘贴回 Codex 的 <code>ICON_REVIEW_V2</code> 文本；“下载 JSON”适合保留完整备份。未处理项也会写入，避免静默遗漏。</p>
+          <label class="global-note">
+            <span>整轮总体意见（可选）</span>
+            <textarea id="global-note" rows="4" placeholder="例如：整体更喜欢 C，但所有木纹再浅一点；全站公共 UI 要更扁平……"></textarea>
+          </label>
+        </div>
+        <div class="export-actions">
+          <button type="button" class="primary" id="copy-export">复制全部批注</button>
+          <button type="button" id="download-export">下载 JSON 文件</button>
+          <button type="button" class="quiet" id="preview-export">预览导出内容</button>
+          <p id="export-status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+      <pre id="export-preview" class="export-preview" hidden></pre>
+    </section>
+  </main>
+
+  <footer>
+    <p>第一版批阅台 · 不修改正式页面 · 选择保存在本机浏览器</p>
+  </footer>
+</body>
+</html>
