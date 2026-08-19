@@ -3,14 +3,14 @@ layout: post
 main_category: "学习资料"
 sub_category: "经济计量学博资考"
 title: "Penn State 经济计量学博资考：Cheat Sheet、ECON 501 讲义与往年题"
+list_title: "资源说明与官方往年题入口"
 keywords: ["Penn State 经济学 博资考", "PSU Economics qualifier", "econometrics qualifying exam", "经济计量学 博士资格考试", "Penn State econometrics qual", "ECON 501", "ECON 510", "计量经济学 cheat sheet", "econometrics cheat sheet PDF", "博资考 往年题", "econometrics qualifier past exams", "博资考 参考答案", "qualifying exam solutions", "ECON 501 handbook", "概率论 渐近理论", "GMM", "quantile regression", "weak IV", "弱工具变量", "bootstrap subsampling", "LASSO Ridge", "Penn State Economics PhD", "计量经济学 复习资料", "博士资格考 备考", "econometrics comprehensive exam"]
 discipline: "经济学"
-course: "ECON 501 / ECON 510 / Econometrics Qualifier"
+course: "经济计量学博资考（PSU）"
 material_type: "Notes"
 date: 2026-08-18
 author: "Rui Zhou"
 permalink: "/notes/econometrics-qualifier/resources"
-pdf_url: "/files/econometrics-qualifier/econometrics-qualifier-cheat-sheet.pdf"
 summary: "Penn State 经济学博士项目 Econometrics Qualifier 的学生备考资料页：一页四栏 cheat sheet、ECON 501 自足讲义、2017–2025 非官方参考解答，以及系里公开的历年 Econometrics Qual 原卷入口。"
 published: true
 trashed: false
@@ -64,9 +64,9 @@ trashed: false
 
 系里的总入口在 [Ph.D. Qualifier Exams](https://econ.la.psu.edu/ph-d-program/ph-d-qualifier-exams/)，那里还包括 Micro 和 Macro 原卷。
 
-## 为什么没有转载 2025/2026 ECON 510 期中、期末 solutions
+## 配套的 ECON 510 课程考试
 
-备考时我确实用 2025、2026 的 ECON 510 midterm/final with solutions 做过交叉核对，但没有找到这些文件的公开官方来源或转载许可。它们属于课程内部材料，因此本页暂不镜像。若以后取得任课教师明确授权，我会再补上；现在公开的只有系里已经主动发布的 Qual 原卷，以及我自己整理的学习资料与非官方参考解答。
+“高级计量经济学（PSU）”课程目录现在还收录了三份带解答试卷：[2025 春期中]({{ '/notes/adv-metrics-psu/midterm-spring-2025-with-solutions' | relative_url }})、[2026 春期中]({{ '/notes/adv-metrics-psu/midterm-spring-2026' | relative_url }})和[2026 春期末]({{ '/notes/adv-metrics-psu/final-spring-2026-with-solutions' | relative_url }})。这些是课程考试资料，不是 Qualifier 官方答案；Qual 原卷和本页的非官方参考解答仍应分别理解。
 
 ## 使用建议
 
