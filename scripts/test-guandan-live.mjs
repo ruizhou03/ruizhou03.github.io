@@ -19,13 +19,13 @@ async function probe() {
     const response = await fetch(base + path, { cache: 'no-store' });
     assert.equal(response.status, 200, `${path} 必须返回 200`);
   }
-  const readiness = await fetch('https://zircon-urge.fly.dev/health/ready', { cache: 'no-store' });
-  assert.equal(readiness.status, 200, '后端 readiness 必须返回 200');
+  const liveness = await fetch('https://zircon-urge.fly.dev/health/live', { cache: 'no-store' });
+  assert.equal(liveness.status, 200, '后端 liveness 必须返回 200');
   const unknown = await fetch('https://zircon-urge.fly.dev/api/guandan?action=release_gate_unknown', {
     cache: 'no-store',
   });
   assert.notEqual(unknown.status, 500, 'unknown action 不得返回 500');
-  return { page: page.status, readiness: readiness.status, unknown: unknown.status };
+  return { page: page.status, liveness: liveness.status, unknown: unknown.status };
 }
 
 let lastError;

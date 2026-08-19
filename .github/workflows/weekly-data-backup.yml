@@ -1,8 +1,7 @@
 name: weekly-data-backup
 
 on:
-  schedule:
-    - cron: '25 2 * * 0' # 周日 02:25 UTC / 北京 10:25
+  # 自动周备份暂时暂停，待单独的凭据故障修复后再恢复；当前仅允许手动触发。
   workflow_dispatch: {}
 
 permissions:
