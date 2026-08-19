@@ -1,770 +1,129 @@
 ---
 layout: default
-title: "遇事不决 | Rui Zhou"
+title: "遇事不决｜随机转盘与权重抽签"
+description: "免费在线随机转盘：批量粘贴选项，支持等概率或自定义权重、抽出多个不重复结果、多轮决胜、本地档案和分享链接。名单只保存在你的浏览器中。"
+image: /assets/images/picker-og.png
 permalink: /toolbox/picker/
 ---
 
-<style>
-  .picker-wrap {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 1.4rem 1rem 3rem;
-  }
-  .picker-header { text-align: center; margin-bottom: 1.2rem; }
-  .picker-header h1 {
-    font-size: 2rem; color: var(--color-ink); margin-bottom: 0.4rem;
-  }
-  .picker-header p {
-    color: var(--color-light); font-style: normal; margin: 0;
-  }
-  .picker-card {
-    background: var(--color-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
-    padding: 1.6rem 1.4rem;
-    margin-bottom: 1.4rem;
-  }
+<link rel="stylesheet" href="/assets/css/picker.css?v={{ site.time | date: '%s' }}">
 
-  /* —— toast 提示（档案板块 #archive-board 复用）—— */
-  .profile-toast {
-    font-size: 0.78rem; color: var(--color-accent);
-    font-style: normal;
-    transition: opacity 0.3s;
-  }
-
-  /* —— 占比列表头：把「平均分配」放在占比一侧，明确它是调占比、不是重置选项 —— */
-  .weights-bar {
-    display: flex; align-items: center; gap: 0.5rem;
-    margin-bottom: 0.55rem;
-  }
-  .weights-bar .wb-label {
-    font-size: 0.82rem; color: var(--color-light); margin-right: auto;
-  }
-  .equal-btn {
-    padding: 0.28rem 0.72rem; font-size: 0.82rem; font: inherit;
-    border: 1px solid var(--color-border); border-radius: 999px;
-    background: transparent; color: var(--color-muted);
-    cursor: pointer; transition: all 0.15s; white-space: nowrap;
-  }
-  @media (hover: hover) {
-    .equal-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  }
-
-  .options-list { display: flex; flex-direction: column; gap: 0.7rem; }
-  /* [删] [色块] [选项名] [占比滑块] [占比数字+%] [锁] */
-  .option-row {
-    display: grid;
-    grid-template-columns: 24px 14px minmax(0, 1.4fr) minmax(84px, 1fr) 60px 28px;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .option-row .opt-del {
-    width: 24px; height: 24px; border-radius: 6px;
-    border: 1px solid var(--color-border); background: transparent;
-    color: var(--color-light); cursor: pointer; font-size: 0.85rem;
-    display: inline-flex; align-items: center; justify-content: center;
-    transition: all 0.15s; padding: 0;
-  }
-  @media (hover: hover) {
-    .option-row .opt-del:hover {
-    color: #c83828; border-color: #c83828; background: rgba(200,56,40,0.08);
-  }
-  }
-  .option-row .opt-del:disabled {
-    opacity: 0.35; cursor: not-allowed;
-  }
-  /* 选项色块：跟转盘扇区、计票柱同色同位置——选项列表本身就是「图例」 */
-  .option-row .opt-chip {
-    width: 14px; height: 14px; border-radius: 50%;
-    display: inline-block; flex-shrink: 0;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
-  }
-  .option-row .opt-text {
-    width: 100%; min-width: 0;
-    border: 1px solid var(--color-border); border-radius: 6px;
-    padding: 0.45rem 0.7rem;
-    font: inherit; font-size: 0.95rem;
-    color: var(--color-ink); background: var(--color-bg);
-    outline: none; transition: border-color 0.2s;
-  }
-  .option-row .opt-text:focus { border-color: var(--color-accent); }
-  .option-row .opt-weight {
-    width: 100%;
-    -webkit-appearance: none; appearance: none;
-    height: 6px; border-radius: 3px; background: var(--color-border);
-    outline: none; cursor: pointer;
-  }
-  .option-row .opt-weight:disabled { opacity: 0.4; cursor: not-allowed; }
-  .option-row .opt-weight::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none;
-    width: 18px; height: 18px; border-radius: 50%;
-    background: var(--color-accent);
-    border: 2px solid var(--color-bg);
-    box-shadow: 0 1px 4px rgba(30,58,95,0.3);
-    cursor: pointer;
-  }
-  .option-row .opt-weight::-moz-range-thumb {
-    width: 18px; height: 18px; border-radius: 50%;
-    background: var(--color-accent); border: 2px solid var(--color-bg);
-    cursor: pointer;
-  }
-  /* 占比数字框 + % 后缀：直接输入这一项占多少百分比 */
-  .option-row .wnum { display: flex; align-items: center; gap: 3px; min-width: 0; }
-  .option-row .opt-weight-num {
-    width: 100%; min-width: 0; box-sizing: border-box;
-    -webkit-appearance: none; -moz-appearance: textfield; appearance: none;
-    border: 1px solid var(--color-border); border-radius: 6px;
-    padding: 0.4rem 0.2rem;
-    font: inherit; font-size: 0.9rem; text-align: center;
-    color: var(--color-ink); background: var(--color-bg);
-    outline: none; transition: border-color 0.2s;
-  }
-  .option-row .opt-weight-num::-webkit-outer-spin-button,
-  .option-row .opt-weight-num::-webkit-inner-spin-button {
-    -webkit-appearance: none; margin: 0;
-  }
-  .option-row .opt-weight-num:focus { border-color: var(--color-accent); }
-  .option-row .opt-weight-num:disabled { opacity: 0.55; cursor: not-allowed; }
-  .option-row .wpct {
-    font-style: normal; font-size: 0.85rem; color: var(--color-muted); flex-shrink: 0;
-  }
-  /* 锁定按钮：🔓 未锁 / 🔒 已锁（锁住的行在你调别的选项时占比保持不变） */
-  .option-row .opt-lock {
-    width: 28px; height: 28px; padding: 0;
-    border: none; background: transparent; cursor: pointer;
-    font-size: 0.95rem; line-height: 1; opacity: 0.45;
-    transition: opacity 0.15s;
-  }
-  @media (hover: hover) { .option-row .opt-lock:hover { opacity: 0.9; } }
-  .option-row .opt-lock.locked { opacity: 1; }
-  .option-row.is-locked .opt-text { border-style: dashed; }
-  .option-row.is-winner .opt-text {
-    background: rgba(201,169,110,0.14);
-    border-color: var(--color-highlight, #c9a96e);
-  }
-
-  .add-row {
-    margin-top: 0.9rem;
-    display: flex; justify-content: center;
-  }
-  .add-row button {
-    padding: 0.4rem 1rem; font-size: 0.9rem;
-    border: 1px dashed var(--color-border); border-radius: 999px;
-    background: transparent; color: var(--color-muted);
-    cursor: pointer; transition: all 0.2s; font: inherit;
-  }
-  @media (hover: hover) {
-    .add-row button:hover:not(:disabled) {
-    border-color: var(--color-accent); color: var(--color-accent);
-    border-style: solid;
-  }
-  }
-  .add-row button:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  .mode-row {
-    display: flex; align-items: center; gap: 1.2rem;
-    margin-top: 1.4rem; padding-top: 1.2rem;
-    border-top: 1px dashed var(--color-border);
-    flex-wrap: wrap;
-  }
-  .mode-row > span:first-child {
-    color: var(--color-muted); font-size: 0.9rem; flex-shrink: 0;
-  }
-  .pill-group { display: flex; gap: 0.35rem; flex-wrap: wrap; }
-  .pill-group button {
-    padding: 0.32rem 0.85rem; font-size: 0.88rem;
-    border: 1px solid var(--color-border); border-radius: 999px;
-    background: var(--color-bg); color: var(--color-text);
-    cursor: pointer; transition: all 0.15s; font: inherit;
-  }
-  @media (hover: hover) {
-    .pill-group button:hover:not(.active) {
-    border-color: var(--color-accent); color: var(--color-accent);
-  }
-  }
-  .pill-group button.active {
-    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
-  }
-  /* 自定义抽签次数：input 元素长得跟 pill 一致 */
-  .pill-group .draws-custom {
-    -webkit-appearance: none; -moz-appearance: textfield; appearance: none;
-    width: 5.4em;
-    padding: 0.32rem 0.85rem;
-    font: inherit; font-size: 0.88rem;
-    border: 1px solid var(--color-border); border-radius: 999px;
-    background: var(--color-bg); color: var(--color-text);
-    text-align: center;
-    outline: none;
-    transition: all 0.15s;
-  }
-  .pill-group .draws-custom::-webkit-outer-spin-button,
-  .pill-group .draws-custom::-webkit-inner-spin-button {
-    -webkit-appearance: none; margin: 0;
-  }
-  .pill-group .draws-custom:focus { border-color: var(--color-accent); }
-  .pill-group .draws-custom.active {
-    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
-  }
-  .pill-group .draws-custom::placeholder { color: var(--color-light); }
-  .pill-group .draws-custom.active::placeholder { color: rgba(255,255,255,0.7); }
-
-  .spin-zone {
-    text-align: center;
-    margin: 1.6rem 0 0;
-  }
-  .spin-btn {
-    display: inline-flex; align-items: center; gap: 0.5rem;
-    padding: 0.85rem 2.4rem;
-    border: none; border-radius: 999px;
-    background: var(--color-accent); color: #fff;
-    font-size: 1.05rem; font-weight: 600; font-family: inherit;
-    cursor: pointer; transition: all 0.2s;
-    box-shadow: 0 3px 10px rgba(30,58,95,0.25);
-  }
-  @media (hover: hover) {
-    .spin-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 5px 14px rgba(30,58,95,0.32);
-  }
-  }
-  .spin-btn:disabled {
-    opacity: 0.45; cursor: not-allowed;
-    box-shadow: none; transform: none;
-  }
-  .spin-hint {
-    margin-top: 0.5rem;
-    display: flex; align-items: center; justify-content: center;
-    gap: 0.7rem; flex-wrap: wrap;
-    font-size: 0.82rem; color: var(--color-light); min-height: 1.4em;
-  }
-  .skip-row {
-    text-align: center;
-    margin-top: 0.6rem;
-    min-height: 1.6em;
-  }
-  .skip-row .skip-btn {
-    background: transparent; border: 1px dashed var(--color-border);
-    border-radius: 12px;
-    padding: 0.2rem 0.75rem;
-    color: var(--color-muted); font-size: 0.78rem;
-    font: inherit; line-height: 1.3;
-    cursor: pointer;
-    transition: all 0.18s;
-  }
-  @media (hover: hover) {
-    .skip-row .skip-btn:hover {
-    color: var(--color-accent); border-color: var(--color-accent);
-  }
-  }
-
-  /* —— 舞台：转盘 + 结果/计票 ——
-     宽屏（≥760px）左右并排：转盘在左、结果与计票柱状图在右，一屏内两者都完整可见；
-     窄屏回到上下堆叠。滚动定位统一滚 .stage（JS 里按固定导航高度设 scroll-margin-top，
-     避免转盘顶部被顶部固定导航裁掉）。 */
-  .stage {
-    margin: 1.2rem auto 0;
-    /* scroll-margin-top 由 JS 按导航实际高度设置 */
-  }
-  .wheel-col { display: flex; flex-direction: column; align-items: center; }
-  .outcome-col { min-width: 0; }
-
-  @media (min-width: 760px) {
-    .stage {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      max-width: 760px;
-    }
-    .wheel-col { flex: 0 0 auto; }
-    /* 抽之前：转盘居中、右侧结果列收起（宽度 0）；首抽时 .spun 让它展开——
-       flex 居中会把转盘自然带向左，这就是"点抽后转盘滑向左边"的动画。
-       （不用 gap，改用 margin，避免收起时空隙让转盘偏离正中心。） */
-    .outcome-col {
-      flex: 0 0 auto;
-      width: 0; opacity: 0; overflow: hidden; margin-left: 0;
-      transition: width 0.55s ease, opacity 0.4s ease, margin-left 0.55s ease;
-    }
-    .stage.spun .outcome-col {
-      width: 340px; opacity: 1; margin-left: 1.8rem;
-    }
-    .stage .result-zone { margin-top: 0; }
-    .stage .tally-panel { margin-top: 1rem; padding-top: 1rem; }
-    .stage .reset-row { margin-top: 1rem; }
-  }
-
-  /* —— 转盘 ——
-     宽度由三个约束的 min() 决定：320px 上限 + 88vw 防溢出 + 42vh 防手机上独占整屏
-     带 aspect-ratio: 1/1，所以高度 = 宽度 */
-  .wheel-zone {
-    margin: 0 auto;
-    position: relative;
-    width: min(320px, 88vw, 42vh);
-    aspect-ratio: 1 / 1;
-  }
-  .wheel-pointer {
-    position: absolute; top: -8px; left: 50%;
-    transform: translateX(-50%);
-    width: 0; height: 0;
-    border-left: 14px solid transparent;
-    border-right: 14px solid transparent;
-    border-top: 22px solid var(--color-ink);
-    z-index: 2;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.18));
-  }
-  .wheel-svg {
-    width: 100%; height: 100%;
-    transform: rotate(0deg);
-    transition: none;
-  }
-  .wheel-svg.spinning {
-    transition: transform 3.2s cubic-bezier(0.17, 0.67, 0.23, 1.01);
-  }
-  .wheel-svg.spinning-fast {
-    transition: transform 1.6s cubic-bezier(0.17, 0.67, 0.23, 1.01);
-  }
-  .wheel-svg .slice {
-    transition: filter 0.3s, opacity 0.3s;
-  }
-  .wheel-svg .slice.dim { opacity: 0.4; }
-  .wheel-svg .slice.win { filter: brightness(1.08) saturate(1.05); }
-  .wheel-svg text {
-    font-family: var(--font-body);
-    font-weight: 600;
-    fill: #fff;
-    text-anchor: middle;
-    dominant-baseline: middle;
-    pointer-events: none;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.25);
-  }
-
-  /* —— 结果 —— */
-  .result-zone {
-    margin-top: 1.1rem;
-    text-align: center;
-    min-height: 2.4em;
-  }
-  .result-line {
-    font-size: 1.1rem;
-    color: var(--color-ink);
-    line-height: 1.6;
-  }
-  .result-line .winner-name {
-    font-weight: 700; color: var(--color-accent);
-    background: linear-gradient(180deg, transparent 60%, rgba(201,169,110,0.45) 60%);
-    padding: 0 0.2em;
-  }
-
-  /* —— 多次模式 计票面板 —— */
-  .tally-panel {
-    display: none;
-    margin-top: 1.1rem;
-    padding-top: 1rem;
-    border-top: 1px dashed var(--color-border);
-  }
-  .tally-panel.show { display: block; }
-  .tally-header {
-    font-size: 0.88rem; color: var(--color-muted);
-    margin-bottom: 0.6rem; text-align: center;
-  }
-  .tally-bars {
-    display: flex; align-items: flex-end; justify-content: center;
-    gap: 0.6rem;
-    min-height: 132px; padding: 0.4rem 0.3rem 0;
-  }
-  .tally-col {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 0.35rem;
-    flex: 1; max-width: 80px; min-width: 0;
-  }
-  /* 医牌作为 col 的正常 flex 子元素，永远占住高度（hidden 时也占空间），
-     避免：1) 之前在 overflow:hidden 的 bar-bg 内被裁掉一半
-           2) 显示/隐藏切换时引起列高度跳动 */
-  .tally-medal {
-    font-size: 1.3rem; line-height: 1;
-    opacity: 0; transition: opacity 0.3s;
-    pointer-events: none;
-  }
-  .tally-col.is-winner .tally-medal { opacity: 1; }
-  .tally-bar-bg {
-    position: relative;
-    width: 100%; height: 100px;
-    background: var(--color-bg-warm);
-    border-radius: 6px 6px 0 0;
-    overflow: hidden;
-  }
-  .tally-bar-fill {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: var(--color-accent);
-    height: 0%;
-    transition: height 0.4s cubic-bezier(0.17, 0.67, 0.23, 1.01);
-  }
-  .tally-col.is-winner .tally-bar-fill {
-    background: linear-gradient(180deg, var(--color-highlight, #c9a96e), #a8884f);
-  }
-  .tally-count {
-    position: absolute; top: 4px; left: 0; right: 0;
-    text-align: center;
-    font-family: var(--font-body);
-    font-size: 0.95rem; color: var(--color-ink);
-    font-weight: 600;
-  }
-  /* 计票名字：最多折两行显示，再长就省略号（完整名鼠标悬停可见 title）；前置同色小圆点做图例 */
-  .tally-name {
-    font-size: 0.78rem; color: var(--color-muted);
-    text-align: center; line-height: 1.25;
-    width: 100%;
-    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-    overflow: hidden; word-break: break-word;
-  }
-  .tally-name .tally-dot {
-    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-    margin-right: 3px; vertical-align: baseline;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
-  }
-  .tally-col.is-winner .tally-name { color: var(--color-ink); font-weight: 600; }
-
-  .reset-row {
-    text-align: center; margin-top: 1rem; min-height: 2.4em;
-  }
-  .reset-btn {
-    padding: 0.45rem 1.2rem; font-size: 0.88rem;
-    border: 1px solid var(--color-border); border-radius: 999px;
-    background: var(--color-bg); color: var(--color-muted);
-    cursor: pointer; transition: all 0.15s; font: inherit;
-  }
-  @media (hover: hover) {
-    .reset-btn:hover {
-    border-color: var(--color-accent); color: var(--color-accent);
-  }
-  }
-
-  /* —— toast 撤销按钮 —— */
-  .profile-toast .toast-action {
-    margin-left: 0.45rem;
-    padding: 0.05rem 0.55rem;
-    font: inherit; font-size: 0.78rem;
-    border: 1px solid var(--color-accent);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--color-accent);
-    cursor: pointer;
-    line-height: 1.4;
-  }
-  @media (hover: hover) {
-    .profile-toast .toast-action:hover {
-    background: var(--color-accent); color: #fff;
-  }
-  }
-
-  /* —— 结果复制按钮 —— */
-  .result-copy {
-    margin-top: 0.55rem;
-    padding: 0.28rem 0.85rem;
-    font: inherit; font-size: 0.82rem;
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--color-muted);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  @media (hover: hover) {
-    .result-copy:hover {
-    border-color: var(--color-accent); color: var(--color-accent);
-  }
-  }
-  .result-copy.copied {
-    border-color: #5cb830; color: #5cb830;
-  }
-
-  /* —— 历史面板 —— */
-  .history-count {
-    font-size: 0.78rem;
-    color: var(--color-light);
-    font-weight: 400;
-    margin-left: 0.4rem;
-  }
-  .history-list {
-    margin: 0.6rem 0 0.4rem;
-    display: flex; flex-direction: column;
-    gap: 0.45rem;
-  }
-  .history-empty {
-    color: var(--color-light);
-    font-style: normal;
-    margin: 0.4rem 0 !important;
-  }
-  .history-item {
-    display: flex; align-items: center;
-    gap: 0.6rem;
-    padding: 0.5rem 0.7rem;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    font-size: 0.84rem;
-    line-height: 1.45;
-  }
-  .history-item .history-winner {
-    color: var(--color-ink);
-    font-weight: 600;
-    flex-shrink: 0;
-  }
-  .history-item .history-meta {
-    color: var(--color-light);
-    font-size: 0.78rem;
-    flex-shrink: 0;
-  }
-  .history-item .history-from {
-    color: var(--color-muted);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    flex: 1; min-width: 0;
-  }
-
-  @media (max-width: 600px) {
-    .picker-card { padding: 1.1rem 0.9rem; }
-    /* 手机端收起滑块，改由数字框输占比（触屏上打字比拖滑块更准）；
-       行变为 [删] [色块] [选项名] [占比数字+%] [锁] 五列 */
-    .option-row {
-      grid-template-columns: 22px 12px minmax(0, 1.4fr) 56px 26px;
-      gap: 0.4rem;
-    }
-    .option-row .opt-weight { display: none; }
-    .option-row .opt-del { width: 22px; height: 22px; }
-    .option-row .opt-chip { width: 12px; height: 12px; }
-    .option-row .opt-text { font-size: 0.9rem; padding: 0.4rem 0.55rem; }
-    .option-row .opt-weight-num { font-size: 0.85rem; padding: 0.4rem 0.1rem; }
-    .option-row .wpct { font-size: 0.8rem; }
-    /* 注意：不要在这里给 .wheel-svg text 设固定 font-size —— 转盘每个字的字号是 JS 按扇区/
-       字数精确算好、写在 SVG 属性上并随画布缩放的；用 CSS 覆盖会让正立排的字互相重叠。 */
-  }
-
-  /* —— 选项名超 8 字：红框警示 —— */
-  .option-item { display: flex; flex-direction: column; gap: 0.25rem; }
-  .option-row.is-toolong .opt-text {
-    border-color: #d0342c;
-    background: rgba(208,52,44,0.06);
-  }
-  .opt-warn {
-    display: none;
-    margin-left: calc(24px + 14px + 1rem);   /* 对齐到选项名输入框左缘（删+色块+两个 gap） */
-    font-size: 0.76rem; color: #d0342c;
-  }
-  @keyframes opt-flash {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(208,52,44,0); }
-    30%      { box-shadow: 0 0 0 3px rgba(208,52,44,0.35); }
-  }
-  .option-row.flash .opt-text {
-    animation: opt-flash 0.7s ease;
-    border-color: #d0342c;
-  }
-
-  /* —— 板块（档案 / 历史）—— */
-  .board {
-    background: var(--color-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
-    padding: 1.2rem 1.3rem;
-    margin-top: 1.4rem;
-  }
-  .board-head {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 0.6rem; flex-wrap: wrap;
-    margin-bottom: 0.8rem;
-  }
-  .board-title {
-    font-size: 1.05rem; color: var(--color-ink); margin: 0; font-weight: 600;
-  }
-  .board-head .history-count {
-    font-size: 0.8rem; color: var(--color-light); font-weight: 400; margin-left: 0.3rem;
-  }
-  .board-head-actions {
-    display: flex; align-items: center; gap: 0.7rem;
-    font-size: 0.84rem; color: var(--color-muted);
-  }
-  .perpage-label { display: inline-flex; align-items: center; gap: 0.3rem; }
-  #history-perpage {
-    font: inherit; font-size: 0.84rem;
-    padding: 0.15rem 0.4rem; border: 1px solid var(--color-border);
-    border-radius: 6px; background: var(--color-bg); color: var(--color-text);
-    cursor: pointer;
-  }
-  .board-btn {
-    padding: 0.32rem 0.8rem; font: inherit; font-size: 0.84rem;
-    border: 1px solid var(--color-border); border-radius: 999px;
-    background: transparent; color: var(--color-muted);
-    cursor: pointer; transition: all 0.15s; white-space: nowrap;
-  }
-  @media (hover: hover) {
-    .board-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  }
-  .board-btn.dirty {
-    border-color: var(--color-accent); color: var(--color-accent);
-    background: rgba(232,200,40,0.12);
-  }
-  .board-btn.dirty::after {
-    content: ''; display: inline-block; width: 0.55em; height: 0.3em; margin-left: 0.35em;
-    border-left: 2px solid currentColor; border-bottom: 2px solid currentColor;
-    transform: translateY(-0.12em) rotate(-45deg);
-  }
-
-  /* —— 档案板块 —— */
-  .archive-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.4rem; }
-  .archive-empty { color: var(--color-light); font-size: 0.86rem; margin: 0.2rem 0 0.6rem; }
-  .archive-item {
-    display: flex; align-items: center; gap: 0.6rem;
-    padding: 0.5rem 0.7rem;
-    border: 1px solid var(--color-border); border-radius: 8px;
-    transition: border-color 0.15s;
-  }
-  .archive-item.is-current { border-color: var(--color-accent); background: rgba(201,169,110,0.08); }
-  .archive-name {
-    flex: 1; min-width: 0; color: var(--color-ink); font-size: 0.92rem;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .archive-badge {
-    margin-left: 0.4rem; font-size: 0.7rem; color: #fff;
-    background: var(--color-accent); border-radius: 999px; padding: 0.05rem 0.4rem;
-  }
-  .archive-meta { font-size: 0.78rem; color: var(--color-light); flex-shrink: 0; }
-  .archive-item-actions { display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0; }
-  .ar-btn {
-    font: inherit; font-size: 0.8rem; cursor: pointer;
-    border: 1px solid var(--color-border); border-radius: 999px;
-    background: transparent; color: var(--color-muted);
-    padding: 0.22rem 0.6rem; transition: all 0.15s;
-  }
-  .ar-btn.ar-icon { padding: 0.22rem 0.4rem; }
-  @media (hover: hover) {
-    .ar-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  }
-  .archive-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
-
-  /* —— 历史板块 —— */
-  #history-board .history-list { margin: 0; display: flex; flex-direction: column; gap: 0.45rem; }
-  #history-board .history-item { display: flex; align-items: center; gap: 0.6rem; }
-  .history-seq { font-size: 0.75rem; color: var(--color-light); flex-shrink: 0; min-width: 2.2em; }
-  .history-pager {
-    display: flex; align-items: center; justify-content: center; gap: 0.8rem;
-    margin-top: 0.8rem; font-size: 0.84rem; color: var(--color-muted);
-  }
-  .history-pager:empty { margin-top: 0; }
-  .pg-btn {
-    font: inherit; font-size: 0.84rem; cursor: pointer;
-    border: 1px solid var(--color-border); border-radius: 999px;
-    background: transparent; color: var(--color-muted);
-    padding: 0.25rem 0.7rem; transition: all 0.15s;
-  }
-  @media (hover: hover) { .pg-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); } }
-  .pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .pg-info { white-space: nowrap; }
-  .pg-jump {
-    width: 3em; text-align: center; font: inherit; font-size: 0.84rem;
-    -webkit-appearance: none; -moz-appearance: textfield; appearance: none;
-    border: 1px solid var(--color-border); border-radius: 6px;
-    padding: 0.12rem 0.2rem; background: var(--color-bg); color: var(--color-ink);
-    outline: none;
-  }
-  .pg-jump::-webkit-outer-spin-button, .pg-jump::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-
-  @media (max-width: 600px) {
-    .board { padding: 1rem 0.9rem; }
-    .opt-warn { margin-left: calc(22px + 12px + 0.8rem); }
-    .archive-item { flex-wrap: wrap; }
-  }
-</style>
-
-<article class="picker-wrap">
-  <header class="picker-header">
-    <h1>[[zi:dice]] 遇事不决</h1>
-    <p>Weighted Random Picker</p>
+<article class="picker-page" id="picker-app">
+  <header class="picker-hero">
+    <img class="picker-hero-icon" src="/assets/icons/picker-icon-192.png" width="72" height="72" alt="">
+    <div>
+      <p class="picker-kicker">RANDOM PICKER</p>
+      <h1>遇事不决</h1>
+      <p class="picker-subtitle">输入选项，按权重公平抽取。无需登录，数据只留在本机。</p>
+    </div>
   </header>
 
-  <div class="picker-card">
-    <div class="weights-bar">
-      <span class="wb-label">选项与占比</span>
-      <button type="button" class="equal-btn" id="equal-btn" title="把所有选项的占比拉平成一样（每项 100÷选项数）">[[zi:scale]] 平均分配</button>
-    </div>
-    <div class="options-list" id="options-list"></div>
-    <div class="add-row">
-      <button type="button" id="add-btn">+ 添加选项</button>
-    </div>
-
-    <div class="mode-row">
-      <span>抽签次数：</span>
-      <div class="pill-group" id="draws-group">
-        <button type="button" data-draws="1" class="active">1</button>
-        <button type="button" data-draws="3">3</button>
-        <button type="button" data-draws="5">5</button>
-        <input type="number" class="draws-custom" id="draws-custom"
-               inputmode="numeric" min="1" max="100" step="1"
-               placeholder="自定义" aria-label="自定义抽签次数（1–100）" />
+  <main class="picker-workspace">
+    <section class="picker-panel picker-editor" aria-labelledby="options-title">
+      <div class="picker-panel-head">
+        <div><p class="picker-step">01</p><h2 id="options-title">准备选项</h2></div>
+        <span class="picker-option-count" id="option-count">2 / 30</span>
       </div>
-    </div>
-
-    <div class="spin-zone">
-      <button type="button" class="spin-btn" id="spin-btn">[[zi:dice]] 抽！</button>
-      <div class="spin-hint" id="spin-hint">
-        <span id="spin-hint-text"></span>
+      <div class="picker-list" id="options-list"></div>
+      <div class="picker-editor-actions">
+        <button type="button" class="picker-button picker-button-quiet" id="add-btn">+ 添加选项</button>
+        <button type="button" class="picker-button picker-button-quiet" id="bulk-toggle-btn" aria-expanded="false" aria-controls="bulk-panel">[[zi:list]] 批量粘贴</button>
       </div>
-    </div>
-  </div>
-
-  <div class="stage" id="stage">
-    <div class="wheel-col">
-      <div class="wheel-zone" id="wheel-zone">
-        <div class="wheel-pointer"></div>
-        <svg class="wheel-svg" id="wheel-svg" viewBox="0 0 200 200" aria-label="抽签转盘"></svg>
+      <div class="picker-bulk" id="bulk-panel" hidden>
+        <label for="bulk-input">每行一个选项，重复项会自动忽略</label>
+        <textarea id="bulk-input" rows="7" maxlength="4000" placeholder="火锅&#10;烧烤&#10;寿司"></textarea>
+        <div class="picker-bulk-actions">
+          <button type="button" class="picker-button picker-button-primary-small" id="bulk-apply-btn">替换当前选项</button>
+          <button type="button" class="picker-button picker-button-quiet" id="bulk-cancel-btn">取消</button>
+        </div>
       </div>
-      <div class="skip-row">
-        <button type="button" class="skip-btn" id="skip-btn" style="display: none;">跳过动画</button>
+      <details class="picker-advanced" id="advanced-settings">
+        <summary>高级设置 <span id="advanced-summary">等概率</span></summary>
+        <div class="picker-advanced-body">
+          <label class="picker-switch-row" for="weighted-toggle">
+            <span><strong>自定义权重</strong><small>关闭时每个选项机会相同</small></span>
+            <span class="picker-switch"><input type="checkbox" id="weighted-toggle"><span aria-hidden="true"></span></span>
+          </label>
+          <div class="picker-weight-tools" id="weight-tools" hidden>
+            <p>百分比总和始终为 100%。锁定一项后，调整其他项不会改变它。</p>
+            <button type="button" class="picker-button picker-button-quiet" id="equal-btn">[[zi:scale]] 恢复等概率</button>
+          </div>
+        </div>
+      </details>
+      <fieldset class="picker-mode-fieldset">
+        <legend><span class="picker-step">02</span> 选择抽取方式</legend>
+        <div class="picker-mode-tabs" id="mode-tabs">
+          <button type="button" class="is-active" data-mode="single" aria-pressed="true"><strong>抽一个</strong><small>随机得到一个结果</small></button>
+          <button type="button" data-mode="multiple" aria-pressed="false"><strong>抽多个</strong><small>不重复抽取</small></button>
+          <button type="button" data-mode="tournament" aria-pressed="false"><strong>多轮决胜</strong><small>重复抽取后比票数</small></button>
+        </div>
+      </fieldset>
+      <div class="picker-mode-setting" id="multiple-setting" hidden>
+        <label for="multiple-count">抽出</label><input type="number" id="multiple-count" min="2" max="2" value="2" inputmode="numeric"><span>个不重复结果</span>
       </div>
-    </div>
-
-    <div class="outcome-col">
-      <div class="result-zone">
-        <div class="result-line" id="result-line" aria-live="polite" aria-atomic="true">&nbsp;</div>
-        <button type="button" class="result-copy" id="result-copy-btn" style="display:none;" title="复制结果到剪贴板">[[zi:copy]] 复制结果</button>
+      <div class="picker-mode-setting picker-rounds" id="tournament-setting" hidden>
+        <span>进行</span>
+        <div class="picker-round-presets" id="round-presets">
+          <button type="button" data-rounds="3">3</button><button type="button" class="is-active" data-rounds="5">5</button><button type="button" data-rounds="10">10</button>
+        </div>
+        <input type="number" id="rounds-custom" min="3" max="1000" placeholder="自定义" inputmode="numeric" aria-label="自定义轮数，3 到 1000"><span>轮</span>
       </div>
+    </section>
 
-      <div class="tally-panel" id="tally-panel">
-        <div class="tally-header" id="tally-header">第 0 / 0 次</div>
-        <div class="tally-bars" id="tally-bars"></div>
+    <section class="picker-panel picker-draw" aria-labelledby="draw-title">
+      <div class="picker-panel-head picker-draw-head">
+        <div><p class="picker-step">03</p><h2 id="draw-title">让转盘决定</h2></div>
+        <span class="picker-probability-label" id="probability-label">等概率</span>
       </div>
-
-      <div class="reset-row" id="reset-row" style="display: none;">
-        <button type="button" class="reset-btn" id="reset-btn">[[zi:refresh]] 再抽一次</button>
+      <div class="picker-wheel-wrap">
+        <div class="picker-pointer" aria-hidden="true"></div>
+        <svg class="picker-wheel" id="wheel" viewBox="0 0 240 240" role="img" aria-labelledby="wheel-title wheel-desc"><title id="wheel-title">随机抽取转盘</title><desc id="wheel-desc">转盘扇区对应左侧选项和概率</desc></svg>
       </div>
-    </div>
-  </div>
+      <button type="button" class="picker-spin" id="spin-btn">[[zi:shuffle]] 开始抽取</button>
+      <button type="button" class="picker-skip" id="skip-btn" hidden>跳过动画</button>
+      <p class="picker-shortcut">桌面端可按空格键快速抽取</p>
+      <div class="picker-result" id="result-card" hidden>
+        <p class="picker-result-eyebrow" id="result-eyebrow">抽取结果</p>
+        <div class="picker-result-main" id="result-main" aria-live="polite" aria-atomic="true"></div>
+        <div class="picker-tally" id="tally" hidden></div>
+        <div class="picker-result-actions">
+          <button type="button" class="picker-button picker-button-primary-small" id="again-btn">[[zi:refresh]] 再抽一次</button>
+          <button type="button" class="picker-button picker-button-quiet" id="copy-result-btn">[[zi:copy]] 复制结果</button>
+          <button type="button" class="picker-button picker-button-quiet" id="tie-break-btn" hidden>并列项随机决胜</button>
+        </div>
+      </div>
+      <p class="picker-status" id="picker-status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
 
-  <section class="board" id="archive-board">
-    <div class="board-head">
-      <h2 class="board-title">[[zi:file]] 我的档案</h2>
-      <span class="profile-toast" id="profile-toast" style="display:none;"></span>
-    </div>
-    <div class="archive-list" id="profile-list"></div>
-    <p class="archive-empty" id="archive-empty">还没有保存的档案。把当前这套选项「存为新档案」，之后就能一键调取。</p>
-    <div class="archive-actions">
-      <button type="button" class="board-btn" id="profile-new-btn" title="把当前选项另存为一个新档案">+ 存为新档案</button>
-      <button type="button" class="board-btn" id="profile-save-btn" style="display:none;" title="把当前改动保存回正在使用的档案">[[zi:save]] 保存改动</button>
-      <button type="button" class="board-btn" id="profile-share-btn" title="复制当前选项的分享链接（别人打开即同步）">[[zi:link]] 复制分享链接</button>
-    </div>
+  <section class="picker-secondary" aria-label="保存和历史">
+    <details class="picker-board" id="profiles-board">
+      <summary><span>[[zi:save]] 我的档案</span><span class="picker-board-count" id="profile-count">0</span></summary>
+      <div class="picker-board-body">
+        <p class="picker-empty" id="profile-empty">还没有保存的档案。可以把常用名单保存在这台设备上。</p>
+        <div class="picker-profile-list" id="profile-list"></div>
+        <div class="picker-board-actions">
+          <button type="button" class="picker-button picker-button-quiet" id="profile-new-btn">+ 存为新档案</button>
+          <button type="button" class="picker-button picker-button-quiet" id="profile-save-btn" hidden>[[zi:save]] 保存改动</button>
+          <button type="button" class="picker-button picker-button-quiet" id="share-btn">[[zi:link]] 分享这组选项</button>
+        </div>
+      </div>
+    </details>
+    <details class="picker-board" id="history-board">
+      <summary><span>[[zi:history]] 抽取历史</span><span class="picker-board-count" id="history-count">0</span></summary>
+      <div class="picker-board-body">
+        <p class="picker-empty" id="history-empty">还没有抽取记录。</p>
+        <div class="picker-history-list" id="history-list"></div>
+        <div class="picker-board-actions">
+          <button type="button" class="picker-button picker-button-quiet" id="history-more-btn" hidden>显示更多</button>
+          <button type="button" class="picker-button picker-button-danger" id="history-clear-btn" hidden>清空历史</button>
+        </div>
+      </div>
+    </details>
   </section>
-
-  <section class="board" id="history-board">
-    <div class="board-head">
-      <h2 class="board-title">[[zi:file]] 抽签历史 <span class="history-count" id="history-count"></span></h2>
-      <div class="board-head-actions">
-        <label class="perpage-label">每页
-          <select id="history-perpage" aria-label="每页条数"></select>
-          条</label>
-        <button type="button" class="board-btn" id="history-clear-btn">清空</button>
-      </div>
-    </div>
-    <div class="history-list" id="history-list">
-      <p class="history-empty">还没有抽签记录。</p>
-    </div>
-    <div class="history-pager" id="history-pager"></div>
-  </section>
+  <aside class="picker-privacy">[[zi:lock]] <strong>隐私说明：</strong>选项、档案和历史只保存在你的浏览器中，不会上传到服务器；分享链接仅包含你主动分享的当前选项与设置。</aside>
+  <div class="picker-toast" id="picker-toast" role="status" aria-live="polite" hidden></div>
 </article>
 
+<script src="/assets/js/games/picker-core.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/picker.js?v={{ site.time | date: '%s' }}"></script>
