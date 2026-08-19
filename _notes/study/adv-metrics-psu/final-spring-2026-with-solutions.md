@@ -17,4 +17,4 @@ published: true
 trashed: false
 ---
 
-> 配套阅读：[2026 春期中带解答]({{ '/notes/adv-metrics-psu/midterm-spring-2026' | relative_url }})｜[2025 春期中带解答]({{ '/notes/adv-metrics-psu/midterm-spring-2025-with-solutions' | relative_url }})｜[期末自救指南]({{ '/notes/adv-metrics-psu/survival-guide' | relative_url }})
+> 配套阅读：[2026 春期中带解答]({{ '/notes/adv-metrics-psu/midterm-spring-2026' | relative_url }})｜[2025 春期中带解答]({{ '/notes/adv-metrics-psu/midterm-spring-2025-with-solutions' | relative_url }})

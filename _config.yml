@@ -82,7 +82,6 @@ discipline_order:
 study_order:
   - adv-micro-psu
   - adv-metrics-psu
-  - econometrics-qualifier
   - adv-metrics-pku
   - adv-micro-pku
   - interm-metrics

@@ -3,8 +3,7 @@
 # key 必须和文章 front-matter 里的 course 值完全一致（含全角括号、罗马数字）。
 "高级微观经济学（PSU）": "advanced microeconomics micro gaowei 高微 微观经济学 微观 penn state psu"
 "高级微观经济学（北大）": "advanced microeconomics micro gaowei 高微 微观经济学 微观 pku 北大"
-"高级计量经济学（PSU）": "advanced econometrics metrics gaoji 高计 计量经济学 计量 penn state psu"
-"经济计量学博资考（PSU）": "econometrics qualifier qualifying exam comprehensive exam econ 501 econ 510 metrics qual 博资考 计量资格考 penn state psu"
+"高级计量经济学（PSU）": "advanced econometrics metrics gaoji 高计 计量经济学 计量 penn state psu econometrics qualifier qualifying exam comprehensive exam econ 501 econ 510 metrics qual 博资考 计量资格考"
 "高级计量经济学（北大）": "advanced econometrics metrics gaoji 高计 计量经济学 计量 pku 北大"
 "中级宏观经济学": "intermediate macroeconomics macro zhongji hongguan 宏观经济学 宏观"
 "中级计量经济学": "intermediate econometrics metrics zhongji jiliang 计量经济学 计量"

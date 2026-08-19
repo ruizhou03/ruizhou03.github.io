@@ -12,7 +12,7 @@ date: 2026-03-15
 author: "Zircon"
 permalink: "/notes/adv-metrics-psu/midterm-spring-2026"
 pdf_url: "/files/adv-metrics-psu/midterm-spring-2026-with-solutions.pdf"
-summary: "PSU ECON 510 高级计量经济学 2026 春期中考题与解答合卷。与 2025 春期中带答案版、2026 春期末带答案版和 8 天期末自救指南互为系列资料。"
+summary: "PSU ECON 510 高级计量经济学 2026 春期中考题与解答合卷，与 2025 春期中和 2026 春期末带答案版互为系列资料。"
 ---
 
-> 配套阅读：[2025 春期中带解答]({{ '/notes/adv-metrics-psu/midterm-spring-2025-with-solutions' | relative_url }})｜[2026 春期末带解答]({{ '/notes/adv-metrics-psu/final-spring-2026-with-solutions' | relative_url }})｜[期末自救指南]({{ '/notes/adv-metrics-psu/survival-guide' | relative_url }})
+> 配套阅读：[2025 春期中带解答]({{ '/notes/adv-metrics-psu/midterm-spring-2025-with-solutions' | relative_url }})｜[2026 春期末带解答]({{ '/notes/adv-metrics-psu/final-spring-2026-with-solutions' | relative_url }})
