@@ -367,8 +367,8 @@
 
 - id: picker
   name: 遇事不决
-  icon: 🎯
-  tagline: 权重转盘抽签
+  icon: /assets/icons/picker-icon-192.png
+  tagline: 随机转盘与权重抽签
   url: /toolbox/picker/
   category: 生活
   status: live
