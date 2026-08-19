@@ -1,0 +1,29 @@
+{
+  "format": "ICON_REVIEW_V2",
+  "batch": "sitewide-png-refine-02",
+  "revision": 2,
+  "audited_commit": "dfbb5042",
+  "exported_at": "2026-08-19",
+  "global_note": "全部批准。唯一值得继续优化的是 32px 下大多数 Detailed 图标不够直观。",
+  "locked_approvals": [
+    { "id": "site.feature-marker", "decision": "A" },
+    { "id": "site.theme-control", "decision": "C" },
+    { "id": "flight.itinerary-heading", "decision": "B" },
+    { "id": "flight.date-heading", "decision": "A" },
+    { "id": "flight.transfer-heading", "decision": "B" },
+    { "id": "flight.calendar-priority", "decision": "C" },
+    { "id": "flight.sort-controls", "decision": "A" }
+  ],
+  "scenes": [
+    { "id": "toolbox.blackjack", "revision": 2, "decision": "approve", "note": "" },
+    { "id": "toolbox.solitaire", "revision": 2, "decision": "approve", "note": "" },
+    { "id": "toolbox.random", "revision": 2, "decision": "approve", "note": "" },
+    { "id": "toolbox.time", "revision": 2, "decision": "approve", "note": "" },
+    { "id": "toolbox.metronome", "revision": 2, "decision": "approve", "note": "" },
+    { "id": "toolbox.pitch", "revision": 2, "decision": "approve", "note": "" },
+    { "id": "toolbox.picker", "revision": 2, "decision": "approve", "note": "" },
+    { "id": "toolbox.grouper", "revision": 2, "decision": "approve", "note": "" },
+    { "id": "toolbox.roll-call", "revision": 2, "decision": "approve", "note": "" },
+    { "id": "toolbox.countdown", "revision": 2, "decision": "approve", "note": "" }
+  ]
+}

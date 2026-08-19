@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f4ecdc">
+  <title>全站图标改造 · 第三轮小尺寸光学版</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <a class="back" href="../refine-02/">← 返回第二轮 Detailed 批阅</a>
+      <p class="eyebrow">ICON REVIEW · COMPACT 03</p>
+      <h1>为真正的 28–32px，重新画一套光学小尺寸图标</h1>
+      <p class="lead">这些不是把 Detailed 机械缩小，而是保持同一隐喻后重新取舍：更少物件、更粗轮廓、更强对比。Detailed 母版仍保留给 64px 以上；本轮只决定百宝箱卡片的小图标。</p>
+      <div class="stats">
+        <div><strong>10</strong><span>张 Compact SVG</span></div>
+        <div><strong>192²</strong><span>对应 PNG 输出</span></div>
+        <div><strong>28px</strong><span>正式卡片尺寸</span></div>
+        <div><strong>2</strong><span>套光学尺寸并存</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="overview">
+      <div class="section-head">
+        <div><p class="eyebrow">32 PX FAMILY CHECK</p><h2>先看 Compact 全家福</h2><p>下方小图严格按 32 CSS 像素显示。点击任一项可跳到 Detailed / Compact 对照。</p></div>
+        <button type="button" id="compact-all">10 张全部采用 Compact</button>
+      </div>
+      <div id="family-grid" class="family-grid"></div>
+    </section>
+
+    <section class="review">
+      <div class="section-head">
+        <div><p class="eyebrow">OPTICAL COMPARISON</p><h2>每张都在 28 / 32 / 48px 下比较</h2></div>
+        <div class="progress"><strong id="done-count">0</strong><span>/ 10 已处理</span><i><b id="progress-fill"></b></i></div>
+      </div>
+      <div class="filters">
+        <button type="button" class="is-active" data-filter="all">全部</button>
+        <button type="button" data-filter="unreviewed">未处理</button>
+        <button type="button" data-filter="compact">采用 Compact</button>
+        <button type="button" data-filter="detailed">保留 Detailed</button>
+        <button type="button" data-filter="revise">Compact 仍需修改</button>
+      </div>
+      <div id="review-list" class="review-list"></div>
+      <p id="empty" class="empty" hidden>这个筛选下没有项目。</p>
+    </section>
+
+    <section class="export" id="export">
+      <div><p class="eyebrow">EXPORT</p><h2>导出第三轮选择</h2><p>选择只决定 28–32px 百宝箱卡片使用哪套图；第二轮批准的 Detailed 母版和 7 项 SVG 批准不会被撤销。</p>
+        <label><span>总体意见（可选）</span><textarea id="global-note" rows="4" placeholder="例如：Compact 都更清楚，但分组器还不够像分组……"></textarea></label>
+      </div>
+      <div class="export-actions">
+        <button type="button" class="primary" id="copy-export">复制全部批注</button>
+        <button type="button" id="download-export">下载 JSON 文件</button>
+        <button type="button" class="quiet" id="preview-export">预览导出内容</button>
+        <p id="export-status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+    <pre id="export-preview" hidden></pre>
+  </main>
+  <footer>第三轮小尺寸光学批阅台 · 尚未修改正式百宝箱</footer>
+</body>
+</html>
