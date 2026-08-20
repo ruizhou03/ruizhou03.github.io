@@ -11,24 +11,19 @@ body_class: picker-page-body
 
 <article class="picker-page" id="picker-app">
   <header class="picker-hero">
-    <div class="picker-hero-lockup">
-      <img class="picker-hero-icon" src="/assets/icons/picker-icon-192.png" width="72" height="72" alt="">
-      <div>
-        <p class="picker-kicker">RANDOM PICKER · 决策仪</p>
-        <h1>遇事不决</h1>
-        <p class="picker-subtitle">把犹豫写下来，其余交给概率。</p>
-      </div>
+    <span class="picker-edition-mark" aria-hidden="true">03</span>
+    <div class="picker-hero-copy">
+      <p class="picker-kicker">DECISION EDITION</p>
+      <h1>遇事不决</h1>
+      <p class="picker-subtitle">把犹豫写下来，其余交给概率。</p>
     </div>
-    <div class="picker-hero-note">
-      <span>LOCAL · FAIR · SHAREABLE</span>
-      <p>无需登录，名单只留在本机。<br>需要时，再把这一局分享出去。</p>
-    </div>
+    <p class="picker-hero-index"><span>01</span> 选项　<span>02</span> 方式　<span>03</span> 答案</p>
   </header>
 
   <div class="picker-workspace">
     <section class="picker-panel picker-editor" aria-labelledby="options-title">
       <div class="picker-panel-head">
-        <div><p class="picker-step">01</p><h2 id="options-title">准备选项</h2></div>
+        <div><p class="picker-step">01 · OPTIONS</p><h2 id="options-title">准备选项</h2></div>
         <span class="picker-option-count" id="option-count">2 / 30</span>
       </div>
       <div class="picker-list" id="options-list"></div>
@@ -57,8 +52,35 @@ body_class: picker-page-body
           </div>
         </div>
       </details>
+    </section>
+
+    <section class="picker-panel picker-draw" aria-labelledby="draw-title">
+      <div class="picker-panel-head picker-draw-head">
+        <div><p class="picker-step">03 · RESULT</p><h2 id="draw-title">让转盘决定</h2></div>
+        <span class="picker-probability-label" id="probability-label">等概率</span>
+      </div>
+      <div class="picker-wheel-wrap">
+        <div class="picker-pointer" aria-hidden="true"></div>
+        <svg class="picker-wheel" id="wheel" viewBox="0 0 240 240" role="img" aria-labelledby="wheel-title wheel-desc"><title id="wheel-title">随机抽取转盘</title><desc id="wheel-desc">转盘扇区对应左侧选项和概率</desc></svg>
+      </div>
+      <div class="picker-result" id="result-card" hidden>
+        <p class="picker-result-eyebrow" id="result-eyebrow">抽取结果</p>
+        <div class="picker-result-main" id="result-main" aria-live="polite" aria-atomic="true"></div>
+        <div class="picker-tally" id="tally" hidden></div>
+        <div class="picker-result-actions">
+          <button type="button" class="picker-button picker-button-primary-small" id="again-btn">[[zi:refresh]] 再抽一次</button>
+          <button type="button" class="picker-button picker-button-quiet" id="copy-result-btn">[[zi:copy]] 复制结果</button>
+          <button type="button" class="picker-button picker-button-quiet" id="tie-break-btn" hidden>并列项随机决胜</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="picker-panel picker-mode-panel" aria-labelledby="mode-title">
+      <div class="picker-panel-head">
+        <div><p class="picker-step">02 · MODE</p><h2 id="mode-title">抽取方式</h2></div>
+      </div>
       <fieldset class="picker-mode-fieldset">
-        <legend><span class="picker-step">02</span> 选择抽取方式</legend>
+        <legend class="sr-only">选择抽取方式</legend>
         <div class="picker-mode-tabs" id="mode-tabs">
           <button type="button" class="is-active" data-mode="single" aria-pressed="true"><strong>抽一个</strong><small>随机得到一个结果</small></button>
           <button type="button" data-mode="multiple" aria-pressed="false"><strong>抽多个</strong><small>不重复抽取</small></button>
@@ -75,32 +97,11 @@ body_class: picker-page-body
         </div>
         <input type="number" id="rounds-custom" min="3" max="1000" placeholder="自定义" inputmode="numeric" aria-label="自定义轮数，3 到 1000"><span>轮</span>
       </div>
-    </section>
-
-    <section class="picker-panel picker-draw" aria-labelledby="draw-title">
-      <div class="picker-panel-head picker-draw-head">
-        <div><p class="picker-step">03</p><h2 id="draw-title">让转盘决定</h2></div>
-        <span class="picker-probability-label" id="probability-label">等概率</span>
-      </div>
-      <div class="picker-stage-meta" aria-hidden="true"><span>CHANCE CHAMBER</span><span>LOCAL RANDOM</span></div>
-      <div class="picker-wheel-wrap">
-        <div class="picker-pointer" aria-hidden="true"></div>
-        <svg class="picker-wheel" id="wheel" viewBox="0 0 240 240" role="img" aria-labelledby="wheel-title wheel-desc"><title id="wheel-title">随机抽取转盘</title><desc id="wheel-desc">转盘扇区对应左侧选项和概率</desc></svg>
-      </div>
+      <div class="picker-mode-summary"><span>当前概率</span><strong id="mode-probability-copy">等概率</strong></div>
       <div class="picker-action-dock">
         <button type="button" class="picker-spin" id="spin-btn">[[zi:shuffle]] 开始抽取</button>
         <button type="button" class="picker-skip" id="skip-btn" hidden>跳过动画</button>
         <p class="picker-shortcut">SPACE · 快速抽取</p>
-      </div>
-      <div class="picker-result" id="result-card" hidden>
-        <p class="picker-result-eyebrow" id="result-eyebrow">抽取结果</p>
-        <div class="picker-result-main" id="result-main" aria-live="polite" aria-atomic="true"></div>
-        <div class="picker-tally" id="tally" hidden></div>
-        <div class="picker-result-actions">
-          <button type="button" class="picker-button picker-button-primary-small" id="again-btn">[[zi:refresh]] 再抽一次</button>
-          <button type="button" class="picker-button picker-button-quiet" id="copy-result-btn">[[zi:copy]] 复制结果</button>
-          <button type="button" class="picker-button picker-button-quiet" id="tie-break-btn" hidden>并列项随机决胜</button>
-        </div>
       </div>
       <p class="picker-status" id="picker-status" role="status" aria-live="polite"></p>
     </section>
@@ -108,7 +109,7 @@ body_class: picker-page-body
 
   <section class="picker-secondary" aria-label="保存和历史">
     <div class="picker-secondary-head">
-      <span>AFTER THE DRAW</span>
+      <span>ARCHIVE 00 · HISTORY 00</span>
       <p>留住常用的选择，也保留每一次答案。</p>
     </div>
     <details class="picker-board" id="profiles-board">

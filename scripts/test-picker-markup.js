@@ -25,6 +25,11 @@ assert.ok(html.includes('https://ruizhou03.com/assets/images/picker-og.png'), 'p
 assert.ok(html.includes('<body class="is-toolbox picker-page-body">'), 'picker body class must widen the outer site canvas');
 assert.ok(html.includes('<div class="picker-workspace">'), 'picker workspace must not be a nested main element');
 assert.ok(!html.includes('<main class="picker-workspace">'), 'nested main would reapply global layout spacing');
+const editorPosition = html.indexOf('class="picker-panel picker-editor"');
+const drawPosition = html.indexOf('class="picker-panel picker-draw"');
+const modePosition = html.indexOf('class="picker-panel picker-mode-panel"');
+assert.ok(editorPosition > 0 && editorPosition < drawPosition && drawPosition < modePosition, 'editorial grid must render as 01 options, 03 result, 02 mode');
+assert.ok(html.indexOf('id="spin-btn"') > modePosition, 'primary draw action must live in the mode column');
 assert.ok(html.indexOf('/assets/js/games/picker-core.js') < html.indexOf('/assets/js/games/picker.js'), 'core script must load before UI script');
 
 function pngSize(file) {
@@ -41,4 +46,4 @@ for (const line of uiSource.split('\n').filter(line => line.includes('lastResult
   assert.ok(!line.includes('[[zi:'), 'copied result text must not contain icon markers');
 }
 
-console.log(`picker markup: ${ids.length} unique ids and 13 contract checks passed`);
+console.log(`picker markup: ${ids.length} unique ids and 15 contract checks passed`);

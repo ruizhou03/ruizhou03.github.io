@@ -34,6 +34,7 @@
     app: byId('picker-app'),
     editor: document.querySelector('.picker-editor'),
     draw: document.querySelector('.picker-draw'),
+    modePanel: document.querySelector('.picker-mode-panel'),
     list: byId('options-list'),
     optionCount: byId('option-count'),
     add: byId('add-btn'),
@@ -54,6 +55,7 @@
     roundPresets: byId('round-presets'),
     roundsCustom: byId('rounds-custom'),
     probabilityLabel: byId('probability-label'),
+    modeProbabilityCopy: byId('mode-probability-copy'),
     wheel: byId('wheel'),
     spin: byId('spin-btn'),
     skip: byId('skip-btn'),
@@ -375,6 +377,7 @@
     el.weightTools.hidden = !state.weighted;
     el.advancedSummary.textContent = state.weighted ? '自定义权重' : '等概率';
     el.probabilityLabel.textContent = state.weighted ? '按权重抽取' : '等概率';
+    el.modeProbabilityCopy.textContent = state.weighted ? '按权重抽取' : '等概率';
   }
 
   function renderAll() {
@@ -455,7 +458,8 @@
   function setBusy(busy) {
     state.busy = busy;
     el.editor.setAttribute('aria-busy', busy ? 'true' : 'false');
-    el.app.querySelectorAll('.picker-editor input, .picker-editor textarea, .picker-editor button, .picker-board button').forEach(function (control) {
+    el.modePanel.setAttribute('aria-busy', busy ? 'true' : 'false');
+    el.app.querySelectorAll('.picker-editor input, .picker-editor textarea, .picker-editor button, .picker-mode-panel input, .picker-mode-panel button:not(#skip-btn), .picker-board button').forEach(function (control) {
       control.disabled = busy;
     });
     el.spin.disabled = busy;
