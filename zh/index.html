@@ -513,11 +513,9 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
     <span class="brand__la">Zircon</span>
   </a>
   <nav class="mainnav" aria-label="板块导航">
-    <a href="/notes/">学习资料</a>
-    <a href="/research/"{% if site.data.visibility.sections contains '科研妙招' %} data-hidden="true"{% endif %}>科研妙招</a>
-    <a href="/life/"{% if site.data.visibility.sections contains '生活攻略' %} data-hidden="true"{% endif %}>生活攻略</a>
-    <a href="/essays/"{% if site.data.visibility.sections contains '随笔漫谈' %} data-hidden="true"{% endif %}>随笔漫谈</a>
-    <a href="/toolbox/"{% if site.data.visibility.sections contains '百宝箱' %} data-hidden="true"{% endif %}>百宝箱</a>
+    {% for nav_item in site.data.navigation %}
+    <a href="{{ nav_item.url | relative_url }}"{% if site.data.visibility.sections contains nav_item.label %} data-hidden="true"{% endif %}>{{ nav_item.label }}</a>
+    {% endfor %}
   </nav>
   <div class="util">
     <button class="ico" id="nav-search-btn" type="button" aria-label="搜索" title="搜索"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>

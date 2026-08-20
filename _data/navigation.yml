@@ -1,0 +1,11 @@
+# 中文站桌面顶栏的唯一顺序源；首页与 default layout 必须共同读取本文件。
+- label: 学习资料
+  url: /notes/
+- label: 科研妙招
+  url: /research/
+- label: 生活攻略
+  url: /life/
+- label: 百宝箱
+  url: /toolbox/
+- label: 随笔漫谈
+  url: /essays/

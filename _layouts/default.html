@@ -168,11 +168,9 @@
 
       <ul class="nav-links">
         <li class="nav-link-home"><a href="{{ site.baseurl }}/zh/">锆铌</a></li>
-        <li><a href="{{ site.baseurl }}/notes/">学习资料</a></li>
-        <li{% if hide_research %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/research/">科研妙招</a></li>
-        <li{% if hide_life %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/life/">生活攻略</a></li>
-        <li{% if hide_toolbox %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/toolbox/">百宝箱</a></li>
-        <li{% if hide_essays %} data-section-hidden="true"{% endif %}><a href="{{ site.baseurl }}/essays/">随笔漫谈</a></li>
+        {% for nav_item in site.data.navigation %}
+        <li{% if vis_sections contains nav_item.label %} data-section-hidden="true"{% endif %}><a href="{{ nav_item.url | relative_url }}">{{ nav_item.label }}</a></li>
+        {% endfor %}
         <li class="nav-settings">
           <button type="button" class="nav-set-btn" data-theme-btn onclick="toggleTheme()" aria-label="切换明暗"><span class="tt-glyph">&#9680;</span> <span class="tt-label">主题</span></button>
           <a class="nav-set-btn" href="{{ site.baseurl }}/">EN 英文站</a>
