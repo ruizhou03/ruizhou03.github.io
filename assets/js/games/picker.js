@@ -60,6 +60,7 @@
     spin: byId('spin-btn'),
     skip: byId('skip-btn'),
     status: byId('picker-status'),
+    resultPlaceholder: byId('result-placeholder'),
     resultCard: byId('result-card'),
     resultEyebrow: byId('result-eyebrow'),
     resultMain: byId('result-main'),
@@ -87,6 +88,24 @@
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  var viewportFitFrame = 0;
+  function updateViewportFit() {
+    var visual = window.visualViewport;
+    var viewportHeight = Math.round(visual ? visual.height : window.innerHeight);
+    var nav = document.querySelector('body > nav');
+    var navHeight = nav ? Math.ceil(nav.getBoundingClientRect().height) : 0;
+    var available = Math.max(360, viewportHeight - navHeight - 8);
+    document.documentElement.style.setProperty('--picker-nav-height', navHeight + 'px');
+    document.documentElement.style.setProperty('--picker-viewport-height', available + 'px');
+    el.app.dataset.fit = available < 600 ? 'tight' : (available < 720 ? 'compact' : 'normal');
+    el.app.dataset.visualScale = String(Math.round(((visual && visual.scale) || 1) * 100) / 100);
+    el.app.dataset.pixelRatio = String(Math.round((window.devicePixelRatio || 1) * 100) / 100);
+  }
+  function scheduleViewportFit() {
+    cancelAnimationFrame(viewportFitFrame);
+    viewportFitFrame = requestAnimationFrame(updateViewportFit);
   }
 
   function readStorage(key, fallback) {
@@ -135,6 +154,8 @@
     if (state.busy) return;
     state.lastResultText = '';
     state.tieCandidates = [];
+    el.resultPlaceholder.hidden = false;
+    el.resultPlaceholder.textContent = '转动之后，答案会落在这里。';
     el.resultCard.hidden = true;
     el.tieBreak.hidden = true;
     el.tally.hidden = true;
@@ -495,9 +516,10 @@
     }
     setBusy(true);
     clearHighlights();
+    el.resultPlaceholder.hidden = false;
+    el.resultPlaceholder.textContent = '转盘正在寻找答案…';
     el.resultCard.hidden = true;
     el.status.textContent = '正在抽取…';
-    el.draw.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     var outcome;
     var animationIndex;
@@ -529,6 +551,7 @@
     el.resultMain.innerHTML = '这次选中：<strong>' + escapeHtml(name) + '</strong>';
     el.tally.hidden = true;
     el.tieBreak.hidden = true;
+    el.resultPlaceholder.hidden = true;
     el.resultCard.hidden = false;
     state.lastResultText = '抽取结果：' + name;
     recordHistory(name, '抽一个');
@@ -541,6 +564,7 @@
     el.resultMain.innerHTML = '<ol class="picker-result-list">' + names.map(function (name) { return '<li><strong>' + escapeHtml(name) + '</strong></li>'; }).join('') + '</ol>';
     el.tally.hidden = true;
     el.tieBreak.hidden = true;
+    el.resultPlaceholder.hidden = true;
     el.resultCard.hidden = false;
     state.lastResultText = '抽取结果：\n' + names.map(function (name, index) { return (index + 1) + '. ' + name; }).join('\n');
     recordHistory(names.join('、'), '不重复抽出 ' + names.length + ' 项');
@@ -579,6 +603,7 @@
       state.lastResultText = state.rounds + ' 轮决胜：' + names.join('、') + ' 同为 ' + outcome.max + ' 票，并列';
       recordHistory(names.join('、') + '并列', state.rounds + ' 轮决胜 · ' + outcome.max + ' 票');
     }
+    el.resultPlaceholder.hidden = true;
     el.resultCard.hidden = false;
   }
 
@@ -599,6 +624,8 @@
     el.status.textContent = '';
     el.resultEyebrow.textContent = '并列项随机决胜';
     el.resultMain.innerHTML = '最终选中：<strong>' + escapeHtml(options[winnerIndex].text) + '</strong>';
+    el.resultPlaceholder.hidden = true;
+    el.resultCard.hidden = false;
     el.tieBreak.hidden = true;
     state.lastResultText = '并列项随机决胜：' + options[winnerIndex].text;
     recordHistory(options[winnerIndex].text, '并列项随机决胜');
@@ -852,7 +879,17 @@
     applyHash();
   });
 
+  window.addEventListener('resize', scheduleViewportFit, { passive: true });
+  window.addEventListener('orientationchange', scheduleViewportFit, { passive: true });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', scheduleViewportFit, { passive: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleViewportFit);
+  if (window.ResizeObserver) {
+    var globalNav = document.querySelector('body > nav');
+    if (globalNav) new ResizeObserver(scheduleViewportFit).observe(globalNav);
+  }
+
   state.profiles = loadProfiles();
   state.history = loadHistory();
+  scheduleViewportFit();
   if (!applyHash()) renderAll();
 }());

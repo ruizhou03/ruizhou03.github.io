@@ -28,8 +28,9 @@ assert.ok(!html.includes('<main class="picker-workspace">'), 'nested main would 
 const editorPosition = html.indexOf('class="picker-panel picker-editor"');
 const drawPosition = html.indexOf('class="picker-panel picker-draw"');
 const modePosition = html.indexOf('class="picker-panel picker-mode-panel"');
-assert.ok(editorPosition > 0 && editorPosition < drawPosition && drawPosition < modePosition, 'editorial grid must render as 01 options, 03 result, 02 mode');
-assert.ok(html.indexOf('id="spin-btn"') > modePosition, 'primary draw action must live in the mode column');
+assert.ok(editorPosition > 0 && editorPosition < modePosition && modePosition < drawPosition, 'reading order must render as 01 options, 02 mode, 03 result');
+assert.ok(html.indexOf('id="spin-btn"') > modePosition && html.indexOf('id="spin-btn"') < drawPosition, 'primary draw action must live in the mode column');
+assert.ok(html.includes('id="result-placeholder"'), 'result column must reserve a non-overlay result slot');
 assert.ok(html.indexOf('/assets/js/games/picker-core.js') < html.indexOf('/assets/js/games/picker.js'), 'core script must load before UI script');
 
 function pngSize(file) {
@@ -46,4 +47,4 @@ for (const line of uiSource.split('\n').filter(line => line.includes('lastResult
   assert.ok(!line.includes('[[zi:'), 'copied result text must not contain icon markers');
 }
 
-console.log(`picker markup: ${ids.length} unique ids and 15 contract checks passed`);
+console.log(`picker markup: ${ids.length} unique ids and 16 contract checks passed`);

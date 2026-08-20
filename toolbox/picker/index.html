@@ -54,27 +54,6 @@ body_class: picker-page-body
       </details>
     </section>
 
-    <section class="picker-panel picker-draw" aria-labelledby="draw-title">
-      <div class="picker-panel-head picker-draw-head">
-        <div><p class="picker-step">03 · RESULT</p><h2 id="draw-title">让转盘决定</h2></div>
-        <span class="picker-probability-label" id="probability-label">等概率</span>
-      </div>
-      <div class="picker-wheel-wrap">
-        <div class="picker-pointer" aria-hidden="true"></div>
-        <svg class="picker-wheel" id="wheel" viewBox="0 0 240 240" role="img" aria-labelledby="wheel-title wheel-desc"><title id="wheel-title">随机抽取转盘</title><desc id="wheel-desc">转盘扇区对应左侧选项和概率</desc></svg>
-      </div>
-      <div class="picker-result" id="result-card" hidden>
-        <p class="picker-result-eyebrow" id="result-eyebrow">抽取结果</p>
-        <div class="picker-result-main" id="result-main" aria-live="polite" aria-atomic="true"></div>
-        <div class="picker-tally" id="tally" hidden></div>
-        <div class="picker-result-actions">
-          <button type="button" class="picker-button picker-button-primary-small" id="again-btn">[[zi:refresh]] 再抽一次</button>
-          <button type="button" class="picker-button picker-button-quiet" id="copy-result-btn">[[zi:copy]] 复制结果</button>
-          <button type="button" class="picker-button picker-button-quiet" id="tie-break-btn" hidden>并列项随机决胜</button>
-        </div>
-      </div>
-    </section>
-
     <section class="picker-panel picker-mode-panel" aria-labelledby="mode-title">
       <div class="picker-panel-head">
         <div><p class="picker-step">02 · MODE</p><h2 id="mode-title">抽取方式</h2></div>
@@ -104,6 +83,30 @@ body_class: picker-page-body
         <p class="picker-shortcut">SPACE · 快速抽取</p>
       </div>
       <p class="picker-status" id="picker-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="picker-panel picker-draw" aria-labelledby="draw-title">
+      <div class="picker-panel-head picker-draw-head">
+        <div><p class="picker-step">03 · RESULT</p><h2 id="draw-title">让转盘决定</h2></div>
+        <span class="picker-probability-label" id="probability-label">等概率</span>
+      </div>
+      <div class="picker-wheel-wrap">
+        <div class="picker-pointer" aria-hidden="true"></div>
+        <svg class="picker-wheel" id="wheel" viewBox="0 0 240 240" role="img" aria-labelledby="wheel-title wheel-desc"><title id="wheel-title">随机抽取转盘</title><desc id="wheel-desc">转盘扇区对应左侧选项和概率</desc></svg>
+      </div>
+      <div class="picker-result-slot">
+        <p class="picker-result-placeholder" id="result-placeholder">转动之后，答案会落在这里。</p>
+        <div class="picker-result" id="result-card" hidden>
+          <p class="picker-result-eyebrow" id="result-eyebrow">抽取结果</p>
+          <div class="picker-result-main" id="result-main" aria-live="polite" aria-atomic="true"></div>
+          <div class="picker-tally" id="tally" hidden></div>
+          <div class="picker-result-actions">
+            <button type="button" class="picker-button picker-button-primary-small" id="again-btn">[[zi:refresh]] 再抽一次</button>
+            <button type="button" class="picker-button picker-button-quiet" id="copy-result-btn">[[zi:copy]] 复制结果</button>
+            <button type="button" class="picker-button picker-button-quiet" id="tie-break-btn" hidden>并列项随机决胜</button>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 
