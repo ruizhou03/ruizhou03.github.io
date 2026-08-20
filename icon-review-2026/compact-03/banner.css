@@ -1,0 +1,19 @@
+.next-round {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: min(1120px, calc(100% - 36px));
+  margin: 24px auto -34px;
+  padding: 14px 17px;
+  border: 1px solid rgba(115, 146, 105, .38);
+  border-radius: 15px;
+  background: rgba(255, 253, 248, .86);
+}
+.next-round strong { display: block; font-family: var(--serif); }
+.next-round span { display: block; margin-top: 2px; color: var(--muted); font-size: .78rem; }
+.next-round a { flex: none; padding: 8px 12px; border-radius: 999px; color: #fff; background: var(--sage); font-size: .78rem; font-weight: 750; text-decoration: none; }
+@media (max-width: 650px) {
+  .next-round { display: block; margin-bottom: -24px; }
+  .next-round a { display: inline-block; margin-top: 10px; }
+}

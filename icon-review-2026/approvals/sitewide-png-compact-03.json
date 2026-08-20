@@ -1,0 +1,21 @@
+{
+  "format": "ICON_REVIEW_V2",
+  "batch": "sitewide-png-compact-03",
+  "revision": 3,
+  "audited_commit": "dfbb5042",
+  "exported_at": "2026-08-20T16:14:54.294Z",
+  "global_note": "",
+  "detailed_masters": "approved in sitewide-png-refine-02",
+  "scenes": [
+    { "id": "toolbox.blackjack", "revision": 3, "decision": "compact", "note": "" },
+    { "id": "toolbox.solitaire", "revision": 3, "decision": "compact", "note": "" },
+    { "id": "toolbox.random", "revision": 3, "decision": "revise", "note": "右边那个三角形，或者我理解你可能是想发正态分布，我感觉太丑了" },
+    { "id": "toolbox.time", "revision": 3, "decision": "revise", "note": "不够直观。整体方向是对的" },
+    { "id": "toolbox.metronome", "revision": 3, "decision": "revise", "note": "可以继续优化，方向是对的" },
+    { "id": "toolbox.pitch", "revision": 3, "decision": "revise", "note": "会让人感觉有点迷惑，不够直观，需要修改" },
+    { "id": "toolbox.picker", "revision": 3, "decision": "revise", "note": "compact版本看不出来是一个转盘" },
+    { "id": "toolbox.grouper", "revision": 3, "decision": "revise", "note": "最小版本有点太花了显得。或许可以图标里少几个‘人’" },
+    { "id": "toolbox.roll-call", "revision": 3, "decision": "revise", "note": "太抽象了" },
+    { "id": "toolbox.countdown", "revision": 3, "decision": "revise", "note": "方向是对的，但是太抽象了" }
+  ]
+}
