@@ -21,11 +21,11 @@ body.picker-page-body > main {
   padding-left: clamp(1rem, 3vw, 3.25rem);
 }
 
-body.picker-page-body:has(.picker-board[open], .picker-advanced[open], .picker-bulk:not([hidden])) {
+body.picker-page-body:has(.picker-board[open], .picker-bulk:not([hidden])) {
   overflow-y: auto;
 }
 
-body.picker-page-body:has(.picker-board[open], .picker-advanced[open], .picker-bulk:not([hidden])) > main {
+body.picker-page-body:has(.picker-board[open], .picker-bulk:not([hidden])) > main {
   height: auto;
   min-height: var(--picker-viewport-height, calc(100dvh - 76px));
   overflow: visible;
@@ -206,6 +206,7 @@ body.picker-page-body:has(.picker-board[open], .picker-advanced[open], .picker-b
 
 .picker-option {
   display: grid;
+  flex: 0 0 auto;
   grid-template-columns: 36px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 0.4rem;
@@ -400,6 +401,7 @@ body.picker-page-body:has(.picker-board[open], .picker-advanced[open], .picker-b
 .picker-switch input:checked + span::after { transform: translateX(19px); }
 .picker-switch input:focus-visible + span { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .picker-weight-tools { margin-top: 0.7rem; }
+.picker-weight-tools .picker-button { width: 100%; }
 
 .picker-draw {
   position: relative;
@@ -551,9 +553,40 @@ body.picker-page-body:has(.picker-board[open], .picker-advanced[open], .picker-b
 }
 
 .picker-mode-setting input { width: 66px; height: 38px; padding: 0 0.35rem; text-align: center; font-size: 0.8rem; }
+.picker-rounds {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(78px, 1fr);
+  gap: 0.4rem;
+}
+.picker-mode-setting-label {
+  grid-column: 1 / -1;
+  color: var(--color-ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
 .picker-round-presets { display: flex; gap: 0.25rem; }
-.picker-round-presets button { min-width: 40px; height: 40px; border: 1px solid var(--picker-line); border-radius: 999px; background: var(--picker-paper-light); color: var(--picker-muted); font: inherit; cursor: pointer; }
+.picker-round-presets button { min-width: 0; height: 40px; flex: 1 1 0; border: 1px solid var(--picker-line); border-radius: 999px; background: var(--picker-paper-light); color: var(--picker-muted); font: inherit; cursor: pointer; }
 .picker-round-presets button.is-active { border-color: var(--picker-navy); background: var(--picker-navy); color: #fff; }
+.picker-round-custom {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+.picker-round-custom input {
+  width: 100%;
+  height: 40px;
+  padding-right: 1.3rem;
+  border-radius: 10px;
+}
+.picker-round-custom span {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  transform: translateY(-50%);
+  color: var(--picker-muted);
+  font-size: 0.68rem;
+  pointer-events: none;
+}
 
 .picker-mode-summary {
   display: flex;
@@ -791,7 +824,7 @@ body.picker-page-body:has(.picker-board[open], .picker-advanced[open], .picker-b
   .picker-step { font-size: 0.52rem; }
   .picker-option-count,
   .picker-probability-label { min-height: 23px; padding-inline: 0.45rem; }
-  .picker-list { max-height: 82px; gap: 0.24rem; }
+  .picker-list { min-height: 70px; max-height: 82px; flex-basis: 70px; gap: 0.24rem; }
   .picker-option { grid-template-columns: 28px minmax(0, 1fr) 38px; padding: 0 0.25rem; }
   .picker-option-marker small { display: none; }
   .picker-option-input { height: 34px; font-size: 0.8rem; }
@@ -800,15 +833,35 @@ body.picker-page-body:has(.picker-board[open], .picker-advanced[open], .picker-b
   .picker-editor-actions .picker-button { min-height: 31px; }
   .picker-advanced { margin-top: 0.3rem; }
   .picker-advanced summary { min-height: 29px; }
+  .picker-advanced[open] > summary { min-height: 24px; }
+  .picker-advanced[open] .picker-advanced-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.12rem 0 0.28rem;
+  }
+  .picker-advanced[open] .picker-switch-row { min-height: 30px; }
+  .picker-advanced[open] .picker-switch-row strong { font-size: 0.76rem; }
+  .picker-advanced[open] .picker-weight-tools { margin-top: 0; }
+  .picker-advanced[open] .picker-weight-tools .picker-button { width: auto; min-height: 29px; padding-inline: 0.6rem; font-size: 0.66rem; }
   .picker-mode-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.38rem; }
+  .picker-mode-panel .picker-panel-head { min-height: 24px; margin-bottom: 0.22rem; }
+  .picker-mode-panel .picker-panel-head > div { display: flex; align-items: baseline; gap: 0.45rem; }
+  .picker-mode-panel .picker-panel-head h2 { margin: 0; }
   .picker-mode-tabs button { min-height: 42px; padding: 0.3rem 0.2rem; text-align: center; }
   .picker-mode-tabs button strong { font-size: 0.7rem; }
   .picker-mode-tabs button small { display: none; }
-  .picker-mode-summary { margin-top: 0.3rem; padding: 0.28rem 0; }
-  .picker-action-dock { margin-top: 0.3rem; padding-top: 0; }
-  .picker-spin { min-height: 40px; font-size: 0.78rem; }
+  .picker-mode-summary { display: none; }
+  .picker-rounds { margin-top: 0.3rem; padding: 0.32rem; gap: 0.25rem; }
+  .picker-mode-setting-label { display: none; }
+  .picker-round-presets { gap: 0.18rem; }
+  .picker-round-presets button { height: 34px; }
+  .picker-round-custom input { height: 34px; font-size: 0.72rem; }
+  .picker-action-dock { margin-top: 0.22rem; padding-top: 0; }
+  .picker-spin { min-height: 38px; font-size: 0.76rem; }
   .picker-shortcut { display: none; }
-  .picker-status { margin-top: 0.2rem; }
+  .picker-status { min-height: 0; margin: 0; }
   .picker-draw { grid-template-rows: auto minmax(145px, 1fr) minmax(44px, auto); }
   .picker-wheel-wrap { width: min(160px, 44vw, calc(var(--picker-viewport-height) * 0.23)); margin: auto; }
   .picker-wheel-wrap::before { inset: -10px; box-shadow: 0 0 0 5px rgba(255,255,255,0.18), 0 0 0 18px rgba(30,58,95,0.025); }

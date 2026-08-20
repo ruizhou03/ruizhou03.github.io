@@ -43,11 +43,10 @@ body_class: picker-page-body
         <summary>高级设置 <span id="advanced-summary">等概率</span></summary>
         <div class="picker-advanced-body">
           <label class="picker-switch-row" for="weighted-toggle">
-            <span><strong>自定义权重</strong><small>关闭时每个选项机会相同</small></span>
+            <span><strong>自定义权重</strong></span>
             <span class="picker-switch"><input type="checkbox" id="weighted-toggle"><span aria-hidden="true"></span></span>
           </label>
           <div class="picker-weight-tools" id="weight-tools" hidden>
-            <p>百分比总和始终为 100%。锁定一项后，调整其他项不会改变它。</p>
             <button type="button" class="picker-button picker-button-quiet" id="equal-btn">[[zi:scale]] 恢复等概率</button>
           </div>
         </div>
@@ -70,11 +69,11 @@ body_class: picker-page-body
         <label for="multiple-count">抽出</label><input type="number" id="multiple-count" min="2" max="2" value="2" inputmode="numeric"><span>个不重复结果</span>
       </div>
       <div class="picker-mode-setting picker-rounds" id="tournament-setting" hidden>
-        <span>进行</span>
+        <span class="picker-mode-setting-label">决胜轮次</span>
         <div class="picker-round-presets" id="round-presets">
           <button type="button" data-rounds="3">3</button><button type="button" class="is-active" data-rounds="5">5</button><button type="button" data-rounds="10">10</button>
         </div>
-        <input type="number" id="rounds-custom" min="3" max="1000" placeholder="自定义" inputmode="numeric" aria-label="自定义轮数，3 到 1000"><span>轮</span>
+        <label class="picker-round-custom" for="rounds-custom"><input type="number" id="rounds-custom" min="3" max="1000" placeholder="自定义" inputmode="numeric" aria-label="自定义轮数，3 到 1000"><span>轮</span></label>
       </div>
       <div class="picker-mode-summary"><span>当前概率</span><strong id="mode-probability-copy">等概率</strong></div>
       <div class="picker-action-dock">
