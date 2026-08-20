@@ -1,0 +1,22 @@
+{
+  "format": "ICON_REVIEW_V2",
+  "batch": "sitewide-png-compact-06",
+  "revision": 6,
+  "audited_commit": "dfbb5042",
+  "exported_at": "2026-08-20T18:23:05.740Z",
+  "global_note": "",
+  "locked": [
+    { "id": "toolbox.blackjack", "decision": "compact-r3" },
+    { "id": "toolbox.solitaire", "decision": "compact-r3" },
+    { "id": "toolbox.random", "decision": "compact-r4" },
+    { "id": "toolbox.time", "decision": "compact-r4" },
+    { "id": "toolbox.picker", "decision": "compact-r5-A" },
+    { "id": "toolbox.grouper", "decision": "compact-r4" },
+    { "id": "toolbox.countdown", "decision": "compact-r5-B" }
+  ],
+  "scenes": [
+    { "id": "toolbox.metronome", "revision": 6, "decision": "A", "note": "说实话还没有很满意。" },
+    { "id": "toolbox.pitch", "revision": 6, "decision": "A", "note": "" }
+  ],
+  "architecture": { "id": "toolbox.random-suite", "decision": "B", "note": "" }
+}

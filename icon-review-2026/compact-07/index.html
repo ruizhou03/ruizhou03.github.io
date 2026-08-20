@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f4ecdc">
+  <title>全站图标改造 · 第七轮最终设计收口</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body class="compact7">
+  <header class="hero"><div class="wrap">
+    <a class="back" href="../compact-06/">← 返回第六轮图标与架构批阅</a>
+    <p class="eyebrow">ICON REVIEW · FINAL DESIGN 07</p>
+    <h1>最后两张：节拍器与随机工具馆</h1>
+    <p class="lead">音高 A 与“单入口随机工具馆”架构 B 已锁定。本轮只选择机械节拍器的成熟视觉处理，以及新入口卡片的图标。两项确定后进入正式实施。</p>
+    <div class="stats"><div><strong>8</strong><span>张 Compact 已锁定</span></div><div><strong>B</strong><span>随机工具架构已锁定</span></div><div><strong>6</strong><span>个最终候选</span></div><div><strong>2</strong><span>项待决定</span></div></div>
+  </div></header>
+
+  <main class="wrap">
+    <section class="locked"><div><p class="eyebrow">LOCKED</p><h2>八张图标已经定稿</h2><p>这些选择不会因为最后两张的返工再次打开。</p></div><div id="locked-grid" class="locked-grid"></div></section>
+
+    <section class="architecture-lock"><div><p class="eyebrow">ARCHITECTURE LOCKED · B</p><h2>百宝箱只保留一个“随机工具馆”入口</h2><p>进入后再选转盘、分组或点名。三个现有页面、URL、功能与本地存储完全不变；数值型随机数生成器继续独立。</p></div><div class="hub-preview"><div class="hub-title">随机工具馆</div><div class="hub-cards"><span>转盘</span><span>分组</span><span>点名</span></div></div></section>
+
+    <section class="review"><div class="section-head"><div><p class="eyebrow">FINAL DESIGN DECISIONS</p><h2>两项各选一个 A/B/C</h2><p>所有候选均显示 28、32、48px；也可以单项全部打回。</p></div><div class="progress"><strong id="done-count">0</strong><span>/ 2 已处理</span><i><b id="progress-fill"></b></i></div></div><div id="review-list" class="review-list"></div></section>
+
+    <section class="export" id="export"><div><p class="eyebrow">EXPORT</p><h2>导出最终设计选择</h2><p>导出保留八张锁定图标和架构 B，只记录节拍器与随机工具馆入口图标的最终选择。</p><label><span>总体意见（可选）</span><textarea id="global-note" rows="4" placeholder="例如：节拍器选 B，随机工具馆选 C……"></textarea></label></div><div class="export-actions"><button type="button" class="primary" id="copy-export">复制全部批注</button><button type="button" id="download-export">下载 JSON 文件</button><button type="button" class="quiet" id="preview-export">预览导出内容</button><p id="export-status" role="status" aria-live="polite"></p></div></section>
+    <pre id="export-preview" hidden></pre>
+  </main>
+  <footer>第七轮最终设计收口 · 尚未修改正式百宝箱</footer>
+</body>
+</html>
