@@ -1,0 +1,2 @@
+{%- assign f = include.file -%}
+<li class="sf-entry">{% if f.author == 'Rui Zhou' %}<span class="sf-mark"><span class="gd" aria-hidden="true"></span></span>{% else %}<span class="sf-mark"></span>{% endif %}<a class="sf-open" href="{{ f.url | relative_url }}">{%- assign _t = f.list_title | default: f.title -%}{% include latex-logo.html title=_t %}</a>{% if f.pdf_url %}<a class="sf-dl" href="{{ f.pdf_url | relative_url }}">PDF ↓</a>{% else %}<span></span>{% endif %}</li>

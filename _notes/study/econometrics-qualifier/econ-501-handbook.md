@@ -8,6 +8,8 @@ keywords: ["ECON 501 handbook", "Penn State ECON 501", "概率论 渐近理论",
 discipline: "经济学"
 course: "高级计量经济学（PSU）"
 material_type: "Notes"
+archive_group: "ECON 501"
+archive_order: 10
 date: 2026-08-18
 author: "Rui Zhou"
 permalink: "/notes/econometrics-qualifier/econ-501-handbook"

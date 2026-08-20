@@ -25,5 +25,25 @@
   {%- assign _chips_trim = _chips | strip -%}
   {%- capture _face -%}<span class="u-mark">{%- if _isauth -%}<span class="gd" aria-hidden="true"></span>{%- endif -%}</span><span class="u-orn" aria-hidden="true">&#10086;</span><span class="u-latin">{{ include.latin }}</span><span class="u-name"><span class="u-nm">{{ include.name }}</span></span><span class="u-types">{% if _chips_trim != "" %}{{ _chips_trim }}{% else %}<span class="chip">资料</span>{% endif %}</span><span class="u-count">{{ _pub.size }} 份</span>{% if _isauth %}<span class="u-seal">自著讲义</span>{% endif %}{%- endcapture -%}
   {%- capture _search -%}{{ include.name }} {{ include.latin }} {{ include.search }}{%- endcapture -%}
-  <a class="unit {{ include.color }}{% if _isauth %} authored{% endif %}" href="{{ _primary.url | relative_url }}" data-name="{{ include.name }}" data-latin="{{ include.latin }}" data-search="{{ _search | strip }}">{{ _face }}</a><template class="unit-files">{%- for f in _ordered -%}<li>{% if f.author == 'Rui Zhou' %}<span class="sf-mark"><span class="gd" aria-hidden="true"></span></span>{% else %}<span class="sf-mark"></span>{% endif %}<a class="sf-open" href="{{ f.url | relative_url }}">{%- assign _t = f.list_title | default: f.title -%}{% include latex-logo.html title=_t %}</a>{% if f.pdf_url %}<a class="sf-dl" href="{{ f.pdf_url | relative_url }}">PDF ↓</a>{% else %}<span></span>{% endif %}</li>{%- endfor -%}</template>
+  {%- assign _has_groups = false -%}
+  {%- for f in _ordered -%}{%- if f.archive_group -%}{%- assign _has_groups = true -%}{%- endif -%}{%- endfor -%}
+  <a class="unit {{ include.color }}{% if _isauth %} authored{% endif %}" href="{{ _primary.url | relative_url }}" data-name="{{ include.name }}" data-latin="{{ include.latin }}" data-search="{{ _search | strip }}">{{ _face }}</a><template class="unit-files">
+    {%- if _has_groups -%}
+      {%- assign _group_order = "ECON 501|ECON 510|Qualifying Exam" | split: "|" -%}
+      {%- for group_name in _group_order -%}
+        {%- assign _group_files = _ordered | where: "archive_group", group_name | sort: "archive_order" -%}
+        {%- if _group_files.size > 0 -%}
+          <li class="sf-group" role="presentation"><span>{{ group_name }}</span></li>
+          {%- for f in _group_files -%}{%- include archive-file-row.html file=f -%}{%- endfor -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- assign _ungrouped = _ordered | where_exp: "f", "f.archive_group == nil" -%}
+      {%- if _ungrouped.size > 0 -%}
+        <li class="sf-group" role="presentation"><span>Other</span></li>
+        {%- for f in _ungrouped -%}{%- include archive-file-row.html file=f -%}{%- endfor -%}
+      {%- endif -%}
+    {%- else -%}
+      {%- for f in _ordered -%}{%- include archive-file-row.html file=f -%}{%- endfor -%}
+    {%- endif -%}
+  </template>
 {%- endif -%}

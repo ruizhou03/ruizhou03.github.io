@@ -8,6 +8,8 @@ keywords: ["econometrics qualifier solutions", "博资考 参考答案", "Penn S
 discipline: "经济学"
 course: "高级计量经济学（PSU）"
 material_type: "Exams"
+archive_group: "Qualifying Exam"
+archive_order: 20
 date: 2026-08-18
 author: "Rui Zhou"
 permalink: "/notes/econometrics-qualifier/reference-solutions-2017-2025"

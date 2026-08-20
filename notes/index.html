@@ -152,6 +152,10 @@ body_class: notes-wide
   .arch-sheet .sh-files { list-style: none; margin: 0; padding: 0; }
   .arch-sheet .sh-files li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1.1rem; padding: .95rem 0; border-bottom: 1px solid var(--color-border); }
   .arch-sheet .sh-files li:last-child { border-bottom: none; }
+  .arch-sheet .sh-files li.sf-group { display: block; padding: 1.15rem 0 .35rem; border-bottom: 0; }
+  .arch-sheet .sh-files li.sf-group:first-child { padding-top: .2rem; }
+  .arch-sheet .sf-group span { display: flex; align-items: center; gap: .7rem; color: var(--color-muted); font-family: 'Cormorant Garamond', var(--font-display); font-size: .76rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+  .arch-sheet .sf-group span::after { content: ""; height: 1px; flex: 1; background: var(--color-border); }
   /* 精选 ◆ 悬挂到文字左侧留白里，不占布局宽度（分割线/文字/PDF 都不因它错位） */
   .arch-sheet .sf-mark { position: absolute; left: -1.1rem; top: 0; bottom: 0; display: flex; align-items: center; }
   .arch-sheet .sf-open { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; color: var(--color-ink); font-family: var(--font-display); font-weight: 500; font-size: .98rem; transition: color .15s; }
@@ -406,7 +410,7 @@ body_class: notes-wide
     function openSheet(unit) {
       var tpl = unit.nextElementSibling;
       if (!tpl || tpl.tagName !== 'TEMPLATE') return;
-      var n = tpl.content.children.length;
+      var n = tpl.content.querySelectorAll('.sf-entry').length;
       shLatin.textContent = unit.dataset.latin || '';
       shName.textContent = unit.dataset.name || '';
       var types = unit.querySelector('.u-types');
