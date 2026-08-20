@@ -178,10 +178,11 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
 .mainnav a:hover::after, .mainnav a:focus-visible::after{ right:0; }
 
 .util{ display:flex; align-items:center; gap:.7rem; justify-self:end; }
-/* 账号控件在首页顶栏也走金细描边 / 金环，与 ◑ / EN 同款质感（顶栏是奶油实色条、非透明，故只需描边不需高对比反色）*/
+/* 账号控件在首页顶栏也走金细描边 / 金环，与月相环 / EN 同款质感（顶栏是奶油实色条、非透明，故只需描边不需高对比反色）*/
 .util #auth-slot .sa-login-btn{ border-color:var(--gold-soft); border-radius:var(--radius-pill); }
 .util #auth-slot .sa-avatar{ box-shadow:0 0 0 1px var(--gold-soft); }
 .ico{ width:34px; height:34px; display:grid; place-items:center; border:1px solid var(--border); border-radius:50%; background:transparent; color:var(--text); cursor:pointer; }
+.theme-phase-ring{ width:16px; height:16px; display:block; border:2px solid currentColor; border-radius:50%; box-shadow:inset 5px -1px 0 var(--gold); }
 .ico:hover{ border-color:var(--gold); color:var(--gold); }
 .ico svg{ width:16px; height:16px; }
 .en{ display:inline-flex; align-items:baseline; gap:.35rem; font-family:var(--font-display); font-size:.86rem; letter-spacing:.14em; color:var(--text); padding:.32rem .66rem; border:1px solid var(--gl-1); border-radius:var(--radius-pill); }
@@ -397,6 +398,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
 .feat__flag{ position:absolute; top:clamp(14px,1.4vw,20px); left:clamp(14px,1.4vw,20px); z-index:2;
   font-family:var(--font-display); font-size:.78rem; letter-spacing:.24em; text-transform:uppercase; color:var(--on-gold);
   background:var(--gold); padding:.34rem .7rem; border-radius:var(--radius-pill); font-weight:600; }
+.feat__flag .zi-icon{ width:1em; height:1em; margin-right:.28em; vertical-align:-.12em; }
 .feat__body{ padding:clamp(1rem,1.8vw,1.5rem); border-top:1px solid var(--gl-2); }
 .feat__cat{ font-family:var(--font-display); font-size:.76rem; letter-spacing:.2em; text-transform:uppercase; color:var(--gold); }
 .feat__title{ font-family:var(--font-display); font-weight:600; color:var(--ink); font-size:clamp(1.3rem,1.9vw,1.85rem); line-height:1.2; margin-top:.35rem; }
@@ -520,7 +522,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
   </nav>
   <div class="util">
     <button class="ico" id="nav-search-btn" type="button" aria-label="搜索" title="搜索"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>
-    <button class="ico js-theme" aria-label="切换深浅主题" type="button">◐</button>
+    <button class="ico js-theme" aria-label="切换深浅主题" type="button"><span class="theme-phase-ring" aria-hidden="true"></span></button>
     <a class="en" href="/" aria-label="切换到英文站"><b>EN</b></a>
     <div id="auth-slot"></div>
   </div>
@@ -664,7 +666,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
               {%- for _c in spotlight limit: 4 -%}
                 {%- assign _cimg = _c.image | default: _c.cover -%}
                 <a class="feat" href="{{ _c.url | relative_url }}">
-                  <div class="feat__media"><span class="feat__flag">★ 精选</span>
+                  <div class="feat__media"><span class="feat__flag">[[zi:sparkle]] 精选</span>
                     {%- if _cimg %}<img src="{{ _cimg | relative_url }}" alt="{{ _c.title | strip_html | escape }}">{% elsif forloop.first %}<img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="{{ _c.title | strip_html | escape }}">{% endif -%}
                   </div>
                   <div class="feat__body"><span class="feat__cat">{{ _c.main_category | default: '学习资料' }}</span><h3 class="feat__title">{% include latex-logo.html title=_c.title %}</h3><time class="feat__date">{{ _c.date | date: "%Y/%m/%d" }}</time></div>

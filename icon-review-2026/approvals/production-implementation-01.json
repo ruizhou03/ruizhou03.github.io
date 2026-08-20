@@ -1,0 +1,39 @@
+{
+  "format": "ICON_IMPLEMENTATION_V1",
+  "implemented_at": "2026-08-20",
+  "toolbox_icons": [
+    { "id": "toolbox.blackjack", "asset": "/assets/icons/blackjack-icon-192.png", "approval": "compact-r3" },
+    { "id": "toolbox.solitaire", "asset": "/assets/icons/solitaire-icon-192.png", "approval": "compact-r3" },
+    { "id": "toolbox.random", "asset": "/assets/icons/random-icon-192.png", "approval": "compact-r4" },
+    { "id": "toolbox.time", "asset": "/assets/icons/time-icon-192.png", "approval": "compact-r4" },
+    { "id": "toolbox.metronome", "asset": "/assets/icons/metronome-icon-192.png", "approval": "detailed-r2-A" },
+    { "id": "toolbox.pitch", "asset": "/assets/icons/pitch-icon-192.png", "approval": "compact-r6-A" },
+    { "id": "toolbox.picker", "asset": "/assets/icons/picker-icon-192.png", "approval": "compact-r5-A" },
+    { "id": "toolbox.grouper", "asset": "/assets/icons/grouper-icon-192.png", "approval": "compact-r4" },
+    { "id": "toolbox.roll-call", "asset": "/assets/icons/roll-call-icon-192.png", "approval": "detailed-r2-C" },
+    { "id": "toolbox.countdown", "asset": "/assets/icons/countdown-icon-192.png", "approval": "compact-r5-B" }
+  ],
+  "ui_scenes": [
+    { "id": "site.feature-marker", "decision": "A", "implementation": "zircon sparkle SVG" },
+    { "id": "site.theme-control", "decision": "C", "implementation": "CSS moon-phase ring with system/light/dark states" },
+    { "id": "flight.itinerary-heading", "decision": "B", "implementation": "zircon suitcase SVG" },
+    { "id": "flight.date-heading", "decision": "A", "implementation": "zircon calendar SVG" },
+    { "id": "flight.transfer-heading", "decision": "B", "implementation": "zircon transfer SVG" },
+    { "id": "flight.calendar-priority", "decision": "C", "implementation": "thin candidate corners and thick ideal corners" },
+    { "id": "flight.sort-controls", "decision": "A", "implementation": "independent zircon chevron buttons" }
+  ],
+  "architecture": {
+    "toolbox.random-suite": "keep-separate"
+  },
+  "preserved_content": [
+    "comment emoji catalog and user-authored emoji",
+    "Doudizhu and Guandan card faces and suits",
+    "international chess pieces",
+    "memory-game card faces",
+    "pet species and user-selected pet emoji",
+    "Suika content family"
+  ],
+  "unapproved_runtime_ui": [
+    { "id": "flight.quick-preset", "token": "⚡", "locations": ["toolbox/flight/index.html picker preset", "toolbox/flight/index.html avoid-region preset"] }
+  ]
+}

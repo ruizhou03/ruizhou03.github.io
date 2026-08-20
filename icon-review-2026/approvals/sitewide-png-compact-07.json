@@ -1,0 +1,11 @@
+{
+  "format": "ICON_REVIEW_V2",
+  "batch": "sitewide-png-compact-07",
+  "revision": 7,
+  "exported_at": "2026-08-20",
+  "architecture": { "id": "toolbox.random-suite", "decision": "keep-separate", "note": "随机点名、随机分组和遇事不决保持现状。" },
+  "scenes": [
+    { "id": "toolbox.metronome", "decision": "reject", "note": "节拍器做的太烂了，都不接受。正式小卡回退到第二轮已批准 Detailed 母版。" },
+    { "id": "toolbox.random-suite-icon", "decision": "not-applicable", "note": "不再新增随机工具馆入口。" }
+  ]
+}

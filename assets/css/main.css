@@ -135,6 +135,10 @@
     /* 桌面主题切换键：与搜索键同款 34px 圆钮（手机端主题在 ☰ 菜单里，故隐藏） */
     .nav-theme-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; font-size: 1rem; line-height: 1; background: var(--color-bg); color: var(--color-muted); border: 1px solid var(--color-border); border-radius: 50%; cursor: pointer; transition: color 0.2s, border-color 0.2s, background 0.2s; }
     .nav-theme-btn:hover { color: var(--color-highlight); border-color: var(--color-highlight); background: var(--color-bg-warm); }
+    .theme-phase-ring { display: inline-block; width: 1rem; height: 1rem; flex: none; border: 2px solid currentColor; border-radius: 50%; }
+    .theme-phase-ring[data-mode="system"] { box-shadow: inset 0.32rem -0.04rem 0 var(--color-highlight); }
+    .theme-phase-ring[data-mode="dark"] { background: currentColor; box-shadow: none; }
+    .theme-phase-ring[data-mode="light"] { background: transparent; box-shadow: none; }
 
     /* 响应式：手机端调整 */
     @media (max-width: 768px) {

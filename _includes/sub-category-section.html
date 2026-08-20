@@ -1,11 +1,11 @@
 {%- comment -%}
-渲染一个 sub_category 小节：书目式列表（序号/★ + 衬线标题 + 赞评/日期）+ 折叠搜索 + 分页。
+渲染一个 sub_category 小节：书目式列表（序号/精选标记 + 衬线标题 + 赞评/日期）+ 折叠搜索 + 分页。
 inputs:
   - sub: 小节标题（中文）
   - posts: 已排序的文章对象数组
   - page_size: 每页几条（默认 5）
   - zone_url: 指定后小节标题变成通往该专区的链接
-序号按「已发布」连续编号；标了 featured 的文章占位显示 ★（编号不跳号），同时出现在栏顶精品带（保栏目完整）。
+序号按「已发布」连续编号；标了 featured 的文章占位显示精选 SVG（编号不跳号），同时出现在栏顶精品带（保栏目完整）。
 搜索/翻页 UI 由 category-listing-tools.html 的 JS 兜底：search-wrap 缺失时 filter/分页安全降级。
 {%- endcomment -%}
 {%- assign _ps = include.page_size | default: 5 -%}
@@ -35,7 +35,7 @@ inputs:
       {%- capture _exp -%}{% include search-expand.html text=_base %}{%- endcapture -%}
       {%- assign _u = post.url | relative_url -%}
       <li class="paginated-item" data-title="{{ _exp | downcase }}" data-url="{{ _u }}" data-hidden="{% if post.hidden %}true{% else %}false{% endif %}" data-trashed="{% if post.trashed %}true{% else %}false{% endif %}" data-featured="{% if post.featured %}true{% else %}false{% endif %}" data-path="{{ post.path }}" data-date="{{ post.date | date: '%Y-%m-%d' }}">
-        <span class="pl-no{% if post.featured %} star{% endif %}" aria-hidden="true">{% if post.featured %}★{% else %}{{ _n | prepend: '00' | slice: -2, 2 }}{% endif %}</span>
+        <span class="pl-no{% if post.featured %} star{% endif %}" aria-hidden="true">{% if post.featured %}[[zi:sparkle]]{% else %}{{ _n | prepend: '00' | slice: -2, 2 }}{% endif %}</span>
         <a href="{{ _u }}" class="pl-link">{% include latex-logo.html title=post.title %}</a>
         <span class="pl-meta">{% include sc-metrics.html url=_u %}<span class="post-date">{% if post.date %}{{ post.date | date: "%Y/%m/%d" }}{% endif %}</span></span>
       </li>

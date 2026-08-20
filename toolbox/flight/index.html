@@ -90,15 +90,16 @@
   .cal-d{font-family:var(--serif);font-size:.95rem;aspect-ratio:1;border:1px solid transparent;border-radius:9px;background:none;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;padding:0}
   @media (hover: hover){.cal-d:hover{box-shadow:inset 0 0 0 1.6px var(--gold)}}
   @media (hover: hover){.cal.mode-arr .cal-d:hover{box-shadow:inset 0 0 0 1.6px #2c8e7a}}
-  /* 单日历·双维度：出发=金(左上角)，到达=青(右下角)；☆候选 / ★(✦)理想；背景沿对角线劈成两半 */
+  /* 单日历·双维度：出发=金(左上角)，到达=青(右下角)；细角标=候选，粗角标=理想 */
   .cal-d{--dep:transparent;--arr:transparent;background:linear-gradient(135deg,var(--dep) 0 50%,var(--arr) 50% 100%)}
   .cal-d.dpc{--dep:rgba(201,169,110,.22)} .cal-d.dpi{--dep:rgba(201,169,110,.5)}
   .cal-d.arc{--arr:rgba(44,142,122,.16)} .cal-d.ari{--arr:rgba(44,142,122,.42)}
   .cal-d.dpi,.cal-d.ari{color:var(--ink);font-weight:600}
-  .cal-d::before{position:absolute;top:2px;left:4px;font-size:.56rem;line-height:1.3;color:var(--gold-d)}
-  .cal-d.dpc::before{content:"☆"} .cal-d.dpi::before{content:"★"}
-  .cal-d::after{position:absolute;bottom:2px;right:4px;font-size:.56rem;line-height:1.3;color:#2c8e7a}
-  .cal-d.arc::after{content:"✧"} .cal-d.ari::after{content:"✦"}
+  .cal-d::before,.cal-d::after{content:"";position:absolute;width:9px;height:9px;pointer-events:none}
+  .cal-d::before{top:2px;left:2px;border-top-style:solid;border-left-style:solid;border-color:var(--gold-d)}
+  .cal-d.dpc::before{border-width:1px}.cal-d.dpi::before{border-width:3px}
+  .cal-d::after{right:2px;bottom:2px;border-right-style:solid;border-bottom-style:solid;border-color:#2c8e7a}
+  .cal-d.arc::after{border-width:1px}.cal-d.ari::after{border-width:3px}
   .cal-range{margin:4px 0 14px;color:var(--ink);font-size:.95rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .cal-range input[type=month]{width:auto}
   .cal-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:.84rem;color:var(--muted);align-items:center}
@@ -147,11 +148,14 @@
   .topic-sum{font-size:.82rem;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .t-arr{display:flex;flex-direction:column;gap:2px;flex:none}
   .t-arr button{border:none;background:var(--warm);color:var(--muted);width:24px;height:18px;border-radius:5px;cursor:pointer;font-size:.7rem;line-height:1;padding:0}
+  .t-arr button .zi-icon{width:13px;height:13px;display:block;margin:auto}
+  .t-arr .sort-up .zi-icon{transform:rotate(180deg)}
   @media (hover: hover){.t-arr button:hover{background:var(--gold);color:#fff}}
   .chev{color:var(--muted);transition:transform .2s;flex:none;font-size:1.1rem}
+  .chev .zi-icon{width:17px;height:17px;display:block}
   .topic.open .chev{transform:rotate(180deg)}
   .topic[data-nocollapse] .chev{display:none}
-  @media(hover:hover) and (pointer:fine){.t-arr{display:none}}  /* 有鼠标→拖柄排序，隐藏 ▲▼；触屏/窄屏保留 */
+  @media(hover:hover) and (pointer:fine){.t-arr{display:none}}  /* 有鼠标→拖柄排序，隐藏上下按钮；触屏/窄屏保留 */
   .topic-body{display:none;padding:4px 14px 14px 52px;border-top:1px solid var(--line)}
   .topic.open .topic-body{display:block}
   .card>.topic-body{display:block;padding:0;border-top:none}
@@ -223,7 +227,7 @@
 
   <!-- 1 行程 -->
   <section class="card">
-    <h2><span class="ico">✈︎</span>行程</h2>
+    <h2><span class="ico">[[zi:suitcase]]</span>行程</h2>
     <div class="row" style="margin-bottom:18px">
       <div class="field" style="flex:0 0 auto"><label class="lab">行程类型</label>
         <div class="seg" data-seg><button class="on">单程</button><button>往返</button></div>
@@ -263,26 +267,26 @@
 
   <!-- 2 出行时间（卡片＝主编辑区；与底部「出行时间」条目实时双向同步） -->
   <section class="card" id="dateCard">
-    <h2><span class="ico">❏</span>出行时间<span class="syncbadge">↔ 与下方「出行时间」同步</span></h2>
-    <p class="hint">在同一张日历上标出你的出行时间：先在下方选「出发日」或「到达日」，点你能接受的日子（☆ 候选），再点一下升为 <b>★ 理想</b>，三点取消；按住可拖刷多天。</p>
+    <h2><span class="ico">[[zi:calendar]]</span>出行时间<span class="syncbadge">↔ 与下方「出行时间」同步</span></h2>
+    <p class="hint">在同一张日历上标出你的出行时间：先在下方选「出发日」或「到达日」，点一下标为细角候选，再点一下加粗为<b>理想</b>，三点取消；按住可拖刷多天。</p>
     <div data-datehost></div>
   </section>
 
   <!-- 3 直飞 / 中转（卡片＝主编辑区；与底部「直飞」条目实时双向同步） -->
   <section class="card" id="stopCard">
-    <h2><span class="ico">🔁</span>直飞 / 中转<span class="syncbadge">↔ 与下方「直飞」同步</span></h2>
+    <h2><span class="ico">[[zi:transfer]]</span>直飞 / 中转<span class="syncbadge">↔ 与下方「直飞」同步</span></h2>
     <div data-stophost></div>
   </section>
 
   <!-- 4 你最在乎什么 -->
   <section class="card">
     <h2><span class="ico">≡</span>你最在乎什么</h2>
-    <p class="hint">拖动排序（手机点 ▲▼）＝<b>越靠上越重要</b>；点开每一项就地设置它的具体要求。</p>
+    <p class="hint">拖动排序（手机用上下箭头）＝<b>越靠上越重要</b>；点开每一项就地设置它的具体要求。</p>
     <ul class="topics" id="topics">
       <li class="topic top" data-key="price">
         <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">1</span>
           <div class="topic-main"><div class="topic-name">价格</div><div class="topic-sum">未设置</div></div>
-          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+          <span class="t-arr"><button class="sort-up" data-up onclick="moveTopic(this,-1,event)" aria-label="上移">[[zi:chevron]]</button><button class="sort-down" data-dn onclick="moveTopic(this,1,event)" aria-label="下移">[[zi:chevron]]</button></span><span class="chev">[[zi:chevron]]</span></div>
         <div class="topic-body">
           <div class="row">
             <div class="field"><label class="lab">目标价 · 跌到就提醒</label><div class="prefix"><span>$</span><input type="number" id="priceLow" placeholder="如 800"></div></div>
@@ -293,19 +297,19 @@
       <li class="topic" data-key="stop">
         <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">2</span>
           <div class="topic-main"><div class="topic-name">直飞 / 中转<span class="syncbadge">↔ 与上方卡片同步</span></div><div class="topic-sum">最多 1 次中转</div></div>
-          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+          <span class="t-arr"><button class="sort-up" data-up onclick="moveTopic(this,-1,event)" aria-label="上移">[[zi:chevron]]</button><button class="sort-down" data-dn onclick="moveTopic(this,1,event)" aria-label="下移">[[zi:chevron]]</button></span><span class="chev">[[zi:chevron]]</span></div>
         <div class="topic-body"><div data-stophost></div></div>
       </li>
       <li class="topic" data-key="date">
         <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">3</span>
           <div class="topic-main"><div class="topic-name">出行时间<span class="syncbadge">↔ 与上方卡片同步</span></div><div class="topic-sum">日期窗口</div></div>
-          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+          <span class="t-arr"><button class="sort-up" data-up onclick="moveTopic(this,-1,event)" aria-label="上移">[[zi:chevron]]</button><button class="sort-down" data-dn onclick="moveTopic(this,1,event)" aria-label="下移">[[zi:chevron]]</button></span><span class="chev">[[zi:chevron]]</span></div>
         <div class="topic-body"><div data-datehost></div></div>
       </li>
       <li class="topic" data-key="bag">
         <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">4</span>
           <div class="topic-main"><div class="topic-name">行李</div><div class="topic-sum">必须含托运 ≥ 1 件</div></div>
-          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+          <span class="t-arr"><button class="sort-up" data-up onclick="moveTopic(this,-1,event)" aria-label="上移">[[zi:chevron]]</button><button class="sort-down" data-dn onclick="moveTopic(this,1,event)" aria-label="下移">[[zi:chevron]]</button></span><span class="chev">[[zi:chevron]]</span></div>
         <div class="topic-body">
           <div class="sw" style="border:none;padding-left:0"><span class="swl">必须含托运行李</span><button class="toggle on" data-toggle data-reveal="bagcount"></button></div>
           <div class="sw indent" style="border:none;padding-left:0" data-rev="bagcount"><span class="swl">至少托运件数</span><select class="mini"><option selected>1 件</option><option>2 件</option></select></div>
@@ -315,7 +319,7 @@
       <li class="topic" data-key="dur">
         <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">5</span>
           <div class="topic-main"><div class="topic-name">总时长</div><div class="topic-sum">全程 ≤ 34 小时</div></div>
-          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+          <span class="t-arr"><button class="sort-up" data-up onclick="moveTopic(this,-1,event)" aria-label="上移">[[zi:chevron]]</button><button class="sort-down" data-dn onclick="moveTopic(this,1,event)" aria-label="下移">[[zi:chevron]]</button></span><span class="chev">[[zi:chevron]]</span></div>
         <div class="topic-body">
           <div class="sw" style="border:none;padding-left:0"><span class="swl">另设全程时长上限</span><span data-rev="durcap" style="display:none;margin-right:16px" class="num-unit"><input type="number" value="34"><span>小时</span></span><button class="toggle" data-toggle data-reveal="durcap"></button></div>
         </div>
@@ -323,7 +327,7 @@
       <li class="topic" data-key="arr">
         <div class="topic-head" onclick="if(!event.target.closest('.t-arr'))this.parentElement.classList.toggle('open')"><span class="grip">⠿</span><span class="rank">6</span>
           <div class="topic-main"><div class="topic-name">起降时段</div><div class="topic-sum">出发 — · 到达 07:00 – 21:00</div></div>
-          <span class="t-arr"><button data-up onclick="moveTopic(this,-1,event)">▲</button><button data-dn onclick="moveTopic(this,1,event)">▼</button></span><span class="chev">⌄</span></div>
+          <span class="t-arr"><button class="sort-up" data-up onclick="moveTopic(this,-1,event)" aria-label="上移">[[zi:chevron]]</button><button class="sort-down" data-dn onclick="moveTopic(this,1,event)" aria-label="下移">[[zi:chevron]]</button></span><span class="chev">[[zi:chevron]]</span></div>
         <div class="topic-body">
           <div class="sw" style="border:none;padding-left:0"><span class="swl">限定出发时段</span><span data-rev="deptimes" style="display:none;margin-right:16px;white-space:nowrap;font-size:.95rem;color:var(--ink)"><input type="time" value="08:00" style="width:auto"> — <input type="time" value="22:00" style="width:auto"></span><button class="toggle" data-toggle data-reveal="deptimes" id="togDepTimes"></button></div>
           <div class="sw" style="border:none;padding-left:0"><span class="swl">限定到达时段</span><span data-rev="arrtimes" style="display:none;margin-right:16px;white-space:nowrap;font-size:.95rem;color:var(--ink)"><input type="time" value="07:00" style="width:auto"> — <input type="time" value="21:00" style="width:auto"></span><button class="toggle" data-toggle data-reveal="arrtimes"></button></div>
@@ -542,8 +546,8 @@
       return out;
     }
     function counts(){const d=STATE.date;
-      let s='出发 <b>'+(d.depCand.size+d.depIdeal.size)+'</b> 天'+(d.depIdeal.size?'（★'+d.depIdeal.size+' 理想）':'');
-      if(d.arrCand.size+d.arrIdeal.size)s+=' &nbsp;·&nbsp; 到达 <b>'+(d.arrCand.size+d.arrIdeal.size)+'</b> 天'+(d.arrIdeal.size?'（✦'+d.arrIdeal.size+' 理想）':'');
+      let s='出发 <b>'+(d.depCand.size+d.depIdeal.size)+'</b> 天'+(d.depIdeal.size?'（'+d.depIdeal.size+' 天理想）':'');
+      if(d.arrCand.size+d.arrIdeal.size)s+=' &nbsp;·&nbsp; 到达 <b>'+(d.arrCand.size+d.arrIdeal.size)+'</b> 天'+(d.arrIdeal.size?'（'+d.arrIdeal.size+' 天理想）':'');
       return s;}
     function dateHTML(){
       const d=STATE.date;
@@ -559,7 +563,7 @@
         +'<div class="date-counts">'+counts()+'</div>'
         +'<div class="cal-legend"><span><span class="lg-dot" style="background:rgba(201,169,110,.5)"></span>金＝出发（左上）</span>'
         +'<span><span class="lg-dot" style="background:rgba(44,142,122,.42)"></span>青＝到达（右下）</span>'
-        +'<span class="help">点一下选为候选、再点升为理想、三点取消，可按住拖刷多天（出发 ☆→★ · 到达 ✧→✦）</span></div>';
+        +'<span class="help">点一下显示细角候选、再点加粗为理想、三点取消，可按住拖刷多天</span></div>';
     }
     function stopHTML(){
       const s=STATE.stop;
@@ -587,7 +591,7 @@
     /* 摘要文字 */
     const fmtD=s=>{const p=s.split('-');return (+p[1])+'/'+(+p[2]);};
     function rangeOf(g){const a=setsOf(g),all=[...a[0],...a[1]].sort();if(!all.length)return null;return {span:all.length>1?fmtD(all[0])+'–'+fmtD(all[all.length-1]):fmtD(all[0]),ideal:a[1].size};}
-    function dateSummary(){const dep=rangeOf('dep');if(!dep)return '日期窗口（未选）';let s='出发 '+dep.span+(dep.ideal?'（★'+dep.ideal+'天）':'');const a=rangeOf('arr');if(a)s+=' · 到达 '+a.span+(a.ideal?'（✦'+a.ideal+'）':'');return s;}
+    function dateSummary(){const dep=rangeOf('dep');if(!dep)return '日期窗口（未选）';let s='出发 '+dep.span+(dep.ideal?'（'+dep.ideal+' 天理想）':'');const a=rangeOf('arr');if(a)s+=' · 到达 '+a.span+(a.ideal?'（'+a.ideal+' 天理想）':'');return s;}
     const depCount=()=>STATE.date.depCand.size+STATE.date.depIdeal.size;
     function stopSummary(){const s=STATE.stop,lab={'0':'只要直飞','1':'最多 1 转','2':'最多 2 转','3':'最多 3 转','9':'中转不限'}[s.max];if(s.max==='0')return lab;const ex=[];if(s.oneTicket)ex.push('联程一票');if(s.noTransitVisa)ex.push('免过境签');if(s.avoid.length)ex.push('避开 '+s.avoid.length+' 地');return lab+(ex.length?' · '+ex.join(' · '):'');}
     const stopShort=()=>({'0':'直飞','1':'最多 1 转','2':'最多 2 转','3':'最多 3 转','9':'不限中转'})[STATE.stop.max];

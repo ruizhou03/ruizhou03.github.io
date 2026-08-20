@@ -92,7 +92,7 @@
   .post-list-count { font-family: var(--font-display); font-size: 0.82rem; letter-spacing: 0.06em;
     color: var(--color-muted); white-space: nowrap; align-self: center; }
 
-  /* 书目：序号/★ + 衬线标题 + 右侧 meta（赞评 + 日期），金线细分隔 */
+  /* 书目：序号/精选 SVG + 衬线标题 + 右侧 meta（赞评 + 日期），金线细分隔 */
   .paginated-list { border-top: 1px solid var(--gold-soft); }
   .paginated-item {
     display: grid; grid-template-columns: 1.9rem 1fr auto; align-items: baseline;
@@ -102,6 +102,7 @@
   .pl-no { font-family: var(--font-display); font-weight: 600; font-size: 0.92rem;
     color: var(--gold); letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
   .pl-no.star { font-size: 1.05rem; line-height: 1; }
+  .pl-no.star .zi-icon { width: 1em; height: 1em; vertical-align: -0.08em; }
   .pl-no-off { color: var(--color-light); font-weight: 400; }
   .paginated-item a.pl-link {
     font-family: var(--font-display); font-weight: 500; font-size: 1.16rem; line-height: 1.35;
@@ -190,7 +191,7 @@
   var sections = [];
 
   // 按「现存（非隐藏）文章」重编号：hidden/trashed/墓碑 跳过不计数（管理员视角显 ·），
-  // 其余连续 01/02…（featured 占号显 ★）。访客看到连续号；管理员下架/恢复后经 MutationObserver 自动重算。
+  // 其余连续 01/02…（featured 占号显精选 SVG）。访客看到连续号；管理员下架/恢复后经 MutationObserver 自动重算。
   function pad2(n) { return n < 10 ? '0' + n : '' + n; }
   function renumber(list) {
     var pos = 0;
@@ -199,7 +200,11 @@
       var off = li.getAttribute('data-hidden') === 'true' || li.getAttribute('data-trashed') === 'true' || li.classList.contains('sa-tombstone');
       if (off) { no.textContent = '·'; no.classList.remove('star'); no.classList.add('pl-no-off'); return; }
       pos++;
-      if (li.getAttribute('data-featured') === 'true') { no.textContent = '★'; no.classList.add('star'); no.classList.remove('pl-no-off'); }
+      if (li.getAttribute('data-featured') === 'true') {
+        no.textContent = '';
+        if (window.ZirconIcons && window.ZirconIcons.create) no.appendChild(window.ZirconIcons.create('sparkle'));
+        no.classList.add('star'); no.classList.remove('pl-no-off');
+      }
       else { no.textContent = pad2(pos); no.classList.remove('star', 'pl-no-off'); }
     });
   }
