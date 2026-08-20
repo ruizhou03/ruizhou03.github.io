@@ -505,9 +505,10 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
   *{ transition:none !important; }
 }
   </style>
+  <link rel="stylesheet" href="{{ '/assets/css/site-nav.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 </head>
 <body>
-<header class="topbar">
+<header class="topbar site-shell-nav">
   <a class="brand" href="/zh/" aria-label="锆铌 首页">
     <span class="brand__zh">锆铌</span>
     <span class="brand__la">Zircon</span>
@@ -519,7 +520,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
   </nav>
   <div class="util">
     <button class="ico" id="nav-search-btn" type="button" aria-label="搜索" title="搜索"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>
-    <button class="ico js-theme" aria-label="切换深浅主题" type="button">◑</button>
+    <button class="ico js-theme" aria-label="切换深浅主题" type="button">◐</button>
     <a class="en" href="/" aria-label="切换到英文站"><b>EN</b></a>
     <div id="auth-slot"></div>
   </div>
