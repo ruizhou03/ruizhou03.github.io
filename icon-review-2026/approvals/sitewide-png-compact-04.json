@@ -1,0 +1,22 @@
+{
+  "format": "ICON_REVIEW_V2",
+  "batch": "sitewide-png-compact-04",
+  "revision": 4,
+  "audited_commit": "dfbb5042",
+  "exported_at": "2026-08-20T16:49:58.193Z",
+  "global_note": "",
+  "locked": [
+    { "id": "toolbox.blackjack", "decision": "compact-r3" },
+    { "id": "toolbox.solitaire", "decision": "compact-r3" }
+  ],
+  "scenes": [
+    { "id": "toolbox.random", "revision": 4, "decision": "approve", "note": "" },
+    { "id": "toolbox.time", "revision": 4, "decision": "approve", "note": "" },
+    { "id": "toolbox.metronome", "revision": 4, "decision": "revise", "note": "重新设计，现在你有点故步自封了" },
+    { "id": "toolbox.pitch", "revision": 4, "decision": "revise", "note": "不够直观，像一个电压表了反而" },
+    { "id": "toolbox.picker", "revision": 4, "decision": "unreviewed", "note": "可以改的更好看些，现在‘转盘’这几还是不那么直观。我觉得你可以推倒这版设计，多来几版" },
+    { "id": "toolbox.grouper", "revision": 4, "decision": "approve", "note": "" },
+    { "id": "toolbox.roll-call", "revision": 4, "decision": "revise", "note": "太抽象了" },
+    { "id": "toolbox.countdown", "revision": 4, "decision": "revise", "note": "为什么是数字3在中间呢" }
+  ]
+}

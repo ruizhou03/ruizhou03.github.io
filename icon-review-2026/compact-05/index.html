@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f4ecdc">
+  <title>全站图标改造 · 第五轮多概念重设计</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body class="compact5">
+  <header class="hero"><div class="wrap">
+    <a class="back" href="../compact-04/">← 返回第四轮直观性批阅</a>
+    <p class="eyebrow">ICON REVIEW · COMPACT 05</p>
+    <h1>不修旧轮廓，重新提出三种答案</h1>
+    <p class="lead">本轮只处理节拍器、音高、转盘、点名和倒计时。每项都有三个不同概念，不要求沿用上一轮；其余五张 Compact 已锁定。</p>
+    <div class="stats"><div><strong>5</strong><span>张 Compact 已锁定</span></div><div><strong>5</strong><span>个返工场景</span></div><div><strong>15</strong><span>个全新候选</span></div><div><strong>32px</strong><span>第一验收尺寸</span></div></div>
+  </div></header>
+
+  <main class="wrap">
+    <section class="locked"><div><p class="eyebrow">LOCKED</p><h2>五张已经定稿</h2><p>21 点、接龙、随机数、时间和分组保持此前批准版本，不再让返工范围反复膨胀。</p></div><div id="locked-grid" class="locked-grid"></div></section>
+
+    <section class="review">
+      <div class="section-head"><div><p class="eyebrow">REVISION 5</p><h2>每项从三个方向中选择</h2><p>A/B/C 均同时展示 28、32、48px；也可以三套全部打回。</p></div><div class="progress"><strong id="done-count">0</strong><span>/ 5 已处理</span><i><b id="progress-fill"></b></i></div></div>
+      <div class="filters"><button type="button" class="is-active" data-filter="all">全部</button><button type="button" data-filter="unreviewed">未处理</button><button type="button" data-filter="selected">已选择</button><button type="button" data-filter="reject">全部打回</button></div>
+      <div id="review-list" class="review-list"></div><p id="empty" class="empty" hidden>这个筛选下没有项目。</p>
+    </section>
+
+    <section class="export" id="export"><div><p class="eyebrow">EXPORT</p><h2>导出第五轮结果</h2><p>导出会保留五张锁定图标，并记录每项 A/B/C 或全部打回。</p><label><span>总体意见（可选）</span><textarea id="global-note" rows="4" placeholder="例如：转盘选 A；其余都通过，但统一再减少金色……"></textarea></label></div><div class="export-actions"><button type="button" class="primary" id="copy-export">复制全部批注</button><button type="button" id="download-export">下载 JSON 文件</button><button type="button" class="quiet" id="preview-export">预览导出内容</button><p id="export-status" role="status" aria-live="polite"></p></div></section>
+    <pre id="export-preview" hidden></pre>
+  </main>
+  <footer>第五轮多概念批阅台 · 尚未修改正式百宝箱</footer>
+</body>
+</html>

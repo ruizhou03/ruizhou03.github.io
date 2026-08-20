@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect x="8" y="8" width="176" height="176" rx="38" fill="#f7efdf" stroke="#e4d5b8" stroke-width="2"/>
+  <path d="M52 43v48c0 25 17 42 44 42s44-17 44-42V43M96 133v28" fill="none" stroke="#c9a45e" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="62" y="153" width="68" height="14" rx="7" fill="#173a63"/>
+  <text x="96" y="105" text-anchor="middle" fill="#173a63" font-family="Arial,sans-serif" font-size="38" font-weight="800">Hz</text>
+</svg>
