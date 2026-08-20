@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f4ecdc">
+  <title>全站图标改造 · 第六轮图标与随机工具架构</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body class="compact6">
+  <header class="hero"><div class="wrap">
+    <a class="back" href="../compact-05/">← 返回第五轮多概念批阅</a>
+    <p class="eyebrow">ICON REVIEW · ROUND 06</p>
+    <h1>两张图标返工，一个产品架构决定</h1>
+    <p class="lead">节拍器只修摆杆，音高完全换视觉语言；同时单独决定“遇事不决 / 随机分组 / 随机点名”是否以及如何整合。架构选择不会被当成图标批准偷偷实施。</p>
+    <div class="stats"><div><strong>7</strong><span>张 Compact 已锁定</span></div><div><strong>6</strong><span>个图标候选</span></div><div><strong>3</strong><span>种随机工具架构</span></div><div><strong>3</strong><span>项独立决定</span></div></div>
+  </div></header>
+
+  <main class="wrap">
+    <section class="locked"><div><p class="eyebrow">LOCKED</p><h2>七张已定稿</h2><p>21 点、接龙、随机数、时间、转盘、分组和倒计时保持已经批准的版本。</p></div><div id="locked-grid" class="locked-grid"></div></section>
+
+    <section class="icons"><div class="section-head"><div><p class="eyebrow">ICON REVISION 6</p><h2>节拍器与音高各选一个方向</h2><p>所有候选均显示 28、32、48px，也可三套全部打回。</p></div><div class="progress"><strong id="done-count">0</strong><span>/ 3 已处理</span><i><b id="progress-fill"></b></i></div></div><div id="icon-list" class="review-list"></div></section>
+
+    <section class="architecture" id="random-suite"><div class="section-head"><div><p class="eyebrow">PRODUCT ARCHITECTURE</p><h2>三款名单型随机工具如何整合</h2><p>数值型“随机数生成器”不在此次合并范围；这里只处理共享名单输入的三款工具。</p></div></div>
+      <div class="audit-table" role="table" aria-label="当前功能审计"><div class="audit-row audit-head" role="row"><span>工具</span><span>独有能力</span><span>当前本地数据</span></div><div class="audit-row" role="row"><strong>遇事不决</strong><span>权重、抽一个/多个、多轮、历史、分享</span><code>picker.profiles.v2</code></div><div class="audit-row" role="row"><strong>随机分组</strong><span>按组数/人数、余数、属性均衡</span><code>tool.grouper.profiles.v1</code></div><div class="audit-row" role="row"><strong>随机点名</strong><span>不重复池、动画、顺序、导入导出</span><code>tool.rollcall.profiles.v1</code></div></div>
+      <div id="architecture-choices" class="architecture-grid"></div>
+      <div class="architecture-foot"><label><input type="radio" name="toolbox.random-suite" value="reject"><span>三种架构都不选</span></label><textarea data-note="toolbox.random-suite" placeholder="可写希望怎么合并、哪些入口或数据必须保留……"></textarea></div>
+    </section>
+
+    <section class="export" id="export"><div><p class="eyebrow">EXPORT</p><h2>导出第六轮结果</h2><p>图标决定和产品架构决定分开记录；选择某种架构只授权下一步实施该范围，不会隐含删除数据。</p><label><span>总体意见（可选）</span><textarea id="global-note" rows="4" placeholder="例如：音高选 C；随机工具先做 B 枢纽……"></textarea></label></div><div class="export-actions"><button type="button" class="primary" id="copy-export">复制全部批注</button><button type="button" id="download-export">下载 JSON 文件</button><button type="button" class="quiet" id="preview-export">预览导出内容</button><p id="export-status" role="status" aria-live="polite"></p></div></section>
+    <pre id="export-preview" hidden></pre>
+  </main>
+  <footer>第六轮图标与产品架构批阅台 · 尚未修改正式百宝箱或迁移数据</footer>
+</body>
+</html>

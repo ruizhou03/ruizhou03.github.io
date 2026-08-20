@@ -1,0 +1,22 @@
+{
+  "format": "ICON_REVIEW_V2",
+  "batch": "sitewide-png-compact-05",
+  "revision": 5,
+  "audited_commit": "dfbb5042",
+  "exported_at": "2026-08-20T17:36:37.396Z",
+  "global_note": "",
+  "locked": [
+    { "id": "toolbox.blackjack", "decision": "compact-r3" },
+    { "id": "toolbox.solitaire", "decision": "compact-r3" },
+    { "id": "toolbox.random", "decision": "compact-r4" },
+    { "id": "toolbox.time", "decision": "compact-r4" },
+    { "id": "toolbox.grouper", "decision": "compact-r4" }
+  ],
+  "scenes": [
+    { "id": "toolbox.metronome", "revision": 5, "decision": "A", "note": "摇杆很奇怪" },
+    { "id": "toolbox.pitch", "revision": 5, "decision": "reject", "note": "都不好看" },
+    { "id": "toolbox.picker", "revision": 5, "decision": "A", "note": "" },
+    { "id": "toolbox.roll-call", "revision": 5, "decision": "unreviewed", "note": "其实能考虑随机点名和随机分组的小程序和‘遇事不决’融合到一起，因为都是涉及到随机" },
+    { "id": "toolbox.countdown", "revision": 5, "decision": "B", "note": "" }
+  ]
+}
