@@ -12,10 +12,10 @@
   var HISTORY_MAX = 200;
 
   var state = {
-    options: [makeOption('是', 50), makeOption('否', 50)],
+    options: [makeOption('', 50), makeOption('', 50)],
     weighted: false,
     mode: 'single',
-    count: 2,
+    count: 1,
     rounds: 5,
     busy: false,
     rotation: 0,
@@ -25,6 +25,7 @@
     history: [],
     historyVisible: 10,
     lastResultText: '',
+    lastTournament: null,
     tieCandidates: [],
     animationSkip: null,
     pendingHash: false
@@ -43,8 +44,6 @@
     bulkInput: byId('bulk-input'),
     bulkApply: byId('bulk-apply-btn'),
     bulkCancel: byId('bulk-cancel-btn'),
-    advanced: byId('advanced-settings'),
-    advancedSummary: byId('advanced-summary'),
     weighted: byId('weighted-toggle'),
     weightTools: byId('weight-tools'),
     equal: byId('equal-btn'),
@@ -54,8 +53,6 @@
     tournamentSetting: byId('tournament-setting'),
     roundPresets: byId('round-presets'),
     roundsCustom: byId('rounds-custom'),
-    probabilityLabel: byId('probability-label'),
-    modeProbabilityCopy: byId('mode-probability-copy'),
     wheel: byId('wheel'),
     spin: byId('spin-btn'),
     skip: byId('skip-btn'),
@@ -153,6 +150,7 @@
   function clearOutcome() {
     if (state.busy) return;
     state.lastResultText = '';
+    state.lastTournament = null;
     state.tieCandidates = [];
     el.resultPlaceholder.hidden = false;
     el.resultPlaceholder.textContent = '转动之后，答案会落在这里。';
@@ -266,7 +264,7 @@
         var removedName = option.text || ('选项 ' + (index + 1));
         state.options.splice(index, 1);
         Core.equalize(state.options);
-        state.count = Math.min(state.count, state.options.length);
+        state.count = Math.min(state.count, Math.max(1, state.options.length - 1));
         markChanged();
         renderAll();
         toast('已删除“' + removedName + '”');
@@ -355,10 +353,16 @@
       if (fraction >= 0.055 && option.text.trim()) {
         var mid = (a0 + a1) / 2;
         var radius = fraction > 0.22 ? 67 : 76;
-        var fontSize = Math.max(8, Math.min(13, 7 + fraction * 24));
         var label = Array.from(option.text.trim());
         if (label.length > 7) label = label.slice(0, 6).concat('…');
-        paths += '<text x="' + (120 + radius * Math.cos(mid)).toFixed(2) + '" y="' + (120 + radius * Math.sin(mid)).toFixed(2) + '" font-size="' + fontSize.toFixed(1) + '" fill="' + Core.contrastText(color) + '">' + escapeHtml(label.join('')) + '</text>';
+        var arcWidth = 2 * Math.PI * radius * fraction;
+        var fontSize = Math.min(13, 7 + fraction * 24, arcWidth / Math.max(1, label.length * 0.92));
+        if (fontSize >= 7) {
+          var labelX = 120 + radius * Math.cos(mid);
+          var labelY = 120 + radius * Math.sin(mid);
+          var outwardRotation = mid * 180 / Math.PI + 90;
+          paths += '<text x="' + labelX.toFixed(2) + '" y="' + labelY.toFixed(2) + '" font-size="' + fontSize.toFixed(1) + '" fill="' + Core.contrastText(color) + '" transform="rotate(' + outwardRotation.toFixed(2) + ' ' + labelX.toFixed(2) + ' ' + labelY.toFixed(2) + ')">' + escapeHtml(label.join('')) + '</text>';
+        }
       }
     });
     paths += '<circle cx="120" cy="120" r="17" fill="#f5f1e8" stroke="#b89252" stroke-width="4"></circle>' +
@@ -375,8 +379,10 @@
     });
     el.multipleSetting.hidden = state.mode !== 'multiple';
     el.tournamentSetting.hidden = state.mode !== 'tournament';
-    el.multipleCount.max = String(state.options.length);
-    state.count = Math.max(2, Math.min(state.options.length, state.count));
+    var maxMultiple = Math.max(1, state.options.length - 1);
+    el.multipleCount.min = '1';
+    el.multipleCount.max = String(maxMultiple);
+    state.count = Math.max(1, Math.min(maxMultiple, state.count));
     el.multipleCount.value = String(state.count);
     el.roundPresets.querySelectorAll('[data-rounds]').forEach(function (button) {
       button.classList.toggle('is-active', Number(button.dataset.rounds) === state.rounds);
@@ -396,9 +402,6 @@
     el.add.textContent = state.options.length >= Core.MAX_OPTIONS ? '已达 30 个上限' : '+ 添加选项';
     el.weighted.checked = state.weighted;
     el.weightTools.hidden = !state.weighted;
-    el.advancedSummary.textContent = state.weighted ? '自定义权重' : '等概率';
-    el.probabilityLabel.textContent = state.weighted ? '按权重抽取' : '等概率';
-    el.modeProbabilityCopy.textContent = state.weighted ? '按权重抽取' : '等概率';
   }
 
   function renderAll() {
@@ -566,7 +569,7 @@
     el.tieBreak.hidden = true;
     el.resultPlaceholder.hidden = true;
     el.resultCard.hidden = false;
-    state.lastResultText = '抽取结果：\n' + names.map(function (name, index) { return (index + 1) + '. ' + name; }).join('\n');
+    state.lastResultText = '不重复抽取（' + names.length + ' 项）\n' + names.map(function (name, index) { return (index + 1) + '. ' + name; }).join('\n');
     recordHistory(names.join('、'), '不重复抽出 ' + names.length + ' 项');
   }
 
@@ -584,15 +587,33 @@
     el.tally.hidden = false;
   }
 
+  function tournamentCopyText(options, outcome, tieBreakWinner) {
+    var order = outcome.counts.map(function (count, index) {
+      return { count: count, name: options[index].text, index: index };
+    }).sort(function (a, b) { return b.count - a.count || a.index - b.index; });
+    var headline;
+    if (tieBreakWinner) {
+      headline = '随机决胜：' + tieBreakWinner;
+    } else if (outcome.winnerIndex != null) {
+      headline = '胜出：' + options[outcome.winnerIndex].text + '（' + outcome.max + ' 票）';
+    } else {
+      headline = '结果：' + outcome.tiedIndices.map(function (index) { return options[index].text; }).join('、') + ' 并列（' + outcome.max + ' 票）';
+    }
+    return state.rounds + ' 轮决胜\n' + headline + '\n票数：\n' + order.map(function (item) {
+      return item.name + '：' + item.count + ' 票';
+    }).join('\n');
+  }
+
   function showTournamentResult(options, outcome) {
     renderTally(options, outcome);
+    state.lastTournament = { options: options, outcome: outcome };
     el.resultEyebrow.textContent = state.rounds + ' 轮决胜';
     if (outcome.winnerIndex != null) {
       var name = options[outcome.winnerIndex].text;
       highlightIndices([outcome.winnerIndex]);
       el.resultMain.innerHTML = '<strong>' + escapeHtml(name) + '</strong> 以 ' + outcome.max + ' 票胜出';
       el.tieBreak.hidden = true;
-      state.lastResultText = state.rounds + ' 轮决胜：' + name + ' 以 ' + outcome.max + ' 票胜出';
+      state.lastResultText = tournamentCopyText(options, outcome);
       recordHistory(name, state.rounds + ' 轮决胜 · ' + outcome.max + ' 票');
     } else {
       var names = outcome.tiedIndices.map(function (index) { return options[index].text; });
@@ -600,7 +621,7 @@
       el.resultMain.innerHTML = '<strong>' + names.map(escapeHtml).join('、') + '</strong> 同为 ' + outcome.max + ' 票，暂时并列';
       state.tieCandidates = outcome.tiedIndices.slice();
       el.tieBreak.hidden = false;
-      state.lastResultText = state.rounds + ' 轮决胜：' + names.join('、') + ' 同为 ' + outcome.max + ' 票，并列';
+      state.lastResultText = tournamentCopyText(options, outcome);
       recordHistory(names.join('、') + '并列', state.rounds + ' 轮决胜 · ' + outcome.max + ' 票');
     }
     el.resultPlaceholder.hidden = true;
@@ -627,7 +648,9 @@
     el.resultPlaceholder.hidden = true;
     el.resultCard.hidden = false;
     el.tieBreak.hidden = true;
-    state.lastResultText = '并列项随机决胜：' + options[winnerIndex].text;
+    state.lastResultText = state.lastTournament
+      ? tournamentCopyText(state.lastTournament.options, state.lastTournament.outcome, options[winnerIndex].text)
+      : '并列项随机决胜：' + options[winnerIndex].text;
     recordHistory(options[winnerIndex].text, '并列项随机决胜');
     state.tieCandidates = [];
   }
@@ -800,7 +823,7 @@
     if (parsed.names.length < 2) { toast('批量名单至少需要两个不同选项'); return; }
     state.options = parsed.names.map(function (name) { return makeOption(name, 1); });
     state.weighted = false;
-    state.count = Math.min(Math.max(2, state.count), state.options.length);
+    state.count = Math.min(Math.max(1, state.count), Math.max(1, state.options.length - 1));
     markChanged();
     el.bulkPanel.hidden = true;
     el.bulkToggle.setAttribute('aria-expanded', 'false');
@@ -829,10 +852,18 @@
     markChanged();
     renderMode();
   });
-  el.multipleCount.addEventListener('change', function () {
-    state.count = Math.max(2, Math.min(state.options.length, Number(el.multipleCount.value) || 2));
+  function syncMultipleCount() {
+    var maxMultiple = Math.max(1, state.options.length - 1);
+    var parsed = parseInt(el.multipleCount.value, 10);
+    if (isNaN(parsed)) return;
+    state.count = Math.max(1, Math.min(maxMultiple, parsed));
     markChanged();
     renderMode();
+  }
+  el.multipleCount.addEventListener('input', syncMultipleCount);
+  el.multipleCount.addEventListener('change', function () {
+    if (el.multipleCount.value === '') el.multipleCount.value = String(state.count);
+    syncMultipleCount();
   });
   el.roundPresets.addEventListener('click', function (event) {
     var button = event.target.closest('[data-rounds]');

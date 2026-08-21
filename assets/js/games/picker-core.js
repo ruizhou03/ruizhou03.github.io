@@ -151,7 +151,7 @@
       return { option: option, originalIndex: index };
     });
     var result = [];
-    var target = Math.min(remaining.length, Math.max(0, Math.floor(Number(count) || 0)));
+    var target = Math.min(Math.max(0, remaining.length - 1), Math.max(0, Math.floor(Number(count) || 0)));
     while (result.length < target) {
       var localIndex = weightedChoice(remaining.map(function (item) { return item.option; }), rng);
       result.push(remaining[localIndex].originalIndex);
@@ -206,7 +206,8 @@
     var options = validOptions(source.options);
     if (options.length < 2) return null;
     var mode = ['single', 'multiple', 'tournament'].indexOf(source.mode) >= 0 ? source.mode : 'single';
-    var count = Math.max(2, Math.min(options.length, Math.floor(Number(source.count) || 2)));
+    var maxCount = Math.max(1, options.length - 1);
+    var count = Math.max(1, Math.min(maxCount, Math.floor(Number(source.count) || 1)));
     var rounds = Math.max(3, Math.min(1000, Math.floor(Number(source.rounds) || 5)));
     var weighted = source.weighted !== false;
     if (!weighted) equalize(options);

@@ -32,8 +32,8 @@ const sample = Core.weightedSampleWithoutReplacement(
   3,
   () => values[cursor++ % values.length]
 );
-assert.equal(new Set(sample).size, 3);
-assert.deepEqual(sample.slice().sort(), [0, 1, 2]);
+assert.equal(new Set(sample).size, 2);
+assert.deepEqual(sample.slice().sort(), [0, 2]);
 
 const tournamentValues = [0.1, 0.9, 0.1, 0.9];
 cursor = 0;
@@ -58,7 +58,14 @@ const decoded = Core.decodeHash(encoded);
 assert.equal(decoded.options[0].text, 'A, B: C');
 assert.equal(decoded.options[1].text, '中文 & emoji 🐈');
 assert.equal(decoded.mode, 'multiple');
-assert.equal(decoded.count, 2);
+assert.equal(decoded.count, 1);
+
+const cappedConfig = Core.normalizeConfig({
+  options: [option('甲', 1), option('乙', 1), option('丙', 1)],
+  mode: 'multiple',
+  count: 99
+});
+assert.equal(cappedConfig.count, 2);
 
 const legacy = Core.decodeHash('#options=' + encodeURIComponent('甲') + ':50,' + encodeURIComponent('乙') + ':50&draws=5');
 assert.equal(legacy.mode, 'tournament');
@@ -67,4 +74,4 @@ assert.equal(legacy.rounds, 5);
 assert.equal(Core.contrastText('#b89252'), '#1a1a2e');
 assert.equal(Core.contrastText('#1e3a5f'), '#ffffff');
 
-console.log('picker core: 18 assertions passed');
+console.log('picker core: 19 assertions passed');

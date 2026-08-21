@@ -33,6 +33,10 @@ assert.ok(html.indexOf('id="spin-btn"') > modePosition && html.indexOf('id="spin
 assert.ok(html.includes('id="result-placeholder"'), 'result column must reserve a non-overlay result slot');
 assert.ok(!html.includes('关闭时每个选项机会相同'), 'custom weight switch must not include redundant helper copy');
 assert.ok(html.includes('class="picker-round-custom"'), 'custom round count must keep its unit inside one control');
+assert.ok(html.includes('class="picker-weight-control"'), 'custom weight switch must be directly accessible');
+assert.ok(!html.includes('id="advanced-settings"'), 'custom weight switch must not be nested behind advanced settings');
+assert.ok(!html.includes('id="mode-probability-copy"'), 'mode column must not repeat immutable probability text');
+assert.ok(!html.includes('id="probability-label"'), 'result column must not repeat immutable probability text');
 assert.ok(html.indexOf('/assets/js/games/picker-core.js') < html.indexOf('/assets/js/games/picker.js'), 'core script must load before UI script');
 
 function pngSize(file) {
@@ -45,8 +49,10 @@ assert.deepEqual(pngSize(path.join(root, 'assets/icons/picker-icon-192.png')), [
 assert.deepEqual(pngSize(path.join(root, 'assets/images/picker-og.png')), [1200, 630]);
 
 const uiSource = fs.readFileSync(path.join(root, 'assets/js/games/picker.js'), 'utf8');
+const cssSource = fs.readFileSync(path.join(root, 'assets/css/picker.css'), 'utf8');
+assert.ok(!cssSource.includes('.picker-page::before'), 'result column must not include a decorative background 03');
 for (const line of uiSource.split('\n').filter(line => line.includes('lastResultText ='))) {
   assert.ok(!line.includes('[[zi:'), 'copied result text must not contain icon markers');
 }
 
-console.log(`picker markup: ${ids.length} unique ids and 18 contract checks passed`);
+console.log(`picker markup: ${ids.length} unique ids and 23 contract checks passed`);

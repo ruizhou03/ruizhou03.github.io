@@ -39,18 +39,15 @@ body_class: picker-page-body
           <button type="button" class="picker-button picker-button-quiet" id="bulk-cancel-btn">取消</button>
         </div>
       </div>
-      <details class="picker-advanced" id="advanced-settings">
-        <summary>高级设置 <span id="advanced-summary">等概率</span></summary>
-        <div class="picker-advanced-body">
-          <label class="picker-switch-row" for="weighted-toggle">
-            <span><strong>自定义权重</strong></span>
-            <span class="picker-switch"><input type="checkbox" id="weighted-toggle"><span aria-hidden="true"></span></span>
-          </label>
-          <div class="picker-weight-tools" id="weight-tools" hidden>
-            <button type="button" class="picker-button picker-button-quiet" id="equal-btn">[[zi:scale]] 恢复等概率</button>
-          </div>
+      <div class="picker-weight-control">
+        <label class="picker-switch-row" for="weighted-toggle">
+          <strong>自定义权重</strong>
+          <span class="picker-switch"><input type="checkbox" id="weighted-toggle"><span aria-hidden="true"></span></span>
+        </label>
+        <div class="picker-weight-tools" id="weight-tools" hidden>
+          <button type="button" class="picker-button picker-button-quiet" id="equal-btn">[[zi:scale]] 恢复等概率</button>
         </div>
-      </details>
+      </div>
     </section>
 
     <section class="picker-panel picker-mode-panel" aria-labelledby="mode-title">
@@ -66,7 +63,7 @@ body_class: picker-page-body
         </div>
       </fieldset>
       <div class="picker-mode-setting" id="multiple-setting" hidden>
-        <label for="multiple-count">抽出</label><input type="number" id="multiple-count" min="2" max="2" value="2" inputmode="numeric"><span>个不重复结果</span>
+        <label for="multiple-count">抽出</label><input type="number" id="multiple-count" min="1" max="1" value="1" inputmode="numeric"><span>个不重复结果</span>
       </div>
       <div class="picker-mode-setting picker-rounds" id="tournament-setting" hidden>
         <span class="picker-mode-setting-label">决胜轮次</span>
@@ -75,7 +72,6 @@ body_class: picker-page-body
         </div>
         <label class="picker-round-custom" for="rounds-custom"><input type="number" id="rounds-custom" min="3" max="1000" placeholder="自定义" inputmode="numeric" aria-label="自定义轮数，3 到 1000"><span>轮</span></label>
       </div>
-      <div class="picker-mode-summary"><span>当前概率</span><strong id="mode-probability-copy">等概率</strong></div>
       <div class="picker-action-dock">
         <button type="button" class="picker-spin" id="spin-btn">[[zi:shuffle]] 开始抽取</button>
         <button type="button" class="picker-skip" id="skip-btn" hidden>跳过动画</button>
@@ -87,7 +83,6 @@ body_class: picker-page-body
     <section class="picker-panel picker-draw" aria-labelledby="draw-title">
       <div class="picker-panel-head picker-draw-head">
         <div><p class="picker-step">03 · RESULT</p><h2 id="draw-title">让转盘决定</h2></div>
-        <span class="picker-probability-label" id="probability-label">等概率</span>
       </div>
       <div class="picker-wheel-wrap">
         <div class="picker-pointer" aria-hidden="true"></div>
