@@ -7,7 +7,7 @@ body_class: toolbox-wide
 
 <style>
   body.toolbox-wide > main { max-width: none; padding: 0; }
-  .toolbox-page { max-width: 1160px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .toolbox-page { max-width: 1220px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
   .toolbox-shell {
     display: grid;
     grid-template-columns: 150px minmax(0, 1fr);
@@ -18,34 +18,27 @@ body_class: toolbox-wide
 
   /* 左侧工具地图：沿用学习资料的圆点轨道语言。 */
   .tool-map {
+    display: block;
     position: sticky;
     top: 88px;
     align-self: start;
+    border: none;
     padding-top: 0.1rem;
-  }
-  .tool-map-title {
-    margin: 0 18px 0.6rem 0;
-    color: var(--color-light);
-    font-family: 'Cormorant Garamond', var(--font-display);
-    font-size: 0.7rem;
-    letter-spacing: 0.16em;
-    text-align: right;
-    text-transform: uppercase;
   }
   .tool-map a {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 0.45rem;
-    padding: 0.46rem 18px 0.46rem 0;
+    gap: 0.55rem;
+    padding: 0.5rem 18px 0.5rem 0;
     color: var(--color-muted);
-    font-size: 0.84rem;
-    letter-spacing: 0.03em;
-    line-height: 1.2;
+    font-family: 'Cormorant Garamond', var(--font-display);
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
     text-decoration: none;
     white-space: nowrap;
-    transition: color 0.2s, opacity 0.2s;
+    transition: color 0.25s;
   }
   .tool-map a::after {
     content: "";
@@ -74,11 +67,6 @@ body_class: toolbox-wide
     transform: translateY(-50%);
     pointer-events: none;
   }
-  .tool-map-count {
-    color: var(--color-light);
-    font-size: 0.7rem;
-    font-variant-numeric: tabular-nums;
-  }
   @media (hover: hover) {
     .tool-map a:not(.map-active):hover { color: var(--color-highlight); }
     .tool-map a:not(.map-active):hover::after {
@@ -91,7 +79,7 @@ body_class: toolbox-wide
     background: var(--color-highlight);
     box-shadow: 0 0 0 4px rgba(201, 169, 110, 0.22);
   }
-  .tool-map a.map-dim { opacity: 0.32; }
+  .tool-map a.map-dim { opacity: 0.35; }
 
   .tool-search {
     position: relative;
@@ -247,7 +235,6 @@ body_class: toolbox-wide
       scrollbar-width: none;
     }
     .tool-map::-webkit-scrollbar { display: none; }
-    .tool-map-title { display: none; }
     .tool-map a {
       flex: none;
       gap: 0.35rem;
@@ -279,13 +266,9 @@ body_class: toolbox-wide
 
   <div class="toolbox-shell">
     <nav class="tool-map" aria-label="工具分类地图">
-      <div class="tool-map-title">Tool Map</div>
       {%- for group in site.data.toolbox_groups -%}
         {%- assign group_tools = site.data.toolbox | where: "group", group.id -%}
-        <a href="#group-{{ group.id }}" data-target="group-{{ group.id }}" data-total="{{ group_tools.size }}">
-          <span>{{ group.name }}</span>
-          <span class="tool-map-count">{{ group_tools.size }}</span>
-        </a>
+        <a href="#group-{{ group.id }}" data-target="group-{{ group.id }}">{{ group.name }}</a>
       {%- endfor -%}
     </nav>
 
@@ -354,8 +337,6 @@ body_class: toolbox-wide
       var link = mapLinks.find(function (item) { return item.dataset.target === section.id; });
       if (link) {
         link.classList.toggle('map-dim', matched === 0);
-        var count = link.querySelector('.tool-map-count');
-        if (count) count.textContent = matched;
       }
 
       var sectionCount = section.querySelector('.tool-section-count');
