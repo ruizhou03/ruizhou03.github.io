@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="72%">
+      <stop offset="0%" stop-color="#f8d98f"/>
+      <stop offset="58%" stop-color="#b56b24"/>
+      <stop offset="100%" stop-color="#3b1d0b"/>
+    </radialGradient>
+    <linearGradient id="curry" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#c98125"/>
+      <stop offset="100%" stop-color="#81400f"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <ellipse cx="400" cy="455" rx="310" ry="42" fill="#2a1308" opacity=".45"/>
+  <path d="M105 270 Q115 485 400 500 Q685 485 695 270 Z" fill="#f7f0dd" stroke="#5f3c20" stroke-width="4"/>
+  <ellipse cx="400" cy="270" rx="295" ry="72" fill="#fbf6e9" stroke="#5f3c20" stroke-width="4"/>
+  <ellipse cx="400" cy="278" rx="265" ry="58" fill="url(#curry)"/>
+  <g stroke="#5d2b0b" stroke-width="2">
+    <rect x="225" y="245" width="58" height="42" rx="10" fill="#d99a4a" transform="rotate(-8 254 266)"/>
+    <rect x="327" y="270" width="64" height="45" rx="10" fill="#ead27b" transform="rotate(6 359 292)"/>
+    <rect x="430" y="238" width="61" height="45" rx="10" fill="#c66f2b" transform="rotate(-5 460 260)"/>
+    <rect x="523" y="275" width="58" height="43" rx="10" fill="#ead27b" transform="rotate(7 552 296)"/>
+    <rect x="265" y="315" width="58" height="42" rx="10" fill="#c66f2b" transform="rotate(5 294 336)"/>
+    <rect x="390" y="325" width="62" height="43" rx="10" fill="#ead27b" transform="rotate(-4 421 346)"/>
+    <rect x="500" y="330" width="56" height="40" rx="10" fill="#d99a4a" transform="rotate(4 528 350)"/>
+  </g>
+  <g fill="#f7e5a9" opacity=".45">
+    <ellipse cx="250" cy="254" rx="16" ry="5"/>
+    <ellipse cx="454" cy="248" rx="16" ry="5"/>
+    <ellipse cx="520" cy="338" rx="15" ry="4"/>
+  </g>
+  <g stroke="#fff5d6" stroke-width="4" fill="none" opacity=".35" stroke-linecap="round">
+    <path d="M325 185 Q310 150 328 115"/>
+    <path d="M405 175 Q390 140 410 100"/>
+    <path d="M485 185 Q470 150 488 115"/>
+  </g>
+  <text x="400" y="557" font-family="'Noto Serif SC', serif" font-size="35" font-weight="700"
+        fill="#f8edd0" text-anchor="middle" letter-spacing="5">土 豆 胡 萝 卜 咖 喱 鸡 腿</text>
+</svg>

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="72%">
+      <stop offset="0%" stop-color="#ead7b2"/>
+      <stop offset="58%" stop-color="#6e4f36"/>
+      <stop offset="100%" stop-color="#1d130d"/>
+    </radialGradient>
+    <linearGradient id="meat" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9f5b2a"/>
+      <stop offset="100%" stop-color="#4a210e"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <ellipse cx="400" cy="455" rx="310" ry="42" fill="#100a07" opacity=".5"/>
+  <ellipse cx="400" cy="405" rx="315" ry="72" fill="#e9e1d3" stroke="#463528" stroke-width="4"/>
+  <ellipse cx="400" cy="401" rx="282" ry="53" fill="#53301e" opacity=".75"/>
+  <g fill="url(#meat)" stroke="#281207" stroke-width="2">
+    <rect x="165" y="352" width="93" height="62" rx="18" transform="rotate(-7 212 383)"/>
+    <rect x="268" y="327" width="96" height="64" rx="18" transform="rotate(5 316 359)"/>
+    <rect x="371" y="373" width="98" height="64" rx="18" transform="rotate(-4 420 405)"/>
+    <rect x="474" y="335" width="94" height="62" rx="18" transform="rotate(7 521 366)"/>
+    <rect x="562" y="375" width="75" height="54" rx="16" transform="rotate(-5 600 402)"/>
+  </g>
+  <g fill="#e2cfb1" stroke="#715842" stroke-width="2">
+    <path d="M220 333 Q258 286 296 333 Z"/><rect x="251" y="332" width="14" height="38" rx="5"/>
+    <path d="M363 351 Q403 300 443 351 Z"/><rect x="396" y="350" width="14" height="39" rx="5"/>
+    <path d="M507 329 Q544 282 581 329 Z"/><rect x="537" y="328" width="14" height="38" rx="5"/>
+    <path d="M300 414 Q335 370 370 414 Z"/><rect x="329" y="413" width="13" height="32" rx="5"/>
+  </g>
+  <g fill="#f0b071" opacity=".5">
+    <ellipse cx="202" cy="363" rx="18" ry="5"/>
+    <ellipse cx="307" cy="340" rx="19" ry="5"/>
+    <ellipse cx="511" cy="348" rx="19" ry="5"/>
+  </g>
+  <g stroke="#f7f1dd" stroke-width="4" fill="none" opacity=".3" stroke-linecap="round">
+    <path d="M330 245 Q315 210 333 175"/>
+    <path d="M410 233 Q395 198 415 158"/>
+    <path d="M490 245 Q475 210 493 175"/>
+  </g>
+  <text x="400" y="557" font-family="'Noto Serif SC', serif" font-size="38" font-weight="700"
+        fill="#f0e8dc" text-anchor="middle" letter-spacing="6">蘑 菇 蚝 油 鸡 腿</text>
+</svg>

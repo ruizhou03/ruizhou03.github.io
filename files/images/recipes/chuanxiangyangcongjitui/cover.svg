@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="72%">
+      <stop offset="0%" stop-color="#f0c078"/>
+      <stop offset="58%" stop-color="#9a2f1b"/>
+      <stop offset="100%" stop-color="#300b08"/>
+    </radialGradient>
+    <linearGradient id="meat" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#bd4d22"/>
+      <stop offset="100%" stop-color="#5b1209"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <ellipse cx="400" cy="455" rx="310" ry="42" fill="#180604" opacity=".5"/>
+  <ellipse cx="400" cy="405" rx="315" ry="72" fill="#efe3cf" stroke="#5a2118" stroke-width="4"/>
+  <ellipse cx="400" cy="401" rx="282" ry="53" fill="#6d160e" opacity=".75"/>
+  <g fill="url(#meat)" stroke="#350804" stroke-width="2">
+    <rect x="164" y="350" width="94" height="63" rx="18" transform="rotate(-7 211 382)"/>
+    <rect x="270" y="327" width="97" height="65" rx="18" transform="rotate(5 319 360)"/>
+    <rect x="372" y="374" width="99" height="64" rx="18" transform="rotate(-4 422 406)"/>
+    <rect x="477" y="334" width="95" height="63" rx="18" transform="rotate(7 525 366)"/>
+    <rect x="561" y="374" width="78" height="56" rx="16" transform="rotate(-5 600 402)"/>
+  </g>
+  <g fill="#f1dfb9" opacity=".85">
+    <path d="M225 342 Q265 322 300 338 Q312 352 294 364 Q259 375 229 360 Z"/>
+    <path d="M398 342 Q440 321 476 338 Q489 352 470 365 Q434 376 402 361 Z"/>
+    <path d="M516 397 Q554 379 587 394 Q599 407 582 418 Q548 429 519 415 Z"/>
+  </g>
+  <g fill="#2f641f">
+    <ellipse cx="260" cy="386" rx="14" ry="5" transform="rotate(-20 260 386)"/>
+    <ellipse cx="350" cy="350" rx="14" ry="5" transform="rotate(18 350 350)"/>
+    <ellipse cx="470" cy="407" rx="14" ry="5" transform="rotate(-18 470 407)"/>
+    <ellipse cx="580" cy="355" rx="14" ry="5" transform="rotate(22 580 355)"/>
+  </g>
+  <g fill="#3c0804">
+    <circle cx="238" cy="371" r="4"/><circle cx="325" cy="401" r="4"/>
+    <circle cx="450" cy="356" r="4"/><circle cx="548" cy="405" r="4"/>
+    <circle cx="606" cy="380" r="4"/>
+  </g>
+  <g stroke="#f7e8d6" stroke-width="4" fill="none" opacity=".3" stroke-linecap="round">
+    <path d="M330 245 Q315 210 333 175"/>
+    <path d="M410 233 Q395 198 415 158"/>
+    <path d="M490 245 Q475 210 493 175"/>
+  </g>
+  <text x="400" y="557" font-family="'Noto Serif SC', serif" font-size="38" font-weight="700"
+        fill="#f6e2cc" text-anchor="middle" letter-spacing="6">川 香 洋 葱 鸡 腿</text>
+</svg>
