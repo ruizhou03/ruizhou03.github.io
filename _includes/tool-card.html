@@ -4,13 +4,13 @@
 {%- if site.data.visibility.tools contains t.id -%}{%- assign t_hidden = true -%}{%- endif -%}
 {%- if site.data.visibility.sections contains '百宝箱' -%}{%- assign t_hidden = true -%}{%- endif -%}
 {%- if t.status == "coming" -%}
-<div class="tool-card coming-soon"{% if t_hidden %} data-hidden="true"{% endif %}>
+<div class="tool-card coming-soon" data-tool-card data-search="{{ t.name | append: ' ' | append: t.tagline | escape }}"{% if t_hidden %} data-hidden="true"{% endif %}>
   <div class="tool-icon">{%- if t.icon contains "/" -%}<img src="{{ t.icon | relative_url }}" alt="">{%- else -%}{{ t.icon }}{%- endif -%}</div>
   <div class="tool-name">{{ t.name }}</div>
   <div class="tool-status">[[zi:clock]] 敬请期待</div>
 </div>
 {%- else -%}
-<a class="tool-card live" href="{{ t.url | relative_url }}"{% if t_hidden %} data-hidden="true"{% endif %}>
+<a class="tool-card live" href="{{ t.url | relative_url }}" data-tool-card data-search="{{ t.name | append: ' ' | append: t.tagline | escape }}"{% if t_hidden %} data-hidden="true"{% endif %}>
   <div class="tool-icon">{%- if t.icon contains "/" -%}<img src="{{ t.icon | relative_url }}" alt="">{%- else -%}{{ t.icon }}{%- endif -%}</div>
   <div class="tool-name">{{ t.name }}</div>
 </a>

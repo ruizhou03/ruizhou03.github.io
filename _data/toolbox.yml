@@ -5,16 +5,18 @@
 #   icon        — 卡片左上角 PNG / SVG 路径（历史条目可暂留字符图标）
 #   tagline     — 8-12 字精简描述
 #   url         — 工具页面 permalink
-#   category    — 游戏 / 工作 / 生活
-#   subcategory — 仅游戏类用：棋类对战 / 牌类游戏 / 单人小游戏 / 派对多人
+#   group       — 百宝箱导航分组 id（定义与顺序见 toolbox_groups.yml）
+#   category    — 旧版宽分类，暂留给兼容代码
+#   subcategory — 旧版游戏子分类，暂留给兼容代码
 #   status      — live | coming
 #
-# 顺序即页面渲染顺序（Liquid where filter 保持原序）。
+# 同一 group 内的顺序即页面渲染顺序。
 
 # ===== 一、游戏 =====
 
 # 棋类对战
 - id: gomoku
+  group: board
   name: 五子棋
   icon: /assets/icons/gomoku-icon-192.png
   tagline: 15×15 + 启发式 AI
@@ -24,6 +26,7 @@
   status: live
 
 - id: chess
+  group: board
   name: 国际象棋
   icon: /assets/icons/chess-icon-192.png
   tagline: 全套规则 + AI 三档
@@ -33,6 +36,7 @@
   status: live
 
 - id: xiangqi
+  group: board
   name: 中国象棋
   icon: /assets/icons/xiangqi-icon-192.png
   tagline: 全规则 + AI 三档
@@ -42,6 +46,7 @@
   status: live
 
 - id: tiaoqi
+  group: board
   name: 跳棋
   icon: /assets/icons/tiaoqi-icon-192.png
   tagline: 2-6 人 + AI 三档
@@ -51,6 +56,7 @@
   status: live
 
 - id: feixingqi
+  group: board
   name: 飞行棋
   icon: /assets/icons/feixingqi-icon-192.png
   tagline: 2-4 人 + AI 三档
@@ -60,6 +66,7 @@
   status: live
 
 - id: reversi
+  group: board
   name: 黑白棋
   icon: /assets/icons/reversi-icon-192.png
   tagline: 8×8 翻子 + AI 三档
@@ -69,6 +76,7 @@
   status: live
 
 - id: connect4
+  group: board
   name: 四子棋
   icon: /assets/icons/connect4-icon-192.png
   tagline: 重力四连 + AI 三档
@@ -79,6 +87,7 @@
 
 # 牌类游戏
 - id: doudizhu
+  group: cards
   name: 斗地主
   icon: /assets/icons/doudizhu-icon-192.png
   tagline: 四档 AI · 三人真联机
@@ -88,6 +97,7 @@
   status: live
 
 - id: guandan
+  group: cards
   name: 掼蛋
   icon: /assets/icons/guandan-icon-192.png
   tagline: 2v2 升级 + AI 三档
@@ -99,6 +109,7 @@
   featured_note: 白嫖 DanZero 权重，能打过最强档的三档 AI
 
 - id: blackjack
+  group: cards
   name: 21 点
   icon: /assets/icons/blackjack-icon-192.png
   tagline: 6 副牌 vs 庄家
@@ -108,6 +119,7 @@
   status: live
 
 - id: solitaire
+  group: cards
   name: 接龙纸牌
   icon: /assets/icons/solitaire-icon-192.png
   tagline: 经典 Klondike · 翻 1/3
@@ -118,6 +130,7 @@
 
 # 单人小游戏
 - id: suika
+  group: arcade
   name: 合成大西瓜
   icon: /assets/icons/suika-icon-192.png
   tagline: 物理碰撞合并
@@ -127,6 +140,7 @@
   status: live
 
 - id: "2048"
+  group: puzzle
   name: "2048"
   icon: /assets/icons/2048-icon-192.png
   tagline: 三尺寸 + 撤销
@@ -136,6 +150,7 @@
   status: live
 
 - id: snake
+  group: arcade
   name: 贪吃蛇
   icon: /assets/icons/snake-icon-192.png
   tagline: 经典 + 三档速度
@@ -145,6 +160,7 @@
   status: live
 
 - id: pinball
+  group: arcade
   name: 弹珠机
   icon: /assets/icons/pinball-icon-192.png
   tagline: 4 桌随时切 · multiball · combo
@@ -154,6 +170,7 @@
   status: live
 
 - id: minesweeper
+  group: puzzle
   name: 扫雷
   icon: /assets/icons/minesweeper-icon-192.png
   tagline: Win 经典三难度
@@ -163,6 +180,7 @@
   status: live
 
 - id: runner
+  group: arcade
   name: Deadline 大逃亡
   icon: /assets/icons/runner-icon-192.png
   tagline: 博士跑酷
@@ -172,6 +190,7 @@
   status: live
 
 - id: leap
+  group: arcade
   name: 跳过 Deadline
   icon: /assets/icons/leap-icon-192.png
   tagline: 跳一跳本地化
@@ -181,6 +200,7 @@
   status: live
 
 - id: fruit-ninja
+  group: arcade
   name: 水果忍者
   icon: /assets/icons/fruit-ninja-icon-192.png
   tagline: 滑动切水果·三模式
@@ -190,6 +210,7 @@
   status: live
 
 - id: tetris
+  group: arcade
   name: 俄罗斯方块
   icon: /assets/icons/tetris-icon-192.png
   tagline: 7-bag + 续局
@@ -199,6 +220,7 @@
   status: live
 
 - id: sudoku
+  group: puzzle
   name: 数独
   icon: /assets/icons/sudoku-icon-192.png
   tagline: 唯一解 + 三难度
@@ -208,6 +230,7 @@
   status: live
 
 - id: schulte
+  group: puzzle
   name: 舒尔特方格
   icon: /assets/icons/schulte-icon-192.png
   tagline: 注意力训练 + 计时
@@ -217,6 +240,7 @@
   status: live
 
 - id: memory
+  group: puzzle
   name: 记忆翻牌
   icon: /assets/icons/memory-icon-192.png
   tagline: 翻牌配对 + 三尺寸
@@ -226,6 +250,7 @@
   status: live
 
 - id: breakout
+  group: arcade
   name: 打砖块
   icon: /assets/icons/breakout-icon-192.png
   tagline: 弹球消砖 + 三速度
@@ -235,6 +260,7 @@
   status: live
 
 - id: typing
+  group: puzzle
   name: 打字速度
   icon: /assets/icons/typing-icon-192.png
   tagline: 中英测速 + 正确率
@@ -245,6 +271,7 @@
 
 # 派对 / 多人
 - id: dontdoit
+  group: party
   name: 不要做挑战
   icon: /assets/icons/dontdoit-icon-192.png
   tagline: 翻牌挑战
@@ -254,6 +281,7 @@
   status: live
 
 - id: werewolf
+  group: party
   name: 狼人杀
   icon: /assets/icons/werewolf-icon-192.png
   tagline: 多设备无须上帝
@@ -263,6 +291,7 @@
   status: live
 
 - id: drawing
+  group: party
   name: 你画我猜
   icon: /assets/icons/drawing-icon-192.png
   tagline: 房间 / 阶梯计分 / 中文词库
@@ -274,6 +303,7 @@
 # ===== 二、工作 / 效率 =====
 
 - id: citation
+  group: efficiency
   name: 引用格式转换器
   icon: /assets/icons/citation-icon-192.png
   tagline: BibTeX → 6 种格式
@@ -282,6 +312,7 @@
   status: live
 
 - id: random
+  group: efficiency
   name: 随机数生成器
   icon: /assets/icons/random-icon-192.png
   tagline: 13 种概率分布
@@ -290,6 +321,7 @@
   status: live
 
 - id: compound
+  group: efficiency
   name: 复利 / 现值
   icon: /assets/icons/compound-icon-192.png
   tagline: 401k + HYSA 模拟
@@ -298,6 +330,7 @@
   status: live
 
 - id: tax-bracket
+  group: efficiency
   name: 报税档位估算
   icon: /assets/icons/tax-bracket-icon-192.png
   tagline: 美国 / 中国双切
@@ -306,6 +339,7 @@
   status: live
 
 - id: converter
+  group: efficiency
   name: 汇率 + 单位换算
   icon: /assets/icons/converter-icon-192.png
   tagline: 实时 + 离线兜底
@@ -314,6 +348,7 @@
   status: live
 
 - id: time
+  group: efficiency
   name: 时间工具
   icon: /assets/icons/time-icon-192.png
   tagline: 时区换算 + 日期计算
@@ -322,6 +357,7 @@
   status: live
 
 - id: forest
+  group: efficiency
   name: 种树
   icon: /assets/icons/forest-icon-192.png
   tagline: 番茄钟 + 森林
@@ -334,6 +370,7 @@
 # ===== 三、生活 =====
 
 - id: recipes
+  group: life
   name: 菜谱专区
   icon: /assets/icons/recipes-icon-192.png
   tagline: 可量化步骤的学院派菜谱
@@ -342,6 +379,7 @@
   status: live
 
 - id: vision
+  group: life
   name: 视力自测
   icon: /assets/icons/vision-icon-192.png
   tagline: Tumbling E 筛查
@@ -350,6 +388,7 @@
   status: live
 
 - id: metronome
+  group: music
   name: 节拍器
   icon: /assets/icons/metronome-icon-192.png
   tagline: BPM 30-300
@@ -358,6 +397,7 @@
   status: live
 
 - id: pitch
+  group: music
   name: 音高测量
   icon: /assets/icons/pitch-icon-192.png
   tagline: 麦克风实时识别
@@ -366,6 +406,7 @@
   status: live
 
 - id: picker
+  group: random-classroom
   name: 遇事不决
   icon: /assets/icons/picker-icon-192.png
   tagline: 随机转盘与权重抽签
@@ -374,6 +415,7 @@
   status: live
 
 - id: grouper
+  group: random-classroom
   name: 随机分组器
   icon: /assets/icons/grouper-icon-192.png
   tagline: N 人分 K 组
@@ -382,6 +424,7 @@
   status: live
 
 - id: roll-call
+  group: random-classroom
   name: 随机点名
   icon: /assets/icons/roll-call-icon-192.png
   tagline: 上课提问 / 汇报
@@ -390,6 +433,7 @@
   status: live
 
 - id: countdown
+  group: efficiency
   name: 倒计时面板
   icon: /assets/icons/countdown-icon-192.png
   tagline: 节日 + 截稿剩余天
@@ -398,6 +442,7 @@
   status: live
 
 - id: pet
+  group: life
   name: 宠物中心
   icon: /assets/icons/pet-icon-192.png
   tagline: 食量 · 体重 · 猫语
@@ -408,6 +453,7 @@
   featured_note: 多设备原子同步的养宠记录，可装成独立 App
 
 - id: font-style
+  group: music
   name: 花式字体
   icon: /assets/icons/font-style-icon-192.png
   tagline: Unicode 花体 · 微信可见
@@ -416,6 +462,7 @@
   status: live
 
 - id: bazi
+  group: life
   name: 八字排盘
   icon: /assets/icons/bazi-icon-192.png
   tagline: 生辰八字 · 大运合婚（娱乐）
@@ -426,6 +473,7 @@
   featured_note: 自带 1901–2099 历法引擎，全程离线不调接口
 
 - id: pindou
+  group: music
   name: 拼豆图纸
   icon: /assets/icons/pindou-icon-192.png
   tagline: 上传图 → 自动抠图 → 拼豆像素图纸
@@ -436,6 +484,7 @@
   featured_note: 上传即出图纸，AI 自动抠图 + 官方色卡量化
 
 - id: ledger
+  group: life
   name: 记账
   icon: /assets/icons/ledger-icon-192.png
   tagline: 闪记 · 垫付报销 · 多时区
@@ -444,6 +493,7 @@
   status: live
 
 - id: flight
+  group: life
   name: 机票监控
   icon: /assets/icons/flight-icon-192.png
   tagline: 自动盯票 · 降价提醒

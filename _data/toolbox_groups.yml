@@ -1,0 +1,37 @@
+# 百宝箱导航分组：顺序即页面与左侧地图顺序。
+
+- id: efficiency
+  name: 效率与计算
+  icon: briefcase
+
+- id: life
+  name: 生活与兴趣
+  icon: leaf
+
+- id: music
+  name: 音乐与创作
+  icon: volume
+
+- id: random-classroom
+  name: 随机与课堂
+  icon: shuffle
+
+- id: board
+  name: 棋盘对弈
+  icon: grid
+
+- id: cards
+  name: 牌类游戏
+  icon: cards
+
+- id: puzzle
+  name: 益智训练
+  icon: puzzle
+
+- id: arcade
+  name: 街机动作
+  icon: gamepad
+
+- id: party
+  name: 聚会多人
+  icon: users

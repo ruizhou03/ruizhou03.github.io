@@ -202,9 +202,9 @@ _notes/   toolbox/   files/   assets/
 
 ## 5. 百宝箱
 
-49 个目录工具，单一数据源是 `_data/toolbox.yml`。字段：`id` / `name` / `icon` / `tagline` / `url` / `category`（游戏/工作/生活）/ `subcategory` / `status`（live|coming）。**YAML 里的顺序就是页面渲染顺序。** `game_versions.json` 还包含兼容入口、附属页和弹珠机子桌，不能拿它的 URL 数当目录工具数。
+49 个目录工具，单一条目数据源是 `_data/toolbox.yml`。字段：`id` / `name` / `icon` / `tagline` / `url` / `group` / `status`（live|coming）；当前九组的名称与页面顺序由 `_data/toolbox_groups.yml` 定义，同一 `group` 内沿用条目顺序。旧 `category` / `subcategory` 字段暂留给兼容代码，不再驱动百宝箱首页。`game_versions.json` 还包含兼容入口、附属页和弹珠机子桌，不能拿它的 URL 数当目录工具数。
 
-游戏子类：棋类对战、牌类游戏、单人小游戏、派对多人。
+当前导航分组：效率与计算、生活与兴趣、音乐与创作、随机与课堂、棋盘对弈、牌类游戏、益智训练、街机动作、聚会多人。
 
 ### 共享外壳
 

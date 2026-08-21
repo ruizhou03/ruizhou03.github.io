@@ -2,216 +2,423 @@
 layout: default
 title: "生活百宝箱 | Rui Zhou"
 permalink: /toolbox/
+body_class: toolbox-wide
 ---
 
-<article style="max-width: 880px; margin: 0 auto; padding: 2rem 1rem;">
+<style>
+  body.toolbox-wide > main { max-width: none; padding: 0; }
+  .toolbox-page { max-width: 1160px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .toolbox-shell {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    column-gap: 2rem;
+    align-items: start;
+  }
+  .toolbox-content { min-width: 0; }
+
+  /* 左侧工具地图：沿用学习资料的圆点轨道语言。 */
+  .tool-map {
+    position: sticky;
+    top: 88px;
+    align-self: start;
+    padding-top: 0.1rem;
+  }
+  .tool-map-title {
+    margin: 0 18px 0.6rem 0;
+    color: var(--color-light);
+    font-family: 'Cormorant Garamond', var(--font-display);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-align: right;
+    text-transform: uppercase;
+  }
+  .tool-map a {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    padding: 0.46rem 18px 0.46rem 0;
+    color: var(--color-muted);
+    font-size: 0.84rem;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.2s, opacity 0.2s;
+  }
+  .tool-map a::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 50%;
+    z-index: 2;
+    box-sizing: border-box;
+    width: 9px;
+    height: 9px;
+    border: 1px solid var(--color-highlight);
+    border-radius: 50%;
+    background: var(--color-bg);
+    transform: translateY(-50%);
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .tool-map a:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    right: 3.75px;
+    top: 100%;
+    width: 1.5px;
+    height: 88%;
+    border-radius: 50%;
+    background: rgba(201, 169, 110, 0.5);
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  .tool-map-count {
+    color: var(--color-light);
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+  }
+  @media (hover: hover) {
+    .tool-map a:not(.map-active):hover { color: var(--color-highlight); }
+    .tool-map a:not(.map-active):hover::after {
+      background: rgba(201, 169, 110, 0.4);
+      box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.12);
+    }
+  }
+  .tool-map a.map-active { color: var(--color-highlight); }
+  .tool-map a.map-active::after {
+    background: var(--color-highlight);
+    box-shadow: 0 0 0 4px rgba(201, 169, 110, 0.22);
+  }
+  .tool-map a.map-dim { opacity: 0.32; }
+
+  .tool-search {
+    position: relative;
+    max-width: 380px;
+    margin: 0 0 1.4rem;
+  }
+  .tool-search::before {
+    content: "";
+    position: absolute;
+    left: 0.82rem;
+    top: 50%;
+    width: 11px;
+    height: 11px;
+    margin-top: -7px;
+    border: 1.5px solid var(--color-light);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .tool-search::after {
+    content: "";
+    position: absolute;
+    left: 1.56rem;
+    top: 50%;
+    width: 5px;
+    height: 1.5px;
+    margin-top: 3px;
+    background: var(--color-light);
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
+  .tool-search input {
+    width: 100%;
+    padding: 0.55rem 1rem 0.55rem 2.1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    outline: none;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 0.92rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .tool-search input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.12);
+  }
+
+  .tool-section {
+    scroll-margin-top: 92px;
+    margin: 0 0 2rem;
+  }
+  .tool-section + .tool-section {
+    padding-top: 1.35rem;
+    border-top: 1px dashed var(--color-border);
+  }
+  .tool-section.section-filtered { display: none; }
+  .tool-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0 0 0.72rem;
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: 1.28rem;
+    line-height: 1.3;
+  }
+  .tool-section-title .zi-icon { color: var(--color-highlight); }
+  .tool-section-count {
+    margin-left: auto;
+    color: var(--color-light);
+    font-family: var(--font-body);
+    font-size: 0.74rem;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.7rem;
+    margin: 0;
+  }
+  .tool-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.95rem 0.9rem 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: linear-gradient(180deg, var(--color-bg-warm), var(--color-bg));
+    box-shadow: var(--shadow-1);
+    text-align: center;
+    text-decoration: none;
+    transition: border-color var(--dur-base) var(--ease), transform var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
+  }
+  .tool-card.live { cursor: pointer; }
+  @media (hover: hover) {
+    .tool-card.live:hover {
+      border-color: var(--color-accent);
+      box-shadow: var(--shadow-2);
+      transform: translateY(-2px);
+    }
+  }
+  .tool-card.coming-soon { cursor: default; opacity: 0.6; }
+  .tool-card.tool-filtered { display: none !important; }
+  .tool-icon {
+    margin-bottom: 0.45rem;
+    font-size: 1.55rem;
+    line-height: 1;
+  }
+  .tool-icon img {
+    display: block;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin: 0 auto;
+    border-radius: 0.4rem;
+  }
+  .tool-name {
+    margin: 0;
+    color: var(--color-ink);
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .tool-card.coming-soon .tool-name { color: var(--color-muted); }
+  .tool-status {
+    margin-top: 0.5rem;
+    color: var(--color-light);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+  }
+  .tool-empty {
+    margin: 2.2rem 0;
+    color: var(--color-light);
+    text-align: center;
+  }
+
+  @media (max-width: 900px) {
+    .toolbox-page { padding: 1.4rem 1rem 3rem; }
+    .toolbox-shell { display: block; }
+    .tool-map {
+      top: 58px;
+      z-index: 30;
+      display: flex;
+      gap: 0.4rem;
+      margin: 0 -0.2rem 1.25rem;
+      padding: 0.55rem 0.2rem;
+      overflow-x: auto;
+      background: var(--color-bg);
+      background: color-mix(in srgb, var(--color-bg) 94%, transparent);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      scrollbar-width: none;
+    }
+    .tool-map::-webkit-scrollbar { display: none; }
+    .tool-map-title { display: none; }
+    .tool-map a {
+      flex: none;
+      gap: 0.35rem;
+      padding: 0.4rem 0.72rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-pill);
+      background: var(--color-bg);
+      font-size: 0.8rem;
+    }
+    .tool-map a::before, .tool-map a::after { display: none; }
+    .tool-map a.map-active {
+      border-color: var(--color-highlight);
+      background: var(--color-bg-warm);
+    }
+    .tool-search { max-width: none; }
+    .tool-section { scroll-margin-top: 118px; }
+  }
+  @media (max-width: 520px) {
+    .toolbox-page { padding-right: 0.75rem; padding-left: 0.75rem; }
+    .tool-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tool-card, .tool-map a { transition: none; }
+  }
+</style>
+
+<article class="toolbox-page">
   {% include page-hero.html title="生活百宝箱" latin="Toolbox · Handmade Tools" eyebrow="馆藏" center="true" %}
 
-  <style>
-    .tool-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 0.7rem;
-      margin: 0.6rem 0 1.4rem;
-    }
-    .tool-card {
-      display: flex; flex-direction: column;
-      align-items: center;
-      text-align: center;
-      padding: 0.95rem 0.9rem 0.9rem;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      /* 招牌卡那种质感下放给每张小卡：暖色渐变底 + 一层浅阴影，紧凑不占地方 */
-      background: linear-gradient(180deg, var(--color-bg-warm), var(--color-bg));
-      box-shadow: var(--shadow-1);
-      text-decoration: none;
-      transition: all var(--dur-base) var(--ease);
-    }
-    .tool-card.live { cursor: pointer; }
-    @media (hover: hover) {
-      .tool-card.live:hover {
-      border-color: var(--color-accent);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-2);
-    }
-    }
-    .tool-card.coming-soon { opacity: 0.6; cursor: default; }
-    @media (hover: hover) {
-      .tool-card.coming-soon:hover { opacity: 0.78; }
-    }
-    .tool-icon {
-      font-size: 1.55rem;
-      line-height: 1;
-      margin-bottom: 0.45rem;
-    }
-    .tool-icon img { width: 1.75rem; height: 1.75rem; border-radius: 0.4rem; display: block; margin: 0 auto; }
-    .tool-name {
-      font-family: var(--font-display);
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--color-ink);
-      margin: 0;
-      line-height: 1.3;
-    }
-    .tool-card.coming-soon .tool-name { color: var(--color-muted); }
-    .tool-status {
-      margin-top: 0.5rem;
-      font-size: 0.7rem;
-      color: var(--color-light);
-      letter-spacing: 0.04em;
-    }
-    /* 招牌 / 精选层：把最能证明技艺的原创作品，用更大的卡摊在最前面，
-       而不是和"21点"等大埋在最底。tagline 用 featured_note 覆盖成"为什么特别"。 */
-    .featured-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 0.7rem;
-      margin: 0.6rem 0 1.4rem;
-    }
-    .featured-card-tool {
-      display: flex; flex-direction: column; align-items: center; gap: 0.45rem;
-      text-align: center;
-      padding: 0.9rem 1rem;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      background: linear-gradient(180deg, var(--color-bg-warm), var(--color-bg));
-      box-shadow: var(--shadow-1);
-      text-decoration: none;
-      transition: border-color var(--dur-base) var(--ease), transform var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
-    }
-    @media (hover: hover) {
-      .featured-card-tool:hover {
-        border-color: var(--color-accent);
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-2);
-      }
-    }
-    .featured-card-tool .ft-icon { font-size: 1.7rem; line-height: 1; flex: none; }
-    .featured-card-tool .ft-icon img { width: 2rem; height: 2rem; border-radius: 0.5rem; display: block; }
-    .featured-card-tool .ft-body { min-width: 0; width: 100%; }
-    .featured-card-tool .ft-name {
-      font-family: var(--font-display);
-      font-size: 1.05rem; font-weight: 600; color: var(--color-ink);
-      margin: 0; line-height: 1.3;
-    }
-    .section-divider {
-      margin: 2rem 0 0.6rem;
-      padding-top: 1.4rem;
-      border-top: 1px dashed var(--color-border);
-      text-align: center;
-    }
-    .section-divider:first-of-type {
-      margin-top: 0; padding-top: 0; border-top: none;
-    }
-    .section-divider h2 {
-      font-family: var(--font-display);
-      font-size: 1.4rem;
-      color: var(--color-ink);
-      margin: 0 0 0.25rem;
-    }
-    .section-divider .sub {
-      color: var(--color-light);
-      font-style: normal;
-      font-size: 0.86rem;
-    }
-    .subsection-title {
-      font-family: var(--font-display);
-      font-size: 0.95rem;
-      font-weight: 500;
-      color: var(--color-light);
-      text-align: center;
-      margin: 1.1rem 0 0.4rem;
-      letter-spacing: 0.02em;
-    }
-  </style>
+  <div class="toolbox-shell">
+    <nav class="tool-map" aria-label="工具分类地图">
+      <div class="tool-map-title">Tool Map</div>
+      {%- for group in site.data.toolbox_groups -%}
+        {%- assign group_tools = site.data.toolbox | where: "group", group.id -%}
+        <a href="#group-{{ group.id }}" data-target="group-{{ group.id }}" data-total="{{ group_tools.size }}">
+          <span>{{ group.name }}</span>
+          <span class="tool-map-count">{{ group_tools.size }}</span>
+        </a>
+      {%- endfor -%}
+    </nav>
 
-  {%- assign games = site.data.toolbox | where: "category", "游戏" -%}
-  {%- assign work  = site.data.toolbox | where: "category", "工作" -%}
-  {%- assign life  = site.data.toolbox | where: "category", "生活" -%}
-  {%- assign featured = site.data.toolbox | where: "featured", true -%}
-
-  <!-- ============ ✦ 招牌 ============ -->
-  {%- if featured.size > 0 -%}
-  <div class="section-divider">
-    <h2>[[zi:sparkle]] 招牌</h2>
-    <div class="sub">为解决自己的问题、亲手造的原创，别处没有</div>
-  </div>
-  <div class="featured-grid">
-    {%- for t in featured -%}
-    {%- assign ft_hidden = false -%}
-    {%- if site.data.visibility.tools contains t.id -%}{%- assign ft_hidden = true -%}{%- endif -%}
-    {%- if site.data.visibility.sections contains '百宝箱' -%}{%- assign ft_hidden = true -%}{%- endif -%}
-    <a class="featured-card-tool" href="{{ t.url | relative_url }}"{% if ft_hidden %} data-hidden="true"{% endif %}>
-      <div class="ft-icon">{%- if t.icon contains "/" -%}<img src="{{ t.icon | relative_url }}" alt="">{%- else -%}{{ t.icon }}{%- endif -%}</div>
-      <div class="ft-body">
-        <div class="ft-name">{{ t.name }}</div>
+    <div class="toolbox-content">
+      <div class="tool-search">
+        <input type="search" id="tool-search" placeholder="搜工具名称或用途…" aria-label="搜索百宝箱工具">
       </div>
-    </a>
-    {%- endfor -%}
-  </div>
-  {%- endif -%}
 
-  <!-- ============ 一、工作 / 效率 ============ -->
-  <div class="section-divider">
-    <h2>[[zi:book]] 工作 / 效率</h2>
-    <div class="sub">学术 / 财务 / 学习 / 专注</div>
-  </div>
-  <div class="tool-grid">
-    {%- for t in work -%}
-      {%- include tool-card.html tool=t -%}
-    {%- endfor -%}
-  </div>
+      <div class="tool-sections">
+        {%- for group in site.data.toolbox_groups -%}
+          {%- assign group_tools = site.data.toolbox | where: "group", group.id -%}
+          {%- if group_tools.size > 0 -%}
+          <section class="tool-section" id="group-{{ group.id }}" data-group="{{ group.id }}">
+            <h2 class="tool-section-title">
+              <span aria-hidden="true">[[zi:{{ group.icon }}]]</span>
+              <span>{{ group.name }}</span>
+              <span class="tool-section-count">{{ group_tools.size }} 款</span>
+            </h2>
+            <div class="tool-grid">
+              {%- for t in group_tools -%}
+                {%- include tool-card.html tool=t -%}
+              {%- endfor -%}
+            </div>
+          </section>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
 
-  <!-- ============ 二、生活 ============ -->
-  <div class="section-divider">
-    <h2>[[zi:leaf]] 生活</h2>
-    <div class="sub">健康 / 兴趣 / 日常 / 回顾</div>
-  </div>
-  <div class="tool-grid">
-    {%- for t in life -%}
-      {%- include tool-card.html tool=t -%}
-    {%- endfor -%}
-  </div>
+      <p class="tool-empty" id="tool-empty" hidden>没有匹配的工具，换个关键词试试。</p>
 
-  <!-- ============ 三、游戏 ============ -->
-  <div class="section-divider">
-    <h2>[[zi:gamepad]] 游戏</h2>
-    <div class="sub">棋类 / 牌类 / 单人 / 派对，纯离线</div>
+      {%- assign live_tools = site.data.toolbox | where: "status", "live" -%}
+      {% include bulk-offline.html id="bulk-offline-toolbox" items=live_tools noun="款" what="百宝箱工具" hint="在线打开过任意一页后，全站会自动后台缓存，之后飞机 / 没网时直接输入网址即可。<br>想立即催一下、或省流量模式想强制缓存，点这个按钮——游戏、效率工具、生活工具一次性全打包。排行榜和评论仍需联网。" %}
+    </div>
   </div>
-
-  {%- assign chess_games = games | where: "subcategory", "棋类对战" -%}
-        <h3 class="subsection-title">[[zi:grid]] 棋类对战</h3>
-  <div class="tool-grid">
-    {%- for t in chess_games -%}
-      {%- include tool-card.html tool=t -%}
-    {%- endfor -%}
-  </div>
-
-  {%- assign card_games = games | where: "subcategory", "牌类游戏" -%}
-  <h3 class="subsection-title">[[zi:cards]] 牌类游戏</h3>
-  <div class="tool-grid">
-    {%- for t in card_games -%}
-      {%- include tool-card.html tool=t -%}
-    {%- endfor -%}
-  </div>
-
-  {%- assign solo_games = games | where: "subcategory", "单人小游戏" -%}
-  <h3 class="subsection-title">[[zi:gamepad]] 单人小游戏</h3>
-  <div class="tool-grid">
-    {%- for t in solo_games -%}
-      {%- include tool-card.html tool=t -%}
-    {%- endfor -%}
-  </div>
-
-  {%- assign party_games = games | where: "subcategory", "派对多人" -%}
-  <h3 class="subsection-title">[[zi:sparkle]] 派对 / 多人</h3>
-  <div class="tool-grid">
-    {%- for t in party_games -%}
-      {%- include tool-card.html tool=t -%}
-    {%- endfor -%}
-  </div>
-
-  {%- assign live_tools = site.data.toolbox | where: "status", "live" -%}
-  {% include bulk-offline.html id="bulk-offline-toolbox" items=live_tools noun="款" what="百宝箱工具" hint="在线打开过任意一页后，全站会自动后台缓存，之后飞机 / 没网时直接输入网址即可。<br>想立即催一下、或省流量模式想强制缓存，点这个按钮——游戏、效率工具、生活工具一次性全打包。排行榜和评论仍需联网。" %}
-
 </article>
+
+<script>
+(function () {
+  var search = document.getElementById('tool-search');
+  var sections = Array.prototype.slice.call(document.querySelectorAll('.tool-section'));
+  var mapLinks = Array.prototype.slice.call(document.querySelectorAll('.tool-map a'));
+  var empty = document.getElementById('tool-empty');
+  if (!search || !sections.length) return;
+
+  function normalize(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function applySearch() {
+    var q = normalize(search.value);
+    var anyShown = false;
+    var isAdmin = document.body.classList.contains('sa-admin');
+
+    sections.forEach(function (section) {
+      var cards = Array.prototype.slice.call(section.querySelectorAll('[data-tool-card]'));
+      var matched = 0;
+      cards.forEach(function (card) {
+        var available = card.getAttribute('data-hidden') !== 'true' || isAdmin;
+        var hit = available && (!q || normalize(card.getAttribute('data-search')).indexOf(q) !== -1);
+        card.classList.toggle('tool-filtered', !hit);
+        if (hit) matched++;
+      });
+      section.classList.toggle('section-filtered', matched === 0);
+      if (matched > 0) anyShown = true;
+
+      var link = mapLinks.find(function (item) { return item.dataset.target === section.id; });
+      if (link) {
+        link.classList.toggle('map-dim', matched === 0);
+        var count = link.querySelector('.tool-map-count');
+        if (count) count.textContent = matched;
+      }
+
+      var sectionCount = section.querySelector('.tool-section-count');
+      if (sectionCount) sectionCount.textContent = matched + ' 款';
+    });
+
+    empty.hidden = anyShown;
+    updateSpy();
+  }
+
+  function updateSpy() {
+    var current = null;
+    var line = window.innerWidth <= 900 ? 132 : 150;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].classList.contains('section-filtered')) continue;
+      if (sections[i].getBoundingClientRect().top <= line) current = sections[i];
+    }
+    if (!current) {
+      current = sections.find(function (section) {
+        return !section.classList.contains('section-filtered');
+      }) || null;
+    }
+    mapLinks.forEach(function (link) {
+      var active = !!current && link.dataset.target === current.id;
+      link.classList.toggle('map-active', active);
+      if (active) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+  }
+
+  mapLinks.forEach(function (link) {
+    link.addEventListener('click', function (event) {
+      event.preventDefault();
+      if (link.classList.contains('map-dim') && search.value) {
+        search.value = '';
+        applySearch();
+      }
+      var target = document.getElementById(link.dataset.target);
+      if (!target) return;
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      history.replaceState(null, '', '#' + target.id);
+    });
+  });
+
+  search.addEventListener('input', applySearch);
+  if (window.MutationObserver) {
+    new MutationObserver(applySearch).observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  }
+  var spyTick = false;
+  window.addEventListener('scroll', function () {
+    if (spyTick) return;
+    spyTick = true;
+    requestAnimationFrame(function () {
+      updateSpy();
+      spyTick = false;
+    });
+  }, { passive: true });
+  window.addEventListener('resize', updateSpy);
+
+  applySearch();
+}());
+</script>
