@@ -9,6 +9,13 @@ permalink: /toolbox/recipes/
   .recipes-header { text-align: center; margin-bottom: 2rem; }
   .recipes-header h1 { font-size: 2.2rem; color: var(--color-ink); margin-bottom: 0.6rem; }
   .recipes-header p { color: var(--color-light); font-style: italic; }
+  .recipes-planner-cta {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    margin-top: 0.7rem; padding: 0.62rem 1rem;
+    border: 1px solid #3f7251; border-radius: 999px;
+    background: #3f7251; color: #fff; text-decoration: none;
+    font-size: 0.92rem; font-style: normal; font-weight: 650;
+  }
 
   .recipes-section { margin-bottom: 3rem; }
   .section-head {
@@ -178,6 +185,7 @@ permalink: /toolbox/recipes/
   <header class="recipes-header">
     <h1>[[zi:bowl]] 菜谱专区</h1>
     <p>Recipes &amp; Kitchen Notes</p>
+    <a class="recipes-planner-cta" href="{{ '/toolbox/recipes/planner/' | relative_url }}">选择菜品，生成备菜与采购清单 →</a>
   </header>
 
   {%- assign all_recipes = site.notes | where: "sub_category", "菜谱" -%}

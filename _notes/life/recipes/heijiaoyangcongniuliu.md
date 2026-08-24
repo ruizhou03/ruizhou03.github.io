@@ -16,24 +16,30 @@ cuisine: "中餐"
 category: "主菜"
 total_time: 35
 difficulty: 2
+planner_enabled: true
+servings_base: 1
+prep_tasks:
+  - "牛肉逆纹切薄片，加入 Sherry Cooking Wine、低钠酱油、黑胡椒、玉米淀粉和少量油，冷藏腌制 20 分钟"
+  - "黄洋葱切粗丝，大蒜切末，葱分葱白和葱绿切花"
+  - "预先调匀黑椒汁"
 
 ingredients:
-  - { name: "牛后腿肉 / London Broil", amount: "209 g" }
-  - { name: "黄洋葱", amount: "100 g" }
-  - { name: "大蒜", amount: "3.8 g" }
-  - { name: "葱", amount: "10 g" }
-  - { name: "食用油（炒制）", amount: "6 g" }
-  - { name: "Sherry Cooking Wine（腌肉）", amount: "8 g" }
-  - { name: "低钠酱油（腌肉）", amount: "6.3 g" }
-  - { name: "玉米淀粉（腌肉）", amount: "5 g" }
-  - { name: "食用油（腌肉封油）", amount: "3.5 g" }
-  - { name: "黑胡椒粉（腌肉）", amount: "0.9 g" }
-  - { name: "蚝油（黑椒汁）", amount: "10 g" }
-  - { name: "低钠酱油（黑椒汁）", amount: "4 g" }
-  - { name: "清水（黑椒汁）", amount: "32.5 g" }
-  - { name: "白糖（黑椒汁）", amount: "2.5 g" }
-  - { name: "黑胡椒粉（黑椒汁）", amount: "1.5 g" }
-  - { name: "玉米淀粉（黑椒汁）", amount: "1.75 g" }
+  - { id: "beef_london_broil", name: "牛后腿肉 / London Broil", qty: 209, unit: "g", amount: "209 g" }
+  - { id: "yellow_onion", name: "黄洋葱", qty: 100, unit: "g", amount: "100 g" }
+  - { id: "garlic", name: "大蒜", qty: 3.8, unit: "g", amount: "3.8 g" }
+  - { id: "scallion", name: "葱", qty: 10, unit: "g", amount: "10 g" }
+  - { id: "cooking_oil", name: "食用油（炒制）", qty: 6, unit: "g", amount: "6 g" }
+  - { id: "sherry_cooking_wine", name: "Sherry Cooking Wine（腌肉）", qty: 8, unit: "g", amount: "8 g" }
+  - { id: "low_sodium_soy_sauce", name: "低钠酱油（腌肉）", qty: 6.3, unit: "g", amount: "6.3 g" }
+  - { id: "cornstarch", name: "玉米淀粉（腌肉）", qty: 5, unit: "g", amount: "5 g" }
+  - { id: "cooking_oil", name: "食用油（腌肉封油）", qty: 3.5, unit: "g", amount: "3.5 g" }
+  - { id: "black_pepper", name: "黑胡椒粉（腌肉）", qty: 0.9, unit: "g", amount: "0.9 g" }
+  - { id: "oyster_sauce", name: "蚝油（黑椒汁）", qty: 10, unit: "g", amount: "10 g" }
+  - { id: "low_sodium_soy_sauce", name: "低钠酱油（黑椒汁）", qty: 4, unit: "g", amount: "4 g" }
+  - { id: "water", name: "清水（黑椒汁）", qty: 32.5, unit: "g", amount: "32.5 g" }
+  - { id: "sugar", name: "白糖（黑椒汁）", qty: 2.5, unit: "g", amount: "2.5 g" }
+  - { id: "black_pepper", name: "黑胡椒粉（黑椒汁）", qty: 1.5, unit: "g", amount: "1.5 g" }
+  - { id: "cornstarch", name: "玉米淀粉（黑椒汁）", qty: 1.75, unit: "g", amount: "1.75 g" }
 
 prep: |
   这是**1 份 / 1 餐**的净用量。209 g 生牛肉的蛋白质定位为 **43 g 估算值**，实际数值以包装营养标签为准。备菜用时 8 分钟，腌肉 20 分钟；核心并行点是**牛肉冷藏腌制时切洋葱、葱蒜并调黑椒汁**。

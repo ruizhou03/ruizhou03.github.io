@@ -95,6 +95,16 @@ layout: default
       {% endfor %}
     </div>
     {% endif %}
+
+    {% if page.planner_enabled %}
+    <div style="margin-top: 1rem;">
+      <a href="{{ '/toolbox/recipes/planner/' | relative_url }}?add={{ page.slug | url_encode }}"
+         style="display:inline-flex; align-items:center; padding:0.58rem 1rem; border-radius:999px;
+                background:#3f7251; color:#fff; text-decoration:none; font-weight:650; font-size:0.9rem;">
+        加入备餐计划
+      </a>
+    </div>
+    {% endif %}
   </header>
 
   {% if page.ingredients and page.ingredients.size > 0 %}

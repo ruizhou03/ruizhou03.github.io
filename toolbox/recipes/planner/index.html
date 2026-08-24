@@ -1,0 +1,195 @@
+---
+layout: default
+title: "厨房计划"
+description: "从公开菜谱选择份数，自动合并备菜用量与采购清单；也支持通过私密邀请链接点餐。"
+permalink: /toolbox/recipes/planner/
+noindex: true
+app_title: "厨房计划"
+theme_color: "#3f7251"
+theme_color_dark: "#213a2a"
+body_class: "kitchen-planner-page"
+---
+
+<link rel="stylesheet" href="{{ '/assets/css/kitchen-planner.css' | relative_url }}?v=1">
+
+<main class="kp-shell" id="kp-app">
+  <header class="kp-hero">
+    <a class="kp-back" href="{{ '/toolbox/recipes/' | relative_url }}">← 返回菜谱专区</a>
+    <p class="kp-eyebrow" id="kp-mode-label">自用备餐</p>
+    <h1 id="kp-title">厨房计划</h1>
+    <p class="kp-lead" id="kp-lead">选菜、调整份数，再把相同食材合并成真正可买的清单。</p>
+    <div class="kp-privacy" id="kp-privacy">自用计划只保存在当前浏览器，不会公开或发送给任何人。</div>
+  </header>
+
+  <div class="kp-alert" id="kp-alert" role="status" hidden></div>
+
+  <section class="kp-picker" aria-labelledby="kp-picker-title">
+    <div class="kp-section-head">
+      <div>
+        <p class="kp-kicker">第一步</p>
+        <h2 id="kp-picker-title">选择菜品与份数</h2>
+      </div>
+      <label class="kp-search">
+        <span class="sr-only">搜索试点菜谱</span>
+        <input id="kp-search" type="search" placeholder="搜索菜名或标签">
+      </label>
+    </div>
+    <p class="kp-pilot-note">初版先开放 6 道“一份 / 一餐”数据完整的预制菜，其余菜谱仍可正常查阅。</p>
+    <div class="kp-recipe-grid" id="kp-recipe-grid"></div>
+  </section>
+
+  <section class="kp-plan" id="kp-plan" aria-labelledby="kp-plan-title">
+    <div class="kp-section-head kp-plan-head">
+      <div>
+        <p class="kp-kicker">第二步</p>
+        <h2 id="kp-plan-title">合并用量与采购清单</h2>
+      </div>
+      <div class="kp-plan-actions">
+        <button class="kp-btn kp-btn-quiet" id="kp-copy-list" type="button">复制采购清单</button>
+        <button class="kp-btn kp-btn-quiet" id="kp-reset" type="button">清空</button>
+      </div>
+    </div>
+
+    <div class="kp-empty" id="kp-empty">
+      <span>还没有选菜</span>
+      <p>从上面的菜谱开始，份数变化会实时反映到用量和采购建议。</p>
+    </div>
+
+    <div id="kp-results" hidden>
+      <div class="kp-summary" id="kp-summary"></div>
+
+      <div class="kp-retailer" role="group" aria-label="采购清单模式">
+        <span>采购显示</span>
+        <button type="button" data-retailer="general" class="is-active">普通品类</button>
+        <button type="button" data-retailer="walmart">Walmart 推荐</button>
+        <small>默认商品与包装仅作选购提示，价格和库存以当前门店为准。</small>
+      </div>
+
+      <div class="kp-result-grid">
+        <article class="kp-panel">
+          <div class="kp-panel-head">
+            <div>
+              <p class="kp-kicker">实际消耗</p>
+              <h3>合并用料</h3>
+            </div>
+            <span class="kp-hint">这里显示做菜真正会用掉的量</span>
+          </div>
+          <div id="kp-usage-list"></div>
+        </article>
+
+        <article class="kp-panel kp-shopping-panel">
+          <div class="kp-panel-head">
+            <div>
+              <p class="kp-kicker">扣除家中已有</p>
+              <h3>采购清单</h3>
+            </div>
+            <span class="kp-hint">瓶装调料只建议购买一份默认包装</span>
+          </div>
+          <div id="kp-shopping-list"></div>
+        </article>
+      </div>
+
+      <article class="kp-panel kp-prep-panel">
+        <div class="kp-panel-head">
+          <div>
+            <p class="kp-kicker">按菜执行</p>
+            <h3>备菜顺序</h3>
+          </div>
+          <span class="kp-hint">先统一切配和腌制，再分别开火</span>
+        </div>
+        <div id="kp-prep-list"></div>
+      </article>
+
+      <form class="kp-order-form" id="kp-order-form" hidden>
+        <div class="kp-panel-head">
+          <div>
+            <p class="kp-kicker">私密提交</p>
+            <h3>确认点单</h3>
+          </div>
+        </div>
+        <div class="kp-form-grid">
+          <label>怎么称呼你
+            <input id="kp-guest-name" name="guestName" maxlength="24" required autocomplete="name">
+          </label>
+          <label>什么时候吃
+            <input id="kp-meal-time" name="mealTime" maxlength="60" placeholder="例如：周六晚饭">
+          </label>
+          <label class="kp-form-wide">备注或忌口
+            <textarea id="kp-order-note" name="note" maxlength="240" rows="3" placeholder="例如：不要太辣"></textarea>
+          </label>
+        </div>
+        <button class="kp-btn kp-btn-primary kp-submit-order" type="submit">检查后确认提交点单</button>
+        <p class="kp-form-note">订单仅发送给邀请人，不会出现在公开页面。</p>
+      </form>
+    </div>
+  </section>
+
+  <section class="kp-owner" id="kp-owner" hidden aria-labelledby="kp-owner-title">
+    <div class="kp-section-head">
+      <div>
+        <p class="kp-kicker">仅站主可见</p>
+        <h2 id="kp-owner-title">点餐后台</h2>
+      </div>
+      <div class="kp-plan-actions">
+        <button class="kp-btn kp-btn-primary" id="kp-open-invite" type="button">用当前选菜创建邀请</button>
+        <button class="kp-btn kp-btn-quiet" id="kp-refresh-orders" type="button">刷新订单</button>
+      </div>
+    </div>
+    <div class="kp-owner-grid">
+      <article class="kp-panel">
+        <h3>有效邀请</h3>
+        <div id="kp-invite-list" class="kp-owner-list"></div>
+      </article>
+      <article class="kp-panel">
+        <h3>收到的订单</h3>
+        <div id="kp-order-list" class="kp-owner-list"></div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<dialog class="kp-dialog" id="kp-invite-dialog">
+  <form method="dialog" id="kp-invite-form">
+    <button class="kp-dialog-close" value="cancel" aria-label="关闭">×</button>
+    <p class="kp-kicker">私密点餐</p>
+    <h2>创建邀请链接</h2>
+    <p id="kp-invite-selection"></p>
+    <label>邀请标题
+      <input id="kp-invite-title" maxlength="60" value="这顿想吃什么？" required>
+    </label>
+    <label>链接失效时间
+      <input id="kp-invite-expiry" type="datetime-local" required>
+    </label>
+    <div class="kp-dialog-actions">
+      <button class="kp-btn kp-btn-quiet" value="cancel">取消</button>
+      <button class="kp-btn kp-btn-primary" id="kp-create-invite" value="default">生成私密链接</button>
+    </div>
+    <div class="kp-created-link" id="kp-created-link" hidden>
+      <input id="kp-invite-link" readonly aria-label="新生成的邀请链接">
+      <button class="kp-btn kp-btn-primary" id="kp-copy-invite" type="button">复制链接</button>
+      <p>令牌只在这次创建时显示；关闭后可使链接立即失效。</p>
+    </div>
+  </form>
+</dialog>
+
+{% assign planner_recipes = site.notes | where: "sub_category", "菜谱" | where: "planner_enabled", true | sort: "title" %}
+<script id="kp-catalog" type="application/json">
+{
+  "ingredients": {{ site.data.kitchen_ingredients | jsonify }},
+  "recipes": [
+    {% for r in planner_recipes %}
+    {
+      "slug": {{ r.slug | jsonify }},
+      "title": {{ r.title | jsonify }},
+      "url": {{ r.url | relative_url | jsonify }},
+      "cover": {{ r.cover | relative_url | jsonify }},
+      "tags": {{ r.tags | jsonify }},
+      "totalTime": {{ r.total_time | jsonify }},
+      "ingredients": {{ r.ingredients | jsonify }},
+      "prepTasks": {{ r.prep_tasks | jsonify }}
+    }{% unless forloop.last %},{% endunless %}
+    {% endfor %}
+  ]
+}
+</script>
+<script type="module" src="{{ '/assets/js/kitchen-planner.mjs' | relative_url }}?v=1"></script>

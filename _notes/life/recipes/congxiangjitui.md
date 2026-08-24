@@ -15,24 +15,30 @@ cuisine: "中餐"
 category: "主菜"
 total_time: 40
 difficulty: 2
+planner_enabled: true
+servings_base: 1
+prep_tasks:
+  - "鸡腿切 3 cm 块，加入 Sherry Cooking Wine、低钠酱油、黑胡椒、玉米淀粉和少量油，冷藏腌制 20 分钟"
+  - "黄洋葱切粗丝，鲜姜切片，大蒜切末，葱分葱白和葱绿切段"
+  - "预先调匀葱香汁"
 
 ingredients:
-  - { name: "去皮去骨鸡腿净肉", amount: "262 g" }
-  - { name: "黄洋葱", amount: "126.7 g" }
-  - { name: "葱", amount: "60 g" }
-  - { name: "鲜姜", amount: "16.7 g" }
-  - { name: "大蒜", amount: "5 g" }
-  - { name: "食用油（炒制）", amount: "6.7 g" }
-  - { name: "Sherry Cooking Wine（腌肉）", amount: "9.3 g" }
-  - { name: "低钠酱油（腌肉）", amount: "7.3 g" }
-  - { name: "玉米淀粉（腌肉）", amount: "6 g" }
-  - { name: "食用油（腌肉封油）", amount: "3.3 g" }
-  - { name: "黑胡椒粉（腌肉）", amount: "0.7 g" }
-  - { name: "低钠酱油（葱香汁）", amount: "9.3 g" }
-  - { name: "蚝油（葱香汁）", amount: "10 g" }
-  - { name: "Sherry Cooking Wine（葱香汁）", amount: "6.7 g" }
-  - { name: "清水（葱香汁）", amount: "33.3 g" }
-  - { name: "白糖（葱香汁）", amount: "2 g" }
+  - { id: "chicken_thigh", name: "去皮去骨鸡腿净肉", qty: 262, unit: "g", amount: "262 g" }
+  - { id: "yellow_onion", name: "黄洋葱", qty: 126.7, unit: "g", amount: "126.7 g" }
+  - { id: "scallion", name: "葱", qty: 60, unit: "g", amount: "60 g" }
+  - { id: "fresh_ginger", name: "鲜姜", qty: 16.7, unit: "g", amount: "16.7 g" }
+  - { id: "garlic", name: "大蒜", qty: 5, unit: "g", amount: "5 g" }
+  - { id: "cooking_oil", name: "食用油（炒制）", qty: 6.7, unit: "g", amount: "6.7 g" }
+  - { id: "sherry_cooking_wine", name: "Sherry Cooking Wine（腌肉）", qty: 9.3, unit: "g", amount: "9.3 g" }
+  - { id: "low_sodium_soy_sauce", name: "低钠酱油（腌肉）", qty: 7.3, unit: "g", amount: "7.3 g" }
+  - { id: "cornstarch", name: "玉米淀粉（腌肉）", qty: 6, unit: "g", amount: "6 g" }
+  - { id: "cooking_oil", name: "食用油（腌肉封油）", qty: 3.3, unit: "g", amount: "3.3 g" }
+  - { id: "black_pepper", name: "黑胡椒粉（腌肉）", qty: 0.7, unit: "g", amount: "0.7 g" }
+  - { id: "low_sodium_soy_sauce", name: "低钠酱油（葱香汁）", qty: 9.3, unit: "g", amount: "9.3 g" }
+  - { id: "oyster_sauce", name: "蚝油（葱香汁）", qty: 10, unit: "g", amount: "10 g" }
+  - { id: "sherry_cooking_wine", name: "Sherry Cooking Wine（葱香汁）", qty: 6.7, unit: "g", amount: "6.7 g" }
+  - { id: "water", name: "清水（葱香汁）", qty: 33.3, unit: "g", amount: "33.3 g" }
+  - { id: "sugar", name: "白糖（葱香汁）", qty: 2, unit: "g", amount: "2 g" }
 
 prep: |
   这是**1 份 / 1 餐**的净用量。按鸡腿包装每 112 g 含蛋白质 19 g 折算，262 g 鸡腿提供 **44.5 g 蛋白质**。备菜用时 10 分钟，腌肉 20 分钟；核心并行点是**鸡腿冷藏腌制时处理 60 g 葱并调葱香汁**。

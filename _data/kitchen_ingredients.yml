@@ -1,0 +1,164 @@
+# 菜谱规划器的规范食材目录。
+# - purchase_mode: fresh（按净用量采购）/ pantry（家中有则不买）/
+#   packaged（按同单位包装向上取整）/ exclude（不进采购清单）
+# - Walmart 映射只提供默认品类或稳定商品页，不承诺实时价格与门店库存。
+
+chicken_thigh:
+  label: "去皮去骨鸡腿肉"
+  category: meat
+  purchase_mode: fresh
+  walmart:
+    label: "Boneless Skinless Chicken Thighs"
+    url: "https://www.walmart.com/search?q=boneless+skinless+chicken+thighs"
+
+beef_london_broil:
+  label: "牛后腿肉 / London Broil"
+  category: meat
+  purchase_mode: fresh
+  walmart:
+    label: "London Broil / Bottom Round"
+    url: "https://www.walmart.com/search?q=london+broil+bottom+round"
+
+yellow_onion:
+  label: "黄洋葱"
+  category: produce
+  purchase_mode: fresh
+  walmart:
+    label: "Fresh Yellow Onion"
+    url: "https://www.walmart.com/search?q=fresh+yellow+onion"
+
+scallion:
+  label: "葱"
+  category: produce
+  purchase_mode: fresh
+  walmart:
+    label: "Fresh Green Onions / Scallions"
+    url: "https://www.walmart.com/search?q=fresh+green+onions"
+
+garlic:
+  label: "大蒜"
+  category: produce
+  purchase_mode: fresh
+  walmart:
+    label: "Fresh Garlic"
+    url: "https://www.walmart.com/search?q=fresh+garlic"
+
+fresh_ginger:
+  label: "鲜姜"
+  category: produce
+  purchase_mode: fresh
+  walmart:
+    label: "Fresh Ginger Root"
+    url: "https://www.walmart.com/search?q=fresh+ginger+root"
+
+white_mushroom:
+  label: "白蘑菇"
+  category: produce
+  purchase_mode: fresh
+  walmart:
+    label: "Fresh Whole White Mushrooms"
+    url: "https://www.walmart.com/search?q=fresh+whole+white+mushrooms"
+
+potato:
+  label: "土豆"
+  category: produce
+  purchase_mode: fresh
+  walmart:
+    label: "Fresh Gold / Russet Potatoes"
+    url: "https://www.walmart.com/search?q=fresh+potatoes"
+
+carrot:
+  label: "胡萝卜"
+  category: produce
+  purchase_mode: fresh
+  walmart:
+    label: "Fresh Whole Carrots"
+    url: "https://www.walmart.com/search?q=fresh+whole+carrots"
+
+cooking_oil:
+  label: "食用油"
+  category: seasoning
+  purchase_mode: pantry
+  walmart:
+    label: "Great Value Canola Oil"
+    pack: "48 fl oz/瓶"
+    url: "https://www.walmart.com/ip/10450988"
+
+szechuan_stir_fry_sauce:
+  label: "川香炒酱"
+  category: seasoning
+  purchase_mode: pantry
+  walmart:
+    label: "HOUSE OF TSANG Spicy Szechuan Stir-Fry Sauce"
+    pack: "11.5 oz/瓶"
+    url: "https://www.walmart.com/ip/10309294"
+
+sherry_cooking_wine:
+  label: "Sherry Cooking Wine"
+  category: seasoning
+  purchase_mode: pantry
+  walmart:
+    label: "Holland House Sherry Cooking Wine"
+    pack: "16 fl oz/瓶"
+    url: "https://www.walmart.com/ip/15556280"
+
+cornstarch:
+  label: "玉米淀粉"
+  category: seasoning
+  purchase_mode: pantry
+  walmart:
+    label: "Argo 100% Pure Corn Starch"
+    pack: "16 oz/盒"
+    url: "https://www.walmart.com/ip/977950279"
+
+low_sodium_soy_sauce:
+  label: "低钠酱油"
+  category: seasoning
+  purchase_mode: pantry
+  walmart:
+    label: "Kikkoman Less Sodium Soy Sauce"
+    pack: "15 fl oz/瓶"
+    url: "https://www.walmart.com/ip/10452919"
+
+black_pepper:
+  label: "黑胡椒粉"
+  category: seasoning
+  purchase_mode: pantry
+  walmart:
+    label: "Ground Black Pepper"
+    pack: "瓶装"
+    url: "https://www.walmart.com/search?q=ground+black+pepper"
+
+oyster_sauce:
+  label: "蚝油"
+  category: seasoning
+  purchase_mode: pantry
+  walmart:
+    label: "Lee Kum Kee Panda Oyster Sauce"
+    pack: "18 oz/瓶"
+    url: "https://www.walmart.com/ip/16004722"
+
+sugar:
+  label: "白糖"
+  category: seasoning
+  purchase_mode: pantry
+  walmart:
+    label: "Granulated Sugar"
+    pack: "袋装"
+    url: "https://www.walmart.com/search?q=granulated+sugar"
+
+golden_curry:
+  label: "S&B Golden Curry 咖喱块"
+  category: staple
+  purchase_mode: packaged
+  walmart:
+    label: "S&B Golden Curry Mix Mild"
+    package_qty: 220
+    package_unit: g
+    pack: "220 g/盒"
+    url: "https://www.walmart.com/ip/554310044"
+
+water:
+  label: "清水"
+  category: excluded
+  purchase_mode: exclude

@@ -15,19 +15,25 @@ cuisine: "中餐"
 category: "主菜"
 total_time: 40
 difficulty: 2
+planner_enabled: true
+servings_base: 1
+prep_tasks:
+  - "鸡腿切 3 cm 块，加入川香炒酱、Sherry Cooking Wine、玉米淀粉和少量油，冷藏腌制 20 分钟"
+  - "黄洋葱切粗丝，大蒜切末，葱分葱白和葱绿切花"
+  - "将剩余川香炒酱与清水预先调匀"
 
 ingredients:
-  - { name: "去皮去骨鸡腿净肉", amount: "252 g" }
-  - { name: "黄洋葱", amount: "125 g" }
-  - { name: "葱", amount: "20 g" }
-  - { name: "大蒜", amount: "6 g" }
-  - { name: "食用油（炒制）", amount: "6 g" }
-  - { name: "HOUSE OF TSANG Spicy Szechuan Stir-Fry Sauce（腌肉）", amount: "9 g" }
-  - { name: "Sherry Cooking Wine（腌肉）", amount: "9 g" }
-  - { name: "玉米淀粉（腌肉）", amount: "6 g" }
-  - { name: "食用油（腌肉封油）", amount: "3.5 g" }
-  - { name: "HOUSE OF TSANG Spicy Szechuan Stir-Fry Sauce（调味）", amount: "16 g" }
-  - { name: "清水（调味）", amount: "37.5 g" }
+  - { id: "chicken_thigh", name: "去皮去骨鸡腿净肉", qty: 252, unit: "g", amount: "252 g" }
+  - { id: "yellow_onion", name: "黄洋葱", qty: 125, unit: "g", amount: "125 g" }
+  - { id: "scallion", name: "葱", qty: 20, unit: "g", amount: "20 g" }
+  - { id: "garlic", name: "大蒜", qty: 6, unit: "g", amount: "6 g" }
+  - { id: "cooking_oil", name: "食用油（炒制）", qty: 6, unit: "g", amount: "6 g" }
+  - { id: "szechuan_stir_fry_sauce", name: "HOUSE OF TSANG Spicy Szechuan Stir-Fry Sauce（腌肉）", qty: 9, unit: "g", amount: "9 g" }
+  - { id: "sherry_cooking_wine", name: "Sherry Cooking Wine（腌肉）", qty: 9, unit: "g", amount: "9 g" }
+  - { id: "cornstarch", name: "玉米淀粉（腌肉）", qty: 6, unit: "g", amount: "6 g" }
+  - { id: "cooking_oil", name: "食用油（腌肉封油）", qty: 3.5, unit: "g", amount: "3.5 g" }
+  - { id: "szechuan_stir_fry_sauce", name: "HOUSE OF TSANG Spicy Szechuan Stir-Fry Sauce（调味）", qty: 16, unit: "g", amount: "16 g" }
+  - { id: "water", name: "清水（调味）", qty: 37.5, unit: "g", amount: "37.5 g" }
 
 prep: |
   这是**1 份 / 1 餐**的净用量。按鸡腿包装每 112 g 含蛋白质 19 g 折算，252 g 鸡腿提供 **42.8 g 蛋白质**。备菜用时 7 分钟，腌肉 20 分钟；核心并行点是**鸡腿冷藏腌制时切洋葱、葱蒜并调川香汁**。

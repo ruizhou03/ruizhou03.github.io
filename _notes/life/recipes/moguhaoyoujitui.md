@@ -15,23 +15,29 @@ cuisine: "中餐"
 category: "主菜"
 total_time: 40
 difficulty: 2
+planner_enabled: true
+servings_base: 1
+prep_tasks:
+  - "鸡腿切 3 cm 块，加入 Sherry Cooking Wine、低钠酱油、黑胡椒、玉米淀粉和少量油，冷藏腌制 20 分钟"
+  - "白蘑菇切厚片，黄洋葱切粗丝，大蒜切末"
+  - "预先调匀蚝油汁"
 
 ingredients:
-  - { name: "去皮去骨鸡腿净肉", amount: "252 g" }
-  - { name: "白蘑菇", amount: "100 g" }
-  - { name: "黄洋葱", amount: "100 g" }
-  - { name: "大蒜", amount: "5 g" }
-  - { name: "食用油（炒制）", amount: "6 g" }
-  - { name: "Sherry Cooking Wine（腌肉）", amount: "9.3 g" }
-  - { name: "低钠酱油（腌肉）", amount: "7.3 g" }
-  - { name: "玉米淀粉（腌肉）", amount: "6 g" }
-  - { name: "食用油（腌肉封油）", amount: "3.3 g" }
-  - { name: "黑胡椒粉（腌肉）", amount: "0.8 g" }
-  - { name: "蚝油（调味汁）", amount: "12.7 g" }
-  - { name: "低钠酱油（调味汁）", amount: "4 g" }
-  - { name: "清水（调味汁）", amount: "38.3 g" }
-  - { name: "白糖（调味汁）", amount: "1.7 g" }
-  - { name: "玉米淀粉（调味汁）", amount: "1.7 g" }
+  - { id: "chicken_thigh", name: "去皮去骨鸡腿净肉", qty: 252, unit: "g", amount: "252 g" }
+  - { id: "white_mushroom", name: "白蘑菇", qty: 100, unit: "g", amount: "100 g" }
+  - { id: "yellow_onion", name: "黄洋葱", qty: 100, unit: "g", amount: "100 g" }
+  - { id: "garlic", name: "大蒜", qty: 5, unit: "g", amount: "5 g" }
+  - { id: "cooking_oil", name: "食用油（炒制）", qty: 6, unit: "g", amount: "6 g" }
+  - { id: "sherry_cooking_wine", name: "Sherry Cooking Wine（腌肉）", qty: 9.3, unit: "g", amount: "9.3 g" }
+  - { id: "low_sodium_soy_sauce", name: "低钠酱油（腌肉）", qty: 7.3, unit: "g", amount: "7.3 g" }
+  - { id: "cornstarch", name: "玉米淀粉（腌肉）", qty: 6, unit: "g", amount: "6 g" }
+  - { id: "cooking_oil", name: "食用油（腌肉封油）", qty: 3.3, unit: "g", amount: "3.3 g" }
+  - { id: "black_pepper", name: "黑胡椒粉（腌肉）", qty: 0.8, unit: "g", amount: "0.8 g" }
+  - { id: "oyster_sauce", name: "蚝油（调味汁）", qty: 12.7, unit: "g", amount: "12.7 g" }
+  - { id: "low_sodium_soy_sauce", name: "低钠酱油（调味汁）", qty: 4, unit: "g", amount: "4 g" }
+  - { id: "water", name: "清水（调味汁）", qty: 38.3, unit: "g", amount: "38.3 g" }
+  - { id: "sugar", name: "白糖（调味汁）", qty: 1.7, unit: "g", amount: "1.7 g" }
+  - { id: "cornstarch", name: "玉米淀粉（调味汁）", qty: 1.7, unit: "g", amount: "1.7 g" }
 
 prep: |
   这是**1 份 / 1 餐**的净用量。按鸡腿包装每 112 g 含蛋白质 19 g 折算，252 g 鸡腿提供 **42.8 g 蛋白质**。备菜用时 9 分钟，腌肉 20 分钟；核心并行点是**鸡腿冷藏腌制时切蘑菇、洋葱并调蚝油汁**。

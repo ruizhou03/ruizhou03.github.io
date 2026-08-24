@@ -15,17 +15,23 @@ cuisine: "日料"
 category: "主菜"
 total_time: 60
 difficulty: 2
+planner_enabled: true
+servings_base: 1
+prep_tasks:
+  - "鸡腿切 3 cm 块，加入 Sherry Cooking Wine 和少量油，冷藏腌制 20 分钟"
+  - "洋葱切粗丝，土豆切块后浸冷水，胡萝卜切滚刀块"
+  - "咖喱块切成小块，保持干燥备用"
 
 ingredients:
-  - { name: "去皮去骨鸡腿净肉", amount: "262 g" }
-  - { name: "黄洋葱", amount: "100 g" }
-  - { name: "土豆", amount: "200 g" }
-  - { name: "胡萝卜", amount: "83.3 g" }
-  - { name: "S&B Golden Curry 咖喱块", amount: "30.7 g" }
-  - { name: "清水", amount: "216.7 g" }
-  - { name: "食用油（炒制）", amount: "5 g" }
-  - { name: "Sherry Cooking Wine（腌肉）", amount: "6.7 g" }
-  - { name: "食用油（腌肉）", amount: "2.7 g" }
+  - { id: "chicken_thigh", name: "去皮去骨鸡腿净肉", qty: 262, unit: "g", amount: "262 g" }
+  - { id: "yellow_onion", name: "黄洋葱", qty: 100, unit: "g", amount: "100 g" }
+  - { id: "potato", name: "土豆", qty: 200, unit: "g", amount: "200 g" }
+  - { id: "carrot", name: "胡萝卜", qty: 83.3, unit: "g", amount: "83.3 g" }
+  - { id: "golden_curry", name: "S&B Golden Curry 咖喱块", qty: 30.7, unit: "g", amount: "30.7 g" }
+  - { id: "water", name: "清水", qty: 216.7, unit: "g", amount: "216.7 g" }
+  - { id: "cooking_oil", name: "食用油（炒制）", qty: 5, unit: "g", amount: "5 g" }
+  - { id: "sherry_cooking_wine", name: "Sherry Cooking Wine（腌肉）", qty: 6.7, unit: "g", amount: "6.7 g" }
+  - { id: "cooking_oil", name: "食用油（腌肉）", qty: 2.7, unit: "g", amount: "2.7 g" }
 
 prep: |
   这是**1 份 / 1 餐**的净用量。按鸡腿包装每 112 g 含蛋白质 19 g 折算，262 g 鸡腿提供 **44.5 g 蛋白质**；更换品牌后按新包装标签重算。备菜用时 12 分钟，腌肉 20 分钟；核心并行点是**鸡腿冷藏腌制时切洋葱、土豆和胡萝卜**。
