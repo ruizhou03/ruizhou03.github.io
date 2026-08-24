@@ -10,7 +10,7 @@ theme_color_dark: "#213a2a"
 body_class: "kitchen-planner-page"
 ---
 
-<link rel="stylesheet" href="{{ '/assets/css/kitchen-planner.css' | relative_url }}?v=1">
+<link rel="stylesheet" href="{{ '/assets/css/kitchen-planner.css' | relative_url }}?v=2">
 
 <main class="kp-shell" id="kp-app">
   <header class="kp-hero">
@@ -42,10 +42,11 @@ body_class: "kitchen-planner-page"
     <div class="kp-section-head kp-plan-head">
       <div>
         <p class="kp-kicker">第二步</p>
-        <h2 id="kp-plan-title">合并用量与采购清单</h2>
+        <h2 id="kp-plan-title">采购与执行计划</h2>
       </div>
       <div class="kp-plan-actions">
         <button class="kp-btn kp-btn-quiet" id="kp-copy-list" type="button">复制采购清单</button>
+        <button class="kp-btn kp-btn-quiet" id="kp-print-list" type="button">打印 / 存 PDF</button>
         <button class="kp-btn kp-btn-quiet" id="kp-reset" type="button">清空</button>
       </div>
     </div>
@@ -65,39 +66,40 @@ body_class: "kitchen-planner-page"
         <small>默认商品与包装仅作选购提示，价格和库存以当前门店为准。</small>
       </div>
 
-      <div class="kp-result-grid">
-        <article class="kp-panel">
-          <div class="kp-panel-head">
-            <div>
-              <p class="kp-kicker">实际消耗</p>
-              <h3>合并用料</h3>
-            </div>
-            <span class="kp-hint">这里显示做菜真正会用掉的量</span>
+      <article class="kp-panel kp-shopping-panel">
+        <div class="kp-panel-head">
+          <div>
+            <p class="kp-kicker">可编辑结果</p>
+            <h3>总采购清单</h3>
           </div>
-          <div id="kp-usage-list"></div>
-        </article>
-
-        <article class="kp-panel kp-shopping-panel">
-          <div class="kp-panel-head">
-            <div>
-              <p class="kp-kicker">扣除家中已有</p>
-              <h3>采购清单</h3>
-            </div>
-            <span class="kp-hint">瓶装调料只建议购买一份默认包装</span>
+          <div class="kp-panel-tools">
+            <span class="kp-hint">推荐值只是起点；可自行加减，调到 0 即不购买</span>
+            <button class="kp-btn kp-btn-quiet" id="kp-restore-purchases" type="button">恢复推荐值</button>
           </div>
-          <div id="kp-shopping-list"></div>
-        </article>
-      </div>
+        </div>
+        <div id="kp-shopping-list"></div>
+      </article>
 
       <article class="kp-panel kp-prep-panel">
         <div class="kp-panel-head">
           <div>
-            <p class="kp-kicker">按菜执行</p>
-            <h3>备菜顺序</h3>
+            <p class="kp-kicker">跨菜统筹</p>
+            <h3>统筹备菜</h3>
           </div>
-          <span class="kp-hint">先统一切配和腌制，再分别开火</span>
+          <span class="kp-hint">先一次性处理蔬菜和料汁，最后接触生肉</span>
         </div>
         <div id="kp-prep-list"></div>
+      </article>
+
+      <article class="kp-panel kp-cook-panel">
+        <div class="kp-panel-head">
+          <div>
+            <p class="kp-kicker">分菜开火</p>
+            <h3>炒制顺序</h3>
+          </div>
+          <span class="kp-hint">长时间焖煮先启动，味道重与快炒菜靠后</span>
+        </div>
+        <div id="kp-cook-list"></div>
       </article>
 
       <form class="kp-order-form" id="kp-order-form" hidden>
@@ -186,10 +188,13 @@ body_class: "kitchen-planner-page"
       "tags": {{ r.tags | jsonify }},
       "totalTime": {{ r.total_time | jsonify }},
       "ingredients": {{ r.ingredients | jsonify }},
-      "prepTasks": {{ r.prep_tasks | jsonify }}
+      "prepPlan": {{ r.planner_prep | jsonify }},
+      "cookPriority": {{ r.cook_priority | jsonify }},
+      "cookNote": {{ r.cook_note | jsonify }},
+      "cookTasks": {{ r.steps | jsonify }}
     }{% unless forloop.last %},{% endunless %}
     {% endfor %}
   ]
 }
 </script>
-<script type="module" src="{{ '/assets/js/kitchen-planner.mjs' | relative_url }}?v=1"></script>
+<script type="module" src="{{ '/assets/js/kitchen-planner.mjs' | relative_url }}?v=2"></script>

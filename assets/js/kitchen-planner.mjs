@@ -1,8 +1,11 @@
 import {
   aggregatePlan,
+  buildOptimizedPrep,
+  formatMassWithPounds,
+  formatQuantity,
   normalizeSelections,
   validatePlannerCatalog,
-} from './kitchen-core.mjs';
+} from './kitchen-core.mjs?v=2';
 
 const STORAGE_KEY = 'zircon.kitchen.planner.v1';
 const API_FALLBACK = 'https://zircon-urge.fly.dev/api';
@@ -34,11 +37,13 @@ const elements = {
   empty: document.getElementById('kp-empty'),
   results: document.getElementById('kp-results'),
   summary: document.getElementById('kp-summary'),
-  usage: document.getElementById('kp-usage-list'),
   shopping: document.getElementById('kp-shopping-list'),
   prep: document.getElementById('kp-prep-list'),
+  cook: document.getElementById('kp-cook-list'),
   reset: document.getElementById('kp-reset'),
   copyList: document.getElementById('kp-copy-list'),
+  printList: document.getElementById('kp-print-list'),
+  restorePurchases: document.getElementById('kp-restore-purchases'),
   orderForm: document.getElementById('kp-order-form'),
   owner: document.getElementById('kp-owner'),
   inviteList: document.getElementById('kp-invite-list'),
@@ -64,8 +69,8 @@ let ownerOrders = [];
 let ownerCheckSequence = 0;
 let retailer = 'general';
 let selections = {};
-let pantry = {};
-let lastPlan = aggregatePlan({ recipes: allRecipes, ingredientCatalog, selections, pantry, retailer });
+let adjustments = { general: {}, walmart: {} };
+let lastPlan = aggregatePlan({ recipes: allRecipes, ingredientCatalog, selections, retailer });
 
 function createElement(tag, className, text) {
   const element = document.createElement(tag);
@@ -89,11 +94,16 @@ function loadLocalState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     selections = normalizeSelections(saved.selections || {}, recipeMap);
-    pantry = saved.pantry && typeof saved.pantry === 'object' ? saved.pantry : {};
+    adjustments = saved.adjustments && typeof saved.adjustments === 'object'
+      ? {
+        general: saved.adjustments.general && typeof saved.adjustments.general === 'object' ? saved.adjustments.general : {},
+        walmart: saved.adjustments.walmart && typeof saved.adjustments.walmart === 'object' ? saved.adjustments.walmart : {},
+      }
+      : { general: {}, walmart: {} };
     retailer = saved.retailer === 'walmart' ? 'walmart' : 'general';
   } catch {
     selections = {};
-    pantry = {};
+    adjustments = { general: {}, walmart: {} };
     retailer = 'general';
   }
   const addedSlug = new URLSearchParams(location.search).get('add');
@@ -107,7 +117,7 @@ function loadLocalState() {
 function saveLocalState() {
   if (mode !== 'self') return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ selections, pantry, retailer }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ selections, adjustments, retailer }));
   } catch {}
 }
 
@@ -184,75 +194,186 @@ function groupByCategory(items) {
   return groups;
 }
 
-function renderUsage(plan) {
-  elements.usage.replaceChildren();
-  groupByCategory(plan.ingredients.filter((item) => item.meta.purchase_mode !== 'exclude')).forEach((items, category) => {
-    const group = createElement('section', 'kp-group');
-    group.append(createElement('h4', 'kp-group-title', CATEGORY_LABELS[category] || '其他'));
-    items.forEach((item) => {
-      const row = createElement('div', 'kp-ingredient-row');
-      const left = createElement('div');
-      left.append(createElement('span', 'kp-ingredient-label', item.label));
-      const sourceText = item.sources.map((source) => source.title).filter((title, index, all) => all.indexOf(title) === index).join('、');
-      left.append(createElement('span', 'kp-ingredient-source', `来自：${sourceText}`));
-      if (item.meta.purchase_mode === 'pantry' && mode !== 'invite') {
-        const label = createElement('label', 'kp-pantry-toggle');
-        const checkbox = createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = Boolean(pantry[item.id]);
-        checkbox.addEventListener('change', () => {
-          pantry[item.id] = checkbox.checked;
-          saveLocalState();
-          renderPlan();
-        });
-        label.append(checkbox, document.createTextNode(' 家中已有，不购买'));
-        left.append(label);
-      }
-      row.append(left, createElement('span', 'kp-quantity', item.requiredText));
-      group.append(row);
-    });
-    elements.usage.append(group);
-  });
+function adjustmentStep(item) {
+  if (item.purchase.kind === 'package') return 1;
+  if (item.category === 'meat') return 50;
+  if (item.category === 'produce') return item.requiredQty < 100 ? 10 : 50;
+  if (item.category === 'staple') return 10;
+  return 5;
+}
+
+function roundedAdjustment(value) {
+  return Math.max(0, Math.round((Number(value) + Number.EPSILON) * 100) / 100);
+}
+
+function adjustedPurchase(item) {
+  const current = adjustments[retailer] || {};
+  const saved = Number(current[item.id]);
+  const recommended = Number(item.purchase.recommendedQty) || 0;
+  const quantity = Number.isFinite(saved) && saved >= 0 ? saved : recommended;
+  const isPackage = item.purchase.kind === 'package';
+  return {
+    item,
+    quantity: roundedAdjustment(quantity),
+    recommended: roundedAdjustment(recommended),
+    step: adjustmentStep(item),
+    manual: Object.prototype.hasOwnProperty.call(current, item.id),
+    unitLabel: isPackage ? item.purchase.unitLabel : (item.purchase.unit || item.unit),
+    displayQuantity: isPackage
+      ? `${roundedAdjustment(quantity)} ${item.purchase.unitLabel}`
+      : (retailer === 'walmart' ? formatMassWithPounds(quantity, item.purchase.unit || item.unit) : formatQuantity(quantity, item.purchase.unit || item.unit)),
+  };
+}
+
+function setPurchaseAdjustment(item, value) {
+  const next = roundedAdjustment(value);
+  if (!adjustments[retailer]) adjustments[retailer] = {};
+  adjustments[retailer][item.id] = next;
+  saveLocalState();
+  renderShopping(lastPlan);
 }
 
 function renderShopping(plan) {
   elements.shopping.replaceChildren();
-  if (!plan.purchases.length) {
-    elements.shopping.append(createElement('p', 'kp-shopping-empty', '家中已有项已扣除，目前无需额外购买。'));
-    return;
-  }
   groupByCategory(plan.purchases).forEach((items, category) => {
     const group = createElement('section', 'kp-group');
     group.append(createElement('h4', 'kp-group-title', CATEGORY_LABELS[category] || '其他'));
     items.forEach((item) => {
-      const row = createElement('div', 'kp-purchase-row');
+      const adjusted = adjustedPurchase(item);
+      const row = createElement('div', `kp-purchase-row${adjusted.quantity === 0 ? ' is-zero' : ''}`);
       const left = createElement('div');
-      const content = item.purchase.url ? createElement('a', 'kp-purchase-link', item.purchase.text) : createElement('span', 'kp-ingredient-label', item.purchase.text);
+      const content = item.purchase.url
+        ? createElement('a', 'kp-purchase-link', item.purchase.label)
+        : createElement('span', 'kp-ingredient-label', item.purchase.label);
       if (content.tagName === 'A') {
         content.href = item.purchase.url;
         content.target = '_blank';
         content.rel = 'noopener noreferrer';
       }
-      left.append(content, createElement('span', 'kp-ingredient-source', `本次实际消耗 ${item.requiredText}`));
-      row.append(left);
+      const detailParts = [`菜谱合计需要 ${item.requiredText}`];
+      if (item.purchase.pack) detailParts.push(`默认包装 ${item.purchase.pack}`);
+      if (adjusted.manual) detailParts.push('已手动调整');
+      left.append(content, createElement('span', 'kp-ingredient-source', detailParts.join(' · ')));
+
+      const adjuster = createElement('div', 'kp-adjuster');
+      const minus = createElement('button', '', '−');
+      minus.type = 'button';
+      minus.setAttribute('aria-label', `${item.purchase.label}减少购买数量`);
+      minus.addEventListener('click', () => setPurchaseAdjustment(item, adjusted.quantity - adjusted.step));
+      const input = createElement('input');
+      input.type = 'number';
+      input.min = '0';
+      input.step = String(adjusted.step);
+      input.value = String(adjusted.quantity);
+      input.setAttribute('aria-label', `${item.purchase.label}购买数量`);
+      input.addEventListener('input', () => {
+        if (!adjustments[retailer]) adjustments[retailer] = {};
+        adjustments[retailer][item.id] = roundedAdjustment(input.value);
+        row.classList.toggle('is-zero', roundedAdjustment(input.value) === 0);
+        saveLocalState();
+      });
+      input.addEventListener('change', () => setPurchaseAdjustment(item, input.value));
+      const unit = createElement('span', 'kp-adjuster-unit', adjusted.unitLabel);
+      const plus = createElement('button', '', '+');
+      plus.type = 'button';
+      plus.setAttribute('aria-label', `${item.purchase.label}增加购买数量`);
+      plus.addEventListener('click', () => setPurchaseAdjustment(item, adjusted.quantity + adjusted.step));
+      adjuster.append(minus, input, unit, plus);
+      row.append(left, adjuster);
       group.append(row);
     });
     elements.shopping.append(group);
   });
 }
 
+function appendPrepPhase(container, number, title, content) {
+  const phase = createElement('section', 'kp-prep-phase');
+  phase.append(createElement('span', 'kp-prep-phase-number', String(number)));
+  const body = createElement('div');
+  body.append(createElement('h4', '', title), content);
+  phase.append(body);
+  container.append(phase);
+}
+
 function renderPrep(plan) {
   elements.prep.replaceChildren();
-  plan.recipes.forEach((recipe) => {
-    const row = createElement('div', 'kp-prep-recipe');
-    row.append(createElement('span', 'kp-prep-badge', `${recipe.servings} 份`));
+  elements.prep.className = 'kp-prep-timeline';
+  const optimized = buildOptimizedPrep(plan, ingredientCatalog);
+
+  const produceBody = createElement('div');
+  optimized.produce.forEach((item) => {
+    const row = createElement('div', 'kp-prep-item');
+    row.append(createElement('strong', '', `${item.label} · 共 ${item.totalText}`));
+    const details = createElement('ul', 'kp-prep-details');
+    item.actionGroups.forEach((group) => {
+      const uses = group.uses.map((use) => `${use.title} × ${use.servings}`).join('、');
+      details.append(createElement('li', '', `${group.action}：一次处理 ${group.text}，再分给 ${uses}`));
+    });
+    row.append(details);
+    produceBody.append(row);
+  });
+  appendPrepPhase(elements.prep, 1, '蔬菜与葱姜蒜一次切齐', produceBody);
+
+  const mixesBody = createElement('div');
+  optimized.mixes.forEach((mix) => {
+    const row = createElement('div', 'kp-prep-item');
+    row.append(createElement('strong', '', `${mix.title} × ${mix.servings} · ${mix.name}`));
+    row.append(createElement('span', 'kp-ingredient-source', mix.components.map((component) => `${component.label} ${component.text}`).join('、')));
+    row.append(createElement('span', 'kp-ingredient-source', mix.action));
+    mixesBody.append(row);
+  });
+  appendPrepPhase(elements.prep, 2, '按菜调好料汁并贴标签', mixesBody);
+
+  const proteinBody = createElement('div');
+  optimized.proteins.forEach((protein) => {
+    const row = createElement('div', 'kp-prep-item');
+    row.append(createElement('strong', '', `${protein.label} · 共 ${protein.totalText}`));
+    const details = createElement('ul', 'kp-prep-details');
+    protein.cutGroups.forEach((group) => {
+      const uses = group.uses.map((use) => `${use.title} × ${use.servings}`).join('、');
+      details.append(createElement('li', '', `${group.cut}：一次处理 ${group.text}，再分给 ${uses}`));
+    });
+    protein.batches.forEach((batch) => {
+      const marinade = batch.marinade.map((component) => `${component.label} ${component.text}`).join('、');
+      details.append(createElement('li', '', `${batch.title} × ${batch.servings}：分出 ${formatQuantity(batch.qty, protein.unit)}；${batch.action}（${marinade}）`));
+    });
+    row.append(details);
+    proteinBody.append(row);
+  });
+  appendPrepPhase(elements.prep, 3, '最后处理生肉，按菜分盒腌制', proteinBody);
+
+  const parallel = createElement('p', 'kp-prep-parallel');
+  const parallelParts = [
+    `生肉全部入盒后，立即清洗刀、砧板、台面和双手；最长腌制约 ${optimized.marinadeMinutes || 0} 分钟。`,
+    '等待时把料汁按炒制顺序排好，并准备盛出半熟肉的干净盘子。',
+  ];
+  if (optimized.hasLongCook) parallelParts.push('腌制结束后先启动咖喱等焖煮菜，利用焖煮时间炒下一道。');
+  parallel.textContent = parallelParts.join(' ');
+  appendPrepPhase(elements.prep, 4, '利用等待时间清洁与排台', parallel);
+
+  renderCooking(optimized);
+}
+
+function renderCooking(optimized) {
+  elements.cook.replaceChildren();
+  optimized.cooking.forEach((recipe) => {
+    const card = createElement('article', 'kp-cook-card');
+    card.append(createElement('span', 'kp-cook-number', String(recipe.order)));
     const body = createElement('div');
-    body.append(createElement('h4', '', recipe.title));
-    const list = createElement('ul');
-    (recipe.prepTasks || []).forEach((task) => list.append(createElement('li', '', task)));
-    body.append(list);
-    row.append(body);
-    elements.prep.append(row);
+    const title = createElement('h4');
+    const link = createElement('a', 'kp-recipe-title', `${recipe.title} × ${recipe.servings}`);
+    link.href = recipe.url;
+    title.append(link);
+    body.append(title);
+    if (recipe.cookNote) body.append(createElement('p', 'kp-cook-note', recipe.cookNote));
+    if (recipe.servings > 1) {
+      body.append(createElement('p', 'kp-ingredient-source', `已选 ${recipe.servings} 份；下列为单份 / 单锅火候。肉类不要堆满锅，分批数量以完整菜谱的批量提示为准。`));
+    }
+    const steps = createElement('ol');
+    recipe.cookTasks.forEach((task) => steps.append(createElement('li', '', task.replace(/\*\*/g, ''))));
+    body.append(steps);
+    card.append(body);
+    elements.cook.append(card);
   });
 }
 
@@ -265,7 +386,7 @@ function renderSummary(plan) {
 }
 
 function renderPlan() {
-  lastPlan = aggregatePlan({ recipes: allRecipes, ingredientCatalog, selections, pantry, retailer });
+  lastPlan = aggregatePlan({ recipes: allRecipes, ingredientCatalog, selections, retailer });
   const hasSelection = lastPlan.recipes.length > 0;
   elements.empty.hidden = hasSelection;
   elements.results.hidden = !hasSelection;
@@ -275,7 +396,6 @@ function renderPlan() {
   });
   if (!hasSelection) return;
   renderSummary(lastPlan);
-  renderUsage(lastPlan);
   renderShopping(lastPlan);
   renderPrep(lastPlan);
 }
@@ -292,9 +412,15 @@ async function copyText(text) {
 }
 
 function shoppingListText() {
-  const lines = ['采购清单'];
-  lastPlan.purchases.forEach((item) => lines.push(`- ${item.purchase.text}（本次用 ${item.requiredText}）`));
-  if (!lastPlan.purchases.length) lines.push('- 无需额外购买');
+  const lines = [`采购清单 · ${retailer === 'walmart' ? 'Walmart 推荐' : '普通品类'}`];
+  lastPlan.purchases.map(adjustedPurchase).filter((entry) => entry.quantity > 0).forEach((entry) => {
+    const purchase = entry.item.purchase;
+    const text = purchase.kind === 'package'
+      ? `${purchase.label} × ${entry.quantity} ${entry.unitLabel}${purchase.pack ? `（${purchase.pack}）` : ''}`
+      : `${purchase.label} ${entry.displayQuantity}`;
+    lines.push(`- ${text}`);
+  });
+  if (lines.length === 1) lines.push('- 无需购买');
   return lines.join('\n');
 }
 
@@ -587,9 +713,17 @@ async function createInvite(event) {
 elements.search.addEventListener('input', renderRecipes);
 elements.orderForm.addEventListener('submit', submitOrder);
 elements.copyList.addEventListener('click', () => copyText(shoppingListText()));
+elements.printList.addEventListener('click', () => window.print());
+elements.restorePurchases.addEventListener('click', () => {
+  adjustments[retailer] = {};
+  saveLocalState();
+  renderShopping(lastPlan);
+  setAlert('已恢复当前采购模式的推荐数量。');
+});
 elements.reset.addEventListener('click', () => {
   if (Object.keys(selections).length && !window.confirm('清空当前选菜和份数？')) return;
   selections = {};
+  adjustments = { general: {}, walmart: {} };
   saveLocalState();
   renderRecipes();
   renderPlan();

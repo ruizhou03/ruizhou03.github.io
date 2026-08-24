@@ -82,6 +82,7 @@ cooking_oil:
   walmart:
     label: "Great Value Canola Oil"
     pack: "48 fl oz/瓶"
+    unit_label: "瓶"
     url: "https://www.walmart.com/ip/10450988"
 
 szechuan_stir_fry_sauce:
@@ -91,6 +92,7 @@ szechuan_stir_fry_sauce:
   walmart:
     label: "HOUSE OF TSANG Spicy Szechuan Stir-Fry Sauce"
     pack: "11.5 oz/瓶"
+    unit_label: "瓶"
     url: "https://www.walmart.com/ip/10309294"
 
 sherry_cooking_wine:
@@ -100,6 +102,7 @@ sherry_cooking_wine:
   walmart:
     label: "Holland House Sherry Cooking Wine"
     pack: "16 fl oz/瓶"
+    unit_label: "瓶"
     url: "https://www.walmart.com/ip/15556280"
 
 cornstarch:
@@ -109,6 +112,7 @@ cornstarch:
   walmart:
     label: "Argo 100% Pure Corn Starch"
     pack: "16 oz/盒"
+    unit_label: "盒"
     url: "https://www.walmart.com/ip/977950279"
 
 low_sodium_soy_sauce:
@@ -118,6 +122,7 @@ low_sodium_soy_sauce:
   walmart:
     label: "Kikkoman Less Sodium Soy Sauce"
     pack: "15 fl oz/瓶"
+    unit_label: "瓶"
     url: "https://www.walmart.com/ip/10452919"
 
 black_pepper:
@@ -127,6 +132,7 @@ black_pepper:
   walmart:
     label: "Ground Black Pepper"
     pack: "瓶装"
+    unit_label: "瓶"
     url: "https://www.walmart.com/search?q=ground+black+pepper"
 
 oyster_sauce:
@@ -136,6 +142,7 @@ oyster_sauce:
   walmart:
     label: "Lee Kum Kee Panda Oyster Sauce"
     pack: "18 oz/瓶"
+    unit_label: "瓶"
     url: "https://www.walmart.com/ip/16004722"
 
 sugar:
@@ -145,6 +152,7 @@ sugar:
   walmart:
     label: "Granulated Sugar"
     pack: "袋装"
+    unit_label: "袋"
     url: "https://www.walmart.com/search?q=granulated+sugar"
 
 golden_curry:
@@ -156,6 +164,7 @@ golden_curry:
     package_qty: 220
     package_unit: g
     pack: "220 g/盒"
+    unit_label: "盒"
     url: "https://www.walmart.com/ip/554310044"
 
 water:

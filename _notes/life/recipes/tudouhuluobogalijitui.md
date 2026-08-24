@@ -17,10 +17,26 @@ total_time: 60
 difficulty: 2
 planner_enabled: true
 servings_base: 1
-prep_tasks:
-  - "鸡腿切 3 cm 块，加入 Sherry Cooking Wine 和少量油，冷藏腌制 20 分钟"
-  - "洋葱切粗丝，土豆切块后浸冷水，胡萝卜切滚刀块"
-  - "咖喱块切成小块，保持干燥备用"
+planner_prep:
+  produce:
+    - { id: "yellow_onion", action: "切 1 cm 粗丝" }
+    - { id: "potato", action: "切 2.5 cm 块，立即浸冷水，开火前沥干" }
+    - { id: "carrot", action: "切 1.5 cm 滚刀块" }
+  mixes:
+    - name: "咖喱块"
+      components:
+        - { id: "golden_curry", qty: 30.7, unit: "g" }
+      action: "切成 1 cm 小块，放在干燥小碗中"
+  proteins:
+    - id: "chicken_thigh"
+      cut: "切 3 cm 块"
+      marinade_minutes: 20
+      marinade:
+        - { id: "sherry_cooking_wine", qty: 6.7, unit: "g" }
+        - { id: "cooking_oil", qty: 2.7, unit: "g" }
+      action: "先拌调味酒，再加油抓匀，冷藏腌制"
+cook_priority: 10
+cook_note: "炖煮时间最长，先开锅；15 分钟焖煮期间可开始炒下一道"
 
 ingredients:
   - { id: "chicken_thigh", name: "去皮去骨鸡腿净肉", qty: 262, unit: "g", amount: "262 g" }

@@ -18,10 +18,34 @@ total_time: 35
 difficulty: 2
 planner_enabled: true
 servings_base: 1
-prep_tasks:
-  - "牛肉逆纹切薄片，加入 Sherry Cooking Wine、低钠酱油、黑胡椒、玉米淀粉和少量油，冷藏腌制 20 分钟"
-  - "黄洋葱切粗丝，大蒜切末，葱分葱白和葱绿切花"
-  - "预先调匀黑椒汁"
+planner_prep:
+  produce:
+    - { id: "yellow_onion", action: "切 0.8 cm 粗丝" }
+    - { id: "garlic", action: "切末" }
+    - { id: "scallion", action: "葱白、葱绿各一半，切 0.5 cm 葱花" }
+  mixes:
+    - name: "黑椒汁"
+      components:
+        - { id: "oyster_sauce", qty: 10, unit: "g" }
+        - { id: "low_sodium_soy_sauce", qty: 4, unit: "g" }
+        - { id: "water", qty: 32.5, unit: "g" }
+        - { id: "sugar", qty: 2.5, unit: "g" }
+        - { id: "black_pepper", qty: 1.5, unit: "g" }
+        - { id: "cornstarch", qty: 1.75, unit: "g" }
+      action: "混合均匀并贴上菜名；下锅前再次搅匀"
+  proteins:
+    - id: "beef_london_broil"
+      cut: "逆纹切 0.3 cm 薄片"
+      marinade_minutes: 20
+      marinade:
+        - { id: "sherry_cooking_wine", qty: 8, unit: "g" }
+        - { id: "low_sodium_soy_sauce", qty: 6.3, unit: "g" }
+        - { id: "black_pepper", qty: 0.9, unit: "g" }
+        - { id: "cornstarch", qty: 5, unit: "g" }
+        - { id: "cooking_oil", qty: 3.5, unit: "g" }
+      action: "先拌调味酒、酱油和黑胡椒，再拌淀粉，最后用油封住，冷藏腌制"
+cook_priority: 60
+cook_note: "牛肉快炒后口感下降最快，所有鸡肉菜完成后最后炒"
 
 ingredients:
   - { id: "beef_london_broil", name: "牛后腿肉 / London Broil", qty: 209, unit: "g", amount: "209 g" }

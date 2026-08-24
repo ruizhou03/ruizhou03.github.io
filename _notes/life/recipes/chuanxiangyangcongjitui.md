@@ -17,10 +17,29 @@ total_time: 40
 difficulty: 2
 planner_enabled: true
 servings_base: 1
-prep_tasks:
-  - "鸡腿切 3 cm 块，加入川香炒酱、Sherry Cooking Wine、玉米淀粉和少量油，冷藏腌制 20 分钟"
-  - "黄洋葱切粗丝，大蒜切末，葱分葱白和葱绿切花"
-  - "将剩余川香炒酱与清水预先调匀"
+planner_prep:
+  produce:
+    - { id: "yellow_onion", action: "切 0.8 cm 粗丝" }
+    - { id: "garlic", action: "切末" }
+    - { id: "scallion", action: "葱白、葱绿各一半，切 0.5 cm 葱花" }
+  mixes:
+    - name: "川香汁"
+      components:
+        - { id: "szechuan_stir_fry_sauce", qty: 16, unit: "g" }
+        - { id: "water", qty: 37.5, unit: "g" }
+      action: "混合均匀并贴上菜名"
+  proteins:
+    - id: "chicken_thigh"
+      cut: "切 3 cm 块"
+      marinade_minutes: 20
+      marinade:
+        - { id: "szechuan_stir_fry_sauce", qty: 9, unit: "g" }
+        - { id: "sherry_cooking_wine", qty: 9, unit: "g" }
+        - { id: "cornstarch", qty: 6, unit: "g" }
+        - { id: "cooking_oil", qty: 3.5, unit: "g" }
+      action: "先拌川香酱和调味酒，再拌淀粉，最后用油封住，冷藏腌制"
+cook_priority: 50
+cook_note: "味道偏重；安排在清淡鸡腿菜之后、牛肉快炒之前"
 
 ingredients:
   - { id: "chicken_thigh", name: "去皮去骨鸡腿净肉", qty: 252, unit: "g", amount: "252 g" }

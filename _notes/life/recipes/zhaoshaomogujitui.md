@@ -17,10 +17,34 @@ total_time: 40
 difficulty: 2
 planner_enabled: true
 servings_base: 1
-prep_tasks:
-  - "鸡腿切 3 cm 块，加入 Sherry Cooking Wine、低钠酱油、白糖、黑胡椒、玉米淀粉和少量油，冷藏腌制 20 分钟"
-  - "黄洋葱切粗丝，白蘑菇切厚片，大蒜切末"
-  - "预先调匀照烧汁"
+planner_prep:
+  produce:
+    - { id: "yellow_onion", action: "切 0.8 cm 粗丝" }
+    - { id: "white_mushroom", action: "切 0.6 cm 厚片" }
+    - { id: "garlic", action: "切末" }
+  mixes:
+    - name: "照烧汁"
+      components:
+        - { id: "low_sodium_soy_sauce", qty: 11.3, unit: "g" }
+        - { id: "sherry_cooking_wine", qty: 8.8, unit: "g" }
+        - { id: "sugar", qty: 7.5, unit: "g" }
+        - { id: "water", qty: 37.5, unit: "g" }
+        - { id: "cornstarch", qty: 2, unit: "g" }
+      action: "混合均匀并贴上菜名；下锅前再次搅匀"
+  proteins:
+    - id: "chicken_thigh"
+      cut: "切 3 cm 块"
+      marinade_minutes: 20
+      marinade:
+        - { id: "sherry_cooking_wine", qty: 8.8, unit: "g" }
+        - { id: "low_sodium_soy_sauce", qty: 7.5, unit: "g" }
+        - { id: "sugar", qty: 2, unit: "g" }
+        - { id: "black_pepper", qty: 0.5, unit: "g" }
+        - { id: "cornstarch", qty: 6, unit: "g" }
+        - { id: "cooking_oil", qty: 3.5, unit: "g" }
+      action: "先拌调味酒、酱油、糖和黑胡椒，再拌淀粉，最后用油封住，冷藏腌制"
+cook_priority: 40
+cook_note: "酱汁含糖，排在清淡菜之后，避免后续锅底残糖焦化"
 
 ingredients:
   - { id: "chicken_thigh", name: "去皮去骨鸡腿净肉", qty: 262, unit: "g", amount: "262 g" }
