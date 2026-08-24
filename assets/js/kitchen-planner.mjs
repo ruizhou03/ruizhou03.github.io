@@ -61,6 +61,7 @@ let mode = inviteToken ? 'invite' : 'self';
 let allowedSlugs = null;
 let inviteData = null;
 let ownerOrders = [];
+let ownerCheckSequence = 0;
 let retailer = 'general';
 let selections = {};
 let pantry = {};
@@ -394,6 +395,20 @@ async function adminFetch(action, options = {}) {
   return data;
 }
 
+async function privateOrderingAvailable() {
+  try {
+    const response = await fetch(`${apiBase()}/kitchen?action=capabilities`, {
+      cache: 'no-store',
+      referrerPolicy: 'no-referrer',
+    });
+    if (!response.ok) return false;
+    const data = await response.json();
+    return data && data.ok === true && data.privateOrdering === true;
+  } catch {
+    return false;
+  }
+}
+
 function formatDate(timestamp) {
   if (!timestamp) return '未设置';
   return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(timestamp));
@@ -508,9 +523,18 @@ async function initOwner() {
   const auth = await waitForSiteAuth();
   if (!auth) return;
   const showIfOwner = (user) => {
+    const sequence = ++ownerCheckSequence;
     const isOwner = Boolean(user && user.isAdmin);
-    elements.owner.hidden = !isOwner;
-    if (isOwner) loadOwnerData();
+    if (!isOwner) {
+      elements.owner.hidden = true;
+      return;
+    }
+    privateOrderingAvailable().then((available) => {
+      if (sequence !== ownerCheckSequence) return;
+      elements.owner.hidden = !available;
+      if (available) loadOwnerData();
+      else setAlert('自用备餐仍可使用；私密点餐后台正在等待存储配额恢复。', 'error');
+    });
   };
   showIfOwner(auth.getUser());
   auth.onChange(showIfOwner);
