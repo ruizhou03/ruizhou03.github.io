@@ -5,7 +5,13 @@ import {
   formatQuantity,
   normalizeSelections,
   validatePlannerCatalog,
-} from './kitchen-core.mjs?v=2';
+} from './kitchen-core.mjs?v=3';
+import {
+  compileKitchenWorkflow,
+  DEFAULT_KITCHEN_PROFILE,
+  optimizeKitchenSchedule,
+  validateSchedule,
+} from './kitchen-scheduler.mjs?v=2';
 
 const STORAGE_KEY = 'zircon.kitchen.planner.v1';
 const API_FALLBACK = 'https://zircon-urge.fly.dev/api';
@@ -16,6 +22,9 @@ const CATEGORY_LABELS = {
   seasoning: '调味与常备品',
   other: '其他',
   excluded: '无需采购',
+};
+const RESOURCE_LABELS = {
+  cook: '双手', knife: '刀', board: '砧板', wok: '炒锅', pot: '汤锅', burner: '灶眼',
 };
 
 const app = document.getElementById('kp-app');
@@ -39,7 +48,12 @@ const elements = {
   summary: document.getElementById('kp-summary'),
   shopping: document.getElementById('kp-shopping-list'),
   prep: document.getElementById('kp-prep-list'),
+  cookPanel: document.querySelector('.kp-cook-panel'),
   cook: document.getElementById('kp-cook-list'),
+  schedulerPanel: document.getElementById('kp-scheduler-panel'),
+  schedulerMetrics: document.getElementById('kp-scheduler-metrics'),
+  schedulerWarnings: document.getElementById('kp-scheduler-warnings'),
+  schedulerTimeline: document.getElementById('kp-scheduler-timeline'),
   reset: document.getElementById('kp-reset'),
   copyList: document.getElementById('kp-copy-list'),
   printList: document.getElementById('kp-print-list'),
@@ -61,7 +75,9 @@ const elements = {
 };
 
 const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+const pageParams = new URLSearchParams(location.search);
 const inviteToken = hashParams.get('invite') || '';
+const schedulerEnabled = pageParams.get('scheduler') !== 'off';
 let mode = inviteToken ? 'invite' : 'self';
 let allowedSlugs = null;
 let inviteData = null;
@@ -70,6 +86,7 @@ let ownerCheckSequence = 0;
 let retailer = 'general';
 let selections = {};
 let adjustments = { general: {}, walmart: {} };
+let schedulerBurners = 2;
 let lastPlan = aggregatePlan({ recipes: allRecipes, ingredientCatalog, selections, retailer });
 
 function createElement(tag, className, text) {
@@ -377,6 +394,70 @@ function renderCooking(optimized) {
   });
 }
 
+function schedulerTime(minutes) {
+  const total = Math.max(0, Math.round(Number(minutes) * 60));
+  const hours = Math.floor(total / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const base = hours ? `${hours}:${String(mins).padStart(2, '0')}` : `${mins} 分`;
+  return seconds ? `${base} ${seconds} 秒` : base;
+}
+
+function renderExperimentalSchedule(plan) {
+  if (!schedulerEnabled || mode === 'invite') {
+    elements.schedulerPanel.hidden = true;
+    elements.cookPanel.hidden = mode === 'invite';
+    return;
+  }
+  elements.schedulerPanel.hidden = false;
+  const profile = { resources: { ...DEFAULT_KITCHEN_PROFILE.resources, burner: schedulerBurners } };
+  try {
+    const compiled = compileKitchenWorkflow(plan, ingredientCatalog, profile);
+    const result = optimizeKitchenSchedule(compiled.tasks, profile).best;
+    const scheduleErrors = validateSchedule(result);
+    if (scheduleErrors.length) throw new Error(scheduleErrors[0]);
+    elements.cookPanel.hidden = true;
+
+    elements.schedulerMetrics.replaceChildren();
+    [
+      `预计总时长 ${schedulerTime(result.metrics.makespan)}`,
+      `${compiled.tasks.length} 个任务节点`,
+      `${result.metrics.contextSwitches} 次菜品切换`,
+      `策略 ${result.strategy.name}`,
+    ].forEach((text) => elements.schedulerMetrics.append(createElement('span', 'kp-summary-chip', text)));
+
+    const warnings = [];
+    result.entries.filter((entry) => entry.finish).forEach((entry) => {
+      const hold = result.metrics.makespan - entry.end;
+      if (hold > entry.holdMaxMin + 1e-7) warnings.push(`${entry.recipeTitle}预计完成后等待 ${schedulerTime(hold)}；超过建议等待时间，考虑保温、分批上桌或减少同时菜数。`);
+    });
+    if (result.metrics.makespan > 180) warnings.push('本次组合超过 3 小时；份数或菜品较多，建议拆成两个批次。');
+    elements.schedulerWarnings.hidden = warnings.length === 0;
+    elements.schedulerWarnings.replaceChildren(...warnings.map((warning) => createElement('p', '', warning)));
+
+    elements.schedulerTimeline.replaceChildren();
+    result.timeline.filter((segment) => segment.phase === 'active' || segment.end - segment.start >= 1).forEach((segment) => {
+      const row = createElement('li', `kp-schedule-row is-${segment.phase}`);
+      row.append(createElement('time', 'kp-schedule-time', `${schedulerTime(segment.start)}–${schedulerTime(segment.end)}`));
+      const body = createElement('div');
+      body.append(createElement('strong', '', segment.label));
+      const state = segment.phase === 'passive'
+        ? `被动等待；${segment.resources.length ? `继续占用 ${segment.resources.map((resource) => RESOURCE_LABELS[resource] || resource).join('、')}` : '双手与主要锅具可用于其他任务'}`
+        : `主动操作${segment.resources.length ? ` · ${segment.resources.map((resource) => RESOURCE_LABELS[resource] || resource).join('、')}` : ''}`;
+      body.append(createElement('span', 'kp-ingredient-source', state));
+      if (segment.explain) body.append(createElement('span', 'kp-ingredient-source', segment.explain));
+      row.append(body);
+      elements.schedulerTimeline.append(row);
+    });
+  } catch (error) {
+    elements.cookPanel.hidden = false;
+    elements.schedulerMetrics.replaceChildren();
+    elements.schedulerWarnings.hidden = false;
+    elements.schedulerWarnings.replaceChildren(createElement('p', '', `实验调度器未能生成安全时间线：${error.message}`));
+    elements.schedulerTimeline.replaceChildren();
+  }
+}
+
 function renderSummary(plan) {
   elements.summary.replaceChildren();
   plan.recipes.forEach((recipe) => {
@@ -398,6 +479,7 @@ function renderPlan() {
   renderSummary(lastPlan);
   renderShopping(lastPlan);
   renderPrep(lastPlan);
+  renderExperimentalSchedule(lastPlan);
 }
 
 async function copyText(text) {
@@ -734,6 +816,16 @@ document.querySelectorAll('[data-retailer]').forEach((button) => {
     retailer = button.dataset.retailer === 'walmart' ? 'walmart' : 'general';
     saveLocalState();
     renderPlan();
+  });
+});
+
+document.querySelectorAll('[data-scheduler-burners]').forEach((button) => {
+  button.addEventListener('click', () => {
+    schedulerBurners = button.dataset.schedulerBurners === '1' ? 1 : 2;
+    document.querySelectorAll('[data-scheduler-burners]').forEach((candidate) => {
+      candidate.classList.toggle('is-active', Number(candidate.dataset.schedulerBurners) === schedulerBurners);
+    });
+    renderExperimentalSchedule(lastPlan);
   });
 });
 

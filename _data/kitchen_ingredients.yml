@@ -7,6 +7,7 @@ chicken_thigh:
   label: "去皮去骨鸡腿肉"
   category: meat
   purchase_mode: fresh
+  safety_class: raw_poultry
   walmart:
     label: "Boneless Skinless Chicken Thighs"
     url: "https://www.walmart.com/search?q=boneless+skinless+chicken+thighs"
@@ -15,6 +16,7 @@ beef_london_broil:
   label: "牛后腿肉 / London Broil"
   category: meat
   purchase_mode: fresh
+  safety_class: raw_beef
   walmart:
     label: "London Broil / Bottom Round"
     url: "https://www.walmart.com/search?q=london+broil+bottom+round"

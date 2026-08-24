@@ -34,6 +34,7 @@ const recipes = [{
     proteins: [{ id: 'beef', cut: '逆纹切片', marinade_minutes: 20, action: '腌制', marinade: [{ id: 'oyster', qty: 4, unit: 'g' }] }],
   },
   cookPriority: 60, cookNote: '最后快炒', cookTasks: ['快炒牛肉'],
+  workflow: [{ id: 'finish', label: '完成牛肉', kind: 'finish', after_prep: true, active_min: 1, resources_active: ['cook'], finish: true, hold_max_min: 5, quality_penalty: 1 }],
   ingredients: [
     { id: 'beef', name: '牛肉', qty: 209, unit: 'g' },
     { id: 'onion', name: '洋葱', qty: 100, unit: 'g' },
@@ -50,6 +51,7 @@ const recipes = [{
     proteins: [{ id: 'chicken', cut: '切块', marinade_minutes: 20, action: '腌制', marinade: [{ id: 'oyster', qty: 3, unit: 'g' }] }],
   },
   cookPriority: 20, cookNote: '先炒', cookTasks: ['煎鸡腿'],
+  workflow: [{ id: 'finish', label: '完成鸡腿', kind: 'finish', after_prep: true, active_min: 1, resources_active: ['cook'], finish: true, hold_max_min: 10, quality_penalty: 1 }],
   ingredients: [
     { id: 'chicken', name: '鸡腿', qty: 250, unit: 'g' },
     { id: 'onion', name: '洋葱', qty: 100, unit: 'g' },

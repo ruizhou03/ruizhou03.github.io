@@ -24,6 +24,7 @@ planner_prep:
     - { id: "garlic", action: "切末" }
   mixes:
     - name: "蘑菇蚝油汁"
+      active_min: 1.5
       components:
         - { id: "oyster_sauce", qty: 12.7, unit: "g" }
         - { id: "low_sodium_soy_sauce", qty: 4, unit: "g" }
@@ -34,6 +35,9 @@ planner_prep:
   proteins:
     - id: "chicken_thigh"
       cut: "切 3 cm 块"
+      base_min: 1
+      min_per_100g: 0.7
+      marinade_active_min: 1.5
       marinade_minutes: 20
       marinade:
         - { id: "sherry_cooking_wine", qty: 9.3, unit: "g" }
@@ -44,6 +48,39 @@ planner_prep:
       action: "先拌调味酒、酱油和黑胡椒，再拌淀粉，最后用油封住，冷藏腌制"
 cook_priority: 30
 cook_note: "先把蘑菇水炒干；味道温和，排在照烧和川香之前"
+workflow:
+  - id: "sear_chicken"
+    label: "煎香鸡腿"
+    kind: "sear"
+    after_prep: true
+    active_min: 4
+    batch_ingredient_id: "chicken_thigh"
+    batch_capacity_g: 300
+    resources_active: ["cook", "wok", "burner"]
+  - id: "saute_onion"
+    label: "炒洋葱"
+    kind: "saute"
+    depends_on: ["sear_chicken"]
+    active_min: 3
+    per_extra_serving_min: 0.8
+    resources_active: ["cook", "wok", "burner"]
+  - id: "dry_mushrooms"
+    label: "炒干蘑菇水"
+    kind: "saute"
+    depends_on: ["saute_onion"]
+    active_min: 5
+    per_extra_serving_min: 1.5
+    resources_active: ["cook", "wok", "burner"]
+  - id: "finish"
+    label: "爆香蒜末、鸡腿回锅并收汁"
+    kind: "finish"
+    depends_on: ["dry_mushrooms"]
+    active_min: 4.5
+    per_extra_serving_min: 1
+    resources_active: ["cook", "wok", "burner"]
+    finish: true
+    hold_max_min: 30
+    quality_penalty: 0.8
 
 ingredients:
   - { id: "chicken_thigh", name: "去皮去骨鸡腿净肉", qty: 252, unit: "g", amount: "252 g" }

@@ -24,6 +24,7 @@ planner_prep:
     - { id: "scallion", action: "葱白、葱绿各一半，切 0.5 cm 葱花" }
   mixes:
     - name: "川香汁"
+      active_min: 1
       components:
         - { id: "szechuan_stir_fry_sauce", qty: 16, unit: "g" }
         - { id: "water", qty: 37.5, unit: "g" }
@@ -31,6 +32,9 @@ planner_prep:
   proteins:
     - id: "chicken_thigh"
       cut: "切 3 cm 块"
+      base_min: 1
+      min_per_100g: 0.7
+      marinade_active_min: 1.4
       marinade_minutes: 20
       marinade:
         - { id: "szechuan_stir_fry_sauce", qty: 9, unit: "g" }
@@ -40,6 +44,44 @@ planner_prep:
       action: "先拌川香酱和调味酒，再拌淀粉，最后用油封住，冷藏腌制"
 cook_priority: 50
 cook_note: "味道偏重；安排在清淡鸡腿菜之后、牛肉快炒之前"
+workflow:
+  - id: "sear_chicken"
+    label: "煎香鸡腿"
+    kind: "sear"
+    after_prep: true
+    active_min: 4
+    batch_ingredient_id: "chicken_thigh"
+    batch_capacity_g: 300
+    resources_active: ["cook", "wok", "burner"]
+  - id: "saute_onion"
+    label: "炒洋葱"
+    kind: "saute"
+    depends_on: ["sear_chicken"]
+    active_min: 4
+    per_extra_serving_min: 1
+    resources_active: ["cook", "wok", "burner"]
+  - id: "bloom_aromatics"
+    label: "爆香蒜末和葱白"
+    kind: "aromatics"
+    depends_on: ["saute_onion"]
+    active_min: 0.5
+    resources_active: ["cook", "wok", "burner"]
+  - id: "sauce_finish"
+    label: "煮川香汁并回锅鸡腿"
+    kind: "finish"
+    depends_on: ["bloom_aromatics"]
+    active_min: 4
+    per_extra_serving_min: 0.8
+    resources_active: ["cook", "wok", "burner"]
+  - id: "garnish"
+    label: "加入葱绿完成"
+    kind: "finish"
+    depends_on: ["sauce_finish"]
+    active_min: 0.5
+    resources_active: ["cook", "wok", "burner"]
+    finish: true
+    hold_max_min: 25
+    quality_penalty: 1
 
 ingredients:
   - { id: "chicken_thigh", name: "去皮去骨鸡腿净肉", qty: 252, unit: "g", amount: "252 g" }

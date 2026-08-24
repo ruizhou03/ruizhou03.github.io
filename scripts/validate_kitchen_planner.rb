@@ -24,6 +24,9 @@ catalog.each do |id, item|
   errors << "catalog #{id}: invalid id" unless id.match?(/\A[a-z][a-z0-9_]*\z/)
   errors << "catalog #{id}: missing label" if item["label"].to_s.strip.empty?
   errors << "catalog #{id}: invalid purchase_mode" unless VALID_MODES.include?(item["purchase_mode"])
+  if item["category"] == "meat"
+    errors << "catalog #{id}: safety_class missing" unless %w[raw_beef raw_poultry raw_meat].include?(item["safety_class"])
+  end
   walmart = item["walmart"]
   next unless walmart
 
@@ -51,6 +54,8 @@ Dir.glob(RECIPE_GLOB).sort.each do |path|
   errors << "#{slug}: cook_priority missing" unless data["cook_priority"].is_a?(Numeric)
   errors << "#{slug}: cook_note missing" if data["cook_note"].to_s.strip.empty?
   errors << "#{slug}: cooking steps missing" unless data["steps"].is_a?(Array) && data["steps"].any?
+  workflow = data["workflow"]
+  errors << "#{slug}: workflow missing" unless workflow.is_a?(Array) && workflow.any?
   ingredients = data["ingredients"]
   unless ingredients.is_a?(Array) && ingredients.any?
     errors << "#{slug}: ingredients missing"
@@ -115,6 +120,36 @@ Dir.glob(RECIPE_GLOB).sort.each do |path|
       errors << "#{component_prefix} invalid unit" unless VALID_UNITS.include?(component["unit"])
     end
   end
+
+  next unless workflow.is_a?(Array) && workflow.any?
+
+  workflow_ids = workflow.map { |task| task["id"] }
+  errors << "#{slug}: workflow task ids must be unique" unless workflow_ids.compact.uniq.length == workflow.length
+  workflow.each_with_index do |task, index|
+    prefix = "#{slug}: workflow #{index + 1}"
+    errors << "#{prefix} id invalid" unless task["id"].to_s.match?(/\A[a-z][a-z0-9_-]*\z/)
+    errors << "#{prefix} label missing" if task["label"].to_s.strip.empty?
+    errors << "#{prefix} kind missing" if task["kind"].to_s.strip.empty?
+    active = task["active_min"]
+    passive = task["passive_min"]
+    valid_active = active.is_a?(Numeric) && active.positive?
+    valid_passive = passive.is_a?(Numeric) && passive.positive?
+    errors << "#{prefix} duration missing" unless valid_active || valid_passive
+    resources = Array(task["resources_active"]) + Array(task["resources_passive"])
+    errors << "#{prefix} resources missing" if resources.empty?
+    Array(task["depends_on"]).each do |dependency|
+      errors << "#{prefix} unknown dependency #{dependency}" unless workflow_ids.include?(dependency)
+    end
+    if task.key?("batch_capacity_g")
+      errors << "#{prefix} batch ingredient missing" unless catalog.key?(task["batch_ingredient_id"])
+      errors << "#{prefix} batch capacity invalid" unless task["batch_capacity_g"].is_a?(Numeric) && task["batch_capacity_g"].positive?
+    end
+    if task["finish"] == true
+      errors << "#{prefix} hold_max_min invalid" unless task["hold_max_min"].is_a?(Numeric) && task["hold_max_min"] >= 0
+      errors << "#{prefix} quality_penalty invalid" unless task["quality_penalty"].is_a?(Numeric) && task["quality_penalty"] >= 0
+    end
+  end
+  errors << "#{slug}: workflow must contain one finish task" unless workflow.count { |task| task["finish"] == true } == 1
 end
 
 errors << "expected 6 planner recipes, found #{planner_count}" unless planner_count == 6

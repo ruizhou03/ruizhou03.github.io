@@ -441,6 +441,7 @@
 
 .kp-prep-panel,
 .kp-cook-panel,
+.kp-scheduler-panel,
 .kp-order-form { margin-top: 1rem; }
 
 .kp-prep-timeline { margin-top: .7rem; }
@@ -495,6 +496,85 @@
 .kp-cook-note { margin: 0 0 .55rem; color: var(--kp-green-dark); font-size: .84rem; }
 .kp-cook-card ol { margin: 0; padding-left: 1.25rem; color: var(--color-muted); }
 .kp-cook-card li + li { margin-top: .35rem; }
+
+.kp-scheduler-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  color: var(--color-muted);
+  font-size: .82rem;
+}
+
+.kp-scheduler-controls button {
+  padding: .38rem .62rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.kp-scheduler-controls button.is-active {
+  border-color: var(--kp-green);
+  background: var(--kp-green);
+  color: #fff;
+}
+
+.kp-scheduler-note {
+  margin: .7rem 0 0;
+  color: var(--color-light);
+  font-size: .8rem;
+  line-height: 1.6;
+}
+
+.kp-scheduler-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  margin-top: .8rem;
+}
+
+.kp-scheduler-warnings {
+  margin-top: .8rem;
+  padding: .7rem .85rem;
+  border: 1px solid #dba575;
+  border-radius: 10px;
+  background: #fff5e9;
+  color: #73451f;
+  font-size: .82rem;
+}
+
+.kp-scheduler-warnings p { margin: 0; }
+.kp-scheduler-warnings p + p { margin-top: .35rem; }
+
+.kp-scheduler-timeline {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kp-schedule-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: .75rem;
+  padding: .65rem .75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.kp-schedule-row:last-child { border-bottom: 0; }
+.kp-schedule-row.is-passive {
+  border-left: 3px solid color-mix(in srgb, var(--kp-green) 45%, transparent);
+  background: var(--kp-green-soft);
+}
+
+.kp-schedule-time {
+  color: var(--kp-green-dark);
+  font-family: 'Cormorant Garamond', serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.kp-schedule-row strong { color: var(--color-text); }
 
 .kp-order-form {
   padding: 1.1rem;
@@ -588,6 +668,7 @@
 .kp-invite-mode .kp-retailer,
 .kp-invite-mode .kp-prep-panel,
 .kp-invite-mode .kp-cook-panel,
+.kp-invite-mode .kp-scheduler-panel,
 .kp-invite-mode .kp-shopping-panel,
 .kp-invite-mode #kp-copy-list,
 .kp-invite-mode #kp-print-list,
@@ -631,6 +712,8 @@
   .kp-panel-tools { width: 100%; align-items: flex-start; justify-content: space-between; }
   .kp-purchase-row { grid-template-columns: 1fr; }
   .kp-adjuster { justify-content: start; }
+  .kp-scheduler-controls { width: 100%; }
+  .kp-schedule-row { grid-template-columns: 1fr; gap: .2rem; }
   .kp-form-wide { grid-column: auto; }
 }
 
@@ -647,6 +730,7 @@
   .kp-shopping-panel,
   .kp-prep-panel,
   .kp-cook-panel { break-inside: avoid; }
+  .kp-scheduler-panel { break-inside: auto; }
   .kp-panel-tools .kp-btn,
   .kp-adjuster button { display: none !important; }
   .kp-adjuster { grid-template-columns: auto auto; }

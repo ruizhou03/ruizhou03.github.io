@@ -10,7 +10,7 @@ theme_color_dark: "#213a2a"
 body_class: "kitchen-planner-page"
 ---
 
-<link rel="stylesheet" href="{{ '/assets/css/kitchen-planner.css' | relative_url }}?v=2">
+<link rel="stylesheet" href="{{ '/assets/css/kitchen-planner.css' | relative_url }}?v=4">
 
 <main class="kp-shell" id="kp-app">
   <header class="kp-hero">
@@ -102,6 +102,24 @@ body_class: "kitchen-planner-page"
         <div id="kp-cook-list"></div>
       </article>
 
+      <article class="kp-panel kp-scheduler-panel" id="kp-scheduler-panel" hidden>
+        <div class="kp-panel-head">
+          <div>
+            <p class="kp-kicker">动态调度</p>
+            <h3>动态做饭时间线</h3>
+          </div>
+          <div class="kp-scheduler-controls" role="group" aria-label="可用灶眼数量">
+            <span>灶眼</span>
+            <button type="button" data-scheduler-burners="1">1 个</button>
+            <button type="button" data-scheduler-burners="2" class="is-active">2 个</button>
+          </div>
+        </div>
+        <p class="kp-scheduler-note">默认按 1 人、1 口炒锅、1 口汤锅和 2 个灶眼计算；根据任务依赖、主动/被动时间、锅具占用、批量容量、卫生顺序和成品耐等待程度即时生成。</p>
+        <div class="kp-scheduler-metrics" id="kp-scheduler-metrics"></div>
+        <div class="kp-scheduler-warnings" id="kp-scheduler-warnings" hidden></div>
+        <ol class="kp-scheduler-timeline" id="kp-scheduler-timeline"></ol>
+      </article>
+
       <form class="kp-order-form" id="kp-order-form" hidden>
         <div class="kp-panel-head">
           <div>
@@ -191,10 +209,11 @@ body_class: "kitchen-planner-page"
       "prepPlan": {{ r.planner_prep | jsonify }},
       "cookPriority": {{ r.cook_priority | jsonify }},
       "cookNote": {{ r.cook_note | jsonify }},
-      "cookTasks": {{ r.steps | jsonify }}
+      "cookTasks": {{ r.steps | jsonify }},
+      "workflow": {{ r.workflow | jsonify }}
     }{% unless forloop.last %},{% endunless %}
     {% endfor %}
   ]
 }
 </script>
-<script type="module" src="{{ '/assets/js/kitchen-planner.mjs' | relative_url }}?v=2"></script>
+<script type="module" src="{{ '/assets/js/kitchen-planner.mjs' | relative_url }}?v=4"></script>

@@ -24,12 +24,16 @@ planner_prep:
     - { id: "carrot", action: "切 1.5 cm 滚刀块" }
   mixes:
     - name: "咖喱块"
+      active_min: 1
       components:
         - { id: "golden_curry", qty: 30.7, unit: "g" }
       action: "切成 1 cm 小块，放在干燥小碗中"
   proteins:
     - id: "chicken_thigh"
       cut: "切 3 cm 块"
+      base_min: 1
+      min_per_100g: 0.7
+      marinade_active_min: 1.2
       marinade_minutes: 20
       marinade:
         - { id: "sherry_cooking_wine", qty: 6.7, unit: "g" }
@@ -37,6 +41,54 @@ planner_prep:
       action: "先拌调味酒，再加油抓匀，冷藏腌制"
 cook_priority: 10
 cook_note: "炖煮时间最长，先开锅；15 分钟焖煮期间可开始炒下一道"
+workflow:
+  - id: "saute_onion"
+    label: "炒软洋葱"
+    kind: "saute"
+    after_prep: true
+    active_min: 4
+    per_extra_serving_min: 1
+    resources_active: ["cook", "pot", "burner"]
+  - id: "brown_chicken"
+    label: "炒香鸡腿"
+    kind: "sear"
+    depends_on: ["saute_onion"]
+    active_min: 5
+    batch_ingredient_id: "chicken_thigh"
+    batch_capacity_g: 350
+    resources_active: ["cook", "pot", "burner"]
+  - id: "saute_roots"
+    label: "加入土豆和胡萝卜翻炒"
+    kind: "saute"
+    depends_on: ["brown_chicken"]
+    active_min: 2
+    per_extra_serving_min: 0.5
+    resources_active: ["cook", "pot", "burner"]
+  - id: "simmer"
+    label: "加水焖煮"
+    kind: "simmer"
+    depends_on: ["saute_roots"]
+    active_min: 1
+    passive_min: 15
+    resources_active: ["cook", "pot", "burner"]
+    resources_passive: ["pot", "burner"]
+    explain: "焖煮时锅和一个灶眼仍被占用，但双手可以去处理另一道菜"
+  - id: "dissolve_curry"
+    label: "关火溶解咖喱块"
+    kind: "mix-heat"
+    depends_on: ["simmer"]
+    active_min: 2
+    resources_active: ["cook", "pot", "burner"]
+  - id: "finish"
+    label: "小火收浓咖喱"
+    kind: "finish"
+    depends_on: ["dissolve_curry"]
+    active_min: 5
+    per_extra_serving_min: 1
+    resources_active: ["cook", "pot", "burner"]
+    finish: true
+    hold_max_min: 35
+    quality_penalty: 0.3
 
 ingredients:
   - { id: "chicken_thigh", name: "去皮去骨鸡腿净肉", qty: 262, unit: "g", amount: "262 g" }

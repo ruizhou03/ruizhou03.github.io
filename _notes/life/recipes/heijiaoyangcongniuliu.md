@@ -25,6 +25,7 @@ planner_prep:
     - { id: "scallion", action: "葱白、葱绿各一半，切 0.5 cm 葱花" }
   mixes:
     - name: "黑椒汁"
+      active_min: 1.5
       components:
         - { id: "oyster_sauce", qty: 10, unit: "g" }
         - { id: "low_sodium_soy_sauce", qty: 4, unit: "g" }
@@ -36,6 +37,9 @@ planner_prep:
   proteins:
     - id: "beef_london_broil"
       cut: "逆纹切 0.3 cm 薄片"
+      base_min: 1.5
+      min_per_100g: 0.9
+      marinade_active_min: 1.5
       marinade_minutes: 20
       marinade:
         - { id: "sherry_cooking_wine", qty: 8, unit: "g" }
@@ -46,6 +50,44 @@ planner_prep:
       action: "先拌调味酒、酱油和黑胡椒，再拌淀粉，最后用油封住，冷藏腌制"
 cook_priority: 60
 cook_note: "牛肉快炒后口感下降最快，所有鸡肉菜完成后最后炒"
+workflow:
+  - id: "sear_beef"
+    label: "快速煎炒牛肉并盛出"
+    kind: "sear"
+    after_prep: true
+    active_min: 1.75
+    batch_ingredient_id: "beef_london_broil"
+    batch_capacity_g: 280
+    resources_active: ["cook", "wok", "burner"]
+  - id: "saute_onion"
+    label: "炒洋葱"
+    kind: "saute"
+    depends_on: ["sear_beef"]
+    active_min: 4
+    per_extra_serving_min: 1
+    resources_active: ["cook", "wok", "burner"]
+  - id: "bloom_aromatics"
+    label: "爆香蒜末和葱白"
+    kind: "aromatics"
+    depends_on: ["saute_onion"]
+    active_min: 0.5
+    resources_active: ["cook", "wok", "burner"]
+  - id: "simmer_sauce"
+    label: "煮至黑椒汁薄薄挂铲"
+    kind: "sauce"
+    depends_on: ["bloom_aromatics"]
+    active_min: 1.25
+    resources_active: ["cook", "wok", "burner"]
+  - id: "finish"
+    label: "牛肉回锅快炒并静置"
+    kind: "finish"
+    depends_on: ["simmer_sauce"]
+    active_min: 1.1
+    passive_min: 3
+    resources_active: ["cook", "wok", "burner"]
+    finish: true
+    hold_max_min: 5
+    quality_penalty: 4
 
 ingredients:
   - { id: "beef_london_broil", name: "牛后腿肉 / London Broil", qty: 209, unit: "g", amount: "209 g" }

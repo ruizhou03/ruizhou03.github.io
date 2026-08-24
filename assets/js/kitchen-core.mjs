@@ -115,6 +115,7 @@ export function aggregatePlan({ recipes = [], ingredientCatalog = {}, selections
       cookPriority: Number(recipe.cookPriority) || 999,
       cookNote: recipe.cookNote || '',
       cookTasks: Array.isArray(recipe.cookTasks) ? recipe.cookTasks : [],
+      workflow: Array.isArray(recipe.workflow) ? recipe.workflow : [],
     });
 
     (recipe.ingredients || []).forEach((ingredient) => {
@@ -305,6 +306,7 @@ export function validatePlannerCatalog(recipes, ingredientCatalog) {
     if (!recipe.prepPlan || typeof recipe.prepPlan !== 'object') errors.push(`${recipe.slug}:missing_prep_plan`);
     if (!Array.isArray(recipe.cookTasks) || !recipe.cookTasks.length) errors.push(`${recipe.slug}:missing_cook_tasks`);
     if (!Number.isFinite(Number(recipe.cookPriority))) errors.push(`${recipe.slug}:missing_cook_priority`);
+    if (!Array.isArray(recipe.workflow) || !recipe.workflow.length) errors.push(`${recipe.slug}:missing_workflow`);
   });
   return errors;
 }

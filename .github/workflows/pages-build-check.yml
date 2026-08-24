@@ -35,6 +35,11 @@ jobs:
           node scripts/benchmark-forest.mjs
           node scripts/test-forest-release.mjs
 
+      - name: Test kitchen planner data and scheduler contracts
+        run: |
+          ruby scripts/validate_kitchen_planner.rb
+          node --test scripts/kitchen-core.test.mjs scripts/kitchen-scheduler.test.mjs
+
       - name: Verify deterministic Guandan production bundle
         run: |
           npx --yes terser@5.43.1 assets/js/games/guandan.js --compress --mangle --comments false -o /tmp/guandan.min.js
@@ -55,6 +60,9 @@ jobs:
         with:
           source: ./
           destination: ./_site
+
+      - name: Test kitchen real-recipe combination matrix
+        run: node scripts/kitchen-scheduler-matrix.mjs
 
   guandan-live-marker:
     if: github.ref == 'refs/heads/main'
