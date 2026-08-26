@@ -65,7 +65,7 @@ test('navigation and fields expose current state semantics', () => {
 
 test('signature visual system follows site light and dark mode with an explicit override', () => {
   assert.match(html, /data-value="auto"[\s\S]*跟随系统/);
-  assert.match(html, /data-value="default"[\s\S]*节气山水/);
+  assert.match(html, /data-value="default"[\s\S]*晨光温室/);
   assert.match(html, /data-value="night"[\s\S]*萤火夜林/);
   assert.doesNotMatch(html, /data-value="(?:bubbles|sunrise|rain)"/);
   assert.match(app, /function resolvedBackground\(\)/);
@@ -75,4 +75,23 @@ test('signature visual system follows site light and dark mode with an explicit 
   assert.match(css, /\.ft-wrap\.visual-night/);
   assert.match(css, /\.firefly/);
   assert.match(css, /\.season-leaf/);
+  assert.match(html, /greenhouse-home-wide-v4\.webp/);
+  assert.match(html, /firefly-home-wide-v4\.webp/);
+  assert.match(html, /forest-plant-a-assets/);
+  assert.match(html, /晨光温室/);
+  assert.match(html, /专注节奏/);
+  assert.match(html, /完成后安排休息/);
+  assert.doesNotMatch(html, /番茄循环/);
+  assert.match(app, /function updateAmbientLight\(\)/);
+  assert.match(app, /tree-model-preview/);
+  assert.match(app, /buildTreeSvg\(button\.dataset\.tree, 0\.68, 50, true, true\)/);
+  assert.match(css, /\.more-settings\[open\] \{[\s\S]*position: absolute/);
+  assert.match(css, /@keyframes forestFocusDrift/);
+  assert.match(css, /visual-day \.plant-card \.stage > #tree-container \{ bottom: 18%; \}/);
+  assert.match(css, /visual-night \.plant-card \.stage > #tree-container \{ bottom: 19%; \}/);
+  assert.match(css, /@media \(min-width: 701px\)[\s\S]*visual-day \.plant-card \.stage > #tree-container \{ bottom: 18%; \}/);
+  assert.match(css, /@media \(min-width: 701px\)[\s\S]*visual-night \.plant-card \.stage > #tree-container \{ bottom: 19%; \}/);
+  assert.doesNotMatch(css, /root-occlusion/);
+  assert.doesNotMatch(app, /root-occlusion/);
+  assert.doesNotMatch(css, /overlay-tree-container\.overlay-tree-zone::after/);
 });

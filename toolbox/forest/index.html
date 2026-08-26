@@ -11,8 +11,19 @@ body_class: forest-page
 ---
 
 <link rel="stylesheet" href="/assets/css/forest.css?v={{ site.time | date: '%s' }}">
-<link rel="preload" as="image" type="image/webp" href="/assets/images/forest/seasonal-landscape-v3.webp">
-<link rel="preload" as="image" type="image/webp" href="/assets/images/forest/firefly-night-v3.webp">
+<link rel="preload" as="image" type="image/webp" href="/assets/images/forest/greenhouse-home-wide-v4.webp">
+<link rel="preload" as="image" type="image/webp" href="/assets/images/forest/firefly-home-wide-v4.webp">
+
+<!-- 离线版本生成器只识别 HTML 中的直接资源引用；模板不渲染，但让所有场景与植物阶段进入内容哈希。 -->
+<template id="forest-plant-a-assets">
+  <img src="/assets/images/forest/greenhouse-focus-wide-v4.webp" alt=""><img src="/assets/images/forest/greenhouse-focus-portrait-v4.webp" alt=""><img src="/assets/images/forest/greenhouse-square-v4.webp" alt="">
+  <img src="/assets/images/forest/firefly-focus-wide-v4.webp" alt=""><img src="/assets/images/forest/firefly-focus-portrait-v4.webp" alt="">
+  <img src="/assets/images/forest/plants-a/oak-1.webp" alt=""><img src="/assets/images/forest/plants-a/oak-2.webp" alt=""><img src="/assets/images/forest/plants-a/oak-3.webp" alt=""><img src="/assets/images/forest/plants-a/oak-4.webp" alt="">
+  <img src="/assets/images/forest/plants-a/sakura-1.webp" alt=""><img src="/assets/images/forest/plants-a/sakura-2.webp" alt=""><img src="/assets/images/forest/plants-a/sakura-3.webp" alt=""><img src="/assets/images/forest/plants-a/sakura-4.webp" alt="">
+  <img src="/assets/images/forest/plants-a/pine-1.webp" alt=""><img src="/assets/images/forest/plants-a/pine-2.webp" alt=""><img src="/assets/images/forest/plants-a/pine-3.webp" alt=""><img src="/assets/images/forest/plants-a/pine-4.webp" alt="">
+  <img src="/assets/images/forest/plants-a/palm-1.webp" alt=""><img src="/assets/images/forest/plants-a/palm-2.webp" alt=""><img src="/assets/images/forest/plants-a/palm-3.webp" alt=""><img src="/assets/images/forest/plants-a/palm-4.webp" alt="">
+  <img src="/assets/images/forest/plants-a/cactus-1.webp" alt=""><img src="/assets/images/forest/plants-a/cactus-2.webp" alt=""><img src="/assets/images/forest/plants-a/cactus-3.webp" alt=""><img src="/assets/images/forest/plants-a/cactus-4.webp" alt="">
+</template>
 
 <div class="ft-wrap">
   <header>
@@ -77,7 +88,7 @@ body_class: forest-page
 
     <!-- 更多设置：折叠收起，保持首屏清爽 -->
     <details class="more-settings">
-      <summary><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>更多设置 · 树种 / 主题 / 番茄循环</summary>
+      <summary><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>树种与专注偏好</summary>
       <div class="more-settings-body">
         <div class="settings-group">
           <div class="settings-group-title">本次专注</div>
@@ -92,10 +103,10 @@ body_class: forest-page
             </div>
           </div>
           <div class="setting-row">
-            <label for="pomodoro-on">番茄循环</label>
+            <label for="pomodoro-on">专注节奏</label>
             <label class="pomodoro-toggle">
               <input type="checkbox" id="pomodoro-on" />
-              <span>专注 ↔ 休息 循环</span>
+              <span>完成后安排休息</span>
             </label>
           </div>
           <div class="setting-row" id="break-row" hidden>
@@ -125,10 +136,10 @@ body_class: forest-page
             <label>主题背景</label>
             <div class="pill-group" id="theme-bg-pills" role="group" aria-label="主题背景">
               <button type="button" data-value="auto"><span class="theme-swatch theme-swatch-auto" aria-hidden="true"></span><span class="opt-cap">跟随系统</span></button>
-              <button type="button" data-value="default"><span class="theme-swatch" data-scene="default"></span><span class="opt-cap">节气山水</span></button>
+              <button type="button" data-value="default"><span class="theme-swatch" data-scene="default"></span><span class="opt-cap">晨光温室</span></button>
               <button type="button" data-value="night"><span class="theme-swatch" data-scene="night"></span><span class="opt-cap">萤火夜林</span></button>
             </div>
-            <p class="setting-help theme-choice-help" id="theme-choice-help">亮色显示节气山水，暗色显示萤火夜林。</p>
+            <p class="setting-help theme-choice-help" id="theme-choice-help">亮色显示晨光温室，暗色显示萤火夜林。</p>
           </div>
           <div class="setting-row setting-stack feedback-settings">
             <label>设备反馈</label>

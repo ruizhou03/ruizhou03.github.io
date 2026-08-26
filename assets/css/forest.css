@@ -1879,3 +1879,213 @@ body.forest-page[data-forest-visual="night"] {
   .forest-page .target-field-row select { width: 100%; min-width: 0; }
   .forest-page .target-field-row .field-help { grid-column: 1 / -1; }
 }
+
+/* ============ Forest v4 scene fusion: 晨光温室 / 萤火夜林 ============ */
+:root {
+  --forest-sun-x: 24%;
+  --forest-sun-y: 18%;
+  --forest-day-warmth: .12;
+}
+.stage.theme-default,
+.focus-overlay.theme-default { background: #122018; }
+.stage-scene > .stage-scene-frame,
+.stage-scene > .stage-scene-frame img,
+.overlay-scene > .focus-scene-frame,
+.overlay-scene > .focus-scene-frame picture,
+.overlay-scene > .focus-scene-frame img {
+  width: 100%; height: 100%; display: block;
+}
+.stage-scene > .stage-scene-frame,
+.stage-scene > .stage-scene-frame img,
+.overlay-scene > .focus-scene-frame,
+.overlay-scene > .focus-scene-frame picture,
+.overlay-scene > .focus-scene-frame img,
+.focus-scene-vignette { position: absolute; inset: 0; }
+.stage-scene-frame img,
+.focus-scene-frame img { object-fit: cover; object-position: center; }
+.focus-scene-vignette { pointer-events: none; }
+.focus-scene-greenhouse .focus-scene-vignette {
+  background:
+    linear-gradient(180deg, rgba(10,25,17,.17), transparent 32%, transparent 72%, rgba(6,18,12,.27)),
+    radial-gradient(circle at var(--forest-sun-x) var(--forest-sun-y), rgba(255,247,210,var(--forest-day-warmth)), transparent 32%);
+}
+.focus-scene-night .focus-scene-vignette {
+  background:
+    linear-gradient(180deg, rgba(1,6,15,.08), transparent 48%, rgba(0,5,12,.24)),
+    radial-gradient(circle at 50% 14%, rgba(0,8,20,.18), transparent 38%);
+}
+
+/* 首页舞台与真实花床共用一个坐标系；植物素材本身没有根、石头、地面或投影。 */
+.forest-page .visual-day .stage { --stw: min(500px, 60vw); }
+.forest-page .visual-night .stage { --stw: min(360px, 44vw); }
+.forest-page .visual-day .plant-card .stage > #tree-container { bottom: 18%; }
+.forest-page .visual-night .plant-card .stage > #tree-container { bottom: 19%; }
+.visual-day #tree-container :is(.tree-anim, .petal-layer) svg {
+  filter: drop-shadow(0 7px 6px rgba(8,20,11,.3)) saturate(.92) sepia(.05);
+}
+.visual-night #tree-container :is(.tree-anim, .petal-layer) svg {
+  filter: brightness(.82) saturate(.9) drop-shadow(0 0 8px rgba(177,218,123,.22));
+}
+.plant-a-image { pointer-events: none; }
+.tree-model-preview {
+  display: block; width: 52px; height: 56px; margin: 0 auto .22rem;
+}
+.tree-model-preview .tree-svg { width: 100%; height: 100%; object-fit: contain; }
+.tree-types button { min-width: 70px; }
+.tree-types button .opt-cap { white-space: nowrap; }
+.theme-swatch { overflow: hidden; }
+.theme-swatch img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* 专注态固定到视口；树根坐标不再受内容行高影响。 */
+.focus-overlay {
+  --focus-root-y: 76.5dvh;
+  --ovtw: clamp(360px, min(38vw, 70vh), 760px);
+  padding: 0;
+}
+.focus-overlay.theme-night { --focus-root-y: 73.5dvh; }
+.focus-overlay .focus-layout {
+  width: 100%; max-width: none; min-height: 100dvh;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0; margin: 0; pointer-events: none;
+}
+.focus-overlay .focus-readout {
+  position: fixed; z-index: 5; top: clamp(1.25rem, 5.8dvh, 4.8rem); left: 50%;
+  width: min(90vw, 720px); transform: translateX(-50%);
+  pointer-events: auto; text-align: center;
+}
+.focus-overlay .focus-visual {
+  position: fixed; inset: 0; z-index: 2; width: 100vw; height: 100dvh;
+  min-height: 0; pointer-events: none;
+}
+.focus-overlay #overlay-tree-container.overlay-tree-zone {
+  --ovtw: clamp(480px, min(48vw, 86vh), 840px);
+  position: absolute; inset: auto; left: 50%;
+  width: var(--ovtw); height: auto; padding: 0;
+  bottom: calc(100dvh - var(--focus-root-y) - 0.066 * var(--ovtw));
+  transform: translateX(-50%); z-index: 3;
+}
+.focus-overlay #overlay-tree-container :is(.tree-anim, .petal-layer) { position: relative; z-index: 1; }
+.focus-overlay.theme-default #overlay-tree-container :is(.tree-anim, .petal-layer) svg {
+  filter: drop-shadow(0 9px 7px rgba(4,14,8,.36)) saturate(.9) sepia(.06);
+}
+.focus-overlay.theme-night #overlay-tree-container :is(.tree-anim, .petal-layer) svg {
+  filter: brightness(.82) saturate(.9) drop-shadow(0 0 10px rgba(176,220,121,.3));
+}
+.focus-overlay.theme-default .overlay-ground,
+.focus-overlay.theme-night .overlay-ground { display: none; }
+.focus-overlay .timer-big { margin: 0 0 .3rem; }
+.focus-overlay.theme-default .timer-big { color: #143b2c; text-shadow: 0 2px 18px rgba(255,250,225,.88); }
+.focus-overlay.theme-default .focus-tag,
+.focus-overlay.theme-default .focus-stage,
+.focus-overlay.theme-default .focus-warn { color: rgba(23,57,44,.76); }
+.focus-overlay.theme-night .timer-big { color: #f0d89a; text-shadow: 0 0 24px rgba(213,222,145,.25), 0 2px 12px #000; }
+.focus-overlay.theme-night .focus-tag,
+.focus-overlay.theme-night .focus-stage,
+.focus-overlay.theme-night .focus-warn { color: rgba(224,233,218,.78); }
+.focus-overlay .focus-tag { margin: .1rem auto .65rem; }
+.focus-overlay .focus-tag[hidden],
+.focus-overlay .focus-warn[hidden] { display: none !important; }
+.focus-overlay .focus-stage {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.focus-overlay .focus-warn { margin: .35rem auto 0; }
+.focus-overlay .focus-actions {
+  position: fixed; z-index: 6; left: 50%; right: auto;
+  bottom: max(1.1rem, env(safe-area-inset-bottom));
+  transform: translateX(-50%); pointer-events: auto;
+  padding: .42rem; border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg) 55%, transparent);
+  border: 1px solid rgba(255,255,255,.2);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+}
+
+/* 桌面使用一张贯穿左右的一体式画面；控制区是画面内的磨砂玻璃。 */
+@media (min-width: 1200px) {
+  .forest-page .ft-wrap { max-width: 1120px; }
+  .forest-page .plant-card {
+    height: 600px; box-sizing: border-box; padding: 1rem; gap: 1rem;
+    grid-template-columns: minmax(0, 1.18fr) minmax(22rem, .82fr);
+    background-position: center; background-size: cover; background-repeat: no-repeat;
+  }
+  .forest-page .visual-day .plant-card { background-image: url('/assets/images/forest/greenhouse-home-wide-v4.webp'); }
+  .forest-page .visual-night .plant-card { background-image: url('/assets/images/forest/firefly-home-wide-v4.webp'); }
+  .forest-page .plant-card .stage {
+    min-height: 0; height: 568px; border: 0; box-shadow: none; background: transparent;
+  }
+  .forest-page .plant-card .stage::after { display: none; }
+  .forest-page .plant-card .stage-scene { display: none; }
+  .forest-page .plant-stage-pane { height: 568px; }
+  .forest-page .plant-controls-pane {
+    position: relative; height: 568px; box-sizing: border-box; overflow: visible;
+    padding: 1rem; border-radius: 22px;
+    background: color-mix(in srgb, var(--color-bg) 72%, transparent);
+    border: 1px solid rgba(255,255,255,.34);
+    box-shadow: 0 18px 45px rgba(8,16,12,.2), inset 0 1px rgba(255,255,255,.34);
+    -webkit-backdrop-filter: blur(22px) saturate(1.08); backdrop-filter: blur(22px) saturate(1.08);
+  }
+  .forest-page .primary-intent { gap: 0; margin-bottom: .72rem; }
+  .forest-page .primary-intent .setting-row {
+    border: 0; border-radius: 0; padding: .66rem .15rem;
+    background: transparent; border-bottom: 1px solid var(--color-border);
+  }
+  .forest-page .duration-row .duration-tabs {
+    gap: 0; padding: 3px; border: 1px solid var(--color-border); border-radius: 999px;
+    background: color-mix(in srgb, var(--color-bg) 54%, transparent);
+  }
+  .forest-page .duration-row .duration-tabs button { border: 0; border-radius: 999px; background: transparent; }
+  .forest-page .session-preview { min-height: 2.4rem; padding: .5rem .7rem; }
+  .forest-page .plant-card .action-row { margin: .72rem 0 .05rem; }
+  .forest-page .plant-card .action-btn { min-height: 58px; padding: .78rem 1rem; }
+  .forest-page .focus-warning { font-size: .78rem; line-height: 1.35; margin-top: .5rem; }
+  .forest-page .more-settings > summary { min-height: 43px; box-sizing: border-box; }
+  .forest-page .more-settings[open] {
+    position: absolute; z-index: 30; inset: 0; margin: 0;
+    overflow: auto; overscroll-behavior: contain;
+    border-radius: 20px; background: color-mix(in srgb, var(--color-bg) 94%, transparent);
+    box-shadow: 0 18px 44px rgba(6,14,10,.32);
+    -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  }
+  .forest-page .more-settings[open] > summary {
+    position: sticky; top: 0; z-index: 2;
+    background: color-mix(in srgb, var(--color-bg) 95%, transparent);
+  }
+  .forest-page .more-settings-body { padding: .75rem .85rem 1rem; gap: .8rem; }
+}
+
+/* 平板与手机回到上下布局，场景图片只属于舞台，不产生横向裁切或页面崩塌。 */
+@media (max-width: 1199px) {
+  .forest-page .plant-card { height: auto; background-image: none; }
+  .forest-page .plant-card .stage-scene { display: block; }
+  .forest-page .stage-scene-frame img { object-position: center; }
+  .forest-page .plant-controls-pane { margin-top: .7rem; }
+  .forest-page .more-settings[open] { position: static; }
+}
+@media (min-width: 701px) and (max-width: 1199px) {
+  .forest-page .plant-card .stage { min-height: 36rem; }
+  .forest-page .visual-day .plant-card .stage > #tree-container { bottom: 18%; }
+  .forest-page .visual-night .plant-card .stage > #tree-container { bottom: 19%; }
+}
+@media (max-width: 700px) {
+  .forest-page .visual-day .plant-card .stage > #tree-container { bottom: 10%; }
+  .forest-page .visual-night .plant-card .stage > #tree-container { bottom: 14%; }
+  .tree-model-preview { width: 44px; height: 48px; }
+}
+@media (orientation: portrait) {
+  .focus-overlay { --focus-root-y: 70.5dvh; }
+  .focus-overlay.theme-night { --focus-root-y: 66.5dvh; }
+  .focus-overlay #overlay-tree-container.overlay-tree-zone { --ovtw: clamp(360px, min(76vw, 58vh), 620px); }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .focus-overlay { --focus-root-y: 74dvh; }
+  .focus-overlay.theme-night { --focus-root-y: 72dvh; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stage-scene-frame img { animation: forestHomeBreath 22s ease-in-out infinite alternate; }
+  .focus-scene-frame img { animation: forestFocusDrift 28s ease-in-out infinite alternate; }
+  .focus-scene-greenhouse .focus-scene-vignette { animation: forestLightBreathe 8s ease-in-out infinite alternate; }
+}
+@keyframes forestHomeBreath { from { transform: scale(1.004) translate(-.12%, .05%); } to { transform: scale(1.014) translate(.16%, -.1%); } }
+@keyframes forestFocusDrift { from { transform: scale(1.006) translate(-.12%, .08%); } to { transform: scale(1.018) translate(.18%, -.12%); } }
+@keyframes forestLightBreathe { from { opacity: .72; } to { opacity: 1; } }

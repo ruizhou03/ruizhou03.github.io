@@ -2641,9 +2641,26 @@ return deco_cactus;
     if (type === 'cactus') return _tCactus(160, 214, p);
     return _tBroad(160, 214, p, _tPAL.oak);
   }
-  function buildTreeSvg(treeType, progress, value, noPetals) {
+  const _PLANT_A_TYPES = new Set(['oak','sakura','pine','palm','cactus']);
+  function _plantAStage(progress) {
+    return progress < .30 ? 1 : progress < .55 ? 2 : progress < .82 ? 3 : 4;
+  }
+  function _plantAAsset(type, stage) { return `/assets/images/forest/plants-a/${type}-${stage}.webp`; }
+  function _plantAScale(progress, stage) {
+    const ranges=[[.22,.30],[.30,.55],[.55,.82],[.82,1]];
+    const [start,end]=ranges[stage-1];
+    const local=Math.max(0,Math.min(1,(progress-start)/Math.max(.01,end-start)));
+    return .94+local*.06;
+  }
+  function buildTreeSvg(treeType, progress, value, noPetals, sceneIntegrated) {
     progress = Math.max(0, Math.min(1, progress));
     const cx = 160, gy = 214, p = progress;
+    if (_PLANT_A_TYPES.has(treeType)) {
+      const stage=_plantAStage(p), scale=_plantAScale(p,stage);
+      const tx=320*(1-scale), ty=470*(1-scale);
+      const petals = (!noPetals && treeType === 'sakura' && p >= 0.5) ? _sakuraFall() : '';
+      return `<svg class="tree-svg plant-a-tree" viewBox="0 0 640 512"><g class="tree-sway" style="animation-delay:-2.1s"><g transform="translate(${_tn(tx)} ${_tn(ty)}) scale(${scale.toFixed(3)})"><image class="plant-a-image" href="${_plantAAsset(treeType,stage)}" x="0" y="0" width="640" height="512" preserveAspectRatio="xMidYMid meet"/></g></g>${petals}</svg>`;
+    }
     const spread = 24 + p * 60;
     const body = _treeBody(treeType, p);
     // 装饰：value 决定等级；生长中(舞台)接近完成才整体淡入
@@ -2656,7 +2673,8 @@ return deco_cactus;
     const wrapB = deco.behind && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.behind}</g>` : '';
     const wrapF = deco.front && dop > 0 ? `<g opacity="${_tn(dop)}">${deco.front}</g>` : '';
     const petals = (!noPetals && treeType === 'sakura' && p >= 0.5) ? _sakuraFall() : '';
-    return `<svg class="tree-svg" viewBox="0 0 320 240"><g class="tree-sway" style="animation-delay:-2.1s">${wrapB}${_tGround(cx, gy, spread, treeType)}${body}${wrapF}</g>${petals}</svg>`;
+    const ground = sceneIntegrated ? '' : _tGround(cx, gy, spread, treeType);
+    return `<svg class="tree-svg" viewBox="0 0 320 240"><g class="tree-sway" style="animation-delay:-2.1s">${wrapB}${ground}${body}${wrapF}</g>${petals}</svg>`;
   }
 
   function durationToTier(min) {
@@ -2676,6 +2694,13 @@ return deco_cactus;
         <circle cx="42" cy="64" r="1.5" fill="#7a6248"/>
         <circle cx="57" cy="59" r="1.5" fill="#7a6248"/>
       </svg>`;
+    }
+
+    if (_PLANT_A_TYPES.has(type)) {
+      const stage=Math.max(1,Math.min(4,Math.round(tier || 1)));
+      const _sv=(typeof value === 'number' && value > 0) ? value : (stage*37+11);
+      const swd=(5.2+((_sv*7)%30)/30*2).toFixed(1), swdl=((_sv*.17)%6).toFixed(1);
+      return `<svg class="tree-svg plant-a-tree" viewBox="0 0 100 100"><g class="tree-sway" style="animation-duration:${swd}s;animation-delay:-${swdl}s"><image class="plant-a-image" href="${_plantAAsset(type,stage)}" x="0" y="10" width="100" height="80" preserveAspectRatio="xMidYMax meet"/></g></svg>`;
     }
 
     // 复用生长树渲染器：tier → 生长进度，等比缩放进 100×100 田格，与舞台上的树同款

@@ -796,20 +796,27 @@
         if (raw) state.theme = Object.assign({}, state.theme, JSON.parse(raw));
       } catch (e) {}
     }
-    // v3 将旧版五套场景收敛成两个完整视觉系统。旧默认升级为自动；明确选过夜景的用户仍固定夜景。
+    // v4 使用一体式晨光温室 / 萤火夜林；旧默认继续升级为跟随系统。
     const fromOldVisualSystem = Number(state.theme.visualVersion || 0) < 3;
     if (fromOldVisualSystem && state.theme.background !== 'night') state.theme.background = 'auto';
     if (!['auto', 'default', 'night'].includes(state.theme.background)) state.theme.background = 'auto';
     if (!['countdown', 'countup', 'hidden'].includes(state.theme.timer)) state.theme.timer = 'countdown';
-    state.theme.visualVersion = 3;
+    state.theme.visualVersion = 4;
   }
   function saveTheme() {
     queueStoreSave('theme');
   }
 
 
-  function _sceneSvg(name) {
-    return `<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">${_themeScene(name)}</svg>`;
+  function _sceneSvg(name, focus) {
+    const night = name === 'night';
+    if (focus) {
+      const wide = night ? '/assets/images/forest/firefly-focus-wide-v4.webp' : '/assets/images/forest/greenhouse-focus-wide-v4.webp';
+      const portrait = night ? '/assets/images/forest/firefly-focus-portrait-v4.webp' : '/assets/images/forest/greenhouse-focus-portrait-v4.webp';
+      return `<div class="focus-scene-frame ${night ? 'focus-scene-night' : 'focus-scene-greenhouse'}"><picture><source media="(orientation: portrait)" srcset="${portrait}"><img src="${wide}" alt="" decoding="async"></picture><span class="focus-scene-vignette" aria-hidden="true"></span></div>`;
+    }
+    const stage = night ? '/assets/images/forest/firefly-focus-wide-v4.webp' : '/assets/images/forest/greenhouse-focus-wide-v4.webp';
+    return `<picture class="stage-scene-frame"><img src="${stage}" alt="" decoding="async"></picture>`;
   }
   const systemDarkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
   function siteUsesDarkMode() {
@@ -833,10 +840,22 @@
     const help = document.getElementById('theme-choice-help');
     if (help) {
       help.textContent = state.theme.background === 'auto'
-        ? `正在跟随系统：${theme === 'night' ? '萤火夜林' : '节气山水'}`
-        : `已固定为${theme === 'night' ? '萤火夜林' : '节气山水'}。`;
+        ? `正在跟随系统：${theme === 'night' ? '萤火夜林' : '晨光温室'}`
+        : `已固定为${theme === 'night' ? '萤火夜林' : '晨光温室'}。`;
     }
+    updateAmbientLight();
   }
+  function updateAmbientLight() {
+    const now = new Date();
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    const daylight = Math.max(0, Math.min(1, (minutes - 360) / 720));
+    const arc = Math.sin(daylight * Math.PI);
+    document.documentElement.style.setProperty('--forest-sun-x', `${(18 + daylight * 58).toFixed(1)}%`);
+    document.documentElement.style.setProperty('--forest-sun-y', `${(34 - arc * 23).toFixed(1)}%`);
+    document.documentElement.style.setProperty('--forest-day-warmth', `${(.07 + arc * .13).toFixed(3)}`);
+  }
+  updateAmbientLight();
+  setInterval(updateAmbientLight, 5 * 60 * 1000);
   // 前景地面带（让树扎实种在地里）；落雨主题在带上加可见的涟漪+落地水花
   const _OVGROUND = { default:['#768b62','#4f6953','#d7d3a0'], night:['#0b2a23','#061912','#648a72'], sunrise:['#cf9a63','#ad7842','#e8c48c'], rain:['#3c4e60','#2a3947','#566b7d'], bubbles:['#1e5f7d','#123f52','#3080a0'] };
   function _overlayGroundSvg(theme){
@@ -874,7 +893,7 @@
     $overlay.className = $overlay.className.replace(/\btheme-\w+\b/g, '').replace(/\btimer-\w+\b/g, '');
     $overlay.classList.add('theme-' + background);
     $overlay.classList.add('timer-' + state.theme.timer);
-    _swapScene(document.getElementById('overlay-scene'), _sceneSvg(background));
+    _swapScene(document.getElementById('overlay-scene'), _sceneSvg(background, true));
     _swapScene(document.getElementById('overlay-ground'), _overlayGroundSvg(background));
     applyVisualShell(background);
   }
@@ -885,7 +904,7 @@
     const background = resolvedBackground();
     $stage.className = $stage.className.replace(/\btheme-\w+\b/g, '');
     $stage.classList.add('theme-' + background);
-    _swapScene(document.getElementById('stage-scene'), _sceneSvg(background));
+    _swapScene(document.getElementById('stage-scene'), _sceneSvg(background, false));
     _swapScene(document.getElementById('stage-ground'), _overlayGroundSvg(background));
     applyVisualShell(background);
   }
@@ -916,7 +935,7 @@
       const L = _ensureTreeLayers(t);
       if (L.anim._ftKey !== key) {
         L.anim._ftKey = key;
-        L.anim.innerHTML = buildTreeSvg(state.treeType, pq, value, true);
+        L.anim.innerHTML = buildTreeSvg(state.treeType, pq, value, true, true);
       }
       const hasPetals = !!L.petals.firstChild;
       if (wantPetals && !hasPetals) L.petals.innerHTML = '<svg viewBox="0 0 320 240">' + _sakuraFall() + '</svg>';
@@ -1042,16 +1061,22 @@
     const flexible = !!state.session.flexible;
     $giveUpBtn.classList.toggle('flex-stop', flexible);
     if (flexible) {
-      $overlayTag.textContent = state.task ? state.task : '专注中（不限时）';
+      $overlayTag.textContent = state.task || '';
+      $overlayTag.hidden = !state.task;
       $overlayWarn.textContent = '随时点「停下 · 收树」结束，会种下一棵松树';
+      $overlayWarn.hidden = false;
       $giveUpBtn.textContent = '停下 · 收树';
     } else if (isBreak) {
       $overlayTag.textContent = '休息一下';
+      $overlayTag.hidden = false;
       $overlayWarn.textContent = '休息按挂钟结束；下一次专注需要你确认，除非主动开启自动开始';
+      $overlayWarn.hidden = false;
       $giveUpBtn.textContent = '结束循环';
     } else {
-      $overlayTag.textContent = state.task ? state.task : '专注中';
+      $overlayTag.textContent = state.task || '';
+      $overlayTag.hidden = !state.task;
       $overlayWarn.textContent = state.strict ? '离开页面超过 15 秒，树会枯萎' : '自觉模式：离开不会枯萎';
+      $overlayWarn.hidden = !state.strict;
       $giveUpBtn.textContent = '放弃这棵';
     }
 
@@ -1110,11 +1135,15 @@
     if (inFocus && state.paused) {
       $pauseBtn.textContent = '继续';
       $overlayTag.textContent = '已暂停';
+      $overlayTag.hidden = false;
       $overlay.classList.add('paused');
     } else {
       $pauseBtn.textContent = '暂停';
       $overlay.classList.remove('paused');
-      if (inFocus) $overlayTag.textContent = state.task ? state.task : '专注中';
+      if (inFocus) {
+        $overlayTag.textContent = state.task || '';
+        $overlayTag.hidden = !state.task;
+      }
     }
   }
   function togglePause() {
@@ -1567,7 +1596,7 @@
     if (!validateDurationUI()) return;
     if (state.pomodoroOn && !Core.validateMinutes($breakMin.value, 1, 60).ok) {
       $breakMin.setAttribute('aria-invalid', 'true');
-      if ($customMinError) $customMinError.textContent = '番茄循环的休息时长必须是 1–60 整分钟';
+      if ($customMinError) $customMinError.textContent = '休息时长必须是 1–60 整分钟';
       return;
     }
     if ($targetFieldSelect && state.fields.some((field) => field.id === $targetFieldSelect.value)) state.activeFieldId = $targetFieldSelect.value;
@@ -3055,6 +3084,7 @@
     // 正在专注时实时更新遮罩说明
     if (state.session && !state.session.isBreak && $overlayWarn) {
       $overlayWarn.textContent = state.strict ? '离开页面超过 15 秒，树会枯萎' : '自觉模式：离开不会枯萎';
+      $overlayWarn.hidden = !state.strict;
     }
   }
   if ($strictTabs) {
@@ -3501,7 +3531,14 @@
   // 选择器里每个主题按钮画一枚「场景圆窗」预览
   document.querySelectorAll('.theme-swatch[data-scene]').forEach(el => {
     const nm = el.dataset.scene;
-    el.innerHTML = `<svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><defs><clipPath id="csw-${nm}"><circle cx="200" cy="200" r="197"/></clipPath></defs><g clip-path="url(#csw-${nm})">${_themeThumb(nm)}</g><circle cx="200" cy="200" r="196" fill="none" stroke="rgba(0,0,0,0.16)" stroke-width="7"/></svg>`;
+    const src = nm === 'night' ? '/assets/images/forest/firefly-home-wide-v4.webp' : '/assets/images/forest/greenhouse-square-v4.webp';
+    el.innerHTML = `<img src="${src}" alt="" decoding="async">`;
+  });
+  $treeTypes.forEach(button => {
+    const icon = button.querySelector('.opt-ico');
+    if (!icon) return;
+    icon.classList.add('tree-model-preview');
+    icon.innerHTML = buildTreeSvg(button.dataset.tree, 0.68, 50, true, true);
   });
   applyStageTheme();
   $timerDisplay.textContent = fmtTime(state.duration * 60);
