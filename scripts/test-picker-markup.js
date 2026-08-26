@@ -51,8 +51,10 @@ assert.deepEqual(pngSize(path.join(root, 'assets/images/picker-og.png')), [1200,
 const uiSource = fs.readFileSync(path.join(root, 'assets/js/games/picker.js'), 'utf8');
 const cssSource = fs.readFileSync(path.join(root, 'assets/css/picker.css'), 'utf8');
 assert.ok(!cssSource.includes('.picker-page::before'), 'result column must not include a decorative background 03');
+assert.ok(!cssSource.includes('body.picker-page-body:has(.picker-board[open]'), 'opening saved profiles or history must not make the page scroll');
+assert.match(cssSource, /\.picker-board\[open\] \.picker-board-body[\s\S]*?max-height:/, 'open boards must keep their content in a height-bounded internal scroller');
 for (const line of uiSource.split('\n').filter(line => line.includes('lastResultText ='))) {
   assert.ok(!line.includes('[[zi:'), 'copied result text must not contain icon markers');
 }
 
-console.log(`picker markup: ${ids.length} unique ids and 23 contract checks passed`);
+console.log(`picker markup: ${ids.length} unique ids and 25 contract checks passed`);
