@@ -65,12 +65,14 @@
     again: byId('again-btn'),
     copyResult: byId('copy-result-btn'),
     tieBreak: byId('tie-break-btn'),
+    profilesBoard: byId('profiles-board'),
     profileCount: byId('profile-count'),
     profileEmpty: byId('profile-empty'),
     profileList: byId('profile-list'),
     profileNew: byId('profile-new-btn'),
     profileSave: byId('profile-save-btn'),
     share: byId('share-btn'),
+    historyBoard: byId('history-board'),
     historyCount: byId('history-count'),
     historyEmpty: byId('history-empty'),
     historyList: byId('history-list'),
@@ -897,7 +899,20 @@
     renderHistory();
     toast('抽取历史已清空');
   });
+  function keepOneBoardOpen(event) {
+    if (!event.currentTarget.open) return;
+    [el.profilesBoard, el.historyBoard].forEach(function (board) {
+      if (board !== event.currentTarget) board.open = false;
+    });
+  }
+  el.profilesBoard.addEventListener('toggle', keepOneBoardOpen);
+  el.historyBoard.addEventListener('toggle', keepOneBoardOpen);
   document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && (el.profilesBoard.open || el.historyBoard.open)) {
+      el.profilesBoard.open = false;
+      el.historyBoard.open = false;
+      return;
+    }
     if (event.code !== 'Space' || state.busy) return;
     var active = document.activeElement;
     if (active && (/^(INPUT|TEXTAREA|SELECT|BUTTON|SUMMARY)$/i.test(active.tagName) || active.isContentEditable)) return;

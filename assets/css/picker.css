@@ -604,6 +604,8 @@ body.picker-page-body:has(.picker-bulk:not([hidden])) > main {
 .picker-status { min-height: 1.3em; margin: 0.55rem 0 0; color: var(--picker-danger); font-size: 0.72rem; text-align: center; }
 
 .picker-secondary {
+  position: relative;
+  z-index: 6;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
@@ -612,9 +614,6 @@ body.picker-page-body:has(.picker-bulk:not([hidden])) > main {
   padding-top: 0.65rem;
   border-top: 1px solid var(--picker-line);
 }
-
-.picker-secondary:has(.picker-board[open]) .picker-secondary-head,
-.picker-page:has(.picker-board[open]) .picker-privacy { display: none; }
 
 .picker-secondary-head {
   grid-column: 1 / -1;
@@ -625,6 +624,27 @@ body.picker-page-body:has(.picker-bulk:not([hidden])) > main {
 
 .picker-secondary-head p { margin: 0; color: var(--picker-muted); font-size: 0.74rem; }
 .picker-board { min-height: 0; overflow: hidden; border: 1px solid var(--picker-line); border-radius: 14px; background: rgba(255,255,255,0.3); }
+#profiles-board { grid-column: 1; }
+#history-board { grid-column: 2; }
+.picker-board[open] {
+  position: absolute;
+  z-index: 2;
+  bottom: 0;
+  width: calc((100% - 0.55rem) / 2);
+  height: min(340px, calc(var(--picker-viewport-height, 760px) * 0.52));
+  border-color: rgba(184,146,82,0.44);
+  background: var(--picker-paper-light);
+  box-shadow: 0 -18px 48px rgba(30,58,95,0.2);
+  animation: picker-board-rise 0.18s ease-out;
+}
+#profiles-board[open],
+#history-board[open] { grid-column: 1 / -1; }
+#profiles-board[open] { left: 0; }
+#history-board[open] { right: 0; }
+@keyframes picker-board-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .picker-board summary { display: flex; min-height: 44px; align-items: center; gap: 0.7rem; padding: 0.48rem 0.8rem; color: var(--color-ink); font-size: 0.8rem; font-weight: 600; cursor: pointer; list-style: none; }
 .picker-board summary::-webkit-details-marker { display: none; }
 .picker-board summary::after { content: '+'; order: 2; color: var(--picker-gold); }
@@ -640,7 +660,7 @@ body.picker-page-body:has(.picker-bulk:not([hidden])) > main {
   scrollbar-width: thin;
 }
 .picker-board[open] .picker-board-body {
-  max-height: min(224px, calc(var(--picker-viewport-height, 760px) * 0.4 - 48px));
+  max-height: min(292px, calc(var(--picker-viewport-height, 760px) * 0.52 - 48px));
 }
 .picker-empty { margin: 0.7rem 0; color: var(--color-light); font-size: 0.76rem; line-height: 1.5; }
 .picker-profile-list,
@@ -761,6 +781,7 @@ body.picker-page-body:has(.picker-bulk:not([hidden])) > main {
   :root:not([data-theme="light"]) .picker-mode-tabs button:not(.is-active),
   :root:not([data-theme="light"]) .picker-board,
   :root:not([data-theme="light"]) .picker-result { background: rgba(255,255,255,0.045); }
+  :root:not([data-theme="light"]) .picker-page .picker-board[open] { background: var(--picker-paper-light); }
 }
 
 :root[data-theme="dark"] .picker-page {
@@ -774,6 +795,7 @@ body.picker-page-body:has(.picker-bulk:not([hidden])) > main {
 :root[data-theme="dark"] .picker-mode-tabs button:not(.is-active),
 :root[data-theme="dark"] .picker-board,
 :root[data-theme="dark"] .picker-result { background: rgba(255,255,255,0.045); }
+:root[data-theme="dark"] .picker-page .picker-board[open] { background: var(--picker-paper-light); }
 
 @media (min-width: 721px) and (max-width: 1040px) {
   .picker-workspace {
@@ -845,6 +867,15 @@ body.picker-page-body:has(.picker-bulk:not([hidden])) > main {
   .picker-result-actions .picker-button { min-height: 30px; padding: 0.25rem 0.5rem; font-size: 0.66rem; }
   .picker-secondary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.3rem; padding-top: 0.3rem; }
   .picker-secondary-head { display: none; }
+  .picker-board[open] {
+    right: auto;
+    left: 0;
+    width: 100%;
+    height: min(300px, calc(var(--picker-viewport-height, 760px) * 0.48));
+  }
+  .picker-board[open] .picker-board-body {
+    max-height: min(252px, calc(var(--picker-viewport-height, 760px) * 0.48 - 48px));
+  }
   .picker-board summary { min-height: 34px; padding: 0.25rem 0.45rem; font-size: 0.7rem; }
   .picker-privacy { display: none; }
 }
@@ -858,6 +889,7 @@ body.picker-page-body:has(.picker-bulk:not([hidden])) > main {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .picker-board[open] { animation: none; }
   .picker-wheel.is-spinning { transition-duration: 0.01ms !important; }
   .picker-option,
   .picker-mode-tabs button,

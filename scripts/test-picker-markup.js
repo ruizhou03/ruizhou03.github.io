@@ -53,8 +53,11 @@ const cssSource = fs.readFileSync(path.join(root, 'assets/css/picker.css'), 'utf
 assert.ok(!cssSource.includes('.picker-page::before'), 'result column must not include a decorative background 03');
 assert.ok(!cssSource.includes('body.picker-page-body:has(.picker-board[open]'), 'opening saved profiles or history must not make the page scroll');
 assert.match(cssSource, /\.picker-board\[open\] \.picker-board-body[\s\S]*?max-height:/, 'open boards must keep their content in a height-bounded internal scroller');
+assert.match(cssSource, /\.picker-board\[open\][\s\S]*?position: absolute;/, 'open boards must float without shrinking the main workspace');
+assert.ok(!cssSource.includes('.picker-page:has(.picker-board[open]) .picker-privacy'), 'opening a board must not hide surrounding page content');
+assert.ok(uiSource.includes("addEventListener('toggle', keepOneBoardOpen)"), 'archive drawers must behave as an accordion');
 for (const line of uiSource.split('\n').filter(line => line.includes('lastResultText ='))) {
   assert.ok(!line.includes('[[zi:'), 'copied result text must not contain icon markers');
 }
 
-console.log(`picker markup: ${ids.length} unique ids and 25 contract checks passed`);
+console.log(`picker markup: ${ids.length} unique ids and 28 contract checks passed`);
