@@ -1,4 +1,4 @@
-/* 弹珠机共享样式：4 张桌台 + hub 通用 HUD / 控件 / canvas / overlay
+/* 弹珠机共享样式：5 张桌台 + hub 通用 HUD / 控件 / canvas / overlay
    主题色通过 CSS 变量覆盖：--pb-bg / --pb-accent / --pb-hud-bg */
 
 .pb-wrap { max-width: 560px; margin: 0 auto; padding: 1rem; }
@@ -72,7 +72,7 @@
 }
 .pb-canvas-wrap canvas {
   display: block; width: 100%; height: 100%;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .pb-overlay {
@@ -117,6 +117,10 @@
 }
 .pb-controls button.active,
 .pb-controls button:active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+.pb-controls button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
 .pb-controls .pb-flip-btn { font-size: 1.4rem; font-weight: 600; }
 .pb-controls .pb-plunger-btn {
   position: relative;
@@ -179,7 +183,7 @@
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 }
-.pb-goal-bar strong { color: var(--pb-accent, var(--color-highlight)); }
+.pb-goal-bar strong { color: var(--pb-accent-text, var(--color-highlight)); }
 
 /* ─── 桌台底下切换栏：4 张卡片横排 ─── */
 /* 设计要点：
@@ -250,7 +254,7 @@
 .pb-table-picker .active {
   background: var(--pb-accent, var(--color-accent));
   border-color: var(--pb-accent, var(--color-accent));
-  color: #fff;
+  color: var(--pb-active-text, #fff);
   cursor: default;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset,
               0 6px 18px -2px color-mix(in srgb, var(--pb-accent, var(--color-accent)) 50%, transparent);
@@ -331,8 +335,16 @@
 }
 
 /* 桌台特定颜色变量（在每张桌台 inline 覆盖） */
-.pb-theme-reactor  { --pb-bg: #0a0d20; --pb-accent: #5dd4f0; }
-.pb-theme-temple   { --pb-bg: #2a1f0e; --pb-accent: #e8b955; }
-.pb-theme-cyber    { --pb-bg: #0a0014; --pb-accent: #ff3df8; }
-.pb-theme-pachinko { --pb-bg: #1a0808; --pb-accent: #ff5252; }
-.pb-theme-rain     { --pb-bg: #04101a; --pb-accent: #5d8ed4; }
+.pb-theme-reactor  { --pb-bg: #0a0d20; --pb-accent: #5dd4f0; --pb-accent-text: #11647a; --pb-active-text: #06252d; }
+.pb-theme-temple   { --pb-bg: #2a1f0e; --pb-accent: #e8b955; --pb-accent-text: #704900; --pb-active-text: #2a1f0e; }
+.pb-theme-cyber    { --pb-bg: #0a0014; --pb-accent: #ff3df8; --pb-accent-text: #9b0a92; --pb-active-text: #220020; }
+.pb-theme-pachinko { --pb-bg: #1a0808; --pb-accent: #ff5252; --pb-accent-text: #a51f1f; --pb-active-text: #270000; }
+.pb-theme-rain     { --pb-bg: #04101a; --pb-accent: #5d8ed4; --pb-accent-text: #315f9e; --pb-active-text: #071b38; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pb-score-box .value,
+  .pb-table-picker > * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

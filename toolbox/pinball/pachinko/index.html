@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/pachinko/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=3">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=4">
 
 <style>
   details.about summary {
@@ -36,8 +36,8 @@ permalink: /toolbox/pinball/pachinko/
   </div>
 
   <div class="pb-canvas-wrap">
-    <canvas id="pbCanvas" width="480" height="640"></canvas>
-    <div class="pb-overlay" id="pbOverlay">
+    <canvas id="pbCanvas" width="480" height="640" role="img" aria-label="弹珠机厅桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
+    <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
       <div id="pbOvMsg"></div>
       <button class="pb-btn" id="pbOvBtn">再来一局</button>
@@ -45,9 +45,9 @@ permalink: /toolbox/pinball/pachinko/
   </div>
 
   <div class="pb-controls">
-    <button class="pb-flip-btn" id="pbFlipL">[[zi:arrow]]</button>
-    <button class="pb-plunger-btn" id="pbPlungerBtn"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar"></div></button>
-    <button class="pb-flip-btn" id="pbFlipR">[[zi:play]]</button>
+    <button class="pb-flip-btn" id="pbFlipL" aria-label="左挡板" aria-keyshortcuts="ArrowLeft A">[[zi:arrow]]</button>
+    <button class="pb-plunger-btn" id="pbPlungerBtn" aria-label="蓄力发射" aria-keyshortcuts="Space"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar" role="progressbar" aria-label="发射力度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></button>
+    <button class="pb-flip-btn" id="pbFlipR" aria-label="右挡板" aria-keyshortcuts="ArrowRight D">[[zi:play]]</button>
   </div>
 
   <div class="pb-tp-wrap">
@@ -80,7 +80,7 @@ permalink: /toolbox/pinball/pachinko/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=4"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=5"></script>
 
 <script>
 (() => {
@@ -252,7 +252,6 @@ permalink: /toolbox/pinball/pachinko/
       game.addScore(3000, 458, 140, 'pachinko-laser-t3');
       game.addPopup(458, 110, 'GRAND +3000', 1600);
       state.laneReturnFlashTill = now + 800;
-      state.jackpotStreak = Math.min(state.jackpotStreak + 1, 5);
     } else if (tier === 'T2') {
       game.addScore(1000, 458, 140, 'pachinko-laser-t2');
       game.addPopup(458, 110, '大奖 +1000', 1300);
@@ -272,11 +271,11 @@ permalink: /toolbox/pinball/pachinko/
     const livesLeft = game ? game.state.lives : 10;
     let html;
     if (state.multiballActive) {
-      const rem = Math.max(0, ((state.multiballEnd - performance.now()) / 1000));
-      html = `<strong style="color:#ffcc66">MULTIBALL ×2</strong> ${rem.toFixed(1)}s · 剩 <strong>${livesLeft}</strong> 发`;
+      const rem = Math.max(0, ((state.multiballEnd - (game ? game.now() : 0)) / 1000));
+      html = `<strong style="color:var(--pb-accent-text)">MULTIBALL ×2</strong> ${rem.toFixed(1)}s · 剩 <strong>${livesLeft}</strong> 发`;
     } else {
       const m = state.launchMult;
-      const mLabel = m === 1 ? `<strong>×1</strong>` : `<strong style="color:#ffcc66">×${m}</strong>`;
+      const mLabel = m === 1 ? `<strong>×1</strong>` : `<strong style="color:var(--pb-accent-text)">×${m}</strong>`;
       html = `本发 ${mLabel} · 中央 JKPT 槽 <strong>${state.jackpotStreak}/3</strong> → MULTIBALL · JKPT 现值 <strong>${jp.toLocaleString()}</strong> · 剩 <strong>${livesLeft}</strong> 发`;
     }
     game.setGoal(html);
@@ -287,8 +286,10 @@ permalink: /toolbox/pinball/pachinko/
     // "最后一次穿过的 lane"决定本发倍率：不锁最大值、不筛 vx 方向
     // 蓄力打过头到左墙反弹回来 → 倒着穿过 ×20/×10/.../×2 → 倍率反而被压回 ×2
     // 让玩家必须卡准"恰好停在某个倍率 lane 内"，不能蛮力 max charge 通吃
-    state.launchMult = lane.mult;
-    state.launchLaneIdx = lane.idx;
+    ball.launchMult = lane.mult;
+    ball.launchLaneIdx = lane.idx;
+    state.launchMult = ball.launchMult;
+    state.launchLaneIdx = ball.launchLaneIdx;
     state.laneFlashTill[lane.idx] = now + 800;
     game.addPopup(ball.x, ball.y - 16, '×' + lane.mult, 700);
     updateGoal();
@@ -299,12 +300,13 @@ permalink: /toolbox/pinball/pachinko/
     state.pegCombo = 0;
     state.pegLastHit = 0;
     const baseScore = SLOT_SCORES[idx] === -1 ? state.jackpotValue : SLOT_SCORES[idx];
-    const finalScore = baseScore * state.launchMult;
+    const ballMult = Number(ball.launchMult) || 1;
+    const finalScore = baseScore * ballMult;
     const cx = SLOT_X0 + idx * SLOT_W + SLOT_W / 2;
     state.slotHits[idx]++;
     game.addScore(finalScore, cx, SLOT_BOT - 30, 'slot');
-    if (state.launchMult > 1) {
-      game.addPopup(cx, SLOT_BOT - 50, `${baseScore} × ${state.launchMult}`, 1300);
+    if (ballMult > 1) {
+      game.addPopup(cx, SLOT_BOT - 50, `${baseScore} × ${ballMult}`, 1300);
     }
     if (SLOT_SCORES[idx] === -1) {
       game.addPopup(cx, SLOT_BOT - 70, 'JACKPOT', 1400);
@@ -313,6 +315,8 @@ permalink: /toolbox/pinball/pachinko/
         startMultiball(now);
         state.jackpotStreak = 0;
       }
+    } else {
+      state.jackpotStreak = 0;
     }
     // 球进槽 = 用掉一发（移除球，让 core 自动续命/结算）
     const arr = game.state.balls;
@@ -518,6 +522,8 @@ permalink: /toolbox/pinball/pachinko/
         state.launchLaneIdx = -1;
         state.pegCombo = 0;
         state.pegLastHit = 0;
+        b.launchMult = 1;
+        b.launchLaneIdx = -1;
         updateGoal();
       },
       onTick: (dt, now) => {

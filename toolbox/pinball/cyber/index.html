@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/cyber/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=3">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=4">
 
 <style>
   details.about summary {
@@ -36,8 +36,8 @@ permalink: /toolbox/pinball/cyber/
   </div>
 
   <div class="pb-canvas-wrap">
-    <canvas id="pbCanvas" width="480" height="640"></canvas>
-    <div class="pb-overlay" id="pbOverlay">
+    <canvas id="pbCanvas" width="480" height="640" role="img" aria-label="赛博克弹珠桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
+    <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
       <div id="pbOvMsg"></div>
       <button class="pb-btn" id="pbOvBtn">再来一局</button>
@@ -45,9 +45,9 @@ permalink: /toolbox/pinball/cyber/
   </div>
 
   <div class="pb-controls">
-    <button class="pb-flip-btn" id="pbFlipL">[[zi:arrow]]</button>
-    <button class="pb-plunger-btn" id="pbPlungerBtn"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar"></div></button>
-    <button class="pb-flip-btn" id="pbFlipR">[[zi:play]]</button>
+    <button class="pb-flip-btn" id="pbFlipL" aria-label="左挡板" aria-keyshortcuts="ArrowLeft A">[[zi:arrow]]</button>
+    <button class="pb-plunger-btn" id="pbPlungerBtn" aria-label="蓄力发射" aria-keyshortcuts="Space"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar" role="progressbar" aria-label="发射力度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></button>
+    <button class="pb-flip-btn" id="pbFlipR" aria-label="右挡板" aria-keyshortcuts="ArrowRight D">[[zi:play]]</button>
   </div>
 
   <div class="pb-tp-wrap">
@@ -80,7 +80,7 @@ permalink: /toolbox/pinball/cyber/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=4"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=5"></script>
 
 <script>
 (() => {
@@ -173,27 +173,29 @@ permalink: /toolbox/pinball/cyber/
     comboHits: 0,
     comboExpiry: 0,
     comboLevel: 1,  // 1, 2, 3, 5
+    maxComboLevel: 1,
     letters: [false, false, false, false, false],
     hacksCompleted: 0,
     multiballActive: false, multiballEnd: 0,
     inheritedMultiplier: 1,
     laneReturnFlashTill: 0,
   };
+  let game = null;
 
   function rebuildState() {
     state.comboHits = 0;
     state.comboExpiry = 0;
     state.comboLevel = 1;
+    state.maxComboLevel = 1;
     state.letters = [false, false, false, false, false];
     state.hacksCompleted = 0;
     state.multiballActive = false;
     state.multiballEnd = 0;
     state.inheritedMultiplier = 1;
     state.laneReturnFlashTill = 0;
+    if (game) game.phys.gravity = 1100;
   }
   rebuildState();
-
-  let game = null;
 
   function comboLevelFor(hits) {
     if (hits >= 10) return 5;
@@ -206,6 +208,7 @@ permalink: /toolbox/pinball/cyber/
     const lvl = comboLevelFor(state.comboHits);
     if (lvl !== state.comboLevel) {
       state.comboLevel = lvl;
+      state.maxComboLevel = Math.max(state.maxComboLevel, lvl);
       // 高 combo 时 multiplier 上调（非 multiball 模式下）
       if (!state.multiballActive) game.setMultiplier(lvl);
       // 高 combo 加速重力
@@ -233,10 +236,10 @@ permalink: /toolbox/pinball/cyber/
     const lit = state.letters.filter(x => x).length;
     let html;
     if (state.multiballActive) {
-      const rem = Math.max(0, (state.multiballEnd - performance.now()) / 1000);
+      const rem = Math.max(0, (state.multiballEnd - (game ? game.now() : 0)) / 1000);
       html = `<strong>HACK MULTIBALL ×${state.inheritedMultiplier}</strong>  ${rem.toFixed(1)}s`;
     } else {
-      const lettersDisp = LETTERS.map((l, i) => state.letters[i] ? `<strong style="color:var(--pb-accent)">${l}</strong>` : `<span style="opacity:0.4">${l}</span>`).join(' ');
+      const lettersDisp = LETTERS.map((l, i) => state.letters[i] ? `<strong style="color:var(--pb-accent-text)">${l}</strong>` : `<span style="opacity:0.4">${l}</span>`).join(' ');
       html = `COMBO ×${state.comboLevel} (${state.comboHits}) · ${lettersDisp} · HACKS ${state.hacksCompleted}`;
     }
     game.setGoal(html);
@@ -245,6 +248,8 @@ permalink: /toolbox/pinball/cyber/
   function onLetterHit(now, ball, gameRef, idx) {
     if (state.letters[idx]) {
       game.addScore(80, ball.x, ball.y, 'lane');
+      bumpCombo(now);
+      updateGoal();
       return;
     }
     state.letters[idx] = true;
@@ -453,9 +458,9 @@ permalink: /toolbox/pinball/cyber/
       commentsPlaceholder: '聊聊心得 ~',
       nickMount: document.getElementById('pb-nick-mount'),
       settleBtnMount: document.getElementById('pb-settle-btn-mount'),
-      extraSubmit: () => ({ maxCombo: state.comboLevel, hacks: state.hacksCompleted }),
+      extraSubmit: () => ({ maxCombo: state.maxComboLevel, hacks: state.hacksCompleted }),
       statsBuilder: (s) => [
-        { label: '最高 combo', value: '×' + state.comboLevel },
+        { label: '最高 combo', value: '×' + state.maxComboLevel },
         { label: 'HACKS 完成', value: state.hacksCompleted },
         { label: '历史最高', value: Number(s.best || 0).toLocaleString() },
       ],

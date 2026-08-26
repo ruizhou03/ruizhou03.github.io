@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=3">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=4">
 
 <style>
   details.about summary {
@@ -36,8 +36,8 @@ permalink: /toolbox/pinball/
   </div>
 
   <div class="pb-canvas-wrap">
-    <canvas id="pbCanvas" width="480" height="640"></canvas>
-    <div class="pb-overlay" id="pbOverlay">
+    <canvas id="pbCanvas" width="480" height="640" role="img" aria-label="太空反应堆弹珠桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
+    <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
       <div id="pbOvMsg"></div>
       <button class="pb-btn" id="pbOvBtn">再来一局</button>
@@ -45,9 +45,9 @@ permalink: /toolbox/pinball/
   </div>
 
   <div class="pb-controls">
-    <button class="pb-flip-btn" id="pbFlipL">[[zi:arrow]]</button>
-    <button class="pb-plunger-btn" id="pbPlungerBtn"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar"></div></button>
-    <button class="pb-flip-btn" id="pbFlipR">[[zi:play]]</button>
+    <button class="pb-flip-btn" id="pbFlipL" aria-label="左挡板" aria-keyshortcuts="ArrowLeft A">[[zi:arrow]]</button>
+    <button class="pb-plunger-btn" id="pbPlungerBtn" aria-label="蓄力发射" aria-keyshortcuts="Space"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar" role="progressbar" aria-label="发射力度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></button>
+    <button class="pb-flip-btn" id="pbFlipR" aria-label="右挡板" aria-keyshortcuts="ArrowRight D">[[zi:play]]</button>
   </div>
 
   <div class="pb-tp-wrap">
@@ -80,7 +80,7 @@ permalink: /toolbox/pinball/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=4"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=5"></script>
 
 <script>
 (() => {
@@ -575,9 +575,9 @@ permalink: /toolbox/pinball/
         if (state.multiballActive && now >= state.multiballEnd) {
           endMultiball(now);
         }
-        // Drop target 碰撞
-        tickDropTargets(dt, now, g);
       },
+      // Drop target 必须跟随物理 substep，否则低帧率高速球会直接穿过。
+      onSubstep: (dt, now, g) => tickDropTargets(dt, now, g),
       onBallDrain: (b, now, g) => {
         // multiball 期间只是少一颗球，不结算
       },

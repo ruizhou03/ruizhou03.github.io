@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/temple/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=3">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=4">
 
 <style>
   details.about summary {
@@ -36,8 +36,8 @@ permalink: /toolbox/pinball/temple/
   </div>
 
   <div class="pb-canvas-wrap">
-    <canvas id="pbCanvas" width="480" height="640"></canvas>
-    <div class="pb-overlay" id="pbOverlay">
+    <canvas id="pbCanvas" width="480" height="640" role="img" aria-label="黄金神庙弹珠桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
+    <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
       <div id="pbOvMsg"></div>
       <button class="pb-btn" id="pbOvBtn">再来一局</button>
@@ -45,9 +45,9 @@ permalink: /toolbox/pinball/temple/
   </div>
 
   <div class="pb-controls">
-    <button class="pb-flip-btn" id="pbFlipL">[[zi:arrow]]</button>
-    <button class="pb-plunger-btn" id="pbPlungerBtn"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar"></div></button>
-    <button class="pb-flip-btn" id="pbFlipR">[[zi:play]]</button>
+    <button class="pb-flip-btn" id="pbFlipL" aria-label="左挡板" aria-keyshortcuts="ArrowLeft A">[[zi:arrow]]</button>
+    <button class="pb-plunger-btn" id="pbPlungerBtn" aria-label="蓄力发射" aria-keyshortcuts="Space"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar" role="progressbar" aria-label="发射力度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></button>
+    <button class="pb-flip-btn" id="pbFlipR" aria-label="右挡板" aria-keyshortcuts="ArrowRight D">[[zi:play]]</button>
   </div>
 
   <div class="pb-tp-wrap">
@@ -80,7 +80,7 @@ permalink: /toolbox/pinball/temple/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=4"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=5"></script>
 
 <script>
 (() => {
@@ -214,9 +214,12 @@ permalink: /toolbox/pinball/temple/
     multiballEnd: 0,
     spinnerSpin: 0,        // 视觉：每命中累加角度
     spinnerHits: 0,        // 连击计数（3 s 没碰自动归零）
+    spinnerTotalHits: 0,
+    spinnerMaxStreak: 0,
     spinnerLastHit: 0,     // 最近一次命中时间
     laneReturnFlashTill: 0,
   };
+  let game = null;
 
   function rebuildState() {
     state.rolloverCounts = [0, 0, 0];
@@ -227,21 +230,29 @@ permalink: /toolbox/pinball/temple/
     state.multiballEnd = 0;
     state.spinnerSpin = 0;
     state.spinnerHits = 0;
+    state.spinnerTotalHits = 0;
+    state.spinnerMaxStreak = 0;
     state.spinnerLastHit = 0;
     state.laneReturnFlashTill = 0;
-    hiddenDoorL.hidden = false;
-    hiddenDoorR.hidden = false;
+    setHiddenDoors(false);
   }
   rebuildState();
 
-  let game = null;
+  function setHiddenDoors(hidden) {
+    hiddenDoorL.hidden = hidden;
+    hiddenDoorR.hidden = hidden;
+    if (!game) return;
+    game.env.walls.forEach(w => {
+      if (w.id === 'hiddenDoorL' || w.id === 'hiddenDoorR') w.hidden = hidden;
+    });
+  }
 
   function updateGoal() {
     const open = state.chestsOpen.filter(x => x).length;
     let html;
     if (state.multiballActive) {
-      const rem = Math.max(0, (state.multiballEnd - performance.now()) / 1000);
-      html = `<strong>TEMPLE AWAKENS</strong> ${rem.toFixed(1)}s · spinner ×4`;
+      const rem = Math.max(0, (state.multiballEnd - (game ? game.now() : 0)) / 1000);
+      html = `<strong>TEMPLE AWAKENS</strong> ${rem.toFixed(1)}s · spinner ×8`;
     } else if (state.templeAwakened) {
       html = '<strong>TEMPLE ACTIVATED</strong>';
     } else {
@@ -271,8 +282,7 @@ permalink: /toolbox/pinball/temple/
     const openedCount = state.chestsOpen.filter(x => x).length;
     if (openedCount === 2 && !state.hiddenDoorOpen) {
       state.hiddenDoorOpen = true;
-      hiddenDoorL.hidden = true;
-      hiddenDoorR.hidden = true;
+      setHiddenDoors(true);
       game.addPopup(W/2, 250, 'HIDDEN  DOORS  OPEN', 1400);
     }
     if (openedCount === 3) {
@@ -298,8 +308,7 @@ permalink: /toolbox/pinball/temple/
     state.rolloverCounts = [0, 0, 0];
     state.chestsOpen = [false, false, false];
     state.templeAwakened = false;
-    hiddenDoorL.hidden = false;
-    hiddenDoorR.hidden = false;
+    setHiddenDoors(false);
     state.hiddenDoorOpen = false;
     updateGoal();
   }
@@ -312,6 +321,8 @@ permalink: /toolbox/pinball/temple/
     if (state.spinnerLastHit && now - state.spinnerLastHit > 3000) state.spinnerHits = 0;
     state.spinnerSpin += Math.PI * 0.4;
     state.spinnerHits++;
+    state.spinnerTotalHits++;
+    state.spinnerMaxStreak = Math.max(state.spinnerMaxStreak, state.spinnerHits);
     state.spinnerLastHit = now;
     const base = state.multiballActive ? 200 : 50;
     const tier = Math.min(state.spinnerHits - 1, SPIN_FIB.length - 1);
@@ -568,10 +579,15 @@ permalink: /toolbox/pinball/temple/
       commentsPlaceholder: '聊聊心得 ~',
       nickMount: document.getElementById('pb-nick-mount'),
       settleBtnMount: document.getElementById('pb-settle-btn-mount'),
-      extraSubmit: () => ({ chestsOpen: state.chestsOpen.filter(x => x).length, spinnerHits: state.spinnerHits }),
+      extraSubmit: () => ({
+        chestsOpen: state.chestsOpen.filter(x => x).length,
+        spinnerHits: state.spinnerTotalHits,
+        spinnerMaxStreak: state.spinnerMaxStreak,
+      }),
       statsBuilder: (s) => [
         { label: '宝箱开启', value: state.chestsOpen.filter(x => x).length + '/3' },
-        { label: 'Spinner 命中', value: state.spinnerHits },
+        { label: 'Spinner 命中', value: state.spinnerTotalHits },
+        { label: 'Spinner 最高连击', value: state.spinnerMaxStreak },
         { label: '历史最高', value: Number(s.best || 0).toLocaleString() },
       ],
       watermark: 'ruizhou03.com/toolbox/pinball/temple',

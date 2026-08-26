@@ -1,4 +1,4 @@
-/* PinballCore —— 4 张弹珠桌台共享的物理/渲染/输入/games-shell 集成
+/* PinballCore —— 5 张弹珠桌台共享的物理/渲染/输入/games-shell 集成
    用法：PinballCore.createGame(config) 返回 game controller
    config 字段见 README（见 toolbox/pinball/reactor/index.html 注释或本文件底部 docComment）
 */
@@ -36,9 +36,11 @@
     const phys = Object.assign({
       gravity: 1100, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9,
     }, cfg.physics || {});
+    const initialPhys = Object.assign({}, phys);
     const drainY = cfg.drainY != null ? cfg.drainY : 626;
     const drainRange = cfg.drainXRange || [100, 442];
     const totalBalls = cfg.totalBalls || 1;
+    const plungerEnabled = cfg.plungerEnabled !== false;
     const storeKey = (cfg.store && cfg.store.key) || ('tool.pinball.' + (cfg.id || 'generic') + '.v1');
 
     // 弹簧默认配置
@@ -86,6 +88,8 @@
       status: 'idle',  // idle | inplay | gameover | paused
       paused: false,
       startedAt: null,
+      clockMs: 0,       // 只在未暂停时推进；桌台机关、动画、popup 共用
+      playElapsedMs: 0, // 只累计真正 inplay 的未暂停时间，用于排行榜 duration
       runNonce: null,
       lastFrameTime: 0,
       rafId: null,
@@ -159,7 +163,7 @@
       const o = opts || {};
       if (x != null && y != null && !o.noPopup) {
         state.popups.push({
-          x, y, text: '+' + final, t0: performance.now(),
+          x, y, text: '+' + final, t0: state.clockMs,
           scale: o.popupScale, ttl: o.popupTtl,
         });
       }
@@ -168,7 +172,7 @@
 
     function addPopup(x, y, text, ttl, opts) {
       const o = opts || {};
-      state.popups.push({ x, y, text, t0: performance.now(), ttl: ttl || 900, scale: o.scale });
+      state.popups.push({ x, y, text, t0: state.clockMs, ttl: ttl || 900, scale: o.scale });
     }
 
     function persist() {
@@ -312,12 +316,14 @@
           if (dist(ball.x, ball.y, cp.x, cp.y) < (t.thresh || 8)) hit = true;
         }
         if (!t._inBalls) t._inBalls = new Set();
+        if (!t._cooldownByBall) t._cooldownByBall = new Map();
         if (!hit) { t._inBalls.delete(ball.id); return; }
         const wasIn = t._inBalls.has(ball.id);
         t._inBalls.add(ball.id);
         if (t.on === 'enter' && wasIn) return;
-        if (t.cooldownTill && now < t.cooldownTill) return;
-        t.cooldownTill = now + (t.cooldown || 0);
+        const cooldownTill = t._cooldownByBall.get(ball.id) || 0;
+        if (now < cooldownTill) return;
+        t._cooldownByBall.set(ball.id, now + (t.cooldown || 0));
         if (t.cb) t.cb(now, ball, game);
         if (t.oneShot) t.enabled = false;
       });
@@ -325,10 +331,19 @@
 
     // ───────── 弹簧 ─────────
     function updatePlunger(dt) {
+      if (!plungerEnabled) {
+        plunger.charge = 0;
+        plunger.charging = false;
+        return;
+      }
       if (plunger.charging) {
         plunger.charge = Math.min(plg.maxCharge, plunger.charge + plg.chargeRate * dt);
       }
-      if (hud.chargeBar) hud.chargeBar.style.width = (plunger.charge * 100) + '%';
+      if (hud.chargeBar) {
+        const pct = Math.round(plunger.charge * 100);
+        hud.chargeBar.style.width = pct + '%';
+        hud.chargeBar.setAttribute('aria-valuenow', String(pct));
+      }
       // 球停在 plunger 上：随蓄力下沉
       state.balls.forEach(b => {
         if (b.onPlunger) {
@@ -340,6 +355,7 @@
     }
 
     function launchPlunger() {
+      if (!plungerEnabled) return;
       const b = state.balls.find(b => b.onPlunger);
       if (!b) return;
       if (plunger.charge < 0.05) { plunger.charge = 0; return; }
@@ -348,11 +364,7 @@
       b.vx = 0;
       b.onPlunger = false;
       plunger.charge = 0;
-      if (state.status === 'idle') {
-        state.status = 'inplay';
-        state.startedAt = state.startedAt || Date.now();
-        hideOverlay();
-      }
+      startRun();
       // fieldReturn 不在 launch 时 reset —— 要等球真的跨过 laser、给完 T3 才在 cb 里 reset。
       // 否则蓄力很轻、球根本没到 laser 也"发射成功"就把 fieldReturn 干掉了，等于送 T3。
       if (hooks.onLaunch) hooks.onLaunch(b, game);
@@ -378,14 +390,17 @@
       state.lastFrameTime = now;
       const dt = Math.min(rawDt, 0.033);
 
-      if (game) game._tickTimers(now);
       if (!state.paused && state.status !== 'gameover') {
+        state.clockMs += Math.max(0, rawDt * 1000);
+        if (state.status === 'inplay') state.playElapsedMs += Math.max(0, rawDt * 1000);
+        const gameNow = state.clockMs;
+        if (game) game._tickTimers(gameNow);
         updatePlunger(dt);
-        updatePhysics(dt, now);
-        if (hooks.onTick) hooks.onTick(dt, now, game);
+        updatePhysics(dt, gameNow);
+        if (hooks.onTick) hooks.onTick(dt, gameNow, game);
       }
       updateHud();
-      render_(now);
+      render_(state.clockMs);
       state.rafId = requestAnimationFrame(step);
     }
 
@@ -415,7 +430,10 @@
           const b = state.balls[i];
           if (b.onPlunger) continue;
           // 漏球
-          if (b.y - b.r > drainY && b.x > drainRange[0] && b.x < drainRange[1]) {
+          const belowDrain = b.y - b.r > drainY;
+          const inDrainRange = b.x > drainRange[0] && b.x < drainRange[1];
+          const farOffscreen = b.y - b.r > H + 120;
+          if (belowDrain && (inDrainRange || farOffscreen)) {
             state.balls.splice(i, 1);
             if (hooks.onBallDrain) hooks.onBallDrain(b, now, game);
             continue;
@@ -429,6 +447,8 @@
           checkTriggers(b, now);
           clampSpeed(b);
         }
+
+        if (hooks.onSubstep) hooks.onSubstep(subDt, now, game);
 
         // 球-球碰撞（pairwise，等质量弹性碰撞 + 位置补正）
         // multiball 时之前球之间会直接穿过；现按等质量弹性碰撞处理。
@@ -470,22 +490,25 @@
       // plunger lane 弱发射救援
       // 注意：这条 path 不 reset fieldReturn —— 球在 lane 范围内、向下、慢速时落回弹簧，
       // 视作"自然回轨"，是预期的 T3 触发途径（玩家用低力发射、球自然漏回弹簧再发）。
-      state.balls.forEach(b => {
-        if (b.onPlunger) return;
-        const sp = Math.hypot(b.vx, b.vy);
-        if (b.x > plg.laneLeft - 4 && b.x < plg.laneRight + 4 &&
-            b.y > 530 && sp < 200 && b.vy > -120) {
-          b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
-          b.onPlunger = true; b.trail = [];
-          plunger.charge = 0;
-        }
-      });
+      if (plungerEnabled) {
+        state.balls.forEach(b => {
+          if (b.onPlunger) return;
+          const sp = Math.hypot(b.vx, b.vy);
+          if (b.x > plg.laneLeft - 4 && b.x < plg.laneRight + 4 &&
+              b.y > 530 && sp < 200 && b.vy > -120) {
+            b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
+            b.onPlunger = true; b.trail = [];
+            plunger.charge = 0;
+          }
+        });
+      }
 
       // 卡住兜底：速度 < 15 持续 1s → 球真的停了 (挡板平台 / 卡在 bumper 顶 / wedge corner)
       // 这是"不是凭技术回来的"，所以送回弹簧后必须 reset fieldReturn=false，
       // 避免下次发射穿 laser 误给 T3 +3000 大奖。
       // 之前还有一条"位置中心漂移"检测，但高速做对称运动的球 (来回弹) 前半/后半 CoM 一样，
       // 也会被误判 — 撤掉。代价是 bumper 间死循环刷分要靠玩家自己处理或重开新局。
+      const stuckBallIds = [];
       state.balls.forEach(b => {
         if (b.onPlunger) { b._lastFastT = now; return; }
         const sp = Math.hypot(b.vx, b.vy);
@@ -493,12 +516,26 @@
         if (sp > 15) b._lastFastT = now;
         if (now - b._lastFastT > 1000) {
           b._lastFastT = now;
-          b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
-          b.onPlunger = true; b.trail = [];
-          b.fieldReturn = false;
-          plunger.charge = 0;
+          if (plungerEnabled) {
+            b.x = plg.x; b.y = plg.restY; b.vx = 0; b.vy = 0;
+            b.onPlunger = true; b.trail = [];
+            b.fieldReturn = false;
+            plunger.charge = 0;
+          } else {
+            stuckBallIds.push(b.id);
+          }
         }
       });
+      stuckBallIds.forEach(id => {
+        const i = state.balls.findIndex(b => b.id === id);
+        if (i < 0) return;
+        const [b] = state.balls.splice(i, 1);
+        if (hooks.onBallDrain) hooks.onBallDrain(b, now, game);
+      });
+      if (state.balls.length === 0) {
+        onAllBallsDrained(now);
+        return;
+      }
 
       // viaLane / fieldReturn 状态机：
       // - 球在 plunger 上 → viaLane=true（onPlunger 时不清 fieldReturn）
@@ -548,11 +585,13 @@
 
     function gameOver() {
       state.status = 'gameover';
+      releaseAllInputs();
       // 两行：上行显示得分摘要，下行显示操作提示。中文带破折号的长串单行 540 px 容易折
       showOverlay({
         title: 'Game Over',
         msg: `本局 ${state.score}　·　历史最高 ${state.best}<br><span class="pb-ov-hint">按 空格 / 点「再来一局」</span>`,
         btn: true,
+        btnText: '再来一局',
       });
       if (hooks.onGameOver) hooks.onGameOver(state, game);
       pbTryAutoSubmit();
@@ -605,7 +644,7 @@
       });
 
       // 弹簧 + 挡板
-      drawPlunger(ctx);
+      if (plungerEnabled) drawPlunger(ctx);
       flippers.forEach(f => drawFlipper(ctx, f));
 
       // 球（多球）
@@ -815,12 +854,15 @@
       }
     }
 
-    function showOverlay({ title, msg, btn }) {
+    function showOverlay({ title, msg, btn, btnText }) {
       if (!hud.overlay) return;
       if (hud.overlayTitle) hud.overlayTitle.textContent = title;
       // msg 走 innerHTML：调用方可用 <br> 显式换行（gameOver 拼了"本局 / 历史 / 按空格"3 段，单行容易折）
       if (hud.overlayMsg) hud.overlayMsg.innerHTML = msg;
-      if (hud.overlayBtn) hud.overlayBtn.style.display = btn ? 'inline-block' : 'none';
+      if (hud.overlayBtn) {
+        hud.overlayBtn.style.display = btn ? 'inline-block' : 'none';
+        if (btnText) hud.overlayBtn.textContent = btnText;
+      }
       hud.overlay.classList.add('show');
     }
     function hideOverlay() {
@@ -833,6 +875,13 @@
       if (hud.goalBar) hud.goalBar.innerHTML = text;
     }
 
+    function startRun() {
+      if (state.status === 'gameover') return;
+      state.status = 'inplay';
+      state.startedAt = state.startedAt || Date.now();
+      hideOverlay();
+    }
+
     function togglePause() {
       if (state.status === 'gameover') return;
       state.paused = !state.paused;
@@ -841,6 +890,7 @@
         showOverlay({ title: '暂停中', msg: '按 P 或继续按钮恢复', btn: false });
         if (hud.overlay) hud.overlay.classList.add('pb-overlay--pause');
       } else {
+        state.lastFrameTime = performance.now();
         hideOverlay();
       }
     }
@@ -857,11 +907,17 @@
       state.status = 'idle';
       state.paused = false;
       state.startedAt = null;
+      state.clockMs = 0;
+      state.playElapsedMs = 0;
+      state.lastFrameTime = 0;
       state.runNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
       plunger.charge = 0; plunger.charging = false;
+      Object.assign(phys, initialPhys);
+      game.timers.length = 0;
+      releaseAllInputs();
       flippers.forEach(f => { f.angle = f.restAngle; f.target = f.restAngle; f.angularVelocity = 0; });
       rebuildEnv();
-      spawnBallOnPlunger();
+      if (plungerEnabled) spawnBallOnPlunger();
       pbPendingSubmit = false; pbLastRankInfo = null;
       pbSetRank('hidden');
       if (pbNickPrompt) pbNickPrompt.hide();
@@ -875,14 +931,15 @@
     // ───────── 输入 ─────────
     const flipHold = { L: { kbd: false, touch: false }, R: { kbd: false, touch: false } };
     function setFlipper(side, source, on) {
-      if (state.status === 'gameover' || state.paused) return;
+      if (on && (state.status === 'gameover' || state.paused)) return;
       flipHold[side][source] = on;
       const f = flippers.find(fl => fl.side === side);
       if (!f) return;
       const held = flipHold[side].kbd || flipHold[side].touch;
-      f.target = held ? f.upAngle : f.restAngle;
+      f.target = held && state.status !== 'gameover' && !state.paused ? f.upAngle : f.restAngle;
     }
     function setPlunger(on) {
+      if (!plungerEnabled) return;
       if (state.status === 'gameover' || state.paused) return;
       const onP = state.balls.some(b => b.onPlunger);
       if (!onP) { plunger.charging = false; return; }
@@ -895,9 +952,18 @@
       const ae = document.activeElement;
       if (!ae) return false;
       const tag = ae.tagName;
-      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || ae.isContentEditable;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' ||
+        tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY' || ae.isContentEditable ||
+        (typeof ae.closest === 'function' && !!ae.closest('[role="button"], [role="link"]'));
     }
     const keysDown = new Set();
+    function releaseAllInputs() {
+      keysDown.clear();
+      flipHold.L.kbd = false; flipHold.L.touch = false;
+      flipHold.R.kbd = false; flipHold.R.touch = false;
+      plunger.charging = false;
+      flippers.forEach(f => { f.target = f.restAngle; });
+    }
     window.addEventListener('keydown', (e) => {
       if (isFormFocused()) return;
       const k = e.key.toLowerCase();
@@ -956,8 +1022,13 @@
     bindHoldButton(hud.plungerBtn, () => setPlunger(true), () => setPlunger(false));
     if (hud.pauseBtn) hud.pauseBtn.addEventListener('click', togglePause);
     if (hud.newBtn) hud.newBtn.addEventListener('click', startFresh);
-    if (hud.overlayBtn) hud.overlayBtn.addEventListener('click', startFresh);
+    if (hud.overlayBtn) hud.overlayBtn.addEventListener('click', () => {
+      if (hooks.onOverlayAction && hooks.onOverlayAction(state, game) === true) return;
+      startFresh();
+    });
+    window.addEventListener('blur', releaseAllInputs);
     document.addEventListener('visibilitychange', () => {
+      if (document.hidden) releaseAllInputs();
       if (document.hidden && state.status === 'inplay' && !state.paused) togglePause();
     });
 
@@ -997,7 +1068,7 @@
       const r = await GamesShell.Leaderboard.submit({
         gameId: shell.gameId,
         nick, score: state.score,
-        durationMs: Math.max(3000, Date.now() - (state.startedAt || Date.now())),
+        durationMs: Math.max(3000, Math.round(state.playElapsedMs)),
         clientNonce: state.runNonce,
         did: GamesShell.Identity.getDeviceId(),
         extra: Object.assign({ bumperHits: state.bumperHits }, (shell.extraSubmit && shell.extraSubmit(state, game)) || {}),
@@ -1107,14 +1178,15 @@
         if (i >= 0) state.balls.splice(i, 1);
       },
       addScore, addPopup, persist,
-      setGoal,
-      startFresh, togglePause,
+      setGoal, showOverlay, hideOverlay,
+      startFresh, startRun, togglePause,
+      now() { return state.clockMs; },
       // 状态机辅助
       setMultiplier(m) { state.multiplier = m; },
-      // 桌台用：定时器（基于 performance.now）
+      // 桌台用：定时器（基于暂停时冻结的游戏时钟）
       timers: [],
       after(ms, cb) {
-        const due = performance.now() + ms;
+        const due = state.clockMs + ms;
         this.timers.push({ due, cb });
       },
       _tickTimers(now) {
