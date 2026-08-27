@@ -15,8 +15,16 @@ class FakeTarget {
     this.innerHTML = '';
     this.disabled = false;
     this.isContentEditable = false;
+    this.classes = new Set();
     this.classList = {
-      add() {}, remove() {}, toggle() {}, contains() { return false; },
+      add: (...names) => names.forEach(name => this.classes.add(name)),
+      remove: (...names) => names.forEach(name => this.classes.delete(name)),
+      toggle: (name, force) => {
+        const on = force === undefined ? !this.classes.has(name) : !!force;
+        if (on) this.classes.add(name); else this.classes.delete(name);
+        return on;
+      },
+      contains: name => this.classes.has(name),
     };
   }
 
@@ -66,10 +74,12 @@ function createHarness(config = {}) {
     height: 640,
     getContext: () => ctx,
     getBoundingClientRect: () => ({ width: 480, height: 640 }),
+    focus() {},
   };
+  const storage = new Map();
   const localStorage = {
-    getItem() { return null; },
-    setItem() {},
+    getItem(key) { return storage.get(key) ?? null; },
+    setItem(key, value) { storage.set(key, String(value)); },
   };
   const context = vm.createContext({
     window,
@@ -96,6 +106,8 @@ function createHarness(config = {}) {
     game,
     window,
     document,
+    storage,
+    hasPendingFrame() { return typeof nextFrame === 'function'; },
     advance(ms) {
       wallNow += ms;
       const cb = nextFrame;
@@ -173,6 +185,55 @@ test('starting a fresh game restores mutable physics configuration', () => {
   assert.equal(h.game.phys.gravity, 0);
 });
 
+test('labeled score popups show one multiplier-aware settlement formula', () => {
+  const h = createHarness();
+  h.game.setMultiplier(2);
+  const awarded = h.game.addScore(100, 20, 20, 'jackpot', { label: 'JACKPOT' });
+  assert.equal(awarded, 200);
+  assert.equal(h.game.state.popups.at(-1).text, 'JACKPOT  100 × 2 = +200');
+});
+
+test('lives HUD starts at configured total and updates on drain', () => {
+  const lives = new FakeTarget();
+  const h = createHarness({ totalBalls: 3, hud: { lives } });
+  assert.equal(lives.textContent, 3);
+  h.game.state.balls[0].x = 200;
+  h.game.state.balls[0].y = 10050;
+  h.game.state.balls[0].onPlunger = false;
+  h.advance(16);
+  assert.equal(h.game.state.lives, 2);
+  assert.equal(lives.textContent, 2);
+});
+
+test('onboarding is shown once and persisted locally', () => {
+  const overlay = new FakeTarget();
+  const overlayTitle = new FakeTarget();
+  const overlayMsg = new FakeTarget();
+  const overlayBtn = new FakeTarget('BUTTON');
+  const h = createHarness({
+    id: 'intro-test',
+    onboarding: { title: '怎么玩', msg: '三球一局' },
+    hud: { overlay, overlayTitle, overlayMsg, overlayBtn },
+  });
+  assert.equal(overlay.classList.contains('show'), true);
+  assert.equal(overlayBtn.textContent, '知道了，开始');
+  overlayBtn.emit('click');
+  assert.equal(overlay.classList.contains('show'), false);
+  assert.equal(h.storage.get('tool.pinball.onboarding.v1.intro-test'), '1');
+  h.game.startFresh();
+  assert.equal(overlay.classList.contains('show'), false);
+});
+
+test('paused and game-over states stop scheduling animation frames', () => {
+  const h = createHarness();
+  assert.equal(h.hasPendingFrame(), true);
+  h.game.togglePause();
+  h.advance(16);
+  assert.equal(h.hasPendingFrame(), false);
+  h.game.togglePause();
+  assert.equal(h.hasPendingFrame(), true);
+});
+
 test('no-plunger tables drain stationary balls instead of trapping them', () => {
   let drains = 0;
   const h = createHarness({
@@ -208,6 +269,6 @@ test('far-offscreen balls are always removed even outside the normal drain range
     },
   });
   h.advance(16);
-  h.advance(16);
   assert.equal(drains, 1);
+  assert.equal(h.hasPendingFrame(), false);
 });

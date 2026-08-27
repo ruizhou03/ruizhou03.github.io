@@ -77,6 +77,9 @@
     const render = cfg.render || {};
     const hud = cfg.hud || {};
     const shell = cfg.shell || {};
+    const onboarding = cfg.onboarding || null;
+    const onboardingKey = onboarding ? `tool.pinball.onboarding.v1.${cfg.id || 'generic'}` : null;
+    let onboardingVisible = false;
 
     const state = {
       balls: [],  // 活跃球：{x,y,vx,vy,r,onPlunger,trail,id}
@@ -154,20 +157,29 @@
     }
 
     // ───────── 加分 / popup ─────────
-    // opts: { popupScale: 0.5-1.5, popupTtl: ms, noPopup: bool } — 桌台可压小密集区的弹字
+    // opts: { popupScale, popupTtl, noPopup, label, popupText }。
+    // label 会自动把倍率写进同一条结算式，避免“+6000 / JACKPOT +3000”双重提示。
     function addScore(amount, x, y, reason, opts) {
       if (!amount) return;
-      const final = Math.round(amount * (state.multiplier || 1));
+      const multiplier = state.multiplier || 1;
+      const final = Math.round(amount * multiplier);
       state.score += final;
       if (state.score > state.best) { state.best = state.score; persist(); }
       const o = opts || {};
       if (x != null && y != null && !o.noPopup) {
+        let popupText = o.popupText || ('+' + final);
+        if (!o.popupText && o.label) {
+          popupText = multiplier === 1
+            ? `${o.label}  +${final}`
+            : `${o.label}  ${amount} × ${multiplier} = +${final}`;
+        }
         state.popups.push({
-          x, y, text: '+' + final, t0: state.clockMs,
+          x, y, text: popupText, t0: state.clockMs,
           scale: o.popupScale, ttl: o.popupTtl,
         });
       }
       if (hooks.onScore) hooks.onScore(final, reason || 'misc', x, y);
+      return final;
     }
 
     function addPopup(x, y, text, ttl, opts) {
@@ -384,7 +396,13 @@
     }
 
     // ───────── 主循环 ─────────
+    function scheduleFrame() {
+      if (state.rafId != null) return;
+      state.rafId = requestAnimationFrame(step);
+    }
+
     function step(now) {
+      state.rafId = null;
       if (!state.lastFrameTime) state.lastFrameTime = now;
       const rawDt = (now - state.lastFrameTime) / 1000;
       state.lastFrameTime = now;
@@ -401,7 +419,7 @@
       }
       updateHud();
       render_(state.clockMs);
-      state.rafId = requestAnimationFrame(step);
+      if (!state.paused && state.status !== 'gameover') scheduleFrame();
     }
 
     function updatePhysics(dt, now) {
@@ -586,6 +604,7 @@
     function gameOver() {
       state.status = 'gameover';
       releaseAllInputs();
+      syncControlDock();
       // 两行：上行显示得分摘要，下行显示操作提示。中文带破折号的长串单行 540 px 容易折
       showOverlay({
         title: 'Game Over',
@@ -832,7 +851,7 @@
     }
 
     // ───────── HUD ─────────
-    const hudCache = { score: -1, best: -1 };
+    const hudCache = { score: -1, best: -1, lives: -1 };
     function updateHud() {
       if (hud.score && state.score !== hudCache.score) {
         hud.score.textContent = state.score;
@@ -852,6 +871,52 @@
         }
         hudCache.best = state.best;
       }
+      if (hud.lives && state.lives !== hudCache.lives) {
+        hud.lives.textContent = state.lives;
+        hudCache.lives = state.lives;
+      }
+    }
+
+    const controlBar = (() => {
+      const anchor = hud.flipLBtn || hud.flipRBtn || hud.plungerBtn;
+      return anchor && typeof anchor.closest === 'function' ? anchor.closest('.pb-controls') : null;
+    })();
+    const canvasWrap = cfg.canvas && typeof cfg.canvas.closest === 'function'
+      ? cfg.canvas.closest('.pb-canvas-wrap')
+      : null;
+
+    function syncControlDock() {
+      if (!controlBar || !canvasWrap || typeof window.matchMedia !== 'function') return;
+      const compact = window.matchMedia('(max-width: 600px), (max-height: 700px)').matches;
+      const rect = canvasWrap.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+      const tableVisible = rect.bottom > 96 && rect.top < vh - 72;
+      controlBar.classList.toggle('pb-controls-docked', compact && tableVisible && state.status !== 'gameover');
+    }
+
+    function onboardingDone() {
+      if (!onboardingKey) return true;
+      try { return localStorage.getItem(onboardingKey) === '1'; }
+      catch { return false; }
+    }
+
+    function showOnboardingIfNeeded() {
+      onboardingVisible = !!onboarding && !onboardingDone();
+      if (!onboardingVisible) return;
+      showOverlay({
+        title: onboarding.title || '怎么玩',
+        msg: onboarding.msg || '',
+        btn: true,
+        btnText: onboarding.buttonText || '知道了，开始',
+      });
+    }
+
+    function dismissOnboarding() {
+      if (!onboardingVisible) return false;
+      onboardingVisible = false;
+      try { localStorage.setItem(onboardingKey, '1'); } catch {}
+      hideOverlay();
+      return true;
     }
 
     function showOverlay({ title, msg, btn, btnText }) {
@@ -864,11 +929,18 @@
         if (btnText) hud.overlayBtn.textContent = btnText;
       }
       hud.overlay.classList.add('show');
+      if (btn && hud.overlayBtn && typeof hud.overlayBtn.focus === 'function') {
+        try { hud.overlayBtn.focus({ preventScroll: true }); } catch { hud.overlayBtn.focus(); }
+      }
     }
     function hideOverlay() {
       if (!hud.overlay) return;
+      const wasShown = hud.overlay.classList.contains('show');
       hud.overlay.classList.remove('show');
       hud.overlay.classList.remove('pb-overlay--pause');
+      if (wasShown && cfg.canvas && typeof cfg.canvas.focus === 'function') {
+        try { cfg.canvas.focus({ preventScroll: true }); } catch { cfg.canvas.focus(); }
+      }
     }
 
     function setGoal(text) {
@@ -880,6 +952,7 @@
       state.status = 'inplay';
       state.startedAt = state.startedAt || Date.now();
       hideOverlay();
+      syncControlDock();
     }
 
     function togglePause() {
@@ -887,12 +960,14 @@
       state.paused = !state.paused;
       if (hud.pauseBtn) hud.pauseBtn.textContent = state.paused ? '[[zi:play]] 继续' : '[[zi:pause]] 暂停';
       if (state.paused) {
-        showOverlay({ title: '暂停中', msg: '按 P 或继续按钮恢复', btn: false });
+        showOverlay({ title: '暂停中', msg: '按 P 或点「继续」恢复', btn: true, btnText: '继续' });
         if (hud.overlay) hud.overlay.classList.add('pb-overlay--pause');
       } else {
         state.lastFrameTime = performance.now();
         hideOverlay();
+        scheduleFrame();
       }
+      syncControlDock();
     }
 
     function startFresh() {
@@ -926,6 +1001,9 @@
       hideOverlay();
       if (hooks.onStart) hooks.onStart(state, game);
       updateHud();
+      showOnboardingIfNeeded();
+      syncControlDock();
+      scheduleFrame();
     }
 
     // ───────── 输入 ─────────
@@ -965,8 +1043,13 @@
       flippers.forEach(f => { f.target = f.restAngle; });
     }
     window.addEventListener('keydown', (e) => {
-      if (isFormFocused()) return;
       const k = e.key.toLowerCase();
+      if (state.paused && k === 'p' && document.activeElement === hud.overlayBtn) {
+        e.preventDefault();
+        togglePause();
+        return;
+      }
+      if (isFormFocused()) return;
       if (!PB_KEYS.has(k)) return;
       e.preventDefault();
       if (keysDown.has(k)) return;
@@ -1023,10 +1106,14 @@
     if (hud.pauseBtn) hud.pauseBtn.addEventListener('click', togglePause);
     if (hud.newBtn) hud.newBtn.addEventListener('click', startFresh);
     if (hud.overlayBtn) hud.overlayBtn.addEventListener('click', () => {
+      if (dismissOnboarding()) return;
+      if (state.paused) { togglePause(); return; }
       if (hooks.onOverlayAction && hooks.onOverlayAction(state, game) === true) return;
       startFresh();
     });
     window.addEventListener('blur', releaseAllInputs);
+    window.addEventListener('scroll', syncControlDock, { passive: true });
+    window.addEventListener('resize', syncControlDock, { passive: true });
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) releaseAllInputs();
       if (document.hidden && state.status === 'inplay' && !state.paused) togglePause();
@@ -1202,7 +1289,7 @@
     rebuildEnv();
     initShell();
     startFresh();
-    state.rafId = requestAnimationFrame(step);
+    scheduleFrame();
 
     return game;
   }

@@ -11,6 +11,7 @@ const TABLES = [
   'toolbox/pinball/pachinko/index.html',
   'toolbox/pinball/rain/index.html',
 ];
+const THREE_BALL_TABLES = TABLES.slice(0, 3);
 
 function read(path) {
   return fs.readFileSync(new URL(path, ROOT), 'utf8');
@@ -57,6 +58,8 @@ test('Pachinko keeps launch multipliers per ball and resets JKPT streak on a mis
   const t3End = source.indexOf("} else if (tier === 'T2')", t3Start);
   const t3Block = source.slice(t3Start, t3End);
   assert.doesNotMatch(t3Block, /jackpotStreak/);
+  assert.match(source, /formula\.join\(' × '\)/);
+  assert.match(source, /popupText/);
 });
 
 test('Reactor drop targets participate in physics substeps', () => {
@@ -77,9 +80,34 @@ test('Cyber and Temple settlement statistics preserve maxima and totals', () => 
 test('all live tables expose named controls and Canvas fallback semantics', () => {
   for (const path of TABLES) {
     const html = read(path);
-    assert.match(html, /<canvas[^>]+role="img"[^>]+aria-label=/, `${path} canvas semantics`);
+    assert.match(html, /<canvas[^>]+tabindex="0"[^>]+role="img"[^>]+aria-label=/, `${path} canvas semantics`);
     assert.match(html, /id="pbFlipL"[^>]+aria-label="左挡板"/, `${path} left flipper name`);
     assert.match(html, /id="pbFlipR"[^>]+aria-label="右挡板"/, `${path} right flipper name`);
     assert.match(html, /id="pbOverlay"[^>]+aria-live="assertive"/, `${path} overlay live region`);
   }
+});
+
+test('traditional tables use three balls with a visible lives HUD and first-run onboarding', () => {
+  for (const path of THREE_BALL_TABLES) {
+    const source = read(path);
+    assert.match(source, /id="pbLives"/, `${path} lives HUD`);
+    assert.match(source, /totalBalls:\s*3/, `${path} three-ball config`);
+    assert.match(source, /onboarding:\s*\{/, `${path} onboarding config`);
+    assert.match(source, /每局 3 球/, `${path} visible rules`);
+  }
+  assert.match(read('toolbox/pinball/pachinko/index.html'), /onboarding:\s*\{/);
+});
+
+test('large awards no longer emit stale duplicate base-score messages', () => {
+  for (const path of TABLES) {
+    const source = read(path);
+    assert.doesNotMatch(source, /GRAND \+3000|JACKPOT \+3000|LASER \+1000|DATA STREAM \+1000/);
+  }
+});
+
+test('compact layouts dock controls while the table is visible', () => {
+  const css = read('assets/css/pinball-core.css');
+  assert.match(css, /\.pb-controls\.pb-controls-docked/);
+  assert.match(css, /position:\s*fixed/);
+  assert.match(css, /safe-area-inset-bottom/);
 });

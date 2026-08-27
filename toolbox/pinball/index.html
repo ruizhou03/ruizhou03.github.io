@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=4">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=5">
 
 <style>
   details.about summary {
@@ -26,6 +26,7 @@ permalink: /toolbox/pinball/
   <div class="pb-scorebar">
     <div class="pb-score-box"><div class="label">Score</div><div class="value" id="pbScore">0</div></div>
     <div class="pb-score-box"><div class="label">Best</div><div class="value" id="pbBest">0</div></div>
+    <div class="pb-score-box"><div class="label">Balls</div><div class="value" id="pbLives" aria-live="polite">3</div></div>
   </div>
 
   <div class="pb-goal-bar" id="pbGoal">堆芯 <strong>0/5</strong> · ramp 待开 · 击中 3 个 drop targets 解锁 jackpot</div>
@@ -36,7 +37,7 @@ permalink: /toolbox/pinball/
   </div>
 
   <div class="pb-canvas-wrap">
-    <canvas id="pbCanvas" width="480" height="640" role="img" aria-label="太空反应堆弹珠桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
+    <canvas id="pbCanvas" width="480" height="640" tabindex="0" role="img" aria-label="太空反应堆弹珠桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
     <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
       <div id="pbOvMsg"></div>
@@ -64,7 +65,7 @@ permalink: /toolbox/pinball/
   <details class="about" style="max-width:480px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
     <summary>游戏规则</summary>
     <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。底部按钮也支持触屏操作。</p>
-    <p>充能 5 格点亮反应堆；左侧 orbit 绕一圈 +500 分；右侧 ramp 通往 jackpot；击中 3 个 drop target 解锁 jackpot。3 球 multiball 期间所有得分翻倍。</p>
+    <p>每局 3 球。充能 5 格点亮反应堆；左侧 orbit 绕一圈 +500 分；右侧 ramp 通往 jackpot；击中 3 个 drop target 解锁 jackpot。3 球 multiball 期间所有得分翻倍。</p>
   </details>
 
   <div class="pb-rank-row" id="pb-rank-row"></div>
@@ -80,7 +81,7 @@ permalink: /toolbox/pinball/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=5"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=6"></script>
 
 <script>
 (() => {
@@ -258,8 +259,7 @@ permalink: /toolbox/pinball/
   function reactorOnline(now) {
     state.reactorOnline = true;
     state.energy = state.ENERGY_MAX;
-    game.addScore(5000, 240, 240, 'reactorOnline');
-    game.addPopup(240, 240, 'REACTOR ONLINE', 1400);
+    game.addScore(5000, 240, 240, 'reactorOnline', { label: 'REACTOR ONLINE', popupTtl: 1400 });
     state.flashTill = now + 600;
     // 启动 3 球 multiball
     startMultiball(now);
@@ -290,14 +290,12 @@ permalink: /toolbox/pinball/
   }
 
   function onOrbitComplete(now, ball, gameRef) {
-    game.addScore(500, 50, 100, 'orbit');
-    game.addPopup(50, 80, 'ORBIT +500');
+    game.addScore(500, 50, 80, 'orbit', { label: 'ORBIT' });
     if (!state.reactorOnline) addEnergy(now, 50, 100);
   }
 
   function onJackpot(now, ball, gameRef) {
-    game.addScore(3000, 430, 100, 'jackpot');
-    game.addPopup(430, 80, 'JACKPOT +3000', 1400);
+    game.addScore(3000, 430, 80, 'jackpot', { label: 'JACKPOT', popupTtl: 1400 });
     // 重置 drop targets 1.5s 后
     state.dropResetAt = now + 1500;
     state.dropAllCleared = false;
@@ -307,17 +305,14 @@ permalink: /toolbox/pinball/
   // 弹射轨道 4 档奖励：T1 / T2 / T3 都在球跨越 laser 那一刻发，不在 launch 时白送
   function onLaserHit(now, ball, gameRef, tier) {
     if (tier === 'T3') {
-      game.addScore(3000, 458, 140, 'laser-t3');
-      game.addPopup(458, 110, 'GRAND +3000', 1600);
+      game.addScore(3000, 458, 110, 'laser-t3', { label: 'GRAND', popupTtl: 1600 });
       state.laserFlashTill = now + 800;
     } else if (tier === 'T2') {
-      game.addScore(1000, 458, 140, 'laser-t2');
-      game.addPopup(458, 110, 'LASER +1000', 1300);
+      game.addScore(1000, 458, 110, 'laser-t2', { label: 'LASER', popupTtl: 1300 });
       state.laserFlashTill = now + 500;
     } else {
       // T1
-      game.addScore(100, 458, 140, 'laser-t1');
-      game.addPopup(458, 110, '+100', 800);
+      game.addScore(100, 458, 110, 'laser-t1', { popupTtl: 800 });
       state.laserFlashTill = now + 250;
     }
   }
@@ -359,8 +354,7 @@ permalink: /toolbox/pinball/
         game.addScore(t.score, (t.ax + t.bx) / 2, t.ay - 6, 'dropTarget');
         if (dropTargets.every(d => d.dropped)) {
           state.dropAllCleared = true;
-          game.addScore(1500, 240, 120, 'dropClear');
-          game.addPopup(240, 120, 'TARGETS  +1500', 1200);
+          game.addScore(1500, 240, 120, 'dropClear', { label: 'TARGETS', popupTtl: 1200 });
           state.dropResetAt = now + 2500;
         }
         updateGoal();
@@ -501,7 +495,11 @@ permalink: /toolbox/pinball/
   game = PinballCore.createGame({
     canvas, designW: W, designH: H,
     id: 'reactor',
-    totalBalls: 1,
+    totalBalls: 3,
+    onboarding: {
+      title: '反应堆怎么玩',
+      msg: '按住空格或中间按钮蓄力发射，左右方向键 / A D 控制挡板。<br>每局 3 球；集齐 5 格能量触发三球 multiball。',
+    },
     drainY: 626, drainXRange: [100, 442],
     physics: { gravity: 1100, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9 },
     plunger: { x: 458, restY: 600, laneLeft: 442, laneRight: 474, maxCharge: 1.0, chargeRate: 1.6, maxVel: 1500, minVel: 520 },
@@ -513,6 +511,7 @@ permalink: /toolbox/pinball/
     hud: {
       score: document.getElementById('pbScore'),
       best: document.getElementById('pbBest'),
+      lives: document.getElementById('pbLives'),
       goalBar: document.getElementById('pbGoal'),
       chargeBar: document.getElementById('pbChargeBar'),
       overlay: document.getElementById('pbOverlay'),
@@ -564,7 +563,7 @@ permalink: /toolbox/pinball/
         if (bp.x === 240 && bp.y === 240) {
           // 反应堆中心
           if (state.multiballActive) {
-            g.addScore(500, bp.x, bp.y - bp.r, 'reactorMB');
+            g.addScore(500, bp.x, bp.y - bp.r, 'reactorMB', { label: 'CORE' });
           } else {
             addEnergy(now, bp.x, bp.y);
           }

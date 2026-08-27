@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/cyber/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=4">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=5">
 
 <style>
   details.about summary {
@@ -26,6 +26,7 @@ permalink: /toolbox/pinball/cyber/
   <div class="pb-scorebar">
     <div class="pb-score-box"><div class="label">Score</div><div class="value" id="pbScore">0</div></div>
     <div class="pb-score-box"><div class="label">Best</div><div class="value" id="pbBest">0</div></div>
+    <div class="pb-score-box"><div class="label">Balls</div><div class="value" id="pbLives" aria-live="polite">3</div></div>
   </div>
 
   <div class="pb-goal-bar" id="pbGoal">COMBO ×1 · HACKS <strong>0/5</strong></div>
@@ -36,7 +37,7 @@ permalink: /toolbox/pinball/cyber/
   </div>
 
   <div class="pb-canvas-wrap">
-    <canvas id="pbCanvas" width="480" height="640" role="img" aria-label="赛博克弹珠桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
+    <canvas id="pbCanvas" width="480" height="640" tabindex="0" role="img" aria-label="赛博克弹珠桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
     <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
       <div id="pbOvMsg"></div>
@@ -64,7 +65,7 @@ permalink: /toolbox/pinball/cyber/
   <details class="about" style="max-width:480px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
     <summary>游戏规则</summary>
     <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。底部按钮也支持触屏。</p>
-    <p>击中 bumper/目标维持 combo 链，3 秒内连续击中 ×2/×3/×5 倍率。集满 HACKS 五字母触发黑客入侵 multiball。</p>
+    <p>每局 3 球。击中 bumper/目标维持 combo 链，3 秒内连续击中 ×2/×3/×5 倍率。集满 HACKS 五字母触发黑客入侵 multiball。</p>
   </details>
 
   <div class="pb-rank-row" id="pb-rank-row"></div>
@@ -80,7 +81,7 @@ permalink: /toolbox/pinball/cyber/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=5"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=6"></script>
 
 <script>
 (() => {
@@ -253,7 +254,7 @@ permalink: /toolbox/pinball/cyber/
       return;
     }
     state.letters[idx] = true;
-    game.addScore(120, ball.x, ball.y - 10, 'lane');
+    game.addScore(120, ball.x, ball.y - 10, 'lane', { noPopup: true });
     game.addPopup(ball.x, ball.y - 14, LETTERS[idx]);
     bumpCombo(now);
     if (state.letters.every(x => x)) {
@@ -265,26 +266,22 @@ permalink: /toolbox/pinball/cyber/
   // 4 档奖励：全部在跨越 laser 时发
   function onCyberLaneReturn(now, ball, gameRef, tier) {
     if (tier === 'T3') {
-      game.addScore(3000, 458, 140, 'cyber-laser-t3');
-      game.addPopup(458, 110, 'GRAND +3000', 1600);
+      game.addScore(3000, 458, 110, 'cyber-laser-t3', { label: 'GRAND', popupTtl: 1600 });
       state.laneReturnFlashTill = now + 800;
       bumpCombo(now); bumpCombo(now); bumpCombo(now);
     } else if (tier === 'T2') {
-      game.addScore(1000, 458, 140, 'cyber-laser-t2');
-      game.addPopup(458, 110, 'DATA STREAM +1000', 1300);
+      game.addScore(1000, 458, 110, 'cyber-laser-t2', { label: 'DATA STREAM', popupTtl: 1300 });
       state.laneReturnFlashTill = now + 500;
       bumpCombo(now);
     } else {
-      game.addScore(100, 458, 140, 'cyber-laser-t1');
-      game.addPopup(458, 110, '+100', 800);
+      game.addScore(100, 458, 110, 'cyber-laser-t1', { popupTtl: 800 });
       state.laneReturnFlashTill = now + 250;
     }
   }
 
   function onHacksComplete(now) {
     state.hacksCompleted++;
-    game.addScore(5000, W/2, 80, 'hacks');
-    game.addPopup(W/2, 80, 'HACKS  COMPLETE', 1400);
+    game.addScore(5000, W/2, 80, 'hacks', { label: 'HACKS COMPLETE', popupTtl: 1400 });
     state.letters = [false, false, false, false, false];
     state.inheritedMultiplier = state.comboLevel;
 
@@ -417,7 +414,11 @@ permalink: /toolbox/pinball/cyber/
   const canvas = document.getElementById('pbCanvas');
   game = PinballCore.createGame({
     canvas, designW: W, designH: H, id: 'cyber',
-    totalBalls: 1,
+    totalBalls: 3,
+    onboarding: {
+      title: '赛博克怎么玩',
+      msg: '按住空格或中间按钮蓄力发射，左右方向键 / A D 控制挡板。<br>每局 3 球；3 秒内连续击中提高 combo，集齐 H A C K S 触发 multiball。',
+    },
     drainY: 626, drainXRange: [100, 442],
     physics: { gravity: 1100, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9 },
     plunger: { x: 458, restY: 600, laneLeft: 442, laneRight: 474, maxCharge: 1.0, chargeRate: 1.6, maxVel: 1500, minVel: 520 },
@@ -430,6 +431,7 @@ permalink: /toolbox/pinball/cyber/
     hud: {
       score: document.getElementById('pbScore'),
       best: document.getElementById('pbBest'),
+      lives: document.getElementById('pbLives'),
       goalBar: document.getElementById('pbGoal'),
       chargeBar: document.getElementById('pbChargeBar'),
       overlay: document.getElementById('pbOverlay'),

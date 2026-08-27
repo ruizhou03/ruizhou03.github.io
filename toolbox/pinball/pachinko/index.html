@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/pachinko/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=4">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=5">
 
 <style>
   details.about summary {
@@ -36,7 +36,7 @@ permalink: /toolbox/pinball/pachinko/
   </div>
 
   <div class="pb-canvas-wrap">
-    <canvas id="pbCanvas" width="480" height="640" role="img" aria-label="弹珠机厅桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
+    <canvas id="pbCanvas" width="480" height="640" tabindex="0" role="img" aria-label="弹珠机厅桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
     <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
       <div id="pbOvMsg"></div>
@@ -80,7 +80,7 @@ permalink: /toolbox/pinball/pachinko/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=5"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=6"></script>
 
 <script>
 (() => {
@@ -249,16 +249,13 @@ permalink: /toolbox/pinball/pachinko/
   // 4 档奖励：全部在跨越 laser 时发
   function onPachinkoLaneReturn(now, ball, gameRef, tier) {
     if (tier === 'T3') {
-      game.addScore(3000, 458, 140, 'pachinko-laser-t3');
-      game.addPopup(458, 110, 'GRAND +3000', 1600);
+      game.addScore(3000, 458, 110, 'pachinko-laser-t3', { label: 'GRAND', popupTtl: 1600 });
       state.laneReturnFlashTill = now + 800;
     } else if (tier === 'T2') {
-      game.addScore(1000, 458, 140, 'pachinko-laser-t2');
-      game.addPopup(458, 110, '大奖 +1000', 1300);
+      game.addScore(1000, 458, 110, 'pachinko-laser-t2', { label: '大奖', popupTtl: 1300 });
       state.laneReturnFlashTill = now + 500;
     } else {
-      game.addScore(100, 458, 140, 'pachinko-laser-t1');
-      game.addPopup(458, 110, '+100', 800);
+      game.addScore(100, 458, 110, 'pachinko-laser-t1', { popupTtl: 800 });
       state.laneReturnFlashTill = now + 250;
     }
   }
@@ -302,14 +299,19 @@ permalink: /toolbox/pinball/pachinko/
     const baseScore = SLOT_SCORES[idx] === -1 ? state.jackpotValue : SLOT_SCORES[idx];
     const ballMult = Number(ball.launchMult) || 1;
     const finalScore = baseScore * ballMult;
+    const modeMult = game.state.multiplier || 1;
+    const totalScore = Math.round(finalScore * modeMult);
     const cx = SLOT_X0 + idx * SLOT_W + SLOT_W / 2;
     state.slotHits[idx]++;
-    game.addScore(finalScore, cx, SLOT_BOT - 30, 'slot');
-    if (ballMult > 1) {
-      game.addPopup(cx, SLOT_BOT - 50, `${baseScore} × ${ballMult}`, 1300);
-    }
+    const formula = [baseScore];
+    if (ballMult > 1) formula.push(ballMult);
+    if (modeMult > 1) formula.push(modeMult);
+    const jackpotLabel = SLOT_SCORES[idx] === -1 ? 'JACKPOT  ' : '';
+    const popupText = formula.length > 1
+      ? `${jackpotLabel}${formula.join(' × ')} = +${totalScore}`
+      : `${jackpotLabel}+${totalScore}`;
+    game.addScore(finalScore, cx, SLOT_BOT - 30, 'slot', { popupText, popupTtl: 1300 });
     if (SLOT_SCORES[idx] === -1) {
-      game.addPopup(cx, SLOT_BOT - 70, 'JACKPOT', 1400);
       state.jackpotStreak++;
       if (state.jackpotStreak >= 3 && !state.multiballActive) {
         startMultiball(now);
@@ -463,6 +465,10 @@ permalink: /toolbox/pinball/pachinko/
   game = PinballCore.createGame({
     canvas, designW: W, designH: H, id: 'pachinko',
     totalBalls: 10,
+    onboarding: {
+      title: '弹珠机厅怎么玩',
+      msg: '每局 10 发。按住空格或中间按钮控制发射力度；顶部最后穿过的闸门决定这颗球的倍率。<br>中央 JKPT 连中 3 次触发 multiball。',
+    },
     drainY: 626, drainXRange: [100, 442],
     // gravity 降到 600 (其它桌 1100)：deflector 是 45° 反射，重力小一点球水平飞得更远 →
     // 力度 ↔ 闸门 命中 V 范围更宽，可玩性强

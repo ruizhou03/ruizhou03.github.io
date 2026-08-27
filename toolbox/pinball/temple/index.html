@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/temple/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=4">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=5">
 
 <style>
   details.about summary {
@@ -26,6 +26,7 @@ permalink: /toolbox/pinball/temple/
   <div class="pb-scorebar">
     <div class="pb-score-box"><div class="label">Score</div><div class="value" id="pbScore">0</div></div>
     <div class="pb-score-box"><div class="label">Best</div><div class="value" id="pbBest">0</div></div>
+    <div class="pb-score-box"><div class="label">Balls</div><div class="value" id="pbLives" aria-live="polite">3</div></div>
   </div>
 
   <div class="pb-goal-bar" id="pbGoal">宝箱 <strong>0/3</strong> · spinner 每转 +50</div>
@@ -36,7 +37,7 @@ permalink: /toolbox/pinball/temple/
   </div>
 
   <div class="pb-canvas-wrap">
-    <canvas id="pbCanvas" width="480" height="640" role="img" aria-label="黄金神庙弹珠桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
+    <canvas id="pbCanvas" width="480" height="640" tabindex="0" role="img" aria-label="黄金神庙弹珠桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
     <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
       <div id="pbOvMsg"></div>
@@ -64,7 +65,7 @@ permalink: /toolbox/pinball/temple/
   <details class="about" style="max-width:480px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
     <summary>游戏规则</summary>
     <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。底部按钮也支持触屏。</p>
-    <p>球滚过 lane 点亮宝箱，3 个宝箱齐开召唤神庙 multiball。中央旋转盘每碰一次加分。</p>
+    <p>每局 3 球。球滚过 lane 点亮宝箱，3 个宝箱齐开召唤神庙 multiball。中央旋转盘每碰一次加分。</p>
   </details>
 
   <div class="pb-rank-row" id="pb-rank-row"></div>
@@ -80,7 +81,7 @@ permalink: /toolbox/pinball/temple/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=5"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=6"></script>
 
 <script>
 (() => {
@@ -265,7 +266,7 @@ permalink: /toolbox/pinball/temple/
   function onRollover(now, ball, gameRef, idx) {
     if (state.chestsOpen[idx]) return;
     state.rolloverCounts[idx]++;
-    game.addScore(25, ball.x, ball.y, 'rollover');
+    game.addScore(25, ball.x, ball.y, 'rollover', { noPopup: true });
     game.addPopup(ball.x, ball.y - 14, `${state.rolloverCounts[idx]}/3`);
     if (state.rolloverCounts[idx] >= 3) {
       openChest(now, idx);
@@ -276,8 +277,7 @@ permalink: /toolbox/pinball/temple/
   function openChest(now, idx) {
     state.chestsOpen[idx] = true;
     const chestX = ROLLOVER_LANES[idx].cx;
-    game.addScore(2000, chestX, ROLLOVER_LANES[idx].cy + 18, 'chest');
-    game.addPopup(chestX, ROLLOVER_LANES[idx].cy + 18, 'CHEST OPEN', 1300);
+    game.addScore(2000, chestX, ROLLOVER_LANES[idx].cy + 18, 'chest', { label: 'CHEST OPEN', popupTtl: 1300 });
     // 开第 2 个宝箱后，左 + 右两扇隐藏门同时打开
     const openedCount = state.chestsOpen.filter(x => x).length;
     if (openedCount === 2 && !state.hiddenDoorOpen) {
@@ -292,8 +292,7 @@ permalink: /toolbox/pinball/temple/
 
   function onTempleAwakens(now) {
     state.templeAwakened = true;
-    game.addScore(8000, W/2, 240, 'temple');
-    game.addPopup(W/2, 240, 'TEMPLE AWAKENS', 1800);
+    game.addScore(8000, W/2, 240, 'temple', { label: 'TEMPLE AWAKENS', popupTtl: 1800 });
     // 2 球 multiball, 60s
     state.multiballActive = true;
     state.multiballEnd = now + 60000;
@@ -340,30 +339,26 @@ permalink: /toolbox/pinball/temple/
   // 4 档奖励：T1 / T2 / T3 都在跨越 laser 时发
   function onTempleLaneReturn(now, ball, gameRef, tier) {
     if (tier === 'T3') {
-      game.addScore(3000, 458, 140, 'temple-laser-t3');
-      game.addPopup(458, 110, 'GRAND +3000', 1600);
+      game.addScore(3000, 458, 110, 'temple-laser-t3', { label: 'GRAND', popupTtl: 1600 });
       state.laneReturnFlashTill = now + 800;
       // T3 顺手把 spinner 升 2 阶
       state.spinnerHits = Math.min(state.spinnerHits + 2, SPIN_FIB.length);
       state.spinnerLastHit = now;
     } else if (tier === 'T2') {
-      game.addScore(1000, 458, 140, 'temple-laser-t2');
-      game.addPopup(458, 110, '宝箱 +1000', 1300);
+      game.addScore(1000, 458, 110, 'temple-laser-t2', { label: '宝箱', popupTtl: 1300 });
       state.laneReturnFlashTill = now + 500;
       // T2 把 spinner 升 1 阶
       state.spinnerHits = Math.min(state.spinnerHits + 1, SPIN_FIB.length);
       state.spinnerLastHit = now;
     } else {
-      game.addScore(100, 458, 140, 'temple-laser-t1');
-      game.addPopup(458, 110, '+100', 800);
+      game.addScore(100, 458, 110, 'temple-laser-t1', { popupTtl: 800 });
       state.laneReturnFlashTill = now + 250;
     }
   }
 
   function onHiddenLane(now, ball, gameRef, popupX) {
     if (!state.hiddenDoorOpen) return;
-    game.addScore(1000, ball.x, ball.y - 16, 'hidden');
-    game.addPopup(popupX, ball.y - 30, 'HIDDEN +1000', 1100);
+    game.addScore(1000, popupX, ball.y - 30, 'hidden', { label: 'HIDDEN', popupTtl: 1100 });
   }
 
   // ─── 渲染 ───
@@ -538,7 +533,11 @@ permalink: /toolbox/pinball/temple/
   const canvas = document.getElementById('pbCanvas');
   game = PinballCore.createGame({
     canvas, designW: W, designH: H, id: 'temple',
-    totalBalls: 1,
+    totalBalls: 3,
+    onboarding: {
+      title: '黄金神庙怎么玩',
+      msg: '按住空格或中间按钮蓄力发射，左右方向键 / A D 控制挡板。<br>每局 3 球；每条顶部 lane 命中 3 次开宝箱，集齐 3 个宝箱唤醒神庙。',
+    },
     drainY: 626, drainXRange: [100, 442],
     physics: { gravity: 1100, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9 },
     plunger: { x: 458, restY: 600, laneLeft: 442, laneRight: 474, maxCharge: 1.0, chargeRate: 1.6, maxVel: 1500, minVel: 520 },
@@ -551,6 +550,7 @@ permalink: /toolbox/pinball/temple/
     hud: {
       score: document.getElementById('pbScore'),
       best: document.getElementById('pbBest'),
+      lives: document.getElementById('pbLives'),
       goalBar: document.getElementById('pbGoal'),
       chargeBar: document.getElementById('pbChargeBar'),
       overlay: document.getElementById('pbOverlay'),

@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/rain/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=4">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=5">
 
 <style>
   details.about summary {
@@ -36,7 +36,7 @@ permalink: /toolbox/pinball/rain/
   </div>
 
   <div class="pb-canvas-wrap">
-    <canvas id="pbCanvas" width="480" height="640" role="img" aria-label="弹珠雨桌台。使用左右挡板控制持续落下的弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
+    <canvas id="pbCanvas" width="480" height="640" tabindex="0" role="img" aria-label="弹珠雨桌台。使用左右挡板控制持续落下的弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
     <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
       <div id="pbOvMsg"></div>
@@ -80,7 +80,7 @@ permalink: /toolbox/pinball/rain/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=5"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=6"></script>
 
 <script>
 (() => {
@@ -194,16 +194,13 @@ permalink: /toolbox/pinball/rain/
   // 4 档奖励：全部在跨越 laser 时发
   function onRainLaneReturn(now, ball, gameRef, tier) {
     if (tier === 'T3') {
-      game.addScore(3000, 458, 140, 'rain-laser-t3');
-      game.addPopup(458, 110, 'GRAND +3000', 1600);
+      game.addScore(3000, 458, 110, 'rain-laser-t3', { label: 'GRAND', popupTtl: 1600 });
       state.laneReturnFlashTill = now + 800;
     } else if (tier === 'T2') {
-      game.addScore(1000, 458, 140, 'rain-laser-t2');
-      game.addPopup(458, 110, '蓄能 +1000', 1300);
+      game.addScore(1000, 458, 110, 'rain-laser-t2', { label: '蓄能', popupTtl: 1300 });
       state.laneReturnFlashTill = now + 500;
     } else {
-      game.addScore(100, 458, 140, 'rain-laser-t1');
-      game.addPopup(458, 110, '+100', 800);
+      game.addScore(100, 458, 110, 'rain-laser-t1', { popupTtl: 800 });
       state.laneReturnFlashTill = now + 250;
     }
   }
@@ -255,9 +252,11 @@ permalink: /toolbox/pinball/rain/
   function onSlotEnter(now, ball, gameRef, idx) {
     const baseScore = SLOT_SCORES[idx] === -1 ? 2000 : SLOT_SCORES[idx];
     const cx = SLOT_X0 + idx * SLOT_W + SLOT_W / 2;
-    game.addScore(baseScore, cx, SLOT_BOT - 30, 'slot');
+    game.addScore(baseScore, cx, SLOT_BOT - 30, 'slot', {
+      label: SLOT_SCORES[idx] === -1 ? 'JACKPOT' : null,
+      popupTtl: 1300,
+    });
     if (SLOT_SCORES[idx] === -1) {
-      game.addPopup(cx, SLOT_BOT - 50, 'JACKPOT', 1300);
       state.jackpotHits++;
     }
     // 移除球
