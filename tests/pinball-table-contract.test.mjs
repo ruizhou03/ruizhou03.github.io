@@ -94,6 +94,7 @@ test('traditional tables use three balls with a visible lives HUD and first-run 
     assert.match(source, /totalBalls:\s*3/, `${path} three-ball config`);
     assert.match(source, /onboarding:\s*\{/, `${path} onboarding config`);
     assert.match(source, /每局 3 球/, `${path} visible rules`);
+    assert.match(source, /7 秒/, `${path} Ball Save disclosure`);
   }
   assert.match(read('toolbox/pinball/pachinko/index.html'), /onboarding:\s*\{/);
 });
@@ -110,4 +111,38 @@ test('compact layouts dock controls while the table is visible', () => {
   assert.match(css, /\.pb-controls\.pb-controls-docked/);
   assert.match(css, /position:\s*fixed/);
   assert.match(css, /safe-area-inset-bottom/);
+  assert.match(css, /grid-template-columns:\s*0\.7fr 1fr 1\.4fr 1fr 0\.7fr/);
+});
+
+test('all tables expose offline feedback, Nudge, half-screen controls, and coach UI', () => {
+  for (const path of TABLES) {
+    const source = read(path);
+    assert.match(source, /games-shell\/sfx\.js/, `${path} SFX module`);
+    assert.match(source, /id="pbSoundBtn"/, `${path} sound toggle`);
+    assert.match(source, /id="pbHapticBtn"/, `${path} haptic toggle`);
+    assert.match(source, /id="pbMotionBtn"/, `${path} motion toggle`);
+    assert.match(source, /id="pbNudgeL"/, `${path} left nudge`);
+    assert.match(source, /id="pbNudgeR"/, `${path} right nudge`);
+    assert.match(source, /id="pbCoach"/, `${path} coach region`);
+  }
+  assert.match(read('toolbox/pinball/pachinko/index.html'), /ballSaveMs:\s*0/);
+  assert.match(read('toolbox/pinball/rain/index.html'), /tiltAutoResetMs:\s*3000/);
+});
+
+test('shared SFX module provides pinball-specific synthesized feedback', () => {
+  const sfx = read('assets/js/games-shell/sfx.js');
+  for (const name of ['pinballFlipper', 'pinballBumper', 'pinballLaunch', 'pinballJackpot',
+    'pinballMultiball', 'pinballDrain', 'pinballSave', 'pinballNudge', 'pinballTilt']) {
+    assert.match(sfx, new RegExp(`${name}\\(\\)`), name);
+  }
+});
+
+test('three-ball balance assists are explicit and testable', () => {
+  assert.match(read('toolbox/pinball/index.html'), /ENERGY_MAX:\s*4/);
+  const temple = read('toolbox/pinball/temple/index.html');
+  assert.match(temple, /CHEST_HITS_REQUIRED\s*=\s*2/);
+  assert.match(temple, /missingChest/);
+  const cyber = read('toolbox/pinball/cyber/index.html');
+  assert.match(cyber, /mercyHackUsed/);
+  assert.match(cyber, /NEXT BALL HACK/);
 });

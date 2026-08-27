@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/pachinko/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=5">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=6">
 
 <style>
   details.about summary {
@@ -33,9 +33,13 @@ permalink: /toolbox/pinball/pachinko/
   <div class="pb-toolbar">
     <button class="pb-btn" id="pbPauseBtn">[[zi:pause]] 暂停</button>
     <button class="pb-btn" id="pbNewBtn">[[zi:refresh]] 新游戏</button>
+    <button class="pb-btn" id="pbSoundBtn" type="button" aria-pressed="true">声音 开</button>
+    <button class="pb-btn" id="pbHapticBtn" type="button" aria-pressed="true">震动 开</button>
+    <button class="pb-btn" id="pbMotionBtn" type="button" aria-pressed="false">低动态 关</button>
   </div>
 
   <div class="pb-canvas-wrap">
+    <div class="pb-coach" id="pbCoach" aria-live="polite"></div>
     <canvas id="pbCanvas" width="480" height="640" tabindex="0" role="img" aria-label="弹珠机厅桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
     <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
@@ -45,9 +49,11 @@ permalink: /toolbox/pinball/pachinko/
   </div>
 
   <div class="pb-controls">
+    <button class="pb-nudge-btn" id="pbNudgeL" aria-label="向左推台">推左</button>
     <button class="pb-flip-btn" id="pbFlipL" aria-label="左挡板" aria-keyshortcuts="ArrowLeft A">[[zi:arrow]]</button>
     <button class="pb-plunger-btn" id="pbPlungerBtn" aria-label="蓄力发射" aria-keyshortcuts="Space"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar" role="progressbar" aria-label="发射力度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></button>
     <button class="pb-flip-btn" id="pbFlipR" aria-label="右挡板" aria-keyshortcuts="ArrowRight D">[[zi:play]]</button>
+    <button class="pb-nudge-btn" id="pbNudgeR" aria-label="向右推台">推右</button>
   </div>
 
   <div class="pb-tp-wrap">
@@ -63,7 +69,7 @@ permalink: /toolbox/pinball/pachinko/
 
   <details class="about" style="max-width:480px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
     <summary>游戏规则</summary>
-    <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。底部按钮也支持触屏。</p>
+    <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　<kbd>Z</kbd>/<kbd>X</kbd> 左右推台　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。手机也可直接按桌面左右半边。</p>
     <p>每局 10 发球。顶部 6 个闸门决定倍率（×1 到 ×20），槽分 × 闸门倍率。中央 JKPT 槽连中 3 次触发 multiball。</p>
   </details>
 
@@ -80,7 +86,8 @@ permalink: /toolbox/pinball/pachinko/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=6"></script>
+<script src="/assets/js/games-shell/sfx.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=7"></script>
 
 <script>
 (() => {
@@ -219,6 +226,7 @@ permalink: /toolbox/pinball/pachinko/
     pegCombo: 0,              // 钉墙连续命中数（3 s 无命中或 slot 触底重置）
     pegLastHit: 0,
     laneReturnFlashTill: 0,   // 轨道顶端"金币"高亮过期
+    multiballsStarted: 0,
   };
 
   function rebuildState() {
@@ -233,6 +241,7 @@ permalink: /toolbox/pinball/pachinko/
     state.pegCombo = 0;
     state.pegLastHit = 0;
     state.laneReturnFlashTill = 0;
+    state.multiballsStarted = 0;
   }
 
   // 钉墙连击梯度：base 10，每 8 击升 1 阶。整十数字 [10, 20, 30, 40, 50]，cap 50
@@ -310,7 +319,10 @@ permalink: /toolbox/pinball/pachinko/
     const popupText = formula.length > 1
       ? `${jackpotLabel}${formula.join(' × ')} = +${totalScore}`
       : `${jackpotLabel}+${totalScore}`;
-    game.addScore(finalScore, cx, SLOT_BOT - 30, 'slot', { popupText, popupTtl: 1300 });
+    game.addScore(finalScore, cx, SLOT_BOT - 30, 'slot', {
+      popupText, popupTtl: 1300,
+      sfx: SLOT_SCORES[idx] === -1 ? 'jackpot' : null,
+    });
     if (SLOT_SCORES[idx] === -1) {
       state.jackpotStreak++;
       if (state.jackpotStreak >= 3 && !state.multiballActive) {
@@ -328,9 +340,11 @@ permalink: /toolbox/pinball/pachinko/
   }
 
   function startMultiball(now) {
+    state.multiballsStarted++;
     state.multiballActive = true;
     state.multiballEnd = now + 20000;
     game.setMultiplier(2);
+    game.feedback('multiball');
     // 追加 4 颗球向下抛 (multiball 期间 launchMult 也生效，加上 game.multiplier=2 是双重)
     [80, 180, 280, 380].forEach((x, i) => {
       const vx = (Math.random() - 0.5) * 200;
@@ -465,9 +479,14 @@ permalink: /toolbox/pinball/pachinko/
   game = PinballCore.createGame({
     canvas, designW: W, designH: H, id: 'pachinko',
     totalBalls: 10,
+    ballSaveMs: 0,
     onboarding: {
       title: '弹珠机厅怎么玩',
-      msg: '每局 10 发。按住空格或中间按钮控制发射力度；顶部最后穿过的闸门决定这颗球的倍率。<br>中央 JKPT 连中 3 次触发 multiball。',
+      msg: '每局 10 发。按住空格或中间按钮控制力度；方向键 / A D 或桌面左右半边控制挡板。<br>顶部最后穿过的闸门决定这颗球的倍率；连续推台 3 次会 TILT。',
+    },
+    coach: {
+      slot: '落槽分数 = 槽位基础分 × 本球闸门倍率 × multiball 倍率。',
+      'pachinko-laser-t3': 'GRAND 回轨奖励不会计入中央 JKPT 连中次数。',
     },
     drainY: 626, drainXRange: [100, 442],
     // gravity 降到 600 (其它桌 1100)：deflector 是 45° 反射，重力小一点球水平飞得更远 →
@@ -490,8 +509,14 @@ permalink: /toolbox/pinball/pachinko/
       overlayTitle: document.getElementById('pbOvTitle'),
       overlayMsg: document.getElementById('pbOvMsg'),
       overlayBtn: document.getElementById('pbOvBtn'),
+      coach: document.getElementById('pbCoach'),
       pauseBtn: document.getElementById('pbPauseBtn'),
       newBtn: document.getElementById('pbNewBtn'),
+      soundBtn: document.getElementById('pbSoundBtn'),
+      hapticBtn: document.getElementById('pbHapticBtn'),
+      motionBtn: document.getElementById('pbMotionBtn'),
+      nudgeLBtn: document.getElementById('pbNudgeL'),
+      nudgeRBtn: document.getElementById('pbNudgeR'),
       flipLBtn: document.getElementById('pbFlipL'),
       flipRBtn: document.getElementById('pbFlipR'),
       plungerBtn: document.getElementById('pbPlungerBtn'),
@@ -512,10 +537,15 @@ permalink: /toolbox/pinball/pachinko/
       commentsPlaceholder: '聊聊心得 ~',
       nickMount: document.getElementById('pb-nick-mount'),
       settleBtnMount: document.getElementById('pb-settle-btn-mount'),
-      extraSubmit: () => ({ jackpot: state.jackpotValue, jackpotHits: state.slotHits[3] }),
+      extraSubmit: () => ({
+        jackpot: state.jackpotValue,
+        jackpotHits: state.slotHits[3],
+        multiballsStarted: state.multiballsStarted,
+      }),
       statsBuilder: (s) => [
         { label: 'JACKPOT 命中', value: state.slotHits[3] },
         { label: 'JKPT 终值', value: state.jackpotValue.toLocaleString() },
+        { label: 'MULTIBALL', value: state.multiballsStarted },
         { label: '历史最高', value: Number(s.best || 0).toLocaleString() },
       ],
       watermark: 'ruizhou03.com/toolbox/pinball/pachinko',

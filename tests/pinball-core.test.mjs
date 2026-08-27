@@ -69,13 +69,12 @@ function createHarness(config = {}) {
     },
     set(target, prop, value) { target[prop] = value; return true; },
   });
-  const canvas = {
+  const canvas = Object.assign(new FakeTarget('CANVAS'), {
     width: 480,
     height: 640,
     getContext: () => ctx,
-    getBoundingClientRect: () => ({ width: 480, height: 640 }),
-    focus() {},
-  };
+    getBoundingClientRect: () => ({ left: 0, top: 0, right: 480, bottom: 640, width: 480, height: 640 }),
+  });
   const storage = new Map();
   const localStorage = {
     getItem(key) { return storage.get(key) ?? null; },
@@ -87,6 +86,7 @@ function createHarness(config = {}) {
     localStorage,
     performance: { now: () => wallNow },
     requestAnimationFrame(cb) { nextFrame = cb; return 1; },
+    cancelAnimationFrame() { nextFrame = null; },
     console,
     Date,
     Math,
@@ -104,6 +104,7 @@ function createHarness(config = {}) {
 
   return {
     game,
+    canvas,
     window,
     document,
     storage,
@@ -136,7 +137,7 @@ test('trigger cooldown is isolated per ball during multiball', () => {
     },
   });
   h.advance(16);
-  h.advance(16);
+  h.advance(17);
   assert.equal(hits.length, 2);
   assert.notEqual(hits[0], hits[1]);
 });
@@ -200,7 +201,8 @@ test('lives HUD starts at configured total and updates on drain', () => {
   h.game.state.balls[0].x = 200;
   h.game.state.balls[0].y = 10050;
   h.game.state.balls[0].onPlunger = false;
-  h.advance(16);
+  h.advance(0);
+  h.advance(17);
   assert.equal(h.game.state.lives, 2);
   assert.equal(lives.textContent, 2);
 });
@@ -234,6 +236,148 @@ test('paused and game-over states stop scheduling animation frames', () => {
   assert.equal(h.hasPendingFrame(), true);
 });
 
+test('page lifecycle stops rendering and resumes after bfcache restore', () => {
+  const h = createHarness();
+  h.window.emit('pagehide');
+  assert.equal(h.game.state.destroyed, true);
+  assert.equal(h.hasPendingFrame(), false);
+  h.window.emit('pageshow');
+  assert.equal(h.game.state.destroyed, false);
+  assert.equal(h.hasPendingFrame(), true);
+});
+
+function simulateOneSecondAtFps(fps) {
+  let ball;
+  const h = createHarness({
+    plungerEnabled: false,
+    physics: {
+      gravity: 600, airDrag: 1, substeps: 1, maxSpeed: 5000, ballRadius: 2,
+      fixedStep: 1 / 60, maxFrameDt: 0.1, maxCatchUpSteps: 6,
+    },
+    hooks: {
+      onStart(state, game) {
+        ball = game.addBall(100, 100, 100, 0);
+        game.startRun();
+      },
+    },
+  });
+  h.advance(0);
+  for (let i = 0; i < fps; i++) h.advance(1000 / fps);
+  return { x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy };
+}
+
+test('fixed timestep produces the same physics at 30, 60, and 120 FPS', () => {
+  const at30 = simulateOneSecondAtFps(30);
+  const at60 = simulateOneSecondAtFps(60);
+  const at120 = simulateOneSecondAtFps(120);
+  for (const key of ['x', 'y', 'vx', 'vy']) {
+    assert.ok(Math.abs(at30[key] - at60[key]) < 1e-7, `${key}: 30 vs 60`);
+    assert.ok(Math.abs(at120[key] - at60[key]) < 1e-7, `${key}: 120 vs 60`);
+  }
+});
+
+test('Ball Save restores the same ball without consuming a life', () => {
+  const h = createHarness({ totalBalls: 3, ballSaveMs: 7000, turnDelayMs: 100 });
+  const ball = h.game.state.balls[0];
+  ball.onPlunger = false;
+  ball.x = 200;
+  ball.y = 10050;
+  h.game.state.status = 'inplay';
+  h.game.state.ballSaveArmed = false;
+  h.game.state.ballSaveUntil = 7000;
+  h.advance(0);
+  h.advance(17);
+  assert.equal(h.game.state.lives, 3);
+  assert.equal(h.game.state.status, 'betweenballs');
+  assert.equal(h.game.state.ballSaveUsedThisTurn, true);
+  h.advance(600);
+  assert.equal(h.game.state.status, 'idle');
+  assert.equal(h.game.state.balls.length, 1);
+  assert.equal(h.game.state.balls[0].onPlunger, true);
+});
+
+test('a real drain consumes a life and queues the next ball', () => {
+  const h = createHarness({ totalBalls: 3, ballSaveMs: 0, turnDelayMs: 100 });
+  const ball = h.game.state.balls[0];
+  ball.onPlunger = false;
+  ball.x = 200;
+  ball.y = 10050;
+  h.game.state.status = 'inplay';
+  h.advance(0);
+  h.advance(17);
+  assert.equal(h.game.state.lives, 2);
+  assert.equal(h.game.state.status, 'betweenballs');
+  h.advance(100);
+  assert.equal(h.game.state.status, 'idle');
+});
+
+test('third nudge within two seconds triggers TILT and suppresses scoring', () => {
+  const h = createHarness();
+  const ball = h.game.state.balls[0];
+  ball.onPlunger = false;
+  ball.x = 200;
+  ball.y = 300;
+  h.game.state.status = 'inplay';
+  assert.equal(h.game.nudge(-1), true);
+  assert.equal(h.game.nudge(1), true);
+  assert.equal(h.game.nudge(-1), false);
+  assert.equal(h.game.state.tilted, true);
+  assert.equal(h.game.addScore(100, 20, 20, 'bumper'), 0);
+});
+
+test('continuous tables can use a timed TILT penalty', () => {
+  const h = createHarness({ tiltAutoResetMs: 100 });
+  h.game.state.status = 'inplay';
+  h.game.nudge(-1); h.game.nudge(1); h.game.nudge(-1);
+  assert.equal(h.game.state.tilted, true);
+  h.advance(0);
+  h.advance(100);
+  assert.equal(h.game.state.tilted, false);
+});
+
+test('canvas left and right halves control their matching flippers', () => {
+  const h = createHarness();
+  const left = h.game.flippers.find(f => f.side === 'L');
+  const right = h.game.flippers.find(f => f.side === 'R');
+  h.canvas.emit('pointerdown', { pointerType: 'touch', pointerId: 1, clientX: 50 });
+  assert.equal(left.target, left.upAngle);
+  h.canvas.emit('pointerup', { pointerType: 'touch', pointerId: 1, clientX: 50 });
+  assert.equal(left.target, left.restAngle);
+  h.canvas.emit('pointerdown', { pointerType: 'touch', pointerId: 2, clientX: 430 });
+  assert.equal(right.target, right.upAngle);
+});
+
+test('low-motion preference is persistent and exposed to the renderer', () => {
+  const motionBtn = new FakeTarget('BUTTON');
+  const h = createHarness({ hud: { motionBtn } });
+  assert.equal(h.game.lowMotionEnabled(), false);
+  motionBtn.emit('click');
+  assert.equal(h.game.lowMotionEnabled(), true);
+  assert.equal(h.storage.get('tool.pinball.lowMotion.v1'), '1');
+  assert.equal(motionBtn.getAttribute('aria-pressed'), 'true');
+});
+
+test('high-frequency feedback is throttled even at clock zero', () => {
+  const h = createHarness();
+  let sounds = 0;
+  h.window.GamesShell = { Sfx: { pinballBumper() { sounds++; } } };
+  h.game.feedback('bumper');
+  h.game.feedback('bumper');
+  assert.equal(sounds, 1);
+});
+
+test('contextual coach messages are one-shot and pause-aware', () => {
+  const coach = new FakeTarget();
+  const h = createHarness({ hud: { coach } });
+  assert.equal(h.game.showCoach('orbit', '左侧轨道补充能量'), true);
+  assert.equal(coach.textContent, '左侧轨道补充能量');
+  assert.equal(coach.classList.contains('show'), true);
+  assert.equal(h.game.showCoach('orbit', '不应重复'), false);
+  h.advance(0);
+  h.advance(4200);
+  assert.equal(coach.classList.contains('show'), false);
+});
+
 test('no-plunger tables drain stationary balls instead of trapping them', () => {
   let drains = 0;
   const h = createHarness({
@@ -249,6 +393,7 @@ test('no-plunger tables drain stationary balls instead of trapping them', () => 
   h.advance(16);
   h.advance(500);
   h.advance(600);
+  h.advance(500);
   assert.equal(drains, 1);
   assert.equal(h.game.state.balls.some(ball => ball.onPlunger), false);
 });
@@ -268,7 +413,8 @@ test('far-offscreen balls are always removed even outside the normal drain range
       onBallDrain() { drains++; },
     },
   });
-  h.advance(16);
+  h.advance(0);
+  h.advance(17);
   assert.equal(drains, 1);
   assert.equal(h.hasPendingFrame(), false);
 });

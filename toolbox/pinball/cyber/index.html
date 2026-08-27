@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/cyber/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=5">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=6">
 
 <style>
   details.about summary {
@@ -34,9 +34,13 @@ permalink: /toolbox/pinball/cyber/
   <div class="pb-toolbar">
     <button class="pb-btn" id="pbPauseBtn">[[zi:pause]] 暂停</button>
     <button class="pb-btn" id="pbNewBtn">[[zi:refresh]] 新游戏</button>
+    <button class="pb-btn" id="pbSoundBtn" type="button" aria-pressed="true">声音 开</button>
+    <button class="pb-btn" id="pbHapticBtn" type="button" aria-pressed="true">震动 开</button>
+    <button class="pb-btn" id="pbMotionBtn" type="button" aria-pressed="false">低动态 关</button>
   </div>
 
   <div class="pb-canvas-wrap">
+    <div class="pb-coach" id="pbCoach" aria-live="polite"></div>
     <canvas id="pbCanvas" width="480" height="640" tabindex="0" role="img" aria-label="赛博克弹珠桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
     <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
@@ -46,9 +50,11 @@ permalink: /toolbox/pinball/cyber/
   </div>
 
   <div class="pb-controls">
+    <button class="pb-nudge-btn" id="pbNudgeL" aria-label="向左推台">推左</button>
     <button class="pb-flip-btn" id="pbFlipL" aria-label="左挡板" aria-keyshortcuts="ArrowLeft A">[[zi:arrow]]</button>
     <button class="pb-plunger-btn" id="pbPlungerBtn" aria-label="蓄力发射" aria-keyshortcuts="Space"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar" role="progressbar" aria-label="发射力度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></button>
     <button class="pb-flip-btn" id="pbFlipR" aria-label="右挡板" aria-keyshortcuts="ArrowRight D">[[zi:play]]</button>
+    <button class="pb-nudge-btn" id="pbNudgeR" aria-label="向右推台">推右</button>
   </div>
 
   <div class="pb-tp-wrap">
@@ -64,8 +70,8 @@ permalink: /toolbox/pinball/cyber/
 
   <details class="about" style="max-width:480px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
     <summary>游戏规则</summary>
-    <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。底部按钮也支持触屏。</p>
-    <p>每局 3 球。击中 bumper/目标维持 combo 链，3 秒内连续击中 ×2/×3/×5 倍率。集满 HACKS 五字母触发黑客入侵 multiball。</p>
+    <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　<kbd>Z</kbd>/<kbd>X</kbd> 左右推台　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。手机也可直接按桌面左右半边。</p>
+    <p>每局 3 球，发射后 7 秒内意外漏球可救回一次。击中 bumper/目标维持 combo 链，3 秒内连续击中 ×2/×3/×5 倍率；达到 ×5 会破解一个未亮字母，带着 4 个字母进入下一球也会自动补全。集满 HACKS 触发 multiball。</p>
   </details>
 
   <div class="pb-rank-row" id="pb-rank-row"></div>
@@ -81,7 +87,8 @@ permalink: /toolbox/pinball/cyber/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=6"></script>
+<script src="/assets/js/games-shell/sfx.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=7"></script>
 
 <script>
 (() => {
@@ -116,9 +123,9 @@ permalink: /toolbox/pinball/cyber/
     LETTER_TRIGGERS.push({
       id: 'lane' + LETTERS[i],
       kind: 'segment',
-      ax: LETTER_X[i] - 18, ay: 100,
-      bx: LETTER_X[i] + 18, by: 100,
-      thresh: 14, on: 'enter', cooldown: 800,
+      ax: LETTER_X[i] - 24, ay: 100,
+      bx: LETTER_X[i] + 24, by: 100,
+      thresh: 18, on: 'enter', cooldown: 800,
       letterIdx: i,
       cb: (now, ball, game) => onLetterHit(now, ball, game, i),
     });
@@ -180,6 +187,7 @@ permalink: /toolbox/pinball/cyber/
     multiballActive: false, multiballEnd: 0,
     inheritedMultiplier: 1,
     laneReturnFlashTill: 0,
+    mercyHackUsed: false,
   };
   let game = null;
 
@@ -194,12 +202,13 @@ permalink: /toolbox/pinball/cyber/
     state.multiballEnd = 0;
     state.inheritedMultiplier = 1;
     state.laneReturnFlashTill = 0;
+    state.mercyHackUsed = false;
     if (game) game.phys.gravity = 1100;
   }
   rebuildState();
 
   function comboLevelFor(hits) {
-    if (hits >= 10) return 5;
+    if (hits >= 8) return 5;
     if (hits >= 6)  return 3;
     if (hits >= 3)  return 2;
     return 1;
@@ -216,6 +225,14 @@ permalink: /toolbox/pinball/cyber/
       game.phys.gravity = 1100 * (lvl >= 3 ? 1.1 : 1.0);
       if (lvl >= 2) {
         game.addPopup(W/2, 60, `COMBO ×${lvl}`, 900);
+      }
+      if (lvl === 5) {
+        const missing = state.letters.findIndex(lit => !lit);
+        if (missing >= 0) {
+          state.letters[missing] = true;
+          game.addPopup(LETTER_X[missing], 82, `COMBO HACK: ${LETTERS[missing]}`, 1100);
+          if (state.letters.every(Boolean)) onHacksComplete(now);
+        }
       }
     }
   }
@@ -281,7 +298,7 @@ permalink: /toolbox/pinball/cyber/
 
   function onHacksComplete(now) {
     state.hacksCompleted++;
-    game.addScore(5000, W/2, 80, 'hacks', { label: 'HACKS COMPLETE', popupTtl: 1400 });
+    game.addScore(5000, W/2, 80, 'hacks', { label: 'HACKS COMPLETE', popupTtl: 1400, sfx: 'multiball' });
     state.letters = [false, false, false, false, false];
     state.inheritedMultiplier = state.comboLevel;
 
@@ -417,7 +434,11 @@ permalink: /toolbox/pinball/cyber/
     totalBalls: 3,
     onboarding: {
       title: '赛博克怎么玩',
-      msg: '按住空格或中间按钮蓄力发射，左右方向键 / A D 控制挡板。<br>每局 3 球；3 秒内连续击中提高 combo，集齐 H A C K S 触发 multiball。',
+      msg: '按住空格或中间按钮蓄力发射；方向键 / A D 或桌面左右半边控制挡板。<br>每局 3 球并带 7 秒 Ball Save；连击提高倍率，集齐 H A C K S 触发 multiball。',
+    },
+    coach: {
+      lane: '顶部字母目标会点亮 H A C K S；已点亮目标仍可维持 combo。',
+      hacks: 'HACKS COMPLETE：当前 combo 倍率会继承到 multiball。',
     },
     drainY: 626, drainXRange: [100, 442],
     physics: { gravity: 1100, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9 },
@@ -438,8 +459,14 @@ permalink: /toolbox/pinball/cyber/
       overlayTitle: document.getElementById('pbOvTitle'),
       overlayMsg: document.getElementById('pbOvMsg'),
       overlayBtn: document.getElementById('pbOvBtn'),
+      coach: document.getElementById('pbCoach'),
       pauseBtn: document.getElementById('pbPauseBtn'),
       newBtn: document.getElementById('pbNewBtn'),
+      soundBtn: document.getElementById('pbSoundBtn'),
+      hapticBtn: document.getElementById('pbHapticBtn'),
+      motionBtn: document.getElementById('pbMotionBtn'),
+      nudgeLBtn: document.getElementById('pbNudgeL'),
+      nudgeRBtn: document.getElementById('pbNudgeR'),
       flipLBtn: document.getElementById('pbFlipL'),
       flipRBtn: document.getElementById('pbFlipR'),
       plungerBtn: document.getElementById('pbPlungerBtn'),
@@ -460,7 +487,11 @@ permalink: /toolbox/pinball/cyber/
       commentsPlaceholder: '聊聊心得 ~',
       nickMount: document.getElementById('pb-nick-mount'),
       settleBtnMount: document.getElementById('pb-settle-btn-mount'),
-      extraSubmit: () => ({ maxCombo: state.maxComboLevel, hacks: state.hacksCompleted }),
+      extraSubmit: () => ({
+        maxCombo: state.maxComboLevel,
+        hacks: state.hacksCompleted,
+        lettersLit: state.letters.filter(Boolean).length,
+      }),
       statsBuilder: (s) => [
         { label: '最高 combo', value: '×' + state.maxComboLevel },
         { label: 'HACKS 完成', value: state.hacksCompleted },
@@ -470,6 +501,14 @@ permalink: /toolbox/pinball/cyber/
     },
     hooks: {
       onStart: (s, g) => { game = g; rebuildState(); updateGoal(); },
+      onLaunch: (b, g) => {
+        if (state.mercyHackUsed || state.letters.filter(Boolean).length !== 4) return;
+        state.mercyHackUsed = true;
+        const missing = state.letters.findIndex(lit => !lit);
+        state.letters[missing] = true;
+        game.addPopup(LETTER_X[missing], 82, `NEXT BALL HACK: ${LETTERS[missing]}`, 1200);
+        onHacksComplete(g.now());
+      },
       onBumperHit: (b, now) => { bumpCombo(now); updateGoal(); },
       onPegHit: (p, now) => { /* peg 不算 combo，避免太轻松 */ },
       onTick: (dt, now) => {

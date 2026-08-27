@@ -35,12 +35,15 @@
     const H = cfg.designH || 640;
     const phys = Object.assign({
       gravity: 1100, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9,
+      fixedStep: 1 / 60, maxFrameDt: 0.1, maxCatchUpSteps: 6,
     }, cfg.physics || {});
     const initialPhys = Object.assign({}, phys);
     const drainY = cfg.drainY != null ? cfg.drainY : 626;
     const drainRange = cfg.drainXRange || [100, 442];
     const totalBalls = cfg.totalBalls || 1;
     const plungerEnabled = cfg.plungerEnabled !== false;
+    const ballSaveMs = cfg.ballSaveMs != null ? cfg.ballSaveMs : (totalBalls > 1 && totalBalls < 20 ? 7000 : 0);
+    const turnDelayMs = cfg.turnDelayMs != null ? cfg.turnDelayMs : 850;
     const storeKey = (cfg.store && cfg.store.key) || ('tool.pinball.' + (cfg.id || 'generic') + '.v1');
 
     // 弹簧默认配置
@@ -78,6 +81,7 @@
     const hud = cfg.hud || {};
     const shell = cfg.shell || {};
     const onboarding = cfg.onboarding || null;
+    const coachMessages = cfg.coach || {};
     const onboardingKey = onboarding ? `tool.pinball.onboarding.v1.${cfg.id || 'generic'}` : null;
     let onboardingVisible = false;
 
@@ -93,6 +97,13 @@
       startedAt: null,
       clockMs: 0,       // 只在未暂停时推进；桌台机关、动画、popup 共用
       playElapsedMs: 0, // 只累计真正 inplay 的未暂停时间，用于排行榜 duration
+      physicsAccumulator: 0,
+      ballSaveUntil: 0,
+      ballSaveArmed: true,
+      ballSaveUsedThisTurn: false,
+      tilted: false,
+      nudgeTimes: [],
+      destroyed: false,
       runNonce: null,
       lastFrameTime: 0,
       rafId: null,
@@ -104,6 +115,75 @@
       // 桌台扩展自由空间
       ext: {},
     };
+
+    const HAPTICS_KEY = 'tool.pinball.haptics.v1';
+    const MOTION_KEY = 'tool.pinball.lowMotion.v1';
+    const feedbackLastAt = new Map();
+    let lowMotionCache = null;
+    function hapticsEnabled() {
+      try { return localStorage.getItem(HAPTICS_KEY) !== '0'; }
+      catch { return true; }
+    }
+    function setHapticsEnabled(on) {
+      try { localStorage.setItem(HAPTICS_KEY, on ? '1' : '0'); } catch {}
+      updateFeedbackButtons();
+    }
+    function lowMotionEnabled() {
+      if (lowMotionCache != null) return lowMotionCache;
+      try {
+        const storedValue = localStorage.getItem(MOTION_KEY);
+        if (storedValue != null) return (lowMotionCache = storedValue === '1');
+      } catch {}
+      lowMotionCache = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      return lowMotionCache;
+    }
+    function setLowMotionEnabled(on) {
+      lowMotionCache = !!on;
+      try { localStorage.setItem(MOTION_KEY, on ? '1' : '0'); } catch {}
+      updateFeedbackButtons();
+    }
+    function soundEnabled() {
+      return !!(window.GamesShell && window.GamesShell.Sfx && window.GamesShell.Sfx.isEnabled());
+    }
+    function updateFeedbackButtons() {
+      if (hud.soundBtn) {
+        const on = soundEnabled();
+        hud.soundBtn.textContent = `声音 ${on ? '开' : '关'}`;
+        hud.soundBtn.setAttribute('aria-pressed', String(on));
+      }
+      if (hud.hapticBtn) {
+        const on = hapticsEnabled();
+        hud.hapticBtn.textContent = `震动 ${on ? '开' : '关'}`;
+        hud.hapticBtn.setAttribute('aria-pressed', String(on));
+      }
+      if (hud.motionBtn) {
+        const on = lowMotionEnabled();
+        hud.motionBtn.textContent = `低动态 ${on ? '开' : '关'}`;
+        hud.motionBtn.setAttribute('aria-pressed', String(on));
+      }
+    }
+    function feedback(kind) {
+      const now = state.clockMs;
+      const minGap = kind === 'bumper' ? 45 : 20;
+      if (now - (feedbackLastAt.get(kind) ?? -Infinity) < minGap) return;
+      feedbackLastAt.set(kind, now);
+      const method = {
+        flipper: 'pinballFlipper', bumper: 'pinballBumper', launch: 'pinballLaunch',
+        jackpot: 'pinballJackpot', multiball: 'pinballMultiball', drain: 'pinballDrain',
+        save: 'pinballSave', nudge: 'pinballNudge', tilt: 'pinballTilt',
+      }[kind];
+      const sfx = window.GamesShell && window.GamesShell.Sfx;
+      if (method && sfx && typeof sfx[method] === 'function') sfx[method]();
+      if (!hapticsEnabled() || typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+      const pattern = {
+        flipper: 8, bumper: 10, launch: 14, jackpot: [25, 35, 45],
+        multiball: [20, 25, 20, 25, 35], drain: 22, save: [14, 20, 30],
+        nudge: 12, tilt: [45, 30, 70],
+      }[kind];
+      if (pattern) {
+        try { navigator.vibrate(pattern); } catch {}
+      }
+    }
 
     // 球工厂
     let _ballIdSeq = 1;
@@ -161,6 +241,7 @@
     // label 会自动把倍率写进同一条结算式，避免“+6000 / JACKPOT +3000”双重提示。
     function addScore(amount, x, y, reason, opts) {
       if (!amount) return;
+      if (state.tilted) return 0;
       const multiplier = state.multiplier || 1;
       const final = Math.round(amount * multiplier);
       state.score += final;
@@ -179,6 +260,8 @@
         });
       }
       if (hooks.onScore) hooks.onScore(final, reason || 'misc', x, y);
+      if (reason && coachMessages[reason]) showCoach(reason, coachMessages[reason]);
+      if (o.sfx) feedback(o.sfx);
       return final;
     }
 
@@ -221,6 +304,7 @@
       state.combo++;
       state.flashTill = now + 100;
       addScore(bumper.score, bumper.x, bumper.y - bumper.r, 'bumper');
+      if (!state.tilted) feedback('bumper');
       if (hooks.onBumperHit) hooks.onBumperHit(bumper, now, game, ball);
       return true;
     }
@@ -376,7 +460,13 @@
       b.vx = 0;
       b.onPlunger = false;
       plunger.charge = 0;
+      if (ballSaveMs > 0 && state.ballSaveArmed) {
+        state.ballSaveUntil = state.clockMs + ballSaveMs;
+        state.ballSaveArmed = false;
+      }
       startRun();
+      feedback('launch');
+      showCoach('flippers', '桌面左右半边也能直接控制挡板；Z / X 或两侧小按钮可以推台。');
       // fieldReturn 不在 launch 时 reset —— 要等球真的跨过 laser、给完 T3 才在 cb 里 reset。
       // 否则蓄力很轻、球根本没到 laser 也"发射成功"就把 fieldReturn 干掉了，等于送 T3。
       if (hooks.onLaunch) hooks.onLaunch(b, game);
@@ -397,7 +487,7 @@
 
     // ───────── 主循环 ─────────
     function scheduleFrame() {
-      if (state.rafId != null) return;
+      if (state.destroyed || state.rafId != null) return;
       state.rafId = requestAnimationFrame(step);
     }
 
@@ -406,16 +496,26 @@
       if (!state.lastFrameTime) state.lastFrameTime = now;
       const rawDt = (now - state.lastFrameTime) / 1000;
       state.lastFrameTime = now;
-      const dt = Math.min(rawDt, 0.033);
 
       if (!state.paused && state.status !== 'gameover') {
         state.clockMs += Math.max(0, rawDt * 1000);
         if (state.status === 'inplay') state.playElapsedMs += Math.max(0, rawDt * 1000);
         const gameNow = state.clockMs;
         if (game) game._tickTimers(gameNow);
-        updatePlunger(dt);
-        updatePhysics(dt, gameNow);
-        if (hooks.onTick) hooks.onTick(dt, gameNow, game);
+        const frameDt = Math.min(Math.max(0, rawDt), phys.maxFrameDt);
+        state.physicsAccumulator += frameDt;
+        let catchUpSteps = 0;
+        while (state.physicsAccumulator + 1e-9 >= phys.fixedStep && catchUpSteps < phys.maxCatchUpSteps) {
+          updatePlunger(phys.fixedStep);
+          updatePhysics(phys.fixedStep, gameNow);
+          state.physicsAccumulator -= phys.fixedStep;
+          catchUpSteps++;
+        }
+        // 长时间卡顿时丢弃超额积压，防止恢复后一口气跑数百次碰撞造成 spiral of death。
+        if (catchUpSteps >= phys.maxCatchUpSteps && state.physicsAccumulator >= phys.fixedStep) {
+          state.physicsAccumulator %= phys.fixedStep;
+        }
+        if (hooks.onTick) hooks.onTick(frameDt, gameNow, game);
       }
       updateHud();
       render_(state.clockMs);
@@ -584,14 +684,47 @@
       }
     }
 
+    function queueNextBall(saved) {
+      state.status = 'betweenballs';
+      const lastBall = !saved && state.lives === 1;
+      showOverlay({
+        title: saved ? 'BALL SAVED' : (lastBall ? 'LAST BALL' : `BALL ${totalBalls - state.lives + 1}`),
+        msg: saved ? '本球已救回，不扣球数' : `剩余 ${state.lives} 球`,
+        btn: false,
+      });
+      game.after(saved ? 600 : turnDelayMs, () => {
+        if (state.status === 'gameover') return;
+        spawnBallOnPlunger();
+        state.status = 'idle';
+        if (!saved) {
+          state.ballSaveArmed = true;
+          state.ballSaveUsedThisTurn = false;
+        }
+        hideOverlay();
+        if (hooks.onBallReady) hooks.onBallReady(state, game, { saved });
+      });
+    }
+
     function onAllBallsDrained(now) {
       state.combo = 0;
       state.multiplier = 1;
+      const ballSaved = ballSaveMs > 0 && !state.tilted && !state.ballSaveUsedThisTurn &&
+        state.ballSaveUntil > 0 && now <= state.ballSaveUntil;
+      state.ballSaveUntil = 0;
+      if (ballSaved) {
+        state.ballSaveUsedThisTurn = true;
+        feedback('save');
+        queueNextBall(true);
+        if (hooks.onBallSaved) hooks.onBallSaved(now, game);
+        if (hooks.onAfterDrain) hooks.onAfterDrain(now, game);
+        return;
+      }
+      state.tilted = false;
+      feedback('drain');
       if (state.lives > 0) {
         state.lives--;
         if (state.lives > 0) {
-          spawnBallOnPlunger();
-          state.status = 'idle';
+          queueNextBall(false);
         } else {
           gameOver();
         }
@@ -622,7 +755,7 @@
       const canvas = cfg.canvas;
       const ctx = canvas.getContext('2d');
       const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, cfg.maxDpr || 2);
       const tw = Math.max(1, Math.round(rect.width * dpr));
       const th = Math.max(1, Math.round(rect.height * dpr));
       if (canvas.width !== tw || canvas.height !== th) {
@@ -630,16 +763,17 @@
       }
       const sx = canvas.width / W, sy = canvas.height / H;
       ctx.setTransform(sx, 0, 0, sy, 0, 0);
+      const visualNow = lowMotionEnabled() ? Math.floor(now / 500) * 500 : now;
 
       // 背景：桌台自己画
-      if (render.paintBackground) render.paintBackground(ctx, now, game);
+      if (render.paintBackground) render.paintBackground(ctx, visualNow, game);
       else {
         ctx.fillStyle = '#1b1b22';
         ctx.fillRect(0, 0, W, H);
       }
 
       // 中层：桌台自己画（可选）— 在墙之前画特殊机关（reactor core, spinner 等）
-      if (render.paintMidLayer) render.paintMidLayer(ctx, now, game);
+      if (render.paintMidLayer) render.paintMidLayer(ctx, visualNow, game);
 
       // 墙
       ctx.strokeStyle = render.wallColor || '#7c7e8a';
@@ -651,15 +785,15 @@
       });
 
       // Slings
-      env.slings.forEach(sg => drawSling(ctx, sg, now));
+      env.slings.forEach(sg => drawSling(ctx, sg, visualNow));
 
       // Pegs
-      env.pegs.forEach(p => drawPeg(ctx, p, now));
+      env.pegs.forEach(p => drawPeg(ctx, p, visualNow));
 
       // Bumpers
       env.bumpers.forEach(b => {
         if (b.hidden) return;
-        drawBumper(ctx, b, now);
+        drawBumper(ctx, b, visualNow);
       });
 
       // 弹簧 + 挡板
@@ -670,7 +804,20 @@
       state.balls.forEach(b => drawBall(ctx, b));
 
       // 前景：桌台自己画（覆盖在球之上的灯光/特效）
-      if (render.paintForeground) render.paintForeground(ctx, now, game);
+      if (render.paintForeground) render.paintForeground(ctx, visualNow, game);
+
+      if (state.status === 'inplay' && state.ballSaveUntil > now && !state.ballSaveUsedThisTurn) {
+        const rem = Math.max(0, (state.ballSaveUntil - now) / 1000);
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 245, 190, 0.92)';
+        ctx.strokeStyle = 'rgba(35, 25, 10, 0.85)';
+        ctx.lineWidth = 3;
+        ctx.font = 'bold 14px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.strokeText(`BALL SAVE ${rem.toFixed(1)}s`, W / 2, H - 18);
+        ctx.fillText(`BALL SAVE ${rem.toFixed(1)}s`, W / 2, H - 18);
+        ctx.restore();
+      }
 
       // popups —— 默认 scale=1 时复用常量 font string，避免每帧每条 popup 都创建新字符串
       const DEFAULT_FONT = 'bold 18px system-ui, sans-serif';
@@ -699,7 +846,7 @@
       });
 
       // 顶部分数闪光
-      if (state.flashTill > now) {
+      if (!lowMotionEnabled() && state.flashTill > now) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
         ctx.fillRect(0, 0, W, H);
       }
@@ -836,7 +983,7 @@
     }
 
     function drawBall(ctx, b) {
-      b.trail.forEach((t, i) => {
+      if (!lowMotionEnabled()) b.trail.forEach((t, i) => {
         const a = (1 - i / b.trail.length) * 0.35;
         ctx.fillStyle = `rgba(245, 230, 196, ${a})`;
         ctx.beginPath();
@@ -919,8 +1066,27 @@
       return true;
     }
 
+    function showCoach(key, text) {
+      if (!hud.coach || !key || !text) return false;
+      const storageKey = `tool.pinball.coach.v1.${cfg.id || 'generic'}.${key}`;
+      try {
+        if (localStorage.getItem(storageKey) === '1') return false;
+        localStorage.setItem(storageKey, '1');
+      } catch {}
+      const token = (state.ext.coachToken || 0) + 1;
+      state.ext.coachToken = token;
+      hud.coach.textContent = text;
+      hud.coach.classList.add('show');
+      game.after(4200, () => {
+        if (state.ext.coachToken !== token) return;
+        hud.coach.classList.remove('show');
+      });
+      return true;
+    }
+
     function showOverlay({ title, msg, btn, btnText }) {
       if (!hud.overlay) return;
+      hud.overlay.classList.remove('pb-overlay--pause', 'pb-overlay--tilt');
       if (hud.overlayTitle) hud.overlayTitle.textContent = title;
       // msg 走 innerHTML：调用方可用 <br> 显式换行（gameOver 拼了"本局 / 历史 / 按空格"3 段，单行容易折）
       if (hud.overlayMsg) hud.overlayMsg.innerHTML = msg;
@@ -937,7 +1103,7 @@
       if (!hud.overlay) return;
       const wasShown = hud.overlay.classList.contains('show');
       hud.overlay.classList.remove('show');
-      hud.overlay.classList.remove('pb-overlay--pause');
+      hud.overlay.classList.remove('pb-overlay--pause', 'pb-overlay--tilt');
       if (wasShown && cfg.canvas && typeof cfg.canvas.focus === 'function') {
         try { cfg.canvas.focus({ preventScroll: true }); } catch { cfg.canvas.focus(); }
       }
@@ -984,8 +1150,14 @@
       state.startedAt = null;
       state.clockMs = 0;
       state.playElapsedMs = 0;
+      state.physicsAccumulator = 0;
+      state.ballSaveUntil = 0;
+      state.ballSaveArmed = true;
+      state.ballSaveUsedThisTurn = false;
+      state.tilted = false;
+      state.nudgeTimes = [];
       state.lastFrameTime = 0;
-      state.runNonce = (window.GamesShell && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
+      state.runNonce = (window.GamesShell && GamesShell.Identity && GamesShell.Identity.newRunNonce()) || ('r-' + Date.now());
       plunger.charge = 0; plunger.charging = false;
       Object.assign(phys, initialPhys);
       game.timers.length = 0;
@@ -997,7 +1169,9 @@
       pbSetRank('hidden');
       if (pbNickPrompt) pbNickPrompt.hide();
       if (pbSettleBtn) pbSettleBtn.setEnabled(false);
+      if (hud.coach) { hud.coach.classList.remove('show'); hud.coach.textContent = ''; }
       if (hud.pauseBtn) hud.pauseBtn.textContent = '[[zi:pause]] 暂停';
+      updateFeedbackButtons();
       hideOverlay();
       if (hooks.onStart) hooks.onStart(state, game);
       updateHud();
@@ -1007,14 +1181,53 @@
     }
 
     // ───────── 输入 ─────────
-    const flipHold = { L: { kbd: false, touch: false }, R: { kbd: false, touch: false } };
+    const flipHold = {
+      L: { kbd: false, touch: false, canvas: false },
+      R: { kbd: false, touch: false, canvas: false },
+    };
     function setFlipper(side, source, on) {
-      if (on && (state.status === 'gameover' || state.paused)) return;
+      if (on && (state.status === 'gameover' || state.paused || state.tilted)) return;
       flipHold[side][source] = on;
       const f = flippers.find(fl => fl.side === side);
       if (!f) return;
-      const held = flipHold[side].kbd || flipHold[side].touch;
-      f.target = held && state.status !== 'gameover' && !state.paused ? f.upAngle : f.restAngle;
+      const held = Object.values(flipHold[side]).some(Boolean);
+      f.target = held && state.status !== 'gameover' && !state.paused && !state.tilted ? f.upAngle : f.restAngle;
+      if (on) feedback('flipper');
+    }
+
+    function nudge(direction) {
+      if (state.status !== 'inplay' || state.paused || state.tilted) return false;
+      state.nudgeTimes = state.nudgeTimes.filter(t => state.clockMs - t < 2000);
+      state.nudgeTimes.push(state.clockMs);
+      if (state.nudgeTimes.length >= 3) {
+        state.tilted = true;
+        state.ballSaveUntil = 0;
+        releaseAllInputs();
+        showOverlay({ title: 'TILT', msg: '本球挡板和计分已锁定', btn: false });
+        if (hud.overlay) hud.overlay.classList.add('pb-overlay--tilt');
+        feedback('tilt');
+        if (hooks.onTilt) hooks.onTilt(state.clockMs, game);
+        if (cfg.tiltAutoResetMs > 0) {
+          game.after(cfg.tiltAutoResetMs, () => {
+            if (!state.tilted || state.status === 'gameover') return;
+            state.tilted = false;
+            state.nudgeTimes = [];
+            hideOverlay();
+            if (hooks.onTiltReset) hooks.onTiltReset(state.clockMs, game);
+          });
+        }
+        return false;
+      }
+      state.balls.forEach(b => {
+        if (b.onPlunger) return;
+        b.vx += direction * 95;
+        b.vy -= 65;
+      });
+      addPopup(W / 2 + direction * 70, H - 85, direction < 0 ? 'NUDGE ←' : 'NUDGE →', 650, { scale: 0.72 });
+      feedback('nudge');
+      showCoach('nudge', '两秒内连续推台 3 次会触发 TILT：本球挡板与计分锁定。');
+      if (hooks.onNudge) hooks.onNudge(direction, state.clockMs, game);
+      return true;
     }
     function setPlunger(on) {
       if (!plungerEnabled) return;
@@ -1025,7 +1238,7 @@
       else { plunger.charging = false; launchPlunger(); }
     }
 
-    const PB_KEYS = new Set(['arrowleft', 'arrowright', 'a', 'd', ' ', 'p', 'r']);
+    const PB_KEYS = new Set(['arrowleft', 'arrowright', 'a', 'd', 'z', 'x', ' ', 'p', 'r']);
     function isFormFocused() {
       const ae = document.activeElement;
       if (!ae) return false;
@@ -1038,7 +1251,9 @@
     function releaseAllInputs() {
       keysDown.clear();
       flipHold.L.kbd = false; flipHold.L.touch = false;
+      flipHold.L.canvas = false;
       flipHold.R.kbd = false; flipHold.R.touch = false;
+      flipHold.R.canvas = false;
       plunger.charging = false;
       flippers.forEach(f => { f.target = f.restAngle; });
     }
@@ -1056,6 +1271,8 @@
       keysDown.add(k);
       if (k === 'arrowleft' || k === 'a') setFlipper('L', 'kbd', true);
       else if (k === 'arrowright' || k === 'd') setFlipper('R', 'kbd', true);
+      else if (k === 'z') nudge(-1);
+      else if (k === 'x') nudge(1);
       else if (k === ' ') {
         if (state.status === 'gameover') startFresh();
         setPlunger(true);
@@ -1103,6 +1320,53 @@
     bindHoldButton(hud.flipLBtn, () => setFlipper('L', 'touch', true), () => setFlipper('L', 'touch', false));
     bindHoldButton(hud.flipRBtn, () => setFlipper('R', 'touch', true), () => setFlipper('R', 'touch', false));
     bindHoldButton(hud.plungerBtn, () => setPlunger(true), () => setPlunger(false));
+    if (hud.nudgeLBtn) hud.nudgeLBtn.addEventListener('click', () => nudge(-1));
+    if (hud.nudgeRBtn) hud.nudgeRBtn.addEventListener('click', () => nudge(1));
+    if (hud.soundBtn) hud.soundBtn.addEventListener('click', () => {
+      const sfx = window.GamesShell && window.GamesShell.Sfx;
+      if (!sfx) return;
+      sfx.setEnabled(!sfx.isEnabled());
+      if (sfx.isEnabled()) { sfx.ensureUnlocked(); sfx.move(); }
+      updateFeedbackButtons();
+    });
+    if (hud.hapticBtn) hud.hapticBtn.addEventListener('click', () => {
+      setHapticsEnabled(!hapticsEnabled());
+      if (hapticsEnabled()) feedback('nudge');
+    });
+    if (hud.motionBtn) hud.motionBtn.addEventListener('click', () => {
+      setLowMotionEnabled(!lowMotionEnabled());
+    });
+    const unlockSound = () => {
+      const sfx = window.GamesShell && window.GamesShell.Sfx;
+      if (sfx && typeof sfx.ensureUnlocked === 'function') sfx.ensureUnlocked();
+    };
+    window.addEventListener('pointerdown', unlockSound, { once: true, passive: true });
+    window.addEventListener('keydown', unlockSound, { once: true });
+
+    // 桌面左右半屏触控挡板：支持双指分别按住左右挡板；纵向滑动仍交给页面滚动。
+    const canvasPointers = new Map();
+    if (cfg.canvas && cfg.canvasControls !== false) {
+      cfg.canvas.addEventListener('pointerdown', e => {
+        if (state.paused || state.status === 'gameover' || state.tilted) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        const rect = cfg.canvas.getBoundingClientRect();
+        const side = e.clientX < rect.left + rect.width / 2 ? 'L' : 'R';
+        canvasPointers.set(e.pointerId, side);
+        try { cfg.canvas.setPointerCapture(e.pointerId); } catch {}
+        setFlipper(side, 'canvas', true);
+        if (state.status === 'inplay') e.preventDefault();
+      });
+      const releaseCanvasPointer = e => {
+        const side = canvasPointers.get(e.pointerId);
+        if (!side) return;
+        canvasPointers.delete(e.pointerId);
+        const stillHeld = Array.from(canvasPointers.values()).some(s => s === side);
+        setFlipper(side, 'canvas', stillHeld);
+      };
+      cfg.canvas.addEventListener('pointerup', releaseCanvasPointer);
+      cfg.canvas.addEventListener('pointercancel', releaseCanvasPointer);
+      cfg.canvas.addEventListener('lostpointercapture', releaseCanvasPointer);
+    }
     if (hud.pauseBtn) hud.pauseBtn.addEventListener('click', togglePause);
     if (hud.newBtn) hud.newBtn.addEventListener('click', startFresh);
     if (hud.overlayBtn) hud.overlayBtn.addEventListener('click', () => {
@@ -1117,6 +1381,18 @@
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) releaseAllInputs();
       if (document.hidden && state.status === 'inplay' && !state.paused) togglePause();
+    });
+    window.addEventListener('pagehide', () => {
+      state.destroyed = true;
+      if (state.rafId != null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(state.rafId);
+      state.rafId = null;
+      releaseAllInputs();
+    });
+    window.addEventListener('pageshow', () => {
+      if (!state.destroyed) return;
+      state.destroyed = false;
+      state.lastFrameTime = performance.now();
+      if (!state.paused && state.status !== 'gameover') scheduleFrame();
     });
 
     // ───────── games-shell ─────────
@@ -1173,7 +1449,7 @@
     }
 
     function pbTryAutoSubmit() {
-      if (!window.GamesShell || !shell.gameId) return;
+      if (!window.GamesShell || !shell.gameId || !GamesShell.Identity || !GamesShell.Leaderboard) return;
       if (state.score <= 0) { pbSetRank('hidden'); return; }
       const nick = GamesShell.Identity.getNick();
       if (nick) pbSubmitWithNick(nick);
@@ -1181,7 +1457,7 @@
     }
 
     function initShell() {
-      if (!window.GamesShell || !shell.gameId) return;
+      if (!window.GamesShell || !shell.gameId || !GamesShell.Leaderboard || !GamesShell.Identity) return;
       pbLbWidget = GamesShell.Leaderboard.mount({
         container: shell.lbMount,
         gameId: shell.gameId,
@@ -1265,9 +1541,10 @@
         if (i >= 0) state.balls.splice(i, 1);
       },
       addScore, addPopup, persist,
-      setGoal, showOverlay, hideOverlay,
-      startFresh, startRun, togglePause,
+      setGoal, showOverlay, hideOverlay, showCoach, feedback,
+      startFresh, startRun, togglePause, nudge,
       now() { return state.clockMs; },
+      lowMotionEnabled,
       // 状态机辅助
       setMultiplier(m) { state.multiplier = m; },
       // 桌台用：定时器（基于暂停时冻结的游戏时钟）

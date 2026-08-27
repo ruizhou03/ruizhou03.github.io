@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/rain/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=5">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=6">
 
 <style>
   details.about summary {
@@ -33,9 +33,13 @@ permalink: /toolbox/pinball/rain/
   <div class="pb-toolbar">
     <button class="pb-btn" id="pbPauseBtn">[[zi:pause]] 暂停</button>
     <button class="pb-btn" id="pbNewBtn">[[zi:refresh]] 新游戏</button>
+    <button class="pb-btn" id="pbSoundBtn" type="button" aria-pressed="true">声音 开</button>
+    <button class="pb-btn" id="pbHapticBtn" type="button" aria-pressed="true">震动 开</button>
+    <button class="pb-btn" id="pbMotionBtn" type="button" aria-pressed="false">低动态 关</button>
   </div>
 
   <div class="pb-canvas-wrap">
+    <div class="pb-coach" id="pbCoach" aria-live="polite"></div>
     <canvas id="pbCanvas" width="480" height="640" tabindex="0" role="img" aria-label="弹珠雨桌台。使用左右挡板控制持续落下的弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
     <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
@@ -45,9 +49,11 @@ permalink: /toolbox/pinball/rain/
   </div>
 
   <div class="pb-controls">
+    <button class="pb-nudge-btn" id="pbNudgeL" aria-label="向左推台">推左</button>
     <button class="pb-flip-btn" id="pbFlipL" aria-label="左挡板" aria-keyshortcuts="ArrowLeft A">[[zi:arrow]]</button>
     <button class="pb-plunger-btn" id="pbPlungerBtn" disabled><span>（无需发射）</span></button>
     <button class="pb-flip-btn" id="pbFlipR" aria-label="右挡板" aria-keyshortcuts="ArrowRight D">[[zi:play]]</button>
+    <button class="pb-nudge-btn" id="pbNudgeR" aria-label="向右推台">推右</button>
   </div>
 
   <div class="pb-tp-wrap">
@@ -63,8 +69,8 @@ permalink: /toolbox/pinball/rain/
 
   <details class="about" style="max-width:480px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
     <summary>游戏规则</summary>
-    <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　<kbd>P</kbd> 暂停。底部按钮也支持触屏。</p>
-    <p>60 秒限时，球从顶部持续落下，用挡板把球弹进高分槽得分。无需手动发射。</p>
+    <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　<kbd>Z</kbd>/<kbd>X</kbd> 左右推台　<kbd>P</kbd> 暂停。手机也可直接按桌面左右半边。</p>
+    <p>60 秒限时，球从顶部持续落下，用挡板把球弹进高分槽得分。无需手动发射；TILT 会锁定操作和计分 3 秒。</p>
   </details>
 
   <div class="pb-rank-row" id="pb-rank-row"></div>
@@ -80,7 +86,8 @@ permalink: /toolbox/pinball/rain/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=6"></script>
+<script src="/assets/js/games-shell/sfx.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=7"></script>
 
 <script>
 (() => {
@@ -255,6 +262,7 @@ permalink: /toolbox/pinball/rain/
     game.addScore(baseScore, cx, SLOT_BOT - 30, 'slot', {
       label: SLOT_SCORES[idx] === -1 ? 'JACKPOT' : null,
       popupTtl: 1300,
+      sfx: SLOT_SCORES[idx] === -1 ? 'jackpot' : null,
     });
     if (SLOT_SCORES[idx] === -1) {
       state.jackpotHits++;
@@ -377,9 +385,14 @@ permalink: /toolbox/pinball/rain/
   game = PinballCore.createGame({
     canvas, designW: W, designH: H, id: 'rain',
     plungerEnabled: false,
+    tiltAutoResetMs: 3000,
     totalBalls: 99,  // 假装无限：实际用 timer 结算
     drainY: 626, drainXRange: [100, 442],
     physics: { gravity: 900, airDrag: 0.999, substeps: 8, maxSpeed: 1200, ballRadius: 9 },
+    coach: {
+      slot: '槽位越靠近中央分数越高；正中央 JKPT 为 2000 分。',
+      'rain-laser-t3': '球从场上回到右侧通道并重新出发，会获得 GRAND 奖励。',
+    },
     plunger: { x: 458, restY: 600, laneLeft: 442, laneRight: 474, maxCharge: 1.0, chargeRate: 1.6, maxVel: 1500, minVel: 520 },
     flippers: [
       { pivot: { x: 158, y: 590 }, length: 70, thick: 7, restDeg: 25, upDeg: -32, side: 'L' },
@@ -412,8 +425,14 @@ permalink: /toolbox/pinball/rain/
       overlayTitle: document.getElementById('pbOvTitle'),
       overlayMsg: document.getElementById('pbOvMsg'),
       overlayBtn: document.getElementById('pbOvBtn'),
+      coach: document.getElementById('pbCoach'),
       pauseBtn: document.getElementById('pbPauseBtn'),
       newBtn: document.getElementById('pbNewBtn'),
+      soundBtn: document.getElementById('pbSoundBtn'),
+      hapticBtn: document.getElementById('pbHapticBtn'),
+      motionBtn: document.getElementById('pbMotionBtn'),
+      nudgeLBtn: document.getElementById('pbNudgeL'),
+      nudgeRBtn: document.getElementById('pbNudgeR'),
       flipLBtn: document.getElementById('pbFlipL'),
       flipRBtn: document.getElementById('pbFlipR'),
       plungerBtn: null,  // 没有 plunger（手动发射禁用）

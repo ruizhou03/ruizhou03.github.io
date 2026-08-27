@@ -95,11 +95,33 @@
 .pb-overlay #pbOvMsg { font-size: 0.95rem; line-height: 1.55; opacity: 0.92; }
 .pb-overlay .pb-ov-hint { display: inline-block; margin-top: 0.15rem; font-size: 0.85rem; opacity: 0.72; }
 .pb-overlay--pause { background: rgba(0, 0, 0, 0.32); }
+.pb-overlay--tilt { background: rgba(80, 0, 0, 0.38); }
+
+.pb-coach {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  z-index: 8;
+  width: min(88%, 390px);
+  transform: translate(-50%, -12px);
+  padding: 0.48rem 0.7rem;
+  border: 1px solid rgba(255, 245, 210, 0.45);
+  border-radius: 10px;
+  background: rgba(12, 12, 20, 0.82);
+  color: #fff5d2;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.pb-coach.show { opacity: 1; transform: translate(-50%, 0); }
 
 
 .pb-controls {
   display: grid;
-  grid-template-columns: 1fr 1.4fr 1fr;
+  grid-template-columns: 0.7fr 1fr 1.4fr 1fr 0.7fr;
   gap: 0.4rem;
   margin: 0.8rem auto 0;
   max-width: 480px;
@@ -126,6 +148,11 @@
   cursor: not-allowed;
 }
 .pb-controls .pb-flip-btn { font-size: 1.4rem; font-weight: 600; }
+.pb-controls .pb-nudge-btn {
+  font-size: 0.72rem;
+  padding-inline: 0.18rem;
+  color: var(--color-muted);
+}
 .pb-controls .pb-plunger-btn {
   position: relative;
   overflow: hidden;
@@ -370,7 +397,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pb-score-box .value,
-  .pb-table-picker > * {
+  .pb-table-picker > *,
+  .pb-coach {
     animation: none !important;
     transition: none !important;
   }

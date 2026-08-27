@@ -36,7 +36,9 @@ jobs:
           node scripts/test-forest-release.mjs
 
       - name: Test Pinball core and table contracts
-        run: node --test tests/pinball-core.test.mjs tests/pinball-table-contract.test.mjs
+        run: |
+          node --test tests/pinball-core.test.mjs tests/pinball-table-contract.test.mjs
+          node scripts/sim-pinball-balance.mjs --runs=4
 
       - name: Test kitchen planner data and scheduler contracts
         run: |

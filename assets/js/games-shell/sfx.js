@@ -1,6 +1,6 @@
 /* games-shell/sfx.js
  * 共享音效模块：Web Audio API 合成，无需音频资产。
- * 提供 4 种通用音效（move/capture/check/checkmate），按 gs.sfx.v1 开关。
+ * 提供棋类通用音效与弹珠专用反馈，统一按 gs.sfx.v1 开关。
  *
  * 用 GamesShell.Sfx.{ move, capture, check, checkmate, isEnabled, setEnabled, ensureUnlocked }
  *
@@ -82,6 +82,53 @@
         tone(523, 0.14, { type: 'triangle', gain: 0.14 });
         setTimeout(() => tone(415, 0.14, { type: 'triangle', gain: 0.14 }), 150);
         setTimeout(() => tone(330, 0.30, { type: 'triangle', gain: 0.14 }), 300);
+      });
+    },
+    pinballFlipper() {
+      play(() => tone(185, 0.045, { type: 'square', gain: 0.055 }));
+    },
+    pinballBumper() {
+      play(() => tone(520, 0.06, { type: 'triangle', gain: 0.075 }));
+    },
+    pinballLaunch() {
+      play(() => {
+        tone(260, 0.08, { type: 'triangle', gain: 0.08 });
+        setTimeout(() => tone(520, 0.11, { type: 'triangle', gain: 0.09 }), 65);
+      });
+    },
+    pinballJackpot() {
+      play(() => {
+        [523, 659, 784, 1047].forEach((freq, i) => {
+          setTimeout(() => tone(freq, 0.16, { type: 'triangle', gain: 0.10 }), i * 75);
+        });
+      });
+    },
+    pinballMultiball() {
+      play(() => {
+        [330, 440, 660].forEach((freq, i) => {
+          setTimeout(() => tone(freq, 0.24, { type: 'sawtooth', gain: 0.075 }), i * 65);
+        });
+      });
+    },
+    pinballDrain() {
+      play(() => {
+        tone(180, 0.13, { type: 'triangle', gain: 0.09 });
+        setTimeout(() => tone(110, 0.20, { type: 'triangle', gain: 0.08 }), 90);
+      });
+    },
+    pinballSave() {
+      play(() => {
+        tone(392, 0.10, { type: 'triangle', gain: 0.08 });
+        setTimeout(() => tone(784, 0.18, { type: 'triangle', gain: 0.10 }), 85);
+      });
+    },
+    pinballNudge() {
+      play(() => tone(125, 0.05, { type: 'sawtooth', gain: 0.045 }));
+    },
+    pinballTilt() {
+      play(() => {
+        tone(95, 0.28, { type: 'sawtooth', gain: 0.11 });
+        setTimeout(() => tone(72, 0.32, { type: 'sawtooth', gain: 0.09 }), 120);
       });
     },
   };

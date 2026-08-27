@@ -5,7 +5,7 @@ permalink: /toolbox/pinball/temple/
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
-<link rel="stylesheet" href="/assets/css/pinball-core.css?v=5">
+<link rel="stylesheet" href="/assets/css/pinball-core.css?v=6">
 
 <style>
   details.about summary {
@@ -34,9 +34,13 @@ permalink: /toolbox/pinball/temple/
   <div class="pb-toolbar">
     <button class="pb-btn" id="pbPauseBtn">[[zi:pause]] 暂停</button>
     <button class="pb-btn" id="pbNewBtn">[[zi:refresh]] 新游戏</button>
+    <button class="pb-btn" id="pbSoundBtn" type="button" aria-pressed="true">声音 开</button>
+    <button class="pb-btn" id="pbHapticBtn" type="button" aria-pressed="true">震动 开</button>
+    <button class="pb-btn" id="pbMotionBtn" type="button" aria-pressed="false">低动态 关</button>
   </div>
 
   <div class="pb-canvas-wrap">
+    <div class="pb-coach" id="pbCoach" aria-live="polite"></div>
     <canvas id="pbCanvas" width="480" height="640" tabindex="0" role="img" aria-label="黄金神庙弹珠桌台。使用左右挡板控制弹珠。">当前浏览器不支持弹珠桌台画布。</canvas>
     <div class="pb-overlay" id="pbOverlay" role="status" aria-live="assertive">
       <h2 id="pbOvTitle">Game Over</h2>
@@ -46,9 +50,11 @@ permalink: /toolbox/pinball/temple/
   </div>
 
   <div class="pb-controls">
+    <button class="pb-nudge-btn" id="pbNudgeL" aria-label="向左推台">推左</button>
     <button class="pb-flip-btn" id="pbFlipL" aria-label="左挡板" aria-keyshortcuts="ArrowLeft A">[[zi:arrow]]</button>
     <button class="pb-plunger-btn" id="pbPlungerBtn" aria-label="蓄力发射" aria-keyshortcuts="Space"><span>蓄力发射</span><div class="charge-bar" id="pbChargeBar" role="progressbar" aria-label="发射力度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></button>
     <button class="pb-flip-btn" id="pbFlipR" aria-label="右挡板" aria-keyshortcuts="ArrowRight D">[[zi:play]]</button>
+    <button class="pb-nudge-btn" id="pbNudgeR" aria-label="向右推台">推右</button>
   </div>
 
   <div class="pb-tp-wrap">
@@ -64,8 +70,8 @@ permalink: /toolbox/pinball/temple/
 
   <details class="about" style="max-width:480px;margin:1rem auto 0;font-size:0.88rem;color:var(--color-muted);line-height:1.7;">
     <summary>游戏规则</summary>
-    <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。底部按钮也支持触屏。</p>
-    <p>每局 3 球。球滚过 lane 点亮宝箱，3 个宝箱齐开召唤神庙 multiball。中央旋转盘每碰一次加分。</p>
+    <p><kbd>←</kbd>/<kbd>A</kbd> 左挡板　<kbd>→</kbd>/<kbd>D</kbd> 右挡板　<kbd>Z</kbd>/<kbd>X</kbd> 左右推台　按住 <kbd>空格</kbd> 蓄力发射　<kbd>P</kbd> 暂停。手机也可直接按桌面左右半边。</p>
+    <p>每局 3 球，发射后 7 秒内意外漏球可救回一次。球滚过 lane 点亮宝箱；开启两个宝箱后，隐藏通道可揭示最后一个宝箱并召唤 multiball。中央旋转盘连续命中按斐波那契倍率加分。</p>
   </details>
 
   <div class="pb-rank-row" id="pb-rank-row"></div>
@@ -81,7 +87,8 @@ permalink: /toolbox/pinball/temple/
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/nick-prompt.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/settlement.js?v={{ site.time | date: '%s' }}"></script>
-<script src="/assets/js/pinball-core/pinball-core.js?v=6"></script>
+<script src="/assets/js/games-shell/sfx.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/pinball-core/pinball-core.js?v=7"></script>
 
 <script>
 (() => {
@@ -142,6 +149,7 @@ permalink: /toolbox/pinball/temple/
     { idx: 1, cx: 240, cy: 50,  segAx: 212, segBx: 268 },
     { idx: 2, cx: 370, cy: 100, segAx: 352, segBx: 388 },
   ];
+  const CHEST_HITS_REQUIRED = 2;
   const CHEST_TRIGGERS = [
     { id: 'rollL', kind: 'segment', ax: 92, ay: 100, bx: 128, by: 100, thresh: 16,
       on: 'enter', cooldown: 600, chestIdx: 0,
@@ -219,6 +227,7 @@ permalink: /toolbox/pinball/temple/
     spinnerMaxStreak: 0,
     spinnerLastHit: 0,     // 最近一次命中时间
     laneReturnFlashTill: 0,
+    templeActivations: 0,
   };
   let game = null;
 
@@ -235,6 +244,7 @@ permalink: /toolbox/pinball/temple/
     state.spinnerMaxStreak = 0;
     state.spinnerLastHit = 0;
     state.laneReturnFlashTill = 0;
+    state.templeActivations = 0;
     setHiddenDoors(false);
   }
   rebuildState();
@@ -257,7 +267,7 @@ permalink: /toolbox/pinball/temple/
     } else if (state.templeAwakened) {
       html = '<strong>TEMPLE ACTIVATED</strong>';
     } else {
-      const r = state.rolloverCounts.map((n, i) => state.chestsOpen[i] ? '[[zi:check]]' : `${n}/3`).join(' · ');
+      const r = state.rolloverCounts.map((n, i) => state.chestsOpen[i] ? '[[zi:check]]' : `${n}/${CHEST_HITS_REQUIRED}`).join(' · ');
       html = `宝箱 <strong>${open}/3</strong>　[${r}]`;
     }
     game.setGoal(html);
@@ -267,8 +277,8 @@ permalink: /toolbox/pinball/temple/
     if (state.chestsOpen[idx]) return;
     state.rolloverCounts[idx]++;
     game.addScore(25, ball.x, ball.y, 'rollover', { noPopup: true });
-    game.addPopup(ball.x, ball.y - 14, `${state.rolloverCounts[idx]}/3`);
-    if (state.rolloverCounts[idx] >= 3) {
+    game.addPopup(ball.x, ball.y - 14, `${state.rolloverCounts[idx]}/${CHEST_HITS_REQUIRED}`);
+    if (state.rolloverCounts[idx] >= CHEST_HITS_REQUIRED) {
       openChest(now, idx);
     }
     updateGoal();
@@ -277,7 +287,7 @@ permalink: /toolbox/pinball/temple/
   function openChest(now, idx) {
     state.chestsOpen[idx] = true;
     const chestX = ROLLOVER_LANES[idx].cx;
-    game.addScore(2000, chestX, ROLLOVER_LANES[idx].cy + 18, 'chest', { label: 'CHEST OPEN', popupTtl: 1300 });
+    game.addScore(2000, chestX, ROLLOVER_LANES[idx].cy + 18, 'chest', { label: 'CHEST OPEN', popupTtl: 1300, sfx: 'jackpot' });
     // 开第 2 个宝箱后，左 + 右两扇隐藏门同时打开
     const openedCount = state.chestsOpen.filter(x => x).length;
     if (openedCount === 2 && !state.hiddenDoorOpen) {
@@ -291,8 +301,9 @@ permalink: /toolbox/pinball/temple/
   }
 
   function onTempleAwakens(now) {
+    state.templeActivations++;
     state.templeAwakened = true;
-    game.addScore(8000, W/2, 240, 'temple', { label: 'TEMPLE AWAKENS', popupTtl: 1800 });
+    game.addScore(8000, W/2, 240, 'temple', { label: 'TEMPLE AWAKENS', popupTtl: 1800, sfx: 'multiball' });
     // 2 球 multiball, 60s
     state.multiballActive = true;
     state.multiballEnd = now + 60000;
@@ -359,6 +370,8 @@ permalink: /toolbox/pinball/temple/
   function onHiddenLane(now, ball, gameRef, popupX) {
     if (!state.hiddenDoorOpen) return;
     game.addScore(1000, popupX, ball.y - 30, 'hidden', { label: 'HIDDEN', popupTtl: 1100 });
+    const missingChest = state.chestsOpen.findIndex(open => !open);
+    if (missingChest >= 0) openChest(now, missingChest);
   }
 
   // ─── 渲染 ───
@@ -397,15 +410,15 @@ permalink: /toolbox/pinball/temple/
   function paintMidLayer(ctx, now) {
     // ── 3 个 rollover 宝箱 ──
     // 视觉规则（按用户要求改版）：
-    //   - 不再写 "1/3"/"2/3"/"✓" 文字
-    //   - 宝箱底框 32×14 暗木色；内部金色填充宽度 = 30 × (progress/3)
-    //   - 集满 3 下 → 整个宝箱进入"全亮 + 脉动"状态
+    //   - 不再写分数文字
+    //   - 宝箱底框 32×14 暗木色；内部金色填充宽度跟随 progress
+    //   - 集满所需命中 → 整个宝箱进入"全亮 + 脉动"状态
     //   - trigger lane 横线保留作"瞄准提示"，亮度跟随进度
     ROLLOVER_LANES.forEach(p => {
       const i = p.idx;
       const open = state.chestsOpen[i];
       const progress = state.rolloverCounts[i];
-      const frac = open ? 1 : Math.min(1, progress / 3);
+      const frac = open ? 1 : Math.min(1, progress / CHEST_HITS_REQUIRED);
       const fullyLit = open;
 
       // 1. trigger lane 横线（颜色 / 粗细随进度走）
@@ -536,7 +549,12 @@ permalink: /toolbox/pinball/temple/
     totalBalls: 3,
     onboarding: {
       title: '黄金神庙怎么玩',
-      msg: '按住空格或中间按钮蓄力发射，左右方向键 / A D 控制挡板。<br>每局 3 球；每条顶部 lane 命中 3 次开宝箱，集齐 3 个宝箱唤醒神庙。',
+      msg: '按住空格或中间按钮蓄力发射；方向键 / A D 或桌面左右半边控制挡板。<br>每局 3 球并带 7 秒 Ball Save；每条顶部 lane 命中 2 次开宝箱，两个宝箱会解锁隐藏通道。',
+    },
+    coach: {
+      chest: '宝箱已打开；开启第二个宝箱会解锁两侧隐藏通道。',
+      temple: '神庙苏醒：multiball 全局 ×2，Spinner 实际总倍率 ×8。',
+      spinner: 'Spinner 在 3 秒内连续命中会按 1、2、3、5、8…递增。',
     },
     drainY: 626, drainXRange: [100, 442],
     physics: { gravity: 1100, airDrag: 0.999, substeps: 8, maxSpeed: 1400, ballRadius: 9 },
@@ -557,8 +575,14 @@ permalink: /toolbox/pinball/temple/
       overlayTitle: document.getElementById('pbOvTitle'),
       overlayMsg: document.getElementById('pbOvMsg'),
       overlayBtn: document.getElementById('pbOvBtn'),
+      coach: document.getElementById('pbCoach'),
       pauseBtn: document.getElementById('pbPauseBtn'),
       newBtn: document.getElementById('pbNewBtn'),
+      soundBtn: document.getElementById('pbSoundBtn'),
+      hapticBtn: document.getElementById('pbHapticBtn'),
+      motionBtn: document.getElementById('pbMotionBtn'),
+      nudgeLBtn: document.getElementById('pbNudgeL'),
+      nudgeRBtn: document.getElementById('pbNudgeR'),
       flipLBtn: document.getElementById('pbFlipL'),
       flipRBtn: document.getElementById('pbFlipR'),
       plungerBtn: document.getElementById('pbPlungerBtn'),
@@ -583,11 +607,13 @@ permalink: /toolbox/pinball/temple/
         chestsOpen: state.chestsOpen.filter(x => x).length,
         spinnerHits: state.spinnerTotalHits,
         spinnerMaxStreak: state.spinnerMaxStreak,
+        templeActivations: state.templeActivations,
       }),
       statsBuilder: (s) => [
         { label: '宝箱开启', value: state.chestsOpen.filter(x => x).length + '/3' },
         { label: 'Spinner 命中', value: state.spinnerTotalHits },
         { label: 'Spinner 最高连击', value: state.spinnerMaxStreak },
+        { label: '神庙唤醒', value: state.templeActivations },
         { label: '历史最高', value: Number(s.best || 0).toLocaleString() },
       ],
       watermark: 'ruizhou03.com/toolbox/pinball/temple',
