@@ -6,7 +6,7 @@ permalink: /toolbox/drawing/
 
 <style>
   /* ─── 全局 ─────────────────────────────────────────────────────── */
-  .dg-wrap { max-width: 920px; margin: 0 auto; padding: 1.4rem 1rem 4rem; }
+  .dg-wrap { box-sizing: border-box; width: min(1080px, calc(100vw - 2rem)); max-width: 1080px; margin: 0 auto; padding: 1.4rem 1rem 4rem; }
   .dg-header { text-align: center; margin-bottom: 1.2rem; }
   .dg-header h1 { font-size: 1.7rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .dg-header p { color: var(--color-light); font-style: normal; margin: 0; font-size: 0.92rem; }
@@ -40,6 +40,11 @@ permalink: /toolbox/drawing/
     .dg-btn.danger:hover { background: #a93226; }
   }
   .dg-btn.tiny { padding: 0.2rem 0.6rem; font-size: 0.8rem; font-weight: 500; }
+  .dg-btn:focus-visible, .dg-toolbar button:focus-visible, .dg-player .kick:focus-visible,
+  .dg-canvas-overlay button:focus-visible {
+    outline: 3px solid #8b5e00;
+    outline-offset: 2px;
+  }
 
   .dg-input, .dg-select {
     width: 100%;
@@ -51,7 +56,7 @@ permalink: /toolbox/drawing/
     font: inherit; font-size: 0.95rem;
     box-sizing: border-box;
   }
-  .dg-input:focus, .dg-select:focus { outline: none; border-color: var(--color-accent); }
+  .dg-input:focus, .dg-select:focus { outline: 3px solid rgba(94, 121, 156, 0.28); outline-offset: 1px; border-color: var(--color-accent); }
   .dg-label { display: block; font-size: 0.85rem; color: var(--color-light); margin-bottom: 0.3rem; margin-top: 0.6rem; }
   .dg-row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
 
@@ -111,7 +116,7 @@ permalink: /toolbox/drawing/
   .dg-player .nick { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dg-player .score { flex: none; color: var(--color-accent); font-weight: 700; font-size: 0.88rem; }
   .dg-player .kick {
-    flex: none; padding: 0; width: 20px; height: 20px;
+    flex: none; padding: 0; width: 36px; height: 36px;
     background: transparent; color: var(--color-muted); border: none;
     cursor: pointer; font-size: 0.9rem;
   }
@@ -142,8 +147,8 @@ permalink: /toolbox/drawing/
     font-weight: 600; font-size: 0.95rem;
     font-variant-numeric: tabular-nums;
   }
-  .dg-topbar .countdown.warn { background: #e67e22; }
-  .dg-topbar .countdown.danger { background: #b07c75; }
+  .dg-topbar .countdown.warn { background: #9b4b00; }
+  .dg-topbar .countdown.danger { background: #8f3f36; }
   .dg-topbar .word-display {
     flex: 1; text-align: center;
     font-size: 1.1rem; font-weight: 600;
@@ -155,7 +160,7 @@ permalink: /toolbox/drawing/
   }
 
   .dg-stage {
-    display: grid; grid-template-columns: 1fr 280px; gap: 0.8rem;
+    display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 0.9rem;
   }
   @media (max-width: 720px) {
     .dg-stage { grid-template-columns: 1fr; }
@@ -218,7 +223,7 @@ permalink: /toolbox/drawing/
     border-radius: 10px;
   }
   .dg-toolbar .swatch {
-    width: 24px; height: 24px; border-radius: 50%;
+    width: 36px; height: 36px; border-radius: 50%;
     border: 2px solid transparent;
     cursor: pointer;
     transition: transform 0.1s;
@@ -228,7 +233,7 @@ permalink: /toolbox/drawing/
   }
   .dg-toolbar .swatch.active { border-color: var(--color-ink); }
   .dg-toolbar .size-btn {
-    padding: 0.2rem 0.5rem;
+    min-height: 36px; padding: 0.2rem 0.65rem;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 6px;
@@ -279,7 +284,7 @@ permalink: /toolbox/drawing/
     background: var(--color-bg);
     color: var(--color-ink);
   }
-  .dg-chat-input input:focus { outline: none; border-color: var(--color-accent); }
+  .dg-chat-input input:focus { outline: 3px solid rgba(94, 121, 156, 0.28); outline-offset: 1px; border-color: var(--color-accent); }
   .dg-chat-input input:disabled { opacity: 0.5; }
   .dg-chat-messages {
     background: var(--color-bg);
@@ -319,6 +324,34 @@ permalink: /toolbox/drawing/
   .dg-modal .body { color: var(--color-muted); font-size: 0.92rem; line-height: 1.5; margin-bottom: 1rem; }
   .dg-modal .actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
 
+  .dg-connection {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    min-height: 28px; padding: 0.1rem 0.55rem;
+    border-radius: 999px; font-size: 0.76rem; font-weight: 650;
+    background: rgba(255,255,255,0.16); color: inherit;
+  }
+  .dg-connection::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .dg-connection.online { color: #126b3a; background: #e2f3e8; }
+  .dg-room-banner .dg-connection.online { color: #fff; background: rgba(21, 112, 62, 0.54); }
+  .dg-connection.reconnecting { color: #784600; background: #fff1d6; }
+  .dg-connection.offline { color: #8f3f36; background: #f7e5e2; }
+
+  .dg-wrap.in-session .dg-feedback { display: none; }
+
+  @media (max-width: 720px) {
+    .dg-wrap { padding-inline: 0.7rem; }
+    .dg-topbar .word-display { order: 3; flex-basis: 100%; letter-spacing: 0.18em; }
+    .dg-chat-input { position: sticky; bottom: 0.55rem; z-index: 4; box-shadow: 0 6px 22px rgba(25,35,48,0.14); }
+    .dg-btn.tiny { min-height: 40px; padding-inline: 0.75rem; }
+    .dg-toolbar { gap: 0.5rem; }
+    .dg-toolbar .swatch { width: 40px; height: 40px; }
+    .dg-toolbar .size-btn { min-height: 40px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dg-btn, .dg-toolbar .swatch, .dg-toast { transition: none; animation: none; }
+  }
+
   /* ─── Toast ───────────────────────────────────────────────────── */
   .dg-toast {
     position: fixed; left: 50%; top: 1.4rem;
@@ -354,11 +387,11 @@ permalink: /toolbox/drawing/
 
 <div class="dg-wrap">
   <header class="dg-header">
-    <h1>[[zi:pencil]] 你画我猜</h1>
+    <h1>你画我猜</h1>
     <p>开房 → 邀请好友 → 想开就开 / 阶梯计分 / 中文词库</p>
   </header>
   <div id="dg-view"></div>
-  <section class="dg-card" style="margin-top: 2rem;">
+  <section class="dg-card dg-feedback" style="margin-top: 2rem;">
     <div id="dg-cm-mount"></div>
   </section>
 </div>
@@ -368,4 +401,5 @@ permalink: /toolbox/drawing/
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/comments.js?v={{ site.time | date: '%s' }}"></script>
 
+<script src="/assets/js/drawing/protocol.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/drawing/drawing.js?v={{ site.time | date: '%s' }}"></script>

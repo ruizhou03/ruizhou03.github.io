@@ -4,8 +4,10 @@
   // ====================================================================
   // 配置
   // ====================================================================
-  const API_BASE = 'https://zircon-urge.fly.dev/api/draw';
-  const SESSION_KEY = 'draw:session.v1';
+  const Protocol = window.DrawingProtocol;
+  if (!Protocol) throw new Error('DrawingProtocol is required');
+  const SESSION_KEY = 'draw:session.v2';
+  const LEGACY_SESSION_KEY = 'draw:session.v1';
   const DEVICE_KEY = 'draw:device.v1';
   const SWATCHES = ['#222222', '#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6', '#ffffff'];
   const SIZES = [
@@ -20,24 +22,38 @@
   // ====================================================================
   const state = {
     view: '#/',
-    session: null,           // {code, playerToken, playerId, deviceId, nick}
+    session: null,           // {code, accessToken, resumeSecret, playerId, deviceId, nick}
     roomState: null,
     lastVersion: 0,
+    commandVersion: 0,
     polling: false,
+    pollGeneration: 0,
+    connection: 'offline',
+    serverOffsetMs: 0,
     countdownTimer: null,
     // 画板本地状态
     strokes: [],             // 累计笔画（已渲染）
     sinceStrokeIdx: 0,       // 已应用到 state.strokes 的进度
     currentStroke: null,     // 画手正在画的临时笔画
+    optimisticStrokes: [],
     drawColor: SWATCHES[0],
     drawWidth: SIZES[1].width,
     eraseMode: false,
-    pendingStrokes: [],      // 待发送队列（节流用）
-    sendInFlight: false,
+    mutationChain: Promise.resolve(),
+    uncertainMutations: new Map(),
+    deferredRender: false,
+    lastUiSignature: '',
+    createBusy: false,
+    joinBusy: false,
   };
 
   function loadSession() {
-    try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; }
+    try {
+      const value = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+      if (value && value.accessToken && value.resumeSecret) return value;
+      localStorage.removeItem(LEGACY_SESSION_KEY);
+      return null;
+    } catch { return null; }
   }
   function saveSession(s) {
     try {
@@ -62,62 +78,46 @@
     return '';
   }
 
-  // ====================================================================
-  // API（带超时 + 自动重试）
-  //
-  // 移动网络下访问 vercel.app 偶尔会返回 "Failed to fetch"——TCP 握手丢包、
-  // CDN 路由抖动等。POST 类业务请求（猜词/笔画/加入房间）失败一次就 toast
-  // 一次会让用户以为"功能坏了"，所以这里给 POST 加退避重试 + 8s 超时。
-  // GET（state 长轮询）不在这里重试，pollLoop 自己有重试循环。
-  // ====================================================================
-  function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
-  async function api(method, action, params) {
-    const url = new URL(API_BASE);
-    url.searchParams.set('action', action);
-    if (method === 'GET' && params) {
-      for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
-    }
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
-    if (method === 'POST') opts.body = JSON.stringify(params || {});
+  function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+  function api(method, action, options) { return Protocol.request(method, action, options); }
 
-    const isPost = method === 'POST';
-    const maxAttempts = isPost ? 2 : 1;
-    const timeoutMs = isPost ? 6000 : 12000;
+  function baseBody(extra) {
+    return { protocolVersion: Protocol.VERSION, ...(extra || {}) };
+  }
 
-    let lastErr = null;
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+  function enqueueMutation(action, payload, options) {
+    const opts = options || {};
+    const replayKey = `${action}:${JSON.stringify(payload || {})}`;
+    const requestId = opts.requestId || state.uncertainMutations.get(replayKey) || Protocol.newRequestId(action);
+    state.uncertainMutations.set(replayKey, requestId);
+    const run = async () => {
+      const room = state.roomState;
+      const body = baseBody({
+        code: state.session.code,
+        requestId,
+        ...(opts.expectedVersion === false ? {} : {
+          expectedVersion: Math.max(state.commandVersion || 0, room ? room.version : 0),
+        }),
+        ...(payload || {}),
+      });
       try {
-        const resp = await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
-        clearTimeout(tid);
-        let data = {};
-        try { data = await resp.json(); } catch {}
-        if (!resp.ok) {
-          const err = Object.assign(new Error(data.error || ('http_' + resp.status)), { status: resp.status, data });
-          // 4xx 业务错误立刻抛，不重试（除 429 外）
-          if (resp.status >= 400 && resp.status < 500 && resp.status !== 429) throw err;
-          lastErr = err;
-        } else {
-          return data;
+        const response = await api('POST', action, {
+          token: state.session.accessToken,
+          body,
+        });
+        state.uncertainMutations.delete(replayKey);
+        if (Number.isInteger(response.version)) state.commandVersion = response.version;
+        return response;
+      } catch (error) {
+        if (!error.network && !(error.status >= 500) && error.status !== 429) {
+          state.uncertainMutations.delete(replayKey);
         }
-      } catch (e) {
-        clearTimeout(tid);
-        // 已识别的 4xx 业务错误：直接 rethrow
-        if (e.status && e.status >= 400 && e.status < 500 && e.status !== 429) throw e;
-        lastErr = e;
+        throw error;
       }
-      if (attempt < maxAttempts - 1) {
-        await sleep(400 * (attempt + 1));
-      }
-    }
-    // 全部尝试用完：把根因包成 network_error / timeout 抛出
-    const isAbort = lastErr && lastErr.name === 'AbortError';
-    if (lastErr && lastErr.status) throw lastErr; // 5xx / 429 透传
-    throw Object.assign(
-      new Error(isAbort ? 'timeout' : 'network_error'),
-      { network: true, timeout: !!isAbort, original: lastErr },
-    );
+    };
+    const result = state.mutationChain.catch(() => {}).then(run);
+    state.mutationChain = result;
+    return result;
   }
   function errMsg(e) {
     if (!e) return '未知错误';
@@ -157,6 +157,17 @@
       lock_timeout: '房间繁忙，请重试',
       not_playing: '游戏未在进行中',
       drawer_silent: '画手在画图阶段不能发消息',
+      invalid_request_id: '请求标识无效，请刷新后重试',
+      invalid_expected_version: '房间版本无效，请刷新后重试',
+      version_conflict: '房间刚刚发生变化，请重试',
+      idempotency_conflict: '操作内容与重试记录不一致',
+      unsupported_protocol_version: '游戏已更新，请刷新页面',
+      stale_round: '本回合已经结束',
+      spectator_until_next_round: '你将在下一回合加入',
+      resume_denied: '恢复凭据已失效，请重新加入',
+      target_offline: '该玩家当前离线，不能接任房主',
+      game_not_ended: '本局尚未结束',
+      chat_slow_down: '发送太快了，稍等一下',
     };
     if (map[e.message]) return map[e.message];
     if (e.status === 429) return '操作太频繁，稍等再试';
@@ -189,13 +200,20 @@
       else node.appendChild(document.createTextNode(String(c)));
     };
     if (children != null) append(children);
+    if (tag === 'button' && !node.hasAttribute('aria-label')) {
+      const label = node.textContent.replace(/\[\[zi:[^\]]+\]\]\s*/g, '').trim();
+      if (label) node.setAttribute('aria-label', label);
+    }
     return node;
   }
 
   let toastTimer = null;
   function toast(msg, ms) {
+    document.querySelectorAll('.dg-toast').forEach((node) => node.remove());
     const t = document.createElement('div');
     t.className = 'dg-toast';
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
     t.textContent = msg;
     document.body.appendChild(t);
     if (toastTimer) clearTimeout(toastTimer);
@@ -207,9 +225,11 @@
     else render();
   }
 
-  function copyToClipboard(text, msg) {
-    try { navigator.clipboard.writeText(text); toast(msg || '已复制'); }
-    catch { toast('复制失败'); }
+  async function copyToClipboard(text, msg) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast(msg || '已复制');
+    } catch { toast('复制失败，请长按房号手动复制'); }
   }
   function copyShareLink(code) {
     const url = location.origin + location.pathname + '?room=' + code;
@@ -226,6 +246,14 @@
   function getMe() {
     return state.roomState ? state.roomState.me : null;
   }
+  function connectionPill() {
+    const labels = { online: '已连接', reconnecting: '重连中…', offline: '离线' };
+    return el('span', {
+      class: `dg-connection ${state.connection}`,
+      role: 'status',
+      'aria-live': 'polite',
+    }, labels[state.connection] || labels.offline);
+  }
 
   // ====================================================================
   // 表单状态
@@ -235,9 +263,10 @@
     customCode: '',
     difficulty: 'mix',
     roundSec: 90,
-    totalRounds: 0,
+    roundsPerPlayer: 1,
+    requestId: null,
   };
-  const joinForm = { code: '', nick: getInitialNick() };
+  const joinForm = { code: '', nick: getInitialNick(), requestId: null };
 
   // ====================================================================
   // Landing
@@ -266,11 +295,11 @@
       el('button', {
         class: 'dg-btn primary',
         on: { click: () => nav('#/create') },
-      }, '[[zi:pencil]] 创建房间'),
+      }, '创建房间'),
       el('button', {
         class: 'dg-btn ghost',
         on: { click: () => nav('#/join') },
-      }, '[[zi:door]] 加入房间'),
+      }, '加入房间'),
     ]));
 
     wrap.appendChild(el('div', { class: 'dg-tip' }, [
@@ -290,19 +319,21 @@
     const card = el('section', { class: 'dg-card' });
     card.appendChild(el('h3', null, '创建房间'));
 
-    card.appendChild(el('label', { class: 'dg-label' }, '你的昵称'));
+    card.appendChild(el('label', { class: 'dg-label', for: 'dg-create-nick' }, '你的昵称'));
     card.appendChild(el('input', {
+      id: 'dg-create-nick',
       class: 'dg-input',
       type: 'text', maxlength: '12',
       placeholder: '1-12 字',
       value: createForm.nick,
-      on: { input: (e) => { createForm.nick = e.target.value; updateCreateBtn(); } },
+      on: { input: (e) => { createForm.nick = e.target.value; createForm.requestId = null; updateCreateBtn(); } },
     }));
 
-    card.appendChild(el('label', { class: 'dg-label' }, '词库难度'));
+    card.appendChild(el('label', { class: 'dg-label', for: 'dg-create-difficulty' }, '词库难度'));
     card.appendChild(el('select', {
+      id: 'dg-create-difficulty',
       class: 'dg-select',
-      on: { change: (e) => { createForm.difficulty = e.target.value; } },
+      on: { change: (e) => { createForm.difficulty = e.target.value; createForm.requestId = null; } },
     }, [
       el('option', { value: 'mix', selected: createForm.difficulty === 'mix' }, '混合（推荐）'),
       el('option', { value: 'easy', selected: createForm.difficulty === 'easy' }, '简单'),
@@ -310,10 +341,11 @@
       el('option', { value: 'hard', selected: createForm.difficulty === 'hard' }, '困难'),
     ]));
 
-    card.appendChild(el('label', { class: 'dg-label' }, '每回合时长'));
+    card.appendChild(el('label', { class: 'dg-label', for: 'dg-create-seconds' }, '每回合时长'));
     card.appendChild(el('select', {
+      id: 'dg-create-seconds',
       class: 'dg-select',
-      on: { change: (e) => { createForm.roundSec = parseInt(e.target.value, 10) || 90; } },
+      on: { change: (e) => { createForm.roundSec = parseInt(e.target.value, 10) || 90; createForm.requestId = null; } },
     }, [
       el('option', { value: '60', selected: createForm.roundSec === 60 }, '60 秒'),
       el('option', { value: '90', selected: createForm.roundSec === 90 }, '90 秒（推荐）'),
@@ -321,26 +353,28 @@
       el('option', { value: '150', selected: createForm.roundSec === 150 }, '150 秒'),
     ]));
 
-    card.appendChild(el('label', { class: 'dg-label' }, '总轮数（每人画 N 轮 · 0 = 房主手动结束）'));
+    card.appendChild(el('label', { class: 'dg-label', for: 'dg-create-rounds' }, '每人作画次数'));
     card.appendChild(el('select', {
+      id: 'dg-create-rounds',
       class: 'dg-select',
-      on: { change: (e) => { createForm.totalRounds = parseInt(e.target.value, 10) || 0; } },
+      on: { change: (e) => { createForm.roundsPerPlayer = parseInt(e.target.value, 10) || 0; createForm.requestId = null; } },
     }, [
-      el('option', { value: '0', selected: createForm.totalRounds === 0 }, '不限（房主手动结束）'),
-      el('option', { value: '6', selected: createForm.totalRounds === 6 }, '6 轮'),
-      el('option', { value: '10', selected: createForm.totalRounds === 10 }, '10 轮'),
-      el('option', { value: '15', selected: createForm.totalRounds === 15 }, '15 轮'),
-      el('option', { value: '20', selected: createForm.totalRounds === 20 }, '20 轮'),
+      el('option', { value: '1', selected: createForm.roundsPerPlayer === 1 }, '每人 1 次（推荐）'),
+      el('option', { value: '2', selected: createForm.roundsPerPlayer === 2 }, '每人 2 次'),
+      el('option', { value: '3', selected: createForm.roundsPerPlayer === 3 }, '每人 3 次'),
+      el('option', { value: '0', selected: createForm.roundsPerPlayer === 0 }, '不限（房主手动结束）'),
     ]));
 
-    card.appendChild(el('label', { class: 'dg-label' }, '自定义房号（可选 · 4 位数字）'));
+    card.appendChild(el('label', { class: 'dg-label', for: 'dg-create-code' }, '自定义房号（可选 · 4 位数字）'));
     card.appendChild(el('input', {
+      id: 'dg-create-code',
       class: 'dg-input',
       type: 'text', inputmode: 'numeric', maxlength: '4',
       placeholder: '留空则随机分配',
       value: createForm.customCode,
       on: { input: (e) => {
         createForm.customCode = e.target.value.replace(/\D/g, '').slice(0, 4);
+        createForm.requestId = null;
         e.target.value = createForm.customCode;
       } },
     }));
@@ -350,9 +384,9 @@
       el('button', {
         id: 'dg-create-btn',
         class: 'dg-btn primary',
-        disabled: createForm.nick.trim() ? null : '',
+        disabled: createForm.nick.trim() && !state.createBusy ? null : '',
         on: { click: doCreate },
-      }, '[[zi:pencil]] 创建房间'),
+      }, state.createBusy ? '创建中…' : '创建房间'),
     ]));
     wrap.appendChild(card);
     return wrap;
@@ -360,34 +394,49 @@
   function updateCreateBtn() {
     const btn = document.getElementById('dg-create-btn');
     if (!btn) return;
-    if (createForm.nick.trim()) btn.removeAttribute('disabled');
+    if (createForm.nick.trim() && !state.createBusy) btn.removeAttribute('disabled');
     else btn.setAttribute('disabled', '');
   }
   async function doCreate() {
     const nick = createForm.nick.trim();
     if (!nick) { toast('请填昵称'); return; }
+    if (state.createBusy) return;
+    state.createBusy = true;
+    render();
     if (window.GamesShell && GamesShell.Identity) GamesShell.Identity.setNick(nick);
     try {
       const r = await api('POST', 'create', {
-        hostNick: nick,
-        deviceId: getDeviceId(),
-        customCode: createForm.customCode || null,
-        config: {
-          difficulty: createForm.difficulty,
-          roundSec: createForm.roundSec,
-          totalRounds: createForm.totalRounds,
-        },
+        body: baseBody({
+          hostNick: nick,
+          deviceId: getDeviceId(),
+          requestId: createForm.requestId || (createForm.requestId = Protocol.newRequestId('create')),
+          customCode: createForm.customCode || null,
+          config: {
+            difficulty: createForm.difficulty,
+            roundSec: createForm.roundSec,
+            roundsPerPlayer: createForm.roundsPerPlayer,
+          },
+        }),
       });
       const sess = {
-        code: r.code, playerToken: r.playerToken, playerId: r.playerId,
+        code: r.code, accessToken: r.accessToken, resumeSecret: r.resumeSecret, playerId: r.playerId,
         deviceId: getDeviceId(), nick,
       };
       saveSession(sess);
       state.session = sess;
       state.lastVersion = 0;
+      state.commandVersion = r.version || 0;
       state.roomState = null;
+      state.lastUiSignature = '';
+      state.strokes = [];
+      state.optimisticStrokes = [];
+      createForm.requestId = null;
       nav('#/lobby');
-    } catch (e) { toast(errMsg(e)); }
+    } catch (e) {
+      if (!e.network && !(e.status >= 500) && e.status !== 429) createForm.requestId = null;
+      toast(errMsg(e));
+    }
+    finally { state.createBusy = false; if (state.view === '#/create') render(); }
   }
 
   // ====================================================================
@@ -398,26 +447,29 @@
     const card = el('section', { class: 'dg-card' });
     card.appendChild(el('h3', null, '加入房间'));
 
-    card.appendChild(el('label', { class: 'dg-label' }, '房号（4 位数字）'));
+    card.appendChild(el('label', { class: 'dg-label', for: 'dg-join-code' }, '房号（4 位数字）'));
     card.appendChild(el('input', {
+      id: 'dg-join-code',
       class: 'dg-input',
       type: 'text', inputmode: 'numeric', maxlength: '4',
       placeholder: '例如 1234',
       value: joinForm.code,
       on: { input: (e) => {
         joinForm.code = e.target.value.replace(/\D/g, '').slice(0, 4);
+        joinForm.requestId = null;
         e.target.value = joinForm.code;
         updateJoinBtn();
       } },
     }));
 
-    card.appendChild(el('label', { class: 'dg-label' }, '你的昵称'));
+    card.appendChild(el('label', { class: 'dg-label', for: 'dg-join-nick' }, '你的昵称'));
     card.appendChild(el('input', {
+      id: 'dg-join-nick',
       class: 'dg-input',
       type: 'text', maxlength: '12',
       placeholder: '1-12 字',
       value: joinForm.nick,
-      on: { input: (e) => { joinForm.nick = e.target.value; updateJoinBtn(); } },
+      on: { input: (e) => { joinForm.nick = e.target.value; joinForm.requestId = null; updateJoinBtn(); } },
     }));
 
     card.appendChild(el('div', { class: 'dg-row', style: { marginTop: '1rem', justifyContent: 'space-between' } }, [
@@ -425,9 +477,9 @@
       el('button', {
         id: 'dg-join-btn',
         class: 'dg-btn primary',
-        disabled: '',
+        disabled: state.joinBusy || !/^\d{4}$/.test(joinForm.code) || !joinForm.nick.trim() ? '' : null,
         on: { click: doJoin },
-      }, '加入'),
+      }, state.joinBusy ? '加入中…' : '加入'),
     ]));
     wrap.appendChild(card);
     return wrap;
@@ -435,7 +487,7 @@
   function updateJoinBtn() {
     const btn = document.getElementById('dg-join-btn');
     if (!btn) return;
-    if (/^\d{4}$/.test(joinForm.code) && joinForm.nick.trim()) btn.removeAttribute('disabled');
+    if (/^\d{4}$/.test(joinForm.code) && joinForm.nick.trim() && !state.joinBusy) btn.removeAttribute('disabled');
     else btn.setAttribute('disabled', '');
   }
   async function doJoin() {
@@ -443,19 +495,33 @@
     const nick = joinForm.nick.trim();
     if (!/^\d{4}$/.test(code)) { toast('房号 4 位数字'); return; }
     if (!nick) { toast('请填昵称'); return; }
+    if (state.joinBusy) return;
+    state.joinBusy = true;
+    render();
     if (window.GamesShell && GamesShell.Identity) GamesShell.Identity.setNick(nick);
     try {
-      const r = await api('POST', 'join', { code, nick, deviceId: getDeviceId() });
+      const r = await api('POST', 'join', {
+        body: baseBody({ code, nick, deviceId: getDeviceId(), requestId: joinForm.requestId || (joinForm.requestId = Protocol.newRequestId('join')) }),
+      });
       const sess = {
-        code: r.code, playerToken: r.playerToken, playerId: r.playerId,
+        code: r.code, accessToken: r.accessToken, resumeSecret: r.resumeSecret, playerId: r.playerId,
         deviceId: getDeviceId(), nick,
       };
       saveSession(sess);
       state.session = sess;
       state.lastVersion = 0;
+      state.commandVersion = r.version || 0;
       state.roomState = null;
+      state.lastUiSignature = '';
+      state.strokes = [];
+      state.optimisticStrokes = [];
+      joinForm.requestId = null;
       nav('#/lobby');
-    } catch (e) { toast(errMsg(e)); }
+    } catch (e) {
+      if (!e.network && !(e.status >= 500) && e.status !== 429) joinForm.requestId = null;
+      toast(errMsg(e));
+    }
+    finally { state.joinBusy = false; if (state.view === '#/join') render(); }
   }
 
   // ====================================================================
@@ -464,7 +530,7 @@
   function viewLobby() {
     const r = state.roomState;
     if (!r) {
-      return el('div', { style: { textAlign: 'center', padding: '2rem' } }, '[[zi:hourglass]] 加载房间…');
+      return el('div', { style: { textAlign: 'center', padding: '2rem' } }, '加载房间…');
     }
     const wrap = el('div');
 
@@ -477,14 +543,15 @@
         el('div', { class: 'code' }, r.code),
       ]),
       el('div', { class: 'actions' }, [
+        connectionPill(),
         el('button', {
           class: 'dg-btn tiny',
           on: { click: () => copyToClipboard(r.code, '已复制房号') },
-        }, '[[zi:copy]] 复制房号'),
+        }, '复制房号'),
         el('button', {
           class: 'dg-btn tiny',
           on: { click: () => copyShareLink(r.code) },
-        }, '[[zi:link]] 复制链接'),
+        }, '复制链接'),
       ]),
       qrBox,
     ]);
@@ -497,19 +564,20 @@
     card.appendChild(el('h3', null, `玩家（${players.length}）`));
     card.appendChild(renderPlayerList(players, isHost));
     if (isHost) {
-      const enough = players.length >= 2;
+      const onlineCount = players.filter((player) => player.online).length;
+      const enough = onlineCount >= 2;
       card.appendChild(el('div', { style: { marginTop: '0.9rem', textAlign: 'center' } }, [
         el('button', {
           class: 'dg-btn primary',
           disabled: enough ? null : '',
           on: { click: doStart },
-        }, enough ? '[[zi:play]] 开始游戏' : '至少需要 2 人'),
+        }, enough ? '开始游戏' : `至少需要 2 人在线（当前 ${onlineCount}）`),
         el('div', { style: { fontSize: '0.8rem', color: 'var(--color-muted)', marginTop: '0.5rem' } },
           '不预设人数，邀请到位就开。中途加入者下一轮上场。'),
       ]));
     } else {
       card.appendChild(el('div', { style: { marginTop: '0.7rem', textAlign: 'center', color: 'var(--color-muted)', fontSize: '0.9rem' } },
-        '[[zi:hourglass]] 等待房主开始游戏…'));
+        '等待房主开始游戏…'));
     }
     wrap.appendChild(card);
 
@@ -519,7 +587,7 @@
     sum.appendChild(el('div', { style: { fontSize: '0.88rem', lineHeight: '1.7', color: 'var(--color-muted)' } }, [
       el('div', null, `难度：${DIFFICULTY_LABELS[r.config.difficulty] || r.config.difficulty}`),
       el('div', null, `每回合：${r.config.roundSec} 秒`),
-      el('div', null, `总轮数：${r.config.totalRounds > 0 ? r.config.totalRounds + ' 轮' : '不限（房主手动结束）'}`),
+      el('div', null, `作画次数：${r.config.roundsPerPlayer > 0 ? '每人 ' + r.config.roundsPerPlayer + ' 次' : '不限（房主手动结束）'}`),
       el('div', null, `计分：第 1 个猜中 3 分，第 2 个 2 分，第 3+ 个 1 分；画手按猜中人数 ×2，最多 6 分`),
     ]));
     wrap.appendChild(sum);
@@ -533,7 +601,7 @@
       isHost ? el('button', {
         class: 'dg-btn danger tiny',
         on: { click: () => doDissolve(false) },
-      }, '[[zi:trash]] 解散房间') : null,
+      }, '解散房间') : null,
     ]));
 
     return wrap;
@@ -549,14 +617,15 @@
       if (!p.online) cls.push('offline');
       const node = el('div', { class: cls.join(' ') }, [
         el('div', { class: 'seat-num' }, String(p.seat)),
-        p.isHost ? el('span', { class: 'crown' }, '[[zi:crown]]') : null,
+        p.isHost ? el('span', { class: 'crown', 'aria-label': '房主' }, '房主') : null,
         el('div', { class: 'nick' }, p.nick),
         (p.score || 0) > 0 ? el('div', { class: 'score' }, String(p.score)) : null,
         (isHost && !p.isHost && !isMe) ? el('button', {
           class: 'kick',
           title: '踢出',
+          'aria-label': `踢出 ${p.nick}`,
           on: { click: () => doKick(p.id, p.nick) },
-        }, '[[zi:stop]]') : null,
+        }, '移除') : null,
       ]);
       list.appendChild(node);
     }
@@ -565,27 +634,29 @@
 
   async function doStart() {
     try {
-      await api('POST', 'start', { code: state.session.code, token: state.session.playerToken });
+      await enqueueMutation('start');
     } catch (e) { toast(errMsg(e)); }
   }
   async function doKick(targetPid, nick) {
     if (!confirm(`确认踢出 ${nick}？`)) return;
     try {
-      await api('POST', 'kick', { code: state.session.code, token: state.session.playerToken, targetPid });
+      await enqueueMutation('kick', { targetPid });
     } catch (e) { toast(errMsg(e)); }
   }
   async function doLeave() {
     const isHost = amIHost();
     if (isHost) {
-      const others = (state.roomState.players || []).filter((p) => !p.kicked && p.id !== state.session.playerId);
+      const others = (state.roomState.players || []).filter((p) => !p.kicked && p.online && p.id !== state.session.playerId);
       if (others.length > 0) {
         showHostLeaveModal(others);
         return;
       }
       if (!confirm('你是房主，离开会解散房间，确定？')) return;
-      try { await api('POST', 'leave', { code: state.session.code, token: state.session.playerToken, dissolveOnLeave: true }); } catch {}
+      try { await enqueueMutation('leave', { dissolveOnLeave: true }); }
+      catch (e) { toast(errMsg(e)); return; }
     } else {
-      try { await api('POST', 'leave', { code: state.session.code, token: state.session.playerToken }); } catch {}
+      try { await enqueueMutation('leave'); }
+      catch (e) { toast(errMsg(e)); return; }
     }
     saveSession(null);
     state.session = null;
@@ -596,16 +667,12 @@
   async function doDissolve(skipConfirm) {
     if (!skipConfirm && !confirm('确认解散房间？所有玩家将被踢回首页。')) return;
     try {
-      await api('POST', 'dissolve', { code: state.session.code, token: state.session.playerToken });
+      await enqueueMutation('dissolve');
     } catch (e) { toast(errMsg(e)); }
   }
   async function doTransferAndLeave(targetPid) {
     try {
-      await api('POST', 'leave', {
-        code: state.session.code,
-        token: state.session.playerToken,
-        transferTo: targetPid,
-      });
+      await enqueueMutation('leave', { transferTo: targetPid });
     } catch (e) { toast(errMsg(e)); return; }
     saveSession(null);
     state.session = null;
@@ -616,8 +683,8 @@
 
   function showHostLeaveModal(others) {
     const bg = el('div', { class: 'dg-modal-bg' });
-    const m = el('div', { class: 'dg-modal' });
-    m.appendChild(el('h3', null, '你是房主，怎么办？'));
+    const m = el('div', { class: 'dg-modal', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'dg-host-leave-title', tabindex: '-1' });
+    m.appendChild(el('h3', { id: 'dg-host-leave-title' }, '你是房主，怎么办？'));
     m.appendChild(el('div', { class: 'body' }, '把房主转交给一位玩家后再离开，或者解散整个房间。'));
     m.appendChild(el('div', { style: { marginBottom: '0.8rem' } }, others.map((p) =>
       el('button', {
@@ -635,7 +702,9 @@
     ]));
     bg.appendChild(m);
     bg.addEventListener('click', (e) => { if (e.target === bg) closeModal(); });
+    bg.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
     document.body.appendChild(bg);
+    requestAnimationFrame(() => m.focus());
   }
   function closeModal() {
     document.querySelectorAll('.dg-modal-bg').forEach((n) => n.remove());
@@ -646,7 +715,7 @@
   // ====================================================================
   function viewPlay() {
     const r = state.roomState;
-    if (!r) return el('div', { style: { textAlign: 'center', padding: '2rem' } }, '[[zi:hourglass]] 加载…');
+    if (!r) return el('div', { style: { textAlign: 'center', padding: '2rem' } }, '加载…');
 
     const wrap = el('div');
 
@@ -655,9 +724,10 @@
     const topActions = el('div', { class: 'dg-row', style: { justifyContent: 'space-between', marginBottom: '0.6rem', fontSize: '0.85rem', color: 'var(--color-muted)' } }, [
       el('div', null, `房号 ${r.code} · ${(r.players || []).filter((p) => !p.kicked).length} 人`),
       el('div', { class: 'dg-row', style: { gap: '0.3rem' } }, [
-        el('button', { class: 'dg-btn ghost tiny', on: { click: () => copyShareLink(r.code) } }, '[[zi:upload]] 邀请'),
-        isHost ? el('button', { class: 'dg-btn ghost tiny', on: { click: doSkip } }, '[[zi:skip-forward]] 跳过本回合') : null,
-        isHost ? el('button', { class: 'dg-btn danger tiny', on: { click: doEnd } }, '[[zi:flag]] 结束游戏') : null,
+        connectionPill(),
+        el('button', { class: 'dg-btn ghost tiny', on: { click: () => copyShareLink(r.code) } }, '邀请'),
+        isHost ? el('button', { class: 'dg-btn ghost tiny', on: { click: doSkip } }, '跳过本回合') : null,
+        isHost ? el('button', { class: 'dg-btn danger tiny', on: { click: doEnd } }, '结束游戏') : null,
         el('button', { class: 'dg-btn ghost tiny', on: { click: doLeave } }, '退出'),
       ]),
     ]);
@@ -682,13 +752,13 @@
 
   function renderTopbar(r) {
     const round = r.round;
-    const totalLabel = r.config.totalRounds > 0 ? `/${r.config.totalRounds}` : '';
+    const totalLabel = r.config.roundsPerPlayer > 0 ? ` · 每人 ${r.config.roundsPerPlayer} 次` : '';
     const phaseLabel = round ? ({
       'pick-word': '选词中',
       'drawing': '画图中',
       'reveal': '本回合结束',
     }[round.phase] || round.phase) : '';
-    const remain = round && round.deadlineTs > 0 ? Math.max(0, round.deadlineTs - Date.now()) : 0;
+    const remain = round && round.deadlineTs > 0 ? Math.max(0, round.deadlineTs - (Date.now() + state.serverOffsetMs)) : 0;
     const sec = Math.ceil(remain / 1000);
     let cls = 'countdown';
     if (sec <= 5) cls += ' danger';
@@ -700,7 +770,7 @@
         if (round.phase === 'pick-word') {
           wordNode = el('div', { class: 'word-display drawer-word' }, '↓ 请选词 ↓');
         } else if (round.phase === 'drawing' && r.me && r.me.currentWord) {
-          wordNode = el('div', { class: 'word-display drawer-word' }, `[[zi:pencil]] ${r.me.currentWord}`);
+          wordNode = el('div', { class: 'word-display drawer-word' }, `题目：${r.me.currentWord}`);
         } else if (round.phase === 'reveal' && r.round.wordRevealed) {
           wordNode = el('div', { class: 'word-display drawer-word' }, `答案：${r.round.wordRevealed}`);
         }
@@ -709,7 +779,7 @@
           wordNode = el('div', { class: 'word-display' }, `${round.wordHint.mask}（${round.wordHint.len} 字）`);
         } else if (round.phase === 'pick-word') {
           const drawer = (r.players || []).find((p) => p.id === round.drawerPid);
-          wordNode = el('div', { class: 'word-display' }, `[[zi:pencil]] ${drawer ? drawer.nick : ''} 在选词…`);
+          wordNode = el('div', { class: 'word-display' }, `${drawer ? drawer.nick : '画手'} 在选词…`);
         } else if (round.phase === 'reveal' && round.wordRevealed) {
           wordNode = el('div', { class: 'word-display' }, `答案：${round.wordRevealed}`);
         }
@@ -717,7 +787,7 @@
     }
 
     return el('div', { class: 'dg-topbar' }, [
-      el('span', { class: 'round-pill' }, `第 ${round ? round.n : 1}${totalLabel} 回合 · ${phaseLabel}`),
+      el('span', { class: 'round-pill' }, `第 ${round ? round.n : 1} 回合${totalLabel} · ${phaseLabel}`),
       wordNode,
       round ? el('span', { id: 'dg-countdown', class: cls }, sec + 's') : null,
     ]);
@@ -725,7 +795,10 @@
 
   function renderCanvasArea(r) {
     const wrap = el('div', { class: 'dg-canvas-wrap', id: 'dg-canvas-wrap' });
-    const canvas = el('canvas', { class: 'dg-canvas', id: 'dg-canvas' });
+    const canvas = el('canvas', {
+      class: 'dg-canvas', id: 'dg-canvas', role: 'img',
+      'aria-label': amIDrawer() ? '绘图画布，可用鼠标或触摸绘制' : '画手正在绘制的画布',
+    });
     wrap.appendChild(canvas);
 
     // 覆盖层：选词 / reveal
@@ -735,7 +808,7 @@
         const overlay = el('div', { class: 'dg-canvas-overlay' });
         const panel = el('div', { class: 'panel' });
         if (amIDrawer() && r.me && r.me.wordChoices) {
-          panel.appendChild(el('h2', null, '[[zi:pencil]] 你来画！'));
+          panel.appendChild(el('h2', null, '你来画！'));
           panel.appendChild(el('div', null, '从下面三个词里选一个：'));
           const choices = el('div', { class: 'word-choices' });
           r.me.wordChoices.forEach((w, i) => {
@@ -746,7 +819,7 @@
           panel.appendChild(choices);
         } else {
           const drawer = (r.players || []).find((p) => p.id === round.drawerPid);
-          panel.appendChild(el('h2', null, '[[zi:pencil]] ' + (drawer ? drawer.nick : '画手') + ' 正在选词…'));
+          panel.appendChild(el('h2', null, (drawer ? drawer.nick : '画手') + ' 正在选词…'));
           panel.appendChild(el('div', { style: { color: 'var(--color-muted)' } }, '稍等片刻就开始'));
         }
         overlay.appendChild(panel);
@@ -773,11 +846,14 @@
 
   function renderToolbar() {
     const bar = el('div', { class: 'dg-toolbar' });
-    SWATCHES.forEach((c) => {
+    const colorNames = ['黑色', '红色', '橙色', '黄色', '绿色', '蓝色', '紫色', '白色'];
+    SWATCHES.forEach((c, index) => {
       const sw = el('button', {
         class: 'swatch' + (state.drawColor === c && !state.eraseMode ? ' active' : ''),
         style: { background: c, border: c === '#ffffff' ? '2px solid #ccc' : null },
-        title: c,
+        title: colorNames[index],
+        'aria-label': `画笔颜色：${colorNames[index]}`,
+        'aria-pressed': state.drawColor === c && !state.eraseMode ? 'true' : 'false',
         on: { click: () => { state.drawColor = c; state.eraseMode = false; render(); } },
       });
       bar.appendChild(sw);
@@ -785,36 +861,39 @@
     SIZES.forEach((s) => {
       bar.appendChild(el('button', {
         class: 'size-btn' + (Math.abs(state.drawWidth - s.width) < 0.0005 ? ' active' : ''),
+        'aria-label': `${s.label}画笔`,
+        'aria-pressed': Math.abs(state.drawWidth - s.width) < 0.0005 ? 'true' : 'false',
         on: { click: () => { state.drawWidth = s.width; render(); } },
       }, s.label));
     });
     bar.appendChild(el('button', {
       class: 'size-btn' + (state.eraseMode ? ' active' : ''),
+      'aria-pressed': state.eraseMode ? 'true' : 'false',
       on: { click: () => { state.eraseMode = !state.eraseMode; render(); } },
-    }, '[[zi:trash]] 橡皮'));
+    }, '橡皮'));
     bar.appendChild(el('div', { class: 'tool-spacer' }));
     bar.appendChild(el('button', {
       class: 'dg-btn ghost tiny',
       on: { click: doUndo },
-    }, '[[zi:history]] 撤销'));
+    }, '撤销'));
     bar.appendChild(el('button', {
       class: 'dg-btn ghost tiny',
       on: { click: doClear },
-    }, '[[zi:trash]] 清空'));
+    }, '清空画布'));
     return bar;
   }
 
   function renderSidebar(r) {
     const sidebar = el('div', { class: 'dg-sidebar' });
-    sidebar.appendChild(renderChatInput(r));
     sidebar.appendChild(renderChatMessages(r));
+    sidebar.appendChild(renderChatInput(r));
     sidebar.appendChild(renderScoreboard(r));
     return sidebar;
   }
 
   function renderScoreboard(r) {
     const score = el('div', { class: 'dg-scoreboard' });
-    score.appendChild(el('h4', null, '[[zi:chart]] 计分板'));
+    score.appendChild(el('h4', null, '计分板'));
     const sorted = [...(r.players || [])]
       .filter((p) => !p.kicked)
       .sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -827,8 +906,8 @@
       else if (correctSet.has(p.id)) cls.push('correct');
       if (isMe) cls.push('me');
       score.appendChild(el('div', { class: cls.join(' ') }, [
-        el('span', { class: 'icon' }, p.id === drawerPid ? '[[zi:pencil]]' : (correctSet.has(p.id) ? '[[zi:check]]' : (p.online ? '·' : '[[zi:check]]'))),
-        el('span', { class: 'nick' }, p.nick + (p.isHost ? ' [[zi:crown]]' : '')),
+        el('span', { class: 'icon' }, p.id === drawerPid ? '画' : (correctSet.has(p.id) ? '✓' : (p.online ? '·' : '离线'))),
+        el('span', { class: 'nick' }, p.nick + (p.isHost ? '（房主）' : '')),
         el('span', { class: 'score' }, String(p.score || 0)),
       ]));
     });
@@ -836,7 +915,7 @@
   }
 
   function renderChatMessages(r) {
-    const messages = el('div', { class: 'dg-chat-messages', id: 'dg-chat-messages' });
+    const messages = el('div', { class: 'dg-chat-messages', id: 'dg-chat-messages', role: 'log', 'aria-live': 'polite', 'aria-relevant': 'additions' });
     (r.chat || []).forEach((m) => messages.appendChild(renderChatMsg(m, r)));
     return messages;
   }
@@ -847,6 +926,7 @@
     const isDrawer = amIDrawer();
     const me = r.me;
     const hasGuessed = me && r.round && (r.round.correctGuessers || []).includes(me.playerId);
+    const isRoundGuesser = me && r.round && (r.round.guesserPids || []).includes(me.playerId);
     const phase = r.round ? r.round.phase : null;
     const isDrawing = phase === 'drawing';
     const isPickWord = phase === 'pick-word';
@@ -855,18 +935,21 @@
     let placeholder = '聊天…';
     let disabled = false;
     if (drawerSilent) { placeholder = '画手不能发消息'; disabled = true; }
+    else if (isDrawing && !isRoundGuesser) { placeholder = '旁观本回合 · 下一回合加入'; disabled = true; }
     else if (isDrawing && !hasGuessed) placeholder = '在这里猜词';
     else if (isDrawing && hasGuessed) placeholder = '你已猜中，可以聊天';
 
     const input = el('input', {
       type: 'text', maxlength: '30',
+      id: 'dg-chat-draft',
+      'aria-label': isDrawing && !hasGuessed ? '输入猜词' : '输入聊天消息',
       placeholder,
       disabled: disabled ? '' : null,
       on: {
-        keydown: (e) => {
+        keydown: async (e) => {
           if (e.key === 'Enter' && !e.isComposing) {
             const v = e.target.value.trim();
-            if (v) { sendGuess(v); e.target.value = ''; }
+            if (v && await sendGuess(v)) e.target.value = '';
           }
         },
       },
@@ -875,9 +958,9 @@
       class: 'dg-btn primary tiny',
       disabled: disabled ? '' : null,
       on: {
-        click: () => {
+        click: async () => {
           const v = input.value.trim();
-          if (v) { sendGuess(v); input.value = ''; }
+          if (v && await sendGuess(v)) input.value = '';
         },
       },
     }, '发送');
@@ -889,7 +972,7 @@
       return el('div', { class: 'msg system' }, m.text);
     }
     if (m.kind === 'correct') {
-      const tag = m.order === 1 ? '[[zi:medal:gold]]' : m.order === 2 ? '[[zi:medal:silver]]' : m.order === 3 ? '[[zi:medal:bronze]]' : '[[zi:check]]';
+      const tag = m.order <= 3 ? `第 ${m.order} 位` : '猜中';
       return el('div', { class: 'msg system correct-cheer' },
         `${tag} ${m.nick} 猜中了！+${m.score} 分`);
     }
@@ -919,45 +1002,41 @@
   // ====================================================================
   async function doPickWord(idx) {
     try {
-      await api('POST', 'pickword', {
-        code: state.session.code,
-        token: state.session.playerToken,
-        wordIndex: idx,
-      });
+      await enqueueMutation('pickword', { roundId: state.roomState.round.roundId, wordIndex: idx });
     } catch (e) { toast(errMsg(e)); }
   }
   async function sendGuess(text) {
     try {
-      await api('POST', 'guess', {
-        code: state.session.code,
-        token: state.session.playerToken,
-        text,
-      });
-    } catch (e) { toast(errMsg(e)); }
+      await enqueueMutation('guess', { roundId: state.roomState.round ? state.roomState.round.roundId : null, text }, { expectedVersion: false });
+      return true;
+    } catch (e) { toast(errMsg(e)); return false; }
   }
   async function doClear() {
     try {
-      await api('POST', 'clear', { code: state.session.code, token: state.session.playerToken });
-      // 本地立刻清空
+      await enqueueMutation('clear', { roundId: state.roomState.round.roundId });
       state.strokes = [];
+      state.optimisticStrokes = [];
       state.sinceStrokeIdx = 0;
       redrawCanvas();
     } catch (e) { toast(errMsg(e)); }
   }
   async function doUndo() {
     try {
-      await api('POST', 'undo', { code: state.session.code, token: state.session.playerToken });
+      await enqueueMutation('undo', { roundId: state.roomState.round.roundId });
+      state.strokes.pop();
+      state.sinceStrokeIdx = state.strokes.length;
+      redrawCanvas();
     } catch (e) { toast(errMsg(e)); }
   }
   async function doSkip() {
     try {
-      await api('POST', 'skip', { code: state.session.code, token: state.session.playerToken });
+      await enqueueMutation('skip', { roundId: state.roomState.round.roundId });
     } catch (e) { toast(errMsg(e)); }
   }
   async function doEnd() {
     if (!confirm('确认结束游戏？将进入最终排行榜。')) return;
     try {
-      await api('POST', 'end', { code: state.session.code, token: state.session.playerToken });
+      await enqueueMutation('end');
     } catch (e) { toast(errMsg(e)); }
   }
 
@@ -966,10 +1045,10 @@
   // ====================================================================
   function viewEnd() {
     const r = state.roomState;
-    if (!r) return el('div', null, '[[zi:hourglass]]');
+    if (!r) return el('div', null, '加载…');
     const wrap = el('div');
     const card = el('section', { class: 'dg-card' });
-    card.appendChild(el('h3', null, '[[zi:trophy]] 最终排行榜'));
+    card.appendChild(el('h3', null, '最终排行榜'));
     const list = el('ul', { class: 'dg-final-list' });
     (r.finalScores || []).forEach((row) => {
       const cls = ['rank-' + row.rank];
@@ -990,21 +1069,16 @@
       isHost ? el('button', {
         class: 'dg-btn primary',
         on: { click: doRematch },
-      }, '[[zi:refresh]] 再来一局') : null,
+      }, '再来一局') : null,
     ]));
     wrap.appendChild(card);
     return wrap;
   }
 
   async function doRematch() {
-    // 简化：先解散当前房间，再回首页让房主新建
-    if (!confirm('再来一局？将解散当前房间，回到首页重新创建。')) return;
-    try { await api('POST', 'dissolve', { code: state.session.code, token: state.session.playerToken }); } catch {}
-    saveSession(null);
-    state.session = null;
-    state.roomState = null;
-    state.polling = false;
-    nav('#/create');
+    if (!confirm('保留当前房间和玩家，立即开始新一局？')) return;
+    try { await enqueueMutation('rematch'); }
+    catch (e) { toast(errMsg(e)); }
   }
 
   // ====================================================================
@@ -1036,6 +1110,7 @@
     const w = c.width / dpr, h = c.height / dpr;
     ctx.clearRect(0, 0, w, h);
     for (const s of state.strokes) drawStroke(ctx, s, w, h);
+    for (const pending of state.optimisticStrokes) drawStroke(ctx, pending.stroke, w, h);
     if (state.currentStroke) drawStroke(ctx, state.currentStroke, w, h);
   }
   function drawStroke(ctx, s, w, h) {
@@ -1078,6 +1153,7 @@
 
     let drawing = false;
     let lastPt = null;
+    let strokeStartedAt = 0;
 
     function ptOf(e) {
       const r = c.getBoundingClientRect();
@@ -1092,6 +1168,7 @@
       drawing = true;
       const p = ptOf(e);
       lastPt = p;
+      strokeStartedAt = Date.now();
       state.currentStroke = {
         points: [p],
         color: state.drawColor,
@@ -1108,9 +1185,17 @@
       if (!lastPt || dist(lastPt, p) > 0.003) {
         state.currentStroke.points.push(p);
         lastPt = p;
-        if (state.currentStroke.points.length > 600) {
-          // 强制结束本笔，避免 server 拒
-          end(e);
+        if (state.currentStroke.points.length >= 100 || Date.now() - strokeStartedAt >= 250) {
+          const stroke = state.currentStroke;
+          const requestId = Protocol.newRequestId('stroke');
+          state.optimisticStrokes.push({ requestId, stroke });
+          state.currentStroke = {
+            points: [p], color: state.drawColor, width: state.drawWidth,
+            kind: state.eraseMode ? 'erase' : 'pen',
+          };
+          strokeStartedAt = Date.now();
+          sendStroke(stroke, requestId, state.roomState.round.roundId);
+          redrawCanvas();
           return;
         }
         redrawCanvas();
@@ -1121,15 +1206,18 @@
       drawing = false;
       if (state.currentStroke && state.currentStroke.points.length > 0) {
         const s = state.currentStroke;
-        // 立刻把这笔加入本地 strokes，避免视觉空隙
-        state.strokes.push(s);
-        state.sinceStrokeIdx = state.strokes.length;
+        const requestId = Protocol.newRequestId('stroke');
+        state.optimisticStrokes.push({ requestId, stroke: s });
         state.currentStroke = null;
         redrawCanvas();
-        sendStroke(s);
+        sendStroke(s, requestId, state.roomState.round.roundId);
       } else {
         state.currentStroke = null;
         redrawCanvas();
+      }
+      if (state.deferredRender) {
+        state.deferredRender = false;
+        render();
       }
     }
 
@@ -1140,33 +1228,22 @@
     c.addEventListener('pointerleave', (e) => { if (drawing) end(e); });
   }
 
-  async function sendStroke(s) {
-    state.pendingStrokes.push(s);
-    flushPendingStrokes();
-  }
-  async function flushPendingStrokes() {
-    if (state.sendInFlight) return;
-    if (state.pendingStrokes.length === 0) return;
-    const s = state.pendingStrokes.shift();
-    state.sendInFlight = true;
+  async function sendStroke(stroke, requestId, roundId) {
     try {
-      await api('POST', 'stroke', {
-        code: state.session.code,
-        token: state.session.playerToken,
-        stroke: s,
-      });
-    } catch (e) {
-      // 失败：从本地 strokes 撤回，提示
-      const idx = state.strokes.indexOf(s);
-      if (idx >= 0) {
-        state.strokes.splice(idx, 1);
+      const result = await enqueueMutation('stroke', { roundId, stroke }, { expectedVersion: false, requestId });
+      const pendingIndex = state.optimisticStrokes.findIndex((item) => item.requestId === requestId);
+      if (pendingIndex >= 0) state.optimisticStrokes.splice(pendingIndex, 1);
+      if (state.roomState && state.roomState.round && state.roomState.round.roundId === roundId
+          && result.strokeIndex === state.strokes.length) {
+        state.strokes.push(stroke);
         state.sinceStrokeIdx = state.strokes.length;
-        redrawCanvas();
       }
+      redrawCanvas();
+    } catch (e) {
+      const pendingIndex = state.optimisticStrokes.findIndex((item) => item.requestId === requestId);
+      if (pendingIndex >= 0) state.optimisticStrokes.splice(pendingIndex, 1);
+      redrawCanvas();
       toast(errMsg(e));
-    } finally {
-      state.sendInFlight = false;
-      if (state.pendingStrokes.length > 0) flushPendingStrokes();
     }
   }
 
@@ -1187,7 +1264,19 @@
     else if (route === '#/end') { ensurePolling(); content = viewEnd(); }
     else content = viewLanding();
 
+    const previousInput = document.getElementById('dg-chat-draft');
+    const draft = previousInput ? previousInput.value : '';
+    const hadFocus = previousInput && document.activeElement === previousInput;
+    const selectionStart = hadFocus ? previousInput.selectionStart : null;
+    const previousMessages = document.getElementById('dg-chat-messages');
+    const previousScrollTop = previousMessages ? previousMessages.scrollTop : 0;
+    const wasNearBottom = previousMessages
+      ? previousMessages.scrollHeight - previousMessages.scrollTop - previousMessages.clientHeight < 36
+      : true;
     const $view = document.getElementById('dg-view');
+    $view.classList.toggle('dg-in-room', ['#/lobby', '#/play', '#/end'].includes(route));
+    const gameWrap = $view.closest('.dg-wrap');
+    if (gameWrap) gameWrap.classList.toggle('in-session', ['#/lobby', '#/play', '#/end'].includes(route));
     $view.innerHTML = '';
     $view.appendChild(content);
 
@@ -1200,11 +1289,23 @@
       });
       state.countdownTimer = setInterval(tickCountdown, 250);
     }
+    requestAnimationFrame(() => {
+      const input = document.getElementById('dg-chat-draft');
+      if (input && !input.disabled) {
+        input.value = draft;
+        if (hadFocus) {
+          input.focus({ preventScroll: true });
+          if (selectionStart != null) input.setSelectionRange(selectionStart, selectionStart);
+        }
+      }
+      const messages = document.getElementById('dg-chat-messages');
+      if (messages) messages.scrollTop = wasNearBottom ? messages.scrollHeight : previousScrollTop;
+    });
   }
   function tickCountdown() {
     const n = document.getElementById('dg-countdown');
     if (!n || !state.roomState || !state.roomState.round) return;
-    const remain = state.roomState.round.deadlineTs - Date.now();
+    const remain = state.roomState.round.deadlineTs - (Date.now() + state.serverOffsetMs);
     const sec = Math.max(0, Math.ceil(remain / 1000));
     n.textContent = sec + 's';
     n.classList.remove('warn', 'danger');
@@ -1218,39 +1319,78 @@
   function ensurePolling() {
     if (state.polling) return;
     state.polling = true;
-    pollLoop();
+    const generation = ++state.pollGeneration;
+    pollLoop(generation);
   }
-  function stopPolling() { state.polling = false; }
+  function stopPolling() { state.polling = false; state.pollGeneration++; }
 
-  async function pollLoop() {
-    while (state.polling && state.session && state.session.playerToken) {
+  function setConnection(next) {
+    if (state.connection === next) return;
+    state.connection = next;
+    document.querySelectorAll('.dg-connection').forEach((node) => {
+      node.className = `dg-connection ${next}`;
+      node.textContent = { online: '已连接', reconnecting: '重连中…', offline: '离线' }[next] || '离线';
+    });
+  }
+
+  async function resumeSession() {
+    const session = state.session;
+    if (!session || !session.resumeSecret) return false;
+    try {
+      const response = await api('POST', 'resume', {
+        body: baseBody({
+          code: session.code,
+          playerId: session.playerId,
+          resumeSecret: session.resumeSecret,
+          requestId: Protocol.newRequestId('resume'),
+        }),
+      });
+      session.accessToken = response.accessToken;
+      state.commandVersion = Math.max(state.commandVersion, response.version || 0);
+      saveSession(session);
+      return true;
+    } catch { return false; }
+  }
+
+  async function pollLoop(generation) {
+    while (state.polling && generation === state.pollGeneration && state.session && state.session.accessToken) {
       try {
         const r = await api('GET', 'state', {
-          code: state.session.code,
-          token: state.session.playerToken,
-          since: state.lastVersion,
-          sinceStroke: state.sinceStrokeIdx,
+          token: state.session.accessToken,
+          query: {
+            protocolVersion: Protocol.VERSION,
+            code: state.session.code,
+            since: state.lastVersion,
+            sinceStroke: state.sinceStrokeIdx,
+          },
         });
+        setConnection('online');
+        if (Number.isFinite(r.serverTs)) state.serverOffsetMs = r.serverTs - Date.now();
         if (r.version > state.lastVersion) {
           state.lastVersion = r.version;
+          state.commandVersion = Math.max(state.commandVersion, r.version);
           const prev = state.roomState;
           state.roomState = r;
           applyStrokesDelta(r, prev);
           onStateUpdate(r, prev);
         }
+        if (document.hidden) await sleep(6000);
       } catch (e) {
-        if (e.status === 403 || e.status === 404) {
+        setConnection('reconnecting');
+        if (e.status === 403 && await resumeSession()) continue;
+        if (e.status === 403 || e.status === 404 || e.message === 'unsupported_protocol_version') {
           toast(errMsg(e));
           saveSession(null);
           state.session = null;
           state.roomState = null;
           state.polling = false;
           state.strokes = [];
+          state.optimisticStrokes = [];
           state.sinceStrokeIdx = 0;
           nav('#/');
           return;
         }
-        await new Promise((res) => setTimeout(res, 2500));
+        await sleep(2500);
       }
     }
   }
@@ -1258,12 +1398,14 @@
   function applyStrokesDelta(r, prev) {
     if (!r.round) {
       state.strokes = [];
+      state.optimisticStrokes = [];
       state.sinceStrokeIdx = 0;
       return;
     }
     // 回合切换：清空本地
-    if (!prev || !prev.round || prev.round.n !== r.round.n) {
+    if (!prev || !prev.round || prev.round.roundId !== r.round.roundId) {
       state.strokes = [];
+      state.optimisticStrokes = [];
       state.sinceStrokeIdx = 0;
     }
     const total = r.round.strokeCount || 0;
@@ -1328,12 +1470,23 @@
     if (r.state === 'lobby' && state.view !== '#/lobby') { nav('#/lobby'); return; }
     if (r.state === 'playing' && state.view !== '#/play') { nav('#/play'); return; }
     if (r.state === 'ended' && state.view !== '#/end') { nav('#/end'); return; }
-    render();
-    // 渲染后滚到聊天底部
-    requestAnimationFrame(() => {
-      const m = document.getElementById('dg-chat-messages');
-      if (m) m.scrollTop = m.scrollHeight;
+    const signature = JSON.stringify({
+      code: r.code, state: r.state, config: r.config, hostPlayerId: r.hostPlayerId,
+      players: r.players, me: r.me, chat: r.chat, finalScores: r.finalScores,
+      round: r.round ? {
+        n: r.round.n, roundId: r.round.roundId, drawerPid: r.round.drawerPid,
+        phase: r.round.phase, wordHint: r.round.wordHint, wordRevealed: r.round.wordRevealed,
+        correctGuessers: r.round.correctGuessers, guesserPids: r.round.guesserPids,
+      } : null,
     });
+    if (signature === state.lastUiSignature) { redrawCanvas(); return; }
+    state.lastUiSignature = signature;
+    if (state.currentStroke) {
+      state.deferredRender = true;
+      redrawCanvas();
+      return;
+    }
+    render();
   }
 
   // ====================================================================
@@ -1341,7 +1494,7 @@
   // ====================================================================
   function init() {
     const s = loadSession();
-    if (s && s.code && s.playerToken) state.session = s;
+    if (s && s.code && s.accessToken && s.resumeSecret) state.session = s;
 
     const params = new URLSearchParams(location.search);
     const roomParam = params.get('room');
@@ -1364,6 +1517,9 @@
         redrawCanvas();
       }
     });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && ['#/lobby', '#/play', '#/end'].includes(state.view)) ensurePolling();
+    });
     render();
   }
 
@@ -1372,7 +1528,7 @@
       GamesShell.Comments.mount({
         container: document.getElementById('dg-cm-mount'),
         path: '/toolbox/drawing/',
-        title: '[[zi:comment]] 玩法吐槽 / 词库求增',
+        title: '玩法吐槽 / 词库求增',
         intro: '说说你想加什么词、遇到什么 bug ~',
         placeholder: '聊聊你画我猜心得 ~',
       });
