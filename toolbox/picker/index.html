@@ -38,15 +38,8 @@ body_class: picker-page-body
           <button type="button" class="picker-button picker-button-quiet" id="bulk-cancel-btn">取消</button>
         </div>
       </div>
-      <div class="picker-weight-control">
-        <label class="picker-switch-row" for="weighted-toggle">
-          <strong>自定义权重</strong>
-          <span class="picker-switch"><input type="checkbox" id="weighted-toggle"><span aria-hidden="true"></span></span>
-        </label>
-        <div class="picker-weight-tools" id="weight-tools" hidden>
-          <button type="button" class="picker-button picker-button-quiet" id="equal-btn">[[zi:scale]] 恢复等概率</button>
-        </div>
-      </div>
+      <input type="checkbox" id="weighted-toggle" checked hidden>
+      <div class="picker-weight-control"><span class="picker-weight-inline-copy">直接拖动选项条调整权重</span><div class="picker-weight-tools" id="weight-tools"><button type="button" class="picker-button picker-button-quiet" id="equal-btn">[[zi:scale]] 恢复等概率</button></div></div>
     </section>
 
     <section class="picker-panel picker-mode-panel" aria-labelledby="mode-title">
@@ -96,7 +89,7 @@ body_class: picker-page-body
           <div class="picker-tally" id="tally" hidden></div>
           <div class="picker-result-actions">
             <button type="button" class="picker-button picker-button-primary-small" id="again-btn">[[zi:refresh]] 再转一次</button>
-            <button type="button" class="picker-button picker-button-quiet" id="copy-result-btn">[[zi:copy]] 复制结果</button>
+            <button type="button" class="picker-button picker-button-quiet" id="copy-result-btn">[[zi:copy]] 复制结果图</button>
             <button type="button" class="picker-button picker-button-quiet" id="tie-break-btn" hidden>并列项随机决胜</button>
           </div>
         </div>

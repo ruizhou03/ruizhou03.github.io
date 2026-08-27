@@ -13,7 +13,7 @@
 
   var state = {
     options: [makeOption('', 50), makeOption('', 50)],
-    weighted: false,
+    weighted: true,
     mode: 'single',
     count: 1,
     rounds: 5,
@@ -27,6 +27,7 @@
     metricView: 'weights',
     liveCounts: [],
     lastResultText: '',
+    lastExport: null,
     lastTournament: null,
     tieCandidates: [],
     metricView: 'weights',
@@ -171,6 +172,7 @@
   function clearOutcome() {
     if (state.busy) return;
     state.lastResultText = '';
+    state.lastExport = null;
     state.lastTournament = null;
     state.tieCandidates = [];
     state.liveCounts = [];
@@ -201,7 +203,7 @@
   function applyConfig(config) {
     if (!config) return false;
     state.options = config.options.map(function (option) { return makeOption(option.text, option.weight); });
-    state.weighted = !!config.weighted;
+    state.weighted = true;
     state.mode = config.mode;
     state.count = config.count;
     state.rounds = config.rounds;
@@ -456,7 +458,7 @@
     el.add.disabled = state.busy || state.options.length >= Core.MAX_OPTIONS;
     el.add.textContent = state.options.length >= Core.MAX_OPTIONS ? '已达 30 个上限' : '+ 添加选项';
     el.weighted.checked = state.weighted;
-    el.weightTools.hidden = !state.weighted;
+    el.weightTools.hidden = false;
   }
 
   function renderAll() {
@@ -645,7 +647,9 @@
     el.resultPlaceholder.hidden = true;
     el.resultCard.hidden = false;
     state.lastResultText = '抽取结果：' + name;
-    recordHistory(name, '单次抽取', { counts: options.map(function (_, optionIndex) { return optionIndex === index ? 1 : 0; }) });
+    var counts = options.map(function (_, optionIndex) { return optionIndex === index ? 1 : 0; });
+    state.lastExport = makeExportData(options, counts, '这次选中：' + name, '单次抽取');
+    recordHistory(name, '单次抽取', { counts: counts });
   }
 
   function showMultipleResult(options, indices) {
@@ -658,7 +662,9 @@
     el.resultPlaceholder.hidden = true;
     el.resultCard.hidden = false;
     state.lastResultText = '不重复抽取（' + names.length + ' 项）\n' + names.map(function (name, index) { return (index + 1) + '. ' + name; }).join('\n');
-    recordHistory(names.join('、'), '抽取 ' + names.length + ' 项', { counts: options.map(function (_, optionIndex) { return indices.indexOf(optionIndex) >= 0 ? 1 : 0; }) });
+    var counts = options.map(function (_, optionIndex) { return indices.indexOf(optionIndex) >= 0 ? 1 : 0; });
+    state.lastExport = makeExportData(options, counts, '抽出：' + names.join('、'), '不重复抽取 ' + names.length + ' 项');
+    recordHistory(names.join('、'), '抽取 ' + names.length + ' 项', { counts: counts });
   }
 
   function renderTally(options, outcome) {
@@ -702,6 +708,7 @@
       el.resultMain.innerHTML = '<strong>' + escapeHtml(name) + '</strong> 以 ' + outcome.max + ' 票胜出';
       el.tieBreak.hidden = true;
       state.lastResultText = tournamentCopyText(options, outcome);
+      state.lastExport = makeExportData(options, outcome.counts, name + ' 以 ' + outcome.max + ' 票胜出', state.rounds + ' 轮决胜');
       recordHistory(name, state.rounds + ' 轮决胜', outcome);
     } else {
       var names = outcome.tiedIndices.map(function (index) { return options[index].text; });
@@ -710,6 +717,7 @@
       state.tieCandidates = outcome.tiedIndices.slice();
       el.tieBreak.hidden = false;
       state.lastResultText = tournamentCopyText(options, outcome);
+      state.lastExport = makeExportData(options, outcome.counts, names.join('、') + ' 并列', state.rounds + ' 轮决胜');
       recordHistory(names.join('、') + '并列', state.rounds + ' 轮决胜', outcome);
     }
     el.resultPlaceholder.hidden = true;
@@ -739,6 +747,9 @@
     state.lastResultText = state.lastTournament
       ? tournamentCopyText(state.lastTournament.options, state.lastTournament.outcome, options[winnerIndex].text)
       : '并列项随机决胜：' + options[winnerIndex].text;
+    state.lastExport = state.lastTournament
+      ? makeExportData(state.lastTournament.options, state.lastTournament.outcome.counts, '最终选中：' + options[winnerIndex].text, state.rounds + ' 轮决胜')
+      : makeExportData(options, options.map(function (_, index) { return index === winnerIndex ? 1 : 0; }), '最终选中：' + options[winnerIndex].text, '并列项随机决胜');
     recordHistory(options[winnerIndex].text, '并列项随机决胜');
     state.tieCandidates = [];
   }
@@ -920,6 +931,108 @@
     area.remove();
   }
 
+  function makeExportData(options, counts, headline, modeLabel) {
+    var display = Core.displayPercentages(options);
+    return {
+      headline: headline,
+      mode: modeLabel,
+      createdAt: Date.now(),
+      options: options.map(function (option, index) {
+        return { name: option.text, weight: display[index] || 0, votes: counts[index] || 0, color: COLORS[index % COLORS.length] };
+      })
+    };
+  }
+
+  function fitCanvasText(ctx, value, maxWidth) {
+    var text = String(value || '');
+    if (ctx.measureText(text).width <= maxWidth) return text;
+    while (text.length > 1 && ctx.measureText(text + '…').width > maxWidth) text = text.slice(0, -1);
+    return text + '…';
+  }
+
+  function renderResultCanvas(data) {
+    var width = 1200;
+    var rowHeight = 92;
+    var height = 330 + data.options.length * rowHeight;
+    var canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff8d9';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#ffe552';
+    ctx.fillRect(0, 0, width, 126);
+    ctx.strokeStyle = '#17252d';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(16, 16, width - 32, height - 32);
+    ctx.fillStyle = '#17252d';
+    ctx.font = '900 30px "PingFang SC", "Noto Sans SC", sans-serif';
+    ctx.fillText('遇事不决 · 抽取结果', 58, 76);
+    ctx.font = '700 20px "PingFang SC", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(data.mode, width - 58, 74);
+    ctx.textAlign = 'left';
+    ctx.font = '900 54px "PingFang SC", "Noto Serif SC", serif';
+    ctx.fillText(fitCanvasText(ctx, data.headline, width - 116), 58, 202);
+    ctx.font = '600 19px "PingFang SC", sans-serif';
+    ctx.fillStyle = '#68747a';
+    ctx.fillText('初始选项与权重', 58, 258);
+    ctx.textAlign = 'right';
+    ctx.fillText('票数', width - 58, 258);
+    ctx.textAlign = 'left';
+    var maxVotes = Math.max.apply(null, data.options.map(function (option) { return option.votes; }).concat([1]));
+    data.options.forEach(function (option, index) {
+      var top = 286 + index * rowHeight;
+      ctx.fillStyle = option.color;
+      ctx.beginPath();
+      ctx.arc(72, top + 26, 11, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#17252d';
+      ctx.font = '800 25px "PingFang SC", sans-serif';
+      ctx.fillText(fitCanvasText(ctx, option.name, 540), 102, top + 34);
+      ctx.font = '700 20px "PingFang SC", sans-serif';
+      ctx.fillStyle = '#68747a';
+      ctx.fillText(Math.round(option.weight) + '%', 650, top + 34);
+      ctx.fillStyle = '#17252d';
+      ctx.textAlign = 'right';
+      ctx.fillText(option.votes + ' 票', width - 58, top + 34);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#e3e5e6';
+      ctx.fillRect(102, top + 52, width - 160, 14);
+      ctx.fillStyle = option.color;
+      ctx.fillRect(102, top + 52, (width - 160) * (option.votes / maxVotes), 14);
+    });
+    ctx.fillStyle = '#68747a';
+    ctx.font = '500 17px "PingFang SC", sans-serif';
+    ctx.fillText('ruizhou03.com/toolbox/picker · 数据仅保存在你的浏览器', 58, height - 52);
+    return canvas;
+  }
+
+  function canvasToBlob(canvas) {
+    return new Promise(function (resolve, reject) {
+      canvas.toBlob(function (blob) { if (blob) resolve(blob); else reject(new Error('无法生成图片')); }, 'image/png');
+    });
+  }
+
+  async function exportResultImage() {
+    if (!state.lastExport) throw new Error('没有可导出的结果');
+    var blob = await canvasToBlob(renderResultCanvas(state.lastExport));
+    if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        return 'copied';
+      } catch (_) { /* fall through to download */ }
+    }
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'picker-result-' + new Date().toISOString().slice(0, 10) + '.png';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+    return 'downloaded';
+  }
+
   async function shareConfig() {
     var hash = Core.encodeConfig(currentConfig());
     if (!hash) { toast('请先填写至少两个完整选项'); return; }
@@ -1010,7 +1123,7 @@
     var parsed = Core.parseBulk(el.bulkInput.value);
     if (parsed.names.length < 2) { toast('批量名单至少需要两个不同选项'); return; }
     state.options = parsed.names.map(function (name) { return makeOption(name, 1); });
-    state.weighted = false;
+    state.weighted = true;
     state.count = Math.min(Math.max(1, state.count), Math.max(1, state.options.length - 1));
     markChanged();
     el.bulkPanel.hidden = true;
@@ -1020,12 +1133,6 @@
     if (parsed.duplicates) notes.push('忽略 ' + parsed.duplicates + ' 个重复项');
     if (parsed.truncated) notes.push('超出上限的 ' + parsed.truncated + ' 项未加入');
     toast('已导入 ' + parsed.names.length + ' 个选项' + (notes.length ? '；' + notes.join('；') : ''));
-  });
-  el.weighted.addEventListener('change', function () {
-    state.weighted = el.weighted.checked;
-    Core.equalize(state.options);
-    markChanged();
-    renderAll();
   });
   el.equal.addEventListener('click', function () {
     Core.equalize(state.options);
@@ -1089,9 +1196,11 @@
   el.skip.addEventListener('click', function () { if (state.animationSkip) state.animationSkip(); });
   el.tieBreak.addEventListener('click', breakTie);
   el.copyResult.addEventListener('click', async function () {
-    if (!state.lastResultText) return;
-    try { await copyText(state.lastResultText); toast('结果已复制'); }
-    catch (_) { toast('复制失败，请手动选择结果'); }
+    if (!state.lastExport) return;
+    try {
+      var outcome = await exportResultImage();
+      toast(outcome === 'copied' ? '结果图片已复制' : '浏览器不支持复制图片，已下载 PNG');
+    } catch (_) { toast('生成结果图片失败'); }
   });
   el.profileNew.addEventListener('click', createProfile);
   el.profileSave.addEventListener('click', saveProfile);
