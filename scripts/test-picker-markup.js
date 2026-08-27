@@ -50,14 +50,16 @@ assert.deepEqual(pngSize(path.join(root, 'assets/images/picker-og.png')), [1200,
 
 const uiSource = fs.readFileSync(path.join(root, 'assets/js/games/picker.js'), 'utf8');
 const cssSource = fs.readFileSync(path.join(root, 'assets/css/picker.css'), 'utf8');
+const cCssSource = fs.readFileSync(path.join(root, 'assets/css/picker-c-preview.css'), 'utf8');
 assert.ok(!cssSource.includes('.picker-page::before'), 'result column must not include a decorative background 03');
-assert.ok(!cssSource.includes('body.picker-page-body:has(.picker-board[open]'), 'opening saved profiles or history must not make the page scroll');
-assert.match(cssSource, /\.picker-board\[open\] \.picker-board-body[\s\S]*?max-height:/, 'open boards must keep their content in a height-bounded internal scroller');
-assert.match(cssSource, /\.picker-board\[open\][\s\S]*?position: absolute;/, 'open boards must float without shrinking the main workspace');
-assert.ok(!cssSource.includes('.picker-page:has(.picker-board[open]) .picker-privacy'), 'opening a board must not hide surrounding page content');
-assert.ok(uiSource.includes("addEventListener('toggle', keepOneBoardOpen)"), 'archive drawers must behave as an accordion');
+assert.ok(html.includes('id="profiles-trigger"') && html.includes('id="history-trigger"'), 'archive and history must use explicit header triggers');
+assert.ok(html.includes('id="library-flyout"') && html.includes('id="library-search"'), 'library popover must include its own search field');
+assert.match(cCssSource, /\.picker-library-flyout\{[^}]*height:min\(360px/, 'library popover must remain height-bounded');
+assert.ok(uiSource.includes("openLibrary('profiles'") && uiSource.includes("openLibrary('history'"), 'both triggers must open the shared anchored popover');
+assert.ok(uiSource.includes("document.addEventListener('pointerdown'"), 'clicking outside must close the library popover');
+assert.ok(html.includes('id="rounds-custom" min="1"'), 'tournament custom rounds must allow one round');
 for (const line of uiSource.split('\n').filter(line => line.includes('lastResultText ='))) {
   assert.ok(!line.includes('[[zi:'), 'copied result text must not contain icon markers');
 }
 
-console.log(`picker markup: ${ids.length} unique ids and 28 contract checks passed`);
+console.log(`picker markup: ${ids.length} unique ids and 29 contract checks passed`);

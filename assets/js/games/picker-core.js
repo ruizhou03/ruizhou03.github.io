@@ -114,14 +114,19 @@
     }
     var maxChanged = Math.max(MIN_PERCENT, 100 - lockedTotal - MIN_PERCENT * adjustable.length);
     var nextChanged = clamp(targetPercent, MIN_PERCENT, maxChanged);
-    var adjustableTotal = adjustable.reduce(function (sum, index) { return sum + current[index]; }, 0);
     var remaining = Math.max(0, 100 - lockedTotal - nextChanged);
     list[changedIndex].weight = nextChanged;
-    adjustable.forEach(function (index) {
-      list[index].weight = adjustableTotal > 0
-        ? remaining * current[index] / adjustableTotal
-        : remaining / adjustable.length;
-    });
+    var pending = adjustable.slice();
+    while (pending.length) {
+      var adjustableTotal = pending.reduce(function (sum, index) { return sum + Math.max(0.0001, current[index]); }, 0);
+      var belowMinimum = pending.filter(function (index) { return remaining * Math.max(0.0001, current[index]) / adjustableTotal < MIN_PERCENT; });
+      if (!belowMinimum.length) {
+        pending.forEach(function (index) { list[index].weight = remaining * Math.max(0.0001, current[index]) / adjustableTotal; });
+        break;
+      }
+      belowMinimum.forEach(function (index) { list[index].weight = MIN_PERCENT; remaining -= MIN_PERCENT; });
+      pending = pending.filter(function (index) { return belowMinimum.indexOf(index) < 0; });
+    }
     list.forEach(function (option, index) {
       if (index !== changedIndex && option.locked) option.weight = current[index];
     });
@@ -208,7 +213,7 @@
     var mode = ['single', 'multiple', 'tournament'].indexOf(source.mode) >= 0 ? source.mode : 'single';
     var maxCount = Math.max(1, options.length - 1);
     var count = Math.max(1, Math.min(maxCount, Math.floor(Number(source.count) || 1)));
-    var rounds = Math.max(3, Math.min(1000, Math.floor(Number(source.rounds) || 5)));
+    var rounds = Math.max(1, Math.min(1000, Math.floor(Number(source.rounds) || 5)));
     var weighted = source.weighted !== false;
     if (!weighted) equalize(options);
     return {

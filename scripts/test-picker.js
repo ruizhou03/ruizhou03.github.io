@@ -66,6 +66,7 @@ const cappedConfig = Core.normalizeConfig({
   count: 99
 });
 assert.equal(cappedConfig.count, 2);
+assert.equal(Core.normalizeConfig({ options: [option('甲', 1), option('乙', 1)], mode: 'tournament', rounds: 1 }).rounds, 1);
 
 const legacy = Core.decodeHash('#options=' + encodeURIComponent('甲') + ':50,' + encodeURIComponent('乙') + ':50&draws=5');
 assert.equal(legacy.mode, 'tournament');
@@ -74,4 +75,4 @@ assert.equal(legacy.rounds, 5);
 assert.equal(Core.contrastText('#b89252'), '#1a1a2e');
 assert.equal(Core.contrastText('#1e3a5f'), '#ffffff');
 
-console.log('picker core: 19 assertions passed');
+console.log('picker core: 20 assertions passed');

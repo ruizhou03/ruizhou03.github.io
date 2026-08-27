@@ -24,12 +24,19 @@
     dirty: false,
     history: [],
     historyVisible: 10,
+    metricView: 'weights',
+    liveCounts: [],
     lastResultText: '',
     lastTournament: null,
     tieCandidates: [],
+    metricView: 'weights',
+    liveCounts: [],
     animationSkip: null,
     pendingHash: false
   };
+
+  var libraryCloseTimer = 0;
+  var currentLibrary = '';
 
   var el = {
     app: byId('picker-app'),
@@ -65,19 +72,28 @@
     again: byId('again-btn'),
     copyResult: byId('copy-result-btn'),
     tieBreak: byId('tie-break-btn'),
-    profilesBoard: byId('profiles-board'),
+    metricSwitch: byId('metric-switch'),
+    metricLabel: byId('option-metric-label'),
+    profilesTrigger: byId('profiles-trigger'),
     profileCount: byId('profile-count'),
     profileEmpty: byId('profile-empty'),
     profileList: byId('profile-list'),
     profileNew: byId('profile-new-btn'),
     profileSave: byId('profile-save-btn'),
     share: byId('share-btn'),
-    historyBoard: byId('history-board'),
+    historyTrigger: byId('history-trigger'),
     historyCount: byId('history-count'),
     historyEmpty: byId('history-empty'),
     historyList: byId('history-list'),
     historyMore: byId('history-more-btn'),
     historyClear: byId('history-clear-btn'),
+    libraryFlyout: byId('library-flyout'),
+    libraryTitle: byId('library-title'),
+    librarySearch: byId('library-search'),
+    libraryClose: byId('library-close'),
+    libraryContent: byId('library-content'),
+    profilesPanel: byId('profiles-panel'),
+    historyPanel: byId('history-panel'),
     toast: byId('picker-toast')
   };
 
@@ -87,6 +103,9 @@
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function lockIcon() {
+    return '<svg class="picker-lock-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="picker-lock-shackle-closed" d="M8 10V7a4 4 0 0 1 8 0v3"></path><path class="picker-lock-shackle-open" d="M8 10V7a4 4 0 0 1 7-2.6"></path><rect x="5" y="10" width="14" height="11" rx="2"></rect><path d="M12 14v3"></path></svg>';
   }
 
   var viewportFitFrame = 0;
@@ -154,13 +173,16 @@
     state.lastResultText = '';
     state.lastTournament = null;
     state.tieCandidates = [];
+    state.liveCounts = [];
+    state.metricView = 'weights';
     el.resultPlaceholder.hidden = false;
-    el.resultPlaceholder.textContent = '转动之后，答案会落在这里。';
+    el.resultPlaceholder.textContent = '转一下，答案就会出现。';
     el.resultCard.hidden = true;
     el.tieBreak.hidden = true;
     el.tally.hidden = true;
     el.tally.innerHTML = '';
     clearHighlights();
+    renderMetricState();
   }
 
   function currentConfig() {
@@ -238,11 +260,12 @@
         '<span class="picker-option-marker" aria-hidden="true"><span class="picker-option-chip" style="background:' + color + '"></span><small>' + String(index + 1).padStart(2, '0') + '</small></span>' +
         '<input class="picker-option-input" type="text" maxlength="' + Core.MAX_NAME_LENGTH + '" value="' + escapeHtml(option.text) + '" placeholder="选项 ' + (index + 1) + '" aria-label="选项 ' + (index + 1) + '">' +
         '<button type="button" class="picker-option-delete" aria-label="删除' + (option.text ? '“' + escapeHtml(option.text) + '”' : '选项 ' + (index + 1)) + '"' + (state.options.length <= 2 ? ' disabled' : '') + '>[[zi:trash]]</button>' +
-        '<div class="picker-weight-row"' + (state.weighted ? '' : ' hidden') + '>' +
+        '<div class="picker-weight-row"' + (state.weighted && state.metricView === 'weights' ? '' : ' hidden') + '>' +
           '<input class="picker-weight-range" type="range" min="1" max="99" step="1" value="' + display[index] + '" aria-label="' + escapeHtml(option.text || ('选项 ' + (index + 1))) + '的概率"' + (option.locked ? ' disabled' : '') + '>' +
           '<span class="picker-percent-wrap"><input class="picker-percent-input" type="number" min="1" max="99" step="1" inputmode="numeric" value="' + display[index] + '" aria-label="' + escapeHtml(option.text || ('选项 ' + (index + 1))) + '的概率百分比"' + (option.locked ? ' disabled' : '') + '></span>' +
-          '<button type="button" class="picker-option-lock" aria-pressed="' + (option.locked ? 'true' : 'false') + '" aria-label="' + (option.locked ? '解除概率锁定' : '锁定当前概率') + '" title="' + (option.locked ? '已锁定，点击解除' : '锁定后调整其他项不会改变它') + '">[[zi:lock]]</button>' +
-        '</div>';
+          '<button type="button" class="picker-option-lock" aria-pressed="' + (option.locked ? 'true' : 'false') + '" aria-label="' + (option.locked ? '解除概率锁定' : '锁定当前概率') + '" title="' + (option.locked ? '已锁定，点击解除' : '锁定后调整其他项不会改变它') + '">' + lockIcon() + '</button>' +
+        '</div>' +
+        '<div class="picker-live-row"' + (state.metricView === 'votes' ? '' : ' hidden') + '><span class="picker-live-track"><span class="picker-live-fill"></span></span><strong class="picker-live-count">0 票</strong></div>';
 
       var nameInput = row.querySelector('.picker-option-input');
       var deleteButton = row.querySelector('.picker-option-delete');
@@ -292,7 +315,9 @@
       });
       el.list.appendChild(row);
     });
-    el.optionCount.textContent = state.options.length + ' / ' + Core.MAX_OPTIONS;
+    el.optionCount.textContent = state.options.length + ' 项';
+    renderMetricState();
+    if (state.busy) el.list.querySelectorAll('input,button').forEach(function (control) { control.disabled = true; });
   }
 
   function focusNextOption(index) {
@@ -329,6 +354,33 @@
       if (number !== exceptElement && document.activeElement !== number) number.value = display[index];
       if (index === exceptIndex && exceptElement === number) range.value = display[index];
     });
+  }
+
+  function updateLiveVotes(counts) {
+    state.liveCounts = (counts || []).slice();
+    var max = Math.max.apply(null, state.liveCounts.concat([1]));
+    el.list.querySelectorAll('.picker-option').forEach(function (row, index) {
+      var count = state.liveCounts[index] || 0;
+      var fill = row.querySelector('.picker-live-fill');
+      var label = row.querySelector('.picker-live-count');
+      if (fill) fill.style.width = (count / max * 100).toFixed(1) + '%';
+      if (label) label.textContent = count + ' 票';
+      row.classList.toggle('is-leading', count > 0 && count === max);
+    });
+  }
+
+  function renderMetricState() {
+    var tournament = state.mode === 'tournament';
+    var hasVotes = state.busy || !!state.lastTournament || state.liveCounts.some(function (count) { return count > 0; });
+    el.metricSwitch.hidden = !tournament;
+    if (!tournament) state.metricView = 'weights';
+    el.metricSwitch.querySelectorAll('[data-metric]').forEach(function (button) {
+      var active = button.dataset.metric === state.metricView;
+      button.classList.toggle('is-active', active);
+      button.disabled = state.busy || (button.dataset.metric === 'votes' && !hasVotes);
+    });
+    el.metricLabel.textContent = state.metricView === 'votes' ? '每轮落定后立即更新' : '拖动时，其他未锁定项按比例调整';
+    if (state.metricView === 'votes') updateLiveVotes(state.liveCounts);
   }
 
   function renderWheel(options) {
@@ -393,6 +445,7 @@
     if (state.mode === 'single') el.spin.innerHTML = '[[zi:shuffle]] 开始抽取';
     if (state.mode === 'multiple') el.spin.innerHTML = '[[zi:shuffle]] 抽出 ' + state.count + ' 项';
     if (state.mode === 'tournament') el.spin.innerHTML = '[[zi:trophy]] 进行 ' + state.rounds + ' 轮';
+    renderMetricState();
   }
 
   function updateControls() {
@@ -442,13 +495,16 @@
     return start + width * (0.16 + Core.secureRandom() * 0.68);
   }
 
-  function animateToIndex(options, index) {
+  function animateToIndex(options, index, settings) {
     return new Promise(function (resolve) {
+      var config = settings || {};
+      var duration = Math.max(120, Number(config.duration) || 2350);
+      var turns = Math.max(1, Number(config.turns) || 5);
       var theta = angleForIndex(options, index);
       var current = ((state.rotation % 360) + 360) % 360;
       var desired = ((360 - theta) % 360 + 360) % 360;
       var delta = ((desired - current) % 360 + 360) % 360;
-      var target = state.rotation + 5 * 360 + delta;
+      var target = state.rotation + turns * 360 + delta;
       state.rotation = target;
       var finished = false;
       var safety;
@@ -474,9 +530,10 @@
       el.skip.hidden = false;
       el.wheel.addEventListener('transitionend', onEnd);
       void el.wheel.offsetWidth;
+      el.wheel.style.transitionDuration = duration + 'ms';
       el.wheel.classList.add('is-spinning');
       el.wheel.style.transform = 'rotate(' + target + 'deg)';
-      safety = setTimeout(finish, 2800);
+      safety = setTimeout(finish, duration + 450);
       if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) state.animationSkip();
     });
   }
@@ -485,7 +542,7 @@
     state.busy = busy;
     el.editor.setAttribute('aria-busy', busy ? 'true' : 'false');
     el.modePanel.setAttribute('aria-busy', busy ? 'true' : 'false');
-    el.app.querySelectorAll('.picker-editor input, .picker-editor textarea, .picker-editor button, .picker-mode-panel input, .picker-mode-panel button:not(#skip-btn), .picker-board button').forEach(function (control) {
+    el.app.querySelectorAll('.picker-editor input, .picker-editor textarea, .picker-editor button, .picker-mode-panel input, .picker-mode-panel button:not(#skip-btn), .picker-library-flyout button, .picker-library-triggers button').forEach(function (control) {
       control.disabled = busy;
     });
     el.spin.disabled = busy;
@@ -510,6 +567,35 @@
     return options;
   }
 
+  async function animateTournamentSequence(options, outcome) {
+    var sequence = outcome.sequence || [];
+    var live = options.map(function () { return 0; });
+    state.metricView = 'votes';
+    state.lastTournament = null;
+    updateLiveVotes(live);
+    renderOptions();
+    if (state.rounds <= 5) {
+      for (var round = 0; round < sequence.length; round += 1) {
+        el.status.textContent = '第 ' + (round + 1) + ' / ' + state.rounds + ' 轮';
+        await animateToIndex(options, sequence[round], { duration: 900, turns: 3 });
+        live[sequence[round]] += 1;
+        updateLiveVotes(live);
+      }
+      return;
+    }
+    var frames = Math.min(sequence.length, 12);
+    var batch = Math.ceil(sequence.length / frames);
+    var completed = 0;
+    for (var frame = 0; frame < frames; frame += 1) {
+      var end = Math.min(sequence.length, completed + batch);
+      el.status.textContent = '已完成 ' + end + ' / ' + state.rounds + ' 轮';
+      await animateToIndex(options, sequence[end - 1], { duration: Math.max(150, 285 - frames * 7), turns: 2 });
+      for (var item = completed; item < end; item += 1) live[sequence[item]] += 1;
+      completed = end;
+      updateLiveVotes(live);
+    }
+  }
+
   async function draw() {
     if (state.busy) return;
     var options = drawSnapshot();
@@ -519,6 +605,9 @@
       if (blank) blank.focus();
       return;
     }
+    state.lastTournament = null;
+    state.liveCounts = [];
+    if (state.mode !== 'tournament') state.metricView = 'weights';
     setBusy(true);
     clearHighlights();
     el.resultPlaceholder.hidden = false;
@@ -527,19 +616,16 @@
     el.status.textContent = '正在抽取…';
 
     var outcome;
-    var animationIndex;
     if (state.mode === 'single') {
       outcome = { indices: [Core.weightedChoice(options)] };
-      animationIndex = outcome.indices[0];
     } else if (state.mode === 'multiple') {
       outcome = { indices: Core.weightedSampleWithoutReplacement(options, state.count) };
-      animationIndex = outcome.indices[0];
     } else {
       outcome = Core.runTournament(options, state.rounds);
-      animationIndex = outcome.sequence[outcome.sequence.length - 1];
     }
 
-    await animateToIndex(options, animationIndex);
+    if (state.mode === 'tournament') await animateTournamentSequence(options, outcome);
+    else await animateToIndex(options, outcome.indices[0]);
     var hadPendingHash = state.pendingHash;
     setBusy(false);
     if (hadPendingHash) return;
@@ -559,7 +645,7 @@
     el.resultPlaceholder.hidden = true;
     el.resultCard.hidden = false;
     state.lastResultText = '抽取结果：' + name;
-    recordHistory(name, '抽一个');
+    recordHistory(name, '单次抽取', { counts: options.map(function (_, optionIndex) { return optionIndex === index ? 1 : 0; }) });
   }
 
   function showMultipleResult(options, indices) {
@@ -572,7 +658,7 @@
     el.resultPlaceholder.hidden = true;
     el.resultCard.hidden = false;
     state.lastResultText = '不重复抽取（' + names.length + ' 项）\n' + names.map(function (name, index) { return (index + 1) + '. ' + name; }).join('\n');
-    recordHistory(names.join('、'), '不重复抽出 ' + names.length + ' 项');
+    recordHistory(names.join('、'), '抽取 ' + names.length + ' 项', { counts: options.map(function (_, optionIndex) { return indices.indexOf(optionIndex) >= 0 ? 1 : 0; }) });
   }
 
   function renderTally(options, outcome) {
@@ -616,7 +702,7 @@
       el.resultMain.innerHTML = '<strong>' + escapeHtml(name) + '</strong> 以 ' + outcome.max + ' 票胜出';
       el.tieBreak.hidden = true;
       state.lastResultText = tournamentCopyText(options, outcome);
-      recordHistory(name, state.rounds + ' 轮决胜 · ' + outcome.max + ' 票');
+      recordHistory(name, state.rounds + ' 轮决胜', outcome);
     } else {
       var names = outcome.tiedIndices.map(function (index) { return options[index].text; });
       highlightIndices(outcome.tiedIndices);
@@ -624,7 +710,7 @@
       state.tieCandidates = outcome.tiedIndices.slice();
       el.tieBreak.hidden = false;
       state.lastResultText = tournamentCopyText(options, outcome);
-      recordHistory(names.join('、') + '并列', state.rounds + ' 轮决胜 · ' + outcome.max + ' 票');
+      recordHistory(names.join('、') + '并列', state.rounds + ' 轮决胜', outcome);
     }
     el.resultPlaceholder.hidden = true;
     el.resultCard.hidden = false;
@@ -657,8 +743,17 @@
     state.tieCandidates = [];
   }
 
-  function recordHistory(result, detail) {
-    state.history.unshift({ ts: Date.now(), result: result, detail: detail });
+  function recordHistory(result, detail, outcome) {
+    var config = Core.normalizeConfig(currentConfig());
+    var profile = state.profiles.find(function (item) { return item.id === state.currentProfileId; });
+    state.history.unshift({
+      ts: Date.now(),
+      result: result,
+      detail: detail,
+      profileName: profile ? profile.name : '',
+      config: config,
+      counts: outcome && Array.isArray(outcome.counts) ? outcome.counts.slice() : []
+    });
     state.history = state.history.slice(0, HISTORY_MAX);
     state.historyVisible = Math.max(10, state.historyVisible);
     writeStorage(HISTORY_KEY, state.history);
@@ -669,13 +764,38 @@
     el.historyCount.textContent = String(state.history.length);
     el.historyEmpty.hidden = state.history.length > 0;
     var visible = state.history.slice(0, state.historyVisible);
-    el.historyList.innerHTML = visible.map(function (item) {
+    el.historyList.innerHTML = visible.map(function (item, index) {
       var date = new Date(item.ts);
       var time = String(date.getMonth() + 1).padStart(2, '0') + '/' + String(date.getDate()).padStart(2, '0') + ' ' + String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
-      return '<div class="picker-history-item"><span class="picker-history-result" title="' + escapeHtml(item.result) + '">' + escapeHtml(item.result) + '</span><span class="picker-history-meta">' + escapeHtml(item.detail || '') + ' · ' + time + '</span></div>';
+      var config = Core.normalizeConfig(item.config);
+      var optionCount = config ? config.options.length : 0;
+      var mode = String(item.detail || '历史记录').replace(/\s+/g, '');
+      var search = [item.result, item.profileName].concat(config ? config.options.map(function (option) { return option.text; }) : []).join(' ').toLowerCase();
+      var counts = Array.isArray(item.counts) ? item.counts : [];
+      var total = counts.reduce(function (sum, count) { return sum + count; }, 0);
+      var bars = total && config ? counts.map(function (count, barIndex) { return '<i style="width:' + (count / total * 100).toFixed(1) + '%;background:' + COLORS[barIndex % COLORS.length] + '"></i>'; }).join('') : '<i style="width:100%;background:' + COLORS[0] + '"></i>';
+      return '<button type="button" class="picker-history-item" data-history-index="' + index + '" data-search-text="' + escapeHtml(search) + '"><span><strong>' + escapeHtml(item.result) + '</strong><small>' + time + '</small></span><em>' + escapeHtml(mode) + (optionCount ? '（共' + optionCount + '项备选）' : '') + '</em><span class="picker-history-mini">' + bars + '</span></button>';
     }).join('');
+    el.historyList.querySelectorAll('[data-history-index]').forEach(function (button) {
+      button.addEventListener('click', function () { showHistoryDetail(state.history[Number(button.dataset.historyIndex)]); });
+    });
     el.historyMore.hidden = state.historyVisible >= state.history.length;
     el.historyClear.hidden = state.history.length === 0;
+  }
+
+  function showHistoryDetail(item) {
+    if (!item) return;
+    var config = Core.normalizeConfig(item.config);
+    if (!config) { toast('这条旧记录没有保存完整设置'); return; }
+    var display = Core.displayPercentages(config.options);
+    var counts = Array.isArray(item.counts) ? item.counts : config.options.map(function () { return 0; });
+    var maxVotes = Math.max.apply(null, counts.concat([1]));
+    el.libraryFlyout.classList.add('is-detail');
+    el.historyList.innerHTML = '<div class="picker-library-detail"><button type="button" class="picker-library-back" data-history-back>‹ <span>历史列表</span></button><div class="picker-library-detail-head"><strong>' + escapeHtml(item.result) + '</strong><span>' + escapeHtml(item.detail || '') + '</span></div><div class="picker-library-legend"><span><i class="weight"></i>当时权重</span><span><i class="votes"></i>最终票数</span></div>' + config.options.map(function (option, index) {
+      return '<div class="picker-library-option"><strong>' + escapeHtml(option.text) + '</strong><span>' + Math.round(display[index]) + '%</span><b>' + (counts[index] || 0) + ' 票</b><div><span><i class="weight" style="width:' + display[index].toFixed(1) + '%"></i></span><span><i class="votes" style="width:' + ((counts[index] || 0) / maxVotes * 100).toFixed(1) + '%"></i></span></div></div>';
+    }).join('') + '<div class="picker-library-detail-actions"><button type="button" data-history-reuse>↗ 复用这组设置</button></div></div>';
+    el.historyList.querySelector('[data-history-back]').addEventListener('click', function () { el.libraryFlyout.classList.remove('is-detail'); renderHistory(); applyLibrarySearch(); });
+    el.historyList.querySelector('[data-history-reuse]').addEventListener('click', function () { applyConfig(config); closeLibrary(); toast('已载入历史设置'); });
   }
 
   function renderProfiles() {
@@ -683,18 +803,33 @@
     el.profileEmpty.hidden = state.profiles.length > 0;
     el.profileList.innerHTML = '';
     state.profiles.forEach(function (profile) {
-      var row = document.createElement('div');
-      row.className = 'picker-profile' + (profile.id === state.currentProfileId ? ' is-current' : '');
       var config = Core.normalizeConfig(profile.config);
-      row.innerHTML = '<span class="picker-profile-name" title="' + escapeHtml(profile.name) + '">' + escapeHtml(profile.name) + '</span>' +
-        '<span class="picker-profile-meta">' + (config ? config.options.length : 0) + ' 项</span>' +
-        '<span class="picker-profile-actions"><button type="button" data-action="load">调取</button><button type="button" data-action="rename" aria-label="重命名">[[zi:pencil]]</button><button type="button" data-action="delete" aria-label="删除">[[zi:trash]]</button></span>';
-      row.querySelector('[data-action="load"]').addEventListener('click', function () { loadProfile(profile.id); });
-      row.querySelector('[data-action="rename"]').addEventListener('click', function () { renameProfile(profile.id); });
-      row.querySelector('[data-action="delete"]').addEventListener('click', function () { deleteProfile(profile.id); });
+      if (!config) return;
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'picker-profile' + (profile.id === state.currentProfileId ? ' is-current' : '');
+      row.dataset.searchText = [profile.name].concat(config.options.map(function (option) { return option.text; })).join(' ').toLowerCase();
+      var display = Core.displayPercentages(config.options);
+      var mode = config.mode === 'tournament' ? config.rounds + '轮决胜' : (config.mode === 'multiple' ? '抽取' + config.count + '项' : '单次抽取');
+      row.innerHTML = '<span><strong>' + escapeHtml(profile.name) + '</strong><small>' + mode + '（共' + config.options.length + '项备选）</small></span><span class="picker-profile-mini">' + display.map(function (pct, index) { return '<i style="width:' + pct.toFixed(1) + '%;background:' + COLORS[index % COLORS.length] + '"></i>'; }).join('') + '</span>';
+      row.addEventListener('click', function () { showProfileDetail(profile); });
       el.profileList.appendChild(row);
     });
     renderProfileSaveState();
+  }
+
+  function showProfileDetail(profile) {
+    var config = profile && Core.normalizeConfig(profile.config);
+    if (!config) return;
+    var display = Core.displayPercentages(config.options);
+    el.libraryFlyout.classList.add('is-detail');
+    el.profileList.innerHTML = '<div class="picker-library-detail"><button type="button" class="picker-library-back" data-profile-back>‹ <span>档案列表</span></button><div class="picker-library-detail-head"><strong>' + escapeHtml(profile.name) + '</strong><span>' + config.options.length + ' 项</span></div><div class="picker-library-legend"><span><i class="weight"></i>档案权重</span></div>' + config.options.map(function (option, index) {
+      return '<div class="picker-library-option"><strong>' + escapeHtml(option.text) + '</strong><span>' + Math.round(display[index]) + '%</span><b></b><div><span><i class="weight" style="width:' + display[index].toFixed(1) + '%"></i></span></div></div>';
+    }).join('') + '<div class="picker-library-detail-actions"><button type="button" data-profile-load>↗ 载入这份档案</button><button type="button" data-profile-rename>重命名</button><button type="button" class="is-danger" data-profile-delete>删除</button></div></div>';
+    el.profileList.querySelector('[data-profile-back]').addEventListener('click', function () { el.libraryFlyout.classList.remove('is-detail'); renderProfiles(); applyLibrarySearch(); });
+    el.profileList.querySelector('[data-profile-load]').addEventListener('click', function () { loadProfile(profile.id); closeLibrary(); });
+    el.profileList.querySelector('[data-profile-rename]').addEventListener('click', function () { renameProfile(profile.id); renderProfiles(); });
+    el.profileList.querySelector('[data-profile-delete]').addEventListener('click', function () { deleteProfile(profile.id); renderProfiles(); });
   }
 
   function renderProfileSaveState() {
@@ -806,6 +941,57 @@
     return true;
   }
 
+  function applyLibrarySearch() {
+    var query = el.librarySearch.value.trim().toLowerCase();
+    var scope = currentLibrary === 'profiles' ? el.profileList : el.historyList;
+    if (!scope) return;
+    scope.querySelectorAll('[data-search-text]').forEach(function (item) {
+      item.hidden = !!query && item.dataset.searchText.indexOf(query) < 0;
+    });
+  }
+
+  function closeLibrary() {
+    if (el.libraryFlyout.hidden) return;
+    clearTimeout(libraryCloseTimer);
+    el.libraryFlyout.classList.remove('is-open');
+    el.libraryFlyout.classList.add('is-closing');
+    el.profilesTrigger.setAttribute('aria-expanded', 'false');
+    el.historyTrigger.setAttribute('aria-expanded', 'false');
+    libraryCloseTimer = setTimeout(function () {
+      el.libraryFlyout.classList.remove('is-closing', 'is-detail');
+      el.libraryFlyout.hidden = true;
+      currentLibrary = '';
+    }, 190);
+  }
+
+  function openLibrary(kind, trigger) {
+    if (!el.libraryFlyout.hidden && currentLibrary === kind && el.libraryFlyout.classList.contains('is-open')) { closeLibrary(); return; }
+    clearTimeout(libraryCloseTimer);
+    currentLibrary = kind;
+    el.libraryFlyout.hidden = false;
+    el.libraryFlyout.classList.remove('is-closing', 'is-detail');
+    el.libraryTitle.textContent = kind === 'profiles' ? '我的档案' : '抽取历史';
+    el.librarySearch.value = '';
+    el.librarySearch.placeholder = kind === 'profiles' ? '搜索档案或选项' : '搜索结果或选项';
+    el.librarySearch.setAttribute('aria-label', kind === 'profiles' ? '搜索档案' : '搜索抽取历史');
+    el.profilesPanel.hidden = kind !== 'profiles';
+    el.historyPanel.hidden = kind !== 'history';
+    if (kind === 'profiles') renderProfiles(); else renderHistory();
+    var appRect = el.app.getBoundingClientRect();
+    var editorRect = el.editor.getBoundingClientRect();
+    var triggerRect = trigger.getBoundingClientRect();
+    var rightGap = 14;
+    var breathingGap = 12;
+    var width = Math.max(340, appRect.right - rightGap - (editorRect.left + breathingGap));
+    var left = appRect.right - rightGap - width;
+    var caret = Math.max(24, Math.min(width - 24, triggerRect.left + triggerRect.width / 2 - left));
+    el.libraryFlyout.style.width = width + 'px';
+    el.libraryFlyout.style.setProperty('--picker-library-caret-x', caret + 'px');
+    requestAnimationFrame(function () { el.libraryFlyout.classList.add('is-open'); });
+    el.profilesTrigger.setAttribute('aria-expanded', kind === 'profiles' ? 'true' : 'false');
+    el.historyTrigger.setAttribute('aria-expanded', kind === 'history' ? 'true' : 'false');
+  }
+
   el.add.addEventListener('click', function () { addOption(true); });
   el.bulkToggle.addEventListener('click', function () {
     var open = el.bulkPanel.hidden;
@@ -851,8 +1037,11 @@
     var button = event.target.closest('[data-mode]');
     if (!button || state.busy || button.dataset.mode === state.mode) return;
     state.mode = button.dataset.mode;
+    state.metricView = 'weights';
+    state.liveCounts = [];
     markChanged();
     renderMode();
+    renderOptions();
   });
   function syncMultipleCount() {
     var maxMultiple = Math.max(1, state.options.length - 1);
@@ -874,10 +1063,26 @@
     markChanged();
     renderMode();
   });
-  el.roundsCustom.addEventListener('change', function () {
-    state.rounds = Math.max(3, Math.min(1000, Number(el.roundsCustom.value) || 5));
+  el.roundsCustom.addEventListener('input', function () {
+    var value = Number(el.roundsCustom.value);
+    if (!Number.isInteger(value) || value < 1 || value > 1000) return;
+    state.rounds = value;
     markChanged();
     renderMode();
+  });
+  el.roundsCustom.addEventListener('blur', function () {
+    if (el.roundsCustom.value === '') return;
+    state.rounds = Math.max(1, Math.min(1000, Number(el.roundsCustom.value) || 5));
+    el.roundsCustom.value = String(state.rounds);
+    markChanged();
+    renderMode();
+  });
+  el.metricSwitch.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-metric]');
+    if (!button || button.disabled) return;
+    state.metricView = button.dataset.metric;
+    renderOptions();
+    if (state.metricView === 'weights') el.spin.innerHTML = '[[zi:trophy]] 按新权重进行 ' + state.rounds + ' 轮';
   });
   el.spin.addEventListener('click', draw);
   el.again.addEventListener('click', draw);
@@ -899,18 +1104,18 @@
     renderHistory();
     toast('抽取历史已清空');
   });
-  function keepOneBoardOpen(event) {
-    if (!event.currentTarget.open) return;
-    [el.profilesBoard, el.historyBoard].forEach(function (board) {
-      if (board !== event.currentTarget) board.open = false;
-    });
-  }
-  el.profilesBoard.addEventListener('toggle', keepOneBoardOpen);
-  el.historyBoard.addEventListener('toggle', keepOneBoardOpen);
+  el.profilesTrigger.addEventListener('click', function () { openLibrary('profiles', el.profilesTrigger); });
+  el.historyTrigger.addEventListener('click', function () { openLibrary('history', el.historyTrigger); });
+  el.libraryClose.addEventListener('click', closeLibrary);
+  el.librarySearch.addEventListener('input', applyLibrarySearch);
+  document.addEventListener('pointerdown', function (event) {
+    if (el.libraryFlyout.hidden) return;
+    if (el.libraryFlyout.contains(event.target) || event.target.closest('[data-library]')) return;
+    closeLibrary();
+  });
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && (el.profilesBoard.open || el.historyBoard.open)) {
-      el.profilesBoard.open = false;
-      el.historyBoard.open = false;
+    if (event.key === 'Escape' && !el.libraryFlyout.hidden) {
+      closeLibrary();
       return;
     }
     if (event.code !== 'Space' || state.busy) return;

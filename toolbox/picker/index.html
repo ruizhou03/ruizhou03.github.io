@@ -8,23 +8,22 @@ body_class: picker-page-body
 ---
 
 <link rel="stylesheet" href="/assets/css/picker.css?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="/assets/css/picker-c-preview.css?v={{ site.time | date: '%s' }}">
 
-<article class="picker-page" id="picker-app">
+<article class="picker-page picker-c-page" id="picker-app">
   <header class="picker-hero">
-    <span class="picker-edition-mark" aria-hidden="true">03</span>
-    <div class="picker-hero-copy">
-      <p class="picker-kicker">DECISION EDITION</p>
-      <h1>遇事不决</h1>
-      <p class="picker-subtitle">把犹豫写下来，其余交给概率。</p>
+    <div class="picker-c-brand">
+      <strong>遇事不决</strong>
+      <span>PLAYFUL DECISION MAKER</span>
     </div>
-    <p class="picker-hero-index"><span>01</span> 选项　<span>02</span> 方式　<span>03</span> 答案</p>
+    <p class="picker-subtitle">转盘位置固定 · 右侧实时计票</p>
   </header>
 
   <div class="picker-workspace">
     <section class="picker-panel picker-editor" aria-labelledby="options-title">
       <div class="picker-panel-head">
-        <div><p class="picker-step">01 · OPTIONS</p><h2 id="options-title">准备选项</h2></div>
-        <span class="picker-option-count" id="option-count">2 / 30</span>
+        <div><p class="picker-step">LIVE OPTIONS</p><h2 id="options-title">你的选项</h2><small class="picker-option-metric-label" id="option-metric-label">拖动时，其他未锁定项按比例调整</small></div>
+        <div class="picker-option-tools"><span class="picker-option-count" id="option-count">2 项</span><div class="picker-metric-switch" id="metric-switch" hidden><button type="button" class="is-active" data-metric="weights">调权重</button><button type="button" data-metric="votes">看票数</button></div></div>
       </div>
       <div class="picker-list" id="options-list"></div>
       <div class="picker-editor-actions">
@@ -51,8 +50,9 @@ body_class: picker-page-body
     </section>
 
     <section class="picker-panel picker-mode-panel" aria-labelledby="mode-title">
+      <div class="picker-c-manifesto"><span>今天要决定什么？</span><h1>遇事不决。<br><em>转盘解决。</em></h1></div>
       <div class="picker-panel-head">
-        <div><p class="picker-step">02 · MODE</p><h2 id="mode-title">抽取方式</h2></div>
+        <div><p class="picker-step">CHOOSE A MODE</p><h2 id="mode-title">怎么抽？</h2></div>
       </div>
       <fieldset class="picker-mode-fieldset">
         <legend class="sr-only">选择抽取方式</legend>
@@ -70,10 +70,10 @@ body_class: picker-page-body
         <div class="picker-round-presets" id="round-presets">
           <button type="button" data-rounds="3">3</button><button type="button" class="is-active" data-rounds="5">5</button><button type="button" data-rounds="10">10</button>
         </div>
-        <label class="picker-round-custom" for="rounds-custom"><input type="number" id="rounds-custom" min="3" max="1000" placeholder="自定义" inputmode="numeric" aria-label="自定义轮数，3 到 1000"><span>轮</span></label>
+        <label class="picker-round-custom" for="rounds-custom"><input type="number" id="rounds-custom" min="1" max="1000" placeholder="自定义" inputmode="numeric" aria-label="自定义轮数，1 到 1000"><span>轮</span></label>
       </div>
       <div class="picker-action-dock">
-        <button type="button" class="picker-spin" id="spin-btn">[[zi:shuffle]] 开始抽取</button>
+        <button type="button" class="picker-spin" id="spin-btn">[[zi:shuffle]] 转起来！</button>
         <button type="button" class="picker-skip" id="skip-btn" hidden>跳过动画</button>
         <p class="picker-shortcut">SPACE · 快速抽取</p>
       </div>
@@ -82,20 +82,20 @@ body_class: picker-page-body
 
     <section class="picker-panel picker-draw" aria-labelledby="draw-title">
       <div class="picker-panel-head picker-draw-head">
-        <div><p class="picker-step">03 · RESULT</p><h2 id="draw-title">让转盘决定</h2></div>
+        <div><p class="picker-step">LET IT SPIN</p><h2 id="draw-title">答案在这里</h2></div>
       </div>
       <div class="picker-wheel-wrap">
         <div class="picker-pointer" aria-hidden="true"></div>
         <svg class="picker-wheel" id="wheel" viewBox="0 0 240 240" role="img" aria-labelledby="wheel-title wheel-desc"><title id="wheel-title">随机抽取转盘</title><desc id="wheel-desc">转盘扇区对应左侧选项和概率</desc></svg>
       </div>
       <div class="picker-result-slot">
-        <p class="picker-result-placeholder" id="result-placeholder">转动之后，答案会落在这里。</p>
+        <p class="picker-result-placeholder" id="result-placeholder">转一下，答案就会出现。</p>
         <div class="picker-result" id="result-card" hidden>
           <p class="picker-result-eyebrow" id="result-eyebrow">抽取结果</p>
           <div class="picker-result-main" id="result-main" aria-live="polite" aria-atomic="true"></div>
           <div class="picker-tally" id="tally" hidden></div>
           <div class="picker-result-actions">
-            <button type="button" class="picker-button picker-button-primary-small" id="again-btn">[[zi:refresh]] 再抽一次</button>
+            <button type="button" class="picker-button picker-button-primary-small" id="again-btn">[[zi:refresh]] 再转一次</button>
             <button type="button" class="picker-button picker-button-quiet" id="copy-result-btn">[[zi:copy]] 复制结果</button>
             <button type="button" class="picker-button picker-button-quiet" id="tie-break-btn" hidden>并列项随机决胜</button>
           </div>
@@ -104,36 +104,26 @@ body_class: picker-page-body
     </section>
   </div>
 
-  <section class="picker-secondary" aria-label="保存和历史">
-    <div class="picker-secondary-head">
-      <span>ARCHIVE 00 · HISTORY 00</span>
-      <p>留住常用的选择，也保留每一次答案。</p>
-    </div>
-    <details class="picker-board" id="profiles-board">
-      <summary><span>[[zi:save]] 我的档案</span><span class="picker-board-count" id="profile-count">0</span></summary>
-      <div class="picker-board-body">
-        <p class="picker-empty" id="profile-empty">还没有保存的档案。可以把常用名单保存在这台设备上。</p>
+  <div class="picker-library-triggers" aria-label="档案和历史">
+    <button type="button" id="profiles-trigger" data-library="profiles" aria-controls="library-flyout" aria-expanded="false">[[zi:save]] 档案 <span class="picker-board-count" id="profile-count">0</span></button>
+    <button type="button" id="history-trigger" data-library="history" aria-controls="library-flyout" aria-expanded="false">[[zi:history]] 历史 <span class="picker-board-count" id="history-count">0</span></button>
+  </div>
+  <aside class="picker-library-flyout" id="library-flyout" aria-hidden="true" hidden>
+    <header><strong id="library-title">我的档案</strong><label class="picker-library-search"><span>⌕</span><input type="search" id="library-search" placeholder="搜索档案或选项" aria-label="搜索档案"></label><button type="button" id="library-close" aria-label="关闭">×</button></header>
+    <div class="picker-library-content" id="library-content">
+      <section id="profiles-panel">
+        <p class="picker-empty" id="profile-empty">还没有保存的档案。</p>
         <div class="picker-profile-list" id="profile-list"></div>
-        <div class="picker-board-actions">
-          <button type="button" class="picker-button picker-button-quiet" id="profile-new-btn">+ 存为新档案</button>
-          <button type="button" class="picker-button picker-button-quiet" id="profile-save-btn" hidden>[[zi:save]] 保存改动</button>
-          <button type="button" class="picker-button picker-button-quiet" id="share-btn">[[zi:link]] 分享这组选项</button>
-        </div>
-      </div>
-    </details>
-    <details class="picker-board" id="history-board">
-      <summary><span>[[zi:history]] 抽取历史</span><span class="picker-board-count" id="history-count">0</span></summary>
-      <div class="picker-board-body">
+        <div class="picker-board-actions"><button type="button" class="picker-button picker-button-quiet" id="profile-new-btn">+ 存为新档案</button><button type="button" class="picker-button picker-button-quiet" id="profile-save-btn" hidden>[[zi:save]] 保存改动</button><button type="button" class="picker-button picker-button-quiet" id="share-btn">[[zi:link]] 分享这组选项</button></div>
+      </section>
+      <section id="history-panel" hidden>
         <p class="picker-empty" id="history-empty">还没有抽取记录。</p>
         <div class="picker-history-list" id="history-list"></div>
-        <div class="picker-board-actions">
-          <button type="button" class="picker-button picker-button-quiet" id="history-more-btn" hidden>显示更多</button>
-          <button type="button" class="picker-button picker-button-danger" id="history-clear-btn" hidden>清空历史</button>
-        </div>
-      </div>
-    </details>
-  </section>
-  <aside class="picker-privacy">[[zi:lock]] <strong>隐私说明：</strong>选项、档案和历史只保存在你的浏览器中，不会上传到服务器；分享链接仅包含你主动分享的当前选项与设置。</aside>
+        <div class="picker-board-actions"><button type="button" class="picker-button picker-button-quiet" id="history-more-btn" hidden>显示更多</button><button type="button" class="picker-button picker-button-danger" id="history-clear-btn" hidden>清空历史</button></div>
+      </section>
+    </div>
+  </aside>
+  <aside class="picker-privacy">[[zi:lock]] 选项、档案和历史均不会上传服务器。</aside>
   <div class="picker-toast" id="picker-toast" role="status" aria-live="polite" hidden></div>
 </article>
 
