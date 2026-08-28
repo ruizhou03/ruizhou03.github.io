@@ -648,7 +648,7 @@
     el.resultCard.hidden = false;
     state.lastResultText = '抽取结果：' + name;
     var counts = options.map(function (_, optionIndex) { return optionIndex === index ? 1 : 0; });
-    state.lastExport = makeExportData(options, counts, '这次选中：' + name, '单次抽取');
+    state.lastExport = makeExportData(options, counts, '这次选中：' + name, '单次抽取', 'single', 1);
     recordHistory(name, '单次抽取', { counts: counts });
   }
 
@@ -663,7 +663,7 @@
     el.resultCard.hidden = false;
     state.lastResultText = '不重复抽取（' + names.length + ' 项）\n' + names.map(function (name, index) { return (index + 1) + '. ' + name; }).join('\n');
     var counts = options.map(function (_, optionIndex) { return indices.indexOf(optionIndex) >= 0 ? 1 : 0; });
-    state.lastExport = makeExportData(options, counts, '抽出：' + names.join('、'), '不重复抽取 ' + names.length + ' 项');
+    state.lastExport = makeExportData(options, counts, '抽出：' + names.join('、'), '不重复抽取 ' + names.length + ' 项', 'multiple', 1);
     recordHistory(names.join('、'), '抽取 ' + names.length + ' 项', { counts: counts });
   }
 
@@ -708,7 +708,7 @@
       el.resultMain.innerHTML = '<strong>' + escapeHtml(name) + '</strong> 以 ' + outcome.max + ' 票胜出';
       el.tieBreak.hidden = true;
       state.lastResultText = tournamentCopyText(options, outcome);
-      state.lastExport = makeExportData(options, outcome.counts, name + ' 以 ' + outcome.max + ' 票胜出', state.rounds + ' 轮决胜');
+      state.lastExport = makeExportData(options, outcome.counts, name + ' 以 ' + outcome.max + ' 票胜出', state.rounds + ' 轮决胜', 'tournament', state.rounds);
       recordHistory(name, state.rounds + ' 轮决胜', outcome);
     } else {
       var names = outcome.tiedIndices.map(function (index) { return options[index].text; });
@@ -717,7 +717,7 @@
       state.tieCandidates = outcome.tiedIndices.slice();
       el.tieBreak.hidden = false;
       state.lastResultText = tournamentCopyText(options, outcome);
-      state.lastExport = makeExportData(options, outcome.counts, names.join('、') + ' 并列', state.rounds + ' 轮决胜');
+      state.lastExport = makeExportData(options, outcome.counts, names.join('、') + ' 并列', state.rounds + ' 轮决胜', 'tournament', state.rounds);
       recordHistory(names.join('、') + '并列', state.rounds + ' 轮决胜', outcome);
     }
     el.resultPlaceholder.hidden = true;
@@ -748,8 +748,8 @@
       ? tournamentCopyText(state.lastTournament.options, state.lastTournament.outcome, options[winnerIndex].text)
       : '并列项随机决胜：' + options[winnerIndex].text;
     state.lastExport = state.lastTournament
-      ? makeExportData(state.lastTournament.options, state.lastTournament.outcome.counts, '最终选中：' + options[winnerIndex].text, state.rounds + ' 轮决胜')
-      : makeExportData(options, options.map(function (_, index) { return index === winnerIndex ? 1 : 0; }), '最终选中：' + options[winnerIndex].text, '并列项随机决胜');
+      ? makeExportData(state.lastTournament.options, state.lastTournament.outcome.counts, '最终选中：' + options[winnerIndex].text, state.rounds + ' 轮决胜', 'tournament', state.rounds)
+      : makeExportData(options, options.map(function (_, index) { return index === winnerIndex ? 1 : 0; }), '最终选中：' + options[winnerIndex].text, '并列项随机决胜', 'single', 1);
     recordHistory(options[winnerIndex].text, '并列项随机决胜');
     state.tieCandidates = [];
   }
@@ -931,11 +931,13 @@
     area.remove();
   }
 
-  function makeExportData(options, counts, headline, modeLabel) {
+  function makeExportData(options, counts, headline, modeLabel, modeType, rounds) {
     var display = Core.displayPercentages(options);
     return {
       headline: headline,
       mode: modeLabel,
+      modeType: modeType || 'tournament',
+      rounds: Math.max(1, Number(rounds) || 1),
       createdAt: Date.now(),
       options: options.map(function (option, index) {
         return { name: option.text, weight: display[index] || 0, votes: counts[index] || 0, color: COLORS[index % COLORS.length] };
@@ -1016,7 +1018,12 @@
 
   async function exportResultImage() {
     if (!state.lastExport) throw new Error('没有可导出的结果');
-    var blob = await canvasToBlob(renderResultCanvas(state.lastExport));
+    var useR2 = !!window.PickerResultCard;
+    var blob = useR2
+      ? await window.PickerResultCard.toPngBlob(state.lastExport)
+      : await canvasToBlob(renderResultCanvas(state.lastExport));
+    el.copyResult.dataset.exportRenderer = useR2 ? 'r2' : 'legacy';
+    el.copyResult.dataset.exportDimensions = useR2 ? '1200x800' : 'legacy-variable';
     if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
       try {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);

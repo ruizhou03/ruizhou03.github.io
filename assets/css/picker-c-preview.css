@@ -627,3 +627,18 @@ body.picker-page-body:has(.picker-c-page){background:#ede9df}body.picker-page-bo
 @media(max-width:920px){.picker-c-page .picker-c-manifesto{min-height:94px;flex-basis:94px}.picker-c-page .picker-c-manifesto h1{font-size:1.55rem}.picker-c-page .picker-rounds{grid-template-columns:108px minmax(92px,1fr)}.picker-c-page .picker-round-presets{grid-template-columns:repeat(3,32px);gap:6px}.picker-c-page .picker-round-presets button{width:32px}.picker-c-page .picker-round-custom{min-width:92px}}
 @media(max-width:720px){.picker-c-page .picker-c-manifesto{display:none!important}.picker-c-page .picker-rounds{grid-template-columns:minmax(105px,1fr) minmax(100px,1fr)}.picker-c-page .picker-round-presets{grid-template-columns:repeat(3,minmax(30px,1fr))}.picker-c-page .picker-round-presets button{width:auto}.picker-c-page .picker-weight-inline-copy{display:none}.picker-library-triggers{top:6px}}
 @media(max-width:720px){.picker-c-page .picker-workspace{grid-template-rows:minmax(240px,1fr) 265px 170px}}
+
+/* H1 library direction: comfortable rows with readable metadata. */
+.picker-library-flyout{height:min(520px,calc(100% - 82px))}
+.picker-library-flyout>header{height:54px;padding:0 14px}
+.picker-library-flyout>header>strong{font-size:14px}
+.picker-library-search{width:185px;flex-basis:185px}
+.picker-library-search input{height:30px;font-size:10px}
+.picker-library-content{height:calc(100% - 54px)}
+.picker-profile-list,.picker-history-list{grid-auto-rows:minmax(68px,auto);gap:8px;padding:10px}
+.picker-profile,.picker-history-item{height:68px!important;padding:10px 12px!important;border-radius:10px!important}
+.picker-profile strong,.picker-history-item strong{font-size:14px}
+.picker-profile small,.picker-history-item small{font-size:9px}
+.picker-profile>span:first-child+span,.picker-history-item>em{font-size:10px!important}
+.picker-profile-mini,.picker-history-mini{height:6px}
+@media(max-width:720px){.picker-library-flyout{height:min(480px,calc(100% - 60px))}.picker-profile-list,.picker-history-list{grid-auto-rows:minmax(62px,auto);gap:7px;padding:8px}.picker-profile,.picker-history-item{height:62px!important;padding:8px 10px!important}.picker-profile strong,.picker-history-item strong{font-size:12px}.picker-profile small,.picker-history-item small{font-size:8px}}
