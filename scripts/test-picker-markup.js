@@ -37,6 +37,7 @@ assert.ok(html.includes('class="picker-weight-control"'), 'custom weight switch 
 assert.ok(!html.includes('id="advanced-settings"'), 'custom weight switch must not be nested behind advanced settings');
 assert.ok(html.includes('id="bulk-panel" role="dialog"'), 'bulk paste must use dialog semantics');
 assert.ok(html.includes('id="bulk-close-btn" aria-label="关闭批量粘贴"'), 'bulk paste dialog must expose an explicit close button');
+assert.ok(html.includes('id="mobile-weight-toggle"') && html.includes('aria-expanded="false"'), 'mobile picker must expose a collapsed advanced-weight control');
 assert.ok(!html.includes('id="mode-probability-copy"'), 'mode column must not repeat immutable probability text');
 assert.ok(!html.includes('id="probability-label"'), 'result column must not repeat immutable probability text');
 const coreScriptPosition = html.indexOf('/assets/js/games/picker-core.js');
@@ -69,6 +70,24 @@ assert.ok(uiSource.includes("openLibrary('profiles'") && uiSource.includes("open
 assert.ok(uiSource.includes("document.addEventListener('pointerdown'"), 'clicking outside must close the library popover');
 assert.ok(uiSource.includes('!el.bulkPanel.contains(event.target)') && uiSource.includes('closeBulkPanel()'), 'clicking outside must close the bulk paste dialog');
 assert.ok(uiSource.includes('el.metricSwitch.hidden = !hasVotes'), 'vote metric switch must stay hidden until a tournament result exists');
+assert.ok(uiSource.includes('state.mobileWeightsExpanded') && uiSource.includes("'加权设置'"), 'mobile picker must default to compact equal weights');
+assert.ok(uiSource.includes('mobileOptionDensity') && uiSource.includes("state.mobileLayout ? '+ 添加'"), 'mobile option density and compact add label must be maintained');
+assert.ok(uiSource.includes("Core.equalize(state.options)") && uiSource.includes('已恢复等概率并收起加权设置'), 'closing mobile weights must restore equal probabilities');
+assert.ok(uiSource.includes('function routineToast(message)') && uiSource.includes("routineToast('已删除“'"), 'mobile routine actions must avoid redundant toast feedback');
+assert.ok(uiSource.includes("window.matchMedia('(max-width: 720px)')") && uiSource.includes('el.draw.scrollIntoView'), 'mobile draw must bring the wheel into view');
+assert.match(cCssSource, /Mobile integrated canvas:[\s\S]*grid-template-areas:"draw" "editor" "mode"/, 'final mobile canvas must integrate wheel, options, and mode controls in one screen');
+assert.match(cCssSource, /Mobile integrated canvas:[\s\S]*body\.picker-page-body\{overflow:hidden/, 'final mobile canvas must remain a single-screen app');
+assert.match(cCssSource, /Mobile integrated canvas:[\s\S]*\.picker-c-page \.picker-draw\{[\s\S]*background:#fff8d9/, 'mobile wheel stage must share the unified cream canvas');
+assert.match(cCssSource, /Mobile integrated canvas:[\s\S]*\.picker-c-page \.picker-result-placeholder\{display:none\}/, 'mobile idle wheel must not reserve explanatory copy');
+assert.match(cCssSource, /Mobile integrated canvas:[\s\S]*\.picker-c-page \.picker-weight-control,[\s\S]*position:absolute/, 'mobile equal-weight action must live beside the options heading');
+assert.match(cCssSource, /data-mobile-weights="collapsed"[\s\S]*\.picker-wheel-wrap/, 'compact equal-weight mode must return space to the wheel');
+assert.match(cCssSource, /Mobile integrated canvas:[\s\S]*#bulk-toggle-btn\{display:none\}/, 'mobile lightweight mode must omit bulk paste');
+assert.match(cCssSource, /Mobile integrated canvas:[\s\S]*#add-btn\{[\s\S]*position:absolute/, 'mobile add action must live beside the options heading');
+assert.match(cCssSource, /Mobile integrated canvas:[\s\S]*#add-btn\{[\s\S]*display:grid!important;[\s\S]*place-items:center/, 'mobile add glyph must stay optically centered');
+assert.match(cCssSource, /--picker-mobile-options-title-center:24px[\s\S]*top:var\(--picker-mobile-options-title-center\)/, 'mobile title actions must share one vertical center line');
+assert.match(cCssSource, /data-mobile-option-density="large"[\s\S]*top:-90px/, 'large mobile lists must reclaim unused wheel-stage space');
+assert.match(cCssSource, /Mobile integrated canvas:[\s\S]*\.picker-library-flyout\{[\s\S]*position:fixed/, 'mobile archive and history must use a compact bottom sheet');
+assert.match(cCssSource, /Mobile integrated canvas:[\s\S]*grid-template-rows:minmax\(200px,1fr\) 146px auto/, 'mobile weight expansion must not resize the wheel or mode regions');
 assert.ok(uiSource.includes('skipAll: true') && uiSource.includes('已跳至最终结果'), 'tournament skip must jump to the final result');
 assert.ok(html.includes('id="rounds-custom" min="1"'), 'tournament custom rounds must allow one round');
 for (const line of uiSource.split('\n').filter(line => line.includes('lastResultText ='))) {

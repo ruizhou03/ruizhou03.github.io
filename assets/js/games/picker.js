@@ -34,6 +34,8 @@
     liveCounts: [],
     animationSkip: null,
     skipTournament: false,
+    mobileLayout: !!(window.matchMedia && window.matchMedia('(max-width: 720px)').matches),
+    mobileWeightsExpanded: false,
     pendingHash: false
   };
 
@@ -57,6 +59,7 @@
     weighted: byId('weighted-toggle'),
     weightTools: byId('weight-tools'),
     equal: byId('equal-btn'),
+    mobileWeightToggle: byId('mobile-weight-toggle'),
     modeTabs: byId('mode-tabs'),
     multipleSetting: byId('multiple-setting'),
     multipleCount: byId('multiple-count'),
@@ -123,6 +126,13 @@
     el.app.dataset.fit = available < 600 ? 'tight' : (available < 720 ? 'compact' : 'normal');
     el.app.dataset.visualScale = String(Math.round(((visual && visual.scale) || 1) * 100) / 100);
     el.app.dataset.pixelRatio = String(Math.round((window.devicePixelRatio || 1) * 100) / 100);
+    var mobileNow = !!(window.matchMedia && window.matchMedia('(max-width: 720px)').matches);
+    if (state.mobileLayout !== mobileNow) {
+      state.mobileLayout = mobileNow;
+      if (!mobileNow) state.mobileWeightsExpanded = false;
+      renderOptions();
+      updateControls();
+    }
     if (!el.bulkPanel.hidden) positionBulkPanel();
   }
   function scheduleViewportFit() {
@@ -153,6 +163,10 @@
     el.toast.textContent = message;
     el.toast.hidden = false;
     toastTimer = setTimeout(function () { el.toast.hidden = true; }, 2400);
+  }
+
+  function routineToast(message) {
+    if (!state.mobileLayout) toast(message);
   }
 
   function clearSharedHash() {
@@ -207,6 +221,10 @@
     if (!config) return false;
     state.options = config.options.map(function (option) { return makeOption(option.text, option.weight); });
     state.weighted = true;
+    if (state.mobileLayout) {
+      var percentages = Core.percentages(state.options);
+      state.mobileWeightsExpanded = percentages.some(function (value) { return Math.abs(value - 100 / percentages.length) > 0.01; });
+    }
     state.mode = config.mode;
     state.count = config.count;
     state.rounds = config.rounds;
@@ -265,7 +283,7 @@
         '<span class="picker-option-marker" aria-hidden="true"><span class="picker-option-chip" style="background:' + color + '"></span><small>' + String(index + 1).padStart(2, '0') + '</small></span>' +
         '<input class="picker-option-input" type="text" maxlength="' + Core.MAX_NAME_LENGTH + '" value="' + escapeHtml(option.text) + '" placeholder="选项 ' + (index + 1) + '" aria-label="选项 ' + (index + 1) + '">' +
         '<button type="button" class="picker-option-delete" aria-label="删除' + (option.text ? '“' + escapeHtml(option.text) + '”' : '选项 ' + (index + 1)) + '"' + (state.options.length <= 2 ? ' disabled' : '') + '>[[zi:trash]]</button>' +
-        '<div class="picker-weight-row"' + (state.weighted && state.metricView === 'weights' ? '' : ' hidden') + '>' +
+        '<div class="picker-weight-row"' + (state.weighted && state.metricView === 'weights' && (!state.mobileLayout || state.mobileWeightsExpanded) ? '' : ' hidden') + '>' +
           '<input class="picker-weight-range" type="range" min="1" max="99" step="1" value="' + display[index] + '" aria-label="' + escapeHtml(option.text || ('选项 ' + (index + 1))) + '的概率"' + (option.locked ? ' disabled' : '') + '>' +
           '<span class="picker-percent-wrap"><input class="picker-percent-input" type="number" min="1" max="99" step="1" inputmode="numeric" value="' + display[index] + '" aria-label="' + escapeHtml(option.text || ('选项 ' + (index + 1))) + '的概率百分比"' + (option.locked ? ' disabled' : '') + '></span>' +
           '<button type="button" class="picker-option-lock" aria-pressed="' + (option.locked ? 'true' : 'false') + '" aria-label="' + (option.locked ? '解除概率锁定' : '锁定当前概率') + '" title="' + (option.locked ? '已锁定，点击解除' : '锁定后调整其他项不会改变它') + '">' + lockIcon() + '</button>' +
@@ -297,7 +315,7 @@
         state.count = Math.min(state.count, Math.max(1, state.options.length - 1));
         markChanged();
         renderAll();
-        toast('已删除“' + removedName + '”');
+        routineToast('已删除“' + removedName + '”');
       });
       range.addEventListener('input', function () {
         Core.rebalance(state.options, index, Number(range.value));
@@ -459,9 +477,15 @@
     el.spin.disabled = state.busy || !valid;
     el.status.textContent = blankCount ? '请先填写所有选项名称' : '';
     el.add.disabled = state.busy || state.options.length >= Core.MAX_OPTIONS;
-    el.add.textContent = state.options.length >= Core.MAX_OPTIONS ? '已达 30 个上限' : '+ 添加选项';
+    el.add.textContent = state.options.length >= Core.MAX_OPTIONS ? '已达 30 个上限' : (state.mobileLayout ? '+ 添加' : '+ 添加选项');
     el.weighted.checked = state.weighted;
     el.weightTools.hidden = false;
+    el.app.dataset.mobileWeights = state.mobileWeightsExpanded ? 'expanded' : 'collapsed';
+    el.app.dataset.mobileOptionDensity = state.options.length <= 2 ? 'compact' : (state.options.length <= 5 ? 'medium' : 'large');
+    el.mobileWeightToggle.hidden = !state.mobileLayout || state.metricView === 'votes';
+    el.mobileWeightToggle.setAttribute('aria-expanded', state.mobileWeightsExpanded ? 'true' : 'false');
+    el.mobileWeightToggle.textContent = state.mobileWeightsExpanded ? '收起加权' : '加权设置';
+    el.equal.hidden = state.mobileLayout && !state.mobileWeightsExpanded;
   }
 
   function renderAll() {
@@ -649,6 +673,11 @@
     el.resultPlaceholder.textContent = '转盘正在寻找答案…';
     el.resultCard.hidden = true;
     el.status.textContent = '正在抽取…';
+    if (window.matchMedia && window.matchMedia('(max-width: 720px)').matches) {
+      requestAnimationFrame(function () {
+        el.draw.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+      });
+    }
 
     var outcome;
     if (state.mode === 'single') {
@@ -946,7 +975,7 @@
     writeStorage(PROFILE_KEY, state.profiles);
     markClean();
     renderProfiles();
-    toast('档案已删除');
+    routineToast('档案已删除');
   }
 
   async function copyText(text) {
@@ -1195,7 +1224,20 @@
     Core.equalize(state.options);
     markChanged();
     renderAll();
-    toast('已恢复等概率');
+    routineToast('已恢复等概率');
+  });
+  el.mobileWeightToggle.addEventListener('click', function () {
+    if (!state.mobileLayout || state.busy) return;
+    state.mobileWeightsExpanded = !state.mobileWeightsExpanded;
+    if (!state.mobileWeightsExpanded) {
+      state.options.forEach(function (option) { option.locked = false; });
+      Core.equalize(state.options);
+      markChanged();
+      routineToast('已恢复等概率并收起加权设置');
+    }
+    renderOptions();
+    renderWheel();
+    updateControls();
   });
   el.modeTabs.addEventListener('click', function (event) {
     var button = event.target.closest('[data-mode]');
@@ -1246,6 +1288,7 @@
     if (!button || button.disabled) return;
     state.metricView = button.dataset.metric;
     renderOptions();
+    updateControls();
     if (state.metricView === 'weights') el.spin.innerHTML = '[[zi:trophy]] 按新权重进行 ' + state.rounds + ' 轮';
   });
   el.spin.addEventListener('click', draw);
@@ -1268,7 +1311,7 @@
     state.history = [];
     writeStorage(HISTORY_KEY, state.history);
     renderHistory();
-    toast('抽取历史已清空');
+    routineToast('抽取历史已清空');
   });
   el.profilesTrigger.addEventListener('click', function () { openLibrary('profiles', el.profilesTrigger); });
   el.historyTrigger.addEventListener('click', function () { openLibrary('history', el.historyTrigger); });
