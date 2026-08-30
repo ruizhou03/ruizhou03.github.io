@@ -49,6 +49,8 @@ exclude:
   - tools/
   # 播客流水线：参考音 / 生成的 mp3 / 播客稿，都不进 Jekyll 构建
   - audio/
+  # 本地保留但不公开的版权审查归档；旧站点路径必须真实 404
+  - files/_archive/
   # 网站后端：urge / comments / mcp 三个 fly app 的本机工作副本，独立 git，不进 Jekyll 构建
   - backends/
   # 已退役付费系统的遗留私有源：继续保持 gitignore + 构建排除，绝不进站

@@ -309,17 +309,17 @@ GRE 单选题选项的 bullet point 是一个椭圆，可惜的是 \LaTeX 里并
 
 ![收集的多支 ETS TOEFL 与 GRE 品牌圆珠笔和铅笔](/files/images/gre-exam-ui-notebook/16.jpg)
 
-## 完整模板源码 + 编译指南
+## 模板样式文件 + 编译指南
 
-上面讲的每个宏命令我都打包成了三套独立的 `.sty` 文件，跟主 `.tex` 文件配对发布。你下载下来就能直接编译出一份“考试感”完全到位的错题本 PDF。
+上面讲的每个宏命令都打包成了独立的 `.sty` 文件。原错题题库 PDF 与含真实题目的 `.tex` 示例不再公开；你仍然可以下载样式文件，配合自己编写的题目源文件使用。
 
-### 三套模板 + 题面 / 答案双版本下载
+### 三套样式模板
 
-每套都有“题面版”（空白填空 / 圆圈选项，可打印当试卷用）和“答案版”（填空里直接显示正确答案，复习用），由 `.sty` 包的 `[ans]` 选项切换——同一份题目源代码，两个 PDF。
+每套模板都支持用 `.sty` 包的 `[ans]` 选项在“题面版”和“答案版”之间切换：同一份由你自己编写的题目源代码，可以生成两个 PDF。
 
-- **Quant 数学错题本**：题面 / 答案的 `.tex` 源码 + 数学 `\options{}{}{}{}{}` / `\quantities{A}{B}` / `\field` 等宏 → [PDF 题面版](/files/gre/GRE-Quant.pdf) · [PDF 答案版](/files/gre/GRE-Quant-Ans.pdf) · [.tex 源](/files/gre/source/quant/GRE-Quant.tex) · [.sty 模板](/files/gre/source/quant/GEEexam_Quant.sty)
-- **Verbal 填空错题本**：覆盖五选一 / 多空题 / 六选二三种题型，`\choices{}{}{}{}{}` / `\multiblank{N}{}{}{}` / `\senequiv{}{}{}{}{}{}` 三宏 → [PDF 题面版](/files/gre/GRE-Verbal-Blanks.pdf) · [PDF 答案版](/files/gre/GRE-Verbal-Blanks-Ans.pdf) · [.tex 源](/files/gre/source/verbal-blanks/GRE-Verbal-Blanks.tex) · [.sty 模板](/files/gre/source/verbal-blanks/GEEexam_Verbal_Blank.sty)
-- **Verbal 阅读错题本**：长文章 + 题组结构，配套适用于阅读理解题型的版式 → [PDF 题面版](/files/gre/GRE-Verbal-Passages.pdf) · [PDF 答案版](/files/gre/GRE-Verbal-Passages-Ans.pdf) · [.tex 源](/files/gre/source/verbal-passages/GRE-Verbal-Passages.tex) · [.sty 模板](/files/gre/source/verbal-passages/GEEexam_Verbal_Passage.sty)
+- **Quant 数学模板**：提供 `\options{}{}{}{}{}`、`\quantities{A}{B}`、`\field` 等宏 → [.sty 模板](/files/gre/source/quant/GEEexam_Quant.sty)
+- **Verbal 填空模板**：提供 `\choices{}{}{}{}{}`、`\multiblank{N}{}{}{}`、`\senequiv{}{}{}{}{}{}` 等宏 → [.sty 模板](/files/gre/source/verbal-blanks/GEEexam_Verbal_Blank.sty)
+- **Verbal 阅读模板**：提供长文章与题组结构的版式 → [.sty 模板](/files/gre/source/verbal-passages/GEEexam_Verbal_Passage.sty)
 
 ### `[ans]` 答案版切换：一行改动出两份 PDF
 
@@ -338,10 +338,10 @@ GRE 单选题选项的 bullet point 是一个椭圆，可惜的是 \LaTeX 里并
 也就是说，**题目源代码只写一遍**——`\blank{420}`、`\blank{420.0}` 这种把答案写在大括号里——然后用两份 `.tex` 切换：
 
 ```latex
-% 题面版 GRE-Quant.tex
+% 题面版 my-quant-notes.tex
 \usepackage{GEEexam_Quant}
 
-% 答案版 GRE-Quant-Ans.tex（仅改第一行）
+% 答案版 my-quant-notes-answers.tex（仅改第一行）
 \usepackage[ans]{GEEexam_Quant}
 ```
 
@@ -378,9 +378,8 @@ A3 + 横向 + 双栏——这就是 GRE 真实考试机考界面的“宽屏感�
 模板用了中文字体（`ctex` 包）和中文页脚，必须用 **xelatex** 而不是 pdflatex：
 
 ```bash
-cd files/gre/source/quant/
-xelatex GRE-Quant.tex          # 出题面版
-xelatex GRE-Quant-Ans.tex      # 出答案版
+xelatex my-quant-notes.tex          # 出题面版
+xelatex my-quant-notes-answers.tex  # 出答案版
 ```
 
 页脚里的 `第 N 页 (共 X 页)` 用了 `\ref{LastFox}` 跨编译引用，**第一次跑会报 `LastFox` 未定义** —— 再跑一次 `xelatex` 就好（pandoc / latexmk 也是同样的两遍 pattern）。
@@ -388,8 +387,8 @@ xelatex GRE-Quant-Ans.tex      # 出答案版
 或者直接用 `latexmk`：
 
 ```bash
-latexmk -xelatex GRE-Quant.tex     # 自动判断要不要再编译
-latexmk -xelatex -c GRE-Quant.tex  # 清理中间产物
+latexmk -xelatex my-quant-notes.tex     # 自动判断要不要再编译
+latexmk -xelatex -c my-quant-notes.tex  # 清理中间产物
 ```
 
 ### 怎么自己改造模板
