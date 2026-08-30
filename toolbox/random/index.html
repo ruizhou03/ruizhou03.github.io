@@ -2,6 +2,11 @@
 layout: default
 title: "随机数生成器 | Rui Zhou"
 permalink: /toolbox/random/
+minimal_app_shell: true
+body_class: rng-paper-tool
+app_title: "随机数生成器"
+theme_color: "#eee7d8"
+theme_color_dark: "#eee7d8"
 ---
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" />
@@ -9,16 +14,17 @@ permalink: /toolbox/random/
 
 <style>
   .rng-wrap {
-    max-width: 900px;
+    max-width: 1040px;
     margin: 0 auto;
-    padding: 2rem 1rem 4rem;
+    padding: 1.4rem 1rem 4rem;
   }
-  .rng-header { text-align: center; margin-bottom: 1.6rem; }
+  .rng-header { text-align: center; margin-bottom: 1.2rem; }
   .rng-header h1 {
-    font-size: 2.2rem; color: var(--color-ink); margin-bottom: 0.6rem;
+    font-size: 1.7rem; color: var(--color-ink); margin-bottom: 0.3rem;
   }
   .rng-header p {
     color: var(--color-light); font-style: normal; margin: 0;
+    font-size: 0.92rem;
   }
 
   .rng-card {
@@ -28,10 +34,21 @@ permalink: /toolbox/random/
     padding: 1.2rem 1.2rem;
     margin-bottom: 1.2rem;
   }
+  .rng-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr);
+    gap: 1rem;
+    align-items: start;
+  }
+  .rng-grid > .rng-card { margin-bottom: 0; }
+  .rng-sampling { position: sticky; top: 5rem; }
+  .rng-sampling .sample-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rng-sampling .sample-custom,
+  .rng-sampling .sample-controls > .danger { grid-column: 1 / -1; }
 
   /* —— 控制面板 —— */
   .ctrl-row {
-    display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
+    display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.65rem 0.8rem; align-items: center;
     margin-bottom: 0.8rem;
   }
   .ctrl-row label {
@@ -56,6 +73,8 @@ permalink: /toolbox/random/
     max-width: 100%;
     overflow-x: auto;
     white-space: nowrap;
+    text-align: center;
+    margin-bottom: 0.75rem;
   }
   .dist-formula .katex { font-size: 1.05em; }
 
@@ -86,11 +105,13 @@ permalink: /toolbox/random/
 
   /* —— SVG 数轴 —— */
   .viz-card {
-    padding: 1rem 0.4rem 0.6rem;
+    padding: 0.8rem 0 0.2rem;
+    margin-top: 0.85rem;
+    border-top: 1px solid var(--color-border);
   }
   .viz-svg {
     width: 100%;
-    height: auto;
+    height: 180px;
     display: block;
     user-select: none;
     -webkit-user-select: none;
@@ -184,7 +205,7 @@ permalink: /toolbox/random/
 
   /* —— 抽样面板 —— */
   .sample-controls {
-    display: flex; gap: 0.6rem; flex-wrap: wrap;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.55rem;
     margin-bottom: 0.8rem;
   }
   .sample-btn {
@@ -196,6 +217,7 @@ permalink: /toolbox/random/
     color: var(--color-ink);
     cursor: pointer;
     transition: all 0.15s;
+    min-height: 42px;
   }
   @media (hover: hover) {
     .sample-btn:hover {
@@ -224,10 +246,12 @@ permalink: /toolbox/random/
     }
   }
   .sample-custom {
-    display: inline-flex; align-items: center; gap: 0.4rem;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.45rem;
+    grid-column: 1 / 4;
   }
   .sample-n-input {
-    width: 7rem;
+    width: 100%;
+    box-sizing: border-box;
     padding: 0.45rem 0.8rem;
     font: inherit; font-size: 0.9rem;
     border: 1px solid var(--color-border);
@@ -259,6 +283,8 @@ permalink: /toolbox/random/
   .stats .stat {
     display: flex; justify-content: space-between; align-items: baseline;
   }
+  .stats .sample-stat { display: none; }
+  .stats.has-samples .sample-stat { display: flex; }
   .stats .stat .name { color: var(--color-light); }
   .stats .stat .v {
     font-family: var(--font-body);
@@ -280,6 +306,114 @@ permalink: /toolbox/random/
     color: var(--color-ink);
     font-weight: 600;
     font-size: 1.4rem;
+  }
+  .last-sample.empty { display: none; }
+
+  .rng-advanced {
+    margin-top: 0.9rem;
+    border-top: 1px dashed var(--color-border);
+    color: var(--color-muted);
+  }
+  .rng-advanced > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 0.75rem 0 0;
+    font-size: 0.86rem;
+  }
+  .rng-advanced > summary::before { content: '+ '; }
+  .rng-advanced[open] > summary::before { content: '− '; }
+  .rng-advanced-body { padding-top: 0.8rem; }
+  .rng-source-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.55rem 0.8rem;
+    align-items: center;
+  }
+  .rng-source-row label { font-size: 0.86rem; color: var(--color-light); }
+  .rng-source-row select,
+  .rng-seed-input {
+    min-width: 0;
+    padding: 0.48rem 0.65rem;
+    font: inherit;
+    font-size: 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg);
+    color: var(--color-ink);
+  }
+  .rng-seed-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.45rem;
+  }
+  .rng-source-note {
+    grid-column: 2;
+    margin: 0;
+    color: var(--color-light);
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+  .custom-tools {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    margin-top: 0.8rem;
+  }
+  .rng-busy {
+    display: none;
+    margin: 0 0 0.7rem;
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .rng-busy.show { display: block; }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .viz-svg .handle-hit { fill: transparent; cursor: ew-resize; }
+  .viz-svg:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 560px) {
+    .rng-wrap { padding: 1.1rem 0.75rem 3rem; }
+    .rng-card { padding: 0.85rem; }
+    .ctrl-row { grid-template-columns: 1fr; gap: 0.35rem; }
+    .ctrl-row label { margin-right: 0; }
+    .params { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem 0.9rem; }
+    .viz-svg { height: 160px; }
+    .viz-card { margin-left: -0.45rem; margin-right: -0.45rem; }
+    .interval-panel { gap: 0.55rem; padding-inline: 0.45rem; }
+    .interval-panel > span:last-child { width: 100%; }
+    .sample-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sample-custom { grid-column: 1 / -1; }
+    .sample-controls > .danger { grid-column: 1 / -1; }
+    .stats { grid-template-columns: 1fr 1fr; gap: 0.65rem 1.1rem; }
+    .rng-source-row { grid-template-columns: 1fr; }
+    .rng-source-note { grid-column: 1; }
+  }
+  @media (max-width: 860px) {
+    .rng-grid { grid-template-columns: 1fr; }
+    .rng-grid > .rng-card { margin-bottom: 1rem; }
+    .rng-sampling { position: static; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sample-btn, .custom-trigger { transition: none; }
   }
 
   /* —— 自定义分布表单 —— */
@@ -385,6 +519,40 @@ permalink: /toolbox/random/
     background: rgba(107, 142, 107, 0.10); color: #4f6f4f;
     display: block;
   }
+  .custom-form .cf-preview {
+    margin: 0.2rem 0 0.75rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.42);
+  }
+  .custom-form .cf-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+    margin-bottom: 0.55rem;
+    color: var(--color-light);
+    font-size: 0.68rem;
+  }
+  .custom-form .cf-preview-head span:last-child { color: var(--color-light); }
+  .custom-form .cf-preview.valid .cf-preview-head span:last-child { color: #4f7f67; }
+  .custom-form .cf-preview.error .cf-preview-head span:last-child { color: #a2574d; }
+  .custom-form .cf-preview-math {
+    min-height: 42px;
+    display: grid;
+    place-items: center;
+    overflow-x: auto;
+    color: var(--color-ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: nowrap;
+  }
+  .custom-form .cf-preview.error .cf-preview-math {
+    place-items: center start;
+    color: #a2574d;
+    font-size: 0.72rem;
+    white-space: normal;
+  }
   .custom-form .cf-help {
     font-size: 0.8rem; color: var(--color-light);
     margin: 0.2rem 0 0;
@@ -419,120 +587,793 @@ permalink: /toolbox/random/
     border-radius: 4px;
     font-size: 0.92em;
   }
+
+  /* ─────────────────────────────────────────────────────────────────
+   * 概率实验室：独立应用视觉
+   * ───────────────────────────────────────────────────────────────── */
+  body.rng-immersive {
+    --rng-bg: #07111f;
+    --rng-panel: rgba(10, 24, 40, 0.88);
+    --rng-card: rgba(16, 37, 59, 0.76);
+    --rng-card-strong: #10263d;
+    --rng-line: rgba(175, 211, 229, 0.16);
+    --rng-line-strong: rgba(111, 215, 232, 0.42);
+    --rng-ink: #f4f7f7;
+    --rng-text: #d4dfe5;
+    --rng-muted: #8fa4b1;
+    --rng-cyan: #71d7e8;
+    --rng-cyan-deep: #3fa8c0;
+    --rng-gold: #e6b56f;
+    --rng-danger: #d48276;
+    --color-bg: #0c1c2d;
+    --color-bg-warm: #10243a;
+    --color-border: var(--rng-line);
+    --color-ink: var(--rng-ink);
+    --color-muted: var(--rng-text);
+    --color-light: var(--rng-muted);
+    --color-accent: var(--rng-cyan);
+    margin: 0;
+    color: var(--rng-text);
+    color-scheme: dark;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(52, 141, 172, 0.2), transparent 30rem),
+      radial-gradient(circle at 88% 78%, rgba(104, 87, 176, 0.14), transparent 34rem),
+      linear-gradient(145deg, #07111f 0%, #091827 48%, #07121f 100%);
+    min-height: 100dvh;
+  }
+  body.rng-immersive::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.28;
+    background-image:
+      linear-gradient(rgba(126, 181, 205, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(126, 181, 205, 0.035) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: linear-gradient(to bottom, black, transparent 88%);
+  }
+  body.rng-immersive > nav,
+  body.rng-immersive > footer,
+  body.rng-immersive #za-fab,
+  body.rng-immersive #za-panel,
+  body.rng-immersive #admin-fab { display: none !important; }
+  body.rng-immersive > main {
+    width: 100%;
+    max-width: none;
+    min-height: 100dvh;
+    margin: 0;
+    padding: 0;
+  }
+
+  .rng-appbar {
+    min-height: 68px;
+    padding: 10px clamp(14px, 3vw, 34px);
+    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--rng-line);
+    background: rgba(5, 14, 25, 0.82);
+    backdrop-filter: blur(22px) saturate(130%);
+  }
+  .rng-back {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--rng-line);
+    border-radius: 13px;
+    color: var(--rng-muted);
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.025);
+  }
+  .rng-back svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .rng-brand-mark {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    color: #06131d;
+    background: linear-gradient(145deg, #9ae8f2, #4bb4ca);
+    box-shadow: 0 10px 28px rgba(74, 186, 210, 0.2);
+    font: 800 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: -0.06em;
+  }
+  .rng-app-title { min-width: 0; }
+  .rng-app-title b { display: block; color: var(--rng-ink); font-size: 0.96rem; letter-spacing: 0.06em; }
+  .rng-app-title span { display: block; margin-top: 2px; color: var(--rng-muted); font: 600 0.59rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.16em; }
+  .rng-app-status { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .rng-app-status span {
+    min-height: 34px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--rng-line);
+    border-radius: 999px;
+    color: var(--rng-muted);
+    background: rgba(255, 255, 255, 0.025);
+    font-size: 0.72rem;
+  }
+  .rng-app-status i { width: 7px; height: 7px; border-radius: 50%; background: #70d9a4; box-shadow: 0 0 12px rgba(112, 217, 164, 0.8); }
+
+  body.rng-immersive .rng-wrap {
+    width: min(1240px, calc(100% - 32px));
+    max-width: none;
+    padding: 26px 0 44px;
+    position: relative;
+    z-index: 1;
+  }
+  body.rng-immersive .rng-header {
+    min-height: 132px;
+    margin: 0 0 18px;
+    padding: clamp(20px, 3vw, 30px);
+    box-sizing: border-box;
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 28px;
+    text-align: left;
+    border: 1px solid var(--rng-line);
+    border-radius: 24px;
+    background: linear-gradient(120deg, rgba(10, 26, 44, 0.94), rgba(16, 44, 68, 0.68));
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.16);
+    overflow: hidden;
+  }
+  .rng-eyebrow { color: var(--rng-cyan); font: 700 0.64rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.18em; }
+  body.rng-immersive .rng-header h1 { margin: 0.45rem 0 0.4rem; color: var(--rng-ink); font-size: clamp(1.65rem, 3vw, 2.4rem); line-height: 1.18; letter-spacing: -0.025em; }
+  body.rng-immersive .rng-header h1 em { color: var(--rng-cyan); font-style: normal; }
+  body.rng-immersive .rng-header p { max-width: 660px; color: var(--rng-muted); font-size: 0.86rem; line-height: 1.65; }
+  .rng-hero-metrics { display: grid; grid-template-columns: repeat(3, minmax(90px, 1fr)); gap: 8px; }
+  .rng-hero-metrics div { min-width: 88px; padding: 12px 13px; border-left: 2px solid var(--rng-cyan); background: rgba(255, 255, 255, 0.028); }
+  .rng-hero-metrics strong { display: block; color: var(--rng-ink); font: 700 1.35rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .rng-hero-metrics sup { font-size: 0.62em; }
+  .rng-hero-metrics span { display: block; margin-top: 6px; color: var(--rng-muted); font-size: 0.67rem; }
+
+  body.rng-immersive .rng-grid { grid-template-columns: minmax(0, 2.15fr) minmax(300px, 0.85fr); gap: 16px; }
+  body.rng-immersive .rng-card {
+    padding: clamp(18px, 2.3vw, 26px);
+    border: 1px solid var(--rng-line);
+    border-radius: 24px;
+    background: var(--rng-panel);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(18px);
+  }
+  .rng-section-head { margin-bottom: 18px; display: flex; align-items: start; justify-content: space-between; gap: 18px; }
+  .rng-section-head span { color: var(--rng-cyan); font: 700 0.61rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.16em; }
+  .rng-section-head h2 { margin: 0.45rem 0 0; color: var(--rng-ink); font-size: 1.1rem; }
+  .rng-section-head p { margin: 2px 0 0; color: var(--rng-muted); font-size: 0.72rem; }
+  .rng-section-head.compact { margin-bottom: 16px; }
+
+  body.rng-immersive .ctrl-row { margin: 0 0 10px; }
+  body.rng-immersive .ctrl-row label { color: var(--rng-muted); font-size: 0.75rem; }
+  body.rng-immersive .dist-select,
+  body.rng-immersive .interval-input,
+  body.rng-immersive .sample-n-input,
+  body.rng-immersive .custom-form input[type="text"],
+  body.rng-immersive .custom-form textarea,
+  body.rng-immersive .rng-source-row select,
+  body.rng-immersive .rng-seed-input {
+    border-color: var(--rng-line);
+    color: var(--rng-ink);
+    background: rgba(3, 14, 25, 0.6);
+  }
+  body.rng-immersive .dist-select { min-height: 46px; border-radius: 13px; }
+  body.rng-immersive .dist-formula {
+    min-height: 48px;
+    margin: 0 0 14px;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    color: var(--rng-text);
+    border: 1px solid rgba(113, 215, 232, 0.1);
+    border-radius: 14px;
+    background: linear-gradient(90deg, rgba(113, 215, 232, 0.055), rgba(255, 255, 255, 0.02));
+  }
+  body.rng-immersive .param { padding: 10px 12px; border: 1px solid var(--rng-line); border-radius: 14px; background: rgba(255, 255, 255, 0.022); }
+  body.rng-immersive .param-head .key { color: var(--rng-ink); }
+  body.rng-immersive .param-head .val { color: var(--rng-cyan); }
+  body.rng-immersive input[type="range"] { accent-color: var(--rng-cyan); }
+
+  body.rng-immersive .viz-card {
+    margin-top: 16px;
+    padding: 12px 10px 10px;
+    border: 1px solid var(--rng-line);
+    border-radius: 18px;
+    background:
+      linear-gradient(rgba(113, 215, 232, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(113, 215, 232, 0.035) 1px, transparent 1px),
+      rgba(3, 14, 25, 0.52);
+    background-size: 28px 28px;
+  }
+  body.rng-immersive .viz-svg .axis { stroke: rgba(185, 211, 225, 0.5); }
+  body.rng-immersive .viz-svg .tick-line { stroke: rgba(154, 194, 212, 0.12); }
+  body.rng-immersive .viz-svg .tick-text,
+  body.rng-immersive .viz-svg .axis-label { fill: var(--rng-muted); }
+  body.rng-immersive .viz-svg .pdf-curve,
+  body.rng-immersive .viz-svg .stem-line { stroke: var(--rng-cyan); }
+  body.rng-immersive .viz-svg .pdf-fill { fill: var(--rng-cyan); fill-opacity: 0.09; }
+  body.rng-immersive .viz-svg .interval-rect { fill: var(--rng-gold); fill-opacity: 0.12; }
+  body.rng-immersive .viz-svg .interval-stem,
+  body.rng-immersive .viz-svg .handle-line { stroke: var(--rng-gold); }
+  body.rng-immersive .viz-svg .interval-dot { fill: var(--rng-gold); }
+  body.rng-immersive .viz-svg .handle { fill: #0a1928; stroke: var(--rng-gold); }
+  body.rng-immersive .viz-svg .hist-bar { fill: var(--rng-cyan); fill-opacity: 0.28; }
+  body.rng-immersive .viz-svg .sample-dot { fill: var(--rng-gold); }
+  body.rng-immersive .interval-panel { margin-top: 4px; color: var(--rng-muted); }
+  body.rng-immersive .interval-panel .value { color: var(--rng-gold); }
+
+  body.rng-immersive .sample-controls { gap: 9px; }
+  body.rng-immersive .sample-btn {
+    min-height: 44px;
+    border-color: var(--rng-line);
+    border-radius: 13px;
+    color: var(--rng-text);
+    background: rgba(255, 255, 255, 0.032);
+    font-size: 0.82rem;
+  }
+  body.rng-immersive .sample-btn.primary {
+    color: #06131d;
+    border-color: transparent;
+    background: linear-gradient(135deg, #91e5ef, #4eb7cd);
+    box-shadow: 0 10px 26px rgba(70, 181, 204, 0.2);
+  }
+  body.rng-immersive .sample-btn.danger { color: var(--rng-muted); }
+  body.rng-immersive .last-sample {
+    margin: 14px 0 0;
+    padding: 16px;
+    border: 1px solid rgba(230, 181, 111, 0.28);
+    border-radius: 16px;
+    color: var(--rng-muted);
+    background: linear-gradient(145deg, rgba(230, 181, 111, 0.1), rgba(255, 255, 255, 0.018));
+  }
+  body.rng-immersive .last-sample .v { display: block; margin-top: 5px; color: var(--rng-gold); font: 700 2rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  body.rng-immersive .stats { border-color: var(--rng-line); color: var(--rng-muted); }
+  body.rng-immersive .stats .stat { padding: 4px 0; }
+  body.rng-immersive .stats .stat .name { color: var(--rng-muted); }
+  body.rng-immersive .stats .stat .v { color: var(--rng-ink); }
+  body.rng-immersive .stats .stat .v.theo { color: var(--rng-cyan); }
+  body.rng-immersive .rng-busy { color: var(--rng-cyan); }
+
+  body.rng-immersive .rng-advanced { border-color: var(--rng-line); }
+  body.rng-immersive .rng-advanced > summary { color: var(--rng-muted); }
+  body.rng-immersive .custom-trigger,
+  body.rng-immersive .custom-delete { border-color: var(--rng-line); color: var(--rng-muted); }
+  body.rng-immersive .custom-form { border-color: var(--rng-line); background: rgba(4, 15, 26, 0.55); }
+  body.rng-immersive .custom-form .cf-msg.success { color: #9ce5b9; background: rgba(88, 192, 127, 0.1); }
+  body.rng-immersive .custom-form .cf-msg.error { color: #efaaa0; background: rgba(212, 98, 84, 0.1); }
+  body.rng-immersive details.about { width: min(820px, 100%); margin: 20px auto 0; color: var(--rng-muted); }
+  body.rng-immersive details.about summary { color: var(--rng-muted); }
+  body.rng-immersive details.about code { color: var(--rng-cyan); background: rgba(113, 215, 232, 0.08); }
+
+  @media (hover: hover) {
+    .rng-back:hover { color: var(--rng-cyan); border-color: var(--rng-line-strong); background: rgba(113, 215, 232, 0.06); }
+    body.rng-immersive .sample-btn:hover { color: var(--rng-cyan); border-color: var(--rng-line-strong); }
+    body.rng-immersive .sample-btn.primary:hover { color: #06131d; filter: brightness(1.06); }
+  }
+  @media (max-width: 900px) {
+    body.rng-immersive .rng-header { align-items: start; flex-direction: column; }
+    .rng-hero-metrics { width: 100%; }
+    body.rng-immersive .rng-grid { grid-template-columns: 1fr; }
+    body.rng-immersive .rng-sampling { position: static; }
+  }
+  @media (max-width: 620px) {
+    .rng-appbar { min-height: 62px; gap: 9px; }
+    .rng-app-title span, .rng-app-status span:last-child { display: none; }
+    .rng-app-status span { padding: 0 9px; font-size: 0.66rem; }
+    body.rng-immersive .rng-wrap { width: calc(100% - 18px); padding: 12px 0 28px; }
+    body.rng-immersive .rng-header { min-height: 0; margin-bottom: 10px; padding: 18px; border-radius: 19px; gap: 16px; }
+    body.rng-immersive .rng-header h1 { font-size: 1.55rem; }
+    body.rng-immersive .rng-header p { font-size: 0.78rem; }
+    .rng-hero-metrics div { min-width: 0; padding: 10px; }
+    .rng-hero-metrics strong { font-size: 1.1rem; }
+    body.rng-immersive .rng-card { padding: 15px; border-radius: 19px; }
+    .rng-section-head { display: block; margin-bottom: 14px; }
+    .rng-section-head p { margin-top: 6px; }
+    body.rng-immersive .params { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    body.rng-immersive .viz-card { margin-left: 0; margin-right: 0; padding-inline: 4px; }
+    body.rng-immersive .rng-grid > .rng-card { margin-bottom: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body.rng-immersive::before { display: none; }
+  }
+
+  /* ─────────────────────────────────────────────────────────────────
+   * Paper Studio：A 中央实验桌正式工具界面
+   * ───────────────────────────────────────────────────────────────── */
+  body.rng-paper-tool {
+    --rng-paper: rgba(255, 252, 244, .82);
+    --rng-paper-strong: rgba(255, 253, 248, .92);
+    --rng-line: rgba(49, 66, 72, .16);
+    --rng-ink: #283a41;
+    --rng-text: #53656c;
+    --rng-muted: #7b888c;
+    --rng-blue: #5f8492;
+    --rng-blue-soft: #7699a6;
+    --rng-coral: #c97956;
+    --rng-gold: #9b6748;
+    --color-bg: rgba(255, 252, 244, .82);
+    --color-bg-warm: rgba(248, 243, 232, .86);
+    --color-border: var(--rng-line);
+    --color-ink: var(--rng-ink);
+    --color-muted: var(--rng-text);
+    --color-light: var(--rng-muted);
+    --color-accent: var(--rng-blue);
+    margin: 0;
+    overflow: hidden;
+    color: var(--rng-text);
+    color-scheme: light;
+    background: #eee7d8 url('/assets/images/random/background-lab/paper-studio-v1.webp') center/cover fixed;
+  }
+  body.rng-paper-tool::before { content: ''; position: fixed; inset: 0; pointer-events: none; background: rgba(255, 250, 241, .18); }
+  body.rng-paper-tool > nav,
+  body.rng-paper-tool > footer,
+  body.rng-paper-tool #za-fab,
+  body.rng-paper-tool #za-panel,
+  body.rng-paper-tool #admin-fab { display: none !important; }
+  body.rng-paper-tool > main { width: 100%; max-width: none; height: 100dvh; margin: 0; padding: 0; }
+
+  body.rng-paper-tool .rng-appbar {
+    min-height: 66px; height: 66px; padding: 0 18px;
+    box-sizing: border-box; position: relative; top: auto; z-index: 30; justify-content: space-between; gap: 18px;
+    border: 0; border-bottom: 1px solid rgba(50,66,71,.12); border-radius: 0;
+    background: linear-gradient(90deg,rgba(255,253,248,.96),rgba(250,246,237,.92)); box-shadow: none; backdrop-filter: none;
+  }
+  body.rng-paper-tool .rng-app-identity, body.rng-paper-tool .rng-app-actions { display: flex; align-items: center; }
+  body.rng-paper-tool .rng-app-identity { min-width: 0; gap: 11px; }
+  body.rng-paper-tool .rng-app-actions { margin-left: auto; gap: 8px; }
+  body.rng-paper-tool .rng-back { width: 36px; height: 36px; border: 0; border-radius: 11px; color: #6f7c80; background: rgba(86,108,115,.06); }
+  body.rng-paper-tool .rng-back:hover { color: var(--rng-ink); background: rgba(86,108,115,.11); }
+  body.rng-paper-tool .rng-brand-mark { width: 38px; height: 38px; border: 1px solid rgba(95,132,146,.18); border-radius: 50%; color: #587f8d; background: rgba(95,132,146,.09); box-shadow: none; }
+  body.rng-paper-tool .rng-brand-mark svg { width: 29px; height: 29px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  body.rng-paper-tool .rng-brand-mark circle { fill: var(--rng-coral); stroke: none; }
+  body.rng-paper-tool .rng-app-title b { color: var(--rng-ink); font-size: .94rem; letter-spacing: .015em; }
+  body.rng-paper-tool .rng-app-title span { color: var(--rng-muted); font: 400 .6rem/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; letter-spacing: 0; }
+  body.rng-paper-tool .rng-local-state { min-height: 34px; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px; color: #74817f; font-size: .59rem; white-space: nowrap; }
+  body.rng-paper-tool .rng-local-state i { width: 6px; height: 6px; border-radius: 50%; background: #65a57d; box-shadow: 0 0 0 4px rgba(101,165,125,.1); }
+  body.rng-paper-tool .rng-toolbar-btn { min-height: 38px; padding: 0 13px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(50,66,71,.12); border-radius: 11px; color: #596c73; background: rgba(255,255,255,.55); font: 600 .65rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  body.rng-paper-tool .rng-toolbar-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  body.rng-paper-tool .rng-toolbar-btn svg circle { fill: currentColor; stroke: none; }
+  body.rng-paper-tool .rng-toolbar-btn.primary { color: #fff; border-color: transparent; background: var(--rng-coral); box-shadow: 0 7px 18px rgba(201,121,86,.18); }
+  body.rng-paper-tool .rng-toolbar-btn:hover { border-color: rgba(95,132,146,.3); background: rgba(255,255,255,.82); }
+  body.rng-paper-tool .rng-toolbar-btn.primary:hover { border-color: transparent; background: #be6d4a; }
+
+  body.rng-paper-tool .rng-wrap {
+    width: calc(100% - clamp(24px, 2.2vw, 44px)); max-width: none; height: calc(100dvh - 24px); min-height: 640px; margin: 12px auto; padding: 0;
+    box-sizing: border-box; position: relative; z-index: 2; display: grid; grid-template-rows: 66px minmax(0,1fr) 112px;
+    gap: 1px; overflow: hidden; border: 1px solid rgba(45,62,68,.22); border-radius: 26px;
+    background: rgba(55,70,73,.16); box-shadow: 0 32px 90px rgba(69,61,47,.2); backdrop-filter: blur(12px) saturate(108%);
+  }
+  body.rng-paper-tool .rng-grid { min-height: 0; display: grid; grid-template-columns: minmax(0,1fr) 330px; gap: 1px; align-items: stretch; }
+  body.rng-paper-tool .rng-grid > .rng-card { margin: 0; border: 0; border-radius: 0; background: var(--rng-paper); box-shadow: none; backdrop-filter: none; }
+
+  body.rng-paper-tool .rng-workbench {
+    min-height: 0; padding: 16px; display: grid;
+    grid-template-columns: 280px minmax(0,1fr); grid-template-rows: auto auto auto minmax(0,1fr);
+    gap: 9px 16px; overflow: visible;
+  }
+  body.rng-paper-tool .rng-workbench .rng-section-head { grid-column: 1; grid-row: 1; margin: 0 0 2px; display: flex; align-items: center; }
+  body.rng-paper-tool .rng-section-head h2 { margin: 0; color: var(--rng-ink); font-size: .9rem; }
+  body.rng-paper-tool .rng-section-head > span { color: var(--rng-muted); font: 600 .53rem/1 ui-monospace,monospace; letter-spacing: .08em; }
+  body.rng-paper-tool .ctrl-row { grid-column: 1; grid-row: 2; margin: 0; display: block; }
+  body.rng-paper-tool .ctrl-row label { display: block; margin: 0 0 5px; color: var(--rng-muted); font-size: .59rem; }
+  body.rng-paper-tool .dist-select { width: 100%; min-height: 39px; padding: 0 10px; border-color: var(--rng-line); border-radius: 11px; color: var(--rng-ink); background: rgba(255,255,255,.55); font-size: .68rem; }
+  body.rng-paper-tool .dist-native { display: none; }
+  body.rng-paper-tool .dist-picker { position: relative; }
+  body.rng-paper-tool .dist-trigger {
+    width: 100%; min-height: 54px; padding: 8px 11px; display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--rng-line); border-radius: 11px; color: var(--rng-ink); background: rgba(255,255,255,.58); font: inherit; text-align: left;
+  }
+  body.rng-paper-tool .dist-selected-copy { min-width: 0; flex: 1; display: grid; grid-template-columns: 1fr; align-items: center; }
+  body.rng-paper-tool .dist-selected-copy > span { min-width: 0; overflow: hidden; color: #53676f; font-size: .76rem; text-align: center; }
+  body.rng-paper-tool .dist-selected-copy .katex { font-size: 1em; }
+  body.rng-paper-tool .dist-chevron { color: var(--rng-muted); }
+  body.rng-paper-tool .dist-menu {
+    width: min(820px,calc(100vw - 48px)); max-height: min(560px,74dvh); padding: 8px; box-sizing: border-box;
+    position: absolute; z-index: 85; top: calc(100% + 6px); left: 0; overflow: auto;
+    border: 1px solid rgba(45,62,68,.18); border-radius: 14px; background: rgba(255,252,244,.98);
+    box-shadow: 0 24px 70px rgba(69,61,47,.22); backdrop-filter: blur(18px);
+  }
+  body.rng-paper-tool .dist-option {
+    width: 100%; min-height: 58px; padding: 8px 10px; display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 16px; align-items: center;
+    border: 0; border-radius: 10px; color: var(--rng-text); background: transparent; font: inherit; text-align: left;
+  }
+  body.rng-paper-tool .dist-option:hover, body.rng-paper-tool .dist-option[aria-selected="true"] { background: rgba(95,132,146,.1); }
+  body.rng-paper-tool .dist-option-notation, body.rng-paper-tool .dist-option-math { min-width: 0; overflow: hidden; color: #405b66; text-align: center; white-space: nowrap; }
+  body.rng-paper-tool .dist-option-notation { font-size: .86rem; }
+  body.rng-paper-tool .dist-option-math { color: #53676f; font-size: .82rem; }
+  body.rng-paper-tool .dist-formula { grid-column: 1; grid-row: 3; min-height: 52px; margin: 0; padding: 6px 9px; display: grid; place-items: center; border: 1px solid rgba(52,70,76,.1); border-radius: 12px; color: #53676f; background: rgba(255,255,255,.42); }
+  body.rng-paper-tool .params { grid-column: 1; grid-row: 4; margin: 0; display: block; }
+  body.rng-paper-tool .param { margin-bottom: 9px; padding: 9px 10px; border: 1px solid rgba(52,70,76,.12); border-radius: 11px; background: rgba(255,255,255,.44); }
+  body.rng-paper-tool .param-head { margin-bottom: 7px; }
+  body.rng-paper-tool .param-head .key { color: var(--rng-text); font-size: .7rem; }
+  body.rng-paper-tool .param-head .val { color: #496e7d; font-size: .63rem; }
+  body.rng-paper-tool .param-number { width: 78px; min-height: 29px; padding: 0 7px; box-sizing: border-box; border: 1px solid rgba(52,70,76,.13); border-radius: 8px; color: #3f6270; background: rgba(255,255,255,.58); text-align: right; font: 700 .63rem/1 ui-monospace,monospace; }
+  body.rng-paper-tool .param-number[aria-invalid="true"] { border-color: #bd665b; color: #a04f47; background: rgba(205,102,87,.07); }
+  body.rng-paper-tool input[type="range"] { accent-color: var(--rng-blue); }
+
+  body.rng-paper-tool .viz-card {
+    grid-column: 2; grid-row: 1/-1; min-height: 0; margin: 0; padding: 0; display: flex; flex-direction: column; justify-content: center;
+    border: 0; border-left: 1px solid var(--rng-line); border-radius: 0; background: transparent;
+  }
+  body.rng-paper-tool .rng-plot-toolbar { width: calc(100% - 14px); min-height: 32px; padding: 0 0 8px 14px; box-sizing: border-box; display: flex; align-items: center; gap: 7px; }
+  body.rng-paper-tool .rng-plot-toolbar b { color: var(--rng-ink); font-size: .86rem; }
+  body.rng-paper-tool .rng-plot-toolbar span { min-height: 26px; padding: 0 8px; display: inline-flex; align-items: center; border-radius: 8px; color: var(--rng-muted); background: rgba(80,108,118,.07); font-size: .56rem; }
+  body.rng-paper-tool .rng-plot-toolbar button { min-height: 28px; margin-left: auto; padding: 0 10px; border: 1px solid rgba(52,70,76,.12); border-radius: 9px; color: #6d7b80; background: rgba(255,255,255,.48); font: inherit; font-size: .58rem; }
+  body.rng-paper-tool .rng-plot-toolbar button[aria-pressed="true"] { color: #fff; border-color: transparent; background: var(--rng-coral); }
+  body.rng-paper-tool .viz-svg { flex: 0 1 auto; width: calc(100% - 14px); height: auto; min-height: 0; max-height: calc(100% - 42px); aspect-ratio: 12 / 7; margin-left: 14px; border: 1px solid rgba(51,70,76,.12); border-radius: 16px; background: rgba(255,255,255,.43); }
+  body.rng-paper-tool .viz-svg .axis { stroke: rgba(80,99,106,.48); }
+  body.rng-paper-tool .viz-svg .tick-line { stroke: rgba(80,99,106,.08); }
+  body.rng-paper-tool .viz-svg .tick-text, body.rng-paper-tool .viz-svg .axis-label { fill: #7b898d; }
+  body.rng-paper-tool .viz-svg .pdf-curve, body.rng-paper-tool .viz-svg .stem-line { stroke: #537f8e; }
+  body.rng-paper-tool .viz-svg .pdf-fill { fill: #7597a3; fill-opacity: .13; }
+  body.rng-paper-tool .viz-svg .interval-rect { fill: #dc9c68; fill-opacity: .14; }
+  body.rng-paper-tool .viz-svg .interval-stem, body.rng-paper-tool .viz-svg .handle-line { stroke: #c8774f; }
+  body.rng-paper-tool .viz-svg .interval-dot { fill: #c8774f; }
+  body.rng-paper-tool .viz-svg .handle { fill: #fffaf1; stroke: #c8774f; }
+  body.rng-paper-tool .viz-svg .hist-bar { fill: #6f929f; fill-opacity: .3; }
+
+  body.rng-paper-tool .rng-sampling { min-height: 0; padding: 20px; overflow: hidden; background: linear-gradient(180deg,rgba(255,252,244,.82),rgba(249,244,234,.88)); }
+  body.rng-paper-tool .rng-sampling .rng-section-head { margin-bottom: 13px; display: flex; align-items: center; }
+  body.rng-paper-tool .rng-sampling .rng-section-head h2 { font-size: 1rem; }
+  body.rng-paper-tool .sample-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  body.rng-paper-tool .sample-btn { min-height: 56px; padding: 0 12px; border-color: rgba(52,70,76,.14); border-radius: 13px; color: #5d6e74; background: rgba(255,255,255,.58); font-size: .78rem; font-weight: 600; }
+  body.rng-paper-tool .sample-btn.primary, body.rng-paper-tool .sample-btn.active { color: #fff; border-color: transparent; background: #628695; box-shadow: none; }
+  body.rng-paper-tool .sample-custom { grid-column: 1/-1; display: grid; grid-template-columns: 1fr 54px; gap: 6px; }
+  body.rng-paper-tool .sample-n-input { min-height: 56px; padding: 0 13px; border-color: var(--rng-line); border-radius: 13px; color: var(--rng-ink); background: rgba(255,255,255,.58); font-size: .74rem; }
+  body.rng-paper-tool #btn-sample-custom { color: #fff; border-color: transparent; background: var(--rng-coral); }
+  body.rng-paper-tool #btn-clear { display: none; }
+  body.rng-paper-tool .last-sample { margin: 11px 0 0; padding: 13px; text-align: left; border: 1px solid rgba(202,127,82,.13); border-radius: 13px; color: #876f5f; background: rgba(226,177,114,.14); }
+  body.rng-paper-tool .last-sample.empty { display: none; }
+  body.rng-paper-tool .last-sample .v { display: block; margin-top: 6px; color: #8d684f; font: 700 2rem/1 ui-monospace,monospace; }
+  body.rng-paper-tool .rng-busy { color: var(--rng-blue); pointer-events: none; }
+
+  body.rng-paper-tool .rng-summary { min-width: 0; padding: 12px 16px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: stretch; background: var(--rng-paper-strong); }
+  body.rng-paper-tool .stats { min-width: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; border: 0; }
+  body.rng-paper-tool .stats .stat, body.rng-paper-tool .stats .sample-stat { min-width: 0; padding: 9px 10px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 1px solid rgba(53,70,76,.1); border-radius: 12px; background: rgba(255,255,255,.38); }
+  body.rng-paper-tool .stats .stat .name { color: var(--rng-muted); font-size: .58rem; }
+  body.rng-paper-tool .stats .stat .v, body.rng-paper-tool .stats .stat .v.theo { margin-top: 8px; color: #3e545c; font: 700 .82rem/1 ui-monospace,monospace; }
+  body.rng-paper-tool .rng-summary-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  body.rng-paper-tool .rng-summary-actions button { min-width: 58px; border: 1px solid rgba(53,70,76,.11); border-radius: 10px; color: #758185; background: rgba(255,255,255,.42); font: inherit; font-size: .57rem; }
+
+  body.rng-paper-tool .rng-dialogs-host { display: none; }
+  body.rng-paper-tool .rng-settings-dialog { display: none; }
+  body.rng-paper-tool .rng-settings-dialog.open { width: min(920px,calc(100% - 32px)); max-height: calc(100dvh - 32px); padding: 0; box-sizing: border-box; display: block; position: fixed; z-index: 70; top: 50%; left: 50%; transform: translate(-50%,-50%); overflow: auto; border: 1px solid rgba(45,62,68,.18); border-radius: 24px; background: rgba(255,252,245,.985); box-shadow: 0 34px 100px rgba(61,57,49,.28); backdrop-filter: blur(20px); }
+  body.rng-paper-tool .rng-source-dialog.open { width: min(590px,calc(100% - 32px)); }
+  body.rng-paper-tool .rng-modal-backdrop { position: fixed; z-index: 65; inset: 0; background: rgba(43,48,47,.28); backdrop-filter: blur(5px) saturate(85%); }
+  body.rng-paper-tool .rng-modal-backdrop[hidden] { display: none; }
+  body.rng-paper-tool .rng-dialog-head { margin: 0; padding: 22px 26px 20px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid rgba(52,70,76,.1); background: linear-gradient(110deg,rgba(248,241,229,.7),rgba(255,253,248,.45)); }
+  body.rng-paper-tool .rng-dialog-head > div { display: grid; }
+  body.rng-paper-tool .rng-dialog-head span, body.rng-paper-tool .cf-editor-head span { color: var(--rng-coral); font: 700 .52rem/1 ui-monospace,monospace; letter-spacing: .13em; }
+  body.rng-paper-tool .rng-dialog-head b { margin-top: 7px; color: var(--rng-ink); font-size: 1.25rem; }
+  body.rng-paper-tool .rng-dialog-head p { margin: 5px 0 0; color: var(--rng-muted); font-size: .68rem; }
+  body.rng-paper-tool .rng-dialog-head button { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(52,70,76,.12); border-radius: 50%; color: #718086; background: rgba(255,255,255,.62); font: 300 1.2rem/1 sans-serif; }
+  body.rng-paper-tool .rng-source-row { padding: 20px 26px; display: grid; grid-template-columns: minmax(190px,.8fr) minmax(260px,1.2fr); gap: 28px; align-items: center; border: 0; border-bottom: 1px solid rgba(52,70,76,.09); border-radius: 0; background: transparent; }
+  body.rng-paper-tool .rng-source-copy, body.rng-paper-tool .rng-source-controls { min-width: 0; }
+  body.rng-paper-tool .rng-source-copy { display: grid; }
+  body.rng-paper-tool .rng-source-copy > span, body.rng-paper-tool .custom-tools > div:first-child > span { color: var(--rng-muted); font-size: .58rem; }
+  body.rng-paper-tool .rng-source-copy b { margin-top: 4px; color: var(--rng-ink); font-size: .86rem; }
+  body.rng-paper-tool .rng-source-copy p, body.rng-paper-tool .custom-tools p { margin: 5px 0 0; color: var(--rng-muted); font-size: .64rem; line-height: 1.45; }
+  body.rng-paper-tool .rng-source-controls { display: grid; gap: 8px; }
+  body.rng-paper-tool .rng-source-row select, body.rng-paper-tool .rng-seed-input, body.rng-paper-tool .custom-form input[type="text"], body.rng-paper-tool .custom-form textarea { min-height: 44px; box-sizing: border-box; border: 1px solid rgba(52,70,76,.14); border-radius: 11px; color: var(--rng-ink); background: rgba(255,255,255,.7); }
+  body.rng-paper-tool .rng-source-row select { width: 100%; padding: 0 12px; font: inherit; font-size: .72rem; }
+  body.rng-paper-tool .rng-seed-input { padding: 0 12px; }
+  body.rng-paper-tool #rng-seed-reset { min-height: 44px; border-radius: 11px; font-size: .66rem; }
+  body.rng-paper-tool .custom-tools { margin: 0; padding: 17px 26px; display: flex; align-items: center; justify-content: space-between; gap: 22px; border-bottom: 1px solid rgba(52,70,76,.09); background: rgba(95,132,146,.025); }
+  body.rng-paper-tool .custom-tool-actions { display: flex; gap: 8px; }
+  body.rng-paper-tool .custom-trigger, body.rng-paper-tool .custom-delete { min-height: 38px; padding: 0 13px; border: 1px solid rgba(52,70,76,.13); border-radius: 10px; color: #536b75; background: rgba(255,255,255,.62); font: 600 .65rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  body.rng-paper-tool .custom-trigger { color: #fff; border-color: transparent; background: var(--rng-blue); }
+  body.rng-paper-tool .custom-form { margin: 0; padding: 22px 26px 24px; border: 0; border-radius: 0; background: transparent; }
+  body.rng-paper-tool .custom-form.open { display: block; }
+  body.rng-paper-tool .cf-editor-head { margin-bottom: 18px; display: flex; align-items: end; justify-content: space-between; gap: 18px; }
+  body.rng-paper-tool .cf-editor-head > div { display: grid; }
+  body.rng-paper-tool .cf-editor-head b { margin-top: 5px; color: var(--rng-ink); font-size: .94rem; }
+  body.rng-paper-tool .cf-editor-head p { margin: 0; color: var(--rng-muted); font-size: .62rem; }
+  body.rng-paper-tool .custom-form .cf-row { margin: 0 0 13px; display: grid; grid-template-columns: 96px minmax(0,1fr); gap: 14px; align-items: center; }
+  body.rng-paper-tool .custom-form .cf-row > label { min-width: 0; color: #64757b; font-size: .68rem; }
+  body.rng-paper-tool .custom-form .cf-type-row > span,
+  body.rng-paper-tool .custom-form .cf-support-row > span:first-child { color: #64757b; font-size: .68rem; }
+  body.rng-paper-tool .custom-form input[type="text"] { width: 100%; min-width: 0; padding: 0 13px; font-size: .76rem; }
+  body.rng-paper-tool .cf-type-options { padding: 4px; display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; border: 1px solid rgba(52,70,76,.11); border-radius: 12px; background: rgba(91,112,118,.045); }
+  body.rng-paper-tool .custom-form .cf-radio { min-width: 0; display: block; }
+  body.rng-paper-tool .custom-form .cf-radio input { position: absolute; opacity: 0; pointer-events: none; }
+  body.rng-paper-tool .custom-form .cf-radio span { min-height: 36px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #6a7a80; font-size: .66rem; white-space: nowrap; }
+  body.rng-paper-tool .custom-form .cf-radio:has(input:checked) span { color: #3d5c68; background: rgba(255,255,255,.9); box-shadow: 0 2px 8px rgba(52,64,62,.09); }
+  body.rng-paper-tool .custom-form .cf-radio:has(input:focus-visible) span { outline: 2px solid var(--rng-blue); outline-offset: 1px; }
+  body.rng-paper-tool .cf-formula-grid { margin: 2px 0 13px 110px; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
+  body.rng-paper-tool .cf-formula-input, body.rng-paper-tool .cf-preview { min-width: 0; min-height: 100px; padding: 12px; box-sizing: border-box; border: 1px solid rgba(52,70,76,.12); border-radius: 13px; background: rgba(255,255,255,.42); }
+  body.rng-paper-tool .cf-formula-input label { margin-bottom: 9px; display: flex; justify-content: space-between; color: #64757b; font-size: .66rem; }
+  body.rng-paper-tool .cf-formula-input label span { color: var(--rng-muted); font: 500 .54rem/1.4 ui-monospace,monospace; }
+  body.rng-paper-tool .custom-form .cf-preview { margin: 0; }
+  body.rng-paper-tool .custom-form .cf-preview-head { margin-bottom: 9px; }
+  body.rng-paper-tool .custom-form .cf-preview-math { min-height: 42px; overflow: hidden; font-size: .82rem; }
+  body.rng-paper-tool .custom-form .cf-preview.error .cf-preview-math { overflow: auto; }
+  body.rng-paper-tool .custom-form .cf-support-row { grid-template-columns: 96px minmax(0,1fr) auto minmax(0,1fr); }
+  body.rng-paper-tool .cf-support-divider { color: var(--rng-muted); font-size: .62rem; }
+  body.rng-paper-tool .cf-syntax { margin: -2px 0 13px 110px; color: var(--rng-muted); font-size: .62rem; }
+  body.rng-paper-tool .cf-syntax summary { width: fit-content; cursor: pointer; color: #6b7d84; }
+  body.rng-paper-tool .cf-syntax .cf-help { margin: 9px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(95,132,146,.06); line-height: 1.6; }
+  body.rng-paper-tool .cf-pairs-row { align-items: start !important; }
+  body.rng-paper-tool .cf-pairs-row label { display: grid; gap: 4px; }
+  body.rng-paper-tool .cf-pairs-row label span { color: var(--rng-muted); font-size: .54rem; }
+  body.rng-paper-tool .custom-form textarea { min-height: 116px; padding: 10px 12px; font-size: .72rem; }
+  body.rng-paper-tool #cf-disc-fields > .cf-help { margin: -4px 0 13px 110px; }
+  body.rng-paper-tool .custom-form .cf-msg { margin: 0 0 12px 110px; }
+  body.rng-paper-tool .custom-form .cf-actions { margin: 0; padding-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(52,70,76,.09); }
+  body.rng-paper-tool .cf-actions-left, body.rng-paper-tool .cf-actions-right { display: flex; align-items: center; gap: 8px; }
+  body.rng-paper-tool .custom-form .cf-actions .sample-btn { min-height: 42px; border-radius: 11px; font-size: .68rem; }
+
+  body.rng-paper-tool details.about { display: none; position: fixed; z-index: 60; right: 14px; bottom: 10px; width: auto; margin: 0; }
+  body.rng-paper-tool details.about summary { min-height: 32px; padding: 0 10px; display: flex; align-items: center; border: 1px solid rgba(53,70,76,.12); border-radius: 10px; color: var(--rng-muted); background: rgba(255,252,246,.88); box-shadow: 0 8px 24px rgba(62,64,58,.1); font-size: .58rem; }
+  body.rng-paper-tool details.about[open] { width: min(520px,calc(100% - 24px)); max-height: 70dvh; padding: 14px; overflow: auto; border: 1px solid rgba(45,62,68,.2); border-radius: 16px; background: rgba(255,252,244,.97); box-shadow: 0 24px 70px rgba(69,61,47,.24); }
+
+  @media (max-width: 900px) {
+    body.rng-paper-tool .rng-appbar { height: 56px; min-height: 56px; padding: 0 10px; }
+    body.rng-paper-tool .rng-app-title span, body.rng-paper-tool .rng-local-state { display: none; }
+    body.rng-paper-tool .rng-wrap { height: calc(100dvh - 16px); min-height: 0; margin: 8px auto; z-index: 35; grid-template-rows: 56px minmax(0,1fr) 116px; border-radius: 20px; }
+    body.rng-paper-tool .rng-grid { grid-template-columns: 1fr; grid-template-rows: minmax(0,1fr) 132px; }
+    body.rng-paper-tool .rng-workbench { padding: 9px 10px; grid-template-columns: 1.2fr 1fr 1fr; grid-template-rows: 82px 58px minmax(0,1fr); gap: 8px; overflow: visible; }
+    body.rng-paper-tool .rng-workbench .rng-section-head { display: none; }
+    body.rng-paper-tool .ctrl-row { grid-column: 1; grid-row: 1; align-self: end; }
+    body.rng-paper-tool .dist-trigger { min-height: 39px; padding: 5px 7px; }
+    body.rng-paper-tool .dist-selected-copy { grid-template-columns: 1fr; }
+    body.rng-paper-tool .dist-selected-copy > span { text-align: center; }
+    body.rng-paper-tool .dist-menu { width: min(520px,calc(100vw - 32px)); }
+    body.rng-paper-tool .dist-option { min-height: 76px; grid-template-columns: 1fr; gap: 4px; }
+    body.rng-paper-tool .dist-option-notation { font-size: .78rem; }
+    body.rng-paper-tool .dist-option-math { font-size: .68rem; }
+    body.rng-paper-tool .params { grid-column: 2/4; grid-row: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; align-self: end; }
+    body.rng-paper-tool .param { margin: 0; padding: 7px 8px; }
+    body.rng-paper-tool .param-number { width: 58px; min-height: 26px; padding: 0 4px; font-size: .56rem; }
+    body.rng-paper-tool .dist-formula { grid-column: 1/-1; grid-row: 2; min-height: 0; }
+    body.rng-paper-tool .viz-card { grid-column: 1/-1; grid-row: 3; border-left: 0; }
+    body.rng-paper-tool .rng-plot-toolbar { padding: 0 0 5px; }
+    body.rng-paper-tool .viz-svg { width: 100%; margin: 0; }
+    body.rng-paper-tool .rng-settings-dialog.open { width: min(720px,calc(100vw - 16px)); max-height: calc(100dvh - 16px); position: fixed; top: 50%; right: auto; left: 50%; transform: translate(-50%,-50%); border-radius: 20px; }
+    body.rng-paper-tool .rng-source-dialog.open { width: min(540px,calc(100vw - 16px)); }
+    body.rng-paper-tool .rng-dialog-head { padding: 18px 20px 16px; }
+    body.rng-paper-tool .rng-source-row { padding: 17px 20px; grid-template-columns: 1fr 1.2fr; gap: 18px; }
+    body.rng-paper-tool .custom-tools { padding: 15px 20px; }
+    body.rng-paper-tool .custom-form { padding: 18px 20px 20px; }
+    body.rng-paper-tool .cf-formula-grid { margin-left: 0; }
+    body.rng-paper-tool .cf-syntax, body.rng-paper-tool #cf-disc-fields > .cf-help, body.rng-paper-tool .custom-form .cf-msg { margin-left: 0; }
+    body.rng-paper-tool .rng-sampling { padding: 8px 10px; display: grid; grid-template-columns: 1.1fr .9fr; grid-template-rows: 34px minmax(0,1fr); gap: 8px; }
+    body.rng-paper-tool .rng-sampling .rng-section-head { display: none; }
+    body.rng-paper-tool .sample-controls { grid-column: 1; grid-row: 1/3; grid-template-columns: repeat(4,1fr); }
+    body.rng-paper-tool .sample-custom { grid-column: 1/-1; }
+    body.rng-paper-tool .last-sample { grid-column: 2; grid-row: 1/3; margin: 0; padding: 8px 10px; }
+    body.rng-paper-tool .rng-busy { position: absolute; }
+    body.rng-paper-tool .rng-summary { padding: 8px 10px; grid-template-columns: repeat(4,minmax(0,1fr)); grid-template-rows: minmax(0,1fr); gap: 6px; }
+    body.rng-paper-tool .stats { grid-column: 1/-1; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 5px; }
+    body.rng-paper-tool .stats .stat, body.rng-paper-tool .stats .sample-stat { padding: 6px; }
+    body.rng-paper-tool .rng-summary-actions { display: none; }
+  }
+  @media (max-width: 480px) {
+    body.rng-paper-tool .rng-appbar { padding: 0 8px; }
+    body.rng-paper-tool .rng-back { width: 34px; height: 34px; }
+    body.rng-paper-tool .rng-brand-mark { width: 32px; height: 32px; }
+    body.rng-paper-tool .rng-brand-mark svg { width: 25px; height: 25px; }
+    body.rng-paper-tool .rng-app-title b { font-size: .78rem; }
+    body.rng-paper-tool .rng-toolbar-btn { width: 36px; min-height: 36px; padding: 0; justify-content: center; }
+    body.rng-paper-tool .rng-toolbar-btn span { display: none; }
+    body.rng-paper-tool .rng-wrap { width: calc(100% - 16px); grid-template-rows: 56px minmax(0,1fr) 116px; }
+    body.rng-paper-tool .rng-dialog-head p, body.rng-paper-tool .cf-editor-head p { display: none; }
+    body.rng-paper-tool .rng-source-row { grid-template-columns: 1fr; gap: 10px; }
+    body.rng-paper-tool .custom-tools { align-items: flex-end; }
+    body.rng-paper-tool .custom-tools p { max-width: 180px; }
+    body.rng-paper-tool .custom-form .cf-row { grid-template-columns: 1fr; gap: 7px; }
+    body.rng-paper-tool .cf-type-options { grid-template-columns: repeat(3,1fr); }
+    body.rng-paper-tool .custom-form .cf-radio span { padding: 0 3px; font-size: .56rem; }
+    body.rng-paper-tool .cf-formula-grid { grid-template-columns: 1fr; }
+    body.rng-paper-tool .custom-form .cf-support-row { grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); }
+    body.rng-paper-tool .custom-form .cf-support-row > span:first-child { grid-column: 1/-1; }
+    body.rng-paper-tool .cf-editor-head { align-items: start; }
+    body.rng-paper-tool .rng-workbench { grid-template-rows: 82px 58px minmax(0,1fr); }
+    body.rng-paper-tool .dist-select { padding: 0 6px; font-size: .59rem; }
+    body.rng-paper-tool .params { gap: 6px; }
+    body.rng-paper-tool .rng-plot-toolbar b { font-size: .68rem; }
+    body.rng-paper-tool .rng-plot-toolbar span:nth-of-type(2) { display: none; }
+    body.rng-paper-tool .rng-sampling { grid-template-columns: 1.1fr .9fr; }
+    body.rng-paper-tool .sample-btn { min-height: 34px; padding: 0 3px; font-size: .55rem; }
+    body.rng-paper-tool .sample-btn[data-n] { font-size: 0; }
+    body.rng-paper-tool .sample-btn[data-n]::after { content: attr(data-n) ' 个'; font-size: .55rem; }
+    body.rng-paper-tool .sample-n-input { min-height: 34px; font-size: .55rem; }
+    body.rng-paper-tool .last-sample .v { font-size: 1.35rem; }
+    body.rng-paper-tool .stats { grid-template-columns: repeat(5,minmax(0,1fr)); }
+    body.rng-paper-tool .stats .stat .name { font-size: .43rem; white-space: nowrap; }
+    body.rng-paper-tool .stats .stat .v, body.rng-paper-tool .stats .stat .v.theo { font-size: .57rem; }
+    body.rng-paper-tool details.about { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { body.rng-paper-tool::before { display: none; } }
 </style>
 
-<article class="rng-wrap">
-  <header class="rng-header">
-    <h1>[[zi:dice]] 随机数生成器</h1>
-    <p>Distribution sampler with PDF visualization</p>
-  </header>
+<div class="rng-modal-backdrop" id="rng-modal-backdrop" hidden></div>
 
-  <!-- 控制面板 -->
-  <section class="rng-card">
-    <div class="ctrl-row">
-      <label for="dist-select">分布</label>
-      <select id="dist-select" class="dist-select"></select>
-      <span id="dist-formula" class="dist-formula"></span>
-      <button id="btn-new-custom" class="custom-trigger">+ 新建自定义分布</button>
-      <button id="btn-del-custom" class="custom-delete cf-hidden">[[zi:trash]] 删除当前</button>
+<article class="rng-wrap">
+  <header class="rng-appbar">
+    <div class="rng-app-identity">
+      <a class="rng-back" href="/toolbox/" aria-label="返回百宝箱">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+      </a>
+      <span class="rng-brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40"><path d="M5 29c5.5 0 6.5-18 15-18s9.5 18 15 18"></path><circle cx="20" cy="11" r="2.2"></circle></svg>
+      </span>
+      <div class="rng-app-title"><b>随机数生成器</b><span>选择分布，生成一批独立样本</span></div>
     </div>
+    <div class="rng-app-actions" aria-label="工具操作">
+      <button class="rng-toolbar-btn" type="button" id="rng-open-seed" aria-label="随机源">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"></rect><circle cx="9" cy="9" r="1"></circle><circle cx="15" cy="15" r="1"></circle><circle cx="9" cy="15" r="1"></circle><circle cx="15" cy="9" r="1"></circle></svg>
+        <span>随机源</span>
+      </button>
+      <button class="rng-toolbar-btn primary" type="button" id="rng-open-custom" aria-label="新建分布">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+        <span>新建分布</span>
+      </button>
+    </div>
+  </header>
+  <div class="rng-grid">
+  <section class="rng-card rng-workbench">
+    <div class="rng-section-head">
+      <div><h2>分布与参数</h2></div>
+      <span>SETTINGS</span>
+    </div>
+    <div class="ctrl-row">
+      <label id="dist-select-label" for="dist-select">分布</label>
+      <select id="dist-select" class="dist-select dist-native" aria-hidden="true" tabindex="-1"></select>
+      <div class="dist-picker" id="dist-picker">
+        <button class="dist-trigger" id="dist-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="dist-select-label dist-selected-name">
+          <span class="dist-selected-copy"><b class="sr-only" id="dist-selected-name">正态分布</b><span id="dist-selected-math"></span></span>
+          <span class="dist-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div class="dist-menu" id="dist-menu" role="listbox" aria-labelledby="dist-select-label" hidden></div>
+      </div>
+    </div>
+    <div id="dist-formula" class="dist-formula" aria-label="当前分布公式"></div>
     <div class="params" id="params"></div>
 
-    <!-- 自定义分布表单 -->
-    <div class="custom-form" id="custom-form">
-      <div class="cf-row">
-        <label>名称</label>
-        <input type="text" id="cf-name" placeholder="My Distribution" maxlength="40">
-      </div>
-      <div class="cf-row">
-        <label>类型</label>
-        <label class="cf-radio"><input type="radio" name="cf-type" value="pdf" checked> 连续 (PDF)</label>
-        <label class="cf-radio"><input type="radio" name="cf-type" value="cdf"> 连续 (CDF)</label>
-        <label class="cf-radio"><input type="radio" name="cf-type" value="discrete"> 离散 (k, p)</label>
-      </div>
+    <div class="viz-card">
+      <div class="rng-plot-toolbar"><b>概率分布</b><span>PDF / PMF</span><span>样本直方图</span></div>
+      <svg class="viz-svg" id="viz" viewBox="0 0 480 280" preserveAspectRatio="xMidYMid meet"
+           role="img" aria-label="当前概率分布与抽样结果"></svg>
+    </div>
 
-      <div id="cf-cont-fields">
-        <div class="cf-row">
-          <label>表达式</label>
-          <input type="text" id="cf-expr" placeholder="exp(-x^2/2) / sqrt(2*pi)">
+    <div class="rng-dialogs-host">
+      <div class="rng-settings-dialog rng-source-dialog" id="rng-source-dialog" role="dialog" aria-modal="true" aria-labelledby="rng-source-dialog-title">
+        <div class="rng-dialog-head">
+          <div><span>RANDOM SOURCE</span><b id="rng-source-dialog-title">随机源</b><p>选择不可预测的安全随机，或使用固定种子复现实验。</p></div>
+          <button type="button" id="rng-source-close" aria-label="关闭随机源设置">×</button>
         </div>
-        <p class="cf-help">运算符：<code>+ − × / ^ ( )</code>；函数：<code>exp log ln sqrt abs sin cos tan asin acos atan sinh cosh tanh floor ceil min max</code>；常量：<code>pi e</code>。变量名固定为 <code>x</code>。</p>
-        <div class="cf-row">
-          <label>支撑</label>
-          <span style="font-size:0.86rem;color:var(--color-muted)">a =</span>
-          <input type="text" id="cf-a" value="0" style="max-width:120px">
-          <span style="font-size:0.86rem;color:var(--color-muted)">b =</span>
-          <input type="text" id="cf-b" value="1" style="max-width:120px">
-        </div>
-        <p class="cf-help">填 <code>-inf</code> / <code>inf</code> 让系统自动找截断点（PDF 衰减到峰值的 10⁻⁴ 倍处，约捕获 99%+ 的质量；CDF 用 0.001 / 0.999 分位点）。重尾分布（如 Cauchy）建议手动给紧的 [a, b]。</p>
+        <section class="rng-source-row" aria-labelledby="rng-source-title">
+          <div class="rng-source-copy"><span>生成方式</span><b id="rng-source-title">抽样序列</b><p>安全随机适合日常抽样；固定种子会让重置后的序列完全一致。</p></div>
+          <div class="rng-source-controls">
+            <label class="sr-only" for="rng-mode">随机源</label>
+            <select id="rng-mode">
+              <option value="secure">安全随机（默认）</option>
+              <option value="seeded">固定种子（可复现）</option>
+            </select>
+            <label for="rng-seed" id="rng-seed-label" class="cf-hidden">种子</label>
+            <div class="rng-seed-wrap cf-hidden" id="rng-seed-wrap">
+              <input class="rng-seed-input" id="rng-seed" type="text" value="demo-2026" maxlength="80">
+              <button class="sample-btn" id="rng-seed-reset" type="button">重置序列</button>
+            </div>
+          </div>
+        </section>
       </div>
 
-      <div id="cf-disc-fields" class="cf-hidden">
-        <div class="cf-row" style="display:block">
-          <label style="display:block; margin-bottom:0.35rem">(k, p) 列表</label>
-          <textarea id="cf-pairs" placeholder="一行一对，逗号分隔：&#10;1, 0.3&#10;2, 0.5&#10;3, 0.2"></textarea>
+      <div class="rng-settings-dialog rng-custom-dialog" id="rng-custom-dialog" role="dialog" aria-modal="true" aria-labelledby="rng-custom-dialog-title">
+        <div class="rng-dialog-head">
+          <div><span>DISTRIBUTION STUDIO</span><b id="rng-custom-dialog-title">自定义分布</b><p>输入数学公式或概率列表，实时预览并验证后保存。</p></div>
+          <button type="button" id="rng-custom-close" aria-label="关闭自定义分布">×</button>
         </div>
-        <p class="cf-help">每行 "<code>k, p</code>"——k 是取值（数字，可非整数），p 是概率。系统会自动归一化（总和不为 1 也可，会按比例缩放并在保存提示里告知）。</p>
-      </div>
+        <div class="custom-form open" id="custom-form">
+          <div class="cf-row cf-name-row">
+            <label for="cf-name">名称</label>
+            <input type="text" id="cf-name" placeholder="例如：标准 Logistic" maxlength="40">
+          </div>
+          <div class="cf-row cf-type-row" role="group" aria-label="分布类型">
+            <span>类型</span>
+            <div class="cf-type-options">
+              <label class="cf-radio"><input type="radio" name="cf-type" value="pdf" checked><span>连续 · PDF</span></label>
+              <label class="cf-radio"><input type="radio" name="cf-type" value="cdf"><span>连续 · CDF</span></label>
+              <label class="cf-radio"><input type="radio" name="cf-type" value="discrete"><span>离散 · (k, p)</span></label>
+            </div>
+          </div>
 
-      <div class="cf-msg" id="cf-msg"></div>
+          <div id="cf-cont-fields">
+            <div class="cf-formula-grid">
+              <div class="cf-formula-input">
+                <label for="cf-expr">公式 <span>LaTeX / Markdown</span></label>
+                <input type="text" id="cf-expr" placeholder="\frac{1}{\sqrt{2\pi}}e^{-x^2/2}">
+              </div>
+              <div class="cf-preview" id="cf-preview" aria-live="polite">
+                <div class="cf-preview-head"><span>实时预览</span><span id="cf-preview-status">等待输入</span></div>
+                <div class="cf-preview-math" id="cf-preview-math">—</div>
+              </div>
+            </div>
+            <div class="cf-row cf-support-row">
+              <span>支撑区间</span>
+              <label class="sr-only" for="cf-a">支撑区间下界</label><input type="text" id="cf-a" value="0">
+              <span class="cf-support-divider">至</span>
+              <label class="sr-only" for="cf-b">支撑区间上界</label><input type="text" id="cf-b" value="1">
+            </div>
+            <details class="cf-syntax"><summary>公式写法与自动截断说明</summary><p class="cf-help">可直接输入 <code>2x+1</code>、<code>$e^{-x^2/2}$</code> 或 <code>\frac{1}{\sqrt{2\pi}}</code>。变量固定为 <code>x</code>；支撑填 <code>-inf</code> / <code>inf</code> 时，系统会自动寻找合适截断点。重尾分布建议手动填写有限区间。</p></details>
+          </div>
 
-      <div class="cf-actions">
-        <button class="sample-btn" id="cf-cancel">取消</button>
-        <button class="sample-btn primary" id="cf-save">验证 + 保存</button>
+          <div id="cf-disc-fields" class="cf-hidden">
+            <div class="cf-row cf-pairs-row">
+              <label for="cf-pairs">概率列表 <span>每行一组 k, p</span></label>
+              <textarea id="cf-pairs" placeholder="1, 0.3&#10;2, 0.5&#10;3, 0.2"></textarea>
+            </div>
+            <p class="cf-help">取值可以是任意数字；概率总和不为 1 时会在保存时自动归一化。</p>
+          </div>
+
+          <div class="cf-msg" id="cf-msg" role="status" aria-live="polite"></div>
+
+          <div class="cf-actions">
+            <div class="cf-actions-left"><button class="sample-btn" id="btn-new-custom" type="button">清空</button><button id="btn-del-custom" class="sample-btn custom-delete cf-hidden" type="button">[[zi:trash]] 删除当前</button></div>
+            <div class="cf-actions-right"><button class="sample-btn" id="cf-cancel" type="button">关闭</button><button class="sample-btn primary" id="cf-save" type="button">验证并保存</button></div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- 数轴可视化 -->
-  <section class="rng-card viz-card">
-    <svg class="viz-svg" id="viz" viewBox="0 0 800 280" preserveAspectRatio="xMidYMid meet"></svg>
-    <div class="interval-panel">
-      <span><span class="label">区间</span>
-        [<input type="number" class="interval-input" id="interval-a" step="0.01">,
-        <input type="number" class="interval-input" id="interval-b" step="0.01">]
-      </span>
-      <span><span class="label">P(a ≤ X ≤ b) =</span> <span class="value" id="interval-prob">—</span></span>
+  <section class="rng-card rng-sampling">
+    <div class="rng-section-head compact">
+      <div><h2>生成样本</h2></div><span>SAMPLE</span>
     </div>
-  </section>
-
-  <!-- 抽样面板 -->
-  <section class="rng-card">
+    <div class="rng-busy" id="rng-busy" role="status" aria-live="polite">正在生成样本…</div>
     <div class="sample-controls">
-      <button class="sample-btn primary" data-n="1">抽 1 个</button>
-      <button class="sample-btn" data-n="10">抽 10 个</button>
-      <button class="sample-btn" data-n="100">抽 100 个</button>
-      <button class="sample-btn" data-n="1000">抽 1000 个</button>
+      <button class="sample-btn" data-n="1" type="button">生成 1 个</button>
+      <button class="sample-btn" data-n="10" type="button">生成 10 个</button>
+      <button class="sample-btn" data-n="100" type="button">生成 100 个</button>
+      <button class="sample-btn" data-n="1000" type="button">生成 1000 个</button>
       <span class="sample-custom">
+        <label class="sr-only" for="sample-n">自定义生成数量</label>
         <input type="number" class="sample-n-input" id="sample-n"
-               min="1" max="1000000" step="1" placeholder="自定义 N">
-        <button class="sample-btn" id="btn-sample-custom">抽 N 个</button>
+               min="1" max="1000000" step="1" placeholder="自定义数量">
+        <button class="sample-btn" id="btn-sample-custom" type="button">生成</button>
       </span>
-      <button class="sample-btn danger" id="btn-clear">清空</button>
+      <button class="sample-btn danger" id="btn-clear" type="button">清空结果</button>
     </div>
-    <div class="last-sample">最近一次抽样：<span class="v" id="last-sample">—</span></div>
-    <div class="stats">
-      <div class="stat"><span class="name">样本数</span><span class="v" id="stat-n">0</span></div>
-      <div class="stat"><span class="name">样本均值</span><span class="v" id="stat-mean">—</span></div>
+    <div class="last-sample empty" id="last-sample-row">最近一次：<span class="v" id="last-sample">—</span></div>
+  </section>
+  </div>
+
+  <section class="rng-summary" id="rng-summary" aria-label="抽样统计摘要">
+    <div class="stats" id="rng-stats">
+      <div class="stat sample-stat"><span class="name">样本数</span><span class="v" id="stat-n">0</span></div>
+      <div class="stat sample-stat"><span class="name">样本均值</span><span class="v" id="stat-mean">—</span></div>
       <div class="stat"><span class="name">理论均值</span><span class="v theo" id="theo-mean">—</span></div>
-      <div class="stat"><span class="name">样本方差</span><span class="v" id="stat-var">—</span></div>
+      <div class="stat sample-stat"><span class="name">样本方差</span><span class="v" id="stat-var">—</span></div>
       <div class="stat"><span class="name">理论方差</span><span class="v theo" id="theo-var">—</span></div>
-      <div class="stat"><span class="name">区间命中率</span><span class="v" id="stat-hit">—</span></div>
     </div>
+    <div class="rng-summary-actions"><button type="button" id="btn-export">导出</button><button type="button" id="btn-clear-summary">清空</button></div>
   </section>
 
   <details class="about">
     <summary>关于这个工具</summary>
-    <p><strong>用途：</strong>统计课、模拟实验、做题验证概率结果。挑分布、调参数 → 数轴上画出 PDF/PMF → 拖两个橘色 handle 选区间，实时算 <code>P(a ≤ X ≤ b)</code>（连续用复合辛普森积分，离散用 PMF 求和）。</p>
-    <p><strong>抽样：</strong>四档预设 + 自定义 N（上限 1,000,000）。每抽一次，样本会从顶部"落"到对应位置；超过 50 个样本后画成直方图叠在 PDF 上。底部统计区给样本均值/方差，并和理论值对照——大数定律的可视化。</p>
-    <p><strong>抽样算法：</strong>正态用 Box–Muller，Gamma 用 Marsaglia–Tsang，Beta = Gamma/(Gamma+Gamma)，χ²/t/F 都从 Gamma/Normal 派生；泊松小 λ 用 Knuth、大 λ 用正态近似；二项用累加伯努利。</p>
+    <p><strong>用途：</strong>选择概率分布、调整参数并生成独立样本批次；图形和统计摘要会随当前批次同步更新。</p>
+    <p><strong>抽样：</strong>四档预设 + 自定义数量（每批上限 1,000,000）。每次生成都会替换上一批结果；小批量用位置脉冲标记新样本，大批量分块生成并用直方图展示。</p>
+    <p><strong>随机源：</strong>默认使用浏览器安全随机源；顶栏“随机源”可切换到固定种子，以便课堂演示和实验复现。固定种子重置后会重复同一序列。</p>
     <p><strong>自定义分布：</strong>点"+ 新建自定义分布"可输入 PDF / CDF 表达式或离散 (k, p) 列表，验证通过后存到浏览器本地档案。表达式走白名单沙箱（不引第三方库），支持 <code>+ − × / ^</code> 和 <code>exp log ln sqrt sin cos tan abs floor ceil min max</code> 等常见函数；支撑可填具体数也可填 <code>-inf</code> / <code>inf</code> 让工具自动找衰减截断点。验证基于数值积分（PDF 归一化误差 &lt; 2%）和单调性检测（CDF）。抽样用 inverse-CDF 法：连续 PDF 先积出 CDF 表再二分插值，连续 CDF 直接二分逆 F，离散用累积概率二分。</p>
     <p><strong>纯本地：</strong>所有计算、抽样、自定义分布存档都在浏览器里，不上传任何东西。</p>
   </details>
 </article>
 
+<script src="/assets/js/random-core.js?v={{ site.time | date: '%s' }}"></script>
 <script>
 (function () {
+  'use strict';
+  const Core = window.RandomCore;
+  if (!Core) throw new Error('RandomCore failed to load');
+  let randomUnit = Core.createSecureRandom(window.crypto);
+
   // ====================================================================
   // 数学工具函数
   // ====================================================================
@@ -568,22 +1409,22 @@ permalink: /toolbox/random/
   // ====================================================================
   function sampleNormal(mu = 0, sigma = 1) {
     // Box–Muller
-    let u1 = Math.random();
-    while (u1 === 0) u1 = Math.random();   // 防 log(0)
-    const u2 = Math.random();
+    let u1 = randomUnit();
+    while (u1 === 0) u1 = randomUnit();   // 防 log(0)
+    const u2 = randomUnit();
     const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
     return mu + sigma * z;
   }
   function sampleExp(lambda) {
-    let u = Math.random();
-    while (u === 0) u = Math.random();
+    let u = randomUnit();
+    while (u === 0) u = randomUnit();
     return -Math.log(u) / lambda;
   }
   // Marsaglia–Tsang Gamma(α, scale=1)，再乘 scale。α<1 用 boost。
   function sampleGammaShape(alpha) {
     if (alpha < 1) {
-      let u = Math.random();
-      while (u === 0) u = Math.random();
+      let u = randomUnit();
+      while (u === 0) u = randomUnit();
       return sampleGammaShape(alpha + 1) * Math.pow(u, 1 / alpha);
     }
     const d = alpha - 1 / 3;
@@ -595,7 +1436,7 @@ permalink: /toolbox/random/
         v = 1 + c * x;
       } while (v <= 0);
       v = v * v * v;
-      const u = Math.random();
+      const u = randomUnit();
       if (u < 1 - 0.0331 * x * x * x * x) return d * v;
       if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
     }
@@ -624,19 +1465,35 @@ permalink: /toolbox/random/
       let k = 0, p = 1;
       do {
         k++;
-        p *= Math.random();
+        p *= randomUnit();
       } while (p > L);
       return k - 1;
     } else {
-      // 正态近似 + 连续性矫正
-      const z = sampleNormal(0, 1);
-      return Math.max(0, Math.round(lambda + Math.sqrt(lambda) * z));
+      // Hörmann PTRS transformed rejection，保持精确泊松分布。
+      const c = 0.767 - 3.36 / lambda;
+      const beta = Math.PI / Math.sqrt(3 * lambda);
+      const alpha = beta * lambda;
+      const k0 = Math.log(c) - lambda - Math.log(beta);
+      while (true) {
+        let u = randomUnit();
+        while (u === 0) u = randomUnit();
+        const x = (alpha - Math.log((1 - u) / u)) / beta;
+        const n = Math.floor(x + 0.5);
+        if (n < 0) continue;
+        let v = randomUnit();
+        while (v === 0) v = randomUnit();
+        const y = alpha - beta * x;
+        const logDenom = 2 * Math.log1p(Math.exp(y));
+        const lhs = y + Math.log(v) - logDenom;
+        const rhs = k0 + n * Math.log(lambda) - logFact(n);
+        if (lhs <= rhs) return n;
+      }
     }
   }
   function sampleBinomial(n, p) {
     if (n <= 200) {
       let count = 0;
-      for (let i = 0; i < n; i++) if (Math.random() < p) count++;
+      for (let i = 0; i < n; i++) if (randomUnit() < p) count++;
       return count;
     } else {
       const z = sampleNormal(0, 1);
@@ -645,8 +1502,8 @@ permalink: /toolbox/random/
     }
   }
   function sampleGeometric(p) {
-    let u = Math.random();
-    while (u === 0 || u === 1) u = Math.random();
+    let u = randomUnit();
+    while (u === 0 || u === 1) u = randomUnit();
     return Math.ceil(Math.log(u) / Math.log(1 - p));
   }
 
@@ -657,7 +1514,7 @@ permalink: /toolbox/random/
   // domain: 给绘图用的 x 轴范围 [xmin, xmax]
   // mean / variance: 理论值，给统计对照
   // sample: 抽一个样本
-  // discrete: true 表示离散（画 stem，区间用 PMF 求和）
+  // discrete: true 表示离散分布（使用 stem plot）。
   // formula: HTML 标签格式，给标题旁的注释用
   const DIST = {
     uniform_c: {
@@ -676,7 +1533,7 @@ permalink: /toolbox/random/
       },
       mean: p => (p.a + p.b) / 2,
       variance: p => (p.b - p.a) ** 2 / 12,
-      sample: p => p.a + (p.b - p.a) * Math.random(),
+      sample: p => p.a + (p.b - p.a) * randomUnit(),
     },
     uniform_d: {
       label: '均匀离散 DU(a, b)',
@@ -691,7 +1548,7 @@ permalink: /toolbox/random/
       domain: p => [p.a - 1, p.b + 1],
       mean: p => (p.a + p.b) / 2,
       variance: p => ((p.b - p.a + 1) ** 2 - 1) / 12,
-      sample: p => p.a + Math.floor((p.b - p.a + 1) * Math.random()),
+      sample: p => p.a + Math.floor((p.b - p.a + 1) * randomUnit()),
     },
     normal: {
       label: '正态 N(μ, σ²)',
@@ -778,7 +1635,7 @@ permalink: /toolbox/random/
       domain: () => [-0.5, 1.5],
       mean: p => p.p,
       variance: p => p.p * (1 - p.p),
-      sample: p => Math.random() < p.p ? 1 : 0,
+      sample: p => randomUnit() < p.p ? 1 : 0,
     },
     beta: {
       label: 'Beta(α, β)',
@@ -902,6 +1759,14 @@ permalink: /toolbox/random/
   };
   const DIST_KEYS = Object.keys(DIST);
   const BUILTIN_KEYS = DIST_KEYS.slice();   // 内置分布固定列表，自定义会塞到 DIST 里 key 形如 "custom:..."
+  const DIST_NOTATION = {
+    uniform_c: 'X \\sim U(a,b)', uniform_d: 'X \\sim DU(a,b)', normal: 'X \\sim N(\\mu,\\sigma^2)',
+    exp: 'X \\sim \\operatorname{Exp}(\\lambda)', poisson: 'X \\sim \\operatorname{Pois}(\\lambda)',
+    binomial: 'X \\sim \\operatorname{Bin}(n,p)', bernoulli: 'X \\sim \\operatorname{Ber}(p)',
+    beta: 'X \\sim \\operatorname{Beta}(\\alpha,\\beta)', gamma: 'X \\sim \\operatorname{Gamma}(\\alpha,\\theta)',
+    chi2: 'X \\sim \\chi^2(k)', student_t: 'X \\sim t(\\nu)', f: 'X \\sim F(d_1,d_2)',
+    geom: 'X \\sim \\operatorname{Geom}(p)',
+  };
 
   // ====================================================================
   // 状态
@@ -910,10 +1775,8 @@ permalink: /toolbox/random/
     distKey: 'normal',
     params: {},          // 当前分布的参数值
     samples: [],         // 已抽出的样本
-    intervalA: null,     // 区间左端（数据坐标）
-    intervalB: null,     // 区间右端
   };
-  // 存：每个分布上次用过的参数和区间 — 这样切来切去不会重置
+  // 存：每个分布上次用过的参数，这样切来切去不会重置。
   const persisted = {};
   // 当前数轴的 domain（缓存，draw 时用）
   let currentDomain = [0, 1];
@@ -923,19 +1786,157 @@ permalink: /toolbox/random/
   // DOM
   // ====================================================================
   const $select  = document.getElementById('dist-select');
+  const $distPicker = document.getElementById('dist-picker');
+  const $distTrigger = document.getElementById('dist-trigger');
+  const $distMenu = document.getElementById('dist-menu');
+  const $distSelectedName = document.getElementById('dist-selected-name');
+  const $distSelectedMath = document.getElementById('dist-selected-math');
   const $formula = document.getElementById('dist-formula');
   const $params  = document.getElementById('params');
   const $svg     = document.getElementById('viz');
-  const $intvA   = document.getElementById('interval-a');
-  const $intvB   = document.getElementById('interval-b');
-  const $intvP   = document.getElementById('interval-prob');
   const $statN   = document.getElementById('stat-n');
   const $statM   = document.getElementById('stat-mean');
   const $theoM   = document.getElementById('theo-mean');
   const $statV   = document.getElementById('stat-var');
   const $theoV   = document.getElementById('theo-var');
-  const $statH   = document.getElementById('stat-hit');
+  const $stats   = document.getElementById('rng-stats');
   const $lastS   = document.getElementById('last-sample');
+  const $lastRow = document.getElementById('last-sample-row');
+  const $busy    = document.getElementById('rng-busy');
+  const $rngMode = document.getElementById('rng-mode');
+  const $rngSeed = document.getElementById('rng-seed');
+  const $rngSeedLabel = document.getElementById('rng-seed-label');
+  const $rngSeedWrap = document.getElementById('rng-seed-wrap');
+  const $sourceDialog = document.getElementById('rng-source-dialog');
+  const $customDialog = document.getElementById('rng-custom-dialog');
+  const $sourceClose = document.getElementById('rng-source-close');
+  const $customClose = document.getElementById('rng-custom-close');
+  const $modalBackdrop = document.getElementById('rng-modal-backdrop');
+  let activeDialog = null;
+  let dialogReturnFocus = null;
+  document.body.append($sourceDialog, $customDialog);
+
+  function openDialog(dialog) {
+    if (activeDialog) activeDialog.classList.remove('open');
+    dialogReturnFocus = document.activeElement;
+    activeDialog = dialog;
+    activeDialog.classList.add('open');
+    $modalBackdrop.hidden = false;
+  }
+  function closeDialog() {
+    if (!activeDialog) return;
+    activeDialog.classList.remove('open');
+    activeDialog = null;
+    $modalBackdrop.hidden = true;
+    if (dialogReturnFocus && typeof dialogReturnFocus.focus === 'function') dialogReturnFocus.focus();
+  }
+  $sourceClose.addEventListener('click', closeDialog);
+  $customClose.addEventListener('click', closeDialog);
+  $modalBackdrop.addEventListener('click', closeDialog);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && activeDialog) closeDialog();
+  });
+
+  function distributionLatex(dist) {
+    if (!dist._isCustom) return dist.formula;
+    if (dist._spec && dist._spec.type === 'discrete') return null;
+    const prefix = dist._spec && dist._spec.type === 'cdf' ? 'F(x)' : 'f(x)';
+    try { return `${prefix} = ${Core.latexExpressionToLatex(dist._spec.expr)}`; }
+    catch { return null; }
+  }
+  function fitRenderedMath(target, minimumScale) {
+    target.style.fontSize = '';
+    requestAnimationFrame(() => {
+      const math = target.querySelector('.katex');
+      if (!math || target.clientWidth <= 0) return;
+      const available = Math.max(1, target.clientWidth - 6);
+      const natural = math.scrollWidth;
+      if (natural <= available) return;
+      const base = parseFloat(getComputedStyle(target).fontSize) || 16;
+      target.style.fontSize = `${Math.max(base * (minimumScale || .58), base * available / natural)}px`;
+    });
+  }
+  function renderDistributionFormula(target, dist) {
+    target.textContent = '';
+    const latex = distributionLatex(dist);
+    if (latex && window.katex) katex.render(latex, target, { throwOnError: false, displayMode: false });
+    else target.textContent = dist.formula || dist.label;
+    fitRenderedMath(target, .54);
+  }
+  function setDistMenuOpen(open, focusSelected) {
+    $distMenu.hidden = !open;
+    $distTrigger.setAttribute('aria-expanded', String(open));
+    if (open && focusSelected) {
+      const selected = $distMenu.querySelector('[aria-selected="true"]') || $distMenu.querySelector('.dist-option');
+      if (selected) selected.focus();
+    }
+    if (open) requestAnimationFrame(() => {
+      $distMenu.querySelectorAll('.dist-option-notation, .dist-option-math').forEach(target => fitRenderedMath(target, .5));
+    });
+  }
+  function updateDistTrigger() {
+    const dist = DIST[state.distKey];
+    if (!dist) return;
+    $distSelectedName.textContent = dist.label;
+    const notation = DIST_NOTATION[state.distKey] || distributionLatex(dist);
+    $distSelectedMath.textContent = '';
+    if (notation && window.katex) katex.render(notation, $distSelectedMath, { throwOnError: false, displayMode: false });
+    else $distSelectedMath.textContent = dist.label;
+    fitRenderedMath($distSelectedMath, .7);
+  }
+  function rebuildDistMenu() {
+    $distMenu.innerHTML = '';
+    for (const key of Object.keys(DIST)) {
+      const dist = DIST[key];
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'dist-option';
+      button.dataset.key = key;
+      button.setAttribute('role', 'option');
+      button.setAttribute('aria-selected', String(key === state.distKey));
+      const name = document.createElement('b');
+      name.className = 'sr-only';
+      name.textContent = dist.label;
+      button.setAttribute('aria-label', `选择${dist.label}`);
+      const notation = document.createElement('span');
+      notation.className = 'dist-option-notation';
+      const notationLatex = DIST_NOTATION[key] || distributionLatex(dist);
+      if (notationLatex && window.katex) katex.render(notationLatex, notation, { throwOnError: false, displayMode: false });
+      else notation.textContent = dist.label;
+      const math = document.createElement('span');
+      math.className = 'dist-option-math';
+      renderDistributionFormula(math, dist);
+      button.append(name, notation, math);
+      button.addEventListener('click', () => {
+        switchDist(key);
+        setDistMenuOpen(false);
+        $distTrigger.focus();
+      });
+      $distMenu.appendChild(button);
+    }
+  }
+  $distTrigger.addEventListener('click', () => setDistMenuOpen($distMenu.hidden, false));
+  $distTrigger.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setDistMenuOpen(true, true);
+    } else if (event.key === 'Escape') setDistMenuOpen(false);
+  });
+  $distMenu.addEventListener('keydown', (event) => {
+    const options = [...$distMenu.querySelectorAll('.dist-option')];
+    const current = options.indexOf(document.activeElement);
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      options[(current + delta + options.length) % options.length]?.focus();
+    } else if (event.key === 'Escape') {
+      setDistMenuOpen(false);
+      $distTrigger.focus();
+    }
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (!$distPicker.contains(event.target)) setDistMenuOpen(false);
+  });
 
   // 下拉填充延后给 rebuildSelect()——它处理"内置 / 自定义"两个 optgroup。
 
@@ -943,6 +1944,8 @@ permalink: /toolbox/random/
   // 切换分布 / 重新生成参数面板
   // ====================================================================
   function switchDist(key) {
+    cancelSampling();
+    setActiveSampleControl(null);
     if (!DIST[key]) key = 'normal';   // 容错：自定义被删 / 加载失败时回到 normal
     state.distKey = key;
     $select.value = key;
@@ -953,67 +1956,96 @@ permalink: /toolbox/random/
     } else {
       $formula.textContent = dist.formula;
     }
+    fitRenderedMath($formula, .52);
+    updateDistTrigger();
+    $distMenu.querySelectorAll('.dist-option').forEach(option => {
+      option.setAttribute('aria-selected', String(option.dataset.key === key));
+    });
 
     // 取或建参数 — 切回来时保留之前的参数
     if (persisted[key]) {
       state.params = { ...persisted[key].params };
-      state.intervalA = persisted[key].intervalA;
-      state.intervalB = persisted[key].intervalB;
       state.samples = [];
     } else {
       state.params = {};
       for (const p of dist.params) state.params[p.key] = p.def;
       state.samples = [];
-      state.intervalA = state.intervalB = null;
     }
 
     // 渲染参数 sliders
     $params.innerHTML = '';
+    const paramControls = new Map();
+    function pairedParamUpdates(key, value) {
+      const updates = { [key]: value };
+      if ((key === 'a' || key === 'b') && Object.hasOwn(state.params, 'a') && Object.hasOwn(state.params, 'b')) {
+        const currentWidth = Math.max(Math.abs(state.params.b - state.params.a), Number(dist.params.find(item => item.key === key)?.step) || 1);
+        if (key === 'a' && value >= state.params.b) updates.b = value + currentWidth;
+        if (key === 'b' && value <= state.params.a) updates.a = value - currentWidth;
+      }
+      return updates;
+    }
+    function syncParamControl(key, value) {
+      const control = paramControls.get(key);
+      if (!control) return;
+      const { slider, numberInput, definition } = control;
+      let min = Number(slider.min), max = Number(slider.max);
+      const span = Math.max(Math.abs(max - min), Math.abs(value), Number(definition.step) || 1);
+      if (value < min) slider.min = String(value - span * .2);
+      if (value > max) slider.max = String(value + span * .2);
+      slider.value = String(value);
+      numberInput.value = String(value);
+      numberInput.removeAttribute('aria-invalid');
+    }
+    function applyParamUpdates(updates) {
+      const candidate = { ...state.params, ...updates };
+      if (!DIST[state.distKey].validate(candidate)) return false;
+      cancelSampling();
+      setActiveSampleControl(null);
+      Object.assign(state.params, updates);
+      state.samples = [];
+      for (const [key, value] of Object.entries(updates)) syncParamControl(key, value);
+      rerender();
+      return true;
+    }
     for (const p of dist.params) {
       const wrap = document.createElement('div');
       wrap.className = 'param';
       wrap.innerHTML = `
         <div class="param-head">
           <span class="key">${p.label}</span>
-          <span class="val" data-val="${p.key}">${formatVal(state.params[p.key], p)}</span>
+          <input class="param-number" type="number" step="${p.step}" value="${state.params[p.key]}"
+                 data-val="${p.key}" inputmode="${p.integer ? 'numeric' : 'decimal'}" aria-label="参数 ${p.label} 数值">
         </div>
         <input type="range" min="${p.min}" max="${p.max}" step="${p.step}"
-               value="${state.params[p.key]}" data-param="${p.key}">
+               value="${state.params[p.key]}" data-param="${p.key}"
+               aria-label="参数 ${p.label}">
       `;
       $params.appendChild(wrap);
-      const input = wrap.querySelector('input');
-      const valSpan = wrap.querySelector('[data-val]');
-      input.addEventListener('input', () => {
-        let v = parseFloat(input.value);
-        if (p.integer) v = Math.round(v);
-        state.params[p.key] = v;
-        valSpan.textContent = formatVal(v, p);
-        if (DIST[state.distKey].validate(state.params)) {
-          state.samples = [];      // 参数变了，旧样本失效
-          if (!intervalIsValid()) state.intervalA = state.intervalB = null;
-          rerender();
+      const slider = wrap.querySelector('input[type="range"]');
+      const numberInput = wrap.querySelector('.param-number');
+      paramControls.set(p.key, { slider, numberInput, definition: p });
+      slider.addEventListener('input', () => {
+        let value = parseFloat(slider.value);
+        if (p.integer) value = Math.round(value);
+        applyParamUpdates(pairedParamUpdates(p.key, value));
+      });
+      numberInput.addEventListener('input', () => {
+        const value = Number(numberInput.value);
+        if (numberInput.value.trim() === '' || !Number.isFinite(value) || (p.integer && !Number.isInteger(value)) || !applyParamUpdates(pairedParamUpdates(p.key, value))) {
+          numberInput.setAttribute('aria-invalid', 'true');
+          return;
+        }
+      });
+      numberInput.addEventListener('change', () => {
+        if (numberInput.getAttribute('aria-invalid') === 'true') {
+          numberInput.value = String(state.params[p.key]);
+          numberInput.removeAttribute('aria-invalid');
         }
       });
     }
 
-    if (!intervalIsValid()) state.intervalA = state.intervalB = null;
     rerender();
     refreshDeleteBtn();
-  }
-
-  function formatVal(v, p) {
-    if (p.integer) return String(Math.round(v));
-    // 决定小数位
-    const step = p.step;
-    if (step >= 1) return v.toFixed(0);
-    if (step >= 0.1) return v.toFixed(1);
-    return v.toFixed(2);
-  }
-
-  function intervalIsValid() {
-    if (state.intervalA == null || state.intervalB == null) return false;
-    const dom = DIST[state.distKey].domain(state.params);
-    return state.intervalA >= dom[0] && state.intervalB <= dom[1] && state.intervalA <= state.intervalB;
   }
 
   $select.addEventListener('change', () => switchDist($select.value));
@@ -1024,46 +2056,30 @@ permalink: /toolbox/random/
   function rerender() {
     persisted[state.distKey] = {
       params: { ...state.params },
-      intervalA: state.intervalA,
-      intervalB: state.intervalB,
     };
 
     const dist = DIST[state.distKey];
     if (!dist.validate(state.params)) return;
 
     currentDomain = dist.domain(state.params);
-    // 如果区间还没初始化，给个默认（domain 中段）
-    if (state.intervalA == null) {
-      const w = currentDomain[1] - currentDomain[0];
-      state.intervalA = currentDomain[0] + 0.3 * w;
-      state.intervalB = currentDomain[0] + 0.7 * w;
-      if (dist.discrete) {
-        state.intervalA = Math.round(state.intervalA);
-        state.intervalB = Math.round(state.intervalB);
-      }
-    }
 
     drawSVG();
-    updateIntervalUI();
     updateStats();
   }
 
   // ====================================================================
   // SVG 绘图
   // ====================================================================
-  // viewBox 800×280；画布区域：x ∈ [50, 770]，y ∈ [30, 240]
-  const VB_W = 800, VB_H = 280;
-  const PAD_L = 50, PAD_R = 30, PAD_T = 30, PAD_B = 40;
-  const CHART_W = VB_W - PAD_L - PAD_R;   // 720
+  // viewBox 480×280；较窄的坐标系让手机端刻度和触摸区保持清晰。
+  const VB_W = 480, VB_H = 280;
+  const PAD_L = 42, PAD_R = 20, PAD_T = 30, PAD_B = 40;
+  const CHART_W = VB_W - PAD_L - PAD_R;
   const CHART_H = VB_H - PAD_T - PAD_B;   // 210
   const X0 = PAD_L, X1 = VB_W - PAD_R;
   const Y0 = PAD_T, Y1 = VB_H - PAD_B;
 
   function xToPx(x) {
     return X0 + ((x - currentDomain[0]) / (currentDomain[1] - currentDomain[0])) * CHART_W;
-  }
-  function pxToX(px) {
-    return currentDomain[0] + ((px - X0) / CHART_W) * (currentDomain[1] - currentDomain[0]);
   }
   function yToPx(y) {
     return Y1 - (y / currentMaxY) * CHART_H;
@@ -1082,6 +2098,9 @@ permalink: /toolbox/random/
 
   function drawSVG() {
     const dist = DIST[state.distKey];
+    const scaleX = Math.max(0.1, ($svg.clientWidth || VB_W) / VB_W);
+    const stemDotRadius = Math.max(1.5, 3 / scaleX);
+    const sampleDotRadius = Math.max(1.2, 2.5 / scaleX);
     // 计算 PDF 最大值
     if (dist.discrete) {
       let maxY = 0;
@@ -1108,27 +2127,18 @@ permalink: /toolbox/random/
     parts.push(`<line class="axis" x1="${X0}" y1="${Y1}" x2="${X1}" y2="${Y1}" />`);
 
     // —— x 轴刻度
-    const ticks = computeTicks(currentDomain[0], currentDomain[1], 8);
+    const ticks = computeTicks(currentDomain[0], currentDomain[1], window.innerWidth < 560 ? 5 : 8);
     for (const t of ticks) {
       const x = xToPx(t);
       if (x < X0 - 0.1 || x > X1 + 0.1) continue;
       parts.push(`<line class="tick-line" x1="${x}" y1="${Y0}" x2="${x}" y2="${Y1}" stroke-opacity="0.4" />`);
       parts.push(`<line class="axis" x1="${x}" y1="${Y1}" x2="${x}" y2="${Y1 + 4}" />`);
-      parts.push(`<text class="tick-text" x="${x}" y="${Y1 + 16}" text-anchor="middle">${formatTick(t, dist.discrete)}</text>`);
+      parts.push(`<text class="tick-text" x="${x}" y="${Y1 + 16}" text-anchor="middle">${formatTick(t, dist.discrete && !dist._isCustom)}</text>`);
     }
 
-    // —— 区间填色（在 PDF 下方）+ 直方图（不在区间高亮内）
-    // 直方图先画，区间高亮叠在上面
+    // 样本量达到 50 后，用直方图叠加当前批次。
     if (state.samples.length >= 50) {
       parts.push(drawHistogram(dist));
-    }
-
-    // 区间高亮（rect 从 axis 到 chart top）
-    const ax = state.intervalA, bx = state.intervalB;
-    if (ax != null && bx != null && ax < bx) {
-      const px1 = Math.max(X0, xToPx(ax));
-      const px2 = Math.min(X1, xToPx(bx));
-      parts.push(`<rect class="interval-rect" x="${px1}" y="${Y0}" width="${Math.max(0, px2 - px1)}" height="${Y1 - Y0}" />`);
     }
 
     // —— PDF / PMF 主体
@@ -1139,9 +2149,8 @@ permalink: /toolbox/random/
         if (v <= 0) continue;
         const x = xToPx(k);
         const y = yToPx(v);
-        const inInterval = (ax != null && bx != null && k >= ax && k <= bx);
-        parts.push(`<line class="${inInterval ? 'interval-stem' : 'stem-line'}" x1="${x}" y1="${Y1}" x2="${x}" y2="${y}" />`);
-        parts.push(`<circle class="${inInterval ? 'interval-dot' : 'stem-dot'}" cx="${x}" cy="${y}" r="3.5" />`);
+        parts.push(`<line class="stem-line" x1="${x}" y1="${Y1}" x2="${x}" y2="${y}" />`);
+        parts.push(`<circle class="stem-dot" cx="${x}" cy="${y}" r="${stemDotRadius}" />`);
       }
     } else {
       // 连续：先画浅色填充再画曲线
@@ -1172,18 +2181,8 @@ permalink: /toolbox/random/
       for (const s of state.samples) {
         const px = xToPx(s);
         if (px < X0 - 5 || px > X1 + 5) continue;
-        parts.push(`<circle class="sample-dot" cx="${px}" cy="${Y1 + 22}" r="2.4" />`);
+        parts.push(`<circle class="sample-dot" cx="${px}" cy="${Y1 + 22}" r="${sampleDotRadius}" />`);
       }
-    }
-
-    // —— 区间 handle
-    if (ax != null && bx != null) {
-      // 两条虚线 + 两个圆 handle
-      const pxA = xToPx(ax), pxB = xToPx(bx);
-      parts.push(`<line class="handle-line" x1="${pxA}" y1="${Y0}" x2="${pxA}" y2="${Y1}" />`);
-      parts.push(`<line class="handle-line" x1="${pxB}" y1="${Y0}" x2="${pxB}" y2="${Y1}" />`);
-      parts.push(`<circle class="handle" data-h="a" cx="${pxA}" cy="${Y1}" r="8" />`);
-      parts.push(`<circle class="handle" data-h="b" cx="${pxB}" cy="${Y1}" r="8" />`);
     }
 
     // —— y 轴刻度（上限标注）
@@ -1193,8 +2192,6 @@ permalink: /toolbox/random/
 
     $svg.innerHTML = parts.join('\n');
 
-    // 绑定 handle 拖动
-    bindHandleDrag();
   }
 
   function drawHistogram(dist) {
@@ -1270,143 +2267,22 @@ permalink: /toolbox/random/
   }
 
   // ====================================================================
-  // 拖动 handle
-  // ====================================================================
-  // pointermove/up 一次性绑在 $svg（永不重建）上——
-  // .handle 元素每次 drawSVG 都会被 innerHTML 重建，绑在它身上的监听器会立刻失效。
-  let dragging = null;       // 'a' | 'b' | null
-  let dragPointerId = null;
-  function bindHandleDrag() {
-    const handles = $svg.querySelectorAll('.handle');
-    for (const h of handles) {
-      h.addEventListener('pointerdown', onHandleDown);
-    }
-  }
-  function onHandleDown(e) {
-    e.preventDefault();
-    dragging = e.target.dataset.h;
-    dragPointerId = e.pointerId;
-    try { $svg.setPointerCapture(e.pointerId); } catch (_) {}
-  }
-  function onSvgMove(e) {
-    if (dragging == null || e.pointerId !== dragPointerId) return;
-    const pt = $svg.createSVGPoint();
-    pt.x = e.clientX; pt.y = e.clientY;
-    const local = pt.matrixTransform($svg.getScreenCTM().inverse());
-    let x = pxToX(Math.max(X0, Math.min(X1, local.x)));
-
-    const dist = DIST[state.distKey];
-    if (dist.discrete) x = Math.round(x);
-
-    if (dragging === 'a') {
-      state.intervalA = Math.min(x, state.intervalB);
-    } else {
-      state.intervalB = Math.max(x, state.intervalA);
-    }
-    drawSVG();
-    updateIntervalUI();
-    updateStats();
-  }
-  function onSvgUp(e) {
-    if (e.pointerId !== dragPointerId) return;
-    dragging = null;
-    dragPointerId = null;
-    try { $svg.releasePointerCapture(e.pointerId); } catch (_) {}
-  }
-  $svg.addEventListener('pointermove', onSvgMove);
-  $svg.addEventListener('pointerup', onSvgUp);
-  $svg.addEventListener('pointercancel', onSvgUp);
-
-  // 区间数字输入框 → 区间状态
-  $intvA.addEventListener('input', () => {
-    const v = parseFloat($intvA.value);
-    if (!isFinite(v)) return;
-    state.intervalA = v;
-    if (state.intervalB != null && state.intervalA > state.intervalB) {
-      state.intervalA = state.intervalB;
-    }
-    drawSVG();
-    updateStats();
-  });
-  $intvB.addEventListener('input', () => {
-    const v = parseFloat($intvB.value);
-    if (!isFinite(v)) return;
-    state.intervalB = v;
-    if (state.intervalA != null && state.intervalB < state.intervalA) {
-      state.intervalB = state.intervalA;
-    }
-    drawSVG();
-    updateStats();
-  });
-
-  // ====================================================================
-  // P(a ≤ X ≤ b)
-  // ====================================================================
-  function intervalProb() {
-    if (state.intervalA == null || state.intervalB == null) return 0;
-    const dist = DIST[state.distKey];
-    const a = state.intervalA, b = state.intervalB;
-    if (dist.discrete) {
-      // PMF 求和
-      let s = 0;
-      const lo = Math.ceil(a - 1e-9), hi = Math.floor(b + 1e-9);
-      for (let k = lo; k <= hi; k++) s += dist.pdf(k, state.params);
-      return s;
-    } else {
-      // 复合辛普森 1/3
-      return simpson(x => dist.pdf(x, state.params), a, b, 200);
-    }
-  }
-  function simpson(f, a, b, n) {
-    if (b <= a) return 0;
-    if (n % 2) n++;
-    const h = (b - a) / n;
-    let s = f(a) + f(b);
-    for (let i = 1; i < n; i++) {
-      s += (i % 2 ? 4 : 2) * f(a + i * h);
-    }
-    return s * h / 3;
-  }
-
-  function updateIntervalUI() {
-    if (state.intervalA == null || state.intervalB == null) {
-      $intvA.value = ''; $intvB.value = ''; $intvP.textContent = '—';
-      return;
-    }
-    const dist = DIST[state.distKey];
-    const fmt = dist.discrete
-      ? (v) => Math.round(v).toString()
-      : (v) => Math.abs(v) < 100 ? v.toFixed(2) : v.toFixed(1);
-    if (document.activeElement !== $intvA) $intvA.value = fmt(state.intervalA);
-    if (document.activeElement !== $intvB) $intvB.value = fmt(state.intervalB);
-    const prob = intervalProb();
-    $intvP.textContent = prob.toFixed(4);
-  }
-
-  // ====================================================================
   // 统计 & 抽样
   // ====================================================================
   function updateStats() {
     const dist = DIST[state.distKey];
     const N = state.samples.length;
     $statN.textContent = N;
+    $stats.classList.toggle('has-samples', N > 0);
     if (N === 0) {
       $statM.textContent = '—';
       $statV.textContent = '—';
-      $statH.textContent = '—';
+      $lastRow.classList.add('empty');
     } else {
-      let sum = 0, sumSq = 0, hits = 0;
-      const a = state.intervalA, b = state.intervalB;
-      for (const s of state.samples) {
-        sum += s;
-        sumSq += s * s;
-        if (a != null && b != null && s >= a && s <= b) hits++;
-      }
-      const mean = sum / N;
-      const variance = sumSq / N - mean * mean;
-      $statM.textContent = formatStat(mean);
-      $statV.textContent = formatStat(variance);
-      $statH.textContent = a != null && b != null ? `${(hits / N * 100).toFixed(1)}%` : '—';
+      const stats = Core.sampleStats(state.samples);
+      $statM.textContent = formatStat(stats.mean);
+      $statV.textContent = Number.isFinite(stats.sampleVariance) ? formatStat(stats.sampleVariance) : '—';
+      $lastRow.classList.remove('empty');
     }
     const tm = dist.mean(state.params);
     const tv = dist.variance(state.params);
@@ -1421,13 +2297,53 @@ permalink: /toolbox/random/
     return v.toFixed(3);
   }
 
-  // 上限设到 100 万——纯本地抽样在现代浏览器里抽 1e6 次只要几十毫秒，
-  // 既不会卡住也不会爆内存；再大就考虑分块或 Web Worker。
+  function resetRandomSource() {
+    const seeded = $rngMode.value === 'seeded';
+    $rngSeedLabel.classList.toggle('cf-hidden', !seeded);
+    $rngSeedWrap.classList.toggle('cf-hidden', !seeded);
+    randomUnit = seeded
+      ? Core.createSeededRandom($rngSeed.value)
+      : Core.createSecureRandom(window.crypto);
+    cancelSampling();
+    setActiveSampleControl(null);
+    state.samples = [];
+    drawSVG();
+    updateStats();
+    if (seeded) showSampleNotice('种子序列已重置');
+  }
+  $rngMode.addEventListener('change', resetRandomSource);
+  document.getElementById('rng-seed-reset').addEventListener('click', resetRandomSource);
+
+  // 每一批最多 100 万；每次生成会替换上一批，大批量分块执行以避免阻塞 UI。
   const MAX_N = 1_000_000;
+  const MAX_BATCH = 1_000_000;
+  let sampleJob = 0;
+
+  function setBusy(on, text) {
+    $busy.textContent = text || '正在生成样本…';
+    $busy.classList.toggle('show', on);
+    document.querySelectorAll('.sample-controls button, #dist-select, .param input').forEach((el) => {
+      el.disabled = on;
+    });
+  }
+  function cancelSampling() {
+    sampleJob++;
+    setBusy(false);
+  }
+  function showSampleNotice(text) {
+    $busy.textContent = text;
+    $busy.classList.add('show');
+    setTimeout(() => $busy.classList.remove('show'), 2200);
+  }
 
   // 抽样按钮
+  function setActiveSampleControl(button) {
+    document.querySelectorAll('.sample-controls .sample-btn').forEach(control => control.classList.remove('active'));
+    if (button) button.classList.add('active');
+  }
   document.querySelectorAll('.sample-btn[data-n]').forEach(btn => {
     btn.addEventListener('click', () => {
+      setActiveSampleControl(btn);
       const n = parseInt(btn.dataset.n, 10);
       drawSamples(n);
     });
@@ -1441,69 +2357,116 @@ permalink: /toolbox/random/
       n = MAX_N;
       $sampleN.value = MAX_N;
     }
+    setActiveSampleControl($btnSampleCustom);
     drawSamples(n);
   }
   $btnSampleCustom.addEventListener('click', triggerCustomSample);
   $sampleN.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); triggerCustomSample(); }
   });
-  document.getElementById('btn-clear').addEventListener('click', () => {
+  function clearSamples() {
+    cancelSampling();
     state.samples = [];
+    setActiveSampleControl(null);
     drawSVG();
     updateStats();
+  }
+  document.getElementById('btn-clear').addEventListener('click', clearSamples);
+  document.getElementById('btn-clear-summary').addEventListener('click', clearSamples);
+  document.getElementById('btn-export').addEventListener('click', () => {
+    if (state.samples.length === 0) {
+      showSampleNotice('还没有可导出的样本');
+      return;
+    }
+    const csv = 'index,value\n' + state.samples.map((value, index) => `${index + 1},${value}`).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `random-samples-${state.distKey.replace(/[^a-zA-Z0-9_-]/g, '_')}.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
 
   function drawSamples(n) {
     const dist = DIST[state.distKey];
     if (!dist.validate(state.params)) return;
+    cancelSampling();
+    state.samples = [];
+    drawSVG();
+    updateStats();
+    n = Math.min(n, MAX_BATCH);
     if (n === 1) {
-      // 单个样本：动画"落下"
-      animateSampleDrop(dist.sample(state.params));
+      pulseSamplePoint(dist.sample(state.params));
     } else if (n <= 10) {
-      // ≤10：每 80ms 落一个
+      // 小批量逐个出现，让用户能看清每个新样本的位置。
+      const job = ++sampleJob;
       let i = 0;
       const tick = () => {
-        if (i >= n) return;
-        animateSampleDrop(dist.sample(state.params));
+        if (job !== sampleJob || i >= n) return;
+        pulseSamplePoint(dist.sample(state.params));
         i++;
         setTimeout(tick, 80);
       };
       tick();
     } else {
-      // 大批量：直接 push，不再做 5000 截断
-      // 用 for 循环而不是 push(...arr)——后者在 n 很大时可能撞栈上限
+      const job = ++sampleJob;
       const arr = state.samples;
-      for (let i = 0; i < n; i++) arr.push(dist.sample(state.params));
-      drawSVG();
-      updateStats();
+      let completed = 0;
+      setBusy(true, `正在生成 ${n.toLocaleString()} 个样本…`);
+      const chunk = () => {
+        if (job !== sampleJob) return;
+        const stop = Math.min(n, completed + 10_000);
+        for (; completed < stop; completed++) arr.push(dist.sample(state.params));
+        if (completed < n) {
+          $busy.textContent = `正在生成… ${Math.round(completed / n * 100)}%`;
+          setTimeout(chunk, 0);
+          return;
+        }
+        drawSVG();
+        updateStats();
+        setBusy(false);
+      };
+      setTimeout(chunk, 0);
     }
   }
 
-  function animateSampleDrop(value) {
+  function pulseSamplePoint(value) {
     state.samples.push(value);
     drawSVG();
     updateStats();
-    // 再叠一个动画圆点
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const px = xToPx(value);
     if (px < X0 - 5 || px > X1 + 5) return;
+    const dist = DIST[state.distKey];
+    const density = dist.pdf(value, state.params);
+    const py = Number.isFinite(density) && density > 0
+      ? yToPx(Math.min(density, currentMaxY))
+      : Y1;
     const ns = 'http://www.w3.org/2000/svg';
-    const c = document.createElementNS(ns, 'circle');
-    c.setAttribute('cx', px);
-    c.setAttribute('cy', Y0);
-    c.setAttribute('r', 4);
-    c.style.fill = 'var(--color-accent)';
-    c.setAttribute('opacity', '0.9');
-    $svg.appendChild(c);
-    const dur = 420;
+    const scaleX = Math.max(0.1, ($svg.clientWidth || VB_W) / VB_W);
+    const startRadius = 2.5 / scaleX;
+    const endRadius = 8 / scaleX;
+    const ring = document.createElementNS(ns, 'circle');
+    ring.setAttribute('class', 'sample-pulse');
+    ring.setAttribute('cx', px);
+    ring.setAttribute('cy', py);
+    ring.setAttribute('r', startRadius);
+    ring.style.fill = 'none';
+    ring.style.stroke = 'var(--rng-coral, var(--color-accent))';
+    ring.style.strokeWidth = String(Math.max(0.8, 1.4 / scaleX));
+    ring.setAttribute('opacity', '0.9');
+    ring.setAttribute('pointer-events', 'none');
+    $svg.appendChild(ring);
+    const dur = 260;
     const start = performance.now();
-    const yEnd = Y1 + 22;
     function tick(t) {
       const k = Math.min(1, (t - start) / dur);
-      const ease = 1 - Math.pow(1 - k, 3);    // ease-out cubic
-      c.setAttribute('cy', Y0 + (yEnd - Y0) * ease);
-      c.setAttribute('opacity', 0.9 * (1 - 0.5 * ease));
+      const ease = 1 - Math.pow(1 - k, 3);
+      ring.setAttribute('r', startRadius + (endRadius - startRadius) * ease);
+      ring.setAttribute('opacity', 0.9 * (1 - ease));
       if (k < 1) requestAnimationFrame(tick);
-      else c.remove();
+      else ring.remove();
     }
     requestAnimationFrame(tick);
   }
@@ -1512,51 +2475,9 @@ permalink: /toolbox/random/
   // 自定义分布：表达式 parser / 验证 / 抽样 / 持久化
   // ====================================================================
 
-  // —— 沙箱式表达式 parser ——
-  // 输入字符串（含 x、常量、白名单函数）→ 编译成 (x) => number。
-  // 不引入 eval/math.js，靠 token 白名单 + new Function。
-  const ALLOWED_FNS = new Set([
-    'exp', 'log', 'ln', 'sqrt', 'abs',
-    'sin', 'cos', 'tan', 'asin', 'acos', 'atan',
-    'sinh', 'cosh', 'tanh',
-    'floor', 'ceil', 'round',
-    'min', 'max', 'pow',
-  ]);
-  const ALLOWED_CONSTS = new Set(['pi', 'e']);
+  // 白名单递归下降 parser；不使用 eval / new Function。
   function compileExpr(src) {
-    const cleaned = String(src || '').trim();
-    if (!cleaned) throw new Error('表达式为空');
-    // 0. 字符白名单——只允许字母数字 _、运算符、括号、点、逗号、空白
-    //    挡掉 [] ; ` ? : = & | < > \ # 等任何能制造 JS 控制流的字符
-    if (/[^a-zA-Z0-9_+\-*/^(),.\s]/.test(cleaned)) {
-      const bad = cleaned.match(/[^a-zA-Z0-9_+\-*/^(),.\s]/)[0];
-      throw new Error(`不允许的字符："${bad}"`);
-    }
-    // 1. identifier 白名单检查（任何不在 x / fn / const 里的标识符直接拒）
-    const ids = cleaned.match(/[a-zA-Z_][a-zA-Z_0-9]*/g) || [];
-    for (const id of ids) {
-      if (id === 'x') continue;
-      if (ALLOWED_FNS.has(id)) continue;
-      if (ALLOWED_CONSTS.has(id)) continue;
-      throw new Error(`不允许的标识符："${id}"`);
-    }
-    // 2. 替换运算符和函数名
-    let s = cleaned.replace(/\^/g, '**');
-    s = s.replace(/\bln\b/g, 'Math.log');
-    s = s.replace(/\bpi\b/g, 'Math.PI');
-    s = s.replace(/\be\b/g, 'Math.E');
-    for (const fn of ALLOWED_FNS) {
-      if (fn === 'ln') continue;
-      s = s.replace(new RegExp(`\\b${fn}\\b`, 'g'), `Math.${fn}`);
-    }
-    // 3. 编译
-    let fn;
-    try {
-      fn = new Function('x', `"use strict"; return (${s});`);
-    } catch (e) {
-      throw new Error(`语法错误：${e.message}`);
-    }
-    // 4. 试求一次
+    const fn = Core.compileLatexExpression(src);
     try {
       const v = fn(1);
       if (typeof v !== 'number') throw new Error('返回值不是数字');
@@ -1564,19 +2485,6 @@ permalink: /toolbox/random/
       throw new Error(`求值失败：${e.message}`);
     }
     return fn;
-  }
-
-  // —— 数值积分（梯形法，跳过 NaN/Inf） ——
-  function trapezoid(fn, a, b, N) {
-    if (b <= a) return 0;
-    const h = (b - a) / N;
-    const fa = fn(a), fb = fn(b);
-    let s = 0.5 * ((isFinite(fa) ? fa : 0) + (isFinite(fb) ? fb : 0));
-    for (let i = 1; i < N; i++) {
-      const v = fn(a + i * h);
-      if (isFinite(v)) s += v;
-    }
-    return s * h;
   }
 
   // —— 自动搜索支撑（PDF）——
@@ -1682,7 +2590,7 @@ permalink: /toolbox/random/
       if (!isFinite(v)) return { ok: false, error: `PDF 在 x=${x.toPrecision(4)} 求值为 ${v}` };
       if (v < -1e-9) return { ok: false, error: `PDF 在 x=${x.toPrecision(4)} 取负值 (${v.toPrecision(3)})` };
     }
-    const I = trapezoid(fn, a, b, 4000);
+    const I = Core.integrateFinite(fn, a, b, 16);
     if (!(Math.abs(I - 1) <= 0.02)) {
       return { ok: false, error: `PDF 在 [${a.toPrecision(5)}, ${b.toPrecision(5)}] 上积分 = ${I.toFixed(4)}\n应为 1（误差 ${(Math.abs(I-1)*100).toFixed(1)}%）。\n建议：检查归一化常数；或给一个有界的 [a, b]。` };
     }
@@ -1710,10 +2618,11 @@ permalink: /toolbox/random/
       const x = a + (i / N) * (b - a);
       const v = fn(x);
       if (!isFinite(v)) return { ok: false, error: `F 在 x=${x.toPrecision(4)} 求值为 ${v}` };
+      if (v < -1e-8 || v > 1 + 1e-8) return { ok: false, error: `F(${x.toPrecision(4)}) = ${v.toFixed(4)}，必须位于 [0, 1]` };
       if (v < prev - 1e-6) return { ok: false, error: `F 不单调：F(${(a + (i-1)/N*(b-a)).toPrecision(4)})=${prev.toFixed(4)} > F(${x.toPrecision(4)})=${v.toFixed(4)}` };
       prev = v;
     }
-    return { ok: true, a, b };
+    return { ok: true, a, b, Fa, Fb, mass: Fb - Fa };
   }
 
   // —— 解析 (k, p) 列表 ——
@@ -1763,7 +2672,7 @@ permalink: /toolbox/random/
     if (!(total > 0)) throw new Error('CDF 表构建失败：总积分非正');
     for (let i = 0; i <= N; i++) Fs[i] /= total;
     return function () {
-      const u = Math.random();
+      const u = randomUnit();
       let lo = 0, hi = N;
       while (lo < hi) { const m = (lo + hi) >> 1; if (Fs[m] < u) lo = m + 1; else hi = m; }
       if (lo === 0) return a;
@@ -1775,7 +2684,7 @@ permalink: /toolbox/random/
   // —— 抽样器：连续 CDF（直接二分 cdfFn(x) = u） ——
   function makeContinuousCDFSampler(cdfFn, a, b) {
     return function () {
-      const u = Math.random();
+      const u = randomUnit();
       let lo = a, hi = b;
       for (let i = 0; i < 60; i++) {
         const m = (lo + hi) / 2;
@@ -1791,7 +2700,7 @@ permalink: /toolbox/random/
     for (let i = 0; i < pairsNorm.length; i++) { acc += pairsNorm[i][1]; cum[i] = acc; }
     cum[pairsNorm.length - 1] = 1;   // 防数值漏抽
     return function () {
-      const u = Math.random();
+      const u = randomUnit();
       let lo = 0, hi = pairsNorm.length - 1;
       while (lo < hi) { const m = (lo + hi) >> 1; if (cum[m] < u) lo = m + 1; else hi = m; }
       return pairsNorm[lo][0];
@@ -1805,20 +2714,23 @@ permalink: /toolbox/random/
     if (spec.type === 'pdf') {
       const fn = compileExpr(spec.expr);
       const a = spec.a, b = spec.b;
-      const sampler = makeContinuousPDFSampler(fn, a, b);
-      const safePDF = (x) => {
+      const rawPDF = (x) => {
         if (x < a || x > b) return 0;
         const v = fn(x);
         return (Number.isFinite(v) && v >= 0) ? v : 0;
       };
-      const m = trapezoid((x) => x * safePDF(x), a, b, 4000);
-      const m2 = trapezoid((x) => x * x * safePDF(x), a, b, 4000);
+      const normalized = Core.normalizePdf(rawPDF, a, b);
+      const mass = normalized.mass;
+      const pdf = normalized.pdf;
+      const sampler = makeContinuousPDFSampler(pdf, a, b);
+      const m = Core.integrateFinite((x) => x * pdf(x), a, b, 16);
+      const m2 = Core.integrateFinite((x) => x * x * pdf(x), a, b, 16);
       dist = {
-        label: '[[zi:star]] ' + spec.name,
+        label: '自定义 · ' + spec.name,
         formula: spec.expr,
         discrete: false, params: [],
         validate: () => true,
-        pdf: safePDF,
+        pdf,
         domain: () => [a, b],
         mean: () => m,
         variance: () => m2 - m * m,
@@ -1826,28 +2738,32 @@ permalink: /toolbox/random/
         _isCustom: true, _spec: spec,
       };
     } else if (spec.type === 'cdf') {
-      const cdf = compileExpr(spec.expr);
+      const rawCDF = compileExpr(spec.expr);
       const a = spec.a, b = spec.b;
+      const conditioned = Core.conditionCdf(rawCDF, a, b);
+      const mass = conditioned.mass;
+      const cdf = conditioned.cdf;
       const eps = (b - a) * 5e-4;
       const pdfFn = (x) => {
         if (x < a || x > b) return 0;
         const xl = Math.max(a, x - eps);
         const xr = Math.min(b, x + eps);
-        const dy = cdf(xr) - cdf(xl);
+        const dy = rawCDF(xr) - rawCDF(xl);
         const dx = xr - xl;
         if (!(dx > 0)) return 0;
-        const v = dy / dx;
+        const v = dy / dx / mass;
         return (Number.isFinite(v) && v >= 0) ? v : 0;
       };
       const sampler = makeContinuousCDFSampler(cdf, a, b);
-      const m = trapezoid((x) => x * pdfFn(x), a, b, 4000);
-      const m2 = trapezoid((x) => x * x * pdfFn(x), a, b, 4000);
+      const m = Core.integrateFinite((x) => x * pdfFn(x), a, b, 16);
+      const m2 = Core.integrateFinite((x) => x * x * pdfFn(x), a, b, 16);
       dist = {
-        label: '[[zi:star]] ' + spec.name + ' (CDF)',
+        label: '自定义 · ' + spec.name + ' (CDF)',
         formula: 'F(x) = ' + spec.expr,
         discrete: false, params: [],
         validate: () => true,
         pdf: pdfFn,
+        cdf,
         domain: () => [a, b],
         mean: () => m,
         variance: () => m2 - m * m,
@@ -1865,7 +2781,7 @@ permalink: /toolbox/random/
       const minK = Math.min(...ks), maxK = Math.max(...ks);
       const span = Math.max(1, maxK - minK);
       dist = {
-        label: '[[zi:star]] ' + spec.name + ' (离散)',
+        label: '自定义 · ' + spec.name + ' (离散)',
         formula: norm.length + ' 点离散分布',
         discrete: true, params: [],
         validate: () => true,
@@ -1939,6 +2855,8 @@ permalink: /toolbox/random/
       $select.appendChild(og2);
     }
     if (DIST[cur]) $select.value = cur;
+    rebuildDistMenu();
+    updateDistTrigger();
   }
 
   // —— UI：表单交互 ——
@@ -1951,10 +2869,42 @@ permalink: /toolbox/random/
   const $cfB = document.getElementById('cf-b');
   const $cfPairs = document.getElementById('cf-pairs');
   const $cfMsg = document.getElementById('cf-msg');
+  const $cfPreview = document.getElementById('cf-preview');
+  const $cfPreviewMath = document.getElementById('cf-preview-math');
+  const $cfPreviewStatus = document.getElementById('cf-preview-status');
   const $cfContFields = document.getElementById('cf-cont-fields');
   const $cfDiscFields = document.getElementById('cf-disc-fields');
   const $cfCancel = document.getElementById('cf-cancel');
   const $cfSave = document.getElementById('cf-save');
+  let customPreviewTimer = null;
+
+  function updateCustomPreview() {
+    if (getCfType() === 'discrete') return;
+    const expression = $cfExpr.value.trim();
+    $cfPreview.classList.remove('valid', 'error');
+    if (!expression) {
+      $cfPreviewStatus.textContent = '等待输入';
+      $cfPreviewMath.textContent = '—';
+      return;
+    }
+    try {
+      compileExpr(expression);
+      const prefix = getCfType() === 'cdf' ? 'F(x)' : 'f(x)';
+      const latex = `${prefix} = ${Core.latexExpressionToLatex(expression)}`;
+      if (window.katex) katex.render(latex, $cfPreviewMath, { throwOnError: false, displayMode: false });
+      else $cfPreviewMath.textContent = `${prefix} = ${expression}`;
+      $cfPreview.classList.add('valid');
+      $cfPreviewStatus.textContent = '语法可解析';
+    } catch (error) {
+      $cfPreview.classList.add('error');
+      $cfPreviewStatus.textContent = '需要修改';
+      $cfPreviewMath.textContent = error.message;
+    }
+  }
+  function scheduleCustomPreview() {
+    clearTimeout(customPreviewTimer);
+    customPreviewTimer = setTimeout(updateCustomPreview, 100);
+  }
   function getCfType() {
     const r = document.querySelector('input[name="cf-type"]:checked');
     return r ? r.value : 'pdf';
@@ -1972,9 +2922,12 @@ permalink: /toolbox/random/
     } else {
       $cfContFields.classList.remove('cf-hidden');
       $cfDiscFields.classList.add('cf-hidden');
-      $cfExpr.placeholder = t === 'cdf' ? '1 / (1 + exp(-x))' : 'exp(-x^2/2) / sqrt(2*pi)';
+      $cfExpr.placeholder = t === 'cdf'
+        ? '\\frac{1}{1+e^{-x}}'
+        : '\\frac{1}{\\sqrt{2\\pi}}e^{-x^2/2}';
     }
     showMsg('', null);
+    scheduleCustomPreview();
   }
   document.querySelectorAll('input[name="cf-type"]').forEach(r => {
     r.addEventListener('change', refreshCfFields);
@@ -1983,13 +2936,13 @@ permalink: /toolbox/random/
   for (const el of [$cfName, $cfExpr, $cfA, $cfB, $cfPairs]) {
     el.addEventListener('input', () => showMsg('', null));
   }
+  $cfExpr.addEventListener('input', scheduleCustomPreview);
   function showMsg(text, kind) {
     $cfMsg.textContent = text;
     $cfMsg.classList.remove('error', 'success');
     if (kind) $cfMsg.classList.add(kind);
   }
   function openForm(prefill) {
-    $form.classList.add('open');
     if (prefill) {
       $cfName.value = prefill.name || '';
       setCfType(prefill.type || 'pdf');
@@ -2007,12 +2960,19 @@ permalink: /toolbox/random/
       setCfType('pdf');
     }
     showMsg('', null);
+    scheduleCustomPreview();
   }
-  function closeForm() { $form.classList.remove('open'); showMsg('', null); }
-  $btnNew.addEventListener('click', () => {
-    if ($form.classList.contains('open')) closeForm(); else openForm();
+  $btnNew.addEventListener('click', () => { openForm(); $cfName.focus(); });
+  document.getElementById('rng-open-seed').addEventListener('click', () => {
+    openDialog($sourceDialog);
+    $rngMode.focus();
   });
-  $cfCancel.addEventListener('click', closeForm);
+  document.getElementById('rng-open-custom').addEventListener('click', () => {
+    openForm();
+    openDialog($customDialog);
+    $cfName.focus();
+  });
+  $cfCancel.addEventListener('click', closeDialog);
 
   $cfSave.addEventListener('click', () => {
     const name = $cfName.value.trim();
@@ -2029,8 +2989,8 @@ permalink: /toolbox/random/
         const v = validateAndResolvePDF(fn, aHint, bHint);
         if (!v.ok) { showMsg(v.error, 'error'); return; }
         spec = { name, type: 'pdf', expr: $cfExpr.value, a: v.a, b: v.b };
-        const trunc = v.integral < 0.999
-          ? `\n（截断后捕获 ${(v.integral * 100).toFixed(2)}% 质量；抽样会按截断 PDF 重新归一化）`
+        const trunc = Math.abs(v.integral - 1) > 1e-6
+          ? `\n（输入积分为 ${v.integral.toFixed(6)}；曲线、概率、理论矩和抽样均已统一归一化）`
           : '';
         msg = `验证通过\n积分 = ${v.integral.toFixed(6)}\n支撑 [${v.a.toPrecision(5)}, ${v.b.toPrecision(5)}]${trunc}`;
       } else if (type === 'cdf') {
@@ -2040,7 +3000,7 @@ permalink: /toolbox/random/
         const v = validateAndResolveCDF(fn, aHint, bHint);
         if (!v.ok) { showMsg(v.error, 'error'); return; }
         spec = { name, type: 'cdf', expr: $cfExpr.value, a: v.a, b: v.b };
-        msg = `验证通过（CDF 单调、边界正常）\n支撑 [${v.a.toPrecision(5)}, ${v.b.toPrecision(5)}]`;
+        msg = `验证通过（CDF 单调、边界正常）\n支撑 [${v.a.toPrecision(5)}, ${v.b.toPrecision(5)}]\n区间内质量 ${v.mass.toFixed(6)}；已统一按条件分布归一化`;
       } else {
         const pairs = parsePairs($cfPairs.value);
         const v = validateDiscrete(pairs);
