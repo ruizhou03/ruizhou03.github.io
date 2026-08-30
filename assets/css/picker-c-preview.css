@@ -642,3 +642,49 @@ body.picker-page-body:has(.picker-c-page){background:#ede9df}body.picker-page-bo
 .picker-profile>span:first-child+span,.picker-history-item>em{font-size:10px!important}
 .picker-profile-mini,.picker-history-mini{height:6px}
 @media(max-width:720px){.picker-library-flyout{height:min(480px,calc(100% - 60px))}.picker-profile-list,.picker-history-list{grid-auto-rows:minmax(62px,auto);gap:7px;padding:8px}.picker-profile,.picker-history-item{height:62px!important;padding:8px 10px!important}.picker-profile strong,.picker-history-item strong{font-size:12px}.picker-profile small,.picker-history-item small{font-size:8px}}
+
+/* Final interaction polish. */
+.picker-c-page .picker-wheel{border:0}
+.picker-library-triggers{top:0;height:68px;align-items:center}
+@media(max-width:720px){.picker-library-triggers{top:0;height:52px}}
+
+/* Give the manifesto and mode heading independent vertical rhythm. */
+.picker-c-page .picker-c-manifesto{min-height:132px;flex:0 0 132px;margin-bottom:12px}
+.picker-c-page .picker-c-manifesto h1{margin-bottom:0;line-height:1.08}
+@media(max-width:920px){.picker-c-page .picker-c-manifesto{min-height:122px;flex-basis:122px;margin-bottom:10px}}
+@media(max-width:720px){.picker-c-page .picker-c-manifesto{display:none!important}}
+
+/* Anchor bulk paste to the editor column and echo the library popover. */
+.picker-c-page .picker-editor{position:relative}
+.picker-c-page .picker-bulk{
+  z-index:12;
+  right:12px;
+  bottom:var(--picker-bulk-bottom,112px);
+  left:12px;
+  max-height:calc(100% - 110px);
+  margin:0;
+  padding:16px;
+  border:1.5px solid #223a58;
+  border-radius:14px;
+  background:#fbf8f1;
+  box-shadow:0 20px 55px rgba(22,39,60,.22);
+}
+.picker-c-page .picker-bulk::after{
+  content:"";
+  position:absolute;
+  left:var(--picker-bulk-caret-left,calc(75% - 8px));
+  bottom:-9px;
+  width:16px;
+  height:16px;
+  transform:rotate(45deg);
+  border-right:1.5px solid #223a58;
+  border-bottom:1.5px solid #223a58;
+  background:#fbf8f1;
+}
+.picker-c-page .picker-bulk-head{display:flex;min-height:28px;align-items:center;gap:10px;margin-bottom:10px}
+.picker-c-page .picker-bulk-head label{min-width:0;flex:1;margin:0;font-size:10px}
+.picker-c-page .picker-bulk-head button{display:grid;width:28px;height:28px;flex:0 0 auto;place-items:center;padding:0;border:0;border-radius:50%;background:transparent;color:#17252d;font-size:18px;line-height:1;cursor:pointer}
+.picker-c-page .picker-bulk-head button:hover{background:#ece7dc}
+.picker-c-page .picker-bulk textarea{width:100%;height:clamp(150px,28vh,230px);min-height:0;padding:10px 12px;border:1.5px solid #223a58;border-radius:9px;resize:none;font-size:12px;line-height:1.55}
+.picker-c-page .picker-bulk-actions{position:relative;z-index:1;margin-top:12px;gap:8px}
+@media(max-width:720px){.picker-c-page .picker-bulk{right:8px;bottom:var(--picker-bulk-bottom,54px);left:8px;max-height:calc(100% - 68px);padding:10px}.picker-c-page .picker-bulk textarea{height:96px}.picker-c-page .picker-bulk-head{margin-bottom:6px}.picker-c-page .picker-bulk-actions{margin-top:7px}}

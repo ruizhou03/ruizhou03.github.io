@@ -35,9 +35,14 @@ assert.ok(!html.includes('关闭时每个选项机会相同'), 'custom weight sw
 assert.ok(html.includes('class="picker-round-custom"'), 'custom round count must keep its unit inside one control');
 assert.ok(html.includes('class="picker-weight-control"'), 'custom weight switch must be directly accessible');
 assert.ok(!html.includes('id="advanced-settings"'), 'custom weight switch must not be nested behind advanced settings');
+assert.ok(html.includes('id="bulk-panel" role="dialog"'), 'bulk paste must use dialog semantics');
+assert.ok(html.includes('id="bulk-close-btn" aria-label="关闭批量粘贴"'), 'bulk paste dialog must expose an explicit close button');
 assert.ok(!html.includes('id="mode-probability-copy"'), 'mode column must not repeat immutable probability text');
 assert.ok(!html.includes('id="probability-label"'), 'result column must not repeat immutable probability text');
-assert.ok(html.indexOf('/assets/js/games/picker-core.js') < html.indexOf('/assets/js/games/picker.js'), 'core script must load before UI script');
+const coreScriptPosition = html.indexOf('/assets/js/games/picker-core.js');
+const cardScriptPosition = html.indexOf('/assets/js/games/picker-result-card.js');
+const uiScriptPosition = html.indexOf('/assets/js/games/picker.js');
+assert.ok(coreScriptPosition < cardScriptPosition && cardScriptPosition < uiScriptPosition, 'core and result-card scripts must load before UI script');
 
 function pngSize(file) {
   const bytes = fs.readFileSync(file);
@@ -54,9 +59,17 @@ const cCssSource = fs.readFileSync(path.join(root, 'assets/css/picker-c-preview.
 assert.ok(!cssSource.includes('.picker-page::before'), 'result column must not include a decorative background 03');
 assert.ok(html.includes('id="profiles-trigger"') && html.includes('id="history-trigger"'), 'archive and history must use explicit header triggers');
 assert.ok(html.includes('id="library-flyout"') && html.includes('id="library-search"'), 'library popover must include its own search field');
-assert.match(cCssSource, /\.picker-library-flyout\{[^}]*height:min\(360px/, 'library popover must remain height-bounded');
+assert.match(cCssSource, /H1 library direction:[\s\S]*\.picker-library-flyout\{height:min\(520px/, 'H1 library popover must use the approved comfortable height');
+assert.match(cCssSource, /\.picker-profile-list,\.picker-history-list\{grid-auto-rows:minmax\(68px,auto\)/, 'H1 library rows must remain 68px tall');
+assert.match(cCssSource, /Final interaction polish\.[\s\S]*\.picker-c-page \.picker-wheel\{border:0\}/, 'wheel must not regain the redundant outer border');
+assert.match(cCssSource, /Give the manifesto[\s\S]*min-height:132px;flex:0 0 132px;margin-bottom:12px/, 'manifesto must reserve enough space above the mode heading');
+assert.match(cCssSource, /Anchor bulk paste[\s\S]*\.picker-c-page \.picker-editor\{position:relative\}/, 'bulk paste must anchor to the editor column');
+assert.match(cCssSource, /\.picker-c-page \.picker-bulk::after\{/, 'bulk paste dialog must retain its anchored caret');
 assert.ok(uiSource.includes("openLibrary('profiles'") && uiSource.includes("openLibrary('history'"), 'both triggers must open the shared anchored popover');
 assert.ok(uiSource.includes("document.addEventListener('pointerdown'"), 'clicking outside must close the library popover');
+assert.ok(uiSource.includes('!el.bulkPanel.contains(event.target)') && uiSource.includes('closeBulkPanel()'), 'clicking outside must close the bulk paste dialog');
+assert.ok(uiSource.includes('el.metricSwitch.hidden = !hasVotes'), 'vote metric switch must stay hidden until a tournament result exists');
+assert.ok(uiSource.includes('skipAll: true') && uiSource.includes('已跳至最终结果'), 'tournament skip must jump to the final result');
 assert.ok(html.includes('id="rounds-custom" min="1"'), 'tournament custom rounds must allow one round');
 for (const line of uiSource.split('\n').filter(line => line.includes('lastResultText ='))) {
   assert.ok(!line.includes('[[zi:'), 'copied result text must not contain icon markers');

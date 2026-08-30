@@ -30,8 +30,8 @@ body_class: picker-page-body
         <button type="button" class="picker-button picker-button-quiet" id="add-btn">+ 添加选项</button>
         <button type="button" class="picker-button picker-button-quiet" id="bulk-toggle-btn" aria-expanded="false" aria-controls="bulk-panel">[[zi:list]] 批量粘贴</button>
       </div>
-      <div class="picker-bulk" id="bulk-panel" hidden>
-        <label for="bulk-input">每行一个选项，重复项会自动忽略</label>
+      <div class="picker-bulk" id="bulk-panel" role="dialog" aria-labelledby="bulk-label" hidden>
+        <div class="picker-bulk-head"><label id="bulk-label" for="bulk-input">每行一个选项，重复项会自动忽略</label><button type="button" id="bulk-close-btn" aria-label="关闭批量粘贴">×</button></div>
         <textarea id="bulk-input" rows="7" maxlength="4000" placeholder="火锅&#10;烧烤&#10;寿司"></textarea>
         <div class="picker-bulk-actions">
           <button type="button" class="picker-button picker-button-primary-small" id="bulk-apply-btn">替换当前选项</button>
@@ -67,7 +67,7 @@ body_class: picker-page-body
       </div>
       <div class="picker-action-dock">
         <button type="button" class="picker-spin" id="spin-btn">[[zi:shuffle]] 转起来！</button>
-        <button type="button" class="picker-skip" id="skip-btn" hidden>跳过动画</button>
+        <button type="button" class="picker-skip" id="skip-btn" hidden>跳过动画 · 直接看结果</button>
         <p class="picker-shortcut">SPACE · 快速抽取</p>
       </div>
       <p class="picker-status" id="picker-status" role="status" aria-live="polite"></p>

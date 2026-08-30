@@ -33,6 +33,7 @@
     metricView: 'weights',
     liveCounts: [],
     animationSkip: null,
+    skipTournament: false,
     pendingHash: false
   };
 
@@ -52,6 +53,7 @@
     bulkInput: byId('bulk-input'),
     bulkApply: byId('bulk-apply-btn'),
     bulkCancel: byId('bulk-cancel-btn'),
+    bulkClose: byId('bulk-close-btn'),
     weighted: byId('weighted-toggle'),
     weightTools: byId('weight-tools'),
     equal: byId('equal-btn'),
@@ -121,6 +123,7 @@
     el.app.dataset.fit = available < 600 ? 'tight' : (available < 720 ? 'compact' : 'normal');
     el.app.dataset.visualScale = String(Math.round(((visual && visual.scale) || 1) * 100) / 100);
     el.app.dataset.pixelRatio = String(Math.round((window.devicePixelRatio || 1) * 100) / 100);
+    if (!el.bulkPanel.hidden) positionBulkPanel();
   }
   function scheduleViewportFit() {
     cancelAnimationFrame(viewportFitFrame);
@@ -373,8 +376,8 @@
 
   function renderMetricState() {
     var tournament = state.mode === 'tournament';
-    var hasVotes = state.busy || !!state.lastTournament || state.liveCounts.some(function (count) { return count > 0; });
-    el.metricSwitch.hidden = !tournament;
+    var hasVotes = tournament && !!state.lastTournament;
+    el.metricSwitch.hidden = !hasVotes;
     if (!tournament) state.metricView = 'weights';
     el.metricSwitch.querySelectorAll('[data-metric]').forEach(function (button) {
       var active = button.dataset.metric === state.metricView;
@@ -524,6 +527,7 @@
         if (event.target === el.wheel && event.propertyName === 'transform') finish();
       }
       state.animationSkip = function () {
+        if (config.skipAll) state.skipTournament = true;
         el.wheel.classList.remove('is-spinning');
         void el.wheel.offsetWidth;
         el.wheel.style.transform = 'rotate(' + target + 'deg)';
@@ -572,6 +576,7 @@
   async function animateTournamentSequence(options, outcome) {
     var sequence = outcome.sequence || [];
     var live = options.map(function () { return 0; });
+    state.skipTournament = false;
     state.metricView = 'votes';
     state.lastTournament = null;
     updateLiveVotes(live);
@@ -579,23 +584,51 @@
     if (state.rounds <= 5) {
       for (var round = 0; round < sequence.length; round += 1) {
         el.status.textContent = '第 ' + (round + 1) + ' / ' + state.rounds + ' 轮';
-        await animateToIndex(options, sequence[round], { duration: 900, turns: 3 });
+        await animateToIndex(options, sequence[round], { duration: 900, turns: 3, skipAll: true });
         live[sequence[round]] += 1;
         updateLiveVotes(live);
+        if (state.skipTournament) {
+          for (var remainingRound = round + 1; remainingRound < sequence.length; remainingRound += 1) live[sequence[remainingRound]] += 1;
+          updateLiveVotes(live);
+          el.status.textContent = '已跳至最终结果';
+          state.skipTournament = false;
+          return;
+        }
       }
       return;
     }
-    var frames = Math.min(sequence.length, 12);
-    var batch = Math.ceil(sequence.length / frames);
-    var completed = 0;
+    if (!sequence.length) return;
+    el.status.textContent = '第 1 / ' + state.rounds + ' 轮';
+    await animateToIndex(options, sequence[0], { duration: 900, turns: 3, skipAll: true });
+    live[sequence[0]] += 1;
+    updateLiveVotes(live);
+    if (state.skipTournament) {
+      for (var skippedRound = 1; skippedRound < sequence.length; skippedRound += 1) live[sequence[skippedRound]] += 1;
+      updateLiveVotes(live);
+      el.status.textContent = '已跳至最终结果';
+      state.skipTournament = false;
+      return;
+    }
+    var remaining = sequence.length - 1;
+    var frames = Math.min(remaining, 12);
+    var batch = Math.ceil(remaining / frames);
+    var completed = 1;
     for (var frame = 0; frame < frames; frame += 1) {
       var end = Math.min(sequence.length, completed + batch);
-      el.status.textContent = '已完成 ' + end + ' / ' + state.rounds + ' 轮';
-      await animateToIndex(options, sequence[end - 1], { duration: Math.max(150, 285 - frames * 7), turns: 2 });
+      el.status.textContent = '正在快速完成 ' + end + ' / ' + state.rounds + ' 轮';
+      await animateToIndex(options, sequence[end - 1], { duration: Math.max(150, 285 - frames * 7), turns: 2, skipAll: true });
       for (var item = completed; item < end; item += 1) live[sequence[item]] += 1;
       completed = end;
       updateLiveVotes(live);
+      if (state.skipTournament) {
+        for (var skippedItem = completed; skippedItem < sequence.length; skippedItem += 1) live[sequence[skippedItem]] += 1;
+        updateLiveVotes(live);
+        el.status.textContent = '已跳至最终结果';
+        state.skipTournament = false;
+        return;
+      }
     }
+    state.skipTournament = false;
   }
 
   async function draw() {
@@ -701,6 +734,7 @@
   function showTournamentResult(options, outcome) {
     renderTally(options, outcome);
     state.lastTournament = { options: options, outcome: outcome };
+    renderMetricState();
     el.resultEyebrow.textContent = state.rounds + ' 轮决胜';
     if (outcome.winnerIndex != null) {
       var name = options[outcome.winnerIndex].text;
@@ -1112,6 +1146,25 @@
     el.historyTrigger.setAttribute('aria-expanded', kind === 'history' ? 'true' : 'false');
   }
 
+  function closeBulkPanel() {
+    if (el.bulkPanel.hidden) return;
+    el.bulkPanel.hidden = true;
+    el.bulkToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  function positionBulkPanel() {
+    if (el.bulkPanel.hidden) return;
+    var editorRect = el.editor.getBoundingClientRect();
+    var triggerRect = el.bulkToggle.getBoundingClientRect();
+    var panelInset = window.innerWidth <= 720 ? 8 : 12;
+    var panelWidth = Math.max(0, editorRect.width - panelInset * 2);
+    var caretLeft = triggerRect.left + triggerRect.width / 2 - (editorRect.left + panelInset) - 8;
+    caretLeft = Math.max(24, Math.min(panelWidth - 40, caretLeft));
+    var bottom = Math.max(54, editorRect.bottom - triggerRect.top + 10);
+    el.bulkPanel.style.setProperty('--picker-bulk-bottom', bottom + 'px');
+    el.bulkPanel.style.setProperty('--picker-bulk-caret-left', caretLeft + 'px');
+  }
+
   el.add.addEventListener('click', function () { addOption(true); });
   el.bulkToggle.addEventListener('click', function () {
     var open = el.bulkPanel.hidden;
@@ -1119,13 +1172,11 @@
     el.bulkToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) {
       el.bulkInput.value = state.options.map(function (option) { return option.text; }).join('\n');
-      el.bulkInput.focus();
+      requestAnimationFrame(function () { positionBulkPanel(); el.bulkInput.focus(); });
     }
   });
-  el.bulkCancel.addEventListener('click', function () {
-    el.bulkPanel.hidden = true;
-    el.bulkToggle.setAttribute('aria-expanded', 'false');
-  });
+  el.bulkCancel.addEventListener('click', closeBulkPanel);
+  el.bulkClose.addEventListener('click', closeBulkPanel);
   el.bulkApply.addEventListener('click', function () {
     var parsed = Core.parseBulk(el.bulkInput.value);
     if (parsed.names.length < 2) { toast('批量名单至少需要两个不同选项'); return; }
@@ -1133,8 +1184,7 @@
     state.weighted = true;
     state.count = Math.min(Math.max(1, state.count), Math.max(1, state.options.length - 1));
     markChanged();
-    el.bulkPanel.hidden = true;
-    el.bulkToggle.setAttribute('aria-expanded', 'false');
+    closeBulkPanel();
     renderAll();
     var notes = [];
     if (parsed.duplicates) notes.push('忽略 ' + parsed.duplicates + ' 个重复项');
@@ -1225,11 +1275,13 @@
   el.libraryClose.addEventListener('click', closeLibrary);
   el.librarySearch.addEventListener('input', applyLibrarySearch);
   document.addEventListener('pointerdown', function (event) {
+    if (!el.bulkPanel.hidden && !el.bulkPanel.contains(event.target) && !el.bulkToggle.contains(event.target)) closeBulkPanel();
     if (el.libraryFlyout.hidden) return;
     if (el.libraryFlyout.contains(event.target) || event.target.closest('[data-library]')) return;
     closeLibrary();
   });
   document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !el.bulkPanel.hidden) closeBulkPanel();
     if (event.key === 'Escape' && !el.libraryFlyout.hidden) {
       closeLibrary();
       return;

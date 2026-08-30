@@ -100,14 +100,21 @@
     var cy = 367;
     var radius = 252;
     var total = normalized.options.reduce(function (sum, option) { return sum + option.weight; }, 0) || 100;
+    var angleOffset = 0;
+    if (normalized.winners.length === 1) {
+      var winnerIndex = normalized.winners[0].index;
+      var winnerStart = normalized.options.slice(0, winnerIndex).reduce(function (sum, option) { return sum + option.weight; }, 0) / total;
+      var winnerFraction = normalized.options[winnerIndex].weight / total;
+      angleOffset = -(winnerStart + winnerFraction / 2) * Math.PI * 2;
+    }
     var accumulated = 0;
     var output = '';
     normalized.options.forEach(function (option) {
       var fraction = option.weight / total;
       var start = accumulated;
       accumulated += fraction;
-      var a0 = start * Math.PI * 2 - Math.PI / 2;
-      var a1 = accumulated * Math.PI * 2 - Math.PI / 2;
+      var a0 = start * Math.PI * 2 - Math.PI / 2 + angleOffset;
+      var a1 = accumulated * Math.PI * 2 - Math.PI / 2 + angleOffset;
       var p0 = polar(cx, cy, radius, a0);
       var p1 = polar(cx, cy, radius, a1);
       output += '<path d="M' + cx + ' ' + cy + ' L' + p0.x.toFixed(2) + ' ' + p0.y.toFixed(2) + ' A' + radius + ' ' + radius + ' 0 ' + (fraction > 0.5 ? 1 : 0) + ' 1 ' + p1.x.toFixed(2) + ' ' + p1.y.toFixed(2) + ' Z" fill="' + option.color + '" stroke="#fff8d9" stroke-width="3"/>';
