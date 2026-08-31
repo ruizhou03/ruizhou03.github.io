@@ -315,6 +315,7 @@
     storageReadOnly: false,
     externalSessionReadonly: false,
     activityReturnDraft: null,
+    modelDemoCount: 0,
   };
 
   function runtimeFromLegacy(active) {
@@ -554,6 +555,7 @@
   const $notificationOn = document.getElementById('notification-on');
   const $completionCard = document.getElementById('completion-card');
   const $completionSummary = document.getElementById('completion-summary');
+  const $plantControlsPane = document.querySelector('.plant-controls-pane');
   const $focusStage = document.getElementById('focus-stage');
 
   const $statToday = document.getElementById('stat-today');
@@ -739,7 +741,7 @@
     syncBreakRow();
   }
 
-  // ============ Fields (多块田) ============
+  // ============ Single field ============
   function loadFields() {
     if (!forestSnapshot) hydrateStore();
     state.fields = forestSnapshot ? forestSnapshot.fields : [];
@@ -752,34 +754,37 @@
     return 'fld-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5);
   }
 
-  // 迁移：保证至少有 1 块田 + 老树都属于第 1 块
+  // 迁移：产品只保留一块田。旧多田数据无损并入第一块田，树与专注流水不删除。
   function migrateFieldsAndTrees() {
-    let migrated = false;
-    if (state.fields.length === 0) {
-      state.fields.push({
-        id: newFieldId(),
-        name: '我的田地',
-        createdAt: new Date().toISOString(),
-      });
-      state.activeFieldId = state.fields[0].id;
-      migrated = true;
+    const fallback = { id: newFieldId(), name: '我的田地', createdAt: new Date().toISOString() };
+    const consolidated = Core.consolidateSingleField(state.fields, state.trees, fallback);
+    if (consolidated.retiredFieldIds.length) {
+      const retiredAt = Date.now();
+      consolidated.retiredFieldIds.forEach((fieldId) => addSyncTombstone('field', fieldId, retiredAt));
     }
-    // 校验 activeFieldId 有效
-    if (!state.fields.find(f => f.id === state.activeFieldId)) {
-      state.activeFieldId = state.fields[0].id;
-      migrated = true;
-    }
-    // 给老树补 fieldId
-    const firstId = state.fields[0].id;
-    let treeMigrated = false;
-    state.trees.forEach(t => {
-      if (!t.fieldId) {
-        t.fieldId = firstId;
-        treeMigrated = true;
-      }
+    const activeChanged = state.activeFieldId !== consolidated.activeFieldId;
+    state.fields = consolidated.fields;
+    const migrationDensity = window.ForestLayout.densityProfile(consolidated.trees.length);
+    const layoutInput = consolidated.trees.map((tree) => Object.assign({}, tree, { tier: effectiveTier(tree), densityScale: migrationDensity.footprintScale, assetWidth: migrationDensity.assetBase, assetHeight: migrationDensity.assetBase }));
+    const migratedLayout = window.ForestLayout.migrateLegacyPositions(layoutInput, CANONICAL_COLUMNS, { scene: 'forest' });
+    let layoutChanged = false;
+    state.trees = migratedLayout.map((tree, index) => {
+      const previous = consolidated.trees[index];
+      if (JSON.stringify(previous.position3d || null) !== JSON.stringify(tree.position3d || null)) layoutChanged = true;
+      const next = Object.assign({}, tree);
+      if (!Object.prototype.hasOwnProperty.call(previous, 'tier')) delete next.tier;
+      delete next.densityScale; delete next.assetWidth; delete next.assetHeight;
+      return next;
     });
-    if (migrated) saveFields();
-    if (treeMigrated) saveTrees();
+    state.activeFieldId = consolidated.activeFieldId;
+    let runtimeChanged = false;
+    if (forestSnapshot && forestSnapshot.active && forestSnapshot.active.fieldId !== consolidated.activeFieldId) {
+      forestSnapshot.active.fieldId = consolidated.activeFieldId;
+      runtimeChanged = true;
+    }
+    if (state.session && state.session.fieldId !== consolidated.activeFieldId) state.session.fieldId = consolidated.activeFieldId;
+    if (consolidated.fieldsChanged || activeChanged || runtimeChanged) saveFields();
+    if (consolidated.treesChanged || layoutChanged) saveTrees();
   }
 
   function activeFieldTrees() {
@@ -896,6 +901,7 @@
     _swapScene(document.getElementById('overlay-scene'), _sceneSvg(background, true));
     _swapScene(document.getElementById('overlay-ground'), _overlayGroundSvg(background));
     applyVisualShell(background);
+    requestAnimationFrame(positionSingleTreeTargets);
   }
 
   function applyStageTheme() {
@@ -907,12 +913,49 @@
     _swapScene(document.getElementById('stage-scene'), _sceneSvg(background, false));
     _swapScene(document.getElementById('stage-ground'), _overlayGroundSvg(background));
     applyVisualShell(background);
+    requestAnimationFrame(positionSingleTreeTargets);
   }
 
   // ============ Tree SVG ============
   // progress: 0-1 描述树的成长进度
   // ============ 主题场景（每主题一幅矢量小景，作舞台 / 全屏遮罩 / 选择器的背景）============
   const { _themeScene, _themeThumb, buildTreeSvg, durationToTier, buildFieldTreeSvg, _gradeName, _decoLevel } = window.ForestScenes;
+  const Layout = window.ForestLayout;
+  const SINGLE_TREE_WORLD = Object.freeze({ x: 0, y: 0, z: 0.6, seed: 314159 });
+  let lastTreeProgress = 0;
+
+  function projectSingleTree(target, progress) {
+    if (!target) return;
+    const isOverlay = target === $overlayTreeContainer;
+    const host = isOverlay ? document.querySelector('.focus-visual') : document.getElementById('stage');
+    if (!host || !host.clientWidth || !host.clientHeight) return;
+    const mobile = window.matchMedia && window.matchMedia('(max-width: 1199px)').matches;
+    const scene = isOverlay ? (resolvedBackground() === 'night' ? 'focusNight' : 'focusDay') : (mobile ? 'homeMobile' : 'homeDesktop');
+    const viewport = { width: host.clientWidth, height: host.clientHeight };
+    const projected = Layout.projectToViewport(scene, SINGLE_TREE_WORLD, viewport);
+    const stageGrowth = 0.58 + Layout.growthScale(progress) * 0.42;
+    // 容器与素材一一对应；不再依赖旧 flex 布局把树误缩成半宽。
+    const base = isOverlay
+      ? Math.min(viewport.width * 0.19, viewport.height * 0.45)
+      : Math.min(viewport.width * 0.24, viewport.height * 0.45);
+    const size = Math.max(52, base * projected.scale * stageGrowth);
+    target.classList.add('layout-3d-tree');
+    target.style.left = `${projected.x}px`;
+    target.style.top = `${projected.y}px`;
+    target.style.bottom = 'auto';
+    target.style.width = `${size}px`;
+    target.style.height = `${size * 0.8}px`;
+    target.style.zIndex = String(projected.zIndex);
+    target.dataset.worldX = String(SINGLE_TREE_WORLD.x);
+    target.dataset.worldY = '0';
+    target.dataset.worldZ = String(SINGLE_TREE_WORLD.z);
+    target.style.setProperty('--single-growth', stageGrowth.toFixed(4));
+  }
+
+  function positionSingleTreeTargets() {
+    projectSingleTree($treeContainer, lastTreeProgress);
+    projectSingleTree($overlayTreeContainer, lastTreeProgress);
+  }
 
   function renderTree(progress, target) {
     // 生长中的树按「本次专注最终会长成多大」预告装饰（接近完成才淡入）
@@ -928,6 +971,7 @@
     }
     // 生长量化到 0.5%：一档内几何不变就不重建（旧方案每秒重建 svg，摆动/落樱动画被打断）
     const pq = Math.round(Math.max(0, Math.min(1, progress)) * 200) / 200;
+    lastTreeProgress = pq;
     const wantPetals = state.treeType === 'sakura' && pq >= 0.5;
     const key = state.treeType + '|' + pq + '|' + (value || 0);
     const targets = target ? [target] : [$treeContainer, $overlayTreeContainer];
@@ -940,6 +984,7 @@
       const hasPetals = !!L.petals.firstChild;
       if (wantPetals && !hasPetals) L.petals.innerHTML = '<svg viewBox="0 0 320 240">' + _sakuraFall() + '</svg>';
       else if (!wantPetals && hasPetals) L.petals.innerHTML = '';
+      projectSingleTree(t, pq);
     });
   }
   // 持久双层：.tree-anim（摆动层，跨重建存活）+ .petal-layer（落樱层，只建一次持续飘）
@@ -1889,8 +1934,10 @@
   const $editModeBtn = document.getElementById('edit-mode-btn');
   const $fieldHint = document.getElementById('field-hint');
   const $treeDetail = document.getElementById('tree-detail');
+  const $forestSortSelect = document.getElementById('forest-sort-select');
 
   let editMode = false;
+  let forestSort = 'manual';
   let openDetailId = null;
   let detailScrollGuardUntil = 0;
   let detailInvoker = null;
@@ -1923,58 +1970,30 @@
     if (_treeTip) { _treeTip.classList.remove('show'); _treeTip.style.display = 'none'; }
   }
 
-  // 列数随可用宽度连续计算（手机≈4、平板竖屏≈6-8、平板横屏/桌面≈9-11），
-  // 唯一事实源是 fieldWidth——CSS 只管控件尺寸，几何全在这里。
-  const TARGET_CELL = 92;   // 目标每格宽度（px）
   let _justPlantedId = null;   // 刚种成的树：下次渲染田地时做一次 pop-in
   let _lastFieldWidth = 0;   // 森林视图隐藏时 clientWidth=0，退回上次真实量到的宽度
-  function getFieldDimensions() {
-    const live = $field.clientWidth;
-    if (live) _lastFieldWidth = live;
-    const fieldWidth = live || _lastFieldWidth || 800;
-    let cols = Math.round(fieldWidth / TARGET_CELL);
-    cols = Math.max(4, Math.min(12, cols));
-    const cellWidth = fieldWidth / cols;
-    // 行高跟随格宽但夹在 64–96，避免树过扁 / 过高
-    const rowHeight = Math.max(64, Math.min(96, Math.round(cellWidth * 0.96)));
-    return { cols, rowHeight, cellWidth, fieldWidth };
+
+  function fieldViewport() {
+    return {
+      width: Math.max(1, $field.clientWidth || _lastFieldWidth || 1200),
+      height: Math.max(1, $field.clientHeight || 620),
+    };
   }
 
   const CANONICAL_COLUMNS = 12;
-  function canonicalizePosition(position) {
-    const canonical = Core.canonicalPosition(position, CANONICAL_COLUMNS);
-    const cell = canonical.row * CANONICAL_COLUMNS + canonical.column;
-    return { cell, col: canonical.column, row: canonical.row, offsetX: canonical.offsetX, offsetY: canonical.offsetY };
-  }
-  function displayPosition(tree, displayColumns) {
-    const projected = Core.projectPosition(tree.position, CANONICAL_COLUMNS, displayColumns);
-    return { col: projected.displayColumn, row: projected.displayRow };
-  }
 
   function ensurePositions() {
-    const byField = {};
+    const density = Layout.densityProfile(state.trees.length);
+    const input = state.trees.map((tree) => Object.assign({}, tree, { tier: effectiveTier(tree), densityScale: density.footprintScale, assetWidth: density.assetBase, assetHeight: density.assetBase }));
+    const migrated = Layout.migrateLegacyPositions(input, CANONICAL_COLUMNS, { scene: 'forest' });
     let changed = false;
-    state.trees.forEach((tree) => {
-      const fieldId = tree.fieldId || (state.fields[0] && state.fields[0].id);
-      if (!tree.fieldId && fieldId) { tree.fieldId = fieldId; changed = true; }
-      (byField[fieldId] = byField[fieldId] || []).push(tree);
-    });
-    Object.keys(byField).forEach((fieldId) => {
-      const occupied = new Set();
-      byField[fieldId].forEach((tree) => {
-        if (!tree.position) return;
-        const canonical = canonicalizePosition(tree.position);
-        if (JSON.stringify(canonical) !== JSON.stringify(tree.position)) { tree.position = canonical; changed = true; }
-        occupied.add(tree.position.cell);
-      });
-      let nextCell = 0;
-      byField[fieldId].forEach((tree) => {
-        if (tree.position) return;
-        while (occupied.has(nextCell)) nextCell++;
-        tree.position = { cell: nextCell, col: nextCell % CANONICAL_COLUMNS, row: Math.floor(nextCell / CANONICAL_COLUMNS) };
-        occupied.add(nextCell);
-        changed = true;
-      });
+    state.trees = migrated.map((tree, index) => {
+      const previous = state.trees[index];
+      if (JSON.stringify(previous.position3d || null) !== JSON.stringify(tree.position3d || null)) changed = true;
+      const next = Object.assign({}, tree);
+      if (!Object.prototype.hasOwnProperty.call(previous, 'tier')) delete next.tier;
+      delete next.densityScale; delete next.assetWidth; delete next.assetHeight;
+      return next;
     });
     if (changed) saveTrees();
   }
@@ -1982,25 +2001,33 @@
   function assignNewPosition(newTree) {
     const fieldId = newTree.fieldId || state.activeFieldId;
     newTree.fieldId = fieldId;
-    const occupied = new Set(state.trees
-      .filter((tree) => tree.fieldId === fieldId && tree.position)
-      .map((tree) => canonicalizePosition(tree.position).cell));
-    let cell = 0;
-    while (occupied.has(cell)) cell++;
-    newTree.position = { cell, col: cell % CANONICAL_COLUMNS, row: Math.floor(cell / CANONICAL_COLUMNS) };
+    const density = Layout.densityProfile(state.trees.filter((tree) => tree.fieldId === fieldId).length + 1);
+    const occupied = state.trees.filter((tree) => tree.fieldId === fieldId).map((tree) => Object.assign({}, tree, { tier: effectiveTier(tree), densityScale: density.footprintScale, assetWidth: density.assetBase, assetHeight: density.assetBase }));
+    newTree.position3d = Layout.allocatePosition(Object.assign({}, newTree, { tier: effectiveTier(newTree), densityScale: density.footprintScale, assetWidth: density.assetBase, assetHeight: density.assetBase }), occupied, {
+      scene: 'forest',
+      viewport: fieldViewport(),
+    });
   }
 
   function renderStats() {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const startOfWeek = new Date(startOfToday);
-    startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
+    startOfWeek.setDate(startOfToday.getDate() - ((startOfToday.getDay() + 6) % 7));
+
+    function compactMinutes(value) {
+      const minutes = Math.max(0, Math.round(value || 0));
+      if (minutes < 60) return `${minutes} 分`;
+      const hours = Math.floor(minutes / 60);
+      const rest = minutes % 60;
+      return rest ? `${hours} 时 ${rest} 分` : `${hours} 小时`;
+    }
 
     // 统计只纳入完成/手动专注；失败记录仍留在历史，但不冒充成果。
     const completed = state.sessions.filter((session) => !session.outcome || ['planted', 'manual', 'revived', 'cultivated', 'completed'].includes(session.outcome));
-    $statToday.textContent = completed.filter(s => s.endTime >= startOfToday.getTime()).length;
-    $statWeek.textContent = completed.filter(s => s.endTime >= startOfWeek.getTime()).length;
-    $statTotalMin.textContent = Math.round(completed.reduce((sum, s) => sum + (s.minutes || 0), 0));
+    $statToday.textContent = compactMinutes(completed.filter(s => s.endTime >= startOfToday.getTime()).reduce((sum, s) => sum + (s.minutes || 0), 0));
+    $statWeek.textContent = compactMinutes(completed.filter(s => s.endTime >= startOfWeek.getTime()).reduce((sum, s) => sum + (s.minutes || 0), 0));
+    $statTotalMin.textContent = compactMinutes(completed.reduce((sum, s) => sum + (s.minutes || 0), 0));
 
     // 田地
     ensurePositions();
@@ -2039,10 +2066,18 @@
       + (tree.manual ? ' manual' : '')
       + (selected ? ' msel' : '');
     node.dataset.tier = String(tier);
-    node.style.width = `${geometry.cellWidth - 4}px`;
-    node.style.height = `${geometry.rowHeight - 4}px`;
-    node.style.left = `${geometry.col * geometry.cellWidth + 2}px`;
-    node.style.top = `${geometry.row * geometry.rowHeight + 2}px`;
+    node.style.width = `${geometry.width}px`;
+    node.style.height = `${geometry.height}px`;
+    node.style.left = `${geometry.x}px`;
+    node.style.top = `${geometry.y}px`;
+    node.style.zIndex = String(geometry.zIndex);
+    node.dataset.worldU = geometry.position.u.toFixed(5);
+    node.dataset.worldV = geometry.position.v.toFixed(5);
+    node.dataset.worldX = geometry.position.x.toFixed(5);
+    node.dataset.worldY = geometry.position.y.toFixed(5);
+    node.dataset.worldZ = geometry.position.z.toFixed(5);
+    node.style.setProperty('--tree-depth', geometry.depth.toFixed(4));
+    node.style.setProperty('--tree-scale', geometry.scale.toFixed(4));
     const open = node.querySelector('.tree-open');
     const remove = node.querySelector('.delete-x');
     const visualKey = [tree.type, tier, tree.success, Math.round(tree.success ? treeValue(tree) : 0)].join(':');
@@ -2050,11 +2085,13 @@
       open.innerHTML = buildFieldTreeSvg(tree.type, tier, !tree.success, tree.success ? treeValue(tree) : 0);
       open.dataset.visualKey = visualKey;
     }
-    const date = new Date(tree.endTime).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+    const plantedAt = new Date(tree.endTime).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const taskLabel = String(tree.task || '').trim() || '未填写任务';
+    const focusMinutes = tree.success ? Math.round(tree.durationMinutes || treeValue(tree) || 0) : Math.round(tree.attemptedMinutes || 0);
     const revived = tree.success && !tree.origin && tree.revivalDiscount && tree.revivalDiscount < 1;
     const tip = tree.success
-      ? `${TREE_NAME[tree.type]}（${_gradeName(treeValue(tree))}${revived ? ' · 灌溉复活' : ''}）· ${Math.round(treeValue(tree))} 经验 · ${date}`
-      : `${TREE_NAME[tree.type]}（枯萎）· ${date}`;
+      ? `${TREE_NAME[tree.type]} · ${taskLabel} · ${plantedAt} · ${focusMinutes} 分钟${revived ? ' · 灌溉复活' : ''}`
+      : `${TREE_NAME[tree.type]}（枯萎）· ${taskLabel} · ${plantedAt} · 坚持 ${focusMinutes} 分钟`;
     node.dataset.tip = tip;
     open.setAttribute('aria-label', `${tip}，打开详情`);
     open.setAttribute('aria-expanded', openDetailId === tree.id ? 'true' : 'false');
@@ -2072,39 +2109,75 @@
       else if (!trees.some((tree) => tree.id === id)) node.remove();
     });
     if (!trees.length) {
-      $field.style.display = 'none';
+      $field.style.display = '';
+      $field.style.height = '';
+      $field.classList.add('is-empty');
       $emptyForest.style.display = '';
       $forestMeta.textContent = '';
       hideDetail();
       return;
     }
+    $field.classList.remove('is-empty');
     $emptyForest.style.display = 'none';
     $field.style.display = '';
     const total = trees.length;
     const dead = trees.filter((tree) => !tree.success).length;
     const grand = trees.filter((tree) => tree.success && effectiveTier(tree) === 4).length;
-    const metaParts = [`本田 ${total} 棵`];
+    const metaParts = [`${total} 棵树`];
     if (dead) metaParts.push(`枯萎 ${dead}`);
     if (grand) metaParts.push(`巨树 ${grand}`);
-    if (state.fields.length > 1) metaParts.push(`总 ${state.trees.length} 棵 / ${state.fields.length} 块田`);
     $forestMeta.textContent = metaParts.join(' · ');
 
-    const { cols, cellWidth, rowHeight } = getFieldDimensions();
-    const layouts = trees.map((tree) => ({ tree, position: displayPosition(tree, cols) }));
-    const maxRow = layouts.reduce((max, item) => Math.max(max, item.position.row), 0);
-    $field.style.height = `${(Math.max(2, maxRow + 1) + (editMode ? 1 : 0)) * rowHeight + 16}px`;
+    let displayTrees = trees;
+    if (forestSort !== 'manual') {
+      const sign = forestSort === 'oldest' || forestSort === 'duration-asc' ? 1 : -1;
+      displayTrees = trees.slice().sort((a, b) => {
+        if (forestSort === 'newest' || forestSort === 'oldest') return sign * ((a.endTime || 0) - (b.endTime || 0));
+        const av = a.success ? treeValue(a) : (a.attemptedMinutes || 0);
+        const bv = b.success ? treeValue(b) : (b.attemptedMinutes || 0);
+        return sign * (av - bv) || ((b.endTime || 0) - (a.endTime || 0));
+      });
+    }
+    const viewport = fieldViewport();
+    const density = Layout.densityProfile(trees.length);
+    const densityBase = density.assetBase;
+    let layoutInput;
+    if (forestSort === 'manual') {
+      layoutInput = displayTrees.map((tree) => Object.assign({}, tree, {
+        tier: effectiveTier(tree),
+        densityScale: density.footprintScale,
+        assetWidth: densityBase,
+        assetHeight: densityBase,
+      }));
+    } else {
+      const occupied = [];
+      layoutInput = displayTrees.map((tree, index) => {
+        const layoutTree = Object.assign({}, tree, {
+          id: `${forestSort}-${index}`,
+          tier: effectiveTier(tree),
+          densityScale: density.footprintScale,
+          assetWidth: densityBase,
+          assetHeight: densityBase,
+        });
+        const position3d = Layout.allocatePosition(layoutTree, occupied, { scene: 'forest', viewport });
+        const assigned = Object.assign({}, tree, layoutTree, { id: tree.id, position3d });
+        occupied.push(assigned);
+        return assigned;
+      });
+    }
+    const layouts = Layout.layoutTrees(layoutInput, { scene: 'forest', viewport });
+    $field.style.height = '';
     const grid = $field.querySelector('.field-cell-grid');
-    if (grid) grid.style.backgroundSize = `${cellWidth}px ${rowHeight}px`;
+    if (grid) grid.style.backgroundSize = '';
     if (!$snapPreview) {
       $snapPreview = document.createElement('div');
       $snapPreview.className = 'snap-preview';
       $field.appendChild($snapPreview);
     }
-    $snapPreview.style.width = `${cellWidth - 4}px`;
-    $snapPreview.style.height = `${rowHeight - 4}px`;
-    layouts.sort((a, b) => (a.position.row - b.position.row) || (a.position.col - b.position.col)).forEach(({ tree, position }) => {
+    layouts.forEach((geometry) => {
+      const tree = geometry.tree;
       const node = treeNodeCache.get(tree.id) || createTreeNode(tree);
-      patchTreeNode(node, tree, { col: position.col, row: position.row, cellWidth, rowHeight });
+      patchTreeNode(node, tree, geometry);
       $field.appendChild(node);
     });
     $field.appendChild($snapPreview);
@@ -2246,44 +2319,52 @@
   }
 
   // ============ 拖动 + 点击 ============
-  function snapColRow(left, top) {
-    const { cols, cellWidth, rowHeight } = getFieldDimensions();
-    let col = Math.round(left / cellWidth);
-    let row = Math.round(top / rowHeight);
-    col = Math.max(0, Math.min(cols - 1, col));
-    row = Math.max(0, row);
-    return { col, row, cellWidth, rowHeight };
+  function layoutTreeAt(tree, position3d) {
+    const density = Layout.densityProfile(activeFieldTrees().length);
+    return Layout.layoutTrees([Object.assign({}, tree, {
+      tier: effectiveTier(tree), position3d, densityScale: density.footprintScale, assetWidth: density.assetBase, assetHeight: density.assetBase,
+    })], { scene: 'forest', viewport: fieldViewport() })[0];
   }
 
-  function showSnapPreview(col, row) {
+  function validateWorldPosition(tree, position3d) {
+    const density = Layout.densityProfile(activeFieldTrees().length);
+    const occupied = activeFieldTrees().filter((item) => item.id !== tree.id).map((item) => Object.assign({}, item, { tier: effectiveTier(item), densityScale: density.footprintScale, assetWidth: density.assetBase, assetHeight: density.assetBase }));
+    const root = Layout.rootClearance(position3d, occupied, tree.type, effectiveTier(tree), density.footprintScale, 'forest');
+    const canopy = Layout.canopyConflict(Object.assign({}, tree, {
+      tier: effectiveTier(tree), position3d, densityScale: density.footprintScale, assetWidth: density.assetBase, assetHeight: density.assetBase,
+    }), occupied, { scene: 'forest', viewport: fieldViewport() });
+    return { legal: root.legal && !canopy.hard, root, canopy };
+  }
+
+  function showSnapPreview(tree, position3d, validation) {
     if (!$snapPreview) return;
-    const { cellWidth, rowHeight } = getFieldDimensions();
-    $snapPreview.style.left = (col * cellWidth + 2) + 'px';
-    $snapPreview.style.top = (row * rowHeight + 2) + 'px';
-    $snapPreview.style.width = (cellWidth - 4) + 'px';
-    $snapPreview.style.height = (rowHeight - 4) + 'px';
+    const geometry = layoutTreeAt(tree, position3d);
+    const meta = Layout.plantMeta(tree.type);
+    const rx = Math.max(14, geometry.width * meta.footprintX * 1.3);
+    const ry = Math.max(7, geometry.height * meta.footprintZ * 1.8);
+    $snapPreview.style.left = `${geometry.rootX - rx}px`;
+    $snapPreview.style.top = `${geometry.rootY - ry}px`;
+    $snapPreview.style.width = `${rx * 2}px`;
+    $snapPreview.style.height = `${ry * 2}px`;
+    $snapPreview.classList.toggle('blocked', !validation.legal);
     $snapPreview.classList.add('visible');
   }
   function hideSnapPreview() {
     if (!$snapPreview) return;
-    $snapPreview.classList.remove('visible');
+    $snapPreview.classList.remove('visible', 'blocked');
   }
 
   function moveTreeByKeyboard(treeId, dx, dy) {
     const tree = state.trees.find((item) => item.id === treeId);
     if (!tree) return;
-    const { cols } = getFieldDimensions();
-    const current = displayPosition(tree, cols);
-    const col = Math.max(0, Math.min(cols - 1, current.col + dx));
-    const row = Math.max(0, current.row + dy);
-    const targetCell = row * cols + col;
-    const previous = canonicalizePosition(tree.position).cell;
-    const occupant = state.trees.find((item) => item !== tree && item.fieldId === tree.fieldId && item.position && canonicalizePosition(item.position).cell === targetCell);
-    if (occupant) occupant.position = { cell: previous, col: previous % CANONICAL_COLUMNS, row: Math.floor(previous / CANONICAL_COLUMNS) };
-    tree.position = { cell: targetCell, col: targetCell % CANONICAL_COLUMNS, row: Math.floor(targetCell / CANONICAL_COLUMNS) };
+    const current = Layout.normalizeWorldPosition(tree.position3d, tree.id);
+    const target = Layout.normalizeWorldPosition({ u: current.u + dx * 0.025, v: current.v + dy * 0.025, seed: current.seed }, tree.id);
+    const validation = validateWorldPosition(tree, target);
+    if (!validation.legal) { showToast('这个位置与另一棵树的根区或树冠冲突'); return; }
+    tree.position3d = target;
     saveTrees();
     renderField();
-    $fieldHint.textContent = `${TREE_NAME[tree.type]}已移动到第 ${row + 1} 行、第 ${col + 1} 列`;
+    $fieldHint.textContent = `${TREE_NAME[tree.type]}已移动`;
     treeNodeCache.get(tree.id)?.querySelector('.tree-open')?.focus();
   }
 
@@ -2314,9 +2395,12 @@
     const open = event.target.closest('.tree-open');
     if (!open || !editMode || event.button !== 0) return;
     const node = open.closest('.tree-instance');
+    const tree = state.trees.find((item) => item.id === node.dataset.id);
+    if (!tree) return;
     dragState = {
       pointerId: event.pointerId, node, treeId: node.dataset.id, startX: event.clientX, startY: event.clientY,
-      startLeft: parseFloat(node.style.left), startTop: parseFloat(node.style.top), dragging: false, suppressClick: false,
+      startPosition: Layout.normalizeWorldPosition(tree.position3d, tree.id),
+      previewPosition: null, legal: false, dragging: false, suppressClick: false,
     };
     node.setPointerCapture(event.pointerId);
   });
@@ -2326,46 +2410,32 @@
     const dy = event.clientY - dragState.startY;
     if (!dragState.dragging && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) { dragState.dragging = true; dragState.node.classList.add('dragging'); hideDetail(); hideTreeTip(); }
     if (!dragState.dragging) return;
-    dragState.node.style.left = `${dragState.startLeft + dx}px`;
-    dragState.node.style.top = `${dragState.startTop + dy}px`;
-    const target = snapColRow(dragState.startLeft + dx, dragState.startTop + dy);
-    showSnapPreview(target.col, target.row);
+    event.preventDefault();
+    const rect = $field.getBoundingClientRect();
+    const tree = state.trees.find((item) => item.id === dragState.treeId);
+    if (!tree) return;
+    const target = Layout.inverseFromViewport('forest', { x: event.clientX - rect.left, y: event.clientY - rect.top }, fieldViewport(), tree.id);
+    const validation = validateWorldPosition(tree, target);
+    dragState.previewPosition = target;
+    dragState.legal = validation.legal;
+    patchTreeNode(dragState.node, tree, layoutTreeAt(tree, target));
+    showSnapPreview(tree, target, validation);
   });
   function finishFieldPointer(event) {
     if (!dragState || event.pointerId !== dragState.pointerId) return;
     const current = dragState;
     if (current.node.hasPointerCapture(current.pointerId)) current.node.releasePointerCapture(current.pointerId);
     if (current.dragging) {
-      current.node.classList.remove('dragging'); hideSnapPreview(); snapTreeToCell(current.node, current.treeId);
+      current.node.classList.remove('dragging'); hideSnapPreview();
+      const tree = state.trees.find((item) => item.id === current.treeId);
+      if (tree && current.legal && current.previewPosition) { tree.position3d = current.previewPosition; saveTrees(); }
+      renderField();
       current.suppressClick = true; dragState = current;
       setTimeout(() => { if (dragState === current) dragState = null; }, 0);
     } else dragState = null;
   }
   $field.addEventListener('pointerup', finishFieldPointer);
   $field.addEventListener('pointercancel', finishFieldPointer);
-
-  function snapTreeToCell(div, treeId) {
-    const t = state.trees.find(x => x.id === treeId);
-    if (!t) return;
-    const left = parseFloat(div.style.left);
-    const top = parseFloat(div.style.top);
-    const { col, row } = snapColRow(left, top);
-    const { cols } = getFieldDimensions();
-    const targetCell = row * cols + col;
-    const previous = canonicalizePosition(t.position).cell;
-
-    // 检测占位冲突（仅同田块内）→ 交换
-    const occupant = state.trees.find(x =>
-      x !== t && x.fieldId === t.fieldId &&
-      x.position && canonicalizePosition(x.position).cell === targetCell
-    );
-    if (occupant) {
-      occupant.position = { cell: previous, col: previous % CANONICAL_COLUMNS, row: Math.floor(previous / CANONICAL_COLUMNS) };
-    }
-    t.position = { cell: targetCell, col: targetCell % CANONICAL_COLUMNS, row: Math.floor(targetCell / CANONICAL_COLUMNS) };
-    saveTrees();
-    renderField();
-  }
 
   // ============ 详情 popover ============
   function showDetail(treeId, anchorEl) {
@@ -2558,6 +2628,7 @@
       success: true,
       fieldId: first.fieldId,
       position: first.position,
+      position3d: first.position3d,
       lineage: { sourceTreeIds: picks.map((tree) => tree.id) },
       updatedAt: Date.now(),
     };
@@ -2576,11 +2647,31 @@
   }
   if ($mergeBtn) $mergeBtn.addEventListener('click', mergeSelected);
 
+  if ($forestSortSelect) {
+    $forestSortSelect.addEventListener('change', () => {
+      forestSort = $forestSortSelect.value || 'manual';
+      if (editMode && forestSort !== 'manual') {
+        editMode = false;
+        $field.classList.remove('edit-mode');
+        $editModeBtn.classList.remove('active');
+        $editModeBtn.textContent = '整理树木';
+        state.selectedIds = [];
+        updateMergeBtn();
+      }
+      hideDetail();
+      renderField();
+    });
+  }
+
   $editModeBtn.addEventListener('click', () => {
+    if (forestSort !== 'manual') {
+      forestSort = 'manual';
+      if ($forestSortSelect) $forestSortSelect.value = 'manual';
+    }
     editMode = !editMode;
     $field.classList.toggle('edit-mode', editMode);
     $editModeBtn.classList.toggle('active', editMode);
-    $editModeBtn.textContent = editMode ? '完成' : '整理';
+    $editModeBtn.textContent = editMode ? '完成整理' : '整理树木';
     $fieldHint.textContent = editMode
       ? '拖动挪位置 · 点 × 铲除 · 点选两棵可合并'
       : '点击查看详情 · 拖动挪位置';
@@ -2599,6 +2690,7 @@
       if (state.trees.length) renderField();
       const view = document.getElementById('view-forest');
       if (view && !view.hidden) renderExpChart();
+      positionSingleTreeTargets();
     });
   }
   window.addEventListener('resize', scheduleForestGeometry, { passive: true });
@@ -2607,6 +2699,8 @@
   function renderAfterExternalData() {
     const externalLeaseOwner = Core.leaseOwner(forestStore.readLease(), Date.now());
     state.externalSessionReadonly = !!(forestSnapshot && forestSnapshot.active && externalLeaseOwner && externalLeaseOwner !== _tabId);
+    migrateFieldsAndTrees();
+    if (state.modelDemoCount) applyLocalForestModelDemo();
     hideDetail(false);
     renderFieldTabs();
     renderTargetFieldSelect();
@@ -2879,67 +2973,80 @@
   const $expTooltip = document.getElementById('exp-bar-tooltip');
   const $expChartZone = document.getElementById('exp-chart-zone');
 
-  let expRange = '7';  // today / 7 / 30 / 90
+  let expRange = 'week';
 
   function buildBuckets(range) {
-    const now = Date.now();
+    const now = new Date();
     const completed = state.sessions.filter((session) => !session.outcome || ['planted', 'manual', 'revived', 'cultivated', 'completed'].includes(session.outcome));
-    if (range !== 'today') {
-      const days = parseInt(range, 10);
-      const buckets = Core.bucketSessions(completed, days, now);
-      const interval = days === 7 ? 1 : days === 30 ? 5 : 14;
-      buckets.forEach((bucket, index) => {
-        bucket.fullLabel = bucket.key;
-        if (index % interval !== 0 && index !== buckets.length - 1) bucket.label = '';
-      });
-      return buckets;
-    }
-    const start = new Date(now); start.setHours(0, 0, 0, 0);
-    const end = new Date(start); end.setDate(start.getDate() + 1);
     const buckets = [];
-    const formatter = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
-    for (let cursor = start.getTime(); cursor < end.getTime(); cursor += 60 * 60 * 1000) {
-      const next = Math.min(end.getTime(), cursor + 60 * 60 * 1000);
-      buckets.push({
-        label: buckets.length % 6 === 0 ? new Date(cursor).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '',
-        fullLabel: `${formatter.format(new Date(cursor))}–${formatter.format(new Date(next))}`,
-        startMs: cursor, endMs: next, exp: 0, count: 0, minutes: 0,
-      });
+    const pushBucket = (start, end, label, fullLabel) => buckets.push({
+      label, fullLabel, startMs: start.getTime(), endMs: end.getTime(), exp: 0, count: 0, minutes: 0,
+    });
+
+    if (range === 'day') {
+      const start = new Date(now); start.setHours(0, 0, 0, 0);
+      for (let hour = 0; hour < 24; hour++) {
+        const a = new Date(start); a.setHours(hour);
+        const b = new Date(start); b.setHours(hour + 1);
+        pushBucket(a, b, hour % 3 === 0 ? `${hour}时` : '', `${hour}:00–${String(hour + 1).padStart(2, '0')}:00`);
+      }
+    } else if (range === 'week') {
+      const start = new Date(now); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+      const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+      for (let i = 0; i < 7; i++) {
+        const a = new Date(start); a.setDate(start.getDate() + i);
+        const b = new Date(a); b.setDate(a.getDate() + 1);
+        pushBucket(a, b, weekdays[i], a.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' }));
+      }
+    } else if (range === 'month') {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      for (let cursor = new Date(start), index = 0; cursor < end; index++) {
+        const a = new Date(cursor);
+        const b = new Date(cursor); b.setDate(cursor.getDate() + 1);
+        const day = a.getDate();
+        pushBucket(a, b, day === 1 || day % 5 === 0 || b >= end ? `${day}` : '', a.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }));
+        cursor = b;
+      }
+    } else {
+      for (let month = 0; month < 12; month++) {
+        const a = new Date(now.getFullYear(), month, 1);
+        const b = new Date(now.getFullYear(), month + 1, 1);
+        pushBucket(a, b, `${month + 1}月`, `${now.getFullYear()}年${month + 1}月`);
+      }
     }
+
     completed.forEach((session) => {
       const bucket = buckets.find((item) => session.endTime >= item.startMs && session.endTime < item.endMs);
       if (!bucket) return;
-      bucket.exp += session.exp || 0; bucket.count += 1; bucket.minutes += session.minutes || 0;
+      bucket.exp += session.exp || 0;
+      bucket.count += 1;
+      bucket.minutes += session.minutes || 0;
     });
     return buckets;
   }
 
   function renderExpChart() {
-    // 一次专注都还没有时，整块图表面板隐藏，避免新用户首屏一片空
-    if ($expChartZone) {
-      const hasAny = state.sessions.some((session) => !session.outcome || ['planted', 'manual', 'revived', 'cultivated', 'completed'].includes(session.outcome));
-      $expChartZone.style.display = hasAny ? '' : 'none';
-      if (!hasAny) return;
-    }
     const buckets = buildBuckets(expRange);
-    const total = buckets.reduce((s, b) => s + b.exp, 0);
-    const peak = Math.max(0.1, ...buckets.map(b => b.exp));
+    const total = buckets.reduce((s, b) => s + b.minutes, 0);
+    const peak = Math.max(0.1, ...buckets.map(b => b.minutes));
 
     const tableBody = document.querySelector('#exp-data-table tbody');
-    if (tableBody) tableBody.innerHTML = buckets.map((bucket) => `<tr><td>${escapeHtml(bucket.fullLabel || bucket.key || bucket.label)}</td><td>${bucket.count}</td><td>${Math.round((bucket.minutes || 0) * 10) / 10}</td><td>${Math.round(bucket.exp * 10) / 10}</td></tr>`).join('');
+    if (tableBody) tableBody.innerHTML = buckets.map((bucket) => `<tr><td>${escapeHtml(bucket.fullLabel || bucket.key || bucket.label)}</td><td>${bucket.count}</td><td>${Math.round((bucket.minutes || 0) * 10) / 10}</td></tr>`).join('');
     if (total <= 0) {
       $expSvg.style.display = 'none';
       $expEmpty.style.display = '';
       $expSummary.textContent = '';
-      $expSvg.setAttribute('aria-label', '专注经验值柱状图：本范围暂无专注记录');
+      $expSvg.setAttribute('aria-label', '专注时间柱状图：本范围暂无专注记录');
       return;
     }
     $expSvg.style.display = '';
     $expEmpty.style.display = 'none';
 
     const totalCount = buckets.reduce((s, b) => s + b.count, 0);
-    $expSummary.innerHTML = `本范围共 <strong>${total.toFixed(0)}</strong> 经验 · ${totalCount} 次专注`;
-    $expSvg.setAttribute('aria-label', `专注经验值柱状图：本范围共 ${total.toFixed(0)} 经验，${totalCount} 次专注`);
+    const totalText = total >= 60 ? `${Math.floor(total / 60)} 小时${Math.round(total % 60) ? ` ${Math.round(total % 60)} 分` : ''}` : `${Math.round(total)} 分钟`;
+    $expSummary.innerHTML = `共 <strong>${totalText}</strong> · ${totalCount} 次`;
+    $expSvg.setAttribute('aria-label', `专注时间柱状图：本范围共 ${totalText}，${totalCount} 次专注`);
 
     // 手机上固定 720 宽 viewBox 会把轴字缩到 ~4px：按容器实际宽度设（1 单位 ≈ 1px）
     const wrapW = ($expSvgWrap && $expSvgWrap.clientWidth) || 0;
@@ -2966,12 +3073,12 @@
     // bars
     buckets.forEach((b, i) => {
       const x = m.l + i * barW + (barW - barInnerW) / 2;
-      const h = (b.exp / yMax) * innerH;
+      const h = (b.minutes / yMax) * innerH;
       const y = m.t + innerH - h;
       // grad: 浅 → 深绿
-      const fill = b.exp > 0 ? 'var(--color-accent)' : 'transparent';
-      const opacity = b.exp > 0 ? (0.55 + 0.45 * (b.exp / peak)) : 0;
-      html += `<rect class="exp-bar" data-idx="${i}" x="${x}" y="${y}" width="${barInnerW}" height="${Math.max(0, h)}" fill="${fill}" opacity="${opacity}" rx="2"${b.exp > 0 ? ` tabindex="0" role="img" aria-label="${escapeHtml(b.fullLabel)}：${b.exp.toFixed(1)} 经验，${b.count} 次专注，${Math.round((b.minutes || 0) * 10) / 10} 分钟"` : ''}/>`;
+      const fill = b.minutes > 0 ? 'var(--color-accent)' : 'transparent';
+      const opacity = b.minutes > 0 ? (0.55 + 0.45 * (b.minutes / peak)) : 0;
+      html += `<rect class="exp-bar" data-idx="${i}" x="${x}" y="${y}" width="${barInnerW}" height="${Math.max(0, h)}" fill="${fill}" opacity="${opacity}" rx="2"${b.minutes > 0 ? ` tabindex="0" role="img" aria-label="${escapeHtml(b.fullLabel)}：${Math.round((b.minutes || 0) * 10) / 10} 分钟，${b.count} 次专注"` : ''}/>`;
       // label
       if (b.label) {
         const labelX = m.l + i * barW + barW / 2;
@@ -2986,8 +3093,8 @@
     function showBar(bar) {
       const idx = parseInt(bar.dataset.idx, 10);
       const bucket = buckets[idx];
-      if (!bucket || bucket.exp <= 0) { hideExpTooltip(); return; }
-      $expTooltip.innerHTML = `<strong>${escapeHtml(bucket.fullLabel)}</strong><br/>${bucket.exp.toFixed(1)} 经验 · ${bucket.count} 次 · ${Math.round((bucket.minutes || 0) * 10) / 10} 分钟`;
+      if (!bucket || bucket.minutes <= 0) { hideExpTooltip(); return; }
+      $expTooltip.innerHTML = `<strong>${escapeHtml(bucket.fullLabel)}</strong><br/>${Math.round((bucket.minutes || 0) * 10) / 10} 分钟 · ${bucket.count} 次`;
       $expTooltip.style.display = 'block';
       const barRect = bar.getBoundingClientRect();
       const wrapRect = $expSvgWrap.getBoundingClientRect();
@@ -3018,6 +3125,27 @@
       renderExpChart();
     });
   });
+  const $statisticsToggle = document.getElementById('statistics-toggle');
+  const $statisticsClose = document.getElementById('statistics-close');
+  const $forestUtilityMenu = document.querySelector('.forest-utility-menu');
+  function setStatisticsOpen(open) {
+    if (!$expChartZone || !$statisticsToggle) return;
+    $expChartZone.hidden = !open;
+    $statisticsToggle.setAttribute('aria-expanded', String(open));
+    $statisticsToggle.classList.toggle('active', open);
+    if (open && $forestUtilityMenu) $forestUtilityMenu.open = false;
+    if (open) {
+      document.querySelectorAll('.forest-panel').forEach((item) => { item.hidden = true; });
+      document.querySelectorAll('.data-toolbar button[aria-expanded]').forEach((button) => {
+        if (button !== $statisticsToggle) button.setAttribute('aria-expanded', 'false');
+      });
+      renderExpChart();
+      const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      requestAnimationFrame(() => $expChartZone.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' }));
+    }
+  }
+  $statisticsToggle?.addEventListener('click', () => setStatisticsOpen($expChartZone.hidden));
+  $statisticsClose?.addEventListener('click', () => setStatisticsOpen(false));
 
   // ============ Theme settings UI（pill 按钮组）============
   const $themeBgPills = document.getElementById('theme-bg-pills');
@@ -3101,6 +3229,32 @@
     window.addEventListener('resize', positionStrictThumb);
   }
 
+  // Botanical Editorial 工具轨：直接控制真实偏好面板，不另造一份“效果图专用”控件。
+  const $editorialSettingsBtn = document.getElementById('editorial-settings-btn');
+  const $editorialPreferences = document.getElementById('preferences-panel');
+  function syncEditorialPreferencesButton() {
+    if (!$editorialSettingsBtn || !$editorialPreferences) return;
+    $editorialSettingsBtn.setAttribute('aria-expanded', String($editorialPreferences.open));
+    $editorialSettingsBtn.classList.toggle('active', $editorialPreferences.open);
+  }
+  if ($editorialSettingsBtn && $editorialPreferences) {
+    $editorialSettingsBtn.addEventListener('click', () => {
+      if (location.hash === '#forest') {
+        location.hash = '#/';
+        applyRoute();
+        $editorialPreferences.open = true;
+        syncEditorialPreferencesButton();
+        requestAnimationFrame(positionStrictThumb);
+        return;
+      }
+      $editorialPreferences.open = !$editorialPreferences.open;
+      syncEditorialPreferencesButton();
+      if ($editorialPreferences.open) requestAnimationFrame(positionStrictThumb);
+    });
+    $editorialPreferences.addEventListener('toggle', syncEditorialPreferencesButton);
+    syncEditorialPreferencesButton();
+  }
+
   // ============ 视图路由：#/ 种树 ↔ #forest 我的森林 ============
   // DOM 节点只做 hidden 切换、绝不 innerHTML 重建，所有既有监听保持存活。
   const $viewPlant = document.getElementById('view-plant');
@@ -3112,6 +3266,8 @@
     const v = parseRoute();
     if (v === currentView) return;
     currentView = v;
+    document.body.classList.toggle('forest-gallery-active', v === 'forest');
+    if (v === 'forest' && $editorialPreferences?.open) $editorialPreferences.open = false;
     hideDetail();
     $viewPlant.hidden = v !== 'plant';
     $viewForest.hidden = v !== 'forest';
@@ -3243,7 +3399,11 @@
   function renderCompletionCard(announce) {
     if (!$completionCard || !$completionSummary) return;
     const item = state.lastCompletion;
-    if (!item) { $completionCard.hidden = true; return; }
+    if (!item) {
+      $completionCard.hidden = true;
+      $plantControlsPane?.classList.remove('completion-mode');
+      return;
+    }
     $completionSummary.replaceChildren();
     const title = document.createElement('p');
     title.innerHTML = `<strong>${escapeHtml(TREE_NAME[item.treeType] || '专注')}</strong>${item.grade ? ` · ${escapeHtml(item.grade)}` : ''} · ${item.minutes} 分钟 · ${item.exp} 经验`;
@@ -3252,12 +3412,14 @@
     context.textContent = `${item.task || '未填写任务'} · ${item.fieldName || '我的田地'} · ${ended}`;
     $completionSummary.append(title, context);
     $completionCard.hidden = false;
+    $plantControlsPane?.classList.add('completion-mode');
     $completionCard.setAttribute('aria-live', announce ? 'polite' : 'off');
     if (announce) setTimeout(() => $completionCard.setAttribute('aria-live', 'off'), 1000);
   }
   document.getElementById('completion-again')?.addEventListener('click', () => {
     state.lastCompletion = null;
     $completionCard.hidden = true;
+    $plantControlsPane?.classList.remove('completion-mode');
     queueStoreSave('dismiss-completion');
     $startBtn.focus();
   });
@@ -3265,6 +3427,7 @@
   document.getElementById('completion-dismiss')?.addEventListener('click', () => {
     state.lastCompletion = null;
     $completionCard.hidden = true;
+    $plantControlsPane?.classList.remove('completion-mode');
     queueStoreSave('dismiss-completion');
   });
 
@@ -3389,6 +3552,7 @@
     }
     state.recentDeleted = state.recentDeleted.filter((item) => item.id !== id);
     state.syncTombstones = state.syncTombstones.filter((item) => !(item.entityType === entry.entityType && item.entityId === entry.entityId));
+    migrateFieldsAndTrees();
     queueStoreSave('restore-trash');
     renderFieldTabs(); renderTargetFieldSelect(); renderStats(); renderTrash();
   }
@@ -3445,6 +3609,7 @@
     if (!imported.ok) { status.textContent = `导入失败：${imported.reason || '无法写入'}`; return; }
     if (imported.preImportBackup) downloadText(imported.preImportBackup.json, 'application/json;charset=utf-8', `forest-before-import-${new Date().toISOString().slice(0, 10)}.json`);
     applyStoreSnapshot(imported.snapshot);
+    migrateFieldsAndTrees();
     renderFieldTabs(); renderTargetFieldSelect(); renderStats(); renderHistoryFilters(); renderHistory(); renderTrash();
     status.textContent = '导入完成；导入前备份已同时下载。';
   });
@@ -3458,8 +3623,73 @@
       : '游客模式：森林与任务文字只保存在这台设备。建议定期导出 JSON。';
   }
 
+  // 本地建模验收夹具：只在 localhost 且显式传入 ?forestDemo=40/100 时生效。
+  // 它走与真实种树完全相同的分配、透视、遮挡和渲染链路，但不写回存档。
+  function applyLocalForestModelDemo() {
+    if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return false;
+    const raw = new URLSearchParams(location.search).get('forestDemo');
+    const count = Number.parseInt(raw || '', 10);
+    if (!Number.isFinite(count) || count < 1 || count > 120) return false;
+
+    const fieldId = 'field-model-demo';
+    const baseTime = Date.UTC(2026, 7, 30, 16, 0, 0);
+    const types = ['oak', 'sakura', 'palm', 'cactus'];
+    const durations = [30, 50, 90, 180];
+    const density = Layout.densityProfile(count);
+    const viewport = { width: 1672, height: 941 };
+    const occupied = [];
+    const trees = [];
+
+    for (let index = 0; index < count; index++) {
+      const durationMinutes = durations[index % durations.length];
+      const tree = {
+        id: `model-demo-${count}-${index + 1}`,
+        type: types[index % types.length],
+        task: `三维田地验收 ${index + 1}`,
+        fieldId,
+        durationMinutes,
+        startTime: baseTime - (count - index) * 3600000,
+        endTime: baseTime - (count - index) * 3600000 + durationMinutes * 60000,
+        updatedAt: baseTime,
+        success: true,
+      };
+      const layoutTree = Object.assign({}, tree, {
+        tier: effectiveTier(tree),
+        densityScale: density.footprintScale,
+        assetWidth: density.assetBase,
+        assetHeight: density.assetBase,
+      });
+      tree.position3d = Layout.allocatePosition(layoutTree, occupied, { scene: 'forest', viewport });
+      occupied.push(Object.assign({}, layoutTree, { position3d: tree.position3d }));
+      trees.push(tree);
+    }
+
+    state.fields = [{ id: fieldId, name: '三维田地验收', createdAt: baseTime, updatedAt: baseTime }];
+    state.activeFieldId = fieldId;
+    state.trees = trees;
+    state.sessions = trees.map((tree) => Core.makeSessionRecord({
+      id: `model-session-${tree.id}`,
+      sessionId: `model-session-${tree.id}`,
+      treeId: tree.id,
+      fieldId,
+      task: tree.task,
+      minutes: tree.durationMinutes,
+      exp: tree.durationMinutes,
+      startTime: tree.startTime,
+      endTime: tree.endTime,
+      treeType: tree.type,
+      outcome: 'planted',
+      updatedAt: tree.endTime,
+    }));
+    state.modelDemoCount = count;
+    document.documentElement.dataset.forestModelDemo = String(count);
+    return true;
+  }
+
   ['history', 'trash', 'data', 'rules'].forEach((name) => {
     document.getElementById(`${name}-toggle`)?.addEventListener('click', () => {
+      setStatisticsOpen(false);
+      if ($forestUtilityMenu) $forestUtilityMenu.open = false;
       const panel = document.getElementById(`${name}-panel`);
       const open = panel.hidden;
       document.querySelectorAll('.forest-panel').forEach((item) => { item.hidden = true; });
@@ -3474,6 +3704,9 @@
     const panel = document.getElementById(button.dataset.closePanel); if (panel) panel.hidden = true;
     const toggle = document.querySelector(`[aria-controls="${button.dataset.closePanel}"]`); if (toggle) toggle.setAttribute('aria-expanded', 'false');
   }));
+  document.addEventListener('click', (event) => {
+    if ($forestUtilityMenu?.open && !$forestUtilityMenu.contains(event.target)) $forestUtilityMenu.open = false;
+  });
 
   // ============ Init ============
   hydrateStore();
@@ -3485,6 +3718,7 @@
   state.strict = loadStrict();
   migrateFieldsAndTrees();
   migrateSessions();   // 首次从现有成活树回填一份不可变专注流水
+  applyLocalForestModelDemo();
   // 恢复常用偏好（树种/时长/番茄开关/休息分钟）；进行中会话稍后由 restoreMeta 覆盖
   (function applyPrefs() {
     const p = loadPrefs();

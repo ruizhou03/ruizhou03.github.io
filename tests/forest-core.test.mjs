@@ -177,3 +177,24 @@ test('mobile projection never mutates canonical desktop coordinates', () => {
   assert.deepEqual(projected, { cell: 29, displayRow: 7, displayColumn: 1, offsetX: 3, offsetY: -2 });
   assert.deepEqual(legacy, { row: 2, col: 5, offsetX: 3, offsetY: -2 });
 });
+
+test('legacy multi-field data consolidates into one field without losing or rewriting trees', () => {
+  const fields = [
+    { id: 'fld-a', name: '第一块田' },
+    { id: 'fld-b', name: '第二块田' },
+  ];
+  const trees = [
+    { id: 'tr-a', fieldId: 'fld-a', task: '写论文', position: { cell: 0 } },
+    { id: 'tr-b', fieldId: 'fld-b', task: '读论文', position: { cell: 0 }, position3d: { u: 0.3, v: 0.4 } },
+  ];
+  const result = Core.consolidateSingleField(fields, trees, { id: 'fallback', name: '我的田地' });
+  assert.deepEqual(result.fields.map((field) => field.id), ['fld-a']);
+  assert.deepEqual(result.retiredFieldIds, ['fld-b']);
+  assert.deepEqual(result.trees.map((tree) => tree.id), ['tr-a', 'tr-b']);
+  assert.equal(result.trees[0].position.cell, 0);
+  assert.equal(result.trees[1].fieldId, 'fld-a');
+  assert.equal('position' in result.trees[1], false);
+  assert.equal('position3d' in result.trees[1], false);
+  assert.equal(trees[1].fieldId, 'fld-b');
+  assert.deepEqual(trees[1].position, { cell: 0 });
+});

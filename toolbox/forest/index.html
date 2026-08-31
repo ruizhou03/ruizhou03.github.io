@@ -18,6 +18,8 @@ body_class: forest-page
 <template id="forest-plant-a-assets">
   <img src="/assets/images/forest/greenhouse-focus-wide-v4.webp" alt=""><img src="/assets/images/forest/greenhouse-focus-portrait-v4.webp" alt=""><img src="/assets/images/forest/greenhouse-square-v4.webp" alt="">
   <img src="/assets/images/forest/firefly-focus-wide-v4.webp" alt=""><img src="/assets/images/forest/firefly-focus-portrait-v4.webp" alt="">
+  <img src="/assets/images/forest/greenhouse-forest-bed-v1.webp" alt="">
+  <img src="/assets/images/forest/plants-b/oak-v1.webp" alt=""><img src="/assets/images/forest/plants-b/sakura-v1.webp" alt=""><img src="/assets/images/forest/plants-b/palm-v1.webp" alt=""><img src="/assets/images/forest/plants-b/cactus-v1.webp" alt="">
   <img src="/assets/images/forest/plants-a/oak-1.webp" alt=""><img src="/assets/images/forest/plants-a/oak-2.webp" alt=""><img src="/assets/images/forest/plants-a/oak-3.webp" alt=""><img src="/assets/images/forest/plants-a/oak-4.webp" alt="">
   <img src="/assets/images/forest/plants-a/sakura-1.webp" alt=""><img src="/assets/images/forest/plants-a/sakura-2.webp" alt=""><img src="/assets/images/forest/plants-a/sakura-3.webp" alt=""><img src="/assets/images/forest/plants-a/sakura-4.webp" alt="">
   <img src="/assets/images/forest/plants-a/pine-1.webp" alt=""><img src="/assets/images/forest/plants-a/pine-2.webp" alt=""><img src="/assets/images/forest/plants-a/pine-3.webp" alt=""><img src="/assets/images/forest/plants-a/pine-4.webp" alt="">
@@ -32,9 +34,11 @@ body_class: forest-page
   </header>
 
   <!-- ========== 页面导航：种树 / 我的森林（桌面=分段胶囊，手机=底部 tab 栏）========== -->
-  <nav class="ft-nav" id="ft-nav" aria-label="页面切换">
+  <nav class="ft-nav" id="ft-nav" aria-label="种树工具导航">
     <a href="#/" class="ft-nav-tab active" data-view="plant"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11"/><path d="M12 13c0-4.5-3-7-7-7 0 4 3 7 7 7Z"/><path d="M12 11c0-4 3-6.5 7-6.5 0 3.5-3 6.5-7 6.5Z"/></svg><span>种树</span></a>
-    <a href="#forest" class="ft-nav-tab" data-view="forest"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="10.5" r="3.8"/><path d="M7 14.3V19"/><circle cx="16.5" cy="9" r="4.6"/><path d="M16.5 13.6V19"/><path d="M3.5 21h17"/></svg><span>我的森林</span></a>
+    <a href="#forest" class="ft-nav-tab" data-view="forest" aria-label="我的森林" title="我的森林"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="10.5" r="3.8"/><path d="M7 14.3V19"/><circle cx="16.5" cy="9" r="4.6"/><path d="M16.5 13.6V19"/><path d="M3.5 21h17"/></svg><span>森林</span></a>
+    <button type="button" class="ft-rail-btn" data-theme-btn onclick="toggleTheme()" aria-label="切换明暗主题" title="切换明暗主题"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg><span>明暗</span></button>
+    <button type="button" class="ft-rail-btn" id="editorial-settings-btn" aria-controls="preferences-panel" aria-expanded="false" aria-label="全局偏好" title="全局偏好"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.09A1.7 1.7 0 0 0 8.95 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3.07 14H3v-4h.09A1.7 1.7 0 0 0 4.6 8.95a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3.07V3h4v.09A1.7 1.7 0 0 0 15.05 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06-.06A1.7 1.7 0 0 0 19.4 9 1.7 1.7 0 0 0 20.93 10H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg><span>全局</span></button>
   </nav>
 
   <!-- ========== 视图：种树 ========== -->
@@ -60,10 +64,10 @@ body_class: forest-page
         <label for="task-input">这次做什么</label>
         <input type="text" id="task-input" placeholder="例如：写论文初稿（可选）" maxlength="60" autocomplete="off" />
       </div>
-      <div class="setting-row target-field-row">
+      <div class="setting-row target-field-row" hidden aria-hidden="true">
         <label for="target-field-select">种到</label>
-        <select id="target-field-select" aria-describedby="target-field-help"></select>
-        <span id="target-field-help" class="field-help">开始后固定，不随其他标签切田改变</span>
+        <select id="target-field-select"></select>
+        <span id="target-field-help" class="field-help" hidden aria-hidden="true"></span>
       </div>
     </div>
 
@@ -84,46 +88,40 @@ body_class: forest-page
       <div class="field-error" id="custom-min-error" role="status" aria-live="polite"></div>
     </fieldset>
 
-    <div class="session-preview" id="session-preview" aria-live="polite"></div>
+    <div class="session-preview" id="session-preview" hidden aria-hidden="true"></div>
 
-    <!-- 更多设置：折叠收起，保持首屏清爽 -->
-    <details class="more-settings">
-      <summary><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>树种与专注偏好</summary>
+    <!-- 本次种树的配置始终留在主面板；右下角齿轮只负责全局偏好。 -->
+    <div class="current-session-options">
+      <div class="setting-row setting-stack">
+        <label>树种</label>
+        <div class="tree-types" id="tree-types" role="group" aria-label="树种">
+          <button type="button" data-tree="oak" class="active"><span class="opt-ico">[[zi:tree]]</span><span class="opt-cap">橡树</span></button>
+          <button type="button" data-tree="pine"><span class="opt-ico">[[zi:tree]]</span><span class="opt-cap">松树</span></button>
+          <button type="button" data-tree="sakura"><span class="opt-ico">[[zi:sparkle]]</span><span class="opt-cap">樱花</span></button>
+          <button type="button" data-tree="palm"><span class="opt-ico">[[zi:tree]]</span><span class="opt-cap">椰子</span></button>
+          <button type="button" data-tree="cactus"><span class="opt-ico">[[zi:sprout]]</span><span class="opt-cap">仙人掌</span></button>
+        </div>
+      </div>
+      <div class="setting-row" hidden aria-hidden="true">
+        <label for="pomodoro-on">专注节奏</label>
+        <label class="pomodoro-toggle"><input type="checkbox" id="pomodoro-on" /><span>完成后安排休息</span></label>
+      </div>
+      <div class="setting-row" id="break-row" hidden>
+        <label for="break-min">休息时长</label>
+        <span class="break-wrap"><input type="number" id="break-min" min="1" max="60" value="5" /><span class="unit">分钟</span></span>
+      </div>
+      <div class="setting-row cycle-options" id="cycle-options" hidden>
+        <span class="setting-label">自动衔接</span>
+        <label class="pomodoro-toggle"><input type="checkbox" id="auto-start-break" checked /><span>自动开始休息</span></label>
+        <label class="pomodoro-toggle"><input type="checkbox" id="auto-start-focus" /><span>自动开始下一次专注</span></label>
+      </div>
+    </div>
+
+    <details class="more-settings" id="preferences-panel">
+      <summary><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2.1 2.1M16.9 16.9L19 19M19 5l-2.1 2.1M7.1 16.9L5 19"/></svg>全局偏好</summary>
       <div class="more-settings-body">
         <div class="settings-group">
-          <div class="settings-group-title">本次专注</div>
-          <div class="setting-row setting-stack">
-            <label>树种</label>
-            <div class="tree-types" id="tree-types" role="group" aria-label="树种">
-              <button type="button" data-tree="oak" class="active"><span class="opt-ico">[[zi:tree]]</span><span class="opt-cap">橡树</span></button>
-              <button type="button" data-tree="pine"><span class="opt-ico">[[zi:tree]]</span><span class="opt-cap">松树</span></button>
-              <button type="button" data-tree="sakura"><span class="opt-ico">[[zi:sparkle]]</span><span class="opt-cap">樱花</span></button>
-              <button type="button" data-tree="palm"><span class="opt-ico">[[zi:tree]]</span><span class="opt-cap">椰子</span></button>
-              <button type="button" data-tree="cactus"><span class="opt-ico">[[zi:sprout]]</span><span class="opt-cap">仙人掌</span></button>
-            </div>
-          </div>
-          <div class="setting-row">
-            <label for="pomodoro-on">专注节奏</label>
-            <label class="pomodoro-toggle">
-              <input type="checkbox" id="pomodoro-on" />
-              <span>完成后安排休息</span>
-            </label>
-          </div>
-          <div class="setting-row" id="break-row" hidden>
-            <label for="break-min">休息时长</label>
-            <span class="break-wrap">
-              <input type="number" id="break-min" min="1" max="60" value="5" />
-              <span class="unit">分钟</span>
-            </span>
-          </div>
-          <div class="setting-row cycle-options" id="cycle-options" hidden>
-            <span class="setting-label">自动衔接</span>
-            <label class="pomodoro-toggle"><input type="checkbox" id="auto-start-break" checked /> <span>自动开始休息</span></label>
-            <label class="pomodoro-toggle"><input type="checkbox" id="auto-start-focus" /> <span>自动开始下一次专注</span></label>
-          </div>
-        </div>
-        <div class="settings-group">
-          <div class="settings-group-title">偏好</div>
+          <div class="settings-group-title">全局偏好</div>
           <div class="setting-row">
             <label>离开页面</label>
             <div class="seg-toggle" id="strict-tabs" role="group" aria-label="离开页面时">
@@ -139,9 +137,9 @@ body_class: forest-page
               <button type="button" data-value="default"><span class="theme-swatch" data-scene="default"></span><span class="opt-cap">晨光温室</span></button>
               <button type="button" data-value="night"><span class="theme-swatch" data-scene="night"></span><span class="opt-cap">萤火夜林</span></button>
             </div>
-            <p class="setting-help theme-choice-help" id="theme-choice-help">亮色显示晨光温室，暗色显示萤火夜林。</p>
+            <p class="setting-help theme-choice-help" id="theme-choice-help" hidden aria-hidden="true"></p>
           </div>
-          <div class="setting-row setting-stack feedback-settings">
+          <div class="setting-row setting-stack feedback-settings editorial-advanced-row">
             <label>设备反馈</label>
             <div class="feedback-options">
               <label><input type="checkbox" id="wake-lock-on" checked /> 专注时保持亮屏</label>
@@ -151,7 +149,7 @@ body_class: forest-page
             </div>
             <p class="setting-help">需浏览器支持；网页不能保证像系统闹钟一样唤醒设备。</p>
           </div>
-          <div class="setting-row setting-stack">
+          <div class="setting-row setting-stack editorial-advanced-row">
             <label>计时显示</label>
             <div class="pill-group" id="theme-timer-pills" role="group" aria-label="计时显示">
               <button type="button" data-value="countdown"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.2h11"/><path d="M6.5 20.8h11"/><path d="M8 3.2c0 4.2 4 5.4 4 8.8 0 3.4-4 4.6-4 8.8"/><path d="M16 3.2c0 4.2-4 5.4-4 8.8 0 3.4 4 4.6 4 8.8"/><path d="M9 19.6c.9-2.2 5.1-2.2 6 0z" fill="currentColor" stroke="none"/><circle cx="12" cy="9.3" r="0.85" fill="currentColor" stroke="none"/></svg><span class="opt-cap">倒计时</span></button>
@@ -171,7 +169,7 @@ body_class: forest-page
     <!-- 开始：大按钮，卡片内，首屏可见 -->
     <div class="action-row">
       <button type="button" class="action-btn" id="start-btn">开始种树</button>
-      <div class="focus-warning" id="focus-warning"></div>
+      <div class="focus-warning" id="focus-warning" hidden aria-hidden="true"></div>
     </div>
     <section class="completion-card" id="completion-card" aria-labelledby="completion-title" hidden>
       <h2 id="completion-title">刚刚完成</h2>
@@ -189,36 +187,34 @@ body_class: forest-page
   <!-- ========== 视图：我的森林（统计 + 田地 + 经验图表）========== -->
   <section class="ft-view" id="view-forest" hidden>
   <div class="stats-zone">
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-num" id="stat-today">0</div>
-        <div class="stat-label">今日完成</div>
+    <div class="forest-overview">
+      <div class="forest-title">
+        <span><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-3-2.2-5-5.2-5-.3 2.9 1.9 5 5.2 5z"/><path d="M12 13c0-2.6 2-4.5 4.8-4.5.3 2.6-1.7 4.5-4.8 4.5z"/></svg>我的森林</span>
+        <small id="forest-meta"></small>
       </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-week">0</div>
-        <div class="stat-label">本周完成</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-total-min">0</div>
-        <div class="stat-label">累计专注分钟</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">今日</div><div class="stat-num" id="stat-today">0</div></div>
+        <div class="stat-card"><div class="stat-label">本周</div><div class="stat-num" id="stat-week">0</div></div>
+        <div class="stat-card"><div class="stat-label">累计</div><div class="stat-num" id="stat-total-min">0</div></div>
       </div>
     </div>
-
-    <div class="forest-title">
-      <span><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-3-2.2-5-5.2-5-.3 2.9 1.9 5 5.2 5z"/><path d="M12 13c0-2.6 2-4.5 4.8-4.5.3 2.6-1.7 4.5-4.8 4.5z"/></svg>我的田地</span>
-      <small id="forest-meta"></small>
-    </div>
-    <div class="data-toolbar" aria-label="森林数据与帮助">
-      <button type="button" id="history-toggle" aria-expanded="false" aria-controls="history-panel">专注记录</button>
-      <button type="button" id="trash-toggle" aria-expanded="false" aria-controls="trash-panel">最近删除 <span id="trash-count">0</span></button>
-      <button type="button" id="data-toggle" aria-expanded="false" aria-controls="data-panel">数据与同步</button>
-      <button type="button" id="rules-toggle" aria-expanded="false" aria-controls="rules-panel">规则与数据说明</button>
+    <div class="data-toolbar" aria-label="森林查看与管理">
+      <button type="button" class="forest-primary-tool" id="statistics-toggle" aria-expanded="false" aria-controls="exp-chart-zone"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 19V12M12 19V5M19 19V9"/><path d="M3 19.5h18"/></svg><span>统计</span></button>
+      <button type="button" class="forest-primary-tool" id="history-toggle" aria-expanded="false" aria-controls="history-panel"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5v5l3 2"/></svg><span>记录</span></button>
+      <details class="forest-utility-menu">
+        <summary aria-label="更多森林选项" title="更多森林选项">•••</summary>
+        <div class="forest-utility-popover">
+          <button type="button" id="trash-toggle" aria-expanded="false" aria-controls="trash-panel">回收站 <span id="trash-count">0</span></button>
+          <button type="button" id="data-toggle" aria-expanded="false" aria-controls="data-panel">数据与备份</button>
+          <button type="button" id="rules-toggle" aria-expanded="false" aria-controls="rules-panel" hidden>规则</button>
+        </div>
+      </details>
     </div>
     <section class="forest-panel history-panel" id="history-panel" hidden aria-labelledby="history-title">
       <div class="panel-heading"><h2 id="history-title">专注记录</h2><button type="button" class="panel-close" data-close-panel="history-panel">关闭</button></div>
       <div class="history-filters">
         <label>任务 <input type="search" id="history-task-filter" placeholder="搜索任务" /></label>
-        <label>田块 <select id="history-field-filter"><option value="">全部田块</option></select></label>
+        <label class="history-field-control" hidden aria-hidden="true">田块 <select id="history-field-filter"><option value="">全部田块</option></select></label>
         <label>树种 <select id="history-tree-filter"><option value="">全部树种</option></select></label>
       </div>
       <ol class="history-list" id="history-list"></ol>
@@ -237,6 +233,7 @@ body_class: forest-page
         <label class="import-data-label">选择备份文件<input type="file" id="import-data-input" accept="application/json,.json" /></label>
       </div>
       <div id="import-preview" role="status" aria-live="polite"></div>
+      <div class="reset-row"><button type="button" id="reset-btn">清空所有数据</button></div>
     </section>
     <section class="forest-panel rules-panel" id="rules-panel" hidden aria-labelledby="rules-title">
       <div class="panel-heading"><h2 id="rules-title">规则与数据说明</h2><button type="button" class="panel-close" data-close-panel="rules-panel">关闭</button></div>
@@ -247,56 +244,63 @@ body_class: forest-page
         <li>建议定期导出 JSON；导入前会显示差异并自动保留导入前备份。</li>
       </ul>
     </section>
-    <div class="field-tabs" id="field-tabs">
+    <div class="field-tabs" id="field-tabs" hidden aria-hidden="true">
       <!-- JS 填充 -->
     </div>
-    <div class="field-toolbar">
-      <button type="button" id="edit-mode-btn">整理</button>
-      <button type="button" id="rename-field-btn">重命名</button>
-      <button type="button" class="danger" id="delete-field-btn">删除此田</button>
-      <button type="button" id="merge-btn" style="display:none;">合并选中</button>
-      <span class="spacer"></span>
-      <span class="field-hint" id="field-hint">点击查看详情 · 拖动挪位置</span>
-    </div>
-    <div class="field" id="field">
-      <div class="field-cell-grid"></div>
-      <!-- 树由 JS 动态渲染 -->
-    </div>
-    <div class="empty-forest" id="empty-forest" style="display: none;">
-      还没有树。完成一次专注，这里会种下第一棵。
+    <div class="forest-field-shell">
+      <div class="field-toolbar">
+        <label class="forest-sort-control" for="forest-sort-select"><span>排列</span>
+          <select id="forest-sort-select">
+            <option value="manual">自由排列</option>
+            <option value="newest">种植：新 → 旧</option>
+            <option value="oldest">种植：旧 → 新</option>
+            <option value="duration-desc">专注：长 → 短</option>
+            <option value="duration-asc">专注：短 → 长</option>
+          </select>
+        </label>
+        <span class="spacer"></span>
+        <button type="button" id="edit-mode-btn">整理树木</button>
+        <button type="button" id="rename-field-btn" hidden aria-hidden="true">重命名</button>
+        <button type="button" class="danger" id="delete-field-btn" hidden aria-hidden="true">删除此田</button>
+        <button type="button" id="merge-btn" style="display:none;">合并选中</button>
+        <span class="field-hint" id="field-hint" hidden aria-hidden="true"></span>
+      </div>
+      <div class="field" id="field">
+        <div class="field-cell-grid"></div>
+        <!-- 树由 JS 动态渲染 -->
+        <div class="empty-forest" id="empty-forest" style="display: none;">这里会长出你的第一棵树</div>
+      </div>
     </div>
 
     <div class="tree-detail" id="tree-detail">
       <!-- 详情内容由 JS 动态填充 -->
     </div>
 
-    <div class="exp-chart-zone" id="exp-chart-zone">
+    <div class="exp-chart-zone" id="exp-chart-zone" hidden>
       <div class="exp-chart-header">
-        <span class="title"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="6" y="11" width="3" height="6" rx="0.6"/><rect x="10.5" y="7" width="3" height="10" rx="0.6"/><rect x="15" y="13.5" width="3" height="3.5" rx="0.6"/></svg>专注经验值</span>
+        <span class="title"><svg class="ft-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="6" y="11" width="3" height="6" rx="0.6"/><rect x="10.5" y="7" width="3" height="10" rx="0.6"/><rect x="15" y="13.5" width="3" height="3.5" rx="0.6"/></svg>专注时间</span>
         <span class="summary" id="exp-summary">—</span>
+        <button type="button" class="statistics-close" id="statistics-close" aria-label="关闭统计">关闭</button>
       </div>
       <div class="exp-range-tabs" id="exp-range-tabs">
-        <button type="button" data-range="today">今日</button>
-        <button type="button" data-range="7" class="active">最近 7 天</button>
-        <button type="button" data-range="30">最近 30 天</button>
-        <button type="button" data-range="90">最近 90 天</button>
+        <button type="button" data-range="day">日</button>
+        <button type="button" data-range="week" class="active">周</button>
+        <button type="button" data-range="month">月</button>
+        <button type="button" data-range="year">年</button>
       </div>
       <div class="exp-chart-svg-wrap" id="exp-chart-svg-wrap">
-        <svg class="exp-chart-svg" id="exp-chart-svg" viewBox="0 0 720 200" preserveAspectRatio="none" role="img" aria-label="专注经验值柱状图"></svg>
+        <svg class="exp-chart-svg" id="exp-chart-svg" viewBox="0 0 720 200" preserveAspectRatio="none" role="img" aria-label="专注时间柱状图"></svg>
         <div class="exp-bar-tooltip" id="exp-bar-tooltip"></div>
       </div>
       <div class="exp-empty" id="exp-empty" style="display: none;">
         这段时间还没有专注记录。
       </div>
-      <details class="exp-data-details">
+      <details class="exp-data-details" hidden aria-hidden="true">
         <summary>查看图表数据表</summary>
-        <div class="exp-data-table-wrap"><table id="exp-data-table"><caption>专注经验值明细</caption><thead><tr><th>日期</th><th>完成次数</th><th>分钟</th><th>经验</th></tr></thead><tbody></tbody></table></div>
+        <div class="exp-data-table-wrap"><table id="exp-data-table"><caption>专注时间明细</caption><thead><tr><th>时段</th><th>次数</th><th>分钟</th></tr></thead><tbody></tbody></table></div>
       </details>
     </div>
 
-    <div class="reset-row">
-      <button type="button" id="reset-btn">清空所有数据</button>
-    </div>
   </div>
   </section>
 </div>
@@ -324,5 +328,6 @@ body_class: forest-page
 
 <script src="/assets/js/forest/core.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/forest/storage.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/forest/layout.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/forest/scenes.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/forest/app.js?v={{ site.time | date: '%s' }}"></script>

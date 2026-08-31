@@ -2646,6 +2646,8 @@ return deco_cactus;
     return progress < .30 ? 1 : progress < .55 ? 2 : progress < .82 ? 3 : 4;
   }
   function _plantAAsset(type, stage) { return `/assets/images/forest/plants-a/${type}-${stage}.webp`; }
+  const _PLANT_B_TYPES = new Set(['oak','sakura','palm','cactus']);
+  function _plantBAsset(type) { return `/assets/images/forest/plants-b/${type}-v1.webp`; }
   function _plantAScale(progress, stage) {
     const ranges=[[.22,.30],[.30,.55],[.55,.82],[.82,1]];
     const [start,end]=ranges[stage-1];
@@ -2694,6 +2696,12 @@ return deco_cactus;
         <circle cx="42" cy="64" r="1.5" fill="#7a6248"/>
         <circle cx="57" cy="59" r="1.5" fill="#7a6248"/>
       </svg>`;
+    }
+
+    if (_PLANT_B_TYPES.has(type)) {
+      const _sv=(typeof value === 'number' && value > 0) ? value : ((tier || 1)*37+11);
+      const swd=(6.4+((_sv*7)%30)/30*1.8).toFixed(1), swdl=((_sv*.17)%6).toFixed(1);
+      return `<svg class="tree-svg plant-b-tree" viewBox="0 0 100 100"><g class="tree-sway" style="animation-duration:${swd}s;animation-delay:-${swdl}s"><image class="plant-b-image" href="${_plantBAsset(type)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMax meet"/></g></svg>`;
     }
 
     if (_PLANT_A_TYPES.has(type)) {

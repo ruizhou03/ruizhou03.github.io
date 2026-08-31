@@ -12,6 +12,7 @@ test('primary flow exposes task, field, valid duration, result preview, and comp
   }
   assert.match(html, /<label for="custom-min">自定义时长<\/label>/);
   assert.match(html, /<label for="target-field-select">种到<\/label>/);
+  assert.match(html, /class="setting-row target-field-row" hidden/);
   assert.match(html, /aria-describedby="custom-min-unit custom-min-error"/);
   assert.match(app, /Core\.validateMinutes/);
   assert.match(app, /\$customMin\.value\.trim\(\) !== ''[\s\S]*\$durationTabs\.forEach\(b => b\.classList\.remove\('active'\)\)/);
@@ -33,6 +34,58 @@ test('Forest data, history, trash, accessible chart table, and help are real sur
   assert.match(app, /forestStore\.previewImport/);
   assert.match(app, /moveToTrash/);
   assert.match(app, /renderHistory/);
+});
+
+test('forest gallery is field-first with calendar statistics, sorting, and useful tree hover metadata', () => {
+  for (const id of ['field', 'forest-sort-select', 'statistics-toggle', 'exp-chart-zone']) {
+    assert.match(html, new RegExp(`id=["']${id}["']`));
+  }
+  for (const range of ['day', 'week', 'month', 'year']) {
+    assert.match(html, new RegExp(`data-range=["']${range}["']`));
+  }
+  for (const sort of ['manual', 'newest', 'oldest', 'duration-desc', 'duration-asc']) {
+    assert.match(html, new RegExp(`value=["']${sort}["']`));
+  }
+  assert.match(app, /let forestSort = 'manual'/);
+  assert.match(app, /forestSort === 'newest' \|\| forestSort === 'oldest'/);
+  assert.match(app, /taskLabel[\s\S]*plantedAt[\s\S]*focusMinutes/);
+  assert.match(app, /range === 'day'[\s\S]*range === 'week'[\s\S]*range === 'month'/);
+  assert.match(app, /month < 12/);
+  assert.match(app, /bucket\.minutes/);
+  assert.match(css, /Forest field-first information hierarchy/);
+  assert.match(css, /\.field > \.empty-forest/);
+});
+
+test('single-tree growth and forest rendering share the calibrated 3d layout engine', () => {
+  assert.match(html, /assets\/js\/forest\/layout\.js/);
+  assert.match(app, /Layout\.projectToViewport\(scene, SINGLE_TREE_WORLD/);
+  assert.match(app, /Layout\.growthScale\(progress\)/);
+  assert.match(app, /Layout\.layoutTrees\(layoutInput/);
+  assert.match(app, /Layout\.inverseFromViewport\('forest'/);
+  assert.match(app, /Layout\.rootClearance\([\s\S]*'forest'\)/);
+  assert.match(app, /tree\.position3d = current\.previewPosition/);
+  assert.match(app, /dataset\.worldX/);
+  assert.match(app, /dataset\.worldY/);
+  assert.match(app, /dataset\.worldZ/);
+  assert.doesNotMatch(app, /function snapTreeToCell/);
+  assert.doesNotMatch(app, /function snapColRow/);
+  assert.match(css, /Calibrated 3D ground-plane projection/);
+  assert.match(css, /layout-3d-tree/);
+  assert.match(css, /layout-3d-tree > \.tree-anim[\s\S]*position: absolute !important/);
+  assert.match(css, /translate\(-50%, -91\.5%\)/);
+  assert.match(css, /@media \(max-width: 700px\)[\s\S]*aspect-ratio: 1672 \/ 941/);
+});
+
+test('single-field product hides field selection and safely consolidates legacy fields', () => {
+  assert.match(html, /id="field-tabs" hidden/);
+  assert.match(html, /id="rename-field-btn" hidden/);
+  assert.match(html, /id="delete-field-btn" hidden/);
+  assert.match(app, /Core\.consolidateSingleField\(state\.fields, state\.trees, fallback\)/);
+  assert.match(app, /consolidated\.retiredFieldIds/);
+  assert.match(app, /state\.fields = consolidated\.fields/);
+  assert.match(app, /addSyncTombstone\('field', fieldId/);
+  assert.match(css, /Single-field forest atelier/);
+  assert.match(css, /target-field-row\[hidden\]/);
 });
 
 test('approved logic regressions are absent from the coordinator', () => {
@@ -87,10 +140,6 @@ test('signature visual system follows site light and dark mode with an explicit 
   assert.match(app, /buildTreeSvg\(button\.dataset\.tree, 0\.68, 50, true, true\)/);
   assert.match(css, /\.more-settings\[open\] \{[\s\S]*position: absolute/);
   assert.match(css, /@keyframes forestFocusDrift/);
-  assert.match(css, /visual-day \.plant-card \.stage > #tree-container \{ bottom: 18%; \}/);
-  assert.match(css, /visual-night \.plant-card \.stage > #tree-container \{ bottom: 19%; \}/);
-  assert.match(css, /@media \(min-width: 701px\)[\s\S]*visual-day \.plant-card \.stage > #tree-container \{ bottom: 18%; \}/);
-  assert.match(css, /@media \(min-width: 701px\)[\s\S]*visual-night \.plant-card \.stage > #tree-container \{ bottom: 19%; \}/);
   assert.doesNotMatch(css, /root-occlusion/);
   assert.doesNotMatch(app, /root-occlusion/);
   assert.doesNotMatch(css, /overlay-tree-container\.overlay-tree-zone::after/);

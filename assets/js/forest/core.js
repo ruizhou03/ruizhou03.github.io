@@ -614,6 +614,34 @@
     };
   }
 
+  function consolidateSingleField(fields, trees, fallbackField) {
+    const sourceFields = Array.isArray(fields) ? fields : [];
+    const sourceTrees = Array.isArray(trees) ? trees : [];
+    const fallback = fallbackField && fallbackField.id
+      ? copy(fallbackField)
+      : { id: stableId('fld', ['single-field']), name: '我的田地', createdAt: new Date(0).toISOString() };
+    const primary = copy(sourceFields[0] || fallback);
+    const retiredFieldIds = sourceFields.slice(1).map((field) => String(field.id || '')).filter(Boolean);
+    let treesChanged = false;
+    const nextTrees = sourceTrees.map((tree) => {
+      if (tree && tree.fieldId === primary.id) return tree;
+      const moved = copy(tree || {});
+      moved.fieldId = primary.id;
+      delete moved.position;
+      delete moved.position3d;
+      treesChanged = true;
+      return moved;
+    });
+    return {
+      fields: [primary],
+      trees: nextTrees,
+      activeFieldId: primary.id,
+      retiredFieldIds,
+      fieldsChanged: sourceFields.length !== 1 || !sourceFields[0] || sourceFields[0].id !== primary.id,
+      treesChanged,
+    };
+  }
+
   return Object.freeze({
     SCHEMA_VERSION,
     STRICT_AWAY_LIMIT_MS,
@@ -654,6 +682,7 @@
     leaseMatches,
     canonicalPosition,
     projectPosition,
+    consolidateSingleField,
     randomId,
     stableSerialize,
     stableHash,

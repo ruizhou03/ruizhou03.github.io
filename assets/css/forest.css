@@ -2089,3 +2089,926 @@ body.forest-page[data-forest-visual="night"] {
 @keyframes forestHomeBreath { from { transform: scale(1.004) translate(-.12%, .05%); } to { transform: scale(1.014) translate(.16%, -.1%); } }
 @keyframes forestFocusDrift { from { transform: scale(1.006) translate(-.12%, .08%); } to { transform: scale(1.018) translate(.18%, -.12%); } }
 @keyframes forestLightBreathe { from { opacity: .72; } to { opacity: 1; } }
+
+/* ========================================================================== */
+/* Botanical Editorial — approved visual baseline, 2026-08-27                 */
+/* The rendered HTML is the review artifact; these rules are not a mock skin. */
+/* ========================================================================== */
+
+body.forest-page {
+  --editorial-ink: #f2ecd9;
+  --editorial-muted: rgba(231, 229, 211, .68);
+  --editorial-rule: rgba(217, 197, 132, .24);
+  --editorial-gold: #d7bf77;
+  --editorial-green: #173a29;
+  --editorial-panel: rgba(11, 25, 19, .82);
+  min-height: 100dvh;
+  background: #08130e;
+  color: var(--editorial-ink);
+}
+body.forest-page > .site-shell-nav,
+body.forest-page > footer,
+body.forest-page > .site-assistant,
+body.forest-page > [data-assistant-root],
+body.forest-page #za-fab,
+body.forest-page #za-panel { display: none !important; }
+body.forest-page > main {
+  width: 100%; max-width: none; margin: 0; padding: 0;
+}
+.forest-page .ft-wrap {
+  position: relative;
+  width: 100%; max-width: 1600px;
+  min-height: 100dvh;
+  margin: 0 auto; padding: clamp(12px, 1.5vw, 24px);
+}
+.forest-page .ft-wrap::before { display: none; }
+.forest-page .ft-wrap header {
+  position: absolute; z-index: 12;
+  top: clamp(52px, 7vw, 106px); left: clamp(44px, 6vw, 104px);
+  width: min(30vw, 430px);
+  margin: 0; text-align: left; pointer-events: none;
+}
+.forest-page .ft-wrap header h1 {
+  justify-content: flex-start;
+  color: var(--editorial-ink);
+  font-size: clamp(2.9rem, 5vw, 5.4rem);
+  font-weight: 500; line-height: .95;
+  letter-spacing: .08em;
+  text-shadow: 0 3px 28px rgba(0, 0, 0, .46);
+}
+.forest-page .ft-wrap header h1::before,
+.forest-page .ft-wrap header h1::after { display: none; }
+.forest-page .ft-wrap header h1 .title-mark {
+  color: var(--editorial-gold); align-self: flex-start; margin-top: .08em;
+}
+.forest-page .ft-wrap header .sub {
+  margin-top: 1.1rem;
+  color: rgba(242, 236, 217, .82);
+  font-family: var(--font-solemn);
+  font-size: clamp(.82rem, 1.15vw, 1rem);
+  letter-spacing: .08em;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .7);
+}
+
+/* The site-level two-tab capsule becomes the slim instrument rail in the
+   approved composition. Labels remain available to touch/mobile layouts. */
+.forest-page .ft-nav {
+  position: absolute !important; z-index: 50;
+  top: clamp(24px, 2.3vw, 38px); right: clamp(22px, 2.2vw, 36px);
+  bottom: clamp(24px, 2.3vw, 38px);
+  width: 66px; margin: 0; padding: 7px;
+  display: flex; flex-direction: column; justify-content: flex-start;
+  gap: 6px;
+  border: 1px solid rgba(215, 191, 119, .38);
+  border-radius: 14px;
+  background: rgba(7, 19, 14, .74);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .28), inset 0 1px rgba(255, 255, 255, .06);
+  -webkit-backdrop-filter: blur(18px) saturate(1.06);
+  backdrop-filter: blur(18px) saturate(1.06);
+}
+.forest-page .ft-nav-tab,
+.forest-page .ft-rail-btn {
+  width: 50px; min-height: 52px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 9px;
+  background: transparent; color: rgba(242, 236, 217, .56);
+  text-decoration: none; cursor: pointer;
+  transition: color .18s ease, background .18s ease;
+}
+.forest-page .ft-nav-tab .ft-ico,
+.forest-page .ft-rail-btn .ft-ico { width: 23px; height: 23px; }
+.forest-page .ft-nav-tab > span,
+.forest-page .ft-rail-btn > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.forest-page .ft-nav-tab.active {
+  color: var(--editorial-gold);
+  background: rgba(215, 191, 119, .08);
+  box-shadow: inset 0 0 0 1px rgba(215, 191, 119, .24);
+}
+.forest-page .ft-rail-btn:first-of-type { margin-top: auto; }
+@media (hover: hover) {
+  .forest-page .ft-nav-tab:hover,
+  .forest-page .ft-rail-btn:hover { color: var(--editorial-gold); background: rgba(215, 191, 119, .08); }
+}
+
+.forest-page #view-plant { min-height: calc(100dvh - clamp(24px, 3vw, 48px)); }
+.forest-page .plant-card {
+  position: relative; isolation: isolate;
+  width: 100%; min-height: 720px;
+  margin: 0; padding: 18px 104px 18px 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(390px, 450px);
+  gap: clamp(16px, 1.4vw, 24px);
+  overflow: hidden;
+  border: 1px solid rgba(215, 191, 119, .32);
+  border-radius: clamp(22px, 2vw, 32px);
+  background-color: #0b1811;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .42), inset 0 0 0 1px rgba(255, 255, 255, .04);
+}
+.forest-page .visual-day .plant-card { background-image: url('/assets/images/forest/greenhouse-home-wide-v4.webp'); }
+.forest-page .visual-night .plant-card { background-image: url('/assets/images/forest/firefly-home-wide-v4.webp'); }
+.forest-page .plant-card::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(3, 12, 8, .18), transparent 42%, rgba(3, 11, 8, .2));
+}
+.forest-page .plant-card::after { display: none; }
+.forest-page .plant-stage-pane { min-height: 0; height: 100%; }
+.forest-page .plant-card .stage {
+  position: relative; width: 100%; height: 100%; min-height: 684px;
+  margin: 0; border: 0; border-radius: 22px;
+  overflow: visible; background: transparent; box-shadow: none;
+}
+.forest-page .plant-card .stage::after,
+.forest-page .plant-card .stage-scene { display: none; }
+.forest-page .stage .timer-display {
+  position: absolute; z-index: 8;
+  top: clamp(190px, 25%, 240px); left: 48%;
+  margin: 0; transform: translateX(-50%);
+  color: #173d2d;
+  font-size: clamp(4.1rem, 6.3vw, 7.2rem);
+  font-weight: 500; line-height: .8;
+  letter-spacing: .02em;
+  text-shadow: 0 2px 26px rgba(255, 246, 214, .82);
+}
+.forest-page .stage .timer-status {
+  position: absolute; z-index: 8; top: clamp(282px, 39%, 332px); left: 48%;
+  width: min(80%, 460px); transform: translateX(-50%);
+  color: rgba(24, 58, 43, .8); text-align: center;
+  font-family: var(--font-solemn); font-size: .92rem; letter-spacing: .08em;
+  text-shadow: 0 1px 14px rgba(255, 246, 214, .74);
+}
+.forest-page .plant-card .stage > #tree-container {
+  --stw: clamp(290px, 30vw, 470px);
+  left: 49%; bottom: 9.2%;
+}
+.forest-page .visual-day #tree-container :is(.tree-anim, .petal-layer) svg {
+  filter: drop-shadow(0 8px 7px rgba(6, 16, 9, .34)) saturate(.86) sepia(.08) brightness(.94);
+}
+
+/* Smoky-glass editorial console. It intentionally uses lines and typographic
+   grouping instead of stacked white cards. */
+.forest-page .plant-controls-pane {
+  position: relative; z-index: 10;
+  display: flex; flex-direction: column;
+  height: 100%; max-height: none; min-height: 684px;
+  padding: clamp(19px, 2vw, 28px);
+  overflow: auto; overscroll-behavior: contain;
+  color: var(--editorial-ink);
+  border: 1px solid rgba(226, 210, 157, .46);
+  border-radius: 26px;
+  background:
+    linear-gradient(145deg, rgba(242, 239, 218, .08), transparent 36%),
+    linear-gradient(165deg, rgba(16, 34, 26, .88), rgba(7, 19, 14, .84));
+  box-shadow: 0 24px 54px rgba(0, 0, 0, .32), inset 0 1px rgba(255, 255, 255, .18), inset 0 0 45px rgba(255, 255, 255, .025);
+  -webkit-backdrop-filter: blur(26px) saturate(1.03);
+  backdrop-filter: blur(26px) saturate(1.03);
+  scrollbar-width: none;
+}
+.forest-page .plant-controls-pane::-webkit-scrollbar { display: none; }
+.forest-page .primary-intent { display: grid; gap: 0; margin: 0; }
+.forest-page .primary-intent .setting-row,
+.forest-page .duration-row,
+.forest-page .more-settings {
+  padding: 0 0 14px; margin: 0 0 15px;
+  border: 0; border-bottom: 1px solid var(--editorial-rule);
+  border-radius: 0; background: transparent;
+}
+.forest-page .primary-intent .setting-row {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center; gap: 12px;
+}
+.forest-page .primary-intent .setting-row + .setting-row { padding-top: 14px; }
+.forest-page .setting-row label,
+.forest-page .duration-row legend,
+.forest-page .custom-duration-row label,
+.forest-page .setting-label,
+.forest-page .settings-group-title {
+  color: rgba(242, 236, 217, .9);
+  font-family: var(--font-solemn);
+  font-weight: 500; letter-spacing: .06em;
+}
+.forest-page .setting-row input[type="text"],
+.forest-page .setting-row input[type="number"],
+.forest-page .target-field-row select {
+  min-height: 42px;
+  color: var(--editorial-ink);
+  border: 1px solid rgba(229, 216, 172, .28);
+  border-radius: 8px;
+  background: rgba(239, 237, 220, .055);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .035);
+}
+.forest-page .setting-row input::placeholder { color: rgba(231, 229, 211, .46); }
+.forest-page .target-field-row select { width: 100%; flex-basis: auto; }
+.forest-page .target-field-row .field-help {
+  grid-column: 2; margin-top: -4px;
+}
+.forest-page .field-help,
+.forest-page .setting-help,
+.forest-page .duration-row .unit,
+.forest-page .focus-warning { color: var(--editorial-muted); }
+.forest-page .duration-row legend {
+  margin: 0 0 10px; font-size: .94rem;
+}
+.forest-page .duration-row .duration-tabs {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 7px; padding: 0; border: 0; background: none;
+}
+.forest-page .duration-row .duration-tabs button {
+  min-height: 39px; padding: 0 .3rem;
+  color: var(--editorial-muted);
+  border: 1px solid rgba(229, 216, 172, .24);
+  border-radius: 999px; background: rgba(239, 237, 220, .025);
+  box-shadow: none;
+}
+.forest-page .duration-row .duration-tabs button.active {
+  color: #fff3c8; border-color: rgba(215, 191, 119, .72);
+  background: linear-gradient(180deg, rgba(47, 89, 62, .9), rgba(19, 58, 39, .96));
+  box-shadow: 0 0 0 1px rgba(215, 191, 119, .14), 0 7px 16px rgba(0, 0, 0, .24);
+}
+.forest-page .custom-duration-row {
+  grid-template-columns: minmax(0, 1fr) 104px auto;
+  margin-top: 9px;
+}
+.forest-page .session-preview {
+  min-height: auto; margin: -3px 0 14px; padding: 0 0 0 14px;
+  color: rgba(236, 232, 211, .72);
+  border: 0; border-left: 1px solid var(--editorial-gold);
+  border-radius: 0; background: transparent;
+  font-size: .78rem;
+}
+.forest-page .session-preview[hidden],
+.forest-page #completion-forest[hidden] { display: none !important; }
+.forest-page .current-session-options {
+  padding: 0 0 14px; margin: 0 0 15px;
+  border-bottom: 1px solid var(--editorial-rule);
+}
+.forest-page .current-session-options .setting-row {
+  padding: 0; border: 0; border-radius: 0; background: transparent;
+}
+.forest-page .current-session-options .setting-stack {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+}
+.forest-page .current-session-options .setting-stack > label:first-child { min-width: 0; }
+.forest-page .more-settings:not([open]) { display: none; }
+.forest-page .more-settings > summary {
+  display: flex; min-height: 44px; padding: 0 0 13px;
+  color: var(--editorial-ink); border-bottom: 1px solid var(--editorial-rule);
+}
+.forest-page .more-settings[open] {
+  position: absolute; inset: 18px; z-index: 35;
+  display: block; overflow: auto; padding: 20px;
+  border: 1px solid rgba(226, 210, 157, .38);
+  border-radius: 18px;
+  background: rgba(8, 22, 16, .96);
+  box-shadow: 0 22px 52px rgba(0, 0, 0, .44), inset 0 1px rgba(255,255,255,.07);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  scrollbar-width: none;
+}
+.forest-page .more-settings[open] > summary {
+  position: static; top: auto; z-index: auto;
+  color: var(--editorial-ink);
+  background: transparent;
+  border-bottom: 1px solid var(--editorial-rule);
+}
+.forest-page .more-settings[open]::-webkit-scrollbar { display: none; }
+.forest-page .more-settings-body { display: grid; gap: 10px; padding: 0; }
+.forest-page .settings-group { gap: 9px; }
+.forest-page .settings-group-title { font-size: .68rem; opacity: .64; }
+.forest-page .settings-group + .settings-group {
+  padding-top: 12px; border-top: 1px solid var(--editorial-rule);
+}
+.forest-page .more-settings-body .setting-row { padding: 0; background: transparent; }
+.forest-page .more-settings-body .setting-stack { gap: 8px; }
+.forest-page .setting-row .tree-types,
+.forest-page .setting-row .pill-group { display: grid; width: 100%; gap: 7px; }
+.forest-page .setting-row .tree-types { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.forest-page .setting-row .pill-group { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.forest-page .setting-row .tree-types button,
+.forest-page .setting-row .pill-group button {
+  position: relative; min-width: 0; min-height: 68px; padding: 5px 4px 6px;
+  color: var(--editorial-muted);
+  border: 1px solid rgba(229, 216, 172, .2);
+  border-radius: 9px; background: rgba(239, 237, 220, .025);
+  box-shadow: none;
+}
+.forest-page .setting-row .tree-types button.active,
+.forest-page .setting-row .pill-group button.active {
+  border-color: rgba(215, 191, 119, .72);
+  background: rgba(215, 191, 119, .09);
+  box-shadow: inset 0 0 0 1px rgba(215, 191, 119, .08);
+}
+.forest-page .tree-model-preview { width: 44px; height: 40px; margin: 0 auto 1px; }
+.forest-page .setting-row .opt-cap,
+.forest-page .setting-row .tree-types button.active .opt-cap,
+.forest-page .setting-row .pill-group button.active .opt-cap {
+  color: rgba(242, 236, 217, .78); font-size: .7rem; font-weight: 500;
+}
+.forest-page .theme-swatch { width: 34px; height: 28px; border-radius: 4px; }
+.forest-page .seg-toggle {
+  width: 100%; display: grid; grid-template-columns: 1fr 1fr;
+  padding: 3px; border-color: rgba(229, 216, 172, .22);
+  background: rgba(239, 237, 220, .035);
+}
+.forest-page .seg-toggle button { color: var(--editorial-muted); }
+.forest-page .seg-toggle button.active { color: #fff3c8; }
+.forest-page .seg-thumb {
+  background: rgba(47, 89, 62, .96);
+  box-shadow: 0 0 0 1px rgba(215, 191, 119, .22), 0 5px 13px rgba(0, 0, 0, .22);
+}
+.forest-page .editorial-advanced-row { display: none !important; }
+.forest-page .plant-card .action-row { margin: auto 0 0; }
+.forest-page .plant-card .action-btn {
+  width: 100%; max-width: none; min-height: 56px; padding: .72rem 1rem;
+  color: #fff1c6; font-size: 1.15rem; letter-spacing: .12em;
+  border: 1px solid rgba(215, 191, 119, .82); border-radius: 10px;
+  background: linear-gradient(180deg, #214d35, #0e3522);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .32), inset 0 1px rgba(255, 255, 255, .13), inset 0 0 0 2px rgba(4, 20, 12, .36);
+}
+.forest-page .plant-card .focus-warning {
+  margin: 7px 0 0; font-size: .72rem; line-height: 1.45;
+}
+.forest-page .completion-card {
+  position: static; z-index: auto;
+  width: 100%; margin: 0; padding: 22px;
+  color: var(--editorial-ink);
+  border: 1px solid rgba(215, 191, 119, .62); border-left-width: 1px;
+  border-radius: 14px;
+  background: linear-gradient(155deg, rgba(43, 70, 53, .86), rgba(10, 29, 20, .94));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .32), inset 0 1px rgba(255,255,255,.08);
+}
+.forest-page .completion-card h2 { color: #fff1c8; }
+.forest-page .completion-card p { color: rgba(242, 236, 217, .8); }
+.forest-page .completion-card p strong { color: #fff1c8; }
+.forest-page .completion-actions button {
+  min-height: 40px; color: var(--editorial-ink);
+  border-color: rgba(229,216,172,.28); background: rgba(242,236,217,.07);
+}
+.forest-page .plant-controls-pane.completion-mode {
+  display: flex; align-items: center; justify-content: center;
+}
+.forest-page .plant-controls-pane.completion-mode > :not(.completion-card) { display: none !important; }
+
+/* The forest data view remains readable and uses the same restrained palette,
+   while only the planting screen receives the cinematic composition. */
+.forest-page #view-forest {
+  width: min(1120px, calc(100vw - 32px)); margin: 80px auto 0;
+  padding: 24px; color: var(--color-text);
+  border-radius: 22px; background: var(--color-bg);
+}
+
+/* Focus is the same scene, not a separate layout recreation. */
+.focus-overlay .focus-tag,
+.focus-overlay .pomodoro-counter { display: none !important; }
+.focus-overlay .focus-readout { top: clamp(1.4rem, 7dvh, 5rem); }
+.focus-overlay .timer-big { font-size: clamp(4rem, 8vw, 8rem); font-weight: 500; line-height: .9; }
+.focus-overlay .focus-actions {
+  border-color: rgba(215, 191, 119, .32);
+  background: rgba(10, 25, 18, .58);
+}
+.focus-overlay .focus-actions .pause-btn,
+.focus-overlay .focus-actions .give-up-btn {
+  color: var(--editorial-ink) !important;
+  border-color: rgba(229,216,172,.32) !important;
+  background: rgba(13, 43, 28, .74) !important;
+  box-shadow: none !important;
+}
+
+@media (min-width: 1200px) {
+  .forest-page .plant-card { height: calc(100dvh - clamp(24px, 3vw, 48px)); min-height: 720px; max-height: 940px; }
+  .forest-page .plant-card .stage,
+  .forest-page .plant-stage-pane,
+  .forest-page .plant-controls-pane { height: 100%; min-height: 0; }
+}
+
+@media (max-width: 1199px) {
+  body.forest-page { background: #0a1710; }
+  .forest-page .ft-wrap { padding: 12px; }
+  .forest-page .ft-wrap header { top: 48px; left: 42px; width: 56%; }
+  .forest-page .ft-wrap header h1 { font-size: clamp(2.4rem, 7vw, 4rem); }
+  .forest-page .plant-card {
+    min-height: 0; padding: 12px;
+    grid-template-columns: 1fr;
+    background-image: none !important;
+  }
+  .forest-page .plant-stage-pane { height: min(62dvh, 620px); min-height: 460px; }
+  .forest-page .plant-card .stage { min-height: 0; height: 100%; overflow: hidden; }
+  .forest-page .plant-card .stage-scene { display: block; }
+  .forest-page .plant-card .stage-scene img { object-position: 31% center; }
+  .forest-page .stage .timer-display { top: 13%; left: 48%; }
+  .forest-page .stage .timer-status { top: 29%; left: 48%; }
+  .forest-page .plant-card .stage > #tree-container { left: 49%; bottom: 7%; }
+  .forest-page .plant-controls-pane { min-height: 0; margin: 0; }
+  .forest-page .ft-nav {
+    position: fixed !important; top: auto; left: 50%; right: auto;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: auto; height: 60px; padding: 5px;
+    flex-direction: row; transform: translateX(-50%);
+  }
+  .forest-page .ft-nav-tab,
+  .forest-page .ft-rail-btn { width: 56px; min-height: 48px; }
+  .forest-page .ft-rail-btn:first-of-type { margin: 0; }
+  .forest-page #view-forest { margin-top: 20px; margin-bottom: 80px; }
+}
+
+@media (max-width: 640px) {
+  .forest-page .ft-wrap { padding: 0; }
+  .forest-page .plant-card { border: 0; border-radius: 0; padding: 0; gap: 0; }
+  .forest-page .ft-wrap header { top: 28px; left: 24px; width: 70%; }
+  .forest-page .ft-wrap header h1 { font-size: 2.45rem; }
+  .forest-page .ft-wrap header .sub { margin-top: .55rem; font-size: .72rem; }
+  .forest-page .plant-stage-pane { height: 54dvh; min-height: 390px; }
+  .forest-page .stage .timer-display { top: 24%; font-size: clamp(3.4rem, 18vw, 5rem); }
+  .forest-page .stage .timer-status { top: 39%; font-size: .78rem; }
+  .forest-page .plant-card .stage > #tree-container { --stw: min(82vw, 410px); bottom: 4%; }
+  .forest-page .plant-controls-pane {
+    margin: -18px 10px 84px; padding: 19px 17px;
+    border-radius: 22px;
+  }
+  .forest-page .primary-intent .setting-row { grid-template-columns: 78px minmax(0, 1fr); }
+  .forest-page .target-field-row .field-help { grid-column: 1 / -1; }
+  .forest-page .setting-row .tree-types button,
+  .forest-page .setting-row .pill-group button { min-height: 72px; }
+  .forest-page .custom-duration-row { grid-template-columns: minmax(0, 1fr) 92px auto; }
+  .forest-page .ft-nav-tab > span,
+  .forest-page .ft-rail-btn > span { position: static; width: auto; height: auto; clip: auto; font-size: .6rem; }
+  .forest-page .ft-nav-tab,
+  .forest-page .ft-rail-btn { flex-direction: column; gap: 1px; }
+  .forest-page .ft-nav-tab .ft-ico,
+  .forest-page .ft-rail-btn .ft-ico { width: 19px; height: 19px; }
+}
+
+/* ============ Botanical Editorial · 我的森林画廊 ============ */
+
+/* 齿轮必须明确表达“全局”，避免和本次种树配置混淆。 */
+.forest-page #editorial-settings-btn {
+  min-height: 62px; flex-direction: column; gap: 2px;
+}
+.forest-page .ft-nav-tab[data-view="forest"] {
+  min-height: 62px; flex-direction: column; gap: 2px;
+}
+.forest-page #editorial-settings-btn > span,
+.forest-page .ft-nav-tab[data-view="forest"] > span {
+  position: static; width: auto; height: auto; overflow: visible; clip: auto;
+  color: currentColor; font-size: .58rem; line-height: 1; letter-spacing: .08em;
+}
+
+body.forest-gallery-active .ft-wrap header {
+  opacity: 0; visibility: hidden;
+}
+.forest-page #view-forest {
+  --color-ink: #f2ecd9;
+  --color-text: rgba(242, 236, 217, .82);
+  --color-muted: rgba(231, 229, 211, .66);
+  --color-light: rgba(231, 229, 211, .48);
+  --color-border: rgba(215, 191, 119, .22);
+  --color-bg: rgba(8, 23, 16, .9);
+  --color-bg-warm: rgba(31, 55, 41, .7);
+  --color-accent: #d7bf77;
+  --ft-on-accent: #102419;
+  --ft-hint: rgba(231, 229, 211, .58);
+  position: relative; isolation: isolate;
+  width: 100%; min-height: calc(100dvh - clamp(24px, 3vw, 48px));
+  margin: 0; padding: clamp(24px, 3vw, 46px) 104px clamp(24px, 3vw, 46px) clamp(24px, 3vw, 46px);
+  overflow: hidden;
+  color: var(--color-text);
+  border: 1px solid rgba(215, 191, 119, .32);
+  border-radius: clamp(22px, 2vw, 32px);
+  background:
+    linear-gradient(115deg, rgba(3, 14, 9, .68), rgba(4, 17, 11, .86)),
+    url('/assets/images/forest/greenhouse-home-wide-v4.webp') center / cover no-repeat;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .42), inset 0 0 0 1px rgba(255,255,255,.04);
+}
+.forest-page[data-forest-visual="night"] #view-forest {
+  background:
+    linear-gradient(115deg, rgba(1, 8, 15, .54), rgba(1, 8, 14, .84)),
+    url('/assets/images/forest/firefly-home-wide-v4.webp') center / cover no-repeat;
+}
+.forest-page #view-forest .stats-zone {
+  width: min(100%, 1240px); margin: 0 auto; padding: clamp(18px, 2.4vw, 32px);
+  border: 1px solid rgba(226, 210, 157, .38); border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(242, 239, 218, .055), transparent 34%),
+    rgba(7, 23, 16, .94);
+  box-shadow: 0 24px 58px rgba(0,0,0,.34), inset 0 1px rgba(255,255,255,.1);
+}
+.forest-page #view-forest .stats-grid { gap: 10px; margin-bottom: 22px; }
+.forest-page #view-forest .stat-card {
+  padding: 13px 10px;
+  border-color: rgba(215, 191, 119, .18); border-radius: 11px;
+  background: rgba(242, 236, 217, .04); box-shadow: inset 0 1px rgba(255,255,255,.035);
+}
+.forest-page #view-forest .stat-card .stat-num {
+  color: #f2d88d; font-size: clamp(1.65rem, 2.2vw, 2.2rem); font-weight: 500;
+}
+.forest-page #view-forest .stat-card .stat-label { color: var(--color-muted); letter-spacing: .06em; }
+.forest-page #view-forest .forest-title {
+  margin: 0 0 16px; align-items: center;
+  color: var(--color-ink); font-size: clamp(1.45rem, 2.4vw, 2rem); font-weight: 500;
+}
+.forest-page #view-forest .forest-title .ft-ico { color: var(--editorial-gold); }
+.forest-page #view-forest .forest-title small { color: var(--color-muted); }
+.forest-page #view-forest .data-toolbar { margin: 0 0 16px; gap: 7px; }
+.forest-page #view-forest :is(.data-toolbar button, .data-actions button, .forest-panel button, .import-data-label) {
+  min-height: 40px; padding: .48rem .78rem;
+  color: var(--color-text); border-color: rgba(215,191,119,.2); border-radius: 8px;
+  background: rgba(242,236,217,.045);
+}
+.forest-page #view-forest .forest-panel {
+  margin: 0 0 16px; padding: 18px;
+  color: var(--color-text); border-color: rgba(215,191,119,.24); border-radius: 14px;
+  background: rgba(6, 20, 13, .78); box-shadow: inset 0 1px rgba(255,255,255,.04);
+}
+.forest-page #view-forest .forest-panel h2,
+.forest-page #view-forest .forest-panel strong { color: var(--color-ink); }
+.forest-page #view-forest .field-tabs {
+  margin: 0 0 12px; padding: 7px;
+  border-color: rgba(215,191,119,.18); border-radius: 10px;
+  background: rgba(242,236,217,.035);
+}
+.forest-page #view-forest .field-tab,
+.forest-page #view-forest .field-tab-add,
+.forest-page #view-forest .field-toolbar button,
+.forest-page #view-forest .exp-range-tabs button,
+.forest-page #view-forest .reset-row button {
+  color: var(--color-muted); border-color: rgba(215,191,119,.2); background: rgba(242,236,217,.04);
+}
+.forest-page #view-forest .field-tab.active,
+.forest-page #view-forest .field-toolbar button.active,
+.forest-page #view-forest .exp-range-tabs button.active {
+  color: #102419; border-color: #d7bf77; background: #d7bf77;
+}
+.forest-page #view-forest .field-toolbar { margin-bottom: 12px; }
+.forest-page #view-forest .field {
+  min-height: 320px;
+  border-color: rgba(215,191,119,.22); border-radius: 15px;
+  background:
+    radial-gradient(120% 42% at 50% -8%, rgba(125, 151, 91, .52), transparent 58%),
+    repeating-linear-gradient(168deg, rgba(232, 214, 164, .022) 0 1px, transparent 1px 17px),
+    radial-gradient(ellipse at 50% 48%, rgba(83, 67, 42, .3), transparent 62%),
+    linear-gradient(180deg, #46523a 0 5%, #352f22 9%, #29241b 88%, #26341f 100%);
+  box-shadow:
+    inset 0 13px 0 rgba(111, 136, 78, .28),
+    inset 0 -10px 0 rgba(69, 91, 54, .24),
+    inset 0 22px 48px rgba(205,225,170,.05),
+    inset 0 -22px 52px rgba(0,0,0,.28);
+}
+.forest-page #view-forest .empty-forest {
+  padding: 2.2rem 1rem; color: var(--color-muted);
+  border: 1px solid rgba(215,191,119,.14); border-radius: 11px;
+  background: rgba(242,236,217,.035);
+}
+.forest-page #view-forest .tree-detail {
+  color: var(--color-text); border-color: rgba(215,191,119,.28);
+  background: rgba(7, 23, 16, .96); box-shadow: 0 16px 40px rgba(0,0,0,.46);
+}
+.forest-page #view-forest .tree-detail h3,
+.forest-page #view-forest .tree-detail .td-row .value { color: var(--color-ink); }
+.forest-page #view-forest .exp-chart-zone {
+  margin-top: 18px; padding: 18px;
+  border-color: rgba(215,191,119,.18); border-radius: 14px;
+  background: rgba(242,236,217,.035);
+}
+.forest-page #view-forest .exp-chart-header .title { color: var(--color-ink); }
+.forest-page #view-forest .reset-row { margin-top: 16px; }
+
+@media (max-width: 1199px) {
+  .forest-page #view-forest {
+    min-height: calc(100dvh - 24px); margin: 0 0 82px; padding: 18px;
+    border-radius: 22px;
+  }
+  .forest-page #view-forest .stats-zone { padding: 18px; border-radius: 18px; }
+}
+@media (max-width: 640px) {
+  .forest-page #view-forest {
+    min-height: 100dvh; margin: 0 0 78px; padding: 10px;
+    border: 0; border-radius: 0;
+  }
+  .forest-page #view-forest .stats-zone { padding: 14px; border-radius: 16px; }
+  .forest-page #view-forest .stats-grid { gap: 6px; }
+  .forest-page #view-forest .stat-card { padding: 10px 5px; }
+  .forest-page #view-forest .stat-card .stat-num { font-size: 1.45rem; }
+  .forest-page #view-forest .forest-title { align-items: flex-start; }
+  .forest-page #view-forest .data-toolbar { display: grid; grid-template-columns: 1fr 1fr; }
+  .forest-page #view-forest .field-toolbar .field-hint { width: 100%; }
+}
+
+/* ============ Forest field-first information hierarchy ============ */
+.forest-page #view-forest .stats-zone {
+  display: flex; flex-direction: column;
+}
+.forest-page #view-forest .forest-title { order: 1; }
+.forest-page #view-forest .stats-grid {
+  order: 2; display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 14px;
+}
+.forest-page #view-forest .stat-card {
+  min-width: 132px; padding: 7px 12px;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  text-align: left;
+}
+.forest-page #view-forest .stat-card .stat-num {
+  order: 2; font-size: 1.2rem; white-space: nowrap;
+}
+.forest-page #view-forest .stat-card .stat-label {
+  order: 1; margin: 0; white-space: nowrap;
+}
+.forest-page #view-forest .data-toolbar {
+  order: 3; min-height: 48px; margin: 0 0 10px; padding: 5px;
+  align-items: center; border: 1px solid rgba(215,191,119,.16); border-radius: 10px;
+  background: rgba(242,236,217,.025);
+}
+.forest-page #view-forest .data-toolbar .spacer { flex: 1; }
+.forest-page #view-forest .forest-sort-control {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--color-muted); font-size: .74rem;
+}
+.forest-page #view-forest .forest-sort-control > span { padding-left: 5px; }
+.forest-page #view-forest #forest-sort-select {
+  min-height: 36px; padding: 4px 28px 4px 10px;
+  color: var(--color-text); font: inherit; font-size: .78rem;
+  border: 1px solid rgba(215,191,119,.2); border-radius: 7px;
+  background: rgba(242,236,217,.045);
+}
+.forest-page #view-forest .data-toolbar > button {
+  min-height: 36px; padding: .38rem .66rem; font-size: .76rem;
+}
+.forest-page #view-forest .data-toolbar > button[hidden],
+.forest-page #view-forest .exp-data-details[hidden] { display: none !important; }
+.forest-page #view-forest .data-toolbar > button.active {
+  color: #102419; border-color: #d7bf77; background: #d7bf77;
+}
+.forest-page #view-forest .forest-panel { order: 4; }
+.forest-page #view-forest .field-tabs { order: 5; }
+.forest-page #view-forest .field-tab-hint { display: none; }
+.forest-page #view-forest .field-toolbar {
+  order: 6; margin: 0 0 8px;
+}
+.forest-page #view-forest .field-toolbar button {
+  min-height: 34px; padding: .3rem .68rem; font-size: .74rem;
+}
+.forest-page #view-forest .field { order: 7; min-height: clamp(400px, 54dvh, 610px); }
+.forest-page #view-forest .empty-forest { order: 7; }
+.forest-page #view-forest .field > .empty-forest {
+  position: absolute; inset: 0; z-index: 2;
+  display: grid; place-items: center; padding: 1rem;
+  color: rgba(231,229,211,.48); font-size: .82rem;
+  border: 0; border-radius: 0; background: transparent;
+  pointer-events: none;
+}
+.forest-page #view-forest .tree-detail { order: 8; }
+.forest-page #view-forest .exp-chart-zone {
+  order: 9; margin-top: 12px;
+  background: rgba(7, 23, 16, .94);
+  box-shadow: 0 18px 42px rgba(0,0,0,.28);
+}
+.forest-page #view-forest .exp-chart-zone[hidden] { display: none !important; }
+.forest-page #view-forest .exp-chart-header { align-items: center; }
+.forest-page #view-forest .exp-chart-header .summary { flex: 1; }
+.forest-page #view-forest .statistics-close {
+  min-height: 34px; padding: .3rem .68rem;
+  color: var(--color-muted); font: inherit; font-size: .72rem;
+  border: 1px solid rgba(215,191,119,.2); border-radius: 7px;
+  background: rgba(242,236,217,.04); cursor: pointer;
+}
+.forest-page #view-forest .exp-range-tabs {
+  width: max-content; max-width: 100%; padding: 3px; gap: 3px;
+  border: 1px solid rgba(215,191,119,.16); border-radius: 9px;
+  background: rgba(242,236,217,.025);
+}
+.forest-page #view-forest .exp-range-tabs button {
+  min-width: 48px; border: 0; border-radius: 6px;
+}
+.forest-page #view-forest .exp-data-details { margin-top: 8px; }
+.forest-page #view-forest .reset-row { margin: 14px 0 0; text-align: left; }
+
+@media (max-width: 640px) {
+  .forest-page #view-forest .forest-title { margin-bottom: 10px; }
+  .forest-page #view-forest .stats-grid {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px;
+  }
+  .forest-page #view-forest .stat-card {
+    min-width: 0; padding: 7px 5px;
+    display: grid; gap: 1px; justify-items: center; text-align: center;
+  }
+  .forest-page #view-forest .stat-card .stat-num { order: 1; font-size: .96rem; }
+  .forest-page #view-forest .stat-card .stat-label { order: 2; font-size: .62rem; }
+  .forest-page #view-forest .data-toolbar {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px;
+  }
+  .forest-page #view-forest .forest-sort-control {
+    grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr);
+  }
+  .forest-page #view-forest .data-toolbar .spacer { display: none; }
+  .forest-page #view-forest .data-toolbar > button { min-width: 0; padding-inline: .3rem; }
+  .forest-page #view-forest .field { min-height: 390px; }
+  .forest-page #view-forest .exp-chart-zone { padding: 14px 10px; }
+}
+
+/* ============ Single-field forest atelier ============ */
+.forest-page .target-field-row[hidden],
+.forest-page #view-forest .field-tabs[hidden],
+.forest-page #view-forest .history-filters [hidden] { display: none !important; }
+
+.forest-page #view-forest .forest-overview {
+  order: 1; display: flex; align-items: flex-end; justify-content: space-between;
+  gap: clamp(22px, 4vw, 64px); padding: 0 2px 18px;
+  border-bottom: 1px solid rgba(215,191,119,.16);
+}
+.forest-page #view-forest .forest-overview .forest-title {
+  margin: 0; flex: 1 1 auto;
+}
+.forest-page #view-forest .forest-overview .stats-grid {
+  display: flex; flex: 0 0 auto; flex-wrap: nowrap; gap: 0; margin: 0;
+}
+.forest-page #view-forest .forest-overview .stat-card {
+  min-width: 118px; padding: 1px 20px;
+  display: grid; gap: 2px; justify-items: end;
+  border: 0; border-left: 1px solid rgba(215,191,119,.18); border-radius: 0;
+  background: transparent; box-shadow: none;
+}
+.forest-page #view-forest .forest-overview .stat-card:first-child { border-left: 0; }
+.forest-page #view-forest .forest-overview .stat-card .stat-num {
+  order: 1; color: #f0d58a; font-size: 1.24rem; line-height: 1.05;
+}
+.forest-page #view-forest .forest-overview .stat-card .stat-label {
+  order: 2; color: rgba(231,229,211,.46); font-size: .63rem; letter-spacing: .1em;
+}
+
+.forest-page #view-forest .data-toolbar {
+  order: 2; position: relative; align-self: flex-end;
+  width: max-content; min-height: 0; margin: 12px 0 10px; padding: 3px;
+  display: inline-flex; gap: 0;
+  border: 1px solid rgba(215,191,119,.18); border-radius: 11px;
+  background: rgba(6,20,13,.72); box-shadow: 0 9px 24px rgba(0,0,0,.16);
+}
+.forest-page #view-forest .data-toolbar .forest-primary-tool {
+  min-height: 38px; padding: .38rem .75rem;
+  display: inline-flex; align-items: center; gap: 6px;
+  color: rgba(231,229,211,.62); border: 0; border-radius: 8px; background: transparent;
+}
+.forest-page #view-forest .data-toolbar .forest-primary-tool .ft-ico { width: 16px; height: 16px; }
+.forest-page #view-forest .data-toolbar .forest-primary-tool.active,
+.forest-page #view-forest .data-toolbar .forest-primary-tool[aria-expanded="true"] {
+  color: #102419; background: #d7bf77;
+}
+.forest-page #view-forest .forest-utility-menu { position: relative; }
+.forest-page #view-forest .forest-utility-menu > summary {
+  list-style: none; width: 42px; min-height: 38px; padding: 0;
+  display: grid; place-items: center;
+  color: rgba(231,229,211,.58); border-radius: 8px; cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em;
+}
+.forest-page #view-forest .forest-utility-menu > summary::-webkit-details-marker { display: none; }
+.forest-page #view-forest .forest-utility-menu[open] > summary {
+  color: #102419; background: #d7bf77;
+}
+.forest-page #view-forest .forest-utility-popover {
+  position: absolute; z-index: 80; top: calc(100% + 8px); right: 0;
+  min-width: 160px; padding: 6px;
+  display: grid; gap: 3px;
+  border: 1px solid rgba(215,191,119,.26); border-radius: 11px;
+  background: rgba(7,23,16,.98); box-shadow: 0 18px 42px rgba(0,0,0,.42);
+}
+.forest-page #view-forest .forest-utility-popover button {
+  min-height: 38px; padding: .45rem .7rem;
+  justify-content: flex-start; color: rgba(242,236,217,.76);
+  border: 0; border-radius: 7px; background: transparent;
+}
+.forest-page #view-forest .forest-utility-popover button[hidden] { display: none !important; }
+@media (hover: hover) {
+  .forest-page #view-forest .forest-utility-menu > summary:hover,
+  .forest-page #view-forest .forest-utility-popover button:hover { background: rgba(215,191,119,.1); color: #f0d58a; }
+}
+
+.forest-page #view-forest .forest-panel { order: 3; width: 100%; }
+.forest-page #view-forest .forest-field-shell {
+  order: 4; padding: 9px;
+  border: 1px solid rgba(215,191,119,.2); border-radius: 18px;
+  background: rgba(242,236,217,.026); box-shadow: inset 0 1px rgba(255,255,255,.035);
+}
+.forest-page #view-forest .forest-field-shell .field-toolbar {
+  min-height: 48px; margin: 0; padding: 2px 4px 9px;
+  display: flex; align-items: center; gap: 7px;
+}
+.forest-page #view-forest .forest-field-shell .forest-sort-control {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: rgba(231,229,211,.46); font-size: .68rem; letter-spacing: .06em;
+}
+.forest-page #view-forest .forest-field-shell #forest-sort-select {
+  min-height: 36px; padding: 4px 28px 4px 10px;
+  color: rgba(242,236,217,.78); font: inherit; font-size: .76rem;
+  border: 0; border-radius: 8px; background: rgba(242,236,217,.045);
+}
+.forest-page #view-forest .forest-field-shell .field-toolbar button {
+  min-height: 36px; padding: .38rem .72rem;
+  color: rgba(242,236,217,.64); border: 1px solid rgba(215,191,119,.16);
+  border-radius: 8px; background: rgba(242,236,217,.035);
+}
+.forest-page #view-forest .forest-field-shell .field-toolbar button.active,
+.forest-page #view-forest .forest-field-shell #merge-btn {
+  color: #102419; border-color: #d7bf77; background: #d7bf77;
+}
+.forest-page #view-forest .forest-field-shell .field { min-height: clamp(430px, 58dvh, 650px); }
+.forest-page #view-forest .exp-chart-zone { order: 5; }
+
+@media (max-width: 820px) {
+  .forest-page #view-forest .forest-overview { align-items: flex-start; gap: 16px; }
+  .forest-page #view-forest .forest-overview .stats-grid { flex: 1 1 auto; }
+  .forest-page #view-forest .forest-overview .stat-card { min-width: 0; padding-inline: 12px; }
+}
+@media (max-width: 640px) {
+  .forest-page #view-forest .forest-overview {
+    display: grid; gap: 12px; padding-bottom: 14px;
+  }
+  .forest-page #view-forest .forest-overview .stats-grid {
+    display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); width: 100%;
+  }
+  .forest-page #view-forest .forest-overview .stat-card {
+    padding: 2px 7px; justify-items: center; text-align: center;
+  }
+  .forest-page #view-forest .data-toolbar {
+    align-self: stretch; width: 100%; display: flex; grid-template-columns: none;
+  }
+  .forest-page #view-forest .data-toolbar .forest-primary-tool { flex: 1 1 0; justify-content: center; }
+  .forest-page #view-forest .forest-utility-menu { margin-left: auto; }
+  .forest-page #view-forest .forest-field-shell { padding: 7px; border-radius: 15px; }
+  .forest-page #view-forest .forest-field-shell .field-toolbar {
+    display: grid; grid-template-columns: minmax(0,1fr) auto; min-height: 0; padding: 2px 2px 8px;
+  }
+  .forest-page #view-forest .forest-field-shell .forest-sort-control {
+    grid-column: auto; display: grid; grid-template-columns: auto minmax(0,1fr);
+  }
+  .forest-page #view-forest .forest-field-shell .spacer { display: none; }
+  .forest-page #view-forest .forest-field-shell .field-toolbar #merge-btn { grid-column: 1 / -1; }
+  .forest-page #view-forest .forest-field-shell .field { min-height: 410px; }
+}
+
+/* ============ Calibrated 3D ground-plane projection for the greenhouse field ============ */
+.forest-page #view-forest .forest-field-shell .field {
+  width: 100%; height: clamp(540px, 64dvh, 720px); min-height: 0;
+  background: #07130d url('/assets/images/forest/greenhouse-forest-bed-v1.webp') center / cover no-repeat;
+  border-color: rgba(215,191,119,.28);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.035), 0 18px 42px rgba(0,0,0,.28);
+}
+.forest-page #view-forest .field-cell-grid,
+.forest-page #view-forest .field.edit-mode .field-cell-grid { opacity: 0 !important; }
+.forest-page #view-forest .tree-instance {
+  display: block; transform: none; transform-origin: 50% 98%;
+  transition: left .24s ease, top .24s ease, width .24s ease, height .24s ease, filter .18s ease;
+  will-change: left, top, width, height;
+}
+.forest-page #view-forest .tree-instance::before {
+  content: ''; position: absolute; z-index: -1; left: 50%; bottom: 2%;
+  width: 34%; height: 6%; translate: -50% 0;
+  border-radius: 50%; background: rgba(1,5,2,.38); filter: blur(4px);
+  pointer-events: none;
+}
+.forest-page #view-forest .tree-instance .tree-open,
+.forest-page #view-forest .tree-instance .tree-open .tree-svg { width: 100%; height: 100%; }
+.forest-page #view-forest .tree-instance .plant-b-image {
+  filter: saturate(.82) brightness(.9);
+}
+.forest-page #view-forest .tree-instance.dragging {
+  transition: none; filter: brightness(1.04) drop-shadow(0 12px 12px rgba(0,0,0,.48));
+}
+.forest-page #view-forest .snap-preview {
+  border: 1.5px solid rgba(216,197,119,.9); border-radius: 50%;
+  background: rgba(216,197,119,.1); box-shadow: 0 0 16px rgba(216,197,119,.18);
+}
+.forest-page #view-forest .snap-preview.blocked {
+  border-color: var(--ft-danger); background: color-mix(in srgb, var(--ft-danger) 12%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--ft-danger) 24%, transparent);
+}
+@media (max-width: 700px) {
+  .forest-page #view-forest .forest-field-shell .field {
+    height: auto !important; min-height: 0 !important;
+    aspect-ratio: 1672 / 941;
+  }
+}
+
+/* Single-tree preview and focus share the same calibrated ground-plane model. */
+.forest-page .stage > #tree-container.layout-3d-tree,
+.focus-overlay #overlay-tree-container.layout-3d-tree {
+  position: absolute; right: auto; bottom: auto !important;
+  display: block !important;
+  padding: 0; transform: translate(-50%, -91.5%) !important;
+  transform-origin: 50% 91.5%; pointer-events: none;
+}
+.forest-page .stage > #tree-container.layout-3d-tree > .tree-anim,
+.focus-overlay #overlay-tree-container.layout-3d-tree > .tree-anim,
+.forest-page .stage > #tree-container.layout-3d-tree > .petal-layer,
+.focus-overlay #overlay-tree-container.layout-3d-tree > .petal-layer {
+  position: absolute !important; inset: 0; width: 100%; height: 100%;
+}
+.forest-page .stage > #tree-container.layout-3d-tree::before,
+.focus-overlay #overlay-tree-container.layout-3d-tree::before {
+  content: ''; position: absolute; z-index: -1; left: 50%; bottom: 8.5%;
+  width: 34%; height: 6%; translate: -50% 0; border-radius: 50%;
+  background: rgba(1,5,2,.36); filter: blur(4px);
+}
+.forest-page .stage > #tree-container.layout-3d-tree :is(.tree-anim,.petal-layer),
+.focus-overlay #overlay-tree-container.layout-3d-tree :is(.tree-anim,.petal-layer),
+.forest-page .stage > #tree-container.layout-3d-tree svg,
+.focus-overlay #overlay-tree-container.layout-3d-tree svg { width: 100%; height: 100%; }
