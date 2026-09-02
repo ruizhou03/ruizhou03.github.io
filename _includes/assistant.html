@@ -392,7 +392,6 @@
 
   function search(q) {
     var ts = terms(q);
-    var matIntent = /资料|下载|pdf|讲义|习题|作业|真题|试卷|往年题|课件|速查|cheat/i.test(q);
     var scored = [];
     var saAdmin = !!(window.SiteAuth && SiteAuth.getUser && SiteAuth.getUser() && SiteAuth.getUser().isAdmin);
     idx.forEach(function (it) {
@@ -405,13 +404,12 @@
         if (it.titleLow.indexOf(t) >= 0) s += w * 2;
       });
       if (!hit) return;
-      if (matIntent && it.type === 'material') s += 6;
       scored.push({ it: it, s: s });
     });
     scored.sort(function (a, b) { return b.s - a.s; });
     var top = scored.length ? scored[0].s : 0;
     var keep = scored.filter(function (x) { return x.s >= Math.max(2, top * 0.22); }).slice(0, 8);
-    return { hits: keep.map(function (x) { return x.it; }), matIntent: matIntent };
+    return { hits: keep.map(function (x) { return x.it; }), matIntent: false };
   }
 
   // ---------- 渲染 ----------
@@ -633,11 +631,11 @@
   var INTRO = '你好，我是锆铌小助手 [[zi:sparkle]]\n' +
     '告诉我你想找什么，我帮你从站里翻出来：\n' +
     '[[zi:file]] 想读的文章（比如「VPN 原理」「报税怎么弄」）\n' +
-    '[[zi:attachment]] 想下载的课程资料（比如「实分析讲义」「中级宏观往年题」）\n' +
+    '[[zi:puzzle]] 想用的小工具（比如「摩擦圆」「纸牌游戏」）\n' +
     '直接打字问我就行。';
 
-  var ABOUT = '我是这个网站的站内小助手——你问我问题，我会在周睿写过的文章、课程资料和百宝箱小工具里帮你找：' +
-    '文章给你卡片、点开直接跳转，资料给你下载按钮、点一下就能存。\n' +
+  var ABOUT = '我是这个网站的站内小助手——你问我问题，我会在周睿写过的文章和百宝箱小工具里帮你找：' +
+    '找到后会给你一张卡片，点开就能直接跳转。\n' +
     '我只依据站里真实写过的内容回答，不会瞎编，找不到就是站里暂时还没有。';
 
   function handle(raw) {
@@ -765,7 +763,7 @@
   if (mask && modal && zsInput && zsBody) {
     var TYPE_ICON = { article: '[[zi:file]]', material: '[[zi:attachment]]', tool: '[[zi:puzzle]]' };
     var TYPE_NAME = { article: '文章', material: '资料', tool: '小工具' };
-    var EMPTY_CHIPS = ['摩擦圆', 'VPN 原理', '报税', '高微讲义', '小游戏'];
+    var EMPTY_CHIPS = ['摩擦圆', 'VPN 原理', '报税', '洗衣机清洁', '小游戏'];
     var curHits = [];
     var selIdx = -1;
     var lastQuery = '';
@@ -776,7 +774,7 @@
       var wrap = document.createElement('div');
       wrap.className = 'zs-empty';
       wrap.innerHTML = '<span class="zs-empty-strong">站内全局搜索</span><br>'
-        + '搜文章、课程资料、百宝箱小工具——试试这些：';
+        + '搜文章和百宝箱小工具——试试这些：';
       var chips = document.createElement('div');
       chips.className = 'zs-chip-row';
       EMPTY_CHIPS.forEach(function (c) {

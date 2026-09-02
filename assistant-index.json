@@ -102,7 +102,7 @@ layout: null
 
   {%- comment -%} English academic homepage —— 站点根 /，写给同行/招聘方看的 CV 式页面。
   内容相对稳定，硬编码进索引比让 Liquid 去解析 index.html 的 <style>/<script> 块更稳。
-  改动 index.html 的研究/教学/教育/笔记段落时，记得回来同步这里。{%- endcomment -%}
+  改动 index.html 的研究、教学或教育段落时，记得回来同步这里。{%- endcomment -%}
   {
     "title"   : "Rui Zhou — PhD Student in Economics, Penn State (English homepage)",
     "url"     : "{{ site.baseurl }}/",
@@ -110,7 +110,7 @@ layout: null
     "type"    : "article",
     "download": "",
     "summary" : "Rui Zhou (周睿) — first-year Economics PhD at Penn State. Research: Behavioral Economics & Microeconomic Theory.",
-    "keywords": "Rui Zhou 周睿 Zhou Rui Penn State PSU economics PhD behavioral microeconomic theory Peking University 北大 CV resume English homepage about me research papers working paper teaching TA lecture notes academic 学术 个人主页 简介",
+    "keywords": "Rui Zhou 周睿 Zhou Rui Penn State PSU economics PhD behavioral microeconomic theory Peking University 北大 CV resume English homepage about me research papers working paper teaching TA academic 学术 个人主页 简介",
     "date"    : ""
   },
   {

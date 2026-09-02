@@ -424,7 +424,6 @@ body_class: acc-page
       if (/\/research\//.test(u)) return { name: '科研妙招', color: '#1e3a5f' };
       if (/\/life\//.test(u)) return { name: '生活攻略', color: '#5d8a6b' };
       if (/\/essays\//.test(u)) return { name: '随笔漫谈', color: '#8a6d9c' };
-      if (/\/notes\/|\/files\//.test(u)) return { name: '学习资料', color: '#c0912f' };
       return null;
     }
     function catMetaHtml(it) {
@@ -1132,7 +1131,7 @@ body_class: acc-page
       settingsEl.innerHTML =
         '<div class="acc-set-row">' +
           '<div class="acc-set-info"><div class="acc-set-t">离线内容库</div>' +
-            '<div class="acc-set-d">管理保存到本地的文章 / 游戏 / 讲义——看占用、更新、删除，飞机 / 没网时随时打开。</div></div>' +
+            '<div class="acc-set-d">管理保存到本地的文章和游戏——看占用、更新、删除，飞机 / 没网时随时打开。</div></div>' +
           '<a class="acc-tool-btn" href="/account/offline/" style="text-decoration:none;">打开</a>' +
         '</div>' +
         '<div class="acc-set-row">' +

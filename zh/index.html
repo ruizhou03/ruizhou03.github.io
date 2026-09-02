@@ -2,13 +2,11 @@
 ---
 {%- assign valid_notes = "" | split: "" -%}
 {%- assign total = 0 -%}
-{%- assign notes_count = 0 -%}
 {%- for n in site.notes -%}
   {%- assign _sec_hidden = false -%}
   {%- if n.main_category and site.data.visibility.sections contains n.main_category -%}{%- assign _sec_hidden = true -%}{%- endif -%}
   {%- if n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true and n.main_category != '站务公告' -%}{%- assign total = total | plus: 1 -%}{%- endif -%}
   {%- if n.date and n.published != false and n.hidden != true and n.trashed != true and _sec_hidden != true and n.main_category != '站务公告' -%}{%- assign valid_notes = valid_notes | push: n -%}{%- endif -%}
-  {%- if n.discipline -%}{%- assign notes_count = notes_count | plus: 1 -%}{%- endif -%}
 {%- endfor -%}
 {%- assign all_content = valid_notes | sort: "date" | reverse -%}
 {%- comment -%} 首页③精选：手动 spotlight 标记驱动，自适应 0–4 张；hot 已解耦不再参与 {%- endcomment -%}
@@ -33,12 +31,12 @@
     gtag('config', 'G-L6TCM0XFJ9');
   </script>
   <title>锆铌 · Zircon</title>
-  <meta name="description" content="锆铌——硬核课程讲义、科研心得、生活攻略，和五十多件亲手做的小工具，都排得像一本书。">
+  <meta name="description" content="锆铌——科研心得、生活攻略、随笔漫谈，和五十多件亲手做的小工具，都排得像一本书。">
   <meta name="author" content="周睿 Rui Zhou">
   <link rel="canonical" href="https://ruizhou03.com/zh/">
   <meta property="og:type" content="website">
   <meta property="og:title" content="锆铌 · Zircon">
-  <meta property="og:description" content="锆铌——硬核课程讲义、科研心得、生活攻略，和五十多件亲手做的小工具，都排得像一本书。">
+  <meta property="og:description" content="锆铌——科研心得、生活攻略、随笔漫谈，和五十多件亲手做的小工具，都排得像一本书。">
   <meta property="og:url" content="https://ruizhou03.com/zh/">
   <meta property="og:image" content="https://ruizhou03.com/assets/share/share-default.png">
   <meta property="og:locale" content="zh_CN">
@@ -334,7 +332,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
 .pills i{ color:var(--gold); font-style:normal; margin:0 .5rem; }
 
 /* connected gold-keyline bento */
-.bento{ display:grid; grid-template-columns:1.42fr 1fr 1fr; grid-template-rows:1fr 1fr;
+.bento{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(2,1fr);
   gap:1px; background:var(--gl-1); border:1px solid var(--gl-1); border-radius:var(--radius-lg); overflow:hidden; }
 .cell{ background:var(--card); position:relative; display:flex; flex-direction:column; padding:clamp(1rem,2vw,1.7rem); transition:background .3s; }
 .cell:hover{ background:var(--bg-warm); }
@@ -364,7 +362,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
 .flag__go{ font-family:var(--font-display); font-size:.9rem; letter-spacing:.2em; text-transform:uppercase; color:var(--gold); }
 
 /* stats strip */
-.stats{ display:grid; grid-template-columns:repeat(3,1fr); align-items:center; border-top:1px solid var(--gl-1); padding-top:clamp(10px,1.6vh,18px); }
+.stats{ display:grid; grid-template-columns:repeat(2,1fr); align-items:center; border-top:1px solid var(--gl-1); padding-top:clamp(10px,1.6vh,18px); }
 .stat{ display:flex; align-items:baseline; gap:.6rem; padding:0 clamp(.6rem,1.5vw,1.4rem); }
 .stat:first-child{ padding-left:0; }
 .stat + .stat{ border-left:1px solid var(--gl-2); }
@@ -565,7 +563,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
           <h1 class="wordmark">锆铌</h1>
           <p class="latin"><span class="w">Zircon</span><span class="t" aria-hidden="true"></span><span class="e num-r">MMXXVI</span></p>
           <div class="rule"><span class="gem"></span><span class="line"></span></div>
-          <p class="lead">一个<b>永不过期</b>的地方——硬核讲义、科研心得、生活折腾，和五十多件亲手做的小工具，都排得像一本书。</p>
+          <p class="lead">一个<b>永不过期</b>的地方——科研心得、生活折腾、随笔漫谈，和五十多件亲手做的小工具，都排得像一本书。</p>
         </div>
 
         <a class="scrollhint" href="#p2"><span class="arw">↓</span>下滑翻页</a>
@@ -576,30 +574,19 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
   </section>
 
   <!-- ============ PAGE 2 — collection bento ============ -->
-  <section class="page" id="p2" aria-label="五大板块">
+  <section class="page" id="p2" aria-label="四大板块">
     <div class="wrap">
       <header class="s-head">
         <div>
           <span class="kicker">馆藏 · Collections</span>
-          <h2 class="s-title">五大板块</h2>
+          <h2 class="s-title">四大板块</h2>
         </div>
-        <p class="pills">永不过期<i>·</i>全文搜索<i>·</i>学习资料可下载<i>·</i>篇篇有评论区</p>
+        <p class="pills">永不过期<i>·</i>全文搜索<i>·</i>持续更新<i>·</i>篇篇有评论区</p>
       </header>
 
       <div class="bento">
-        <a class="cell cell--flag" href="/notes/">
-          <div class="flag__media"><img src="{{ '/files/zh/images/portrait-boya.jpg' | relative_url }}" alt="北大未名湖与博雅塔"></div>
-          <div class="flag__key"></div>
-          <div class="flag__body">
-            <span class="flag__num">I · 馆藏之首</span>
-            <h3 class="flag__name">学习资料</h3>
-            <p class="flag__desc">硬核课程笔记与自写 LaTeX 讲义，排版工整、可直接下载。</p>
-            <div class="flag__meta"><span class="flag__count"><b>{{ notes_count }}</b> 份讲义</span><span class="flag__go">进入书库 →</span></div>
-          </div>
-        </a>
-
         <a class="cell" href="/research/"{% if site.data.visibility.sections contains '科研妙招' %} data-hidden="true"{% endif %}>
-          <span class="cell__num">II</span>
+          <span class="cell__num">I</span>
           <span class="cell__mark">[[zi:chart:seal]]</span>
           <h3 class="cell__name">科研妙招</h3>
           <p class="cell__desc">一个 PhD 的科研工具与踩坑心得。</p>
@@ -607,7 +594,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
         </a>
 
         <a class="cell" href="/life/"{% if site.data.visibility.sections contains '生活攻略' %} data-hidden="true"{% endif %}>
-          <span class="cell__num">III</span>
+          <span class="cell__num">II</span>
           <span class="cell__mark">[[zi:book:seal]]</span>
           <h3 class="cell__name">生活攻略</h3>
           <p class="cell__desc">把日子过明白的循证攻略。</p>
@@ -615,7 +602,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
         </a>
 
         <a class="cell" href="/essays/"{% if site.data.visibility.sections contains '随笔漫谈' %} data-hidden="true"{% endif %}>
-          <span class="cell__num">IV</span>
+          <span class="cell__num">III</span>
           <span class="cell__mark">[[zi:pencil:seal]]</span>
           <h3 class="cell__name">随笔漫谈</h3>
           <p class="cell__desc">想到哪写到哪的碎念。</p>
@@ -623,7 +610,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
         </a>
 
         <a class="cell" href="/toolbox/"{% if site.data.visibility.sections contains '百宝箱' %} data-hidden="true"{% endif %}>
-          <span class="cell__num">V</span>
+          <span class="cell__num">IV</span>
           <span class="cell__mark">[[zi:toolbox:seal]]</span>
           <h3 class="cell__name">百宝箱</h3>
           <p class="cell__desc">亲手做的工具与小游戏。</p>
@@ -633,7 +620,6 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
       </div>
 
       <div class="stats">
-        <div class="stat"><b class="tnum">{{ notes_count }}</b><span>份课程资料<br>与讲义</span></div>
         <div class="stat"><b class="tnum">{{ tool_count }}</b><span>件原创<br>工具</span></div>
         <div class="stat"><b class="tnum">{{ total }}</b><span>份内容<br>持续增长</span></div>
       </div>
@@ -647,7 +633,6 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
       <!-- N=0（无精选）时用的单一大标 -->
       <div class="solo-head zone-head">
         <span class="dia"></span><span class="nm">近期更新</span><span class="la">Recent</span><span class="ln"></span>
-        <a class="more" href="/notes/">查看更多 →</a>
       </div>
 
       <div class="latest__grid">
@@ -660,7 +645,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
               <a class="feat" href="{{ _c.url | relative_url }}">
                 <div class="feat__media"><span class="feat__flag">最新</span>
                   <img src="{% if _cimg %}{{ _cimg | relative_url }}{% else %}{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}{% endif %}" alt="{{ _c.title | strip_html | escape }}"></div>
-                <div class="feat__body"><span class="feat__cat">{{ _c.main_category | default: '学习资料' }}</span><h3 class="feat__title">{% include latex-logo.html title=_c.title %}</h3><time class="feat__date">{{ _c.date | date: "%Y/%m/%d" }}</time></div>
+                <div class="feat__body"><span class="feat__cat">{{ _c.main_category | default: '文章' }}</span><h3 class="feat__title">{% include latex-logo.html title=_c.title %}</h3><time class="feat__date">{{ _c.date | date: "%Y/%m/%d" }}</time></div>
               </a>
             {%- else -%}
               {%- for _c in spotlight limit: 4 -%}
@@ -669,7 +654,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
                   <div class="feat__media"><span class="feat__flag">[[zi:sparkle]] 精选</span>
                     {%- if _cimg %}<img src="{{ _cimg | relative_url }}" alt="{{ _c.title | strip_html | escape }}">{% elsif forloop.first %}<img src="{{ '/files/zh/images/portrait-guanghua.jpg' | relative_url }}" alt="{{ _c.title | strip_html | escape }}">{% endif -%}
                   </div>
-                  <div class="feat__body"><span class="feat__cat">{{ _c.main_category | default: '学习资料' }}</span><h3 class="feat__title">{% include latex-logo.html title=_c.title %}</h3><time class="feat__date">{{ _c.date | date: "%Y/%m/%d" }}</time></div>
+                  <div class="feat__body"><span class="feat__cat">{{ _c.main_category | default: '文章' }}</span><h3 class="feat__title">{% include latex-logo.html title=_c.title %}</h3><time class="feat__date">{{ _c.date | date: "%Y/%m/%d" }}</time></div>
                 </a>
               {%- endfor -%}
             {%- endif -%}
@@ -677,7 +662,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
         </div>
 
         <div class="feed-col">
-          <div class="zone-head"><span class="dia"></span><span class="nm">近期更新</span><span class="la">Recent</span><span class="ln"></span><a class="more" href="/notes/">查看更多 →</a></div>
+          <div class="zone-head"><span class="dia"></span><span class="nm">近期更新</span><span class="la">Recent</span><span class="ln"></span></div>
           <ol class="feed">
             {%- assign _limit = 6 -%}{%- assign _shown = 0 -%}
             {%- for post in all_content -%}
@@ -686,7 +671,7 @@ h1,h2,h3,p{ margin:0; text-wrap:balance; }
               {%- if shown_urls contains _pu -%}{%- continue -%}{%- endif -%}
               <li><a href="{{ post.url | relative_url }}">
                 <p class="fd__title">{% include latex-logo.html title=post.title %}</p>
-                <div class="fd__meta"><span class="fd__cat">{{ post.main_category | default: '学习资料' }}</span><time class="fd__date tnum">{{ post.date | date: "%Y/%m/%d" }}</time></div>
+                <div class="fd__meta"><span class="fd__cat">{{ post.main_category | default: '文章' }}</span><time class="fd__date tnum">{{ post.date | date: "%Y/%m/%d" }}</time></div>
               </a></li>
               {%- assign _shown = _shown | plus: 1 -%}
             {%- endfor -%}

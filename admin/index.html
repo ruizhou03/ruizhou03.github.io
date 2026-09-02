@@ -605,7 +605,7 @@ body_class: adm-page
   // 站点固定落地/板块页：不在 search.json，但都是活页面，给友好名 + 视为可链接。
   var KNOWN = {
     '/': '网站首页（EN）', '/zh': '中文首页', '/en': '英文首页',
-    '/toolbox': '百宝箱', '/notes': '学习资料', '/life': '生活攻略',
+    '/toolbox': '百宝箱', '/life': '生活攻略',
     '/research': '科研妙招', '/essays': '随笔漫谈',
     '/account': '我的主页', '/admin': '管理后台', '/search': '搜索'
   };
@@ -614,7 +614,7 @@ body_class: adm-page
   var DEV = { desktop:'桌面', mobile:'手机', tablet:'平板' };
 
   var KNOWN_TYPE = { '/': 'home', '/zh': 'home', '/en': 'home',
-    '/toolbox': 'section', '/notes': 'section', '/life': 'section',
+    '/toolbox': 'section', '/life': 'section',
     '/research': 'section', '/essays': 'section', '/account': 'page', '/admin': 'page', '/search': 'page' };
   var TYPE_TAG = { home: '首页', section: '栏目', tool: '工具', page: '页面' };  // article → 无标签
   function typeTag(type) {

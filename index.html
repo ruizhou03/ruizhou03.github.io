@@ -279,29 +279,6 @@
     .teaching-details .semester { font-size: 0.85rem; color: var(--color-light); margin-left: 0.5rem; }
     .teaching-details .instructor { font-size: 0.85rem; color: var(--color-muted); display: block; margin-top: 0.15rem; }
 
-    /* Notes */
-    .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
-    .note-card { padding: 1.5rem; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-card); transition: border-color 0.3s, box-shadow 0.3s; }
-    .note-card:hover { border-color: var(--color-highlight); box-shadow: 0 2px 12px var(--color-card-shadow); }
-    .note-card h3 { font-family: var(--font-display); font-size: 1.08rem; font-weight: 600; color: var(--color-ink); margin-bottom: 0.4rem; }
-    .note-card h3 a { color: var(--color-ink); }
-    .note-card h3 a:hover { color: var(--color-accent); }
-    .note-card .note-meta { font-size: 0.82rem; color: var(--color-light); margin-bottom: 0.6rem; }
-    .note-chapters {
-      list-style: none;
-      max-height: 16rem;
-      overflow-y: auto;
-      padding-right: 0.4rem;
-      border-top: 1px solid var(--color-border);
-      border-bottom: 1px solid var(--color-border);
-      margin: 0.4rem 0;
-    }
-    .note-chapters li { font-size: 0.85rem; color: var(--color-text); padding: 0.2rem 0; }
-    .note-chapters li a { color: var(--color-text); border-bottom: 1px solid transparent; }
-    .note-chapters li a:hover { color: var(--color-accent); border-bottom-color: var(--color-accent); }
-    .note-toggle { background: none; border: none; cursor: pointer; font-size: 0.82rem; color: var(--color-accent); font-weight: 500; padding: 0.3rem 0; font-family: var(--font-body); }
-    .note-toggle:hover { color: var(--color-accent-light); }
-
     /* Misc */
     .misc-text { font-size: 0.95rem; color: var(--color-text); line-height: 1.8; margin-bottom: 0.8rem; }
     .misc-text a.misc-link { color: var(--color-accent-light); border-bottom: 1px solid var(--color-accent-light); font-weight: 500; transition: color 0.2s, border-color 0.2s; }
@@ -412,7 +389,6 @@
       .pronunciation { justify-content: center; }
       .hero-links { justify-content: center; }
       .edu-item, .teaching-item { grid-template-columns: 1fr; gap: 0.2rem; }
-      .notes-grid { grid-template-columns: 1fr; }
       section { padding: 1.75rem 1.5rem; }
       footer { flex-direction: column; text-align: center; }
       .nav-links { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: var(--color-nav-bg-solid); backdrop-filter: blur(12px); padding: 1rem 2rem; gap: 1rem; border-bottom: 1px solid var(--color-border); }
@@ -451,7 +427,6 @@
       <li><a href="#about">About</a></li>
       <li><a href="#research">Research</a></li>
       <li><a href="#teaching">Teaching</a></li>
-      <li><a href="#notes">Notes</a></li>
       <li><a href="#misc">Misc</a></li>
     </ul>
 
@@ -587,71 +562,6 @@
     </div>
   </section>
 
-  <div class="divider"><hr></div>
-
-  <!-- LECTURE NOTES -->
-  <section id="notes" class="fade-in">
-    <h2 class="section-title">Lecture Notes</h2>
-    <p class="section-subtitle">Notes from courses I have taken. Feel free to use them — corrections and suggestions are welcome.</p>
-
-    <div class="notes-grid">
-      <div class="note-card">
-        <h3>Advanced Microeconomics Theory I</h3>
-        <div class="note-meta">Peking University · Fall 2023</div>
-        <div style="margin-bottom:0.5rem;"><a href="/files/adv-micro-pku/adv-micro-pku-2023.pdf" style="font-size:0.85rem;font-weight:500;">[[zi:download]] Download full notes (PDF)</a></div>
-        <ul class="note-chapters" id="chapters-micro-pku" style="display:none;">
-          <li><a href="/files/adv-micro-pku/chapters/ch1.pdf">Ch 1: Choice Theory</a></li>
-          <li><a href="/files/adv-micro-pku/chapters/ch2.pdf">Ch 2: Consumer Theory</a></li>
-          <li><a href="/files/adv-micro-pku/chapters/ch3.pdf">Ch 3: Production Theory</a></li>
-          <li><a href="/files/adv-micro-pku/chapters/ch4.pdf">Ch 4: Comparative Statics</a></li>
-          <li><a href="/files/adv-micro-pku/chapters/ch5.pdf">Ch 5: Uncertainty</a></li>
-          <li><a href="/files/adv-micro-pku/chapters/ch6.pdf">Ch 6: General Equilibrium</a></li>
-        </ul>
-        <button class="note-toggle" onclick="toggleChapters('micro-pku',this)">Show chapters +</button>
-      </div>
-
-      <div class="note-card">
-        <h3>Advanced Microeconomics Theory II</h3>
-        <div class="note-meta">Penn State University · Spring 2026</div>
-        <div style="margin-bottom:0.5rem;"><a href="/files/adv-micro-psu/adv-micro-psu-lecture-notes.pdf" style="font-size:0.85rem;font-weight:500;">[[zi:download]] Download full notes (PDF)</a></div>
-        <ul class="note-chapters" id="chapters-micro-psu" style="display:none;">
-          <li><a href="/files/adv-micro-psu/chapters/ch1.pdf">Ch 1: Game Representation</a></li>
-          <li><a href="/files/adv-micro-psu/chapters/ch2.pdf">Ch 2: Nash Equilibrium</a></li>
-          <li><a href="/files/adv-micro-psu/chapters/ch3.pdf">Ch 3: Bargaining</a></li>
-          <li><a href="/files/adv-micro-psu/chapters/ch4.pdf">Ch 4: Auctions</a></li>
-          <li><a href="/files/adv-micro-psu/chapters/ch5.pdf">Ch 5: Mechanism Design</a></li>
-          <li><a href="/files/adv-micro-psu/chapters/ch6.pdf">Ch 6: Matching</a></li>
-          <li><a href="/files/adv-micro-psu/chapters/ch7.pdf">Ch 7: Common Knowledge</a></li>
-          <li><a href="/files/adv-micro-psu/chapters/ch8.pdf">Ch 8: Repeated Games</a></li>
-          <li><a href="/files/adv-micro-psu/chapters/ch9.pdf">Ch 9: Perfect Bayesian Equilibrium</a></li>
-        </ul>
-        <button class="note-toggle" onclick="toggleChapters('micro-psu',this)">Show chapters +</button>
-      </div>
-
-      <div class="note-card">
-        <h3>Advanced Macroeconomics</h3>
-        <div class="note-meta">Penn State University · Spring 2026 · Student study edition</div>
-        <div style="margin-bottom:0.5rem;"><a href="/files/adv-macro-psu/Macro.pdf" style="font-size:0.85rem;font-weight:500;">[[zi:download]] Download full notes (PDF)</a></div>
-        <ul class="note-chapters" id="chapters-macro-psu" style="display:none;">
-          <li><a href="/files/adv-macro-psu/chapters/ch1.pdf">Ch 1: Complete Markets under Uncertainty</a></li>
-          <li><a href="/files/adv-macro-psu/chapters/ch2.pdf">Ch 2: Exogenously Incomplete Markets</a></li>
-          <li><a href="/files/adv-macro-psu/chapters/ch3.pdf">Ch 3: Endogenously Incomplete Markets</a></li>
-          <li><a href="/files/adv-macro-psu/chapters/ch4.pdf">Ch 4: Growth and Development Accounting</a></li>
-          <li><a href="/files/adv-macro-psu/chapters/ch5.pdf">Ch 5: The Solow Growth Model</a></li>
-          <li><a href="/files/adv-macro-psu/chapters/ch6.pdf">Ch 6: The Neoclassical Growth Model</a></li>
-          <li><a href="/files/adv-macro-psu/chapters/ch7.pdf">Ch 7: Neoclassical Growth vs. Data</a></li>
-          <li><a href="/files/adv-macro-psu/chapters/ch8.pdf">Ch 8: Real Business Cycles</a></li>
-          <li><a href="/files/adv-macro-psu/chapters/ch9.pdf">Ch 9: Business Cycle Accounting</a></li>
-          <li><a href="/files/adv-macro-psu/chapters/ch10.pdf">Ch 10: Consumption and Saving</a></li>
-          <li><a href="/files/adv-macro-psu/chapters/ch11.pdf">Ch 11: Computation of the Aiyagari Model</a></li>
-        </ul>
-        <button class="note-toggle" onclick="toggleChapters('macro-psu',this)">Show chapters +</button>
-      </div>
-    </div>
-  </section>
-
-  <div class="divider"><hr></div>
-
   <!-- MISCELLANEOUS -->
   <section id="misc" class="fade-in">
     <h2 class="section-title">Miscellaneous</h2>
@@ -664,7 +574,7 @@
     </p>
     <p class="misc-text">
       I also maintain a <a href="/zh/" class="misc-link">Chinese blog</a>
-      where I share course notes, study tips, and personal reflections.
+      where I share personal essays, research workflows, and practical guides.
     </p>
 
   </section>
@@ -768,11 +678,6 @@
       entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
     }, { threshold: 0.12 });
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-    function toggleChapters(id, btn) {
-      const el = document.getElementById('chapters-' + id);
-      if (el.style.display === 'none') { el.style.display = 'block'; btn.textContent = 'Hide chapters −'; }
-      else { el.style.display = 'none'; btn.textContent = 'Show chapters +'; }
-    }
     // Gallery: auto-scrolling marquee that yields to user input and resumes after idle.
     (function initGalleryMarquee() {
       const marquee = document.querySelector('.gallery-marquee');

@@ -1,6 +1,6 @@
 # Site settings
 title: 周睿的中文博客 | Rui Zhou
-description: 个人随笔与课程笔记存档
+description: 个人随笔、科研心得与生活攻略
 url: "https://ruizhou03.com"
 baseurl: ""
 
@@ -51,6 +51,75 @@ exclude:
   - audio/
   # 本地保留但不公开的版权审查归档；旧站点路径必须真实 404
   - files/_archive/
+  # 学习资料长期退出公开站：保留源文件与现有目录结构，但不生成页面、索引或附件。
+  - notes/
+  - _notes/study/
+  - _notes/course-reviews/
+  - _notes/toefl/
+  - _notes/gre/
+  - _notes/tutoring/
+  - files/adv-macro-psu/
+  - files/adv-metrics-pku/
+  - files/adv-metrics-psu/
+  - files/adv-micro-pku/
+  - files/adv-micro-psu/
+  - files/causal-id/
+  - files/causal-inference/
+  - files/china-econ/
+  - files/china-hist/
+  - files/corp-fin/
+  - files/econ-math-toolkit/
+  - files/game-theory/
+  - files/gre/
+  - files/interm-econometrics/
+  - files/interm-macro/
+  - files/interm-metrics/
+  - files/linear-algebra/
+  - files/mao-thought/
+  - files/marxism/
+  - files/monetary-econ/
+  - files/or/
+  - files/psy-stat-I/
+  - files/psy-stat-II/
+  - files/public-econ/
+  - files/real-anal/
+  - files/study/
+  - files/tennis/
+  - files/tutoring/
+  - files/images/academic-english-review-2023/
+  - files/images/behavioral-econ-review-2023/
+  - files/images/causal-id-review-2023/
+  - files/images/corp-fin-review-2023/
+  - files/images/game-theory-review-2023/
+  - files/images/gre-exam-ui-notebook/
+  - files/images/gre-first-attempt/
+  - files/images/gre-issue-pool/
+  - files/images/gre-mindset/
+  - files/images/gre-quant-errors/
+  - files/images/gre-verbal-errors/
+  - files/images/gre-vocabulary/
+  - files/images/interm-macro-review-2023/
+  - files/images/interm-metrics-review-2023/
+  - files/images/mao-final-highlights-2023/
+  - files/images/mao-thought-review-2023/
+  - files/images/marketing-review-2023/
+  - files/images/marxism-past-essence/
+  - files/images/marxism-principles/
+  - files/images/monetary-econ-review-2023/
+  - files/images/organizational-mgmt-review-2022/
+  - files/images/psy-stat-1-review-2022/
+  - files/images/psy-stat-2-review-2023/
+  - files/images/python-ds-review-2023/
+  - files/images/table-tennis-review-2022/
+  - files/images/taichi-review-2023/
+  - files/images/ted-speaking-review-2022/
+  - files/images/tennis-review-2023/
+  - files/images/toefl-first-attempt/
+  - files/images/toefl-reading/
+  - files/images/toefl-second-attempt/
+  - files/images/toefl-speaking-template/
+  - files/images/toefl-templates-2023/
+  - files/images/toefl-writing/
   # 网站后端：urge / comments / mcp 三个 fly app 的本机工作副本，独立 git，不进 Jekyll 构建
   - backends/
   # 已退役付费系统的遗留私有源：继续保持 gitignore + 构建排除，绝不进站
