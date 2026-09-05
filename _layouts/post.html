@@ -1239,7 +1239,10 @@ layout: default
   })();
   {% endif %}
 
-  // 🚀 全局公式渲染：KaTeX 一就绪就立刻渲染（快网不再有 800ms 生 $ 闪烁），
+</script>
+
+<script>
+  // 正文公式独立初始化，不等待评论模块；KaTeX 一就绪就立刻渲染。
   // 慢网 / CDN 被墙时轮询重试 ~10s（不再像以前那样一次失败就永久不渲染）
   (function () {
     function renderMath() {

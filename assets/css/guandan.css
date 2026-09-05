@@ -1950,6 +1950,33 @@
       linear-gradient(160deg, var(--gd-felt-1) 0%, var(--gd-felt-2) 60%, var(--gd-felt-3) 100%);
     -webkit-backdrop-filter: none; backdrop-filter: none;
   }
+  /* 准备界面独立使用视口，避免被居中的短牌桌裁切。 */
+  body.gd-game-fullscreen #gdPgo {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding:
+      max(3.5rem, env(safe-area-inset-top, 0px))
+      max(1rem, env(safe-area-inset-right, 0px))
+      max(1rem, env(safe-area-inset-bottom, 0px))
+      max(1rem, env(safe-area-inset-left, 0px));
+  }
+  body.gd-game-fullscreen #gdPgo > .gs-pgo-view {
+    flex: 0 0 auto;
+    margin-block: auto;
+  }
+  /* 初次准备时角落工具固定在屏幕边缘，标题由菜单本身呈现。 */
+  body.gd-game-fullscreen .guandan-wrap.gd-view-setup > header {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 31;
+    margin: 0;
+  }
+  body.gd-game-fullscreen .guandan-wrap.gd-view-setup > header h1 {
+    visibility: hidden;
+  }
   /* 不再用一张浅白卡片把设置框起来：内容直接坐在铺满全屏的羊皮纸背景上，
      只保留一个居中可读的窄列宽度，去掉底色 / 边框 / 圆角 / 阴影那个矩形。 */
   body.gd-game-fullscreen .gs-pgo-view {
