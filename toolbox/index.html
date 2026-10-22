@@ -2,307 +2,123 @@
 layout: default
 title: "生活百宝箱 | Rui Zhou"
 permalink: /toolbox/
-body_class: toolbox-wide
+body_class: mk-cat
 ---
-
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 <style>
-  body.toolbox-wide > main { max-width: none; padding: 0; }
-  .toolbox-page { max-width: 1220px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
-  .toolbox-shell {
-    display: grid;
-    grid-template-columns: 150px minmax(0, 1fr);
-    column-gap: 2rem;
-    align-items: start;
+  /* 百宝箱专用：多宝格柜子 + 左侧格目 */
+  .tb{ display:grid; grid-template-columns:150px minmax(0,1fr); gap:clamp(24px,4vw,48px); align-items:start; padding-top:8px; }
+  .tool-map{ position:sticky; top:calc(var(--site-nav-height,56px) + 24px); padding-top:40px; }
+  .tool-map .k{ display:block; margin-bottom:10px; }
+  .tool-map a{ display:flex; justify-content:space-between; gap:12px; padding:8px 0; font-size:.88rem; letter-spacing:.08em; color:var(--mk-muted); border-bottom:1px dotted var(--mk-hair2); transition:color .2s; }
+  .tool-map a span:last-child{ font-family:var(--mk-latin); font-weight:500; font-size:.82rem; color:var(--mk-faint); }
+  .tool-map a:hover, .tool-map a.map-active{ color:var(--mk-seal); }
+  .tool-map a.map-dim{ opacity:.35; }
+  .tool-sections{ display:flex; flex-direction:column; gap:28px; padding-top:40px; }
+  .tool-section{ scroll-margin-top:calc(var(--site-nav-height,56px) + 20px); }
+  .tool-section.section-filtered{ display:none; }
+  .cab{ border:1px solid var(--mk-line); background:var(--mk-hair2); display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; }
+  .cab .head{ background:var(--mk-cell); padding:18px 16px; display:flex; flex-direction:column; justify-content:space-between; gap:10px; min-height:150px; }
+  .cab .head .nm{ font-family:var(--mk-serif); font-weight:700; font-size:1.3rem; line-height:1.3; letter-spacing:.16em; color:var(--mk-ink); margin:0; }
+  .cab .head .no{ font-family:var(--mk-latin); font-weight:600; font-size:.74rem; letter-spacing:.3em; color:var(--mk-seal); }
+  .cab .head .cnt{ font-family:var(--mk-latin); font-weight:500; font-size:.78rem; letter-spacing:.2em; color:var(--mk-muted); }
+  .tool-card{ position:relative; background:var(--mk-paper2); padding:18px 16px 16px; display:flex; flex-direction:column; gap:10px; min-height:150px; text-decoration:none; transition:background .25s; }
+  .tool-card:hover{ background:var(--mk-panel); }
+  .tool-card.tool-filtered{ display:none; }
+  .tool-card .ic{ width:44px; height:44px; display:block; border:1px solid var(--mk-hair2); object-fit:cover; background:#f3eee3; }
+  .tool-card .ic-txt{ width:44px; height:44px; display:grid; place-items:center; border:1px solid var(--mk-hair2); font-size:1.3rem; }
+  .tool-card .nm{ font-family:var(--mk-serif); font-weight:600; font-size:1.05rem; line-height:1.3; color:var(--mk-ink); }
+  .tool-card .tg{ font-size:.8rem; line-height:1.7; color:var(--mk-muted); }
+  .tool-card .st{ position:absolute; top:14px; right:14px; font-family:var(--mk-latin); font-weight:600; font-size:.66rem; letter-spacing:.3em; color:var(--mk-seal); }
+  .tool-card.coming-soon{ opacity:.6; }
+  .tool-card.coming-soon .st{ color:var(--mk-faint); }
+  .tool-empty{ padding:40px 0; font-size:.95rem; color:var(--mk-muted); letter-spacing:.1em; }
+  .mk-cat .bulk-offline{ margin-top:36px !important; }
+  @media (max-width:900px){
+    .tb{ grid-template-columns:1fr; gap:14px; }
+    .tool-map{ position:static; padding-top:22px; display:flex; gap:14px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+    .tool-map::-webkit-scrollbar{ display:none; }
+    .tool-map .k{ display:none; }
+    .tool-map a{ flex:none; border:1px solid var(--mk-hair2); border-bottom:1px solid var(--mk-hair2); padding:6px 12px; }
+    .tool-map a span:last-child{ display:none; }
+    .tool-sections{ padding-top:18px; }
+    .cab{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .cab .head, .tool-card{ min-height:120px; }
   }
-  .toolbox-content { min-width: 0; }
-
-  /* 左侧工具地图：沿用学习资料的圆点轨道语言。 */
-  .tool-map {
-    display: block;
-    position: sticky;
-    top: 88px;
-    align-self: start;
-    border: none;
-    padding-top: 0.1rem;
-  }
-  .tool-map a {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.55rem;
-    padding: 0.5rem 18px 0.5rem 0;
-    color: var(--color-muted);
-    font-family: 'Cormorant Garamond', var(--font-display);
-    font-size: 0.82rem;
-    letter-spacing: 0.08em;
-    text-decoration: none;
-    white-space: nowrap;
-    transition: color 0.25s;
-  }
-  .tool-map a::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    top: 50%;
-    z-index: 2;
-    box-sizing: border-box;
-    width: 9px;
-    height: 9px;
-    border: 1px solid var(--color-highlight);
-    border-radius: 50%;
-    background: var(--color-bg);
-    transform: translateY(-50%);
-    transition: background 0.2s, box-shadow 0.2s;
-  }
-  .tool-map a:not(:last-child)::before {
-    content: "";
-    position: absolute;
-    right: 3.75px;
-    top: 100%;
-    width: 1.5px;
-    height: 88%;
-    border-radius: 50%;
-    background: rgba(201, 169, 110, 0.5);
-    transform: translateY(-50%);
-    pointer-events: none;
-  }
-  @media (hover: hover) {
-    .tool-map a:not(.map-active):hover { color: var(--color-highlight); }
-    .tool-map a:not(.map-active):hover::after {
-      background: rgba(201, 169, 110, 0.4);
-      box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.12);
-    }
-  }
-  .tool-map a.map-active { color: var(--color-highlight); }
-  .tool-map a.map-active::after {
-    background: var(--color-highlight);
-    box-shadow: 0 0 0 4px rgba(201, 169, 110, 0.22);
-  }
-  .tool-map a.map-dim { opacity: 0.35; }
-
-  .tool-search {
-    position: relative;
-    max-width: 380px;
-    margin: 0 0 1.4rem;
-  }
-  .tool-search::before {
-    content: "";
-    position: absolute;
-    left: 0.82rem;
-    top: 50%;
-    width: 11px;
-    height: 11px;
-    margin-top: -7px;
-    border: 1.5px solid var(--color-light);
-    border-radius: 50%;
-    pointer-events: none;
-  }
-  .tool-search::after {
-    content: "";
-    position: absolute;
-    left: 1.56rem;
-    top: 50%;
-    width: 5px;
-    height: 1.5px;
-    margin-top: 3px;
-    background: var(--color-light);
-    transform: rotate(45deg);
-    pointer-events: none;
-  }
-  .tool-search input {
-    width: 100%;
-    padding: 0.55rem 1rem 0.55rem 2.1rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-pill);
-    outline: none;
-    background: var(--color-bg);
-    color: var(--color-text);
-    font-family: var(--font-body);
-    font-size: 0.92rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .tool-search input:focus {
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.12);
-  }
-
-  .tool-section {
-    scroll-margin-top: 92px;
-    margin: 0 0 2rem;
-  }
-  .tool-section + .tool-section {
-    padding-top: 1.35rem;
-    border-top: 1px dashed var(--color-border);
-  }
-  .tool-section.section-filtered { display: none; }
-  .tool-section-title {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    margin: 0 0 0.72rem;
-    color: var(--color-ink);
-    font-family: var(--font-display);
-    font-size: 1.28rem;
-    line-height: 1.3;
-  }
-  .tool-section-title .zi-icon { color: var(--color-highlight); }
-  .tool-section-count {
-    margin-left: auto;
-    color: var(--color-light);
-    font-family: var(--font-body);
-    font-size: 0.74rem;
-    font-weight: 400;
-    font-variant-numeric: tabular-nums;
-  }
-  .tool-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 0.7rem;
-    margin: 0;
-  }
-  .tool-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0.95rem 0.9rem 0.9rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: linear-gradient(180deg, var(--color-bg-warm), var(--color-bg));
-    box-shadow: var(--shadow-1);
-    text-align: center;
-    text-decoration: none;
-    transition: border-color var(--dur-base) var(--ease), transform var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
-  }
-  .tool-card.live { cursor: pointer; }
-  @media (hover: hover) {
-    .tool-card.live:hover {
-      border-color: var(--color-accent);
-      box-shadow: var(--shadow-2);
-      transform: translateY(-2px);
-    }
-  }
-  .tool-card.coming-soon { cursor: default; opacity: 0.6; }
-  .tool-card.tool-filtered { display: none !important; }
-  .tool-icon {
-    margin-bottom: 0.45rem;
-    font-size: 1.55rem;
-    line-height: 1;
-  }
-  .tool-icon img {
-    display: block;
-    width: 1.75rem;
-    height: 1.75rem;
-    margin: 0 auto;
-    border-radius: 0.4rem;
-  }
-  .tool-name {
-    margin: 0;
-    color: var(--color-ink);
-    font-family: var(--font-display);
-    font-size: 1rem;
-    font-weight: 600;
-    line-height: 1.3;
-  }
-  .tool-card.coming-soon .tool-name { color: var(--color-muted); }
-  .tool-status {
-    margin-top: 0.5rem;
-    color: var(--color-light);
-    font-size: 0.7rem;
-    letter-spacing: 0.04em;
-  }
-  .tool-empty {
-    margin: 2.2rem 0;
-    color: var(--color-light);
-    text-align: center;
-  }
-
-  @media (max-width: 900px) {
-    .toolbox-page { padding: 1.4rem 1rem 3rem; }
-    .toolbox-shell { display: block; }
-    .tool-map {
-      top: 58px;
-      z-index: 30;
-      display: flex;
-      gap: 0.4rem;
-      margin: 0 -0.2rem 1.25rem;
-      padding: 0.55rem 0.2rem;
-      overflow-x: auto;
-      background: var(--color-bg);
-      background: color-mix(in srgb, var(--color-bg) 94%, transparent);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      scrollbar-width: none;
-    }
-    .tool-map::-webkit-scrollbar { display: none; }
-    .tool-map a {
-      flex: none;
-      gap: 0.35rem;
-      padding: 0.4rem 0.72rem;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-pill);
-      background: var(--color-bg);
-      font-size: 0.8rem;
-    }
-    .tool-map a::before, .tool-map a::after { display: none; }
-    .tool-map a.map-active {
-      border-color: var(--color-highlight);
-      background: var(--color-bg-warm);
-    }
-    .tool-search { max-width: none; }
-    .tool-section { scroll-margin-top: 118px; }
-  }
-  @media (max-width: 520px) {
-    .toolbox-page { padding-right: 0.75rem; padding-left: 0.75rem; }
-    .tool-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .tool-card, .tool-map a { transition: none; }
-  }
+  @media (max-width:460px){ .cab{ grid-template-columns:1fr; } .cab .head{ min-height:0; flex-direction:row; align-items:baseline; } }
 </style>
+{%- assign live_tools = site.data.toolbox | where: "status", "live" -%}
+{%- assign roman = "I,II,III,IV,V,VI,VII,VIII,IX,X" | split: "," -%}
 
-<article class="toolbox-page">
-  {% include page-hero.html title="生活百宝箱" latin="Toolbox · Handmade Tools" eyebrow="馆藏" center="true" %}
+<article class="mk" data-mk-section="百宝箱">
+  <header class="mk-mast">
+    <div><span class="mk-kick">Toolbox · Handmade</span><h1>百宝箱</h1></div>
+    <div class="r"><span class="mk-cnt">{{ live_tools | size }}<small>件</small></span><span class="mk-seal" aria-label="百宝印">百宝</span></div>
+  </header>
 
-  <div class="toolbox-shell">
-    <nav class="tool-map" aria-label="工具分类地图">
+  <div class="mk-bar">
+    <div class="f" role="navigation" aria-label="类别">
+      <a href="#" data-sub="*" class="on">全部</a>
+      <a href="#" data-group="efficiency,life,music,random-classroom">工具</a>
+      <a href="#" data-group="board,cards,puzzle,arcade,party">小游戏</a>
+    </div>
+    <label class="mk-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input type="search" id="tool-search" aria-label="搜索百宝箱工具" placeholder="在五十多件里找一件"></label>
+  </div>
+
+  <div class="tb">
+    <div class="tool-map" role="navigation" aria-label="工具分类地图">
+      <span class="mk-kick k">格目</span>
       {%- for group in site.data.toolbox_groups -%}
         {%- assign group_tools = site.data.toolbox | where: "group", group.id -%}
-        <a href="#group-{{ group.id }}" data-target="group-{{ group.id }}">{{ group.name }}</a>
+        {%- if group_tools.size > 0 -%}<a href="#group-{{ group.id }}" data-target="group-{{ group.id }}"><span>{{ group.name }}</span><span>{{ group_tools.size }}</span></a>{%- endif -%}
       {%- endfor -%}
-    </nav>
+    </div>
 
-    <div class="toolbox-content">
-      <div class="tool-search">
-        <input type="search" id="tool-search" placeholder="搜工具名称或用途…" aria-label="搜索百宝箱工具">
-      </div>
-
-      <div class="tool-sections">
-        {%- for group in site.data.toolbox_groups -%}
-          {%- assign group_tools = site.data.toolbox | where: "group", group.id -%}
-          {%- if group_tools.size > 0 -%}
-          <section class="tool-section" id="group-{{ group.id }}" data-group="{{ group.id }}">
-            <h2 class="tool-section-title">
-              <span aria-hidden="true">[[zi:{{ group.icon }}]]</span>
-              <span>{{ group.name }}</span>
-              <span class="tool-section-count">{{ group_tools.size }} 款</span>
-            </h2>
-            <div class="tool-grid">
-              {%- for t in group_tools -%}
-                {%- include tool-card.html tool=t -%}
-              {%- endfor -%}
+    <div class="tool-sections">
+      {%- for group in site.data.toolbox_groups -%}
+        {%- assign group_tools = site.data.toolbox | where: "group", group.id -%}
+        {%- if group_tools.size > 0 -%}
+        <section class="tool-section" id="group-{{ group.id }}" data-group="{{ group.id }}">
+          <div class="cab">
+            <div class="head">
+              <span class="no">{{ roman[forloop.index0] }}</span>
+              <h2 class="nm">{{ group.name }}</h2>
+              <span class="cnt"><span class="tool-section-count">{{ group_tools.size }} 款</span></span>
             </div>
-          </section>
-          {%- endif -%}
-        {%- endfor -%}
-      </div>
+            {%- for t in group_tools -%}
+              {%- assign t_hidden = false -%}
+              {%- if site.data.visibility.tools contains t.id -%}{%- assign t_hidden = true -%}{%- endif -%}
+              {%- if site.data.visibility.sections contains '百宝箱' -%}{%- assign t_hidden = true -%}{%- endif -%}
+              {%- if t.status == "coming" -%}
+              <div class="tool-card coming-soon" data-tool-card data-search="{{ t.name | append: ' ' | append: t.tagline | escape }}"{% if t_hidden %} data-hidden="true"{% endif %}>
+                <span class="st">SOON</span>
+                {%- if t.icon contains "/" -%}<img class="ic" src="{{ t.icon | relative_url }}" alt="" loading="lazy">{%- else -%}<span class="ic-txt">{{ t.icon }}</span>{%- endif -%}
+                <span class="nm">{{ t.name }}</span><span class="tg">{{ t.tagline }}</span>
+              </div>
+              {%- else -%}
+              <a class="tool-card live" href="{{ t.url | relative_url }}" data-tool-card data-search="{{ t.name | append: ' ' | append: t.tagline | escape }}"{% if t_hidden %} data-hidden="true"{% endif %}>
+                <span class="st">LIVE</span>
+                {%- if t.icon contains "/" -%}<img class="ic" src="{{ t.icon | relative_url }}" alt="" loading="lazy">{%- else -%}<span class="ic-txt">{{ t.icon }}</span>{%- endif -%}
+                <span class="nm">{{ t.name }}</span><span class="tg">{{ t.tagline }}</span>
+              </a>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+        </section>
+        {%- endif -%}
+      {%- endfor -%}
 
       <p class="tool-empty" id="tool-empty" hidden>没有匹配的工具，换个关键词试试。</p>
 
-      {%- assign live_tools = site.data.toolbox | where: "status", "live" -%}
       {% include bulk-offline.html id="bulk-offline-toolbox" items=live_tools noun="款" what="百宝箱工具" hint="在线打开过任意一页后，全站会自动后台缓存，之后飞机 / 没网时直接输入网址即可。<br>想立即催一下、或省流量模式想强制缓存，点这个按钮——游戏、效率工具、生活工具一次性全打包。排行榜和评论仍需联网。" %}
     </div>
   </div>
+
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
 </article>
 
 <script>
@@ -310,39 +126,34 @@ body_class: toolbox-wide
   var search = document.getElementById('tool-search');
   var sections = Array.prototype.slice.call(document.querySelectorAll('.tool-section'));
   var mapLinks = Array.prototype.slice.call(document.querySelectorAll('.tool-map a'));
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.mk-bar .f a'));
   var empty = document.getElementById('tool-empty');
   if (!search || !sections.length) return;
+  var groupFilter = null;   // 工具条「工具 / 小游戏」：限定显示的分组集合
 
-  function normalize(value) {
-    return String(value || '').trim().toLowerCase();
-  }
+  function normalize(value) { return String(value || '').trim().toLowerCase(); }
 
   function applySearch() {
     var q = normalize(search.value);
     var anyShown = false;
     var isAdmin = document.body.classList.contains('sa-admin');
-
     sections.forEach(function (section) {
+      var inGroup = !groupFilter || groupFilter.indexOf(section.getAttribute('data-group')) !== -1;
       var cards = Array.prototype.slice.call(section.querySelectorAll('[data-tool-card]'));
       var matched = 0;
       cards.forEach(function (card) {
         var available = card.getAttribute('data-hidden') !== 'true' || isAdmin;
-        var hit = available && (!q || normalize(card.getAttribute('data-search')).indexOf(q) !== -1);
+        var hit = inGroup && available && (!q || normalize(card.getAttribute('data-search')).indexOf(q) !== -1);
         card.classList.toggle('tool-filtered', !hit);
         if (hit) matched++;
       });
       section.classList.toggle('section-filtered', matched === 0);
       if (matched > 0) anyShown = true;
-
       var link = mapLinks.find(function (item) { return item.dataset.target === section.id; });
-      if (link) {
-        link.classList.toggle('map-dim', matched === 0);
-      }
-
+      if (link) link.classList.toggle('map-dim', matched === 0);
       var sectionCount = section.querySelector('.tool-section-count');
       if (sectionCount) sectionCount.textContent = matched + ' 款';
     });
-
     empty.hidden = anyShown;
     updateSpy();
   }
@@ -354,26 +165,18 @@ body_class: toolbox-wide
       if (sections[i].classList.contains('section-filtered')) continue;
       if (sections[i].getBoundingClientRect().top <= line) current = sections[i];
     }
-    if (!current) {
-      current = sections.find(function (section) {
-        return !section.classList.contains('section-filtered');
-      }) || null;
-    }
+    if (!current) current = sections.find(function (s) { return !s.classList.contains('section-filtered'); }) || null;
     mapLinks.forEach(function (link) {
       var active = !!current && link.dataset.target === current.id;
       link.classList.toggle('map-active', active);
-      if (active) link.setAttribute('aria-current', 'location');
-      else link.removeAttribute('aria-current');
+      if (active) link.setAttribute('aria-current', 'location'); else link.removeAttribute('aria-current');
     });
   }
 
   mapLinks.forEach(function (link) {
     link.addEventListener('click', function (event) {
       event.preventDefault();
-      if (link.classList.contains('map-dim') && search.value) {
-        search.value = '';
-        applySearch();
-      }
+      if (link.classList.contains('map-dim') && search.value) { search.value = ''; applySearch(); }
       var target = document.getElementById(link.dataset.target);
       if (!target) return;
       var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -382,24 +185,28 @@ body_class: toolbox-wide
     });
   });
 
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function (e) {
+      e.preventDefault();
+      var g = chip.getAttribute('data-group');
+      groupFilter = g ? g.split(',') : null;
+      chips.forEach(function (c) { c.classList.toggle('on', c === chip); });
+      applySearch();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
   search.addEventListener('input', applySearch);
   if (window.MutationObserver) {
-    new MutationObserver(applySearch).observe(document.body, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
+    new MutationObserver(applySearch).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   }
   var spyTick = false;
   window.addEventListener('scroll', function () {
-    if (spyTick) return;
-    spyTick = true;
-    requestAnimationFrame(function () {
-      updateSpy();
-      spyTick = false;
-    });
+    if (spyTick) return; spyTick = true;
+    requestAnimationFrame(function () { updateSpy(); spyTick = false; });
   }, { passive: true });
   window.addEventListener('resize', updateSpy);
-
   applySearch();
 }());
 </script>
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>

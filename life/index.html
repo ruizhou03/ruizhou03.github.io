@@ -1,35 +1,96 @@
 ---
 layout: default
 title: 生活攻略 | Rui Zhou
+body_class: mk-cat
 ---
-<article style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
-  {% include page-hero.html title="生活攻略" latin="Life Hacks &amp; Guides" eyebrow="Zircon" center="true" %}
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+{%- assign raw_posts_main  = site.notes | where: "main_category", "生活攻略" -%}
+{%- assign raw_posts_extra = site.notes | where_exp: "item", "item.extra_categories contains '生活攻略'" -%}
+{%- assign raw_all = raw_posts_main | concat: raw_posts_extra -%}
+{%- assign raw_posts = raw_all | where_exp: "item", "item.sub_category != '菜谱'" -%}
+{%- assign dated_posts = raw_posts | where_exp: "item", "item.date" | sort: "date" | reverse -%}
+{%- assign undated_posts = raw_posts | where_exp: "item", "item.date == nil" -%}
+{%- assign category_posts = dated_posts | concat: undated_posts -%}
+{%- assign published_posts = category_posts | where_exp: "item", "item.published != false" -%}
+{%- assign recipes = raw_all | where: "sub_category", "菜谱" | where_exp: "item", "item.published != false" | where_exp: "item", "item.date" | sort: "date" | reverse -%}
+{%- assign total_count = published_posts | size | plus: recipes.size -%}
+{%- assign featured_posts = category_posts | where: "featured", true -%}
+{%- assign sub_categories = category_posts | map: "sub_category" | compact | uniq -%}
+{%- assign no_sub_posts = category_posts | where_exp: "item", "item.sub_category == nil" -%}
+{%- assign pick = featured_posts | first | default: published_posts.first -%}
 
-  {% assign raw_posts_main  = site.notes | where: "main_category", "生活攻略" %}
-  {% assign raw_posts_extra = site.notes | where_exp: "item", "item.extra_categories contains '生活攻略'" %}
-  {% assign raw_posts = raw_posts_main | concat: raw_posts_extra %}
-  {% assign raw_posts = raw_posts | where_exp: "item", "item.sub_category != '菜谱'" %}
-  {% assign dated_posts = raw_posts | where_exp: "item", "item.date" | sort: "date" | reverse %}
-  {% assign undated_posts = raw_posts | where_exp: "item", "item.date == nil" %}
-  {% assign category_posts = dated_posts | concat: undated_posts %}
+<article class="mk" data-mk-section="生活攻略">
+  <header class="mk-mast">
+    <div><span class="mk-kick">Life, Evidence-based</span><h1>生活攻略</h1></div>
+    <div class="r"><span class="mk-cnt">{{ total_count }}<small>篇</small></span><span class="mk-seal" aria-label="生活印">生活</span></div>
+  </header>
 
-  {% assign featured_posts = category_posts | where: "featured", true %}
-  {% include featured-band.html posts=featured_posts %}
+  <div class="mk-bar">
+    <div class="f" role="navigation" aria-label="子类">
+      <a href="#" data-sub="*" class="on">全部</a>
+      {%- for sub in sub_categories -%}
+        {%- assign _sp = published_posts | where: "sub_category", sub -%}
+        {%- if _sp.size > 0 -%}<a href="#" data-sub="{{ sub }}">{{ sub }}</a>{%- endif -%}
+      {%- endfor -%}
+      <a href="#" data-sub="食单">食单</a>
+      {%- if no_sub_posts.size > 0 -%}<a href="#" data-sub="其他">其他</a>{%- endif -%}
+    </div>
+    <label class="mk-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input type="search" aria-label="在本卷内搜索" placeholder="在本卷内搜索"></label>
+  </div>
 
-  {% assign sub_categories = category_posts | map: "sub_category" | compact | uniq %}
+  <div class="mk-body">
+    <div class="mk-main">
+      {% include featured-band.html posts=featured_posts %}
+      {% for sub in sub_categories %}
+        {% assign sub_posts = category_posts | where: "sub_category", sub %}
+        {% include sub-category-section.html sub=sub posts=sub_posts page_size=6 %}
+        {%- if sub == "生活之问" and recipes.size > 0 -%}
+        <section class="mk-extra" data-sub="食单" style="scroll-margin-top:74px">
+          <div class="mk-grp"><span class="g">食单</span><span class="mk-hl"></span><a class="more" href="{{ '/toolbox/recipes/' | relative_url }}">全部 {{ recipes | size }} 道 →</a></div>
+          <div class="mk-dishes">
+            {%- for r in recipes limit: 8 -%}
+            <a class="mk-dish" href="{{ r.url | relative_url }}">
+              <div class="cv">{% if r.cover %}<img src="{{ r.cover | relative_url }}" alt="" loading="lazy">{% endif %}</div>
+              <h4>{{ r.title }}</h4>
+              <span class="m"><span>{{ r.cuisine | default: '家常' }}{% if r.category %} · {{ r.category }}{% endif %}</span><span>{% if r.total_time %}{{ r.total_time }} min{% endif %}</span></span>
+            </a>
+            {%- endfor -%}
+          </div>
+        </section>
+        {%- endif -%}
+      {% endfor %}
+      {% if no_sub_posts.size > 0 %}
+        {% include sub-category-section.html sub="其他" posts=no_sub_posts page_size=6 %}
+      {% endif %}
+      <p class="mk-nohit">没有匹配的文章，换个词试试。</p>
 
-  {% for sub in sub_categories %}
-    {% assign sub_posts = category_posts | where: "sub_category", sub %}
-    {% include sub-category-section.html sub=sub posts=sub_posts %}
-  {% endfor %}
+      {%- assign life_dl = category_posts | where_exp: "p", "p.url" | where_exp: "p", "p.published != false" -%}
+      <div class="mk-extra" style="margin-top:32px">
+      {% include bulk-offline.html id="bulk-offline" items=life_dl noun="篇" what="生活攻略" hint="文字部分会随全站自动缓存。这个按钮专门把这一栏所有<strong>大照片</strong>也存到本地（约 50MB），适合出门前一次到位。" %}
+      </div>
+    </div>
+    <aside class="mk-side">
+      {%- if pick -%}
+      <a class="mk-pick" href="{{ pick.url | relative_url }}">
+        <span class="mk-kick" style="font-size:.68rem">{% if featured_posts.size > 0 %}精选{% else %}最新{% endif %}</span>
+        <h3>{% include latex-logo.html title=pick.title %}</h3>
+        {%- if pick.summary or pick.description -%}<p>{{ pick.summary | default: pick.description | strip_html | truncate: 72 }}</p>{%- endif -%}
+      </a>
+      {%- endif -%}
+      <div class="note">
+        <h3>食单</h3>
+        <p>克数、分钟、并行时间线，拒绝「适量」。{{ recipes | size }} 道家常菜，单独成册。</p>
+        <a class="go" href="{{ '/toolbox/recipes/' | relative_url }}">翻开食单 →</a>
+      </div>
+    </aside>
+  </div>
 
-  {% assign no_sub_posts = category_posts | where_exp: "item", "item.sub_category == nil" %}
-  {% if no_sub_posts.size > 0 %}
-    {% include sub-category-section.html sub="其他" posts=no_sub_posts %}
-  {% endif %}
-
-  {%- assign life_dl = category_posts | where_exp: "p", "p.url" | where_exp: "p", "p.published != false" -%}
-  {% include bulk-offline.html id="bulk-offline" items=life_dl noun="篇" what="生活攻略" hint="文字部分会随全站自动缓存。这个按钮专门把这一栏所有<strong>大照片</strong>也存到本地（约 50MB），适合出门前一次到位。" %}
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
 </article>
 
 {% include category-listing-tools.html %}
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>

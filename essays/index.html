@@ -1,35 +1,73 @@
 ---
 layout: default
 title: 随笔漫谈 | Rui Zhou
+body_class: mk-cat
 ---
-<article style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
-  {% include page-hero.html title="随笔漫谈" latin="Random Notes &amp; Thoughts" eyebrow="Zircon" center="true" %}
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+{%- assign raw_posts_main  = site.notes | where: "main_category", "随笔漫谈" -%}
+{%- assign raw_posts_extra = site.notes | where_exp: "item", "item.extra_categories contains '随笔漫谈'" -%}
+{%- assign raw_posts = raw_posts_main | concat: raw_posts_extra -%}
+{%- assign dated_posts = raw_posts | where_exp: "item", "item.date" | sort: "date" | reverse -%}
+{%- assign undated_posts = raw_posts | where_exp: "item", "item.date == nil" -%}
+{%- assign category_posts = dated_posts | concat: undated_posts -%}
+{%- assign published_posts = category_posts | where_exp: "item", "item.published != false" -%}
+{%- assign featured_posts = category_posts | where: "featured", true -%}
+{%- assign sub_categories = category_posts | map: "sub_category" | compact | uniq -%}
+{%- assign no_sub_posts = category_posts | where_exp: "item", "item.sub_category == nil" -%}
 
-  {% assign raw_posts_main  = site.notes | where: "main_category", "随笔漫谈" %}
-  {% assign raw_posts_extra = site.notes | where_exp: "item", "item.extra_categories contains '随笔漫谈'" %}
-  {% assign raw_posts = raw_posts_main | concat: raw_posts_extra %}
-  {% assign dated_posts = raw_posts | where_exp: "item", "item.date" | sort: "date" | reverse %}
-  {% assign undated_posts = raw_posts | where_exp: "item", "item.date == nil" %}
-  {% assign category_posts = dated_posts | concat: undated_posts %}
+<article class="mk" data-mk-section="随笔漫谈">
+  <header class="mk-mast">
+    <div><span class="mk-kick">Essays &amp; Letters</span><h1>随笔漫谈</h1></div>
+    <div class="r"><span class="mk-cnt">{{ published_posts | size }}<small>篇</small></span><span class="mk-seal" aria-label="随笔印">随笔</span></div>
+  </header>
 
-  {% assign featured_posts = category_posts | where: "featured", true %}
-  {% include featured-band.html posts=featured_posts %}
+  <div class="mk-bar">
+    <div class="f" role="navigation" aria-label="子类">
+      <a href="#" data-sub="*" class="on">全部</a>
+      {%- for sub in sub_categories -%}
+        {%- assign _sp = published_posts | where: "sub_category", sub -%}
+        {%- if _sp.size > 0 -%}<a href="#" data-sub="{{ sub }}">{{ sub }}</a>{%- endif -%}
+      {%- endfor -%}
+      {%- if no_sub_posts.size > 0 -%}<a href="#" data-sub="其他">其他</a>{%- endif -%}
+    </div>
+    <label class="mk-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg><input type="search" aria-label="在本卷内搜索" placeholder="在本卷内搜索"></label>
+  </div>
 
-  {% assign sub_categories = category_posts | map: "sub_category" | compact | uniq %}
+  <div class="mk-body">
+    <div class="mk-main">
+      {% for sub in sub_categories %}
+        {% assign sub_posts = category_posts | where: "sub_category", sub %}
+        {% if sub == "生命故事" %}
+          <div class="mk-extra" data-sub="{{ sub }}" style="scroll-margin-top:74px">{% include yearly-story-section.html sub=sub posts=sub_posts %}</div>
+        {% else %}
+          {% include sub-category-section.html sub=sub posts=sub_posts page_size=6 %}
+        {% endif %}
+      {% endfor %}
+      {% if no_sub_posts.size > 0 %}
+        {% include sub-category-section.html sub="其他" posts=no_sub_posts page_size=6 %}
+      {% endif %}
+      <p class="mk-nohit">没有匹配的文章，换个词试试。</p>
+    </div>
+    <aside class="mk-side">
+      <figure class="mk-photo" style="margin:0"><img src="{{ '/files/zh/images/portrait-window.jpg' | relative_url }}" alt="窗边的周睿" loading="lazy"><span class="yr" aria-hidden="true">2024</span></figure>
+      <a class="mk-otd" id="mk-otd" data-category="随笔漫谈" href="{{ '/board/onthisday/' | relative_url }}">
+        <span class="d"><small class="mon"></small><b class="day"></b><i class="wk"></i></span>
+        <span><span class="mk-kick k" style="font-size:.66rem">那年今日</span><span class="t" style="display:block"></span></span>
+      </a>
+      <div class="note">
+        <h3>那年今日</h3>
+        <p>同一天，往年写下的文字。选一个日子回头看。</p>
+        <a class="go" href="{{ '/board/onthisday/' | relative_url }}">翻回去看 →</a>
+      </div>
+    </aside>
+  </div>
 
-  {% for sub in sub_categories %}
-    {% assign sub_posts = category_posts | where: "sub_category", sub %}
-    {% if sub == "生命故事" %}
-      {% include yearly-story-section.html sub=sub posts=sub_posts %}
-    {% else %}
-      {% include sub-category-section.html sub=sub posts=sub_posts %}
-    {% endif %}
-  {% endfor %}
-
-  {% assign no_sub_posts = category_posts | where_exp: "item", "item.sub_category == nil" %}
-  {% if no_sub_posts.size > 0 %}
-    {% include sub-category-section.html sub="其他" posts=no_sub_posts %}
-  {% endif %}
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
 </article>
 
 {% include category-listing-tools.html %}
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
