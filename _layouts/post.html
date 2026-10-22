@@ -1,58 +1,40 @@
 ---
 layout: default
 ---
-
-<nav id="toc-container">
-  <h4 style="margin-bottom: 1.2rem; line-height: 1.4;">
-    <a href="#" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); if(window.innerWidth <= 768) toggleTOC(event); return false;" 
-       style="font-family: var(--font-display); font-size: 1.05rem; color: var(--color-ink); text-decoration: none; font-weight: 600; display: block; transition: color 0.2s;"
-       onmouseover="this.style.color='var(--color-accent)'" 
-       onmouseout="this.style.color='var(--color-ink)'">
-      {% include latex-logo.html title=page.title %}
-    </a>
-  </h4>
-  <ul id="toc-ul"></ul>
-</nav>
-
-<button id="toc-toggle" onclick="toggleTOC(event)" title="Toggle Index">[[zi:list]]</button>
-<div id="toc-backdrop"></div>
-
-<article class="post-container" style="max-width: 720px; margin: 0 auto;">
-  <header class="post-header" style="margin-bottom: 3.5rem; text-align: center;">
-    {% if page.main_category %}<p class="post-eyebrow"><span class="gold-diamond" aria-hidden="true" style="margin-right:0.5em;"></span>{{ page.main_category }}</p>{% endif %}
-    <h1 style="font-size: 2.3rem; color: var(--color-ink); line-height: 1.3;">
-      {% include latex-logo.html title=page.title %}
-    </h1>
-    {% if page.evergreen == true %}<div style="margin-top: 0.8rem;"><span class="maturity-pill maturity-evergreen">[[zi:leaf]] 常青 · 定稿</span></div>{% elsif page.evergreen == false %}<div style="margin-top: 0.8rem;"><span class="maturity-pill maturity-growing">[[zi:sprout]] 更新中</span></div>{% endif %}
-
-    <div class="post-goldrule"></div>
-
-    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--color-muted); font-family: 'Cormorant Garamond', serif; font-variant: small-caps; letter-spacing: 0.09em; margin-top: 1.6rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);">
-
-      <span style="font-size: 1.05rem;">{{ page.date | date: "%B %d, %Y" }}{% if page.updated and page.updated != page.date %} <span style="opacity:0.68;">· Updated {{ page.updated | date: "%B %d, %Y" }}</span>{% endif %}<span id="offline-article-notice"></span></span>
-
-      <span style="font-size: 1.05rem; letter-spacing: 0.08rem;">
-        By {{ page.author | default: "Zircon" }}
-      </span>
-
-      <div id="post-stats" style="display: none; gap: 1.2rem; align-items: center; font-family: var(--font-body); font-size: 0.95rem; opacity: 0.85;">
-
-        <div style="display: flex; align-items: center; gap: 0.4rem;" title="阅读量">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>
-          <span class="waline-pageview-count" data-path="{{ page.url }}">...</span>
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 0.4rem;" title="评论数">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span class="waline-comment-count" data-path="{{ page.url }}">...</span>
-        </div>
-
-      </div>
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-content.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<script>document.body.classList.add('mk-cat');</script>
+{%- comment -%} 上下篇：同一板块内按日期排序（菜谱另有食单，不混入）；相关：同子类最新三篇 {%- endcomment -%}
+{%- assign _mc = page.main_category -%}
+{%- assign _pool = "" | split: "" -%}
+{%- if _mc -%}
+  {%- assign _p1 = site.notes | where: "main_category", _mc | where_exp: "p", "p.published != false" | where_exp: "p", "p.hidden != true" | where_exp: "p", "p.trashed != true" -%}
+  {%- assign _pool = _p1 | where_exp: "p", "p.sub_category != '菜谱'" | where_exp: "p", "p.date" | sort: "date" -%}
+{%- endif -%}
+{%- assign _idx = -1 -%}
+{%- for p in _pool -%}{%- if p.url == page.url -%}{%- assign _idx = forloop.index0 -%}{%- endif -%}{%- endfor -%}
+{%- assign _prev = nil -%}{%- assign _next = nil -%}
+{%- if _idx > 0 -%}{%- assign _pi = _idx | minus: 1 -%}{%- assign _prev = _pool[_pi] -%}{%- endif -%}
+{%- assign _ni = _idx | plus: 1 -%}
+{%- if _idx > -1 and _ni < _pool.size -%}{%- assign _next = _pool[_ni] -%}{%- endif -%}
+{%- assign _rel = "" | split: "" -%}
+{%- if page.sub_category -%}
+  {%- assign _r1 = site.notes | where: "sub_category", page.sub_category | where_exp: "p", "p.published != false" | where_exp: "p", "p.hidden != true" | where_exp: "p", "p.trashed != true" -%}
+  {%- assign _rel = _r1 | where_exp: "p", "p.url != page.url" | where_exp: "p", "p.date" | sort: "date" | reverse -%}
+{%- endif -%}
+{%- assign _is_pdf = false -%}{%- if page.pdf_url or page.download_url -%}{%- assign _is_pdf = true -%}{%- endif -%}
+<div class="mk">
+<div class="mk-art-grid">
+<article class="post-container mk-art">
+  <header class="mk-head">
+    {% if page.main_category %}<span class="mk-kick">{{ page.main_category }}{% if page.sub_category %} · {{ page.sub_category }}{% endif %}</span>{% elsif page.course %}<span class="mk-kick">{{ page.course }}</span>{% endif %}
+    <h1>{% include latex-logo.html title=page.title %}</h1>
+    {% if page.evergreen == true %}<span class="pill">常青 · 定稿</span>{% elsif page.evergreen == false %}<span class="pill">更新中</span>{% endif %}
+    {% if page.summary and _is_pdf == false %}<p class="lead">{{ page.summary | strip_html }}</p>{% endif %}
+    <div class="mk-meta">
+      <span>{{ page.author | default: "Zircon" }}</span>
+      <span>{{ page.date | date: "%Y.%m.%d" }}{% if page.updated and page.updated != page.date %} <span class="u">· 更新 {{ page.updated | date: "%Y.%m.%d" }}</span>{% endif %}<span id="offline-article-notice"></span></span>
+      <span class="js-readtime"></span>
     </div>
   </header>
 
@@ -148,8 +130,8 @@ layout: default
   })();
   </script>
   {% endif %}
-
-  <div class="post-toolbar" id="post-toolbar" style="display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin: -1.5rem 0 2.5rem;">
+  <div class="mk-tools">
+  <div class="post-toolbar" id="post-toolbar">
     {%- comment -%}
       有播客版的文章不再显示系统语音「朗读」按钮 —— 顶部的播客播放器
       就是更好的有声版（周睿本人的 AI 语音 + 改写过的播客稿）。
@@ -174,6 +156,29 @@ layout: default
     </button>
   </div>
 
+<div id="sa-postbar" class="sa-postbar" style="display:none;"
+     data-post="{{ page.permalink | default: page.url }}"
+     data-title="{{ page.title | escape }}"
+     data-cat="{{ _share_cat }}"
+     data-url="{{ page.url }}">
+  <button type="button" class="sa-pb-btn" data-act="like" aria-pressed="false" aria-label="赞同">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11v9M2 12v7a1 1 0 0 0 1 1h3V11H3a1 1 0 0 0-1 1zM7 11l4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2l-2 7a1 1 0 0 1-1 1H7"/></svg>
+    <span class="sa-pb-num" data-num="like">·</span>
+  </button>
+  <button type="button" class="sa-pb-btn sa-pb-fav" data-act="fav" aria-pressed="false" aria-label="收藏">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 6.5 7 .6-5.3 4.6 1.6 6.8L12 17.3 5.7 20.5l1.6-6.8L2 9.1l7-.6z"/></svg>
+    <span class="sa-pb-num" data-num="fav"></span>
+  </button>
+  <button type="button" class="sa-pb-btn" data-act="comment" aria-label="评论">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span class="sa-pb-num waline-comment-count" data-path="{{ page.url }}">·</span>
+  </button>
+  <button type="button" class="sa-pb-btn sa-pb-share" data-act="share" aria-label="复制分享链接" title="复制「标题 + 链接」到剪贴板">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+  </button>
+  <span class="sa-pb-hint"></span>
+</div>
+  </div>
   {%- comment -%}
     过时提醒：front-matter 写 `outdated: true` 时，正文开头加一条提醒；
     可选 `outdated_note:` 写一段对当前状态的具体说明（哪部分还能用、
@@ -370,6 +375,17 @@ layout: default
     {%- endif -%}
   {%- endif -%}
 
+  <div class="mk-end"><span class="mk-seal" aria-label="锆铌印">锆铌</span></div>
+  <div class="mk-pn" role="navigation" aria-label="上下篇">
+    {% if _prev %}<a href="{{ _prev.url | relative_url }}" class="prev"><span class="mk-kick">上一篇</span><svg class="ar" viewBox="0 0 52 10" aria-hidden="true"><line x1="51" y1="5" x2="4" y2="5"></line><path class="hd" d="M10 1 4 5l6 4"></path></svg><p>{% include latex-logo.html title=_prev.title %}</p></a>{% else %}<span class="empty"></span>{% endif %}
+    {% if _next %}<a href="{{ _next.url | relative_url }}" class="next"><span class="mk-kick">下一篇</span><svg class="ar" viewBox="0 0 52 10" aria-hidden="true"><line x1="1" y1="5" x2="48" y2="5"></line><path class="hd" d="M42 1l6 4-6 4"></path></svg><p>{% include latex-logo.html title=_next.title %}</p></a>{% else %}<span class="empty"></span>{% endif %}
+  </div>
+  {% if _rel.size > 0 %}
+  <div class="mk-rel"><span class="mk-kick">相关</span>{% for r in _rel limit: 3 %}<a href="{{ r.url | relative_url }}">{% include latex-logo.html title=r.title %}</a>{% endfor %}</div>
+  {% endif %}
+  <section class="mk-cmt" aria-label="评论">
+    <div class="mk-row" role="button" tabindex="0"><span class="mk-kick">评论 · <b class="waline-comment-count" data-path="{{ page.url }}"></b></span><div class="mk-hl"></div><span class="r">打开评论 →</span></div>
+  </section>
 <style>
   /* 隐藏 Waline 默认的 Markdown 语法指引图标 */
   .wl-actions a { display: none !important; }
@@ -869,28 +885,6 @@ layout: default
 </style>
 {%- assign _share_cat = page.main_category -%}
 {%- if _share_cat == nil and page.discipline -%}{%- assign _share_cat = "学习资料" -%}{%- endif -%}
-<div id="sa-postbar" class="sa-postbar" style="display:none;"
-     data-post="{{ page.permalink | default: page.url }}"
-     data-title="{{ page.title | escape }}"
-     data-cat="{{ _share_cat }}"
-     data-url="{{ page.url }}">
-  <button type="button" class="sa-pb-btn" data-act="like" aria-pressed="false" aria-label="赞同">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11v9M2 12v7a1 1 0 0 0 1 1h3V11H3a1 1 0 0 0-1 1zM7 11l4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2l-2 7a1 1 0 0 1-1 1H7"/></svg>
-    <span class="sa-pb-num" data-num="like">·</span>
-  </button>
-  <button type="button" class="sa-pb-btn sa-pb-fav" data-act="fav" aria-pressed="false" aria-label="收藏">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 6.5 7 .6-5.3 4.6 1.6 6.8L12 17.3 5.7 20.5l1.6-6.8L2 9.1l7-.6z"/></svg>
-    <span class="sa-pb-num" data-num="fav"></span>
-  </button>
-  <button type="button" class="sa-pb-btn" data-act="comment" aria-label="评论">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    <span class="sa-pb-num waline-comment-count" data-path="{{ page.url }}">·</span>
-  </button>
-  <button type="button" class="sa-pb-btn sa-pb-share" data-act="share" aria-label="复制分享链接" title="复制「标题 + 链接」到剪贴板">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-  </button>
-  <span class="sa-pb-hint"></span>
-</div>
 <script>
   (function () {
     function initPostbar() {
@@ -1386,123 +1380,18 @@ layout: default
 </script>
 
 </article>
-
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    const postContent = document.getElementById('post-content');
-    const tocUl = document.getElementById('toc-ul');
-    const headings = postContent.querySelectorAll('h1, h2');
-
-    if (headings.length <= 1) {
-      document.getElementById('toc-toggle').style.display = 'none';
-      return;
-    }
-
-    const linkByHeadingId = {};
-    headings.forEach((heading, index) => {
-      const id = 'section-' + index;
-      heading.setAttribute('id', id);
-
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = '#' + id;
-      a.textContent = heading.textContent;
-
-      if (heading.tagName === 'H2') {
-        a.classList.add('toc-h2');
-      }
-
-      li.appendChild(a);
-      tocUl.appendChild(li);
-      linkByHeadingId[id] = a;
-
-      a.addEventListener('click', () => {
-        if (window.innerWidth <= 768) toggleTOC();
-      });
-    });
-
-    // —— scrollspy ——
-    // 用 IntersectionObserver 监听所有标题，挑"当前 viewport 命中且最靠上"的那个高亮。
-    // rootMargin 顶端按 nav 高 6.5rem 收掉、底部 -55% 把视口"上半段"作为命中区，
-    // 这样滚到一节中段就切到下一项，而不是要把上一节滚出屏幕才切。
-    if ('IntersectionObserver' in window && headings.length) {
-      const visibleIds = new Set();
-      function updateActive() {
-        let activeId = null;
-        // 选 visibleIds 里 DOM 顺序最靠前的那一个
-        for (const h of headings) {
-          if (visibleIds.has(h.id)) { activeId = h.id; break; }
-        }
-        // 都不在交叉区时，回退到最后一个滚过的标题（按当前位置找最近上方）
-        if (!activeId) {
-          const y = window.scrollY + 120;
-          let best = null;
-          for (const h of headings) {
-            if (h.offsetTop <= y) best = h.id;
-            else break;
-          }
-          activeId = best;
-        }
-        for (const id in linkByHeadingId) {
-          linkByHeadingId[id].classList.toggle('toc-active', id === activeId);
-        }
-      }
-      const io = new IntersectionObserver((entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) visibleIds.add(e.target.id);
-          else visibleIds.delete(e.target.id);
-        }
-        updateActive();
-      }, { rootMargin: '-104px 0px -55% 0px', threshold: 0 });
-      headings.forEach((h) => io.observe(h));
-      // 首屏先跑一次，没滚动也能高亮第一节
-      updateActive();
-    }
-
-    // 宽屏自动常驻：同步 open 类状态
-    if (window.innerWidth >= 1400) {
-      document.getElementById('toc-container').classList.add('open');
-      setTocButtonIcon(true);
-    }
-
-    // 点击遮罩关闭抽屉（手机端）
-    const backdrop = document.getElementById('toc-backdrop');
-    if (backdrop) {
-      backdrop.addEventListener('click', () => toggleTOC());
-    }
-  });
-
-  // 点击目录和按钮以外的区域，自动收回目录（仅手机端）
-  document.addEventListener('click', function(event) {
-    const toc = document.getElementById('toc-container');
-    const btn = document.getElementById('toc-toggle');
-
-    if (toc.classList.contains('open') && !toc.contains(event.target) && !btn.contains(event.target)) {
-      if (window.innerWidth <= 768) {
-        toggleTOC();
-      }
-    }
-  });
-
-  function toggleTOC(event) {
-    if (event) event.stopPropagation();
-    const toc = document.getElementById('toc-container');
-    const btn = document.getElementById('toc-toggle');
-    const backdrop = document.getElementById('toc-backdrop');
-    toc.classList.toggle('open');
-    const isOpen = toc.classList.contains('open');
-    if (backdrop) backdrop.classList.toggle('active', isOpen && window.innerWidth <= 768);
-    setTocButtonIcon(isOpen);
-  }
-
-  function setTocButtonIcon(isOpen) {
-    const btn = document.getElementById('toc-toggle');
-    if (!btn) return;
-    btn.textContent = isOpen ? '[[zi:exit]]' : '[[zi:list]]';
-    if (window.ZirconIcons) window.ZirconIcons.hydrate(btn);
-  }
-</script>
-
+<aside class="mk-rail" id="mk-rail" aria-label="目录">
+  <button type="button" class="mk-rail__tab" aria-label="展开目录"><span class="vt">目录</span><span class="mk-rail__dots"></span></button>
+  <div class="mk-rail__panel" role="navigation"><span class="hint">移开即收起</span></div>
+</aside>
+</div>
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
+</div>
+<button type="button" id="mk-rail-btn" class="mk-rail-btn" aria-label="目录">目录</button><div id="mk-rail-bd" class="mk-rail-bd"></div>
 <script>
   /* PDF 预览：桌面走浏览器原生 viewer；手机/平板 + 不支持原生 PDF 的浏览器
      回落到 vendored PDF.js viewer（/pdfjs/web/viewer.html）。
@@ -1563,3 +1452,5 @@ layout: default
     });
   })();
 </script>
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
+<script src="{{ '/assets/js/mk-content.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>

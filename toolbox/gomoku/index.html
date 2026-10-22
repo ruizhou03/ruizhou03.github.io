@@ -2,196 +2,58 @@
 layout: default
 title: "五子棋 | Rui Zhou"
 permalink: /toolbox/gomoku/
+body_class: mk-cat mk-tool
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-content.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 
 <style>
-  .gm-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; --gs-wrap-half: 360px; }
-  .gm-wrap header { text-align: center; margin-bottom: 1.2rem; }
-  .gm-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
-  .gm-wrap header .sub { color: var(--color-light); font-style: normal; font-size: 0.92rem; }
-
-  .gm-controls {
-    display: flex; flex-wrap: wrap; gap: 0.5rem;
-    justify-content: center; align-items: center;
-    margin-bottom: 0.9rem;
-  }
-  .gm-mode-tabs { display: inline-flex; gap: 0.25rem; }
-  .gm-mode-tab {
-    padding: 0.36rem 0.72rem;
-    font-size: 0.85rem;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    border-radius: 8px;
-    cursor: pointer;
-    color: var(--color-muted);
-    transition: all 0.18s ease;
-  }
-  .gm-mode-tab.active {
-    background: var(--color-accent);
-    color: #fff;
-    border-color: var(--color-accent);
-  }
-  @media (hover: hover) {
-    .gm-mode-tab:not(.active):hover { border-color: var(--color-accent); color: var(--color-ink); }
-  }
-  .gm-btn {
-    padding: 0.4rem 0.85rem;
-    font-size: 0.86rem;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
-    border-radius: 8px;
-    cursor: pointer;
-    color: var(--color-ink);
-    transition: all 0.18s ease;
-  }
-  @media (hover: hover) {
-    .gm-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
-  }
-  .gm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  .gm-statusbar {
-    display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
-    margin-bottom: 0.9rem;
-    font-size: 0.92rem;
-    color: var(--color-ink);
-  }
-  .gm-turn {
-    background: var(--color-bg-warm);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 0.4rem 0.8rem;
-    font-family: var(--font-display);
-    font-weight: 600;
-  }
-  .gm-tally {
-    display: flex; gap: 0.3rem;
-    font-size: 0.85rem;
-    color: var(--color-muted);
-    align-items: center;
-  }
-  .gm-tally span { padding: 0.18rem 0.45rem; background: var(--color-bg-warm); border: 1px solid var(--color-border); border-radius: 6px; }
-
+  /* 五子棋专属：棋盘与局中浮层。壳层样式见 mk-content.css（.mk-tool-*） */
+  .gm-wrap { --gs-wrap-half: 360px; }
   .gm-canvas-wrap {
-    position: relative;
-    width: 100%;
-    max-width: 560px;
-    margin: 0 auto;
-    aspect-ratio: 1 / 1;
-    background: #e8c896;
-    border: 1px solid #b89870;
-    border-radius: 6px;
-    overflow: hidden;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
+    position: relative; width: 100%; max-width: 560px; aspect-ratio: 1 / 1;
+    background: #e4d3ae; border: 1px solid var(--mk-ink); box-sizing: border-box;
+    overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: manipulation;
   }
-  :root[data-theme="dark"] .gm-canvas-wrap { background: #8a6f4f; border-color: #5a4530; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .gm-canvas-wrap { background: #8a6f4f; border-color: #5a4530; }
-  }
+  :root[data-theme="dark"] .gm-canvas-wrap { background: #8a6f4f; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gm-canvas-wrap { background: #8a6f4f; } }
   .gm-canvas-wrap canvas { display: block; width: 100%; height: 100%; }
-
   .gm-overlay {
-    position: absolute; inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: none;
-    flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 0.6rem;
-    text-align: center;
-    color: #fff;
-    padding: 1rem;
+    position: absolute; inset: 0; background: rgba(243,238,227,.9); display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px; text-align: center; color: var(--mk-ink); padding: 1rem;
   }
   .gm-overlay.show { display: flex; }
-  .gm-overlay h2 { font-size: 1.6rem; margin: 0; font-family: var(--font-display); }
-  .gm-paused-overlay { background: rgba(0, 0, 0, 0.35); }
-
-  .gm-difficulty-row { margin-top: -0.3rem; }
-  .gm-row-label {
-    font-size: 0.82rem;
-    color: var(--color-muted);
-    margin-right: 0.15rem;
-  }
-
-  /* 手机端紧凑化：收紧控件行距 + 缩小按钮，减少开局前的拥挤感 */
-  @media (max-width: 600px) {
-    .gm-controls { gap: 0.3rem; margin-bottom: 0.5rem; }
-    .gm-mode-tabs { gap: 0.2rem; }
-    .gm-mode-tab { padding: 0.3rem 0.5rem; font-size: 0.78rem; }
-    .gm-btn { padding: 0.32rem 0.55rem; font-size: 0.78rem; }
-  }
-
-  .gm-help {
-    margin-top: 1rem;
-    font-size: 0.82rem;
-    color: var(--color-muted);
-    text-align: center;
-    line-height: 1.7;
-  }
-
-  details.about {
-    font-size: 0.88rem;
-    color: var(--color-muted); line-height: 1.7;
-  }
-  details.about summary {
-    cursor: pointer; padding: 0.4rem 0;
-    color: var(--color-muted); font-weight: 500;
-    list-style: none;
-  }
-  details.about summary::before { content: '+ '; transition: 0.2s; }
-  details[open].about summary::before { content: '− '; }
-  details.about p { margin: 0.6rem 0; }
+  .gm-overlay h2 { margin: 0; font-family: var(--mk-serif); font-weight: 700; font-size: 1.8rem; letter-spacing: .14em; color: var(--mk-ink); }
+  .gm-overlay .mk-btn { background: var(--mk-ink); color: var(--mk-paper); }
+  .gm-difficulty-row[hidden] { display: none; }
+  .gm-tally b { color: var(--mk-ink); font-weight: 600; }
 </style>
 
-<div class="gm-wrap">
-  <header>
-    <h1>[[zi:user]] 五子棋</h1>
-    <div class="sub">先连成五子者胜 — 横、竖、斜均可</div>
-  </header>
+<div class="mk gm-wrap">
+  <section class="mk-tool-mast">
+    <div><span class="mk-kick">棋盘对弈 · Gomoku</span><h1>五子棋</h1></div>
+    <span class="mk-seal" aria-label="对弈印">对弈</span>
+  </section>
 
-  <div class="gm-controls">
-    <div class="gm-mode-tabs" id="gmModeTabs">
-      <button class="gm-mode-tab active" data-mode="pvp">双人同机</button>
-      <button class="gm-mode-tab" data-mode="ai-black">人机（执黑）</button>
-      <button class="gm-mode-tab" data-mode="ai-white">人机（执白）</button>
-    </div>
-  </div>
+  <section class="mk-tool-body">
+    <div class="mk-tool-stage">
+      <div class="status">
+        <span id="gmTurn">黑方下子</span>
+        <span class="gm-tally">黑 <b id="gmTallyB">0</b> · 白 <b id="gmTallyW">0</b></span>
+      </div>
 
-  <div class="gm-controls gm-difficulty-row" id="gmDifficultyRow" hidden>
-    <span class="gm-row-label">难度</span>
-    <div class="gm-mode-tabs" id="gmDifficultyTabs">
-      <button class="gm-mode-tab" data-diff="easy">[[zi:sprout]] 新手</button>
-      <button class="gm-mode-tab active" data-diff="normal">[[zi:user]] 普通</button>
-      <button class="gm-mode-tab" data-diff="hard">[[zi:flame]] 高手</button>
-    </div>
-  </div>
-
-  <div class="gm-controls">
-    <button class="gm-btn" id="gmUndoBtn">↶ 悔棋</button>
-    <button class="gm-btn" id="gmPauseBtn" hidden>[[zi:pause]] 暂停</button>
-    <button class="gm-btn" id="gmNewBtn">[[zi:refresh]] 重新开始</button>
-  </div>
-
-  <div class="gm-statusbar">
-    <div class="gm-turn" id="gmTurn">[[zi:user]] 黑方下子</div>
-    <div class="gm-tally">
-      <span>黑 <b id="gmTallyB">0</b></span>
-      <span>白 <b id="gmTallyW">0</b></span>
-    </div>
-  </div>
-
-  <div class="gm-canvas-wrap">
-    <canvas id="gmCanvas" width="560" height="560"></canvas>
-    <div class="gm-overlay" id="gmOverlay">
-      <h2 id="gmOvTitle">游戏结束</h2>
-      <button class="gm-btn" id="gmOvBtn">再来一局</button>
-    </div>
-    <div class="gm-overlay gm-paused-overlay" id="gmPausedOverlay">
-      <h2>[[zi:pause]] 已暂停</h2>
-      <button class="gm-btn" id="gmResumeBtn">[[zi:play]] 继续</button>
-    </div>
+      <div class="gm-canvas-wrap">
+        <canvas id="gmCanvas" width="560" height="560"></canvas>
+        <div class="gm-overlay" id="gmOverlay">
+          <h2 id="gmOvTitle">游戏结束</h2>
+          <button class="mk-btn gm-btn" id="gmOvBtn">再来一局</button>
+        </div>
+        <div class="gm-overlay gm-paused-overlay" id="gmPausedOverlay">
+          <h2>已暂停</h2>
+          <button class="mk-btn gm-btn" id="gmResumeBtn">继续</button>
+        </div>
     <!-- 预进入界面 -->
     <div class="gs-pgo-overlay open" id="gmPreGameOverlay">
       <div class="gs-pgo-view active" id="gmPgoViewMain">
@@ -234,19 +96,57 @@ permalink: /toolbox/gomoku/
         <button class="gs-pgo-start-btn" id="gmPgoStartBtn">[[zi:play]] 开始游戏</button>
       </div>
     </div>
-  </div>
+      </div>
 
-  <details class="about" style="max-width:600px;margin:1rem auto 0;">
-    <summary>游戏规则</summary>
-    <p>15×15 标准棋盘，黑白双方轮流下子。先在横、竖、斜任一方向上连成五子者胜。人机模式可选三档难度。</p>
-  </details>
+      <div class="ctl">
+        <div class="grp">
+          <div class="mk-seg gm-mode-tabs" id="gmModeTabs" role="group" aria-label="对局方式">
+            <button class="gm-mode-tab active" data-mode="pvp">双人同机</button>
+            <button class="gm-mode-tab" data-mode="ai-black">人机 · 执黑</button>
+            <button class="gm-mode-tab" data-mode="ai-white">人机 · 执白</button>
+          </div>
+          <div class="gm-difficulty-row" id="gmDifficultyRow" hidden>
+            <div class="mk-seg gm-mode-tabs" id="gmDifficultyTabs" role="group" aria-label="难度">
+              <button class="gm-mode-tab" data-diff="easy">新手</button>
+              <button class="gm-mode-tab active" data-diff="normal">普通</button>
+              <button class="gm-mode-tab" data-diff="hard">高手</button>
+            </div>
+          </div>
+        </div>
+        <div class="grp">
+          <button class="mk-btn gm-btn" id="gmUndoBtn">悔棋</button>
+          <button class="mk-btn gm-btn" id="gmPauseBtn" hidden>暂停</button>
+          <button class="mk-btn ink gm-btn" id="gmNewBtn">新局</button>
+        </div>
+      </div>
+    </div>
 
-  <div id="gm-wlb-mount" style="max-width: 600px; margin: 1.5rem auto 0;"></div>
-  <div id="gm-nick-mount" style="max-width: 480px; margin: 0.6rem auto 0;"></div>
-  <div id="gm-settle-btn-mount"></div>
-  <div id="gm-cm-mount" style="max-width: 600px; margin: 0 auto;"></div>
+    <aside class="mk-tool-side">
+      <div class="app">
+        <img src="{{ '/assets/icons/gomoku-icon-192.png' | relative_url }}" alt="" width="44" height="44">
+        <div><p class="t">15 × 15 · 启发式 AI</p><p class="s">双人同机，或与三档 AI 对弈 · 局面本机保存 48 小时</p></div>
+      </div>
+      <details class="about">
+        <summary>规则</summary>
+        <p>15×15 标准棋盘，黑白双方轮流下子。先在横、竖、斜任一方向上连成五子者胜。人机模式可选三档难度。</p>
+      </details>
+      <div class="links"><a href="#gm-cm-mount">评论</a><a href="{{ '/toolbox/' | relative_url }}">返回百宝箱</a></div>
+    </aside>
+  </section>
+
+  <div id="gm-wlb-mount" class="mk-hide"></div>
+  <div id="gm-nick-mount" class="mk-hide"></div>
+  <div id="gm-settle-btn-mount" class="mk-hide"></div>
+  <div id="gm-cm-mount" class="mk-tool-cmt"></div>
+
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
 </div>
 
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/identity.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/wins-leaderboard.js?v={{ site.time | date: '%s' }}"></script>

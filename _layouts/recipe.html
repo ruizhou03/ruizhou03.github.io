@@ -5,180 +5,114 @@ layout: default
 {%- assign _diff = page.difficulty | default: 0 | plus: 0 -%}
 {%- assign _time = page.total_time | default: 0 | plus: 0 -%}
 
-<style>
-  .recipe-meta-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.38em;
-    padding: 0.28em 0.62em;
-    border: 1px solid var(--color-border);
-    border-radius: 0.55em;
-    background: var(--color-bg-warm);
-    color: var(--color-muted);
-  }
-  .recipe-meta-chip .zi-icon {
-    color: var(--color-highlight);
-  }
-  .recipe-difficulty {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.18em;
-    color: var(--color-highlight);
-  }
-  .recipe-difficulty .zi-icon {
-    width: 1em;
-    height: 1em;
-    vertical-align: 0;
-    fill: currentColor;
-    fill-opacity: 0.14;
-  }
-  .recipe-difficulty .is-empty {
-    color: var(--color-border);
-    fill: none;
-  }
-</style>
-
-<article class="recipe-container" style="max-width: 760px; margin: 0 auto; padding: 1.5rem 1rem 4rem;">
-
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-content.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<script>document.body.classList.add('mk-cat');</script>
+{%- assign _cn = "壹,贰,叁,肆,伍,陆,柒,捌,玖,拾,拾壹,拾贰,拾叁,拾肆,拾伍,拾陆,拾柒,拾捌,拾玖,贰拾" | split: "," -%}
+{%- assign _p1 = site.notes | where: "sub_category", "菜谱" | where_exp: "p", "p.published != false" | where_exp: "p", "p.hidden != true" | where_exp: "p", "p.trashed != true" -%}
+{%- assign _pool = _p1 | where_exp: "p", "p.date" | sort: "date" -%}
+{%- assign _idx = -1 -%}
+{%- for p in _pool -%}{%- if p.url == page.url -%}{%- assign _idx = forloop.index0 -%}{%- endif -%}{%- endfor -%}
+{%- assign _prev = nil -%}{%- assign _next = nil -%}
+{%- if _idx > 0 -%}{%- assign _pi = _idx | minus: 1 -%}{%- assign _prev = _pool[_pi] -%}{%- endif -%}
+{%- assign _ni = _idx | plus: 1 -%}
+{%- if _idx > -1 and _ni < _pool.size -%}{%- assign _next = _pool[_ni] -%}{%- endif -%}
+{%- assign _si = page.steps.size | minus: 1 -%}
+<div class="mk">
+<article class="recipe-container mk-rcp">
   {% include admin-article-bar.html %}
 
-  {% if page.cover %}
-  <div class="recipe-cover" style="margin-bottom: 2rem;">
-    <img src="{{ page.cover | relative_url }}" alt="{{ page.title }}"
-         style="width: 100%; height: auto;
-                border-radius: 12px; display: block;" />
+  <section class="mk-rcp-hero">
+    <div class="l">
+      <span class="mk-kick">生活攻略 · 食单{% if page.cuisine %} · {{ page.cuisine }}{% endif %}</span>
+      <h1>{{ page.title }}</h1>
+      {% if page.summary %}<p class="lead">{{ page.summary | strip_html }}</p>{% endif %}
+      <div class="mk-spec">
+        {% if page.cuisine or page.category %}<div><small>Cuisine</small><b>{{ page.cuisine }}{% if page.cuisine and page.category %} · {% endif %}{{ page.category }}</b></div>{% endif %}
+        {% if _time > 0 %}<div><small>Total</small><b>{{ _time }} 分钟</b></div>{% endif %}
+        {% if _diff > 0 %}<div><small>Difficulty</small><b class="dots" title="难度 {{ _diff }} / 5"><span style="color:var(--mk-seal)">{% for i in (1.._diff) %}●{% endfor %}</span>{% assign _rest = 5 | minus: _diff %}{% if _rest > 0 %}<span class="off">{% for i in (1.._rest) %}●{% endfor %}</span>{% endif %}</b></div>{% endif %}
+        {% if page.servings_base %}<div><small>Yield</small><b>{{ page.servings_base }} 人份</b></div>{% endif %}
+      </div>
+      <div class="mk-tools">
+  <div id="sa-postbar" class="sa-postbar" style="display:none;"
+       data-post="{{ page.permalink | default: page.url }}"
+       data-title="{{ page.title | escape }}"
+       data-cat="{{ _share_cat }}"
+       data-url="{{ page.url }}">
+    <button type="button" class="sa-pb-btn" data-act="like" aria-pressed="false" aria-label="赞同">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11v9M2 12v7a1 1 0 0 0 1 1h3V11H3a1 1 0 0 0-1 1zM7 11l4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2l-2 7a1 1 0 0 1-1 1H7"/></svg>
+      <span class="sa-pb-num" data-num="like">·</span>
+    </button>
+    <button type="button" class="sa-pb-btn sa-pb-fav" data-act="fav" aria-pressed="false" aria-label="收藏">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 6.5 7 .6-5.3 4.6 1.6 6.8L12 17.3 5.7 20.5l1.6-6.8L2 9.1l7-.6z"/></svg>
+      <span class="sa-pb-num" data-num="fav"></span>
+    </button>
+    <button type="button" class="sa-pb-btn" data-act="comment" aria-label="评论">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="sa-pb-num waline-comment-count" data-path="{{ page.url }}">·</span>
+    </button>
+    <button type="button" class="sa-pb-btn sa-pb-share" data-act="share" aria-label="复制分享链接" title="复制「标题 + 链接」到剪贴板">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    </button>
+    <span class="sa-pb-hint"></span>
   </div>
-  {% endif %}
-
-  <header class="recipe-header" style="margin-bottom: 2rem; text-align: center;">
-    <p class="post-eyebrow"><span class="gold-diamond" aria-hidden="true" style="margin-right:0.5em;"></span>菜谱 · Recipe</p>
-    <h1 style="font-size: 2.2rem; color: var(--color-ink); line-height: 1.3; margin-bottom: 0.8rem;">
-      {{ page.title }}
-    </h1>
-
-    <div class="recipe-meta" style="display: flex; flex-wrap: wrap; gap: 1rem 1.5rem;
-                                    justify-content: center; align-items: center;
-                                    color: var(--color-light); font-family: var(--font-body);
-                                    font-size: 0.98rem; margin-top: 1.2rem;
-                                    padding: 0.8rem 0; border-top: 1px dashed var(--color-border);
-                                    border-bottom: 1px dashed var(--color-border);">
-      {% if page.cuisine or page.category %}
-      <span class="recipe-meta-chip">[[zi:bowl]]
-        {%- if page.cuisine %} {{ page.cuisine }}{% endif -%}
-        {%- if page.cuisine and page.category %} · {% endif -%}
-        {%- if page.category %}{{ page.category }}{% endif -%}
-      </span>
-      {% endif %}
-
-      {% if _time > 0 %}
-      <span class="recipe-meta-chip">[[zi:clock]] {{ _time }} min</span>
-      {% endif %}
-
-      {% if _diff > 0 %}
-      <span class="recipe-difficulty" title="难度 {{ _diff }} / 5" aria-label="难度 {{ _diff }} / 5">
-        {% for i in (1.._diff) %}[[zi:star]]{% endfor %}{% assign _rest = 5 | minus: _diff %}{% if _rest > 0 %}{% for i in (1.._rest) %}<span class="is-empty">[[zi:star]]</span>{% endfor %}{% endif %}
-      </span>
-      {% endif %}
-
-      <span style="font-family: 'Cormorant Garamond', serif; font-size: 1.05rem;">
-        {{ page.date | date: "%Y/%m/%d" }}
-      </span>
+        {% if page.planner_enabled %}<a class="planner" href="{{ '/toolbox/recipes/planner/' | relative_url }}?add={{ page.slug | url_encode }}">加入备餐计划</a>{% endif %}
+      </div>
+      {% if page.tags and page.tags.size > 0 %}<div class="tags">{% for t in page.tags %}<span>{{ t }}</span>{% endfor %}</div>{% endif %}
     </div>
-
-    {% if page.tags and page.tags.size > 0 %}
-    <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center;">
-      {% for t in page.tags %}
-      <span style="font-size: 0.82rem; padding: 0.2rem 0.7rem; border: 1px solid var(--color-border);
-                   border-radius: 999px; color: var(--color-muted); background: var(--color-bg-warm);">
-        #{{ t }}
-      </span>
-      {% endfor %}
-    </div>
+    {% if page.cover %}
+    <figure class="mk-rcp-cover">
+      <div class="im"><img src="{{ page.cover | relative_url }}" alt="{{ page.title }}"></div>
+      <figcaption><span>成菜</span><span>{{ page.date | date: "%Y.%m.%d" }}</span></figcaption>
+    </figure>
     {% endif %}
+  </section>
 
-    {% if page.planner_enabled %}
-    <div style="margin-top: 1rem;">
-      <a href="{{ '/toolbox/recipes/planner/' | relative_url }}?add={{ page.slug | url_encode }}"
-         style="display:inline-flex; align-items:center; padding:0.58rem 1rem; border-radius:999px;
-                background:#3f7251; color:#fff; text-decoration:none; font-weight:650; font-size:0.9rem;">
-        加入备餐计划
-      </a>
+  <section class="mk-rcp-body">
+    <aside class="mk-rcp-side">
+      {% if page.ingredients and page.ingredients.size > 0 %}
+      <div class="mk-row"><span class="mk-kick">用料 · {{ page.ingredients | size }} 味</span><div class="mk-hl"></div></div>
+      <div class="mk-ing">
+        {% for ing in page.ingredients %}<label><input type="checkbox" aria-label="已备 {{ ing.name }}"><span class="nm">{{ ing.name }}</span><span class="dots"></span><span class="amt">{{ ing.amount }}</span></label>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if page.prep and page.prep != "" %}
+      <div class="mk-prep">
+        <div class="mk-row"><span class="mk-kick">备菜</span><div class="mk-hl"></div></div>
+        <div class="markdown-content">{{ page.prep | markdownify }}</div>
+      </div>
+      {% endif %}
+      {% if page.steps and page.steps.size > 1 %}
+      <div class="mk-tl" id="mk-tl" data-total="{{ _time }}" hidden>
+        <div class="mk-row"><span class="mk-kick">并行时间线</span><div class="mk-hl"></div></div>
+        <div class="bar" role="img" aria-label="各步用时比例"></div>
+        <div class="lg"></div>
+        <p class="cap">{% if _time > 0 %}共 {{ _time }} min · {% endif %}点任一段跳到该步</p>
+      </div>
+      {% endif %}
+    </aside>
+
+    <div class="mk-rcp-main">
+      {% if page.steps and page.steps.size > 0 %}
+      <div class="mk-row"><span class="mk-kick">做法 · {{ _cn[_si] | default: page.steps.size }}步</span><div class="mk-hl"></div>{% if _time > 0 %}<span class="r">总计 {{ _time }} 分钟</span>{% endif %}</div>
+      <ol class="mk-steps" style="list-style:none;padding:0;margin:0">
+        {% for step in page.steps %}
+        <li class="mk-step" id="step-{{ forloop.index }}"><span class="no">{{ _cn[forloop.index0] | default: forloop.index }}</span><div class="bd"><span class="tm"></span>{{ step | markdownify }}</div></li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+      {% if content and content != "" %}
+      <section class="mk-rcp-notes markdown-content">
+        {{ content }}
+      </section>
+      {% endif %}
+  <div class="mk-pn" role="navigation" aria-label="上下篇">
+    {% if _prev %}<a href="{{ _prev.url | relative_url }}" class="prev"><span class="mk-kick">上一道</span><svg class="ar" viewBox="0 0 52 10" aria-hidden="true"><line x1="51" y1="5" x2="4" y2="5"></line><path class="hd" d="M10 1 4 5l6 4"></path></svg><p>{% include latex-logo.html title=_prev.title %}</p></a>{% else %}<span class="empty"></span>{% endif %}
+    {% if _next %}<a href="{{ _next.url | relative_url }}" class="next"><span class="mk-kick">下一道</span><svg class="ar" viewBox="0 0 52 10" aria-hidden="true"><line x1="1" y1="5" x2="48" y2="5"></line><path class="hd" d="M42 1l6 4-6 4"></path></svg><p>{% include latex-logo.html title=_next.title %}</p></a>{% else %}<span class="empty"></span>{% endif %}
+  </div>
     </div>
-    {% endif %}
-  </header>
-
-  {% if page.ingredients and page.ingredients.size > 0 %}
-  <section class="recipe-section" style="margin-bottom: 2.5rem;">
-    <h2 style="font-size: 1.35rem; color: var(--color-accent); font-family: var(--font-display);
-               margin-bottom: 1rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--color-border);">
-      食材
-    </h2>
-    <ul class="ingredient-list" style="list-style: none; padding: 0; margin: 0;
-                                       display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-                                       gap: 0.5rem 1.5rem;">
-      {% for ing in page.ingredients %}
-      <li style="display: flex; justify-content: space-between; align-items: baseline;
-                 padding: 0.5rem 0.2rem; border-bottom: 1px dashed var(--color-border);">
-        <span style="color: var(--color-text); font-weight: 500;">{{ ing.name }}</span>
-        <span style="color: var(--color-muted); font-family: 'Cormorant Garamond', serif; font-size: 1rem;">
-          {{ ing.amount }}
-        </span>
-      </li>
-      {% endfor %}
-    </ul>
   </section>
-  {% endif %}
-
-  {% if page.prep and page.prep != "" %}
-  <section class="recipe-section" style="margin-bottom: 2.5rem;">
-    <h2 style="font-size: 1.35rem; color: var(--color-accent); font-family: var(--font-display);
-               margin-bottom: 1rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--color-border);">
-      备菜
-    </h2>
-    <div class="recipe-prep markdown-content" style="line-height: 1.8;">
-      {{ page.prep | markdownify }}
-    </div>
-  </section>
-  {% endif %}
-
-  {% if page.steps and page.steps.size > 0 %}
-  <section class="recipe-section" style="margin-bottom: 2.5rem;">
-    <h2 style="font-size: 1.35rem; color: var(--color-accent); font-family: var(--font-display);
-               margin-bottom: 1rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--color-border);">
-      做法
-    </h2>
-    <style>
-      .step-list li > p:first-child { margin-top: 0; }
-      .step-list li > p:last-child  { margin-bottom: 0; }
-      .step-list li p { margin: 0.5rem 0; }
-      .step-list li ul, .step-list li ol { margin: 0.4rem 0 0.4rem 1.2rem; }
-      .step-list li li { padding: 0.1rem 0; }
-    </style>
-    <ol class="step-list" style="list-style: none; padding: 0; margin: 0;
-                                 counter-reset: step;">
-      {% for step in page.steps %}
-      <li style="position: relative; padding: 0.6rem 0 0.6rem 2.8rem;
-                 counter-increment: step; line-height: 1.7; color: var(--color-text);">
-        <span style="position: absolute; left: 0; top: 0.55rem;
-                     width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center;
-                     background: var(--color-accent); color: white; font-family: 'Cormorant Garamond', serif;
-                     font-weight: 600; font-size: 1.05rem; border-radius: 50%;">
-          {{ forloop.index }}
-        </span>
-        {{ step | markdownify }}
-      </li>
-      {% endfor %}
-    </ol>
-  </section>
-  {% endif %}
-
-  {% if content and content != "" %}
-  <section class="recipe-notes markdown-content" style="margin-top: 2.5rem;
-            padding-top: 1.5rem; border-top: 1px dashed var(--color-border);">
-    {{ content }}
-  </section>
-  {% endif %}
-
   {%- comment -%} 收藏 / 点赞栏 —— 登录后归账号，"我的主页"可回看。匿名点击唤起登录弹窗。 {%- endcomment -%}
   <style>
     /* 方案 C·极简计数：描边图标 + 计数，无底色无文字标签。桌面文末一排，手机吸底跟随。 */
@@ -224,28 +158,6 @@ layout: default
     }
   </style>
   {%- assign _share_cat = page.category | default: "菜谱" -%}
-  <div id="sa-postbar" class="sa-postbar" style="display:none;"
-       data-post="{{ page.permalink | default: page.url }}"
-       data-title="{{ page.title | escape }}"
-       data-cat="{{ _share_cat }}"
-       data-url="{{ page.url }}">
-    <button type="button" class="sa-pb-btn" data-act="like" aria-pressed="false" aria-label="赞同">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11v9M2 12v7a1 1 0 0 0 1 1h3V11H3a1 1 0 0 0-1 1zM7 11l4-8a2 2 0 0 1 2 2v4h5a2 2 0 0 1 2 2l-2 7a1 1 0 0 1-1 1H7"/></svg>
-      <span class="sa-pb-num" data-num="like">·</span>
-    </button>
-    <button type="button" class="sa-pb-btn sa-pb-fav" data-act="fav" aria-pressed="false" aria-label="收藏">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 6.5 7 .6-5.3 4.6 1.6 6.8L12 17.3 5.7 20.5l1.6-6.8L2 9.1l7-.6z"/></svg>
-      <span class="sa-pb-num" data-num="fav"></span>
-    </button>
-    <button type="button" class="sa-pb-btn" data-act="comment" aria-label="评论">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span class="sa-pb-num waline-comment-count" data-path="{{ page.url }}">·</span>
-    </button>
-    <button type="button" class="sa-pb-btn sa-pb-share" data-act="share" aria-label="复制分享链接" title="复制「标题 + 链接」到剪贴板">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-    </button>
-    <span class="sa-pb-hint"></span>
-  </div>
   <script>
     (function () {
       function initPostbar() {
@@ -529,11 +441,12 @@ layout: default
       new MutationObserver(patchMeta).observe(walineEl, { childList: true, subtree: true });
     });
   </script>
-
-  <div style="margin-top: 4rem; text-align: center;">
-    <a href="{{ site.baseurl }}/toolbox/recipes/" style="color: var(--color-muted); text-decoration: none;">
-      ← 返回菜谱专区
-    </a>
-  </div>
-
 </article>
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
+</div>
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
+<script src="{{ '/assets/js/mk-content.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
