@@ -147,7 +147,6 @@ body.mk-page .mk-foot a{ color:inherit; text-decoration:none; }
 .mk-privacy .pv-updated{ font-family:var(--mk-latin); font-size:.84rem; letter-spacing:.2em; color:var(--mk-muted); }
 .mk-privacy .pv-lead{ margin:0 0 36px; font-size:1.05rem; line-height:2; color:var(--mk-text); }
 .mk-privacy .pv-sec{ display:grid; grid-template-columns:72px minmax(0,1fr); gap:18px; padding:26px 0; border-top:1px solid var(--mk-hair); }
-.mk-privacy .pv-sec:last-of-type{ border-bottom:1px solid var(--mk-line); }
 .mk-privacy .pv-no{ font-family:var(--mk-brush); font-size:1.6rem; line-height:1; color:var(--mk-seal); padding-top:2px; }
 .mk-privacy .pv-sec h2{ margin:0 0 10px; font-family:var(--mk-serif); font-weight:600; font-size:1.2rem; letter-spacing:.06em; color:var(--mk-ink); }
 .mk-privacy .pv-sec p, .mk-privacy .pv-sec li{ font-size:.96rem; line-height:1.95; color:var(--mk-text); }
