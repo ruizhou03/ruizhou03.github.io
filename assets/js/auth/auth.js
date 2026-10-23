@@ -101,7 +101,20 @@
 
   // 同一页面只允许一个 refresh 请求在飞；跨标签页时再比较 localStorage 中的
   // refresh token，避免另一个标签已经轮换成功后，本标签的重放 401 误清新会话。
+  // 后端另有 30 秒轮换宽限窗（同一张旧 token 重放拿到同一对新 token）；这里是第二道保险：
+  // 收到 401 后先等一小会儿、反复重读 localStorage——赢的那个标签可能还没来得及写入新 token。
   var refreshPromise = null;
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  async function newerSessionFromOtherTab(attempted, maxWaitMs) {
+    var deadline = Date.now() + (maxWaitMs || 0);
+    for (;;) {
+      var cur = lsGet(K_REFRESH);
+      if (cur && cur !== attempted && SiteAuth.getToken()) return SiteAuth.getToken();
+      if (!cur && !SiteAuth.getToken()) return null;   // 已被别处明确登出
+      if (Date.now() >= deadline) return null;
+      await sleep(150);
+    }
+  }
   async function rotateAccessToken() {
     if (refreshPromise) return refreshPromise;
     refreshPromise = (async function () {
@@ -120,10 +133,8 @@
           return { ok: true, token: data.token };
         }
         if (res.status === 401) {
-          var currentRefresh = lsGet(K_REFRESH);
-          if (currentRefresh && currentRefresh !== attempted && SiteAuth.getToken()) {
-            return { ok: true, token: SiteAuth.getToken() };
-          }
+          var newerToken = await newerSessionFromOtherTab(attempted, 1500);
+          if (newerToken) return { ok: true, token: newerToken };
           clearSession();
           return { ok: false, definitive: true };
         }
