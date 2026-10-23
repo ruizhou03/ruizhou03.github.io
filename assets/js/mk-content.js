@@ -2,7 +2,6 @@
    依赖 mk-category.js 处理页脚年份与联系邮箱。 */
 (function () {
   'use strict';
-  var CN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'];
 
   /* ---------- 文章：阅读时长 + 字数 ---------- */
   var art = document.querySelector('.mk-art');
@@ -32,29 +31,22 @@
       if (heads.length <= 1) {
         rail.remove(); if (btn) btn.remove(); if (bd) bd.remove();
       } else {
-        var dots = rail.querySelector('.mk-rail__dots');
+        // 目录只照抄标题文字：标题自带「一、」「1.」就跟着显示，不再另行编号，避免「一 一、」重复
         var panel = rail.querySelector('.mk-rail__panel');
-        var links = [], dotEls = [], major = 0;
+        var links = [];
         heads.forEach(function (h, i) {
           var id = 'section-' + i; h.id = id;
           var isSub = h.tagName === 'H2' && hasH1;
           var a = document.createElement('a');
           a.href = '#' + id;
-          if (isSub) { a.className = 'sub'; a.textContent = h.textContent.trim(); }
-          else {
-            var s = document.createElement('span'); s.textContent = CN[major] || String(major + 1); major++;
-            a.appendChild(s); a.appendChild(document.createTextNode(h.textContent.trim()));
-          }
+          if (isSub) a.className = 'sub';
+          a.textContent = h.textContent.trim();
           a.addEventListener('click', function () { if (window.innerWidth <= 1100) closeRail(); });
-          var hint = panel.querySelector('.hint');
-          panel.insertBefore(a, hint);
-          var d = document.createElement('i'); if (isSub) d.className = 'sub';
-          dots.appendChild(d);
-          links.push(a); dotEls.push(d);
+          panel.appendChild(a);
+          links.push(a);
         });
         function setActive(idx) {
           links.forEach(function (a, i) { a.classList.toggle('on', i === idx); });
-          dotEls.forEach(function (d, i) { d.classList.toggle('on', i === idx); });
         }
         function spy() {
           var y = window.scrollY + 130, best = 0;
@@ -66,11 +58,8 @@
         spy();
         function openRail() { rail.classList.add('open'); if (bd) bd.classList.add('on'); }
         function closeRail() { rail.classList.remove('open'); if (bd) bd.classList.remove('on'); }
-        var tab = rail.querySelector('.mk-rail__tab');
-        if (tab) tab.addEventListener('click', function () { rail.classList.toggle('open'); });
         if (btn) btn.addEventListener('click', function () { rail.classList.contains('open') ? closeRail() : openRail(); });
         if (bd) bd.addEventListener('click', closeRail);
-        rail.addEventListener('mouseleave', function () { if (window.innerWidth > 1100) rail.classList.remove('open'); });
       }
     }
 
