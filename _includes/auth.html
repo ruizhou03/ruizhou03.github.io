@@ -134,6 +134,50 @@
   @keyframes sa-spin { to { transform: rotate(360deg); } }
   .sa-loading p { margin: 0; font-size: 0.9rem; color: var(--color-muted); letter-spacing: 0.03em; }
   @media (prefers-reduced-motion: reduce) { .sa-spinner { animation-duration: 1.6s; } }
+
+  /* ── 墨园皮：登录弹层 / 头像菜单 / 登录按钮改纸色方卡（在 mk 页面取 --mk-* token，其它页面回落站点 token）── */
+  #sa-overlay { --sa-paper: var(--mk-paper2, var(--color-bg)); --sa-ink: var(--mk-ink, var(--color-ink)); --sa-text: var(--mk-text, var(--color-text));
+    --sa-muted: var(--mk-muted, var(--color-muted)); --sa-hair: var(--mk-hair2, var(--color-border)); --sa-seal: var(--mk-seal, #b4392c); --sa-onink: var(--mk-paper, var(--color-bg));
+    background: rgba(29,27,24,0.55); backdrop-filter: none; }
+  #sa-overlay .sa-card { width: 380px; border-radius: 0; border: 1px solid var(--sa-ink); outline: 1px solid var(--sa-ink); outline-offset: 4px; box-shadow: none;
+    background: var(--sa-paper); color: var(--sa-text); padding: 1.9rem 1.8rem 1.7rem;
+    font-family: 'Noto Serif SC','Cormorant Garamond','Source Han Serif SC','Songti SC',Georgia,serif; }
+  #sa-overlay .sa-card::before { content: 'Sign in · 锆铌'; display: block; margin-bottom: 0.7rem; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600;
+    font-size: 0.72rem; letter-spacing: 0.4em; text-transform: uppercase; color: var(--sa-seal); }
+  #sa-overlay .sa-close { color: var(--sa-muted); }
+  #sa-overlay .sa-close:hover { color: var(--sa-seal); }
+  #sa-overlay .sa-title { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.1em; color: var(--sa-ink); margin: 0 0 0.4rem; }
+  #sa-overlay .sa-sub { color: var(--sa-muted); line-height: 1.7; margin-bottom: 1.4rem; }
+  #sa-overlay .sa-field label { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 0.72rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--sa-seal); }
+  #sa-overlay .sa-field input { border: 0; border-bottom: 1px solid var(--sa-hair); border-radius: 0; background: transparent; padding: 0.6rem 0.1rem; color: var(--sa-ink); font-family: inherit; }
+  #sa-overlay .sa-field input:focus { border-bottom-color: var(--sa-ink); }
+  #sa-overlay .sa-field input::placeholder { color: var(--sa-muted); opacity: 0.7; }
+  #sa-overlay .sa-submit { border-radius: 0; border: 1px solid var(--sa-ink); background: var(--sa-ink); color: var(--sa-onink); font-family: inherit; font-weight: 500; letter-spacing: 0.16em; margin-top: 0.9rem; transition: background .2s, border-color .2s; }
+  #sa-overlay .sa-submit:hover:not(:disabled) { background: var(--sa-seal); border-color: var(--sa-seal); color: #f3eee3; }
+  #sa-overlay .sa-resend { color: var(--sa-muted); font-family: inherit; letter-spacing: 0.08em; }
+  #sa-overlay .sa-resend:hover { color: var(--sa-seal); }
+  #sa-overlay .sa-error { color: var(--sa-seal); letter-spacing: 0.04em; }
+  #sa-overlay .sa-error.ok { color: #5d8a6b; }
+  #sa-overlay .sa-hint { color: var(--sa-muted); letter-spacing: 0.04em; }
+  #sa-overlay .sa-divider { color: var(--sa-muted); letter-spacing: 0.2em; }
+  #sa-overlay .sa-divider::before, #sa-overlay .sa-divider::after { background: var(--sa-hair); }
+  #sa-overlay .sa-loading { border-radius: 0; background: var(--sa-paper); }
+  #sa-overlay .sa-loading p { color: var(--sa-muted); letter-spacing: 0.1em; }
+  #sa-overlay .sa-spinner { border-color: var(--sa-hair); border-top-color: var(--sa-seal); }
+  /* 顶栏登录按钮与头像菜单 */
+  .sa-login-btn { border-radius: 0; border-color: var(--mk-ink, var(--color-border)); color: var(--mk-ink, var(--color-muted)); letter-spacing: 0.12em; padding: 0.32rem 0.7rem; }
+  .sa-login-btn:hover { color: var(--mk-seal, var(--color-highlight)); border-color: var(--mk-seal, var(--color-highlight)); }
+  .sa-menu { border-radius: 0; border: 1px solid var(--mk-ink, var(--color-border)); box-shadow: none; background: var(--mk-paper2, var(--color-bg)); padding: 0.3rem; }
+  .sa-menu a.sa-menu-name { border-radius: 0; border-bottom-color: var(--mk-hair2, var(--color-border)); }
+  .sa-menu a.sa-menu-name:hover, .sa-menu a:hover, .sa-menu button:hover { background: var(--mk-panel, var(--color-bg-warm)); }
+  .sa-menu a, .sa-menu button { border-radius: 0; color: var(--mk-text, var(--color-text)); letter-spacing: 0.06em; }
+  .sa-menu .sa-logout { color: var(--mk-seal, #b5483a); }
+  .sa-menu-nick { color: var(--mk-ink, var(--color-ink)); }
+  .sa-id-av { background: var(--mk-ink, var(--color-accent)); color: var(--mk-paper, #fff); }
+  .sa-lvpill { border-radius: 0; background: transparent; border: 1px solid var(--mk-seal, var(--color-accent)); color: var(--mk-seal, var(--color-accent)); letter-spacing: 0.12em; }
+  .sa-lvbar { border-radius: 0; background: var(--mk-hair, var(--color-border)); }
+  .sa-lvbar > i { border-radius: 0; background: var(--mk-seal, var(--color-accent)); }
+  .sa-lvnote { color: var(--mk-muted, var(--color-light)); letter-spacing: 0.06em; }
 </style>
 
 <div id="auth-modal-root">

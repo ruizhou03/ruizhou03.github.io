@@ -3,268 +3,28 @@ layout: default
 title: "那年今日 · 锆铌"
 description: 同一天，本站在过去几年写下的文字——翻历年同一天的文章，看写作热力图。
 permalink: /board/onthisday/
+body_class: mk-cat mk-page mk-otdp
 redirect_from:
   - /toolbox/timemachine/
 ---
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-pages.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 
-<style>
-  .tm-wrap { max-width: 760px; margin: 0 auto; padding: 2.2rem 1rem 3rem; }
-
-  /* ── board 风 hero ── */
-  .otd-hero { margin-bottom: 2.8rem; }
-  .otd-crumb {
-    font-family: 'Cormorant Garamond', serif;
-    font-variant: small-caps;
-    letter-spacing: 0.08em;
-    font-size: 0.92rem;
-    color: var(--color-light);
-    margin: 0 0 1.4rem;
-  }
-  .otd-crumb a { color: var(--color-highlight); text-decoration: none; transition: color 0.18s; }
-  @media (hover: hover) { .otd-crumb a:hover { color: var(--color-accent); } }
-  .otd-crumb .sep { margin: 0 0.5em; opacity: 0.55; }
-  .otd-eyebrow {
-    font-family: 'Cormorant Garamond', var(--font-display);
-    font-variant: small-caps;
-    letter-spacing: 0.18em;
-    font-size: 0.86rem;
-    color: var(--color-highlight);
-    margin: 0 0 0.55rem;
-  }
-  .otd-eyebrow::before {
-    content: ""; display: inline-block; width: 6px; height: 6px;
-    background: var(--color-highlight); transform: rotate(45deg);
-    margin-right: 0.65em; vertical-align: middle;
-  }
-  .otd-htitle {
-    font-family: var(--font-display);
-    font-size: clamp(2.2rem, 5vw, 2.9rem);
-    font-weight: 700;
-    color: var(--color-ink);
-    letter-spacing: 0.02em;
-    line-height: 1.15;
-    margin: 0;
-  }
-  .otd-rule { display: flex; align-items: center; gap: 0.6rem; margin: 1.05rem 0 1.35rem; }
-  .otd-gem { width: 9px; height: 9px; flex: none; background: var(--color-highlight); transform: rotate(45deg); }
-  .otd-line {
-    height: 1px; width: 84px;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--color-highlight) 75%, transparent), transparent);
-  }
-  .otd-lead {
-    font-size: 1.08rem;
-    line-height: 1.85;
-    color: var(--color-muted);
-    margin: 0;
-    max-width: 32em;
-  }
-
-  .date-bar {
-    display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: center;
-    justify-content: flex-start;
-    margin-bottom: 1.6rem;
-    padding: 1rem 1.2rem;
-    background: var(--color-bg-warm); border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg, 14px);
-  }
-  .date-bar .label { font-size: 0.92rem; color: var(--color-muted); }
-  .date-bar input[type="date"] {
-    font: inherit; font-size: 0.95rem; color: var(--color-ink);
-    padding: 0.5rem 0.85rem;
-    border: 1px solid var(--color-border); border-radius: 8px;
-    background: var(--color-bg);
-  }
-  .date-bar input[type="date"]:focus { outline: none; border-color: var(--color-accent); }
-  .date-bar .reset-btn {
-    font: inherit; font-size: 0.85rem;
-    padding: 0.5rem 0.95rem;
-    border: 1px solid var(--color-border); border-radius: 999px;
-    background: var(--color-bg); color: var(--color-muted); cursor: pointer;
-    transition: all 0.18s;
-  }
-  @media (hover: hover) {
-    .date-bar .reset-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  }
-
-  .featured-date {
-    text-align: left;
-    margin: 0 0 1.6rem;
-  }
-  .featured-date .display {
-    font-family: var(--font-display);
-    font-size: 1.85rem; font-weight: 700;
-    color: var(--color-ink);
-    line-height: 1.15;
-  }
-  .featured-date .hint {
-    margin-top: 0.35rem;
-    color: var(--color-highlight);
-    font-size: 0.92rem;
-    letter-spacing: 0.02em;
-  }
-
-  .results-zone { margin-top: 1.5rem; }
-
-  .year-section {
-    margin-bottom: 1.6rem;
-    border-left: 3px solid var(--color-accent);
-    padding-left: 1.1rem;
-  }
-  .year-section.distant { border-left-color: var(--color-highlight); }
-  .year-header {
-    font-family: var(--font-display);
-    font-size: 1.1rem; font-weight: 600;
-    color: var(--color-accent);
-    margin-bottom: 0.6rem;
-    display: flex; align-items: baseline; gap: 0.5rem;
-  }
-  .year-section.distant .year-header { color: var(--color-highlight); }
-  .year-header .delta {
-    font-size: 0.8rem; font-weight: 400;
-    color: var(--color-muted);
-    font-family: var(--font-body);
-  }
-
-  .article-row {
-    display: block;
-    padding: 0.7rem 0;
-    border-bottom: 1px dashed var(--color-border);
-    text-decoration: none;
-    color: var(--color-text);
-    transition: all 0.18s;
-  }
-  .article-row:last-child { border-bottom: none; }
-  @media (hover: hover) {
-    .article-row:hover {
-    color: var(--color-accent);
-    transform: translateX(3px);
-  }
-  }
-  .article-row .ar-title {
-    font-weight: 600;
-    font-size: 1rem;
-    color: var(--color-ink);
-    margin-bottom: 0.2rem;
-    transition: color 0.18s;
-  }
-  @media (hover: hover) {
-    .article-row:hover .ar-title { color: var(--color-accent); }
-  }
-  .article-row .ar-meta {
-    font-size: 0.78rem;
-    color: var(--color-light);
-  }
-
-  .empty {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: var(--color-light);
-  }
-  .empty .icon { font-size: 2.5rem; margin-bottom: 0.6rem; opacity: 0.5; }
-
-  .nearest-fallback {
-    margin-top: 1.5rem;
-    padding: 1rem 1.2rem;
-    background: var(--color-bg-warm);
-    border-left: 3px solid var(--color-highlight);
-    border-radius: 0 8px 8px 0;
-  }
-  .nearest-fallback .label {
-    font-size: 0.82rem;
-    color: var(--color-muted);
-    margin-bottom: 0.5rem;
-    font-style: normal;
-  }
-
-  .heatmap-zone {
-    margin-top: 2.5rem;
-    padding: 1.4rem 1.2rem;
-    background: var(--color-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
-  }
-  .heatmap-title {
-    font-family: var(--font-display);
-    font-weight: 600;
-    margin-bottom: 0.9rem;
-    color: var(--color-ink);
-    display: flex; align-items: baseline; gap: 0.5rem;
-  }
-  .heatmap-title small {
-    font-size: 0.78rem; font-weight: 400;
-    color: var(--color-muted);
-    font-family: var(--font-body);
-  }
-  .heatmap {
-    display: grid;
-    grid-template-columns: repeat(31, 1fr);
-    gap: 3px;
-    max-width: 100%;
-  }
-  .heatmap .cell {
-    aspect-ratio: 1;
-    background: var(--color-bg-warm);
-    border-radius: 2px;
-    cursor: pointer;
-    transition: all 0.15s;
-    position: relative;
-  }
-  .heatmap .cell.has-posts.lvl-1 { background: rgba(30, 58, 95, 0.25); }
-  .heatmap .cell.has-posts.lvl-2 { background: rgba(30, 58, 95, 0.5); }
-  .heatmap .cell.has-posts.lvl-3 { background: rgba(30, 58, 95, 0.75); }
-  .heatmap .cell.has-posts.lvl-4 { background: var(--color-accent); }
-  .heatmap .cell.today { box-shadow: 0 0 0 2px var(--color-highlight); }
-  .heatmap .cell.selected { box-shadow: 0 0 0 2px var(--color-accent); }
-  @media (hover: hover) {
-    .heatmap .cell:hover { transform: scale(1.15); z-index: 2; }
-  }
-  .heatmap-month-row {
-    display: grid;
-    grid-template-columns: 32px 1fr;
-    align-items: center;
-    margin-bottom: 4px;
-  }
-  .heatmap-month-row .month-label {
-    font-size: 0.78rem; color: var(--color-muted);
-    text-align: right; padding-right: 0.5rem;
-  }
-  .heatmap-legend {
-    margin-top: 0.8rem;
-    display: flex; gap: 0.5rem; align-items: center;
-    font-size: 0.78rem; color: var(--color-light);
-    justify-content: flex-end;
-  }
-  .heatmap-legend .lc { width: 12px; height: 12px; border-radius: 2px; }
-
-  .loading {
-    text-align: center; padding: 3rem;
-    color: var(--color-light);
-    font-size: 0.95rem;
-  }
-
-  @media (max-width: 600px) {
-    .tm-wrap { padding: 1.4rem 1rem 2.4rem; }
-    .otd-hero { margin-bottom: 2.2rem; }
-    .otd-lead { font-size: 1rem; }
-    .featured-date .display { font-size: 1.55rem; }
-    .heatmap-zone { padding: 1rem 0.8rem; }
-    .heatmap { gap: 2px; }
-  }
-</style>
-
-<div class="tm-wrap">
-  <header class="otd-hero">
-    <p class="otd-crumb"><a href="/board/">站务公告</a><span class="sep" aria-hidden="true">／</span>那年今日</p>
-    <p class="otd-eyebrow">那年今日 · On This Day</p>
-    <h1 class="otd-htitle">那年今日</h1>
-    <div class="otd-rule"><span class="otd-gem"></span><span class="otd-line"></span></div>
-    <p class="otd-lead">同一天，本站在过去几年写下的文字。选一个日子，回望历年的这一天，也看看这些年写作的疏密。</p>
+<div class="mk mk-narrow">
+  <header class="mk-pmast">
+    <div class="l">
+      <p class="mk-crumb"><a href="{{ '/board/' | relative_url }}">站务公告</a><span class="sep" aria-hidden="true">／</span>那年今日</p>
+      <span class="mk-kick">那年今日 · On This Day</span>
+      <h1>那年今日</h1>
+      <p class="lead">同一天，本站在过去几年写下的文字。选一个日子，回望历年的这一天，也看看这些年写作的疏密。</p>
+    </div>
+    <span class="mk-seal" aria-label="今日印">今日</span>
   </header>
 
   <div class="date-bar">
-    <span class="label">查看日期：</span>
+    <span class="label">查看日期</span>
     <input type="date" id="date-input" />
-    <button type="button" class="reset-btn" id="today-btn">[[zi:pin]] 跳到今天</button>
+    <button type="button" class="mkp-btn sm" id="today-btn">跳到今天</button>
   </div>
 
   <div class="featured-date">
@@ -276,20 +36,22 @@ redirect_from:
 
   <div class="heatmap-zone" id="heatmap-zone" style="display: none;">
     <div class="heatmap-title">
-      <span>[[zi:chart]] 写作热力图</span>
+      <span>写作热力图</span>
       <small id="heatmap-subtitle"></small>
     </div>
     <div id="heatmap-body"></div>
     <div class="heatmap-legend">
-      少 <div class="lc" style="background: var(--color-bg-warm);"></div>
-      <div class="lc" style="background: rgba(30, 58, 95, 0.25);"></div>
-      <div class="lc" style="background: rgba(30, 58, 95, 0.5);"></div>
-      <div class="lc" style="background: rgba(30, 58, 95, 0.75);"></div>
-      <div class="lc" style="background: var(--color-accent);"></div>
-      多
+      少 <div class="lc l0"></div><div class="lc l1"></div><div class="lc l2"></div><div class="lc l3"></div><div class="lc l4"></div> 多
     </div>
   </div>
+
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
 </div>
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
 
 <script>
 (function () {
@@ -349,7 +111,7 @@ redirect_from:
       });
       return true;
     } catch (e) {
-      $results.innerHTML = `<div class="empty"><div class="icon">[[zi:warning]]</div>加载文章索引失败：${escapeHtml(e.message)}</div>`;
+      $results.innerHTML = `<div class="mk-empty"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 10v4M12 17.5v.5"/></svg></span>加载文章索引失败：${escapeHtml(e.message)}</div>`;
       return false;
     }
   }
@@ -367,8 +129,8 @@ redirect_from:
       if (nearest) {
         const nearestHits = byMmdd[nearest] || [];
         $results.innerHTML = `
-          <div class="empty">
-            <div class="icon">[[zi:question]]</div>
+          <div class="mk-empty">
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 9.5a3 3 0 1 1 4.2 2.75c-.8.4-1.2 1-1.2 1.75v.5"/><path d="M12 17.5v.5"/><circle cx="12" cy="12" r="9.5"/></svg></span>
             <div>这一天没有历史文章。</div>
           </div>
           <div class="nearest-fallback">
@@ -378,8 +140,8 @@ redirect_from:
         `;
       } else {
         $results.innerHTML = `
-          <div class="empty">
-            <div class="icon">[[zi:sprout]]</div>
+          <div class="mk-empty">
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 13c0-3-2.5-5-6-5 0 3 2.5 5 6 5z"/></svg></span>
             <div>这一天还没有历史文章——也许就在今年开始？</div>
           </div>
         `;

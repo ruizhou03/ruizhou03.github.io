@@ -4,48 +4,48 @@ title: 公开主页 | Rui Zhou
 permalink: /u/
 sitemap: false
 noindex: true
+body_class: mk-cat mk-page mk-pub
 ---
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-pages.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 
-<article style="max-width: 640px; margin: 0 auto; padding: 3rem 1rem;">
+<article class="mk mk-narrow">
+  <header class="mk-pmast">
+    <div class="l">
+      <span class="mk-kick">锆友 · Profile</span>
+      <h1>公开主页</h1>
+    </div>
+    <span class="mk-seal" aria-label="锆友印">锆友</span>
+  </header>
+
   <div id="pu-loading" class="pu-state">加载中…</div>
 
-  <div id="pu-empty" class="pu-state" style="display:none;">
-    <div class="pu-empty-emoji">[[zi:lock:seal]]</div>
+  <div id="pu-empty" class="mk-empty" style="display:none;">
+    <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
     <p>这个主页不存在，或对方没有公开。</p>
-    <a href="/" class="pu-home">回首页</a>
+    <a href="{{ '/zh/' | relative_url }}" class="mkp-btn pu-home">回首页</a>
   </div>
 
   <div id="pu-card" class="pu-card" style="display:none;">
+    <span class="mk-corner tl" aria-hidden="true"></span><span class="mk-corner tr" aria-hidden="true"></span>
+    <span class="mk-corner bl" aria-hidden="true"></span><span class="mk-corner br" aria-hidden="true"></span>
     <div class="pu-av" id="pu-av"></div>
-    <h1 class="pu-nick" id="pu-nick"></h1>
+    <h2 class="pu-nick" id="pu-nick"></h2>
     <div class="pu-lv" id="pu-lv" style="display:none;"></div>
     <p class="pu-bio" id="pu-bio"></p>
     <p class="pu-meta" id="pu-meta"></p>
     <div id="pu-self" class="pu-self" style="display:none;">
-      <a href="/account/" class="pu-edit">这是你的主页 · 去编辑</a>
+      <a href="{{ '/account/' | relative_url }}" class="mkp-btn sm pu-edit">这是你的主页 · 去编辑</a>
     </div>
   </div>
-</article>
 
-<style>
-  .pu-state { text-align:center; color:var(--color-light); padding:3rem 1rem; }
-  .pu-empty-emoji { font-size:2.4rem; margin-bottom:0.8rem; }
-  .pu-home, .pu-edit { display:inline-block; margin-top:1rem; color:var(--color-highlight); text-decoration:none; font-weight:600; }
-  .pu-home:hover, .pu-edit:hover { text-decoration:underline; }
-  .pu-card { text-align:center; padding:2.2rem 1.4rem; border:1px solid var(--color-border);
-    border-radius:18px; background:var(--color-bg-warm); }
-  .pu-av { width:96px; height:96px; border-radius:50%; margin:0 auto 1.1rem;
-    background:var(--color-highlight); color:#fff; font-size:2.6rem; font-weight:700;
-    display:flex; align-items:center; justify-content:center; background-size:cover; background-position:center; }
-  .pu-nick { font-size:1.5rem; color:var(--color-ink); margin:0 0 0.5rem; word-break:break-word; }
-  .pu-lv { display:inline-block; font-family:var(--font-display); font-size:0.85rem; font-weight:700; color:#fff;
-    background:var(--color-accent); border-radius:999px; padding:0.22rem 0.6rem; margin:0 0 0.7rem;
-    font-variant-numeric: tabular-nums lining-nums; }
-  .pu-bio { font-size:0.98rem; color:var(--color-text); line-height:1.7; margin:0 auto; max-width:34ch; word-break:break-word; }
-  .pu-bio:empty { display:none; }
-  .pu-meta { font-size:0.8rem; color:var(--color-light); margin-top:1.1rem; }
-  .pu-self { margin-top:0.8rem; }
-</style>
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
+</article>
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
 
 <script>
 (function () {
@@ -75,9 +75,9 @@ noindex: true
       var av = document.getElementById('pu-av');
       if (p.avatar && /^data:image\//.test(p.avatar)) {
         av.style.backgroundImage = 'url("' + p.avatar + '")'; av.style.color = 'transparent'; av.textContent = '';
-      } else { av.textContent = (p.nick || '?').trim().charAt(0).toUpperCase(); }
+      } else { av.classList.add('is-initial'); av.textContent = (p.nick || '?').trim().charAt(0).toUpperCase(); }
       document.getElementById('pu-nick').textContent = p.nick || '锆友';
-      if (p.level) { var lvEl = document.getElementById('pu-lv'); lvEl.textContent = 'Lv' + p.level; lvEl.style.display = ''; }
+      if (p.level) { var lvEl = document.getElementById('pu-lv'); lvEl.textContent = 'Lv ' + p.level; lvEl.style.display = ''; }
       document.getElementById('pu-bio').textContent = p.bio || '';
       document.getElementById('pu-meta').textContent = p.createdAt ? '加入于 ' + fmtDate(p.createdAt) : '';
       // 如果看的是自己的主页，给个去编辑的入口

@@ -3,64 +3,28 @@ layout: default
 title: 页面走丢了 · 404
 permalink: /404.html
 noindex: true
+body_class: mk-cat mk-page
 ---
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-pages.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 
-<section class="notfound">
-  <p class="nf-code">404</p>
-  <h1 class="nf-title">这一页走丢了</h1>
-  <p class="nf-msg">链接可能改过、删了，或者从来就不存在。不如从下面两个门重新逛起。</p>
-  <div class="nf-links">
-    <a href="{{ '/zh/' | relative_url }}" class="nf-btn nf-btn--primary">← 回首页</a>
-    <a href="{{ '/toolbox/' | relative_url }}" class="nf-btn">逛百宝箱</a>
-  </div>
-</section>
+<div class="mk mk-narrow">
+  <section class="mk-nf">
+    <div class="code" aria-hidden="true">404</div>
+    <span class="mk-kick">Not Found · 页面走丢了</span>
+    <h1>这一页走丢了</h1>
+    <p>链接可能改过、删了，或者从来就不存在。不如从下面两个门重新逛起。</p>
+    <div class="links">
+      <a href="{{ '/zh/' | relative_url }}" class="mkp-btn primary">回首页</a>
+      <a href="{{ '/toolbox/' | relative_url }}" class="mkp-btn">逛百宝箱</a>
+    </div>
+    <span class="mk-seal" aria-label="锆铌印">锆铌</span>
+  </section>
 
-<style>
-  .notfound {
-    max-width: 620px;
-    margin: 0 auto;
-    padding: 4.5rem 1rem 5.5rem;
-    text-align: center;
-  }
-  .nf-code {
-    font-family: 'Cormorant Garamond', var(--font-display);
-    font-size: 5rem;
-    line-height: 1;
-    font-weight: 600;
-    color: var(--color-accent);
-    letter-spacing: 0.05em;
-    margin: 0;
-  }
-  .nf-title {
-    font-size: 1.5rem;
-    color: var(--color-ink);
-    margin: 1rem 0 0.6rem;
-  }
-  .nf-msg {
-    color: var(--color-muted);
-    font-size: 1rem;
-    line-height: 1.8;
-    margin: 0 auto 2.2rem;
-    max-width: 30rem;
-  }
-  .nf-links {
-    display: flex;
-    gap: 0.7rem;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .nf-btn {
-    text-decoration: none;
-    border: 1px solid var(--color-border);
-    color: var(--color-muted);
-    border-radius: 999px;
-    padding: 0.45rem 1.3rem;
-    font-size: 0.92rem;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .nf-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
-  .nf-btn--primary {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-  }
-</style>
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
+</div>
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
