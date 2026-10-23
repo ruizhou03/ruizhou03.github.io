@@ -145,7 +145,8 @@ body.mk-cat.mk-searching.mk-nothing .mk-nohit{ display:block; }
 .mk-band .go{ font-family:var(--mk-latin); font-weight:500; font-size:.86rem; letter-spacing:.24em; color:#e0a89e; }
 
 /* ---------- 题跋 ---------- */
-.mk-foot{ margin-top:56px; padding-top:26px; border-top:1px solid var(--mk-line); display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; }
+/* 页脚满框：盖掉 main.css 里 footer{max-width:800px; padding:2rem; text-align:center} 的通用规则 */
+.mk-foot{ max-width:none; margin:56px 0 0; padding:26px 0 0; border-top:1px solid var(--mk-line); display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; text-align:left; font-size:inherit; color:inherit; }
 .mk-foot .c{ font-family:var(--mk-latin); font-weight:500; font-size:.9rem; letter-spacing:.22em; color:var(--mk-muted); }
 .mk-foot .fn{ display:flex; gap:22px; font-size:.88rem; letter-spacing:.1em; color:var(--mk-muted); }
 .mk-foot .fn a:hover, .mk-foot .fn button:hover{ color:var(--mk-seal); }

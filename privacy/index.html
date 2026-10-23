@@ -8,7 +8,7 @@ body_class: mk-cat mk-page mk-privacy
 <link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 <link rel="stylesheet" href="{{ '/assets/css/mk-pages.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 
-<article class="mk mk-narrow">
+<article class="mk">
   <header class="mk-pmast">
     <div class="l">
       <span class="mk-kick">隐私 · Privacy</span>
@@ -17,6 +17,7 @@ body_class: mk-cat mk-page mk-privacy
     </div>
     <span class="mk-seal" aria-label="隐私印">隐私</span>
   </header>
+  <div class="mk-read">
 
   <p class="pv-lead">这是周睿维护的个人网站。你可以不注册直接阅读绝大多数内容；只有在登录、评论、上传或使用云同步功能时，网站才会保存与你有关的数据。</p>
 
@@ -91,6 +92,7 @@ body_class: mk-cat mk-page mk-privacy
     </div>
   </section>
 
+  </div>
   <footer class="mk-foot">
     <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
     <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
