@@ -118,7 +118,16 @@ h1,h2,h3,p{ margin:0; }
 .seal{ display:inline-grid; place-items:center; width:56px; height:56px; background:var(--seal); color:var(--on-seal);
   font-family:var(--font-brush); font-size:1.3rem; line-height:1; border:2px solid var(--seal); box-shadow:inset 0 0 0 2px var(--on-seal);
   writing-mode:vertical-rl; letter-spacing:.1em; flex:none; }
-.frame{ border:1px solid var(--line); padding:6px; background:var(--paper-2); }
+.frame{ position:relative; border:1px solid var(--line); padding:6px; background:var(--paper-2); }
+/* 裱框角花：悬停时四角顺时针长出朱色回纹 */
+.mk-corners{ position:absolute; inset:-1px; pointer-events:none; }
+.mk-corners svg{ position:absolute; width:22px; height:22px; overflow:visible; }
+.mk-corners svg:nth-child(1){ left:0; top:0; } .mk-corners svg:nth-child(2){ right:0; top:0; transform:rotate(90deg); }
+.mk-corners svg:nth-child(3){ right:0; bottom:0; transform:rotate(180deg); } .mk-corners svg:nth-child(4){ left:0; bottom:0; transform:rotate(270deg); }
+.mk-corners path{ fill:none; stroke:var(--seal); stroke-width:1.6; stroke-linejoin:round; stroke-linecap:round; stroke-dasharray:1 1.2; stroke-dashoffset:1.05; transition:stroke-dashoffset .5s ease-in; }
+.mk-corners.on path, :hover > .mk-corners path{ stroke-dashoffset:0; transition:stroke-dashoffset 1.1s cubic-bezier(.22,.75,.2,1); }
+:hover > .mk-corners svg:nth-child(2) path{ transition-delay:.12s; } :hover > .mk-corners svg:nth-child(3) path{ transition-delay:.24s; } :hover > .mk-corners svg:nth-child(4) path{ transition-delay:.36s; }
+
 .frame > .in{ border:1px solid var(--hair-2); display:block; }
 .box{ border:1px solid var(--line); display:block; }
 .panel{ background:var(--panel); display:block; }
@@ -131,8 +140,10 @@ h1,h2,h3,p{ margin:0; }
 .brand__zh{ font-family:var(--font-body); font-weight:700; font-size:1.34rem; letter-spacing:.2em; color:var(--ink); }
 .brand__la{ font-family:var(--font-display); font-size:.74rem; letter-spacing:.38em; text-transform:uppercase; color:var(--seal); }
 .mainnav{ display:flex; gap:clamp(.9rem,1.8vw,1.75rem); justify-self:center; }
-.mainnav a{ font-size:1rem; letter-spacing:.12em; color:var(--text); padding:.2rem 0; border-bottom:1px solid transparent; transition:border-color .25s, color .25s; }
-.mainnav a:hover{ border-bottom-color:var(--seal); color:var(--ink); }
+.mainnav a{ position:relative; font-size:1rem; letter-spacing:.12em; color:var(--text); padding:.2rem 0 .25rem; transition:color .25s; }
+.mainnav a::after{ content:""; position:absolute; left:50%; right:50%; bottom:0; height:1px; background:var(--ink); transition:left .5s cubic-bezier(.22,.75,.2,1), right .5s cubic-bezier(.22,.75,.2,1), background .4s ease .35s; }
+.mainnav a:hover{ color:var(--ink); }
+.mainnav a:hover::after{ left:0; right:0; background:var(--seal); }
 .util{ display:flex; align-items:center; gap:.65rem; justify-self:end; }
 .ico{ width:34px; height:34px; display:grid; place-items:center; border:1px solid var(--hair-2); border-radius:50%; background:transparent; color:var(--text); cursor:pointer; padding:0; }
 .ico:hover{ border-color:var(--seal); color:var(--seal); }
@@ -171,7 +182,17 @@ h1,h2,h3,p{ margin:0; }
 .facts dt{ font-family:var(--font-display); }
 .facts dd{ margin:0; color:var(--ink); }
 /* 那年今日小卡：JS 填充；没有命中时整卡隐藏 */
-.otd{ display:none; align-items:center; gap:18px; padding:14px 18px; max-width:360px; }
+.otd{ display:none; align-items:center; gap:18px; padding:14px 18px; max-width:360px; flex-wrap:wrap; }
+.otd__tl{ flex-basis:100%; height:14px; position:relative; display:none; margin-top:4px; }
+.otd.has-tl .otd__tl{ display:block; }
+.otd__tl i{ position:absolute; left:0; top:7px; height:1px; width:0; background:var(--seal); transition:width 1.2s cubic-bezier(.22,.75,.2,1); }
+.otd__tl b{ position:absolute; top:4px; width:7px; height:7px; margin-left:-3px; border-radius:50%; background:var(--seal); opacity:0; transform:scale(.4); transition:opacity .3s ease, transform .4s cubic-bezier(.2,.8,.2,1.3); }
+.otd__tl span{ position:absolute; top:-11px; transform:translateX(-50%); font-family:var(--font-display); font-weight:500; font-size:.62rem; letter-spacing:.14em; color:var(--muted); opacity:0; transition:opacity .4s ease; }
+.otd:hover .otd__tl i{ width:100%; }
+.otd:hover .otd__tl b{ opacity:1; transform:scale(1); }
+.otd:hover .otd__tl span{ opacity:1; }
+.otd:hover .otd__tl b:nth-of-type(1){ transition-delay:.15s } .otd:hover .otd__tl b:nth-of-type(2){ transition-delay:.45s } .otd:hover .otd__tl b:nth-of-type(3){ transition-delay:.75s } .otd:hover .otd__tl b:nth-of-type(4){ transition-delay:1.05s } .otd:hover .otd__tl b:nth-of-type(5){ transition-delay:1.2s }
+.otd:hover .otd__tl span:nth-of-type(1){ transition-delay:.25s } .otd:hover .otd__tl span:nth-of-type(2){ transition-delay:.55s } .otd:hover .otd__tl span:nth-of-type(3){ transition-delay:.85s } .otd:hover .otd__tl span:nth-of-type(4){ transition-delay:1.15s } .otd:hover .otd__tl span:nth-of-type(5){ transition-delay:1.3s }
 .otd.is-on{ display:flex; }
 .otd__d{ flex:none; text-align:center; border-right:1px solid var(--hair-2); padding-right:18px; }
 .otd__d b{ display:block; font-family:var(--font-display); font-weight:600; font-size:2.6rem; line-height:1; color:var(--ink); }
@@ -234,7 +255,11 @@ h1,h2,h3,p{ margin:0; }
 .fc--main{ padding:clamp(18px,2.6vh,26px) 30px clamp(14px,2vh,22px); }
 .fc--main h3{ font-size:clamp(1.4rem,2vw,1.9rem); line-height:1.45; -webkit-line-clamp:3; max-width:20em; }
 .fc--main p{ font-size:.95rem; line-height:1.9; -webkit-line-clamp:3; max-width:34em; }
-.fc--main .wm{ position:absolute; right:-30px; bottom:-30px; width:240px; height:240px; color:var(--wm); pointer-events:none; }
+.fc--main .wm{ position:absolute; right:-30px; bottom:-30px; width:240px; height:240px; color:var(--wm); pointer-events:none; transition:color .6s ease; }
+.fc--main:hover .wm{ color:color-mix(in srgb, var(--ink) 30%, transparent); }
+.fc--main .wm .hl{ stroke:var(--seal); stroke-width:1.8; stroke-dasharray:1 1.2; stroke-dashoffset:1.05; transition:stroke-dashoffset .6s ease-in; }
+.fc--main:hover .wm .hl{ stroke-dashoffset:0; transition:stroke-dashoffset 1.5s cubic-bezier(.22,.75,.2,1); }
+.fc--main:hover .wm .hl.hl2{ transition-delay:.9s; transition-duration:1.1s; }
 .fc--main .wm svg{ width:100%; height:100%; fill:none; stroke:currentColor; stroke-width:1.2; stroke-linecap:round; stroke-linejoin:round; }
 .feat[data-n="4"] .fc:not(.fc--main){ padding:12px 20px 10px; gap:4px; }
 .feat[data-n="4"] .fc:not(.fc--main) h3{ font-size:1rem; -webkit-line-clamp:1; }
@@ -244,7 +269,10 @@ h1,h2,h3,p{ margin:0; }
 .rec{ display:grid; grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr); gap:0 14px; }
 .rec ol{ list-style:none; margin:0; padding:0; }
 .rec li{ display:grid; grid-template-columns:88px minmax(0,1fr); gap:0 14px; align-items:baseline; padding:clamp(4px,.9vh,8px) 0; }
-.rec .d{ font-family:var(--font-display); font-weight:500; font-size:.9rem; letter-spacing:.06em; color:var(--seal); font-variant-numeric:tabular-nums; }
+.rec .d{ position:relative; padding-left:12px; font-family:var(--font-display); font-weight:500; font-size:.9rem; letter-spacing:.06em; color:var(--seal); font-variant-numeric:tabular-nums; }
+.rec .d::before{ content:""; position:absolute; left:0; top:50%; width:4px; height:4px; margin-top:-2px; border-radius:2px; background:var(--seal); opacity:0; transition:width .5s cubic-bezier(.22,.75,.2,1), opacity .3s ease, transform .5s ease; }
+.rec li:hover .d::before{ opacity:1; width:10px; transform:translateX(-6px); }
+.rec li:hover .t{ color:var(--seal); }
 .rec .t{ font-size:.98rem; color:var(--ink); }
 .rec li > span{ display:flex; align-items:baseline; min-width:0; }
 .rec li > span .t{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
@@ -265,6 +293,13 @@ h1,h2,h3,p{ margin:0; }
 .foot nav button{ background:none; border:0; padding:0; font:inherit; letter-spacing:inherit; color:inherit; cursor:pointer; }
 .foot .sig{ display:inline-grid; place-items:center; width:84px; height:48px; background:var(--seal); box-shadow:inset 0 0 0 2px var(--on-seal); border:2px solid var(--seal); }
 .foot .sig img{ height:32px; width:auto; }
+.foot .sig{ position:relative; transition:transform .5s ease; }
+.foot .sig::before, .foot .sig::after{ content:""; position:absolute; inset:-2px; border:1px solid var(--seal); opacity:0; pointer-events:none; transition:inset .7s cubic-bezier(.22,.75,.2,1), opacity .5s ease; }
+.foot .sig::after{ transition-delay:.15s; }
+.foot .sig:hover{ transform:rotate(-2deg); }
+.foot .sig:hover::before{ inset:-8px; opacity:.8; }
+.foot .sig:hover::after{ inset:-14px; opacity:.4; }
+
 
 /* ============================= responsive ======================== */
 @media (max-width:1080px){ .mainnav{ display:none; } }
@@ -330,6 +365,7 @@ h1,h2,h3,p{ margin:0; }
           <span class="seal" aria-label="锆铌印">锆铌</span>
         </div>
         <figure class="hall__photo frame" style="margin:0">
+          <span class="mk-corners" aria-hidden="true"><svg viewBox="0 0 22 22"><path pathLength="1" d="M1 22V1h21M8 14V8h6"/></svg><svg viewBox="0 0 22 22"><path pathLength="1" d="M1 22V1h21M8 14V8h6"/></svg><svg viewBox="0 0 22 22"><path pathLength="1" d="M1 22V1h21M8 14V8h6"/></svg><svg viewBox="0 0 22 22"><path pathLength="1" d="M1 22V1h21M8 14V8h6"/></svg></span>
           <div class="in">
             <img src="{{ '/files/zh/images/portrait-boya.jpg' | relative_url }}" alt="周睿在北京大学博雅塔前的毕业照" width="760" height="1140" fetchpriority="high">
             <span class="yr" aria-hidden="true">2025</span>
@@ -349,6 +385,7 @@ h1,h2,h3,p{ margin:0; }
           <a class="panel otd" id="otd" href="{{ '/board/onthisday/' | relative_url }}">
             <div class="otd__d"><small class="otd__mon">OCT</small><b class="otd__day">22</b><i class="otd__wk">THU · 2026</i></div>
             <div><span class="kick otd__k" style="font-size:.68rem">那年今日</span><p class="otd__t"></p></div>
+            <span class="otd__tl" aria-hidden="true"></span>
           </a>
         </div>
       </div>
@@ -399,7 +436,7 @@ h1,h2,h3,p{ margin:0; }
             <h3>{% include latex-logo.html title=_c.title %}</h3>
             {%- if _c.summary or _c.description -%}<p>{{ _c.summary | default: _c.description | strip_html | truncate: 90 }}</p>{%- endif -%}
             <span class="m"><time datetime="{{ _c.date | date: '%Y-%m-%d' }}">{{ _c.date | date: "%Y.%m.%d" }}</time></span>
-            {%- if forloop.first -%}<span class="wm" aria-hidden="true"><svg viewBox="0 0 100 100">{%- case _c.main_category -%}{%- when "科研妙招" -%}<path d="M14 14h72M14 26h72M14 38h72M14 50h72M14 62h72M14 74h72M14 86h72M14 14v72M26 14v72M38 14v72M50 14v72M62 14v72M74 14v72M86 14v72" opacity=".5"></path><path d="M14 80C32 80 38 22 56 40S76 72 86 24" stroke-width="1.8"></path>{%- when "随笔漫谈" -%}<path d="M40 74C22 74 18 48 38 44c16-3 22 16 10 20-8 3-12-7-4-8"></path><path d="M38 44c12-14 34-12 44 2 4 6 2 13-4 14" opacity=".9"></path>{%- else -%}<path d="M18 82h64V18H30v52h40V30H42v28h16V42"></path>{%- endcase -%}</svg></span>{%- endif -%}
+            {%- if forloop.first -%}<span class="wm" aria-hidden="true"><svg viewBox="0 0 100 100">{%- case _c.main_category -%}{%- when "科研妙招" -%}<path d="M14 14h72M14 26h72M14 38h72M14 50h72M14 62h72M14 74h72M14 86h72M14 14v72M26 14v72M38 14v72M50 14v72M62 14v72M74 14v72M86 14v72" opacity=".5"></path><path d="M14 80C32 80 38 22 56 40S76 72 86 24" stroke-width="1.8"></path><path class="hl" pathLength="1" d="M14 80C32 80 38 22 56 40S76 72 86 24"></path>{%- when "随笔漫谈" -%}<path d="M40 74C22 74 18 48 38 44c16-3 22 16 10 20-8 3-12-7-4-8"></path><path d="M38 44c12-14 34-12 44 2 4 6 2 13-4 14" opacity=".9"></path><path class="hl" pathLength="1" d="M40 74C22 74 18 48 38 44c16-3 22 16 10 20-8 3-12-7-4-8"></path><path class="hl hl2" pathLength="1" d="M38 44c12-14 34-12 44 2 4 6 2 13-4 14"></path>{%- else -%}<path d="M18 82h64V18H30v52h40V30H42v28h16V42"></path><path class="hl" pathLength="1" d="M18 82h64V18H30v52h40V30H42v28h16V42"></path>{%- endcase -%}</svg></span>{%- endif -%}
           </a>
           {%- endfor -%}
         </div>
@@ -525,6 +562,16 @@ h1,h2,h3,p{ margin:0; }
       card.querySelector('.otd__k').textContent = '那年今日 · ' + p.year;
       card.querySelector('.otd__t').textContent = p.title;
       card.setAttribute('href', p.url);
+      // 悬停年线：往年同一天有文的年份，最多 5 个
+      var years = []; hits.forEach(function(h){ if(years.indexOf(h.year) < 0) years.push(h.year); });
+      years = years.slice(0, 5);
+      var tl = card.querySelector('.otd__tl');
+      if(tl && years.length){
+        var html = '<i></i>';
+        years.forEach(function(y, i){ var x = years.length === 1 ? 50 : 8 + i * (84 / (years.length - 1)); html += '<b style="left:' + x + '%"></b>'; });
+        years.forEach(function(y, i){ var x = years.length === 1 ? 50 : 8 + i * (84 / (years.length - 1)); html += '<span style="left:' + x + '%">' + y + '</span>'; });
+        tl.innerHTML = html; card.classList.add('has-tl');
+      }
       card.classList.add('is-on');
     }).catch(function(){});
   })();

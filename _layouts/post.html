@@ -375,7 +375,7 @@ layout: default
     {%- endif -%}
   {%- endif -%}
 
-  <div class="mk-end"><span class="mk-seal" aria-label="锆铌印">锆铌</span></div>
+  <div class="mk-end"><span class="mk-plum" aria-hidden="true"><svg viewBox="0 0 180 100"><path class="br" pathLength="1" d="M178 92C150 84 120 70 96 54 78 42 66 30 52 12M110 62c-10-6-18-16-24-28M70 32c-12 2-24 0-36-6"></path><circle class="bl" cx="52" cy="12" r="4"></circle><circle class="bl" cx="86" cy="34" r="3.4"></circle><circle class="bl" cx="34" cy="26" r="3.2"></circle><circle class="bl" cx="120" cy="66" r="2.8"></circle></svg></span><span class="mk-seal" aria-label="锆铌印">锆铌</span></div>
   <div class="mk-pn" role="navigation" aria-label="上下篇">
     {% if _prev %}<a href="{{ _prev.url | relative_url }}" class="prev"><span class="mk-kick">上一篇</span><svg class="ar" viewBox="0 0 52 10" aria-hidden="true"><line x1="51" y1="5" x2="4" y2="5"></line><path class="hd" d="M10 1 4 5l6 4"></path></svg><p>{% include latex-logo.html title=_prev.title %}</p></a>{% else %}<span class="empty"></span>{% endif %}
     {% if _next %}<a href="{{ _next.url | relative_url }}" class="next"><span class="mk-kick">下一篇</span><svg class="ar" viewBox="0 0 52 10" aria-hidden="true"><line x1="1" y1="5" x2="48" y2="5"></line><path class="hd" d="M42 1l6 4-6 4"></path></svg><p>{% include latex-logo.html title=_next.title %}</p></a>{% else %}<span class="empty"></span>{% endif %}

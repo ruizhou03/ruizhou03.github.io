@@ -46,6 +46,13 @@ body.mk-cat .site-shell-nav{ background:var(--mk-paper); }
 .mk-seal{ display:inline-grid; place-items:center; width:56px; height:56px; background:var(--mk-seal); color:var(--mk-onseal);
   font-family:var(--mk-brush); font-size:1.3rem; line-height:1; border:2px solid var(--mk-seal); box-shadow:inset 0 0 0 2px var(--mk-onseal);
   writing-mode:vertical-rl; letter-spacing:.1em; flex:none; }
+/* 版头 / 工具页印章悬停：抬起转 4°，两圈印泥向外晕开 */
+.mk-mast .mk-seal, .mk-tool-mast .mk-seal{ position:relative; transition:transform .5s cubic-bezier(.2,.8,.2,1); }
+.mk-mast .mk-seal::before, .mk-mast .mk-seal::after, .mk-tool-mast .mk-seal::before, .mk-tool-mast .mk-seal::after{ content:""; position:absolute; inset:-2px; border:1.5px solid var(--mk-seal); opacity:0; pointer-events:none; transition:inset .9s ease, opacity .6s ease; }
+.mk-mast .mk-seal::after, .mk-tool-mast .mk-seal::after{ transition-delay:.15s; }
+.mk-mast .mk-seal:hover, .mk-tool-mast .mk-seal:hover{ transform:rotate(-4deg) scale(1.06); }
+.mk-mast .mk-seal:hover::before, .mk-tool-mast .mk-seal:hover::before{ inset:-14px; opacity:.5; }
+.mk-mast .mk-seal:hover::after, .mk-tool-mast .mk-seal:hover::after{ inset:-26px; opacity:.22; }
 
 /* ---------- 卷首 ---------- */
 .mk-mast{ display:flex; align-items:flex-end; justify-content:space-between; gap:32px; flex-wrap:wrap; padding:clamp(36px,6vh,56px) 0 26px; }
@@ -57,8 +64,10 @@ body.mk-cat .site-shell-nav{ background:var(--mk-paper); }
 /* ---------- 工具条：子类筛选 + 本卷搜索 ---------- */
 .mk-bar{ display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; padding:14px 0; border-top:1px solid var(--mk-line); border-bottom:1px solid var(--mk-hair); }
 .mk-bar .f{ display:flex; gap:26px; flex-wrap:wrap; }
-.mk-bar .f a{ font-size:.9rem; letter-spacing:.1em; color:var(--mk-text); padding-bottom:3px; border-bottom:1px solid transparent; transition:color .2s, border-color .2s; }
-.mk-bar .f a:hover, .mk-bar .f a.on{ color:var(--mk-ink); border-bottom-color:var(--mk-seal); }
+.mk-bar .f a{ position:relative; font-size:.9rem; letter-spacing:.1em; color:var(--mk-text); padding-bottom:4px; transition:color .2s; }
+.mk-bar .f a::after{ content:""; position:absolute; left:50%; right:50%; bottom:0; height:1px; background:var(--mk-ink); transition:left .5s cubic-bezier(.22,.75,.2,1), right .5s cubic-bezier(.22,.75,.2,1), background .4s ease .35s; }
+.mk-bar .f a:hover, .mk-bar .f a.on{ color:var(--mk-ink); }
+.mk-bar .f a:hover::after, .mk-bar .f a.on::after{ left:0; right:0; background:var(--mk-seal); }
 .mk-search{ display:flex; align-items:center; gap:8px; min-width:240px; border-bottom:1px solid var(--mk-hair2); padding:4px 0; }
 .mk-search svg{ width:15px; height:15px; color:var(--mk-muted); flex:none; }
 .mk-search input{ border:0; background:transparent; font:inherit; font-size:.9rem; flex:1; min-width:0; color:var(--mk-ink); outline:none; }
@@ -88,7 +97,9 @@ body.mk-cat .post-list-count{ font-family:var(--mk-latin); font-weight:500; font
 body.mk-cat .download-toggle{ color:var(--mk-faint); }
 body.mk-cat .paginated-list{ border-top:0; }
 body.mk-cat .paginated-item{ grid-template-columns:30px 1fr auto; column-gap:14px; padding:.62rem 0; border-bottom:0; }
-body.mk-cat .pl-no{ font-family:var(--mk-latin); font-weight:600; font-size:.82rem; letter-spacing:.1em; color:var(--mk-seal); }
+body.mk-cat .pl-no{ position:relative; font-family:var(--mk-latin); font-weight:600; font-size:.82rem; letter-spacing:.1em; color:var(--mk-seal); }
+body.mk-cat .pl-no::before{ content:""; position:absolute; left:-12px; top:50%; width:4px; height:4px; margin-top:-2px; border-radius:2px; background:var(--mk-seal); opacity:0; transition:width .5s cubic-bezier(.22,.75,.2,1), opacity .3s ease, transform .5s ease; }
+body.mk-cat .paginated-item:hover .pl-no::before{ opacity:1; width:10px; transform:translateX(-6px); }
 body.mk-cat .paginated-item a.pl-link{ font-family:var(--mk-serif); font-weight:400; font-size:1.06rem; line-height:1.55; color:var(--mk-ink); }
 body.mk-cat .paginated-item a.pl-link:hover{ color:var(--mk-seal); }
 body.mk-cat .pl-meta{ gap:1rem; }
@@ -141,6 +152,13 @@ body.mk-cat.mk-searching.mk-nothing .mk-nohit{ display:block; }
 .mk-foot .fn button{ background:none; border:0; padding:0; font:inherit; letter-spacing:inherit; color:inherit; cursor:pointer; }
 .mk-foot .sig{ display:inline-grid; place-items:center; width:84px; height:48px; background:var(--mk-seal); box-shadow:inset 0 0 0 2px var(--mk-onseal); border:2px solid var(--mk-seal); }
 .mk-foot .sig img{ height:32px; width:auto; display:block; }
+.mk-foot .sig{ position:relative; transition:transform .5s ease; }
+.mk-foot .sig::before, .mk-foot .sig::after{ content:""; position:absolute; inset:-2px; border:1px solid var(--mk-seal); opacity:0; pointer-events:none; transition:inset .7s cubic-bezier(.22,.75,.2,1), opacity .5s ease; }
+.mk-foot .sig::after{ transition-delay:.15s; }
+.mk-foot .sig:hover{ transform:rotate(-2deg); }
+.mk-foot .sig:hover::before{ inset:-8px; opacity:.8; }
+.mk-foot .sig:hover::after{ inset:-14px; opacity:.4; }
+@media (prefers-reduced-motion:reduce){ body.mk-cat *, body.mk-cat *::before, body.mk-cat *::after{ transition:none !important; } }
 
 /* ---------- 那年今日小卡（随笔页侧栏） ---------- */
 .mk-otd{ display:none; align-items:center; gap:18px; padding:14px 18px; background:var(--mk-panel); }
