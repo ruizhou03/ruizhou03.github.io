@@ -12,7 +12,7 @@ body.mk-cat > main{ margin-top:var(--site-nav-height, 56px); }
 .mk-row .r{ margin-left:auto; font-family:var(--mk-latin); font-size:.82rem; letter-spacing:.2em; color:var(--mk-muted); }
 
 /* ---------- 工具行：朗读 / 收藏 / 离线 / 评论 / 赞（文字 + 线框图标，无底色） ---------- */
-.mk-tools{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 26px; margin:22px 0 34px; }
+.mk-tools{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 26px; margin:20px 0 38px; }
 .mk-tools .post-toolbar{ display:contents; }
 .mk .mk-tools .post-toolbar .post-tool-btn, .mk .mk-tools .sa-postbar .sa-pb-btn{
   display:inline-flex; align-items:center; gap:8px; border:0; border-radius:0; padding:4px 0; background:transparent;
@@ -46,7 +46,7 @@ body.mk-cat > main{ margin-top:var(--site-nav-height, 56px); }
 .mk-art .mk-head h1{ margin:16px 0 18px; font-family:var(--mk-serif); font-weight:700; font-size:clamp(28px,3.2vw,38px); line-height:1.45; letter-spacing:.01em; color:var(--mk-ink); }
 .mk-art .mk-head .lead{ margin:0 0 20px; font-size:1rem; line-height:1.9; color:var(--mk-muted); }
 .mk-art .mk-head .pill{ display:inline-block; margin:0 0 14px; font-family:var(--mk-latin); font-size:.72rem; letter-spacing:.22em; text-transform:uppercase; color:var(--mk-muted); border:1px solid var(--mk-hair2); padding:4px 10px 3px; }
-.mk-meta{ display:flex; flex-wrap:wrap; gap:8px 22px; font-family:var(--mk-latin); font-size:.9rem; letter-spacing:.14em; color:var(--mk-muted); padding:14px 0; border-top:1px solid var(--mk-line); border-bottom:1px solid var(--mk-hair); }
+.mk-meta{ display:flex; flex-wrap:wrap; gap:8px 22px; font-family:var(--mk-latin); font-size:.9rem; letter-spacing:.14em; color:var(--mk-muted); padding:14px 0 0; border-top:1px solid var(--mk-line); }
 .mk-meta .u{ opacity:.75; }
 
 /* 正文排印：覆盖 main.css 的 .markdown-content 金线 / 蓝链 */
