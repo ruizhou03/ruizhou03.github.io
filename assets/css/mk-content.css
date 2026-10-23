@@ -230,7 +230,8 @@ body.mk-cat > main{ margin-top:var(--site-nav-height, 56px); }
 /* ============================================================
    工具页（五子棋为样板）
    ============================================================ */
-.mk-tool-mast{ display:flex; align-items:flex-end; justify-content:space-between; gap:24px; padding:clamp(24px,4vh,36px) 0 0; flex-wrap:wrap; }
+.mk-tool-mast{ display:flex; align-items:flex-end; justify-content:space-between; gap:24px; padding:clamp(24px,4vh,36px) 0 0; }
+.mk-tool-mast > div{ min-width:0; flex:1 1 auto; }
 .mk-tool-mast h1{ margin:10px 0 0; font-family:var(--mk-serif); font-weight:700; font-size:clamp(36px,4.6vw,52px); line-height:1.1; letter-spacing:.14em; color:var(--mk-ink); }
 .mk-tool-mast .mk-seal{ width:46px; height:46px; font-size:1.1rem; }
 .mk-tool-body{ display:flex; flex-wrap:wrap; gap:clamp(28px,4.5vw,56px); padding:30px 0 0; align-items:flex-start; }
@@ -299,3 +300,31 @@ body.mk-tool .gs-comments{ max-width:none; }
   .mk-seg button{ padding:7px 10px; font-size:.76rem; }
   .mk-btn{ padding:7px 12px; font-size:.8rem; }
 }
+
+/* ---------- 通用工具页壳（除五子棋样板外，各页保留自身布局，只套版头 / 浮层 / 按钮 / 页脚） ---------- */
+body.mk-tool .mk-tool-mast{ font-family:var(--mk-serif); margin-bottom:22px; }
+body.mk-tool .mk-tool-mast .mk-kick{ display:block; }
+body.mk-tool [id$="wlb-mount"], body.mk-tool [id$="lb-mount"], body.mk-tool [id$="nick-mount"], body.mk-tool [id$="settle-btn-mount"],
+body.mk-tool #nickMount, body.mk-tool #settleBtnMount, body.mk-tool .gs-leaderboard, body.mk-tool .gs-room-qr{ display:none !important; }
+body.mk-tool [class*="-wrap"] > details.about, body.mk-tool details.about{ font-size:.86rem; color:var(--mk-muted); line-height:1.8; }
+body.mk-tool details.about summary{ cursor:pointer; list-style:none; font-family:var(--mk-latin); font-weight:600; font-size:.72rem; letter-spacing:.42em; text-transform:uppercase; color:var(--mk-seal); padding:0 0 6px; border-bottom:1px solid var(--mk-hair); }
+body.mk-tool details.about summary::before{ content:"+ "; }
+body.mk-tool details[open].about summary::before{ content:"− "; }
+body.mk-tool details.about summary::-webkit-details-marker{ display:none; }
+/* 各页自己的 xx-btn / xx-tab / xx-mode-tab：统一成方框分段，颜色跟墨园 token（各页自带样式特异性不一，故加 !important） */
+body.mk-tool button[class*="-btn"]:not(.gs-pgo-start-btn):not(.sa-pb-btn):not(.gs-lb-refresh):not(.gs-lb-expand):not(.gs-lb-pgbtn):not(.wl-btn):not(.ab-seg-btn),
+body.mk-tool button[class*="-tab"]:not(.gs-pgo-mode-tab):not(.gs-pgo-room-tab):not(.gs-lb-tab),
+body.mk-tool .mode-tabs > button, body.mk-tool .tab-bar > button, body.mk-tool .cal-mode-tabs > button, body.mk-tool .mode-switch > button{
+  border-radius:0 !important; box-shadow:none !important; background:transparent !important; border:1px solid var(--mk-ink) !important; color:var(--mk-text) !important;
+  font-family:var(--mk-serif) !important; letter-spacing:.08em; }
+body.mk-tool button[class*="-btn"]:not(.gs-pgo-start-btn):not(.sa-pb-btn):not(.gs-lb-refresh):not(.gs-lb-expand):not(.gs-lb-pgbtn):not(.wl-btn):not(.ab-seg-btn):hover:not(:disabled),
+body.mk-tool .mode-tabs > button:hover, body.mk-tool .tab-bar > button:hover, body.mk-tool .cal-mode-tabs > button:hover{
+  background:var(--mk-panel) !important; color:var(--mk-ink) !important; }
+body.mk-tool button[class*="-tab"].active:not(.gs-pgo-mode-tab), body.mk-tool button[class*="-tab"].selected:not(.gs-pgo-mode-tab), body.mk-tool button[class*="-tab"].on:not(.gs-pgo-mode-tab), body.mk-tool button[class*="-tab"][aria-selected="true"]:not(.gs-pgo-mode-tab),
+body.mk-tool .mode-tabs > button.active, body.mk-tool .tab-bar > button.active, body.mk-tool .cal-mode-tabs > button.active, body.mk-tool .mode-switch > button.active,
+body.mk-tool .mode-tabs > button[aria-selected="true"], body.mk-tool .tab-bar > button[aria-selected="true"],
+body.mk-tool button[class*="-btn"].active:not(.gs-pgo-start-btn):not(.sa-pb-btn), body.mk-tool button[class*="-btn"].primary:not(.gs-pgo-start-btn), body.mk-tool button[class*="-btn"].is-active:not(.gs-pgo-start-btn){
+  background:var(--mk-ink) !important; color:var(--mk-paper) !important; border-color:var(--mk-ink) !important; }
+body.mk-tool button[class*="-btn"]:disabled{ opacity:.4; }
+body.mk-tool .mk-tool-foot{ padding-top:0; }
+body.mk-tool .mk-tool-foot .mk-foot{ margin-top:40px; }

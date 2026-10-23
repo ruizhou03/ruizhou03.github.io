@@ -2,7 +2,10 @@
 layout: default
 title: "八字排盘 | Rui Zhou"
 permalink: /toolbox/bazi/
+body_class: mk-cat mk-tool
 ---
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-content.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 
 <style>
   .bz-wrap { max-width: 880px; margin: 0 auto; padding: 1rem; }
@@ -419,10 +422,10 @@ permalink: /toolbox/bazi/
 <div class="bz-wrap">
   <a class="bz-back" href="{{ '/toolbox/' | relative_url }}">← 返回百宝箱</a>
 
-  <header class="bz-head">
-    <h1>[[zi:crystal]] 八字排盘 · 命理推演</h1>
-    <p class="sub">生辰八字 · 五行喜忌 · 大运流年 · 双人合婚</p>
-  </header>
+  <section class="mk-tool-mast">
+    <div><span class="mk-kick">生活与兴趣 · Bazi Chart</span><h1>八字排盘</h1></div>
+    <span class="mk-seal" aria-label="生活印">生活</span>
+  </section>
 
   <p class="bz-disclaimer">
     <b>友情提示：</b>八字命理是中国传统文化与民俗，本工具仅供文化体验与<b>娱乐</b>，所有"吉凶趋势"均由固定规则自动生成，<b>不构成任何预测、医疗、投资或人生建议</b>。命运在自己手里，开心就好 [[zi:user]]
@@ -1452,3 +1455,12 @@ $('#go-match').addEventListener('click',function(){
 
 })();
 </script>
+
+<div class="mk mk-tool-foot">
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
+</div>
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>

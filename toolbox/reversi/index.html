@@ -2,9 +2,12 @@
 layout: default
 title: "黑白棋 | Rui Zhou"
 permalink: /toolbox/reversi/
+body_class: mk-cat mk-tool
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-content.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 
 <style>
   .reversi-wrap { max-width: 720px; margin: 0 auto; padding: 1rem; --gs-wrap-half: 360px; }
@@ -205,10 +208,10 @@ permalink: /toolbox/reversi/
 </style>
 
 <div class="reversi-wrap">
-  <header>
-    <h1>[[zi:user]][[zi:user]] 黑白棋</h1>
-    <div class="sub">Reversi / Othello — 夹住翻面，终局子多者胜</div>
-  </header>
+  <section class="mk-tool-mast">
+    <div><span class="mk-kick">棋盘对弈 · Reversi</span><h1>黑白棋</h1></div>
+    <span class="mk-seal" aria-label="对弈印">对弈</span>
+  </section>
 
   <div class="rv-controls">
     <button class="rv-btn" id="rvNewBtn">[[zi:refresh]] 重新开始</button>
@@ -929,3 +932,12 @@ permalink: /toolbox/reversi/
   rvInitShell();
 })();
 </script>
+
+<div class="mk mk-tool-foot">
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
+</div>
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>

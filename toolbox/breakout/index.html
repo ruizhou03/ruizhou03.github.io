@@ -2,9 +2,12 @@
 layout: default
 title: "打砖块 | Rui Zhou"
 permalink: /toolbox/breakout/
+body_class: mk-cat mk-tool
 ---
 
 <link rel="stylesheet" href="/assets/css/games-shell.css?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-category.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="{{ '/assets/css/mk-content.css' | relative_url }}?v={{ site.time | date: '%s' }}">
 
 <style>
   .bk-rank-row {
@@ -180,10 +183,10 @@ permalink: /toolbox/breakout/
 </style>
 
 <div class="breakout-wrap">
-  <header>
-    <h1>[[zi:grid]] 打砖块</h1>
-    <div class="sub">挥动挡板，把弹球弹回去，砸光所有砖块</div>
-  </header>
+  <section class="mk-tool-mast">
+    <div><span class="mk-kick">街机动作 · Breakout</span><h1>打砖块</h1></div>
+    <span class="mk-seal" aria-label="街机印">街机</span>
+  </section>
 
   <div class="bk-scorebar">
     <div class="bk-score-box">
@@ -929,3 +932,12 @@ permalink: /toolbox/breakout/
   bkInitShell();
 })();
 </script>
+
+<div class="mk mk-tool-foot">
+  <footer class="mk-foot">
+    <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
+    <div class="fn" role="navigation" aria-label="页脚"><a href="{{ '/board/onthisday/' | relative_url }}">那年今日</a><a href="{{ '/board/' | relative_url }}">站务公告</a><button type="button" class="js-contact">联系</button><a href="{{ '/privacy/' | relative_url }}">隐私</a></div>
+    <span class="sig" aria-label="周睿签名印"><img src="{{ '/files/zh/images/signature-cream.png' | relative_url }}" alt="" width="800" height="453"></span>
+  </footer>
+</div>
+<script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
