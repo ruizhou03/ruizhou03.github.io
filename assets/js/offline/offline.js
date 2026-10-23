@@ -291,7 +291,7 @@
       var title = unescapeHtml(p.title || url).replace(/\s*[|｜]\s*[^|｜]*$/, '') || url;
       ix.items[url] = {
         url: url, title: title,
-        category: p.category ? unescapeHtml(p.category) : (isGame ? '百宝箱' : '其他'),
+        category: p.category ? unescapeHtml(p.category) : (isGame ? '百宝奇巧' : '其他'),
         kind: isGame ? 'game' : 'article',
         savedAt: p.savedAt ? Date.parse(p.savedAt) : Date.now(),
         version: p.version || null, size: p.size || 0, assets: []

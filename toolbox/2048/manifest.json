@@ -1,7 +1,7 @@
 {
   "name": "2048",
   "short_name": "2048",
-  "description": "经典 2048 数字合成游戏——周睿的百宝箱",
+  "description": "经典 2048 数字合成游戏——周睿的百宝奇巧",
   "id": "/toolbox/2048/",
   "start_url": "/toolbox/2048/",
   "scope": "/toolbox/2048/",

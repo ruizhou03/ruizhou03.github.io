@@ -157,7 +157,7 @@ body_class: adm-page
             <h2>板块与小工具可见性</h2>
             <button id="vis-refresh" class="adm-mini" type="button">刷新</button>
           </div>
-          <p class="adm-note" style="margin:0 0 1rem;">「下架」＝对访客隐藏整个板块 / 小工具：顶栏导航、首页卡片、百宝箱列表、以及页面本身都不再对访客出现；你（管理员）登录后仍能看到（变灰）、可点进去预览。改动提交后约 1–2 分钟随 Pages 重建生效（这期间标「重建中」）。工具页的源码本身仍是公开仓库的一部分——这里是「下架 / 不列出」，不是加密。</p>
+          <p class="adm-note" style="margin:0 0 1rem;">「下架」＝对访客隐藏整个板块 / 小工具：顶栏导航、首页卡片、百宝奇巧列表、以及页面本身都不再对访客出现；你（管理员）登录后仍能看到（变灰）、可点进去预览。改动提交后约 1–2 分钟随 Pages 重建生效（这期间标「重建中」）。工具页的源码本身仍是公开仓库的一部分——这里是「下架 / 不列出」，不是加密。</p>
           <div id="vis-body" class="vis-body"><div class="cm-empty">加载中…</div></div>
         </section>
 
@@ -605,7 +605,7 @@ body_class: adm-page
   // 站点固定落地/板块页：不在 search.json，但都是活页面，给友好名 + 视为可链接。
   var KNOWN = {
     '/': '网站首页（EN）', '/zh': '中文首页', '/en': '英文首页',
-    '/toolbox': '百宝箱', '/life': '生活攻略',
+    '/toolbox': '百宝奇巧', '/life': '生活攻略',
     '/research': '科研妙招', '/essays': '随笔漫谈',
     '/account': '我的主页', '/admin': '管理后台', '/search': '搜索'
   };
@@ -1851,7 +1851,7 @@ body_class: adm-page
     { key: '科研妙招', label: '科研妙招', desc: '/research/ 整栏 + 全部文章' },
     { key: '生活攻略', label: '生活攻略', desc: '/life/ 整栏 + 全部文章（含菜谱）' },
     { key: '随笔漫谈', label: '随笔漫谈', desc: '/essays/ 整栏 + 全部文章' },
-    { key: '百宝箱', label: '百宝箱（整个工具箱）', desc: '/toolbox/ 入口 + 所有工具页' }
+    { key: '百宝箱', label: '百宝奇巧（整个工具箱）', desc: '/toolbox/ 入口 + 所有工具页' }
   ];
   var visSections = {}, visTools = {}, visInited = false, visBusy = false, visPending = false, visSha = null;
 
@@ -1904,7 +1904,7 @@ body_class: adm-page
     html += '<div class="vis-block-h vis-tools-h"><span>小工具 · 共 ' + live.length + ' 件，已下架 ' + hiddenCount + '</span>' +
       '<span class="vis-bulk"><button type="button" class="cm-btn" data-vis="all-hide"' + (visBusy ? ' disabled' : '') + '>全部下架</button>' +
       '<button type="button" class="cm-btn" data-vis="all-show"' + (visBusy ? ' disabled' : '') + '>全部恢复</button></span></div>';
-    if (boxHidden) html += '<p class="adm-note" style="margin:.1rem 0 .6rem">整个「百宝箱」已下架 → 下列工具当前都对访客隐藏；要单独控制某个工具，先在上方恢复「百宝箱」。</p>';
+    if (boxHidden) html += '<p class="adm-note" style="margin:.1rem 0 .6rem">整个「百宝奇巧」已下架 → 下列工具当前都对访客隐藏；要单独控制某个工具，先在上方恢复「百宝箱」。</p>';
     var cats = [], byCat = {};
     live.forEach(function (t) { var c = t.category || '其他'; if (!byCat[c]) { byCat[c] = []; cats.push(c); } byCat[c].push(t); });
     cats.forEach(function (c) {

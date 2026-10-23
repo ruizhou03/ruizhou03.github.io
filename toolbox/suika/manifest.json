@@ -1,7 +1,7 @@
 {
   "name": "合成大西瓜",
   "short_name": "大西瓜",
-  "description": "把水果一步步合成到大西瓜的物理小游戏——周睿的百宝箱",
+  "description": "把水果一步步合成到大西瓜的物理小游戏——周睿的百宝奇巧",
   "id": "/toolbox/suika/",
   "start_url": "/toolbox/suika/",
   "scope": "/toolbox/suika/",
