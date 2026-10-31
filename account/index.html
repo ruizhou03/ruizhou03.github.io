@@ -25,54 +25,53 @@ body_class: acc-page mk-cat mk-page mk-acc
   <div id="acc-main" style="display:none;">
     <section id="acc-hero" class="acc-hero"></section>
 
-    <div class="acc-console">
-      <nav class="acc-nav" id="acc-nav">
-        <div class="acc-nav-cap">我的内容</div>
-        <button class="acc-nav-item on" type="button" data-pane="fav"><span class="acc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></span><span class="acc-nav-tx">收藏</span></button>
-        <button class="acc-nav-item" type="button" data-pane="like"><span class="acc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span><span class="acc-nav-tx">点赞</span></button>
-        <button class="acc-nav-item" type="button" data-pane="hist"><span class="acc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg></span><span class="acc-nav-tx">浏览记录</span></button>
-        <button class="acc-nav-item" type="button" data-pane="comment"><span class="acc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></span><span class="acc-nav-tx">评论记录</span></button>
-        <div class="acc-nav-cap">离线</div>
-        <a class="acc-nav-item" href="{{ '/account/offline/' | relative_url }}" style="text-decoration:none;"><span class="acc-nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5V14"/><path d="M7.5 10l4.5 4.5L16.5 10"/><path d="M5 19h14"/></svg></span><span class="acc-nav-tx">离线内容库</span></a>
-      </nav>
+    {%- comment -%} 横排书签：收藏 / 点赞 / 浏览记录 / 评论记录 / 离线内容库，最右是设置 {%- endcomment -%}
+    <div class="acc-rail" id="acc-nav" role="navigation" aria-label="书签">
+      <button class="acc-nav-item on" type="button" data-pane="fav">收藏<em class="acc-rc" id="acc-rc-fav"></em></button>
+      <button class="acc-nav-item" type="button" data-pane="like">点赞<em class="acc-rc" id="acc-rc-like"></em></button>
+      <button class="acc-nav-item" type="button" data-pane="hist">浏览记录<em class="acc-rc" id="acc-rc-hist"></em></button>
+      <button class="acc-nav-item" type="button" data-pane="comment">评论记录<em class="acc-rc" id="acc-rc-comment"></em></button>
+      <a class="acc-nav-item" href="{{ '/account/offline/' | relative_url }}">离线内容库</a>
+      <button class="acc-nav-item acc-nav-gear" type="button" data-pane="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>设置</button>
+    </div>
 
-      <div class="acc-content">
-        <section class="acc-sec" id="acc-listsec">
-          <div class="acc-main-head" id="acc-main-head">
-            <div class="acc-sec-heading" id="acc-sec-heading"><h2 class="acc-sec-title" id="acc-sec-title">收藏</h2><span class="acc-sec-count" id="acc-sec-count"></span></div>
-            <div class="acc-head-tools">
-              <div id="acc-search-row" class="acc-search-row" hidden>
-                <svg class="acc-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="search" id="acc-search" class="acc-search" placeholder="搜标题…" autocomplete="off" aria-label="搜索本类记录">
-              </div>
-              <div id="acc-toolbar" class="acc-toolbar">
-                <button id="acc-manage" class="acc-tool-btn" type="button">管理</button>
-                <span id="acc-manage-actions" style="display:none;">
-                  <button id="acc-selall" class="acc-tool-btn" type="button">全选本页</button>
-                  <button id="acc-delsel" class="acc-tool-btn danger" type="button">删除所选</button>
-                  <button id="acc-mgr-done" class="acc-tool-btn" type="button">完成</button>
-                </span>
-                <button id="acc-clear" class="acc-tool-btn danger-ghost" type="button">清空</button>
-              </div>
+    <div class="acc-content">
+      <section class="acc-sec" id="acc-listsec">
+        <div class="acc-main-head" id="acc-main-head">
+          <div class="acc-sec-heading" id="acc-sec-heading"><span class="acc-sec-count" id="acc-sec-count"></span></div>
+          <div class="acc-head-tools">
+            <div id="acc-search-row" class="acc-search-row" hidden>
+              <svg class="acc-search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="search" id="acc-search" class="acc-search" placeholder="搜标题…" autocomplete="off" aria-label="搜索本类记录">
+            </div>
+            <div id="acc-toolbar" class="acc-toolbar">
+              <button id="acc-manage" class="acc-tool-btn" type="button">管理</button>
+              <span id="acc-manage-actions" style="display:none;">
+                <button id="acc-selall" class="acc-tool-btn" type="button">全选本页</button>
+                <button id="acc-delsel" class="acc-tool-btn danger" type="button">删除所选</button>
+                <button id="acc-mgr-done" class="acc-tool-btn" type="button">完成</button>
+              </span>
+              <button id="acc-clear" class="acc-tool-btn danger-ghost" type="button">清空</button>
             </div>
           </div>
-          <div id="acc-list" class="acc-list"></div>
-          <div id="acc-pager" class="acc-pager" hidden>
-            <button class="acc-tool-btn" id="acc-prev" type="button">‹ 上一页</button>
-            <span class="acc-pager-info" id="acc-pager-info"></span>
-            <button class="acc-tool-btn" id="acc-next" type="button">下一页 ›</button>
-            <label class="acc-pager-size">每页
-              <select id="acc-pagesize"><option value="10">10</option><option value="20" selected>20</option><option value="50">50</option></select>
-            </label>
-          </div>
-        </section>
+        </div>
+        <div id="acc-confirm" class="acc-confirm" hidden></div>
+        <div id="acc-list" class="acc-list"></div>
+        <div id="acc-pager" class="acc-pager" hidden>
+          <button class="acc-tool-btn" id="acc-prev" type="button">‹ 上一页</button>
+          <button class="acc-tool-btn" id="acc-next" type="button">下一页 ›</button>
+          <span class="acc-pager-info" id="acc-pager-info"></span>
+          <label class="acc-pager-size">每页
+            <select id="acc-pagesize"><option value="10">10</option><option value="20" selected>20</option><option value="50">50</option></select>
+          </label>
+        </div>
+      </section>
 
-        <section class="acc-sec" id="acc-setsec" hidden>
-          <div class="acc-main-head"><div class="acc-sec-heading"><h2 class="acc-sec-title">设置</h2></div></div>
-          <div id="acc-settings"></div>
-        </section>
-      </div>
+      <section class="acc-sec" id="acc-setsec" hidden>
+        <div id="acc-settings"></div>
+      </section>
     </div>
+    <div id="acc-toast" class="acc-toast" role="status" aria-live="polite"></div>
   </div>
 
   <footer class="mk-foot">
@@ -322,6 +321,11 @@ body_class: acc-page mk-cat mk-page mk-acc
   .acc-switch input:checked + .acc-switch-slider { background:var(--color-accent); }
   .acc-switch input:checked + .acc-switch-slider::before { transform:translateX(20px); }
   .acc-switch input:disabled + .acc-switch-slider { opacity:0.55; cursor:default; }
+  .acc-mail-settings { margin:1.5rem 0; padding:1.2rem 1.3rem .35rem; border:1px solid var(--color-border); border-radius:12px; background:var(--color-bg-warm); }
+  .acc-mail-title { margin:0 0 .4rem; color:var(--color-ink); font-family:var(--font-display); font-size:1.18rem; font-weight:600; }
+  .acc-mail-intro { margin:0 0 .35rem; color:var(--color-muted); font-size:.82rem; line-height:1.8; }
+  .acc-mail-settings .acc-set-row { background:transparent; }
+  @media (max-width:600px) { .acc-mail-settings { padding:1rem 1rem .2rem; } }
   .acc-sub-state { font-size:0.74rem; color:var(--color-light); margin-top:0.28rem; min-height:1em; }
   .acc-sub-state.ok { color:#2f8f6b; }
   .acc-sub-state.warn { color:#9a6a20; }
@@ -528,9 +532,27 @@ body_class: acc-page mk-cat mk-page mk-acc
       });
     }
     function setCount(txt) { var el = document.getElementById('acc-sec-count'); if (el) el.textContent = txt || ''; }
+    // 书签本身已经写着栏目名，面板里不再重复标题，只留条数
     function plainHeading(title) {
       var h = document.getElementById('acc-sec-heading');
-      if (h) h.innerHTML = '<h2 class="acc-sec-title" id="acc-sec-title">' + esc(title) + '</h2><span class="acc-sec-count" id="acc-sec-count"></span>';
+      if (h) h.innerHTML = '<span class="acc-sec-count" id="acc-sec-count"></span>';
+    }
+    // 页内确认条（替代系统 confirm）+ 轻提示
+    function inlineConfirm(msg, okLabel, onOk, danger) {
+      var box = document.getElementById('acc-confirm'); if (!box) { if (confirm(msg)) onOk(); return; }
+      box.hidden = false;
+      box.innerHTML = '<span class="acc-confirm-t">' + esc(msg) + '</span>' +
+        '<button type="button" class="acc-tool-btn' + (danger === false ? '' : ' danger') + '" id="acc-confirm-ok">' + esc(okLabel || '确定') + '</button>' +
+        '<button type="button" class="acc-tool-btn" id="acc-confirm-no">取消</button>';
+      document.getElementById('acc-confirm-no').addEventListener('click', hideConfirm);
+      document.getElementById('acc-confirm-ok').addEventListener('click', function () { hideConfirm(); onOk(); });
+    }
+    function hideConfirm() { var box = document.getElementById('acc-confirm'); if (box) { box.hidden = true; box.innerHTML = ''; } }
+    var toastTimer;
+    function toast(msg) {
+      var t = document.getElementById('acc-toast'); if (!t) return;
+      t.textContent = msg; t.classList.add('on'); clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { t.classList.remove('on'); }, 2400);
     }
     function folderHeading(album) {
       var h = document.getElementById('acc-sec-heading');
@@ -556,7 +578,7 @@ body_class: acc-page mk-cat mk-page mk-acc
       { min: 7,  tier: '琥珀金', ring: '#c0912f', bg: '#c0912f' },
       { min: 5,  tier: '白银', ring: '#6b7480', bg: '#6b7480' },
       { min: 3,  tier: '青铜', ring: '#9c6b3c', bg: '#9c6b3c' },
-      { min: 1,  tier: '藏蓝', ring: 'var(--color-accent)', bg: 'var(--color-accent)' },
+      { min: 1,  tier: '藏蓝', ring: '#1e3a5f', bg: '#1e3a5f' },
     ];
     function perkOf(level) { for (var i = 0; i < TIERS.length; i++) if (level >= TIERS[i].min) return TIERS[i]; return TIERS[TIERS.length - 1]; }
 
@@ -573,7 +595,7 @@ body_class: acc-page mk-cat mk-page mk-acc
             '<div class="acc-hero-body">' +
               '<div class="acc-hero-top">' +
                 '<h1 class="acc-hero-nick">' + esc(user.nick || '锆友') + '</h1>' +
-                '<span class="acc-lv' + (perk.shine ? ' shine' : '') + '" id="acc-lv-badge" title="查看等级说明">' + esc(lv.name) + '</span>' +
+                '<span class="acc-lv' + (perk.shine ? ' shine' : '') + '" id="acc-lv-badge" title="查看等级说明">' + esc(lv.name) + '<span class="acc-lv-tier">' + esc(perk.tier) + '</span></span>' +
                 (joined ? '<span class="acc-hero-joined">加入于 ' + esc(joined) + '</span>' : '') +
               '</div>' +
               '<p class="acc-hero-bio' + (user.bio ? '' : ' empty') + '"' + (user.bio ? ' title="' + esc(user.bio) + '"' : '') + '>' + esc(user.bio || '还没有简介，写一句介绍自己吧。') + '</p>' +
@@ -584,17 +606,13 @@ body_class: acc-page mk-cat mk-page mk-acc
             '</div>' +
           '</div>' +
           '<div class="acc-hero-stats">' +
-            '<div class="acc-hstat"><div class="acc-stat-n" id="acc-stat-fav">–</div><div class="acc-stat-l">收藏</div></div>' +
-            '<div class="acc-hero-sdiv"></div>' +
-            '<div class="acc-hstat"><div class="acc-stat-n" id="acc-stat-like">–</div><div class="acc-stat-l">点赞</div></div>' +
-            '<div class="acc-hero-sdiv"></div>' +
-            '<div class="acc-hstat"><div class="acc-stat-n" id="acc-stat-hist">–</div><div class="acc-stat-l">浏览</div></div>' +
-            '<div class="acc-hero-sdiv"></div>' +
-            '<div class="acc-hstat"><div class="acc-stat-n" id="acc-stat-comment">–</div><div class="acc-stat-l">评论</div></div>' +
+            '<button type="button" class="acc-hstat" data-pane="fav" title="查看收藏"><span class="acc-stat-n" id="acc-stat-fav">–</span><span class="acc-stat-l">收藏</span></button>' +
+            '<button type="button" class="acc-hstat" data-pane="like" title="查看点赞"><span class="acc-stat-n" id="acc-stat-like">–</span><span class="acc-stat-l">点赞</span></button>' +
+            '<button type="button" class="acc-hstat" data-pane="hist" title="查看浏览记录"><span class="acc-stat-n" id="acc-stat-hist">–</span><span class="acc-stat-l">浏览</span></button>' +
+            '<button type="button" class="acc-hstat" data-pane="comment" title="查看评论记录"><span class="acc-stat-n" id="acc-stat-comment">–</span><span class="acc-stat-l">评论</span></button>' +
           '</div>' +
           '<div class="acc-hero-actions">' +
             '<button class="acc-primary acc-hero-edit" type="button">编辑资料</button>' +
-            '<button class="acc-hero-gear" id="acc-hero-gear" type="button" title="设置" aria-label="设置">' + GEAR_SVG + '</button>' +
           '</div>' +
         '</div>';
       var av = heroEl.querySelector('.acc-hero-av');
@@ -620,22 +638,27 @@ body_class: acc-page mk-cat mk-page mk-acc
       var lvWrap = document.getElementById('acc-lv-wrap');
       if (lvWrap) { lvWrap.style.cursor = 'pointer'; lvWrap.addEventListener('click', openRulesModal); }
       heroEl.querySelector('.acc-hero-edit').addEventListener('click', function () { openEditModal(user); });
-      document.getElementById('acc-hero-gear').addEventListener('click', function () { showPane('settings'); });
+      // 统计数字即入口：点收藏数直接到收藏面板
+      heroEl.querySelectorAll('.acc-hstat[data-pane]').forEach(function (b) {
+        b.addEventListener('click', function () { showPane(b.dataset.pane); });
+      });
       loadStats();
     }
 
     function loadStats() {
       ['fav', 'like', 'hist'].forEach(function (k) {
         SiteAuth.authedFetch(api + '?action=list&kind=' + k).then(function (r) { return r.json(); }).then(function (d) {
-          var el = document.getElementById('acc-stat-' + k);
+          var el = document.getElementById('acc-stat-' + k), rc = document.getElementById('acc-rc-' + k);
           if (el && d && d.ok) el.textContent = (d.items || []).length;
+          if (rc && d && d.ok) rc.textContent = (d.items || []).length;
         }).catch(function () {});
       });
       // 评论数在另一后端（zircon-comments）
       var cbase = SiteAuth.API_BASE.replace('zircon-urge', 'zircon-comments');
       SiteAuth.authedFetch(cbase + '/my-comments').then(function (r) { return r.json(); }).then(function (d) {
-        var el = document.getElementById('acc-stat-comment');
-        if (el) el.textContent = (d && d.items) ? d.items.length : 0;
+        var el = document.getElementById('acc-stat-comment'), rc = document.getElementById('acc-rc-comment');
+        var n = (d && d.items) ? d.items.length : 0;
+        if (el) el.textContent = n; if (rc) rc.textContent = n;
       }).catch(function () {});
     }
 
@@ -828,14 +851,44 @@ body_class: acc-page mk-cat mk-page mk-acc
         '</div></div>';
       }
       var url = it.url || it.post || '#';
+      var c = catOf(it);
+      var inAlbum = kind === 'fav' && state.favView === 'list' && state.album;
       return '<div class="acc-item" data-post="' + encodeURIComponent(it.post) + '">' +
           '<input type="checkbox" class="acc-cb" aria-label="选择">' +
-          '<div class="acc-item-main">' +
-            '<a class="acc-item-title" href="' + esc(url) + '">' + esc(it.title || it.post) + '</a>' +
-            '<div class="acc-item-meta">' + catMetaHtml(it) + fmtDate(it.ts) + '</div>' +
-          '</div>' +
-          '<button class="acc-item-rm" title="移除" aria-label="移除">×</button>' +
+          '<span class="acc-cat-dot" style="background:' + (c ? c.color : 'var(--mk-faint, #9a948a)') + '"></span>' +
+          '<a class="acc-item-title" href="' + esc(url) + '">' + esc(it.title || it.post) + '</a>' +
+          '<span class="acc-item-cat">' + (c ? esc(c.name) : '') + '</span>' +
+          '<span class="acc-item-time">' + esc(fmtTime(it.ts)) + '</span>' +
+          '<span class="acc-item-ops">' +
+            (inAlbum ? '<button type="button" class="acc-item-mv">移动到…</button>' : '') +
+            '<button type="button" class="acc-item-rm">' + (kind === 'fav' ? '取消收藏' : '移除') + '</button>' +
+          '</span>' +
         '</div>';
+    }
+    // 按日分组：今天 / 昨天 / 7 · 18（跨年带年份）
+    function dayKey(ts) { var d = ts ? new Date(ts) : null; return d && !isNaN(d) ? d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate() : ''; }
+    function dayHeading(ts) {
+      var d = ts ? new Date(ts) : null; if (!d || isNaN(d)) return ['未知日期', ''];
+      var now = new Date(), t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var diff = Math.round((t0 - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 86400000);
+      var md = (d.getMonth() + 1) + ' · ' + d.getDate();
+      if (diff === 0) return ['今天', md]; if (diff === 1) return ['昨天', md];
+      return [d.getFullYear() === now.getFullYear() ? md : d.getFullYear() + ' · ' + md, ''];
+    }
+    function fmtTime(ts) { if (!ts) return ''; try { var d = new Date(ts); return (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes(); } catch (e) { return ''; } }
+    function groupedHTML(kind, slice) {
+      if (kind === 'comment') return slice.map(function (it) { return itemHTML(kind, it); }).join('');
+      var html = '', cur = null, count = {};
+      slice.forEach(function (it) { var k = dayKey(it.ts); count[k] = (count[k] || 0) + 1; });
+      slice.forEach(function (it) {
+        var k = dayKey(it.ts);
+        if (k !== cur) {
+          cur = k; var h = dayHeading(it.ts);
+          html += '<div class="acc-day"><b>' + esc(h[0]) + '</b><small>' + esc(h[1] ? h[1] + ' · ' : '') + count[k] + ' 篇</small><span class="hl"></span></div>';
+        }
+        html += itemHTML(kind, it);
+      });
+      return html;
     }
 
     function matchQuery(it) {
@@ -854,7 +907,7 @@ body_class: acc-page mk-cat mk-page mk-acc
       if (state.page >= pages) state.page = pages - 1;
       var startI = state.page * state.pageSize;
       var slice = view.slice(startI, startI + state.pageSize);
-      listEl.innerHTML = slice.map(function (it) { return itemHTML(kind, it); }).join('');
+      listEl.innerHTML = groupedHTML(kind, slice);
       if (kind === 'comment') { renderCommentMath(); attachImgFallback(); }   // 公式按需渲染 + 缩略图失败兜底
       // 分页条：过滤后仍 >10 条才显示
       pagerEl.hidden = view.length <= 10;
@@ -866,6 +919,21 @@ body_class: acc-page mk-cat mk-page mk-acc
       if (kind !== 'comment') {
         listEl.querySelectorAll('.acc-item-rm').forEach(function (btn) {
           btn.addEventListener('click', function () { removePosts([decodeURIComponent(btn.closest('.acc-item').dataset.post)]); });
+        });
+        listEl.querySelectorAll('.acc-item-mv').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var post = decodeURIComponent(btn.closest('.acc-item').dataset.post);
+            chooseAlbumModal(function (albId) { albumEdit([post], { add: albId, remove: (state.album && state.album.id) || '' }); }, '移动到收藏夹');
+          });
+        });
+        // 管理态：整行可点选
+        if (state.manage) listEl.querySelectorAll('.acc-item').forEach(function (row) {
+          row.addEventListener('click', function (e) {
+            if (e.target.closest('button, input')) return;
+            if (e.target.closest('a')) e.preventDefault();   // 管理态点标题只勾选，不跳走
+            var cb = row.querySelector('.acc-cb'); if (!cb) return;
+            cb.checked = !cb.checked; row.classList.toggle('sel', cb.checked); updateSelAllLabel();
+          });
         });
       }
       updateSelAllLabel();   // 每次重渲后复位「全选本页 / 取消全选」文案
@@ -884,6 +952,7 @@ body_class: acc-page mk-cat mk-page mk-acc
       var canManage = kind !== 'comment';
       toolbar.style.display = canManage ? 'flex' : 'none';
       if (canManage) document.getElementById('acc-clear').textContent = CLEAR_LABEL[kind] || '清空';
+      hideConfirm();
       listEl.innerHTML = '<div class="acc-loading">加载中…</div>'; pagerEl.hidden = true;
       try {
         if (kind === 'comment') {
@@ -948,6 +1017,7 @@ body_class: acc-page mk-cat mk-page mk-acc
       }).then(function (r) { return r.json(); }).then(function () {
         setManage(false);
         if (state.album) openFavAlbum(state.album);
+        toast(opts.add && opts.remove ? '已移动 ' + posts.length + ' 篇' : opts.add ? '已加入收藏夹' : '已移出本夹');
       }).catch(function () {});
     }
     function showFavGrid() {
@@ -958,7 +1028,7 @@ body_class: acc-page mk-cat mk-page mk-acc
       plainHeading('收藏');
       var ab = document.getElementById('acc-albactions'); if (ab) ab.style.display = 'none';
       document.getElementById('acc-clear').style.display = '';
-      listEl.classList.remove('manage');
+      listEl.classList.remove('manage'); hideConfirm();
       listEl.innerHTML = '<div class="acc-loading">加载中…</div>';
       SiteAuth.authedFetch(api + '?action=albums').then(function (r) { return r.json(); }).then(function (d) {
         if (!d || !d.ok) { listEl.innerHTML = '<div class="acc-empty">加载失败，稍后再试。</div>'; return; }
@@ -1013,7 +1083,7 @@ body_class: acc-page mk-cat mk-page mk-acc
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name }),
         }).then(function (r) { return r.json(); }).then(function (d) {
           m.close();
-          if (d && d.ok && d.album) { if (cb) cb(d.album.id); else showFavGrid(); }
+          if (d && d.ok && d.album) { toast('已新建「' + name + '」'); if (cb) cb(d.album.id); else showFavGrid(); }
           else if (cb) cb(null);
         }).catch(function () { m.close(); if (cb) cb(null); });
       }
@@ -1022,10 +1092,11 @@ body_class: acc-page mk-cat mk-page mk-acc
     }
     function deleteAlbum(album) {
       if (!album.id) return;
-      if (!confirm('删除「' + album.name + '」？里面的收藏会退回「默认收藏夹」，文章本身不会删。')) return;
-      SiteAuth.authedFetch(api + '?action=album-delete', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: album.id }),
-      }).then(function (r) { return r.json(); }).then(function () { showFavGrid(); }).catch(function () {});
+      inlineConfirm('删除「' + album.name + '」？里面的收藏会退回「默认收藏夹」，文章本身不会删。', '删除收藏夹', function () {
+        SiteAuth.authedFetch(api + '?action=album-delete', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: album.id }),
+        }).then(function (r) { return r.json(); }).then(function () { showFavGrid(); toast('已删除收藏夹「' + album.name + '」'); }).catch(function () {});
+      });
     }
     function chooseAlbumModal(cb, title, excludeDefault) {
       SiteAuth.authedFetch(api + '?action=albums').then(function (r) { return r.json(); }).then(function (d) {
@@ -1055,7 +1126,10 @@ body_class: acc-page mk-cat mk-page mk-acc
     searchInput.addEventListener('input', function () { state.query = this.value.trim().toLowerCase(); state.page = 0; renderPage(); });
     // 勾选变化时同步「全选本页 / 取消全选」文案（事件委托，跨重渲存活）
     listEl.addEventListener('change', function (e) {
-      if (e.target && e.target.classList && e.target.classList.contains('acc-cb')) updateSelAllLabel();
+      if (e.target && e.target.classList && e.target.classList.contains('acc-cb')) {
+        var row = e.target.closest('.acc-item'); if (row) row.classList.toggle('sel', e.target.checked);
+        updateSelAllLabel();
+      }
     });
 
     // ── 批量管理 ─────────────────────────────────────────────
@@ -1069,12 +1143,13 @@ body_class: acc-page mk-cat mk-page mk-acc
     function setManage(on) {
       state.manage = on;
       listEl.classList.toggle('manage', on);
+      toolbar.classList.toggle('managing', on);   // 多选时收起「清空」，只留批量操作
       document.getElementById('acc-manage').style.display = on ? 'none' : '';
       document.getElementById('acc-manage-actions').style.display = on ? 'inline-flex' : 'none';
       // 收藏夹内的管理态才显示「移动到 / 加入 / 移出本夹」
       var ab = document.getElementById('acc-albactions');
       if (ab) ab.style.display = (on && state.kind === 'fav' && state.album && state.favView === 'list') ? 'inline-flex' : 'none';
-      if (!on) listEl.querySelectorAll('.acc-cb').forEach(function (cb) { cb.checked = false; });
+      if (!on) { listEl.querySelectorAll('.acc-cb').forEach(function (cb) { cb.checked = false; }); listEl.querySelectorAll('.acc-item.sel').forEach(function (r) { r.classList.remove('sel'); }); hideConfirm(); }
       updateSelAllLabel();
     }
     function selectedPosts() {
@@ -1095,6 +1170,7 @@ body_class: acc-page mk-cat mk-page mk-acc
         var gone = {}; posts.forEach(function (p) { gone[p] = 1; });
         state.items = state.items.filter(function (it) { return !gone[it.post]; });
         setManage(false); renderPage(); loadStats();
+        toast((state.kind === 'fav' ? '已取消收藏 ' : '已移除 ') + posts.length + ' 条');
       } catch (e) {}
     }
     document.getElementById('acc-manage').addEventListener('click', function () { if (state.items.length) { setManage(true); renderPage(); } });
@@ -1103,7 +1179,7 @@ body_class: acc-page mk-cat mk-page mk-acc
       var boxes = listEl.querySelectorAll('.acc-cb');
       if (!boxes.length) return;
       var allChecked = Array.prototype.every.call(boxes, function (b) { return b.checked; });
-      boxes.forEach(function (b) { b.checked = !allChecked; });
+      boxes.forEach(function (b) { b.checked = !allChecked; var r = b.closest('.acc-item'); if (r) r.classList.toggle('sel', b.checked); });
       updateSelAllLabel();
     });
     document.getElementById('acc-delsel').addEventListener('click', async function () {
@@ -1111,42 +1187,43 @@ body_class: acc-page mk-cat mk-page mk-acc
       if (!posts.length) return;
       var inAlbum = state.kind === 'fav' && state.favView === 'list' && state.album;
       var msg = inAlbum
-        ? '取消收藏所选的 ' + posts.length + ' 篇？将从「全部收藏」及其所在的所有收藏夹中移除，不可撤销。'
+        ? '取消收藏所选的 ' + posts.length + ' 篇？会从所有收藏夹里一并移除，不可撤销。'
         : '删除所选的 ' + posts.length + ' 条？此操作不可撤销。';
-      if (!confirm(msg)) return;
-      this.disabled = true; await removePosts(posts); this.disabled = false;
+      var btn = this;
+      inlineConfirm(msg, inAlbum ? '取消收藏' : '删除', async function () { btn.disabled = true; await removePosts(posts); btn.disabled = false; });
     });
-    document.getElementById('acc-clear').addEventListener('click', async function () {
-      if (!confirm(CLEAR_CONFIRM[state.kind] || '确定清空吗？此操作不可撤销。')) return;
-      this.disabled = true;
-      try {
-        var r = await SiteAuth.authedFetch(api + '?action=clear', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ kind: state.kind }),
-        });
-        if (r.ok) { state.items = []; setManage(false); renderPage(); loadStats(); }
-      } catch (e) {}
-      this.disabled = false;
+    document.getElementById('acc-clear').addEventListener('click', function () {
+      var btn = this;
+      inlineConfirm(CLEAR_CONFIRM[state.kind] || '确定清空吗？此操作不可撤销。', '清空', async function () {
+        btn.disabled = true;
+        try {
+          var r = await SiteAuth.authedFetch(api + '?action=clear', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ kind: state.kind }),
+          });
+          if (r.ok) { state.items = []; setManage(false); renderPage(); loadStats(); toast('已清空'); }
+        } catch (e) {}
+        btn.disabled = false;
+      });
     });
 
     // ── 左导航切换 ────────────────────────────────────────────
     function showPane(pane) {
       navItems.forEach(function (n) { n.classList.toggle('on', n.dataset.pane === pane); });
+      document.querySelectorAll('.acc-hstat[data-pane]').forEach(function (b) { b.classList.toggle('on', b.dataset.pane === pane); });
       if (pane === 'settings') { listSec.hidden = true; setSec.hidden = false; }
       else if (pane === 'fav') { setSec.hidden = true; listSec.hidden = false; showFavGrid(); }
       else { setSec.hidden = true; listSec.hidden = false; loadKind(pane); }
     }
-    navItems.forEach(function (n) { n.addEventListener('click', function () { showPane(n.dataset.pane); }); });
+    navItems.forEach(function (n) { if (n.dataset.pane) n.addEventListener('click', function () { showPane(n.dataset.pane); }); });
+    var PANES = { settings: 'settings', fav: 'fav', like: 'like', hist: 'hist', history: 'hist', comment: 'comment', comments: 'comment' };
+    function paneFromHash() { return PANES[(location.hash || '').replace('#', '')] || null; }
 
     // ── 账号设置 ──────────────────────────────────────────────
     function renderSettings(user) {
       if (!user) { settingsEl.innerHTML = ''; return; }
       settingsEl.innerHTML =
-        '<div class="acc-set-row">' +
-          '<div class="acc-set-info"><div class="acc-set-t">离线内容库</div>' +
-            '<div class="acc-set-d">管理保存到本地的文章和游戏——看占用、更新、删除，飞机 / 没网时随时打开。</div></div>' +
-          '<a class="acc-tool-btn" href="/account/offline/" style="text-decoration:none;">打开</a>' +
-        '</div>' +
+        '<div class="acc-set-grp"><span class="acc-set-kick">Profile · 资料与登录</span>' +
         '<div class="acc-set-row">' +
           '<div class="acc-set-info"><div class="acc-set-t">外观</div>' +
             '<div class="acc-set-d">明暗主题，按本设备记住（不跟账号走）。</div></div>' +
@@ -1178,18 +1255,25 @@ body_class: acc-page mk-cat mk-page mk-acc
             ? '<span style="font-size:0.82rem;color:#2f8f6b;font-weight:700;">已关联</span>'
             : '<button class="acc-tool-btn" id="acc-google-link-btn">关联</button>') +
         '</div>' +
+        '</div>' +
+        '<div class="acc-set-grp"><span class="acc-set-kick">Mail · 邮件通知</span>' +
+        '<section class="acc-mail-settings" id="acc-mail-settings" aria-labelledby="acc-mail-title">' +
+          '<p class="acc-mail-intro">发送到账号邮箱。两个选项可分别开启，也可随时关闭。</p>' +
         '<div class="acc-set-row">' +
-          '<div class="acc-set-info"><div class="acc-set-t">新文章通知</div>' +
+          '<div class="acc-set-info"><div class="acc-set-t" id="acc-sub-article-label">新文章通知</div>' +
             '<div class="acc-set-d">有新文章时收到邮件。是否发送由站长在每次发布时单独决定；注册账号不会自动订阅。</div>' +
             '<div class="acc-sub-state" id="acc-sub-article-state">正在读取订阅状态…</div></div>' +
-          '<label class="acc-switch"><input type="checkbox" id="acc-sub-article" disabled><span class="acc-switch-slider"></span></label>' +
+          '<label class="acc-switch"><input type="checkbox" id="acc-sub-article" aria-labelledby="acc-sub-article-label" disabled><span class="acc-switch-slider"></span></label>' +
         '</div>' +
         '<div class="acc-set-row">' +
-          '<div class="acc-set-info"><div class="acc-set-t">站长来信 / Newsletter</div>' +
+          '<div class="acc-set-info"><div class="acc-set-t" id="acc-sub-newsletter-label">站长来信 / Newsletter</div>' +
             '<div class="acc-set-d">接收不一定对应新文章的定向来信与专题内容。与“新文章通知”互相独立，可单独退订。</div>' +
             '<div class="acc-sub-state" id="acc-sub-newsletter-state"></div></div>' +
-          '<label class="acc-switch"><input type="checkbox" id="acc-sub-newsletter" disabled><span class="acc-switch-slider"></span></label>' +
+          '<label class="acc-switch"><input type="checkbox" id="acc-sub-newsletter" aria-labelledby="acc-sub-newsletter-label" disabled><span class="acc-switch-slider"></span></label>' +
         '</div>' +
+        '</section>' +
+        '</div>' +
+        '<div class="acc-set-grp"><span class="acc-set-kick">Data · 数据与注销</span>' +
         '<div class="acc-set-row">' +
           '<div class="acc-set-info"><div class="acc-set-t">隐私与数据</div>' +
             '<div class="acc-set-d">查看本站收集哪些数据、保存在哪里，以及如何导出或删除。</div></div>' +
@@ -1205,7 +1289,8 @@ body_class: acc-page mk-cat mk-page mk-acc
             '<div class="acc-set-d">永久删除账号及其收藏 / 点赞 / 浏览记录，不可恢复。</div></div>' +
           '<button class="acc-tool-btn danger-ghost" id="acc-del-btn">注销</button>' +
         '</div>' +
-        '<div class="acc-set-panel" id="acc-del-panel" hidden></div>';
+        '<div class="acc-set-panel" id="acc-del-panel" hidden></div>' +
+        '</div>';
       var themeSeg = document.getElementById('acc-theme-seg');
       if (themeSeg) {
         var curMode = (window.currentThemeMode ? window.currentThemeMode() : 'system');
@@ -1358,7 +1443,6 @@ body_class: acc-page mk-cat mk-page mk-acc
       document.getElementById('acc-del-confirm').addEventListener('click', async function () {
         var err = document.getElementById('acc-del-err'); err.textContent = '';
         if (document.getElementById('acc-del-word').value.trim() !== '注销') { err.textContent = '请输入「注销」二字'; return; }
-        if (!confirm('最后确认：真的要永久注销账号吗？此操作不可撤销。')) return;
         this.disabled = true;
         var r; try { r = await SiteAuth.deleteAccount(); } catch (e) { r = { ok: false }; }
         this.disabled = false;
@@ -1375,7 +1459,7 @@ body_class: acc-page mk-cat mk-page mk-acc
         renderHero(user);
         renderSettings(user);
         // 头像菜单「设置」深链 /account/#settings：首次进入直接落设置面板（在 renderSettings 之后，避免竞态画空面板）
-        if (!startupHashDone && location.hash === '#settings') { startupHashDone = true; showPane('settings'); }
+        if (!startupHashDone && paneFromHash()) { startupHashDone = true; showPane(paneFromHash()); }
         else if (setSec.hidden) { if (state.kind === 'fav') showFavGrid(); else loadKind(state.kind); }
       } else {
         main.style.display = 'none';
@@ -1385,7 +1469,7 @@ body_class: acc-page mk-cat mk-page mk-acc
     }
     SiteAuth.onChange(applyAuth);
     // 已在本页时点「设置」深链（hash 变化不重载页面）也切到设置面板
-    window.addEventListener('hashchange', function () { if (location.hash === '#settings') showPane('settings'); });
+    window.addEventListener('hashchange', function () { var p = paneFromHash(); if (p) showPane(p); });
   }
   start();
 })();

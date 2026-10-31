@@ -15,10 +15,17 @@ body_class: acc-page mk-cat mk-page mk-acc
       <p class="mk-crumb"><a href="{{ '/account/' | relative_url }}">我的主页</a><span class="sep" aria-hidden="true">／</span>离线内容库</p>
       <span class="mk-kick">离线 · Offline Library</span>
       <h1>离线内容库</h1>
-      <p class="lead">你亲手保存下来的文章和游戏，飞机上 / 没网时随时打开。</p>
+      <p class="lead">把文章和小游戏存进这台设备，没网的时候照样打开。存进来的东西不会过期，线上有新版时这里会提醒你换。</p>
     </div>
     <span class="mk-seal" aria-label="离线印">离线</span>
   </header>
+
+  {%- comment -%} 三格说明：怎么存 / 没网怎么用 / 有新版怎么办 {%- endcomment -%}
+  <section class="lib-how" aria-label="离线内容库怎么用">
+    <div><span class="n" aria-hidden="true">壹</span><b>怎么存进来</b><p>在任何文章或游戏页，点工具行里的「保存离线」，整页连同图片一起存到这台设备。栏目页也可以一次保存整栏。</p><span class="tag">只存在本机 · 不上传</span></div>
+    <div><span class="n" aria-hidden="true">贰</span><b>没网时怎么用</b><p>断网、飞行模式都能直接打开存过的页面：从这里点标题，或者像平时一样从首页点进去，站点会自动改用本机副本。</p><span class="tag tag-ok">秒开 · 不走网络</span></div>
+    <div><span class="n" aria-hidden="true">叁</span><b>有新版怎么办</b><p>联网时会悄悄对比线上版本。标着「换成新版」的点一下就更新；也可以打开「连 WiFi 时自动更新」，让它自己来。</p><span class="tag">换之前旧版照常可用</span></div>
+  </section>
 
   {%- comment -%} 不支持 SW 的浏览器（微信 / 部分第三方）{%- endcomment -%}
   <div id="lib-unsupported" class="lib-note" style="display:none;">
@@ -29,29 +36,38 @@ body_class: acc-page mk-cat mk-page mk-acc
     <div class="lib-summary">
       <div class="lib-stat"><span class="v" id="lib-count">0</span><span class="k">已保存</span></div>
       <div class="lib-stat"><span class="v" id="lib-size">0<small> MB</small></span><span class="k">占用空间</span></div>
-      <div class="lib-stat lib-stat-warn"><span class="v" id="lib-updc">0</span><span class="k">可更新</span></div>
+      <div class="lib-stat lib-stat-warn"><span class="v" id="lib-updc">0</span><span class="k">有新版</span>
+        <button type="button" class="lib-btn-primary" id="lib-update-all" style="display:none;"></button></div>
     </div>
 
-    <div class="lib-actionbar">
-      <div class="lib-ab-left">
-        <button type="button" class="lib-btn-primary" id="lib-update-all" style="display:none;"></button>
-        <button type="button" class="lib-chip" id="lib-only-upd">只看可更新</button>
+    <div class="lib-shelf-h">
+      <h2>离线书架</h2>
+      <p id="lib-shelf-desc">你亲手保存的内容，按栏目摆放。</p>
+      <div class="lib-shelf-tools">
+        <button type="button" class="lib-chip" id="lib-only-upd">只看有新版</button>
         <button type="button" class="lib-chip" id="lib-select-page">全选本页</button>
+        <label class="lib-toggle" id="lib-wifi-label" title="连上 WiFi 时，有新版的内容会在后台自动更新">
+          <span class="lib-switch off" id="lib-wifi-sw"></span>连 WiFi 时自动更新
+        </label>
       </div>
-      <label class="lib-toggle" id="lib-wifi-label">
-        <span class="lib-switch off" id="lib-wifi-sw"></span>连 WiFi 时自动更新
-      </label>
     </div>
 
     {%- comment -%} 批量操作条：选中任意项才出现 {%- endcomment -%}
     <div class="lib-batchbar" id="lib-batchbar" style="display:none;">
       <span class="lib-batch-count" id="lib-batch-count">已选 0 项</span>
-      <button type="button" class="lib-batch-btn" id="lib-batch-update">批量更新</button>
-      <button type="button" class="lib-batch-btn lib-batch-danger" id="lib-batch-remove">批量删除</button>
+      <button type="button" class="lib-batch-btn" id="lib-batch-update">更新所选</button>
+      <button type="button" class="lib-batch-btn lib-batch-danger" id="lib-batch-remove">删除所选</button>
       <button type="button" class="lib-batch-btn lib-batch-ghost" id="lib-batch-clear">取消选择</button>
     </div>
+    <div class="lib-confirm" id="lib-confirm" hidden></div>
 
     <div id="lib-groups"></div>
+
+    <div class="lib-legend" id="lib-legend" style="display:none;">
+      <span class="lib-st-fresh"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>最新 = 和线上一样</span>
+      <span class="lib-legend-stale">换成新版 = 线上改过，点它更新</span>
+      <span>删除只删本机副本，文章本身还在网上</span>
+    </div>
 
     {%- comment -%} 翻页：每页条数 + 上一页/下一页 {%- endcomment -%}
     <div class="lib-pager" id="lib-pager" style="display:none;">
@@ -71,20 +87,22 @@ body_class: acc-page mk-cat mk-page mk-acc
     </div>
 
     <div id="lib-empty" class="lib-empty" style="display:none;">
-      还没有保存任何离线内容。<br>
-      在文章或游戏页点「<span style="color:var(--color-accent)">保存离线</span>」，它就会出现在这里。
+      <b>书架还是空的。</b><br>
+      打开一篇文章，点工具行里的 <span class="lib-demo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5V14"/><path d="M7.5 10l4.5 4.5L16.5 10"/><path d="M5 19h14"/></svg>保存离线</span>，它就会出现在这里。
     </div>
 
     <div class="lib-ambient" id="lib-ambient" style="display:none;">
-      <span class="lib-amb-lab">浏览缓存 · 临时加速 <b id="lib-amb-size">0 MB</b></span>
-      <button type="button" class="lib-amb-clear" id="lib-clear-ambient">立即清空</button>
-      <span class="lib-amb-sub">随手翻过的页面留下的加速副本，满了会自动清理，不占用上面的离线书架。</span>
+      <b class="lib-amb-lab">浏览缓存<small id="lib-amb-size">0 MB</small></b>
+      <p class="lib-amb-sub">你随手翻过的页面，浏览器自动留下的加速副本。满了会自己清，不占书架的位置，也不保证断网时还在。想腾空间可以直接清。</p>
+      <button type="button" class="lib-amb-clear" id="lib-clear-ambient">清空缓存</button>
     </div>
 
     <div class="lib-danger" id="lib-danger" style="display:none;">
-      <button type="button" class="lib-clear-all" id="lib-clear-all">清空全部离线内容</button>
+      <span>想从头来过？清空书架会删掉这台设备上全部已保存的副本，网上的内容不受影响。</span>
+      <button type="button" class="lib-clear-all" id="lib-clear-all">清空整个书架</button>
     </div>
   </div>
+  <div id="lib-toast" class="lib-toast" role="status" aria-live="polite"></div>
 
   <footer class="mk-foot">
     <span class="c">© <span class="js-year">{{ site.time | date: "%Y" }}</span> Rui Zhou · 锆铌</span>
@@ -216,7 +234,7 @@ body_class: acc-page mk-cat mk-page mk-acc
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function fmtDate(ts) { try { return new Date(ts).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' }); } catch (e) { return ''; } }
   function catRank(c) { var i = CAT_ORDER.indexOf(c); return i === -1 ? CAT_ORDER.length : i; }
-  function fmtSize(n) { n = +n || 0; if (n < 1024 * 1024) return Math.max(1, Math.round(n / 1024)) + '<small> KB</small>'; return (n / 1048576).toFixed(1) + '<small> MB</small>'; }
+  function fmtSize(n) { n = +n || 0; if (!n) return '0<small> KB</small>'; if (n < 1024 * 1024) return Math.max(1, Math.round(n / 1024)) + '<small> KB</small>'; return (n / 1048576).toFixed(1) + '<small> MB</small>'; }
   function fmtSizePlain(n) { n = +n || 0; if (n < 1024) return n + ' B'; if (n < 1048576) return Math.round(n / 1024) + ' KB'; return (n / 1048576).toFixed(1) + ' MB'; }
   function selCount() { return Object.keys(state.selected).length; }
 
@@ -232,7 +250,10 @@ body_class: acc-page mk-cat mk-page mk-acc
     var wifiSw = el('lib-wifi-sw');
     function paintWifi() { wifiSw.classList.toggle('off', !Z.autoWifiOn()); }
     paintWifi();
-    el('lib-wifi-label').addEventListener('click', function (e) { e.preventDefault(); Z.setAutoWifi(!Z.autoWifiOn()); paintWifi(); });
+    el('lib-wifi-label').addEventListener('click', function (e) {
+      e.preventDefault(); Z.setAutoWifi(!Z.autoWifiOn()); paintWifi();
+      toast(Z.autoWifiOn() ? '已开启：连上 WiFi 时，有新版的内容会自动更新' : '已关闭自动更新，需要时手动点「换成新版」');
+    });
 
     el('lib-only-upd').addEventListener('click', function () {
       state.onlyUpd = !state.onlyUpd; state.page = 1;
@@ -260,13 +281,29 @@ body_class: acc-page mk-cat mk-page mk-acc
       });
       render();
     });
-    el('lib-batch-clear').addEventListener('click', function () { state.selected = {}; render(); });
-    el('lib-batch-remove').addEventListener('click', async function () {
+    el('lib-batch-clear').addEventListener('click', function () { state.selected = {}; hideConfirm(); render(); });
+    // 页内确认条 + 轻提示（替代系统对话框 / 无反馈）
+    function askConfirm(msg, okLabel, onOk) {
+      var box = el('lib-confirm'); box.hidden = false;
+      box.innerHTML = '<span class="t">' + esc(msg) + '</span>' +
+        '<button type="button" class="lib-batch-btn lib-batch-danger" id="lib-confirm-ok">' + esc(okLabel) + '</button>' +
+        '<button type="button" class="lib-batch-btn lib-batch-ghost" id="lib-confirm-no">取消</button>';
+      el('lib-confirm-no').addEventListener('click', hideConfirm);
+      el('lib-confirm-ok').addEventListener('click', function () { hideConfirm(); onOk(); });
+      box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    function hideConfirm() { var box = el('lib-confirm'); box.hidden = true; box.innerHTML = ''; }
+    var toastT;
+    function toast(msg) { var t = el('lib-toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('on'); }, 2400); }
+    el('lib-batch-remove').addEventListener('click', function () {
       var urls = Object.keys(state.selected); if (!urls.length) return;
-      if (!window.confirm('删除选中的 ' + urls.length + ' 项离线内容？（内容本身还在网上，随时可以重新保存）')) return;
-      var btn = this; btn.disabled = true;
-      for (var i = 0; i < urls.length; i++) { btn.textContent = '删除中… ' + (i + 1) + '/' + urls.length; try { await Z.remove(urls[i]); } catch (e) {} }
-      state.selected = {}; btn.disabled = false; btn.textContent = '批量删除'; render();
+      var btn = this;
+      askConfirm('删除所选的 ' + urls.length + ' 项本机副本？文章本身还在网上，随时可以重新保存。', '删除', async function () {
+        btn.disabled = true;
+        for (var i = 0; i < urls.length; i++) { btn.textContent = '删除中… ' + (i + 1) + '/' + urls.length; try { await Z.remove(urls[i]); } catch (e) {} }
+        state.selected = {}; btn.disabled = false; btn.textContent = '删除所选'; render();
+        toast('已删除 ' + urls.length + ' 项本机副本');
+      });
     });
     el('lib-batch-update').addEventListener('click', async function () {
       var urls = Object.keys(state.selected); if (!urls.length) return;
@@ -275,17 +312,24 @@ body_class: acc-page mk-cat mk-page mk-acc
         btn.textContent = '更新中… ' + (i + 1) + '/' + urls.length;
         var it = Z.index.get(urls[i]); if (it) { try { await Z.update(it, { force: true }); } catch (e) {} }
       }
-      btn.disabled = false; btn.textContent = '批量更新'; render();
+      btn.disabled = false; btn.textContent = '更新所选'; render();
+      toast('已换成新版：' + urls.length + ' 项');
     });
 
     el('lib-clear-ambient').addEventListener('click', async function () {
-      this.disabled = true; this.textContent = '清理中…';
-      await Z.clearAmbient(); render();
+      var btn = this; btn.disabled = true; btn.textContent = '清理中…';
+      try { await Z.clearAmbient(); } catch (e) {}
+      btn.disabled = false; btn.textContent = '清空缓存'; render();
+      toast('浏览缓存已清空，书架不受影响');
     });
-    el('lib-clear-all').addEventListener('click', async function () {
-      if (!window.confirm('清空全部离线内容？本地保存的文章 / 游戏都会删除（随时可重新保存）。')) return;
-      this.disabled = true; this.textContent = '清空中…';
-      await Z.clearSaved(); state.selected = {}; render();
+    el('lib-clear-all').addEventListener('click', function () {
+      var btn = this;
+      askConfirm('清空整个书架？这台设备上保存的文章和游戏都会删除，网上的内容不受影响，随时可以重新保存。', '清空书架', async function () {
+        btn.disabled = true; btn.textContent = '清空中…';
+        try { await Z.clearSaved(); } catch (e) {}
+        state.selected = {}; btn.disabled = false; btn.textContent = '清空整个书架'; render();
+        toast('书架已清空');
+      });
     });
     el('lib-update-all').addEventListener('click', async function () {
       var btn = this; btn.disabled = true;
@@ -295,6 +339,7 @@ body_class: acc-page mk-cat mk-page mk-acc
         var it = Z.index.get(urls[i]); if (it) { try { await Z.update(it, { force: true }); } catch (e) {} }
       }
       render();
+      if (urls.length) toast('已全部换成新版：' + urls.length + ' 项');
     });
 
     Z.on('change', render);
@@ -314,8 +359,12 @@ body_class: acc-page mk-cat mk-page mk-acc
       el('lib-updc').textContent = updCount;
 
       var updAll = el('lib-update-all');
-      if (updCount > 0) { updAll.style.display = ''; updAll.disabled = false; updAll.innerHTML = Z.icon('refresh') + '更新全部（' + updCount + '）'; }
+      if (updCount > 0) { updAll.style.display = ''; updAll.disabled = false; updAll.innerHTML = Z.icon('refresh') + '全部换成新版（' + updCount + '）'; }
       else updAll.style.display = 'none';
+      el('lib-updc').closest('.lib-stat').classList.toggle('lib-stat-warn', updCount > 0);
+      el('lib-shelf-desc').textContent = all.length ? '你亲手保存的 ' + all.length + ' 项，按栏目摆放。' : '你亲手保存的内容，按栏目摆放。';
+      el('lib-legend').style.display = all.length ? '' : 'none';
+      document.querySelector('.lib-shelf-tools').style.display = all.length ? '' : 'none';
 
       el('lib-empty').style.display = all.length ? 'none' : '';
       el('lib-danger').style.display = all.length ? '' : 'none';
@@ -361,7 +410,7 @@ body_class: acc-page mk-cat mk-page mk-acc
           '<svg class="zoff-ic lib-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>' +
           '<span class="lib-diamond"></span><span class="lib-cat-name">' + esc(cat) + '</span>' +
           '<span class="lib-cat-count">' + rows.length + '</span>' +
-          (staleN ? '<span class="lib-cat-upd"><span class="d"></span>' + staleN + ' 可更新</span>' : '') +
+          (staleN ? '<span class="lib-cat-upd"><span class="d"></span>' + staleN + ' 有新版</span>' : '') +
           '</button><div class="lib-cat-body">';
         rows.forEach(function (it) {
           var u = Z.normUrl(it.url);
@@ -370,9 +419,9 @@ body_class: acc-page mk-cat mk-page mk-acc
           html += '<div class="lib-row' + (sel ? ' is-sel' : '') + '" data-url="' + esc(u) + '">' +
             '<label class="lib-check"><input type="checkbox" data-sel="' + esc(u) + '"' + (sel ? ' checked' : '') + ' aria-label="选择"></label>' +
             '<div class="lib-row-main"><div class="lib-row-name"><a href="' + esc(it.url) + '">' + esc(it.title) + '</a></div>' +
-            '<div class="lib-row-meta">' + fmtSizePlain(it.size) + ' · 保存于 ' + fmtDate(it.savedAt) + '</div></div>' +
+            '<div class="lib-row-meta">' + fmtSizePlain(it.size) + ' · 保存于 ' + fmtDate(it.savedAt) + (stale ? ' · 线上已有新版' : '') + '</div></div>' +
             '<div class="lib-row-right">' +
-            (stale ? '<button type="button" class="lib-st-stale" data-act="update">' + Z.icon('refresh') + '有更新</button>'
+            (stale ? '<button type="button" class="lib-st-stale" data-act="update">' + Z.icon('refresh') + '换成新版</button>'
                    : '<span class="lib-st-fresh">' + Z.icon('check') + '最新</span>') +
             '<button type="button" class="lib-del" data-act="remove">删除</button>' +
             '</div></div>';
@@ -410,7 +459,7 @@ body_class: acc-page mk-cat mk-page mk-acc
             if (act === 'update') {
               btn.innerHTML = Z.icon('spinner') + '更新中';
               var it = Z.index.get(url); if (it) { try { await Z.update(it, { force: true }); } catch (e2) {} }
-              render(); return;
+              render(); toast('「' + ((it && it.title) || '这一项') + '」已换成新版'); return;
             }
             // 删除：二次确认，点第一下先武装，再点才真删，4 秒自动取消
             if (btn.getAttribute('data-armed') !== '1') {
