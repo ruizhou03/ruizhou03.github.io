@@ -848,6 +848,8 @@
   // ===========================================================
   const TEAM = ENGINE.teamOf; // 座 0/2 → team0(你方)；1/3 → team1(对方)
   const PHASE = ENGINE.PHASE;
+  // Invalidate delayed visual callbacks from a previous local round.
+  let roundVisualGeneration = 0;
   const NAV_VIEW = ENGINE.NAV_VIEW;
   const navigation = ENGINE.createNavigationController();
   const navState = navigation.state;
@@ -1118,6 +1120,7 @@
   }
   function toast(msg) {
     els.toast.textContent = msg;
+    if (window.ZirconIcons) ZirconIcons.hydrate(els.toast);
     els.toast.classList.add('show');
     announce(msg);
     clearTimeout(toastTimer);
@@ -1511,39 +1514,45 @@
   function renderRevealGallery() {
     const gallery = els.revealGallery;
     if (!gallery) return;
-    const compact = window.innerWidth <= 700 || window.innerHeight <= 400;
     const seats = [0, 1, 2, 3].filter(seat => {
       const hand = state.hands[seat];
       return hand && hand.length > 0 && hand[0] !== -1;
     });
-    if (!state.revealHands || !compact || seats.length === 0) {
+    if (!state.revealHands || seats.length === 0) {
       gallery.hidden = true;
-      gallery.innerHTML = '';
+      gallery.replaceChildren();
       gallery.dataset.revealKey = '';
       return;
     }
-    const key = seats.map(seat => seat + ':' + state.hands[seat].join(',')).join('|');
+    const width = els.table.clientWidth;
+    const columns = Math.min(seats.length, width < 440 ? 1 : 2);
+    const maxWidth = Math.max(120, (width - 48 - (columns - 1) * 20) / columns);
+    const key = Math.round(width) + ':' + seats.map(seat => seat + ':' + state.hands[seat].join(',')).join('|');
     if (gallery.dataset.revealKey === key && !gallery.hidden) return;
     gallery.dataset.revealKey = key;
     gallery.hidden = false;
-    gallery.innerHTML = '';
-    gallery.style.setProperty('--gd-reveal-seat-count', String(seats.length));
-    const gapTotal = Math.max(0, seats.length - 1) * 6;
-    const maxWidth = Math.max(132, (window.innerWidth - 12 - gapTotal) / seats.length);
-    const rowCount = seats.length >= 4 ? 4 : 3;
+    gallery.replaceChildren();
+    const title = document.createElement('div');
+    title.className = 'gd-reveal-title';
+    title.textContent = '本局结束 · 剩余手牌';
+    const grid = document.createElement('div');
+    grid.className = 'gd-reveal-grid';
+    grid.style.setProperty('--gd-reveal-columns', columns);
+    gallery.append(title, grid);
     for (const seat of seats) {
       const section = document.createElement('section');
       section.className = 'gd-reveal-gallery-seat';
       section.setAttribute('aria-label', seatName(seat) + '的剩余手牌');
       const label = document.createElement('div');
       label.className = 'gd-reveal-gallery-label';
-      label.textContent = seatName(seat) + ' · ' + state.hands[seat].length + ' 张';
+      label.textContent = seatName(seat) + ' · 剩余 ' + state.hands[seat].length + ' 张';
       const slot = document.createElement('div');
       slot.className = 'gd-played';
-      section.appendChild(label);
-      section.appendChild(slot);
-      gallery.appendChild(section);
-      fillRevealedHand(slot, seat, rowCount, maxWidth, 'gallery2');
+      section.append(label, slot);
+      grid.append(section);
+      const perRow = Math.max(1, Math.floor((maxWidth - 50) / 24) + 1);
+      const rows = Math.max(1, Math.ceil(state.hands[seat].length / perRow));
+      fillRevealedHand(slot, seat, rows, maxWidth, 'gallery3');
     }
   }
 
@@ -1796,6 +1805,7 @@
       }
       renderPlayArea(s);
     }
+    refreshAutopilotBtn();
     renderHand();
     renderRevealGallery();
     updateActions();
@@ -2920,6 +2930,7 @@
 
   // tributeResult: null（首局）| { from, to, card }（含还贡后）
   function startRound(prevRanking) {
+    roundVisualGeneration++;
     state.phase = PHASE.PLAYING;
     setNavView(NAV_VIEW.PLAYING);
     state._endHandled = false;       // 复位本局结算闩（见 endRound）
@@ -3411,6 +3422,7 @@
     ban.className = 'gd-fx-banner gd-tribute-banner';
     ban.style.fontSize = '1.7rem';
     ban.innerHTML = line1 + (line2 ? '<br><span style="font-size:0.8rem;letter-spacing:0.05em;opacity:0.88;">' + line2 + '</span>' : '');
+    if (window.ZirconIcons) ZirconIcons.hydrate(ban);
     els.table.appendChild(ban);
     setTimeout(() => { if (ban.parentNode) ban.remove(); }, durationMs || 1300);
   }
@@ -3424,6 +3436,7 @@
     ban.innerHTML =
       '<span class="gd-jiefeng-icon">[[zi:transfer]]</span>' +
       '<span class="gd-jiefeng-text">接风</span>';
+    if (window.ZirconIcons) ZirconIcons.hydrate(ban);
     els.table.appendChild(ban);
     setTimeout(() => ban.remove(), 1500);
     // 来源和接收方头像各闪一次金光
@@ -3613,11 +3626,14 @@
       els.table.classList.add('mega-quake');
       setTimeout(() => els.table && els.table.classList.remove('mega-quake'), 900);
     }
-    // 全桌中央大字浮屏
+    // Replace the previous bomb announcement.
+    // A single central message remains readable when the next bomb arrives.
     if (els.table) {
+      els.table.querySelectorAll('.gd-fx-banner:not(.gd-tribute-banner):not(.gd-jiefeng-banner)').forEach(node => node.remove());
       const ban = document.createElement('div');
       ban.className = 'gd-fx-banner';
       ban.textContent = banner;
+      if (window.ZirconIcons) ZirconIcons.hydrate(ban);
       els.table.appendChild(ban);
       setTimeout(() => ban.remove(), 1200);
     }
@@ -3730,7 +3746,7 @@
   // 本局是否结束：当一支队伍两名成员都已出完 → 立即结束（不必打到最后一人）
   // 触发结算前停 1s，让用户看清最后一手 + 结果，不要直接弹结算面板
   const END_ROUND_DELAY_MS = 1000;
-  const REVEAL_HOLD_MS = 1500;   // 局终摊牌后停留这么久再弹结算面板，让人看清各家剩牌
+  const REVEAL_HOLD_MS = 3000;   // 局终摊牌后停留这么久再弹结算面板，让人看清各家剩牌
   function checkRoundOver() {
     if (state.out.length >= 3) {
       // 第 3 名确定后第 4 名自动确定
@@ -3739,7 +3755,11 @@
         state.out.push(last);
       }
       state.busy = true;
-      setTimeout(endRound, END_ROUND_DELAY_MS);
+      const scheduledGeneration = roundVisualGeneration;
+      setTimeout(() => {
+        if (scheduledGeneration !== roundVisualGeneration || state.phase !== PHASE.PLAYING) return;
+        endRound();
+      }, END_ROUND_DELAY_MS);
       return true;
     }
     // 一队双成员都出完（双上）→ 直接结束
@@ -3751,7 +3771,11 @@
       rest.sort((a, b) => state.hands[a].length - state.hands[b].length);
       for (const s of rest) state.out.push(s);
       state.busy = true;
-      setTimeout(endRound, END_ROUND_DELAY_MS);
+      const scheduledGeneration = roundVisualGeneration;
+      setTimeout(() => {
+        if (scheduledGeneration !== roundVisualGeneration || state.phase !== PHASE.PLAYING) return;
+        endRound();
+      }, END_ROUND_DELAY_MS);
       return true;
     }
     return false;
@@ -3813,9 +3837,12 @@
     state.revealHands = true;
     renderAll();
     // 整盘结束（联机）：摊牌后直接进战报，不走「小局结算 → 继续」那条；其余走小局结算面板。
-    const showPanel = (matchWon && isNetworked())
-      ? () => endMatch(winTeam)
-      : () => showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon);
+    const endingGeneration = roundVisualGeneration;
+    const showPanel = () => {
+      if (endingGeneration !== roundVisualGeneration || state.phase !== PHASE.ROUND_END) return;
+      if (matchWon && isNetworked()) endMatch(winTeam);
+      else showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon);
+    };
     const hasReveal = [0, 1, 2, 3].some(s => state.hands[s] && state.hands[s].length > 0 && state.hands[s][0] !== -1);
     if (hasReveal) setTimeout(showPanel, REVEAL_HOLD_MS);
     else showPanel();
@@ -3991,6 +4018,7 @@
 
     els.roundNext.textContent = matchWon ? '查看战报 [[zi:play]]' : '继续 [[zi:play]]';
     stopTurnClock();
+    if (window.ZirconIcons) ZirconIcons.hydrate(els.roundOverlay);
     els.roundOverlay.classList.add('open');
     activateDialog(els.roundOverlay, null, '#gdRoundNext');
     const rankSummary = ranking.map((seat, index) => seatName(seat) + POS_NAMES[index]).join('，');
@@ -4432,6 +4460,8 @@
   }
   function refreshAutopilotBtn() {
     if (!els.autopilotBtn) return;
+    const eligible = state.phase === PHASE.PLAYING && !state.out.includes(0) && state.hands[0].length > 0;
+    els.autopilotBtn.disabled = !eligible;
     // 纯机器人图标，不再改文字；托管中靠 .on 的橙色高亮表示，点一下即切换。
     els.autopilotBtn.classList.toggle('on', !!state.autopilot);
     els.autopilotBtn.title = state.autopilot ? '正在托管中 · 点一下取消' : '托管：让 AI 替你打牌';
@@ -5487,7 +5517,7 @@
     const btn = els.pgoStart;
     if (!btn.dataset.orig) btn.dataset.orig = btn.innerHTML;
     btn.style.pointerEvents = 'none'; btn.style.opacity = '0.85';
-    const tick = p => { btn.textContent = '下载高手模型 ' + Math.round(p * 100) + '%'; };
+    const tick = p => { btn.textContent = '准备中… ' + Math.round(p * 100) + '%'; };
     tick(_dmcProgress);
     ensureDMC(tick).then(async () => {
       btn.style.pointerEvents = ''; btn.style.opacity = '';
@@ -5498,7 +5528,7 @@
         els.pgo.classList.remove('open');
         startMatch();
       }
-      else { _dmcState = 0; _dmcPromise = null; btn.textContent = '下载失败,点击重试（或改选普通档）'; }   // 不回退假高手：重试或换档
+      else { _dmcState = 0; _dmcPromise = null; btn.textContent = '暂未准备好，点击重试或选择普通'; }   // 不回退假高手：重试或换档
     });
   });
   els.matchAgain.addEventListener('click', () => {
@@ -6085,6 +6115,7 @@
   // 收尾——停时钟、关托管、回 IDLE、重渲、亮起 PGO。不弹确认窗（用户讨厌弹窗）；
   // 旧对局快照留着不清，万一手滑还能靠 resume 救回来，开新局时 startMatch 自会覆盖。
   async function quitToSetup() {
+    roundVisualGeneration++;
     closeBoard();
     resetLocalPause();
     // 联机时「退出本局」= 退房：交给 leaveRoom 正规收尾（发 leave、停轮询、清联机会话、解联机闩、回 PGO）。
@@ -6140,6 +6171,7 @@
     }
     try { window.scrollTo(0, 0); } catch (e) { /* ignore */ }
     adaptHandSize();
+    if(state.revealHands) renderRevealGallery();
   }
   window.addEventListener('resize', gdReflowViewport);
   window.addEventListener('orientationchange', () => { setTimeout(gdReflowViewport, 120); setTimeout(gdReflowViewport, 400); });
@@ -6234,6 +6266,7 @@
   }
 
   function restoreFromSession(snap) {
+    roundVisualGeneration++;
     // 写回 state 数据字段
     if (['easy','normal','hard'].includes(snap.aiLevel)) state.aiLevel = snap.aiLevel;
     state.matchAiLevel = ['easy','normal','hard'].includes(snap.matchAiLevel)
