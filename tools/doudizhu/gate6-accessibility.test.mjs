@@ -28,7 +28,7 @@ test('Gate 6 removes forced orientation and keeps portrait gameplay responsive',
 });
 
 test('Gate 6 exposes persistent navigation, dialog semantics and live state', () => {
-  assert.match(page, /id="ddzExitBtn"[^>]+aria-label="退出斗地主并返回百宝箱"/);
+  assert.match(page, /id="ddzExitBtn"[^>]+aria-label="退出斗地主并返回百宝奇巧"/);
   assert.match(page, /id="ddzTurnAnnounce"[^>]+aria-live="polite"/);
   assert.match(page, /id="ddzA11yLive"[^>]+aria-live="polite"/);
   assert.match(page, /<dialog class="ddz-board-modal" id="ddzBoardModal"[^>]+aria-labelledby=/);
