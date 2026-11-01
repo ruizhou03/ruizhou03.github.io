@@ -12,6 +12,9 @@
  *   pimc     完美信息蒙特卡洛：猜 N 副手牌 × 每个候选牌用 counting 打完，取平均分最高
  *   ismcts   信息集蒙特卡洛树搜索（单观察者 SO-ISMCTS）
  *   mlp      自博弈 DMC 训练出的 Q(s,a) 小网络（权重另行加载）
+ *
+ * 规则开关（r.rules）和亮牌（r.exposed）都在局面里：计分一律走 R.scoreCtx(r)，
+ * 搜索类直接按规则推演；亮牌决策另有 makeExposer（开局前、出第一张牌之前调用）。
  */
 (function (root, factory) {
   const rules = (typeof module === 'object' && module.exports)
@@ -51,8 +54,9 @@
 
   /* 吃下 cards 之后 seat 的分数变化（只看当前已知，含变压器 / 全红修正） */
   function marginal(r, seat, cards) {
-    const before = R.scoreCaptured(r.captured[seat]).total;
-    const after = R.scoreCaptured(r.captured[seat].concat(cards.filter(R.isScoring))).total;
+    const ctx = R.scoreCtx(r);
+    const before = R.scoreCaptured(r.captured[seat], ctx).total;
+    const after = R.scoreCaptured(r.captured[seat].concat(cards.filter(R.isScoring)), ctx).total;
     return after - before;
   }
 
@@ -88,7 +92,7 @@
       return maxBy(rest.length ? rest : legal, rankOf);
     }
 
-    const pts = r.trick.reduce((s, p) => s + R.rawValue(p.card), 0);
+    const pts = r.trick.reduce((s, p) => s + R.rawValue(p.card, r.rules), 0);
     const below = legal.filter((c) => rankOf(c) < t.topRank);
     if (pts > 0) {
       const above = legal.filter((c) => rankOf(c) > t.topRank && c !== PIG);
@@ -129,8 +133,9 @@
       const hearts = legal.filter(isHeart);
       if (hearts.length && !helpMoon) return maxBy(hearts, rankOf);
       if (legal.includes(DOUBLER)) {
-        const theirs = R.scoreCaptured(r.captured[winner].concat(trickCards.filter(R.isScoring))).total;
-        const mine = R.scoreCaptured(r.captured[seat]).total;
+        const sctx = R.scoreCtx(r);
+        const theirs = R.scoreCaptured(r.captured[winner].concat(trickCards.filter(R.isScoring)), sctx).total;
+        const mine = R.scoreCaptured(r.captured[seat], sctx).total;
         if (theirs < 0 || mine < 0) return DOUBLER;
       }
       // 猪还没出：♠A ♠K 是祸根，先扔
@@ -216,7 +221,7 @@
       if (unseenInSuit === 0) pWin = 1;
       // 赢下之后的损失：自己这张 + 别人可能垫进来的
       let loss = 0;
-      if (isHeart(c)) loss += -R.HEART_VALUES[rankOf(c)] + 10;
+      if (isHeart(c)) loss += -R.heartValue(c, r.rules) + 10;
       if (voidOthers > 0 || unseenInSuit < 3) {
         if (unseenSet[PIG]) loss += 100 * (voidOthers > 0 ? 0.6 : 0.2);
         loss += 25 * voidOthers;
@@ -240,11 +245,14 @@
 
   /* ───── 搜索：按公开信息猜别家手牌 ───── */
 
-  /* 把 seat 看不到的牌随机分给另外三家，满足张数与已知断门。返回新局面（自己的手牌不变）。 */
+  /* 把 seat 看不到的牌随机分给另外三家，满足张数与已知断门；别人亮出还没打的牌一定在他手里。
+   * 返回新局面（自己的手牌不变）。 */
   function determinize(r, seat, rng) {
-    const unseen = unseenOf(r, seat);
+    const fixed = [[], [], [], []];
+    for (const [c, o] of r.exposed) if (o !== seat && !r.played[c]) fixed[o].push(c);
+    const unseen = fixed.some((f) => f.length) ? unseenOf(r, seat).filter((c) => R.exposedOwner(r, c) < 0 || r.played[c]) : unseenOf(r, seat);
     const need = [0, 0, 0, 0];
-    for (let s = 0; s < 4; s++) if (s !== seat) need[s] = r.hands[s].length;
+    for (let s = 0; s < 4; s++) if (s !== seat) need[s] = r.hands[s].length - fixed[s].length;
     for (let attempt = 0; attempt < 30; attempt++) {
       const cards = unseen.slice();
       for (let i = cards.length - 1; i > 0; i--) { const j = (rng() * (i + 1)) | 0; const tmp = cards[i]; cards[i] = cards[j]; cards[j] = tmp; }
@@ -265,15 +273,41 @@
       }
       if (!ok) continue;
       const d = R.cloneRound(r);
-      for (let s = 0; s < 4; s++) if (s !== seat) d.hands[s] = hands[s];
+      for (let s = 0; s < 4; s++) if (s !== seat) d.hands[s] = fixed[s].concat(hands[s]);
       return d;
     }
     // 实在凑不出（理论上不会）：忽略断门硬分
     const d = R.cloneRound(r);
     const cards = unseen.slice();
-    for (let s = 0; s < 4; s++) if (s !== seat) d.hands[s] = cards.splice(0, need[s]);
+    for (let s = 0; s < 4; s++) if (s !== seat) d.hands[s] = fixed[s].concat(cards.splice(0, need[s]));
     return d;
   }
+
+  /* ───── 亮牌决策 ─────
+   * 手里每张可亮的牌依次试：猜 samples 副别家手牌，同一副牌用 counting 打两遍（亮 / 不亮，counting 不用随机数，
+   * 两遍只差在亮没亮），比相对分；平均多赚 margin 分以上才亮。前面的人亮了什么已在 r.exposed 里。 */
+  function makeExposer(opts) {
+    const samples = (opts && opts.samples) || 40;
+    const margin = (opts && opts.margin) || 5;
+    return function exposer(r, seat, rng) {
+      if (!r.rules.expose) return [];
+      const mine = R.EXPOSABLE.filter((c) => r.hands[seat].includes(c) && R.exposedOwner(r, c) < 0);
+      const chosen = [];
+      for (const c of mine) {
+        let gain = 0;
+        for (let k = 0; k < samples; k++) {
+          const d0 = determinize(r, seat, rng);
+          const base = d0.exposed.concat(chosen.map((x) => [x, seat]));
+          const yes = R.cloneRound(d0); yes.exposed = base.concat([[c, seat]]);
+          const no = R.cloneRound(d0); no.exposed = base;
+          gain += utility(rollout(yes, countingPolicy, rng), seat, true) - utility(rollout(no, countingPolicy, rng), seat, true);
+        }
+        if (gain / samples > margin) chosen.push(c);
+      }
+      return chosen;
+    };
+  }
+  function neverExpose() { return []; }
 
   function rollout(d, policy, rng) {
     while (!R.isRoundOver(d)) R.playCard(d, d.turn, policy(d, d.turn, rng));
@@ -366,8 +400,13 @@
    *   [236,240)  本墩目前领先者的相对座位（领出时全 0）
    *   [240,292)  这次要出的牌
    *   [292,296)  这张牌：会赢下本墩（就目前而言）/ 是领出 / 垫牌 / 跟牌
+   *   [296,312)  亮出的牌（♥A ♠Q ♦J ♣10）× 亮牌人相对座位
+   *   [312,314)  红桃计分：按牌面 / 经典
+   *   [314,318)  全红时的猪：slam / hearts / manjuan / swap
+   * 老权重只有前 296 维：mlpForward 自动忽略超出输入维度的特征。
    */
-  const FEAT_DIM = 296;
+  const FEAT_DIM = 318;
+  const PIG_MODES = ['slam', 'hearts', 'manjuan', 'swap'];
   const SCORING_LIST = [...Array.from({ length: 13 }, (_, i) => 13 + i), PIG, SHEEP, DOUBLER];
   const SCORING_IDX = new Array(52).fill(-1);
   SCORING_LIST.forEach((c, i) => { SCORING_IDX[c] = i; });
@@ -386,6 +425,9 @@
       for (let su = 0; su < 4; su++) if (r.voids[s][su]) f.push(220 + (d - 1) * 4 + su);
     }
     f.push(232 + r.trick.length);
+    for (const [c, o] of r.exposed) f.push(296 + R.EXPOSABLE.indexOf(c) * 4 + ((o - seat + 4) % 4));
+    f.push(r.rules.hearts === 'classic' ? 313 : 312);
+    f.push(314 + Math.max(0, PIG_MODES.indexOf(r.rules.allHeartsPig)));
     const t = trickState(r);
     if (t) f.push(236 + ((t.topSeat - seat + 4) % 4));
     return { f, t };
@@ -409,7 +451,7 @@
     for (let j = 0; j < h1; j++) {
       let s = b0[j];
       const row = j * inDim;
-      for (let k = 0; k < feats.length; k++) s += W0[row + feats[k]];
+      for (let k = 0; k < feats.length; k++) if (feats[k] < inDim) s += W0[row + feats[k]];
       a1[j] = s > 0 ? s : 0;
     }
     let a = a1;
@@ -493,9 +535,19 @@
   function policyForTier(tier) {
     return tierCache[tier] || (tierCache[tier] = (TIERS[tier] || TIERS.normal)());
   }
+  /* 亮牌：入门不亮；普通 / 高手按模拟比较，高手猜得更多 */
+  const EXPOSERS = {
+    easy: () => neverExpose,
+    normal: () => makeExposer({ samples: 30 }),
+    hard: () => makeExposer({ samples: 300 }),
+  };
+  const exposerCache = {};
+  function exposerForTier(tier) {
+    return exposerCache[tier] || (exposerCache[tier] = (EXPOSERS[tier] || EXPOSERS.normal)());
+  }
 
   return {
-    TIERS, policyForTier,
+    TIERS, policyForTier, EXPOSERS, exposerForTier, makeExposer, neverExpose,
     trickState, unseenOf, marginal, moonThreatOf, determinize, rollout, utility,
     randomPolicy, basicPolicy, countingPolicy, makePimc, makeIsmcts,
     FEAT_DIM, baseFeatures, actionFeatures, mlpForward, makeMlp, loadNet,

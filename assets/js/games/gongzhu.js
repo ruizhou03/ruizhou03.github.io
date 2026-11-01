@@ -8,7 +8,7 @@
   const AI = window.GongzhuAI;
   const STORE_KEY = 'gz.match.v1';
   const SETTINGS_KEY = 'gz.settings.v1';
-  const VERSION = '20261101b';   // 规则改过（红桃按牌面、首手 ♠2），旧存档作废
+  const VERSION = '20261101d';   // 加了规则开关和亮牌，局面结构变了，旧存档作废
 
   const NAMES = ['我', '下家', '对家', '上家'];
   const AVATARS = ['我', '下', '对', '上'];
@@ -40,16 +40,19 @@
   function writeJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (_) { /* 无痕模式等：不存也能玩 */ } }
 
   const settings = Object.assign({ tier: 'normal', turnSec: 20 }, readJSON(SETTINGS_KEY) || {});
+  settings.rules = R.normalizeRules(settings.rules);
 
-  let match = null;     // { totals, roundNo, nextLeader, seed, round, last, over }
+  let match = null;     // { rules, totals, roundNo, pigTaker, seed, round, exposing, last, over }
   let selected = -1;
+  let exposePick = [];  // 亮牌环节里我点选要亮的牌
   let busy = false;     // 动画 / AI 思考中，屏蔽我的操作
   let token = 0;        // 重开时作废旧的定时回调
   let autopilot = false;  // 托管：连续两次超时自动打开，点手牌 / 头像取消
   let timeouts = 0;       // 连续超时次数，我自己出一张就清零
 
   function newMatch() {
-    match = { totals: [0, 0, 0, 0], roundNo: 0, nextLeader: -1, seed: (Math.random() * 2 ** 31) | 0, round: null, last: null, over: false };
+    // 规则在开盘时定下，中途改设置从下一盘起生效
+    match = { rules: R.normalizeRules(settings.rules), totals: [0, 0, 0, 0], roundNo: 0, pigTaker: -1, seed: (Math.random() * 2 ** 31) | 0, round: null, exposing: [], last: null, over: false };
   }
   function save() { writeJSON(STORE_KEY, { v: VERSION, match }); }
 
@@ -93,6 +96,9 @@
     return el;
   }
 
+  /* 亮出的牌：右上角盖一枚朱红小印 */
+  function isExposedCard(c) { const r = match && match.round; return !!r && R.exposedOwner(r, c) >= 0; }
+
   /* ───── 尺寸：只算 --u ───── */
 
   function solveSize() {
@@ -111,14 +117,17 @@
    * 红桃扇放最后，张数再多也只往后长，前面几张的位置不动。
    * 红桃按点数叠成扇形，只露左上角；吃齐 13 张描金边（全红）。 */
 
-  function renderCaps(box, cards, incoming) {
+  function renderCaps(box, cards, incoming, ctx) {
     box.innerHTML = '';
     if (!cards.length) return;
     const hidden = new Set(incoming || []);
-    const sc = R.scoreCaptured(cards);
+    const r = match.round;
+    ctx = ctx || (r ? R.scoreCtx(r) : { rules: match.rules, exposed: [] });
+    const sc = R.scoreCaptured(cards, ctx);
     const mini = (c) => {
       const el = buildCard(c);
       el.classList.add('gz-mini');
+      if (ctx.exposed.includes(c)) el.classList.add('is-exposed');
       if (hidden.has(c)) el.classList.add('incoming');
       return el;
     };
@@ -157,7 +166,7 @@
       el.innerHTML =
         '<div class="gz-who"><span class="gz-avatar">' + AVATARS[s] + CLOCK_SVG + '</span>' +
         '<span class="gz-name-line"><span class="gz-name">' + NAMES[s] + '</span><span class="gz-total gz-num"></span></span></div>' +
-        (s === 0 ? '' : '<span class="gz-backs" aria-hidden="true"></span>') +
+        (s === 0 ? '' : '<div class="gz-hold"><span class="gz-backs" aria-hidden="true"></span><span class="gz-shown"></span></div>') +
         '<div class="gz-caps"></div>';
       el.setAttribute('aria-label', NAMES[s]);
     });
@@ -174,13 +183,36 @@
       const left = r ? r.hands[s].length : 0;
       if (backs.childElementCount !== left) backs.innerHTML = '<span class="gz-back"></span>'.repeat(left);
     }
+    // 别家亮出、还在手里的牌：牌背旁边摊开给大家看
+    const shown = el.querySelector('.gz-shown');
+    if (shown) {
+      const want = r ? r.exposed.filter(([c, o]) => o === s && r.hands[s].includes(c)).map(([c]) => c) : [];
+      const have = [...shown.children].map((x) => +x.dataset.card);
+      if (want.join() !== have.join()) {
+        shown.innerHTML = '';
+        for (const c of want) {
+          const m = buildCard(c);
+          m.classList.add('gz-mini', 'is-exposed');
+          if (!have.includes(c)) m.classList.add('landed');
+          shown.appendChild(m);
+        }
+      }
+    }
     renderCaps(el.querySelector('.gz-caps'), r ? r.captured[s] : [], incoming);
-    el.classList.toggle('is-turn', !!r && !R.isRoundOver(r) && r.turn === s);
+    el.classList.toggle('is-turn', turnSeat() === s);
   }
+
+  /* 现在轮到谁：亮牌环节是正在决定亮不亮的人，打牌时是该出牌的人 */
+  function turnSeat() {
+    const r = match.round;
+    if (!r || R.isRoundOver(r)) return -1;
+    return match.exposing.length ? match.exposing[0] : r.turn;
+  }
+  function exposingMe() { return match.round && match.exposing.length && match.exposing[0] === 0; }
 
   function renderSeats() {
     for (let s = 0; s < 4; s++) renderSeat(s);
-    els.roundNo.textContent = '第 ' + match.roundNo + ' 局';
+    els.roundNo.textContent = '第 ' + match.roundNo + (match.rules.end === 'rounds10' ? ' / 10' : '') + ' 局';
   }
 
   /* plays 缺省为当前墩；一墩刚打完时 r.trick 已清空，传入完成的那一墩继续展示 */
@@ -206,8 +238,10 @@
     if (!r) { els.play.disabled = true; return; }
     const hand = r.hands[0].slice();
     R.sortHand(hand);
-    const myTurn = !R.isRoundOver(r) && r.turn === 0 && !busy;
-    const legal = myTurn ? R.legalFor(r, 0) : hand;
+    const exposing = exposingMe() && !busy;
+    const myTurn = !exposing && !match.exposing.length && !R.isRoundOver(r) && r.turn === 0 && !busy;
+    // 亮牌环节：能亮的那几张亮着，点一下盖印 / 再点取消
+    const legal = exposing ? R.EXPOSABLE.filter((c) => hand.includes(c)) : myTurn ? R.legalFor(r, 0) : hand;
     const u = parseFloat(getComputedStyle(els.app).getPropertyValue('--u')) || 56;
     const W = els.hand.clientWidth;
     const n = hand.length;
@@ -217,7 +251,7 @@
     const step = n > 1 ? Math.min(u * 0.62, (W - u - gaps * gapW) / (n - 1)) : 0;
     const total = u + step * (n - 1) + gaps * gapW;
     let x = Math.max(0, (W - total) / 2);
-    els.hand.classList.toggle('my-turn', myTurn);
+    els.hand.classList.toggle('my-turn', myTurn || exposing);
     // 只剩一张能出（比如开局的 ♠2）就直接替我选好
     if (myTurn && legal.length === 1 && selected < 0) selected = legal[0];
     hand.forEach((c, i) => {
@@ -227,12 +261,15 @@
       el.style.zIndex = String(i + 1);
       el.setAttribute('role', 'option');
       el.setAttribute('aria-label', cardName(c));
-      if (myTurn && !legal.includes(c)) { el.classList.add('is-illegal'); el.setAttribute('aria-disabled', 'true'); }
-      if (c === selected) { el.classList.add('selected'); el.setAttribute('aria-selected', 'true'); }
+      if ((myTurn || exposing) && !legal.includes(c)) { el.classList.add('is-illegal'); el.setAttribute('aria-disabled', 'true'); }
+      if (isExposedCard(c) || (exposing && exposePick.includes(c))) el.classList.add('is-exposed');
+      if (exposing ? exposePick.includes(c) : c === selected) { el.classList.add('selected'); el.setAttribute('aria-selected', 'true'); }
       el.addEventListener('click', () => onCardTap(c, el));
       els.hand.appendChild(el);
       x += step;
     });
+    if (exposing) { els.play.disabled = false; els.play.textContent = exposePick.length ? '亮牌' : '不亮'; return; }
+    els.play.textContent = '出牌';
     els.play.disabled = !(myTurn && selected >= 0 && legal.includes(selected));
   }
 
@@ -244,10 +281,14 @@
     match.roundNo++;
     const rng = R.makeRng((match.seed + match.roundNo * 7919) >>> 0);
     const hands = R.deal(rng);
-    const first = match.nextLeader < 0;
-    const leader = first ? R.firstLeader(hands) : match.nextLeader;
-    match.round = R.createRound(hands, leader, first ? R.SPADE_TWO : -1);
+    const st = R.roundStart(match.rules, hands, match.roundNo === 1, match.pigTaker);
+    match.round = R.createRound(hands, st.leader, st.mustLead, match.rules);
+    // 亮牌：从先出的人起依次决定；手里没有可亮牌的人直接跳过
+    match.exposing = match.rules.expose
+      ? [0, 1, 2, 3].map((d) => (st.leader + d) % 4).filter((s) => R.EXPOSABLE.some((c) => hands[s].includes(c)))
+      : [];
     selected = -1;
+    exposePick = [];
     save();
     renderAll();
     schedule(step, 450);
@@ -262,6 +303,7 @@
     const r = match.round;
     if (!r) return;
     if (R.isRoundOver(r)) { schedule(finishRound, PACE.roundEnd); return; }
+    if (match.exposing.length) { exposeStep(); return; }
     renderSeats();
     if (r.turn === 0 && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyTimeout); return; }
     busy = true;
@@ -273,6 +315,46 @@
       const wait = Math.max(0, PACE.aiMin - (performance.now() - started));
       schedule(() => commit(seat, card), wait);
     });
+  }
+
+  /* ───── 亮牌环节 ───── */
+
+  function exposeStep() {
+    const r = match.round;
+    const seat = match.exposing[0];
+    renderSeats();
+    if (seat === 0 && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyExposeTimeout); return; }
+    busy = true;
+    renderHand();
+    const started = performance.now();
+    if (seat !== 0) startClock(seat, null);
+    chooseExpose(r, seat, seat === 0 ? takeoverTier(botTiers()) : seatTier(seat)).then((cards) => {
+      const wait = Math.max(0, PACE.aiMin - (performance.now() - started));
+      schedule(() => applyExpose(seat, cards), wait);
+    });
+  }
+
+  function applyExpose(seat, cards) {
+    const r = match.round;
+    stopClock();
+    for (const c of cards) R.expose(r, seat, c);
+    match.exposing.shift();
+    exposePick = [];
+    busy = true;
+    renderSeat(seat);
+    renderHand();
+    save();
+    schedule(step, cards.length ? 520 : 120);
+  }
+
+  function onMyExposeTimeout() {
+    if (!exposingMe() || busy) return;
+    timeouts++;
+    if (timeouts >= 2) setAutopilot(true);
+    busy = true;
+    exposePick = [];
+    renderHand();
+    chooseExpose(match.round, 0, takeoverTier(botTiers())).then((cards) => schedule(() => applyExpose(0, cards), 0));
   }
 
   function commit(seat, card) {
@@ -394,7 +476,7 @@
 
   function onMyTimeout() {
     const r = match.round;
-    if (!r || R.isRoundOver(r) || r.turn !== 0 || busy) return;
+    if (!r || turnSeat() !== 0 || busy) return;
     timeouts++;
     if (timeouts >= 2) setAutopilot(true);
     busy = true;
@@ -411,26 +493,41 @@
     els.seats[0].setAttribute('aria-label', NAMES[0] + (on ? '（托管中，点手牌收回）' : ''));
     const r = match && match.round;
     // 收回托管时正轮到我、机器人还没动手：直接把这一手交还给我
-    if (!on && r && !R.isRoundOver(r) && r.turn === 0 && !busy) { stopClock(); step(); }
+    if (!on && r && turnSeat() === 0 && !busy) { stopClock(); step(); }
   }
 
   function onCardTap(c, el) {
     if (autopilot) { setAutopilot(false); return; }
-    const r = match.round;
-    if (busy || !r || R.isRoundOver(r) || r.turn !== 0) return;
-    if (!R.legalFor(r, 0).includes(c)) {
-      // 不能出：抖一下，亮着的那些就是能出的
-      el.classList.remove('nope');
-      void el.offsetWidth;
-      el.classList.add('nope');
+    if (exposingMe()) {
+      if (busy) return;
+      if (!R.EXPOSABLE.includes(c)) { shake(el); return; }
+      exposePick = exposePick.includes(c) ? exposePick.filter((x) => x !== c) : exposePick.concat([c]);
+      renderHand();
       return;
     }
+    const r = match.round;
+    if (busy || !r || R.isRoundOver(r) || r.turn !== 0) return;
+    if (!R.legalFor(r, 0).includes(c)) { shake(el); return; }
     if (selected === c) { playSelected(); return; }
     selected = c;
     renderHand();
   }
 
+  // 不能出：抖一下，亮着的那些就是能出的
+  function shake(el) {
+    el.classList.remove('nope');
+    void el.offsetWidth;
+    el.classList.add('nope');
+  }
+
   function playSelected() {
+    if (exposingMe()) {
+      if (busy) return;
+      busy = true;
+      timeouts = 0;
+      applyExpose(0, exposePick.slice());
+      return;
+    }
     const r = match.round;
     if (busy || !r || r.turn !== 0 || selected < 0) return;
     if (!R.legalFor(r, 0).includes(selected)) return;
@@ -443,10 +540,10 @@
     const r = match.round;
     const scores = R.roundScores(r);
     for (let s = 0; s < 4; s++) match.totals[s] += scores[s];
-    match.nextLeader = r.pigTaker;
-    match.last = { roundNo: match.roundNo, captured: r.captured.map((c) => c.slice()), scores };
+    match.pigTaker = r.pigTaker;
+    match.last = { roundNo: match.roundNo, captured: r.captured.map((c) => c.slice()), scores, ctx: R.scoreCtx(r) };
     match.round = null;
-    match.over = R.isMatchOver(match.totals);
+    match.over = R.isMatchOver(match.totals, match.rules, match.roundNo);
     save();
     renderAll();
     showSettlement();
@@ -461,8 +558,8 @@
     if (worker) return worker;
     try {
       worker = new Worker('/assets/js/games/gongzhu-ai-worker.js?v=' + (window.GZ_BUILD || VERSION));
-      worker.onmessage = (e) => { const p = pending.get(e.data.id); if (p) { pending.delete(e.data.id); p(e.data.card); } };
-      worker.onerror = () => { workerOk = false; worker = null; for (const [, p] of pending) p(-1); pending.clear(); };
+      worker.onmessage = (e) => { const p = pending.get(e.data.id); if (p) { pending.delete(e.data.id); p(e.data); } };
+      worker.onerror = () => { workerOk = false; worker = null; for (const [, p] of pending) p({}); pending.clear(); };
     } catch (_) { workerOk = false; worker = null; }
     return worker;
   }
@@ -474,8 +571,21 @@
     if (!w) return Promise.resolve(chooseLocal(r, seat, tier));
     return new Promise((resolve) => {
       const id = ++reqId;
-      pending.set(id, (card) => resolve(card >= 0 && R.legalFor(r, seat).includes(card) ? card : chooseLocal(r, seat, tier)));
+      pending.set(id, ({ card }) => resolve(card >= 0 && R.legalFor(r, seat).includes(card) ? card : chooseLocal(r, seat, tier)));
       w.postMessage({ id, round: r, seat, tier, seed: (Math.random() * 2 ** 31) | 0 });
+    });
+  }
+  function exposeLocal(r, seat, tier) {
+    return AI.exposerForTier(tier)(r, seat, R.makeRng((Math.random() * 2 ** 31) | 0));
+  }
+  function chooseExpose(r, seat, tier) {
+    const ok = (cards) => Array.isArray(cards) && cards.every((c) => R.EXPOSABLE.includes(c) && r.hands[seat].includes(c));
+    const w = getWorker();
+    if (!w) return Promise.resolve(exposeLocal(r, seat, tier));
+    return new Promise((resolve) => {
+      const id = ++reqId;
+      pending.set(id, ({ cards }) => resolve(ok(cards) ? cards : exposeLocal(r, seat, tier)));
+      w.postMessage({ id, kind: 'expose', round: r, seat, tier, seed: (Math.random() * 2 ** 31) | 0 });
     });
   }
 
@@ -494,15 +604,17 @@
   /* 结算：每家一行 = 名字 · 吃牌（同一套小牌陈列） · 本局 · 累计；不写算式文字 */
   function showSettlement() {
     const last = match.last;
-    const loser = match.over ? R.matchLoser(match.totals) : -1;
+    const losers = match.over ? R.matchLosers(match.totals) : [];
     const cls = (n) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
     const rows = [0, 1, 2, 3].map((s) =>
-      '<div class="gz-res-row' + (s === 0 ? ' me' : '') + (s === loser ? ' loser' : '') + '" data-seat="' + s + '">' +
-      '<span class="gz-res-name">' + NAMES[s] + (s === loser ? '<span class="gz-pig-badge">猪</span>' : '') + '</span>' +
+      '<div class="gz-res-row' + (s === 0 ? ' me' : '') + (losers.includes(s) ? ' loser' : '') + '" data-seat="' + s + '">' +
+      '<span class="gz-res-name">' + NAMES[s] + (losers.includes(s) ? '<span class="gz-pig-badge">猪</span>' : '') + '</span>' +
       '<span class="gz-res-caps gz-caps"></span>' +
       '<span class="gz-res-n gz-num ' + cls(last.scores[s]) + '">' + signed(last.scores[s]) + '</span>' +
       '<span class="gz-res-n gz-res-tot gz-num ' + cls(match.totals[s]) + '">' + signed(match.totals[s]) + '</span></div>').join('');
-    const title = match.over ? (loser === 0 ? '你当了猪' : NAMES[loser] + '当了猪') : '第 ' + last.roundNo + ' 局';
+    const title = match.over
+      ? losers.map((s) => (s === 0 ? '你' : NAMES[s])).join('、') + (losers.length > 1 ? '都' : '') + '当了猪'
+      : '第 ' + last.roundNo + ' 局';
     openDialog(
       '<h2>' + title + '</h2>' +
       '<div class="gz-res"><div class="gz-res-row gz-res-head"><span></span><span></span><span class="gz-res-n">本局</span><span class="gz-res-n">累计</span></div>' + rows + '</div>' +
@@ -513,7 +625,7 @@
       (d) => {
         d.querySelectorAll('.gz-res-row[data-seat]').forEach((row) => {
           const box = row.querySelector('.gz-res-caps');
-          renderCaps(box, last.captured[+row.dataset.seat]);
+          renderCaps(box, last.captured[+row.dataset.seat], null, last.ctx);
           const sc = box.querySelector('.gz-cap-score');
           if (sc) sc.remove();
         });
@@ -536,17 +648,50 @@
       (d) => d.querySelector('[data-close]').addEventListener('click', closeDialog));
   }
 
-  function showRules() {
-    openDialog(
-      '<h2>拱猪规则</h2><dl class="gz-rules">' +
-      '<dt>出牌</dt><dd>四人各 13 张。第一局有 ♠2 的人先出，第一张必须打 ♠2；之后由上局吃到猪的人先出。有领出的花色就必须跟，没有可以垫任意一张。领出花色里最大的牌吃下这一墩，下一墩由他先出。</dd>' +
-      '<dt>分牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。红桃按牌面扣分：2 到 10 扣对应点数，J −11、Q −12、K −13，A 只扣 1 分。</dd>' +
+  /* 规则说明跟着本盘的规则开关走 */
+  function rulesHtml(rules) {
+    const lead = rules.leader === 'spade2'
+      ? '每局都由有 ♠2 的人先出' + (rules.spadeTwoFirst ? '，第一张必须打 ♠2' : '') + '。'
+      : '第一局有 ♠2 的人先出' + (rules.spadeTwoFirst ? '，第一张必须打 ♠2' : '') + '；之后由上局吃到猪的人先出，领什么都行。';
+    const hearts = rules.hearts === 'classic'
+      ? '红桃 A −50、K −40、Q −30、J −20，10 到 5 各 −10，4、3、2 记 0 分（但也算分牌）。'
+      : '红桃按牌面扣分：2 到 10 扣对应点数，J −11、Q −12、K −13，A 只扣 1 分。';
+    const pigLine = {
+      slam: '猪羊照常；红桃、猪、羊、变压器全吃齐是大满贯，猪也变正，共 +800。',
+      hearts: '这时谁吃了猪，猪也变 +100；全吃齐是大满贯，共 +800。',
+      manjuan: '红桃、猪、羊都吃齐（猪羊满圈），猪也变 +100；再加变压器是大满贯，共 +800。',
+      swap: '这一局所有人的猪羊互换：吃猪 +100、吃羊 −100（猪羊变色）；全吃齐的大满贯不换，共 +800。',
+    }[rules.allHeartsPig];
+    const end = {
+      lose1000: '有人累计到 −1000，这一盘结束。',
+      pm1000: '有人累计到 −1000 或 +1000，这一盘结束。',
+      rounds10: '打满 10 局，这一盘结束。',
+      none: '不设终点，一直累计下去。',
+    }[rules.end];
+    return '<dl class="gz-rules">' +
+      '<dt>出牌</dt><dd>四人各 13 张。' + lead + '有领出的花色就必须跟，没有可以垫任意一张。领出花色里最大的牌吃下这一墩，下一墩由他先出。</dd>' +
+      '<dt>分牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。' + hearts + '</dd>' +
       '<dt>变压器 ♣10</dt><dd>吃到它，你这一局的分数（不论正负）翻倍；只吃到它一张、别的分牌都没吃到，算 +50。</dd>' +
-      '<dt>全红</dt><dd>一个人吃齐 13 张红桃，红桃改记 +200。再吃齐猪、羊、变压器就是大满贯，猪也变正，共 +800。</dd>' +
-      '<dt>一盘</dt><dd>有人累计到 −1000 分，这一盘结束，他就是猪。</dd>' +
-      '</dl><div class="gz-actions"><button type="button" class="gz-btn" data-close data-autofocus>知道了</button></div>',
+      '<dt>全红</dt><dd>一个人吃齐 13 张红桃，红桃改记 +200。' + pigLine + '</dd>' +
+      (rules.expose ? '<dt>亮牌</dt><dd>开打前，♥A、♠Q、♦J、♣10 可以亮给大家看，效果翻倍：亮 ♥A 红桃全部 ×2，亮猪 −200，亮羊 +200，亮变压器 ×4（单吃 +100）。亮出的牌在这门第一次被领出的那一墩里不能出，也不能拿它领这门，除非这门只剩它一张；垫牌不受限。</dd>' : '') +
+      '<dt>一盘</dt><dd>' + end + '分最低的人当猪，并列都是。</dd></dl>';
+  }
+
+  function showRules() {
+    openDialog('<h2>拱猪规则</h2>' + rulesHtml(match.rules) +
+      '<div class="gz-actions"><button type="button" class="gz-btn" data-close data-autofocus>知道了</button></div>',
       (d) => d.querySelector('[data-close]').addEventListener('click', closeDialog));
   }
+
+  /* 设置里的规则开关：[键, 标题, [[值, 选项文字], ...]] */
+  const RULE_UI = [
+    ['spadeTwoFirst', '♠2 先出时', [[true, '第一张必须 ♠2'], [false, '随便出']]],
+    ['leader', '每局谁先出', [['spade2', '有 ♠2 的人'], ['pig', '上局吃猪的人']]],
+    ['hearts', '红桃计分', [['face', '按牌面'], ['classic', '经典 A −50']]],
+    ['allHeartsPig', '全红时的猪', [['slam', '大满贯才变正'], ['hearts', '全红就变正'], ['manjuan', '猪羊满圈'], ['swap', '猪羊变色']]],
+    ['expose', '亮牌', [[true, '可以亮'], [false, '不亮']]],
+    ['end', '一盘结束', [['lose1000', '有人到 −1000'], ['pm1000', '有人到 ±1000'], ['rounds10', '打满 10 局'], ['none', '不设终点']]],
+  ];
 
   function showSettings() {
     const seg = Object.keys(TIER_LABELS).map((k) => '<button type="button" data-tier="' + k + '" aria-pressed="' + (settings.tier === k) + '">' + TIER_LABELS[k] + '</button>').join('');
@@ -554,6 +699,11 @@
     openDialog(
       '<h2>设置</h2><div class="gz-field-label">AI 水平</div><div class="gz-seg" role="group">' + seg + '</div>' +
       '<div class="gz-field-label">出牌限时</div><div class="gz-seg" role="group">' + secs + '</div>' +
+      '<h3 class="gz-sub">规则</h3>' +
+      RULE_UI.map(([k, label, opts]) => '<div class="gz-field-label">' + label + '</div><div class="gz-seg' + (opts.length > 2 ? ' is-4' : '') + '" role="group">' +
+        opts.map(([v, t]) => '<button type="button" data-rule="' + k + '" data-val="' + v + '" aria-pressed="' + (settings.rules[k] === v) + '">' + t + '</button>').join('') +
+        '</div>').join('') +
+      '<p class="gz-note" data-rule-note hidden>规则改动从下一盘起生效。</p>' +
       '<div class="gz-actions"><button type="button" class="gz-btn" data-act="restart">重开一盘</button>' +
       '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
       (d) => {
@@ -569,6 +719,20 @@
           // 改了限时：当前这一手按新设置重新计
           if (clock.seat >= 0) { const seat = clock.seat, f = clock.onTimeout; startClock(seat, f); }
         }));
+        const syncNote = () => {
+          const differs = JSON.stringify(settings.rules) !== JSON.stringify(match.rules);
+          d.querySelector('[data-rule-note]').hidden = !differs;
+          d.querySelector('[data-act="restart"]').classList.toggle('gz-btn-primary', differs);
+        };
+        d.querySelectorAll('[data-rule]').forEach((b) => b.addEventListener('click', () => {
+          const k = b.dataset.rule;
+          const opt = RULE_UI.find((x) => x[0] === k)[2].find(([v]) => String(v) === b.dataset.val);
+          settings.rules = R.normalizeRules(Object.assign({}, settings.rules, { [k]: opt[0] }));
+          writeJSON(SETTINGS_KEY, settings);
+          d.querySelectorAll('[data-rule="' + k + '"]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          syncNote();
+        }));
+        syncNote();
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
         d.querySelector('[data-act="restart"]').addEventListener('click', () => {
           if (!confirm('放弃这一盘，从 0 分重新开始？')) return;

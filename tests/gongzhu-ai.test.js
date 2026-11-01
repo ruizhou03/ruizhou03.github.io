@@ -61,3 +61,51 @@ test('counting dumps the pig under a higher spade', () => {
   R.playCard(r, 2, 2);
   assert.equal(AI.countingPolicy(r, 3), R.PIG);
 });
+
+test('determinize keeps exposed cards with their owners', () => {
+  const rng = R.makeRng(11);
+  for (let g = 0; g < 50; g++) {
+    const hands = R.deal(rng);
+    const r = R.createRound(hands, R.firstLeader(hands), -1);
+    for (const c of R.EXPOSABLE) R.expose(r, hands.findIndex((h) => h.includes(c)), c);
+    const viewer = g % 4;
+    const d = AI.determinize(r, viewer, rng);
+    for (const [c, o] of r.exposed) assert.ok(d.hands[o].includes(c));
+    d.hands.forEach((h, s) => assert.equal(h.length, hands[s].length));
+    assert.equal(new Set(d.hands.flat()).size, 52);
+  }
+});
+
+test('exposers return only exposable cards from the own hand, and nothing when disabled', () => {
+  const rng = R.makeRng(12);
+  for (let g = 0; g < 10; g++) {
+    const hands = R.deal(rng);
+    const r = R.createRound(hands, R.firstLeader(hands), R.SPADE_TWO);
+    for (let s = 0; s < 4; s++) {
+      for (const tier of ['easy', 'normal', 'hard']) {
+        const e = AI.exposerForTier(tier)(r, s, rng);
+        for (const c of e) assert.ok(R.EXPOSABLE.includes(c) && hands[s].includes(c));
+      }
+    }
+    const off = R.createRound(hands, 0, -1, { expose: false });
+    assert.deepEqual(AI.exposerForTier('hard')(off, 0, rng), []);
+  }
+});
+
+test('all tiers play legal cards with exposures and other rules', () => {
+  const rng = R.makeRng(13);
+  const rulesList = [{ hearts: 'classic', allHeartsPig: 'swap' }, { leader: 'pig', allHeartsPig: 'manjuan' }];
+  for (const rules of rulesList) {
+    const hands = R.deal(rng);
+    const r = R.createRound(hands, R.firstLeader(hands), R.SPADE_TWO, rules);
+    for (const c of R.EXPOSABLE) R.expose(r, hands.findIndex((h) => h.includes(c)), c);
+    const tiers = ['easy', 'normal', 'hard', 'normal'];
+    while (!R.isRoundOver(r)) {
+      const s = r.turn;
+      const pol = s === 2 ? AI.makeIsmcts({ iterations: 200 }) : AI.policyForTier(tiers[s]);
+      const c = pol(r, s, rng);
+      assert.ok(R.legalFor(r, s).includes(c));
+      R.playCard(r, s, c);
+    }
+  }
+});

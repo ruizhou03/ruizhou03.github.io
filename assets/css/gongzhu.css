@@ -161,6 +161,19 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-caps .landed { animation: gz-land 0.32s ease-out; }
 @keyframes gz-land { 0% { transform: scale(1.25); } 100% { transform: none; } }
 
+/* 亮出的牌：左下角一枚朱红小印（手牌、红桃扇都叠着放，只有左边露在外面）。手牌上写「亮」，小牌上只留印色 */
+.gz-card.is-exposed::after {
+  content: '亮'; position: absolute; bottom: calc(var(--q) * 0.07); left: calc(var(--q) * 0.07);
+  width: calc(var(--q) * 0.3); height: calc(var(--q) * 0.3); border-radius: 3px;
+  background: var(--gz-seal); color: var(--gz-seal-ink);
+  font-size: calc(var(--q) * 0.2); line-height: calc(var(--q) * 0.3); text-align: center; font-weight: 700;
+}
+.gz-mini.is-exposed::after { content: ''; width: calc(var(--q) * 0.24); height: calc(var(--q) * 0.24); border-radius: 50%; }
+/* 别家亮出、还没打的牌：摊在牌背旁边 */
+.gz-hold { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 6px; max-width: 100%; }
+.gz-shown { display: flex; gap: 3px; }
+.gz-shown:empty { display: none; }
+
 /* 对手手牌背面小扇 */
 .gz-backs { display: flex; height: 20px; }
 .gz-back {
@@ -326,6 +339,12 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-seg button + button { border-left: 1px solid var(--gz-ink); }
 .gz-seg button[aria-pressed="true"] { background: var(--gz-ink); color: var(--gz-paper); }
 .gz-field-label { font-size: 13px; color: var(--gz-ink-mute); }
+.gz-seg.is-4 { flex-wrap: wrap; }
+.gz-seg.is-4 button { flex: 1 1 50%; }
+.gz-seg.is-4 button:nth-child(3) { border-left: 0; }
+.gz-seg.is-4 button:nth-child(n+3) { border-top: 1px solid var(--gz-ink); }
+.gz-sub { margin: 18px 0 8px; padding-top: 12px; border-top: 1px solid rgba(29, 27, 24, 0.18); font-size: 15px; letter-spacing: 0.06em; }
+.gz-note { color: var(--gz-ink-mute); font-size: 13px !important; }
 .gz-rules dt { font-weight: 700; margin-top: 8px; font-size: 14px; }
 .gz-rules dd { margin: 2px 0 0; font-size: 14px; line-height: 1.7; }
 
