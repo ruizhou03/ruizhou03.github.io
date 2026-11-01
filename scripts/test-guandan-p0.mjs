@@ -37,7 +37,7 @@ assert.doesNotMatch(css, /prefers-color-scheme:\s*dark/,
   '规格 1.8：牌桌固定为墨园宣纸色，本期不做独立深色配色');
 assert.match(css, /--gd-paper:\s*#f3eee3[\s\S]*--gd-seal:\s*#b4392c/,
   '规格 1.8：必须定义墨园宣纸配色令牌');
-assert.match(html, /guandan\.min\.js\?v=20261031ui14/, '生产页面应使用当前压缩内容标记，避免旧 JS 缓存');
+assert.match(html, /guandan\.min\.js\?v=20261031ui15/, '生产页面应使用当前压缩内容标记，避免旧 JS 缓存');
 assert.match(html, /data-value="off"[^>]*class="[^"]*selected|class="[^"]*selected"[^>]*data-value="off"/,
   '同队进贡 UI 默认应关闭');
 

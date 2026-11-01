@@ -164,8 +164,6 @@
   let voiceBuffer = null;
   let voiceLoading = null;
   let voiceNodes = [];
-  let voiceEndAt = 0;        // 已排上的语音最晚播到哪一刻（AudioContext 时间）
-  let priorityUntil = 0;     // 排队播的提醒（报牌、头游）播完前，普通报牌让路
   function loadVoice() {
     if (voiceBuffer || voiceLoading) return voiceLoading;
     const audio = ensureContext();
@@ -177,8 +175,22 @@
       .catch(() => { voiceLoading = null; return null; });
     return voiceLoading;
   }
-  // voice(id)：普通报牌，打断上一条立刻播；voice(id, { queue: true })：提醒类，接在正在播的那条后面，
-  // 播完之前来的普通报牌直接跳过（牌面上看得到），免得一句「我就剩五张牌了」被下一家的「过」截断。
+  // voice(id)：普通报牌，立刻以正常音量播；还没播完的上一条不硬切，而是渐弱让位，听起来两句交错。
+  // voice(id, { queue: true })：提醒类（剩几张、头游），接在正在播的那条后面；被新报牌盖过时渐弱得慢，
+  // 让「我就剩五张牌了」的前半句还听得清。
+  const FADE_CALL = 0.25;      // 普通报牌让位：线性渐弱到无声（秒）
+  const FADE_REMIND = 1.2;     // 提醒让位
+  function fadeOut(entry, now) {
+    if (entry.at > now) return;               // 还没开播的提醒照常排着
+    const end = Math.min(entry.end, now + (entry.remind ? FADE_REMIND : FADE_CALL));
+    const g = entry.gain.gain;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    g.linearRampToValueAtTime(0, end);
+    entry.end = end;
+    try { entry.src.stop(end); } catch (_) {}
+  }
+  const lastVoiceEnd = now => voiceNodes.reduce((m, e) => Math.max(m, e.end), now);
   function voice(id, opts) {
     if (!prefs.voice || !id || !VOICE_MAP[id]) return;
     const audio = ensureContext();
@@ -187,22 +199,20 @@
     const [start, dur] = VOICE_MAP[id];
     const now = audio.currentTime;
     const queue = !!(opts && opts.queue);
-    if (!queue && now < priorityUntil) return;
-    if (!queue) {
-      for (const n of voiceNodes) { try { n.stop(); } catch (_) {} }
-      voiceNodes = [];
-    }
-    const at = queue ? Math.max(now, voiceEndAt) : now;
+    if (!queue) voiceNodes.forEach(e => fadeOut(e, now));
+    const at = queue ? lastVoiceEnd(now) : now;
     const src = audio.createBufferSource();
+    const gain = audio.createGain();
     src.buffer = voiceBuffer;
-    src.connect(bus.voice);
+    src.connect(gain);
+    gain.connect(bus.voice);
     // +0.08 s：mp3 编码器前置延迟可能让整段后移几十毫秒，多留一点免得切掉尾音（条间有 0.15 s 静音）
     src.start(at, start, dur + 0.08);
-    src.onended = () => { voiceNodes = voiceNodes.filter(n => n !== src); };
-    voiceNodes.push(src);
-    voiceEndAt = at + dur + 0.08;
-    if (queue) priorityUntil = voiceEndAt;
-    duckMusic(voiceEndAt - now);
+    const end = at + dur + 0.08;
+    const entry = { src, gain, at, end, remind: queue };
+    src.onended = () => { voiceNodes = voiceNodes.filter(e => e !== entry); try { gain.disconnect(); } catch (_) {} };
+    voiceNodes.push(entry);
+    duckMusic(lastVoiceEnd(now) - now);
   }
 
   // ---------- 背景音乐：五声音阶拨弦，随机慢行 ----------

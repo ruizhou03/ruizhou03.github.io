@@ -2,7 +2,7 @@
   'use strict';
 
   const contract = {
-    releaseMarker: '20261031ui14',
+    releaseMarker: '20261031ui15',
     build: '2026.08.01.phase7-j',
     apiUrl: 'https://zircon-urge.fly.dev/api/guandan',
     rulesVersion: 'gd-huaian-2025-site-v1',
