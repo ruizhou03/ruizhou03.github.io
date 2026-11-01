@@ -711,45 +711,8 @@
   }
   .gd-spectate-note { display: none !important; }
   /* 接风：中央横排大字 + 风筝图标 + 副标题（替代以前的 toast） */
-  .gd-jiefeng-banner {
-    display: flex; align-items: center; gap: 0.5rem;
-    font-size: 2rem; font-weight: 800;
-    color: #fff;
-    text-shadow:
-      0 0 8px rgba(120, 180, 240, 0.85),
-      0 0 24px rgba(60, 130, 210, 0.85),
-      0 4px 10px rgba(0, 0, 0, 0.55);
-    letter-spacing: 0.12em;
-    white-space: nowrap;
-  }
-  .gd-jiefeng-banner .gd-jiefeng-icon {
-    font-size: 2.2rem;
-    filter: drop-shadow(0 2px 4px rgba(60, 130, 210, 0.6));
-    animation: gd-jiefeng-icon-rise 1.5s ease-out;
-  }
-  .gd-jiefeng-banner .gd-jiefeng-text {
-    /* 加深金色渐变，并配一圈深色描边阴影 —— 原来浅金落在暖奶油牌桌上对比太低、看不清，
-       现在金字本身更沉、外加深色描边，在任何底上都清楚。 */
-    background: linear-gradient(135deg, #f6d987, #dca221, #9a6c10);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: none;   /* 盖掉父级蓝光，避免与深色描边糊在一起 */
-    filter:
-      drop-shadow(0 0 1px rgba(35, 25, 5, 0.95))
-      drop-shadow(0 2px 4px rgba(20, 25, 45, 0.7));
-  }
-  .gd-jiefeng-banner .gd-jiefeng-sub {
-    font-size: 0.85rem; letter-spacing: 0.06em;
-    color: #fff5d4; font-weight: 600;
-    opacity: 0.92;
-  }
-  @keyframes gd-jiefeng-icon-rise {
-    0%   { transform: translateY(8px) rotate(-15deg); opacity: 0; }
-    30%  { transform: translateY(-4px) rotate(8deg); opacity: 1; }
-    60%  { transform: translateY(0) rotate(-3deg); }
-    100% { transform: translateY(0) rotate(0deg); }
-  }
-  /* 头像金光闪一下：接风的发起方/接收方各一次 */
+  /* 接风横幅沿用中央横幅样式（墨字），图标与字同高 */
+  .gd-jiefeng-banner .gd-fx-icon { display: inline-flex; }
   .gd-avatar.gd-jiefeng-flash {
     animation: gd-jiefeng-flash 1.3s ease-out;
   }
@@ -1733,41 +1696,57 @@
     100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
   }
 
-  /* ======== 大字"不要"浮窗（替代以前的虚线 tag）========
-     仿欢乐斗地主：玩家弃出时不画小角标，而是在出牌位置浮一行大字，
-     0.9 秒后稳态停留为更小的标签。 */
+  /* ======== 「不出」（规格 3.1 通道 A）：小号浅底胶囊，比牌弱；左右两家贴近各自头像 ======== */
   .gd-pass-big {
-    font-family: var(--font-display);
-    font-size: 1.45rem;
-    font-weight: 800;
-    color: var(--gd-suit-red);
-    letter-spacing: 0.1em;
-    text-shadow: 0 1px 0 #fff5d4, 0 2px 8px rgba(139,46,46,0.32);
-    padding: 0.15rem 0.85rem;
-    animation: gd-pass-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gd-ink-mute);
+    background: var(--gd-wash);
+    border: 1px solid var(--gd-frame-2);
+    border-radius: 999px;
+    letter-spacing: 0.12em;
+    padding: 0.12rem 0.75rem;
+    animation: gd-pass-in 0.25s ease-out;
     white-space: nowrap;
   }
-  @keyframes gd-pass-pop {
-    0%   { opacity: 0; transform: scale(0.4) rotate(-8deg); }
-    60%  { opacity: 1; transform: scale(1.15) rotate(2deg); }
-    100% { opacity: 1; transform: scale(1) rotate(0deg); }
-  }
+  .gd-side-left .gd-pass-big { align-self: flex-start; }
+  .gd-side-right .gd-pass-big { align-self: flex-end; }
+  @keyframes gd-pass-in { from { opacity: 0; } to { opacity: 1; } }
 
-  /* ======== 炸弹/同花顺/天王炸：起牌区红闪 + 整桌震屏 + 顶上大字 ======== */
-  .gd-played.fx-bomb {
-    background: radial-gradient(ellipse at center, rgba(200,40,40,0.28) 0%, transparent 70%);
-    animation: gd-shake 0.5s, gd-bomb-flash 0.7s ease-out;
+  /* ======== 要压的这一手（规格 3.1 通道 B）========
+     当前最大那手：朱砂描边；同一墩里已被压过的旧牌：半透明。 */
+  .gd-played.is-best { overflow: visible; }
+  .gd-played.is-best .gd-played-row {
+    outline: 2px solid var(--gd-seal); outline-offset: 3px; border-radius: 5px;
+  }
+  .gd-played.is-stale .gd-played-row { opacity: 0.5; }
+
+  /* ======== 炸弹分档（规格 3.3）：出牌区闪 + 整桌震 + 闪屏，力度随档位单调加强 ======== */
+  .gd-played.fx-bomb,
+  .gd-played.fx-bomb-2,
+  .gd-played.fx-bomb-3 {
+    background: radial-gradient(ellipse at center, rgba(180,57,44,0.22) 0%, transparent 70%);
     border-radius: 8px;
   }
-  .gd-played.fx-strflush {
-    background: radial-gradient(ellipse at center, rgba(245,178,80,0.32) 0%, transparent 70%);
-    animation: gd-shake 0.45s, gd-bomb-flash 0.7s ease-out;
-    border-radius: 8px;
-  }
+  .gd-played.fx-bomb   { animation: gd-bomb-flash 0.7s ease-out; }
+  .gd-played.fx-bomb-2 { animation: gd-bomb-flash 0.6s ease-out 2; }
+  .gd-played.fx-bomb-3 { animation: gd-bomb-flash 0.5s ease-out 3; }
+  .gd-played.fx-strflush,
   .gd-played.fx-jokerbomb {
-    background: radial-gradient(ellipse at center, rgba(255,225,140,0.55) 0%, rgba(245,178,80,0.30) 40%, transparent 80%);
-    animation: gd-shake-strong 0.8s, gd-bomb-flash 1.1s ease-out;
+    background: radial-gradient(ellipse at center, rgba(154,107,22,0.26) 0%, transparent 72%);
     border-radius: 8px;
+    animation: gd-gold-flash 0.7s ease-out 2;
+  }
+  @keyframes gd-bomb-flash {
+    0%   { box-shadow: inset 0 0 0 rgba(180,57,44,0); }
+    50%  { box-shadow: inset 0 0 28px rgba(180,57,44,0.5); }
+    100% { box-shadow: inset 0 0 0 rgba(180,57,44,0); }
+  }
+  @keyframes gd-gold-flash {
+    0%   { box-shadow: inset 0 0 0 rgba(154,107,22,0); }
+    50%  { box-shadow: inset 0 0 30px rgba(154,107,22,0.55); }
+    100% { box-shadow: inset 0 0 0 rgba(154,107,22,0); }
   }
   @keyframes gd-shake {
     0%, 100% { transform: translateX(0); }
@@ -1787,13 +1766,6 @@
     78%  { transform: translate(3px, -2px); }
     92%  { transform: translate(-1px, 1px); }
   }
-  @keyframes gd-bomb-flash {
-    0%   { box-shadow: inset 0 0 0 rgba(200,40,40,0); }
-    50%  { box-shadow: inset 0 0 30px rgba(200,40,40,0.55); }
-    100% { box-shadow: inset 0 0 0 rgba(200,40,40,0); }
-  }
-  /* 桌面整体震屏（天王炸时短促） */
-  .gd-table.mega-quake { animation: gd-mega-quake 0.9s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
   @keyframes gd-mega-quake {
     0%   { transform: translate(0, 0); }
     8%   { transform: translate(-10px, 5px) rotate(-0.3deg); }
@@ -1804,41 +1776,86 @@
     82%  { transform: translate(2px, -2px); }
     100% { transform: translate(0, 0); }
   }
+  /* 整桌震屏四档：轻 / 中 / 强 / 最强 */
+  .gd-table.gd-quake-1 { animation: gd-shake 0.2s ease-out; }
+  .gd-table.gd-quake-2 { animation: gd-shake 0.4s ease-out; }
+  .gd-table.gd-quake-3 { animation: gd-shake-strong 0.55s ease-out; }
+  .gd-table.gd-quake-4 { animation: gd-mega-quake 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+  /* 闪屏：整桌一层淡朱砂，闪 1 或 2 次 */
+  .gd-fx-flash {
+    position: absolute; inset: 0; pointer-events: none; z-index: 39;
+    background: rgba(180,57,44,0.12); opacity: 0;
+    animation: gd-fx-flash 0.45s ease-out 1;
+  }
+  .gd-fx-flash.n2 { animation-iteration-count: 2; }
+  @keyframes gd-fx-flash { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
 
-  /* 全桌中央"炸弹/同花顺/天王炸"大字浮屏：1.0 s 出现 + 渐隐 */
+  /* ======== 中央横幅（规格 3.1 通道 C）：同一时刻一条，不拦截点击 ========
+     炸弹：朱砂字 + 上下两道朱砂细线，字号随档位加大；同花顺 / 天王炸用暗金。
+     其他（接风 / 抗贡 / 头游）：墨字。时长由 JS 写进 --gd-fx-dur。 */
   .gd-fx-banner {
     position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%);
     font-family: var(--font-display);
-    font-weight: 900;
-    font-size: 2.6rem;
-    color: #fff;
-    text-shadow:
-      0 0 8px rgba(255, 220, 100, 0.9),
-      0 0 24px rgba(245, 130, 40, 0.85),
-      0 4px 10px rgba(0, 0, 0, 0.6);
-    letter-spacing: 0.18em;
+    color: var(--gd-ink);
+    text-align: center; white-space: nowrap;
     pointer-events: none;
     z-index: 40;
-    animation: gd-fx-banner 1.1s ease-out forwards;
-    white-space: nowrap;
+    animation: gd-fx-in var(--gd-fx-dur, 1200ms) ease-out forwards;
   }
-  @keyframes gd-fx-banner {
-    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-6deg); }
-    25%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(0deg); }
-    55%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
+  .gd-fx-banner .gd-fx-main {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-weight: 700; line-height: 1.25;
+    letter-spacing: 0.3em; text-indent: 0.3em;
   }
-  /* 抗贡 banner：当前唯一调用 showTributeBanner 的场景，需要停留更久（~2s），
-     所以独立一条更慢的动画，把"可见保持"阶段拉长 */
-  .gd-fx-banner.gd-tribute-banner {
-    animation: gd-tribute-banner 2s ease-out forwards;
+  .gd-fx-banner .gd-fx-sub {
+    font-family: var(--font-body);
+    font-size: 0.8rem; letter-spacing: 0.3em; text-indent: 0.3em;
+    color: var(--gd-ink-mute); margin-top: 0.2rem;
   }
-  @keyframes gd-tribute-banner {
-    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-6deg); }
-    15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(0deg); }
-    30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
-    85%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
+  .gd-fx-banner.is-info .gd-fx-main { font-size: 2rem; }
+  .gd-fx-banner.is-bomb { color: var(--gd-seal); }
+  .gd-fx-banner.is-bomb::before,
+  .gd-fx-banner.is-bomb::after {
+    content: ''; display: block; height: 1px; width: 70%; margin: 0.3rem auto;
+    background: currentColor;
+  }
+  .gd-fx-banner.t3, .gd-fx-banner.t7 { color: #9a6b16; }
+  .gd-fx-banner.t1 .gd-fx-main { font-size: 2rem; }
+  .gd-fx-banner.t2 .gd-fx-main,
+  .gd-fx-banner.t3 .gd-fx-main { font-size: 2.5rem; }
+  .gd-fx-banner.t4 .gd-fx-main,
+  .gd-fx-banner.t5 .gd-fx-main { font-size: 3.1rem; }
+  .gd-fx-banner.t6 .gd-fx-main,
+  .gd-fx-banner.t7 .gd-fx-main { font-size: 3.7rem; }
+  @keyframes gd-fx-in {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+    12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+    22%  { transform: translate(-50%, -50%) scale(1); }
+    85%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+  }
+  @keyframes gd-fx-fade {
+    0% { opacity: 0; } 10% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; }
+  }
+  /* 矮版：横幅整体上移、字号缩一档，下沿不碰决策带的按钮 */
+  @media (max-height: 499.98px) {
+    .gd-fx-banner { top: 27%; }
+    .gd-fx-banner.is-bomb::before, .gd-fx-banner.is-bomb::after { margin: 0.15rem auto; }
+    .gd-fx-banner .gd-fx-sub { font-size: 0.7rem; margin-top: 0; }
+    .gd-fx-banner.is-info .gd-fx-main { font-size: 1.5rem; }
+    .gd-fx-banner.t1 .gd-fx-main { font-size: 1.5rem; }
+    .gd-fx-banner.t2 .gd-fx-main, .gd-fx-banner.t3 .gd-fx-main { font-size: 1.8rem; }
+    .gd-fx-banner.t4 .gd-fx-main, .gd-fx-banner.t5 .gd-fx-main { font-size: 2.1rem; }
+    .gd-fx-banner.t6 .gd-fx-main, .gd-fx-banner.t7 .gd-fx-main { font-size: 2.4rem; }
+  }
+  /* 减弱动态效果：不震、不闪，横幅只淡入淡出（JS 也不加震屏 / 闪屏） */
+  @media (prefers-reduced-motion: reduce) {
+    .gd-fx-banner { animation-name: gd-fx-fade; }
+    .gd-played.fx-bomb, .gd-played.fx-bomb-2, .gd-played.fx-bomb-3,
+    .gd-played.fx-strflush, .gd-played.fx-jokerbomb { animation: none; }
+    .gd-table[class*="gd-quake-"] { animation: none; }
+    .gd-fx-flash { display: none; }
+    .gd-pass-big { animation: none; }
   }
 
   /* ======== 游戏内「🏆 榜单」chip（替代退出全屏）========

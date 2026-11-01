@@ -885,6 +885,7 @@
   }
 
   const CARD_SIZE_OPTS = [0.85, 1, 1.25, 1.5];
+  const AI_SPEED_OPTS = [1.4, 1, 0.5];   // AI 出牌速度：慢 / 标准 / 快（规格 4.1）
   const state = {
     aiLevel: ['easy','normal','hard'].includes(stored.lastDiff) ? stored.lastDiff : 'normal',
     matchAiLevel: ['easy','normal','hard'].includes(stored.lastDiff) ? stored.lastDiff : 'normal',
@@ -892,6 +893,7 @@
     matchOptions: normalizeOptions(stored.options),  // 当前这盘冻结的玩法设置（startMatch 时从 options 拷贝）
     openMult: [1, 2, 3].includes(stored.lastMult) ? stored.lastMult : 1,
     cardSizeMult: CARD_SIZE_OPTS.includes(stored.cardSizeMult) ? stored.cardSizeMult : 1,
+    aiSpeedMult: AI_SPEED_OPTS.includes(stored.aiSpeedMult) ? stored.aiSpeedMult : 1,
     stats: normalizeStats(stored.stats),
     phase: PHASE.IDLE,
     levels: [2 - 2, 2 - 2],          // team level index into LEVEL_SEQ (0='2')
@@ -955,7 +957,7 @@
     pgo: $('gdPgo'), pgoStart: $('gdPgoStart'),
     pgoDiff: $('gdPgoDiff'), pgoStats: $('gdPgoStats'), hs: $('gdHs'),
     hardOfflineStatus: $('gdHardOfflineStatus'), offlineCacheBtn: $('gdOfflineCacheBtn'),
-    pgoTeamTrib: $('gdPgoTeamTrib'), pgoTurnSec: $('gdPgoTurnSec'), pgoCardSize: $('gdPgoCardSize'),
+    pgoTeamTrib: $('gdPgoTeamTrib'), pgoTurnSec: $('gdPgoTurnSec'), pgoCardSize: $('gdPgoCardSize'), pgoAiSpeed: $('gdPgoAiSpeed'),
     gameOpts: $('gdGameOpts'), gameOptsToggle: $('gdGameOptsToggle'),
     gameOptsBody: $('gdGameOptsBody'), gameOptsSum: $('gdGameOptsSum'),
     roundOverlay: $('gdRoundOverlay'), roundTitle: $('gdRoundTitle'),
@@ -988,7 +990,7 @@
     STORAGE.writeJson(STORE_KEY, {
       lastDiff: state.aiLevel, lastMult: state.openMult,
       sortMode: state.sortMode, stats: state.stats,
-      options: state.options, cardSizeMult: state.cardSizeMult,
+      options: state.options, cardSizeMult: state.cardSizeMult, aiSpeedMult: state.aiSpeedMult,
     });
   }
 
@@ -1418,6 +1420,15 @@
 
   function renderPlayArea(seat) {
     const slot = seatEls[seat].play;
+    // 要压的这一手（规格 3.1 通道 B）：当前最大那手加朱砂描边，同一墩里被压过的旧牌降到半透明
+    {
+      const lp0 = state.lastPlay[seat];
+      const hasCards = !state.revealHands && state.phase === PHASE.PLAYING &&
+        !!(lp0 && lp0 !== 'pass' && lp0.cards && lp0.cards.length && !lp0.tributeLabel);
+      const bestSeat = state.trick && state.trick.best ? state.trick.bestSeat : -1;
+      slot.classList.toggle('is-best', hasCards && seat === bestSeat);
+      slot.classList.toggle('is-stale', hasCards && bestSeat >= 0 && seat !== bestSeat);
+    }
     // 局终摊牌：没出完的家把整手剩牌平铺到出牌区。座 0 是我、手牌已在底部展示，不重复摊；
     // 对手手牌在联机里可能是 -1 占位（服务端未下发真牌），那种情况也跳过（不摊占位牌）。
     if (state.revealHands && seat !== 0 && state.hands[seat] && state.hands[seat].length > 0 && state.hands[seat][0] !== -1) {
@@ -2263,6 +2274,14 @@
     clearTimeout(bandErrTimer);
     bandErrTimer = setTimeout(() => { bandErr = null; updateActions(); }, 1850);
   }
+  // 提示行的普通说明（不是报错）：显示一会儿，再交还给 updateActions 按状态计算
+  function flashBandNote(msg) {
+    bandErr = { msg, until: Date.now() + 2400, note: true };
+    setBandHint(msg, false);
+    announce(msg);
+    clearTimeout(bandErrTimer);
+    bandErrTimer = setTimeout(() => { bandErr = null; updateActions(); }, 2450);
+  }
   function tributePartnerName(role) {
     const pt = state.pendingTribute;
     const pairs = pt && Array.isArray(pt.pairs) ? pt.pairs : [];
@@ -2293,7 +2312,7 @@
       if (els.autoCancelBtn) els.autoCancelBtn.hidden = true;
       setSlot(els.playBtn, { primary: true, disabled: !(sel.length === 1 && tributeGive.validCards.includes(sel[0])) });
       const to = tributePartnerName('give');
-      setBandHint(errActive ? bandErr.msg : '选一张最大的牌进贡' + (to ? '给' + to : ''), errActive);
+      setBandHint(errActive ? bandErr.msg : '选一张最大的牌进贡' + (to ? '给' + to : ''), errActive && !bandErr.note);
       updateRestoreBtn();
       return;
     }
@@ -2307,7 +2326,7 @@
       if (els.autoCancelBtn) els.autoCancelBtn.hidden = true;
       setSlot(els.playBtn, { primary: true, disabled: !(sel.length === 1 && isValidReturnCard(sel[0])) });
       const to = tributePartnerName('return');
-      setBandHint(errActive ? bandErr.msg : '选一张 10 以下的牌还' + (to ? '给' + to : ''), errActive);
+      setBandHint(errActive ? bandErr.msg : '选一张 10 以下的牌还' + (to ? '给' + to : ''), errActive && !bandErr.note);
       updateRestoreBtn();
       return;
     }
@@ -2357,7 +2376,7 @@
     } else {
       hideSlots();
     }
-    setBandHint(errActive ? bandErr.msg : hint, errActive);
+    setBandHint(errActive ? bandErr.msg : hint, errActive && !bandErr.note);
     // 智能选牌：每次轮到我（开局先出 / 收圈领出 / AI 们都过完）首次进入时，
     // 自动勾选一手"最经济的能压牌"。键由 trick 状态 + 手牌张数构成，状态变 → 重新自动选；
     // 状态不变即"同一回合内"，无论用户再怎么改动都听用户的（不复选）。
@@ -3385,31 +3404,62 @@
 
   // 进贡阶段中心 banner：每次显示前先清掉上一条（避免叠字成重影）
   // 当前唯一调用点：抗贡。durationMs 默认 1300，可覆盖
-  function showTributeBanner(line1, line2, durationMs) {
+  // ===== 中央横幅（规格 3.1 通道 C）=====
+  // 同一时刻只有一条：新来的优先级 ≥ 当前就直接替换；更低的排队，最多等 1 条（更旧的丢弃）。
+  // 横幅不拦截点击；炸弹 / 接风 / 抗贡期间 AI 等横幅时长的 70% 再动（规格 4.1）。
+  const REDUCED_MOTION = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  const fxBanner = { cur: null, next: null, timer: null };
+  function showBanner(o) {
     if (!els.table) return;
-    els.table.querySelectorAll('.gd-fx-banner.gd-tribute-banner').forEach(el => el.remove());
+    const cur = fxBanner.cur;
+    if (cur && cur.until > Date.now() && cur.priority > o.priority) { fxBanner.next = o; return; }
+    renderBanner(o);
+  }
+  function renderBanner(o) {
+    clearTimeout(fxBanner.timer);
+    els.table.querySelectorAll('.gd-fx-banner').forEach(node => node.remove());
     const ban = document.createElement('div');
-    ban.className = 'gd-fx-banner gd-tribute-banner';
-    ban.style.fontSize = '1.7rem';
-    ban.innerHTML = line1 + (line2 ? '<br><span style="font-size:0.8rem;letter-spacing:0.05em;opacity:0.88;">' + line2 + '</span>' : '');
+    ban.className = 'gd-fx-banner ' + (o.kind === 'bomb' ? 'is-bomb t' + o.tier : 'is-info') + (o.extraClass ? ' ' + o.extraClass : '');
+    ban.style.setProperty('--gd-fx-dur', o.duration + 'ms');
+    const main = document.createElement('div');
+    main.className = 'gd-fx-main';
+    if (o.icon) {
+      const icon = document.createElement('span');
+      icon.className = 'gd-fx-icon';
+      icon.textContent = o.icon;
+      main.append(icon);
+    }
+    main.append(document.createTextNode(o.text));
+    ban.append(main);
+    if (o.sub) {
+      const sub = document.createElement('div');
+      sub.className = 'gd-fx-sub';
+      sub.textContent = o.sub;   // 可能含联机昵称：只用 textContent
+      ban.append(sub);
+    }
     if (window.ZirconIcons) ZirconIcons.hydrate(ban);
     els.table.appendChild(ban);
-    setTimeout(() => { if (ban.parentNode) ban.remove(); }, durationMs || 1300);
+    announce(o.text + (o.sub ? '，' + o.sub : ''));
+    fxBanner.cur = { priority: o.priority, until: Date.now() + o.duration };
+    if (o.holdAi) state._fxHoldUntil = Math.max(state._fxHoldUntil || 0, Date.now() + Math.round(o.duration * 0.7));
+    fxBanner.timer = setTimeout(() => {
+      ban.remove();
+      fxBanner.cur = null;
+      const next = fxBanner.next;
+      fxBanner.next = null;
+      if (next) renderBanner(next);
+    }, o.duration);
+  }
+  // 抗贡（规格 3.2）：横幅「抗贡」+ 小字「X 握双大王…」。line1 保留旧签名，仅作兼容。
+  function showTributeBanner(line1, line2, durationMs) {
+    showBanner({ kind: 'info', icon: '[[zi:shield]]', text: '抗贡', sub: line2 || '', priority: 5,
+      duration: durationMs || 1600, holdAi: true });
   }
 
-  // 接风视觉：中央大字"🪁 接风" + finisher 头像金光发出 → 队友头像金光接收
+  // 接风（规格 3.2）：横幅「接风」+ 出完的人与队友头像先后各闪一次
   function showJiefengFx(fromSeat, toSeat) {
-    if (!els.table) return;
-    const ban = document.createElement('div');
-    ban.className = 'gd-fx-banner gd-jiefeng-banner';
-    // 只显示「接风」两字（去掉「X 领出」副标题，多余）
-    ban.innerHTML =
-      '<span class="gd-jiefeng-icon">[[zi:transfer]]</span>' +
-      '<span class="gd-jiefeng-text">接风</span>';
-    if (window.ZirconIcons) ZirconIcons.hydrate(ban);
-    els.table.appendChild(ban);
-    setTimeout(() => ban.remove(), 1500);
-    // 来源和接收方头像各闪一次金光
+    showBanner({ kind: 'info', icon: '[[zi:transfer]]', text: '接风', priority: 5, duration: 1200,
+      holdAi: true, extraClass: 'gd-jiefeng-banner' });
     const flash = (seat) => {
       const av = seatEls[seat] && seatEls[seat].seat && seatEls[seat].seat.querySelector('.gd-avatar');
       if (!av) return;
@@ -3547,6 +3597,10 @@
     state.trick.passes = 0;
     if (afterLen === 0 && !state.out.includes(seat)) {
       state.out.push(seat);
+      // 头游（规格 3.2）：只给第一个出完的人放横幅；二游、三游只换座位标签
+      if (state.out.length === 1) {
+        showBanner({ kind: 'info', text: seat === 0 ? '你是头游' : seatName(seat) + ' 头游', priority: 4, duration: 1200 });
+      }
     }
     renderAll();
     // 报牌：首次跨过 10 张时，给该家的余牌徽弹动一次。徽本身一直红色警示
@@ -3572,40 +3626,55 @@
     afterMove(seat);
   }
 
+  // 炸弹分档（规格 3.3，强度单调）：4 炸 < 5 炸 < 同花顺 < 6 炸 < 7–8 炸 < 9–10 炸 < 天王炸
+  function bombTier(combo, n) {
+    if (combo.type === T.JOKER_BOMB) return 7;
+    if (combo.type === T.STR_FLUSH) return 3;
+    if (n <= 4) return 1;
+    if (n === 5) return 2;
+    if (n === 6) return 4;
+    if (n <= 8) return 5;
+    return 6;
+  }
+  // dur 横幅时长；quake 震屏档（0 无 / 1 轻 200ms / 2 中 400ms / 3 强 500–600ms / 4 最强 700ms）；flash 闪屏次数
+  const BOMB_FX = {
+    1: { dur: 1000, quake: 0, flash: 0, slot: 'fx-bomb' },
+    2: { dur: 1100, quake: 1, flash: 0, slot: 'fx-bomb' },
+    3: { dur: 1200, quake: 1, flash: 0, slot: 'fx-strflush' },
+    4: { dur: 1400, quake: 2, flash: 1, slot: 'fx-bomb-2' },
+    5: { dur: 1500, quake: 3, flash: 1, slot: 'fx-bomb-2' },
+    6: { dur: 1600, quake: 3, flash: 2, slot: 'fx-bomb-3' },
+    7: { dur: 1800, quake: 4, flash: 2, slot: 'fx-jokerbomb' },
+  };
   function playBombFx(seat, combo) {
     const slot = seatEls[seat].play;
     if (!slot) return;
     // 张数：单机 classify() 的 combo 带 .len；联机服务端下发的 lastPlay 只有 {type,cards}（无 len，
     // 见 guandan-engine viewForSeat）——所以联机里别家炸弹要从 cards 数出张数，否则横幅会显示「undefined 张炸弹」。
     const n = (combo.len != null) ? combo.len : (combo.cards ? combo.cards.length : 0);
-    let cls = 'fx-bomb';
-    let banner = bombName(n);
-    if (combo.type === T.STR_FLUSH) { cls = 'fx-strflush'; banner = '同花顺'; }
-    else if (combo.type === T.JOKER_BOMB) { cls = 'fx-jokerbomb'; banner = '天王炸'; }
-    slot.classList.remove('fx-bomb', 'fx-strflush', 'fx-jokerbomb');
-    // 强制 reflow 让动画能重新触发
-    void slot.offsetWidth;
-    slot.classList.add(cls);
-    setTimeout(() => slot.classList.remove(cls), 1100);
-    // 整桌震屏：仅天王炸 / 6+ 张炸 / 同花顺
-    const big = combo.type === T.JOKER_BOMB || combo.type === T.STR_FLUSH || n >= 6;
-    if (big && els.table) {
-      els.table.classList.remove('mega-quake');
+    const tier = bombTier(combo, n);
+    const fx = BOMB_FX[tier];
+    const text = combo.type === T.STR_FLUSH ? '同花顺' : combo.type === T.JOKER_BOMB ? '天王炸' : bombName(n);
+    const slotClasses = ['fx-bomb', 'fx-bomb-2', 'fx-bomb-3', 'fx-strflush', 'fx-jokerbomb'];
+    slot.classList.remove(...slotClasses);
+    void slot.offsetWidth;   // 强制 reflow 让动画能重新触发
+    slot.classList.add(fx.slot);
+    setTimeout(() => slot.classList.remove(fx.slot), fx.dur);
+    const reduce = REDUCED_MOTION && REDUCED_MOTION.matches;
+    if (!reduce && fx.quake && els.table) {
+      const quakes = ['gd-quake-1', 'gd-quake-2', 'gd-quake-3', 'gd-quake-4'];
+      els.table.classList.remove(...quakes);
       void els.table.offsetWidth;
-      els.table.classList.add('mega-quake');
-      setTimeout(() => els.table && els.table.classList.remove('mega-quake'), 900);
+      els.table.classList.add('gd-quake-' + fx.quake);
+      setTimeout(() => els.table && els.table.classList.remove('gd-quake-' + fx.quake), 900);
     }
-    // Replace the previous bomb announcement.
-    // A single central message remains readable when the next bomb arrives.
-    if (els.table) {
-      els.table.querySelectorAll('.gd-fx-banner:not(.gd-tribute-banner):not(.gd-jiefeng-banner)').forEach(node => node.remove());
-      const ban = document.createElement('div');
-      ban.className = 'gd-fx-banner';
-      ban.textContent = banner;
-      if (window.ZirconIcons) ZirconIcons.hydrate(ban);
-      els.table.appendChild(ban);
-      setTimeout(() => ban.remove(), 1200);
+    if (!reduce && fx.flash && els.table) {
+      const flash = document.createElement('div');
+      flash.className = 'gd-fx-flash n' + fx.flash;
+      els.table.appendChild(flash);
+      setTimeout(() => flash.remove(), 1000);
     }
+    showBanner({ kind: 'bomb', tier, text, sub: seatName(seat), priority: 2 + tier, duration: fx.dur, holdAi: true });
   }
 
   function commitPass(seat) {
@@ -4426,9 +4495,9 @@
     if (!state.autopilot && state._consecutiveTimeouts >= 2) {
       state.autopilot = true;
       refreshAutopilotBtn();
-      announce('连续两次出牌超时，已开启托管并自动处理');
+      flashBandNote('连续超时，已开启托管');
     } else {
-      announce('出牌超时，已自动处理');
+      flashBandNote('超时，已替你出牌');
     }
     doAutoPlayPick();
   }
@@ -4478,8 +4547,13 @@
       _gdSyncDebugStep();
       return;
     }
-    // 「快进」去掉拟人思考延迟；「正常」保留 360-680ms
-    const delay = (_gdAiCtl.mode === 'fast') ? 0 : (360 + Math.random() * 320);
+    // 节奏（规格 4.1）：AI 每手 700–1100ms × 设置里的「AI 出牌速度」；炸弹 / 接风 / 抗贡横幅期间
+    // 再等到横幅时长的 70%。调试台「快进」去掉全部延迟。
+    let delay = 0;
+    if (_gdAiCtl.mode !== 'fast') {
+      delay = (700 + Math.random() * 400) * (state.aiSpeedMult || 1);
+      delay = Math.max(delay, (state._fxHoldUntil || 0) - Date.now());
+    }
     scheduleGameplayAi(fire, delay);
   }
 
@@ -5158,7 +5232,7 @@
   // 恢复显示。
   function hidePlayActionsImmediate() {
     hideSlots();
-    if (!state.autopilot) setBandHint('');
+    if (!state.autopilot && !(bandErr && Date.now() < bandErr.until)) setBandHint('');
     if (els.selfClock) els.selfClock.hidden = true;
   }
 
@@ -5450,6 +5524,7 @@
     selectSeg(els.pgoTeamTrib, o.teamTribute ? 'on' : 'off');
     selectSeg(els.pgoTurnSec, String(o.turnSec));
     if (els.pgoCardSize) selectSeg(els.pgoCardSize, String(state.cardSizeMult));
+    if (els.pgoAiSpeed) selectSeg(els.pgoAiSpeed, String(state.aiSpeedMult));
     // 折叠态下显示的一行摘要
     if (els.gameOptsSum) {
       els.gameOptsSum.textContent =
@@ -5511,6 +5586,13 @@
     const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
     state.options.turnSec = parseInt(t.dataset.value, 10) || 0;
     persist(); syncPgoOptions();
+  });
+  if (els.pgoAiSpeed) els.pgoAiSpeed.addEventListener('click', e => {
+    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
+    const v = parseFloat(t.dataset.value);
+    state.aiSpeedMult = AI_SPEED_OPTS.includes(v) ? v : 1;
+    selectSeg(els.pgoAiSpeed, t.dataset.value);
+    persist();
   });
   if (els.pgoCardSize) els.pgoCardSize.addEventListener('click', e => {
     const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
@@ -5644,7 +5726,10 @@
     const combo = classify(cards, currentLevelLabel());
     if (!combo) { toast('演示牌型构造失败：' + (label || '')); return; }
     state.lastPlay[seat] = combo;
+    // 演示也走真实反馈：成为「要压的这手」、炸弹放对应档位的特效（规格第 8 节验收用）
+    if (state.trick) { state.trick.best = combo; state.trick.bestSeat = seat; }
     renderAll();
+    if (isBombType(combo.type)) playBombFx(seat, combo);
   }
   function demoTribute(double) {
     const C = (s, r) => s * 13 + r;
@@ -5682,7 +5767,10 @@
     grp('他家出牌');
     btn('对家·三带二', () => demoOtherPlay(2, [C(0,R['9']),C(1,R['9']),C(2,R['9']),C(0,R['10']),C(1,R['10'])], '三带二'));
     btn('下家·四张炸', () => demoOtherPlay(1, [C(0,R['K']),C(1,R['K']),C(2,R['K']),C(3,R['K'])], '四炸'));
+    btn('上家·五炸', () => demoOtherPlay(3, [C(0,R['Q']),C(1,R['Q']),C(2,R['Q']),C(3,R['Q']),C(0,R['Q']) + 54], '五炸'));
     btn('上家·同花顺', () => demoOtherPlay(3, [C(0,R['4']),C(0,R['5']),C(0,R['6']),C(0,R['7']),C(0,R['8'])], '同花顺'));
+    btn('下家·六炸', () => demoOtherPlay(1, [C(0,R['J']),C(1,R['J']),C(2,R['J']),C(3,R['J']),C(0,R['J']) + 54,C(1,R['J']) + 54], '六炸'));
+    btn('上家·八炸', () => demoOtherPlay(3, [0,1,2,3].flatMap(su => [C(su,R['6']), C(su,R['6']) + 54]), '八炸'));
     btn('对家·天王炸', () => demoOtherPlay(2, [SJ, SJ + 54, BJ, BJ + 54], '天王炸'));
     btn('逢人配替牌', () => demoOtherPlay(2, [C(0,R['9']),C(1,R['2']),C(0,R['J']),C(0,R['Q']),C(0,R['K'])], '逢人配替10'));
 
