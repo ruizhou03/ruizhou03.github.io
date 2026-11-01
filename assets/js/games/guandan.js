@@ -935,7 +935,7 @@
   const $ = id => document.getElementById(id);
   const els = {
     table: $('gdTable'),
-    levelYou: $('gdLevelYou'), levelOpp: $('gdLevelOpp'),
+    levelYou: $('gdLevelYou'), levelOpp: $('gdLevelOpp'), levelNow: $('gdLevelNow'),
     chipYou: $('gdChipYou'), chipOpp: $('gdChipOpp'),
     chipScore: $('gdChipScore'), scoreVal: $('gdScoreVal'),
     hand: $('gdHand'),
@@ -1356,7 +1356,27 @@
     return cb ? cb.type : T.SINGLE;
   }
 
+  // 唯一尺寸源（规格 1.1）：按牌桌实际宽高求手牌卡宽 --u，夹在 36–72px，CSS 里所有牌的
+  // 尺寸、出牌槽高、叠牌错位都从它推出来。宽度：宽版按 15.5 列（最多 15 列手牌也放得下，规格 1.1），
+  // 矮版按 12 列（手机上多出来的列横向滑动看牌，与以往一致）；高度按「对家行 + 两家出牌 +
+  // 决策带 + 6 张深手牌」留足空间。
+  // 宽版 / 矮版的分界与 CSS 的 @media (min-height: 500px) 一致。
+  function solveTableSize() {
+    const table = els.table;
+    if (!table) return;
+    const W = table.clientWidth, H = table.clientHeight;
+    if (!W || !H) return;
+    const wide = window.innerHeight >= 500;
+    // 手牌区的可用宽度（.gd-hand 左右 margin 已让出「我 / 托管」与「理牌」，与 --u 无关）
+    const handW = (els.hand && els.hand.clientWidth) || (W - (wide ? 132 + 96 : 70 + 52));
+    const byW = handW / (wide ? 15.5 : 12) - 1;   // -1：列间 1px 缝
+    const byH = wide ? (H * 0.62 - 72) / 4.06 : (H - 160) / 5;
+    const u = Math.max(36, Math.min(72, Math.floor(Math.min(byW, byH))));
+    if (table.style.getPropertyValue('--u') !== u + 'px') table.style.setProperty('--u', u + 'px');
+  }
+
   function adaptHandSize() {
+    solveTableSize();
     const hand = els.hand;
     const cols = hand.querySelectorAll('.gd-rank-col');
     if (!cols.length) return;
@@ -1365,7 +1385,8 @@
     hand.style.removeProperty('--gd-stack-step');
     const cs = getComputedStyle(hand);
     const defCardW = parseFloat(cs.getPropertyValue('--gd-card-w')) || 50;
-    const defCardH = parseFloat(cs.getPropertyValue('--gd-card-h')) || 72;
+    // 卡高一律由卡宽按 1.44 推出（CSS 里 --gd-card-h 是 calc()，读出来不是数字）
+    const defCardH = Math.round(defCardW * 1.44);
     const defStep  = parseFloat(cs.getPropertyValue('--gd-stack-step')) || 18;
     const gap = parseFloat(cs.getPropertyValue('--gd-col-gap')) || 4;
     const padL = parseFloat(cs.paddingLeft)  || 0;
@@ -1381,8 +1402,9 @@
     const cardH = Math.round(defCardH * mult);
     // 竖排错位 = 横向分割线 = 0.39W（只露分割线以上：点数+右上花色，无额外呼吸）
     const step = Math.round(cardW * GD_S_RATIO);
-    if (cardW !== defCardW) hand.style.setProperty('--gd-card-w', cardW + 'px');
-    if (cardH !== defCardH) hand.style.setProperty('--gd-card-h', cardH + 'px');
+    // 一律写成像素：其余代码会 parseFloat 读这两个变量
+    hand.style.setProperty('--gd-card-w', cardW + 'px');
+    hand.style.setProperty('--gd-card-h', cardH + 'px');
     hand.style.setProperty('--gd-stack-step', step + 'px');
     cols.forEach(col => {
       const cards = col.querySelectorAll('.gd-card');
@@ -1769,6 +1791,8 @@
     const oppLv = LEVEL_SEQ[state.levels[1]];
     els.levelYou.textContent = youLv;
     els.levelOpp.textContent = oppLv;
+    // 大字「打 X」：当前坐庄一方的级（即本局打的级牌）
+    if (els.levelNow) els.levelNow.textContent = state.actingTeam === 1 ? oppLv : youLv;
     // 当前主级用角标右侧的亮点表示，不再写"◀ 当前主级"长尾文字
     els.chipYou.classList.toggle('acting', state.actingTeam === 0);
     els.chipOpp.classList.toggle('acting', state.actingTeam === 1);

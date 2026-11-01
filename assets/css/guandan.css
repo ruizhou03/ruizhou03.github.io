@@ -80,9 +80,21 @@
   .gd-levelbar-corner {
     position: absolute;
     top: 0.55rem; left: calc(0.6rem + env(safe-area-inset-left, 0px));
-    display: flex; gap: 0.35rem;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.35rem;
+    max-width: 12rem;
     z-index: 4;
     pointer-events: none;
+  }
+  /* 大字「打 7」独占第一行；两队的级在下一行（规格 1.7） */
+  .gd-level-now {
+    flex: 0 0 100%;
+    display: flex; align-items: baseline; gap: 0.3rem;
+    color: var(--gd-ink); line-height: 1;
+  }
+  .gd-level-now .lab { font-size: 0.85rem; color: var(--gd-ink-mute); letter-spacing: 0.1em; }
+  .gd-level-now .val {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: calc(var(--u, 46px) * 0.62); font-variant-numeric: lining-nums;
   }
   .gd-level-chip {
     display: flex; flex-direction: row; align-items: baseline; gap: 0.3rem;
@@ -2068,12 +2080,14 @@
     .gd-rotate-sub { font-size: 0.9rem; color: var(--color-muted); max-width: 17rem; line-height: 1.65; }
   }
 
-  /* ======== 横屏紧凑牌桌：触屏横屏 + 桌面 200% zoom ========
-     触屏继续用 pointer/orientation 判断；桌面浏览器放大到 200% 后，CSS 视口通常会缩到
-     1100×700 以下，复用同一套以当前玩家为中心的紧凑牌桌。游戏本体仍保持二维关系，
-     但不再让标题、四家座位、操作键和 27 张手牌彼此挤压或被视口裁掉。 */
-  @media (orientation: landscape) and (pointer: coarse),
-         (orientation: landscape) and (pointer: fine) and (max-width: 1100px) and (max-height: 700px) {
+  /* ======== 牌桌布局（规格第 1 节）：所有尺寸共用一套结构 ========
+     原「横屏紧凑牌桌」（触屏横屏 + 桌面 200% zoom）在手机上打磨过多轮，结构就是规格里的
+     网格：顶部对家 + 级牌条 + 右上工具栏；左右两家；手牌贴底、决策带锚在 6 张深处；
+     左下我自己、右下理牌。现在它对所有尺寸生效，只分两种变体：
+       - 矮版（默认，视口高 < 500px：手机横屏、桌面 200% 缩放）
+       - 宽版（@media (min-height: 500px)：桌面、平板）
+     所有牌的尺寸只来自一个变量 --u（手牌卡宽，JS solveTableSize 按牌桌宽高求出，
+     夹在 36–72px）；出牌区与手牌同尺寸（用户早先要求）。 */
     body.gd-game-fullscreen .guandan-wrap header { margin: 0; min-height: 0; }
     body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
     /* 横屏右上角从右到左：退出(✕) → 榜单(🏆) → 设置(⚙️) */
@@ -2121,7 +2135,9 @@
         calc(0.4rem + env(safe-area-inset-bottom, 0px))
         calc(0.7rem + env(safe-area-inset-left, 0px));
     }
-    body.gd-game-fullscreen .gd-seats-mid { height: 76px; }   /* 只剩对家出牌（出牌槽 70px） */
+    /* 唯一尺寸源：--u = 手牌卡宽（JS 求解）；两侧让给「我 / 托管」与「理牌」的宽度按变体给 */
+    body.gd-game-fullscreen .gd-table { --u: 46px; --gd-hand-l: 70px; --gd-hand-r: 52px; }
+    body.gd-game-fullscreen .gd-seats-mid { height: calc(var(--u) * 1.44 + 10px); }   /* 只剩对家出牌 */
     /* 出牌决策带（手机）：绝对定位、浮在手牌「上方」一层、盖在牌上 —— 手牌贴底往上长，
        这条带浮在它上面。带本身不挡触摸（pointer-events:none），只有按钮可点：被按钮完全盖住的
        牌，点击算点在按钮上（按钮优先、永不失效），但仍能用滑动选到。带只需让出约 6 张牌的高度，
@@ -2137,7 +2153,7 @@
     body.gd-game-fullscreen .gd-play-band > .gd-play-actions { flex-wrap: nowrap; min-height: 0; }
     body.gd-game-fullscreen .gd-play-band .gd-btn { pointer-events: auto; }   /* 只有按钮接管点击 */
     body.gd-game-fullscreen .gd-played,
-    body.gd-game-fullscreen .gd-side .gd-played { height: 70px; }
+    body.gd-game-fullscreen .gd-side .gd-played { height: calc(var(--u) * 1.44 + 4px); }
     /* 四家出牌区组成菱形：对家(顶)、左右两家(上下中点)、我(底=出牌带)。对家与我(出牌带)位置不动，
        左右两家上移到 38%(更贴上下中点、更像菱形)——原 42% 偏低、看着不够菱形(用户反馈)。 */
     body.gd-game-fullscreen .gd-seats-top { margin-top: 1vh; }
@@ -2145,8 +2161,8 @@
     /* 旁观队友手牌：把牌往上顶出底部一条，让「正在查看队友手牌」文字落在牌的下方、不再压牌 */
     body.gd-game-fullscreen .gd-hand.is-spectating { padding-bottom: 34px; }
     /* 出牌区(每个玩家打出去的牌) 46×66 —— 与手牌完全同尺寸(用户要求一致)，槽高同步加大到 70px 不裁断。 */
-    body.gd-game-fullscreen .gd-played { --gd-card-w: 46px; --gd-card-h: 66px; }
-    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: -24px; }
+    body.gd-game-fullscreen .gd-played { --gd-card-w: var(--u); --gd-card-h: calc(var(--u) * 1.44); }
+    body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full { margin-left: calc(var(--u) * -0.52); }
     body.gd-game-fullscreen .gd-played .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
     /* 手牌：吃满剩余高度、列在底对齐。默认 step 24 恒定不变——深的一摞就让它
        自然往上长、溢进手牌上方那片空地（overflow:visible 不裁切），错落间距与卡片
@@ -2154,8 +2170,8 @@
        左右留出"我/托管"和"理牌图标键"的宽度（含安全区），绝不压牌。 */
     body.gd-game-fullscreen .gd-hand {
       /* 手牌卡宽「写死」= 出牌区同尺寸(见下面 .gd-played)。改这两个值即整体放大/缩小手牌。 */
-      --gd-card-w: 46px; --gd-card-h: 66px;
-      --gd-stack-step: 24px;
+      --gd-card-w: var(--u); --gd-card-h: calc(var(--u) * 1.44);
+      --gd-stack-step: calc(var(--u) * 0.52);
       flex: 1 1 auto; min-height: 0;
       /* 贴底、向上生长；决策带锚在「6 张深」处盖在它上面（>6 张才会被盖到）。卡片大小写死、不随列数变。 */
       align-items: flex-end;
@@ -2164,7 +2180,7 @@
       /* 「看牌区」用左右 margin 划硬边界 —— overflow 在 box 边缘真正裁切(padding 做不到，会让牌透出到按钮下)。
          左 70px：往左收得很紧、又基本让开左下「张数/托管」chip；右 52px：让开右下「理牌/还原」键(~17px 余量)。
          列摆满就在此裁切并可横滑。table 已按安全区内缩，这里不再加 env()，免得双重叠加把边界顶太里。 */
-      margin-left: 70px; margin-right: 52px;
+      margin-left: var(--gd-hand-l); margin-right: var(--gd-hand-r);
       padding: 0.15rem 0 12px 0;
     }
     /* 左下："我" 头像 | 张数 + 托管机器人 横排（张数与机器人都在头像右边、右下方），
@@ -2197,9 +2213,48 @@
       bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px));
     }
 
-    /* ===== 横屏结算面板（回合 / 整局）整体收紧，刚好一屏放下，不必下滑找「继续」=====
-       横屏视口高 ≤560px 时，默认的大标题 + 宽松内边距会把面板撑得比画幅高。
-       这里同比缩小标题/头像/间距，让标题+双队+积分+按钮一次全显。 */
+  /* ===== 宽版（视口高 ≥ 500px：桌面、平板；规格 1.2）=====
+     结构与矮版相同，只放宽两侧与按钮：托管显示文字、理牌显示图标 + 文字，四周留白更从容。 */
+  @media (min-height: 500px) {
+    body.gd-game-fullscreen .gd-table {
+      --gd-hand-l: 132px; --gd-hand-r: 96px;
+      padding:
+        calc(0.7rem + env(safe-area-inset-top, 0px))
+        calc(1rem + env(safe-area-inset-right, 0px))
+        calc(0.7rem + env(safe-area-inset-bottom, 0px))
+        calc(1rem + env(safe-area-inset-left, 0px));
+      box-shadow: var(--gd-frame-lines);
+    }
+    body.gd-game-fullscreen .guandan-wrap { padding: 8px; }
+    body.gd-game-fullscreen .gd-exit-btn,
+    body.gd-game-fullscreen .gd-board-btn,
+    body.gd-game-fullscreen .gd-settings-btn,
+    body.gd-game-fullscreen .gd-mute-btn { top: calc(1.1rem + env(safe-area-inset-top, 0px)); }
+    body.gd-game-fullscreen .gd-exit-btn { right: calc(1.1rem + env(safe-area-inset-right, 0px)); }
+    body.gd-game-fullscreen .gd-board-btn { right: calc(1.1rem + 50px + env(safe-area-inset-right, 0px)); }
+    body.gd-game-fullscreen .gd-mute-btn { right: calc(1.1rem + 100px + env(safe-area-inset-right, 0px)); }
+    body.gd-game-fullscreen .gd-settings-btn { right: calc(1.1rem + 150px + env(safe-area-inset-right, 0px)); }
+    body.gd-game-fullscreen .gd-levelbar-corner { top: calc(1rem + env(safe-area-inset-top, 0px)); left: calc(1.2rem + env(safe-area-inset-left, 0px)); }
+    body.gd-game-fullscreen .gd-self-bar {
+      left: calc(1rem + env(safe-area-inset-left, 0px));
+      bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
+    }
+    body.gd-game-fullscreen .gd-autopilot-chip { width: auto; height: 1.9rem; padding: 0 0.6rem; border-radius: 999px; }
+    body.gd-game-fullscreen .gd-autopilot-tx { display: inline; }
+    body.gd-game-fullscreen .gd-sort-actions {
+      right: calc(1rem + env(safe-area-inset-right, 0px));
+      bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
+    }
+    body.gd-game-fullscreen .gd-sort-actions .gd-btn { width: 76px; min-width: 76px; padding: 0 0.4rem; font-size: 0.92rem; }
+    body.gd-game-fullscreen #gdSortMainBtn .gd-btn-ic { display: block; }
+    body.gd-game-fullscreen #gdSortMainBtn .gd-btn-tx { font-size: 0.9rem; }
+    body.gd-game-fullscreen .gd-order-actions { right: calc(1rem + 84px + env(safe-area-inset-right, 0px)); bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px)); }
+  }
+
+  /* ===== 矮屏结算面板（回合 / 整局）整体收紧，刚好一屏放下，不必下滑找「继续」=====
+     视口高 ≤560px 时，默认的大标题 + 宽松内边距会把面板撑得比画幅高。
+     这里同比缩小标题/头像/间距，让标题+双队+积分+按钮一次全显。 */
+  @media (max-height: 560px) {
     .gd-overlay .gd-result-panel { padding: 0.7rem 1rem 0.75rem; max-height: 98vh; }
     .gd-result-title { font-size: 1.5rem; margin-bottom: 0.5rem; }
     .gd-result-vs { gap: 0.45rem; margin-bottom: 0.5rem; }
@@ -2260,7 +2315,7 @@
     gap: 6px; min-height: 0;
   }
   body.gd-game-fullscreen .gd-reveal-gallery .gd-played {
-    --gd-card-w: 46px; --gd-card-h: 66px;
+    --gd-card-w: var(--u, 46px); --gd-card-h: calc(var(--u, 46px) * 1.44);
     height: auto; min-height: 0; width: 100%; overflow: visible;
   }
   body.gd-game-fullscreen .gd-reveal-gallery .gd-reveal-wrap,
