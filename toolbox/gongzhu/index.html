@@ -44,6 +44,15 @@ body_class: gz-fullscreen
       <div class="gz-slot gz-slot-3" data-pos="3"></div>
     </div>
 
+    <div class="gz-coach" id="gzCoach" hidden aria-live="polite">
+      <span class="gz-coach-seal" aria-hidden="true">教</span>
+      <div class="gz-coach-body"><p class="gz-coach-text"></p><div class="gz-coach-parts"></div></div>
+      <div class="gz-coach-acts">
+        <button type="button" class="gz-btn gz-btn-primary" data-coach="next">继续</button>
+        <button type="button" class="gz-coach-skip" data-coach="skip">跳过教程</button>
+      </div>
+    </div>
+
     <section class="gz-seat gz-seat-me" data-pos="0" id="gzSeat0"></section>
 
     <div class="gz-band">
@@ -60,4 +69,5 @@ body_class: gz-fullscreen
 <script>window.GZ_BUILD = "{{ site.time | date: '%s' }}";</script>
 <script src="/assets/js/games/gongzhu-rules.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/gongzhu-ai.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/gongzhu-tutorial.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/gongzhu.js?v={{ site.time | date: '%s' }}"></script>

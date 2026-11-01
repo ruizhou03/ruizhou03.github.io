@@ -343,10 +343,51 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-seg.is-4 button { flex: 1 1 50%; }
 .gz-seg.is-4 button:nth-child(3) { border-left: 0; }
 .gz-seg.is-4 button:nth-child(n+3) { border-top: 1px solid var(--gz-ink); }
-.gz-sub { margin: 18px 0 8px; padding-top: 12px; border-top: 1px solid rgba(29, 27, 24, 0.18); font-size: 15px; letter-spacing: 0.06em; }
+.gz-variants { margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(29, 27, 24, 0.18); }
+.gz-variants summary { cursor: pointer; font-size: 15px; font-weight: 700; letter-spacing: 0.06em; padding: 4px 0 8px; }
 .gz-note { color: var(--gz-ink-mute); font-size: 13px !important; }
 .gz-rules dt { font-weight: 700; margin-top: 8px; font-size: 14px; }
 .gz-rules dd { margin: 2px 0 0; font-size: 14px; line-height: 1.7; }
+
+/* ───── 新手教程：牌桌中间和我的座位之间插一行讲解，不挡出牌区 ───── */
+.gz-table.is-tutorial {
+  grid-template-rows: 52px auto minmax(calc(var(--th) * 2 + 24px), 1fr) auto auto auto;
+  grid-template-areas:
+    "bar   bar    bar"
+    ".     top    ."
+    "left  center right"
+    "coach coach  coach"
+    "me    me     band"
+    "hand  hand   hand";
+}
+.is-tutorial #gzSettingsBtn { display: none; }
+.gz-coach {
+  grid-area: coach; justify-self: center; width: min(680px, 100%);
+  display: flex; align-items: center; gap: 10px; margin: 4px 0 2px;
+  padding: 8px 12px; background: var(--gz-paper); color: var(--gz-ink);
+  border: 1px solid var(--gz-ink); border-radius: 4px; box-shadow: 0 2px 8px rgba(20, 18, 15, 0.12);
+}
+.gz-coach[hidden] { display: none; }
+.gz-coach.pulse { animation: gz-coach-pulse 0.5s ease-out; }
+@keyframes gz-coach-pulse { 0% { box-shadow: 0 0 0 0 rgba(180, 57, 44, 0.5); } 100% { box-shadow: 0 0 0 10px rgba(180, 57, 44, 0); } }
+.gz-coach-seal {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 4px; background: var(--gz-seal); color: var(--gz-seal-ink);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700;
+}
+.gz-coach-body { flex: 1; min-width: 0; }
+.gz-coach-text { margin: 0; font-size: 15px; line-height: 1.65; }
+.gz-coach-parts { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.gz-coach-parts:not(:empty) { margin-top: 6px; }
+.gz-part { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; font-size: 14px; }
+.gz-part .neg, .gz-part-sum.neg { color: var(--gz-seal); }
+.gz-part-sum { font-size: 18px; align-self: center; margin-left: 4px; }
+.gz-ic { font-weight: 700; white-space: nowrap; padding: 0 1px; }
+.gz-ic.suit-red { color: var(--gz-red); }
+.gz-ic.suit-black { color: var(--gz-black); }
+.gz-coach-acts { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.gz-coach-acts .gz-btn { min-width: 72px; height: 34px; padding: 0 14px; }
+.gz-coach-acts .gz-btn[hidden] { display: none; }
+.gz-coach-skip { border: 0; background: none; padding: 2px 0; font: inherit; font-size: 12px; color: var(--gz-ink-mute); cursor: pointer; }
 
 /* ───── 竖屏 / 窄屏：左右两家移到上方一行 ───── */
 @media (max-aspect-ratio: 1/1) {
@@ -362,6 +403,17 @@ body.gz-fullscreen .site-footer { display: none !important; }
       "hand hand   hand";
     padding: 6px 8px 8px;
   }
+  .gz-table.is-tutorial {
+    grid-template-rows: 48px auto minmax(calc(var(--th) * 2 + 40px), 1fr) auto auto auto;
+    grid-template-areas:
+      "bar  bar    bar"
+      "left top    right"
+      "center center center"
+      "coach coach coach"
+      "me   me     band"
+      "hand hand   hand";
+  }
+  .gz-coach-text { font-size: 14px; }
   .gz-seat-left, .gz-seat-right, .gz-seat-top { justify-content: flex-start; }
   .gz-seat-left .gz-who, .gz-seat-right .gz-who { flex-direction: column; }
   .gz-seat-top .gz-who { flex-direction: column; gap: 3px; }

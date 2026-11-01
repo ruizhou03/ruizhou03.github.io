@@ -403,9 +403,10 @@
    *   [296,312)  亮出的牌（♥A ♠Q ♦J ♣10）× 亮牌人相对座位
    *   [312,314)  红桃计分：按牌面 / 经典
    *   [314,318)  全红时的猪：slam / hearts / manjuan / swap
-   * 老权重只有前 296 维：mlpForward 自动忽略超出输入维度的特征。
+   *   318        单吃变压器记 +50（否则记 0）
+   * 老权重输入维度更小：mlpForward 自动忽略超出输入维度的特征。
    */
-  const FEAT_DIM = 318;
+  const FEAT_DIM = 319;
   const PIG_MODES = ['slam', 'hearts', 'manjuan', 'swap'];
   const SCORING_LIST = [...Array.from({ length: 13 }, (_, i) => 13 + i), PIG, SHEEP, DOUBLER];
   const SCORING_IDX = new Array(52).fill(-1);
@@ -428,6 +429,7 @@
     for (const [c, o] of r.exposed) f.push(296 + R.EXPOSABLE.indexOf(c) * 4 + ((o - seat + 4) % 4));
     f.push(r.rules.hearts === 'classic' ? 313 : 312);
     f.push(314 + Math.max(0, PIG_MODES.indexOf(r.rules.allHeartsPig)));
+    if (r.rules.doublerAlone === 50) f.push(318);
     const t = trickState(r);
     if (t) f.push(236 + ((t.topSeat - seat + 4) % 4));
     return { f, t };

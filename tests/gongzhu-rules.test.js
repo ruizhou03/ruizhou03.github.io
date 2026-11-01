@@ -6,6 +6,7 @@ const R = require('../assets/js/games/gongzhu-rules.js');
 
 const H = (label) => R.HEART * 13 + R.RANK_LABELS.indexOf(label);
 const ALL_HEARTS = Array.from({ length: 13 }, (_, i) => 13 + i);
+const ctx = (rules, exposed, swap) => ({ rules: R.normalizeRules(rules), exposed: exposed || [], swap: !!swap });
 
 test('special card codes', () => {
   assert.equal(R.cardLabel(R.PIG), '♠Q');
@@ -27,7 +28,8 @@ test('scoring: plain cards', () => {
 });
 
 test('scoring: doubler', () => {
-  assert.equal(R.scoreCaptured([R.DOUBLER]).total, 50);
+  assert.equal(R.scoreCaptured([R.DOUBLER]).total, 0, '默认：变压器本身不计分');
+  assert.equal(R.scoreCaptured([R.DOUBLER], ctx({ doublerAlone: 50 })).total, 50, '开关打开：单吃 +50');
   assert.equal(R.scoreCaptured([R.DOUBLER, H('2')]).total, -4);
   assert.equal(R.scoreCaptured([H('A'), H('K'), H('8'), H('7'), R.PIG, R.DOUBLER]).total, -258);
   assert.equal(R.scoreCaptured([R.SHEEP, R.DOUBLER]).total, 200);
@@ -121,7 +123,6 @@ test('first lead must be the spade two when required', () => {
 
 /* ───── 可选规则（设置开关） ───── */
 
-const ctx = (rules, exposed, swap) => ({ rules: R.normalizeRules(rules), exposed: exposed || [], swap: !!swap });
 
 test('rules normalize to defaults', () => {
   assert.deepEqual(R.normalizeRules(null), R.DEFAULT_RULES);
@@ -138,7 +139,7 @@ test('classic heart values', () => {
 });
 
 test('exposed cards double', () => {
-  const c = (ex) => ctx({ hearts: 'classic' }, ex);
+  const c = (ex) => ctx({ hearts: 'classic', doublerAlone: 50 }, ex);
   assert.equal(R.scoreCaptured([H('A'), H('K'), H('8'), H('7'), R.PIG], c([R.HEART_ACE])).total, -320, '维基：亮 ♥A');
   assert.equal(R.scoreCaptured([H('A'), H('K'), H('8'), H('7'), R.PIG], c([R.PIG])).total, -310, '维基：亮猪');
   assert.equal(R.scoreCaptured([R.SHEEP], c([R.SHEEP])).total, 200);

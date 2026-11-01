@@ -6,6 +6,8 @@
 
   const R = window.GongzhuRules;
   const AI = window.GongzhuAI;
+  const T = window.GongzhuTutorial;
+  const TUT_KEY = 'gz.tut.v1';
   const STORE_KEY = 'gz.match.v1';
   const SETTINGS_KEY = 'gz.settings.v1';
   const VERSION = '20261101d';   // 加了规则开关和亮牌，局面结构变了，旧存档作废
@@ -23,6 +25,9 @@
   // 本机调试：?gzauto=1 让「我」也由 AI 代打并加速，用来一口气验到结算 / 一盘结束
   const AUTO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('gzauto') === '1';
   if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, fade: 120, roundEnd: 60 });
+  // 教程放慢：机器人出牌、收墩都留足时间看清
+  const TUT_PACE = { aiMin: 950, trickShow: 1100, fly: 520, fade: 320, roundEnd: 500 };
+  const pace = () => (match && match.tutorial ? TUT_PACE : PACE);
 
   const $ = (id) => document.getElementById(id);
   const els = {
@@ -30,6 +35,7 @@
     hand: $('gzHand'), play: $('gzPlayBtn'),
     roundNo: $('gzRoundNo'),
     mask: $('gzDialogMask'), dialog: $('gzDialog'),
+    coach: $('gzCoach'),
     seats: [0, 1, 2, 3].map((s) => $('gzSeat' + s)),
     slots: [0, 1, 2, 3].map((s) => document.querySelector('.gz-slot-' + s)),
   };
@@ -54,7 +60,7 @@
     // 规则在开盘时定下，中途改设置从下一盘起生效
     match = { rules: R.normalizeRules(settings.rules), totals: [0, 0, 0, 0], roundNo: 0, pigTaker: -1, seed: (Math.random() * 2 ** 31) | 0, round: null, exposing: [], last: null, over: false };
   }
-  function save() { writeJSON(STORE_KEY, { v: VERSION, match }); }
+  function save() { if (!match.tutorial) writeJSON(STORE_KEY, { v: VERSION, match }); }
 
   /* ───── 卡面（四象限，参数逐字取自掼蛋 / 斗地主定稿） ───── */
 
@@ -212,7 +218,7 @@
 
   function renderSeats() {
     for (let s = 0; s < 4; s++) renderSeat(s);
-    els.roundNo.textContent = '第 ' + match.roundNo + (match.rules.end === 'rounds10' ? ' / 10' : '') + ' 局';
+    els.roundNo.textContent = match.tutorial ? '新手教程' : '第 ' + match.roundNo + (match.rules.end === 'rounds10' ? ' / 10' : '') + ' 局';
   }
 
   /* plays 缺省为当前墩；一墩刚打完时 r.trick 已清空，传入完成的那一墩继续展示 */
@@ -298,11 +304,17 @@
     const my = token;
     setTimeout(() => { if (my === token) fn(); }, ms);
   }
+  // AI 结果是异步回来的：发请求时就记下 token，回来时已经重开 / 进了教程就丢掉
+  function guard(fn) {
+    const my = token;
+    return (x) => { if (my === token) fn(x); };
+  }
 
   function step() {
     const r = match.round;
     if (!r) return;
-    if (R.isRoundOver(r)) { schedule(finishRound, PACE.roundEnd); return; }
+    if (R.isRoundOver(r)) { schedule(finishRound, pace().roundEnd); return; }
+    if (match.tutorial) { tutStep(); return; }
     if (match.exposing.length) { exposeStep(); return; }
     renderSeats();
     if (r.turn === 0 && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyTimeout); return; }
@@ -311,10 +323,10 @@
     const started = performance.now();
     const seat = r.turn;
     if (seat !== 0) startClock(seat, null);
-    chooseAi(r, seat, seat === 0 ? takeoverTier(botTiers()) : seatTier(seat)).then((card) => {
-      const wait = Math.max(0, PACE.aiMin - (performance.now() - started));
+    chooseAi(r, seat, seat === 0 ? takeoverTier(botTiers()) : seatTier(seat)).then(guard((card) => {
+      const wait = Math.max(0, pace().aiMin - (performance.now() - started));
       schedule(() => commit(seat, card), wait);
-    });
+    }));
   }
 
   /* ───── 亮牌环节 ───── */
@@ -328,10 +340,10 @@
     renderHand();
     const started = performance.now();
     if (seat !== 0) startClock(seat, null);
-    chooseExpose(r, seat, seat === 0 ? takeoverTier(botTiers()) : seatTier(seat)).then((cards) => {
-      const wait = Math.max(0, PACE.aiMin - (performance.now() - started));
+    chooseExpose(r, seat, seat === 0 ? takeoverTier(botTiers()) : seatTier(seat)).then(guard((cards) => {
+      const wait = Math.max(0, pace().aiMin - (performance.now() - started));
       schedule(() => applyExpose(seat, cards), wait);
-    });
+    }));
   }
 
   function applyExpose(seat, cards) {
@@ -354,7 +366,7 @@
     busy = true;
     exposePick = [];
     renderHand();
-    chooseExpose(match.round, 0, takeoverTier(botTiers())).then((cards) => schedule(() => applyExpose(0, cards), 0));
+    chooseExpose(match.round, 0, takeoverTier(botTiers())).then(guard((cards) => schedule(() => applyExpose(0, cards), 0)));
   }
 
   function commit(seat, card) {
@@ -362,7 +374,8 @@
     stopClock();
     const done = R.playCard(r, seat, card);
     if (seat === 0) selected = -1;
-    busy = !!done || r.turn !== 0;
+    if (seat === 0 && match.tutorial) hideCoach();
+    busy = true;   // 下一手由 step() 接手，轮到我时它再放开；早放开会让我抢在 step 前出牌、排出两次 step
     renderTrick(done ? done.plays : null, seat);
     renderSeat(seat);
     renderHand();
@@ -371,8 +384,12 @@
     for (let s = 0; s < 4; s++) els.seats[s].classList.remove('is-turn');
     schedule(() => {
       const ms = flyTrick(done.plays, done.winner);
-      schedule(() => { save(); step(); }, ms + 40);
-    }, PACE.trickShow);
+      schedule(() => {
+        save();
+        if (match.tutorial) coachSay(tut.coach.afterTrick(done, r), step);
+        else step();
+      }, ms + 40);
+    }, pace().trickShow);
   }
 
   /* 吃进来的牌只有分牌会留在吃牌区，所以只有它们飞过去：缩成小牌落到自己的位置。
@@ -395,7 +412,7 @@
       fl.classList.add('gz-flyer');
       fl.style.cssText += ';left:' + a.left + 'px;top:' + a.top + 'px;width:' + a.width + 'px;height:' + a.height + 'px;--q:' + a.width + 'px';
       fl.style.transform = 'rotate(' + rot + ')';
-      fl.style.transitionDuration = (reduce ? 1 : scoring ? PACE.fly : PACE.fade) + 'ms';
+      fl.style.transitionDuration = (reduce ? 1 : scoring ? pace().fly : pace().fade) + 'ms';
       els.app.appendChild(fl);
       flyers.push({ fl, a, rot, target: scoring ? caps.querySelector('[data-card="' + p.card + '"]') : null });
     });
@@ -410,7 +427,7 @@
         fl.style.opacity = '0';
       }
     }
-    const ms = reduce ? 20 : fresh.length ? PACE.fly : PACE.fade;
+    const ms = reduce ? 20 : fresh.length ? pace().fly : pace().fade;
     setTimeout(() => {
       flyers.forEach(({ fl }) => fl.remove());
       caps.querySelectorAll('.incoming').forEach((el) => { el.classList.remove('incoming'); el.classList.add('landed'); });
@@ -427,6 +444,7 @@
 
   function startClock(seat, onTimeout) {
     stopClock();
+    if (match.tutorial) return;   // 教程不计时
     const total = (settings.turnSec | 0) * 1000;
     if (!total) return;
     Object.assign(clock, { seat, left: total, onTimeout, paused: false });
@@ -482,7 +500,7 @@
     busy = true;
     selected = -1;
     renderHand();
-    chooseAi(r, 0, takeoverTier(botTiers())).then((card) => schedule(() => commit(0, card), 0));
+    chooseAi(r, 0, takeoverTier(botTiers())).then(guard((card) => schedule(() => commit(0, card), 0)));
   }
 
   function setAutopilot(on) {
@@ -518,6 +536,11 @@
     el.classList.remove('nope');
     void el.offsetWidth;
     el.classList.add('nope');
+    if (match.tutorial && !els.coach.hidden) {   // 教程里点错：提示框也跟着闪一下，再看一遍
+      els.coach.classList.remove('pulse');
+      void els.coach.offsetWidth;
+      els.coach.classList.add('pulse');
+    }
   }
 
   function playSelected() {
@@ -612,14 +635,15 @@
       '<span class="gz-res-caps gz-caps"></span>' +
       '<span class="gz-res-n gz-num ' + cls(last.scores[s]) + '">' + signed(last.scores[s]) + '</span>' +
       '<span class="gz-res-n gz-res-tot gz-num ' + cls(match.totals[s]) + '">' + signed(match.totals[s]) + '</span></div>').join('');
-    const title = match.over
+    const title = match.tutorial ? '教程完成' : match.over
       ? losers.map((s) => (s === 0 ? '你' : NAMES[s])).join('、') + (losers.length > 1 ? '都' : '') + '当了猪'
       : '第 ' + last.roundNo + ' 局';
     openDialog(
       '<h2>' + title + '</h2>' +
       '<div class="gz-res"><div class="gz-res-row gz-res-head"><span></span><span></span><span class="gz-res-n">本局</span><span class="gz-res-n">累计</span></div>' + rows + '</div>' +
       '<div class="gz-actions">' +
-      (match.over ? '<button type="button" class="gz-btn gz-btn-primary" data-act="again" data-autofocus>再来一盘</button>'
+      (match.tutorial ? '<button type="button" class="gz-btn gz-btn-primary" data-act="tut-done" data-autofocus>开始第一盘</button>'
+        : match.over ? '<button type="button" class="gz-btn gz-btn-primary" data-act="again" data-autofocus>再来一盘</button>'
         : '<button type="button" class="gz-btn gz-btn-primary" data-act="next" data-autofocus>下一局</button>') +
       '</div>',
       (d) => {
@@ -631,6 +655,7 @@
         });
         d.querySelector('[data-act]').addEventListener('click', (e) => {
           closeDialog();
+          if (e.currentTarget.dataset.act === 'tut-done') { endTutorial(); return; }
           if (e.currentTarget.dataset.act === 'again') { token++; setAutopilot(false); newMatch(); }
           startRound();
         });
@@ -671,16 +696,20 @@
     return '<dl class="gz-rules">' +
       '<dt>出牌</dt><dd>四人各 13 张。' + lead + '有领出的花色就必须跟，没有可以垫任意一张。领出花色里最大的牌吃下这一墩，下一墩由他先出。</dd>' +
       '<dt>分牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。' + hearts + '</dd>' +
-      '<dt>变压器 ♣10</dt><dd>吃到它，你这一局的分数（不论正负）翻倍；只吃到它一张、别的分牌都没吃到，算 +50。</dd>' +
+      '<dt>变压器 ♣10</dt><dd>它本身不算分，吃到它，你这一局的分数（不论正负）翻倍' + (rules.doublerAlone === 50 ? '；只吃到它一张、别的分牌都没吃到，算 +50。' : '。') + '</dd>' +
       '<dt>全红</dt><dd>一个人吃齐 13 张红桃，红桃改记 +200。' + pigLine + '</dd>' +
-      (rules.expose ? '<dt>亮牌</dt><dd>开打前，♥A、♠Q、♦J、♣10 可以亮给大家看，效果翻倍：亮 ♥A 红桃全部 ×2，亮猪 −200，亮羊 +200，亮变压器 ×4（单吃 +100）。亮出的牌在这门第一次被领出的那一墩里不能出，也不能拿它领这门，除非这门只剩它一张；垫牌不受限。</dd>' : '') +
+      (rules.expose ? '<dt>亮牌</dt><dd>开打前，♥A、♠Q、♦J、♣10 可以亮给大家看，效果翻倍：亮 ♥A 红桃全部 ×2，亮猪 −200，亮羊 +200，亮变压器 ×4' + (rules.doublerAlone === 50 ? '（单吃 +100）' : '') + '。亮出的牌在这门第一次被领出的那一墩里不能出，也不能拿它领这门，除非这门只剩它一张；垫牌不受限。</dd>' : '') +
       '<dt>一盘</dt><dd>' + end + '分最低的人当猪，并列都是。</dd></dl>';
   }
 
   function showRules() {
     openDialog('<h2>拱猪规则</h2>' + rulesHtml(match.rules) +
-      '<div class="gz-actions"><button type="button" class="gz-btn" data-close data-autofocus>知道了</button></div>',
-      (d) => d.querySelector('[data-close]').addEventListener('click', closeDialog));
+      '<div class="gz-actions"><button type="button" class="gz-btn" data-act="tutorial">新手教程</button>' +
+      '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>知道了</button></div>',
+      (d) => {
+        d.querySelector('[data-close]').addEventListener('click', closeDialog);
+        d.querySelector('[data-act="tutorial"]').addEventListener('click', () => { closeDialog(); startTutorial(); });
+      });
   }
 
   /* 设置里的规则开关：[键, 标题, [[值, 选项文字], ...]] */
@@ -689,6 +718,7 @@
     ['leader', '每局谁先出', [['spade2', '有 ♠2 的人'], ['pig', '上局吃猪的人']]],
     ['hearts', '红桃计分', [['face', '按牌面'], ['classic', '经典 A −50']]],
     ['allHeartsPig', '全红时的猪', [['slam', '大满贯才变正'], ['hearts', '全红就变正'], ['manjuan', '猪羊满圈'], ['swap', '猪羊变色']]],
+    ['doublerAlone', '单吃变压器', [[0, '不加分'], [50, '+50']]],
     ['expose', '亮牌', [[true, '可以亮'], [false, '不亮']]],
     ['end', '一盘结束', [['lose1000', '有人到 −1000'], ['pm1000', '有人到 ±1000'], ['rounds10', '打满 10 局'], ['none', '不设终点']]],
   ];
@@ -699,11 +729,12 @@
     openDialog(
       '<h2>设置</h2><div class="gz-field-label">AI 水平</div><div class="gz-seg" role="group">' + seg + '</div>' +
       '<div class="gz-field-label">出牌限时</div><div class="gz-seg" role="group">' + secs + '</div>' +
-      '<h3 class="gz-sub">规则</h3>' +
+      // 规则开关收在「玩法变体」里，默认折叠：新手先学一套完整规则，变体以后自己发现
+      '<details class="gz-variants"' + (JSON.stringify(settings.rules) !== JSON.stringify(R.normalizeRules({})) ? ' open' : '') + '><summary>玩法变体</summary>' +
       RULE_UI.map(([k, label, opts]) => '<div class="gz-field-label">' + label + '</div><div class="gz-seg' + (opts.length > 2 ? ' is-4' : '') + '" role="group">' +
         opts.map(([v, t]) => '<button type="button" data-rule="' + k + '" data-val="' + v + '" aria-pressed="' + (settings.rules[k] === v) + '">' + t + '</button>').join('') +
         '</div>').join('') +
-      '<p class="gz-note" data-rule-note hidden>规则改动从下一盘起生效。</p>' +
+      '<p class="gz-note" data-rule-note hidden>规则改动从下一盘起生效。</p></details>' +
       '<div class="gz-actions"><button type="button" class="gz-btn" data-act="restart">重开一盘</button>' +
       '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
       (d) => {
@@ -741,12 +772,112 @@
       });
   }
 
+  /* ───── 新手教程：固定一副牌 + 三家「导演」出牌 + 按事件讲解（内容在 gongzhu-tutorial.js） ───── */
+
+  let tut = null;   // { coach, saved: 教程前的那一盘（教完放回去）, firstRun }
+
+  function startTutorial(firstRun) {
+    token++;
+    stopClock();
+    setAutopilot(false);
+    tut = { coach: T.createCoach(), saved: match && !match.tutorial ? match : (tut && tut.saved), firstRun: !!firstRun };
+    match = { tutorial: true, rules: T.RULES, totals: [0, 0, 0, 0], roundNo: 1, pigTaker: -1, seed: 0, round: T.createRound(), exposing: [], last: null, over: false };
+    selected = -1;
+    busy = true;
+    els.table.classList.add('is-tutorial');
+    hideCoach();
+    renderAll();
+    schedule(step, 500);
+  }
+
+  function endTutorial() {
+    token++;
+    writeJSON(TUT_KEY, 1);
+    els.table.classList.remove('is-tutorial');
+    hideCoach();
+    const back = tut && tut.saved;
+    if (tut && tut.firstRun) { settings.tier = 'easy'; writeJSON(SETTINGS_KEY, settings); }   // 第一次学完：先跟「入门」打
+    tut = null;
+    busy = false;
+    selected = -1;
+    if (back && !back.over && (back.round || back.last)) {
+      match = back;
+      renderAll();
+      if (match.round) step();
+      else showSettlement();
+      return;
+    }
+    newMatch();
+    startRound();
+  }
+
+  function tutStep() {
+    const r = match.round;
+    renderSeats();
+    if (r.turn === 0) {
+      busy = false;
+      renderHand();
+      const h = tut.coach.hint(r);
+      if (h) showCoach({ text: h }, null);
+      return;
+    }
+    busy = true;
+    renderHand();
+    const seat = r.turn;
+    schedule(() => commit(seat, T.director(r, seat)), pace().aiMin);
+  }
+
+  // 讲解一段段地说，每段点「继续」；说完回到 done
+  function coachSay(msgs, done) {
+    if (!msgs.length) { hideCoach(); done(); return; }
+    showCoach(msgs[0], () => coachSay(msgs.slice(1), done));
+  }
+
+  function inlineCards(text) {
+    return text.replace(/\{([♠♥♦♣])([0-9JQKA]+)\}/g, (_, su, rk) =>
+      '<span class="gz-ic ' + (su === '♥' || su === '♦' ? 'suit-red' : 'suit-black') + '">' + su + rk + '</span>');
+  }
+
+  function showCoach(msg, onNext) {
+    const c = els.coach;
+    c.querySelector('.gz-coach-text').innerHTML = inlineCards(msg.text);
+    const parts = c.querySelector('.gz-coach-parts');
+    parts.innerHTML = '';
+    if (msg.parts) {
+      let sum = 0;
+      for (const p of msg.parts) {
+        sum += p.value;
+        const cell = document.createElement('span');
+        cell.className = 'gz-part';
+        const m = buildCard(p.card);
+        m.classList.add('gz-mini');
+        const v = document.createElement('span');
+        v.className = 'gz-num neg';
+        v.textContent = signed(p.value);
+        cell.append(m, v);
+        parts.appendChild(cell);
+      }
+      const eq = document.createElement('span');
+      eq.className = 'gz-part-sum gz-num neg';
+      eq.textContent = '= ' + signed(sum);
+      parts.appendChild(eq);
+    }
+    const next = c.querySelector('[data-coach="next"]');
+    next.hidden = !onNext;
+    next.onclick = onNext ? () => { next.onclick = null; onNext(); } : null;
+    c.hidden = false;
+    c.classList.remove('pulse');
+    if (onNext) next.focus({ preventScroll: true });
+  }
+  function hideCoach() { els.coach.hidden = true; }
+
   /* ───── 启动 ───── */
 
   els.play.addEventListener('click', playSelected);
   $('gzRulesBtn').addEventListener('click', showRules);
   $('gzSettingsBtn').addEventListener('click', showSettings);
-  $('gzRoundInfo').addEventListener('click', showTotals);
+  $('gzRoundInfo').addEventListener('click', () => { if (!match.tutorial) showTotals(); });
+  els.coach.querySelector('[data-coach="skip"]').addEventListener('click', endTutorial);
   els.seats[0].addEventListener('click', (e) => { if (autopilot && e.target.closest('.gz-avatar')) setAutopilot(false); });
   // 点遮罩关闭普通弹窗；结算弹窗必须点按钮继续
   els.mask.addEventListener('click', (e) => { if (e.target === els.mask && match.round) closeDialog(); });
@@ -765,10 +896,22 @@
   const saved = readJSON(STORE_KEY);
   if (saved && saved.v === VERSION && saved.match && !saved.match.over) {
     match = saved.match;
+    match.rules = R.normalizeRules(match.rules);
     renderAll();
     if (match.round) step();
     else if (match.last) showSettlement();
     else startRound();
+  } else if (!readJSON(TUT_KEY) && !AUTO) {
+    // 第一次来：问一句要不要先学
+    newMatch();
+    renderAll();
+    openDialog('<h2>第一次玩拱猪？</h2><p>跟着打一局，边打边学，几分钟就会。</p>' +
+      '<div class="gz-actions"><button type="button" class="gz-btn" data-act="skip">直接开打</button>' +
+      '<button type="button" class="gz-btn gz-btn-primary" data-act="learn" data-autofocus>先学一局</button></div>',
+      (d) => {
+        d.querySelector('[data-act="learn"]').addEventListener('click', () => { closeDialog(); match = null; startTutorial(true); });
+        d.querySelector('[data-act="skip"]').addEventListener('click', () => { closeDialog(); writeJSON(TUT_KEY, 1); startRound(); });
+      });
   } else {
     newMatch();
     startRound();

@@ -4,7 +4,7 @@
  *   52 张、4 人各 13 张、不换牌；有该花色必须跟，没有可垫任意牌；任何牌都可领出（红桃不必「破」）；
  *   没有将牌，每墩由领出花色中最大的一张吃进；首墩也可以垫分牌。
  *   计分：猪 ♠Q −100；羊 ♦J +100；
- *         变压器 ♣10：只吃到它、没有任何其它分牌 → +50；否则全部分数（正负都算）×2；
+ *         变压器 ♣10：本身不计分，把这一局的分数（正负都算）×2；只吃到它一张默认记 0（开关可改成通行的 +50）；
  *         全红（13 张红桃一人吃齐）→ 红桃记 +200；
  *         大满贯（红桃全 + 猪 + 羊 + 变压器）→ 全部为正 → (200+100+100)×2 = +800。
  *   亮牌：开局前 ♥A ♠Q ♦J ♣10 的持有者可以亮出：♥A 亮 → 红桃全部 ×2（全红 +400）；
@@ -19,6 +19,7 @@
  *   allHeartsPig   全红时猪怎么算：'slam' 只有大满贯才变正 | 'hearts' 全红 + 猪即变 +100（Pagat）
  *                  | 'manjuan' 全红 + 猪 + 羊才变正（猪羊满圈）| 'swap' 有人全红时这一局所有人的猪羊互换正负（猪羊变色，大满贯除外）
  *   expose         是否允许亮牌
+ *   doublerAlone   只吃到变压器、没有别的分牌时记几分：0（默认，用户定）| 50（通行规则）
  *   end            一盘何时结束：'lose1000' 有人到 −1000 | 'pm1000' 有人到 ±1000 | 'rounds10' 打满 10 局 | 'none' 不设终点
  *                  结束时分最低的人当猪，并列都是猪。
  *
@@ -51,10 +52,11 @@
     hearts: ['face', 'classic'],
     allHeartsPig: ['slam', 'hearts', 'manjuan', 'swap'],
     expose: [true, false],
+    doublerAlone: [0, 50],
     end: ['lose1000', 'pm1000', 'rounds10', 'none'],
   });
   const DEFAULT_RULES = Object.freeze({
-    spadeTwoFirst: true, leader: 'spade2', hearts: 'face', allHeartsPig: 'slam', expose: true, end: 'lose1000',
+    spadeTwoFirst: true, leader: 'spade2', hearts: 'face', allHeartsPig: 'slam', expose: true, doublerAlone: 0, end: 'lose1000',
   });
   /* 缺省 / 不认识的值都回落到默认值；老代码不传 rules 时行为与 2026-11-01 定稿一致（不亮牌另行由 exposed 为空保证） */
   function normalizeRules(x) {
@@ -161,7 +163,7 @@
     const sheepScore = sheep ? (swapped ? -sheepVal : sheepVal) : 0;
     const others = hearts > 0 || pig || sheep;
     let total;
-    if (doubler && !others) total = dblMul * 25;   // 单吃：+50，亮过 +100
+    if (doubler && !others) total = rules.doublerAlone === 50 ? dblMul * 25 : 0;   // 单吃：默认 0；开关打开 +50，亮过 +100
     else total = (heartScore + pigScore + sheepScore) * (doubler ? dblMul : 1);
     return {
       total,
