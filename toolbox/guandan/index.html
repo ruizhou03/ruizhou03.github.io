@@ -8,14 +8,14 @@ apple_touch_icon: /assets/icons/guandan-apple-touch-icon.png
 app_title: 掼蛋
 theme_color: "#173a30"
 theme_color_dark: "#0b1d1a"
-asset_version: "20261031ui8"
+asset_version: "20261031ui9"
 minimal_app_shell: true
 # 服务端就给 <body> 带上全屏类：进页面首帧即全屏，杜绝"先停在非全屏再跳全屏"的闪烁。
 # （JS 启动时也会再加一次，幂等兜底。）
 body_class: gd-game-fullscreen
 ---
 
-<link rel="stylesheet" href="/assets/css/games-shell.css?v=20261031ui8">
+<link rel="stylesheet" href="/assets/css/games-shell.css?v=20261031ui9">
 
 <script>
   /* 游戏仍须遵守浏览器缩放与系统辅助功能。只覆盖 viewport-fit，不限制 200%+
@@ -82,7 +82,7 @@ body_class: gd-game-fullscreen
   })();
 </script>
 
-<link rel="stylesheet" href="/assets/css/guandan.css?v=20261031ui8">
+<link rel="stylesheet" href="/assets/css/guandan.css?v=20261031ui9">
 
 <div class="guandan-wrap gd-view-setup">
   <!-- 手机竖屏引导：仅触屏竖屏显示（CSS 控制），盖住整屏提示转横屏 -->
@@ -178,7 +178,7 @@ body_class: gd-game-fullscreen
           <span class="gd-rank-badge" id="gdRk0" hidden></span>
         </div>
         <!-- 托管：纯机器人图标，无文字。点一下进入托管、图标变橙高亮；再点取消。 -->
-        <button class="gd-autopilot-chip" id="gdAutopilotBtn" type="button" title="托管：让 AI 替你打牌（再点一下取消）" aria-label="托管未开启" aria-pressed="false">[[zi:bot]]</button>
+        <button class="gd-autopilot-chip" id="gdAutopilotBtn" type="button" title="托管：让 AI 替你打牌（再点一下取消）" aria-label="托管未开启" aria-pressed="false">[[zi:bot]]<span class="gd-autopilot-tx">托管</span></button>
       </div>
     </div>
 
@@ -186,6 +186,8 @@ body_class: gd-game-fullscreen
          互斥显示）—— 轮到我时显示按钮；一旦做出决定，按钮消失、同一格立刻拿来显示打出的牌/
          决定文字，省掉「按钮一行 + 出牌一行」分占两段纵向空间。手机/电脑同一套机制。 -->
     <div class="gd-play-band">
+      <!-- 提示行（规格 2.1 / 通道 D）：给「我」的操作指引与选牌预判；读屏另走 live region -->
+      <div class="gd-band-hint" id="gdBandHint" aria-hidden="true"></div>
       <div class="gd-myplay-row">
         <div class="gd-played" id="gdPlay0Center"></div>
       </div>
@@ -199,20 +201,25 @@ body_class: gd-game-fullscreen
           <path d="M9.5 3.5 H14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
         </svg><span class="gd-self-clock-num">25</span><span class="gd-self-clock-s">s</span>
       </span>
-      <button class="gd-btn" id="gdPassBtn" type="button" hidden>不出</button>
-      <button class="gd-btn" id="gdHintBtn" type="button" hidden>提示</button>
-      <button class="gd-btn primary" id="gdPlayBtn" type="button" hidden>出牌</button>
+      <!-- 三个固定槽位（规格 2.1）：左 否定 / 中 辅助 / 右 肯定；不能用时变灰、不挪位 -->
+      <button class="gd-btn gd-slot" id="gdPassBtn" type="button" hidden>不出</button>
+      <button class="gd-btn gd-slot" id="gdHintBtn" type="button" hidden>提示</button>
+      <button class="gd-btn gd-slot" id="gdAutoCancelBtn" type="button" hidden>取消托管</button>
+      <button class="gd-btn gd-slot primary" id="gdPlayBtn" type="button" hidden>出牌</button>
     </div>
     </div><!-- /.gd-play-band -->
 
     <div class="gd-hand" id="gdHand" role="group" aria-label="我的手牌"></div>
 
-    <!-- 理牌行：在表桌右下角纵向排列。还原一直可见，点击在无可还原选中时静默失败 -->
+    <!-- 理牌（规格 2.3）：一个随选中状态变化的主按钮（重排 / 成组 / 拆组）+「⋯」菜单。
+         菜单里放「恢复默认排序」与「调整顺序」。 -->
     <div class="gd-sort-actions" id="gdSortActions">
-      <button class="gd-btn" id="gdRestoreBtn" type="button" title="选中某一摞的全部牌后点击，把它解散回默认位置"><svg class="gd-btn-ic" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M8.5 5.5 L4 9.5 L8.5 13.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9.5 H14.5 a4.8 4.8 0 0 1 0 9.6 H9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="gd-btn-tx">还原</span></button>
-      <button class="gd-btn" id="gdArrangeBtn" type="button" title="选中若干张点击，把它们摞成一摞：炸弹自动摞左、其他摞右"><svg class="gd-btn-ic" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><rect x="3.2" y="9" width="9.6" height="12.2" rx="1.8" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.4"/><rect x="7.2" y="6" width="9.6" height="12.2" rx="1.8" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.4"/><rect x="11.2" y="3" width="9.6" height="12.2" rx="1.8" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.4"/></svg><span class="gd-btn-tx">理牌</span></button>
-      <button class="gd-btn" id="gdSortBtn" type="button" title="清掉所有自定义摞，恢复默认排序"><svg class="gd-btn-ic" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><rect x="3.5" y="7.5" width="8.2" height="12" rx="1.6" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="7.5" width="8.2" height="12" rx="1.6" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.3"/><path d="M18.6 3 L19.5 5.4 L21.9 6.3 L19.5 7.2 L18.6 9.6 L17.7 7.2 L15.3 6.3 L17.7 5.4 Z" fill="currentColor"/></svg><span class="gd-btn-tx">一键理牌</span></button>
-      <button class="gd-btn" id="gdOrderBtn" type="button" aria-expanded="false" aria-controls="gdOrderActions" title="进入显式调整顺序模式"><span aria-hidden="true">↔</span><span class="gd-btn-tx">调整顺序</span></button>
+      <div class="gd-sort-menu" id="gdSortMenu" role="menu" aria-label="更多理牌操作" hidden>
+        <button class="gd-btn" id="gdSortBtn" type="button" role="menuitem">恢复默认排序</button>
+        <button class="gd-btn" id="gdOrderBtn" type="button" aria-expanded="false" aria-controls="gdOrderActions" role="menuitem">调整顺序</button>
+      </div>
+      <button class="gd-btn" id="gdSortMainBtn" type="button"><svg class="gd-btn-ic" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><rect x="3.2" y="9" width="9.6" height="12.2" rx="1.8" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.4"/><rect x="7.2" y="6" width="9.6" height="12.2" rx="1.8" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.4"/><rect x="11.2" y="3" width="9.6" height="12.2" rx="1.8" fill="var(--gd-card-bg)" stroke="currentColor" stroke-width="1.4"/></svg><span class="gd-btn-tx" id="gdSortMainTx">重排</span></button>
+      <button class="gd-btn" id="gdSortMoreBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="gdSortMenu" aria-label="更多理牌操作"><span aria-hidden="true">⋯</span></button>
     </div>
     <div class="gd-order-actions" id="gdOrderActions" aria-label="调整手牌顺序">
       <div class="gd-order-status" id="gdOrderStatus">先选一张牌，再向左或向右移动整列。</div>
@@ -334,16 +341,6 @@ body_class: gd-game-fullscreen
       </div>
     </div>
 
-    <!-- 进贡 / 还贡 浮层 -->
-    <div class="gd-overlay" id="gdTributeOverlay" role="dialog" aria-modal="true" aria-labelledby="gdTribTitle">
-      <div class="panel">
-        <h2 id="gdTribTitle">进贡</h2>
-        <div class="sub" id="gdTribDesc"></div>
-        <div class="gd-tribute-pick" id="gdTribPick"></div>
-        <button class="gd-btn primary" id="gdTribConfirm" type="button">确定</button>
-      </div>
-    </div>
-
     <!-- 回合结算（参考欢乐斗地主 VS 双队结算） -->
     <div class="gd-overlay" id="gdRoundOverlay" role="dialog" aria-modal="true" aria-labelledby="gdRoundTitle">
       <div class="gd-result-panel">
@@ -432,15 +429,15 @@ body_class: gd-game-fullscreen
   <output id="gdPerfProbe" hidden aria-hidden="true"></output>
 </div>
 
-<script src="/assets/js/games-shell/identity.js?v=20261031ui8" defer></script>
+<script src="/assets/js/games-shell/identity.js?v=20261031ui9" defer></script>
 
-<script src="/assets/js/games/guandan-contract.js?v=20261031ui8" defer></script>
-<script src="/assets/js/games/guandan-storage.js?v=20261031ui8" defer></script>
-<script src="/assets/js/games/guandan-net.js?v=20261031ui8" defer></script>
-<script src="/assets/js/games/guandan-audio.js?v=20261031ui8" defer></script>
-<script src="/assets/js/games/guandan-rules.js?v=20261031ui8" defer></script>
-<script src="/assets/js/games/guandan-engine.js?v=20261031ui8" defer></script>
-<script src="/assets/js/games/guandan-ui.js?v=20261031ui8" defer></script>
-<script src="/assets/js/games/guandan-debug.js?v=20261031ui8" defer></script>
+<script src="/assets/js/games/guandan-contract.js?v=20261031ui9" defer></script>
+<script src="/assets/js/games/guandan-storage.js?v=20261031ui9" defer></script>
+<script src="/assets/js/games/guandan-net.js?v=20261031ui9" defer></script>
+<script src="/assets/js/games/guandan-audio.js?v=20261031ui9" defer></script>
+<script src="/assets/js/games/guandan-rules.js?v=20261031ui9" defer></script>
+<script src="/assets/js/games/guandan-engine.js?v=20261031ui9" defer></script>
+<script src="/assets/js/games/guandan-ui.js?v=20261031ui9" defer></script>
+<script src="/assets/js/games/guandan-debug.js?v=20261031ui9" defer></script>
 <script src="/assets/js/games/guandan-ai-contract.js?v=20260727ai5" defer></script>
-<script src="/assets/js/games/guandan.min.js?v=20261031ui8" defer></script>
+<script src="/assets/js/games/guandan.min.js?v=20261031ui9" defer></script>

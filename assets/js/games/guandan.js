@@ -942,7 +942,9 @@
     revealGallery: $('gdRevealGallery'),
     playBtn: $('gdPlayBtn'), passBtn: $('gdPassBtn'),
     hintBtn: $('gdHintBtn'), sortBtn: $('gdSortBtn'),
-    arrangeBtn: $('gdArrangeBtn'), restoreBtn: $('gdRestoreBtn'),
+    sortMainBtn: $('gdSortMainBtn'), sortMainTx: $('gdSortMainTx'),
+    sortMoreBtn: $('gdSortMoreBtn'), sortMenu: $('gdSortMenu'),
+    bandHint: $('gdBandHint'), autoCancelBtn: $('gdAutoCancelBtn'),
     orderBtn: $('gdOrderBtn'), orderActions: $('gdOrderActions'),
     orderLeft: $('gdOrderLeft'), orderRight: $('gdOrderRight'),
     orderDone: $('gdOrderDone'), orderStatus: $('gdOrderStatus'),
@@ -956,8 +958,6 @@
     pgoTeamTrib: $('gdPgoTeamTrib'), pgoTurnSec: $('gdPgoTurnSec'), pgoCardSize: $('gdPgoCardSize'),
     gameOpts: $('gdGameOpts'), gameOptsToggle: $('gdGameOptsToggle'),
     gameOptsBody: $('gdGameOptsBody'), gameOptsSum: $('gdGameOptsSum'),
-    tribOverlay: $('gdTributeOverlay'), tribTitle: $('gdTribTitle'),
-    tribDesc: $('gdTribDesc'), tribPick: $('gdTribPick'), tribConfirm: $('gdTribConfirm'),
     roundOverlay: $('gdRoundOverlay'), roundTitle: $('gdRoundTitle'),
     roundNext: $('gdRoundNext'),
     roundLevelYou: $('gdResultLevelYou'), roundLevelOpp: $('gdResultLevelOpp'),
@@ -1528,6 +1528,15 @@
     grid.className = 'gd-reveal-grid';
     grid.style.setProperty('--gd-reveal-columns', columns);
     gallery.append(title, grid);
+    // 跳过（规格 S11）：不等 3 秒，直接看结算
+    if (typeof state._revealSkip === 'function') {
+      const skip = document.createElement('button');
+      skip.type = 'button';
+      skip.className = 'gd-btn primary gd-reveal-skip';
+      skip.textContent = '跳过，看结算';
+      skip.addEventListener('click', () => { if (typeof state._revealSkip === 'function') state._revealSkip(); });
+      gallery.append(skip);
+    }
     for (const seat of seats) {
       const section = document.createElement('section');
       section.className = 'gd-reveal-gallery-seat';
@@ -2107,7 +2116,10 @@
     announce(`已移动到第 ${to + 1} 列`);
   }
 
-  if (els.orderBtn) els.orderBtn.addEventListener('click', () => setOrderMode(!orderMode));
+  if (els.orderBtn) els.orderBtn.addEventListener('click', () => {
+    if (els.sortMenu) { els.sortMenu.hidden = true; if (els.sortMoreBtn) els.sortMoreBtn.setAttribute('aria-expanded', 'false'); }
+    setOrderMode(!orderMode);
+  });
   if (els.orderLeft) els.orderLeft.addEventListener('click', () => moveSelectedColumn(-1));
   if (els.orderRight) els.orderRight.addEventListener('click', () => moveSelectedColumn(1));
   if (els.orderDone) els.orderDone.addEventListener('click', () => setOrderMode(false));
@@ -2191,39 +2203,99 @@
     return map[cb.type] || cb.type;
   }
 
+  // 决策带三个固定槽位（规格 2.1）：按钮要么可用、要么变灰（disabled）、要么留白占位
+  // （empty：visibility:hidden 但仍占宽度），绝不因为状态变化而让别的按钮挪过来。
+  function setSlot(btn, o) {
+    if (!btn) return;
+    btn.hidden = false;
+    btn.classList.toggle('primary', !!o.primary);
+    btn.classList.toggle('gd-slot-empty', !!o.empty);
+    btn.disabled = !!(o.disabled || o.empty);
+    if (o.empty) btn.setAttribute('aria-hidden', 'true'); else btn.removeAttribute('aria-hidden');
+  }
+  function hideSlots() {
+    for (const btn of [els.passBtn, els.hintBtn, els.autoCancelBtn, els.playBtn]) {
+      if (btn) btn.hidden = true;
+    }
+  }
+  // 提示行（规格 2.1 / 3.1 通道 D）。flashBandError 的红字优先显示一小会儿。
+  let bandErr = null;
+  let bandErrTimer = null;
+  function setBandHint(text, isError) {
+    if (!els.bandHint) return;
+    els.bandHint.textContent = text || '';
+    els.bandHint.classList.toggle('is-error', !!isError);
+  }
+  function flashBandError(msg) {
+    bandErr = { msg, until: Date.now() + 1800 };
+    setBandHint(msg, true);
+    announce(msg);
+    if (els.hand) {
+      els.hand.classList.remove('gd-sel-shake');
+      void els.hand.offsetWidth;
+      els.hand.classList.add('gd-sel-shake');
+      setTimeout(() => els.hand && els.hand.classList.remove('gd-sel-shake'), 260);
+    }
+    clearTimeout(bandErrTimer);
+    bandErrTimer = setTimeout(() => { bandErr = null; updateActions(); }, 1850);
+  }
+  function tributePartnerName(role) {
+    const pt = state.pendingTribute;
+    const pairs = pt && Array.isArray(pt.pairs) ? pt.pairs : [];
+    const pair = role === 'give' ? pairs.find(p => p.giver === 0) : pairs.find(p => p.receiver === 0);
+    if (!pair) return '';
+    return seatName(role === 'give' ? pair.receiver : pair.giver);
+  }
+  // 选牌实时预判（规格 2.2）：选牌过程中提示行显示牌型名 / 不成牌型 / 压不过。
+  function selectionPreview(sel, trick, level) {
+    if (!sel.length) return '';
+    const cb = classify(sel, level, trick && trick.best);
+    if (!cb) return '不成牌型';
+    const needBeat = trick && trick.best != null && trick.bestSeat !== 0;
+    if (!needBeat) return comboName(cb);
+    return comboName(cb) + (beats(cb, trick.best) ? ' · 可以压过' : ' · 压不过');
+  }
+
   function updateActions() {
-    // 进贡阶段（玩家是 giver）：按钮文字"进贡"
+    const errActive = bandErr && Date.now() < bandErr.until;
+    let hint = '';
+    // 进贡阶段（玩家是 giver，规格 S1）：只有右槽「进贡」，左中两槽留白占位
     const tributeGive = activeTributeGive();
     if (tributeGive) {
-      els.playBtn.hidden = false;
-      els.playBtn.textContent = '进贡';
-      els.passBtn.hidden = true;
-      els.hintBtn.hidden = true;
       const sel = selectedCards();
-      els.playBtn.disabled = !(sel.length === 1 && tributeGive.validCards.includes(sel[0]));
+      els.playBtn.textContent = '进贡';
+      setSlot(els.passBtn, { empty: true });
+      setSlot(els.hintBtn, { empty: true });
+      if (els.autoCancelBtn) els.autoCancelBtn.hidden = true;
+      setSlot(els.playBtn, { primary: true, disabled: !(sel.length === 1 && tributeGive.validCards.includes(sel[0])) });
+      const to = tributePartnerName('give');
+      setBandHint(errActive ? bandErr.msg : '选一张最大的牌进贡' + (to ? '给' + to : ''), errActive);
       updateRestoreBtn();
       return;
     }
-    // 还贡阶段（玩家是收贡方）：按钮文字"还贡"
+    // 还贡阶段（玩家是收贡方，规格 S2）
     const tributeReturn = state.phase === PHASE.TRIBUTE && activeTributePair();
     if (tributeReturn) {
-      els.playBtn.hidden = false;
-      els.playBtn.textContent = '还贡';
-      els.passBtn.hidden = true;
-      els.hintBtn.hidden = true;
       const sel = selectedCards();
-      els.playBtn.disabled = !(sel.length === 1 && isValidReturnCard(sel[0]));
+      els.playBtn.textContent = '还贡';
+      setSlot(els.passBtn, { empty: true });
+      setSlot(els.hintBtn, { empty: true });
+      if (els.autoCancelBtn) els.autoCancelBtn.hidden = true;
+      setSlot(els.playBtn, { primary: true, disabled: !(sel.length === 1 && isValidReturnCard(sel[0])) });
+      const to = tributePartnerName('return');
+      setBandHint(errActive ? bandErr.msg : '选一张 10 以下的牌还' + (to ? '给' + to : ''), errActive);
       updateRestoreBtn();
       return;
     }
     // 正常打牌：把按钮文字复位为"出牌"
     els.playBtn.textContent = '出牌';
+    if (state.phase === PHASE.TRIBUTE) hint = '等待进贡…';
     const myTurn = state.phase === PHASE.PLAYING && state.turn === 0 && !state.busy && !state.out.includes(0);
     const trick = state.trick;
     const mustLead = trick && (trick.best == null || trick.bestSeat === 0);
 
-    // "压不过上家"检测：跟牌场景下，手里若无任何能压的组合 → 灰显手牌、
-    // 隐藏 提示/出牌，只剩 不出（仿斗地主 refreshNoPlayState）。无文字提示。
+    // "压不过上家"检测（规格 S6）：跟牌场景下手里没有任何能压的组合 → 手牌变暗（仍可选），
+    // 「不出」升为主按钮，提示 / 出牌变灰但不挪位，提示行写明「没有能压过的牌」。
     let noPlay = false;
     if (myTurn && !mustLead) {
       const level = currentLevelLabel();
@@ -2232,12 +2304,17 @@
     }
     if (els.hand) els.hand.classList.toggle('no-play', noPlay);
 
-    // 托管中：操作按钮一律藏起来（450ms 后系统会替我出牌，不要让用户点）
+    // 托管中轮到我（规格 S8）：左右两槽留白，中槽换成「取消托管」。
     const showActions = myTurn && !state.autopilot;
-    els.playBtn.hidden = !showActions || noPlay;
-    els.hintBtn.hidden = !showActions || noPlay;
-    els.passBtn.hidden = !showActions || mustLead;
-    if (myTurn) {
+    const autoTurn = myTurn && !!state.autopilot;
+    if (state.autopilot && state.phase === PHASE.PLAYING && !state.out.includes(0)) hint = '托管中，AI 替你出牌';
+    if (autoTurn) {
+      setSlot(els.passBtn, { empty: true });
+      els.hintBtn.hidden = true;
+      setSlot(els.autoCancelBtn, {});
+      setSlot(els.playBtn, { primary: true, empty: true });
+    } else if (showActions) {
+      if (els.autoCancelBtn) els.autoCancelBtn.hidden = true;
       const sel = selectedCards();
       const level = currentLevelLabel();
       let ok = false;
@@ -2248,8 +2325,15 @@
           else ok = beats(cb, trick.best);
         }
       }
-      els.playBtn.disabled = !ok;
+      setSlot(els.passBtn, { primary: noPlay, disabled: mustLead });
+      setSlot(els.hintBtn, { disabled: noPlay });
+      setSlot(els.playBtn, { primary: !noPlay, disabled: noPlay || !ok });
+      hint = sel.length ? selectionPreview(sel, trick, level)
+        : (noPlay ? '没有能压过的牌' : (mustLead ? '该你出牌' : ''));
+    } else {
+      hideSlots();
     }
+    setBandHint(errActive ? bandErr.msg : hint, errActive);
     // 智能选牌：每次轮到我（开局先出 / 收圈领出 / AI 们都过完）首次进入时，
     // 自动勾选一手"最经济的能压牌"。键由 trick 状态 + 手牌张数构成，状态变 → 重新自动选；
     // 状态不变即"同一回合内"，无论用户再怎么改动都听用户的（不复选）。
@@ -3084,8 +3168,8 @@
     });
   }
 
-  const TRIBUTE_GIVE_TIMEOUT_MS = 5000;
-  // 取出某座 giver 准备进贡的牌。AI → 直接 pickTributeCard；玩家 → 弹 5s
+  const TRIBUTE_GIVE_TIMEOUT_MS = 10000;   // 规格 D4：进贡 10 秒（贡牌基本唯一，只是选花色）
+  // 取出某座 giver 准备进贡的牌。AI → 直接 pickTributeCard；玩家 → 弹 10s
   // 倒计时，预选最大牌并允许换同等级的别张花色，否则用默认。
   function resolveGiverCard(seat, cb) {
     const level = currentLevelLabel();
@@ -3694,18 +3778,25 @@
     }
     refreshScoreChip();   // 立即闪一下角标新分；不依赖下一次 renderAll
 
-    // 局终摊牌：把没出完的家的剩牌平铺到各自出牌区，停留一会儿再弹结算面板（面板会盖住桌面）。
-    state.revealHands = true;
-    renderAll();
     // 整盘结束（联机）：摊牌后直接进战报，不走「小局结算 → 继续」那条；其余走小局结算面板。
     const endingGeneration = roundVisualGeneration;
+    let panelShown = false;
+    let revealTimer = null;
     const showPanel = () => {
+      if (panelShown) return;
+      panelShown = true;
+      clearTimeout(revealTimer);
+      state._revealSkip = null;
       if (endingGeneration !== roundVisualGeneration || state.phase !== PHASE.ROUND_END) return;
       if (matchWon && isNetworked()) endMatch(winTeam);
       else showRoundOverlay(ranking, winTeam, advance, beforeIdx, newIdx, matchWon);
     };
     const hasReveal = [0, 1, 2, 3].some(s => state.hands[s] && state.hands[s].length > 0 && state.hands[s][0] !== -1);
-    if (hasReveal) setTimeout(showPanel, REVEAL_HOLD_MS);
+    // 局终摊牌：把没出完的家的剩牌摊开，停留一会儿（可点「跳过」）再弹结算面板。
+    state._revealSkip = hasReveal ? showPanel : null;
+    state.revealHands = true;
+    renderAll();
+    if (hasReveal) revealTimer = setTimeout(showPanel, REVEAL_HOLD_MS);
     else showPanel();
     saveSession();
   }
@@ -4323,6 +4414,8 @@
     els.autopilotBtn.disabled = !eligible;
     // 纯机器人图标，不再改文字；托管中靠 .on 的橙色高亮表示，点一下即切换。
     els.autopilotBtn.classList.toggle('on', !!state.autopilot);
+    const apText = els.autopilotBtn.querySelector('.gd-autopilot-tx');
+    if (apText) apText.textContent = state.autopilot ? '托管中' : '托管';
     els.autopilotBtn.title = state.autopilot ? '正在托管中 · 点一下取消' : '托管：让 AI 替你打牌';
     els.autopilotBtn.setAttribute('aria-pressed', state.autopilot ? 'true' : 'false');
     els.autopilotBtn.setAttribute('aria-label', state.autopilot ? '托管已开启，点击取消' : '托管未开启');
@@ -5040,22 +5133,21 @@
   // 也会一致 hide=true。如果出牌失败（toast 提示）会在下一个 renderAll
   // 恢复显示。
   function hidePlayActionsImmediate() {
-    els.playBtn.hidden = true;
-    els.passBtn.hidden = true;
-    els.hintBtn.hidden = true;
+    hideSlots();
+    if (!state.autopilot) setBandHint('');
     if (els.selfClock) els.selfClock.hidden = true;
   }
 
   function playerPlay() {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
     const sel = selectedCards();
-    if (!sel.length) { toast('请先选牌'); return; }
+    if (!sel.length) { flashBandError('先选要出的牌'); return; }
     const level = currentLevelLabel();
     const cb = classify(sel, level, state.trick && state.trick.best);
-    if (!cb) { toast('选择不成牌型'); return; }
+    if (!cb) { flashBandError('不成牌型'); return; }
     const trick = state.trick;
     const needBeat = trick.best != null && trick.bestSeat !== 0;
-    if (needBeat && !beats(cb, trick.best)) { toast('压不过上家'); return; }
+    if (needBeat && !beats(cb, trick.best)) { flashBandError('压不过这手牌'); return; }
     state.selected.clear();
     state._consecutiveTimeouts = 0;   // 主动出牌 → 清掉超时计数
     stopTurnClock();
@@ -5066,7 +5158,7 @@
   function playerPass() {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;
     const trick = state.trick;
-    if (!trick.best || trick.bestSeat === 0) { toast('你领出，必须出牌'); return; }
+    if (!trick.best || trick.bestSeat === 0) { flashBandError('你领出，必须出牌'); return; }
     state.selected.clear();
     state._consecutiveTimeouts = 0;   // 主动不出 → 同理清计数
     stopTurnClock();
@@ -5081,8 +5173,7 @@
     const prev = (trick.best != null && trick.bestSeat !== 0) ? trick.best : null;
     let moves = genMoves(state.hands[0], prev, level);
     if (!moves.length) {
-      if (prev) { toast('没有能压过的牌，可以「不出」'); return; }
-      toast('无可出'); return;
+      flashBandError(prev ? '没有能压过的牌' : '没有可出的牌'); return;
     }
     // 提示循环：每次给下一个候选。语义最优排序（领出大组合优先，跟牌最便宜反压，
     // 同长里都优先选"不拆多张组"的散牌）
@@ -5142,6 +5233,12 @@
   });
   els.passBtn.addEventListener('click', playerPass);
   els.hintBtn.addEventListener('click', playerHint);
+  // 决策带中槽「取消托管」（规格 S8）：与点托管按钮关闭托管走同一条路
+  if (els.autoCancelBtn) {
+    els.autoCancelBtn.addEventListener('click', () => {
+      if (state.autopilot && els.autopilotBtn && !els.autopilotBtn.disabled) els.autopilotBtn.click();
+    });
+  }
   if (els.autopilotBtn) {
     els.autopilotBtn.addEventListener('click', () => {
       state.autopilot = !state.autopilot;
@@ -5163,19 +5260,21 @@
       }
     });
   }
-  // 一键理牌：清掉所有 custom groups + handOrder，回到完全默认排序
-  // 用户要求理牌/还原/一键理牌不弹任何 toast —— 静默执行；点错了就什么都不发生。
-  els.sortBtn.addEventListener('click', () => {
+  // 理牌（规格 2.3）：一个主按钮按选中状态切换「重排 / 成组 / 拆组」，「⋯」菜单里放
+  // 「恢复默认排序」与「调整顺序」。三种动作都静默执行，不弹 toast。
+  // 重排：清掉所有 custom groups + handOrder，回到完全默认排序
+  function resetHandOrder() {
     state.handOrder = null;
     state.customGroups = [];
     state.selected.clear();
     renderHand();
     updateActions();
-  });
+  }
+  els.sortBtn.addEventListener('click', () => { closeSortMenu(); resetHandOrder(); });
 
-  // 还原：选中的牌恰好等于某个 custom group 的全部卡 → 解散那个 group
-  if (els.restoreBtn) {
-    els.restoreBtn.addEventListener('click', () => {
+  // 拆组：选中的牌恰好等于某个（或某几个）custom group 的全部卡 → 解散
+  function ungroupSelection() {
+    {
       const sel = [...state.selected].filter(c => state.hands[0].includes(c));
       if (!sel.length) return;
       const selSet = new Set(sel);
@@ -5199,16 +5298,71 @@
       state.selected.clear();
       renderHand();
       updateActions();
+    }
+  }
+  function sortMainMode() {
+    const hand = state.hands[0] || [];
+    const sel = [...state.selected].filter(c => hand.includes(c));
+    if (!sel.length) return 'reset';
+    const selSet = new Set(sel);
+    const whole = (state.customGroups || []).filter(g => g.cards.every(c => selSet.has(c)));
+    if (whole.length && whole.reduce((n, g) => n + g.cards.length, 0) === sel.length) return 'ungroup';
+    if (sel.length >= 2 && classify(sel, currentLevelLabel())) return 'group';
+    return 'group-off';
+  }
+  // 主按钮文字 / 可用状态跟着选中变化（updateActions 每次都会调到这里）
+  function updateRestoreBtn() {
+    if (!els.sortMainBtn) return;
+    const mode = sortMainMode();
+    const nothingCustom = !(state.customGroups && state.customGroups.length) && !state.handOrder;
+    const label = { reset: '重排', ungroup: '拆组', group: '成组', 'group-off': '成组' }[mode];
+    const tip = {
+      reset: '清掉自定义分组，恢复默认排序',
+      ungroup: '把选中的这一组拆开，放回默认位置',
+      group: '把选中的牌摞成一组：炸弹放左、其他放右',
+      'group-off': '选中的牌要能组成一手牌型才能成组',
+    }[mode];
+    if (els.sortMainTx) els.sortMainTx.textContent = label;
+    els.sortMainBtn.title = tip;
+    els.sortMainBtn.setAttribute('aria-label', label + '：' + tip);
+    els.sortMainBtn.dataset.mode = mode;
+    els.sortMainBtn.disabled = mode === 'group-off' || (mode === 'reset' && nothingCustom);
+  }
+  function closeSortMenu() {
+    if (!els.sortMenu || els.sortMenu.hidden) return;
+    els.sortMenu.hidden = true;
+    if (els.sortMoreBtn) els.sortMoreBtn.setAttribute('aria-expanded', 'false');
+  }
+  if (els.sortMainBtn) {
+    els.sortMainBtn.addEventListener('click', () => {
+      closeSortMenu();
+      const mode = sortMainMode();
+      if (mode === 'reset') resetHandOrder();
+      else if (mode === 'ungroup') ungroupSelection();
+      else if (mode === 'group') groupSelection();
     });
   }
-  // 兼容：旧地方仍在调 updateRestoreBtn，留空
-  function updateRestoreBtn() { /* no-op */ }
+  if (els.sortMoreBtn && els.sortMenu) {
+    els.sortMoreBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = els.sortMenu.hidden;
+      els.sortMenu.hidden = !open;
+      els.sortMoreBtn.setAttribute('aria-expanded', String(open));
+      if (open) { const first = els.sortMenu.querySelector('button'); if (first) first.focus(); }
+    });
+    document.addEventListener('click', e => {
+      if (!els.sortMenu.hidden && !e.target.closest('#gdSortMenu, #gdSortMoreBtn')) closeSortMenu();
+    });
+    els.sortMenu.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.stopPropagation(); closeSortMenu(); els.sortMoreBtn.focus(); }
+    });
+  }
 
   // 🔀 理牌：把当前选中的牌组成新的一摞 custom group
   //   - classify 是炸弹 → strength = bombStrength，渲染时摞到最左（多个炸弹按 strength 降序）
   //   - 普通牌型 / 不成型组合 → 渲染时摞到最右（创建顺序）
-  if (els.arrangeBtn) {
-    els.arrangeBtn.addEventListener('click', () => {
+  function groupSelection() {
+    {
       const sel = [...state.selected].filter(c => state.hands[0].includes(c));
       if (sel.length < 2) return;
       const level = currentLevelLabel();
@@ -5232,7 +5386,7 @@
       state.selected.clear();
       renderHand();
       updateActions();
-    });
+    }
   }
   document.addEventListener('keydown', e => {
     if (state.phase !== PHASE.PLAYING || state.turn !== 0 || state.busy) return;

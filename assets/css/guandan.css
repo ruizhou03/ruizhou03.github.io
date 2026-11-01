@@ -606,6 +606,24 @@
   .gd-play-band > .gd-myplay-row,
   .gd-play-band > .gd-play-actions { grid-area: stack; margin: 0; }
   .gd-play-band > .gd-play-actions { position: relative; z-index: 7; }
+  /* 决策带三个固定槽位（规格 2.1）：等宽；留白槽不显示但仍占位，按钮永不挪位。 */
+  .gd-play-band { position: relative; }
+  .gd-play-actions .gd-btn.gd-slot { min-width: 5.6rem; }
+  .gd-play-actions .gd-btn.gd-slot-empty { visibility: hidden; }
+  /* 提示行（规格 2.1 / 通道 D）：浮在决策带正上方，不占布局高度、不拦截点击。 */
+  .gd-band-hint {
+    position: absolute; left: 50%; bottom: calc(100% + 0.2rem);
+    transform: translateX(-50%);
+    min-height: 1.2em; white-space: nowrap; pointer-events: none;
+    font-size: 0.82rem; letter-spacing: 0.08em; text-align: center;
+    color: var(--gd-ui-muted);
+  }
+  .gd-band-hint.is-error { color: var(--gd-suit-red); }
+  /* 强行出不合法的牌（键盘 Enter）：选中的牌轻轻一抖 */
+  .gd-hand.gd-sel-shake .gd-card.selected { animation: gd-shake 0.22s ease-in-out; }
+  @media (prefers-reduced-motion: reduce) {
+    .gd-hand.gd-sel-shake .gd-card.selected { animation: none; }
+  }
   .gd-sort-actions {
     position: absolute;
     right: 0.9rem;
@@ -629,7 +647,7 @@
     display: none;
     position: absolute;
     right: 0.9rem;
-    bottom: 9.8rem;
+    bottom: 6.6rem;
     z-index: 8;
     grid-template-columns: repeat(2, minmax(44px, auto));
     gap: 0.4rem;
@@ -653,16 +671,28 @@
   @media (hover: hover) {
     .gd-sort-actions .gd-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
   }
+  .gd-sort-actions .gd-btn:disabled { opacity: 0.5; cursor: default; }
+  /* 「⋯」菜单：在理牌列左侧弹出，底边对齐 */
+  .gd-sort-menu {
+    position: absolute; right: calc(100% + 0.4rem); bottom: 0;
+    display: flex; flex-direction: column; gap: 0.4rem;
+    padding: 0.45rem;
+    border: 1px solid var(--gd-frame-2); border-radius: 12px;
+    background: color-mix(in srgb, var(--gd-ui-bg) 94%, transparent);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  }
+  .gd-sort-menu[hidden] { display: none; }
+  .gd-sort-menu .gd-btn { white-space: nowrap; min-height: 44px; }
   /* 理牌行三个按钮的矢量图标：描边用 currentColor，跟随按钮文字色 / hover 高亮 */
   .gd-btn-ic { flex: 0 0 auto; display: block; }
   /* 托管：纯机器人图标按钮，跟在「我」的张数右边（头像右下方），不再绝对定位单开一行。
      未托管=略灰；点亮(.on)=橙色高亮，表示「正在托管」。点一下切换。 */
   .gd-autopilot-chip {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 1.7rem; height: 1.7rem; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem;
+    width: auto; height: 1.7rem; padding: 0 0.5rem;
     border: 1px solid var(--color-border);
     background: rgba(255,255,255,0.85);
-    border-radius: 50%;
+    border-radius: 999px;
     font-size: 0.95rem; line-height: 1;
     cursor: pointer;
     font-family: inherit;
@@ -674,17 +704,17 @@
   }
   /* 不能托管（已出完 / 非出牌阶段）时变灰但不隐藏，位置不变（规格原则 1）。 */
   .gd-autopilot-chip:disabled { cursor: default; opacity: 0.35; filter: grayscale(1); }
+  .gd-autopilot-tx { font-size: 0.76rem; letter-spacing: 0.06em; white-space: nowrap; }
   .gd-autopilot-chip.on {
     background: #e8843a;
     border-color: #e8843a;
     box-shadow: 0 0 10px rgba(232,132,58,0.6);
     filter: none; opacity: 1;
   }
-  /* 压不过上家：手牌整体灰显 + 禁交互 */
+  /* 没牌能压（规格 S6）：手牌整体变暗，但仍可选牌、理牌 */
   .gd-hand.no-play {
     filter: grayscale(0.85) brightness(0.78);
     opacity: 0.72;
-    pointer-events: none;
   }
   .gd-hand.is-spectating {
     pointer-events: none;
@@ -2180,7 +2210,8 @@
       flex-direction: row; align-items: center; gap: 0.32rem;
     }
     body.gd-game-fullscreen .gd-self-bar .gd-name { display: none; }
-    body.gd-game-fullscreen .gd-autopilot-chip { width: 1.5rem; height: 1.5rem; font-size: 0.85rem; }
+    body.gd-game-fullscreen .gd-autopilot-chip { width: 1.5rem; height: 1.5rem; padding: 0; border-radius: 50%; font-size: 0.85rem; }
+    body.gd-game-fullscreen .gd-autopilot-tx { display: none; }
     /* 张数与托管按钮挨太近 → 把托管按钮往下挪开一点，两者不再贴在一起 */
     body.gd-game-fullscreen .gd-self-meta .gd-autopilot-chip { margin-top: 0.3rem; }
     /* 右下：只留 还原/理牌 两个图标键（去文字、去一键理牌），紧凑竖排（挤进右侧 50px 内） */
@@ -2192,8 +2223,10 @@
     body.gd-game-fullscreen .gd-sort-actions .gd-btn {
       min-width: 44px; width: 44px; height: 44px; padding: 0; font-size: 1.05rem; line-height: 1;
     }
-    body.gd-game-fullscreen .gd-sort-actions .gd-btn-tx { display: none; }
-    body.gd-game-fullscreen #gdSortBtn { display: none; }   /* 一键理牌 横屏不显示 */
+    /* 主按钮在窄列里只显示两个字（重排 / 成组 / 拆组），不显示图标 */
+    body.gd-game-fullscreen #gdSortMainBtn .gd-btn-ic { display: none; }
+    body.gd-game-fullscreen #gdSortMainBtn .gd-btn-tx { font-size: 0.8rem; letter-spacing: 0.04em; }
+    body.gd-game-fullscreen .gd-sort-menu .gd-btn { width: auto; min-width: 0; padding: 0 0.8rem; font-size: 0.85rem; }
     body.gd-game-fullscreen .gd-order-actions {
       right: calc(3.65rem + env(safe-area-inset-right, 0px));
       bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px));
@@ -2250,6 +2283,7 @@
     flex: none; text-align: center;
     color: var(--gd-text-on-felt); font-size: 1.05rem; letter-spacing: 0.08em;
   }
+  .gd-reveal-skip { align-self: center; flex: none; min-height: 44px; padding: 0 1.4rem; }
   .gd-reveal-grid {
     display: grid;
     grid-template-columns: repeat(var(--gd-reveal-columns, 1), minmax(0, 1fr));
