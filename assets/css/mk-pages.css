@@ -298,6 +298,7 @@ body.mk-acc .acc-search{ border:0; border-bottom:1px solid var(--mk-hair2); bord
 body.mk-acc .acc-search:focus{ box-shadow:none; border-bottom-color:var(--mk-ink); }
 body.mk-acc .acc-search::placeholder{ color:var(--mk-faint); }
 body.mk-acc .acc-search-ic{ left:2px; color:var(--mk-muted); }
+body.mk-acc .acc-search-row[hidden]{ display:none; }   /* 页内样式给了 display:flex，会盖掉 hidden */
 /* 页内确认条 + 轻提示（替代系统 confirm / 无反馈） */
 body.mk-acc .acc-confirm{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:12px; padding:12px 16px; border:1px solid var(--mk-seal); background:transparent; font-size:.88rem; color:var(--mk-ink); }
 body.mk-acc .acc-confirm[hidden]{ display:none; }

@@ -657,7 +657,9 @@ body_class: acc-page mk-cat mk-page mk-acc
       var cbase = SiteAuth.API_BASE.replace('zircon-urge', 'zircon-comments');
       SiteAuth.authedFetch(cbase + '/my-comments').then(function (r) { return r.json(); }).then(function (d) {
         var el = document.getElementById('acc-stat-comment'), rc = document.getElementById('acc-rc-comment');
-        var n = (d && d.items) ? d.items.length : 0;
+        // 评论后端取不到（报错 / 超时）时保持「–」，别显示成 0 让人以为没评论过
+        if (!d || !Array.isArray(d.items)) return;
+        var n = d.items.length;
         if (el) el.textContent = n; if (rc) rc.textContent = n;
       }).catch(function () {});
     }
