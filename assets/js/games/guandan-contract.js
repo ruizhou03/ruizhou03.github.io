@@ -2,7 +2,7 @@
   'use strict';
 
   const contract = {
-    releaseMarker: '20261031ui12',
+    releaseMarker: '20261031ui14',
     build: '2026.08.01.phase7-j',
     apiUrl: 'https://zircon-urge.fly.dev/api/guandan',
     rulesVersion: 'gd-huaian-2025-site-v1',
@@ -16,6 +16,7 @@
       localSession: 'tool.guandan.session.v1',
       onlineSession: 'tool.guandan.online.session.v1',
       muted: 'tool.guandan.muted',
+      audio: 'tool.guandan.audio.v1',
       hardOffline: 'tool.guandan.hardOffline.v1',
     }),
   };

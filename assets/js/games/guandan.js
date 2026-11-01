@@ -2262,6 +2262,7 @@
     els.bandHint.classList.toggle('is-error', !!isError);
   }
   function flashBandError(msg) {
+    AUDIO.effects.error();
     bandErr = { msg, until: Date.now() + 1800 };
     setBandHint(msg, true);
     announce(msg);
@@ -2886,11 +2887,12 @@
       stopTurnClock();              // 我已出牌 → 收掉自己的倒计时
       hidePlayActionsImmediate();
       renderAll();
-      if (isBombType(combo.type)) { state._bombFxKey = bombFxKey(0, cards); playBombFx(0, combo); _gaSfxBomb(); }
-      else { _gaSfxPlay(); }
+      if (isBombType(combo.type)) { state._bombFxKey = bombFxKey(0, cards); playBombFx(0, combo); }
+      else { _gaSfxPlay(); AUDIO.voice(voiceIdForCombo(combo)); }
     } else if (action === 'pass') {
       state.lastPlay[0] = 'pass';
       _gaSfxPass();
+      AUDIO.voice(passVoiceId());
       stopTurnClock();              // 我已不出 → 收掉自己的倒计时
       hidePlayActionsImmediate();
       renderAll();
@@ -3090,7 +3092,60 @@
     _gaSfxDeal();
     saveSession();
     if (leader !== 0) scheduleAI();
-    else { updateActions(); armTurnClock(); }
+    else { updateActions(); armTurnClock(); notifyMyTurn(); }
+    // D1：背景音乐默认关，第一次开局在提示行说一次去哪里开
+    const ap = AUDIO.prefs();
+    if (!isNetworked() && !ap.music && !ap.musicHinted) {
+      AUDIO.markMusicHinted();
+      setTimeout(() => flashBandNote('右上角声音按钮里可以打开背景音乐'), 900);
+    }
+  }
+  // 轮到我（规格 3.2）：一声轻提示；同一回合只响一次
+  let lastTurnChimeKey = '';
+  function notifyMyTurn() {
+    if (state.autopilot) return;
+    const key = state.aiHistory.length + ':' + (state.hands[0] ? state.hands[0].length : 0);
+    if (key === lastTurnChimeKey) return;
+    lastTurnChimeKey = key;
+    AUDIO.effects.turn();
+  }
+  // 报牌语音（规格 4.3）：按牌型选精灵图里的一条
+  function voiceIdForCombo(combo) {
+    if (!combo || !Array.isArray(combo.cards) || !combo.cards.length) return null;
+    const level = currentLevelLabel();
+    const rankOf = c => isJoker(c) ? (jokerKind(c) === 'big' ? 'BJ' : 'SJ') : RANK_LABELS[cardRankIdx(c)];
+    const natural = combo.cards.filter(c => !isWild(c, level));
+    const base = rankOf(natural.length ? natural[0] : combo.cards[0]);
+    switch (combo.type) {
+      case T.SINGLE: return 's-' + base;
+      case T.PAIR: return 'p-' + base;
+      case T.TRIPLE: return 't-' + base;
+      case T.TRIPLE_PAIR: return 'c-triple-pair';
+      case T.STRAIGHT: return 'c-straight';
+      case T.PAIR_STR: return 'c-pair-str';
+      case T.TRIPLE_STR: return 'c-triple-str';
+      case T.STR_FLUSH: return 'c-str-flush';
+      case T.JOKER_BOMB: return 'b-joker';
+      case T.BOMB: return 'b-' + Math.min(10, combo.cards.length);
+      default: return null;
+    }
+  }
+  // 「不出」最常听到：两版录音的「不要 / 过 / 要不起」共 6 条，洗牌轮换——一轮里每条都播到、
+  // 顺序随机，新一轮的第一条不和上一轮最后一条重复。
+  const PASS_VOICES = ['pass-1', 'pass-1b', 'pass-2', 'pass-2b', 'pass-3', 'pass-3b'];
+  let passBag = [];
+  let lastPassVoice = null;
+  function passVoiceId() {
+    if (!passBag.length) {
+      passBag = PASS_VOICES.slice();
+      for (let i = passBag.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [passBag[i], passBag[j]] = [passBag[j], passBag[i]];
+      }
+      if (passBag[passBag.length - 1] === lastPassVoice) passBag.unshift(passBag.pop());
+    }
+    lastPassVoice = passBag.pop();
+    return lastPassVoice;
   }
 
   // 联机时把对手座位还原成真实玩家昵称/头像——否则牌桌与结算面板会把真人一律画成
@@ -3454,12 +3509,14 @@
   function showTributeBanner(line1, line2, durationMs) {
     showBanner({ kind: 'info', icon: '[[zi:shield]]', text: '抗贡', sub: line2 || '', priority: 5,
       duration: durationMs || 1600, holdAi: true });
+    AUDIO.voice('e-kanggong');
   }
 
   // 接风（规格 3.2）：横幅「接风」+ 出完的人与队友头像先后各闪一次
   function showJiefengFx(fromSeat, toSeat) {
     showBanner({ kind: 'info', icon: '[[zi:transfer]]', text: '接风', priority: 5, duration: 1200,
       holdAi: true, extraClass: 'gd-jiefeng-banner' });
+    AUDIO.voice('e-jiefeng');
     const flash = (seat) => {
       const av = seatEls[seat] && seatEls[seat].seat && seatEls[seat].seat.querySelector('.gd-avatar');
       if (!av) return;
@@ -3617,8 +3674,11 @@
       const mult = bombMultiplierFor(combo);
       if (mult > 1) state.bombMult = (state.bombMult || 1) * mult;
       playBombFx(seat, combo);
-      _gaSfxBomb();
-    } else { _gaSfxPlay(); }
+    } else { _gaSfxPlay(); AUDIO.voice(voiceIdForCombo(combo)); }
+    // 报牌语音接在这手牌型后面：剩牌跨过 10 / 5 / 2 张报一次（一手跨过几档只报最少那档），出完报头游
+    const warn = afterLen > 0 ? [2, 5, 10].find(n => beforeLen > n && afterLen <= n) : null;
+    if (warn) AUDIO.voice('left-' + warn, { queue: true });
+    else if (afterLen === 0 && state.out.length === 1 && state.out[0] === seat) AUDIO.voice('e-first', { queue: true });
     // 玩家刚出牌后立即藏掉操作按钮，否则 renderAll 内的 updateActions 会因为
     // state.turn 仍是 0 而把按钮再渲一遍（直到 afterMove 把 turn 推走）
     if (seat === 0) hidePlayActionsImmediate();
@@ -3675,6 +3735,8 @@
       setTimeout(() => flash.remove(), 1000);
     }
     showBanner({ kind: 'bomb', tier, text, sub: seatName(seat), priority: 2 + tier, duration: fx.dur, holdAi: true });
+    AUDIO.effects.bomb(tier);
+    AUDIO.voice(voiceIdForCombo(combo));
   }
 
   function commitPass(seat) {
@@ -3683,6 +3745,7 @@
     state.aiHistory.push({ seat, kind: 'pass', cards: [] });
     state.trick.passes++;
     _gaSfxPass();
+    AUDIO.voice(passVoiceId());
     renderAll();
     if (seat === 0) hidePlayActionsImmediate();
     saveSession();
@@ -3756,6 +3819,7 @@
     if (nx === 0 && !state.out.includes(0)) {
       updateActions();
       armTurnClock();
+      notifyMyTurn();
     } else {
       scheduleAI();
     }
@@ -3777,7 +3841,7 @@
     state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
     renderAll();
     saveSession();
-    if (leader === 0 && !state.out.includes(0)) { updateActions(); armTurnClock(); }
+    if (leader === 0 && !state.out.includes(0)) { updateActions(); armTurnClock(); notifyMyTurn(); }
     else scheduleAI();
   }
 

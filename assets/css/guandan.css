@@ -1878,6 +1878,22 @@
        盖住这俩按钮、把点击吃掉（=之前"按了没反应"的根因） */
     z-index: 20;
   }
+  /* 声音按钮展开的三轨开关（规格 4.3）：贴着按钮下方，由 JS 定位 */
+  .gd-sound-panel {
+    position: fixed; z-index: 30;
+    display: flex; flex-direction: column; gap: 0.1rem;
+    padding: 0.4rem 0.8rem;
+    background: var(--gd-paper); border: 1px solid var(--gd-ink); border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  }
+  .gd-sound-panel[hidden] { display: none; }
+  .gd-sound-row {
+    display: flex; align-items: center; gap: 0.55rem;
+    min-height: 44px; white-space: nowrap; cursor: pointer;
+    font-size: 0.9rem; color: var(--gd-ink); letter-spacing: 0.06em;
+  }
+  .gd-sound-row input { width: 18px; height: 18px; margin: 0; accent-color: var(--gd-seal); }
+  .gd-mute-btn.is-off { color: var(--gd-off); border-style: dashed; }
   .gd-board-btn { left: 0.6rem; }
   .gd-mute-btn { left: calc(0.6rem + 48px); }
   .gd-exit-btn  { right: 0.6rem; }

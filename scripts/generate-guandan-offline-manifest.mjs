@@ -32,6 +32,7 @@ const corePaths = [
   'assets/js/games/guandan-ai-contract.js',
   'assets/js/games/guandan.min.js',
   'toolbox/guandan/manifest.json',
+  'assets/audio/guandan-voice.mp3',
 ];
 const hardPaths = [
   'assets/js/games/guandan-dmc-worker.js',
@@ -48,7 +49,7 @@ function versionedUrl(path) {
   if (path === 'assets/js/games/guandan-dmc.bin') {
     return `/${path}?v=${modelSha256.slice(0, 12)}`;
   }
-  if (path.startsWith('assets/css/') || path.startsWith('assets/js/')) {
+  if (path.startsWith('assets/css/') || path.startsWith('assets/js/') || path.startsWith('assets/audio/')) {
     return `/${path}?v=${marker}`;
   }
   return `/${path}`;
