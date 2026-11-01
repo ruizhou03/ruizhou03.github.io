@@ -136,7 +136,13 @@ layout: default
       有播客版的文章不再显示系统语音「朗读」按钮 —— 顶部的播客播放器
       就是更好的有声版（周睿本人的 AI 语音 + 改写过的播客稿）。
     {%- endcomment -%}
-    {% unless page.podcast %}
+    {% if page.narration %}
+    <button type="button" id="mk-narr-btn" class="post-tool-btn" title="朗读：逐字跟读，点字跳转">
+      <span class="tool-icon" aria-hidden="true">[[zi:volume]]</span>
+      <span class="tool-label">朗读</span>
+    </button>
+    {% endif %}
+    {% unless page.podcast or page.narration %}
     <button type="button" id="tts-toggle" class="post-tool-btn" title="朗读 / 暂停 / 继续">
       <span class="tool-icon" aria-hidden="true">[[zi:volume]]</span>
       <span class="tool-label">朗读</span>
@@ -194,6 +200,11 @@ layout: default
   </aside>
   {% endif %}
 
+  {%- if page.narration -%}
+  {%- assign _narr_slug = page.narration_slug | default: page.slug -%}
+  <div id="mk-narr" class="markdown-content mk-narr" hidden data-slug="{{ _narr_slug }}"
+       data-json="{{ site.narration_base }}/{{ _narr_slug }}.json" data-audio="{{ site.narration_base }}/{{ _narr_slug }}.mp3"></div>
+  {%- endif %}
   <div class="markdown-content" id="post-content">
     {% if page.pdf_url or page.download_url %}
       {% assign _dl_url = page.download_url | default: page.pdf_url %}
@@ -1454,3 +1465,7 @@ layout: default
 </script>
 <script src="{{ '/assets/js/mk-category.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
 <script src="{{ '/assets/js/mk-content.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
+{%- if page.narration %}
+<link rel="stylesheet" href="{{ '/assets/css/mk-narration.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<script src="{{ '/assets/js/mk-narration.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
+{%- endif %}

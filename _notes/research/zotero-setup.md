@@ -7,6 +7,7 @@ date: "2026-05-20"
 author: "Zircon"
 permalink: "/research/literature/zotero-setup"
 published: true
+narration: true
 keywords: ["Zotero 教程", "Zotero 从零", "文献管理软件", "参考文献管理", "reference manager", "Zotero vs EndNote", "Zotero vs Mendeley", "Zotero Connector 浏览器插件", "一键抓取文献", "DOI 导入", "Zotero PDF 重命名", "Zotero 同步", "WebDAV", "Better BibTeX", "稳定 citekey", "引文键 citation key", "自动导出 bib", "library.bib", "Zotero LaTeX", "Zotero Word 插件", "cite while you write", "CSL 引用样式", "Chicago author-date", "APA 格式", "期刊引用格式", "Zotero 群组库", "group library 合作者", "共享文献库", "Zotero 7", "文献去重", "Zotero 标签 分类", "wenxian guanli", "Zotero 设置"]
 ---
 
