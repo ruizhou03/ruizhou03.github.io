@@ -953,7 +953,7 @@
     pgo: $('gdPgo'), pgoStart: $('gdPgoStart'),
     pgoDiff: $('gdPgoDiff'), pgoStats: $('gdPgoStats'), hs: $('gdHs'),
     hardOfflineStatus: $('gdHardOfflineStatus'), offlineCacheBtn: $('gdOfflineCacheBtn'),
-    pgoTeamTrib: $('gdPgoTeamTrib'), pgoScoreCap: $('gdPgoScoreCap'), pgoTurnSec: $('gdPgoTurnSec'), pgoCardSize: $('gdPgoCardSize'),
+    pgoTeamTrib: $('gdPgoTeamTrib'), pgoTurnSec: $('gdPgoTurnSec'), pgoCardSize: $('gdPgoCardSize'),
     gameOpts: $('gdGameOpts'), gameOptsToggle: $('gdGameOptsToggle'),
     gameOptsBody: $('gdGameOptsBody'), gameOptsSum: $('gdGameOptsSum'),
     tribOverlay: $('gdTributeOverlay'), tribTitle: $('gdTribTitle'),
@@ -971,7 +971,6 @@
     matchTeamYou: $('gdMatchTeamYou'), matchTeamOpp: $('gdMatchTeamOpp'),
     matchScore: $('gdMatchScore'), matchLevelCards: $('gdMatchLevelCards'),
     pgoScore: $('gdPgoScore'),
-    dblNoBtn: $('gdDblNoBtn'), dblYesBtn: $('gdDblYesBtn'),
     resumeOverlay: $('gdResumeOverlay'), resumeSummary: $('gdResumeSummary'),
     resumeContinue: $('gdResumeContinue'), resumeDiscard: $('gdResumeDiscard'),
     toast: $('gdToast'),
@@ -1085,7 +1084,6 @@
     // 联机的恢复走 ONLINE_SESSION_KEY 重连（见 maybeResumeOnLoad / tryReconnectOnline）。
     if (state.isNetworked) return;
     if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.ROUND_END) return;
-    if (state._doublingActive) return;   // 加倍阶段 5s 内不存档；状态短促且 lastPlay 是临时标签
     if (_saveSessionPending) return;
     _saveSessionPending = true;
     setTimeout(() => {
@@ -1096,7 +1094,6 @@
   function saveSessionSync() {
     if (state.isNetworked) return;   // 同 saveSession：联机局不落单机存档
     if (state.phase !== PHASE.PLAYING && state.phase !== PHASE.ROUND_END) return;
-    if (state._doublingActive) return;
     STORAGE.writeJson(SESSION_KEY, buildSessionSnapshot());
   }
   function clearSession() {
@@ -1413,9 +1410,7 @@
     // 那会让 gd-pass-pop 动画反复重放（用户看到别人弃出时，自己的"不要"也跟着闪）
     const level = currentLevelLabel();
     const trib = (lp && lp.tributeLabel) || '';
-    const dbl = (lp && lp.type === 'doubling') ? lp.doubleChoice : '';
     const key = lp === 'pass' ? 'pass:' + level :
-                dbl ? 'doubling:' + dbl :
                 (lp && lp.cards && lp.cards.length) ? ('combo:' + level + ':' + lp.cards.slice().sort((a, b) => a - b).join(',') + (trib ? ':' + trib : '')) :
                 'empty';
     if (slot.dataset.lpKey === key) return;
@@ -1425,12 +1420,6 @@
       // 大字"不要"浮窗：仿欢乐斗地主——每家弃出都让人一眼看见，不再藏在虚线小角标里
       const big = document.createElement('span');
       big.className = 'gd-pass-big'; big.textContent = '不出';
-      slot.appendChild(big);
-    } else if (dbl) {
-      // 加倍阶段公示：用大字"加倍 ×2 / 不加倍"占住 play area
-      const big = document.createElement('span');
-      big.className = 'gd-double-big ' + (dbl === 'double' ? 'choice-yes' : 'choice-no');
-      big.textContent = lp.doubleLabel;
       slot.appendChild(big);
     } else if (lp && lp.cards) {
       const row = document.createElement('div');
@@ -1798,7 +1787,7 @@
         se.cnt.classList.toggle('warn', handLen > 0 && handLen <= 10);
       }
       // 座 1/2/3 的头像/昵称：联机时填真实玩家（真人 👤+昵称、AI 🤖+其名），
-      // 单机或联机信息暂缺时退回写死的 🤖 / AI 1·2·3——保证回到单机局不残留上一把的联机昵称。
+      // 单机或联机信息暂缺时退回 🤖 + 方位称呼——保证回到单机局不残留上一把的联机昵称。
       if (s !== 0) {
         setSeatAvatarIcon(se, seatAvatarFor(s));
         setSeatNameText(se.seat, seatName(s));
@@ -1841,9 +1830,6 @@
     if (selfBar) selfBar.classList.remove('is-dim');
     if (handEl) handEl.classList.remove('is-dim');
     if (state.phase !== PHASE.PLAYING) return;
-    // 加倍阶段（4 人同时决策）：turn=leader 多半不是我，但我此刻正要按"加倍/不加倍"，
-    // 不能把我的手牌 dim 成半透明（用户反馈像"一层蒙版盖住牌"）。整桌全亮。
-    if (state._doublingActive) return;
     const curr = state.turn;
     // 座位 0（我）的 .gd-seat 已经是 .gd-self-bar 的子节点，dim 父级即可，
     // 不要双重 dim 否则 opacity 复合后过暗。AI 三家直接 dim 各自 .gd-seat。
@@ -2191,31 +2177,21 @@
   // 保留这个空函数以兼容仍在调用它的各个分支，避免在五六处都得删一遍。
   function updateSelHint() { /* no-op */ }
 
+  // 炸弹统一叫法（规格 3.3）：4 张「炸弹」，5–10 张「五炸」…「十炸」，四王「天王炸」。
+  function bombName(n) {
+    return n <= 4 ? '炸弹' : (['五', '六', '七', '八', '九', '十'][n - 5] || n) + '炸';
+  }
   function comboName(cb) {
     const map = {
       [T.SINGLE]: '单张', [T.PAIR]: '对子', [T.TRIPLE]: '三张',
       [T.TRIPLE_PAIR]: '三带二', [T.PAIR_STR]: '三连对（木板）',
       [T.TRIPLE_STR]: '钢板（二连三）', [T.STRAIGHT]: '顺子',
-      [T.BOMB]: cb.len + ' 张炸弹', [T.STR_FLUSH]: '同花顺', [T.JOKER_BOMB]: '四王炸·天王',
+      [T.BOMB]: bombName(cb.len), [T.STR_FLUSH]: '同花顺', [T.JOKER_BOMB]: '天王炸',
     };
     return map[cb.type] || cb.type;
   }
 
   function updateActions() {
-    // 加倍阶段（5s 同时决策）：动作行只显示 不加倍 / 加倍 ×2；玩家已决则全藏
-    if (state._doublingActive) {
-      els.playBtn.hidden = true;
-      els.passBtn.hidden = true;
-      els.hintBtn.hidden = true;
-      const myDone = state._doubleChoices && state._doubleChoices[0] != null;
-      if (els.dblNoBtn) els.dblNoBtn.hidden = myDone;
-      if (els.dblYesBtn) els.dblYesBtn.hidden = myDone;
-      updateRestoreBtn();
-      return;
-    }
-    // 非加倍阶段：藏掉加倍按钮
-    if (els.dblNoBtn) els.dblNoBtn.hidden = true;
-    if (els.dblYesBtn) els.dblYesBtn.hidden = true;
     // 进贡阶段（玩家是 giver）：按钮文字"进贡"
     const tributeGive = activeTributeGive();
     if (tributeGive) {
@@ -2487,7 +2463,6 @@
     state.customGroups = [];
     state.bombMult = gv.bombMult;
     state.openMult = gv.openMult;
-    state._needDoubleChoice = false;
     applyServerGameState(gv);
     renderAll();
     saveSession();
@@ -2955,12 +2930,7 @@
     state.historyComplete = true;
     // 新一局重置智能选牌门闩，避免新局首手与上局某一刻 trick 状态 + 手牌张数偶然碰撞
     state._autoTurnKey = null;
-    // 每小局都让用户选一次加倍；resume 路径不走 startRound，所以不会重新弹
-    state._needDoubleChoice = true;
     state.openMult = 1;
-    state._doublingActive = false;
-    state._doubleChoices = null;
-    state._doublingLeader = null;
     const deck = shuffle(buildDeck());
     state.hands = [[], [], [], []];
     for (let i = 0; i < 108; i++) state.hands[i % 4].push(deck[i]);
@@ -2983,7 +2953,6 @@
 
   function beginPlay(leader) {
     // 升级规则下倍数无意义：移除开局加倍环节，直接进入出牌
-    state._needDoubleChoice = false;
     state.openMult = 1;
     state.phase = PHASE.PLAYING;
     setNavView(NAV_VIEW.PLAYING);
@@ -2995,114 +2964,6 @@
     saveSession();
     if (leader !== 0) scheduleAI();
     else { updateActions(); armTurnClock(); }
-  }
-
-  // 加倍阶段：所有 4 家同时决策，5s 倒计时。
-  //   - 玩家：动作行出 [不加倍] [加倍 ×2] 按钮 + gd-self-clock 跑 5s
-  //   - AI：随机 0.5-3.5s 内决策（基于"大牌数"启发式）
-  //   - 别人决定 → 立刻在其 play area 显示"加倍"/"不加倍"标签（仿"不出"）
-  //   - 5s 到 / 全部决定 → 公示 1s（把未决的标 不加倍）→ 清牌位 → 进入正式出牌
-  //   - 倍数：openMult = 2 ^ (加倍人数)；只有 1 个人加倍就 ×2，2 个人 ×4，依此类推
-  const DOUBLING_WINDOW_MS = 5000;
-  const DOUBLING_REVEAL_MS = 1000;
-  function enterDoublingPhase(leader) {
-    state.phase = PHASE.PLAYING;
-    state.turn = leader;
-    state.trick = { lead: leader, best: null, bestSeat: -1, passes: 0 };
-    state.busy = true;          // 阻断 AI 出牌调度（注意：AI 的"加倍决策"另起 setTimeout，不走 scheduleAI）
-    state.openMult = 1;
-    state._doublingActive = true;
-    state._doublingLeader = leader;
-    state._doubleChoices = [null, null, null, null];
-    // 清掉上一局残留的 lastPlay，让 doubling label 干净登场
-    state.lastPlay = [null, null, null, null];
-    renderAll();
-    updateActions();            // 显示 不加倍/加倍 按钮
-    // 玩家 5s 倒计时（gd-self-clock）；时钟跑完调 finalizeDoubling 兜底
-    startTurnClock(0, finalizeDoubling, DOUBLING_WINDOW_MS);
-    // 给 3 个 AI 各排一个随机延迟决策；只要 _doublingActive=false 就放弃
-    for (let s = 1; s < 4; s++) {
-      const delay = 500 + Math.random() * 3000;
-      setTimeout(() => {
-        if (!state._doublingActive) return;
-        const choice = aiDecideDouble(s);
-        registerDoubleChoice(s, choice);
-      }, delay);
-    }
-  }
-
-  // 启发：手里"大牌"够多就加倍。统计大王/小王/A/级牌的张数；≥4 张就加倍
-  function aiDecideDouble(seat) {
-    const hand = state.hands[seat];
-    const level = currentLevelLabel();
-    let big = 0;
-    for (const c of hand) {
-      if (isJoker(c)) { big++; continue; }
-      const lab = RANK_LABELS[cardRankIdx(c)];
-      if (lab === 'A' || lab === level) big++;
-    }
-    return big >= 4 ? 'double' : 'pass';
-  }
-
-  function registerDoubleChoice(seat, choice) {
-    if (!state._doublingActive) return;
-    if (state._doubleChoices[seat] != null) return;     // 已决定，忽略
-    state._doubleChoices[seat] = choice;
-    // 把决定挂到 lastPlay 让 renderPlayArea 显示标签（公示）
-    state.lastPlay[seat] = {
-      type: 'doubling',
-      cards: [],
-      doubleLabel: choice === 'double' ? '加倍 ×2' : '不加倍',
-      doubleChoice: choice,
-    };
-    if (seat === 0) {
-      // 玩家已决 → 收掉时钟 + 隐藏加倍按钮
-      stopTurnClock();
-      updateActions();
-    }
-    renderAll();
-    // 全部决定完 → 立即进入公示
-    if (state._doubleChoices.every(c => c != null)) {
-      finalizeDoubling();
-    }
-  }
-
-  function finalizeDoubling() {
-    if (!state._doublingActive) return;
-    state._doublingActive = false;
-    stopTurnClock();
-    // 兜底：5s 内没决定的算 不加倍
-    for (let s = 0; s < 4; s++) {
-      if (state._doubleChoices[s] == null) {
-        state._doubleChoices[s] = 'pass';
-        state.lastPlay[s] = {
-          type: 'doubling', cards: [],
-          doubleLabel: '不加倍', doubleChoice: 'pass',
-        };
-      }
-    }
-    // 算总倍数：2 ^ 加倍人数
-    const doublers = state._doubleChoices.filter(c => c === 'double').length;
-    state.openMult = doublers > 0 ? Math.pow(2, doublers) : 1;
-    persist();
-    updateActions();         // 藏掉加倍按钮
-    renderAll();
-    // 公示 1s 后清牌位，开始正式出牌
-    setTimeout(() => {
-      for (let s = 0; s < 4; s++) state.lastPlay[s] = null;
-      state._doubleChoices = null;
-      state._needDoubleChoice = false;
-      state.busy = false;
-      const leader = state._doublingLeader;
-      state._doublingLeader = null;
-      beginPlay(leader);
-    }, DOUBLING_REVEAL_MS);
-  }
-
-  // 玩家按 不加倍 / 加倍 按钮
-  function playerDoubleChoice(choice) {
-    if (!state._doublingActive) return;
-    registerDoubleChoice(0, choice);
   }
 
   // 联机时把对手座位还原成真实玩家昵称/头像——否则牌桌与结算面板会把真人一律画成
@@ -3117,8 +2978,9 @@
   function seatName(s) {
     const p = netPlayerForLocalSeat(s);
     if (p) return s === 0 ? '你' : p.nick;   // 本地座 0 恒为我
-    // 单机（或联机玩家信息暂缺）：固定编号 AI 1 / 2 / 3（座 0 是我）。方位标签会因视角错乱，故不用。
-    return ['你', 'AI 1', 'AI 2', 'AI 3'][s];
+    // 单机（或联机玩家信息暂缺）：按方位称呼（规格 D2）。本地座位已旋转成自视角，
+    // 座 1 恒为我的下家（右）、2 对家（上）、3 上家（左）。
+    return ['你', '下家', '对家', '上家'][s];
   }
   // 座位头像 emoji：我恒 😎；联机真人 👤、联机 AI 🤖；单机退回 🤖。
   function seatAvatarFor(s) {
@@ -3609,10 +3471,9 @@
     // 见 guandan-engine viewForSeat）——所以联机里别家炸弹要从 cards 数出张数，否则横幅会显示「undefined 张炸弹」。
     const n = (combo.len != null) ? combo.len : (combo.cards ? combo.cards.length : 0);
     let cls = 'fx-bomb';
-    let banner = n + ' 张炸弹';
+    let banner = bombName(n);
     if (combo.type === T.STR_FLUSH) { cls = 'fx-strflush'; banner = '同花顺'; }
     else if (combo.type === T.JOKER_BOMB) { cls = 'fx-jokerbomb'; banner = '天王炸'; }
-    else if (n >= 6) banner = n + ' 张炸';
     slot.classList.remove('fx-bomb', 'fx-strflush', 'fx-jokerbomb');
     // 强制 reflow 让动画能重新触发
     void slot.offsetWidth;
@@ -4187,8 +4048,7 @@
     el.hidden = false;
     el.classList.remove('urgent');
     const numEl = el.querySelector('.gd-self-clock-num, .gd-played-clock-num');
-    const purpose = state._doublingActive ? '加倍选择'
-      : (state.phase === PHASE.TRIBUTE ? '贡牌选择' : '出牌');
+    const purpose = state.phase === PHASE.TRIBUTE ? '贡牌选择' : '出牌';
     const turnA11yKey = [state.phase, state.turn, purpose, state.aiHistory.length,
       state.hands[0] ? state.hands[0].length : 0, state.trick ? state.trick.passes : 0].join(':');
     function tick() {
@@ -4317,7 +4177,6 @@
   function armTurnClock() {
     if (!isNetworked() && localPause.reasons.size) return;
     if (state.phase !== PHASE.PLAYING) { stopTurnClock(); return; }
-    if (state._doublingActive) return;     // 加倍阶段已挂 5s 时钟，别覆盖
     if (state.out.includes(state.turn)) { stopTurnClock(); return; }
     const seat = state.turn;
     if (seat === 0) {
@@ -4686,6 +4545,7 @@
     if (!els.hardOfflineStatus) return;
     if (text) {
       els.hardOfflineStatus.textContent = text;
+      els.hardOfflineStatus.hidden = false;
       return;
     }
     let ready = false;
@@ -4693,8 +4553,10 @@
       ready = STORAGE.readText(HARD_OFFLINE_KEY) === HARD_OFFLINE_BUILD;
     } catch (_) {}
     els.hardOfflineStatus.textContent = state.aiLevel === 'hard'
-      ? (ready ? '高手模型已校验并缓存，可离线使用。' : '高手档首次需要联网下载并校验模型；完成前不承诺离线。')
-      : '新手与普通档无需下载高手模型，可冷离线使用。';
+      ? (ready ? '高手 AI 已准备好，离线也能玩。' : '高手 AI 第一次使用需要联网准备。')
+      : '';
+    // 新手 / 普通档没有要说明的，整行收起，不在开始页留空白。
+    els.hardOfflineStatus.hidden = !els.hardOfflineStatus.textContent;
   }
   function bytesToHex(buffer) {
     return [...new Uint8Array(buffer)].map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -4885,15 +4747,16 @@
     const w = aiWeights();
     return chooseAIMoveLookahead(seat, hand, prev, leading, level, w, LOOKAHEAD_DEPTH);
   }
-  // 版本 / AI 引擎 徽标（左下角，半透明）：刷新即可确认加载的版本 + 高手档用的是神经网络还是启发式
+  // 版本 / AI 引擎说明：不再常驻牌桌，只在开始页（设置）底部以小字显示（规格第 6 节）。
   function updateBuildBadge() {
-    if (typeof document === 'undefined' || !document.body) return;
+    const host = document.getElementById('gdPgoMain');
+    if (!host) return;
     let el = document.getElementById('gdBuildBadge');
     if (!el) {
-      el = document.createElement('div');
+      el = document.createElement('p');
       el.id = 'gdBuildBadge';
-      el.style.cssText = 'position:fixed;left:7px;bottom:6px;z-index:2147483646;font:700 11px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;color:rgba(255,255,255,0.82);background:rgba(20,20,30,0.62);padding:3px 8px;border-radius:8px;pointer-events:none;letter-spacing:.3px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.25);';
-      document.body.appendChild(el);
+      el.className = 'gd-build-note';
+      host.appendChild(el);
     }
     let ai = '';
     const lv = state && (state.phase === PHASE.IDLE ? state.aiLevel : state.matchAiLevel);
@@ -5180,8 +5043,6 @@
     els.playBtn.hidden = true;
     els.passBtn.hidden = true;
     els.hintBtn.hidden = true;
-    if (els.dblNoBtn) els.dblNoBtn.hidden = true;
-    if (els.dblYesBtn) els.dblYesBtn.hidden = true;
     if (els.selfClock) els.selfClock.hidden = true;
   }
 
@@ -5220,7 +5081,7 @@
     const prev = (trick.best != null && trick.bestSeat !== 0) ? trick.best : null;
     let moves = genMoves(state.hands[0], prev, level);
     if (!moves.length) {
-      if (prev) { toast('没有能压的牌，可以「不要」'); return; }
+      if (prev) { toast('没有能压过的牌，可以「不出」'); return; }
       toast('无可出'); return;
     }
     // 提示循环：每次给下一个候选。语义最优排序（领出大组合优先，跟牌最便宜反压，
@@ -5281,8 +5142,6 @@
   });
   els.passBtn.addEventListener('click', playerPass);
   els.hintBtn.addEventListener('click', playerHint);
-  if (els.dblNoBtn)  els.dblNoBtn.addEventListener('click', () => playerDoubleChoice('pass'));
-  if (els.dblYesBtn) els.dblYesBtn.addEventListener('click', () => playerDoubleChoice('double'));
   if (els.autopilotBtn) {
     els.autopilotBtn.addEventListener('click', () => {
       state.autopilot = !state.autopilot;
@@ -5411,14 +5270,12 @@
   function syncPgoOptions() {
     const o = state.options;
     selectSeg(els.pgoTeamTrib, o.teamTribute ? 'on' : 'off');
-    selectSeg(els.pgoScoreCap, String(o.scoreCap));
     selectSeg(els.pgoTurnSec, String(o.turnSec));
     if (els.pgoCardSize) selectSeg(els.pgoCardSize, String(state.cardSizeMult));
     // 折叠态下显示的一行摘要
     if (els.gameOptsSum) {
       els.gameOptsSum.textContent =
         (o.teamTribute ? '同队进贡' : '同队免贡') + ' · ' +
-        (o.scoreCap ? '上限' + o.scoreCap : '分不限') + ' · ' +
         (o.turnSec ? o.turnSec + '秒' : '不限时');
     }
   }
@@ -5470,11 +5327,6 @@
   if (els.pgoTeamTrib) els.pgoTeamTrib.addEventListener('click', e => {
     const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
     state.options.teamTribute = (t.dataset.value === 'on');
-    persist(); syncPgoOptions();
-  });
-  if (els.pgoScoreCap) els.pgoScoreCap.addEventListener('click', e => {
-    const t = e.target.closest('.gs-pgo-mode-tab'); if (!t) return;
-    state.options.scoreCap = parseInt(t.dataset.value, 10) || 0;
     persist(); syncPgoOptions();
   });
   if (els.pgoTurnSec) els.pgoTurnSec.addEventListener('click', e => {
@@ -6030,8 +5882,8 @@
     '<p><strong>炸弹</strong>：压一切普通牌型，互相比强度。强度刻度（统一可比标量）：' +
     '4 张炸 &lt; 5 张炸 &lt; <strong>同花顺</strong>（介于 5 炸与 6 炸之间）&lt; 6 张炸 &lt; 7 张炸 …，' +
     '<strong>四王炸（天王炸）</strong>压一切。</p>' +
-    '<p><strong>一圈</strong>：领出任意合法牌型，其余依次出更大同型或炸弹，或「不要」。' +
-    '在场玩家中连续 (人数−1) 家不要后，本圈最大者收圈并领出新一圈。打空手牌即出局，按出完先后定名次。</p>' +
+    '<p><strong>一圈</strong>：领出任意合法牌型，其余依次出更大同型或炸弹，或「不出」。' +
+    '在场玩家中连续 (人数−1) 家不出后，本圈最大者收圈并领出新一圈。打空手牌即出局，按出完先后定名次。</p>' +
     '<p><strong>进贡 / 还贡</strong>：单贡时末游向头游进贡；双下时三游、末游分别向二游、头游进贡，' +
     '较大贡牌交给头游。贡牌须是手中最大的非红桃级牌；收贡方还一张牌面点数不高于 10 的牌（包括数字级牌），' +
     '若手中没有这类牌则可还任意非王。单贡看末游本人、双贡看两名贡方合计：持有两个大王即抗贡。' +
@@ -6041,7 +5893,7 @@
     '<p><strong>本实现的取胜规则</strong>：当一队级牌已到 <code>A</code>，' +
     '该队必须取得 1+2 或 1+3 才能「打过 A」；1+4 不能过 A，下一局继续打 A。' +
     '你方打过 A → 战绩 +1 胜并上传战绩榜；对方打过 A → 记一负。</p>' +
-    '<p>键盘：方向键浏览手牌，Enter/Space 选牌；焦点不在牌上时 Enter 出牌、Space 不要、H 提示。手牌按点数竖向成列；点牌选中、横拖多选。' +
+    '<p>键盘：方向键浏览手牌，Enter/Space 选牌；焦点不在牌上时 Enter 出牌、Space 不出、H 提示。手牌按点数竖向成列；点牌选中、横拖多选。' +
     '<strong>[[zi:transfer]] 理牌</strong>：选中若干张点一下，把它们摞成一摞 —— 炸弹自动摞到最左（多个炸弹按强度从大到小排）、其他牌摞到最右。' +
     '<strong>[[zi:history]] 还原</strong>：选中某一摞的所有牌后点击，把它解散回默认位置。<strong>调整顺序</strong>：进入显式模式，选择任意牌后用左右按钮移动整列；不依赖长按。<strong>[[zi:puzzle]] 一键理牌</strong>：把所有自定义摞清掉，全部回默认排序。</p>';
 

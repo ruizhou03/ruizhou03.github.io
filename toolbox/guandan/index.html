@@ -8,14 +8,14 @@ apple_touch_icon: /assets/icons/guandan-apple-touch-icon.png
 app_title: 掼蛋
 theme_color: "#173a30"
 theme_color_dark: "#0b1d1a"
-asset_version: "20261031ui7"
+asset_version: "20261031ui8"
 minimal_app_shell: true
 # 服务端就给 <body> 带上全屏类：进页面首帧即全屏，杜绝"先停在非全屏再跳全屏"的闪烁。
 # （JS 启动时也会再加一次，幂等兜底。）
 body_class: gd-game-fullscreen
 ---
 
-<link rel="stylesheet" href="/assets/css/games-shell.css?v=20261031ui7">
+<link rel="stylesheet" href="/assets/css/games-shell.css?v=20261031ui8">
 
 <script>
   /* 游戏仍须遵守浏览器缩放与系统辅助功能。只覆盖 viewport-fit，不限制 200%+
@@ -82,7 +82,7 @@ body_class: gd-game-fullscreen
   })();
 </script>
 
-<link rel="stylesheet" href="/assets/css/guandan.css?v=20261031ui7">
+<link rel="stylesheet" href="/assets/css/guandan.css?v=20261031ui8">
 
 <div class="guandan-wrap gd-view-setup">
   <!-- 手机竖屏引导：仅触屏竖屏显示（CSS 控制），盖住整屏提示转横屏 -->
@@ -123,7 +123,7 @@ body_class: gd-game-fullscreen
       <div class="gd-seat gd-seat-h" id="gdSeat2" data-seat="2">
         <div class="gd-avatar team-you" id="gdAv2">[[zi:bot]]<span class="gd-clock" id="gdClk2" hidden></span></div>
         <div class="gd-seat-meta">
-          <div class="gd-name">AI 2</div>
+          <div class="gd-name">对家</div>
           <div class="gd-seat-cnt">
             <span class="gd-count" id="gdCnt2">27</span>
             <span class="gd-rank-badge" id="gdRk2" hidden></span>
@@ -144,7 +144,7 @@ body_class: gd-game-fullscreen
     <div class="gd-side gd-side-left">
       <div class="gd-seat" id="gdSeat3" data-seat="3">
         <div class="gd-avatar team-opp" id="gdAv3">[[zi:bot]]<span class="gd-clock" id="gdClk3" hidden></span></div>
-        <div class="gd-name">AI 3</div>
+        <div class="gd-name">上家</div>
         <div style="display:flex;gap:0.3rem;align-items:center;">
           <span class="gd-count" id="gdCnt3">27</span>
           <span class="gd-rank-badge" id="gdRk3" hidden></span>
@@ -156,7 +156,7 @@ body_class: gd-game-fullscreen
     <div class="gd-side gd-side-right">
       <div class="gd-seat" id="gdSeat1" data-seat="1">
         <div class="gd-avatar team-opp" id="gdAv1">[[zi:bot]]<span class="gd-clock" id="gdClk1" hidden></span></div>
-        <div class="gd-name">AI 1</div>
+        <div class="gd-name">下家</div>
         <div style="display:flex;gap:0.3rem;align-items:center;">
           <span class="gd-count" id="gdCnt1">27</span>
           <span class="gd-rank-badge" id="gdRk1" hidden></span>
@@ -172,7 +172,7 @@ body_class: gd-game-fullscreen
       </div>
       <!-- 头像右边分两行：上一行牌数、下一行托管机器人 -->
       <div class="gd-seat-meta gd-self-meta">
-        <div class="gd-name">我 <span class="tag" id="gdMyTag">座位 0</span></div>
+        <div class="gd-name">我</div>
         <div class="gd-seat-cnt">
           <span class="gd-count" id="gdCnt0">27</span>
           <span class="gd-rank-badge" id="gdRk0" hidden></span>
@@ -202,8 +202,6 @@ body_class: gd-game-fullscreen
       <button class="gd-btn" id="gdPassBtn" type="button" hidden>不出</button>
       <button class="gd-btn" id="gdHintBtn" type="button" hidden>提示</button>
       <button class="gd-btn primary" id="gdPlayBtn" type="button" hidden>出牌</button>
-      <button class="gd-btn" id="gdDblNoBtn" type="button" hidden>不加倍</button>
-      <button class="gd-btn primary" id="gdDblYesBtn" type="button" hidden>加倍 ×2</button>
     </div>
     </div><!-- /.gd-play-band -->
 
@@ -269,14 +267,6 @@ body_class: gd-game-fullscreen
               <div class="gs-pgo-mode-picker" id="gdPgoTeamTrib" aria-label="同队进贡">
                 <button class="gs-pgo-mode-tab selected" data-value="off" type="button" aria-pressed="true">关</button>
                 <button class="gs-pgo-mode-tab" data-value="on" type="button" aria-pressed="false">开</button>
-              </div>
-              <!-- 单局积分上限已隐藏：积分玩法不再用（元素保留供 JS 引用，默认"不限"=0） -->
-              <div class="gd-pgo-label" hidden>单局积分上限</div>
-              <div class="gs-pgo-mode-picker" id="gdPgoScoreCap" aria-label="单局积分上限" hidden>
-                <button class="gs-pgo-mode-tab selected" data-value="0" type="button" aria-pressed="true">不限</button>
-                <button class="gs-pgo-mode-tab" data-value="3" type="button" aria-pressed="false">3</button>
-                <button class="gs-pgo-mode-tab" data-value="5" type="button" aria-pressed="false">5</button>
-                <button class="gs-pgo-mode-tab" data-value="8" type="button" aria-pressed="false">8</button>
               </div>
               <div class="gd-pgo-label">出牌时间</div>
               <div class="gs-pgo-mode-picker" id="gdPgoTurnSec" aria-label="出牌时间">
@@ -401,7 +391,7 @@ body_class: gd-game-fullscreen
         <div class="gd-result-score" id="gdMatchScore"></div>
         <div class="gd-result-actions">
           <button class="gd-btn primary" id="gdMatchAgain" type="button">再来一局</button>
-          <button class="gd-btn" id="gdMatchSetup" type="button">换难度</button>
+          <button class="gd-btn" id="gdMatchSetup" type="button">返回开始页</button>
         </div>
       </div>
     </div>
@@ -442,15 +432,15 @@ body_class: gd-game-fullscreen
   <output id="gdPerfProbe" hidden aria-hidden="true"></output>
 </div>
 
-<script src="/assets/js/games-shell/identity.js?v=20261031ui7" defer></script>
+<script src="/assets/js/games-shell/identity.js?v=20261031ui8" defer></script>
 
-<script src="/assets/js/games/guandan-contract.js?v=20261031ui7" defer></script>
-<script src="/assets/js/games/guandan-storage.js?v=20261031ui7" defer></script>
-<script src="/assets/js/games/guandan-net.js?v=20261031ui7" defer></script>
-<script src="/assets/js/games/guandan-audio.js?v=20261031ui7" defer></script>
-<script src="/assets/js/games/guandan-rules.js?v=20261031ui7" defer></script>
-<script src="/assets/js/games/guandan-engine.js?v=20261031ui7" defer></script>
-<script src="/assets/js/games/guandan-ui.js?v=20261031ui7" defer></script>
-<script src="/assets/js/games/guandan-debug.js?v=20261031ui7" defer></script>
+<script src="/assets/js/games/guandan-contract.js?v=20261031ui8" defer></script>
+<script src="/assets/js/games/guandan-storage.js?v=20261031ui8" defer></script>
+<script src="/assets/js/games/guandan-net.js?v=20261031ui8" defer></script>
+<script src="/assets/js/games/guandan-audio.js?v=20261031ui8" defer></script>
+<script src="/assets/js/games/guandan-rules.js?v=20261031ui8" defer></script>
+<script src="/assets/js/games/guandan-engine.js?v=20261031ui8" defer></script>
+<script src="/assets/js/games/guandan-ui.js?v=20261031ui8" defer></script>
+<script src="/assets/js/games/guandan-debug.js?v=20261031ui8" defer></script>
 <script src="/assets/js/games/guandan-ai-contract.js?v=20260727ai5" defer></script>
-<script src="/assets/js/games/guandan.min.js?v=20261031ui7" defer></script>
+<script src="/assets/js/games/guandan.min.js?v=20261031ui8" defer></script>

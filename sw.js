@@ -358,7 +358,7 @@ self.addEventListener('message', async (event) => {
       catch { return false; }
     })) {
       try {
-        const manifestUrl = '/toolbox/guandan/offline-assets.json?v=20261031ui7';
+        const manifestUrl = '/toolbox/guandan/offline-assets.json?v=20261031ui8';
         const response = await fetch(manifestUrl, { cache: 'no-store' });
         if (response.ok) {
           const manifest = await response.clone().json();

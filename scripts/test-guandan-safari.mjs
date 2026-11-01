@@ -8,7 +8,7 @@ const args = new Map(process.argv.slice(2).map((arg) => {
   const [key, ...rest] = arg.split('=');
   return [key, rest.join('=')];
 }));
-const marker = args.get('--marker') || '20261031ui7';
+const marker = args.get('--marker') || '20261031ui8';
 const browserName = args.get('--browser') || 'safari';
 const browserLabel = browserName === 'firefox' ? 'Firefox' : 'Safari';
 const driverPath = args.get('--driver') || (browserName === 'firefox'
@@ -269,7 +269,6 @@ async function run() {
     ['gdPgoDiff', 'selected'],
     ['gdPgoCardSize', 'selected'],
     ['gdPgoTeamTrib', 'selected'],
-    ['gdPgoScoreCap', 'selected'],
     ['gdPgoTurnSec', 'selected'],
     ['gdOnlineTabs', 'active'],
   ].map(([id, selectedClass]) => {

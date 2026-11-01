@@ -1231,28 +1231,6 @@
     .gd-lobby-start-row .gd-btn { padding: 0.4rem 0.9rem; font-size: 0.85rem; }
   }
 
-  /* ======== 加倍阶段：play area 里显示"加倍 ×2"或"不加倍" ========
-     仿"不出"的大字浮窗。颜色：加倍=暖金（更醒目）/ 不加倍=灰墨 */
-  /* 加倍决策大字：跟"不出"(.gd-pass-big) 同款无底色纯文字。
-     加倍=红字（同"不出"）；不加倍=黑字 */
-  .gd-double-big {
-    font-family: var(--font-display);
-    font-size: 1.45rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    padding: 0.15rem 0.85rem;
-    animation: gd-pass-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    white-space: nowrap;
-  }
-  .gd-double-big.choice-yes {
-    color: var(--gd-suit-red);
-    text-shadow: 0 1px 0 #fff5d4, 0 2px 8px rgba(139,46,46,0.32);
-  }
-  .gd-double-big.choice-no {
-    color: #000;
-    text-shadow: 0 1px 0 #fff;
-  }
-
   /* ======== 浮层（贡牌 / 回合结算 / 整局结束） ======== */
   /* ======== 浮层（贡牌 / 回合结算 / 整局结束）—— 参照斗地主 .ddz-overlay 重做 ======== */
   .gd-overlay {
@@ -1493,6 +1471,7 @@
     margin: 0.7rem 0 0.4rem; min-height: 1.1em;
   }
   .gd-pgo-score strong { color: #ffe18d; }
+  .gd-pgo-score[hidden] { display: none; }
 
   /* 玩法设置折叠面板：默认收起，单机 + 联机「创建房间」共用（JS 在两处间搬移） */
   .gd-gameopts { margin: 0.7rem auto 0; }
@@ -2033,6 +2012,11 @@
     font-size: 0.78rem; line-height: 1.4; text-align: center;
   }
   .gd-overlay-timing-note[hidden] { display: none; }
+  /* 版本与 AI 引擎说明：只在开始页底部，小字、低调（规格第 6 节）。 */
+  .gd-build-note {
+    margin: 1.2rem 0 0; color: var(--color-muted);
+    font-size: 0.72rem; letter-spacing: 0.02em; text-align: center;
+  }
 
   body.gd-game-fullscreen { overflow: hidden; }
   body.gd-game-fullscreen .guandan-wrap {
@@ -2051,8 +2035,9 @@
     justify-content: safe center;
     max-width: none;
   }
-  body.gd-game-fullscreen .guandan-wrap header { margin-bottom: 0.3rem; }
-  body.gd-game-fullscreen .guandan-wrap header h1 { font-size: 1.2rem; }
+  /* 牌桌上不再显示「掼蛋」标题（规格第 6 节）；header 只保留工具按钮占位高度。 */
+  body.gd-game-fullscreen .guandan-wrap header { margin-bottom: 0.3rem; min-height: 44px; }
+  body.gd-game-fullscreen .guandan-wrap header h1,
   body.gd-game-fullscreen .guandan-wrap header .sub { display: none; }
   /* width:100% 是关键——flex 列布局下 align-items:stretch 不会替我们撑宽
      一个没显式 width 的子元素；不给的话 .gd-table 就缩到内容（PGO 浮层）
