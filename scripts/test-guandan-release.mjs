@@ -29,8 +29,8 @@ assert.doesNotMatch(html, /user-scalable\s*=\s*no|maximum-scale\s*=\s*1/,
   'viewport 不得禁止 200% 缩放');
 assert.doesNotMatch(html, /gesture(start|change)[\s\S]{0,100}preventDefault/,
   '不得拦截系统缩放手势');
-assert.match(presentation, /prefers-color-scheme:\s*dark[\s\S]*--gd-felt-1:\s*#1c3933/,
-  '必须实现系统自适应深色牌桌');
+assert.doesNotMatch(css, /prefers-color-scheme:\s*dark/,
+  '规格 1.8：牌桌固定墨园宣纸色，不随系统切深色');
 assert.match(presentation, /prefers-reduced-motion:\s*reduce/,
   '必须尊重 reduced motion');
 assert.match(presentation, /min-block-size:\s*44px/,
@@ -84,7 +84,7 @@ assert.match(js, /loadScriptOnce\('comments'/, '交流组件必须按需加载')
 assert.match(js, /loadScriptOnce\('wins'/, '榜单必须按需加载');
 assert.doesNotMatch(html, /guandan-dmc\.js/, '新手/普通首屏不得下载 DMC');
 for (const module of ['contract', 'storage', 'net', 'audio', 'rules', 'engine', 'ui', 'debug']) {
-  assert.match(html, new RegExp(`guandan-${module}\\.js\\?v=20261031ui9`),
+  assert.match(html, new RegExp(`guandan-${module}\\.js\\?v=20261031ui10`),
     `${module} 模块必须在主程序前独立加载`);
 }
 assert.match(js, /const gdApi = NET\.api/, '主程序必须真实消费独立网络模块');
@@ -110,18 +110,18 @@ assert.match(js, /openBoard\(event\.currentTarget\)/,
   '榜单 dialog 必须显式传递触发按钮，保证 Safari 焦点恢复');
 assert.match(js, /DEBUG\.bindSecretChords\(/,
   '主程序必须真实消费独立 debug 模块');
-assert.match(html, /guandan\.min\.js\?v=20261031ui9/,
+assert.match(html, /guandan\.min\.js\?v=20261031ui10/,
   '生产页面必须加载经过门禁校验的压缩脚本');
 assert.match(debugModule, /enabled = location\.hostname === 'localhost'/,
   '生产调试入口必须被本机环境门禁');
 
 assert.equal(pwa.display, 'standalone');
 assert.equal(pwa.scope, '/toolbox/guandan/');
-assert.equal(pwa.theme_color, '#173a30');
-assert.equal(offline.version, '20261031ui9');
+assert.equal(pwa.theme_color, '#f3eee3');
+assert.equal(offline.version, '20261031ui10');
 assert.equal(offline.rulesVersion, 'gd-huaian-2025-site-v1');
 assert.equal(offline.modelSha256, 'ca389e89e8db98d9968705b0e4495620e025c852cf4db4b4c2e66b086ae03da5');
-assert.match(html, /asset_version:\s*"20261031ui9"/,
+assert.match(html, /asset_version:\s*"20261031ui10"/,
   '掼蛋 PWA 的全站依赖必须使用确定版本');
 assert.ok(offline.core.length >= 5, '冷离线 core 清单不完整');
 assert.ok(offline.hard.length >= 3, '高手离线清单不完整');
@@ -129,7 +129,7 @@ assert.ok(!offline.core.some(asset => asset.url.includes('guandan-dmc.bin')),
   'easy/normal 冷离线包不得包含模型');
 assert.ok(offline.hard.some(asset => asset.url.includes('guandan-dmc.bin')),
   'hard 离线包必须包含模型');
-assert.match(sw, /offline-assets\.json\?v=20261031ui9/,
+assert.match(sw, /offline-assets\.json\?v=20261031ui10/,
   'SW 必须消费确定性离线清单');
 assert.match(js, /offline_asset_hash_mismatch/,
   'hard 离线承诺前必须校验资源 hash');

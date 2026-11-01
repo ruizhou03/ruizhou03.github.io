@@ -1,8 +1,9 @@
   /* ============================================================
-     掼蛋 调色板：与主站协调
-     - 牌桌：浅奶油羊皮纸 + 暖金细边（呼应斗地主页）
-     - 卡片：奶白纸面，暖金边框，红 #8b2e2e / 黑 #1a1a2e
-     - 强调色：暖金 #c9a96e（同 --color-highlight）
+     掼蛋 配色：丙「墨园宣纸」（规格 1.8，与全站墨园 A2 一致）
+     - 牌桌与页面同一张宣纸底，墨色细线双线裱框
+     - 朱砂只用于：主按钮、炸弹、要压的这手、剩牌告急 / 倒计时告急
+     - 卡面沿用现有设计系统（花色红黑、牌面白、逢人配）
+     - 本期不做独立深色配色：牌桌固定宣纸色
      ============================================================ */
   .guandan-wrap {
     max-width: 880px;
@@ -18,38 +19,50 @@
     --gd-card-mini-w: 34px;
     --gd-card-mini-h: 50px;
     --gd-card-mini-overlap: 20px;
+    /* 卡面（沿用现有设计系统，不随牌桌配色变） */
     --gd-card-bg: #fafaf9;
     --gd-card-bg-2: #f5f4f0;
     --gd-card-border: rgba(201,169,110,0.55);
     --gd-suit-red: #8b2e2e;
     --gd-suit-black: #1a1a2e;
-    --gd-felt-1: #f5f1e6;
-    --gd-felt-2: #ebe5d3;
-    --gd-felt-3: #ddd5be;
-    --gd-frame: #c9a96e;
-    --gd-frame-2: rgba(201,169,110,0.55);
-    --gd-text-on-felt: #1f2a3d;
-    --gd-text-on-felt-mute: rgba(31,42,61,0.62);
-    --gd-accent: #c9a96e;
-    --gd-accent-strong: #a87a2a;
     --gd-joker-red: #8b2e2e;
     --gd-joker-grey: #4a4a4a;
-    --gd-team-you: #1e6f4f;
-    --gd-team-opp: #8b2e2e;
-    /* 方案 3：默认浅色，系统/站点进入暗色时切换到真正的深绿牌桌。 */
-    --gd-ui-ink: #1f2a3d;
-    --gd-ui-text: #374151;
-    --gd-ui-muted: #667085;
-    --gd-ui-bg: #fffdf7;
-    --gd-ui-border: #bcae8d;
-    /* 组件内旧样式继续读通用变量，但值始终由牌桌自己的明暗语义控制。 */
+    /* 墨园宣纸令牌（规格 1.8） */
+    --gd-paper: #f3eee3;
+    --gd-ink: #1d1b18;
+    --gd-ink-mute: #6a6358;
+    --gd-ink-faint: #aaa294;
+    --gd-off: #b3ab9e;
+    --gd-wash: #ebe5d8;
+    --gd-seal: #b4392c;
+    --gd-seal-ink: #fbf6ec;
+    /* 双线裱框：外一道墨线，向内 5px 再一道 35% 墨线 */
+    --gd-frame-lines: inset 0 0 0 1px var(--gd-ink), inset 0 0 0 6px var(--gd-paper), inset 0 0 0 7px rgba(29,27,24,0.35);
+    /* 旧组件读的语义变量，全部落到上面的令牌 */
+    --gd-felt-1: var(--gd-paper);
+    --gd-felt-2: var(--gd-paper);
+    --gd-felt-3: var(--gd-paper);
+    --gd-frame: var(--gd-ink);
+    --gd-frame-2: rgba(29,27,24,0.28);
+    --gd-text-on-felt: var(--gd-ink);
+    --gd-text-on-felt-mute: var(--gd-ink-mute);
+    --gd-accent: var(--gd-ink);
+    --gd-accent-strong: var(--gd-ink);
+    --gd-team-you: var(--gd-ink);
+    --gd-team-opp: var(--gd-ink-mute);
+    --gd-ui-ink: var(--gd-ink);
+    --gd-ui-text: var(--gd-ink);
+    --gd-ui-muted: var(--gd-ink-mute);
+    --gd-ui-bg: var(--gd-paper);
+    --gd-ui-border: var(--gd-ink);
     --color-ink: var(--gd-ui-ink);
     --color-text: var(--gd-ui-text);
     --color-muted: var(--gd-ui-muted);
-    --color-light: #7a756b;
+    --color-light: var(--gd-ink-mute);
     --color-bg: var(--gd-ui-bg);
-    --color-bg-warm: #f7f1e3;
+    --color-bg-warm: var(--gd-wash);
     --color-border: var(--gd-ui-border);
+    --color-accent: var(--gd-ink);
   }
   /* 初始设置页不布局背后的完整牌桌；进入牌局时由显式导航状态机解除。 */
   .guandan-wrap.gd-view-setup .gd-table > :is(
@@ -59,57 +72,6 @@
     content-visibility: hidden;
     visibility: hidden;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .guandan-wrap {
-      --gd-felt-1: #1c3933;
-      --gd-felt-2: #122a26;
-      --gd-felt-3: #0b1d1a;
-      --gd-frame: #a78a55;
-      --gd-frame-2: rgba(203,172,107,0.32);
-      --gd-text-on-felt: #eef6f3;
-      --gd-text-on-felt-mute: #adc1ba;
-      --gd-accent: #dfbd79;
-      --gd-accent-strong: #e0bd75;
-      --gd-team-you: #75c7a4;
-      --gd-team-opp: #f1a098;
-      --gd-ui-ink: #eef6f3;
-      --gd-ui-text: #d8e7e1;
-      --gd-ui-muted: #adc1ba;
-      --gd-ui-bg: #152c28;
-      --gd-ui-border: rgba(203,172,107,0.38);
-      --color-light: #abc0b7;
-      --color-bg-warm: #19352f;
-      --gd-card-bg: #f4f0e7;
-      --gd-card-bg-2: #ddd6c8;
-      --gd-card-border: rgba(218,190,128,0.58);
-      --gd-joker-grey: #3a3a3a;
-    }
-  }
-  :root[data-theme="dark"] .guandan-wrap {
-    --gd-felt-1: #1c3933;
-    --gd-felt-2: #122a26;
-    --gd-felt-3: #0b1d1a;
-    --gd-frame: #a78a55;
-    --gd-frame-2: rgba(203,172,107,0.32);
-    --gd-text-on-felt: #eef6f3;
-    --gd-text-on-felt-mute: #adc1ba;
-    --gd-accent: #dfbd79;
-    --gd-accent-strong: #e0bd75;
-    --gd-team-you: #75c7a4;
-    --gd-team-opp: #f1a098;
-    --gd-ui-ink: #eef6f3;
-    --gd-ui-text: #d8e7e1;
-    --gd-ui-muted: #adc1ba;
-    --gd-ui-bg: #152c28;
-    --gd-ui-border: rgba(203,172,107,0.38);
-    --color-light: #abc0b7;
-    --color-bg-warm: #19352f;
-    --gd-card-bg: #f4f0e7;
-    --gd-card-bg-2: #ddd6c8;
-    --gd-card-border: rgba(218,190,128,0.58);
-    --gd-joker-grey: #3a3a3a;
-  }
-
   .guandan-wrap header { text-align: center; margin-bottom: 0.8rem; }
   .guandan-wrap header h1 { font-size: 2rem; color: var(--color-ink); margin-bottom: 0.3rem; }
   .guandan-wrap header .sub { color: var(--color-light); font-style: normal; font-size: 0.92rem; }
@@ -125,8 +87,8 @@
   .gd-level-chip {
     display: flex; flex-direction: row; align-items: baseline; gap: 0.3rem;
     padding: 0.18rem 0.55rem;
-    border: 1px solid var(--color-border);
-    background: rgba(255,255,255,0.6);
+    border: 1px solid var(--gd-frame-2);
+    background: var(--gd-wash);
     border-radius: 999px;
     font-family: var(--font-body);
   }
@@ -168,22 +130,20 @@
     content: '';
     width: 6px; height: 6px;
     border-radius: 50%;
-    background: var(--gd-accent-strong);
-    box-shadow: 0 0 6px rgba(168,122,42,0.85);
+    background: var(--gd-ink);
     margin-left: 0.15rem;
     align-self: center;
   }
 
   /* ======== 牌桌 ======== */
+  /* 牌桌：宣纸平底 + 双线裱框（整页唯一的一处裱框，桌内元素不再另加框） */
   .gd-table {
     position: relative;
-    background:
-      radial-gradient(ellipse at 50% 35%, rgba(255,253,245,0.45) 0%, transparent 60%),
-      linear-gradient(160deg, var(--gd-felt-1) 0%, var(--gd-felt-2) 65%, var(--gd-felt-3) 100%);
-    border: 1px solid var(--gd-frame-2);
-    border-radius: 14px;
+    background: var(--gd-paper);
+    border: 0;
+    border-radius: 2px;
     padding: 0.6rem 0.8rem 0.55rem;
-    box-shadow: inset 0 0 40px rgba(141,110,55,0.10);
+    box-shadow: var(--gd-frame-lines);
     min-height: 360px;
   }
 
@@ -247,18 +207,18 @@
     width: 46px; height: 46px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 1.5rem;
-    background: var(--color-bg);
-    border: 2px solid var(--color-border);
+    background: var(--gd-wash);
+    border: 1.5px solid var(--gd-ink-faint);
     position: relative;
   }
   .gd-seat.turn .gd-avatar {
-    border-color: var(--gd-accent);
-    box-shadow: 0 0 0 3px rgba(201,169,110,0.35);
+    border-color: var(--gd-ink);
+    box-shadow: 0 0 0 3px rgba(29,27,24,0.16);
     animation: gd-pulse 1.1s ease-in-out infinite;
   }
   @keyframes gd-pulse {
-    0%,100% { box-shadow: 0 0 0 3px rgba(201,169,110,0.30); }
-    50%     { box-shadow: 0 0 0 6px rgba(201,169,110,0.12); }
+    0%,100% { box-shadow: 0 0 0 3px rgba(29,27,24,0.16); }
+    50%     { box-shadow: 0 0 0 6px rgba(29,27,24,0.05); }
   }
   .gd-avatar.team-you { border-color: var(--gd-team-you); }
   .gd-avatar.team-opp { border-color: var(--gd-team-opp); }
@@ -274,24 +234,24 @@
   }
   .gd-count {
     font-size: 0.72rem; color: var(--gd-text-on-felt-mute);
-    background: rgba(255,255,255,0.5); border: 1px solid var(--gd-frame-2);
+    background: var(--gd-wash); border: 1px solid transparent;
     padding: 0.05rem 0.45rem; border-radius: 999px;
     font-variant-numeric: tabular-nums;
     transition: color 0.2s, background 0.2s, border-color 0.2s;
   }
   /* 报牌：余牌 ≤10 张时一直红色警示，第一次跨过时有 1s 弹动 */
   .gd-count.warn {
-    color: var(--gd-suit-red);
-    border-color: rgba(200,40,40,0.55);
-    background: rgba(200,40,40,0.08);
+    color: var(--gd-seal-ink);
+    border-color: var(--gd-seal);
+    background: var(--gd-seal);
     font-weight: 700;
   }
   .gd-count.warn.first {
     animation: gd-count-warn-pop 1s cubic-bezier(0.18, 0.9, 0.32, 1.3);
   }
   @keyframes gd-count-warn-pop {
-    0%   { transform: scale(1.45); background: rgba(200,40,40,0.45); color: #fff; }
-    60%  { transform: scale(1.05); background: rgba(200,40,40,0.18); }
+    0%   { transform: scale(1.45); }
+    60%  { transform: scale(1.05); }
     100% { transform: scale(1); }
   }
   .gd-rank-badge {
@@ -301,10 +261,11 @@
        写死单行、不收缩，让它跟张数并成「张数 | 头游」横向一行两列。 */
     white-space: nowrap; flex: 0 0 auto;
   }
-  .gd-rank-badge.r1 { background: #c9a227; }
-  .gd-rank-badge.r2 { background: #6b8f9c; }
-  .gd-rank-badge.r3 { background: #b0784a; }
-  .gd-rank-badge.r4 { background: #8b2e2e; }
+  /* 名次：头游墨底，其余浅底墨字（朱砂不用在名次上） */
+  .gd-rank-badge.r1 { background: var(--gd-ink); color: var(--gd-paper); }
+  .gd-rank-badge.r2, .gd-rank-badge.r3, .gd-rank-badge.r4 {
+    background: var(--gd-wash); color: var(--gd-ink); border: 1px solid var(--gd-frame-2);
+  }
 
   /* 出牌区：size-full 卡片，height 写死，宽方向若多于 4 张的炸弹会超出 —
      overflow:hidden 兜底；常见 1~4 张组合都能完整显示。 */
@@ -636,12 +597,11 @@
     /* 图标 + 文字横排对齐；横屏隐藏文字后图标自动居中 */
     display: inline-flex; align-items: center; justify-content: center; gap: 0.34rem;
     /* 半透明白底（深浅色模式都白），万一手牌延伸到这一块也能看见底下的牌 */
-    background: rgba(255,255,255,0.85);
+    background: rgba(243,238,227,0.92);
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
-    /* 底是固定白，图标也固定深色 —— 否则深色模式下 currentColor 变浅、白底上看不清 */
-    color: #2b2b2b;
-    border-color: rgba(0,0,0,0.22);
+    color: var(--gd-ink);
+    border-color: var(--gd-ink);
   }
   .gd-order-actions {
     display: none;
@@ -690,8 +650,9 @@
   .gd-autopilot-chip {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem;
     width: auto; height: 1.7rem; padding: 0 0.5rem;
-    border: 1px solid var(--color-border);
-    background: rgba(255,255,255,0.85);
+    border: 1px solid var(--gd-ink);
+    background: var(--gd-paper);
+    color: var(--gd-ink);
     border-radius: 999px;
     font-size: 0.95rem; line-height: 1;
     cursor: pointer;
@@ -706,9 +667,9 @@
   .gd-autopilot-chip:disabled { cursor: default; opacity: 0.35; filter: grayscale(1); }
   .gd-autopilot-tx { font-size: 0.76rem; letter-spacing: 0.06em; white-space: nowrap; }
   .gd-autopilot-chip.on {
-    background: #e8843a;
-    border-color: #e8843a;
-    box-shadow: 0 0 10px rgba(232,132,58,0.6);
+    background: var(--gd-ink);
+    border-color: var(--gd-ink);
+    color: var(--gd-paper);
     filter: none; opacity: 1;
   }
   /* 没牌能压（规格 S6）：手牌整体变暗，但仍可选牌、理牌 */
@@ -794,9 +755,9 @@
   .gd-self-clock {
     display: inline-flex; align-items: center; gap: 0.32rem;
     padding: 0.28rem 0.7rem; border-radius: 999px;
-    background: var(--gd-card-bg);
-    border: 1.5px solid var(--gd-accent);
-    color: var(--gd-suit-black);
+    background: var(--gd-paper);
+    border: 1px solid var(--gd-ink);
+    color: var(--gd-ink);
     font-family: var(--font-body); font-weight: 700;
     font-size: 0.86rem; font-variant-numeric: tabular-nums;
     line-height: 1.1;
@@ -807,8 +768,8 @@
   .gd-self-clock-num { display: inline-block; min-width: 1.6ch; text-align: right; }
   .gd-self-clock[hidden] { display: none; }
   .gd-self-clock.urgent {
-    background: var(--gd-suit-red); color: #fff; border-color: #fff5d4;
-    box-shadow: 0 0 12px rgba(200,40,40,0.6), 0 0 0 2px rgba(255,255,255,0.55);
+    background: var(--gd-seal); color: var(--gd-seal-ink); border-color: var(--gd-seal);
+    box-shadow: 0 0 10px rgba(180,57,44,0.45);
     animation: gd-clock-urgent 0.5s ease-in-out infinite alternate;
   }
   .gd-self-clock.urgent svg { color: #fff; }
@@ -820,9 +781,9 @@
   .gd-played .gd-played-clock {
     display: inline-flex; align-items: center; gap: 0.28rem;
     padding: 0.22rem 0.58rem; border-radius: 999px;
-    background: var(--gd-card-bg);
-    border: 1.5px solid var(--gd-accent);
-    color: var(--gd-suit-black);
+    background: var(--gd-paper);
+    border: 1px solid var(--gd-ink);
+    color: var(--gd-ink);
     font-family: var(--font-body); font-weight: 700;
     font-size: 0.78rem; font-variant-numeric: tabular-nums;
     line-height: 1.1;
@@ -832,8 +793,8 @@
   .gd-played .gd-played-clock svg { color: var(--gd-accent); flex-shrink: 0; }
   .gd-played .gd-played-clock-num { display: inline-block; min-width: 1.6ch; text-align: right; }
   .gd-played .gd-played-clock.urgent {
-    background: var(--gd-suit-red); color: #fff; border-color: #fff5d4;
-    box-shadow: 0 0 10px rgba(200,40,40,0.5), 0 0 0 2px rgba(255,255,255,0.55);
+    background: var(--gd-seal); color: var(--gd-seal-ink); border-color: var(--gd-seal);
+    box-shadow: 0 0 10px rgba(180,57,44,0.4);
     animation: gd-clock-urgent 0.5s ease-in-out infinite alternate;
   }
   .gd-played .gd-played-clock.urgent svg { color: #fff; }
@@ -846,23 +807,27 @@
   @media (hover: hover) {
     .gd-btn:hover:not(:disabled) { border-color: var(--color-accent); color: var(--color-accent); }
   }
-  .gd-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .gd-btn:disabled { color: var(--gd-off); border-style: dashed; border-color: var(--gd-off); cursor: not-allowed; }
+  /* 主按钮：朱砂底（规格 1.8）；不能用时退成宣纸底虚线，不再是一块灰色实心 */
   .gd-btn.primary {
-    background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+    background: var(--gd-seal); color: var(--gd-seal-ink); border-color: var(--gd-seal);
     font-weight: 600;
   }
+  .gd-btn.primary:disabled {
+    background: transparent; color: var(--gd-off); border: 1px dashed var(--gd-off); opacity: 1;
+  }
   @media (hover: hover) {
-    .gd-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+    .gd-btn.primary:hover:not(:disabled) { filter: brightness(1.08); color: var(--gd-seal-ink); }
   }
   .gd-btn.mini { padding: 0.32rem 0.7rem; font-size: 0.8rem; }
   /* 理牌按钮亮起态：颜色继承斗地主 toggle chip 的视觉语言 */
   .gd-btn.on {
-    background: var(--gd-accent);
-    border-color: var(--gd-accent);
-    color: #fff;
+    background: var(--gd-ink);
+    border-color: var(--gd-ink);
+    color: var(--gd-paper);
   }
   @media (hover: hover) {
-    .gd-btn.on:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
+    .gd-btn.on:hover:not(:disabled) { color: var(--gd-paper); filter: brightness(1.08); }
   }
 
   /* 理牌模式下：列整体可拖；hand 上方加一行金色提示；列 hover 时微微抬升提示可抓 */
@@ -1872,9 +1837,9 @@
     position: absolute; top: 0.6rem;
     display: inline-flex; align-items: center; justify-content: center;
     width: 1.95rem; height: 1.95rem; padding: 0;
-    border: 1px solid var(--color-border);
-    background: var(--gd-ui-bg);
-    color: var(--gd-ui-muted);
+    border: 1px solid var(--gd-ink);
+    background: var(--gd-paper);
+    color: var(--gd-ink);
     border-radius: 50%;
     font-size: 1rem; line-height: 1;
     cursor: pointer;
@@ -1956,9 +1921,7 @@
   /* ===== Pre-Game 页改暖色调：贴合牌桌的羊皮纸底 + 奶白卡片 + 暖金/藏蓝点缀（替掉
      games-shell 自带的冷深蓝磨砂）。沿用同一套 gs-pgo-* 组件，只把字色/底色翻成深字浅底。 */
   body.gd-game-fullscreen .gs-pgo-overlay {
-    background:
-      radial-gradient(ellipse at 50% 30%, rgba(255,253,245,0.5) 0%, transparent 62%),
-      linear-gradient(160deg, var(--gd-felt-1) 0%, var(--gd-felt-2) 60%, var(--gd-felt-3) 100%);
+    background: var(--gd-paper);
     -webkit-backdrop-filter: none; backdrop-filter: none;
   }
   /* 准备界面独立使用视口，避免被居中的短牌桌裁切。 */
@@ -2007,24 +1970,24 @@
   /* 卡片内文字翻成深字（羊皮纸底） */
   body.gd-game-fullscreen .gs-pgo-view .gs-pgo-title { color: var(--gd-ui-ink); }
   body.gd-game-fullscreen .gs-pgo-view .gd-pgo-label { color: var(--gd-ui-muted); }
-  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-picker { background: rgba(20,37,63,0.06); }
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-picker { background: var(--gd-wash); }
   body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab { color: var(--gd-ui-muted); }
   @media (hover: hover) { body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab:hover { color: var(--gd-ui-ink); } }
   body.gd-game-fullscreen .gs-pgo-view .gs-pgo-mode-tab.selected {
-    background: #8b641f; color: #fff; box-shadow: 0 1px 4px rgba(141,110,55,0.4);
+    background: var(--gd-ink); color: var(--gd-paper); box-shadow: none;
   }
   /* 开始/创建按钮：暖金实心；联机输入框翻成浅底深字 */
-  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-start-btn { background: var(--gd-accent-strong); box-shadow: 0 3px 10px rgba(141,110,55,0.35); }
+  body.gd-game-fullscreen .gs-pgo-view .gs-pgo-start-btn { background: var(--gd-seal); color: var(--gd-seal-ink); box-shadow: none; }
   body.gd-game-fullscreen .gs-pgo-view .gd-online-tab { color: var(--gd-ui-muted); }
   body.gd-game-fullscreen .gs-pgo-view .gd-online-tab.active { color: var(--gd-ui-ink); }
   body.gd-game-fullscreen .gs-pgo-view .gd-online-input {
-    background: rgba(255,255,255,0.72); border-color: var(--gd-ui-border); color: var(--gd-ui-ink);
+    background: var(--gd-paper); border-color: var(--gd-ink); color: var(--gd-ui-ink);
   }
   body.gd-game-fullscreen .gs-pgo-view .gd-online-input::placeholder { color: var(--gd-ui-muted); }
   body.gd-game-fullscreen .gs-pgo-view .gd-gameopts-toggle { color: var(--gd-ui-muted); }
   /* 「玩法设置」那行的小结（同队进贡·分不限·20秒）原本是浅金 #ffe18d，落在暖色羊皮纸上
      几乎看不清 —— 换成深琥珀，跟暖底拉开对比。下方「本难度累计」分数同理（原来是白字）。 */
-  body.gd-game-fullscreen .gs-pgo-view .gd-gameopts-toggle .go-sum { color: #8a6312; opacity: 1; }
+  body.gd-game-fullscreen .gs-pgo-view .gd-gameopts-toggle .go-sum { color: var(--gd-ink); opacity: 1; }
   body.gd-game-fullscreen .gs-pgo-view .gd-pgo-score { color: var(--gd-ui-muted); }
   body.gd-game-fullscreen .gs-pgo-view .gd-pgo-score strong { color: var(--gd-accent-strong); }
   /* 对局进行中从 ⚙️ 调出设置时，卡片左上角的「返回游戏」（关掉设置续局） */
@@ -2038,7 +2001,7 @@
   .gd-overlay-timing-note {
     margin: 0.3rem auto 0.65rem; padding: 0.42rem 0.65rem;
     max-width: 25rem; border-radius: 8px;
-    background: rgba(139,100,31,0.12); color: #674b18;
+    background: var(--gd-wash); color: var(--gd-ink);
     font-size: 0.78rem; line-height: 1.4; text-align: center;
   }
   .gd-overlay-timing-note[hidden] { display: none; }
@@ -2150,6 +2113,8 @@
     body.gd-game-fullscreen .gd-table {
       flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
       max-width: none; border: 0; border-radius: 0;
+      /* 铺满屏幕时双线裱框贴近屏幕边缘（2px / 5px），不压到角上的级牌与工具按钮 */
+      box-shadow: inset 0 0 0 2px var(--gd-paper), inset 0 0 0 3px var(--gd-ink), inset 0 0 0 5px var(--gd-paper), inset 0 0 0 6px rgba(29,27,24,0.35);
       padding:
         calc(0.35rem + env(safe-area-inset-top, 0px))
         calc(0.7rem + env(safe-area-inset-right, 0px))
