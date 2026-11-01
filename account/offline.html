@@ -353,7 +353,8 @@ body_class: acc-page mk-cat mk-page mk-acc
 
       // 概览（始终按全量算）
       el('lib-count').textContent = all.length;
-      var savedBytes = (st && st.saved && st.saved.bytes) || all.reduce(function (a, b) { return a + (b.size || 0); }, 0);
+      // 总占用直接用每条的大小加总，和书架里每行标的数字对得上；记录里没有大小时才回落到缓存统计
+      var savedBytes = all.reduce(function (a, b) { return a + (b.size || 0); }, 0) || (st && st.saved && st.saved.bytes) || 0;
       el('lib-size').innerHTML = fmtSize(savedBytes);
       var updCount = Object.keys(updates).length;
       el('lib-updc').textContent = updCount;
@@ -371,7 +372,7 @@ body_class: acc-page mk-cat mk-page mk-acc
 
       // 浏览缓存行
       var amb = el('lib-ambient');
-      if (st && st.ambient && st.ambient.bytes > 0) { amb.style.display = ''; el('lib-amb-size').innerHTML = fmtSize(st.ambient.bytes); }
+      if (st && st.ambient && st.ambient.bytes > 0) { amb.style.display = ''; el('lib-amb-size').textContent = fmtSizePlain(st.ambient.bytes); }
       else amb.style.display = 'none';
 
       // 过滤 → 排序 → 分页
