@@ -1,0 +1,17 @@
+{
+  "name": "拱猪",
+  "short_name": "拱猪",
+  "description": "四人一副牌的拱猪（红心大战中国版），三档 AI 陪练——周睿的百宝箱",
+  "id": "/toolbox/gongzhu/",
+  "start_url": "/toolbox/gongzhu/",
+  "scope": "/toolbox/gongzhu/",
+  "display": "standalone",
+  "background_color": "#f3eee3",
+  "theme_color": "#f3eee3",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "/assets/icons/gongzhu-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/gongzhu-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/gongzhu-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
