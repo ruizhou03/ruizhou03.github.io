@@ -522,9 +522,9 @@
     return { sizes: json.sizes, W, b };
   }
 
-  /* 三档难度 ← ~/gongzhu-rl 复式循环赛排名（见 RESULTS.md r5，红桃按牌面计分）：
-   *   入门 = basic 规则启发式（第 5）；普通 = DMC 自博弈训练的网络（第 2，权重在 gongzhu-dmc.js，未加载时退回 counting）；
-   *   高手 = ISMCTS（第 1，正面对打赢网络 16 分 / 局） */
+  /* 三档难度 ← ~/gongzhu-rl 复式循环赛排名（见 RESULTS.md r6，默认规则含亮牌）：
+   *   入门 = basic 规则启发式（末位）；普通 = DMC 自博弈训练的网络 dmc-f（认得规则开关和亮牌，权重在 gongzhu-dmc.js，未加载时退回 counting）；
+   *   高手 = ISMCTS（第 1，正面对打赢网络 48 分 / 局） */
   const TIERS = {
     easy: () => basicPolicy,
     normal: () => {
