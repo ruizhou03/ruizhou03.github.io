@@ -17,9 +17,12 @@ body_class: gz-fullscreen
 <div class="gz-app" id="gzApp">
   <div class="gz-table" id="gzTable">
     <header class="gz-topbar">
-      <button type="button" class="gz-round-info" id="gzRoundInfo" aria-label="查看累计分">
-        <span class="gz-round-no" id="gzRoundNo">第 1 局</span>
-      </button>
+      <div class="gz-topleft">
+        <button type="button" class="gz-round-info" id="gzRoundInfo" aria-label="查看累计分">
+          <span class="gz-round-no" id="gzRoundNo">第 1 局</span>
+        </button>
+        <button type="button" class="gz-skip" id="gzSkipTut">跳过教程</button>
+      </div>
       <div class="gz-tools">
         <button type="button" class="gz-tool" id="gzRulesBtn" aria-label="规则">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.6"/><circle cx="12" cy="16.9" r=".6" class="dot"/></svg>
@@ -42,15 +45,15 @@ body_class: gz-fullscreen
       <div class="gz-slot gz-slot-1" data-pos="1"></div>
       <div class="gz-slot gz-slot-2" data-pos="2"></div>
       <div class="gz-slot gz-slot-3" data-pos="3"></div>
-    </div>
-
-    <div class="gz-coach" id="gzCoach" hidden aria-live="polite">
-      <span class="gz-coach-seal" aria-hidden="true">教</span>
-      <div class="gz-coach-body"><p class="gz-coach-text"></p><div class="gz-coach-parts"></div></div>
-      <div class="gz-coach-acts">
-        <button type="button" class="gz-btn gz-btn-primary" data-coach="next">继续</button>
-        <button type="button" class="gz-coach-skip" data-coach="skip">跳过教程</button>
+      <!-- 教程讲解：浮在牌桌中央，绝对定位，出现 / 消失都不挤动布局 -->
+      <div class="gz-coach" id="gzCoach" hidden aria-live="polite">
+        <span class="gz-coach-seal" aria-hidden="true">教</span>
+        <p class="gz-coach-text"></p>
+        <div class="gz-coach-parts"></div>
+        <span class="gz-coach-more">点任意处继续</span>
       </div>
+      <!-- 特殊事件：吃羊 / 吃猪 / 变压器 / 全红 / 大满贯 的印章动画 -->
+      <div class="gz-fx" id="gzFx" aria-hidden="true"></div>
     </div>
 
     <section class="gz-seat gz-seat-me" data-pos="0" id="gzSeat0"></section>

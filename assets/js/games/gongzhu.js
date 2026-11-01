@@ -35,7 +35,7 @@
     hand: $('gzHand'), play: $('gzPlayBtn'),
     roundNo: $('gzRoundNo'),
     mask: $('gzDialogMask'), dialog: $('gzDialog'),
-    coach: $('gzCoach'),
+    coach: $('gzCoach'), fx: $('gzFx'),
     seats: [0, 1, 2, 3].map((s) => $('gzSeat' + s)),
     slots: [0, 1, 2, 3].map((s) => document.querySelector('.gz-slot-' + s)),
   };
@@ -123,41 +123,80 @@
    * 红桃扇放最后，张数再多也只往后长，前面几张的位置不动。
    * 红桃按点数叠成扇形，只露左上角；吃齐 13 张描金边（全红）。 */
 
-  function renderCaps(box, cards, incoming, ctx) {
-    box.innerHTML = '';
-    if (!cards.length) return;
+  /* 增量更新：已有的小牌节点原样复用，只插入新来的、删掉没了的。
+   * slide=true 时用 FLIP：先记下旧位置，改完 DOM 再从旧位置平移回来——
+   * 新牌（incoming，先隐身占位）两边的牌在飞牌途中让开一个空位，飞来的牌正好落进去，之后不再收紧。 */
+  function renderCaps(box, cards, incoming, ctx, slide) {
+    if (!cards.length) { box.innerHTML = ''; return; }
     const hidden = new Set(incoming || []);
     const r = match.round;
     ctx = ctx || (r ? R.scoreCtx(r) : { rules: match.rules, exposed: [] });
     const sc = R.scoreCaptured(cards, ctx);
+    let row = box.querySelector('.gz-caps-row');
+    if (!row) { row = document.createElement('div'); row.className = 'gz-caps-row'; box.appendChild(row); }
+    const old = new Map();
+    row.querySelectorAll('.gz-mini').forEach((el) => old.set(+el.dataset.card, el));
+    const before = new Map();
+    if (slide) for (const [c, el] of old) before.set(c, el.getBoundingClientRect());
+
     const mini = (c) => {
-      const el = buildCard(c);
-      el.classList.add('gz-mini');
-      if (ctx.exposed.includes(c)) el.classList.add('is-exposed');
-      if (hidden.has(c)) el.classList.add('incoming');
+      let el = old.get(c);
+      if (!el) {
+        el = buildCard(c);
+        el.classList.add('gz-mini');
+        if (hidden.has(c)) el.classList.add('incoming');
+      }
+      el.classList.toggle('is-exposed', ctx.exposed.includes(c));
+      old.delete(c);
       return el;
     };
-    const row = document.createElement('div');
-    row.className = 'gz-caps-row' + (sc.grandSlam ? ' is-slam' : '');
-    if (sc.doubler) {
-      const d = mini(R.DOUBLER);
-      d.classList.add('is-doubler');
-      row.appendChild(d);
-    }
-    if (sc.pig) row.appendChild(mini(R.PIG));
-    if (sc.sheep) row.appendChild(mini(R.SHEEP));
+    const want = [];
+    if (sc.doubler) { const d = mini(R.DOUBLER); d.classList.add('is-doubler'); want.push(d); }
+    if (sc.pig) want.push(mini(R.PIG));
+    if (sc.sheep) want.push(mini(R.SHEEP));
+    let fan = row.querySelector('.gz-fan');
     if (sc.hearts) {
-      const fan = document.createElement('span');
-      fan.className = 'gz-fan' + (sc.allHearts ? ' is-all' : '');
-      cards.filter(R.isHeart).sort((a, b) => a - b).forEach((c) => fan.appendChild(mini(c)));
-      row.appendChild(fan);
-    }
-    const score = document.createElement('span');
-    score.className = 'gz-cap-score gz-num ' + (sc.total < 0 ? 'neg' : sc.total > 0 ? 'pos' : '');
+      if (!fan) { fan = document.createElement('span'); fan.className = 'gz-fan'; }
+      fan.classList.toggle('is-all', sc.allHearts);
+      const hs = cards.filter(R.isHeart).sort((a, b) => a - b).map(mini);
+      hs.forEach((el, k) => { if (fan.children[k] !== el) fan.insertBefore(el, fan.children[k] || null); });
+      want.push(fan);
+    } else if (fan) { fan.remove(); fan = null; }
+    let score = row.querySelector('.gz-cap-score');
+    if (!score) { score = document.createElement('span'); }
+    score.className = 'gz-cap-score gz-num ' + (sc.total < 0 ? 'neg' : sc.total > 0 ? 'pos' : '') + (hidden.size ? ' incoming' : '');
     score.textContent = signed(sc.total);
-    if (hidden.size) score.classList.add('incoming');
-    row.appendChild(score);
-    box.appendChild(row);
+    want.push(score);
+    want.forEach((el, k) => { if (row.children[k] !== el) row.insertBefore(el, row.children[k] || null); });
+    for (const el of old.values()) el.remove();   // 新的一局：清掉上局的
+    while (row.children.length > want.length) row.lastChild.remove();
+    row.classList.toggle('is-slam', sc.grandSlam);
+    fitFan(box, row, fan);
+
+    if (!slide || !before.size) return;
+    const dur = pace().fly;
+    for (const [c, a] of before) {
+      const el = row.querySelector('.gz-mini[data-card="' + c + '"]');
+      if (!el) continue;
+      const b = el.getBoundingClientRect();
+      const dx = a.left - b.left, dy = a.top - b.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) continue;
+      el.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }],
+        { duration: dur, easing: 'cubic-bezier(.45, 0, .3, 1)' });
+    }
+  }
+
+  /* 红桃扇的叠放间距：放得下就露 44%，放不下就叠紧一点（最少露 16%），整行永远不折 */
+  function fitFan(box, row, fan) {
+    if (!fan) return;
+    const m = parseFloat(getComputedStyle(box).getPropertyValue('--m')) || 28;
+    const n = fan.children.length;
+    let others = 0;
+    for (const el of row.children) if (el !== fan) others += el.getBoundingClientRect().width;
+    const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
+    const avail = box.clientWidth - others - gap * (row.children.length - 1) - 6;
+    const step = n > 1 ? Math.max(m * 0.16, Math.min(m * 0.44, (avail - m) / (n - 1))) : 0;
+    fan.style.setProperty('--fanstep', step.toFixed(1) + 'px');
   }
 
   function signed(n) { return n > 0 ? '+' + n : n < 0 ? '−' + Math.abs(n) : '0'; }
@@ -178,7 +217,7 @@
     });
   }
 
-  function renderSeat(s, incoming) {
+  function renderSeat(s, incoming, slide) {
     const r = match.round;
     const el = els.seats[s];
     const tot = el.querySelector('.gz-total');
@@ -199,12 +238,11 @@
         for (const c of want) {
           const m = buildCard(c);
           m.classList.add('gz-mini', 'is-exposed');
-          if (!have.includes(c)) m.classList.add('landed');
           shown.appendChild(m);
         }
       }
     }
-    renderCaps(el.querySelector('.gz-caps'), r ? r.captured[s] : [], incoming);
+    renderCaps(el.querySelector('.gz-caps'), r ? r.captured[s] : [], incoming, null, slide);
     el.classList.toggle('is-turn', turnSeat() === s);
   }
 
@@ -269,6 +307,7 @@
       el.setAttribute('aria-label', cardName(c));
       if ((myTurn || exposing) && !legal.includes(c)) { el.classList.add('is-illegal'); el.setAttribute('aria-disabled', 'true'); }
       if (isExposedCard(c) || (exposing && exposePick.includes(c))) el.classList.add('is-exposed');
+      if (c === suggestCard && myTurn) el.classList.add('is-suggest');
       if (exposing ? exposePick.includes(c) : c === selected) { el.classList.add('selected'); el.setAttribute('aria-selected', 'true'); }
       el.addEventListener('click', () => onCardTap(c, el));
       els.hand.appendChild(el);
@@ -374,16 +413,17 @@
     stopClock();
     const done = R.playCard(r, seat, card);
     if (seat === 0) selected = -1;
-    if (seat === 0 && match.tutorial) hideCoach();
+    if (seat === 0 && match.tutorial) { hideCoach(); clearTimeout(idleTimer); suggestCard = -1; els.play.classList.remove('is-suggest'); }
     busy = true;   // 下一手由 step() 接手，轮到我时它再放开；早放开会让我抢在 step 前出牌、排出两次 step
     renderTrick(done ? done.plays : null, seat);
+    markAce(done ? done.plays : r.trick, seat, card);
     renderSeat(seat);
     renderHand();
     if (!done) { save(); schedule(step, 60); return; }
     // 一墩完成：停一下让人看清，分牌飞进赢家的吃牌区，没分的牌就地淡出
     for (let s = 0; s < 4; s++) els.seats[s].classList.remove('is-turn');
     schedule(() => {
-      const ms = flyTrick(done.plays, done.winner);
+      const ms = Math.max(flyTrick(done.plays, done.winner), playTrickFx(done));
       schedule(() => {
         save();
         if (match.tutorial) coachSay(tut.coach.afterTrick(done, r), step);
@@ -399,38 +439,36 @@
     const seatEl = els.seats[winner];
     const caps = seatEl.querySelector('.gz-caps');
     const fresh = plays.map((p) => p.card).filter(R.isScoring);
-    renderSeat(winner, fresh);
+    renderSeat(winner, fresh, true);
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const flyers = [];
     plays.forEach((p) => {
       const slot = els.slots[p.seat];
       if (!slot.querySelector('.gz-card')) return;
       const a = slot.getBoundingClientRect();
-      const rot = getComputedStyle(slot).getPropertyValue('--rot').trim() || '0deg';
       const scoring = R.isScoring(p.card);
       const fl = buildCard(p.card);
       fl.classList.add('gz-flyer');
       fl.style.cssText += ';left:' + a.left + 'px;top:' + a.top + 'px;width:' + a.width + 'px;height:' + a.height + 'px;--q:' + a.width + 'px';
-      fl.style.transform = 'rotate(' + rot + ')';
       fl.style.transitionDuration = (reduce ? 1 : scoring ? pace().fly : pace().fade) + 'ms';
       els.app.appendChild(fl);
-      flyers.push({ fl, a, rot, target: scoring ? caps.querySelector('[data-card="' + p.card + '"]') : null });
+      flyers.push({ fl, a, target: scoring ? caps.querySelector('[data-card="' + p.card + '"]') : null });
     });
-    els.slots.forEach((slot) => { slot.innerHTML = ''; });
+    els.slots.forEach((slot) => { slot.innerHTML = ''; slot.classList.remove('is-ace'); });
     void els.app.offsetWidth;  // 强制回流：起点样式落定后再设终点，过渡才会跑（不靠 rAF，后台页也稳）
-    for (const { fl, a, rot, target } of flyers) {
+    for (const { fl, a, target } of flyers) {
       if (target) {
         const b = target.getBoundingClientRect();
         fl.style.transform = 'translate(' + (b.left + b.width / 2 - a.left - a.width / 2) + 'px,' + (b.top + b.height / 2 - a.top - a.height / 2) + 'px) scale(' + (b.width / a.width) + ',' + (b.height / a.height) + ')';
       } else {
-        fl.style.transform = 'rotate(' + rot + ') scale(0.86)';
+        fl.style.transform = 'scale(0.86)';
         fl.style.opacity = '0';
       }
     }
     const ms = reduce ? 20 : fresh.length ? pace().fly : pace().fade;
     setTimeout(() => {
       flyers.forEach(({ fl }) => fl.remove());
-      caps.querySelectorAll('.incoming').forEach((el) => { el.classList.remove('incoming'); el.classList.add('landed'); });
+      caps.querySelectorAll('.incoming').forEach((el) => el.classList.remove('incoming'));
     }, ms);
     return ms;
   }
@@ -516,6 +554,7 @@
 
   function onCardTap(c, el) {
     if (autopilot) { setAutopilot(false); return; }
+    if (match.tutorial) { suggestCard = -1; armIdle(); }
     if (exposingMe()) {
       if (busy) return;
       if (!R.EXPOSABLE.includes(c)) { shake(el); return; }
@@ -772,9 +811,87 @@
       });
   }
 
+  /* ───── 特殊事件：牌桌中央盖一枚印章，淡出时朝吃牌的人飘过去 ─────
+   * 羊（墨绿）· 猪（朱红，落下一震）· 变压器（金边圆印 ×2）· 全红（红心绽开再落印）· 大满贯（金印 + 光环）。
+   * 领出花色的 A 一出：那张牌旁边盖一个小「照单全收」。 */
+
+  const FX_DRIFT = [[0, 70], [90, 0], [0, -70], [-90, 0]];   // 朝各座位飘的方向（我 / 下 / 对 / 上）
+  const FX_MS = 1400, FX_GAP = 520;
+
+  function markAce(plays, seat, card) {
+    if (!plays.length || R.rankOf(card) !== 12) return;
+    if (R.suitOf(card) !== R.suitOf(plays[0].card)) return;
+    els.slots[seat].classList.add('is-ace');
+  }
+
+  // 一墩里可能同时有好几件事（猪 + 变压器……）：依次落印。返回整段时长（无事件返回 0）
+  function playTrickFx(done) {
+    const r = match.round;
+    const w = done.winner;
+    const cs = done.plays.map((p) => p.card);
+    const sc = R.scoreCaptured(r.captured[w], R.scoreCtx(r));
+    const who = w === 0 ? '你' : NAMES[w];
+    const list = [];
+    const hadAll = r.captured[w].filter(R.isHeart).length === 13 && cs.some(R.isHeart);
+    if (sc.grandSlam && hadAll) list.push({ kind: 'slam', word: '大满贯', sub: who + ' ' + signed(sc.total) });
+    else if (hadAll) list.push({ kind: 'allhearts', word: '全红', sub: who + ' ' + signed(sc.heartScore) });
+    if (!sc.grandSlam) {
+      if (cs.includes(R.PIG)) list.push({ kind: sc.pigScore > 0 ? 'sheep' : 'pig', word: '猪', sub: who + ' ' + signed(sc.pigScore) });
+      if (cs.includes(R.SHEEP)) list.push({ kind: sc.sheepScore < 0 ? 'pig' : 'sheep', word: '羊', sub: who + ' ' + signed(sc.sheepScore) });
+      if (cs.includes(R.DOUBLER)) list.push({ kind: 'doubler', word: '×' + (R.scoreCtx(r).exposed.includes(R.DOUBLER) ? 4 : 2), sub: who + ' 翻倍' });
+    }
+    if (!list.length || reduceMotion()) return 0;
+    list.forEach((fx, k) => setTimeout(() => stamp(fx, w), k * FX_GAP));
+    return FX_MS + (list.length - 1) * FX_GAP;
+  }
+
+  function stamp(fx, w) {
+    const el = document.createElement('div');
+    el.className = 'gz-stamp kind-' + fx.kind;
+    el.style.setProperty('--dx', FX_DRIFT[w][0] + 'px');
+    el.style.setProperty('--dy', FX_DRIFT[w][1] + 'px');
+    el.innerHTML = '<span class="gz-stamp-seal"><span class="gz-stamp-word">' + fx.word + '</span></span>' +
+      '<span class="gz-stamp-sub">' + fx.sub + '</span>';
+    if (fx.kind === 'allhearts') {
+      // 13 颗红心从中心绽开
+      for (let k = 0; k < 13; k++) {
+        const h = document.createElement('span');
+        h.className = 'gz-burst';
+        h.textContent = '♥';
+        h.style.setProperty('--a', (k * 360 / 13) + 'deg');
+        el.appendChild(h);
+      }
+    }
+    els.fx.appendChild(el);
+    setTimeout(() => el.remove(), FX_MS + 60);
+  }
+
+  function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
+
   /* ───── 新手教程：固定一副牌 + 三家「导演」出牌 + 按事件讲解（内容在 gongzhu-tutorial.js） ───── */
 
   let tut = null;   // { coach, saved: 教程前的那一盘（教完放回去）, firstRun }
+  let coachNext = null, coachHideTimer = 0;
+  let idleTimer = 0, suggestCard = -1;   // 教程里久不出牌：呼吸提示一张牌（或已选好时提示「出牌」）
+  const IDLE_MS = 8000;
+
+  function armIdle() {
+    clearTimeout(idleTimer);
+    clearSuggest();
+    if (!match.tutorial) return;
+    const my = token;
+    idleTimer = setTimeout(() => {
+      const r = match.round;
+      if (my !== token || !r || busy || r.turn !== 0 || coachNext) return;
+      if (selected >= 0) { els.play.classList.add('is-suggest'); return; }
+      suggestCard = AI.countingPolicy(r, 0);
+      renderHand();
+    }, IDLE_MS);
+  }
+  function clearSuggest() {
+    els.play.classList.remove('is-suggest');
+    if (suggestCard >= 0) { suggestCard = -1; if (match && match.round) renderHand(); }
+  }
 
   function startTutorial(firstRun) {
     token++;
@@ -792,6 +909,9 @@
 
   function endTutorial() {
     token++;
+    clearTimeout(idleTimer);
+    suggestCard = -1;
+    els.play.classList.remove('is-suggest');
     writeJSON(TUT_KEY, 1);
     els.table.classList.remove('is-tutorial');
     hideCoach();
@@ -819,6 +939,7 @@
       renderHand();
       const h = tut.coach.hint(r);
       if (h) showCoach({ text: h }, null);
+      armIdle();
       return;
     }
     busy = true;
@@ -862,14 +983,30 @@
       eq.textContent = '= ' + signed(sum);
       parts.appendChild(eq);
     }
-    const next = c.querySelector('[data-coach="next"]');
-    next.hidden = !onNext;
-    next.onclick = onNext ? () => { next.onclick = null; onNext(); } : null;
-    c.hidden = false;
+    // 说（等点继续）居中大字；提示（等我出牌）落在我出牌的位置
+    coachNext = onNext || null;
+    c.classList.toggle('is-say', !!onNext);
+    c.classList.toggle('is-hint', !onNext);
     c.classList.remove('pulse');
-    if (onNext) next.focus({ preventScroll: true });
+    clearTimeout(coachHideTimer);
+    if (c.hidden) { c.hidden = false; void c.offsetWidth; }
+    c.classList.add('on');
   }
-  function hideCoach() { els.coach.hidden = true; }
+  function hideCoach() {
+    coachNext = null;
+    const c = els.coach;
+    c.classList.remove('on');
+    clearTimeout(coachHideTimer);
+    coachHideTimer = setTimeout(() => { if (!c.classList.contains('on')) c.hidden = true; }, 240);
+  }
+  // 点任意处 / 空格 / 回车：往下讲
+  function coachAdvance() {
+    const f = coachNext;
+    if (!f) return false;
+    coachNext = null;
+    f();
+    return true;
+  }
 
   /* ───── 启动 ───── */
 
@@ -877,12 +1014,18 @@
   $('gzRulesBtn').addEventListener('click', showRules);
   $('gzSettingsBtn').addEventListener('click', showSettings);
   $('gzRoundInfo').addEventListener('click', () => { if (!match.tutorial) showTotals(); });
-  els.coach.querySelector('[data-coach="skip"]').addEventListener('click', endTutorial);
+  $('gzSkipTut').addEventListener('click', () => { if (match.tutorial) endTutorial(); });
+  // 教程讲解时点牌桌任意处继续（顶栏按钮、弹窗照常）
+  els.app.addEventListener('click', (e) => {
+    if (!coachNext || e.target.closest('.gz-topbar') || !els.mask.hidden) return;
+    coachAdvance();
+  });
   els.seats[0].addEventListener('click', (e) => { if (autopilot && e.target.closest('.gz-avatar')) setAutopilot(false); });
   // 点遮罩关闭普通弹窗；结算弹窗必须点按钮继续
   els.mask.addEventListener('click', (e) => { if (e.target === els.mask && match.round) closeDialog(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !els.mask.hidden && match.round) closeDialog();
+    if ((e.key === ' ' || e.key === 'Enter') && els.mask.hidden && coachNext) { e.preventDefault(); coachAdvance(); return; }
     if (e.key === 'Enter' && els.mask.hidden) playSelected();
   });
   let resizeRaf = 0;
