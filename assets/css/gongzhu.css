@@ -86,17 +86,39 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-seat-me { grid-area: me; flex-direction: row; justify-content: flex-start; gap: 10px; padding: 4px 0; }
 
 .gz-who { display: flex; align-items: center; gap: 8px; }
-.gz-seat-left .gz-who, .gz-seat-right .gz-who { flex-direction: column; gap: 3px; }
+.gz-seat-left .gz-who, .gz-seat-right .gz-who { flex-direction: column; gap: 7px; }
 .gz-avatar {
   width: 40px; height: 40px; border-radius: 50%;
   background: var(--gz-wash); border: 1.5px solid var(--gz-ink-faint);
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 17px; font-weight: 700; color: var(--gz-ink);
   transition: box-shadow 0.2s, border-color 0.2s;
-  flex-shrink: 0;
+  flex-shrink: 0; position: relative;
 }
 .gz-seat-me .gz-avatar { border-color: var(--gz-ink); }
 .gz-seat.is-turn .gz-avatar { border-color: var(--gz-seal); box-shadow: 0 0 0 3px rgba(180, 57, 44, 0.22); }
+/* 倒计时：头像外圈一道红环，顺时针收走；有限时就用它代替光晕 */
+.gz-clock {
+  position: absolute; left: -7px; top: -7px; width: calc(100% + 14px); height: calc(100% + 14px);
+  transform: rotate(-90deg); pointer-events: none; overflow: visible;
+}
+.gz-clock circle {
+  fill: none; stroke: var(--gz-seal); stroke-width: 2.6; stroke-linecap: round;
+  stroke-dasharray: 100; stroke-dashoffset: 0; opacity: 0;
+}
+.gz-seat.is-turn.is-timed .gz-avatar { box-shadow: none; }
+.gz-seat.is-turn.is-timed .gz-clock circle { opacity: 1; animation: gz-clock var(--turn-ms, 20s) linear forwards; }
+.gz-seat.is-paused .gz-clock circle, .gz-seat.is-paused .gz-avatar { animation-play-state: paused; }
+.gz-seat.is-turn.is-hurry .gz-avatar { animation: gz-hurry 0.5s ease-in-out infinite alternate; }
+@keyframes gz-clock { to { stroke-dashoffset: 100; } }
+@keyframes gz-hurry { to { transform: scale(1.08); } }
+/* 托管：我的头像右下角挂一枚小机器人，点手牌或头像收回 */
+.gz-seat.is-auto .gz-avatar { cursor: pointer; }
+.gz-seat.is-auto .gz-avatar::after {
+  content: ''; position: absolute; right: -6px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--gz-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f3ece0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='8' width='14' height='11' rx='3'/%3E%3Cpath d='M12 4v4M9.5 13h.01M14.5 13h.01M10 16.5h4'/%3E%3C/svg%3E") center / 14px no-repeat;
+  border: 1.5px solid var(--gz-paper);
+}
 .gz-name-line { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
 .gz-seat-me .gz-name-line, .gz-seat-top .gz-name-line { align-items: flex-start; }
 .gz-name { font-size: 14px; font-weight: 700; white-space: nowrap; }
@@ -104,7 +126,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-total.neg { color: var(--gz-seal); }
 .gz-num { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 1.12em; }
 
-/* 吃牌区：真牌面小牌。顺序固定 猪 · 羊 · 红桃扇 · 变压器，末尾本局分 */
+/* 吃牌区：真牌面小牌。顺序固定 变压器 · 猪 · 羊 · 红桃扇，末尾本局分 */
 .gz-caps { display: flex; justify-content: center; max-width: 100%; min-height: var(--mh); }
 .gz-seat-me .gz-caps { justify-content: flex-start; }
 .gz-caps-row {
@@ -131,7 +153,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-fan { display: inline-flex; padding: 1px; border-radius: 4px; }
 .gz-fan .gz-mini + .gz-mini { margin-left: calc(var(--m) * -0.56); }
 .gz-fan.is-all { box-shadow: 0 0 0 2px var(--gz-gold); }
-.gz-mini.is-doubler { margin-left: calc(var(--m) * 0.12); }
+.gz-mini.is-doubler { margin-right: calc(var(--m) * 0.12); }
 .gz-cap-score { font-size: 16px; margin-left: 3px; color: var(--gz-ink-mute); }
 .gz-cap-score.neg { color: var(--gz-seal); }
 .gz-cap-score.pos { color: var(--gz-good); }
@@ -167,10 +189,10 @@ body.gz-fullscreen .site-footer { display: none !important; }
   from { opacity: 0; transform: translate(var(--fx), var(--fy)) rotate(var(--rot)); }
   to { opacity: 1; transform: rotate(var(--rot)); }
 }
-/* 一墩打完：牌复制成浮层飞走（分牌进赢家吃牌区，其余收向赢家头像） */
+/* 一墩打完：牌复制成浮层——分牌飞进赢家吃牌区，没分的牌就地淡出 */
 .gz-flyer {
   position: fixed; margin: 0; z-index: var(--z-fx); pointer-events: none;
-  transform-origin: 0 0; transition-property: transform, opacity; transition-timing-function: cubic-bezier(.45, 0, .3, 1);
+  transform-origin: 50% 50%; transition-property: transform, opacity; transition-timing-function: cubic-bezier(.45, 0, .3, 1);
 }
 
 /* ───── 决策带与手牌 ───── */
@@ -335,5 +357,5 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .gz-slot .gz-card.in { animation: none; }
-  .gz-caps .landed, .gz-hand .gz-card.nope { animation: none; }
+  .gz-caps .landed, .gz-hand .gz-card.nope, .gz-seat.is-turn.is-hurry .gz-avatar { animation: none; }
 }

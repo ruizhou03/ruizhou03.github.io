@@ -13,12 +13,16 @@
   const NAMES = ['我', '下家', '对家', '上家'];
   const AVATARS = ['我', '下', '对', '上'];
   const TIER_LABELS = { easy: '入门', normal: '普通', hard: '高手' };
+  const TIER_ORDER = ['easy', 'normal', 'hard'];
+  const TURN_SEC_OPTS = { 20: '20 秒', 0: '不限时' };
+  const HURRY_MS = 5000;   // 最后 5 秒头像开始跳
   const SUIT_NAMES = ['黑桃', '红桃', '方块', '梅花'];
 
-  const PACE = { aiMin: 520, trickShow: 900, fly: 480, roundEnd: 700 };
+  // trickShow：一墩打满停多久；fly：分牌飞进吃牌区；fade：没分的牌就地淡出
+  const PACE = { aiMin: 520, trickShow: 600, fly: 420, fade: 260, roundEnd: 700 };
   // 本机调试：?gzauto=1 让「我」也由 AI 代打并加速，用来一口气验到结算 / 一盘结束
   const AUTO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('gzauto') === '1';
-  if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, roundEnd: 60 });
+  if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, fade: 120, roundEnd: 60 });
 
   const $ = (id) => document.getElementById(id);
   const els = {
@@ -35,12 +39,14 @@
   function readJSON(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (_) { return null; } }
   function writeJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (_) { /* 无痕模式等：不存也能玩 */ } }
 
-  const settings = Object.assign({ tier: 'normal' }, readJSON(SETTINGS_KEY) || {});
+  const settings = Object.assign({ tier: 'normal', turnSec: 20 }, readJSON(SETTINGS_KEY) || {});
 
   let match = null;     // { totals, roundNo, nextLeader, seed, round, last, over }
   let selected = -1;
   let busy = false;     // 动画 / AI 思考中，屏蔽我的操作
   let token = 0;        // 重开时作废旧的定时回调
+  let autopilot = false;  // 托管：连续两次超时自动打开，点手牌 / 头像取消
+  let timeouts = 0;       // 连续超时次数，我自己出一张就清零
 
   function newMatch() {
     match = { totals: [0, 0, 0, 0], roundNo: 0, nextLeader: -1, seed: (Math.random() * 2 ** 31) | 0, round: null, last: null, over: false };
@@ -100,8 +106,9 @@
     els.app.style.setProperty('--u', u.toFixed(1) + 'px');
   }
 
-  /* ───── 吃牌区：真牌面小牌，固定顺序 猪 · 羊 · 红桃扇 · 变压器，末尾是本局分 ─────
-   * 顺序固定、不随吃进先后变：一眼能比较四家。变压器放最后，像算式里的「× 2」。
+  /* ───── 吃牌区：真牌面小牌，固定顺序 变压器 · 猪 · 羊 · 红桃扇，末尾是本局分 ─────
+   * 顺序固定、不随吃进先后变：一眼能比较四家。变压器打头，像算式前面的系数「2 ×」；
+   * 红桃扇放最后，张数再多也只往后长，前面几张的位置不动。
    * 红桃按点数叠成扇形，只露左上角；吃齐 13 张描金边（全红）。 */
 
   function renderCaps(box, cards, incoming) {
@@ -117,6 +124,11 @@
     };
     const row = document.createElement('div');
     row.className = 'gz-caps-row' + (sc.grandSlam ? ' is-slam' : '');
+    if (sc.doubler) {
+      const d = mini(R.DOUBLER);
+      d.classList.add('is-doubler');
+      row.appendChild(d);
+    }
     if (sc.pig) row.appendChild(mini(R.PIG));
     if (sc.sheep) row.appendChild(mini(R.SHEEP));
     if (sc.hearts) {
@@ -124,11 +136,6 @@
       fan.className = 'gz-fan' + (sc.allHearts ? ' is-all' : '');
       cards.filter(R.isHeart).sort((a, b) => a - b).forEach((c) => fan.appendChild(mini(c)));
       row.appendChild(fan);
-    }
-    if (sc.doubler) {
-      const d = mini(R.DOUBLER);
-      d.classList.add('is-doubler');
-      row.appendChild(d);
     }
     const score = document.createElement('span');
     score.className = 'gz-cap-score gz-num ' + (sc.total < 0 ? 'neg' : sc.total > 0 ? 'pos' : '');
@@ -142,10 +149,13 @@
 
   /* ───── 座位：结构只建一次，之后只更新内容（飞牌动画要拿稳定的落点） ───── */
 
+  // 头像外圈的倒计时环：轮到谁谁亮，环随时间收走
+  const CLOCK_SVG = '<svg class="gz-clock" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="23" pathLength="100"/></svg>';
+
   function buildSeats() {
     els.seats.forEach((el, s) => {
       el.innerHTML =
-        '<div class="gz-who"><span class="gz-avatar">' + AVATARS[s] + '</span>' +
+        '<div class="gz-who"><span class="gz-avatar">' + AVATARS[s] + CLOCK_SVG + '</span>' +
         '<span class="gz-name-line"><span class="gz-name">' + NAMES[s] + '</span><span class="gz-total gz-num"></span></span></div>' +
         (s === 0 ? '' : '<span class="gz-backs" aria-hidden="true"></span>') +
         '<div class="gz-caps"></div>';
@@ -253,12 +263,13 @@
     if (!r) return;
     if (R.isRoundOver(r)) { schedule(finishRound, PACE.roundEnd); return; }
     renderSeats();
-    if (r.turn === 0 && !AUTO) { busy = false; renderHand(); return; }
+    if (r.turn === 0 && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyTimeout); return; }
     busy = true;
     renderHand();
     const started = performance.now();
     const seat = r.turn;
-    chooseAi(r, seat).then((card) => {
+    if (seat !== 0) startClock(seat, null);
+    chooseAi(r, seat, seat === 0 ? takeoverTier(botTiers()) : seatTier(seat)).then((card) => {
       const wait = Math.max(0, PACE.aiMin - (performance.now() - started));
       schedule(() => commit(seat, card), wait);
     });
@@ -266,6 +277,7 @@
 
   function commit(seat, card) {
     const r = match.round;
+    stopClock();
     const done = R.playCard(r, seat, card);
     if (seat === 0) selected = -1;
     busy = !!done || r.turn !== 0;
@@ -273,56 +285,137 @@
     renderSeat(seat);
     renderHand();
     if (!done) { save(); schedule(step, 60); return; }
-    // 一墩完成：停一下让人看清，分牌飞进赢家的吃牌区，其余的牌收走
+    // 一墩完成：停一下让人看清，分牌飞进赢家的吃牌区，没分的牌就地淡出
     for (let s = 0; s < 4; s++) els.seats[s].classList.remove('is-turn');
     schedule(() => {
-      flyTrick(done.plays, done.winner);
-      schedule(() => { save(); step(); }, PACE.fly + 40);
+      const ms = flyTrick(done.plays, done.winner);
+      schedule(() => { save(); step(); }, ms + 40);
     }, PACE.trickShow);
   }
 
+  /* 吃进来的牌只有分牌会留在吃牌区，所以只有它们飞过去：缩成小牌落到自己的位置。
+   * 没分的牌不往谁身上收（收过去什么也没留下反而怪），就在桌上淡出。
+   * 赢家头像同时亮起（他领下一墩），谁吃的这一墩一眼可见。返回动画时长。 */
   function flyTrick(plays, winner) {
     const seatEl = els.seats[winner];
     const caps = seatEl.querySelector('.gz-caps');
     const fresh = plays.map((p) => p.card).filter(R.isScoring);
     renderSeat(winner, fresh);
-    seatEl.classList.remove('is-turn');
-    const av = seatEl.querySelector('.gz-avatar').getBoundingClientRect();
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const flyers = [];
     plays.forEach((p) => {
-      const src = els.slots[p.seat].querySelector('.gz-card');
-      if (!src) return;
-      const a = els.slots[p.seat].getBoundingClientRect();
+      const slot = els.slots[p.seat];
+      if (!slot.querySelector('.gz-card')) return;
+      const a = slot.getBoundingClientRect();
+      const rot = getComputedStyle(slot).getPropertyValue('--rot').trim() || '0deg';
+      const scoring = R.isScoring(p.card);
       const fl = buildCard(p.card);
       fl.classList.add('gz-flyer');
       fl.style.cssText += ';left:' + a.left + 'px;top:' + a.top + 'px;width:' + a.width + 'px;height:' + a.height + 'px;--q:' + a.width + 'px';
-      fl.style.transitionDuration = (reduce ? 1 : PACE.fly) + 'ms';
+      fl.style.transform = 'rotate(' + rot + ')';
+      fl.style.transitionDuration = (reduce ? 1 : scoring ? PACE.fly : PACE.fade) + 'ms';
       els.app.appendChild(fl);
-      const target = R.isScoring(p.card) ? caps.querySelector('[data-card="' + p.card + '"]') : null;
-      flyers.push({ fl, a, target });
+      flyers.push({ fl, a, rot, target: scoring ? caps.querySelector('[data-card="' + p.card + '"]') : null });
     });
     els.slots.forEach((slot) => { slot.innerHTML = ''; });
     void els.app.offsetWidth;  // 强制回流：起点样式落定后再设终点，过渡才会跑（不靠 rAF，后台页也稳）
-    {
-      for (const { fl, a, target } of flyers) {
-        if (target) {
-          const b = target.getBoundingClientRect();
-          fl.style.transform = 'translate(' + (b.left - a.left) + 'px,' + (b.top - a.top) + 'px) scale(' + (b.width / a.width) + ',' + (b.height / a.height) + ')';
-        } else {
-          const k = 0.35;
-          fl.style.transform = 'translate(' + (av.left + av.width / 2 - a.left - a.width * k / 2) + 'px,' + (av.top + av.height / 2 - a.top - a.height * k / 2) + 'px) scale(' + k + ')';
-          fl.style.opacity = '0';
-        }
+    for (const { fl, a, rot, target } of flyers) {
+      if (target) {
+        const b = target.getBoundingClientRect();
+        fl.style.transform = 'translate(' + (b.left + b.width / 2 - a.left - a.width / 2) + 'px,' + (b.top + b.height / 2 - a.top - a.height / 2) + 'px) scale(' + (b.width / a.width) + ',' + (b.height / a.height) + ')';
+      } else {
+        fl.style.transform = 'rotate(' + rot + ') scale(0.86)';
+        fl.style.opacity = '0';
       }
     }
+    const ms = reduce ? 20 : fresh.length ? PACE.fly : PACE.fade;
     setTimeout(() => {
       flyers.forEach(({ fl }) => fl.remove());
       caps.querySelectorAll('.incoming').forEach((el) => { el.classList.remove('incoming'); el.classList.add('landed'); });
-    }, reduce ? 20 : PACE.fly);
+    }, ms);
+    return ms;
+  }
+
+  /* ───── 出牌倒计时与托管 ─────
+   * 轮到谁，谁的头像外圈亮起一道红环并随时间收走；最后 5 秒头像轻跳。
+   * 我超时：由场上最强的那档机器人替我出这一张；连续两次超时转成托管，点手牌或头像收回。
+   * 弹窗开着时计时暂停。 */
+
+  const clock = { seat: -1, left: 0, at: 0, onTimeout: null, paused: false, t1: 0, t2: 0 };
+
+  function startClock(seat, onTimeout) {
+    stopClock();
+    const total = (settings.turnSec | 0) * 1000;
+    if (!total) return;
+    Object.assign(clock, { seat, left: total, onTimeout, paused: false });
+    const el = els.seats[seat];
+    el.style.setProperty('--turn-ms', total + 'ms');
+    el.classList.remove('is-timed', 'is-hurry', 'is-paused');
+    void el.offsetWidth;   // 同一座位连着两回合也要从满环重新开始
+    el.classList.add('is-timed');
+    if (!els.mask.hidden) pauseClock();
+    else runClock();
+  }
+  function runClock() {
+    const my = token, seat = clock.seat;
+    clock.at = performance.now();
+    clock.t1 = setTimeout(() => { if (my === token) els.seats[seat].classList.add('is-hurry'); }, Math.max(0, clock.left - HURRY_MS));
+    if (clock.onTimeout) clock.t2 = setTimeout(() => { if (my !== token) return; const f = clock.onTimeout; stopClock(); f(); }, clock.left);
+  }
+  function pauseClock() {
+    if (clock.seat < 0 || clock.paused) return;
+    clearTimeout(clock.t1); clearTimeout(clock.t2);
+    if (clock.at) clock.left = Math.max(0, clock.left - (performance.now() - clock.at));
+    clock.at = 0;
+    clock.paused = true;
+    els.seats[clock.seat].classList.add('is-paused');
+  }
+  function resumeClock() {
+    if (clock.seat < 0 || !clock.paused) return;
+    clock.paused = false;
+    els.seats[clock.seat].classList.remove('is-paused');
+    runClock();
+  }
+  function stopClock() {
+    clearTimeout(clock.t1); clearTimeout(clock.t2);
+    if (clock.seat >= 0) els.seats[clock.seat].classList.remove('is-timed', 'is-hurry', 'is-paused');
+    Object.assign(clock, { seat: -1, onTimeout: null, paused: false, at: 0 });
+  }
+
+  // 单机三家机器人同一档；联机时真人座位返回 null
+  function seatTier(seat) { return seat === 0 ? null : settings.tier; }
+  function botTiers() { return [1, 2, 3].map(seatTier).filter(Boolean); }
+  // 替人出牌的机器人：取场上机器人里最强的一档；场上没有机器人就按「普通」
+  function takeoverTier(tiers) {
+    let best = -1;
+    for (const t of tiers) best = Math.max(best, TIER_ORDER.indexOf(t));
+    return best < 0 ? 'normal' : TIER_ORDER[best];
+  }
+
+  function onMyTimeout() {
+    const r = match.round;
+    if (!r || R.isRoundOver(r) || r.turn !== 0 || busy) return;
+    timeouts++;
+    if (timeouts >= 2) setAutopilot(true);
+    busy = true;
+    selected = -1;
+    renderHand();
+    chooseAi(r, 0, takeoverTier(botTiers())).then((card) => schedule(() => commit(0, card), 0));
+  }
+
+  function setAutopilot(on) {
+    if (autopilot === on) return;
+    autopilot = on;
+    if (!on) timeouts = 0;
+    els.seats[0].classList.toggle('is-auto', on);
+    els.seats[0].setAttribute('aria-label', NAMES[0] + (on ? '（托管中，点手牌收回）' : ''));
+    const r = match && match.round;
+    // 收回托管时正轮到我、机器人还没动手：直接把这一手交还给我
+    if (!on && r && !R.isRoundOver(r) && r.turn === 0 && !busy) { stopClock(); step(); }
   }
 
   function onCardTap(c, el) {
+    if (autopilot) { setAutopilot(false); return; }
     const r = match.round;
     if (busy || !r || R.isRoundOver(r) || r.turn !== 0) return;
     if (!R.legalFor(r, 0).includes(c)) {
@@ -342,6 +435,7 @@
     if (busy || !r || r.turn !== 0 || selected < 0) return;
     if (!R.legalFor(r, 0).includes(selected)) return;
     busy = true;
+    timeouts = 0;
     commit(0, selected);
   }
 
@@ -372,16 +466,16 @@
     } catch (_) { workerOk = false; worker = null; }
     return worker;
   }
-  function chooseLocal(r, seat) {
-    return AI.policyForTier(settings.tier)(r, seat, R.makeRng((Math.random() * 2 ** 31) | 0));
+  function chooseLocal(r, seat, tier) {
+    return AI.policyForTier(tier)(r, seat, R.makeRng((Math.random() * 2 ** 31) | 0));
   }
-  function chooseAi(r, seat) {
+  function chooseAi(r, seat, tier) {
     const w = getWorker();
-    if (!w) return Promise.resolve(chooseLocal(r, seat));
+    if (!w) return Promise.resolve(chooseLocal(r, seat, tier));
     return new Promise((resolve) => {
       const id = ++reqId;
-      pending.set(id, (card) => resolve(card >= 0 && R.legalFor(r, seat).includes(card) ? card : chooseLocal(r, seat)));
-      w.postMessage({ id, round: r, seat, tier: settings.tier, seed: (Math.random() * 2 ** 31) | 0 });
+      pending.set(id, (card) => resolve(card >= 0 && R.legalFor(r, seat).includes(card) ? card : chooseLocal(r, seat, tier)));
+      w.postMessage({ id, round: r, seat, tier, seed: (Math.random() * 2 ** 31) | 0 });
     });
   }
 
@@ -390,11 +484,12 @@
   function openDialog(html, onMount) {
     els.dialog.innerHTML = html;
     els.mask.hidden = false;
+    pauseClock();
     if (onMount) onMount(els.dialog);
     const first = els.dialog.querySelector('[data-autofocus]') || els.dialog.querySelector('button');
     if (first) first.focus();
   }
-  function closeDialog() { els.mask.hidden = true; els.dialog.innerHTML = ''; }
+  function closeDialog() { els.mask.hidden = true; els.dialog.innerHTML = ''; resumeClock(); }
 
   /* 结算：每家一行 = 名字 · 吃牌（同一套小牌陈列） · 本局 · 累计；不写算式文字 */
   function showSettlement() {
@@ -424,7 +519,7 @@
         });
         d.querySelector('[data-act]').addEventListener('click', (e) => {
           closeDialog();
-          if (e.currentTarget.dataset.act === 'again') { token++; newMatch(); }
+          if (e.currentTarget.dataset.act === 'again') { token++; setAutopilot(false); newMatch(); }
           startRound();
         });
       }
@@ -455,8 +550,10 @@
 
   function showSettings() {
     const seg = Object.keys(TIER_LABELS).map((k) => '<button type="button" data-tier="' + k + '" aria-pressed="' + (settings.tier === k) + '">' + TIER_LABELS[k] + '</button>').join('');
+    const secs = [20, 0].map((k) => '<button type="button" data-sec="' + k + '" aria-pressed="' + ((settings.turnSec | 0) === k) + '">' + TURN_SEC_OPTS[k] + '</button>').join('');
     openDialog(
       '<h2>设置</h2><div class="gz-field-label">AI 水平</div><div class="gz-seg" role="group">' + seg + '</div>' +
+      '<div class="gz-field-label">出牌限时</div><div class="gz-seg" role="group">' + secs + '</div>' +
       '<div class="gz-actions"><button type="button" class="gz-btn" data-act="restart">重开一盘</button>' +
       '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
       (d) => {
@@ -465,10 +562,17 @@
           writeJSON(SETTINGS_KEY, settings);
           d.querySelectorAll('[data-tier]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
         }));
+        d.querySelectorAll('[data-sec]').forEach((b) => b.addEventListener('click', () => {
+          settings.turnSec = +b.dataset.sec;
+          writeJSON(SETTINGS_KEY, settings);
+          d.querySelectorAll('[data-sec]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          // 改了限时：当前这一手按新设置重新计
+          if (clock.seat >= 0) { const seat = clock.seat, f = clock.onTimeout; startClock(seat, f); }
+        }));
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
         d.querySelector('[data-act="restart"]').addEventListener('click', () => {
           if (!confirm('放弃这一盘，从 0 分重新开始？')) return;
-          closeDialog(); token++; busy = false; newMatch(); startRound();
+          stopClock(); closeDialog(); token++; busy = false; setAutopilot(false); newMatch(); startRound();
         });
       });
   }
@@ -479,6 +583,7 @@
   $('gzRulesBtn').addEventListener('click', showRules);
   $('gzSettingsBtn').addEventListener('click', showSettings);
   $('gzRoundInfo').addEventListener('click', showTotals);
+  els.seats[0].addEventListener('click', (e) => { if (autopilot && e.target.closest('.gz-avatar')) setAutopilot(false); });
   // 点遮罩关闭普通弹窗；结算弹窗必须点按钮继续
   els.mask.addEventListener('click', (e) => { if (e.target === els.mask && match.round) closeDialog(); });
   document.addEventListener('keydown', (e) => {
