@@ -19,10 +19,13 @@ body.gz-fullscreen .site-footer { display: none !important; }
   --gz-red: #a8322a;
   --gz-black: #1f1c18;
   --gz-good: #3d6b4f;
+  --gz-gold: #c9a96e;
   --u: 56px;
   --h: calc(var(--u) * 1.44);
-  --tu: calc(var(--u) * 0.92);
+  --tu: var(--u);
   --th: calc(var(--tu) * 1.44);
+  --m: clamp(22px, calc(var(--u) * 0.48), 34px);
+  --mh: calc(var(--m) * 1.4);
   --z-table: 0; --z-lift: 10; --z-band: 20; --z-fx: 30; --z-dialog: 50;
 
   position: fixed; inset: 0;
@@ -64,7 +67,6 @@ body.gz-fullscreen .site-footer { display: none !important; }
   border: 0; background: none; padding: 4px 6px; color: inherit; font: inherit; cursor: pointer; border-radius: 8px;
 }
 .gz-round-no { font-size: 16px; font-weight: 700; letter-spacing: 0.04em; }
-.gz-round-sub { font-size: 12px; color: var(--gz-ink-mute); }
 .gz-tools { display: flex; gap: 8px; }
 .gz-tool {
   width: 40px; height: 40px; border-radius: 50%;
@@ -98,25 +100,44 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-name-line { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
 .gz-seat-me .gz-name-line, .gz-seat-top .gz-name-line { align-items: flex-start; }
 .gz-name { font-size: 14px; font-weight: 700; white-space: nowrap; }
-.gz-sub { font-size: 12px; color: var(--gz-ink-mute); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.gz-total { font-size: 15px; color: var(--gz-ink-mute); white-space: nowrap; }
+.gz-total.neg { color: var(--gz-seal); }
 .gz-num { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 1.12em; }
 
-/* 吃进的分牌 */
-.gz-caps { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; max-width: 100%; min-height: 22px; }
+/* 吃牌区：真牌面小牌。顺序固定 猪 · 羊 · 红桃扇 · 变压器，末尾本局分 */
+.gz-caps { display: flex; justify-content: center; max-width: 100%; min-height: var(--mh); }
 .gz-seat-me .gz-caps { justify-content: flex-start; }
-.gz-chip {
-  display: inline-flex; align-items: center; gap: 3px;
-  height: 22px; padding: 0 7px; border-radius: 11px;
-  background: var(--gz-wash); font-size: 12px; white-space: nowrap; color: var(--gz-ink);
+.gz-caps-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: inherit;
+  gap: calc(var(--m) * 0.16); max-width: 100%;
+  padding: 2px; border-radius: 5px;
 }
-.gz-chip .gz-num { font-size: 13px; }
-.gz-chip.pig { background: #2a2622; color: var(--gz-seal-ink); }
-.gz-chip.sheep { background: #e5ecdf; color: var(--gz-good); }
-.gz-chip.dbl { background: transparent; border: 1px solid var(--gz-ink); }
-.gz-chip.heart { color: var(--gz-red); }
-.gz-chip.total { background: transparent; color: var(--gz-ink-mute); padding: 0 2px; }
-.gz-chip.total.neg .gz-num { color: var(--gz-seal); }
-.gz-chip.total.pos .gz-num { color: var(--gz-good); }
+.gz-caps-row.is-slam { box-shadow: 0 0 0 2px var(--gz-gold); }
+.gz-mini {
+  width: var(--m); height: var(--mh); --q: var(--m);
+  border-radius: 3px; box-shadow: 0 1px 2px rgba(20, 18, 15, 0.16);
+}
+.gz-mini .q-tl { width: calc(var(--q) * 0.58); height: calc(var(--q) * 0.56); font-size: calc(var(--q) * 0.46); }
+.gz-mini.rank-j .q-tl { font-size: calc(var(--q) * 0.42); }
+.gz-mini .q-tr { display: none; }
+.gz-mini .q-bl {
+  display: flex; top: calc(var(--q) * 0.52); bottom: auto; width: calc(var(--q) * 0.58); height: calc(var(--q) * 0.5);
+  font-size: calc(var(--q) * 0.42); transform: none;
+}
+.gz-mini .bigsuit {
+  right: calc(var(--q) * var(--gz-brH)); bottom: calc(var(--q) * var(--gz-bbH));
+  font-size: calc(var(--q) * var(--gz-bigH) * 0.8); opacity: var(--gz-opH);
+}
+.gz-fan { display: inline-flex; padding: 1px; border-radius: 4px; }
+.gz-fan .gz-mini + .gz-mini { margin-left: calc(var(--m) * -0.56); }
+.gz-fan.is-all { box-shadow: 0 0 0 2px var(--gz-gold); }
+.gz-mini.is-doubler { margin-left: calc(var(--m) * 0.12); }
+.gz-cap-score { font-size: 16px; margin-left: 3px; color: var(--gz-ink-mute); }
+.gz-cap-score.neg { color: var(--gz-seal); }
+.gz-cap-score.pos { color: var(--gz-good); }
+.gz-caps .incoming { visibility: hidden; }
+.gz-caps .landed { animation: gz-land 0.32s ease-out; }
+@keyframes gz-land { 0% { transform: scale(1.25); } 100% { transform: none; } }
 
 /* 对手手牌背面小扇 */
 .gz-backs { display: flex; height: 20px; }
@@ -127,31 +148,29 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 .gz-back:first-child { margin-left: 0; }
 
-/* ───── 中央：本墩 ───── */
+/* ───── 中央：本墩。四张牌各自靠向出牌人，微微转一点角度，像真扔在桌上 ───── */
 .gz-center { grid-area: center; position: relative; min-height: 0; }
 .gz-slot { position: absolute; width: var(--tu); height: var(--th); }
-.gz-slot-0 { left: 50%; bottom: 4px; transform: translateX(-50%); }
-.gz-slot-2 { left: 50%; top: 4px; transform: translateX(-50%); }
-.gz-slot-1 { right: calc(50% - var(--tu) * 1.85); top: 50%; transform: translateY(-50%); }
-.gz-slot-3 { left: calc(50% - var(--tu) * 1.85); top: 50%; transform: translateY(-50%); }
-.gz-slot .gz-card { position: absolute; inset: 0; width: 100%; height: 100%; --q: var(--tu); }
-.gz-slot .gz-card.in { animation: gz-in 0.22s ease-out; }
-.gz-slot .gz-card.is-top { box-shadow: 0 0 0 2px var(--gz-seal), 0 2px 6px rgba(20, 18, 15, 0.18); }
-.gz-slot .gz-lead-mark {
-  position: absolute; left: 50%; bottom: calc(100% + 3px); transform: translateX(-50%);
-  font-size: 11px; color: var(--gz-ink-mute); white-space: nowrap;
+/* 离中心的距离按牌的尺寸算、再被区域边缘夹住：宽屏散得开，竖屏也不会上下拉得太远 */
+.gz-slot-0 { left: 50%; bottom: max(3%, calc(50% - var(--th) * 1.5)); margin-left: calc(var(--tu) / -2); --rot: -1.5deg; --fx: 0; --fy: 40%; }
+.gz-slot-2 { left: 50%; top: max(3%, calc(50% - var(--th) * 1.5)); margin-left: calc(var(--tu) / -2); --rot: 2deg; --fx: 0; --fy: -40%; }
+.gz-slot-1 { right: max(6%, calc(50% - var(--tu) * 3)); top: 50%; margin-top: calc(var(--th) / -2); --rot: 3deg; --fx: 40%; --fy: 0; }
+.gz-slot-3 { left: max(6%, calc(50% - var(--tu) * 3)); top: 50%; margin-top: calc(var(--th) / -2); --rot: -3deg; --fx: -40%; --fy: 0; }
+.gz-slot .gz-card {
+  position: absolute; inset: 0; width: 100%; height: 100%; --q: var(--tu);
+  transform: rotate(var(--rot));
+  box-shadow: 0 2px 6px rgba(20, 18, 15, 0.16);
 }
-@keyframes gz-in { from { opacity: 0; transform: scale(0.86); } to { opacity: 1; transform: none; } }
-.gz-center.collect .gz-card { transition: transform 0.38s ease-in, opacity 0.38s ease-in; opacity: 0; }
-.gz-center.collect-0 .gz-card { transform: translateY(80%) scale(0.6); }
-.gz-center.collect-1 .gz-card { transform: translateX(120%) scale(0.6); }
-.gz-center.collect-2 .gz-card { transform: translateY(-80%) scale(0.6); }
-.gz-center.collect-3 .gz-card { transform: translateX(-120%) scale(0.6); }
-
-.gz-hint {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  font-size: 13px; color: var(--gz-ink-mute); text-align: center; pointer-events: none;
-  max-width: 60%; line-height: 1.5;
+.gz-slot .gz-card.in { animation: gz-in 0.24s ease-out; }
+.gz-slot .gz-card.is-top { box-shadow: 0 0 0 2px var(--gz-seal), 0 3px 8px rgba(20, 18, 15, 0.2); }
+@keyframes gz-in {
+  from { opacity: 0; transform: translate(var(--fx), var(--fy)) rotate(var(--rot)); }
+  to { opacity: 1; transform: rotate(var(--rot)); }
+}
+/* 一墩打完：牌复制成浮层飞走（分牌进赢家吃牌区，其余收向赢家头像） */
+.gz-flyer {
+  position: fixed; margin: 0; z-index: var(--z-fx); pointer-events: none;
+  transform-origin: 0 0; transition-property: transform, opacity; transition-timing-function: cubic-bezier(.45, 0, .3, 1);
 }
 
 /* ───── 决策带与手牌 ───── */
@@ -233,15 +252,9 @@ body.gz-fullscreen .site-footer { display: none !important; }
   font-size: calc(var(--q) * var(--gz-bigH));
   opacity: var(--gz-opH);
 }
-/* 分牌角标：猪 / 羊 / 变 */
-.gz-card .gz-tag {
-  position: absolute; left: calc(var(--q) * 0.06); bottom: calc(var(--q) * 0.08);
-  font-family: 'Noto Serif SC', serif; font-size: calc(var(--q) * 0.2); font-weight: 700;
-  line-height: 1; padding: 2px 2px 1px; border-radius: 3px;
-  background: var(--gz-ink); color: var(--gz-seal-ink);
-}
-.gz-card .gz-tag.sheep { background: var(--gz-good); }
-.gz-card .gz-tag.dbl { background: var(--gz-paper); color: var(--gz-ink); border: 1px solid var(--gz-ink); }
+/* 点了不能出的牌：抖一下 */
+.gz-hand .gz-card.nope { animation: gz-nope 0.28s ease-in-out; }
+@keyframes gz-nope { 0%, 100% { margin-left: 0; } 25% { margin-left: -4px; } 75% { margin-left: 4px; } }
 
 /* ───── 弹窗 ───── */
 .gz-dialog-mask {
@@ -267,6 +280,24 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-score-table td.n.pos { color: var(--gz-good); }
 .gz-score-table .how { display: block; font-size: 12px; color: var(--gz-ink-mute); margin-top: 2px; }
 .gz-score-table tr.me td:first-child { font-weight: 700; }
+.gz-res { display: grid; }
+.gz-res-row {
+  display: grid; grid-template-columns: 52px minmax(0, 1fr) 56px 64px; align-items: center; gap: 6px;
+  padding: 8px 2px; border-bottom: 1px solid rgba(29, 27, 24, 0.14); font-size: 14px;
+}
+.gz-res-head { padding: 0 2px 4px; font-size: 12px; color: var(--gz-ink-mute); }
+.gz-res-row.me .gz-res-name { font-weight: 700; }
+.gz-res-caps { justify-content: flex-start; min-height: 0; }
+.gz-res-caps:empty::before { content: '—'; color: var(--gz-off); }
+.gz-res-n { text-align: right; white-space: nowrap; }
+.gz-res-row .gz-res-n.gz-num { font-size: 18px; }
+.gz-res-n.neg { color: var(--gz-seal); }
+.gz-res-n.pos { color: var(--gz-good); }
+@media (max-width: 440px) {
+  .gz-res-row { grid-template-columns: minmax(0, 1fr) 52px 60px; }
+  .gz-res-caps { grid-column: 1 / -1; grid-row: 2; }
+  .gz-res-head span:nth-child(2) { display: none; }
+}
 .gz-pig-badge { display: inline-block; margin-left: 4px; font-size: 12px; padding: 0 6px; border-radius: 9px; background: var(--gz-seal); color: var(--gz-seal-ink); }
 .gz-seg { display: flex; border: 1px solid var(--gz-ink); border-radius: 8px; overflow: hidden; margin: 6px 0 14px; }
 .gz-seg button { flex: 1; border: 0; background: transparent; padding: 9px 4px; font: inherit; font-size: 14px; cursor: pointer; color: var(--gz-ink); }
@@ -295,8 +326,6 @@ body.gz-fullscreen .site-footer { display: none !important; }
   .gz-seat-top .gz-who { flex-direction: column; gap: 3px; }
   .gz-seat-top .gz-name-line { align-items: center; }
   .gz-avatar { width: 34px; height: 34px; font-size: 15px; }
-  .gz-slot-1 { right: calc(50% - var(--tu) * 1.7); }
-  .gz-slot-3 { left: calc(50% - var(--tu) * 1.7); }
 }
 @media (max-height: 480px) and (min-aspect-ratio: 1/1) {
   .gz-table { grid-template-rows: 44px auto minmax(calc(var(--th) * 2 + 8px), 1fr) auto auto; padding: 4px 8px 4px; }
@@ -306,5 +335,5 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .gz-slot .gz-card.in { animation: none; }
-  .gz-center.collect .gz-card { transition: opacity 0.2s; transform: none !important; }
+  .gz-caps .landed, .gz-hand .gz-card.nope { animation: none; }
 }

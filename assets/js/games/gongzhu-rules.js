@@ -1,10 +1,11 @@
 /* 拱猪 · 纯规则模块（浏览器 window.GongzhuRules / Node require 共用，无 DOM）
  *
- * 规则（2026-11-01 用户定稿 = 华牌通行版的「不亮牌」子集）：
- *   52 张、4 人各 13 张、不换牌；第一局 ♠2 先出，之后由上一局吃到猪的人先出；
+ * 规则（2026-11-01 用户定稿，华牌通行版去掉亮牌、红桃改按牌面）：
+ *   52 张、4 人各 13 张、不换牌；第一局 ♠2 的持有者先出，而且第一张必须打 ♠2；
+ *   之后每局由上一局吃到猪的人先出（任意牌）；
  *   有该花色必须跟，没有可垫任意牌；任何牌都可领出（红桃不必「破」），首轮也可垫分牌；
  *   每墩由领出花色中最大的一张吃进。
- *   计分：♥A −50 / ♥K −40 / ♥Q −30 / ♥J −20 / ♥10~5 各 −10 / ♥4~2 各 0（合计 −200）；
+ *   计分：红桃按牌面扣分 ♥2 −2 … ♥10 −10、♥J −11、♥Q −12、♥K −13，♥A 只扣 −1（合计 −91）；
  *         猪 ♠Q −100；羊 ♦J +100；
  *         变压器 ♣10：只吃到它、没有任何其它分牌 → +50；否则全部分数（正负都算）×2；
  *         全红（13 张红桃一人吃齐）→ 红桃记 +200；猪羊不变色；
@@ -28,7 +29,7 @@
   const SHEEP = DIAMOND * 13 + 9;   // ♦J
   const DOUBLER = CLUB * 13 + 8;    // ♣10
   const SPADE_TWO = SPADE * 13 + 0; // ♠2
-  const HEART_VALUES = Object.freeze([0, 0, 0, -10, -10, -10, -10, -10, -10, -20, -30, -40, -50]);
+  const HEART_VALUES = Object.freeze([-2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -13, -1]);
   const LOSE_LINE = -1000;
 
   function suitOf(card) { return (card / 13) | 0; }
@@ -127,8 +128,10 @@
 
   /* ───── 一局的状态机（可变、可 clone，AI 搜索直接在副本上跑） ───── */
 
-  function createRound(hands, leader) {
+  /* mustLead：本局第一张必须打的牌（第一局 = ♠2），-1 表示不限 */
+  function createRound(hands, leader, mustLead) {
     return {
+      mustLead: mustLead === undefined ? -1 : mustLead,
       hands: hands.map((h) => h.slice()),
       leader,
       turn: leader,
@@ -145,6 +148,7 @@
 
   function cloneRound(r) {
     return {
+      mustLead: r.mustLead,
       hands: r.hands.map((h) => h.slice()),
       leader: r.leader,
       turn: r.turn,
@@ -159,7 +163,10 @@
   }
 
   function leadSuitOf(r) { return r.trick.length ? suitOf(r.trick[0].card) : -1; }
-  function legalFor(r, seat) { return legalCards(r.hands[seat], leadSuitOf(r)); }
+  function legalFor(r, seat) {
+    if (r.mustLead >= 0 && r.trickNo === 0 && !r.trick.length && r.hands[seat].includes(r.mustLead)) return [r.mustLead];
+    return legalCards(r.hands[seat], leadSuitOf(r));
+  }
   function isRoundOver(r) { return r.trickNo >= 13; }
 
   /* 出一张牌。返回 null（墩未完）或 { winner, plays }（刚完成的墩）。非法出牌抛错。 */
@@ -168,6 +175,9 @@
     const hand = r.hands[seat];
     const idx = hand.indexOf(card);
     if (idx < 0) throw new Error('gongzhu_card_not_in_hand');
+    if (r.mustLead >= 0 && r.trickNo === 0 && !r.trick.length && card !== r.mustLead && hand.includes(r.mustLead)) {
+      throw new Error('gongzhu_must_lead_' + r.mustLead);
+    }
     const lead = leadSuitOf(r);
     if (lead >= 0 && suitOf(card) !== lead) {
       if (hand.some((c) => suitOf(c) === lead)) throw new Error('gongzhu_must_follow');

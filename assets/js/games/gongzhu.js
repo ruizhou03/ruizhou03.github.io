@@ -1,5 +1,6 @@
 /* 拱猪 · 单机牌桌（我 + 3 家 AI）。规则在 gongzhu-rules.js，AI 在 gongzhu-ai.js。
- * 座位：0 我（下方）→ 1 下家（右）→ 2 对家（上）→ 3 上家（左），出牌按逆时针。 */
+ * 座位：0 我（下方）→ 1 下家（右）→ 2 对家（上）→ 3 上家（左），出牌按逆时针。
+ * 界面尽量不用文字提示：轮到谁看头像描边，能出哪张看手牌亮暗，吃了什么看吃牌区的真牌面。 */
 (() => {
   'use strict';
 
@@ -7,23 +8,23 @@
   const AI = window.GongzhuAI;
   const STORE_KEY = 'gz.match.v1';
   const SETTINGS_KEY = 'gz.settings.v1';
-  const VERSION = '20261101a';
+  const VERSION = '20261101b';   // 规则改过（红桃按牌面、首手 ♠2），旧存档作废
 
   const NAMES = ['我', '下家', '对家', '上家'];
   const AVATARS = ['我', '下', '对', '上'];
   const TIER_LABELS = { easy: '入门', normal: '普通', hard: '高手' };
   const SUIT_NAMES = ['黑桃', '红桃', '方块', '梅花'];
 
-  const PACE = { aiMin: 520, trickShow: 950, collect: 380, roundEnd: 650 };
+  const PACE = { aiMin: 520, trickShow: 900, fly: 480, roundEnd: 700 };
   // 本机调试：?gzauto=1 让「我」也由 AI 代打并加速，用来一口气验到结算 / 一盘结束
   const AUTO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('gzauto') === '1';
-  if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 80, collect: 40, roundEnd: 60 });
+  if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, roundEnd: 60 });
 
   const $ = (id) => document.getElementById(id);
   const els = {
-    app: $('gzApp'), table: $('gzTable'), center: $('gzCenter'), hint: $('gzHint'),
+    app: $('gzApp'), table: $('gzTable'), center: $('gzCenter'),
     hand: $('gzHand'), play: $('gzPlayBtn'),
-    roundNo: $('gzRoundNo'), roundSub: $('gzRoundSub'),
+    roundNo: $('gzRoundNo'),
     mask: $('gzDialogMask'), dialog: $('gzDialog'),
     seats: [0, 1, 2, 3].map((s) => $('gzSeat' + s)),
     slots: [0, 1, 2, 3].map((s) => document.querySelector('.gz-slot-' + s)),
@@ -36,7 +37,7 @@
 
   const settings = Object.assign({ tier: 'normal' }, readJSON(SETTINGS_KEY) || {});
 
-  let match = null;     // { totals, roundNo, nextLeader, seed, round, rounds:[{scores}] , over }
+  let match = null;     // { totals, roundNo, nextLeader, seed, round, last, over }
   let selected = -1;
   let busy = false;     // 动画 / AI 思考中，屏蔽我的操作
   let token = 0;        // 重开时作废旧的定时回调
@@ -65,7 +66,6 @@
     3: { tr: 0.325, bl: 0.34, big: 1.04, br: -0.04, bb: -0.015, op: 0.9, bigH: 0.99, brH: -0.055, bbH: -0.065, opH: 1, trY: 0, blY: -0.17 },
   };
   const SUIT_TRY_ALL = 0.02, SUIT_BLY_ALL = -0.2;
-  const TAGS = { [R.PIG]: ['猪', ''], [R.SHEEP]: ['羊', 'sheep'], [R.DOUBLER]: ['变', 'dbl'] };
 
   function cardName(c) { return SUIT_NAMES[R.suitOf(c)] + R.RANK_LABELS[R.rankOf(c)]; }
 
@@ -82,9 +82,8 @@
     st.setProperty('--gz-bigH', p.bigH); st.setProperty('--gz-brH', p.brH); st.setProperty('--gz-bbH', p.bbH); st.setProperty('--gz-opH', p.opH);
     st.setProperty('--gz-try', SUIT_TRY_ALL + (p.trY || 0)); st.setProperty('--gz-bly', SUIT_BLY_ALL + (p.blY || 0));
     const sv = suitSVG(suit);
-    const tag = TAGS[c] ? '<span class="gz-tag ' + TAGS[c][1] + '">' + TAGS[c][0] + '</span>' : '';
     el.innerHTML = '<span class="q q-tl">' + rank + '</span><span class="q q-tr">' + sv + '</span>' +
-      '<span class="q q-bl">' + sv + '</span><span class="bigsuit">' + sv + '</span>' + tag;
+      '<span class="q q-bl">' + sv + '</span><span class="bigsuit">' + sv + '</span>';
     return el;
   }
 
@@ -101,63 +100,92 @@
     els.app.style.setProperty('--u', u.toFixed(1) + 'px');
   }
 
-  /* ───── 渲染 ───── */
+  /* ───── 吃牌区：真牌面小牌，固定顺序 猪 · 羊 · 红桃扇 · 变压器，末尾是本局分 ─────
+   * 顺序固定、不随吃进先后变：一眼能比较四家。变压器放最后，像算式里的「× 2」。
+   * 红桃按点数叠成扇形，只露左上角；吃齐 13 张描金边（全红）。 */
 
-  function capturedChips(cards) {
+  function renderCaps(box, cards, incoming) {
+    box.innerHTML = '';
+    if (!cards.length) return;
+    const hidden = new Set(incoming || []);
     const sc = R.scoreCaptured(cards);
-    const chips = [];
-    if (sc.pig) chips.push('<span class="gz-chip pig">猪</span>');
-    if (sc.sheep) chips.push('<span class="gz-chip sheep">羊</span>');
-    if (sc.doubler) chips.push('<span class="gz-chip dbl">变×2</span>');
-    if (sc.hearts) chips.push('<span class="gz-chip heart">♥<span class="gz-num">' + sc.hearts + '</span>张</span>');
-    if (cards.length) {
-      const cls = sc.total < 0 ? 'neg' : sc.total > 0 ? 'pos' : '';
-      chips.push('<span class="gz-chip total ' + cls + '"><span class="gz-num">' + signed(sc.total) + '</span></span>');
+    const mini = (c) => {
+      const el = buildCard(c);
+      el.classList.add('gz-mini');
+      if (hidden.has(c)) el.classList.add('incoming');
+      return el;
+    };
+    const row = document.createElement('div');
+    row.className = 'gz-caps-row' + (sc.grandSlam ? ' is-slam' : '');
+    if (sc.pig) row.appendChild(mini(R.PIG));
+    if (sc.sheep) row.appendChild(mini(R.SHEEP));
+    if (sc.hearts) {
+      const fan = document.createElement('span');
+      fan.className = 'gz-fan' + (sc.allHearts ? ' is-all' : '');
+      cards.filter(R.isHeart).sort((a, b) => a - b).forEach((c) => fan.appendChild(mini(c)));
+      row.appendChild(fan);
     }
-    return chips.join('');
+    if (sc.doubler) {
+      const d = mini(R.DOUBLER);
+      d.classList.add('is-doubler');
+      row.appendChild(d);
+    }
+    const score = document.createElement('span');
+    score.className = 'gz-cap-score gz-num ' + (sc.total < 0 ? 'neg' : sc.total > 0 ? 'pos' : '');
+    score.textContent = signed(sc.total);
+    if (hidden.size) score.classList.add('incoming');
+    row.appendChild(score);
+    box.appendChild(row);
   }
 
   function signed(n) { return n > 0 ? '+' + n : n < 0 ? '−' + Math.abs(n) : '0'; }
 
-  function renderSeats() {
-    const r = match.round;
-    for (let s = 0; s < 4; s++) {
-      const el = els.seats[s];
-      const left = r ? r.hands[s].length : 0;
-      const backs = s === 0 ? '' : '<span class="gz-backs" aria-hidden="true">' + '<span class="gz-back"></span>'.repeat(Math.min(left, 13)) + '</span>';
+  /* ───── 座位：结构只建一次，之后只更新内容（飞牌动画要拿稳定的落点） ───── */
+
+  function buildSeats() {
+    els.seats.forEach((el, s) => {
       el.innerHTML =
         '<div class="gz-who"><span class="gz-avatar">' + AVATARS[s] + '</span>' +
-        '<span class="gz-name-line"><span class="gz-name">' + NAMES[s] + '</span>' +
-        '<span class="gz-sub">累计 <span class="gz-num">' + signed(match.totals[s]) + '</span>' + (s === 0 ? '' : ' · 剩 <span class="gz-num">' + left + '</span>') + '</span></span></div>' +
-        backs +
-        '<div class="gz-caps">' + (r ? capturedChips(r.captured[s]) : '') + '</div>';
-      el.classList.toggle('is-turn', !!r && !R.isRoundOver(r) && r.turn === s);
+        '<span class="gz-name-line"><span class="gz-name">' + NAMES[s] + '</span><span class="gz-total gz-num"></span></span></div>' +
+        (s === 0 ? '' : '<span class="gz-backs" aria-hidden="true"></span>') +
+        '<div class="gz-caps"></div>';
       el.setAttribute('aria-label', NAMES[s]);
+    });
+  }
+
+  function renderSeat(s, incoming) {
+    const r = match.round;
+    const el = els.seats[s];
+    const tot = el.querySelector('.gz-total');
+    tot.textContent = signed(match.totals[s]);
+    tot.className = 'gz-total gz-num' + (match.totals[s] < 0 ? ' neg' : '');
+    const backs = el.querySelector('.gz-backs');
+    if (backs) {
+      const left = r ? r.hands[s].length : 0;
+      if (backs.childElementCount !== left) backs.innerHTML = '<span class="gz-back"></span>'.repeat(left);
     }
+    renderCaps(el.querySelector('.gz-caps'), r ? r.captured[s] : [], incoming);
+    el.classList.toggle('is-turn', !!r && !R.isRoundOver(r) && r.turn === s);
+  }
+
+  function renderSeats() {
+    for (let s = 0; s < 4; s++) renderSeat(s);
     els.roundNo.textContent = '第 ' + match.roundNo + ' 局';
-    const lo = Math.min.apply(null, match.totals);
-    els.roundSub.textContent = TIER_LABELS[settings.tier] + ' AI · 最低 ' + signed(lo) + ' / −1000';
   }
 
   /* plays 缺省为当前墩；一墩刚打完时 r.trick 已清空，传入完成的那一墩继续展示 */
-  function renderTrick(plays) {
+  function renderTrick(plays, enteringSeat) {
     const r = match.round;
     els.slots.forEach((slot) => { slot.innerHTML = ''; });
-    if (!r && !plays) return;
-    plays = plays || r.trick;
+    plays = plays || (r ? r.trick : []);
     if (!plays.length) return;
     const lead = R.suitOf(plays[0].card);
     let top = plays[0];
     for (const p of plays) if (R.suitOf(p.card) === lead && R.rankOf(p.card) > R.rankOf(top.card)) top = p;
-    plays.forEach((p, i) => {
+    plays.forEach((p) => {
       const card = buildCard(p.card);
       if (p === top && plays.length > 1) card.classList.add('is-top');
-      if (i === 0) {
-        const mark = document.createElement('span');
-        mark.className = 'gz-lead-mark';
-        mark.textContent = '领出';
-        els.slots[p.seat].appendChild(mark);
-      }
+      if (p.seat === enteringSeat) card.classList.add('in');
       els.slots[p.seat].appendChild(card);
     });
   }
@@ -165,7 +193,7 @@
   function renderHand() {
     const r = match.round;
     els.hand.innerHTML = '';
-    if (!r) return;
+    if (!r) { els.play.disabled = true; return; }
     const hand = r.hands[0].slice();
     R.sortHand(hand);
     const myTurn = !R.isRoundOver(r) && r.turn === 0 && !busy;
@@ -180,6 +208,8 @@
     const total = u + step * (n - 1) + gaps * gapW;
     let x = Math.max(0, (W - total) / 2);
     els.hand.classList.toggle('my-turn', myTurn);
+    // 只剩一张能出（比如开局的 ♠2）就直接替我选好
+    if (myTurn && legal.length === 1 && selected < 0) selected = legal[0];
     hand.forEach((c, i) => {
       if (i > 0 && R.suitOf(c) !== R.suitOf(hand[i - 1])) x += gapW;
       const el = buildCard(c);
@@ -187,29 +217,16 @@
       el.style.zIndex = String(i + 1);
       el.setAttribute('role', 'option');
       el.setAttribute('aria-label', cardName(c));
-      const ok = legal.includes(c);
-      if (myTurn && !ok) el.classList.add('is-illegal');
+      if (myTurn && !legal.includes(c)) { el.classList.add('is-illegal'); el.setAttribute('aria-disabled', 'true'); }
       if (c === selected) { el.classList.add('selected'); el.setAttribute('aria-selected', 'true'); }
-      el.addEventListener('click', () => onCardTap(c));
+      el.addEventListener('click', () => onCardTap(c, el));
       els.hand.appendChild(el);
       x += step;
     });
     els.play.disabled = !(myTurn && selected >= 0 && legal.includes(selected));
   }
 
-  function renderHint() {
-    const r = match.round;
-    let text = '';
-    if (r && !R.isRoundOver(r) && r.turn === 0 && !busy) {
-      const lead = R.leadSuitOf(r);
-      if (lead < 0) text = r.trickNo === 0 && match.roundNo === 1 ? '你有 ♠2，由你领出' : '轮到你领出';
-      else if (r.hands[0].some((c) => R.suitOf(c) === lead)) text = '';
-      else text = '没有' + SUIT_NAMES[lead] + '，可以垫任意一张';
-    }
-    els.hint.textContent = text;
-  }
-
-  function renderAll() { renderSeats(); renderTrick(); renderHand(); renderHint(); }
+  function renderAll() { renderSeats(); renderTrick(); renderHand(); }
 
   /* ───── 流程 ───── */
 
@@ -217,15 +234,13 @@
     match.roundNo++;
     const rng = R.makeRng((match.seed + match.roundNo * 7919) >>> 0);
     const hands = R.deal(rng);
-    const leader = match.nextLeader >= 0 ? match.nextLeader : R.firstLeader(hands);
-    match.round = R.createRound(hands, leader);
+    const first = match.nextLeader < 0;
+    const leader = first ? R.firstLeader(hands) : match.nextLeader;
+    match.round = R.createRound(hands, leader, first ? R.SPADE_TWO : -1);
     selected = -1;
     save();
     renderAll();
-    if (match.roundNo > 1) {
-      els.hint.textContent = leader === 0 ? '上局你吃了猪，由你先出' : NAMES[leader] + '上局吃了猪，由' + NAMES[leader] + '先出';
-    }
-    schedule(step, match.roundNo > 1 ? 700 : 300);
+    schedule(step, 450);
   }
 
   function schedule(fn, ms) {
@@ -238,7 +253,7 @@
     if (!r) return;
     if (R.isRoundOver(r)) { schedule(finishRound, PACE.roundEnd); return; }
     renderSeats();
-    if (r.turn === 0 && !AUTO) { busy = false; renderHand(); renderHint(); return; }
+    if (r.turn === 0 && !AUTO) { busy = false; renderHand(); return; }
     busy = true;
     renderHand();
     const started = performance.now();
@@ -254,35 +269,67 @@
     const done = R.playCard(r, seat, card);
     if (seat === 0) selected = -1;
     busy = !!done || r.turn !== 0;
-    renderTrick(done ? done.plays : null);
-    const slotCard = els.slots[seat].querySelector('.gz-card');
-    if (slotCard) slotCard.classList.add('in');
-    renderSeats();
+    renderTrick(done ? done.plays : null, seat);
+    renderSeat(seat);
     renderHand();
-    renderHint();
     if (!done) { save(); schedule(step, 60); return; }
-    // 一墩完成：停一下让人看清，再收向赢家
-    busy = true;
-    renderHand();
-    els.hint.textContent = '';
+    // 一墩完成：停一下让人看清，分牌飞进赢家的吃牌区，其余的牌收走
+    for (let s = 0; s < 4; s++) els.seats[s].classList.remove('is-turn');
     schedule(() => {
-      els.center.classList.add('collect', 'collect-' + done.winner);
-      schedule(() => {
-        els.center.classList.remove('collect', 'collect-0', 'collect-1', 'collect-2', 'collect-3');
-        renderTrick();
-        renderSeats();
-        save();
-        step();
-      }, PACE.collect);
+      flyTrick(done.plays, done.winner);
+      schedule(() => { save(); step(); }, PACE.fly + 40);
     }, PACE.trickShow);
   }
 
-  function onCardTap(c) {
+  function flyTrick(plays, winner) {
+    const seatEl = els.seats[winner];
+    const caps = seatEl.querySelector('.gz-caps');
+    const fresh = plays.map((p) => p.card).filter(R.isScoring);
+    renderSeat(winner, fresh);
+    seatEl.classList.remove('is-turn');
+    const av = seatEl.querySelector('.gz-avatar').getBoundingClientRect();
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const flyers = [];
+    plays.forEach((p) => {
+      const src = els.slots[p.seat].querySelector('.gz-card');
+      if (!src) return;
+      const a = els.slots[p.seat].getBoundingClientRect();
+      const fl = buildCard(p.card);
+      fl.classList.add('gz-flyer');
+      fl.style.cssText += ';left:' + a.left + 'px;top:' + a.top + 'px;width:' + a.width + 'px;height:' + a.height + 'px;--q:' + a.width + 'px';
+      fl.style.transitionDuration = (reduce ? 1 : PACE.fly) + 'ms';
+      els.app.appendChild(fl);
+      const target = R.isScoring(p.card) ? caps.querySelector('[data-card="' + p.card + '"]') : null;
+      flyers.push({ fl, a, target });
+    });
+    els.slots.forEach((slot) => { slot.innerHTML = ''; });
+    void els.app.offsetWidth;  // 强制回流：起点样式落定后再设终点，过渡才会跑（不靠 rAF，后台页也稳）
+    {
+      for (const { fl, a, target } of flyers) {
+        if (target) {
+          const b = target.getBoundingClientRect();
+          fl.style.transform = 'translate(' + (b.left - a.left) + 'px,' + (b.top - a.top) + 'px) scale(' + (b.width / a.width) + ',' + (b.height / a.height) + ')';
+        } else {
+          const k = 0.35;
+          fl.style.transform = 'translate(' + (av.left + av.width / 2 - a.left - a.width * k / 2) + 'px,' + (av.top + av.height / 2 - a.top - a.height * k / 2) + 'px) scale(' + k + ')';
+          fl.style.opacity = '0';
+        }
+      }
+    }
+    setTimeout(() => {
+      flyers.forEach(({ fl }) => fl.remove());
+      caps.querySelectorAll('.incoming').forEach((el) => { el.classList.remove('incoming'); el.classList.add('landed'); });
+    }, reduce ? 20 : PACE.fly);
+  }
+
+  function onCardTap(c, el) {
     const r = match.round;
     if (busy || !r || R.isRoundOver(r) || r.turn !== 0) return;
-    const legal = R.legalFor(r, 0);
-    if (!legal.includes(c)) {
-      els.hint.textContent = '有' + SUIT_NAMES[R.leadSuitOf(r)] + '必须跟' + SUIT_NAMES[R.leadSuitOf(r)];
+    if (!R.legalFor(r, 0).includes(c)) {
+      // 不能出：抖一下，亮着的那些就是能出的
+      el.classList.remove('nope');
+      void el.offsetWidth;
+      el.classList.add('nope');
       return;
     }
     if (selected === c) { playSelected(); return; }
@@ -333,7 +380,7 @@
     if (!w) return Promise.resolve(chooseLocal(r, seat));
     return new Promise((resolve) => {
       const id = ++reqId;
-      pending.set(id, (card) => resolve(card >= 0 && r.hands[seat].includes(card) ? card : chooseLocal(r, seat)));
+      pending.set(id, (card) => resolve(card >= 0 && R.legalFor(r, seat).includes(card) ? card : chooseLocal(r, seat)));
       w.postMessage({ id, round: r, seat, tier: settings.tier, seed: (Math.random() * 2 ** 31) | 0 });
     });
   }
@@ -349,48 +396,32 @@
   }
   function closeDialog() { els.mask.hidden = true; els.dialog.innerHTML = ''; }
 
-  function howText(cards) {
-    const sc = R.scoreCaptured(cards);
-    if (!cards.length) return '没吃分牌';
-    if (sc.doublerAlone) return '只吃到变压器 +50';
-    const parts = [];
-    if (sc.hearts) parts.push(sc.allHearts ? '全红 +200' : '红桃 ' + sc.hearts + ' 张 ' + signed(sc.heartScore));
-    if (sc.pig) parts.push((sc.grandSlam ? '猪（大满贯变正）' : '猪 ') + signed(sc.pigScore));
-    if (sc.sheep) parts.push('羊 +100');
-    let s = parts.join('，');
-    if (sc.doubler) s = '（' + s + '）× 2 变压器';
-    if (sc.grandSlam) s = '大满贯！' + s;
-    return s;
-  }
-
+  /* 结算：每家一行 = 名字 · 吃牌（同一套小牌陈列） · 本局 · 累计；不写算式文字 */
   function showSettlement() {
     const last = match.last;
     const loser = match.over ? R.matchLoser(match.totals) : -1;
-    const order = [0, 1, 2, 3];
-    const rows = order.map((s) => {
-      const sc = last.scores[s];
-      const tot = match.totals[s];
-      return '<tr class="' + (s === 0 ? 'me' : '') + '"><td>' + NAMES[s] + (s === loser ? '<span class="gz-pig-badge">猪</span>' : '') +
-        '<span class="how">' + howText(last.captured[s]) + '</span></td>' +
-        '<td class="n ' + (sc < 0 ? 'neg' : sc > 0 ? 'pos' : '') + '">' + signed(sc) + '</td>' +
-        '<td class="n ' + (tot < 0 ? 'neg' : tot > 0 ? 'pos' : '') + '">' + signed(tot) + '</td></tr>';
-    }).join('');
-    let title = '第 ' + last.roundNo + ' 局结算';
-    let lead = '';
-    if (match.over) {
-      title = loser === 0 ? '你当了猪' : NAMES[loser] + '当了猪';
-      const best = order.slice().sort((a, b) => match.totals[b] - match.totals[a])[0];
-      lead = '<p>' + NAMES[loser] + '累计到 ' + signed(match.totals[loser]) + '，本盘结束。' +
-        (best === 0 ? '你分数最高，赢了这一盘。' : NAMES[best] + '分数最高。') + '</p>';
-    }
+    const cls = (n) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
+    const rows = [0, 1, 2, 3].map((s) =>
+      '<div class="gz-res-row' + (s === 0 ? ' me' : '') + (s === loser ? ' loser' : '') + '" data-seat="' + s + '">' +
+      '<span class="gz-res-name">' + NAMES[s] + (s === loser ? '<span class="gz-pig-badge">猪</span>' : '') + '</span>' +
+      '<span class="gz-res-caps gz-caps"></span>' +
+      '<span class="gz-res-n gz-num ' + cls(last.scores[s]) + '">' + signed(last.scores[s]) + '</span>' +
+      '<span class="gz-res-n gz-res-tot gz-num ' + cls(match.totals[s]) + '">' + signed(match.totals[s]) + '</span></div>').join('');
+    const title = match.over ? (loser === 0 ? '你当了猪' : NAMES[loser] + '当了猪') : '第 ' + last.roundNo + ' 局';
     openDialog(
-      '<h2>' + title + '</h2>' + lead +
-      '<table class="gz-score-table"><thead><tr><th></th><th style="text-align:right">本局</th><th style="text-align:right">累计</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<h2>' + title + '</h2>' +
+      '<div class="gz-res"><div class="gz-res-row gz-res-head"><span></span><span></span><span class="gz-res-n">本局</span><span class="gz-res-n">累计</span></div>' + rows + '</div>' +
       '<div class="gz-actions">' +
       (match.over ? '<button type="button" class="gz-btn gz-btn-primary" data-act="again" data-autofocus>再来一盘</button>'
         : '<button type="button" class="gz-btn gz-btn-primary" data-act="next" data-autofocus>下一局</button>') +
       '</div>',
       (d) => {
+        d.querySelectorAll('.gz-res-row[data-seat]').forEach((row) => {
+          const box = row.querySelector('.gz-res-caps');
+          renderCaps(box, last.captured[+row.dataset.seat]);
+          const sc = box.querySelector('.gz-cap-score');
+          if (sc) sc.remove();
+        });
         d.querySelector('[data-act]').addEventListener('click', (e) => {
           closeDialog();
           if (e.currentTarget.dataset.act === 'again') { token++; newMatch(); }
@@ -404,7 +435,7 @@
     if (match.last && !match.round) { showSettlement(); return; }
     const rows = [0, 1, 2, 3].map((s) => '<tr class="' + (s === 0 ? 'me' : '') + '"><td>' + NAMES[s] + '</td><td class="n ' +
       (match.totals[s] < 0 ? 'neg' : match.totals[s] > 0 ? 'pos' : '') + '">' + signed(match.totals[s]) + '</td></tr>').join('');
-    openDialog('<h2>累计分</h2><p>打到有人累计 −1000 分，这一盘结束，分最低的人当猪。</p>' +
+    openDialog('<h2>累计</h2>' +
       '<table class="gz-score-table"><tbody>' + rows + '</tbody></table>' +
       '<div class="gz-actions"><button type="button" class="gz-btn" data-close data-autofocus>好</button></div>',
       (d) => d.querySelector('[data-close]').addEventListener('click', closeDialog));
@@ -413,8 +444,8 @@
   function showRules() {
     openDialog(
       '<h2>拱猪规则</h2><dl class="gz-rules">' +
-      '<dt>出牌</dt><dd>四人各 13 张。第一局有 ♠2 的人先出，之后由上局吃到猪的人先出。有领出的花色就必须跟，没有可以垫任意一张。领出花色里最大的牌吃下这一墩，下一墩由他先出。</dd>' +
-      '<dt>分牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。红桃 A −50、K −40、Q −30、J −20、10 到 5 各 −10、4 3 2 不扣分，13 张合计 −200。</dd>' +
+      '<dt>出牌</dt><dd>四人各 13 张。第一局有 ♠2 的人先出，第一张必须打 ♠2；之后由上局吃到猪的人先出。有领出的花色就必须跟，没有可以垫任意一张。领出花色里最大的牌吃下这一墩，下一墩由他先出。</dd>' +
+      '<dt>分牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。红桃按牌面扣分：2 到 10 扣对应点数，J −11、Q −12、K −13，A 只扣 1 分。</dd>' +
       '<dt>变压器 ♣10</dt><dd>吃到它，你这一局的分数（不论正负）翻倍；只吃到它一张、别的分牌都没吃到，算 +50。</dd>' +
       '<dt>全红</dt><dd>一个人吃齐 13 张红桃，红桃改记 +200。再吃齐猪、羊、变压器就是大满贯，猪也变正，共 +800。</dd>' +
       '<dt>一盘</dt><dd>有人累计到 −1000 分，这一盘结束，他就是猪。</dd>' +
@@ -433,7 +464,6 @@
           settings.tier = b.dataset.tier;
           writeJSON(SETTINGS_KEY, settings);
           d.querySelectorAll('[data-tier]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-          renderSeats();
         }));
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
         d.querySelector('[data-act="restart"]').addEventListener('click', () => {
@@ -461,6 +491,7 @@
     resizeRaf = requestAnimationFrame(() => { solveSize(); renderHand(); });
   });
 
+  buildSeats();
   solveSize();
   const saved = readJSON(STORE_KEY);
   if (saved && saved.v === VERSION && saved.match && !saved.match.over) {

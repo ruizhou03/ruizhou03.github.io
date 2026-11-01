@@ -12,20 +12,24 @@ test('special card codes', () => {
   assert.equal(R.cardLabel(R.SHEEP), '♦J');
   assert.equal(R.cardLabel(R.DOUBLER), '♣10');
   assert.equal(R.cardLabel(R.SPADE_TWO), '♠2');
-  assert.equal(R.HEART_VALUES.reduce((a, b) => a + b, 0), -200);
+  assert.equal(R.HEART_VALUES.reduce((a, b) => a + b, 0), -91);
+  assert.equal(R.rawValue(H('2')), -2);
+  assert.equal(R.rawValue(H('10')), -10);
+  assert.equal(R.rawValue(H('K')), -13);
+  assert.equal(R.rawValue(H('A')), -1);
 });
 
 test('scoring: plain cards', () => {
   assert.equal(R.scoreCaptured([]).total, 0);
-  assert.equal(R.scoreCaptured([H('A'), H('K'), H('8'), H('7'), R.PIG]).total, -210);
-  assert.equal(R.scoreCaptured([H('3'), H('4'), H('5'), R.SHEEP]).total, 90);
+  assert.equal(R.scoreCaptured([H('A'), H('K'), H('8'), H('7'), R.PIG]).total, -129);
+  assert.equal(R.scoreCaptured([H('3'), H('4'), H('5'), R.SHEEP]).total, 88);
   assert.equal(R.scoreCaptured([R.PIG, R.SHEEP]).total, 0);
 });
 
 test('scoring: doubler', () => {
   assert.equal(R.scoreCaptured([R.DOUBLER]).total, 50);
-  assert.equal(R.scoreCaptured([R.DOUBLER, H('2')]).total, 0, '0 分红桃也算有分牌');
-  assert.equal(R.scoreCaptured([H('A'), H('K'), H('8'), H('7'), R.PIG, R.DOUBLER]).total, -420);
+  assert.equal(R.scoreCaptured([R.DOUBLER, H('2')]).total, -4);
+  assert.equal(R.scoreCaptured([H('A'), H('K'), H('8'), H('7'), R.PIG, R.DOUBLER]).total, -258);
   assert.equal(R.scoreCaptured([R.SHEEP, R.DOUBLER]).total, 200);
 });
 
@@ -35,7 +39,7 @@ test('scoring: all hearts and grand slam', () => {
   assert.equal(R.scoreCaptured([...ALL_HEARTS, R.PIG, R.SHEEP]).total, 200);
   assert.equal(R.scoreCaptured([...ALL_HEARTS, R.DOUBLER]).total, 400);
   assert.equal(R.scoreCaptured([...ALL_HEARTS, R.PIG, R.SHEEP, R.DOUBLER]).total, 800);
-  assert.equal(R.scoreCaptured(ALL_HEARTS.slice(1)).total, -200, '差一张 ♥2 不算全红');
+  assert.equal(R.scoreCaptured(ALL_HEARTS.slice(1)).total, -89, '差一张 ♥2 不算全红');
 });
 
 test('legal cards: must follow suit, otherwise anything', () => {
@@ -68,8 +72,9 @@ test('random playouts keep invariants', () => {
   const rng = R.makeRng(42);
   for (let g = 0; g < 500; g++) {
     const hands = R.deal(rng);
-    const r = R.createRound(hands, R.firstLeader(hands));
+    const r = R.createRound(hands, R.firstLeader(hands), R.SPADE_TWO);
     assert.ok(r.hands[r.leader].includes(R.SPADE_TWO));
+    assert.deepEqual(R.legalFor(r, r.leader), [R.SPADE_TWO]);
     while (!R.isRoundOver(r)) {
       const legal = R.legalFor(r, r.turn);
       R.playCard(r, r.turn, legal[(rng() * legal.length) | 0]);
@@ -101,4 +106,15 @@ test('match ends at -1000', () => {
   assert.equal(R.isMatchOver([0, -999, 100, 50]), false);
   assert.equal(R.isMatchOver([0, -1000, 100, 50]), true);
   assert.equal(R.matchLoser([0, -1200, 100, -1100]), 1);
+});
+
+test('first lead must be the spade two when required', () => {
+  const hands = R.deal(R.makeRng(3));
+  const leader = R.firstLeader(hands);
+  const r = R.createRound(hands, leader, R.SPADE_TWO);
+  const other = hands[leader].find((c) => c !== R.SPADE_TWO);
+  assert.throws(() => R.playCard(r, leader, other), /must_lead/);
+  R.playCard(r, leader, R.SPADE_TWO);
+  const free = R.createRound(R.deal(R.makeRng(4)), 2);
+  assert.equal(R.legalFor(free, 2).length, 13, '之后的局领出不受限');
 });
