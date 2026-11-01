@@ -654,14 +654,34 @@ body_class: acc-page mk-cat mk-page mk-acc
         }).catch(function () {});
       });
       // 评论数在另一后端（zircon-comments）
-      var cbase = SiteAuth.API_BASE.replace('zircon-urge', 'zircon-comments');
-      SiteAuth.authedFetch(cbase + '/my-comments').then(function (r) { return r.json(); }).then(function (d) {
+      fetchMyComments().then(function (items) {
         var el = document.getElementById('acc-stat-comment'), rc = document.getElementById('acc-rc-comment');
-        // 评论后端取不到（报错 / 超时）时保持「–」，别显示成 0 让人以为没评论过
-        if (!d || !Array.isArray(d.items)) return;
-        var n = d.items.length;
-        if (el) el.textContent = n; if (rc) rc.textContent = n;
-      }).catch(function () {});
+        if (el) el.textContent = items.length; if (rc) rc.textContent = items.length;
+      }).catch(function () {});   // 取不到时保持「–」，别显示成 0 让人以为没评论过
+    }
+
+    // 评论记录：账号后端闲置会自动停机，冷启动时第一次请求可能超时（503）。
+    // 失败（网络错误或 5xx）时隔 1.5 秒自动再试一次；统计数和评论面板同时要数据时共用这一次请求。
+    var myCommentsInflight = null;
+    function fetchMyComments() {
+      if (myCommentsInflight) return myCommentsInflight;
+      var url = SiteAuth.API_BASE.replace('zircon-urge', 'zircon-comments') + '/my-comments';
+      function once() {
+        return SiteAuth.authedFetch(url).then(function (r) {
+          if (!r.ok) { var e = new Error('comment endpoint ' + r.status); e.status = r.status; throw e; }
+          return r.json();
+        }).then(function (d) {
+          if (!d || !Array.isArray(d.items)) throw new Error('comment payload');
+          return d.items;
+        });
+      }
+      myCommentsInflight = once().catch(function (e) {
+        if (e && (e.status === 401 || e.status === 403)) throw e;   // 登录 / 权限问题，重试无用
+        return new Promise(function (res) { setTimeout(res, 1500); }).then(once);
+      });
+      myCommentsInflight.then(clear, clear);
+      function clear() { setTimeout(function () { myCommentsInflight = null; }, 3000); }
+      return myCommentsInflight;
     }
 
     // ── 通用弹窗 ──────────────────────────────────────────────
@@ -958,11 +978,8 @@ body_class: acc-page mk-cat mk-page mk-acc
       listEl.innerHTML = '<div class="acc-loading">加载中…</div>'; pagerEl.hidden = true;
       try {
         if (kind === 'comment') {
-          var base = SiteAuth.API_BASE.replace('zircon-urge', 'zircon-comments');
-          var rc = await SiteAuth.authedFetch(base + '/my-comments');
-          if (!rc.ok) throw new Error('comment endpoint');
-          var dc = await rc.json();
-          state.items = (dc && dc.items) || [];
+          state.items = await fetchMyComments();
+          if (state.kind !== 'comment') return;   // 等待期间已切到别的书签
           renderPage();
           return;
         }
