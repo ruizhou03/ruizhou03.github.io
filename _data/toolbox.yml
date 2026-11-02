@@ -106,6 +106,7 @@
   subcategory: 牌类游戏
   status: live
   featured: true
+  featured_note: 白嫖 DanZero 权重，能打过最强档的三档 AI
 
 - id: gongzhu
   group: cards
@@ -116,7 +117,6 @@
   category: 游戏
   subcategory: 牌类游戏
   status: live
-  featured_note: 白嫖 DanZero 权重，能打过最强档的三档 AI
 
 - id: blackjack
   group: cards
