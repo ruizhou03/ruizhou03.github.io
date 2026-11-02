@@ -109,8 +109,8 @@
     el.innerHTML = '<span class="q q-tl">' + rank + '</span><span class="q q-tr">' + sv + '</span>' +
       '<span class="q q-bl">' + sv + '</span><span class="bigsuit">' + sv + '</span>';
     // 特色牌面：猪 / 羊画成动画里那只，变压器写「×2」（颜色跟着持有人这一局的分数走）；角上的 Q♠ / J♦ / 10♣ 不变。
-    // 设置里可以关；新手教程里一律用原本的牌面
-    if ((c === R.PIG || c === R.SHEEP || c === R.DOUBLER) && settings.artFaces !== false && !(match && match.tutorial)) {
+    // 默认就是画的（教程里也一样）；设置里可以换回普通牌面
+    if ((c === R.PIG || c === R.SHEEP || c === R.DOUBLER) && settings.artFaces !== false) {
       el.classList.add('has-art');
       const f = document.createElement('span');
       f.className = 'gz-face';
@@ -478,7 +478,7 @@
       els.hand.appendChild(el);
       x += step;
     });
-    if (exposing) { els.play.disabled = false; els.play.textContent = exposePick.length ? '亮牌' : '不亮'; return; }
+    if (exposing) { els.play.disabled = false; els.play.textContent = exposePick.length ? '明牌' : '不明牌'; return; }
     els.play.textContent = '出牌';
     els.play.disabled = !(myTurn && selected >= 0 && legal.includes(selected));
   }
@@ -1031,7 +1031,7 @@
       '<dt>带分数的牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。' + hearts + '</dd>' +
       '<dt>变压器 ♣10</dt><dd>它本身不算分，吃到它，你这一局的分数（不论正负）翻倍' + (rules.doublerAlone === 50 ? '；只吃到它一张、别的带分数的牌都没吃到，算 +50。' : '。') + '</dd>' +
       '<dt>全红</dt><dd>一个人吃齐 13 张红桃，红桃改记 +200。' + pigLine + '</dd>' +
-      (rules.expose ? '<dt>亮牌</dt><dd>开打前，♥A、♠Q、♦J、♣10 可以亮给大家看，效果翻倍：亮 ♥A 红桃全部 ×2，亮猪 −200，亮羊 +200，亮变压器 ×4' + (rules.doublerAlone === 50 ? '（单吃 +100）' : '') + '。这个花色第一次被领出的那一轮里，亮出的牌不能出，也不能用它来领这个花色，除非你这个花色只剩它一张；垫牌不受限。</dd>' : '') +
+      (rules.expose ? '<dt>明牌</dt><dd>开打前，♥A、♠Q、♦J、♣10 可以明出来给大家看，效果翻倍：明 ♥A 红桃全部 ×2，明猪 −200，明羊 +200，明变压器 ×4' + (rules.doublerAlone === 50 ? '（单吃 +100）' : '') + '。这个花色第一次被领出的那一轮里，明出的牌不能出，也不能用它来领这个花色，除非你这个花色只剩它一张；垫牌不受限。</dd>' : '') +
       '<dt>一盘</dt><dd>' + end + '分最低的人当猪，并列都是。</dd></dl>';
   }
   // 规则里点名的牌（♠2、猪 ♠Q、羊 ♦J、变压器 ♣10、♥A）直接画成小牌，和新手教程里一样
@@ -1056,7 +1056,7 @@
     ['hearts', '红桃计分', [['face', '按牌面'], ['classic', '经典 A −50']]],
     ['allHeartsPig', '全红时的猪', [['slam', '大满贯才变正'], ['hearts', '全红就变正'], ['manjuan', '猪羊满圈'], ['swap', '猪羊变色']]],
     ['doublerAlone', '单吃变压器', [[0, '不加分'], [50, '+50']]],
-    ['expose', '亮牌', [[true, '可以亮'], [false, '不亮']]],
+    ['expose', '明牌', [[true, '可以明牌'], [false, '不明牌']]],
     ['end', '一盘结束', [['lose1000', '有人到 −1000'], ['pm1000', '有人到 ±1000'], ['rounds10', '打满 10 局'], ['none', '不设终点']]],
   ];
 
@@ -1698,7 +1698,7 @@
    * 这边只做三件事：长轮询拿房间视图；把视图里的事件日志（发牌 / 亮牌 / 出牌 / 收牌 / 结算）按顺序播成和单机一样的动画；
    * 把我的操作（出牌 / 亮牌 / 下一局 / 大厅设置）发出去。
    * 座位换算：服务器座位 0..3 → 我这边的位置（我永远在下方 0，下家 1、对家 2、上家 3）。
-   * 别家的手牌只知道张数：镜像局面里用 -1 占位，亮出的牌按真牌放进去；轮到他出某张时把一个占位换成那张再交给规则引擎。
+   * 别家的手牌只知道张数：镜像局面里用 HIDDEN 占位，亮出的牌按真牌放进去；轮到他出某张时把一个占位换成那张再交给规则引擎。
    * 播完事件后和快照对一遍（手牌 / 轮到谁 / 第几轮），对不上就按快照直接重画——断线、漏消息都靠这个自愈。 */
 
   const NET = window.GongzhuNet || null;
@@ -1793,6 +1793,7 @@
       toast(NET.message(e));
       if (e.status === 401 || e.status === 404) { leaveOnline(); return null; }
       if (my.pending >= 0) my.pending = -1;
+      if (action === 'expose') my.exposeSent = null;   // 没送到：让我重新表态
       if (my.inGame && my.st && my.st.game) resync();
       return null;
     }
@@ -1964,8 +1965,9 @@
     if (!r) { updateSettleWaiting(); return; }
     if (!sameAsSnapshot(r, gv)) { resync(); return; }
     if (gv.phase === 'expose') {
-      // 每个真人都要表态（没有可亮牌的也点一下「不亮」），亮牌阶段长短才不会泄露谁有特殊牌
-      const mine = !!(gv.expose && !gv.expose.decided);
+      // 每个真人都要表态（没有可明的牌也点一下「不明牌」），亮牌阶段长短才不会泄露谁有特殊牌
+      // 我已经点过（请求还在路上）：服务器在收到之前发出的快照仍写着「没表态」，不能凭它再把按钮弹出来
+      const mine = !!(gv.expose && !gv.expose.decided) && online.exposeSent !== exposeKey(gv);
       match.exposing = mine ? [0] : [];
       busy = !mine;
       renderSeats(); renderHand();
@@ -1978,6 +1980,7 @@
     renderSeats(); renderHand();
     startClock(r.turn, null, remainMs(gv));
   }
+  function exposeKey(gv) { return gv.matchNo + ':' + gv.roundNo; }
   // 倒计时还剩多久：服务器的截止时刻（出牌时它比我这边多等 3 秒，先让我自己的钟走完）
   function remainMs(gv) {
     if (!gv.deadline) return 0;
@@ -1990,6 +1993,7 @@
       if (busy) return;
       const cards = exposePick.slice();
       busy = true; match.exposing = []; exposePick = [];
+      online.exposeSent = exposeKey(online.st.game);
       stopClock(); renderHand();
       onlineAct('expose', { cards });
       return;
@@ -2062,7 +2066,7 @@
     return [
       { lose1000: '打到 −1000', pm1000: '打到 ±1000', rounds10: '打满 10 局', none: '不设终点' }[rules.end],
       rules.hearts === 'classic' ? '经典红桃' : '红桃按牌面',
-      rules.expose ? '可以亮牌' : '不亮牌',
+      rules.expose ? '可以明牌' : '不明牌',
       turnSec ? '出牌限时 ' + turnSec + ' 秒' : '出牌不限时',
     ].join(' · ');
   }
