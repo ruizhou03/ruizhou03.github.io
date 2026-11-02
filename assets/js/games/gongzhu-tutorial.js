@@ -167,7 +167,11 @@
       if (suitOf(meCard) !== leadSuit && once('discard-after')) {
         out.push({ text: '垫出去的牌再大也不算：只比这一轮的花色（' + ['黑桃', '红桃', '方块', '草花'][leadSuit] + '），其中最大的一张赢下这一轮。' });
       }
-      if (cs.includes(SHEEP) && w === 0) out.push({ text: '这一轮的花色是方块，你的 ' + label(SHEEP) + ' 是其中最大的，这一轮你赢。' + label(SHEEP) + ' 叫「羊」，谁吃到它 +100。吃到的分牌会摆在面前。' });
+      if (cs.includes(SHEEP) && w === 0) {
+        // 先把「吃」讲清楚（拱猪本来的叫法），同时把我的吃牌区点亮
+        out.push({ text: '这一轮的花色是方块，你的 ' + label(SHEEP) + ' 最大，这一轮你赢。赢下一轮，就收下这一轮的牌；其中带分数的牌会摆在你的头像旁边，计入你这一局的分数，拱猪里管这叫「吃」。', focus: 0 });
+        out.push({ text: label(SHEEP) + ' 叫「羊」，吃到它，这一局 +100。', focus: 0 });
+      }
       if (cs.includes(PIG)) {
         const gong = r.history[r.history.length - 1].leader !== 0;
         out.push({ text: label(PIG) + ' 叫「猪」，谁吃到它 −100。' + NAMES[w] + '的 ' + label(K_SPADE) + ' 赢下这一轮，你打出的猪归了他。' + (gong ? '对家用小黑桃把猪逼出来，这就叫「拱猪」。' : '') });

@@ -741,7 +741,7 @@
       ? '每局都由有 ♠2 的人先出' + (rules.spadeTwoFirst ? '，第一张必须打 ♠2' : '') + '。'
       : '第一局有 ♠2 的人先出' + (rules.spadeTwoFirst ? '，第一张必须打 ♠2' : '') + '；之后由上局吃到猪的人先出，领什么都行。';
     const hearts = rules.hearts === 'classic'
-      ? '红桃 A −50、K −40、Q −30、J −20，10 到 5 各 −10，4、3、2 记 0 分（但也算分牌）。'
+      ? '红桃 A −50、K −40、Q −30、J −20，10 到 5 各 −10，4、3、2 记 0 分（但仍算带分数的牌）。'
       : '红桃按牌面扣分：2 到 10 扣对应点数，J −11、Q −12、K −13，A 只扣 1 分。';
     const pigLine = {
       slam: '猪羊照常；红桃、猪、羊、变压器全吃齐是大满贯，猪也变正，共 +800。',
@@ -757,8 +757,8 @@
     }[rules.end];
     return '<dl class="gz-rules">' +
       '<dt>出牌</dt><dd>四人各 13 张。' + lead + '每一轮第一张出的牌决定这一轮的花色：如果你手里有这个花色，就必须出这个花色的牌；没有才可以出任意一张（叫「垫牌」）。出了这一轮花色里最大一张的人赢下这一轮，收走这一轮的牌，下一轮由他先出。</dd>' +
-      '<dt>分牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。' + hearts + '</dd>' +
-      '<dt>变压器 ♣10</dt><dd>它本身不算分，吃到它，你这一局的分数（不论正负）翻倍' + (rules.doublerAlone === 50 ? '；只吃到它一张、别的分牌都没吃到，算 +50。' : '。') + '</dd>' +
+      '<dt>带分数的牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。' + hearts + '</dd>' +
+      '<dt>变压器 ♣10</dt><dd>它本身不算分，吃到它，你这一局的分数（不论正负）翻倍' + (rules.doublerAlone === 50 ? '；只吃到它一张、别的带分数的牌都没吃到，算 +50。' : '。') + '</dd>' +
       '<dt>全红</dt><dd>一个人吃齐 13 张红桃，红桃改记 +200。' + pigLine + '</dd>' +
       (rules.expose ? '<dt>亮牌</dt><dd>开打前，♥A、♠Q、♦J、♣10 可以亮给大家看，效果翻倍：亮 ♥A 红桃全部 ×2，亮猪 −200，亮羊 +200，亮变压器 ×4' + (rules.doublerAlone === 50 ? '（单吃 +100）' : '') + '。这个花色第一次被领出的那一轮里，亮出的牌不能出，也不能用它来领这个花色，除非你这个花色只剩它一张；垫牌不受限。</dd>' : '') +
       '<dt>一盘</dt><dd>' + end + '分最低的人当猪，并列都是。</dd></dl>';
@@ -945,7 +945,7 @@
     let frames;
     if (fx.kind === 'pig') {
       // 猪是 ♠Q：四散的全是大大小小、边飞边转的黑桃
-      burst(0, -30, 26, ['♠'], ['#1f1c18', '#3a2420', '#4a3a36', '#7a1e1a'], 180, 160, { glow: 'none', spin: true, size: [11, 38] });
+      burst(0, -30, 26, ['♠'], ['#1f1c18', '#3a2420', '#4a3a36', '#7a1e1a'], 180, 160, { glow: 'none', spin: true, size: [12, 58] });
       frames = [
         { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.15), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
         { transform: FT(-9, 0, 1), offset: 0.34 }, { transform: FT(9, 0, 1), offset: 0.42 }, { transform: FT(-6, 0, 1), offset: 0.5 },
@@ -953,7 +953,7 @@
       ];
     } else if (fx.kind === 'sheep') {
       // 羊是 ♦J：四散的是红方块
-      burst(0, -30, 26, ['♦'], ['#b4392c', '#c9473a', '#d65f4f', '#a8322a'], 180, 160, { glow: 'none', spin: true, size: [11, 34] });
+      burst(0, -30, 26, ['♦'], ['#b4392c', '#c9473a', '#d65f4f', '#a8322a'], 180, 160, { glow: 'none', spin: true, size: [12, 54] });
       frames = [
         { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.12), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
         { transform: FT(0, -22, 1), offset: 0.36 }, { transform: FT(0, 0, 1), offset: 0.46 }, { transform: FT(0, -13, 1), offset: 0.54 },
@@ -965,14 +965,14 @@
         { transform: FT(0, 0, 1), opacity: 1, offset: 0.7 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
       ];
       // 变压器是 ♣10：四散的是草花，颜色跟着圆环
-      burst(0, 0, 16, ['♣'], tone.sparks, 120, 115, { glow: 'none', spin: true, size: [12, 30] });
+      burst(0, 0, 16, ['♣'], tone.sparks, 120, 115, { glow: 'none', spin: true, size: [12, 46] });
     } else if (fx.kind === 'allhearts') {
       // 只用红心：五朵红心烟花接连炸开，中间一颗大红心「怦、怦」跳两下
-      burst(-150, -60, 26, ['♥'], HEART_REDS, 0, 135, { glow: 'red', size: [18, 36] });
-      burst(150, -50, 26, ['♥'], HEART_REDS, 220, 135, { glow: 'red', size: [18, 36] });
-      burst(-90, 70, 24, ['♥'], HEART_REDS, 440, 120, { glow: 'red', size: [18, 36] });
-      burst(100, 75, 24, ['♥'], HEART_REDS, 620, 120, { glow: 'red', size: [18, 36] });
-      burst(0, -10, 40, ['♥'], HEART_REDS, 820, 190, { glow: 'red', size: [18, 36] });
+      burst(-150, -60, 26, ['♥'], HEART_REDS, 0, 135, { glow: 'red', spin: true, size: [16, 56] });
+      burst(150, -50, 26, ['♥'], HEART_REDS, 220, 135, { glow: 'red', spin: true, size: [16, 56] });
+      burst(-90, 70, 24, ['♥'], HEART_REDS, 440, 120, { glow: 'red', spin: true, size: [16, 56] });
+      burst(100, 75, 24, ['♥'], HEART_REDS, 620, 120, { glow: 'red', spin: true, size: [16, 56] });
+      burst(0, -10, 40, ['♥'], HEART_REDS, 820, 190, { glow: 'red', spin: true, size: [16, 56] });
       frames = [
         { transform: FT(0, 0, 0), opacity: 0 }, { transform: FT(0, 0, 0), opacity: 0, offset: 0.26 },
         { transform: FT(0, 0, 1.18), opacity: 1, offset: 0.34 }, { transform: FT(0, 0, 0.94), offset: 0.4 },
@@ -980,9 +980,10 @@
         { transform: FT(0, 0, 1), opacity: 1, offset: 0.82 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
       ];
     } else {   // slam
-      burst(-140, -40, 24, ['✦', '★', '♥'], ['#c9a96e', '#dcb86c', '#b4392c'], 250, 130);
-      burst(140, -40, 24, ['✦', '★', '♥'], ['#c9a96e', '#dcb86c', '#b4392c'], 520, 130);
-      burst(0, 20, 32, ['✦', '★'], ['#c9a96e', '#dcb86c'], 800, 165);
+      // 大满贯：四种花色混在一起，加几颗金星
+      burst(-140, -40, 26, ['♠', '♥', '♦', '♣', '✦'], SUIT_TINT, 250, 140, { spin: true, size: [14, 52] });
+      burst(140, -40, 26, ['♣', '♦', '♥', '♠', '✦'], SUIT_TINT, 520, 140, { spin: true, size: [14, 52] });
+      burst(0, 20, 36, ['♥', '♠', '♦', '♣', '✦'], SUIT_TINT, 800, 175, { spin: true, size: [14, 58] });
       frames = [
         { transform: FT(0, -120, 1), opacity: 0 }, { transform: FT(0, 6, 1), opacity: 1, offset: 0.14 }, { transform: FT(0, -6, 1), offset: 0.2 },
         { transform: FT(0, 0, 1), offset: 0.26 }, { transform: FT(0, 0, 1), opacity: 1, offset: 0.82 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
@@ -993,7 +994,9 @@
   }
 
   // 一朵烟花：n 颗粒子从 (x, y) 炸开，往外飞、再带点下坠淡出
-  // opts：glow 'gold' | 'red' | 'none'（中心晕光）；spin 粒子边飞边转；size [最小, 最大] 字号 px
+  /* opts：glow 'gold' | 'red' | 'none'（中心晕光）；spin 允许旋转；size [最小, 最大] 字号 px。
+   * colors 可以是数组（按顺序轮换）或函数 glyph → 颜色。
+   * 粒子的姿态：大小拉开（少数很大），大部分接近正放；越大的越正、越稳，只有少数小的会大角度翻飞。 */
   function burst(x, y, n, glyphs, colors, delay, radius, opts) {
     const o = Object.assign({ glow: 'gold', spin: false, size: [15, 28] }, opts);
     if (o.glow !== 'none') {
@@ -1004,27 +1007,42 @@
         { duration: 520, delay, fill: 'both' }, 'ease-out');
       setTimeout(() => flash.remove(), 520 + delay + 60);
     }
+    const rnd = (a, b) => a + Math.random() * (b - a);
     for (let k = 0; k < n; k++) {
+      const g = glyphs[k % glyphs.length];
       const el = document.createElement('span');
       el.className = 'gz-spark';
-      el.textContent = glyphs[k % glyphs.length] + '\uFE0E';   // 强制文字样式，♦♥ 不被画成 emoji
-      el.style.color = colors[k % colors.length];
-      el.style.fontSize = (o.size[0] + Math.random() * (o.size[1] - o.size[0])).toFixed(0) + 'px';
+      el.textContent = g + '\uFE0E';   // 强制文字样式，♦♥ 不被画成 emoji
+      el.style.color = typeof colors === 'function' ? colors(g) : colors[k % colors.length];
+      // 大小：约 15% 是大个（区间顶部四分之一），其余偏小到中等
+      const big = Math.random() < 0.15;
+      const t = big ? rnd(0.75, 1) : Math.pow(Math.random(), 1.6) * 0.7;
+      el.style.fontSize = (o.size[0] + t * (o.size[1] - o.size[0])).toFixed(0) + 'px';
       els.fx.appendChild(el);
       const a = (k / n) * Math.PI * 2 + Math.random() * 0.4;
-      const d = radius * (0.65 + Math.random() * 0.45);
+      const d = radius * rnd(0.65, 1.1) * (big ? 0.82 : 1);
       const tx = x + Math.cos(a) * d, ty = y + Math.sin(a) * d;
-      const r0 = o.spin ? Math.random() * 60 - 30 : 0;
-      const r1 = o.spin ? r0 + (Math.random() < 0.5 ? -1 : 1) * (120 + Math.random() * 200) : 0;
+      // 姿态：大个几乎正放、只轻轻晃；七成小个接近正放；三成小个翻飞
+      let r0 = 0, r1 = 0;
+      if (o.spin) {
+        const mode = big ? 'steady' : Math.random() < 0.7 ? 'near' : 'free';
+        if (mode === 'steady') { r0 = rnd(-6, 6); r1 = r0 + rnd(-10, 10); }
+        else if (mode === 'near') { r0 = rnd(-14, 14); r1 = r0 + rnd(-40, 40); }
+        else { r0 = rnd(-40, 40); r1 = r0 + (Math.random() < 0.5 ? -1 : 1) * rnd(150, 320); }
+      }
+      const pop = big ? 1.12 : 1;
       animate(el, [
         { transform: FT(x, y, 0.3, r0), opacity: 0 },
         { transform: FT(x, y, 0.6, r0), opacity: 1, offset: 0.06 },
-        { transform: FT(tx, ty, 1, (r0 + r1) * 0.55), opacity: 1, offset: 0.55, easing: 'ease-in' },   // 飞到最远后开始下坠
-        { transform: FT(tx, ty + 34, 0.7, r1), opacity: 0 },
-      ], { duration: 1250, delay, fill: 'both' }, 'cubic-bezier(.12, .8, .3, 1)');
-      setTimeout(() => el.remove(), 1250 + delay + 60);
+        { transform: FT(tx, ty, pop, (r0 + r1) * 0.5), opacity: 1, offset: 0.45 },
+        { transform: FT(tx, ty + 6, 1, (r0 + r1) * 0.6), opacity: 1, offset: 0.58, easing: 'ease-in' },   // 飞到最远后开始下坠
+        { transform: FT(tx, ty + (big ? 26 : 40), 0.75, r1), opacity: 0 },
+      ], { duration: big ? 1400 : 1250, delay, fill: 'both' }, 'cubic-bezier(.12, .8, .3, 1)');
+      setTimeout(() => el.remove(), (big ? 1400 : 1250) + delay + 60);
     }
   }
+  // 花色本色：黑桃草花墨黑、红桃方块朱红、星点金色
+  const SUIT_TINT = (g) => (g === '♠' || g === '♣' ? '#1f1c18' : g === '♥' || g === '♦' ? '#b4392c' : '#c9a96e');
 
   // 本机调试：控制台里 __gzDebug.playFx({ kind: 'pig', sub: '下家 −100' }, 1) 单独放一段动画
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx };
@@ -1162,6 +1180,8 @@
       eq.textContent = '= ' + signed(sum);
       parts.appendChild(eq);
     }
+    // 讲到吃牌区时把那一家的吃牌区点亮：先放大再缩回，然后金边慢慢呼吸
+    els.seats.forEach((seat, k) => seat.querySelector('.gz-caps').classList.toggle('is-focus', msg.focus === k));
     // 说（等点继续）居中大字；提示（等我出牌）落在我出牌的位置
     coachNext = onNext || null;
     c.classList.toggle('is-say', !!onNext);
@@ -1173,6 +1193,7 @@
   }
   function hideCoach() {
     coachNext = null;
+    els.seats.forEach((seat) => seat.querySelector('.gz-caps').classList.remove('is-focus'));
     const c = els.coach;
     c.classList.remove('on');
     clearTimeout(coachHideTimer);

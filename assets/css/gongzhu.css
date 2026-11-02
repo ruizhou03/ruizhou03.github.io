@@ -158,6 +158,12 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-cap-score.neg { color: var(--gz-seal); }
 .gz-cap-score.pos { color: var(--gz-good); }
 .gz-caps .incoming { visibility: hidden; }
+/* 教程讲到吃牌区：先放大再缩回（只用 transform，不挤布局），之后金边呼吸 */
+.gz-caps.is-focus .gz-caps-row { transform-origin: left center; border-radius: 6px;
+  animation: gz-focus-pop 0.5s cubic-bezier(.2, .8, .3, 1.2), gz-focus-glow 1.6s ease-in-out 0.5s infinite alternate; }
+.gz-seat-left .gz-caps.is-focus .gz-caps-row, .gz-seat-right .gz-caps.is-focus .gz-caps-row, .gz-seat-top .gz-caps.is-focus .gz-caps-row { transform-origin: center; }
+@keyframes gz-focus-pop { from { transform: scale(1.45); } to { transform: scale(1); } }
+@keyframes gz-focus-glow { from { box-shadow: 0 0 0 2px rgba(201, 169, 110, 0.25); } to { box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.75), 0 0 14px 3px rgba(201, 169, 110, 0.35); } }
 /* 翻页计分：两层叠在同一格里，旧数翻出、新数翻入 */
 .gz-roll { position: relative; display: inline-grid; overflow: hidden; vertical-align: bottom; perspective: 200px; }
 .gz-roll > span { grid-area: 1 / 1; backface-visibility: hidden; }
@@ -221,7 +227,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 
 /* ───── 特殊事件动画：插画 / 大字 / 波纹 / 烟花粒子（位移都由 JS 的 Web Animations 驱动） ───── */
 .gz-fx { position: absolute; inset: 0; pointer-events: none; z-index: 6; overflow: visible; }
-.gz-fxitem { position: absolute; left: 50%; top: 50%; display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0; }
+.gz-fxitem { z-index: 2; position: absolute; left: 50%; top: 50%; display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0; }
 .gz-fxart svg { display: block; width: 190px; height: auto; filter: drop-shadow(0 4px 6px rgba(20, 18, 15, 0.16)); }
 .kind-slam .gz-fxart svg { width: 176px; filter: drop-shadow(0 6px 12px rgba(169, 130, 58, 0.4)); }
 .kind-pig .gz-fxart { filter: drop-shadow(0 0 18px rgba(122, 30, 26, 0.45)); }
@@ -253,7 +259,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
   font-size: 56px; font-weight: 900; letter-spacing: 0.08em; line-height: 1; }
 .gz-flash { position: absolute; left: 50%; top: 50%; width: 90px; height: 90px; border-radius: 50%; opacity: 0;
   background: radial-gradient(circle, rgba(255, 236, 200, 0.95), rgba(201, 169, 110, 0.35) 45%, transparent 70%); }
-.gz-spark { position: absolute; left: 50%; top: 50%; line-height: 1; opacity: 0; font-family: 'Apple Symbols', 'Segoe UI Symbol', serif; }
+.gz-spark { z-index: 1; position: absolute; left: 50%; top: 50%; line-height: 1; opacity: 0; font-family: 'Apple Symbols', 'Segoe UI Symbol', serif; }
 /* 领出花色的 A：小印「照单全收」压在牌的右下角 */
 .gz-slot.is-ace::after {
   content: '照单全收'; position: absolute; right: calc(var(--tu) * -0.32); bottom: calc(var(--th) * -0.14); z-index: 2;
