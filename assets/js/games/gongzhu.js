@@ -648,6 +648,10 @@
       // 从头像里小小地冒出来（略歪）→ 沿一道弧线滑到空位上方 → 停一下摆正 → 往下一落、落桌轻轻一压；
       // 拿在手里时影子大，放下时影子收紧
       const LIFT = '0 10px 18px rgba(20, 18, 15, 0.28)', REST = '0 1px 2px rgba(20, 18, 15, 0.16)';
+      // 层次：浮在最上层的替身只负责「从头像飞到空位上方」；在空位上方那一刻交给吃牌区里的真牌，
+      // 由真牌自己落下去——它在红桃扇里的前后顺序是对的（压在左边那张上、被右边那张压着），像真的插进去
+      const HAND_OFF = 0.66;
+      let landed = 0;
       fresh.forEach((c, i) => {
         const target = caps.querySelector('.gz-mini[data-card="' + c + '"]');
         if (!target) return;
@@ -658,7 +662,7 @@
         fl.style.cssText += ';left:' + b.left + 'px;top:' + b.top + 'px;width:' + b.width + 'px;height:' + b.height + 'px;--q:' + b.width + 'px';
         els.app.appendChild(fl);
         const fx = ar.left + ar.width / 2 - b.left - b.width / 2, fy = ar.top + ar.height / 2 - b.top - b.height / 2;
-        const hover = -b.height * 0.62;
+        const hover = -b.height * 1.08;   // 悬停在整排牌的正上方、不跟任何一张重叠——交接时上下层不会跳
         const T = (x, y, sc, rot) => 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(' + sc + ') rotate(' + rot + 'deg)';
         // 从头像里一路走到空位上方：一条连续的二次贝塞尔弧（控制点在两端中点再往上提），整段先快后慢——哪个座位出发都顺；
         // 一出头像就淡入、由小变大、由歪摆正
@@ -674,17 +678,25 @@
         }
         animate(fl, [
           ...arc,
-          { transform: T(0, hover, 1.06, 0), offset: 0.7, easing: 'cubic-bezier(.55, 0, .9, .4)' },
-          { transform: T(0, 0, 0.96, 0), offset: 0.86, boxShadow: REST, easing: 'cubic-bezier(.3, .7, .35, 1)' },
-          { transform: T(0, 0, 1, 0), boxShadow: REST },
+          { transform: T(0, hover, 1.06, 0), opacity: 1, offset: HAND_OFF },
+          { transform: T(0, hover, 1.06, 0), opacity: 0, offset: HAND_OFF },
+          { transform: T(0, hover, 1.06, 0), opacity: 0 },
         ], { duration: ONE, delay: i * STAGGER, fill: 'both' });
+        // 真牌：交接之前不显示，交接那一刻出现在同一位置，往下一落、落桌轻轻一压
+        target.classList.remove('incoming');
+        animate(target, [
+          { transform: T(0, hover, 1.06, 0), opacity: 0, boxShadow: LIFT },
+          { transform: T(0, hover, 1.06, 0), opacity: 0, boxShadow: LIFT, offset: HAND_OFF },
+          { transform: T(0, hover, 1.06, 0), opacity: 1, boxShadow: LIFT, offset: HAND_OFF, easing: 'cubic-bezier(.55, 0, .9, .4)' },
+          { transform: T(0, 0, 0.96, 0), opacity: 1, boxShadow: REST, offset: 0.86, easing: 'cubic-bezier(.3, .7, .35, 1)' },
+          { transform: T(0, 0, 1, 0), opacity: 1, boxShadow: REST },
+        ], { duration: ONE, delay: i * STAGGER, fill: 'backwards' });
         // 每拿出一张，头像轻轻一动
         avatar.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.1)', offset: 0.4 }, { transform: 'scale(1)' }],
           { duration: 240, delay: i * STAGGER, easing: 'ease-out' });
         setTimeout(() => {
           fl.remove();
-          target.classList.remove('incoming');
-          if (!caps.querySelector('.gz-mini.incoming')) rollCapsScore(caps);
+          if (++landed === fresh.length) rollCapsScore(caps);   // 全部放好才翻分
         }, ONE + i * STAGGER);
       });
       setTimeout(done, placeMs + 40);   // 兜底：万一哪张没找到落点，也把分翻了
@@ -2291,6 +2303,7 @@
   const DEMOS = {
     sweep: ['没分的一轮', [1, 4, 7, 11]],            // ♠3 ♠6 ♠9 ♠K：全钻进赢家头像
     eat: ['有分的一轮', [42, 46, 18, 50]],           // ♣5 ♣9 ♥7(垫) ♣K：红桃插进吃牌区，其余进头像
+    insert: ['插进红桃扇', [42, 46, 18, 50], [13, 15, 20, 22]],   // 赢家已有 ♥2 ♥4 ♥9 ♥J，♥7 要插到中间
     clash: ['猪羊对撞', [27, 35, 10, 38]],           // ♦3 ♦J ♠Q(垫) ♦A
     sheepdbl: ['羊 × 变压器', [28, 35, 47, 38]],     // ♦4 ♦J ♣10(垫) ♦A
     pigdbl: ['猪 × 变压器', [1, 10, 47, 12]],        // ♠3 ♠Q ♣10(垫) ♠A
@@ -2314,15 +2327,17 @@
       const leader = k++ % 4;
       const plays = cards.map((c, i) => ({ seat: (leader + i) % 4, card: c }));
       const w = R.trickWinner(plays);
+      const pre = DEMOS[demo][2] || [];
       r.captured = [[], [], [], []];
+      r.captured[w] = pre.slice();
       r.exposed = [];
       flying = null;
       renderSeats();
       renderTrick(plays);
       schedule(() => {
-        r.captured[w] = cards.filter(R.isScoring);
+        r.captured[w] = pre.concat(cards.filter(R.isScoring));
         const done = { winner: w, plays };
-        flying = new Set(r.captured[w]);
+        flying = new Set(cards.filter(R.isScoring));
         const fxMs = playTrickFx(done, planTrickFx(done));
         if (fxMs) els.center.classList.add('is-fxing');
         schedule(() => {
