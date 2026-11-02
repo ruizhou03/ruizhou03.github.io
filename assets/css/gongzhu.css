@@ -134,7 +134,6 @@ body.gz-fullscreen .site-footer { display: none !important; }
   gap: calc(var(--m) * 0.16); max-width: 100%;
   padding: 2px; border-radius: 5px;
 }
-.gz-caps-row.is-slam { box-shadow: 0 0 0 2px var(--gz-gold); }
 .gz-mini {
   width: var(--m); height: var(--mh); --q: var(--m);
   border-radius: 3px; box-shadow: 0 1px 2px rgba(20, 18, 15, 0.16);
@@ -152,11 +151,11 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 .gz-fan { display: inline-flex; padding: 1px; border-radius: 4px; }
 .gz-fan .gz-mini + .gz-mini { margin-left: calc(var(--fanstep, calc(var(--m) * 0.44)) - var(--m)); }
-.gz-fan.is-all { box-shadow: 0 0 0 2px var(--gz-gold); }
 .gz-mini.is-doubler { margin-right: calc(var(--m) * 0.12); }
 .gz-cap-score { font-size: 16px; margin-left: 3px; color: var(--gz-ink-mute); }
 .gz-cap-score.neg { color: var(--gz-seal); }
 .gz-cap-score.pos { color: var(--gz-good); }
+.gz-cap-score.is-gold { color: #a8843e; text-shadow: 0 0 6px rgba(201, 162, 39, 0.35); }
 .gz-caps .incoming { visibility: hidden; }
 /* 教程讲到吃牌区：先放大再缩回（只用 transform，不挤布局），之后金边呼吸 */
 .gz-caps.is-focus .gz-caps-row { transform-origin: left center; border-radius: 6px;
@@ -654,6 +653,14 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-caps-row.is-wrapped { flex-wrap: wrap; row-gap: 6px; justify-content: center; }
 .gz-caps-row.is-wrapped .gz-fan { order: 2; flex: 0 0 100%; justify-content: center; }
 
+/* 我自己那排挤了（见 fitFan）：横屏红桃扇 + 本局分挪到出牌键右边；竖屏整排吃牌区另起一行、占满整宽 */
+.is-me-spill .gz-seat-me { padding-right: 0; }
+@media (max-aspect-ratio: 1/1) {
+  .is-me-spill .gz-seat-me { row-gap: 4px; }
+  .is-me-spill .gz-seat-me .gz-caps { grid-column: 1 / -1; grid-row: 2; padding-left: 0; }
+  .is-me-spill .gz-band { align-self: start; }
+}
+
 .gz-tool[hidden] { display: none; }
 
 /* 牌桌始终是宣纸配色：手机开了深色模式时，全站样式会把标题等改成浅色字，在牌桌上就看不见了——这里一律钉回墨色 */
@@ -706,3 +713,17 @@ body.gz-fullscreen .site-footer { display: none !important; }
 /* 特效在桌子中间放的时候，这一轮的四张牌先调暗（特效放完再一起收走） */
 .gz-center .gz-slot { transition: opacity 0.2s ease; }
 .gz-center.is-fxing .gz-slot { opacity: 0.28; }
+
+/* 这一轮打什么花色：桌子正中一个淡淡的大花色，压在出的牌下面（见 showLead） */
+.gz-lead {
+  position: absolute; left: 50%; top: 50%; font-size: calc(var(--th) * 0.95); line-height: 0; color: var(--gz-ink);
+  transform: translate(-50%, -50%) scale(0.7); opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.45s cubic-bezier(.2, .8, .3, 1.15);
+}
+.gz-lead.on { opacity: 0.11; transform: translate(-50%, -50%) scale(1); }
+.gz-lead.red { color: var(--gz-red); }
+.gz-lead.red.on { opacity: 0.13; }
+.gz-lead:not(.on) { transition: opacity 0.25s ease; }
+.gz-lead .suit-svg { display: block; width: 1em; height: 1em; fill: currentColor; overflow: visible; }
+.gz-center.is-fxing .gz-lead, .gz-center.is-review .gz-lead { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .gz-lead { transition: opacity 0.2s; transform: translate(-50%, -50%); } }

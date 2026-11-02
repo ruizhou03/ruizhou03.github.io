@@ -177,7 +177,7 @@
   /* ───── 吃牌区：真牌面小牌，固定顺序 变压器 · 猪 · 羊 · 红桃扇，末尾是本局分 ─────
    * 顺序固定、不随吃进先后变：一眼能比较四家。变压器打头，像算式前面的系数「2 ×」；
    * 红桃扇放最后，张数再多也只往后长，前面几张的位置不动。
-   * 红桃按点数叠成扇形，只露左上角；吃齐 13 张描金边（全红）。 */
+   * 红桃按点数叠成扇形，只露左上角；吃齐 13 张（全红 / 大满贯）本局分变金色。 */
 
   /* 增量更新：已有的小牌节点原样复用，只插入新来的、删掉没了的。
    * slide=true 时用 FLIP：先记下旧位置，改完 DOM 再从旧位置平移回来——
@@ -216,14 +216,15 @@
     let fan = row.querySelector('.gz-fan');
     if (sc.hearts) {
       if (!fan) { fan = document.createElement('span'); fan.className = 'gz-fan'; }
-      fan.classList.toggle('is-all', sc.allHearts);
       const hs = cards.filter(R.isHeart).sort((a, b) => a - b).map(mini);
       hs.forEach((el, k) => { if (fan.children[k] !== el) fan.insertBefore(el, fan.children[k] || null); });
+      while (fan.children.length > hs.length) fan.lastChild.remove();
       want.push(fan);
     } else if (fan) { fan.remove(); fan = null; }
     let score = row.querySelector('.gz-cap-score');
     const fresh = !score;
     if (!score) { score = document.createElement('span'); score.className = 'gz-cap-score gz-num'; }
+    score.dataset.gold = sc.allHearts || sc.grandSlam ? '1' : '';   // 全红 / 大满贯：分数翻完变金色（不再给牌描金框）
     if (hidden.size && !fresh) score.dataset.next = sc.total;          // 牌在飞：旧分先留着，落地再翻
     else if (fresh && hidden.size) { score.dataset.next = sc.total; score.textContent = ''; score.dataset.v = ''; }
     else rollNumber(score, sc.total);
@@ -231,7 +232,6 @@
     want.forEach((el, k) => { if (row.children[k] !== el) row.insertBefore(el, row.children[k] || null); });
     for (const el of old.values()) el.remove();   // 新的一局：清掉上局的
     while (row.children.length > want.length) row.lastChild.remove();
-    row.classList.toggle('is-slam', sc.grandSlam);
     fitFan(box, row, fan);
 
     if (!slide) return;
@@ -258,9 +258,16 @@
 
   /* 红桃扇的叠放间距：放得下就露 44%，放不下就叠紧一点（最少露 16%），整行永远不折 */
   /* 座位窄（左右两家；竖屏时顶上三家）的吃牌区留了两排高：红桃挤得看不清（每张露不到 30%）就整扇挪到第二排，
-   * 第二排独占整行宽度。换排不改吃牌区高度，不挤动布局。 */
+   * 第二排独占整行宽度。换排不改吃牌区高度，不挤动布局。
+   * 我自己那排（出牌键在正中）：挤了就挪到更宽的地方——竖屏整排吃牌区另起一行、占满整宽；
+   * 横屏没有多余的高度，就把红桃扇连同本局分挪到出牌键右边那半边（变压器 / 猪 / 羊留在头像旁）。 */
   function fitFan(box, row, fan) {
     row.classList.remove('is-wrapped');
+    const mine = box.parentElement === els.seats[0];
+    if (mine) {
+      els.table.classList.remove('is-me-spill');
+      if (fan) fan.style.marginLeft = '';
+    }
     if (!fan) return;
     const cs = getComputedStyle(box);
     // --m 是 clamp() 表达式，parseFloat 读不出来：直接量一张小牌的实际宽度
@@ -268,11 +275,25 @@
     const m = (first && first.getBoundingClientRect().width) || 28;
     const rows = parseInt(cs.getPropertyValue('--caps-rows'), 10) || 1;
     const n = fan.children.length;
-    let others = 0;
-    for (const el of row.children) if (el !== fan) others += el.getBoundingClientRect().width;
     const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
-    let avail = box.clientWidth - others - gap * (row.children.length - 1) - 6;
-    if (rows > 1 && n > 1 && (avail - m) / (n - 1) < m * 0.44) {
+    const fanAvail = () => {
+      let others = 0;
+      for (const el of row.children) if (el !== fan) others += el.getBoundingClientRect().width;
+      return box.clientWidth - others - gap * (row.children.length - 1) - 6;
+    };
+    const tight = (w) => n > 1 && (w - m) / (n - 1) < m * 0.44;
+    let avail = fanAvail();
+    if (mine && tight(avail)) {
+      els.table.classList.add('is-me-spill');
+      if (getComputedStyle(els.seats[0]).display === 'grid') avail = fanAvail();   // 竖屏：另起一行，宽度变成整排
+      else {
+        const band = els.play.parentElement.getBoundingClientRect();
+        const start = band.right + 12;
+        fan.style.marginLeft = Math.max(0, start - fan.getBoundingClientRect().left) + 'px';
+        const score = row.querySelector('.gz-cap-score');
+        avail = box.getBoundingClientRect().right - start - (score ? score.getBoundingClientRect().width + gap : 0) - 6;
+      }
+    } else if (rows > 1 && tight(avail)) {
       row.classList.add('is-wrapped');
       avail = box.clientWidth - 6;
     }
@@ -301,6 +322,7 @@
       el.textContent = signed(n);
       el.classList.toggle('neg', n < 0);
       el.classList.toggle('pos', n > 0 && el.classList.contains('gz-cap-score'));
+      el.classList.toggle('is-gold', el.dataset.gold === '1');
       el.classList.remove('is-rolling', 'up', 'down');
     };
     if (prev === undefined || prev === '' || +prev === n || reduceMotion()) { settle(); return; }
@@ -384,11 +406,29 @@
     els.roundNo.textContent = match.tutorial ? '新手教程' : '第 ' + match.roundNo + (match.rules.end === 'rounds10' ? ' / 10' : '') + ' 局';
   }
 
+  /* 这一轮打什么花色：首家出牌后，桌子正中淡淡浮出一个大花色（压在牌下面），一轮结束放特效 / 收牌前就淡掉，
+   * 不跟着牌一起收走——它不是牌，收进头像反倒像被谁吃了。 */
+  function showLead(suit) {
+    let el = els.center.querySelector('.gz-lead');
+    if (!el) { el = document.createElement('div'); el.className = 'gz-lead'; el.setAttribute('aria-hidden', 'true'); els.center.prepend(el); }
+    if (suit < 0) { el.classList.remove('on'); return; }
+    if (el.dataset.suit !== String(suit)) {
+      // 换花色：先瞬间藏起来再浮出，不让上一轮的花色变形成这一轮的
+      el.classList.remove('on');
+      el.dataset.suit = suit;
+      el.classList.toggle('red', suit === 1 || suit === 2);
+      el.innerHTML = suitSVG(suit);
+      void el.offsetWidth;
+    }
+    el.classList.add('on');
+  }
+
   /* plays 缺省为当前墩；一墩刚打完时 r.trick 已清空，传入完成的那一墩继续展示 */
   function renderTrick(plays, enteringSeat) {
     const r = match.round;
     els.slots.forEach((slot) => { slot.innerHTML = ''; });
     plays = plays || (r ? r.trick : []);
+    showLead(plays.length ? R.suitOf(plays[0].card) : -1);
     if (!plays.length) return;
     const lead = R.suitOf(plays[0].card);
     let top = plays[0];
@@ -571,6 +611,7 @@
     // 教程：牌还在桌上时先讲这一轮（桌上的牌调暗，讲解里把四家的牌排出来），讲完再收牌结算，结算后再讲分数
     const talk = match.tutorial ? tut.coach.afterTrick(done, r) : { before: [], after: [] };
     const settle = () => {
+      showLead(-1);
       // 先在桌子中间放完猪 / 羊 / 变压器等特效（四张牌还在桌上、调暗），再把四张牌一起收走、分牌放进吃牌区
       const fxMs = playTrickFx(done, planTrickFx(done));
       if (fxMs) els.center.classList.add('is-fxing');
@@ -1809,13 +1850,18 @@
     onlineIdle();
   }
 
+  /* 别家没亮的手牌用占位 HIDDEN 顶着（只用来数张数）。占位必须不属于任何花色：
+   * 早先用 -1，可 suitOf(-1) 算出来是 0（♠）——♠ 领出时别家垫牌，规则引擎以为他手里还有 ♠、判「必须跟牌」，
+   * 这一手就对不上、整桌按快照重画（这一轮的收牌动画直接跳过，看着像牌被别人吃了）。 */
+  const HIDDEN = 52;
+
   function mirrorFromSnapshot(gv) {
     const v = gv.round;
     const exposed = v.exposed.map(([c, s]) => [c, loc(s)]);
     const hands = [0, 1, 2, 3].map((l) => {
       if (l === 0) return v.hand.slice();
       const known = exposed.filter(([c, o]) => o === l && !v.played[c]).map(([c]) => c);
-      return known.concat(new Array(Math.max(0, v.counts[srv(l)] - known.length)).fill(-1));
+      return known.concat(new Array(Math.max(0, v.counts[srv(l)] - known.length)).fill(HIDDEN));
     });
     const r = R.createRound(hands, loc(v.leader), v.mustLead, gv.rules);
     Object.assign(r, {
@@ -1835,7 +1881,7 @@
     if (l === 0) return;
     const h = r.hands[l];
     if (h.includes(c)) return;
-    const i = h.indexOf(-1);
+    const i = h.indexOf(HIDDEN);
     if (i >= 0) h[i] = c; else h.push(c);
   }
 
@@ -1862,7 +1908,7 @@
       if (ev.t === 'deal') {
         closeDialog();
         const gv = online.st.game;
-        const blank = () => new Array(13).fill(-1);
+        const blank = () => new Array(13).fill(HIDDEN);
         match.roundNo = ev.roundNo; match.over = false; match.losers = [];
         match.round = R.createRound([gv.dealt.slice(), blank(), blank(), blank()], loc(ev.leader), ev.mustLead, match.rules);
         match.exposing = [];
@@ -2338,6 +2384,7 @@
         r.captured[w] = pre.concat(cards.filter(R.isScoring));
         const done = { winner: w, plays };
         flying = new Set(cards.filter(R.isScoring));
+        showLead(-1);
         const fxMs = playTrickFx(done, planTrickFx(done));
         if (fxMs) els.center.classList.add('is-fxing');
         schedule(() => {
