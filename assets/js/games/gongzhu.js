@@ -841,7 +841,7 @@
 
   const FX_DRIFT = [[0, 90], [120, 0], [0, -90], [-120, 0]];   // 朝各座位跑的方向（我 / 下 / 对 / 上）
   const FX_GAP = 600;
-  const FX_DUR = { pig: 1700, sheep: 1700, doubler: 1500, allhearts: 2700, slam: 2600 };
+  const FX_DUR = { pig: 1900, sheep: 1900, doubler: 1700, allhearts: 2700, slam: 2600 };
   const DOUBLER_TONE = {
     gold: { ink: '#b8924a', ring: '#c9a96e', sparks: ['#c9a96e', '#dcb86c'] },
     ash: { ink: '#7b756b', ring: '#a39c90', sparks: ['#a39c90', '#8c867b'] },
@@ -856,6 +856,8 @@
       '<ellipse cx="70" cy="70" rx="53" ry="47" fill="#f2a9b5"/><ellipse cx="40" cy="84" rx="9" ry="5.5" fill="#e98698" opacity=".6"/><ellipse cx="100" cy="84" rx="9" ry="5.5" fill="#e98698" opacity=".6"/>' +
       '<ellipse cx="52" cy="62" rx="9" ry="5.5" fill="#fff"/><ellipse cx="88" cy="62" rx="9" ry="5.5" fill="#fff"/><circle cx="54.5" cy="63" r="3.6" fill="#b4392c"/><circle cx="85.5" cy="63" r="3.6" fill="#b4392c"/>' +
       '<path d="M38 47 61 57M102 47 79 57" stroke="#3a2420" stroke-width="6.5" stroke-linecap="round"/>' +
+      // 额头一颗小黑桃（呼应 ♠Q）
+      '<path d="M70 27c5 5 10 8.5 10 13 0 3.4-3.2 5.2-6 3.8-1-.5-1.8-1.3-2.4-2.4L73 47h-6l1.4-5.6c-.6 1.1-1.4 1.9-2.4 2.4-2.8 1.4-6-.4-6-3.8 0-4.5 5-8 10-13Z" fill="#1f1c18"/>' +
       '<ellipse cx="70" cy="84" rx="21" ry="14" fill="#ea8f9f"/><ellipse cx="62" cy="84" rx="3.6" ry="5.4" fill="#a94a5e"/><ellipse cx="78" cy="84" rx="3.6" ry="5.4" fill="#a94a5e"/>' +
       '<path d="M50 103q22 10 42-6" stroke="#3a2420" stroke-width="4" fill="none" stroke-linecap="round"/><path d="m80 103 4 8 3-11Z" fill="#fffaf3" stroke="#3a2420" stroke-width="1.5" stroke-linejoin="round"/></svg>',
     // 羊：羊毛先描一圈外轮廓再整块填色（像一整朵云，不是一个个圆），暖米色、腮红，额头一颗小红方块呼应 ♦J
@@ -875,17 +877,21 @@
     })(),
     heart: '<svg viewBox="0 0 100 92" aria-hidden="true"><path d="M50 89C20 67 3 51 3 30 3 15 15 4 29 4c9 0 16 5 21 13 5-8 12-13 21-13 14 0 26 11 26 26 0 21-17 37-47 59Z" fill="#b4392c"/>' +
       '<path d="M22 18c-6 2-10 8-10 14" stroke="#e8857a" stroke-width="5" stroke-linecap="round" fill="none" opacity=".7"/></svg>',
-    // 金冠：渐变金、五个尖、珍珠、正中一颗红宝石，冠箍上嵌红 / 藏青 / 墨绿三色宝石
+    // 金冠：渐变金、五个尖、珍珠；正中一颗红方块，冠箍上红桃居中、草花左、黑桃右
     crown: '<svg viewBox="0 0 160 124" aria-hidden="true"><defs>' +
       '<linearGradient id="gzCrownG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6e2a4"/><stop offset=".55" stop-color="#d9b062"/><stop offset="1" stop-color="#a9823a"/></linearGradient>' +
       '<linearGradient id="gzCrownB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8c97c"/><stop offset="1" stop-color="#9c7731"/></linearGradient></defs>' +
       '<path d="M20 94 11 36 47 64 80 16 113 64 149 36 140 94Z" fill="url(#gzCrownG)" stroke="#8a6526" stroke-width="2.5" stroke-linejoin="round"/>' +
       '<path d="M26 88 20 50 47 70 80 30 113 70 140 50 134 88Z" fill="none" stroke="#fff4d2" stroke-width="1.5" opacity=".55" stroke-linejoin="round"/>' +
-      '<path d="M80 38 89 52 80 66 71 52Z" fill="#b4392c" stroke="#7a1e1a" stroke-width="1.5"/><path d="M80 41 84 50 80 52Z" fill="#f0a49a" opacity=".8"/>' +
+      // 正中一颗红方块（最像宝石）
+      '<path d="M80 36 90 52 80 68 70 52Z" fill="#b4392c" stroke="#7a1e1a" stroke-width="1.5"/><path d="M80 40 85 50 80 52Z" fill="#f0a49a" opacity=".8"/>' +
       '<circle cx="11" cy="33" r="6.5" fill="#fffaf0" stroke="#a9823a" stroke-width="2"/><circle cx="80" cy="12" r="7.5" fill="#fffaf0" stroke="#a9823a" stroke-width="2"/><circle cx="149" cy="33" r="6.5" fill="#fffaf0" stroke="#a9823a" stroke-width="2"/>' +
       '<circle cx="47" cy="61" r="3.5" fill="#fffaf0" stroke="#a9823a" stroke-width="1.5"/><circle cx="113" cy="61" r="3.5" fill="#fffaf0" stroke="#a9823a" stroke-width="1.5"/>' +
       '<rect x="16" y="92" width="128" height="22" rx="5" fill="url(#gzCrownB)" stroke="#8a6526" stroke-width="2.5"/><path d="M22 97H138" stroke="#fff4d2" stroke-width="1.5" opacity=".6"/>' +
-      '<ellipse cx="80" cy="103" rx="9" ry="6.5" fill="#b4392c" stroke="#7a1e1a" stroke-width="1.5"/><circle cx="50" cy="103" r="5.5" fill="#2f4a6b" stroke="#1d2f45" stroke-width="1.5"/><circle cx="110" cy="103" r="5.5" fill="#3d6b4f" stroke="#26473a" stroke-width="1.5"/>' +
+      // 冠箍：红桃居中，草花在左，黑桃在右
+      '<path d="M80 111c-6-4.6-10-8-10-12 0-2.8 2.2-5 4.8-5 2.2 0 4 1.3 5.2 3.2 1.2-1.9 3-3.2 5.2-3.2 2.6 0 4.8 2.2 4.8 5 0 4-4 7.4-10 12Z" fill="#b4392c" stroke="#7a1e1a" stroke-width="1.2"/>' +
+      '<g fill="#1f1c18"><circle cx="50" cy="99" r="3.3"/><circle cx="46.4" cy="104" r="3.3"/><circle cx="53.6" cy="104" r="3.3"/><path d="M50 102.5 52.6 110h-5.2Z"/></g>' +
+      '<path d="M110 95c3.6 3.6 7.2 6 7.2 9.4 0 2.5-2.3 3.8-4.3 2.8-.7-.4-1.3-1-1.7-1.7L112.2 110h-4.4l1-4.5c-.4.7-1 1.3-1.7 1.7-2 1-4.3-.3-4.3-2.8 0-3.4 3.6-5.8 7.2-9.4Z" fill="#1f1c18"/>' +
       '<g fill="#fffaf0"><circle cx="34" cy="103" r="2.6"/><circle cx="65" cy="103" r="2.6"/><circle cx="95" cy="103" r="2.6"/><circle cx="126" cy="103" r="2.6"/></g></svg>',
   };
 
@@ -945,7 +951,7 @@
     let frames;
     if (fx.kind === 'pig') {
       // 猪是 ♠Q：四散的全是大大小小、边飞边转的黑桃
-      burst(0, -30, 26, ['♠'], ['#1f1c18', '#3a2420', '#4a3a36', '#7a1e1a'], 180, 160, { glow: 'none', spin: true, size: [12, 58] });
+      bloom(['♠'], ['#1f1c18', '#3a2420', '#4a3a36', '#7a1e1a'], 180, 190, [16, 82]);
       frames = [
         { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.15), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
         { transform: FT(-9, 0, 1), offset: 0.34 }, { transform: FT(9, 0, 1), offset: 0.42 }, { transform: FT(-6, 0, 1), offset: 0.5 },
@@ -953,7 +959,7 @@
       ];
     } else if (fx.kind === 'sheep') {
       // 羊是 ♦J：四散的是红方块
-      burst(0, -30, 26, ['♦'], ['#b4392c', '#c9473a', '#d65f4f', '#a8322a'], 180, 160, { glow: 'none', spin: true, size: [12, 54] });
+      bloom(['♦'], ['#b4392c', '#c9473a', '#d65f4f', '#a8322a'], 180, 190, [16, 76]);
       frames = [
         { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.12), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
         { transform: FT(0, -22, 1), offset: 0.36 }, { transform: FT(0, 0, 1), offset: 0.46 }, { transform: FT(0, -13, 1), offset: 0.54 },
@@ -965,14 +971,14 @@
         { transform: FT(0, 0, 1), opacity: 1, offset: 0.7 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
       ];
       // 变压器是 ♣10：四散的是草花，颜色跟着圆环
-      burst(0, 0, 16, ['♣'], tone.sparks, 120, 115, { glow: 'none', spin: true, size: [12, 46] });
+      bloom(['♣'], tone.sparks, 120, 160, [16, 66], 0);
     } else if (fx.kind === 'allhearts') {
       // 只用红心：五朵红心烟花接连炸开，中间一颗大红心「怦、怦」跳两下
-      burst(-150, -60, 26, ['♥'], HEART_REDS, 0, 135, { glow: 'red', spin: true, size: [16, 56] });
-      burst(150, -50, 26, ['♥'], HEART_REDS, 220, 135, { glow: 'red', spin: true, size: [16, 56] });
-      burst(-90, 70, 24, ['♥'], HEART_REDS, 440, 120, { glow: 'red', spin: true, size: [16, 56] });
-      burst(100, 75, 24, ['♥'], HEART_REDS, 620, 120, { glow: 'red', spin: true, size: [16, 56] });
-      burst(0, -10, 40, ['♥'], HEART_REDS, 820, 190, { glow: 'red', spin: true, size: [16, 56] });
+      burst(-150, -60, 26, ['♥'], HEART_REDS, 0, 135, { glow: 'red', spin: true, size: [20, 78] });
+      burst(150, -50, 26, ['♥'], HEART_REDS, 220, 135, { glow: 'red', spin: true, size: [20, 78] });
+      burst(-90, 70, 24, ['♥'], HEART_REDS, 440, 120, { glow: 'red', spin: true, size: [20, 78] });
+      burst(100, 75, 24, ['♥'], HEART_REDS, 620, 120, { glow: 'red', spin: true, size: [20, 78] });
+      burst(0, -10, 40, ['♥'], HEART_REDS, 820, 190, { glow: 'red', spin: true, size: [20, 78] });
       frames = [
         { transform: FT(0, 0, 0), opacity: 0 }, { transform: FT(0, 0, 0), opacity: 0, offset: 0.26 },
         { transform: FT(0, 0, 1.18), opacity: 1, offset: 0.34 }, { transform: FT(0, 0, 0.94), offset: 0.4 },
@@ -981,9 +987,9 @@
       ];
     } else {   // slam
       // 大满贯：四种花色混在一起，加几颗金星
-      burst(-140, -40, 26, ['♠', '♥', '♦', '♣', '✦'], SUIT_TINT, 250, 140, { spin: true, size: [14, 52] });
-      burst(140, -40, 26, ['♣', '♦', '♥', '♠', '✦'], SUIT_TINT, 520, 140, { spin: true, size: [14, 52] });
-      burst(0, 20, 36, ['♥', '♠', '♦', '♣', '✦'], SUIT_TINT, 800, 175, { spin: true, size: [14, 58] });
+      burst(-140, -40, 26, ['♠', '♥', '♦', '♣', '✦'], SUIT_TINT, 250, 140, { spin: true, size: [18, 72] });
+      burst(140, -40, 26, ['♣', '♦', '♥', '♠', '✦'], SUIT_TINT, 520, 140, { spin: true, size: [18, 72] });
+      burst(0, 20, 36, ['♥', '♠', '♦', '♣', '✦'], SUIT_TINT, 800, 175, { spin: true, size: [18, 82] });
       frames = [
         { transform: FT(0, -120, 1), opacity: 0 }, { transform: FT(0, 6, 1), opacity: 1, offset: 0.14 }, { transform: FT(0, -6, 1), offset: 0.2 },
         { transform: FT(0, 0, 1), offset: 0.26 }, { transform: FT(0, 0, 1), opacity: 1, offset: 0.82 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
@@ -994,6 +1000,16 @@
   }
 
   // 一朵烟花：n 颗粒子从 (x, y) 炸开，往外飞、再带点下坠淡出
+  // 一次「绽放」：主朵 + 一半概率再追一小朵（换个样式、偏开一点），每回都不一样
+  function bloom(glyphs, colors, delay, radius, size, y0 = -30) {
+    burst(0, y0, 30, glyphs, colors, delay, radius, { glow: 'none', spin: true, size });
+    if (Math.random() < 0.5) {
+      const side = Math.random() < 0.5 ? -1 : 1;
+      burst(side * (60 + Math.random() * 60), -40 + Math.random() * 50, 14, glyphs, colors, delay + 260, radius * 0.6,
+        { glow: 'none', spin: true, size: [size[0], size[1] * 0.75] });
+    }
+  }
+
   /* opts：glow 'gold' | 'red' | 'none'（中心晕光）；spin 允许旋转；size [最小, 最大] 字号 px。
    * colors 可以是数组（按顺序轮换）或函数 glyph → 颜色。
    * 粒子的姿态：大小拉开（少数很大），大部分接近正放；越大的越正、越稳，只有少数小的会大角度翻飞。 */
@@ -1008,6 +1024,9 @@
       setTimeout(() => flash.remove(), 520 + delay + 60);
     }
     const rnd = (a, b) => a + Math.random() * (b - a);
+    // 绽放样式：每次随机一种（一整圈 / 内外两圈 / 螺旋 / 喷泉 / 随意散开），同一种动画每回看起来都不一样
+    const pat = o.pattern || ['ring', 'double', 'spiral', 'fountain', 'scatter'][(Math.random() * 5) | 0];
+    const turn = Math.random() * Math.PI * 2;
     for (let k = 0; k < n; k++) {
       const g = glyphs[k % glyphs.length];
       const el = document.createElement('span');
@@ -1019,8 +1038,13 @@
       const t = big ? rnd(0.75, 1) : Math.pow(Math.random(), 1.6) * 0.7;
       el.style.fontSize = (o.size[0] + t * (o.size[1] - o.size[0])).toFixed(0) + 'px';
       els.fx.appendChild(el);
-      const a = (k / n) * Math.PI * 2 + Math.random() * 0.4;
-      const d = radius * rnd(0.65, 1.1) * (big ? 0.82 : 1);
+      let a, d, lag = 0, fall = big ? 26 : 40;
+      if (pat === 'ring') { a = turn + (k / n) * Math.PI * 2 + rnd(-0.12, 0.12); d = radius * rnd(0.85, 1.08); }
+      else if (pat === 'double') { const inner = k % 2 === 1; a = turn + (k / n) * Math.PI * 2; d = radius * (inner ? rnd(0.42, 0.58) : rnd(0.95, 1.18)); lag = inner ? 0 : 110; }
+      else if (pat === 'spiral') { a = turn + (k / n) * Math.PI * 4; d = radius * (0.3 + 0.85 * k / n); lag = k * 16; }
+      else if (pat === 'fountain') { a = -Math.PI / 2 + rnd(-1.05, 1.05); d = radius * rnd(0.7, 1.3); lag = rnd(0, 140); fall = big ? 70 : 110; }
+      else { a = Math.random() * Math.PI * 2; d = radius * rnd(0.35, 1.2); lag = rnd(0, 170); }
+      if (big) d *= 0.85;
       const tx = x + Math.cos(a) * d, ty = y + Math.sin(a) * d;
       // 姿态：大个几乎正放、只轻轻晃；七成小个接近正放；三成小个翻飞
       let r0 = 0, r1 = 0;
@@ -1036,9 +1060,9 @@
         { transform: FT(x, y, 0.6, r0), opacity: 1, offset: 0.06 },
         { transform: FT(tx, ty, pop, (r0 + r1) * 0.5), opacity: 1, offset: 0.45 },
         { transform: FT(tx, ty + 6, 1, (r0 + r1) * 0.6), opacity: 1, offset: 0.58, easing: 'ease-in' },   // 飞到最远后开始下坠
-        { transform: FT(tx, ty + (big ? 26 : 40), 0.75, r1), opacity: 0 },
-      ], { duration: big ? 1400 : 1250, delay, fill: 'both' }, 'cubic-bezier(.12, .8, .3, 1)');
-      setTimeout(() => el.remove(), (big ? 1400 : 1250) + delay + 60);
+        { transform: FT(tx, ty + fall, 0.75, r1), opacity: 0 },
+      ], { duration: big ? 1400 : 1250, delay: delay + lag, fill: 'both' }, 'cubic-bezier(.12, .8, .3, 1)');
+      setTimeout(() => el.remove(), (big ? 1400 : 1250) + delay + lag + 60);
     }
   }
   // 花色本色：黑桃草花墨黑、红桃方块朱红、星点金色
