@@ -1002,7 +1002,7 @@
 
   const FX_DRIFT = [[0, 90], [120, 0], [0, -90], [-120, 0]];   // 朝各座位跑的方向（我 / 下 / 对 / 上）
   const FX_GAP = 600;
-  const FX_DUR = { pig: 1900, sheep: 1900, doubler: 1700, allhearts: 2700, slam: 2600, clash: 3000 };
+  const FX_DUR = { pig: 1900, sheep: 1900, doubler: 1700, allhearts: 2700, slam: 2600, clash: 2900 };
   const DOUBLER_TONE = {
     gold: { ink: '#b8924a', ring: '#c9a96e', sparks: ['#c9a96e', '#dcb86c'] },
     ash: { ink: '#7b756b', ring: '#a39c90', sparks: ['#a39c90', '#8c867b'] },
@@ -1076,7 +1076,7 @@
     if (!sc.grandSlam) {
       if (cs.includes(R.PIG) && cs.includes(R.SHEEP)) {
         // 猪羊同一轮：不各放各的，改成两只对撞（见 playClash）
-        list.push({ kind: 'clash', cards: [R.SHEEP, R.PIG], net: sc.pigScore + sc.sheepScore, pigSub: signed(sc.pigScore), sheepSub: signed(sc.sheepScore) });
+        list.push({ kind: 'clash', cards: [R.SHEEP, R.PIG], pigSub: signed(sc.pigScore), sheepSub: signed(sc.sheepScore) });
       } else {
         if (cs.includes(R.PIG)) list.push({ kind: 'pig', card: R.PIG, sub: signed(sc.pigScore) });
         if (cs.includes(R.SHEEP)) list.push({ kind: 'sheep', card: R.SHEEP, sub: signed(sc.sheepScore) });
@@ -1132,8 +1132,7 @@
   }
 
   /* 猪羊同一轮：羊从左、猪从右各自亮相（羊蹦两下、猪刨两下地），往后一缩、对冲到中间撞上——
-   * 白光一闪，黑桃红方块四溅，一团烟把两只都吞掉；烟里盖出一枚「两清」（−100 +100 正好抵消；
-   * 亮过牌抵不平就写净分），印章朝吃到的人飘走，两张牌在他的吃牌区翻出来。 */
+   * 白光一闪、一团烟把两只吞掉，接着黑桃和红方块的烟花一朵接一朵炸开（不写字），两张牌在吃到的人的吃牌区翻出来。 */
   function playClash(fx, w) {
     const dur = FX_DUR.clash;
     const [dx, dy] = FX_DRIFT[w];
@@ -1189,20 +1188,12 @@
       ], { duration: life, delay, fill: 'both', easing: 'cubic-bezier(.2, .7, .3, 1)' });
       setTimeout(() => puff.remove(), delay + life + 60);
     }
-    // 烟里盖出一枚印章，停一会儿，再朝吃到的人飘走
-    const even = fx.net === 0;
-    const stamp = mk('kind-clash', '<div class="gz-clash' + (even ? '' : fx.net < 0 ? ' neg' : ' pos') + '">' + (even ? '两清' : signed(fx.net)) + '</div>' +
-      '<div class="gz-clash-sub">' + fx.sheepSub + ' ' + fx.pigSub + '</div>');
-    animate(stamp, [
-      { transform: FT(0, -14, 1.9, -7), opacity: 0 },
-      { transform: FT(0, -14, 1.9, -7), opacity: 0, offset: 0.5 },
-      { transform: FT(0, -14, 0.9, -7), opacity: 1, offset: 0.57 },
-      { transform: FT(0, -14, 1.04, -7), offset: 0.61 },
-      { transform: FT(0, -14, 1, -7), opacity: 1, offset: 0.84 },
-      { transform: FT(dx * 0.7, dy * 0.7 - 14, 0.55, -7), opacity: 0 },
-    ], { duration: dur, fill: 'forwards' });
+    // 撞完的烟花：两侧、上方再接连炸开几朵黑桃 / 红方块
+    burst(-120, -50, 24, ['♠', '♦'], SUIT_TINT, hit + 260, 130, { glow: 'none', spin: true, size: [16, 64] });
+    burst(125, -40, 24, ['♦', '♠'], SUIT_TINT, hit + 480, 130, { glow: 'none', spin: true, size: [16, 64] });
+    burst(0, -90, 30, ['♠', '♦'], SUIT_TINT, hit + 700, 160, { glow: 'gold', spin: true, size: [16, 72] });
     setTimeout(() => {
-      sheep.remove(); pig.remove(); stamp.remove();
+      sheep.remove(); pig.remove();
       const caps = els.seats[w].querySelector('.gz-caps');
       for (const c of fx.cards) revealMini(caps.querySelector('.gz-mini[data-card="' + c + '"]'), w);
     }, dur);
