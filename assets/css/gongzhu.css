@@ -75,7 +75,6 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 .gz-tool svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .gz-tool svg .dot { fill: currentColor; stroke: none; }
-.gz-tool.gz-exit { margin-left: 8px; }
 .gz-tool:focus-visible, .gz-btn:focus-visible, .gz-round-info:focus-visible { outline: 2px solid var(--gz-seal); outline-offset: 2px; }
 
 /* ───── 座位 ───── */
@@ -449,15 +448,12 @@ body.gz-fullscreen .site-footer { display: none !important; }
   color: var(--gz-ink-mute); cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
 }
 .is-tutorial .gz-skip { visibility: visible; }
-.is-tutorial #gzSettingsBtn { visibility: hidden; }
-/* 不在教程里时「跳过教程」不占位；教程里设置键干脆让出位置 —— 顶栏五个圆键在窄屏上也放得下，局数不折行 */
+/* 不在教程里时「跳过教程」不占位，局数不折行 */
 .gz-table:not(.is-tutorial) .gz-skip { display: none; }
-.is-tutorial #gzSettingsBtn { display: none; }
 .gz-round-no { white-space: nowrap; }
 @media (max-width: 400px) {
   .gz-tools { gap: 6px; }
   .gz-tool { width: 36px; height: 36px; }
-  .gz-tool.gz-exit { margin-left: 4px; }
 }
 .gz-coach {
   position: absolute; left: 50%; z-index: 5; pointer-events: none;
@@ -764,7 +760,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-card.is-exposed .gz-dbl .x2 { display: none; }
 .gz-card.is-exposed .gz-dbl .x4 { display: inline; }
 
-/* 右上角菜单（试行 ?menu=new）：每条一行粗字 + 一行小字说明会怎样；最底下「返回百宝奇巧」 */
+/* 右上角菜单：每条一行粗字 + 一行小字说明会怎样；最底下「返回百宝奇巧」 */
 .gz-menu {
   position: fixed; z-index: calc(var(--z-dialog) + 1); width: 264px; max-width: calc(100vw - 16px); box-sizing: border-box; padding: 6px;
   background: var(--gz-paper); border: 1px solid var(--gz-ink); border-radius: 12px; box-shadow: 0 10px 26px rgba(20, 18, 15, 0.18);

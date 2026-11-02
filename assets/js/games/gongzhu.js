@@ -1162,10 +1162,9 @@
     stopClock(); closeDialog(); token++; busy = false; setAutopilot(false); newMatch(); startRound();
   }
 
-  /* ───── 右上角菜单（试行，?menu=new）─────
+  /* ───── 右上角菜单 ─────
    * 顶栏只留三个键：声音、规则、菜单。能做的事都收进菜单、写成字，每条下面一行小字说清会怎样；
    * 按场合换内容：单机 / 联机房间里 / 教程里。离开放在最底下，并说明进度会不会丢。 */
-  const NEW_MENU = new URLSearchParams(location.search).get('menu') === 'new';
   let menuPanel = null;
   function menuItems() {
     if (match && match.tutorial) {
@@ -2475,7 +2474,6 @@
   $('gzRulesBtn').addEventListener('click', showRules);
   $('gzSoundBtn').addEventListener('click', toggleSoundPanel);
   refreshSoundBtn();
-  $('gzSettingsBtn').addEventListener('click', showSettings);
   $('gzRoundInfo').addEventListener('click', () => { if (!match.tutorial) showTotals(); });
   $('gzSkipTut').addEventListener('click', () => { if (match.tutorial) endTutorial(); });
   // 教程讲解时点牌桌任意处继续（顶栏按钮、弹窗照常）
@@ -2540,15 +2538,7 @@
   }
   }
 
-  $('gzOnlineBtn').hidden = !NET;
-  if (NEW_MENU) {
-    // 新菜单：顶栏只剩声音、规则、菜单
-    ['gzOnlineBtn', 'gzSettingsBtn'].forEach((id) => { $(id).hidden = true; });
-    document.querySelector('.gz-tool.gz-exit').hidden = true;
-    $('gzMenuBtn').hidden = false;
-    $('gzMenuBtn').addEventListener('click', toggleMenu);
-  }
-  $('gzOnlineBtn').addEventListener('click', () => { if (match && match.online) showRoomDialog(); else showOnlineEntry(''); });
+  $('gzMenuBtn').addEventListener('click', toggleMenu);
   // 大厅：点座位（空位加机器人 / 坐过去，机器人换档，房主请人离开）；中间面板的几个按钮
   els.table.addEventListener('click', (e) => {
     const seat = e.target.closest('[data-lseat]');
