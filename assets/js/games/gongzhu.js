@@ -163,9 +163,11 @@
       want.push(fan);
     } else if (fan) { fan.remove(); fan = null; }
     let score = row.querySelector('.gz-cap-score');
-    if (!score) { score = document.createElement('span'); }
-    score.className = 'gz-cap-score gz-num ' + (sc.total < 0 ? 'neg' : sc.total > 0 ? 'pos' : '') + (hidden.size ? ' incoming' : '');
-    score.textContent = signed(sc.total);
+    const fresh = !score;
+    if (!score) { score = document.createElement('span'); score.className = 'gz-cap-score gz-num'; }
+    if (hidden.size && !fresh) score.dataset.next = sc.total;          // 牌在飞：旧分先留着，落地再翻
+    else if (fresh && hidden.size) { score.dataset.next = sc.total; score.textContent = ''; score.dataset.v = ''; }
+    else rollNumber(score, sc.total);
     want.push(score);
     want.forEach((el, k) => { if (row.children[k] !== el) row.insertBefore(el, row.children[k] || null); });
     for (const el of old.values()) el.remove();   // 新的一局：清掉上局的
@@ -201,6 +203,19 @@
 
   function signed(n) { return n > 0 ? '+' + n : n < 0 ? '−' + Math.abs(n) : '0'; }
 
+  /* 分数变化：旧数往上翻走、新数从下面翻上来（像翻页计分牌），颜色跟着正负变 */
+  function rollNumber(el, n) {
+    const prev = el.dataset.v;
+    el.dataset.v = n;
+    el.classList.toggle('neg', n < 0);
+    el.classList.toggle('pos', n > 0 && el.classList.contains('gz-cap-score'));
+    if (prev === undefined || prev === '' || +prev === n || reduceMotion()) { el.textContent = signed(n); return; }
+    const up = n > +prev;
+    el.innerHTML = '<span class="gz-roll ' + (up ? 'up' : 'down') + '"><span class="gz-roll-old">' + signed(+prev) + '</span><span class="gz-roll-new">' + signed(n) + '</span></span>';
+    clearTimeout(el._roll);
+    el._roll = setTimeout(() => { if (+el.dataset.v === n) el.textContent = signed(n); }, 520);
+  }
+
   /* ───── 座位：结构只建一次，之后只更新内容（飞牌动画要拿稳定的落点） ───── */
 
   // 头像外圈的倒计时环：轮到谁谁亮，环随时间收走
@@ -217,12 +232,15 @@
     });
   }
 
+  /* 一轮刚打满、分牌还没飞到：规则引擎已经记进了赢家的吃牌，界面先别画，等飞过去时再「划开插入」 */
+  let flying = null;
+
   function renderSeat(s, incoming, slide) {
     const r = match.round;
     const el = els.seats[s];
     const tot = el.querySelector('.gz-total');
-    tot.textContent = signed(match.totals[s]);
-    tot.className = 'gz-total gz-num' + (match.totals[s] < 0 ? ' neg' : '');
+    rollNumber(tot, match.totals[s]);
+    tot.classList.toggle('neg', match.totals[s] < 0);
     const backs = el.querySelector('.gz-backs');
     if (backs) {
       const left = r ? r.hands[s].length : 0;
@@ -242,7 +260,8 @@
         }
       }
     }
-    renderCaps(el.querySelector('.gz-caps'), r ? r.captured[s] : [], incoming, null, slide);
+    const caps = r ? r.captured[s].filter((c) => !flying || !flying.has(c)) : [];
+    renderCaps(el.querySelector('.gz-caps'), caps, incoming, null, slide);
     el.classList.toggle('is-turn', turnSeat() === s);
   }
 
@@ -415,6 +434,7 @@
     if (seat === 0) selected = -1;
     if (seat === 0 && match.tutorial) { hideCoach(); clearTimeout(idleTimer); suggestCard = -1; els.play.classList.remove('is-suggest'); }
     busy = true;   // 下一手由 step() 接手，轮到我时它再放开；早放开会让我抢在 step 前出牌、排出两次 step
+    if (done) flying = new Set(done.plays.map((p) => p.card).filter(R.isScoring));
     renderTrick(done ? done.plays : null, seat);
     markAce(done ? done.plays : r.trick, seat, card);
     renderSeat(seat);
@@ -439,6 +459,7 @@
     const seatEl = els.seats[winner];
     const caps = seatEl.querySelector('.gz-caps');
     const fresh = plays.map((p) => p.card).filter(R.isScoring);
+    flying = null;
     renderSeat(winner, fresh, true);
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const flyers = [];
@@ -469,6 +490,8 @@
     setTimeout(() => {
       flyers.forEach(({ fl }) => fl.remove());
       caps.querySelectorAll('.incoming').forEach((el) => el.classList.remove('incoming'));
+      const sc = caps.querySelector('.gz-cap-score');
+      if (sc && sc.dataset.next !== undefined) { rollNumber(sc, +sc.dataset.next); delete sc.dataset.next; }
     }, ms);
     return ms;
   }
@@ -733,11 +756,11 @@
       none: '不设终点，一直累计下去。',
     }[rules.end];
     return '<dl class="gz-rules">' +
-      '<dt>出牌</dt><dd>四人各 13 张。' + lead + '有领出的花色就必须跟，没有可以垫任意一张。领出花色里最大的牌吃下这一墩，下一墩由他先出。</dd>' +
+      '<dt>出牌</dt><dd>四人各 13 张。' + lead + '有领出的花色就必须跟，没有可以垫任意一张。领出花色里最大的牌吃下这一轮，下一轮由他先出。</dd>' +
       '<dt>分牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。' + hearts + '</dd>' +
       '<dt>变压器 ♣10</dt><dd>它本身不算分，吃到它，你这一局的分数（不论正负）翻倍' + (rules.doublerAlone === 50 ? '；只吃到它一张、别的分牌都没吃到，算 +50。' : '。') + '</dd>' +
       '<dt>全红</dt><dd>一个人吃齐 13 张红桃，红桃改记 +200。' + pigLine + '</dd>' +
-      (rules.expose ? '<dt>亮牌</dt><dd>开打前，♥A、♠Q、♦J、♣10 可以亮给大家看，效果翻倍：亮 ♥A 红桃全部 ×2，亮猪 −200，亮羊 +200，亮变压器 ×4' + (rules.doublerAlone === 50 ? '（单吃 +100）' : '') + '。亮出的牌在这门第一次被领出的那一墩里不能出，也不能拿它领这门，除非这门只剩它一张；垫牌不受限。</dd>' : '') +
+      (rules.expose ? '<dt>亮牌</dt><dd>开打前，♥A、♠Q、♦J、♣10 可以亮给大家看，效果翻倍：亮 ♥A 红桃全部 ×2，亮猪 −200，亮羊 +200，亮变压器 ×4' + (rules.doublerAlone === 50 ? '（单吃 +100）' : '') + '。亮出的牌在这门第一次被领出的那一轮里不能出，也不能拿它领这门，除非这门只剩它一张；垫牌不受限。</dd>' : '') +
       '<dt>一盘</dt><dd>' + end + '分最低的人当猪，并列都是。</dd></dl>';
   }
 
@@ -811,12 +834,29 @@
       });
   }
 
-  /* ───── 特殊事件：牌桌中央盖一枚印章，淡出时朝吃牌的人飘过去 ─────
-   * 羊（墨绿）· 猪（朱红，落下一震）· 变压器（金边圆印 ×2）· 全红（红心绽开再落印）· 大满贯（金印 + 光环）。
-   * 领出花色的 A 一出：那张牌旁边盖一个小「照单全收」。 */
+  /* ───── 特殊事件动画（牌桌中央，绝对定位、不占布局） ─────
+   * 猪：粉色小猪头弹出、左右扭两下，然后朝吃猪的人跑过去；羊：卷毛小羊蹦两下再跑过去；
+   * 变压器：金色大字 ×2 + 两圈波纹 + 金星；全红：三处红心烟花接连炸开，再浮出「全红」；
+   * 大满贯：金冠落下 + 金色烟花。领出花色的 A 一出：那张牌旁边盖一个小「照单全收」。 */
 
-  const FX_DRIFT = [[0, 70], [90, 0], [0, -70], [-90, 0]];   // 朝各座位飘的方向（我 / 下 / 对 / 上）
-  const FX_MS = 1400, FX_GAP = 520;
+  const FX_DRIFT = [[0, 90], [120, 0], [0, -90], [-120, 0]];   // 朝各座位跑的方向（我 / 下 / 对 / 上）
+  const FX_GAP = 600;
+  const FX_DUR = { pig: 1700, sheep: 1700, doubler: 1500, allhearts: 2400, slam: 2600 };
+  const ART = {
+    pig: '<svg viewBox="0 0 120 104" aria-hidden="true"><path d="M20 32 28 6 48 24Z" fill="#e48f9e"/><path d="M100 32 92 6 72 24Z" fill="#e48f9e"/>' +
+      '<ellipse cx="60" cy="58" rx="46" ry="40" fill="#f5b4bf"/><ellipse cx="34" cy="71" rx="8" ry="5" fill="#ef8fa1" opacity=".6"/><ellipse cx="86" cy="71" rx="8" ry="5" fill="#ef8fa1" opacity=".6"/>' +
+      '<circle cx="44" cy="50" r="4.6" fill="#2e2622"/><circle cx="76" cy="50" r="4.6" fill="#2e2622"/><circle cx="45.6" cy="48.4" r="1.5" fill="#fff"/><circle cx="77.6" cy="48.4" r="1.5" fill="#fff"/>' +
+      '<ellipse cx="60" cy="72" rx="19" ry="13" fill="#ec97a6"/><ellipse cx="53" cy="72" rx="3.3" ry="5" fill="#b4566a"/><ellipse cx="67" cy="72" rx="3.3" ry="5" fill="#b4566a"/></svg>',
+    sheep: '<svg viewBox="0 0 120 104" aria-hidden="true"><g fill="#fffaf0" stroke="#d6cbb9" stroke-width="2">' +
+      [[34, 42, 16], [52, 28, 17], [72, 28, 17], [88, 43, 16], [93, 63, 15], [78, 80, 16], [42, 80, 16], [27, 63, 15], [60, 86, 15]].map(([x, y, r]) => '<circle cx="' + x + '" cy="' + y + '" r="' + r + '"/>').join('') +
+      '</g><ellipse cx="31" cy="54" rx="12" ry="6" transform="rotate(-24 31 54)" fill="#4b4038"/><ellipse cx="89" cy="54" rx="12" ry="6" transform="rotate(24 89 54)" fill="#4b4038"/>' +
+      '<ellipse cx="60" cy="60" rx="20" ry="25" fill="#4b4038"/><g fill="#fffaf0" stroke="#d6cbb9" stroke-width="2"><circle cx="50" cy="37" r="9"/><circle cx="70" cy="37" r="9"/><circle cx="60" cy="32" r="10"/></g>' +
+      '<circle cx="52" cy="58" r="5" fill="#fff"/><circle cx="68" cy="58" r="5" fill="#fff"/><circle cx="53" cy="59" r="2.6" fill="#1d1b18"/><circle cx="69" cy="59" r="2.6" fill="#1d1b18"/>' +
+      '<path d="M54 74Q60 79 66 74" stroke="#cdbca6" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>',
+    crown: '<svg viewBox="0 0 120 92" aria-hidden="true"><path d="M12 70 18 22 42 46 60 12 78 46 102 22 108 70Z" fill="#dcb86c" stroke="#a8843e" stroke-width="3" stroke-linejoin="round"/>' +
+      '<rect x="12" y="70" width="96" height="13" rx="3" fill="#c9a96e" stroke="#a8843e" stroke-width="3"/><circle cx="18" cy="20" r="6.5" fill="#b4392c"/><circle cx="60" cy="10" r="7.5" fill="#b4392c"/><circle cx="102" cy="20" r="6.5" fill="#b4392c"/>' +
+      '<circle cx="40" cy="76.5" r="3" fill="#fffaf0"/><circle cx="60" cy="76.5" r="3" fill="#fffaf0"/><circle cx="80" cy="76.5" r="3" fill="#fffaf0"/></svg>',
+  };
 
   function markAce(plays, seat, card) {
     if (!plays.length || R.rankOf(card) !== 12) return;
@@ -824,7 +864,7 @@
     els.slots[seat].classList.add('is-ace');
   }
 
-  // 一墩里可能同时有好几件事（猪 + 变压器……）：依次落印。返回整段时长（无事件返回 0）
+  // 一轮里可能同时有好几件事（猪 + 变压器……）：依次上演。返回整段时长（无事件返回 0）
   function playTrickFx(done) {
     const r = match.round;
     const w = done.winner;
@@ -836,35 +876,120 @@
     if (sc.grandSlam && hadAll) list.push({ kind: 'slam', word: '大满贯', sub: who + ' ' + signed(sc.total) });
     else if (hadAll) list.push({ kind: 'allhearts', word: '全红', sub: who + ' ' + signed(sc.heartScore) });
     if (!sc.grandSlam) {
-      if (cs.includes(R.PIG)) list.push({ kind: sc.pigScore > 0 ? 'sheep' : 'pig', word: '猪', sub: who + ' ' + signed(sc.pigScore) });
-      if (cs.includes(R.SHEEP)) list.push({ kind: sc.sheepScore < 0 ? 'pig' : 'sheep', word: '羊', sub: who + ' ' + signed(sc.sheepScore) });
+      if (cs.includes(R.PIG)) list.push({ kind: 'pig', sub: who + ' ' + signed(sc.pigScore) });
+      if (cs.includes(R.SHEEP)) list.push({ kind: 'sheep', sub: who + ' ' + signed(sc.sheepScore) });
       if (cs.includes(R.DOUBLER)) list.push({ kind: 'doubler', word: '×' + (R.scoreCtx(r).exposed.includes(R.DOUBLER) ? 4 : 2), sub: who + ' 翻倍' });
     }
     if (!list.length || reduceMotion()) return 0;
-    list.forEach((fx, k) => setTimeout(() => stamp(fx, w), k * FX_GAP));
-    return FX_MS + (list.length - 1) * FX_GAP;
+    let end = 0;
+    list.forEach((fx, k) => {
+      setTimeout(() => playFx(fx, w), k * FX_GAP);
+      end = Math.max(end, k * FX_GAP + FX_DUR[fx.kind]);
+    });
+    return end;
   }
 
-  function stamp(fx, w) {
-    const el = document.createElement('div');
-    el.className = 'gz-stamp kind-' + fx.kind;
-    el.style.setProperty('--dx', FX_DRIFT[w][0] + 'px');
-    el.style.setProperty('--dy', FX_DRIFT[w][1] + 'px');
-    el.innerHTML = '<span class="gz-stamp-seal"><span class="gz-stamp-word">' + fx.word + '</span></span>' +
-      '<span class="gz-stamp-sub">' + fx.sub + '</span>';
-    if (fx.kind === 'allhearts') {
-      // 13 颗红心从中心绽开
-      for (let k = 0; k < 13; k++) {
-        const h = document.createElement('span');
-        h.className = 'gz-burst';
-        h.textContent = '♥';
-        h.style.setProperty('--a', (k * 360 / 13) + 'deg');
-        el.appendChild(h);
-      }
-    }
-    els.fx.appendChild(el);
-    setTimeout(() => el.remove(), FX_MS + 60);
+  // 多段关键帧：缓动按段给（Web Animations 的整体 easing 会把整条时间线压歪，停顿变短、淡出提前）
+  function animate(el, frames, opts, ease) {
+    const e = ease || 'cubic-bezier(.25, .8, .35, 1)';
+    return el.animate(frames.map((f) => Object.assign({ easing: e }, f)), Object.assign({ easing: 'linear' }, opts));
   }
+  const FT = (x, y, sc, rot) => 'translate(-50%, -50%) translate(' + (x || 0) + 'px,' + (y || 0) + 'px) scale(' + (sc == null ? 1 : sc) + ') rotate(' + (rot || 0) + 'deg)';
+
+  function playFx(fx, w) {
+    const [dx, dy] = FX_DRIFT[w];
+    const dur = FX_DUR[fx.kind];
+    const item = document.createElement('div');
+    item.className = 'gz-fxitem kind-' + fx.kind;
+    const art = fx.kind === 'pig' || fx.kind === 'sheep' ? ART[fx.kind] : fx.kind === 'slam' ? ART.crown : '';
+    item.innerHTML = (art ? '<div class="gz-fxart">' + art + '</div>' : '') +
+      (fx.word && fx.kind !== 'slam' ? '<div class="gz-fxword">' + fx.word + '</div>' : '') +
+      (fx.kind === 'slam' ? '<div class="gz-fxword">大满贯</div>' : '') +
+      '<div class="gz-fxlabel">' + fx.sub + '</div>';
+    els.fx.appendChild(item);
+    let frames;
+    if (fx.kind === 'pig') {
+      frames = [
+        { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.15), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
+        { transform: FT(0, 0, 1, -9), offset: 0.36 }, { transform: FT(0, 0, 1, 9), offset: 0.46 }, { transform: FT(0, 0, 1, -6), offset: 0.55 },
+        { transform: FT(0, 0, 1, 0), opacity: 1, offset: 0.66 }, { transform: FT(dx, dy, 0.42, 0), opacity: 0 },
+      ];
+    } else if (fx.kind === 'sheep') {
+      frames = [
+        { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.12), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
+        { transform: FT(0, -22, 1), offset: 0.36 }, { transform: FT(0, 0, 1), offset: 0.46 }, { transform: FT(0, -13, 1), offset: 0.54 },
+        { transform: FT(0, 0, 1), opacity: 1, offset: 0.66 }, { transform: FT(dx, dy, 0.42), opacity: 0 },
+      ];
+    } else if (fx.kind === 'doubler') {
+      frames = [
+        { transform: FT(0, 0, 2.2), opacity: 0 }, { transform: FT(0, 0, 0.92), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1.04), offset: 0.24 },
+        { transform: FT(0, 0, 1), opacity: 1, offset: 0.7 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
+      ];
+      ring(0, 0, 80); ring(0, 0, 260);
+      burst(0, 0, 12, ['✦'], ['#c9a96e', '#dcb86c'], 120, 90);
+    } else if (fx.kind === 'allhearts') {
+      burst(-140, -50, 24, ['♥', '♥', '✦'], ['#b4392c', '#d0503f', '#c9a96e'], 0, 125);
+      burst(140, -40, 24, ['♥', '♥', '✦'], ['#b4392c', '#d0503f', '#c9a96e'], 300, 125);
+      burst(0, 30, 32, ['♥', '♥', '✦'], ['#b4392c', '#d0503f', '#c9a96e'], 600, 160);
+      frames = [
+        { transform: FT(0, 10, 0.6), opacity: 0 }, { transform: FT(0, 10, 0.6), opacity: 0, offset: 0.3 },
+        { transform: FT(0, 0, 1.08), opacity: 1, offset: 0.42 }, { transform: FT(0, 0, 1), offset: 0.5 },
+        { transform: FT(0, 0, 1), opacity: 1, offset: 0.8 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
+      ];
+    } else {   // slam
+      burst(-140, -40, 24, ['✦', '★', '♥'], ['#c9a96e', '#dcb86c', '#b4392c'], 250, 130);
+      burst(140, -40, 24, ['✦', '★', '♥'], ['#c9a96e', '#dcb86c', '#b4392c'], 520, 130);
+      burst(0, 20, 32, ['✦', '★'], ['#c9a96e', '#dcb86c'], 800, 165);
+      frames = [
+        { transform: FT(0, -120, 1), opacity: 0 }, { transform: FT(0, 6, 1), opacity: 1, offset: 0.14 }, { transform: FT(0, -6, 1), offset: 0.2 },
+        { transform: FT(0, 0, 1), offset: 0.26 }, { transform: FT(0, 0, 1), opacity: 1, offset: 0.82 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
+      ];
+    }
+    animate(item, frames, { duration: dur, fill: 'forwards' });
+    setTimeout(() => item.remove(), dur + 60);
+  }
+
+  // 一圈波纹
+  function ring(x, y, delay) {
+    const el = document.createElement('div');
+    el.className = 'gz-fxring';
+    els.fx.appendChild(el);
+    animate(el, [{ transform: FT(x, y, 0.3), opacity: 0.9 }, { transform: FT(x, y, 2.4), opacity: 0 }],
+      { duration: 900, delay, fill: 'both' }, 'cubic-bezier(.2, .7, .3, 1)');
+    setTimeout(() => el.remove(), 900 + delay + 60);
+  }
+
+  // 一朵烟花：n 颗粒子从 (x, y) 炸开，往外飞、再带点下坠淡出
+  function burst(x, y, n, glyphs, colors, delay, radius) {
+    // 炸开那一下：中心先闪一团暖光
+    const flash = document.createElement('div');
+    flash.className = 'gz-flash';
+    els.fx.appendChild(flash);
+    animate(flash, [{ transform: FT(x, y, 0.2), opacity: 0.85 }, { transform: FT(x, y, 1.5), opacity: 0 }],
+      { duration: 520, delay, fill: 'both' }, 'ease-out');
+    setTimeout(() => flash.remove(), 520 + delay + 60);
+    for (let k = 0; k < n; k++) {
+      const el = document.createElement('span');
+      el.className = 'gz-spark';
+      el.textContent = glyphs[k % glyphs.length];
+      el.style.color = colors[k % colors.length];
+      el.style.fontSize = (15 + Math.random() * 13).toFixed(0) + 'px';
+      els.fx.appendChild(el);
+      const a = (k / n) * Math.PI * 2 + Math.random() * 0.4;
+      const d = radius * (0.65 + Math.random() * 0.45);
+      const tx = x + Math.cos(a) * d, ty = y + Math.sin(a) * d;
+      animate(el, [
+        { transform: FT(x, y, 0.3), opacity: 0 },
+        { transform: FT(x, y, 0.6), opacity: 1, offset: 0.06 },
+        { transform: FT(tx, ty, 1), opacity: 1, offset: 0.55, easing: 'ease-in' },   // 飞到最远后开始下坠
+        { transform: FT(tx, ty + 34, 0.7), opacity: 0 },
+      ], { duration: 1250, delay, fill: 'both' }, 'cubic-bezier(.12, .8, .3, 1)');
+      setTimeout(() => el.remove(), 1250 + delay + 60);
+    }
+  }
+
+  // 本机调试：控制台里 __gzDebug.playFx({ kind: 'pig', sub: '下家 −100' }, 1) 单独放一段动画
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx };
 
   function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
 
@@ -954,16 +1079,28 @@
     showCoach(msgs[0], () => coachSay(msgs.slice(1), done));
   }
 
+  // 讲解里的 {♠Q} 画成嵌在字里的小牌面（点数在上、花色在下，跟牌面同一套花色图形）
+  const SUIT_OF_CHAR = { '♠': 0, '♥': 1, '♦': 2, '♣': 3 };
+  function inlineCard(suit, rank) {
+    return '<span class="gz-icard ' + (suit === 1 || suit === 2 ? 'suit-red' : 'suit-black') + '"><span class="r">' + rank +
+      '</span><span class="s">' + suitSVG(suit) + '</span></span>';
+  }
   function inlineCards(text) {
-    return text.replace(/\{([♠♥♦♣])([0-9JQKA]+)\}/g, (_, su, rk) =>
-      '<span class="gz-ic ' + (su === '♥' || su === '♦' ? 'suit-red' : 'suit-black') + '">' + su + rk + '</span>');
+    return text.replace(/\{([♠♥♦♣])([0-9JQKA]+)\}/g, (_, su, rk) => inlineCard(SUIT_OF_CHAR[su], rk));
+  }
+  // 牌的大小：四门花色各一行 2…A，底下一支从小指到大的箭头
+  function rankChart() {
+    const rows = [0, 1, 3, 2].map((su) => '<div class="gz-rank-row"><span class="gz-rank-suit ' + (su === 1 || su === 2 ? 'suit-red' : 'suit-black') + '">' + suitSVG(su) + '</span>' +
+      R.RANK_LABELS.map((rk) => '<span class="gz-rank-chip ' + (su === 1 || su === 2 ? 'suit-red' : 'suit-black') + '">' + rk + '</span>').join('') + '</div>').join('');
+    return '<div class="gz-ranks">' + rows +
+      '<div class="gz-rank-arrow"><span>小</span><svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 6H194M186 1.5L196 6L186 10.5"/></svg><span>大</span></div></div>';
   }
 
   function showCoach(msg, onNext) {
     const c = els.coach;
     c.querySelector('.gz-coach-text').innerHTML = inlineCards(msg.text);
     const parts = c.querySelector('.gz-coach-parts');
-    parts.innerHTML = '';
+    parts.innerHTML = msg.ranks ? rankChart() : '';
     if (msg.parts) {
       let sum = 0;
       for (const p of msg.parts) {

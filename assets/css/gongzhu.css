@@ -158,6 +158,18 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-cap-score.neg { color: var(--gz-seal); }
 .gz-cap-score.pos { color: var(--gz-good); }
 .gz-caps .incoming { visibility: hidden; }
+/* 翻页计分：两层叠在同一格里，旧数翻出、新数翻入 */
+.gz-roll { position: relative; display: inline-grid; overflow: hidden; vertical-align: bottom; perspective: 200px; }
+.gz-roll > span { grid-area: 1 / 1; backface-visibility: hidden; }
+.gz-roll-old { animation: gz-roll-out 0.46s cubic-bezier(.4, 0, .2, 1) forwards; }
+.gz-roll-new { animation: gz-roll-in 0.46s cubic-bezier(.4, 0, .2, 1) forwards; }
+.gz-roll.down .gz-roll-old { animation-name: gz-roll-out-down; }
+.gz-roll.down .gz-roll-new { animation-name: gz-roll-in-down; }
+@keyframes gz-roll-out { to { transform: translateY(-70%) rotateX(80deg); opacity: 0; } }
+@keyframes gz-roll-in { from { transform: translateY(70%) rotateX(-80deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes gz-roll-out-down { to { transform: translateY(70%) rotateX(-80deg); opacity: 0; } }
+@keyframes gz-roll-in-down { from { transform: translateY(-70%) rotateX(80deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.gz-cap-score, .gz-total { transition: color 0.3s; }
 .gz-res-caps { height: auto; }
 
 /* 亮出的牌：左下角一枚朱红小印（手牌、红桃扇都叠着放，只有左边露在外面）。手牌上写「亮」，小牌上只留印色 */
@@ -207,58 +219,22 @@ body.gz-fullscreen .site-footer { display: none !important; }
   transform-origin: 50% 50%; transition-property: transform, opacity; transition-timing-function: cubic-bezier(.45, 0, .3, 1);
 }
 
-/* ───── 特殊事件印章：落印（放大→回弹）、停住、朝吃牌的人飘走淡出 ───── */
-.gz-fx { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
-.gz-stamp {
-  position: absolute; left: 50%; top: 50%; display: flex; flex-direction: column; align-items: center; gap: 8px;
-  animation: gz-stamp 1.4s cubic-bezier(.2, .7, .3, 1) forwards;
-}
-.gz-stamp-seal {
-  position: relative; display: inline-flex; align-items: center; justify-content: center;
-  min-width: 76px; height: 76px; padding: 0 12px; border-radius: 8px;
-  background: var(--gz-seal); color: var(--gz-seal-ink);
-  box-shadow: inset 0 0 0 3px var(--gz-seal), inset 0 0 0 5px rgba(251, 246, 236, 0.85), 0 3px 10px rgba(20, 18, 15, 0.18);
-  transform: rotate(-5deg);
-}
-.gz-stamp-word { font-size: 46px; font-weight: 900; line-height: 1; letter-spacing: 0.04em; white-space: nowrap; }
-.gz-stamp-sub { white-space: nowrap;
-  font-size: 18px; font-weight: 700; color: var(--gz-ink); letter-spacing: 0.06em;
-  text-shadow: 0 0 8px var(--gz-paper), 0 0 3px var(--gz-paper);
-}
-.gz-stamp.kind-sheep .gz-stamp-seal { background: var(--gz-good); box-shadow: inset 0 0 0 3px var(--gz-good), inset 0 0 0 5px rgba(251, 246, 236, 0.85), 0 3px 10px rgba(20, 18, 15, 0.18); }
-.gz-stamp.kind-pig .gz-stamp-seal { animation: gz-thud 0.42s ease-out 0.2s; }
-.gz-stamp.kind-doubler .gz-stamp-seal {
-  width: 78px; min-width: 0; padding: 0; border-radius: 50%; background: var(--gz-paper); color: var(--gz-ink);
-  box-shadow: inset 0 0 0 3px var(--gz-gold), inset 0 0 0 6px var(--gz-paper), inset 0 0 0 7px var(--gz-gold), 0 3px 10px rgba(20, 18, 15, 0.16);
-}
-.gz-stamp.kind-doubler .gz-stamp-word { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 40px; }
-.gz-stamp.kind-allhearts .gz-stamp-seal { height: 88px; padding: 0 16px; box-shadow: inset 0 0 0 3px var(--gz-seal), inset 0 0 0 5px rgba(251, 246, 236, 0.85), inset 0 0 0 7px var(--gz-seal), inset 0 0 0 8px rgba(251, 246, 236, 0.6), 0 4px 14px rgba(20, 18, 15, 0.2); }
-.gz-stamp.kind-slam .gz-stamp-seal { height: 92px; padding: 0 18px; background: var(--gz-gold); color: var(--gz-ink); box-shadow: inset 0 0 0 3px var(--gz-gold), inset 0 0 0 5px rgba(255, 253, 248, 0.9), 0 4px 16px rgba(201, 169, 110, 0.45); }
-.gz-stamp.kind-slam .gz-stamp-seal::before {
-  content: ''; position: absolute; inset: -34px; border-radius: 50%; z-index: -1;
-  background: repeating-conic-gradient(rgba(201, 169, 110, 0.45) 0 6deg, transparent 6deg 18deg);
-  -webkit-mask: radial-gradient(circle, transparent 38%, #000 40%, #000 62%, transparent 70%);
-  mask: radial-gradient(circle, transparent 38%, #000 40%, #000 62%, transparent 70%);
-  animation: gz-rays 1.4s linear;
-}
-.gz-burst {
-  position: absolute; left: 50%; top: 38px; font-size: 20px; color: var(--gz-red); opacity: 0;
-  animation: gz-burst 0.9s ease-out forwards;
-}
-@keyframes gz-stamp {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(1.9); }
-  16% { opacity: 1; transform: translate(-50%, -50%) scale(0.94); }
-  24% { transform: translate(-50%, -50%) scale(1.03); }
-  30%, 72% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.62); }
-}
-@keyframes gz-thud { 0%, 100% { translate: 0 0; } 25% { translate: -4px 1px; } 50% { translate: 3px -1px; } 75% { translate: -2px 0; } }
-@keyframes gz-rays { to { rotate: 40deg; } }
-@keyframes gz-burst {
-  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--a)) translateY(0) scale(0.4); }
-  25% { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--a)) translateY(-92px) scale(1); }
-}
+/* ───── 特殊事件动画：插画 / 大字 / 波纹 / 烟花粒子（位移都由 JS 的 Web Animations 驱动） ───── */
+.gz-fx { position: absolute; inset: 0; pointer-events: none; z-index: 6; overflow: visible; }
+.gz-fxitem { position: absolute; left: 50%; top: 50%; display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0; }
+.gz-fxart svg { display: block; width: 150px; height: auto; filter: drop-shadow(0 4px 6px rgba(20, 18, 15, 0.16)); }
+.kind-slam .gz-fxart svg { width: 132px; }
+.gz-fxword { font-size: 54px; font-weight: 900; line-height: 1; letter-spacing: 0.06em; white-space: nowrap; color: var(--gz-seal);
+  text-shadow: 0 0 12px var(--gz-paper), 0 0 4px var(--gz-paper), 0 3px 0 rgba(180, 57, 44, 0.18); }
+.kind-doubler .gz-fxword { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 72px; color: #b8924a;
+  text-shadow: 0 0 12px var(--gz-paper), 0 2px 0 rgba(168, 132, 62, 0.35); }
+.kind-slam .gz-fxword { color: #a8843e; font-size: 44px; }
+.gz-fxlabel { font-size: 20px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; color: var(--gz-ink);
+  text-shadow: 0 0 8px var(--gz-paper), 0 0 3px var(--gz-paper); }
+.gz-fxring { position: absolute; left: 50%; top: 50%; width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--gz-gold); opacity: 0; }
+.gz-flash { position: absolute; left: 50%; top: 50%; width: 90px; height: 90px; border-radius: 50%; opacity: 0;
+  background: radial-gradient(circle, rgba(255, 236, 200, 0.95), rgba(201, 169, 110, 0.35) 45%, transparent 70%); }
+.gz-spark { position: absolute; left: 50%; top: 50%; line-height: 1; opacity: 0; font-family: 'Apple Symbols', 'Segoe UI Symbol', serif; }
 /* 领出花色的 A：小印「照单全收」压在牌的右下角 */
 .gz-slot.is-ace::after {
   content: '照单全收'; position: absolute; right: calc(var(--tu) * -0.32); bottom: calc(var(--th) * -0.14); z-index: 2;
@@ -467,9 +443,34 @@ body.gz-fullscreen .site-footer { display: none !important; }
 @keyframes gz-more { from { opacity: 0.35; } to { opacity: 0.85; } }
 .gz-coach.pulse .gz-coach-text { animation: gz-coach-pulse 0.45s ease-out; }
 @keyframes gz-coach-pulse { 0%, 100% { transform: none; } 30% { transform: translateY(-3px); } 60% { transform: translateY(1px); } }
-.gz-ic { font-weight: 700; white-space: nowrap; padding: 0 1px; }
-.gz-ic.suit-red { color: var(--gz-red); }
-.gz-ic.suit-black { color: var(--gz-black); }
+/* 嵌在讲解文字里的小牌面 */
+.gz-icard {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.06em;
+  width: 1.5em; height: 2.05em; margin: 0 0.18em; vertical-align: middle; position: relative; top: -0.12em;
+  background: var(--gz-card); border: 1px solid rgba(29, 27, 24, 0.3); border-radius: 0.18em;
+  box-shadow: 0 1px 2px rgba(20, 18, 15, 0.14); text-shadow: none; line-height: 1;
+}
+.gz-icard .r { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 0.82em; letter-spacing: -0.02em; }
+.gz-icard .s { font-size: 0.72em; display: inline-flex; }
+.gz-icard .suit-svg { width: 1em; height: 1em; fill: currentColor; }
+.gz-icard.suit-red, .gz-rank-chip.suit-red, .gz-rank-suit.suit-red { color: var(--gz-red); }
+.gz-icard.suit-black, .gz-rank-chip.suit-black, .gz-rank-suit.suit-black { color: var(--gz-black); }
+/* 牌的大小：四行 2…A + 一支箭头 */
+.gz-ranks { display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
+.gz-rank-row { display: flex; align-items: center; gap: 3px; }
+.gz-rank-suit { width: 18px; display: inline-flex; justify-content: center; font-size: 16px; }
+.gz-rank-suit .suit-svg { width: 14px; height: 14px; fill: currentColor; }
+.gz-rank-chip {
+  width: 22px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--gz-card); border: 1px solid rgba(29, 27, 24, 0.25); border-radius: 3px;
+  font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 15px; letter-spacing: -0.04em;
+}
+.gz-rank-arrow { display: flex; align-items: center; gap: 6px; margin-left: 21px; font-size: 14px; color: var(--gz-ink-mute); }
+.gz-rank-arrow svg { flex: 1; height: 12px; stroke: var(--gz-gold); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 480px) {
+  .gz-rank-chip { width: 19px; height: 25px; font-size: 13px; }
+  .gz-rank-row { gap: 2px; }
+}
 
 /* ───── 竖屏 / 窄屏：左右两家移到上方一行 ───── */
 @media (max-aspect-ratio: 1/1) {

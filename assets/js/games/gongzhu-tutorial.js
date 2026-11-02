@@ -129,11 +129,12 @@
       const lead = R.leadSuitOf(r);
       const hand = r.hands[0];
       if (r.trickNo === 0 && lead < 0) return '你手里有 ' + label(R.SPADE_TWO) + '，第一局由你先出，第一张必须是它。已经帮你选好了，点「出牌」。';
-      if (lead < 0) return once('lead') ? '上一墩你最大，这一墩由你先出，手里哪张都可以。' : null;
+      // 每次轮到新手领出都说一句，免得他愣着等别人出
+      if (lead < 0) return once('lead') ? '上一轮你最大，这一轮由你先出，手里哪张都可以。' : '这一轮由你先出。';
       const follow = of(hand, lead).length > 0;
       if (!follow) {
         const suit = ['黑桃', '红桃', '方块', '草花'][lead];
-        return once('discard') ? '这一墩领出的是' + suit + '，你已经没有' + suit + '了——这时可以出任意一张，叫「垫牌」。' : null;
+        return once('discard') ? '这一轮领出的是' + suit + '，你已经没有' + suit + '了——这时可以出任意一张，叫「垫牌」。' : null;
       }
       if (lead === SPADE && hand.includes(PIG) && of(hand, SPADE).length === 1 && once('forced-pig')) {
         return NAMES[r.trick[0].seat] + '领出了黑桃。你只剩 ' + label(PIG) + ' 这一张黑桃，只能把它打出去。';
@@ -155,7 +156,8 @@
       const meCard = plays.find((p) => p.seat === 0).card;
       if (r.trickNo === 1) {
         out.push({ text: '大家都跟了黑桃：别人领出什么花色，你有这门牌就必须跟这门。' });
-        out.push({ text: '牌从小到大是 2、3 … 10、J、Q、K、A。这一墩 ' + label(card('♠A')) + ' 最大，上家吃下。吃下的人，下一墩先出。' });
+        out.push({ text: '每门花色都是 2 最小、A 最大：', ranks: true });
+        out.push({ text: '这一轮 ' + label(card('♠A')) + ' 最大，上家吃下。吃下的人，下一轮先出。' });
         return out;
       }
       if (r.trickNo === 2) {
@@ -163,16 +165,19 @@
         return out;
       }
       if (suitOf(meCard) !== leadSuit && once('discard-after')) {
-        out.push({ text: '垫出去的牌再大也不算：只有领出的' + ['黑桃', '红桃', '方块', '草花'][leadSuit] + '里最大的那张，才能吃下这一墩。' });
+        out.push({ text: '垫出去的牌再大也不算：只有领出的' + ['黑桃', '红桃', '方块', '草花'][leadSuit] + '里最大的那张，才能吃下这一轮。' });
       }
-      if (cs.includes(SHEEP) && w === 0) out.push({ text: '你的 ' + label(SHEEP) + ' 最大，这一墩归你。' + label(SHEEP) + ' 叫「羊」，谁吃到它 +100。吃到的分牌会摆在面前。' });
+      if (cs.includes(SHEEP) && w === 0) out.push({ text: '你的 ' + label(SHEEP) + ' 最大，这一轮归你。' + label(SHEEP) + ' 叫「羊」，谁吃到它 +100。吃到的分牌会摆在面前。' });
       if (cs.includes(PIG)) {
         const gong = r.history[r.history.length - 1].leader !== 0;
         out.push({ text: label(PIG) + ' 叫「猪」，谁吃到它 −100。' + NAMES[w] + '用 ' + label(K_SPADE) + ' 吃下了你打出的猪。' + (gong ? '对家用小黑桃把猪逼出来，这就叫「拱猪」。' : '') });
       }
       if (cs.includes(DOUBLER) && w === 0) {
-        const sc = R.scoreCaptured(r.captured[0], R.scoreCtx(r)).total;
-        out.push({ text: label(DOUBLER) + ' 叫「变压器」：它本身不算分，但谁吃到它，这一局的分数就翻倍。你的羊 +100 变成了 +' + sc + '。' });
+        const ctx = R.scoreCtx(r);
+        const after = R.scoreCaptured(r.captured[0], ctx).total;
+        const before = R.scoreCaptured(r.captured[0].filter((c) => c !== DOUBLER), ctx).total;
+        out.push({ text: label(DOUBLER) + ' 叫「变压器」：它本身不算分，但谁吃到它，这一局的总分就翻倍。你这一局的分数从 ' +
+          (before > 0 ? '+' : '') + before + ' 翻成了 ' + (after > 0 ? '+' : '') + after + '。' });
       }
       const hearts = cs.filter(R.isHeart);
       const dHearts = r.captured[2].filter(R.isHeart);
