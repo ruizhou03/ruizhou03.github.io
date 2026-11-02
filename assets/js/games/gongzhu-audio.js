@@ -2,7 +2,7 @@
  * 两条轨道，各自开关、记在本机：
  *   音效：全部 Web Audio 现场合成（发牌、落牌、收牌、放牌、翻分、明牌、猪哼、羊叫、变压器、烟花、对撞……），没有素材文件；
  *   音乐：现场生成的小曲——五声音阶拨弦旋律 + 低音 + 木鱼，按「两小节动机 → 重复 → 变化 → 回到动机」写句子，
- *         听着像一支曲子而不是乱弹；默认关（同掼蛋 D1），声音按钮里打开。
+ *         听着像一支曲子而不是乱弹；默认开（第一次点按页面后响起），声音按钮里可以关。
  * 特效响的时候音乐自动压低。浏览器要先有一次点按才能出声：第一次点按时才建 AudioContext。
  * 每个音效都是 SFX[name](audio, t, dest)：音频上下文、开始时刻（秒）、接到哪——正式播放接音效总线，
  * 自测时可以接进 OfflineAudioContext 渲染出来量响度。 */
@@ -13,7 +13,7 @@
   const prefs = (() => {
     let s = null;
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (_) { /* 无痕模式 */ }
-    return { sfx: !s || s.sfx !== false, music: !!(s && s.music) };
+    return { sfx: !s || s.sfx !== false, music: !s || s.music !== false };
   })();
   function savePrefs() { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch (_) { /* 不存也能用 */ } }
 
