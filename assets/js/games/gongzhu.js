@@ -70,9 +70,16 @@
     1: { t: 'translate(500 500) scale(0.80349) translate(-715.0 -1473.5)', d: 'M714 2046 658 1955Q540 1762 352 1581Q241 1473 196.5 1387.0Q152 1301 152 1195Q152 1075 235.0 988.0Q318 901 432 901Q590 901 716 1141Q850 906 1009 906Q1125 906 1201.5 992.0Q1278 1078 1278 1210Q1278 1299 1241.5 1387.5Q1205 1476 1146 1528L1067 1599Q960 1696 857 1848L803 1928Q790 1947 714 2046Z' },
     2: { t: 'translate(500 500) scale(0.80349) translate(-616.0 -1475.5)', d: 'M1057 1475 617 2044 175 1479 616 907Z' },
   };
-  const SUIT_CHARS = { 0: '♠', 3: '♣' };
+  /* ♠ ♣ 以前是文字字符：苹果上用 Apple Symbols 画，安卓上却会变成 emoji。这里把 Apple Symbols 的原字形（2048 单位一个字宽）
+   * 直接画成矢量，并按文字排版的同一套几何摆放：宽 = 字的步进宽度，高 1em，基线落在 line-height:1 时文字基线的位置
+   * （(2048 − 上伸 1365 − 下伸 512) / 2 + 1365 = 1450.5）。在苹果上与原来的文字逐像素重合，在任何系统上都长一个样。 */
+  const GLYPH_SUITS = {
+    0: { adv: 1248, d: 'M679 -334 652 -335Q652 -199 664 -133.5Q676 -68 713 1H534Q572 -42 588 -102.5Q604 -163 604 -266L606 -333H574Q548 -260 492.5 -211.5Q437 -163 380 -163Q295 -163 233 -235Q171 -307 171 -406Q171 -545 306 -704Q326 -729 361 -773Q401 -821 416 -839Q548 -1000 619 -1142Q649 -1095 659 -1080L717 -997L786 -898Q844 -817 908 -745Q1082 -553 1082 -407Q1082 -309 1022.5 -238Q963 -167 881 -167Q810 -167 763.5 -205.5Q717 -244 679 -334Z' },
+    3: { adv: 1420, d: 'M789 0 615 1Q660 -71 674.5 -134Q689 -197 689 -322Q629 -225 570.5 -185Q512 -145 431 -145Q327 -145 254 -218Q181 -291 181 -396Q181 -513 268 -586Q355 -659 494 -659L552 -658Q461 -793 461 -894Q461 -998 534.5 -1071Q608 -1144 713 -1144Q820 -1144 894.5 -1070.5Q969 -997 969 -891Q969 -795 867 -658Q919 -661 936 -661Q1067 -661 1152 -587Q1237 -513 1237 -399Q1237 -297 1162 -220Q1087 -143 988 -143Q903 -143 843 -185.5Q783 -228 728 -328Q728 -205 739.5 -143Q751 -81 789 0Z' },
+  };
   function suitSVG(suit) {
-    if (SUIT_CHARS[suit]) return SUIT_CHARS[suit];
+    const g = GLYPH_SUITS[suit];
+    if (g) return '<svg class="suit-svg" style="width:' + (g.adv / 2048).toFixed(4) + 'em" viewBox="0 -1450.5 ' + g.adv + ' 2048" aria-hidden="true"><path d="' + g.d + '"/></svg>';
     const s = SVG_SUITS[suit];
     return '<svg class="suit-svg" viewBox="0 0 1000 1000" aria-hidden="true"><g transform="' + s.t + '"><path d="' + s.d + '"/></g></svg>';
   }
@@ -101,7 +108,24 @@
     const sv = suitSVG(suit);
     el.innerHTML = '<span class="q q-tl">' + rank + '</span><span class="q q-tr">' + sv + '</span>' +
       '<span class="q q-bl">' + sv + '</span><span class="bigsuit">' + sv + '</span>';
+    // 特色牌面：猪 / 羊画成动画里那只，变压器写「×2」（颜色跟着持有人这一局的分数走）；角上的 Q♠ / J♦ / 10♣ 不变。
+    // 设置里可以关；新手教程里一律用原本的牌面
+    if ((c === R.PIG || c === R.SHEEP || c === R.DOUBLER) && settings.artFaces !== false && !(match && match.tutorial)) {
+      el.classList.add('has-art');
+      const f = document.createElement('span');
+      f.className = 'gz-face';
+      f.innerHTML = c === R.PIG ? ART.pig : c === R.SHEEP ? ART.sheep : DOUBLER_FACE;
+      el.appendChild(f);
+    }
     return el;
+  }
+  const DOUBLER_FACE = '<svg class="gz-dbl" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="41" fill="none" stroke="currentColor" stroke-width="5"/>' +
+    '<circle cx="50" cy="50" r="33" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".55"/>' +
+    '<text x="50" y="64" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-weight="700" font-size="40" fill="currentColor">×2</text></svg>';
+  // 变压器的颜色：持有人这一局（不算变压器）的分数为正金色、为负灰色、零分藏蓝——和 ×2 动画同一套
+  function dblTone(cards, ctx) {
+    const v = R.scoreCaptured(cards.filter((x) => x !== R.DOUBLER), ctx).total;
+    return v > 0 ? 'gold' : v < 0 ? 'ash' : 'navy';
   }
 
   /* 亮出的牌：右上角盖一枚朱红小印 */
@@ -253,6 +277,15 @@
     fan.style.setProperty('--fanstep', step.toFixed(1) + 'px');
   }
 
+  // 红桃扇是不是被挤得露不到 44%（看不清点数）了
+  function fanSqueezed(box) {
+    const fan = box.querySelector('.gz-fan');
+    const first = fan && fan.querySelector('.gz-mini');
+    if (!first || fan.children.length < 2) return false;
+    const step = parseFloat(fan.style.getPropertyValue('--fanstep')) || 0;
+    return step < first.getBoundingClientRect().width * 0.44 - 0.5;
+  }
+
   function signed(n) { return n > 0 ? '+' + n : n < 0 ? '−' + Math.abs(n) : '0'; }
 
   /* 分数变化：从旧值一路数到新值（变化越大数得越久，最长约 0.9 秒），数的时候数字放大、涨分闪墨绿扣分闪朱红，数完回原样。
@@ -323,6 +356,10 @@
         }
       }
     }
+    const tone = r ? dblTone(r.captured[s], R.scoreCtx(r)) : 'navy';
+    el.dataset.dbl = tone;
+    els.slots[s].dataset.dbl = tone;
+    if (s === 0) els.hand.dataset.dbl = tone;
     const caps = r ? r.captured[s].filter((c) => !flying || !flying.has(c)) : [];
     renderCaps(el.querySelector('.gz-caps'), caps, incoming, null, slide);
     el.classList.toggle('is-turn', turnSeat() === s);
@@ -767,8 +804,10 @@
 
   /* ───── 弹窗 ───── */
 
+  // 正文里的 ♠♥♦♣ 后面补一个「按文字显示」的变体选择符，免得安卓把它们画成彩色 emoji
+  function textSuits(html) { return String(html).replace(/([♠♥♦♣])(?!\uFE0E)/g, '$1\uFE0E'); }
   function openDialog(html, onMount) {
-    els.dialog.innerHTML = html;
+    els.dialog.innerHTML = textSuits(html);
     els.mask.hidden = false;
     pauseClock();
     if (onMount) onMount(els.dialog);
@@ -805,11 +844,18 @@
         : '<button type="button" class="gz-btn gz-btn-primary" data-act="next" data-autofocus>下一局</button>') +
       '</div>',
       (d) => {
+        // 默认一行：名字 · 吃牌 · 本局 · 累计。谁的牌在这一行里挤得看不清，谁就换成「名字和分数一行、吃牌放下一行」，
+        // 下一行还放不下就把红桃扇再挪到第三行；放得下的人照旧一行，不硬撑开
         d.querySelectorAll('.gz-res-row[data-seat]').forEach((row) => {
           const box = row.querySelector('.gz-res-caps');
-          renderCaps(box, last.captured[+row.dataset.seat], null, last.ctx);
-          const sc = box.querySelector('.gz-cap-score');
-          if (sc) sc.remove();
+          row.dataset.dbl = dblTone(last.captured[+row.dataset.seat], last.ctx);
+          const draw = () => {
+            renderCaps(box, last.captured[+row.dataset.seat], null, last.ctx);
+            const sc = box.querySelector('.gz-cap-score');
+            if (sc) sc.remove();
+          };
+          draw();
+          if (fanSqueezed(box)) { row.classList.add('is-stack'); draw(); }
         });
         if (match.online) { bindOnlineSettle(d); return; }
         d.querySelector('[data-act]').addEventListener('click', (e) => {
@@ -889,6 +935,8 @@
     openDialog(
       '<h2>设置</h2><div class="gz-field-label">AI 水平</div><div class="gz-seg" role="group">' + seg + '</div>' +
       '<div class="gz-field-label">出牌限时</div><div class="gz-seg" role="group">' + secs + '</div>' +
+      '<div class="gz-field-label">猪、羊、变压器的牌面</div><div class="gz-seg" role="group">' +
+        [[true, '画成猪羊和 ×2'], [false, '普通牌面']].map(([v, t]) => '<button type="button" data-art="' + v + '" aria-pressed="' + ((settings.artFaces !== false) === v) + '">' + t + '</button>').join('') + '</div>' +
       // 规则开关收在「玩法变体」里，默认折叠：新手先学一套完整规则，变体以后自己发现
       '<details class="gz-variants"' + (JSON.stringify(settings.rules) !== JSON.stringify(R.normalizeRules({})) ? ' open' : '') + '><summary>玩法变体</summary>' +
       RULE_UI.map(([k, label, opts]) => '<div class="gz-field-label">' + label + '</div><div class="gz-seg' + (opts.length > 2 ? ' is-4' : '') + '" role="group">' +
@@ -902,6 +950,14 @@
           settings.tier = b.dataset.tier;
           writeJSON(SETTINGS_KEY, settings);
           d.querySelectorAll('[data-tier]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        }));
+        d.querySelectorAll('[data-art]').forEach((b) => b.addEventListener('click', () => {
+          settings.artFaces = b.dataset.art === 'true';
+          writeJSON(SETTINGS_KEY, settings);
+          d.querySelectorAll('[data-art]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          // 牌面是按张建出来的：把手牌、桌上和吃牌区都重画一遍（吃牌区的小牌是复用的，先清掉）
+          document.querySelectorAll('.gz-seat .gz-caps').forEach((x) => { x.innerHTML = ''; });
+          renderAll();
         }));
         d.querySelectorAll('[data-sec]').forEach((b) => b.addEventListener('click', () => {
           settings.turnSec = +b.dataset.sec;
@@ -1168,7 +1224,8 @@
       const g = glyphs[k % glyphs.length];
       const el = document.createElement('span');
       el.className = 'gz-spark';
-      el.textContent = g + '\uFE0E';   // 强制文字样式，♦♥ 不被画成 emoji
+      // 四种花色用和牌面同一套矢量（各系统长一个样，安卓也不会变 emoji）；其余字符照常
+      if (g in SUIT_OF_CHAR) el.innerHTML = suitSVG(SUIT_OF_CHAR[g]); else el.textContent = g + '\uFE0E';
       el.style.color = typeof colors === 'function' ? colors(g) : colors[k % colors.length];
       // 大小：约 15% 是大个（区间顶部四分之一），其余偏小到中等
       const big = Math.random() < 0.15;
@@ -1206,7 +1263,7 @@
   const SUIT_TINT = (g) => (g === '♠' || g === '♣' ? '#1f1c18' : g === '♥' || g === '♦' ? '#b4392c' : '#c9a96e');
 
   // 本机调试：控制台里 __gzDebug.playFx({ kind: 'pig', sub: '下家 −100' }, 1) 单独放一段动画
-  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx,
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx, match: () => match, render: () => renderAll(),
     demoCaps: (mode, caps) => { if (!match || !match.round) return; const keep = caps || match.round.captured; match.round.captured = [[], [], [], []]; renderSeats(); els.app.dataset.score = mode || 'tail'; match.round.captured = keep; renderSeats(); }, solveSize: () => { solveSize(); if (match) renderHand(); }, showCoach: (m) => showCoach(m, () => hideCoach()) };
 
   function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
@@ -1348,7 +1405,7 @@
 
   function showCoach(msg, onNext) {
     const c = els.coach;
-    c.querySelector('.gz-coach-text').innerHTML = inlineCards(msg.text);
+    c.querySelector('.gz-coach-text').innerHTML = textSuits(inlineCards(msg.text));
     const parts = c.querySelector('.gz-coach-parts');
     parts.innerHTML = msg.ranks ? rankChart() : msg.trick ? trickRow(msg.trick, msg.mark) : msg.heartChart ? heartChart() : msg.allHearts ? allHeartsRow() : '';
     if (msg.parts) {
@@ -1406,9 +1463,7 @@
    * 别家的手牌只知道张数：镜像局面里用 -1 占位，亮出的牌按真牌放进去；轮到他出某张时把一个占位换成那张再交给规则引擎。
    * 播完事件后和快照对一遍（手牌 / 轮到谁 / 第几轮），对不上就按快照直接重画——断线、漏消息都靠这个自愈。 */
 
-  // 后端还没部署上线之前，联机入口只在本机调试或打开开关（localStorage gongzhu.online.enabled = 1）时出现
-  const NET = window.GongzhuNet && (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || (() => { try { return localStorage.getItem('gongzhu.online.enabled') === '1'; } catch (_) { return false; } })())
-    ? window.GongzhuNet : null;
+  const NET = window.GongzhuNet || null;
   let online = null;   // { code, token, st, mySeat, applied, queue, pending, idle, inGame, readySent, skew, stopped }
 
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]); }
@@ -1994,8 +2049,17 @@
   window.addEventListener('orientationchange', onResize);
 
   /* 单机：接着上次的存档打；没有存档就开一盘（第一次来先问要不要学）。quiet = 从联机房间回来，不再问教程 */
+  // 存档自检：任何一张牌在手牌 / 吃牌 / 桌上出现两次，就是坏档（旧版本留下的或被改过），直接作废重开
+  function saneMatch(m) {
+    const ok = (lists) => { const all = lists.flat(); return all.every((c) => Number.isInteger(c) && c >= 0 && c < 52) && new Set(all).size === all.length; };
+    const r = m.round;
+    if (r && !ok([...r.hands, ...r.captured, r.trick.map((p) => p.card)])) return false;
+    if (m.last && !ok(m.last.captured)) return false;
+    return true;
+  }
   function resumeSolo(quiet) {
   const saved = readJSON(STORE_KEY);
+  if (saved && saved.match && !saneMatch(saved.match)) saved.match = null;
   if (saved && saved.v === VERSION && saved.match && !saved.match.over) {
     match = saved.match;
     match.rules = R.normalizeRules(match.rules);

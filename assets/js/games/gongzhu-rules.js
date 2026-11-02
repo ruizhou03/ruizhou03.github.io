@@ -219,7 +219,7 @@
       trick: r.trick.slice(),
       trickNo: r.trickNo,
       captured: r.captured.map((c) => c.slice()),
-      history: r.history,  // 只追加不改，搜索里不需要深拷
+      history: r.history.slice(),  // 浅拷：搜索在副本上打的模拟牌不能追加进真局面（服务器上亮牌模拟曾把几百条假记录写进房间）
       voids: r.voids.map((v) => v.slice()),
       pigTaker: r.pigTaker,
       played: r.played.slice(),

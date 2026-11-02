@@ -181,11 +181,15 @@ body.gz-fullscreen .site-footer { display: none !important; }
   font-size: calc(var(--q) * 0.2); line-height: calc(var(--q) * 0.3); text-align: center; font-weight: 700;
 }
 .gz-mini.is-exposed::after { content: ''; width: calc(var(--q) * 0.24); height: calc(var(--q) * 0.24); border-radius: 50%; }
-/* 别家亮出、还没打的牌：摊在牌背旁边 */
-/* 别家亮出、还没打的牌：正面朝上压在他的牌背尾端（绝对定位，出现 / 打出都不挤动布局） */
-.gz-hold { position: relative; display: flex; justify-content: center; align-items: center; }
-.gz-shown { position: absolute; left: calc(100% - 10px); top: 50%; transform: translateY(-50%); display: flex; gap: 2px; }
+/* 别家亮出、还没打的牌：正面朝上排在牌背后面，小一号（宽 21px）。这一行永远留 30px 高（有没有亮牌都一样），
+ * 亮牌出现 / 打出都不挤动布局；有亮牌时牌背和亮牌都叠紧一点，整行收在座位宽度以内，不压上面的分数、不出界 */
+.gz-hold { position: relative; display: flex; justify-content: center; align-items: center; gap: 5px; height: 30px; max-width: 100%; }
+.gz-shown { display: flex; flex: none; }
 .gz-shown:empty { display: none; }
+.gz-shown .gz-mini { width: 21px; height: 30px; --q: 21px; box-shadow: 0 1px 2px rgba(20, 18, 15, 0.2); }
+.gz-shown .gz-mini + .gz-mini { margin-left: -7px; }
+.gz-hold:has(.gz-shown:not(:empty)) .gz-back { margin-left: -11px; }
+.gz-hold:has(.gz-shown:not(:empty)) .gz-back:first-child { margin-left: 0; }
 
 /* 对手手牌背面小扇 */
 .gz-backs { display: flex; height: 20px; }
@@ -406,9 +410,18 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-res-row .gz-res-n.gz-num { font-size: 18px; }
 .gz-res-n.neg { color: var(--gz-seal); }
 .gz-res-n.pos { color: var(--gz-good); }
+/* 结算：这一行放不下的人，名字和分数一行、吃牌整行放到下面（红桃再放不下就挪第三行） */
+.gz-res-row.is-stack .gz-res-caps { grid-column: 1 / -1; grid-row: 2; }
+@media (min-width: 441px) {
+  .gz-res-row.is-stack .gz-res-n { grid-row: 1; grid-column: 3; }
+  .gz-res-row.is-stack .gz-res-tot { grid-column: 4; }
+}
+.gz-res-row.is-stack .gz-res-caps { --caps-rows: 2; }
+.gz-res-caps .gz-caps-row.is-wrapped { justify-content: flex-start; }
+.gz-res-caps .gz-caps-row.is-wrapped .gz-fan { justify-content: flex-start; }
 @media (max-width: 440px) {
   .gz-res-row { grid-template-columns: minmax(0, 1fr) 52px 60px; }
-  .gz-res-caps { grid-column: 1 / -1; grid-row: 2; }
+  .gz-res-caps { grid-column: 1 / -1; grid-row: 2; --caps-rows: 2; }
   .gz-res-head span:nth-child(2) { display: none; }
 }
 .gz-pig-badge { display: inline-block; margin-left: 4px; font-size: 12px; padding: 0 6px; border-radius: 9px; background: var(--gz-seal); color: var(--gz-seal-ink); }
@@ -645,3 +658,21 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-name-line .gz-cap-score { margin: 1px 0 0; font-size: 14px; }
 .gz-name-line .gz-cap-score::before { content: '本局 '; font-family: inherit; font-size: 11px; font-weight: 400; color: var(--gz-ink-mute); }
 .gz-tool[hidden] { display: none; }
+
+/* 牌桌始终是宣纸配色：手机开了深色模式时，全站样式会把标题等改成浅色字，在牌桌上就看不见了——这里一律钉回墨色 */
+.gz-app { color-scheme: light; color: var(--gz-ink); }
+.gz-app :is(h1, h2, h3, h4) { color: var(--gz-ink); }
+/* 弹窗内容滚动时，iOS Safari 不算滚动容器的底部内边距：最后一排按钮会压到内框线上。补一个真实的垫块 */
+.gz-dialog::after { content: ''; display: block; height: 10px; }
+.gz-app { font-variant-emoji: text; }
+.gz-spark .suit-svg { width: 1em; height: 1em; display: block; fill: currentColor; overflow: visible; }
+
+/* ───── 特色牌面：猪 / 羊 / 变压器 ×2（大花色换成画，角标不变） ───── */
+.gz-card.has-art .bigsuit { display: none; }
+.gz-face { position: absolute; left: 20%; right: 5%; top: 33%; bottom: 6%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.gz-face svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.gz-hand .gz-card .gz-face, .gz-card.gz-handlike .gz-face { left: 30%; top: 38%; right: 4%; bottom: 5%; }
+.gz-mini .gz-face { left: 38%; top: 40%; right: 3%; bottom: 4%; }
+.gz-dbl { color: #b8924a; }
+[data-dbl="ash"] .gz-dbl { color: #7b756b; }
+[data-dbl="navy"] .gz-dbl { color: #3d5878; }
