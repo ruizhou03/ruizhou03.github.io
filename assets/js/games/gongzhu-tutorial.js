@@ -193,20 +193,20 @@
         after.push({ text: label(DOUBLER) + ' 叫「变压器」：它本身不带分数，但谁收下它，这一局的总分就翻倍。你这一局的分数从 ' +
           (bef > 0 ? '+' : '') + bef + ' 翻成了 ' + (aft > 0 ? '+' : '') + aft + '。', focus: 0 });
       }
+      // 红桃：先在牌还没收走时讲清怎么扣、这一轮扣多少，再让红桃飞去对家
       const hearts = cs.filter(R.isHeart);
       const dHearts = r.captured[2].filter(R.isHeart);
       if (hearts.length && w === 2) {
         if (dHearts.length === 13) {
-          after.push({ text: '对家收齐了全部 13 张红桃，这叫「全红」：红桃不再扣分，反而一共 +200。你垫给他的红桃，最后反倒帮他凑齐了。', allHearts: true });
+          before.push({ text: '对家又赢下这一轮，这一下他收齐了全部 13 张红桃，这叫「全红」：红桃不再扣分，反而一共 +200。你垫给他的红桃，最后反倒帮他凑齐了。', allHearts: true });
         } else if (once('hearts')) {
-          after.push({ text: '对家吃到了红桃。每张红桃都要扣分，扣多少看牌面：', heartChart: true });
-          after.push({
-            text: '这一轮对家吃到的红桃：',
+          before.push({ text: '对家赢下这一轮，收下的牌里有红桃。每张红桃都要扣分，扣多少看牌面：', heartChart: true });
+          before.push({
+            text: '所以这一轮对家要扣：',
             parts: hearts.slice().sort((a, b) => rankOf(b) - rankOf(a)).map((c) => ({ card: c, value: R.heartValue(c, RULES) })),
-            focus: 2,
           });
         } else if (suitOf(meCard) === HEART && leadSuit !== HEART && once('heart-dump')) {
-          after.push({ text: '你垫的红桃也归了对家：他又扣了 ' + (-R.heartValue(meCard, RULES)) + ' 分。', focus: 2 });
+          before.push({ text: '你垫的 ' + label(meCard) + ' 也归对家，他又要扣 ' + (-R.heartValue(meCard, RULES)) + ' 分。', trick, mark: true });
         }
       }
       return { before, after };

@@ -199,11 +199,11 @@ body.gz-fullscreen .site-footer { display: none !important; }
 /* ───── 中央：本墩。四张牌各自靠向出牌人，端端正正摆着 ───── */
 .gz-center { grid-area: center; position: relative; min-height: 0; }
 .gz-slot { position: absolute; width: var(--tu); height: var(--th); }
-/* 离中心的距离按牌的尺寸算、再被区域边缘夹住：宽屏散得开，竖屏也不会上下拉得太远 */
+/* 离中心的距离按牌的尺寸算、再被区域边缘夹住；左右两家拉得更开，四张牌排成一个扁菱形 */
 .gz-slot-0 { left: 50%; bottom: max(3%, calc(50% - var(--th) * 1.5)); margin-left: calc(var(--tu) / -2); --fx: 0; --fy: 40%; }
 .gz-slot-2 { left: 50%; top: max(3%, calc(50% - var(--th) * 1.5)); margin-left: calc(var(--tu) / -2); --fx: 0; --fy: -40%; }
-.gz-slot-1 { right: max(6%, calc(50% - var(--tu) * 3)); top: 50%; margin-top: calc(var(--th) / -2); --fx: 40%; --fy: 0; }
-.gz-slot-3 { left: max(6%, calc(50% - var(--tu) * 3)); top: 50%; margin-top: calc(var(--th) / -2); --fx: -40%; --fy: 0; }
+.gz-slot-1 { right: max(4%, calc(50% - var(--tu) * 4.8)); top: 50%; margin-top: calc(var(--th) / -2); --fx: 40%; --fy: 0; }
+.gz-slot-3 { left: max(4%, calc(50% - var(--tu) * 4.8)); top: 50%; margin-top: calc(var(--th) / -2); --fx: -40%; --fy: 0; }
 .gz-slot .gz-card {
   position: absolute; inset: 0; width: 100%; height: 100%; --q: var(--tu);
   box-shadow: 0 2px 6px rgba(20, 18, 15, 0.16);
@@ -494,10 +494,20 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-hc-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .gz-hc-cell .gz-num { font-size: 15px; color: var(--gz-seal); }
 .gz-hc-row { gap: 3px; }
-/* 全红示例：13 张红桃描金边 + 大号 +200 */
-.gz-allhearts { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.gz-allhearts .gz-rank-row { padding: 6px; border-radius: 6px; box-shadow: 0 0 0 2px var(--gz-gold), 0 0 16px 2px rgba(201, 169, 110, 0.35); }
-.gz-allhearts .gz-num { font-size: 44px; color: var(--gz-seal); line-height: 1; }
+/* 全红示例：13 张红桃 + 每张的负分；一道墨线从左划到右把负分全划掉，再浮出大号 +200 */
+.gz-allhearts { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.gz-allhearts .gz-rank-row { position: relative; padding: 6px; border-radius: 6px; box-shadow: 0 0 0 2px var(--gz-gold), 0 0 16px 2px rgba(201, 169, 110, 0.35); }
+.gz-strike {
+  position: absolute; left: 2px; right: 2px; bottom: 17px; height: 3px; border-radius: 2px; background: var(--gz-ink);
+  transform: scaleX(0) rotate(-1.5deg); transform-origin: left center;
+  animation: gz-strike 0.7s cubic-bezier(.6, 0, .3, 1) 0.6s forwards;
+}
+.gz-allhearts .gz-hc-cell .gz-num { animation: gz-struck 0.3s ease-out 1.1s forwards; }
+.gz-ah-total { font-size: 56px; line-height: 1; color: var(--gz-seal); opacity: 0;
+  animation: gz-ah-total 0.55s cubic-bezier(.2, .8, .3, 1.3) 1.35s forwards; }
+@keyframes gz-strike { to { transform: scaleX(1) rotate(-1.5deg); } }
+@keyframes gz-struck { to { opacity: 0.45; } }
+@keyframes gz-ah-total { from { opacity: 0; transform: translateY(10px) scale(0.6); } to { opacity: 1; transform: none; } }
 @media (max-width: 480px) {
   .gz-rank-row { gap: 2px; }
   .gz-rank-row .gz-card.gz-rank-card { --q: 23px; width: 23px; height: 33px; border-radius: 2px; }

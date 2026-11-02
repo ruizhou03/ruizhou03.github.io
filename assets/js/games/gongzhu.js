@@ -499,16 +499,25 @@
     });
     els.slots.forEach((slot) => { slot.innerHTML = ''; slot.classList.remove('is-ace'); });
     void els.app.offsetWidth;  // 强制回流：起点样式落定后再设终点，过渡才会跑（不靠 rAF，后台页也稳）
+    const insertMs = reduce ? 1 : Math.round(pace().fly * 1.35);
     for (const { fl, a, target } of flyers) {
       if (target) {
+        // 插牌：先飞到空位正下方（已经缩成小牌大小），再从下往上插进去；两边的牌在这之前已经让开了
         const b = target.getBoundingClientRect();
-        fl.style.transform = 'translate(' + (b.left + b.width / 2 - a.left - a.width / 2) + 'px,' + (b.top + b.height / 2 - a.top - a.height / 2) + 'px) scale(' + (b.width / a.width) + ',' + (b.height / a.height) + ')';
+        const dx = b.left + b.width / 2 - a.left - a.width / 2, dy = b.top + b.height / 2 - a.top - a.height / 2;
+        const sc = 'scale(' + (b.width / a.width) + ',' + (b.height / a.height) + ')';
+        fl.style.transition = 'none';
+        animate(fl, [
+          { transform: 'none' },
+          { transform: 'translate(' + dx + 'px,' + (dy + b.height * 0.9) + 'px) ' + sc, offset: 0.68 },
+          { transform: 'translate(' + dx + 'px,' + dy + 'px) ' + sc, easing: 'cubic-bezier(.3, 0, .2, 1)' },
+        ], { duration: insertMs, fill: 'forwards' }, 'cubic-bezier(.45, 0, .3, 1)');
       } else {
         fl.style.transform = 'scale(0.86)';
         fl.style.opacity = '0';
       }
     }
-    const ms = reduce ? 20 : fresh.length ? pace().fly : pace().fade;
+    const ms = reduce ? 20 : flyers.some((f) => f.target) ? insertMs : pace().fade;
     setTimeout(() => {
       flyers.forEach(({ fl }) => fl.remove());
       caps.querySelectorAll('.incoming').forEach((el) => { if (!fxCards.has(+el.dataset.card)) el.classList.remove('incoming'); });
@@ -1263,10 +1272,14 @@
     }).join('');
     return '<div class="gz-ranks"><div class="gz-rank-row gz-hc-row">' + cells + '</div>' + ARROW + '</div>';
   }
-  // 全红：13 张红桃排成一排，描金边，下面一个大大的 +200
+  // 全红：13 张红桃、每张下面写扣几分；一道黑线从左往右把负分全部划掉，然后浮出一个大大的 +200
   function allHeartsRow() {
-    const cells = R.RANK_LABELS.map((_, rk) => cardHtml(R.HEART * 13 + rk, 'gz-rank-card')).join('');
-    return '<div class="gz-allhearts"><div class="gz-rank-row">' + cells + '</div><span class="gz-num pos">+200</span></div>';
+    const cells = R.RANK_LABELS.map((_, rk) => {
+      const c = R.HEART * 13 + rk;
+      return '<span class="gz-hc-cell">' + cardHtml(c, 'gz-rank-card') + '<span class="gz-num neg">' + signed(R.heartValue(c, match.rules)) + '</span></span>';
+    }).join('');
+    return '<div class="gz-allhearts"><div class="gz-rank-row gz-hc-row">' + cells + '<span class="gz-strike" aria-hidden="true"></span></div>' +
+      '<span class="gz-ah-total gz-num">+200</span></div>';
   }
 
   function showCoach(msg, onNext) {
