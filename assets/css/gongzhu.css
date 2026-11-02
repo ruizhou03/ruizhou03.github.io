@@ -699,3 +699,10 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-demo b { font-weight: 700; margin-right: 2px; }
 .gz-demo a { color: var(--gz-ink); text-decoration: none; padding: 2px 8px; border-radius: 10px; }
 .gz-demo a[aria-current="true"] { background: var(--gz-ink); color: var(--gz-paper); }
+/* 对撞中央的巨大花色（字号由 JS 给；矢量花色 1em 高） */
+.gz-giant { position: absolute; left: 50%; top: 50%; z-index: 5; pointer-events: none; opacity: 0; line-height: 1;
+  display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 6px 14px rgba(20, 18, 15, 0.22)); }
+.gz-giant .suit-svg { width: 1em; height: 1em; display: block; fill: currentColor; overflow: visible; }
+/* 特效在桌子中间放的时候，这一轮的四张牌先调暗（特效放完再一起收走） */
+.gz-center .gz-slot { transition: opacity 0.2s ease; }
+.gz-center.is-fxing .gz-slot { opacity: 0.28; }

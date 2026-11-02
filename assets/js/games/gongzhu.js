@@ -571,15 +571,18 @@
     // 教程：牌还在桌上时先讲这一轮（桌上的牌调暗，讲解里把四家的牌排出来），讲完再收牌结算，结算后再讲分数
     const talk = match.tutorial ? tut.coach.afterTrick(done, r) : { before: [], after: [] };
     const settle = () => {
-      // 猪 / 羊 / 变压器有专属动画：动画本身飞进吃牌区变成那张牌，牌就不再单独飞
-      const fxList = planTrickFx(done);
-      const fxCards = new Set(fxList.flatMap((f) => f.cards || (f.card >= 0 ? [f.card] : [])));
-      const ms = Math.max(flyTrick(done.plays, done.winner, fxCards), playTrickFx(done, fxList));
+      // 先在桌子中间放完猪 / 羊 / 变压器等特效（四张牌还在桌上、调暗），再把四张牌一起收走、分牌放进吃牌区
+      const fxMs = playTrickFx(done, planTrickFx(done));
+      if (fxMs) els.center.classList.add('is-fxing');
       schedule(() => {
-        save();
-        if (match.tutorial) coachSay(talk.after, step);
-        else step();
-      }, ms + 40);
+        els.center.classList.remove('is-fxing');
+        const ms = flyTrick(done.plays, done.winner);
+        schedule(() => {
+          save();
+          if (match.tutorial) coachSay(talk.after, step);
+          else step();
+        }, ms + 40);
+      }, fxMs ? Math.max(0, fxMs - 150) : 0);
     };
     schedule(() => {
       if (!talk.before.length) { settle(); return; }
@@ -588,85 +591,84 @@
     }, pace().trickShow);
   }
 
-  /* 吃进来的牌只有分牌会留在吃牌区，所以只有它们飞过去：缩成小牌落到自己的位置。
-   * 没分的牌不往谁身上收（收过去什么也没留下反而怪），就在桌上淡出。
-   * 赢家头像同时亮起（他领下一墩），谁吃的这一墩一眼可见。返回动画时长。 */
-  function flyTrick(plays, winner, fxCards) {
-    fxCards = fxCards || new Set();
+  /* 一轮结束（猪 / 羊 / 变压器等特效已经先在桌子中间放完）：
+   * ① 收：四张牌先往赢的那张牌那边一拢，再一起滑进赢家的头像，头像「咽」一下——一眼看清谁赢、下一轮谁先出；
+   * ② 放：赢家吃牌区给新来的分牌让出空位（后面的牌和本局分一起滑开），分牌从头像那边出来、
+   *    先到空位正上方，再从上往下放进去；全部放好才翻分。返回总时长。 */
+  function flyTrick(plays, winner) {
     const seatEl = els.seats[winner];
     const caps = seatEl.querySelector('.gz-caps');
     const fresh = plays.map((p) => p.card).filter(R.isScoring);
-    flying = null;
-    renderSeat(winner, fresh, true);
-    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduce = reduceMotion();
+    const avatar = seatEl.querySelector('.gz-avatar');
+    const av = avatar.getBoundingClientRect();
+    const ws = els.slots[winner].getBoundingClientRect();
+    const GATHER = 0.55;   // 往赢牌那边拢多少（0 不动，1 叠到赢牌上）
+    const sweepMs = reduce ? 1 : Math.round(pace().fly * 1.6);
     const flyers = [];
     plays.forEach((p) => {
       const slot = els.slots[p.seat];
       if (!slot.querySelector('.gz-card')) return;
       const a = slot.getBoundingClientRect();
-      const scoring = R.isScoring(p.card);
       const fl = buildCard(p.card);
       fl.classList.add('gz-flyer');
       fl.style.cssText += ';left:' + a.left + 'px;top:' + a.top + 'px;width:' + a.width + 'px;height:' + a.height + 'px;--q:' + a.width + 'px';
-      fl.style.transitionDuration = (reduce ? 1 : scoring ? pace().fly : pace().fade) + 'ms';
       els.app.appendChild(fl);
-      flyers.push({ fl, a, target: scoring && !fxCards.has(p.card) ? caps.querySelector('[data-card="' + p.card + '"]') : null });
+      flyers.push({ fl, a });
     });
     els.slots.forEach((slot) => { slot.innerHTML = ''; slot.classList.remove('is-ace'); });
-    void els.app.offsetWidth;  // 强制回流：起点样式落定后再设终点，过渡才会跑（不靠 rAF，后台页也稳）
-    // 吃牌：先把四张牌都往赢的那张牌那边一拢（赢家把这一轮「收」过去），再分流——
-    // 带分数的飞进吃牌区插进空位，没分的钻进赢家的头像里，头像「咽」一下
-    const insertMs = reduce ? 1 : Math.round(pace().fly * 1.75);
-    const sweepMs = Math.round(pace().fly * 1.6);
-    const av = seatEl.querySelector('.gz-avatar').getBoundingClientRect();
-    const ws = els.slots[winner].getBoundingClientRect();
-    const GATHER = 0.55;   // 往赢牌那边拢多少（0 不动，1 叠到赢牌上）
-    const p0 = (fl) => +fl.dataset.card;
-    let swept = false;
-    for (const { fl, a, target } of flyers) {
-      if (target) {
-        // 插牌：先飞到空位正下方（已经缩成小牌大小），再从下往上插进去；两边的牌在这之前已经让开了
-        const b = target.getBoundingClientRect();
-        const dx = b.left + b.width / 2 - a.left - a.width / 2, dy = b.top + b.height / 2 - a.top - a.height / 2;
-        const sc = 'scale(' + (b.width / a.width) + ',' + (b.height / a.height) + ')';
-        const gx = (ws.left + ws.width / 2 - a.left - a.width / 2) * GATHER, gy = (ws.top + ws.height / 2 - a.top - a.height / 2) * GATHER;
-        fl.style.transition = 'none';
-        animate(fl, [
-          { transform: 'none' },
-          { transform: 'translate(' + gx + 'px,' + gy + 'px) scale(0.94)', offset: 0.24 },
-          { transform: 'translate(' + gx + 'px,' + gy + 'px) scale(0.94)', offset: 0.32 },
-          { transform: 'translate(' + dx + 'px,' + (dy + b.height * 0.9) + 'px) ' + sc, offset: 0.74 },
-          { transform: 'translate(' + dx + 'px,' + dy + 'px) ' + sc, easing: 'cubic-bezier(.3, 0, .2, 1)' },
-        ], { duration: insertMs, fill: 'forwards' }, 'cubic-bezier(.45, 0, .3, 1)');
-      } else if (reduce || fxCards.has(p0(fl))) {
-        fl.style.transform = 'scale(0.86)';
-        fl.style.opacity = '0';
-      } else {
-        // 没分的牌也「收走」：先往桌子中间拢一下，再一起滑进赢家的头像里消失——一眼看清这一轮谁赢、下一轮谁先出
-        const dx = av.left + av.width / 2 - a.left - a.width / 2, dy = av.top + av.height / 2 - a.top - a.height / 2;
-        const gx = (ws.left + ws.width / 2 - a.left - a.width / 2) * GATHER, gy = (ws.top + ws.height / 2 - a.top - a.height / 2) * GATHER;
-        fl.style.transition = 'none';
-        animate(fl, [
-          { transform: 'none', opacity: 1 },
-          { transform: 'translate(' + gx + 'px,' + gy + 'px) scale(0.94)', opacity: 1, offset: 0.27 },
-          { transform: 'translate(' + gx + 'px,' + gy + 'px) scale(0.94)', opacity: 1, offset: 0.36 },
-          { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.16)', opacity: 0.15, easing: 'cubic-bezier(.5, 0, .75, 0)' },
-        ], { duration: sweepMs, fill: 'forwards' }, 'cubic-bezier(.3, 0, .3, 1)');
-        swept = true;
-      }
+    for (const { fl, a } of flyers) {
+      const dx = av.left + av.width / 2 - a.left - a.width / 2, dy = av.top + av.height / 2 - a.top - a.height / 2;
+      const gx = (ws.left + ws.width / 2 - a.left - a.width / 2) * GATHER, gy = (ws.top + ws.height / 2 - a.top - a.height / 2) * GATHER;
+      fl.style.transition = 'none';
+      animate(fl, [
+        { transform: 'none', opacity: 1 },
+        { transform: 'translate(' + gx + 'px,' + gy + 'px) scale(0.94)', opacity: 1, offset: 0.27 },
+        { transform: 'translate(' + gx + 'px,' + gy + 'px) scale(0.94)', opacity: 1, offset: 0.36 },
+        { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.16)', opacity: 0.15, easing: 'cubic-bezier(.5, 0, .75, 0)' },
+      ], { duration: sweepMs, fill: 'forwards' }, 'cubic-bezier(.3, 0, .3, 1)');
     }
     // 赢家的头像「咽」一下：牌钻进去的那一刻鼓一下再回原样
-    if (swept) {
-      seatEl.querySelector('.gz-avatar').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.22)', offset: 0.45 }, { transform: 'scale(1)' }],
+    if (flyers.length && !reduce) {
+      avatar.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.22)', offset: 0.45 }, { transform: 'scale(1)' }],
         { duration: 340, delay: sweepMs * 0.82, easing: 'cubic-bezier(.3, .8, .4, 1.2)' });
     }
-    const ms = reduce ? 20 : Math.max(flyers.some((f) => f.target) ? insertMs : pace().fade, swept ? sweepMs : 0);
+    const STAGGER = 110;
+    const placeMs = fresh.length && !reduce ? Math.round(pace().fly * 1.7) + STAGGER * (fresh.length - 1) : 0;
     setTimeout(() => {
       flyers.forEach(({ fl }) => fl.remove());
-      caps.querySelectorAll('.incoming').forEach((el) => { if (!fxCards.has(+el.dataset.card)) el.classList.remove('incoming'); });
-      if (!fxCards.size) rollCapsScore(caps);   // 有专属动画的，等动画落地变成牌之后再翻分
-    }, ms);
-    return ms;
+      flying = null;
+      renderSeat(winner, fresh, true);   // 让出空位：后面的牌和本局分一起滑开
+      if (!fresh.length) return;
+      const done = () => { caps.querySelectorAll('.incoming').forEach((el) => el.classList.remove('incoming')); rollCapsScore(caps); };
+      if (reduce) { done(); return; }
+      const ar = avatar.getBoundingClientRect();
+      const one = Math.round(pace().fly * 1.7);
+      fresh.forEach((c, i) => {
+        const target = caps.querySelector('.gz-mini[data-card="' + c + '"]');
+        if (!target) return;
+        const b = target.getBoundingClientRect();
+        const fl = buildCard(c);
+        fl.classList.add('gz-flyer', 'gz-mini');
+        if (target.classList.contains('is-exposed')) fl.classList.add('is-exposed');
+        fl.style.cssText += ';left:' + b.left + 'px;top:' + b.top + 'px;width:' + b.width + 'px;height:' + b.height + 'px;--q:' + b.width + 'px';
+        els.app.appendChild(fl);
+        const fx = ar.left + ar.width / 2 - b.left - b.width / 2, fy = ar.top + ar.height / 2 - b.top - b.height / 2;
+        animate(fl, [
+          { transform: 'translate(' + fx + 'px,' + fy + 'px) scale(0.3)', opacity: 0 },
+          { transform: 'translate(' + fx * 0.5 + 'px,' + (fy * 0.5 - b.height * 0.9) + 'px) scale(0.85)', opacity: 1, offset: 0.3 },
+          { transform: 'translate(0px,' + (-b.height * 1.1) + 'px) scale(1)', opacity: 1, offset: 0.62 },
+          { transform: 'none', opacity: 1, easing: 'cubic-bezier(.3, 0, .2, 1)' },
+        ], { duration: one, delay: i * STAGGER, fill: 'both' }, 'cubic-bezier(.3, .7, .35, 1)');
+        setTimeout(() => {
+          fl.remove();
+          target.classList.remove('incoming');
+          if (!caps.querySelector('.gz-mini.incoming')) rollCapsScore(caps);
+        }, one + i * STAGGER);
+      });
+      setTimeout(done, placeMs + 40);   // 兜底：万一哪张没找到落点，也把分翻了
+    }, sweepMs);
+    return sweepMs + placeMs;
   }
 
   function rollCapsScore(caps) {
@@ -1157,31 +1159,6 @@
   }
   const FT = (x, y, sc, rot) => 'translate(-50%, -50%) translate(' + (x || 0) + 'px,' + (y || 0) + 'px) scale(' + (sc == null ? 1 : sc) + ') rotate(' + (rot || 0) + 'deg)';
 
-  /* 动画的落点：有对应的牌就落到吃牌区里那张牌的位置、缩成牌的大小；否则落到那一家吃牌区的中间 */
-  function fxLanding(item, fx, w) {
-    const fxBox = els.fx.getBoundingClientRect();
-    const cx = fxBox.left + fxBox.width / 2, cy = fxBox.top + fxBox.height / 2;
-    const caps = els.seats[w].querySelector('.gz-caps');
-    const mini = fx.card >= 0 ? caps.querySelector('.gz-mini[data-card="' + fx.card + '"]') : null;
-    const art = item.querySelector('.gz-fxart, .gz-fxcoin, .gz-fxheart') || item;
-    const ir = item.getBoundingClientRect(), ar = art.getBoundingClientRect();
-    const offX = ar.left + ar.width / 2 - (ir.left + ir.width / 2), offY = ar.top + ar.height / 2 - (ir.top + ir.height / 2);
-    const tgt = (mini || caps.querySelector('.gz-caps-row') || caps).getBoundingClientRect();
-    if (!tgt.width) return { x: FX_DRIFT[w][0], y: FX_DRIFT[w][1], s: 0.42, mini: null };
-    const s = mini ? Math.max(0.12, tgt.width / Math.max(1, ar.width)) : 0.3;
-    return { x: tgt.left + tgt.width / 2 - cx - offX * s, y: tgt.top + tgt.height / 2 - cy - offY * s, s, mini };
-  }
-
-  // 落地：牌从「侧面」翻过来现身（变成那张牌），等这一家所有专属动画都落了再翻分
-  function revealMini(mini, w) {
-    if (!mini) return;
-    mini.classList.remove('incoming');
-    mini.animate([{ transform: 'perspective(240px) rotateY(90deg) scale(1.5)' }, { transform: 'perspective(240px) rotateY(0) scale(1.15)', offset: 0.7 }, { transform: 'none' }],
-      { duration: 420, easing: 'cubic-bezier(.2, .8, .3, 1)' });
-    const caps = els.seats[w].querySelector('.gz-caps');
-    if (!caps.querySelector('.gz-mini.incoming')) rollCapsScore(caps);
-  }
-
   /* 对撞：猪 / 羊 / 变压器有两张以上同一轮被吃。
    * 两张：一左一右（羊 + 猪：羊左猪右；羊 / 猪 + 变压器：羊或猪在左、×2 在右）；三张：正三角，羊左上、猪右上、×2 在下。
    * 各自亮相（羊蹦两下、猪刨两下地、×2 一鼓一鼓），往后一缩，一起冲向中间撞上——白光一闪、一团烟把它们吞掉，
@@ -1257,6 +1234,37 @@
       ], { duration: life, delay, fill: 'both', easing: 'cubic-bezier(.2, .7, .3, 1)' });
       setTimeout(() => puff.remove(), delay + life + 60);
     }
+    // 爆炸中央浮出巨大的花色：猪 ♠、羊 ♦（变压器只是倍数，两张时不单独出大花色）；
+    // 猪羊对撞两个依次冒出、再一起淡掉；三张一起是三个大花色在三角位置接连冒出，各自炸碎成一把同花色的碎片
+    const giants = three ? [[R.SHEEP, -70, -55], [R.PIG, 70, -55], [R.DOUBLER, 0, 55]]
+      : fx.cards.filter((c) => c !== R.DOUBLER).map((c, i, all) => [c, all.length > 1 ? (i ? 46 : -46) : 0, -18]);
+    giants.forEach(([c, gx, gy], i) => {
+      const suit = c === R.SHEEP ? 2 : c === R.PIG ? 0 : 3;
+      const g = document.createElement('div');
+      g.className = 'gz-giant';
+      g.style.color = c === R.DOUBLER ? DOUBLER_TONE[fx.dbl.tone || 'gold'].ink : suit === 2 ? '#b4392c' : '#1f1c18';
+      g.style.fontSize = (three ? 200 : 260) + 'px';
+      g.innerHTML = suitSVG(suit);
+      els.fx.appendChild(g);
+      const delay = hit + 90 + i * (three ? 260 : 380);
+      const life = three ? 1200 - i * 120 : 1500;
+      animate(g, three ? [
+        { transform: FT(gx, gy, 0.15, -12), opacity: 0 },
+        { transform: FT(gx, gy, 1.22, 4), opacity: 1, offset: 0.2 },
+        { transform: FT(gx, gy, 1, 0), opacity: 1, offset: 0.34 },
+        { transform: FT(gx, gy, 1.04, 0), opacity: 1, offset: 0.62 },
+        { transform: FT(gx, gy, 1.55, 0), opacity: 0 },
+      ] : [
+        { transform: FT(gx, gy, 0.15, -10), opacity: 0 },
+        { transform: FT(gx, gy, 1.2, 3), opacity: 1, offset: 0.16 },
+        { transform: FT(gx, gy, 1, 0), opacity: 1, offset: 0.28 },
+        { transform: FT(gx, gy, 1.03, 0), opacity: 0.95, offset: 0.66 },
+        { transform: FT(gx, gy, 1.28, 0), opacity: 0 },
+      ], { duration: life, delay, fill: 'both' });   // 缓动逐段给（整体 easing 会把停留段压没）
+      // 三张一起：大花色在淡出的那一刻炸碎成一把同花色碎片
+      if (three) burst(gx, gy, 30, [['♠', '♥', '♦', '♣'][suit]], tint, delay + life * 0.62, 200, { glow: 'none', spin: true, size: [18, 84] });
+      setTimeout(() => g.remove(), delay + life + 60);
+    });
     // 撞完的烟花：两侧、上方接连再炸几朵；三张一起再多两轮、加金星
     const more = three ? glyphs.concat(['✦']) : glyphs;
     const tint2 = (g) => (g === '✦' ? '#c9a96e' : tint(g));
@@ -1270,8 +1278,6 @@
     }
     setTimeout(() => {
       actors.forEach((el) => el.remove());
-      const caps = els.seats[w].querySelector('.gz-caps');
-      for (const c of fx.cards) revealMini(caps.querySelector('.gz-mini[data-card="' + c + '"]'), w);
     }, dur);
   }
 
@@ -1289,9 +1295,10 @@
       (fx.kind === 'slam' ? '<div class="gz-fxword">大满贯</div>' : '') +
       (fx.sub ? '<div class="gz-fxscore ' + (fx.sub[0] === '−' ? 'neg' : 'pos') + '">' + fx.sub + '</div>' : '');
     els.fx.appendChild(item);
-    const L = fxLanding(item, fx, w);
+
     // 最后一段：缩成牌那么大、飞进吃牌区；落地瞬间淡掉，换成真牌翻出来
-    const LAND = [{ transform: FT(L.x, L.y, L.s), opacity: 1, offset: 0.97 }, { transform: FT(L.x, L.y, L.s), opacity: 0 }];
+    // 收尾：特效就地缩小淡出、略朝吃到的人那边飘一点（牌随后再整轮收过去）
+    const LAND = [{ transform: FT(dx * 0.3, dy * 0.3, 0.6), opacity: 0 }];
     let frames;
     if (fx.kind === 'pig') {
       // 猪是 ♠Q：四散的全是大大小小、边飞边转的黑桃
@@ -1343,10 +1350,10 @@
     // 分数大字在起飞前先淡掉，只让插画飞过去
     const label = item.querySelector('.gz-fxscore');
     if (label) {
-      const holdEnd = frames[frames.length - 3].offset || 0.66;
+      const holdEnd = frames[frames.length - 2].offset || 0.66;
       animate(label, [{ opacity: 1 }, { opacity: 1, offset: holdEnd }, { opacity: 0, offset: Math.min(0.95, holdEnd + 0.08) }, { opacity: 0 }], { duration: dur, fill: 'forwards' }, 'ease-out');
     }
-    setTimeout(() => { item.remove(); revealMini(L.mini, w); }, dur);
+    setTimeout(() => item.remove(), dur);
   }
 
   // 一朵烟花：n 颗粒子从 (x, y) 炸开，往外飞、再带点下坠淡出
@@ -2295,10 +2302,12 @@
         r.captured[w] = cards.filter(R.isScoring);
         const done = { winner: w, plays };
         flying = new Set(r.captured[w]);
-        const fxList = planTrickFx(done);
-        const fxCards = new Set(fxList.flatMap((f) => f.cards || (f.card >= 0 ? [f.card] : [])));
-        const ms = Math.max(flyTrick(plays, w, fxCards), playTrickFx(done, fxList));
-        schedule(loop, ms + 1500);
+        const fxMs = playTrickFx(done, planTrickFx(done));
+        if (fxMs) els.center.classList.add('is-fxing');
+        schedule(() => {
+          els.center.classList.remove('is-fxing');
+          schedule(loop, flyTrick(plays, w) + 1500);
+        }, fxMs ? Math.max(0, fxMs - 150) : 0);
       }, 1100);
     };
     schedule(loop, 500);
