@@ -64,6 +64,12 @@ body_class: gz-fullscreen
     <div class="gz-hand" id="gzHand" role="listbox" aria-label="我的手牌"></div>
   </div>
 
+  <!-- 窗口比例放不下牌桌时：不硬挤，提示转屏 / 调窗口 -->
+  <div class="gz-fit" id="gzFit" hidden>
+    <svg class="gz-fit-icon" viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="8" width="24" height="40" rx="4"/><path d="M28 42h8"/><path d="M50 30a20 20 0 0 1-12 22" class="arc"/><path d="m35 49 3 3-4 2" class="arc"/></svg>
+    <p class="gz-fit-text"></p>
+  </div>
+
   <div class="gz-dialog-mask" id="gzDialogMask" hidden>
     <div class="gz-dialog" id="gzDialog" role="dialog" aria-modal="true"></div>
   </div>

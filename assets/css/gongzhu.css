@@ -200,8 +200,8 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-center { grid-area: center; position: relative; min-height: 0; }
 .gz-slot { position: absolute; width: var(--tu); height: var(--th); }
 /* 离中心的距离按牌的尺寸算、再被区域边缘夹住；左右两家拉得更开，四张牌排成一个扁菱形 */
-.gz-slot-0 { left: 50%; bottom: max(3%, calc(50% - var(--th) * 1.5)); margin-left: calc(var(--tu) / -2); --fx: 0; --fy: 40%; }
-.gz-slot-2 { left: 50%; top: max(3%, calc(50% - var(--th) * 1.5)); margin-left: calc(var(--tu) / -2); --fx: 0; --fy: -40%; }
+.gz-slot-0 { left: 50%; bottom: max(2%, calc(50% - var(--th) * 1.9)); margin-left: calc(var(--tu) / -2); --fx: 0; --fy: 40%; }
+.gz-slot-2 { left: 50%; top: max(2%, calc(50% - var(--th) * 1.9)); margin-left: calc(var(--tu) / -2); --fx: 0; --fy: -40%; }
 .gz-slot-1 { right: max(4%, calc(50% - var(--tu) * 4.8)); top: 50%; margin-top: calc(var(--th) / -2); --fx: 40%; --fy: 0; }
 .gz-slot-3 { left: max(4%, calc(50% - var(--tu) * 4.8)); top: 50%; margin-top: calc(var(--th) / -2); --fx: -40%; --fy: 0; }
 .gz-slot .gz-card {
@@ -437,7 +437,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-coach.on { opacity: 1; }
 .gz-coach.is-say { top: 50%; width: min(560px, 94%); transform: translate(-50%, calc(-50% + 8px)); }
 .gz-coach.is-say.on { transform: translate(-50%, -50%); }
-.gz-coach.is-hint { bottom: max(2%, calc(50% - var(--th) * 1.5)); width: min(540px, 96%); transform: translate(-50%, 6px); }
+.gz-coach.is-hint { bottom: max(2%, calc(50% - var(--th) * 1.9)); width: min(540px, 96%); transform: translate(-50%, 6px); }
 .gz-coach.is-hint.on { transform: translate(-50%, 0); }
 .gz-coach-seal {
   width: 26px; height: 26px; border-radius: 4px; background: var(--gz-seal); color: var(--gz-seal-ink);
@@ -498,20 +498,20 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-allhearts { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .gz-allhearts .gz-rank-row { position: relative; padding: 6px; border-radius: 6px; box-shadow: 0 0 0 2px var(--gz-gold), 0 0 16px 2px rgba(201, 169, 110, 0.35); }
 .gz-strike {
-  position: absolute; left: 2px; right: 2px; bottom: 17px; height: 3px; border-radius: 2px; background: var(--gz-ink);
-  transform: scaleX(0) rotate(-1.5deg); transform-origin: left center;
+  position: absolute; left: 0; right: 0; bottom: 17px; height: 2.5px;
+  /* 一道水平细墨线：中间实、两头渐淡，形状也两头收尖 */
+  background: linear-gradient(90deg, transparent, var(--gz-ink) 14%, var(--gz-ink) 86%, transparent);
+  clip-path: polygon(0 50%, 12% 0, 88% 0, 100% 50%, 88% 100%, 12% 100%);
+  transform: scaleX(0); transform-origin: left center;
   animation: gz-strike 0.7s cubic-bezier(.6, 0, .3, 1) 0.6s forwards;
 }
-.gz-allhearts .gz-hc-cell .gz-num { animation: gz-struck 0.3s ease-out 1.1s forwards; }
 .gz-ah-total { font-size: 56px; line-height: 1; color: var(--gz-seal); opacity: 0;
   animation: gz-ah-total 0.55s cubic-bezier(.2, .8, .3, 1.3) 1.35s forwards; }
-@keyframes gz-strike { to { transform: scaleX(1) rotate(-1.5deg); } }
-@keyframes gz-struck { to { opacity: 0.45; } }
+@keyframes gz-strike { to { transform: scaleX(1); } }
 @keyframes gz-ah-total { from { opacity: 0; transform: translateY(10px) scale(0.6); } to { opacity: 1; transform: none; } }
 @media (max-width: 480px) {
   .gz-rank-row { gap: 2px; }
   .gz-rank-row .gz-card.gz-rank-card { --q: 23px; width: 23px; height: 33px; border-radius: 2px; }
-}
 }
 
 /* ───── 竖屏 / 窄屏：左右两家移到上方一行 ───── */
@@ -546,6 +546,18 @@ body.gz-fullscreen .site-footer { display: none !important; }
   .gz-seat-top .gz-who { flex-direction: row; }
   .gz-seat-top { flex-direction: row; gap: 10px; }
 }
+/* 放不下牌桌时的提示层 */
+.gz-fit { position: absolute; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: var(--gz-paper); padding: 24px; text-align: center; }
+.gz-fit[hidden] { display: none; }
+.gz-fit-icon { width: 64px; height: 64px; fill: none; stroke: var(--gz-ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  animation: gz-fit-turn 2.4s ease-in-out infinite; }
+.gz-fit-icon .arc { stroke: var(--gz-seal); }
+.gz-fit.to-portrait .gz-fit-icon { animation-name: gz-fit-turn-back; }
+.gz-fit-text { margin: 0; font-size: 16px; line-height: 1.7; max-width: 22em; }
+@keyframes gz-fit-turn { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(90deg); } }
+@keyframes gz-fit-turn-back { 0%, 30% { transform: rotate(90deg); } 60%, 100% { transform: rotate(0); } }
+
 @media (prefers-reduced-motion: reduce) {
   .gz-slot .gz-card.in { animation: none; }
   .gz-hand .gz-card.nope, .gz-seat.is-turn.is-hurry .gz-avatar { animation: none; }

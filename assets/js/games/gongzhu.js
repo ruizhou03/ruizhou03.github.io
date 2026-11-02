@@ -114,8 +114,38 @@
     // 竖屏手牌叠得紧一点，换更大的牌面
     const byW = w / (12 * (portrait ? 0.5 : 0.6) + 1 + 0.5);
     const byH = portrait ? h / 8.4 : h / 6.6;
-    const u = Math.max(38, Math.min(78, byW, byH));
+    let u = Math.max(38, Math.min(78, byW, byH));
     els.app.style.setProperty('--u', u.toFixed(1) + 'px');
+    // 按公式算出来还放不下（各种奇怪的窗口比例）：牌面一档档缩小再试；缩到底还放不下，就请对方转屏 / 调窗口
+    for (let k = 0; k < 16 && !tableFits() && u > 30; k++) {
+      u = Math.max(30, u * 0.93);
+      els.app.style.setProperty('--u', u.toFixed(1) + 'px');
+    }
+    showFitHint(!tableFits());
+  }
+  function tableFits() {
+    const t = els.table;
+    if (t.scrollHeight > t.clientHeight + 2 || t.scrollWidth > t.clientWidth + 2) return false;
+    if (window.innerWidth < 300 || window.innerHeight < 260) return false;
+    // 中间出牌区至少要竖着放得下两张牌（我和对家的出牌）、横着放得下三张
+    const u = parseFloat(getComputedStyle(els.app).getPropertyValue('--u')) || 56;
+    const c = els.center.getBoundingClientRect();
+    return c.height >= u * 1.44 * 2 && c.width >= u * 3.4;
+  }
+  // 放不下时盖一层提示（不硬挤着显示），计时也先停住；放得下了自动收起
+  function showFitHint(on) {
+    const el = $('gzFit');
+    if (!el || el.hidden === !on) return;
+    el.hidden = !on;
+    if (on) {
+      const touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      const wide = window.innerWidth > window.innerHeight;
+      el.querySelector('.gz-fit-text').textContent = wide
+        ? (touch ? '屏幕太矮，放不下牌桌。把手机竖过来试试。' : '窗口太矮了，放不下牌桌。把窗口拉高一些。')
+        : (touch ? '屏幕太窄，放不下牌桌。把手机横过来试试。' : '窗口太窄了，放不下牌桌。把窗口拉宽一些。');
+      el.classList.toggle('to-portrait', wide);
+      if (match) pauseClock();
+    } else if (match && els.mask.hidden) resumeClock();
   }
 
   /* ───── 吃牌区：真牌面小牌，固定顺序 变压器 · 猪 · 羊 · 红桃扇，末尾是本局分 ─────
@@ -1143,7 +1173,7 @@
   const SUIT_TINT = (g) => (g === '♠' || g === '♣' ? '#1f1c18' : g === '♥' || g === '♦' ? '#b4392c' : '#c9a96e');
 
   // 本机调试：控制台里 __gzDebug.playFx({ kind: 'pig', sub: '下家 −100' }, 1) 单独放一段动画
-  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx, showCoach: (m) => showCoach(m, () => hideCoach()) };
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx, solveSize: () => { solveSize(); if (match) renderHand(); }, showCoach: (m) => showCoach(m, () => hideCoach()) };
 
   function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
 
@@ -1354,11 +1384,18 @@
     if ((e.key === ' ' || e.key === 'Enter') && els.mask.hidden && coachNext) { e.preventDefault(); coachAdvance(); return; }
     if (e.key === 'Enter' && els.mask.hidden) playSelected();
   });
-  let resizeRaf = 0;
-  window.addEventListener('resize', () => {
-    cancelAnimationFrame(resizeRaf);
-    resizeRaf = requestAnimationFrame(() => { solveSize(); renderHand(); });
-  });
+  // 窗口变了：防抖后重算尺寸（用 setTimeout 不用 rAF，后台页也会重算）
+  let resizeTimer = 0;
+  const onResize = () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      solveSize(); if (match) renderHand();
+      // 转屏时浏览器的布局常常晚一拍才稳定，过一会儿再量一次
+      resizeTimer = setTimeout(() => { solveSize(); if (match) renderHand(); }, 320);
+    }, 80);
+  };
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', onResize);
 
   buildSeats();
   solveSize();

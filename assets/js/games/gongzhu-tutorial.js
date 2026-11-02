@@ -31,8 +31,8 @@
   const HANDS = [
     cards('♠2 ♠Q ♦J ♣K ♣Q ♥2 ♥3 ♥4 ♥5 ♥6 ♥7 ♥8 ♥9'),
     cards('♠3 ♠6 ♠K ♣3 ♣4 ♣5 ♣10 ♦3 ♦5 ♦6 ♦7 ♦8 ♦9'),
-    cards('♠4 ♠5 ♣2 ♦4 ♦10 ♦Q ♦K ♦A ♥10 ♥J ♥Q ♥K ♥A'),
-    cards('♠A ♠7 ♠8 ♠9 ♠10 ♠J ♣A ♣6 ♣7 ♣8 ♣9 ♣J ♦2'),
+    cards('♠4 ♠5 ♣2 ♣6 ♦4 ♦Q ♦K ♦A ♥10 ♥J ♥Q ♥K ♥A'),
+    cards('♠A ♠7 ♠8 ♠9 ♠10 ♠J ♣A ♦10 ♣7 ♣8 ♣9 ♣J ♦2'),
   ];
   const RULES = Object.freeze(Object.assign({}, R.DEFAULT_RULES, { expose: false }));
   const K_SPADE = card('♠K');
@@ -81,10 +81,13 @@
         return lo(rest.length ? rest : legal);
       }
       if (lead === CLUB && !dblOut && has(DOUBLER)) {
-        // 新手已经压在最大、或者还没出（他的草花比别人的都大）
+        // 只在新手一定赢下这一轮时才把 ♣10 交出去：他已出的草花比 ♣10 大且领先，或者还没出、手里草花都比 ♣10 和已出的大
         const mine = r.trick.find((p) => p.seat === 0);
-        const top = Math.max(...r.trick.filter((p) => suitOf(p.card) === CLUB).map((p) => rankOf(p.card)));
-        if (!mine || rankOf(mine.card) === top) return DOUBLER;
+        const clubs = r.trick.filter((p) => suitOf(p.card) === CLUB).map((p) => rankOf(p.card));
+        const top = Math.max(rankOf(DOUBLER), ...clubs);
+        const meWins = mine ? suitOf(mine.card) === CLUB && rankOf(mine.card) >= top
+          : of(r.hands[0], CLUB).length > 0 && of(r.hands[0], CLUB).every((c) => rankOf(c) > top);
+        if (meWins) return DOUBLER;
       }
       if (of(legal, lead).length) {
         const rest = legal.filter((x) => x !== DOUBLER && x !== K_SPADE);
@@ -134,7 +137,10 @@
       const follow = of(hand, lead).length > 0;
       if (!follow) {
         const suit = ['黑桃', '红桃', '方块', '草花'][lead];
-        return once('discard') ? '这一轮领出的是' + suit + '，你已经没有' + suit + '了——这时可以出任意一张，叫「垫牌」。' : null;
+        if (!once('discard')) return null;
+        return seen.has('discard-taught')
+          ? '这一轮的花色是' + suit + '，你已经没有' + suit + '了，可以垫任意一张。'
+          : '这一轮的花色是' + suit + '，你已经没有' + suit + '了——这时可以出任意一张，叫「垫牌」。';
       }
       if (lead === SPADE && hand.includes(PIG) && of(hand, SPADE).length === 1 && once('forced-pig')) {
         return NAMES[r.trick[0].seat] + '领出了黑桃。你只剩 ' + label(PIG) + ' 这一张黑桃，只能把它打出去。';
@@ -173,8 +179,37 @@
         return { before, after };
       }
       const discard = suitOf(meCard) !== leadSuit;
-      if (discard && once('discard-after')) {
-        before.push({ text: '这一轮的花色是' + suit + '。你已经没有' + suit + '，所以垫了一张。垫的牌不论多大都不参与比较：' + suit + '里最大的是 ' + label(top) + '，' + who(w) + '赢下这一轮。', trick, mark: true });
+      // 别人先于新手垫了牌：就在这一刻把「垫牌」讲清楚（新手自己第一次垫时就不再重复）
+      const otherDisc = plays.filter((p) => p.seat !== 0 && suitOf(p.card) !== leadSuit);
+      if (otherDisc.length && !discard && !seen.has('discard-taught')) {
+        seen.add('discard-taught');
+        const names = otherDisc.map((p) => NAMES[p.seat]).join('和');
+        before.push({ text: '这一轮的花色是' + suit + '。' + names + '手里已经没有' + suit + '，' + (otherDisc.length > 1 ? '各' : '') + '出了一张别的牌，这叫「垫牌」：手里没有这一轮的花色时，可以出任意一张。垫的牌不参与比较，' +
+          suit + '里最大的是 ' + label(top) + '，' + who(w) + '赢下这一轮。', trick, mark: true });
+      }
+      const hearts = cs.filter(R.isHeart);
+      const dHearts = r.captured[2].filter(R.isHeart);
+      const allHearts = hearts.length && w === 2 && dHearts.length === 13;
+      const firstHearts = hearts.length && w === 2 && !allHearts && !seen.has('hearts');
+      // 这一轮的红桃归对家：扣多少、他这一局的红桃累计到多少（每一轮都讲，重复也没关系）
+      const heartLine = () => {
+        const sum = hearts.reduce((a, c) => a + R.heartValue(c, RULES), 0);
+        const tot = dHearts.reduce((a, c) => a + R.heartValue(c, RULES), 0);
+        return '这一轮的红桃 ' + hearts.slice().sort((a, b) => rankOf(a) - rankOf(b)).map(label).join(' ') + ' 都归他，共扣 ' + (-sum) + ' 分，他的红桃累计扣到 −' + (-tot) + ' 分。';
+      };
+      // 新手每次垫牌都讲一遍这一轮怎么结算；第一次多讲一句「垫的牌不参与比较」
+      if (discard) {
+        const first = !seen.has('discard-after');
+        seen.add('discard-after');
+        seen.add('discard-taught');
+        let t = '这一轮的花色是' + suit + '。你已经没有' + suit + '，垫了 ' + label(meCard) + '。' +
+          (first ? '垫的牌不论多大都不参与比较：' : '') + suit + '里最大的是 ' + label(top) + '，' + who(w) + '赢下这一轮，收下这一轮的所有牌。';
+        if (hearts.length && w === 2 && !allHearts && !firstHearts) t += heartLine();
+        before.push({ text: t, trick, mark: true });
+      } else if (hearts.length && w === 2 && !allHearts && !firstHearts && leadSuit === HEART) {
+        // 对家领红桃、新手跟红桃的那几轮，也每轮讲一遍
+        before.push({ text: who(leader) + '先出 ' + label(cs[0]) + '，这一轮的花色是红桃' + (leader === 0 ? '。' : '，你有红桃就必须跟。') +
+          '红桃里最大的是 ' + label(top) + '，' + who(w) + '赢下这一轮。' + heartLine(), trick, mark: true });
       }
       if (cs.includes(SHEEP) && w === 0) {
         before.push({ text: '这一轮' + who(leader) + '先出，花色是方块。你的 ' + label(SHEEP) + ' 是方块里最大的，这一轮你赢，收下这一轮的所有牌。', trick, mark: true });
@@ -194,19 +229,16 @@
           (bef > 0 ? '+' : '') + bef + ' 翻成了 ' + (aft > 0 ? '+' : '') + aft + '。', focus: 0 });
       }
       // 红桃：先在牌还没收走时讲清怎么扣、这一轮扣多少，再让红桃飞去对家
-      const hearts = cs.filter(R.isHeart);
-      const dHearts = r.captured[2].filter(R.isHeart);
       if (hearts.length && w === 2) {
-        if (dHearts.length === 13) {
+        if (allHearts) {
           before.push({ text: '对家又赢下这一轮，这一下他收齐了全部 13 张红桃，这叫「全红」：红桃不再扣分，反而一共 +200。你垫给他的红桃，最后反倒帮他凑齐了。', allHearts: true });
-        } else if (once('hearts')) {
+        } else if (firstHearts) {
+          seen.add('hearts');
           before.push({ text: '对家赢下这一轮，收下的牌里有红桃。每张红桃都要扣分，扣多少看牌面：', heartChart: true });
           before.push({
             text: '所以这一轮对家要扣：',
             parts: hearts.slice().sort((a, b) => rankOf(b) - rankOf(a)).map((c) => ({ card: c, value: R.heartValue(c, RULES) })),
           });
-        } else if (suitOf(meCard) === HEART && leadSuit !== HEART && once('heart-dump')) {
-          before.push({ text: '你垫的 ' + label(meCard) + ' 也归对家，他又要扣 ' + (-R.heartValue(meCard, RULES)) + ' 分。', trick, mark: true });
         }
       }
       return { before, after };
