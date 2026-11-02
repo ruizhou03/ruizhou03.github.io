@@ -1157,6 +1157,99 @@
     ['end', '一盘结束', [['lose1000', '有人到 −1000'], ['pm1000', '有人到 ±1000'], ['rounds10', '打满 10 局'], ['none', '不设终点']]],
   ];
 
+  function restartMatch() {
+    if (!confirm('放弃这一盘，从 0 分重新开始？')) return;
+    stopClock(); closeDialog(); token++; busy = false; setAutopilot(false); newMatch(); startRound();
+  }
+
+  /* ───── 右上角菜单（试行，?menu=new）─────
+   * 顶栏只留三个键：声音、规则、菜单。能做的事都收进菜单、写成字，每条下面一行小字说清会怎样；
+   * 按场合换内容：单机 / 联机房间里 / 教程里。离开放在最底下，并说明进度会不会丢。 */
+  const NEW_MENU = new URLSearchParams(location.search).get('menu') === 'new';
+  let menuPanel = null;
+  function menuItems() {
+    if (match && match.tutorial) {
+      return [
+        ['skip', '跳过教程', '直接开始打'],
+        ['exit', '返回百宝奇巧', '教程下次还能从规则里打开'],
+      ];
+    }
+    if (match && match.online && online) {
+      const inGame = !match.lobby;
+      return [
+        ['head', '房间 ' + online.code],
+        ...(inGame ? [['totals', '比分', '这一盘每局的分和累计']] : []),
+        ['room', '邀请朋友', '复制邀请链接或房号' + (isHost() && match.lobby ? '，改房间规则' : '')],
+        ['leave', '离开房间', inGame ? '你的座位交给机器人接着打，回到单机' : '回到单机'],
+        ['line'],
+        ['settings-art', '牌面', settings.artFaces !== false ? '现在：猪羊画出来' : '现在：普通牌面'],
+        ['exit', '返回百宝奇巧', '不会退出房间，回来接着打'],
+      ];
+    }
+    return [
+      ['head', '这一盘'],
+      ['totals', '比分', '每局的分和累计'],
+      ['restart', '重新开始一盘', '分数清零，从第 1 局打起'],
+      ['line'],
+      ...(NET ? [['online', '和朋友联机', '开一个房间发链接，或输房号加入']] : []),
+      ['settings', '设置', 'AI 水平、出牌限时、牌面、玩法变体'],
+      ['tutorial', '新手教程', '跟着打一局，边打边讲'],
+      ['line'],
+      ['exit', '返回百宝奇巧', '进度自动保存，回来接着打'],
+    ];
+  }
+  function menuAct(k) {
+    closeMenu();
+    if (k === 'totals') showTotals();
+    else if (k === 'restart') restartMatch();
+    else if (k === 'online') showOnlineEntry('');
+    else if (k === 'settings') showSettings();
+    else if (k === 'tutorial') startTutorial();
+    else if (k === 'skip') endTutorial();
+    else if (k === 'room') showRoomDialog();
+    else if (k === 'leave') {
+      if (!confirm(match.lobby ? '离开房间？' : '离开房间？你的座位会交给机器人接着打。')) return;
+      leaveOnline(null, true);
+    } else if (k === 'settings-art') {
+      settings.artFaces = settings.artFaces === false;
+      writeJSON(SETTINGS_KEY, settings);
+      document.querySelectorAll('.gz-seat .gz-caps').forEach((x) => { x.innerHTML = ''; });
+      renderAll();
+    } else if (k === 'exit') location.href = '/toolbox/';
+  }
+  function closeMenu() {
+    if (!menuPanel || menuPanel.hidden) return;
+    menuPanel.hidden = true;
+    $('gzMenuBtn').setAttribute('aria-expanded', 'false');
+    if (els.mask.hidden) resumeClock();
+  }
+  function toggleMenu(e) {
+    if (e) e.stopPropagation();
+    if (!menuPanel) {
+      menuPanel = document.createElement('div');
+      menuPanel.className = 'gz-menu';
+      menuPanel.setAttribute('role', 'menu');
+      menuPanel.hidden = true;
+      menuPanel.addEventListener('click', (ev) => { const b = ev.target.closest('[data-menu]'); if (b) menuAct(b.dataset.menu); });
+      menuPanel.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { closeMenu(); $('gzMenuBtn').focus(); } });
+      document.addEventListener('click', (ev) => { if (!ev.target.closest('.gz-menu, #gzMenuBtn')) closeMenu(); });
+      els.app.appendChild(menuPanel);
+    }
+    if (!menuPanel.hidden) { closeMenu(); return; }
+    if (soundPanel) soundPanel.hidden = true;
+    menuPanel.innerHTML = menuItems().map(([k, t, sub]) =>
+      k === 'line' ? '<hr>' : k === 'head' ? '<div class="gz-menu-head">' + esc(t) + '</div>'
+        : '<button type="button" role="menuitem" data-menu="' + k + '"' + (k === 'exit' ? ' class="is-exit"' : '') + '><b>' + esc(t) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</button>').join('');
+    menuPanel.hidden = false;
+    $('gzMenuBtn').setAttribute('aria-expanded', 'true');
+    pauseClock();   // 翻菜单时不计时（同弹窗）
+    const r = $('gzMenuBtn').getBoundingClientRect();
+    menuPanel.style.top = Math.round(r.bottom + 8) + 'px';
+    menuPanel.style.right = Math.round(Math.max(8, window.innerWidth - r.right)) + 'px';
+    const first = menuPanel.querySelector('button');
+    if (first) first.focus();
+  }
+
   function showSettings() {
     if (match && match.online) { showRoomDialog(); return; }
     const seg = Object.keys(TIER_LABELS).map((k) => '<button type="button" data-tier="' + k + '" aria-pressed="' + (settings.tier === k) + '">' + TIER_LABELS[k] + '</button>').join('');
@@ -1210,10 +1303,7 @@
         }));
         syncNote();
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
-        d.querySelector('[data-act="restart"]').addEventListener('click', () => {
-          if (!confirm('放弃这一盘，从 0 分重新开始？')) return;
-          stopClock(); closeDialog(); token++; busy = false; setAutopilot(false); newMatch(); startRound();
-        });
+        d.querySelector('[data-act="restart"]').addEventListener('click', restartMatch);
       });
   }
 
@@ -2451,6 +2541,13 @@
   }
 
   $('gzOnlineBtn').hidden = !NET;
+  if (NEW_MENU) {
+    // 新菜单：顶栏只剩声音、规则、菜单
+    ['gzOnlineBtn', 'gzSettingsBtn'].forEach((id) => { $(id).hidden = true; });
+    document.querySelector('.gz-tool.gz-exit').hidden = true;
+    $('gzMenuBtn').hidden = false;
+    $('gzMenuBtn').addEventListener('click', toggleMenu);
+  }
   $('gzOnlineBtn').addEventListener('click', () => { if (match && match.online) showRoomDialog(); else showOnlineEntry(''); });
   // 大厅：点座位（空位加机器人 / 坐过去，机器人换档，房主请人离开）；中间面板的几个按钮
   els.table.addEventListener('click', (e) => {

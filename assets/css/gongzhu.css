@@ -763,3 +763,21 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-dbl .x4 { display: none; }
 .gz-card.is-exposed .gz-dbl .x2 { display: none; }
 .gz-card.is-exposed .gz-dbl .x4 { display: inline; }
+
+/* 右上角菜单（试行 ?menu=new）：每条一行粗字 + 一行小字说明会怎样；最底下「返回百宝奇巧」 */
+.gz-menu {
+  position: fixed; z-index: calc(var(--z-dialog) + 1); width: 264px; max-width: calc(100vw - 16px); box-sizing: border-box; padding: 6px;
+  background: var(--gz-paper); border: 1px solid var(--gz-ink); border-radius: 12px; box-shadow: 0 10px 26px rgba(20, 18, 15, 0.18);
+  display: flex; flex-direction: column; max-height: calc(100vh - 80px); overflow-y: auto;
+}
+.gz-menu[hidden] { display: none; }
+.gz-menu button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; text-align: left;
+  border: 0; background: none; padding: 8px 10px; border-radius: 8px; font: inherit; color: var(--gz-ink); cursor: pointer;
+}
+.gz-menu button:hover, .gz-menu button:focus-visible { background: var(--gz-wash); outline: none; }
+.gz-menu b { font-size: 15px; font-weight: 700; }
+.gz-menu small { font-size: 12px; color: var(--gz-ink-mute); }
+.gz-menu hr { border: 0; border-top: 1px solid rgba(29, 27, 24, 0.14); margin: 4px 8px; }
+.gz-menu-head { font-size: 12px; color: var(--gz-ink-mute); padding: 6px 10px 2px; letter-spacing: 0.06em; }
+.gz-menu .is-exit b::before { content: '‹ '; }
