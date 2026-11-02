@@ -218,7 +218,8 @@ body.gz-fullscreen .site-footer { display: none !important; }
   to { opacity: 1; transform: none; }
 }
 /* 一墩打完：牌复制成浮层——分牌飞进赢家吃牌区，没分的牌就地淡出 */
-.gz-flyer {
+/* 选择器要比后面的 .gz-card { position: relative } 更具体，否则飞行中的牌会掉回文档流、飞在屏幕外看不见 */
+.gz-card.gz-flyer {
   position: fixed; margin: 0; z-index: var(--z-fx); pointer-events: none;
   transform-origin: 50% 50%; transition-property: transform, opacity; transition-timing-function: cubic-bezier(.45, 0, .3, 1);
 }
@@ -668,8 +669,10 @@ body.gz-fullscreen .site-footer { display: none !important; }
 /* 画放在角标下面那块地方的正中，大小只跟牌宽 --q 走：桌上、手牌、吃牌区、规则里同一张牌比例一样 */
 .gz-face { position: absolute; left: 10%; right: 10%; top: calc(var(--q) * 0.42); bottom: calc(var(--q) * 0.1); display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .gz-face svg { width: 100%; height: 100%; display: block; overflow: visible; }
-/* 吃牌区小牌：点数和花色并排在顶上一行，下面整块给画，和红桃小牌的大花色一样大 */
-.gz-mini .gz-face { left: 6%; right: 6%; top: calc(var(--q) * 0.5); bottom: calc(var(--q) * 0.04); }
+/* 吃牌区小牌：点数和花色并排在顶上一行，下面整块给画；整体往上、往右让开左下角的亮牌圆点（方案乙，用户定） */
+.gz-mini .gz-face { left: 29%; right: -5%; top: calc(var(--q) * 0.44); bottom: calc(var(--q) * 0.16); }
+/* 羊本身重心偏下：所有地方都往上提一点 */
+.gz-card[data-card="35"] .gz-face svg { translate: 0 -7%; }
 .gz-dbl { color: #b8924a; }
 [data-dbl="ash"] .gz-dbl { color: #7b756b; }
 [data-dbl="navy"] .gz-dbl { color: #3d5878; }
@@ -687,3 +690,12 @@ body.gz-fullscreen .site-footer { display: none !important; }
   position: absolute; left: 50%; top: 50%; z-index: 3; border-radius: 50%; pointer-events: none; opacity: 0;
   background: radial-gradient(circle at 45% 40%, rgba(255, 252, 246, 0.98) 0%, rgba(226, 219, 207, 0.85) 42%, rgba(205, 197, 184, 0) 70%);
 }
+.gz-fxitem.is-duel .gz-fxcoin { width: 104px; height: 104px; }
+.gz-fxitem.is-duel .gz-fxcoin span { font-size: 54px; }
+
+/* 动画预览（?fxdemo=）：顶上一条切换栏 */
+.gz-demo { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); z-index: 6; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px;
+  background: rgba(243, 238, 227, 0.95); border: 1px solid var(--gz-ink); border-radius: 18px; padding: 5px 12px; font-size: 13px; max-width: 94%; }
+.gz-demo b { font-weight: 700; margin-right: 2px; }
+.gz-demo a { color: var(--gz-ink); text-decoration: none; padding: 2px 8px; border-radius: 10px; }
+.gz-demo a[aria-current="true"] { background: var(--gz-ink); color: var(--gz-paper); }

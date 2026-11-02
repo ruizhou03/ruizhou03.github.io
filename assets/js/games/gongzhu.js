@@ -62,7 +62,7 @@
     // 规则在开盘时定下，中途改设置从下一盘起生效
     match = { rules: R.normalizeRules(settings.rules), totals: [0, 0, 0, 0], roundNo: 0, pigTaker: -1, seed: (Math.random() * 2 ** 31) | 0, round: null, exposing: [], last: null, over: false };
   }
-  function save() { if (!match.tutorial && !match.online) writeJSON(STORE_KEY, { v: VERSION, match }); }
+  function save() { if (!match.tutorial && !match.online && !match.demo) writeJSON(STORE_KEY, { v: VERSION, match }); }
 
   /* ───── 卡面（四象限，参数逐字取自掼蛋 / 斗地主定稿） ───── */
 
@@ -372,9 +372,11 @@
   function turnSeat() {
     const r = match.round;
     if (!r || R.isRoundOver(r)) return -1;
-    return match.exposing.length ? match.exposing[0] : r.turn;
+    // 亮牌阶段：只有我自己（手里有可亮牌、还没决定时）亮起，别家一律不显示
+    if (match.exposing.length) return match.exposing.includes(0) && !busy ? 0 : -1;
+    return r.turn;
   }
-  function exposingMe() { return match.round && match.exposing.length && match.exposing[0] === 0; }
+  function exposingMe() { return !!(match.round && match.exposing.includes(0)); }
 
   function renderSeats() {
     for (let s = 0; s < 4; s++) renderSeat(s);
@@ -451,9 +453,9 @@
     const hands = R.deal(rng);
     const st = R.roundStart(match.rules, hands, match.roundNo === 1, match.pigTaker);
     match.round = R.createRound(hands, st.leader, st.mustLead, match.rules);
-    // 亮牌：从先出的人起依次决定；手里没有可亮牌的人直接跳过
+    // 亮牌：手里有可亮牌的人同时决定，最后一起亮出（不再一家一家轮着问——谁头上转倒计时就等于告诉大家他有特殊牌）
     match.exposing = match.rules.expose
-      ? [0, 1, 2, 3].map((d) => (st.leader + d) % 4).filter((s) => R.EXPOSABLE.some((c) => hands[s].includes(c)))
+      ? [0, 1, 2, 3].filter((s) => R.EXPOSABLE.some((c) => hands[s].includes(c)))
       : [];
     selected = -1;
     exposePick = [];
@@ -494,32 +496,51 @@
 
   /* ───── 亮牌环节 ───── */
 
+  /* 机器人在后台同时想好（谁也看不到谁在想），我有可亮牌就等我选，选完一起亮出。
+   * 这样亮牌阶段的长短、谁头上有倒计时，都跟别家手里有没有特殊牌无关。 */
+  let exposeWait = null;   // { bots: Promise<[seat, cards][]> }
   function exposeStep() {
     const r = match.round;
-    const seat = match.exposing[0];
+    const bots = match.exposing.filter((s) => s !== 0);
+    exposeWait = { bots: Promise.all(bots.map((s) => chooseExpose(r, s, seatTier(s)).then((cards) => [s, cards]))) };
+    const meIn = match.exposing.includes(0);
     renderSeats();
-    if (seat === 0 && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyExposeTimeout); return; }
+    if (meIn && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyExposeTimeout); return; }
     busy = true;
     renderHand();
-    const started = performance.now();
-    if (seat !== 0) startClock(seat, null);
-    chooseExpose(r, seat, seat === 0 ? takeoverTier(botTiers()) : seatTier(seat)).then(guard((cards) => {
-      const wait = Math.max(0, pace().aiMin - (performance.now() - started));
-      schedule(() => applyExpose(seat, cards), wait);
-    }));
+    if (meIn) chooseExpose(r, 0, takeoverTier(botTiers())).then(guard((cards) => applyExpose(0, cards)));
+    else finishExpose([]);
   }
 
+  // 我选好了（或超时由机器人替我选）
   function applyExpose(seat, cards) {
-    const r = match.round;
     stopClock();
-    for (const c of cards) R.expose(r, seat, c);
-    match.exposing.shift();
-    exposePick = [];
     busy = true;
-    renderSeat(seat);
+    exposePick = [];
+    renderSeats();
     renderHand();
-    save();
-    schedule(step, cards.length ? 520 : 120);
+    finishExpose(cards);
+  }
+
+  function finishExpose(mine) {
+    const w = exposeWait;
+    if (!w) return;
+    w.bots.then(guard((list) => {
+      if (exposeWait !== w) return;
+      const r = match.round;
+      const all = list.concat([[0, mine]]);
+      for (let d = 0; d < 4; d++) {
+        const s = (r.leader + d) % 4;
+        const e = all.find((x) => x[0] === s);
+        if (e) for (const c of e[1]) if (r.hands[s].includes(c)) R.expose(r, s, c);
+      }
+      match.exposing = [];
+      exposeWait = null;
+      renderSeats();
+      renderHand();
+      save();
+      schedule(step, r.exposed.length ? 700 : 120);
+    }));
   }
 
   function onMyExposeTimeout() {
@@ -593,25 +614,53 @@
     });
     els.slots.forEach((slot) => { slot.innerHTML = ''; slot.classList.remove('is-ace'); });
     void els.app.offsetWidth;  // 强制回流：起点样式落定后再设终点，过渡才会跑（不靠 rAF，后台页也稳）
-    const insertMs = reduce ? 1 : Math.round(pace().fly * 1.35);
+    // 吃牌：先把四张牌都往赢的那张牌那边一拢（赢家把这一轮「收」过去），再分流——
+    // 带分数的飞进吃牌区插进空位，没分的钻进赢家的头像里，头像「咽」一下
+    const insertMs = reduce ? 1 : Math.round(pace().fly * 1.75);
+    const sweepMs = Math.round(pace().fly * 1.6);
+    const av = seatEl.querySelector('.gz-avatar').getBoundingClientRect();
+    const ws = els.slots[winner].getBoundingClientRect();
+    const GATHER = 0.55;   // 往赢牌那边拢多少（0 不动，1 叠到赢牌上）
+    const p0 = (fl) => +fl.dataset.card;
+    let swept = false;
     for (const { fl, a, target } of flyers) {
       if (target) {
         // 插牌：先飞到空位正下方（已经缩成小牌大小），再从下往上插进去；两边的牌在这之前已经让开了
         const b = target.getBoundingClientRect();
         const dx = b.left + b.width / 2 - a.left - a.width / 2, dy = b.top + b.height / 2 - a.top - a.height / 2;
         const sc = 'scale(' + (b.width / a.width) + ',' + (b.height / a.height) + ')';
+        const gx = (ws.left + ws.width / 2 - a.left - a.width / 2) * GATHER, gy = (ws.top + ws.height / 2 - a.top - a.height / 2) * GATHER;
         fl.style.transition = 'none';
         animate(fl, [
           { transform: 'none' },
-          { transform: 'translate(' + dx + 'px,' + (dy + b.height * 0.9) + 'px) ' + sc, offset: 0.68 },
+          { transform: 'translate(' + gx + 'px,' + gy + 'px) scale(0.94)', offset: 0.24 },
+          { transform: 'translate(' + gx + 'px,' + gy + 'px) scale(0.94)', offset: 0.32 },
+          { transform: 'translate(' + dx + 'px,' + (dy + b.height * 0.9) + 'px) ' + sc, offset: 0.74 },
           { transform: 'translate(' + dx + 'px,' + dy + 'px) ' + sc, easing: 'cubic-bezier(.3, 0, .2, 1)' },
         ], { duration: insertMs, fill: 'forwards' }, 'cubic-bezier(.45, 0, .3, 1)');
-      } else {
+      } else if (reduce || fxCards.has(p0(fl))) {
         fl.style.transform = 'scale(0.86)';
         fl.style.opacity = '0';
+      } else {
+        // 没分的牌也「收走」：先往桌子中间拢一下，再一起滑进赢家的头像里消失——一眼看清这一轮谁赢、下一轮谁先出
+        const dx = av.left + av.width / 2 - a.left - a.width / 2, dy = av.top + av.height / 2 - a.top - a.height / 2;
+        const gx = (ws.left + ws.width / 2 - a.left - a.width / 2) * GATHER, gy = (ws.top + ws.height / 2 - a.top - a.height / 2) * GATHER;
+        fl.style.transition = 'none';
+        animate(fl, [
+          { transform: 'none', opacity: 1 },
+          { transform: 'translate(' + gx + 'px,' + gy + 'px) scale(0.94)', opacity: 1, offset: 0.27 },
+          { transform: 'translate(' + gx + 'px,' + gy + 'px) scale(0.94)', opacity: 1, offset: 0.36 },
+          { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.16)', opacity: 0.15, easing: 'cubic-bezier(.5, 0, .75, 0)' },
+        ], { duration: sweepMs, fill: 'forwards' }, 'cubic-bezier(.3, 0, .3, 1)');
+        swept = true;
       }
     }
-    const ms = reduce ? 20 : flyers.some((f) => f.target) ? insertMs : pace().fade;
+    // 赢家的头像「咽」一下：牌钻进去的那一刻鼓一下再回原样
+    if (swept) {
+      seatEl.querySelector('.gz-avatar').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.22)', offset: 0.45 }, { transform: 'scale(1)' }],
+        { duration: 340, delay: sweepMs * 0.82, easing: 'cubic-bezier(.3, .8, .4, 1.2)' });
+    }
+    const ms = reduce ? 20 : Math.max(flyers.some((f) => f.target) ? insertMs : pace().fade, swept ? sweepMs : 0);
     setTimeout(() => {
       flyers.forEach(({ fl }) => fl.remove());
       caps.querySelectorAll('.incoming').forEach((el) => { if (!fxCards.has(+el.dataset.card)) el.classList.remove('incoming'); });
@@ -1074,16 +1123,18 @@
     if (sc.grandSlam && hadAll) list.push({ kind: 'slam', word: '大满贯', sub: signed(sc.total) });
     else if (hadAll) list.push({ kind: 'allhearts', word: '全红', sub: signed(sc.heartScore) });
     if (!sc.grandSlam) {
-      if (cs.includes(R.PIG) && cs.includes(R.SHEEP)) {
-        // 猪羊同一轮：不各放各的，改成两只对撞（见 playClash）
-        list.push({ kind: 'clash', cards: [R.SHEEP, R.PIG], pigSub: signed(sc.pigScore), sheepSub: signed(sc.sheepScore) });
+      // 变压器的颜色看吃到它的人现在的分：正分金色（翻倍是好事）、负分灰色（雪上加霜）、0 分藏青
+      const dbl = { word: '×' + (R.scoreCtx(r).exposed.includes(R.DOUBLER) ? 4 : 2), tone: sc.total > 0 ? 'gold' : sc.total < 0 ? 'ash' : 'navy' };
+      const specials = [R.SHEEP, R.PIG, R.DOUBLER].filter((c) => cs.includes(c));
+      if (specials.length >= 2) {
+        // 猪 / 羊 / 变压器有两张以上同一轮被吃：不各放各的，改成对撞（见 playClash）；三张一起是三角对撞，烟花更大
+        list.push({ kind: 'clash', cards: specials, dur: specials.length === 3 ? 3500 : FX_DUR.clash,
+          pigSub: signed(sc.pigScore), sheepSub: signed(sc.sheepScore), dbl });
       } else {
         if (cs.includes(R.PIG)) list.push({ kind: 'pig', card: R.PIG, sub: signed(sc.pigScore) });
         if (cs.includes(R.SHEEP)) list.push({ kind: 'sheep', card: R.SHEEP, sub: signed(sc.sheepScore) });
+        if (cs.includes(R.DOUBLER)) list.push({ kind: 'doubler', card: R.DOUBLER, word: dbl.word, sub: '', tone: dbl.tone });
       }
-      // 变压器的颜色看吃到它的人现在的分：正分金色（翻倍是好事）、负分灰色（雪上加霜）、0 分藏青
-      if (cs.includes(R.DOUBLER)) list.push({ kind: 'doubler', card: R.DOUBLER, word: '×' + (R.scoreCtx(r).exposed.includes(R.DOUBLER) ? 4 : 2), sub: '',
-        tone: sc.total > 0 ? 'gold' : sc.total < 0 ? 'ash' : 'navy' });
     }
     return reduceMotion() ? [] : list;
   }
@@ -1094,7 +1145,7 @@
     let end = 0;
     list.forEach((fx, k) => {
       setTimeout(() => playFx(fx, w), k * FX_GAP);
-      end = Math.max(end, k * FX_GAP + FX_DUR[fx.kind]);
+      end = Math.max(end, k * FX_GAP + (fx.dur || FX_DUR[fx.kind]));
     });
     return end;
   }
@@ -1131,53 +1182,71 @@
     if (!caps.querySelector('.gz-mini.incoming')) rollCapsScore(caps);
   }
 
-  /* 猪羊同一轮：羊从左、猪从右各自亮相（羊蹦两下、猪刨两下地），往后一缩、对冲到中间撞上——
-   * 白光一闪、一团烟把两只吞掉，接着黑桃和红方块的烟花一朵接一朵炸开（不写字），两张牌在吃到的人的吃牌区翻出来。 */
+  /* 对撞：猪 / 羊 / 变压器有两张以上同一轮被吃。
+   * 两张：一左一右（羊 + 猪：羊左猪右；羊 / 猪 + 变压器：羊或猪在左、×2 在右）；三张：正三角，羊左上、猪右上、×2 在下。
+   * 各自亮相（羊蹦两下、猪刨两下地、×2 一鼓一鼓），往后一缩，一起冲向中间撞上——白光一闪、一团烟把它们吞掉，
+   * 接着用参与者的花色放烟花（羊 ♦、猪 ♠、变压器 ♣；三张一起再加金星、多放两轮），不写字；
+   * 最后这几张牌在吃到的人的吃牌区翻出来。 */
   function playClash(fx, w) {
-    const dur = FX_DUR.clash;
-    const [dx, dy] = FX_DRIFT[w];
-    const mk = (cls, html) => {
-      const el = document.createElement('div');
-      el.className = 'gz-fxitem ' + cls;
-      el.innerHTML = html;
-      els.fx.appendChild(el);
-      return el;
-    };
+    const dur = fx.dur || FX_DUR.clash;
+    const three = fx.cards.length === 3;
+    const pos = three
+      ? { [R.SHEEP]: [-140, -80], [R.PIG]: [140, -80], [R.DOUBLER]: [0, 150] }
+      : (() => { const [l, r] = fx.cards; return { [l]: [-170, 0], [r]: [170, 0] }; })();
     const tag = (v) => '<div class="gz-fxscore ' + (v[0] === '−' ? 'neg' : 'pos') + '">' + v + '</div>';
-    const sheep = mk('kind-sheep is-duel', '<div class="gz-fxart">' + ART.sheep + '</div>' + tag(fx.sheepSub));
-    const pig = mk('kind-pig is-duel', '<div class="gz-fxart">' + ART.pig + '</div>' + tag(fx.pigSub));
     const IN = 'cubic-bezier(.55, 0, .9, .45)';   // 冲锋：越跑越快
-    const side = (k) => [
-      { transform: FT(k * 210, 0, 0.2), opacity: 0 },
-      { transform: FT(k * 170, 0, 1.08), opacity: 1, offset: 0.08 },
-      { transform: FT(k * 170, 0, 1), offset: 0.13 },
-      ...(k < 0
-        ? [{ transform: FT(-170, -22, 1), offset: 0.19 }, { transform: FT(-170, 0, 1), offset: 0.24 }, { transform: FT(-170, -12, 1), offset: 0.28 }]
-        : [{ transform: FT(160, 0, 1, -4), offset: 0.18 }, { transform: FT(178, 0, 1, 3), offset: 0.23 }, { transform: FT(166, 0, 1, -2), offset: 0.28 }]),
-      { transform: FT(k * 190, 0, 0.96, k * -7), offset: 0.33 },
-      { transform: FT(k * 38, 0, 1.06, k * 9), offset: 0.43, easing: IN },
-      { transform: FT(k * 30, 0, 0.86, 0), opacity: 1, offset: 0.46 },
-      { transform: FT(k * 26, -8, 0.4, 0), opacity: 0, offset: 0.54 },
-      { transform: FT(k * 26, -8, 0.4, 0), opacity: 0 },
-    ];
-    // 冲出去之前分数先淡掉，只剩两只在跑
-    const hideTag = (el) => el.querySelector('.gz-fxscore').animate([{ opacity: 1 }, { opacity: 1, offset: 0.27 }, { opacity: 0, offset: 0.33 }, { opacity: 0 }], { duration: dur, fill: 'forwards' });
-    // 冲锋那一段要「越跑越快」，其余段用默认的缓出：逐段给缓动
-    const ease = (frames) => frames.map((f, i) => (f.easing ? f : Object.assign({}, f, { easing: frames[i + 1] && frames[i + 1].easing === IN ? IN : 'cubic-bezier(.25, .8, .35, 1)' })));
-    sheep.animate(ease(side(-1)).map((f) => Object.assign({ easing: f.easing }, f)), { duration: dur, fill: 'forwards', easing: 'linear' });
-    pig.animate(ease(side(1)).map((f) => Object.assign({ easing: f.easing }, f)), { duration: dur, fill: 'forwards', easing: 'linear' });
-    hideTag(sheep); hideTag(pig);
+    const OUT = 'cubic-bezier(.25, .8, .35, 1)';
+    const actors = fx.cards.map((c) => {
+      const el = document.createElement('div');
+      if (c === R.DOUBLER) {
+        const tone = DOUBLER_TONE[fx.dbl.tone || 'gold'];
+        el.className = 'gz-fxitem kind-doubler is-duel';
+        el.innerHTML = '<div class="gz-fxcoin" style="--tone:' + tone.ring + ';color:' + tone.ink + '"><span>' + fx.dbl.word + '</span></div>';
+      } else {
+        const pig = c === R.PIG;
+        el.className = 'gz-fxitem kind-' + (pig ? 'pig' : 'sheep') + ' is-duel';
+        el.innerHTML = '<div class="gz-fxart">' + ART[pig ? 'pig' : 'sheep'] + '</div>' + tag(pig ? fx.pigSub : fx.sheepSub);
+      }
+      els.fx.appendChild(el);
+      const [x, y] = pos[c];
+      const len = Math.hypot(x, y) || 1, ux = x / len, uy = y / len;   // 从中间指向它的方向
+      const at = (k, sc, rot) => FT(x * k, y * k, sc, rot);
+      const lean = (ux || uy) * 8;
+      // 亮相后的小动作：羊蹦、猪刨地、×2 一鼓一鼓
+      const idle = c === R.SHEEP
+        ? [{ transform: FT(x, y - 22, 1), offset: 0.19 }, { transform: at(1, 1), offset: 0.24 }, { transform: FT(x, y - 12, 1), offset: 0.28 }]
+        : c === R.PIG
+          ? [{ transform: FT(x - 9, y, 1, -4), offset: 0.18 }, { transform: FT(x + 9, y, 1, 3), offset: 0.23 }, { transform: FT(x - 4, y, 1, -2), offset: 0.28 }]
+          : [{ transform: at(1, 1.14), offset: 0.18 }, { transform: at(1, 0.96), offset: 0.23 }, { transform: at(1, 1.08), offset: 0.28 }];
+      const frames = [
+        { transform: at(1.25, 0.2), opacity: 0 },
+        { transform: at(1, 1.08), opacity: 1, offset: 0.08 },
+        { transform: at(1, 1), offset: 0.13 },
+        ...idle,
+        { transform: FT(x + ux * 20, y + uy * 20, 0.96, -lean), offset: 0.33 },   // 往后一缩，蓄力
+        { transform: at(0.22, 1.06, lean), offset: 0.43 },
+        { transform: at(0.17, 0.86), opacity: 1, offset: 0.46 },
+        { transform: at(0.15, 0.4), opacity: 0, offset: 0.54 },
+        { transform: at(0.15, 0.4), opacity: 0 },
+      ].map((f, i, all) => Object.assign({ easing: all[i + 1] && all[i + 1].offset === 0.43 ? IN : OUT }, f));
+      el.animate(frames, { duration: dur, fill: 'forwards', easing: 'linear' });
+      const label = el.querySelector('.gz-fxscore');
+      if (label) label.animate([{ opacity: 1 }, { opacity: 1, offset: 0.27 }, { opacity: 0, offset: 0.33 }, { opacity: 0 }], { duration: dur, fill: 'forwards' });
+      return el;
+    });
 
     const hit = Math.round(dur * 0.44);
-    // 撞上：白光 + 黑桃红方块四溅
-    burst(0, -18, 44, ['♠', '♦'], SUIT_TINT, hit, 190, { glow: 'gold', spin: true, size: [16, 72] });
+    const glyphs = fx.cards.map((c) => (c === R.SHEEP ? '♦' : c === R.PIG ? '♠' : '♣'));
+    const tint = (g) => (g === '♣' ? DOUBLER_TONE[fx.dbl.tone || 'gold'].ink : SUIT_TINT(g));
+    // 撞上：白光 + 参与者的花色四溅
+    burst(0, -18, three ? 56 : 44, glyphs, tint, hit, three ? 220 : 190, { glow: 'gold', spin: true, size: [16, three ? 80 : 72] });
     // 一团烟：一圈圈灰白的云团鼓起来、往上飘散
-    for (let k = 0; k < 11; k++) {
+    for (let k = 0; k < (three ? 15 : 11); k++) {
       const puff = document.createElement('div');
       puff.className = 'gz-smoke';
-      const a = Math.random() * Math.PI * 2, d = Math.random() * 46;
+      const a = Math.random() * Math.PI * 2, d = Math.random() * (three ? 60 : 46);
       const x = Math.cos(a) * d, y = -18 + Math.sin(a) * d * 0.7;
-      const size = 70 + Math.random() * 70;
+      const size = 70 + Math.random() * (three ? 90 : 70);
       puff.style.width = puff.style.height = size.toFixed(0) + 'px';
       els.fx.appendChild(puff);
       const life = 1100 + Math.random() * 500, delay = hit + Math.random() * 160;
@@ -1188,12 +1257,19 @@
       ], { duration: life, delay, fill: 'both', easing: 'cubic-bezier(.2, .7, .3, 1)' });
       setTimeout(() => puff.remove(), delay + life + 60);
     }
-    // 撞完的烟花：两侧、上方再接连炸开几朵黑桃 / 红方块
-    burst(-120, -50, 24, ['♠', '♦'], SUIT_TINT, hit + 260, 130, { glow: 'none', spin: true, size: [16, 64] });
-    burst(125, -40, 24, ['♦', '♠'], SUIT_TINT, hit + 480, 130, { glow: 'none', spin: true, size: [16, 64] });
-    burst(0, -90, 30, ['♠', '♦'], SUIT_TINT, hit + 700, 160, { glow: 'gold', spin: true, size: [16, 72] });
+    // 撞完的烟花：两侧、上方接连再炸几朵；三张一起再多两轮、加金星
+    const more = three ? glyphs.concat(['✦']) : glyphs;
+    const tint2 = (g) => (g === '✦' ? '#c9a96e' : tint(g));
+    burst(-120, -50, 24, more, tint2, hit + 260, 130, { glow: 'none', spin: true, size: [16, 64] });
+    burst(125, -40, 24, more, tint2, hit + 480, 130, { glow: 'none', spin: true, size: [16, 64] });
+    burst(0, -90, 30, more, tint2, hit + 700, 160, { glow: 'gold', spin: true, size: [16, 72] });
+    if (three) {
+      burst(-90, 70, 26, more, tint2, hit + 900, 140, { glow: 'none', spin: true, size: [16, 70] });
+      burst(95, 75, 26, more, tint2, hit + 1080, 140, { glow: 'none', spin: true, size: [16, 70] });
+      burst(0, -10, 44, more, tint2, hit + 1280, 210, { glow: 'gold', spin: true, size: [18, 86] });
+    }
     setTimeout(() => {
-      sheep.remove(); pig.remove();
+      actors.forEach((el) => el.remove());
       const caps = els.seats[w].querySelector('.gz-caps');
       for (const c of fx.cards) revealMini(caps.querySelector('.gz-mini[data-card="' + c + '"]'), w);
     }, dur);
@@ -1802,7 +1878,8 @@
     if (!r) { updateSettleWaiting(); return; }
     if (!sameAsSnapshot(r, gv)) { resync(); return; }
     if (gv.phase === 'expose') {
-      const mine = !!(gv.expose && !gv.expose.decided && gv.expose.mine.length);
+      // 每个真人都要表态（没有可亮牌的也点一下「不亮」），亮牌阶段长短才不会泄露谁有特殊牌
+      const mine = !!(gv.expose && !gv.expose.decided);
       match.exposing = mine ? [0] : [];
       busy = !mine;
       renderSeats(); renderHand();
@@ -2181,8 +2258,56 @@
     if (act === 'leave' && confirm('离开房间？')) leaveOnline(null, true);
   });
 
+  /* ───── 动画预览：?fxdemo=sweep|eat|clash|sheepdbl|pigdbl|triple ─────
+   * 在真牌桌上反复放「一轮结束」那一下（走的就是正式出牌时的同一套收牌 / 特效代码），不动存档。 */
+  const DEMOS = {
+    sweep: ['没分的一轮', [1, 4, 7, 11]],            // ♠3 ♠6 ♠9 ♠K：全钻进赢家头像
+    eat: ['有分的一轮', [42, 46, 18, 50]],           // ♣5 ♣9 ♥7(垫) ♣K：红桃插进吃牌区，其余进头像
+    clash: ['猪羊对撞', [27, 35, 10, 38]],           // ♦3 ♦J ♠Q(垫) ♦A
+    sheepdbl: ['羊 × 变压器', [28, 35, 47, 38]],     // ♦4 ♦J ♣10(垫) ♦A
+    pigdbl: ['猪 × 变压器', [1, 10, 47, 12]],        // ♠3 ♠Q ♣10(垫) ♠A
+    triple: ['猪羊变压器三角对撞', [27, 35, 10, 47, 38]],   // ♦3 ♦J ♠Q ♣10 ♦A（取后四张）
+  };
+  function startDemo(kind) {
+    const demo = DEMOS[kind] ? kind : 'sweep';
+    match = { demo: true, rules: R.normalizeRules({}), totals: [0, 0, 0, 0], roundNo: 1, pigTaker: -1, seed: 1, round: null, exposing: [], last: null, over: false };
+    match.round = R.createRound(R.deal(R.makeRng(7)), 0, -1, match.rules);
+    busy = true;
+    renderAll();
+    const bar = document.createElement('div');
+    bar.className = 'gz-demo';
+    bar.innerHTML = '<b>动画预览</b>' + Object.keys(DEMOS).map((k) => '<a href="?fxdemo=' + k + '"' + (k === demo ? ' aria-current="true"' : '') + '>' + DEMOS[k][0] + '</a>').join('') +
+      '<a href="' + location.pathname + '">回到牌桌</a>';
+    els.table.appendChild(bar);
+    let k = 0;
+    const loop = () => {
+      const r = match.round;
+      const cards = DEMOS[demo][1].slice(-4);
+      const leader = k++ % 4;
+      const plays = cards.map((c, i) => ({ seat: (leader + i) % 4, card: c }));
+      const w = R.trickWinner(plays);
+      r.captured = [[], [], [], []];
+      r.exposed = [];
+      flying = null;
+      renderSeats();
+      renderTrick(plays);
+      schedule(() => {
+        r.captured[w] = cards.filter(R.isScoring);
+        const done = { winner: w, plays };
+        flying = new Set(r.captured[w]);
+        const fxList = planTrickFx(done);
+        const fxCards = new Set(fxList.flatMap((f) => f.cards || (f.card >= 0 ? [f.card] : [])));
+        const ms = Math.max(flyTrick(plays, w, fxCards), playTrickFx(done, fxList));
+        schedule(loop, ms + 1500);
+      }, 1100);
+    };
+    schedule(loop, 500);
+  }
+
   buildSeats();
   solveSize();
+  const demoParam = new URLSearchParams(location.search).get('fxdemo');
+  if (demoParam) { startDemo(demoParam); return; }
   const roomParam = (new URLSearchParams(location.search).get('room') || '').trim();
   const sess = NET && NET.readSession();
   if (sess && (!roomParam || roomParam === sess.code)) {
