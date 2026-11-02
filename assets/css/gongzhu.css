@@ -112,8 +112,8 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-seat.is-turn.is-hurry .gz-avatar { animation: gz-hurry 0.5s ease-in-out infinite alternate; }
 @keyframes gz-clock { to { stroke-dashoffset: 100; } }
 @keyframes gz-hurry { to { transform: scale(1.08); } }
-/* 托管：我的头像右下角挂一枚小机器人，点手牌或头像收回 */
-.gz-seat.is-auto .gz-avatar { cursor: pointer; }
+/* 托管：头像右下角挂一枚小机器人（我自己的点手牌或头像收回；联机里别人托管也一样挂，不写字） */
+.gz-seat-me.is-auto .gz-avatar { cursor: pointer; }
 .gz-seat.is-auto .gz-avatar::after {
   content: ''; position: absolute; right: -6px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%;
   background: var(--gz-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f3ece0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='8' width='14' height='11' rx='3'/%3E%3Cpath d='M12 4v4M9.5 13h.01M14.5 13h.01M10 16.5h4'/%3E%3C/svg%3E") center / 14px no-repeat;
@@ -725,7 +725,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 
 /* 这一轮打什么花色：桌子正中一个淡淡的大花色，压在出的牌下面（见 showLead） */
 .gz-lead {
-  position: absolute; left: 50%; top: 50%; font-size: calc(var(--th) * 0.95); line-height: 0; color: var(--gz-ink);
+  position: absolute; left: 50%; top: 50%; font-size: calc(var(--th) * 1.05); line-height: 0; color: var(--gz-ink);
   transform: translate(-50%, -50%) scale(0.7); opacity: 0; pointer-events: none;
   transition: opacity 0.3s ease, transform 0.45s cubic-bezier(.2, .8, .3, 1.15);
 }
@@ -733,7 +733,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-lead.red { color: var(--gz-red); }
 .gz-lead.red.on { opacity: 0.13; }
 .gz-lead:not(.on) { transition: opacity 0.25s ease; }
-.gz-lead .suit-svg { display: block; width: 1em; height: 1em; fill: currentColor; overflow: visible; }
+.gz-lead .suit-svg { display: block; width: 1em; height: 1em; fill: currentColor; overflow: visible; transform: translateY(var(--ldy, 0)) scale(var(--ls, 1)); }
 .gz-center.is-fxing .gz-lead, .gz-center.is-review .gz-lead { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .gz-lead { transition: opacity 0.2s; transform: translate(-50%, -50%); } }
 
@@ -750,3 +750,16 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-sound-row { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 6px; font-size: 15px; cursor: pointer; color: var(--gz-ink); }
 .gz-sound-row:hover { background: var(--gz-wash); }
 .gz-sound-row input { width: 18px; height: 18px; margin: 0; accent-color: var(--gz-seal); }
+
+/* ───── 明牌牌面：明出来的牌（以及明牌环节里点选、已点「明牌」还在等别家的牌）一眼认得出 ─────
+ * 整张牌：一道朱红内框线（加上左下角的红点）；猪变黑猪（红角、红瞳、额头金黑桃），羊毛变红，变压器写 ×4。
+ * 特效里明出来的猪 / 羊也用同一套颜色（.gz-xart）。 */
+.gz-card.is-exposed { outline: max(1px, calc(var(--q) * 0.03)) solid var(--gz-seal); outline-offset: calc(var(--q) * -0.075); }
+.gz-card.is-exposed .gz-face, .gz-xart {
+  --pg-horn: #b4392c; --pg-ear: #2e2426; --pg-skin: #4a3c3f; --pg-cheek: #8a3444; --pg-eye: #ff4b2b;
+  --pg-line: #0f0a09; --pg-spade: #d9b062; --pg-snout: #5f474c; --pg-nose: #1a1112;
+  --sh-edge: #c64a3e; --sh-line: #7a1e1a; --sh-wool: #e0685b; --sh-gem: #f3d68a;
+}
+.gz-dbl .x4 { display: none; }
+.gz-card.is-exposed .gz-dbl .x2 { display: none; }
+.gz-card.is-exposed .gz-dbl .x4 { display: inline; }

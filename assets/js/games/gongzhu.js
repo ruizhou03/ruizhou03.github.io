@@ -105,7 +105,8 @@
 
   let match = null;     // { rules, totals, roundNo, pigTaker, seed, round, exposing, last, over }
   let selected = -1;
-  let exposePick = [];  // 亮牌环节里我点选要亮的牌
+  let exposePick = [];  // 明牌环节里我点选要明的牌
+  let exposeHeld = [];  // 我已经点了「明牌」、还在等别家决定（或等服务器）的那几张：这期间照样按明牌的样子画
   let busy = false;     // 动画 / AI 思考中，屏蔽我的操作
   let token = 0;        // 重开时作废旧的定时回调
   let autopilot = false;  // 托管：连续两次超时自动打开，点手牌 / 头像取消
@@ -162,6 +163,7 @@
     el.innerHTML = '<span class="q q-tl">' + rank + '</span><span class="q q-tr">' + sv + '</span>' +
       '<span class="q q-bl">' + sv + '</span><span class="bigsuit">' + sv + '</span>';
     // 特色牌面：猪 / 羊画成动画里那只，变压器写「×2」（颜色跟着持有人这一局的分数走）；角上的 Q♠ / J♦ / 10♣ 不变。
+    // 明出来（.is-exposed）：猪变黑猪、羊毛变红、变压器写 ×4——颜色走 CSS 变量，见 gongzhu.css「明牌牌面」。
     // 默认就是画的（教程里也一样）；设置里可以换回普通牌面
     if ((c === R.PIG || c === R.SHEEP || c === R.DOUBLER) && settings.artFaces !== false) {
       el.classList.add('has-art');
@@ -174,14 +176,15 @@
   }
   const DOUBLER_FACE = '<svg class="gz-dbl" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="41" fill="none" stroke="currentColor" stroke-width="5"/>' +
     '<circle cx="50" cy="50" r="33" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".55"/>' +
-    '<text x="50" y="64" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-weight="700" font-size="40" fill="currentColor">×2</text></svg>';
+    '<text class="x2" x="50" y="64" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-weight="700" font-size="40" fill="currentColor">×2</text>' +
+    '<text class="x4" x="50" y="64" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-weight="700" font-size="40" fill="currentColor">×4</text></svg>';   // 明出来的变压器显示 ×4（CSS 切换）
   // 变压器的颜色：持有人这一局（不算变压器）的分数为正金色、为负灰色、零分藏蓝——和 ×2 动画同一套
   function dblTone(cards, ctx) {
     const v = R.scoreCaptured(cards.filter((x) => x !== R.DOUBLER), ctx).total;
     return v > 0 ? 'gold' : v < 0 ? 'ash' : 'navy';
   }
 
-  /* 亮出的牌：右上角盖一枚朱红小印 */
+  /* 明出来的牌（见 gongzhu.css「明牌牌面」） */
   function isExposedCard(c) { const r = match && match.round; return !!r && R.exposedOwner(r, c) >= 0; }
 
   /* ───── 尺寸：只算 --u ───── */
@@ -461,6 +464,9 @@
 
   /* 这一轮打什么花色：首家出牌后，桌子正中淡淡浮出一个大花色（压在牌下面），一轮结束放特效 / 收牌前就淡掉，
    * 不跟着牌一起收走——它不是牌，收进头像反倒像被谁吃了。 */
+  // 四种花色字形的「墨量」差得很多（同字号下 ♥ 的面积约是 ♠ 的 3.9 倍，♦ 2.4 倍，♣ 1.2 倍），重心也高低不一：
+  // 按实测墨量把面积拉齐、按墨的重心挪回正中——四个花色看起来一样大、都在桌子正中。[缩放, 下移 em]
+  const LEAD_FIT = { 0: [1.3, 0.068], 1: [0.664, 0.067], 2: [0.836, 0.002], 3: [1.185, 0.072] };
   function showLead(suit) {
     let el = els.center.querySelector('.gz-lead');
     if (!el) { el = document.createElement('div'); el.className = 'gz-lead'; el.setAttribute('aria-hidden', 'true'); els.center.prepend(el); }
@@ -471,6 +477,8 @@
       el.dataset.suit = suit;
       el.classList.toggle('red', suit === 1 || suit === 2);
       el.innerHTML = suitSVG(suit);
+      el.style.setProperty('--ls', LEAD_FIT[suit][0]);
+      el.style.setProperty('--ldy', LEAD_FIT[suit][1] + 'em');
       void el.offsetWidth;
     }
     el.classList.add('on');
@@ -524,7 +532,7 @@
       el.setAttribute('role', 'option');
       el.setAttribute('aria-label', cardName(c));
       if ((myTurn || exposing) && !legal.includes(c)) { el.classList.add('is-illegal'); el.setAttribute('aria-disabled', 'true'); }
-      if (isExposedCard(c) || (exposing && exposePick.includes(c))) el.classList.add('is-exposed');
+      if (isExposedCard(c) || (exposing && exposePick.includes(c)) || exposeHeld.includes(c)) el.classList.add('is-exposed');
       if (c === suggestCard && myTurn) el.classList.add('is-suggest');
       if (exposing ? exposePick.includes(c) : c === selected) { el.classList.add('selected'); el.setAttribute('aria-selected', 'true'); }
       el.addEventListener('click', () => onCardTap(c, el));
@@ -552,6 +560,7 @@
       : [];
     selected = -1;
     exposePick = [];
+    exposeHeld = [];
     save();
     renderAll();
     snd('deal');
@@ -611,6 +620,7 @@
     stopClock();
     busy = true;
     exposePick = [];
+    if (seat === 0) exposeHeld = cards.slice();
     renderSeats();
     renderHand();
     finishExpose(cards);
@@ -630,6 +640,7 @@
       }
       match.exposing = [];
       exposeWait = null;
+      exposeHeld = [];
       renderSeats();
       renderHand();
       r.exposed.forEach((_, i) => snd('stamp', i * 160));
@@ -1210,26 +1221,26 @@
   const ART = {
     // 坏猪：小恶魔角、倒竖眉、红瞳、斜嘴獠牙
     pig: '<svg viewBox="0 0 140 122" aria-hidden="true">' +
-      '<path d="M44 28C37 16 38 5 47 0c-2 10 2 18 9 22Z" fill="#7a1e1a"/><path d="M96 28c7-12 6-23-3-28 2 10-2 18-9 22Z" fill="#7a1e1a"/>' +
-      '<path d="M22 44 28 12 52 32Z" fill="#e0889a"/><path d="M118 44 112 12 88 32Z" fill="#e0889a"/>' +
-      '<ellipse cx="70" cy="70" rx="53" ry="47" fill="#f2a9b5"/><ellipse cx="40" cy="84" rx="9" ry="5.5" fill="#e98698" opacity=".6"/><ellipse cx="100" cy="84" rx="9" ry="5.5" fill="#e98698" opacity=".6"/>' +
-      '<ellipse cx="52" cy="62" rx="9" ry="5.5" fill="#fff"/><ellipse cx="88" cy="62" rx="9" ry="5.5" fill="#fff"/><circle cx="54.5" cy="63" r="3.6" fill="#b4392c"/><circle cx="85.5" cy="63" r="3.6" fill="#b4392c"/>' +
-      '<path d="M38 47 61 57M102 47 79 57" stroke="#3a2420" stroke-width="6.5" stroke-linecap="round"/>' +
+      '<path d="M44 28C37 16 38 5 47 0c-2 10 2 18 9 22Z" style="fill:var(--pg-horn,#7a1e1a)"/><path d="M96 28c7-12 6-23-3-28 2 10-2 18-9 22Z" style="fill:var(--pg-horn,#7a1e1a)"/>' +
+      '<path d="M22 44 28 12 52 32Z" style="fill:var(--pg-ear,#e0889a)"/><path d="M118 44 112 12 88 32Z" style="fill:var(--pg-ear,#e0889a)"/>' +
+      '<ellipse cx="70" cy="70" rx="53" ry="47" style="fill:var(--pg-skin,#f2a9b5)"/><ellipse cx="40" cy="84" rx="9" ry="5.5" style="fill:var(--pg-cheek,#e98698)" opacity=".6"/><ellipse cx="100" cy="84" rx="9" ry="5.5" style="fill:var(--pg-cheek,#e98698)" opacity=".6"/>' +
+      '<ellipse cx="52" cy="62" rx="9" ry="5.5" fill="#fff"/><ellipse cx="88" cy="62" rx="9" ry="5.5" fill="#fff"/><circle cx="54.5" cy="63" r="3.6" style="fill:var(--pg-eye,#b4392c)"/><circle cx="85.5" cy="63" r="3.6" style="fill:var(--pg-eye,#b4392c)"/>' +
+      '<path d="M38 47 61 57M102 47 79 57" style="stroke:var(--pg-line,#3a2420)" stroke-width="6.5" stroke-linecap="round"/>' +
       // 额头一颗小黑桃（呼应 ♠Q）
-      '<path d="M70 27c5 5 10 8.5 10 13 0 3.4-3.2 5.2-6 3.8-1-.5-1.8-1.3-2.4-2.4L73 47h-6l1.4-5.6c-.6 1.1-1.4 1.9-2.4 2.4-2.8 1.4-6-.4-6-3.8 0-4.5 5-8 10-13Z" fill="#1f1c18"/>' +
-      '<ellipse cx="70" cy="84" rx="21" ry="14" fill="#ea8f9f"/><ellipse cx="62" cy="84" rx="3.6" ry="5.4" fill="#a94a5e"/><ellipse cx="78" cy="84" rx="3.6" ry="5.4" fill="#a94a5e"/>' +
-      '<path d="M50 103q22 10 42-6" stroke="#3a2420" stroke-width="4" fill="none" stroke-linecap="round"/><path d="m80 103 4 8 3-11Z" fill="#fffaf3" stroke="#3a2420" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+      '<path d="M70 27c5 5 10 8.5 10 13 0 3.4-3.2 5.2-6 3.8-1-.5-1.8-1.3-2.4-2.4L73 47h-6l1.4-5.6c-.6 1.1-1.4 1.9-2.4 2.4-2.8 1.4-6-.4-6-3.8 0-4.5 5-8 10-13Z" style="fill:var(--pg-spade,#1f1c18)"/>' +
+      '<ellipse cx="70" cy="84" rx="21" ry="14" style="fill:var(--pg-snout,#ea8f9f)"/><ellipse cx="62" cy="84" rx="3.6" ry="5.4" style="fill:var(--pg-nose,#a94a5e)"/><ellipse cx="78" cy="84" rx="3.6" ry="5.4" style="fill:var(--pg-nose,#a94a5e)"/>' +
+      '<path d="M50 103q22 10 42-6" style="stroke:var(--pg-line,#3a2420)" stroke-width="4" fill="none" stroke-linecap="round"/><path d="m80 103 4 8 3-11Z" fill="#fffaf3" style="stroke:var(--pg-line,#3a2420)" stroke-width="1.5" stroke-linejoin="round"/></svg>',
     // 羊：羊毛先描一圈外轮廓再整块填色（像一整朵云，不是一个个圆），暖米色、腮红，额头一颗小红方块呼应 ♦J
     sheep: (() => {
       const wool = [[34, 42, 16], [52, 28, 17], [72, 28, 17], [88, 43, 16], [93, 63, 15], [78, 80, 16], [42, 80, 16], [27, 63, 15], [60, 86, 15], [60, 52, 30]];
       const tuft = [[50, 37, 9], [70, 37, 9], [60, 31, 10]];
       const circ = (a, attrs) => a.map(([x, y, r]) => '<circle cx="' + x + '" cy="' + y + '" r="' + r + '"' + attrs + '/>').join('');
       return '<svg viewBox="0 0 120 106" aria-hidden="true">' +
-        '<g fill="#e7cfc0">' + circ(wool, ' stroke="#b98f80" stroke-width="5"') + '</g><g fill="#fbefe4">' + circ(wool, '') + '</g>' +
+        '<g style="fill:var(--sh-edge,#e7cfc0);stroke:var(--sh-line,#b98f80)">' + circ(wool, ' stroke-width="5"') + '</g><g style="fill:var(--sh-wool,#fbefe4)">' + circ(wool, '') + '</g>' +
         '<ellipse cx="31" cy="55" rx="12" ry="6" transform="rotate(-24 31 55)" fill="#4b3a34"/><ellipse cx="89" cy="55" rx="12" ry="6" transform="rotate(24 89 55)" fill="#4b3a34"/>' +
         '<ellipse cx="60" cy="61" rx="20" ry="25" fill="#4b3a34"/>' +
-        '<g fill="#e7cfc0">' + circ(tuft, ' stroke="#b98f80" stroke-width="4"') + '</g><g fill="#fbefe4">' + circ(tuft, '') + '</g>' +
-        '<path d="M60 26 65 33 60 40 55 33Z" fill="#b4392c"/>' +
+        '<g style="fill:var(--sh-edge,#e7cfc0);stroke:var(--sh-line,#b98f80)">' + circ(tuft, ' stroke-width="4"') + '</g><g style="fill:var(--sh-wool,#fbefe4)">' + circ(tuft, '') + '</g>' +
+        '<path d="M60 26 65 33 60 40 55 33Z" style="fill:var(--sh-gem,#b4392c)"/>' +
         '<circle cx="52" cy="59" r="5" fill="#fff"/><circle cx="68" cy="59" r="5" fill="#fff"/><circle cx="53" cy="60" r="2.6" fill="#1d1b18"/><circle cx="69" cy="60" r="2.6" fill="#1d1b18"/>' +
         '<ellipse cx="46" cy="70" rx="4.5" ry="2.8" fill="#d9786c" opacity=".7"/><ellipse cx="74" cy="70" rx="4.5" ry="2.8" fill="#d9786c" opacity=".7"/>' +
         '<path d="M55 75Q60 80 65 75" stroke="#d9b9a6" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>';
@@ -1329,7 +1340,7 @@
         el.innerHTML = '<div class="gz-fxcoin" style="--tone:' + tone.ring + ';color:' + tone.ink + '"><span>' + fx.dbl.word + '</span></div>';
       } else {
         const pig = c === R.PIG;
-        el.className = 'gz-fxitem kind-' + (pig ? 'pig' : 'sheep') + ' is-duel';
+        el.className = 'gz-fxitem kind-' + (pig ? 'pig' : 'sheep') + ' is-duel' + (isExposedCard(c) ? ' gz-xart' : '');
         el.innerHTML = '<div class="gz-fxart">' + ART[pig ? 'pig' : 'sheep'] + '</div>' + tag(pig ? fx.pigSub : fx.sheepSub);
       }
       els.fx.appendChild(el);
@@ -1440,7 +1451,7 @@
     const [dx, dy] = FX_DRIFT[w];
     const dur = FX_DUR[fx.kind];
     const item = document.createElement('div');
-    item.className = 'gz-fxitem kind-' + fx.kind;
+    item.className = 'gz-fxitem kind-' + fx.kind + (fx.card != null && isExposedCard(fx.card) ? ' gz-xart' : '');
     const art = fx.kind === 'pig' || fx.kind === 'sheep' ? ART[fx.kind] : fx.kind === 'slam' ? ART.crown : '';
     const tone = fx.kind === 'doubler' ? DOUBLER_TONE[fx.tone || 'gold'] : null;
     item.innerHTML = (art ? '<div class="gz-fxart">' + art + '</div>' : '') +
@@ -1877,7 +1888,7 @@
       toast(NET.message(e));
       if (e.status === 401 || e.status === 404) { leaveOnline(); return null; }
       if (my.pending >= 0) my.pending = -1;
-      if (action === 'expose') my.exposeSent = null;   // 没送到：让我重新表态
+      if (action === 'expose') { my.exposeSent = null; exposeHeld = []; }   // 没送到：让我重新表态
       if (my.inGame && my.st && my.st.game) resync();
       return null;
     }
@@ -1920,6 +1931,7 @@
     token++;
     stopClock();
     flying = null; busy = true; selected = -1; exposePick = [];
+    if (online.exposeSent !== exposeKey(gv)) exposeHeld = [];
     online.queue = []; online.applied = gv.seq; online.pending = -1;
     const ended = gv.phase === 'round_end' || gv.phase === 'match_end';
     match = {
@@ -1997,7 +2009,7 @@
         match.roundNo = ev.roundNo; match.over = false; match.losers = [];
         match.round = R.createRound([gv.dealt.slice(), blank(), blank(), blank()], loc(ev.leader), ev.mustLead, match.rules);
         match.exposing = [];
-        selected = -1; exposePick = []; busy = true; online.readySent = false;
+        selected = -1; exposePick = []; exposeHeld = []; busy = true; online.readySent = false;
         renderAll();
         snd('deal');
         schedule(step, 450);
@@ -2006,7 +2018,7 @@
       if (!r) { resync(); return; }
       if (ev.t === 'expose') {
         for (const [c, s] of ev.exposed) { const l = loc(s); ensureCard(r, l, c); R.expose(r, l, c); }
-        match.exposing = [];
+        match.exposing = []; exposeHeld = [];
         renderSeats(); renderHand();
         ev.exposed.forEach((_, i) => snd('stamp', i * 160));
         schedule(step, 900);
@@ -2079,7 +2091,7 @@
     if (exposingMe()) {
       if (busy) return;
       const cards = exposePick.slice();
-      busy = true; match.exposing = []; exposePick = [];
+      busy = true; match.exposing = []; exposePick = []; exposeHeld = cards.slice();
       online.exposeSent = exposeKey(online.st.game);
       stopClock(); renderHand();
       onlineAct('expose', { cards });
@@ -2095,7 +2107,7 @@
     onlineAct('play', { card });
   }
 
-  /* 牌桌上的名字 / 头像 / 状态小签：掉线、已离开（机器人代打）、托管 */
+  /* 牌桌上的名字 / 头像 / 状态小签：掉线、已离开（机器人代打）；托管是头像右下角的小机器人 */
   function renderOnlineBadges() {
     if (!online || !online.inGame) return;
     const g = online.st.game;
@@ -2108,10 +2120,13 @@
       if (av && av.firstChild && av.firstChild.nodeType === 3 && av.firstChild.nodeValue !== AVATARS[l]) av.firstChild.nodeValue = AVATARS[l];
       const line = el.querySelector('.gz-name-line');
       let tag = line && line.querySelector('.gz-tag');
-      const text = !p ? '' : p.left ? '已离开' : g && g.auto[p.seat] ? '托管' : !p.isAi && !p.online ? '掉线' : '';
+      // 托管不写字：和我自己托管一样，头像右下角挂一枚小机器人
+      const auto = !!(p && !p.left && g && g.auto[p.seat]);
+      const text = !p ? '' : p.left ? '已离开' : auto ? '' : !p.isAi && !p.online ? '掉线' : '';
       if (line && !tag && text) { tag = document.createElement('span'); tag.className = 'gz-tag'; line.appendChild(tag); }
       if (tag) { tag.textContent = text; tag.hidden = !text; }
-      el.classList.toggle('is-auto', l === 0 && !!(g && g.auto[online.mySeat]));
+      el.classList.toggle('is-auto', auto);
+      if (l > 0) { if (auto) el.setAttribute('aria-label', NAMES[l] + '（托管中）'); else el.removeAttribute('aria-label'); }
     }
   }
 
