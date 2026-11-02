@@ -183,15 +183,7 @@
    * slide=true 时用 FLIP：先记下旧位置，改完 DOM 再从旧位置平移回来——
    * 新牌（incoming，先隐身占位）两边的牌在飞牌途中让开一个空位，飞来的牌正好落进去，之后不再收紧。 */
   function renderCaps(box, cards, incoming, ctx, slide) {
-    const seatEl = box.closest('.gz-seat');
-    // 本局分放哪（方案待定）：tail = 吃牌区末尾（现状）；name = 名字 / 累计分下面，固定不动
-    const mode = seatEl ? els.app.dataset.score || 'tail' : 'tail';
-    const scoreHost = mode === 'name' ? seatEl.querySelector('.gz-name-line') : null;
-    if (!cards.length) {
-      box.innerHTML = '';
-      if (seatEl) seatEl.querySelectorAll('.gz-name-line .gz-cap-score').forEach((x) => x.remove());
-      return;
-    }
+    if (!cards.length) { box.innerHTML = ''; return; }
     const hidden = new Set(incoming || []);
     const r = match.round;
     ctx = ctx || (r ? R.scoreCtx(r) : { rules: match.rules, exposed: [] });
@@ -202,6 +194,9 @@
     row.querySelectorAll('.gz-mini').forEach((el) => old.set(+el.dataset.card, el));
     const before = new Map();
     if (slide) for (const [c, el] of old) before.set(c, el.getBoundingClientRect());
+    // 本局分紧跟在牌后面：牌让开空位时它也跟着一起滑（和最后一张牌的距离不变），新牌插好之后才翻数
+    const score0 = slide ? row.querySelector('.gz-cap-score') : null;
+    const scoreBefore = score0 ? score0.getBoundingClientRect() : null;
 
     const mini = (c) => {
       let el = old.get(c);
@@ -226,22 +221,30 @@
       hs.forEach((el, k) => { if (fan.children[k] !== el) fan.insertBefore(el, fan.children[k] || null); });
       want.push(fan);
     } else if (fan) { fan.remove(); fan = null; }
-    let score = (scoreHost || row).querySelector('.gz-cap-score');
+    let score = row.querySelector('.gz-cap-score');
     const fresh = !score;
     if (!score) { score = document.createElement('span'); score.className = 'gz-cap-score gz-num'; }
     if (hidden.size && !fresh) score.dataset.next = sc.total;          // 牌在飞：旧分先留着，落地再翻
     else if (fresh && hidden.size) { score.dataset.next = sc.total; score.textContent = ''; score.dataset.v = ''; }
     else rollNumber(score, sc.total);
-    if (scoreHost) { if (score.parentNode !== scoreHost) scoreHost.appendChild(score); }
-    else want.push(score);
+    want.push(score);
     want.forEach((el, k) => { if (row.children[k] !== el) row.insertBefore(el, row.children[k] || null); });
     for (const el of old.values()) el.remove();   // 新的一局：清掉上局的
     while (row.children.length > want.length) row.lastChild.remove();
     row.classList.toggle('is-slam', sc.grandSlam);
     fitFan(box, row, fan);
 
-    if (!slide || !before.size) return;
+    if (!slide) return;
     const dur = pace().fly;
+    if (scoreBefore && score === score0 && score.isConnected) {
+      const b = score.getBoundingClientRect();
+      const dx = scoreBefore.left - b.left, dy = scoreBefore.top - b.top;
+      // 用独立的 translate 属性，不跟数字翻动时的 transform: scale 打架
+      if (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5) {
+        score.animate([{ translate: dx + 'px ' + dy + 'px' }, { translate: '0px 0px' }], { duration: dur, easing: 'cubic-bezier(.45, 0, .3, 1)' });
+      }
+    }
+    if (!before.size) return;
     for (const [c, a] of before) {
       const el = row.querySelector('.gz-mini[data-card="' + c + '"]');
       if (!el) continue;
@@ -618,7 +621,7 @@
   }
 
   function rollCapsScore(caps) {
-    const sc = caps.querySelector('.gz-cap-score') || (caps.closest('.gz-seat') && caps.closest('.gz-seat').querySelector('.gz-cap-score'));
+    const sc = caps.querySelector('.gz-cap-score');
     if (sc && sc.dataset.next !== undefined) { rollNumber(sc, +sc.dataset.next); delete sc.dataset.next; }
   }
 
@@ -906,9 +909,13 @@
       (rules.expose ? '<dt>亮牌</dt><dd>开打前，♥A、♠Q、♦J、♣10 可以亮给大家看，效果翻倍：亮 ♥A 红桃全部 ×2，亮猪 −200，亮羊 +200，亮变压器 ×4' + (rules.doublerAlone === 50 ? '（单吃 +100）' : '') + '。这个花色第一次被领出的那一轮里，亮出的牌不能出，也不能用它来领这个花色，除非你这个花色只剩它一张；垫牌不受限。</dd>' : '') +
       '<dt>一盘</dt><dd>' + end + '分最低的人当猪，并列都是。</dd></dl>';
   }
+  // 规则里点名的牌（♠2、猪 ♠Q、羊 ♦J、变压器 ♣10、♥A）直接画成小牌，和新手教程里一样
+  function rulesWithCards(rules) {
+    return inlineCards(rulesHtml(rules).replace(/([♠♥♦♣])(10|[2-9JQKA])/g, '{$1$2}'));
+  }
 
   function showRules() {
-    openDialog('<h2>拱猪规则</h2>' + rulesHtml(match.rules) +
+    openDialog('<h2>拱猪规则</h2>' + rulesWithCards(match.rules) +
       '<div class="gz-actions"><button type="button" class="gz-btn" data-act="tutorial">新手教程</button>' +
       '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>知道了</button></div>',
       (d) => {
@@ -1264,7 +1271,7 @@
 
   // 本机调试：控制台里 __gzDebug.playFx({ kind: 'pig', sub: '下家 −100' }, 1) 单独放一段动画
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx, match: () => match, render: () => renderAll(),
-    demoCaps: (mode, caps) => { if (!match || !match.round) return; const keep = caps || match.round.captured; match.round.captured = [[], [], [], []]; renderSeats(); els.app.dataset.score = mode || 'tail'; match.round.captured = keep; renderSeats(); }, solveSize: () => { solveSize(); if (match) renderHand(); }, showCoach: (m) => showCoach(m, () => hideCoach()) };
+ solveSize: () => { solveSize(); if (match) renderHand(); }, showCoach: (m) => showCoach(m, () => hideCoach()) };
 
   function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
 

@@ -395,15 +395,16 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 .gz-res-head { padding: 0 2px 4px; font-size: 12px; color: var(--gz-ink-mute); }
 .gz-res-row.me .gz-res-name { font-weight: 700; }
-/* 自己那一行：置顶、整行铺一层底色 + 左边一道色条；得分为正朱红，为负灰墨，持平淡金 */
-.gz-res-row.me {
-  margin: 2px 0 6px; padding-left: 10px; padding-right: 8px; border-bottom: 0; border-radius: 10px;
-  box-shadow: inset 3px 0 0 var(--gz-res-bar);
-  background: var(--gz-res-bg);
+/* 自己那一行：置顶，底色是垫在整行后面的一层（向两边多铺 10px、圆角），行本身的边距一点不动——
+ * 「我」和别人的名字、我的牌和别人的牌都在同一条竖线上。得分为正淡朱红、为负淡灰墨、持平淡金 */
+.gz-res-row.me { position: relative; isolation: isolate; border-bottom-color: transparent; }
+.gz-res-row.me::before {
+  content: ''; position: absolute; z-index: -1; inset: 3px -10px; border-radius: 10px;
+  background: var(--gz-res-bg); box-shadow: inset 0 0 0 1px var(--gz-res-line);
 }
-.gz-res-row.me.is-up { --gz-res-bg: rgba(180, 57, 44, 0.12); --gz-res-bar: var(--gz-seal); }
-.gz-res-row.me.is-down { --gz-res-bg: rgba(29, 27, 24, 0.08); --gz-res-bar: var(--gz-ink-mute); }
-.gz-res-row.me.is-even { --gz-res-bg: rgba(201, 169, 110, 0.2); --gz-res-bar: var(--gz-gold); }
+.gz-res-row.me.is-up { --gz-res-bg: rgba(180, 57, 44, 0.09); --gz-res-line: rgba(180, 57, 44, 0.22); }
+.gz-res-row.me.is-down { --gz-res-bg: rgba(29, 27, 24, 0.06); --gz-res-line: rgba(29, 27, 24, 0.14); }
+.gz-res-row.me.is-even { --gz-res-bg: rgba(201, 169, 110, 0.16); --gz-res-line: rgba(201, 169, 110, 0.4); }
 .gz-res-caps { justify-content: flex-start; min-height: 0; }
 .gz-res-caps:empty::before { content: '—'; color: var(--gz-off); }
 .gz-res-n { text-align: right; white-space: nowrap; }
@@ -653,10 +654,6 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-caps-row.is-wrapped { flex-wrap: wrap; row-gap: 6px; justify-content: center; }
 .gz-caps-row.is-wrapped .gz-fan { order: 2; flex: 0 0 100%; justify-content: center; }
 
-/* 本局分的位置（预览中，选定后删掉其余）：tail 吃牌区末尾（现状）/ name 名字和累计分下面 */
-.gz-app[data-score="name"] .gz-name-line { min-height: 54px; justify-content: flex-start; }
-.gz-name-line .gz-cap-score { margin: 1px 0 0; font-size: 14px; }
-.gz-name-line .gz-cap-score::before { content: '本局 '; font-family: inherit; font-size: 11px; font-weight: 400; color: var(--gz-ink-mute); }
 .gz-tool[hidden] { display: none; }
 
 /* 牌桌始终是宣纸配色：手机开了深色模式时，全站样式会把标题等改成浅色字，在牌桌上就看不见了——这里一律钉回墨色 */
@@ -669,10 +666,17 @@ body.gz-fullscreen .site-footer { display: none !important; }
 
 /* ───── 特色牌面：猪 / 羊 / 变压器 ×2（大花色换成画，角标不变） ───── */
 .gz-card.has-art .bigsuit { display: none; }
-.gz-face { position: absolute; left: 20%; right: 5%; top: 33%; bottom: 6%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+/* 画放在角标下面那块地方的正中，大小只跟牌宽 --q 走：桌上、手牌、吃牌区、规则里同一张牌比例一样 */
+.gz-face { position: absolute; left: 10%; right: 10%; top: calc(var(--q) * 0.42); bottom: calc(var(--q) * 0.1); display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .gz-face svg { width: 100%; height: 100%; display: block; overflow: visible; }
-.gz-hand .gz-card .gz-face, .gz-card.gz-handlike .gz-face { left: 30%; top: 38%; right: 4%; bottom: 5%; }
-.gz-mini .gz-face { left: 38%; top: 40%; right: 3%; bottom: 4%; }
+/* 吃牌区小牌：点数和花色并排在顶上一行，下面整块给画，和红桃小牌的大花色一样大 */
+.gz-mini .gz-face { left: 6%; right: 6%; top: calc(var(--q) * 0.5); bottom: calc(var(--q) * 0.04); }
 .gz-dbl { color: #b8924a; }
 [data-dbl="ash"] .gz-dbl { color: #7b756b; }
 [data-dbl="navy"] .gz-dbl { color: #3d5878; }
+/* 规则里点名的牌：和教程一样的小牌，跟着文字走 */
+.gz-rules .gz-card.gz-inline {
+  --q: 26px; width: 26px; height: 37px; display: inline-block; vertical-align: middle; position: relative; top: -2px;
+  margin: 0 3px; line-height: 1; border-radius: 3px; box-shadow: 0 1px 2px rgba(20, 18, 15, 0.16);
+}
+.gz-rules dt .gz-card.gz-inline { --q: 24px; width: 24px; height: 34px; }
