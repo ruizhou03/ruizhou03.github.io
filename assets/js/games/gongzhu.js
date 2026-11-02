@@ -23,12 +23,14 @@
   const SUIT_NAMES = ['黑桃', '红桃', '方块', '梅花'];
 
   // trickShow：一墩打满停多久；fly：分牌飞进吃牌区；fade：没分的牌就地淡出
-  const PACE = { aiMin: 520, trickShow: 600, fly: 420, fade: 260, roundEnd: 700 };
+  // roundEnd：最后一张分牌落进吃牌区后，等本局分数完（最长约 0.9 秒）再结这一局
+  const PACE = { aiMin: 520, trickShow: 600, fly: 420, fade: 260, roundEnd: 1000 };
   // 本机调试：?gzauto=1 让「我」也由 AI 代打并加速，用来一口气验到结算 / 一盘结束
   const AUTO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('gzauto') === '1';
   if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, fade: 120, roundEnd: 60 });
+  const SETTLE_HOLD = AUTO ? 60 : 1700;   // 累计分在桌上数完（最长约 0.9 秒）后再停一会儿，才弹结算页
   // 教程放慢：机器人出牌、收墩都留足时间看清
-  const TUT_PACE = { aiMin: 950, trickShow: 1100, fly: 520, fade: 320, roundEnd: 500 };
+  const TUT_PACE = { aiMin: 950, trickShow: 1100, fly: 520, fade: 320, roundEnd: 1000 };
   const pace = () => (match && match.tutorial ? TUT_PACE : PACE);
 
   const $ = (id) => document.getElementById(id);
@@ -967,9 +969,20 @@
     match.round = null;
     match.over = R.isMatchOver(match.totals, match.rules, match.roundNo);
     save();
-    renderAll();
-    roundEndSound(scores[0]);
-    showSettlement();
+    settleOnTable(() => { roundEndSound(scores[0]); showSettlement(); });
+  }
+
+  /* 一局打完不急着弹结算：牌桌保持最后的样子（吃牌区都还在），四家头像下的累计分一起数到新值，
+   * 数完再停一下，才出结算页。调用时最后一轮的本局分应该已经翻完（step 到这里前已等了 pace().roundEnd）。 */
+  function settleOnTable(then) {
+    for (let s = 0; s < 4; s++) {
+      els.seats[s].classList.remove('is-turn');
+      const tot = els.seats[s].querySelector('.gz-total');
+      rollNumber(tot, match.totals[s]);
+      tot.classList.toggle('neg', match.totals[s] < 0);
+    }
+    renderHand();   // 手牌已空：出牌键收起
+    schedule(then, reduceMotion() ? 300 : SETTLE_HOLD);
   }
 
   function roundEndSound(mine) { snd(mine > 0 ? 'win' : mine < 0 ? 'lose' : 'even'); }
@@ -1596,7 +1609,7 @@
   const SUIT_TINT = (g) => (g === '♠' || g === '♣' ? '#1f1c18' : g === '♥' || g === '♦' ? '#b4392c' : '#c9a96e');
 
   // 本机调试：控制台里 __gzDebug.playFx({ kind: 'pig', sub: '下家 −100' }, 1) 单独放一段动画
-  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx, match: () => match, render: () => renderAll(),
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx, match: () => match, render: () => renderAll(), step: () => step(),
  solveSize: () => { solveSize(); if (match) renderHand(); }, showCoach: (m) => showCoach(m, () => hideCoach()) };
 
   function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
@@ -2040,8 +2053,9 @@
         match.over = gv.phase === 'match_end' && gv.roundNo === ev.roundNo;
         match.losers = match.over ? (gv.losers || []).map(loc) : [];
         online.readySent = false;
-        renderAll(); renderOnlineBadges();
-        schedule(() => { roundEndSound(match.last.scores[0]); showSettlement(); step(); }, pace().roundEnd);
+        renderOnlineBadges();
+        // 和单机一样：等最后一轮的本局分翻完，再在桌上把累计分数完，停一下才出结算页
+        schedule(() => settleOnTable(() => { roundEndSound(match.last.scores[0]); showSettlement(); step(); }), pace().roundEnd);
         return;
       }
       schedule(step, 0);   // trick：收牌动画在第四张牌的 commit 里已经播了
