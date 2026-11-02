@@ -23,6 +23,9 @@ body_class: gz-fullscreen
         <button type="button" class="gz-skip" id="gzSkipTut">跳过教程</button>
       </div>
       <div class="gz-tools">
+        <button type="button" class="gz-tool" id="gzOnlineBtn" aria-label="联机对局">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="16.5" cy="9.5" r="2.4"/><path d="M15.6 14.1c2.6-.3 4.4 1.3 4.9 4.4"/></svg>
+        </button>
         <button type="button" class="gz-tool" id="gzRulesBtn" aria-label="规则">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.6"/><circle cx="12" cy="16.9" r=".6" class="dot"/></svg>
         </button>
@@ -51,6 +54,22 @@ body_class: gz-fullscreen
         <div class="gz-coach-parts"></div>
         <span class="gz-coach-more">点任意处继续</span>
       </div>
+      <!-- 联机大厅：人没凑齐时盖在牌桌中央（房号 / 邀请 / 本盘规则 / 开始） -->
+      <div class="gz-lobby" id="gzLobby" hidden>
+        <div class="gz-lobby-code"><span>房号</span><b></b></div>
+        <div class="gz-lobby-qr" aria-hidden="true"></div>
+        <div class="gz-lobby-links">
+          <button type="button" class="gz-btn" data-lb="copy-link">复制邀请链接</button>
+          <button type="button" class="gz-btn" data-lb="copy-code">复制房号</button>
+        </div>
+        <p class="gz-lobby-rules"></p>
+        <p class="gz-lobby-wait"></p>
+        <div class="gz-lobby-links">
+          <button type="button" class="gz-btn" data-lb="leave">离开</button>
+          <button type="button" class="gz-btn" data-lb="rules">改规则</button>
+          <button type="button" class="gz-btn gz-btn-primary" data-lb="start">开始</button>
+        </div>
+      </div>
       <!-- 特殊事件：吃羊 / 吃猪 / 变压器 / 全红 / 大满贯 的印章动画 -->
       <div class="gz-fx" id="gzFx" aria-hidden="true"></div>
     </div>
@@ -75,6 +94,9 @@ body_class: gz-fullscreen
 </div>
 
 <script>window.GZ_BUILD = "{{ site.time | date: '%s' }}";</script>
+<script src="/assets/js/games-shell/identity.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/gongzhu-net.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/gongzhu-rules.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/gongzhu-ai.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/gongzhu-tutorial.js?v={{ site.time | date: '%s' }}"></script>

@@ -572,3 +572,76 @@ body.gz-fullscreen .site-footer { display: none !important; }
   .gz-hand .gz-card.nope, .gz-seat.is-turn.is-hurry .gz-avatar { animation: none; }
   .gz-slot.is-ace::after, .gz-hand .gz-card.is-suggest, .gz-btn.is-suggest { animation: none; }
 }
+
+/* ───── 联机 ───── */
+/* 座位上的小签：房主 / 掉线 / 已离开 / 托管 */
+.gz-tag {
+  display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 9px; font-size: 11px; line-height: 17px;
+  border: 1px solid var(--gz-ink-mute); color: var(--gz-ink-mute); vertical-align: middle; white-space: nowrap;
+}
+.gz-tag[hidden] { display: none; }
+.gz-tag.is-host { border-color: var(--gz-gold); color: #8a6d36; background: rgba(201, 169, 110, 0.14); }
+
+/* 大厅：座位就是一张可点的名牌；空位虚线 */
+.is-lobby .gz-band, .is-lobby .gz-hand { visibility: hidden; }
+.gz-lobby-seat {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 6px;
+  border: 0; background: none; padding: 6px 8px; font: inherit; color: inherit; cursor: pointer; border-radius: 12px;
+}
+.gz-seat-me .gz-lobby-seat { flex-direction: row; cursor: default; }
+.gz-lobby-seat:disabled { cursor: default; }
+.gz-lobby-seat:not(:disabled):hover { background: rgba(29, 27, 24, 0.05); }
+.gz-lobby-seat .gz-avatar.is-bot { border-style: double; border-width: 3px; }
+.gz-lobby-seat.is-empty .gz-avatar { border-style: dashed; color: var(--gz-ink-mute); font-size: 24px; }
+.gz-lobby-name { font-size: 15px; font-weight: 600; max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gz-lobby-seat.is-empty .gz-lobby-name { color: var(--gz-ink-mute); font-weight: 400; }
+.gz-lobby-hint { font-size: 12px; color: var(--gz-seal); }
+
+.gz-lobby {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4;
+  width: min(420px, 96%); max-height: 100%; overflow: auto;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+}
+.gz-lobby[hidden] { display: none; }
+.gz-lobby-code { display: flex; align-items: baseline; gap: 10px; }
+.gz-lobby-code span { font-size: 13px; color: var(--gz-ink-mute); letter-spacing: 0.1em; }
+.gz-lobby-code b { font-family: var(--gz-num-font, inherit); font-size: 40px; letter-spacing: 0.16em; line-height: 1; }
+.gz-lobby-qr canvas { display: block; border: 1px solid rgba(29, 27, 24, 0.2); border-radius: 4px; }
+.gz-lobby-links { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.gz-lobby-links .gz-btn[hidden] { display: none; }
+.gz-lobby-rules { margin: 2px 0 0; font-size: 13px; color: var(--gz-ink-mute); }
+.gz-lobby-wait { margin: 0; font-size: 14px; }
+@media (max-height: 520px) { .gz-lobby-qr { display: none; } .gz-lobby-code b { font-size: 30px; } }
+
+/* 入口弹窗 */
+.gz-input {
+  width: 100%; box-sizing: border-box; margin: 6px 0 14px; padding: 9px 10px; font: inherit; font-size: 16px;
+  border: 1px solid var(--gz-ink); border-radius: 8px; background: #fffdf8; color: var(--gz-ink);
+}
+.gz-input:focus { outline: 2px solid var(--gz-seal); outline-offset: 1px; }
+.gz-join-row { display: flex; gap: 8px; align-items: center; margin: 6px 0 4px; }
+.gz-join-row .gz-input { margin: 0; flex: 1; letter-spacing: 0.2em; }
+.gz-err { color: var(--gz-seal) !important; }
+.gz-dialog .gz-actions-start { justify-content: flex-start; margin: 0 0 12px; }
+.gz-wait { font-size: 14px; color: var(--gz-ink-mute); align-self: center; }
+
+.gz-toast {
+  position: fixed; left: 50%; bottom: 18%; z-index: calc(var(--z-dialog) + 1); transform: translate(-50%, 8px);
+  background: var(--gz-ink); color: var(--gz-paper); padding: 8px 16px; border-radius: 18px; font-size: 14px;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; max-width: 86vw; text-align: center;
+}
+.gz-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ───── 吃牌区：窄座位留两排，红桃多了挪到第二排（见 fitFan） ───── */
+.gz-seat-left .gz-caps, .gz-seat-right .gz-caps { --caps-rows: 2; height: calc(var(--mh) * 2 + 12px); align-items: flex-start; }
+@media (max-aspect-ratio: 1/1) {
+  .gz-seat-top .gz-caps { --caps-rows: 2; height: calc(var(--mh) * 2 + 12px); align-items: flex-start; }
+}
+.gz-caps-row.is-wrapped { flex-wrap: wrap; row-gap: 6px; justify-content: center; }
+.gz-caps-row.is-wrapped .gz-fan { order: 2; flex: 0 0 100%; justify-content: center; }
+
+/* 本局分的位置（预览中，选定后删掉其余）：tail 吃牌区末尾（现状）/ name 名字和累计分下面 */
+.gz-app[data-score="name"] .gz-name-line { min-height: 54px; justify-content: flex-start; }
+.gz-name-line .gz-cap-score { margin: 1px 0 0; font-size: 14px; }
+.gz-name-line .gz-cap-score::before { content: '本局 '; font-family: inherit; font-size: 11px; font-weight: 400; color: var(--gz-ink-mute); }
+.gz-tool[hidden] { display: none; }

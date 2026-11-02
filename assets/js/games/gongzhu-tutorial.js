@@ -221,12 +221,15 @@
           (gong ? '对家先出小黑桃，把你手里的猪逼了出来，这就叫「拱猪」。' : ''), trick, mark: true });
       }
       if (cs.includes(DOUBLER) && w === 0) {
-        before.push({ text: '这一轮的花色是草花，你的 ' + label(top) + ' 最大，这一轮你赢，收下这一轮的所有牌。', trick, mark: true });
+        // 先讲清变压器是什么、收下它会怎样，再结算放 ×2 动画——不然分数突然翻倍会让人发蒙
         const ctx = R.scoreCtx(r);
         const aft = R.scoreCaptured(r.captured[0], ctx).total;
         const bef = R.scoreCaptured(r.captured[0].filter((c) => c !== DOUBLER), ctx).total;
-        after.push({ text: label(DOUBLER) + ' 叫「变压器」：它本身不带分数，但谁收下它，这一局的总分就翻倍。你这一局的分数从 ' +
-          (bef > 0 ? '+' : '') + bef + ' 翻成了 ' + (aft > 0 ? '+' : '') + aft + '。', focus: 0 });
+        const sg = (n) => (n > 0 ? '+' : '') + n;
+        before.push({ text: '这一轮的花色是草花，你的 ' + label(top) + ' 最大，这一轮你赢，收下这一轮的所有牌。', trick, mark: true });
+        before.push({ text: '这一轮里有 ' + label(DOUBLER) + '，它叫「变压器」：它本身不带分数，但谁收下它，这一局的总分就翻倍。你这一局现在是 ' +
+          sg(bef) + ' 分，收下它就变成 ' + sg(aft) + '。', trick, mark: true });
+        after.push({ text: '翻倍了：你这一局的分数从 ' + sg(bef) + ' 变成了 ' + sg(aft) + '。', focus: 0 });
       }
       // 红桃：先在牌还没收走时讲清怎么扣、这一轮扣多少，再让红桃飞去对家
       if (hearts.length && w === 2) {

@@ -12,8 +12,10 @@
   const SETTINGS_KEY = 'gz.settings.v1';
   const VERSION = '20261101d';   // 加了规则开关和亮牌，局面结构变了，旧存档作废
 
-  const NAMES = ['我', '下家', '对家', '上家'];
-  const AVATARS = ['我', '下', '对', '上'];
+  const SOLO_NAMES = ['我', '下家', '对家', '上家'];
+  const SOLO_AVATARS = ['我', '下', '对', '上'];
+  let NAMES = SOLO_NAMES.slice();       // 联机时换成三家的昵称（我永远在下方）
+  let AVATARS = SOLO_AVATARS.slice();
   const TIER_LABELS = { easy: '入门', normal: '普通', hard: '高手' };
   const TIER_ORDER = ['easy', 'normal', 'hard'];
   const TURN_SEC_OPTS = { 20: '20 秒', 0: '不限时' };
@@ -60,7 +62,7 @@
     // 规则在开盘时定下，中途改设置从下一盘起生效
     match = { rules: R.normalizeRules(settings.rules), totals: [0, 0, 0, 0], roundNo: 0, pigTaker: -1, seed: (Math.random() * 2 ** 31) | 0, round: null, exposing: [], last: null, over: false };
   }
-  function save() { if (!match.tutorial) writeJSON(STORE_KEY, { v: VERSION, match }); }
+  function save() { if (!match.tutorial && !match.online) writeJSON(STORE_KEY, { v: VERSION, match }); }
 
   /* ───── 卡面（四象限，参数逐字取自掼蛋 / 斗地主定稿） ───── */
 
@@ -157,7 +159,15 @@
    * slide=true 时用 FLIP：先记下旧位置，改完 DOM 再从旧位置平移回来——
    * 新牌（incoming，先隐身占位）两边的牌在飞牌途中让开一个空位，飞来的牌正好落进去，之后不再收紧。 */
   function renderCaps(box, cards, incoming, ctx, slide) {
-    if (!cards.length) { box.innerHTML = ''; return; }
+    const seatEl = box.closest('.gz-seat');
+    // 本局分放哪（方案待定）：tail = 吃牌区末尾（现状）；name = 名字 / 累计分下面，固定不动
+    const mode = seatEl ? els.app.dataset.score || 'tail' : 'tail';
+    const scoreHost = mode === 'name' ? seatEl.querySelector('.gz-name-line') : null;
+    if (!cards.length) {
+      box.innerHTML = '';
+      if (seatEl) seatEl.querySelectorAll('.gz-name-line .gz-cap-score').forEach((x) => x.remove());
+      return;
+    }
     const hidden = new Set(incoming || []);
     const r = match.round;
     ctx = ctx || (r ? R.scoreCtx(r) : { rules: match.rules, exposed: [] });
@@ -192,13 +202,14 @@
       hs.forEach((el, k) => { if (fan.children[k] !== el) fan.insertBefore(el, fan.children[k] || null); });
       want.push(fan);
     } else if (fan) { fan.remove(); fan = null; }
-    let score = row.querySelector('.gz-cap-score');
+    let score = (scoreHost || row).querySelector('.gz-cap-score');
     const fresh = !score;
     if (!score) { score = document.createElement('span'); score.className = 'gz-cap-score gz-num'; }
     if (hidden.size && !fresh) score.dataset.next = sc.total;          // 牌在飞：旧分先留着，落地再翻
     else if (fresh && hidden.size) { score.dataset.next = sc.total; score.textContent = ''; score.dataset.v = ''; }
     else rollNumber(score, sc.total);
-    want.push(score);
+    if (scoreHost) { if (score.parentNode !== scoreHost) scoreHost.appendChild(score); }
+    else want.push(score);
     want.forEach((el, k) => { if (row.children[k] !== el) row.insertBefore(el, row.children[k] || null); });
     for (const el of old.values()) el.remove();   // 新的一局：清掉上局的
     while (row.children.length > want.length) row.lastChild.remove();
@@ -219,14 +230,25 @@
   }
 
   /* 红桃扇的叠放间距：放得下就露 44%，放不下就叠紧一点（最少露 16%），整行永远不折 */
+  /* 座位窄（左右两家；竖屏时顶上三家）的吃牌区留了两排高：红桃挤得看不清（每张露不到 30%）就整扇挪到第二排，
+   * 第二排独占整行宽度。换排不改吃牌区高度，不挤动布局。 */
   function fitFan(box, row, fan) {
+    row.classList.remove('is-wrapped');
     if (!fan) return;
-    const m = parseFloat(getComputedStyle(box).getPropertyValue('--m')) || 28;
+    const cs = getComputedStyle(box);
+    // --m 是 clamp() 表达式，parseFloat 读不出来：直接量一张小牌的实际宽度
+    const first = fan.querySelector('.gz-mini');
+    const m = (first && first.getBoundingClientRect().width) || 28;
+    const rows = parseInt(cs.getPropertyValue('--caps-rows'), 10) || 1;
     const n = fan.children.length;
     let others = 0;
     for (const el of row.children) if (el !== fan) others += el.getBoundingClientRect().width;
     const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
-    const avail = box.clientWidth - others - gap * (row.children.length - 1) - 6;
+    let avail = box.clientWidth - others - gap * (row.children.length - 1) - 6;
+    if (rows > 1 && n > 1 && (avail - m) / (n - 1) < m * 0.44) {
+      row.classList.add('is-wrapped');
+      avail = box.clientWidth - 6;
+    }
     const step = n > 1 ? Math.max(m * 0.16, Math.min(m * 0.44, (avail - m) / (n - 1))) : 0;
     fan.style.setProperty('--fanstep', step.toFixed(1) + 'px');
   }
@@ -265,8 +287,8 @@
   function buildSeats() {
     els.seats.forEach((el, s) => {
       el.innerHTML =
-        '<div class="gz-who"><span class="gz-avatar">' + AVATARS[s] + CLOCK_SVG + '</span>' +
-        '<span class="gz-name-line"><span class="gz-name">' + NAMES[s] + '</span><span class="gz-total gz-num"></span></span></div>' +
+        '<div class="gz-who"><span class="gz-avatar">' + esc(AVATARS[s]) + CLOCK_SVG + '</span>' +
+        '<span class="gz-name-line"><span class="gz-name">' + esc(NAMES[s]) + '</span><span class="gz-total gz-num"></span></span></div>' +
         (s === 0 ? '' : '<div class="gz-hold"><span class="gz-backs" aria-hidden="true"></span><span class="gz-shown"></span></div>') +
         '<div class="gz-caps"></div>';
       el.setAttribute('aria-label', NAMES[s]);
@@ -316,6 +338,7 @@
 
   function renderSeats() {
     for (let s = 0; s < 4; s++) renderSeat(s);
+    if (match.online && match.lobby) return;
     els.roundNo.textContent = match.tutorial ? '新手教程' : '第 ' + match.roundNo + (match.rules.end === 'rounds10' ? ' / 10' : '') + ' 局';
   }
 
@@ -410,6 +433,7 @@
   }
 
   function step() {
+    if (match && match.online) { onlineStep(); return; }   // 联机：不跑 AI，按服务器发来的事件一条条播
     const r = match.round;
     if (!r) return;
     if (R.isRoundOver(r)) { schedule(finishRound, pace().roundEnd); return; }
@@ -557,7 +581,7 @@
   }
 
   function rollCapsScore(caps) {
-    const sc = caps.querySelector('.gz-cap-score');
+    const sc = caps.querySelector('.gz-cap-score') || (caps.closest('.gz-seat') && caps.closest('.gz-seat').querySelector('.gz-cap-score'));
     if (sc && sc.dataset.next !== undefined) { rollNumber(sc, +sc.dataset.next); delete sc.dataset.next; }
   }
 
@@ -568,18 +592,18 @@
 
   const clock = { seat: -1, left: 0, at: 0, onTimeout: null, paused: false, t1: 0, t2: 0 };
 
-  function startClock(seat, onTimeout) {
+  function startClock(seat, onTimeout, totalMs) {
     stopClock();
     if (match.tutorial) return;   // 教程不计时
-    const total = (settings.turnSec | 0) * 1000;
-    if (!total) return;
+    const total = totalMs != null ? Math.round(totalMs) : (settings.turnSec | 0) * 1000;
+    if (!(total > 0)) return;
     Object.assign(clock, { seat, left: total, onTimeout, paused: false });
     const el = els.seats[seat];
     el.style.setProperty('--turn-ms', total + 'ms');
     el.classList.remove('is-timed', 'is-hurry', 'is-paused');
     void el.offsetWidth;   // 同一座位连着两回合也要从满环重新开始
     el.classList.add('is-timed');
-    if (!els.mask.hidden) pauseClock();
+    if (!els.mask.hidden && !match.online) pauseClock();
     else runClock();
   }
   function runClock() {
@@ -589,7 +613,7 @@
     if (clock.onTimeout) clock.t2 = setTimeout(() => { if (my !== token) return; const f = clock.onTimeout; stopClock(); f(); }, clock.left);
   }
   function pauseClock() {
-    if (clock.seat < 0 || clock.paused) return;
+    if (clock.seat < 0 || clock.paused || (match && match.online)) return;   // 联机的钟以服务器为准，弹窗开着也照走
     clearTimeout(clock.t1); clearTimeout(clock.t2);
     if (clock.at) clock.left = Math.max(0, clock.left - (performance.now() - clock.at));
     clock.at = 0;
@@ -641,6 +665,7 @@
   }
 
   function onCardTap(c, el) {
+    if (match.online && onlineAuto()) { onlineAct('auto', { on: false }); return; }
     if (autopilot) { setAutopilot(false); return; }
     if (match.tutorial) { suggestCard = -1; armIdle(); }
     if (exposingMe()) {
@@ -671,6 +696,7 @@
   }
 
   function playSelected() {
+    if (match.online) { onlinePlaySelected(); return; }
     if (exposingMe()) {
       if (busy) return;
       busy = true;
@@ -754,7 +780,7 @@
   /* 结算：每家一行 = 名字 · 吃牌（同一套小牌陈列） · 本局 · 累计；不写算式文字 */
   function showSettlement() {
     const last = match.last;
-    const losers = match.over ? R.matchLosers(match.totals) : [];
+    const losers = match.online ? match.losers || [] : match.over ? R.matchLosers(match.totals) : [];
     const cls = (n) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
     // 自己永远在最上面；其余三家按分从高到低（整盘结束按累计，平时按本局），同分按出牌顺序（下家 → 对家 → 上家）
     const key = (s) => (match.over ? match.totals[s] : last.scores[s]);
@@ -762,18 +788,19 @@
     const mine = key(0);
     const rows = order.map((s) =>
       '<div class="gz-res-row' + (s === 0 ? ' me is-' + (mine > 0 ? 'up' : mine < 0 ? 'down' : 'even') : '') + (losers.includes(s) ? ' loser' : '') + '" data-seat="' + s + '">' +
-      '<span class="gz-res-name">' + NAMES[s] + (losers.includes(s) ? '<span class="gz-pig-badge">猪</span>' : '') + '</span>' +
+      '<span class="gz-res-name">' + esc(NAMES[s]) + (losers.includes(s) ? '<span class="gz-pig-badge">猪</span>' : '') + '</span>' +
       '<span class="gz-res-caps gz-caps"></span>' +
       '<span class="gz-res-n gz-num ' + cls(last.scores[s]) + '">' + signed(last.scores[s]) + '</span>' +
       '<span class="gz-res-n gz-res-tot gz-num ' + cls(match.totals[s]) + '">' + signed(match.totals[s]) + '</span></div>').join('');
     const title = match.tutorial ? '教程完成' : match.over
-      ? losers.map((s) => (s === 0 ? '你' : NAMES[s])).join('、') + (losers.length > 1 ? '都' : '') + '当了猪'
+      ? (losers.length ? losers.map((s) => (s === 0 ? '你' : esc(NAMES[s]))).join('、') + (losers.length > 1 ? '都' : '') + '当了猪' : '这一盘结束')
       : '第 ' + last.roundNo + ' 局';
     openDialog(
       '<h2>' + title + '</h2>' +
       '<div class="gz-res"><div class="gz-res-row gz-res-head"><span></span><span></span><span class="gz-res-n">本局</span><span class="gz-res-n">累计</span></div>' + rows + '</div>' +
       '<div class="gz-actions">' +
-      (match.tutorial ? '<button type="button" class="gz-btn gz-btn-primary" data-act="tut-done" data-autofocus>开始第一盘</button>'
+      (match.online ? onlineSettleActions()
+        : match.tutorial ? '<button type="button" class="gz-btn gz-btn-primary" data-act="tut-done" data-autofocus>开始第一盘</button>'
         : match.over ? '<button type="button" class="gz-btn gz-btn-primary" data-act="again" data-autofocus>再来一盘</button>'
         : '<button type="button" class="gz-btn gz-btn-primary" data-act="next" data-autofocus>下一局</button>') +
       '</div>',
@@ -784,6 +811,7 @@
           const sc = box.querySelector('.gz-cap-score');
           if (sc) sc.remove();
         });
+        if (match.online) { bindOnlineSettle(d); return; }
         d.querySelector('[data-act]').addEventListener('click', (e) => {
           closeDialog();
           if (e.currentTarget.dataset.act === 'tut-done') { endTutorial(); return; }
@@ -796,7 +824,7 @@
 
   function showTotals() {
     if (match.last && !match.round) { showSettlement(); return; }
-    const rows = [0, 1, 2, 3].map((s) => '<tr class="' + (s === 0 ? 'me' : '') + '"><td>' + NAMES[s] + '</td><td class="n ' +
+    const rows = [0, 1, 2, 3].map((s) => '<tr class="' + (s === 0 ? 'me' : '') + '"><td>' + esc(NAMES[s]) + '</td><td class="n ' +
       (match.totals[s] < 0 ? 'neg' : match.totals[s] > 0 ? 'pos' : '') + '">' + signed(match.totals[s]) + '</td></tr>').join('');
     openDialog('<h2>累计</h2>' +
       '<table class="gz-score-table"><tbody>' + rows + '</tbody></table>' +
@@ -855,6 +883,7 @@
   ];
 
   function showSettings() {
+    if (match && match.online) { showRoomDialog(); return; }
     const seg = Object.keys(TIER_LABELS).map((k) => '<button type="button" data-tier="' + k + '" aria-pressed="' + (settings.tier === k) + '">' + TIER_LABELS[k] + '</button>').join('');
     const secs = [20, 0].map((k) => '<button type="button" data-sec="' + k + '" aria-pressed="' + ((settings.turnSec | 0) === k) + '">' + TURN_SEC_OPTS[k] + '</button>').join('');
     openDialog(
@@ -1177,7 +1206,8 @@
   const SUIT_TINT = (g) => (g === '♠' || g === '♣' ? '#1f1c18' : g === '♥' || g === '♦' ? '#b4392c' : '#c9a96e');
 
   // 本机调试：控制台里 __gzDebug.playFx({ kind: 'pig', sub: '下家 −100' }, 1) 单独放一段动画
-  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx, solveSize: () => { solveSize(); if (match) renderHand(); }, showCoach: (m) => showCoach(m, () => hideCoach()) };
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx,
+    demoCaps: (mode, caps) => { if (!match || !match.round) return; const keep = caps || match.round.captured; match.round.captured = [[], [], [], []]; renderSeats(); els.app.dataset.score = mode || 'tail'; match.round.captured = keep; renderSeats(); }, solveSize: () => { solveSize(); if (match) renderHand(); }, showCoach: (m) => showCoach(m, () => hideCoach()) };
 
   function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
 
@@ -1368,6 +1398,568 @@
     return true;
   }
 
+  /* ───── 联机 ─────
+   * 服务器说了算（backends/urge/api/gongzhu.js）：发牌、校验、机器人、超时代打都在服务器上。
+   * 这边只做三件事：长轮询拿房间视图；把视图里的事件日志（发牌 / 亮牌 / 出牌 / 收牌 / 结算）按顺序播成和单机一样的动画；
+   * 把我的操作（出牌 / 亮牌 / 下一局 / 大厅设置）发出去。
+   * 座位换算：服务器座位 0..3 → 我这边的位置（我永远在下方 0，下家 1、对家 2、上家 3）。
+   * 别家的手牌只知道张数：镜像局面里用 -1 占位，亮出的牌按真牌放进去；轮到他出某张时把一个占位换成那张再交给规则引擎。
+   * 播完事件后和快照对一遍（手牌 / 轮到谁 / 第几轮），对不上就按快照直接重画——断线、漏消息都靠这个自愈。 */
+
+  // 后端还没部署上线之前，联机入口只在本机调试或打开开关（localStorage gongzhu.online.enabled = 1）时出现
+  const NET = window.GongzhuNet && (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || (() => { try { return localStorage.getItem('gongzhu.online.enabled') === '1'; } catch (_) { return false; } })())
+    ? window.GongzhuNet : null;
+  let online = null;   // { code, token, st, mySeat, applied, queue, pending, idle, inGame, readySent, skew, stopped }
+
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]); }
+  const srv = (l) => (l + online.mySeat) % 4;
+  const loc = (s) => (s - online.mySeat + 4) % 4;
+  const rot = (arr) => [0, 1, 2, 3].map((l) => arr[srv(l)]);
+  function playerAt(s) { return online && online.st ? online.st.players.find((p) => p.seat === s) || null : null; }
+  function isHost() { return !!(online && online.st && online.st.hostId === online.st.me); }
+  function onlineAuto() { const g = online && online.st && online.st.game; return !!(g && g.auto[online.mySeat]); }
+  function avatarOf(p) { return p ? [...String(p.nick)][0] || '?' : '+'; }
+  function seatIsBot(l) {
+    const p = playerAt(srv(l));
+    const g = online.st.game;
+    return !p || p.isAi || p.left || !!(g && g.auto[srv(l)]);
+  }
+
+  function toast(text) {
+    let el = $('gzToast');
+    if (!el) { el = document.createElement('div'); el.id = 'gzToast'; el.className = 'gz-toast'; el.setAttribute('role', 'status'); els.app.appendChild(el); }
+    el.textContent = text;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(toast.t);
+    toast.t = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  /* 进入联机：先停掉单机这一盘（存档还在，离开房间时接着打） */
+  function startOnline(st, tok) {
+    if (match && !match.online && !match.tutorial) save();
+    token++;
+    stopClock(); hideCoach(); closeDialog();
+    setAutopilot(false);
+    online = { code: st.code, token: tok, st: null, mySeat: st.mySeat, applied: 0, queue: [], pending: -1, idle: true, inGame: false, readySent: false, skew: 0, stopped: false };
+    NET.writeSession({ code: st.code, token: tok });
+    try { const u = new URL(location.href); u.searchParams.set('room', st.code); history.replaceState(null, '', u); } catch (_) { /* ignore */ }
+    els.app.classList.add('is-online');
+    onState(st);
+    pollLoop(online);
+  }
+
+  function leaveOnline(msg, sendLeave) {
+    const my = online;
+    if (!my) return;
+    if (sendLeave) NET.act(my.code, my.token, 'leave', {}).catch(() => {});
+    my.stopped = true;
+    online = null;
+    NET.writeSession(null);
+    try { const u = new URL(location.href); u.searchParams.delete('room'); history.replaceState(null, '', u); } catch (_) { /* ignore */ }
+    token++;
+    stopClock(); closeDialog();
+    busy = false; selected = -1; exposePick = []; flying = null;
+    els.app.classList.remove('is-online', 'is-lobby');
+    $('gzLobby').hidden = true;
+    NAMES = SOLO_NAMES.slice();
+    AVATARS = SOLO_AVATARS.slice();
+    buildSeats();
+    resumeSolo(true);
+    if (msg) toast(msg);
+  }
+
+  async function pollLoop(my) {
+    let fails = 0;
+    while (online === my && !my.stopped) {
+      try {
+        const res = await NET.state(my.code, my.token, my.st ? my.st.version : 0);
+        fails = 0;
+        if (online !== my) return;
+        onState(res.state);
+      } catch (e) {
+        if (online !== my) return;
+        if (e.status === 401 || e.status === 404) { leaveOnline('房间已经解散了'); return; }
+        fails++;
+        if (fails === 3) toast('网络不太稳，正在重连…');
+        await new Promise((r) => setTimeout(r, Math.min(8000, 800 * fails)));
+      }
+    }
+  }
+
+  async function onlineAct(action, body) {
+    const my = online;
+    if (!my) return null;
+    try {
+      const res = await NET.act(my.code, my.token, action, body || {});
+      if (online === my && res && res.state) onState(res.state);
+      return res;
+    } catch (e) {
+      if (online !== my) return null;
+      toast(NET.message(e));
+      if (e.status === 401 || e.status === 404) { leaveOnline(); return null; }
+      if (my.pending >= 0) my.pending = -1;
+      if (my.inGame && my.st && my.st.game) resync();
+      return null;
+    }
+  }
+
+  /* 收到一份房间视图（长轮询或自己动作的回应） */
+  function onState(st) {
+    if (!online || !st || st.code !== online.code) return;
+    if (online.st && st.version < online.st.version) return;   // 迟到的旧视图
+    online.st = st;
+    online.skew = st.serverNow - Date.now();
+    const me = st.players.find((p) => p.id === st.me);
+    if (!me || me.left || st.mySeat < 0) { leaveOnline('你已经不在这个房间里了'); return; }
+    online.mySeat = st.mySeat;
+    NAMES = [0, 1, 2, 3].map((l) => (l === 0 ? '我' : (playerAt(srv(l)) || { nick: '空位' }).nick));
+    AVATARS = [0, 1, 2, 3].map((l) => (l === 0 ? '我' : avatarOf(playerAt(srv(l)))));
+    if (st.phase === 'lobby') { renderLobby(); return; }
+    const gv = st.game;
+    if (!online.inGame || !match || !match.online || match.lobby || match.matchNo !== gv.matchNo) { enterGameView(); resync(); return; }
+    const last = online.queue.length ? online.queue[online.queue.length - 1].n : online.applied;
+    if (gv.seq < online.applied) { resync(); return; }
+    const fresh = gv.log.filter((e) => e.n > last);
+    if (fresh.length && fresh[0].n !== last + 1) { resync(); return; }
+    online.queue.push(...fresh);
+    renderOnlineBadges();
+    if (online.idle) onlineStep();
+    updateSettleWaiting();
+  }
+
+  function enterGameView() {
+    online.inGame = true;
+    els.app.classList.remove('is-lobby');
+    $('gzLobby').hidden = true;
+    buildSeats();
+  }
+
+  /* 按快照直接画出当前局面（不播动画）：刚进来、断线回来、或者播完对不上时 */
+  function resync() {
+    const gv = online.st.game;
+    token++;
+    stopClock();
+    flying = null; busy = true; selected = -1; exposePick = [];
+    online.queue = []; online.applied = gv.seq; online.pending = -1;
+    const ended = gv.phase === 'round_end' || gv.phase === 'match_end';
+    match = {
+      online: true, matchNo: gv.matchNo, rules: gv.rules, totals: rot(gv.totals), roundNo: gv.roundNo,
+      round: ended || !gv.round ? null : mirrorFromSnapshot(gv), exposing: [],
+      last: gv.last ? { roundNo: gv.last.roundNo, scores: rot(gv.last.scores), captured: rot(gv.last.captured), ctx: gv.last.ctx } : null,
+      over: gv.phase === 'match_end', losers: (gv.losers || []).map(loc), tutorial: false,
+    };
+    closeDialog();
+    renderAll();
+    renderOnlineBadges();
+    if (ended && match.last) { online.readySent = !!(gv.ready && gv.ready[online.mySeat]); showSettlement(); }
+    onlineIdle();
+  }
+
+  function mirrorFromSnapshot(gv) {
+    const v = gv.round;
+    const exposed = v.exposed.map(([c, s]) => [c, loc(s)]);
+    const hands = [0, 1, 2, 3].map((l) => {
+      if (l === 0) return v.hand.slice();
+      const known = exposed.filter(([c, o]) => o === l && !v.played[c]).map(([c]) => c);
+      return known.concat(new Array(Math.max(0, v.counts[srv(l)] - known.length)).fill(-1));
+    });
+    const r = R.createRound(hands, loc(v.leader), v.mustLead, gv.rules);
+    Object.assign(r, {
+      exposed, led: v.led.slice(), firstOfSuit: v.firstOfSuit, turn: loc(v.turn), trickNo: v.trickNo,
+      trick: v.trick.map((p) => ({ seat: loc(p.seat), card: p.card })),
+      captured: rot(v.captured).map((c) => c.slice()),
+      history: v.history.map((h) => ({ leader: loc(h.leader), winner: loc(h.winner), plays: h.plays.map((p) => ({ seat: loc(p.seat), card: p.card })) })),
+      voids: rot(v.voids).map((x) => x.slice()),
+      pigTaker: v.pigTaker < 0 ? -1 : loc(v.pigTaker),
+      played: v.played.slice(),
+    });
+    return r;
+  }
+
+  /* 别家打出某张牌之前：把一个占位换成这张牌，规则引擎才认 */
+  function ensureCard(r, l, c) {
+    if (l === 0) return;
+    const h = r.hands[l];
+    if (h.includes(c)) return;
+    const i = h.indexOf(-1);
+    if (i >= 0) h[i] = c; else h.push(c);
+  }
+
+  function sameAsSnapshot(r, gv) {
+    const v = gv.round;
+    if (!v) return true;
+    const a = r.hands[0].slice().sort((x, y) => x - y).join();
+    const b = v.hand.slice().sort((x, y) => x - y).join();
+    return a === b && r.trickNo === v.trickNo && r.trick.length === v.trick.length && r.turn === loc(v.turn);
+  }
+
+  // 一条事件出错就整体按快照重画，不让一处对不上卡死整桌
+  function safely(fn) { return () => { try { fn(); } catch (e) { console.warn('[gongzhu] 联机事件对不上，按快照重画', e); resync(); } }; }
+
+  function onlineStep() {
+    if (!online || !match || !match.online || match.lobby) return;
+    const ev = online.queue.shift();
+    if (!ev) { onlineIdle(); return; }
+    online.idle = false;
+    online.applied = ev.n;
+    stopClock();
+    safely(() => {
+      const r = match.round;
+      if (ev.t === 'deal') {
+        closeDialog();
+        const gv = online.st.game;
+        const blank = () => new Array(13).fill(-1);
+        match.roundNo = ev.roundNo; match.over = false; match.losers = [];
+        match.round = R.createRound([gv.dealt.slice(), blank(), blank(), blank()], loc(ev.leader), ev.mustLead, match.rules);
+        match.exposing = [];
+        selected = -1; exposePick = []; busy = true; online.readySent = false;
+        renderAll();
+        schedule(step, 450);
+        return;
+      }
+      if (!r) { resync(); return; }
+      if (ev.t === 'expose') {
+        for (const [c, s] of ev.exposed) { const l = loc(s); ensureCard(r, l, c); R.expose(r, l, c); }
+        match.exposing = [];
+        renderSeats(); renderHand();
+        schedule(step, 900);
+        return;
+      }
+      if (ev.t === 'play') {
+        const l = loc(ev.seat);
+        if (l === 0 && online.pending === ev.card) { online.pending = -1; schedule(step, 0); return; }   // 我刚出的，已经先播过了
+        if (l === 0) { online.pending = -1; selected = -1; }
+        ensureCard(r, l, ev.card);
+        schedule(safely(() => commit(l, ev.card)), l === 0 ? 0 : seatIsBot(l) ? pace().aiMin : 160);
+        return;
+      }
+      if (ev.t === 'round') {
+        const gv = online.st.game;
+        match.totals = rot(ev.totals);
+        match.last = { roundNo: ev.roundNo, captured: r.captured.map((c) => c.slice()), scores: rot(ev.scores), ctx: R.scoreCtx(r) };
+        match.round = null;
+        match.over = gv.phase === 'match_end' && gv.roundNo === ev.roundNo;
+        match.losers = match.over ? (gv.losers || []).map(loc) : [];
+        online.readySent = false;
+        renderAll(); renderOnlineBadges();
+        schedule(() => { showSettlement(); step(); }, pace().roundEnd);
+        return;
+      }
+      schedule(step, 0);   // trick：收牌动画在第四张牌的 commit 里已经播了
+    })();
+  }
+
+  /* 事件播完了：按快照决定现在能不能动、钟走给谁 */
+  function onlineIdle() {
+    online.idle = true;
+    const gv = online.st && online.st.game;
+    if (!gv || !match || !match.online) return;
+    if (gv.phase === 'match_end' && !match.over && !match.round) {   // 「不设终点」被房主叫停
+      match.over = true;
+      match.losers = (gv.losers || []).map(loc);
+      if (!els.mask.hidden) showSettlement();
+    }
+    if (online.pending >= 0) { busy = true; renderHand(); return; }   // 等服务器确认我刚出的牌
+    const r = match.round;
+    if (!r) { updateSettleWaiting(); return; }
+    if (!sameAsSnapshot(r, gv)) { resync(); return; }
+    if (gv.phase === 'expose') {
+      const mine = !!(gv.expose && !gv.expose.decided && gv.expose.mine.length);
+      match.exposing = mine ? [0] : [];
+      busy = !mine;
+      renderSeats(); renderHand();
+      if (mine) startClock(0, null, remainMs(gv));
+      return;
+    }
+    match.exposing = [];
+    if (gv.phase !== 'playing') return;
+    busy = !(r.turn === 0 && gv.legal.length > 0);
+    renderSeats(); renderHand();
+    startClock(r.turn, null, remainMs(gv));
+  }
+  // 倒计时还剩多久：服务器的截止时刻（出牌时它比我这边多等 3 秒，先让我自己的钟走完）
+  function remainMs(gv) {
+    if (!gv.deadline) return 0;
+    const left = gv.deadline - (Date.now() + online.skew) - (gv.phase === 'playing' ? 3000 : 0);
+    return Math.min(Math.max(left, 0), Math.max(gv.turnSec, 15) * 1000);
+  }
+
+  function onlinePlaySelected() {
+    if (exposingMe()) {
+      if (busy) return;
+      const cards = exposePick.slice();
+      busy = true; match.exposing = []; exposePick = [];
+      stopClock(); renderHand();
+      onlineAct('expose', { cards });
+      return;
+    }
+    const r = match.round;
+    if (busy || !r || r.turn !== 0 || selected < 0 || !R.legalFor(r, 0).includes(selected)) return;
+    const card = selected;
+    busy = true;
+    online.idle = false;
+    online.pending = card;
+    commit(0, card);   // 先在本地打出去（不等网络），服务器确认后那条出牌事件就跳过
+    onlineAct('play', { card });
+  }
+
+  /* 牌桌上的名字 / 头像 / 状态小签：掉线、已离开（机器人代打）、托管 */
+  function renderOnlineBadges() {
+    if (!online || !online.inGame) return;
+    const g = online.st.game;
+    for (let l = 0; l < 4; l++) {
+      const p = playerAt(srv(l));
+      const el = els.seats[l];
+      const name = el.querySelector('.gz-name');
+      if (name && name.textContent !== NAMES[l]) name.textContent = NAMES[l];
+      const av = el.querySelector('.gz-avatar');
+      if (av && av.firstChild && av.firstChild.nodeType === 3 && av.firstChild.nodeValue !== AVATARS[l]) av.firstChild.nodeValue = AVATARS[l];
+      const line = el.querySelector('.gz-name-line');
+      let tag = line && line.querySelector('.gz-tag');
+      const text = !p ? '' : p.left ? '已离开' : g && g.auto[p.seat] ? '托管' : !p.isAi && !p.online ? '掉线' : '';
+      if (line && !tag && text) { tag = document.createElement('span'); tag.className = 'gz-tag'; line.appendChild(tag); }
+      if (tag) { tag.textContent = text; tag.hidden = !text; }
+      el.classList.toggle('is-auto', l === 0 && !!(g && g.auto[online.mySeat]));
+    }
+  }
+
+  /* ───── 联机 · 结算页 ───── */
+
+  function onlineSettleActions() {
+    if (match.over) {
+      return isHost() ? '<button type="button" class="gz-btn gz-btn-primary" data-act="rematch" data-autofocus>回到房间</button>'
+        : '<span class="gz-wait" data-wait>等房主回到房间…</span>';
+    }
+    return (isHost() && match.rules.end === 'none' ? '<button type="button" class="gz-btn" data-act="end-match">结束这一盘</button>' : '') +
+      '<button type="button" class="gz-btn gz-btn-primary" data-act="ready" data-autofocus' + (online.readySent ? ' disabled' : '') + '>' +
+      (online.readySent ? waitingText() : '下一局') + '</button>';
+  }
+  function waitingText() {
+    const g = online.st.game;
+    if (!g || !g.ready) return '等其他人…';
+    const names = [0, 1, 2, 3].filter((s) => !g.ready[s]).map((s) => (playerAt(s) || { nick: '' }).nick).filter(Boolean);
+    return names.length ? '等' + names.join('、') + '…' : '马上开始…';
+  }
+  function bindOnlineSettle(d) {
+    d.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => {
+      const act = b.dataset.act;
+      if (act === 'ready') { online.readySent = true; b.disabled = true; b.textContent = waitingText(); onlineAct('ready'); }
+      if (act === 'end-match') { if (confirm('现在结束这一盘？按累计分排名，不评猪。')) onlineAct('end_match'); }
+      if (act === 'rematch') onlineAct('rematch');
+    }));
+  }
+  function updateSettleWaiting() {
+    if (!online || els.mask.hidden) return;
+    const b = els.dialog.querySelector('[data-act="ready"]');
+    if (b && online.readySent) b.textContent = waitingText();
+    if (match && match.over && !els.dialog.querySelector('[data-act="rematch"], [data-wait]') && els.dialog.querySelector('.gz-res')) showSettlement();
+  }
+
+  /* ───── 联机 · 大厅（就用牌桌本身：四个座位在原位，中间是房号 / 邀请 / 规则 / 开始） ───── */
+
+  function rulesSummary(rules, turnSec) {
+    return [
+      { lose1000: '打到 −1000', pm1000: '打到 ±1000', rounds10: '打满 10 局', none: '不设终点' }[rules.end],
+      rules.hearts === 'classic' ? '经典红桃' : '红桃按牌面',
+      rules.expose ? '可以亮牌' : '不亮牌',
+      turnSec ? '出牌限时 ' + turnSec + ' 秒' : '出牌不限时',
+    ].join(' · ');
+  }
+
+  let lobbyQrCode = '';
+  function renderLobby() {
+    const st = online.st;
+    if (online.inGame) { online.inGame = false; token++; stopClock(); closeDialog(); }
+    match = { online: true, lobby: true, rules: st.config.rules, totals: [0, 0, 0, 0], roundNo: 0, round: null, exposing: [], last: null, over: false, losers: [] };
+    busy = true; selected = -1; flying = null;
+    els.app.classList.add('is-online', 'is-lobby');
+    els.hand.innerHTML = '';
+    els.slots.forEach((x) => { x.innerHTML = ''; });
+    els.play.disabled = true;
+    els.roundNo.textContent = '房间 ' + st.code;
+    const host = isHost();
+    for (let l = 0; l < 4; l++) {
+      const p = playerAt(srv(l));
+      const el = els.seats[l];
+      el.classList.remove('is-turn', 'is-timed', 'is-hurry', 'is-auto');
+      el.innerHTML = p
+        ? '<button type="button" class="gz-lobby-seat" data-lseat="' + l + '"' + (l === 0 ? ' disabled' : '') + '>' +
+          '<span class="gz-avatar' + (p.isAi ? ' is-bot' : '') + '">' + esc(avatarOf(p)) + '</span>' +
+          '<span class="gz-lobby-name">' + esc(p.nick) + (l === 0 ? '（我）' : '') + '</span>' +
+          (p.id === st.hostId ? '<span class="gz-tag is-host">房主</span>' : '') +
+          (!p.isAi && !p.online ? '<span class="gz-tag">掉线</span>' : '') + '</button>'
+        : '<button type="button" class="gz-lobby-seat is-empty" data-lseat="' + l + '">' +
+          '<span class="gz-avatar">+</span><span class="gz-lobby-name">空位</span>' +
+          '<span class="gz-lobby-hint">' + (host ? '加机器人' : '坐这里') + '</span></button>';
+    }
+    const box = $('gzLobby');
+    box.hidden = false;
+    box.querySelector('.gz-lobby-code b').textContent = st.code;
+    const qr = box.querySelector('.gz-lobby-qr');
+    if (lobbyQrCode !== st.code && window.GamesShell && GamesShell.QR) {
+      lobbyQrCode = st.code;
+      GamesShell.QR.render(qr, NET.inviteUrl(st.code), { scale: 3, margin: 2, dark: '#1d1b18', light: '#fbf8f1' });
+    }
+    box.querySelector('.gz-lobby-rules').textContent = rulesSummary(st.config.rules, st.config.turnSec);
+    box.querySelector('[data-lb="rules"]').hidden = !host;
+    const missing = 4 - st.players.length;
+    const start = box.querySelector('[data-lb="start"]');
+    start.hidden = !host;
+    start.disabled = missing > 0;
+    box.querySelector('.gz-lobby-wait').textContent = host
+      ? (missing > 0 ? '还差 ' + missing + ' 人，空位可以加机器人' : '人齐了，可以开始')
+      : '等房主开始';
+  }
+
+  function showSeatMenu(l) {
+    const s = srv(l);
+    const p = playerAt(s);
+    const host = isHost();
+    let body = '';
+    const acts = [];
+    if (!p) {
+      if (host) body += '<div class="gz-field-label">加一个机器人</div><div class="gz-seg" role="group">' +
+        TIER_ORDER.map((k) => '<button type="button" data-ai="' + k + '">' + TIER_LABELS[k] + '</button>').join('') + '</div>';
+      acts.push('<button type="button" class="gz-btn" data-seat-act="sit">我坐这里</button>');
+    } else if (p.isAi) {
+      if (host) {
+        body += '<div class="gz-field-label">机器人水平</div><div class="gz-seg" role="group">' +
+          TIER_ORDER.map((k) => '<button type="button" data-set-ai="' + k + '" aria-pressed="' + (p.aiLevel === k) + '">' + TIER_LABELS[k] + '</button>').join('') + '</div>';
+        acts.push('<button type="button" class="gz-btn" data-seat-act="remove">请机器人离开</button>');
+      }
+      acts.push('<button type="button" class="gz-btn" data-seat-act="sit">和它换座</button>');
+    } else if (host) {
+      acts.push('<button type="button" class="gz-btn" data-seat-act="kick">请' + esc(p.nick) + '离开</button>');
+    }
+    if (!body && !acts.length) return;
+    openDialog('<h2>' + (p ? esc(p.nick) : '空位') + '</h2>' + body +
+      '<div class="gz-actions">' + acts.join('') + '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
+      (d) => {
+        d.querySelector('[data-close]').addEventListener('click', closeDialog);
+        d.querySelectorAll('[data-ai]').forEach((b) => b.addEventListener('click', () => { closeDialog(); onlineAct('add_ai', { seat: s, level: b.dataset.ai }); }));
+        d.querySelectorAll('[data-set-ai]').forEach((b) => b.addEventListener('click', () => {
+          d.querySelectorAll('[data-set-ai]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          onlineAct('set_ai', { seat: s, level: b.dataset.setAi });
+        }));
+        d.querySelectorAll('[data-seat-act]').forEach((b) => b.addEventListener('click', () => {
+          closeDialog();
+          const a = b.dataset.seatAct;
+          if (a === 'sit') onlineAct('sit', { seat: s });
+          if (a === 'remove') onlineAct('remove_ai', { seat: s });
+          if (a === 'kick') onlineAct('kick', { pid: p.id });
+        }));
+      });
+  }
+
+  async function copyText(text, done) {
+    try { await navigator.clipboard.writeText(text); toast(done); }
+    catch (_) { prompt('复制下面这段发给朋友：', text); }
+  }
+
+  /* 房间设置：邀请、（房主在大厅里）改规则和限时、离开房间 */
+  function showRoomDialog() {
+    const st = online.st;
+    const editable = st.phase === 'lobby' && isHost();
+    const rules = st.config.rules;
+    const rulesUi = editable
+      ? '<div class="gz-field-label">出牌限时</div><div class="gz-seg" role="group">' +
+        [20, 30, 0].map((k) => '<button type="button" data-osec="' + k + '" aria-pressed="' + (st.config.turnSec === k) + '">' + (k ? k + ' 秒' : '不限时') + '</button>').join('') + '</div>' +
+        RULE_UI.map(([k, label, opts]) => '<div class="gz-field-label">' + label + '</div><div class="gz-seg' + (opts.length > 2 ? ' is-4' : '') + '" role="group">' +
+          opts.map(([v, t]) => '<button type="button" data-orule="' + k + '" data-val="' + v + '" aria-pressed="' + (rules[k] === v) + '">' + t + '</button>').join('') + '</div>').join('')
+      : '<p class="gz-note">' + esc(rulesSummary(rules, st.config.turnSec)) + (st.phase === 'lobby' ? '（房主可以改）' : '（开局后不能改）') + '</p>';
+    openDialog('<h2>房间 ' + st.code + '</h2>' +
+      '<div class="gz-actions gz-actions-start"><button type="button" class="gz-btn" data-act="copy-link">复制邀请链接</button>' +
+      '<button type="button" class="gz-btn" data-act="copy-code">复制房号</button></div>' + rulesUi +
+      '<div class="gz-actions"><button type="button" class="gz-btn" data-act="leave">离开房间</button>' +
+      '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
+      (d) => {
+        d.querySelector('[data-close]').addEventListener('click', closeDialog);
+        d.querySelector('[data-act="copy-link"]').addEventListener('click', () => copyText(NET.inviteUrl(st.code), '邀请链接已复制'));
+        d.querySelector('[data-act="copy-code"]').addEventListener('click', () => copyText(st.code, '房号已复制'));
+        d.querySelector('[data-act="leave"]').addEventListener('click', () => {
+          const inGame = st.phase !== 'lobby';
+          if (!confirm(inGame ? '离开房间？你的座位会交给机器人接着打。' : '离开房间？')) return;
+          leaveOnline(null, true);
+        });
+        d.querySelectorAll('[data-osec]').forEach((b) => b.addEventListener('click', () => {
+          d.querySelectorAll('[data-osec]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          onlineAct('config', { config: { turnSec: +b.dataset.osec } });
+        }));
+        d.querySelectorAll('[data-orule]').forEach((b) => b.addEventListener('click', () => {
+          const k = b.dataset.orule;
+          const opt = RULE_UI.find((x) => x[0] === k)[2].find(([v]) => String(v) === b.dataset.val);
+          d.querySelectorAll('[data-orule="' + k + '"]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          onlineAct('config', { config: { rules: { [k]: opt[0] } } });
+        }));
+      });
+  }
+
+  /* 入口：起个昵称，创建房间或输房号加入 */
+  function showOnlineEntry(code) {
+    if (!NET) return;
+    if (match && match.tutorial) { toast('先打完或跳过教程，再开联机'); return; }
+    const ident = window.GamesShell && GamesShell.Identity;
+    const nick = (ident && ident.getNick && ident.getNick()) || '';
+    openDialog('<h2>联机对局</h2>' +
+      '<div class="gz-field-label">你的昵称</div><input class="gz-input" data-nick maxlength="12" autocomplete="nickname" value="' + esc(nick) + '" placeholder="1–12 个字">' +
+      '<div class="gz-field-label">' + (code ? '朋友邀请你加入房间' : '加入朋友的房间') + '</div>' +
+      '<div class="gz-join-row"><input class="gz-input" data-code inputmode="numeric" maxlength="4" placeholder="4 位房号" value="' + esc(code || '') + '">' +
+      '<button type="button" class="gz-btn' + (code ? ' gz-btn-primary' : '') + '" data-act="join"' + (code ? ' data-autofocus' : '') + '>加入</button></div>' +
+      '<p class="gz-note gz-err" data-err hidden></p>' +
+      '<div class="gz-actions"><button type="button" class="gz-btn" data-close>取消</button>' +
+      '<button type="button" class="gz-btn' + (code ? '' : ' gz-btn-primary') + '" data-act="create"' + (code ? '' : ' data-autofocus') + '>创建新房间</button></div>',
+      (d) => {
+        const err = d.querySelector('[data-err]');
+        const nickIn = d.querySelector('[data-nick]');
+        const codeIn = d.querySelector('[data-code]');
+        const fail = (text) => { err.textContent = text; err.hidden = false; d.querySelectorAll('[data-act]').forEach((b) => { b.disabled = false; }); };
+        const takeNick = () => {
+          const v = nickIn.value.trim();
+          if (!v || [...v].length > 12 || /[<>&"'/\\]/.test(v)) { fail('昵称 1–12 个字，不能有特殊符号'); nickIn.focus(); return null; }
+          if (ident && ident.setNick) ident.setNick(v);
+          return v;
+        };
+        const go = async (fn) => {
+          err.hidden = true;
+          d.querySelectorAll('[data-act]').forEach((b) => { b.disabled = true; });
+          try {
+            const res = await fn();
+            startOnline(res.state, res.token);
+          } catch (e) { fail(NET.message(e)); }
+        };
+        d.querySelector('[data-close]').addEventListener('click', closeDialog);
+        d.querySelector('[data-act="create"]').addEventListener('click', () => {
+          const v = takeNick();
+          if (v) go(() => NET.create(v, { rules: settings.rules, turnSec: settings.turnSec | 0 }));
+        });
+        const join = () => {
+          const v = takeNick();
+          if (!v) return;
+          const c = codeIn.value.trim();
+          if (!/^\d{4}$/.test(c)) { fail('房号是 4 位数字'); codeIn.focus(); return; }
+          go(() => NET.join(c, v));
+        };
+        d.querySelector('[data-act="join"]').addEventListener('click', join);
+        codeIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
+        if (!nick) setTimeout(() => nickIn.focus(), 0);
+      });
+  }
+
+  // 刷新 / 重新打开页面：上次的房间还在就接回去
+  async function resumeOnline(sess) {
+    try {
+      const res = await NET.state(sess.code, sess.token, 0);
+      startOnline(res.state, sess.token);
+      return true;
+    } catch (_) {
+      NET.writeSession(null);
+      return false;
+    }
+  }
+
+
   /* ───── 启动 ───── */
 
   els.play.addEventListener('click', playSelected);
@@ -1401,8 +1993,8 @@
   window.addEventListener('resize', onResize);
   window.addEventListener('orientationchange', onResize);
 
-  buildSeats();
-  solveSize();
+  /* 单机：接着上次的存档打；没有存档就开一盘（第一次来先问要不要学）。quiet = 从联机房间回来，不再问教程 */
+  function resumeSolo(quiet) {
   const saved = readJSON(STORE_KEY);
   if (saved && saved.v === VERSION && saved.match && !saved.match.over) {
     match = saved.match;
@@ -1411,7 +2003,7 @@
     if (match.round) step();
     else if (match.last) showSettlement();
     else startRound();
-  } else if (!readJSON(TUT_KEY) && !AUTO) {
+  } else if (!quiet && !readJSON(TUT_KEY) && !AUTO) {
     // 第一次来：问一句要不要先学
     newMatch();
     renderAll();
@@ -1425,5 +2017,35 @@
   } else {
     newMatch();
     startRound();
+  }
+  }
+
+  $('gzOnlineBtn').hidden = !NET;
+  $('gzOnlineBtn').addEventListener('click', () => { if (match && match.online) showRoomDialog(); else showOnlineEntry(''); });
+  // 大厅：点座位（空位加机器人 / 坐过去，机器人换档，房主请人离开）；中间面板的几个按钮
+  els.table.addEventListener('click', (e) => {
+    const seat = e.target.closest('[data-lseat]');
+    if (seat && online && match && match.lobby) { showSeatMenu(+seat.dataset.lseat); return; }
+    const lb = e.target.closest('[data-lb]');
+    if (!lb || !online) return;
+    const act = lb.dataset.lb;
+    if (act === 'copy-link') copyText(NET.inviteUrl(online.code), '邀请链接已复制');
+    if (act === 'copy-code') copyText(online.code, '房号已复制');
+    if (act === 'rules') showRoomDialog();
+    if (act === 'start') onlineAct('start');
+    if (act === 'leave' && confirm('离开房间？')) leaveOnline(null, true);
+  });
+
+  buildSeats();
+  solveSize();
+  const roomParam = (new URLSearchParams(location.search).get('room') || '').trim();
+  const sess = NET && NET.readSession();
+  if (sess && (!roomParam || roomParam === sess.code)) {
+    // 上次在联机房间里：先接回去；接不回（房间散了）再回到单机
+    resumeOnline(sess).then((ok) => { if (!ok) { resumeSolo(!!roomParam); if (/^\d{4}$/.test(roomParam)) showOnlineEntry(roomParam); } });
+  } else {
+    if (sess) NET.writeSession(null);
+    resumeSolo(/^\d{4}$/.test(roomParam));
+    if (NET && /^\d{4}$/.test(roomParam)) showOnlineEntry(roomParam);
   }
 })();
