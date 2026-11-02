@@ -173,14 +173,13 @@ body.gz-fullscreen .site-footer { display: none !important; }
 
 .gz-res-caps { height: auto; }
 
-/* 亮出的牌：左下角一枚朱红小印（手牌、红桃扇都叠着放，只有左边露在外面）。手牌上写「亮」，小牌上只留印色 */
+/* 亮出的牌：左下角一个朱红圆点（手牌、桌上、吃牌区、结算都一样；手牌和红桃扇叠着放，只有左边露在外面） */
 .gz-card.is-exposed::after {
-  content: '亮'; position: absolute; bottom: calc(var(--q) * 0.07); left: calc(var(--q) * 0.07);
-  width: calc(var(--q) * 0.3); height: calc(var(--q) * 0.3); border-radius: 3px;
-  background: var(--gz-seal); color: var(--gz-seal-ink);
-  font-size: calc(var(--q) * 0.2); line-height: calc(var(--q) * 0.3); text-align: center; font-weight: 700;
+  content: ''; position: absolute; bottom: calc(var(--q) * 0.08); left: calc(var(--q) * 0.08);
+  width: calc(var(--q) * 0.13); height: calc(var(--q) * 0.13); border-radius: 50%;
+  background: var(--gz-seal);
 }
-.gz-mini.is-exposed::after { content: ''; width: calc(var(--q) * 0.24); height: calc(var(--q) * 0.24); border-radius: 50%; }
+.gz-mini.is-exposed::after { width: calc(var(--q) * 0.24); height: calc(var(--q) * 0.24); }
 /* 别家亮出、还没打的牌：正面朝上排在牌背后面，小一号（宽 21px）。这一行永远留 30px 高（有没有亮牌都一样），
  * 亮牌出现 / 打出都不挤动布局；有亮牌时牌背和亮牌都叠紧一点，整行收在座位宽度以内，不压上面的分数、不出界 */
 .gz-hold { position: relative; display: flex; justify-content: center; align-items: center; gap: 5px; height: 30px; max-width: 100%; }
