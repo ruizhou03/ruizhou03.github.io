@@ -147,57 +147,69 @@
       return null;
     }
 
-    /* 一墩打完：返回要依次讲的几段（每段点「继续」），可带 parts 让界面画红桃明细 */
+    /* 一轮打满：返回 { before, after } 两组讲解（每段点「继续」）。
+     *   before：牌还摆在桌上、还没收走时讲——这一轮的花色、谁最大、谁赢（trick 让界面把四家出的牌排出来，mark 标出最大的一张）；
+     *   after：收牌结算之后讲——分数怎么变（focus 点亮某家的吃牌区，parts / heartChart / allHearts 画红桃示意）。 */
+    const SUIT_CN = ['黑桃', '红桃', '方块', '草花'];
     function afterTrick(done, r) {
-      const out = [];
+      const before = [], after = [];
       const plays = done.plays, w = done.winner;
       const cs = plays.map((p) => p.card);
       const leadSuit = suitOf(cs[0]);
+      const suit = SUIT_CN[leadSuit];
+      const top = plays.find((p) => p.seat === w).card;
+      const leader = plays[0].seat;
+      const who = (s) => (s === 0 ? '你' : NAMES[s]);
       const meCard = plays.find((p) => p.seat === 0).card;
+      const trick = { plays, winner: w };
       if (r.trickNo === 1) {
-        out.push({ text: '其他三家也都出了黑桃：第一张出的是什么花色，如果你手里有这个花色，就必须出这个花色的牌。' });
-        out.push({ text: '每门花色都是 2 最小、A 最大：', ranks: true });
-        out.push({ text: '这一轮的花色是黑桃（由第一张出的牌决定）。谁出了这一轮花色里最大的一张，谁就赢下这一轮，下一轮由他先出。这一轮是上家的 ' + label(card('♠A')) + '。' });
-        return out;
+        before.push({ text: '这一轮第一张牌是你出的 ' + label(R.SPADE_TWO) + '，所以这一轮的花色是黑桃。其他人手里有黑桃，就必须出黑桃。', trick });
+        before.push({ text: '每种花色都是 2 最小、A 最大：', ranks: true });
+        before.push({ text: '比较这一轮的黑桃：上家的 ' + label(top) + ' 最大，所以上家赢下这一轮，收走这一轮的所有牌；下一轮由他第一个出牌。', trick, mark: true });
+        return { before, after };
       }
       if (r.trickNo === 2) {
-        out.push({ text: '这一轮的花色是草花，上家的 ' + label(card('♣A')) + ' 最大，这一轮仍由他赢。这一轮的牌都不计分。一局里只有少数几张牌带分，它们出现时会逐一为你介绍。' });
-        return out;
+        before.push({ text: '这一轮上家先出 ' + label(cs[0]) + '，花色是草花。草花里 ' + label(top) + ' 最大，还是上家赢。这一轮的牌都不带分数；一局里只有少数几张牌带分数，它们出现时会逐一为你介绍。', trick, mark: true });
+        return { before, after };
       }
-      if (suitOf(meCard) !== leadSuit && once('discard-after')) {
-        out.push({ text: '垫出去的牌再大也不算：只比这一轮的花色（' + ['黑桃', '红桃', '方块', '草花'][leadSuit] + '），其中最大的一张赢下这一轮。' });
+      const discard = suitOf(meCard) !== leadSuit;
+      if (discard && once('discard-after')) {
+        before.push({ text: '这一轮的花色是' + suit + '。你已经没有' + suit + '，所以垫了一张。垫的牌不论多大都不参与比较：' + suit + '里最大的是 ' + label(top) + '，' + who(w) + '赢下这一轮。', trick, mark: true });
       }
       if (cs.includes(SHEEP) && w === 0) {
-        // 先把「吃」讲清楚（拱猪本来的叫法），同时把我的吃牌区点亮
-        out.push({ text: '这一轮的花色是方块，你的 ' + label(SHEEP) + ' 最大，这一轮你赢。赢下一轮，就收下这一轮的牌；其中带分数的牌会摆在你的头像旁边，计入你这一局的分数，拱猪里管这叫「吃」。', focus: 0 });
-        out.push({ text: label(SHEEP) + ' 叫「羊」，吃到它，这一局 +100。', focus: 0 });
+        before.push({ text: '这一轮' + who(leader) + '先出，花色是方块。你的 ' + label(SHEEP) + ' 是方块里最大的，这一轮你赢，收下这一轮的所有牌。', trick, mark: true });
+        after.push({ text: '收下的牌里，带分数的会摆在你的头像旁边，计入你这一局的分数。' + label(SHEEP) + ' 叫「羊」，收下它就叫「吃羊」，这一局 +100。', focus: 0 });
       }
       if (cs.includes(PIG)) {
-        const gong = r.history[r.history.length - 1].leader !== 0;
-        out.push({ text: label(PIG) + ' 叫「猪」，谁吃到它 −100。' + NAMES[w] + '的 ' + label(K_SPADE) + ' 赢下这一轮，你打出的猪归了他。' + (gong ? '对家用小黑桃把猪逼出来，这就叫「拱猪」。' : '') });
+        const gong = leader !== 0;
+        before.push({ text: label(PIG) + ' 叫「猪」，谁收下它，这一局 −100。这一轮的花色是黑桃，' + who(w) + '的 ' + label(top) + ' 最大，你打出的猪归了他，这就叫他「吃猪」。' +
+          (gong ? '对家先出小黑桃，把你手里的猪逼了出来，这就叫「拱猪」。' : ''), trick, mark: true });
       }
       if (cs.includes(DOUBLER) && w === 0) {
+        before.push({ text: '这一轮的花色是草花，你的 ' + label(top) + ' 最大，这一轮你赢，收下这一轮的所有牌。', trick, mark: true });
         const ctx = R.scoreCtx(r);
-        const after = R.scoreCaptured(r.captured[0], ctx).total;
-        const before = R.scoreCaptured(r.captured[0].filter((c) => c !== DOUBLER), ctx).total;
-        out.push({ text: label(DOUBLER) + ' 叫「变压器」：它本身不算分，但谁吃到它，这一局的总分就翻倍。你这一局的分数从 ' +
-          (before > 0 ? '+' : '') + before + ' 翻成了 ' + (after > 0 ? '+' : '') + after + '。' });
+        const aft = R.scoreCaptured(r.captured[0], ctx).total;
+        const bef = R.scoreCaptured(r.captured[0].filter((c) => c !== DOUBLER), ctx).total;
+        after.push({ text: label(DOUBLER) + ' 叫「变压器」：它本身不带分数，但谁收下它，这一局的总分就翻倍。你这一局的分数从 ' +
+          (bef > 0 ? '+' : '') + bef + ' 翻成了 ' + (aft > 0 ? '+' : '') + aft + '。', focus: 0 });
       }
       const hearts = cs.filter(R.isHeart);
       const dHearts = r.captured[2].filter(R.isHeart);
       if (hearts.length && w === 2) {
         if (dHearts.length === 13) {
-          out.push({ text: '对家吃齐了全部 13 张红桃——这叫「全红」：红桃不再扣分，一共 +200。你垫给他的红桃，反倒帮他凑齐了。' });
+          after.push({ text: '对家收齐了全部 13 张红桃，这叫「全红」：红桃不再扣分，反而一共 +200。你垫给他的红桃，最后反倒帮他凑齐了。', allHearts: true });
         } else if (once('hearts')) {
-          out.push({
-            text: '对家吃到了红桃。红桃按牌面扣分，J −11、Q −12、K −13，A 只扣 1：',
+          after.push({ text: '对家吃到了红桃。每张红桃都要扣分，扣多少看牌面：', heartChart: true });
+          after.push({
+            text: '这一轮对家吃到的红桃：',
             parts: hearts.slice().sort((a, b) => rankOf(b) - rankOf(a)).map((c) => ({ card: c, value: R.heartValue(c, RULES) })),
+            focus: 2,
           });
         } else if (suitOf(meCard) === HEART && leadSuit !== HEART && once('heart-dump')) {
-          out.push({ text: '你垫的红桃也算对家的：他又扣了 ' + (-R.heartValue(meCard, RULES)) + ' 分。' });
+          after.push({ text: '你垫的红桃也归了对家：他又扣了 ' + (-R.heartValue(meCard, RULES)) + ' 分。', focus: 2 });
         }
       }
-      return out;
+      return { before, after };
     }
 
     return { hint, afterTrick };

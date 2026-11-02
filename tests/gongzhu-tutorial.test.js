@@ -59,9 +59,9 @@ test('coach explains every key event exactly where it happens', () => {
       if (s === 0) { const h = coach.hint(r); if (h) said.push(h); const l = R.legalFor(r, 0); c = l[(rng() * l.length) | 0]; }
       else c = T.director(r, s);
       const done = R.playCard(r, s, c);
-      if (done) for (const m of coach.afterTrick(done, r)) said.push(m.text);
+      if (done) { const t = coach.afterTrick(done, r); for (const m of t.before.concat(t.after)) said.push(m.text); }
     }
     const all = said.join('\n');
-    for (const word of ['「羊」', '「猪」', '「变压器」', '按牌面扣分', '「垫牌」', '「全红」']) assert.ok(all.includes(word), word + ' 没讲到：\n' + all);
+    for (const word of ['「羊」', '「吃羊」', '「猪」', '「变压器」', '每张红桃都要扣分', '「垫牌」', '「全红」']) assert.ok(all.includes(word), word + ' 没讲到：\n' + all);
   }
 });

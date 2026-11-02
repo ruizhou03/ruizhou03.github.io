@@ -51,7 +51,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
     "bar   bar    bar"
     ".     top    ."
     "left  center right"
-    "me    me     band"
+    "me    me     me"
     "hand  hand   hand";
   border: 1px solid var(--gz-ink);
   border-radius: 2px;
@@ -83,7 +83,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-seat-top { grid-area: top; padding-bottom: 4px; }
 .gz-seat-left { grid-area: left; }
 .gz-seat-right { grid-area: right; }
-.gz-seat-me { grid-area: me; flex-direction: row; justify-content: flex-start; gap: 10px; padding: 4px 0; }
+.gz-seat-me { grid-area: me; flex-direction: row; justify-content: flex-start; gap: 10px; padding: 4px calc(50% + 64px) 4px 0; }
 
 .gz-who { display: flex; align-items: center; gap: 8px; }
 .gz-seat-left .gz-who, .gz-seat-right .gz-who { flex-direction: column; gap: 7px; }
@@ -164,18 +164,13 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-seat-left .gz-caps.is-focus .gz-caps-row, .gz-seat-right .gz-caps.is-focus .gz-caps-row, .gz-seat-top .gz-caps.is-focus .gz-caps-row { transform-origin: center; }
 @keyframes gz-focus-pop { from { transform: scale(1.45); } to { transform: scale(1); } }
 @keyframes gz-focus-glow { from { box-shadow: 0 0 0 2px rgba(201, 169, 110, 0.25); } to { box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.75), 0 0 14px 3px rgba(201, 169, 110, 0.35); } }
-/* 翻页计分：两层叠在同一格里，旧数翻出、新数翻入 */
-.gz-roll { position: relative; display: inline-grid; overflow: hidden; vertical-align: bottom; perspective: 200px; }
-.gz-roll > span { grid-area: 1 / 1; backface-visibility: hidden; }
-.gz-roll-old { animation: gz-roll-out 0.46s cubic-bezier(.4, 0, .2, 1) forwards; }
-.gz-roll-new { animation: gz-roll-in 0.46s cubic-bezier(.4, 0, .2, 1) forwards; }
-.gz-roll.down .gz-roll-old { animation-name: gz-roll-out-down; }
-.gz-roll.down .gz-roll-new { animation-name: gz-roll-in-down; }
-@keyframes gz-roll-out { to { transform: translateY(-70%) rotateX(80deg); opacity: 0; } }
-@keyframes gz-roll-in { from { transform: translateY(70%) rotateX(-80deg); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes gz-roll-out-down { to { transform: translateY(70%) rotateX(-80deg); opacity: 0; } }
-@keyframes gz-roll-in-down { from { transform: translateY(-70%) rotateX(80deg); opacity: 0; } to { transform: none; opacity: 1; } }
-.gz-cap-score, .gz-total { transition: color 0.3s; }
+/* 分数在数：放大一点、涨分墨绿 / 扣分朱红，数完回原样（只用 transform，不挤布局） */
+.gz-cap-score, .gz-total { display: inline-block; transition: transform 0.22s cubic-bezier(.2, .8, .3, 1.4), color 0.3s; }
+.gz-cap-score { transform-origin: left center; }
+.gz-cap-score.is-rolling, .gz-total.is-rolling { transform: scale(1.32); }
+.gz-cap-score.is-rolling.up, .gz-total.is-rolling.up { color: var(--gz-good); }
+.gz-cap-score.is-rolling.down, .gz-total.is-rolling.down { color: var(--gz-seal); }
+
 .gz-res-caps { height: auto; }
 
 /* 亮出的牌：左下角一枚朱红小印（手牌、红桃扇都叠着放，只有左边露在外面）。手牌上写「亮」，小牌上只留印色 */
@@ -270,7 +265,8 @@ body.gz-fullscreen .site-footer { display: none !important; }
 @keyframes gz-ace-in { from { opacity: 0; transform: rotate(-6deg) scale(1.8); } to { opacity: 1; transform: rotate(-6deg) scale(1); } }
 
 /* ───── 决策带与手牌 ───── */
-.gz-band { grid-area: band; display: flex; align-items: center; justify-content: flex-end; z-index: var(--z-band); }
+/* 出牌按钮：在我这一行的正中（跟我的座位同一格，叠在上面） */
+.gz-band { grid-area: me; justify-self: center; align-self: center; display: flex; align-items: center; justify-content: center; z-index: var(--z-band); }
 .gz-btn {
   min-width: 88px; height: 40px; padding: 0 18px; border-radius: 8px;
   border: 1px solid var(--gz-ink); background: var(--gz-paper); color: var(--gz-ink);
@@ -483,6 +479,25 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-rank-row .gz-card.gz-rank-card { --q: 30px; width: 30px; height: 43px; border-radius: 3px; }
 .gz-rank-arrow { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 2px; font-size: 15px; font-weight: 700; color: var(--gz-ink-mute); }
 .gz-rank-arrow svg { flex: 1; height: 16px; overflow: visible; }
+/* 讲解里排出这一轮四家的牌 */
+.gz-trickrow { display: flex; justify-content: center; gap: 18px; }
+.gz-tr-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.gz-tr-cell .gz-card.gz-tr-card { --q: 46px; width: 46px; height: 66px; border-radius: 4px; }
+.gz-tr-cell.is-off .gz-tr-card { filter: grayscale(0.35) brightness(0.95); }
+.gz-tr-cell.is-win .gz-tr-card { box-shadow: 0 0 0 2px var(--gz-gold), 0 0 12px 2px rgba(201, 169, 110, 0.5); }
+.gz-tr-name { font-size: 14px; font-weight: 700; }
+.gz-tr-tag { font-size: 12px; min-height: 1.2em; color: var(--gz-ink-mute); letter-spacing: 0.1em; }
+.gz-tr-cell.is-win .gz-tr-tag { color: #a8843e; font-weight: 700; }
+/* 讲解前：桌上这一轮的牌调暗，视线交给讲解里排出来的那一排 */
+.gz-center.is-review .gz-slot .gz-card, .gz-center.is-review .gz-slot::after { opacity: 0.07; transition: opacity 0.25s; }
+/* 红桃扣分一排：牌下写分 */
+.gz-hc-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.gz-hc-cell .gz-num { font-size: 15px; color: var(--gz-seal); }
+.gz-hc-row { gap: 3px; }
+/* 全红示例：13 张红桃描金边 + 大号 +200 */
+.gz-allhearts { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.gz-allhearts .gz-rank-row { padding: 6px; border-radius: 6px; box-shadow: 0 0 0 2px var(--gz-gold), 0 0 16px 2px rgba(201, 169, 110, 0.35); }
+.gz-allhearts .gz-num { font-size: 44px; color: var(--gz-seal); line-height: 1; }
 @media (max-width: 480px) {
   .gz-rank-row { gap: 2px; }
   .gz-rank-row .gz-card.gz-rank-card { --q: 23px; width: 23px; height: 33px; border-radius: 2px; }
@@ -499,7 +514,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
       "bar  bar    bar"
       "left top    right"
       "center center center"
-      "me   me     band"
+      "me   me     me"
       "hand hand   hand";
     padding: 6px 8px 8px;
   }
@@ -510,6 +525,10 @@ body.gz-fullscreen .site-footer { display: none !important; }
   .gz-seat-top .gz-who { flex-direction: column; gap: 3px; }
   .gz-seat-top .gz-name-line { align-items: center; }
   .gz-avatar { width: 34px; height: 34px; font-size: 15px; }
+  /* 竖屏：按钮左边放不下吃牌区——头像留左半边，吃牌区挪到按钮右边 */
+  .gz-seat-me { display: grid; grid-template-columns: minmax(0, 1fr) 116px minmax(0, 1fr); padding: 4px 0; gap: 0; }
+  .gz-seat-me .gz-who { grid-column: 1; }
+  .gz-seat-me .gz-caps { grid-column: 3; padding-left: 4px; }
 }
 @media (max-height: 480px) and (min-aspect-ratio: 1/1) {
   .gz-table { grid-template-rows: 44px auto minmax(calc(var(--th) * 2 + 8px), 1fr) auto auto; padding: 4px 8px 4px; }
