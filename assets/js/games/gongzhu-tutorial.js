@@ -155,7 +155,7 @@
       const leadSuit = suitOf(cs[0]);
       const meCard = plays.find((p) => p.seat === 0).card;
       if (r.trickNo === 1) {
-        out.push({ text: '大家都跟了黑桃：别人领出什么花色，你有这门牌就必须跟这门。' });
+        out.push({ text: '其他三家也都出了黑桃：第一张出的是什么花色，如果你手里有这个花色，就必须出这个花色的牌。' });
         out.push({ text: '每门花色都是 2 最小、A 最大：', ranks: true });
         out.push({ text: '这一轮的花色是黑桃（由第一张出的牌决定）。谁出了这一轮花色里最大的一张，谁就赢下这一轮，下一轮由他先出。这一轮是上家的 ' + label(card('♠A')) + '。' });
         return out;

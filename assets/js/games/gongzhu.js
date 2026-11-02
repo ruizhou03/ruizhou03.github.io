@@ -756,11 +756,11 @@
       none: '不设终点，一直累计下去。',
     }[rules.end];
     return '<dl class="gz-rules">' +
-      '<dt>出牌</dt><dd>四人各 13 张。' + lead + '每一轮第一张出的牌决定这一轮的花色：手里有这一轮花色就必须跟，没有可以垫任意一张。出了这一轮花色里最大一张的人赢下这一轮，收走这一轮的牌，下一轮由他先出。</dd>' +
+      '<dt>出牌</dt><dd>四人各 13 张。' + lead + '每一轮第一张出的牌决定这一轮的花色：如果你手里有这个花色，就必须出这个花色的牌；没有才可以出任意一张（叫「垫牌」）。出了这一轮花色里最大一张的人赢下这一轮，收走这一轮的牌，下一轮由他先出。</dd>' +
       '<dt>分牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。' + hearts + '</dd>' +
       '<dt>变压器 ♣10</dt><dd>它本身不算分，吃到它，你这一局的分数（不论正负）翻倍' + (rules.doublerAlone === 50 ? '；只吃到它一张、别的分牌都没吃到，算 +50。' : '。') + '</dd>' +
       '<dt>全红</dt><dd>一个人吃齐 13 张红桃，红桃改记 +200。' + pigLine + '</dd>' +
-      (rules.expose ? '<dt>亮牌</dt><dd>开打前，♥A、♠Q、♦J、♣10 可以亮给大家看，效果翻倍：亮 ♥A 红桃全部 ×2，亮猪 −200，亮羊 +200，亮变压器 ×4' + (rules.doublerAlone === 50 ? '（单吃 +100）' : '') + '。亮出的牌在这门第一次被领出的那一轮里不能出，也不能拿它领这门，除非这门只剩它一张；垫牌不受限。</dd>' : '') +
+      (rules.expose ? '<dt>亮牌</dt><dd>开打前，♥A、♠Q、♦J、♣10 可以亮给大家看，效果翻倍：亮 ♥A 红桃全部 ×2，亮猪 −200，亮羊 +200，亮变压器 ×4' + (rules.doublerAlone === 50 ? '（单吃 +100）' : '') + '。这个花色第一次被领出的那一轮里，亮出的牌不能出，也不能用它来领这个花色，除非你这个花色只剩它一张；垫牌不受限。</dd>' : '') +
       '<dt>一盘</dt><dd>' + end + '分最低的人当猪，并列都是。</dd></dl>';
   }
 
@@ -858,12 +858,21 @@
       '<path d="M38 47 61 57M102 47 79 57" stroke="#3a2420" stroke-width="6.5" stroke-linecap="round"/>' +
       '<ellipse cx="70" cy="84" rx="21" ry="14" fill="#ea8f9f"/><ellipse cx="62" cy="84" rx="3.6" ry="5.4" fill="#a94a5e"/><ellipse cx="78" cy="84" rx="3.6" ry="5.4" fill="#a94a5e"/>' +
       '<path d="M50 103q22 10 42-6" stroke="#3a2420" stroke-width="4" fill="none" stroke-linecap="round"/><path d="m80 103 4 8 3-11Z" fill="#fffaf3" stroke="#3a2420" stroke-width="1.5" stroke-linejoin="round"/></svg>',
-    sheep: '<svg viewBox="0 0 120 104" aria-hidden="true"><g fill="#fffaf0" stroke="#d6cbb9" stroke-width="2">' +
-      [[34, 42, 16], [52, 28, 17], [72, 28, 17], [88, 43, 16], [93, 63, 15], [78, 80, 16], [42, 80, 16], [27, 63, 15], [60, 86, 15]].map(([x, y, r]) => '<circle cx="' + x + '" cy="' + y + '" r="' + r + '"/>').join('') +
-      '</g><ellipse cx="31" cy="54" rx="12" ry="6" transform="rotate(-24 31 54)" fill="#4b4038"/><ellipse cx="89" cy="54" rx="12" ry="6" transform="rotate(24 89 54)" fill="#4b4038"/>' +
-      '<ellipse cx="60" cy="60" rx="20" ry="25" fill="#4b4038"/><g fill="#fffaf0" stroke="#d6cbb9" stroke-width="2"><circle cx="50" cy="37" r="9"/><circle cx="70" cy="37" r="9"/><circle cx="60" cy="32" r="10"/></g>' +
-      '<circle cx="52" cy="58" r="5" fill="#fff"/><circle cx="68" cy="58" r="5" fill="#fff"/><circle cx="53" cy="59" r="2.6" fill="#1d1b18"/><circle cx="69" cy="59" r="2.6" fill="#1d1b18"/>' +
-      '<path d="M54 74Q60 79 66 74" stroke="#cdbca6" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>',
+    // 羊：羊毛先描一圈外轮廓再整块填色（像一整朵云，不是一个个圆），暖米色、腮红，额头一颗小红方块呼应 ♦J
+    sheep: (() => {
+      const wool = [[34, 42, 16], [52, 28, 17], [72, 28, 17], [88, 43, 16], [93, 63, 15], [78, 80, 16], [42, 80, 16], [27, 63, 15], [60, 86, 15], [60, 52, 30]];
+      const tuft = [[50, 37, 9], [70, 37, 9], [60, 31, 10]];
+      const circ = (a, attrs) => a.map(([x, y, r]) => '<circle cx="' + x + '" cy="' + y + '" r="' + r + '"' + attrs + '/>').join('');
+      return '<svg viewBox="0 0 120 106" aria-hidden="true">' +
+        '<g fill="#e7cfc0">' + circ(wool, ' stroke="#b98f80" stroke-width="5"') + '</g><g fill="#fbefe4">' + circ(wool, '') + '</g>' +
+        '<ellipse cx="31" cy="55" rx="12" ry="6" transform="rotate(-24 31 55)" fill="#4b3a34"/><ellipse cx="89" cy="55" rx="12" ry="6" transform="rotate(24 89 55)" fill="#4b3a34"/>' +
+        '<ellipse cx="60" cy="61" rx="20" ry="25" fill="#4b3a34"/>' +
+        '<g fill="#e7cfc0">' + circ(tuft, ' stroke="#b98f80" stroke-width="4"') + '</g><g fill="#fbefe4">' + circ(tuft, '') + '</g>' +
+        '<path d="M60 26 65 33 60 40 55 33Z" fill="#b4392c"/>' +
+        '<circle cx="52" cy="59" r="5" fill="#fff"/><circle cx="68" cy="59" r="5" fill="#fff"/><circle cx="53" cy="60" r="2.6" fill="#1d1b18"/><circle cx="69" cy="60" r="2.6" fill="#1d1b18"/>' +
+        '<ellipse cx="46" cy="70" rx="4.5" ry="2.8" fill="#d9786c" opacity=".7"/><ellipse cx="74" cy="70" rx="4.5" ry="2.8" fill="#d9786c" opacity=".7"/>' +
+        '<path d="M55 75Q60 80 65 75" stroke="#d9b9a6" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>';
+    })(),
     heart: '<svg viewBox="0 0 100 92" aria-hidden="true"><path d="M50 89C20 67 3 51 3 30 3 15 15 4 29 4c9 0 16 5 21 13 5-8 12-13 21-13 14 0 26 11 26 26 0 21-17 37-47 59Z" fill="#b4392c"/>' +
       '<path d="M22 18c-6 2-10 8-10 14" stroke="#e8857a" stroke-width="5" stroke-linecap="round" fill="none" opacity=".7"/></svg>',
     // 金冠：渐变金、五个尖、珍珠、正中一颗红宝石，冠箍上嵌红 / 藏青 / 墨绿三色宝石
@@ -935,15 +944,16 @@
     els.fx.appendChild(item);
     let frames;
     if (fx.kind === 'pig') {
-      // 一圈黑红碎屑（不画圆圈、不打光，免得显得刻意）
-      burst(0, -30, 22, ['●', '◆', '●'], ['#3a2420', '#7a1e1a', '#b4392c'], 180, 150, 'none');
+      // 猪是 ♠Q：四散的全是大大小小、边飞边转的黑桃
+      burst(0, -30, 26, ['♠'], ['#1f1c18', '#3a2420', '#4a3a36', '#7a1e1a'], 180, 160, { glow: 'none', spin: true, size: [11, 38] });
       frames = [
         { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.15), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
         { transform: FT(-9, 0, 1), offset: 0.34 }, { transform: FT(9, 0, 1), offset: 0.42 }, { transform: FT(-6, 0, 1), offset: 0.5 },
         { transform: FT(4, 0, 1), offset: 0.57 }, { transform: FT(0, 0, 1), opacity: 1, offset: 0.66 }, { transform: FT(dx, dy, 0.42), opacity: 0 },
       ];
     } else if (fx.kind === 'sheep') {
-      burst(0, -30, 24, ['✦', '✿', '✦'], ['#3d6b4f', '#c9a96e', '#5f8f6f'], 180, 150, 'none');
+      // 羊是 ♦J：四散的是红方块
+      burst(0, -30, 26, ['♦'], ['#b4392c', '#c9473a', '#d65f4f', '#a8322a'], 180, 160, { glow: 'none', spin: true, size: [11, 34] });
       frames = [
         { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.12), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
         { transform: FT(0, -22, 1), offset: 0.36 }, { transform: FT(0, 0, 1), offset: 0.46 }, { transform: FT(0, -13, 1), offset: 0.54 },
@@ -954,14 +964,15 @@
         { transform: FT(0, 0, 2.2), opacity: 0 }, { transform: FT(0, 0, 0.92), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1.04), offset: 0.24 },
         { transform: FT(0, 0, 1), opacity: 1, offset: 0.7 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
       ];
-      burst(0, 0, 12, ['✦'], tone.sparks, 120, 100, 'none');
+      // 变压器是 ♣10：四散的是草花，颜色跟着圆环
+      burst(0, 0, 16, ['♣'], tone.sparks, 120, 115, { glow: 'none', spin: true, size: [12, 30] });
     } else if (fx.kind === 'allhearts') {
       // 只用红心：五朵红心烟花接连炸开，中间一颗大红心「怦、怦」跳两下
-      burst(-150, -60, 26, ['♥'], HEART_REDS, 0, 135, 'red');
-      burst(150, -50, 26, ['♥'], HEART_REDS, 220, 135, 'red');
-      burst(-90, 70, 24, ['♥'], HEART_REDS, 440, 120, 'red');
-      burst(100, 75, 24, ['♥'], HEART_REDS, 620, 120, 'red');
-      burst(0, -10, 40, ['♥'], HEART_REDS, 820, 190, 'red');
+      burst(-150, -60, 26, ['♥'], HEART_REDS, 0, 135, { glow: 'red', size: [18, 36] });
+      burst(150, -50, 26, ['♥'], HEART_REDS, 220, 135, { glow: 'red', size: [18, 36] });
+      burst(-90, 70, 24, ['♥'], HEART_REDS, 440, 120, { glow: 'red', size: [18, 36] });
+      burst(100, 75, 24, ['♥'], HEART_REDS, 620, 120, { glow: 'red', size: [18, 36] });
+      burst(0, -10, 40, ['♥'], HEART_REDS, 820, 190, { glow: 'red', size: [18, 36] });
       frames = [
         { transform: FT(0, 0, 0), opacity: 0 }, { transform: FT(0, 0, 0), opacity: 0, offset: 0.26 },
         { transform: FT(0, 0, 1.18), opacity: 1, offset: 0.34 }, { transform: FT(0, 0, 0.94), offset: 0.4 },
@@ -982,11 +993,12 @@
   }
 
   // 一朵烟花：n 颗粒子从 (x, y) 炸开，往外飞、再带点下坠淡出
-  function burst(x, y, n, glyphs, colors, delay, radius, glow) {
-    // 炸开那一下：中心先晕开一团光（金 / 红；'none' 不要）
-    if (glow !== 'none') {
+  // opts：glow 'gold' | 'red' | 'none'（中心晕光）；spin 粒子边飞边转；size [最小, 最大] 字号 px
+  function burst(x, y, n, glyphs, colors, delay, radius, opts) {
+    const o = Object.assign({ glow: 'gold', spin: false, size: [15, 28] }, opts);
+    if (o.glow !== 'none') {
       const flash = document.createElement('div');
-      flash.className = 'gz-flash' + (glow === 'red' ? ' red' : '');
+      flash.className = 'gz-flash' + (o.glow === 'red' ? ' red' : '');
       els.fx.appendChild(flash);
       animate(flash, [{ transform: FT(x, y, 0.2), opacity: 0.85 }, { transform: FT(x, y, 1.5), opacity: 0 }],
         { duration: 520, delay, fill: 'both' }, 'ease-out');
@@ -995,18 +1007,20 @@
     for (let k = 0; k < n; k++) {
       const el = document.createElement('span');
       el.className = 'gz-spark';
-      el.textContent = glyphs[k % glyphs.length];
+      el.textContent = glyphs[k % glyphs.length] + '\uFE0E';   // 强制文字样式，♦♥ 不被画成 emoji
       el.style.color = colors[k % colors.length];
-      el.style.fontSize = ((glow === 'red' ? 18 : 15) + Math.random() * (glow === 'red' ? 18 : 13)).toFixed(0) + 'px';
+      el.style.fontSize = (o.size[0] + Math.random() * (o.size[1] - o.size[0])).toFixed(0) + 'px';
       els.fx.appendChild(el);
       const a = (k / n) * Math.PI * 2 + Math.random() * 0.4;
       const d = radius * (0.65 + Math.random() * 0.45);
       const tx = x + Math.cos(a) * d, ty = y + Math.sin(a) * d;
+      const r0 = o.spin ? Math.random() * 60 - 30 : 0;
+      const r1 = o.spin ? r0 + (Math.random() < 0.5 ? -1 : 1) * (120 + Math.random() * 200) : 0;
       animate(el, [
-        { transform: FT(x, y, 0.3), opacity: 0 },
-        { transform: FT(x, y, 0.6), opacity: 1, offset: 0.06 },
-        { transform: FT(tx, ty, 1), opacity: 1, offset: 0.55, easing: 'ease-in' },   // 飞到最远后开始下坠
-        { transform: FT(tx, ty + 34, 0.7), opacity: 0 },
+        { transform: FT(x, y, 0.3, r0), opacity: 0 },
+        { transform: FT(x, y, 0.6, r0), opacity: 1, offset: 0.06 },
+        { transform: FT(tx, ty, 1, (r0 + r1) * 0.55), opacity: 1, offset: 0.55, easing: 'ease-in' },   // 飞到最远后开始下坠
+        { transform: FT(tx, ty + 34, 0.7, r1), opacity: 0 },
       ], { duration: 1250, delay, fill: 'both' }, 'cubic-bezier(.12, .8, .3, 1)');
       setTimeout(() => el.remove(), 1250 + delay + 60);
     }
