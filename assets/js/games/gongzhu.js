@@ -552,7 +552,7 @@
     const settle = () => {
       // 猪 / 羊 / 变压器有专属动画：动画本身飞进吃牌区变成那张牌，牌就不再单独飞
       const fxList = planTrickFx(done);
-      const fxCards = new Set(fxList.filter((f) => f.card >= 0).map((f) => f.card));
+      const fxCards = new Set(fxList.flatMap((f) => f.cards || (f.card >= 0 ? [f.card] : [])));
       const ms = Math.max(flyTrick(done.plays, done.winner, fxCards), playTrickFx(done, fxList));
       schedule(() => {
         save();
@@ -1002,7 +1002,7 @@
 
   const FX_DRIFT = [[0, 90], [120, 0], [0, -90], [-120, 0]];   // 朝各座位跑的方向（我 / 下 / 对 / 上）
   const FX_GAP = 600;
-  const FX_DUR = { pig: 1900, sheep: 1900, doubler: 1700, allhearts: 2700, slam: 2600 };
+  const FX_DUR = { pig: 1900, sheep: 1900, doubler: 1700, allhearts: 2700, slam: 2600, clash: 3000 };
   const DOUBLER_TONE = {
     gold: { ink: '#b8924a', ring: '#c9a96e', sparks: ['#c9a96e', '#dcb86c'] },
     ash: { ink: '#7b756b', ring: '#a39c90', sparks: ['#a39c90', '#8c867b'] },
@@ -1074,8 +1074,13 @@
     if (sc.grandSlam && hadAll) list.push({ kind: 'slam', word: '大满贯', sub: signed(sc.total) });
     else if (hadAll) list.push({ kind: 'allhearts', word: '全红', sub: signed(sc.heartScore) });
     if (!sc.grandSlam) {
-      if (cs.includes(R.PIG)) list.push({ kind: 'pig', card: R.PIG, sub: signed(sc.pigScore) });
-      if (cs.includes(R.SHEEP)) list.push({ kind: 'sheep', card: R.SHEEP, sub: signed(sc.sheepScore) });
+      if (cs.includes(R.PIG) && cs.includes(R.SHEEP)) {
+        // 猪羊同一轮：不各放各的，改成两只对撞（见 playClash）
+        list.push({ kind: 'clash', cards: [R.SHEEP, R.PIG], net: sc.pigScore + sc.sheepScore, pigSub: signed(sc.pigScore), sheepSub: signed(sc.sheepScore) });
+      } else {
+        if (cs.includes(R.PIG)) list.push({ kind: 'pig', card: R.PIG, sub: signed(sc.pigScore) });
+        if (cs.includes(R.SHEEP)) list.push({ kind: 'sheep', card: R.SHEEP, sub: signed(sc.sheepScore) });
+      }
       // 变压器的颜色看吃到它的人现在的分：正分金色（翻倍是好事）、负分灰色（雪上加霜）、0 分藏青
       if (cs.includes(R.DOUBLER)) list.push({ kind: 'doubler', card: R.DOUBLER, word: '×' + (R.scoreCtx(r).exposed.includes(R.DOUBLER) ? 4 : 2), sub: '',
         tone: sc.total > 0 ? 'gold' : sc.total < 0 ? 'ash' : 'navy' });
@@ -1126,7 +1131,85 @@
     if (!caps.querySelector('.gz-mini.incoming')) rollCapsScore(caps);
   }
 
+  /* 猪羊同一轮：羊从左、猪从右各自亮相（羊蹦两下、猪刨两下地），往后一缩、对冲到中间撞上——
+   * 白光一闪，黑桃红方块四溅，一团烟把两只都吞掉；烟里盖出一枚「两清」（−100 +100 正好抵消；
+   * 亮过牌抵不平就写净分），印章朝吃到的人飘走，两张牌在他的吃牌区翻出来。 */
+  function playClash(fx, w) {
+    const dur = FX_DUR.clash;
+    const [dx, dy] = FX_DRIFT[w];
+    const mk = (cls, html) => {
+      const el = document.createElement('div');
+      el.className = 'gz-fxitem ' + cls;
+      el.innerHTML = html;
+      els.fx.appendChild(el);
+      return el;
+    };
+    const tag = (v) => '<div class="gz-fxscore ' + (v[0] === '−' ? 'neg' : 'pos') + '">' + v + '</div>';
+    const sheep = mk('kind-sheep is-duel', '<div class="gz-fxart">' + ART.sheep + '</div>' + tag(fx.sheepSub));
+    const pig = mk('kind-pig is-duel', '<div class="gz-fxart">' + ART.pig + '</div>' + tag(fx.pigSub));
+    const IN = 'cubic-bezier(.55, 0, .9, .45)';   // 冲锋：越跑越快
+    const side = (k) => [
+      { transform: FT(k * 210, 0, 0.2), opacity: 0 },
+      { transform: FT(k * 170, 0, 1.08), opacity: 1, offset: 0.08 },
+      { transform: FT(k * 170, 0, 1), offset: 0.13 },
+      ...(k < 0
+        ? [{ transform: FT(-170, -22, 1), offset: 0.19 }, { transform: FT(-170, 0, 1), offset: 0.24 }, { transform: FT(-170, -12, 1), offset: 0.28 }]
+        : [{ transform: FT(160, 0, 1, -4), offset: 0.18 }, { transform: FT(178, 0, 1, 3), offset: 0.23 }, { transform: FT(166, 0, 1, -2), offset: 0.28 }]),
+      { transform: FT(k * 190, 0, 0.96, k * -7), offset: 0.33 },
+      { transform: FT(k * 38, 0, 1.06, k * 9), offset: 0.43, easing: IN },
+      { transform: FT(k * 30, 0, 0.86, 0), opacity: 1, offset: 0.46 },
+      { transform: FT(k * 26, -8, 0.4, 0), opacity: 0, offset: 0.54 },
+      { transform: FT(k * 26, -8, 0.4, 0), opacity: 0 },
+    ];
+    // 冲出去之前分数先淡掉，只剩两只在跑
+    const hideTag = (el) => el.querySelector('.gz-fxscore').animate([{ opacity: 1 }, { opacity: 1, offset: 0.27 }, { opacity: 0, offset: 0.33 }, { opacity: 0 }], { duration: dur, fill: 'forwards' });
+    // 冲锋那一段要「越跑越快」，其余段用默认的缓出：逐段给缓动
+    const ease = (frames) => frames.map((f, i) => (f.easing ? f : Object.assign({}, f, { easing: frames[i + 1] && frames[i + 1].easing === IN ? IN : 'cubic-bezier(.25, .8, .35, 1)' })));
+    sheep.animate(ease(side(-1)).map((f) => Object.assign({ easing: f.easing }, f)), { duration: dur, fill: 'forwards', easing: 'linear' });
+    pig.animate(ease(side(1)).map((f) => Object.assign({ easing: f.easing }, f)), { duration: dur, fill: 'forwards', easing: 'linear' });
+    hideTag(sheep); hideTag(pig);
+
+    const hit = Math.round(dur * 0.44);
+    // 撞上：白光 + 黑桃红方块四溅
+    burst(0, -18, 44, ['♠', '♦'], SUIT_TINT, hit, 190, { glow: 'gold', spin: true, size: [16, 72] });
+    // 一团烟：一圈圈灰白的云团鼓起来、往上飘散
+    for (let k = 0; k < 11; k++) {
+      const puff = document.createElement('div');
+      puff.className = 'gz-smoke';
+      const a = Math.random() * Math.PI * 2, d = Math.random() * 46;
+      const x = Math.cos(a) * d, y = -18 + Math.sin(a) * d * 0.7;
+      const size = 70 + Math.random() * 70;
+      puff.style.width = puff.style.height = size.toFixed(0) + 'px';
+      els.fx.appendChild(puff);
+      const life = 1100 + Math.random() * 500, delay = hit + Math.random() * 160;
+      puff.animate([
+        { transform: FT(x, y, 0.25), opacity: 0 },
+        { transform: FT(x * 1.2, y - 6, 1), opacity: 0.85, offset: 0.22 },
+        { transform: FT(x * 1.7, y - 40, 1.7), opacity: 0 },
+      ], { duration: life, delay, fill: 'both', easing: 'cubic-bezier(.2, .7, .3, 1)' });
+      setTimeout(() => puff.remove(), delay + life + 60);
+    }
+    // 烟里盖出一枚印章，停一会儿，再朝吃到的人飘走
+    const even = fx.net === 0;
+    const stamp = mk('kind-clash', '<div class="gz-clash' + (even ? '' : fx.net < 0 ? ' neg' : ' pos') + '">' + (even ? '两清' : signed(fx.net)) + '</div>' +
+      '<div class="gz-clash-sub">' + fx.sheepSub + ' ' + fx.pigSub + '</div>');
+    animate(stamp, [
+      { transform: FT(0, -14, 1.9, -7), opacity: 0 },
+      { transform: FT(0, -14, 1.9, -7), opacity: 0, offset: 0.5 },
+      { transform: FT(0, -14, 0.9, -7), opacity: 1, offset: 0.57 },
+      { transform: FT(0, -14, 1.04, -7), offset: 0.61 },
+      { transform: FT(0, -14, 1, -7), opacity: 1, offset: 0.84 },
+      { transform: FT(dx * 0.7, dy * 0.7 - 14, 0.55, -7), opacity: 0 },
+    ], { duration: dur, fill: 'forwards' });
+    setTimeout(() => {
+      sheep.remove(); pig.remove(); stamp.remove();
+      const caps = els.seats[w].querySelector('.gz-caps');
+      for (const c of fx.cards) revealMini(caps.querySelector('.gz-mini[data-card="' + c + '"]'), w);
+    }, dur);
+  }
+
   function playFx(fx, w) {
+    if (fx.kind === 'clash') { playClash(fx, w); return; }
     const [dx, dy] = FX_DRIFT[w];
     const dur = FX_DUR[fx.kind];
     const item = document.createElement('div');
