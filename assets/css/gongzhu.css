@@ -450,6 +450,15 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 .is-tutorial .gz-skip { visibility: visible; }
 .is-tutorial #gzSettingsBtn { visibility: hidden; }
+/* 不在教程里时「跳过教程」不占位；教程里设置键干脆让出位置 —— 顶栏五个圆键在窄屏上也放得下，局数不折行 */
+.gz-table:not(.is-tutorial) .gz-skip { display: none; }
+.is-tutorial #gzSettingsBtn { display: none; }
+.gz-round-no { white-space: nowrap; }
+@media (max-width: 400px) {
+  .gz-tools { gap: 6px; }
+  .gz-tool { width: 36px; height: 36px; }
+  .gz-tool.gz-exit { margin-left: 4px; }
+}
 .gz-coach {
   position: absolute; left: 50%; z-index: 5; pointer-events: none;
   display: flex; flex-direction: column; align-items: center; text-align: center;
@@ -727,3 +736,17 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-lead .suit-svg { display: block; width: 1em; height: 1em; fill: currentColor; overflow: visible; }
 .gz-center.is-fxing .gz-lead, .gz-center.is-review .gz-lead { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .gz-lead { transition: opacity 0.2s; transform: translate(-50%, -50%); } }
+
+/* 声音按钮 + 小面板（音效 / 背景音乐两个开关） */
+.gz-sound .off { display: none; }
+.gz-sound.is-off .on { display: none; }
+.gz-sound.is-off .off { display: inline; }
+.gz-sound-panel {
+  position: fixed; z-index: calc(var(--z-dialog) + 1); width: 160px; box-sizing: border-box; padding: 8px 6px;
+  background: var(--gz-paper); border: 1px solid var(--gz-ink); border-radius: 10px; box-shadow: 0 8px 20px rgba(20, 18, 15, 0.16);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.gz-sound-panel[hidden] { display: none; }
+.gz-sound-row { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 6px; font-size: 15px; cursor: pointer; color: var(--gz-ink); }
+.gz-sound-row:hover { background: var(--gz-wash); }
+.gz-sound-row input { width: 18px; height: 18px; margin: 0; accent-color: var(--gz-seal); }

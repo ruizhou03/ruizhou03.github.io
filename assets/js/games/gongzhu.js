@@ -42,6 +42,59 @@
     slots: [0, 1, 2, 3].map((s) => document.querySelector('.gz-slot-' + s)),
   };
 
+  /* ───── 声音（见 gongzhu-audio.js）：没加载上就静悄悄地打 ───── */
+  const snd = (name, delay, arg) => { if (window.GongzhuAudio) window.GongzhuAudio.sfx(name, delay, arg); };
+  // 轮到我：同一手只响一次（联机里一份快照会反复触发 onlineIdle）
+  let turnDing = '';
+  function dingMyTurn() {
+    const r = match.round;
+    const key = match.roundNo + ':' + (r ? r.trickNo * 4 + r.trick.length : -1) + ':' + (match.exposing.length ? 'x' : 'p');
+    if (key === turnDing) return;
+    turnDing = key;
+    snd('turn');
+  }
+
+  /* 声音按钮：点开一个小面板，音效 / 背景音乐各一个开关（记在本机） */
+  const SOUND_TRACKS = [['sfx', '音效'], ['music', '背景音乐']];
+  let soundPanel = null;
+  function refreshSoundBtn() {
+    const A = window.GongzhuAudio, btn = $('gzSoundBtn');
+    if (!btn) return;
+    if (!A) { btn.hidden = true; return; }
+    const p = A.prefs(), off = !p.sfx && !p.music;
+    btn.classList.toggle('is-off', off);
+    btn.setAttribute('aria-label', '声音' + (off ? '（已关）' : ''));
+    btn.setAttribute('aria-expanded', soundPanel && !soundPanel.hidden ? 'true' : 'false');
+  }
+  function toggleSoundPanel(e) {
+    const A = window.GongzhuAudio;
+    if (!A) return;
+    if (e) e.stopPropagation();
+    if (!soundPanel) {
+      soundPanel = document.createElement('div');
+      soundPanel.className = 'gz-sound-panel';
+      soundPanel.setAttribute('role', 'group');
+      soundPanel.setAttribute('aria-label', '声音');
+      soundPanel.hidden = true;
+      soundPanel.innerHTML = SOUND_TRACKS.map(([k, t]) => '<label class="gz-sound-row"><input type="checkbox" data-track="' + k + '"><span>' + t + '</span></label>').join('');
+      soundPanel.addEventListener('change', (ev) => { const k = ev.target.dataset.track; if (k) { A.set(k, ev.target.checked); refreshSoundBtn(); } });
+      soundPanel.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { soundPanel.hidden = true; refreshSoundBtn(); $('gzSoundBtn').focus(); } });
+      document.addEventListener('click', (ev) => {
+        if (!soundPanel.hidden && !ev.target.closest('.gz-sound-panel, #gzSoundBtn')) { soundPanel.hidden = true; refreshSoundBtn(); }
+      });
+      els.app.appendChild(soundPanel);
+    }
+    soundPanel.hidden = !soundPanel.hidden;
+    if (!soundPanel.hidden) {
+      const p = A.prefs();
+      soundPanel.querySelectorAll('input').forEach((box) => { box.checked = !!p[box.dataset.track]; });
+      const r = $('gzSoundBtn').getBoundingClientRect();
+      soundPanel.style.top = Math.round(r.bottom + 8) + 'px';
+      soundPanel.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 168, r.left + r.width / 2 - 80))) + 'px';
+    }
+    refreshSoundBtn();
+  }
+
   /* ───── 存档 ───── */
 
   function readJSON(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (_) { return null; } }
@@ -501,6 +554,7 @@
     exposePick = [];
     save();
     renderAll();
+    snd('deal');
     schedule(step, 450);
   }
 
@@ -522,7 +576,7 @@
     if (match.tutorial) { tutStep(); return; }
     if (match.exposing.length) { exposeStep(); return; }
     renderSeats();
-    if (r.turn === 0 && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyTimeout); return; }
+    if (r.turn === 0 && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyTimeout); dingMyTurn(); return; }
     busy = true;
     renderHand();
     const started = performance.now();
@@ -545,7 +599,7 @@
     exposeWait = { bots: Promise.all(bots.map((s) => chooseExpose(r, s, seatTier(s)).then((cards) => [s, cards]))) };
     const meIn = match.exposing.includes(0);
     renderSeats();
-    if (meIn && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyExposeTimeout); return; }
+    if (meIn && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyExposeTimeout); dingMyTurn(); return; }
     busy = true;
     renderHand();
     if (meIn) chooseExpose(r, 0, takeoverTier(botTiers())).then(guard((cards) => applyExpose(0, cards)));
@@ -578,6 +632,7 @@
       exposeWait = null;
       renderSeats();
       renderHand();
+      r.exposed.forEach((_, i) => snd('stamp', i * 160));
       save();
       schedule(step, r.exposed.length ? 700 : 120);
     }));
@@ -597,6 +652,7 @@
     const r = match.round;
     stopClock();
     const done = R.playCard(r, seat, card);
+    snd('play');
     if (seat === 0) selected = -1;
     if (seat === 0 && match.tutorial) { hideCoach(); clearTimeout(idleTimer); suggestCard = -1; els.play.classList.remove('is-suggest'); }
     busy = true;   // 下一手由 step() 接手，轮到我时它再放开；早放开会让我抢在 step 前出牌、排出两次 step
@@ -669,6 +725,7 @@
         { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.16)', opacity: 0.15, easing: 'cubic-bezier(.5, 0, .75, 0)' },
       ], { duration: sweepMs, fill: 'forwards' }, 'cubic-bezier(.3, 0, .3, 1)');
     }
+    if (flyers.length) { snd('sweep', 0, sweepMs); snd('gulp', sweepMs * 0.8); }
     // 赢家的头像「咽」一下：牌钻进去的那一刻鼓一下再回原样
     if (flyers.length && !reduce) {
       avatar.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.22)', offset: 0.45 }, { transform: 'scale(1)' }],
@@ -732,6 +789,7 @@
           { transform: T(0, 0, 0.96, 0), opacity: 1, boxShadow: REST, offset: 0.86, easing: 'cubic-bezier(.3, .7, .35, 1)' },
           { transform: T(0, 0, 1, 0), opacity: 1, boxShadow: REST },
         ], { duration: ONE, delay: i * STAGGER, fill: 'backwards' });
+        snd('tuck', i * STAGGER + ONE * 0.86);
         // 每拿出一张，头像轻轻一动
         avatar.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.1)', offset: 0.4 }, { transform: 'scale(1)' }],
           { duration: 240, delay: i * STAGGER, easing: 'ease-out' });
@@ -747,7 +805,11 @@
 
   function rollCapsScore(caps) {
     const sc = caps.querySelector('.gz-cap-score');
-    if (sc && sc.dataset.next !== undefined) { rollNumber(sc, +sc.dataset.next); delete sc.dataset.next; }
+    if (sc && sc.dataset.next !== undefined) {
+      const from = +(sc.dataset.v || 0), to = +sc.dataset.next;
+      if (to !== from) snd(to > from ? 'up' : 'down');
+      rollNumber(sc, to); delete sc.dataset.next;
+    }
   }
 
   /* ───── 出牌倒计时与托管 ─────
@@ -755,7 +817,7 @@
    * 我超时：由场上最强的那档机器人替我出这一张；连续两次超时转成托管，点手牌或头像收回。
    * 弹窗开着时计时暂停。 */
 
-  const clock = { seat: -1, left: 0, at: 0, onTimeout: null, paused: false, t1: 0, t2: 0 };
+  const clock = { seat: -1, left: 0, at: 0, onTimeout: null, paused: false, t1: 0, t2: 0, tk: 0 };
 
   function startClock(seat, onTimeout, totalMs) {
     stopClock();
@@ -774,12 +836,17 @@
   function runClock() {
     const my = token, seat = clock.seat;
     clock.at = performance.now();
-    clock.t1 = setTimeout(() => { if (my === token) els.seats[seat].classList.add('is-hurry'); }, Math.max(0, clock.left - HURRY_MS));
+    clock.t1 = setTimeout(() => {
+      if (my !== token) return;
+      els.seats[seat].classList.add('is-hurry');
+      // 最后几秒轮到的是我：每秒一声木鱼
+      if (seat === 0) { snd('tick'); clearInterval(clock.tk); clock.tk = setInterval(() => { if (my === token && clock.seat === 0 && !clock.paused) snd('tick'); }, 1000); }
+    }, Math.max(0, clock.left - HURRY_MS));
     if (clock.onTimeout) clock.t2 = setTimeout(() => { if (my !== token) return; const f = clock.onTimeout; stopClock(); f(); }, clock.left);
   }
   function pauseClock() {
     if (clock.seat < 0 || clock.paused || (match && match.online)) return;   // 联机的钟以服务器为准，弹窗开着也照走
-    clearTimeout(clock.t1); clearTimeout(clock.t2);
+    clearTimeout(clock.t1); clearTimeout(clock.t2); clearInterval(clock.tk);
     if (clock.at) clock.left = Math.max(0, clock.left - (performance.now() - clock.at));
     clock.at = 0;
     clock.paused = true;
@@ -792,7 +859,7 @@
     runClock();
   }
   function stopClock() {
-    clearTimeout(clock.t1); clearTimeout(clock.t2);
+    clearTimeout(clock.t1); clearTimeout(clock.t2); clearInterval(clock.tk);
     if (clock.seat >= 0) els.seats[clock.seat].classList.remove('is-timed', 'is-hurry', 'is-paused');
     Object.assign(clock, { seat: -1, onTimeout: null, paused: false, at: 0 });
   }
@@ -837,6 +904,7 @@
       if (busy) return;
       if (!R.EXPOSABLE.includes(c)) { shake(el); return; }
       exposePick = exposePick.includes(c) ? exposePick.filter((x) => x !== c) : exposePick.concat([c]);
+      snd('pick');
       renderHand();
       return;
     }
@@ -845,11 +913,13 @@
     if (!R.legalFor(r, 0).includes(c)) { shake(el); return; }
     if (selected === c) { playSelected(); return; }
     selected = c;
+    snd('pick');
     renderHand();
   }
 
   // 不能出：抖一下，亮着的那些就是能出的
   function shake(el) {
+    snd('nope');
     el.classList.remove('nope');
     void el.offsetWidth;
     el.classList.add('nope');
@@ -887,8 +957,11 @@
     match.over = R.isMatchOver(match.totals, match.rules, match.roundNo);
     save();
     renderAll();
+    roundEndSound(scores[0]);
     showSettlement();
   }
+
+  function roundEndSound(mine) { snd(mine > 0 ? 'win' : mine < 0 ? 'lose' : 'even'); }
 
   /* ───── AI 调度：优先后台线程，失败就在主线程算 ───── */
 
@@ -1218,6 +1291,7 @@
   function playTrickFx(done, list) {
     const w = done.winner;
     if (!list.length) return 0;
+    if (window.GongzhuAudio) window.GongzhuAudio.duck(list.reduce((m, fx, k) => Math.max(m, k * FX_GAP + (fx.dur || FX_DUR[fx.kind])), 0));
     let end = 0;
     list.forEach((fx, k) => {
       setTimeout(() => playFx(fx, w), k * FX_GAP);
@@ -1287,6 +1361,10 @@
     });
 
     const hit = Math.round(dur * 0.44);
+    // 声音：各自亮相时叫一声（羊咩、猪哼、×2 叮）→ 蓄力冲锋的风声 → 撞上「轰」
+    fx.cards.forEach((c, i) => snd(c === R.SHEEP ? 'sheep' : c === R.PIG ? 'pig' : 'doubler', 60 + i * 140));
+    snd('charge', dur * 0.33, dur * 0.11);
+    snd('boom', hit, three);
     const glyphs = fx.cards.map((c) => (c === R.SHEEP ? '♦' : c === R.PIG ? '♠' : '♣'));
     const tint = (g) => (g === '♣' ? DOUBLER_TONE[fx.dbl.tone || 'gold'].ink : SUIT_TINT(g));
     // 撞上：白光 + 参与者的花色四溅
@@ -1322,6 +1400,8 @@
       els.fx.appendChild(g);
       const delay = hit + 90 + i * (three ? 260 : 380);
       const life = three ? 1200 - i * 120 : 1500;
+      snd('gong', delay + life * 0.08, suit);
+      if (three) snd('shatter', delay + life * 0.62);
       animate(g, three ? [
         { transform: FT(gx, gy, 0.15, -12), opacity: 0 },
         { transform: FT(gx, gy, 1.22, 4), opacity: 1, offset: 0.2 },
@@ -1369,6 +1449,9 @@
       (fx.kind === 'slam' ? '<div class="gz-fxword">大满贯</div>' : '') +
       (fx.sub ? '<div class="gz-fxscore ' + (fx.sub[0] === '−' ? 'neg' : 'pos') + '">' + fx.sub + '</div>' : '');
     els.fx.appendChild(item);
+    // 声音跟着动作：猪抖身子时哼两声再刨地、羊一出场就咩、变压器落定时叮、全红大红心跳时怦怦、金冠落下时奏一串
+    ({ pig: () => snd('pig', 250), sheep: () => snd('sheep', 120), doubler: () => snd('doubler', 180),
+      allhearts: () => snd('heartbeat', dur * 0.33), slam: () => snd('slam', dur * 0.13) })[fx.kind]();
 
     // 最后一段：缩成牌那么大、飞进吃牌区；落地瞬间淡掉，换成真牌翻出来
     // 收尾：特效就地缩小淡出、略朝吃到的人那边飘一点（牌随后再整轮收过去）
@@ -1446,6 +1529,7 @@
    * 粒子的姿态：大小拉开（少数很大），大部分接近正放；越大的越正、越稳，只有少数小的会大角度翻飞。 */
   function burst(x, y, n, glyphs, colors, delay, radius, opts) {
     const o = Object.assign({ glow: 'gold', spin: false, size: [15, 28] }, opts);
+    snd('pop', delay, n / 44);   // 每朵烟花「嘭」一下，跟着粒子数大小
     if (o.glow !== 'none') {
       const flash = document.createElement('div');
       flash.className = 'gz-flash' + (o.glow === 'red' ? ' red' : '');
@@ -1915,6 +1999,7 @@
         match.exposing = [];
         selected = -1; exposePick = []; busy = true; online.readySent = false;
         renderAll();
+        snd('deal');
         schedule(step, 450);
         return;
       }
@@ -1923,6 +2008,7 @@
         for (const [c, s] of ev.exposed) { const l = loc(s); ensureCard(r, l, c); R.expose(r, l, c); }
         match.exposing = [];
         renderSeats(); renderHand();
+        ev.exposed.forEach((_, i) => snd('stamp', i * 160));
         schedule(step, 900);
         return;
       }
@@ -1943,7 +2029,7 @@
         match.losers = match.over ? (gv.losers || []).map(loc) : [];
         online.readySent = false;
         renderAll(); renderOnlineBadges();
-        schedule(() => { showSettlement(); step(); }, pace().roundEnd);
+        schedule(() => { roundEndSound(match.last.scores[0]); showSettlement(); step(); }, pace().roundEnd);
         return;
       }
       schedule(step, 0);   // trick：收牌动画在第四张牌的 commit 里已经播了
@@ -1971,7 +2057,7 @@
       match.exposing = mine ? [0] : [];
       busy = !mine;
       renderSeats(); renderHand();
-      if (mine) startClock(0, null, remainMs(gv));
+      if (mine) { startClock(0, null, remainMs(gv)); dingMyTurn(); }
       return;
     }
     match.exposing = [];
@@ -1979,6 +2065,7 @@
     busy = !(r.turn === 0 && gv.legal.length > 0);
     renderSeats(); renderHand();
     startClock(r.turn, null, remainMs(gv));
+    if (!busy) dingMyTurn();
   }
   function exposeKey(gv) { return gv.matchNo + ':' + gv.roundNo; }
   // 倒计时还剩多久：服务器的截止时刻（出牌时它比我这边多等 3 秒，先让我自己的钟走完）
@@ -2267,6 +2354,8 @@
 
   els.play.addEventListener('click', playSelected);
   $('gzRulesBtn').addEventListener('click', showRules);
+  $('gzSoundBtn').addEventListener('click', toggleSoundPanel);
+  refreshSoundBtn();
   $('gzSettingsBtn').addEventListener('click', showSettings);
   $('gzRoundInfo').addEventListener('click', () => { if (!match.tutorial) showTotals(); });
   $('gzSkipTut').addEventListener('click', () => { if (match.tutorial) endTutorial(); });
