@@ -633,8 +633,9 @@
       avatar.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.22)', offset: 0.45 }, { transform: 'scale(1)' }],
         { duration: 340, delay: sweepMs * 0.82, easing: 'cubic-bezier(.3, .8, .4, 1.2)' });
     }
-    const STAGGER = 110;
-    const placeMs = fresh.length && !reduce ? Math.round(pace().fly * 1.7) + STAGGER * (fresh.length - 1) : 0;
+    const STAGGER = 140;
+    const ONE = Math.round(pace().fly * 2);
+    const placeMs = fresh.length && !reduce ? ONE + STAGGER * (fresh.length - 1) : 0;
     setTimeout(() => {
       flyers.forEach(({ fl }) => fl.remove());
       flying = null;
@@ -643,7 +644,10 @@
       const done = () => { caps.querySelectorAll('.incoming').forEach((el) => el.classList.remove('incoming')); rollCapsScore(caps); };
       if (reduce) { done(); return; }
       const ar = avatar.getBoundingClientRect();
-      const one = Math.round(pace().fly * 1.7);
+      // 放牌：像是把牌从自己那儿拿出来、放到桌上——
+      // 从头像里小小地冒出来（略歪）→ 沿一道弧线滑到空位上方 → 停一下摆正 → 往下一落、落桌轻轻一压；
+      // 拿在手里时影子大，放下时影子收紧
+      const LIFT = '0 10px 18px rgba(20, 18, 15, 0.28)', REST = '0 1px 2px rgba(20, 18, 15, 0.16)';
       fresh.forEach((c, i) => {
         const target = caps.querySelector('.gz-mini[data-card="' + c + '"]');
         if (!target) return;
@@ -654,17 +658,34 @@
         fl.style.cssText += ';left:' + b.left + 'px;top:' + b.top + 'px;width:' + b.width + 'px;height:' + b.height + 'px;--q:' + b.width + 'px';
         els.app.appendChild(fl);
         const fx = ar.left + ar.width / 2 - b.left - b.width / 2, fy = ar.top + ar.height / 2 - b.top - b.height / 2;
+        const hover = -b.height * 0.62;
+        const T = (x, y, sc, rot) => 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(' + sc + ') rotate(' + rot + 'deg)';
+        // 从头像里一路走到空位上方：一条连续的二次贝塞尔弧（控制点在两端中点再往上提），整段先快后慢——哪个座位出发都顺；
+        // 一出头像就淡入、由小变大、由歪摆正
+        const cx = fx / 2, cy = Math.min(fy, hover) - b.height * 0.5;
+        const ease = (t) => 1 - Math.pow(1 - t, 2.2);
+        const N = 9, arc = [];
+        for (let k = 0; k <= N; k++) {
+          const t = ease(k / N), u = 1 - t;
+          arc.push({
+            transform: T(u * u * fx + 2 * u * t * cx, u * u * fy + 2 * u * t * cy + t * t * hover, (0.3 + 0.76 * t).toFixed(3), (-10 + 8 * t).toFixed(1)),
+            opacity: k === 0 ? 0 : 1, boxShadow: LIFT, offset: 0.62 * (k / N), easing: 'linear',
+          });
+        }
         animate(fl, [
-          { transform: 'translate(' + fx + 'px,' + fy + 'px) scale(0.3)', opacity: 0 },
-          { transform: 'translate(' + fx * 0.5 + 'px,' + (fy * 0.5 - b.height * 0.9) + 'px) scale(0.85)', opacity: 1, offset: 0.3 },
-          { transform: 'translate(0px,' + (-b.height * 1.1) + 'px) scale(1)', opacity: 1, offset: 0.62 },
-          { transform: 'none', opacity: 1, easing: 'cubic-bezier(.3, 0, .2, 1)' },
-        ], { duration: one, delay: i * STAGGER, fill: 'both' }, 'cubic-bezier(.3, .7, .35, 1)');
+          ...arc,
+          { transform: T(0, hover, 1.06, 0), offset: 0.7, easing: 'cubic-bezier(.55, 0, .9, .4)' },
+          { transform: T(0, 0, 0.96, 0), offset: 0.86, boxShadow: REST, easing: 'cubic-bezier(.3, .7, .35, 1)' },
+          { transform: T(0, 0, 1, 0), boxShadow: REST },
+        ], { duration: ONE, delay: i * STAGGER, fill: 'both' });
+        // 每拿出一张，头像轻轻一动
+        avatar.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.1)', offset: 0.4 }, { transform: 'scale(1)' }],
+          { duration: 240, delay: i * STAGGER, easing: 'ease-out' });
         setTimeout(() => {
           fl.remove();
           target.classList.remove('incoming');
           if (!caps.querySelector('.gz-mini.incoming')) rollCapsScore(caps);
-        }, one + i * STAGGER);
+        }, ONE + i * STAGGER);
       });
       setTimeout(done, placeMs + 40);   // 兜底：万一哪张没找到落点，也把分翻了
     }, sweepMs);
