@@ -173,9 +173,20 @@
       f.className = 'gz-face';
       f.innerHTML = c === R.PIG ? ART.pig : c === R.SHEEP ? ART.sheep : DOUBLER_FACE;
       el.appendChild(f);
+    } else if (c === R.HEART_ACE && settings.artFaces !== false) {
+      // ♥A 平时就是普通牌面；明出来（红桃全部翻倍）时换成一颗写着 ×2 的大红心（CSS 切换）
+      el.classList.add('has-ha');
+      const f = document.createElement('span');
+      f.className = 'gz-face gz-face-ha';
+      f.innerHTML = HEART_ACE_FACE;
+      el.appendChild(f);
     }
     return el;
   }
+  const HEART_ACE_FACE = '<svg viewBox="0 0 100 92" aria-hidden="true">' +
+    '<path d="M50 89C20 67 3 51 3 30 3 15 15 4 29 4c9 0 16 5 21 13 5-8 12-13 21-13 14 0 26 11 26 26 0 21-17 37-47 59Z" fill="#b4392c"/>' +
+    '<path d="M50 89C20 67 3 51 3 30 3 15 15 4 29 4c9 0 16 5 21 13 5-8 12-13 21-13 14 0 26 11 26 26 0 21-17 37-47 59Z" fill="none" stroke="#e9c97a" stroke-width="3" transform="translate(9 7.5) scale(.82)"/>' +
+    '<text x="50" y="55" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-weight="700" font-size="34" fill="#fbefe4">×2</text></svg>';
   const DOUBLER_FACE = '<svg class="gz-dbl" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="41" fill="none" stroke="currentColor" stroke-width="5"/>' +
     '<circle cx="50" cy="50" r="33" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".55"/>' +
     '<text class="x2" x="50" y="64" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-weight="700" font-size="40" fill="currentColor">×2</text>' +
@@ -274,7 +285,11 @@
     let fan = row.querySelector('.gz-fan');
     if (sc.hearts) {
       if (!fan) { fan = document.createElement('span'); fan.className = 'gz-fan'; }
-      const hs = cards.filter(R.isHeart).sort((a, b) => a - b).map(mini);
+      fan.querySelectorAll('.gz-fan-br').forEach((x) => x.remove());   // 两行红桃的断行点：先拿掉，fitFan 再按需要放
+      // 全红：13 张都在，不再一张张排开——收成一叠，只露最上面的 ♥A（分数变金、特效已经说过「全红」）
+      fan.classList.toggle('is-all', sc.allHearts);
+      fan.setAttribute('aria-label', sc.allHearts ? '全红（13 张红桃）' : '');
+      const hs = (sc.allHearts ? [R.HEART_ACE] : cards.filter(R.isHeart).sort((a, b) => a - b)).map(mini);
       hs.forEach((el, k) => { if (fan.children[k] !== el) fan.insertBefore(el, fan.children[k] || null); });
       while (fan.children.length > hs.length) fan.lastChild.remove();
       want.push(fan);
@@ -321,6 +336,7 @@
    * 横屏没有多余的高度，就把红桃扇连同本局分挪到出牌键右边那半边（变压器 / 猪 / 羊留在头像旁）。 */
   function fitFan(box, row, fan) {
     row.classList.remove('is-wrapped', 'score-down');
+    box.classList.remove('is-tall');
     const mine = box.parentElement === els.seats[0];
     if (mine) {
       els.table.classList.remove('is-me-spill');
@@ -347,7 +363,9 @@
     // --m 是 clamp() 表达式，parseFloat 读不出来：直接量一张小牌的实际宽度
     const first = fan.querySelector('.gz-mini');
     const m = (first && first.getBoundingClientRect().width) || 28;
+    fan.querySelectorAll('.gz-fan-br').forEach((x) => x.remove());
     const n = fan.children.length;
+    let split = false;
     const fanAvail = () => {
       let others = 0;
       for (const el of row.children) if (el !== fan) others += outer(el);
@@ -370,7 +388,22 @@
       avail = W;
       // 第一行连本局分也放不下：分跟到第二行、排在红桃后面
       if (score && line1W > W) { row.classList.add('score-down'); avail = W - outer(score) - gap; }   // 挪下来的分字号小一点，重新量
+      // 第二行还是挤（每张露不到 32%）：红桃再拆成上下两行（吃牌区临时长高一行）
+      if (n >= 6 && (avail - m) / (n - 1) < m * 0.32) {
+        const k = Math.ceil(n / 2);
+        split = true;
+        const st = Math.max(m * 0.16, Math.min(m * 0.44, (avail - m) / (k - 1)));
+        const br = document.createElement('i');
+        br.className = 'gz-fan-br';
+        fan.insertBefore(br, fan.children[k]);
+        fan.style.width = (m + (k - 1) * st + 2).toFixed(1) + 'px';
+        fan.style.setProperty('--fanstep', st.toFixed(1) + 'px');
+      }
     }
+    box.classList.toggle('is-tall', split);
+    fan.classList.toggle('is-split', split);
+    if (split) return;
+    fan.style.width = '';
     const step = n > 1 ? Math.max(m * 0.16, Math.min(m * 0.44, (avail - m) / (n - 1))) : 0;
     fan.style.setProperty('--fanstep', step.toFixed(1) + 'px');
   }
@@ -1399,10 +1432,13 @@
     const sc = R.scoreCaptured(r.captured[w], R.scoreCtx(r));
     const list = [];
     const hadAll = r.captured[w].filter(R.isHeart).length === 13 && cs.some(R.isHeart);
+    // 大满贯要吃齐全部 16 张分牌：凑齐的必然是最后一张分牌所在的这一轮——不管这一轮里有没有红桃
+    // （原来只认「这轮有红桃」：先吃齐红桃、最后才吃到猪 / 羊 / 变压器时，大满贯和那张牌的动画都不放）
+    const slamNow = sc.grandSlam && cs.some(R.isScoring);
     // 动画只写效果 / 分数，不写是谁吃的（飘向谁已经说明了）
-    if (sc.grandSlam && hadAll) list.push({ kind: 'slam', word: '大满贯', sub: signed(sc.total) });
+    if (slamNow) list.push({ kind: 'slam', word: '大满贯', sub: signed(sc.total) });
     else if (hadAll) list.push({ kind: 'allhearts', word: '全红', sub: signed(sc.heartScore) });
-    if (!sc.grandSlam) {
+    if (!slamNow) {
       // 变压器的颜色看吃到它的人现在的分：正分金色（翻倍是好事）、负分灰色（雪上加霜）、0 分藏青
       const dbl = { word: '×' + (R.scoreCtx(r).exposed.includes(R.DOUBLER) ? 4 : 2), tone: sc.total > 0 ? 'gold' : sc.total < 0 ? 'ash' : 'navy' };
       const specials = [R.SHEEP, R.PIG, R.DOUBLER].filter((c) => cs.includes(c));

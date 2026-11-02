@@ -1,8 +1,8 @@
 /* 拱猪 · 声音（window.GongzhuAudio）
  * 两条轨道，各自开关、记在本机：
  *   音效：全部 Web Audio 现场合成（发牌、落牌、收牌、放牌、翻分、明牌、猪哼、羊叫、变压器、烟花、对撞……），没有素材文件；
- *   音乐：现场生成的小曲——五声音阶拨弦旋律 + 低音 + 木鱼，按「两小节动机 → 重复 → 变化 → 回到动机」写句子，
- *         听着像一支曲子而不是乱弹；默认开（第一次点按页面后响起），声音按钮里可以关。
+ *   音乐：一支固定的原创小曲（十六小节、主题反复出现、首尾相接无缝循环），琵琶味拨弦 + 低音 + 锣鼓点，
+ *         默认开（第一次点按页面后响起），声音按钮里可以关。
  * 特效响的时候音乐自动压低。浏览器要先有一次点按才能出声：第一次点按时才建 AudioContext。
  * 每个音效都是 SFX[name](audio, t, dest)：音频上下文、开始时刻（秒）、接到哪——正式播放接音效总线，
  * 自测时可以接进 OfflineAudioContext 渲染出来量响度。 */
@@ -269,101 +269,93 @@
     g.setTargetAtTime(MUSIC_LEVEL, t + ms / 1000, 0.4);
   }
 
-  /* ───── 背景音乐：生成式小曲 ─────
-   * 92 拍 / 分，四四拍，按八分音符排。和声四小节一轮：C – Am – F – G。
-   * 旋律只用五声音阶（宫商角徵羽：C D E G A），强拍落在和弦音上，弱拍一步一步走；
-   * 一段八小节 = 动机 A、A 的变化、新动机 B、A 收在主音上；每段换新动机，偶尔插两小节只有低音的「喘口气」。 */
-  const BPM = 92, E8 = 60 / BPM / 2;
-  const PENTA = [];
-  for (let m = 62; m <= 86; m++) if ([0, 2, 4, 7, 9].includes(m % 12)) PENTA.push(m);
-  const HARM = [
-    { bass: [48, 55], tones: [0, 4, 7] },   // C
-    { bass: [45, 52], tones: [9, 0, 4] },   // Am
-    { bass: [41, 48], tones: [9, 0] },      // F（旋律不用 F，落在 A / C 上）
-    { bass: [43, 50], tones: [7, 2] },      // G（旋律不用 B，落在 G / D 上）
-  ];
-  const RHYTHMS = [
-    [1, 0, 1, 0, 1, 1, 1, 0], [1, 1, 1, 0, 1, 0, 0, 0], [1, 0, 0, 1, 1, 0, 1, 0], [1, 0, 1, 1, 1, 0, 1, 0],
-    [1, 0, 0, 0, 1, 1, 1, 1], [1, 1, 0, 1, 1, 0, 0, 0], [1, 0, 1, 0, 1, 0, 0, 0], [0, 0, 1, 1, 1, 0, 1, 0],
-  ];
-  let music = null;   // { timer, next (音频时刻), step (八分音符序号), section: [{rhythm, notes}] × 8 小节 }
+  /* ───── 背景音乐：一支有记性的小曲 ─────
+   * 固定旋律（原创），C 宫五声，126 拍：十六小节 A A' B A''，开头两小节的「主题」出现三次，听两遍就记得住。
+   * 编配：领奏是琵琶味的拨弦（长音用轮指——一串快速重拨）、低音「咚—嗒」、中音区短和弦垫在弱拍，
+   * 锣鼓点：小鼓落在一、三拍，木鱼走弱拍，小镲「嚓」在二、四拍，每四小节末尾一记鼓花。
+   * 第十六小节停在属音上、直接接回第一小节，循环处没有空拍；第二遍起加一条低三度的和声、主题头上点一声铃，不腻。 */
+  const BPM = 126, E8 = 60 / BPM / 2;
+  // 每小节 8 个八分音符：音名 = 起音，'-' = 延续，'.' = 休止
+  const TUNE = [
+    'G4 G4 A4 G4 E4 - D4 -',   // 1  主题
+    'E4 G4 A4 C5 A4 - G4 -',   // 2
+    'C5 C5 D5 C5 A4 G4 E4 G4', // 3
+    'A4 - G4 E4 D4 - - -',     // 4  半终止
+    'G4 G4 A4 G4 E4 - D4 -',   // 5  主题
+    'E4 G4 A4 C5 A4 - G4 -',   // 6
+    'C5 C5 D5 E5 D5 C5 A4 G4', // 7
+    'A4 - C5 - C5 - - -',      // 8  落主音
+    'E5 - E5 D5 C5 - D5 -',    // 9  B 段，往上走
+    'E5 G5 E5 D5 C5 - - -',    // 10
+    'A4 - A4 C5 D5 E5 D5 C5',  // 11
+    'A4 - G4 - E4 - G4 -',     // 12
+    'G4 G4 A4 G4 E4 - D4 -',   // 13 主题
+    'E4 G4 A4 C5 A4 - G4 -',   // 14
+    'C5 C5 D5 E5 D5 C5 A4 G4', // 15
+    'A4 - C5 - D5 - G4 -',     // 16 停在 G 上，接回第 1 小节的 G
+  ].map((bar) => bar.split(' '));
+  // 每小节的和弦：[低音根音, 五音, 中音区和弦]
+  const CH = { C: [36, 43, [60, 64, 67]], Am: [33, 40, [57, 60, 64]], F: [29, 36, [57, 60, 65]], G: [31, 38, [55, 59, 62]], Em: [28, 35, [55, 59, 64]] };
+  const CHORDS = ['C', 'Am', 'F', 'G', 'C', 'Am', 'F', 'C', 'Am', 'Em', 'F', 'G', 'C', 'Am', 'F', 'G'];
+  const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const toMidi = (n) => 12 * (+n.slice(1) + 1) + NOTE[n[0]];
+  const PENTA = [55, 57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84];
+  // 和声：在五声音阶里往下数两级（大致低三度）
+  const below = (m) => { const k = PENTA.indexOf(m); return k >= 2 ? PENTA[k - 2] : m - 5; };
   let echo = null;
-  const pick = (arr) => arr[(Math.random() * arr.length) | 0];
-  // 一个两小节的动机：节奏 + 每个音在五声音阶里的位置
-  function motif(barIdx, start) {
-    const bars = [];
-    let idx = start;
-    for (let b = 0; b < 2; b++) {
-      const h = HARM[(barIdx + b) % 4];
-      const rhythm = pick(RHYTHMS);
-      const notes = rhythm.map((on, k) => {
-        if (!on) return null;
-        if (k % 4 === 0) {
-          // 强拍：挑离上一个音最近的和弦音
-          let best = idx, bd = 99;
-          PENTA.forEach((m, i) => { if (h.tones.includes(m % 12) && Math.abs(i - idx) < bd && m >= 64 && m <= 84) { bd = Math.abs(i - idx); best = i; } });
-          idx = best;
-        } else {
-          idx = Math.max(2, Math.min(PENTA.length - 3, idx + pick([-2, -1, -1, 1, 1, 2])));
-        }
-        return idx;
-      });
-      bars.push({ rhythm, notes });
-    }
-    return { bars, end: idx };
-  }
-  // A 的变化：节奏不动，第二小节后半换几个音
-  function vary(m) {
-    return m.bars.map((bar, b) => ({ rhythm: bar.rhythm, notes: bar.notes.map((n, k) => (n == null || b === 0 || k < 4 ? n : Math.max(2, Math.min(PENTA.length - 3, n + pick([-1, 1, 0])))) ) }));
-  }
-  // 收尾：最后一个音落到主音 C 上
-  function cadence(bars) {
-    const out = bars.map((b) => ({ rhythm: b.rhythm.slice(), notes: b.notes.slice() }));
-    const last = out[1];
-    let k = last.notes.length - 1;
-    while (k > 0 && last.notes[k] == null) k--;
-    const cs = PENTA.map((m, i) => [m, i]).filter(([m]) => m % 12 === 0 && m >= 67);
-    const prev = last.notes[k] == null ? 8 : last.notes[k];
-    last.notes[k] = cs.reduce((a, b) => (Math.abs(b[1] - prev) < Math.abs(a[1] - prev) ? b : a))[1];
-    return out;
-  }
-  function newSection() {
-    const A = motif(0, 7 + ((Math.random() * 4) | 0));
-    const B = motif(0, A.end);
-    const sec = [...A.bars, ...vary(A), ...B.bars, ...cadence(A.bars)];
-    // 偶尔先空两小节，只留低音和木鱼
-    if (Math.random() < 0.3) return [{ rest: true }, { rest: true }].concat(sec.slice(0, 6));
-    return sec;
-  }
   function makeEcho(a, dest) {
     const e = a.createDelay(1.0);
     e.delayTime.value = E8 * 3;
-    const fb = a.createGain(); fb.gain.value = 0.28;
-    const wet = a.createGain(); wet.gain.value = 0.35;
+    const fb = a.createGain(); fb.gain.value = 0.22;
+    const wet = a.createGain(); wet.gain.value = 0.28;
     e.connect(fb); fb.connect(e); e.connect(wet); wet.connect(dest);
     return e;
   }
-  // 把乐谱排到 horizon（音频时刻）为止；st = { step, next, section, sectionAt }
+  // 琵琶味拨弦：比 pluck 亮一点（锯齿 + 三角），起音更脆
+  function pipa(a, dest, t, freq, gain, len) {
+    const L = len || 0.5;
+    const o1 = a.createOscillator(); o1.type = 'sawtooth'; o1.frequency.setValueAtTime(freq, t);
+    const o2 = a.createOscillator(); o2.type = 'triangle'; o2.frequency.setValueAtTime(freq, t);
+    const g1 = a.createGain(); g1.gain.value = 0.35;
+    const f = a.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 1.2;
+    f.frequency.setValueAtTime(Math.min(9000, freq * 9), t); f.frequency.exponentialRampToValueAtTime(Math.max(500, freq * 1.6), t + L * 0.6);
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + L);
+    o1.connect(g1); g1.connect(f); o2.connect(f); f.connect(g); g.connect(dest);
+    o1.start(t); o2.start(t); o1.stop(t + L + 0.05); o2.stop(t + L + 0.05);
+  }
+  // 把乐谱排到 horizon（音频时刻）为止；st = { step, next }，step 一直往上数，取模就是循环（循环处不停顿）
   function scheduleMusic(a, mel, wet, st, horizon) {
     while (st.next < horizon) {
-      const s = st.step, bar = (s >> 3), k = s & 7;
-      if (bar % 8 === 0 && k === 0 && bar !== st.sectionAt) { st.section = newSection(); st.sectionAt = bar; }
+      const s = st.step, barAll = s >> 3, k = s & 7, bar = barAll % 16, pass = (barAll / 16) | 0;
       const t = st.next;
-      const h = HARM[bar % 4];
-      const cur = st.section[bar % 8];
-      // 低音：一拍和三拍，根音 / 五音
-      if (k === 0) tone(a, mel, t, { freq: midi(h.bass[0]), dur: E8 * 3.6, gain: 0.32, type: 'triangle', lp: 700 });
-      if (k === 4) tone(a, mel, t, { freq: midi(h.bass[1]), dur: E8 * 3.2, gain: 0.24, type: 'triangle', lp: 700 });
-      // 木鱼：二拍、四拍轻轻一下，偶尔加花
-      if (k === 2 || k === 6 || (k === 7 && Math.random() < 0.18)) tone(a, mel, t, { freq: k === 6 ? 980 : 1180, to: 760, dur: 0.07, gain: k === 7 ? 0.05 : 0.08, type: 'triangle' });
-      // 沙锤：八分音符，很轻，正拍略重
-      nz(a, mel, t, { dur: 0.04, gain: k % 2 ? 0.02 : 0.035, type: 'highpass', freq: 6000, q: 0.7 });
-      // 旋律
-      if (cur && !cur.rest && cur.rhythm[k]) {
+      const ch = CH[CHORDS[bar]];
+      // 低音「咚—嗒」：一拍根音、三拍五音
+      if (k === 0) tone(a, mel, t, { freq: midi(ch[0] + 12), dur: E8 * 1.8, gain: 0.34, type: 'triangle', lp: 900 });
+      if (k === 4) tone(a, mel, t, { freq: midi(ch[1] + 12), dur: E8 * 1.8, gain: 0.28, type: 'triangle', lp: 900 });
+      // 弱拍垫一个短和弦
+      if (k === 2 || k === 6) ch[2].forEach((m) => pluck(a, mel, t, midi(m), 0.07, 0.28));
+      // 锣鼓点：小鼓一、三拍，小镲二、四拍，木鱼走弱拍；每四小节末尾来一记鼓花
+      if (k === 0 || k === 4) { tone(a, mel, t, { freq: 190, to: 95, dur: 0.16, gain: k ? 0.18 : 0.24 }); nz(a, mel, t, { dur: 0.05, gain: 0.05, type: 'lowpass', freq: 1200, q: 0.7 }); }
+      if (k === 2 || k === 6) nz(a, mel, t, { dur: 0.12, gain: 0.05, freq: 6000, q: 1.2 });
+      if (k % 2 === 1) tone(a, mel, t, { freq: k === 3 || k === 7 ? 1180 : 980, to: 780, dur: 0.06, gain: 0.045, type: 'triangle' });
+      if (bar % 4 === 3 && k >= 5) tone(a, mel, t, { freq: 230 - (k - 5) * 25, to: 110, dur: 0.12, gain: 0.16 });
+      // 领奏
+      const note = TUNE[bar][k];
+      if (note !== '-' && note !== '.') {
         let len = 1;
-        while (k + len < 8 && !cur.rhythm[k + len]) len++;
+        while (k + len < 8 && TUNE[bar][k + len] === '-') len++;
+        const m = toMidi(note), f = midi(m);
         const dest = a.createGain(); dest.connect(mel); dest.connect(wet);
-        pluck(a, dest, t, midi(PENTA[cur.notes[k]]), k % 4 === 0 ? 0.42 : 0.32, Math.min(1.8, E8 * len + 0.5));
+        if (len >= 3) {
+          // 长音：轮指，一串十六分音符的快速重拨，越来越轻
+          for (let r = 0; r < len * 2; r++) pipa(a, dest, t + r * E8 / 2, f, 0.3 * Math.pow(0.86, r), E8 * 0.7);
+        } else {
+          pipa(a, dest, t, f, k % 4 === 0 ? 0.34 : 0.28, E8 * len + 0.25);
+        }
+        // 第二遍起：低三度和声（轻一点），主题小节的第一个音上点一声铃
+        if (pass % 2 === 1) pluck(a, dest, t, midi(below(m)), 0.12, E8 * len + 0.3);
+        if (pass > 0 && k === 0 && [0, 4, 12].includes(bar)) tone(a, mel, t, { freq: f * 2, dur: 0.9, gain: 0.05, type: 'sine' });
       }
       st.next += E8;
       st.step++;
@@ -380,12 +372,12 @@
   function renderMusic(sec) {
     const a = new OfflineAudioContext(1, Math.ceil(44100 * sec), 44100);
     const mel = a.createGain(); mel.gain.value = MUSIC_LEVEL; mel.connect(a.destination);
-    scheduleMusic(a, mel, makeEcho(a, mel), { step: 0, next: 0.05, section: null, sectionAt: -1 }, sec - 2);
+    scheduleMusic(a, mel, makeEcho(a, mel), { step: 0, next: 0.05 }, sec - 2);
     return a.startRendering();
   }
   function startMusic() {
     if (music || !prefs.music || !ensure()) return;
-    music = { step: 0, next: ctx.currentTime + 0.15, section: null, sectionAt: -1, timer: setInterval(musicTick, 120) };
+    music = { step: 0, next: ctx.currentTime + 0.15, timer: setInterval(musicTick, 120) };
     bus.music.gain.cancelScheduledValues(ctx.currentTime);
     bus.music.gain.setValueAtTime(0.0001, ctx.currentTime);
     bus.music.gain.exponentialRampToValueAtTime(MUSIC_LEVEL, ctx.currentTime + 1.5);

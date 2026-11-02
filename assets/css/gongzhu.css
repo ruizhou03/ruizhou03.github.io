@@ -171,13 +171,14 @@ body.gz-fullscreen .site-footer { display: none !important; }
 
 .gz-res-caps { height: auto; }
 
-/* 亮出的牌：左下角一个朱红圆点（手牌、桌上、吃牌区、结算都一样；手牌和红桃扇叠着放，只有左边露在外面） */
-.gz-card.is-exposed::after {
+/* 明出来的牌靠牌面本身区分（黑猪、红羊、×4、写着 ×2 的大红心，见「明牌牌面」）；
+ * 只有设置里换成「普通牌面」时没有画可换，才在左下角点一个朱红圆点 */
+.gz-card.is-exposed:not(.has-art):not(.has-ha)::after {
   content: ''; position: absolute; bottom: calc(var(--q) * 0.08); left: calc(var(--q) * 0.08);
   width: calc(var(--q) * 0.13); height: calc(var(--q) * 0.13); border-radius: 50%;
   background: var(--gz-seal);
 }
-.gz-mini.is-exposed::after { width: calc(var(--q) * 0.24); height: calc(var(--q) * 0.24); }
+.gz-mini.is-exposed:not(.has-art):not(.has-ha)::after { width: calc(var(--q) * 0.24); height: calc(var(--q) * 0.24); }
 /* 别家亮出、还没打的牌：正面朝上排在牌背后面，小一号（宽 21px）。这一行永远留 30px 高（有没有亮牌都一样），
  * 亮牌出现 / 打出都不挤动布局；有亮牌时牌背和亮牌都叠紧一点，整行收在座位宽度以内，不压上面的分数、不出界 */
 .gz-hold { position: relative; display: flex; justify-content: center; align-items: center; gap: 5px; height: 30px; max-width: 100%; }
@@ -684,9 +685,8 @@ body.gz-fullscreen .site-footer { display: none !important; }
 /* 画放在角标下面那块地方的正中，大小只跟牌宽 --q 走：桌上、手牌、吃牌区、规则里同一张牌比例一样 */
 .gz-face { position: absolute; left: 10%; right: 10%; top: calc(var(--q) * 0.42); bottom: calc(var(--q) * 0.1); display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .gz-face svg { width: 100%; height: 100%; display: block; overflow: visible; }
-/* 吃牌区小牌：点数和花色并排在顶上一行，下面整块给画；整体往上、往右让开左下角的明牌圆点（方案乙，用户定）。
- * 右边要留够牌边（原来伸出牌外 5%，×2 圆环的描边和猪耳朵会压出牌边） */
-.gz-mini .gz-face { left: 25%; right: 9%; top: calc(var(--q) * 0.44); bottom: calc(var(--q) * 0.16); }
+/* 吃牌区小牌：点数和花色并排在顶上一行，下面整块给画（不再给左下角圆点让位，画居中、放大），左右各留一点牌边 */
+.gz-mini .gz-face { left: 7%; right: 7%; top: calc(var(--q) * 0.46); bottom: calc(var(--q) * 0.08); }
 /* 羊本身重心偏下：所有地方都往上提一点 */
 .gz-card[data-card="35"] .gz-face svg { translate: 0 -7%; }
 .gz-dbl { color: #b8924a; }
@@ -752,9 +752,8 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-sound-row input { width: 18px; height: 18px; margin: 0; accent-color: var(--gz-seal); }
 
 /* ───── 明牌牌面：明出来的牌（以及明牌环节里点选、已点「明牌」还在等别家的牌）一眼认得出 ─────
- * 整张牌：一道朱红内框线（加上左下角的红点）；猪变黑猪（红角、红瞳、额头金黑桃），羊毛变红，变压器写 ×4。
+ * 猪变黑猪（红角、红瞳、额头金黑桃），羊毛变红，变压器写 ×4，♥A 换成写着 ×2 的大红心（红桃全部翻倍）。
  * 特效里明出来的猪 / 羊也用同一套颜色（.gz-xart）。 */
-.gz-card.is-exposed { outline: max(1px, calc(var(--q) * 0.03)) solid var(--gz-seal); outline-offset: calc(var(--q) * -0.075); }
 .gz-card.is-exposed .gz-face, .gz-xart {
   --pg-horn: #b4392c; --pg-ear: #2e2426; --pg-skin: #4a3c3f; --pg-cheek: #8a3444; --pg-eye: #ff4b2b;
   --pg-line: #0f0a09; --pg-spade: #d9b062; --pg-snout: #5f474c; --pg-nose: #1a1112;
@@ -781,3 +780,16 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-menu hr { border: 0; border-top: 1px solid rgba(29, 27, 24, 0.14); margin: 4px 8px; }
 .gz-menu-head { font-size: 12px; color: var(--gz-ink-mute); padding: 6px 10px 2px; letter-spacing: 0.06em; }
 .gz-menu .is-exit b::before { content: '‹ '; }
+
+.gz-face-ha { display: none; }
+.gz-card.is-exposed .gz-face-ha { display: flex; }
+.gz-card.is-exposed.has-ha .bigsuit { display: none; }
+
+/* 红桃拆成上下两行（窄座位、红桃多、第二行还挤时）：吃牌区临时长高一行 */
+.gz-seat .gz-caps.is-tall { height: calc(var(--mh) * 3 + 16px); }
+.gz-fan.is-split { flex-wrap: wrap; row-gap: 2px; }
+.gz-fan-br { flex: 0 0 100%; height: 0; }
+/* 全红：13 张收成一叠，只露最上面的 ♥A，后面错开两层牌边 */
+.gz-fan.is-all .gz-mini {
+  box-shadow: 2px -2px 0 -0.5px #fffdf8, 2px -2px 0 0 rgba(20, 18, 15, 0.22), 4px -4px 0 -0.5px #fffdf8, 4px -4px 0 0 rgba(20, 18, 15, 0.22), 0 1px 2px rgba(20, 18, 15, 0.16);
+}
