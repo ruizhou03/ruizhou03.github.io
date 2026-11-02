@@ -756,7 +756,7 @@
       none: '不设终点，一直累计下去。',
     }[rules.end];
     return '<dl class="gz-rules">' +
-      '<dt>出牌</dt><dd>四人各 13 张。' + lead + '有领出的花色就必须跟，没有可以垫任意一张。领出花色里最大的牌吃下这一轮，下一轮由他先出。</dd>' +
+      '<dt>出牌</dt><dd>四人各 13 张。' + lead + '每一轮第一张出的牌决定这一轮的花色：手里有这门花色就必须跟，没有可以垫任意一张。出了这门花色里最大一张的人赢下这一轮，收走这一轮的牌，下一轮由他先出。</dd>' +
       '<dt>分牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。' + hearts + '</dd>' +
       '<dt>变压器 ♣10</dt><dd>它本身不算分，吃到它，你这一局的分数（不论正负）翻倍' + (rules.doublerAlone === 50 ? '；只吃到它一张、别的分牌都没吃到，算 +50。' : '。') + '</dd>' +
       '<dt>全红</dt><dd>一个人吃齐 13 张红桃，红桃改记 +200。' + pigLine + '</dd>' +
@@ -841,21 +841,43 @@
 
   const FX_DRIFT = [[0, 90], [120, 0], [0, -90], [-120, 0]];   // 朝各座位跑的方向（我 / 下 / 对 / 上）
   const FX_GAP = 600;
-  const FX_DUR = { pig: 1700, sheep: 1700, doubler: 1500, allhearts: 2400, slam: 2600 };
+  const FX_DUR = { pig: 1700, sheep: 1700, doubler: 1500, allhearts: 2700, slam: 2600 };
+  const DOUBLER_TONE = {
+    gold: { ink: '#b8924a', ring: '#c9a96e', sparks: ['#c9a96e', '#dcb86c'] },
+    ash: { ink: '#7b756b', ring: '#a39c90', sparks: ['#a39c90', '#8c867b'] },
+    navy: { ink: '#3d5878', ring: '#6c84a2', sparks: ['#6c84a2', '#8ea2bb'] },
+  };
+  const HEART_REDS = ['#b4392c', '#c9473a', '#d65f4f', '#a8322a', '#e07463'];
   const ART = {
-    pig: '<svg viewBox="0 0 120 104" aria-hidden="true"><path d="M20 32 28 6 48 24Z" fill="#e48f9e"/><path d="M100 32 92 6 72 24Z" fill="#e48f9e"/>' +
-      '<ellipse cx="60" cy="58" rx="46" ry="40" fill="#f5b4bf"/><ellipse cx="34" cy="71" rx="8" ry="5" fill="#ef8fa1" opacity=".6"/><ellipse cx="86" cy="71" rx="8" ry="5" fill="#ef8fa1" opacity=".6"/>' +
-      '<circle cx="44" cy="50" r="4.6" fill="#2e2622"/><circle cx="76" cy="50" r="4.6" fill="#2e2622"/><circle cx="45.6" cy="48.4" r="1.5" fill="#fff"/><circle cx="77.6" cy="48.4" r="1.5" fill="#fff"/>' +
-      '<ellipse cx="60" cy="72" rx="19" ry="13" fill="#ec97a6"/><ellipse cx="53" cy="72" rx="3.3" ry="5" fill="#b4566a"/><ellipse cx="67" cy="72" rx="3.3" ry="5" fill="#b4566a"/></svg>',
+    // 坏猪：小恶魔角、倒竖眉、红瞳、斜嘴獠牙
+    pig: '<svg viewBox="0 0 140 122" aria-hidden="true">' +
+      '<path d="M44 28C37 16 38 5 47 0c-2 10 2 18 9 22Z" fill="#7a1e1a"/><path d="M96 28c7-12 6-23-3-28 2 10-2 18-9 22Z" fill="#7a1e1a"/>' +
+      '<path d="M22 44 28 12 52 32Z" fill="#e0889a"/><path d="M118 44 112 12 88 32Z" fill="#e0889a"/>' +
+      '<ellipse cx="70" cy="70" rx="53" ry="47" fill="#f2a9b5"/><ellipse cx="40" cy="84" rx="9" ry="5.5" fill="#e98698" opacity=".6"/><ellipse cx="100" cy="84" rx="9" ry="5.5" fill="#e98698" opacity=".6"/>' +
+      '<ellipse cx="52" cy="62" rx="9" ry="5.5" fill="#fff"/><ellipse cx="88" cy="62" rx="9" ry="5.5" fill="#fff"/><circle cx="54.5" cy="63" r="3.6" fill="#b4392c"/><circle cx="85.5" cy="63" r="3.6" fill="#b4392c"/>' +
+      '<path d="M38 47 61 57M102 47 79 57" stroke="#3a2420" stroke-width="6.5" stroke-linecap="round"/>' +
+      '<ellipse cx="70" cy="84" rx="21" ry="14" fill="#ea8f9f"/><ellipse cx="62" cy="84" rx="3.6" ry="5.4" fill="#a94a5e"/><ellipse cx="78" cy="84" rx="3.6" ry="5.4" fill="#a94a5e"/>' +
+      '<path d="M50 103q22 10 42-6" stroke="#3a2420" stroke-width="4" fill="none" stroke-linecap="round"/><path d="m80 103 4 8 3-11Z" fill="#fffaf3" stroke="#3a2420" stroke-width="1.5" stroke-linejoin="round"/></svg>',
     sheep: '<svg viewBox="0 0 120 104" aria-hidden="true"><g fill="#fffaf0" stroke="#d6cbb9" stroke-width="2">' +
       [[34, 42, 16], [52, 28, 17], [72, 28, 17], [88, 43, 16], [93, 63, 15], [78, 80, 16], [42, 80, 16], [27, 63, 15], [60, 86, 15]].map(([x, y, r]) => '<circle cx="' + x + '" cy="' + y + '" r="' + r + '"/>').join('') +
       '</g><ellipse cx="31" cy="54" rx="12" ry="6" transform="rotate(-24 31 54)" fill="#4b4038"/><ellipse cx="89" cy="54" rx="12" ry="6" transform="rotate(24 89 54)" fill="#4b4038"/>' +
       '<ellipse cx="60" cy="60" rx="20" ry="25" fill="#4b4038"/><g fill="#fffaf0" stroke="#d6cbb9" stroke-width="2"><circle cx="50" cy="37" r="9"/><circle cx="70" cy="37" r="9"/><circle cx="60" cy="32" r="10"/></g>' +
       '<circle cx="52" cy="58" r="5" fill="#fff"/><circle cx="68" cy="58" r="5" fill="#fff"/><circle cx="53" cy="59" r="2.6" fill="#1d1b18"/><circle cx="69" cy="59" r="2.6" fill="#1d1b18"/>' +
       '<path d="M54 74Q60 79 66 74" stroke="#cdbca6" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>',
-    crown: '<svg viewBox="0 0 120 92" aria-hidden="true"><path d="M12 70 18 22 42 46 60 12 78 46 102 22 108 70Z" fill="#dcb86c" stroke="#a8843e" stroke-width="3" stroke-linejoin="round"/>' +
-      '<rect x="12" y="70" width="96" height="13" rx="3" fill="#c9a96e" stroke="#a8843e" stroke-width="3"/><circle cx="18" cy="20" r="6.5" fill="#b4392c"/><circle cx="60" cy="10" r="7.5" fill="#b4392c"/><circle cx="102" cy="20" r="6.5" fill="#b4392c"/>' +
-      '<circle cx="40" cy="76.5" r="3" fill="#fffaf0"/><circle cx="60" cy="76.5" r="3" fill="#fffaf0"/><circle cx="80" cy="76.5" r="3" fill="#fffaf0"/></svg>',
+    heart: '<svg viewBox="0 0 100 92" aria-hidden="true"><path d="M50 89C20 67 3 51 3 30 3 15 15 4 29 4c9 0 16 5 21 13 5-8 12-13 21-13 14 0 26 11 26 26 0 21-17 37-47 59Z" fill="#b4392c"/>' +
+      '<path d="M22 18c-6 2-10 8-10 14" stroke="#e8857a" stroke-width="5" stroke-linecap="round" fill="none" opacity=".7"/></svg>',
+    // 金冠：渐变金、五个尖、珍珠、正中一颗红宝石，冠箍上嵌红 / 藏青 / 墨绿三色宝石
+    crown: '<svg viewBox="0 0 160 124" aria-hidden="true"><defs>' +
+      '<linearGradient id="gzCrownG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6e2a4"/><stop offset=".55" stop-color="#d9b062"/><stop offset="1" stop-color="#a9823a"/></linearGradient>' +
+      '<linearGradient id="gzCrownB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8c97c"/><stop offset="1" stop-color="#9c7731"/></linearGradient></defs>' +
+      '<path d="M20 94 11 36 47 64 80 16 113 64 149 36 140 94Z" fill="url(#gzCrownG)" stroke="#8a6526" stroke-width="2.5" stroke-linejoin="round"/>' +
+      '<path d="M26 88 20 50 47 70 80 30 113 70 140 50 134 88Z" fill="none" stroke="#fff4d2" stroke-width="1.5" opacity=".55" stroke-linejoin="round"/>' +
+      '<path d="M80 38 89 52 80 66 71 52Z" fill="#b4392c" stroke="#7a1e1a" stroke-width="1.5"/><path d="M80 41 84 50 80 52Z" fill="#f0a49a" opacity=".8"/>' +
+      '<circle cx="11" cy="33" r="6.5" fill="#fffaf0" stroke="#a9823a" stroke-width="2"/><circle cx="80" cy="12" r="7.5" fill="#fffaf0" stroke="#a9823a" stroke-width="2"/><circle cx="149" cy="33" r="6.5" fill="#fffaf0" stroke="#a9823a" stroke-width="2"/>' +
+      '<circle cx="47" cy="61" r="3.5" fill="#fffaf0" stroke="#a9823a" stroke-width="1.5"/><circle cx="113" cy="61" r="3.5" fill="#fffaf0" stroke="#a9823a" stroke-width="1.5"/>' +
+      '<rect x="16" y="92" width="128" height="22" rx="5" fill="url(#gzCrownB)" stroke="#8a6526" stroke-width="2.5"/><path d="M22 97H138" stroke="#fff4d2" stroke-width="1.5" opacity=".6"/>' +
+      '<ellipse cx="80" cy="103" rx="9" ry="6.5" fill="#b4392c" stroke="#7a1e1a" stroke-width="1.5"/><circle cx="50" cy="103" r="5.5" fill="#2f4a6b" stroke="#1d2f45" stroke-width="1.5"/><circle cx="110" cy="103" r="5.5" fill="#3d6b4f" stroke="#26473a" stroke-width="1.5"/>' +
+      '<g fill="#fffaf0"><circle cx="34" cy="103" r="2.6"/><circle cx="65" cy="103" r="2.6"/><circle cx="95" cy="103" r="2.6"/><circle cx="126" cy="103" r="2.6"/></g></svg>',
   };
 
   function markAce(plays, seat, card) {
@@ -870,15 +892,17 @@
     const w = done.winner;
     const cs = done.plays.map((p) => p.card);
     const sc = R.scoreCaptured(r.captured[w], R.scoreCtx(r));
-    const who = w === 0 ? '你' : NAMES[w];
     const list = [];
     const hadAll = r.captured[w].filter(R.isHeart).length === 13 && cs.some(R.isHeart);
-    if (sc.grandSlam && hadAll) list.push({ kind: 'slam', word: '大满贯', sub: who + ' ' + signed(sc.total) });
-    else if (hadAll) list.push({ kind: 'allhearts', word: '全红', sub: who + ' ' + signed(sc.heartScore) });
+    // 动画只写效果 / 分数，不写是谁吃的（飘向谁已经说明了）
+    if (sc.grandSlam && hadAll) list.push({ kind: 'slam', word: '大满贯', sub: signed(sc.total) });
+    else if (hadAll) list.push({ kind: 'allhearts', word: '全红', sub: signed(sc.heartScore) });
     if (!sc.grandSlam) {
-      if (cs.includes(R.PIG)) list.push({ kind: 'pig', sub: who + ' ' + signed(sc.pigScore) });
-      if (cs.includes(R.SHEEP)) list.push({ kind: 'sheep', sub: who + ' ' + signed(sc.sheepScore) });
-      if (cs.includes(R.DOUBLER)) list.push({ kind: 'doubler', word: '×' + (R.scoreCtx(r).exposed.includes(R.DOUBLER) ? 4 : 2), sub: who + ' 翻倍' });
+      if (cs.includes(R.PIG)) list.push({ kind: 'pig', sub: signed(sc.pigScore) });
+      if (cs.includes(R.SHEEP)) list.push({ kind: 'sheep', sub: signed(sc.sheepScore) });
+      // 变压器的颜色看吃到它的人现在的分：正分金色（翻倍是好事）、负分灰色（雪上加霜）、0 分藏青
+      if (cs.includes(R.DOUBLER)) list.push({ kind: 'doubler', word: '×' + (R.scoreCtx(r).exposed.includes(R.DOUBLER) ? 4 : 2), sub: '',
+        tone: sc.total > 0 ? 'gold' : sc.total < 0 ? 'ash' : 'navy' });
     }
     if (!list.length || reduceMotion()) return 0;
     let end = 0;
@@ -902,19 +926,26 @@
     const item = document.createElement('div');
     item.className = 'gz-fxitem kind-' + fx.kind;
     const art = fx.kind === 'pig' || fx.kind === 'sheep' ? ART[fx.kind] : fx.kind === 'slam' ? ART.crown : '';
+    const tone = fx.kind === 'doubler' ? DOUBLER_TONE[fx.tone || 'gold'] : null;
     item.innerHTML = (art ? '<div class="gz-fxart">' + art + '</div>' : '') +
-      (fx.word && fx.kind !== 'slam' ? '<div class="gz-fxword">' + fx.word + '</div>' : '') +
+      (fx.kind === 'allhearts' ? '<div class="gz-fxheart">' + ART.heart + '<span class="w">' + fx.word + '</span></div>' : '') +
+      (fx.kind === 'doubler' ? '<div class="gz-fxcoin" style="--tone:' + tone.ring + ';color:' + tone.ink + '"><span>' + fx.word + '</span></div>' : '') +
       (fx.kind === 'slam' ? '<div class="gz-fxword">大满贯</div>' : '') +
-      '<div class="gz-fxlabel">' + fx.sub + '</div>';
+      (fx.sub ? '<div class="gz-fxscore ' + (fx.sub[0] === '−' ? 'neg' : 'pos') + '">' + fx.sub + '</div>' : '');
     els.fx.appendChild(item);
     let frames;
     if (fx.kind === 'pig') {
+      // 暗红冲击波 + 一圈黑红碎屑
+      ring(0, 0, 160, '#7a1e1a'); ring(0, 0, 330, '#b4392c');
+      burst(0, 0, 22, ['●', '◆', '●'], ['#3a2420', '#7a1e1a', '#b4392c'], 180, 150, 'red');
       frames = [
         { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.15), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
-        { transform: FT(0, 0, 1, -9), offset: 0.36 }, { transform: FT(0, 0, 1, 9), offset: 0.46 }, { transform: FT(0, 0, 1, -6), offset: 0.55 },
-        { transform: FT(0, 0, 1, 0), opacity: 1, offset: 0.66 }, { transform: FT(dx, dy, 0.42, 0), opacity: 0 },
+        { transform: FT(-9, 0, 1), offset: 0.34 }, { transform: FT(9, 0, 1), offset: 0.42 }, { transform: FT(-6, 0, 1), offset: 0.5 },
+        { transform: FT(4, 0, 1), offset: 0.57 }, { transform: FT(0, 0, 1), opacity: 1, offset: 0.66 }, { transform: FT(dx, dy, 0.42), opacity: 0 },
       ];
     } else if (fx.kind === 'sheep') {
+      ring(0, 0, 160, '#3d6b4f'); ring(0, 0, 330, '#c9a96e');
+      burst(0, 0, 24, ['✦', '✿', '✦'], ['#3d6b4f', '#c9a96e', '#5f8f6f'], 180, 150);
       frames = [
         { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.12), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
         { transform: FT(0, -22, 1), offset: 0.36 }, { transform: FT(0, 0, 1), offset: 0.46 }, { transform: FT(0, -13, 1), offset: 0.54 },
@@ -925,16 +956,20 @@
         { transform: FT(0, 0, 2.2), opacity: 0 }, { transform: FT(0, 0, 0.92), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1.04), offset: 0.24 },
         { transform: FT(0, 0, 1), opacity: 1, offset: 0.7 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
       ];
-      ring(0, 0, 80); ring(0, 0, 260);
-      burst(0, 0, 12, ['✦'], ['#c9a96e', '#dcb86c'], 120, 90);
+      ring(0, 0, 80, tone.ring); ring(0, 0, 260, tone.ring);
+      burst(0, 0, 12, ['✦'], tone.sparks, 120, 90, 'none');
     } else if (fx.kind === 'allhearts') {
-      burst(-140, -50, 24, ['♥', '♥', '✦'], ['#b4392c', '#d0503f', '#c9a96e'], 0, 125);
-      burst(140, -40, 24, ['♥', '♥', '✦'], ['#b4392c', '#d0503f', '#c9a96e'], 300, 125);
-      burst(0, 30, 32, ['♥', '♥', '✦'], ['#b4392c', '#d0503f', '#c9a96e'], 600, 160);
+      // 只用红心：五朵红心烟花接连炸开，中间一颗大红心「怦、怦」跳两下
+      burst(-150, -60, 26, ['♥'], HEART_REDS, 0, 135, 'red');
+      burst(150, -50, 26, ['♥'], HEART_REDS, 220, 135, 'red');
+      burst(-90, 70, 24, ['♥'], HEART_REDS, 440, 120, 'red');
+      burst(100, 75, 24, ['♥'], HEART_REDS, 620, 120, 'red');
+      burst(0, -10, 40, ['♥'], HEART_REDS, 820, 190, 'red');
       frames = [
-        { transform: FT(0, 10, 0.6), opacity: 0 }, { transform: FT(0, 10, 0.6), opacity: 0, offset: 0.3 },
-        { transform: FT(0, 0, 1.08), opacity: 1, offset: 0.42 }, { transform: FT(0, 0, 1), offset: 0.5 },
-        { transform: FT(0, 0, 1), opacity: 1, offset: 0.8 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
+        { transform: FT(0, 0, 0), opacity: 0 }, { transform: FT(0, 0, 0), opacity: 0, offset: 0.26 },
+        { transform: FT(0, 0, 1.18), opacity: 1, offset: 0.34 }, { transform: FT(0, 0, 0.94), offset: 0.4 },
+        { transform: FT(0, 0, 1.1), offset: 0.46 }, { transform: FT(0, 0, 1), offset: 0.53 },
+        { transform: FT(0, 0, 1), opacity: 1, offset: 0.82 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
       ];
     } else {   // slam
       burst(-140, -40, 24, ['✦', '★', '♥'], ['#c9a96e', '#dcb86c', '#b4392c'], 250, 130);
@@ -950,9 +985,10 @@
   }
 
   // 一圈波纹
-  function ring(x, y, delay) {
+  function ring(x, y, delay, color) {
     const el = document.createElement('div');
     el.className = 'gz-fxring';
+    if (color) el.style.borderColor = color;
     els.fx.appendChild(el);
     animate(el, [{ transform: FT(x, y, 0.3), opacity: 0.9 }, { transform: FT(x, y, 2.4), opacity: 0 }],
       { duration: 900, delay, fill: 'both' }, 'cubic-bezier(.2, .7, .3, 1)');
@@ -960,20 +996,22 @@
   }
 
   // 一朵烟花：n 颗粒子从 (x, y) 炸开，往外飞、再带点下坠淡出
-  function burst(x, y, n, glyphs, colors, delay, radius) {
-    // 炸开那一下：中心先闪一团暖光
-    const flash = document.createElement('div');
-    flash.className = 'gz-flash';
-    els.fx.appendChild(flash);
-    animate(flash, [{ transform: FT(x, y, 0.2), opacity: 0.85 }, { transform: FT(x, y, 1.5), opacity: 0 }],
-      { duration: 520, delay, fill: 'both' }, 'ease-out');
-    setTimeout(() => flash.remove(), 520 + delay + 60);
+  function burst(x, y, n, glyphs, colors, delay, radius, glow) {
+    // 炸开那一下：中心先晕开一团光（金 / 红；'none' 不要）
+    if (glow !== 'none') {
+      const flash = document.createElement('div');
+      flash.className = 'gz-flash' + (glow === 'red' ? ' red' : '');
+      els.fx.appendChild(flash);
+      animate(flash, [{ transform: FT(x, y, 0.2), opacity: 0.85 }, { transform: FT(x, y, 1.5), opacity: 0 }],
+        { duration: 520, delay, fill: 'both' }, 'ease-out');
+      setTimeout(() => flash.remove(), 520 + delay + 60);
+    }
     for (let k = 0; k < n; k++) {
       const el = document.createElement('span');
       el.className = 'gz-spark';
       el.textContent = glyphs[k % glyphs.length];
       el.style.color = colors[k % colors.length];
-      el.style.fontSize = (15 + Math.random() * 13).toFixed(0) + 'px';
+      el.style.fontSize = ((glow === 'red' ? 18 : 15) + Math.random() * (glow === 'red' ? 18 : 13)).toFixed(0) + 'px';
       els.fx.appendChild(el);
       const a = (k / n) * Math.PI * 2 + Math.random() * 0.4;
       const d = radius * (0.65 + Math.random() * 0.45);
@@ -1079,21 +1117,25 @@
     showCoach(msgs[0], () => coachSay(msgs.slice(1), done));
   }
 
-  // 讲解里的 {♠Q} 画成嵌在字里的小牌面（点数在上、花色在下，跟牌面同一套花色图形）
+  // 讲解里的 {♠Q} 画成嵌在字里的真牌面（跟手牌完全同一套版式，只是缩小）
   const SUIT_OF_CHAR = { '♠': 0, '♥': 1, '♦': 2, '♣': 3 };
-  function inlineCard(suit, rank) {
-    return '<span class="gz-icard ' + (suit === 1 || suit === 2 ? 'suit-red' : 'suit-black') + '"><span class="r">' + rank +
-      '</span><span class="s">' + suitSVG(suit) + '</span></span>';
+  function cardHtml(c, cls) {
+    const el = buildCard(c);
+    el.classList.add('gz-handlike', cls);
+    return el.outerHTML;
   }
   function inlineCards(text) {
-    return text.replace(/\{([♠♥♦♣])([0-9JQKA]+)\}/g, (_, su, rk) => inlineCard(SUIT_OF_CHAR[su], rk));
+    return text.replace(/\{([♠♥♦♣])([0-9JQKA]+)\}/g, (_, su, rk) => cardHtml(SUIT_OF_CHAR[su] * 13 + R.RANK_LABELS.indexOf(rk), 'gz-inline'));
   }
-  // 牌的大小：四门花色各一行 2…A，底下一支从小指到大的箭头
+  // 牌的大小：四门花色各一排真牌 2…A（叠着摆，露出左上角），底下一支从小指到大的箭头
   function rankChart() {
-    const rows = [0, 1, 3, 2].map((su) => '<div class="gz-rank-row"><span class="gz-rank-suit ' + (su === 1 || su === 2 ? 'suit-red' : 'suit-black') + '">' + suitSVG(su) + '</span>' +
-      R.RANK_LABELS.map((rk) => '<span class="gz-rank-chip ' + (su === 1 || su === 2 ? 'suit-red' : 'suit-black') + '">' + rk + '</span>').join('') + '</div>').join('');
+    const rows = [0, 1, 3, 2].map((su) => '<div class="gz-rank-row">' +
+      R.RANK_LABELS.map((_, rk) => cardHtml(su * 13 + rk, 'gz-rank-card')).join('') + '</div>').join('');
     return '<div class="gz-ranks">' + rows +
-      '<div class="gz-rank-arrow"><span>小</span><svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 6H194M186 1.5L196 6L186 10.5"/></svg><span>大</span></div></div>';
+      // 一笔由细到粗、尾巴淡出的金色箭杆，箭头是两道弧
+      '<div class="gz-rank-arrow"><span>小</span><svg viewBox="0 0 240 16" preserveAspectRatio="none" aria-hidden="true">' +
+      '<defs><linearGradient id="gzArrowG" x1="0" x2="1"><stop offset="0" stop-color="#c9a96e" stop-opacity="0"/><stop offset=".35" stop-color="#c9a96e" stop-opacity=".7"/><stop offset="1" stop-color="#a8843e"/></linearGradient></defs>' +
+      '<path d="M2 8 222 6.4Q228 8 222 9.6Z" fill="url(#gzArrowG)"/><path d="M214 1.5Q224 6 237 8Q224 10 214 14.5Q222 8 214 1.5Z" fill="#a8843e"/></svg><span>大</span></div></div>';
   }
 
   function showCoach(msg, onNext) {
@@ -1108,7 +1150,7 @@
         const cell = document.createElement('span');
         cell.className = 'gz-part';
         const m = buildCard(p.card);
-        m.classList.add('gz-mini');
+        m.classList.add('gz-handlike');
         const v = document.createElement('span');
         v.className = 'gz-num neg';
         v.textContent = signed(p.value);

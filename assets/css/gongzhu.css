@@ -222,8 +222,22 @@ body.gz-fullscreen .site-footer { display: none !important; }
 /* ───── 特殊事件动画：插画 / 大字 / 波纹 / 烟花粒子（位移都由 JS 的 Web Animations 驱动） ───── */
 .gz-fx { position: absolute; inset: 0; pointer-events: none; z-index: 6; overflow: visible; }
 .gz-fxitem { position: absolute; left: 50%; top: 50%; display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0; }
-.gz-fxart svg { display: block; width: 150px; height: auto; filter: drop-shadow(0 4px 6px rgba(20, 18, 15, 0.16)); }
-.kind-slam .gz-fxart svg { width: 132px; }
+.gz-fxart svg { display: block; width: 190px; height: auto; filter: drop-shadow(0 4px 6px rgba(20, 18, 15, 0.16)); }
+.kind-slam .gz-fxart svg { width: 176px; filter: drop-shadow(0 6px 12px rgba(169, 130, 58, 0.4)); }
+.kind-pig .gz-fxart { filter: drop-shadow(0 0 18px rgba(122, 30, 26, 0.45)); }
+/* 分数大字：扣分朱红、加分墨绿 */
+.gz-fxscore { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 52px; line-height: 1; letter-spacing: 0.02em;
+  text-shadow: 0 0 12px var(--gz-paper), 0 0 4px var(--gz-paper); }
+.gz-fxscore.neg { color: var(--gz-seal); }
+.gz-fxscore.pos { color: var(--gz-good); }
+.kind-allhearts .gz-fxscore, .kind-slam .gz-fxscore { font-size: 60px; }
+.kind-allhearts .gz-fxscore { color: var(--gz-seal); }
+.kind-slam .gz-fxscore { color: #a8843e; }
+/* 变压器：一枚圆环，×2 居中 */
+.gz-fxcoin { width: 136px; height: 136px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle, rgba(255, 253, 248, 0.95) 55%, rgba(255, 253, 248, 0.6) 70%, transparent 72%);
+  box-shadow: inset 0 0 0 4px var(--tone), inset 0 0 0 9px rgba(255, 253, 248, 0.9), inset 0 0 0 10px var(--tone); }
+.gz-fxcoin span { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 70px; line-height: 1; transform: translateY(-3px); }
 .gz-fxword { font-size: 54px; font-weight: 900; line-height: 1; letter-spacing: 0.06em; white-space: nowrap; color: var(--gz-seal);
   text-shadow: 0 0 12px var(--gz-paper), 0 0 4px var(--gz-paper), 0 3px 0 rgba(180, 57, 44, 0.18); }
 .kind-doubler .gz-fxword { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 72px; color: #b8924a;
@@ -232,6 +246,12 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-fxlabel { font-size: 20px; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; color: var(--gz-ink);
   text-shadow: 0 0 8px var(--gz-paper), 0 0 3px var(--gz-paper); }
 .gz-fxring { position: absolute; left: 50%; top: 50%; width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--gz-gold); opacity: 0; }
+.gz-flash.red { background: radial-gradient(circle, rgba(255, 214, 205, 0.9), rgba(180, 57, 44, 0.28) 45%, transparent 70%); }
+/* 全红：一颗大红心托着「全红」二字 */
+.gz-fxheart { position: relative; width: 210px; }
+.gz-fxheart svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 6px 10px rgba(180, 57, 44, 0.3)); }
+.gz-fxheart .w { position: absolute; left: 0; right: 0; top: 30%; text-align: center; color: #fffaf3;
+  font-size: 56px; font-weight: 900; letter-spacing: 0.08em; line-height: 1; }
 .gz-flash { position: absolute; left: 50%; top: 50%; width: 90px; height: 90px; border-radius: 50%; opacity: 0;
   background: radial-gradient(circle, rgba(255, 236, 200, 0.95), rgba(201, 169, 110, 0.35) 45%, transparent 70%); }
 .gz-spark { position: absolute; left: 50%; top: 50%; line-height: 1; opacity: 0; font-family: 'Apple Symbols', 'Segoe UI Symbol', serif; }
@@ -315,9 +335,10 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-card .suit-svg { width: 1em; height: 1em; display: block; fill: currentColor; overflow: visible; }
 /* 单张完整（本墩）：露左上 + 右上 + 右下；手牌叠放：露左上 + 左下 */
 .gz-card .q-bl { display: none; }
-.gz-hand .gz-card .q-bl { display: flex; }
-.gz-hand .gz-card .q-tr { display: none; }
-.gz-hand .gz-card .bigsuit {
+.gz-hand .gz-card .q-bl, .gz-card.gz-handlike .q-bl { display: flex; }
+.gz-hand .gz-card .q-tr, .gz-card.gz-handlike .q-tr { display: none; }
+/* 教程里展示的牌（gz-handlike）跟手牌同一套版式，只按 --q 缩放 */
+.gz-hand .gz-card .bigsuit, .gz-card.gz-handlike .bigsuit {
   right: calc(var(--q) * var(--gz-brH));
   bottom: calc(var(--q) * var(--gz-bbH));
   font-size: calc(var(--q) * var(--gz-bigH));
@@ -435,6 +456,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 .gz-coach-parts { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 12px; --m: 40px; --mh: 56px; }
 .gz-coach-parts:not(:empty) { margin-top: 12px; }
+.gz-part .gz-card.gz-handlike { --q: 42px; width: 42px; height: 60px; }
 .gz-part { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; font-size: 17px; }
 .gz-part .neg, .gz-part-sum.neg { color: var(--gz-seal); }
 .gz-part-sum { font-size: 26px; align-self: center; margin-left: 4px; }
@@ -443,33 +465,22 @@ body.gz-fullscreen .site-footer { display: none !important; }
 @keyframes gz-more { from { opacity: 0.35; } to { opacity: 0.85; } }
 .gz-coach.pulse .gz-coach-text { animation: gz-coach-pulse 0.45s ease-out; }
 @keyframes gz-coach-pulse { 0%, 100% { transform: none; } 30% { transform: translateY(-3px); } 60% { transform: translateY(1px); } }
-/* 嵌在讲解文字里的小牌面 */
-.gz-icard {
-  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.06em;
-  width: 1.5em; height: 2.05em; margin: 0 0.18em; vertical-align: middle; position: relative; top: -0.12em;
-  background: var(--gz-card); border: 1px solid rgba(29, 27, 24, 0.3); border-radius: 0.18em;
-  box-shadow: 0 1px 2px rgba(20, 18, 15, 0.14); text-shadow: none; line-height: 1;
+/* 嵌在讲解文字里的真牌面：大小跟着字号走 */
+.gz-coach-text .gz-card.gz-inline {
+  --q: 1.6em; width: 1.6em; height: 2.3em; display: inline-block; vertical-align: middle; position: relative; top: -0.12em;
+  margin: 0 0.16em; text-shadow: none; line-height: 1; border-radius: 0.16em;
 }
-.gz-icard .r { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 0.82em; letter-spacing: -0.02em; }
-.gz-icard .s { font-size: 0.72em; display: inline-flex; }
-.gz-icard .suit-svg { width: 1em; height: 1em; fill: currentColor; }
-.gz-icard.suit-red, .gz-rank-chip.suit-red, .gz-rank-suit.suit-red { color: var(--gz-red); }
-.gz-icard.suit-black, .gz-rank-chip.suit-black, .gz-rank-suit.suit-black { color: var(--gz-black); }
-/* 牌的大小：四行 2…A + 一支箭头 */
-.gz-ranks { display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
-.gz-rank-row { display: flex; align-items: center; gap: 3px; }
-.gz-rank-suit { width: 18px; display: inline-flex; justify-content: center; font-size: 16px; }
-.gz-rank-suit .suit-svg { width: 14px; height: 14px; fill: currentColor; }
-.gz-rank-chip {
-  width: 22px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
-  background: var(--gz-card); border: 1px solid rgba(29, 27, 24, 0.25); border-radius: 3px;
-  font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 15px; letter-spacing: -0.04em;
-}
-.gz-rank-arrow { display: flex; align-items: center; gap: 6px; margin-left: 21px; font-size: 14px; color: var(--gz-ink-mute); }
-.gz-rank-arrow svg { flex: 1; height: 12px; stroke: var(--gz-gold); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+/* 牌的大小：四排真牌，叠着摆露出左上角 */
+.gz-ranks { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gz-rank-row { display: flex; }
+.gz-rank-row .gz-card.gz-rank-card { --q: 32px; width: 32px; height: 46px; border-radius: 3px; }
+.gz-rank-row .gz-rank-card + .gz-rank-card { margin-left: -13px; }
+.gz-rank-arrow { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 2px; font-size: 15px; font-weight: 700; color: var(--gz-ink-mute); }
+.gz-rank-arrow svg { flex: 1; height: 16px; overflow: visible; }
 @media (max-width: 480px) {
-  .gz-rank-chip { width: 19px; height: 25px; font-size: 13px; }
-  .gz-rank-row { gap: 2px; }
+  .gz-rank-row .gz-card.gz-rank-card { --q: 27px; width: 27px; height: 39px; }
+  .gz-rank-row .gz-rank-card + .gz-rank-card { margin-left: -11px; }
+}
 }
 
 /* ───── 竖屏 / 窄屏：左右两家移到上方一行 ───── */

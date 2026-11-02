@@ -130,7 +130,7 @@
       const hand = r.hands[0];
       if (r.trickNo === 0 && lead < 0) return '你手里有 ' + label(R.SPADE_TWO) + '，第一局由你先出，第一张必须是它。已经帮你选好了，点「出牌」。';
       // 每次轮到新手领出都说一句，免得他愣着等别人出
-      if (lead < 0) return once('lead') ? '上一轮你最大，这一轮由你先出，手里哪张都可以。' : '这一轮由你先出。';
+      if (lead < 0) return once('lead') ? '上一轮是你赢的，这一轮由你先出，手里哪张都可以。' : '这一轮由你先出。';
       const follow = of(hand, lead).length > 0;
       if (!follow) {
         const suit = ['黑桃', '红桃', '方块', '草花'][lead];
@@ -157,20 +157,20 @@
       if (r.trickNo === 1) {
         out.push({ text: '大家都跟了黑桃：别人领出什么花色，你有这门牌就必须跟这门。' });
         out.push({ text: '每门花色都是 2 最小、A 最大：', ranks: true });
-        out.push({ text: '这一轮 ' + label(card('♠A')) + ' 最大，上家吃下。吃下的人，下一轮先出。' });
+        out.push({ text: '这一轮的花色是黑桃（由第一张出的牌决定）。谁出了这门花色里最大的一张，谁就赢下这一轮，下一轮由他先出。这一轮是上家的 ' + label(card('♠A')) + '。' });
         return out;
       }
       if (r.trickNo === 2) {
-        out.push({ text: '又是上家最大。这几张牌都不算分，吃了也白吃——算分只看几张特殊的牌。' });
+        out.push({ text: '这一轮的花色是草花，上家的 ' + label(card('♣A')) + ' 最大，这一轮仍由他赢。这一轮的牌都不计分。一局里只有少数几张牌带分，它们出现时会逐一为你介绍。' });
         return out;
       }
       if (suitOf(meCard) !== leadSuit && once('discard-after')) {
-        out.push({ text: '垫出去的牌再大也不算：只有领出的' + ['黑桃', '红桃', '方块', '草花'][leadSuit] + '里最大的那张，才能吃下这一轮。' });
+        out.push({ text: '垫出去的牌再大也不算：只比这一轮的花色（' + ['黑桃', '红桃', '方块', '草花'][leadSuit] + '），其中最大的一张赢下这一轮。' });
       }
-      if (cs.includes(SHEEP) && w === 0) out.push({ text: '你的 ' + label(SHEEP) + ' 最大，这一轮归你。' + label(SHEEP) + ' 叫「羊」，谁吃到它 +100。吃到的分牌会摆在面前。' });
+      if (cs.includes(SHEEP) && w === 0) out.push({ text: '这一轮的花色是方块，你的 ' + label(SHEEP) + ' 是其中最大的，这一轮你赢。' + label(SHEEP) + ' 叫「羊」，谁吃到它 +100。吃到的分牌会摆在面前。' });
       if (cs.includes(PIG)) {
         const gong = r.history[r.history.length - 1].leader !== 0;
-        out.push({ text: label(PIG) + ' 叫「猪」，谁吃到它 −100。' + NAMES[w] + '用 ' + label(K_SPADE) + ' 吃下了你打出的猪。' + (gong ? '对家用小黑桃把猪逼出来，这就叫「拱猪」。' : '') });
+        out.push({ text: label(PIG) + ' 叫「猪」，谁吃到它 −100。' + NAMES[w] + '的 ' + label(K_SPADE) + ' 赢下这一轮，你打出的猪归了他。' + (gong ? '对家用小黑桃把猪逼出来，这就叫「拱猪」。' : '') });
       }
       if (cs.includes(DOUBLER) && w === 0) {
         const ctx = R.scoreCtx(r);
