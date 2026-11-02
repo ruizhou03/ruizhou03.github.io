@@ -756,7 +756,7 @@
       none: '不设终点，一直累计下去。',
     }[rules.end];
     return '<dl class="gz-rules">' +
-      '<dt>出牌</dt><dd>四人各 13 张。' + lead + '每一轮第一张出的牌决定这一轮的花色：手里有这门花色就必须跟，没有可以垫任意一张。出了这门花色里最大一张的人赢下这一轮，收走这一轮的牌，下一轮由他先出。</dd>' +
+      '<dt>出牌</dt><dd>四人各 13 张。' + lead + '每一轮第一张出的牌决定这一轮的花色：手里有这一轮花色就必须跟，没有可以垫任意一张。出了这一轮花色里最大一张的人赢下这一轮，收走这一轮的牌，下一轮由他先出。</dd>' +
       '<dt>分牌</dt><dd>猪 ♠Q −100；羊 ♦J +100。' + hearts + '</dd>' +
       '<dt>变压器 ♣10</dt><dd>它本身不算分，吃到它，你这一局的分数（不论正负）翻倍' + (rules.doublerAlone === 50 ? '；只吃到它一张、别的分牌都没吃到，算 +50。' : '。') + '</dd>' +
       '<dt>全红</dt><dd>一个人吃齐 13 张红桃，红桃改记 +200。' + pigLine + '</dd>' +
@@ -836,7 +836,7 @@
 
   /* ───── 特殊事件动画（牌桌中央，绝对定位、不占布局） ─────
    * 猪：粉色小猪头弹出、左右扭两下，然后朝吃猪的人跑过去；羊：卷毛小羊蹦两下再跑过去；
-   * 变压器：金色大字 ×2 + 两圈波纹 + 金星；全红：三处红心烟花接连炸开，再浮出「全红」；
+   * 变压器：圆环里一个 ×2（颜色随分数正负）+ 金星；全红：三处红心烟花接连炸开，再浮出「全红」；
    * 大满贯：金冠落下 + 金色烟花。领出花色的 A 一出：那张牌旁边盖一个小「照单全收」。 */
 
   const FX_DRIFT = [[0, 90], [120, 0], [0, -90], [-120, 0]];   // 朝各座位跑的方向（我 / 下 / 对 / 上）
@@ -935,17 +935,15 @@
     els.fx.appendChild(item);
     let frames;
     if (fx.kind === 'pig') {
-      // 暗红冲击波 + 一圈黑红碎屑
-      ring(0, 0, 160, '#7a1e1a'); ring(0, 0, 330, '#b4392c');
-      burst(0, 0, 22, ['●', '◆', '●'], ['#3a2420', '#7a1e1a', '#b4392c'], 180, 150, 'red');
+      // 一圈黑红碎屑（不画圆圈、不打光，免得显得刻意）
+      burst(0, -30, 22, ['●', '◆', '●'], ['#3a2420', '#7a1e1a', '#b4392c'], 180, 150, 'none');
       frames = [
         { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.15), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
         { transform: FT(-9, 0, 1), offset: 0.34 }, { transform: FT(9, 0, 1), offset: 0.42 }, { transform: FT(-6, 0, 1), offset: 0.5 },
         { transform: FT(4, 0, 1), offset: 0.57 }, { transform: FT(0, 0, 1), opacity: 1, offset: 0.66 }, { transform: FT(dx, dy, 0.42), opacity: 0 },
       ];
     } else if (fx.kind === 'sheep') {
-      ring(0, 0, 160, '#3d6b4f'); ring(0, 0, 330, '#c9a96e');
-      burst(0, 0, 24, ['✦', '✿', '✦'], ['#3d6b4f', '#c9a96e', '#5f8f6f'], 180, 150);
+      burst(0, -30, 24, ['✦', '✿', '✦'], ['#3d6b4f', '#c9a96e', '#5f8f6f'], 180, 150, 'none');
       frames = [
         { transform: FT(0, 0, 0.2), opacity: 0 }, { transform: FT(0, 0, 1.12), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1), offset: 0.26 },
         { transform: FT(0, -22, 1), offset: 0.36 }, { transform: FT(0, 0, 1), offset: 0.46 }, { transform: FT(0, -13, 1), offset: 0.54 },
@@ -956,8 +954,7 @@
         { transform: FT(0, 0, 2.2), opacity: 0 }, { transform: FT(0, 0, 0.92), opacity: 1, offset: 0.16 }, { transform: FT(0, 0, 1.04), offset: 0.24 },
         { transform: FT(0, 0, 1), opacity: 1, offset: 0.7 }, { transform: FT(dx, dy, 0.5), opacity: 0 },
       ];
-      ring(0, 0, 80, tone.ring); ring(0, 0, 260, tone.ring);
-      burst(0, 0, 12, ['✦'], tone.sparks, 120, 90, 'none');
+      burst(0, 0, 12, ['✦'], tone.sparks, 120, 100, 'none');
     } else if (fx.kind === 'allhearts') {
       // 只用红心：五朵红心烟花接连炸开，中间一颗大红心「怦、怦」跳两下
       burst(-150, -60, 26, ['♥'], HEART_REDS, 0, 135, 'red');
@@ -982,17 +979,6 @@
     }
     animate(item, frames, { duration: dur, fill: 'forwards' });
     setTimeout(() => item.remove(), dur + 60);
-  }
-
-  // 一圈波纹
-  function ring(x, y, delay, color) {
-    const el = document.createElement('div');
-    el.className = 'gz-fxring';
-    if (color) el.style.borderColor = color;
-    els.fx.appendChild(el);
-    animate(el, [{ transform: FT(x, y, 0.3), opacity: 0.9 }, { transform: FT(x, y, 2.4), opacity: 0 }],
-      { duration: 900, delay, fill: 'both' }, 'cubic-bezier(.2, .7, .3, 1)');
-    setTimeout(() => el.remove(), 900 + delay + 60);
   }
 
   // 一朵烟花：n 颗粒子从 (x, y) 炸开，往外飞、再带点下坠淡出
