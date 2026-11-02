@@ -320,26 +320,40 @@
    * 我自己那排（出牌键在正中）：挤了就挪到更宽的地方——竖屏整排吃牌区另起一行、占满整宽；
    * 横屏没有多余的高度，就把红桃扇连同本局分挪到出牌键右边那半边（变压器 / 猪 / 羊留在头像旁）。 */
   function fitFan(box, row, fan) {
-    row.classList.remove('is-wrapped');
+    row.classList.remove('is-wrapped', 'score-down');
     const mine = box.parentElement === els.seats[0];
     if (mine) {
       els.table.classList.remove('is-me-spill');
       if (fan) fan.style.marginLeft = '';
     }
-    if (!fan) return;
     const cs = getComputedStyle(box);
+    const rows = parseInt(cs.getPropertyValue('--caps-rows'), 10) || 1;
+    const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
+    const score = row.querySelector('.gz-cap-score');
+    // 量宽度要连外边距（本局分左边有 3px）
+    const outer = (el) => { const st = getComputedStyle(el); return el.getBoundingClientRect().width + (parseFloat(st.marginLeft) || 0) + (parseFloat(st.marginRight) || 0); };
+    const scoreW = score ? outer(score) : 0;
+    // 第一行（变压器 / 猪 / 羊 + 本局分）有多宽
+    let specW = 0, specN = 0;
+    for (const el of row.children) if (el !== fan && el !== score) { specW += outer(el); specN++; }
+    const line1W = specW + scoreW + gap * Math.max(0, specN + (score ? 1 : 0) - 1);
+    const W = box.clientWidth - 10;   // 留出行内边距和小牌的影子
+    if (!fan) {
+      // 没有红桃，但三张特殊牌 + 本局分一行放不下：窄座位把分挪到第二行；我自己那排（竖屏）整排另起一行
+      if (line1W > W && mine) els.table.classList.add('is-me-spill');
+      else if (rows > 1 && score && line1W > W) row.classList.add('is-wrapped', 'score-down');
+      return;
+    }
     // --m 是 clamp() 表达式，parseFloat 读不出来：直接量一张小牌的实际宽度
     const first = fan.querySelector('.gz-mini');
     const m = (first && first.getBoundingClientRect().width) || 28;
-    const rows = parseInt(cs.getPropertyValue('--caps-rows'), 10) || 1;
     const n = fan.children.length;
-    const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
     const fanAvail = () => {
       let others = 0;
-      for (const el of row.children) if (el !== fan) others += el.getBoundingClientRect().width;
-      return box.clientWidth - others - gap * (row.children.length - 1) - 6;
+      for (const el of row.children) if (el !== fan) others += outer(el);
+      return box.clientWidth - others - gap * (row.children.length - 1) - 10;
     };
-    const tight = (w) => n > 1 && (w - m) / (n - 1) < m * 0.44;
+    const tight = (w) => (n > 1 ? (w - m) / (n - 1) < m * 0.44 : w < m);
     let avail = fanAvail();
     if (mine && tight(avail)) {
       els.table.classList.add('is-me-spill');
@@ -353,7 +367,9 @@
       }
     } else if (rows > 1 && tight(avail)) {
       row.classList.add('is-wrapped');
-      avail = box.clientWidth - 6;
+      avail = W;
+      // 第一行连本局分也放不下：分跟到第二行、排在红桃后面
+      if (score && line1W > W) { row.classList.add('score-down'); avail = W - outer(score) - gap; }   // 挪下来的分字号小一点，重新量
     }
     const step = n > 1 ? Math.max(m * 0.16, Math.min(m * 0.44, (avail - m) / (n - 1))) : 0;
     fan.style.setProperty('--fanstep', step.toFixed(1) + 'px');
@@ -498,6 +514,7 @@
     for (const p of plays) if (R.suitOf(p.card) === lead && R.rankOf(p.card) > R.rankOf(top.card)) top = p;
     plays.forEach((p) => {
       const card = buildCard(p.card);
+      if (isExposedCard(p.card)) card.classList.add('is-exposed');   // 明出来的牌打到桌上也还是明牌的样子（变压器 ×4）
       if (p === top && plays.length > 1) card.classList.add('is-top');
       if (p.seat === enteringSeat) card.classList.add('in');
       els.slots[p.seat].appendChild(card);
@@ -722,6 +739,7 @@
       const a = slot.getBoundingClientRect();
       const fl = buildCard(p.card);
       fl.classList.add('gz-flyer');
+      if (isExposedCard(p.card)) fl.classList.add('is-exposed');
       fl.style.cssText += ';left:' + a.left + 'px;top:' + a.top + 'px;width:' + a.width + 'px;height:' + a.height + 'px;--q:' + a.width + 'px';
       els.app.appendChild(fl);
       flyers.push({ fl, a });

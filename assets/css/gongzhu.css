@@ -151,7 +151,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-fan { display: inline-flex; padding: 1px; border-radius: 4px; }
 .gz-fan .gz-mini + .gz-mini { margin-left: calc(var(--fanstep, calc(var(--m) * 0.44)) - var(--m)); }
 .gz-mini.is-doubler { margin-right: calc(var(--m) * 0.12); }
-.gz-cap-score { font-size: 16px; margin-left: 3px; color: var(--gz-ink-mute); }
+.gz-cap-score { font-size: 16px; line-height: 1; margin-left: 3px; color: var(--gz-ink-mute); }   /* 行高收紧：不比小牌高，两行摆法才不超出吃牌区 */
 .gz-cap-score.neg { color: var(--gz-seal); }
 .gz-cap-score.pos { color: var(--gz-good); }
 .gz-cap-score.is-gold { color: #a8843e; text-shadow: 0 0 6px rgba(201, 162, 39, 0.35); }
@@ -655,8 +655,11 @@ body.gz-fullscreen .site-footer { display: none !important; }
 @media (max-aspect-ratio: 1/1) {
   .gz-seat-top .gz-caps { --caps-rows: 2; height: calc(var(--mh) * 2 + 12px); align-items: flex-start; }
 }
-.gz-caps-row.is-wrapped { flex-wrap: wrap; row-gap: 6px; justify-content: center; }
-.gz-caps-row.is-wrapped .gz-fan { order: 2; flex: 0 0 100%; justify-content: center; }
+.gz-caps-row.is-wrapped { flex-wrap: wrap; row-gap: 3px; justify-content: center; }   /* 断行元素自成一行：两道 3px 间隔 = 原来一道 6px */
+/* 换行：用一个占满整行的空元素断行，红桃扇（和挪下来的本局分）在第二行居中 */
+.gz-caps-row.is-wrapped::after { content: ''; order: 1; flex: 0 0 100%; height: 0; }
+.gz-caps-row.is-wrapped .gz-fan { order: 2; }
+.gz-caps-row.is-wrapped.score-down .gz-cap-score { order: 3; font-size: 13px; margin-left: 0; }
 
 /* 我自己那排挤了（见 fitFan）：横屏红桃扇 + 本局分挪到出牌键右边；竖屏整排吃牌区另起一行、占满整宽 */
 .is-me-spill .gz-seat-me { padding-right: 0; }
@@ -681,8 +684,9 @@ body.gz-fullscreen .site-footer { display: none !important; }
 /* 画放在角标下面那块地方的正中，大小只跟牌宽 --q 走：桌上、手牌、吃牌区、规则里同一张牌比例一样 */
 .gz-face { position: absolute; left: 10%; right: 10%; top: calc(var(--q) * 0.42); bottom: calc(var(--q) * 0.1); display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .gz-face svg { width: 100%; height: 100%; display: block; overflow: visible; }
-/* 吃牌区小牌：点数和花色并排在顶上一行，下面整块给画；整体往上、往右让开左下角的亮牌圆点（方案乙，用户定） */
-.gz-mini .gz-face { left: 29%; right: -5%; top: calc(var(--q) * 0.44); bottom: calc(var(--q) * 0.16); }
+/* 吃牌区小牌：点数和花色并排在顶上一行，下面整块给画；整体往上、往右让开左下角的明牌圆点（方案乙，用户定）。
+ * 右边要留够牌边（原来伸出牌外 5%，×2 圆环的描边和猪耳朵会压出牌边） */
+.gz-mini .gz-face { left: 25%; right: 9%; top: calc(var(--q) * 0.44); bottom: calc(var(--q) * 0.16); }
 /* 羊本身重心偏下：所有地方都往上提一点 */
 .gz-card[data-card="35"] .gz-face svg { translate: 0 -7%; }
 .gz-dbl { color: #b8924a; }
