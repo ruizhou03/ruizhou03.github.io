@@ -391,6 +391,15 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 .gz-res-head { padding: 0 2px 4px; font-size: 12px; color: var(--gz-ink-mute); }
 .gz-res-row.me .gz-res-name { font-weight: 700; }
+/* 自己那一行：置顶、整行铺一层底色 + 左边一道色条；得分为正朱红，为负灰墨，持平淡金 */
+.gz-res-row.me {
+  margin: 2px 0 6px; padding-left: 10px; padding-right: 8px; border-bottom: 0; border-radius: 10px;
+  box-shadow: inset 3px 0 0 var(--gz-res-bar);
+  background: var(--gz-res-bg);
+}
+.gz-res-row.me.is-up { --gz-res-bg: rgba(180, 57, 44, 0.12); --gz-res-bar: var(--gz-seal); }
+.gz-res-row.me.is-down { --gz-res-bg: rgba(29, 27, 24, 0.08); --gz-res-bar: var(--gz-ink-mute); }
+.gz-res-row.me.is-even { --gz-res-bg: rgba(201, 169, 110, 0.2); --gz-res-bar: var(--gz-gold); }
 .gz-res-caps { justify-content: flex-start; min-height: 0; }
 .gz-res-caps:empty::before { content: '—'; color: var(--gz-off); }
 .gz-res-n { text-align: right; white-space: nowrap; }

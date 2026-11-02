@@ -756,8 +756,12 @@
     const last = match.last;
     const losers = match.over ? R.matchLosers(match.totals) : [];
     const cls = (n) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
-    const rows = [0, 1, 2, 3].map((s) =>
-      '<div class="gz-res-row' + (s === 0 ? ' me' : '') + (losers.includes(s) ? ' loser' : '') + '" data-seat="' + s + '">' +
+    // 自己永远在最上面；其余三家按分从高到低（整盘结束按累计，平时按本局），同分按出牌顺序（下家 → 对家 → 上家）
+    const key = (s) => (match.over ? match.totals[s] : last.scores[s]);
+    const order = [0].concat([1, 2, 3].sort((a, b) => key(b) - key(a) || a - b));
+    const mine = key(0);
+    const rows = order.map((s) =>
+      '<div class="gz-res-row' + (s === 0 ? ' me is-' + (mine > 0 ? 'up' : mine < 0 ? 'down' : 'even') : '') + (losers.includes(s) ? ' loser' : '') + '" data-seat="' + s + '">' +
       '<span class="gz-res-name">' + NAMES[s] + (losers.includes(s) ? '<span class="gz-pig-badge">猪</span>' : '') + '</span>' +
       '<span class="gz-res-caps gz-caps"></span>' +
       '<span class="gz-res-n gz-num ' + cls(last.scores[s]) + '">' + signed(last.scores[s]) + '</span>' +
