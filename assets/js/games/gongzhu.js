@@ -97,6 +97,11 @@
     refreshSoundBtn();
   }
 
+  function faceHtml(v) {
+    const s = String(v || '');
+    return s.startsWith('svg:') && window.GongzhuAvatars ? GongzhuAvatars.svg(s.slice(4)) : esc(s);
+  }
+
   /* ───── 存档 ───── */
 
   function readJSON(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (_) { return null; } }
@@ -450,7 +455,7 @@
   function buildSeats() {
     els.seats.forEach((el, s) => {
       el.innerHTML =
-        '<div class="gz-who"><span class="gz-avatar">' + esc(AVATARS[s]) + CLOCK_SVG + '</span>' +
+        '<div class="gz-who"><span class="gz-avatar"><span class="gz-av-face" data-v="' + esc(AVATARS[s]) + '">' + faceHtml(AVATARS[s]) + '</span>' + CLOCK_SVG + '</span>' +
         '<span class="gz-name-line"><span class="gz-name">' + esc(NAMES[s]) + '</span><span class="gz-total gz-num"></span></span></div>' +
         (s === 0 ? '' : '<div class="gz-hold"><span class="gz-backs" aria-hidden="true"></span><span class="gz-shown"></span></div>') +
         '<div class="gz-caps"></div>';
@@ -1970,7 +1975,13 @@
   function playerAt(s) { return online && online.st ? online.st.players.find((p) => p.seat === s) || null : null; }
   function isHost() { return !!(online && online.st && online.st.hostId === online.st.me); }
   function onlineAuto() { const g = online && online.st && online.st.game; return !!(g && g.auto[online.mySeat]); }
-  function avatarOf(p) { return p ? [...String(p.nick)][0] || '?' : '+'; }
+  /* 头像：联机里每人有服务器分的矢量头像（见 gongzhu-avatars.js），记作 'svg:<编号>'；
+   * 单机的「我 / 上 / 对 / 下」、老房间没头像的人仍是一个字 */
+  function avatarOf(p) {
+    if (!p) return '+';
+    if (p.avatar && window.GongzhuAvatars && GongzhuAvatars.byId[p.avatar]) return 'svg:' + p.avatar;
+    return [...String(p.nick)][0] || '?';
+  }
   function seatIsBot(l) {
     const p = playerAt(srv(l));
     const g = online.st.game;
@@ -2068,7 +2079,7 @@
     if (!me || me.left || st.mySeat < 0) { leaveOnline('你已经不在这个房间里了'); return; }
     online.mySeat = st.mySeat;
     NAMES = [0, 1, 2, 3].map((l) => (l === 0 ? '我' : (playerAt(srv(l)) || { nick: '空位' }).nick));
-    AVATARS = [0, 1, 2, 3].map((l) => (l === 0 ? '我' : avatarOf(playerAt(srv(l)))));
+    AVATARS = [0, 1, 2, 3].map((l) => avatarOf(l === 0 ? me : playerAt(srv(l))));
     if (st.phase === 'lobby') { renderLobby(); return; }
     const gv = st.game;
     if (!online.inGame || !match || !match.online || match.lobby || match.matchNo !== gv.matchNo) { enterGameView(); resync(); return; }
@@ -2281,15 +2292,16 @@
       const el = els.seats[l];
       const name = el.querySelector('.gz-name');
       if (name && name.textContent !== NAMES[l]) name.textContent = NAMES[l];
-      const av = el.querySelector('.gz-avatar');
-      if (av && av.firstChild && av.firstChild.nodeType === 3 && av.firstChild.nodeValue !== AVATARS[l]) av.firstChild.nodeValue = AVATARS[l];
+      const face = el.querySelector('.gz-av-face');
+      if (face && face.dataset.v !== AVATARS[l]) { face.innerHTML = faceHtml(AVATARS[l]); face.dataset.v = AVATARS[l]; }
       const line = el.querySelector('.gz-name-line');
       let tag = line && line.querySelector('.gz-tag');
       // 托管不写字：和我自己托管一样，头像右下角挂一枚小机器人
       const auto = !!(p && !p.left && g && g.auto[p.seat]);
-      const text = !p ? '' : p.left ? '已离开' : auto ? '' : !p.isAi && !p.online ? '掉线' : '';
+      // 机器人不再把档位写进名字：名字旁边一个小签写「入门 / 普通 / 高手」
+      const text = !p ? '' : p.left ? '已离开' : auto ? '' : p.isAi ? TIER_LABELS[p.aiLevel] || '' : !p.online ? '掉线' : '';
       if (line && !tag && text) { tag = document.createElement('span'); tag.className = 'gz-tag'; line.appendChild(tag); }
-      if (tag) { tag.textContent = text; tag.hidden = !text; }
+      if (tag) { tag.textContent = text; tag.hidden = !text; tag.classList.toggle('is-level', !!(p && p.isAi && !p.left)); }
       el.classList.toggle('is-auto', auto);
       if (l > 0) { if (auto) el.setAttribute('aria-label', NAMES[l] + '（托管中）'); else el.removeAttribute('aria-label'); }
     }
@@ -2356,12 +2368,13 @@
       el.classList.remove('is-turn', 'is-timed', 'is-hurry', 'is-auto');
       el.innerHTML = p
         ? '<button type="button" class="gz-lobby-seat" data-lseat="' + l + '"' + (l === 0 ? ' disabled' : '') + '>' +
-          '<span class="gz-avatar' + (p.isAi ? ' is-bot' : '') + '">' + esc(avatarOf(p)) + '</span>' +
+          '<span class="gz-avatar' + (p.isAi ? ' is-bot' : '') + '"><span class="gz-av-face">' + faceHtml(avatarOf(p)) + '</span></span>' +
           '<span class="gz-lobby-name">' + esc(p.nick) + (l === 0 ? '（我）' : '') + '</span>' +
           (p.id === st.hostId ? '<span class="gz-tag is-host">房主</span>' : '') +
+          (p.isAi ? '<span class="gz-tag is-level">' + (TIER_LABELS[p.aiLevel] || '') + '</span>' : '') +
           (!p.isAi && !p.online ? '<span class="gz-tag">掉线</span>' : '') + '</button>'
         : '<button type="button" class="gz-lobby-seat is-empty" data-lseat="' + l + '">' +
-          '<span class="gz-avatar">+</span><span class="gz-lobby-name">空位</span>' +
+          '<span class="gz-avatar"><span class="gz-av-face">+</span></span><span class="gz-lobby-name">空位</span>' +
           '<span class="gz-lobby-hint">' + (host ? '加机器人' : '坐这里') + '</span></button>';
     }
     const box = $('gzLobby');
@@ -2473,7 +2486,7 @@
     const ident = window.GamesShell && GamesShell.Identity;
     const nick = (ident && ident.getNick && ident.getNick()) || '';
     openDialog('<h2>联机对局</h2>' +
-      '<div class="gz-field-label">你的昵称</div><input class="gz-input" data-nick maxlength="12" autocomplete="nickname" value="' + esc(nick) + '" placeholder="1–12 个字">' +
+      '<div class="gz-field-label">你的昵称</div><input class="gz-input" data-nick maxlength="12" autocomplete="nickname" value="' + esc(nick) + '" placeholder="可以不填，随机起一个">' +
       '<div class="gz-field-label">' + (code ? '朋友邀请你加入房间' : '加入朋友的房间') + '</div>' +
       '<div class="gz-join-row"><input class="gz-input" data-code inputmode="numeric" maxlength="4" placeholder="4 位房号" value="' + esc(code || '') + '">' +
       '<button type="button" class="gz-btn' + (code ? ' gz-btn-primary' : '') + '" data-act="join"' + (code ? ' data-autofocus' : '') + '>加入</button></div>' +
@@ -2487,7 +2500,8 @@
         const fail = (text) => { err.textContent = text; err.hidden = false; d.querySelectorAll('[data-act]').forEach((b) => { b.disabled = false; }); };
         const takeNick = () => {
           const v = nickIn.value.trim();
-          if (!v || [...v].length > 12 || /[<>&"'/\\]/.test(v)) { fail('昵称 1–12 个字，不能有特殊符号'); nickIn.focus(); return null; }
+          if (!v) return '';   // 不填：服务器从昵称库里随机起一个
+          if ([...v].length > 12 || /[<>&"'/\\]/.test(v)) { fail('昵称最多 12 个字，不能有特殊符号'); nickIn.focus(); return null; }
           if (ident && ident.setNick) ident.setNick(v);
           return v;
         };
@@ -2502,11 +2516,11 @@
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
         d.querySelector('[data-act="create"]').addEventListener('click', () => {
           const v = takeNick();
-          if (v) go(() => NET.create(v, { rules: settings.rules, turnSec: settings.turnSec | 0 }));
+          if (v !== null) go(() => NET.create(v, { rules: settings.rules, turnSec: settings.turnSec | 0 }));
         });
         const join = () => {
           const v = takeNick();
-          if (!v) return;
+          if (v === null) return;
           const c = codeIn.value.trim();
           if (!/^\d{4}$/.test(c)) { fail('房号是 4 位数字'); codeIn.focus(); return; }
           go(() => NET.join(c, v));

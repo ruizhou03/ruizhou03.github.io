@@ -792,3 +792,9 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-fan.is-split { flex-wrap: wrap; row-gap: 2px; }
 .gz-fan-br { flex: 0 0 100%; height: 0; }
 
+
+/* 头像：内层 .gz-av-face 撑满圆框，联机时放矢量头像（gongzhu-avatars.js），单机放一个字；裁圆在内层做，外层的托管机器人小章、倒计时环不被裁 */
+.gz-av-face { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.gz-av-face svg { width: 100%; height: 100%; display: block; }
+/* 机器人的档位小签：比「房主」「掉线」淡一点 */
+.gz-tag.is-level { border-color: rgba(61, 88, 120, 0.4); color: #3d5878; background: rgba(61, 88, 120, 0.07); }
