@@ -272,8 +272,9 @@
   /* ───── 背景音乐：一支有记性的小曲 ─────
    * 固定旋律（原创），C 宫五声，126 拍：十六小节 A A' B A''，开头两小节的「主题」出现三次，听两遍就记得住。
    * 编配：领奏是琵琶味的拨弦（长音用轮指——一串快速重拨）、低音「咚—嗒」、中音区短和弦垫在弱拍，
-   * 锣鼓点：小鼓落在一、三拍，木鱼走弱拍，小镲「嚓」在二、四拍，每四小节末尾一记鼓花。
-   * 第十六小节停在属音上、直接接回第一小节，循环处没有空拍；第二遍起加一条低三度的和声、主题头上点一声铃，不腻。 */
+   * 锣鼓点：小鼓落在一、三拍，木鱼走弱拍，小镲「嚓」+ 拍手在二、四拍，每四小节末尾一记鼓花。
+   * 每个乐句末尾的长音里笛子用主题头三个音应一句；B 段（9–12）换成从低处起、切分的另一种句子，跟 A 段拉开。
+   * 第十六小节停在属音上、直接接回第一小节，循环处没有空拍；第二遍起加低三度和声、主题小节唢呐高八度跟吹、头上点一声铃。 */
   const BPM = 126, E8 = 60 / BPM / 2;
   // 每小节 8 个八分音符：音名 = 起音，'-' = 延续，'.' = 休止
   const TUNE = [
@@ -285,10 +286,10 @@
     'E4 G4 A4 C5 A4 - G4 -',   // 6
     'C5 C5 D5 E5 D5 C5 A4 G4', // 7
     'A4 - C5 - C5 - - -',      // 8  落主音
-    'E5 - E5 D5 C5 - D5 -',    // 9  B 段，往上走
-    'E5 G5 E5 D5 C5 - - -',    // 10
-    'A4 - A4 C5 D5 E5 D5 C5',  // 11
-    'A4 - G4 - E4 - G4 -',     // 12
+    'A4 - C5 - D5 - . C5',     // 9  B 段：从低处起、长短错开的切分，和 A 段的平均八分音符反着来
+    'D5 - - E5 G5 - E5 -',     // 10
+    'D5 C5 A4 C5 D5 - . .',    // 11
+    'G4 - A4 - C5 - D5 -',     // 12 一级一级往上，把人送回主题
     'G4 G4 A4 G4 E4 - D4 -',   // 13 主题
     'E4 G4 A4 C5 A4 - G4 -',   // 14
     'C5 C5 D5 E5 D5 C5 A4 G4', // 15
@@ -296,7 +297,13 @@
   ].map((bar) => bar.split(' '));
   // 每小节的和弦：[低音根音, 五音, 中音区和弦]
   const CH = { C: [36, 43, [60, 64, 67]], Am: [33, 40, [57, 60, 64]], F: [29, 36, [57, 60, 65]], G: [31, 38, [55, 59, 62]], Em: [28, 35, [55, 59, 64]] };
-  const CHORDS = ['C', 'Am', 'F', 'G', 'C', 'Am', 'F', 'C', 'Am', 'Em', 'F', 'G', 'C', 'Am', 'F', 'G'];
+  const CHORDS = ['C', 'Am', 'F', 'G', 'C', 'Am', 'F', 'C', 'Am', 'G', 'F', 'G', 'C', 'Am', 'F', 'G'];
+  // 笛子回声：乐句末尾的长音里，笛子把主题头三个音高八度应一句（「问—答」，越听越熟）
+  const ECHO = {
+    3: '. . . . . G5 A5 G5',
+    7: '. . . . G5 . A5 G5',
+  };
+  const HOOK_BARS = [0, 4, 12];   // 主题小节：第二遍起唢呐高八度跟着吹
   const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
   const toMidi = (n) => 12 * (+n.slice(1) + 1) + NOTE[n[0]];
   const PENTA = [55, 57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84];
@@ -324,6 +331,22 @@
     o1.connect(g1); g1.connect(f); o2.connect(f); f.connect(g); g.connect(dest);
     o1.start(t); o2.start(t); o1.stop(t + L + 0.05); o2.stop(t + L + 0.05);
   }
+  // 笛子：正弦为主、带一点三角，起音慢一点、长音上有颤音，外加一点气声
+  function dizi(a, dest, t, freq, gain, len) {
+    tone(a, dest, t, { freq, dur: len, gain, type: 'sine', attack: 0.03, hold: len * 0.4, vib: [5.5, freq * 0.006] });
+    tone(a, dest, t, { freq: freq * 2, dur: len * 0.8, gain: gain * 0.12, type: 'triangle', attack: 0.03 });
+    nz(a, dest, t, { dur: Math.min(0.12, len), gain: gain * 0.25, freq: freq * 2.2, q: 3, attack: 0.02 });
+  }
+  // 唢呐味：方波过一个窄带通，鼻音重、很亮——只做高八度的轻声加倍
+  function suona(a, dest, t, freq, gain, len) {
+    const o = a.createOscillator(); o.type = 'square'; o.frequency.setValueAtTime(freq, t);
+    const lfo = a.createOscillator(), dep = a.createGain(); lfo.frequency.value = 6; dep.gain.value = freq * 0.008; lfo.connect(dep); dep.connect(o.frequency);
+    const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = Math.min(4000, freq * 2.2); f.Q.value = 2.2;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.02); g.gain.setValueAtTime(gain, t + len * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(f); f.connect(g); g.connect(dest);
+    o.start(t); lfo.start(t); o.stop(t + len + 0.05); lfo.stop(t + len + 0.05);
+  }
   // 把乐谱排到 horizon（音频时刻）为止；st = { step, next }，step 一直往上数，取模就是循环（循环处不停顿）
   function scheduleMusic(a, mel, wet, st, horizon) {
     while (st.next < horizon) {
@@ -337,7 +360,12 @@
       if (k === 2 || k === 6) ch[2].forEach((m) => pluck(a, mel, t, midi(m), 0.07, 0.28));
       // 锣鼓点：小鼓一、三拍，小镲二、四拍，木鱼走弱拍；每四小节末尾来一记鼓花
       if (k === 0 || k === 4) { tone(a, mel, t, { freq: 190, to: 95, dur: 0.16, gain: k ? 0.18 : 0.24 }); nz(a, mel, t, { dur: 0.05, gain: 0.05, type: 'lowpass', freq: 1200, q: 0.7 }); }
-      if (k === 2 || k === 6) nz(a, mel, t, { dur: 0.12, gain: 0.05, freq: 6000, q: 1.2 });
+      if (k === 2 || k === 6) {
+        nz(a, mel, t, { dur: 0.12, gain: 0.05, freq: 6000, q: 1.2 });
+        // 拍手：二、四拍，喜庆
+        nz(a, mel, t, { dur: 0.08, gain: 0.09, freq: 1700, q: 1.4 });
+        nz(a, mel, t + 0.012, { dur: 0.06, gain: 0.06, freq: 2300, q: 1.6 });
+      }
       if (k % 2 === 1) tone(a, mel, t, { freq: k === 3 || k === 7 ? 1180 : 980, to: 780, dur: 0.06, gain: 0.045, type: 'triangle' });
       if (bar % 4 === 3 && k >= 5) tone(a, mel, t, { freq: 230 - (k - 5) * 25, to: 110, dur: 0.12, gain: 0.16 });
       // 领奏
@@ -355,7 +383,20 @@
         }
         // 第二遍起：低三度和声（轻一点），主题小节的第一个音上点一声铃
         if (pass % 2 === 1) pluck(a, dest, t, midi(below(m)), 0.12, E8 * len + 0.3);
-        if (pass > 0 && k === 0 && [0, 4, 12].includes(bar)) tone(a, mel, t, { freq: f * 2, dur: 0.9, gain: 0.05, type: 'sine' });
+        if (pass > 0 && k === 0 && HOOK_BARS.includes(bar)) tone(a, mel, t, { freq: f * 2, dur: 0.9, gain: 0.05, type: 'sine' });
+        if (pass > 0 && (HOOK_BARS.includes(bar) || HOOK_BARS.includes(bar - 1))) suona(a, mel, t, f * 2, 0.045, E8 * len + 0.05);
+      }
+      // 笛子回声
+      const echoBar = ECHO[bar];
+      if (echoBar) {
+        const ev = echoBar.split(' ')[k];
+        if (ev && ev !== '.' && ev !== '-') {
+          let len = 1;
+          const toks = echoBar.split(' ');
+          while (k + len < 8 && toks[k + len] === '-') len++;
+          const dest = a.createGain(); dest.connect(mel); dest.connect(wet);
+          dizi(a, dest, t, midi(toMidi(ev)), 0.16, E8 * len + 0.12);
+        }
       }
       st.next += E8;
       st.step++;
