@@ -752,12 +752,13 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-sound-row input { width: 18px; height: 18px; margin: 0; accent-color: var(--gz-seal); }
 
 /* ───── 明牌牌面：明出来的牌（以及明牌环节里点选、已点「明牌」还在等别家的牌）一眼认得出 ─────
- * 猪变黑猪（红角、红瞳、额头金黑桃），羊毛变红，变压器写 ×4，♥A 换成写着 ×2 的大红心（红桃全部翻倍）。
- * 特效里明出来的猪 / 羊也用同一套颜色（.gz-xart）。 */
-.gz-card.is-exposed .gz-face, .gz-xart {
-  --pg-horn: #b4392c; --pg-ear: #2e2426; --pg-skin: #4a3c3f; --pg-cheek: #8a3444; --pg-eye: #ff4b2b;
-  --pg-line: #0f0a09; --pg-spade: #d9b062; --pg-snout: #5f474c; --pg-nose: #1a1112;
-  --sh-edge: #c64a3e; --sh-line: #7a1e1a; --sh-wool: #e0685b; --sh-gem: #f3d68a;
+ * 猪、羊形象不变，右上角盖一枚红色「×2」章（2026-11-03 用户从备选里挑定：猪「戊」、羊「丙」；之前的黑猪 / 红羊撤了）；
+ * 变压器写 ×4，♥A 换成写着 ×2 的大红心（红桃全部翻倍）——都是「翻倍」一个说法。 */
+.gz-card.is-exposed[data-card="10"] .gz-face::after,
+.gz-card.is-exposed[data-card="35"] .gz-face::after {
+  content: '×2'; position: absolute; right: -6%; top: -10%; width: 38%; aspect-ratio: 1; border-radius: 50%;
+  background: var(--gz-seal); color: #fbefe4; font: 700 calc(var(--q) * 0.16) / 1 'Cormorant Garamond', Georgia, serif;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 calc(var(--q) * 0.02) #fbefe4;
 }
 .gz-dbl .x4 { display: none; }
 .gz-card.is-exposed .gz-dbl .x2 { display: none; }
@@ -799,3 +800,6 @@ body.gz-fullscreen .site-footer { display: none !important; }
   display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 9px; font-size: 12px; line-height: 1.5; vertical-align: 2px;
   color: #8a6526; background: rgba(201, 169, 110, 0.18); border: 1px solid rgba(169, 130, 58, 0.55); white-space: nowrap;
 }
+/* 手牌叠着放、只露左边约六成：章往里挪到露出来的那块，小一点 */
+.gz-hand .gz-card.is-exposed[data-card="10"] .gz-face::after,
+.gz-hand .gz-card.is-exposed[data-card="35"] .gz-face::after { right: 34%; top: -18%; width: 30%; }

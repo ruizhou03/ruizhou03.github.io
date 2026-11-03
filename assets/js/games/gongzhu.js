@@ -165,7 +165,7 @@
     el.innerHTML = '<span class="q q-tl">' + rank + '</span><span class="q q-tr">' + sv + '</span>' +
       '<span class="q q-bl">' + sv + '</span><span class="bigsuit">' + sv + '</span>';
     // 特色牌面：猪 / 羊画成动画里那只，变压器写「×2」（颜色跟着持有人这一局的分数走）；角上的 Q♠ / J♦ / 10♣ 不变。
-    // 明出来（.is-exposed）：猪变黑猪、羊毛变红、变压器写 ×4——颜色走 CSS 变量，见 gongzhu.css「明牌牌面」。
+    // 明出来（.is-exposed）：猪、羊右上角盖「×2」章，变压器写 ×4——见 gongzhu.css「明牌牌面」。
     // 默认就是画的（教程里也一样）；设置里可以换回普通牌面
     if ((c === R.PIG || c === R.SHEEP || c === R.DOUBLER) && settings.artFaces !== false) {
       el.classList.add('has-art');
@@ -1501,7 +1501,7 @@
         el.innerHTML = '<div class="gz-fxcoin" style="--tone:' + tone.ring + ';color:' + tone.ink + '"><span>' + fx.dbl.word + '</span></div>';
       } else {
         const pig = c === R.PIG;
-        el.className = 'gz-fxitem kind-' + (pig ? 'pig' : 'sheep') + ' is-duel' + (isExposedCard(c) ? ' gz-xart' : '');
+        el.className = 'gz-fxitem kind-' + (pig ? 'pig' : 'sheep') + ' is-duel';
         el.innerHTML = '<div class="gz-fxart">' + ART[pig ? 'pig' : 'sheep'] + '</div>' + tag(pig ? fx.pigSub : fx.sheepSub);
       }
       els.fx.appendChild(el);
@@ -1612,7 +1612,7 @@
     const [dx, dy] = FX_DRIFT[w];
     const dur = FX_DUR[fx.kind];
     const item = document.createElement('div');
-    item.className = 'gz-fxitem kind-' + fx.kind + (fx.card != null && isExposedCard(fx.card) ? ' gz-xart' : '');
+    item.className = 'gz-fxitem kind-' + fx.kind;
     const art = fx.kind === 'pig' || fx.kind === 'sheep' ? ART[fx.kind] : fx.kind === 'slam' ? ART.crown : '';
     const tone = fx.kind === 'doubler' ? DOUBLER_TONE[fx.tone || 'gold'] : null;
     item.innerHTML = (art ? '<div class="gz-fxart">' + art + '</div>' : '') +
