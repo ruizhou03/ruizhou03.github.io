@@ -752,14 +752,11 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-sound-row input { width: 18px; height: 18px; margin: 0; accent-color: var(--gz-seal); }
 
 /* ───── 明牌牌面：明出来的牌（以及明牌环节里点选、已点「明牌」还在等别家的牌）一眼认得出 ─────
- * 猪、羊形象不变，右上角盖一枚红色「×2」章（2026-11-03 用户从备选里挑定：猪「戊」、羊「丙」；之前的黑猪 / 红羊撤了）；
- * 变压器写 ×4，♥A 换成写着 ×2 的大红心（红桃全部翻倍）——都是「翻倍」一个说法。 */
-.gz-card.is-exposed[data-card="10"] .gz-face::after,
-.gz-card.is-exposed[data-card="35"] .gz-face::after {
-  content: '×2'; position: absolute; right: -6%; top: -10%; width: 38%; aspect-ratio: 1; border-radius: 50%;
-  background: var(--gz-seal); color: #fbefe4; font: 700 calc(var(--q) * 0.16) / 1 'Cormorant Garamond', Georgia, serif;
-  display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 calc(var(--q) * 0.02) #fbefe4;
-}
+ * 整张牌换底色（手牌叠着放只露左边一截，角标 / 章会被盖住，底色不会）：
+ *   猪淡红底（−200 是坏事）、羊淡金底（+200 是好事）——2026-11-03 用户从备选挑定「乙」；形象不变。
+ *   变压器写 ×4，♥A 换成写着 ×2 的大红心（红桃全部翻倍）。 */
+.gz-card.is-exposed[data-card="10"] { background: linear-gradient(160deg, #fbe4de, #f2c4b9); border-color: rgba(180, 57, 44, 0.5); }
+.gz-card.is-exposed[data-card="35"] { background: linear-gradient(160deg, #fbf1d2, #f0d99a); border-color: rgba(169, 130, 58, 0.75); }
 .gz-dbl .x4 { display: none; }
 .gz-card.is-exposed .gz-dbl .x2 { display: none; }
 .gz-card.is-exposed .gz-dbl .x4 { display: inline; }
@@ -791,6 +788,3 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-fan.is-split { flex-wrap: wrap; row-gap: 2px; }
 .gz-fan-br { flex: 0 0 100%; height: 0; }
 
-/* 手牌叠着放、只露左边约六成：章往里挪到露出来的那块，小一点 */
-.gz-hand .gz-card.is-exposed[data-card="10"] .gz-face::after,
-.gz-hand .gz-card.is-exposed[data-card="35"] .gz-face::after { right: 34%; top: -18%; width: 30%; }

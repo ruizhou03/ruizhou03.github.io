@@ -165,7 +165,7 @@
     el.innerHTML = '<span class="q q-tl">' + rank + '</span><span class="q q-tr">' + sv + '</span>' +
       '<span class="q q-bl">' + sv + '</span><span class="bigsuit">' + sv + '</span>';
     // 特色牌面：猪 / 羊画成动画里那只，变压器写「×2」（颜色跟着持有人这一局的分数走）；角上的 Q♠ / J♦ / 10♣ 不变。
-    // 明出来（.is-exposed）：猪、羊右上角盖「×2」章，变压器写 ×4——见 gongzhu.css「明牌牌面」。
+    // 明出来（.is-exposed）：猪淡红底、羊淡金底，变压器写 ×4——见 gongzhu.css「明牌牌面」。
     // 默认就是画的（教程里也一样）；设置里可以换回普通牌面
     if ((c === R.PIG || c === R.SHEEP || c === R.DOUBLER) && settings.artFaces !== false) {
       el.classList.add('has-art');
