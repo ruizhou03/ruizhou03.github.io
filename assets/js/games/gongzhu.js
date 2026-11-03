@@ -1101,9 +1101,14 @@
     const key = (s) => (match.over ? match.totals[s] : last.scores[s]);
     const order = [0].concat([1, 2, 3].sort((a, b) => key(b) - key(a) || a - b));
     const mine = key(0);
+    // 全红 / 大满贯：吃牌区里 13 张红桃收成了一叠，名字后面写明是哪一种，不然看不出来
+    const feat = (s) => {
+      const sc = R.scoreCaptured(last.captured[s] || [], last.ctx);
+      return sc.grandSlam ? '<span class="gz-res-feat">大满贯</span>' : sc.allHearts ? '<span class="gz-res-feat">全红</span>' : '';
+    };
     const rows = order.map((s) =>
       '<div class="gz-res-row' + (s === 0 ? ' me is-' + (mine > 0 ? 'up' : mine < 0 ? 'down' : 'even') : '') + (losers.includes(s) ? ' loser' : '') + '" data-seat="' + s + '">' +
-      '<span class="gz-res-name">' + esc(NAMES[s]) + (losers.includes(s) ? '<span class="gz-pig-badge">猪</span>' : '') + '</span>' +
+      '<span class="gz-res-name">' + esc(NAMES[s]) + (losers.includes(s) ? '<span class="gz-pig-badge">猪</span>' : '') + feat(s) + '</span>' +
       '<span class="gz-res-caps gz-caps"></span>' +
       '<span class="gz-res-n gz-num ' + cls(last.scores[s]) + '">' + signed(last.scores[s]) + '</span>' +
       '<span class="gz-res-n gz-res-tot gz-num ' + cls(match.totals[s]) + '">' + signed(match.totals[s]) + '</span></div>').join('');
@@ -1232,7 +1237,7 @@
         ['room', '邀请朋友', '复制邀请链接或房号' + (isHost() && match.lobby ? '，改房间规则' : '')],
         ['leave', '离开房间', inGame ? '你的座位交给机器人接着打，回到单机' : '回到单机'],
         ['line'],
-        ['settings-art', '牌面', settings.artFaces !== false ? '现在：猪羊画出来' : '现在：普通牌面'],
+        ['settings-art', settings.artFaces !== false ? '换成普通牌面' : '换成卡通牌面', settings.artFaces !== false ? '现在猪、羊、变压器是画出来的' : '现在是普通牌面'],
         ['exit', '返回百宝奇巧', '不会退出房间，回来接着打'],
       ];
     }
