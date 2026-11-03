@@ -153,7 +153,7 @@
     const suit = R.suitOf(c);
     const rank = R.RANK_LABELS[R.rankOf(c)];
     const el = document.createElement('span');
-    el.className = 'gz-card ' + (suit === 1 || suit === 2 ? 'suit-red' : 'suit-black') + (rank === 'J' ? ' rank-j' : '');
+    el.className = 'gz-card ' + (suit === 1 || suit === 2 ? 'suit-red' : 'suit-black') + (rank === 'J' ? ' rank-j' : '') + (R.isHeart(c) ? ' is-heart' : '');
     el.dataset.card = c;
     const p = SUITP[suit];
     const st = el.style;
@@ -505,7 +505,16 @@
   }
   function exposingMe() { return !!(match.round && match.exposing.includes(0)); }
 
+  /* 明了 ♥A（这一局红桃全部翻倍）：牌桌上所有红桃都垫一层淡红底（见 gongzhu.css「明牌牌面」）。
+   * 打牌时看这一局的明牌；一局结束、结算页还开着时看刚结束那局的。 */
+  function syncHeartsX2() {
+    const r = match && match.round;
+    const ex = r ? r.exposed.map((e) => e[0]) : (match && match.last && match.last.ctx && match.last.ctx.exposed) || [];
+    els.app.classList.toggle('is-hx2', ex.includes(R.HEART_ACE));
+  }
+
   function renderSeats() {
+    syncHeartsX2();
     for (let s = 0; s < 4; s++) renderSeat(s);
     if (match.online && match.lobby) return;
     els.roundNo.textContent = match.tutorial ? '新手教程' : '第 ' + match.roundNo + (match.rules.end === 'rounds10' ? ' / 10' : '') + ' 局';
@@ -1093,6 +1102,7 @@
   /* 结算：每家一行 = 名字 · 吃牌（同一套小牌陈列） · 本局 · 累计；不写算式文字 */
   function showSettlement() {
     const last = match.last;
+    if (!match.round) syncHeartsX2();
     const losers = match.online ? match.losers || [] : match.over ? R.matchLosers(match.totals) : [];
     const cls = (n) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
     // 自己永远在最上面；其余三家按分从高到低（整盘结束按累计，平时按本局），同分按出牌顺序（下家 → 对家 → 上家）
