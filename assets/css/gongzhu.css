@@ -753,9 +753,9 @@ body.gz-fullscreen .site-footer { display: none !important; }
 
 /* ───── 明牌牌面：明出来的牌（以及明牌环节里点选、已点「明牌」还在等别家的牌）一眼认得出 ─────
  * 整张牌换底色（手牌叠着放只露左边一截，角标 / 章会被盖住，底色不会）：
- *   猪淡红底（−200 是坏事）、羊淡金底（+200 是好事）——2026-11-03 用户从备选挑定「乙」；形象不变。
+ *   猪淡藏青底（用户挑「乙1」：原先的淡红底和明 ♥A 后的红桃太像）、羊淡金底；形象不变。
  *   变压器灰底、写 ×4；♥A 淡红底、换成写着 ×2 的大红心，明了它这一局所有红桃垫更淡的红底。 */
-.gz-card.is-exposed[data-card="10"] { background: linear-gradient(160deg, #fbe4de, #f2c4b9); border-color: rgba(180, 57, 44, 0.5); }
+.gz-card.is-exposed[data-card="10"] { background: linear-gradient(160deg, #dfe7f3, #b5c5dd); border-color: rgba(61, 88, 120, 0.7); }
 .gz-card.is-exposed[data-card="35"] { background: linear-gradient(160deg, #fbf1d2, #f0d99a); border-color: rgba(169, 130, 58, 0.75); }
 /* 变压器：灰底（用户定）；♥A：淡红底（同猪，红桃翻倍是坏事），而且明了 ♥A 这一局所有红桃都垫一层更淡的红底（用户挑「乙」） */
 .gz-card.is-exposed[data-card="47"] { background: linear-gradient(160deg, #f1efeb, #d9d5cd); border-color: rgba(110, 104, 95, 0.5); }
