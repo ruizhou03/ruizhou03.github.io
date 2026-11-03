@@ -342,19 +342,61 @@
     };
   }
 
-  /* SO-ISMCTS：每次迭代重新猜一副牌，树按「出了哪张牌」分叉，四家共用一棵树 */
+  /* 猜牌推理：别人以前的出牌暴露了什么。对一副猜出来的牌，逐条检查「他当时明明可以、却没那么出」：
+   *   · 猪：他手里有猪（猜的这副里）却在能稳垫猪的时候没垫——垫牌时垫了别的 / ♠ 墩里 ♠K、♠A 已在桌上还跟了别的 ♠；
+   *   · 羊：他手里有 ♦J、是 ♦ 墩最后一家、桌上方块都比 J 小、却没出 J。
+   * 每条证据把这副牌的可信度乘 w（0 = 完全不信，1 = 不推理）。用拒绝采样：以可信度为概率留下，不留就重猜。 */
+  function evidenceWeight(d, seat, w) {
+    if (w >= 1) return 1;
+    let p = 1;
+    const holds = (s, c) => d.hands[s].includes(c);
+    const tricks = d.history.map((h) => h.plays).concat(d.trick.length ? [d.trick] : []);
+    for (const plays of tricks) {
+      const lead = suitOf(plays[0].card);
+      let topRank = rankOf(plays[0].card);
+      for (let i = 1; i < plays.length; i++) {
+        const { seat: s, card } = plays[i];
+        if (s !== seat) {
+          if (card !== PIG && holds(s, PIG) && (suitOf(card) !== lead || (lead === SPADE && topRank > rankOf(PIG)))) p *= w;
+          if (lead === suitOf(SHEEP) && i === 3 && card !== SHEEP && holds(s, SHEEP) && topRank < rankOf(SHEEP)) p *= w;
+        }
+        if (suitOf(card) === lead && rankOf(card) > topRank) topRank = rankOf(card);
+      }
+    }
+    return p;
+  }
+  function inferredDeal(r, seat, rng, w, tries) {
+    let d = determinize(r, seat, rng);
+    for (let k = 1; k < tries && rng() >= evidenceWeight(d, seat, w); k++) d = determinize(r, seat, rng);
+    return d;
+  }
+
+  /* SO-ISMCTS：每次迭代重新猜一副牌，树按「出了哪张牌」分叉，四家共用一棵树。
+   * 可调（默认值 = 线上现役，炼丹在 ~/gongzhu-rl/forge.js 里比）：
+   *   iterations 搜索次数；c 探索系数；scale 分数缩放；alpha 目标 = 自己分 − alpha × 另三家平均；
+   *   rollout 模拟往后打的策略；infer 猜牌推理强度（1 = 不推理，越小越信「他当时没那么出」），inferTries 每次最多重猜几副。
+   * 不在树里硬塞规则（用户定：垫猪 / 拿羊这类行为应该是搜索自己算出来的，护栏只是过渡期的保险）。 */
   function makeIsmcts(opts) {
-    const iters = (opts && opts.iterations) || 1500;
-    const C = (opts && opts.c) || 0.7;
-    const inner = (opts && opts.rollout) || basicPolicy;
-    const SCALE = 200;
+    const o = opts || {};
+    const iters = o.iterations || 1500;
+    const C = o.c || 0.7;
+    const inner = o.rollout || basicPolicy;
+    const SCALE = o.scale || 200;
+    const alpha = o.alpha == null ? 1 : o.alpha;
+    const infer = o.infer == null ? 1 : o.infer;
+    const tries = o.inferTries || 8;
+    const util = (scores, s) => {
+      if (alpha === 1) return utility(scores, s, true);
+      let x = 0; for (let k = 0; k < 4; k++) if (k !== s) x += scores[k];
+      return scores[s] - alpha * x / 3;
+    };
     function node(parent, card, mover) { return { parent, card, mover, kids: [], n: 0, avail: 0, w: 0 }; }
     return function ismctsPolicy(r, seat, rng) {
       const legal = R.legalFor(r, seat);
       if (legal.length === 1) return legal[0];
       const rootN = node(null, -1, -1);
       for (let it = 0; it < iters; it++) {
-        const d = determinize(r, seat, rng);
+        const d = infer < 1 ? inferredDeal(r, seat, rng, infer, tries) : determinize(r, seat, rng);
         let n = rootN;
         // 选择 / 扩展
         while (!R.isRoundOver(d)) {
@@ -380,7 +422,7 @@
           n = best;
         }
         const scores = rollout(d, inner, rng);
-        for (let x = n; x && x.parent; x = x.parent) { x.n++; x.w += utility(scores, x.mover, true) / SCALE; }
+        for (let x = n; x && x.parent; x = x.parent) { x.n++; x.w += util(scores, x.mover) / SCALE; }
         rootN.n++;
       }
       const best = maxBy(rootN.kids, (k) => k.n);
@@ -543,7 +585,9 @@
    *   ① 跟 ♠：桌上已有 ♠K / ♠A 压着 → 垫猪（猪一定归那个人）；
    *   ② 垫牌（没有领出的花色）→ 垫猪给这一墩现在的赢家；
    *   ③ 跟 ♦：出 ♦J 必赢（我最后一家 / 后面的人都已知缺 ♦ / 比 J 大的方块都出过或在我手里），且这一墩吃下来净赚 → 出 ♦J。
-   * 例外：有人在冲全红（拦不住时猪会变正分），不把猪送给他。 */
+   * 例外：有人在冲全红（拦不住时猪会变正分），不把猪送给他。
+   * 这是过渡期的保险，不是目标：用户的原则是这些行为应该由模型 / 搜索自己算出来（像人一样按效用出牌）。
+   * ~/gongzhu-rl 的炼丹里候选一律不套护栏比强弱，另用「考卷」（probe）量它们自己会不会这么出；有不套也及格的冠军就撤掉护栏。 */
   function tacticalMove(r, seat) {
     const legal = R.legalFor(r, seat);
     if (legal.length < 2 || !r.trick.length) return -1;
@@ -590,7 +634,7 @@
   return {
     TIERS, policyForTier, EXPOSERS, exposerForTier, makeExposer, neverExpose,
     trickState, unseenOf, marginal, moonThreatOf, determinize, rollout, utility,
-    randomPolicy, basicPolicy, countingPolicy, makePimc, makeIsmcts, tacticalMove, withTactics,
+    randomPolicy, basicPolicy, countingPolicy, makePimc, makeIsmcts, tacticalMove, withTactics, evidenceWeight,
     FEAT_DIM, baseFeatures, actionFeatures, mlpForward, makeMlp, loadNet,
   };
 });
