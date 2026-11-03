@@ -628,7 +628,13 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-lobby-qr canvas { display: block; border: 1px solid rgba(29, 27, 24, 0.2); border-radius: 4px; }
 .gz-lobby-links { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .gz-lobby-links .gz-btn[hidden] { display: none; }
-.gz-lobby-rules { margin: 2px 0 0; font-size: 13px; color: var(--gz-ink-mute); }
+/* 房间规则只读清单：一行一条；房主改过的那几行淡金底 + 小字写原来是什么 */
+.gz-rulelist { margin: 4px 0 10px; border-top: 1px solid rgba(29, 27, 24, 0.12); }
+.gz-rl-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 8px; border-bottom: 1px solid rgba(29, 27, 24, 0.12); font-size: 14px; }
+.gz-rl-k { color: var(--gz-ink-mute); flex: none; }
+.gz-rl-v { text-align: right; font-weight: 600; }
+.gz-rl-v small { display: block; font-weight: 400; font-size: 12px; color: var(--gz-ink-mute); }
+.gz-rl-row.is-changed { background: rgba(197, 154, 64, 0.16); }
 .gz-lobby-wait { margin: 0; font-size: 14px; }
 @media (max-height: 520px) { .gz-lobby-qr { display: none; } .gz-lobby-code b { font-size: 30px; } }
 

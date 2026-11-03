@@ -1242,7 +1242,8 @@
       return [
         ['head', '房间 ' + online.code],
         ...(inGame ? [['totals', '比分', '这一盘每局的分和累计']] : []),
-        ['room', '邀请朋友', '复制邀请链接或房号' + (isHost() && match.lobby ? '，改房间规则' : '')],
+        ['room', '邀请朋友', '复制邀请链接或房号'],
+        ['roomrules', isHost() && match.lobby ? '自定义规则' : '房间规则', isHost() && match.lobby ? '改了会通知房间里的其他人' : '这个房间按什么规则打'],
         ['leave', '离开房间', inGame ? '你的座位交给机器人接着打，回到单机' : '回到单机'],
         ['line'],
         ['settings-art', settings.artFaces !== false ? '换成普通牌面' : '换成卡通牌面', settings.artFaces !== false ? '现在猪、羊、变压器是画出来的' : '现在是普通牌面'],
@@ -1270,6 +1271,7 @@
     else if (k === 'tutorial') startTutorial();
     else if (k === 'skip') endTutorial();
     else if (k === 'room') showRoomDialog();
+    else if (k === 'roomrules') showRoomRules('view');
     else if (k === 'leave') {
       if (!confirm(match.lobby ? '离开房间？' : '离开房间？你的座位会交给机器人接着打。')) return;
       leaveOnline(null, true);
@@ -2000,12 +2002,12 @@
   }
 
   /* 进入联机：先停掉单机这一盘（存档还在，离开房间时接着打） */
-  function startOnline(st, tok) {
+  function startOnline(st, tok, joined) {
     if (match && !match.online && !match.tutorial) save();
     token++;
     stopClock(); hideCoach(); closeDialog();
     setAutopilot(false);
-    online = { code: st.code, token: tok, st: null, mySeat: st.mySeat, applied: 0, queue: [], pending: -1, idle: true, inGame: false, readySent: false, skew: 0, stopped: false };
+    online = { code: st.code, token: tok, st: null, mySeat: st.mySeat, applied: 0, queue: [], pending: -1, idle: true, inGame: false, readySent: false, skew: 0, stopped: false, joinRules: !!joined, seenCfg: null, sheetBase: null };
     NET.writeSession({ code: st.code, token: tok });
     try { const u = new URL(location.href); u.searchParams.set('room', st.code); history.replaceState(null, '', u); } catch (_) { /* ignore */ }
     els.app.classList.add('is-online');
@@ -2081,6 +2083,7 @@
     NAMES = [0, 1, 2, 3].map((l) => (l === 0 ? '我' : (playerAt(srv(l)) || { nick: '空位' }).nick));
     AVATARS = [0, 1, 2, 3].map((l) => avatarOf(l === 0 ? me : playerAt(srv(l))));
     if (st.phase === 'lobby') { renderLobby(); return; }
+    online.joinRules = false;
     const gv = st.game;
     if (!online.inGame || !match || !match.online || match.lobby || match.matchNo !== gv.matchNo) { enterGameView(); resync(); return; }
     const last = online.queue.length ? online.queue[online.queue.length - 1].n : online.applied;
@@ -2095,6 +2098,7 @@
 
   function enterGameView() {
     online.inGame = true;
+    if (els.dialog.querySelector('[data-sheet="rules"]')) closeDialog();
     els.app.classList.remove('is-lobby');
     $('gzLobby').hidden = true;
     buildSeats();
@@ -2341,15 +2345,6 @@
 
   /* ───── 联机 · 大厅（就用牌桌本身：四个座位在原位，中间是房号 / 邀请 / 规则 / 开始） ───── */
 
-  function rulesSummary(rules, turnSec) {
-    return [
-      { lose1000: '打到 −1000', pm1000: '打到 ±1000', rounds10: '打满 10 局', none: '不设终点' }[rules.end],
-      rules.hearts === 'classic' ? '经典红桃' : '红桃按牌面',
-      rules.expose ? '可以明牌' : '不明牌',
-      turnSec ? '出牌限时 ' + turnSec + ' 秒' : '出牌不限时',
-    ].join(' · ');
-  }
-
   let lobbyQrCode = '';
   function renderLobby() {
     const st = online.st;
@@ -2385,8 +2380,7 @@
       lobbyQrCode = st.code;
       GamesShell.QR.render(qr, NET.inviteUrl(st.code), { scale: 3, margin: 2, dark: '#1d1b18', light: '#fbf8f1' });
     }
-    box.querySelector('.gz-lobby-rules').textContent = rulesSummary(st.config.rules, st.config.turnSec);
-    box.querySelector('[data-lb="rules"]').hidden = !host;
+    box.querySelector('[data-lb="rules"]').textContent = host ? '自定义规则' : '查看规则';
     const missing = 4 - st.players.length;
     const start = box.querySelector('[data-lb="start"]');
     start.hidden = !host;
@@ -2394,6 +2388,7 @@
     box.querySelector('.gz-lobby-wait').textContent = host
       ? (missing > 0 ? '还差 ' + missing + ' 人，空位可以加机器人' : '人齐了，可以开始')
       : '等房主开始';
+    guestRulesCheck(st);
   }
 
   function showSeatMenu(l) {
@@ -2441,42 +2436,102 @@
     catch (_) { prompt('复制下面这段发给朋友：', text); }
   }
 
-  /* 房间设置：邀请、（房主在大厅里）改规则和限时、离开房间 */
+  /* 房间设置：邀请、看 / 改规则、离开房间 */
   function showRoomDialog() {
     const st = online.st;
     const editable = st.phase === 'lobby' && isHost();
-    const rules = st.config.rules;
-    const rulesUi = editable
-      ? '<div class="gz-field-label">出牌限时</div><div class="gz-seg" role="group">' +
-        [20, 30, 0].map((k) => '<button type="button" data-osec="' + k + '" aria-pressed="' + (st.config.turnSec === k) + '">' + (k ? k + ' 秒' : '不限时') + '</button>').join('') + '</div>' +
-        RULE_UI.map(([k, label, opts]) => '<div class="gz-field-label">' + label + '</div><div class="gz-seg' + (opts.length > 2 ? ' is-4' : '') + '" role="group">' +
-          opts.map(([v, t]) => '<button type="button" data-orule="' + k + '" data-val="' + v + '" aria-pressed="' + (rules[k] === v) + '">' + t + '</button>').join('') + '</div>').join('')
-      : '<p class="gz-note">' + esc(rulesSummary(rules, st.config.turnSec)) + (st.phase === 'lobby' ? '（房主可以改）' : '（开局后不能改）') + '</p>';
     openDialog('<h2>房间 ' + st.code + '</h2>' +
       '<div class="gz-actions gz-actions-start"><button type="button" class="gz-btn" data-act="copy-link">复制邀请链接</button>' +
-      '<button type="button" class="gz-btn" data-act="copy-code">复制房号</button></div>' + rulesUi +
+      '<button type="button" class="gz-btn" data-act="copy-code">复制房号</button>' +
+      '<button type="button" class="gz-btn" data-act="rules">' + (editable ? '自定义规则' : '查看规则') + '</button></div>' +
       '<div class="gz-actions"><button type="button" class="gz-btn" data-act="leave">离开房间</button>' +
       '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
       (d) => {
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
         d.querySelector('[data-act="copy-link"]').addEventListener('click', () => copyText(NET.inviteUrl(st.code), '邀请链接已复制'));
         d.querySelector('[data-act="copy-code"]').addEventListener('click', () => copyText(st.code, '房号已复制'));
+        d.querySelector('[data-act="rules"]').addEventListener('click', () => showRoomRules('view'));
         d.querySelector('[data-act="leave"]').addEventListener('click', () => {
           const inGame = st.phase !== 'lobby';
           if (!confirm(inGame ? '离开房间？你的座位会交给机器人接着打。' : '离开房间？')) return;
           leaveOnline(null, true);
         });
-        d.querySelectorAll('[data-osec]').forEach((b) => b.addEventListener('click', () => {
-          d.querySelectorAll('[data-osec]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-          onlineAct('config', { config: { turnSec: +b.dataset.osec } });
-        }));
-        d.querySelectorAll('[data-orule]').forEach((b) => b.addEventListener('click', () => {
-          const k = b.dataset.orule;
-          const opt = RULE_UI.find((x) => x[0] === k)[2].find(([v]) => String(v) === b.dataset.val);
-          d.querySelectorAll('[data-orule="' + k + '"]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-          onlineAct('config', { config: { rules: { [k]: opt[0] } } });
-        }));
       });
+  }
+
+  /* 房间规则：大厅里不再摆规则，全收在这一页。
+   * 房主（大厅里）= 编辑，攒好一次「保存」才发出去（其他人只收到一次通知）；
+   * 其他人 / 开局后 = 只读清单。kind：view 自己点开 · join 刚进房间 · changed 房主改了规则（改过的几行标出来）。
+   * 不搞全体同意：不同意就在这一页「退出房间」。 */
+  const ROOM_RULE_ROWS = [['turnSec', '出牌限时', [[20, '20 秒'], [30, '30 秒'], [0, '不限时']]]].concat(RULE_UI);
+  const cfgVal = (cfg, k) => (k === 'turnSec' ? cfg.turnSec | 0 : cfg.rules[k]);
+  const cfgText = (cfg, k, opts) => { const o = opts.find(([v]) => v === cfgVal(cfg, k)); return o ? o[1] : String(cfgVal(cfg, k)); };
+  const cfgKey = (cfg) => JSON.stringify(ROOM_RULE_ROWS.map(([k]) => cfgVal(cfg, k)));
+
+  function showRoomRules(kind, base) {
+    const st = online.st;
+    const cfg = st.config;
+    if (st.phase === 'lobby' && isHost()) { editRoomRules(); return; }
+    online.sheetBase = base || null;
+    const rows = ROOM_RULE_ROWS.map(([k, label, opts]) => {
+      const changed = base && cfgVal(base, k) !== cfgVal(cfg, k);
+      return '<div class="gz-rl-row' + (changed ? ' is-changed' : '') + '"><span class="gz-rl-k">' + label + '</span>' +
+        '<span class="gz-rl-v">' + esc(cfgText(cfg, k, opts)) + (changed ? '<small>原来：' + esc(cfgText(base, k, opts)) + '</small>' : '') + '</span></div>';
+    }).join('');
+    const title = kind === 'changed' ? '房主改了规则' : '房间 ' + st.code + ' 的规则';
+    const asking = kind === 'join' || kind === 'changed';
+    openDialog('<h2>' + title + '</h2><div class="gz-rulelist" data-sheet="rules" data-kind="' + kind + '">' + rows + '</div>' +
+      (st.phase === 'lobby' ? '<p class="gz-note">只有房主可以改规则</p>' : '') +
+      '<div class="gz-actions">' + (asking ? '<button type="button" class="gz-btn" data-act="leave">退出房间</button>' : '') +
+      '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>' + (kind === 'join' ? '继续' : '好') + '</button></div>',
+      (d) => {
+        d.querySelector('[data-close]').addEventListener('click', () => { online.sheetBase = null; closeDialog(); });
+        const lv = d.querySelector('[data-act="leave"]');
+        if (lv) lv.addEventListener('click', () => leaveOnline(null, true));
+      });
+  }
+
+  function editRoomRules() {
+    const st = online.st;
+    const draft = { turnSec: st.config.turnSec | 0, rules: Object.assign({}, st.config.rules) };
+    const others = st.players.some((p) => !p.isAi && p.id !== st.me && !p.left);
+    openDialog('<h2>自定义规则</h2>' +
+      ROOM_RULE_ROWS.map(([k, label, opts]) => '<div class="gz-field-label">' + label + '</div><div class="gz-seg' + (opts.length > 3 ? ' is-4' : '') + '" role="group">' +
+        opts.map(([v, t], i) => '<button type="button" data-rk="' + k + '" data-ri="' + i + '" aria-pressed="' + (cfgVal(draft, k) === v) + '">' + t + '</button>').join('') + '</div>').join('') +
+      (others ? '<p class="gz-note">保存后，房间里的其他人会看到改了哪几条</p>' : '') +
+      '<div class="gz-actions"><button type="button" class="gz-btn" data-close>取消</button>' +
+      '<button type="button" class="gz-btn gz-btn-primary" data-act="save" data-autofocus>保存</button></div>',
+      (d) => {
+        d.querySelector('[data-close]').addEventListener('click', closeDialog);
+        d.querySelectorAll('[data-rk]').forEach((b) => b.addEventListener('click', () => {
+          const k = b.dataset.rk;
+          const v = ROOM_RULE_ROWS.find((x) => x[0] === k)[2][+b.dataset.ri][0];
+          if (k === 'turnSec') draft.turnSec = v; else draft.rules[k] = v;
+          d.querySelectorAll('[data-rk="' + k + '"]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        }));
+        d.querySelector('[data-act="save"]').addEventListener('click', () => {
+          closeDialog();
+          const cur = online.st.config;
+          const config = {};
+          if (draft.turnSec !== (cur.turnSec | 0)) config.turnSec = draft.turnSec;
+          const rules = {};
+          RULE_UI.forEach(([k]) => { if (draft.rules[k] !== cur.rules[k]) rules[k] = draft.rules[k]; });
+          if (Object.keys(rules).length) config.rules = rules;
+          if (Object.keys(config).length) onlineAct('config', { config });
+        });
+      });
+  }
+
+  /* 不是房主：刚进房间先看一眼规则；之后房主每改一次，弹一次「改了哪几条」 */
+  function guestRulesCheck(st) {
+    if (isHost()) { online.seenCfg = st.config; return; }
+    if (online.joinRules) { online.joinRules = false; online.seenCfg = st.config; showRoomRules('join'); return; }
+    if (!online.seenCfg) { online.seenCfg = st.config; return; }
+    if (cfgKey(online.seenCfg) === cfgKey(st.config)) return;
+    const open = els.dialog.querySelector('[data-sheet="rules"]');
+    const base = open && online.sheetBase ? online.sheetBase : online.seenCfg;
+    online.seenCfg = st.config;
+    showRoomRules(open && open.dataset.kind === 'join' ? 'join' : 'changed', base);
   }
 
   /* 入口：起个昵称，创建房间或输房号加入 */
@@ -2505,12 +2560,12 @@
           if (ident && ident.setNick) ident.setNick(v);
           return v;
         };
-        const go = async (fn) => {
+        const go = async (fn, joined) => {
           err.hidden = true;
           d.querySelectorAll('[data-act]').forEach((b) => { b.disabled = true; });
           try {
             const res = await fn();
-            startOnline(res.state, res.token);
+            startOnline(res.state, res.token, joined);
           } catch (e) { fail(NET.message(e)); }
         };
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
@@ -2523,7 +2578,7 @@
           if (v === null) return;
           const c = codeIn.value.trim();
           if (!/^\d{4}$/.test(c)) { fail('房号是 4 位数字'); codeIn.focus(); return; }
-          go(() => NET.join(c, v));
+          go(() => NET.join(c, v), true);
         };
         d.querySelector('[data-act="join"]').addEventListener('click', join);
         codeIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
@@ -2624,7 +2679,7 @@
     const act = lb.dataset.lb;
     if (act === 'copy-link') copyText(NET.inviteUrl(online.code), '邀请链接已复制');
     if (act === 'copy-code') copyText(online.code, '房号已复制');
-    if (act === 'rules') showRoomDialog();
+    if (act === 'rules') showRoomRules('view');
     if (act === 'start') onlineAct('start');
     if (act === 'leave' && confirm('离开房间？')) leaveOnline(null, true);
   });
