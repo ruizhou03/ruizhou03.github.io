@@ -286,10 +286,8 @@
     if (sc.hearts) {
       if (!fan) { fan = document.createElement('span'); fan.className = 'gz-fan'; }
       fan.querySelectorAll('.gz-fan-br').forEach((x) => x.remove());   // 两行红桃的断行点：先拿掉，fitFan 再按需要放
-      // 全红：13 张都在，不再一张张排开——收成一叠，只露最上面的 ♥A（分数变金、特效已经说过「全红」）
-      fan.classList.toggle('is-all', sc.allHearts);
-      fan.setAttribute('aria-label', sc.allHearts ? '全红（13 张红桃）' : '');
-      const hs = (sc.allHearts ? [R.HEART_ACE] : cards.filter(R.isHeart).sort((a, b) => a - b)).map(mini);
+      // 全红也照样一张张排开（放不下时由 fitFan 换行 / 拆两行，不收成一叠：用户要看得见 13 张）
+      const hs = cards.filter(R.isHeart).sort((a, b) => a - b).map(mini);
       hs.forEach((el, k) => { if (fan.children[k] !== el) fan.insertBefore(el, fan.children[k] || null); });
       while (fan.children.length > hs.length) fan.lastChild.remove();
       want.push(fan);
@@ -392,11 +390,11 @@
       if (n >= 6 && (avail - m) / (n - 1) < m * 0.32) {
         const k = Math.ceil(n / 2);
         split = true;
-        const st = Math.max(m * 0.16, Math.min(m * 0.44, (avail - m) / (k - 1)));
+        const st = Math.max(m * 0.16, Math.min(m * 0.44, (avail - 4 - m) / (k - 1)));   // −4：扇子宽度里那 4px（见下）
         const br = document.createElement('i');
         br.className = 'gz-fan-br';
         fan.insertBefore(br, fan.children[k]);
-        fan.style.width = (m + (k - 1) * st + 2).toFixed(1) + 'px';
+        fan.style.width = (m + (k - 1) * st + 4).toFixed(1) + 'px';   // 扇子自身左右各 1px 内边距（border-box），再留 2px 舍入余量，否则第一行最后一张会被挤到第三行
         fan.style.setProperty('--fanstep', st.toFixed(1) + 'px');
       }
     }
@@ -1101,14 +1099,9 @@
     const key = (s) => (match.over ? match.totals[s] : last.scores[s]);
     const order = [0].concat([1, 2, 3].sort((a, b) => key(b) - key(a) || a - b));
     const mine = key(0);
-    // 全红 / 大满贯：吃牌区里 13 张红桃收成了一叠，名字后面写明是哪一种，不然看不出来
-    const feat = (s) => {
-      const sc = R.scoreCaptured(last.captured[s] || [], last.ctx);
-      return sc.grandSlam ? '<span class="gz-res-feat">大满贯</span>' : sc.allHearts ? '<span class="gz-res-feat">全红</span>' : '';
-    };
     const rows = order.map((s) =>
       '<div class="gz-res-row' + (s === 0 ? ' me is-' + (mine > 0 ? 'up' : mine < 0 ? 'down' : 'even') : '') + (losers.includes(s) ? ' loser' : '') + '" data-seat="' + s + '">' +
-      '<span class="gz-res-name">' + esc(NAMES[s]) + (losers.includes(s) ? '<span class="gz-pig-badge">猪</span>' : '') + feat(s) + '</span>' +
+      '<span class="gz-res-name">' + esc(NAMES[s]) + (losers.includes(s) ? '<span class="gz-pig-badge">猪</span>' : '') + '</span>' +
       '<span class="gz-res-caps gz-caps"></span>' +
       '<span class="gz-res-n gz-num ' + cls(last.scores[s]) + '">' + signed(last.scores[s]) + '</span>' +
       '<span class="gz-res-n gz-res-tot gz-num ' + cls(match.totals[s]) + '">' + signed(match.totals[s]) + '</span></div>').join('');
