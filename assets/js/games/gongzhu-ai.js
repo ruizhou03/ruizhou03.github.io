@@ -568,16 +568,19 @@
    *   入门 = basic 规则启发式（末位）；普通 = DMC 自博弈训练的网络 dmc-f（认得规则开关和亮牌，权重在 gongzhu-dmc.js，未加载时退回 counting）；
    *   高手 = ISMCTS（第 1，正面对打赢网络 48 分 / 局） */
   /* 三档：入门 = basic（故意留着笨，给新手）；普通 = DMC 网络；高手 = ISMCTS。普通 / 高手套战术护栏（见下）。
-   * hardLite：服务器联机用的高手——ISMCTS 1000 次迭代，对 3000 次打平（+7.5 ± 9.8，200 副），内存只多约 60MB、每步约 16ms；
-   * 3000 次的峰值约 145MB（以前 1GB+ 撑爆服务器是 cloneRound 共用 history 的 bug，已修）。 */
+   * 高手的搜索参数是 ~/gongzhu-rl 炼丹（forge）炼出的「第 2 代」：猜牌推理 0.15、目标 自己−0.6×别人、c=1.0、
+   * 模拟用 counting 带 20% 随机——对原来的默认参数（basic 模拟）：1000 次 +29.8、3000 次 +16.5 ± 6.0 分/局。
+   * hardLite：服务器联机用，1000 次（每步约 20ms、峰值 RSS 约 104MB）；单机 3000 次。 */
+  const countingRandom = (eps) => (r, seat, rng) => (rng() < eps ? randomPolicy(r, seat, rng) : countingPolicy(r, seat, rng));
+  const GEN2 = { infer: 0.15, alpha: 0.6, c: 1, rollout: countingRandom(0.2) };
   const TIERS = {
     easy: () => basicPolicy,
     normal: () => {
       const w = typeof self !== 'undefined' ? self.GONGZHU_DMC : (typeof globalThis !== 'undefined' ? globalThis.GONGZHU_DMC : null);
       return withTactics(w ? makeMlp(loadNet(w)) : countingPolicy);
     },
-    hard: () => withTactics(makeIsmcts({ iterations: 3000 })),
-    hardLite: () => withTactics(makeIsmcts({ iterations: 1000 })),
+    hard: () => withTactics(makeIsmcts(Object.assign({ iterations: 3000 }, GEN2))),
+    hardLite: () => withTactics(makeIsmcts(Object.assign({ iterations: 1000 }, GEN2))),
   };
   /* ───── 战术护栏：几种「一眼就该这么出」的局面，不交给模型 / 搜索去赌 ─────
    * 自博弈统计里，DMC 网络 14% 的时候 ♠A 已在桌上还不把猪垫出去、16% 垫牌时不垫猪、7% 稳拿的羊不拿；ISMCTS 也有（用户实战遇到）。
