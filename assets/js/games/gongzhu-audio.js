@@ -1,7 +1,7 @@
 /* 拱猪 · 声音（window.GongzhuAudio）
  * 两条轨道，各自开关、记在本机：
  *   音效：全部 Web Audio 现场合成（发牌、落牌、收牌、放牌、翻分、明牌、猪哼、羊叫、变压器、烟花、对撞……），没有素材文件；
- *   音乐：一支固定的原创小曲（十六小节、主题反复出现、首尾相接无缝循环），琵琶味拨弦 + 低音 + 锣鼓点，
+ *   音乐：一支固定的原创小曲（十六小节、主题反复出现、首尾相接无缝循环），三遍一轮琵琶 / 笛子 / 古筝轮流奏主旋律，
  *         默认开（第一次点按页面后响起），声音按钮里可以关。
  * 特效响的时候音乐自动压低。浏览器要先有一次点按才能出声：第一次点按时才建 AudioContext。
  * 每个音效都是 SFX[name](audio, t, dest)：音频上下文、开始时刻（秒）、接到哪——正式播放接音效总线，
@@ -271,10 +271,12 @@
 
   /* ───── 背景音乐：一支有记性的小曲 ─────
    * 固定旋律（原创），C 宫五声，126 拍：十六小节 A A' B A''，开头两小节的「主题」出现三次，听两遍就记得住。
-   * 编配：领奏是琵琶味的拨弦（长音用轮指——一串快速重拨）、低音「咚—嗒」、中音区短和弦垫在弱拍，
-   * 锣鼓点：小鼓落在一、三拍，木鱼走弱拍，小镲「嚓」+ 拍手在二、四拍，每四小节末尾一记鼓花。
-   * 每个乐句末尾的长音里笛子用主题头三个音应一句；B 段（9–12）换成从低处起、切分的另一种句子，跟 A 段拉开。
-   * 第十六小节停在属音上、直接接回第一小节，循环处没有空拍；第二遍起加低三度和声、主题小节唢呐高八度跟吹、头上点一声铃。 */
+   * B 段（9–12）从低处起、切分着往上走，和 A 段的平均八分音符拉开。
+   * 第十六小节停在 G 上、直接接回第一小节的 G，循环处没有空拍。
+   * 编配（用户从多版试听里挑定「丁3 丙」）：三遍一轮，每遍换人吹主旋律，第二、三遍连一遍里面也分段交接——
+   *   第一遍 琵琶 / 琵琶 / 琵琶，第二遍 琵琶 / 笛子 / 古筝，第三遍 古筝 / 琵琶 / 笛子（A 段 / B 段 / 最后四小节）。
+   *   笛子不吹主旋律的段落就在上方拉长音衬托；乐句末尾用主题头三个音应一句；每段开头前古筝往上一刮。
+   *   底下：低音「咚—嗒」、弱拍短和弦、小鼓一三拍、小镲 + 拍手二四拍、每四小节末一记鼓花（木鱼像节拍器，用户要求去掉）。 */
   const BPM = 126, E8 = 60 / BPM / 2;
   // 每小节 8 个八分音符：音名 = 起音，'-' = 延续，'.' = 休止
   const TUNE = [
@@ -286,7 +288,7 @@
     'E4 G4 A4 C5 A4 - G4 -',   // 6
     'C5 C5 D5 E5 D5 C5 A4 G4', // 7
     'A4 - C5 - C5 - - -',      // 8  落主音
-    'A4 - C5 - D5 - . C5',     // 9  B 段：从低处起、长短错开的切分，和 A 段的平均八分音符反着来
+    'A4 - C5 - D5 - . C5',     // 9  B 段：从低处起、长短错开的切分
     'D5 - - E5 G5 - E5 -',     // 10
     'D5 C5 A4 C5 D5 - . .',    // 11
     'G4 - A4 - C5 - D5 -',     // 12 一级一级往上，把人送回主题
@@ -295,15 +297,25 @@
     'C5 C5 D5 E5 D5 C5 A4 G4', // 15
     'A4 - C5 - D5 - G4 -',     // 16 停在 G 上，接回第 1 小节的 G
   ].map((bar) => bar.split(' '));
+  /* 三遍一轮：lead = [A 段, B 段, 最后四小节] 谁奏主旋律（pipa 琵琶 / dizi 笛子 / zheng 古筝）；
+   * counter = 哪几段笛子拉长音衬托（笛子自己主奏时不拉，免得两支笛子打架）；answer = 乐句末尾谁应答；
+   * pipaDouble = 笛子主奏时琵琶轻轻弹着旋律垫节奏 */
+  const PASSES = [
+    { lead: ['pipa', 'pipa', 'pipa'], counter: ['A', 'B', 'A2'], answer: 'dizi' },
+    { lead: ['pipa', 'dizi', 'zheng'], counter: ['A', 'A2'], answer: 'dizi' },
+    { lead: ['zheng', 'pipa', 'dizi'], counter: ['A', 'B'], answer: 'pipa', pipaDouble: true },
+  ];
+  // 笛子长音衬托：每小节两个半小节长音，取和弦里的音、放在旋律上方
+  const COUNTER = { C: [76, 79], Am: [76, 72], F: [81, 77], G: [79, 74] };
   // 每小节的和弦：[低音根音, 五音, 中音区和弦]
-  const CH = { C: [36, 43, [60, 64, 67]], Am: [33, 40, [57, 60, 64]], F: [29, 36, [57, 60, 65]], G: [31, 38, [55, 59, 62]], Em: [28, 35, [55, 59, 64]] };
+  const CH = { C: [36, 43, [60, 64, 67]], Am: [33, 40, [57, 60, 64]], F: [29, 36, [57, 60, 65]], G: [31, 38, [55, 59, 62]] };
   const CHORDS = ['C', 'Am', 'F', 'G', 'C', 'Am', 'F', 'C', 'Am', 'G', 'F', 'G', 'C', 'Am', 'F', 'G'];
-  // 笛子回声：乐句末尾的长音里，笛子把主题头三个音高八度应一句（「问—答」，越听越熟）
+  // 应答：乐句末尾的长音里，用主题头三个音高八度应一句（「问—答」，越听越熟）
   const ECHO = {
-    3: '. . . . . G5 A5 G5',
-    7: '. . . . G5 . A5 G5',
+    3: '. . . . G5 A5 G5 -',
+    7: '. . . . G5 - A5 G5',
   };
-  const HOOK_BARS = [0, 4, 12];   // 主题小节：第二遍起唢呐高八度跟着吹
+  const HOOK_BARS = [0, 4, 12];   // 主题小节：第二遍起头一个音上点一声铃
   const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
   const toMidi = (n) => 12 * (+n.slice(1) + 1) + NOTE[n[0]];
   const PENTA = [55, 57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84];
@@ -331,24 +343,46 @@
     o1.connect(g1); g1.connect(f); o2.connect(f); f.connect(g); g.connect(dest);
     o1.start(t); o2.start(t); o1.stop(t + L + 0.05); o2.stop(t + L + 0.05);
   }
-  // 笛子：正弦为主、带一点三角，起音慢一点、长音上有颤音，外加一点气声
-  function dizi(a, dest, t, freq, gain, len) {
-    tone(a, dest, t, { freq, dur: len, gain, type: 'sine', attack: 0.03, hold: len * 0.4, vib: [5.5, freq * 0.006] });
-    tone(a, dest, t, { freq: freq * 2, dur: len * 0.8, gain: gain * 0.12, type: 'triangle', attack: 0.03 });
-    nz(a, dest, t, { dur: Math.min(0.12, len), gain: gain * 0.25, freq: freq * 2.2, q: 3, attack: 0.02 });
-  }
-  // 唢呐味：方波过一个窄带通，鼻音重、很亮——只做高八度的轻声加倍
-  function suona(a, dest, t, freq, gain, len) {
-    const o = a.createOscillator(); o.type = 'square'; o.frequency.setValueAtTime(freq, t);
-    const lfo = a.createOscillator(), dep = a.createGain(); lfo.frequency.value = 6; dep.gain.value = freq * 0.008; lfo.connect(dep); dep.connect(o.frequency);
-    const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = Math.min(4000, freq * 2.2); f.Q.value = 2.2;
+  /* 笛子：音一直吹到下一个音，相连的音之间带一点滑音（from = 上一个音的频率），颤音晚一点才起、慢慢变深；
+   * 正弦 + 一点三角 + 一路的气声 */
+  function dizi(a, dest, t, freq, from, len, gain) {
+    const end = t + len;
+    const o1 = a.createOscillator(), o2 = a.createOscillator();
+    o1.type = 'sine'; o2.type = 'triangle';
+    for (const o of [o1, o2]) {
+      o.frequency.setValueAtTime(from || freq, t);
+      if (from && Math.abs(from - freq) > 0.5) o.frequency.exponentialRampToValueAtTime(freq, t + 0.06);
+    }
+    const lfo = a.createOscillator(), dep = a.createGain();
+    lfo.frequency.value = 5.4;
+    dep.gain.setValueAtTime(0, t); dep.gain.linearRampToValueAtTime(freq * 0.009, t + Math.min(len, 0.4));
+    lfo.connect(dep); dep.connect(o1.frequency); dep.connect(o2.frequency);
     const g = a.createGain();
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.02); g.gain.setValueAtTime(gain, t + len * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    o.connect(f); f.connect(g); g.connect(dest);
-    o.start(t); lfo.start(t); o.stop(t + len + 0.05); lfo.stop(t + len + 0.05);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.05);
+    g.gain.linearRampToValueAtTime(gain * 1.06, t + Math.max(0.06, len * 0.5));
+    g.gain.setValueAtTime(gain * 1.06, Math.max(t + 0.07, end - 0.05)); g.gain.exponentialRampToValueAtTime(0.0001, end + 0.07);
+    const m2 = a.createGain(); m2.gain.value = 0.12;
+    o1.connect(g); o2.connect(m2); m2.connect(g); g.connect(dest);
+    nz(a, dest, t, { dur: len + 0.05, gain: gain * 0.07, freq: freq * 2, q: 2, attack: 0.04 });
+    for (const o of [o1, o2, lfo]) { o.start(t); o.stop(end + 0.1); }
+  }
+  // 古筝：拨弦起音带一点「按音」往上滑，余音长（比琵琶圆、比琵琶长）
+  function zheng(a, dest, t, freq, gain, len) {
+    const L = Math.max(0.9, len || 1.2);
+    const o1 = a.createOscillator(); o1.type = 'triangle';
+    const o2 = a.createOscillator(); o2.type = 'sawtooth';
+    for (const o of [o1, o2]) { o.frequency.setValueAtTime(freq * 0.985, t); o.frequency.exponentialRampToValueAtTime(freq, t + 0.035); }
+    const m2 = a.createGain(); m2.gain.value = 0.18;
+    const f = a.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 0.8;
+    f.frequency.setValueAtTime(Math.min(8000, freq * 6), t); f.frequency.exponentialRampToValueAtTime(Math.max(400, freq * 1.4), t + L * 0.8);
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.004); g.gain.exponentialRampToValueAtTime(gain * 0.35, t + 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + L);
+    o1.connect(f); o2.connect(m2); m2.connect(f); f.connect(g); g.connect(dest);
+    for (const o of [o1, o2]) { o.start(t); o.stop(t + L + 0.05); }
   }
   // 把乐谱排到 horizon（音频时刻）为止；st = { step, next }，step 一直往上数，取模就是循环（循环处不停顿）
   function scheduleMusic(a, mel, wet, st, horizon) {
+    st.prev = st.prev || {};
     while (st.next < horizon) {
       const s = st.step, barAll = s >> 3, k = s & 7, bar = barAll % 16, pass = (barAll / 16) | 0;
       const t = st.next;
@@ -358,44 +392,66 @@
       if (k === 4) tone(a, mel, t, { freq: midi(ch[1] + 12), dur: E8 * 1.8, gain: 0.28, type: 'triangle', lp: 900 });
       // 弱拍垫一个短和弦
       if (k === 2 || k === 6) ch[2].forEach((m) => pluck(a, mel, t, midi(m), 0.07, 0.28));
-      // 锣鼓点：小鼓一、三拍，小镲二、四拍，木鱼走弱拍；每四小节末尾来一记鼓花
+      // 锣鼓点：小鼓一、三拍，小镲 + 拍手二、四拍；每四小节末尾来一记鼓花
       if (k === 0 || k === 4) { tone(a, mel, t, { freq: 190, to: 95, dur: 0.16, gain: k ? 0.18 : 0.24 }); nz(a, mel, t, { dur: 0.05, gain: 0.05, type: 'lowpass', freq: 1200, q: 0.7 }); }
       if (k === 2 || k === 6) {
         nz(a, mel, t, { dur: 0.12, gain: 0.05, freq: 6000, q: 1.2 });
-        // 拍手：二、四拍，喜庆
         nz(a, mel, t, { dur: 0.08, gain: 0.09, freq: 1700, q: 1.4 });
         nz(a, mel, t + 0.012, { dur: 0.06, gain: 0.06, freq: 2300, q: 1.6 });
       }
-      if (k % 2 === 1) tone(a, mel, t, { freq: k === 3 || k === 7 ? 1180 : 980, to: 780, dur: 0.06, gain: 0.045, type: 'triangle' });
       if (bar % 4 === 3 && k >= 5) tone(a, mel, t, { freq: 230 - (k - 5) * 25, to: 110, dur: 0.12, gain: 0.16 });
-      // 领奏
+      // 这一遍、这一段的编配
+      const arr = PASSES[pass % PASSES.length];
+      const sec = bar < 8 ? 0 : bar < 12 ? 1 : 2;
+      const lead = arr.lead[sec];
+      const flute = (f, len, gain, voice) => {   // 笛子长音：和上一个音首尾相接就滑过去
+        const p = st.prev[voice];
+        const from = p && Math.abs(p.end - t) < 0.02 ? p.f : 0;
+        const dest = a.createGain(); dest.connect(mel); dest.connect(wet);
+        dizi(a, dest, t, f, from, len, gain);
+        st.prev[voice] = { f, end: t + len };
+      };
+      // 主旋律
       const note = TUNE[bar][k];
       if (note !== '-' && note !== '.') {
         let len = 1;
         while (k + len < 8 && TUNE[bar][k + len] === '-') len++;
-        const m = toMidi(note), f = midi(m);
+        const m = toMidi(note), f = midi(m), dur = E8 * len;
         const dest = a.createGain(); dest.connect(mel); dest.connect(wet);
-        if (len >= 3) {
-          // 长音：轮指，一串十六分音符的快速重拨，越来越轻
-          for (let r = 0; r < len * 2; r++) pipa(a, dest, t + r * E8 / 2, f, 0.3 * Math.pow(0.86, r), E8 * 0.7);
+        if (lead === 'pipa') {
+          // 长音用轮指：一串十六分音符的快速重拨，越来越轻
+          if (len >= 3) for (let r = 0; r < len * 2; r++) pipa(a, dest, t + r * E8 / 2, f, 0.3 * Math.pow(0.86, r), E8 * 0.7);
+          else pipa(a, dest, t, f, k % 4 === 0 ? 0.34 : 0.28, dur + 0.25);
+        } else if (lead === 'zheng') {
+          // 长音用摇指：比琵琶的轮指轻、更连（音量比琵琶略收，三遍听着一样响）
+          if (len >= 3) for (let r = 0; r < len * 2; r++) zheng(a, dest, t + r * E8 / 2, f, 0.19 * Math.pow(0.9, r), E8 * 1.2);
+          else zheng(a, dest, t, f, k % 4 === 0 ? 0.24 : 0.2, dur + 0.6);
         } else {
-          pipa(a, dest, t, f, k % 4 === 0 ? 0.34 : 0.28, E8 * len + 0.25);
+          flute(f, dur, 0.13, 'lead');
+          if (arr.pipaDouble) pipa(a, dest, t, f, 0.12, Math.min(dur, E8 * 2) + 0.2);
         }
-        // 第二遍起：低三度和声（轻一点），主题小节的第一个音上点一声铃
-        if (pass % 2 === 1) pluck(a, dest, t, midi(below(m)), 0.12, E8 * len + 0.3);
-        if (pass > 0 && k === 0 && HOOK_BARS.includes(bar)) tone(a, mel, t, { freq: f * 2, dur: 0.9, gain: 0.05, type: 'sine' });
-        if (pass > 0 && (HOOK_BARS.includes(bar) || HOOK_BARS.includes(bar - 1))) suona(a, mel, t, f * 2, 0.045, E8 * len + 0.05);
+        // 第二遍：低三度和声（笛子主奏时不加，免得乱）；第二遍起主题小节头一个音上点一声铃
+        if (pass % 2 === 1 && lead !== 'dizi') pluck(a, dest, t, midi(below(m)), 0.1, dur + 0.3);
+        if (pass > 0 && k === 0 && HOOK_BARS.includes(bar)) tone(a, mel, t, { freq: f * 2, dur: 0.9, gain: 0.045, type: 'sine' });
       }
-      // 笛子回声
+      // 古筝刮奏：每段开头前的最后半拍，一串五声音阶快速往上一刮
+      if (k === 7 && (bar === 7 || bar === 15)) {
+        [62, 64, 67, 69, 72, 74, 76, 79].forEach((m, i) => pluck(a, mel, t + i * E8 / 9, midi(m), 0.07 + i * 0.006, 0.9));
+      }
+      // 笛子长音衬托（半小节一个音）
+      if (arr.counter.includes(['A', 'B', 'A2'][sec]) && (k === 0 || k === 4)) flute(midi(COUNTER[CHORDS[bar]][k ? 1 : 0]), E8 * 4, 0.06, 'counter');
+      // 乐句末尾的应答（主题头三个音）
       const echoBar = ECHO[bar];
       if (echoBar) {
-        const ev = echoBar.split(' ')[k];
+        const toks = echoBar.split(' ');
+        const ev = toks[k];
         if (ev && ev !== '.' && ev !== '-') {
           let len = 1;
-          const toks = echoBar.split(' ');
           while (k + len < 8 && toks[k + len] === '-') len++;
-          const dest = a.createGain(); dest.connect(mel); dest.connect(wet);
-          dizi(a, dest, t, midi(toMidi(ev)), 0.16, E8 * len + 0.12);
+          if (arr.answer === 'pipa') {
+            const d2 = a.createGain(); d2.connect(mel); d2.connect(wet);
+            pipa(a, d2, t, midi(toMidi(ev)), 0.22, E8 * len + 0.25);
+          } else flute(midi(toMidi(ev)), E8 * len + 0.05, 0.14, 'answer');
         }
       }
       st.next += E8;
