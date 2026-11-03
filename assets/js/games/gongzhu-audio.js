@@ -3,7 +3,7 @@
  *   音效：全部 Web Audio 现场合成（发牌、落牌、收牌、放牌、翻分、明牌、猪哼、羊叫、变压器、烟花、对撞……），没有素材文件；
  *   音乐：一支固定的原创小曲（十六小节、主题反复出现、首尾相接无缝循环），三遍一轮琵琶 / 笛子 / 古筝轮流奏主旋律，
  *         默认开（第一次点按页面后响起），声音按钮里可以关。
- * 特效响的时候音乐自动压低。浏览器要先有一次点按才能出声：第一次点按时才建 AudioContext。
+ * 特效响的时候音乐自动压低。浏览器要先有一次点按才能出声：第一次点按时才建 AudioContext（iPhone 的坑见文末 unlock）。
  * 每个音效都是 SFX[name](audio, t, dest)：音频上下文、开始时刻（秒）、接到哪——正式播放接音效总线，
  * 自测时可以接进 OfflineAudioContext 渲染出来量响度。 */
 (function () {
@@ -472,8 +472,10 @@
     scheduleMusic(a, mel, makeEcho(a, mel), { step: 0, next: 0.05 }, sec - 2);
     return a.startRendering();
   }
+  let music = null;   // 正在放：{ step, next, timer, prev }
   function startMusic() {
     if (music || !prefs.music || !ensure()) return;
+    if (ctx.state !== 'running') return;   // 还没解锁：等下一次点按（unlock 会再来叫）
     music = { step: 0, next: ctx.currentTime + 0.15, timer: setInterval(musicTick, 120) };
     bus.music.gain.cancelScheduledValues(ctx.currentTime);
     bus.music.gain.setValueAtTime(0.0001, ctx.currentTime);
@@ -491,22 +493,35 @@
   function set(key, on) {
     prefs[key] = !!on;
     savePrefs();
-    ensure();
-    if (key === 'music') { if (on) startMusic(); else stopMusic(); }
-    if (key === 'sfx' && on) sfx('turn');
+    const a = ensure();
+    const after = (fn) => { if (!a) return; if (a.state === 'running') fn(); else a.resume().then(fn, () => {}); };
+    if (key === 'music') { if (on) after(startMusic); else stopMusic(); }
+    if (key === 'sfx' && on) after(() => sfx('turn'));
   }
 
-  // 浏览器要先有一次点按才能出声
+  /* 浏览器要先有一次点按才能出声。坑（iPhone / iPad 上的所有浏览器，包括微信、谷歌 App 里的）：
+   *   ① 手指按下（pointerdown / touchstart）不算数，要等抬起（touchend）或 click 才准出声；
+   *   ② 光 resume() 不一定醒，要在这一下里放一个空白的极短声音；
+   *   ③ 手机侧面的静音开关打开时，网页的 Web Audio 默认也跟着静音——声明成「播放」类，静不静音交给游戏里的声音键。
+   * 所以每次点按都试一次，直到音频真的跑起来（切到后台回来被系统挂起了，下一次点按也会再叫醒）。 */
   if (hasDom) {
     const unlock = () => {
       if (!prefs.sfx && !prefs.music) return;
-      if (!ensure()) return;
-      if (prefs.music) startMusic();
-      document.removeEventListener('pointerdown', unlock, true);
-      document.removeEventListener('keydown', unlock, true);
+      try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (_) { /* 老系统没有 */ }
+      if (ctx && ctx.state === 'running') { if (prefs.music && !music) startMusic(); return; }
+      const a = ensure();
+      if (!a) return;
+      try {
+        const src = a.createBufferSource();
+        src.buffer = a.createBuffer(1, 1, a.sampleRate);
+        src.connect(a.destination);
+        src.start(0);
+      } catch (_) { /* ignore */ }
+      const go = () => { if (a.state === 'running' && prefs.music) startMusic(); };
+      if (a.state === 'running') go();
+      else if (a.resume) a.resume().then(go, () => {});
     };
-    document.addEventListener('pointerdown', unlock, true);
-    document.addEventListener('keydown', unlock, true);
+    ['pointerdown', 'touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, unlock, { capture: true, passive: true }));
   }
 
   window.GongzhuAudio = { sfx, duck, set, prefs: () => Object.assign({}, prefs), SFX, renderMusic };
