@@ -25,6 +25,7 @@
     illegal_card: '这张牌现在不能出',
     spectators_full: '观战的人太多了，过一会儿再来',
     not_in_room: '你现在在观战，坐下才能打',
+    not_spectator: '坐下了就不能换视角了',
   };
   function message(err) {
     if (!err) return '网络出了点问题，再试一次';

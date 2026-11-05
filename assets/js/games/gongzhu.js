@@ -670,7 +670,7 @@
     cards.forEach((c, i) => {
       let el;
       if (c === HIDDEN) { el = document.createElement('span'); el.className = 'gz-card gz-card-back'; }
-      else { el = buildCard(c); el.classList.add('is-exposed'); }
+      else { el = buildCard(c); if (isExposedCard(c)) el.classList.add('is-exposed'); }
       el.style.left = x.toFixed(1) + 'px';
       el.style.zIndex = String(i + 1);
       el.setAttribute('aria-hidden', 'true');
@@ -1465,6 +1465,8 @@
     profile: '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.8 3.6-6 7-6s6.2 2.2 7 6"/>',
     history: '<rect x="4.5" y="4" width="15" height="16" rx="2"/><path d="M8 9h8M8 12.5h8M8 16h5"/>',
     cover: '<path d="M4 11.2 12 4.5l8 6.7"/><path d="M6.5 9.5v10h11v-10"/><path d="M10 19.5v-5h4v5"/>',
+    reveal: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>',
+    sit: '<path d="M7 4v8h10"/><path d="M7 12v8M17 12v8M7 16h10"/>',
   };
   // 每条一个图标 + 一行字，不写说明小字（意思本身就清楚）
   function menuItems() {
@@ -1479,6 +1481,7 @@
         ['profile', '改名字 / 头像'],
         ['room', '邀请朋友'],
         ...(watching() && online.st.seatOpen ? [['sit', '坐下']] : []),
+        ...(!online.watching ? [['reveal', meRevealing() ? '不让观战看我的牌' : '让观战看我的牌']] : []),
         ...(isHost() && match.lobby ? [['roomrules', '自定义规则']] : []),
         ['leave', '离开房间'],
         ...exit,
@@ -1508,6 +1511,10 @@
     else if (k === 'room') copyText(NET.inviteUrl(online.code), '邀请链接已复制，发给朋友就能进房间');
     else if (k === 'roomrules') showRoomRules('view');
     else if (k === 'sit') watchSit();
+    else if (k === 'reveal') {
+      const on = !meRevealing();
+      onlineAct('reveal', { on }).then((res) => { if (res) toast(on ? '观战的人现在能看到你的手牌' : '观战的人看不到你的手牌了'); });
+    }
     else if (k === 'leave') {
       if (!confirm(match.lobby || watching() ? '离开房间？' : '离开房间？你的座位会交给机器人接着打。')) return;
       leaveOnline(null, true);
@@ -2287,6 +2294,8 @@
   function onlineAuto() { const g = online && online.st && online.st.game; return !!(g && !online.watching && g.auto[online.mySeat]); }
   /* 观战：没有座位，牌桌固定从 0 号座看过去（mySeat 记成 0 只为了转座位方向）；看不到任何手牌、不能出牌 */
   function watching() { return !!(online && online.watching && match && match.online); }
+  // 我有没有打开「观战能看我的牌」（默认不给看）
+  function meRevealing() { const st = online && online.st; const me = st && st.players.find((p) => p.id === st.me); return !!(me && me.showHand); }
   /* 头像：联机里每人有服务器分的矢量头像（见 gongzhu-avatars.js），记作 'svg:<编号>'；
    * 单机的「我 / 上 / 对 / 下」、老房间没头像的人仍是一个字 */
   function avatarOf(p) {
@@ -2318,7 +2327,7 @@
     stopClock(); hideCoach(); closeDialog(); hideCover();
     $('gzPauseBtn').hidden = true;
     setAutopilot(false);
-    online = { code: st.code, token: tok, st: null, mySeat: st.mySeat, watching: false, applied: 0, queue: [], pending: -1, idle: true, inGame: false, readySent: false, skew: 0, stopped: false, joinRules: !!joined, seenCfg: null, sheetBase: null, base: null, ops: [], pumping: false, roundCaps: {} };
+    online = { code: st.code, token: tok, st: null, mySeat: st.mySeat, watching: false, watchSeat: st.spectator ? st.viewSeat | 0 : 0, viewPending: -1, applied: 0, queue: [], pending: -1, idle: true, inGame: false, readySent: false, skew: 0, stopped: false, joinRules: !!joined, seenCfg: null, sheetBase: null, base: null, ops: [], pumping: false, roundCaps: {} };
     NET.writeSession({ code: st.code, token: tok });
     try { const u = new URL(location.href); u.searchParams.set('room', st.code); history.replaceState(null, '', u); } catch (_) { /* ignore */ }
     els.app.classList.add('is-online');
@@ -2476,6 +2485,7 @@
   function onState(st, again) {
     if (!online || !st || st.code !== online.code) return;
     if (online.st && st.version < online.st.version && !again) return;   // 迟到的旧视图
+    if (st.spectator && online.viewPending >= 0 && st.viewSeat !== online.viewPending) return;   // 正在换视角：换之前的快照不要了
     online.base = st;
     online.st = st.phase === 'lobby' ? withOps(st) : st;
     online.skew = st.serverNow - Date.now();
@@ -2483,7 +2493,8 @@
     const me = st.players.find((p) => p.id === st.me);
     if (!spec && (!me || me.left || st.mySeat < 0)) { leaveOnline('你已经不在这个房间里了'); return; }
     // 观战 ↔ 坐下：看的方向变了，整桌按快照重画
-    const view = spec ? 0 : st.mySeat;
+    online.watchSeat = spec ? st.viewSeat | 0 : 0;
+    const view = spec ? online.watchSeat : st.mySeat;
     const moved = online.mySeat !== view || online.watching !== spec;
     const sat = online.watching && !spec;
     online.mySeat = view;
@@ -2511,6 +2522,7 @@
 
   function enterGameView() {
     online.inGame = true;
+    renderWatchUi();
     if (els.dialog.querySelector('[data-sheet="rules"]')) closeDialog();
     els.app.classList.remove('is-lobby');
     $('gzLobby').hidden = true;
@@ -2549,7 +2561,7 @@
     const v = gv.round;
     const exposed = v.exposed.map(([c, s]) => [c, loc(s)]);
     const hands = [0, 1, 2, 3].map((l) => {
-      if (l === 0 && !online.watching) return v.hand.slice();
+      if (l === 0 && (!online.watching || v.hand.length)) return v.hand.slice();   // 观战：那一家公开了手牌才有
       const known = exposed.filter(([c, o]) => o === l && !v.played[c]).map(([c]) => c);
       return known.concat(new Array(Math.max(0, v.counts[srv(l)] - known.length)).fill(HIDDEN));
     });
@@ -2578,7 +2590,11 @@
   function sameAsSnapshot(r, gv) {
     const v = gv.round;
     if (!v) return true;
-    if (online.watching) return r.hands[0].length === v.counts[srv(0)] && r.trickNo === v.trickNo && r.trick.length === v.trick.length && r.turn === loc(v.turn);
+    // 观战、那一家没公开：只对张数（本地手里只能是牌背 + 亮出来的牌，公开后又关掉就得重画）
+    if (online.watching && !v.hand.length) {
+      return r.hands[0].length === v.counts[srv(0)] && r.hands[0].every((c) => c === HIDDEN || isExposedCard(c)) &&
+        r.trickNo === v.trickNo && r.trick.length === v.trick.length && r.turn === loc(v.turn);
+    }
     const a = r.hands[0].slice().sort((x, y) => x - y).join();
     const b = v.hand.slice().sort((x, y) => x - y).join();
     return a === b && r.trickNo === v.trickNo && r.trick.length === v.trick.length && r.turn === loc(v.turn);
@@ -2601,7 +2617,7 @@
         const gv = online.st.game;
         const blank = () => new Array(13).fill(HIDDEN);
         match.roundNo = ev.roundNo; match.over = false; match.losers = [];
-        match.round = R.createRound([online.watching || !gv.dealt ? blank() : gv.dealt.slice(), blank(), blank(), blank()], loc(ev.leader), ev.mustLead, match.rules);
+        match.round = R.createRound([gv.dealt ? gv.dealt.slice() : blank(), blank(), blank(), blank()], loc(ev.leader), ev.mustLead, match.rules);
         match.exposing = [];
         selected = -1; exposePick = []; exposeHeld = []; busy = true; online.readySent = false;
         renderAll();
@@ -2704,6 +2720,7 @@
   }
 
   /* 牌桌上的名字 / 头像 / 状态小签：掉线、已离开（机器人代打）；托管是头像右下角的小机器人 */
+  const EYE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
   function renderOnlineBadges() {
     if (!online || !online.inGame) return;
     const g = online.st.game;
@@ -2723,6 +2740,13 @@
       if (line && !tag && text) { tag = document.createElement('span'); tag.className = 'gz-tag'; line.appendChild(tag); }
       if (tag) { tag.textContent = text; tag.hidden = !text; tag.classList.toggle('is-level', !!(p && p.isAi && !p.left)); }
       el.classList.toggle('is-auto', auto);
+      // 头像旁「眼睛 + 数字」：有几个观战的人站在这一家身后看
+      const eyes = (online.st.spectators || []).filter((x) => x.online && (x.view | 0) === srv(l)).length;
+      const av = el.querySelector('.gz-avatar');
+      let eb = av && av.querySelector('.gz-eyes');
+      if (av && !eb && eyes) { eb = document.createElement('span'); eb.className = 'gz-eyes'; eb.innerHTML = EYE_SVG + '<b></b>'; av.appendChild(eb); }
+      if (eb) { eb.hidden = !eyes; eb.querySelector('b').textContent = eyes; }
+      if (av) av.setAttribute('aria-label', eyes ? eyes + ' 人在这一家身后观战' : '');
       if (l > 0) { if (auto) el.setAttribute('aria-label', NAMES[l] + '（托管中）'); else el.removeAttribute('aria-label'); }
     }
   }
@@ -2779,15 +2803,17 @@
    * 有空位（大厅里、或者一局打完有人走了 / 有机器人可以换下）时，顶栏下面出一个「坐下」。 */
   function renderWatchUi() {
     const on = !!(online && online.watching);
+    // 观战的人：顶栏写「观战中」；坐着的人：有人观战时写「N 人观战」
+    const watchers = online && online.st ? (online.st.spectators || []).filter((x) => x.online).length : 0;
+    const text = on ? (online.inGame ? '观战中 · 点头像换视角' : '观战中') : watchers ? watchers + ' 人观战' : '';
     let tag = $('gzWatchTag');
-    if (!tag && on) {
+    if (!tag && text) {
       tag = document.createElement('span');
       tag.id = 'gzWatchTag';
       tag.className = 'gz-watch-tag';
-      tag.textContent = '观战中';
       $('gzRoundInfo').after(tag);
     }
-    if (tag) tag.hidden = !on;
+    if (tag) { tag.textContent = text; tag.hidden = !text; }
     let sit = $('gzSitBtn');
     if (!sit && on) {
       sit = document.createElement('button');
@@ -2801,6 +2827,13 @@
     if (sit) sit.hidden = !(on && online.st && online.st.seatOpen);
     els.hand.setAttribute('aria-label', on ? '手牌（观战看不到）' : '我的手牌');
   }
+  /* 观战：点哪家的头像，就坐到哪家身后看（那一家公开了手牌才看得到牌，否则只有牌背） */
+  function switchView(seat) {
+    const my = online;
+    if (!my || !my.watching || seat === my.watchSeat || my.viewPending >= 0) return;
+    my.viewPending = seat;
+    onlineAct('view', { seat }).finally(() => { if (online === my) my.viewPending = -1; });
+  }
   let sitting = false;
   async function watchSit(seat) {
     if (!online || !online.watching || sitting) return;
@@ -2813,7 +2846,7 @@
   let lobbyQrCode = '';
   function renderLobby() {
     const st = online.st;
-    if (online.inGame) { online.inGame = false; token++; stopClock(); closeDialog(); }
+    if (online.inGame) { online.inGame = false; token++; stopClock(); closeDialog(); renderWatchUi(); }
     match = { online: true, lobby: true, rules: st.config.rules, totals: [0, 0, 0, 0], roundNo: 0, round: null, exposing: [], last: null, over: false, losers: [] };
     busy = true; selected = -1; flying = null;
     els.app.classList.add('is-online', 'is-lobby');
@@ -2859,12 +2892,11 @@
       start.after(sitLb);
     }
     sitLb.hidden = !(spec && st.seatOpen);
-    const watchers = (st.spectators || []).filter((x) => x.online).length;
     box.querySelector('.gz-lobby-wait').textContent = (spec
       ? (st.seatOpen ? '观战中，点「坐下」或空位入座' : '观战中，座位满了')
       : host
         ? (missing > 0 ? '还差 ' + missing + ' 人' : '人齐了，可以开始')
-        : '等房主开始') + (watchers && !spec ? ' · ' + watchers + ' 人观战' : '');
+        : '等房主开始');
     guestRulesCheck(st);
   }
 
@@ -3231,6 +3263,11 @@
     coachAdvance();
   });
   // 点自己的头像：进入托管（机器人替我打）；托管中再点一下收回。教程、动画预览、大厅里不管
+  // 观战：点别家的头像换到他身后看
+  [1, 2, 3].forEach((l) => els.seats[l].addEventListener('click', (e) => {
+    if (!e.target.closest('.gz-avatar') || !online || !online.watching || !online.inGame) return;
+    switchView(srv(l));
+  }));
   els.seats[0].addEventListener('click', (e) => {
     if (!e.target.closest('.gz-avatar') || !match || match.tutorial || match.demo || match.lobby || AUTO) return;
     if (match.online) {

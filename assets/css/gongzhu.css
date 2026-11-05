@@ -617,6 +617,18 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-watch-tag[hidden] { display: none; }
 .is-watching #gzPlayBtn, .is-watching #gzNoExposeBtn { display: none; }
 #gzSitBtn[hidden] { display: none; }
+/* 头像旁「眼睛 + 数字」：有几个观战的人站在这一家身后看（头像右上角；托管的小机器人在右下角） */
+.gz-eyes {
+  position: absolute; left: calc(100% - 8px); top: -6px; z-index: 1;
+  display: inline-flex; align-items: center; gap: 2px; height: 17px; padding: 0 5px 0 4px; border-radius: 9px;
+  background: var(--gz-paper); border: 1.2px solid var(--gz-ink); color: var(--gz-ink);
+  font: 700 11px/1 Georgia, serif; white-space: nowrap; pointer-events: none;
+}
+.gz-eyes[hidden] { display: none; }
+/* 下面这一家的名字在头像右边：标识挪到头像正上方，不压名字 */
+.gz-seat-me .gz-eyes { left: 50%; top: -21px; transform: translateX(-50%); }
+.gz-eyes svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.is-watching .gz-seat:not(.gz-seat-me) .gz-avatar { cursor: pointer; }
 .gz-hand .gz-card.gz-card-back {
   cursor: default; border-radius: calc(var(--u) * 0.1);
   background: #b4392c; border: 2px solid var(--gz-paper); box-shadow: inset 0 0 0 calc(var(--u) * 0.06) #c2493b, 0 1px 3px rgba(20, 18, 15, 0.18);
