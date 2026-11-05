@@ -883,14 +883,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-sub { width: min(440px, 100%); display: block; overflow-y: auto; }
 .gz-sub .gz-actions { margin-top: 12px; }
 
-/* 明牌：桌子中间的小牌子（倒计时 + 怎么做）；底下两个键 */
-.gz-expose-box { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 7; width: min(260px, 86%);
-  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 14px 12px; text-align: center;
-  background: rgba(251, 246, 236, 0.94); border: 1px solid rgba(29, 27, 24, 0.25); border-radius: 12px; box-shadow: 0 6px 18px rgba(20, 18, 15, 0.12); pointer-events: none; }
-.gz-expose-box[hidden] { display: none; }
-.gz-expose-box span { font-size: 13px; color: var(--gz-ink-mute); letter-spacing: 0.2em; text-indent: 0.2em; }
-.gz-expose-box b { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 34px; line-height: 1; color: var(--gz-seal); }
-.gz-expose-box p { margin: 4px 0 0; font-size: 13px; line-height: 1.55; }
+/* 明牌：底下「不明牌」「明牌 N 张」两个键 */
 .gz-band { gap: 8px; }
 .gz-band .gz-btn[hidden] { display: none; }
 

@@ -36,7 +36,7 @@
   const $ = (id) => document.getElementById(id);
   const els = {
     app: $('gzApp'), table: $('gzTable'), center: $('gzCenter'),
-    hand: $('gzHand'), play: $('gzPlayBtn'), noExpose: $('gzNoExposeBtn'), exposeBox: $('gzExposeBox'),
+    hand: $('gzHand'), play: $('gzPlayBtn'), noExpose: $('gzNoExposeBtn'),
     roundNo: $('gzRoundNo'),
     mask: $('gzDialogMask'), dialog: $('gzDialog'),
     coach: $('gzCoach'), fx: $('gzFx'),
@@ -635,7 +635,6 @@
     });
     syncHeartsX2();
     els.noExpose.hidden = !exposing;
-    syncExposeBox();
     if (exposing) {
       // 两个键分开：「不明牌」随时能点；「明牌」要先在手牌里点选（再点一下取消），选了几张写在键上
       els.play.textContent = exposePick.length ? '明牌 ' + exposePick.length + ' 张' : '明牌';
@@ -712,7 +711,7 @@
     exposeWait = { bots: Promise.all(bots.map((s) => chooseExpose(r, s, seatTier(s)).then((cards) => [s, cards]))) };
     const meIn = match.exposing.includes(0);
     renderSeats();
-    if (meIn && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyExposeTimeout, EXPOSE_MS); syncExposeBox(); dingMyTurn(); return; }
+    if (meIn && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyExposeTimeout, EXPOSE_MS); dingMyTurn(); return; }
     busy = true;
     renderHand();
     if (meIn) chooseExpose(r, 0, takeoverTier(botTiers())).then(guard((cards) => applyExpose(0, cards)));
@@ -761,31 +760,8 @@
     applyExpose(0, []);
   }
 
-  /* 明牌阶段：桌子中间一张小牌子——倒计时（大家都看得到，联机里别人也知道在等什么）+ 我该怎么做。
-   * 单机跟着我的钟走（菜单 / 弹窗开着会停）；联机按服务器的截止时间 */
+  // 明牌阶段的倒计时（不限时也有）：转在我自己头像上，和出牌一样；联机按服务器的截止时间
   const EXPOSE_MS = 15000;
-  let exposeTick = 0;
-  function exposeLeftMs() {
-    if (!match || !match.round) return -1;
-    if (match.online) {
-      const gv = online && online.st && online.st.game;
-      return gv && gv.phase === 'expose' && gv.deadline ? Math.min(EXPOSE_MS, gv.deadline - (Date.now() + online.skew)) : -1;
-    }
-    if (!match.exposing.length || clock.seat !== 0) return -1;
-    return clock.paused || !clock.at ? clock.left : clock.left - (performance.now() - clock.at);
-  }
-  function syncExposeBox() {
-    const box = els.exposeBox;
-    const left = exposeLeftMs();
-    if (left < 0 || coverOn) { box.hidden = true; clearInterval(exposeTick); exposeTick = 0; return; }
-    const deciding = exposingMe() && !busy;
-    const canPick = deciding && match.round && R.EXPOSABLE.some((c) => match.round.hands[0].includes(c));
-    box.querySelector('b').textContent = Math.max(0, Math.ceil(left / 1000));
-    box.querySelector('p').textContent = !deciding ? '等其他人决定…'
-      : canPick ? '点选要明的牌（再点一下取消），然后点「明牌」；不明就点「不明牌」' : '这一局你没有可以明的牌，点「不明牌」';
-    box.hidden = false;
-    if (!exposeTick) exposeTick = setInterval(syncExposeBox, 250);
-  }
 
   function commit(seat, card) {
     const r = match.round;
