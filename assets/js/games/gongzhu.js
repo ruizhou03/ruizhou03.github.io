@@ -1235,7 +1235,13 @@
     const first = d.querySelector('[data-autofocus]') || d.querySelector('button');
     if (first) first.focus({ preventScroll: true });
   }
-  function closeDialog() { closeSub(); els.mask.hidden = true; els.dialog.innerHTML = ''; resumeClock(); }
+  function closeDialog() {
+    // 输入框还拿着焦点 / 选区就被整个拿掉：微信会把「搜一搜 / 复制」留在屏幕上，先收掉
+    const a = document.activeElement;
+    if (a && els.dialog.contains(a) && a.blur) a.blur();
+    clearSelection();
+    closeSub(); els.mask.hidden = true; els.dialog.innerHTML = ''; resumeClock();
+  }
   function dismissDialog() {
     if (els.mask.hidden) return;
     const close = els.dialog.querySelector('[data-close]');
@@ -1330,6 +1336,15 @@
   /* 某一局的明细：叠在「每局得分」上面的小窗（不展开在表格里，展开多了一大串很乱）。
    * 和结算页同一套行：名字 · 吃牌 · 本局；挤得看不清的那家换成两行 */
   let subMask = null;
+  function editableEl(n) { return !!(n && n.closest && n.closest('input, textarea')); }
+  function nodeEl(n) { return n && n.nodeType === 1 ? n : n && n.parentElement; }
+  // force：连输入框里的选区也清（复制用的那个看不见的输入框）
+  function clearSelection(force) {
+    const sel = window.getSelection && window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    if (!force && editableEl(document.activeElement)) return;
+    try { sel.removeAllRanges(); } catch (_) { /* ignore */ }
+  }
   function closeSub() { if (subMask && !subMask.hidden) { subMask.hidden = true; subMask.firstChild.innerHTML = ''; } }
   function showRoundCard(h) {
     if (!subMask) {
@@ -3060,8 +3075,12 @@
     ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
     document.body.appendChild(ta);
     ta.select();
+    try { ta.setSelectionRange(0, text.length); } catch (_) { /* iPhone 上 select() 不一定选全 */ }
     let ok = false;
     try { ok = document.execCommand('copy'); } catch (_) { /* ignore */ }
+    // 复制完马上把选区和焦点收掉再拿走这个看不见的输入框：不然微信的「搜一搜 / 复制」菜单会卡在屏幕上
+    ta.blur();
+    clearSelection(true);
     ta.remove();
     if (ok) toast(done); else prompt('复制下面这段发给朋友：', text);
   }
@@ -3240,6 +3259,16 @@
 
 
   /* ───── 启动 ───── */
+
+  /* 游戏里永远不选文字：只有正在输入的输入框（房号 / 昵称）可以；别处冒出来的选区（长按、双击、程序选中）立刻清掉。
+   * CSS 那边也关了选字和长按菜单（见 gongzhu.css「只有输入框能选字」），这里兜住 CSS 管不到的情况。 */
+  document.addEventListener('selectstart', (e) => { if (!editableEl(nodeEl(e.target))) e.preventDefault(); });
+  document.addEventListener('selectionchange', () => {
+    const sel = window.getSelection && window.getSelection();
+    if (!sel || sel.isCollapsed || editableEl(document.activeElement) || editableEl(nodeEl(sel.anchorNode))) return;
+    sel.removeAllRanges();
+  });
+  document.addEventListener('contextmenu', (e) => { if (!editableEl(nodeEl(e.target))) e.preventDefault(); });
 
   els.play.addEventListener('click', playSelected);
   els.noExpose.addEventListener('click', () => {
