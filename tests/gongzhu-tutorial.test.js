@@ -65,3 +65,74 @@ test('coach explains every key event exactly where it happens', () => {
     for (const word of ['「羊」', '「吃羊」', '「猪」', '「变压器」', '每张红桃都要扣分', '「垫牌」', '「全红」']) assert.ok(all.includes(word), word + ' 没讲到：\n' + all);
   }
 });
+
+/* ───── 进阶教程 · 明牌 ───── */
+const A = T.advanced;
+
+test('advanced tutorial: full deck, one exposable card each', () => {
+  assert.equal(new Set(A.HANDS.flat()).size, 52);
+  A.HANDS.forEach((h) => assert.equal(h.length, 13));
+  assert.ok(A.HANDS[0].includes(R.HEART_ACE));
+  for (const [s, cs] of A.EXPOSE) for (const c of cs) assert.ok(A.HANDS[s].includes(c));
+});
+
+test('advanced tutorial: every line I can play follows the script (exhaustive over the scripted tricks)', () => {
+  let lines = 0;
+  const has = (t, c) => t.plays.some((p) => p.card === c);
+  function walk(r) {
+    if (r.trickNo >= A.SCRIPTED) {
+      lines++;
+      const H = r.history;
+      assert.ok(!has(H[0], R.PIG) && H[0].winner === 3, '墩1：下家出不了明猪，上家吃');
+      assert.ok(H[1].winner === 2 && !has(H[1], R.HEART_ACE), '墩2：我出不了明 ♥A，对家收红桃');
+      assert.ok(!has(H[2], R.DOUBLER) && H[2].winner === 0, '墩3：上家出不了明变压器，我吃');
+      assert.ok(has(H[3], R.SHEEP) && H[3].winner === 0, '墩4：对家只剩羊、被迫出，我吃羊');
+      assert.ok(has(H[4], R.DOUBLER) && H[4].winner === 0, '墩5：我吃变压器');
+      assert.ok(has(H[5], R.PIG) && H[5].winner === 3, '墩6：上家吃明猪');
+      assert.equal(R.scoreCaptured(r.captured[0], R.scoreCtx(r)).total, 800);
+      return;
+    }
+    const s = r.turn;
+    let moves;
+    if (s === 0) {
+      const g = A.guide(r);
+      moves = g >= 0 ? [g] : R.legalFor(r, 0);
+    } else moves = [A.director(r, s)];
+    for (const c of moves) {
+      assert.ok(R.legalFor(r, s).includes(c), '座位 ' + s + ' 出了不合法的 ' + R.cardLabel(c));
+      const d = R.cloneRound(r);
+      R.playCard(d, s, c);
+      walk(d);
+    }
+  }
+  const r = A.createRound();
+  R.expose(r, 0, R.HEART_ACE);
+  for (const [s, cs] of A.EXPOSE) for (const c of cs) R.expose(r, s, c);
+  walk(r);
+  assert.equal(lines, 8);
+});
+
+test('advanced tutorial: the coach has something to say at every beat', () => {
+  const coach = A.createCoach();
+  assert.ok(coach.intro.length && coach.pick && coach.afterExpose.length === 2);
+  const r = A.createRound();
+  R.expose(r, 0, R.HEART_ACE);
+  for (const [s, cs] of A.EXPOSE) for (const c of cs) R.expose(r, s, c);
+  const said = [];
+  while (r.trickNo < A.SCRIPTED) {
+    const s = r.turn;
+    let c;
+    if (s === 0) {
+      const h = coach.hint(r);
+      if (r.trickNo !== 2 || !r.trick.length) said.push(!!h || r.trickNo === 2);
+      const g = A.guide(r);
+      c = g >= 0 ? g : R.legalFor(r, 0)[0];
+    } else c = A.director(r, s);
+    const done = R.playCard(r, s, c);
+    if (done) {
+      const talk = coach.afterTrick(done, r);
+      assert.ok(talk.before.length > 0, '墩 ' + r.trickNo + ' 牌还在桌上时要讲');
+    }
+  }
+  assert.ok(said.every(Boolean));
+});

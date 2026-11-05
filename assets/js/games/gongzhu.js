@@ -8,6 +8,8 @@
   const AI = window.GongzhuAI;
   const T = window.GongzhuTutorial;
   const TUT_KEY = 'gz.tut.v1';
+  const ADV_KEY = 'gz.tutadv.v1';        // 学过进阶教程（明牌）
+  const EXPOSE_TIP_KEY = 'gz.exposetip.v1';   // 正式对局里第一次碰到明牌的小提示，出过一次就不再出
   const STORE_KEY = 'gz.match.v1';
   const SETTINGS_KEY = 'gz.settings.v1';
   const VERSION = '20261101d';   // 加了规则开关和亮牌，局面结构变了，旧存档作废
@@ -31,7 +33,8 @@
   const SETTLE_HOLD = AUTO ? 60 : 1700;   // 累计分在桌上数完（最长约 0.9 秒）后再停一会儿，才弹结算页
   // 教程放慢：机器人出牌、收墩都留足时间看清
   const TUT_PACE = { aiMin: 950, trickShow: 1100, fly: 520, fade: 320, roundEnd: 1000 };
-  const pace = () => (match && match.tutorial ? TUT_PACE : PACE);
+  const FAST_PACE = { aiMin: 140, trickShow: 320, fly: 300, fade: 160, roundEnd: 400 };   // 进阶教程讲完后快进剩下的牌
+  const pace = () => (match && match.tutorial ? (tut && tut.fast ? FAST_PACE : TUT_PACE) : PACE);
 
   const $ = (id) => document.getElementById(id);
   const els = {
@@ -537,6 +540,10 @@
     return r.turn;
   }
   function exposingMe() { return !!(match.round && match.exposing.includes(0)); }
+  function myLegal(r) {
+    const g = match.tutorial && tut && tut.adv ? T.advanced.guide(r) : -1;
+    return g >= 0 ? [g] : R.legalFor(r, 0);
+  }
 
   /* 明了 ♥A（这一局红桃全部翻倍）：牌桌上所有红桃都垫一层淡红底（见 gongzhu.css「明牌牌面」）。
    * 打牌时看这一局的明牌；一局结束、结算页还开着时看刚结束那局的。 */
@@ -552,7 +559,7 @@
     syncHeartsX2();
     for (let s = 0; s < 4; s++) renderSeat(s);
     if (match.online && match.lobby) return;
-    els.roundNo.textContent = match.tutorial ? '新手教程' : '第 ' + match.roundNo + (match.rules.end === 'rounds10' ? ' / 10' : '') + ' 局';
+    els.roundNo.textContent = match.tutorial ? (match.adv ? '进阶教程' : '新手教程') : '第 ' + match.roundNo + (match.rules.end === 'rounds10' ? ' / 10' : '') + ' 局';
   }
 
   /* 这一轮打什么花色：首家出牌后，桌子正中淡淡浮出一个大花色（压在牌下面），一轮结束放特效 / 收牌前就淡掉，
@@ -605,7 +612,7 @@
     const exposing = exposingMe() && !busy;
     const myTurn = !exposing && !match.exposing.length && !R.isRoundOver(r) && r.turn === 0 && !busy;
     // 亮牌环节：能亮的那几张亮着，点一下盖印 / 再点取消
-    const legal = exposing ? R.EXPOSABLE.filter((c) => hand.includes(c)) : myTurn ? R.legalFor(r, 0) : hand;
+    const legal = exposing ? R.EXPOSABLE.filter((c) => hand.includes(c)) : myTurn ? myLegal(r) : hand;
     const u = parseFloat(getComputedStyle(els.app).getPropertyValue('--u')) || 56;
     const W = els.hand.clientWidth;
     const n = hand.length;
@@ -634,7 +641,8 @@
       x += step;
     });
     syncHeartsX2();
-    els.noExpose.hidden = !exposing;
+    els.noExpose.hidden = !exposing || !!match.tutorial;   // 进阶教程里这一步要明牌
+    if (!exposing) hideExposeTip();
     if (exposing) {
       // 两个键分开：「不明牌」随时能点；「明牌」要先在手牌里点选（再点一下取消），选了几张写在键上
       els.play.textContent = exposePick.length ? '明牌 ' + exposePick.length + ' 张' : '明牌';
@@ -711,7 +719,7 @@
     exposeWait = { bots: Promise.all(bots.map((s) => chooseExpose(r, s, seatTier(s)).then((cards) => [s, cards]))) };
     const meIn = match.exposing.includes(0);
     renderSeats();
-    if (meIn && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyExposeTimeout, EXPOSE_MS); dingMyTurn(); return; }
+    if (meIn && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyExposeTimeout, EXPOSE_MS); dingMyTurn(); maybeExposeTip(); return; }
     busy = true;
     renderHand();
     if (meIn) chooseExpose(r, 0, takeoverTier(botTiers())).then(guard((cards) => applyExpose(0, cards)));
@@ -759,6 +767,30 @@
     exposePick = [];
     applyExpose(0, []);
   }
+
+  /* 正式对局里第一次碰到明牌、手里真有能明的牌、还没学过进阶教程：桌子中间出一次小提示「第一次碰到明牌？」，
+   * 单机可以直接去学进阶教程（学完回来接着这一局），联机给看规则（直接翻到「明牌」）。出过一次就不再出，不挡出牌 */
+  let exposeTip = null;
+  function maybeExposeTip() {
+    if (match.tutorial || AUTO || readJSON(ADV_KEY) || readJSON(EXPOSE_TIP_KEY)) return;
+    if (!match.round || !R.EXPOSABLE.some((c) => match.round.hands[0].includes(c))) return;
+    writeJSON(EXPOSE_TIP_KEY, 1);
+    if (!exposeTip) {
+      exposeTip = document.createElement('div');
+      exposeTip.className = 'gz-tip';
+      els.center.appendChild(exposeTip);
+      exposeTip.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-tip]');
+        if (!b) return;
+        hideExposeTip();
+        if (b.dataset.tip === 'learn') { if (match.online) showRules(); else startTutorial(false, 'adv'); }
+      });
+    }
+    exposeTip.innerHTML = '<span>第一次碰到明牌？</span><button type="button" class="gz-btn" data-tip="learn">' + (match.online ? '看看规则' : '看看怎么玩') + '</button>' +
+      '<button type="button" class="gz-btn" data-tip="ok">知道了</button>';
+    exposeTip.hidden = false;
+  }
+  function hideExposeTip() { if (exposeTip) exposeTip.hidden = true; }
 
   // 明牌阶段的倒计时（不限时也有）：转在我自己头像上，和出牌一样；联机按服务器的截止时间
   const EXPOSE_MS = 15000;
@@ -1046,7 +1078,7 @@
     }
     const r = match.round;
     if (busy || !r || R.isRoundOver(r) || r.turn !== 0) return;
-    if (!R.legalFor(r, 0).includes(c)) { shake(el); return; }
+    if (!myLegal(r).includes(c)) { shake(el); return; }
     if (selected === c) { playSelected(); return; }
     selected = c;
     snd('pick');
@@ -1077,7 +1109,7 @@
     }
     const r = match.round;
     if (busy || !r || r.turn !== 0 || selected < 0) return;
-    if (!R.legalFor(r, 0).includes(selected)) return;
+    if (!myLegal(r).includes(selected)) return;
     busy = true;
     timeouts = 0;
     commit(0, selected);
@@ -1199,15 +1231,18 @@
       '<span class="gz-res-caps gz-caps"></span>' +
       '<span class="gz-res-n gz-num ' + cls(last.scores[s]) + '">' + signed(last.scores[s]) + '</span>' +
       '<span class="gz-res-n gz-res-tot gz-num ' + cls(match.totals[s]) + '">' + signed(match.totals[s]) + '</span></div>').join('');
-    const title = match.tutorial ? '教程完成' : match.over
+    const title = match.tutorial ? (match.adv ? '进阶教程完成' : '恭喜，学会了基本玩法') : match.over
       ? (losers.length ? losers.map((s) => (s === 0 ? '你' : esc(NAMES[s]))).join('、') + (losers.length > 1 ? '都' : '') + '当了猪' : '这一盘结束')
       : '第 ' + last.roundNo + ' 局';
     openDialog(
       '<h2>' + title + '</h2>' +
       '<div class="gz-res"><div class="gz-res-row gz-res-head"><span></span><span></span><span class="gz-res-n">本局</span><span class="gz-res-n">累计</span></div>' + rows + '</div>' +
+      (match.tutorial && match.adv ? '<p class="gz-tut-tip">' + inlineCards(T.advanced.TIP) + '</p>' : '') +
       '<div class="gz-actions">' +
       (match.online ? onlineSettleActions()
-        : match.tutorial ? '<button type="button" class="gz-btn gz-btn-primary" data-act="tut-done" data-autofocus>开始第一盘</button>'
+        : match.tutorial && match.adv ? '<button type="button" class="gz-btn gz-btn-primary" data-act="tut-done" data-autofocus>开始对局</button>'
+        : match.tutorial ? '<button type="button" class="gz-btn" data-act="tut-adv">进阶教程：明牌</button>' +
+          '<button type="button" class="gz-btn gz-btn-primary" data-act="tut-done" data-autofocus>开始第一盘</button>'
         : match.over ? '<button type="button" class="gz-btn gz-btn-primary" data-act="again" data-autofocus>再来一盘</button>'
         : '<button type="button" class="gz-btn gz-btn-primary" data-act="next" data-autofocus>下一局</button>') +
       '</div>',
@@ -1226,12 +1261,13 @@
           if (fanSqueezed(box)) { row.classList.add('is-stack'); draw(); }
         });
         if (match.online) { bindOnlineSettle(d); return; }
-        d.querySelector('[data-act]').addEventListener('click', (e) => {
+        d.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', (e) => {
           closeDialog();
+          if (e.currentTarget.dataset.act === 'tut-adv') { finishBasicTutorial(); startTutorial(false, 'adv'); return; }
           if (e.currentTarget.dataset.act === 'tut-done') { endTutorial(); return; }
           if (e.currentTarget.dataset.act === 'again') { token++; setAutopilot(false); newMatch(); }
           startRound();
-        });
+        }));
       }
     );
   }
@@ -1327,12 +1363,24 @@
   }
 
   function showRules() {
+    const tutOk = !match.online;
     openDialog('<h2>拱猪规则</h2>' + rulesWithCards(match.rules) +
-      '<div class="gz-actions"><button type="button" class="gz-btn" data-act="tutorial">新手教程</button>' +
+      '<div class="gz-actions">' + (tutOk ? '<button type="button" class="gz-btn" data-act="tutorial">新手教程</button>' +
+        '<button type="button" class="gz-btn" data-act="tut-adv">进阶教程</button>' : '') +
       '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>知道了</button></div>',
       (d) => {
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
-        d.querySelector('[data-act="tutorial"]').addEventListener('click', () => { closeDialog(); startTutorial(); });
+        if (tutOk) {
+          d.querySelector('[data-act="tutorial"]').addEventListener('click', () => { closeDialog(); startTutorial(); });
+          d.querySelector('[data-act="tut-adv"]').addEventListener('click', () => { closeDialog(); startTutorial(false, 'adv'); });
+        }
+        // 正在明牌：直接翻到「明牌」那一段
+        const gv = match.online && online && online.st && online.st.game;
+        if (exposingMe() || (gv && gv.phase === 'expose')) {
+          const dt = [...d.querySelectorAll('.gz-rules dt')].find((x) => x.textContent === '明牌');
+          const body = d.querySelector('.gz-dialog-body');
+          if (dt && body) body.scrollTop += dt.getBoundingClientRect().top - body.getBoundingClientRect().top - 6;
+        }
       });
   }
 
@@ -1981,12 +2029,19 @@
     if (suggestCard >= 0) { suggestCard = -1; if (match && match.round) renderHand(); }
   }
 
-  function startTutorial(firstRun) {
+  /* kind 'adv' = 进阶教程（明牌）：开局四家一起明牌（我点 ♥A 再点「明牌」，三家机器人跟着明），
+   * 前几墩照剧本讲（第 4–6 墩只能出指定那张），讲完剩下的牌全部自动快进打完 */
+  function startTutorial(firstRun, kind) {
+    const adv = kind === 'adv';
+    const M = adv ? T.advanced : T;
     token++;
     stopClock();
     setAutopilot(false);
-    tut = { coach: T.createCoach(), saved: match && !match.tutorial ? match : (tut && tut.saved), firstRun: !!firstRun };
-    match = { tutorial: true, rules: T.RULES, totals: [0, 0, 0, 0], roundNo: 1, pigTaker: -1, seed: 0, round: T.createRound(), exposing: [], last: null, over: false };
+    hideExposeTip();
+    tut = { coach: M.createCoach(), saved: match && !match.tutorial ? match : (tut && tut.saved), firstRun: !!firstRun, adv, fast: false, introDone: false, exposeTalked: false };
+    match = { tutorial: true, adv, rules: M.RULES, totals: [0, 0, 0, 0], roundNo: 1, pigTaker: -1, seed: 0, round: M.createRound(), exposing: adv ? [0] : [], last: null, over: false };
+    exposePick = []; exposeHeld = [];
+    exposeWait = adv ? { bots: Promise.resolve(M.EXPOSE) } : null;
     applySoloIdentity();
     selected = -1;
     busy = true;
@@ -1996,16 +2051,21 @@
     schedule(step, 500);
   }
 
+  // 新手教程学完：记下来；第一次学完的人先跟「入门」机器人打
+  function finishBasicTutorial() {
+    writeJSON(TUT_KEY, 1);
+    if (tut && tut.firstRun) { settings.tier = 'easy'; writeJSON(SETTINGS_KEY, settings); }
+    if (tut) tut.firstRun = false;
+  }
   function endTutorial() {
     token++;
     clearTimeout(idleTimer);
     suggestCard = -1;
     els.play.classList.remove('is-suggest');
-    writeJSON(TUT_KEY, 1);
+    if (tut && tut.adv) writeJSON(ADV_KEY, 1); else finishBasicTutorial();
     els.table.classList.remove('is-tutorial');
     hideCoach();
     const back = (tut && tut.saved) || loadSaved();
-    if (tut && tut.firstRun) { settings.tier = 'easy'; writeJSON(SETTINGS_KEY, settings); }   // 第一次学完：先跟「入门」打
     tut = null;
     busy = false;
     selected = -1;
@@ -2038,6 +2098,25 @@
   function tutStep() {
     const r = match.round;
     renderSeats();
+    if (tut.adv) {
+      // 明牌这一步：先讲一段（点继续），再让我点 ♥A、点「明牌」（提示贴在出牌处，不挡操作）
+      if (match.exposing.length) {
+        if (!tut.introDone) { tut.introDone = true; busy = true; renderHand(); coachSay(tut.coach.intro, tutStep); return; }
+        busy = false; renderHand(); showCoach({ text: tut.coach.pick }, null);
+        return;
+      }
+      if (!tut.exposeTalked) { tut.exposeTalked = true; busy = true; renderHand(); coachSay(tut.coach.afterExpose, tutStep); return; }
+      // 讲完了：剩下的牌四家（包括我）都自动、快速地打完
+      if (r.trickNo >= T.advanced.SCRIPTED) {
+        tut.fast = true;
+        hideCoach();
+        busy = true;
+        renderHand();
+        const seat = r.turn;
+        schedule(() => commit(seat, AI.countingPolicy(r, seat)), pace().aiMin);
+        return;
+      }
+    }
     if (r.turn === 0) {
       busy = false;
       renderHand();
@@ -2049,7 +2128,7 @@
     busy = true;
     renderHand();
     const seat = r.turn;
-    schedule(() => commit(seat, T.director(r, seat)), pace().aiMin);
+    schedule(() => commit(seat, (tut.adv ? T.advanced : T).director(r, seat)), pace().aiMin);
   }
 
   // 讲解一段段地说，每段点「继续」；说完回到 done
@@ -2544,7 +2623,7 @@
       match.exposing = mine ? [0] : [];
       busy = !mine;
       renderSeats(); renderHand();
-      if (mine) { startClock(0, null, remainMs(gv)); dingMyTurn(); }
+      if (mine) { startClock(0, null, remainMs(gv)); dingMyTurn(); maybeExposeTip(); }
       return;
     }
     match.exposing = [];

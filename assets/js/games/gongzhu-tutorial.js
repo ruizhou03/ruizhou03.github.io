@@ -250,5 +250,123 @@
     return { hint, afterTrick };
   }
 
-  return { HANDS, RULES, createRound, director, createCoach, card, cards };
+  /* ───── 进阶教程 · 明牌（用户 2026-11-05 过目定稿的剧本） ─────
+   * 四家各拿一张能明的牌：我 ♥A、下家猪 ♠Q、对家羊 ♦J（他唯一的方块）、上家变压器 ♣10，开打前四家一起明。
+   * 前六墩把明牌的规矩一条条演一遍，之后剩下的牌自动快速打完：
+   *   墩1 我 ♠2 → 下家有黑桃却出不了明出的猪（首轮限制）→ 上家 ♠A 吃
+   *   墩2 上家领 ♥2（红桃首轮）→ 我的明 ♥A 变灰、出别的红桃 → 对家 ♥K 收下红桃（明 ♥A：扣分 ×2）
+   *   墩3 对家领小草花 → 上家的明 ♣10 出不了、只能 ♣2 → 我 ♣K / ♣A 吃
+   *   墩4 引导出 ♦A → 对家只剩 ♦J 一张方块，明出的牌也得出（「只剩一张除外」）→ 我吃羊 +200
+   *   墩5 引导出剩下那张草花 → 上家只剩 ♣10 → 我吃变压器 ×4：+200 × 4 = +800
+   *   墩6 引导出 ♠4 → 下家出猪、上家 ♠K 吃：−200
+   * 我在第 2、3 墩可以自由出（共 8 种走法，tests/gongzhu-tutorial.test.js 穷举验证都按剧本走）；第 4–6 墩只能出指定的那张。 */
+  const ADV_HANDS = [
+    cards('♠2 ♠4 ♥3 ♥5 ♥7 ♥9 ♥A ♦2 ♦3 ♦4 ♦A ♣K ♣A'),
+    cards('♠5 ♠6 ♠Q ♥4 ♥6 ♥8 ♦6 ♦8 ♦10 ♣4 ♣6 ♣8 ♣Q'),
+    cards('♠3 ♠7 ♠8 ♥10 ♥J ♥Q ♥K ♦J ♣3 ♣5 ♣7 ♣9 ♣J'),
+    cards('♠9 ♠10 ♠J ♠K ♠A ♥2 ♦5 ♦7 ♦9 ♦Q ♦K ♣2 ♣10'),
+  ];
+  const ADV_RULES = Object.freeze(Object.assign({}, R.DEFAULT_RULES, { expose: true }));
+  const ADV_EXPOSE = [[1, [PIG]], [2, [SHEEP]], [3, [DOUBLER]]];   // 三家机器人明的牌
+  const ADV_SCRIPTED = 6;   // 前几墩照剧本讲，之后快进
+
+  function advRound() { return R.createRound(ADV_HANDS, 0, R.SPADE_TWO, ADV_RULES); }
+
+  // 引导：这几墩我只能出这一张（界面上其余变灰），-1 = 不限
+  function advGuide(r) {
+    if (r.turn !== 0 || r.trick.length) return -1;
+    if (r.trickNo === 3) return card('♦A');
+    if (r.trickNo === 4) { const c = of(r.hands[0], CLUB); return c.length ? c[0] : -1; }
+    if (r.trickNo === 5) return card('♠4');
+    return -1;
+  }
+
+  function advDirector(r, s) {
+    const legal = R.legalFor(r, s);
+    const lead = R.leadSuitOf(r), t = r.trickNo;
+    const pick = (c) => (legal.includes(c) ? c : -1);
+    const quiet = () => { const q = legal.filter((x) => !R.isScoring(x)); return lo(q.length ? q : legal); };
+    if (lead < 0) {
+      if (s === 3 && t === 1 && pick(card('♥2')) >= 0) return card('♥2');
+      if (s === 2 && t === 2 && of(legal, CLUB).length) return lo(of(legal, CLUB));
+      return quiet();
+    }
+    if (s === 3 && t === 0 && pick(card('♠A')) >= 0) return card('♠A');
+    if (s === 2 && t === 1 && pick(card('♥K')) >= 0) return card('♥K');
+    if (s === 1 && t === 5 && pick(PIG) >= 0) return PIG;
+    if (s === 3 && t === 5 && pick(card('♠K')) >= 0) return card('♠K');
+    const f = of(legal, lead);
+    return f.length ? lo(f) : quiet();
+  }
+
+  function createAdvCoach() {
+    const seen = new Set();
+    const once = (k) => (seen.has(k) ? false : (seen.add(k), true));
+    const who = (s) => (s === 0 ? '你' : NAMES[s]);
+    const sg = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n);
+
+    // 开局：明牌这一步讲什么（intro 等点继续；pick 是之后贴在出牌处的提示）
+    const intro = [{ text: '这一局开打前多了一步：明牌。' + label(R.HEART_ACE) + '、猪 ' + label(PIG) + '、羊 ' + label(SHEEP) + '、变压器 ' + label(DOUBLER) +
+      ' 这四张，开打前可以亮出来给大家看，亮了效果翻倍。' }];
+    const pick = '你手里有 ' + label(R.HEART_ACE) + '。点一下它，再点「明牌」。';
+    const afterExpose = [
+      { text: '四家都明了牌：你明了 ' + label(R.HEART_ACE) + '，下家明了猪，对家明了羊，上家明了变压器。明出的牌摆在各家旁边，大家都看得见。' },
+      { text: '效果翻倍：明 ' + label(R.HEART_ACE) + '，这一局每张红桃的分都 ×2；明猪 −200；明羊 +200；明变压器 ×4。' },
+    ];
+
+    function hint(r) {
+      const lead = R.leadSuitOf(r), t = r.trickNo;
+      if (t === 0 && lead < 0) return '你有 ' + label(R.SPADE_TWO) + '，由你先出，已经帮你选好了，点「出牌」。';
+      if (t === 1 && lead === HEART && once('h1')) return '上家领出了红桃，这是红桃第一次被领出。你的 ' + label(R.HEART_ACE) + ' 是明出来的，这一轮不能出它（它变灰了），出别的红桃。';
+      if (t === 2 && lead === CLUB && once('h2')) return '对家领出了草花。你的草花最大，出哪张都能赢下这一轮。';
+      if (t === 3) return '对家明了羊 ' + label(SHEEP) + '，而且他只剩这一张方块。出 ' + label(card('♦A')) + '，看看会怎样。';
+      if (t === 4) { const c = of(r.hands[0], CLUB)[0]; return '再出草花 ' + label(c) + '：上家手里只剩明出来的变压器了。'; }
+      if (t === 5) return '出 ' + label(card('♠4')) + '。黑桃已经领出过一次，下家这回可以出猪了。';
+      return null;
+    }
+
+    function afterTrick(done, r) {
+      const before = [], after = [];
+      const t = r.trickNo, w = done.winner, plays = done.plays;
+      const trick = { plays, winner: w };
+      const ctx = R.scoreCtx(r);
+      const cardOf = (s) => plays.find((p) => p.seat === s).card;
+      if (t === 1) {
+        before.push({ text: '这一轮的花色是黑桃。下家手里有明出的猪 ' + label(PIG) + '，却没出它——明出来的牌，在它那个花色第一次被领出的那一轮里不能出；手里这门只剩它一张时除外。', trick, mark: true });
+      } else if (t === 2) {
+        const hearts = plays.map((p) => p.card).filter(R.isHeart);
+        const base = hearts.reduce((a, c) => a + R.heartValue(c, ADV_RULES), 0);
+        before.push({ text: who(w) + '的 ' + label(cardOf(w)) + ' 最大，收下这一轮的红桃。', trick, mark: true });
+        after.push({ text: '你明了 ' + label(R.HEART_ACE) + '，这一局每张红桃的扣分都翻倍：这一轮' + who(w) + '扣 ' + (-base * 2) + ' 分（不明是 ' + (-base) + '）。', focus: w });
+      } else if (t === 3) {
+        before.push({ text: '上家明了变压器 ' + label(DOUBLER) + '，这是草花第一次被领出，他也不能出它，只能出 ' + label(cardOf(3)) + '。' + who(w) + '的 ' + label(cardOf(w)) + ' 最大。', trick, mark: true });
+      } else if (t === 4) {
+        before.push({ text: '方块第一次被领出，可对家只剩 ' + label(SHEEP) + ' 这一张方块——这就是刚才说的「除外」：只能打出来。' + who(w) + '的 ' + label(cardOf(w)) + ' 最大。', trick, mark: true });
+        if (w === 0) after.push({ text: '你吃到明出来的羊：+200（不明是 +100）。', focus: 0 });
+      } else if (t === 5) {
+        before.push({ text: '草花已经领出过，限制没了；上家只剩 ' + label(DOUBLER) + '，只能打出来，' + who(w) + '又赢了。', trick, mark: true });
+        if (w === 0) {
+          const sc = R.scoreCaptured(r.captured[0], ctx);
+          const base = sc.heartScore + sc.pigScore + sc.sheepScore;
+          after.push({ text: '你收下明出来的变压器：这一局的分 ×4（不明是 ×2）。你这一局：' + sg(base) + ' × 4 = ' + sg(sc.total) + '。', focus: 0 });
+        }
+      } else if (t === 6) {
+        before.push({ text: '下家打出了明出来的猪，' + who(w) + '的 ' + label(cardOf(w)) + ' 最大。', trick, mark: true });
+        after.push({ text: who(w) + '吃到明出来的猪：−200（不明是 −100）。', focus: w });
+        after.push({ text: '明牌的规矩就这些。剩下 ' + (13 - t) + ' 墩帮你快速打完。' });
+      }
+      return { before, after };
+    }
+
+    return { intro, pick, afterExpose, hint, afterTrick };
+  }
+
+  const ADV_TIP = '明牌就是加码：明了好牌（羊），自己吃到更赚；明了坏牌（猪、' + label(R.HEART_ACE) + '）是向大家示威——可要是最后落到自己手里，扣得也更多。';
+
+  const advanced = {
+    HANDS: ADV_HANDS, RULES: ADV_RULES, EXPOSE: ADV_EXPOSE, SCRIPTED: ADV_SCRIPTED, TIP: ADV_TIP,
+    createRound: advRound, director: advDirector, guide: advGuide, createCoach: createAdvCoach,
+  };
+
+  return { HANDS, RULES, createRound, director, createCoach, card, cards, advanced };
 });
