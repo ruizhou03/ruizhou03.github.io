@@ -11,12 +11,12 @@ minimal_app_shell: true
 body_class: gz-fullscreen
 ---
 
-<!-- 精简外壳不带站点字体：这里自己加载思源宋体（按字形分片懒加载）和 Cormorant。
-     不加载的话微信 iOS 会把「serif」落到日文明朝体：日文也有的字（机、局）是宋体，简体专用字（联、对）退回黑体，一行里两种字 -->
+<!-- 中文字体：电脑上照旧用系统宋体（Songti SC，一直以来的样子）；手机上没有系统宋体，才用这里的思源宋体补上
+     （按字形分片懒加载，有系统宋体的设备一片都不会下载）。不补的话微信 iOS 会落到日文明朝体：
+     日文也有的字（机、局）是宋体，简体专用字（联、对）退回黑体，一行里两种字。数字仍是 Georgia，不加载 Cormorant -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/700.css">
 <link rel="stylesheet" href="/assets/css/gongzhu.css?v={{ site.time | date: '%s' }}">
 
 <div class="gz-app" id="gzApp">
@@ -88,6 +88,27 @@ body_class: gz-fullscreen
   <div class="gz-fit" id="gzFit" hidden>
     <svg class="gz-fit-icon" viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="8" width="24" height="40" rx="4"/><path d="M28 42h8"/><path d="M50 30a20 20 0 0 1-12 22" class="arc"/><path d="m35 49 3 3-4 2" class="arc"/></svg>
     <p class="gz-fit-text"></p>
+  </div>
+
+  <!-- 封面：没有正在打的局时才出现（见 gongzhu.js「封面 · 暂停」）。盖住牌桌，弹窗（建房 / 加入）仍在它上面 -->
+  <div class="gz-cover" id="gzCover" hidden>
+    <div class="gz-cover-inner">
+      <div class="gz-cover-art" aria-hidden="true"></div>
+      <h1 class="gz-cover-title">拱猪</h1>
+      <div class="gz-cover-btns" data-cover-step="main">
+        <button type="button" class="gz-cover-btn is-primary" data-cover="solo"><b>单机</b><small>和三个机器人打</small></button>
+        <button type="button" class="gz-cover-btn" data-cover="online"><b>联机</b><small>和朋友一起：创建或加入房间</small></button>
+      </div>
+      <div class="gz-cover-btns" data-cover-step="online" hidden>
+        <button type="button" class="gz-cover-btn is-primary" data-cover="create"><b>创建房间</b><small>开一个房间，把链接发给朋友</small></button>
+        <button type="button" class="gz-cover-btn" data-cover="join"><b>加入房间</b><small>输入朋友给的 4 位房号</small></button>
+        <button type="button" class="gz-cover-link" data-cover="back">‹ 返回</button>
+      </div>
+      <div class="gz-cover-foot" data-cover-step="main">
+        <button type="button" class="gz-cover-link" data-cover="tutorial">新手教程</button>
+        <button type="button" class="gz-cover-link" data-cover="exit" hidden>返回百宝奇巧</button>
+      </div>
+    </div>
   </div>
 
   <div class="gz-dialog-mask" id="gzDialogMask" hidden>

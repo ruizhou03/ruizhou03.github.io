@@ -121,7 +121,26 @@
 
   function newMatch() {
     // 规则在开盘时定下，中途改设置从下一盘起生效
-    match = { rules: R.normalizeRules(settings.rules), totals: [0, 0, 0, 0], roundNo: 0, pigTaker: -1, seed: (Math.random() * 2 ** 31) | 0, round: null, exposing: [], last: null, over: false };
+    match = { rules: R.normalizeRules(settings.rules), totals: [0, 0, 0, 0], roundNo: 0, pigTaker: -1, seed: (Math.random() * 2 ** 31) | 0, round: null, exposing: [], last: null, over: false, bots: drawBots() };
+    applySoloIdentity();
+  }
+
+  /* 单机的三家机器人：每一盘开局抽签起名字、分头像（和联机里的机器人同一套），记进存档，下次进来还是这三位。
+   * 名字下面一枚小签写方位（下家 / 对家 / 上家），免得分不清谁坐哪。教程里仍叫「上家 / 对家 / 下家」——讲解词里就是这么称呼的 */
+  const SOLO_DIRS = ['', '下家', '对家', '上家'];
+  function drawBots() {
+    const A = window.GongzhuAvatars;
+    if (!A) return null;
+    const names = A.BOT_NICKS.slice(), faces = A.ROBOT.map((x) => x.id);
+    const take = (arr) => arr.splice((Math.random() * arr.length) | 0, 1)[0];
+    return [1, 2, 3].map(() => ({ nick: take(names), avatar: take(faces) }));
+  }
+  function soloBots() { return match && !match.online && !match.tutorial && !match.demo && match.bots ? match.bots : null; }
+  function applySoloIdentity() {
+    const b = soloBots();
+    NAMES = b ? ['我'].concat(b.map((x) => x.nick)) : SOLO_NAMES.slice();
+    AVATARS = b ? ['我'].concat(b.map((x) => 'svg:' + x.avatar)) : SOLO_AVATARS.slice();
+    buildSeats();
   }
   function save() { if (!match.tutorial && !match.online && !match.demo) writeJSON(STORE_KEY, { v: VERSION, match }); }
 
@@ -462,7 +481,8 @@
     els.seats.forEach((el, s) => {
       el.innerHTML =
         '<div class="gz-who"><span class="gz-avatar"><span class="gz-av-face" data-v="' + esc(AVATARS[s]) + '">' + faceHtml(AVATARS[s]) + '</span>' + CLOCK_SVG + '</span>' +
-        '<span class="gz-name-line"><span class="gz-name">' + esc(NAMES[s]) + '</span><span class="gz-total gz-num"></span></span></div>' +
+        '<span class="gz-name-line"><span class="gz-name">' + esc(NAMES[s]) + '</span><span class="gz-total gz-num"></span>' +
+        (s > 0 && !online && soloBots() ? '<span class="gz-tag is-dir">' + SOLO_DIRS[s] + '</span>' : '') + '</span></div>' +
         (s === 0 ? '' : '<div class="gz-hold"><span class="gz-backs" aria-hidden="true"></span><span class="gz-shown"></span></div>') +
         '<div class="gz-caps"></div>';
       el.setAttribute('aria-label', NAMES[s]);
@@ -1297,15 +1317,16 @@
     room: '<path d="M10.2 13.8a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1.1 1.1"/><path d="M13.8 10.2a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1.1-1.1"/>',
     roomrules: '<path d="M4 7h9M17 7h3M4 17h4M12 17h8"/><circle cx="15" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
     leave: '<path d="M13.5 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20h7"/><path d="M10 12h10M16.5 8.5 20 12l-3.5 3.5"/>',
+    cover: '<path d="M4 11.2 12 4.5l8 6.7"/><path d="M6.5 9.5v10h11v-10"/><path d="M10 19.5v-5h4v5"/>',
     'settings-art': '<rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M12 9.2c1.4 1.4 2.8 2.3 2.8 3.6 0 1-.9 1.5-1.7 1.1L13.6 16h-3.2l.5-2.1c-.8.4-1.7-.1-1.7-1.1 0-1.3 1.4-2.2 2.8-3.6Z"/>',
   };
   function menuItems() {
-    const exit = FROM_SITE ? [['line'], ['exit', '返回百宝奇巧', match && match.online ? '不会退出房间，回来接着打' : match && match.tutorial ? '教程下次还能从规则里打开' : '进度自动保存，回来接着打']] : [];
+    const exit = FROM_SITE ? [['exit', '返回百宝奇巧', match && match.online ? '不会退出房间，回来接着打' : match && match.tutorial ? '教程下次还能从规则里打开' : '进度自动保存，回来接着打']] : [];
     const art = settings.artFaces !== false;
     const artItem = ['settings-art', art ? '牌面：卡通' : '牌面：普通',
       art ? '♠Q、♦J、♣10 画成猪、羊、×2；点一下换回普通牌面' : '猪、羊、变压器是普通牌面；点一下换成卡通画'];
     if (match && match.tutorial) {
-      return [['skip', '跳过教程', '直接开始打'], ...exit];
+      return [['skip', '跳过教程', '直接开始打'], ['cover', '回到封面', '教程下次还能从封面打开'], ...exit];
     }
     if (match && match.online && online) {
       const inGame = !match.lobby;
@@ -1313,7 +1334,7 @@
         ['head', '房间 ' + online.code],
         ['room', '邀请朋友', '点一下复制邀请链接，发给朋友'],
         ['roomrules', isHost() && match.lobby ? '自定义规则' : '房间规则', isHost() && match.lobby ? '改了会通知房间里的其他人' : '这个房间按什么规则打'],
-        ['leave', '离开房间', inGame ? '你的座位交给机器人接着打，回到单机' : '回到单机'],
+        ['leave', '离开房间', inGame ? '你的座位交给机器人接着打，回到封面' : '回到封面'],
         ['line'],
         artItem,
         ...exit,
@@ -1326,6 +1347,8 @@
       ...(NET ? [['online', '加入 / 创建房间', '和朋友联机：输房号加入，或开一个房间发链接']] : []),
       ['settings', '设置', 'AI 水平、出牌限时、牌面、玩法变体'],
       ['tutorial', '新手教程', '跟着打一局，边打边讲'],
+      ['line'],
+      ['cover', '回到封面', '这一盘先停下，回来接着打'],
       ...exit,
     ];
   }
@@ -1347,6 +1370,9 @@
       document.querySelectorAll('.gz-seat .gz-caps').forEach((x) => { x.innerHTML = ''; });
       renderAll();
       toast(settings.artFaces ? '换成卡通牌面了' : '换成普通牌面了');
+    } else if (k === 'cover') {
+      if (match && match.tutorial) quitTutorial(); else freezeSolo();
+      showCover();
     } else if (k === 'exit') location.href = '/toolbox/';
   }
   function closeMenu() {
@@ -1872,6 +1898,7 @@
     setAutopilot(false);
     tut = { coach: T.createCoach(), saved: match && !match.tutorial ? match : (tut && tut.saved), firstRun: !!firstRun };
     match = { tutorial: true, rules: T.RULES, totals: [0, 0, 0, 0], roundNo: 1, pigTaker: -1, seed: 0, round: T.createRound(), exposing: [], last: null, over: false };
+    applySoloIdentity();
     selected = -1;
     busy = true;
     els.table.classList.add('is-tutorial');
@@ -1888,13 +1915,15 @@
     writeJSON(TUT_KEY, 1);
     els.table.classList.remove('is-tutorial');
     hideCoach();
-    const back = tut && tut.saved;
+    const back = (tut && tut.saved) || loadSaved();
     if (tut && tut.firstRun) { settings.tier = 'easy'; writeJSON(SETTINGS_KEY, settings); }   // 第一次学完：先跟「入门」打
     tut = null;
     busy = false;
     selected = -1;
     if (back && !back.over && (back.round || back.last)) {
       match = back;
+      if (!match.bots) match.bots = drawBots();
+      applySoloIdentity();
       renderAll();
       if (match.round) step();
       else showSettlement();
@@ -1902,6 +1931,19 @@
     }
     newMatch();
     startRound();
+  }
+
+  // 教程打到一半回封面：收拾教程的样子，不记「学过了」，原来那一盘留在内存里（封面上点单机接着打）
+  function quitTutorial() {
+    token++;
+    clearTimeout(idleTimer);
+    suggestCard = -1;
+    els.play.classList.remove('is-suggest');
+    els.table.classList.remove('is-tutorial');
+    hideCoach();
+    match = (tut && tut.saved) || null;
+    tut = null;
+    selected = -1;
   }
 
   function tutStep() {
@@ -2074,7 +2116,7 @@
   function startOnline(st, tok, joined) {
     if (match && !match.online && !match.tutorial) save();
     token++;
-    stopClock(); hideCoach(); closeDialog();
+    stopClock(); hideCoach(); closeDialog(); hideCover();
     setAutopilot(false);
     online = { code: st.code, token: tok, st: null, mySeat: st.mySeat, applied: 0, queue: [], pending: -1, idle: true, inGame: false, readySent: false, skew: 0, stopped: false, joinRules: !!joined, seenCfg: null, sheetBase: null, base: null, ops: [], pumping: false };
     NET.writeSession({ code: st.code, token: tok });
@@ -2097,11 +2139,11 @@
     busy = false; selected = -1; exposePick = []; flying = null;
     els.app.classList.remove('is-online', 'is-lobby');
     $('gzLobby').hidden = true;
-    NAMES = SOLO_NAMES.slice();
-    AVATARS = SOLO_AVATARS.slice();
-    buildSeats();
-    resumeSolo(true);
-    if (msg) toast(msg);
+    match = null;   // 单机那一盘进房间前已存档，封面上点「单机」接着打
+    applySoloIdentity();
+    els.hand.innerHTML = '';
+    els.slots.forEach((x) => { x.innerHTML = ''; });
+    showCover(msg);
   }
 
   async function pollLoop(my) {
@@ -2676,20 +2718,24 @@
     showRoomRules(open && open.dataset.kind === 'join' ? 'join' : 'changed', base);
   }
 
-  /* 入口：起个昵称，创建房间或输房号加入 */
-  function showOnlineEntry(code) {
+  /* 入口：起个昵称，创建房间或输房号加入。mode：'create' 只建房 / 'join' 只加入（封面上分开点的）/ 不给 = 两样都有（菜单里那条） */
+  function showOnlineEntry(code, mode) {
     if (!NET) return;
     if (match && match.tutorial) { toast('先打完或跳过教程，再开联机'); return; }
+    const canJoin = mode !== 'create', canCreate = mode !== 'join';
     const ident = window.GamesShell && GamesShell.Identity;
     const nick = (ident && ident.getNick && ident.getNick()) || '';
-    openDialog('<h2>联机对局</h2>' +
+    const joinFirst = !!code || !canCreate;
+    openDialog('<h2>' + (mode === 'create' ? '创建房间' : mode === 'join' ? '加入房间' : '联机对局') + '</h2>' +
       '<div class="gz-field-label">你的昵称</div><input class="gz-input" data-nick maxlength="12" autocomplete="nickname" value="' + esc(nick) + '" placeholder="可以不填，随机起一个">' +
-      '<div class="gz-field-label">' + (code ? '朋友邀请你加入房间' : '加入朋友的房间') + '</div>' +
-      '<div class="gz-join-row"><input class="gz-input" data-code inputmode="numeric" maxlength="4" placeholder="4 位房号" value="' + esc(code || '') + '">' +
-      '<button type="button" class="gz-btn' + (code ? ' gz-btn-primary' : '') + '" data-act="join"' + (code ? ' data-autofocus' : '') + '>加入</button></div>' +
+      (canJoin ? '<div class="gz-field-label">' + (code ? '朋友邀请你加入房间' : canCreate ? '加入朋友的房间' : '房号') + '</div>' +
+        '<div class="gz-join-row"><input class="gz-input" data-code inputmode="numeric" maxlength="4" placeholder="4 位房号" value="' + esc(code || '') + '">' +
+        (canCreate ? '<button type="button" class="gz-btn' + (code ? ' gz-btn-primary' : '') + '" data-act="join"' + (code ? ' data-autofocus' : '') + '>加入</button>' : '') + '</div>' : '') +
+      (mode === 'create' ? '<p class="gz-note">建好后发链接或房号给朋友，空位可以加机器人</p>' : '') +
       '<p class="gz-note gz-err" data-err hidden></p>' +
       '<div class="gz-actions"><button type="button" class="gz-btn" data-close>取消</button>' +
-      '<button type="button" class="gz-btn' + (code ? '' : ' gz-btn-primary') + '" data-act="create"' + (code ? '' : ' data-autofocus') + '>创建新房间</button></div>',
+      (canCreate ? '<button type="button" class="gz-btn' + (joinFirst ? '' : ' gz-btn-primary') + '" data-act="create"' + (joinFirst ? '' : ' data-autofocus') + '>创建' + (mode ? '' : '新') + '房间</button>'
+        : '<button type="button" class="gz-btn gz-btn-primary" data-act="join" data-autofocus>加入</button>') + '</div>',
       (d) => {
         const err = d.querySelector('[data-err]');
         const nickIn = d.querySelector('[data-nick]');
@@ -2711,7 +2757,8 @@
           } catch (e) { fail(NET.message(e)); }
         };
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
-        d.querySelector('[data-act="create"]').addEventListener('click', () => {
+        const cb = d.querySelector('[data-act="create"]');
+        if (cb) cb.addEventListener('click', () => {
           const v = takeNick();
           if (v !== null) go(() => NET.create(v, { rules: settings.rules, turnSec: settings.turnSec | 0 }));
         });
@@ -2722,9 +2769,10 @@
           if (!/^\d{4}$/.test(c)) { fail('房号是 4 位数字'); codeIn.focus(); return; }
           go(() => NET.join(c, v), true);
         };
-        d.querySelector('[data-act="join"]').addEventListener('click', join);
-        codeIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
-        if (!nick) setTimeout(() => nickIn.focus(), 0);
+        const jb = d.querySelector('[data-act="join"]');
+        if (jb) jb.addEventListener('click', join);
+        if (codeIn) codeIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); join(); } });
+        if (!nick && !code) setTimeout(() => nickIn.focus(), 0);
       });
   }
 
@@ -2774,6 +2822,7 @@
   els.mask.addEventListener('click', (e) => { if (e.target === els.mask) dismissDialog(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !els.mask.hidden) dismissDialog();
+    if (coverOn || !match) return;
     if ((e.key === ' ' || e.key === 'Enter') && els.mask.hidden && coachNext) { e.preventDefault(); coachAdvance(); return; }
     if (e.key === 'Enter' && els.mask.hidden) playSelected();
   });
@@ -2801,34 +2850,106 @@
     if (m.last && !ok(m.last.captured)) return false;
     return true;
   }
-  function resumeSolo(quiet) {
-  const saved = readJSON(STORE_KEY);
-  if (saved && saved.match && !saneMatch(saved.match)) saved.match = null;
-  if (saved && saved.v === VERSION && saved.match && !saved.match.over) {
-    match = saved.match;
-    match.rules = R.normalizeRules(match.rules);
+  function loadSaved() {
+    const saved = readJSON(STORE_KEY);
+    if (!saved || saved.v !== VERSION || !saved.match || saved.match.over || !saneMatch(saved.match)) return null;
+    const m = saved.match;
+    m.rules = R.normalizeRules(m.rules);
+    return m;
+  }
+
+  /* ───── 封面 · 暂停 ─────
+   * 进来时怎么走（boot）：
+   *  · 动画预览 ?fxdemo=… → 预览；本机自测 ?gzauto=1 → 直接打单机，不出封面
+   *  · 上次在联机房间里（本机记着房号和凭证）→ 直接接回房间，不出封面；接不回（散了 / 连不上）→ 封面 + 提示
+   *  · 点邀请链接 ?room=1234 进来 → 封面垫底 + 「加入房间」框（取消就停在封面）；单机存档原样不动
+   *  · 单机一局打到一半 → 牌桌原样摆出来、停在「暂停中」，点「继续」接着打（或回封面）；两局之间 → 直接出那张结算
+   *  · 别的情况（第一次来、上一盘打完了、教程打到一半关掉）→ 封面：单机 / 联机（创建 · 加入）/ 新手教程
+   * 打着单机切到后台（微信回个消息）也算暂停：机器人不偷跑、我的钟不走，回来点「继续」。联机不暂停（别人在等）。 */
+  let coverOn = false;
+  function showCover(msg) {
+    const el = $('gzCover');
+    coverOn = true;
+    closeDialog(); closeMenu(); hideCoach();
+    if (soundPanel) soundPanel.hidden = true;
+    const art = el.querySelector('.gz-cover-art');
+    if (!art.innerHTML) art.innerHTML = ART.pig;
+    const m = soloBots() ? match : loadSaved();
+    el.querySelector('[data-cover="solo"] small').textContent = m && (m.round || m.last) ? '接着打第 ' + m.roundNo + ' 局' : '和三个机器人打';
+    el.querySelector('[data-cover="online"]').hidden = !NET;
+    el.querySelector('[data-cover="tutorial"]').textContent = readJSON(TUT_KEY) ? '新手教程' : '第一次玩？先学一局';
+    el.querySelector('[data-cover="exit"]').hidden = !FROM_SITE;
+    coverStep('main');
+    el.hidden = false;
+    els.app.classList.add('is-cover');
+    if (msg) toast(msg);
+  }
+  function hideCover() {
+    coverOn = false;
+    $('gzCover').hidden = true;
+    els.app.classList.remove('is-cover');
+  }
+  // 封面两步：先选单机 / 联机；联机再选创建 / 加入
+  function coverStep(k) {
+    $('gzCover').querySelectorAll('[data-cover-step]').forEach((x) => { x.hidden = x.dataset.coverStep !== k; });
+  }
+
+  // 单机停下来：作废所有排着的回调（机器人出牌、动画），钟停住，存一下。之后从 playSolo 原样接着打——和刷新页面后接存档走的是同一条路
+  function freezeSolo() {
+    if (!soloBots()) return;
+    token++;
+    stopClock();
+    busy = true;
+    flying = null;
+    exposeWait = null;
+    els.fx.innerHTML = '';
+    els.center.classList.remove('is-fxing');
+    save();
+  }
+  function showPause() {
+    openDialog('<h2>暂停中</h2><p>第 ' + match.roundNo + ' 局打到一半，点「继续」接着打。</p>' +
+      '<div class="gz-actions"><button type="button" class="gz-btn" data-act="cover">回到封面</button>' +
+      '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>继续</button></div>',
+      (d) => {
+        d.querySelector('[data-close]').addEventListener('click', () => { closeDialog(); playSolo(match); });
+        d.querySelector('[data-act="cover"]').addEventListener('click', () => showCover());
+      });
+  }
+  // 进单机：给了这一盘就接着打（打到哪算哪），没给就新开一盘
+  function playSolo(m) {
+    hideCover();
+    stopClock();
+    busy = false; selected = -1; flying = null; exposePick = []; exposeHeld = []; exposeWait = null;
+    if (!m) { newMatch(); startRound(); return; }
+    match = m;
+    if (!match.bots) match.bots = drawBots();   // 老存档没有机器人名字：现在抽一次，记进去
+    applySoloIdentity();
+    save();
     renderAll();
     if (match.round) step();
     else if (match.last) showSettlement();
     else startRound();
-  } else if (!quiet && !readJSON(TUT_KEY) && !AUTO) {
-    // 第一次来：问一句要不要先学
-    newMatch();
-    renderAll();
-    openDialog('<h2>第一次玩拱猪？</h2><p>跟着打一局，边打边学，几分钟就会。</p>' +
-      '<div class="gz-actions"><button type="button" class="gz-btn" data-act="skip">直接开打</button>' +
-      '<button type="button" class="gz-btn gz-btn-primary" data-act="learn" data-autofocus>先学一局</button></div>',
-      (d) => {
-        d.querySelector('[data-act="learn"]').addEventListener('click', () => { closeDialog(); match = null; startTutorial(true); });
-        d.querySelector('[data-act="skip"]').addEventListener('click', () => { closeDialog(); writeJSON(TUT_KEY, 1); startRound(); });
-      });
-  } else {
-    newMatch();
-    startRound();
   }
-  }
+  // 切到后台：单机一局正打着、没开着别的弹窗，就停下来，回来看到「暂停中」
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden || AUTO || coverOn || !soloBots() || !match.round || !els.mask.hidden) return;
+    closeMenu();
+    freezeSolo();
+    showPause();
+  });
 
   $('gzMenuBtn').addEventListener('click', toggleMenu);
+  $('gzCover').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-cover]');
+    if (!b) return;
+    const k = b.dataset.cover;
+    if (k === 'solo') playSolo(soloBots() ? match : loadSaved());
+    else if (k === 'online') coverStep('online');
+    else if (k === 'back') coverStep('main');
+    else if (k === 'create' || k === 'join') showOnlineEntry('', k);
+    else if (k === 'tutorial') { hideCover(); startTutorial(!readJSON(TUT_KEY)); }
+    else if (k === 'exit') location.href = '/toolbox/';
+  });
   // 大厅：点座位（空位加机器人 / 坐过去，机器人换档，房主请人离开）；中间面板的几个按钮
   els.table.addEventListener('click', (e) => {
     const seat = e.target.closest('[data-lseat]');
@@ -2900,13 +3021,29 @@
   const demoParam = new URLSearchParams(location.search).get('fxdemo');
   if (demoParam) { startDemo(demoParam); return; }
   const roomParam = (new URLSearchParams(location.search).get('room') || '').trim();
+  const invite = NET && /^\d{4}$/.test(roomParam) ? roomParam : '';
   const sess = NET && NET.readSession();
+  // 封面 / 暂停 / 直接接着打：见上面「封面 · 暂停」
+  const boot = (msg) => {
+    if (AUTO) { playSolo(loadSaved()); return; }
+    if (invite) { showCover(msg); showOnlineEntry(invite, 'join'); return; }
+    const m = loadSaved();
+    if (m && m.round) {
+      match = m;
+      if (!match.bots) { match.bots = drawBots(); save(); }
+      applySoloIdentity();
+      busy = true;
+      renderAll();
+      showPause();
+      if (msg) toast(msg);
+    } else if (m && m.last) { playSolo(m); if (msg) toast(msg); }
+    else showCover(msg);
+  };
   if (sess && (!roomParam || roomParam === sess.code)) {
-    // 上次在联机房间里：先接回去；接不回（房间散了）再回到单机
-    resumeOnline(sess).then((ok) => { if (!ok) { resumeSolo(!!roomParam); if (/^\d{4}$/.test(roomParam)) showOnlineEntry(roomParam); } });
+    // 上次在联机房间里：先接回去；接不回再按上面走
+    resumeOnline(sess).then((ok) => { if (!ok) boot('上次的房间连不上了，可能已经解散'); });
   } else {
     if (sess) NET.writeSession(null);
-    resumeSolo(/^\d{4}$/.test(roomParam));
-    if (NET && /^\d{4}$/.test(roomParam)) showOnlineEntry(roomParam);
+    boot();
   }
 })();
