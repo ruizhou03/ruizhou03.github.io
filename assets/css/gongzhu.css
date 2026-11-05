@@ -865,14 +865,5 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-hist-detail > td { padding: 0 0 6px; text-align: left; white-space: normal; background: rgba(29, 27, 24, 0.03); }
 .gz-res-row.is-3col { grid-template-columns: 52px minmax(0, 1fr) 56px; }
 
-/* 组合动画（试做）：丙的「全红」朱印、丁的合计分一行 */
-.gz-fxseal { position: absolute; left: 50%; top: 50%; z-index: 4; opacity: 0; display: flex; flex-direction: column; align-items: center; line-height: 1;
-  padding: 7px 12px 8px; border: 3px solid var(--gz-seal); border-radius: 6px; outline: 1px solid var(--gz-seal); outline-offset: -7px;
-  background: rgba(251, 246, 236, 0.9); color: var(--gz-seal); box-shadow: 0 4px 12px rgba(180, 57, 44, 0.18); }
-.gz-fxseal b { font-size: 32px; font-weight: 900; letter-spacing: 0.12em; text-indent: 0.12em; }
-.gz-fxseal span { margin-top: 4px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 700; }
-.gz-fxtally { flex-direction: row; align-items: baseline; gap: 6px; white-space: nowrap; }
-.gz-fxtally .t { font-size: 22px; font-weight: 700; color: var(--gz-ink); text-shadow: 0 0 8px var(--gz-paper), 0 0 3px var(--gz-paper); }
-.gz-fxtally .t:not(:first-child) { margin-left: 8px; }
-.gz-fxtally .gz-fxscore { font-size: 36px; }
+/* 动画预览的局面下拉 */
 .gz-demo select { font: inherit; font-size: 13px; padding: 2px 4px; border: 1px solid var(--gz-ink); border-radius: 8px; background: var(--gz-card); color: var(--gz-ink); }
