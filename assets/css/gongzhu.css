@@ -915,3 +915,16 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-av-pick svg { width: 100%; height: 100%; display: block; }
 .gz-av-pick[aria-pressed="true"] { border-color: var(--gz-seal); box-shadow: 0 0 0 2px var(--gz-paper), 0 0 0 4px rgba(180, 57, 44, 0.35); }
 .gz-lobby-edit { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--gz-ink-mute); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 进阶教程结算页的一句心得（牌名画成小牌，同规则页） */
+.gz-tut-tip { margin: 14px 0 0; font-size: 14px; line-height: 1.8; }
+.gz-tut-tip .gz-card.gz-inline {
+  --q: 24px; width: 24px; height: 34px; display: inline-block; vertical-align: middle; position: relative; top: -2px;
+  margin: 0 3px; line-height: 1; border-radius: 3px; box-shadow: 0 1px 2px rgba(20, 18, 15, 0.16);
+}
+/* 正式对局里第一次碰到明牌：桌子中间偏下一条小提示，不挡出牌 */
+.gz-tip { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); z-index: 7; display: flex; align-items: center; gap: 8px;
+  padding: 7px 8px 7px 14px; white-space: nowrap; font-size: 14px; background: rgba(251, 246, 236, 0.96);
+  border: 1px solid rgba(29, 27, 24, 0.25); border-radius: 12px; box-shadow: 0 6px 18px rgba(20, 18, 15, 0.12); }
+.gz-tip[hidden] { display: none; }
+.gz-tip .gz-btn { min-width: 0; height: 32px; padding: 0 12px; font-size: 14px; letter-spacing: 0.04em; }
