@@ -381,7 +381,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 /* 三段（见 openDialog）：标题、底排按钮钉住，只有中间滚动 */
 .gz-dialog > h2, .gz-dialog-foot { flex: none; }
-.gz-dialog-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+.gz-dialog-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
   margin: 0 -6px; padding: 0 6px; }
 .gz-dialog.is-scroll .gz-dialog-foot { border-top: 1px solid rgba(29, 27, 24, 0.14); padding-top: 12px; margin-top: 8px; }
 .gz-dialog h2 { margin: 0 0 12px; font-size: 19px; letter-spacing: 0.06em; }
@@ -616,6 +616,9 @@ body.gz-fullscreen .site-footer { display: none !important; }
   border: 0; background: none; padding: 6px 8px; font: inherit; color: inherit; cursor: pointer; border-radius: 12px;
 }
 .gz-seat-me .gz-lobby-seat { flex-direction: row; cursor: default; }
+/* 我那一格横排（头像 · 名字 · 房主签）：在大厅里占满我那一整行，免得被挤在第一列里、两个字的名字也被截成「汤…」 */
+.is-lobby .gz-seat-me .gz-lobby-seat { grid-column: 1 / -1; justify-self: start; max-width: 100%; }
+.gz-seat-me .gz-lobby-name { flex-shrink: 0; }
 .gz-lobby-seat:disabled { cursor: default; }
 .gz-lobby-seat:not(:disabled):hover { background: rgba(29, 27, 24, 0.05); }
 .gz-lobby-seat .gz-avatar.is-bot { border-style: double; border-width: 3px; }
@@ -624,7 +627,6 @@ body.gz-fullscreen .site-footer { display: none !important; }
 /* 房主刚加、服务器还没确认的机器人：先画上去，略淡一点 */
 .gz-lobby-seat.is-pending .gz-avatar, .gz-lobby-seat.is-pending .gz-lobby-name { opacity: 0.7; }
 .gz-lobby-seat.is-empty .gz-lobby-name { color: var(--gz-ink-mute); font-weight: 400; }
-.gz-lobby-hint { font-size: 12px; color: var(--gz-seal); }
 
 .gz-lobby {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4;
@@ -654,6 +656,9 @@ body.gz-fullscreen .site-footer { display: none !important; }
   border: 1px solid var(--gz-ink); border-radius: 8px; background: #fffdf8; color: var(--gz-ink);
 }
 .gz-input:focus { outline: 2px solid var(--gz-seal); outline-offset: 1px; }
+/* 加入房间：房号是主角，大字居中 */
+.gz-code-input { margin: 4px 0 16px; padding: 10px; font-size: 30px; letter-spacing: 0.4em; text-indent: 0.4em; text-align: center; }
+.gz-code-input::placeholder { font-size: 17px; letter-spacing: 0.1em; text-indent: 0; color: var(--gz-ink-faint); }
 .gz-join-row { display: flex; gap: 8px; align-items: center; margin: 6px 0 4px; }
 .gz-join-row .gz-input { margin: 0; flex: 1; letter-spacing: 0.2em; }
 .gz-err { color: var(--gz-seal) !important; }
@@ -779,9 +784,9 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-card.is-exposed .gz-dbl .x2 { display: none; }
 .gz-card.is-exposed .gz-dbl .x4 { display: inline; }
 
-/* 右上角菜单：每条 = 左边一个线条小图标 + 一行粗字 + 一行小字说明会怎样 */
+/* 右上角菜单：每条 = 左边一个线条小图标 + 一行字 */
 .gz-menu {
-  position: fixed; z-index: calc(var(--z-dialog) + 1); width: 264px; max-width: calc(100vw - 16px); box-sizing: border-box; padding: 6px;
+  position: fixed; z-index: calc(var(--z-dialog) + 1); width: 196px; max-width: calc(100vw - 16px); box-sizing: border-box; padding: 6px;
   background: var(--gz-paper); border: 1px solid var(--gz-ink); border-radius: 12px; box-shadow: 0 10px 26px rgba(20, 18, 15, 0.18);
   display: flex; flex-direction: column; max-height: calc(100vh - 80px); overflow-y: auto;
 }
@@ -792,8 +797,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 .gz-menu button:hover, .gz-menu button:focus-visible { background: var(--gz-wash); outline: none; }
 .gz-menu b { grid-column: 2; font-size: 15px; font-weight: 700; }
-.gz-menu small { grid-column: 2; font-size: 12px; color: var(--gz-ink-mute); }
-.gz-menu-ic { grid-column: 1; grid-row: 1 / span 2; width: 22px; height: 22px; align-self: start; margin-top: 1px;
+.gz-menu-ic { grid-column: 1; grid-row: 1; width: 22px; height: 22px;
   fill: none; stroke: var(--gz-ink); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .gz-menu hr { border: 0; border-top: 1px solid rgba(29, 27, 24, 0.14); margin: 4px 8px; }
 .gz-menu-head { font-size: 12px; color: var(--gz-ink-mute); padding: 6px 10px 2px; letter-spacing: 0.06em; }
@@ -838,3 +842,6 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-cover-btns .gz-cover-link { align-self: center; text-decoration: none; }
 /* 单机机器人名字下面的方位小签（下家 / 对家 / 上家） */
 .gz-tag.is-dir { margin-left: 0; margin-top: 2px; font-size: 10px; line-height: 15px; padding: 0 5px; }
+
+/* 对撞动画放不下时临时搭的缩放舞台（见 playClash）：和 .gz-fx 一样大，以牌桌中心为原点缩 */
+.gz-fx-stage { position: absolute; inset: 0; transform-origin: 50% 50%; pointer-events: none; }

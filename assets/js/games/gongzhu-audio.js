@@ -502,12 +502,13 @@
   /* 浏览器要先有一次点按才能出声。坑（iPhone / iPad 上的所有浏览器，包括微信、谷歌 App 里的）：
    *   ① 手指按下（pointerdown / touchstart）不算数，要等抬起（touchend）或 click 才准出声；
    *   ② 光 resume() 不一定醒，要在这一下里放一个空白的极短声音；
-   *   ③ 手机侧面的静音开关打开时，网页的 Web Audio 默认也跟着静音——声明成「播放」类，静不静音交给游戏里的声音键。
+   *   ③ 声明成「环境音」（ambient）：和手机游戏的通行做法一样，跟着侧面静音开关走、不打断别的 App 正在放的音乐，
+   *      灵动岛 / 锁屏上也不会冒出「正在播放」的喇叭。（以前声明成「播放」类，静音开关打开也出声，但灵动岛上总挂着喇叭）
    * 所以每次点按都试一次，直到音频真的跑起来（切到后台回来被系统挂起了，下一次点按也会再叫醒）。 */
   if (hasDom) {
     const unlock = () => {
       if (!prefs.sfx && !prefs.music) return;
-      try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (_) { /* 老系统没有 */ }
+      try { if (navigator.audioSession && navigator.audioSession.type !== 'ambient') navigator.audioSession.type = 'ambient'; } catch (_) { /* 老系统没有 */ }
       if (ctx && ctx.state === 'running') { if (prefs.music && !music) startMusic(); return; }
       const a = ensure();
       if (!a) return;

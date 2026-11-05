@@ -29,6 +29,9 @@ body_class: gz-fullscreen
         <button type="button" class="gz-skip" id="gzSkipTut">跳过教程</button>
       </div>
       <div class="gz-tools">
+        <button type="button" class="gz-tool" id="gzPauseBtn" aria-label="暂停" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 7v10M14.8 7v10"/></svg>
+        </button>
         <button type="button" class="gz-tool gz-sound" id="gzSoundBtn" aria-label="声音" aria-haspopup="true" aria-expanded="false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.2L12 5.8v12.4l-4.8-3.7H4z"/><path class="on" d="M15.4 9.2a4 4 0 0 1 0 5.6M17.9 6.7a7.5 7.5 0 0 1 0 10.6"/><path class="off" d="M15.5 9.5l5 5M20.5 9.5l-5 5"/></svg>
         </button>
@@ -96,12 +99,12 @@ body_class: gz-fullscreen
       <div class="gz-cover-art" aria-hidden="true"></div>
       <h1 class="gz-cover-title">拱猪</h1>
       <div class="gz-cover-btns" data-cover-step="main">
-        <button type="button" class="gz-cover-btn is-primary" data-cover="solo"><b>单机</b><small>和三个机器人打</small></button>
-        <button type="button" class="gz-cover-btn" data-cover="online"><b>联机</b><small>和朋友一起：创建或加入房间</small></button>
+        <button type="button" class="gz-cover-btn is-primary" data-cover="solo"><b>单机</b><small></small></button>
+        <button type="button" class="gz-cover-btn" data-cover="online"><b>联机</b><small>创建 / 加入房间</small></button>
       </div>
       <div class="gz-cover-btns" data-cover-step="online" hidden>
-        <button type="button" class="gz-cover-btn is-primary" data-cover="create"><b>创建房间</b><small>开一个房间，把链接发给朋友</small></button>
-        <button type="button" class="gz-cover-btn" data-cover="join"><b>加入房间</b><small>输入朋友给的 4 位房号</small></button>
+        <button type="button" class="gz-cover-btn is-primary" data-cover="create"><b>创建房间</b></button>
+        <button type="button" class="gz-cover-btn" data-cover="join"><b>加入房间</b></button>
         <button type="button" class="gz-cover-link" data-cover="back">‹ 返回</button>
       </div>
       <div class="gz-cover-foot" data-cover-step="main">
