@@ -845,3 +845,34 @@ body.gz-fullscreen .site-footer { display: none !important; }
 
 /* 对撞动画放不下时临时搭的缩放舞台（见 playClash）：和 .gz-fx 一样大，以牌桌中心为原点缩 */
 .gz-fx-stage { position: absolute; inset: 0; transform-origin: 50% 50%; pointer-events: none; }
+
+/* 每局得分：一行一局，四列四家；点一局展开那一局的吃牌（结算页同一套行，只是没有「累计」那列） */
+.gz-hist { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+.gz-hist th, .gz-hist td { padding: 8px 2px; border-bottom: 1px solid rgba(29, 27, 24, 0.14); text-align: right; white-space: nowrap; }
+.gz-hist th:first-child { text-align: left; width: 4.6em; font-weight: 400; }
+.gz-hist thead th { font-size: 12px; font-weight: 400; color: var(--gz-ink-mute); padding-top: 0; }
+.gz-hist thead th span { display: block; overflow: hidden; text-overflow: ellipsis; }
+.gz-hist td.n { font-size: 17px; }
+.gz-hist td.neg { color: var(--gz-seal); }
+.gz-hist td.pos { color: var(--gz-good); }
+.gz-hist tfoot th, .gz-hist tfoot td { border-bottom: 0; border-top: 1.5px solid var(--gz-ink); font-weight: 700; }
+.gz-hist-row.can-open { cursor: pointer; }
+.gz-hist-row.can-open:hover { background: rgba(29, 27, 24, 0.04); }
+.gz-hist-caret { display: inline-block; width: 6px; height: 6px; margin-left: 6px; vertical-align: 2px;
+  border-right: 1.5px solid var(--gz-ink-mute); border-bottom: 1.5px solid var(--gz-ink-mute); transform: rotate(45deg); transition: transform 0.15s; }
+.gz-hist-row.is-open .gz-hist-caret { transform: rotate(225deg); vertical-align: -1px; }
+.gz-hist-row.is-open th, .gz-hist-row.is-open td { border-bottom-color: transparent; }
+.gz-hist-detail > td { padding: 0 0 6px; text-align: left; white-space: normal; background: rgba(29, 27, 24, 0.03); }
+.gz-res-row.is-3col { grid-template-columns: 52px minmax(0, 1fr) 56px; }
+
+/* 组合动画（试做）：丙的「全红」朱印、丁的合计分一行 */
+.gz-fxseal { position: absolute; left: 50%; top: 50%; z-index: 4; opacity: 0; display: flex; flex-direction: column; align-items: center; line-height: 1;
+  padding: 7px 12px 8px; border: 3px solid var(--gz-seal); border-radius: 6px; outline: 1px solid var(--gz-seal); outline-offset: -7px;
+  background: rgba(251, 246, 236, 0.9); color: var(--gz-seal); box-shadow: 0 4px 12px rgba(180, 57, 44, 0.18); }
+.gz-fxseal b { font-size: 32px; font-weight: 900; letter-spacing: 0.12em; text-indent: 0.12em; }
+.gz-fxseal span { margin-top: 4px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 700; }
+.gz-fxtally { flex-direction: row; align-items: baseline; gap: 6px; white-space: nowrap; }
+.gz-fxtally .t { font-size: 22px; font-weight: 700; color: var(--gz-ink); text-shadow: 0 0 8px var(--gz-paper), 0 0 3px var(--gz-paper); }
+.gz-fxtally .t:not(:first-child) { margin-left: 8px; }
+.gz-fxtally .gz-fxscore { font-size: 36px; }
+.gz-demo select { font: inherit; font-size: 13px; padding: 2px 4px; border: 1px solid var(--gz-ink); border-radius: 8px; background: var(--gz-card); color: var(--gz-ink); }

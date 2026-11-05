@@ -1076,6 +1076,7 @@
     for (let s = 0; s < 4; s++) match.totals[s] += scores[s];
     match.pigTaker = r.pigTaker;
     match.last = { roundNo: match.roundNo, captured: r.captured.map((c) => c.slice()), scores, ctx: R.scoreCtx(r) };
+    match.history = (match.history || []).concat([match.last]);   // 每局得分：这一盘每一局的分和各家吃了什么
     match.round = null;
     match.over = R.isMatchOver(match.totals, match.rules, match.roundNo);
     save();
@@ -1221,14 +1222,51 @@
     );
   }
 
-  function showTotals() {
-    if (match.last && !match.round) { showSettlement(); return; }
-    const rows = [0, 1, 2, 3].map((s) => '<tr class="' + (s === 0 ? 'me' : '') + '"><td>' + esc(NAMES[s]) + '</td><td class="n ' +
-      (match.totals[s] < 0 ? 'neg' : match.totals[s] > 0 ? 'pos' : '') + '">' + signed(match.totals[s]) + '</td></tr>').join('');
-    openDialog('<h2>累计</h2>' +
-      '<table class="gz-score-table"><tbody>' + rows + '</tbody></table>' +
-      '<div class="gz-actions"><button type="button" class="gz-btn" data-close data-autofocus>好</button></div>',
-      (d) => d.querySelector('[data-close]').addEventListener('click', closeDialog));
+  /* 每局得分：一行一局（最新的在上面），四列是四家，最底下累计；点某一局展开看那一局各家吃了什么（和结算页同一套小牌）。
+   * 单机记在存档里；联机的分来自服务器（刷新也在），各家吃了什么只有自己看着打完的那几局才有 */
+  function keepRoundCaps(matchNo, last) {
+    if (online && last && last.captured) online.roundCaps[matchNo + ':' + last.roundNo] = { captured: last.captured, ctx: last.ctx };
+  }
+  function roundHistory() {
+    if (!match.online) return match.history || [];
+    const gv = online && online.st && online.st.game;
+    if (!gv) return [];
+    return (gv.history || []).map((h) => Object.assign({ roundNo: h.roundNo, scores: rot(h.scores) }, online.roundCaps[gv.matchNo + ':' + h.roundNo] || {}));
+  }
+  function showHistory() {
+    const list = roundHistory().slice().reverse();
+    const cls = (n) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
+    const cell = (n) => '<td class="n gz-num ' + cls(n) + '">' + signed(n) + '</td>';
+    const rows = list.map((h, i) =>
+      '<tr class="gz-hist-row' + (h.captured ? ' can-open' : '') + '" data-i="' + i + '"><th scope="row">第 ' + h.roundNo + ' 局' +
+      (h.captured ? '<span class="gz-hist-caret" aria-hidden="true"></span>' : '') + '</th>' + h.scores.map(cell).join('') + '</tr>' +
+      (h.captured ? '<tr class="gz-hist-detail" data-for="' + i + '" hidden><td colspan="5"><div class="gz-res"></div></td></tr>' : '')).join('');
+    openDialog('<h2>每局得分</h2>' +
+      (list.length ? '<table class="gz-hist"><thead><tr><th></th>' + [0, 1, 2, 3].map((s) => '<th scope="col"><span>' + esc(NAMES[s]) + '</span></th>').join('') + '</tr></thead>' +
+        '<tbody>' + rows + '</tbody><tfoot><tr><th scope="row">累计</th>' + match.totals.map(cell).join('') + '</tr></tfoot></table>'
+        : '<p class="gz-note">这一盘还没打完一局。</p>') +
+      '<div class="gz-actions"><button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
+      (d) => {
+        d.querySelector('[data-close]').addEventListener('click', closeDialog);
+        d.querySelectorAll('.gz-hist-row.can-open').forEach((tr) => tr.addEventListener('click', () => {
+          const h = list[+tr.dataset.i];
+          const det = d.querySelector('.gz-hist-detail[data-for="' + tr.dataset.i + '"]');
+          det.hidden = !det.hidden;
+          tr.classList.toggle('is-open', !det.hidden);
+          const box = det.querySelector('.gz-res');
+          if (det.hidden || box.childElementCount) return;
+          // 和结算页一样：名字 · 吃牌 · 本局；挤得看不清的那家换成两行
+          box.innerHTML = [0, 1, 2, 3].map((s) => '<div class="gz-res-row is-3col" data-seat="' + s + '"><span class="gz-res-name">' + esc(NAMES[s]) + '</span>' +
+            '<span class="gz-res-caps gz-caps"></span><span class="gz-res-n gz-num ' + cls(h.scores[s]) + '">' + signed(h.scores[s]) + '</span></div>').join('');
+          box.querySelectorAll('.gz-res-row').forEach((row) => {
+            const seat = +row.dataset.seat, caps = row.querySelector('.gz-res-caps');
+            row.dataset.dbl = dblTone(h.captured[seat], h.ctx);
+            const draw = () => { renderCaps(caps, h.captured[seat], null, h.ctx); const sc = caps.querySelector('.gz-cap-score'); if (sc) sc.remove(); };
+            draw();
+            if (fanSqueezed(caps)) { row.classList.add('is-stack'); draw(); }
+          });
+        }));
+      });
   }
 
   /* 规则说明跟着本盘的规则开关走 */
@@ -1325,6 +1363,7 @@
     room: '<path d="M10.2 13.8a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1.1 1.1"/><path d="M13.8 10.2a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1.1-1.1"/>',
     roomrules: '<path d="M4 7h9M17 7h3M4 17h4M12 17h8"/><circle cx="15" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
     leave: '<path d="M13.5 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20h7"/><path d="M10 12h10M16.5 8.5 20 12l-3.5 3.5"/>',
+    history: '<rect x="4.5" y="4" width="15" height="16" rx="2"/><path d="M8 9h8M8 12.5h8M8 16h5"/>',
     cover: '<path d="M4 11.2 12 4.5l8 6.7"/><path d="M6.5 9.5v10h11v-10"/><path d="M10 19.5v-5h4v5"/>',
   };
   // 每条一个图标 + 一行字，不写说明小字（意思本身就清楚）
@@ -1336,6 +1375,7 @@
     if (match && match.online && online) {
       return [
         ['head', '房间 ' + online.code],
+        ...(match.lobby ? [] : [['history', '每局得分']]),
         ['room', '邀请朋友'],
         ...(isHost() && match.lobby ? [['roomrules', '自定义规则']] : []),
         ['leave', '离开房间'],
@@ -1343,6 +1383,7 @@
       ];
     }
     return [
+      ['history', '每局得分'],
       ['restart', '重新开始一盘'],
       ...(NET ? [['create', '创建房间'], ['join', '加入房间']] : []),
       ['settings', '设置'],
@@ -1355,6 +1396,7 @@
   function menuAct(k) {
     closeMenu();
     if (k === 'restart') restartMatch();
+    else if (k === 'history') showHistory();
     else if (k === 'create') createRoom();
     else if (k === 'join') showJoin('');
     else if (k === 'settings') showSettings();
@@ -1550,6 +1592,12 @@
         if (cs.includes(R.DOUBLER)) list.push({ kind: 'doubler', card: R.DOUBLER, word: dbl.word, sub: '', tone: dbl.tone });
       }
     }
+    // 全红和猪 / 羊 / ×2 同一轮：试做的组合动画（?combo=a|b|c|d 才用；不带参数照旧——全红先放、0.6 秒后接着放）
+    if (COMBO && hadAll && !slamNow && list.length === 2) {
+      const fx = { kind: 'combo', v: COMBO, all: list[0], spec: list[1] };
+      fx.dur = comboDur(fx);
+      return reduceMotion() ? [] : [fx];
+    }
     return reduceMotion() ? [] : list;
   }
 
@@ -1721,6 +1769,7 @@
 
   function playFx(fx, w) {
     if (fx.kind === 'clash') { playClash(fx, w); return; }
+    if (fx.kind === 'combo') { playCombo(fx, w); return; }
     const [dx, dy] = FX_DRIFT[w];
     const dur = FX_DUR[fx.kind];
     const item = document.createElement('div');
@@ -1795,6 +1844,151 @@
       animate(label, [{ opacity: 1 }, { opacity: 1, offset: holdEnd }, { opacity: 0, offset: Math.min(0.95, holdEnd + 0.08) }, { opacity: 0 }], { duration: dur, fill: 'forwards' }, 'ease-out');
     }
     setTimeout(() => item.remove(), dur);
+  }
+
+  /* ───── 全红 + 猪 / 羊 / ×2：组合动画（试做，?combo= 选版本，挑定前正式对局不用） ─────
+   * 甲 接力：全红整段放完，再放猪 / 羊 / ×2（或对撞），两段不叠
+   * 乙 红心托底：大红心先跳两下，缩成徽章挪到上方；猪 / 羊 / ×2 在中间照常表演，最后一起收走
+   * 丙 红心雨：猪 / 羊 / ×2 照常表演，满桌落红心，右上角「全红」朱印一盖
+   * 丁 众星捧心：大红心居中跳，猪 / 羊 / ×2 缩小了绕着它转一圈，然后一起吸进红心，红心炸开（红心 + 各自花色），下面浮出合计的分 */
+  const COMBO = (/^[abcd]$/.exec(new URLSearchParams(location.search).get('combo') || '') || [''])[0];
+  function comboDur(fx) {
+    const sd = fx.spec.dur || FX_DUR[fx.spec.kind];
+    return { a: 2300 + sd, b: 950 + sd, c: Math.max(sd, 2800), d: 3500 }[fx.v];
+  }
+  function playCombo(fx, w) {
+    if (fx.v === 'a') { playFx(fx.all, w); setTimeout(() => playFx(fx.spec, w), 2300); return; }
+    if (fx.v === 'b') { comboBadge(fx, w); setTimeout(() => playFx(fx.spec, w), 950); return; }
+    if (fx.v === 'c') { comboRain(fx); playFx(fx.spec, w); return; }
+    comboOrbit(fx, w);
+  }
+  // 中心离视口上 / 下 / 左 / 右各还有多少地方（手机竖屏时别把东西摆出画）
+  function fxRoom() {
+    const b = els.fx.getBoundingClientRect();
+    const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+    return { left: cx, right: window.innerWidth - cx, top: cy, bottom: window.innerHeight - cy };
+  }
+  function heartItem(all, withScore) {
+    const el = document.createElement('div');
+    el.className = 'gz-fxitem kind-allhearts';
+    el.innerHTML = '<div class="gz-fxheart">' + ART.heart + '<span class="w">' + all.word + '</span></div>' +
+      (withScore ? '<div class="gz-fxscore pos">' + all.sub + '</div>' : '');
+    els.fx.appendChild(el);
+    return el;
+  }
+  function comboBadge(fx, w) {
+    const T = fx.dur, [dx, dy] = FX_DRIFT[w], k = (ms) => Math.min(0.99, ms / T);
+    const top = -Math.min(178, fxRoom().top - 72);
+    const el = heartItem(fx.all, true);
+    snd('heartbeat', 220);
+    burst(-130, -70, 22, ['♥'], HEART_REDS, 0, 120, { glow: 'red', spin: true, size: [18, 64] });
+    burst(130, -60, 22, ['♥'], HEART_REDS, 200, 120, { glow: 'red', spin: true, size: [18, 64] });
+    animate(el, [
+      { transform: FT(0, 0, 0), opacity: 0 },
+      { transform: FT(0, 0, 1.16), opacity: 1, offset: k(260) }, { transform: FT(0, 0, 0.95), offset: k(380) },
+      { transform: FT(0, 0, 1.06), offset: k(500) }, { transform: FT(0, 0, 1), offset: k(620) },
+      { transform: FT(0, 0, 1), offset: k(800) },
+      { transform: FT(0, top, 0.5), offset: k(1060) },   // 缩成徽章挪上去，把中间让给猪 / 羊 / ×2
+      { transform: FT(0, top, 0.5), opacity: 1, offset: k(T - 520) },
+      { transform: FT(dx * 0.3, top + dy * 0.3, 0.3), opacity: 0 },
+    ], { duration: T, fill: 'forwards' });
+    setTimeout(() => el.remove(), T + 60);
+  }
+  function comboRain(fx) {
+    const T = fx.dur, room = fxRoom(), k = (ms) => Math.min(0.99, ms / T);
+    const y0 = -room.top - 40, y1 = room.bottom + 40;
+    snd('heartbeat', 120);
+    for (let n = 0; n < 56; n++) {
+      const el = document.createElement('span');
+      el.className = 'gz-spark';
+      el.innerHTML = suitSVG(1);
+      el.style.color = HEART_REDS[n % HEART_REDS.length];
+      el.style.fontSize = (14 + Math.pow(Math.random(), 2) * 30).toFixed(0) + 'px';
+      els.fx.appendChild(el);
+      const x = -room.left + 14 + Math.random() * (room.left + room.right - 28);
+      const sway = (Math.random() - 0.5) * 70, life = 1500 + Math.random() * 900, delay = Math.random() * Math.max(0, T - life - 250), r0 = (Math.random() - 0.5) * 40;
+      animate(el, [
+        { transform: FT(x, y0, 1, r0), opacity: 0 },
+        { transform: FT(x + sway * 0.2, y0 + (y1 - y0) * 0.1, 1, r0 + 8), opacity: 0.95, offset: 0.1 },
+        { transform: FT(x + sway, y1, 1, r0 + 70), opacity: 0.85 },
+      ], { duration: life, delay, fill: 'both' }, 'linear');
+      setTimeout(() => el.remove(), delay + life + 60);
+    }
+    // 「全红」朱印：右上角一盖
+    const seal = document.createElement('div');
+    seal.className = 'gz-fxseal';
+    seal.innerHTML = '<b>' + fx.all.word + '</b><span>' + fx.all.sub + '</span>';
+    els.fx.appendChild(seal);
+    const sx = Math.min(118, room.right - 66), sy = -Math.min(170, room.top - 60);
+    snd('stamp', 430);
+    animate(seal, [
+      { transform: FT(sx, sy, 2.6, -16), opacity: 0 }, { transform: FT(sx, sy, 2.6, -16), opacity: 0, offset: k(380) },
+      { transform: FT(sx, sy, 0.9, -9), opacity: 1, offset: k(500) }, { transform: FT(sx, sy, 1, -9), opacity: 1, offset: k(600) },
+      { transform: FT(sx, sy, 1, -9), opacity: 1, offset: k(T - 400) }, { transform: FT(sx, sy, 1, -9), opacity: 0 },
+    ], { duration: T, fill: 'forwards' });
+    setTimeout(() => seal.remove(), T + 60);
+  }
+  function comboOrbit(fx, w) {
+    const T = fx.dur, [dx, dy] = FX_DRIFT[w], k = (ms) => Math.min(0.99, ms / T);
+    const sp = fx.spec, clash = sp.kind === 'clash';
+    const cards = clash ? sp.cards : [sp.card];
+    const dbl = clash ? sp.dbl : { word: sp.word, tone: sp.tone };
+    const MERGE = 2050;
+    const heart = heartItem(fx.all, false);
+    snd('heartbeat', 260);
+    animate(heart, [
+      { transform: FT(0, 0, 0), opacity: 0 },
+      { transform: FT(0, 0, 1.12), opacity: 1, offset: k(260) }, { transform: FT(0, 0, 0.96), offset: k(400) },
+      { transform: FT(0, 0, 1.04), offset: k(560) }, { transform: FT(0, 0, 0.98), offset: k(1100) },
+      { transform: FT(0, 0, 1.04), offset: k(1550) },
+      { transform: FT(0, 0, 0.84), offset: k(MERGE) },                 // 吸进来，一缩
+      { transform: FT(0, 0, 1.3), opacity: 1, offset: k(MERGE + 160) },   // 撑开
+      { transform: FT(0, 0, 1.45), opacity: 0, offset: k(MERGE + 380) },
+      { transform: FT(0, 0, 1.55), opacity: 0 },
+    ], { duration: T, fill: 'forwards' });
+    setTimeout(() => heart.remove(), T + 60);
+    // 绕着红心转：出场 → 转大半圈、越转越近 → 吸进中心
+    const R0 = Math.min(122, fxRoom().left - 52);
+    cards.forEach((c, i) => {
+      const el = document.createElement('div');
+      el.className = 'gz-fxitem is-duel';
+      if (c === R.DOUBLER) {
+        const tone = DOUBLER_TONE[dbl.tone || 'gold'];
+        el.innerHTML = '<div class="gz-fxcoin" style="--tone:' + tone.ring + ';color:' + tone.ink + '"><span>' + dbl.word + '</span></div>';
+      } else el.innerHTML = '<div class="gz-fxart">' + ART[c === R.PIG ? 'pig' : 'sheep'] + '</div>';
+      els.fx.appendChild(el);
+      snd(c === R.SHEEP ? 'sheep' : c === R.PIG ? 'pig' : 'doubler', 480 + i * 170);
+      const a0 = Math.PI + (i * 2 * Math.PI) / cards.length;   // 一个从左边出场；两个就一左一右
+      const pt = (a, r, sc, extra) => Object.assign({ transform: FT(Math.cos(a) * r, Math.sin(a) * r * 0.78, sc) }, extra);
+      const frames = [pt(a0, R0 * 1.35, 0.2, { opacity: 0, offset: 0 }), pt(a0, R0 * 1.35, 0.2, { opacity: 0, offset: k(420) })];
+      const steps = 16, t0 = 600, t1 = 1880;
+      for (let st = 0; st <= steps; st++) {
+        const f = st / steps;
+        frames.push(pt(a0 + f * Math.PI * 1.7, R0 * (1 - 0.22 * f), st === 0 ? 0.62 : 0.52, { opacity: 1, offset: k(t0 + (t1 - t0) * f) }));
+      }
+      frames.push({ transform: FT(0, 0, 0.1), opacity: 0, offset: k(MERGE) }, { transform: FT(0, 0, 0.1), opacity: 0 });
+      el.animate(frames, { duration: T, fill: 'forwards', easing: 'linear' });
+      setTimeout(() => el.remove(), T + 60);
+    });
+    // 合体：红心炸开，红心和各自的花色一起飞
+    const glyphs = ['♥', '♥'].concat(cards.map((c) => (c === R.SHEEP ? '♦' : c === R.PIG ? '♠' : '♣')));
+    const tint = (g) => (g === '♥' ? HEART_REDS[(Math.random() * HEART_REDS.length) | 0] : g === '♣' ? DOUBLER_TONE[dbl.tone || 'gold'].ink : SUIT_TINT(g));
+    snd('boom', MERGE + 40, cards.length > 1);
+    burst(0, -10, 50, glyphs, tint, MERGE + 40, 190, { glow: 'red', spin: true, size: [18, 80] });
+    burst(-105, -60, 22, glyphs, tint, MERGE + 380, 110, { glow: 'none', spin: true, size: [16, 60] });
+    burst(105, -50, 22, glyphs, tint, MERGE + 560, 110, { glow: 'none', spin: true, size: [16, 60] });
+    // 合计：全红 +200 · 猪 −100 · ×2 排成一行
+    const parts = [[fx.all.word, fx.all.sub]].concat(cards.map((c) => (c === R.PIG ? ['猪', clash ? sp.pigSub : sp.sub] : c === R.SHEEP ? ['羊', clash ? sp.sheepSub : sp.sub] : [dbl.word, ''])));
+    const tally = document.createElement('div');
+    tally.className = 'gz-fxitem gz-fxtally';
+    tally.innerHTML = parts.map(([t, v]) => '<span class="t">' + t + '</span>' + (v ? '<span class="gz-fxscore ' + (v[0] === '−' ? 'neg' : 'pos') + '">' + v + '</span>' : '')).join('');
+    els.fx.appendChild(tally);
+    animate(tally, [
+      { transform: FT(0, 12, 0.6), opacity: 0 }, { transform: FT(0, 12, 0.6), opacity: 0, offset: k(MERGE + 380) },
+      { transform: FT(0, 0, 1.08), opacity: 1, offset: k(MERGE + 580) }, { transform: FT(0, 0, 1), opacity: 1, offset: k(MERGE + 700) },
+      { transform: FT(0, 0, 1), opacity: 1, offset: k(T - 420) }, { transform: FT(dx * 0.3, dy * 0.3, 0.6), opacity: 0 },
+    ], { duration: T, fill: 'forwards' });
+    setTimeout(() => tally.remove(), T + 60);
   }
 
   // 一朵烟花：n 颗粒子从 (x, y) 炸开，往外飞、再带点下坠淡出
@@ -2126,7 +2320,7 @@
     stopClock(); hideCoach(); closeDialog(); hideCover();
     $('gzPauseBtn').hidden = true;
     setAutopilot(false);
-    online = { code: st.code, token: tok, st: null, mySeat: st.mySeat, applied: 0, queue: [], pending: -1, idle: true, inGame: false, readySent: false, skew: 0, stopped: false, joinRules: !!joined, seenCfg: null, sheetBase: null, base: null, ops: [], pumping: false };
+    online = { code: st.code, token: tok, st: null, mySeat: st.mySeat, applied: 0, queue: [], pending: -1, idle: true, inGame: false, readySent: false, skew: 0, stopped: false, joinRules: !!joined, seenCfg: null, sheetBase: null, base: null, ops: [], pumping: false, roundCaps: {} };
     NET.writeSession({ code: st.code, token: tok });
     try { const u = new URL(location.href); u.searchParams.set('room', st.code); history.replaceState(null, '', u); } catch (_) { /* ignore */ }
     els.app.classList.add('is-online');
@@ -2257,6 +2451,7 @@
       last: gv.last ? { roundNo: gv.last.roundNo, scores: rot(gv.last.scores), captured: rot(gv.last.captured), ctx: gv.last.ctx } : null,
       over: gv.phase === 'match_end', losers: (gv.losers || []).map(loc), tutorial: false,
     };
+    if (match.last) keepRoundCaps(gv.matchNo, match.last);
     closeDialog();
     renderAll();
     renderOnlineBadges();
@@ -2353,6 +2548,7 @@
         const gv = online.st.game;
         match.totals = rot(ev.totals);
         match.last = { roundNo: ev.roundNo, captured: r.captured.map((c) => c.slice()), scores: rot(ev.scores), ctx: R.scoreCtx(r) };
+        keepRoundCaps(gv.matchNo, match.last);
         match.round = null;
         match.over = gv.phase === 'match_end' && gv.roundNo === ev.roundNo;
         match.losers = match.over ? (gv.losers || []).map(loc) : [];
@@ -2819,7 +3015,7 @@
   $('gzRulesBtn').addEventListener('click', showRules);
   $('gzSoundBtn').addEventListener('click', toggleSoundPanel);
   refreshSoundBtn();
-  $('gzRoundInfo').addEventListener('click', () => { if (!match.tutorial) showTotals(); });
+  $('gzRoundInfo').addEventListener('click', () => { if (match && !match.tutorial && !match.lobby && !match.demo) showHistory(); });
   $('gzSkipTut').addEventListener('click', () => { if (match.tutorial) endTutorial(); });
   // 教程讲解时点牌桌任意处继续（顶栏按钮、弹窗照常）
   els.app.addEventListener('click', (e) => {
@@ -2999,6 +3195,7 @@
 
   /* ───── 动画预览：?fxdemo=sweep|eat|clash|sheepdbl|pigdbl|triple ─────
    * 在真牌桌上反复放「一轮结束」那一下（走的就是正式出牌时的同一套收牌 / 特效代码），不动存档。 */
+  const H12 = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
   const DEMOS = {
     sweep: ['没分的一轮', [1, 4, 7, 11]],            // ♠3 ♠6 ♠9 ♠K：全钻进赢家头像
     eat: ['有分的一轮', [42, 46, 18, 50]],           // ♣5 ♣9 ♥7(垫) ♣K：红桃插进吃牌区，其余进头像
@@ -3007,7 +3204,15 @@
     sheepdbl: ['羊 × 变压器', [28, 35, 47, 38]],     // ♦4 ♦J ♣10(垫) ♦A
     pigdbl: ['猪 × 变压器', [1, 10, 47, 12]],        // ♠3 ♠Q ♣10(垫) ♠A
     triple: ['猪羊变压器三角对撞', [27, 35, 10, 47, 38]],   // ♦3 ♦J ♠Q ♣10 ♦A（取后四张）
+    // 全红 + 猪 / 羊 / ×2：赢家已吃 ♥2–♥K，这一轮再收 ♥A 凑齐 13 张（看 ?combo= 几个版本）
+    ahpig: ['全红 + 猪', [42, 50, 25, 10], H12],               // ♣5 ♣K ♥A(垫) ♠Q(垫)
+    ahsheep: ['全红 + 羊', [42, 50, 25, 35], H12],             // ♣5 ♣K ♥A ♦J
+    ahdbl: ['全红 + ×2', [42, 47, 25, 50], H12],               // ♣5 ♣10 ♥A ♣K
+    ahpigsheep: ['全红 + 猪羊', [42, 10, 25, 35], H12],        // ♣5 ♠Q ♥A ♦J
+    ahpigdbl: ['全红 + 猪 ×2', [42, 10, 25, 47], H12],         // ♣5 ♠Q ♥A ♣10
+    ahsheepdbl: ['全红 + 羊 ×2', [42, 35, 25, 47], H12],       // ♣5 ♦J ♥A ♣10
   };
+  const COMBO_LABELS = [['', '现在'], ['a', '甲 接力'], ['b', '乙 红心托底'], ['c', '丙 红心雨'], ['d', '丁 众星捧心']];
   function startDemo(kind) {
     const demo = DEMOS[kind] ? kind : 'sweep';
     match = { demo: true, rules: R.normalizeRules({}), totals: [0, 0, 0, 0], roundNo: 1, pigTaker: -1, seed: 1, round: null, exposing: [], last: null, over: false };
@@ -3016,8 +3221,14 @@
     renderAll();
     const bar = document.createElement('div');
     bar.className = 'gz-demo';
-    bar.innerHTML = '<b>动画预览</b>' + Object.keys(DEMOS).map((k) => '<a href="?fxdemo=' + k + '"' + (k === demo ? ' aria-current="true"' : '') + '>' + DEMOS[k][0] + '</a>').join('') +
+    bar.innerHTML = '<b>动画预览</b><select data-demo aria-label="局面">' +
+      Object.keys(DEMOS).map((k) => '<option value="' + k + '"' + (k === demo ? ' selected' : '') + '>' + DEMOS[k][0] + '</option>').join('') + '</select>' +
+      (demo.startsWith('ah') ? '<select data-combo aria-label="版本">' + COMBO_LABELS.map(([v, t]) => '<option value="' + v + '"' + (v === COMBO ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>' : '') +
       '<a href="' + location.pathname + '">回到牌桌</a>';
+    bar.addEventListener('change', () => {
+      const k = bar.querySelector('[data-demo]').value, c = bar.querySelector('[data-combo]');
+      location.search = '?fxdemo=' + k + (k.startsWith('ah') && c && c.value ? '&combo=' + c.value : '');
+    });
     els.table.appendChild(bar);
     let k = 0;
     const loop = () => {
