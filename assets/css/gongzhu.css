@@ -609,6 +609,19 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-tag[hidden] { display: none; }
 .gz-tag.is-host { border-color: var(--gz-gold); color: #8a6d36; background: rgba(201, 169, 110, 0.14); }
 
+/* 观战：顶栏一枚「观战中」小签；出牌 / 明牌键换成「坐下」（有空位才出现）；下面那家的手牌只画牌背 */
+.gz-watch-tag {
+  padding: 1px 8px; border-radius: 10px; font-size: 12px; line-height: 18px; white-space: nowrap;
+  border: 1px solid var(--gz-ink-mute); color: var(--gz-ink-mute); background: var(--gz-paper);
+}
+.gz-watch-tag[hidden] { display: none; }
+.is-watching #gzPlayBtn, .is-watching #gzNoExposeBtn { display: none; }
+#gzSitBtn[hidden] { display: none; }
+.gz-hand .gz-card.gz-card-back {
+  cursor: default; border-radius: calc(var(--u) * 0.1);
+  background: #b4392c; border: 2px solid var(--gz-paper); box-shadow: inset 0 0 0 calc(var(--u) * 0.06) #c2493b, 0 1px 3px rgba(20, 18, 15, 0.18);
+}
+
 /* 大厅：座位就是一张可点的名牌；空位虚线 */
 .is-lobby .gz-band, .is-lobby .gz-hand { visibility: hidden; }
 .gz-lobby-seat {

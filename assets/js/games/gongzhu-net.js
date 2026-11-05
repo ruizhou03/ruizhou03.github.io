@@ -23,6 +23,8 @@
     room_busy: '房间有点忙，再试一次',
     not_your_turn: '还没轮到你',
     illegal_card: '这张牌现在不能出',
+    spectators_full: '观战的人太多了，过一会儿再来',
+    not_in_room: '你现在在观战，坐下才能打',
   };
   function message(err) {
     if (!err) return '网络出了点问题，再试一次';
@@ -75,7 +77,8 @@
   window.GongzhuNet = {
     BASE, message, readSession, writeSession, deviceId, inviteUrl,
     create: (nick, config) => request('POST', 'create', { body: { nick, deviceId: deviceId(), config } }),
-    join: (code, nick) => request('POST', 'join', { body: { code, nick, deviceId: deviceId() } }),
+    // mode：'play' 想坐下（坐不下服务器就让我先观战，回应里 fellBack 写原因）；'watch' 只观战
+    join: (code, nick, mode) => request('POST', 'join', { body: { code, nick, deviceId: deviceId(), mode: mode || 'play' } }),
     act: (code, token, action, body) => request('POST', action, { code, token, body }),
     state: (code, token, since, signal) => request('GET', 'state', { code, token, query: { since: String(since || 0) }, signal }),
   };
