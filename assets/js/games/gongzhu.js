@@ -207,7 +207,13 @@
 
   /* ───── 尺寸：只算 --u ───── */
 
+  // 正在输入（昵称 / 房号）：手机键盘弹起会把窗口压矮，这时不量——否则会误弹「把手机横过来」盖住输入框
+  function typing() {
+    const a = document.activeElement;
+    return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable);
+  }
   function solveSize() {
+    if (typing()) return;
     const w = els.table.clientWidth - 20;
     const h = window.innerHeight;
     const portrait = h > window.innerWidth;
@@ -966,10 +972,24 @@
     autopilot = on;
     if (!on) timeouts = 0;
     els.seats[0].classList.toggle('is-auto', on);
-    els.seats[0].setAttribute('aria-label', NAMES[0] + (on ? '（托管中，点手牌收回）' : ''));
+    els.seats[0].setAttribute('aria-label', NAMES[0] + (on ? '（托管中，点头像或手牌收回）' : ''));
     const r = match && match.round;
     // 收回托管时正轮到我、机器人还没动手：直接把这一手交还给我
     if (!on && r && turnSeat() === 0 && !busy) { stopClock(); step(); }
+  }
+
+  // 手动托管时正轮到我（出牌或决定明牌）、钟在走：马上交给机器人，不用等超时
+  function takeOverNow() {
+    const r = match.round;
+    if (!r || busy) return;
+    const tier = takeoverTier(botTiers());
+    if (exposingMe()) {
+      stopClock(); busy = true; exposePick = []; renderHand();
+      chooseExpose(r, 0, tier).then(guard((cards) => schedule(() => applyExpose(0, cards), 0)));
+    } else if (turnSeat() === 0 && !R.isRoundOver(r) && !match.exposing.length) {
+      stopClock(); busy = true; selected = -1; renderHand();
+      chooseAi(r, 0, tier).then(guard((card) => schedule(() => commit(0, card), 0)));
+    }
   }
 
   function onCardTap(c, el) {
@@ -1094,15 +1114,32 @@
 
   // 正文里的 ♠♥♦♣ 后面补一个「按文字显示」的变体选择符，免得安卓把它们画成彩色 emoji
   function textSuits(html) { return String(html).replace(/([♠♥♦♣])(?!\uFE0E)/g, '$1\uFE0E'); }
+  /* 弹窗统一三段：标题钉在顶上、最后一排按钮钉在底下，只有中间内容滚动；打开时从内容的最上面看起。
+   * 点弹窗外面 / Esc = 点它的「好 / 取消 / 知道了」（[data-close]）；没有这个键的（结算、第一次来问要不要学）必须点按钮选 */
   function openDialog(html, onMount) {
-    els.dialog.innerHTML = textSuits(html);
+    const d = els.dialog;
+    d.innerHTML = textSuits(html);
+    const head = d.firstElementChild && d.firstElementChild.tagName === 'H2' ? d.firstElementChild : null;
+    const foot = [...d.children].reverse().find((x) => x.classList.contains('gz-actions')) || null;
+    const body = document.createElement('div');
+    body.className = 'gz-dialog-body';
+    [...d.children].forEach((x) => { if (x !== head && x !== foot) body.appendChild(x); });
+    d.insertBefore(body, foot);
+    if (foot) foot.classList.add('gz-dialog-foot');
     els.mask.hidden = false;
     pauseClock();
-    if (onMount) onMount(els.dialog);
-    const first = els.dialog.querySelector('[data-autofocus]') || els.dialog.querySelector('button');
-    if (first) first.focus();
+    if (onMount) onMount(d);
+    body.scrollTop = 0;
+    d.classList.toggle('is-scroll', body.scrollHeight > body.clientHeight + 1);
+    const first = d.querySelector('[data-autofocus]') || d.querySelector('button');
+    if (first) first.focus({ preventScroll: true });
   }
   function closeDialog() { els.mask.hidden = true; els.dialog.innerHTML = ''; resumeClock(); }
+  function dismissDialog() {
+    if (els.mask.hidden) return;
+    const close = els.dialog.querySelector('[data-close]');
+    if (close) close.click();
+  }
 
   /* 结算：每家一行 = 名字 · 吃牌（同一套小牌陈列） · 本局 · 累计；不写算式文字 */
   function showSettlement() {
@@ -1227,50 +1264,79 @@
   }
 
   /* ───── 右上角菜单 ─────
-   * 顶栏只留三个键：声音、规则、菜单。能做的事都收进菜单、写成字，每条下面一行小字说清会怎样；
-   * 按场合换内容：单机 / 联机房间里 / 教程里。离开放在最底下，并说明进度会不会丢。 */
+   * 顶栏只留三个键：声音、规则、菜单。能做的事都收进菜单、写成字，每条下面一行小字说清会怎样，前面一个线条小图标；
+   * 按场合换内容：单机 / 联机房间里 / 教程里。比分不进菜单：每家头像旁边就写着累计分。 */
   let menuPanel = null;
+  // 「返回百宝奇巧」只给从本站点进来的人（记在这个标签页里，刷新也还在）；
+  // 单独打开的（分享链接、微信里点开、装到桌面）只是来玩这个游戏，菜单里不占这一条
+  const FROM_SITE = (() => {
+    const K = 'gz-from-site';
+    try {
+      const ref = document.referrer ? new URL(document.referrer) : null;
+      if (ref && ref.origin === location.origin && !ref.pathname.startsWith('/toolbox/gongzhu')) sessionStorage.setItem(K, '1');
+      return sessionStorage.getItem(K) === '1';
+    } catch (_) { return false; }
+  })();
+  // 齿轮：8 个齿按角度算出来，免得手抄一长串路径
+  const GEAR = (() => {
+    const pt = (deg, r) => { const a = (deg - 90) * Math.PI / 180; return (12 + r * Math.cos(a)).toFixed(2) + ' ' + (12 + r * Math.sin(a)).toFixed(2); };
+    let d = '';
+    for (let k = 0; k < 8; k++) {
+      const c = k * 45;
+      d += (k ? 'L' : 'M') + pt(c - 16, 6.6) + 'L' + pt(c - 10, 9.4) + 'L' + pt(c + 10, 9.4) + 'L' + pt(c + 16, 6.6);
+    }
+    return '<path d="' + d + 'Z"/><circle cx="12" cy="12" r="2.8"/>';
+  })();
+  const MENU_ICONS = {
+    restart: '<path d="M19.5 12a7.5 7.5 0 1 1-2.3-5.4"/><path d="M19.6 4.2v4.2h-4.2"/>',
+    online: '<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19.5c.5-3.3 2.6-5.2 5.5-5.2s5 1.9 5.5 5.2"/><circle cx="16.8" cy="9.3" r="2.4"/><path d="M15.8 14.3c2.6-.2 4.4 1.5 4.8 4.4"/>',
+    settings: GEAR,
+    tutorial: '<path d="M12 6.6C10 5 7 4.5 4 5v13.2c3-.5 6 0 8 1.6 2-1.6 5-2.1 8-1.6V5c-3-.5-6 0-8 1.6Z"/><path d="M12 6.6v13.2"/>',
+    skip: '<path d="M4.5 6.5 11 12l-6.5 5.5Z"/><path d="M12.5 6.5 19 12l-6.5 5.5Z"/>',
+    exit: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+    room: '<path d="M10.2 13.8a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1.1 1.1"/><path d="M13.8 10.2a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1.1-1.1"/>',
+    roomrules: '<path d="M4 7h9M17 7h3M4 17h4M12 17h8"/><circle cx="15" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+    leave: '<path d="M13.5 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20h7"/><path d="M10 12h10M16.5 8.5 20 12l-3.5 3.5"/>',
+    'settings-art': '<rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M12 9.2c1.4 1.4 2.8 2.3 2.8 3.6 0 1-.9 1.5-1.7 1.1L13.6 16h-3.2l.5-2.1c-.8.4-1.7-.1-1.7-1.1 0-1.3 1.4-2.2 2.8-3.6Z"/>',
+  };
   function menuItems() {
+    const exit = FROM_SITE ? [['line'], ['exit', '返回百宝奇巧', match && match.online ? '不会退出房间，回来接着打' : match && match.tutorial ? '教程下次还能从规则里打开' : '进度自动保存，回来接着打']] : [];
+    const art = settings.artFaces !== false;
+    const artItem = ['settings-art', art ? '牌面：卡通' : '牌面：普通',
+      art ? '♠Q、♦J、♣10 画成猪、羊、×2；点一下换回普通牌面' : '猪、羊、变压器是普通牌面；点一下换成卡通画'];
     if (match && match.tutorial) {
-      return [
-        ['skip', '跳过教程', '直接开始打'],
-        ['exit', '返回百宝奇巧', '教程下次还能从规则里打开'],
-      ];
+      return [['skip', '跳过教程', '直接开始打'], ...exit];
     }
     if (match && match.online && online) {
       const inGame = !match.lobby;
       return [
         ['head', '房间 ' + online.code],
-        ...(inGame ? [['totals', '比分', '这一盘每局的分和累计']] : []),
-        ['room', '邀请朋友', '复制邀请链接或房号'],
+        ['room', '邀请朋友', '点一下复制邀请链接，发给朋友'],
         ['roomrules', isHost() && match.lobby ? '自定义规则' : '房间规则', isHost() && match.lobby ? '改了会通知房间里的其他人' : '这个房间按什么规则打'],
         ['leave', '离开房间', inGame ? '你的座位交给机器人接着打，回到单机' : '回到单机'],
         ['line'],
-        ['settings-art', settings.artFaces !== false ? '换成普通牌面' : '换成卡通牌面', settings.artFaces !== false ? '现在猪、羊、变压器是画出来的' : '现在是普通牌面'],
-        ['exit', '返回百宝奇巧', '不会退出房间，回来接着打'],
+        artItem,
+        ...exit,
       ];
     }
     return [
       ['head', '这一盘'],
-      ['totals', '比分', '每局的分和累计'],
       ['restart', '重新开始一盘', '分数清零，从第 1 局打起'],
       ['line'],
-      ...(NET ? [['online', '和朋友联机', '开一个房间发链接，或输房号加入']] : []),
+      ...(NET ? [['online', '加入 / 创建房间', '和朋友联机：输房号加入，或开一个房间发链接']] : []),
       ['settings', '设置', 'AI 水平、出牌限时、牌面、玩法变体'],
       ['tutorial', '新手教程', '跟着打一局，边打边讲'],
-      ['line'],
-      ['exit', '返回百宝奇巧', '进度自动保存，回来接着打'],
+      ...exit,
     ];
   }
   function menuAct(k) {
     closeMenu();
-    if (k === 'totals') showTotals();
-    else if (k === 'restart') restartMatch();
+    if (k === 'restart') restartMatch();
     else if (k === 'online') showOnlineEntry('');
     else if (k === 'settings') showSettings();
     else if (k === 'tutorial') startTutorial();
     else if (k === 'skip') endTutorial();
-    else if (k === 'room') showRoomDialog();
+    else if (k === 'room') copyText(NET.inviteUrl(online.code), '邀请链接已复制，发给朋友就能进房间');
     else if (k === 'roomrules') showRoomRules('view');
     else if (k === 'leave') {
       if (!confirm(match.lobby ? '离开房间？' : '离开房间？你的座位会交给机器人接着打。')) return;
@@ -1280,6 +1346,7 @@
       writeJSON(SETTINGS_KEY, settings);
       document.querySelectorAll('.gz-seat .gz-caps').forEach((x) => { x.innerHTML = ''; });
       renderAll();
+      toast(settings.artFaces ? '换成卡通牌面了' : '换成普通牌面了');
     } else if (k === 'exit') location.href = '/toolbox/';
   }
   function closeMenu() {
@@ -1302,9 +1369,11 @@
     }
     if (!menuPanel.hidden) { closeMenu(); return; }
     if (soundPanel) soundPanel.hidden = true;
-    menuPanel.innerHTML = menuItems().map(([k, t, sub]) =>
+    menuPanel.innerHTML = textSuits(menuItems().map(([k, t, sub]) =>
       k === 'line' ? '<hr>' : k === 'head' ? '<div class="gz-menu-head">' + esc(t) + '</div>'
-        : '<button type="button" role="menuitem" data-menu="' + k + '"' + (k === 'exit' ? ' class="is-exit"' : '') + '><b>' + esc(t) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</button>').join('');
+        : '<button type="button" role="menuitem" data-menu="' + k + '">' +
+          '<svg class="gz-menu-ic" viewBox="0 0 24 24" aria-hidden="true">' + (MENU_ICONS[k] || '') + '</svg>' +
+          '<b>' + esc(t) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</button>').join(''));
     menuPanel.hidden = false;
     $('gzMenuBtn').setAttribute('aria-expanded', 'true');
     pauseClock();   // 翻菜单时不计时（同弹窗）
@@ -2007,7 +2076,7 @@
     token++;
     stopClock(); hideCoach(); closeDialog();
     setAutopilot(false);
-    online = { code: st.code, token: tok, st: null, mySeat: st.mySeat, applied: 0, queue: [], pending: -1, idle: true, inGame: false, readySent: false, skew: 0, stopped: false, joinRules: !!joined, seenCfg: null, sheetBase: null };
+    online = { code: st.code, token: tok, st: null, mySeat: st.mySeat, applied: 0, queue: [], pending: -1, idle: true, inGame: false, readySent: false, skew: 0, stopped: false, joinRules: !!joined, seenCfg: null, sheetBase: null, base: null, ops: [], pumping: false };
     NET.writeSession({ code: st.code, token: tok });
     try { const u = new URL(location.href); u.searchParams.set('room', st.code); history.replaceState(null, '', u); } catch (_) { /* ignore */ }
     els.app.classList.add('is-online');
@@ -2075,7 +2144,8 @@
   function onState(st) {
     if (!online || !st || st.code !== online.code) return;
     if (online.st && st.version < online.st.version) return;   // 迟到的旧视图
-    online.st = st;
+    online.base = st;
+    online.st = st.phase === 'lobby' ? withOps(st) : st;
     online.skew = st.serverNow - Date.now();
     const me = st.players.find((p) => p.id === st.me);
     if (!me || me.left || st.mySeat < 0) { leaveOnline('你已经不在这个房间里了'); return; }
@@ -2362,7 +2432,7 @@
       const el = els.seats[l];
       el.classList.remove('is-turn', 'is-timed', 'is-hurry', 'is-auto');
       el.innerHTML = p
-        ? '<button type="button" class="gz-lobby-seat" data-lseat="' + l + '"' + (l === 0 ? ' disabled' : '') + '>' +
+        ? '<button type="button" class="gz-lobby-seat' + (p.pending ? ' is-pending' : '') + '" data-lseat="' + l + '"' + (l === 0 ? ' disabled' : '') + '>' +
           '<span class="gz-avatar' + (p.isAi ? ' is-bot' : '') + '"><span class="gz-av-face">' + faceHtml(avatarOf(p)) + '</span></span>' +
           '<span class="gz-lobby-name">' + esc(p.nick) + (l === 0 ? '（我）' : '') + '</span>' +
           (p.id === st.hostId ? '<span class="gz-tag is-host">房主</span>' : '') +
@@ -2391,6 +2461,68 @@
     guestRulesCheck(st);
   }
 
+  /* ───── 大厅里房主的机器人操作：先画上去，再排队慢慢发 ─────
+   * 加 / 移除 / 换档机器人只有房主能做，结果房主自己说了算，所以点了就直接画出来（乐观更新），不等服务器那一两秒。
+   * 规矩：
+   *  · 操作按点的顺序排队，一次只发一条，上一条回来了才发下一条——服务器看到的顺序和房主点的一模一样；
+   *  · 画面 = 服务器最新视图 + 队列里还没确认的操作（withOps），轮询中途送来的旧视图不会把刚加的机器人「闪掉」；
+   *  · 还没发出去的「加」被「移除」：两条互相抵消，都不发；还没发出去的「加」被换档：直接改那条「加」的档位；
+   *  · 某条被服务器拒了（比如那个空位刚好有人坐进来）：提示一下，丢掉它和后面同一座位的操作，画面回到服务器的样子；
+   *  · 「开始」也排进这条队，等前面的机器人都确认了才发，不会因为人还没凑齐被拒。 */
+  function withOps(st) {
+    const ops = online && online.ops;
+    if (!ops || !ops.length) return st;
+    let players = st.players.slice();
+    for (const { action, body } of ops) {
+      if (action === 'add_ai' && !players.some((p) => p.seat === body.seat)) {
+        players.push({ id: 'pending_' + body.seat, nick: '机器人', seat: body.seat, isAi: true, aiLevel: body.level, online: true, avatar: 'bot-navy', pending: true });
+      } else if (action === 'remove_ai') {
+        players = players.filter((p) => !(p.seat === body.seat && p.isAi));
+      } else if (action === 'set_ai') {
+        players = players.map((p) => (p.seat === body.seat && p.isAi ? Object.assign({}, p, { aiLevel: body.level }) : p));
+      }
+    }
+    return Object.assign({}, st, { players });
+  }
+  function redrawLobby() {
+    if (!online || !online.base || online.base.phase !== 'lobby') return;
+    online.st = withOps(online.base);
+    renderLobby();
+  }
+  function lobbyOp(action, body) {
+    const my = online;
+    if (!my) return;
+    body = Object.assign({}, body || {});
+    const unsent = (a, seat) => my.ops.findIndex((o) => !o.sent && o.action === a && o.body.seat === seat);
+    if (action === 'remove_ai' && unsent('add_ai', body.seat) >= 0) {
+      my.ops = my.ops.filter((o) => o.sent || o.body.seat !== body.seat);
+      redrawLobby();
+      return;
+    }
+    if (action === 'set_ai') {
+      const i = unsent('add_ai', body.seat);
+      if (i >= 0) { my.ops[i].body.level = body.level; redrawLobby(); return; }
+    }
+    if (action === 'start' && my.ops.some((o) => o.action === 'start')) return;
+    my.ops.push({ action, body, sent: false });
+    redrawLobby();
+    pumpOps(my);
+  }
+  async function pumpOps(my) {
+    if (my.pumping) return;
+    my.pumping = true;
+    while (online === my && my.ops.length) {
+      const op = my.ops[0];
+      op.sent = true;
+      const res = await onlineAct(op.action, op.body);
+      if (online !== my) break;
+      my.ops.shift();
+      if (!res) my.ops = my.ops.filter((o) => o.action !== 'start' && (op.body.seat == null || o.body.seat !== op.body.seat));
+      redrawLobby();
+    }
+    my.pumping = false;
+  }
+
   function showSeatMenu(l) {
     const s = srv(l);
     const p = playerAt(s);
@@ -2405,7 +2537,7 @@
       if (host) {
         body += '<div class="gz-field-label">机器人水平</div><div class="gz-seg" role="group">' +
           TIER_ORDER.map((k) => '<button type="button" data-set-ai="' + k + '" aria-pressed="' + (p.aiLevel === k) + '">' + TIER_LABELS[k] + '</button>').join('') + '</div>';
-        acts.push('<button type="button" class="gz-btn" data-seat-act="remove">请机器人离开</button>');
+        acts.push('<button type="button" class="gz-btn" data-seat-act="remove">移除机器人</button>');
       }
       acts.push('<button type="button" class="gz-btn" data-seat-act="sit">和它换座</button>');
     } else if (host) {
@@ -2416,24 +2548,34 @@
       '<div class="gz-actions">' + acts.join('') + '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
       (d) => {
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
-        d.querySelectorAll('[data-ai]').forEach((b) => b.addEventListener('click', () => { closeDialog(); onlineAct('add_ai', { seat: s, level: b.dataset.ai }); }));
+        d.querySelectorAll('[data-ai]').forEach((b) => b.addEventListener('click', () => { closeDialog(); lobbyOp('add_ai', { seat: s, level: b.dataset.ai }); }));
         d.querySelectorAll('[data-set-ai]').forEach((b) => b.addEventListener('click', () => {
           d.querySelectorAll('[data-set-ai]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-          onlineAct('set_ai', { seat: s, level: b.dataset.setAi });
+          lobbyOp('set_ai', { seat: s, level: b.dataset.setAi });
         }));
         d.querySelectorAll('[data-seat-act]').forEach((b) => b.addEventListener('click', () => {
           closeDialog();
           const a = b.dataset.seatAct;
-          if (a === 'sit') onlineAct('sit', { seat: s });
-          if (a === 'remove') onlineAct('remove_ai', { seat: s });
-          if (a === 'kick') onlineAct('kick', { pid: p.id });
+          if (a === 'sit') lobbyOp('sit', { seat: s });   // 也排队：和刚加、还没确认的机器人换座，得等它先落座
+          if (a === 'remove') lobbyOp('remove_ai', { seat: s });
+          if (a === 'kick') lobbyOp('kick', { pid: p.id });
         }));
       });
   }
 
+  // 剪贴板接口用不了（部分微信内置浏览器）：退回老办法 execCommand；再不行才弹框让人手动复制
   async function copyText(text, done) {
-    try { await navigator.clipboard.writeText(text); toast(done); }
-    catch (_) { prompt('复制下面这段发给朋友：', text); }
+    try { await navigator.clipboard.writeText(text); toast(done); return; } catch (_) { /* 往下试 */ }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) { /* ignore */ }
+    ta.remove();
+    if (ok) toast(done); else prompt('复制下面这段发给朋友：', text);
   }
 
   /* 房间设置：邀请、看 / 改规则、离开房间 */
@@ -2612,11 +2754,26 @@
     if (!coachNext || e.target.closest('.gz-topbar') || !els.mask.hidden) return;
     coachAdvance();
   });
-  els.seats[0].addEventListener('click', (e) => { if (autopilot && e.target.closest('.gz-avatar')) setAutopilot(false); });
-  // 点遮罩关闭普通弹窗；结算弹窗必须点按钮继续
-  els.mask.addEventListener('click', (e) => { if (e.target === els.mask && match.round) closeDialog(); });
+  // 点自己的头像：进入托管（机器人替我打）；托管中再点一下收回。教程、动画预览、大厅里不管
+  els.seats[0].addEventListener('click', (e) => {
+    if (!e.target.closest('.gz-avatar') || !match || match.tutorial || match.demo || match.lobby || AUTO) return;
+    if (match.online) {
+      if (!online || !online.inGame || !match.round) return;
+      const on = !onlineAuto();
+      onlineAct('auto', { on });
+      if (on) toast('托管中：机器人替你出牌。点头像或手牌收回');
+      return;
+    }
+    if (autopilot) { setAutopilot(false); return; }
+    if (!match.round) return;
+    setAutopilot(true);
+    takeOverNow();
+    toast('托管中：机器人替你出牌。点头像或手牌收回');
+  });
+  // 点弹窗外面关掉（见 openDialog）
+  els.mask.addEventListener('click', (e) => { if (e.target === els.mask) dismissDialog(); });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !els.mask.hidden && match.round) closeDialog();
+    if (e.key === 'Escape' && !els.mask.hidden) dismissDialog();
     if ((e.key === ' ' || e.key === 'Enter') && els.mask.hidden && coachNext) { e.preventDefault(); coachAdvance(); return; }
     if (e.key === 'Enter' && els.mask.hidden) playSelected();
   });
@@ -2632,6 +2789,8 @@
   };
   window.addEventListener('resize', onResize);
   window.addEventListener('orientationchange', onResize);
+  // 输完收起键盘：补量一次（输入时跳过了）
+  document.addEventListener('focusout', () => { if (!typing()) onResize(); });
 
   /* 单机：接着上次的存档打；没有存档就开一盘（第一次来先问要不要学）。quiet = 从联机房间回来，不再问教程 */
   // 存档自检：任何一张牌在手牌 / 吃牌 / 桌上出现两次，就是坏档（旧版本留下的或被改过），直接作废重开
@@ -2680,7 +2839,7 @@
     if (act === 'copy-link') copyText(NET.inviteUrl(online.code), '邀请链接已复制');
     if (act === 'copy-code') copyText(online.code, '房号已复制');
     if (act === 'rules') showRoomRules('view');
-    if (act === 'start') onlineAct('start');
+    if (act === 'start') lobbyOp('start');
     if (act === 'leave' && confirm('离开房间？')) leaveOnline(null, true);
   });
 

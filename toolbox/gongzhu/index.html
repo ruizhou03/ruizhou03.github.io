@@ -11,6 +11,12 @@ minimal_app_shell: true
 body_class: gz-fullscreen
 ---
 
+<!-- 精简外壳不带站点字体：这里自己加载思源宋体（按字形分片懒加载）和 Cormorant。
+     不加载的话微信 iOS 会把「serif」落到日文明朝体：日文也有的字（机、局）是宋体，简体专用字（联、对）退回黑体，一行里两种字 -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/700.css">
 <link rel="stylesheet" href="/assets/css/gongzhu.css?v={{ site.time | date: '%s' }}">
 
 <div class="gz-app" id="gzApp">

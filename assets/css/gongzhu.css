@@ -31,7 +31,8 @@ body.gz-fullscreen .site-footer { display: none !important; }
   position: fixed; inset: 0;
   background: var(--gz-paper);
   color: var(--gz-ink);
-  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  /* 不写通用 serif：iOS 上它会落到日文明朝体，简体专用字缺字、一行混两种字体；宋体都没有时宁可整行黑体 */
+  font-family: 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', 'PingFang SC', sans-serif;
   -webkit-user-select: none; user-select: none;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   box-sizing: border-box;
@@ -374,8 +375,14 @@ body.gz-fullscreen .site-footer { display: none !important; }
   background: var(--gz-paper); color: var(--gz-ink);
   border: 1px solid var(--gz-ink); outline: 1px solid rgba(29, 27, 24, 0.35); outline-offset: -6px;
   border-radius: 2px; padding: 20px 20px 16px;
-  width: min(560px, 100%); max-height: calc(100% - 16px); overflow: auto;
+  width: min(560px, 100%); max-height: calc(100% - 16px); overflow: hidden;
+  display: flex; flex-direction: column;
 }
+/* 三段（见 openDialog）：标题、底排按钮钉住，只有中间滚动 */
+.gz-dialog > h2, .gz-dialog-foot { flex: none; }
+.gz-dialog-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  margin: 0 -6px; padding: 0 6px; }
+.gz-dialog.is-scroll .gz-dialog-foot { border-top: 1px solid rgba(29, 27, 24, 0.14); padding-top: 12px; margin-top: 8px; }
 .gz-dialog h2 { margin: 0 0 12px; font-size: 19px; letter-spacing: 0.06em; }
 .gz-dialog p { margin: 0 0 8px; font-size: 14px; line-height: 1.7; }
 .gz-dialog .gz-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
@@ -613,6 +620,8 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-lobby-seat .gz-avatar.is-bot { border-style: double; border-width: 3px; }
 .gz-lobby-seat.is-empty .gz-avatar { border-style: dashed; color: var(--gz-ink-mute); font-size: 24px; }
 .gz-lobby-name { font-size: 15px; font-weight: 600; max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 房主刚加、服务器还没确认的机器人：先画上去，略淡一点 */
+.gz-lobby-seat.is-pending .gz-avatar, .gz-lobby-seat.is-pending .gz-lobby-name { opacity: 0.7; }
 .gz-lobby-seat.is-empty .gz-lobby-name { color: var(--gz-ink-mute); font-weight: 400; }
 .gz-lobby-hint { font-size: 12px; color: var(--gz-seal); }
 
@@ -681,8 +690,6 @@ body.gz-fullscreen .site-footer { display: none !important; }
 /* 牌桌始终是宣纸配色：手机开了深色模式时，全站样式会把标题等改成浅色字，在牌桌上就看不见了——这里一律钉回墨色 */
 .gz-app { color-scheme: light; color: var(--gz-ink); }
 .gz-app :is(h1, h2, h3, h4) { color: var(--gz-ink); }
-/* 弹窗内容滚动时，iOS Safari 不算滚动容器的底部内边距：最后一排按钮会压到内框线上。补一个真实的垫块 */
-.gz-dialog::after { content: ''; display: block; height: 10px; }
 .gz-app { font-variant-emoji: text; }
 .gz-spark .suit-svg { width: 1em; height: 1em; display: block; fill: currentColor; overflow: visible; }
 
@@ -771,7 +778,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-card.is-exposed .gz-dbl .x2 { display: none; }
 .gz-card.is-exposed .gz-dbl .x4 { display: inline; }
 
-/* 右上角菜单：每条一行粗字 + 一行小字说明会怎样；最底下「返回百宝奇巧」 */
+/* 右上角菜单：每条 = 左边一个线条小图标 + 一行粗字 + 一行小字说明会怎样 */
 .gz-menu {
   position: fixed; z-index: calc(var(--z-dialog) + 1); width: 264px; max-width: calc(100vw - 16px); box-sizing: border-box; padding: 6px;
   background: var(--gz-paper); border: 1px solid var(--gz-ink); border-radius: 12px; box-shadow: 0 10px 26px rgba(20, 18, 15, 0.18);
@@ -779,15 +786,16 @@ body.gz-fullscreen .site-footer { display: none !important; }
 }
 .gz-menu[hidden] { display: none; }
 .gz-menu button {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; text-align: left;
+  display: grid; grid-template-columns: 22px 1fr; column-gap: 10px; row-gap: 1px; align-items: center; width: 100%; text-align: left;
   border: 0; background: none; padding: 8px 10px; border-radius: 8px; font: inherit; color: var(--gz-ink); cursor: pointer;
 }
 .gz-menu button:hover, .gz-menu button:focus-visible { background: var(--gz-wash); outline: none; }
-.gz-menu b { font-size: 15px; font-weight: 700; }
-.gz-menu small { font-size: 12px; color: var(--gz-ink-mute); }
+.gz-menu b { grid-column: 2; font-size: 15px; font-weight: 700; }
+.gz-menu small { grid-column: 2; font-size: 12px; color: var(--gz-ink-mute); }
+.gz-menu-ic { grid-column: 1; grid-row: 1 / span 2; width: 22px; height: 22px; align-self: start; margin-top: 1px;
+  fill: none; stroke: var(--gz-ink); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .gz-menu hr { border: 0; border-top: 1px solid rgba(29, 27, 24, 0.14); margin: 4px 8px; }
 .gz-menu-head { font-size: 12px; color: var(--gz-ink-mute); padding: 6px 10px 2px; letter-spacing: 0.06em; }
-.gz-menu .is-exit b::before { content: '‹ '; }
 
 .gz-face-ha { display: none; }
 .gz-card.is-exposed .gz-face-ha { display: flex; }
