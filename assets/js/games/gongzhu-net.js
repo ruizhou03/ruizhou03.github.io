@@ -18,6 +18,7 @@
     bad_code: '房号是 4 位数字',
     seats_not_full: '四个座位都坐满（可以加机器人）才能开始',
     seat_taken: '这个座位已经有人了',
+    bad_avatar: '这个头像不能用',
     host_only: '只有房主能这么做',
     room_busy: '房间有点忙，再试一次',
     not_your_turn: '还没轮到你',

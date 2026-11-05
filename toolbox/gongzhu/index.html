@@ -75,6 +75,8 @@ body_class: gz-fullscreen
           <button type="button" class="gz-btn gz-btn-primary" data-lb="start">开始</button>
         </div>
       </div>
+      <!-- 明牌阶段：倒计时 + 该怎么做（大家都看得到） -->
+      <div class="gz-expose-box" id="gzExposeBox" hidden aria-live="polite"><span>明牌</span><b></b><p></p></div>
       <!-- 特殊事件：吃羊 / 吃猪 / 变压器 / 全红 / 大满贯 的印章动画 -->
       <div class="gz-fx" id="gzFx" aria-hidden="true"></div>
     </div>
@@ -82,6 +84,7 @@ body_class: gz-fullscreen
     <section class="gz-seat gz-seat-me" data-pos="0" id="gzSeat0"></section>
 
     <div class="gz-band">
+      <button type="button" class="gz-btn" id="gzNoExposeBtn" hidden>不明牌</button>
       <button type="button" class="gz-btn gz-btn-primary" id="gzPlayBtn" disabled>出牌</button>
     </div>
     <div class="gz-hand" id="gzHand" role="listbox" aria-label="我的手牌"></div>
@@ -93,12 +96,14 @@ body_class: gz-fullscreen
     <p class="gz-fit-text"></p>
   </div>
 
-  <!-- 封面：没有正在打的局时才出现（见 gongzhu.js「封面 · 暂停」）。盖住牌桌，弹窗（建房 / 加入）仍在它上面 -->
-  <div class="gz-cover" id="gzCover" hidden>
+  <!-- 主菜单：一打开就是它（脚本还没跑完也先露出来），进度条跑完才出「单机」「联机」（见 gongzhu.js「封面 · 暂停」）。
+       盖住牌桌，弹窗（建房 / 加入）仍在它上面 -->
+  <div class="gz-cover" id="gzCover">
     <div class="gz-cover-inner">
       <div class="gz-cover-art" aria-hidden="true"></div>
       <h1 class="gz-cover-title">拱猪</h1>
-      <div class="gz-cover-btns" data-cover-step="main">
+      <div class="gz-cover-load" data-cover-step="load" role="progressbar" aria-label="加载中"><i></i></div>
+      <div class="gz-cover-btns" data-cover-step="main" hidden>
         <button type="button" class="gz-cover-btn is-primary" data-cover="solo"><b>单机</b><small></small></button>
         <button type="button" class="gz-cover-btn" data-cover="online"><b>联机</b><small>创建 / 加入房间</small></button>
       </div>
@@ -107,7 +112,7 @@ body_class: gz-fullscreen
         <button type="button" class="gz-cover-btn" data-cover="join"><b>加入房间</b></button>
         <button type="button" class="gz-cover-link" data-cover="back">‹ 返回</button>
       </div>
-      <div class="gz-cover-foot" data-cover-step="main">
+      <div class="gz-cover-foot" data-cover-step="main" hidden>
         <button type="button" class="gz-cover-link" data-cover="tutorial">新手教程</button>
         <button type="button" class="gz-cover-link" data-cover="exit" hidden>返回百宝奇巧</button>
       </div>

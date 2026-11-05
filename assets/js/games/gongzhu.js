@@ -36,7 +36,7 @@
   const $ = (id) => document.getElementById(id);
   const els = {
     app: $('gzApp'), table: $('gzTable'), center: $('gzCenter'),
-    hand: $('gzHand'), play: $('gzPlayBtn'),
+    hand: $('gzHand'), play: $('gzPlayBtn'), noExpose: $('gzNoExposeBtn'), exposeBox: $('gzExposeBox'),
     roundNo: $('gzRoundNo'),
     mask: $('gzDialogMask'), dialog: $('gzDialog'),
     coach: $('gzCoach'), fx: $('gzFx'),
@@ -540,9 +540,11 @@
 
   /* 明了 ♥A（这一局红桃全部翻倍）：牌桌上所有红桃都垫一层淡红底（见 gongzhu.css「明牌牌面」）。
    * 打牌时看这一局的明牌；一局结束、结算页还开着时看刚结束那局的。 */
+  // 我点选了 ♥A、或已经明出去还在等别家 / 服务器：先按明了算，和 ♥A 自己的明牌底色同一刻变
   function syncHeartsX2() {
     const r = match && match.round;
-    const ex = r ? r.exposed.map((e) => e[0]) : (match && match.last && match.last.ctx && match.last.ctx.exposed) || [];
+    const ex = r ? r.exposed.map((e) => e[0]).concat(exposeHeld, exposingMe() ? exposePick : [])
+      : (match && match.last && match.last.ctx && match.last.ctx.exposed) || [];
     els.app.classList.toggle('is-hx2', ex.includes(R.HEART_ACE));
   }
 
@@ -631,7 +633,17 @@
       els.hand.appendChild(el);
       x += step;
     });
-    if (exposing) { els.play.disabled = false; els.play.textContent = exposePick.length ? '明牌' : '不明牌'; return; }
+    syncHeartsX2();
+    els.noExpose.hidden = !exposing;
+    syncExposeBox();
+    if (exposing) {
+      // 两个键分开：「不明牌」随时能点；「明牌」要先在手牌里点选（再点一下取消），选了几张写在键上
+      els.play.textContent = exposePick.length ? '明牌 ' + exposePick.length + ' 张' : '明牌';
+      els.play.disabled = !exposePick.length;
+      els.play.hidden = !legal.length;   // 手里没有能明的牌（联机也要表个态）：只留「不明牌」
+      return;
+    }
+    els.play.hidden = false;
     els.play.textContent = '出牌';
     els.play.disabled = !(myTurn && selected >= 0 && legal.includes(selected));
   }
@@ -700,7 +712,7 @@
     exposeWait = { bots: Promise.all(bots.map((s) => chooseExpose(r, s, seatTier(s)).then((cards) => [s, cards]))) };
     const meIn = match.exposing.includes(0);
     renderSeats();
-    if (meIn && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyExposeTimeout); dingMyTurn(); return; }
+    if (meIn && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyExposeTimeout, EXPOSE_MS); syncExposeBox(); dingMyTurn(); return; }
     busy = true;
     renderHand();
     if (meIn) chooseExpose(r, 0, takeoverTier(botTiers())).then(guard((cards) => applyExpose(0, cards)));
@@ -741,14 +753,38 @@
     }));
   }
 
+  // 明牌倒计时到了：算不明牌（和联机服务器一样），不让机器人替我选、也不算超时次数
   function onMyExposeTimeout() {
     if (!exposingMe() || busy) return;
-    timeouts++;
-    if (timeouts >= 2) setAutopilot(true);
     busy = true;
     exposePick = [];
-    renderHand();
-    chooseExpose(match.round, 0, takeoverTier(botTiers())).then(guard((cards) => schedule(() => applyExpose(0, cards), 0)));
+    applyExpose(0, []);
+  }
+
+  /* 明牌阶段：桌子中间一张小牌子——倒计时（大家都看得到，联机里别人也知道在等什么）+ 我该怎么做。
+   * 单机跟着我的钟走（菜单 / 弹窗开着会停）；联机按服务器的截止时间 */
+  const EXPOSE_MS = 15000;
+  let exposeTick = 0;
+  function exposeLeftMs() {
+    if (!match || !match.round) return -1;
+    if (match.online) {
+      const gv = online && online.st && online.st.game;
+      return gv && gv.phase === 'expose' && gv.deadline ? Math.min(EXPOSE_MS, gv.deadline - (Date.now() + online.skew)) : -1;
+    }
+    if (!match.exposing.length || clock.seat !== 0) return -1;
+    return clock.paused || !clock.at ? clock.left : clock.left - (performance.now() - clock.at);
+  }
+  function syncExposeBox() {
+    const box = els.exposeBox;
+    const left = exposeLeftMs();
+    if (left < 0 || coverOn) { box.hidden = true; clearInterval(exposeTick); exposeTick = 0; return; }
+    const deciding = exposingMe() && !busy;
+    const canPick = deciding && match.round && R.EXPOSABLE.some((c) => match.round.hands[0].includes(c));
+    box.querySelector('b').textContent = Math.max(0, Math.ceil(left / 1000));
+    box.querySelector('p').textContent = !deciding ? '等其他人决定…'
+      : canPick ? '点选要明的牌（再点一下取消），然后点「明牌」；不明就点「不明牌」' : '这一局你没有可以明的牌，点「不明牌」';
+    box.hidden = false;
+    if (!exposeTick) exposeTick = setInterval(syncExposeBox, 250);
   }
 
   function commit(seat, card) {
@@ -1029,6 +1065,7 @@
       exposePick = exposePick.includes(c) ? exposePick.filter((x) => x !== c) : exposePick.concat([c]);
       snd('pick');
       renderHand();
+      renderSeats();   // ♥A 点上 / 取消：桌上所有红桃一起变色
       return;
     }
     const r = match.round;
@@ -1056,7 +1093,7 @@
   function playSelected() {
     if (match.online) { onlinePlaySelected(); return; }
     if (exposingMe()) {
-      if (busy) return;
+      if (busy || !exposePick.length) return;   // 「明牌」要先选牌；不明走「不明牌」键
       busy = true;
       timeouts = 0;
       applyExpose(0, exposePick.slice());
@@ -1146,6 +1183,7 @@
    * 点弹窗外面 / Esc = 点它的「好 / 取消 / 知道了」（[data-close]）；没有这个键的（结算、第一次来问要不要学）必须点按钮选 */
   function openDialog(html, onMount) {
     const d = els.dialog;
+    d.className = 'gz-dialog';   // 上一个弹窗加的样式（暂停页等）不带过来
     d.innerHTML = textSuits(html);
     const head = d.firstElementChild && d.firstElementChild.tagName === 'H2' ? d.firstElementChild : null;
     const foot = [...d.children].reverse().find((x) => x.classList.contains('gz-actions')) || null;
@@ -1162,7 +1200,7 @@
     const first = d.querySelector('[data-autofocus]') || d.querySelector('button');
     if (first) first.focus({ preventScroll: true });
   }
-  function closeDialog() { els.mask.hidden = true; els.dialog.innerHTML = ''; resumeClock(); }
+  function closeDialog() { closeSub(); els.mask.hidden = true; els.dialog.innerHTML = ''; resumeClock(); }
   function dismissDialog() {
     if (els.mask.hidden) return;
     const close = els.dialog.querySelector('[data-close]');
@@ -1239,8 +1277,7 @@
     const cell = (n) => '<td class="n gz-num ' + cls(n) + '">' + signed(n) + '</td>';
     const rows = list.map((h, i) =>
       '<tr class="gz-hist-row' + (h.captured ? ' can-open' : '') + '" data-i="' + i + '"><th scope="row">第 ' + h.roundNo + ' 局' +
-      (h.captured ? '<span class="gz-hist-caret" aria-hidden="true"></span>' : '') + '</th>' + h.scores.map(cell).join('') + '</tr>' +
-      (h.captured ? '<tr class="gz-hist-detail" data-for="' + i + '" hidden><td colspan="5"><div class="gz-res"></div></td></tr>' : '')).join('');
+      (h.captured ? '<span class="gz-hist-caret" aria-hidden="true"></span>' : '') + '</th>' + h.scores.map(cell).join('') + '</tr>').join('');
     openDialog('<h2>每局得分</h2>' +
       (list.length ? '<table class="gz-hist"><thead><tr><th></th>' + [0, 1, 2, 3].map((s) => '<th scope="col"><span>' + esc(NAMES[s]) + '</span></th>').join('') + '</tr></thead>' +
         '<tbody>' + rows + '</tbody><tfoot><tr><th scope="row">累计</th>' + match.totals.map(cell).join('') + '</tr></tfoot></table>'
@@ -1248,25 +1285,36 @@
       '<div class="gz-actions"><button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
       (d) => {
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
-        d.querySelectorAll('.gz-hist-row.can-open').forEach((tr) => tr.addEventListener('click', () => {
-          const h = list[+tr.dataset.i];
-          const det = d.querySelector('.gz-hist-detail[data-for="' + tr.dataset.i + '"]');
-          det.hidden = !det.hidden;
-          tr.classList.toggle('is-open', !det.hidden);
-          const box = det.querySelector('.gz-res');
-          if (det.hidden || box.childElementCount) return;
-          // 和结算页一样：名字 · 吃牌 · 本局；挤得看不清的那家换成两行
-          box.innerHTML = [0, 1, 2, 3].map((s) => '<div class="gz-res-row is-3col" data-seat="' + s + '"><span class="gz-res-name">' + esc(NAMES[s]) + '</span>' +
-            '<span class="gz-res-caps gz-caps"></span><span class="gz-res-n gz-num ' + cls(h.scores[s]) + '">' + signed(h.scores[s]) + '</span></div>').join('');
-          box.querySelectorAll('.gz-res-row').forEach((row) => {
-            const seat = +row.dataset.seat, caps = row.querySelector('.gz-res-caps');
-            row.dataset.dbl = dblTone(h.captured[seat], h.ctx);
-            const draw = () => { renderCaps(caps, h.captured[seat], null, h.ctx); const sc = caps.querySelector('.gz-cap-score'); if (sc) sc.remove(); };
-            draw();
-            if (fanSqueezed(caps)) { row.classList.add('is-stack'); draw(); }
-          });
-        }));
+        d.querySelectorAll('.gz-hist-row.can-open').forEach((tr) => tr.addEventListener('click', () => showRoundCard(list[+tr.dataset.i])));
       });
+  }
+  /* 某一局的明细：叠在「每局得分」上面的小窗（不展开在表格里，展开多了一大串很乱）。
+   * 和结算页同一套行：名字 · 吃牌 · 本局；挤得看不清的那家换成两行 */
+  let subMask = null;
+  function closeSub() { if (subMask && !subMask.hidden) { subMask.hidden = true; subMask.firstChild.innerHTML = ''; } }
+  function showRoundCard(h) {
+    if (!subMask) {
+      subMask = document.createElement('div');
+      subMask.className = 'gz-dialog-mask gz-sub-mask';
+      subMask.innerHTML = '<div class="gz-dialog gz-sub" role="dialog" aria-modal="true"></div>';
+      subMask.addEventListener('click', (e) => { if (e.target === subMask || e.target.closest('[data-sub-close]')) closeSub(); });
+      els.app.appendChild(subMask);
+    }
+    const cls = (n) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
+    const box = subMask.firstChild;
+    box.innerHTML = textSuits('<h2>第 ' + h.roundNo + ' 局</h2><div class="gz-res">' +
+      [0, 1, 2, 3].map((s) => '<div class="gz-res-row is-3col" data-seat="' + s + '"><span class="gz-res-name">' + esc(NAMES[s]) + '</span>' +
+        '<span class="gz-res-caps gz-caps"></span><span class="gz-res-n gz-num ' + cls(h.scores[s]) + '">' + signed(h.scores[s]) + '</span></div>').join('') +
+      '</div><div class="gz-actions"><button type="button" class="gz-btn gz-btn-primary" data-sub-close>好</button></div>');
+    subMask.hidden = false;
+    box.querySelectorAll('.gz-res-row').forEach((row) => {
+      const seat = +row.dataset.seat, caps = row.querySelector('.gz-res-caps');
+      row.dataset.dbl = dblTone(h.captured[seat], h.ctx);
+      const draw = () => { renderCaps(caps, h.captured[seat], null, h.ctx); const sc = caps.querySelector('.gz-cap-score'); if (sc) sc.remove(); };
+      draw();
+      if (fanSqueezed(caps)) { row.classList.add('is-stack'); draw(); }
+    });
+    box.querySelector('[data-sub-close]').focus({ preventScroll: true });
   }
 
   /* 规则说明跟着本盘的规则开关走 */
@@ -1363,6 +1411,7 @@
     room: '<path d="M10.2 13.8a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1.1 1.1"/><path d="M13.8 10.2a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1.1-1.1"/>',
     roomrules: '<path d="M4 7h9M17 7h3M4 17h4M12 17h8"/><circle cx="15" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
     leave: '<path d="M13.5 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20h7"/><path d="M10 12h10M16.5 8.5 20 12l-3.5 3.5"/>',
+    profile: '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.8 3.6-6 7-6s6.2 2.2 7 6"/>',
     history: '<rect x="4.5" y="4" width="15" height="16" rx="2"/><path d="M8 9h8M8 12.5h8M8 16h5"/>',
     cover: '<path d="M4 11.2 12 4.5l8 6.7"/><path d="M6.5 9.5v10h11v-10"/><path d="M10 19.5v-5h4v5"/>',
   };
@@ -1370,12 +1419,13 @@
   function menuItems() {
     const exit = FROM_SITE ? [['exit', '返回百宝奇巧']] : [];
     if (match && match.tutorial) {
-      return [['skip', '跳过教程'], ['cover', '主菜单'], ...exit];
+      return [['skip', '跳过教程'], ['cover', '回到主菜单'], ...exit];
     }
     if (match && match.online && online) {
       return [
         ['head', '房间 ' + online.code],
         ...(match.lobby ? [] : [['history', '每局得分']]),
+        ['profile', '改名字 / 头像'],
         ['room', '邀请朋友'],
         ...(isHost() && match.lobby ? [['roomrules', '自定义规则']] : []),
         ['leave', '离开房间'],
@@ -1389,7 +1439,7 @@
       ['settings', '设置'],
       ['tutorial', '新手教程'],
       ['line'],
-      ['cover', '主菜单'],
+      ['cover', '回到主菜单'],
       ...exit,
     ];
   }
@@ -1397,6 +1447,7 @@
     closeMenu();
     if (k === 'restart') restartMatch();
     else if (k === 'history') showHistory();
+    else if (k === 'profile') showProfile();
     else if (k === 'create') createRoom();
     else if (k === 'join') showJoin('');
     else if (k === 'settings') showSettings();
@@ -2192,6 +2243,7 @@
   function leaveOnline(msg, sendLeave, then) {
     const my = online;
     if (!my) return;
+    stopCountdown();
     if (sendLeave) NET.act(my.code, my.token, 'leave', {}).catch(() => {});
     my.stopped = true;
     online = null;
@@ -2212,19 +2264,89 @@
   /* 房主点「开始」时房间里只有自己 + 机器人：牌局开始后没人进得来（中途只能补「已离开」的真人座位），这就是单机。
    * 悄悄换成本机单机打（能暂停、断网也能打），不另外提示；房间随之解散。
    * 规则、出牌限时、三个机器人的名字 / 头像 / 水平原样带过来。（这一盘会顶掉原来没打完的单机存档） */
-  function soloFromRoom() {
+  // 只剩我 + 三个机器人时，换成本机单机要用的这一盘（还没被服务器确认的机器人也算：名字 / 头像在这里补一个）
+  function soloPlan() {
     const st = online && online.st;
-    if (!st || !isHost() || st.players.some((p) => !p.isAi && p.id !== st.me && !p.left)) return false;
+    if (!st || !isHost() || st.players.some((p) => !p.isAi && p.id !== st.me && !p.left)) return null;
     const bots = [1, 2, 3].map((l) => playerAt(srv(l)));
-    if (bots.some((p) => !p || !p.isAi || p.pending)) return false;
+    if (bots.some((p) => !p || !p.isAi)) return null;
     const A = window.GongzhuAvatars;
-    const m = {
+    const used = bots.map((p) => p.nick), faces = bots.map((p) => p.avatar);
+    const pick = (pool, taken) => { const free = pool.filter((x) => !taken.includes(x)); const from = free.length ? free : pool; return from[(Math.random() * from.length) | 0]; };
+    return {
       rules: R.normalizeRules(st.config.rules), totals: [0, 0, 0, 0], roundNo: 0, pigTaker: -1, seed: (Math.random() * 2 ** 31) | 0,
       round: null, exposing: [], last: null, over: false, turnSec: st.config.turnSec | 0,
-      bots: bots.map((p) => ({ nick: p.nick, avatar: A && A.byId[p.avatar] ? p.avatar : 'bot-navy', tier: TIER_LABELS[p.aiLevel] ? p.aiLevel : settings.tier })),
+      bots: bots.map((p) => {
+        const nick = p.pending && A ? pick(A.BOT_NICKS, used) : p.nick;
+        const avatar = A && A.byId[p.avatar] && !p.pending ? p.avatar : A ? pick(A.ROBOT.map((x) => x.id), faces) : 'bot-navy';
+        used.push(nick); faces.push(avatar);
+        return { nick, avatar, tier: TIER_LABELS[p.aiLevel] ? p.aiLevel : settings.tier };
+      }),
     };
-    leaveOnline(null, true, () => playSolo(m));
-    return true;
+  }
+
+  /* ───── 房主点「开始」：3、2、1 ─────
+   * 不管机器人有没有被服务器确认，点了就倒数 3 秒——这 3 秒正好给后端把排着的操作和开局做完，画面上一点就有反应。
+   *  · 只有机器人：数完直接在本机按单机开（不等服务器），房间解散
+   *  · 有别人：「开始」排在机器人后面发出去；服务器先开了也先不切画面，数完再进牌局
+   *  · 数完服务器还没开局：写「正在开局…」接着等；开局被拒（比如有人刚走）→ 收起、留在大厅并提示；
+   *    15 秒还没回音 → 收起、留在大厅提示网络慢（服务器那边要是其实开了，状态一到会自己进牌局） */
+  let countdown = null;   // { t, done: 数完了在等服务器 }
+  function countdownEl() {
+    let el = $('gzCountdown');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'gzCountdown';
+      el.className = 'gz-countdown';
+      el.setAttribute('aria-live', 'assertive');
+      el.innerHTML = '<b></b><p></p>';
+      els.app.appendChild(el);
+    }
+    return el;
+  }
+  function stopCountdown() {
+    if (!countdown) return;
+    clearTimeout(countdown.t);
+    countdown = null;
+    countdownEl().hidden = true;
+  }
+  function hostStart() {
+    if (countdown || !online) return;
+    const my = online;
+    const el = countdownEl();
+    const num = el.querySelector('b'), note = el.querySelector('p');
+    note.textContent = '';
+    el.hidden = false;
+    countdown = { t: 0, done: false, sent: false };
+    // 有别人在：开始现在就排进队（机器人确认完立刻发），数字数完时服务器多半已经开好了
+    if (!soloPlan()) { lobbyOp('start'); countdown.sent = true; }
+    let n = 3;
+    const tick = () => {
+      if (online !== my || !countdown) return;
+      if (n > 0) {
+        num.textContent = n;
+        num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop');
+        snd('tick');
+        n--;
+        countdown.t = setTimeout(tick, 1000);
+        return;
+      }
+      // 数完：只剩机器人 → 本机单机；（倒数时有人进来了就改走联机开局）
+      const plan = countdown.sent ? null : soloPlan();
+      if (plan) {
+        my.ops = [];
+        stopCountdown();
+        leaveOnline(null, true, () => playSolo(plan));
+        return;
+      }
+      if (!countdown.sent) { lobbyOp('start'); countdown.sent = true; }
+      if (online.base && online.base.phase !== 'lobby') { stopCountdown(); onState(online.base, true); return; }
+      countdown.done = true;
+      num.textContent = '';
+      note.textContent = '正在开局…';
+      countdown.t = setTimeout(() => { stopCountdown(); toast('开局没有回音，网络可能慢，再点一次「开始」试试'); }, 15000);
+    };
+    tick();
   }
 
   async function pollLoop(my) {
@@ -2264,9 +2386,9 @@
   }
 
   /* 收到一份房间视图（长轮询或自己动作的回应） */
-  function onState(st) {
+  function onState(st, again) {
     if (!online || !st || st.code !== online.code) return;
-    if (online.st && st.version < online.st.version) return;   // 迟到的旧视图
+    if (online.st && st.version < online.st.version && !again) return;   // 迟到的旧视图
     online.base = st;
     online.st = st.phase === 'lobby' ? withOps(st) : st;
     online.skew = st.serverNow - Date.now();
@@ -2276,6 +2398,8 @@
     NAMES = [0, 1, 2, 3].map((l) => (l === 0 ? '我' : (playerAt(srv(l)) || { nick: '空位' }).nick));
     AVATARS = [0, 1, 2, 3].map((l) => avatarOf(l === 0 ? me : playerAt(srv(l))));
     if (st.phase === 'lobby') { renderLobby(); return; }
+    if (countdown && !countdown.done) return;   // 房主还在数 3、2、1：数完再进（见 hostStart）
+    stopCountdown();
     online.joinRules = false;
     const gv = st.game;
     if (!online.inGame || !match || !match.online || match.lobby || match.matchNo !== gv.matchNo) { enterGameView(); resync(); return; }
@@ -2464,7 +2588,7 @@
 
   function onlinePlaySelected() {
     if (exposingMe()) {
-      if (busy) return;
+      if (busy || !exposePick.length) return;
       const cards = exposePick.slice();
       busy = true; match.exposing = []; exposePick = []; exposeHeld = cards.slice();
       online.exposeSent = exposeKey(online.st.game);
@@ -2557,9 +2681,10 @@
       const el = els.seats[l];
       el.classList.remove('is-turn', 'is-timed', 'is-hurry', 'is-auto');
       el.innerHTML = p
-        ? '<button type="button" class="gz-lobby-seat' + (p.pending ? ' is-pending' : '') + '" data-lseat="' + l + '"' + (l === 0 ? ' disabled' : '') + '>' +
+        ? '<button type="button" class="gz-lobby-seat' + (p.pending ? ' is-pending' : '') + '" data-lseat="' + l + '"' + (l === 0 ? ' aria-label="改名字和头像"' : '') + '>' +
           '<span class="gz-avatar' + (p.isAi ? ' is-bot' : '') + '"><span class="gz-av-face">' + faceHtml(avatarOf(p)) + '</span></span>' +
           '<span class="gz-lobby-name">' + esc(p.nick) + '</span>' +
+          (l === 0 ? '<svg class="gz-lobby-edit" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19h3.2L18.5 8.7l-3.2-3.2L5 15.8Z"/><path d="M13.6 7.2l3.2 3.2"/></svg>' : '') +
           (p.id === st.hostId ? '<span class="gz-tag is-host">房主</span>' : '') +
           (p.isAi ? '<span class="gz-tag is-level">' + (TIER_LABELS[p.aiLevel] || '') + '</span>' : '') +
           (!p.isAi && !p.online ? '<span class="gz-tag">掉线</span>' : '') + '</button>'
@@ -2628,7 +2753,6 @@
       if (i >= 0) { my.ops[i].body.level = body.level; redrawLobby(); return; }
     }
     if (action === 'start' && my.ops.some((o) => o.action === 'start')) return;
-    if (action === 'start' && !my.ops.length && soloFromRoom()) return;
     my.ops.push({ action, body, sent: false });
     redrawLobby();
     pumpOps(my);
@@ -2638,18 +2762,55 @@
     my.pumping = true;
     while (online === my && my.ops.length) {
       const op = my.ops[0];
-      if (op.action === 'start' && soloFromRoom()) break;   // 前面的机器人都确认了，再看一眼是不是只剩机器人
       op.sent = true;
       const res = await onlineAct(op.action, op.body);
       if (online !== my) break;
       my.ops.shift();
+      if (!res && op.action === 'start') stopCountdown();   // 开局被拒（提示已经弹了）：留在大厅
       if (!res) my.ops = my.ops.filter((o) => o.action !== 'start' && (op.body.seat == null || o.body.seat !== op.body.seat));
       redrawLobby();
     }
     my.pumping = false;
   }
 
+  /* 改自己的名字 / 头像：大厅里点自己那一格，或者牌局里菜单「改名字 / 头像」 */
+  function showProfile() {
+    const st = online && online.st;
+    const me = st && st.players.find((p) => p.id === st.me);
+    const A = window.GongzhuAvatars;
+    if (!me || !A) return;
+    let pick = me.avatar;
+    openDialog('<h2>名字和头像</h2><div class="gz-field-label">名字</div>' +
+      '<input class="gz-input" data-nick maxlength="12" autocomplete="nickname" value="' + esc(me.nick) + '">' +
+      '<div class="gz-field-label">头像</div><div class="gz-av-grid" role="group">' +
+      A.HUMAN.map((a) => '<button type="button" class="gz-av-pick" data-av="' + a.id + '" aria-label="' + esc(a.name) + '" aria-pressed="' + (a.id === pick) + '">' + a.svg + '</button>').join('') +
+      '</div><p class="gz-note gz-err" data-err hidden></p>' +
+      '<div class="gz-actions"><button type="button" class="gz-btn" data-close>取消</button>' +
+      '<button type="button" class="gz-btn gz-btn-primary" data-act="save">保存</button></div>',
+      (d) => {
+        const err = d.querySelector('[data-err]'), nickIn = d.querySelector('[data-nick]');
+        d.querySelector('[data-close]').addEventListener('click', closeDialog);
+        d.querySelectorAll('[data-av]').forEach((b) => b.addEventListener('click', () => {
+          pick = b.dataset.av;
+          d.querySelectorAll('[data-av]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        }));
+        d.querySelector('[data-act="save"]').addEventListener('click', async () => {
+          const v = nickIn.value.trim();
+          if (!v || [...v].length > 12 || /[<>&"'/\\]/.test(v)) { err.textContent = '名字 1–12 个字，不能有特殊符号'; err.hidden = false; nickIn.focus(); return; }
+          const body = {};
+          if (v !== me.nick) body.nick = v;
+          if (pick !== me.avatar) body.avatar = pick;
+          if (!Object.keys(body).length) { closeDialog(); return; }
+          const ident = window.GamesShell && GamesShell.Identity;
+          if (body.nick && ident && ident.setNick) ident.setNick(v);
+          const res = await onlineAct('profile', body);
+          if (res) closeDialog();
+        });
+      });
+  }
+
   function showSeatMenu(l) {
+    if (l === 0) { showProfile(); return; }
     const s = srv(l);
     const p = playerAt(s);
     const host = isHost();
@@ -2873,6 +3034,16 @@
   /* ───── 启动 ───── */
 
   els.play.addEventListener('click', playSelected);
+  els.noExpose.addEventListener('click', () => {
+    if (!match || !exposingMe() || busy) return;
+    exposePick = [];
+    if (match.online) {
+      busy = true; match.exposing = []; exposeHeld = [];
+      online.exposeSent = exposeKey(online.st.game);
+      stopClock(); renderHand();
+      onlineAct('expose', { cards: [] });
+    } else { busy = true; timeouts = 0; applyExpose(0, []); }
+  });
   $('gzRulesBtn').addEventListener('click', showRules);
   $('gzSoundBtn').addEventListener('click', toggleSoundPanel);
   refreshSoundBtn();
@@ -2902,6 +3073,7 @@
   // 点弹窗外面关掉（见 openDialog）
   els.mask.addEventListener('click', (e) => { if (e.target === els.mask) dismissDialog(); });
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && subMask && !subMask.hidden) { closeSub(); return; }
     if (e.key === 'Escape' && !els.mask.hidden) dismissDialog();
     if (coverOn || !match) return;
     if ((e.key === ' ' || e.key === 'Enter') && els.mask.hidden && coachNext) { e.preventDefault(); coachAdvance(); return; }
@@ -2948,6 +3120,7 @@
    *  · 别的情况（第一次来、上一盘打完了、教程打到一半关掉）→ 封面：单机 / 联机（创建 · 加入）/ 新手教程
    * 打着单机切到后台（微信回个消息）也算暂停：机器人不偷跑、我的钟不走，回来点「继续」。联机不暂停（别人在等）。 */
   let coverOn = false;
+  let liveRoom = null;   // 上次在的联机房间（主菜单里「联机」= 回到这个房间）
   function showCover(msg) {
     const el = $('gzCover');
     coverOn = true;
@@ -2960,6 +3133,8 @@
     resume.textContent = m && (m.round || m.last) ? '接着打第 ' + m.roundNo + ' 局' : '';
     resume.hidden = !resume.textContent;
     el.querySelector('[data-cover="online"]').hidden = !NET;
+    if (liveRoom && (!NET || !NET.readSession())) liveRoom = null;
+    el.querySelector('[data-cover="online"] small').textContent = liveRoom ? '回到房间 ' + liveRoom.code : '创建 / 加入房间';
     el.querySelector('[data-cover="tutorial"]').textContent = readJSON(TUT_KEY) ? '新手教程' : '第一次玩？先学一局';
     el.querySelector('[data-cover="exit"]').hidden = !FROM_SITE;
     coverStep('main');
@@ -2990,10 +3165,11 @@
     save();
   }
   function showPause() {
-    openDialog('<h2>暂停中</h2><p>第 ' + match.roundNo + ' 局，点「继续」接着打。</p>' +
-      '<div class="gz-actions"><button type="button" class="gz-btn" data-act="cover">主菜单</button>' +
-      '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>继续</button></div>',
+    openDialog('<h2>暂停</h2>' +
+      '<div class="gz-actions"><button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>继续</button>' +
+      '<button type="button" class="gz-btn" data-act="cover">回到主菜单</button></div>',
       (d) => {
+        d.classList.add('is-pause');
         d.querySelector('[data-close]').addEventListener('click', () => { closeDialog(); playSolo(match); });
         d.querySelector('[data-act="cover"]').addEventListener('click', () => showCover());
       });
@@ -3033,7 +3209,11 @@
     if (!b) return;
     const k = b.dataset.cover;
     if (k === 'solo') playSolo(soloBots() ? match : loadSaved());
-    else if (k === 'online') coverStep('online');
+    else if (k === 'online') {
+      if (!liveRoom) { coverStep('online'); return; }
+      const sess = liveRoom;
+      resumeOnline(sess).then((ok) => { if (!ok) { liveRoom = null; showCover('上次的房间已经没了'); coverStep('online'); } });
+    }
     else if (k === 'back') coverStep('main');
     else if (k === 'create') createRoom();
     else if (k === 'join') showJoin('');
@@ -3042,6 +3222,7 @@
   });
   // 大厅：点座位（空位加机器人 / 坐过去，机器人换档，房主请人离开）；中间面板的几个按钮
   els.table.addEventListener('click', (e) => {
+    if (countdown) return;
     const seat = e.target.closest('[data-lseat]');
     if (seat && online && match && match.lobby) { showSeatMenu(+seat.dataset.lseat); return; }
     const lb = e.target.closest('[data-lb]');
@@ -3050,7 +3231,7 @@
     if (act === 'copy-link') copyText(NET.inviteUrl(online.code), '邀请链接已复制');
     if (act === 'copy-code') copyText(online.code, '房号已复制');
     if (act === 'rules') showRoomRules('view');
-    if (act === 'start') lobbyOp('start');
+    if (act === 'start') hostStart();
     if (act === 'leave' && confirm('离开房间？')) leaveOnline(null, true);
   });
 
@@ -3120,30 +3301,40 @@
   solveSize();
   const demoParam = new URLSearchParams(location.search).get('fxdemo');
   if (demoParam) { startDemo(demoParam); return; }
+  /* 进来先停在主菜单：拱猪大字下面跑一条进度条（字体、上次的房间还在不在），跑完才露出「单机」「联机」。
+   * 不再一进来就硬接回上次的牌局 / 房间（接房间要等服务器醒过来，常常白屏好几秒）：
+   *  · 单机有存档 → 「单机」下面写「接着打第 N 局」，点了接着打
+   *  · 上次在联机房间里、房间还在 → 「联机」下面写「回到房间 1234」，点了直接回去；房间没了就悄悄忘掉
+   *  · 点邀请链接进来 → 进度条跑完弹「加入房间」（房号已填好）；邀请的就是上次那个房间 → 同上「回到房间」
+   * 本机自测 ?gzauto=1 不出主菜单，直接打单机 */
   const roomParam = (new URLSearchParams(location.search).get('room') || '').trim();
-  const invite = NET && /^\d{4}$/.test(roomParam) ? roomParam : '';
-  const sess = NET && NET.readSession();
-  // 封面 / 暂停 / 直接接着打：见上面「封面 · 暂停」
-  const boot = (msg) => {
-    if (AUTO) { playSolo(loadSaved()); return; }
-    if (invite) { showCover(msg); showJoin(invite); return; }
-    const m = loadSaved();
-    if (m && m.round) {
-      match = m;
-      if (!match.bots) { match.bots = drawBots(); save(); }
-      applySoloIdentity();
-      busy = true;
-      renderAll();
-      showPause();
-      if (msg) toast(msg);
-    } else if (m && m.last) { playSolo(m); if (msg) toast(msg); }
-    else showCover(msg);
-  };
-  if (sess && (!roomParam || roomParam === sess.code)) {
-    // 上次在联机房间里：先接回去；接不回再按上面走
-    resumeOnline(sess).then((ok) => { if (!ok) boot('上次的房间连不上了，可能已经解散'); });
-  } else {
-    if (sess) NET.writeSession(null);
-    boot();
-  }
+  let invite = NET && /^\d{4}$/.test(roomParam) ? roomParam : '';
+  let sess = NET && NET.readSession();
+  if (sess && invite && invite !== sess.code) { NET.writeSession(null); sess = null; }   // 换了个房间的邀请：上一个房间就不回了
+  if (sess && invite === sess.code) invite = '';
+  if (AUTO) { hideCover(); playSolo(loadSaved()); return; }
+  coverOn = true;
+  els.app.classList.add('is-cover');
+  coverStep('load');
+  const cover = $('gzCover');
+  cover.querySelector('.gz-cover-art').innerHTML = ART.pig;
+  const bar = cover.querySelector('.gz-cover-load i');
+  let got = 0.12;
+  const bump = (to) => { got = Math.max(got, to); bar.style.transform = 'scaleX(' + got.toFixed(3) + ')'; };
+  bump(0.25);
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const t0 = performance.now();
+  Promise.all([
+    (document.fonts ? Promise.race([document.fonts.ready, sleep(1500)]) : Promise.resolve()).then(() => bump(got + 0.3)),
+    // 上次的房间还在不在（顺带把可能睡着的服务器叫醒，之后建房 / 进房快）；最多等 4 秒，等不到当它还在，点的时候再说
+    (sess ? Promise.race([NET.state(sess.code, sess.token, 0).then(() => true, () => false), sleep(4000).then(() => true)]) : Promise.resolve(false))
+      .then((alive) => { if (sess && !alive) { NET.writeSession(null); sess = null; } bump(got + 0.3); }),
+  ]).then(async () => {
+    await sleep(Math.max(0, 650 - (performance.now() - t0)));   // 太快也让进度条走完一程，不闪
+    bump(1);
+    await sleep(220);
+    liveRoom = sess;
+    showCover();
+    if (invite) showJoin(invite);
+  });
 })();

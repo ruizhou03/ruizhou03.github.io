@@ -615,7 +615,7 @@ body.gz-fullscreen .site-footer { display: none !important; }
   display: inline-flex; flex-direction: column; align-items: center; gap: 6px;
   border: 0; background: none; padding: 6px 8px; font: inherit; color: inherit; cursor: pointer; border-radius: 12px;
 }
-.gz-seat-me .gz-lobby-seat { flex-direction: row; cursor: default; }
+.gz-seat-me .gz-lobby-seat { flex-direction: row; }
 /* 我那一格横排（头像 · 名字 · 房主签）：在大厅里占满我那一整行，免得被挤在第一列里、两个字的名字也被截成「汤…」 */
 .is-lobby .gz-seat-me .gz-lobby-seat { grid-column: 1 / -1; justify-self: start; max-width: 100%; }
 .gz-seat-me .gz-lobby-name { flex-shrink: 0; }
@@ -867,3 +867,45 @@ body.gz-fullscreen .site-footer { display: none !important; }
 
 /* 动画预览的局面下拉 */
 .gz-demo select { font: inherit; font-size: 13px; padding: 2px 4px; border: 1px solid var(--gz-ink); border-radius: 8px; background: var(--gz-card); color: var(--gz-ink); }
+
+/* 主菜单加载：拱猪大字下面一条细进度条，跑完换成按钮 */
+.gz-cover-load { width: min(220px, 70%); height: 4px; border-radius: 2px; background: rgba(29, 27, 24, 0.1); overflow: hidden; margin: 18px 0 6px; }
+.gz-cover-load i { display: block; height: 100%; background: var(--gz-seal); transform-origin: 0 50%; transform: scaleX(0.12); transition: transform 0.45s cubic-bezier(.3, .7, .3, 1); }
+
+/* 暂停：大字「暂停」，下面两个整宽大按钮 */
+.gz-dialog.is-pause { width: min(300px, 100%); text-align: center; }
+.gz-dialog.is-pause > h2 { font-size: 34px; letter-spacing: 0.4em; text-indent: 0.4em; margin: 6px 0 18px; }
+.gz-dialog.is-pause .gz-actions { flex-direction: column; align-items: stretch; gap: 10px; margin-top: 0; }
+.gz-dialog.is-pause .gz-btn { height: 48px; font-size: 17px; }
+
+/* 每局得分 → 某一局：叠在上面的小窗 */
+.gz-sub-mask { z-index: calc(var(--z-dialog) + 2); }
+.gz-sub { width: min(440px, 100%); display: block; overflow-y: auto; }
+.gz-sub .gz-actions { margin-top: 12px; }
+
+/* 明牌：桌子中间的小牌子（倒计时 + 怎么做）；底下两个键 */
+.gz-expose-box { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 7; width: min(260px, 86%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 14px 12px; text-align: center;
+  background: rgba(251, 246, 236, 0.94); border: 1px solid rgba(29, 27, 24, 0.25); border-radius: 12px; box-shadow: 0 6px 18px rgba(20, 18, 15, 0.12); pointer-events: none; }
+.gz-expose-box[hidden] { display: none; }
+.gz-expose-box span { font-size: 13px; color: var(--gz-ink-mute); letter-spacing: 0.2em; text-indent: 0.2em; }
+.gz-expose-box b { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 34px; line-height: 1; color: var(--gz-seal); }
+.gz-expose-box p { margin: 4px 0 0; font-size: 13px; line-height: 1.55; }
+.gz-band { gap: 8px; }
+.gz-band .gz-btn[hidden] { display: none; }
+
+/* 房主点「开始」：3、2、1 */
+.gz-countdown { position: absolute; inset: 0; z-index: calc(var(--z-dialog) - 1); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(243, 238, 227, 0.72); }
+.gz-countdown[hidden] { display: none; }
+.gz-countdown b { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 132px; line-height: 1; color: var(--gz-seal); min-height: 1em; }
+.gz-countdown b.pop { animation: gz-count-pop 0.9s cubic-bezier(.2, .7, .3, 1) both; }
+.gz-countdown p { margin: 0; font-size: 17px; letter-spacing: 0.1em; color: var(--gz-ink); }
+@keyframes gz-count-pop { 0% { transform: scale(1.8); opacity: 0; } 25% { transform: scale(0.94); opacity: 1; } 40% { transform: scale(1); } 85% { opacity: 1; } 100% { opacity: 0.15; } }
+
+/* 改名字 / 头像 */
+.gz-av-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 6px 0 4px; }
+.gz-av-pick { aspect-ratio: 1; padding: 0; border: 2px solid transparent; border-radius: 50%; background: none; cursor: pointer; overflow: hidden; }
+.gz-av-pick svg { width: 100%; height: 100%; display: block; }
+.gz-av-pick[aria-pressed="true"] { border-color: var(--gz-seal); box-shadow: 0 0 0 2px var(--gz-paper), 0 0 0 4px rgba(180, 57, 44, 0.35); }
+.gz-lobby-edit { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--gz-ink-mute); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
