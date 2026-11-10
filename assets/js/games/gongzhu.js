@@ -26,7 +26,7 @@
 
   // trickShow：一墩打满停多久；fly：分牌飞进吃牌区；fade：没分的牌就地淡出
   // roundEnd：最后一张分牌落进吃牌区后，等本局分数完（最长约 0.9 秒）再结这一局
-  const PACE = { aiMin: 520, trickShow: 600, fly: 420, fade: 260, roundEnd: 1000 };
+  const PACE = { aiMin: 400, trickShow: 450, fly: 320, fade: 200, roundEnd: 800 };   // 2026-11-09 整体快约四分之一（一墩约 2.6 秒）
   // 本机调试：?gzauto=1 让「我」也由 AI 代打并加速，用来一口气验到结算 / 一盘结束
   const AUTO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('gzauto') === '1';
   if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, fade: 120, roundEnd: 60 });
@@ -906,7 +906,7 @@
       avatar.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.22)', offset: 0.45 }, { transform: 'scale(1)' }],
         { duration: 340, delay: sweepMs * 0.82, easing: 'cubic-bezier(.3, .8, .4, 1.2)' });
     }
-    const STAGGER = 140;
+    const STAGGER = match && match.tutorial ? 140 : 110;
     const ONE = Math.round(pace().fly * 2);
     const placeMs = fresh.length && !reduce ? ONE + STAGGER * (fresh.length - 1) : 0;
     setTimeout(() => {
@@ -2985,7 +2985,7 @@
     const A = window.GongzhuAvatars;
     if (!me || !A) return;
     let pick = me.avatar;
-    openDialog('<h2>名字和头像</h2><div class="gz-field-label">名字</div>' +
+    openDialog('<h2>名字和头像</h2><div class="gz-field-label">名字（选填）</div>' +
       '<input class="gz-input" data-nick maxlength="12" autocomplete="nickname" value="' + esc(me.nick) + '">' +
       '<div class="gz-field-label">头像</div><div class="gz-av-grid" role="group">' +
       A.HUMAN.map((a) => '<button type="button" class="gz-av-pick" data-av="' + a.id + '" aria-label="' + esc(a.name) + '" aria-pressed="' + (a.id === pick) + '">' + a.svg + '</button>').join('') +
@@ -3000,14 +3000,14 @@
           d.querySelectorAll('[data-av]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
         }));
         d.querySelector('[data-act="save"]').addEventListener('click', async () => {
-          const v = nickIn.value.trim();
-          if (!v || [...v].length > 12 || /[<>&"'/\\]/.test(v)) { err.textContent = '名字 1–12 个字，不能有特殊符号'; err.hidden = false; nickIn.focus(); return; }
+          const v = nickIn.value.trim();   // 删空 = 让服务器从昵称库里随机起一个（和加入房间一样）
+          if (v && ([...v].length > 12 || /[<>&"'/\\]/.test(v))) { err.textContent = '名字最多 12 个字，不能有特殊符号'; err.hidden = false; nickIn.focus(); return; }
           const body = {};
           if (v !== me.nick) body.nick = v;
           if (pick !== me.avatar) body.avatar = pick;
           if (!Object.keys(body).length) { closeDialog(); return; }
           const ident = window.GamesShell && GamesShell.Identity;
-          if (body.nick && ident && ident.setNick) ident.setNick(v);
+          if (body.nick !== undefined && ident) { if (v) { if (ident.setNick) ident.setNick(v); } else if (ident.clearNick) ident.clearNick(); }
           const res = await onlineAct('profile', body);
           if (res) closeDialog();
         });
@@ -3226,7 +3226,8 @@
           if (!/^\d{4}$/.test(c)) { fail('房号是 4 位数字'); codeIn.focus(); return; }
           const v = nickIn.value.trim();   // 不填：服务器从昵称库里随机起一个
           if (v && ([...v].length > 12 || /[<>&"'/\\]/.test(v))) { fail('昵称最多 12 个字，不能有特殊符号'); nickIn.focus(); return; }
-          if (v && ident && ident.setNick) ident.setNick(v);
+          // 删空了就把记着的昵称也忘掉：下次创建房间同样随机起
+          if (ident) { if (v) { if (ident.setNick) ident.setNick(v); } else if (ident.clearNick) ident.clearNick(); }
           err.hidden = true;
           btn.disabled = true; watchBtn.disabled = true;
           try {
