@@ -1,0 +1,17 @@
+{
+  "name": "猫咪炸毛",
+  "short_name": "猫咪炸毛",
+  "description": "轮流摸牌、摸到炸毛猫就出局的猫咪卡牌游戏，三档机器猫陪玩——周睿的百宝箱",
+  "id": "/toolbox/zhamao/",
+  "start_url": "/toolbox/zhamao/",
+  "scope": "/toolbox/zhamao/",
+  "display": "standalone",
+  "background_color": "#f3eee3",
+  "theme_color": "#f3eee3",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "/assets/icons/zhamao-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/zhamao-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/zhamao-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

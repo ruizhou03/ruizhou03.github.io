@@ -118,6 +118,16 @@
   subcategory: 牌类游戏
   status: live
 
+- id: zhamao
+  group: cards
+  name: 猫咪炸毛
+  icon: /assets/icons/zhamao-icon-192.png
+  tagline: 摸到炸毛猫就出局 · 机器猫三档
+  url: /toolbox/zhamao/
+  category: 游戏
+  subcategory: 牌类游戏
+  status: live
+
 - id: blackjack
   group: cards
   name: 21 点

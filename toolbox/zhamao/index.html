@@ -1,0 +1,102 @@
+---
+layout: default
+title: "猫咪炸毛 | Rui Zhou"
+permalink: /toolbox/zhamao/
+manifest: /toolbox/zhamao/manifest.json
+apple_touch_icon: /assets/icons/zhamao-apple-touch-icon.png
+app_title: 猫咪炸毛
+theme_color: "#f3eee3"
+theme_color_dark: "#f3eee3"
+minimal_app_shell: true
+body_class: zm-fullscreen
+---
+
+<!-- 字体照拱猪：电脑上用系统宋体，手机上没有才补思源宋体（按字形分片懒加载） -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css">
+<link rel="stylesheet" href="/assets/css/zhamao.css?v={{ site.time | date: '%s' }}">
+
+<div class="zm-app" id="zmApp">
+  <div class="zm-table" id="zmTable">
+    <header class="zm-topbar">
+      <div class="zm-topleft">
+        <span class="zm-title">猫咪炸毛</span>
+        <button type="button" class="zm-skip" id="zmSkipTut" hidden>跳过教程</button>
+      </div>
+      <div class="zm-tools">
+        <button type="button" class="zm-tool zm-sound" id="zmSoundBtn" aria-label="声音" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.2L12 5.8v12.4l-4.8-3.7H4z"/><path class="on" d="M15.4 9.2a4 4 0 0 1 0 5.6M17.9 6.7a7.5 7.5 0 0 1 0 10.6"/><path class="off" d="M15.5 9.5l5 5M20.5 9.5l-5 5"/></svg>
+        </button>
+        <button type="button" class="zm-tool" id="zmRulesBtn" aria-label="规则">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.6"/><circle cx="12" cy="16.9" r=".6" class="dot"/></svg>
+        </button>
+        <button type="button" class="zm-tool" id="zmMenuBtn" aria-label="菜单" aria-haspopup="menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="zm-opps" id="zmOpps"></div>
+
+    <div class="zm-center" id="zmCenter">
+      <div class="zm-piles">
+        <div class="zm-pile zm-deck" id="zmDeck" aria-label="牌堆">
+          <div class="zm-deck-stack"></div>
+          <div class="zm-deck-info"><b id="zmDeckCount">0</b><span class="zm-kit" id="zmKit"></span></div>
+        </div>
+        <div class="zm-pile zm-discard" id="zmDiscard" aria-label="弃牌堆"></div>
+      </div>
+      <div class="zm-stage" id="zmStage" aria-live="polite"></div>
+      <div class="zm-coach" id="zmCoach" hidden aria-live="polite">
+        <span class="zm-coach-seal" aria-hidden="true">教</span>
+        <p class="zm-coach-text"></p>
+        <span class="zm-coach-more">点任意处继续</span>
+      </div>
+    </div>
+
+    <div class="zm-mebar">
+      <div class="zm-seat zm-seat-me" id="zmMe"></div>
+      <div class="zm-band" id="zmBand">
+        <p class="zm-hint" id="zmHint"></p>
+        <button type="button" class="zm-btn" id="zmCancelBtn" hidden>取消</button>
+        <button type="button" class="zm-btn zm-btn-nope" id="zmNopeBtn" hidden><span>喵？不行</span><i class="zm-nope-ring"></i></button>
+        <button type="button" class="zm-btn" id="zmPlayBtn" hidden>出牌</button>
+        <button type="button" class="zm-btn zm-btn-primary" id="zmDrawBtn" disabled>摸牌</button>
+      </div>
+    </div>
+    <div class="zm-hand" id="zmHand" role="listbox" aria-label="我的手牌"></div>
+  </div>
+
+  <div class="zm-fly" id="zmFly" aria-hidden="true"></div>
+
+  <div class="zm-cover" id="zmCover">
+    <div class="zm-cover-inner">
+      <div class="zm-cover-art" id="zmCoverArt" aria-hidden="true"></div>
+      <h1 class="zm-cover-title">猫咪炸毛</h1>
+      <p class="zm-cover-sub">摸到炸毛猫就出局，撑到最后的赢</p>
+      <div class="zm-cover-btns">
+        <button type="button" class="zm-cover-btn is-primary" data-cover="solo"><b>开始</b><small id="zmCoverSolo"></small></button>
+        <button type="button" class="zm-cover-btn" data-cover="resume" hidden><b>继续上一局</b></button>
+      </div>
+      <div class="zm-cover-foot">
+        <button type="button" class="zm-cover-link" data-cover="tutorial">新手教程</button>
+        <button type="button" class="zm-cover-link" data-cover="settings">设置</button>
+        <a class="zm-cover-link" href="/toolbox/">返回百宝奇巧</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="zm-dialog-mask" id="zmDialogMask" hidden>
+    <div class="zm-dialog" id="zmDialog" role="dialog" aria-modal="true"></div>
+  </div>
+</div>
+
+<script>window.ZM_BUILD = "{{ site.time | date: '%s' }}";</script>
+<script src="/assets/js/games/gongzhu-avatars.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/zhamao-rules.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/zhamao-ai.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/zhamao-art.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/zhamao-audio.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/zhamao-tutorial.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/zhamao.js?v={{ site.time | date: '%s' }}"></script>
