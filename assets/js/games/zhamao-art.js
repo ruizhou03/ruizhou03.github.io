@@ -149,16 +149,17 @@
     return svg;
   }
   function nopeArt() {
-    // 喵？不行：猫举起一只爪子「停」，头顶一个问号
+    // 作废：一只灰紫色的猫两只前爪举起来、掌心朝外喊「停」，身后一个大大的禁止圈
     let svg = ground();
-    svg += body(50, 78, 23, 15, '#8f8a99');
-    svg += catHead(50, 50, 1, '#a9a3b3', { ear: '#e6b5c4', eyes: 'side', mouth: 'flat', patch: line('M-4 -17v5M0 -18v6M4 -17v5', 2.6, '#8f8a99') });
-    svg += '<path d="M76 84c2-14 2-26-2-36" stroke="#a9a3b3" stroke-width="9" stroke-linecap="round" fill="none"/>';
-    svg += '<g transform="translate(73 40) rotate(-10)"><ellipse cx="0" cy="0" rx="11" ry="12" fill="#a9a3b3"/><ellipse cx="0" cy="2.5" rx="5" ry="4.4" fill="#f4b6c0"/>' +
-      '<circle cx="-5.6" cy="-5" r="2.2" fill="#f4b6c0"/><circle cx="-1.8" cy="-7.4" r="2.2" fill="#f4b6c0"/><circle cx="2.2" cy="-7.4" r="2.2" fill="#f4b6c0"/><circle cx="5.8" cy="-5" r="2.2" fill="#f4b6c0"/></g>';
-    svg += '<path d="M84 6c0-6 10-6 10 0 0 4-5 4-5 9" stroke="#7a5a96" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="89" cy="21" r="2.6" fill="#7a5a96"/>';
+    svg += '<circle cx="50" cy="48" r="36" fill="none" stroke="#c4a8dc" stroke-width="7"/><path d="M25 23 75 73" stroke="#c4a8dc" stroke-width="7" stroke-linecap="round"/>';
+    svg += body(50, 80, 19, 12, '#8f8a99');
+    // 两条胳膊（从身子两侧斜着往上）+ 掌心朝外的爪子
+    svg += '<path d="M38 76 27 58M62 76 73 58" stroke="#a9a3b3" stroke-width="9" stroke-linecap="round"/>';
+    svg += paw(26, 54, 1.25, '#a9a3b3') + paw(74, 54, 1.25, '#a9a3b3');
+    svg += catHead(50, 50, 0.86, '#a9a3b3', { ear: '#e6b5c4', eyes: 'open', mouth: 'flat', patch: line('M-4 -17v5M0 -18v6M4 -17v5', 2.6, '#8f8a99') });
     return svg;
   }
+
   // 指定甩锅：同一只扛锅的猫，锅上方多一个红色准星（甩给指定的人）
   function tattackArt() {
     const base = attackArt();
@@ -210,13 +211,15 @@
   }
   // 重排：三张牌背扇开，一只猫爪按着中间那张，上面一道弯弯的「换位」双箭头
   function alterArt() {
+    // 重排：三张牌背笔直排一排，上面一道对称的弧形双向箭头（两头各一个规整的三角箭头）
     let svg = ground();
-    for (let i = 0; i < 3; i++) svg += '<g transform="translate(' + (30 + i * 20) + ' 62) rotate(' + ((i - 1) * 12) + ')"><rect x="-11" y="-16" width="22" height="31" rx="4" fill="' + NAVY + '"/><rect x="-7.5" y="-12.5" width="15" height="24" rx="2.5" fill="none" stroke="' + GOLD + '" stroke-width="2"/></g>';
-    svg += '<path d="M28 34q22-20 44 0" fill="none" stroke="#4f5d9a" stroke-width="4" stroke-linecap="round"/><path d="M66 27l7 8-10 2" fill="none" stroke="#4f5d9a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>';
-    svg += '<path d="M34 41l-7-8 10-2" fill="none" stroke="#4f5d9a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>';
-    svg += paw(50, 80, 0.9, '#f0c27a');
+    for (let i = 0; i < 3; i++) svg += '<g transform="translate(' + (26 + i * 24) + ' 64)"><rect x="-10" y="-14" width="20" height="28" rx="3.5" fill="' + NAVY + '"/><rect x="-6.8" y="-10.8" width="13.6" height="21.6" rx="2.2" fill="none" stroke="' + GOLD + '" stroke-width="1.8"/></g>';
+    svg += '<path d="M28 40Q50 14 72 40" fill="none" stroke="#4f5d9a" stroke-width="4.2" stroke-linecap="round"/>';
+    svg += '<path d="M0 0-9-5V5Z" fill="#4f5d9a" transform="translate(74 42.5) rotate(50)"/>';
+    svg += '<path d="M0 0-9-5V5Z" fill="#4f5d9a" transform="translate(26 42.5) rotate(130)"/>';
     return svg;
   }
+
   function futureArt() {
     // 猫眼偷看：纸箱上挖了个洞，一只大猫眼往外看；三张牌背在前面排开
     let svg = ground();
@@ -241,14 +244,14 @@
   const ICON = {
     boom: () => { let d = ''; for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; const r = i % 2 ? 6 : 10; d += (i ? 'L' : 'M') + f(12 + Math.cos(a) * r) + ' ' + f(12 + Math.sin(a) * r); } return '<path d="' + d + 'Z" fill="#3a3632"/><circle cx="9.5" cy="11" r="1.6" fill="#fff"/><circle cx="14.5" cy="11" r="1.6" fill="#fff"/>'; },
     defuse: () => line('M18 21 12 6', 2.4, '#8a6a3e') + '<path d="M12 6c-4-1-7 2-6 6 3 0 6-2 6-6Z" fill="#e0566e"/><path d="M12 6c-1 4 1 7 5 7 0-3-2-6-5-7Z" fill="' + GOLD + '"/>',
-    nope: () => '<circle cx="12" cy="12" r="9" fill="none" stroke="#7a5a96" stroke-width="2.6"/>' + line('M6 18 18 6', 2.6, '#7a5a96'),
+    nope: () => '<circle cx="12" cy="12" r="9" fill="none" stroke="#7a5a96" stroke-width="2.6"/>' + line('M5.6 5.6 18.4 18.4', 2.6, '#7a5a96'),
     attack: () => '<path d="M3 10h16c0 6-3 9-8 9s-8-3-8-9Z" fill="#3a3632"/><rect x="2" y="8" width="18" height="3" rx="1.5" fill="#56504a"/>' + line('M21 14h2', 2.2, '#c0742e'),
     tattack: () => '<path d="M3 12h13c0 5-2.6 8-6.5 8S3 17 3 12Z" fill="#3a3632"/><rect x="2" y="10" width="15" height="2.6" rx="1.3" fill="#56504a"/><circle cx="18" cy="6" r="4.2" fill="none" stroke="#a8452e" stroke-width="1.8"/><circle cx="18" cy="6" r="1.3" fill="#a8452e"/>',
     skip: () => '<path d="M15 3a8 8 0 1 0 6 12 6 6 0 1 1 -6 -12Z" fill="' + GOLD + '"/>' + '<path d="M5 6h4l-4 5h4" stroke="' + NAVY + '" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
     favor: () => heart(12, 13, 7, '#e0566e'),
     shuffle: () => '<path d="M4 9h14v11H4Z" fill="#c99a62"/><path d="M4 9l-2-3h14l2 3Z" fill="#dcb27c"/>' + line('M7 4l3 2M16 2l-1 3', 2, '#8a6a3e'),
     future: () => '<ellipse cx="12" cy="12" rx="10" ry="6.5" fill="#3c3530"/><ellipse cx="12" cy="12" rx="7" ry="5" fill="#e9d46a"/><ellipse cx="12" cy="12" rx="1.8" ry="4.4" fill="' + INK + '"/>',
-    alter: () => '<path d="M4 9q8-7 16 0" fill="none" stroke="#4f5d9a" stroke-width="2.4" stroke-linecap="round"/><path d="M17 5l3.4 4-4.6 1" fill="none" stroke="#4f5d9a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="5" y="12" width="6" height="9" rx="1.5" fill="' + NAVY + '"/><rect x="13" y="12" width="6" height="9" rx="1.5" fill="' + NAVY + '"/>',
+    alter: () => '<rect x="3" y="12" width="7.5" height="10" rx="1.6" fill="' + NAVY + '"/><rect x="13.5" y="12" width="7.5" height="10" rx="1.6" fill="' + NAVY + '"/><path d="M6.5 9Q12 2.5 17.5 9" fill="none" stroke="#4f5d9a" stroke-width="2" stroke-linecap="round"/><path d="M0 0-3.4-2V2Z" fill="#4f5d9a" transform="translate(18 9.6) rotate(50)"/><path d="M0 0-3.4-2V2Z" fill="#4f5d9a" transform="translate(6 9.6) rotate(130)"/>',
   };
   for (const k of Object.keys(BREED)) {
     const b = BREED[k];

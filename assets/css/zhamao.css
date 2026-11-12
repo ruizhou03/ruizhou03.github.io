@@ -259,7 +259,7 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-hand .zm-card {
   cursor: pointer;
   /* 选中时弹簧一样抬起来（过冲一点再落定） */
-  transition: transform 0.26s cubic-bezier(.3, 1.6, .5, 1), margin 0.28s cubic-bezier(.3, .75, .3, 1), box-shadow 0.2s ease, filter 0.2s ease;
+  transition: transform 0.26s cubic-bezier(.3, 1.6, .5, 1), box-shadow 0.2s ease, filter 0.2s ease;
   box-shadow: -2px 0 6px rgba(29, 27, 24, 0.08);
 }
 .zm-hand .zm-card.is-sel { transform: translateY(-20px) rotate(-1.5deg); box-shadow: 0 0 0 2.5px var(--zm-seal), 0 12px 18px rgba(29, 27, 24, 0.2); }
@@ -559,14 +559,14 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-dialog.is-cards .zm-grid button:hover .zm-card, .zm-dialog.is-cards .zm-grid button:focus-visible .zm-card { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(29, 27, 24, 0.18); }
 
 /* 抽牌：红光游走 / 落定。被抽的是我：在我的手牌上；被抽的是别人：他头像下面一小扇扣着的牌；我来抽：弹窗里扣着的一排 */
-.zm-hand .zm-card.is-wander { z-index: 60 !important; translate: 0 -12px; box-shadow: 0 0 0 3px #c8463a, 0 0 16px rgba(200, 70, 58, 0.55); }
-.zm-hand .zm-card.is-chosen { z-index: 61 !important; translate: 0 -22px; box-shadow: 0 0 0 3.5px #c8463a, 0 0 26px rgba(200, 70, 58, 0.75); }
+.zm-hand .zm-card.is-wander { translate: 0 -16px; box-shadow: 0 0 0 3px #c8463a, 0 0 16px rgba(200, 70, 58, 0.55); }
+.zm-hand .zm-card.is-chosen { translate: 0 -28px; box-shadow: 0 0 0 3.5px #c8463a, 0 0 26px rgba(200, 70, 58, 0.75); }
 .zm-steal-fan { position: absolute; width: 0; height: 0; pointer-events: none; }
 .zm-steal-card { position: absolute; transition: translate 0.14s ease; }
 .zm-steal-card .zm-card { width: 100%; --cw: 34px; }
-.zm-steal-card.is-wander { translate: 0 -7px; z-index: 2; }
+.zm-steal-card.is-wander { translate: 0 -9px; }
 .zm-steal-card.is-wander .zm-card { box-shadow: 0 0 0 2.5px #c8463a, 0 0 12px rgba(200, 70, 58, 0.6); }
-.zm-steal-card.is-chosen { translate: 0 -14px; z-index: 3; }
+.zm-steal-card.is-chosen { translate: 0 -16px; }
 .zm-steal-card.is-chosen .zm-card { box-shadow: 0 0 0 3px #c8463a, 0 0 18px rgba(200, 70, 58, 0.8); }
 .zm-steal-pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 10px; margin: 16px 0 6px; max-height: min(60vh, 560px); overflow-y: auto; padding: 14px 4px 6px; }
 .zm-steal-pick button { border: 0; background: none; padding: 0; width: 84px; cursor: pointer; transition: translate 0.14s ease; }
@@ -590,3 +590,30 @@ body.zm-fullscreen .site-footer { display: none !important; }
 /* 洗牌切开时：下半摞顶上那层临时画成牌背 */
 .zm-sheet.as-back { background: transparent !important; box-shadow: none; }
 .zm-sheet.as-back svg { width: 100%; height: 100%; display: block; }
+
+/* 洗牌时整摞牌（连同影子、计数）先藏起来：牌都在空中转 */
+.zm-deck.is-shuffling .zm-deck-stack, .zm-deck.is-shuffling .zm-deck-shadow { visibility: hidden; }
+/* 牌堆下面：[牌] 35 / [炸毛猫] 4 */
+.zm-deck-info { gap: 4px; }
+.zm-cardicon { width: 12px; height: 16px; flex: none; }
+.zm-kit .sep { color: var(--zm-ink-faint); font-weight: 400; margin: 0 3px 0 1px; }
+/* 只冒一个牌图标的小气泡（不写字） */
+.zm-bubble.is-icon { padding: 3px 5px 1px; line-height: 0; }
+.zm-bubble.is-icon svg { width: 24px; height: 24px; }
+.zm-bubble.is-loud.is-icon svg path, .zm-bubble.is-loud.is-icon svg circle { stroke: #fff; }
+/* 重排弹窗：顶 / 底 标在两头；拖动中的那张浮起来，拖到的位置描一圈 */
+.zm-alter-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.zm-alter-row .end { font-size: 13px; color: var(--zm-ink-mute); }
+.zm-alter-slot { touch-action: none; }
+.zm-alter-slot .zm-card { position: relative; }
+.zm-alter-slot.is-dragging .zm-card { box-shadow: 0 14px 24px rgba(29, 27, 24, 0.28); transition: none; }
+.zm-alter-slot.is-over .zm-card { box-shadow: 0 0 0 3px var(--zm-gold); }
+/* 观战：出局后点机器猫看它的牌；被看的那只头像上一只小眼睛 */
+.zm-app.is-spectator .zm-opps .zm-seat:not(.is-out) .zm-av { cursor: pointer; }
+.zm-seat.is-watched .zm-av::before {
+  content: ''; position: absolute; left: -10px; top: -6px; width: 22px; height: 14px; border-radius: 999px; z-index: 3;
+  background: var(--zm-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 14'%3E%3Cpath d='M3 7c2.4-3.4 5-5 8-5s5.6 1.6 8 5c-2.4 3.4-5 5-8 5S5.4 10.4 3 7z' fill='%23fbf6ec'/%3E%3Ccircle cx='11' cy='7' r='2.6' fill='%231d1b18'/%3E%3C/svg%3E") center / 18px no-repeat;
+  box-shadow: 0 0 0 1.5px var(--zm-paper);
+}
+.zm-seat.is-watched .zm-av { box-shadow: 0 0 0 2.5px var(--zm-ink), 0 0 0 6px rgba(29, 27, 24, 0.12); }
+.zm-app.is-watching .zm-hand .zm-card { cursor: default; }

@@ -65,6 +65,7 @@
   let ov = null;        // 动画期间桌上显示的样子（见文件头）
   let autopilot = false; // 托管：我的每一步交给机器猫（点自己头像进 / 出；连着两回合超时自动进）
   let timeouts = 0;      // 连着超时几次（我自己动一下就清零）
+  let viewSeat = -1;     // 我出局后坐到哪只机器猫背后看它的手牌（-1 = 不看）
   let autoAct = false;   // 这一步是超时 / 托管替我做的（不清零超时次数）
   const handHidden = new Set();   // 手牌里「位置先占好、牌还在路上」的那几张
 
@@ -130,7 +131,6 @@
         closeDialog();
         applyProfile();
         save();
-        if (!v) bubble(0, '叫我「' + profile.nick + '」吧', { ms: 1600 });
       });
     });
   }
@@ -172,7 +172,7 @@
     const s = game.state;
     const onStage = stageIdsOf(s);
     return {
-      counts: s.hands.map((h) => h.length), hand: s.alive[0] ? s.hands[0].slice() : [],
+      counts: s.hands.map((h) => h.length), hand: s.alive[0] ? s.hands[0].slice() : (viewSeat > 0 && s.alive[viewSeat] ? s.hands[viewSeat].slice() : []),
       deckSize: s.deck.length - (s.phase === 'alter' && s.alter ? s.alter.cards.length : 0), kittens: R.kittensInDeck(s),   // 重排时那几张正摆在牌堆上方
       discard: s.discard.filter((id) => onStage.indexOf(id) < 0),
       turn: s.turn, turnsLeft: s.turnsLeft, alive: s.alive.slice(),
@@ -247,7 +247,9 @@
     box.querySelectorAll('.zm-bubble').forEach((b) => b.remove());
     const b = document.createElement('span');
     b.className = 'zm-bubble' + (o.loud ? ' is-loud' : '') + (o.alarm ? ' is-alarm' : '') + (o.think ? ' is-think' : '');
-    if (o.think) b.innerHTML = '<i></i><i></i><i></i>'; else b.textContent = text;
+    if (o.think) b.innerHTML = '<i></i><i></i><i></i>';
+    else if (o.icon) { b.classList.add('is-icon'); b.innerHTML = ART.icon(o.icon); }   // 只冒一个牌的图标，不写字
+    else b.textContent = text;
     b.style.animationDuration = o.ms + 'ms';
     box.appendChild(b);
     if (o.ms < 60000) setTimeout(() => b.remove(), o.ms);
@@ -310,7 +312,7 @@
     els.deckCount.textContent = d.deckSize;
     if (lastDeck >= 0 && lastDeck !== d.deckSize) fx.pop(els.deckCount, { scale: 1.25, dur: 260 });
     lastDeck = d.deckSize;
-    els.kit.innerHTML = d.kittens ? ART.icon('boom') + '×' + d.kittens : '';
+    els.kit.innerHTML = d.kittens ? '<span class="sep">/</span>' + ART.icon('boom') + '<span>' + d.kittens + '</span>' : '';
     els.kit.title = '牌堆里还有 ' + d.kittens + ' 只炸毛猫';
     if (lastKit >= 0 && lastKit !== d.kittens && d.kittens) { fx.pop(els.kit, { scale: 1.5, dur: 420 }); }
     lastKit = d.kittens;
@@ -417,7 +419,7 @@
     else if (autopilot) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消托管'; }   // 我出局了：自动接着看他们打完，想走就开下一局
     else if (mode === 'target') { els.drawBtn.hidden = true; }
     else if (mode === 'give') { els.playBtn.textContent = '给他'; els.playBtn.disabled = selected.length !== 1; }
-    else if (canNope) { els.playBtn.hidden = true; }
+    else if (canNope) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消'; }
     else if (myTurnToAct()) {
       els.drawBtn.disabled = false;
       els.drawBtn.classList.toggle('is-ready', !selected.length);
@@ -593,7 +595,6 @@
     autopilot = on;
     if (!on) timeouts = 0;
     els.me.classList.toggle('is-auto', on);
-    bubble(0, on ? '托管中' : '我回来了', { ms: 1300 });
     snd(on ? 'tick' : 'tap');
     if (on) {
       if (mode === 'target') cancelTarget();
@@ -816,7 +817,7 @@
   async function animNope(e, t) {
     setActing(e.seat);
     snd('nope');
-    bubble(e.seat, '作废！', { loud: true, ms: 1500 });
+    bubble(e.seat, '', { icon: 'nope', loud: true, ms: 1400 });
     fx.shake(avEl(e.seat), { amp: 4, dur: 300 });
     const src = e.seat === 0 ? handCard(e.card) : null;
     const from = src ? src.getBoundingClientRect() : avPoint(e.seat);
@@ -938,7 +939,7 @@
     const a = avPoint(seat);
     const el = document.createElement('div');
     el.className = 'zm-stackcount';
-    el.innerHTML = '<span class="x">×</span><b>' + from + '</b><i>+2</i>';
+    el.innerHTML = '<span class="x">×</span><b>' + from + '</b>';
     const cy = a.y < innerHeight / 2 ? a.y + 84 : a.y - 70;   // 上排的人：数字落在头像下面；我：在头像上面
     el.style.left = Math.max(60, Math.min(innerWidth - 60, a.x)) + 'px';
     el.style.top = cy + 'px';
@@ -948,10 +949,13 @@
     await wait(ms(320));
     for (let v = from + 1; v <= to; v++) {
       if (t !== token) { el.remove(); return; }
+      // 翻牌式：旧数字往上翻走、新数字从下面翻上来
+      await num.animate([{ transform: 'perspective(120px) rotateX(0deg)' }, { transform: 'perspective(120px) rotateX(90deg)' }], { duration: ms(140), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
+      if (t !== token) { el.remove(); return; }
       num.textContent = v;
       snd('tick');
-      num.animate([{ transform: 'scale(1.6)', color: '#c8463a' }, { transform: 'scale(1)', color: '#b4392c' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1.3)' });
-      await wait(ms(260));
+      await num.animate([{ transform: 'perspective(120px) rotateX(-90deg)' }, { transform: 'perspective(120px) rotateX(0deg)' }], { duration: ms(160), easing: 'cubic-bezier(.3,.8,.4,1.2)', fill: 'forwards' }).finished.catch(() => {});
+      await wait(ms(160));
     }
     snd('stamp');
     fx.burst(a.x, cy, { n: 8, shapes: ['star'], colors: GOLDS.concat(['#c8463a']), radius: 46, size: [6, 14], life: 600 });
@@ -991,53 +995,37 @@
     pot.remove();
   }
 
-  /* 洗牌：整摞牌都动——从中间切成两半，上半摞抬起来落到右边、下半摞滑到左边（两摞都带着自己的厚度），
-   * 再一张张交错着落回去合成一摞、拍齐。牌堆剩得少就少动几张 */
+  /* 洗牌：整摞牌被抄起来——牌堆本身（连同厚度、影子）先藏起，一圈牌背从原处飞出、绕着转一圈再收回来，落地时牌堆重新出现、拍一下。
+   * 牌堆剩得少就少转几张 */
   async function animShuffle(e, t) {
     snd('shuffle');
-    if (e.seat >= 0) bubble(e.seat, '哗啦——', { ms: 1200 });
-    const stack = els.deck.querySelector('.zm-deck-stack');
-    const layers = stack ? Array.from(stack.children) : [];
-    const n = layers.length;
-    if (n < 2 || fx.reduce()) { await wait(ms(300)); if (t === token) { fx.pop(els.deck, { scale: 1.06 }); snd('thud'); } return; }
-    const pu = PU(), half = Math.ceil(n / 2), dx = pu * 0.6, sy = DECK_LOOK.sy * pu;
-    const split = ms(360), hold = ms(140), merge = ms(520);
-    const c = fx.center(els.deck.getBoundingClientRect());
-    fx.smoke(c.x, c.y + pu * 0.55, { n: 4, spread: pu * 0.7, size: [24, 46], rise: 18, alpha: 0.5 });
-    // 下半摞切开后最上面那层也得是张牌背（平时它只是一层纸边）
-    const cap = layers[half - 1];
-    if (cap && cap.classList.contains('zm-sheet')) { cap.classList.add('as-back'); cap.innerHTML = ART.BACK; }
-    const uncap = () => { if (cap) { cap.classList.remove('as-back'); cap.innerHTML = ''; } };
-    // 1) 切开
-    const anims = layers.map((el, i) => {
-      const up = i >= half, x = up ? dx : -dx, y = up ? half * sy : 0;   // 上半摞落到桌面高度
-      return el.animate(up
-        ? [{ translate: '0 0', rotate: '0deg' }, { translate: (x * 0.45) + 'px ' + (-pu * 0.22) + 'px', rotate: '5deg', offset: 0.45 }, { translate: x + 'px ' + y + 'px', rotate: '0deg' }]
-        : [{ translate: '0 0' }, { translate: x + 'px 0' }],
-        { duration: split, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
-    });
-    await wait(split + hold);
-    if (t !== token) { anims.forEach((a) => a.cancel()); uncap(); return; }
-    // 2) 交错落回：下半摞滑回原位，上半摞一张张掀起来、落回自己那层（像两手一松、牌一张张叠进去）
-    snd('deal');
-    const m2 = layers.map((el, i) => {
-      const up = i >= half;
-      if (!up) return el.animate([{ translate: (-dx) + 'px 0' }, { translate: '0 0' }], { duration: merge * 0.7, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
-      const k = i - half, cnt = n - half;
-      return el.animate([
-        { translate: dx + 'px ' + (half * sy) + 'px', rotate: '0deg' },
-        { translate: (dx * 0.35) + 'px ' + (-6 - k * 0.5) + 'px', rotate: '-4deg', offset: 0.55 },
-        { translate: '0 0', rotate: '0deg' },
-      ], { duration: merge * 0.6, delay: (k / Math.max(1, cnt)) * merge * 0.4, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' });
-    });
-    await wait(merge);
-    anims.forEach((a) => a.cancel());
-    m2.forEach((a) => a.cancel());
-    uncap();
+    const r = els.deck.getBoundingClientRect(), c = fx.center(r);
+    const pu = PU(), n = Math.max(1, Math.min(9, D().deckSize)), R0 = pu * 1.25;
+    els.deck.classList.add('is-shuffling');
+    fx.smoke(c.x, c.y + pu * 0.4, { n: 5, spread: pu * 0.6, size: [30, 60], rise: 26, alpha: 0.6 });
+    const all = [];
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement('div');
+      el.className = 'zm-flyer';
+      el.style.width = pu + 'px'; el.style.height = pu * 1.4 + 'px';
+      el.innerHTML = backHtml();
+      els.fly.appendChild(el);
+      const th0 = (i / n) * Math.PI * 2, frames = [];
+      const K = 16;
+      for (let k = 0; k <= K; k++) {
+        const tt = k / K;
+        const rr = R0 * Math.sin(Math.PI * tt) * (0.8 + 0.2 * Math.sin(i * 1.7));
+        const th = th0 + tt * Math.PI * 2 * (i % 2 ? 1 : -1);
+        const x = c.x + Math.cos(th) * rr, y = c.y + Math.sin(th) * rr * 0.6;
+        frames.push({ transform: fx.T(x - pu / 2, y - pu * 0.7, 0.9 + 0.15 * Math.sin(Math.PI * tt), (th * 180 / Math.PI) * 0.25 * (1 - tt) + (i - 4) * 2 * Math.sin(Math.PI * tt)), offset: tt });
+      }
+      all.push(el.animate(frames, { duration: ms(1050), delay: i * 22, easing: 'cubic-bezier(.4,0,.3,1)', fill: 'both' }).finished.then(() => el.remove(), () => el.remove()));
+    }
+    await Promise.all(all);
+    els.deck.classList.remove('is-shuffling');
     if (t !== token) return;
-    // 3) 拍齐
     snd('thud');
-    fx.pop(els.deck, { scale: 1.05 });
+    fx.pop(els.deck, { scale: 1.06 });
     renderPiles();
   }
 
@@ -1166,7 +1154,6 @@
     });
     if (t !== token) return;
     if (e.to === 0) revealHandCard(e.card, to); else { ov.counts[e.to] += 1; renderSeat(e.to); fx.pop(avEl(e.to), { scale: 1.15 }); }
-    if (e.to === 0 && e.card != null) bubble(0, '拿到「' + R.NAMES[R.KIND_OF[e.card]] + '」', { ms: 1500 });
     await wait(ms(220));
   }
 
@@ -1314,7 +1301,6 @@
       { transform: fx.T(a.x - S / 2, a.y - S / 2, 0.6, ang), opacity: 0 },
     ], { duration: ms(600), easing: 'cubic-bezier(.4,0,.2,1)', fill: 'both' }).finished.then(() => paw.remove(), () => paw.remove());
     await animTransfer(e, t, 'steal');
-    if (e.from === 0 && e.card != null) bubble(0, '被偷走「' + R.NAMES[R.KIND_OF[e.card]] + '」', { ms: 1600 });
   }
 
   /* 三张点名：点中——那张牌亮着金光从他手里跳出来，正面朝上飞过去；落空——点名的牌晃晃脑袋、打个红叉、冒烟 */
@@ -1330,7 +1316,6 @@
     await fx.fly({ html: cardHtml(e.card), from: src, to, w: u, s0: e.from === 0 ? 1 : 0.5, s1: e.to === 0 ? 1 : 0.5, fadeOut: e.to !== 0, dur: ms(680), lift: 110, r0: -14, r1: 0, swell: 0.5 });
     if (t !== token) return;
     if (e.to === 0) revealHandCard(e.card); else { ov.counts[e.to] += 1; renderSeat(e.to); fx.pop(avEl(e.to), { scale: 1.15 }); }
-    bubble(e.to, '要到了「' + R.NAMES[e.named] + '」', { ms: 1500 });
     await wait(ms(260));
   }
   async function animMiss(e, t) {
@@ -1342,7 +1327,6 @@
     el.innerHTML = cardHtml(e.named) + '<div class="zm-cross">' + ART.PROPS.cross + '</div>';
     els.fly.appendChild(el);
     const x = b.x - u / 2, y = b.y - u * 1.6;
-    bubble(e.from, '没有' + R.NAMES[e.named], { ms: 1600 });
     await fx.animate(el, [
       { transform: fx.T(x, y + 20, 0.3, 0), opacity: 0 },
       { transform: fx.T(x, y, 1.05, 0), opacity: 1, offset: 0.16 },
@@ -1381,7 +1365,6 @@
     await flight;
     if (t !== token) return;
     if (e.seat === 0) revealHandCard(e.card); else { ov.counts[e.seat] += 1; renderSeat(e.seat); fx.pop(avEl(e.seat), { scale: 1.15 }); }
-    bubble(e.seat, '捡回「' + R.NAMES[R.KIND_OF[e.card]] + '」', { ms: 1500 });
     await wait(ms(200));
   }
 
@@ -1477,7 +1460,7 @@
     const av = avEl(e.seat);
     if (av && !fx.reduce()) av.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-12px) scale(1.12)', offset: 0.25 }, { transform: 'translateY(0) scale(1)' }], { duration: 460, easing: 'ease-out', composite: 'add' });
     fx.shake(seatEl(e.seat), { amp: 6, dur: 520, delay: 120 });
-    bubble(e.seat, e.seat === 0 ? '啊啊啊！' : '炸毛了！', { loud: true, alarm: true, ms: 1500 });
+    bubble(e.seat, '', { icon: 'boom', alarm: true, ms: 1600 });
     await wait(ms(next && next.t === 'defuse' ? 900 : 1100));
   }
 
@@ -1507,7 +1490,7 @@
     }
     fx.ring(c.x, c.y, { color: '#4f8a5f', size: u * 3, width: 5, dur: 800, delay: 200 });
     ['heart', 'note', 'heart', 'note', 'heart'].forEach((sh, i) => fx.float(c.x + (i - 2) * u * 0.35, c.y - u * 0.2, sh, { dy: -u * 1.1, dx: (i - 2) * 8, size: 16 + (i % 2) * 6, color: sh === 'heart' ? PINKS[i % 3] : '#4f8a5f', delay: ms(200 + i * 140), dur: ms(1100) }));
-    bubble(e.seat, '哄好了～', { ms: 1500 });
+    bubble(e.seat, '', { icon: 'defuse', ms: 1400 });
     await wait(ms(1100));
     if (t !== token) { if (wand) wand.remove(); return; }
     // 逗猫棒落进弃牌堆
@@ -1577,8 +1560,6 @@
     ov.kittens += 1;
     renderPiles();
     fx.pop(els.deck, { scale: 1.05 });
-    if (e.seat === 0 && e.pos != null) bubble(0, e.pos === 0 ? '塞在最上面' : '塞在第 ' + (e.pos + 1) + ' 张', { ms: 1400 });
-    else bubble(e.seat, '偷偷塞回去了', { ms: 1400 });
     await wait(ms(260));
   }
 
@@ -1606,6 +1587,8 @@
     fx.smoke(a.x, a.y, { n: 12, spread: u * 0.8, size: [u * 0.7, u * 1.4], rise: 60, tint: 'dark', delay: 60 });
     ov.alive[e.seat] = false;
     ov.counts[e.seat] = 0;
+    if (e.seat === viewSeat) watch(viewSeat);
+    if (e.seat === 0) els.app.classList.add('is-spectator');
     if (ov.turn === e.seat) ov.turn = -1;
     renderSeat(e.seat);
     await wait(ms(520));
@@ -1648,6 +1631,8 @@
     const botDelay = botSeat >= 0 ? P.botNope[0] + Math.random() * (P.botNope[1] - P.botNope[0]) : Infinity;
     const windowMs = meCan ? (tutWaitMe ? Infinity : P.react || 1400) : P.quiet;
     const fireAt = Math.min(botDelay, windowMs);
+    const now = performance.now();
+    game.reactPlan = { botSeat, botAt: now + botDelay, windowEnd: now + windowMs };
     reactOpen = meCan;
     busy = !meCan;
     renderHand({ flip: false });
@@ -1662,6 +1647,24 @@
       if (botSeat >= 0 && botDelay <= windowMs) { if (botSeat === 0) autoAct = true; doNope(botSeat); }
       else closeReact();
     }, fireAt);
+  }
+  // 我点「取消」：不作废了。还有机器猫打算作废、而且它本来就赶得上 → 等它；否则马上结算，不用等导火索烧完
+  function passReact() {
+    const s = game.state;
+    if (s.phase !== 'react' || !reactOpen) return;
+    if (tut && tut.mustNope && tut.mustNope(s)) { shake(els.drawBtn); return; }
+    clearReactTimer();
+    reactOpen = false;
+    busy = true;
+    stopFuse();
+    renderBand();
+    renderHand({ flip: false });
+    snd('untap');
+    const p = game.reactPlan || { botSeat: -1 };
+    const k = token;
+    if (p.botSeat >= 0 && p.botAt <= p.windowEnd) {
+      reactTimer = setTimeout(() => { if (k === token && game.state.phase === 'react') { reactTimer = null; doNope(p.botSeat); } }, Math.max(0, p.botAt - performance.now()));
+    } else closeReact();
   }
   async function doNope(seat) {
     clearReactTimer();
@@ -1697,6 +1700,7 @@
   function shake(node) { if (!node) return; node.classList.remove('zm-shake'); void node.offsetWidth; node.classList.add('zm-shake'); }
   function onCardTap(id, node) {
     const s = game.state;
+    if (!s.alive[0]) return;   // 观战时看到的是别人的牌，点了没用
     if (autopilot) { setAutopilot(false); return; }   // 托管中点手牌 = 收回来自己打
     if (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE) { pressNope(); return; }
     if (mode === 'give') { selected = selected[0] === id ? [] : [id]; snd('tap'); renderHand(); renderBand(); return; }
@@ -1713,6 +1717,7 @@
   function onDraw() {
     const s = game.state;
     if (autopilot) { setAutopilot(false); return; }
+    if (s.phase === 'react' && reactOpen) { passReact(); return; }
     if (!s.alive[0] && s.phase !== 'over') { newGame(); return; }
     if (!myTurnToAct()) return;
     if (tut && tut.allow && !tut.allow({ type: 'draw' })) { shake(els.drawBtn); return; }
@@ -1762,7 +1767,20 @@
     els.opps.querySelectorAll('.zm-seat').forEach((b) => b.classList.remove('is-target', 'is-target-off'));
     renderBand();
   }
+  // 观战：我已经出局（单机）→ 点一只还在场的机器猫，坐到它背后看它的手牌；再点一下 / 点别的就换
+  function watch(seat) {
+    viewSeat = viewSeat === seat ? -1 : seat;
+    els.opps.querySelectorAll('.zm-seat').forEach((b) => b.classList.toggle('is-watched', +b.dataset.seat === viewSeat));
+    els.app.classList.toggle('is-watching', viewSeat > 0);
+    snd(viewSeat > 0 ? 'flip' : 'untap');
+    if (ov) ov.hand = viewSeat > 0 ? game.state.hands[viewSeat].slice() : [];
+    renderHand();
+  }
   function onSeatTap(seat) {
+    if (game && !game.tutorial && !game.state.alive[0] && game.state.phase !== 'over' && seat > 0) {
+      if (game.state.alive[seat]) watch(seat);
+      return;
+    }
     if (mode !== 'target' || !targetCb) return;
     const b = seatEl(seat);
     if (!b.classList.contains('is-target')) { shake(b); return; }
@@ -1963,12 +1981,10 @@
   function alterDialog() {
     const s = game.state;
     let order = s.alter.cards.slice(), sel = -1;
-    const labels = ['最上面', '第 2 张', '第 3 张'];
     const limit = !game.tutorial && turnSec() > 0 ? turnSec() * 1000 : 0;
     snd('peek');
     openDialog('<h2>重排最上面 ' + order.length + ' 张</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
-      '<div class="zm-alter" data-alter>' + order.map((id, i) => '<button type="button" class="zm-alter-slot" data-i="' + i + '">' + cardHtml(id) + '<span>' + labels[i] + '</span></button>').join('') + '</div>' +
-      '<p class="zm-muted zm-alter-tip">点两张换位置</p>' +
+      '<div class="zm-alter-row"><span class="end">顶</span><div class="zm-alter" data-alter>' + order.map((id, i) => '<button type="button" class="zm-alter-slot" data-i="' + i + '">' + cardHtml(id) + '</button>').join('') + '</div><span class="end">底</span></div>' +
       '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好了</button></div>', (d) => {
       const slots = Array.from(d.querySelectorAll('.zm-alter-slot'));
       const okBtn = d.querySelector('[data-ok]');
@@ -1979,20 +1995,60 @@
         closeDialog();
         apply(0, { type: 'alter', order: order.slice() });
       };
-      slots.forEach((slot, i) => slot.addEventListener('click', () => {
-        if (sel < 0) { sel = i; slot.classList.add('is-sel'); snd('tap'); return; }
-        if (sel === i) { slot.classList.remove('is-sel'); sel = -1; snd('untap'); return; }
-        const a = slots[sel], b = slot, ca = a.querySelector('.zm-card'), cb = b.querySelector('.zm-card');
-        const ra = ca.getBoundingClientRect(), rb = cb.getBoundingClientRect();
+      // 换两个位置上的牌（带一个小交叉动画）；from 给了就是拖过去的那张从松手处滑进新位置
+      const swap = (i, j, dropRect) => {
+        const a = slots[i], b = slots[j], ca = a.querySelector('.zm-card'), cb = b.querySelector('.zm-card');
+        const ra = dropRect || ca.getBoundingClientRect(), rb = cb.getBoundingClientRect();
         a.insertBefore(cb, a.firstChild); b.insertBefore(ca, b.firstChild);
-        [order[sel], order[i]] = [order[i], order[sel]];
+        [order[i], order[j]] = [order[j], order[i]];
         if (!fx.reduce()) {
-          ca.animate([{ transform: 'translate(' + (ra.left - rb.left) + 'px,-14px)' }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1)' });
-          cb.animate([{ transform: 'translate(' + (rb.left - ra.left) + 'px,14px)' }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1)' });
+          const na = ca.getBoundingClientRect(), nb = cb.getBoundingClientRect();
+          ca.animate([{ transform: 'translate(' + (ra.left - na.left) + 'px,' + (ra.top - na.top - (dropRect ? 0 : 14)) + 'px)' }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1)' });
+          cb.animate([{ transform: 'translate(' + (rb.left - nb.left) + 'px,14px)' }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1)' });
         }
-        a.classList.remove('is-sel'); sel = -1;
+        slots.forEach((x) => x.classList.remove('is-sel')); sel = -1;
         snd('flip');
-      }));
+      };
+      // 点：点一张、再点另一张 = 换位置；拖：按住一张拖到另一张上松手 = 换位置
+      let drag = null;
+      slots.forEach((slot, i) => {
+        slot.addEventListener('pointerdown', (ev) => {
+          const card = slot.querySelector('.zm-card');
+          drag = { i, x0: ev.clientX, y0: ev.clientY, card, moved: false, id: ev.pointerId };
+          try { slot.setPointerCapture(ev.pointerId); } catch (_) { /* */ }
+        });
+        slot.addEventListener('pointermove', (ev) => {
+          if (!drag || drag.i !== i) return;
+          const dx = ev.clientX - drag.x0, dy = ev.clientY - drag.y0;
+          if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+          drag.moved = true;
+          drag.card.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + (dx * 0.04).toFixed(1) + 'deg) scale(1.06)';
+          drag.card.style.zIndex = 5;
+          slot.classList.add('is-dragging');
+          const over = slots.findIndex((x, j) => { if (j === i) return false; const r = x.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX <= r.right; });
+          slots.forEach((x, j) => x.classList.toggle('is-over', j === over));
+        });
+        const end = (ev) => {
+          if (!drag || drag.i !== i) return;
+          const d = drag;
+          drag = null;
+          slot.classList.remove('is-dragging');
+          slots.forEach((x) => x.classList.remove('is-over'));
+          if (!d.moved) { // 当成一次点击
+            if (sel < 0) { sel = i; slot.classList.add('is-sel'); snd('tap'); return; }
+            if (sel === i) { slot.classList.remove('is-sel'); sel = -1; snd('untap'); return; }
+            swap(sel, i);
+            return;
+          }
+          const dropRect = d.card.getBoundingClientRect();
+          d.card.style.transform = ''; d.card.style.zIndex = '';
+          const j = slots.findIndex((x, k) => { if (k === i) return false; const r = x.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX <= r.right; });
+          if (j >= 0) swap(i, j, dropRect);
+          else if (!fx.reduce()) { const now = d.card.getBoundingClientRect(); d.card.animate([{ transform: 'translate(' + (dropRect.left - now.left) + 'px,' + (dropRect.top - now.top) + 'px)' }, { transform: 'none' }], { duration: 220, easing: 'ease-out' }); }
+        };
+        slot.addEventListener('pointerup', end);
+        slot.addEventListener('pointercancel', end);
+      });
       okBtn.addEventListener('click', commit);
       if (limit) {
         const my = token, bar = d.querySelector('.zm-dlg-timer');
@@ -2502,6 +2558,7 @@
   function startTutorial() {
     if (!TUT) return;
     resetTable();
+    viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     const ctl = TUT.create(R, { hint, say: (msgs, then) => showCoach(msgs, then || step) });
     tut = ctl;
@@ -2543,6 +2600,7 @@
   /* ───── 开局 / 封面 ───── */
   function newGame() {
     resetTable();
+    viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     tut = null;
     els.skipTut.hidden = true;
@@ -2558,6 +2616,7 @@
   }
   function resumeGame(d) {
     resetTable();
+    viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     game = { state: d.state, bots: d.bots, tiers: d.tiers, tutorial: false };
     game.bots[0] = { nick: profile.nick, avatar: profile.avatar };
