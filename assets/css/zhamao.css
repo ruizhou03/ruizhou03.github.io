@@ -180,7 +180,7 @@ body.zm-fullscreen .site-footer { display: none !important; }
 
 /* 舞台：刚出的牌放大摆在桌子正中，等大家决定要不要「不行」 */
 .zm-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 8; }
-.zm-stage-inner { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.zm-stage-inner { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .zm-stage-cards > .zm-card { box-shadow: 0 10px 22px rgba(29, 27, 24, 0.2); }
 @keyframes zm-pop { from { transform: scale(0.92); opacity: 0; } }
 .zm-stage-who { display: flex; align-items: center; gap: 6px; font-size: 14px; }
@@ -188,10 +188,10 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-stage-who .mini svg { width: 100%; height: 100%; }
 .zm-stage-who .arrow { color: var(--zm-ink-mute); }
 .zm-stage-cards { position: relative; display: flex; gap: calc(var(--u) * -0.35); }
-.zm-stage-cards .zm-card { width: calc(var(--u) * 1.15); }
+.zm-stage-cards .zm-card { width: calc(var(--pu) * 1.15); }
 .zm-stage-cards .zm-card + .zm-card { margin-left: calc(var(--u) * -0.42); }
 .zm-stage-nopes { position: absolute; inset: 0; pointer-events: none; }
-.zm-stage-nopes .zm-card { position: absolute; width: calc(var(--u) * 1.0); left: 50%; top: 50%; }
+.zm-stage-nopes .zm-card { position: absolute; width: calc(var(--pu) * 1.05); left: 50%; top: 50%; }
 .zm-stage-label { font-size: 15px; font-weight: 700; letter-spacing: 0.06em; }
 .zm-stage-sub { font-size: 12.5px; color: var(--zm-ink-mute); margin-top: -4px; }
 .zm-stage.is-cancelled .zm-stage-cards { filter: grayscale(0.8) opacity(0.6); }
@@ -428,7 +428,6 @@ body.zm-fullscreen .site-footer { display: none !important; }
 }
 /* 桌中间摆着刚出的牌时，讲解挪到下沿，别挡住那张牌 */
 .zm-center:has(.zm-stage-inner) .zm-coach { top: auto; bottom: 0; transform: translateX(-50%); }
-.zm-center:has(.zm-stage-inner):has(.zm-coach:not([hidden])) .zm-stage { align-items: flex-start; padding-top: 4px; }
 
 /* ═════ 动画层（zhamao-fx.js 画在 .zm-fly 上，全部视口坐标） ═════ */
 .zm-flyer { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; will-change: transform; pointer-events: none; }
@@ -471,8 +470,8 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-deck-count, #zmDeckCount, .zm-kit { display: inline-flex; }
 
 /* 舞台：生效时金光一闪；章换的时候旧章淡出 */
-.zm-stage-inner.is-go { animation: zm-go 0.5s ease-out; }
-@keyframes zm-go { 30% { box-shadow: 0 0 0 4px var(--zm-gold), 0 0 30px rgba(201, 169, 110, 0.6); } }
+.zm-stage-inner.is-go .zm-stage-cards > .zm-card { animation: zm-go 0.5s ease-out; }
+@keyframes zm-go { 30% { box-shadow: 0 0 0 3px var(--zm-gold), 0 0 24px rgba(201, 169, 110, 0.6); } }
 .zm-stamp.is-leaving { animation: zm-stamp-out 0.22s ease-in forwards; }
 @keyframes zm-stamp-out { to { transform: translate(-50%, -50%) rotate(-14deg) scale(1.4); opacity: 0; } }
 .zm-stage-named { margin-left: calc(var(--u) * 0.16); align-self: center; position: relative; }
@@ -484,7 +483,7 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-stage.is-cancelled .zm-stage-cards > .zm-card { filter: grayscale(0.8) opacity(0.55); }
 
 /* 导火索：一根麻绳从右往左烧短，火星跟着走；最后一秒半变红闪 */
-.zm-fuse { position: relative; width: calc(var(--u) * 2.2); max-width: 100%; height: 12px; margin-top: 2px; }
+.zm-fuse { position: relative; width: calc(var(--pu) * 1.3); max-width: 100%; height: 12px; margin-top: 2px; }
 .zm-fuse .rope { position: absolute; left: 0; right: 0; top: 4px; height: 4px; border-radius: 2px; transform-origin: left center;
   background: linear-gradient(180deg, #c9a26f, #8a6a3e); box-shadow: 0 1px 0 rgba(29, 27, 24, 0.15); }
 .zm-fuse .spark { position: absolute; top: 6px; left: 100%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
@@ -511,6 +510,6 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-cover-seats { display: flex; justify-content: center; gap: 8px; }
 .zm-cover-seats button { flex: 1; height: 38px; border-radius: 10px; border: 1.5px solid var(--zm-ink-faint); background: transparent; color: var(--zm-ink-mute); font: inherit; font-size: 15px; cursor: pointer; }
 .zm-cover-seats button.is-on { border-color: var(--zm-ink); background: var(--zm-card); color: var(--zm-ink); font-weight: 700; }
-/* 桌中间摆着刚出的牌时（不加框了）：牌堆 / 弃牌堆淡下去，别跟出的牌搅在一起 */
-.zm-piles { transition: opacity 0.25s ease, filter 0.25s ease; }
-.zm-center:has(.zm-stage-inner) .zm-piles { opacity: 0.16; filter: blur(1.5px); }
+/* 出的牌直接压在弃牌堆上：原来那几张淡一点，看得出新出的是哪张 */
+.zm-discard { transition: opacity 0.2s ease; }
+.zm-center:has(.zm-stage-inner) .zm-discard { opacity: 0.35; }

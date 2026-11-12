@@ -31,9 +31,9 @@
   const fx = window.ZhamaoFx.create(els.fly, { sound: snd });
 
   // 节奏（毫秒）：机器人想一下、反应窗、飞牌、停顿
-  const PACE = { bot: 760, react: 4200, quiet: 600, botNope: [700, 1500], fly: 460, hold: 620, k: 1 };
-  const FAST = { bot: 240, react: 0, quiet: 160, botNope: [200, 300], fly: 260, hold: 220, k: 0.55 };
-  const TUT_PACE = { bot: 1050, react: 0, quiet: 750, botNope: [900, 900], fly: 540, hold: 900, k: 1.2 };
+  const PACE = { bot: 760, react: 2800, quiet: 260, botNope: [500, 1100], fly: 460, k: 1 };
+  const FAST = { bot: 240, react: 0, quiet: 120, botNope: [200, 300], fly: 260, k: 0.55 };
+  const TUT_PACE = { bot: 1050, react: 0, quiet: 500, botNope: [900, 900], fly: 540, k: 1.2 };
   const pace = () => (game && game.tutorial ? TUT_PACE : game && !game.state.alive[0] ? FAST : PACE);
   const ms = (x) => Math.round(x * pace().k);
 
@@ -106,7 +106,7 @@
   const pileRot = (id) => ((id * 37) % 13) - 6;
   const U = () => parseFloat(getComputedStyle(els.app).getPropertyValue('--u')) || 64;
   const PU = () => U() * 0.92;     // 牌堆 / 弃牌堆的牌宽
-  const SU = () => U() * 1.15;     // 桌中舞台上的牌宽
+  const SU = () => PU() * 1.15;    // 刚出的牌（压在弃牌堆上）的牌宽
 
   /* ───── 显示层 ───── */
   function stageIdsOf(s) { return s.phase === 'react' && s.pending ? s.pending.cards.concat(s.pending.nopes.map((x) => x.card)) : []; }
@@ -377,7 +377,16 @@
     els.stage.innerHTML = '<div class="zm-stage-inner">' +
       '<div class="zm-stage-cards">' + p.cards.map((id, i) => cardHtml(id, hidden ? 'is-incoming' : '', 'transform:rotate(' + ((i - (p.cards.length - 1) / 2) * 5).toFixed(1) + 'deg)')).join('') + named + '<div class="zm-stage-nopes"></div></div>' +
       '<div class="zm-fuse" aria-hidden="true"><i class="rope"></i><i class="spark"></i></div></div>';
+    placeStage();
     setActing(p.by);
+  }
+  // 出的牌直接落在弃牌堆上（稍大一圈），不悬在桌子正中；「不行」的窗口就在弃牌堆上开
+  function placeStage() {
+    const inner = els.stage.querySelector('.zm-stage-inner');
+    if (!inner) return;
+    const sr = els.stage.getBoundingClientRect(), dr = els.discard.getBoundingClientRect();
+    inner.style.left = (dr.left + dr.width / 2 - sr.left).toFixed(1) + 'px';
+    inner.style.top = (dr.top + dr.height / 2 - sr.top).toFixed(1) + 'px';
   }
   function setActing(seat) {
     document.querySelectorAll('.zm-seat.is-acting').forEach((b) => b.classList.remove('is-acting'));
@@ -539,7 +548,10 @@
         else schedule(pace().bot, () => apply(s.pick.by, decideBot(s.pick.by)));
         break;
       case 'defuse':
-        if (s.defuse.by === 0) { busy = false; insertDialog(); }
+        if (s.defuse.by === 0) {
+          if (!s.deck.length && !(tut && tut.allow && !tut.allow({ type: 'insert', pos: 0 }))) { schedule(ms(260), () => apply(0, { type: 'insert', pos: 0 })); break; }
+          busy = false; insertDialog();
+        }
         else schedule(pace().bot, () => apply(s.defuse.by, decideBot(s.defuse.by)));
         break;
     }
@@ -710,7 +722,7 @@
     if (t !== token) return;
     // 拍下去
     snd('slam');
-    fx.shake(els.stage.querySelector('.zm-stage-inner'), { amp: 7, dur: 320 });
+    fx.shake(stageCardsEl(), { amp: 7, dur: 320 });
     fx.ring(c.x, c.y, { color: '#7a5a96', size: u * 3.2, width: 5, dur: 520 });
     fx.burst(c.x, c.y, { n: 12, shapes: ['star', 'dot'], colors: PURPLES, radius: u * 1.3, size: [5, 16], life: 760, pattern: 'ring' });
     stageNope(e.card, e.count, rot);
@@ -740,7 +752,7 @@
         if (cs) { const r = cs.getBoundingClientRect(); fx.burst(r.left + r.width / 2, r.top + r.height / 2, { n: 10, shapes: ['star'], colors: GOLDS, radius: U() * 1.1, size: [6, 16], life: 700 }); }
         snd('activate');
       }
-      await wait(ms(game.lastNopes ? 520 : 300));
+      await wait(ms(game.lastNopes ? 480 : 140));
     }
     if (t !== token) return;
     await sweepStage(t);
@@ -760,7 +772,7 @@
     snd('sweep');
     await Promise.all(items.map((it, i) => fx.fly({
       html: cardHtml(it.id), from: it.r, to, w: pu, s0: it.r.width / pu, s1: 1, r0: 0, r1: pileRot(it.id),
-      dur: ms(360), delay: i * ms(55), lift: 40, cls: it.gray ? 'is-gray' : '',
+      dur: ms(220), delay: i * ms(40), lift: 6, cls: it.gray ? 'is-gray' : '',
     }).then(() => {
       if (t !== token || !ov) return;
       ov.discard.push(it.id);
@@ -1225,7 +1237,18 @@
       if (inner) await inner.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: ms(360), easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
     }
     snd('flip');
-    await wait(ms(160));
+    // 翻好之后挪到牌堆左边、缩成牌堆大小、歪一点等着被塞回去（不再盖在桌子正中）
+    if (node && t === token) {
+      const dr = els.deck.getBoundingClientRect(), pu = PU();
+      const w = node.offsetWidth || pu, h = node.offsetHeight || pu * 1.4;
+      const tx = dr.left - pu * 0.8, ty = dr.top + dr.height / 2;
+      const from = getComputedStyle(node).transform;
+      const to = fx.T(tx - w / 2, ty - h / 2, pu / w, -10);
+      node.animate([{ transform: from }, { transform: to }], { duration: ms(360), easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards' });
+      node.style.transform = to;
+      node.style.filter = 'drop-shadow(0 0 7px rgba(200, 70, 58, 0.6))';   // 背面朝上也认得出是那只炸毛猫
+      await wait(ms(380));
+    } else await wait(ms(160));
   }
 
   /* 塞回去：背面的炸毛猫飞回牌堆，牌堆上半截掀开一道口、它滑进去、合上（不论塞在哪动画都一样，不泄露位置） */
@@ -2152,6 +2175,26 @@
 
   /* ───── 绑定 ───── */
   $('zmCoverArt').innerHTML = ART.hero();
+  // 彩蛋：鼠标经过（或点一下）封面上的炸毛猫，它就炸两下毛、掉几根毛（平时每隔几秒自己也会抖一下，见 CSS）
+  (function heroEgg() {
+    const g = $('zmCoverArt').querySelector('.hero-boom');
+    if (!g) return;
+    let busyEgg = false;
+    const poke = () => {
+      if (busyEgg || fx.reduce()) return;
+      busyEgg = true;
+      snd('hiss');
+      g.animate([
+        { transform: 'scale(1)' }, { transform: 'scale(1.13) rotate(-5deg)', offset: 0.14 }, { transform: 'scale(1.04) rotate(4deg)', offset: 0.3 },
+        { transform: 'scale(1.14) rotate(-4deg)', offset: 0.48 }, { transform: 'scale(1.05) rotate(3deg)', offset: 0.66 }, { transform: 'scale(1)' },
+      ], { duration: 720, easing: 'ease-out' }).finished.then(() => { busyEgg = false; }, () => { busyEgg = false; });
+      const r = g.getBoundingClientRect(), c = fx.center(r);
+      fx.burst(c.x, c.y, { n: 10, shapes: ['fur'], colors: FUR, radius: r.width * 0.55, size: [6, 14], alignOut: true, life: 700, gravity: 30, pattern: 'ring', delay: 60 });
+    };
+    g.style.cursor = 'pointer';
+    g.addEventListener('pointerenter', poke);
+    g.addEventListener('click', poke);
+  })();
   els.cover.addEventListener('click', (e) => {
     const b = e.target.closest('[data-cover]');
     if (!b) return;
