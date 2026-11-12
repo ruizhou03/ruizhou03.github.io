@@ -210,6 +210,7 @@
   const tierOf = (p) => (p >= 0.6 ? 3 : p >= 0.4 ? 2 : p >= 0.25 ? 1 : 0);
   function setScene(scene) {
     if (scene === D.scene && scene !== 'game') return;
+    if ((scene === 'game' || scene === 'menu') && scene !== D.scene) P.cut = true;   // 进 / 出一局：马上换，不等乐句（用户嫌开局等太久）
     D.scene = scene;
     if (scene === 'menu') D.mode = 'menu';
     else if (scene === 'game') { D.mode = 'calm'; D.announced = 0; D.urgentBars = 0; D.p = 0; }
@@ -244,7 +245,7 @@
   const target = () => (D.mode ? TRACK[D.mode] : null);
 
   /* ───── 播放器：提前 0.5 秒一小节一小节排；换版要等到乐句边界，用一个「变身小节」过渡 ───── */
-  const P = { on: false, cur: null, bar: 0, nextT: 0, timer: null, stopAt: 0 };
+  const P = { on: false, cur: null, bar: 0, nextT: 0, timer: null, stopAt: 0, cut: false };
   const LEVELS = { funk: 1, chase: 1, chip: 0.85, circus: 0.9 };
   // 这一小节能不能当变身小节：做完它，新版正好从一句的开头进来
   const bridgeOk = (bar, want) => (want === 'chip' ? bar % 2 === 1 : bar % 4 === 3);
@@ -252,6 +253,18 @@
     if (!ac || !P.on) return;
     if (ac.state !== 'running') return;
     if (P.nextT < ac.currentTime) P.nextT = ac.currentTime + 0.06;   // 掉帧 / 切回前台：别补排一堆过期的小节
+    // 场景切换（主页 ↔ 一局）：旧的半秒内淡掉，新的马上从第 1 小节起，第一拍砸一下
+    if (P.cut) {
+      P.cut = false;
+      const want = target();
+      if (want && P.cur && want !== P.cur) {
+        const t = ac.currentTime;
+        rampBus(P.cur, t, t + 0.45, busFor(P.cur).gain.value, 0.0001);
+        P.cur = want; P.bar = 0; P.nextT = t + 0.12;
+        setBus(want, P.nextT, LEVELS[want]);
+        OUT = busFor(want); DR.crash(P.nextT, 0.8); DR.kick(P.nextT, 1); OUT = null;
+      }
+    }
     while (P.nextT < ac.currentTime + 0.5) {
       const want = target();
       if (!want && !P.cur) return;

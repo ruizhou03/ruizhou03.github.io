@@ -361,16 +361,19 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-future figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12.5px; color: var(--zm-ink-mute); }
 .zm-future .zm-card { --cw: 86px; width: 86px; }
 /* 塞炸毛猫：一排牌背，炸毛猫插在中间 */
-.zm-insert-row { display: flex; align-items: flex-end; gap: 8px; margin: 18px 0 6px; }
-.zm-insert-row .end { flex: none; font-size: 13px; color: var(--zm-ink-mute); padding-bottom: 6px; }
 .zm-insert-fan { position: relative; flex: 1; min-width: 0; height: 100px; }
 .zm-insert-fan .zm-card { position: absolute; left: 0; bottom: 0; --cw: 46px; width: 46px; }
 .zm-insert-fan .zm-card.is-kit { --cw: 62px; width: 62px; box-shadow: 0 0 0 3px var(--zm-seal), 0 8px 16px rgba(29, 27, 24, 0.22); }
 .zm-insert-fan.is-anim .zm-card { transition: transform 0.24s cubic-bezier(.3, .8, .4, 1); }
-.zm-range { width: 100%; accent-color: var(--zm-seal); }
-.zm-insert-label { text-align: center; font-size: 18px; font-weight: 700; margin: 6px 0 10px; }
-.zm-quick { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-.zm-quick .zm-btn { height: 34px; font-size: 13.5px; padding: 0 12px; }
+.zm-ins-h { margin-bottom: 4px; }
+.zm-insert-fan.is-solo { margin: 30px 2px 6px; flex: none; }
+.zm-insert-fan.is-drag { touch-action: none; cursor: ew-resize; }
+.zm-ins-badge {
+  position: absolute; left: 0; top: -22px; width: 30px; margin-left: -15px; height: 20px; border-radius: 999px;
+  background: var(--zm-seal); color: #fff; font: 700 12px/20px Georgia, 'Songti SC', serif; text-align: center;
+  transition: transform 0.24s cubic-bezier(.3, .8, .4, 1); pointer-events: none;
+}
+.zm-actions.is-tight { margin-top: 12px; }
 .zm-rank { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .zm-rank li { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 10px; }
 .zm-rank li.is-me { background: var(--zm-wash); }
@@ -380,12 +383,31 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rank .nm { flex: 1; font-size: 15px; }
 .zm-rank .tag { font-size: 12.5px; color: var(--zm-ink-mute); }
 .zm-rank li:first-child .tag { color: var(--zm-seal); font-weight: 700; }
-.zm-set { display: flex; flex-direction: column; gap: 14px; }
-.zm-set-row { display: flex; flex-direction: column; gap: 6px; }
-.zm-set-row > span { font-size: 13.5px; color: var(--zm-ink-mute); }
-.zm-seg { display: flex; gap: 6px; flex-wrap: wrap; }
-.zm-seg button { border: 1px solid var(--zm-ink); background: var(--zm-paper); color: var(--zm-ink); font: inherit; font-size: 14px; border-radius: 999px; padding: 5px 14px; cursor: pointer; }
-.zm-seg button.is-on { background: var(--zm-ink); color: var(--zm-paper); }
+/* 设置（卡片 + 开关） */
+.zs-seg { display: flex; border: 1.5px solid var(--zm-ink); border-radius: 12px; overflow: hidden; }
+.zs-seg button { flex: 1; min-width: 0; border: 0; border-left: 1px solid rgba(29, 27, 24, 0.22); background: transparent; color: var(--zm-ink); font: inherit; font-size: 14px; padding: 8px 4px; cursor: pointer; white-space: nowrap; }
+.zs-seg button:first-child { border-left: 0; }
+.zs-seg button[aria-pressed="true"] { background: var(--zm-ink); color: var(--zm-paper); font-weight: 700; }
+.zs .zs-note { margin: 6px 2px 0; font-size: 12px; color: var(--zm-ink-mute); line-height: 1.5; }
+.zs .zm-actions .zm-btn { min-width: 5.5em; }
+.zs-b .zs-card { background: rgba(255, 253, 248, 0.75); border: 1.5px solid var(--zm-ink); border-radius: 14px; padding: 4px 12px; margin-top: 8px; }
+.zs-b .zs-cap { font-size: 13px; color: var(--zm-ink-mute); margin: 14px 2px 0; letter-spacing: 0.06em; }
+.zs-b .zs-line { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid rgba(29, 27, 24, 0.1); }
+.zs-b .zs-line:first-child { border-top: 0; }
+.zs-b .zs-line > span { flex: none; width: 4.6em; font-size: 14px; }
+.zs-b .zs-line .zs-seg { flex: 1; border-width: 1px; border-radius: 10px; }
+.zs-b .zs-line .zs-seg button { padding: 6px 2px; font-size: 13.5px; }
+.zs-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid rgba(29, 27, 24, 0.1); }
+.zs-row:first-child { border-top: 0; }
+.zs-ic { flex: none; width: 30px; height: 30px; border-radius: 8px; background: var(--zm-paper); border: 1px solid rgba(29, 27, 24, 0.16); display: grid; place-items: center; }
+.zs-ic svg { width: 20px; height: 20px; }
+.zs-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.zs-txt b { font-size: 14.5px; }
+.zs-txt small { font-size: 11.5px; color: var(--zm-ink-mute); line-height: 1.45; }
+.zs-switch { flex: none; position: relative; width: 46px; height: 28px; border-radius: 999px; border: 0; background: rgba(29, 27, 24, 0.18); cursor: pointer; transition: background 0.2s; padding: 0; }
+.zs-switch i { position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.22s cubic-bezier(.3, .8, .4, 1.2); }
+.zs-switch[aria-checked="true"] { background: var(--zm-seal); }
+.zs-switch[aria-checked="true"] i { transform: translateX(18px); }
 .zm-rules h3 { font-size: 15px; margin: 14px 0 6px; }
 .zm-rules ul { margin: 0; padding-left: 1.1em; }
 .zm-rules li { font-size: 14px; line-height: 1.65; margin: 2px 0; }

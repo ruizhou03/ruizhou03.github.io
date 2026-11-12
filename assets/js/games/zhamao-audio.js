@@ -16,14 +16,15 @@
   const savePrefs = () => { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch (_) { /* */ } };
 
   let ctx = null, bus = null;
+  const MUSIC_LEVEL = 0.32;  // 音乐总线（编曲内部的混音在 zhamao-music.js；和试听页的听感对齐，再比音效低一点）
   function ensure() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return ctx; }
     try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { return null; }
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -10; comp.knee.value = 6; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.2;
-    comp.connect(ctx.destination);
-    const make = (v) => { const g = ctx.createGain(); g.gain.value = v; g.connect(comp); return g; };
-    bus = { sfx: make(0.7), music: make(0.16) };
+    // 音效、音乐各走各的压缩器：以前共用一个，底鼓 / 音效一响整首音乐跟着被压扁（用户 2026-11-12 嫌对局里音乐「闷」）
+    const compOf = (th, ratio) => { const c = ctx.createDynamicsCompressor(); c.threshold.value = th; c.knee.value = 6; c.ratio.value = ratio; c.attack.value = 0.004; c.release.value = 0.2; c.connect(ctx.destination); return c; };
+    const sfxComp = compOf(-10, 8), musicComp = compOf(-14, 6);
+    const make = (v, to) => { const g = ctx.createGain(); g.gain.value = v; g.connect(to); return g; };
+    bus = { sfx: make(0.7, sfxComp), music: make(MUSIC_LEVEL, musicComp) };
     return ctx;
   }
 
@@ -145,14 +146,16 @@
     const a = ensure();
     if (!a) return;
     try { SFX[name](a, a.currentTime + (delay || 0) / 1000 + 0.005, bus.sfx); } catch (_) { /* 某些浏览器不支持的节点就算了 */ }
-    duck(name === 'boom' || name === 'kaboom' ? 1400 : 350);
+    if (DUCK[name]) duck(DUCK[name]);
   }
+  // 只有大动静才把音乐压一下（压到七成）；以前每个音效都压到一半以下，点牌、飞牌、每秒的倒计时滴答一直在压，音乐听着发闷
+  const DUCK = { boom: 1400, kaboom: 1600, defuse: 700, nope: 500 };
   function duck(ms) {
     if (!ctx || !bus) return;
     const g = bus.music.gain, t = ctx.currentTime;
     g.cancelScheduledValues(t);
-    g.setTargetAtTime(0.07, t, 0.03);
-    g.setTargetAtTime(0.16, t + ms / 1000, 0.25);
+    g.setTargetAtTime(MUSIC_LEVEL * 0.7, t, 0.04);
+    g.setTargetAtTime(MUSIC_LEVEL, t + ms / 1000, 0.3);
   }
 
   /* ───── 音乐：交给 zhamao-music.js（四版编曲 + 什么时候换哪版）；这里只管开关和总线 ───── */
@@ -162,7 +165,7 @@
     if (!prefs.music || !wantMusic || !M()) return;
     const a = ensure();
     if (!a || a.state !== 'running') return;
-    if (!attached) { M().connect(a, bus.music, 0.35); attached = true; }
+    if (!attached) { M().connect(a, bus.music, 1); attached = true; }
     M().start();
   }
   function stopMusic() { if (M() && attached) M().stop(); }

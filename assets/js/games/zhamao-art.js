@@ -81,6 +81,8 @@
     return '<g transform="translate(' + f(x) + ' ' + f(y) + ') scale(' + f(s) + ')"><ellipse cx="0" cy="0" rx="8" ry="7" fill="' + c + '"/>' +
       '<ellipse cx="0" cy="1.5" rx="3.4" ry="2.8" fill="' + pad + '"/><circle cx="-3.6" cy="-3" r="1.5" fill="' + pad + '"/><circle cx="0" cy="-4.2" r="1.5" fill="' + pad + '"/><circle cx="3.6" cy="-3" r="1.5" fill="' + pad + '"/></g>';
   }
+  /* 爪印（2026-11-12 用户定稿甲）：三瓣掌垫 + 四颗分开、微微外撇的趾豆，单色；24×24 里画。牌背、猫牌角标、偷牌大爪、彩纸都用它 */
+  function pawPrint(c) { const F = c ? ' fill="' + c + '"' : ''; return '<path d="M12 12.4C14.9 12.4 17.4 14.3 18.3 16.9C18.9 18.7 17.9 20.6 16.1 20.9C14.9 21.1 13.9 20.5 12 20.5C10.1 20.5 9.1 21.1 7.9 20.9C6.1 20.6 5.1 18.7 5.7 16.9C6.6 14.3 9.1 12.4 12 12.4Z"' + F + '/>' + '<ellipse cx="4.7" cy="10.6" rx="2.05" ry="2.65" transform="rotate(-28 4.7 10.6)"' + F + '/><ellipse cx="8.9" cy="6.4" rx="2.2" ry="2.85" transform="rotate(-9 8.9 6.4)"' + F + '/><ellipse cx="15.1" cy="6.4" rx="2.2" ry="2.85" transform="rotate(9 15.1 6.4)"' + F + '/><ellipse cx="19.3" cy="10.6" rx="2.05" ry="2.65" transform="rotate(28 19.3 10.6)"' + F + '/>'; }
   /* 猫身子（坐姿的一团），在头下面 */
   const body = (cx, y, w, h, c) => '<ellipse cx="' + f(cx) + '" cy="' + f(y) + '" rx="' + f(w) + '" ry="' + f(h) + '" fill="' + c + '"/>';
   const ground = (c) => '<ellipse cx="50" cy="92" rx="34" ry="5" fill="' + (c || 'rgba(29,27,24,.08)') + '"/>';
@@ -267,10 +269,8 @@
   for (const k of Object.keys(BREED)) {
     const b = BREED[k];
     ICON[k] = ((bb, kk) => () => {
-      const pad = kk === 'cow' || kk === 'siamese' ? '#f4b6c0' : '#f4b6c0';
       const c = kk === 'calico' ? '#e58e46' : kk === 'cow' ? '#2a2622' : kk === 'siamese' ? '#5a3e30' : bb.fur;
-      return '<ellipse cx="12" cy="14.5" rx="6" ry="5" fill="' + c + '"/><ellipse cx="12" cy="15.5" rx="2.6" ry="2.1" fill="' + pad + '"/>' +
-        '<circle cx="5.6" cy="9" r="2.4" fill="' + c + '"/><circle cx="9.6" cy="5.6" r="2.4" fill="' + c + '"/><circle cx="14.4" cy="5.6" r="2.4" fill="' + c + '"/><circle cx="18.4" cy="9" r="2.4" fill="' + c + '"/>';
+      return pawPrint(c);
     })(b, k);
   }
   const icache = {};
@@ -279,10 +279,10 @@
     return icache[kind];
   }
 
-  /* 牌背：藏蓝底 + 金色内框 + 中间一个小猫爪 */
+  /* 牌背：藏蓝底 + 金色内框 + 中间一个金色爪印 */
   const BACK = '<svg viewBox="0 0 100 140" aria-hidden="true"><rect width="100" height="140" rx="10" fill="' + NAVY + '"/>' +
     '<rect x="8" y="8" width="84" height="124" rx="6" fill="none" stroke="' + GOLD + '" stroke-width="2.6"/>' +
-    paw(50, 70, 2.2, GOLD, NAVY) + '</svg>';
+    '<g transform="translate(50 70) scale(2.3) translate(-12 -14)">' + pawPrint(GOLD) + '</g></svg>';
 
   /* 封面：一只炸毛猫 + 一只橘猫举着逗猫棒。各自包一层 <g class>，CSS 让它们待机时动（炸毛猫一鼓一鼓、偶尔一抖，
    * 橘猫上下晃） */
@@ -337,5 +337,5 @@
     cross: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M20 20 80 80M80 20 20 80" stroke="' + RED + '" stroke-width="14" stroke-linecap="round"/></svg>',
   };
 
-  return { TONE, face, icon, BACK, hero, wand, heart, paw, catHead, PROPS };
+  return { TONE, face, icon, BACK, hero, wand, heart, paw, pawPrint, catHead, PROPS };
 });

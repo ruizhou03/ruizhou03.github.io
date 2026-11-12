@@ -21,7 +21,8 @@
 
   /* 粒子形状：24×24，填 currentColor */
   const SHAPES = {
-    paw: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="15" rx="5.6" ry="4.8"/><circle cx="5.8" cy="9.6" r="2.3"/><circle cx="9.6" cy="5.9" r="2.3"/><circle cx="14.4" cy="5.9" r="2.3"/><circle cx="18.2" cy="9.6" r="2.3"/></svg>',
+    // 爪印（和牌背、猫牌角标同一个形状，见 zhamao-art.js pawPrint）
+    paw: '<svg viewBox="0 0 24 24"><path d="M12 12.4C14.9 12.4 17.4 14.3 18.3 16.9C18.9 18.7 17.9 20.6 16.1 20.9C14.9 21.1 13.9 20.5 12 20.5C10.1 20.5 9.1 21.1 7.9 20.9C6.1 20.6 5.1 18.7 5.7 16.9C6.6 14.3 9.1 12.4 12 12.4Z"/><ellipse cx="4.7" cy="10.6" rx="2.05" ry="2.65" transform="rotate(-28 4.7 10.6)"/><ellipse cx="8.9" cy="6.4" rx="2.2" ry="2.85" transform="rotate(-9 8.9 6.4)"/><ellipse cx="15.1" cy="6.4" rx="2.2" ry="2.85" transform="rotate(9 15.1 6.4)"/><ellipse cx="19.3" cy="10.6" rx="2.05" ry="2.65" transform="rotate(28 19.3 10.6)"/></svg>',
     fur: '<svg viewBox="0 0 24 24"><path d="M12 1c1.6 5 4.6 9 4 14-.4 4-2.4 7-4 8-1.6-1-3.6-4-4-8-.6-5 2.4-9 4-14Z"/></svg>',
     spike: '<svg viewBox="0 0 24 24"><path d="M12 0 16 24H8Z"/></svg>',
     heart: '<svg viewBox="0 0 24 24"><path d="M12 21.5C5 16.6 1.5 12.9 1.5 8.4 1.5 5.1 4 2.6 7.1 2.6c2 0 3.7 1 4.9 2.8 1.2-1.8 2.9-2.8 4.9-2.8 3.1 0 5.6 2.5 5.6 5.8 0 4.5-3.5 8.2-10.5 13.1Z"/></svg>',

@@ -2325,7 +2325,6 @@
     const s = game.state;
     const size = s.deck.length;
     let pos = 0;
-    const label = (p) => (size === 0 ? '牌堆空了，直接放回去' : p === 0 ? '最上面（下一张就是它）' : p === size ? '最底下' : '从上往下第 ' + (p + 1) + ' 张');
     // 牌堆有几张就画几张（叠得紧一点），左边几张 = 真的在它上面几张
     const n = size;
     const slotOf = (p) => p;
@@ -2333,12 +2332,13 @@
     for (let i = 0; i < n; i++) fanHtml += backHtml();
     snd('ask');
     const limit = !game.tutorial && turnSec() > 0 && size ? turnSec() * 1000 : 0;
-    openDialog('<h2>把炸毛猫塞回牌堆</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
-      '<div class="zm-insert-row"><span class="end">顶</span><div class="zm-insert-fan" data-fan>' + fanHtml + cardHtml('boom', 'is-kit') + '</div><span class="end">底</span></div>' +
-      '<div class="zm-insert-label" data-lab>' + label(0) + '</div>' +
-      (size ? '<input class="zm-range" type="range" min="0" max="' + size + '" step="1" value="0" data-range aria-label="塞在第几张">' +
-      '<div class="zm-quick"><button type="button" class="zm-btn" data-q="0">最上面</button><button type="button" class="zm-btn" data-q="rand">随机</button><button type="button" class="zm-btn" data-q="end">最底下</button></div>' : '') +
-      '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>塞进去</button></div>', (d) => {
+    const badge = (p) => (p === 0 ? '顶' : p === size ? '底' : String(p + 1));
+    // 2026-11-12 用户定稿（甲）：直接在牌堆上按住左右拖炸毛猫（或点哪道缝塞哪），炸毛猫头上小红标写第几张；只留「随机」「塞进去」
+    const timerHtml = limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '';
+    const body = '<h2 class="zm-ins-h">塞回牌堆</h2>' + timerHtml +
+      '<div class="zm-insert-fan is-solo is-drag" data-fan>' + fanHtml + cardHtml('boom', 'is-kit') + '<span class="zm-ins-badge" data-badge>' + badge(0) + '</span></div>' +
+      '<div class="zm-actions is-tight">' + (size ? '<button type="button" class="zm-btn" data-q="rand">随机</button>' : '') + '<button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>塞进去</button></div>';
+    openDialog(body, (d) => {
       const range = d.querySelector('[data-range]');
       const fan = d.querySelector('[data-fan]');
       const kit = fan.querySelector('.is-kit');
@@ -2353,16 +2353,32 @@
         backs.forEach((c, i) => { c.style.transform = 'translateX(' + (x0 + i * step + (i >= k ? gap : 0)).toFixed(1) + 'px)'; });
         const kx = k === 0 ? x0 + 6 : x0 + (k - 1) * step + cw + 6;
         kit.style.transform = 'translateX(' + kx.toFixed(1) + 'px) translateY(-10px)';
+        const bd = fan.querySelector('[data-badge]');
+        if (bd) { bd.textContent = badge(pos); bd.style.transform = 'translateX(' + (kx + kw / 2).toFixed(1) + 'px)'; }
+        geo = { x0, step, cw, n };
       };
+      let geo = null;
       const set = (p) => {
         const prev = slotOf(pos);
         pos = Math.max(0, Math.min(size, p));
         if (range) range.value = pos;
-        d.querySelector('[data-lab]').textContent = label(pos);
         if (slotOf(pos) !== prev) { fan.classList.add('is-anim'); layout(); snd('tick'); }
       };
       requestAnimationFrame(layout);
       if (range) range.addEventListener('input', () => set(+range.value));
+      // 甲：在扇面上按住左右拖（或点一下）＝把炸毛猫挪到手指底下那道缝
+      if (fan.classList.contains('is-drag')) {
+        const slotAt = (cx) => {
+          if (!geo || !n) return 0;
+          const x = cx - fan.getBoundingClientRect().left - geo.x0 - geo.cw / 2;
+          return Math.round(Math.max(0, Math.min(n, x / Math.max(1, geo.step) + 0.5)));
+        };
+        let dragging = false;
+        fan.addEventListener('pointerdown', (e) => { dragging = true; fan.setPointerCapture(e.pointerId); set(slotAt(e.clientX)); });
+        fan.addEventListener('pointermove', (e) => { if (dragging) set(slotAt(e.clientX)); });
+        const up = () => { dragging = false; };
+        fan.addEventListener('pointerup', up); fan.addEventListener('pointercancel', up);
+      }
       // 定下来：三个快捷键点了就直接塞（不用再点「塞进去」）；拖滑块的要点「塞进去」；倒计时到了 = 随机塞
       let done = false, timer = 0, tick = 0;
       const okBtn = d.querySelector('[data-ok]');
@@ -2496,41 +2512,64 @@
     });
   }
 
+  /* 设置（2026-11-12 用户定稿「卡片 + 开关」，参考拱猪）：上面一张卡放人数 / 机器猫 / 限时，下面「玩法」卡每条一个牌面小图标 + 开关。
+   * 和拱猪一样点了立刻生效、存下来，不再有「取消 / 保存」；规则从下一局起生效，局中改了规则「重开一局」变红 */
   function showSettings(fromCover) {
-    const draft = { players: settings.players, tier: settings.tier, turnSec: turnSec(), rules: Object.assign({}, settings.rules) };
-    const seg = (key, opts, val) => '<div class="zm-seg" data-seg="' + key + '">' + opts.map(([v, t]) => '<button type="button" data-v="' + v + '" class="' + (String(v) === String(val) ? 'is-on' : '') + '">' + t + '</button>').join('') + '</div>';
-    openDialog('<h2>设置</h2><div class="zm-set">' +
-      '<div class="zm-set-row"><span>几个人玩（含你）</span>' + seg('players', [[2, '2 人'], [3, '3 人'], [4, '4 人'], [5, '5 人']], draft.players) + '</div>' +
-      '<div class="zm-set-row"><span>机器猫水平</span>' + seg('tier', AI.TIERS.map((t) => [t, AI.TIER_NAMES[t]]), draft.tier) + '</div>' +
-      '<div class="zm-set-row"><span>出牌限时</span>' + seg('turnSec', [[20, '20 秒'], [0, '不限时']], draft.turnSec) + '</div>' +
-      '<div class="zm-set-row"><span>甩锅叠加（被甩锅的人再甩锅，剩下的回合 +2 一起甩走）</span>' + seg('stackAttack', [[true, '叠加'], [false, '不叠加']], draft.rules.stackAttack) + '</div>' +
-      '<div class="zm-set-row"><span>交换牌（和一个人整手交换，逗猫棒不换；2 人 1 张、3 人 2 张、4–5 人 3 张）</span>' + seg('swap', [[false, '没有'], [true, '有']], draft.rules.swap) + '</div>' +
-      '<div class="zm-set-row"><span>多出来的逗猫棒</span>' + seg('extraDefuse', [['two', '最多放回 2 张'], ['all', '全部放回']], draft.rules.extraDefuse) + '</div>' +
-      '</div><p class="zm-muted" style="margin-top:12px">改了从下一局开始生效</p>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>取消</button>' +
-      (fromCover ? '' : '<button type="button" class="zm-btn" data-savenew>保存并重开</button>') +
-      '<button type="button" class="zm-btn zm-btn-primary" data-save data-focus>保存</button></div>', (d) => {
+    const segs = (key, opts, val) => '<div class="zs-seg" data-seg="' + key + '" role="group">' + opts.map(([v, t]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(val)) + '">' + t + '</button>').join('') + '</div>';
+    const sw = (key, on) => '<button type="button" class="zs-switch" data-sw="' + key + '" role="switch" aria-checked="' + !!on + '"><i></i></button>';
+    const players = segs('players', [[2, '2 人'], [3, '3 人'], [4, '4 人'], [5, '5 人']], settings.players);
+    const tier = segs('tier', AI.TIERS.map((t) => [t, AI.TIER_NAMES[t]]), settings.tier);
+    const secs = segs('turnSec', [[20, '20 秒'], [0, '不限时']], turnSec());
+    const rulesBefore = JSON.stringify(settings.rules);
+    const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b><small>' + note + '</small></div>' + ctl + '</div>';
+    let html = '<h2>设置</h2>' +
+      '<section class="zs-card"><div class="zs-line"><span>几个人玩</span>' + players + '</div>' +
+      '<div class="zs-line"><span>机器猫</span>' + tier + '</div>' +
+      '<div class="zs-line"><span>出牌限时</span>' + secs + '</div></section>' +
+      '<div class="zs-cap">玩法</div><section class="zs-card">' +
+      row('attack', '甩锅叠加', '被甩锅的人再甩锅，剩下的回合 +2 一起甩走', sw('stackAttack', settings.rules.stackAttack)) +
+      row('swap', '交换牌', '和一个人整手交换（逗猫棒不换）', sw('swap', settings.rules.swap)) +
+      row('defuse', '多的逗猫棒全放回', '关着 = 最多放回 2 张', sw('extraDefuse', settings.rules.extraDefuse === 'all')) +
+      '</section>';
+    html += '<p class="zs-note" data-rule-note hidden>规则从下一局起生效</p><div class="zm-actions">' +
+      (fromCover || !game || game.tutorial ? '' : '<button type="button" class="zm-btn" data-restart>重开一局</button>') +
+      '<button type="button" class="zm-btn zm-btn-primary" data-close data-focus>好</button></div>';
+    openDialog(html, (d) => {
+      d.classList.add('zs', 'zs-b');
+      const persist = () => { settings.rules = R.normalizeRules(settings.rules); saveSettings(); coverPick = settings.players; refreshCover(); syncNote(); };
+      const syncNote = () => {
+        const differs = !fromCover && game && !game.tutorial && JSON.stringify(settings.rules) !== rulesBefore;
+        d.querySelector('[data-rule-note]').hidden = !differs;
+        const rb = d.querySelector('[data-restart]');
+        if (rb) rb.classList.toggle('zm-btn-primary', !!differs);
+      };
       d.querySelectorAll('[data-seg]').forEach((g) => g.addEventListener('click', (ev) => {
         const b = ev.target.closest('button[data-v]');
         if (!b) return;
-        g.querySelectorAll('button').forEach((x) => x.classList.toggle('is-on', x === b));
-        fx.pop(b, { scale: 1.08, dur: 220 });
+        g.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        fx.pop(b, { scale: 1.06, dur: 200 });
         const key = g.dataset.seg, v = b.dataset.v;
-        if (key === 'players') draft.players = +v;
-        else if (key === 'tier') draft.tier = v;
-        else if (key === 'turnSec') draft.turnSec = +v;
-        else if (key === 'stackAttack') draft.rules.stackAttack = v === 'true';
-        else if (key === 'swap') draft.rules.swap = v === 'true';
-        else draft.rules[key] = v;
+        if (key === 'players') settings.players = +v;
+        else if (key === 'tier') settings.tier = v;
+        else if (key === 'turnSec') settings.turnSec = +v;
+        else if (key === 'stackAttack' || key === 'swap') settings.rules[key] = v === 'true';
+        else settings.rules[key] = v;
+        persist();
       }));
-      const commit = () => { const changed = draft.players !== settings.players; Object.assign(settings, draft); settings.rules = R.normalizeRules(draft.rules); saveSettings(); if (changed) coverPick = settings.players; refreshCover(); };
-      d.querySelector('[data-cancel]').addEventListener('click', closeDialog);
-      d.querySelector('[data-save]').addEventListener('click', () => { commit(); closeDialog(); });
-      const sn = d.querySelector('[data-savenew]');
-      if (sn) sn.addEventListener('click', () => { commit(); closeDialog(); newGame(); });
+      d.querySelectorAll('[data-sw]').forEach((b) => b.addEventListener('click', () => {
+        const on = b.getAttribute('aria-checked') !== 'true';
+        b.setAttribute('aria-checked', String(on));
+        const k = b.dataset.sw;
+        settings.rules[k] = k === 'extraDefuse' ? (on ? 'all' : 'two') : on;
+        snd('tap');
+        persist();
+      }));
+      d.querySelector('[data-close]').addEventListener('click', closeDialog);
+      const rb = d.querySelector('[data-restart]');
+      if (rb) rb.addEventListener('click', () => { closeDialog(); newGame(); });
+      syncNote();
     });
   }
-
   /* ───── 右上角菜单（照拱猪）─────
    * 每条 = 左边一个线条小图标 + 一行字；按场合换内容：对局里 / 教程里。
    * 「返回百宝奇巧」只给从本站点进来的人（记在这个标签页里，刷新也还在）；单独打开的（分享链接、装到桌面）不占这一条 */
