@@ -944,3 +944,50 @@ body.gz-fullscreen, .gz-app * { -webkit-user-select: none; user-select: none; -w
   border: 1px solid rgba(29, 27, 24, 0.25); border-radius: 12px; box-shadow: 0 6px 18px rgba(20, 18, 15, 0.12); }
 .gz-tip[hidden] { display: none; }
 .gz-tip .gz-btn { min-width: 0; height: 32px; padding: 0 12px; font-size: 14px; letter-spacing: 0.04em; }
+
+/* ───── 牌桌互动：扔道具 / 说一句（gongzhu-social.js）─────
+ * 特效层整页固定、不接点击；压在弹窗遮罩下面（结算页、规则页盖住它），在牌桌上面 */
+.gz-social { position: fixed; inset: 0; z-index: calc(var(--z-dialog) - 3); pointer-events: none; overflow: hidden; }
+.gz-social > * { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+.gz-sp-flyer svg { width: 100%; height: 100%; display: block; }
+.gz-sp-dot { border-radius: 50%; }
+.gz-sp-dot svg { display: block; }
+.gz-sp-bubble {
+  max-width: min(190px, 60vw); padding: 7px 11px; border-radius: 13px;
+  background: #fffdf8; color: var(--gz-ink); font-size: 14px; line-height: 1.4; word-break: break-word;
+  box-shadow: 0 4px 14px rgba(60, 40, 20, 0.16), 0 0 0 1px rgba(60, 40, 20, 0.06);
+}
+.gz-sp-bubble::after { content: ''; position: absolute; width: 12px; height: 12px; background: #fffdf8; transform: rotate(45deg); }
+.gz-sp-bubble.is-dn::after { left: var(--tail, calc(50% - 6px)); bottom: -5px; }
+.gz-sp-bubble.is-up::after { left: var(--tail, calc(50% - 6px)); top: -5px; }
+.gz-sp-bubble.is-lf::after { left: -5px; top: calc(50% - 6px); }
+.gz-sp-bubble.is-rt::after { right: -5px; top: calc(50% - 6px); }
+.gz-social-pop {
+  pointer-events: auto; padding: 8px; border-radius: 12px;
+  background: var(--gz-paper); border: 1px solid var(--gz-ink); box-shadow: 0 8px 22px rgba(20, 18, 15, 0.18);
+  animation: gz-sp-in 0.16s ease-out;
+}
+@keyframes gz-sp-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+.gz-sp-title { font-size: 12.5px; color: var(--gz-ink-mute); padding: 0 6px 6px; }
+.gz-sp-props { display: grid; grid-template-columns: repeat(3, 58px); gap: 2px; }
+.gz-sp-props button, .gz-sp-lines button, .gz-sp-foot button, .gz-sp-custom button {
+  border: 0; background: none; font: inherit; color: inherit; cursor: pointer; padding: 0;
+}
+.gz-sp-props button { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 0 3px; border-radius: 9px; }
+.gz-sp-props button:hover, .gz-sp-props button:active, .gz-sp-lines button:hover, .gz-sp-lines button:active { background: var(--gz-wash); }
+.gz-sp-ic { width: 44px; height: 44px; display: block; }
+.gz-sp-ic svg { width: 100%; height: 100%; display: block; }
+.gz-sp-props .gz-sp-lb { font-size: 12px; color: var(--gz-ink-mute); }
+.gz-sp-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px; padding: 7px 6px 0; border-top: 1px solid var(--gz-wash); font-size: 12.5px; color: var(--gz-ink-mute); }
+.gz-sp-foot button { color: var(--gz-seal); font-size: 13px; }
+.gz-sp-chat { width: 240px; max-width: calc(100vw - 16px); }
+.gz-sp-lines { display: flex; flex-direction: column; gap: 1px; max-height: min(260px, 42vh); overflow-y: auto; }
+.gz-sp-lines button { text-align: left; padding: 7px 10px; border-radius: 8px; font-size: 14.5px; }
+.gz-sp-custom { display: flex; gap: 6px; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--gz-wash); }
+.gz-sp-custom input { flex: 1; min-width: 0; padding: 6px 9px; border: 1px solid var(--gz-ink-faint); border-radius: 8px; background: var(--gz-card); color: var(--gz-ink); font: inherit; font-size: 16px; }
+.gz-sp-custom input:focus { outline: 2px solid var(--gz-seal); outline-offset: 0; border-color: transparent; }
+.gz-sp-custom button { padding: 6px 12px; border-radius: 8px; background: var(--gz-ink); color: var(--gz-seal-ink); font-size: 14px; }
+.gz-sp-hide { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 6px 0; font-size: 12.5px; color: var(--gz-ink-mute); cursor: pointer; }
+.gz-sp-hide input { width: 16px; height: 16px; margin: 0; accent-color: var(--gz-seal); }
+/* 能扔道具的头像：鼠标移上去给个手形 */
+.gz-app.can-social .gz-seat:not(.gz-seat-me) .gz-avatar { cursor: pointer; }

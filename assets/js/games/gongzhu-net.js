@@ -81,6 +81,7 @@
     // mode：'play' 想坐下（坐不下服务器就让我先观战，回应里 fellBack 写原因）；'watch' 只观战
     join: (code, nick, mode) => request('POST', 'join', { body: { code, nick, deviceId: deviceId(), mode: mode || 'play' } }),
     act: (code, token, action, body) => request('POST', action, { code, token, body }),
-    state: (code, token, since, signal) => request('GET', 'state', { code, token, query: { since: String(since || 0) }, signal }),
+    // fx：牌桌互动（道具 / 说一句）的序号；带上它，有新互动时长轮询也会立刻回来（回应里 fx / fxSeq，房间没变时不带 state）
+    state: (code, token, since, signal, fx) => request('GET', 'state', { code, token, query: Object.assign({ since: String(since || 0) }, fx == null ? {} : { fx: String(fx) }), signal }),
   };
 })();

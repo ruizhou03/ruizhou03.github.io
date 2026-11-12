@@ -32,6 +32,9 @@ body_class: gz-fullscreen
         <button type="button" class="gz-tool" id="gzPauseBtn" aria-label="暂停" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 7v10M14.8 7v10"/></svg>
         </button>
+        <button type="button" class="gz-tool" id="gzChatBtn" aria-label="说一句" aria-haspopup="dialog" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5.5h13a2 2 0 0 1 2 2v7.6a2 2 0 0 1-2 2h-6.7L7.4 20v-2.9H5.5a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2z"/><circle cx="8.6" cy="11.3" r="1" class="dot"/><circle cx="12" cy="11.3" r="1" class="dot"/><circle cx="15.4" cy="11.3" r="1" class="dot"/></svg>
+        </button>
         <button type="button" class="gz-tool gz-sound" id="gzSoundBtn" aria-label="声音" aria-haspopup="true" aria-expanded="false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.2L12 5.8v12.4l-4.8-3.7H4z"/><path class="on" d="M15.4 9.2a4 4 0 0 1 0 5.6M17.9 6.7a7.5 7.5 0 0 1 0 10.6"/><path class="off" d="M15.5 9.5l5 5M20.5 9.5l-5 5"/></svg>
         </button>
@@ -132,4 +135,5 @@ body_class: gz-fullscreen
 <script src="/assets/js/games/gongzhu-ai.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/gongzhu-tutorial.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/gongzhu-audio.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/gongzhu-social.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/gongzhu.js?v={{ site.time | date: '%s' }}"></script>

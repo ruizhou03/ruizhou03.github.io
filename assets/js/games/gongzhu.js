@@ -49,6 +49,7 @@
 
   /* ───── 声音（见 gongzhu-audio.js）：没加载上就静悄悄地打 ───── */
   const snd = (name, delay, arg) => { if (window.GongzhuAudio) window.GongzhuAudio.sfx(name, delay, arg); };
+  let social = null;   // 牌桌互动（扔道具 / 说一句，见 gongzhu-social.js 和下面「牌桌互动」）
   // 轮到我：同一手只响一次（联机里一份快照会反复触发 onlineIdle）
   let turnDing = '';
   function dingMyTurn() {
@@ -556,6 +557,7 @@
   }
 
   function renderSeats() {
+    syncSocialUi();
     syncHeartsX2();
     for (let s = 0; s < 4; s++) renderSeat(s);
     if (match.online && match.lobby) return;
@@ -1439,7 +1441,7 @@
 
   function restartMatch() {
     if (!confirm('放弃这一盘，从 0 分重新开始？')) return;
-    stopClock(); closeDialog(); token++; busy = false; setAutopilot(false); newMatch(); startRound();
+    stopClock(); closeDialog(); token++; busy = false; setAutopilot(false); if (social) social.clear(); newMatch(); startRound();
   }
 
   /* ───── 右上角菜单 ─────
@@ -2051,7 +2053,8 @@
 
   // 本机调试：控制台里 __gzDebug.playFx({ kind: 'pig', sub: '下家 −100' }, 1) 单独放一段动画
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx, match: () => match, render: () => renderAll(), step: () => step(),
- solveSize: () => { solveSize(); if (match) renderHand(); }, showCoach: (m) => showCoach(m, () => hideCoach()) };
+ solveSize: () => { solveSize(); if (match) renderHand(); }, showCoach: (m) => showCoach(m, () => hideCoach()),
+ social: () => social };   // __gzDebug.social().play({ kind: 'prop', from: 3, to: 0, prop: 'pig' })
 
   function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
 
@@ -2086,6 +2089,7 @@
     const adv = kind === 'adv';
     const M = adv ? T.advanced : T;
     token++;
+    if (social) social.clear();
     stopClock();
     setAutopilot(false);
     hideExposeTip();
@@ -2335,10 +2339,71 @@
     toast.t = setTimeout(() => el.classList.remove('show'), 2600);
   }
 
+  /* ───── 牌桌互动：点别家头像扔道具、顶栏「说一句」（画和动画在 gongzhu-social.js）─────
+   * 单机：纯本机，机器人挨了打有时回一句、偶尔扔回来（模块里定）。
+   * 联机：我发的先在本机画，同时 POST emote；别人发的、服务器替机器人回的，跟着长轮询一起来（fx 序号），见 onFx。
+   * 观战的人只看不发（点头像仍是换视角）；教程、动画预览、大厅里不出。屏蔽只记在这一次打开的页面里。 */
+  const mutedIds = new Set();
+  function socialOk() {
+    if (!match || match.tutorial || match.demo || match.lobby) return false;
+    // 联机：服务器回过互动序号（fxSeq）才算支持——后端没更新时不露出聊天键，免得发了别人看不到
+    if (match.online) return !!(online && online.inGame && !online.watching && online.fxSeq != null);
+    return true;
+  }
+  function syncSocialUi() {
+    const ok = !!social && socialOk();
+    const btn = $('gzChatBtn');
+    if (btn) btn.hidden = !ok;
+    els.app.classList.toggle('can-social', ok);
+    if (!ok && social) social.close();
+  }
+  function socialPlayer(l) { return match && match.online && online && online.st ? playerAt(srv(l)) : null; }
+  function initSocial() {
+    if (!window.GongzhuSocial) return;
+    social = GongzhuSocial.create({
+      root: els.app,
+      avatar: (l) => (els.seats[l] ? els.seats[l].querySelector('.gz-avatar') : null),
+      name: (l) => NAMES[l],
+      canSend: socialOk,
+      send(ev) {
+        if (!match || !match.online || !online) return;
+        const body = ev.kind === 'prop' ? { to: srv(ev.to), prop: ev.prop } : { text: ev.text };
+        NET.act(online.code, online.token, 'emote', body).catch((e) => { if (e && e.status === 429) toast('慢一点，歇一下再发'); });
+      },
+      autoBots: () => !!(match && !match.online),
+      isBot: (l) => (match && match.online ? !!online && seatIsBot(l) : l > 0),
+      mutable: (l) => { const p = socialPlayer(l); return !!(p && !p.isAi); },
+      muted: (l) => { const p = socialPlayer(l); return !!(p && mutedIds.has(p.id)); },
+      setMuted(l, on) {
+        const p = socialPlayer(l);
+        if (!p) return;
+        if (on) mutedIds.add(p.id); else mutedIds.delete(p.id);
+        toast(on ? '已屏蔽' + p.nick + '的互动' : '不再屏蔽' + p.nick);
+      },
+      sfx: (name, delay) => snd(name, delay),
+      reduce: reduceMotion,
+    });
+  }
+  /* 长轮询带回来的互动：第一次只记下序号（不重放进房间前的）；我自己发的本机已经画过了 */
+  function onFx(my, res) {
+    const first = my.fxSeq == null;
+    if (!first && res.fxSeq <= my.fxSeq) return;
+    my.fxSeq = res.fxSeq;
+    if (first) syncSocialUi();
+    if (first || !social || !Array.isArray(res.fx) || !match || !match.online || match.lobby || !my.inGame) return;
+    for (const e of res.fx) {
+      if (!e || (!my.watching && e.from === my.mySeat)) continue;
+      const from = loc(e.from);
+      const ev = e.t === 'p' ? { kind: 'prop', from, to: loc(e.to), prop: e.prop } : { kind: 'chat', from, text: e.text };
+      social.play(ev, { echo: true, delay: e.delay || 0 });
+    }
+  }
+
   /* 进入联机：先停掉单机这一盘（存档还在，离开房间时接着打） */
   function startOnline(st, tok, joined) {
     if (match && !match.online && !match.tutorial) save();
     token++;
+    if (social) social.clear();
     stopClock(); hideCoach(); closeDialog(); hideCover();
     $('gzPauseBtn').hidden = true;
     setAutopilot(false);
@@ -2357,6 +2422,7 @@
     if (sendLeave) NET.act(my.code, my.token, 'leave', {}).catch(() => {});
     my.stopped = true;
     online = null;
+    if (social) social.clear();
     NET.writeSession(null);
     try { const u = new URL(location.href); u.searchParams.delete('room'); history.replaceState(null, '', u); } catch (_) { /* ignore */ }
     token++;
@@ -2464,10 +2530,11 @@
     let fails = 0;
     while (online === my && !my.stopped) {
       try {
-        const res = await NET.state(my.code, my.token, my.st ? my.st.version : 0);
+        const res = await NET.state(my.code, my.token, my.st ? my.st.version : 0, undefined, my.fxSeq == null ? -1 : my.fxSeq);
         fails = 0;
         if (online !== my) return;
-        onState(res.state);
+        if (res.fxSeq != null) onFx(my, res);
+        if (res.state) onState(res.state);
       } catch (e) {
         if (online !== my) return;
         if (e.status === 401 || e.status === 404) { leaveOnline('房间已经解散了'); return; }
@@ -2518,6 +2585,7 @@
     NAMES = [0, 1, 2, 3].map((l) => (l === 0 && !spec ? '我' : (playerAt(srv(l)) || { nick: '空位' }).nick));
     AVATARS = [0, 1, 2, 3].map((l) => avatarOf(l === 0 && !spec ? me : playerAt(srv(l))));
     renderWatchUi();
+    syncSocialUi();
     if (sat) toast(st.phase === 'lobby' ? '坐下了' : '坐下了，下一局一起打');
     if (st.phase === 'lobby') { renderLobby(); return; }
     if (countdown && !countdown.done) return;   // 房主还在数 3、2、1：数完再进（见 hostStart）
@@ -3293,11 +3361,14 @@
     coachAdvance();
   });
   // 点自己的头像：进入托管（机器人替我打）；托管中再点一下收回。教程、动画预览、大厅里不管
-  // 观战：点别家的头像换到他身后看
+  // 观战：点别家的头像换到他身后看；打牌的人点别家头像 = 弹出道具面板扔过去（见「牌桌互动」）
   [1, 2, 3].forEach((l) => els.seats[l].addEventListener('click', (e) => {
-    if (!e.target.closest('.gz-avatar') || !online || !online.watching || !online.inGame) return;
-    switchView(srv(l));
+    if (!e.target.closest('.gz-avatar')) return;
+    if (online && online.watching && online.inGame) { switchView(srv(l)); return; }
+    if (social && socialOk()) social.openProps(l);
   }));
+  initSocial();
+  $('gzChatBtn').addEventListener('click', () => { if (social && socialOk()) social.openChat($('gzChatBtn')); });
   els.seats[0].addEventListener('click', (e) => {
     if (!e.target.closest('.gz-avatar') || !match || match.tutorial || match.demo || match.lobby || AUTO) return;
     if (match.online) {

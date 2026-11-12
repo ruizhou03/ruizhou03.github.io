@@ -250,6 +250,44 @@
       tone(a, d, t + 0.32, { freq: midi(62), to: midi(55), dur: 0.6, gain: 0.1, type: 'triangle', glide: 0.5 });
     },
     even(a, t, d) { pluck(a, d, t, midi(72), 0.09, 0.8); pluck(a, d, t + 0.12, midi(72), 0.07, 0.8); },
+
+    /* 牌桌互动（gongzhu-social.js）：道具落地那一刻起算，时间点和动画对齐 */
+    // 扔出去：一阵风
+    whoosh(a, t, d) { nz(a, d, t, { dur: 0.42, gain: 0.07, freq: 500, to: 2200, q: 1.2, attack: 0.12 }); },
+    // 气泡冒出来：轻轻「啵」
+    bubble(a, t, d) { tone(a, d, t, { freq: 520, to: 1040, dur: 0.09, gain: 0.07, glide: 0.06 }); },
+    // 献花：一串叮叮的亮音
+    pflower(a, t, d) { [84, 88, 91, 96].forEach((m, i) => pluck(a, d, t + i * 0.07, midi(m), 0.06, 0.9)); },
+    // 咖啡：倒下来的咕嘟声 + 几个小气泡
+    pcoffee(a, t, d) {
+      nz(a, d, t + 0.42, { dur: 0.55, gain: 0.12, type: 'lowpass', freq: 900, to: 380, q: 2.5, attack: 0.05 });
+      for (let i = 0; i < 4; i++) tone(a, d, t + 0.5 + i * 0.09 + Math.random() * 0.04, { freq: 300 + Math.random() * 250, to: 600 + Math.random() * 300, dur: 0.06, gain: 0.05 });
+    },
+    // 泼水：哗一下 + 水珠
+    pwater(a, t, d) {
+      nz(a, d, t + 0.55, { dur: 0.55, gain: 0.32, type: 'lowpass', freq: 3200, to: 500, q: 0.6 });
+      nz(a, d, t + 0.57, { dur: 0.25, gain: 0.1, type: 'highpass', freq: 3000, q: 0.8 });
+      for (let i = 0; i < 5; i++) tone(a, d, t + 0.75 + i * 0.12 + Math.random() * 0.05, { freq: 900 + Math.random() * 700, to: 1600 + Math.random() * 600, dur: 0.05, gain: 0.04 });
+    },
+    // 公鸡打鸣：喔—喔—喔——（锯齿过低通，三段滑音带颤）
+    prooster(a, t, d) {
+      const seg = [[0.08, 520, 820, 0.14], [0.26, 820, 860, 0.3], [0.6, 860, 470, 0.32]];
+      seg.forEach(([dt, f0, f1, dur]) => tone(a, d, t + dt, { freq: f0, to: f1, dur, gain: 0.06, type: 'sawtooth', lp: 1800, vib: [7, 14], attack: 0.02 }));
+    },
+    // 鼓掌：三下「啪」（对上动画里的三次合掌）
+    pclap(a, t, d) {
+      [0.247, 0.533, 0.819].forEach((dt) => {
+        nz(a, d, t + dt, { dur: 0.07, gain: 0.32, freq: 1400, q: 0.7 });
+        nz(a, d, t + dt + 0.008, { dur: 0.05, gain: 0.12, freq: 2600, q: 1 });
+      });
+    },
+    // 送猪：哼哼两声（落地一声、拱头像一声）
+    ppig(a, t, d) {
+      [0.12, 1.22].forEach((dt) => {
+        tone(a, d, t + dt, { freq: 170, to: 120, dur: 0.14, gain: 0.12, type: 'sawtooth', lp: 650, lpq: 4 });
+        tone(a, d, t + dt + 0.16, { freq: 160, to: 110, dur: 0.12, gain: 0.1, type: 'sawtooth', lp: 600, lpq: 4 });
+      });
+    },
   };
 
   /* 播一个音效：delay 毫秒后（用音频时钟排，比 setTimeout 准，跟动画对得上）。arg 透传给音效（时长、大小、花色） */
