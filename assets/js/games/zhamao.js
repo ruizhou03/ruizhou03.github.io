@@ -129,6 +129,7 @@
         profile = { nick: v || randomNick(), avatar: pick };
         writeJSON(PROFILE_KEY, profile);
         closeDialog();
+        refreshCover();
         applyProfile();
         save();
       });
@@ -392,11 +393,13 @@
     const r = c.getBoundingClientRect();
     const dx = landed ? (landed.left + landed.width / 2) - (r.left + r.width / 2) : 0, dy = landed ? (landed.top + landed.height / 2) - (r.top + r.height / 2) : 0;
     if (Math.abs(dx) > 1.5 || Math.abs(dy) > 1.5) {
-      c.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)' }, { transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.3,.8,.4,1)', composite: 'add' });
+      c.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)' }, { transform: 'none' }], { duration: 280, easing: 'cubic-bezier(.25,.8,.35,1)', composite: 'add' });
     } else {
       c.animate([{ transform: 'translateY(-8px) scale(1.06)' }, { transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.3,.8,.4,1.3)', composite: 'add' });
     }
   }
+  // 飞进手里的牌先落到牌槽正上方（整张都在手牌那一排上面），再从上面滑进牌槽——滑的时候已经在手牌那一层里，左右邻牌的前后关系自然
+  const aboveSlot = (r) => ({ left: r.left, top: r.top - r.height * 1.05, width: r.width, height: r.height, right: r.right, bottom: r.bottom - r.height * 1.05 });
   function dropFromHand(ids) { if (!ov) return; ov.hand = ov.hand.filter((x) => ids.indexOf(x) < 0); selected = selected.filter((x) => ids.indexOf(x) < 0); }
 
   /* ───── 按钮带 ───── */
@@ -1137,7 +1140,7 @@
     if (e.from === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.from] -= 1; renderSeat(e.from); }
     const u = U();
     let to = avPoint(e.to);
-    if (e.to === 0) to = reserveHandSlot(e.card);
+    if (e.to === 0) to = aboveSlot(reserveHandSlot(e.card));
     snd(kind === 'give' ? 'give' : 'steal');
     if (kind === 'give' && !fx.reduce()) {
       const a = e.from === 0 ? fx.center(src) : src, b = e.to === 0 ? fx.center(to) : to;
@@ -1406,7 +1409,7 @@
     if (!from) return;
     const u = U(), pu = PU();
     if (e.seat === 0 && e.card != null) {
-      const to = reserveHandSlot(e.card);
+      const to = aboveSlot(reserveHandSlot(e.card));
       await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: 'up', flipAt: 0.3, from, to, w: u, s0: pu * 1.04 / u, s1: 1, r0: -5, r1: 0, dur: ms(560), lift: 70, swell: 0.18 });
       if (t !== token) return;
       snd('flip');
@@ -1428,6 +1431,64 @@
 
   /* 炸毛猫！牌捏起来、悬着，然后不往手里飞，直冲桌子正中、越变越大，半路翻开——
    * 桌子一震、红光一闪、一圈黑毛炸开、金色火星、烟，炸毛猫在桌中央气得发抖，摸到它的人吓得一哆嗦 */
+  /* 头像变身：摸到炸毛猫的人，头像整个换成那只炸毛猫（发抖、红光一呼一吸、头顶冒火星），桌子中间的动画照常演；
+   * 用了逗猫棒：一根逗猫棒从头像背后探出来逗两下，炸毛猫消气、缩回去，头像变回原样；没逗猫棒就跟着出局一起炸掉 */
+  function bombAvatar(seat, on) {
+    const av = avEl(seat), box = seatEl(seat);
+    if (!av || !box) return;
+    let o = av.querySelector('.zm-av-bomb');
+    if (on) {
+      if (o) return;
+      o = document.createElement('span');
+      o.className = 'zm-av-bomb';
+      o.innerHTML = ART.face('boom');
+      av.appendChild(o);
+      box.classList.add('is-bomb');
+      if (!fx.reduce()) o.animate([{ transform: 'scale(.2) rotate(-30deg)', opacity: 0 }, { transform: 'scale(1.25) rotate(8deg)', opacity: 1, offset: 0.6 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'cubic-bezier(.3,.8,.4,1.3)' });
+      // 头顶一直冒火星
+      av._spark = setInterval(() => {
+        if (!o.isConnected) { clearInterval(av._spark); return; }
+        const r = av.getBoundingClientRect();
+        fx.burst(r.left + r.width * 0.5, r.top + 2, { n: 3, shapes: ['dot', 'star'], colors: ['#e9d46a', '#f28a2e', '#c8463a'], radius: 16, size: [3, 7], life: 420, gravity: -6, pattern: 'fountain' });
+      }, 220);
+    } else {
+      clearInterval(av._spark);
+      box.classList.remove('is-bomb');
+      if (o) o.remove();
+    }
+  }
+  async function calmAvatar(seat, t) {
+    const av = avEl(seat), box = seatEl(seat);
+    if (!av) return;
+    if (fx.reduce()) { bombAvatar(seat, false); return; }
+    const w = document.createElement('span');
+    w.className = 'zm-av-wand';
+    w.innerHTML = ART.icon('defuse');
+    av.appendChild(w);
+    await w.animate([
+      { transform: 'translate(-30%, 30%) rotate(-40deg) scale(.4)', opacity: 0 },
+      { transform: 'translate(10%, -20%) rotate(10deg) scale(1)', opacity: 1, offset: 0.2 },
+      { transform: 'translate(25%, -28%) rotate(-25deg) scale(1)', offset: 0.4 },
+      { transform: 'translate(10%, -20%) rotate(15deg) scale(1)', offset: 0.6 },
+      { transform: 'translate(25%, -28%) rotate(-20deg) scale(1)', offset: 0.8 },
+      { transform: 'translate(10%, -20%) rotate(5deg) scale(1)', opacity: 1 },
+    ], { duration: ms(1000), easing: 'ease-in-out', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token) { w.remove(); return; }
+    clearInterval(av._spark);
+    const r = av.getBoundingClientRect();
+    ['heart', 'heart', 'heart'].forEach((sh, i) => fx.float(r.left + r.width * (0.2 + i * 0.3), r.top, sh, { dy: -34, dx: (i - 1) * 6, size: 12 + i * 2, color: PINKS[i % 3], delay: i * 90, dur: 800 }));
+    const o = av.querySelector('.zm-av-bomb');
+    if (o) await o.animate([{ transform: 'none', opacity: 1 }, { transform: 'scale(1.12)', opacity: 1, offset: 0.3 }, { transform: 'scale(.3) rotate(20deg)', opacity: 0 }], { duration: ms(380), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
+    bombAvatar(seat, false);
+    if (box && av) av.animate([{ transform: 'scale(.85)' }, { transform: 'scale(1.08)', offset: 0.6 }, { transform: 'none' }], { duration: 320, easing: 'ease-out' });
+    await w.animate([{ opacity: 1 }, { transform: 'translate(-30%, 30%) rotate(-40deg) scale(.4)', opacity: 0 }], { duration: ms(260), fill: 'forwards' }).finished.catch(() => {});
+    w.remove();
+  }
+  function clearBombAvatars() {
+    document.querySelectorAll('.zm-av').forEach((av) => { clearInterval(av._spark); });
+    document.querySelectorAll('.zm-av-bomb, .zm-av-wand').forEach((x) => x.remove());
+    document.querySelectorAll('.zm-seat.is-bomb').forEach((b) => b.classList.remove('is-bomb'));
+  }
   async function animBoom(e, t, next) {
     const from = await peel(t);
     if (!from) return;
@@ -1460,7 +1521,7 @@
     const av = avEl(e.seat);
     if (av && !fx.reduce()) av.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-12px) scale(1.12)', offset: 0.25 }, { transform: 'translateY(0) scale(1)' }], { duration: 460, easing: 'ease-out', composite: 'add' });
     fx.shake(seatEl(e.seat), { amp: 6, dur: 520, delay: 120 });
-    bubble(e.seat, '', { icon: 'boom', alarm: true, ms: 1600 });
+    bombAvatar(e.seat, true);
     await wait(ms(next && next.t === 'defuse' ? 900 : 1100));
   }
 
@@ -1476,6 +1537,7 @@
     const wand = await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: e.seat === 0 ? null : 'up', flipAt: 0.15, from: src, to: top, w: W, s0: e.seat === 0 ? u / W : 0.35, s1: 1, r0: 0, r1: 18, dur: ms(520), lift: 60, keep: true, land: false });
     if (t !== token) { if (wand) wand.remove(); return; }
     snd('defuse');
+    calmAvatar(e.seat, t);   // 和桌子中间的逗猫棒同时演
     const x = top.x - W / 2, y = top.y - W * 0.7;
     if (wand) {
       fx.animate(wand, [
@@ -1490,7 +1552,6 @@
     }
     fx.ring(c.x, c.y, { color: '#4f8a5f', size: u * 3, width: 5, dur: 800, delay: 200 });
     ['heart', 'note', 'heart', 'note', 'heart'].forEach((sh, i) => fx.float(c.x + (i - 2) * u * 0.35, c.y - u * 0.2, sh, { dy: -u * 1.1, dx: (i - 2) * 8, size: 16 + (i % 2) * 6, color: sh === 'heart' ? PINKS[i % 3] : '#4f8a5f', delay: ms(200 + i * 140), dur: ms(1100) }));
-    bubble(e.seat, '', { icon: 'defuse', ms: 1400 });
     await wait(ms(1100));
     if (t !== token) { if (wand) wand.remove(); return; }
     // 逗猫棒落进弃牌堆
@@ -1578,6 +1639,7 @@
     }
     if (t !== token) return;
     snd('kaboom');
+    bombAvatar(e.seat, false);
     fx.shake(els.table, { amp: 15, dur: 700, rot: 1 });
     fx.flash('rgba(200,70,58,.55)', 0, 1100);
     fx.ring(a.x, a.y, { color: '#c8463a', size: u * 5, width: 10, dur: 760 });
@@ -1797,6 +1859,7 @@
 
 
   function wipeFx() {
+    clearBombAvatars();
     if (game && game.wander) { game.wander.cancel(); game.wander = null; }
     if (game && game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
     if (game) game.alterRow = null;
@@ -1865,7 +1928,7 @@
       renderPiles();
       snd('deal');
       if (seat === 0) {
-        const to = reserveHandSlot(id);
+        const to = aboveSlot(reserveHandSlot(id));
         flights.push(fx.fly({ html: cardHtml(id), back: backHtml(), flip: 'up', flipAt: 0.35, from, to, w: u, s0: pu / u, s1: 1, r0: -10, r1: 0, dur: 420, lift: 60 }).then(() => { if (!skipped()) revealHandCard(id, to); }));
       } else {
         flights.push(fx.fly({ html: backHtml(), from, to: avPoint(seat), w: pu, s0: 1, s1: 0.4, r0: -10, r1: 20, dur: 380, lift: 40, fadeOut: true, land: false }).then(() => { if (!skipped()) { ov.counts[seat] += 1; renderSeat(seat); } }));
@@ -2631,6 +2694,8 @@
   let coverPick = null;
   function refreshCover() {
     const saved = loadSaved();
+    const me = $('zmCoverMe');
+    if (me) { me.querySelector('.av').innerHTML = AV && AV.byId[profile.avatar] ? AV.byId[profile.avatar].svg : ''; me.querySelector('b').textContent = profile.nick; }
     const resume = saved && (coverPick == null || coverPick === saved.state.n);
     const n = resume ? saved.state.n : (coverPick || settings.players);
     $('zmCoverSolo').textContent = resume ? '接着打上一局' : '新开一局 · 机器猫' + AI.TIER_NAMES[settings.tier];
@@ -2732,6 +2797,7 @@
       return;
     }
     if (k === 'tutorial') startTutorial();
+    else if (k === 'profile') showProfile();
     else if (k === 'settings') showSettings(true);
     else if (k === 'exit') location.href = '/toolbox/';
   });
