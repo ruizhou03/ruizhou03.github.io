@@ -289,6 +289,7 @@
       case 'pick': { const b = s.pick.by; R.pickDiscard(s, b, choosePick(R.view(s, b), tierOf(b), rng)); return; }
       case 'defuse': { const b = s.defuse.by; R.insertKitten(s, b, normalInsert(R.view(s, b), tierOf(b), rng)); return; }
       case 'alter': { const b = s.alter.by; R.alterTop(s, b, chooseAlter(R.view(s, b), tierOf(b), rng)); return; }
+      case 'steal': { const b = s.steal.by; R.stealPick(s, b, (rng() * s.steal.perm.length) | 0); return; }
     }
   }
   function placement(s, me) { // 1 = 赢，越早炸越接近 0
@@ -394,6 +395,7 @@
       case 'pick': return { type: 'pick', card: choosePick(v, tier, rng) };
       case 'defuse': return { type: 'insert', pos: insertFor(v, tier, rng) };
       case 'alter': return { type: 'alter', order: chooseAlter(v, tier, rng) };
+      case 'steal': return { type: 'steal', idx: (rng() * v.steal.count) | 0 };   // 扣着的牌没信息，随便点
       default: return null;
     }
   }

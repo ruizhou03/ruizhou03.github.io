@@ -59,7 +59,7 @@
           case 1: return d.type === 'nope';
           case 2: return d.type === 'play' && only(d.cards, 'future', 1);
           case 3: return d.type === 'play' && only(d.cards, 'skip', 1);
-          case 5: return d.type === 'play' && only(d.cards, 'orange', 2);
+          case 5: return (d.type === 'play' && only(d.cards, 'orange', 2)) || d.type === 'steal';
           case 6: return d.type === 'play' && only(d.cards, 'attack', 1);
           default: return false;
         }

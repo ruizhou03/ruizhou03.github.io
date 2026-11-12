@@ -205,12 +205,26 @@ test('favor / pair need a target with cards', () => {
   assert.equal(R.checkPlay(s, 0, [idOf(s, 0, 'favor')], { target: 0 }), null);
 });
 
-test('pair steals random, triple names', () => {
-  let s = rig([['cow', 'cow'], ['defuse']], ['orange', 'calico']);
+test('pair: thief picks one of the face-down cards, triple names', () => {
+  let s = rig([['cow', 'cow'], ['defuse', 'skip', 'nope']], ['orange', 'calico']);
   const cows = s.hands[0].slice();
-  R.play(s, 0, cows, { target: 1 }); closeAll(s);
-  assert.equal(R.countKind(s.hands[0], 'defuse'), 1);
-  assert.equal(s.hands[1].length, 0);
+  R.play(s, 0, cows, { target: 1 });
+  const ev0 = closeAll(s);
+  assert.equal(s.phase, 'steal');
+  assert.deepEqual(R.whoActs(s), [0]);
+  assert.deepEqual(ev0.find((e) => e.t === 'askSteal'), { t: 'askSteal', by: 0, from: 1, count: 3 });
+  assert.equal(R.view(s, 0).steal.count, 3);
+  assert.equal(R.view(s, 0).steal.perm, undefined); // 看不到扣着的是哪张
+  assert.throws(() => R.stealPick(s, 1, 0));
+  assert.throws(() => R.stealPick(s, 0, 3));
+  const want = s.steal.perm[2];
+  const sev = R.stealPick(s, 0, 2);
+  assert.equal(s.phase, 'act');
+  assert.equal(sev[0].card, want); assert.equal(sev[0].idx, 2);
+  assert.equal(R.redactEvents(sev, 2 % s.n === 0 ? 1 : 2)[0].card === undefined || s.n === 2, true);
+  assert.ok(s.hands[0].indexOf(want) >= 0);
+  assert.equal(s.hands[1].length, 2);
+  assert.equal(total(s), R.DECK_SIZE);
 
   s = rig([['cow', 'cow', 'cow'], ['defuse', 'skip']], ['orange', 'calico']);
   R.play(s, 0, s.hands[0].slice(), { target: 1, named: 'defuse' });
@@ -306,6 +320,7 @@ test('random full games conserve cards and end with one winner', () => {
           case 'pick': R.pickDiscard(s, s.pick.by, s.discard.find((x) => R.KIND_OF[x] !== R.BOOM)); break;
           case 'defuse': R.insertKitten(s, s.defuse.by, (rnd() * (s.deck.length + 1)) | 0); break;
           case 'alter': R.alterTop(s, s.alter.by, s.alter.cards.slice().reverse()); break;
+          case 'steal': R.stealPick(s, s.steal.by, (rnd() * s.steal.perm.length) | 0); break;
         }
         assert.equal(total(s), R.DECK_SIZE);
         assert.equal(R.kittensInDeck(s) + (s.defuse ? 1 : 0), R.aliveCount(s) - 1 + (s.phase === 'over' ? 0 : 0));

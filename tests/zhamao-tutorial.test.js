@@ -18,6 +18,7 @@ test('tutorial script plays through to my win', () => {
     () => ({ type: 'play', cards: [s.hands[0].find((id) => R.KIND_OF[id] === 'future')] }),
     () => ({ type: 'play', cards: [s.hands[0].find((id) => R.KIND_OF[id] === 'skip')] }),
     () => ({ type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'orange'), target: 1 }),
+    () => ({ type: 'steal', idx: 0 }),
     () => ({ type: 'play', cards: [s.hands[0].find((id) => R.KIND_OF[id] === 'attack')] }),
   ];
   let guard = 0;
@@ -44,8 +45,8 @@ test('tutorial script plays through to my win', () => {
       assert.ok(mv && mv !== 'nope', 'unexpected turn for me in phase ' + s.phase);
       assert.ok(ctl.allow(mv), 'move not allowed: ' + JSON.stringify(mv));
       // 别的操作都要被拦住
-      if (mv.type !== 'draw') assert.equal(ctl.allow({ type: 'draw' }), false);
-      if (mv.type === 'draw') after(R.draw(s, 0)); else after(R.play(s, 0, mv.cards, mv));
+      if (mv.type !== 'draw' && mv.type !== 'steal') assert.equal(ctl.allow({ type: 'draw' }), false);
+      if (mv.type === 'draw') after(R.draw(s, 0)); else if (mv.type === 'steal') after(R.stealPick(s, 0, mv.idx)); else after(R.play(s, 0, mv.cards, mv));
       continue;
     }
     const d = ctl.bot(s, seat);

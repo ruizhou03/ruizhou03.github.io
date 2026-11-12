@@ -12,6 +12,7 @@ function apply(s, seat, d) {
   if (d.type === 'pick') return R.pickDiscard(s, seat, d.card);
   if (d.type === 'insert') return R.insertKitten(s, seat, d.pos);
   if (d.type === 'alter') return R.alterTop(s, seat, d.order);
+  if (d.type === 'steal') return R.stealPick(s, seat, d.idx);
   throw new Error('bad decision ' + JSON.stringify(d));
 }
 

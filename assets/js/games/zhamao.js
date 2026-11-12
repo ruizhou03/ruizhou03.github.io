@@ -590,7 +590,7 @@
     if (on) {
       if (mode === 'target') cancelTarget();
       selected = []; mode = null;
-      if (!els.mask.hidden && (els.dialog.querySelector('[data-range]') || els.dialog.querySelector('.zm-grid') || els.dialog.querySelector('[data-alter]'))) closeDialog();
+      if (!els.mask.hidden && (els.dialog.querySelector('[data-range]') || els.dialog.querySelector('.zm-grid') || els.dialog.querySelector('[data-alter]') || els.dialog.querySelector('[data-steal]'))) closeDialog();
       // 正等着我（没在播动画）→ 马上交给机器猫
       if (!busy || game.state.phase === 'react') step();
       else renderBand();
@@ -599,9 +599,10 @@
   }
   // 托管时轮到我：照机器猫的判断走（不是死摸牌）
   function autoMove() {
-    schedule(pace().bot, () => {
+    if (game.state.phase === 'steal') { if (game.wander) game.wander.cancel(); game.wander = startWander(game.state.steal.from, game.state.steal.perm.length); }
+    schedule(pace().bot + (game.state.phase === 'steal' ? ms(700) : 0), () => {
       if (!game) return;
-      if (!autopilot) { step(); return; }   // 排着的这一步还没走就取消托管了：把操作还给我
+      if (!autopilot) { if (game.wander) { game.wander.cancel(); game.wander = null; } step(); return; }   // 排着的这一步还没走就取消托管了：把操作还给我
       autoAct = true;
       apply(0, AI.decide(game.state, 0, myTier()));
     });
@@ -640,6 +641,16 @@
       case 'pick':
         if (s.pick.by === 0) { busy = false; pickDialog(); }
         else schedule(pace().bot, () => apply(s.pick.by, decideBot(s.pick.by)));
+        break;
+      case 'steal':
+        if (s.steal.by === 0) { busy = false; stealPicker(); }
+        else {
+          // 机器猫在挑：红光先在被偷的人的牌上游走，想好了（apply）再落下去
+          const by = s.steal.by;
+          if (game.wander) game.wander.cancel();
+          game.wander = startWander(s.steal.from, s.steal.perm.length);
+          schedule(pace().bot + ms(700), () => apply(by, decideBot(by)));
+        }
         break;
       case 'alter':
         if (s.alter.by === 0) { busy = false; alterDialog(); }
@@ -696,6 +707,7 @@
       else if (d.type === 'pick') ev = R.pickDiscard(s, seat, d.card);
       else if (d.type === 'insert') ev = R.insertKitten(s, seat, d.pos);
       else if (d.type === 'alter') ev = R.alterTop(s, seat, d.order);
+      else if (d.type === 'steal') ev = R.stealPick(s, seat, d.idx);
       else throw new Error('bad move');
     } catch (err) {
       console.error(err, d);
@@ -1079,7 +1091,8 @@
     seatEl(e.from).querySelectorAll('.zm-bubble').forEach((b) => b.remove());
     if (game.arrow) { game.arrow.remove(); game.arrow = null; }
     const mine = e.card != null && (e.from === 0 || e.to === 0);
-    const src = e.from === 0 ? (game.src && game.src[e.card]) || handRectOf(e.card) : avPoint(e.from);
+    const src = e.from === 0 ? (game.src && game.src[e.card]) || handRectOf(e.card) : (kind === 'steal' && game.stealFrom) || avPoint(e.from);
+    game.stealFrom = null;
     if (e.from === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.from] -= 1; renderSeat(e.from); }
     const u = U();
     let to = avPoint(e.to);
@@ -1104,9 +1117,124 @@
     await wait(ms(220));
   }
 
+  /* ───── 抽牌：一道红光在被抽的人的牌之间游走 ─────
+   * 被抽的是我：在我自己的手牌上游走（我看得到被抽走的是哪张）；被抽的是别人：他头像下面摊开一小扇扣着的牌，在上面游走。
+   * settle(pick) 随时可以叫——机器猫想好了 / 联机里对方点了 / 超时系统替他点了：再随机跳几下、落到选中那张、亮一下；
+   * 选得早就早落（不白等）。这套机制联机直接复用：收到对方的选择就 settle。 */
+  function startWander(fromSeat, count) {
+    let fan = null, cur = -1, timer = 0, done = false;
+    if (fromSeat !== 0) {
+      const av = avEl(fromSeat), ar = av ? av.getBoundingClientRect() : { left: innerWidth / 2, top: 60, width: 40, height: 40 };
+      const w = PU() * 0.6;
+      fan = document.createElement('div');
+      fan.className = 'zm-steal-fan';
+      fan.style.left = (ar.left + ar.width / 2) + 'px';
+      fan.style.top = (ar.top + ar.height + 30) + 'px';
+      for (let i = 0; i < count; i++) {
+        const off = i - (count - 1) / 2;
+        const c = document.createElement('div');
+        c.className = 'zm-steal-card';
+        c.style.width = w + 'px';
+        c.style.left = (-w / 2 + off * w * Math.min(0.5, 2.6 / Math.max(1, count))) + 'px';
+        c.style.top = (Math.abs(off) * 2.5) + 'px';
+        c.style.rotate = (off * Math.min(8, 30 / Math.max(1, count))) + 'deg';
+        c.innerHTML = backHtml();
+        fan.appendChild(c);
+      }
+      els.fly.appendChild(fan);
+      if (!fx.reduce()) fan.animate([{ opacity: 0, transform: 'translateY(-14px) scale(.7)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.3,.8,.4,1)' });
+    }
+    const items = () => (fromSeat === 0 ? Array.from(els.hand.querySelectorAll('.zm-card')) : fan ? Array.from(fan.children) : []);
+    const mark = (i) => { items().forEach((x, j) => x.classList.toggle('is-wander', j === i)); cur = i; };
+    const hop = (sound) => {
+      const arr = items();
+      if (!arr.length) return;
+      let j = (Math.random() * arr.length) | 0;
+      if (arr.length > 1 && j === cur) j = (j + 1) % arr.length;
+      mark(j);
+      if (sound) snd('tick');
+    };
+    hop(false);
+    timer = setInterval(() => hop(false), 190);
+    return {
+      async settle(pick) {
+        if (done) return null;
+        clearInterval(timer);
+        for (const d of [220, 300, 420]) { if (done) return null; hop(true); await wait(ms(d)); }
+        if (done) return null;
+        const arr = items();
+        if (!arr.length) return null;
+        const i = Math.max(0, Math.min(arr.length - 1, pick(arr)));
+        arr.forEach((x) => x.classList.remove('is-wander'));
+        arr[i].classList.add('is-chosen');
+        snd('ding');
+        await wait(ms(420));
+        return arr[i];
+      },
+      cancel() {
+        done = true;
+        clearInterval(timer);
+        items().forEach((x) => x.classList.remove('is-wander', 'is-chosen'));
+        if (fan) fan.remove();
+      },
+    };
+  }
+  /* 我来抽：他的手牌扣着摊开（顺序打乱过），点一张；限时到了红光游走几下替我点一张 */
+  function stealPicker() {
+    const s = game.state, from = s.steal.from, k = s.steal.perm.length;
+    const limit = !game.tutorial && turnSec() > 0 ? turnSec() * 1000 : 0;
+    openDialog('<h2>抽 ' + esc(nameOf(from)) + ' 一张牌</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
+      '<div class="zm-steal-pick" data-steal data-stagger>' + Array.from({ length: k }, (_, i) => '<button type="button" data-i="' + i + '" aria-label="第 ' + (i + 1) + ' 张">' + backHtml() + '</button>').join('') + '</div>', (d) => {
+      d.classList.add('is-cards');
+      const btns = Array.from(d.querySelectorAll('[data-i]'));
+      let done = false, timer = 0, roam = 0;
+      const commit = async (i, auto) => {
+        if (done || !btns[0].isConnected) return;
+        done = true; clearTimeout(timer); clearInterval(roam);
+        if (auto) { timeouts += 1; autoAct = true; }
+        btns.forEach((b, j) => b.classList.toggle('is-chosen', j === i));
+        btns.forEach((b) => b.classList.remove('is-wander'));
+        snd('ding');
+        await wait(ms(320));
+        if (!btns[i].isConnected) return;
+        closeDialog();
+        apply(0, { type: 'steal', idx: i });
+        if (auto && timeouts >= 2) setAutopilot(true);
+      };
+      btns.forEach((b, i) => b.addEventListener('click', () => commit(i, false)));
+      if (limit) {
+        const my = token, bar = d.querySelector('.zm-dlg-timer');
+        bar.querySelector('i').animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: limit, easing: 'linear', fill: 'forwards' });
+        setTimeout(() => { if (my === token && !done && btns[0].isConnected) bar.classList.add('is-hurry'); }, Math.max(0, limit - HURRY_MS));
+        // 时间到：红光在几张之间跳几下，再替我点一张
+        timer = setTimeout(() => {
+          if (my !== token || done || !btns[0].isConnected) return;
+          let c = -1, n = 0;
+          roam = setInterval(() => {
+            if (done || !btns[0].isConnected) { clearInterval(roam); return; }
+            let j = (Math.random() * k) | 0; if (k > 1 && j === c) j = (j + 1) % k; c = j;
+            btns.forEach((b, x) => b.classList.toggle('is-wander', x === j));
+            snd('tick');
+            if (++n >= 5) { clearInterval(roam); commit(j, true); }
+          }, 200);
+        }, limit);
+      }
+    });
+  }
+
   /* 两张一样偷一张：一只大猫爪从他头像上扑过去、扒拉一下，抓着一张牌拖回来 */
   async function animSteal(e, t) {
     if (game.arrow) { game.arrow.remove(); game.arrow = null; }
+    let picked = null;
+    if (game.wander) {
+      const w = game.wander;
+      game.wander = null;
+      const el = await w.settle((arr) => (e.from === 0 ? Math.max(0, arr.findIndex((c) => +c.dataset.id === e.card)) : (e.idx != null ? e.idx : 0)));
+      if (t !== token) { w.cancel(); return; }
+      if (el) picked = el.getBoundingClientRect();
+      w.cancel();
+    }
+    game.stealFrom = picked;
     const a = avPoint(e.to), b = avPoint(e.from);
     const S = 58;
     const paw = document.createElement('div');
@@ -1597,6 +1725,7 @@
 
 
   function wipeFx() {
+    if (game && game.wander) { game.wander.cancel(); game.wander = null; }
     els.fly.innerHTML = '';
     els.fly.classList.remove('is-interactive');
     if (game) game.boomNode = null;
@@ -2541,6 +2670,8 @@
       futurebot: () => { give(bot, R.FUTURE); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.FUTURE)] }); },
       favor: () => { give(bot, R.FAVOR); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.FAVOR)], target: 0 }); },
       steal: () => { give(0, 'cow'); give(0, 'cow'); s.turn = 0; apply(0, { type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: bot }); },
+      stealme: () => { give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: 0 }); },
+      stealbot: () => { const o = 2 % s.n; give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: o === bot ? 0 : o }); },
       triple: () => { give(bot, 'tabby'); give(bot, 'tabby'); give(bot, 'tabby'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: 0, named: R.DEFUSE }); },
       nope: () => { give(0, R.NOPE); give(bot, R.ATTACK); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
       win: () => { for (let i = 1; i < s.n; i++) { s.alive[i] = false; s.outOrder.push(i); s.hands[i] = []; } s.phase = 'over'; s.winner = 0; release(); renderAll(); finish(); },

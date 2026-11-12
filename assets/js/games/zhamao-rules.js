@@ -33,6 +33,7 @@
  *   'react'  有人刚出了牌（state.pending），等大家决定要不要「不行」：nope() / pass()，全部表态后 closeReaction()
  *   'give'   被「蹭一张」的人挑一张给出：give()
  *   'pick'   五种猫各一张：出牌人从弃牌堆挑一张：pickDiscard()
+ *   'steal'  两张一样：出牌人从对方扣着的手牌里点一张（顺序打乱过，看不出是哪张）：stealPick()
  *   'alter'  「重排」：出牌人把牌堆最上面（至多）三张按自己想要的顺序放回去：alterTop()
  *   'defuse' 刚用逗猫棒拆了炸毛猫，把它塞回去：insertKitten()
  *   'over'   结束，state.winner
@@ -124,7 +125,7 @@
     const state = {
       n, rules, rs: (seed >>> 0) || 1,
       deck: [], discard: [], removed: [], hands: [], alive: [], outOrder: [],
-      turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null,
+      turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
       winner: -1, seq: 0, memo: newMemo(n),
     };
     const booms = [], defuses = [], rest = [];
@@ -155,6 +156,7 @@
       pending: s.pending && Object.assign({}, s.pending, { cards: s.pending.cards.slice(), nopes: s.pending.nopes.slice(), passed: s.pending.passed.slice() }),
       give: s.give && Object.assign({}, s.give), pick: s.pick && Object.assign({}, s.pick), defuse: s.defuse && Object.assign({}, s.defuse),
       alter: s.alter && { by: s.alter.by, cards: s.alter.cards.slice() },
+      steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
       winner: s.winner, seq: s.seq,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
@@ -341,11 +343,12 @@
         }
         break;
       case 'pair': {
+        // 不再随机抽：对方的手牌打乱顺序扣着摆出来，出牌人自己点一张（stealPick）
         const h = s.hands[p.target];
         if (h.length) {
-          const id = h[(rand(s) * h.length) | 0];
-          moveCard(s, p.target, me, id, [me, p.target]);
-          ev.push({ t: 'steal', from: p.target, to: me, card: id, priv: [me, p.target] });
+          s.phase = 'steal';
+          s.steal = { by: me, from: p.target, perm: shuffleIn(s, h.slice()) };
+          ev.push({ t: 'askSteal', by: me, from: p.target, count: h.length });
         }
         break;
       }
@@ -390,6 +393,18 @@
     s.pick = null;
     s.phase = 'act';
     return [{ t: 'pick', seat, card: id }];
+  }
+
+  /* 两张一样偷牌：点对方扣着的第 idx 张（perm 是开局就打乱好的顺序，idx 公开、是哪张只有两个人知道） */
+  function stealPick(s, seat, idx) {
+    if (s.phase !== 'steal' || s.steal.by !== seat) throw new Error('illegal steal');
+    const perm = s.steal.perm;
+    if (!(idx >= 0 && idx < perm.length) || (idx | 0) !== idx) throw new Error('illegal steal index');
+    const from = s.steal.from, id = perm[idx];
+    moveCard(s, from, seat, id, [seat, from]);
+    s.steal = null;
+    s.phase = 'act';
+    return [{ t: 'steal', from, to: seat, card: id, idx, priv: [seat, from] }];
   }
 
   /* 「重排」：按 order（就是 s.alter.cards 换个顺序）放回牌堆顶；别人之前知道的这几张的位置作废 */
@@ -478,6 +493,7 @@
       case 'pick': return [s.pick.by];
       case 'defuse': return [s.defuse.by];
       case 'alter': return [s.alter.by];
+      case 'steal': return [s.steal.by];
       default: return [];
     }
   }
@@ -503,6 +519,7 @@
       give: s.give, pick: s.pick,
       defuse: s.defuse && (s.defuse.by === seat ? { by: seat, card: s.defuse.card } : { by: s.defuse.by }),
       alter: s.alter && (s.alter.by === seat ? { by: seat, cards: s.alter.cards.slice() } : { by: s.alter.by }),
+      steal: s.steal && { by: s.steal.by, from: s.steal.from, count: s.steal.perm.length },
       removed: s.removed.slice(), // 收进盒子的牌种是公开的（多余的炸毛猫 / 逗猫棒）
     };
   }
@@ -524,6 +541,6 @@
     kindOf, isCat, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,
     classify, validTargets, checkPlay, play, awaitingReaction, canNope, nope, pass, reactionDone, isCancelled, closeReaction,
-    give, pickDiscard, alterTop, draw, insertKitten, whoActs, view, redactEvents,
+    give, pickDiscard, alterTop, stealPick, draw, insertKitten, whoActs, view, redactEvents,
   };
 });
