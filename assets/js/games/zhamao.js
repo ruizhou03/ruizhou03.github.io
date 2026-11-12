@@ -941,7 +941,7 @@
     bubble(e.seat, '哗啦——', { ms: 1200 });
     // 牌堆上半截（含顶上那张）被抄起来、绕着转一圈再落回去：转的时候那半截先藏起来，别留一张不动的牌在顶上
     const c = fx.center(deckTopRect());
-    const pu = PU(), n = 9, R0 = pu * 1.25;
+    const pu = PU(), n = Math.max(1, Math.min(9, D().deckSize)), R0 = pu * 1.25;   // 牌堆剩得少就少转几张
     const layers = Array.from(els.deck.querySelectorAll('.zm-deck-stack > *'));
     const lifted = layers.slice(Math.floor(layers.length * 0.45));
     lifted.forEach((l) => { l.style.visibility = 'hidden'; });
@@ -1021,7 +1021,7 @@
     // 别人在偷看
     const a = avPoint(e.seat), dc = fx.center(r);
     const dir = { x: a.x - dc.x, y: a.y - dc.y }, len = Math.hypot(dir.x, dir.y) || 1;
-    const k = e.count || 3;
+    const k = Math.max(0, Math.min(3, e.count || D().deckSize));   // 牌堆不到三张就只抬起剩下那几张
     const out = [];
     for (let i = 0; i < k; i++) {
       const fan = (i - (k - 1) / 2);

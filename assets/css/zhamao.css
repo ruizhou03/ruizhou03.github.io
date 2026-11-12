@@ -163,7 +163,6 @@ body.zm-fullscreen .site-footer { display: none !important; }
 }
 .zm-kit { display: inline-flex; align-items: center; gap: 2px; font: 700 13px/1 Georgia, serif; color: var(--zm-seal); }
 .zm-kit svg { width: 18px; height: 18px; }
-.zm-discard:empty { border: 1.5px dashed var(--zm-ink-faint); border-radius: calc(var(--pu) * 0.09); }
 .zm-discard .zm-card { position: absolute; left: 0; top: 0; width: var(--pu); }
 /* 牌堆 / 弃牌堆是真的一摞：每张牌一层奶油色纸边（JS 按张数码），右侧 / 底边一道淡墨线；最底下一层描墨边。
  * 顶上那张牌背跟着张数升降（过渡一下，摸走一张它就落一点） */
@@ -176,7 +175,8 @@ body.zm-fullscreen .site-footer { display: none !important; }
   background: radial-gradient(closest-side, rgba(29, 27, 24, 0.3), rgba(29, 27, 24, 0));
   opacity: calc(0.45 + 0.55 * var(--thick)); transform: scaleX(calc(0.92 + 0.14 * var(--thick))); transition: opacity 0.3s, transform 0.3s; }
 .zm-deck.is-empty .zm-deck-shadow { opacity: 0; }
-.zm-deck.is-empty .zm-deck-stack { border: 1.5px dashed var(--zm-ink-faint); border-radius: calc(var(--pu) * 0.09); }
+/* 牌堆摸空了：不留虚线框、不写 0（弃牌堆一开始也是空的，同样什么都不画） */
+.zm-deck.is-empty .zm-deck-info { visibility: hidden; }
 
 /* 舞台：刚出的牌放大摆在桌子正中，等大家决定要不要「不行」 */
 .zm-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 8; }
