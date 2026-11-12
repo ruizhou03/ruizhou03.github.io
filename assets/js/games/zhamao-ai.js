@@ -22,7 +22,7 @@
   const TIER_NAMES = Object.freeze({ easy: '入门', normal: '普通', hard: '高手' });
 
   /* 牌的「留着有多值钱」 */
-  const VALUE = { defuse: 100, nope: 30, attack: 26, skip: 20, future: 15, shuffle: 13, favor: 10 };
+  const VALUE = { defuse: 100, nope: 30, tattack: 28, attack: 26, skip: 20, future: 15, shuffle: 13, favor: 10 };
   function cardValue(hand, id) {
     const k = K[id];
     if (VALUE[k] != null) return VALUE[k];
@@ -60,6 +60,23 @@
     return best;
   }
   const pickRand = (arr, rng) => arr[(rng() * arr.length) | 0];
+  /* 指定甩锅甩给谁：手牌最少的（最可能没有逗猫棒 / 作废），知道他没逗猫棒的更优先 */
+  function victim(v) {
+    let best = -1, score = Infinity;
+    for (let t = 0; t < v.n; t++) {
+      if (t === v.me || !v.alive[t]) continue;
+      const knowsDef = v.handKnown[t].some((id) => K[id] === R.DEFUSE);
+      const sc = v.counts[t] + (knowsDef ? 50 : 0);
+      if (sc < score) { score = sc; best = t; }
+    }
+    return best;
+  }
+  // 甩锅（普通或指定）：有普通的先用普通，留着指定的
+  function attackMove(v) {
+    if (has(v, R.ATTACK)) return playMove([one(v, R.ATTACK)]);
+    if (has(v, R.TATTACK)) { const t = victim(v); if (t >= 0) return playMove([one(v, R.TATTACK)], t); }
+    return null;
+  }
 
   function playMove(cards, target, named) {
     const m = { type: 'play', cards };
@@ -91,6 +108,7 @@
     if (!singles.length) return DRAW;
     const id = pickRand(singles, rng);
     if (K[id] === R.FAVOR) { const ts = targets(v); return ts.length ? playMove([id], pickRand(ts, rng)) : DRAW; }
+    if (K[id] === R.TATTACK) { const t = victim(v); return t >= 0 ? playMove([id], t) : DRAW; }
     return playMove([id]);
   }
 
@@ -102,7 +120,8 @@
     const ts = targets(v);
 
     if (top.known && top.boom) {
-      if (has(v, R.ATTACK)) return playMove([one(v, R.ATTACK)]);
+      const am = attackMove(v);
+      if (am) return am;
       if (has(v, R.SKIP)) return playMove([one(v, R.SKIP)]);
       if (has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
       if (def) return DRAW;
@@ -121,9 +140,10 @@
     const lookAt = def ? 0.22 : 0.1;
     const dodgeAt = def ? 0.45 : 0.2;
     if (risk >= lookAt && has(v, R.FUTURE) && v.deckSize > 1) return playMove([one(v, R.FUTURE)]);
-    if (v.turnsLeft >= 2 && has(v, R.ATTACK) && risk >= 0.12) return playMove([one(v, R.ATTACK)]);
+    if (v.turnsLeft >= 2 && risk >= 0.12) { const am = attackMove(v); if (am) return am; }
     if (risk >= dodgeAt) {
-      if (has(v, R.ATTACK)) return playMove([one(v, R.ATTACK)]);
+      const am = attackMove(v);
+      if (am) return am;
       if (has(v, R.SKIP)) return playMove([one(v, R.SKIP)]);
     }
     // 成对的猫没别的用处，拿去偷一张
@@ -153,6 +173,7 @@
     const p = v.pending;
     if (!p) return false;
     if (p.type === R.ATTACK) return nextAliveV(v, p.by) === v.me;
+    if (p.type === R.TATTACK) return p.target === v.me;
     if (p.type === R.FAVOR || p.type === 'pair' || p.type === 'triple') return p.target === v.me;
     return false;
   }
@@ -167,7 +188,7 @@
     }
     if (!live && p.by === v.me && tier !== 'easy') {
       const top = topInfo(v);
-      if ((p.type === R.ATTACK || p.type === R.SKIP || p.type === R.SHUFFLE) && (top.boom || top.p >= 0.3)) return true;
+      if ((p.type === R.ATTACK || p.type === R.TATTACK || p.type === R.SKIP || p.type === R.SHUFFLE) && (top.boom || top.p >= 0.3)) return true;
       if ((p.type === 'pair' || p.type === 'triple' || p.type === R.FAVOR || p.type === 'five') && !has(v, R.DEFUSE)) return true;
     }
     return false;
@@ -275,6 +296,7 @@
       const id = one(v, k);
       if (id == null) continue;
       if (k === R.FAVOR) { for (const t of ts) out.push(playMove([id], t)); }
+      else if (k === R.TATTACK) { for (let t = 0; t < v.n; t++) if (t !== v.me && v.alive[t]) out.push(playMove([id], t)); }
       else if (k !== R.FUTURE) out.push(playMove([id])); // 偷看靠启发式（它的价值在信息，模拟里体现不出来）
     }
     for (const k of Object.keys(by)) {

@@ -8,7 +8,7 @@ const ofKind = (k) => R.KIND_OF.map((x, id) => (x === k ? id : -1)).filter((id) 
 const total = (s) => s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0)
   + (s.defuse ? 1 : 0);
 
-/* 造一个可控局面：hands 给每人指定牌种，deck 从上到下指定牌种，其余牌进弃牌堆（保证 56 张守恒） */
+/* 造一个可控局面：hands 给每人指定牌种，deck 从上到下指定牌种，其余牌进弃牌堆（保证整副牌守恒） */
 function rig(handKinds, deckKinds, turn) {
   const s = R.createGame(handKinds.length, 7);
   const pool = {};
@@ -26,7 +26,8 @@ const idOf = (s, seat, k) => s.hands[seat].find((id) => R.KIND_OF[id] === k);
 const closeAll = (s) => { for (const t of R.awaitingReaction(s)) R.pass(s, t); return R.closeReaction(s); };
 
 test('deck composition', () => {
-  assert.equal(R.DECK_SIZE, 56);
+  assert.equal(R.DECK_SIZE, 59);
+  assert.equal(ofKind(R.TATTACK).length, 3);
   assert.equal(ofKind(R.BOOM).length, 4);
   assert.equal(ofKind(R.DEFUSE).length, 6);
 });
@@ -35,7 +36,7 @@ test('setup for 2..5 players', () => {
   for (let n = 2; n <= 5; n++) {
     for (let seed = 1; seed <= 20; seed++) {
       const s = R.createGame(n, seed);
-      assert.equal(total(s), 56);
+      assert.equal(total(s), R.DECK_SIZE);
       assert.equal(R.kittensInDeck(s), n - 1);
       for (const h of s.hands) {
         assert.equal(h.length, 5);
@@ -100,7 +101,7 @@ test('kitten with defuse: insert anywhere, without: out', () => {
   assert.equal(s.alive[2], false);
   assert.equal(s.hands[2].length, 0);
   assert.equal(s.turn, 0);
-  assert.equal(total(s), 56);
+  assert.equal(total(s), R.DECK_SIZE);
 });
 
 test('last one standing wins', () => {
@@ -134,6 +135,22 @@ test('attack while attacked: original = 2, stacking = remaining + 2', () => {
   }
 });
 
+test('targeted attack: any alive player, stacks with remaining turns by default', () => {
+  const s = rig([['tattack', 'cow'], ['tattack'], [], ['cow']], ['orange', 'calico', 'cow', 'tabby']);
+  assert.equal(R.normalizeRules({}).stackAttack, true);
+  const c = R.classify([idOf(s, 0, 'tattack')]);
+  assert.equal(c.type, 'tattack'); assert.equal(c.needsTarget, true);
+  assert.deepEqual(R.validTargets(s, 0, 'tattack'), [1, 2, 3]); // 手里没牌的 2 号也能甩
+  assert.equal(R.checkPlay(s, 0, [idOf(s, 0, 'tattack')], {}), null); // 不指定人不行
+  R.play(s, 0, [idOf(s, 0, 'tattack')], { target: 2 }); closeAll(s);
+  assert.equal(s.turn, 2); assert.equal(s.turnsLeft, 2);
+  // 2 号被甩了两回合：摸一张后还剩一回合。再造一个被甩的人甩给别人：2 + 2 = 4
+  const t = rig([['tattack'], ['tattack'], ['cow'], ['cow']], ['orange', 'calico', 'cow']);
+  R.play(t, 0, [idOf(t, 0, 'tattack')], { target: 1 }); closeAll(t);
+  R.play(t, 1, [idOf(t, 1, 'tattack')], { target: 3 }); closeAll(t);
+  assert.equal(t.turn, 3); assert.equal(t.turnsLeft, 4);
+});
+
 test('nope chain: odd cancels, even goes through', () => {
   const s = rig([['attack', 'nope'], ['nope', 'nope'], ['cow']], ['orange', 'calico', 'cow']);
   R.play(s, 0, [idOf(s, 0, 'attack')]);
@@ -148,7 +165,7 @@ test('nope chain: odd cancels, even goes through', () => {
   assert.equal(ev[0].cancelled, true);
   assert.equal(s.turn, 0);
   assert.equal(s.phase, 'act');
-  assert.equal(total(s), 56);
+  assert.equal(total(s), R.DECK_SIZE);
 });
 
 test('reaction waits for everyone alive except last actor', () => {
@@ -215,7 +232,7 @@ test('five different: pick from discard', () => {
   assert.throws(() => R.pickDiscard(s, 0, boom));
   R.pickDiscard(s, 0, def);
   assert.equal(R.countKind(s.hands[0], 'defuse'), 1);
-  assert.equal(total(s), 56);
+  assert.equal(total(s), R.DECK_SIZE);
 });
 
 test('see the future is private and survives draws, dies on shuffle', () => {
@@ -285,7 +302,7 @@ test('random full games conserve cards and end with one winner', () => {
           case 'pick': R.pickDiscard(s, s.pick.by, s.discard.find((x) => R.KIND_OF[x] !== R.BOOM)); break;
           case 'defuse': R.insertKitten(s, s.defuse.by, (rnd() * (s.deck.length + 1)) | 0); break;
         }
-        assert.equal(total(s), 56);
+        assert.equal(total(s), R.DECK_SIZE);
         assert.equal(R.kittensInDeck(s) + (s.defuse ? 1 : 0), R.aliveCount(s) - 1 + (s.phase === 'over' ? 0 : 0));
         // 牌堆永远摸不完
         if (s.phase !== 'over' && s.phase !== 'defuse') assert.ok(s.deck.length >= 1);
@@ -307,5 +324,5 @@ test('clone is independent', () => {
   const c = R.cloneGame(s);
   R.draw(c, c.turn);
   assert.notEqual(c.deck.length, s.deck.length);
-  assert.equal(total(s), 56);
+  assert.equal(total(s), R.DECK_SIZE);
 });

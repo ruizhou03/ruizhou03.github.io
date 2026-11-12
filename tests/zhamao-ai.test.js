@@ -55,8 +55,8 @@ test('determinize is consistent with what the seat knows', () => {
       const v = R.view(s, seat);
       const d = A.determinize(v, seed);
       const all = d.deck.concat(d.discard, d.removed, ...d.hands, d.defuse ? [d.defuse.card] : []);
-      assert.equal(all.length, 56);
-      assert.equal(new Set(all).size, 56);
+      assert.equal(all.length, R.DECK_SIZE);
+      assert.equal(new Set(all).size, R.DECK_SIZE);
       assert.deepEqual(d.hands[seat], s.hands[seat]);
       d.hands.forEach((h, i) => assert.equal(h.length, s.hands[i].length));
       for (const { pos, id } of v.known) assert.equal(d.deck[pos], id);

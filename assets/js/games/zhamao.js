@@ -47,6 +47,8 @@
   function readJSON(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (_) { return null; } }
   function writeJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (_) { /* 无痕模式：不存也能玩 */ } }
   const settings = Object.assign({ players: 4, tier: 'normal', turnSec: 20 }, readJSON(SETTINGS_KEY) || {});
+  // 2026-11-12 起甩锅默认叠加：老设置里存的「不叠加」是当时的默认值，改成新默认（之后自己再改就记住）
+  if (settings.rulesV !== 2) { settings.rules = Object.assign({}, settings.rules, { stackAttack: true }); settings.rulesV = 2; }
   settings.rules = R.normalizeRules(settings.rules);
   if (!(settings.players >= 2 && settings.players <= 5)) settings.players = 4;
   if (AI.TIERS.indexOf(settings.tier) < 0) settings.tier = 'normal';
@@ -80,11 +82,64 @@
     return d;
   }
 
+  /* ───── 我的名字和头像（照拱猪）─────
+   * 存在本机；名字和站里其他游戏共用（GamesShell.Identity）。没填过名字就随机起一个：一堆猫的品种 + 拱猪那套带烟火气的两字名 */
+  const PROFILE_KEY = 'zm.profile.v1';
+  const CAT_NICKS = ['三花', '暹罗', '金渐层', '银渐层', '布偶', '橘座', '狸花', '奶牛', '英短', '美短', '缅因', '波斯', '玳瑁', '无毛',
+    '折耳', '狮子猫', '德文', '加菲', '豹猫', '孟加拉', '挪威森林', '俄罗斯蓝', '乌云踏雪', '煤球', '雪球', '黑猫警长'];
+  const ident = () => (window.GamesShell && window.GamesShell.Identity) || null;
+  const randomNick = () => { const pool = CAT_NICKS.concat(AV ? AV.NICKS : []); return pool[(Math.random() * pool.length) | 0]; };
+  function loadProfile() {
+    const p = readJSON(PROFILE_KEY) || {};
+    const shared = ident() && ident().getNick ? ident().getNick() : null;
+    const nick = shared || p.nick || randomNick();
+    const avatar = p.avatar && AV && AV.byId[p.avatar] ? p.avatar : (AV ? 'cat' : null);
+    if (nick !== p.nick || avatar !== p.avatar) writeJSON(PROFILE_KEY, { nick, avatar });
+    return { nick, avatar };
+  }
+  let profile = loadProfile();
+  // 把我的名字 / 头像套到这一局（存档里记的是旧的也换成现在的）
+  function applyProfile() {
+    if (!game || game.tutorial) return;
+    game.bots[0] = { nick: profile.nick, avatar: profile.avatar };
+    if (els.me) { els.me.innerHTML = ''; renderSeat(0); }
+  }
+  function showProfile() {
+    if (!AV) return;
+    let pick = profile.avatar;
+    openDialog('<h2>名字和头像</h2><div class="zm-field-label">名字（删空 = 随机起一个）</div>' +
+      '<input class="zm-input" data-nick maxlength="12" autocomplete="nickname" value="' + esc(profile.nick) + '">' +
+      '<div class="zm-field-label">头像</div><div class="zm-av-grid" role="group">' +
+      AV.HUMAN.map((a) => '<button type="button" class="zm-av-pick" data-av="' + a.id + '" aria-label="' + esc(a.name) + '" aria-pressed="' + (a.id === pick) + '">' + a.svg + '</button>').join('') +
+      '</div><p class="zm-muted zm-err" data-err hidden></p>' +
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>取消</button><button type="button" class="zm-btn zm-btn-primary" data-save data-focus>保存</button></div>', (d) => {
+      const err = d.querySelector('[data-err]'), nickIn = d.querySelector('[data-nick]');
+      d.querySelector('[data-cancel]').addEventListener('click', closeDialog);
+      d.querySelectorAll('[data-av]').forEach((b) => b.addEventListener('click', () => {
+        pick = b.dataset.av;
+        d.querySelectorAll('[data-av]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        fx.pop(b, { scale: 1.12, dur: 220 });
+      }));
+      d.querySelector('[data-save]').addEventListener('click', () => {
+        const v = nickIn.value.trim();
+        if (v && ([...v].length > 12 || /[<>&"'/\\]/.test(v))) { err.textContent = '名字最多 12 个字，不能有特殊符号'; err.hidden = false; nickIn.focus(); return; }
+        const I = ident();
+        if (v) { if (I && I.setNick) I.setNick(v); } else if (I && I.clearNick) I.clearNick();
+        profile = { nick: v || randomNick(), avatar: pick };
+        writeJSON(PROFILE_KEY, profile);
+        closeDialog();
+        applyProfile();
+        save();
+        if (!v) bubble(0, '叫我「' + profile.nick + '」吧', { ms: 1600 });
+      });
+    });
+  }
+
   function drawBots(n) {
     const names = AV ? AV.BOT_NICKS.slice() : ['阿尔法', '贝塔', '伽马', '德尔塔'];
     const faces = AV ? AV.ROBOT.map((x) => x.id) : [];
     const take = (arr) => arr.length ? arr.splice((Math.random() * arr.length) | 0, 1)[0] : null;
-    const out = [{ nick: '我', avatar: null }];
+    const out = [{ nick: profile.nick, avatar: profile.avatar }];
     for (let i = 1; i < n; i++) out.push({ nick: take(names), avatar: faces.length ? take(faces) : null });
     return out;
   }
@@ -359,7 +414,7 @@
       els.drawBtn.disabled = false;
       els.drawBtn.classList.toggle('is-ready', !selected.length);
       const c = selected.length ? R.classify(selected) : null;
-      els.playBtn.disabled = !(c && (!c.needsTarget || R.validTargets(s, 0).length));
+      els.playBtn.disabled = !(c && (!c.needsTarget || R.validTargets(s, 0, c.type).length));
     }
     // 「出牌」刚亮起来就弹一下
     const on = !els.playBtn.hidden && !els.playBtn.disabled;
@@ -724,7 +779,7 @@
     await Promise.all(flights);
     if (t !== token) return;
     const tg = targetOf(p);
-    if (tg >= 0) game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK ? '#c0742e' : '#c9a96e');
+    if (tg >= 0) game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK || p.type === R.TATTACK ? '#c0742e' : '#c9a96e');
     const named = els.stage.querySelector('.zm-stage-named');
     if (named && !fx.reduce()) named.animate([{ transform: 'scale(.2) rotate(-20deg)', opacity: 0 }, { transform: 'scale(1.15) rotate(6deg)', opacity: 1, offset: 0.6 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'ease-out' });
   }
@@ -1498,7 +1553,7 @@
     if (tut && tut.allow && !tut.allow({ type: 'play', cards, preview: true })) { shake(els.playBtn); return; }
     const withName = (target) => { if (c.needsName) nameDialog((k) => go(target, k)); else go(target); };
     if (c.needsTarget) {
-      const ts = R.validTargets(s, 0);
+      const ts = R.validTargets(s, 0, c.type);
       if (ts.length === 1) withName(ts[0]);
       else pickTarget(ts, withName);
     } else go();
@@ -1865,7 +1920,7 @@
     }
     localStorage.removeItem(STORE_KEY);
     openDialog('<h2>排行榜</h2>' +
-      '<ol class="zm-rank" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
+      '<ol class="zm-rank" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 ? '<small>（我）</small>' : '') + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', (d) => {
       d.querySelector('[data-again]').addEventListener('click', () => { closeDialog(); newGame(); });
       d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
@@ -1881,8 +1936,9 @@
       li('boom', '摸到就炸毛出局，除非有逗猫棒') +
       li('defuse', '摸到炸毛猫时自动用掉，然后你把炸毛猫偷偷塞回牌堆任意位置') +
       li('nope', '作废别人刚出的牌（不管轮没轮到你）。也能作废别人的「作废」，叠了单数张 = 作废。挡不了炸毛猫和逗猫棒') +
-      li('attack', '结束回合、不摸牌，下家连着摸两回合' + (settings.rules.stackAttack ? '（被攻击的人再出攻击：剩下的回合 +2 一起推给下家）' : '（被攻击的人再出攻击，下家也还是两回合）')) +
-      li('skip', '结束一个回合、不摸牌。被攻击时只顶掉其中一回合') +
+      li('attack', '结束回合、不摸牌，下家连着摸两回合' + (settings.rules.stackAttack ? '（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）' : '（被甩锅的人再甩锅，下家也还是两回合）')) +
+      li('tattack', '同甩锅，但可以甩给任意一个人（点他的头像）') +
+      li('skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合') +
       li('favor', '指定一人，他自己挑一张给你') +
       li('shuffle', '把牌堆洗乱') +
       li('future', '偷看牌堆最上面三张') +
@@ -1908,7 +1964,7 @@
       '<div class="zm-set-row"><span>几个人玩（含你）</span>' + seg('players', [[2, '2 人'], [3, '3 人'], [4, '4 人'], [5, '5 人']], draft.players) + '</div>' +
       '<div class="zm-set-row"><span>机器猫水平</span>' + seg('tier', AI.TIERS.map((t) => [t, AI.TIER_NAMES[t]]), draft.tier) + '</div>' +
       '<div class="zm-set-row"><span>出牌限时</span>' + seg('turnSec', [[20, '20 秒'], [0, '不限时']], draft.turnSec) + '</div>' +
-      '<div class="zm-set-row"><span>攻击叠加（被攻击的人再出攻击，剩下的回合 +2 一起推给下家）</span>' + seg('stackAttack', [[false, '不叠加（原版）'], [true, '叠加']], draft.rules.stackAttack) + '</div>' +
+      '<div class="zm-set-row"><span>甩锅叠加（被甩锅的人再甩锅，剩下的回合 +2 一起甩走）</span>' + seg('stackAttack', [[true, '叠加'], [false, '不叠加']], draft.rules.stackAttack) + '</div>' +
       '<div class="zm-set-row"><span>多出来的逗猫棒</span>' + seg('extraDefuse', [['two', '最多放回 2 张'], ['all', '全部放回']], draft.rules.extraDefuse) + '</div>' +
       '</div><p class="zm-muted" style="margin-top:12px">改了从下一局开始生效</p>' +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>取消</button>' +
@@ -1962,6 +2018,7 @@
     tutorial: '<path d="M12 6.6C10 5 7 4.5 4 5v13.2c3-.5 6 0 8 1.6 2-1.6 5-2.1 8-1.6V5c-3-.5-6 0-8 1.6Z"/><path d="M12 6.6v13.2"/>',
     skip: '<path d="M4.5 6.5 11 12l-6.5 5.5Z"/><path d="M12.5 6.5 19 12l-6.5 5.5Z"/>',
     pause: '<circle cx="12" cy="12" r="8.5"/><path d="M10 9v6M14 9v6"/>',
+    profile: '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.8 3.6-6 7-6s6.2 2.2 7 6"/>',
     cover: '<path d="M4 11.2 12 4.5l8 6.7"/><path d="M6.5 9.5v10h11v-10"/><path d="M10 19.5v-5h4v5"/>',
     exit: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
   };
@@ -1971,6 +2028,7 @@
     return [
       ...(canPause() ? [['pause', '暂停']] : []),
       ['restart', '重新开一局'],
+      ['profile', '改名字 / 头像'],
       ['settings', '设置'],
       ['rules', '规则'],
       ['tutorial', '新手教程'],
@@ -1986,6 +2044,7 @@
       newGame();
     }
     else if (k === 'settings') showSettings(false);
+    else if (k === 'profile') showProfile();
     else if (k === 'rules') showRules();
     else if (k === 'tutorial') startTutorial();
     else if (k === 'skip') skipTutorial();
@@ -2153,7 +2212,7 @@
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     const ctl = TUT.create(R, { hint, say: (msgs, then) => showCoach(msgs, then || step) });
     tut = ctl;
-    game = { state: ctl.state, bots: [{ nick: '我', avatar: null }, { nick: ctl.botName, avatar: ctl.botAvatar }], tiers: [null, 'normal'], tutorial: true };
+    game = { state: ctl.state, bots: [{ nick: profile.nick, avatar: profile.avatar }, { nick: ctl.botName, avatar: ctl.botAvatar }], tiers: [null, 'normal'], tutorial: true };
     els.cover.hidden = true;
     els.skipTut.hidden = false;
     buildSeats();
@@ -2208,6 +2267,7 @@
     resetTable();
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     game = { state: d.state, bots: d.bots, tiers: d.tiers, tutorial: false };
+    game.bots[0] = { nick: profile.nick, avatar: profile.avatar };
     els.cover.hidden = true;
     buildSeats();
     solveSize();

@@ -21,7 +21,8 @@
  *       放回「人数 −1」张炸毛猫，再放回 min(2, 剩余) 张逗猫棒（RULES.extraDefuse='all' 时全放回），洗匀；
  *       多出来的收进盒子（state.removed），这局不用。
  * 回合：可以出任意多张 / 组合（每出一次都留一个「不行」反应窗），最后摸一张牌结束回合。
- *       推锅叠加（RULES.stackAttack）：默认关=原版，被推锅的人再推锅，下家仍只摸两回合；开=剩余回合 +2。
+ *       甩锅叠加（RULES.stackAttack）：默认开 = 被甩锅的人再甩锅，剩下的回合 +2 一起甩走（可以一路越叠越多）；关 = 下家仍只摸两回合。
+ *   指定甩锅 ×3  同甩锅，但甩给任意一个还在场的人（不一定是下家）
  * 只剩一人没炸毛时他赢。
  *
  * 牌编码：card = 0..55 的整数 id，KIND_OF[id] 是牌种（字符串）。牌堆 deck[0] 是最上面那张。
@@ -48,17 +49,17 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const BOOM = 'boom', DEFUSE = 'defuse', NOPE = 'nope', ATTACK = 'attack', SKIP = 'skip',
+  const BOOM = 'boom', DEFUSE = 'defuse', NOPE = 'nope', ATTACK = 'attack', TATTACK = 'tattack', SKIP = 'skip',
     FAVOR = 'favor', SHUFFLE = 'shuffle', FUTURE = 'future';
   const CATS = Object.freeze(['orange', 'calico', 'cow', 'tabby', 'siamese']);
-  const ACTIONS = Object.freeze([ATTACK, SKIP, FAVOR, SHUFFLE, FUTURE]);
+  const ACTIONS = Object.freeze([ATTACK, TATTACK, SKIP, FAVOR, SHUFFLE, FUTURE]);
   const COUNTS = Object.freeze({
-    boom: 4, defuse: 6, nope: 5, attack: 4, skip: 4, favor: 4, shuffle: 4, future: 5,
+    boom: 4, defuse: 6, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 5,
     orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4,
   });
   const KINDS = Object.freeze(Object.keys(COUNTS));
   const NAMES = Object.freeze({
-    boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '攻击', skip: '跳过', favor: '索要',
+    boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '指定甩锅', skip: '跳过', favor: '索要',
     shuffle: '洗牌', future: '偷看', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗',
   });
   const KIND_OF = Object.freeze((function () {
@@ -66,14 +67,14 @@
     for (const k of KINDS) for (let i = 0; i < COUNTS[k]; i++) a.push(k);
     return a;
   })());
-  const DECK_SIZE = KIND_OF.length; // 56
+  const DECK_SIZE = KIND_OF.length; // 59
   const MIN_PLAYERS = 2, MAX_PLAYERS = 5;
 
   const RULE_OPTIONS = Object.freeze({
     stackAttack: [false, true],
     extraDefuse: ['two', 'all'],
   });
-  const DEFAULT_RULES = Object.freeze({ stackAttack: false, extraDefuse: 'two' });
+  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'two' });
   function normalizeRules(r) {
     const out = {};
     for (const k of Object.keys(DEFAULT_RULES)) {
@@ -104,7 +105,7 @@
   }
 
   /* 手牌排序：逗猫棒、不行、行动牌、猫，同种挨着 */
-  const ORDER = [DEFUSE, NOPE, ATTACK, SKIP, FAVOR, SHUFFLE, FUTURE].concat(CATS, [BOOM]);
+  const ORDER = [DEFUSE, NOPE, ATTACK, TATTACK, SKIP, FAVOR, SHUFFLE, FUTURE].concat(CATS, [BOOM]);
   function sortHand(hand) {
     return hand.slice().sort((a, b) => (ORDER.indexOf(KIND_OF[a]) - ORDER.indexOf(KIND_OF[b])) || (a - b));
   }
@@ -177,7 +178,7 @@
     if (cards.length === 1) {
       const k = kinds[0];
       if (ACTIONS.indexOf(k) < 0) return null;
-      return { type: k, needsTarget: k === FAVOR, needsName: false };
+      return { type: k, needsTarget: k === FAVOR || k === TATTACK, needsName: false };
     }
     const same = kinds.every((k) => k === kinds[0]);
     if (cards.length === 2 && same) return { type: 'pair', needsTarget: true, needsName: false };
@@ -186,10 +187,10 @@
     return null;
   }
 
-  /* 能被指定的人：还在场、不是自己、手里有牌 */
-  function validTargets(s, seat) {
+  /* 能被指定的人：还在场、不是自己、手里有牌（指定甩锅不看手牌：在场的人都能甩） */
+  function validTargets(s, seat, type) {
     const out = [];
-    for (let t = 0; t < s.n; t++) if (t !== seat && s.alive[t] && s.hands[t].length > 0) out.push(t);
+    for (let t = 0; t < s.n; t++) if (t !== seat && s.alive[t] && (type === TATTACK || s.hands[t].length > 0)) out.push(t);
     return out;
   }
 
@@ -201,7 +202,7 @@
     if (!cards.every((id) => hand.indexOf(id) >= 0)) return null;
     const c = classify(cards);
     if (!c) return null;
-    if (c.needsTarget && validTargets(s, seat).indexOf(opts.target) < 0) return null;
+    if (c.needsTarget && validTargets(s, seat, c.type).indexOf(opts.target) < 0) return null;
     if (c.needsName && (KINDS.indexOf(opts.named) < 0 || opts.named === BOOM)) return null;
     // 五张各不同：弃牌堆空着也能出（出完这五张自己就在弃牌堆里了，可以捡回其中一张）
     return c;
@@ -295,9 +296,10 @@
       case SKIP:
         endOneTurn(s, ev);
         break;
-      case ATTACK: {
+      case ATTACK:
+      case TATTACK: {
         const left = s.turnsLeft;
-        const next = nextAlive(s, me);
+        const next = p.type === TATTACK && s.alive[p.target] && p.target !== me ? p.target : nextAlive(s, me);
         s.turn = next;
         s.turnsLeft = s.rules.stackAttack && left > 1 ? left + 2 : 2;
         ev.push({ t: 'turn', seat: next, turnsLeft: s.turnsLeft, attacked: true });
@@ -487,7 +489,7 @@
   }
 
   return {
-    BOOM, DEFUSE, NOPE, ATTACK, SKIP, FAVOR, SHUFFLE, FUTURE, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, FAVOR, SHUFFLE, FUTURE, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, RULE_OPTIONS, DEFAULT_RULES, normalizeRules,
     kindOf, isCat, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,

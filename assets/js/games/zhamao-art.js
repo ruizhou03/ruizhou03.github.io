@@ -19,6 +19,7 @@
     defuse:  { bg: '#dcebd9', band: '#4f8a5f', ink: '#fbfff8' },
     nope:    { bg: '#ece1f2', band: '#7a5a96', ink: '#fdf9ff' },
     attack:  { bg: '#f6e2c8', band: '#c0742e', ink: '#fffaf2' },
+    tattack: { bg: '#f8dccb', band: '#a8452e', ink: '#fffaf2' },
     skip:    { bg: '#dfe7f3', band: '#2f4a6d', ink: '#f6f9ff' },
     favor:   { bg: '#f8e1e4', band: '#c4607a', ink: '#fff8f9' },
     shuffle: { bg: '#efe6d2', band: '#8a6a3e', ink: '#fffaf0' },
@@ -157,6 +158,13 @@
     svg += '<path d="M84 6c0-6 10-6 10 0 0 4-5 4-5 9" stroke="#7a5a96" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="89" cy="21" r="2.6" fill="#7a5a96"/>';
     return svg;
   }
+  // 指定甩锅：同一只扛锅的猫，锅上方多一个红色准星（甩给指定的人）
+  function tattackArt() {
+    const base = attackArt();
+    const sight = '<g transform="translate(74 22)"><circle r="13" fill="rgba(255,250,242,.85)" stroke="#a8452e" stroke-width="3.2"/><circle r="4" fill="#a8452e"/>' +
+      '<path d="M0 -19v8M0 11v8M-19 0h8M11 0h8" stroke="#a8452e" stroke-width="3.2" stroke-linecap="round"/></g>';
+    return base + sight;
+  }
   function attackArt() {
     // 推锅：猫两只爪子推着一口大黑锅往右滑，锅上冒着「热气」
     let svg = ground();
@@ -210,7 +218,7 @@
   }
 
   const FACE = {
-    boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, skip: skipArt, favor: favorArt, shuffle: shuffleArt, future: futureArt,
+    boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, tattack: tattackArt, skip: skipArt, favor: favorArt, shuffle: shuffleArt, future: futureArt,
     orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'),
   };
   const cache = {};
@@ -225,6 +233,7 @@
     defuse: () => line('M18 21 12 6', 2.4, '#8a6a3e') + '<path d="M12 6c-4-1-7 2-6 6 3 0 6-2 6-6Z" fill="#e0566e"/><path d="M12 6c-1 4 1 7 5 7 0-3-2-6-5-7Z" fill="' + GOLD + '"/>',
     nope: () => '<circle cx="12" cy="12" r="9" fill="none" stroke="#7a5a96" stroke-width="2.6"/>' + line('M6 18 18 6', 2.6, '#7a5a96'),
     attack: () => '<path d="M3 10h16c0 6-3 9-8 9s-8-3-8-9Z" fill="#3a3632"/><rect x="2" y="8" width="18" height="3" rx="1.5" fill="#56504a"/>' + line('M21 14h2', 2.2, '#c0742e'),
+    tattack: () => '<path d="M3 12h13c0 5-2.6 8-6.5 8S3 17 3 12Z" fill="#3a3632"/><rect x="2" y="10" width="15" height="2.6" rx="1.3" fill="#56504a"/><circle cx="18" cy="6" r="4.2" fill="none" stroke="#a8452e" stroke-width="1.8"/><circle cx="18" cy="6" r="1.3" fill="#a8452e"/>',
     skip: () => '<path d="M15 3a8 8 0 1 0 6 12 6 6 0 1 1 -6 -12Z" fill="' + GOLD + '"/>' + '<path d="M5 6h4l-4 5h4" stroke="' + NAVY + '" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
     favor: () => heart(12, 13, 7, '#e0566e'),
     shuffle: () => '<path d="M4 9h14v11H4Z" fill="#c99a62"/><path d="M4 9l-2-3h14l2 3Z" fill="#dcb27c"/>' + line('M7 4l3 2M16 2l-1 3', 2, '#8a6a3e'),
