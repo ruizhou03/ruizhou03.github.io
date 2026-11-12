@@ -34,7 +34,8 @@
   const PACE = { bot: 760, react: 2800, quiet: 260, botNope: [500, 1100], fly: 460, k: 1 };
   const FAST = { bot: 240, react: 0, quiet: 120, botNope: [200, 300], fly: 260, k: 0.55 };
   const TUT_PACE = { bot: 1050, react: 0, quiet: 500, botNope: [900, 900], fly: 540, k: 1.2 };
-  const pace = () => (game && game.tutorial ? TUT_PACE : game && !game.state.alive[0] ? FAST : PACE);
+  // 我出局后加速看完：等我那一下炸完、手牌全落进弃牌堆（game.fastOut，animOut 最后才置上）才快起来，别把我自己的出局动画也快进了
+  const pace = () => (game && game.tutorial ? TUT_PACE : game && game.fastOut ? FAST : PACE);
   const ms = (x) => Math.round(x * pace().k);
 
   const FUR = ['#3a3632', '#4a4540', '#2a2622', '#5c5650'];
@@ -229,7 +230,7 @@
     }
     const av = box.querySelector('.zm-av');
     setBadge(av, 'zm-count', seat !== 0 && !out ? String(d.counts[seat]) : '');
-    setBadge(av, 'zm-turns', turn && d.turnsLeft > 1 ? '×' + d.turnsLeft : '');
+    setBadge(av, 'zm-turns', turn && (d.turnsLeft > 1 || game.attackSeat === seat) ? '×' + d.turnsLeft : '');
   }
   // 角标：数字变了就弹一下
   function setBadge(av, cls, text) {
@@ -928,6 +929,8 @@
       if (e.turnsLeft > 2) await countUp(e.seat, e.turnsLeft - 2, e.turnsLeft, t);
     }
     if (ov) { ov.turn = e.seat; ov.turnsLeft = e.turnsLeft; }
+    // 被甩锅的人：轮到他的这几回合里一直挂着 ×N（剩最后一回合也挂着 ×1），轮到别人才摘
+    if (e.attacked) game.attackSeat = e.seat; else if (e.seat !== game.attackSeat) game.attackSeat = -1;
     renderSeats();
     const a = avPoint(e.seat);
     fx.ring(a.x, a.y, { color: '#b4392c', size: 110, width: 3, dur: 520 });
@@ -1714,6 +1717,7 @@
     const kit = game.state.discard[game.state.discard.length - 1];
     if (ov && kit != null) { ov.discard.push(kit); renderPiles(); }
     await wait(ms(300));
+    if (e.seat === 0) game.fastOut = true;
   }
 
   /* ───── 反应窗：出完牌大家决定要不要「不行」 ───── */
@@ -2147,13 +2151,13 @@
     });
   }
 
-  /* 重排：最上面（至多）三张正面朝上摆一排，点两张换位置，「好了」放回去；限时到了按现在的顺序放 */
+  /* 改命（原名「重排」，2026-11-12 改名）：最上面（至多）三张正面朝上摆一排，点两张换位置，「好了」放回去；限时到了按现在的顺序放 */
   function alterDialog() {
     const s = game.state;
     let order = s.alter.cards.slice(), sel = -1;
     const limit = !game.tutorial && turnSec() > 0 ? turnSec() * 1000 : 0;
     snd('peek');
-    openDialog('<h2>重排最上面 ' + order.length + ' 张</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
+    openDialog('<h2>改命 · 最上面 ' + order.length + ' 张</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
       '<div class="zm-alter-row"><span class="end">顶</span><div class="zm-alter" data-alter>' + order.map((id, i) => '<button type="button" class="zm-alter-slot" data-i="' + i + '">' + cardHtml(id) + '</button>').join('') + '</div><span class="end">底</span></div>' +
       '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好了</button></div>', (d) => {
       const slots = Array.from(d.querySelectorAll('.zm-alter-slot'));
@@ -2811,7 +2815,7 @@
     resetTable();
     viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
-    game = { state: d.state, bots: d.bots, tiers: d.tiers, tutorial: false };
+    game = { state: d.state, bots: d.bots, tiers: d.tiers, tutorial: false, fastOut: !d.state.alive[0] };
     game.bots[0] = { nick: profile.nick, avatar: profile.avatar };
     els.cover.hidden = true;
     buildSeats();
@@ -2857,7 +2861,7 @@
     const h = els.cover.querySelector('.zm-cover-title');
     if (!h.querySelector('span')) h.innerHTML = Array.from(h.textContent).map((ch) => '<span>' + ch + '</span>').join('');
     if (title) h.querySelectorAll('span').forEach((sp, i) => sp.animate([{ transform: 'translateY(-26px) rotate(-8deg)', opacity: 0 }, { transform: 'translateY(4px) rotate(2deg)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 480, delay: 120 + i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
-    const items = title ? els.cover.querySelectorAll('.zm-cover-art, .zm-cover-sub') : els.cover.querySelectorAll('.zm-cover-art, .zm-cover-sub, .zm-cover-btn:not([hidden]), .zm-cover-foot:not([hidden])');
+    const items = title ? els.cover.querySelectorAll('.zm-cover-art') : els.cover.querySelectorAll('.zm-cover-art, .zm-cover-btn:not([hidden]), .zm-cover-foot:not([hidden])');
     items.forEach((n, i) => n.animate([{ transform: 'translateY(16px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 420, delay: i === 0 ? 0 : (title ? 380 : 60) + i * 80, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
   }
   // 进度条跑完：按钮一个个浮上来
@@ -2868,6 +2872,10 @@
   }
 
   /* ───── 绑定 ───── */
+  // 长按不选字、不弹系统菜单（微信里会弹「搜一搜 / 翻译」）；输入框照常
+  const editable = (t) => t && t.closest && t.closest('input, textarea, [contenteditable="true"]');
+  els.app.addEventListener('selectstart', (e) => { if (!editable(e.target)) e.preventDefault(); });
+  els.app.addEventListener('contextmenu', (e) => { if (!editable(e.target)) e.preventDefault(); });
   $('zmCoverArt').innerHTML = ART.hero();
   // 彩蛋：鼠标经过（或点一下）封面上的炸毛猫，它就炸两下毛、掉几根毛（平时每隔几秒自己也会抖一下，见 CSS）
   (function heroEgg() {

@@ -64,7 +64,7 @@
   const KINDS = Object.freeze(Object.keys(COUNTS));
   const NAMES = Object.freeze({
     boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '指定甩锅', skip: '跳过', favor: '索要',
-    shuffle: '洗牌', future: '偷看', alter: '重排', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗',
+    shuffle: '洗牌', future: '偷看', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗',
   });
   const KIND_OF = Object.freeze((function () {
     const a = [];

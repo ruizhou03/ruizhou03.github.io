@@ -32,6 +32,9 @@ body.zm-fullscreen .site-footer { display: none !important; }
   box-sizing: border-box;
 }
 .zm-app *, .zm-app *::before, .zm-app *::after { box-sizing: border-box; }
+/* 游戏里的字一律不能选（微信里长按会选中字、弹「搜一搜 / 翻译」）；只有输入框能选 */
+body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.zm-app input, .zm-app textarea { -webkit-user-select: text; user-select: text; }
 
 /* 裱框：外墨线 + 内 35% 墨线 */
 .zm-table {
@@ -300,7 +303,7 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-cover-inner { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(340px, 100%); }
 .zm-cover-art { width: min(70vw, 280px); }
 .zm-cover-art svg { width: 100%; height: auto; display: block; }
-.zm-cover-title { margin: 0; font-size: 40px; font-weight: 700; letter-spacing: 0.3em; text-indent: 0.3em; line-height: 1.1; }
+.zm-cover-title { margin: 0 0 8px; font-size: 40px; font-weight: 700; letter-spacing: 0.3em; text-indent: 0.3em; line-height: 1.1; }
 .zm-cover-title span { display: inline-block; }
 /* 封面待机：炸毛猫一鼓一鼓、隔一会儿炸一下毛；橘猫上下晃 */
 .zm-cover-art .hero-boom { transform-box: fill-box; transform-origin: 50% 70%; animation: zm-hero-boom 3.2s ease-in-out infinite; }
@@ -320,7 +323,6 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-cover-btn.is-primary { position: relative; overflow: hidden; }
 .zm-cover-btn.is-primary::after { content: ''; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255, 250, 240, 0.28), transparent); animation: zm-shine 3.4s ease-in-out 1.4s infinite; }
 @keyframes zm-shine { 0% { left: -60%; } 35%, 100% { left: 130%; } }
-.zm-cover-sub { margin: -4px 0 6px; font-size: 14px; color: var(--zm-ink-mute); }
 .zm-cover-btns { width: 100%; display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
 .zm-cover-btn {
   display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 14px 16px; border-radius: 12px;
