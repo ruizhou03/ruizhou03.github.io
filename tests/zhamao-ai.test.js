@@ -16,8 +16,8 @@ function apply(s, seat, d) {
   throw new Error('bad decision ' + JSON.stringify(d));
 }
 
-function playOut(n, seed, tiers, check) {
-  const s = R.createGame(n, seed);
+function playOut(n, seed, tiers, check, rules) {
+  const s = R.createGame(n, seed, rules);
   const st = { rs: seed + 5 }; const rng = () => R.rand(st);
   let guard = 0;
   while (s.phase !== 'over') {
@@ -45,6 +45,16 @@ test('every tier only makes legal moves and games finish', () => {
     for (let seed = 1; seed <= 12; seed++) {
       const tiers = Array.from({ length: n }, (_, i) => A.TIERS[(i + seed) % 3]);
       const s = playOut(n, seed * 13 + n, tiers);
+      assert.equal(R.aliveCount(s), 1);
+    }
+  }
+});
+
+test('with swap cards on, every tier still plays legal moves to the end', () => {
+  for (let n = 2; n <= 5; n++) {
+    for (let seed = 1; seed <= 6; seed++) {
+      const tiers = Array.from({ length: n }, (_, i) => A.TIERS[(i + seed) % 3]);
+      const s = playOut(n, seed * 17 + n, tiers, null, { swap: true });
       assert.equal(R.aliveCount(s), 1);
     }
   }

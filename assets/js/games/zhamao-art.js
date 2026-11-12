@@ -25,6 +25,7 @@
     shuffle: { bg: '#efe6d2', band: '#8a6a3e', ink: '#fffaf0' },
     future:  { bg: '#e2eeee', band: '#3f7f86', ink: '#f7ffff' },
     alter:   { bg: '#e6e8f4', band: '#4f5d9a', ink: '#f7f8ff' },
+    swap:    { bg: '#dfefec', band: '#2f8a83', ink: '#f4fffd' },
     orange:  { bg: '#fbf4e6', band: '#e0893e', ink: '#fffaf0' },
     calico:  { bg: '#fbf4e6', band: '#b98a5a', ink: '#fffaf0' },
     cow:     { bg: '#fbf4e6', band: '#3a3632', ink: '#fffaf0' },
@@ -210,6 +211,15 @@
     return svg;
   }
   // 重排：三张牌背扇开，一只猫爪按着中间那张，上面一道弯弯的「换位」双箭头
+  // 交换：左右两小扇手牌，上面一道弧箭头从左到右、下面一道从右到左
+  function swapArt() {
+    let svg = ground();
+    const fan = (cx, flip) => { let g = ''; for (let i = 0; i < 3; i++) g += '<g transform="translate(' + (cx + (i - 1) * 7 * flip) + ' 58) rotate(' + ((i - 1) * 12 * flip) + ')"><rect x="-9" y="-13" width="18" height="26" rx="3" fill="' + (i === 2 ? CREAM : NAVY) + '" stroke="' + NAVY + '" stroke-width="1.6"/>' + (i === 2 ? '' : '<rect x="-6" y="-10" width="12" height="20" rx="2" fill="none" stroke="' + GOLD + '" stroke-width="1.5"/>') + '</g>'; return g; };
+    svg += fan(28, 1) + fan(72, -1);
+    svg += '<path d="M28 34Q50 16 72 34" fill="none" stroke="#2f8a83" stroke-width="4" stroke-linecap="round"/><path d="M0 0-8-4.5V4.5Z" fill="#2f8a83" transform="translate(73.5 35.5) rotate(42)"/>';
+    svg += '<path d="M72 82Q50 98 28 82" fill="none" stroke="#2f8a83" stroke-width="4" stroke-linecap="round"/><path d="M0 0-8-4.5V4.5Z" fill="#2f8a83" transform="translate(26.5 80.5) rotate(222)"/>';
+    return svg;
+  }
   function alterArt() {
     // 重排：三张牌背笔直排一排，上面一道对称的弧形双向箭头（两头各一个规整的三角箭头）
     let svg = ground();
@@ -231,7 +241,7 @@
   }
 
   const FACE = {
-    boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, tattack: tattackArt, skip: skipArt, favor: favorArt, shuffle: shuffleArt, future: futureArt, alter: alterArt,
+    boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, tattack: tattackArt, skip: skipArt, favor: favorArt, shuffle: shuffleArt, future: futureArt, alter: alterArt, swap: swapArt,
     orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'),
   };
   const cache = {};
@@ -252,6 +262,7 @@
     shuffle: () => '<path d="M4 9h14v11H4Z" fill="#c99a62"/><path d="M4 9l-2-3h14l2 3Z" fill="#dcb27c"/>' + line('M7 4l3 2M16 2l-1 3', 2, '#8a6a3e'),
     future: () => '<ellipse cx="12" cy="12" rx="10" ry="6.5" fill="#3c3530"/><ellipse cx="12" cy="12" rx="7" ry="5" fill="#e9d46a"/><ellipse cx="12" cy="12" rx="1.8" ry="4.4" fill="' + INK + '"/>',
     alter: () => '<rect x="3" y="12" width="7.5" height="10" rx="1.6" fill="' + NAVY + '"/><rect x="13.5" y="12" width="7.5" height="10" rx="1.6" fill="' + NAVY + '"/><path d="M6.5 9Q12 2.5 17.5 9" fill="none" stroke="#4f5d9a" stroke-width="2" stroke-linecap="round"/><path d="M0 0-3.4-2V2Z" fill="#4f5d9a" transform="translate(18 9.6) rotate(50)"/><path d="M0 0-3.4-2V2Z" fill="#4f5d9a" transform="translate(6 9.6) rotate(130)"/>',
+    swap: () => '<path d="M4 8h13" stroke="#2f8a83" stroke-width="2.4" stroke-linecap="round"/><path d="M20 8l-4.4-3v6z" fill="#2f8a83"/><path d="M20 16H7" stroke="#2f8a83" stroke-width="2.4" stroke-linecap="round"/><path d="M4 16l4.4-3v6z" fill="#2f8a83"/>',
   };
   for (const k of Object.keys(BREED)) {
     const b = BREED[k];
@@ -275,12 +286,24 @@
 
   /* 封面：一只炸毛猫 + 一只橘猫举着逗猫棒。各自包一层 <g class>，CSS 让它们待机时动（炸毛猫一鼓一鼓、偶尔一抖，
    * 橘猫上下晃） */
+  /* 一根长长的逗猫棒（不带猫）：把手在右下 (96,98)，杆子斜着伸到左上 (40,12)，杆头一根绳吊着一串羽毛。
+   * .wand-stick 整根绕把手摆，.wand-tail 绳 + 羽毛绕杆头再荡一荡 */
+  function wandInner() {
+    return '<g class="wand-stick">' +
+      '<path d="M96 98 40 12" stroke="#6f5330" stroke-width="5.2" stroke-linecap="round"/><path d="M96 98 40 12" stroke="#a07a48" stroke-width="2.6" stroke-linecap="round"/>' +
+      '<rect x="88" y="84" width="9" height="16" rx="3" fill="#c0742e" transform="rotate(-33 92 92)"/>' +
+      '<g class="wand-tail"><path d="M40 12c-10-4-20 2-22 14" fill="none" stroke="' + NAVY + '" stroke-width="2.4" stroke-linecap="round"/>' +
+      '<g transform="translate(18 30)"><path d="M0 0c-9-3-16 4-14 13 7 0 14-4 14-13Z" fill="#e0566e"/><path d="M0 0c-2 9 2 16 11 15 0-7-4-13-11-15Z" fill="' + GOLD + '"/>' +
+      '<path d="M0 0c-6 7-6 15 0 20 5-7 4-14 0-20Z" fill="#6fa8dc"/><circle cx="0" cy="0" r="3" fill="#c8463a"/></g></g></g>';
+  }
+  function wand() { return '<svg class="zm-wand" viewBox="0 0 100 100" aria-hidden="true" overflow="visible">' + wandInner() + '</svg>'; }
+
+  /* 主页插画：只有一只随时要炸的炸毛猫 + 一根在它头顶不停挥的逗猫棒 */
   function hero() {
     const boom = boomArt();
-    const def = defuseArt();
-    return '<svg viewBox="0 0 200 120" aria-hidden="true">' +
-      '<g transform="translate(0 10)"><g class="hero-boom">' + boom + '</g></g>' +
-      '<g transform="translate(100 10)"><g class="hero-def">' + def + '</g></g></svg>';
+    return '<svg viewBox="0 -6 200 126" aria-hidden="true" overflow="visible">' +
+      '<g transform="translate(30 14)"><g class="hero-boom">' + boom + '</g></g>' +
+      '<g transform="translate(83 -8) scale(.95)"><g class="hero-wand">' + wandInner() + '</g></g></svg>';
   }
 
   /* 道具（特效用）：推锅的锅、偷看的大猫眼、赢家的皇冠、落空的红叉。viewBox 都是 0 0 100 100 */
@@ -314,5 +337,5 @@
     cross: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M20 20 80 80M80 20 20 80" stroke="' + RED + '" stroke-width="14" stroke-linecap="round"/></svg>',
   };
 
-  return { TONE, face, icon, BACK, hero, heart, paw, catHead, PROPS };
+  return { TONE, face, icon, BACK, hero, wand, heart, paw, catHead, PROPS };
 });

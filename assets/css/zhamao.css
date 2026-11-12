@@ -304,7 +304,14 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-cover-title span { display: inline-block; }
 /* 封面待机：炸毛猫一鼓一鼓、隔一会儿炸一下毛；橘猫上下晃 */
 .zm-cover-art .hero-boom { transform-box: fill-box; transform-origin: 50% 70%; animation: zm-hero-boom 3.2s ease-in-out infinite; }
-.zm-cover-art .hero-def { transform-box: fill-box; transform-origin: 40% 90%; animation: zm-hero-bob 2.2s ease-in-out infinite; }
+/* 主页：炸毛猫一直在抖（随时要炸），逗猫棒绕把手不停地挥，羽毛跟着荡 */
+.zm-cover-art .hero-wand { transform-box: view-box; transform-origin: 96px 98px; animation: zm-hero-wand 1.6s ease-in-out infinite; }
+.zm-cover-art .hero-wand .wand-tail { transform-box: view-box; transform-origin: 40px 12px; animation: zm-wand-tail 0.5s ease-in-out infinite alternate; }
+@keyframes zm-hero-wand { 0%, 100% { rotate: -10deg; } 50% { rotate: 9deg; } }
+@keyframes zm-wand-tail { from { rotate: -14deg; } to { rotate: 16deg; } }
+.zm-cover-art .hero-boom > * { transform-box: view-box; }
+.zm-cover-art .hero-boom { animation: zm-hero-boom 3.2s ease-in-out infinite, zm-hero-shiver 0.18s linear infinite; }
+@keyframes zm-hero-shiver { 0%, 100% { translate: 0 0; } 25% { translate: -0.8px 0.4px; } 75% { translate: 0.8px -0.4px; } }
 @keyframes zm-hero-boom {
   0%, 100% { transform: scale(1); } 40% { transform: scale(1.035); }
   70% { transform: scale(1); } 74% { transform: scale(1.1) rotate(-3deg); } 77% { transform: scale(1.06) rotate(3deg); } 80% { transform: scale(1.08) rotate(-2deg); } 86% { transform: scale(1); }
@@ -405,10 +412,6 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-menu hr { border: 0; border-top: 1px solid rgba(29, 27, 24, 0.14); margin: 4px 8px; }
 .zm-tool[hidden] { display: none; }
 /* 暂停：大字「暂停」，下面两个整宽大按钮 */
-.zm-dialog.is-pause { width: min(300px, 100%); text-align: center; }
-.zm-dialog.is-pause > h2 { font-size: 34px; letter-spacing: 0.4em; text-indent: 0.4em; margin: 6px 0 18px; }
-.zm-dialog.is-pause .zm-actions { flex-direction: column; align-items: stretch; gap: 10px; margin-top: 0; }
-.zm-dialog.is-pause .zm-btn { height: 48px; font-size: 17px; }
 .zm-sound-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; font-size: 15px; cursor: pointer; }
 .zm-sound-row input { accent-color: var(--zm-ink); width: 16px; height: 16px; }
 
@@ -500,7 +503,7 @@ body.zm-fullscreen .site-footer { display: none !important; }
 @keyframes zm-ready { 50% { box-shadow: 0 0 0 6px rgba(29, 27, 24, 0.1); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .zm-clock circle, .zm-aim svg, .zm-cover-art .hero-boom, .zm-cover-art .hero-def, .zm-angry .zm-card, .zm-deck.is-hot .zm-deck-stack .zm-card:last-child { animation: none !important; }
+  .zm-clock circle, .zm-aim svg, .zm-cover-art .hero-boom, .zm-cover-art .hero-wand, .zm-cover-art .wand-tail, .zm-av-wand .wand-tail, .zm-angry .zm-card, .zm-deck.is-hot .zm-deck-stack .zm-card:last-child { animation: none !important; }
 }
 
 /* 终局皇冠：金属质感靠 SVG 渐变，这里只加一层落影 */
@@ -625,11 +628,18 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-seat.is-bomb .zm-av-face { opacity: 0; }
 @keyframes zm-bomb-tremble { 0%, 100% { translate: 0 0; rotate: 0deg; } 25% { translate: -1.5px 0.5px; rotate: -3deg; } 75% { translate: 1.5px -0.5px; rotate: 3deg; } }
 @keyframes zm-bomb-glow { 0%, 100% { box-shadow: 0 0 0 2px #c8463a, 0 0 10px rgba(200, 70, 58, 0.5); } 50% { box-shadow: 0 0 0 3px #c8463a, 0 0 26px rgba(200, 70, 58, 0.85); } }
-.zm-av-wand { position: absolute; right: -62%; top: -62%; width: 115%; height: 115%; z-index: -1; pointer-events: none; transform-origin: 20% 90%; }
+/* 头像上的逗猫棒：从头像左下方伸出来，把手在外、羽毛荡在炸毛猫头顶；绕把手摆 */
+.zm-av-wand { position: absolute; left: -85%; top: -72%; width: 175%; height: 175%; z-index: 6; pointer-events: none; transform-origin: 4% 96%; }
+.zm-av-wand svg { transform: scaleX(-1); }
+.zm-av-wand .wand-tail { transform-box: view-box; transform-origin: 40px 12px; animation: zm-wand-tail 0.45s ease-in-out infinite alternate; }
 .zm-av-wand svg { width: 100%; height: 100%; display: block; border-radius: 0; }
-/* 主菜单：我的头像 + 名字，点了改 */
-.zm-cover-me { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--zm-ink-faint); background: var(--zm-card); border-radius: 999px; padding: 4px 12px 4px 4px; font: inherit; color: var(--zm-ink); cursor: pointer; margin: -4px 0 2px; }
-.zm-cover-me .av { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; display: block; }
-.zm-cover-me .av svg { width: 100%; height: 100%; display: block; }
-.zm-cover-me b { font-size: 15px; }
-.zm-cover-me .pen { width: 15px; height: 15px; fill: none; stroke: var(--zm-ink-mute); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 暂停：正中一个大暂停图标，下面左「回到主页面」、右「继续」 */
+.zm-dialog.is-pause { width: min(320px, 100%); padding: 26px 20px 18px; }
+.zm-pause-ic { display: flex; justify-content: center; margin: 4px 0 24px; }
+.zm-pause-ic svg { width: 112px; height: 112px; }
+.zm-pause-ic circle { fill: var(--zm-ink); }
+.zm-pause-ic rect { fill: var(--zm-paper); }
+.zm-pause-actions { display: flex; justify-content: space-between; gap: 12px; }
+.zm-pause-actions .zm-btn { flex: 1; height: 46px; font-size: 15.5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; }
+.zm-pause-actions .zm-btn svg { width: 18px; height: 18px; fill: currentColor; }

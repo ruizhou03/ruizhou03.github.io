@@ -26,7 +26,8 @@ const idOf = (s, seat, k) => s.hands[seat].find((id) => R.KIND_OF[id] === k);
 const closeAll = (s) => { for (const t of R.awaitingReaction(s)) R.pass(s, t); return R.closeReaction(s); };
 
 test('deck composition', () => {
-  assert.equal(R.DECK_SIZE, 61);
+  assert.equal(R.DECK_SIZE, 64);
+  assert.equal(ofKind(R.SWAP).length, 3);
   assert.equal(ofKind(R.ALTER).length, 3);
   assert.equal(ofKind(R.TATTACK).length, 3);
   assert.equal(ofKind(R.BOOM).length, 4);
@@ -48,7 +49,7 @@ test('setup for 2..5 players', () => {
       assert.equal(defInDeck, Math.min(2, 6 - n));
       // 没放回的炸毛猫 / 逗猫棒收进盒子（不参与这局），弃牌堆一开始是空的
       assert.equal(s.discard.length, 0);
-      assert.equal(s.removed.length, (4 - (n - 1)) + (6 - n - Math.min(2, 6 - n)));
+      assert.equal(s.removed.length, (4 - (n - 1)) + (6 - n - Math.min(2, 6 - n)) + 3); // + 3 张交换（没开交换牌）
     }
   }
   const all = R.createGame(2, 3, { extraDefuse: 'all' });
@@ -376,4 +377,29 @@ test('alter with a single card left = just a peek', () => {
   const ev = closeAll(s);
   assert.equal(s.phase, 'act');
   assert.ok(ev.find((e) => e.t === 'future'));
+});
+
+test('swap: optional, scales with players, keeps defuses', () => {
+  for (const n of [2, 3, 4, 5]) {
+    const off = R.createGame(n, 11);
+    assert.equal(off.deck.concat(...off.hands).filter((id) => R.KIND_OF[id] === 'swap').length, 0);
+    const on = R.createGame(n, 11, { swap: true });
+    assert.equal(on.deck.concat(...on.hands).filter((id) => R.KIND_OF[id] === 'swap').length, Math.min(3, n - 1));
+    assert.equal(total(on), R.DECK_SIZE);
+  }
+  const s = rig([['swap', 'defuse', 'cow'], ['defuse', 'skip', 'nope', 'tabby'], ['orange']], ['orange', 'calico', 'cow']);
+  s.rules = R.normalizeRules({ swap: true });
+  const mine = s.hands[0].slice(), theirs = s.hands[1].slice();
+  assert.deepEqual(R.validTargets(s, 0, 'swap'), [1, 2]);
+  R.play(s, 0, [idOf(s, 0, 'swap')], { target: 1 });
+  const ev = closeAll(s);
+  const sw = ev.find((e) => e.t === 'swap');
+  assert.equal(sw.toB, 1); assert.equal(sw.toA, 3);
+  assert.equal(R.countKind(s.hands[0], 'defuse'), 1); assert.equal(R.countKind(s.hands[1], 'defuse'), 1);
+  assert.equal(s.hands[0].length, 4); assert.equal(s.hands[1].length, 2);
+  assert.ok(s.hands[1].indexOf(mine.find((id) => R.KIND_OF[id] === 'cow')) >= 0);
+  assert.equal(R.redactEvents([sw], 2)[0].cardsA, undefined);
+  assert.equal(R.view(s, 0).handKnown[1].length, 1);   // 我知道我的奶牛猫现在在他手里
+  assert.equal(total(s), R.DECK_SIZE);
+  void theirs;
 });

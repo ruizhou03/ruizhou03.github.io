@@ -22,7 +22,7 @@
   const TIER_NAMES = Object.freeze({ easy: '入门', normal: '普通', hard: '高手' });
 
   /* 牌的「留着有多值钱」 */
-  const VALUE = { defuse: 100, nope: 30, tattack: 28, attack: 26, skip: 20, alter: 17, future: 15, shuffle: 13, favor: 10 };
+  const VALUE = { defuse: 100, nope: 30, tattack: 28, attack: 26, swap: 22, skip: 20, alter: 17, future: 15, shuffle: 13, favor: 10 };
   function cardValue(hand, id) {
     const k = K[id];
     if (VALUE[k] != null) return VALUE[k];
@@ -71,6 +71,23 @@
     }
     return best;
   }
+  /* 交换：逗猫棒不跟着换，所以只比「能换走的牌」——找换过来最划算的人（手里非逗猫棒的牌多、值钱），
+   * 至少比我这手（不算这张交换）多出一截才换 */
+  function swapMove(v, margin) {
+    if (!has(v, R.SWAP)) return null;
+    const sid = one(v, R.SWAP);
+    const mine = v.hand.filter((id) => id !== sid && K[id] !== R.DEFUSE);
+    const myVal = mine.reduce((a, id) => a + Math.min(30, cardValue(v.hand, id)), 0);
+    let best = -1, bestGain = -Infinity;
+    for (let t = 0; t < v.n; t++) {
+      if (t === v.me || !v.alive[t]) continue;
+      const knownDef = v.handKnown[t].filter((id) => K[id] === R.DEFUSE).length;
+      const theirs = Math.max(0, v.counts[t] - knownDef);
+      const gain = theirs * 12 - myVal;   // 不知道的牌按中等价值估
+      if (gain > bestGain) { bestGain = gain; best = t; }
+    }
+    return best >= 0 && bestGain >= (margin == null ? 20 : margin) ? playMove([sid], best) : null;
+  }
   // 甩锅（普通或指定）：有普通的先用普通，留着指定的
   function attackMove(v) {
     if (has(v, R.ATTACK)) return playMove([one(v, R.ATTACK)]);
@@ -109,6 +126,7 @@
     const id = pickRand(singles, rng);
     if (K[id] === R.FAVOR) { const ts = targets(v); return ts.length ? playMove([id], pickRand(ts, rng)) : DRAW; }
     if (K[id] === R.TATTACK) { const t = victim(v); return t >= 0 ? playMove([id], t) : DRAW; }
+    if (K[id] === R.SWAP) { const ts = v.alive.map((a, t) => (a && t !== v.me ? t : -1)).filter((t) => t >= 0); return ts.length ? playMove([id], pickRand(ts, rng)) : DRAW; }
     return playMove([id]);
   }
 
@@ -148,6 +166,8 @@
       if (am) return am;
       if (has(v, R.SKIP)) return playMove([one(v, R.SKIP)]);
     }
+    const sw = swapMove(v);
+    if (sw) return sw;
     // 成对的猫没别的用处，拿去偷一张
     for (const k of R.CATS) if ((by[k] || []).length >= 2 && ts.length) return playMove(by[k].slice(0, 2), richest(v, R.DEFUSE));
     return DRAW;
@@ -176,6 +196,7 @@
     if (!p) return false;
     if (p.type === R.ATTACK) return nextAliveV(v, p.by) === v.me;
     if (p.type === R.TATTACK) return p.target === v.me;
+    if (p.type === R.SWAP) return p.target === v.me && v.hand.filter((id) => K[id] !== R.DEFUSE).length >= Math.max(0, v.counts[p.by] - 1);   // 他那手比我还少才挡
     if (p.type === R.FAVOR || p.type === 'pair' || p.type === 'triple') return p.target === v.me;
     return false;
   }
@@ -310,7 +331,7 @@
       const id = one(v, k);
       if (id == null) continue;
       if (k === R.FAVOR) { for (const t of ts) out.push(playMove([id], t)); }
-      else if (k === R.TATTACK) { for (let t = 0; t < v.n; t++) if (t !== v.me && v.alive[t]) out.push(playMove([id], t)); }
+      else if (k === R.TATTACK || k === R.SWAP) { for (let t = 0; t < v.n; t++) if (t !== v.me && v.alive[t]) out.push(playMove([id], t)); }
       else if (k !== R.FUTURE && k !== R.ALTER) out.push(playMove([id])); // 偷看 / 重排靠启发式（价值在信息，模拟里体现不出来）
     }
     for (const k of Object.keys(by)) {
