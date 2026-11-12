@@ -173,7 +173,7 @@
     const onStage = stageIdsOf(s);
     return {
       counts: s.hands.map((h) => h.length), hand: s.alive[0] ? s.hands[0].slice() : (viewSeat > 0 && s.alive[viewSeat] ? s.hands[viewSeat].slice() : []),
-      deckSize: s.deck.length - (s.phase === 'alter' && s.alter ? s.alter.cards.length : 0), kittens: R.kittensInDeck(s),   // 重排时那几张正摆在牌堆上方
+      deckSize: s.deck.length, lifted: s.phase === 'alter' && s.alter ? s.alter.cards.length : 0, kittens: R.kittensInDeck(s),   // 重排时那几张正举在牌堆上方（数字照旧）
       discard: s.discard.filter((id) => onStage.indexOf(id) < 0),
       turn: s.turn, turnsLeft: s.turnsLeft, alive: s.alive.slice(),
     };
@@ -308,7 +308,8 @@
   }
   function renderPiles() {
     const s = game.state, d = D();
-    renderDeck(Math.max(0, d.deckSize));
+    renderDeck(Math.max(0, d.deckSize - (d.lifted || 0)));
+    els.deck.classList.toggle('no-count', !d.deckSize);
     els.deckCount.textContent = d.deckSize;
     if (lastDeck >= 0 && lastDeck !== d.deckSize) fx.pop(els.deckCount, { scale: 1.25, dur: 260 });
     lastDeck = d.deckSize;
@@ -482,15 +483,9 @@
   function stageVerdict(count) {
     const inner = els.stage.querySelector('.zm-stage-inner');
     if (!inner) return;
-    const old = inner.querySelector('.zm-stamp');
-    if (old) { old.classList.add('is-leaving'); setTimeout(() => old.remove(), 240); }
+    // 不盖「作废 / 生效」章：被作废的那几张变灰，又被顶回来就复原
     const cancelled = count % 2 === 1;
     els.stage.classList.toggle('is-cancelled', cancelled);
-    const sp = document.createElement('span');
-    sp.className = 'zm-stamp' + (cancelled ? '' : ' is-ok');
-    sp.textContent = cancelled ? '作废' : '生效';
-    inner.appendChild(sp);
-    snd('stamp');
   }
   /* 导火索：绳子从右往左烧短，火星跟着走、一路冒小火花；最后一秒半变红、闪 */
   let fuseSparkTimer = null;
@@ -737,6 +732,7 @@
   function captureSources(seat, d) {
     const m = {};
     if (seat !== 0) return m;
+    if (d.type === 'play' && game.previewSrc) { const p = game.previewSrc; game.previewSrc = null; return p; }   // 先摆到桌上的那几张：从桌上接着演
     const ids = d.type === 'play' ? d.cards : d.type === 'give' ? [d.card] : [];
     for (const id of ids) { const c = handCard(id); if (c) m[id] = c.getBoundingClientRect(); }
     return m;
@@ -1039,7 +1035,7 @@
     const r = deckTopRect(), pu = PU();
     if (e.cards && e.seat === 0) {
       const u = U() * 1.3;
-      if (ov) { ov.deckSize -= e.cards.length; renderPiles(); }   // 拿起来的那几张不再留在牌堆上
+      if (ov) { ov.lifted = (ov.lifted || 0) + e.cards.length; renderPiles(); }   // 拿起来的几张：牌堆看着薄了，数字不变（牌并没被拿走）
       const box = els.center.getBoundingClientRect(), c = fx.center(box);
       const gap = u * 1.12;
       const spots = e.cards.map((_, i) => ({ x: c.x + (i - (e.cards.length - 1) / 2) * gap, y: c.y - u * 0.1 }));
@@ -1074,7 +1070,7 @@
         return fx.fly({ html: cardHtml(id), back: backHtml(), flip: 'down', flipAt: 0.05, from: spots[i], to: deckTopRect(), w: u, s0: 1, s1: pu / u, dur: ms(480), delay: (e.cards.length - 1 - i) * ms(110), lift: 40 });
       }));
       snd('thud');
-      if (ov) ov.deckSize += e.cards.length;
+      if (ov) ov.lifted -= e.cards.length;
       renderPiles();
       return;
     }
@@ -1088,7 +1084,7 @@
       const to = { x: dc.x + dir.x / len * pu * 0.9 + fan * pu * 0.42, y: dc.y + dir.y / len * pu * 0.9 - Math.abs(fan) * 4 };
       out.push(fx.fly({ html: backHtml(), from: r, to, w: pu, s0: 1, s1: 0.86, r0: 0, r1: fan * 14, dur: ms(380), delay: i * 60, lift: 20, keep: true, land: false }));
     }
-    if (ov && k) { ov.deckSize -= k; renderPiles(); }
+    if (ov && k) { ov.lifted = (ov.lifted || 0) + k; renderPiles(); }
     const nodes = await Promise.all(out);
     if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
     const eye = document.createElement('div');
@@ -1115,7 +1111,7 @@
       n.remove();
       return fx.fly({ html: backHtml(), from: rr, to: deckTopRect(), w: pu, s0: 0.86, s1: 1, r0: (i - (k - 1) / 2) * 14, r1: 0, dur: ms(320), delay: i * 50, lift: 10 });
     }));
-    if (ov && k) ov.deckSize += k;
+    if (ov && k) ov.lifted -= k;
     renderPiles();
   }
 
@@ -1854,22 +1850,84 @@
     if (c.needsTarget) {
       const ts = R.validTargets(s, 0, c.type);
       if (ts.length === 1) withName(ts[0]);
-      else pickTarget(ts, withName);
+      else previewThenPick(cards, c, ts, withName);
     } else go();
+  }
+  /* 要指定人的牌：先把牌飞到桌子中间摆好（还没真出），落定以后可选的人头像才一个个亮起来、跳一下，提示去点头像；
+   * 点了人才真的出（从桌上这个位置接着演）；「取消」/ 点空白 = 牌飞回手里 */
+  let preview = null;
+  async function previewThenPick(cards, c, ts, cb) {
+    const t = token;
+    busy = true;
+    const rects = cards.map((id) => handRectOf(id));
+    cards.forEach((id) => handHidden.add(id));
+    selected = [];
+    renderHand({ flip: false });
+    showStage({ by: 0, type: c.type, cards, target: -1, named: null, nopes: [] }, true);
+    els.stage.classList.add('is-preview');
+    preview = { cards };
+    snd('whoosh');
+    const su = SU();
+    await Promise.all(cards.map((id, i) => {
+      const target = stageCard(id);
+      if (!target) return null;
+      const to = target.getBoundingClientRect(), rot = (i - (cards.length - 1) / 2) * 5;
+      return fx.fly({ html: cardHtml(id), from: rects[i], to: { x: to.left + to.width / 2, y: to.top + to.height / 2 }, w: su, s0: rects[i].width / su, s1: 1, r0: 0, r1: rot, dur: ms(380), delay: i * ms(60), lift: 70 })
+        .then(() => { if (t === token) target.classList.remove('is-incoming'); });
+    }));
+    if (t !== token || !preview) return;
+    snd('thud');
+    busy = false;
+    pickTarget(ts, (seat) => {
+      // 记下桌上这几张的位置：真出牌时从这里接着演，不再从手里飞一遍
+      const m = {};
+      for (const id of cards) { const el = stageCard(id); if (el) m[id] = el.getBoundingClientRect(); }
+      game.previewSrc = m;
+      preview = null;
+      els.stage.classList.remove('is-preview');
+      cb(seat);
+    });
+  }
+  function endPreview() {   // 不出了：桌上的牌飞回手里原位
+    if (!preview) return;
+    const cards = preview.cards;
+    preview = null;
+    game.previewSrc = null;
+    const from = {};
+    for (const id of cards) { const el = stageCard(id); if (el) from[id] = el.getBoundingClientRect(); }
+    clearStage();
+    els.stage.classList.remove('is-preview');
+    cards.forEach((id) => handHidden.delete(id));
+    renderHand({ flip: false });
+    if (fx.reduce()) return;
+    for (const id of cards) {
+      const c = handCard(id), f = from[id];
+      if (!c || !f) continue;
+      const r = c.getBoundingClientRect();
+      c.animate([{ transform: 'translate(' + (f.left - r.left).toFixed(1) + 'px,' + (f.top - r.top).toFixed(1) + 'px) scale(' + (f.width / r.width).toFixed(3) + ')' }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(.3,.8,.4,1)', composite: 'add' });
+    }
   }
   function pickTarget(ts, cb) {
     mode = 'target';
     targetCb = cb;
+    let k = 0;
     for (let seat = 1; seat < game.state.n; seat++) {
-      const b = seatEl(seat);
-      b.classList.toggle('is-target', ts.indexOf(seat) >= 0);
-      b.classList.toggle('is-target-off', ts.indexOf(seat) < 0);
+      const b = seatEl(seat), on = ts.indexOf(seat) >= 0;
+      b.classList.toggle('is-target', on);
+      b.classList.toggle('is-target-off', !on);
+      if (on && !fx.reduce()) {   // 一个个亮起来、跳一下，外面荡出一圈金光
+        const a = avPoint(seat), d = k++ * 90;
+        fx.pop(b.querySelector('.zm-av'), { scale: 1.25, dur: 380, delay: d });
+        fx.ring(a.x, a.y, { color: '#c9a96e', size: 120, width: 4, dur: 600, delay: d });
+      }
     }
+    snd('ask');
     renderBand();
   }
   function cancelTarget() {
     mode = null; targetCb = null;
     els.opps.querySelectorAll('.zm-seat').forEach((b) => b.classList.remove('is-target', 'is-target-off'));
+    endPreview();
     renderBand();
   }
   // 观战：我已经出局（单机）→ 点一只还在场的机器猫，坐到它背后看它的手牌；再点一下 / 点别的就换
@@ -1890,7 +1948,8 @@
     const b = seatEl(seat);
     if (!b.classList.contains('is-target')) { shake(b); return; }
     const cb = targetCb;
-    cancelTarget();
+    mode = null; targetCb = null;
+    els.opps.querySelectorAll('.zm-seat').forEach((x) => x.classList.remove('is-target', 'is-target-off'));
     cb(seat);
   }
   function pressNope() {
@@ -2079,7 +2138,7 @@
       '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>算了</button></div>', (d) => {
       d.classList.add('is-cards');
       d.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => { closeDialog(); cb(b.dataset.k); }));
-      d.querySelector('[data-cancel]').addEventListener('click', () => { closeDialog(); renderBand(); });
+      d.querySelector('[data-cancel]').addEventListener('click', () => { closeDialog(); if (game.previewSrc) { preview = { cards: Object.keys(game.previewSrc).map(Number) }; endPreview(); } renderBand(); });
     });
   }
 
@@ -2115,6 +2174,18 @@
         slots.forEach((x) => x.classList.remove('is-sel')); sel = -1;
         snd('flip');
       };
+      // 拖到哪张上：看被拖那张牌的中心离哪个位置最近（不看手指在哪——手指捏在牌的边上时也算得准）
+      const dropTarget = (i, card) => {
+        const r = card.getBoundingClientRect(), cx = r.left + r.width / 2;
+        let best = -1, bd = Infinity;
+        slots.forEach((x, j) => {
+          if (j === i) return;
+          const q = x.getBoundingClientRect(), d = Math.abs(q.left + q.width / 2 - cx);
+          if (d < bd) { bd = d; best = j; }
+        });
+        const w = slots[0].getBoundingClientRect().width;
+        return bd < w * 0.75 ? best : -1;
+      };
       // 点：点一张、再点另一张 = 换位置；拖：按住一张拖到另一张上松手 = 换位置
       let drag = null;
       slots.forEach((slot, i) => {
@@ -2131,7 +2202,7 @@
           drag.card.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + (dx * 0.04).toFixed(1) + 'deg) scale(1.06)';
           drag.card.style.zIndex = 5;
           slot.classList.add('is-dragging');
-          const over = slots.findIndex((x, j) => { if (j === i) return false; const r = x.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX <= r.right; });
+          const over = dropTarget(i, drag.card);
           slots.forEach((x, j) => x.classList.toggle('is-over', j === over));
         });
         const end = (ev) => {
@@ -2147,8 +2218,8 @@
             return;
           }
           const dropRect = d.card.getBoundingClientRect();
+          const j = dropTarget(i, d.card);   // 先按拖到的位置算目标，再把牌放回
           d.card.style.transform = ''; d.card.style.zIndex = '';
-          const j = slots.findIndex((x, k) => { if (k === i) return false; const r = x.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX <= r.right; });
           if (j >= 0) swap(i, j, dropRect);
           else if (!fx.reduce()) { const now = d.card.getBoundingClientRect(); d.card.animate([{ transform: 'translate(' + (dropRect.left - now.left) + 'px,' + (dropRect.top - now.top) + 'px)' }, { transform: 'none' }], { duration: 220, easing: 'ease-out' }); }
         };
@@ -2174,7 +2245,7 @@
     // 整排浮在牌堆顶上方、和牌堆之间留一道缝（不和牌堆压在一起，看着就是从牌堆里拿出来、举在上面）
     const rowY = r.top - pu * 1.4 * 0.82 / 2 - 16;
     const spots = Array.from({ length: k }, (_, i) => ({ x: c.x + (i - (k - 1) / 2) * pu * 0.9, y: rowY }));
-    if (ov) { ov.deckSize -= k; renderPiles(); }
+    if (ov) { ov.lifted = (ov.lifted || 0) + k; renderPiles(); }
     const nodes = await Promise.all(spots.map((p, i) => fx.fly({ html: backHtml(), from: deckTopRect(), to: p, w: pu, s0: 1, s1: 0.82, r0: 0, r1: 0, dur: ms(320), delay: i * ms(70), lift: 16, keep: true, land: false })));
     if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
     game.alterRow = nodes;
@@ -2189,7 +2260,7 @@
     if (!nodes || !nodes.length) {   // 那一排没了（暂停过）：再抬一次；快照里本来就没算这几张，抬起时别再减一遍
       const kk = e.count || (e.cards ? e.cards.length : 3);
       await animAlterLift({ seat: e.seat, count: kk }, t);
-      if (ov) ov.deckSize += kk;
+      if (ov) ov.lifted -= kk;
       nodes = game.alterRow; spots = game.alterSpots; game.alterRow = null;
     }
     if (t !== token || !nodes) { (nodes || []).forEach((n) => n && n.remove()); return; }
@@ -2216,7 +2287,7 @@
       return fx.fly({ html: backHtml(), from: rr, to: deckTopRect(), w: pu, s0: rr.width / pu, s1: 1, r0: 0, r1: 0, dur: ms(260), delay: (k - 1 - i) * ms(70), lift: 10 });
     }));
     if (t !== token) return;
-    if (ov) ov.deckSize += k;
+    if (ov) ov.lifted -= k;
     snd('thud');
     renderPiles();
   }
@@ -2656,6 +2727,8 @@
   document.addEventListener('keydown', (e) => { if (coachQueue && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); nextCoach(); } });
 
   function resetTable() {
+    preview = null;
+    if (game) game.previewSrc = null;
     stopClock();
     closeDialog();
     token++;
