@@ -32,7 +32,8 @@
  *   'act'    轮到 state.turn 出牌或摸牌
  *   'react'  有人刚出了牌（state.pending），等大家决定要不要「不行」：nope() / pass()，全部表态后 closeReaction()
  *   'give'   被「蹭一张」的人挑一张给出：give()
- *   'pick'   五张各不同：出牌人从弃牌堆挑一张：pickDiscard()
+ *   'pick'   五种猫各一张：出牌人从弃牌堆挑一张：pickDiscard()
+ *   'alter'  「重排」：出牌人把牌堆最上面（至多）三张按自己想要的顺序放回去：alterTop()
  *   'defuse' 刚用逗猫棒拆了炸毛猫，把它塞回去：insertKitten()
  *   'over'   结束，state.winner
  * 每个改状态的函数都返回事件数组（UI 播动画 / 服务器转发）。带 priv 字段的事件只有 priv 里列的座位能看到全部内容，
@@ -50,24 +51,24 @@
   'use strict';
 
   const BOOM = 'boom', DEFUSE = 'defuse', NOPE = 'nope', ATTACK = 'attack', TATTACK = 'tattack', SKIP = 'skip',
-    FAVOR = 'favor', SHUFFLE = 'shuffle', FUTURE = 'future';
+    FAVOR = 'favor', SHUFFLE = 'shuffle', FUTURE = 'future', ALTER = 'alter';
   const CATS = Object.freeze(['orange', 'calico', 'cow', 'tabby', 'siamese']);
-  const ACTIONS = Object.freeze([ATTACK, TATTACK, SKIP, FAVOR, SHUFFLE, FUTURE]);
+  const ACTIONS = Object.freeze([ATTACK, TATTACK, SKIP, FAVOR, SHUFFLE, FUTURE, ALTER]);
   const COUNTS = Object.freeze({
-    boom: 4, defuse: 6, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 5,
+    boom: 4, defuse: 6, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3,
     orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4,
   });
   const KINDS = Object.freeze(Object.keys(COUNTS));
   const NAMES = Object.freeze({
     boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '指定甩锅', skip: '跳过', favor: '索要',
-    shuffle: '洗牌', future: '偷看', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗',
+    shuffle: '洗牌', future: '偷看', alter: '重排', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗',
   });
   const KIND_OF = Object.freeze((function () {
     const a = [];
     for (const k of KINDS) for (let i = 0; i < COUNTS[k]; i++) a.push(k);
     return a;
   })());
-  const DECK_SIZE = KIND_OF.length; // 59
+  const DECK_SIZE = KIND_OF.length; // 61
   const MIN_PLAYERS = 2, MAX_PLAYERS = 5;
 
   const RULE_OPTIONS = Object.freeze({
@@ -105,7 +106,7 @@
   }
 
   /* 手牌排序：逗猫棒、不行、行动牌、猫，同种挨着 */
-  const ORDER = [DEFUSE, NOPE, ATTACK, TATTACK, SKIP, FAVOR, SHUFFLE, FUTURE].concat(CATS, [BOOM]);
+  const ORDER = [DEFUSE, NOPE, ATTACK, TATTACK, SKIP, FAVOR, SHUFFLE, FUTURE, ALTER].concat(CATS, [BOOM]);
   function sortHand(hand) {
     return hand.slice().sort((a, b) => (ORDER.indexOf(KIND_OF[a]) - ORDER.indexOf(KIND_OF[b])) || (a - b));
   }
@@ -123,7 +124,7 @@
     const state = {
       n, rules, rs: (seed >>> 0) || 1,
       deck: [], discard: [], removed: [], hands: [], alive: [], outOrder: [],
-      turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null,
+      turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null,
       winner: -1, seq: 0, memo: newMemo(n),
     };
     const booms = [], defuses = [], rest = [];
@@ -153,6 +154,7 @@
       turn: s.turn, turnsLeft: s.turnsLeft, phase: s.phase,
       pending: s.pending && Object.assign({}, s.pending, { cards: s.pending.cards.slice(), nopes: s.pending.nopes.slice(), passed: s.pending.passed.slice() }),
       give: s.give && Object.assign({}, s.give), pick: s.pick && Object.assign({}, s.pick), defuse: s.defuse && Object.assign({}, s.defuse),
+      alter: s.alter && { by: s.alter.by, cards: s.alter.cards.slice() },
       winner: s.winner, seq: s.seq,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
@@ -183,7 +185,8 @@
     const same = kinds.every((k) => k === kinds[0]);
     if (cards.length === 2 && same) return { type: 'pair', needsTarget: true, needsName: false };
     if (cards.length === 3 && same) return { type: 'triple', needsTarget: true, needsName: true };
-    if (cards.length === 5 && new Set(kinds).size === 5) return { type: 'five', needsTarget: false, needsName: false };
+    // 五张：必须是五种猫各一张（橘猫 / 三花 / 奶牛猫 / 狸花 / 暹罗），行动牌、「作废」都不算
+    if (cards.length === 5 && kinds.every(isCat) && new Set(kinds).size === 5) return { type: 'five', needsTarget: false, needsName: false };
     return null;
   }
 
@@ -317,6 +320,19 @@
         ev.push({ t: 'future', seat: me, cards: top, priv: [me] });
         break;
       }
+      case ALTER: {
+        const top = s.deck.slice(0, 3);
+        const m = s.memo[me].deck;
+        for (const id of top) if (m.indexOf(id) < 0) m.push(id);
+        if (top.length >= 2) {
+          s.phase = 'alter';
+          s.alter = { by: me, cards: top.slice() };
+          ev.push({ t: 'alter', seat: me, cards: top, priv: [me] });
+        } else {
+          ev.push({ t: 'future', seat: me, cards: top, priv: [me] }); // 只剩一张：没得排，等于偷看
+        }
+        break;
+      }
       case FAVOR:
         if (s.hands[p.target].length) {
           s.phase = 'give';
@@ -374,6 +390,18 @@
     s.pick = null;
     s.phase = 'act';
     return [{ t: 'pick', seat, card: id }];
+  }
+
+  /* 「重排」：按 order（就是 s.alter.cards 换个顺序）放回牌堆顶；别人之前知道的这几张的位置作废 */
+  function alterTop(s, seat, order) {
+    if (s.phase !== 'alter' || s.alter.by !== seat) throw new Error('illegal alter');
+    const cards = s.alter.cards;
+    if (!Array.isArray(order) || order.length !== cards.length || order.some((id) => cards.indexOf(id) < 0) || new Set(order).size !== order.length) throw new Error('illegal alter order');
+    s.deck.splice(0, order.length, ...order);
+    for (let k = 0; k < s.n; k++) if (k !== seat) s.memo[k].deck = s.memo[k].deck.filter((id) => cards.indexOf(id) < 0);
+    s.alter = null;
+    s.phase = 'act';
+    return [{ t: 'altered', seat, cards: order.slice(), priv: [seat] }];
   }
 
   /* ───── 摸牌（结束一个回合） ───── */
@@ -449,6 +477,7 @@
       case 'give': return [s.give.from];
       case 'pick': return [s.pick.by];
       case 'defuse': return [s.defuse.by];
+      case 'alter': return [s.alter.by];
       default: return [];
     }
   }
@@ -473,6 +502,7 @@
       pending: s.pending && { by: s.pending.by, type: s.pending.type, target: s.pending.target, named: s.pending.named, nopes: s.pending.nopes.length, cards: s.pending.cards.slice() },
       give: s.give, pick: s.pick,
       defuse: s.defuse && (s.defuse.by === seat ? { by: seat, card: s.defuse.card } : { by: s.defuse.by }),
+      alter: s.alter && (s.alter.by === seat ? { by: seat, cards: s.alter.cards.slice() } : { by: s.alter.by }),
       removed: s.removed.slice(), // 收进盒子的牌种是公开的（多余的炸毛猫 / 逗猫棒）
     };
   }
@@ -483,17 +513,17 @@
       if (!e.priv || e.priv.indexOf(seat) >= 0) { const o = Object.assign({}, e); delete o.priv; return o; }
       const o = Object.assign({}, e);
       delete o.priv; delete o.card; delete o.cards; delete o.pos;
-      if (e.t === 'future') o.count = e.cards.length;
+      if (e.t === 'future' || e.t === 'alter' || e.t === 'altered') o.count = e.cards.length;
       return o;
     });
   }
 
   return {
-    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, FAVOR, SHUFFLE, FUTURE, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, FAVOR, SHUFFLE, FUTURE, ALTER, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, RULE_OPTIONS, DEFAULT_RULES, normalizeRules,
     kindOf, isCat, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,
     classify, validTargets, checkPlay, play, awaitingReaction, canNope, nope, pass, reactionDone, isCancelled, closeReaction,
-    give, pickDiscard, draw, insertKitten, whoActs, view, redactEvents,
+    give, pickDiscard, alterTop, draw, insertKitten, whoActs, view, redactEvents,
   };
 });

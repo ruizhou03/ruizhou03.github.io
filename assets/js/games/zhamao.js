@@ -590,7 +590,7 @@
     if (on) {
       if (mode === 'target') cancelTarget();
       selected = []; mode = null;
-      if (!els.mask.hidden && (els.dialog.querySelector('[data-range]') || els.dialog.querySelector('.zm-grid'))) closeDialog();
+      if (!els.mask.hidden && (els.dialog.querySelector('[data-range]') || els.dialog.querySelector('.zm-grid') || els.dialog.querySelector('[data-alter]'))) closeDialog();
       // 正等着我（没在播动画）→ 马上交给机器猫
       if (!busy || game.state.phase === 'react') step();
       else renderBand();
@@ -640,6 +640,10 @@
       case 'pick':
         if (s.pick.by === 0) { busy = false; pickDialog(); }
         else schedule(pace().bot, () => apply(s.pick.by, decideBot(s.pick.by)));
+        break;
+      case 'alter':
+        if (s.alter.by === 0) { busy = false; alterDialog(); }
+        else schedule(pace().bot, () => apply(s.alter.by, decideBot(s.alter.by)));
         break;
       case 'defuse':
         if (s.defuse.by === 0) {
@@ -691,6 +695,7 @@
       else if (d.type === 'give') ev = R.give(s, seat, d.card);
       else if (d.type === 'pick') ev = R.pickDiscard(s, seat, d.card);
       else if (d.type === 'insert') ev = R.insertKitten(s, seat, d.pos);
+      else if (d.type === 'alter') ev = R.alterTop(s, seat, d.order);
       else throw new Error('bad move');
     } catch (err) {
       console.error(err, d);
@@ -734,6 +739,8 @@
       case 'turn': return animTurn(e, t);
       case 'shuffle': return animShuffle(e, t);
       case 'future': return animFuture(e, t);
+      case 'alter': return e.seat === 0 ? undefined : animFuture(e, t);
+      case 'altered': return animAltered(e, t);
       case 'askGive': return animAskGive(e, t);
       case 'give': return animTransfer(e, t, 'give');
       case 'steal': return animSteal(e, t);
@@ -1761,18 +1768,90 @@
     openDialog('<h2>点名要哪种牌？</h2><p class="zm-muted">他手里有，就得给你一张；没有就落空</p>' +
       '<div class="zm-grid" data-stagger>' + kinds.map((k) => '<button type="button" data-k="' + k + '">' + cardHtml(k) + '</button>').join('') + '</div>' +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>算了</button></div>', (d) => {
+      d.classList.add('is-cards');
       d.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => { closeDialog(); cb(b.dataset.k); }));
       d.querySelector('[data-cancel]').addEventListener('click', () => { closeDialog(); renderBand(); });
     });
   }
 
+  /* 重排：最上面（至多）三张正面朝上摆一排，点两张换位置，「好了」放回去；限时到了按现在的顺序放 */
+  function alterDialog() {
+    const s = game.state;
+    let order = s.alter.cards.slice(), sel = -1;
+    const labels = ['最上面', '第 2 张', '第 3 张'];
+    const limit = !game.tutorial && turnSec() > 0 ? turnSec() * 1000 : 0;
+    snd('peek');
+    openDialog('<h2>重排最上面 ' + order.length + ' 张</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
+      '<div class="zm-alter" data-alter>' + order.map((id, i) => '<button type="button" class="zm-alter-slot" data-i="' + i + '">' + cardHtml(id) + '<span>' + labels[i] + '</span></button>').join('') + '</div>' +
+      '<p class="zm-muted zm-alter-tip">点两张换位置</p>' +
+      '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好了</button></div>', (d) => {
+      const slots = Array.from(d.querySelectorAll('.zm-alter-slot'));
+      const okBtn = d.querySelector('[data-ok]');
+      let done = false, timer = 0;
+      const commit = () => {
+        if (done || !okBtn.isConnected) return;
+        done = true; clearTimeout(timer);
+        closeDialog();
+        apply(0, { type: 'alter', order: order.slice() });
+      };
+      slots.forEach((slot, i) => slot.addEventListener('click', () => {
+        if (sel < 0) { sel = i; slot.classList.add('is-sel'); snd('tap'); return; }
+        if (sel === i) { slot.classList.remove('is-sel'); sel = -1; snd('untap'); return; }
+        const a = slots[sel], b = slot, ca = a.querySelector('.zm-card'), cb = b.querySelector('.zm-card');
+        const ra = ca.getBoundingClientRect(), rb = cb.getBoundingClientRect();
+        a.insertBefore(cb, a.firstChild); b.insertBefore(ca, b.firstChild);
+        [order[sel], order[i]] = [order[i], order[sel]];
+        if (!fx.reduce()) {
+          ca.animate([{ transform: 'translate(' + (ra.left - rb.left) + 'px,-14px)' }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1)' });
+          cb.animate([{ transform: 'translate(' + (rb.left - ra.left) + 'px,14px)' }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1)' });
+        }
+        a.classList.remove('is-sel'); sel = -1;
+        snd('flip');
+      }));
+      okBtn.addEventListener('click', commit);
+      if (limit) {
+        const my = token, bar = d.querySelector('.zm-dlg-timer');
+        bar.querySelector('i').animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: limit, easing: 'linear', fill: 'forwards' });
+        setTimeout(() => { if (my === token && !done && okBtn.isConnected) bar.classList.add('is-hurry'); }, Math.max(0, limit - HURRY_MS));
+        timer = setTimeout(() => { if (my === token && !done && okBtn.isConnected) { timeouts += 1; autoAct = true; commit(); if (timeouts >= 2) setAutopilot(true); } }, limit);
+      }
+    });
+  }
+  // 重排完：顶上那几张牌背从牌堆上抬起来、在空中交叉换位，再落回去（谁重排都一样演，看不出顺序）
+  async function animAltered(e, t) {
+    const k = e.count || (e.cards ? e.cards.length : 3);
+    const r = deckTopRect(), c = fx.center(r), pu = PU();
+    snd('shuffle');
+    const spots = Array.from({ length: k }, (_, i) => ({ x: c.x + (i - (k - 1) / 2) * pu * 0.62, y: c.y - pu * 0.9 }));
+    const nodes = await Promise.all(spots.map((p, i) => fx.fly({ html: backHtml(), from: r, to: p, w: pu, s0: 1, s1: 0.8, r0: 0, r1: (i - (k - 1) / 2) * 8, dur: ms(300), delay: i * 50, lift: 10, keep: true, land: false })));
+    if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
+    // 两头的交换位置（中间那张转一下）
+    await Promise.all(nodes.map((n, i) => {
+      if (!n) return null;
+      const j = k - 1 - i, p = spots[j], w = n.offsetWidth || pu;
+      const rr = n.getBoundingClientRect();
+      n.remove();
+      return fx.fly({ html: backHtml(), from: rr, to: p, w: pu, s0: rr.width / pu, s1: 0.8, r0: (i - (k - 1) / 2) * 8, r1: (j - (k - 1) / 2) * 8 + (i === j ? 180 : 0), dur: ms(380), lift: i === j ? 0 : (i < j ? 30 : -30), keep: true, land: false }).then((m) => { void w; return m; });
+    })).then((ns) => nodes.splice(0, nodes.length, ...ns));
+    if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
+    await Promise.all(nodes.map((n, i) => {
+      if (!n) return null;
+      const rr = n.getBoundingClientRect();
+      n.remove();
+      return fx.fly({ html: backHtml(), from: rr, to: deckTopRect(), w: pu, s0: rr.width / pu, s1: 1, r0: 0, r1: 0, dur: ms(280), delay: i * 50, lift: 8 });
+    }));
+    snd('thud');
+    renderPiles();
+  }
   function pickDialog() {
     const s = game.state;
     const by = {};
     for (const id of s.discard) { const k = R.KIND_OF[id]; if (k !== R.BOOM) (by[k] = by[k] || []).push(id); }
     const kinds = R.KINDS.filter((k) => by[k]);
-    openDialog('<h2>从弃牌堆捡一张</h2><p class="zm-muted">五张不同的牌换一张想要的</p>' +
-      '<div class="zm-grid" data-stagger>' + kinds.map((k) => '<button type="button" data-k="' + k + '">' + cardHtml(k) + '<span>×' + by[k].length + '</span></button>').join('') + '</div>', (d) => {
+    // 只列有哪几种（只能拿一张，每种有几张不重要）
+    openDialog('<h2>从弃牌堆捡一张</h2>' +
+      '<div class="zm-grid" data-stagger>' + kinds.map((k) => '<button type="button" data-k="' + k + '">' + cardHtml(k) + '</button>').join('') + '</div>', (d) => {
+      d.classList.add('is-cards');
       d.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => {
         const id = by[b.dataset.k][by[b.dataset.k].length - 1];
         if (tut && tut.allow && !tut.allow({ type: 'pick', card: id })) { shake(b); return; }
@@ -1942,10 +2021,11 @@
       li('favor', '指定一人，他自己挑一张给你') +
       li('shuffle', '把牌堆洗乱') +
       li('future', '偷看牌堆最上面三张') +
+      li('alter', '看牌堆最上面三张，并按你想要的顺序放回去（别人看不到）') +
       '</ul><h3>组合（任何同名牌都算）</h3><ul>' +
       '<li><b>两张一样</b>　指定一人，随机偷他一张</li>' +
       '<li><b>三张一样</b>　指定一人并点名一种牌，他有就得给你</li>' +
-      '<li><b>五张各不同</b>　从弃牌堆捡任意一张</li>' +
+      '<li><b>五种猫各一张</b>　橘猫、三花、奶牛猫、狸花、暹罗凑齐：从弃牌堆捡任意一张（行动牌、作废不算）</li>' +
       '<li>橘猫、三花、奶牛猫、狸花、暹罗本身没用，专门凑组合</li></ul>' +
       '<h3>操作</h3><ul><li>点手牌选中（可多选），再点「出牌」；需要指定人时，能选的人头像会亮，点他的头像。</li>' +
       '<li>不想出牌就点「摸牌」结束回合。轮到你时头像外有一圈红环在收，收完还没动就自动替你摸一张（设置里可改成不限时）。</li>' +

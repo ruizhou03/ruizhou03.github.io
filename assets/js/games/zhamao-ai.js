@@ -22,7 +22,7 @@
   const TIER_NAMES = Object.freeze({ easy: '入门', normal: '普通', hard: '高手' });
 
   /* 牌的「留着有多值钱」 */
-  const VALUE = { defuse: 100, nope: 30, tattack: 28, attack: 26, skip: 20, future: 15, shuffle: 13, favor: 10 };
+  const VALUE = { defuse: 100, nope: 30, tattack: 28, attack: 26, skip: 20, alter: 17, future: 15, shuffle: 13, favor: 10 };
   function cardValue(hand, id) {
     const k = K[id];
     if (VALUE[k] != null) return VALUE[k];
@@ -92,14 +92,14 @@
     for (const id of v.hand) { const k = K[id]; (by[k] = by[k] || []).push(id); }
     return by;
   }
-  function fiveDistinct(v) {
-    // 挑五种最不值钱的各一张；不拆逗猫棒
-    const by = pairsOf(v), picks = [];
-    for (const k of Object.keys(by)) if (k !== R.DEFUSE) picks.push(by[k].slice().sort((a, b) => cardValue(v.hand, a) - cardValue(v.hand, b))[0]);
-    if (picks.length < 5) return null;
-    picks.sort((a, b) => cardValue(v.hand, a) - cardValue(v.hand, b));
-    return picks.slice(0, 5);
+  // 五种猫各一张（规则只认猫）：每种挑一张；缺一种就凑不成
+  function fiveCats(v) {
+    const picks = [];
+    for (const k of R.CATS) { const id = one(v, k); if (id == null) return null; picks.push(id); }
+    return picks;
   }
+  function fiveDistinct(v) { return fiveCats(v); }
+
 
   /* ───── 入门 ───── */
   function easyAct(v, rng) {
@@ -123,6 +123,7 @@
       const am = attackMove(v);
       if (am) return am;
       if (has(v, R.SKIP)) return playMove([one(v, R.SKIP)]);
+      if (has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);   // 把顶上的炸毛猫往下塞
       if (has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
       if (def) return DRAW;
       const steal = stealMove(v, by, ts, true);
@@ -140,6 +141,7 @@
     const lookAt = def ? 0.22 : 0.1;
     const dodgeAt = def ? 0.45 : 0.2;
     if (risk >= lookAt && has(v, R.FUTURE) && v.deckSize > 1) return playMove([one(v, R.FUTURE)]);
+    if (risk >= lookAt && has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);
     if (v.turnsLeft >= 2 && risk >= 0.12) { const am = attackMove(v); if (am) return am; }
     if (risk >= dodgeAt) {
       const am = attackMove(v);
@@ -206,6 +208,16 @@
     if (tier === 'easy') return pickRand(cands, rng);
     const hand = v.hand;
     return cands.slice().sort((a, b) => cardValue(hand, b) - cardValue(hand, a))[0];
+  }
+  /* 重排：顶上有炸毛猫——手里有甩锅 / 跳过（这回合躲得掉）就把它放最上面留给下一个人，躲不掉就压到最底下 */
+  function chooseAlter(v, tier, rng) {
+    rng = rng || Math.random;
+    const cards = (v.alter && v.alter.cards) || [];
+    if (tier === 'easy') return R.shuffleIn({ rs: (rng() * 4294967296) >>> 0 }, cards.slice());
+    const booms = cards.filter((id) => K[id] === R.BOOM), safe = cards.filter((id) => K[id] !== R.BOOM);
+    if (!booms.length) return cards.slice();
+    const canDodge = has(v, R.ATTACK) || has(v, R.TATTACK) || has(v, R.SKIP);
+    return canDodge ? booms.concat(safe) : safe.concat(booms);
   }
   function normalInsert(v, tier, rng) {
     const size = v.deckSize; // 塞之前牌堆的张数：pos 0..size
@@ -276,6 +288,7 @@
       case 'give': { const f = s.give.from; R.give(s, f, chooseGive(R.view(s, f), tierOf(f), rng)); return; }
       case 'pick': { const b = s.pick.by; R.pickDiscard(s, b, choosePick(R.view(s, b), tierOf(b), rng)); return; }
       case 'defuse': { const b = s.defuse.by; R.insertKitten(s, b, normalInsert(R.view(s, b), tierOf(b), rng)); return; }
+      case 'alter': { const b = s.alter.by; R.alterTop(s, b, chooseAlter(R.view(s, b), tierOf(b), rng)); return; }
     }
   }
   function placement(s, me) { // 1 = 赢，越早炸越接近 0
@@ -297,7 +310,7 @@
       if (id == null) continue;
       if (k === R.FAVOR) { for (const t of ts) out.push(playMove([id], t)); }
       else if (k === R.TATTACK) { for (let t = 0; t < v.n; t++) if (t !== v.me && v.alive[t]) out.push(playMove([id], t)); }
-      else if (k !== R.FUTURE) out.push(playMove([id])); // 偷看靠启发式（它的价值在信息，模拟里体现不出来）
+      else if (k !== R.FUTURE && k !== R.ALTER) out.push(playMove([id])); // 偷看 / 重排靠启发式（价值在信息，模拟里体现不出来）
     }
     for (const k of Object.keys(by)) {
       if (k === R.DEFUSE) continue;
@@ -326,13 +339,13 @@
   }
 
   function hardAct(v, rng, opts) {
-    const top = topInfo(v);
-    // 偷看：信息价值模拟不出来，沿用普通的时机
-    if (!top.known && has(v, R.FUTURE) && v.deckSize > 1 && top.p >= (has(v, R.DEFUSE) ? 0.2 : 0.1)) return playMove([one(v, R.FUTURE)]);
+    // 偷看 / 重排：信息价值模拟不出来，普通那套时机想出这两张就照它出
+    const nm = normalAct(v, rng);
+    if (nm.type === 'play' && nm.cards.length === 1 && (K[nm.cards[0]] === R.FUTURE || K[nm.cards[0]] === R.ALTER)) return nm;
     const cands = actCandidates(v);
     if (cands.length === 1) return DRAW;
     // 总模拟次数封顶（候选多时每个少模拟几次），最坏一步也不卡住动画
-    const samples = (opts && opts.samples) || Math.max(12, Math.min(48, Math.floor(420 / cands.length)));
+    const samples = (opts && opts.samples) || Math.max(16, Math.min(80, Math.floor(900 / cands.length)));
     const scores = evaluate(v, (s, m) => {
       if (m.type === 'draw') { R.draw(s, v.me); return; }
       R.play(s, v.me, m.cards, m);
@@ -380,12 +393,13 @@
       case 'give': return { type: 'give', card: chooseGive(v, tier, rng) };
       case 'pick': return { type: 'pick', card: choosePick(v, tier, rng) };
       case 'defuse': return { type: 'insert', pos: insertFor(v, tier, rng) };
+      case 'alter': return { type: 'alter', order: chooseAlter(v, tier, rng) };
       default: return null;
     }
   }
 
   return {
     TIERS, TIER_NAMES, cardValue, topInfo, determinize, decide,
-    actFor, reactFor, insertFor, chooseGive, choosePick, stepWith,
+    actFor, reactFor, insertFor, chooseGive, choosePick, chooseAlter, stepWith,
   };
 });

@@ -26,7 +26,8 @@ const idOf = (s, seat, k) => s.hands[seat].find((id) => R.KIND_OF[id] === k);
 const closeAll = (s) => { for (const t of R.awaitingReaction(s)) R.pass(s, t); return R.closeReaction(s); };
 
 test('deck composition', () => {
-  assert.equal(R.DECK_SIZE, 59);
+  assert.equal(R.DECK_SIZE, 61);
+  assert.equal(ofKind(R.ALTER).length, 3);
   assert.equal(ofKind(R.TATTACK).length, 3);
   assert.equal(ofKind(R.BOOM).length, 4);
   assert.equal(ofKind(R.DEFUSE).length, 6);
@@ -70,9 +71,11 @@ test('classify', () => {
   assert.equal(R.classify([o1, a1]), null);
   assert.equal(R.classify([o1, o1]), null);
   assert.equal(R.classify([b1]), null);
-  const five = [ofKind('orange')[0], ofKind('calico')[0], ofKind('cow')[0], ofKind('skip')[0], ofKind('nope')[0]];
+  const five = [ofKind('orange')[0], ofKind('calico')[0], ofKind('cow')[0], ofKind('tabby')[0], ofKind('siamese')[0]];
   assert.equal(R.classify(five).type, 'five');
   assert.equal(R.classify(five.slice(0, 4)), null);
+  // 五张不同但带了行动牌 / 作废：不算
+  assert.equal(R.classify([ofKind('orange')[0], ofKind('calico')[0], ofKind('cow')[0], ofKind('skip')[0], ofKind('nope')[0]]), null);
 });
 
 test('draw safe card ends turn', () => {
@@ -224,7 +227,7 @@ test('pair steals random, triple names', () => {
 });
 
 test('five different: pick from discard', () => {
-  const s = rig([['cow', 'orange', 'calico', 'skip', 'nope'], ['tabby']], ['orange', 'calico']);
+  const s = rig([['cow', 'orange', 'calico', 'tabby', 'siamese'], ['tabby']], ['orange', 'calico']);
   R.play(s, 0, s.hands[0].slice()); closeAll(s);
   assert.equal(s.phase, 'pick');
   const def = s.discard.find((id) => R.KIND_OF[id] === 'defuse');
@@ -285,7 +288,8 @@ test('random full games conserve cards and end with one winner', () => {
             const id = hand[(rnd() * hand.length) | 0];
             const same = hand.filter((x) => R.KIND_OF[x] === R.KIND_OF[id]);
             const pick = rnd() < 0.5 && same.length >= 2 ? same.slice(0, 2 + (rnd() < 0.3 && same.length >= 3 ? 1 : 0)) : [id];
-            const targets = R.validTargets(s, me);
+            const c0 = R.classify(pick);
+            const targets = R.validTargets(s, me, c0 && c0.type);
             const opts = { target: targets[(rnd() * targets.length) | 0], named: R.KINDS[1 + ((rnd() * 12) | 0)] };
             if (R.checkPlay(s, me, pick, opts)) R.play(s, me, pick, opts); else R.draw(s, me);
             break;
@@ -301,6 +305,7 @@ test('random full games conserve cards and end with one winner', () => {
           case 'give': R.give(s, s.give.from, s.hands[s.give.from][0]); break;
           case 'pick': R.pickDiscard(s, s.pick.by, s.discard.find((x) => R.KIND_OF[x] !== R.BOOM)); break;
           case 'defuse': R.insertKitten(s, s.defuse.by, (rnd() * (s.deck.length + 1)) | 0); break;
+          case 'alter': R.alterTop(s, s.alter.by, s.alter.cards.slice().reverse()); break;
         }
         assert.equal(total(s), R.DECK_SIZE);
         assert.equal(R.kittensInDeck(s) + (s.defuse ? 1 : 0), R.aliveCount(s) - 1 + (s.phase === 'over' ? 0 : 0));
@@ -325,4 +330,35 @@ test('clone is independent', () => {
   R.draw(c, c.turn);
   assert.notEqual(c.deck.length, s.deck.length);
   assert.equal(total(s), R.DECK_SIZE);
+});
+
+test('alter the future: private reorder of the top three', () => {
+  const s = rig([['alter', 'cow'], ['future', 'cow']], ['boom', 'orange', 'calico', 'tabby']);
+  // 1 号先偷看过：知道顶上是炸毛猫
+  s.memo[1].deck = s.deck.slice(0, 3);
+  R.play(s, 0, [idOf(s, 0, 'alter')]);
+  const ev = closeAll(s);
+  const a = ev.find((e) => e.t === 'alter');
+  assert.equal(s.phase, 'alter'); assert.deepEqual(R.whoActs(s), [0]);
+  assert.equal(R.redactEvents([a], 1)[0].cards, undefined);
+  assert.equal(R.redactEvents([a], 1)[0].count, 3);
+  assert.equal(R.view(s, 1).alter.cards, undefined);
+  const top = s.alter.cards.slice();
+  assert.throws(() => R.alterTop(s, 0, [top[0], top[0], top[1]]));
+  assert.throws(() => R.alterTop(s, 1, top));
+  R.alterTop(s, 0, [top[1], top[2], top[0]]);
+  assert.equal(s.phase, 'act');
+  assert.deepEqual(s.deck.slice(0, 3), [top[1], top[2], top[0]]);
+  assert.equal(R.KIND_OF[s.deck[2]], 'boom');
+  assert.deepEqual(R.view(s, 0).known.map((x) => x.pos), [0, 1, 2]);
+  assert.equal(R.view(s, 1).known.length, 0); // 别人原来知道的位置作废
+  assert.equal(total(s), R.DECK_SIZE);
+});
+
+test('alter with a single card left = just a peek', () => {
+  const s = rig([['alter'], ['cow']], ['boom']);
+  R.play(s, 0, [idOf(s, 0, 'alter')]);
+  const ev = closeAll(s);
+  assert.equal(s.phase, 'act');
+  assert.ok(ev.find((e) => e.t === 'future'));
 });

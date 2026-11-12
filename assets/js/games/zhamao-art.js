@@ -24,6 +24,7 @@
     favor:   { bg: '#f8e1e4', band: '#c4607a', ink: '#fff8f9' },
     shuffle: { bg: '#efe6d2', band: '#8a6a3e', ink: '#fffaf0' },
     future:  { bg: '#e2eeee', band: '#3f7f86', ink: '#f7ffff' },
+    alter:   { bg: '#e6e8f4', band: '#4f5d9a', ink: '#f7f8ff' },
     orange:  { bg: '#fbf4e6', band: '#e0893e', ink: '#fffaf0' },
     calico:  { bg: '#fbf4e6', band: '#b98a5a', ink: '#fffaf0' },
     cow:     { bg: '#fbf4e6', band: '#3a3632', ink: '#fffaf0' },
@@ -207,6 +208,15 @@
     svg += card(78, 30, 24) + card(16, 80, -30, '#c0742e') + card(84, 84, 40, '#3f7f86') + card(64, 18, -18, '#c4607a');
     return svg;
   }
+  // 重排：三张牌背扇开，一只猫爪按着中间那张，上面一道弯弯的「换位」双箭头
+  function alterArt() {
+    let svg = ground();
+    for (let i = 0; i < 3; i++) svg += '<g transform="translate(' + (30 + i * 20) + ' 62) rotate(' + ((i - 1) * 12) + ')"><rect x="-11" y="-16" width="22" height="31" rx="4" fill="' + NAVY + '"/><rect x="-7.5" y="-12.5" width="15" height="24" rx="2.5" fill="none" stroke="' + GOLD + '" stroke-width="2"/></g>';
+    svg += '<path d="M28 34q22-20 44 0" fill="none" stroke="#4f5d9a" stroke-width="4" stroke-linecap="round"/><path d="M66 27l7 8-10 2" fill="none" stroke="#4f5d9a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>';
+    svg += '<path d="M34 41l-7-8 10-2" fill="none" stroke="#4f5d9a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>';
+    svg += paw(50, 80, 0.9, '#f0c27a');
+    return svg;
+  }
   function futureArt() {
     // 猫眼偷看：纸箱上挖了个洞，一只大猫眼往外看；三张牌背在前面排开
     let svg = ground();
@@ -218,7 +228,7 @@
   }
 
   const FACE = {
-    boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, tattack: tattackArt, skip: skipArt, favor: favorArt, shuffle: shuffleArt, future: futureArt,
+    boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, tattack: tattackArt, skip: skipArt, favor: favorArt, shuffle: shuffleArt, future: futureArt, alter: alterArt,
     orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'),
   };
   const cache = {};
@@ -238,6 +248,7 @@
     favor: () => heart(12, 13, 7, '#e0566e'),
     shuffle: () => '<path d="M4 9h14v11H4Z" fill="#c99a62"/><path d="M4 9l-2-3h14l2 3Z" fill="#dcb27c"/>' + line('M7 4l3 2M16 2l-1 3', 2, '#8a6a3e'),
     future: () => '<ellipse cx="12" cy="12" rx="10" ry="6.5" fill="#3c3530"/><ellipse cx="12" cy="12" rx="7" ry="5" fill="#e9d46a"/><ellipse cx="12" cy="12" rx="1.8" ry="4.4" fill="' + INK + '"/>',
+    alter: () => '<path d="M4 9q8-7 16 0" fill="none" stroke="#4f5d9a" stroke-width="2.4" stroke-linecap="round"/><path d="M17 5l3.4 4-4.6 1" fill="none" stroke="#4f5d9a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><rect x="5" y="12" width="6" height="9" rx="1.5" fill="' + NAVY + '"/><rect x="13" y="12" width="6" height="9" rx="1.5" fill="' + NAVY + '"/>',
   };
   for (const k of Object.keys(BREED)) {
     const b = BREED[k];

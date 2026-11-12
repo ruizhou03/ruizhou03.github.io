@@ -11,6 +11,7 @@ function apply(s, seat, d) {
   if (d.type === 'give') return R.give(s, seat, d.card);
   if (d.type === 'pick') return R.pickDiscard(s, seat, d.card);
   if (d.type === 'insert') return R.insertKitten(s, seat, d.pos);
+  if (d.type === 'alter') return R.alterTop(s, seat, d.order);
   throw new Error('bad decision ' + JSON.stringify(d));
 }
 
@@ -79,7 +80,7 @@ test('normal dodges a known kitten on top', () => {
   s.hands[me].push(skip);
   const d = A.decide(s, me, 'normal');
   assert.equal(d.type, 'play');
-  assert.ok([R.SKIP, R.ATTACK, R.SHUFFLE].indexOf(R.KIND_OF[d.cards[0]]) >= 0);
+  assert.ok([R.SKIP, R.ATTACK, R.TATTACK, R.ALTER, R.SHUFFLE].indexOf(R.KIND_OF[d.cards[0]]) >= 0);
   assert.ok(kitten >= 0);
 });
 
