@@ -523,3 +523,12 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-dlg-timer i { display: block; height: 100%; background: var(--zm-seal); transform-origin: left center; }
 .zm-dlg-timer.is-hurry i { background: #8a2e26; animation: zm-dlg-hurry 0.5s ease-in-out infinite alternate; }
 @keyframes zm-dlg-hurry { to { opacity: 0.45; } }
+
+/* 托管：我的头像右下角挂一个小机器猫章，头像淡一点；点头像 / 手牌 /「取消托管」收回 */
+.zm-seat-me .zm-av { cursor: pointer; }
+.zm-seat-me.is-auto .zm-av-face { opacity: 0.55; }
+.zm-seat-me.is-auto .zm-av::after {
+  content: ''; position: absolute; right: -6px; bottom: -4px; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--zm-navy) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='5' y='8' width='14' height='10' rx='3' fill='%23fbf6ec'/%3E%3Ccircle cx='9.5' cy='13' r='1.5' fill='%232f4a6d'/%3E%3Ccircle cx='14.5' cy='13' r='1.5' fill='%232f4a6d'/%3E%3Cpath d='M12 8V5' stroke='%23fbf6ec' stroke-width='1.6' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='4.5' r='1.3' fill='%23c8463a'/%3E%3C/svg%3E") center / 18px no-repeat;
+  box-shadow: 0 0 0 1.5px var(--zm-paper);
+}

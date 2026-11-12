@@ -61,6 +61,9 @@
   let reactTimer = null;
   let tut = null;       // 教程控制器（见 zhamao-tutorial.js）
   let ov = null;        // 动画期间桌上显示的样子（见文件头）
+  let autopilot = false; // 托管：我的每一步交给机器猫（点自己头像进 / 出；连着两回合超时自动进）
+  let timeouts = 0;      // 连着超时几次（我自己动一下就清零）
+  let autoAct = false;   // 这一步是超时 / 托管替我做的（不清零超时次数）
   const handHidden = new Set();   // 手牌里「位置先占好、牌还在路上」的那几张
 
   function save() {
@@ -347,7 +350,8 @@
     els.drawBtn.classList.remove('is-ready');
     if (s.phase === 'over') { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (game.dealing) { /* 发牌中：两个键都灰着 */ }
-    else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '下一局'; }   // 我出局了：自动接着看他们打完，想走就开下一局
+    else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '下一局'; }
+    else if (autopilot) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消托管'; }   // 我出局了：自动接着看他们打完，想走就开下一局
     else if (mode === 'target') { els.drawBtn.hidden = true; }
     else if (mode === 'give') { els.playBtn.textContent = '给他'; els.playBtn.disabled = selected.length !== 1; }
     else if (canNope) { els.playBtn.hidden = true; }
@@ -506,13 +510,46 @@
     if (clock.seat >= 0 && game) { const el = seatEl(clock.seat); if (el) el.classList.remove('is-timed', 'is-hurry', 'is-paused'); }
     Object.assign(clock, { seat: -1, onTimeout: null, paused: false, at: 0 });
   }
+  // 超时：先替我摸一张（被蹭牌时机器猫替我挑一张给）；连着第二回合还超时 → 进托管，之后每步按机器猫自己的判断走
   function onMyTimeout() {
     if (!game || busy) return;
     const s = game.state;
     if (mode === 'target') cancelTarget();
     selected = [];
+    timeouts += 1;
+    autoAct = true;
     if (s.phase === 'act' && s.turn === 0) { renderHand(); apply(0, { type: 'draw' }); }
     else if (s.phase === 'give' && s.give.from === 0) { mode = null; renderHand(); apply(0, decideBot(0)); }
+    if (timeouts >= 2) setAutopilot(true);   // 第二回合还超时：这一下照样摸，之后进托管
+  }
+  const myTier = () => settings.tier || 'normal';
+  function canAuto() { return !!(game && !game.tutorial && game.state.alive[0] && game.state.phase !== 'over'); }
+  function setAutopilot(on) {
+    on = !!on && canAuto();
+    if (autopilot === on) return;
+    autopilot = on;
+    if (!on) timeouts = 0;
+    els.me.classList.toggle('is-auto', on);
+    bubble(0, on ? '托管中' : '我回来了', { ms: 1300 });
+    snd(on ? 'tick' : 'tap');
+    if (on) {
+      if (mode === 'target') cancelTarget();
+      selected = []; mode = null;
+      if (!els.mask.hidden && (els.dialog.querySelector('[data-range]') || els.dialog.querySelector('.zm-grid'))) closeDialog();
+      // 正等着我（没在播动画）→ 马上交给机器猫
+      if (!busy || game.state.phase === 'react') step();
+      else renderBand();
+    } else if (!busy) step();
+    else renderBand();
+  }
+  // 托管时轮到我：照机器猫的判断走（不是死摸牌）
+  function autoMove() {
+    schedule(pace().bot, () => {
+      if (!game) return;
+      if (!autopilot) { step(); return; }   // 排着的这一步还没走就取消托管了：把操作还给我
+      autoAct = true;
+      apply(0, AI.decide(game.state, 0, myTier()));
+    });
   }
 
   /* ───── 流程 ───── */
@@ -530,9 +567,11 @@
     renderAll();
     if (tut && !coachQueue) hint('');
     if (s.phase === 'over') { finish(); return; }
-    if (s.phase === 'act') startClock(s.turn, s.turn === 0 ? onMyTimeout : null);
-    else if (s.phase === 'give' && s.give.from === 0) startClock(0, onMyTimeout);
+    if (s.phase === 'act') startClock(s.turn, s.turn === 0 && !autopilot ? onMyTimeout : null);
+    else if (s.phase === 'give' && s.give.from === 0 && !autopilot) startClock(0, onMyTimeout);
     else stopClock();
+    // 托管：轮到我做决定的地方都交给机器猫
+    if (autopilot && canAuto() && R.whoActs(s).indexOf(0) >= 0 && s.phase !== 'react') { busy = true; mode = null; renderBand(); autoMove(); return; }
     switch (s.phase) {
       case 'act':
         if (s.turn === 0) { busy = false; mode = null; renderHand(); renderBand(); myTurnCue(); idle(); }
@@ -587,6 +626,7 @@
     const s = game.state, t = token;
     busy = true;
     stopClock();
+    if (seat === 0) { if (!autoAct) timeouts = 0; autoAct = false; }
     const rects = captureSources(seat, d);
     snapshot();
     let ev;
@@ -1263,14 +1303,30 @@
     const pu = PU();
     const from = node ? node.getBoundingClientRect() : els.center.getBoundingClientRect();
     if (node) node.remove();
-    // 掀开的「盖子」= 顶上那张 + 上面将近一半的纸边，一起翘起来（每次掀开的厚度都差不多，看不出塞在哪）
-    const layers = Array.from(els.deck.querySelectorAll('.zm-deck-stack > *'));
-    const lid = layers.slice(Math.max(1, Math.floor(layers.length * 0.55)));
-    lid.forEach((c) => c.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '7px -18px', rotate: '-9deg', offset: 0.35 }, { translate: '7px -18px', rotate: '-9deg', offset: 0.7 }, { translate: '0 0', rotate: '0deg' }], { duration: ms(760), easing: 'ease-in-out' }));
-    const r = els.deck.getBoundingClientRect(), c = fx.center(r);
-    await fx.fly({ html: backHtml(), from, to: { x: c.x - pu * 0.6, y: c.y - pu * 0.05 }, w: pu, s0: from.width / pu, s1: 1, r0: 180, r1: -10, dur: ms(420), lift: 50, land: false, keep: false });
-    if (t !== token) return;
-    await fx.fly({ html: backHtml(), from: { x: c.x - pu * 0.6, y: c.y - pu * 0.05 }, to: { x: c.x, y: c.y - 4 }, w: pu, s0: 1, s1: 1, r0: -10, r1: 0, dur: ms(240), lift: 0, land: false, shadow: false });
+    // 掀开的「盖子」= 顶上那张 + 上面将近一半的纸边；炸毛猫从侧面插进这道缝：真的放进牌堆那一摞里（盖子压在它上面、下半截垫在它下面）。
+    // 不管实际塞第几张，缝都开在同一个高度，别人从动画看不出位置
+    const stack = els.deck.querySelector('.zm-deck-stack');
+    const layers = Array.from(stack.children);
+    const split = Math.max(1, Math.floor(layers.length * 0.55));
+    const lid = layers.slice(split), floor = layers[split - 1] || layers[0];
+    if (!floor) {
+      await fx.fly({ html: backHtml(), from, to: deckTopRect(), w: pu, s0: from.width / pu, s1: 1, r0: 0, r1: 0, dur: ms(380), lift: 40 });
+    } else {
+      lid.forEach((c) => c.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '6px -16px', rotate: '-8deg', offset: 0.3 }, { translate: '6px -16px', rotate: '-8deg', offset: 0.72 }, { translate: '0 0', rotate: '0deg' }], { duration: ms(900), easing: 'ease-in-out' }));
+      const fr = floor.getBoundingClientRect(), off = pu * 0.95;
+      // 先飞到缝的左边
+      await fx.fly({ html: backHtml(), from, to: { x: fr.left + fr.width / 2 - off, y: fr.top + fr.height / 2 - 2 }, w: pu, s0: from.width / pu, s1: 1, r0: from.width ? -10 : 0, r1: -8, dur: ms(380), lift: 40, land: false });
+      if (t !== token) return;
+      // 再换成牌堆里的一张，从左边滑进缝里
+      const card = document.createElement('div');
+      card.innerHTML = backHtml('is-inserting');
+      const el = card.firstChild;
+      el.style.transform = floor.style.transform || '';
+      el.style.filter = 'drop-shadow(0 0 6px rgba(200, 70, 58, 0.55))';
+      stack.insertBefore(el, lid[0] || null);
+      await el.animate([{ translate: (-off) + 'px -2px', rotate: '-8deg' }, { translate: '0 -2px', rotate: '0deg' }], { duration: ms(300), easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+      el.remove();
+    }
     if (t !== token) return;
     snd('insert');
     ov.deckSize += 1;
@@ -1337,13 +1393,13 @@
     // 机器人：第一个想作废的人，过一会儿出手（我可以抢在前面）
     let botSeat = -1;
     for (const x of R.awaitingReaction(s)) {
-      if (x === 0) continue;
+      if (x === 0 && !autopilot) continue;
       let want;
       if (tut && tut.botNope) want = tut.botNope(s, x);
       if (want == null) want = R.canNope(s, x) && AI.decide(s, x, game.tiers[x] || 'normal').type === 'nope';
       if (want) { botSeat = x; break; }
     }
-    const meCan = R.canNope(s, 0) && R.awaitingReaction(s).indexOf(0) >= 0;
+    const meCan = !autopilot && R.canNope(s, 0) && R.awaitingReaction(s).indexOf(0) >= 0;
     const tutWaitMe = tut && tut.mustNope && tut.mustNope(s);
     const botDelay = botSeat >= 0 ? P.botNope[0] + Math.random() * (P.botNope[1] - P.botNope[0]) : Infinity;
     const windowMs = meCan ? (tutWaitMe ? Infinity : P.react || 1400) : P.quiet;
@@ -1359,7 +1415,7 @@
     reactTimer = setTimeout(() => {
       if (k !== token || game.state.phase !== 'react') return;
       reactTimer = null;
-      if (botSeat >= 0 && botDelay <= windowMs) doNope(botSeat);
+      if (botSeat >= 0 && botDelay <= windowMs) { if (botSeat === 0) autoAct = true; doNope(botSeat); }
       else closeReact();
     }, fireAt);
   }
@@ -1371,6 +1427,7 @@
     stopFuse();
     snapshot();
     renderBand();
+    renderHand({ flip: false });   // 手里「作废」那几张的紫光立刻停
     const ev = R.nope(s, seat);
     await playEvents(ev, t);
     if (t !== token) return;
@@ -1381,8 +1438,10 @@
     const s = game.state, t = token;
     reactOpen = false;
     busy = true;
+    stopFuse();
     snapshot();
     renderBand();
+    renderHand({ flip: false });   // 导火索烧完：紫色按钮、手里「作废」的紫光一起停
     for (const x of R.awaitingReaction(s)) R.pass(s, x);
     const ev = R.closeReaction(s);
     await playEvents(ev, t);
@@ -1394,6 +1453,7 @@
   function shake(node) { if (!node) return; node.classList.remove('zm-shake'); void node.offsetWidth; node.classList.add('zm-shake'); }
   function onCardTap(id, node) {
     const s = game.state;
+    if (autopilot) { setAutopilot(false); return; }   // 托管中点手牌 = 收回来自己打
     if (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE) { pressNope(); return; }
     if (mode === 'give') { selected = selected[0] === id ? [] : [id]; snd('tap'); renderHand(); renderBand(); return; }
     if (mode === 'target') { cancelTarget(); }
@@ -1408,6 +1468,7 @@
   }
   function onDraw() {
     const s = game.state;
+    if (autopilot) { setAutopilot(false); return; }
     if (!s.alive[0] && s.phase !== 'over') { newGame(); return; }
     if (!myTurnToAct()) return;
     if (tut && tut.allow && !tut.allow({ type: 'draw' })) { shake(els.drawBtn); return; }
@@ -1492,7 +1553,7 @@
     const kits = extraInDeck.filter((id) => R.KIND_OF[id] === R.BOOM);
     const defs = extraInDeck.filter((id) => R.KIND_OF[id] === R.DEFUSE);
     const dealt = rest.reduce((a, h) => a + h.length, 0);
-    ov = { counts: Array(n).fill(0), hand: [], deckSize: s.deck.length - kits.length + dealt, kittens: 0, discard: [], turn: -1, turnsLeft: 1, alive: s.alive.slice() };
+    ov = { counts: Array(n).fill(0), hand: [], deckSize: s.deck.length + dealt, kittens: kits.length, discard: [], turn: -1, turnsLeft: 1, alive: s.alive.slice() };
     game.dealing = true;
     renderAll();
     const skipped = () => t !== token || !game.dealing;
@@ -1503,6 +1564,25 @@
     snd('thud', 300);
     await wait(460);
     if (skipped()) return;
+    // 先把炸毛猫一只只从牌堆里抽出来、翻开、摆在牌堆上方一排（谁也不拿，等发完牌再塞回去）
+    const u0 = U(), pu0 = PU(), kw = pu0 * 0.82;
+    const pr = els.deck.parentElement.getBoundingClientRect(), dtop = deckTopRect();
+    const aside = [];
+    for (let i = 0; i < kits.length; i++) {
+      if (skipped()) { aside.forEach((x) => x && x.remove()); return; }
+      const spot = { x: pr.left + pr.width / 2 + (i - (kits.length - 1) / 2) * kw * 1.12, y: dtop.top - pu0 * 0.78 };
+      const from = deckTopRect();
+      ov.deckSize -= 1; ov.kittens -= 1;
+      renderPiles();
+      snd('hiss', 120);
+      const node = await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), flip: 'up', flipAt: 0.25, from, to: spot, w: kw, s0: pu0 / kw, s1: 1, r0: 0, r1: (i % 2 ? 6 : -6), dur: 380, lift: 30, keep: true, land: false });
+      if (node) node.classList.add('zm-angry');
+      aside.push(node);
+      fx.burst(spot.x, spot.y, { n: 6, shapes: ['fur'], colors: FUR, radius: kw * 0.7, size: [5, 11], alignOut: true, life: 500, pattern: 'ring' });
+      await wait(140);
+    }
+    void u0;
+    if (skipped()) { aside.forEach((x) => x && x.remove()); return; }
     await animShuffle({ seat: -1 }, t);
     if (skipped()) return;
     // 一圈圈发
@@ -1552,32 +1632,19 @@
     await Promise.all(dflights);
     if (skipped()) return;
     await wait(200);
-    // 炸毛猫一只只从牌堆正上方冒出来、气鼓鼓抖两下、钻进牌堆（多出来的逗猫棒一开始就在牌堆里，不单独演）
+    // 发完了：摆在一边的炸毛猫一只只钻回牌堆（翻成背面落进去）
     void defs;
-    const drops = kits;
-    for (let i = 0; i < drops.length; i++) {
-      if (skipped()) return;
-      const id = drops[i], isKit = R.KIND_OF[id] === R.BOOM;
-      const W = u * (isKit ? 1.15 : 0.95);
-      const hover = { x: dc.x + (i - (drops.length - 1) / 2) * u * 0.55, y: dc.y - pu * 0.55 };
-      const node = await fx.fly({ html: cardHtml(id), from: { x: hover.x, y: hover.y - 60 }, to: hover, w: W, s0: 0.7, s1: 1, r0: -20, r1: (i % 2 ? 6 : -6), dur: 360, lift: 0, keep: true, fadeIn: true, land: false });
-      if (skipped()) { if (node) node.remove(); return; }
-      if (isKit) {
-        snd('hiss');
-        if (node) node.classList.add('zm-angry');
-        fx.burst(hover.x, hover.y, { n: 8, shapes: ['fur'], colors: FUR, radius: W * 0.8, size: [6, 14], alignOut: true, life: 600, pattern: 'ring' });
-      }
-      await wait(isKit ? 360 : 160);
-      if (skipped()) { if (node) node.remove(); return; }
-      const rr = node ? node.getBoundingClientRect() : null;
+    for (let i = 0; i < aside.length; i++) {
+      if (skipped()) { aside.forEach((x) => x && x.isConnected && x.remove()); return; }
+      const node = aside[i];
+      const rr = node ? node.getBoundingClientRect() : deckTopRect();
       if (node) node.remove();
-      await fx.fly({ html: cardHtml(id), back: backHtml(), flip: 'down', flipAt: 0.1, from: rr || hover, to: deckTopRect(), w: pu, s0: W / pu, s1: 1, r0: 0, r1: 0, dur: 300, lift: 20 });
-      if (skipped()) return;
       snd('insert');
-      ov.deckSize += 1;
-      if (isKit) ov.kittens += 1;
+      await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), flip: 'down', flipAt: 0.15, from: rr, to: deckTopRect(), w: pu, s0: rr.width / pu, s1: 1, r0: 0, r1: 0, dur: 300, lift: 16 });
+      if (skipped()) { aside.forEach((x) => x && x.isConnected && x.remove()); return; }
+      ov.deckSize += 1; ov.kittens += 1;
       renderPiles();
-      fx.pop(els.deck, { scale: 1.06 });
+      fx.pop(els.deck, { scale: 1.05 });
     }
     if (skipped()) return;
     await animShuffle({ seat: -1 }, t);
@@ -1707,8 +1774,9 @@
       if (range) range.addEventListener('input', () => set(+range.value));
       // 定下来：三个快捷键点了就直接塞（不用再点「塞进去」）；拖滑块的要点「塞进去」；倒计时到了 = 随机塞
       let done = false, timer = 0, tick = 0;
+      const okBtn = d.querySelector('[data-ok]');
       const commit = (p) => {
-        if (done) return;
+        if (done || !okBtn.isConnected) return;   // 弹窗已经被关掉（托管 / 暂停）就不算数
         if (tut && tut.allow && !tut.allow({ type: 'insert', pos: p })) { shake(d.querySelector('[data-ok]')); return; }
         done = true; clearTimeout(timer); clearInterval(tick);
         if (p !== pos) set(p);
@@ -1730,7 +1798,7 @@
           snd('tick');
           tick = setInterval(() => { if (my !== token || done) { clearInterval(tick); return; } snd('tick'); }, 1000);
         }, Math.max(0, limit - HURRY_MS));
-        timer = setTimeout(() => { if (my === token && !done) commit((Math.random() * (size + 1)) | 0); }, limit);
+        timer = setTimeout(() => { if (my === token && !done && okBtn.isConnected) { timeouts += 1; autoAct = true; commit((Math.random() * (size + 1)) | 0); if (timeouts >= 2) setAutopilot(true); } }, limit);
       }
     });
   }
@@ -2082,6 +2150,7 @@
   function startTutorial() {
     if (!TUT) return;
     resetTable();
+    autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     const ctl = TUT.create(R, { hint, say: (msgs, then) => showCoach(msgs, then || step) });
     tut = ctl;
     game = { state: ctl.state, bots: [{ nick: '我', avatar: null }, { nick: ctl.botName, avatar: ctl.botAvatar }], tiers: [null, 'normal'], tutorial: true };
@@ -2122,6 +2191,7 @@
   /* ───── 开局 / 封面 ───── */
   function newGame() {
     resetTable();
+    autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     tut = null;
     els.skipTut.hidden = true;
     const n = settings.players;
@@ -2136,6 +2206,7 @@
   }
   function resumeGame(d) {
     resetTable();
+    autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     game = { state: d.state, bots: d.bots, tiers: d.tiers, tutorial: false };
     els.cover.hidden = true;
     buildSeats();
@@ -2262,6 +2333,7 @@
     fx.pop(b, { scale: 1.1, dur: 220 });
     snd('tick');
   });
+  els.me.addEventListener('click', (e) => { if (e.target.closest('.zm-av') && canAuto() && !game.dealing) setAutopilot(!autopilot); });
   els.drawBtn.addEventListener('click', onDraw);
   els.playBtn.addEventListener('click', onPlay);
   els.nopeBtn.addEventListener('click', pressNope);
