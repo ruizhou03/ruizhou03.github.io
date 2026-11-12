@@ -6,7 +6,9 @@
  *   甲 chase  152 拍  开局常驻
  *   乙 chip   160 拍  「进入紧急状态」：炸毛猫概率第一次到 25%，或危险又升一档（25 → 40 → 60%）
  *   丙 circus 176 拍  紧急之后的常态：概率掉回 15% 以下 / 有人炸出局 / 乙连续放满两圈（约 50 秒）；一局里不再回甲
- * 换版只在小节线上换：进乙 = 下一小节第一拍直接砸进来（镲 + 底鼓）；进丙 / 甲 = 先垫一小节鼓过门再换。各版保持原速，越换越快。
+ * 换版不硬切（用户 2026-11-12 嫌突兀）：只在乐句边界换（进乙 = 两小节一句的句尾，其余 = 四小节一段的段尾），
+ * 换之前那一小节是「变身小节」——新旧两版同时奏同一小节（旋律和弦本来就一样），旧版淡出、新版淡入，
+ * 速度在这一小节里从旧速平滑滑到新速；往紧张走垫一道往上的扫频、新句第一拍砸镲，往放松走垫往下的扫频。
  * 只按公开信息判断（牌堆里还剩几只炸毛猫 ÷ 牌堆张数、有没有人炸出局）：联机时大家坐在一起，
  * 要是按「我偷看到顶上是炸毛猫」换歌，等于把私密信息放给全桌听。
  * 合成器全是 Web Audio 现场合成，没有素材文件。ZhamaoAudio 建好 AudioContext 后 attach 到它的音乐总线上。 */
@@ -41,7 +43,7 @@
   const BASSN = { A: 'A1', F: 'F1', E: 'E1', G: 'G1' };
 
   /* ───── 合成器 ───── */
-  let ac = null, master = null, fxDelay, fxVerb, noiseBuf = null;
+  let ac = null, master = null, fxDelay, fxVerb, noiseBuf = null, OUT = null;   // OUT：正在排的这一版自己的音量通道（换版时两版各自淡入淡出）
   /* 接到一个 AudioContext 的某个节点上（游戏里是 ZhamaoAudio 的音乐总线；离线自测可以接 OfflineAudioContext） */
   function attach(ctx, dest, level) {
     ac = ctx; noiseBuf = null;
@@ -58,7 +60,7 @@
     return master;
   }
   function noise() { if (noiseBuf) return noiseBuf; const n = ac.sampleRate; noiseBuf = ac.createBuffer(1, n, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; return noiseBuf; }
-  function out(g, send) { g.connect(master); if (send && send.delay) { const s = ac.createGain(); s.gain.value = send.delay; g.connect(s); s.connect(fxDelay); } if (send && send.verb) { const s = ac.createGain(); s.gain.value = send.verb; g.connect(s); s.connect(fxVerb); } }
+  function out(g, send) { g.connect(OUT || master); if (send && send.delay) { const s = ac.createGain(); s.gain.value = send.delay; g.connect(s); s.connect(fxDelay); } if (send && send.verb) { const s = ac.createGain(); s.gain.value = send.verb; g.connect(s); s.connect(fxVerb); } }
   function env(g, t, a, peak, d, sus, rel, end) {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + a);
@@ -98,6 +100,7 @@
     block(t, v = 1) { const o = ac.createOscillator(); o.frequency.value = 1050; const g = ac.createGain(); env(g, t, 0.001, 0.18 * v, 0.05, 0.001, 0.01, t); o.connect(g); out(g, { verb: 0.3 }); o.start(t); o.stop(t + 0.1); },
     tom(t, f, v = 1) { const o = ac.createOscillator(); o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.6, t + 0.2); const g = ac.createGain(); env(g, t, 0.002, 0.4 * v, 0.2, 0.001, 0.03, t); o.connect(g); out(g, { verb: 0.3 }); o.start(t); o.stop(t + 0.3); },
     riser(t, dur, v = 1) { const src = ac.createBufferSource(); src.buffer = noise(); src.loop = true; const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3; bp.frequency.setValueAtTime(300, t); bp.frequency.exponentialRampToValueAtTime(7000, t + dur); const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12 * v, t + dur); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.05); src.connect(bp); bp.connect(g); out(g, { verb: 0.3 }); src.start(t); src.stop(t + dur + 0.1); },
+    fall(t, dur, v = 1) { const src = ac.createBufferSource(); src.buffer = noise(); src.loop = true; const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 2.5; bp.frequency.setValueAtTime(5000, t); bp.frequency.exponentialRampToValueAtTime(350, t + dur); const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.07 * v, t + dur * 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); src.connect(bp); bp.connect(g); out(g, { verb: 0.4 }); src.start(t); src.stop(t + dur + 0.1); },
     boom(t, v = 1) { DR.kick(t, 1.2 * v); const o = ac.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(30, t + 0.6); const g = ac.createGain(); env(g, t, 0.003, 0.6 * v, 0.6, 0.001, 0.1, t); o.connect(g); out(g, { verb: 0.5 }); o.start(t); o.stop(t + 0.9); DR.crash(t, 0.8 * v); },
     meow(t, v = 1) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(520, t); o.frequency.exponentialRampToValueAtTime(820, t + 0.12); o.frequency.exponentialRampToValueAtTime(480, t + 0.4); const f1 = ac.createBiquadFilter(); f1.type = 'bandpass'; f1.Q.value = 6; f1.frequency.setValueAtTime(900, t); f1.frequency.linearRampToValueAtTime(1600, t + 0.15); f1.frequency.linearRampToValueAtTime(800, t + 0.4); const g = ac.createGain(); env(g, t, 0.03, 0.22 * v, 0.2, 0.5, 0.1, t + 0.3); o.connect(f1); f1.connect(g); out(g, { verb: 0.4 }); o.start(t); o.stop(t + 0.6); },
   };
@@ -176,15 +179,33 @@
     return bars;
   }
   const stepSec = (id) => 60 / BY_ID[id].bpm / 4;
-  function scheduleBar(id, bar, t0, opts) {
-    const st = stepSec(id);
-    for (const e of barsOf(id)[bar]) { const t = t0 + e.rel * st; if (t >= ac.currentTime - 0.01) e.fn(Math.max(t, ac.currentTime), st); }
-    if (opts && opts.fill) [8, 10, 12, 13, 14, 15].forEach((s, i) => DR.tom(t0 + s * st, 220 - i * 22, 0.8));   // 垫一小节过门
-    if (opts && opts.hit) { DR.crash(t0, 1); DR.kick(t0, 1.1); }
+  // 每版自己一条音量通道，换版时两条各自淡入淡出
+  const BUS = {};
+  function busFor(id) {
+    if (!BUS[id]) { BUS[id] = ac.createGain(); BUS[id].gain.value = 0.0001; BUS[id].connect(master); }
+    return BUS[id];
+  }
+  function setBus(id, t, v) { const g = busFor(id).gain; g.cancelScheduledValues(t); g.setValueAtTime(v, t); }
+  function rampBus(id, t0, t1, from, to) {
+    const g = busFor(id).gain;
+    g.cancelScheduledValues(t0); g.setValueAtTime(from, t0); g.linearRampToValueAtTime(to, t1);
+  }
+  /* 排一小节。st0 → st1：这一小节里每格的时长从 st0 线性变到 st1（变身小节里换速度用）；平时两个一样。返回这一小节有多长 */
+  function scheduleBar(id, bar, t0, st0, st1) {
+    st0 = st0 || stepSec(id); st1 = st1 || st0;
+    const k = (st1 - st0) / 32;
+    const at = (rel) => t0 + st0 * rel + k * rel * rel;
+    OUT = busFor(id);
+    try {
+      for (const e of barsOf(id)[bar]) {
+        const t = at(e.rel);
+        if (t >= ac.currentTime - 0.01) e.fn(Math.max(t, ac.currentTime), st0 + (st1 - st0) * Math.max(0, e.rel) / 16);
+      }
+    } finally { OUT = null; }
+    return at(16) - t0;
   }
 
   /* ───── 导演：现在该放哪一版 ───── */
-  const RELAXED = { circus: true, chase: true };
   const D = { scene: 'off', mode: null, announced: 0, urgentBars: 0, p: 0 };
   const tierOf = (p) => (p >= 0.6 ? 3 : p >= 0.4 ? 2 : p >= 0.25 ? 1 : 0);
   function setScene(scene) {
@@ -222,8 +243,11 @@
   const TRACK = { menu: 'funk', calm: 'chase', urgent: 'chip', sustain: 'circus' };
   const target = () => (D.mode ? TRACK[D.mode] : null);
 
-  /* ───── 播放器：提前 0.5 秒一小节一小节排；要换版只在小节线上换 ───── */
-  const P = { on: false, cur: null, bar: 0, nextT: 0, timer: null, filled: false, stopAt: 0 };
+  /* ───── 播放器：提前 0.5 秒一小节一小节排；换版要等到乐句边界，用一个「变身小节」过渡 ───── */
+  const P = { on: false, cur: null, bar: 0, nextT: 0, timer: null, stopAt: 0 };
+  const LEVELS = { funk: 1, chase: 1, chip: 0.85, circus: 0.9 };
+  // 这一小节能不能当变身小节：做完它，新版正好从一句的开头进来
+  const bridgeOk = (bar, want) => (want === 'chip' ? bar % 2 === 1 : bar % 4 === 3);
   function pump() {
     if (!ac || !P.on) return;
     if (ac.state !== 'running') return;
@@ -231,44 +255,45 @@
     while (P.nextT < ac.currentTime + 0.5) {
       const want = target();
       if (!want && !P.cur) return;
-      if (want !== P.cur) {
-        if (!want) { fadeOut(); return; }
-        // 从乙往「放松」的方向换（乙→丙）：先在乙里垫一小节过门；其余（开局丁→甲、进乙）在下一小节第一拍直接换
-        if (P.cur === 'chip' && RELAXED[want] && !P.filled) {
-          scheduleBar(P.cur, P.bar, P.nextT, { fill: true });
-          P.filled = true;
-          P.nextT += 16 * stepSec(P.cur); P.bar = (P.bar + 1) % 16;
-          continue;
-        }
-        const hit = !!P.cur && want === 'chip';
-        const from = P.cur;
-        P.cur = want; P.filled = false;
-        if (!from) P.bar = 0;
-        scheduleBar(P.cur, P.bar, P.nextT, { hit: hit || (from === 'funk' && want === 'chase') });
-      } else {
-        P.filled = false;
-        scheduleBar(P.cur, P.bar, P.nextT);
+      if (want && !P.cur) {
+        // 从静音起：从第 1 小节开始
+        P.cur = want; P.bar = 0;
+        setBus(want, P.nextT, LEVELS[want]);
+      } else if (!want) { fadeOut(); return; }
+      else if (want !== P.cur && bridgeOk(P.bar, want)) {
+        // 变身小节：新旧两版同奏这一小节，交叉淡变 + 变速
+        const from = P.cur, t0 = P.nextT, st0 = stepSec(from), st1 = stepSec(want);
+        const dur = 16 * (st0 + st1) / 2;
+        rampBus(from, t0, t0 + dur, LEVELS[from], 0.0001);
+        rampBus(want, t0, t0 + dur * 0.85, 0.0001, LEVELS[want]);
+        scheduleBar(from, P.bar, t0, st0, st1);
+        scheduleBar(want, P.bar, t0, st0, st1);
+        OUT = busFor(want);
+        if (st1 < st0) { DR.riser(t0 + dur * 0.25, dur * 0.75, 0.8); if (want === 'chip') DR.crash(t0 + dur, 1); }
+        else DR.fall(t0, dur, 0.8);
+        OUT = null;
+        P.cur = want;
+        onBar(want);
+        P.nextT = t0 + dur; P.bar = (P.bar + 1) % 16;
+        continue;
       }
+      P.nextT += scheduleBar(P.cur, P.bar, P.nextT);
       onBar(P.cur);
-      P.nextT += 16 * stepSec(P.cur); P.bar = (P.bar + 1) % 16;
+      P.bar = (P.bar + 1) % 16;
     }
   }
   function fadeOut() {
     if (!P.cur) return;
-    const t = ac.currentTime;
-    master.gain.cancelScheduledValues(t);
-    master.gain.setValueAtTime(master.gain.value, t);
-    master.gain.linearRampToValueAtTime(0.0001, t + 1.4);
+    const t = ac.currentTime, g = busFor(P.cur).gain;
+    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0.0001, t + 1.4);
     P.cur = null; P.bar = 0; P.stopAt = t + 1.5;
   }
   function kick() {
     if (!ac || !P.on) return;
     if (target() && !P.cur) {
-      // 从静音起：音量拉回来，下一刻就从第 1 小节开始
+      // 从静音起：等上一段淡完，再从第 1 小节开始
       const t = ac.currentTime;
-      master.gain.cancelScheduledValues(t);
-      master.gain.setValueAtTime(Math.max(0.0001, master.gain.value), t);
-      master.gain.linearRampToValueAtTime(LEVEL, t + (P.stopAt > t ? 0.3 : 0.02));
+      master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(LEVEL, t);
       P.nextT = Math.max(t + 0.08, P.stopAt > t ? P.stopAt : 0);
     }
     pump();
