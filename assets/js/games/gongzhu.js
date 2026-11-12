@@ -708,27 +708,64 @@
     schedule(step, 450);
   }
 
-  /* ───── 开局发牌动画（2026-11-12，借鉴猫咪炸毛 dealIntro；先挂在 ?gzdeal=1 后面给用户看）─────
-   * 桌子正中落下一摞牌、洗一下，然后从下家开始一圈圈发：别家的飞到头像（头像旁的牌背一张张多起来），
-   * 我的飞进手里（落地就翻开、按花色排好）。点一下桌面直接发完。
-   * 预览期有三版让用户挑：?gzdeal=1 / 2 / 3（或 localStorage gz.deal），?fxdemo=deal 循环看、可切换。 */
+  /* ───── 开局发牌动画（2026-11-12，照百变小咪的做法；先挂在 ?gzdeal=1 后面给用户看）─────
+   * 牌堆是真的一摞：52 张每张一层奶油色纸边（位置带一点点随机偏差，看着是手码的），最上面一张牌背；影子长在最底下那层上。
+   * 洗牌时整摞（连同厚度、影子）一起动，没有不动的底座；发牌从顶上一张张拿，拿一张就真少一层。
+   * 别家的飞到头像（头像旁的牌背一张张多起来），我的飞进手里（落地就翻开、按花色排好）。点一下桌面直接发完。
+   * 预览期三种洗法让用户挑：?gzdeal=1 / 2 / 3（或 localStorage gz.deal），?fxdemo=deal 循环看、可切换。 */
   const DEAL_STYLES = {
-    1: { name: '甲 · 交叉洗 · 一张张发', shuffle: 'split', gap: 38, dur: 260, batch: 1 },
-    2: { name: '乙 · 切牌 · 四家同时发', shuffle: 'cut', gap: 110, dur: 300, batch: 4 },
-    3: { name: '丙 · 鸽尾洗 · 我的翻面', shuffle: 'riffle', gap: 50, dur: 320, batch: 1, flip: true },
+    1: { name: '甲 · 抄起来转一圈（同百变小咪）', shuffle: 'spin' },
+    2: { name: '乙 · 鸽尾洗：两半交替落回', shuffle: 'riffle' },
+    3: { name: '丙 · 切牌：上半摞抽出垫到底下', shuffle: 'cut' },
   };
   const DEAL_PREVIEW = (new URLSearchParams(location.search).get('gzdeal') || '').trim();   // 链接上带了 gzdeal：预览模式
   let DEAL_V = DEAL_STYLES[DEAL_PREVIEW] ? +DEAL_PREVIEW : DEAL_PREVIEW && DEAL_PREVIEW !== '0' ? 1 : 0;
   if (!DEAL_V) { try { const v = localStorage.getItem('gz.deal'); DEAL_V = DEAL_STYLES[v] ? +v : 0; } catch (_) { /* ignore */ } }
   const DEAL_FX = !!DEAL_V;
   let dealing = null;   // 发牌中：{ have: 每家已经到手几张, mine: 我已经到手的牌, skip }
+
+  /* 一摞牌（发牌 / 洗牌用）：fixed 定位在 (x, y) 为中心，n 张就 n 层纸边 + 顶上一张牌背；整摞是一个元素，挪它就连厚度带影子一起挪 */
+  const PILE_EDGES = ['#f7f0e1', '#efe6d3', '#f3ebda', '#e8ddc7'];
+  const pileJit = (i, k) => { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); };
+  function makePile(x, y, w, h, n) {
+    const el = document.createElement('span');
+    el.className = 'gz-pile';
+    el.style.cssText = 'left:' + (x - w / 2) + 'px;top:' + (y - h / 2) + 'px;width:' + w + 'px;height:' + h + 'px';
+    el.innerHTML = '<b class="gz-pile-top"></b>';
+    el._w = w;
+    els.app.appendChild(el);
+    setPile(el, n);
+    return el;
+  }
+  const pileStep = (w) => w * 0.0102;   // 每张牌多高（同百变小咪「乙」：笔直往上叠）
+  function setPile(el, n) {
+    const w = el._w, top = el.lastElementChild;
+    let sheets = el.querySelectorAll('.gz-sheet');
+    const want = Math.max(0, n - 1);
+    for (let i = sheets.length - 1; i >= want; i--) sheets[i].remove();
+    for (let i = sheets.length; i < want; i++) {
+      const d = document.createElement('i');
+      d.className = 'gz-sheet' + (i === 0 ? ' is-floor' : '');
+      d.style.background = PILE_EDGES[Math.floor(pileJit(i, 1) * PILE_EDGES.length)];
+      d.style.transform = 'translate(' + ((pileJit(i, 2) - 0.5) * 0.019 * w).toFixed(2) + 'px,' + (-i * pileStep(w)).toFixed(2) + 'px) rotate(' + ((pileJit(i, 3) - 0.5) * 0.9).toFixed(2) + 'deg)';
+      el.insertBefore(d, top);
+    }
+    el._n = n;
+    top.hidden = !n;
+    top.classList.toggle('is-floor', n === 1);
+    top.style.transform = 'translateY(' + (-Math.max(0, n - 1) * pileStep(w)).toFixed(2) + 'px)';
+  }
+  // 一摞顶上那张牌在屏幕上的中心
+  // （按整摞的框算、再往上抬它的厚度：空摞的顶牌是藏着的，量不到位置）
+  function pileTop(el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 - Math.max(0, (el._n || 0) - 1) * pileStep(el._w) }; }
+
   async function dealIntro(v) {
     const r = match.round;
     if (!r) return;
     const S = DEAL_STYLES[v || DEAL_V] || DEAL_STYLES[1];
     const my = token;
     const D = dealing = { have: [0, 0, 0, 0], mine: [], skip: false };
-    const alive = () => my === token && dealing === D;
+    const alive = () => my === token && dealing === D && !D.skip;
     const done = () => { if (dealing === D) dealing = null; };
     busy = true;
     renderAll();
@@ -738,55 +775,92 @@
     const c = els.center.getBoundingClientRect();
     const cx = c.left + c.width / 2, cy = c.top + c.height / 2;
     const w = u * 0.86, hh = h * 0.86;
-    const mk = (cls) => { const el = document.createElement('span'); el.className = 'gz-deal-card' + (cls ? ' ' + cls : ''); el.style.cssText = 'left:' + (cx - w / 2) + 'px;top:' + (cy - hh / 2) + 'px;width:' + w + 'px;height:' + hh + 'px'; els.app.appendChild(el); return el; };
-    const deck = mk('is-deck');
+    const total = r.hands.reduce((a, x) => a + x.length, 0);
     const sleep = (ms) => new Promise((res) => setTimeout(res, reduce ? 0 : ms));
     const anim = (el, kf, o) => el.animate(kf, o).finished.catch(() => {});
+    const mkBack = () => { const el = document.createElement('span'); el.className = 'gz-deal-card'; el.style.cssText = 'left:0;top:0;width:' + w + 'px;height:' + hh + 'px'; els.app.appendChild(el); return el; };
+    const at = (p, extra) => 'translate(' + (p.x - w / 2).toFixed(1) + 'px,' + (p.y - hh / 2).toFixed(1) + 'px)' + (extra || '');
+    const deck = makePile(cx, cy, w, hh, total);
+    const cleanup = () => { els.app.querySelectorAll('.gz-pile, .gz-deal-card').forEach((x) => x.remove()); };
     if (!reduce) {
-      anim(deck, [{ transform: 'translateY(-50px) scale(1.15)', opacity: 0 }, { transform: 'translateY(3px) scale(.98)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'cubic-bezier(.3,.7,.4,1)' });
-      await sleep(400);
-      if (S.shuffle === 'split') {
-        // 分成左右两半、错开再合上，来两遍
-        const a = mk(), b = mk();
-        snd('deal');
-        const half = (el, dx) => anim(el, [{ transform: 'none' }, { transform: 'translate(' + dx + 'px,-6px) rotate(' + (dx > 0 ? 8 : -8) + 'deg)', offset: 0.45 }, { transform: 'none' }], { duration: 300, iterations: 2, easing: 'ease-in-out' });
-        await Promise.all([half(a, -w * 0.7), half(b, w * 0.7)]);
-        a.remove(); b.remove();
-      } else if (S.shuffle === 'cut') {
-        // 切一下：上半摞抽出来往右上一甩、从底下塞回去
-        const top = mk('is-half');
-        snd('deal');
-        await anim(top, [{ transform: 'none', zIndex: 2 }, { transform: 'translate(' + (w * 0.95) + 'px,-10px) rotate(6deg)', offset: 0.5 }, { transform: 'translate(0,2px)' }], { duration: 360, easing: 'ease-in-out' });
-        top.remove();
-      } else {
-        // 鸽尾洗：一摞分成左右两半摊开，两边交替往中间落，合成一摞再拢齐
-        deck.style.opacity = '0';
-        const a = mk('is-half'), b = mk('is-half');
-        const dx = w * 0.62;
-        await Promise.all([
-          anim(a, [{ transform: 'none' }, { transform: 'translate(' + (-dx) + 'px,0) rotate(-10deg)' }], { duration: 220, easing: 'ease-out', fill: 'forwards' }),
-          anim(b, [{ transform: 'none' }, { transform: 'translate(' + dx + 'px,0) rotate(10deg)' }], { duration: 220, easing: 'ease-out', fill: 'forwards' }),
-        ]);
-        const pile = mk('is-pile');
-        pile.style.opacity = '0';
-        const drops = [];
-        for (let i = 0; i < 14; i++) {
-          const L = i % 2 === 0, sheet = mk();
-          if (i % 3 === 0) snd('deal');
-          drops.push(anim(sheet, [
-            { transform: 'translate(' + (L ? -dx : dx) + 'px,-4px) rotate(' + (L ? -10 : 10) + 'deg)' },
-            { transform: 'translate(' + (L ? -dx * 0.4 : dx * 0.4) + 'px,-10px) rotate(' + (L ? -4 : 4) + 'deg)', offset: 0.5 },
-            { transform: 'translate(0,' + (-i * 0.3) + 'px)' },
-          ], { duration: 170, easing: 'ease-in' }).then(() => { sheet.remove(); pile.style.opacity = '1'; }));
-          await sleep(48);
+      // 牌堆落下
+      await anim(deck, [{ transform: 'translateY(-50px) scale(1.15)', opacity: 0 }, { transform: 'translateY(3px) scale(.98)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'cubic-bezier(.3,.7,.4,1)' });
+      if (alive()) await (S.shuffle === 'riffle' ? shuffleRiffle() : S.shuffle === 'cut' ? shuffleCut() : shuffleSpin());
+    }
+    // 甲：整摞被抄起来（牌堆连厚度、影子一起藏起），一圈牌背从原处飞出、绕着转一圈再收回来，落地时牌堆重新出现、拍一下
+    async function shuffleSpin() {
+      snd('deal');
+      deck.style.visibility = 'hidden';
+      const o = pileTop(deck), n = 9, R0 = w * 1.45, all = [];
+      for (let i = 0; i < n; i++) {
+        const el = mkBack(), th0 = (i / n) * Math.PI * 2, frames = [];
+        for (let k = 0; k <= 16; k++) {
+          const tt = k / 16, rr = R0 * Math.sin(Math.PI * tt) * (0.8 + 0.2 * Math.sin(i * 1.7));
+          const th = th0 + tt * Math.PI * 2 * (i % 2 ? 1 : -1);
+          frames.push({ transform: at({ x: o.x + Math.cos(th) * rr, y: o.y + Math.sin(th) * rr * 0.6 }, ' scale(' + (0.95 + 0.12 * Math.sin(Math.PI * tt)).toFixed(3) + ') rotate(' + ((th * 180 / Math.PI) * 0.25 * (1 - tt) + (i - 4) * 2 * Math.sin(Math.PI * tt)).toFixed(1) + 'deg)'), offset: tt });
         }
-        await Promise.all(drops);
-        a.remove(); b.remove(); pile.remove();
-        deck.style.opacity = '';
-        await anim(deck, [{ transform: 'scaleX(1.06)' }, { transform: 'none' }], { duration: 160, easing: 'ease-out' });
+        all.push(anim(el, frames, { duration: 1000, delay: i * 22, easing: 'cubic-bezier(.4,0,.3,1)', fill: 'both' }).then(() => el.remove()));
+      }
+      await Promise.all(all);
+      deck.style.visibility = '';
+      snd('deal');
+      await anim(deck, [{ transform: 'scale(1.06)' }, { transform: 'none' }], { duration: 200, easing: 'ease-out' });
+    }
+    // 乙：鸽尾洗——整摞分成左右两半（各带各的厚度和影子）往两边一掰，两边交替往中间落，中间那摞一层层长高，最后拍齐
+    async function shuffleRiffle() {
+      const half = Math.ceil(total / 2), dx = w * 0.66;
+      const L = makePile(cx, cy, w, hh, half), Rt = makePile(cx, cy, w, hh, total - half);
+      deck.style.visibility = 'hidden';
+      setPile(deck, 0);
+      snd('deal');
+      await Promise.all([
+        anim(L, [{ transform: 'none' }, { transform: 'translate(' + (-dx) + 'px,4px) rotate(-9deg)' }], { duration: 240, easing: 'ease-out', fill: 'forwards' }),
+        anim(Rt, [{ transform: 'none' }, { transform: 'translate(' + dx + 'px,4px) rotate(9deg)' }], { duration: 240, easing: 'ease-out', fill: 'forwards' }),
+      ]);
+      deck.style.visibility = '';
+      const drops = [];
+      let k = 0;
+      while ((L._n || Rt._n) && alive()) {
+        const src = (k % 2 === 0 && L._n) || !Rt._n ? L : Rt, take = Math.min(src._n, 1 + (k % 3 === 1 ? 1 : 0) + (pileJit(k, 5) > 0.6 ? 1 : 0));
+        const from = pileTop(src);
+        setPile(src, src._n - take);
+        const fl = mkBack(), land = pileTop(deck), tilt = src === L ? -9 : 9;
+        if (k % 3 === 0) snd('deal');
+        drops.push(anim(fl, [
+          { transform: at(from, ' rotate(' + tilt + 'deg)') },
+          { transform: at({ x: (from.x + land.x) / 2, y: Math.min(from.y, land.y) - hh * 0.12 }, ' rotate(' + (tilt / 2) + 'deg)'), offset: 0.5 },
+          { transform: at({ x: land.x, y: land.y - take * pileStep(w) }) },
+        ], { duration: 150, easing: 'ease-in', fill: 'forwards' }).then(() => { fl.remove(); setPile(deck, deck._n + take); }));
+        k++;
+        await sleep(34);
+      }
+      await Promise.all(drops);
+      L.remove(); Rt.remove();
+      setPile(deck, total);
+      snd('deal');
+      await anim(deck, [{ transform: 'scaleX(1.05) translateY(-2px)' }, { transform: 'none' }], { duration: 180, easing: 'ease-out' });
+    }
+    // 丙：切牌——上半摞（带它自己的厚度和影子）抽出来挪到右边落下，下半摞拎起来压到它上面，合成一摞挪回正中；来两遍
+    async function shuffleCut() {
+      for (let pass = 0; pass < 2 && alive(); pass++) {
+        const cutAt = Math.round(total * (pass ? 0.42 : 0.56));
+        const bottom = makePile(cx, cy, w, hh, cutAt);
+        const topHalf = makePile(cx, cy - cutAt * pileStep(w), w, hh, total - cutAt);
+        deck.style.visibility = 'hidden';
+        const dx = w * 1.15;
+        snd('deal');
+        await anim(topHalf, [{ transform: 'none' }, { transform: 'translate(' + (dx * 0.5) + 'px,' + (-hh * 0.35) + 'px) rotate(5deg)', offset: 0.5 }, { transform: 'translate(' + dx + 'px,' + (cutAt * pileStep(w)) + 'px)' }], { duration: 300, easing: 'ease-in-out', fill: 'forwards' });
+        els.app.appendChild(bottom);   // 拎起来的下半摞要压在上半摞上面
+        const lift = (total - cutAt) * pileStep(w);
+        snd('deal');
+        await anim(bottom, [{ transform: 'none' }, { transform: 'translate(' + (dx * 0.5) + 'px,' + (-hh * 0.4) + 'px) rotate(-4deg)', offset: 0.5 }, { transform: 'translate(' + dx + 'px,' + (-lift) + 'px)' }], { duration: 300, easing: 'ease-in-out', fill: 'forwards' });
+        // 合成一摞：正中那摞（藏着的 deck）挪到右边现身，再一起滑回来
+        bottom.remove(); topHalf.remove();
+        deck.style.visibility = '';
+        await anim(deck, [{ transform: 'translateX(' + dx + 'px)' }, { transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.3,.7,.4,1)' });
       }
     }
-    if (!alive()) { deck.remove(); done(); return; }
+    if (!(my === token && dealing === D)) { cleanup(); done(); return; }
     const target = (s) => {
       if (s === 0) { const hr = els.hand.getBoundingClientRect(); return { x: hr.left + hr.width / 2, y: hr.top + hr.height / 2 }; }
       const av = els.seats[s].querySelector('.gz-avatar').getBoundingClientRect();
@@ -797,23 +871,24 @@
     const flights = [];
     for (let i = 0; i < order.length; i++) {
       if (!alive()) break;
-      if (dealing.skip) break;
       const [s, card] = order[i];
-      const land = () => { if (dealing !== D) return; if (s === 0) { dealing.mine.push(card); renderHand(); } else { dealing.have[s]++; renderSeat(s); } };
+      const land = () => { if (dealing !== D) return; if (s === 0) { D.mine.push(card); renderHand(); } else { D.have[s]++; renderSeat(s); } };
       if (reduce) { land(); continue; }
-      const t = target(s), fl = mk();
-      const to = 'translate(' + (t.x - cx) + 'px,' + (t.y - cy) + 'px) rotate(' + ((i * 37) % 30 - 15) + 'deg) scale(' + (s === 0 ? 1 : 0.45) + ')';
-      const kf = s === 0 && S.flip
-        ? [{ transform: 'none', opacity: 1 }, { transform: to, opacity: 1, offset: 0.82 }, { transform: to + ' scaleX(0)', opacity: 1 }]
-        : [{ transform: 'none', opacity: 1 }, { transform: to, opacity: s === 0 ? 1 : 0.6 }];
-      const batchEnd = S.batch === 1 || i % S.batch === S.batch - 1;
-      if (S.batch > 1 ? i % S.batch === 0 : i % 2 === 0) snd('deal');
-      flights.push(fl.animate(kf, { duration: S.dur, easing: 'cubic-bezier(.3,.6,.35,1)', fill: 'forwards' }).finished.then(() => { fl.remove(); land(); }, () => fl.remove()));
-      if (batchEnd) await sleep(S.gap);
+      const from = pileTop(deck), t = target(s);
+      setPile(deck, deck._n - 1);
+      const fl = mkBack();
+      const rot = ((i * 37) % 30 - 15), sc = s === 0 ? 1 : 0.45;
+      if (i % 2 === 0) snd('deal');
+      // 拿起来先抬一点（离桌、变大一丁点），再落到那一家
+      flights.push(fl.animate([
+        { transform: at(from), opacity: 1 },
+        { transform: at({ x: from.x + (t.x - from.x) * 0.35, y: from.y + (t.y - from.y) * 0.35 - hh * 0.18 }, ' rotate(' + (rot * 0.5) + 'deg) scale(' + (1.08 - (1 - sc) * 0.3).toFixed(3) + ')'), opacity: 1, offset: 0.35 },
+        { transform: at(t, ' rotate(' + rot + 'deg) scale(' + sc + ')'), opacity: s === 0 ? 1 : 0.6 },
+      ], { duration: 280, easing: 'cubic-bezier(.3,.6,.35,1)', fill: 'forwards' }).finished.then(() => { fl.remove(); land(); }, () => fl.remove()));
+      await sleep(38);
     }
     await Promise.all(flights);
-    deck.remove();
-    els.app.querySelectorAll('.gz-deal-card').forEach((x) => x.remove());
+    cleanup();
     done();
     if (my !== token) return;
     renderAll();
