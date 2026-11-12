@@ -603,6 +603,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-steal-pick button.is-wander .zm-card { box-shadow: 0 0 0 3px #c8463a, 0 0 14px rgba(200, 70, 58, 0.55); }
 .zm-steal-pick button.is-chosen { translate: 0 -12px; }
 .zm-steal-pick button.is-chosen .zm-card { box-shadow: 0 0 0 3.5px var(--zm-gold), 0 0 20px rgba(201, 169, 110, 0.8); }
+/* 扇形摊开：每张绕着下方远处一个点转开（像捏在手里），抬起 / 高亮仍用 translate，和旋转互不打架 */
+.zm-steal-pick.is-fan { display: block; position: relative; height: calc(84px * 1.4 * var(--fan-h, 1.08) + 70px); overflow: visible; padding: 0; margin: 22px 0 4px; }
+.zm-steal-pick.is-fan button { position: absolute; left: 50%; bottom: 40px; margin-left: -42px; rotate: var(--a); transform-origin: 50% 230%; }
 
 /* 头像上的准星、角标不许把页面撑出屏幕（iOS 上会把整页挤得左右晃一下） */
 .zm-app { overflow: hidden; overscroll-behavior: none; }
@@ -727,3 +730,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-conn-bar { width: 100%; height: 6px; border-radius: 3px; background: rgba(29, 27, 24, 0.1); overflow: hidden; }
 .zm-conn-bar i { display: block; height: 100%; background: var(--zm-seal); transform-origin: left center; transform: scaleX(0); border-radius: 3px; }
 @keyframes zm-conn-step { 0%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+/* 拆炸毛猫时桌子正中那幅「封面」（炸毛猫 + 逗猫棒） */
+.zm-defuse-scene { position: fixed; z-index: 6; pointer-events: none; filter: drop-shadow(0 6px 14px rgba(29, 27, 24, 0.18)); }
+.zm-defuse-scene svg { width: 100%; height: auto; display: block; }
+.zm-defuse-scene .hero-boom { transform-box: fill-box; transform-origin: 50% 70%; }
+.zm-defuse-scene .hero-boom > * { transform-box: view-box; }
+.zm-defuse-scene .hero-wand { transform-box: view-box; transform-origin: 96px 98px; }

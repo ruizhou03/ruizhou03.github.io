@@ -19,7 +19,7 @@
   const MUSIC_LEVEL = 0.32;  // 音乐总线（编曲内部的混音在 zhamao-music.js；和试听页的听感对齐，再比音效低一点）
   function ensure() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return ctx; }
-    try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { return null; }
+    try { ctx = window.__zmCtx || new (window.AudioContext || window.webkitAudioContext)(); window.__zmCtx = ctx; } catch (_) { return null; }   // 页面开头那段可能已经建好、解锁了
     // 音效、音乐各走各的压缩器：以前共用一个，底鼓 / 音效一响整首音乐跟着被压扁（用户 2026-11-12 嫌对局里音乐「闷」）
     const compOf = (th, ratio) => { const c = ctx.createDynamicsCompressor(); c.threshold.value = th; c.knee.value = 6; c.ratio.value = ratio; c.attack.value = 0.004; c.release.value = 0.2; c.connect(ctx.destination); return c; };
     const sfxComp = compOf(-10, 8), musicComp = compOf(-14, 6);
@@ -185,6 +185,10 @@
     savePrefs();
     if (key === 'music') { if (on) { wantMusic = true; startMusic(); } else stopMusic(); }
   }
+
+  // 页面开头那段代码解锁成功（或微信自动解锁）时叫这里：马上接着放
+  if (hasDom) window.__zmAudioReady = () => { if (wantMusic && prefs.music) startMusic(); };
+  if (hasDom && window.__zmCtx && window.__zmCtx.state === 'running') setTimeout(() => { if (wantMusic && prefs.music) startMusic(); }, 0);
 
   // 第一次点按：建上下文、iPhone 放空白声解锁，然后按需起音乐
   if (hasDom) {

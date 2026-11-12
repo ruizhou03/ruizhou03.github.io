@@ -80,7 +80,8 @@
     if (!d || d.v !== VERSION || !d.state || d.state.phase === 'over') return null;
     const s = d.state;
     const total = s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0) + (s.defuse ? 1 : 0);
-    if (total !== R.DECK_SIZE || !Array.isArray(d.tiers) || d.tiers.length !== s.n) return null;
+    // 2026-11-12 加「抽底」前存的局是 64 张（少那 4 张抽底）：照样接着打，那一局里就没有抽底
+    if ((total !== R.DECK_SIZE && total !== R.DECK_SIZE - R.COUNTS.bottom) || !Array.isArray(d.tiers) || d.tiers.length !== s.n) return null;
     return d;
   }
 
@@ -410,7 +411,7 @@
   function myTurnToAct() { const s = game.state; return !busy && s.phase === 'act' && s.turn === 0 && s.alive[0]; }
   let lastPlayOn = false;
   // 按钮带（正中间）：「出牌」「摸牌」两个键一直在；没选牌 / 选的凑不成能出的 →「出牌」灰着。不写说明字（教程里教）。
-  // 别人出牌后我有「不行」：紫色「喵？不行」顶在「出牌」的位置；点人时「摸牌」换成「取消」；别人蹭我牌时「出牌」换成「给他」
+  // 别人出牌后我有「不行」：紫色「喵？不行」顶在「出牌」的位置；点人时「摸牌」换成「取消」；别人索要我的牌时「出牌」换成「给牌」
   function renderBand() {
     const s = game.state;
     const canNope = s.phase === 'react' && reactOpen && R.canNope(s, 0);
@@ -424,10 +425,11 @@
     if (s.phase === 'over') { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (game.dealing) { /* 发牌中：两个键都灰着 */ }
     else if (game.online && (!s.alive[0] || game.spectator)) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
+    else if (!s.alive[0] && !game.fastOut) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }   // 炸毛的动画还没播完：先别露「下一局」（不然一摸牌就知道自己出局了）
     else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '下一局'; }
     else if (autopilot) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消托管'; }   // 我出局了：自动接着看他们打完，想走就开下一局
     else if (mode === 'target') { els.drawBtn.hidden = true; }
-    else if (mode === 'give') { els.playBtn.textContent = '给他'; els.playBtn.disabled = selected.length !== 1; }
+    else if (mode === 'give') { els.playBtn.textContent = '给牌'; els.playBtn.disabled = selected.length !== 1; }
     else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消'; }
     else if (myTurnToAct()) {
       els.drawBtn.disabled = false;
@@ -1247,7 +1249,11 @@
     const s = game.state, from = s.steal.from, k = s.steal.perm.length;
     const limit = dlgLimit();
     openDialog('<h2>抽 ' + esc(nameOf(from)) + ' 一张牌</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
-      '<div class="zm-steal-pick" data-steal data-stagger>' + Array.from({ length: k }, (_, i) => '<button type="button" data-i="' + i + '" aria-label="第 ' + (i + 1) + ' 张">' + backHtml() + '</button>').join('') + '</div>', (d) => {
+      // 扣着的牌像捏在手里一样扇形摊开（用户 2026-11-12：别一板一眼排一排）；张数多就收窄每张的角度
+      '<div class="zm-steal-pick is-fan" data-steal data-stagger style="--fan-h:' + (k > 7 ? 1.18 : 1.08) + '">' + Array.from({ length: k }, (_, i) => {
+        const step = Math.min(13, 78 / Math.max(1, k - 1)), ang = (i - (k - 1) / 2) * step;
+        return '<button type="button" data-i="' + i + '" aria-label="第 ' + (i + 1) + ' 张" style="--a:' + ang.toFixed(1) + 'deg;z-index:' + (i + 1) + '">' + backHtml() + '</button>';
+      }).join('') + '</div>', (d) => {
       d.classList.add('is-cards');
       const btns = Array.from(d.querySelectorAll('[data-i]'));
       let done = false, timer = 0, roam = 0;
@@ -1436,8 +1442,10 @@
     const d = D();
     return d.deckSize ? d.kittens / d.deckSize : 0;
   }
-  async function peel(t) {
-    const r = deckTopRect(), pu = PU();
+  // bottom = 抽底：从牌堆最底下那层往外抽（往左滑出来再捏起来）
+  async function peel(t, bottom) {
+    const floor = bottom && els.deck.querySelector('.zm-deck-stack .zm-sheet.is-floor');
+    const r = floor ? floor.getBoundingClientRect() : deckTopRect(), pu = PU();
     const node = document.createElement('div');
     node.className = 'zm-flyer';
     node.style.width = pu + 'px'; node.style.height = pu * 1.4 + 'px';
@@ -1449,7 +1457,7 @@
     snd('peel');
     if (tense) snd('heartbeat', 80);
     const hold = ms(tense ? 640 : 300);
-    const x = r.left, y = r.top, dx = pu * 0.16;
+    const x = r.left, y = r.top, dx = pu * (bottom ? -0.5 : 0.16);
     // 先用拇指把顶上那张往外推出一截（下面那张露出来），再捏起来悬一下
     await fx.animate(node, [
       { transform: fx.T(x, y, 1, 0), boxShadow: '0 0 0 rgba(29,27,24,0)', easing: 'cubic-bezier(.3,.6,.4,1)' },
@@ -1464,7 +1472,7 @@
     return rr;
   }
   async function animDraw(e, t) {
-    const from = await peel(t);
+    const from = await peel(t, e.bottom);
     if (!from) return;
     const u = U(), pu = PU();
     if (e.seat === 0 && e.card != null) {
@@ -1551,99 +1559,73 @@
     document.querySelectorAll('.zm-av-bomb, .zm-av-wand').forEach((x) => x.remove());
     document.querySelectorAll('.zm-seat.is-bomb').forEach((b) => b.classList.remove('is-bomb'));
   }
+  /* 摸到炸毛猫（2026-11-12 用户改）：和平常摸牌一样，牌飞进摸到的人的头像（自己也一样飞进自己头像），
+   * 一落进去头像立刻变成炸毛猫（发抖、冒火星），头像那儿炸一圈毛、桌子一震；桌子正中不再翻出一张大炸毛猫 */
   async function animBoom(e, t, next) {
-    const from = await peel(t);
+    const from = await peel(t, e.bottom);
     if (!from) return;
     ov.kittens = Math.max(0, ov.kittens - 1);
     renderPiles();
-    const u = U();
-    const box = els.center.getBoundingClientRect(), c = fx.center(box);
-    const W = u * 1.55;
-    // 先往上一窜（越窜越大）、半路翻开，再重重落到桌子正中
-    const node = await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: 'up', flipAt: 0.3, from, to: c, w: W, s0: PU() / W, s1: 1, r0: -5, r1: -4, dur: ms(620), lift: u * 1.7, swell: 0.25, keep: true, land: false });
-    if (t !== token) { if (node) node.remove(); return; }
-    game.boomNode = node;
-    // 炸！
+    const pu = PU(), a = avPoint(e.seat);
+    await fx.fly({ html: backHtml(), from, to: a, w: pu, s0: 1.04, s1: 0.32, r0: -5, r1: 10, dur: ms(480), lift: 50, fadeOut: true, land: false });
+    if (t !== token) return;
+    game.boomNode = null;
     snd('boom');
-    fx.shake(els.table, { amp: 11, dur: 520, rot: 0.6 });
-    fx.flash('rgba(200,70,58,.42)', 0, 900);
-    fx.ring(c.x, c.y, { color: '#c8463a', size: W * 3.4, width: 8, dur: 640, behind: true });
-    fx.burst(c.x, c.y, { n: 30, shapes: ['fur', 'fur', 'spike'], colors: FUR, radius: W * 1.5, size: [10, 30], alignOut: true, spin: true, life: 1000, gravity: 30, pattern: 'ring', behind: true });
-    fx.burst(c.x, c.y - W * 0.3, { n: 16, shapes: ['star', 'dot'], colors: GOLDS.concat(['#c8463a']), radius: W * 1.2, size: [6, 18], life: 1100, delay: 80 });
-    // 烟从牌的四周往外冒（垫在牌后面），不挡住刚翻开的炸毛猫
-    fx.smoke(c.x, c.y + W * 0.2, { n: 8, spread: W * 0.9, size: [W * 0.5, W * 0.9], rise: 40, delay: 60, behind: true, alpha: 0.75 });
-    if (node && !fx.reduce()) {
-      const base = getComputedStyle(node).transform;
-      node.animate([
-        { transform: base + ' scale(.7) rotate(-14deg)' }, { transform: base + ' scale(1.18) rotate(8deg)', offset: 0.35 },
-        { transform: base + ' scale(.96) rotate(-4deg)', offset: 0.65 }, { transform: base },
-      ], { duration: 520, easing: 'ease-out' }).finished.then(() => { if (node.isConnected) node.classList.add('zm-angry'); }, () => {});
-    }
-    // 摸到的人吓一跳
-    const av = avEl(e.seat);
-    if (av && !fx.reduce()) av.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-12px) scale(1.12)', offset: 0.25 }, { transform: 'translateY(0) scale(1)' }], { duration: 460, easing: 'ease-out', composite: 'add' });
-    fx.shake(seatEl(e.seat), { amp: 6, dur: 520, delay: 120 });
     bombAvatar(e.seat, true);
-    await wait(ms(next && next.t === 'defuse' ? 900 : 1100));
+    const av = avEl(e.seat), ar = av ? av.getBoundingClientRect() : { width: 54 };
+    fx.shake(els.table, { amp: 8, dur: 420, rot: 0.4 });
+    fx.flash('rgba(200,70,58,.3)', 0, 700);
+    fx.ring(a.x, a.y, { color: '#c8463a', size: ar.width * 2.6, width: 6, dur: 560 });
+    fx.burst(a.x, a.y, { n: 18, shapes: ['fur', 'fur', 'spike'], colors: FUR, radius: ar.width * 1.3, size: [8, 20], alignOut: true, life: 800, gravity: 30, pattern: 'ring' });
+    fx.burst(a.x, a.y - ar.width * 0.3, { n: 10, shapes: ['star', 'dot'], colors: GOLDS.concat(['#c8463a']), radius: ar.width, size: [5, 13], life: 900, delay: 60 });
+    if (av && !fx.reduce()) av.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-10px) scale(1.14)', offset: 0.25 }, { transform: 'translateY(0) scale(1)' }], { duration: 460, easing: 'ease-out', composite: 'add' });
+    fx.shake(seatEl(e.seat), { amp: 6, dur: 520, delay: 120 });
+    await wait(ms(next && next.t === 'defuse' ? 700 : 900));
   }
 
-  /* 逗猫棒：从摸到的人那儿飞到炸毛猫头顶，左右来回逗；炸毛猫慢慢消气、缩小，冒小心心和音符，
-   * 绿光一圈；然后逗猫棒落进弃牌堆，炸毛猫翻成背面等着被塞回去 */
+  /* 用逗猫棒拆掉（2026-11-12 用户改）：逗猫棒从他手里 / 头像飞到桌子正中，变成一幅和主页封面一样的画——
+   * 炸毛猫 + 一根长逗猫棒，逗猫棒挥几下、炸毛猫一抖一抖慢慢消气，冒小心心和音符；头像那边同时照旧用逗猫棒安抚。
+   * 画收起后逗猫棒落进弃牌堆；炸毛猫留在他头像那儿，等着被塞回牌堆 */
   async function animDefuse(e, t) {
-    const node = game.boomNode;
     const u = U();
     const box = els.center.getBoundingClientRect(), c = fx.center(box);
     const src = e.seat === 0 ? handRectOf(e.card) : avPoint(e.seat);
     if (e.seat === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.seat] -= 1; renderSeat(e.seat); }
-    const W = u * 1.2, top = { x: c.x + u * 0.4, y: c.y - u * 1.05 };
-    const wand = await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: e.seat === 0 ? null : 'up', flipAt: 0.15, from: src, to: top, w: W, s0: e.seat === 0 ? u / W : 0.35, s1: 1, r0: 0, r1: 18, dur: ms(520), lift: 60, keep: true, land: false });
-    if (t !== token) { if (wand) wand.remove(); return; }
+    const W = u * 1.2;
+    await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: e.seat === 0 ? null : 'up', flipAt: 0.15, from: src, to: c, w: W, s0: e.seat === 0 ? u / W : 0.35, s1: 0.9, r0: 0, r1: 8, dur: ms(460), lift: 60, fadeOut: true, land: false });
+    if (t !== token) return;
+    // 桌子正中那幅「封面」
+    const scene = document.createElement('div');
+    scene.className = 'zm-defuse-scene';
+    const SW = Math.min(innerWidth * 0.62, u * 3.4);
+    scene.style.cssText = 'left:' + (c.x - SW / 2).toFixed(1) + 'px;top:' + (c.y - SW * 0.5).toFixed(1) + 'px;width:' + SW.toFixed(1) + 'px';
+    scene.innerHTML = ART.hero();
+    els.fly.appendChild(scene);
     snd('defuse');
-    calmAvatar(e.seat, t);   // 和桌子中间的逗猫棒同时演
-    const x = top.x - W / 2, y = top.y - W * 0.7;
-    if (wand) {
-      fx.animate(wand, [
-        { transform: fx.T(x, y, 1, 18) }, { transform: fx.T(x - 14, y + 4, 1, -22), offset: 0.2 }, { transform: fx.T(x + 10, y, 1, 20), offset: 0.4 },
-        { transform: fx.T(x - 10, y + 4, 1, -18), offset: 0.6 }, { transform: fx.T(x + 6, y, 1, 12), offset: 0.8 }, { transform: fx.T(x, y, 1, 0) },
-      ], { duration: ms(1100) }, 'ease-in-out');
+    calmAvatar(e.seat, t);   // 头像那边同时安抚
+    const boom = scene.querySelector('.hero-boom'), wnd = scene.querySelector('.hero-wand');
+    const dur = ms(1700);
+    if (!fx.reduce()) {
+      scene.animate([{ transform: 'scale(.3)', opacity: 0 }, { transform: 'scale(1.08)', opacity: 1, offset: 0.6 }, { transform: 'none', opacity: 1 }], { duration: ms(320), easing: 'cubic-bezier(.3,.8,.4,1.2)' });
+      if (wnd) wnd.animate([{ rotate: '-24deg' }, { rotate: '14deg', offset: 0.18 }, { rotate: '-14deg', offset: 0.36 }, { rotate: '12deg', offset: 0.54 }, { rotate: '-8deg', offset: 0.72 }, { rotate: '5deg', offset: 0.88 }, { rotate: '0deg' }], { duration: dur, easing: 'ease-in-out' });
+      if (boom) boom.animate([
+        { transform: 'scale(1.12) rotate(-4deg)' }, { transform: 'scale(1.06) rotate(4deg)', offset: 0.15 }, { transform: 'scale(1.08) rotate(-3deg)', offset: 0.3 },
+        { transform: 'scale(1.0) rotate(2deg)', offset: 0.5 }, { transform: 'scale(.94) rotate(0deg)', offset: 0.75 }, { transform: 'scale(.92)' },
+      ], { duration: dur, easing: 'ease-in-out', fill: 'forwards' });
     }
-    if (node) {
-      node.classList.remove('zm-angry');
-      const base = getComputedStyle(node).transform;
-      node.animate([{ transform: base }, { transform: base + ' scale(.8) rotate(4deg)' }], { duration: ms(1000), easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
-    }
-    fx.ring(c.x, c.y, { color: '#4f8a5f', size: u * 3, width: 5, dur: 800, delay: 200 });
-    ['heart', 'note', 'heart', 'note', 'heart'].forEach((sh, i) => fx.float(c.x + (i - 2) * u * 0.35, c.y - u * 0.2, sh, { dy: -u * 1.1, dx: (i - 2) * 8, size: 16 + (i % 2) * 6, color: sh === 'heart' ? PINKS[i % 3] : '#4f8a5f', delay: ms(200 + i * 140), dur: ms(1100) }));
-    await wait(ms(1100));
-    if (t !== token) { if (wand) wand.remove(); return; }
-    // 逗猫棒落进弃牌堆
-    if (wand) {
-      const rr = wand.getBoundingClientRect();
-      wand.remove();
-      fx.fly({ html: cardHtml(e.card), from: rr, to: discardRect(), w: PU(), s0: rr.width / PU() * 0.75, s1: 1, r0: 0, r1: pileRot(e.card), dur: ms(380), lift: 40 }).then(() => {
-        if (t !== token || !ov) return;
-        ov.discard.push(e.card);
-        renderPiles();
-      });
-    }
-    // 炸毛猫翻成背面
-    if (node) {
-      const inner = node.querySelector('.zm-flip');
-      if (inner) await inner.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: ms(360), easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
-    }
-    snd('flip');
-    // 翻好之后挪到牌堆左边、缩成牌堆大小、歪一点等着被塞回去（不再盖在桌子正中）
-    if (node && t === token) {
-      const dr = els.deck.getBoundingClientRect(), pu = PU();
-      const w = node.offsetWidth || pu, h = node.offsetHeight || pu * 1.4;
-      const tx = dr.left - pu * 0.8, ty = dr.top + dr.height / 2;
-      const from = getComputedStyle(node).transform;
-      const to = fx.T(tx - w / 2, ty - h / 2, pu / w, -10);
-      node.animate([{ transform: from }, { transform: to }], { duration: ms(360), easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards' });
-      node.style.transform = to;
-      node.style.filter = 'drop-shadow(0 0 7px rgba(200, 70, 58, 0.6))';   // 背面朝上也认得出是那只炸毛猫
-      await wait(ms(380));
-    } else await wait(ms(160));
+    fx.ring(c.x, c.y, { color: '#4f8a5f', size: SW * 1.2, width: 5, dur: 900, delay: ms(500) });
+    ['heart', 'note', 'heart', 'note', 'heart'].forEach((sh, i) => fx.float(c.x + (i - 2) * SW * 0.13, c.y - SW * 0.18, sh, { dy: -u * 1.1, dx: (i - 2) * 8, size: 16 + (i % 2) * 6, color: sh === 'heart' ? PINKS[i % 3] : '#4f8a5f', delay: ms(300 + i * 160), dur: ms(1100) }));
+    await wait(dur);
+    if (t !== token) { scene.remove(); return; }
+    // 画收起来；逗猫棒那张落进弃牌堆
+    if (!fx.reduce()) await scene.animate([{ transform: 'none', opacity: 1 }, { transform: 'scale(.6)', opacity: 0 }], { duration: ms(260), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
+    scene.remove();
+    if (t !== token) return;
+    await fx.fly({ html: cardHtml(e.card), from: { x: c.x, y: c.y }, to: discardRect(), w: PU(), s0: 0.6, s1: 1, r0: 0, r1: pileRot(e.card), dur: ms(340), lift: 30, fadeIn: true });
+    if (t !== token || !ov) return;
+    ov.discard.push(e.card);
+    renderPiles();
+    snd('thud');
   }
 
   /* 塞回去：背面的炸毛猫飞回牌堆，牌堆上半截掀开一道口、它滑进去、合上（不论塞在哪动画都一样，不泄露位置） */
@@ -1651,7 +1633,9 @@
     const node = game.boomNode;
     game.boomNode = null;
     const pu = PU();
-    const from = node ? node.getBoundingClientRect() : els.center.getBoundingClientRect();
+    // 炸毛猫在拆掉它的那个人那儿（头像），从那儿飞回牌堆
+    const av = avEl(e.seat);
+    const from = node ? node.getBoundingClientRect() : av ? av.getBoundingClientRect() : els.center.getBoundingClientRect();
     if (node) node.remove();
     // 掀开的「盖子」= 顶上那张 + 上面将近一半的纸边；炸毛猫从侧面插进这道缝：真的放进牌堆那一摞里（盖子压在它上面、下半截垫在它下面）。
     // 不管实际塞第几张，缝都开在同一个高度，别人从动画看不出位置
@@ -1733,7 +1717,7 @@
     const kit = game.state.discard[game.state.discard.length - 1];
     if (ov && kit != null) { ov.discard.push(kit); renderPiles(); }
     await wait(ms(300));
-    if (e.seat === 0) game.fastOut = true;
+    if (e.seat === 0) { game.fastOut = true; renderBand(); }
   }
 
   /* ───── 反应窗：出完牌大家决定要不要「不行」 ───── */
@@ -1846,7 +1830,7 @@
     const s = game.state;
     if (autopilot) { setAutopilot(false); return; }
     if (s.phase === 'react' && reactOpen) { passReact(); return; }
-    if (!s.alive[0] && s.phase !== 'over') { newGame(); return; }
+    if (!s.alive[0] && s.phase !== 'over') { if (game.fastOut) newGame(); return; }
     if (!myTurnToAct()) return;
     if (tut && tut.allow && !tut.allow({ type: 'draw' })) { shake(els.drawBtn); return; }
     selected = [];
@@ -2514,6 +2498,7 @@
       li('favor', '指定一人，他自己挑一张给你') +
       li('shuffle', '把牌堆洗乱') +
       li('future', '看牌堆最上面三张') +
+      li('bottom', '这一回合不从顶上摸，改从牌堆最底下摸一张') +
       li('alter', '看牌堆最上面三张，并按你想要的顺序放回去（别人看不到）') +
       '</ul><h3>组合（任何同名牌都算）</h3><ul>' +
       '<li><b>两张一样</b>　指定一人，随机偷他一张</li>' +
@@ -3069,7 +3054,9 @@
     // 换出去的那张要进别人手里时不能是炸毛猫（手里不会有炸毛猫，牌堆里的炸毛猫数也会对不上）：先在牌堆里和一张普通占位对调
     if (from && from.arr !== s.deck && R.KIND_OF[s.deck[k]] === R.BOOM) {
       const kn = s.memo[0].deck;
-      const j = s.deck.findIndex((x, i) => i > k && R.KIND_OF[x] !== R.BOOM && kn.indexOf(x) < 0 && x !== id);   // 只往下找：上面几张可能刚摆好
+      const ok = (x, i) => R.KIND_OF[x] !== R.BOOM && kn.indexOf(x) < 0 && x !== id;
+      let j = s.deck.findIndex((x, i) => i > k && ok(x, i));   // 先往下找：上面几张可能刚摆好
+      if (j < 0) j = s.deck.findIndex((x, i) => i !== k && ok(x, i));   // 摸的是最底下那张（抽底）：往上找
       if (j >= 0) { const x = s.deck[k]; s.deck[k] = s.deck[j]; s.deck[j] = x; }
     }
     const victim = s.deck[k];
@@ -3078,10 +3065,11 @@
     from.arr[from.i] = victim;
   }
   // 牌堆顶要是一张不是炸毛猫的（别人摸走了、没炸）：顶上是占位的炸毛猫就和下面一张普通的占位对调
-  function topNotBoom(s) {
-    if (R.KIND_OF[s.deck[0]] !== R.BOOM) return;
+  function topNotBoom(s, at) {
+    at = at || 0;
+    if (R.KIND_OF[s.deck[at]] !== R.BOOM) return;
     const kn = s.memo[0].deck;
-    for (let j = 1; j < s.deck.length; j++) if (R.KIND_OF[s.deck[j]] !== R.BOOM && kn.indexOf(s.deck[j]) < 0) { const x = s.deck[0]; s.deck[0] = s.deck[j]; s.deck[j] = x; return; }
+    for (let j = 0; j < s.deck.length; j++) if (j !== at && R.KIND_OF[s.deck[j]] !== R.BOOM && kn.indexOf(s.deck[j]) < 0) { const x = s.deck[at]; s.deck[at] = s.deck[j]; s.deck[j] = x; return; }
   }
   const takeAny = (s, seat, avoid) => { const h = s.hands[seat], kn = s.memo[0].hands[seat] || []; let i = h.findIndex((id) => kn.indexOf(id) < 0 && (!avoid || R.KIND_OF[id] !== avoid)); if (i < 0) i = h.length - 1; return h.splice(i, 1)[0]; };
   const forget = (s, id) => { for (const h of s.memo[0].hands) { const i = h.indexOf(id); if (i >= 0) h.splice(i, 1); } };
@@ -3155,16 +3143,17 @@
       case 'askPick': s.phase = 'pick'; s.pick = { by: e.seat }; break;
       case 'pick': { const i = s.discard.indexOf(e.card); if (i >= 0) s.discard.splice(i, 1); moveTo(s, e.seat, e.card); s.pick = null; s.phase = 'act'; break; }
       case 'draw': {
-        if (e.card != null) putTop(s, 0, e.card); else topNotBoom(s);
-        const id = s.deck.shift();
+        const at = e.bottom ? s.deck.length - 1 : 0;
+        if (e.card != null) putTop(s, at, e.card); else topNotBoom(s, at);
+        const id = e.bottom ? s.deck.pop() : s.deck.shift();
         const kd = s.memo[0].deck.indexOf(id); if (kd >= 0) s.memo[0].deck.splice(kd, 1);
         moveTo(s, e.seat, id);
         s.seq += 1;
         break;
       }
       case 'boom': {
-        putTop(s, 0, e.card);
-        s.deck.shift();
+        putTop(s, e.bottom ? s.deck.length - 1 : 0, e.card);
+        if (e.bottom) s.deck.pop(); else s.deck.shift();
         const kd = s.memo[0].deck.indexOf(e.card); if (kd >= 0) s.memo[0].deck.splice(kd, 1);
         s.netBoom = e.card;
         s.seq += 1;

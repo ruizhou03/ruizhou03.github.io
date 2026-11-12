@@ -21,6 +21,7 @@
     attack:  { bg: '#f6e2c8', band: '#c0742e', ink: '#fffaf2' },
     tattack: { bg: '#f8dccb', band: '#a8452e', ink: '#fffaf2' },
     skip:    { bg: '#dfe7f3', band: '#2f4a6d', ink: '#f6f9ff' },
+    bottom:  { bg: '#f1e4ee', band: '#8a4f7a', ink: '#fff7fb' },
     favor:   { bg: '#f8e1e4', band: '#c4607a', ink: '#fff8f9' },
     shuffle: { bg: '#efe6d2', band: '#8a6a3e', ink: '#fffaf0' },
     future:  { bg: '#e2eeee', band: '#3f7f86', ink: '#f7ffff' },
@@ -193,6 +194,18 @@
     svg += '<path d="M73 46h5l-5 6h5" stroke="' + NAVY + '" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
     return svg;
   }
+  function bottomArt() {
+    // 抽底：一摞牌背，一只猫趴着，伸爪子从最底下抽出一张；下面一道往外拐的箭头
+    let svg = ground();
+    for (let i = 0; i < 6; i++) svg += '<g transform="translate(' + f(64 + (i % 2 ? 1 : -1) * 0.8) + ' ' + f(70 - i * 6) + ')"><rect x="-15" y="-20" width="30" height="40" rx="5" fill="' + NAVY + '" stroke="' + CREAM + '" stroke-width="2.2"/><rect x="-10" y="-15" width="20" height="30" rx="3" fill="none" stroke="' + GOLD + '" stroke-width="1.6"/></g>';
+    // 被抽出来的那张：从最底下斜着滑出来
+    svg += '<g transform="translate(40 84) rotate(-14)"><rect x="-15" y="-20" width="30" height="40" rx="5" fill="' + NAVY + '" stroke="' + CREAM + '" stroke-width="2.2"/><rect x="-10" y="-15" width="20" height="30" rx="3" fill="none" stroke="' + GOLD + '" stroke-width="1.6"/></g>';
+    svg += '<path d="M60 92c-10 6-26 6-36-2" stroke="#8a4f7a" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M20 84l2 10 9-3Z" fill="#8a4f7a"/>';
+    svg += catHead(24, 52, 0.62, '#eea25a', { eyes: 'wide', mouth: 'o', patch: line('M-4 -17v5M0 -18v6M4 -17v5', 2.6, '#d27a36'), muzzle: '#fff4e3' });
+    svg += '<path d="M30 64c4 8 8 12 12 14" stroke="#eea25a" stroke-width="8" stroke-linecap="round" fill="none"/>';
+    svg += paw(44, 78, 0.6, '#eea25a');
+    return svg;
+  }
   function favorArt() {
     // 蹭一张：猫咪眯眼蹭过来，捧着一张牌，冒小心心
     let svg = ground();
@@ -243,7 +256,7 @@
   }
 
   const FACE = {
-    boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, tattack: tattackArt, skip: skipArt, favor: favorArt, shuffle: shuffleArt, future: futureArt, alter: alterArt, swap: swapArt,
+    boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, tattack: tattackArt, skip: skipArt, bottom: bottomArt, favor: favorArt, shuffle: shuffleArt, future: futureArt, alter: alterArt, swap: swapArt,
     orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'),
   };
   const cache = {};
@@ -261,6 +274,7 @@
     tattack: () => '<path d="M3 12h13c0 5-2.6 8-6.5 8S3 17 3 12Z" fill="#3a3632"/><rect x="2" y="10" width="15" height="2.6" rx="1.3" fill="#56504a"/><circle cx="18" cy="6" r="4.2" fill="none" stroke="#a8452e" stroke-width="1.8"/><circle cx="18" cy="6" r="1.3" fill="#a8452e"/>',
     skip: () => '<path d="M15 3a8 8 0 1 0 6 12 6 6 0 1 1 -6 -12Z" fill="' + GOLD + '"/>' + '<path d="M5 6h4l-4 5h4" stroke="' + NAVY + '" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
     favor: () => heart(12, 13, 7, '#e0566e'),
+    bottom: () => '<rect x="7" y="2.5" width="11" height="4" rx="1.4" fill="' + NAVY + '"/><rect x="7" y="7.5" width="11" height="4" rx="1.4" fill="' + NAVY + '"/><rect x="2.5" y="14" width="11" height="4" rx="1.4" fill="#8a4f7a" transform="rotate(-10 8 16)"/>' + line('M17 15.5c0 4-3 6-7 6.2', 2, '#8a4f7a') + '<path d="M8 21.7l3.4-2.4.2 4.1Z" fill="#8a4f7a"/>',
     shuffle: () => '<path d="M4 9h14v11H4Z" fill="#c99a62"/><path d="M4 9l-2-3h14l2 3Z" fill="#dcb27c"/>' + line('M7 4l3 2M16 2l-1 3', 2, '#8a6a3e'),
     future: () => '<ellipse cx="12" cy="12" rx="10" ry="6.5" fill="#3c3530"/><ellipse cx="12" cy="12" rx="7" ry="5" fill="#e9d46a"/><ellipse cx="12" cy="12" rx="1.8" ry="4.4" fill="' + INK + '"/>',
     alter: () => '<rect x="3" y="12" width="7.5" height="10" rx="1.6" fill="' + NAVY + '"/><rect x="13.5" y="12" width="7.5" height="10" rx="1.6" fill="' + NAVY + '"/><path d="M6.5 9Q12 2.5 17.5 9" fill="none" stroke="#4f5d9a" stroke-width="2" stroke-linecap="round"/><path d="M0 0-3.4-2V2Z" fill="#4f5d9a" transform="translate(18 9.6) rotate(50)"/><path d="M0 0-3.4-2V2Z" fill="#4f5d9a" transform="translate(6 9.6) rotate(130)"/>',

@@ -190,6 +190,13 @@
     const g = busFor(id).gain;
     g.cancelScheduledValues(t0); g.setValueAtTime(from, t0); g.linearRampToValueAtTime(to, t1);
   }
+  // 等功率交叉淡变：直线淡变两版交接的中间总音量会塌一截（听着像「空了一下」），用 sin / cos 曲线就不会
+  function fadeBus(id, t0, dur, from, to, rising) {
+    const g = busFor(id).gain, N = 32, curve = new Float32Array(N);
+    for (let i = 0; i < N; i++) { const x = i / (N - 1); const k = rising ? Math.sin(x * Math.PI / 2) : Math.cos(x * Math.PI / 2); curve[i] = Math.max(0.0001, from + (to - from) * (rising ? k : 1 - k)); }
+    g.cancelScheduledValues(t0);
+    try { g.setValueCurveAtTime(curve, t0, dur); } catch (_) { g.setValueAtTime(from, t0); g.linearRampToValueAtTime(to, t0 + dur); }
+  }
   /* 排一小节。st0 → st1：这一小节里每格的时长从 st0 线性变到 st1（变身小节里换速度用）；平时两个一样。返回这一小节有多长 */
   function scheduleBar(id, bar, t0, st0, st1) {
     st0 = st0 || stepSec(id); st1 = st1 || st0;
@@ -247,8 +254,9 @@
   /* ───── 播放器：提前 0.5 秒一小节一小节排；换版要等到乐句边界，用一个「变身小节」过渡 ───── */
   const P = { on: false, cur: null, bar: 0, nextT: 0, timer: null, stopAt: 0, cut: false };
   const LEVELS = { funk: 1, chase: 1, chip: 0.85, circus: 0.9 };
-  // 这一小节能不能当变身小节：做完它，新版正好从一句的开头进来
-  const bridgeOk = (bar, want) => (want === 'chip' ? bar % 2 === 1 : bar % 4 === 3);
+  // 变身从哪一小节开始：进乙（紧张）= 句尾那一小节、变一小节；往放松走 = 一段的最后两小节、慢慢变两小节。做完新版正好从一句的开头进来
+  const bridgeLen = (want) => (want === 'chip' ? 1 : 2);
+  const bridgeOk = (bar, want) => (want === 'chip' ? bar % 2 === 1 : bar % 4 === 2);
   function pump() {
     if (!ac || !P.on) return;
     if (ac.state !== 'running') return;
@@ -274,20 +282,26 @@
         setBus(want, P.nextT, LEVELS[want]);
       } else if (!want) { fadeOut(); return; }
       else if (want !== P.cur && bridgeOk(P.bar, want)) {
-        // 变身小节：新旧两版同奏这一小节，交叉淡变 + 变速
-        const from = P.cur, t0 = P.nextT, st0 = stepSec(from), st1 = stepSec(want);
-        const dur = 16 * (st0 + st1) / 2;
-        rampBus(from, t0, t0 + dur, LEVELS[from], 0.0001);
-        rampBus(want, t0, t0 + dur * 0.85, 0.0001, LEVELS[want]);
-        scheduleBar(from, P.bar, t0, st0, st1);
-        scheduleBar(want, P.bar, t0, st0, st1);
+        // 变身：新旧两版同奏这一（两）小节，等功率交叉淡变 + 速度一格格平滑滑过去
+        const from = P.cur, t0 = P.nextT, sa = stepSec(from), sb = stepSec(want), n = bridgeLen(want);
+        let t = t0;
+        for (let k = 0; k < n; k++) {
+          const st0 = sa + (sb - sa) * k / n, st1 = sa + (sb - sa) * (k + 1) / n;
+          scheduleBar(from, P.bar, t, st0, st1);
+          const d = scheduleBar(want, P.bar, t, st0, st1);
+          t += d;
+          if (k < n - 1) { P.bar = (P.bar + 1) % 16; }
+        }
+        const dur = t - t0;
+        fadeBus(from, t0, dur, LEVELS[from], 0.0001, false);
+        fadeBus(want, t0, dur * 0.9, 0.0001, LEVELS[want], true);
         OUT = busFor(want);
-        if (st1 < st0) { DR.riser(t0 + dur * 0.25, dur * 0.75, 0.8); if (want === 'chip') DR.crash(t0 + dur, 1); }
-        else DR.fall(t0, dur, 0.8);
+        if (sb < sa) { DR.riser(t0 + dur * 0.35, dur * 0.65, 0.55); if (want === 'chip') DR.crash(t0 + dur, 0.8); }
+        else DR.fall(t0 + dur * 0.2, dur * 0.8, 0.5);
         OUT = null;
         P.cur = want;
         onBar(want);
-        P.nextT = t0 + dur; P.bar = (P.bar + 1) % 16;
+        P.nextT = t; P.bar = (P.bar + 1) % 16;
         continue;
       }
       P.nextT += scheduleBar(P.cur, P.bar, P.nextT);

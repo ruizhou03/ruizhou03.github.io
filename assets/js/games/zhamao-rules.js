@@ -53,17 +53,17 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const BOOM = 'boom', DEFUSE = 'defuse', NOPE = 'nope', ATTACK = 'attack', TATTACK = 'tattack', SKIP = 'skip',
+  const BOOM = 'boom', DEFUSE = 'defuse', NOPE = 'nope', ATTACK = 'attack', TATTACK = 'tattack', SKIP = 'skip', BOTTOM = 'bottom',
     FAVOR = 'favor', SHUFFLE = 'shuffle', FUTURE = 'future', ALTER = 'alter', SWAP = 'swap';
   const CATS = Object.freeze(['orange', 'calico', 'cow', 'tabby', 'siamese']);
-  const ACTIONS = Object.freeze([ATTACK, TATTACK, SKIP, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP]);
+  const ACTIONS = Object.freeze([ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP]);
   const COUNTS = Object.freeze({
-    boom: 4, defuse: 6, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3,
+    boom: 4, defuse: 6, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3, bottom: 4,
     orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4,
   });
   const KINDS = Object.freeze(Object.keys(COUNTS));
   const NAMES = Object.freeze({
-    boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '指定甩锅', skip: '跳过', favor: '索要',
+    boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '自由甩锅', skip: '跳过', bottom: '抽底', favor: '索要',
     shuffle: '洗牌', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗',
   });
   const KIND_OF = Object.freeze((function () {
@@ -71,7 +71,7 @@
     for (const k of KINDS) for (let i = 0; i < COUNTS[k]; i++) a.push(k);
     return a;
   })());
-  const DECK_SIZE = KIND_OF.length; // 64（含 3 张交换：没开交换的局它们一开局就收进盒子）
+  const DECK_SIZE = KIND_OF.length; // 68（含 3 张交换：没开交换的局它们一开局就收进盒子；2026-11-12 加了 4 张抽底）
   const MIN_PLAYERS = 2, MAX_PLAYERS = 5;
 
   const RULE_OPTIONS = Object.freeze({
@@ -111,7 +111,7 @@
   }
 
   /* 手牌排序：逗猫棒、不行、行动牌、猫，同种挨着 */
-  const ORDER = [DEFUSE, NOPE, ATTACK, TATTACK, SKIP, FAVOR, SWAP, SHUFFLE, FUTURE, ALTER].concat(CATS, [BOOM]);
+  const ORDER = [DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SWAP, SHUFFLE, FUTURE, ALTER].concat(CATS, [BOOM]);
   function sortHand(hand) {
     return hand.slice().sort((a, b) => (ORDER.indexOf(KIND_OF[a]) - ORDER.indexOf(KIND_OF[b])) || (a - b));
   }
@@ -307,6 +307,10 @@
       case SKIP:
         endOneTurn(s, ev);
         break;
+      case BOTTOM:
+        // 抽底：这一回合不从顶上摸，改从牌堆最底下摸一张（摸完照常结束这一回合；摸到炸毛猫照样炸）
+        if (s.deck.length) ev.push(...takeCard(s, me, true));
+        break;
       case ATTACK:
       case TATTACK: {
         const left = s.turnsLeft;
@@ -442,7 +446,12 @@
   /* ───── 摸牌（结束一个回合） ───── */
   function draw(s, seat) {
     if (s.phase !== 'act' || s.turn !== seat) throw new Error('illegal draw');
-    const id = s.deck.shift();
+    return takeCard(s, seat, false);
+  }
+  // 摸一张（bottom = 从最底下摸，抽底用）：事件带 bottom 标记，动画从牌堆底下抽
+  function takeCard(s, seat, bottom) {
+    const id = bottom ? s.deck.pop() : s.deck.shift();
+    const B = bottom ? { bottom: true } : null;
     s.seq += 1;
     const ev = [];
     for (let k = 0; k < s.n; k++) { // 知道牌堆顶是哪张的人，也就知道它进了谁手里
@@ -452,11 +461,11 @@
     if (KIND_OF[id] !== BOOM) {
       s.hands[seat].push(id);
       s.hands[seat] = sortHand(s.hands[seat]);
-      ev.push({ t: 'draw', seat, card: id, priv: [seat] });
+      ev.push(Object.assign({ t: 'draw', seat, card: id, priv: [seat] }, B));
       endOneTurn(s, ev);
       return ev;
     }
-    ev.push({ t: 'boom', seat, card: id });
+    ev.push(Object.assign({ t: 'boom', seat, card: id }, B));
     const def = findKind(s.hands[seat], DEFUSE);
     if (def != null) {
       s.hands[seat].splice(s.hands[seat].indexOf(def), 1);
@@ -556,7 +565,7 @@
   }
 
   return {
-    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay,
     kindOf, isCat, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,

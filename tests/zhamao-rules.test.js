@@ -26,12 +26,33 @@ const idOf = (s, seat, k) => s.hands[seat].find((id) => R.KIND_OF[id] === k);
 const closeAll = (s) => { for (const t of R.awaitingReaction(s)) R.pass(s, t); return R.closeReaction(s); };
 
 test('deck composition', () => {
-  assert.equal(R.DECK_SIZE, 64);
+  assert.equal(R.DECK_SIZE, 68);
   assert.equal(ofKind(R.SWAP).length, 3);
+  assert.equal(ofKind(R.BOTTOM).length, 4);
   assert.equal(ofKind(R.ALTER).length, 3);
   assert.equal(ofKind(R.TATTACK).length, 3);
   assert.equal(ofKind(R.BOOM).length, 4);
   assert.equal(ofKind(R.DEFUSE).length, 6);
+});
+
+test('抽底: draws the bottom card and ends the turn; a kitten at the bottom explodes / gets defused', () => {
+  const s = R.createGame(3, 9);
+  const me = s.turn;
+  const bot = ofKind(R.BOTTOM).find((id) => !s.removed.includes(id));
+  // 把一张抽底塞到我手里（从别处挪过来，总张数不变）
+  for (const arr of [s.deck, s.discard, ...s.hands]) { const i = arr.indexOf(bot); if (i >= 0) arr.splice(i, 1); }
+  s.hands[me].push(bot);
+  const safeBottom = s.deck[s.deck.length - 1];
+  const before = s.deck.length;
+  R.play(s, me, [bot]);
+  for (const x of R.awaitingReaction(s)) R.pass(s, x);
+  const ev = R.closeReaction(s);
+  assert.equal(s.deck.length, before - 1);
+  const d = ev.find((e) => e.t === 'draw' || e.t === 'boom');
+  assert.ok(d && d.bottom, 'draw event is marked bottom');
+  assert.equal(d.card, safeBottom);
+  if (d.t === 'draw') { assert.ok(s.hands[me].includes(safeBottom)); assert.notEqual(s.turn, me); }
+  assert.equal(total(s), R.DECK_SIZE);
 });
 
 test('setup for 2..5 players', () => {

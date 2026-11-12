@@ -13,6 +13,27 @@ minimal_app_shell: true
 body_class: zm-fullscreen
 ---
 
+<!-- 声音：第一下点按（哪怕游戏脚本还没下完）就先把声音通道打开，脚本一到直接接着放音乐；
+     微信里用 WeixinJSBridge 不用点就能出声。环境音：跟着静音键走、不上灵动岛（见 zhamao-audio.js） -->
+<script>
+(function () {
+  var A = window.AudioContext || window.webkitAudioContext;
+  if (!A) return;
+  function grab() {
+    try {
+      if (navigator.audioSession && navigator.audioSession.type !== 'ambient') navigator.audioSession.type = 'ambient';
+      var c = window.__zmCtx || (window.__zmCtx = new A());
+      if (!c.__zmPrimed) { var b = c.createBuffer(1, 1, 22050), s = c.createBufferSource(); s.buffer = b; s.connect(c.destination); s.start(0); c.__zmPrimed = true; }
+      if (c.state !== 'running' && c.resume) c.resume().then(function () { if (window.__zmAudioReady) window.__zmAudioReady(); });
+      else if (window.__zmAudioReady) window.__zmAudioReady();
+    } catch (e) { /* 不支持就等游戏脚本自己处理 */ }
+  }
+  ['pointerdown', 'touchend', 'click', 'keydown'].forEach(function (t) { document.addEventListener(t, grab, { passive: true, capture: true }); });
+  function wx() { try { window.WeixinJSBridge.invoke('getNetworkType', {}, grab); } catch (e) { /* */ } }
+  if (window.WeixinJSBridge) wx(); else document.addEventListener('WeixinJSBridgeReady', wx, false);
+})();
+</script>
+
 <!-- 字体照拱猪：电脑上用系统宋体，手机上没有才补思源宋体（按字形分片懒加载） -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css">
