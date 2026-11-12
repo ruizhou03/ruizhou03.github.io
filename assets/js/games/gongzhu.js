@@ -708,20 +708,12 @@
     schedule(step, 450);
   }
 
-  /* ───── 开局发牌动画（2026-11-12，照百变小咪的做法；先挂在 ?gzdeal=1 后面给用户看）─────
+  /* ───── 开局发牌动画（2026-11-12，照百变小咪的做法；用户试了甲乙丙三种洗法，选定乙「鸽尾洗」）─────
    * 牌堆是真的一摞：52 张每张一层奶油色纸边（位置带一点点随机偏差，看着是手码的），最上面一张牌背；影子长在最底下那层上。
-   * 洗牌时整摞（连同厚度、影子）一起动，没有不动的底座；发牌从顶上一张张拿，拿一张就真少一层。
-   * 别家的飞到头像（头像旁的牌背一张张多起来），我的飞进手里（落地就翻开、按花色排好）。点一下桌面直接发完。
-   * 预览期三种洗法让用户挑：?gzdeal=1 / 2 / 3（或 localStorage gz.deal），?fxdemo=deal 循环看、可切换。 */
-  const DEAL_STYLES = {
-    1: { name: '甲 · 抄起来转一圈（同百变小咪）', shuffle: 'spin' },
-    2: { name: '乙 · 鸽尾洗：两半交替落回', shuffle: 'riffle' },
-    3: { name: '丙 · 切牌：上半摞抽出垫到底下', shuffle: 'cut' },
-  };
-  const DEAL_PREVIEW = (new URLSearchParams(location.search).get('gzdeal') || '').trim();   // 链接上带了 gzdeal：预览模式
-  let DEAL_V = DEAL_STYLES[DEAL_PREVIEW] ? +DEAL_PREVIEW : DEAL_PREVIEW && DEAL_PREVIEW !== '0' ? 1 : 0;
-  if (!DEAL_V) { try { const v = localStorage.getItem('gz.deal'); DEAL_V = DEAL_STYLES[v] ? +v : 0; } catch (_) { /* ignore */ } }
-  const DEAL_FX = !!DEAL_V;
+   * 落下后鸽尾洗：整摞分成左右两半（各带各的厚度和影子）往两边一掰，两边交替往中间落、中间那摞一层层长高，拍齐。
+   * 然后从下家开始一圈圈发，拿一张牌堆就真少一层：别家的飞到头像（头像旁的牌背一张张多起来），
+   * 我的飞进手里（落地就翻开、按花色排好）。点一下桌面直接发完。?gzdeal=0 关掉（排查用），?fxdemo=deal 循环看。 */
+  const DEAL_FX = new URLSearchParams(location.search).get('gzdeal') !== '0';
   let dealing = null;   // 发牌中：{ have: 每家已经到手几张, mine: 我已经到手的牌, skip }
 
   /* 一摞牌（发牌 / 洗牌用）：fixed 定位在 (x, y) 为中心，n 张就 n 层纸边 + 顶上一张牌背；整摞是一个元素，挪它就连厚度带影子一起挪 */
@@ -759,10 +751,9 @@
   // （按整摞的框算、再往上抬它的厚度：空摞的顶牌是藏着的，量不到位置）
   function pileTop(el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 - Math.max(0, (el._n || 0) - 1) * pileStep(el._w) }; }
 
-  async function dealIntro(v) {
+  async function dealIntro() {
     const r = match.round;
     if (!r) return;
-    const S = DEAL_STYLES[v || DEAL_V] || DEAL_STYLES[1];
     const my = token;
     const D = dealing = { have: [0, 0, 0, 0], mine: [], skip: false };
     const alive = () => my === token && dealing === D && !D.skip;
@@ -785,28 +776,9 @@
     if (!reduce) {
       // 牌堆落下
       await anim(deck, [{ transform: 'translateY(-50px) scale(1.15)', opacity: 0 }, { transform: 'translateY(3px) scale(.98)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'cubic-bezier(.3,.7,.4,1)' });
-      if (alive()) await (S.shuffle === 'riffle' ? shuffleRiffle() : S.shuffle === 'cut' ? shuffleCut() : shuffleSpin());
+      if (alive()) await shuffleRiffle();
     }
-    // 甲：整摞被抄起来（牌堆连厚度、影子一起藏起），一圈牌背从原处飞出、绕着转一圈再收回来，落地时牌堆重新出现、拍一下
-    async function shuffleSpin() {
-      snd('deal');
-      deck.style.visibility = 'hidden';
-      const o = pileTop(deck), n = 9, R0 = w * 1.45, all = [];
-      for (let i = 0; i < n; i++) {
-        const el = mkBack(), th0 = (i / n) * Math.PI * 2, frames = [];
-        for (let k = 0; k <= 16; k++) {
-          const tt = k / 16, rr = R0 * Math.sin(Math.PI * tt) * (0.8 + 0.2 * Math.sin(i * 1.7));
-          const th = th0 + tt * Math.PI * 2 * (i % 2 ? 1 : -1);
-          frames.push({ transform: at({ x: o.x + Math.cos(th) * rr, y: o.y + Math.sin(th) * rr * 0.6 }, ' scale(' + (0.95 + 0.12 * Math.sin(Math.PI * tt)).toFixed(3) + ') rotate(' + ((th * 180 / Math.PI) * 0.25 * (1 - tt) + (i - 4) * 2 * Math.sin(Math.PI * tt)).toFixed(1) + 'deg)'), offset: tt });
-        }
-        all.push(anim(el, frames, { duration: 1000, delay: i * 22, easing: 'cubic-bezier(.4,0,.3,1)', fill: 'both' }).then(() => el.remove()));
-      }
-      await Promise.all(all);
-      deck.style.visibility = '';
-      snd('deal');
-      await anim(deck, [{ transform: 'scale(1.06)' }, { transform: 'none' }], { duration: 200, easing: 'ease-out' });
-    }
-    // 乙：鸽尾洗——整摞分成左右两半（各带各的厚度和影子）往两边一掰，两边交替往中间落，中间那摞一层层长高，最后拍齐
+    // 鸽尾洗——整摞分成左右两半（各带各的厚度和影子）往两边一掰，两边交替往中间落，中间那摞一层层长高，最后拍齐
     async function shuffleRiffle() {
       const half = Math.ceil(total / 2), dx = w * 0.66;
       const L = makePile(cx, cy, w, hh, half), Rt = makePile(cx, cy, w, hh, total - half);
@@ -839,26 +811,6 @@
       setPile(deck, total);
       snd('deal');
       await anim(deck, [{ transform: 'scaleX(1.05) translateY(-2px)' }, { transform: 'none' }], { duration: 180, easing: 'ease-out' });
-    }
-    // 丙：切牌——上半摞（带它自己的厚度和影子）抽出来挪到右边落下，下半摞拎起来压到它上面，合成一摞挪回正中；来两遍
-    async function shuffleCut() {
-      for (let pass = 0; pass < 2 && alive(); pass++) {
-        const cutAt = Math.round(total * (pass ? 0.42 : 0.56));
-        const bottom = makePile(cx, cy, w, hh, cutAt);
-        const topHalf = makePile(cx, cy - cutAt * pileStep(w), w, hh, total - cutAt);
-        deck.style.visibility = 'hidden';
-        const dx = w * 1.15;
-        snd('deal');
-        await anim(topHalf, [{ transform: 'none' }, { transform: 'translate(' + (dx * 0.5) + 'px,' + (-hh * 0.35) + 'px) rotate(5deg)', offset: 0.5 }, { transform: 'translate(' + dx + 'px,' + (cutAt * pileStep(w)) + 'px)' }], { duration: 300, easing: 'ease-in-out', fill: 'forwards' });
-        els.app.appendChild(bottom);   // 拎起来的下半摞要压在上半摞上面
-        const lift = (total - cutAt) * pileStep(w);
-        snd('deal');
-        await anim(bottom, [{ transform: 'none' }, { transform: 'translate(' + (dx * 0.5) + 'px,' + (-hh * 0.4) + 'px) rotate(-4deg)', offset: 0.5 }, { transform: 'translate(' + dx + 'px,' + (-lift) + 'px)' }], { duration: 300, easing: 'ease-in-out', fill: 'forwards' });
-        // 合成一摞：正中那摞（藏着的 deck）挪到右边现身，再一起滑回来
-        bottom.remove(); topHalf.remove();
-        deck.style.visibility = '';
-        await anim(deck, [{ transform: 'translateX(' + dx + 'px)' }, { transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.3,.7,.4,1)' });
-      }
     }
     if (!(my === token && dealing === D)) { cleanup(); done(); return; }
     const target = (s) => {
@@ -3678,7 +3630,7 @@
       });
   }
   // 进单机：给了这一盘就接着打（打到哪算哪），没给就新开一盘
-  function playSolo(m, fromCover) {
+  function playSolo(m) {
     hideCover();
     stopClock();
     busy = false; selected = -1; flying = null; exposePick = []; exposeHeld = []; exposeWait = null;
@@ -3688,8 +3640,6 @@
     applySoloIdentity();
     save();
     renderAll();
-    // 发牌预览（链接带 ?gzdeal=）：从主菜单点「单机」接着打存档那一局，也把手里的牌重新发一遍给你看
-    if (match.round && fromCover && DEAL_PREVIEW && DEAL_FX) { dealIntro().then(guard(() => step())); return; }
     if (match.round) step();
     else if (match.last) showSettlement();
     else startRound();
@@ -3713,7 +3663,7 @@
     const b = e.target.closest('[data-cover]');
     if (!b) return;
     const k = b.dataset.cover;
-    if (k === 'solo') playSolo(soloBots() ? match : loadSaved(), true);
+    if (k === 'solo') playSolo(soloBots() ? match : loadSaved());
     else if (k === 'online') {
       if (!liveRoom) { coverStep('online'); return; }
       const sess = liveRoom;
@@ -3761,7 +3711,7 @@
     ahpigdbl: ['全红 + 猪 ×2', [42, 10, 25, 47], H12],         // ♣5 ♠Q ♥A ♣10
     ahsheepdbl: ['全红 + 羊 ×2', [42, 35, 25, 47], H12],       // ♣5 ♦J ♥A ♣10
   };
-  // ?fxdemo=deal：开局发牌一遍遍循环播，顶上切甲乙丙三版（?fxdemo=deal&gzdeal=2）、「再发一次」重播
+  // ?fxdemo=deal：开局发牌一遍遍循环播，「再发一次」重播
   function startDealDemo() {
     match = { demo: true, rules: R.normalizeRules({}), totals: [0, 0, 0, 0], roundNo: 1, pigTaker: -1, seed: 1, round: null, exposing: [], last: null, over: false };
     let seed = 7;
@@ -3769,13 +3719,9 @@
     fresh();
     busy = true;
     renderAll();
-    const v = DEAL_V || 1;
     const bar = document.createElement('div');
     bar.className = 'gz-demo';
-    bar.innerHTML = '<b>发牌预览</b><select data-v aria-label="版本">' +
-      Object.keys(DEAL_STYLES).map((k) => '<option value="' + k + '"' + (+k === v ? ' selected' : '') + '>' + DEAL_STYLES[k].name + '</option>').join('') + '</select>' +
-      '<button type="button" data-again>再发一次</button><a href="' + location.pathname + '?gzdeal=' + v + '">去牌桌</a>';
-    bar.addEventListener('change', () => { location.search = '?fxdemo=deal&gzdeal=' + bar.querySelector('[data-v]').value; });
+    bar.innerHTML = '<b>发牌预览</b><button type="button" data-again>再发一次</button><a href="' + location.pathname + '">去牌桌</a>';
     bar.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.closest('[data-again]')) go(); });
     els.table.appendChild(bar);
     const cr = els.center.getBoundingClientRect();   // 挪到桌子中下方，别挡住上面三家
@@ -3785,7 +3731,7 @@
       clearTimeout(timer);
       token++;
       fresh();
-      dealIntro(v).then(() => { busy = true; renderHand(); timer = setTimeout(go, 2200); });
+      dealIntro().then(() => { busy = true; renderHand(); timer = setTimeout(go, 2200); });
     };
     setTimeout(go, 500);
   }
