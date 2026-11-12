@@ -2513,7 +2513,7 @@
       li('swap', '和指定的一个人整手交换手牌（各自的逗猫棒不换）' + (settings.rules.swap ? '' : '。设置里开了「交换牌」才有')) +
       li('favor', '指定一人，他自己挑一张给你') +
       li('shuffle', '把牌堆洗乱') +
-      li('future', '偷看牌堆最上面三张') +
+      li('future', '看牌堆最上面三张') +
       li('alter', '看牌堆最上面三张，并按你想要的顺序放回去（别人看不到）') +
       '</ul><h3>组合（任何同名牌都算）</h3><ul>' +
       '<li><b>两张一样</b>　指定一人，随机偷他一张</li>' +
@@ -3342,7 +3342,9 @@
     }
     if (t !== token) return;
     if (first.t === 'nope') stopFuse();
-    if (first.who === 0) { game.src = online.pendingSrc || {}; online.pendingSrc = null; } else game.src = {};
+    if (first.who === 0 && game.preFlyP) { await game.preFlyP; game.preFlyP = null; if (t !== token) return; }
+    if (first.who === 0 && game.previewSrc) { game.src = game.previewSrc; game.previewSrc = null; online.pendingSrc = null; }
+    else if (first.who === 0) { game.src = online.pendingSrc || {}; online.pendingSrc = null; } else game.src = {};
     if (!els.mask.hidden && els.dialog.querySelector('[data-steal], [data-alter], [data-fan], .zm-grid')) closeDialog();   // 超时被服务器代选了：要我做决定的弹窗收掉
     if (mode === 'target') cancelTarget();
     snapshot();
@@ -3404,19 +3406,50 @@
   }
 
   /* ───── 我的操作 → 服务器 ───── */
+  // 乐观出牌：点了「出牌」牌马上从手里飞上桌（和要指人时先摆上桌那一段一样），同时发请求；服务器回话后从桌上接着演
+  async function preFly(cards) {
+    const t = token;
+    const rects = cards.map((id) => handRectOf(id));
+    cards.forEach((id) => handHidden.add(id));
+    selected = [];
+    renderHand({ flip: false });
+    showStage({ by: 0, type: 'x', cards, target: -1, named: null, nopes: [] }, true);
+    preview = { cards };
+    snd('whoosh');
+    const su = SU();
+    await Promise.all(cards.map((id, i) => {
+      const target = stageCard(id);
+      if (!target) return null;
+      const to = target.getBoundingClientRect(), rot = (i - (cards.length - 1) / 2) * 5;
+      return fx.fly({ html: cardHtml(id), from: rects[i], to: { x: to.left + to.width / 2, y: to.top + to.height / 2 }, w: su, s0: rects[i].width / su, s1: 1, r0: 0, r1: rot, dur: ms(340), delay: i * ms(50), lift: 70 })
+        .then(() => { if (t === token) target.classList.remove('is-incoming'); });
+    }));
+    if (t !== token || !preview) return;
+    const m = {};
+    for (const id of cards) { const el = stageCard(id); if (el) m[id] = el.getBoundingClientRect(); }
+    game.previewSrc = m;
+    preview = null;
+  }
   async function onlineMove(d) {
     if (!online) return;
     const g = G();
     busy = true;
     stopClock();
-    if (d.type !== 'pass' && d.type !== 'nope') online.pendingSrc = captureSources(0, d);
+    if (d.type === 'play' && !game.previewSrc) game.preFlyP = preFly(d.cards);
+    else if (d.type === 'draw' && !fx.reduce()) { const top = els.deck.querySelector('.zm-deck-stack .zm-card'); if (top) top.animate([{ translate: '0 0' }, { translate: '0 -10px' }, { translate: '0 0' }], { duration: 320, easing: 'ease-out', composite: 'add' }); }
+    if (d.type !== 'pass' && d.type !== 'nope' && !game.preFlyP) online.pendingSrc = captureSources(0, d);
+    const slow = setTimeout(() => toast('网络有点慢，稍等…'), 1800);
     const body = { d: Object.assign({}, d, d.target != null && d.target >= 0 ? { target: srvOf(d.target) } : {}), at: g ? g.seq : undefined };
     mode = null;
     renderBand();
     try {
       const res = await NET.act(online.code, online.token, 'move', body);
+      clearTimeout(slow);
       onState(res.state);
     } catch (err) {
+      clearTimeout(slow);
+      if (game && game.preFlyP) { await game.preFlyP; game.preFlyP = null; if (!online) return; preview = { cards: d.cards }; endPreview(); }
+      if (!online) return;
       online.pendingSrc = null;
       game.previewSrc = null;
       if (err && err.error !== 'stale') toast(NET.message(err));
@@ -3480,6 +3513,7 @@
         if (my.abort || !online) return;
         if (err && (err.status === 401 || err.status === 404)) { leaveOnline(false, '房间已经不在了'); return; }
         fails++;
+        if (fails === 2) toast('连接断了，正在重连…');
         await new Promise((r) => setTimeout(r, Math.min(8000, 800 * fails)));
       }
     }
@@ -3509,14 +3543,53 @@
       d.querySelector('[data-ok]').addEventListener('click', closeDialog);
       d.querySelector('[data-copy]').addEventListener('click', async (ev) => {
         const b = ev.currentTarget;
-        try { if (navigator.share && /Mobi|Android|iPhone/.test(navigator.userAgent)) { await navigator.share({ title: '来玩猫咪炸毛', text: '房间 ' + online.code, url }); return; } await navigator.clipboard.writeText(url); b.textContent = '复制好了'; } catch (_) { b.textContent = '长按上面的链接复制'; }
+        try { if (navigator.share && /Mobi|Android|iPhone/.test(navigator.userAgent)) { await navigator.share({ title: '来玩百变小咪', text: '房间 ' + online.code, url }); return; } await navigator.clipboard.writeText(url); b.textContent = '复制好了'; } catch (_) { b.textContent = '长按上面的链接复制'; }
       });
     });
+  }
+
+  /* 连服务器时盖一层「正在连接」+ 一条假进度条（用户 2026-11-12 的主意）：
+   * 匀速 1.2 秒走到 70%；还没好就放慢、再 4 秒走到 90%，然后停着等；一连上就 0.25 秒冲到 100% 收起。
+   * 250ms 内就连上的不露（不闪）；盖着的时候底下什么都点不了 */
+  let connEl = null, connTimer = 0, connStage = 0;
+  function connecting(on, text) {
+    clearTimeout(connTimer); clearTimeout(connStage);
+    if (!on) {
+      if (!connEl || connEl.hidden) return Promise.resolve();
+      const bar = connEl.querySelector('.zm-conn-bar i');
+      bar.style.transition = 'transform .25s ease-out';
+      bar.style.transform = 'scaleX(1)';
+      return new Promise((r) => setTimeout(() => { connEl.hidden = true; r(); }, 300));
+    }
+    connTimer = setTimeout(() => {
+      if (!connEl) {
+        connEl = document.createElement('div');
+        connEl.className = 'zm-connecting';
+        connEl.innerHTML = '<div class="zm-conn-box"><div class="zm-conn-paws"><i class="zm-conn-paw">' + ART.icon('orange') + '</i><i class="zm-conn-paw">' + ART.icon('calico') + '</i><i class="zm-conn-paw">' + ART.icon('cow') + '</i></div>' +
+          '<b data-t></b><div class="zm-conn-bar" role="progressbar" aria-label="连接中"><i></i></div></div>';
+        els.app.appendChild(connEl);
+      }
+      connEl.querySelector('[data-t]').textContent = text || '正在连接…';
+      const bar = connEl.querySelector('.zm-conn-bar i');
+      bar.style.transition = 'none';
+      bar.style.transform = 'scaleX(0)';
+      connEl.hidden = false;
+      void bar.offsetWidth;
+      bar.style.transition = 'transform 1.2s linear';
+      bar.style.transform = 'scaleX(.7)';
+      connStage = setTimeout(() => { bar.style.transition = 'transform 4s cubic-bezier(.2,.6,.4,1)'; bar.style.transform = 'scaleX(.9)'; }, 1200);
+    }, 250);
+    return Promise.resolve();
+  }
+  async function withConn(text, fn) {
+    connecting(true, text);
+    try { const r = await fn(); await connecting(false); return r; } catch (e) { connecting(false); throw e; }
   }
 
   /* ───── 主页「联机」：建房 / 输房间号加入 ───── */
   function showOnlineEntry(code) {
     if (!NET) { toast('联机暂时用不了'); return; }
+    NET.warm();
     openDialog('<h2>联机</h2>' +
       '<button type="button" class="zm-cover-btn is-primary zm-online-new" data-new><b>建一个房间</b><small>你当房主，可以加机器猫凑人数</small></button>' +
       '<div class="zm-field-label">或者输房间号加入</div><div class="zm-join-row"><input class="zm-input" data-code inputmode="numeric" maxlength="4" placeholder="4 位数字" value="' + esc(code || '') + '" autocomplete="off"><button type="button" class="zm-btn zm-btn-primary" data-join>加入</button></div>' +
@@ -3530,7 +3603,7 @@
       d.querySelector('[data-new]').addEventListener('click', async () => {
         lock();
         try {
-          const res = await NET.create(profile.nick, profile.avatar, { rules: settings.rules, turnSec: turnSec() || 0 });
+          const res = await withConn('正在建房间…', () => NET.create(profile.nick, profile.avatar, { rules: settings.rules, turnSec: turnSec() || 0 }));
           closeDialog(); startOnline(res.state, res.token);
         } catch (e) { fail(e); }
       });
@@ -3539,7 +3612,7 @@
         if (!/^\d{4}$/.test(c)) { fail({ error: 'bad_code' }); return; }
         lock();
         try {
-          const res = await NET.join(c, profile.nick, profile.avatar, mode);
+          const res = await withConn('正在进房间…', () => NET.join(c, profile.nick, profile.avatar, mode));
           closeDialog(); startOnline(res.state, res.token);
           if (res.fellBack) toast(NET.message({ error: res.fellBack }));
         } catch (e) { fail(e); }
@@ -3552,7 +3625,7 @@
   }
   async function resumeOnline(sess) {
     try {
-      const res = await NET.state(sess.code, sess.token, 0);
+      const res = await withConn('正在回到房间…', () => NET.state(sess.code, sess.token, 0));
       if (res && res.state) { startOnline(res.state, sess.token); return true; }
     } catch (err) {
       if (err && (err.status === 401 || err.status === 404)) NET.writeSession(null);

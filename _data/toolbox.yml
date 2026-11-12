@@ -120,7 +120,7 @@
 
 - id: zhamao
   group: cards
-  name: 猫咪炸毛
+  name: 百变小咪
   icon: /assets/icons/zhamao-icon-192.png
   tagline: 摸到炸毛猫就出局 · 机器猫三档
   url: /toolbox/puffcat/

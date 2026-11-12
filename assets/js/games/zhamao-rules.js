@@ -11,7 +11,7 @@
  *   跳过 ×4      结束一个回合、不摸牌（被攻击时只顶掉其中一回合）
  *   索要 ×4      指定一人，他自己挑一张给你
  *   洗牌 ×4      把牌堆洗乱
- *   偷看 ×5      偷看牌堆最上面三张（不改顺序、别人看不到）
+ *   窥探 ×5      看牌堆最上面三张（不改顺序、别人看不到）
  *   橘猫 / 三花 / 奶牛 / 狸花 / 暹罗 各 ×4   本身没用，凑组合
  * 组合（任何同名牌都算，炸毛猫除外）：
  *   两张同样   指定一人，从他手里随机抽一张
@@ -64,7 +64,7 @@
   const KINDS = Object.freeze(Object.keys(COUNTS));
   const NAMES = Object.freeze({
     boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '指定甩锅', skip: '跳过', favor: '索要',
-    shuffle: '洗牌', future: '偷看', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗',
+    shuffle: '洗牌', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗',
   });
   const KIND_OF = Object.freeze((function () {
     const a = [];

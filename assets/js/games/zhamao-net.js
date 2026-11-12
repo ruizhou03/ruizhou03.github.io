@@ -8,7 +8,7 @@
   const BASE = LOCAL ? 'http://127.0.0.1:8789/api/zhamao' : 'https://zircon-urge.fly.dev/api/zhamao';
   const SESSION_KEY = 'zhamao.online.v1';
   // 后端（fly 上的 /api/zhamao）部署好之前，线上先不露联机入口：本机调试、或网址带 ?zmonline=1 才开
-  const LIVE = false;
+  const LIVE = true;   // 2026-11-12 后端已部署
   const ENABLED = LIVE || LOCAL || /[?&]zmonline=1\b/.test(location.search);
 
   const ERRORS = {
@@ -89,6 +89,8 @@
     // mode：'play' 想坐下（坐不下服务器就让我先观战，回应里 fellBack 写原因）；'watch' 只观战
     join: (code, nick, avatar, mode) => request('POST', 'join', { body: { code, nick, avatar, deviceId: deviceId(), mode: mode || 'play' } }),
     act: (code, token, action, body) => request('POST', action, { code, token, body }),
+    // 叫醒服务器：fly 上没人用会休眠，第一下要 2–3 秒。点开「联机」就先发一个最便宜的请求（不碰数据库），等真建房时它多半醒了
+    warm: () => fetch(BASE + '?action=state&code=0', { method: 'GET', cache: 'no-store' }).catch(() => {}),
     state: (code, token, since, signal) => request('GET', 'state', { code, token, query: { since: String(since || 0) }, signal }),
   };
 })();
