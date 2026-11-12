@@ -506,7 +506,7 @@
     tot.classList.toggle('neg', match.totals[s] < 0);
     const backs = el.querySelector('.gz-backs');
     if (backs) {
-      const left = r ? r.hands[s].length : 0;
+      const left = dealing ? dealing.have[s] : r ? r.hands[s].length : 0;
       if (backs.childElementCount !== left) backs.innerHTML = '<span class="gz-back"></span>'.repeat(left);
     }
     // 别家亮出、还在手里的牌：牌背旁边摊开给大家看
@@ -610,7 +610,7 @@
     els.hand.innerHTML = '';
     if (!r) { els.play.disabled = true; return; }
     if (watching()) { renderWatchHand(r); return; }
-    const hand = r.hands[0].slice();
+    const hand = dealing ? r.hands[0].filter((c) => dealing.mine.includes(c)) : r.hands[0].slice();
     R.sortHand(hand);
     const exposing = exposingMe() && !busy;
     const myTurn = !exposing && !match.exposing.length && !R.isRoundOver(r) && r.turn === 0 && !busy;
@@ -702,10 +702,74 @@
     exposePick = [];
     exposeHeld = [];
     save();
+    if (DEAL_FX && !match.tutorial) { dealIntro().then(guard(() => step())); return; }
     renderAll();
     snd('deal');
     schedule(step, 450);
   }
+
+  /* ───── 开局发牌动画（2026-11-12，借鉴猫咪炸毛 dealIntro；先挂在 ?gzdeal=1 后面给用户看）─────
+   * 桌子正中落下一摞牌、左右分两半交叉洗一下，然后从下家开始一圈圈发：别家的飞到头像（头像旁的牌背一张张多起来），
+   * 我的飞进手里（落地就翻开、按花色排好）。52 张约 2 秒；点一下桌面直接发完。 */
+  const DEAL_FX = /[?&]gzdeal=1\b/.test(location.search) || (() => { try { return localStorage.getItem('gz.deal') === '1'; } catch (_) { return false; } })();
+  let dealing = null;   // 发牌中：{ have: 每家已经到手几张, mine: 我已经到手的牌, skip }
+  async function dealIntro() {
+    const r = match.round;
+    if (!r) return;
+    const my = token;
+    const alive = () => my === token && dealing;
+    dealing = { have: [0, 0, 0, 0], mine: [], skip: false };
+    renderAll();
+    const reduce = reduceMotion();
+    const cs = getComputedStyle(els.app);
+    const u = parseFloat(cs.getPropertyValue('--u')) || 56, h = parseFloat(cs.getPropertyValue('--h')) || u * 1.4;
+    const c = els.center.getBoundingClientRect();
+    const cx = c.left + c.width / 2, cy = c.top + c.height / 2;
+    const w = u * 0.86, hh = h * 0.86;
+    const mk = (cls) => { const el = document.createElement('span'); el.className = 'gz-deal-card' + (cls ? ' ' + cls : ''); el.style.cssText = 'left:' + (cx - w / 2) + 'px;top:' + (cy - hh / 2) + 'px;width:' + w + 'px;height:' + hh + 'px'; els.app.appendChild(el); return el; };
+    const deck = mk('is-deck');
+    const sleep = (ms) => new Promise((res) => setTimeout(res, reduce ? 0 : ms));
+    if (!reduce) {
+      deck.animate([{ transform: 'translateY(-50px) scale(1.15)', opacity: 0 }, { transform: 'translateY(3px) scale(.98)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'cubic-bezier(.3,.7,.4,1)' });
+      await sleep(400);
+      // 洗一下：分成左右两半、错开再合上，来两遍
+      const a = mk(), b = mk();
+      snd('deal');
+      const half = (el, dx) => el.animate([{ transform: 'none' }, { transform: 'translate(' + dx + 'px,-6px) rotate(' + (dx > 0 ? 8 : -8) + 'deg)', offset: 0.45 }, { transform: 'none' }], { duration: 300, iterations: 2, easing: 'ease-in-out' }).finished;
+      await Promise.all([half(a, -w * 0.7), half(b, w * 0.7)]).catch(() => {});
+      a.remove(); b.remove();
+    }
+    if (!alive()) { deck.remove(); return; }
+    const target = (s) => {
+      if (s === 0) { const hr = els.hand.getBoundingClientRect(); return { x: hr.left + hr.width / 2, y: hr.top + hr.height / 2 }; }
+      const av = els.seats[s].querySelector('.gz-avatar').getBoundingClientRect();
+      return { x: av.left + av.width / 2, y: av.top + av.height / 2 };
+    };
+    const order = [];
+    for (let k = 0; k < 13; k++) for (let d = 1; d <= 4; d++) { const s = d % 4; order.push([s, r.hands[s][k]]); }
+    const flights = [];
+    for (let i = 0; i < order.length; i++) {
+      if (!alive()) break;
+      if (dealing.skip) break;
+      const [s, card] = order[i];
+      const land = () => { if (!dealing) return; if (s === 0) { dealing.mine.push(card); renderHand(); } else { dealing.have[s]++; renderSeat(s); } };
+      if (reduce) { land(); continue; }
+      const t = target(s), fl = mk();
+      if (i % 2 === 0) snd('deal');
+      flights.push(fl.animate([
+        { transform: 'none', opacity: 1 },
+        { transform: 'translate(' + (t.x - cx) + 'px,' + (t.y - cy) + 'px) rotate(' + ((i * 37) % 30 - 15) + 'deg) scale(' + (s === 0 ? 1 : 0.45) + ')', opacity: s === 0 ? 1 : 0.6 },
+      ], { duration: 260, easing: 'cubic-bezier(.3,.6,.35,1)', fill: 'forwards' }).finished.then(() => { fl.remove(); land(); }, () => fl.remove()));
+      await sleep(38);
+    }
+    await Promise.all(flights);
+    deck.remove();
+    els.app.querySelectorAll('.gz-deal-card').forEach((x) => x.remove());
+    if (my !== token) return;
+    dealing = null;
+    renderAll();
+  }
+  function skipDeal() { if (dealing) dealing.skip = true; }
 
   function schedule(fn, ms) {
     const my = token;
@@ -2703,6 +2767,7 @@
         match.round = R.createRound([gv.dealt ? gv.dealt.slice() : blank(), blank(), blank(), blank()], loc(ev.leader), ev.mustLead, match.rules);
         match.exposing = [];
         selected = -1; exposePick = []; exposeHeld = []; busy = true; online.readySent = false;
+        if (DEAL_FX && !watching()) { dealIntro().then(() => { if (match && match.online) schedule(step, 120); }); return; }
         renderAll();
         snd('deal');
         schedule(step, 450);
@@ -3536,6 +3601,7 @@
   });
   // 大厅：点座位（空位加机器人 / 坐过去，机器人换档，房主请人离开）；中间面板的几个按钮
   els.table.addEventListener('click', (e) => {
+    if (dealing) { skipDeal(); return; }   // 发牌中点一下：直接发完
     if (countdown) return;
     const seat = e.target.closest('[data-lseat]');
     if (seat && online && match && match.lobby) { showSeatMenu(+seat.dataset.lseat); return; }
