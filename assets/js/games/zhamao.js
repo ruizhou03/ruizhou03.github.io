@@ -173,7 +173,7 @@
     const onStage = stageIdsOf(s);
     return {
       counts: s.hands.map((h) => h.length), hand: s.alive[0] ? s.hands[0].slice() : [],
-      deckSize: s.deck.length, kittens: R.kittensInDeck(s),
+      deckSize: s.deck.length - (s.phase === 'alter' && s.alter ? s.alter.cards.length : 0), kittens: R.kittensInDeck(s),   // 重排时那几张正摆在牌堆上方
       discard: s.discard.filter((id) => onStage.indexOf(id) < 0),
       turn: s.turn, turnsLeft: s.turnsLeft, alive: s.alive.slice(),
     };
@@ -380,12 +380,20 @@
     renderHand();
     return handRectOf(id);
   }
-  function revealHandCard(id) {
+  // landed = 飞过来的那张落地时的位置：手牌这期间要是挪了位（又来了张牌、窗口变了），从落地处滑过去，不再一下跳过去
+  function revealHandCard(id, landed) {
     handHidden.delete(id);
     const c = handCard(id);
     if (!c) return;
     c.classList.remove('is-incoming');
-    if (!fx.reduce()) c.animate([{ transform: 'translateY(-8px) scale(1.06)' }, { transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.3,.8,.4,1.3)', composite: 'add' });
+    if (fx.reduce()) return;
+    const r = c.getBoundingClientRect();
+    const dx = landed ? (landed.left + landed.width / 2) - (r.left + r.width / 2) : 0, dy = landed ? (landed.top + landed.height / 2) - (r.top + r.height / 2) : 0;
+    if (Math.abs(dx) > 1.5 || Math.abs(dy) > 1.5) {
+      c.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)' }, { transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.3,.8,.4,1)', composite: 'add' });
+    } else {
+      c.animate([{ transform: 'translateY(-8px) scale(1.06)' }, { transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.3,.8,.4,1.3)', composite: 'add' });
+    }
   }
   function dropFromHand(ids) { if (!ov) return; ov.hand = ov.hand.filter((x) => ids.indexOf(x) < 0); selected = selected.filter((x) => ids.indexOf(x) < 0); }
 
@@ -751,7 +759,7 @@
       case 'turn': return animTurn(e, t);
       case 'shuffle': return animShuffle(e, t);
       case 'future': return animFuture(e, t);
-      case 'alter': return e.seat === 0 ? undefined : animFuture(e, t);
+      case 'alter': return animAlterLift(e, t);
       case 'altered': return animAltered(e, t);
       case 'askGive': return animAskGive(e, t);
       case 'give': return animTransfer(e, t, 'give');
@@ -913,6 +921,7 @@
     if (e.attacked) {
       await fxPot(prevTurn >= 0 ? prevTurn : R.nextAlive(game.state, e.seat), e.seat, t);
       if (t !== token) return;
+      if (e.turnsLeft > 2) await countUp(e.seat, e.turnsLeft - 2, e.turnsLeft, t);
     }
     if (ov) { ov.turn = e.seat; ov.turnsLeft = e.turnsLeft; }
     renderSeats();
@@ -921,6 +930,34 @@
     fx.pop(avEl(e.seat), { scale: 1.1, dur: 320 });
     if (e.seat === 0 && game.state.alive[0]) snd('turn');
     await wait(ms(e.attacked ? 260 : 140));
+  }
+  /* 甩锅叠加：被砸的人头上冒出一个大数字，从「接过来的回合数」一格格跳到新总数（每跳一下弹一下、响一下），
+   * 最后缩小落进他头像旁边的 ×N 角标 */
+  async function countUp(seat, from, to, t) {
+    if (fx.reduce()) return;
+    const a = avPoint(seat);
+    const el = document.createElement('div');
+    el.className = 'zm-stackcount';
+    el.innerHTML = '<span class="x">×</span><b>' + from + '</b><i>+2</i>';
+    const cy = a.y < innerHeight / 2 ? a.y + 84 : a.y - 70;   // 上排的人：数字落在头像下面；我：在头像上面
+    el.style.left = Math.max(60, Math.min(innerWidth - 60, a.x)) + 'px';
+    el.style.top = cy + 'px';
+    els.fly.appendChild(el);
+    const num = el.querySelector('b');
+    el.animate([{ transform: 'translate(-50%,-50%) scale(.4)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1.15)', opacity: 1, offset: 0.6 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }], { duration: 260, easing: 'ease-out', fill: 'forwards' });
+    await wait(ms(320));
+    for (let v = from + 1; v <= to; v++) {
+      if (t !== token) { el.remove(); return; }
+      num.textContent = v;
+      snd('tick');
+      num.animate([{ transform: 'scale(1.6)', color: '#c8463a' }, { transform: 'scale(1)', color: '#b4392c' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1.3)' });
+      await wait(ms(260));
+    }
+    snd('stamp');
+    fx.burst(a.x, cy, { n: 8, shapes: ['star'], colors: GOLDS.concat(['#c8463a']), radius: 46, size: [6, 14], life: 600 });
+    await wait(ms(420));
+    await el.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: 'translate(-50%,' + (a.y < innerHeight / 2 ? '-90px' : '40px') + ') scale(.35)', opacity: 0 }], { duration: ms(260), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
+    el.remove();
   }
   async function fxPot(from, to, t) {
     snd('whoosh');
@@ -954,42 +991,53 @@
     pot.remove();
   }
 
-  /* 打翻纸箱：牌堆里飞出一圈牌背，绕着牌堆转一圈再收回去，扬起一点灰 */
+  /* 洗牌：整摞牌都动——从中间切成两半，上半摞抬起来落到右边、下半摞滑到左边（两摞都带着自己的厚度），
+   * 再一张张交错着落回去合成一摞、拍齐。牌堆剩得少就少动几张 */
   async function animShuffle(e, t) {
     snd('shuffle');
-    bubble(e.seat, '哗啦——', { ms: 1200 });
-    // 牌堆上半截（含顶上那张）被抄起来、绕着转一圈再落回去：转的时候那半截先藏起来，别留一张不动的牌在顶上
-    const c = fx.center(deckTopRect());
-    const pu = PU(), n = Math.max(1, Math.min(9, D().deckSize)), R0 = pu * 1.25;   // 牌堆剩得少就少转几张
-    const layers = Array.from(els.deck.querySelectorAll('.zm-deck-stack > *'));
-    const lifted = layers.slice(Math.floor(layers.length * 0.45));
-    lifted.forEach((l) => { l.style.visibility = 'hidden'; });
-    els.deck.classList.add('is-shuffling');
-    fx.smoke(c.x, c.y + pu * 0.4, { n: 5, spread: pu * 0.6, size: [30, 60], rise: 26 });
-    const all = [];
-    for (let i = 0; i < n; i++) {
-      const el = document.createElement('div');
-      el.className = 'zm-flyer';
-      el.style.width = pu + 'px'; el.style.height = pu * 1.4 + 'px';
-      el.innerHTML = backHtml();
-      els.fly.appendChild(el);
-      const th0 = (i / n) * Math.PI * 2, frames = [];
-      const K = 16;
-      for (let k = 0; k <= K; k++) {
-        const tt = k / K;
-        const rr = R0 * Math.sin(Math.PI * tt) * (0.8 + 0.2 * Math.sin(i * 1.7));
-        const th = th0 + tt * Math.PI * 2 * (i % 2 ? 1 : -1);
-        const x = c.x + Math.cos(th) * rr, y = c.y + Math.sin(th) * rr * 0.6;
-        frames.push({ transform: fx.T(x - pu / 2, y - pu * 0.7, 0.9 + 0.15 * Math.sin(Math.PI * tt), (th * 180 / Math.PI) * 0.25 * (1 - tt) + (i - 4) * 2 * Math.sin(Math.PI * tt)), offset: tt });
-      }
-      all.push(el.animate(frames, { duration: ms(1050), delay: i * 22, easing: 'cubic-bezier(.4,0,.3,1)', fill: 'both' }).finished.then(() => el.remove(), () => el.remove()));
-    }
-    await Promise.all(all);
-    lifted.forEach((l) => { l.style.visibility = ''; });
-    els.deck.classList.remove('is-shuffling');
+    if (e.seat >= 0) bubble(e.seat, '哗啦——', { ms: 1200 });
+    const stack = els.deck.querySelector('.zm-deck-stack');
+    const layers = stack ? Array.from(stack.children) : [];
+    const n = layers.length;
+    if (n < 2 || fx.reduce()) { await wait(ms(300)); if (t === token) { fx.pop(els.deck, { scale: 1.06 }); snd('thud'); } return; }
+    const pu = PU(), half = Math.ceil(n / 2), dx = pu * 0.6, sy = DECK_LOOK.sy * pu;
+    const split = ms(360), hold = ms(140), merge = ms(520);
+    const c = fx.center(els.deck.getBoundingClientRect());
+    fx.smoke(c.x, c.y + pu * 0.55, { n: 4, spread: pu * 0.7, size: [24, 46], rise: 18, alpha: 0.5 });
+    // 下半摞切开后最上面那层也得是张牌背（平时它只是一层纸边）
+    const cap = layers[half - 1];
+    if (cap && cap.classList.contains('zm-sheet')) { cap.classList.add('as-back'); cap.innerHTML = ART.BACK; }
+    const uncap = () => { if (cap) { cap.classList.remove('as-back'); cap.innerHTML = ''; } };
+    // 1) 切开
+    const anims = layers.map((el, i) => {
+      const up = i >= half, x = up ? dx : -dx, y = up ? half * sy : 0;   // 上半摞落到桌面高度
+      return el.animate(up
+        ? [{ translate: '0 0', rotate: '0deg' }, { translate: (x * 0.45) + 'px ' + (-pu * 0.22) + 'px', rotate: '5deg', offset: 0.45 }, { translate: x + 'px ' + y + 'px', rotate: '0deg' }]
+        : [{ translate: '0 0' }, { translate: x + 'px 0' }],
+        { duration: split, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
+    });
+    await wait(split + hold);
+    if (t !== token) { anims.forEach((a) => a.cancel()); uncap(); return; }
+    // 2) 交错落回：下半摞滑回原位，上半摞一张张掀起来、落回自己那层（像两手一松、牌一张张叠进去）
+    snd('deal');
+    const m2 = layers.map((el, i) => {
+      const up = i >= half;
+      if (!up) return el.animate([{ translate: (-dx) + 'px 0' }, { translate: '0 0' }], { duration: merge * 0.7, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
+      const k = i - half, cnt = n - half;
+      return el.animate([
+        { translate: dx + 'px ' + (half * sy) + 'px', rotate: '0deg' },
+        { translate: (dx * 0.35) + 'px ' + (-6 - k * 0.5) + 'px', rotate: '-4deg', offset: 0.55 },
+        { translate: '0 0', rotate: '0deg' },
+      ], { duration: merge * 0.6, delay: (k / Math.max(1, cnt)) * merge * 0.4, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' });
+    });
+    await wait(merge);
+    anims.forEach((a) => a.cancel());
+    m2.forEach((a) => a.cancel());
+    uncap();
     if (t !== token) return;
+    // 3) 拍齐
     snd('thud');
-    fx.pop(els.deck, { scale: 1.06 });
+    fx.pop(els.deck, { scale: 1.05 });
     renderPiles();
   }
 
@@ -1000,6 +1048,7 @@
     const r = deckTopRect(), pu = PU();
     if (e.cards && e.seat === 0) {
       const u = U() * 1.3;
+      if (ov) { ov.deckSize -= e.cards.length; renderPiles(); }   // 拿起来的那几张不再留在牌堆上
       const box = els.center.getBoundingClientRect(), c = fx.center(box);
       const gap = u * 1.12;
       const spots = e.cards.map((_, i) => ({ x: c.x + (i - (e.cards.length - 1) / 2) * gap, y: c.y - u * 0.1 }));
@@ -1034,6 +1083,7 @@
         return fx.fly({ html: cardHtml(id), back: backHtml(), flip: 'down', flipAt: 0.05, from: spots[i], to: deckTopRect(), w: u, s0: 1, s1: pu / u, dur: ms(480), delay: (e.cards.length - 1 - i) * ms(110), lift: 40 });
       }));
       snd('thud');
+      if (ov) ov.deckSize += e.cards.length;
       renderPiles();
       return;
     }
@@ -1047,6 +1097,7 @@
       const to = { x: dc.x + dir.x / len * pu * 0.9 + fan * pu * 0.42, y: dc.y + dir.y / len * pu * 0.9 - Math.abs(fan) * 4 };
       out.push(fx.fly({ html: backHtml(), from: r, to, w: pu, s0: 1, s1: 0.86, r0: 0, r1: fan * 14, dur: ms(380), delay: i * 60, lift: 20, keep: true, land: false }));
     }
+    if (ov && k) { ov.deckSize -= k; renderPiles(); }
     const nodes = await Promise.all(out);
     if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
     const eye = document.createElement('div');
@@ -1073,6 +1124,7 @@
       n.remove();
       return fx.fly({ html: backHtml(), from: rr, to: deckTopRect(), w: pu, s0: 0.86, s1: 1, r0: (i - (k - 1) / 2) * 14, r1: 0, dur: ms(320), delay: i * 50, lift: 10 });
     }));
+    if (ov && k) ov.deckSize += k;
     renderPiles();
   }
 
@@ -1093,6 +1145,7 @@
     const mine = e.card != null && (e.from === 0 || e.to === 0);
     const src = e.from === 0 ? (game.src && game.src[e.card]) || handRectOf(e.card) : (kind === 'steal' && game.stealFrom) || avPoint(e.from);
     game.stealFrom = null;
+    if (game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
     if (e.from === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.from] -= 1; renderSeat(e.from); }
     const u = U();
     let to = avPoint(e.to);
@@ -1112,7 +1165,7 @@
       dur: ms(600), lift: 80, r0: -8, r1: 0,
     });
     if (t !== token) return;
-    if (e.to === 0) revealHandCard(e.card); else { ov.counts[e.to] += 1; renderSeat(e.to); fx.pop(avEl(e.to), { scale: 1.15 }); }
+    if (e.to === 0) revealHandCard(e.card, to); else { ov.counts[e.to] += 1; renderSeat(e.to); fx.pop(avEl(e.to), { scale: 1.15 }); }
     if (e.to === 0 && e.card != null) bubble(0, '拿到「' + R.NAMES[R.KIND_OF[e.card]] + '」', { ms: 1500 });
     await wait(ms(220));
   }
@@ -1168,7 +1221,8 @@
         arr.forEach((x) => x.classList.remove('is-wander'));
         arr[i].classList.add('is-chosen');
         snd('ding');
-        await wait(ms(420));
+        if (!fx.reduce()) arr[i].animate([{ scale: '1' }, { scale: '1.08', offset: 0.35 }, { scale: '1' }], { duration: 360, easing: 'ease-out' });
+        await wait(ms(950));   // 停一下：让人看清抽中的是哪张
         return arr[i];
       },
       cancel() {
@@ -1232,7 +1286,7 @@
       const el = await w.settle((arr) => (e.from === 0 ? Math.max(0, arr.findIndex((c) => +c.dataset.id === e.card)) : (e.idx != null ? e.idx : 0)));
       if (t !== token) { w.cancel(); return; }
       if (el) picked = el.getBoundingClientRect();
-      w.cancel();
+      game.wanderDone = w;   // 选中的那张一直亮着，等牌真的飞走时再收
     }
     game.stealFrom = picked;
     const a = avPoint(e.to), b = avPoint(e.from);
@@ -1373,7 +1427,7 @@
       await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: 'up', flipAt: 0.3, from, to, w: u, s0: pu * 1.04 / u, s1: 1, r0: -5, r1: 0, dur: ms(560), lift: 70, swell: 0.18 });
       if (t !== token) return;
       snd('flip');
-      revealHandCard(e.card);
+      revealHandCard(e.card, to);
       if (R.KIND_OF[e.card] === R.DEFUSE) { const r = handRectOf(e.card); fx.burst(r.left + r.width / 2, r.top + r.height / 2, { n: 10, shapes: ['star'], colors: ['#4f8a5f', '#9bc8a2', '#c9a96e'], radius: u * 0.8, size: [6, 14], life: 700 }); }
     } else {
       const a = avPoint(e.seat);
@@ -1726,6 +1780,8 @@
 
   function wipeFx() {
     if (game && game.wander) { game.wander.cancel(); game.wander = null; }
+    if (game && game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
+    if (game) game.alterRow = null;
     els.fly.innerHTML = '';
     els.fly.classList.remove('is-interactive');
     if (game) game.boomNode = null;
@@ -1792,7 +1848,7 @@
       snd('deal');
       if (seat === 0) {
         const to = reserveHandSlot(id);
-        flights.push(fx.fly({ html: cardHtml(id), back: backHtml(), flip: 'up', flipAt: 0.35, from, to, w: u, s0: pu / u, s1: 1, r0: -10, r1: 0, dur: 420, lift: 60 }).then(() => { if (!skipped()) revealHandCard(id); }));
+        flights.push(fx.fly({ html: cardHtml(id), back: backHtml(), flip: 'up', flipAt: 0.35, from, to, w: u, s0: pu / u, s1: 1, r0: -10, r1: 0, dur: 420, lift: 60 }).then(() => { if (!skipped()) revealHandCard(id, to); }));
       } else {
         flights.push(fx.fly({ html: backHtml(), from, to: avPoint(seat), w: pu, s0: 1, s1: 0.4, r0: -10, r1: 20, dur: 380, lift: 40, fadeOut: true, land: false }).then(() => { if (!skipped()) { ov.counts[seat] += 1; renderSeat(seat); } }));
       }
@@ -1946,29 +2002,57 @@
       }
     });
   }
-  // 重排完：顶上那几张牌背从牌堆上抬起来、在空中交叉换位，再落回去（谁重排都一样演，看不出顺序）
-  async function animAltered(e, t) {
+  /* 重排：打出来时顶上几张牌背从牌堆上抬起、在牌堆上方摆一排（牌堆真的少了这几张）；
+   * 排好顺序后（我在弹窗里排 / 机器猫在想），这一排在空中互相换位洗两轮，再一张张平着落回牌堆顶。谁排都一样演，看不出顺序 */
+  async function animAlterLift(e, t) {
+    if (game.alterRow) { game.alterRow.forEach((n) => n && n.remove()); game.alterRow = null; }
     const k = e.count || (e.cards ? e.cards.length : 3);
     const r = deckTopRect(), c = fx.center(r), pu = PU();
+    snd('peek');
+    const spots = Array.from({ length: k }, (_, i) => ({ x: c.x + (i - (k - 1) / 2) * pu * 0.72, y: c.y - pu * 1.05 }));
+    if (ov) { ov.deckSize -= k; renderPiles(); }
+    const nodes = await Promise.all(spots.map((p, i) => fx.fly({ html: backHtml(), from: deckTopRect(), to: p, w: pu, s0: 1, s1: 0.82, r0: 0, r1: 0, dur: ms(320), delay: i * ms(70), lift: 16, keep: true, land: false })));
+    if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
+    game.alterRow = nodes;
+    game.alterSpots = spots;
+    if (e.seat !== 0) bubble(e.seat, '', { think: true, ms: 1400 });
+    await wait(ms(160));
+  }
+  async function animAltered(e, t) {
+    const pu = PU();
+    let nodes = game.alterRow, spots = game.alterSpots;
+    game.alterRow = null;
+    if (!nodes || !nodes.length) {   // 那一排没了（暂停过）：再抬一次；快照里本来就没算这几张，抬起时别再减一遍
+      const kk = e.count || (e.cards ? e.cards.length : 3);
+      await animAlterLift({ seat: e.seat, count: kk }, t);
+      if (ov) ov.deckSize += kk;
+      nodes = game.alterRow; spots = game.alterSpots; game.alterRow = null;
+    }
+    if (t !== token || !nodes) { (nodes || []).forEach((n) => n && n.remove()); return; }
+    const k = nodes.length;
     snd('shuffle');
-    const spots = Array.from({ length: k }, (_, i) => ({ x: c.x + (i - (k - 1) / 2) * pu * 0.62, y: c.y - pu * 0.9 }));
-    const nodes = await Promise.all(spots.map((p, i) => fx.fly({ html: backHtml(), from: r, to: p, w: pu, s0: 1, s1: 0.8, r0: 0, r1: (i - (k - 1) / 2) * 8, dur: ms(300), delay: i * 50, lift: 10, keep: true, land: false })));
-    if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
-    // 两头的交换位置（中间那张转一下）
+    // 两轮：每张飞到另一个位置（错开一点高度、弧线），始终平着、不翻面
+    let at = nodes.map((_, i) => i);
+    for (let round = 0; round < 2 && k > 1; round++) {
+      const next = at.map((p) => (p + 1 + round) % k);
+      nodes = await Promise.all(nodes.map((n, i) => {
+        if (!n) return null;
+        const rr = n.getBoundingClientRect();
+        n.remove();
+        return fx.fly({ html: backHtml(), from: rr, to: spots[next[i]], w: pu, s0: rr.width / pu, s1: 0.82, r0: 0, r1: 0, dur: ms(300), lift: (i % 2 ? -1 : 1) * pu * 0.28, keep: true, land: false });
+      }));
+      at = next;
+      if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
+    }
+    // 一张张平着落回牌堆顶
     await Promise.all(nodes.map((n, i) => {
       if (!n) return null;
-      const j = k - 1 - i, p = spots[j], w = n.offsetWidth || pu;
       const rr = n.getBoundingClientRect();
       n.remove();
-      return fx.fly({ html: backHtml(), from: rr, to: p, w: pu, s0: rr.width / pu, s1: 0.8, r0: (i - (k - 1) / 2) * 8, r1: (j - (k - 1) / 2) * 8 + (i === j ? 180 : 0), dur: ms(380), lift: i === j ? 0 : (i < j ? 30 : -30), keep: true, land: false }).then((m) => { void w; return m; });
-    })).then((ns) => nodes.splice(0, nodes.length, ...ns));
-    if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
-    await Promise.all(nodes.map((n, i) => {
-      if (!n) return null;
-      const rr = n.getBoundingClientRect();
-      n.remove();
-      return fx.fly({ html: backHtml(), from: rr, to: deckTopRect(), w: pu, s0: rr.width / pu, s1: 1, r0: 0, r1: 0, dur: ms(280), delay: i * 50, lift: 8 });
+      return fx.fly({ html: backHtml(), from: rr, to: deckTopRect(), w: pu, s0: rr.width / pu, s1: 1, r0: 0, r1: 0, dur: ms(260), delay: (k - 1 - i) * ms(70), lift: 10 });
     }));
+    if (t !== token) return;
+    if (ov) ov.deckSize += k;
     snd('thud');
     renderPiles();
   }
@@ -2653,8 +2737,8 @@
     const s = game.state;
     resetTable();
     game.dealing = false;
-    const pool = (k) => R.KIND_OF.map((x, id) => (x === k ? id : -1)).filter((id) => id >= 0 && s.hands.every((h) => h.indexOf(id) < 0) && s.deck.indexOf(id) >= 0);
-    const give = (seat, k) => { const id = pool(k)[0]; if (id == null) return; s.deck.splice(s.deck.indexOf(id), 1); s.hands[seat].push(id); s.hands[seat] = R.sortHand(s.hands[seat]); };
+    const pool = (k) => R.KIND_OF.map((x, id) => (x === k ? id : -1)).filter((id) => id >= 0 && s.hands.every((h) => h.indexOf(id) < 0) && (s.deck.indexOf(id) >= 0 || s.discard.indexOf(id) >= 0));
+    const give = (seat, k) => { const id = pool(k)[0]; if (id == null) return; const src = s.deck.indexOf(id) >= 0 ? s.deck : s.discard; src.splice(src.indexOf(id), 1); s.hands[seat].push(id); s.hands[seat] = R.sortHand(s.hands[seat]); };
     const top = (k) => { const id = s.deck.find((x) => R.KIND_OF[x] === k); s.deck.splice(s.deck.indexOf(id), 1); s.deck.unshift(id); };
     s.phase = 'act'; s.pending = null;
     const bot = 1 % s.n;
@@ -2664,6 +2748,9 @@
       out: () => { top(R.BOOM); s.turn = bot; s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); apply(bot, { type: 'draw' }); },
       draw: () => { s.turn = 0; apply(0, { type: 'draw' }); },
       attack: () => { give(bot, R.ATTACK); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
+      alterbot: () => { give(bot, R.ALTER); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ALTER)] }); },
+      alter: () => { give(0, R.ALTER); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.ALTER)] }); },
+      stack: () => { give(bot, R.ATTACK); s.turn = bot; s.turnsLeft = 2; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
       skip: () => { give(bot, R.SKIP); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
       shuffle: () => { give(bot, R.SHUFFLE); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SHUFFLE)] }); },
       future: () => { give(0, R.FUTURE); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.FUTURE)] }); },

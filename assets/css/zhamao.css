@@ -114,14 +114,14 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-tier { font-size: 10.5px; color: var(--zm-ink-mute); border: 1px solid var(--zm-ink-faint); border-radius: 999px; padding: 0 6px; line-height: 16px; }
 /* 手牌数：一叠小牌背 + 数字 */
 .zm-count {
-  position: absolute; top: -2px; right: -6px; min-width: 24px; height: 30px; padding: 0 2px;
+  position: absolute; top: -3px; left: calc(100% + 4px); min-width: 24px; height: 30px; padding: 0 2px;
   display: flex; align-items: center; justify-content: center;
   background: var(--zm-navy); color: #fff; border-radius: 5px; font: 700 13px/1 Georgia, serif;
   box-shadow: 2px 2px 0 rgba(47, 74, 109, 0.35), 0 0 0 1.5px var(--zm-paper);
 }
 /* 被推锅：还要摸几回合 */
 .zm-turns {
-  position: absolute; bottom: -2px; left: -8px; height: 22px; min-width: 30px; padding: 0 6px; border-radius: 999px;
+  position: absolute; bottom: -4px; left: calc(100% + 4px); height: 22px; min-width: 30px; padding: 0 6px; border-radius: 999px;
   background: var(--zm-seal); color: var(--zm-seal-ink); font: 700 12px/22px Georgia, serif; text-align: center;
   box-shadow: 0 0 0 1.5px var(--zm-paper);
 }
@@ -231,7 +231,7 @@ body.zm-fullscreen .site-footer { display: none !important; }
 /* ───── 我：头像 + 按钮带 ───── */
 /* 我的头像靠左；「出牌」「摸牌」两个键在正中间（不写说明字） */
 .zm-mebar { position: relative; display: flex; align-items: center; justify-content: center; padding: 4px 4px 2px; min-height: 64px; }
-.zm-seat-me { position: absolute; left: 4px; top: 0; bottom: 0; flex-direction: row; justify-content: center; gap: 8px; min-width: 0; }
+.zm-seat-me { position: absolute; left: 14px; top: 0; bottom: 0; flex-direction: row; justify-content: center; gap: 8px; min-width: 0; }
 .zm-seat-me .zm-name, .zm-seat-me .zm-tier { display: none; }
 .zm-band { display: flex; align-items: center; justify-content: center; gap: 12px; min-width: 0; }
 .zm-hint { display: none; }
@@ -559,8 +559,8 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-dialog.is-cards .zm-grid button:hover .zm-card, .zm-dialog.is-cards .zm-grid button:focus-visible .zm-card { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(29, 27, 24, 0.18); }
 
 /* 抽牌：红光游走 / 落定。被抽的是我：在我的手牌上；被抽的是别人：他头像下面一小扇扣着的牌；我来抽：弹窗里扣着的一排 */
-.zm-hand .zm-card.is-wander { translate: 0 -12px; box-shadow: 0 0 0 3px #c8463a, 0 0 16px rgba(200, 70, 58, 0.55); }
-.zm-hand .zm-card.is-chosen { translate: 0 -22px; box-shadow: 0 0 0 3.5px #c8463a, 0 0 26px rgba(200, 70, 58, 0.75); }
+.zm-hand .zm-card.is-wander { z-index: 60 !important; translate: 0 -12px; box-shadow: 0 0 0 3px #c8463a, 0 0 16px rgba(200, 70, 58, 0.55); }
+.zm-hand .zm-card.is-chosen { z-index: 61 !important; translate: 0 -22px; box-shadow: 0 0 0 3.5px #c8463a, 0 0 26px rgba(200, 70, 58, 0.75); }
 .zm-steal-fan { position: absolute; width: 0; height: 0; pointer-events: none; }
 .zm-steal-card { position: absolute; transition: translate 0.14s ease; }
 .zm-steal-card .zm-card { width: 100%; --cw: 34px; }
@@ -576,3 +576,17 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-steal-pick button.is-wander .zm-card { box-shadow: 0 0 0 3px #c8463a, 0 0 14px rgba(200, 70, 58, 0.55); }
 .zm-steal-pick button.is-chosen { translate: 0 -12px; }
 .zm-steal-pick button.is-chosen .zm-card { box-shadow: 0 0 0 3.5px var(--zm-gold), 0 0 20px rgba(201, 169, 110, 0.8); }
+
+/* 头像上的准星、角标不许把页面撑出屏幕（iOS 上会把整页挤得左右晃一下） */
+.zm-app { overflow: hidden; overscroll-behavior: none; }
+/* 甩锅叠加：头上的大数字 */
+.zm-stackcount { position: absolute; display: flex; align-items: baseline; gap: 2px; padding: 4px 12px 6px; border-radius: 14px;
+  background: var(--zm-card); border: 2px solid var(--zm-seal); box-shadow: 0 8px 18px rgba(29, 27, 24, 0.22); color: var(--zm-seal);
+  font: 700 30px/1 Georgia, serif; pointer-events: none; white-space: nowrap; transform: translate(-50%, -50%); }
+.zm-stackcount .x { font-size: 20px; }
+.zm-stackcount b { display: inline-block; min-width: 0.8em; text-align: center; }
+.zm-stackcount i { font-style: normal; font-size: 13px; color: var(--zm-ink-mute); margin-left: 4px; align-self: center; }
+
+/* 洗牌切开时：下半摞顶上那层临时画成牌背 */
+.zm-sheet.as-back { background: transparent !important; box-shadow: none; }
+.zm-sheet.as-back svg { width: 100%; height: 100%; display: block; }
