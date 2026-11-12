@@ -1,7 +1,7 @@
 /* 猫咪炸毛 · 声音（window.ZhamaoAudio）
  * 两条轨道，各自开关、记在本机（zhamao.audio.v1）：
  *   音效：全部 Web Audio 现场合成（出牌、摸牌、喵、炸毛、哄好、洗牌……），没有素材文件；
- *   音乐：一支原创的八小节小曲（木琴 + 拨弦贝斯，C 大调 112 拍，首尾相接循环），默认开，第一次点按页面后响起。
+ *   音乐：四版编曲 + 按牌局换版（见 zhamao-music.js），默认开，第一次点按页面后响起。
  * 浏览器要先有一次点按才能出声：第一次点按时才建 AudioContext，iPhone 上顺手放一段空白声解锁。
  * 每个音效都是 SFX[name](audio, t, dest)，可以接进 OfflineAudioContext 离线渲染自测。 */
 (function () {
@@ -155,77 +155,32 @@
     g.setTargetAtTime(0.16, t + ms / 1000, 0.25);
   }
 
-  /* ───── 音乐：原创八小节，C 大调，112 拍，八分音符一格 ───── */
-  const BPM = 112, STEP = 60 / BPM / 2;
-  // 音名 → 频率；'-' 延长上一个音，'.' 休止
-  const NOTE = { C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392, A4: 440, B4: 493.88, C5: 523.25, D5: 587.33, E5: 659.25, G3: 196 };
-  const TUNE = [
-    ['E4', 'G4', 'A4', 'G4', 'E4', '.', 'C4', 'D4'],
-    ['E4', '-', 'G4', '-', 'A4', '-', '-', '.'],
-    ['C5', 'A4', 'G4', 'E4', 'D4', 'E4', 'G4', '.'],
-    ['A4', '-', 'G4', '-', 'E4', '-', '-', '.'],
-    ['E4', 'G4', 'A4', 'C5', 'D5', 'C5', 'A4', 'G4'],
-    ['A4', '-', 'G4', 'E4', 'D4', '-', '-', '.'],
-    ['C4', 'D4', 'E4', 'G4', 'A4', 'G4', 'E4', 'D4'],
-    ['C4', '-', '-', '.', 'G3', '.', 'C4', '.'],
-  ];
-  const BASS = [[130.81, 98], [110, 82.41], [87.31, 130.81], [98, 123.47], [130.81, 98], [110, 82.41], [87.31, 98], [130.81, 98]];
-  function marimba(a, d, t, f, len, gain) {
-    tone(a, d, t, { f, gain: gain || 0.2, dur: Math.min(0.9, len + 0.25), type: 'sine' });
-    tone(a, d, t, { f: f * 4, gain: (gain || 0.2) * 0.12, dur: 0.08, type: 'sine' });
-  }
-  function pluck(a, d, t, f) { tone(a, d, t, { f, gain: 0.22, dur: 0.32, type: 'triangle' }); }
-  function scheduleBar(a, d, bar, t0) {
-    const row = TUNE[bar];
-    for (let k = 0; k < 8; k++) {
-      const n = row[k];
-      if (n === '-' || n === '.') continue;
-      let len = 1;
-      while (k + len < 8 && row[k + len] === '-') len++;
-      marimba(a, d, t0 + k * STEP, NOTE[n], len * STEP);
-    }
-    pluck(a, d, t0, BASS[bar][0]);
-    pluck(a, d, t0 + 4 * STEP, BASS[bar][1]);
-    // 轻轻的刷子：反拍
-    for (let k = 1; k < 8; k += 2) nz(a, d, t0 + k * STEP, { type: 'highpass', freq: 6000, q: 0.5, gain: 0.03, dur: 0.05 });
-  }
-  let musicTimer = null, nextBar = 0, nextT = 0, wantMusic = false;
-  function pump() {
-    if (!ctx) return;
-    while (nextT < ctx.currentTime + 0.6) {
-      scheduleBar(ctx, bus.music, nextBar, nextT);
-      nextT += STEP * 8;
-      nextBar = (nextBar + 1) % TUNE.length;
-    }
-  }
+  /* ───── 音乐：交给 zhamao-music.js（四版编曲 + 什么时候换哪版）；这里只管开关和总线 ───── */
+  const M = () => (typeof window !== 'undefined' && window.ZhamaoMusic) || null;
+  let wantMusic = false, attached = false;
   function startMusic() {
-    if (musicTimer || !prefs.music || !wantMusic) return;
+    if (!prefs.music || !wantMusic || !M()) return;
     const a = ensure();
     if (!a || a.state !== 'running') return;
-    nextBar = 0; nextT = a.currentTime + 0.1;
-    pump();
-    musicTimer = setInterval(pump, 150);
+    if (!attached) { M().connect(a, bus.music, 0.35); attached = true; }
+    M().start();
   }
-  function stopMusic() { if (musicTimer) { clearInterval(musicTimer); musicTimer = null; } }
+  function stopMusic() { if (M() && attached) M().stop(); }
   function music(on) {
     wantMusic = !!on;
     if (!wantMusic) { stopMusic(); return; }
     if (ctx && ctx.state === 'suspended') ctx.resume().then(startMusic, () => {}); else startMusic();
   }
+  // 场景：'menu'（主页 / 设置 / 大厅，丁）| 'game'（一局开始，甲起）| 'end'（一局结束，淡出）
+  function scene(name) { if (M()) M().setScene(name); }
+  // 炸毛猫概率（公开信息：牌堆里的炸毛猫数 ÷ 牌堆张数）；有人炸出局
+  function danger(p) { if (M()) M().setDanger(p); }
+  function knockedOut() { if (M()) M().onOut(); }
 
   function set(key, on) {
     prefs[key] = !!on;
     savePrefs();
     if (key === 'music') { if (on) { wantMusic = true; startMusic(); } else stopMusic(); }
-  }
-
-  /* 离线渲染一段音乐（自测用）：返回 Promise<AudioBuffer> */
-  function renderMusic(sec) {
-    const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    const a = new Off(1, Math.ceil(44100 * sec), 44100);
-    let t = 0, bar = 0;
-    while (t < sec) { scheduleBar(a, a.destination, bar, t); t += STEP * 8; bar = (bar + 1) % TUNE.length; }
-    return a.startRendering();
   }
 
   // 第一次点按：建上下文、iPhone 放空白声解锁，然后按需起音乐
@@ -245,9 +200,9 @@
     ['pointerdown', 'touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, unlock, { passive: true }));
     document.addEventListener('visibilitychange', () => {
       if (!ctx) return;
-      if (document.hidden) ctx.suspend(); else ctx.resume().then(() => { if (wantMusic && prefs.music && !musicTimer) startMusic(); });
+      if (document.hidden) ctx.suspend(); else ctx.resume().then(() => { if (wantMusic && prefs.music) startMusic(); });
     });
   }
 
-  window.ZhamaoAudio = { sfx, set, music, prefs: () => Object.assign({}, prefs), SFX, renderMusic };
+  window.ZhamaoAudio = { sfx, set, music, scene, danger, knockedOut, prefs: () => Object.assign({}, prefs), SFX };
 })();

@@ -614,6 +614,9 @@
     });
   }
 
+  /* 背景音乐的场景：'menu' 主页 / 设置（丁）| 'game' 一局（甲起，紧张了换乙 / 丙）| 'end' 一局结束淡出。见 zhamao-music.js */
+  function bgm(scene) { const A = window.ZhamaoAudio; if (!A) return; A.scene(scene); if (scene !== 'end') A.music(true); }
+
   /* ───── 流程 ───── */
   const wait = (t) => new Promise((r) => setTimeout(r, fx.reduce() ? 1 : t));
   function schedule(t, fn) { const k = token; setTimeout(() => { if (k === token) fn(); }, t); }
@@ -629,6 +632,7 @@
     renderAll();
     if (tut && !coachQueue) hint('');
     if (s.phase === 'over') { finish(); return; }
+    if (window.ZhamaoAudio && s.deck.length) window.ZhamaoAudio.danger(R.kittensInDeck(s) / s.deck.length);   // 背景音乐按公开的炸毛猫概率换版
     if (s.phase === 'act') startClock(s.turn, s.turn === 0 && !autopilot ? onMyTimeout : null);
     else if (s.phase === 'give' && s.give.from === 0 && !autopilot) startClock(0, onMyTimeout);
     else stopClock();
@@ -1666,6 +1670,7 @@
   /* 出局：炸毛猫扑向那个人，大爆炸——更大的红光、黑毛、烟、冲击波；头像变灰冒黑烟，「炸毛」大章砸下来；
    * 他的手牌全翻开、一张张散落进弃牌堆 */
   async function animOut(e, t) {
+    if (window.ZhamaoAudio) window.ZhamaoAudio.knockedOut();
     const node = game.boomNode;
     game.boomNode = null;
     const a = e.seat === 0 ? fx.center(els.me.querySelector('.zm-av').getBoundingClientRect()) : avPoint(e.seat);
@@ -2427,6 +2432,7 @@
   }
   async function finish() {
     busy = true;
+    bgm('end');
     const s = game.state;
     clearStage();
     renderAll();
@@ -2751,6 +2757,7 @@
     game = { state: ctl.state, bots: [{ nick: profile.nick, avatar: profile.avatar }, { nick: ctl.botName, avatar: ctl.botAvatar }], tiers: [null, 'normal'], tutorial: true };
     els.cover.hidden = true;
     els.skipTut.hidden = false;
+    bgm('game');
     buildSeats();
     solveSize();
     busy = true;
@@ -2797,7 +2804,7 @@
     buildSeats();
     solveSize();
     busy = true;
-    if (window.ZhamaoAudio) window.ZhamaoAudio.music(true);
+    bgm('game');
     startWithDeal();
   }
   function resumeGame(d) {
@@ -2810,7 +2817,7 @@
     buildSeats();
     solveSize();
     renderAll();
-    if (window.ZhamaoAudio) window.ZhamaoAudio.music(true);
+    bgm('game');
     schedule(300, step);
   }
   // 主菜单上直接挑几个人（2–5，含你）；有存档时默认亮存档的人数、写「接着打上一局」，换个人数就是新开一局
@@ -2841,6 +2848,7 @@
     coverStep('main');
     els.cover.hidden = false;
     refreshTools();
+    bgm('menu');
     coverIntro(false);
   }
   // 主菜单：标题一个字一个字落下来，按钮依次浮上来（只在进来那一次落字，回主菜单时只浮按钮）
@@ -2965,6 +2973,7 @@
   // 进来先是主菜单 + 一条进度条（等字体到位，太快也让它走完一程，不闪），跑完换成按钮
   (function boot() {
     coverStep('load');
+    bgm('menu');   // 主页的丁：浏览器要等第一次点按才出声
     coverIntro(true);
     const bar = els.cover.querySelector('.zm-cover-load i');
     let got = 0.12;
