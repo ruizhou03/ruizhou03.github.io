@@ -347,7 +347,7 @@
     els.drawBtn.classList.remove('is-ready');
     if (s.phase === 'over') { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (game.dealing) { /* 发牌中：两个键都灰着 */ }
-    else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '直接看结果'; }
+    else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '下一局'; }   // 我出局了：自动接着看他们打完，想走就开下一局
     else if (mode === 'target') { els.drawBtn.hidden = true; }
     else if (mode === 'give') { els.playBtn.textContent = '给他'; els.playBtn.disabled = selected.length !== 1; }
     else if (canNope) { els.playBtn.hidden = true; }
@@ -694,7 +694,7 @@
   async function animNope(e, t) {
     setActing(e.seat);
     snd('nope');
-    bubble(e.seat, '喵？不行！', { loud: true, ms: 1500 });
+    bubble(e.seat, '作废！', { loud: true, ms: 1500 });
     fx.shake(avEl(e.seat), { amp: 4, dur: 300 });
     const src = e.seat === 0 ? handCard(e.card) : null;
     const from = src ? src.getBoundingClientRect() : avPoint(e.seat);
@@ -844,8 +844,12 @@
   async function animShuffle(e, t) {
     snd('shuffle');
     bubble(e.seat, '哗啦——', { ms: 1200 });
-    const r = els.deck.getBoundingClientRect(), c = fx.center(r);
+    // 牌堆上半截（含顶上那张）被抄起来、绕着转一圈再落回去：转的时候那半截先藏起来，别留一张不动的牌在顶上
+    const c = fx.center(deckTopRect());
     const pu = PU(), n = 9, R0 = pu * 1.25;
+    const layers = Array.from(els.deck.querySelectorAll('.zm-deck-stack > *'));
+    const lifted = layers.slice(Math.floor(layers.length * 0.45));
+    lifted.forEach((l) => { l.style.visibility = 'hidden'; });
     els.deck.classList.add('is-shuffling');
     fx.smoke(c.x, c.y + pu * 0.4, { n: 5, spread: pu * 0.6, size: [30, 60], rise: 26 });
     const all = [];
@@ -867,6 +871,7 @@
       all.push(el.animate(frames, { duration: ms(1050), delay: i * 22, easing: 'cubic-bezier(.4,0,.3,1)', fill: 'both' }).finished.then(() => el.remove(), () => el.remove()));
     }
     await Promise.all(all);
+    lifted.forEach((l) => { l.style.visibility = ''; });
     els.deck.classList.remove('is-shuffling');
     if (t !== token) return;
     snd('thud');
@@ -1403,7 +1408,7 @@
   }
   function onDraw() {
     const s = game.state;
-    if (!s.alive[0] && s.phase !== 'over') { skipToEnd(); return; }
+    if (!s.alive[0] && s.phase !== 'over') { newGame(); return; }
     if (!myTurnToAct()) return;
     if (tut && tut.allow && !tut.allow({ type: 'draw' })) { shake(els.drawBtn); return; }
     selected = [];
@@ -1467,25 +1472,7 @@
     doNope(0);
   }
 
-  /* 我已经炸了：剩下的机器人一口气打完 */
-  function skipToEnd() {
-    token++;
-    const s = game.state;
-    let guard = 0;
-    clearStage();
-    wipeFx();
-    while (s.phase !== 'over' && guard++ < 4000) {
-      if (s.phase === 'react') { AI.stepWith(s, (x) => game.tiers[x] || 'normal', Math.random); continue; }
-      const seat = R.whoActs(s)[0];
-      const d = AI.decide(s, seat, seat === 0 ? 'normal' : game.tiers[seat] || 'normal');
-      if (d.type === 'draw') R.draw(s, seat);
-      else if (d.type === 'play') R.play(s, seat, d.cards, d);
-      else if (d.type === 'give') R.give(s, seat, d.card);
-      else if (d.type === 'pick') R.pickDiscard(s, seat, d.card);
-      else if (d.type === 'insert') R.insertKitten(s, seat, d.pos);
-    }
-    step();
-  }
+
   function wipeFx() {
     els.fly.innerHTML = '';
     els.fly.classList.remove('is-interactive');
@@ -1687,7 +1674,8 @@
     let fanHtml = '';
     for (let i = 0; i < n; i++) fanHtml += backHtml();
     snd('ask');
-    openDialog('<h2>把炸毛猫塞回牌堆</h2>' +
+    const limit = !game.tutorial && turnSec() > 0 && size ? turnSec() * 1000 : 0;
+    openDialog('<h2>把炸毛猫塞回牌堆</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
       '<div class="zm-insert-row"><span class="end">顶</span><div class="zm-insert-fan" data-fan>' + fanHtml + cardHtml('boom', 'is-kit') + '</div><span class="end">底</span></div>' +
       '<div class="zm-insert-label" data-lab>' + label(0) + '</div>' +
       (size ? '<input class="zm-range" type="range" min="0" max="' + size + '" step="1" value="0" data-range aria-label="塞在第几张">' +
@@ -1701,7 +1689,7 @@
       const layout = () => {
         const k = slotOf(pos), W = fan.clientWidth, kw = kit.offsetWidth, cw = backs.length ? backs[0].offsetWidth : 0;
         const step = n > 1 ? Math.max(2.5, Math.min(cw * 0.45, (W - 2 * cw - kw - 12) / Math.max(1, n - 2))) : 0;
-        const gap = n ? kw + 12 + (cw - step) : kw;
+        const gap = !n ? kw : (k === 0 || k === n) ? kw + 12 : kw + 12 + (cw - step);
         const total = n ? cw + (n - 1) * step + gap : kw;
         const x0 = Math.max(0, (W - total) / 2);
         backs.forEach((c, i) => { c.style.transform = 'translateX(' + (x0 + i * step + (i >= k ? gap : 0)).toFixed(1) + 'px)'; });
@@ -1717,15 +1705,33 @@
       };
       requestAnimationFrame(layout);
       if (range) range.addEventListener('input', () => set(+range.value));
+      // 定下来：三个快捷键点了就直接塞（不用再点「塞进去」）；拖滑块的要点「塞进去」；倒计时到了 = 随机塞
+      let done = false, timer = 0, tick = 0;
+      const commit = (p) => {
+        if (done) return;
+        if (tut && tut.allow && !tut.allow({ type: 'insert', pos: p })) { shake(d.querySelector('[data-ok]')); return; }
+        done = true; clearTimeout(timer); clearInterval(tick);
+        if (p !== pos) set(p);
+        closeDialog();
+        apply(0, { type: 'insert', pos: p });
+      };
       d.querySelectorAll('[data-q]').forEach((b) => b.addEventListener('click', () => {
         const q = b.dataset.q;
-        set(q === 'end' ? size : q === 'rand' ? (Math.random() * (size + 1)) | 0 : +q);
+        commit(q === 'end' ? size : q === 'rand' ? (Math.random() * (size + 1)) | 0 : +q);
       }));
-      d.querySelector('[data-ok]').addEventListener('click', () => {
-        if (tut && tut.allow && !tut.allow({ type: 'insert', pos })) { shake(d.querySelector('[data-ok]')); return; }
-        closeDialog();
-        apply(0, { type: 'insert', pos });
-      });
+      d.querySelector('[data-ok]').addEventListener('click', () => commit(pos));
+      if (limit) {
+        const my = token, bar = d.querySelector('.zm-dlg-timer');
+        const a = bar.querySelector('i').animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: limit, easing: 'linear', fill: 'forwards' });
+        void a;
+        setTimeout(() => {
+          if (my !== token || done) return;
+          bar.classList.add('is-hurry');
+          snd('tick');
+          tick = setInterval(() => { if (my !== token || done) { clearInterval(tick); return; } snd('tick'); }, 1000);
+        }, Math.max(0, limit - HURRY_MS));
+        timer = setTimeout(() => { if (my === token && !done) commit((Math.random() * (size + 1)) | 0); }, limit);
+      }
     });
   }
 
@@ -1758,6 +1764,17 @@
     if (t !== token) return false;
     return true;
   }
+  // 前三名奖章：金 / 银 / 铜（金属渐变圆牌 + 一条小绶带 + 名次数字）
+  const MEDALS = [['#fff1bf', '#e5b552', '#9a6a1f', '#c8463a'], ['#ffffff', '#c9ccd2', '#7d838c', '#2f4a6d'], ['#ffd9b8', '#c98a55', '#7c4a22', '#4f8a5f']];
+  function medal(i) {
+    const [a, b, c, rib] = MEDALS[i], id = 'zmMd' + i;
+    return '<svg class="zm-medal" viewBox="0 0 40 44" aria-label="第 ' + (i + 1) + ' 名"><defs><radialGradient id="' + id + '" cx=".35" cy=".3" r=".85">' +
+      '<stop offset="0" stop-color="' + a + '"/><stop offset=".55" stop-color="' + b + '"/><stop offset="1" stop-color="' + c + '"/></radialGradient></defs>' +
+      '<path d="M12 2h7l-4 14h-7z" fill="' + rib + '"/><path d="M28 2h-7l4 14h7z" fill="' + rib + '" opacity=".8"/>' +
+      '<circle cx="20" cy="28" r="13" fill="url(#' + id + ')" stroke="' + c + '" stroke-width="1.4"/>' +
+      '<circle cx="20" cy="28" r="9.5" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1"/>' +
+      '<text x="20" y="32.6" text-anchor="middle" font-family="Georgia,serif" font-size="13" font-weight="700" fill="' + c + '">' + (i + 1) + '</text></svg>';
+  }
   async function finish() {
     busy = true;
     const s = game.state;
@@ -1771,7 +1788,7 @@
       const msgs = tut && tut.finish ? tut.finish(won) : [];
       showCoach(msgs, () => {
         openDialog('<h2>教程完成</h2><p>来一局真的吧：' + settings.players + ' 人，机器猫' + AI.TIER_NAMES[settings.tier] + '（菜单里的设置可以改）。</p>' +
-          '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回封面</button><button type="button" class="zm-btn zm-btn-primary" data-go data-focus>开始对局</button></div>', (d) => {
+          '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-go data-focus>开始对局</button></div>', (d) => {
           d.querySelector('[data-go]').addEventListener('click', () => { closeDialog(); endTutorial(true); });
           d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); endTutorial(false); });
         });
@@ -1779,9 +1796,9 @@
       return;
     }
     localStorage.removeItem(STORE_KEY);
-    openDialog('<h2>' + (won ? '你撑到了最后！' : esc(nameOf(s.winner)) + ' 撑到了最后') + '</h2>' +
-      '<ol class="zm-rank" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + '"><span class="pos">' + (i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回封面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', (d) => {
+    openDialog('<h2>排行榜</h2>' +
+      '<ol class="zm-rank" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', (d) => {
       d.querySelector('[data-again]').addEventListener('click', () => { closeDialog(); newGame(); });
       d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
     });
@@ -1795,9 +1812,9 @@
       '<h3>牌</h3><ul>' +
       li('boom', '摸到就炸毛出局，除非有逗猫棒') +
       li('defuse', '摸到炸毛猫时自动用掉，然后你把炸毛猫偷偷塞回牌堆任意位置') +
-      li('nope', '作废别人刚出的牌（不管轮没轮到你）。也能作废「不行」，单数张=作废。挡不了炸毛猫和逗猫棒') +
-      li('attack', '结束回合、不摸牌，下家连着摸两回合' + (settings.rules.stackAttack ? '（被推锅的人再推锅：剩下的回合 +2 一起推走）' : '（被推锅的人再推锅，下家也还是两回合）')) +
-      li('skip', '结束一个回合、不摸牌。被推锅时只顶掉其中一回合') +
+      li('nope', '作废别人刚出的牌（不管轮没轮到你）。也能作废别人的「作废」，叠了单数张 = 作废。挡不了炸毛猫和逗猫棒') +
+      li('attack', '结束回合、不摸牌，下家连着摸两回合' + (settings.rules.stackAttack ? '（被攻击的人再出攻击：剩下的回合 +2 一起推给下家）' : '（被攻击的人再出攻击，下家也还是两回合）')) +
+      li('skip', '结束一个回合、不摸牌。被攻击时只顶掉其中一回合') +
       li('favor', '指定一人，他自己挑一张给你') +
       li('shuffle', '把牌堆洗乱') +
       li('future', '偷看牌堆最上面三张') +
@@ -1808,7 +1825,7 @@
       '<li>橘猫、三花、奶牛猫、狸花、暹罗本身没用，专门凑组合</li></ul>' +
       '<h3>操作</h3><ul><li>点手牌选中（可多选），再点「出牌」；需要指定人时，能选的人头像会亮，点他的头像。</li>' +
       '<li>不想出牌就点「摸牌」结束回合。轮到你时头像外有一圈红环在收，收完还没动就自动替你摸一张（设置里可改成不限时）。</li>' +
-      '<li>别人出牌后桌子中间那根导火索在烧：你手里有「喵？不行」就会出现紫色按钮，烧完之前点它作废。</li></ul></div>';
+      '<li>别人出的牌落在弃牌堆上时，下面那根导火索在烧：你手里有「作废」就会出现紫色按钮，烧完之前点它。</li></ul></div>';
   }
   function showRules() {
     openDialog(rulesHtml() + '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (d) => {
@@ -1823,7 +1840,7 @@
       '<div class="zm-set-row"><span>几个人玩（含你）</span>' + seg('players', [[2, '2 人'], [3, '3 人'], [4, '4 人'], [5, '5 人']], draft.players) + '</div>' +
       '<div class="zm-set-row"><span>机器猫水平</span>' + seg('tier', AI.TIERS.map((t) => [t, AI.TIER_NAMES[t]]), draft.tier) + '</div>' +
       '<div class="zm-set-row"><span>出牌限时</span>' + seg('turnSec', [[20, '20 秒'], [0, '不限时']], draft.turnSec) + '</div>' +
-      '<div class="zm-set-row"><span>推锅叠加（被推锅的人再推锅，剩下的回合 +2 一起推走）</span>' + seg('stackAttack', [[false, '不叠加（原版）'], [true, '叠加']], draft.rules.stackAttack) + '</div>' +
+      '<div class="zm-set-row"><span>攻击叠加（被攻击的人再出攻击，剩下的回合 +2 一起推给下家）</span>' + seg('stackAttack', [[false, '不叠加（原版）'], [true, '叠加']], draft.rules.stackAttack) + '</div>' +
       '<div class="zm-set-row"><span>多出来的逗猫棒</span>' + seg('extraDefuse', [['two', '最多放回 2 张'], ['all', '全部放回']], draft.rules.extraDefuse) + '</div>' +
       '</div><p class="zm-muted" style="margin-top:12px">改了从下一局开始生效</p>' +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>取消</button>' +
@@ -2194,6 +2211,25 @@
     g.style.cursor = 'pointer';
     g.addEventListener('pointerenter', poke);
     g.addEventListener('click', poke);
+    // 另一只：橘猫——鼠标经过（或点一下）它就蹦一下、挥两下逗猫棒，冒几颗小心心和音符
+    const h = $('zmCoverArt').querySelector('.hero-def');
+    if (!h) return;
+    let busyH = false;
+    const wave = () => {
+      if (busyH || fx.reduce()) return;
+      busyH = true;
+      snd('ding');
+      h.animate([
+        { transform: 'translateY(0) rotate(0)' }, { transform: 'translateY(-12px) rotate(-6deg)', offset: 0.2 }, { transform: 'translateY(0) rotate(5deg)', offset: 0.42 },
+        { transform: 'translateY(-8px) rotate(-5deg)', offset: 0.62 }, { transform: 'translateY(0) rotate(3deg)', offset: 0.82 }, { transform: 'translateY(0) rotate(0)' },
+      ], { duration: 820, easing: 'ease-out' }).finished.then(() => { busyH = false; }, () => { busyH = false; });
+      const r = h.getBoundingClientRect(), c = fx.center(r);
+      ['heart', 'note', 'heart', 'note', 'heart'].forEach((sh, i) => fx.float(c.x + (i - 2) * r.width * 0.16, r.top + r.height * 0.25, sh,
+        { dy: -r.height * 0.55, dx: (i - 2) * 6, size: 14 + (i % 2) * 6, color: sh === 'heart' ? PINKS[i % 3] : '#4f8a5f', delay: 80 + i * 90, dur: 900 }));
+    };
+    h.style.cursor = 'pointer';
+    h.addEventListener('pointerenter', wave);
+    h.addEventListener('click', wave);
   })();
   els.cover.addEventListener('click', (e) => {
     const b = e.target.closest('[data-cover]');

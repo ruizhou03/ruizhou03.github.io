@@ -513,3 +513,13 @@ body.zm-fullscreen .site-footer { display: none !important; }
 /* 出的牌直接压在弃牌堆上：原来那几张淡一点，看得出新出的是哪张 */
 .zm-discard { transition: opacity 0.2s ease; }
 .zm-center:has(.zm-stage-inner) .zm-discard { opacity: 0.35; }
+
+/* 排行榜：前三名用金 / 银 / 铜奖章代替名次数字 */
+.zm-rank .pos { width: 30px; }
+.zm-medal { display: block; width: 28px; height: 31px; margin: 0 auto; filter: drop-shadow(0 1px 1px rgba(29, 27, 24, 0.25)); }
+
+/* 弹窗里的倒计时：标题下一条细红线从右往左收；最后 5 秒变深红、闪 */
+.zm-dlg-timer { height: 4px; border-radius: 2px; background: rgba(29, 27, 24, 0.08); overflow: hidden; margin: -2px 0 6px; }
+.zm-dlg-timer i { display: block; height: 100%; background: var(--zm-seal); transform-origin: left center; }
+.zm-dlg-timer.is-hurry i { background: #8a2e26; animation: zm-dlg-hurry 0.5s ease-in-out infinite alternate; }
+@keyframes zm-dlg-hurry { to { opacity: 0.45; } }
