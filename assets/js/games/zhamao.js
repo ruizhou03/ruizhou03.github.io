@@ -208,15 +208,59 @@
     return b;
   }
 
-  /* ───── 牌堆 / 弃牌堆 ───── */
-  let lastKit = -1, lastDeck = -1;
+  /* ───── 牌堆 / 弃牌堆 ─────
+   * 牌堆是真的一摞：剩几张就叠几层「牌边」（奶油色纸边，每张的位置带一点点随机偏差，看着是手码的），最上面一张牌背。
+   * 剩得越多越厚、影子越大；摸走一张就真少一层，顶上那张往下落一点。弃牌堆同理，只是歪歪扭扭地堆、上面露几张正面。
+   * 两种叠法：甲 = 斜着往左上叠（侧边、底边露纸边），乙 = 笔直往上叠、码得乱一点；?zmdeck=b 预览乙 */
+  const DECK_LOOKS = { a: { sx: 0.0041, sy: 0.0105, jx: 0.0085, rot: 0 }, b: { sx: 0, sy: 0.0102, jx: 0.019, rot: 0.9 } };
+  const DECK_LOOK = DECK_LOOKS[(new URLSearchParams(location.search).get('zmdeck') || '').toLowerCase()] || DECK_LOOKS.a;
+  const EDGES = ['#f7f0e1', '#efe6d3', '#f3ebda', '#e8ddc7'];
+  const jit = (i, k) => { const x = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); };
+  function sheetXY(i, pu) {
+    const L = DECK_LOOK;
+    return { x: -i * L.sx * pu + (jit(i, 2) - 0.5) * L.jx * pu, y: -i * L.sy * pu, r: (jit(i, 3) - 0.5) * L.rot };
+  }
+  function sheetEl(i, pu, x, y, r) {
+    const d = document.createElement('i');
+    d.className = 'zm-sheet' + (i === 0 ? ' is-floor' : '');
+    d.style.background = EDGES[Math.floor(jit(i, 1) * EDGES.length)];
+    d.style.transform = 'translate(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px)' + (r ? ' rotate(' + r.toFixed(2) + 'deg)' : '');
+    return d;
+  }
+  let lastKit = -1, lastDeck = -1, deckPu = 0;
+  function renderDeck(n) {
+    const stack = els.deck.querySelector('.zm-deck-stack');
+    const pu = PU();
+    if (pu !== deckPu) { stack.innerHTML = ''; deckPu = pu; }   // 换了尺寸：整摞重码
+    let top = stack.querySelector('.zm-card');
+    const sheets = stack.querySelectorAll('.zm-sheet');
+    const want = Math.max(0, n - 1);
+    for (let i = sheets.length - 1; i >= want; i--) sheets[i].remove();
+    for (let i = sheets.length; i < want; i++) { const q = sheetXY(i, pu); stack.insertBefore(sheetEl(i, pu, q.x, q.y, q.r), top); }
+    if (!n) { if (top) top.remove(); }
+    else {
+      if (!top) { stack.insertAdjacentHTML('beforeend', backHtml('is-top')); top = stack.lastElementChild; }
+      const i = n - 1, L = DECK_LOOK;
+      top.style.transform = 'translate(' + (-i * L.sx * pu).toFixed(2) + 'px,' + (-i * L.sy * pu).toFixed(2) + 'px)';
+    }
+    els.deck.classList.toggle('is-empty', !n);
+    els.deck.style.setProperty('--thick', Math.min(1, n / 50).toFixed(3));
+  }
+  function renderDiscard(list) {
+    const pu = PU(), faces = list.slice(-4), m = Math.max(0, list.length - faces.length);
+    const sy = DECK_LOOK.sy * pu * 0.8;
+    let h = '';
+    // 底下歪歪扭扭的纸边（每张随它自己的 id 定歪多少，不会每次重画都乱跳）
+    for (let j = 0; j < m; j++) {
+      const id = list[j];
+      h += '<i class="zm-sheet' + (j === 0 ? ' is-floor' : '') + '" style="background:' + EDGES[id % EDGES.length] + ';transform:translate(' + ((jit(id, 5) - 0.5) * pu * 0.07).toFixed(2) + 'px,' + (-j * sy).toFixed(2) + 'px) rotate(' + ((jit(id, 6) - 0.5) * 7).toFixed(2) + 'deg)"></i>';
+    }
+    h += faces.map((id, i) => cardHtml(id, '', 'transform:translate(' + ((i - faces.length + 1) * 1.5).toFixed(1) + 'px,' + (-m * sy).toFixed(2) + 'px) rotate(' + pileRot(id) + 'deg)')).join('');
+    els.discard.innerHTML = h;
+  }
   function renderPiles() {
     const s = game.state, d = D();
-    const stack = els.deck.querySelector('.zm-deck-stack');
-    const n = Math.max(0, Math.min(4, d.deckSize));
-    let h = '';
-    for (let i = 0; i < n; i++) h += backHtml('', 'transform:translate(' + (-i * 1.6) + 'px,' + (-i * 1.6) + 'px)');
-    stack.innerHTML = h;
+    renderDeck(Math.max(0, d.deckSize));
     els.deckCount.textContent = d.deckSize;
     if (lastDeck >= 0 && lastDeck !== d.deckSize) fx.pop(els.deckCount, { scale: 1.25, dur: 260 });
     lastDeck = d.deckSize;
@@ -224,17 +268,22 @@
     els.kit.title = '牌堆里还有 ' + d.kittens + ' 只炸毛猫';
     if (lastKit >= 0 && lastKit !== d.kittens && d.kittens) { fx.pop(els.kit, { scale: 1.5, dur: 420 }); }
     lastKit = d.kittens;
-    const top = d.discard.slice(-4);
-    els.discard.innerHTML = top.map((id, i) => cardHtml(id, '', 'transform:rotate(' + pileRot(id) + 'deg) translate(' + ((i - top.length + 1) * 1.5) + 'px,0)')).join('');
+    renderDiscard(d.discard);
     // 我知道顶上是炸毛猫：牌堆顶那张抖、发红光
     const known = !ov && s.alive[0] && s.memo[0].deck.length > 0 && R.KIND_OF[s.deck[0]] === R.BOOM && s.memo[0].deck.indexOf(s.deck[0]) >= 0;
     els.deck.classList.toggle('is-hot', known);
   }
   function deckTopRect() {
-    const cs = els.deck.querySelectorAll('.zm-deck-stack .zm-card');
-    return cs.length ? cs[cs.length - 1].getBoundingClientRect() : els.deck.getBoundingClientRect();
+    const c = els.deck.querySelector('.zm-deck-stack .zm-card');
+    return c ? c.getBoundingClientRect() : els.deck.getBoundingClientRect();
   }
-  function discardRect() { return els.discard.getBoundingClientRect(); }
+  // 弃牌堆顶：落牌落在最上面那张的位置（堆高了就落得高一点）
+  function discardRect() {
+    const cs = els.discard.querySelectorAll('.zm-card');
+    if (!cs.length) return els.discard.getBoundingClientRect();
+    const r = els.discard.getBoundingClientRect(), dy = parseFloat((cs[cs.length - 1].style.transform.match(/translate\([^,]+,\s*(-?[\d.]+)px/) || [0, 0])[1]) || 0;
+    return { left: r.left, top: r.top + dy, width: r.width, height: r.height, right: r.right, bottom: r.bottom + dy };
+  }
 
   /* ───── 手牌：每次重画都用 FLIP 让留下的牌滑到新位置 ───── */
   function renderHand(o) {
@@ -439,7 +488,7 @@
   /* ───── 流程 ───── */
   const wait = (t) => new Promise((r) => setTimeout(r, fx.reduce() ? 1 : t));
   function schedule(t, fn) { const k = token; setTimeout(() => { if (k === token) fn(); }, t); }
-  function renderAll() { renderSeats(); renderPiles(); renderHand(); renderBand(); }
+  function renderAll() { renderSeats(); renderPiles(); renderHand(); renderBand(); refreshTools(); }
 
   function step() {
     if (!game) return;
@@ -1033,13 +1082,15 @@
     const tense = danger() >= 0.2;
     snd('peel');
     if (tense) snd('heartbeat', 80);
-    const hold = ms(tense ? 520 : 200);
-    const x = r.left, y = r.top;
+    const hold = ms(tense ? 640 : 300);
+    const x = r.left, y = r.top, dx = pu * 0.16;
+    // 先用拇指把顶上那张往外推出一截（下面那张露出来），再捏起来悬一下
     await fx.animate(node, [
-      { transform: fx.T(x, y, 1, 0), boxShadow: '0 1px 2px rgba(29,27,24,.16)' },
-      { transform: fx.T(x, y - 12, 1.04, -5), boxShadow: '0 10px 18px rgba(29,27,24,.25)', offset: 0.35 },
-      ...(tense ? [{ transform: fx.T(x + 1.5, y - 13, 1.04, -3), offset: 0.55 }, { transform: fx.T(x - 1.5, y - 12, 1.04, -6), offset: 0.75 }] : []),
-      { transform: fx.T(x, y - 12, 1.04, -5), boxShadow: '0 10px 18px rgba(29,27,24,.25)' },
+      { transform: fx.T(x, y, 1, 0), boxShadow: '0 0 0 rgba(29,27,24,0)', easing: 'cubic-bezier(.3,.6,.4,1)' },
+      { transform: fx.T(x + dx, y - 1, 1, 1.5), boxShadow: '0 2px 3px rgba(29,27,24,.2)', offset: 0.3, easing: 'cubic-bezier(.3,.7,.3,1)' },
+      { transform: fx.T(x + dx * 1.1, y - 14, 1.05, -4), boxShadow: '0 12px 20px rgba(29,27,24,.26)', offset: 0.55 },
+      ...(tense ? [{ transform: fx.T(x + dx * 1.1 + 1.5, y - 15, 1.05, -2), offset: 0.7 }, { transform: fx.T(x + dx * 1.1 - 1.5, y - 14, 1.05, -5), offset: 0.85 }] : []),
+      { transform: fx.T(x + dx * 1.1, y - 14, 1.05, -4), boxShadow: '0 12px 20px rgba(29,27,24,.26)' },
     ], { duration: hold }).finished.catch(() => {});
     if (t !== token) { node.remove(); return null; }
     const rr = node.getBoundingClientRect();
@@ -1164,9 +1215,10 @@
     const pu = PU();
     const from = node ? node.getBoundingClientRect() : els.center.getBoundingClientRect();
     if (node) node.remove();
-    const stack = els.deck.querySelectorAll('.zm-deck-stack .zm-card');
-    const lid = Array.from(stack).slice(-2);
-    lid.forEach((c) => c.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '6px -16px', rotate: '-8deg', offset: 0.35 }, { translate: '6px -16px', rotate: '-8deg', offset: 0.7 }, { translate: '0 0', rotate: '0deg' }], { duration: ms(760), easing: 'ease-in-out' }));
+    // 掀开的「盖子」= 顶上那张 + 上面将近一半的纸边，一起翘起来（每次掀开的厚度都差不多，看不出塞在哪）
+    const layers = Array.from(els.deck.querySelectorAll('.zm-deck-stack > *'));
+    const lid = layers.slice(Math.max(1, Math.floor(layers.length * 0.55)));
+    lid.forEach((c) => c.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '7px -18px', rotate: '-9deg', offset: 0.35 }, { translate: '7px -18px', rotate: '-9deg', offset: 0.7 }, { translate: '0 0', rotate: '0deg' }], { duration: ms(760), easing: 'ease-in-out' }));
     const r = els.deck.getBoundingClientRect(), c = fx.center(r);
     await fx.fly({ html: backHtml(), from, to: { x: c.x - pu * 0.6, y: c.y - pu * 0.05 }, w: pu, s0: from.width / pu, s1: 1, r0: 180, r1: -10, dur: ms(420), lift: 50, land: false, keep: false });
     if (t !== token) return;
@@ -1530,6 +1582,8 @@
   /* ───── 弹窗：遮罩淡入、弹窗从下面弹上来 ───── */
   let dialogClose = null;
   function openDialog(html, onMount, onClose) {
+    closeMenu();
+    els.dialog.className = 'zm-dialog';
     els.dialog.innerHTML = html;
     els.mask.hidden = false;
     dialogClose = onClose || null;
@@ -1749,8 +1803,71 @@
     });
   }
 
-  /* ───── 菜单 / 声音 ───── */
+  /* ───── 右上角菜单（照拱猪）─────
+   * 每条 = 左边一个线条小图标 + 一行字；按场合换内容：对局里 / 教程里。
+   * 「返回百宝奇巧」只给从本站点进来的人（记在这个标签页里，刷新也还在）；单独打开的（分享链接、装到桌面）不占这一条 */
+  const FROM_SITE = (() => {
+    const K = 'zm-from-site';
+    try {
+      const ref = document.referrer ? new URL(document.referrer) : null;
+      if (ref && ref.origin === location.origin && !ref.pathname.startsWith('/toolbox/zhamao')) sessionStorage.setItem(K, '1');
+      return sessionStorage.getItem(K) === '1';
+    } catch (_) { return false; }
+  })();
+  // 齿轮：8 个齿按角度算出来
+  const GEAR = (() => {
+    const pt = (deg, r) => { const a = (deg - 90) * Math.PI / 180; return (12 + r * Math.cos(a)).toFixed(2) + ' ' + (12 + r * Math.sin(a)).toFixed(2); };
+    let d = '';
+    for (let k = 0; k < 8; k++) {
+      const c = k * 45;
+      d += (k ? 'L' : 'M') + pt(c - 16, 6.6) + 'L' + pt(c - 10, 9.4) + 'L' + pt(c + 10, 9.4) + 'L' + pt(c + 16, 6.6);
+    }
+    return '<path d="' + d + 'Z"/><circle cx="12" cy="12" r="2.8"/>';
+  })();
+  const MENU_ICONS = {
+    restart: '<path d="M19.5 12a7.5 7.5 0 1 1-2.3-5.4"/><path d="M19.6 4.2v4.2h-4.2"/>',
+    settings: GEAR,
+    rules: '<circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.4a2.4 2.4 0 1 1 3.3 2.2c-.7.3-1 .8-1 1.4v.5"/><path d="M12 16.6v.1"/>',
+    tutorial: '<path d="M12 6.6C10 5 7 4.5 4 5v13.2c3-.5 6 0 8 1.6 2-1.6 5-2.1 8-1.6V5c-3-.5-6 0-8 1.6Z"/><path d="M12 6.6v13.2"/>',
+    skip: '<path d="M4.5 6.5 11 12l-6.5 5.5Z"/><path d="M12.5 6.5 19 12l-6.5 5.5Z"/>',
+    pause: '<circle cx="12" cy="12" r="8.5"/><path d="M10 9v6M14 9v6"/>',
+    cover: '<path d="M4 11.2 12 4.5l8 6.7"/><path d="M6.5 9.5v10h11v-10"/><path d="M10 19.5v-5h4v5"/>',
+    exit: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  };
+  function menuItems() {
+    const exit = FROM_SITE ? [['exit', '返回百宝奇巧']] : [];
+    if (game && game.tutorial) return [['skip', '跳过教程'], ['rules', '规则'], ['line'], ['cover', '回到主菜单'], ...exit];
+    return [
+      ...(canPause() ? [['pause', '暂停']] : []),
+      ['restart', '重新开一局'],
+      ['settings', '设置'],
+      ['rules', '规则'],
+      ['tutorial', '新手教程'],
+      ['line'],
+      ['cover', '回到主菜单'],
+      ...exit,
+    ];
+  }
+  function menuAct(k) {
+    closeMenu();
+    if (k === 'restart') {
+      if (game && !game.dealing && game.state.phase !== 'over' && !confirm('放弃这一局，重新开一局？')) return;
+      newGame();
+    }
+    else if (k === 'settings') showSettings(false);
+    else if (k === 'rules') showRules();
+    else if (k === 'tutorial') startTutorial();
+    else if (k === 'skip') skipTutorial();
+    else if (k === 'pause') pauseGame();
+    else if (k === 'cover') { if (game && game.tutorial) quitTutorial(); else showCover(); }
+    else if (k === 'exit') location.href = '/toolbox/';
+  }
   let menu = null;
+  function closeMenu() {
+    if (!menu || menu.hidden) return;
+    menu.hidden = true;
+    $('zmMenuBtn').setAttribute('aria-expanded', 'false');
+  }
   function toggleMenu(e) {
     if (e) e.stopPropagation();
     if (!menu) {
@@ -1758,31 +1875,61 @@
       menu.className = 'zm-menu';
       menu.setAttribute('role', 'menu');
       menu.hidden = true;
-      menu.addEventListener('click', (ev) => {
-        const b = ev.target.closest('button[data-m]');
-        if (!b) return;
-        menu.hidden = true;
-        const k = b.dataset.m;
-        if (k === 'restart') newGame();
-        else if (k === 'settings') showSettings(false);
-        else if (k === 'tutorial') startTutorial();
-        else if (k === 'cover') showCover();
-        else if (k === 'exit') location.href = '/toolbox/';
+      menu.addEventListener('click', (ev) => { const b = ev.target.closest('[data-m]'); if (b) menuAct(b.dataset.m); });
+      menu.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') { closeMenu(); $('zmMenuBtn').focus(); return; }
+        if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+        ev.preventDefault();
+        const bs = Array.from(menu.querySelectorAll('button')), i = bs.indexOf(document.activeElement);
+        bs[(i + (ev.key === 'ArrowDown' ? 1 : bs.length - 1)) % bs.length].focus();
       });
-      document.addEventListener('click', (ev) => { if (menu && !menu.hidden && !ev.target.closest('.zm-menu, #zmMenuBtn')) menu.hidden = true; });
+      document.addEventListener('click', (ev) => { if (!ev.target.closest('.zm-menu, #zmMenuBtn')) closeMenu(); });
       els.app.appendChild(menu);
     }
-    const inTut = game && game.tutorial;
-    menu.innerHTML = (inTut ? '<button type="button" data-m="cover">退出教程</button>' :
-      '<button type="button" data-m="restart">重新开一局</button><button type="button" data-m="settings">设置</button><button type="button" data-m="tutorial">新手教程</button><button type="button" data-m="cover">回封面</button>') +
-      '<hr><button type="button" data-m="exit">返回百宝奇巧</button>';
-    menu.hidden = !menu.hidden;
-    if (!menu.hidden) {
-      const r = $('zmMenuBtn').getBoundingClientRect(), ar = els.app.getBoundingClientRect();
-      menu.style.top = Math.round(r.bottom - ar.top + 8) + 'px';
-      menu.style.right = Math.round(ar.right - r.right) + 'px';
-      if (!fx.reduce()) menu.animate([{ transform: 'translateY(-6px) scale(.96)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 180, easing: 'ease-out' });
+    if (!menu.hidden) { closeMenu(); return; }
+    if (soundPanel) soundPanel.hidden = true;
+    menu.innerHTML = menuItems().map(([k, t]) => k === 'line' ? '<hr>'
+      : '<button type="button" role="menuitem" data-m="' + k + '"><svg class="zm-menu-ic" viewBox="0 0 24 24" aria-hidden="true">' + (MENU_ICONS[k] || '') + '</svg><b>' + esc(t) + '</b></button>').join('');
+    menu.hidden = false;
+    $('zmMenuBtn').setAttribute('aria-expanded', 'true');
+    const r = $('zmMenuBtn').getBoundingClientRect();
+    menu.style.top = Math.round(r.bottom + 8) + 'px';
+    menu.style.right = Math.round(Math.max(8, window.innerWidth - r.right)) + 'px';
+    if (!fx.reduce()) {
+      menu.animate([{ transform: 'translateY(-6px) scale(.96)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 180, easing: 'ease-out' });
+      menu.querySelectorAll('button').forEach((b, i) => b.animate([{ opacity: 0, transform: 'translateX(6px)' }, { opacity: 1, transform: 'none' }], { duration: 200, delay: 30 + i * 22, easing: 'ease-out', fill: 'backwards' }));
     }
+    const first = menu.querySelector('button');
+    if (first) first.focus({ preventScroll: true });
+  }
+
+  /* ───── 暂停（照拱猪）─────
+   * 单机对局里点顶栏的暂停键，或者切到后台（回个微信）：机器猫不偷跑、导火索不烧，回来点「继续」接着打。
+   * 停下来 = 作废所有排着的动画 / 计时，存档；继续 = 按现在的局面重新摆一遍、接着走（和刷新后接存档同一条路） */
+  function canPause() {
+    return !!(game && !game.tutorial && !game.dealing && game.state.phase !== 'over' && els.cover.hidden && !coachQueue);
+  }
+  function pauseGame() {
+    if (!canPause() || !els.mask.hidden) return;
+    closeMenu();
+    if (soundPanel) soundPanel.hidden = true;
+    resetTable();
+    if (game) game.peekDone = null;
+    save();
+    busy = true;
+    renderAll();
+    openDialog('<h2>暂停</h2><div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-go data-focus>继续</button>' +
+      '<button type="button" class="zm-btn" data-home>回到主菜单</button></div>', (d) => {
+      d.classList.add('is-pause');
+      d.querySelector('[data-go]').addEventListener('click', () => { closeDialog(); renderAll(); schedule(260, step); });
+      d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
+    });
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && canPause() && els.mask.hidden) pauseGame();
+  });
+  function refreshTools() {
+    $('zmPauseBtn').hidden = !(game && !game.tutorial && els.cover.hidden);
   }
   let soundPanel = null;
   function refreshSoundBtn() {
@@ -1895,6 +2042,16 @@
     coachQueue = null;
     if (toGame) newGame(); else showCover();
   }
+  // 跳过教程：记下「学过了」，有存档就接着打，没有就开一局
+  function skipTutorial() {
+    try { localStorage.setItem(TUT_KEY, '1'); } catch (_) { /* 无痕 */ }
+    tut = null;
+    els.skipTut.hidden = true;
+    const d = loadSaved();
+    if (d) resumeGame(d); else newGame();
+  }
+  // 教程打到一半回主菜单：不记「学过了」
+  function quitTutorial() { tut = null; els.skipTut.hidden = true; showCover(); }
 
   /* ───── 开局 / 封面 ───── */
   function newGame() {
@@ -1922,26 +2079,43 @@
     schedule(300, step);
   }
   function refreshCover() {
-    $('zmCoverSolo').textContent = settings.players + ' 人 · 机器猫' + AI.TIER_NAMES[settings.tier];
     const saved = loadSaved();
-    els.cover.querySelector('[data-cover="resume"]').hidden = !saved;
+    $('zmCoverSolo').textContent = saved ? '接着打上一局（' + saved.state.n + ' 人）' : settings.players + ' 人 · 机器猫' + AI.TIER_NAMES[settings.tier];
+    let seen = true;
+    try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { /* 无痕 */ }
+    els.cover.querySelector('[data-cover="tutorial"]').textContent = seen ? '新手教程' : '第一次玩？先学一局';
+    els.cover.querySelector('[data-cover="exit"]').hidden = !FROM_SITE;
+  }
+  // 主菜单两步：先是一条进度条，跑完换成按钮
+  function coverStep(k) {
+    els.cover.querySelectorAll('[data-cover-step]').forEach((x) => { x.hidden = x.dataset.coverStep !== k; });
   }
   function showCover() {
     if (game && !game.tutorial && !game.dealing) save();
     resetTable();
     tut = null;
     els.skipTut.hidden = true;
+    if (soundPanel) soundPanel.hidden = true;
     refreshCover();
+    coverStep('main');
     els.cover.hidden = false;
-    coverIntro();
+    refreshTools();
+    coverIntro(false);
   }
-  // 封面：标题一个字一个字落下来，按钮依次浮上来
-  function coverIntro() {
+  // 主菜单：标题一个字一个字落下来，按钮依次浮上来（只在进来那一次落字，回主菜单时只浮按钮）
+  function coverIntro(title) {
     if (fx.reduce()) return;
-    const title = els.cover.querySelector('.zm-cover-title');
-    if (!title.querySelector('span')) title.innerHTML = Array.from(title.textContent).map((ch) => '<span>' + ch + '</span>').join('');
-    title.querySelectorAll('span').forEach((sp, i) => sp.animate([{ transform: 'translateY(-26px) rotate(-8deg)', opacity: 0 }, { transform: 'translateY(4px) rotate(2deg)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 480, delay: 120 + i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
-    els.cover.querySelectorAll('.zm-cover-art, .zm-cover-sub, .zm-cover-btn:not([hidden]), .zm-cover-foot').forEach((n, i) => n.animate([{ transform: 'translateY(16px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 420, delay: i === 0 ? 0 : 380 + i * 80, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
+    const h = els.cover.querySelector('.zm-cover-title');
+    if (!h.querySelector('span')) h.innerHTML = Array.from(h.textContent).map((ch) => '<span>' + ch + '</span>').join('');
+    if (title) h.querySelectorAll('span').forEach((sp, i) => sp.animate([{ transform: 'translateY(-26px) rotate(-8deg)', opacity: 0 }, { transform: 'translateY(4px) rotate(2deg)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 480, delay: 120 + i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
+    const items = title ? els.cover.querySelectorAll('.zm-cover-art, .zm-cover-sub') : els.cover.querySelectorAll('.zm-cover-art, .zm-cover-sub, .zm-cover-btn:not([hidden]), .zm-cover-foot:not([hidden])');
+    items.forEach((n, i) => n.animate([{ transform: 'translateY(16px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 420, delay: i === 0 ? 0 : (title ? 380 : 60) + i * 80, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
+  }
+  // 进度条跑完：按钮一个个浮上来
+  function coverReveal() {
+    coverStep('main');
+    if (fx.reduce()) return;
+    els.cover.querySelectorAll('.zm-cover-btn:not([hidden]), .zm-cover-foot:not([hidden])').forEach((n, i) => n.animate([{ transform: 'translateY(14px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 380, delay: i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
   }
 
   /* ───── 绑定 ───── */
@@ -1951,6 +2125,8 @@
     if (!b) return;
     const k = b.dataset.cover;
     if (k === 'solo') {
+      const saved = loadSaved();
+      if (saved) { resumeGame(saved); return; }
       let seen = false;
       try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { seen = true; }
       if (!seen && TUT) {
@@ -1959,15 +2135,18 @@
           d.querySelector('[data-skip]').addEventListener('click', () => { try { localStorage.setItem(TUT_KEY, '1'); } catch (_) { /* */ } newGame(); });
         });
       } else newGame();
-    } else if (k === 'resume') { const d = loadSaved(); if (d) resumeGame(d); else newGame(); }
-    else if (k === 'tutorial') startTutorial();
+      return;
+    }
+    if (k === 'tutorial') startTutorial();
     else if (k === 'settings') showSettings(true);
+    else if (k === 'exit') location.href = '/toolbox/';
   });
   els.drawBtn.addEventListener('click', onDraw);
   els.playBtn.addEventListener('click', onPlay);
   els.nopeBtn.addEventListener('click', pressNope);
   els.cancelBtn.addEventListener('click', cancelTarget);
-  els.skipTut.addEventListener('click', () => endTutorial(false));
+  els.skipTut.addEventListener('click', skipTutorial);
+  $('zmPauseBtn').addEventListener('click', pauseGame);
   $('zmRulesBtn').addEventListener('click', showRules);
   $('zmMenuBtn').addEventListener('click', toggleMenu);
   $('zmSoundBtn').addEventListener('click', toggleSoundPanel);
@@ -1986,7 +2165,25 @@
   window.addEventListener('resize', () => { if (game) solveSize(); });
   refreshSoundBtn();
   refreshCover();
-  coverIntro();
+  refreshTools();
+  // 进来先是主菜单 + 一条进度条（等字体到位，太快也让它走完一程，不闪），跑完换成按钮
+  (function boot() {
+    coverStep('load');
+    coverIntro(true);
+    const bar = els.cover.querySelector('.zm-cover-load i');
+    let got = 0.12;
+    const bump = (to) => { got = Math.max(got, to); bar.style.transform = 'scaleX(' + got.toFixed(3) + ')'; };
+    const sleep = (t) => new Promise((r) => setTimeout(r, t));
+    const t0 = performance.now();
+    bump(0.3);
+    (document.fonts ? Promise.race([document.fonts.ready, sleep(1500)]) : Promise.resolve()).then(async () => {
+      bump(0.75);
+      await sleep(Math.max(0, 900 - (performance.now() - t0)));
+      bump(1);
+      await sleep(240);
+      if (!els.cover.hidden) coverReveal();
+    });
+  })();
 
   // 本机调试：__zmDebug.demo('boom') 之类，单独放一段动画看效果（见 demo()）
   function demo(name) {

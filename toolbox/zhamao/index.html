@@ -25,6 +25,9 @@ body_class: zm-fullscreen
         <button type="button" class="zm-skip" id="zmSkipTut" hidden>跳过教程</button>
       </div>
       <div class="zm-tools">
+        <button type="button" class="zm-tool" id="zmPauseBtn" aria-label="暂停" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 7v10M14.8 7v10"/></svg>
+        </button>
         <button type="button" class="zm-tool zm-sound" id="zmSoundBtn" aria-label="声音" aria-haspopup="true" aria-expanded="false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.2L12 5.8v12.4l-4.8-3.7H4z"/><path class="on" d="M15.4 9.2a4 4 0 0 1 0 5.6M17.9 6.7a7.5 7.5 0 0 1 0 10.6"/><path class="off" d="M15.5 9.5l5 5M20.5 9.5l-5 5"/></svg>
         </button>
@@ -42,6 +45,7 @@ body_class: zm-fullscreen
     <div class="zm-center" id="zmCenter">
       <div class="zm-piles">
         <div class="zm-pile zm-deck" id="zmDeck" aria-label="牌堆">
+          <div class="zm-deck-shadow"></div>
           <div class="zm-deck-stack"></div>
           <div class="zm-deck-info"><b id="zmDeckCount">0</b><span class="zm-kit" id="zmKit"></span></div>
         </div>
@@ -70,19 +74,20 @@ body_class: zm-fullscreen
 
   <div class="zm-fly" id="zmFly" aria-hidden="true"></div>
 
+  <!-- 主菜单（照拱猪）：插画、大字，进度条跑完换成按钮；「单机」有存档就写「接着打上一局」，底下小字链接 -->
   <div class="zm-cover" id="zmCover">
     <div class="zm-cover-inner">
       <div class="zm-cover-art" id="zmCoverArt" aria-hidden="true"></div>
       <h1 class="zm-cover-title">猫咪炸毛</h1>
       <p class="zm-cover-sub">摸到炸毛猫就出局，撑到最后的赢</p>
-      <div class="zm-cover-btns">
-        <button type="button" class="zm-cover-btn is-primary" data-cover="solo"><b>开始</b><small id="zmCoverSolo"></small></button>
-        <button type="button" class="zm-cover-btn" data-cover="resume" hidden><b>继续上一局</b></button>
+      <div class="zm-cover-load" data-cover-step="load" role="progressbar" aria-label="加载中"><i></i></div>
+      <div class="zm-cover-btns" data-cover-step="main" hidden>
+        <button type="button" class="zm-cover-btn is-primary" data-cover="solo"><b>单机</b><small id="zmCoverSolo"></small></button>
       </div>
-      <div class="zm-cover-foot">
+      <div class="zm-cover-foot" data-cover-step="main" hidden>
         <button type="button" class="zm-cover-link" data-cover="tutorial">新手教程</button>
         <button type="button" class="zm-cover-link" data-cover="settings">设置</button>
-        <a class="zm-cover-link" href="/toolbox/">返回百宝奇巧</a>
+        <button type="button" class="zm-cover-link" data-cover="exit" hidden>返回百宝奇巧</button>
       </div>
     </div>
   </div>
