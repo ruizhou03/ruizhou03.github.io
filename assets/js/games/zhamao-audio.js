@@ -234,7 +234,8 @@
       const a = ensure();
       if (!a) return;
       try {
-        if ('audioSession' in navigator) navigator.audioSession.type = 'playback';
+        // 和拱猪一样用「环境音」：跟着静音键走（静音时不出声），也不会上灵动岛 / 锁屏的播放控件
+        if (navigator.audioSession && navigator.audioSession.type !== 'ambient') navigator.audioSession.type = 'ambient';
         const b = a.createBuffer(1, 1, 22050), src = a.createBufferSource();
         src.buffer = b; src.connect(a.destination); src.start(0);
       } catch (_) { /* */ }
