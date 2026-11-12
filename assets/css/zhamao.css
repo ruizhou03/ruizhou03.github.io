@@ -88,6 +88,12 @@ body.zm-fullscreen .site-footer { display: none !important; }
 }
 .zm-av svg { width: 100%; height: 100%; display: block; border-radius: 50%; }
 .zm-seat.is-turn .zm-av { box-shadow: 0 0 0 2.5px var(--zm-seal), 0 0 0 6px rgba(180, 57, 44, 0.16); }
+.zm-av-face { display: flex; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; align-items: center; justify-content: center; }
+/* 轮到谁：头像外面一圈朱红虚环慢慢转、一呼一吸 */
+.zm-turnring { position: absolute; inset: -7px; border-radius: 50%; border: 2px dashed var(--zm-seal); opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
+.zm-seat.is-turn .zm-turnring { opacity: 0.85; animation: zm-turnring 6s linear infinite, zm-turnbreathe 1.6s ease-in-out infinite; }
+@keyframes zm-turnring { to { rotate: 360deg; } }
+@keyframes zm-turnbreathe { 50% { scale: 1.07; opacity: 0.45; } }
 .zm-seat.is-target .zm-av { box-shadow: 0 0 0 3px var(--zm-gold), 0 0 0 8px rgba(201, 169, 110, 0.28); cursor: pointer; animation: zm-breathe 1.4s ease-in-out infinite; }
 .zm-seat.is-target-off { opacity: 0.4; }
 @keyframes zm-breathe { 50% { transform: scale(1.06); } }
@@ -121,7 +127,21 @@ body.zm-fullscreen .site-footer { display: none !important; }
   animation: zm-bubble 1.6s ease forwards;
 }
 .zm-seat-me .zm-bubble { bottom: auto; top: calc(var(--av) + 4px); }
-@keyframes zm-bubble { 0% { opacity: 0; transform: translate(-50%, 6px); } 12%, 75% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -6px); } }
+@keyframes zm-bubble { 0% { opacity: 0; transform: translate(-50%, 8px) scale(.6); } 10% { opacity: 1; transform: translate(-50%, -2px) scale(1.06); } 16%, 78% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -8px) scale(.96); } }
+/* 小尾巴指向头像 */
+.zm-bubble::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 10px; height: 10px; background: inherit; border-right: 1.5px solid var(--zm-ink); border-bottom: 1.5px solid var(--zm-ink); transform: translateX(-50%) rotate(45deg); }
+.zm-seat-me .zm-bubble::after { bottom: auto; top: -6px; transform: translateX(-50%) rotate(225deg); }
+.zm-bubble.is-loud { background: #7a5a96; border-color: #5d4378; color: #fff; font-size: 15px; font-weight: 700; padding: 5px 12px; }
+.zm-bubble.is-loud::after { border-color: #5d4378; }
+.zm-bubble.is-alarm { background: #c8463a; border-color: #9a2f25; }
+.zm-bubble.is-alarm::after { border-color: #9a2f25; }
+/* 思考中：三个点依次跳 */
+.zm-bubble.is-think { display: flex; gap: 4px; padding: 6px 10px; animation: zm-bubble-in 0.25s ease-out both; }
+.zm-bubble.is-think i { width: 6px; height: 6px; border-radius: 50%; background: var(--zm-ink-mute); animation: zm-dot 0.9s ease-in-out infinite; }
+.zm-bubble.is-think i:nth-child(2) { animation-delay: 0.15s; }
+.zm-bubble.is-think i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes zm-dot { 30% { transform: translateY(-4px); background: var(--zm-ink); } 60% { transform: none; } }
+@keyframes zm-bubble-in { from { opacity: 0; transform: translate(-50%, 6px) scale(.7); } }
 
 /* ───── 中间：牌堆 · 弃牌堆 · 舞台 ───── */
 .zm-center { position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; }
@@ -129,7 +149,6 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-pile { position: relative; width: var(--pu); height: calc(var(--pu) * 1.4); }
 .zm-deck-stack { position: absolute; inset: 0; }
 .zm-deck-stack .zm-card { position: absolute; left: 0; top: 0; width: var(--pu); }
-.zm-deck.is-hot .zm-deck-stack .zm-card:last-child { box-shadow: 0 0 0 3px var(--zm-gold), 0 4px 10px rgba(0, 0, 0, 0.12); }
 .zm-deck-info {
   position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%);
   display: flex; align-items: center; gap: 6px; white-space: nowrap; font: 700 15px/1 Georgia, serif;
@@ -168,9 +187,6 @@ body.zm-fullscreen .site-footer { display: none !important; }
 }
 .zm-stamp.is-ok { border-color: var(--zm-good); color: var(--zm-good); }
 @keyframes zm-stamp { from { transform: translate(-50%, -50%) rotate(-14deg) scale(1.8); opacity: 0; } }
-/* 反应窗倒计时：舞台下沿一条缩短的细条 */
-.zm-react-bar { width: 100%; height: 4px; border-radius: 2px; background: var(--zm-wash); overflow: hidden; }
-.zm-react-bar i { display: block; height: 100%; background: #7a5a96; transform-origin: left; }
 
 /* ───── 牌 ───── */
 .zm-card {
@@ -222,27 +238,29 @@ body.zm-fullscreen .site-footer { display: none !important; }
   height: calc(var(--h) + 22px); padding: 16px 4px 4px;
 }
 .zm-hand .zm-card {
-  cursor: pointer; transition: transform 0.16s ease, margin 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
+  cursor: pointer;
+  /* 选中时弹簧一样抬起来（过冲一点再落定） */
+  transition: transform 0.26s cubic-bezier(.3, 1.6, .5, 1), margin 0.28s cubic-bezier(.3, .75, .3, 1), box-shadow 0.2s ease, filter 0.2s ease;
   box-shadow: -2px 0 6px rgba(29, 27, 24, 0.08);
 }
-.zm-hand .zm-card.is-sel { transform: translateY(-16px); box-shadow: 0 0 0 2.5px var(--zm-seal), 0 6px 14px rgba(29, 27, 24, 0.16); }
-.zm-hand .zm-card.is-dim { filter: saturate(0.4) brightness(0.92); }
-.zm-hand .zm-card.is-new { animation: zm-new 0.5s ease; }
-@keyframes zm-new { from { transform: translateY(-30px); opacity: 0; } }
+.zm-hand .zm-card.is-sel { transform: translateY(-20px) rotate(-1.5deg); box-shadow: 0 0 0 2.5px var(--zm-seal), 0 12px 18px rgba(29, 27, 24, 0.2); }
+/* 选中的几张凑成了组合：金边呼吸 */
+.zm-hand .zm-card.is-combo { box-shadow: 0 0 0 2.5px var(--zm-gold), 0 0 0 6px rgba(201, 169, 110, 0.28), 0 12px 18px rgba(29, 27, 24, 0.2); animation: zm-combo 1.1s ease-in-out infinite; }
+@keyframes zm-combo { 50% { box-shadow: 0 0 0 2.5px var(--zm-gold), 0 0 0 10px rgba(201, 169, 110, 0.12), 0 12px 18px rgba(29, 27, 24, 0.2); } }
+.zm-hand .zm-card.is-incoming { visibility: hidden; }
+/* 反应窗里手上的「不行」：紫光、轻轻跳，点它也能作废 */
+.zm-hand .zm-card.is-nope-ready { box-shadow: 0 0 0 2.5px #7a5a96, 0 0 16px rgba(122, 90, 150, 0.55); animation: zm-nope-bob 0.8s ease-in-out infinite; }
+@keyframes zm-nope-bob { 50% { transform: translateY(-8px); } }
+@media (hover: hover) {
+  .zm-hand.is-myturn .zm-card:not(.is-sel):hover { transform: translateY(-7px); box-shadow: 0 8px 14px rgba(29, 27, 24, 0.14); }
+}
 .zm-hand.is-giving .zm-card { box-shadow: 0 0 0 2px var(--zm-gold); }
 .zm-shake { animation: zm-shake 0.32s ease; }
 @keyframes zm-shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 
 /* ───── 飞牌层 ───── */
 .zm-fly { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
-.zm-fly .zm-card { position: absolute; left: 0; top: 0; will-change: transform; }
 
-/* 炸毛特效：全屏红闪 + 牌放大抖 */
-.zm-flash { position: fixed; inset: 0; background: radial-gradient(circle at 50% 45%, rgba(200, 70, 58, 0.32), rgba(200, 70, 58, 0) 60%); pointer-events: none; z-index: 39; animation: zm-flash 0.9s ease-out forwards; }
-@keyframes zm-flash { from { opacity: 1; } to { opacity: 0; } }
-.zm-deck.is-shuffling .zm-deck-stack .zm-card { animation: zm-shuffle 0.5s ease 2; }
-.zm-deck.is-shuffling .zm-deck-stack .zm-card:nth-child(odd) { animation-direction: reverse; }
-@keyframes zm-shuffle { 25% { transform: translate(-14px, -4px) rotate(-8deg); } 75% { transform: translate(14px, 2px) rotate(8deg); } }
 
 /* ───── 教程讲解 ───── */
 .zm-coach {
@@ -264,6 +282,18 @@ body.zm-fullscreen .site-footer { display: none !important; }
 .zm-cover-art { width: min(78vw, 320px); }
 .zm-cover-art svg { width: 100%; height: auto; display: block; }
 .zm-cover-title { margin: 4px 0 0; font-size: 34px; letter-spacing: 0.18em; }
+.zm-cover-title span { display: inline-block; }
+/* 封面待机：炸毛猫一鼓一鼓、隔一会儿炸一下毛；橘猫上下晃 */
+.zm-cover-art .hero-boom { transform-box: fill-box; transform-origin: 50% 70%; animation: zm-hero-boom 3.2s ease-in-out infinite; }
+.zm-cover-art .hero-def { transform-box: fill-box; transform-origin: 40% 90%; animation: zm-hero-bob 2.2s ease-in-out infinite; }
+@keyframes zm-hero-boom {
+  0%, 100% { transform: scale(1); } 40% { transform: scale(1.035); }
+  70% { transform: scale(1); } 74% { transform: scale(1.1) rotate(-3deg); } 77% { transform: scale(1.06) rotate(3deg); } 80% { transform: scale(1.08) rotate(-2deg); } 86% { transform: scale(1); }
+}
+@keyframes zm-hero-bob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-4px) rotate(-2deg); } }
+.zm-cover-btn.is-primary { position: relative; overflow: hidden; }
+.zm-cover-btn.is-primary::after { content: ''; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255, 250, 240, 0.28), transparent); animation: zm-shine 3.4s ease-in-out 1.4s infinite; }
+@keyframes zm-shine { 0% { left: -60%; } 35%, 100% { left: 130%; } }
 .zm-cover-sub { margin: 0 0 10px; font-size: 14px; color: var(--zm-ink-mute); }
 .zm-cover-btns { display: flex; flex-direction: column; gap: 10px; width: min(78vw, 260px); }
 .zm-cover-btn {
@@ -355,4 +385,79 @@ body.zm-fullscreen .site-footer { display: none !important; }
 }
 /* 桌中间摆着刚出的牌时，讲解挪到下沿，别挡住那张牌 */
 .zm-center:has(.zm-stage-inner) .zm-coach { top: auto; bottom: 0; transform: translateX(-50%); }
-.zm-center:has(.zm-stage-inner) .zm-stage { align-items: flex-start; padding-top: 4px; }
+.zm-center:has(.zm-stage-inner):has(.zm-coach:not([hidden])) .zm-stage { align-items: flex-start; padding-top: 4px; }
+
+/* ═════ 动画层（zhamao-fx.js 画在 .zm-fly 上，全部视口坐标） ═════ */
+.zm-flyer { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; will-change: transform; pointer-events: none; }
+.zm-flyer .zm-card { position: absolute; left: 0; top: 0; width: 100%; }
+.zm-flyer.is-gray .zm-card { filter: grayscale(0.85) opacity(0.7); }
+.zm-flip { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
+.zm-flyer:has(.zm-flip) { perspective: 700px; }
+.zm-side { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.zm-side-back { transform: rotateY(180deg); }
+/* 气鼓鼓的炸毛猫：牌面一直细细地抖 */
+.zm-angry .zm-card:not(.is-back) { animation: zm-tremble 0.14s linear infinite; }
+@keyframes zm-tremble { 25% { translate: -1.5px 0.5px; rotate: -1deg; } 50% { translate: 1px -1px; rotate: 0.8deg; } 75% { translate: -0.5px 1px; rotate: -0.4deg; } }
+.zm-spark, .zm-floater, .zm-prop { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform, opacity; }
+.zm-spark svg, .zm-floater svg { width: 100%; height: 100%; display: block; fill: currentColor; overflow: visible; }
+.zm-prop svg { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 4px 6px rgba(20, 18, 15, 0.2)); }
+.zm-paw { color: #eea25a; }
+.zm-paw svg { fill: currentColor; }
+.zm-smoke {
+  position: absolute; left: 0; top: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 45% 40%, rgba(255, 252, 246, 0.98) 0%, rgba(226, 219, 207, 0.85) 42%, rgba(205, 197, 184, 0) 70%);
+}
+.zm-smoke.is-dark { background: radial-gradient(circle at 45% 40%, rgba(120, 112, 104, 0.9) 0%, rgba(80, 74, 68, 0.7) 42%, rgba(60, 55, 50, 0) 70%); }
+.zm-ring { position: absolute; left: 0; top: 0; border-radius: 50%; border-style: solid; pointer-events: none; }
+.zm-screenflash { position: fixed; inset: 0; pointer-events: none; }
+.zm-arrow { position: fixed; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.zm-cross { position: absolute; inset: 8%; animation: zm-cross-in 0.28s cubic-bezier(.3, 1.6, .5, 1) 0.55s both; }
+.zm-cross svg { width: 100%; height: 100%; }
+@keyframes zm-cross-in { from { transform: scale(2); opacity: 0; } }
+/* 猫眼偷看（我）：桌中三张牌下面的标签和「知道了」 */
+.zm-peek::before { content: ''; position: fixed; inset: 0; background: rgba(243, 238, 227, 0.55); z-index: -1; animation: zm-fadein 0.3s ease both; }
+.zm-fly .zm-peek { position: fixed; inset: 0; z-index: -1; }
+.zm-peek-lab { position: absolute; transform: translateX(-50%); font-size: 14px; font-weight: 700; color: var(--zm-ink); background: var(--zm-card); border: 1px solid var(--zm-ink); border-radius: 999px; padding: 2px 10px; white-space: nowrap; animation: zm-fadein 0.3s ease 0.1s both; }
+.zm-peek-lab:first-child { background: var(--zm-ink); color: var(--zm-paper); }
+.zm-peek-ok { position: absolute; transform: translateX(-50%); pointer-events: auto; animation: zm-fadein 0.3s ease 0.2s both; }
+@keyframes zm-fadein { from { opacity: 0; } }
+
+/* 牌堆：我知道顶上是炸毛猫——顶上那张发红光、抖 */
+.zm-deck.is-hot .zm-deck-stack .zm-card:last-child { box-shadow: 0 0 0 3px #c8463a, 0 0 18px rgba(200, 70, 58, 0.55); animation: zm-hot 1.2s ease-in-out infinite; }
+@keyframes zm-hot { 0%, 100% { rotate: 0deg; } 8% { rotate: -2deg; } 12% { rotate: 2deg; } 16% { rotate: -1deg; } 20% { rotate: 0deg; } }
+.zm-deck.is-shuffling .zm-deck-stack { opacity: 0.25; transition: opacity 0.15s ease; }
+.zm-deck-count, #zmDeckCount, .zm-kit { display: inline-flex; }
+
+/* 舞台：生效时金光一闪；章换的时候旧章淡出 */
+.zm-stage-inner.is-go { animation: zm-go 0.5s ease-out; }
+@keyframes zm-go { 30% { box-shadow: 0 0 0 4px var(--zm-gold), 0 0 30px rgba(201, 169, 110, 0.6); } }
+.zm-stamp.is-leaving { animation: zm-stamp-out 0.22s ease-in forwards; }
+@keyframes zm-stamp-out { to { transform: translate(-50%, -50%) rotate(-14deg) scale(1.4); opacity: 0; } }
+.zm-stage-named { margin-left: calc(var(--u) * 0.16); align-self: center; position: relative; }
+.zm-stage-named .zm-card { width: calc(var(--u) * 0.62); }
+.zm-stage-named::before { content: '？'; position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 16px; font-weight: 700; color: var(--zm-seal); }
+.zm-stage-cards .zm-card { transition: filter 0.25s ease; }
+.zm-stage.is-cancelled .zm-stage-cards { filter: none; }
+.zm-stage.is-cancelled .zm-stage-cards > .zm-card { filter: grayscale(0.8) opacity(0.55); }
+
+/* 导火索：一根麻绳从右往左烧短，火星跟着走；最后一秒半变红闪 */
+.zm-fuse { position: relative; width: 100%; height: 12px; margin-top: 2px; }
+.zm-fuse .rope { position: absolute; left: 0; right: 0; top: 4px; height: 4px; border-radius: 2px; transform-origin: left center;
+  background: repeating-linear-gradient(90deg, #b48a5a 0 6px, #8a6a3e 6px 9px); }
+.zm-fuse .spark { position: absolute; top: 6px; left: 100%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
+  background: radial-gradient(circle, #fff6c8 0%, #f2c94c 35%, rgba(242, 140, 40, 0.6) 60%, rgba(242, 140, 40, 0) 72%); animation: zm-spark 0.18s ease-in-out infinite alternate; }
+@keyframes zm-spark { to { transform: scale(1.35); filter: brightness(1.2); } }
+.zm-fuse.is-urgent .rope { background: repeating-linear-gradient(90deg, #c8463a 0 6px, #8a2e26 6px 9px); }
+.zm-fuse.is-urgent .spark { background: radial-gradient(circle, #fff 0%, #ff8a6a 35%, rgba(200, 70, 58, 0.7) 60%, rgba(200, 70, 58, 0) 72%); animation-duration: 0.09s; }
+.zm-fuse:not(.is-lit) .spark, .zm-fuse.is-out .spark { display: none; }
+.zm-fuse.is-idle .rope { opacity: 0.6; }
+.zm-fuse.is-out { opacity: 0.3; transition: opacity 0.2s ease; }
+
+/* 「摸牌」键：轮到我、又没选牌时，轻轻一呼一吸 */
+.zm-btn-primary.is-ready { animation: zm-ready 1.8s ease-in-out infinite; }
+@keyframes zm-ready { 50% { box-shadow: 0 0 0 6px rgba(29, 27, 24, 0.1); } }
+.zm-out-stamp { pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .zm-turnring, .zm-cover-art .hero-boom, .zm-cover-art .hero-def, .zm-angry .zm-card, .zm-deck.is-hot .zm-deck-stack .zm-card:last-child { animation: none !important; }
+}

@@ -250,12 +250,30 @@
     '<rect x="8" y="8" width="84" height="124" rx="6" fill="none" stroke="' + GOLD + '" stroke-width="2.6"/>' +
     paw(50, 70, 2.2, GOLD, NAVY) + '</svg>';
 
-  /* 封面 / 图标用：一只炸毛猫 + 一只橘猫举着逗猫棒 */
+  /* 封面：一只炸毛猫 + 一只橘猫举着逗猫棒。各自包一层 <g class>，CSS 让它们待机时动（炸毛猫一鼓一鼓、偶尔一抖，
+   * 橘猫上下晃） */
   function hero() {
+    const boom = boomArt();
+    const def = defuseArt();
     return '<svg viewBox="0 0 200 120" aria-hidden="true">' +
-      '<g transform="translate(0 10)">' + boomArt() + '</g>' +
-      '<g transform="translate(100 10)">' + defuseArt() + '</g></svg>';
+      '<g transform="translate(0 10)"><g class="hero-boom">' + boom + '</g></g>' +
+      '<g transform="translate(100 10)"><g class="hero-def">' + def + '</g></g></svg>';
   }
 
-  return { TONE, face, icon, BACK, hero, heart, paw, catHead };
+  /* 道具（特效用）：推锅的锅、偷看的大猫眼、赢家的皇冠、落空的红叉。viewBox 都是 0 0 100 100 */
+  const PROPS = {
+    pot: '<svg viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy="86" rx="34" ry="6" fill="rgba(29,27,24,.14)"/>' +
+      '<path d="M10 40h80c0 28-16 42-40 42S10 68 10 40Z" fill="#3a3632"/><path d="M18 46h64c-2 20-14 30-32 30S20 66 18 46Z" fill="#4a4540"/>' +
+      '<rect x="4" y="32" width="92" height="12" rx="6" fill="#5c5650"/><rect x="88" y="34" width="12" height="8" rx="4" fill="#8a6a3e"/><rect x="0" y="34" width="12" height="8" rx="4" fill="#8a6a3e"/>' +
+      '<path d="M28 52c4-3 8-3 12 0" stroke="#6e675f" stroke-width="4" fill="none" stroke-linecap="round"/></svg>',
+    eye: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M4 50C18 26 34 16 50 16s32 10 46 34C82 74 66 84 50 84S18 74 4 50Z" fill="#3c3530"/>' +
+      '<ellipse cx="50" cy="50" rx="30" ry="27" fill="#e9d46a"/><ellipse class="pupil" cx="50" cy="50" rx="8" ry="24" fill="' + INK + '"/>' +
+      '<circle cx="40" cy="38" r="6" fill="#fff"/><circle cx="58" cy="62" r="3" fill="#fff" opacity=".7"/></svg>',
+    crown: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 76 6 30l24 20 20-34 20 34 24-20-6 46Z" fill="' + GOLD + '" stroke="#a9823a" stroke-width="3" stroke-linejoin="round"/>' +
+      '<rect x="10" y="72" width="80" height="14" rx="5" fill="#b8924a"/><circle cx="6" cy="28" r="5" fill="#fffaf0"/><circle cx="50" cy="14" r="6" fill="#fffaf0"/><circle cx="94" cy="28" r="5" fill="#fffaf0"/>' +
+      '<path d="M50 40l7 11-7 11-7-11Z" fill="' + RED + '"/>' + '</svg>',
+    cross: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M20 20 80 80M80 20 20 80" stroke="' + RED + '" stroke-width="14" stroke-linecap="round"/></svg>',
+  };
+
+  return { TONE, face, icon, BACK, hero, heart, paw, catHead, PROPS };
 });

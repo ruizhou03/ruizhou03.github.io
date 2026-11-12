@@ -108,6 +108,34 @@
     defuse: (a, t, d) => { meow(a, d, t, { f: 760, dur: 0.32, end: 1.0, gain: 0.18 }); tone(a, d, t + 0.25, { f: 1175, gain: 0.07, dur: 0.25 }); tone(a, d, t + 0.33, { f: 1568, gain: 0.06, dur: 0.3 }); },
     insert: (a, t, d) => { card(a, d, t, 0.3); card(a, d, t + 0.07, 0.2); },
     out: (a, t, d) => { meow(a, d, t, { f: 420, dur: 0.6, end: 0.45, gain: 0.22 }); },
+    // ── 动画配套的音效 ──
+    untap: (a, t, d) => tone(a, d, t, { f: 660, gain: 0.06, dur: 0.05, type: 'triangle' }),
+    combo: (a, t, d) => { tone(a, d, t, { f: 988, gain: 0.07, dur: 0.12, type: 'triangle' }); tone(a, d, t + 0.06, { f: 1319, gain: 0.07, dur: 0.18, type: 'triangle' }); },
+    whoosh: (a, t, d) => nz(a, d, t, { freq: 700, to: 2600, q: 0.8, gain: 0.16, dur: 0.24, attack: 0.05 }),
+    thud: (a, t, d) => { nz(a, d, t, { type: 'lowpass', freq: 900, to: 200, q: 0.7, gain: 0.35, dur: 0.1 }); card(a, d, t, 0.22); },
+    slam: (a, t, d) => { nz(a, d, t, { type: 'lowpass', freq: 1400, to: 120, q: 0.8, gain: 0.6, dur: 0.22 }); tone(a, d, t, { f: 140, to: 60, gain: 0.35, dur: 0.22 }); },
+    stamp: (a, t, d) => { nz(a, d, t, { type: 'lowpass', freq: 1000, to: 300, q: 1, gain: 0.4, dur: 0.12 }); tone(a, d, t, { f: 220, to: 120, gain: 0.18, dur: 0.12, type: 'triangle' }); },
+    activate: (a, t, d) => { [784, 988, 1175].forEach((f, i) => tone(a, d, t + i * 0.05, { f, gain: 0.06, dur: 0.25, type: 'triangle' })); },
+    sweep: (a, t, d) => nz(a, d, t, { freq: 3000, to: 800, q: 0.7, gain: 0.14, dur: 0.3, attack: 0.04 }),
+    snore: (a, t, d) => { nz(a, d, t, { freq: 300, to: 500, q: 3, gain: 0.18, dur: 0.6, attack: 0.25 }); tone(a, d, t + 0.7, { f: 880, to: 1320, gain: 0.05, dur: 0.25 }); },
+    clang: (a, t, d) => { [523, 1046, 1568, 2093].forEach((f, i) => tone(a, d, t, { f: f * 1.01, gain: 0.12 / (i + 1), dur: 0.8 - i * 0.12, type: 'sine' })); nz(a, d, t, { freq: 4000, q: 1, gain: 0.25, dur: 0.06 }); },
+    gasp: (a, t, d) => { tone(a, d, t, { f: 440, to: 220, gain: 0.12, dur: 0.3, type: 'triangle' }); },
+    peel: (a, t, d) => nz(a, d, t, { freq: 4000, to: 2000, q: 1.2, gain: 0.12, dur: 0.08 }),
+    heartbeat: (a, t, d) => { [0, 0.18].forEach((dt) => tone(a, d, t + dt, { f: 70, to: 45, gain: 0.5, dur: 0.14 })); },
+    flip: (a, t, d) => { card(a, d, t, 0.25); tone(a, d, t + 0.02, { f: 1200, to: 1600, gain: 0.04, dur: 0.06, type: 'triangle' }); },
+    give: (a, t, d) => { tone(a, d, t, { f: 784, gain: 0.07, dur: 0.2, type: 'triangle' }); tone(a, d, t + 0.1, { f: 1046, gain: 0.07, dur: 0.3, type: 'triangle' }); },
+    swipe: (a, t, d) => { nz(a, d, t, { freq: 1200, to: 5000, q: 1.5, gain: 0.25, dur: 0.16, attack: 0.02 }); meow(a, d, t + 0.05, { f: 700, dur: 0.18, end: 1.1, gain: 0.08 }); },
+    ding: (a, t, d) => { tone(a, d, t, { f: 1568, gain: 0.1, dur: 0.5 }); tone(a, d, t, { f: 2093, gain: 0.05, dur: 0.4 }); },
+    fan: (a, t, d) => { for (let i = 0; i < 4; i++) card(a, d, t + i * 0.035, 0.15); },
+    hiss: (a, t, d) => nz(a, d, t, { type: 'highpass', freq: 3200, q: 0.5, gain: 0.16, dur: 0.4, attack: 0.03 }),
+    deal: (a, t, d) => card(a, d, t, 0.2),
+    tick: (a, t, d) => tone(a, d, t, { f: 1800, gain: 0.04, dur: 0.03, type: 'square' }),
+    kaboom: (a, t, d) => {
+      nz(a, d, t, { type: 'lowpass', freq: 2200, to: 80, q: 0.7, gain: 1, dur: 1.1 });
+      tone(a, d, t, { f: 90, to: 30, gain: 0.7, dur: 0.9 });
+      nz(a, d, t + 0.1, { type: 'highpass', freq: 3000, q: 0.5, gain: 0.25, dur: 0.9, attack: 0.05 });
+      meow(a, d, t + 0.25, { f: 380, dur: 0.7, end: 0.4, gain: 0.18 });
+    },
     win: (a, t, d) => { [523, 659, 784, 1046].forEach((f, i) => tone(a, d, t + i * 0.11, { f, gain: 0.12, dur: 0.35, type: 'triangle' })); },
     lose: (a, t, d) => { [440, 392, 349, 262].forEach((f, i) => tone(a, d, t + i * 0.16, { f, gain: 0.11, dur: 0.4, type: 'triangle' })); },
   };
@@ -117,7 +145,7 @@
     const a = ensure();
     if (!a) return;
     try { SFX[name](a, a.currentTime + (delay || 0) / 1000 + 0.005, bus.sfx); } catch (_) { /* 某些浏览器不支持的节点就算了 */ }
-    duck(name === 'boom' ? 1200 : 350);
+    duck(name === 'boom' || name === 'kaboom' ? 1400 : 350);
   }
   function duck(ms) {
     if (!ctx || !bus) return;
