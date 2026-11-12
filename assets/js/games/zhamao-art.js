@@ -269,9 +269,25 @@
     eye: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M4 50C18 26 34 16 50 16s32 10 46 34C82 74 66 84 50 84S18 74 4 50Z" fill="#3c3530"/>' +
       '<ellipse cx="50" cy="50" rx="30" ry="27" fill="#e9d46a"/><ellipse class="pupil" cx="50" cy="50" rx="8" ry="24" fill="' + INK + '"/>' +
       '<circle cx="40" cy="38" r="6" fill="#fff"/><circle cx="58" cy="62" r="3" fill="#fff" opacity=".7"/></svg>',
-    crown: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M12 76 6 30l24 20 20-34 20 34 24-20-6 46Z" fill="' + GOLD + '" stroke="#a9823a" stroke-width="3" stroke-linejoin="round"/>' +
-      '<rect x="10" y="72" width="80" height="14" rx="5" fill="#b8924a"/><circle cx="6" cy="28" r="5" fill="#fffaf0"/><circle cx="50" cy="14" r="6" fill="#fffaf0"/><circle cx="94" cy="28" r="5" fill="#fffaf0"/>' +
-      '<path d="M50 40l7 11-7 11-7-11Z" fill="' + RED + '"/>' + '</svg>',
+    // 皇冠：金属渐变（亮金→古铜）、三颗珍珠尖、正中一颗切面红宝石、冠箍上一红两蓝、一道高光
+    crown: '<svg viewBox="0 0 120 100" aria-hidden="true"><defs>' +
+      '<linearGradient id="zmCrG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdf0c4"/><stop offset=".42" stop-color="#e6b85c"/><stop offset="1" stop-color="#9a6a24"/></linearGradient>' +
+      '<linearGradient id="zmCrB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6dc8e"/><stop offset=".55" stop-color="#c58f3a"/><stop offset="1" stop-color="#7a5119"/></linearGradient>' +
+      '<radialGradient id="zmCrP" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#f1e8d6"/><stop offset="1" stop-color="#bfae8f"/></radialGradient>' +
+      '<radialGradient id="zmCrR" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#ffb3a3"/><stop offset=".45" stop-color="#d23a2f"/><stop offset="1" stop-color="#6e1410"/></radialGradient>' +
+      '<radialGradient id="zmCrS" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#b9cdf0"/><stop offset=".45" stop-color="#34558a"/><stop offset="1" stop-color="#16274a"/></radialGradient>' +
+      '</defs>' +
+      '<path d="M17 74 10 31l25 21 25-34 25 34 25-21-7 43Z" fill="url(#zmCrG)" stroke="#6f4a17" stroke-width="2.2" stroke-linejoin="round"/>' +
+      '<path d="M21 68 16 41l20 17M60 24l-16 22" fill="none" stroke="rgba(255,250,230,.65)" stroke-width="2" stroke-linecap="round"/>' +
+      '<path d="M60 35l8 11-8 12-8-12Z" fill="url(#zmCrR)" stroke="#5a100c" stroke-width="1.4" stroke-linejoin="round"/>' +
+      '<path d="M52 46h16M60 35v23" stroke="rgba(255,220,210,.45)" stroke-width="1"/>' +
+      '<rect x="14" y="70" width="92" height="18" rx="4" fill="url(#zmCrB)" stroke="#6f4a17" stroke-width="2.2"/>' +
+      '<path d="M18 74.5h84" stroke="rgba(255,244,210,.7)" stroke-width="1.6" stroke-linecap="round"/><path d="M18 84h84" stroke="rgba(90,58,16,.35)" stroke-width="1.2"/>' +
+      '<circle cx="35" cy="79" r="4.6" fill="url(#zmCrS)" stroke="#132140" stroke-width="1"/><circle cx="85" cy="79" r="4.6" fill="url(#zmCrS)" stroke="#132140" stroke-width="1"/>' +
+      '<ellipse cx="60" cy="79" rx="6.5" ry="5.2" fill="url(#zmCrR)" stroke="#5a100c" stroke-width="1"/>' +
+      '<circle cx="33.6" cy="77.4" r="1.3" fill="#fff" opacity=".85"/><circle cx="83.6" cy="77.4" r="1.3" fill="#fff" opacity=".85"/><circle cx="58" cy="77" r="1.5" fill="#fff" opacity=".85"/>' +
+      '<circle cx="10" cy="29" r="5.8" fill="url(#zmCrP)" stroke="#9c8a6a" stroke-width="1"/><circle cx="60" cy="16" r="6.8" fill="url(#zmCrP)" stroke="#9c8a6a" stroke-width="1"/><circle cx="110" cy="29" r="5.8" fill="url(#zmCrP)" stroke="#9c8a6a" stroke-width="1"/>' +
+      '</svg>',
     cross: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M20 20 80 80M80 20 20 80" stroke="' + RED + '" stroke-width="14" stroke-linecap="round"/></svg>',
   };
 
