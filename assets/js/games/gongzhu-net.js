@@ -82,6 +82,8 @@
     join: (code, nick, mode) => request('POST', 'join', { body: { code, nick, deviceId: deviceId(), mode: mode || 'play' } }),
     act: (code, token, action, body) => request('POST', action, { code, token, body }),
     // fx：牌桌互动（道具 / 说一句）的序号；带上它，有新互动时长轮询也会立刻回来（回应里 fx / fxSeq，房间没变时不带 state）
+    // 叫醒服务器：fly 机器没人用时会停掉，冷启动 2–3 秒；点开「联机」就先随便敲一下门，等真建房 / 进房时它已经醒了
+    warm: () => fetch(BASE + '?action=state&code=0', { method: 'GET', cache: 'no-store' }).catch(() => {}),
     state: (code, token, since, signal, fx) => request('GET', 'state', { code, token, query: Object.assign({ since: String(since || 0) }, fx == null ? {} : { fx: String(fx) }), signal }),
   };
 })();

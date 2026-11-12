@@ -3394,24 +3394,62 @@
 
   /* 创建房间：不弹框，点了直接建好进大厅。昵称用上次填过的；没填过就让服务器从昵称库里随机起一个 */
   let creating = false;
+  /* 连服务器时盖一层「正在连接」+ 一条假进度条（照百变小咪，2026-11-12）：
+   * 匀速 1.2 秒走到 70%；还没好就放慢、再 4 秒走到 90%，然后停着等；一连上就 0.25 秒冲到 100% 收起。
+   * 250ms 内就连上的不露（不闪）；盖着的时候底下什么都点不了。上面四个花色一个接一个亮 */
+  let connEl = null, connTimer = 0, connStage = 0;
+  function connecting(on, text) {
+    clearTimeout(connTimer); clearTimeout(connStage);
+    if (!on) {
+      if (!connEl || connEl.hidden) return Promise.resolve();
+      const bar = connEl.querySelector('.gz-conn-bar i');
+      bar.style.transition = 'transform .25s ease-out';
+      bar.style.transform = 'scaleX(1)';
+      return new Promise((r) => setTimeout(() => { connEl.hidden = true; r(); }, 300));
+    }
+    connTimer = setTimeout(() => {
+      if (!connEl) {
+        connEl = document.createElement('div');
+        connEl.className = 'gz-connecting';
+        connEl.innerHTML = '<div class="gz-conn-box"><div class="gz-conn-suits">' + [0, 1, 3, 2].map((s) => '<i class="gz-conn-suit s' + s + '">' + suitSVG(s) + '</i>').join('') + '</div>' +
+          '<b data-t></b><div class="gz-conn-bar" role="progressbar" aria-label="连接中"><i></i></div></div>';
+        document.body.appendChild(connEl);
+      }
+      connEl.querySelector('[data-t]').textContent = text || '正在连接…';
+      const bar = connEl.querySelector('.gz-conn-bar i');
+      bar.style.transition = 'none';
+      bar.style.transform = 'scaleX(0)';
+      connEl.hidden = false;
+      void bar.offsetWidth;
+      bar.style.transition = 'transform 1.2s linear';
+      bar.style.transform = 'scaleX(.7)';
+      connStage = setTimeout(() => { bar.style.transition = 'transform 4s cubic-bezier(.2,.6,.4,1)'; bar.style.transform = 'scaleX(.9)'; }, 1200);
+    }, 250);
+    return Promise.resolve();
+  }
+  async function withConn(text, fn) {
+    connecting(true, text);
+    try { const r = await fn(); await connecting(false); return r; } catch (e) { connecting(false); throw e; }
+  }
+
   async function createRoom() {
     if (!NET || creating) return;
     if (match && match.tutorial) { toast('先打完或跳过教程，再开联机'); return; }
     creating = true;
-    const slow = setTimeout(() => toast('正在创建房间…'), 400);
     const ident = window.GamesShell && GamesShell.Identity;
     const nick = (ident && ident.getNick && ident.getNick()) || '';
     try {
-      const res = await NET.create(nick, { rules: settings.rules, turnSec: settings.turnSec | 0 });
+      const res = await withConn('正在创建房间…', () => NET.create(nick, { rules: settings.rules, turnSec: settings.turnSec | 0 }));
       startOnline(res.state, res.token);
     } catch (e) { toast(NET.message(e)); }
-    finally { clearTimeout(slow); creating = false; }
+    finally { creating = false; }
   }
 
   /* 加入房间：来的人脑子里记着的是那 4 位房号，所以房号放最上面、做大；昵称在下面，选填（填过的自动带上） */
   function showJoin(code) {
     if (!NET) return;
     if (match && match.tutorial) { toast('先打完或跳过教程，再开联机'); return; }
+    NET.warm();
     const ident = window.GamesShell && GamesShell.Identity;
     const nick = (ident && ident.getNick && ident.getNick()) || '';
     openDialog('<h2>加入房间</h2>' +
@@ -3440,7 +3478,7 @@
           err.hidden = true;
           btn.disabled = true; watchBtn.disabled = true;
           try {
-            const res = await NET.join(c, v, mode);
+            const res = await withConn(mode === 'watch' ? '正在进房间观战…' : '正在进房间…', () => NET.join(c, v, mode));
             startOnline(res.state, res.token, true);
             if (res.fellBack === 'room_full') toast('房间满了，先观战；有空位时可以坐下');
             else if (res.fellBack === 'wait_round_end') toast('这一局还在打，先观战；打完这一局就能坐下');
@@ -3458,7 +3496,7 @@
   // 刷新 / 重新打开页面：上次的房间还在就接回去
   async function resumeOnline(sess) {
     try {
-      const res = await NET.state(sess.code, sess.token, 0);
+      const res = await withConn('正在回到房间…', () => NET.state(sess.code, sess.token, 0));
       startOnline(res.state, sess.token);
       return true;
     } catch (_) {
@@ -3665,7 +3703,7 @@
     const k = b.dataset.cover;
     if (k === 'solo') playSolo(soloBots() ? match : loadSaved());
     else if (k === 'online') {
-      if (!liveRoom) { coverStep('online'); return; }
+      if (!liveRoom) { NET.warm(); coverStep('online'); return; }
       const sess = liveRoom;
       resumeOnline(sess).then((ok) => { if (!ok) { liveRoom = null; showCover('上次的房间已经没了'); coverStep('online'); } });
     }

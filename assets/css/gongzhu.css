@@ -1006,3 +1006,21 @@ body.gz-fullscreen, .gz-app * { -webkit-user-select: none; user-select: none; -w
 .gz-sheet.is-floor, .gz-pile-top.is-floor { box-shadow: 0 0 0 0.9px rgba(29, 27, 24, 0.55), 0 1px 0 rgba(29, 27, 24, 0.35), 0 5px 12px rgba(20, 18, 15, 0.2); }
 .gz-pile-top { background: #b4392c; border: 2px solid var(--gz-paper); box-shadow: inset 0 0 0 3px #c2493b, 0 1px 0 rgba(29, 27, 24, 0.3); }
 .gz-pile-top.is-floor { box-shadow: inset 0 0 0 3px #c2493b, 0 0 0 0.9px rgba(29, 27, 24, 0.55), 0 5px 12px rgba(20, 18, 15, 0.2); }
+
+/* 连服务器的遮罩（照百变小咪）：四个花色一个接一个亮 + 一条假进度条 */
+.gz-connecting { position: fixed; inset: 0; z-index: 1000; background: rgba(243, 238, 227, 0.86); display: grid; place-items: center; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); color: var(--gz-ink, #1d1b18); }
+.gz-connecting[hidden] { display: none; }
+.gz-conn-box { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 220px; }
+.gz-conn-suits { display: flex; align-items: center; gap: 12px; font-size: 26px; line-height: 1; height: 1.2em; }
+.gz-conn-suit { display: block; opacity: 0.22; animation: gz-conn-step 1.2s ease-in-out infinite; color: #1f1c18; }
+.gz-conn-suit.s1, .gz-conn-suit.s2 { color: #a8322a; }
+.gz-conn-suit.s0, .gz-conn-suit.s3 { font-size: 1.6em; margin-top: 0.12em; }   /* ♠♣ 是字形矢量（带行高留白），放大到和 ♥♦ 看着一样大 */
+.gz-conn-suit:nth-child(2) { animation-delay: 0.15s; }
+.gz-conn-suit:nth-child(3) { animation-delay: 0.3s; }
+.gz-conn-suit:nth-child(4) { animation-delay: 0.45s; }
+.gz-conn-suit .suit-svg { height: 1em; width: auto; display: block; fill: currentColor; }
+.gz-conn-box b { font-size: 15px; font-weight: 600; letter-spacing: 0.08em; }
+.gz-conn-bar { width: 100%; height: 6px; border-radius: 3px; background: rgba(29, 27, 24, 0.1); overflow: hidden; }
+.gz-conn-bar i { display: block; height: 100%; background: #b4392c; transform-origin: left center; transform: scaleX(0); border-radius: 3px; }
+@keyframes gz-conn-step { 0%, 100% { opacity: 0.22; } 40% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .gz-conn-suit { animation: none; opacity: 0.7; } }
