@@ -66,13 +66,22 @@
     boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '自由甩锅', skip: '跳过', bottom: '抽底', favor: '索要',
     shuffle: '洗牌', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗',
   });
+  /* 第二副牌（2026-11-12 起最多 9 人）：6 人以上开局把它也洗进来——炸毛猫最多 8 只、逗猫棒最多 11 根，功能牌和猫牌也多一倍；
+   * 5 人及以下它一开局就整副收进盒子。牌号接在第一副后面（0..67 不变，旧存档 / 联机局照常） */
+  const COUNTS2 = Object.freeze({
+    boom: 4, defuse: 5, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3, bottom: 4,
+    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4,
+  });
   const KIND_OF = Object.freeze((function () {
     const a = [];
     for (const k of KINDS) for (let i = 0; i < COUNTS[k]; i++) a.push(k);
+    for (const k of KINDS) for (let i = 0; i < (COUNTS2[k] || 0); i++) a.push(k);
     return a;
   })());
-  const DECK_SIZE = KIND_OF.length; // 68（含 3 张交换：没开交换的局它们一开局就收进盒子；2026-11-12 加了 4 张抽底）
-  const MIN_PLAYERS = 2, MAX_PLAYERS = 5;
+  const BASE_SIZE = KINDS.reduce((t, k) => t + COUNTS[k], 0);   // 68：第一副（含 3 张交换、4 张抽底）
+  const DECK_SIZE = KIND_OF.length;                              // 135：两副的牌号总数
+  const MIN_PLAYERS = 2, MAX_PLAYERS = 9, TWO_DECKS_FROM = 6;
+  const usesSecondDeck = (n) => n >= TWO_DECKS_FROM;
 
   const RULE_OPTIONS = Object.freeze({
     stackAttack: [false, true],
@@ -80,7 +89,7 @@
     swap: [false, true],
   });
   const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'two', swap: false });
-  const swapsInPlay = (n) => Math.min(3, n - 1);
+  const swapsInPlay = (n) => Math.min(usesSecondDeck(n) ? 6 : 3, n - 1);
   function normalizeRules(r) {
     const out = {};
     for (const k of Object.keys(DEFAULT_RULES)) {
@@ -132,8 +141,10 @@
       turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
       winner: -1, seq: 0, memo: newMemo(n),
     };
-    const booms = [], defuses = [], rest = [], swaps = [];
-    for (let id = 0; id < DECK_SIZE; id++) {
+    const booms = [], defuses = [], rest = [], swaps = [], unused = [];
+    const top = usesSecondDeck(n) ? DECK_SIZE : BASE_SIZE;   // 5 人及以下只用第一副（发出来和以前一模一样）
+    for (let id = top; id < DECK_SIZE; id++) unused.push(id);
+    for (let id = 0; id < top; id++) {
       const k = KIND_OF[id];
       if (k === BOOM) booms.push(id); else if (k === DEFUSE) defuses.push(id); else if (k === SWAP) swaps.push(id); else rest.push(id);
     }
@@ -147,7 +158,7 @@
     shuffleIn(state, booms);
     const extra = rules.extraDefuse === 'all' ? defuses.length : Math.min(2, defuses.length);
     state.deck = shuffleIn(state, rest.concat(booms.slice(0, n - 1), defuses.slice(0, extra)));
-    state.removed = booms.slice(n - 1).concat(defuses.slice(extra), swaps.slice(swapIn.length)); // 这局不用的，收进盒子
+    state.removed = booms.slice(n - 1).concat(defuses.slice(extra), swaps.slice(swapIn.length), unused); // 这局不用的，收进盒子
 
     state.turn = (rand(state) * n) | 0;
     return state;
@@ -566,7 +577,7 @@
 
   return {
     BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
-    MIN_PLAYERS, MAX_PLAYERS, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay,
+    MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay,
     kindOf, isCat, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,
     classify, validTargets, checkPlay, play, awaitingReaction, canNope, nope, pass, reactionDone, isCancelled, closeReaction,

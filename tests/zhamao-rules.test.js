@@ -26,13 +26,18 @@ const idOf = (s, seat, k) => s.hands[seat].find((id) => R.KIND_OF[id] === k);
 const closeAll = (s) => { for (const t of R.awaitingReaction(s)) R.pass(s, t); return R.closeReaction(s); };
 
 test('deck composition', () => {
-  assert.equal(R.DECK_SIZE, 68);
-  assert.equal(ofKind(R.SWAP).length, 3);
-  assert.equal(ofKind(R.BOTTOM).length, 4);
-  assert.equal(ofKind(R.ALTER).length, 3);
-  assert.equal(ofKind(R.TATTACK).length, 3);
-  assert.equal(ofKind(R.BOOM).length, 4);
-  assert.equal(ofKind(R.DEFUSE).length, 6);
+  // 第一副 68 张（id 0..67）；6 人及以上再加第二副 67 张（id 68..134）
+  assert.equal(R.BASE_SIZE, 68);
+  assert.equal(R.DECK_SIZE, 135);
+  const base = (k) => ofKind(k).filter((id) => id < R.BASE_SIZE).length;
+  assert.equal(base(R.SWAP), 3);
+  assert.equal(base(R.BOTTOM), 4);
+  assert.equal(base(R.ALTER), 3);
+  assert.equal(base(R.TATTACK), 3);
+  assert.equal(base(R.BOOM), 4);
+  assert.equal(base(R.DEFUSE), 6);
+  assert.equal(ofKind(R.BOOM).length, 8);
+  assert.equal(ofKind(R.DEFUSE).length, 11);
 });
 
 test('抽底: draws the bottom card and ends the turn; a kitten at the bottom explodes / gets defused', () => {
@@ -70,11 +75,30 @@ test('setup for 2..5 players', () => {
       assert.equal(defInDeck, Math.min(2, 6 - n));
       // 没放回的炸毛猫 / 逗猫棒收进盒子（不参与这局），弃牌堆一开始是空的
       assert.equal(s.discard.length, 0);
-      assert.equal(s.removed.length, (4 - (n - 1)) + (6 - n - Math.min(2, 6 - n)) + 3); // + 3 张交换（没开交换牌）
+      assert.equal(s.removed.length, (4 - (n - 1)) + (6 - n - Math.min(2, 6 - n)) + 3 + (R.DECK_SIZE - R.BASE_SIZE)); // + 3 张交换（没开交换牌）+ 整个第二副
+      assert.ok(s.deck.concat(...s.hands).every((id) => id < R.BASE_SIZE), '5 人及以下只用第一副');
     }
   }
   const all = R.createGame(2, 3, { extraDefuse: 'all' });
   assert.equal(all.deck.filter((id) => R.KIND_OF[id] === R.DEFUSE).length, 4);
+});
+
+test('setup for 6..9 players (two decks)', () => {
+  for (let n = 6; n <= 9; n++) {
+    for (let seed = 1; seed <= 20; seed++) {
+      const s = R.createGame(n, seed);
+      assert.equal(total(s), R.DECK_SIZE);
+      assert.equal(R.kittensInDeck(s), n - 1);
+      assert.equal(s.hands.length, n);
+      for (const h of s.hands) {
+        assert.equal(h.length, 5);
+        assert.equal(R.countKind(h, R.DEFUSE), 1);
+        assert.equal(R.countKind(h, R.BOOM), 0);
+      }
+      assert.ok(s.deck.length > 60, 'deck big enough: ' + s.deck.length);
+    }
+  }
+  assert.throws(() => R.createGame(10, 1));
 });
 
 test('classify', () => {
@@ -310,8 +334,8 @@ test('illegal moves throw', () => {
 });
 
 test('random full games conserve cards and end with one winner', () => {
-  for (let n = 2; n <= 5; n++) {
-    for (let seed = 1; seed <= 300; seed++) {
+  for (let n = 2; n <= 9; n++) {
+    for (let seed = 1; seed <= (n <= 5 ? 300 : 80); seed++) {
       const s = R.createGame(n, seed * 31 + n);
       let steps = 0;
       while (s.phase !== 'over') {

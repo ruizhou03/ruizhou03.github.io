@@ -80,8 +80,12 @@
     if (!d || d.v !== VERSION || !d.state || d.state.phase === 'over') return null;
     const s = d.state;
     const total = s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0) + (s.defuse ? 1 : 0);
-    // 2026-11-12 加「抽底」前存的局是 64 张（少那 4 张抽底）：照样接着打，那一局里就没有抽底
-    if ((total !== R.DECK_SIZE && total !== R.DECK_SIZE - R.COUNTS.bottom) || !Array.isArray(d.tiers) || d.tiers.length !== s.n) return null;
+    // 旧存档：加「抽底」前是 64 张、加第二副（6–9 人）前是 68 张。没出现过的牌全收进盒子（removed），照样接着打
+    if ((total !== R.DECK_SIZE && total !== R.BASE_SIZE && total !== R.BASE_SIZE - R.COUNTS.bottom) || !Array.isArray(d.tiers) || d.tiers.length !== s.n) return null;
+    if (total !== R.DECK_SIZE) {
+      const seen = new Set(s.deck.concat(s.discard, s.removed, ...s.hands, s.defuse ? [s.defuse.card] : []));
+      for (let id = 0; id < R.DECK_SIZE; id++) if (!seen.has(id)) s.removed.push(id);
+    }
     return d;
   }
 
@@ -318,7 +322,7 @@
     els.deckCount.textContent = d.deckSize;
     if (lastDeck >= 0 && lastDeck !== d.deckSize) fx.pop(els.deckCount, { scale: 1.25, dur: 260 });
     lastDeck = d.deckSize;
-    els.kit.innerHTML = d.kittens ? '<span class="sep">/</span>' + ART.icon('boom') + '<span>' + d.kittens + '</span>' : '';
+    els.kit.innerHTML = (d.kittens || d.deckSize) ? '<span class="sep">/</span>' + ART.icon('boom') + '<span>' + d.kittens + '</span>' : '';
     els.kit.title = '牌堆里还有 ' + d.kittens + ' 只炸毛猫';
     if (lastKit >= 0 && lastKit !== d.kittens && d.kittens) { fx.pop(els.kit, { scale: 1.5, dur: 420 }); }
     lastKit = d.kittens;
@@ -1586,35 +1590,20 @@
       if (o) o.remove();
     }
   }
-  async function calmAvatar(seat, t) {
-    const av = avEl(seat), box = seatEl(seat);
+  // 用了逗猫棒：头像里的炸毛猫冒小心心、消气缩回去，头像变回原样（逗猫棒在桌心那幅画里挥，头像这儿不再另外冒一根）
+  async function calmAvatar(seat, t, delay) {
+    const av = avEl(seat);
     if (!av) return;
     if (fx.reduce()) { bombAvatar(seat, false); return; }
-    const w = document.createElement('span');
-    w.className = 'zm-av-wand';
-    w.innerHTML = ART.wand();
-    av.appendChild(w);
-    // 从左下伸进来，绕把手左右挥三下（羽毛在炸毛猫头顶上荡），越挥越慢
-    await w.animate([
-      { transform: 'rotate(-55deg) scale(.5)', opacity: 0 },
-      { transform: 'rotate(-8deg) scale(1)', opacity: 1, offset: 0.14 },
-      { transform: 'rotate(14deg)', offset: 0.28 },
-      { transform: 'rotate(-12deg)', offset: 0.44 },
-      { transform: 'rotate(12deg)', offset: 0.6 },
-      { transform: 'rotate(-8deg)', offset: 0.76 },
-      { transform: 'rotate(6deg)', offset: 0.9 },
-      { transform: 'rotate(0deg)', opacity: 1 },
-    ], { duration: ms(1800), easing: 'ease-in-out', fill: 'forwards' }).finished.catch(() => {});
-    if (t !== token) { w.remove(); return; }
+    await wait(delay || 0);
+    if (t !== token) return;
     clearInterval(av._spark);
     const r = av.getBoundingClientRect();
     ['heart', 'heart', 'heart'].forEach((sh, i) => fx.float(r.left + r.width * (0.2 + i * 0.3), r.top, sh, { dy: -34, dx: (i - 1) * 6, size: 12 + i * 2, color: PINKS[i % 3], delay: i * 90, dur: 800 }));
     const o = av.querySelector('.zm-av-bomb');
     if (o) await o.animate([{ transform: 'none', opacity: 1 }, { transform: 'scale(1.12)', opacity: 1, offset: 0.3 }, { transform: 'scale(.3) rotate(20deg)', opacity: 0 }], { duration: ms(380), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
     bombAvatar(seat, false);
-    if (box && av) av.animate([{ transform: 'scale(.85)' }, { transform: 'scale(1.08)', offset: 0.6 }, { transform: 'none' }], { duration: 320, easing: 'ease-out' });
-    await w.animate([{ transform: 'rotate(0deg)', opacity: 1 }, { transform: 'rotate(-55deg) scale(.5)', opacity: 0 }], { duration: ms(300), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
-    w.remove();
+    av.animate([{ transform: 'scale(.85)' }, { transform: 'scale(1.08)', offset: 0.6 }, { transform: 'none' }], { duration: 320, easing: 'ease-out' });
   }
   function clearBombAvatars() {
     document.querySelectorAll('.zm-av').forEach((av) => { clearInterval(av._spark); });
@@ -1645,51 +1634,71 @@
     await wait(ms(next && next.t === 'defuse' ? 700 : 900));
   }
 
-  /* 用逗猫棒拆掉（2026-11-12 用户改）：逗猫棒从他手里 / 头像飞到桌子正中，变成一幅和主页封面一样的画——
-   * 炸毛猫 + 一根长逗猫棒，逗猫棒挥几下、炸毛猫一抖一抖慢慢消气，冒小心心和音符；头像那边同时照旧用逗猫棒安抚。
-   * 画收起后逗猫棒落进弃牌堆；炸毛猫留在他头像那儿，等着被塞回牌堆 */
-  async function animDefuse(e, t) {
-    const u = U();
-    const box = els.center.getBoundingClientRect(), c = fx.center(box);
+  // 一张停在 (x, y) 的牌（不在飞）：拿来接着做动画
+  function restCard(html, x, y, w) {
+    const el = document.createElement('div');
+    el.className = 'zm-flyer';
+    el.style.width = w + 'px'; el.style.height = (w * 1.4) + 'px'; el.style.borderRadius = (w * 0.09).toFixed(1) + 'px';
+    el.style.transform = 'translate(' + (x - w / 2).toFixed(1) + 'px,' + (y - w * 0.7).toFixed(1) + 'px)';
+    el.style.boxShadow = '0 6px 16px rgba(29,27,24,.22)';
+    el.innerHTML = html;
+    els.fly.appendChild(el);
+    return el;
+  }
+  function takeDefuseCard(e) {
     const src = e.seat === 0 ? handRectOf(e.card) : avPoint(e.seat);
     if (e.seat === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.seat] -= 1; renderSeat(e.seat); }
-    const W = u * 1.2;
-    await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: e.seat === 0 ? null : 'up', flipAt: 0.15, from: src, to: c, w: W, s0: e.seat === 0 ? u / W : 0.35, s1: 0.9, r0: 0, r1: 8, dur: ms(460), lift: 60, fadeOut: true, land: false });
+    return src;
+  }
+  async function defuseToDiscard(e, t, from, w) {
     if (t !== token) return;
-    // 桌子正中那幅「封面」
-    const scene = document.createElement('div');
-    scene.className = 'zm-defuse-scene';
-    const SW = Math.min(innerWidth * 0.62, u * 3.4);
-    scene.style.cssText = 'left:' + (c.x - SW / 2).toFixed(1) + 'px;top:' + (c.y - SW * 0.5).toFixed(1) + 'px;width:' + SW.toFixed(1) + 'px';
-    scene.innerHTML = ART.hero();
-    els.fly.appendChild(scene);
-    snd('defuse');
-    calmAvatar(e.seat, t);   // 头像那边同时安抚
-    const boom = scene.querySelector('.hero-boom'), wnd = scene.querySelector('.hero-wand');
-    const dur = ms(1700);
-    if (!fx.reduce()) {
-      scene.animate([{ transform: 'scale(.3)', opacity: 0 }, { transform: 'scale(1.08)', opacity: 1, offset: 0.6 }, { transform: 'none', opacity: 1 }], { duration: ms(320), easing: 'cubic-bezier(.3,.8,.4,1.2)' });
-      if (wnd) wnd.animate([{ rotate: '-24deg' }, { rotate: '14deg', offset: 0.18 }, { rotate: '-14deg', offset: 0.36 }, { rotate: '12deg', offset: 0.54 }, { rotate: '-8deg', offset: 0.72 }, { rotate: '5deg', offset: 0.88 }, { rotate: '0deg' }], { duration: dur, easing: 'ease-in-out' });
-      if (boom) boom.animate([
-        { transform: 'scale(1.12) rotate(-4deg)' }, { transform: 'scale(1.06) rotate(4deg)', offset: 0.15 }, { transform: 'scale(1.08) rotate(-3deg)', offset: 0.3 },
-        { transform: 'scale(1.0) rotate(2deg)', offset: 0.5 }, { transform: 'scale(.94) rotate(0deg)', offset: 0.75 }, { transform: 'scale(.92)' },
-      ], { duration: dur, easing: 'ease-in-out', fill: 'forwards' });
-    }
-    fx.ring(c.x, c.y, { color: '#4f8a5f', size: SW * 1.2, width: 5, dur: 900, delay: ms(500) });
-    ['heart', 'note', 'heart', 'note', 'heart'].forEach((sh, i) => fx.float(c.x + (i - 2) * SW * 0.13, c.y - SW * 0.18, sh, { dy: -u * 1.1, dx: (i - 2) * 8, size: 16 + (i % 2) * 6, color: sh === 'heart' ? PINKS[i % 3] : '#4f8a5f', delay: ms(300 + i * 160), dur: ms(1100) }));
-    await wait(dur);
-    if (t !== token) { scene.remove(); return; }
-    // 画收起来；逗猫棒那张落进弃牌堆
-    if (!fx.reduce()) await scene.animate([{ transform: 'none', opacity: 1 }, { transform: 'scale(.6)', opacity: 0 }], { duration: ms(260), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
-    scene.remove();
-    if (t !== token) return;
-    await fx.fly({ html: cardHtml(e.card), from: { x: c.x, y: c.y }, to: discardRect(), w: PU(), s0: 0.6, s1: 1, r0: 0, r1: pileRot(e.card), dur: ms(340), lift: 30, fadeIn: true });
+    await fx.fly({ html: cardHtml(e.card), from, to: discardRect(), w: PU(), s0: w / PU(), s1: 1, r0: 0, r1: pileRot(e.card), dur: ms(360), lift: 30 });
     if (t !== token || !ov) return;
     ov.discard.push(e.card);
     renderPiles();
     snd('thud');
   }
-
+  /* 用逗猫棒拆掉（2026-11-12 用户挑的方案甲「牌化成画」）：逗猫棒那张牌落在桌心不消失，就地「展开」成封面那幅画（牌放大淡出、画从牌那么大长出来，同一个位置），
+   * 只有画里这一根逗猫棒在挥（头像那儿不再另外冒一根），画里的炸毛猫消气的同时头像那只也消气；最后画收回成那张牌，牌落进弃牌堆 */
+  async function animDefuse(e, t) {
+    const u = U(), c = fx.center(els.center.getBoundingClientRect());
+    const src = takeDefuseCard(e);
+    const W = u * 1.2;
+    await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: e.seat === 0 ? null : 'up', flipAt: 0.15, from: src, to: c, w: W, s0: e.seat === 0 ? u / W : 0.35, s1: 1, r0: 0, r1: 0, dur: ms(440), lift: 60 });
+    if (t !== token) return;
+    const card = restCard(cardHtml(e.card), c.x, c.y, W);
+    const SW = Math.min(innerWidth * 0.62, u * 3.4), SH = SW * 0.63;
+    const scene = document.createElement('div');
+    scene.className = 'zm-defuse-scene';
+    scene.style.cssText = 'left:' + (c.x - SW / 2).toFixed(1) + 'px;top:' + (c.y - SH / 2).toFixed(1) + 'px;width:' + SW.toFixed(1) + 'px;opacity:0';
+    scene.innerHTML = ART.hero();
+    els.fly.appendChild(scene);
+    snd('defuse');
+    const k = W / SW, grow = ms(380);
+    const base = card.style.transform;
+    card.animate([{ transform: base + ' scale(1)', opacity: 1 }, { transform: base + ' scale(' + (SW / W * 0.7).toFixed(3) + ')', opacity: 0 }], { duration: grow, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' });
+    scene.animate([{ transform: 'scale(' + k.toFixed(3) + ')', opacity: 0 }, { transform: 'scale(1.05)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: grow, easing: 'cubic-bezier(.3,.8,.4,1.1)', fill: 'forwards' });
+    const boom = scene.querySelector('.hero-boom'), wnd = scene.querySelector('.hero-wand');
+    const dur = ms(1500);
+    calmAvatar(e.seat, t, grow + dur * 0.62);
+    if (!fx.reduce()) {
+      if (wnd) wnd.animate([{ rotate: '-24deg' }, { rotate: '14deg', offset: 0.18 }, { rotate: '-14deg', offset: 0.36 }, { rotate: '12deg', offset: 0.54 }, { rotate: '-8deg', offset: 0.72 }, { rotate: '5deg', offset: 0.88 }, { rotate: '0deg' }], { duration: dur, delay: grow, easing: 'ease-in-out' });
+      if (boom) boom.animate([
+        { transform: 'scale(1.12) rotate(-4deg)' }, { transform: 'scale(1.06) rotate(4deg)', offset: 0.15 }, { transform: 'scale(1.08) rotate(-3deg)', offset: 0.3 },
+        { transform: 'scale(1.0) rotate(2deg)', offset: 0.5 }, { transform: 'scale(.94) rotate(0deg)', offset: 0.75 }, { transform: 'scale(.92)' },
+      ], { duration: dur, delay: grow, easing: 'ease-in-out', fill: 'forwards' });
+    }
+    fx.ring(c.x, c.y, { color: '#4f8a5f', size: SW * 1.2, width: 5, dur: 900, delay: grow + ms(450) });
+    ['heart', 'note', 'heart', 'note', 'heart'].forEach((sh, i) => fx.float(c.x + (i - 2) * SW * 0.13, c.y - SH * 0.3, sh, { dy: -u * 1.1, dx: (i - 2) * 8, size: 16 + (i % 2) * 6, color: sh === 'heart' ? PINKS[i % 3] : '#4f8a5f', delay: grow + ms(250 + i * 160), dur: ms(1100) }));
+    await wait(grow + dur);
+    if (t !== token) { scene.remove(); card.remove(); return; }
+    // 画收回成那张牌
+    const back = ms(320);
+    scene.animate([{ transform: 'none', opacity: 1 }, { transform: 'scale(' + k.toFixed(3) + ')', opacity: 0 }], { duration: back, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' });
+    await card.animate([{ transform: base + ' scale(' + (SW / W * 0.7).toFixed(3) + ')', opacity: 0 }, { transform: base + ' scale(1)', opacity: 1 }], { duration: back, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' }).finished.catch(() => {});
+    scene.remove(); card.remove();
+    await defuseToDiscard(e, t, c, W);
+  }
   /* 塞回去：背面的炸毛猫飞回牌堆，牌堆上半截掀开一道口、它滑进去、合上（不论塞在哪动画都一样，不泄露位置） */
   async function animInsert(e, t) {
     const node = game.boomNode;
@@ -3026,7 +3035,7 @@
     const used = new Set(o.hand.concat(o.discard, o.removed, o.known.map((x) => x.id)));
     o.handKnown.forEach((h, i) => { if (i !== 0) h.forEach((id) => used.add(id)); });
     if (o.defuse && o.defuse.card != null) used.add(o.defuse.card);
-    const pool = shuffled(ALL_IDS.filter((id) => !used.has(id)));
+    const pool = shuffled(ALL_IDS.filter((id) => !used.has(id) && (id < R.BASE_SIZE || R.usesSecondDeck(n))));
     const take = (pred) => { const i = pool.findIndex(pred); return i >= 0 ? pool.splice(i, 1)[0] : null; };
     const hands = [];
     for (let i = 0; i < n; i++) {
@@ -3956,6 +3965,8 @@
     const plays = {
       boom: () => { top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
       boomme: () => { top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
+      defuse: () => { if (R.countKind(s.hands[bot], R.DEFUSE) === 0) give(bot, R.DEFUSE); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
+      defuseme: () => { if (R.countKind(s.hands[0], R.DEFUSE) === 0) give(0, R.DEFUSE); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       out: () => { top(R.BOOM); s.turn = bot; s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); apply(bot, { type: 'draw' }); },
       draw: () => { s.turn = 0; apply(0, { type: 'draw' }); },
       attack: () => { give(bot, R.ATTACK); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
