@@ -916,8 +916,58 @@
     if (t !== token) return;
     const tg = targetOf(p);
     if (tg >= 0) game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK || p.type === R.TATTACK ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
+    await mimic(p.cards, t);   // 万能猫顶了谁：演完、停一下再往下走（只有组合里有万能猫时才多这一下）
+    if (t !== token) return;
     const named = els.stage.querySelector('.zm-stage-named');
     if (named && !fx.reduce()) named.animate([{ transform: 'scale(.2) rotate(-20deg)', opacity: 0 }, { transform: 'scale(1.15) rotate(6deg)', opacity: 1, offset: 0.6 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'ease-out' });
+  }
+
+  /* 万能猫上桌：它顶的是哪只猫（对子 / 三张 = 同组里那只真猫；五种各一张 = 缺的那几种按顺序分）。两张都是万能猫就不顶谁 */
+  function mimicKinds(cards) {
+    const K = R.KIND_OF, kinds = cards.map((id) => K[id]);
+    if (!kinds.some((k) => k === R.WILD) || !kinds.every(R.catLike)) return {};
+    const real = kinds.filter((k) => k !== R.WILD), out = {};
+    if (cards.length === 5) {
+      const miss = R.CATS.filter((c) => real.indexOf(c) < 0);
+      cards.forEach((id) => { if (K[id] === R.WILD) out[id] = miss.shift(); });
+    } else if (real.length) cards.forEach((id) => { if (K[id] === R.WILD) out[id] = real[0]; });
+    return out;
+  }
+  /* 预览中（2026-11-13，用户在挑）：甲 = 变身——万能猫的画一道流光扫过、变成它顶的那只猫，名字条照旧五彩、名字换成那只猫；
+   * 乙 = 挂牌——牌不变，右上角挂一枚圆章，章里是它顶的那只猫的脑袋。只在桌上这样，进弃牌堆就还是万能猫 */
+  async function mimic(cards, t) {
+    const mode = window.__zmMimic;
+    if (!mode) return;
+    const map = mimicKinds(cards);
+    const ids = Object.keys(map).map(Number);
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i], k = map[id], el = stageCard(id);
+      if (!k || !el) continue;
+      await wait(ms(i ? 140 : 260));
+      if (t !== token) return;
+      const r = el.getBoundingClientRect();
+      if (mode === 'a') {
+        const art = el.querySelector('.zm-art');
+        const nw = document.createElement('div');
+        nw.className = 'zm-art zm-mimic-art';
+        nw.style.setProperty('--bg', ART.TONE[k].bg);
+        nw.innerHTML = ART.face(k) + '<i class="zm-mimic-sweep"></i>';
+        art.after(nw);
+        el.classList.add('is-mimic');
+        if (!fx.reduce()) nw.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: ms(520), easing: 'cubic-bezier(.5,0,.3,1)', fill: 'both' });
+        setTimeout(() => { if (t === token) el.querySelector('.zm-nm').textContent = R.NAMES[k]; }, ms(300));
+      } else {
+        const tag = document.createElement('i');
+        tag.className = 'zm-mimic-tag';
+        tag.innerHTML = ART.face(k).replace('viewBox="0 0 100 100"', 'viewBox="20 12 60 60"');
+        tag.style.setProperty('--tag', ART.TONE[k].band);
+        el.appendChild(tag);
+        if (!fx.reduce()) tag.animate([{ transform: 'scale(0) rotate(-30deg)' }, { transform: 'scale(1.25) rotate(8deg)', offset: 0.6 }, { transform: 'scale(1) rotate(0)' }], { duration: ms(420), easing: 'ease-out' });
+      }
+      snd('ding');
+      fx.burst(r.left + r.width / 2, r.top + r.height * 0.4, { n: 10, shapes: ['star', 'dot'], colors: ['#e0893e', '#d4607e', '#8a63a8', '#2f8a83', '#c9a24a'], radius: 46, size: [4, 10], life: 700 });
+    }
+    if (ids.length) await wait(ms(mode === 'a' ? 900 : 700));
   }
 
   /* 不行：出牌人喊一嗓子；牌从高处拍下来压在原来那张上，舞台一震、紫色冲击波；
@@ -1525,7 +1575,7 @@
     const { el, x, y, u, h } = c;
     // ② 有！金边、蹦一下、冒星星，停一会儿
     el.classList.add('is-hit');
-    el.querySelector('.zm-callout-q').textContent = '有';
+    el.querySelector('.zm-callout-q').innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5l3.6 3.6 7.4-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';   // 有：金底白勾（2026-11-13 用户：别写「有 / 没有」，太土）
     snd('ding');
     fx.burst(x + u / 2, y + h / 2, { n: 16, shapes: ['star'], colors: GOLDS, radius: 70, size: [6, 18], life: 900 });
     await fx.animate(el, [{ transform: fx.T(x, y, 1, 0) }, { transform: fx.T(x, y - 8, 1.16, 0), offset: 0.4 }, { transform: fx.T(x, y, 1, 0) }], { duration: ms(420), easing: 'ease-out' }).finished.catch(() => {});
@@ -1549,7 +1599,7 @@
     const { el, x, y, u, h } = c;
     // ② 没有：摇头、打红叉、冒烟
     el.classList.add('is-miss');
-    el.querySelector('.zm-callout-q').textContent = '没有';
+    el.querySelector('.zm-callout-q').innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>';   // 没有：朱红底白叉
     el.insertAdjacentHTML('beforeend', '<div class="zm-cross" style="animation-delay:.25s">' + ART.PROPS.cross + '</div>');
     snd('miss');
     await fx.animate(el, [
@@ -4507,6 +4557,9 @@
       stealme: () => { give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: 0 }); },
       stealbot: () => { const o = 2 % s.n; give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: o === bot ? 0 : o }); },
       triple: () => { give(bot, 'tabby'); give(bot, 'tabby'); give(bot, 'tabby'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: 0, named: R.DEFUSE }); },
+      // 万能猫上桌：狸花 + 万能猫凑对偷机器猫一张；三种猫 + 两张万能猫凑五种各一张
+      wildpair: () => { give(0, 'tabby'); give(0, R.WILD); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], 'tabby'), R.findKind(s.hands[0], R.WILD)], target: bot }); },
+      wildfive: () => { ['orange', 'calico', 'cow', R.WILD, R.WILD].forEach((k) => give(0, k)); s.turn = 0; const w = s.hands[0].filter((id) => R.KIND_OF[id] === R.WILD).slice(0, 2); apply(0, { type: 'play', cards: ['orange', 'calico', 'cow'].map((k) => R.findKind(s.hands[0], k)).concat(w) }); },
       // 我点名要机器猫的「跳过」（他有）/ 机器猫点名要我的「交换」（没开交换牌，一定落空）
       triplehit: () => { give(0, 'tabby'); give(0, 'tabby'); give(0, 'tabby'); give(bot, R.SKIP); s.turn = 0; apply(0, { type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: bot, named: R.SKIP }); },
       triplemiss: () => { give(bot, 'tabby'); give(bot, 'tabby'); give(bot, 'tabby'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: 0, named: R.SWAP }); },
