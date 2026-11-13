@@ -213,6 +213,9 @@
   function seatOrder() { const out = []; for (let s = game.state.n - 1; s >= 1; s--) out.push(s); return out; }
   function seatEl(seat) { return seat === 0 ? els.me : els.opps.querySelector('[data-seat="' + seat + '"]'); }
   function avEl(seat) { const s = seatEl(seat); return s && s.querySelector('.zm-av'); }
+  /* 游戏框（牌桌的双线裱框，内线缩进 6px）左右能放东西的范围：飞出来的扇面 / 点名牌都别越过内线（2026-11-13 用户：最左 / 最右那家手牌多时扇面出框）。
+   * 以前按整个窗口算，手机上贴着边、电脑上桌子居中时更是直接跑到框外 */
+  function frameX(pad) { const r = (els.table || els.app).getBoundingClientRect(); const p = 6 + (pad == null ? 8 : pad); return { l: r.left + p, r: r.right - p }; }
   function avPoint(seat) { const a = avEl(seat); return a ? fx.center(a.getBoundingClientRect()) : { x: innerWidth / 2, y: 80 }; }
 
   function buildSeats() {
@@ -251,12 +254,25 @@
    * 只有对手 ≥ 2 家才有（两个人玩方向无所谓）。箭头落在两人名字之间的空里（弧形排布时头像小，箭头也跟着小） */
   const DIR_SVG = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function dirNow() { return game && game.state && game.state.dir === -1 ? -1 : 1; }
+  /* 箭头的流动感（预览中，2026-11-13 用户：要有灯带一样的流动，但别抢注意力）：window.__zmDirFx = 'a' | 'b' | 'c'，不设 = 现在线上（静止）
+   *   a 甲 = 流光接力：一道暖光顺着出牌方向一个箭头接一个亮过去（亮一下、微微放大），循环；
+   *   b 乙 = 灯带扫光：每个箭头里有一道高光顺着箭头方向扫过，一个接一个，像灯带里的光在流；
+   *   c 丙 = 三连跑马灯：每个箭头是三道细箭（›››），三道依次点亮往前跑，箭头之间也接力。
+   * 三版都有：指向当前出牌的人的那个箭头变朱红（和他头像的红圈呼应），轮到谁红箭头就跟着挪过去 */
+  const DIR3_SVG = '<svg viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5l5 5-5 5"/><path d="M8 5l5 5-5 5"/><path d="M13.5 5l5 5-5 5"/></g></svg>';
   function renderDir() {
-    if (!els.dir) { els.dir = document.createElement('div'); els.dir.className = 'zm-dir'; els.dir.setAttribute('aria-hidden', 'true'); els.table.appendChild(els.dir); }
+    if (!els.dir) { els.dir = document.createElement('div'); els.dir.setAttribute('aria-hidden', 'true'); els.table.appendChild(els.dir); }
+    const v = window.__zmDirFx || '';
+    els.dir.className = 'zm-dir' + (v ? ' fx-' + v : '');
     const n = game && game.state ? game.state.n : 0;
     if (n < 3 || !els.opps.children.length) { els.dir.innerHTML = ''; return; }
-    if (els.dir.children.length !== n - 2) els.dir.innerHTML = Array.from({ length: n - 2 }, () => '<i>' + DIR_SVG + '</i>').join('');
+    if (els.dir.children.length !== n - 2 || els.dir.dataset.v !== v) {
+      const inner = v === 'b' ? '<b></b>' : v === 'c' ? DIR3_SVG : DIR_SVG;
+      els.dir.innerHTML = Array.from({ length: n - 2 }, () => '<i>' + inner + '</i>').join('');
+      els.dir.dataset.v = v;
+    }
     const tb = els.table.getBoundingClientRect(), d = dirNow();
+    els.dir.style.setProperty('--cyc', Math.max(2.6, (n - 2) * 0.18 + 1.8).toFixed(2) + 's');
     Array.from(els.dir.children).forEach((el, k) => {
       const a = avEl(k + 1), b = avEl(k + 2);
       if (!a || !b) return;
@@ -264,10 +280,21 @@
       const ax = A.left + A.width / 2, ay = A.top + A.height / 2, bx = B.left + B.width / 2, by = B.top + B.height / 2;
       const sz = Math.max(12, Math.min(20, Math.round(A.width * 0.42)));
       const base = Math.atan2(by - ay, bx - ax);   // 座位号往上走 = 从 k+1 指向 k+2；反过来（d = -1）就掉头
+      const j = d === -1 ? n - 3 - k : k;          // 流光的先后：顺着出牌方向排
       el.style.cssText = 'left:' + ((ax + bx) / 2 - tb.left).toFixed(1) + 'px;top:' + ((ay + by) / 2 + A.height / 2 + sz * 1.2 - tb.top).toFixed(1) + 'px;width:' + sz + 'px;height:' + sz + 'px;' +
-        'transform:translate(-50%,-50%) rotate(' + (base + (d === -1 ? Math.PI : 0)).toFixed(4) + 'rad)';
+        'transform:translate(-50%,-50%) rotate(' + (base + (d === -1 ? Math.PI : 0)).toFixed(4) + 'rad);--j:' + j;
       el.dataset.base = base;
     });
+    dirHot();
+  }
+  /* 指向当前出牌的人的那个箭头标红：顺时针（d = 1）是从 t-1 指向 t 的那个（第 t-2 个），反过来是从 t+1 指向 t 的那个（第 t-1 个） */
+  function dirHot() {
+    if (!els.dir) return;
+    const list = els.dir.children, st = game && game.state;
+    if (!list.length || !st) return;
+    const t = st.phase === 'over' ? -1 : D().turn, d = dirNow();
+    const k = t < 0 ? -1 : d === -1 ? t - 1 : t - 2;
+    Array.from(list).forEach((el, i) => el.classList.toggle('is-hot', !!window.__zmDirFx && i === k));
   }
   /* 打出转向：箭头从出牌人那边起，一个接一个转半圈掉头 */
   async function animReverse(e, t) {
@@ -296,6 +323,7 @@
     const turn = !out && s.phase !== 'over' && d.turn === seat;
     box.classList.toggle('is-out', out);
     box.classList.toggle('is-turn', turn);
+    if (turn) dirHot();
     // 结构只建一次：头像 / 名字不重画（动画要拿稳定的元素），只改数字和标记
     if (!box.querySelector('.zm-av')) {
       const tier = seat !== 0 && !game.tutorial ? '<span class="zm-tier"' + (game.tiers[seat] || (game.tags && game.tags[seat]) ? '' : ' hidden') + '></span>' : '';
@@ -1340,10 +1368,13 @@
       fan = document.createElement('div');
       fan.className = 'zm-steal-fan';
       // 扇面中心对着他的头像，但最左 / 最右那家的扇面别伸出屏幕：整把往里挪
-      const half = ((count - 1) / 2) * w * Math.min(0.5, 2.6 / Math.max(1, count)) + w * 0.75;
-      const cx = Math.min(Math.max(ar.left + ar.width / 2, half + 6), innerWidth - half - 6);
+      // 最外面那张：中心偏出 (count-1)/2 个间距，再按它歪的角度算出旋转后的半宽（牌高 1.4 倍宽），外加红光描边
+      const step = w * Math.min(0.5, 2.6 / Math.max(1, count)), th = ((count - 1) / 2) * Math.min(8, 30 / Math.max(1, count)) * Math.PI / 180;
+      const half = ((count - 1) / 2) * step + (w / 2) * Math.cos(th) + (w * 0.7) * Math.sin(th) + 6;
+      const fr = frameX(), cx = Math.min(Math.max(ar.left + ar.width / 2, fr.l + half), fr.r - half);
       fan.style.left = cx + 'px';
-      fan.style.top = (ar.top + ar.height + 30) + 'px';
+      const se = seatEl(fromSeat), sb = se ? se.getBoundingClientRect().bottom : ar.top + ar.height + 30;
+      fan.style.top = (Math.max(sb, ar.top + ar.height) + 16) + 'px';   // 落在整个座位（名字、档位签）下方，不压字
       for (let i = 0; i < count; i++) {
         const off = i - (count - 1) / 2;
         const c = document.createElement('div');
@@ -1543,7 +1574,7 @@
     const u = Math.min(104, Math.max(U(), 76)), h = u * 1.4;   // 要看得清：至少 76px 宽
     const below = ar.top + ar.height / 2 < innerHeight / 2;
     const se = seatEl(e.from), sb = se ? se.getBoundingClientRect().bottom : ar.bottom + 30;
-    const x = Math.min(Math.max(ar.left + ar.width / 2 - u / 2, 8), innerWidth - u - 28);   // 右边多留 20px：右上角的对话泡探出牌外
+    const fr = frameX(), x = Math.min(Math.max(ar.left + ar.width / 2 - u / 2, fr.l), fr.r - u - 20);   // 右边多留 20px：右上角的对话泡探出牌外
     const y = below ? Math.max(sb, ar.bottom) + 24 : ar.top - h - 26;   // 落在整个座位（名字、档位签）下方，气泡不压名字
     const el = document.createElement('div');
     el.className = 'zm-flyer zm-callout';
@@ -2299,12 +2330,12 @@
     if (skipped()) return;
     // 先把炸毛猫一只只从牌堆里抽出来、翻开、摆在牌堆上方一排（谁也不拿，等发完牌再塞回去）
     const kf = kits.length > 4 ? 0.6 : 1;   // 人多（炸毛猫多）时一只只摆出来 / 塞回去都快一点，整段发牌别拖太久
-    const u0 = U(), pu0 = PU(), kw = Math.min(pu0 * 0.82, (innerWidth - 24) / (kits.length * 1.12));   // 人多（炸毛猫多）时排得下
+    const u0 = U(), pu0 = PU(), kw = Math.min(pu0 * 0.82, (frameX().r - frameX().l) / (kits.length * 1.12));   // 人多（炸毛猫多）时排得下
     const pr = els.deck.parentElement.getBoundingClientRect(), dtop = deckTopRect();
     const aside = [];
     for (let i = 0; i < kits.length; i++) {
       if (skipped()) { aside.forEach((x) => x && x.remove()); return; }
-      const half = kits.length * kw * 0.56 + 4, cx0 = Math.min(Math.max(pr.left + pr.width / 2, half), innerWidth - half);
+      const half = kits.length * kw * 0.56 + 4, fr = frameX(), cx0 = Math.min(Math.max(pr.left + pr.width / 2, fr.l + half), fr.r - half);
       const spot = { x: cx0 + (i - (kits.length - 1) / 2) * kw * 1.12, y: dtop.top - pu0 * 0.78 };
       const from = deckTopRect();
       ov.deckSize -= 1; ov.kittens -= 1;
@@ -4554,6 +4585,9 @@
       steal: () => { give(0, 'cow'); give(0, 'cow'); s.turn = 0; apply(0, { type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: bot }); },
       stealme: () => { give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: 0 }); },
       stealbot: () => { const o = 2 % s.n; give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: o === bot ? 0 : o }); },
+      // 抽最左 / 最右那家（手牌一大把）：看扇面出不出框。stealL = 最右那家抽最左那家，stealR 反过来
+      stealL: () => { const a = s.n - 1, b = 1; ['orange', 'calico', 'tabby', 'siamese', 'skip', 'shuffle', 'future', 'attack', 'nope', 'favor'].forEach((k) => give(b, k)); give(a, 'cow'); give(a, 'cow'); s.turn = a; apply(a, { type: 'play', cards: s.hands[a].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: b }); },
+      stealR: () => { const a = 1, b = s.n - 1; ['orange', 'calico', 'tabby', 'siamese', 'skip', 'shuffle', 'future', 'attack', 'nope', 'favor'].forEach((k) => give(b, k)); give(a, 'cow'); give(a, 'cow'); s.turn = a; apply(a, { type: 'play', cards: s.hands[a].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: b }); },
       triple: () => { give(bot, 'tabby'); give(bot, 'tabby'); give(bot, 'tabby'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: 0, named: R.DEFUSE }); },
       // 万能猫上桌：狸花 + 万能猫凑对偷机器猫一张；三种猫 + 两张万能猫凑五种各一张
       wildpair: () => { give(0, 'tabby'); give(0, R.WILD); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], 'tabby'), R.findKind(s.hands[0], R.WILD)], target: bot }); },
