@@ -91,7 +91,7 @@ test('normal dodges a known kitten on top', () => {
   s.hands[me].push(skip);
   const d = A.decide(s, me, 'normal');
   assert.equal(d.type, 'play');
-  assert.ok([R.SKIP, R.ATTACK, R.TATTACK, R.ALTER, R.SHUFFLE].indexOf(R.KIND_OF[d.cards[0]]) >= 0);
+  assert.ok([R.SKIP, R.ATTACK, R.TATTACK, R.ALTER, R.SHUFFLE, R.BOTTOM].indexOf(R.KIND_OF[d.cards[0]]) >= 0);
   assert.ok(kitten >= 0);
 });
 

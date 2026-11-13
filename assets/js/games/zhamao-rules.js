@@ -139,7 +139,7 @@
       n, rules, rs: (seed >>> 0) || 1,
       deck: [], discard: [], removed: [], hands: [], alive: [], outOrder: [],
       turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
-      winner: -1, seq: 0, memo: newMemo(n),
+      winner: -1, seq: 0, memo: newMemo(n), ins: null,
     };
     const booms = [], defuses = [], rest = [], swaps = [], unused = [];
     const top = usesSecondDeck(n) ? DECK_SIZE : BASE_SIZE;   // 5 人及以下只用第一副（发出来和以前一模一样）
@@ -174,7 +174,7 @@
       give: s.give && Object.assign({}, s.give), pick: s.pick && Object.assign({}, s.pick), defuse: s.defuse && Object.assign({}, s.defuse),
       alter: s.alter && { by: s.alter.by, cards: s.alter.cards.slice() },
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
-      winner: s.winner, seq: s.seq,
+      winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
   }
@@ -333,6 +333,7 @@
       }
       case SHUFFLE:
         shuffleIn(s, s.deck);
+        s.ins = null;
         for (const m of s.memo) m.deck = [];
         ev.push({ t: 'shuffle', seat: me });
         break;
@@ -464,6 +465,7 @@
     const id = bottom ? s.deck.pop() : s.deck.shift();
     const B = bottom ? { bottom: true } : null;
     s.seq += 1;
+    if (s.ins) { if (bottom) s.ins.bot += 1; else s.ins.top += 1; }
     const ev = [];
     for (let k = 0; k < s.n; k++) { // 知道牌堆顶是哪张的人，也就知道它进了谁手里
       const d = s.memo[k].deck, i = d.indexOf(id);
@@ -477,6 +479,7 @@
       return ev;
     }
     ev.push(Object.assign({ t: 'boom', seat, card: id }, B));
+    s.ins = null;
     const def = findKind(s.hands[seat], DEFUSE);
     if (def != null) {
       s.hands[seat].splice(s.hands[seat].indexOf(def), 1);
@@ -518,6 +521,7 @@
     for (let k = 0; k < s.n; k++) if (k !== seat) s.memo[k].deck = []; // 别人不知道塞在哪，原先记的位置全乱了
     if (s.memo[seat].deck.indexOf(id) < 0) s.memo[seat].deck.push(id);
     s.defuse = null;
+    s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0 };
     s.seq += 1;
     const ev = [{ t: 'insert', seat, card: id, pos, size: s.deck.length, priv: [seat] }];
     endOneTurn(s, ev);
@@ -560,6 +564,7 @@
       defuse: s.defuse && (s.defuse.by === seat ? { by: seat, card: s.defuse.card } : { by: s.defuse.by }),
       alter: s.alter && (s.alter.by === seat ? { by: seat, cards: s.alter.cards.slice() } : { by: s.alter.by }),
       steal: s.steal && { by: s.steal.by, from: s.steal.from, count: s.steal.perm.length },
+      ins: s.ins ? Object.assign({}, s.ins) : null, // 公开：最近一次塞回炸毛猫的人、塞完后牌堆张数、之后从顶 / 底各摸走几张
       removed: s.removed.slice(), // 收进盒子的牌种是公开的（多余的炸毛猫 / 逗猫棒）
     };
   }
