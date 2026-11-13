@@ -835,3 +835,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-join .zm-join-row { width: 100%; }
 .zm-join .zm-join-row .zm-btn { padding-left: 22px; padding-right: 22px; }
 .zm-online-err { text-align: center; margin: 0; font-size: 13.5px; }
+/* 甩锅叠加动画预览：「+2」小牌、大红印 */
+.zm-stackcount.is-plus { background: #fff3e8; border-color: #d64a28; color: #d64a28; font-size: 22px; padding: 3px 10px 5px; }
+.zm-stackcount.is-seal { background: var(--zm-seal); color: var(--zm-seal-ink); border-color: var(--zm-seal); font-size: 40px; padding: 6px 16px 9px; box-shadow: 0 0 0 3px var(--zm-paper), 0 10px 22px rgba(120, 30, 20, 0.35); }
+.zm-stackcount.is-seal .x { font-size: 26px; }

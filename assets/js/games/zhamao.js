@@ -969,9 +969,15 @@
   async function animTurn(e, t) {
     const prevTurn = ov ? ov.turn : -1;
     if (e.attacked) {
-      await fxPot(prevTurn >= 0 ? prevTurn : R.nextAlive(game.state, e.seat), e.seat, t);
-      if (t !== token) return;
-      if (e.turnsLeft > 2) await countUp(e.seat, e.turnsLeft - 2, e.turnsLeft, t);
+      const from = prevTurn >= 0 ? prevTurn : R.nextAlive(game.state, e.seat);
+      if (ATKFX === 'a') await atkPots(from, e.seat, e.turnsLeft, t);
+      else if (ATKFX === 'b') await atkHot(from, e.seat, e.turnsLeft, t);
+      else if (ATKFX === 'c') await atkRelay(from, e.seat, e.turnsLeft, t);
+      else {
+        await fxPot(from, e.seat, t);
+        if (t !== token) return;
+        if (e.turnsLeft > 2) await countUp(e.seat, e.turnsLeft - 2, e.turnsLeft, t);
+      }
     }
     if (ov) { ov.turn = e.seat; ov.turnsLeft = e.turnsLeft; }
     // 被甩锅的人：轮到他的这几回合里一直挂着 ×N（剩最后一回合也挂着 ×1），轮到别人才摘
@@ -1014,7 +1020,123 @@
     await el.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: 'translate(-50%,' + (a.y < innerHeight / 2 ? '-90px' : '40px') + ') scale(.35)', opacity: 0 }], { duration: ms(260), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
     el.remove();
   }
-  async function fxPot(from, to, t) {
+  /* ───── 甩锅叠加动画·预览（2026-11-13 给用户挑；?atkfx=a / b / c，或 ?zmdemo=stack 的预览条）───── */
+  let ATKFX = (new URLSearchParams(location.search).get('atkfx') || '').toLowerCase();
+  const avR = (seat) => { const a = avEl(seat); return a ? a.getBoundingClientRect().width / 2 : 24; };
+  const badgePt = (seat) => { const a = avPoint(seat), r = avR(seat); return { x: a.x + r * 1.2, y: a.y + r * 0.7 }; };
+  // 一张写着「×N」的小牌子（印章红）
+  function tag(text, cls) {
+    const el = document.createElement('div');
+    el.className = 'zm-stackcount' + (cls ? ' ' + cls : '');
+    el.innerHTML = text;
+    els.fly.appendChild(el);
+    return el;
+  }
+  const at2 = (x, y, sc, extra) => 'translate(' + (x).toFixed(1) + 'px,' + (y).toFixed(1) + 'px) translate(-50%,-50%) scale(' + sc + ')' + (extra || '');
+  /* 甲 · 锅叠锅：锅砸中之后，一口口小锅从天上掉下来叠在他身上（几回合就几口，越叠越高），叠完一晃，整摞缩进 ×N 角标 */
+  async function atkPots(from, to, n, t) {
+    await fxPot(from, to, t);
+    if (t !== token || fx.reduce()) return;
+    const a = avPoint(to), r = avR(to), up = a.y > innerHeight / 2;   // 我在下面：往上叠；对手在上面：叠在头像下方
+    const P = Math.max(18, Math.min(28, r * 0.9)), step = P * 0.48;
+    const baseY = up ? a.y - r - P * 0.35 : a.y + r + P * 0.35 + (n - 1) * step;
+    const tower = document.createElement('div');
+    tower.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;';
+    els.fly.appendChild(tower);
+    const pots = [];
+    for (let i = 0; i < n; i++) {
+      if (t !== token) { tower.remove(); return; }
+      const p = document.createElement('div');
+      p.className = 'zm-prop';
+      p.innerHTML = ART.PROPS.pot;
+      p.style.width = p.style.height = P + 'px';
+      tower.appendChild(p);
+      pots.push(p);
+      const y = baseY - i * step, rot = (i % 2 ? 6 : -6);
+      p.animate([{ transform: fx.T(a.x - P / 2 + (i % 2 ? 3 : -3), y - P / 2 - 90, 0.8, rot * 3), opacity: 0 }, { transform: fx.T(a.x - P / 2, y - P / 2 + 3, 1.05, rot), opacity: 1, offset: 0.75 }, { transform: fx.T(a.x - P / 2, y - P / 2, 1, rot), opacity: 1 }],
+        { duration: ms(220), easing: 'cubic-bezier(.5,0,.8,.6)', fill: 'forwards' });
+      setTimeout(() => { if (t === token) { snd(i === n - 1 ? 'clang' : 'tick'); fx.shake(seatEl(to), { amp: 2 + i * 0.6, dur: 160 }); } }, ms(170));
+      await wait(ms(i < 2 ? 150 : 110));
+    }
+    await wait(ms(200));
+    const lab = tag('<span class="x">×</span><b>' + n + '</b>');
+    const lx = a.x + r + 34, ly = up ? baseY - (n - 1) * step / 2 : baseY - (n - 1) * step / 2;
+    lab.animate([{ transform: at2(Math.min(innerWidth - 40, lx), ly, 0.3), opacity: 0 }, { transform: at2(Math.min(innerWidth - 40, lx), ly, 1.15), opacity: 1, offset: 0.6 }, { transform: at2(Math.min(innerWidth - 40, lx), ly, 1), opacity: 1 }], { duration: 260, fill: 'forwards' });
+    snd('stamp');
+    // 整摞晃两下
+    tower.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-4deg)' }, { transform: 'rotate(4deg)' }, { transform: 'rotate(-2deg)' }, { transform: 'rotate(0)' }], { duration: ms(520), easing: 'ease-in-out' });
+    tower.style.transformOrigin = a.x + 'px ' + baseY + 'px';
+    await wait(ms(620));
+    if (t !== token) { tower.remove(); lab.remove(); return; }
+    const bp = badgePt(to);
+    pots.forEach((p, i) => p.animate([{ opacity: 1 }, { transform: fx.T(bp.x - P / 2, bp.y - P / 2, 0.2, 0), opacity: 0 }], { duration: ms(260), delay: i * 25, easing: 'ease-in', fill: 'forwards' }));
+    await lab.animate([{ transform: at2(Math.min(innerWidth - 40, lx), ly, 1), opacity: 1 }, { transform: at2(bp.x, bp.y, 0.3), opacity: 0 }], { duration: ms(300), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
+    tower.remove(); lab.remove();
+  }
+  /* 乙 · 烧红的锅：叠得越多锅越烫（发红、拖火星），砸中时红光一闪、桌子按叠了多少震；
+   * 然后「×原来」被飞来的「+2」撞上，盖成一个大红印「×N」砸下来，墨点四溅 */
+  async function atkHot(from, to, n, t) {
+    const heat = Math.min(1, Math.max(0, (n - 2) / 6));
+    await fxPot(from, to, t, heat);
+    if (t !== token || fx.reduce()) return;
+    const a = avPoint(to), up = a.y > innerHeight / 2;
+    fx.flash('rgba(214,74,40,' + (0.16 + 0.22 * heat).toFixed(2) + ')', 0, 520);
+    fx.shake(els.table, { amp: 3 + 7 * heat, dur: 380 + 200 * heat, rot: 0.3 * heat });
+    fx.ring(a.x, a.y, { color: '#d64a28', size: 120 + 90 * heat, width: 5, dur: 520 });
+    const cx = Math.max(70, Math.min(innerWidth - 70, a.x)), cy = up ? a.y - 78 : a.y + 86;
+    if (n > 2) {
+      const old = tag('<span class="x">×</span><b>' + (n - 2) + '</b>');
+      old.animate([{ transform: at2(cx, cy, 0.4), opacity: 0 }, { transform: at2(cx, cy, 1), opacity: 1 }], { duration: 180, fill: 'forwards' });
+      const plus = tag('<b>+2</b>', 'is-plus');
+      const sx = cx + (cx < innerWidth / 2 ? 130 : -130);
+      await plus.animate([{ transform: at2(sx, cy - 30, 0.6, ' rotate(-20deg)'), opacity: 0 }, { transform: at2(cx + (sx > cx ? 34 : -34), cy, 1, ' rotate(8deg)'), opacity: 1 }], { duration: ms(300), easing: 'cubic-bezier(.5,0,.9,.5)', fill: 'forwards' }).finished.catch(() => {});
+      snd('tick');
+      plus.remove(); old.remove();
+      if (t !== token) return;
+    }
+    const big = tag('<span class="x">×</span><b>' + n + '</b>', 'is-seal');
+    snd('stamp');
+    big.animate([{ transform: at2(cx, cy, 2.6, ' rotate(-14deg)'), opacity: 0 }, { transform: at2(cx, cy, 0.92, ' rotate(-6deg)'), opacity: 1, offset: 0.55 }, { transform: at2(cx, cy, 1, ' rotate(-6deg)'), opacity: 1 }], { duration: ms(280), easing: 'cubic-bezier(.6,0,.9,.5)', fill: 'forwards' });
+    setTimeout(() => { fx.burst(cx, cy, { n: 12 + Math.round(10 * heat), shapes: ['dot'], colors: ['#b4392c', '#d64a28', '#7a1f17'], radius: 70, size: [4, 11], life: 600, pattern: 'ring' }); fx.shake(els.table, { amp: 3 + 4 * heat, dur: 240 }); }, ms(150));
+    await wait(ms(900));
+    if (t !== token) { big.remove(); return; }
+    const bp = badgePt(to);
+    await big.animate([{ transform: at2(cx, cy, 1, ' rotate(-6deg)'), opacity: 1 }, { transform: at2(bp.x, bp.y, 0.3), opacity: 0 }], { duration: ms(280), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
+    big.remove();
+  }
+  /* 丙 · 接力甩：锅上挂着「×原来」的牌子一起飞，飞到半路「+2」一炸、牌子翻成「×N」，砸中后牌子蹦起来、拖着金粉落进角标 */
+  async function atkRelay(from, to, n, t) {
+    const a = avPoint(from), b = avPoint(to);
+    if (fx.reduce()) { await fxPot(from, to, t); return; }
+    const lab = tag('<span class="x">×</span><b>' + (n > 2 ? n - 2 : 2) + '</b>');
+    const cx = (a.x + b.x) / 2, cy = Math.max(64 * 0.6, Math.min(a.y, b.y) - 90);
+    const pt = (tt) => { const u = 1 - tt; return { x: u * u * a.x + 2 * u * tt * cx + tt * tt * b.x, y: u * u * a.y + 2 * u * tt * cy + tt * tt * b.y - 46 }; };
+    const N = 12, fr = [];
+    for (let k = 0; k <= N; k++) { const p = pt(k / N * 0.8); fr.push({ transform: at2(p.x, p.y, 0.8 + 0.2 * Math.sin(Math.PI * k / N)), offset: 0.8 * k / N }); }
+    const end = pt(0.8);
+    fr.push({ transform: at2(b.x, b.y - 46, 1), offset: 0.9 }, { transform: at2(b.x, b.y - 46, 1) });
+    lab.animate(fr, { duration: ms(900), fill: 'forwards' });
+    const potP = fxPot(from, to, t);
+    if (n > 2) {
+      await wait(ms(900) * 0.42);
+      if (t !== token) { lab.remove(); return; }
+      const m = pt(0.42 / 0.8 * 0.8);
+      fx.burst(m.x, m.y, { n: 14, shapes: ['star', 'dot'], colors: GOLDS.concat(['#d64a28']), radius: 50, size: [5, 13], life: 520 });
+      fx.float(m.x + 26, m.y - 6, '<b style="font:700 18px Georgia,serif;color:#b4392c">+2</b>', { dy: -40, size: 34, dur: 700, color: '#b4392c' });
+      const num = lab.querySelector('b');
+      num.animate([{ transform: 'rotateY(0)' }, { transform: 'rotateY(90deg)' }], { duration: 110, fill: 'forwards' }).finished.then(() => { num.textContent = n; snd('tick'); num.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0)' }], { duration: 140, fill: 'forwards' }); });
+    }
+    await potP;
+    void end;
+    if (t !== token) { lab.remove(); return; }
+    // 牌子蹦一下、拖着金粉落进角标
+    const bp = badgePt(to), top = b.y - 46;
+    snd('stamp');
+    await lab.animate([{ transform: at2(b.x, top, 1) }, { transform: at2(b.x + (bp.x - b.x) * 0.4, top - 40, 1.25), offset: 0.45 }, { transform: at2(bp.x, bp.y, 0.35), opacity: 0.2 }], { duration: ms(520), easing: 'cubic-bezier(.3,.7,.5,1)', fill: 'forwards' }).finished.catch(() => {});
+    fx.burst(bp.x, bp.y, { n: 10, shapes: ['star'], colors: GOLDS, radius: 34, size: [5, 11], life: 520 });
+    lab.remove();
+  }
+  async function fxPot(from, to, t, heat) {
     snd('whoosh');
     const a = avPoint(from), b = avPoint(to);
     const S = 64;
@@ -1022,14 +1144,16 @@
     pot.className = 'zm-prop';
     pot.innerHTML = ART.PROPS.pot;
     pot.style.width = pot.style.height = S + 'px';
+    if (heat != null) pot.style.filter = 'sepia(' + (0.4 + 0.6 * heat).toFixed(2) + ') saturate(' + (2 + 4 * heat).toFixed(1) + ') hue-rotate(-28deg) drop-shadow(0 0 ' + (6 + 12 * heat).toFixed(0) + 'px rgba(240,110,40,.85))';
     els.fly.appendChild(pot);
     const N = 12, frames = [];
-    const cx = (a.x + b.x) / 2, cy = Math.min(a.y, b.y) - 90;
+    const cx = (a.x + b.x) / 2, cy = Math.max(S * 0.6, Math.min(a.y, b.y) - 90);   // 对手都在上面一排：弧顶别飞出屏幕
     for (let k = 0; k <= N; k++) {
       const tt = k / N, u = 1 - tt;
       const x = u * u * a.x + 2 * u * tt * cx + tt * tt * b.x, y = u * u * a.y + 2 * u * tt * cy + tt * tt * b.y;
       frames.push({ transform: fx.T(x - S / 2, y - S / 2, 0.5 + 0.7 * Math.sin(Math.PI * tt * 0.9), -30 + 400 * tt), offset: 0.8 * tt, easing: 'linear' });
       if (k > 0 && k < N && k % 3 === 0) setTimeout(() => { if (t === token) fx.smoke(x, y, { n: 2, spread: 6, size: [18, 30], rise: 20 }); }, ms(700) * 0.8 * tt);
+      if (heat != null && k > 0 && k < N) setTimeout(() => { if (t === token) fx.burst(x, y, { n: 2 + Math.round(4 * heat), shapes: ['dot'], colors: ['#f28a2e', '#e9d46a', '#d64a28'], radius: 14 + 14 * heat, size: [3, 7], life: 380, gravity: -10, pattern: 'scatter' }); }, ms(900) * 0.8 * tt);
     }
     frames.push({ transform: fx.T(b.x - S / 2, b.y - S / 2 - 50, 0.9, 400), offset: 0.9, easing: 'ease-out' });
     frames.push({ transform: fx.T(b.x - S / 2 + 30, b.y - S / 2 - 30, 0.6, 470), opacity: 0 });
@@ -4248,6 +4372,8 @@
       boom: () => { top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
       boomme: () => { top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       defuse: () => { if (R.countKind(s.hands[bot], R.DEFUSE) === 0) give(bot, R.DEFUSE); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
+      stack5: () => { give(bot, R.ATTACK); s.turn = bot; s.turnsLeft = 3; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
+      stackme: () => { const b = s.n - 1; give(b, R.ATTACK); s.turn = b; s.turnsLeft = 3; apply(b, { type: 'play', cards: [R.findKind(s.hands[b], R.ATTACK)] }); },
       defuseme: () => { if (R.countKind(s.hands[0], R.DEFUSE) === 0) give(0, R.DEFUSE); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       out: () => { top(R.BOOM); s.turn = bot; s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); apply(bot, { type: 'draw' }); },
       draw: () => { s.turn = 0; apply(0, { type: 'draw' }); },
@@ -4277,6 +4403,21 @@
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
     window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx };
+    // ?zmdemo=stack：甩锅动画预览条（现状 / 甲 / 乙 / 丙 × 普通甩锅 / 叠加到 5 / 叠加甩给我），点一下放一遍
+    if (new URLSearchParams(location.search).get('zmdemo') === 'stack') {
+      const bar = document.createElement('div');
+      bar.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 23vh);transform:translateX(-50%);z-index:99;display:flex;flex-direction:column;gap:6px;align-items:center;font:13px/1.2 system-ui;';
+      const vs = [['', '现状'], ['a', '甲·锅叠锅'], ['b', '乙·烧红的锅'], ['c', '丙·接力甩']], ws = [['attack', '甩锅×2'], ['stack5', '叠到×5'], ['stackme', '甩给我×5']];
+      const btn = (v, w, l) => '<button type="button" data-v="' + v + '" data-w="' + w + '" style="padding:5px 8px;border-radius:999px;border:1px solid #2f4a6d;background:#fffaf0;color:#2f4a6d;font-size:12px">' + l + '</button>';
+      bar.innerHTML = vs.map(([v, l]) => '<div style="display:flex;gap:4px;align-items:center"><b style="min-width:5.5em;text-align:right;color:#2f4a6d">' + l + '</b>' + ws.map(([w, wl]) => btn(v, w, wl)).join('') + '</div>').join('');
+      bar.addEventListener('click', (ev) => {
+        const b = ev.target.closest('button'); if (!b) return;
+        bar.querySelectorAll('button').forEach((x) => { x.style.background = x === b ? '#2f4a6d' : '#fffaf0'; x.style.color = x === b ? '#fffaf0' : '#2f4a6d'; });
+        ATKFX = b.dataset.v;
+        settings.players = 4; newGame(); demo(b.dataset.w);
+      });
+      document.body.appendChild(bar);
+    }
   }
   window.ZhamaoTable = { cardHtml, backHtml, rulesHtml };
 })();
