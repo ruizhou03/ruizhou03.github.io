@@ -105,11 +105,25 @@ body_class: zm-fullscreen
       <div class="zm-cover-load" data-cover-step="load" role="progressbar" aria-label="加载中"><i></i></div>
       <div class="zm-cover-btns" data-cover-step="main" hidden>
         <button type="button" class="zm-cover-btn is-primary" data-cover="solo"><b>单机</b><small id="zmCoverSolo"></small></button>
-        <div class="zm-cover-seats" id="zmCoverSeats" role="group" aria-label="几个人玩（含你）">
-          <button type="button" data-n="2">2 人</button><button type="button" data-n="3">3 人</button><button type="button" data-n="4">4 人</button><button type="button" data-n="5">5 人</button>
-        </div>
         <button type="button" class="zm-cover-btn is-resume" data-cover="resume" hidden><b>回到房间</b><small></small></button>
         <button type="button" class="zm-cover-btn" data-cover="online" hidden><b>联机</b></button>
+      </div>
+      <!-- 点「单机」之后：选几个人玩（加减按钮 + 一排头像）、机器猫难度、开始；有上一局存档就在最上面单独一行「接着打上一局」 -->
+      <div class="zm-solo" data-cover-step="solo" hidden>
+        <button type="button" class="zm-solo-back" data-cover="back">‹ 返回</button>
+        <button type="button" class="zm-solo-resume" data-cover="resume-solo" hidden>接着打上一局<small></small></button>
+        <section class="zm-solo-pick">
+          <span class="zm-solo-cap">几个人玩</span>
+          <div class="zm-solo-step">
+            <button type="button" data-n="-1" aria-label="少一个人">−</button>
+            <span class="zm-solo-num" id="zmSoloNum" aria-live="polite"></span>
+            <button type="button" data-n="1" aria-label="多一个人">+</button>
+          </div>
+          <div class="zm-solo-faces" id="zmSoloFaces" aria-hidden="true"></div>
+          <span class="zm-solo-sub" id="zmSoloSub"></span>
+          <div class="zs-seg zm-solo-tier" id="zmSoloTier" role="group" aria-label="机器猫难度"></div>
+        </section>
+        <button type="button" class="zm-cover-btn is-primary" data-cover="start"><b>开始</b></button>
       </div>
       <div class="zm-cover-foot" data-cover-step="main" hidden>
         <button type="button" class="zm-cover-link" data-cover="tutorial">新手教程</button>

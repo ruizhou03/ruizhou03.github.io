@@ -2617,7 +2617,7 @@
       '<button type="button" class="zm-btn zm-btn-primary" data-close data-focus>好</button></div>';
     openDialog(html, (d) => {
       d.classList.add('zs', 'zs-b');
-      const persist = () => { settings.rules = R.normalizeRules(settings.rules); saveSettings(); coverPick = settings.players; refreshCover(); syncNote(); };
+      const persist = () => { settings.rules = R.normalizeRules(settings.rules); saveSettings(); refreshCover(); syncNote(); };
       const syncNote = () => {
         const differs = !fromCover && game && !game.tutorial && JSON.stringify(settings.rules) !== rulesBefore;
         d.querySelector('[data-rule-note]').hidden = !differs;
@@ -2973,13 +2973,9 @@
     schedule(300, step);
   }
   // 主菜单上直接挑几个人（2–5，含你）；有存档时默认亮存档的人数、写「接着打上一局」，换个人数就是新开一局
-  let coverPick = null;
   function refreshCover() {
-    const saved = loadSaved();
-    const resume = saved && (coverPick == null || coverPick === saved.state.n);
-    const n = resume ? saved.state.n : (coverPick || settings.players);
     $('zmCoverSolo').textContent = '';   // 单机键下面不写说明（用户：已经很直接了）
-    $('zmCoverSeats').querySelectorAll('[data-n]').forEach((b) => { const on = +b.dataset.n === n; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on); });
+    refreshSolo();
     let seen = true;
     try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { /* 无痕 */ }
     els.cover.querySelector('[data-cover="tutorial"]').textContent = '新手教程';
@@ -2989,6 +2985,33 @@
     if (rb) { rb.hidden = !sess; if (sess) rb.querySelector('small').textContent = '房间 ' + sess.code; }
     const ob = els.cover.querySelector('[data-cover="online"]');
     if (ob) ob.hidden = !NET;
+  }
+  /* 点「单机」之后那一屏（2026-11-12 用户挑的方案甲）：− 人数 +、下面一排头像（我 + 几只机器猫）、机器猫难度、开始；
+   * 有上一局存档：最上面单独一行「接着打上一局」（以前是点单机直接接着打，想开新局得先点人数，不直观） */
+  const SOLO_MAX = 5;   // 6–9 人的牌桌排布做好之前先到 5
+  function refreshSolo() {
+    const n = Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players));
+    $('zmSoloNum').innerHTML = n + '<small>人</small>';
+    const [minus, plus] = els.cover.querySelectorAll('.zm-solo-step button');
+    minus.disabled = n <= R.MIN_PLAYERS; plus.disabled = n >= SOLO_MAX;
+    const faces = AV ? AV.ROBOT : [];
+    const meFace = profile.avatar && AV && AV.byId[profile.avatar] ? AV.byId[profile.avatar].svg : '<span>我</span>';
+    $('zmSoloFaces').innerHTML = '<i class="is-me">' + meFace + '</i>' + Array.from({ length: n - 1 }, (_, i) => '<i>' + (faces.length ? faces[i % faces.length].svg : '') + '</i>').join('');
+    $('zmSoloSub').textContent = '你 + ' + (n - 1) + ' 只机器猫';
+    $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
+    const saved = loadSaved(), rb = els.cover.querySelector('[data-cover="resume-solo"]');
+    rb.hidden = !saved;
+    if (saved) rb.querySelector('small').textContent = saved.state.n + ' 人 · 还剩 ' + saved.state.alive.filter(Boolean).length + ' 家';
+  }
+  function soloStart() {
+    let seen = false;
+    try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { seen = true; }
+    if (!seen && TUT) {
+      openDialog('<h2>第一次玩？</h2><p>先花两分钟走一遍新手教程，跟着做就会了。</p><div class="zm-actions"><button type="button" class="zm-btn" data-skip>直接开始</button><button type="button" class="zm-btn zm-btn-primary" data-tut data-focus>看教程</button></div>', (d) => {
+        d.querySelector('[data-tut]').addEventListener('click', () => startTutorial());
+        d.querySelector('[data-skip]').addEventListener('click', () => { try { localStorage.setItem(TUT_KEY, '1'); } catch (_) { /* */ } newGame(); });
+      });
+    } else newGame();
   }
   // 主菜单两步：先是一条进度条，跑完换成按钮
   function coverStep(k) {
@@ -3000,7 +3023,6 @@
     tut = null;
     els.skipTut.hidden = true;
     if (soundPanel) soundPanel.hidden = true;
-    coverPick = null;
     refreshCover();
     coverStep('main');
     els.cover.hidden = false;
@@ -3948,34 +3970,31 @@
     const b = e.target.closest('[data-cover]');
     if (!b) return;
     const k = b.dataset.cover;
-    if (k === 'solo') {
-      const saved = loadSaved();
-      if (saved && (coverPick == null || coverPick === saved.state.n)) { resumeGame(saved); return; }
-      let seen = false;
-      try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { seen = true; }
-      if (!seen && TUT) {
-        openDialog('<h2>第一次玩？</h2><p>先花两分钟走一遍新手教程，跟着做就会了。</p><div class="zm-actions"><button type="button" class="zm-btn" data-skip>直接开始</button><button type="button" class="zm-btn zm-btn-primary" data-tut data-focus>看教程</button></div>', (d) => {
-          d.querySelector('[data-tut]').addEventListener('click', () => startTutorial());
-          d.querySelector('[data-skip]').addEventListener('click', () => { try { localStorage.setItem(TUT_KEY, '1'); } catch (_) { /* */ } newGame(); });
-        });
-      } else newGame();
-      return;
-    }
+    if (k === 'solo') { refreshSolo(); coverStep('solo'); snd('tap'); return; }
+    if (k === 'back') { coverStep('main'); return; }
+    if (k === 'start') { settings.players = Math.min(SOLO_MAX, settings.players); soloStart(); return; }
+    if (k === 'resume-solo') { const saved = loadSaved(); if (saved) resumeGame(saved); else refreshSolo(); return; }
     if (k === 'online') { showOnlineEntry(); return; }
     if (k === 'resume') { const sess = NET && NET.readSession(); if (sess) resumeOnline(sess); return; }
     if (k === 'tutorial') startTutorial();
     else if (k === 'settings') showSettings(true);
     else if (k === 'exit') location.href = '/toolbox/';
   });
-  $('zmCoverSeats').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-n]');
-    if (!b) return;
-    coverPick = +b.dataset.n;
-    settings.players = coverPick;
-    saveSettings();
-    refreshCover();
-    fx.pop(b, { scale: 1.1, dur: 220 });
-    snd('tick');
+  els.cover.querySelector('.zm-solo-pick').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.disabled) return;
+    if (b.dataset.n) {
+      settings.players = Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players + +b.dataset.n));
+      saveSettings(); refreshSolo();
+      fx.pop($('zmSoloNum'), { scale: 1.12, dur: 220 });
+      const fs = $('zmSoloFaces').children, last = fs[fs.length - 1];
+      if (+b.dataset.n > 0 && last) fx.pop(last, { scale: 1.3, dur: 260 });
+      snd('tick');
+    } else if (b.dataset.tier) {
+      settings.tier = b.dataset.tier;
+      saveSettings(); refreshSolo();
+      snd('tap');
+    }
   });
   els.me.addEventListener('click', (e) => {
     if (!e.target.closest('.zm-av')) return;
