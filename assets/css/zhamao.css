@@ -506,15 +506,23 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 被抽 / 被点名的人：头像一圈金光一明一暗 */
 .zm-seat.is-victim .zm-av { box-shadow: 0 0 0 2.5px #c9a24a, 0 0 0 6px rgba(201, 162, 74, 0.3); animation: zm-victim 0.9s ease-in-out infinite alternate; }
 @keyframes zm-victim { to { box-shadow: 0 0 0 2.5px #c9a24a, 0 0 0 10px rgba(201, 162, 74, 0.12), 0 0 18px rgba(201, 162, 74, 0.55); } }
-/* 三张点名：飞到被点名的人旁边的那张牌，头顶一个小气泡「？」→「有」/「没有」 */
+/* 三张点名：飞到被点名的人旁边的那张牌，右上角一个墨色小对话泡（三个点跳着翻找）→ 有：金泡 + 勾 / 没有：朱红泡 + 叉 */
 .zm-callout .zm-card { box-shadow: 0 6px 16px rgba(29, 27, 24, 0.22); transition: box-shadow 0.2s ease; }
 .zm-callout.is-hit .zm-card { box-shadow: 0 0 0 3px #c9a24a, 0 0 24px rgba(201, 162, 74, 0.85); }
 .zm-callout.is-miss .zm-card { filter: grayscale(0.6); }
-.zm-callout-q { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); width: 26px; height: 26px; border-radius: 50%; background: var(--zm-card); border: 1.5px solid var(--zm-ink);
-  display: grid; place-items: center; font: 700 15px/1 Georgia, serif; z-index: 2; }
-.zm-callout-q svg { width: 16px; height: 16px; display: block; }
-.zm-callout.is-hit .zm-callout-q { background: #c9a24a; border-color: #9a7632; color: #fffaf0; }
-.zm-callout.is-miss .zm-callout-q { background: var(--zm-seal); border-color: var(--zm-seal); color: #fffaf0; }
+.zm-callout-q { position: absolute; z-index: 2; right: -18px; top: -20px; width: 48px; height: 30px; border-radius: 15px; background: #2b2723; color: #fffaf0;
+  display: flex; align-items: center; justify-content: center; gap: 5px; box-shadow: 0 0 0 2px #fffaf0, 0 5px 12px rgba(29, 27, 24, 0.28); }
+.zm-callout-q::after { content: ''; position: absolute; left: 7px; bottom: -6px; width: 10px; height: 10px; background: inherit; border-radius: 0 0 0 3px;
+  clip-path: polygon(0 100%, 0 0, 100% 0); z-index: -1; }
+.zm-callout-q i { display: block; width: 6px; height: 6px; border-radius: 50%; background: #fffaf0; animation: zm-q-dot 0.9s ease-in-out infinite; }
+.zm-callout-q i:nth-child(2) { animation-delay: 0.15s; }
+.zm-callout-q i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes zm-q-dot { 0%, 60%, 100% { translate: 0 0; opacity: 0.5; } 30% { translate: 0 -4px; opacity: 1; } }
+.zm-callout-q svg { display: block; width: 18px; height: 18px; overflow: visible; }
+.zm-callout-q .ink { stroke: currentColor; stroke-width: 2.8; }
+@keyframes zm-q-pop { from { scale: 0.3; } 60% { scale: 1.25; } to { scale: 1; } }
+.zm-callout.is-hit .zm-callout-q { background: #c9a24a; animation: zm-q-pop 0.36s ease-out; }
+.zm-callout.is-miss .zm-callout-q { background: var(--zm-seal); animation: zm-q-pop 0.36s ease-out; }
 /* 万能猫上桌：一道流光扫过，变成它顶的那只猫 */
 .zm-card .zm-mimic-art { overflow: hidden; }
 .zm-mimic-sweep { position: absolute; top: 0; bottom: 0; width: 45%; left: -50%; background: linear-gradient(100deg, transparent, rgba(255, 250, 235, 0.85), transparent); animation: zm-mimic-sweep 0.9s ease-out 0.15s both; }

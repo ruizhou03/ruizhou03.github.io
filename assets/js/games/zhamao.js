@@ -1524,6 +1524,14 @@
     await animTransfer(e, t, 'steal');
   }
 
+  /* 点名气泡（2026-11-13 用户挑定乙 · 对话泡）：牌右上角一个墨色小对话泡，里面三个点一跳一跳像在翻找；
+   * 有 → 泡变金色、里面一个勾；没有 → 泡变朱红、里面一个叉（用户：别写「有 / 没有」，太土） */
+  function qGlyph(kind) {
+    if (kind === 'ask') return '<i></i><i></i><i></i>';
+    const d = kind === 'yes' ? '<path d="M4.6 10.6l3.6 3.6 7.2-7.8"/>' : '<path d="M5.6 5.6l8.8 8.8M14.4 5.6l-8.8 8.8"/>';
+    return '<svg viewBox="0 0 20 20" aria-hidden="true"><g class="ink" fill="none" stroke-linecap="round" stroke-linejoin="round">' + d + '</g></svg>';
+  }
+
   /* 三张点名（2026-11-13 用户：太快，牌还没看清就拿过来了）——放慢、分三拍：
    *   ① 点名的那张牌从桌上飞到被点名的人头像旁边（对手在上面就落在头像下方，我在下面就落在头像上方），头顶一个「？」，他的头像亮金光、抖两下像在翻找；
    *   ② 有：这张牌亮金边、蹦一下、冒星星，停一会儿让大家看清是什么；没有：牌左右摇头、打红叉、冒烟；
@@ -1534,12 +1542,13 @@
     const av = avEl(e.from), ar = av ? av.getBoundingClientRect() : { left: innerWidth / 2 - 20, top: 80, width: 40, height: 40, bottom: 120 };
     const u = Math.min(104, Math.max(U(), 76)), h = u * 1.4;   // 要看得清：至少 76px 宽
     const below = ar.top + ar.height / 2 < innerHeight / 2;
-    const x = Math.min(Math.max(ar.left + ar.width / 2 - u / 2, 8), innerWidth - u - 8);
-    const y = below ? ar.bottom + 30 : ar.top - h - 22;
+    const se = seatEl(e.from), sb = se ? se.getBoundingClientRect().bottom : ar.bottom + 30;
+    const x = Math.min(Math.max(ar.left + ar.width / 2 - u / 2, 8), innerWidth - u - 28);   // 右边多留 20px：右上角的对话泡探出牌外
+    const y = below ? Math.max(sb, ar.bottom) + 24 : ar.top - h - 26;   // 落在整个座位（名字、档位签）下方，气泡不压名字
     const el = document.createElement('div');
     el.className = 'zm-flyer zm-callout';
     el.style.width = u + 'px'; el.style.height = h + 'px';
-    el.innerHTML = cardHtml(e.named) + '<b class="zm-callout-q">？</b>';
+    el.innerHTML = cardHtml(e.named) + '<b class="zm-callout-q">' + qGlyph('ask') + '</b>';
     els.fly.appendChild(el);
     const sn = els.stage.querySelector('.zm-stage-named .zm-card');
     const sr = sn ? sn.getBoundingClientRect() : null;
@@ -1564,7 +1573,7 @@
     const { el, x, y, u, h } = c;
     // ② 有！金边、蹦一下、冒星星，停一会儿
     el.classList.add('is-hit');
-    el.querySelector('.zm-callout-q').innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5l3.6 3.6 7.4-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';   // 有：金底白勾（2026-11-13 用户：别写「有 / 没有」，太土）
+    el.querySelector('.zm-callout-q').innerHTML = qGlyph('yes');   // 有：金色泡 + 勾
     snd('ding');
     fx.burst(x + u / 2, y + h / 2, { n: 16, shapes: ['star'], colors: GOLDS, radius: 70, size: [6, 18], life: 900 });
     await fx.animate(el, [{ transform: fx.T(x, y, 1, 0) }, { transform: fx.T(x, y - 8, 1.16, 0), offset: 0.4 }, { transform: fx.T(x, y, 1, 0) }], { duration: ms(420), easing: 'ease-out' }).finished.catch(() => {});
@@ -1588,7 +1597,7 @@
     const { el, x, y, u, h } = c;
     // ② 没有：摇头、打红叉、冒烟
     el.classList.add('is-miss');
-    el.querySelector('.zm-callout-q').innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>';   // 没有：朱红底白叉
+    el.querySelector('.zm-callout-q').innerHTML = qGlyph('no');   // 没有：朱红泡 + 叉
     el.insertAdjacentHTML('beforeend', '<div class="zm-cross" style="animation-delay:.25s">' + ART.PROPS.cross + '</div>');
     snd('miss');
     await fx.animate(el, [
