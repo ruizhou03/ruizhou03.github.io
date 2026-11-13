@@ -3048,6 +3048,7 @@
     const wasHidden = els.coach.hidden || els.coach.classList.contains('is-hint');
     els.coach.hidden = false;
     els.coach.classList.remove('is-hint');
+    els.app.classList.add('is-coaching');   // 讲解（照拱猪）：字摆在正中，别的都蒙一层浅宣纸色
     els.coach.querySelector('.zm-coach-text').innerHTML = inlineCards(m);
     if (!fx.reduce()) {
       if (wasHidden) els.coach.animate([{ opacity: 0, translate: '0 14px' }, { opacity: 1, translate: '0 0' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1)' });
@@ -3059,10 +3060,11 @@
     const was = !els.coach.hidden && els.coach.classList.contains('is-hint');
     els.coach.hidden = false;
     els.coach.classList.add('is-hint');
+    els.app.classList.remove('is-coaching');   // 提示（等我操作）不蒙桌子
     els.coach.querySelector('.zm-coach-text').innerHTML = inlineCards(text);
     if (!was && !fx.reduce()) els.coach.animate([{ opacity: 0, translate: '0 10px' }, { opacity: 1, translate: '0 0' }], { duration: 240, easing: 'ease-out' });
   }
-  function hideCoach() { els.coach.hidden = true; els.coach.classList.remove('is-hint'); }
+  function hideCoach() { els.coach.hidden = true; els.coach.classList.remove('is-hint'); els.app.classList.remove('is-coaching'); }
   document.addEventListener('click', (e) => {
     if (coachQueue && !els.coach.hidden && !els.coach.classList.contains('is-hint') && !e.target.closest('.zm-dialog-mask, .zm-menu, .zm-tools, .zm-peek')) { e.stopPropagation(); nextCoach(); }
   }, true);

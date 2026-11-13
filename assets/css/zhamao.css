@@ -845,3 +845,13 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
    每一层的按钮都一样宽（主页也让出两边各 50px，返回箭头就落在左边那块里） */
 .zm-cover { align-items: flex-start; padding-top: max(24px, calc(50vh - 290px)); }
 .zm-cover-btns { width: calc(100% - 100px); align-self: center; }
+/* 教程讲解（2026-11-13 用户：照拱猪——讲的话摆在正中，别的都蒙灰，不弹框）：
+   讲解时整张桌子蒙一层浅宣纸色；讲解本身不要框，大字居中、周围一圈宣纸色晕开，上面一枚「教」字小印，下面一笔淡金细线 */
+.zm-app::after { content: ''; position: absolute; inset: 0; z-index: 41; background: rgba(243, 238, 227, 0.78); opacity: 0; pointer-events: none; transition: opacity 0.22s ease; }
+.zm-app.is-coaching::after { opacity: 1; }
+.zm-coach:not(.is-hint) { background: none; border: 0; box-shadow: none; padding: 0 6px; width: min(94%, 460px); display: flex; flex-direction: column; align-items: center; text-align: center; }
+.zm-coach:not(.is-hint) .zm-coach-seal { position: static; transform: rotate(-4deg); margin-bottom: 10px; }
+.zm-coach:not(.is-hint) .zm-coach-text { font-size: 19px; line-height: 1.75; letter-spacing: 0.02em; text-wrap: balance; text-shadow: 0 0 10px var(--zm-paper), 0 0 4px var(--zm-paper); }
+.zm-coach:not(.is-hint) .zm-coach-text::after { content: ''; display: block; width: 72px; height: 2px; margin: 12px auto 0; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--zm-gold), transparent); }
+.zm-coach:not(.is-hint) .zm-coach-more { text-align: center; margin-top: 12px; letter-spacing: 0.2em; }
+.zm-coach:not(.is-hint) .zm-card { --cw: 40px; width: 40px; }
