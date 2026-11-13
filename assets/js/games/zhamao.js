@@ -1278,7 +1278,7 @@
   function stealPicker() {
     const s = game.state, from = s.steal.from, k = s.steal.perm.length;
     const limit = dlgLimit();
-    openDialog('<h2>抽 ' + esc(nameOf(from)) + ' 一张牌</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
+    openStage('<h2>抽 ' + esc(nameOf(from)) + ' 一张牌</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
       // 扣着的牌像捏在手里一样扇形摊开（用户 2026-11-12：别一板一眼排一排）；张数多就收窄每张的角度
       '<div class="zm-steal-pick is-fan" data-steal data-stagger style="--fan-h:' + (k > 7 ? 1.18 : 1.08) + '">' + Array.from({ length: k }, (_, i) => {
         const step = Math.min(13, 78 / Math.max(1, k - 1)), ang = (i - (k - 1) / 2) * step;
@@ -2230,9 +2230,18 @@
 
   /* ───── 弹窗：遮罩淡入、弹窗从下面弹上来 ───── */
   let dialogClose = null;
+  /* 局内要我做决定的（偷哪张 / 点名 / 改命 / 从弃牌堆捡 / 炸毛猫塞哪）：不弹框，直接摆在桌子正中，
+   * 底下的牌堆、弃牌堆、头像、手牌蒙一层浅浅的宣纸色（和「窥探」摊牌一样）。2026-11-13 用户看过前后对比后定下 */
+  function openStage(html, onMount, onClose) {
+    openDialog(html, (d) => {
+      if (onMount) onMount(d);
+      d.classList.add('is-stage'); els.mask.classList.add('is-stage');
+    }, onClose);
+  }
   function openDialog(html, onMount, onClose) {
     closeMenu();
     pauseClock();
+    els.mask.classList.remove('is-stage');
     els.dialog.className = 'zm-dialog';
     els.dialog.innerHTML = html;
     els.mask.hidden = false;
@@ -2257,7 +2266,7 @@
 
   function nameDialog(cb) {
     const kinds = R.KINDS.filter((k) => k !== R.BOOM);
-    openDialog('<h2>点名要哪种牌？</h2><p class="zm-muted">他手里有，就得给你一张；没有就落空</p>' +
+    openStage('<h2>点名要哪种牌？</h2><p class="zm-muted">他手里有，就得给你一张；没有就落空</p>' +
       '<div class="zm-grid" data-stagger>' + kinds.map((k) => '<button type="button" data-k="' + k + '">' + cardHtml(k) + '</button>').join('') + '</div>' +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>算了</button></div>', (d) => {
       d.classList.add('is-cards');
@@ -2272,7 +2281,7 @@
     let order = s.alter.cards.slice(), sel = -1;
     const limit = dlgLimit();
     snd('peek');
-    openDialog('<h2>改命 · 最上面 ' + order.length + ' 张</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
+    openStage('<h2>改命 · 最上面 ' + order.length + ' 张</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
       '<div class="zm-alter-row"><span class="end">顶</span><div class="zm-alter" data-alter>' + order.map((id, i) => '<button type="button" class="zm-alter-slot" data-i="' + i + '">' + cardHtml(id) + '</button>').join('') + '</div><span class="end">底</span></div>' +
       '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好了</button></div>', (d) => {
       const slots = Array.from(d.querySelectorAll('.zm-alter-slot'));
@@ -2421,7 +2430,7 @@
     for (const id of s.discard) { const k = R.KIND_OF[id]; if (k !== R.BOOM) (by[k] = by[k] || []).push(id); }
     const kinds = R.KINDS.filter((k) => by[k]);
     // 只列有哪几种（只能拿一张，每种有几张不重要）
-    openDialog('<h2>从弃牌堆捡一张</h2>' +
+    openStage('<h2>从弃牌堆捡一张</h2>' +
       '<div class="zm-grid" data-stagger>' + kinds.map((k) => '<button type="button" data-k="' + k + '">' + cardHtml(k) + '</button>').join('') + '</div>', (d) => {
       d.classList.add('is-cards');
       d.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => {
@@ -2453,7 +2462,7 @@
     const body = '<h2 class="zm-ins-h">塞回牌堆</h2>' + timerHtml +
       '<div class="zm-insert-fan is-solo is-drag" data-fan>' + fanHtml + cardHtml('boom', 'is-kit') + '<span class="zm-ins-badge" data-badge>' + badge(0) + '</span></div>' +
       '<div class="zm-actions is-tight">' + (size ? '<button type="button" class="zm-btn" data-q="rand">随机</button>' : '') + '<button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>塞进去</button></div>';
-    openDialog(body, (d) => {
+    openStage(body, (d) => {
       const range = d.querySelector('[data-range]');
       const fan = d.querySelector('[data-fan]');
       const kit = fan.querySelector('.is-kit');

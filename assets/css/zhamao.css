@@ -777,3 +777,10 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-opps.is-arc .zm-count { left: auto; right: -9px; top: -7px; min-width: 18px; height: 21px; font-size: 11px; border-radius: 4px; }
 .zm-opps.is-arc .zm-turns { left: auto; right: -11px; bottom: -6px; height: 17px; min-width: 24px; padding: 0 4px; font-size: 10.5px; line-height: 17px; }
 .zm-opps.is-arc .zm-av { font-size: 14px; }
+/* 局内决定（偷哪张 / 点名 / 改命 / 捡牌 / 塞炸毛猫）不弹框：内容直接摆在桌子正中，底下蒙一层浅宣纸色（和「窥探」摊牌同一套） */
+.zm-dialog-mask.is-stage { background: rgba(243, 238, 227, 0.62); -webkit-backdrop-filter: blur(1px); backdrop-filter: blur(1px); }
+.zm-dialog.is-stage { background: transparent; border: 0; border-radius: 0; box-shadow: none; padding: 8px 4px; overflow: visible; }
+.zm-dialog.is-stage h2 { text-align: center; font-size: 17px; margin-bottom: 8px; }
+.zm-dialog.is-stage > p, .zm-dialog.is-stage .zm-muted { text-align: center; }
+.zm-dialog.is-stage .zm-actions { justify-content: center; }
+.zm-dialog.is-stage.is-cards .zm-grid { overflow: visible; max-height: none; }
