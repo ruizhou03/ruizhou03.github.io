@@ -79,8 +79,7 @@ test('setup for 2..5 players', () => {
       assert.ok(s.deck.concat(...s.hands).every((id) => id < R.BASE_SIZE), '5 人及以下只用第一副');
     }
   }
-  const two = R.createGame(2, 3, { extraDefuse: 'two' });   // 关掉「全放回」：最多放回 2 张
-  assert.equal(two.deck.filter((id) => R.KIND_OF[id] === R.DEFUSE).length, 2);
+  assert.equal(R.normalizeRules({ extraDefuse: 'two' }).extraDefuse, 'all');   // 开关拿掉了：一律全放回
   const all = R.createGame(2, 3, { extraDefuse: 'all' });
   assert.equal(all.deck.filter((id) => R.KIND_OF[id] === R.DEFUSE).length, 4);
 });

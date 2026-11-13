@@ -2717,7 +2717,6 @@
       '<div class="zs-line"><span>出牌限时</span>' + secs + '</div></section>' +
       '<div class="zs-cap">玩法</div><section class="zs-card">' +
       row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
-      row('defuse', '多的逗猫棒全放回', '', sw('extraDefuse', settings.rules.extraDefuse === 'all')) +
       '</section>';
     const pref = '<div class="zs-cap">操作</div><section class="zs-card">' +
       row('nope', '「作废」只在和我有关时询问', '', '<button type="button" class="zs-switch" data-pref="nopeMine" role="switch" aria-checked="' + !!settings.nopeMine + '"><i></i></button>') +
@@ -4114,7 +4113,6 @@
       '<section class="zs-card zs-b zm-lobby-rules"><div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
       TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
       row('swap', '有交换牌', '', sw('swap', rules.swap)) +
-      row('defuse', '多的逗猫棒全放回', '', sw('extraDefuse', rules.extraDefuse === 'all')) +
       '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">规则由房主定</p>') +
       (myP ? '<section class="zs-card zs-b zm-lobby-me">' + row('future', '观战者能看我的手牌', '', '<button type="button" class="zs-switch" data-l="reveal" role="switch" aria-checked="' + !!myP.showHand + '"><i></i></button>') + '</section>' : '') +
       '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">离开房间</button>' +
