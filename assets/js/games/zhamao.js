@@ -2883,6 +2883,22 @@
    * 单机：机器猫挨了道具有时回一句、偶尔扔回来。联机：要等服务器支持（回过互动序号 fxSeq）才露出来。
    * 教程里不出；观战的人只看不发（点头像仍是换视角）；出牌选目标时点头像照旧是选人 */
   let social = null;
+  const mutedIds = new Set();   // 联机里屏蔽了谁（只记在这一次打开的页面里）
+  /* 长轮询带回来的互动：第一次只记下序号（不重放进房间前的）；我自己发的本机已经画过了 */
+  function onFx(res) {
+    const first = online.fxSeq == null;
+    if (!first && res.fxSeq <= online.fxSeq) return;
+    online.fxSeq = res.fxSeq;
+    if (first) syncSocialUi();
+    if (first || !social || !Array.isArray(res.fx) || !game || !game.online) return;
+    const mine = online.st ? online.st.mySeat : -1;
+    for (const e of res.fx) {
+      if (!e || (!game.spectator && e.from === mine)) continue;
+      const from = locOf(e.from);
+      const ev = e.t === 'p' ? { kind: 'prop', from, to: locOf(e.to), prop: e.prop } : { kind: 'chat', from, text: e.text };
+      social.play(ev, { echo: true, delay: e.delay || 0 });
+    }
+  }
   function socialOk() {
     if (!game || game.tutorial || !game.state || !els.cover.hidden) return false;
     if (game.online) return !!(online && online.fxSeq != null && !game.spectator);
@@ -2904,12 +2920,22 @@
       avatar: (l) => avEl(l),
       name: (l) => nameOf(l),
       canSend: socialOk,
-      send() { /* 联机下一步接服务器 */ },
+      // 联机：我发的本机先画，同时发给服务器（座位换成服务器座位号）；别人的跟长轮询来（onFx）
+      send(ev) {
+        if (!game || !game.online || !online) return;
+        const body = ev.kind === 'prop' ? { to: srvOf(ev.to), prop: ev.prop } : { text: ev.text };
+        NET.emote(online.code, online.token, body).catch((e) => { if (e && e.status === 429) toast('慢一点，歇一下再发'); });
+      },
       autoBots: () => !!(game && !game.online),
-      isBot: (l) => l > 0,
-      mutable: () => false,
-      muted: () => false,
-      setMuted() {},
+      isBot: (l) => (game && game.online ? !!(playerAt(srvOf(l)) && (playerAt(srvOf(l)).isAi || playerAt(srvOf(l)).left)) : l > 0),
+      mutable: (l) => { const p = game && game.online ? playerAt(srvOf(l)) : null; return !!(p && !p.isAi); },
+      muted: (l) => { const p = game && game.online ? playerAt(srvOf(l)) : null; return !!(p && mutedIds.has(p.id)); },
+      setMuted(l, on) {
+        const p = game && game.online ? playerAt(srvOf(l)) : null;
+        if (!p) return;
+        if (on) mutedIds.add(p.id); else mutedIds.delete(p.id);
+        toast(on ? '已屏蔽' + p.nick + '的互动' : '不再屏蔽' + p.nick);
+      },
       sfx: (name, delay) => { if (SFX[name]) snd(SFX[name], delay); },
       reduce: () => fx.reduce(),
       popSide: (l) => (l === 0 ? 'above' : 'below'),
@@ -3798,10 +3824,11 @@
     let fails = 0;
     while (online && online.poll === my && !my.abort) {
       try {
-        const res = await NET.state(online.code, online.token, online.st ? online.st.version : 0);
+        const res = await NET.state(online.code, online.token, online.st ? online.st.version : 0, undefined, online.fxSeq == null ? -1 : online.fxSeq);
         if (my.abort || !online) return;
         fails = 0;
         if (res && res.state) onState(res.state);
+        if (res && res.fxSeq != null) onFx(res);
       } catch (err) {
         if (my.abort || !online) return;
         if (err && (err.status === 401 || err.status === 404)) { leaveOnline(false, '房间已经不在了'); return; }
