@@ -111,14 +111,16 @@ body_class: zm-fullscreen
         <button type="button" class="zm-cover-btn is-resume" data-cover="resume" hidden><b>回到房间</b><small></small></button>
         <button type="button" class="zm-cover-btn" data-cover="online" hidden><b>联机</b></button>
       </div>
-      <!-- 点「单机」（2026-11-13 用户：新手教程、设置挪进这一层）：接着打上一局（有存档才有）/ 开始新的一局 / 新手教程 / 设置；
+      <!-- 点「单机」（2026-11-13 用户：新手教程、设置挪进这一层，仍是按钮下面的灰色划线小字）：接着打上一局（有存档才有）/ 开始新的一局，下面小字 新手教程 · 设置；
            「开始新的一局」→ 选几个人玩（加减按钮 + 一排头像）、机器猫难度、开始 -->
       <div class="zm-solo" data-cover-step="again" hidden>
         <button type="button" class="zm-solo-back" data-cover="back" aria-label="返回"></button>
         <button type="button" class="zm-cover-btn is-primary" data-cover="resume-solo"><b>接着打上一局</b></button>
         <button type="button" class="zm-cover-btn" data-cover="fresh"><b>开始新的一局</b></button>
-        <button type="button" class="zm-cover-btn" data-cover="tutorial"><b>新手教程</b></button>
-        <button type="button" class="zm-cover-btn" data-cover="settings"><b>设置</b></button>
+        <div class="zm-cover-foot">
+          <button type="button" class="zm-cover-link" data-cover="tutorial">新手教程</button>
+          <button type="button" class="zm-cover-link" data-cover="settings">设置</button>
+        </div>
       </div>
       <div class="zm-solo" data-cover-step="solo" hidden>
         <button type="button" class="zm-solo-back" data-cover="back" aria-label="返回"></button>

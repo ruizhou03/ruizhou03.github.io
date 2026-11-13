@@ -860,3 +860,4 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app.is-coaching .zm-stage.is-coach-focus { position: absolute; }
 .zm-app.is-coaching .zm-seat-me.is-coach-focus { position: absolute; }
 .zm-app.is-coaching .zm-coach { z-index: 44; }
+.zm-coach[hidden] { display: none !important; }   /* 上面讲解样式写了 display:flex，别把「藏起来」盖掉 */
