@@ -13,6 +13,19 @@ minimal_app_shell: true
 body_class: zm-fullscreen
 ---
 
+<!-- 2026-11-13 用户：微信里双击 / 双指会把页面放大——这一页一律不许缩放：
+     视口写死 1 倍（不许用户缩放），双指捏合的手势直接拦掉；双击放大靠 CSS 的 touch-action（zhamao.css 顶上），不拦点击，连点按钮照样两下都算 -->
+<script>
+(function () {
+  var m = document.querySelector('meta[name="viewport"]');
+  if (!m) { m = document.createElement('meta'); m.name = 'viewport'; document.head.appendChild(m); }
+  m.setAttribute('content', 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+  var stop = function (e) { e.preventDefault(); };
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) { document.addEventListener(t, stop, { passive: false }); });
+  document.addEventListener('touchmove', function (e) { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, { passive: false });
+})();
+</script>
+
 <!-- 声音：第一下点按（哪怕游戏脚本还没下完）就先把声音通道打开，脚本一到直接接着放音乐；
      微信里用 WeixinJSBridge 不用点就能出声。环境音：跟着静音键走、不上灵动岛（见 zhamao-audio.js） -->
 <script>
@@ -131,7 +144,6 @@ body_class: zm-fullscreen
             <button type="button" data-n="1" aria-label="多一个人">+</button>
           </div>
           <div class="zm-solo-faces" id="zmSoloFaces" aria-hidden="true"></div>
-          <span class="zm-solo-sub" id="zmSoloSub"></span>
           <div class="zs-seg zm-solo-tier" id="zmSoloTier" role="group" aria-label="机器猫难度"></div>
         </section>
         <button type="button" class="zm-cover-btn is-primary" data-cover="start"><b>开始</b></button>

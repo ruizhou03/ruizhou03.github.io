@@ -3238,7 +3238,9 @@
     const faces = AV ? AV.ROBOT : [];
     const meFace = profile.avatar && AV && AV.byId[profile.avatar] ? AV.byId[profile.avatar].svg : '<span>我</span>';
     $('zmSoloFaces').innerHTML = '<i class="is-me">' + meFace + '</i>' + Array.from({ length: n - 1 }, (_, i) => '<i>' + (faces.length ? faces[i % faces.length].svg : '') + '</i>').join('');
-    $('zmSoloSub').textContent = '你 + ' + (n - 1) + ' 只机器猫';
+    // 头像一排排不下就整体缩小（9 人时人数卡里放不下 9 个 34px 的头像；2026-11-13 用户：别超出宽度）；「你 + 几只机器猫」那行说明去掉
+    const fw = $('zmSoloFaces').clientWidth || 200, lap = 7;
+    $('zmSoloFaces').style.setProperty('--fs', Math.min(34, Math.floor((fw + (n - 1) * lap) / n)) + 'px');
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
     const saved = loadSaved(), rb = els.cover.querySelector('[data-cover="resume-solo"]');
     // 单机菜单：有上一局才露「接着打上一局」（红键）；没有就「开始新的一局」当红键
