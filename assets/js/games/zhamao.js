@@ -933,11 +933,9 @@
     } else if (real.length) cards.forEach((id) => { if (K[id] === R.WILD) out[id] = real[0]; });
     return out;
   }
-  /* 预览中（2026-11-13，用户在挑）：甲 = 变身——万能猫的画一道流光扫过、变成它顶的那只猫，名字条照旧五彩、名字换成那只猫；
-   * 乙 = 挂牌——牌不变，右上角挂一枚圆章，章里是它顶的那只猫的脑袋。只在桌上这样，进弃牌堆就还是万能猫 */
+  /* 万能猫变身（2026-11-13 用户挑定甲）：万能猫的画一道流光扫过、变成它顶的那只猫，名字条照旧五彩、名字换成那只猫。
+   * 只在桌上这样，进弃牌堆就还是万能猫 */
   async function mimic(cards, t) {
-    const mode = window.__zmMimic;
-    if (!mode) return;
     const map = mimicKinds(cards);
     const ids = Object.keys(map).map(Number);
     for (let i = 0; i < ids.length; i++) {
@@ -946,28 +944,19 @@
       await wait(ms(i ? 140 : 260));
       if (t !== token) return;
       const r = el.getBoundingClientRect();
-      if (mode === 'a') {
-        const art = el.querySelector('.zm-art');
-        const nw = document.createElement('div');
-        nw.className = 'zm-art zm-mimic-art';
-        nw.style.setProperty('--bg', ART.TONE[k].bg);
-        nw.innerHTML = ART.face(k) + '<i class="zm-mimic-sweep"></i>';
-        art.after(nw);
-        el.classList.add('is-mimic');
-        if (!fx.reduce()) nw.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: ms(520), easing: 'cubic-bezier(.5,0,.3,1)', fill: 'both' });
-        setTimeout(() => { if (t === token) el.querySelector('.zm-nm').textContent = R.NAMES[k]; }, ms(300));
-      } else {
-        const tag = document.createElement('i');
-        tag.className = 'zm-mimic-tag';
-        tag.innerHTML = ART.face(k).replace('viewBox="0 0 100 100"', 'viewBox="20 12 60 60"');
-        tag.style.setProperty('--tag', ART.TONE[k].band);
-        el.appendChild(tag);
-        if (!fx.reduce()) tag.animate([{ transform: 'scale(0) rotate(-30deg)' }, { transform: 'scale(1.25) rotate(8deg)', offset: 0.6 }, { transform: 'scale(1) rotate(0)' }], { duration: ms(420), easing: 'ease-out' });
-      }
+      const art = el.querySelector('.zm-art');
+      const nw = document.createElement('div');
+      nw.className = 'zm-art zm-mimic-art';
+      nw.style.setProperty('--bg', ART.TONE[k].bg);
+      nw.innerHTML = ART.face(k) + '<i class="zm-mimic-sweep"></i>';
+      art.after(nw);
+      el.classList.add('is-mimic');
+      if (!fx.reduce()) nw.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: ms(520), easing: 'cubic-bezier(.5,0,.3,1)', fill: 'both' });
+      setTimeout(() => { if (t === token) el.querySelector('.zm-nm').textContent = R.NAMES[k]; }, ms(300));
       snd('ding');
       fx.burst(r.left + r.width / 2, r.top + r.height * 0.4, { n: 10, shapes: ['star', 'dot'], colors: ['#e0893e', '#d4607e', '#8a63a8', '#2f8a83', '#c9a24a'], radius: 46, size: [4, 10], life: 700 });
     }
-    if (ids.length) await wait(ms(mode === 'a' ? 900 : 700));
+    if (ids.length) await wait(ms(900));
   }
 
   /* 不行：出牌人喊一嗓子；牌从高处拍下来压在原来那张上，舞台一震、紫色冲击波；

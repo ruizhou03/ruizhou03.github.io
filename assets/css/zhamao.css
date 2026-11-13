@@ -515,13 +515,10 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-callout-q svg { width: 16px; height: 16px; display: block; }
 .zm-callout.is-hit .zm-callout-q { background: #c9a24a; border-color: #9a7632; color: #fffaf0; }
 .zm-callout.is-miss .zm-callout-q { background: var(--zm-seal); border-color: var(--zm-seal); color: #fffaf0; }
-/* 万能猫上桌（预览）：甲变身 / 乙挂牌 */
+/* 万能猫上桌：一道流光扫过，变成它顶的那只猫 */
 .zm-card .zm-mimic-art { overflow: hidden; }
 .zm-mimic-sweep { position: absolute; top: 0; bottom: 0; width: 45%; left: -50%; background: linear-gradient(100deg, transparent, rgba(255, 250, 235, 0.85), transparent); animation: zm-mimic-sweep 0.9s ease-out 0.15s both; }
 @keyframes zm-mimic-sweep { to { left: 110%; } }
-.zm-mimic-tag { position: absolute; right: -9%; top: -7%; width: 40%; aspect-ratio: 1; border-radius: 50%; overflow: hidden; z-index: 3;
-  background: #fffaf0; box-shadow: 0 0 0 2.5px var(--tag, #b08a3e), 0 0 0 4.5px #fffaf0, 0 4px 10px rgba(29, 27, 24, 0.25); }
-.zm-mimic-tag svg { width: 100%; height: 100%; display: block; }
 .zm-cross { position: absolute; inset: 8%; animation: zm-cross-in 0.28s cubic-bezier(.3, 1.6, .5, 1) 0.55s both; }
 .zm-cross svg { width: 100%; height: 100%; }
 @keyframes zm-cross-in { from { transform: scale(2); opacity: 0; } }
