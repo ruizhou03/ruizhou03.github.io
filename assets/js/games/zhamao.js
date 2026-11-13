@@ -1762,7 +1762,7 @@
   function passReact() {
     const s = game.state;
     if (s.phase !== 'react' || !reactOpen) return;
-    if (game.online) { reactOpen = false; renderBand(); renderHand({ flip: false }); snd('untap'); onlineMove({ type: 'pass' }); return; }
+    if (game.online) { clearTimeout(reactAuto); reactOpen = false; renderBand(); renderHand({ flip: false }); snd('untap'); onlineMove({ type: 'pass' }); return; }
     if (tut && tut.mustNope && tut.mustNope(s)) { shake(els.drawBtn); return; }
     clearReactTimer();
     reactOpen = false;
@@ -3219,6 +3219,7 @@
     if (fresh.length && fresh[0].n !== online.lastQueued + 1 && online.lastQueued < g.seq) { resync(); return; }
     if (!fresh.length) { if (!online.playing && !busyLocal()) onlineIdle(); return; }
     online.lastQueued = fresh[fresh.length - 1].n;
+    earlyPass(g);
     for (const raw of fresh) {
       const e = rotEvent(raw);
       const last = online.queue[online.queue.length - 1];
@@ -3383,15 +3384,43 @@
     }
   }
   // 反应窗：每次出牌都烧一根导火索（不管谁有没有作废）；轮到我表态的话，有作废就亮「作废」，没有也能点「取消」提前结束
+  /* 2026-11-12 用户实测：没作废也得点「取消」很怪、窥探 / 抽牌要干等导火索。改成：
+   *   手里没作废 → 不露「取消」，0.5–1 秒后自动替我表态（不立刻：不然「一出牌窗口就关」等于告诉大家我没作废）；
+   *   手里有作废 → 照旧「作废 / 取消」，导火索一烧完就自动算取消（不再干等服务器多留的那 1.2 秒）。 */
+  let reactAuto = 0;
+  // 一收到「有人出牌、轮到我表态、我手里没作废」就开始计时（和桌上的动画同时走，不等动画播完），0.3–0.7 秒后表态
+  function earlyPass(g) {
+    if (!online || !g || !g.myCall || g.st.phase !== 'react' || online.passFor === g.seq) return;
+    if (g.st.hand.some((id) => R.KIND_OF[id] === R.NOPE)) return;
+    online.passFor = g.seq;
+    const at = g.seq;
+    setTimeout(() => {
+      const gg = G();
+      if (!online || !gg || gg.seq !== at || !gg.myCall || gg.st.phase !== 'react') return;
+      onlineMove({ type: 'pass' });
+    }, 300 + Math.random() * 400);
+  }
   function onlineReact(g, mine, remain) {
     const s = game.state;
     if (!els.stage.querySelector('.zm-stage-inner')) { showStage(s.pending, false); if (s.pending.nopes.length) stageVerdict(s.pending.nopes.length); }
-    reactOpen = mine;
-    busy = !mine;
+    const canN = mine && R.canNope(s, 0);
+    reactOpen = canN;
+    busy = !canN;
     renderHand({ flip: false });
     renderBand();
     fuse(remain > 0 ? remain : 0);
-    if (mine) snd('ask');
+    clearTimeout(reactAuto);
+    if (!mine) return;
+    const at = g.seq;
+    const autoPass = () => {
+      const gg = G();
+      if (!online || !gg || gg.seq !== at || !gg.myCall || game.state.phase !== 'react') return;
+      reactOpen = false;
+      renderBand(); renderHand({ flip: false });
+      onlineMove({ type: 'pass' });
+    };
+    if (canN) { snd('ask'); reactAuto = setTimeout(autoPass, Math.max(0, remain)); }
+    else earlyPass(g);   // 没作废：收到状态时多半已经排好了，这里兜个底
   }
 
   /* ───── 我的操作 → 服务器 ───── */
@@ -3427,7 +3456,7 @@
     if (d.type === 'play' && !game.previewSrc) game.preFlyP = preFly(d.cards);
     else if (d.type === 'draw' && !fx.reduce()) { const top = els.deck.querySelector('.zm-deck-stack .zm-card'); if (top) top.animate([{ translate: '0 0' }, { translate: '0 -10px' }, { translate: '0 0' }], { duration: 320, easing: 'ease-out', composite: 'add' }); }
     if (d.type !== 'pass' && d.type !== 'nope' && !game.preFlyP) online.pendingSrc = captureSources(0, d);
-    const slow = setTimeout(() => toast('网络有点慢，稍等…'), 1800);
+    const slow = d.type === 'pass' ? 0 : setTimeout(() => toast('网络有点慢，稍等…'), 1800);
     const body = { d: Object.assign({}, d, d.target != null && d.target >= 0 ? { target: srvOf(d.target) } : {}), at: g ? g.seq : undefined };
     mode = null;
     renderBand();
@@ -3437,6 +3466,7 @@
       onState(res.state);
     } catch (err) {
       clearTimeout(slow);
+      if (d.type === 'pass' && err && err.status === 409) return;   // 窗口已经关了（别人作废 / 已结算）：没关系，等下一份状态
       if (game && game.preFlyP) { await game.preFlyP; game.preFlyP = null; if (!online) return; preview = { cards: d.cards }; endPreview(); }
       if (!online) return;
       online.pendingSrc = null;
