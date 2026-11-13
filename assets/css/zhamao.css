@@ -433,7 +433,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-sound-panel[hidden] { display: none; }
 /* 右上角菜单（照拱猪）：每条 = 左边一个线条小图标 + 一行字 */
 .zm-menu {
-  position: fixed; z-index: 60; width: 196px; max-width: calc(100vw - 16px); padding: 6px;
+  position: fixed; z-index: 60; width: 220px; max-width: calc(100vw - 16px); padding: 6px;
   background: var(--zm-paper); border: 1px solid var(--zm-ink); border-radius: 12px; box-shadow: 0 10px 26px rgba(20, 18, 15, 0.18);
   display: flex; flex-direction: column; max-height: calc(100vh - 80px); overflow-y: auto;
 }
@@ -443,7 +443,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   border: 0; background: none; padding: 8px 10px; border-radius: 8px; font: inherit; color: var(--zm-ink); cursor: pointer;
 }
 .zm-menu button:hover, .zm-menu button:focus-visible { background: var(--zm-wash); outline: none; }
-.zm-menu b { font-size: 15px; font-weight: 700; }
+.zm-menu b { font-size: 15px; font-weight: 700; white-space: nowrap; }
 .zm-menu-ic { width: 22px; height: 22px; fill: none; stroke: var(--zm-ink); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .zm-menu hr { border: 0; border-top: 1px solid rgba(29, 27, 24, 0.14); margin: 4px 8px; }
 .zm-tool[hidden] { display: none; }
@@ -869,3 +869,21 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app.is-coaching .zm-seat-me.is-coach-focus { position: absolute; }
 .zm-app.is-coaching .zm-coach { z-index: 44; }
 .zm-coach[hidden] { display: none !important; }   /* 上面讲解样式写了 display:flex，别把「藏起来」盖掉 */
+/* 大厅新版（预览 ?lobbyv=2） */
+.zm-lobby-inner.is-v2 { gap: 12px; }
+.zm-lobby-brand { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: -26px; }
+.zm-lobby-brand .art { width: 132px; }
+.zm-lobby-brand .art svg { width: 100%; height: auto; display: block; }
+.zm-lobby-brand b { font-size: 24px; font-weight: 700; letter-spacing: 0.3em; text-indent: 0.3em; }
+.zm-lobby-code { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; padding: 0 2px; }
+.zm-lobby-code small { display: block; font-size: 12px; color: var(--zm-ink-mute); letter-spacing: 0.1em; }
+.zm-lobby-code b { font: 700 36px/1.05 Georgia, 'Songti SC', serif; letter-spacing: 0.14em; }
+.zm-lobby-code .acts { display: flex; gap: 6px; padding-bottom: 4px; }
+.zm-pill { border: 1.5px solid var(--zm-ink); background: var(--zm-card); color: var(--zm-ink); font: inherit; font-size: 13px; border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+.zm-pill.is-on { background: var(--zm-ink); color: var(--zm-paper); }
+.zm-lobby-qr { align-self: center; padding: 8px; background: #fbf8f1; border: 1px solid rgba(29, 27, 24, 0.2); border-radius: 12px; }
+.zm-lobby-qr canvas, .zm-lobby-qr svg, .zm-lobby-qr img { display: block; width: 150px; height: 150px; }
+.zm-lobby-inner.is-v2 .zm-lseat { position: relative; }
+.zm-lseat .ord { position: absolute; left: 5px; top: 4px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: var(--zm-ink); color: var(--zm-paper); font: 700 10.5px/16px Georgia, serif; font-style: normal; text-align: center; }
+.zm-lobby-inner.is-v2 .zm-lseat.is-me .ord { background: var(--zm-seal); }
+.zm-lobby-tools { position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 12px; display: flex; gap: 8px; z-index: 2; }
