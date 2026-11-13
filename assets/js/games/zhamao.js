@@ -2715,13 +2715,13 @@
       '<div class="zs-line"><span>出牌限时</span>' + secs + '</div></section>' +
       '<div class="zs-cap">玩法</div><section class="zs-card">' +
       row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
-      row('defuse', '多的逗猫棒全放回', '关着 = 最多放回 2 张', sw('extraDefuse', settings.rules.extraDefuse === 'all')) +
+      row('defuse', '多的逗猫棒全放回', '', sw('extraDefuse', settings.rules.extraDefuse === 'all')) +
       '</section>';
-    const pref = '<div class="zs-cap">操作</div><section class="zs-card">' +
-      row('nope', '作废只在和我有关时问', '别人洗牌、窥探、改命、互相甩锅 / 偷牌时，手里有作废也不等你表态', '<button type="button" class="zs-switch" data-pref="nopeMine" role="switch" aria-checked="' + !!settings.nopeMine + '"><i></i></button>') +
+    const pref = '<div class="zs-cap">作废</div><section class="zs-card">' +
+      row('nope', '只在和我有关时询问', '', '<button type="button" class="zs-switch" data-pref="nopeMine" role="switch" aria-checked="' + !!settings.nopeMine + '"><i></i></button>') +
       '</section>';
     // 联机：机器猫 / 规则由房主定，这里只有自己的操作偏好
-    if (online) html = '<h2>设置</h2>' + pref.replace('<div class="zs-cap">操作</div>', '');
+    if (online) html = '<h2>设置</h2>' + pref;
     else html += pref;
     html += '<p class="zs-note" data-rule-note hidden>规则从下一局起生效</p><div class="zm-actions">' +
       (fromCover || !game || game.tutorial || online ? '' : '<button type="button" class="zm-btn" data-restart>重开一局</button>') +
@@ -3258,6 +3258,7 @@
     if (soundPanel) soundPanel.hidden = true;
     refreshCover();
     coverStep('main');
+    els.cover.classList.remove('is-loading');
     els.cover.hidden = false;
     refreshTools();
     bgm('menu');
@@ -3273,10 +3274,12 @@
     items.forEach((n, i) => n.animate([{ transform: 'translateY(16px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 420, delay: i === 0 ? 0 : (title ? 380 : 60) + i * 80, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
   }
   // 进度条跑完：按钮一个个浮上来
+  // 进度条跑完：插画和标题往上滑到位，单机 / 联机跟着一个个浮上来
   function coverReveal() {
     coverStep('main');
+    els.cover.classList.remove('is-loading');
     if (fx.reduce()) return;
-    els.cover.querySelectorAll('.zm-cover-btn:not([hidden]), .zm-cover-foot:not([hidden])').forEach((n, i) => n.animate([{ transform: 'translateY(14px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 380, delay: i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
+    els.cover.querySelectorAll('[data-cover-step="main"] .zm-cover-btn:not([hidden]), .zm-cover-foot[data-cover-step="main"]:not([hidden])').forEach((n, i) => n.animate([{ transform: 'translateY(18px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 420, delay: 260 + i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
   }
 
   /* ═════════════ 联机（第二期，2026-11-12）═════════════
@@ -4019,10 +4022,16 @@
     const join = els.cover.querySelector('.zm-join'), open = els.cover.querySelector('[data-cover="join-open"]'), input = $('zmJoinCode');
     $('zmOnlineErr').hidden = true;
     input.value = code ? String(code).replace(/\D/g, '').slice(0, 4) : '';
-    join.hidden = !code; open.hidden = !!code;
-    els.cover.querySelector('[data-cover="watch"]').hidden = input.value.length !== 4;
+    setJoinMode(!!code);
     els.cover.querySelectorAll('[data-cover-step="online"] button').forEach((x) => { x.disabled = false; });
     coverStep('online');
+  }
+  // 联机这一步的两种样子：选「创建 / 加入」，或者已经点了加入（只剩输房间号 + 观战 / 加入）
+  function setJoinMode(on) {
+    els.cover.querySelector('.zm-join').hidden = !on;
+    els.cover.querySelector('[data-cover="join-open"]').hidden = on;
+    els.cover.querySelector('[data-cover="create"]').hidden = on;
+    $('zmOnlineErr').hidden = true;
   }
   function onlineFail(e) {
     const err = $('zmOnlineErr');
@@ -4103,7 +4112,7 @@
       '<section class="zs-card zs-b zm-lobby-rules"><div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
       TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
       row('swap', '有交换牌', '', sw('swap', rules.swap)) +
-      row('defuse', '多的逗猫棒全放回', '关着 = 最多放回 2 张', sw('extraDefuse', rules.extraDefuse === 'all')) +
+      row('defuse', '多的逗猫棒全放回', '', sw('extraDefuse', rules.extraDefuse === 'all')) +
       '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">规则由房主定</p>') +
       (myP ? '<section class="zs-card zs-b zm-lobby-me">' + row('future', '观战者能看我的手牌', '', '<button type="button" class="zs-switch" data-l="reveal" role="switch" aria-checked="' + !!myP.showHand + '"><i></i></button>') + '</section>' : '') +
       '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">离开房间</button>' +
@@ -4209,16 +4218,13 @@
     // 单机：有上一局 → 先问「接着打 / 开新的一局」；没有就直接选人数
     if (k === 'solo') { refreshSolo(); coverFrom = 'again'; coverStep('again'); snd('tap'); return; }
     if (k === 'fresh') { refreshSolo(); coverStep('solo'); snd('tap'); return; }
+    if (k === 'back' && !els.cover.querySelector('.zm-join').hidden && !els.cover.querySelector('[data-cover-step="online"]').hidden) { setJoinMode(false); return; }
     if (k === 'back') { const step = els.cover.querySelector('[data-cover-step="solo"]:not([hidden])') && coverFrom === 'again' ? 'again' : 'main'; coverStep(step); if (step === 'main') coverFrom = 'main'; return; }
     if (k === 'start') { settings.players = Math.min(SOLO_MAX, settings.players); soloStart(); return; }
     if (k === 'resume-solo') { const saved = loadSaved(); if (saved) resumeGame(saved); else refreshSolo(); return; }
     if (k === 'online') { showOnlineEntry(); return; }
     if (k === 'create') { onlineCreate(); return; }
-    if (k === 'join-open') {
-      b.hidden = true; els.cover.querySelector('.zm-join').hidden = false; $('zmOnlineErr').hidden = true;
-      setTimeout(() => $('zmJoinCode').focus(), 30);
-      return;
-    }
+    if (k === 'join-open') { setJoinMode(true); setTimeout(() => $('zmJoinCode').focus(), 30); return; }
     if (k === 'join') { onlineJoin('play'); return; }
     if (k === 'watch') { onlineJoin('watch'); return; }
     if (k === 'resume') { const sess = NET && NET.readSession(); if (sess) resumeOnline(sess); return; }
@@ -4230,7 +4236,6 @@
   $('zmJoinCode').addEventListener('input', (e) => {
     const inp = e.target;
     inp.value = inp.value.replace(/\D/g, '').slice(0, 4);
-    els.cover.querySelector('[data-cover="watch"]').hidden = inp.value.length !== 4;
     $('zmOnlineErr').hidden = true;
   });
   $('zmJoinCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') onlineJoin('play'); });
@@ -4285,6 +4290,7 @@
   // 进来先是主菜单 + 一条进度条（等字体到位，太快也让它走完一程，不闪），跑完换成按钮
   (function boot() {
     coverStep('load');
+    els.cover.classList.add('is-loading');   // 加载时插画 + 标题在屏幕正中
     bgm('menu');   // 主页的丁：浏览器要等第一次点按才出声
     coverIntro(true);
     const bar = els.cover.querySelector('.zm-cover-load i');

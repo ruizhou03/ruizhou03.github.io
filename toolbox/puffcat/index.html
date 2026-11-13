@@ -142,9 +142,10 @@ body_class: zm-fullscreen
         <button type="button" class="zm-solo-back" data-cover="back" aria-label="返回"></button>
         <button type="button" class="zm-cover-btn is-primary" data-cover="create"><b>创建房间</b></button>
         <button type="button" class="zm-cover-btn" data-cover="join-open"><b>加入房间</b></button>
+        <!-- 点了「加入房间」：「创建房间」收起来，只剩输房间号 + 左「观战」右「加入」 -->
         <div class="zm-join" hidden>
-          <div class="zm-join-row"><input class="zm-input" id="zmJoinCode" inputmode="numeric" maxlength="4" placeholder="房间号" autocomplete="off" aria-label="房间号"><button type="button" class="zm-btn zm-btn-primary" data-cover="join">加入</button></div>
-          <button type="button" class="zm-cover-link zm-join-watch" data-cover="watch" hidden>只观战</button>
+          <input class="zm-input zm-join-code" id="zmJoinCode" inputmode="numeric" maxlength="4" placeholder="房间号" autocomplete="off" aria-label="房间号">
+          <div class="zm-join-btns"><button type="button" class="zm-cover-btn" data-cover="watch"><b>观战</b></button><button type="button" class="zm-cover-btn is-primary" data-cover="join"><b>加入</b></button></div>
         </div>
         <p class="zm-err zm-online-err" id="zmOnlineErr" hidden></p>
       </div>

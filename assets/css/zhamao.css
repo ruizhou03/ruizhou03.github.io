@@ -67,9 +67,10 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; }
 .zm-topleft { display: flex; align-items: center; gap: 10px; }
 .zm-title { font-size: 17px; font-weight: 700; letter-spacing: 0.08em; }
+/* 「跳过教程 / 退出本关」：灰色划线小字（2026-11-13 用户：不要做成按钮） */
 .zm-skip {
-  border: 1px solid var(--zm-ink); background: var(--zm-paper); color: var(--zm-ink); font: inherit; font-size: 13px;
-  border-radius: 999px; padding: 4px 12px; cursor: pointer;
+  border: 0; background: none; color: var(--zm-ink-mute); font: inherit; font-size: 13px; padding: 4px 2px; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 4px; text-decoration-color: rgba(106, 99, 88, 0.4);
 }
 .zm-tools { display: flex; gap: 8px; }
 .zm-tool {
@@ -713,7 +714,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-cover-btn.is-resume { border-color: var(--zm-seal); color: var(--zm-seal); }
 .zm-online-new { width: 100%; margin: 6px 0 4px; }
 .zm-join-row { display: flex; gap: 8px; }
-.zm-join-row .zm-input { flex: 1; letter-spacing: 0.3em; text-align: center; font-size: 20px; font-family: Georgia, serif; }
+.zm-join-row .zm-input { flex: 1; letter-spacing: 0.3em; text-align: center; font-size: 20px; }
 .zm-invite-qr { display: flex; justify-content: center; margin: 12px 0 6px; }
 .zm-invite-qr canvas { width: 168px; height: 168px; image-rendering: pixelated; border-radius: 8px; }
 .zm-invite-url { font-size: 12px; color: var(--zm-ink-mute); word-break: break-all; text-align: center; -webkit-user-select: text; user-select: text; }
@@ -837,13 +838,20 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 能扔道具的头像：鼠标移上去给个手形 */
 .zm-app.can-social .zm-opps .zm-seat:not(.is-out) .zm-av { cursor: pointer; }
 /* 主页「联机」那一步：创建房间 / 加入房间（点了变成输房间号那一行） */
-.zm-join { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.zm-join .zm-join-row { width: 100%; }
-.zm-join .zm-join-row .zm-btn { padding-left: 22px; padding-right: 22px; }
+.zm-join { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+/* 房间号：和游戏其他字一个字体（不要系统等线），数字间距拉开 */
+.zm-join-code { height: 58px; border-radius: 12px; border-width: 1.5px; text-align: center; font-family: inherit; font-size: 22px; font-weight: 700; letter-spacing: 0.4em; text-indent: 0.4em; }
+.zm-join-code::placeholder { font-family: inherit; font-size: 17px; font-weight: 400; letter-spacing: 0.2em; color: var(--zm-ink-faint); }
+.zm-join-btns { display: flex; gap: 12px; }
+.zm-join-btns .zm-cover-btn { flex: 1; }
 .zm-online-err { text-align: center; margin: 0; font-size: 13.5px; }
 /* 主页各层一致（2026-11-13 用户：点单机 / 联机后整页别变）：插画和标题固定在同一高度，下面换的只是按钮区；
-   每一层的按钮都一样宽（主页也让出两边各 50px，返回箭头就落在左边那块里） */
-.zm-cover { align-items: flex-start; padding-top: max(24px, calc(50vh - 290px)); }
+   每一层的按钮都一样宽（主页也让出两边各 50px，返回箭头就落在左边那块里）。
+   高度：「插画 + 标题 + 单机 / 联机两个按钮」这一整组放在屏幕正中（插画高 = 宽 × 0.63，标题 + 两个按钮 + 间距约 220px）；
+   加载进度条时只有插画和标题，整组往下挪半个按钮区、正好居中，进度条跑完再往上滑到位、按钮跟着出来 */
+.zm-cover { --cover-art-h: calc(min(70vw, 280px) * 0.63); align-items: flex-start; padding-top: max(20px, calc(50vh - (var(--cover-art-h) + 230px) / 2)); }
+.zm-cover-inner { transition: transform 0.6s cubic-bezier(.3, .8, .3, 1); }
+.zm-cover.is-loading .zm-cover-inner { transform: translateY(58px); }
 .zm-cover-btns { width: calc(100% - 100px); align-self: center; }
 /* 教程讲解（2026-11-13 用户：照拱猪——讲的话摆在正中，别的都蒙灰，不弹框）：
    讲解时整张桌子蒙一层浅宣纸色；讲解本身不要框，大字居中、周围一圈宣纸色晕开，上面一枚「教」字小印，下面一笔淡金细线 */
