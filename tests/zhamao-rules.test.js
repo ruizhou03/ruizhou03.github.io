@@ -72,13 +72,15 @@ test('setup for 2..5 players', () => {
         assert.equal(R.countKind(h, R.BOOM), 0);
       }
       const defInDeck = s.deck.filter((id) => R.KIND_OF[id] === R.DEFUSE).length;
-      assert.equal(defInDeck, Math.min(2, 6 - n));
+      assert.equal(defInDeck, 6 - n);   // 默认：剩下的逗猫棒全放回（官方规则）
       // 没放回的炸毛猫 / 逗猫棒收进盒子（不参与这局），弃牌堆一开始是空的
       assert.equal(s.discard.length, 0);
-      assert.equal(s.removed.length, (4 - (n - 1)) + (6 - n - Math.min(2, 6 - n)) + 3 + (R.DECK_SIZE - R.BASE_SIZE)); // + 3 张交换（没开交换牌）+ 整个第二副
+      assert.equal(s.removed.length, (4 - (n - 1)) + 3 + (R.DECK_SIZE - R.BASE_SIZE)); // + 3 张交换（没开交换牌）+ 整个第二副
       assert.ok(s.deck.concat(...s.hands).every((id) => id < R.BASE_SIZE), '5 人及以下只用第一副');
     }
   }
+  const two = R.createGame(2, 3, { extraDefuse: 'two' });   // 关掉「全放回」：最多放回 2 张
+  assert.equal(two.deck.filter((id) => R.KIND_OF[id] === R.DEFUSE).length, 2);
   const all = R.createGame(2, 3, { extraDefuse: 'all' });
   assert.equal(all.deck.filter((id) => R.KIND_OF[id] === R.DEFUSE).length, 4);
 });

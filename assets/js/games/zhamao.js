@@ -49,7 +49,9 @@
   function writeJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (_) { /* 无痕模式：不存也能玩 */ } }
   const settings = Object.assign({ players: 4, tier: 'normal', turnSec: 20 }, readJSON(SETTINGS_KEY) || {});
   // 2026-11-12 起甩锅默认叠加：老设置里存的「不叠加」是当时的默认值，改成新默认（之后自己再改就记住）
-  if (settings.rulesV !== 2) { settings.rules = Object.assign({}, settings.rules, { stackAttack: true }); settings.rulesV = 2; }
+  if (settings.rulesV !== 2 && settings.rulesV !== 3) { settings.rules = Object.assign({}, settings.rules, { stackAttack: true }); settings.rulesV = 2; }
+  // 2026-11-13 起「多的逗猫棒全放回」默认开（官方规则）：老设置里存的「最多放回 2 张」是当时的默认值，改成新默认（之后自己再关就记住）
+  if (settings.rulesV !== 3) { settings.rules = Object.assign({}, settings.rules, { extraDefuse: 'all' }); settings.rulesV = 3; }
   settings.rules = R.normalizeRules(settings.rules);
   if (!(settings.players >= R.MIN_PLAYERS && settings.players <= R.MAX_PLAYERS)) settings.players = 4;
   if (AI.TIERS.indexOf(settings.tier) < 0) settings.tier = 'normal';
@@ -2717,8 +2719,8 @@
       row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
       row('defuse', '多的逗猫棒全放回', '', sw('extraDefuse', settings.rules.extraDefuse === 'all')) +
       '</section>';
-    const pref = '<div class="zs-cap">作废</div><section class="zs-card">' +
-      row('nope', '只在和我有关时询问', '', '<button type="button" class="zs-switch" data-pref="nopeMine" role="switch" aria-checked="' + !!settings.nopeMine + '"><i></i></button>') +
+    const pref = '<div class="zs-cap">操作</div><section class="zs-card">' +
+      row('nope', '「作废」只在和我有关时询问', '', '<button type="button" class="zs-switch" data-pref="nopeMine" role="switch" aria-checked="' + !!settings.nopeMine + '"><i></i></button>') +
       '</section>';
     // 联机：机器猫 / 规则由房主定，这里只有自己的操作偏好
     if (online) html = '<h2>设置</h2>' + pref;

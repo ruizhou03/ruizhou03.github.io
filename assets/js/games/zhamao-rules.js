@@ -18,7 +18,7 @@
  *   三张同样   指定一人并点名一种牌，他有就得给你一张，没有就落空
  *   五张各不同 从弃牌堆里挑任意一张（炸毛猫除外）
  * 开局：抽出炸毛猫和逗猫棒，余下洗匀每人发 4 张，再每人发 1 张逗猫棒；
- *       放回「人数 −1」张炸毛猫，再放回 min(2, 剩余) 张逗猫棒（RULES.extraDefuse='all' 时全放回），洗匀；
+ *       放回「人数 −1」张炸毛猫，再把剩下的逗猫棒全放回（官方规则；RULES.extraDefuse='two' 时最多放回 2 张），洗匀；
  *       多出来的收进盒子（state.removed），这局不用。
  * 回合：可以出任意多张 / 组合（每出一次都留一个「不行」反应窗），最后摸一张牌结束回合。
  *       甩锅叠加（RULES.stackAttack）：默认开 = 被甩锅的人再甩锅，剩下的回合 +2 一起甩走（可以一路越叠越多）；关 = 下家仍只摸两回合。
@@ -88,7 +88,8 @@
     extraDefuse: ['two', 'all'],
     swap: [false, true],
   });
-  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'two', swap: false });
+  // 2026-11-13 起「多的逗猫棒全放回」默认开（官方规则：每人先发 1 根逗猫棒，剩下的全洗回牌堆）
+  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false });
   const swapsInPlay = (n) => Math.min(usesSecondDeck(n) ? 6 : 3, n - 1);
   function normalizeRules(r) {
     const out = {};
