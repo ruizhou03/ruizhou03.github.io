@@ -546,6 +546,14 @@
     const b = seat >= 0 && game ? seatEl(seat) : null;
     if (b) { b.classList.add('is-acting'); fx.pop(b.querySelector('.zm-av'), { scale: 1.12, dur: 300 }); }
   }
+  /* 被抽牌 / 被点名要牌的人（2026-11-13 用户：只亮出牌人的头像，人一多看不出在抽谁）：头像一圈金光一明一暗，直到牌拿走 / 落空 */
+  function markVictim(seat) {
+    document.querySelectorAll('.zm-seat.is-victim').forEach((b) => b.classList.remove('is-victim'));
+    const b = seat >= 0 && game ? seatEl(seat) : null;
+    if (b) b.classList.add('is-victim');
+  }
+  // 抽牌前「想一下」多久：只剩一张没得挑，不用红光游走，停一下就抽
+  const stealThink = (count) => (count <= 1 ? ms(250) : pace().bot + ms(700));
   // 准星：套在被指的人头像上（代替原来那根长虚线箭头）；颜色按牌：蹭一张粉、推锅橙、偷 / 点名金
   function aim(seat, color) {
     const box = seatEl(seat), av = box && box.querySelector('.zm-av');
@@ -599,6 +607,7 @@
     stopFuse();
     if (game && game.arrow) { game.arrow.remove(); game.arrow = null; }
     setActing(-1);
+    markVictim(-1);
     els.stage.innerHTML = '';
     els.stage.classList.remove('is-cancelled');
   }
@@ -688,7 +697,7 @@
   // 托管时轮到我：照机器猫的判断走（不是死摸牌）
   function autoMove() {
     if (game.state.phase === 'steal') { if (game.wander) game.wander.cancel(); game.wander = startWander(game.state.steal.from, game.state.steal.perm.length); }
-    schedule(pace().bot + (game.state.phase === 'steal' ? ms(700) : 0), () => {
+    schedule(game.state.phase === 'steal' ? stealThink(game.state.steal.perm.length) : pace().bot, () => {
       if (!game) return;
       if (!autopilot) { if (game.wander) { game.wander.cancel(); game.wander = null; } step(); return; }   // 排着的这一步还没走就取消托管了：把操作还给我
       autoAct = true;
@@ -749,7 +758,7 @@
           const by = s.steal.by;
           if (game.wander) game.wander.cancel();
           game.wander = startWander(s.steal.from, s.steal.perm.length);
-          schedule(pace().bot + ms(700), () => apply(by, decideBot(by)));
+          schedule(stealThink(s.steal.perm.length), () => apply(by, decideBot(by)));
         }
         break;
       case 'alter':
@@ -1275,6 +1284,7 @@
     });
     if (t !== token) return;
     if (e.to === 0) revealHandCard(e.card, to); else { ov.counts[e.to] += 1; renderSeat(e.to); fx.pop(avEl(e.to), { scale: 1.15 }); }
+    markVictim(-1);
     await wait(ms(220));
   }
 
@@ -1284,6 +1294,7 @@
    * 选得早就早落（不白等）。这套机制联机直接复用：收到对方的选择就 settle。 */
   function startWander(fromSeat, count) {
     let fan = null, cur = -1, timer = 0, done = false;
+    markVictim(fromSeat);
     if (fromSeat !== 0) {
       const av = avEl(fromSeat), ar = av ? av.getBoundingClientRect() : { left: innerWidth / 2, top: 60, width: 40, height: 40 };
       const w = PU() * 0.6;
@@ -1318,13 +1329,14 @@
       mark(j);
       if (sound) snd('tick');
     };
+    const single = count <= 1;   // 只剩一张（2026-11-13 用户）：不游走，红光直接停在这张上，选中后停一下就抽走
     hop(false);
-    timer = setInterval(() => hop(false), 190);
+    if (!single) timer = setInterval(() => hop(false), 190);
     return {
       async settle(pick) {
         if (done) return null;
         clearInterval(timer);
-        for (const d of [220, 300, 420]) { if (done) return null; hop(true); await wait(ms(d)); }
+        if (!single) for (const d of [220, 300, 420]) { if (done) return null; hop(true); await wait(ms(d)); }
         if (done) return null;
         const arr = items();
         if (!arr.length) return null;
@@ -1333,7 +1345,7 @@
         arr[i].classList.add('is-chosen');
         snd('ding');
         if (!fx.reduce()) arr[i].animate([{ scale: '1' }, { scale: '1.08', offset: 0.35 }, { scale: '1' }], { duration: 360, easing: 'ease-out' });
-        await wait(ms(950));   // 停一下：让人看清抽中的是哪张
+        await wait(ms(single ? 420 : 950));   // 停一下：让人看清抽中的是哪张（只有一张时短一点）
         return arr[i];
       },
       cancel() {
@@ -1347,7 +1359,8 @@
   /* 我来抽：他的手牌扣着摊开（顺序打乱过），点一张；限时到了红光游走几下替我点一张 */
   function stealPicker() {
     const s = game.state, from = s.steal.from, k = s.steal.perm.length;
-    const limit = dlgLimit();
+    const limit = k <= 1 ? 0 : dlgLimit();   // 只剩一张：没得挑，不计时
+    markVictim(from);
     openStage('<h2>抽 ' + esc(nameOf(from)) + ' 一张牌</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
       // 扣着的牌像捏在手里一样扇形摊开（用户 2026-11-12：别一板一眼排一排）；张数多就收窄每张的角度
       '<div class="zm-steal-pick is-fan" data-steal data-stagger style="--fan-h:' + (k > 7 ? 1.18 : 1.08) + '">' + Array.from({ length: k }, (_, i) => {
@@ -1371,6 +1384,7 @@
         if (auto && timeouts >= 2) setAutopilot(true);
       };
       btns.forEach((b, i) => b.addEventListener('click', () => commit(i, false)));
+      if (k <= 1) { setTimeout(() => commit(0, false), ms(260)); return; }   // 只剩一张：直接选中它、停一下就抽走
       if (limit) {
         const my = token, bar = d.querySelector('.zm-dlg-timer');
         bar.querySelector('i').animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: limit, easing: 'linear', fill: 'forwards' });
@@ -1471,41 +1485,86 @@
     await animTransfer(e, t, 'steal');
   }
 
-  /* 三张点名：点中——那张牌亮着金光从他手里跳出来，正面朝上飞过去；落空——点名的牌晃晃脑袋、打个红叉、冒烟 */
-  async function animTake(e, t) {
+  /* 三张点名（2026-11-13 用户：太快，牌还没看清就拿过来了）——放慢、分三拍：
+   *   ① 点名的那张牌从桌上飞到被点名的人头像旁边（对手在上面就落在头像下方，我在下面就落在头像上方），头顶一个「？」，他的头像亮金光、抖两下像在翻找；
+   *   ② 有：这张牌亮金边、蹦一下、冒星星，停一会儿让大家看清是什么；没有：牌左右摇头、打红叉、冒烟；
+   *   ③ 有的话：这张牌从那儿飞进出牌人手里（我拿到就落进手牌） */
+  async function namedCallout(e, t) {
     if (game.arrow) { game.arrow.remove(); game.arrow = null; }
-    const b = avPoint(e.from);
+    markVictim(e.from);
+    const av = avEl(e.from), ar = av ? av.getBoundingClientRect() : { left: innerWidth / 2 - 20, top: 80, width: 40, height: 40, bottom: 120 };
+    const u = Math.min(104, Math.max(U(), 76)), h = u * 1.4;   // 要看得清：至少 76px 宽
+    const below = ar.top + ar.height / 2 < innerHeight / 2;
+    const x = Math.min(Math.max(ar.left + ar.width / 2 - u / 2, 8), innerWidth - u - 8);
+    const y = below ? ar.bottom + 30 : ar.top - h - 22;
+    const el = document.createElement('div');
+    el.className = 'zm-flyer zm-callout';
+    el.style.width = u + 'px'; el.style.height = h + 'px';
+    el.innerHTML = cardHtml(e.named) + '<b class="zm-callout-q">？</b>';
+    els.fly.appendChild(el);
+    const sn = els.stage.querySelector('.zm-stage-named .zm-card');
+    const sr = sn ? sn.getBoundingClientRect() : null;
+    const from = sr ? fx.T(sr.left + sr.width / 2 - u / 2, sr.top + sr.height / 2 - h / 2, sr.width / u, 0) : fx.T(x, y + 30, 0.3, 0);
+    if (sn) sn.style.visibility = 'hidden';
+    snd('whoosh');
+    await fx.animate(el, [
+      { transform: from, opacity: sr ? 1 : 0 },
+      { transform: fx.T(x, y - 10, 1.08, -4), opacity: 1, offset: 0.7 },
+      { transform: fx.T(x, y, 1, 0), opacity: 1 },
+    ], { duration: ms(620), easing: 'cubic-bezier(.3,.7,.3,1)' }).finished.catch(() => {});
+    if (t !== token) { el.remove(); return null; }
+    el.style.transform = fx.T(x, y, 1, 0);
+    // 他在翻手牌找：头像抖两下
+    fx.shake(seatEl(e.from), { amp: 3, dur: 420 });
+    await wait(ms(560));
+    return { el, x, y, u, h };
+  }
+  async function animTake(e, t) {
+    const c = await namedCallout(e, t);
+    if (!c) return;
+    const { el, x, y, u, h } = c;
+    // ② 有！金边、蹦一下、冒星星，停一会儿
+    el.classList.add('is-hit');
+    el.querySelector('.zm-callout-q').textContent = '有';
     snd('ding');
-    fx.burst(b.x, b.y, { n: 14, shapes: ['star'], colors: GOLDS, radius: 60, size: [6, 18], life: 800 });
-    const src = e.from === 0 ? handRectOf(e.card) : b;
+    fx.burst(x + u / 2, y + h / 2, { n: 16, shapes: ['star'], colors: GOLDS, radius: 70, size: [6, 18], life: 900 });
+    await fx.animate(el, [{ transform: fx.T(x, y, 1, 0) }, { transform: fx.T(x, y - 8, 1.16, 0), offset: 0.4 }, { transform: fx.T(x, y, 1, 0) }], { duration: ms(420), easing: 'ease-out' }).finished.catch(() => {});
+    await wait(ms(700));
+    if (t !== token) { el.remove(); return; }
+    // ③ 飞进出牌人手里
+    const src = el.getBoundingClientRect();
+    el.remove();
     if (e.from === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.from] -= 1; renderSeat(e.from); }
-    const u = U();
     const to = e.to === 0 ? reserveHandSlot(e.card) : avPoint(e.to);
-    await fx.fly({ html: cardHtml(e.card), from: src, to, w: u, s0: e.from === 0 ? 1 : 0.5, s1: e.to === 0 ? 1 : 0.5, fadeOut: e.to !== 0, dur: ms(680), lift: 110, r0: -14, r1: 0, swell: 0.5 });
+    snd('steal');
+    await fx.fly({ html: cardHtml(e.card), from: src, to, w: u, s0: 1, s1: e.to === 0 ? U() / u : 0.5, fadeOut: e.to !== 0, dur: ms(820), lift: 90, r0: 0, r1: 0, swell: 0.3 });
     if (t !== token) return;
     if (e.to === 0) revealHandCard(e.card); else { ov.counts[e.to] += 1; renderSeat(e.to); fx.pop(avEl(e.to), { scale: 1.15 }); }
+    markVictim(-1);
     await wait(ms(260));
   }
   async function animMiss(e, t) {
-    if (game.arrow) { game.arrow.remove(); game.arrow = null; }
-    const b = avPoint(e.from), u = U() * 0.8;
-    const el = document.createElement('div');
-    el.className = 'zm-flyer';
-    el.style.width = u + 'px'; el.style.height = u * 1.4 + 'px';
-    el.innerHTML = cardHtml(e.named) + '<div class="zm-cross">' + ART.PROPS.cross + '</div>';
-    els.fly.appendChild(el);
-    const x = Math.min(Math.max(b.x - u / 2, 8), innerWidth - u - 8), y = b.y - u * 1.6;
+    const c = await namedCallout(e, t);
+    if (!c) return;
+    const { el, x, y, u, h } = c;
+    // ② 没有：摇头、打红叉、冒烟
+    el.classList.add('is-miss');
+    el.querySelector('.zm-callout-q').textContent = '没有';
+    el.insertAdjacentHTML('beforeend', '<div class="zm-cross" style="animation-delay:.25s">' + ART.PROPS.cross + '</div>');
+    snd('miss');
     await fx.animate(el, [
-      { transform: fx.T(x, y + 20, 0.3, 0), opacity: 0 },
-      { transform: fx.T(x, y, 1.05, 0), opacity: 1, offset: 0.16 },
-      { transform: fx.T(x, y, 1, -12), opacity: 1, offset: 0.28 },
-      { transform: fx.T(x, y, 1, 12), opacity: 1, offset: 0.4 },
-      { transform: fx.T(x, y, 1, -8), opacity: 1, offset: 0.5 },
-      { transform: fx.T(x, y, 1, 0), opacity: 1, offset: 0.6 },
-      { transform: fx.T(x, y, 1, 0), opacity: 1, offset: 0.82 },
-      { transform: fx.T(x, y - 20, 0.8, 0), opacity: 0 },
-    ], { duration: ms(1300) }).finished.catch(() => {});
+      { transform: fx.T(x, y, 1, 0) },
+      { transform: fx.T(x, y, 1, -12), offset: 0.2 },
+      { transform: fx.T(x, y, 1, 12), offset: 0.4 },
+      { transform: fx.T(x, y, 1, -8), offset: 0.6 },
+      { transform: fx.T(x, y, 1, 0), offset: 0.8 },
+      { transform: fx.T(x, y, 1, 0) },
+    ], { duration: ms(900) }).finished.catch(() => {});
+    if (!fx.reduce()) fx.smoke(x + u / 2, y + h / 2, { n: 5, spread: 14, size: [20, 34], rise: 30 });
+    await wait(ms(650));
+    await fx.animate(el, [{ transform: fx.T(x, y, 1, 0), opacity: 1 }, { transform: fx.T(x, y - 20, 0.8, 0), opacity: 0 }], { duration: ms(360) }).finished.catch(() => {});
     el.remove();
+    markVictim(-1);
     void t;
   }
 
@@ -3789,7 +3848,7 @@
     if (els.stage.querySelector('.zm-fuse.is-lit') && first.t !== 'nope') stopFuse();
     // 机器猫（含替人代打）做的一步：先「想一下」再播；偷牌先让红光在被偷的人牌上游走一会儿
     if (first.t === 'steal' && first.to !== 0) {
-      if (!game.wander) { game.wander = startWander(first.from, game.state.steal ? game.state.steal.perm.length : game.state.hands[first.from].length); await wait(pace().bot + ms(700)); }
+      if (!game.wander) { const cnt = game.state.steal ? game.state.steal.perm.length : game.state.hands[first.from].length; game.wander = startWander(first.from, cnt); await wait(stealThink(cnt)); }
     } else if (first.bot && first.who > 0) {
       if (first.t === 'nope') await wait(500 + Math.random() * 500);
       else { const b = bubble(first.who, '', { think: true, ms: 60000 }); await wait(pace().bot); if (b) b.remove(); }
@@ -4448,6 +4507,9 @@
       stealme: () => { give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: 0 }); },
       stealbot: () => { const o = 2 % s.n; give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: o === bot ? 0 : o }); },
       triple: () => { give(bot, 'tabby'); give(bot, 'tabby'); give(bot, 'tabby'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: 0, named: R.DEFUSE }); },
+      // 我点名要机器猫的「跳过」（他有）/ 机器猫点名要我的「交换」（没开交换牌，一定落空）
+      triplehit: () => { give(0, 'tabby'); give(0, 'tabby'); give(0, 'tabby'); give(bot, R.SKIP); s.turn = 0; apply(0, { type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: bot, named: R.SKIP }); },
+      triplemiss: () => { give(bot, 'tabby'); give(bot, 'tabby'); give(bot, 'tabby'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: 0, named: R.SWAP }); },
       nope: () => { give(0, R.NOPE); give(bot, R.ATTACK); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
       win: () => { for (let i = 1; i < s.n; i++) { s.alive[i] = false; s.outOrder.push(i); s.hands[i] = []; } s.phase = 'over'; s.winner = 0; release(); renderAll(); finish(); },
       deal: () => newGame(),
