@@ -1442,10 +1442,72 @@
     const d = D();
     return d.deckSize ? d.kittens / d.deckSize : 0;
   }
-  // bottom = 抽底：从牌堆最底下那层往外抽（往左滑出来再捏起来）
+  /* 抽底（2026-11-12 用户嫌粗糙，重做）：一只猫爪从牌堆左边伸进来，勾住最底下那张，往外拖——
+   * 那张真的在整摞牌下面（放进牌堆那一摞的最底层，上面的牌压着它），牌堆被带得一抬一晃；
+   * 拖出来以后才换成桌面上的一张牌、捏起来悬一下（和平常摸牌接上） */
+  async function peelBottom(t) {
+    const stack = els.deck.querySelector('.zm-deck-stack');
+    const floor = stack && (stack.querySelector('.zm-sheet.is-floor') || stack.querySelector('.zm-card'));
+    const pu = PU();
+    if (!stack || !floor || fx.reduce()) return peel(t, false);
+    const fr = floor.getBoundingClientRect();
+    // 1. 最底下塞一张牌背（被上面的纸边压着）
+    const wrap = document.createElement('div');
+    wrap.innerHTML = backHtml('is-inserting');
+    const el = wrap.firstChild;
+    el.style.transform = floor.style.transform || '';
+    stack.insertBefore(el, stack.firstChild);
+    // 2. 猫爪从左边伸到那张牌的左边沿
+    const S = pu * 0.62;
+    const paw = document.createElement('div');
+    paw.className = 'zm-prop zm-paw';
+    paw.innerHTML = window.ZhamaoFx.SHAPES.paw;
+    paw.style.width = paw.style.height = S + 'px';
+    els.fly.appendChild(paw);
+    // 爪子从左下方伸到牌堆最下沿的左下角
+    const ch = pu * 1.4;
+    const py = fr.top + ch * 0.86 - S / 2, px0 = fr.left - pu * 1.3, px1 = fr.left - S * 0.3;
+    snd('swipe');
+    await fx.animate(paw, [
+      { transform: fx.T(px0, py + pu * 0.5, 0.6, 50), opacity: 0 },
+      { transform: fx.T(px1, py, 1, 62), opacity: 1, easing: 'cubic-bezier(.2,.8,.3,1)' },
+    ], { duration: ms(300) }).finished.catch(() => {});
+    if (t !== token) { paw.remove(); el.remove(); return null; }
+    // 3. 勾住往外拖：牌从整摞底下滑出来，牌堆被带得一抬一晃
+    ov.deckSize -= 1;
+    const ox = -pu * 0.78, oy = pu * 0.62, dur = ms(480);   // 往左下方滑出来，上半截一直压在牌堆底下
+    const tense = danger() >= 0.2;
+    snd('peel');
+    if (tense) snd('heartbeat', 80);
+    stack.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '2px -4px', rotate: '1.2deg', offset: 0.35 }, { translate: '0 -1px', rotate: '-0.6deg', offset: 0.7 }, { translate: '0 0', rotate: '0deg' }], { duration: dur, easing: 'ease-out' });
+    fx.animate(paw, [{ transform: fx.T(px1, py, 1, 62) }, { transform: fx.T(px1 + ox, py + oy, 1, 56) }], { duration: dur }, 'cubic-bezier(.45,0,.3,1)');
+    await el.animate([{ translate: '0 0', rotate: '0deg' }, { translate: (ox * 0.25) + 'px ' + (oy * 0.2) + 'px', rotate: '-3deg', offset: 0.3 }, { translate: ox + 'px ' + oy + 'px', rotate: '-11deg' }], { duration: dur, easing: 'cubic-bezier(.45,0,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token) { paw.remove(); el.remove(); return null; }
+    const r = el.getBoundingClientRect();
+    el.remove();
+    renderPiles();
+    paw.animate([{ opacity: 1 }, { opacity: 0, transform: fx.T(px1 + ox - pu * 0.4, py + oy + pu * 0.3, 0.6, 50) }], { duration: ms(260), fill: 'forwards' }).finished.then(() => paw.remove(), () => paw.remove());
+    // 4. 换成桌面上的一张，捏起来悬一下（和平常摸牌一样，危险时多抖两下）
+    const node = document.createElement('div');
+    node.className = 'zm-flyer';
+    node.style.width = pu + 'px'; node.style.height = pu * 1.4 + 'px';
+    node.innerHTML = backHtml();
+    els.fly.appendChild(node);
+    const x = r.left + (r.width - pu) / 2, y = r.top + (r.height - pu * 1.4) / 2;   // 旋转过的牌：用外框中心对齐
+    await fx.animate(node, [
+      { transform: fx.T(x, y, 1, -11), boxShadow: '0 2px 3px rgba(29,27,24,.2)' },
+      { transform: fx.T(x - 4, y - 16, 1.05, -5), boxShadow: '0 12px 20px rgba(29,27,24,.26)', offset: 0.5 },
+      ...(tense ? [{ transform: fx.T(x - 2.5, y - 17, 1.05, -3), offset: 0.7 }, { transform: fx.T(x - 5.5, y - 16, 1.05, -6), offset: 0.85 }] : []),
+      { transform: fx.T(x - 4, y - 16, 1.05, -5), boxShadow: '0 12px 20px rgba(29,27,24,.26)' },
+    ], { duration: ms(tense ? 520 : 240) }).finished.catch(() => {});
+    if (t !== token) { node.remove(); return null; }
+    const rr = node.getBoundingClientRect();
+    node.remove();
+    return rr;
+  }
   async function peel(t, bottom) {
-    const floor = bottom && els.deck.querySelector('.zm-deck-stack .zm-sheet.is-floor');
-    const r = floor ? floor.getBoundingClientRect() : deckTopRect(), pu = PU();
+    if (bottom) return peelBottom(t);
+    const r = deckTopRect(), pu = PU();
     const node = document.createElement('div');
     node.className = 'zm-flyer';
     node.style.width = pu + 'px'; node.style.height = pu * 1.4 + 'px';
@@ -1457,7 +1519,7 @@
     snd('peel');
     if (tense) snd('heartbeat', 80);
     const hold = ms(tense ? 640 : 300);
-    const x = r.left, y = r.top, dx = pu * (bottom ? -0.5 : 0.16);
+    const x = r.left, y = r.top, dx = pu * 0.16;
     // 先用拇指把顶上那张往外推出一截（下面那张露出来），再捏起来悬一下
     await fx.animate(node, [
       { transform: fx.T(x, y, 1, 0), boxShadow: '0 0 0 rgba(29,27,24,0)', easing: 'cubic-bezier(.3,.6,.4,1)' },
@@ -2465,6 +2527,7 @@
     if (game.tutorial) {
       const msgs = tut && tut.finish ? tut.finish(won) : [];
       showCoach(msgs, () => {
+        bgm('menu');
         openDialog('<h2>教程完成</h2><p>来一局真的吧：' + settings.players + ' 人，机器猫' + AI.TIER_NAMES[settings.tier] + '（菜单里的设置可以改）。</p>' +
           '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-go data-focus>开始对局</button></div>', (d) => {
           d.querySelector('[data-go]').addEventListener('click', () => { closeDialog(); endTutorial(true); });
@@ -2474,6 +2537,7 @@
       return;
     }
     localStorage.removeItem(STORE_KEY);
+    bgm('menu');   // 结算页算游戏外：接上丁（一局结束时先淡出，皇冠彩纸放完、排行榜出来再起）
     openDialog('<h2>排行榜</h2>' +
       '<ol class="zm-rank" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 ? '<small>（我）</small>' : '') + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', (d) => {
@@ -3499,6 +3563,7 @@
     const ok = await celebrate(order[0]);
     if (!ok || !online || !G() || !G().over) return;
     const host = isHost();
+    bgm('menu');   // 结算页算游戏外：接上丁（一局结束时先淡出，皇冠彩纸放完、排行榜出来再起）
     openDialog('<h2>排行榜</h2>' +
       '<ol class="zm-rank" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 && !game.spectator ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 && !game.spectator ? '<small>（我）</small>' : '') + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
       (host ? '' : '<p class="zm-muted">等房主开下一局</p>') +
@@ -3903,6 +3968,7 @@
       future: () => { give(0, R.FUTURE); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.FUTURE)] }); },
       futurebot: () => { give(bot, R.FUTURE); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.FUTURE)] }); },
       favor: () => { give(bot, R.FAVOR); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.FAVOR)], target: 0 }); },
+      bottom: () => { give(0, 'bottom'); s.turn = 0; apply(0, { type: 'play', cards: [s.hands[0].find((id) => R.KIND_OF[id] === 'bottom')] }); },
       steal: () => { give(0, 'cow'); give(0, 'cow'); s.turn = 0; apply(0, { type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: bot }); },
       stealme: () => { give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: 0 }); },
       stealbot: () => { const o = 2 % s.n; give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: o === bot ? 0 : o }); },
