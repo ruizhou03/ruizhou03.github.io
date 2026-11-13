@@ -547,7 +547,12 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 主菜单：几个人玩（含你） */
 /* 点「单机」之后：选几个人玩（方案甲：− 人数 +、一排头像、难度、开始） */
 .zm-solo { width: 100%; display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
-.zm-solo-back { align-self: flex-start; border: 0; background: none; font: inherit; font-size: 14px; color: var(--zm-ink-mute); padding: 2px 0; cursor: pointer; }
+.zm-solo-back { border: 0; background: none; padding: 0; cursor: pointer; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; }
+.zm-solo-back svg { width: 40px; height: 40px; display: block; transition: transform .15s ease; }
+.zm-solo-back:active svg { transform: translateX(-3px) scale(.94); }
+/* 二级菜单：左边一窄列只放返回箭头（竖向居中），右边一列是按钮 / 卡片 */
+.zm-solo { position: relative; padding-left: 50px; }
+.zm-solo > .zm-solo-back { position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
 .zm-solo-pick { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px 14px 16px; background: var(--zm-card); border: 1.5px solid var(--zm-ink); border-radius: 14px; }
 .zm-solo-cap { font-size: 13px; color: var(--zm-ink-mute); letter-spacing: 0.1em; }
 .zm-solo-step { display: flex; align-items: center; gap: 22px; }
@@ -835,7 +840,3 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-join .zm-join-row { width: 100%; }
 .zm-join .zm-join-row .zm-btn { padding-left: 22px; padding-right: 22px; }
 .zm-online-err { text-align: center; margin: 0; font-size: 13.5px; }
-/* 甩锅叠加动画预览：「+2」小牌、大红印 */
-.zm-stackcount.is-plus { background: #fff3e8; border-color: #d64a28; color: #d64a28; font-size: 22px; padding: 3px 10px 5px; }
-.zm-stackcount.is-seal { background: var(--zm-seal); color: var(--zm-seal-ink); border-color: var(--zm-seal); font-size: 40px; padding: 6px 16px 9px; box-shadow: 0 0 0 3px var(--zm-paper), 0 10px 22px rgba(120, 30, 20, 0.35); }
-.zm-stackcount.is-seal .x { font-size: 26px; }

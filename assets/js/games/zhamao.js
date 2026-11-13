@@ -969,15 +969,7 @@
   async function animTurn(e, t) {
     const prevTurn = ov ? ov.turn : -1;
     if (e.attacked) {
-      const from = prevTurn >= 0 ? prevTurn : R.nextAlive(game.state, e.seat);
-      if (ATKFX === 'a') await atkPots(from, e.seat, e.turnsLeft, t);
-      else if (ATKFX === 'b') await atkHot(from, e.seat, e.turnsLeft, t);
-      else if (ATKFX === 'c') await atkRelay(from, e.seat, e.turnsLeft, t);
-      else {
-        await fxPot(from, e.seat, t);
-        if (t !== token) return;
-        if (e.turnsLeft > 2) await countUp(e.seat, e.turnsLeft - 2, e.turnsLeft, t);
-      }
+      await atkPots(prevTurn >= 0 ? prevTurn : R.nextAlive(game.state, e.seat), e.seat, e.turnsLeft, t);
     }
     if (ov) { ov.turn = e.seat; ov.turnsLeft = e.turnsLeft; }
     // 被甩锅的人：轮到他的这几回合里一直挂着 ×N（剩最后一回合也挂着 ×1），轮到别人才摘
@@ -989,39 +981,7 @@
     if (e.seat === 0 && game.state.alive[0]) snd('turn');
     await wait(ms(e.attacked ? 260 : 140));
   }
-  /* 甩锅叠加：被砸的人头上冒出一个大数字，从「接过来的回合数」一格格跳到新总数（每跳一下弹一下、响一下），
-   * 最后缩小落进他头像旁边的 ×N 角标 */
-  async function countUp(seat, from, to, t) {
-    if (fx.reduce()) return;
-    const a = avPoint(seat);
-    const el = document.createElement('div');
-    el.className = 'zm-stackcount';
-    el.innerHTML = '<span class="x">×</span><b>' + from + '</b>';
-    const cy = a.y < innerHeight / 2 ? a.y + 84 : a.y - 70;   // 上排的人：数字落在头像下面；我：在头像上面
-    el.style.left = Math.max(60, Math.min(innerWidth - 60, a.x)) + 'px';
-    el.style.top = cy + 'px';
-    els.fly.appendChild(el);
-    const num = el.querySelector('b');
-    el.animate([{ transform: 'translate(-50%,-50%) scale(.4)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1.15)', opacity: 1, offset: 0.6 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }], { duration: 260, easing: 'ease-out', fill: 'forwards' });
-    await wait(ms(320));
-    for (let v = from + 1; v <= to; v++) {
-      if (t !== token) { el.remove(); return; }
-      // 翻牌式：旧数字往上翻走、新数字从下面翻上来
-      await num.animate([{ transform: 'perspective(120px) rotateX(0deg)' }, { transform: 'perspective(120px) rotateX(90deg)' }], { duration: ms(140), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
-      if (t !== token) { el.remove(); return; }
-      num.textContent = v;
-      snd('tick');
-      await num.animate([{ transform: 'perspective(120px) rotateX(-90deg)' }, { transform: 'perspective(120px) rotateX(0deg)' }], { duration: ms(160), easing: 'cubic-bezier(.3,.8,.4,1.2)', fill: 'forwards' }).finished.catch(() => {});
-      await wait(ms(160));
-    }
-    snd('stamp');
-    fx.burst(a.x, cy, { n: 8, shapes: ['star'], colors: GOLDS.concat(['#c8463a']), radius: 46, size: [6, 14], life: 600 });
-    await wait(ms(420));
-    await el.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: 'translate(-50%,' + (a.y < innerHeight / 2 ? '-90px' : '40px') + ') scale(.35)', opacity: 0 }], { duration: ms(260), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
-    el.remove();
-  }
-  /* ───── 甩锅叠加动画·预览（2026-11-13 给用户挑；?atkfx=a / b / c，或 ?zmdemo=stack 的预览条）───── */
-  let ATKFX = (new URLSearchParams(location.search).get('atkfx') || '').toLowerCase();
+  /* ───── 甩锅动画（2026-11-13 用户从三版里挑了甲·锅叠锅）───── */
   const avR = (seat) => { const a = avEl(seat); return a ? a.getBoundingClientRect().width / 2 : 24; };
   const badgePt = (seat) => { const a = avPoint(seat), r = avR(seat); return { x: a.x + r * 1.2, y: a.y + r * 0.7 }; };
   // 一张写着「×N」的小牌子（印章红）
@@ -1033,7 +993,7 @@
     return el;
   }
   const at2 = (x, y, sc, extra) => 'translate(' + (x).toFixed(1) + 'px,' + (y).toFixed(1) + 'px) translate(-50%,-50%) scale(' + sc + ')' + (extra || '');
-  /* 甲 · 锅叠锅：锅砸中之后，一口口小锅从天上掉下来叠在他身上（几回合就几口，越叠越高），叠完一晃，整摞缩进 ×N 角标 */
+  /* 锅叠锅：锅砸中之后，一口口小锅从天上掉下来叠在他身上（几回合就几口，越叠越高），叠完一晃，整摞缩进 ×N 角标 */
   async function atkPots(from, to, n, t) {
     await fxPot(from, to, t);
     if (t !== token || fx.reduce()) return;
@@ -1073,70 +1033,7 @@
     await lab.animate([{ transform: at2(Math.min(innerWidth - 40, lx), ly, 1), opacity: 1 }, { transform: at2(bp.x, bp.y, 0.3), opacity: 0 }], { duration: ms(300), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
     tower.remove(); lab.remove();
   }
-  /* 乙 · 烧红的锅：叠得越多锅越烫（发红、拖火星），砸中时红光一闪、桌子按叠了多少震；
-   * 然后「×原来」被飞来的「+2」撞上，盖成一个大红印「×N」砸下来，墨点四溅 */
-  async function atkHot(from, to, n, t) {
-    const heat = Math.min(1, Math.max(0, (n - 2) / 6));
-    await fxPot(from, to, t, heat);
-    if (t !== token || fx.reduce()) return;
-    const a = avPoint(to), up = a.y > innerHeight / 2;
-    fx.flash('rgba(214,74,40,' + (0.16 + 0.22 * heat).toFixed(2) + ')', 0, 520);
-    fx.shake(els.table, { amp: 3 + 7 * heat, dur: 380 + 200 * heat, rot: 0.3 * heat });
-    fx.ring(a.x, a.y, { color: '#d64a28', size: 120 + 90 * heat, width: 5, dur: 520 });
-    const cx = Math.max(70, Math.min(innerWidth - 70, a.x)), cy = up ? a.y - 78 : a.y + 86;
-    if (n > 2) {
-      const old = tag('<span class="x">×</span><b>' + (n - 2) + '</b>');
-      old.animate([{ transform: at2(cx, cy, 0.4), opacity: 0 }, { transform: at2(cx, cy, 1), opacity: 1 }], { duration: 180, fill: 'forwards' });
-      const plus = tag('<b>+2</b>', 'is-plus');
-      const sx = cx + (cx < innerWidth / 2 ? 130 : -130);
-      await plus.animate([{ transform: at2(sx, cy - 30, 0.6, ' rotate(-20deg)'), opacity: 0 }, { transform: at2(cx + (sx > cx ? 34 : -34), cy, 1, ' rotate(8deg)'), opacity: 1 }], { duration: ms(300), easing: 'cubic-bezier(.5,0,.9,.5)', fill: 'forwards' }).finished.catch(() => {});
-      snd('tick');
-      plus.remove(); old.remove();
-      if (t !== token) return;
-    }
-    const big = tag('<span class="x">×</span><b>' + n + '</b>', 'is-seal');
-    snd('stamp');
-    big.animate([{ transform: at2(cx, cy, 2.6, ' rotate(-14deg)'), opacity: 0 }, { transform: at2(cx, cy, 0.92, ' rotate(-6deg)'), opacity: 1, offset: 0.55 }, { transform: at2(cx, cy, 1, ' rotate(-6deg)'), opacity: 1 }], { duration: ms(280), easing: 'cubic-bezier(.6,0,.9,.5)', fill: 'forwards' });
-    setTimeout(() => { fx.burst(cx, cy, { n: 12 + Math.round(10 * heat), shapes: ['dot'], colors: ['#b4392c', '#d64a28', '#7a1f17'], radius: 70, size: [4, 11], life: 600, pattern: 'ring' }); fx.shake(els.table, { amp: 3 + 4 * heat, dur: 240 }); }, ms(150));
-    await wait(ms(900));
-    if (t !== token) { big.remove(); return; }
-    const bp = badgePt(to);
-    await big.animate([{ transform: at2(cx, cy, 1, ' rotate(-6deg)'), opacity: 1 }, { transform: at2(bp.x, bp.y, 0.3), opacity: 0 }], { duration: ms(280), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
-    big.remove();
-  }
-  /* 丙 · 接力甩：锅上挂着「×原来」的牌子一起飞，飞到半路「+2」一炸、牌子翻成「×N」，砸中后牌子蹦起来、拖着金粉落进角标 */
-  async function atkRelay(from, to, n, t) {
-    const a = avPoint(from), b = avPoint(to);
-    if (fx.reduce()) { await fxPot(from, to, t); return; }
-    const lab = tag('<span class="x">×</span><b>' + (n > 2 ? n - 2 : 2) + '</b>');
-    const cx = (a.x + b.x) / 2, cy = Math.max(64 * 0.6, Math.min(a.y, b.y) - 90);
-    const pt = (tt) => { const u = 1 - tt; return { x: u * u * a.x + 2 * u * tt * cx + tt * tt * b.x, y: u * u * a.y + 2 * u * tt * cy + tt * tt * b.y - 46 }; };
-    const N = 12, fr = [];
-    for (let k = 0; k <= N; k++) { const p = pt(k / N * 0.8); fr.push({ transform: at2(p.x, p.y, 0.8 + 0.2 * Math.sin(Math.PI * k / N)), offset: 0.8 * k / N }); }
-    const end = pt(0.8);
-    fr.push({ transform: at2(b.x, b.y - 46, 1), offset: 0.9 }, { transform: at2(b.x, b.y - 46, 1) });
-    lab.animate(fr, { duration: ms(900), fill: 'forwards' });
-    const potP = fxPot(from, to, t);
-    if (n > 2) {
-      await wait(ms(900) * 0.42);
-      if (t !== token) { lab.remove(); return; }
-      const m = pt(0.42 / 0.8 * 0.8);
-      fx.burst(m.x, m.y, { n: 14, shapes: ['star', 'dot'], colors: GOLDS.concat(['#d64a28']), radius: 50, size: [5, 13], life: 520 });
-      fx.float(m.x + 26, m.y - 6, '<b style="font:700 18px Georgia,serif;color:#b4392c">+2</b>', { dy: -40, size: 34, dur: 700, color: '#b4392c' });
-      const num = lab.querySelector('b');
-      num.animate([{ transform: 'rotateY(0)' }, { transform: 'rotateY(90deg)' }], { duration: 110, fill: 'forwards' }).finished.then(() => { num.textContent = n; snd('tick'); num.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0)' }], { duration: 140, fill: 'forwards' }); });
-    }
-    await potP;
-    void end;
-    if (t !== token) { lab.remove(); return; }
-    // 牌子蹦一下、拖着金粉落进角标
-    const bp = badgePt(to), top = b.y - 46;
-    snd('stamp');
-    await lab.animate([{ transform: at2(b.x, top, 1) }, { transform: at2(b.x + (bp.x - b.x) * 0.4, top - 40, 1.25), offset: 0.45 }, { transform: at2(bp.x, bp.y, 0.35), opacity: 0.2 }], { duration: ms(520), easing: 'cubic-bezier(.3,.7,.5,1)', fill: 'forwards' }).finished.catch(() => {});
-    fx.burst(bp.x, bp.y, { n: 10, shapes: ['star'], colors: GOLDS, radius: 34, size: [5, 11], life: 520 });
-    lab.remove();
-  }
-  async function fxPot(from, to, t, heat) {
+  async function fxPot(from, to, t) {
     snd('whoosh');
     const a = avPoint(from), b = avPoint(to);
     const S = 64;
@@ -1144,7 +1041,6 @@
     pot.className = 'zm-prop';
     pot.innerHTML = ART.PROPS.pot;
     pot.style.width = pot.style.height = S + 'px';
-    if (heat != null) pot.style.filter = 'sepia(' + (0.4 + 0.6 * heat).toFixed(2) + ') saturate(' + (2 + 4 * heat).toFixed(1) + ') hue-rotate(-28deg) drop-shadow(0 0 ' + (6 + 12 * heat).toFixed(0) + 'px rgba(240,110,40,.85))';
     els.fly.appendChild(pot);
     const N = 12, frames = [];
     const cx = (a.x + b.x) / 2, cy = Math.max(S * 0.6, Math.min(a.y, b.y) - 90);   // 对手都在上面一排：弧顶别飞出屏幕
@@ -1153,7 +1049,6 @@
       const x = u * u * a.x + 2 * u * tt * cx + tt * tt * b.x, y = u * u * a.y + 2 * u * tt * cy + tt * tt * b.y;
       frames.push({ transform: fx.T(x - S / 2, y - S / 2, 0.5 + 0.7 * Math.sin(Math.PI * tt * 0.9), -30 + 400 * tt), offset: 0.8 * tt, easing: 'linear' });
       if (k > 0 && k < N && k % 3 === 0) setTimeout(() => { if (t === token) fx.smoke(x, y, { n: 2, spread: 6, size: [18, 30], rise: 20 }); }, ms(700) * 0.8 * tt);
-      if (heat != null && k > 0 && k < N) setTimeout(() => { if (t === token) fx.burst(x, y, { n: 2 + Math.round(4 * heat), shapes: ['dot'], colors: ['#f28a2e', '#e9d46a', '#d64a28'], radius: 14 + 14 * heat, size: [3, 7], life: 380, gravity: -10, pattern: 'scatter' }); }, ms(900) * 0.8 * tt);
     }
     frames.push({ transform: fx.T(b.x - S / 2, b.y - S / 2 - 50, 0.9, 400), offset: 0.9, easing: 'ease-out' });
     frames.push({ transform: fx.T(b.x - S / 2 + 30, b.y - S / 2 - 30, 0.6, 470), opacity: 0 });
@@ -2777,7 +2672,7 @@
       li('attack', '结束回合、不摸牌，下家连着摸两回合（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）') +
       li('tattack', '同甩锅，但可以甩给任意一个人（点他的头像）') +
       li('skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合') +
-      li('swap', '和指定的一个人整手交换手牌（各自的逗猫棒不换）' + (settings.rules.swap ? '' : '。设置里开了「交换牌」才有')) +
+      li('swap', '和指定的一个人整手交换手牌（各自的逗猫棒不换）' + (settings.rules.swap ? '' : '。设置里开了「有交换牌」才有')) +
       li('favor', '指定一人，他自己挑一张给你') +
       li('shuffle', '把牌堆洗乱') +
       li('future', '看牌堆最上面三张') +
@@ -2806,13 +2701,13 @@
     const tier = segs('tier', AI.TIERS.map((t) => [t, AI.TIER_NAMES[t]]), settings.tier);
     const secs = segs('turnSec', [[10, '10 秒'], [20, '20 秒'], [0, '不限时']], turnSec());
     const rulesBefore = JSON.stringify(settings.rules);
-    const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b><small>' + note + '</small></div>' + ctl + '</div>';
+    const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b>' + (note ? '<small>' + note + '</small>' : '') + '</div>' + ctl + '</div>';
     let html = '<h2>设置</h2>' +
       '<section class="zs-card">' +
       '<div class="zs-line"><span>机器猫</span>' + tier + '</div>' +
       '<div class="zs-line"><span>出牌限时</span>' + secs + '</div></section>' +
       '<div class="zs-cap">玩法</div><section class="zs-card">' +
-      row('swap', '交换牌', '和一个人整手交换（逗猫棒不换）', sw('swap', settings.rules.swap)) +
+      row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
       row('defuse', '多的逗猫棒全放回', '关着 = 最多放回 2 张', sw('extraDefuse', settings.rules.extraDefuse === 'all')) +
       '</section>';
     const pref = '<div class="zs-cap">操作</div><section class="zs-card">' +
@@ -2904,7 +2799,7 @@
   function menuItems() {
     const exit = FROM_SITE ? [['exit', '返回百宝奇巧']] : [];
     if (game && game.tutorial) return [['skip', '跳过教程'], ['rules', '规则'], ['line'], ['cover', '回到主菜单'], ...exit];
-    if (online) return [['invite', '房间号 / 邀请'], ['profile', '改名字 / 头像'], ...(online.st && online.st.mySeat >= 0 ? [['reveal', '观战能看我的牌']] : []), ['settings', '设置'], ['rules', '规则'], ['line'], ['leave', '离开房间']];
+    if (online) return [['invite', '房间号 / 邀请'], ['profile', '改名字 / 头像'], ...(online.st && online.st.mySeat >= 0 ? [['reveal', '观战者能看我的手牌']] : []), ['settings', '设置'], ['rules', '规则'], ['line'], ['leave', '离开房间']];
     return [
       ...(canPause() ? [['pause', '暂停']] : []),
       ['restart', '重新开一局'],
@@ -2942,8 +2837,8 @@
     const p = myPlayer();
     if (!p) return;
     const inGame = online.st.phase !== 'lobby' && G() && !G().over;
-    openDialog('<h2>观战能看我的牌</h2><section class="zs-card"><div class="zs-row"><i class="zs-ic">' + ART.icon('future') + '</i><div class="zs-txt"><b>给观战的人看我的手牌</b>' +
-      '<small>出局后想看机器猫的牌，也得开着</small></div><button type="button" class="zs-switch" data-rv role="switch" aria-checked="' + !!p.showHand + '"><i></i></button></div></section>' +
+    openDialog('<h2>观战者能看我的手牌</h2><section class="zs-card"><div class="zs-row"><i class="zs-ic">' + ART.icon('future') + '</i><div class="zs-txt"><b>观战者能看我的手牌</b>' +
+      '</div><button type="button" class="zs-switch" data-rv role="switch" aria-checked="' + !!p.showHand + '"><i></i></button></div></section>' +
       '<p class="zs-note" data-rv-note' + (inGame ? '' : ' hidden') + '>' + (inGame ? '这一局开局时是「' + (p.revealing ? '给看' : '不给看') + '」，改了从下一局起生效' : '') + '</p>' +
       '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-close data-focus>好</button></div>', (d) => {
       d.classList.add('zs', 'zs-b');
@@ -3271,6 +3166,9 @@
   }
   /* 点「单机」之后那一屏（2026-11-12 用户挑的方案甲）：− 人数 +、下面一排头像（我 + 几只机器猫）、机器猫难度、开始；
    * 有上一局存档：最上面单独一行「接着打上一局」（以前是点单机直接接着打，想开新局得先点人数，不直观） */
+  /* 二级菜单（单机 / 联机）左边一窄列放返回箭头（2026-11-13 用户挑：乙·朱红折号，去掉底下的圆，折号本身朱红、瘦长一些） */
+  const BACK_ART = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M24.5 6.5 13 20l11.5 13.5" fill="none" stroke="#b4392c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  els.cover.querySelectorAll('.zm-solo-back').forEach((b) => { b.innerHTML = BACK_ART; });
   let coverFrom = 'main';   // 选人数那一屏「‹ 返回」回哪：有上一局时回「接着打 / 开新的」那一步
   const SOLO_MAX = R.MAX_PLAYERS;   // 9 人（6 人起用两副牌）
   function refreshSolo() {
@@ -3284,7 +3182,7 @@
     $('zmSoloSub').textContent = '你 + ' + (n - 1) + ' 只机器猫';
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
     const saved = loadSaved(), rb = els.cover.querySelector('[data-cover="resume-solo"]');
-    if (saved) rb.querySelector('small').textContent = saved.state.n + ' 人 · 还剩 ' + saved.state.alive.filter(Boolean).length + ' 家';
+    void rb; void saved;   // 「接着打上一局」底下不写说明（2026-11-13 用户）
   }
   function soloStart() {
     let seen = false;
@@ -3642,8 +3540,8 @@
     const st = online.st, p = playerAt(online.base);
     if (!p) return '';
     if (!game.state.alive[0]) return '';
-    if (!p.isAi && !p.left) return 'TA 这局没开「观战能看我的牌」';
-    return st.spectator ? '只观战看不到机器猫的牌' : '这局开局时你没开「观战能看我的牌」，看不到机器猫的牌';
+    if (!p.isAi && !p.left) return 'TA 这局没开「观战者能看我的手牌」';
+    return st.spectator ? '只观战看不到机器猫的牌' : '这局开局时你没开「观战者能看我的手牌」，看不到机器猫的牌';
   }
 
   /* ───── 收到服务器状态 ───── */
@@ -4144,7 +4042,7 @@
       return '<button type="button" class="zm-lseat' + (p.id === me ? ' is-me' : '') + (p.isAi ? ' is-bot' : '') + '" data-seat="' + seat + '"><span class="av">' + av + '</span><b>' + esc(p.nick) + (p.id === me ? '（我）' : '') + '</b><small>' + esc(tag) + '</small></button>';
     };
     const sw = (key, on) => '<button type="button" class="zs-switch" data-rule="' + key + '" role="switch" aria-checked="' + !!on + '"' + (host ? '' : ' disabled') + '><i></i></button>';
-    const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b><small>' + note + '</small></div>' + ctl + '</div>';
+    const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b>' + (note ? '<small>' + note + '</small>' : '') + '</div>' + ctl + '</div>';
     const ts = TURN_OPTS.some(([v]) => v === cfg.turnSec) ? cfg.turnSec : 20;
     lobbyEl.innerHTML = '<div class="zm-lobby-inner">' +
       '<div class="zm-lobby-head"><div><small>房间号</small><b>' + esc(st.code) + '</b></div><button type="button" class="zm-btn" data-l="invite">邀请朋友</button></div>' +
@@ -4152,10 +4050,10 @@
       (st.spectators.length ? '<p class="zm-muted zm-lobby-watch">' + st.spectators.length + ' 个人在观战' + (st.spectator ? '（包括你）' : '') + '</p>' : '') +
       '<section class="zs-card zs-b zm-lobby-rules"><div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
       TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
-      row('swap', '交换牌', '和一个人整手交换（逗猫棒不换）', sw('swap', rules.swap)) +
+      row('swap', '有交换牌', '', sw('swap', rules.swap)) +
       row('defuse', '多的逗猫棒全放回', '关着 = 最多放回 2 张', sw('extraDefuse', rules.extraDefuse === 'all')) +
       '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">规则由房主定</p>') +
-      (myP ? '<section class="zs-card zs-b zm-lobby-me">' + row('future', '观战能看我的牌', '出局后想看机器猫的牌，也得开着', '<button type="button" class="zs-switch" data-l="reveal" role="switch" aria-checked="' + !!myP.showHand + '"><i></i></button>') + '</section>' : '') +
+      (myP ? '<section class="zs-card zs-b zm-lobby-me">' + row('future', '观战者能看我的手牌', '', '<button type="button" class="zs-switch" data-l="reveal" role="switch" aria-checked="' + !!myP.showHand + '"><i></i></button>') + '</section>' : '') +
       '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">离开房间</button>' +
       (host ? '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (seated.length >= 2 ? '' : ' disabled') + '>开始（' + seated.length + ' 人）</button>'
         : '<span class="zm-lobby-wait">等房主开始…</span>') + '</div></div>';
@@ -4403,21 +4301,6 @@
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
     window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx };
-    // ?zmdemo=stack：甩锅动画预览条（现状 / 甲 / 乙 / 丙 × 普通甩锅 / 叠加到 5 / 叠加甩给我），点一下放一遍
-    if (new URLSearchParams(location.search).get('zmdemo') === 'stack') {
-      const bar = document.createElement('div');
-      bar.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 23vh);transform:translateX(-50%);z-index:99;display:flex;flex-direction:column;gap:6px;align-items:center;font:13px/1.2 system-ui;';
-      const vs = [['', '现状'], ['a', '甲·锅叠锅'], ['b', '乙·烧红的锅'], ['c', '丙·接力甩']], ws = [['attack', '甩锅×2'], ['stack5', '叠到×5'], ['stackme', '甩给我×5']];
-      const btn = (v, w, l) => '<button type="button" data-v="' + v + '" data-w="' + w + '" style="padding:5px 8px;border-radius:999px;border:1px solid #2f4a6d;background:#fffaf0;color:#2f4a6d;font-size:12px">' + l + '</button>';
-      bar.innerHTML = vs.map(([v, l]) => '<div style="display:flex;gap:4px;align-items:center"><b style="min-width:5.5em;text-align:right;color:#2f4a6d">' + l + '</b>' + ws.map(([w, wl]) => btn(v, w, wl)).join('') + '</div>').join('');
-      bar.addEventListener('click', (ev) => {
-        const b = ev.target.closest('button'); if (!b) return;
-        bar.querySelectorAll('button').forEach((x) => { x.style.background = x === b ? '#2f4a6d' : '#fffaf0'; x.style.color = x === b ? '#fffaf0' : '#2f4a6d'; });
-        ATKFX = b.dataset.v;
-        settings.players = 4; newGame(); demo(b.dataset.w);
-      });
-      document.body.appendChild(bar);
-    }
   }
   window.ZhamaoTable = { cardHtml, backHtml, rulesHtml };
 })();
