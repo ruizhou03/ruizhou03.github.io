@@ -788,7 +788,11 @@
     return m;
   }
   function afterEvents(ev) {
-    if (tut && tut.after) { const msgs = tut.after(ev, game.state); if (msgs && msgs.length) { showCoach(msgs, step); return; } }
+    if (tut && tut.after) {
+      const msgs = tut.after(ev, game.state);
+      if (tut.done) { showCoach(msgs && msgs.length ? msgs : ['做到了！'], lessonDone); return; }   // 小关卡：这一关的事做完了
+      if (msgs && msgs.length) { showCoach(msgs, step); return; }
+    }
     step();
   }
 
@@ -2314,6 +2318,7 @@
       let done = false, timer = 0;
       const commit = () => {
         if (done || !okBtn.isConnected) return;
+        if (tut && tut.allow && !tut.allow({ type: 'alter', order: order.slice() })) { shake(okBtn); return; }   // 教程：没按要求排好
         done = true; clearTimeout(timer);
         closeDialog();
         apply(0, { type: 'alter', order: order.slice() });
@@ -2638,7 +2643,9 @@
     const won = s.winner === 0;
     const ok = await celebrate(s.winner);
     if (!ok) return;
+    if (game.tutorial && tut && tut.mini) { showCoach(tut.finish ? tut.finish(won) : [], lessonDone); return; }
     if (game.tutorial) {
+      markLesson('basic');
       const msgs = tut && tut.finish ? tut.finish(won) : [];
       showCoach(msgs, () => {
         bgm('menu');
@@ -2798,7 +2805,7 @@
   };
   function menuItems() {
     const exit = FROM_SITE ? [['exit', '返回百宝奇巧']] : [];
-    if (game && game.tutorial) return [['skip', '跳过教程'], ['rules', '规则'], ['line'], ['cover', '回到主菜单'], ...exit];
+    if (game && game.tutorial) return [['skip', tut && tut.mini ? '退出本关' : '跳过教程'], ['rules', '规则'], ['line'], ['cover', '回到主菜单'], ...exit];
     if (online) return [['invite', '房间号 / 邀请'], ['profile', '改名字 / 头像'], ...(online.st && online.st.mySeat >= 0 ? [['reveal', '观战者能看我的手牌']] : []), ['settings', '设置'], ['rules', '规则'], ['line'], ['leave', '离开房间']];
     return [
       ...(canPause() ? [['pause', '暂停']] : []),
@@ -3077,21 +3084,51 @@
     selected = []; mode = null;
     lastKit = -1; lastDeck = -1; lastCue = '';
   }
-  function startTutorial() {
+  /* 新手教程：教程脚本可以带 mini（不发牌、直接摆好）/ bots（对手）/ done（这一段讲完）——给以后的「一局学会全部」用 */
+  const TUT_DONE_KEY = 'zm.tut.done.v1';
+  function markLesson(id) {
+    try { const d = new Set(JSON.parse(localStorage.getItem(TUT_DONE_KEY) || '[]')); d.add(id); localStorage.setItem(TUT_DONE_KEY, JSON.stringify([...d])); if (id === 'basic') localStorage.setItem(TUT_KEY, '1'); } catch (_) { /* 无痕 */ }
+  }
+  function lessonDone() {
+    const id = game && game.lesson;
+    if (id) markLesson(id);
+    const L = TUT.LESSONS || [], i = L.findIndex((x) => x.id === id), next = i >= 0 && i + 1 < L.length ? L[i + 1] : null;
+    bgm('menu');
+    openStage('<h2>本关完成</h2>' + (next ? '<p class="zm-muted">下一关：' + esc(next.title) + '</p>' : '<p class="zm-muted">全部学完啦</p>') +
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-list>回到主页面</button>' + (next ? '<button type="button" class="zm-btn zm-btn-primary" data-next data-focus>下一关</button>' : '<button type="button" class="zm-btn zm-btn-primary" data-play data-focus>开始对局</button>') + '</div>', (d) => {
+      d.querySelector('[data-list]').addEventListener('click', () => { closeDialog(); leaveLesson(); showCover(); });
+      const nb = d.querySelector('[data-next]'); if (nb) nb.addEventListener('click', () => { closeDialog(); startTutorial(next.id); });
+      const pb = d.querySelector('[data-play]'); if (pb) pb.addEventListener('click', () => { closeDialog(); endTutorial(true); });
+    });
+  }
+  function leaveLesson() { tut = null; els.skipTut.hidden = true; hideCoach(); coachQueue = null; resetTable(); game = null; }
+  function startTutorial(id) {
     if (!TUT) return;
+    id = id || 'basic';
     resetTable();
     viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
-    const ctl = TUT.create(R, { hint, say: (msgs, then) => showCoach(msgs, then || step) });
+    const ctl = TUT.create(R, { hint, say: (msgs, then) => showCoach(msgs, then || step) }, id);
     tut = ctl;
-    game = { state: ctl.state, bots: [{ nick: profile.nick, avatar: profile.avatar }, { nick: ctl.botName, avatar: ctl.botAvatar }], tiers: [null, 'normal'], tutorial: true };
+    // 老师们的头像和我的撞了就换一个（我的头像也是猫的话，老师换成兔子 / 熊猫……）
+    const spare = ['rabbit', 'panda', 'owl', 'bear'].filter((a) => a !== profile.avatar);
+    const opp = (ctl.bots || [{ nick: ctl.botName, avatar: ctl.botAvatar }]).map((b, i) => (b.avatar === profile.avatar ? Object.assign({}, b, { avatar: spare[i % spare.length] }) : b));
+    game = { state: ctl.state, bots: [{ nick: profile.nick, avatar: profile.avatar }].concat(opp), tiers: [null].concat(opp.map(() => 'normal')), tutorial: true, lesson: id };
     els.cover.hidden = true;
     els.skipTut.hidden = false;
+    els.skipTut.textContent = ctl.mini ? '退出本关' : '跳过教程';
     bgm('game');
     buildSeats();
     solveSize();
     busy = true;
     const t = token;
+    if (ctl.mini) {   // 小关卡：不发牌，局面直接摆好就讲
+      game.dealing = false;
+      release();
+      renderAll();
+      showCoach(ctl.intro, step);
+      return;
+    }
     // 教程也先发牌（不能跳），发完再讲
     dealIntro(t).then(() => {
       if (t !== token) return;
@@ -3111,6 +3148,7 @@
   }
   // 跳过教程：记下「学过了」，有存档就接着打，没有就开一局
   function skipTutorial() {
+    if (tut && tut.mini) { leaveLesson(); showCover(); return; }   // 小段教程：退出回主页
     try { localStorage.setItem(TUT_KEY, '1'); } catch (_) { /* 无痕 */ }
     tut = null;
     els.skipTut.hidden = true;
@@ -3156,7 +3194,6 @@
     refreshSolo();
     let seen = true;
     try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { /* 无痕 */ }
-    els.cover.querySelector('[data-cover="tutorial"]').textContent = '新手教程';
     void seen;
     els.cover.querySelector('[data-cover="exit"]').hidden = !FROM_SITE;
     const sess = NET && NET.readSession(), rb = els.cover.querySelector('[data-cover="resume"]');
@@ -3182,7 +3219,9 @@
     $('zmSoloSub').textContent = '你 + ' + (n - 1) + ' 只机器猫';
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
     const saved = loadSaved(), rb = els.cover.querySelector('[data-cover="resume-solo"]');
-    void rb; void saved;   // 「接着打上一局」底下不写说明（2026-11-13 用户）
+    // 单机菜单：有上一局才露「接着打上一局」（红键）；没有就「开始新的一局」当红键
+    rb.hidden = !saved;
+    els.cover.querySelector('[data-cover="fresh"]').classList.toggle('is-primary', !saved);
   }
   function soloStart() {
     let seen = false;
@@ -4155,7 +4194,7 @@
     if (!b) return;
     const k = b.dataset.cover;
     // 单机：有上一局 → 先问「接着打 / 开新的一局」；没有就直接选人数
-    if (k === 'solo') { refreshSolo(); coverFrom = loadSaved() ? 'again' : 'main'; coverStep(coverFrom === 'again' ? 'again' : 'solo'); snd('tap'); return; }
+    if (k === 'solo') { refreshSolo(); coverFrom = 'again'; coverStep('again'); snd('tap'); return; }
     if (k === 'fresh') { refreshSolo(); coverStep('solo'); snd('tap'); return; }
     if (k === 'back') { const step = els.cover.querySelector('[data-cover-step="solo"]:not([hidden])') && coverFrom === 'again' ? 'again' : 'main'; coverStep(step); if (step === 'main') coverFrom = 'main'; return; }
     if (k === 'start') { settings.players = Math.min(SOLO_MAX, settings.players); soloStart(); return; }

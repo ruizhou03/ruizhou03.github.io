@@ -841,3 +841,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-join .zm-join-row { width: 100%; }
 .zm-join .zm-join-row .zm-btn { padding-left: 22px; padding-right: 22px; }
 .zm-online-err { text-align: center; margin: 0; font-size: 13.5px; }
+/* 主页各层一致（2026-11-13 用户：点单机 / 联机后整页别变）：插画和标题固定在同一高度，下面换的只是按钮区；
+   每一层的按钮都一样宽（主页也让出两边各 50px，返回箭头就落在左边那块里） */
+.zm-cover { align-items: flex-start; padding-top: max(24px, calc(50vh - 290px)); }
+.zm-cover-btns { width: calc(100% - 100px); align-self: center; }
