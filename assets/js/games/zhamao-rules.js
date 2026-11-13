@@ -27,7 +27,7 @@
  *     （2 人 1 张、3 人 2 张、4–5 人 3 张：人越多、每人摸到的机会越被摊薄，所以随人数加；但封顶 3 张，免得满桌一直换手），其余收进盒子
  * 只剩一人没炸毛时他赢。
  *
- * 牌编码：card = 0..55 的整数 id，KIND_OF[id] 是牌种（字符串）。牌堆 deck[0] 是最上面那张。
+ * 牌编码：card = 0..DECK_SIZE-1 的整数 id，KIND_OF[id] 是牌种（字符串）。牌堆 deck[0] 是最上面那张。
  * 座位 0..n-1，出牌顺序 seat → 下一个还没出局的人（UI 负责画成逆时针）。
  *
  * 状态机（state.phase）：
@@ -54,32 +54,39 @@
   'use strict';
 
   const BOOM = 'boom', DEFUSE = 'defuse', NOPE = 'nope', ATTACK = 'attack', TATTACK = 'tattack', SKIP = 'skip', BOTTOM = 'bottom',
-    FAVOR = 'favor', SHUFFLE = 'shuffle', FUTURE = 'future', ALTER = 'alter', SWAP = 'swap';
+    FAVOR = 'favor', SHUFFLE = 'shuffle', FUTURE = 'future', ALTER = 'alter', SWAP = 'swap', WILD = 'wild';
   const CATS = Object.freeze(['orange', 'calico', 'cow', 'tabby', 'siamese']);
   const ACTIONS = Object.freeze([ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP]);
   const COUNTS = Object.freeze({
     boom: 4, defuse: 6, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3, bottom: 4,
-    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4,
+    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4,
   });
   const KINDS = Object.freeze(Object.keys(COUNTS));
   const NAMES = Object.freeze({
     boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '自由甩锅', skip: '跳过', bottom: '抽底', favor: '索要',
-    shuffle: '洗牌', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗',
+    shuffle: '洗牌', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗', wild: '万能猫',
   });
   /* 第二副牌（2026-11-12 起最多 9 人）：6 人以上开局把它也洗进来——炸毛猫最多 8 只、逗猫棒最多 11 根，功能牌和猫牌也多一倍；
    * 5 人及以下它一开局就整副收进盒子。牌号接在第一副后面（0..67 不变，旧存档 / 联机局照常） */
   const COUNTS2 = Object.freeze({
     boom: 4, defuse: 5, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3, bottom: 4,
-    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4,
+    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4,
   });
-  const KIND_OF = Object.freeze((function () {
-    const a = [];
-    for (const k of KINDS) for (let i = 0; i < COUNTS[k]; i++) a.push(k);
-    for (const k of KINDS) for (let i = 0; i < (COUNTS2[k] || 0); i++) a.push(k);
-    return a;
-  })());
-  const BASE_SIZE = KINDS.reduce((t, k) => t + COUNTS[k], 0);   // 68：第一副（含 3 张交换、4 张抽底）
-  const DECK_SIZE = KIND_OF.length;                              // 135：两副的牌号总数
+  /* 2026-11-13 加万能猫（每副 4 张）：为了旧存档 / 联机局的牌号不变，它们的牌号接在最后——135..138 属第一副、139..142 属第二副。
+   * 所以「是哪一副的牌」不能再拿 id < 68 判断，用 DECK_OF[id]（1 | 2）/ inSecondDeck(id) */
+  const LATE = [WILD];   // 后加的牌种：牌号排在两副老牌之后
+  const KIND_OF = [], DECK_OF = [];
+  for (const k of KINDS) if (LATE.indexOf(k) < 0) for (let i = 0; i < COUNTS[k]; i++) { KIND_OF.push(k); DECK_OF.push(1); }
+  for (const k of KINDS) if (LATE.indexOf(k) < 0) for (let i = 0; i < (COUNTS2[k] || 0); i++) { KIND_OF.push(k); DECK_OF.push(2); }
+  for (const k of LATE) {
+    for (let i = 0; i < COUNTS[k]; i++) { KIND_OF.push(k); DECK_OF.push(1); }
+    for (let i = 0; i < (COUNTS2[k] || 0); i++) { KIND_OF.push(k); DECK_OF.push(2); }
+  }
+  Object.freeze(KIND_OF); Object.freeze(DECK_OF);
+  const BASE_SIZE = KINDS.reduce((t, k) => t + COUNTS[k], 0);   // 72：第一副的张数（含 3 张交换、4 张抽底、4 张万能猫）
+  const DECK_SIZE = KIND_OF.length;                              // 143：两副的牌号总数
+  const LEGACY_SIZES = Object.freeze([135, 68, 64]);             // 加万能猫以前的存档：两副 / 一副 / 一副没抽底
+  const inSecondDeck = (id) => DECK_OF[id] === 2;
   const MIN_PLAYERS = 2, MAX_PLAYERS = 9, TWO_DECKS_FROM = 6;
   const usesSecondDeck = (n) => n >= TWO_DECKS_FROM;
 
@@ -102,6 +109,7 @@
 
   const kindOf = (id) => KIND_OF[id];
   const isCat = (k) => CATS.indexOf(k) >= 0;
+  const catLike = (k) => k === WILD || isCat(k);   // 能当猫用：五种猫 + 万能猫
   const cardName = (id) => NAMES[KIND_OF[id]];
 
   /* ───── 随机数：状态里只存一个整数 rs，可序列化（服务器 / 克隆都方便） ───── */
@@ -121,7 +129,7 @@
   }
 
   /* 手牌排序：逗猫棒、不行、行动牌、猫，同种挨着 */
-  const ORDER = [DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SWAP, SHUFFLE, FUTURE, ALTER].concat(CATS, [BOOM]);
+  const ORDER = [DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SWAP, SHUFFLE, FUTURE, ALTER].concat(CATS, [WILD, BOOM]);
   function sortHand(hand) {
     return hand.slice().sort((a, b) => (ORDER.indexOf(KIND_OF[a]) - ORDER.indexOf(KIND_OF[b])) || (a - b));
   }
@@ -143,9 +151,9 @@
       winner: -1, seq: 0, memo: newMemo(n), ins: null,
     };
     const booms = [], defuses = [], rest = [], swaps = [], unused = [];
-    const top = usesSecondDeck(n) ? DECK_SIZE : BASE_SIZE;   // 5 人及以下只用第一副（发出来和以前一模一样）
-    for (let id = top; id < DECK_SIZE; id++) unused.push(id);
-    for (let id = 0; id < top; id++) {
+    const two = usesSecondDeck(n);   // 5 人及以下只用第一副
+    for (let id = 0; id < DECK_SIZE; id++) {
+      if (inSecondDeck(id) && !two) { unused.push(id); continue; }
       const k = KIND_OF[id];
       if (k === BOOM) booms.push(id); else if (k === DEFUSE) defuses.push(id); else if (k === SWAP) swaps.push(id); else rest.push(id);
     }
@@ -202,11 +210,13 @@
       if (ACTIONS.indexOf(k) < 0) return null;
       return { type: k, needsTarget: k === FAVOR || k === TATTACK || k === SWAP, needsName: false };
     }
-    const same = kinds.every((k) => k === kinds[0]);
+    // 一样的牌，或者猫凑猫：万能猫能顶任何一种猫（两张万能猫也算一对）
+    const real = kinds.filter((k) => k !== WILD);
+    const same = kinds.every((k) => k === kinds[0]) || (kinds.every(catLike) && new Set(real).size <= 1);
     if (cards.length === 2 && same) return { type: 'pair', needsTarget: true, needsName: false };
     if (cards.length === 3 && same) return { type: 'triple', needsTarget: true, needsName: true };
-    // 五张：必须是五种猫各一张（橘猫 / 三花 / 奶牛猫 / 狸花 / 暹罗），行动牌、「作废」都不算
-    if (cards.length === 5 && kinds.every(isCat) && new Set(kinds).size === 5) return { type: 'five', needsTarget: false, needsName: false };
+    // 五张：五种猫各一张（橘猫 / 三花 / 奶牛猫 / 狸花 / 暹罗），缺哪种都能拿万能猫顶；行动牌、「作废」都不算
+    if (cards.length === 5 && kinds.every(catLike) && new Set(real).size === real.length) return { type: 'five', needsTarget: false, needsName: false };
     return null;
   }
 
@@ -582,9 +592,9 @@
   }
 
   return {
-    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
-    MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay,
-    kindOf, isCat, cardName, sortHand, rand, shuffleIn,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay,
+    kindOf, isCat, catLike, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,
     classify, validTargets, checkPlay, play, awaitingReaction, canNope, nope, pass, reactionDone, isCancelled, closeReaction,
     give, pickDiscard, alterTop, stealPick, draw, insertKitten, whoActs, view, redactEvents,

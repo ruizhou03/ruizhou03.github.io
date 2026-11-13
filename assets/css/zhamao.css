@@ -643,10 +643,11 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 头像上的准星、角标不许把页面撑出屏幕（iOS 上会把整页挤得左右晃一下） */
 .zm-app { overflow: hidden; overscroll-behavior: none; }
 /* 甩锅叠加：头上的大数字 */
-.zm-stackcount { position: absolute; display: flex; align-items: baseline; gap: 2px; padding: 4px 12px 6px; border-radius: 14px;
-  background: var(--zm-card); border: 2px solid var(--zm-seal); box-shadow: 0 8px 18px rgba(29, 27, 24, 0.22); color: var(--zm-seal);
-  font: 700 30px/1 Georgia, serif; pointer-events: none; white-space: nowrap; transform: translate(-50%, -50%); }
-.zm-stackcount .x { font-size: 20px; }
+/* 甩锅叠锅的「×N」（2026-11-13 用户挑甲·光字：原来奶油底 + 粗红框 + 投影太臃肿）：不要框，只一个朱红的 ×N，外面一圈宣纸色晕边让它浮在桌上 */
+.zm-stackcount { position: absolute; display: flex; align-items: baseline; gap: 1px; color: var(--zm-seal);
+  font: 700 26px/1 Georgia, serif; pointer-events: none; white-space: nowrap; transform: translate(-50%, -50%);
+  text-shadow: 0 0 3px var(--zm-paper), 0 0 3px var(--zm-paper), 0 0 6px var(--zm-paper); }
+.zm-stackcount .x { font-size: 16px; }
 .zm-stackcount b { display: inline-block; min-width: 0.8em; text-align: center; }
 .zm-stackcount i { font-style: normal; font-size: 13px; color: var(--zm-ink-mute); margin-left: 4px; align-self: center; }
 
@@ -711,7 +712,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-stage.is-preview .zm-fuse { visibility: hidden; }
 
 /* ───── 联机（大厅 / 进房 / 邀请 / 提示条） ───── */
-.zm-cover-btn.is-resume { border-color: var(--zm-seal); color: var(--zm-seal); }
+/* .is-resume 已不用：「回到房间」2026-11-13 挪进联机那层，用 is-primary */
 .zm-online-new { width: 100%; margin: 6px 0 4px; }
 .zm-join-row { display: flex; gap: 8px; }
 .zm-join-row .zm-input { flex: 1; letter-spacing: 0.3em; text-align: center; font-size: 20px; }
@@ -849,9 +850,11 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
    每一层的按钮都一样宽（主页也让出两边各 50px，返回箭头就落在左边那块里）。
    高度：「插画 + 标题 + 单机 / 联机两个按钮」这一整组放在屏幕正中（插画高 = 宽 × 0.63，标题 + 两个按钮 + 间距约 220px）；
    加载进度条时只有插画和标题，整组往下挪半个按钮区、正好居中，进度条跑完再往上滑到位、按钮跟着出来 */
-.zm-cover { --cover-art-h: calc(min(70vw, 280px) * 0.63); align-items: flex-start; padding-top: max(20px, calc(50vh - (var(--cover-art-h) + 230px) / 2)); }
+/* 2026-11-13 用户：插画 + 标题整体往上挪（选人数那屏挤在中下部）→ 改成按最高的那一层（选人数：人数卡 + 开始 + 底下小字，约 430px）居中，
+   主页那层就落在偏上的位置；加载时只有插画 + 标题 + 进度条（约 114px），往下挪 (430 − 114) / 2 正好居中 */
+.zm-cover { --cover-art-h: calc(min(70vw, 280px) * 0.63); align-items: flex-start; padding-top: max(16px, calc(50vh - (var(--cover-art-h) + 430px) / 2)); }
 .zm-cover-inner { transition: transform 0.6s cubic-bezier(.3, .8, .3, 1); }
-.zm-cover.is-loading .zm-cover-inner { transform: translateY(58px); }
+.zm-cover.is-loading .zm-cover-inner { transform: translateY(158px); }
 .zm-cover-btns { width: calc(100% - 100px); align-self: center; }
 /* 教程讲解（2026-11-13 用户：照拱猪——讲的话摆在正中，别的都蒙灰，不弹框）：
    讲解时整张桌子蒙一层浅宣纸色；讲解本身不要框，大字居中、周围一圈宣纸色晕开，上面一枚「教」字小印，下面一笔淡金细线 */

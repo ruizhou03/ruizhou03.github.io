@@ -102,11 +102,28 @@
     for (const id of v.hand) { const k = K[id]; (by[k] = by[k] || []).push(id); }
     return by;
   }
-  // 五种猫各一张（规则只认猫）：每种挑一张；缺一种就凑不成
+  // 五种猫各一张（规则只认猫）：每种挑一张，缺的拿万能猫顶；顶不上就凑不成
   function fiveCats(v) {
-    const picks = [];
-    for (const k of R.CATS) { const id = one(v, k); if (id == null) return null; picks.push(id); }
+    const picks = [], wild = v.hand.filter((id) => K[id] === R.WILD);
+    for (const k of R.CATS) {
+      let id = one(v, k);
+      if (id == null) id = wild.shift();
+      if (id == null) return null;
+      picks.push(id);
+    }
     return picks;
+  }
+  // 猫种 k 凑 n 张：先用真猫，不够拿万能猫补；一张真猫都没有就不凑（两张以上万能猫自己就是一样的牌，走 by.wild）
+  function catSet(by, k, n) {
+    const real = by[k] || [], wild = by[R.WILD] || [];
+    if (!real.length || real.length + wild.length < n) return null;
+    return real.slice(0, n).concat(wild.slice(0, Math.max(0, n - real.length)));
+  }
+  // 一对猫：纯的优先，其次真猫 + 万能猫，最后两张万能猫
+  function catPair(by) {
+    for (const k of R.CATS) if ((by[k] || []).length >= 2) return by[k].slice(0, 2);
+    for (const k of R.CATS) { const c = catSet(by, k, 2); if (c) return c; }
+    return (by[R.WILD] || []).length >= 2 ? by[R.WILD].slice(0, 2) : null;
   }
   function bottomInfo(v) {
     const b = v.known.find((x) => x.pos === v.deckSize - 1);
@@ -123,7 +140,8 @@
     function cardValue(hand, id) {
       const k = K[id];
       if (VALUE[k] != null) return VALUE[k];
-      return R.countKind(hand, k) >= 2 ? P.vCatPair : P.vCatSingle; // 猫：成对才有用
+      if (k === R.WILD) return P.vCatPair;   // 万能猫跟哪只猫都能凑对
+      return R.countKind(hand, k) + R.countKind(hand, R.WILD) >= 2 ? P.vCatPair : P.vCatSingle; // 猫：成对才有用
     }
 
     /* 牌堆前 m 个位置各是炸毛猫的概率 */
@@ -198,13 +216,15 @@
       const t = richest(v, R.DEFUSE);
       for (const k of Object.keys(by)) {
         if (k === R.DEFUSE || k === R.NOPE) continue;
-        if (by[k].length >= 3 && (desperate || R.isCat(k) || VALUE[k] <= 15)) return playMove(by[k].slice(0, 3), t, R.DEFUSE);
+        if (by[k].length >= 3 && (desperate || R.catLike(k) || VALUE[k] <= 15)) return playMove(by[k].slice(0, 3), t, R.DEFUSE);
       }
+      for (const k of R.CATS) { const c = catSet(by, k, 3); if (c) return playMove(c, t, R.DEFUSE); }   // 拿万能猫凑三张
       if (desperate || v.discard.some((id) => K[id] === R.DEFUSE)) {
         const five = fiveCats(v);
         if (five && v.discard.some((id) => K[id] === R.DEFUSE)) return playMove(five);
       }
-      for (const k of R.CATS) if ((by[k] || []).length >= 2) return playMove(by[k].slice(0, 2), t);
+      const pr = catPair(by);
+      if (pr) return playMove(pr, t);
       if (has(v, R.FAVOR)) return playMove([one(v, R.FAVOR)], t);
       if (desperate) for (const k of Object.keys(by)) if (k !== R.DEFUSE && by[k].length >= 2) return playMove(by[k].slice(0, 2), t);
       return null;
@@ -450,8 +470,14 @@
     }
     for (const k of Object.keys(by)) {
       if (k === R.DEFUSE) continue;
-      if (by[k].length >= 2 && (R.isCat(k) || by[k].length >= 3)) for (const t of ts) out.push(playMove(by[k].slice(0, 2), t));
+      if (by[k].length >= 2 && (R.catLike(k) || by[k].length >= 3)) for (const t of ts) out.push(playMove(by[k].slice(0, 2), t));
       if (by[k].length >= 3) for (const t of ts) out.push(playMove(by[k].slice(0, 3), t, R.DEFUSE));
+    }
+    if (by[R.WILD]) for (const k of R.CATS) {   // 真猫 + 万能猫凑的对子 / 三张（纯的上面已经有了）
+      const real = (by[k] || []).length;
+      const c2 = real < 2 && catSet(by, k, 2), c3 = real < 3 && catSet(by, k, 3);
+      if (c2) for (const t of ts) out.push(playMove(c2, t));
+      if (c3) for (const t of ts) out.push(playMove(c3, t, R.DEFUSE));
     }
     const five = fiveCats(v);
     if (five) out.push(playMove(five));

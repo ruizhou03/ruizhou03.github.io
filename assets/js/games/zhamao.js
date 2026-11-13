@@ -82,8 +82,8 @@
     if (!d || d.v !== VERSION || !d.state || d.state.phase === 'over') return null;
     const s = d.state;
     const total = s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0) + (s.defuse ? 1 : 0);
-    // 旧存档：加「抽底」前是 64 张、加第二副（6–9 人）前是 68 张。没出现过的牌全收进盒子（removed），照样接着打
-    if ((total !== R.DECK_SIZE && total !== R.BASE_SIZE && total !== R.BASE_SIZE - R.COUNTS.bottom) || !Array.isArray(d.tiers) || d.tiers.length !== s.n) return null;
+    // 旧存档：加「抽底」前是 64 张、加第二副（6–9 人）前是 68 张、加万能猫前是 135 张。没出现过的牌全收进盒子（removed），照样接着打（那局就没有万能猫）
+    if ((total !== R.DECK_SIZE && R.LEGACY_SIZES.indexOf(total) < 0) || !Array.isArray(d.tiers) || d.tiers.length !== s.n) return null;
     s.rules = R.normalizeRules(s.rules);   // 老存档的规则按现在的来（例如甩锅一律叠加）
     if (total !== R.DECK_SIZE) {
       const seen = new Set(s.deck.concat(s.discard, s.removed, ...s.hands, s.defuse ? [s.defuse.card] : []));
@@ -1026,7 +1026,7 @@
     }
     await wait(ms(200));
     const lab = tag('<span class="x">×</span><b>' + n + '</b>');
-    const lx = a.x + r + 34, ly = up ? baseY - (n - 1) * step / 2 : baseY - (n - 1) * step / 2;
+    const lx = a.x + P / 2 + 20, ly = up ? baseY - (n - 1) * step / 2 : baseY - (n - 1) * step / 2;
     lab.animate([{ transform: at2(Math.min(innerWidth - 40, lx), ly, 0.3), opacity: 0 }, { transform: at2(Math.min(innerWidth - 40, lx), ly, 1.15), opacity: 1, offset: 0.6 }, { transform: at2(Math.min(innerWidth - 40, lx), ly, 1), opacity: 1 }], { duration: 260, fill: 'forwards' });
     snd('stamp');
     // 整摞晃两下
@@ -2692,6 +2692,7 @@
       '<li><b>三张一样</b>　指定一人并点名一种牌，他有就得给你</li>' +
       '<li><b>五种猫各一张</b>　橘猫、三花、奶牛猫、狸花、暹罗凑齐：从弃牌堆捡任意一张（行动牌、作废不算）</li>' +
       '<li>橘猫、三花、奶牛猫、狸花、暹罗本身没用，专门凑组合</li></ul>' +
+      '<ul>' + li('wild', '能顶任何一种猫：和一只猫凑成两张一样 / 三张一样，五种猫缺哪种也能拿它顶；两张万能猫也算一对。单出没用') + '</ul>' +
       '<h3>操作</h3><ul><li>点手牌选中（可多选），再点「出牌」；需要指定人时，能选的人头像会亮，点他的头像。</li>' +
       '<li>不想出牌就点「摸牌」结束回合。轮到你时头像外有一圈红环在收，收完还没动就自动替你摸一张（设置里可改成不限时）。</li>' +
       '<li>别人出的牌落在弃牌堆上时，下面那根导火索在烧：你手里有「作废」就会出现紫色按钮，烧完之前点它。</li></ul></div>';
@@ -3214,7 +3215,11 @@
     void seen;
     els.cover.querySelector('[data-cover="exit"]').hidden = !FROM_SITE;
     const sess = NET && NET.readSession(), rb = els.cover.querySelector('[data-cover="resume"]');
-    if (rb) { rb.hidden = !sess; if (sess) rb.querySelector('small').textContent = '房间 ' + sess.code; }
+    if (rb) {   // 联机那一层：还在某个房间里 →「回到房间 1234」排第一个、朱红；「创建房间」退成普通键
+      rb.hidden = !sess;
+      rb.querySelector('b').textContent = sess ? '回到房间 ' + sess.code : '回到房间';
+      els.cover.querySelector('[data-cover="create"]').classList.toggle('is-primary', !sess);
+    }
     const ob = els.cover.querySelector('[data-cover="online"]');
     if (ob) ob.hidden = !NET;
   }
@@ -3251,6 +3256,7 @@
     } else newGame();
   }
   // 主菜单两步：先是一条进度条，跑完换成按钮
+  const soloFoot = (on) => { const f = els.cover.querySelector('[data-cover-step="solo"] .zm-cover-foot'); if (f) f.hidden = !on; };
   function coverStep(k) {
     els.cover.querySelectorAll('[data-cover-step]').forEach((x) => { x.hidden = x.dataset.coverStep !== k; });
   }
@@ -3325,7 +3331,7 @@
     const used = new Set(o.hand.concat(o.discard, o.removed, o.known.map((x) => x.id)));
     o.handKnown.forEach((h, i) => { if (i !== 0) h.forEach((id) => used.add(id)); });
     if (o.defuse && o.defuse.card != null) used.add(o.defuse.card);
-    const pool = shuffled(ALL_IDS.filter((id) => !used.has(id) && (id < R.BASE_SIZE || R.usesSecondDeck(n))));
+    const pool = shuffled(ALL_IDS.filter((id) => !used.has(id) && (!R.inSecondDeck(id) || R.usesSecondDeck(n))));
     const take = (pred) => { const i = pool.findIndex(pred); return i >= 0 ? pool.splice(i, 1)[0] : null; };
     const hands = [];
     for (let i = 0; i < n; i++) {
@@ -4035,6 +4041,8 @@
     els.cover.querySelector('.zm-join').hidden = !on;
     els.cover.querySelector('[data-cover="join-open"]').hidden = on;
     els.cover.querySelector('[data-cover="create"]').hidden = on;
+    const rb = els.cover.querySelector('[data-cover="resume"]');
+    if (on) rb.hidden = true; else { const sess = NET && NET.readSession(); rb.hidden = !sess; }
     $('zmOnlineErr').hidden = true;
   }
   function onlineFail(e) {
@@ -4244,8 +4252,9 @@
     if (!b) return;
     const k = b.dataset.cover;
     // 单机：有上一局 → 先问「接着打 / 开新的一局」；没有就直接选人数
-    if (k === 'solo') { refreshSolo(); coverFrom = 'again'; coverStep('again'); snd('tap'); return; }
-    if (k === 'fresh') { refreshSolo(); coverStep('solo'); snd('tap'); return; }
+    // 2026-11-13 用户：没有没打完的局 → 点单机直接到选人数（不经过「接着打 / 开新的」那一步）；新手教程 · 设置这时挂在选人数那屏底下
+    if (k === 'solo') { refreshSolo(); const saved = !!loadSaved(); coverFrom = saved ? 'again' : 'main'; coverStep(saved ? 'again' : 'solo'); soloFoot(!saved); snd('tap'); return; }
+    if (k === 'fresh') { refreshSolo(); coverStep('solo'); soloFoot(false); snd('tap'); return; }
     if (k === 'back' && !els.cover.querySelector('.zm-join').hidden && !els.cover.querySelector('[data-cover-step="online"]').hidden) { setJoinMode(false); return; }
     if (k === 'back') { const step = els.cover.querySelector('[data-cover-step="solo"]:not([hidden])') && coverFrom === 'again' ? 'again' : 'main'; coverStep(step); if (step === 'main') coverFrom = 'main'; return; }
     if (k === 'start') { settings.players = Math.min(SOLO_MAX, settings.players); soloStart(); return; }

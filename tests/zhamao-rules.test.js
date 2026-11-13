@@ -26,16 +26,19 @@ const idOf = (s, seat, k) => s.hands[seat].find((id) => R.KIND_OF[id] === k);
 const closeAll = (s) => { for (const t of R.awaitingReaction(s)) R.pass(s, t); return R.closeReaction(s); };
 
 test('deck composition', () => {
-  // 第一副 68 张（id 0..67）；6 人及以上再加第二副 67 张（id 68..134）
-  assert.equal(R.BASE_SIZE, 68);
-  assert.equal(R.DECK_SIZE, 135);
-  const base = (k) => ofKind(k).filter((id) => id < R.BASE_SIZE).length;
+  // 第一副 72 张（老牌 id 0..67 + 万能猫 135..138）；6 人及以上再加第二副 71 张（68..134 + 139..142）
+  assert.equal(R.BASE_SIZE, 72);
+  assert.equal(R.DECK_SIZE, 143);
+  assert.deepEqual(R.KIND_OF.slice(135).every((k) => k === R.WILD), true, '万能猫的牌号接在最后，老牌号不变');
+  assert.equal(R.KIND_OF.filter((k) => k === R.WILD).length, 8);
+  const base = (k) => ofKind(k).filter((id) => !R.inSecondDeck(id)).length;
   assert.equal(base(R.SWAP), 3);
   assert.equal(base(R.BOTTOM), 4);
   assert.equal(base(R.ALTER), 3);
   assert.equal(base(R.TATTACK), 3);
   assert.equal(base(R.BOOM), 4);
   assert.equal(base(R.DEFUSE), 6);
+  assert.equal(base(R.WILD), 4);
   assert.equal(ofKind(R.BOOM).length, 8);
   assert.equal(ofKind(R.DEFUSE).length, 11);
 });
@@ -76,7 +79,7 @@ test('setup for 2..5 players', () => {
       // 没放回的炸毛猫 / 逗猫棒收进盒子（不参与这局），弃牌堆一开始是空的
       assert.equal(s.discard.length, 0);
       assert.equal(s.removed.length, (4 - (n - 1)) + 3 + (R.DECK_SIZE - R.BASE_SIZE)); // + 3 张交换（没开交换牌）+ 整个第二副
-      assert.ok(s.deck.concat(...s.hands).every((id) => id < R.BASE_SIZE), '5 人及以下只用第一副');
+      assert.ok(s.deck.concat(...s.hands).every((id) => !R.inSecondDeck(id)), '5 人及以下只用第一副');
     }
   }
   assert.equal(R.normalizeRules({ extraDefuse: 'two' }).extraDefuse, 'all');   // 开关拿掉了：一律全放回
@@ -456,4 +459,22 @@ test('swap: optional, scales with players, keeps defuses', () => {
   assert.equal(R.view(s, 0).handKnown[1].length, 1);   // 我知道我的奶牛猫现在在他手里
   assert.equal(total(s), R.DECK_SIZE);
   void theirs;
+});
+
+test('万能猫能顶任何一种猫：对子 / 三张 / 五种各一张', () => {
+  const id = (k, skip) => R.KIND_OF.findIndex((x, i) => x === k && i >= (skip || 0));
+  const w1 = id(R.WILD), w2 = id(R.WILD, w1 + 1), w3 = id(R.WILD, w2 + 1);
+  const o1 = id('orange'), o2 = id('orange', o1 + 1), c1 = id('calico'), cw = id('cow'), tb = id('tabby'), sm = id('siamese');
+  assert.equal(R.classify([o1, w1]).type, 'pair');
+  assert.equal(R.classify([w1, w2]).type, 'pair');
+  assert.equal(R.classify([o1, c1]), null, '两种不同的猫不成对');
+  assert.equal(R.classify([o1, o2, w1]).type, 'triple');
+  assert.equal(R.classify([o1, w1, w2]).type, 'triple');
+  assert.equal(R.classify([o1, c1, w1]), null);
+  assert.equal(R.classify([id(R.SKIP), w1]), null, '万能猫只顶猫，不顶行动牌');
+  assert.equal(R.classify([o1, c1, cw, tb, w1]).type, 'five');
+  assert.equal(R.classify([o1, c1, w1, w2, w3]).type, 'five');
+  assert.equal(R.classify([o1, o2, cw, tb, w1]), null, '五张里真猫不能重样');
+  assert.equal(R.classify([o1, c1, cw, tb, sm]).type, 'five');
+  assert.equal(R.classify([w1]), null, '单张万能猫不能出');
 });

@@ -32,6 +32,7 @@
     cow:     { bg: '#fbf4e6', band: '#3a3632', ink: '#fffaf0' },
     tabby:   { bg: '#fbf4e6', band: '#8c7a62', ink: '#fffaf0' },
     siamese: { bg: '#fbf4e6', band: '#6b4a3a', ink: '#fffaf0' },
+    wild:    { bg: '#fbf1dc', band: '#b08a3e', ink: '#fffaf0' },   // 万能猫：暖金名字条
   };
 
   /* ───── 积木 ───── */
@@ -255,9 +256,23 @@
     return svg;
   }
 
+  /* 万能猫（2026-11-13 用户从甲乙丙里挑定乙·变身猫）：金色小猫挥星星棒，身边飘五种猫的小爪印——想当哪只就当哪只 */
+  const star = (x, y, r, c, rot) => { let d = ''; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5 + (rot || 0); const rr = i % 2 ? r * 0.45 : r; d += (i ? 'L' : 'M') + f(x + Math.cos(a) * rr) + ' ' + f(y + Math.sin(a) * rr); } return '<path d="' + d + 'Z" fill="' + c + '" stroke="' + c + '" stroke-width="1.2" stroke-linejoin="round"/>'; };
+  function wildArt() {
+    const fur = '#e7c27a', dark = '#b8914a';
+    let svg = ground();
+    svg += line('M70 84c12-2 16-14 10-24', 7, dark);
+    svg += body(50, 76, 24, 17, fur);
+    svg += '<ellipse cx="43" cy="89" rx="6" ry="4" fill="#fff4e3"/><ellipse cx="57" cy="89" rx="6" ry="4" fill="#fff4e3"/>';
+    svg += catHead(50, 44, 1.0, fur, { muzzle: '#fff4e3', eyes: 'happy', patch: line('M-4 -17v5M0 -18v6M4 -17v5', 2.6, dark) });
+    svg += line('M66 72 80 40', 3.4, NAVY) + star(81, 36, 8, GOLD, 0.15);
+    for (const [c, x, y] of [['#eea25a', 14, 26], ['#e58e46', 12, 50], ['#2a2622', 22, 66], ['#8c7a62', 86, 62], ['#5a3e30', 90, 16]]) svg += '<g transform="translate(' + (x - 5) + ' ' + (y - 5) + ') scale(.42)">' + pawPrint(c) + '</g>';
+    return svg;
+  }
+
   const FACE = {
     boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, tattack: tattackArt, skip: skipArt, bottom: bottomArt, favor: favorArt, shuffle: shuffleArt, future: futureArt, alter: alterArt, swap: swapArt,
-    orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'),
+    orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'), wild: wildArt,
   };
   const cache = {};
   function face(kind) {
@@ -287,6 +302,10 @@
       return pawPrint(c);
     })(b, k);
   }
+  // 万能猫角标：五色爪印（掌垫暖金，四颗趾豆橘 / 黑 / 狸花棕 / 暹罗深）
+  ICON.wild = () => '<path d="M12 12.4C14.9 12.4 17.4 14.3 18.3 16.9C18.9 18.7 17.9 20.6 16.1 20.9C14.9 21.1 13.9 20.5 12 20.5C10.1 20.5 9.1 21.1 7.9 20.9C6.1 20.6 5.1 18.7 5.7 16.9C6.6 14.3 9.1 12.4 12 12.4Z" fill="#c9a24a"/>' +
+    [[4.7, 10.6, -28, 2.05, 2.65, '#eea25a'], [8.9, 6.4, -9, 2.2, 2.85, '#2a2622'], [15.1, 6.4, 9, 2.2, 2.85, '#8c7a62'], [19.3, 10.6, 28, 2.05, 2.65, '#5a3e30']]
+      .map(([x, y, r, rx, ry, c]) => '<ellipse cx="' + x + '" cy="' + y + '" rx="' + rx + '" ry="' + ry + '" transform="rotate(' + r + ' ' + x + ' ' + y + ')" fill="' + c + '"/>').join('');
   const icache = {};
   function icon(kind) {
     if (!icache[kind]) icache[kind] = '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[kind]() + '</svg>';
