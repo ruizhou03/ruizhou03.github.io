@@ -352,7 +352,8 @@
     const prev = new Map();
     if (o.flip !== false) els.hand.querySelectorAll('.zm-card').forEach((c) => prev.set(c.dataset.id, c.getBoundingClientRect()));
     const combo = selected.length && R.classify(selected) && mode !== 'give';
-    els.hand.innerHTML = hand.map((id) => cardHtml(id,
+    const note = !hand.length ? watchNote() : '';
+    els.hand.innerHTML = (note ? '<p class="zm-hand-note">' + esc(note) + '</p>' : '') + hand.map((id) => cardHtml(id,
       (selected.indexOf(id) >= 0 ? 'is-sel' + (combo ? ' is-combo' : '') : '') + (handHidden.has(id) ? ' is-incoming' : '') +
       (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : ''))).join('');
     els.hand.querySelectorAll('.zm-card').forEach((c) => {
@@ -2022,6 +2023,10 @@
     renderHand();
   }
   function onSeatTap(seat) {
+    if (game && game.online && !game.dealing && (game.spectator || !game.state.alive[0]) && game.state.phase !== 'over') {
+      if (seat > 0 && game.state.alive[seat]) onlineView(srvOf(seat));
+      return;
+    }
     if (game && !game.tutorial && !game.online && !game.state.alive[0] && game.state.phase !== 'over' && seat > 0) {
       if (game.state.alive[seat]) watch(seat);
       return;
@@ -2683,7 +2688,7 @@
   function menuItems() {
     const exit = FROM_SITE ? [['exit', '返回百宝奇巧']] : [];
     if (game && game.tutorial) return [['skip', '跳过教程'], ['rules', '规则'], ['line'], ['cover', '回到主菜单'], ...exit];
-    if (online) return [['invite', '房间号 / 邀请'], ['profile', '改名字 / 头像'], ['rules', '规则'], ['line'], ['leave', '离开房间']];
+    if (online) return [['invite', '房间号 / 邀请'], ['profile', '改名字 / 头像'], ...(online.st && online.st.mySeat >= 0 ? [['reveal', '观战能看我的牌']] : []), ['rules', '规则'], ['line'], ['leave', '离开房间']];
     return [
       ...(canPause() ? [['pause', '暂停']] : []),
       ['restart', '重新开一局'],
@@ -2711,7 +2716,30 @@
     else if (k === 'cover') { if (game && game.tutorial) quitTutorial(); else showCover(); }
     else if (k === 'exit') location.href = '/toolbox/';
     else if (k === 'invite') showInvite();
+    else if (k === 'reveal') showReveal();
     else if (k === 'leave') { if (confirm(game && game.online && !game.over && game.state.alive[0] ? '离开房间？这一局交给机器猫替你打完' : '离开房间？')) leaveOnline(true); }
+  }
+  /* 「观战能看我的牌」：每人自己定，默认不给看。开局时锁定（局中改了下一局生效）——
+   * 也决定我出局后能不能看机器猫的牌（自己给别人看，才能看机器猫） */
+  function myPlayer() { const st = online && online.st; return st ? st.players.find((p) => p.id === st.me && !p.left) || null : null; }
+  function showReveal() {
+    const p = myPlayer();
+    if (!p) return;
+    const inGame = online.st.phase !== 'lobby' && G() && !G().over;
+    openDialog('<h2>观战能看我的牌</h2><section class="zs-card"><div class="zs-row"><i class="zs-ic">' + ART.icon('future') + '</i><div class="zs-txt"><b>给观战的人看我的手牌</b>' +
+      '<small>出局后想看机器猫的牌，也得开着</small></div><button type="button" class="zs-switch" data-rv role="switch" aria-checked="' + !!p.showHand + '"><i></i></button></div></section>' +
+      '<p class="zs-note" data-rv-note' + (inGame ? '' : ' hidden') + '>' + (inGame ? '这一局开局时是「' + (p.revealing ? '给看' : '不给看') + '」，改了从下一局起生效' : '') + '</p>' +
+      '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-close data-focus>好</button></div>', (d) => {
+      d.classList.add('zs', 'zs-b');
+      const sw = d.querySelector('[data-rv]');
+      sw.addEventListener('click', () => {
+        const on = sw.getAttribute('aria-checked') !== 'true';
+        sw.setAttribute('aria-checked', String(on));
+        snd('tap');
+        onlineAct('reveal', { on });
+      });
+      d.querySelector('[data-close]').addEventListener('click', closeDialog);
+    });
   }
   let menu = null;
   function closeMenu() {
@@ -3276,6 +3304,43 @@
     return true;
   }
 
+  // 我坐在哪一家身后：观战的人 = 他选的那家；出局后换过视角 = 那一家；平常 = 自己的座位
+  const viewBase = (st) => (st.spectator ? st.viewSeat : st.viewSeat >= 0 ? st.viewSeat : st.mySeat);
+  function seatSpots() {
+    const out = {};
+    for (let l = 0; l < online.n; l++) { const a = avEl(l); if (a) out[srvOf(l)] = fx.center(a.getBoundingClientRect()); }
+    return out;
+  }
+  // 换视角的「转桌」：每一家的座位从原来的位置滑到新位置（被看的人从上面滑到下面），手牌淡进来
+  function turnTable(before) {
+    if (fx.reduce() || !game || !game.state) return;
+    for (let l = 0; l < online.n; l++) {
+      const box = seatEl(l), a = avEl(l), old = before[srvOf(l)];
+      if (!box || !a || !old) continue;
+      const now = fx.center(a.getBoundingClientRect());
+      const dx = old.x - now.x, dy = old.y - now.y;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+      box.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)' }, { transform: 'none' }], { duration: 460, easing: 'cubic-bezier(.3,.75,.3,1)' });
+    }
+    els.hand.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 360, delay: 160, easing: 'ease-out', fill: 'backwards' });
+    snd('flip');
+  }
+  // 观战时点一家：坐到他身后（出局的人点自己头像回到自己座位）
+  function onlineView(srvSeat) {
+    if (!online || online.viewing) return;
+    online.viewing = true;
+    onlineAct('view', { seat: srvSeat }).finally(() => { if (online) online.viewing = false; });
+  }
+  // 看不到被看那家的手牌时，手牌那一栏写一句为什么
+  function watchNote() {
+    if (!game || !game.online || !game.spectator || !game.hideHand || !online || !online.st) return '';
+    const st = online.st, p = playerAt(online.base);
+    if (!p) return '';
+    if (!game.state.alive[0]) return '';
+    if (!p.isAi && !p.left) return 'TA 这局没开「观战能看我的牌」';
+    return st.spectator ? '只观战看不到机器猫的牌' : '这局开局时你没开「观战能看我的牌」，看不到机器猫的牌';
+  }
+
   /* ───── 收到服务器状态 ───── */
   function onState(st) {
     if (!online || !st) return;
@@ -3286,8 +3351,14 @@
     if (st.phase === 'lobby') { enterLobby(st, prev); return; }
     const g = st.game;
     if (!g) return;
-    const base = st.spectator ? st.viewSeat : st.mySeat;
-    if (!game || !game.online || game.matchNo !== g.matchNo || online.base !== base || online.n !== g.n) { enterGame(st, !!(prev && prev.phase === 'lobby')); return; }
+    const base = viewBase(st);
+    if (!game || !game.online || game.matchNo !== g.matchNo || online.base !== base || online.n !== g.n) {
+      // 观战换了一家：桌子转过去（先记下每一家头像现在在哪，重摆之后从旧位置滑到新位置）
+      const turning = game && game.online && game.matchNo === g.matchNo && online.n === g.n && online.base !== base ? seatSpots() : null;
+      enterGame(st, !!(prev && prev.phase === 'lobby'));
+      if (turning) turnTable(turning);
+      return;
+    }
     syncPeople(st);
     const fresh = g.log.filter((e) => e.n > online.lastQueued);
     if (fresh.length && fresh[0].n !== online.lastQueued + 1 && online.lastQueued < g.seq) { resync(); return; }
@@ -3319,14 +3390,17 @@
     resetTable();
     els.cover.hidden = true;
     hideLobby();
-    online.base = st.spectator ? st.viewSeat : st.mySeat;
+    online.base = viewBase(st);
     online.n = g.n;
     online.queue = []; online.playing = false;
     viewSeat = -1; els.app.classList.remove('is-watching');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     tut = null;
-    game = { online: true, matchNo: g.matchNo, turnSec: g.turnSec, state: null, bots: [], tiers: [], tags: [], tutorial: false, spectator: !!st.spectator, hideHand: !!st.spectator && !(g.st.hand && g.st.hand.length) };
-    els.app.classList.toggle('is-spectator', !!st.spectator);
+    // 观战（纯观战，或出局后坐到别人身后）：下面那家是被看的人，我什么也不用做
+    const watching = !!st.spectator || (st.mySeat >= 0 && online.base !== st.mySeat);
+    game = { online: true, matchNo: g.matchNo, turnSec: g.turnSec, state: null, bots: [], tiers: [], tags: [], tutorial: false, spectator: watching, hideHand: watching && !(g.st.hand && g.st.hand.length) };
+    els.app.classList.toggle('is-spectator', watching || !g.st.alive[st.mySeat]);
+    els.me.classList.toggle('is-watched', watching);
     syncPeople(st);
     bgm('game');
     const deal = g.log.find((e) => e.t === 'deal');
@@ -3432,7 +3506,7 @@
     if (window.ZhamaoAudio && s.deck.length) window.ZhamaoAudio.danger(R.kittensInDeck(s) / s.deck.length);
     release();
     if (g.over) { renderAll(); onlineFinish(); return; }
-    const mine = !!g.myCall && !autopilot;
+    const mine = !!g.myCall && !autopilot && !game.spectator;
     const remain = onlineRemain();
     stopClock();
     reactOpen = false;
@@ -3464,7 +3538,7 @@
   let reactAuto = 0;
   // 一收到「有人出牌、轮到我表态、我手里没作废」就开始计时（和桌上的动画同时走，不等动画播完），0.3–0.7 秒后表态
   function earlyPass(g) {
-    if (!online || !g || !g.myCall || g.st.phase !== 'react' || online.passFor === g.seq) return;
+    if (!online || !g || !g.myCall || (game && game.spectator) || g.st.phase !== 'react' || online.passFor === g.seq) return;
     if (g.st.hand.some((id) => R.KIND_OF[id] === R.NOPE)) return;
     online.passFor = g.seq;
     const at = g.seq;
@@ -3752,6 +3826,7 @@
     const host = isHost(), me = st.me, cfg = st.config || {};
     const rules = R.normalizeRules(cfg.rules);
     const seated = st.players.filter((p) => !p.left);
+    const myP = st.spectator ? null : seated.find((p) => p.id === me) || null;
     const seatHtml = (seat) => {
       const p = seated.find((x) => x.seat === seat);
       if (!p) return '<button type="button" class="zm-lseat is-empty" data-seat="' + seat + '"><span class="av">+</span><b>' + (host ? '加机器猫' : '空位') + '</b><small>' + (st.spectator ? '坐这里' : host ? '' : '换到这') + '</small></button>';
@@ -3772,6 +3847,7 @@
       row('swap', '交换牌', '和一个人整手交换（逗猫棒不换）', sw('swap', rules.swap)) +
       row('defuse', '多的逗猫棒全放回', '关着 = 最多放回 2 张', sw('extraDefuse', rules.extraDefuse === 'all')) +
       '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">规则由房主定</p>') +
+      (myP ? '<section class="zs-card zs-b zm-lobby-me">' + row('future', '观战能看我的牌', '出局后想看机器猫的牌，也得开着', '<button type="button" class="zs-switch" data-l="reveal" role="switch" aria-checked="' + !!myP.showHand + '"><i></i></button>') + '</section>' : '') +
       '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">离开房间</button>' +
       (host ? '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (seated.length >= 2 ? '' : ' disabled') + '>开始（' + seated.length + ' 人）</button>'
         : '<span class="zm-lobby-wait">等房主开始…</span>') + '</div></div>';
@@ -3783,6 +3859,7 @@
     if (!b || b.disabled) return;
     if (b.dataset.l === 'invite') { showInvite(); return; }
     if (b.dataset.l === 'leave') { leaveOnline(true); return; }
+    if (b.dataset.l === 'reveal') { const on = b.getAttribute('aria-checked') !== 'true'; b.setAttribute('aria-checked', String(on)); snd('tap'); onlineAct('reveal', { on }); return; }
     if (b.dataset.l === 'start') { b.disabled = true; onlineAct('start'); return; }
     if (b.dataset.turn != null) { onlineAct('config', { config: { turnSec: +b.dataset.turn } }); return; }
     if (b.dataset.rule) {
@@ -3900,7 +3977,12 @@
     fx.pop(b, { scale: 1.1, dur: 220 });
     snd('tick');
   });
-  els.me.addEventListener('click', (e) => { if (e.target.closest('.zm-av') && canAuto() && !game.dealing) setAutopilot(!autopilot); });
+  els.me.addEventListener('click', (e) => {
+    if (!e.target.closest('.zm-av')) return;
+    // 出局后在看别人：点下面这个头像回到自己座位
+    if (game && game.online && game.spectator && online && online.st && online.st.mySeat >= 0 && online.base !== online.st.mySeat) { onlineView(online.st.mySeat); return; }
+    if (canAuto() && !game.dealing) setAutopilot(!autopilot);
+  });
   els.drawBtn.addEventListener('click', onDraw);
   els.playBtn.addEventListener('click', onPlay);
   els.nopeBtn.addEventListener('click', pressNope);

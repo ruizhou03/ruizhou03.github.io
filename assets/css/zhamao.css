@@ -748,3 +748,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-defuse-scene .hero-boom > * { transform-box: view-box; }
 .zm-defuse-scene .hero-wand { transform-box: view-box; transform-origin: 96px 98px; }
 .zm-cover-btn small:empty { display: none; }
+/* 联机观战：看不到被看那家的手牌时，手牌那一栏写一句为什么；大厅里自己的「观战能看我的牌」 */
+.zm-hand-note { margin: auto; padding: 0 16px; text-align: center; font-size: 13px; line-height: 1.5; color: var(--zm-ink-mute); align-self: center; }
+.zm-lobby-me { margin-top: 10px; }
+.zm-app.is-spectator .zm-seat-me .zm-av { cursor: pointer; }
+/* 观战时下面坐的是别人：头像下写上他的名字 */
+.zm-seat-me.is-watched .zm-name { display: block; position: absolute; left: calc(var(--av) / 2); top: calc(50% + var(--av) / 2 + 3px); transform: translateX(-50%); white-space: nowrap; font-size: 12px; max-width: 30vw; overflow: hidden; text-overflow: ellipsis; }
