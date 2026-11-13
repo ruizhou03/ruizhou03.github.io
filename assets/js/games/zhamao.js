@@ -1817,6 +1817,16 @@
     if (e.seat === 0) { game.fastOut = true; renderBand(); }
   }
 
+  /* 「作废只在和我有关时问」（设置里，默认关）：和我有关 = 这张牌是我出的（被人作废了，我可能想作废回去）、
+   * 指着我（索要 / 偷牌 / 点名 / 交换 / 自由甩锅）、或者是甩锅而下一家就是我。别的（洗牌、窥探、改命、跳过、抽底、互相甩锅 / 偷牌……）一律不问 */
+  function aboutSeat(p, me, alive) {
+    if (!p) return true;
+    if (p.by === me || p.target === me) return true;
+    if (p.type === R.ATTACK) { const n = alive.length; for (let k = 1; k < n; k++) { const x = (p.by + k) % n; if (alive[x]) return x === me; } }
+    return false;
+  }
+  const askMeNope = (s) => !settings.nopeMine || aboutSeat(s.pending, 0, s.alive);
+
   /* ───── 反应窗：出完牌大家决定要不要「不行」 ───── */
   function clearReactTimer() { if (reactTimer) { clearTimeout(reactTimer); reactTimer = null; } }
   function reactPhase() {
@@ -1833,7 +1843,7 @@
       if (want == null) want = R.canNope(s, x) && AI.decide(s, x, game.tiers[x] || 'normal').type === 'nope';
       if (want) { botSeat = x; break; }
     }
-    const meCan = !autopilot && R.canNope(s, 0) && R.awaitingReaction(s).indexOf(0) >= 0;
+    const meCan = !autopilot && R.canNope(s, 0) && R.awaitingReaction(s).indexOf(0) >= 0 && (askMeNope(s) || !!tut);
     const tutWaitMe = tut && tut.mustNope && tut.mustNope(s);
     const botDelay = botSeat >= 0 ? P.botNope[0] + Math.random() * (P.botNope[1] - P.botNope[0]) : Infinity;
     const windowMs = meCan ? (tutWaitMe ? Infinity : P.react || 1400) : P.quiet;
@@ -2638,8 +2648,14 @@
       row('swap', '交换牌', '和一个人整手交换（逗猫棒不换）', sw('swap', settings.rules.swap)) +
       row('defuse', '多的逗猫棒全放回', '关着 = 最多放回 2 张', sw('extraDefuse', settings.rules.extraDefuse === 'all')) +
       '</section>';
+    const pref = '<div class="zs-cap">操作</div><section class="zs-card">' +
+      row('nope', '作废只在和我有关时问', '别人洗牌、窥探、改命、互相甩锅 / 偷牌时，手里有作废也不等你表态', '<button type="button" class="zs-switch" data-pref="nopeMine" role="switch" aria-checked="' + !!settings.nopeMine + '"><i></i></button>') +
+      '</section>';
+    // 联机：机器猫 / 规则由房主定，这里只有自己的操作偏好
+    if (online) html = '<h2>设置</h2>' + pref.replace('<div class="zs-cap">操作</div>', '');
+    else html += pref;
     html += '<p class="zs-note" data-rule-note hidden>规则从下一局起生效</p><div class="zm-actions">' +
-      (fromCover || !game || game.tutorial ? '' : '<button type="button" class="zm-btn" data-restart>重开一局</button>') +
+      (fromCover || !game || game.tutorial || online ? '' : '<button type="button" class="zm-btn" data-restart>重开一局</button>') +
       '<button type="button" class="zm-btn zm-btn-primary" data-close data-focus>好</button></div>';
     openDialog(html, (d) => {
       d.classList.add('zs', 'zs-b');
@@ -2662,6 +2678,13 @@
         else if (key === 'stackAttack' || key === 'swap') settings.rules[key] = v === 'true';
         else settings.rules[key] = v;
         persist();
+      }));
+      d.querySelectorAll('[data-pref]').forEach((b) => b.addEventListener('click', () => {
+        const on = b.getAttribute('aria-checked') !== 'true';
+        b.setAttribute('aria-checked', String(on));
+        settings[b.dataset.pref] = on;
+        saveSettings();
+        snd('tap');
       }));
       d.querySelectorAll('[data-sw]').forEach((b) => b.addEventListener('click', () => {
         const on = b.getAttribute('aria-checked') !== 'true';
@@ -2714,7 +2737,7 @@
   function menuItems() {
     const exit = FROM_SITE ? [['exit', '返回百宝奇巧']] : [];
     if (game && game.tutorial) return [['skip', '跳过教程'], ['rules', '规则'], ['line'], ['cover', '回到主菜单'], ...exit];
-    if (online) return [['invite', '房间号 / 邀请'], ['profile', '改名字 / 头像'], ...(online.st && online.st.mySeat >= 0 ? [['reveal', '观战能看我的牌']] : []), ['rules', '规则'], ['line'], ['leave', '离开房间']];
+    if (online) return [['invite', '房间号 / 邀请'], ['profile', '改名字 / 头像'], ...(online.st && online.st.mySeat >= 0 ? [['reveal', '观战能看我的牌']] : []), ['settings', '设置'], ['rules', '规则'], ['line'], ['leave', '离开房间']];
     return [
       ...(canPause() ? [['pause', '暂停']] : []),
       ['restart', '重新开一局'],
@@ -3587,7 +3610,7 @@
   // 一收到「有人出牌、轮到我表态、我手里没作废」就开始计时（和桌上的动画同时走，不等动画播完），0.3–0.7 秒后表态
   function earlyPass(g) {
     if (!online || !g || !g.myCall || (game && game.spectator) || g.st.phase !== 'react' || online.passFor === g.seq) return;
-    if (g.st.hand.some((id) => R.KIND_OF[id] === R.NOPE)) return;
+    if (g.st.hand.some((id) => R.KIND_OF[id] === R.NOPE) && (!settings.nopeMine || aboutSeat(g.st.pending, online.base, g.st.alive))) return;
     online.passFor = g.seq;
     const at = g.seq;
     setTimeout(() => {
@@ -3599,7 +3622,7 @@
   function onlineReact(g, mine, remain) {
     const s = game.state;
     if (!els.stage.querySelector('.zm-stage-inner')) { showStage(s.pending, false); if (s.pending.nopes.length) stageVerdict(s.pending.nopes.length); }
-    const canN = mine && R.canNope(s, 0);
+    const canN = mine && R.canNope(s, 0) && askMeNope(s);
     reactOpen = canN;
     busy = !canN;
     renderHand({ flip: false });
