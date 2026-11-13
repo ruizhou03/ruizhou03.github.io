@@ -32,7 +32,8 @@
     cow:     { bg: '#fbf4e6', band: '#3a3632', ink: '#fffaf0' },
     tabby:   { bg: '#fbf4e6', band: '#8c7a62', ink: '#fffaf0' },
     siamese: { bg: '#fbf4e6', band: '#6b4a3a', ink: '#fffaf0' },
-    wild:    { bg: '#fbf1dc', band: '#b08a3e', ink: '#fffaf0' },   // 万能猫：暖金名字条
+    wild:    { bg: '#fbf1dc', band: '#b08a3e', ink: '#fffaf0' },   // 万能猫：暖金名字条（实际名字条是五彩渐变，见 zhamao.css）
+    reverse: { bg: '#dcebf2', band: '#1f7a9c', ink: '#f4fbff' },   // 转向：天青
   };
 
   /* ───── 积木 ───── */
@@ -270,9 +271,23 @@
     return svg;
   }
 
+  /* 转向（2026-11-13）：一只蓝灰小猫扭头往回看，身后一大圈首尾相接的两道弧形箭头——方向倒过来 */
+  function reverseArt() {
+    const C = '#1f7a9c';
+    let svg = ground();
+    const arrow = (d, tip, rot) => line(d, 5, C) + '<path d="M0 0-7-4.5V4.5Z" fill="' + C + '" stroke="' + C + '" stroke-width="2" stroke-linejoin="round" transform="translate(' + tip + ') rotate(' + rot + ')"/>';
+    // 上面一道从右往左、下面一道从左往右，围成一圈
+    svg += arrow('M80 40A32 30 0 0 0 26 26', '22 30', 132) + arrow('M20 64A32 30 0 0 0 74 78', '78 74', -48);
+    svg += line('M66 84c10-1 14-10 9-18', 6, '#7d93b2');
+    svg += body(50, 74, 20, 14, '#9bb0cc');
+    svg += catHead(50, 46, 0.86, '#b4c5dd', { eyes: 'side', ear: '#e6c3cf', blushC: '#f4b0b8' });
+    svg += '<ellipse cx="44" cy="86" rx="5" ry="3.4" fill="#e4ebf4"/><ellipse cx="56" cy="86" rx="5" ry="3.4" fill="#e4ebf4"/>';
+    return svg;
+  }
+
   const FACE = {
     boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, tattack: tattackArt, skip: skipArt, bottom: bottomArt, favor: favorArt, shuffle: shuffleArt, future: futureArt, alter: alterArt, swap: swapArt,
-    orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'), wild: wildArt,
+    orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'), wild: wildArt, reverse: reverseArt,
   };
   const cache = {};
   function face(kind) {
@@ -306,6 +321,9 @@
   ICON.wild = () => '<path d="M12 12.4C14.9 12.4 17.4 14.3 18.3 16.9C18.9 18.7 17.9 20.6 16.1 20.9C14.9 21.1 13.9 20.5 12 20.5C10.1 20.5 9.1 21.1 7.9 20.9C6.1 20.6 5.1 18.7 5.7 16.9C6.6 14.3 9.1 12.4 12 12.4Z" fill="#c9a24a"/>' +
     [[4.7, 10.6, -28, 2.05, 2.65, '#eea25a'], [8.9, 6.4, -9, 2.2, 2.85, '#2a2622'], [15.1, 6.4, 9, 2.2, 2.85, '#8c7a62'], [19.3, 10.6, 28, 2.05, 2.65, '#5a3e30']]
       .map(([x, y, r, rx, ry, c]) => '<ellipse cx="' + x + '" cy="' + y + '" rx="' + rx + '" ry="' + ry + '" transform="rotate(' + r + ' ' + x + ' ' + y + ')" fill="' + c + '"/>').join('');
+  // 转向角标：两道弧形箭头首尾相接围成一圈
+  ICON.reverse = () => '<path d="M19.5 9.5A8 8 0 0 0 5.6 7" fill="none" stroke="#1f7a9c" stroke-width="2.4" stroke-linecap="round"/><path d="M0 0-4-2.6V2.6Z" fill="#1f7a9c" transform="translate(4.6 8.4) rotate(130)"/>' +
+    '<path d="M4.5 14.5A8 8 0 0 0 18.4 17" fill="none" stroke="#1f7a9c" stroke-width="2.4" stroke-linecap="round"/><path d="M0 0-4-2.6V2.6Z" fill="#1f7a9c" transform="translate(19.4 15.6) rotate(-50)"/>';
   const icache = {};
   function icon(kind) {
     if (!icache[kind]) icache[kind] = '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[kind]() + '</svg>';

@@ -234,7 +234,7 @@
     const m = game && game.state ? game.state.n - 1 : 0;
     const arc = m >= 5;
     els.opps.classList.toggle('is-arc', arc);
-    if (!arc) { els.opps.style.removeProperty('--av-o'); els.opps.style.removeProperty('--arc'); return; }
+    if (!arc) { els.opps.style.removeProperty('--av-o'); els.opps.style.removeProperty('--arc'); renderDir(); return; }
     const W = els.opps.clientWidth || els.table.clientWidth || innerWidth;
     const per = W / m;
     const av = Math.max(30, Math.min(46, Math.floor(per - 16)));
@@ -245,6 +245,49 @@
       const t = m > 1 ? (j - (m - 1) / 2) / ((m - 1) / 2) : 0;
       b.style.setProperty('--dy', (A * t * t).toFixed(1) + 'px');
     });
+    renderDir();
+  }
+  /* 出牌方向（2026-11-13 用户挑甲、去掉屏幕两边那两个）：相邻两个对手之间一个淡金小箭头，指向下一个出牌的人；打出「转向」全部掉头。
+   * 只有对手 ≥ 2 家才有（两个人玩方向无所谓）。箭头落在两人名字之间的空里（弧形排布时头像小，箭头也跟着小） */
+  const DIR_SVG = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function dirNow() { return game && game.state && game.state.dir === -1 ? -1 : 1; }
+  function renderDir() {
+    if (!els.dir) { els.dir = document.createElement('div'); els.dir.className = 'zm-dir'; els.dir.setAttribute('aria-hidden', 'true'); els.table.appendChild(els.dir); }
+    const n = game && game.state ? game.state.n : 0;
+    if (n < 3 || !els.opps.children.length) { els.dir.innerHTML = ''; return; }
+    if (els.dir.children.length !== n - 2) els.dir.innerHTML = Array.from({ length: n - 2 }, () => '<i>' + DIR_SVG + '</i>').join('');
+    const tb = els.table.getBoundingClientRect(), d = dirNow();
+    Array.from(els.dir.children).forEach((el, k) => {
+      const a = avEl(k + 1), b = avEl(k + 2);
+      if (!a || !b) return;
+      const A = a.getBoundingClientRect(), B = b.getBoundingClientRect();
+      const ax = A.left + A.width / 2, ay = A.top + A.height / 2, bx = B.left + B.width / 2, by = B.top + B.height / 2;
+      const sz = Math.max(12, Math.min(20, Math.round(A.width * 0.42)));
+      const base = Math.atan2(by - ay, bx - ax);   // 座位号往上走 = 从 k+1 指向 k+2；反过来（d = -1）就掉头
+      el.style.cssText = 'left:' + ((ax + bx) / 2 - tb.left).toFixed(1) + 'px;top:' + ((ay + by) / 2 + A.height / 2 + sz * 1.2 - tb.top).toFixed(1) + 'px;width:' + sz + 'px;height:' + sz + 'px;' +
+        'transform:translate(-50%,-50%) rotate(' + (base + (d === -1 ? Math.PI : 0)).toFixed(4) + 'rad)';
+      el.dataset.base = base;
+    });
+  }
+  /* 打出转向：箭头从出牌人那边起，一个接一个转半圈掉头 */
+  async function animReverse(e, t) {
+    if (!els.dir || !els.dir.children.length) return;
+    snd('flip');
+    const list = Array.from(els.dir.children), d = e.dir === -1 ? -1 : 1;
+    const order = e.seat >= 1 && e.seat <= list.length ? list.map((_, k) => k).sort((x, y) => Math.abs(x + 1.5 - e.seat) - Math.abs(y + 1.5 - e.seat)) : list.map((_, k) => k);
+    const anims = order.map((k, i) => {
+      const el = list[k], to = +el.dataset.base + (d === -1 ? Math.PI : 0), ang = to - Math.PI;   // 从旧方向转半圈到新方向
+      if (fx.reduce()) { el.style.transform = 'translate(-50%,-50%) rotate(' + to + 'rad)'; return null; }
+      return el.animate([
+        { transform: 'translate(-50%,-50%) rotate(' + ang + 'rad) scale(1)', color: '' },
+        { transform: 'translate(-50%,-50%) rotate(' + (ang + (to - ang) / 2) + 'rad) scale(1.6)', color: '#b4392c', offset: 0.5 },
+        { transform: 'translate(-50%,-50%) rotate(' + to + 'rad) scale(1)' },
+      ], { duration: ms(520), delay: i * ms(70), easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
+    });
+    await Promise.all(anims);
+    if (t !== token) return;
+    els.dir.querySelectorAll('i').forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+    renderDir();
   }
   function renderSeat(seat) {
     const s = game.state, d = D(), box = seatEl(seat);
@@ -272,7 +315,7 @@
     if (!b) { b = document.createElement('span'); b.className = cls; av.appendChild(b); b.textContent = text; fx.pop(b, { scale: 1.35 }); return; }
     if (b.textContent !== text) { b.textContent = text; fx.pop(b, { scale: 1.3, dur: 300 }); }
   }
-  function renderSeats() { for (let i = 0; i < game.state.n; i++) renderSeat(i); }
+  function renderSeats() { for (let i = 0; i < game.state.n; i++) renderSeat(i); renderDir(); }
 
   function bubble(seat, text, o) {
     o = Object.assign({ ms: 1700, loud: false, think: false }, o);
@@ -812,6 +855,7 @@
       case 'nope': return animNope(e, t);
       case 'resolve': return animResolve(e, t);
       case 'turn': return animTurn(e, t);
+      case 'reverse': return animReverse(e, t);
       case 'shuffle': return animShuffle(e, t);
       case 'future': return animFuture(e, t);
       case 'alter': return animAlterLift(e, t);
@@ -2681,6 +2725,7 @@
       li('attack', '结束回合、不摸牌，下家连着摸两回合（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）') +
       li('tattack', '同甩锅，但可以甩给任意一个人（点他的头像）') +
       li('skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合') +
+      li('reverse', '出牌方向倒过来（对手之间的小箭头跟着掉头），并像跳过一样结束一个回合、不摸牌。被甩锅时只顶掉其中一回合；两个人玩就等于跳过') +
       li('swap', '和指定的一个人整手交换手牌（各自的逗猫棒不换）' + (settings.rules.swap ? '' : '。设置里开了「有交换牌」才有')) +
       li('favor', '指定一人，他自己挑一张给你') +
       li('shuffle', '把牌堆洗乱') +
@@ -3366,7 +3411,7 @@
       give: o.give, pick: o.pick, defuse: o.defuse,
       alter: o.alter ? { by: o.alter.by, cards: o.alter.cards ? o.alter.cards.slice() : deck.slice(0, o.alter.count) } : null,
       steal: o.steal ? { by: o.steal.by, from: o.steal.from, perm: shuffled(hands[o.steal.from].slice()) } : null,
-      winner: o.winner, seq: 0, memo,
+      winner: o.winner, seq: 0, memo, dir: o.dir === -1 ? -1 : 1,
     };
   }
   // 服务器座位 → 本地座位
@@ -3377,7 +3422,7 @@
     return buildMirror({
       n: g.n, rules: g.rules, hand: st.hand, counts: rotArr(st.counts), deckSize: st.deckSize, kittens: st.kittens,
       discard: st.discard, removed: st.removed, known: st.known, handKnown: rotArr(st.handKnown), alive: rotArr(st.alive),
-      outOrder: st.outOrder.map(locOf), winner: locOf(st.winner), turn: locOf(st.turn), turnsLeft: st.turnsLeft, phase: st.phase,
+      outOrder: st.outOrder.map(locOf), winner: locOf(st.winner), turn: locOf(st.turn), turnsLeft: st.turnsLeft, phase: st.phase, dir: st.dir,
       pending: st.pending ? Object.assign(fixSeat(st.pending, ['by', 'target']), { nopes: st.pending.nopes.map((x) => ({ seat: locOf(x.seat), card: x.card })) }) : null,
       give: fixSeat(st.give, ['from', 'to']), pick: fixSeat(st.pick, ['by']), defuse: fixSeat(st.defuse, ['by']),
       alter: fixSeat(st.alter, ['by']), steal: fixSeat(st.steal, ['by', 'from']),
@@ -3467,6 +3512,7 @@
       }
       case 'resolve': s.pending = null; s.phase = 'act'; break;
       case 'turn': s.turn = e.seat; s.turnsLeft = e.turnsLeft; s.phase = 'act'; break;
+      case 'reverse': s.dir = e.dir === -1 ? -1 : 1; break;
       case 'shuffle': shuffled(s.deck); s.memo[0].deck = []; break;
       case 'future': case 'alter': {
         const k = e.cards ? e.cards.length : e.count;
@@ -3805,7 +3851,7 @@
   /* 2026-11-12 用户实测：没作废也得点「取消」很怪、窥探 / 抽牌要干等导火索。改成：
    *   手里没作废 → 不露「取消」，0.5–1 秒后自动替我表态（不立刻：不然「一出牌窗口就关」等于告诉大家我没作废）；
    *   手里有作废 → 照旧「作废 / 取消」，导火索一烧完就自动算取消（不再干等服务器多留的那 1.2 秒）。 */
-  let reactAuto = 0;
+  let reactAuto = 0, fuseLater = 0;
   // 一收到「有人出牌、轮到我表态、我手里没作废」就开始计时（和桌上的动画同时走，不等动画播完），0.3–0.7 秒后表态
   function earlyPass(g) {
     if (!online || !g || !g.myCall || (game && game.spectator) || g.st.phase !== 'react' || online.passFor === g.seq) return;
@@ -3826,7 +3872,21 @@
     busy = !canN;
     renderHand({ flip: false });
     renderBand();
-    fuse(remain > 0 ? remain : 0);
+    // 导火索：问到我才马上点着；没问我的话先不露，过 0.9 秒窗口还开着（有人在想要不要作废）才点着剩下那段——
+    // 大家都自动跳过时（没作废 / 开了「只在和我有关时询问」）窗口 0.3–0.7 秒就关，导火索根本不出现
+    clearTimeout(fuseLater);
+    if (canN) fuse(remain > 0 ? remain : 0);
+    else if (online.fuseFor !== g.seq) {
+      online.fuseFor = g.seq;
+      fuse(0);
+      const at = g.seq, end = performance.now() + Math.max(0, remain);
+      fuseLater = setTimeout(() => {
+        const gg = G();
+        if (!online || !gg || gg.seq !== at || game.state.phase !== 'react' || reactOpen) return;
+        const left = end - performance.now();
+        if (left > 300) fuse(left);
+      }, 900);
+    }
     clearTimeout(reactAuto);
     if (!mine) return;
     const at = g.seq;

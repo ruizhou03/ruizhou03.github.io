@@ -54,27 +54,28 @@
   'use strict';
 
   const BOOM = 'boom', DEFUSE = 'defuse', NOPE = 'nope', ATTACK = 'attack', TATTACK = 'tattack', SKIP = 'skip', BOTTOM = 'bottom',
-    FAVOR = 'favor', SHUFFLE = 'shuffle', FUTURE = 'future', ALTER = 'alter', SWAP = 'swap', WILD = 'wild';
+    FAVOR = 'favor', SHUFFLE = 'shuffle', FUTURE = 'future', ALTER = 'alter', SWAP = 'swap', WILD = 'wild', REVERSE = 'reverse';
   const CATS = Object.freeze(['orange', 'calico', 'cow', 'tabby', 'siamese']);
-  const ACTIONS = Object.freeze([ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP]);
+  const ACTIONS = Object.freeze([ATTACK, TATTACK, SKIP, REVERSE, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP]);
   const COUNTS = Object.freeze({
     boom: 4, defuse: 6, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3, bottom: 4,
-    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4,
+    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4, reverse: 4,
   });
   const KINDS = Object.freeze(Object.keys(COUNTS));
   const NAMES = Object.freeze({
     boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '自由甩锅', skip: '跳过', bottom: '抽底', favor: '索要',
-    shuffle: '洗牌', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗', wild: '万能猫',
+    shuffle: '洗牌', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗', wild: '万能猫', reverse: '转向',
   });
   /* 第二副牌（2026-11-12 起最多 9 人）：6 人以上开局把它也洗进来——炸毛猫最多 8 只、逗猫棒最多 11 根，功能牌和猫牌也多一倍；
    * 5 人及以下它一开局就整副收进盒子。牌号接在第一副后面（0..67 不变，旧存档 / 联机局照常） */
   const COUNTS2 = Object.freeze({
     boom: 4, defuse: 5, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3, bottom: 4,
-    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4,
+    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4, reverse: 4,
   });
   /* 2026-11-13 加万能猫（每副 4 张）：为了旧存档 / 联机局的牌号不变，它们的牌号接在最后——135..138 属第一副、139..142 属第二副。
    * 所以「是哪一副的牌」不能再拿 id < 68 判断，用 DECK_OF[id]（1 | 2）/ inSecondDeck(id) */
-  const LATE = [WILD];   // 后加的牌种：牌号排在两副老牌之后
+  /* 同一天又加转向（每副 4 张）：接在万能猫后面——143..146 第一副、147..150 第二副（万能猫的牌号不变） */
+  const LATE = [WILD, REVERSE];   // 后加的牌种：牌号排在两副老牌之后，按这个顺序一种种往后接
   const KIND_OF = [], DECK_OF = [];
   for (const k of KINDS) if (LATE.indexOf(k) < 0) for (let i = 0; i < COUNTS[k]; i++) { KIND_OF.push(k); DECK_OF.push(1); }
   for (const k of KINDS) if (LATE.indexOf(k) < 0) for (let i = 0; i < (COUNTS2[k] || 0); i++) { KIND_OF.push(k); DECK_OF.push(2); }
@@ -83,9 +84,9 @@
     for (let i = 0; i < (COUNTS2[k] || 0); i++) { KIND_OF.push(k); DECK_OF.push(2); }
   }
   Object.freeze(KIND_OF); Object.freeze(DECK_OF);
-  const BASE_SIZE = KINDS.reduce((t, k) => t + COUNTS[k], 0);   // 72：第一副的张数（含 3 张交换、4 张抽底、4 张万能猫）
-  const DECK_SIZE = KIND_OF.length;                              // 143：两副的牌号总数
-  const LEGACY_SIZES = Object.freeze([135, 68, 64]);             // 加万能猫以前的存档：两副 / 一副 / 一副没抽底
+  const BASE_SIZE = KINDS.reduce((t, k) => t + COUNTS[k], 0);   // 76：第一副的张数（含 3 张交换、4 张抽底、4 张万能猫、4 张转向）
+  const DECK_SIZE = KIND_OF.length;                              // 151：两副的牌号总数
+  const LEGACY_SIZES = Object.freeze([143, 135, 68, 64]);        // 以前的存档：加转向前 / 加万能猫前两副 / 一副 / 一副没抽底
   const inSecondDeck = (id) => DECK_OF[id] === 2;
   const MIN_PLAYERS = 2, MAX_PLAYERS = 9, TWO_DECKS_FROM = 6;
   const usesSecondDeck = (n) => n >= TWO_DECKS_FROM;
@@ -129,7 +130,7 @@
   }
 
   /* 手牌排序：逗猫棒、不行、行动牌、猫，同种挨着 */
-  const ORDER = [DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SWAP, SHUFFLE, FUTURE, ALTER].concat(CATS, [WILD, BOOM]);
+  const ORDER = [DEFUSE, NOPE, ATTACK, TATTACK, SKIP, REVERSE, BOTTOM, FAVOR, SWAP, SHUFFLE, FUTURE, ALTER].concat(CATS, [WILD, BOOM]);
   function sortHand(hand) {
     return hand.slice().sort((a, b) => (ORDER.indexOf(KIND_OF[a]) - ORDER.indexOf(KIND_OF[b])) || (a - b));
   }
@@ -149,6 +150,7 @@
       deck: [], discard: [], removed: [], hands: [], alive: [], outOrder: [],
       turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
       winner: -1, seq: 0, memo: newMemo(n), ins: null,
+      dir: 1,   // 出牌方向：1 = 座位号往上走（桌上画成逆时针），-1 = 打过单数张转向后反过来
     };
     const booms = [], defuses = [], rest = [], swaps = [], unused = [];
     const two = usesSecondDeck(n);   // 5 人及以下只用第一副
@@ -183,15 +185,17 @@
       give: s.give && Object.assign({}, s.give), pick: s.pick && Object.assign({}, s.pick), defuse: s.defuse && Object.assign({}, s.defuse),
       alter: s.alter && { by: s.alter.by, cards: s.alter.cards.slice() },
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
-      winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null,
+      winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, dir: s.dir || 1,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
   }
 
   /* ───── 查询 ───── */
   const aliveCount = (s) => s.alive.reduce((a, b) => a + (b ? 1 : 0), 0);
+  // 按当前方向的下一个还在场的人（老存档没有 dir：按 1）
   function nextAlive(s, seat) {
-    for (let i = 1; i <= s.n; i++) { const t = (seat + i) % s.n; if (s.alive[t]) return t; }
+    const d = s.dir === -1 ? -1 : 1;
+    for (let i = 1; i <= s.n; i++) { const t = (((seat + d * i) % s.n) + s.n) % s.n; if (s.alive[t]) return t; }
     return seat;
   }
   const countKind = (hand, k) => hand.reduce((a, id) => a + (KIND_OF[id] === k ? 1 : 0), 0);
@@ -327,6 +331,12 @@
     const me = p.by;
     switch (p.type) {
       case SKIP:
+        endOneTurn(s, ev);
+        break;
+      case REVERSE:
+        // 转向：出牌方向反过来，然后像「跳过」一样结束一个回合、不摸牌（被甩锅时只顶掉其中一回合；两个人玩就等于跳过）
+        s.dir = s.dir === -1 ? 1 : -1;
+        ev.push({ t: 'reverse', seat: me, dir: s.dir });
         endOneTurn(s, ev);
         break;
       case BOTTOM:
@@ -569,7 +579,7 @@
       discard: s.discard.slice(),
       known,
       handKnown: memo.hands.map((h) => h.slice()),
-      turn: s.turn, turnsLeft: s.turnsLeft, phase: s.phase,
+      turn: s.turn, turnsLeft: s.turnsLeft, phase: s.phase, dir: s.dir === -1 ? -1 : 1,
       pending: s.pending && { by: s.pending.by, type: s.pending.type, target: s.pending.target, named: s.pending.named, nopes: s.pending.nopes.length, cards: s.pending.cards.slice() },
       give: s.give, pick: s.pick,
       defuse: s.defuse && (s.defuse.by === seat ? { by: seat, card: s.defuse.card } : { by: s.defuse.by }),
@@ -592,7 +602,7 @@
   }
 
   return {
-    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay,
     kindOf, isCat, catLike, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,

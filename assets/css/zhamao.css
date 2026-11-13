@@ -244,6 +244,13 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   display: flex; align-items: center; justify-content: center;
   font-size: 13.5cqw; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden;
 }
+/* 万能猫（2026-11-13 用户挑甲）：名字条换成一条柔和的五彩渐变（橘→玫红→紫→青绿→金），名字两边各一颗小星——一眼和别的猫牌分开 */
+.zm-card[data-k="wild"] .zm-nm { background: linear-gradient(90deg, #e0893e, #d4607e 28%, #8a63a8 52%, #2f8a83 76%, #c9a24a); color: #fffaf0; text-shadow: 0 1px 0 rgba(29, 27, 24, 0.25); gap: 3cqw; }
+.zm-card[data-k="wild"] .zm-nm::before, .zm-card[data-k="wild"] .zm-nm::after { content: '✦'; font-size: 9cqw; color: #fff4c8; }
+/* 出牌方向箭头（转向）：相邻两个对手之间，淡金 */
+.zm-dir { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.zm-dir i { position: absolute; display: block; color: #b8914a; opacity: 0.85; }
+.zm-dir svg { width: 100%; height: 100%; display: block; }
 .zm-card.is-back { background: none; border: 0; }
 .zm-card.is-back svg { width: 100%; height: 100%; display: block; }
 
@@ -536,6 +543,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-fuse.is-urgent .spark { background: radial-gradient(circle, #fff 0%, #ff8a6a 35%, rgba(200, 70, 58, 0.7) 60%, rgba(200, 70, 58, 0) 72%); animation-duration: 0.09s; }
 .zm-fuse:not(.is-lit) .spark, .zm-fuse.is-out .spark { display: none; }
 .zm-fuse.is-idle .rope { opacity: 0.6; }
+/* 2026-11-13 用户：没人被问（单机我没被问 / 联机我没被问且没人还在想）就根本不露导火索——没点着过的导火索一直藏着，免得闪一下 */
+.zm-fuse:not(.is-lit):not(.is-idle) { visibility: hidden; }
 .zm-fuse.is-out { opacity: 0.3; transition: opacity 0.2s ease; }
 
 /* 「摸牌」键：轮到我、又没选牌时，轻轻一呼一吸 */

@@ -60,10 +60,13 @@
   const has = (v, k) => R.countKind(v.hand, k) > 0;
   const one = (v, k) => R.findKind(v.hand, k);
   const pickRand = (arr, rng) => arr[(rng() * arr.length) | 0];
-  function nextAliveV(v, seat) {
-    for (let i = 1; i <= v.n; i++) { const t = (seat + i) % v.n; if (v.alive[t]) return t; }
+  function nextAliveV(v, seat) {   // 按当前出牌方向（转向以后反过来）
+    const d = v.dir === -1 ? -1 : 1;
+    for (let i = 1; i <= v.n; i++) { const t = (((seat + d * i) % v.n) + v.n) % v.n; if (v.alive[t]) return t; }
     return seat;
   }
+  // 跳过一回合用的牌：跳过优先，没有就拿转向顶（转向也是结束一回合不摸牌，顺带把方向反过来）
+  const skipId = (v) => { const a = one(v, R.SKIP); return a != null ? a : one(v, R.REVERSE); };
   function targets(v) {
     const out = [];
     for (let t = 0; t < v.n; t++) if (t !== v.me && v.alive[t] && v.counts[t] > 0) out.push(t);
@@ -136,7 +139,7 @@
 
   /* ───── 普通（一套参数一个实例） ───── */
   function makeNormal(P) {
-    const VALUE = { defuse: 100, nope: P.vNope, tattack: P.vTattack, attack: P.vAttack, swap: P.vSwap, skip: P.vSkip, bottom: P.vBottom, alter: P.vAlter, future: P.vFuture, shuffle: P.vShuffle, favor: P.vFavor };
+    const VALUE = { defuse: 100, nope: P.vNope, tattack: P.vTattack, attack: P.vAttack, swap: P.vSwap, skip: P.vSkip, reverse: P.vSkip, bottom: P.vBottom, alter: P.vAlter, future: P.vFuture, shuffle: P.vShuffle, favor: P.vFavor };
     function cardValue(hand, id) {
       const k = K[id];
       if (VALUE[k] != null) return VALUE[k];
@@ -239,7 +242,7 @@
       if (top.known && top.boom) {
         const am = attackMove(v);
         if (am) return am;
-        if (has(v, R.SKIP)) return playMove([one(v, R.SKIP)]);
+        if (skipId(v) != null) return playMove([skipId(v)]);
         if (bottomOk(v)) return playMove([one(v, R.BOTTOM)]);   // 顶上是炸毛猫：从底下摸
         if (has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);   // 把顶上的炸毛猫往下塞
         if (has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
@@ -264,7 +267,7 @@
       if (risk >= dodgeAt) {
         const am = attackMove(v);
         if (am) return am;
-        if (has(v, R.SKIP)) return playMove([one(v, R.SKIP)]);
+        if (skipId(v) != null) return playMove([skipId(v)]);
         if (bottomOk(v) && (bottomInfo(v).known || !def || P.bottomDef)) return playMove([one(v, R.BOTTOM)]);
       }
       if (risk >= P.shuffleAt && has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
@@ -297,7 +300,7 @@
       }
       if (!live && p.by === v.me && tier !== 'easy') {
         const top = topInfo(v);
-        if ((p.type === R.ATTACK || p.type === R.TATTACK || p.type === R.SKIP || p.type === R.BOTTOM || p.type === R.SHUFFLE) && (top.boom || top.p >= P.nopeBackP)) return true;
+        if ((p.type === R.ATTACK || p.type === R.TATTACK || p.type === R.SKIP || p.type === R.REVERSE || p.type === R.BOTTOM || p.type === R.SHUFFLE) && (top.boom || top.p >= P.nopeBackP)) return true;
         if ((p.type === 'pair' || p.type === 'triple' || p.type === R.FAVOR || p.type === 'five') && !has(v, R.DEFUSE)) return true;
       }
       return false;
@@ -321,7 +324,7 @@
       if (tier === 'easy') return R.shuffleIn({ rs: (rng() * 4294967296) >>> 0 }, cards.slice());
       const booms = cards.filter((id) => K[id] === R.BOOM), safe = cards.filter((id) => K[id] !== R.BOOM);
       if (!booms.length) return cards.slice();
-      const canDodge = has(v, R.ATTACK) || has(v, R.TATTACK) || has(v, R.SKIP) || has(v, R.BOTTOM);
+      const canDodge = has(v, R.ATTACK) || has(v, R.TATTACK) || has(v, R.SKIP) || has(v, R.REVERSE) || has(v, R.BOTTOM);
       if (canDodge) return booms.concat(safe);
       const k = Math.min(v.turnsLeft, safe.length);
       return safe.slice(0, k).concat(booms, safe.slice(k));

@@ -26,10 +26,12 @@ const idOf = (s, seat, k) => s.hands[seat].find((id) => R.KIND_OF[id] === k);
 const closeAll = (s) => { for (const t of R.awaitingReaction(s)) R.pass(s, t); return R.closeReaction(s); };
 
 test('deck composition', () => {
-  // 第一副 72 张（老牌 id 0..67 + 万能猫 135..138）；6 人及以上再加第二副 71 张（68..134 + 139..142）
-  assert.equal(R.BASE_SIZE, 72);
-  assert.equal(R.DECK_SIZE, 143);
-  assert.deepEqual(R.KIND_OF.slice(135).every((k) => k === R.WILD), true, '万能猫的牌号接在最后，老牌号不变');
+  // 第一副 76 张（老牌 0..67 + 万能猫 135..138 + 转向 143..146）；6 人及以上再加第二副 75 张（68..134 + 139..142 + 147..150）
+  assert.equal(R.BASE_SIZE, 76);
+  assert.equal(R.DECK_SIZE, 151);
+  assert.deepEqual(R.KIND_OF.slice(135, 143).every((k) => k === R.WILD), true, '万能猫的牌号接在最后，老牌号不变');
+  assert.deepEqual(R.KIND_OF.slice(143).every((k) => k === R.REVERSE), true, '转向接在万能猫后面');
+  assert.equal(R.KIND_OF.filter((k) => k === R.REVERSE).length, 8);
   assert.equal(R.KIND_OF.filter((k) => k === R.WILD).length, 8);
   const base = (k) => ofKind(k).filter((id) => !R.inSecondDeck(id)).length;
   assert.equal(base(R.SWAP), 3);
@@ -39,6 +41,7 @@ test('deck composition', () => {
   assert.equal(base(R.BOOM), 4);
   assert.equal(base(R.DEFUSE), 6);
   assert.equal(base(R.WILD), 4);
+  assert.equal(base(R.REVERSE), 4);
   assert.equal(ofKind(R.BOOM).length, 8);
   assert.equal(ofKind(R.DEFUSE).length, 11);
 });
@@ -474,7 +477,41 @@ test('万能猫能顶任何一种猫：对子 / 三张 / 五种各一张', () =>
   assert.equal(R.classify([id(R.SKIP), w1]), null, '万能猫只顶猫，不顶行动牌');
   assert.equal(R.classify([o1, c1, cw, tb, w1]).type, 'five');
   assert.equal(R.classify([o1, c1, w1, w2, w3]).type, 'five');
+  const w4 = id(R.WILD, w3 + 1);
+  assert.equal(R.classify([w1, w2, w3, w4, tb]).type, 'five', '4 张万能猫 + 任意 1 只猫也算五种各一张');
+  assert.equal(R.classify([o1, c1, cw, w1, w2]).type, 'five', '3 种不同的猫 + 2 张万能猫');
+  assert.equal(R.classify([o1, c1, cw, w1, id(R.SKIP)]), null, '万能猫不能顶行动牌，五张里混了行动牌就不行');
+  assert.equal(R.classify([id(R.SKIP), w1, w2]), null);
   assert.equal(R.classify([o1, o2, cw, tb, w1]), null, '五张里真猫不能重样');
   assert.equal(R.classify([o1, c1, cw, tb, sm]).type, 'five');
   assert.equal(R.classify([w1]), null, '单张万能猫不能出');
+});
+
+test('转向：方向反过来、结束一回合不摸牌；被甩锅时只顶一回合；两个人等于跳过', () => {
+  const rev = (s, seat) => { const id = R.KIND_OF.findIndex((k, i) => k === R.REVERSE && s.hands.every((h) => h.indexOf(i) < 0)); const src = [s.deck, s.discard, s.removed].find((a) => a.indexOf(id) >= 0); src.splice(src.indexOf(id), 1); s.hands[seat].push(id); return id; };
+  const s = R.createGame(4, 7);
+  s.turn = 1; s.turnsLeft = 1; s.phase = 'act';
+  const id = rev(s, 1);
+  const deck0 = s.deck.length;
+  R.play(s, 1, [id]); closeAll(s);
+  assert.equal(s.dir, -1);
+  assert.equal(s.turn, 0, '反过来以后 1 号的下家是 0 号');
+  assert.equal(s.deck.length, deck0, '不摸牌');
+  assert.equal(R.nextAlive(s, 0), 3);
+  // 再转一次回到原方向；被甩锅（还剩 2 回合）时只顶掉一回合
+  s.turnsLeft = 2;
+  const id2 = rev(s, 0);
+  R.play(s, 0, [id2]); closeAll(s);
+  assert.equal(s.dir, 1);
+  assert.equal(s.turn, 0); assert.equal(s.turnsLeft, 1);
+  // 甩锅按当前方向甩给下家
+  const t2 = R.createGame(4, 9); t2.turn = 2; t2.phase = 'act'; t2.dir = -1;
+  const a = R.KIND_OF.findIndex((k, i) => k === R.ATTACK && t2.hands.every((h) => h.indexOf(i) < 0) && t2.deck.indexOf(i) >= 0);
+  t2.deck.splice(t2.deck.indexOf(a), 1); t2.hands[2].push(a);
+  R.play(t2, 2, [a]); closeAll(t2);
+  assert.equal(t2.turn, 1);
+  // 两个人：等于跳过
+  const d2 = R.createGame(2, 3); d2.turn = 0; d2.phase = 'act';
+  const r2 = rev(d2, 0); R.play(d2, 0, [r2]); closeAll(d2);
+  assert.equal(d2.turn, 1);
 });
