@@ -481,7 +481,7 @@
   // 舞台不加框、不写字：只有放大的牌 + 下面一根导火索。谁出的 = 牌从他头像飞出来 + 他头像亮一圈金光；指了谁 = 那人头像上套一个准星
   function showStage(p, hidden) {
     els.stage.classList.remove('is-cancelled', 'is-out');
-    const named = p.type === 'triple' ? '<div class="zm-stage-named">' + cardHtml(p.named) + '</div>' : '';
+    const named = p.type === 'triple' && p.named ? '<div class="zm-stage-named">' + cardHtml(p.named) + '</div>' : '';   // 先摆上桌、还没点名时没有这张
     els.stage.innerHTML = '<div class="zm-stage-inner">' +
       '<div class="zm-stage-cards">' + p.cards.map((id, i) => cardHtml(id, hidden ? 'is-incoming' : '', 'transform:rotate(' + ((i - (p.cards.length - 1) / 2) * 5).toFixed(1) + 'deg)')).join('') + named + '<div class="zm-stage-nopes"></div></div>' +
       '<div class="zm-fuse" aria-hidden="true"><i class="rope"></i><i class="spark"></i></div></div>';
@@ -3049,7 +3049,11 @@
     els.coach.hidden = false;
     els.coach.classList.remove('is-hint');
     els.app.classList.add('is-coaching');   // 讲解（照拱猪）：字摆在正中，别的都蒙一层浅宣纸色
-    els.coach.querySelector('.zm-coach-text').innerHTML = inlineCards(m);
+    // 正在讲的东西别蒙住：一句话可以写成 { t, focus: ['hand' | 'deck' | 'stage' | 'opps' | 'me' | 座位号…] }；
+    // 桌上刚出的牌（舞台）只要还摆着就一直亮着（「老师出了【索要】」时得看得见那张索要）
+    const text = typeof m === 'string' ? m : m.t;
+    setCoachFocus((m && m.focus) || []);
+    els.coach.querySelector('.zm-coach-text').innerHTML = inlineCards(text);
     if (!fx.reduce()) {
       if (wasHidden) els.coach.animate([{ opacity: 0, translate: '0 14px' }, { opacity: 1, translate: '0 0' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1)' });
       else els.coach.querySelector('.zm-coach-text').animate([{ opacity: 0, translate: '8px 0' }, { opacity: 1, translate: '0 0' }], { duration: 220, easing: 'ease-out' });
@@ -3064,7 +3068,14 @@
     els.coach.querySelector('.zm-coach-text').innerHTML = inlineCards(text);
     if (!was && !fx.reduce()) els.coach.animate([{ opacity: 0, translate: '0 10px' }, { opacity: 1, translate: '0 0' }], { duration: 240, easing: 'ease-out' });
   }
-  function hideCoach() { els.coach.hidden = true; els.coach.classList.remove('is-hint'); els.app.classList.remove('is-coaching'); }
+  function hideCoach() { els.coach.hidden = true; els.coach.classList.remove('is-hint'); els.app.classList.remove('is-coaching'); setCoachFocus([]); }
+  function setCoachFocus(list) {
+    els.app.querySelectorAll('.is-coach-focus').forEach((x) => x.classList.remove('is-coach-focus'));
+    const pick = (f) => (f === 'hand' ? els.hand : f === 'deck' ? els.deck.parentElement : f === 'stage' ? els.stage : f === 'opps' ? els.opps : f === 'me' ? els.me : typeof f === 'number' ? seatEl(f) : null);
+    const all = list.slice();
+    if (els.stage.querySelector('.zm-stage-inner')) all.push('stage');
+    all.forEach((f) => { const el = pick(f); if (el) el.classList.add('is-coach-focus'); });
+  }
   document.addEventListener('click', (e) => {
     if (coachQueue && !els.coach.hidden && !els.coach.classList.contains('is-hint') && !e.target.closest('.zm-dialog-mask, .zm-menu, .zm-tools, .zm-peek')) { e.stopPropagation(); nextCoach(); }
   }, true);

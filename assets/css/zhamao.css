@@ -855,3 +855,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-coach:not(.is-hint) .zm-coach-text::after { content: ''; display: block; width: 72px; height: 2px; margin: 12px auto 0; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--zm-gold), transparent); }
 .zm-coach:not(.is-hint) .zm-coach-more { text-align: center; margin-top: 12px; letter-spacing: 0.2em; }
 .zm-coach:not(.is-hint) .zm-card { --cw: 40px; width: 40px; }
+/* 讲解时正在讲的东西提到浅宣纸色上面（手牌 / 牌堆 / 刚出的牌 / 某个人）；讲解的字再压在最上面 */
+.zm-app.is-coaching .is-coach-focus { position: relative; z-index: 43; }
+.zm-app.is-coaching .zm-stage.is-coach-focus { position: absolute; }
+.zm-app.is-coaching .zm-seat-me.is-coach-focus { position: absolute; }
+.zm-app.is-coaching .zm-coach { z-index: 44; }
