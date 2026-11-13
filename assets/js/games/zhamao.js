@@ -3875,6 +3875,8 @@
     const rules = R.normalizeRules(cfg.rules);
     const seated = st.players.filter((p) => !p.left);
     const myP = st.spectator ? null : seated.find((p) => p.id === me) || null;
+    // 最多 9 座：平时摆 5 个，坐满到哪就多露一个空位（第二排），免得一上来 9 个空位一大片
+    const shownSeats = Math.min(R.MAX_PLAYERS, Math.max(5, seated.reduce((m, p) => Math.max(m, p.seat), -1) + 2));
     const seatHtml = (seat) => {
       const p = seated.find((x) => x.seat === seat);
       if (!p) return '<button type="button" class="zm-lseat is-empty" data-seat="' + seat + '"><span class="av">+</span><b>' + (host ? '加机器猫' : '空位') + '</b><small>' + (st.spectator ? '坐这里' : host ? '' : '换到这') + '</small></button>';
@@ -3887,7 +3889,7 @@
     const ts = TURN_OPTS.some(([v]) => v === cfg.turnSec) ? cfg.turnSec : 20;
     lobbyEl.innerHTML = '<div class="zm-lobby-inner">' +
       '<div class="zm-lobby-head"><div><small>房间号</small><b>' + esc(st.code) + '</b></div><button type="button" class="zm-btn" data-l="invite">邀请朋友</button></div>' +
-      '<div class="zm-lobby-seats">' + [0, 1, 2, 3, 4].map(seatHtml).join('') + '</div>' +
+      '<div class="zm-lobby-seats">' + Array.from({ length: shownSeats }, (_, i) => seatHtml(i)).join('') + '</div>' +
       (st.spectators.length ? '<p class="zm-muted zm-lobby-watch">' + st.spectators.length + ' 个人在观战' + (st.spectator ? '（包括你）' : '') + '</p>' : '') +
       '<section class="zs-card zs-b zm-lobby-rules"><div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
       TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +

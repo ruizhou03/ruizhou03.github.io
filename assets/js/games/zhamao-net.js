@@ -13,7 +13,7 @@
 
   const ERRORS = {
     room_not_found: '房间不存在或已经解散',
-    room_full: '房间已满（五个座位都是真人）',
+    room_full: '房间已满（座位都是真人）',
     room_in_progress: '这一局已经开始了',
     wait_game_end: '这一局还在打，先观战，下一局就能坐下',
     nick_taken_in_room: '这个名字房间里已经有人用了，换一个试试',
