@@ -2066,7 +2066,11 @@
       if (game.state.alive[seat]) watch(seat);
       return;
     }
-    if (mode !== 'target' || !targetCb) return;
+    if (mode !== 'target') {
+      if (social && socialOk() && seat > 0 && els.mask.hidden) social.openProps(seat);
+      return;
+    }
+    if (!targetCb) return;
     const b = seatEl(seat);
     if (!b.classList.contains('is-target')) { shake(b); return; }
     const cb = targetCb;
@@ -2871,6 +2875,46 @@
   });
   function refreshTools() {
     $('zmPauseBtn').hidden = !(game && !game.tutorial && !game.online && els.cover.hidden);
+    syncSocialUi();
+  }
+
+  /* ───── 牌桌互动：点别人头像扔道具、顶栏「说一句」（照拱猪，2026-11-13）─────
+   * 面板 / 飞行 / 气泡 / 冷却 / 屏蔽复用拱猪的 gongzhu-social.js；道具画、台词、落地效果在 zhamao-social.js。
+   * 单机：机器猫挨了道具有时回一句、偶尔扔回来。联机：要等服务器支持（回过互动序号 fxSeq）才露出来。
+   * 教程里不出；观战的人只看不发（点头像仍是换视角）；出牌选目标时点头像照旧是选人 */
+  let social = null;
+  function socialOk() {
+    if (!game || game.tutorial || !game.state || !els.cover.hidden) return false;
+    if (game.online) return !!(online && online.fxSeq != null && !game.spectator);
+    return true;
+  }
+  function syncSocialUi() {
+    const ok = !!social && socialOk();
+    const btn = $('zmChatBtn');
+    if (btn) btn.hidden = !ok;
+    els.app.classList.toggle('can-social', ok);
+    if (!ok && social) social.close();
+  }
+  function initSocial() {
+    if (!window.GongzhuSocial || !window.ZhamaoSocialKit) return;
+    const SFX = { whoosh: 'whoosh', bubble: 'tick', pfish: 'ding', pyarn: 'thud', pcatnip: 'tick', pspray: 'untap', ppaw: 'tick', pboom: 'boom' };
+    social = GongzhuSocial.create({
+      kit: ZhamaoSocialKit,
+      root: els.app,
+      avatar: (l) => avEl(l),
+      name: (l) => nameOf(l),
+      canSend: socialOk,
+      send() { /* 联机下一步接服务器 */ },
+      autoBots: () => !!(game && !game.online),
+      isBot: (l) => l > 0,
+      mutable: () => false,
+      muted: () => false,
+      setMuted() {},
+      sfx: (name, delay) => { if (SFX[name]) snd(SFX[name], delay); },
+      reduce: () => fx.reduce(),
+      popSide: (l) => (l === 0 ? 'above' : 'below'),
+    });
+    $('zmChatBtn').addEventListener('click', (e) => { e.stopPropagation(); if (socialOk()) social.openChat(e.currentTarget); });
   }
   let soundPanel = null;
   function refreshSoundBtn() {
@@ -2943,6 +2987,7 @@
   document.addEventListener('keydown', (e) => { if (coachQueue && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); nextCoach(); } });
 
   function resetTable() {
+    if (social) social.clear();
     preview = null;
     if (game) game.previewSrc = null;
     stopClock();
@@ -4087,6 +4132,7 @@
   });
   window.addEventListener('resize', () => { if (game) solveSize(); });
   refreshSoundBtn();
+  initSocial();
   refreshCover();
   refreshTools();
   // 进来先是主菜单 + 一条进度条（等字体到位，太快也让它走完一程，不闪），跑完换成按钮

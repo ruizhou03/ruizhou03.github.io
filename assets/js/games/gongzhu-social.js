@@ -81,15 +81,15 @@
       eye(42.5, 27.5, 2.3) + eye(51, 26.5, 2.3) + blush(39.5, 33.5) +
       pth('M27 28c-4.5-6-11-4.5-9 0 1.2 2.5 5.5 2.4 9 0Zm0 0c4.5-6 11-4.5 9 0-1.2 2.5-5.5 2.4-9 0Z', '#b4392c') + circ(27, 28, 2.6, '#b4392c'),
   };
-  const ART = {};
-  PROP_KEYS.forEach((k) => {
-    const body = DRAW[k]();
-    // 贴纸描边：整幅再画一遍，颜色全换成奶油白、描粗垫在底下；再往下垫一层淡淡的影子
+  // 贴纸描边：整幅再画一遍，颜色全换成奶油白、描粗垫在底下；再往下垫一层淡淡的影子（别的游戏的道具也用它，见 zhamao-social.js）
+  function sticker(body) {
     const border = body.replace(/fill="(?!none)[^"]*"/g, 'fill="' + CREAM + '"').replace(/stroke="[^"]*"/g, 'stroke="' + CREAM + '"').replace(/stroke-width="[^"]*"/g, 'stroke-width="7"');
-    ART[k] = '<svg viewBox="0 0 64 64" aria-hidden="true">' +
+    return '<svg viewBox="0 0 64 64" aria-hidden="true">' +
       '<g transform="translate(32 33.6) scale(.86) translate(-32 -32)" opacity=".18"><g stroke="#5a4632" stroke-width="6" stroke-linejoin="round">' + border.split(CREAM).join('#5a4632') + '</g></g>' +
       '<g transform="translate(32 32) scale(.86) translate(-32 -32)"><g stroke="' + CREAM + '" stroke-width="6" stroke-linejoin="round">' + border + '</g>' + body + '</g></svg>';
-  });
+  }
+  const ART = {};
+  PROP_KEYS.forEach((k) => { ART[k] = sticker(DRAW[k]()); });
 
   const HEART = (c) => '<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M12 21s-8-5.1-8-11.1A4.4 4.4 0 0 1 12 7a4.4 4.4 0 0 1 8 2.9C20 15.9 12 21 12 21Z" fill="' + c + '"/></svg>';
   const rnd = (a, b) => a + Math.random() * (b - a);
@@ -101,8 +101,8 @@
     return [...s].slice(0, TEXT_MAX).join('');
   }
 
-  function readPrefs() { try { return Object.assign({ hide: false }, JSON.parse(localStorage.getItem(PREF_KEY) || 'null') || {}); } catch (_) { return { hide: false }; } }
-  function writePrefs(p) { try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch (_) { /* 无痕模式：不存也能用 */ } }
+  function readPrefs(key) { try { return Object.assign({ hide: false }, JSON.parse(localStorage.getItem(key || PREF_KEY) || 'null') || {}); } catch (_) { return { hide: false }; } }
+  function writePrefs(p, key) { try { localStorage.setItem(key || PREF_KEY, JSON.stringify(p)); } catch (_) { /* 无痕模式：不存也能用 */ } }
 
   /* host 钩子（座位 l 是牌桌上的本地座位：0 我 / 1 右 / 2 上 / 3 左）：
    *   root               挂特效层的元素（牌桌 app）
@@ -116,8 +116,13 @@
    *   muted(l) / setMuted(l, on)
    *   sfx(name, delayMs) 播音效
    *   reduce()           减少动画 */
+  /* host.kit（可选，别的游戏用，例如百变小咪 zhamao-social.js）：换一套道具 / 台词 / 落地效果。缺省 = 拱猪这一套。
+   *   { keys, names, lines, reply, art, spin, landPoint(k, ctx), land(helpers) → { key: (el, ctx) => … }, prefKey } */
   function create(host) {
-    const prefs = readPrefs();
+    const kit = host.kit || null;
+    const KEYS = kit ? kit.keys : PROP_KEYS, NAMES = kit ? kit.names : PROP_NAMES, SAY = kit ? kit.lines : LINES;
+    const REPLIES = kit ? kit.reply : REPLY, PIC = kit ? kit.art : ART;
+    const prefs = readPrefs(kit && kit.prefKey);
     const layer = document.createElement('div');
     layer.className = 'gz-social';
     layer.setAttribute('aria-hidden', 'true');
@@ -174,12 +179,12 @@
       p.setAttribute('aria-label', '扔给 ' + host.name(l));
       const mutable = host.mutable && host.mutable(l), muted = mutable && host.muted(l);
       p.innerHTML = '<div class="gz-sp-title"></div><div class="gz-sp-props">' +
-        PROP_KEYS.map((k) => '<button type="button" data-prop="' + k + '"><span class="gz-sp-ic">' + ART[k] + '</span><span class="gz-sp-lb">' + PROP_NAMES[k] + '</span></button>').join('') + '</div>' +
+        KEYS.map((k) => '<button type="button" data-prop="' + k + '"><span class="gz-sp-ic">' + PIC[k] + '</span><span class="gz-sp-lb">' + NAMES[k] + '</span></button>').join('') + '</div>' +
         (mutable ? '<div class="gz-sp-foot"><span>' + (muted ? '已屏蔽他的互动' : '不想看他的互动') + '</span><button type="button" data-mute>' + (muted ? '取消屏蔽' : '屏蔽他') + '</button></div>' : '');
       p.querySelector('.gz-sp-title').textContent = '扔给 ' + host.name(l);
       layer.appendChild(p);
       pop = p; popFor = av;
-      placePop(p, av, l === 2 ? 'below' : l === 3 ? 'right' : l === 1 ? 'left' : 'above');
+      placePop(p, av, host.popSide ? host.popSide(l) : l === 2 ? 'below' : l === 3 ? 'right' : l === 1 ? 'left' : 'above');
       p.querySelectorAll('[data-prop]').forEach((b) => b.addEventListener('click', () => {
         if (!host.canSend()) { closePop(); return; }
         if (cooling()) { nudge(b); return; }
@@ -201,10 +206,10 @@
       p.setAttribute('role', 'dialog');
       p.setAttribute('aria-label', '说一句');
       p.innerHTML = '<div class="gz-sp-title">说一句（大家都看得到）</div><div class="gz-sp-lines">' +
-        LINES.map((t) => '<button type="button"></button>').join('') + '</div>' +
+        SAY.map((t) => '<button type="button"></button>').join('') + '</div>' +
         '<form class="gz-sp-custom"><input type="text" maxlength="' + TEXT_MAX + '" placeholder="自己写一句…" enterkeyhint="send" autocomplete="off"><button type="submit">发送</button></form>' +
         '<label class="gz-sp-hide"><input type="checkbox"' + (prefs.hide ? ' checked' : '') + '><span>不看别人的互动</span></label>';
-      p.querySelectorAll('.gz-sp-lines button').forEach((b, i) => { b.textContent = LINES[i]; });
+      p.querySelectorAll('.gz-sp-lines button').forEach((b, i) => { b.textContent = SAY[i]; });
       layer.appendChild(p);
       pop = p; popFor = btn;
       placePop(p, btn, 'below');
@@ -220,7 +225,7 @@
       p.querySelectorAll('.gz-sp-lines button').forEach((b) => b.addEventListener('click', () => say(b.textContent, b)));
       const form = p.querySelector('form'), input = form.querySelector('input');
       form.addEventListener('submit', (e) => { e.preventDefault(); const t = cleanText(input.value); if (t) say(t, input); });
-      p.querySelector('.gz-sp-hide input').addEventListener('change', (e) => { prefs.hide = !!e.target.checked; writePrefs(prefs); });
+      p.querySelector('.gz-sp-hide input').addEventListener('change', (e) => { prefs.hide = !!e.target.checked; writePrefs(prefs, kit && kit.prefKey); });
     }
 
     /* ───── 播放（我发的、别人发的、机器人回的都走这里）───── */
@@ -234,7 +239,7 @@
       const delay = Math.max(0, Math.min(4000, (opts && opts.delay) || 0));
       if (delay) { later(delay, () => play(ev, Object.assign({}, opts, { delay: 0 }))); return; }
       if (ev.kind === 'chat') { const t = cleanText(ev.text); if (t) bubble(ev.from, t); return; }
-      if (ev.kind === 'prop' && ART[ev.prop] && ev.to !== ev.from) throwProp(ev);
+      if (ev.kind === 'prop' && PIC[ev.prop] && ev.to !== ev.from) throwProp(ev);
     }
 
     /* 气泡：挨着说话人头像，停 3 秒淡出；同一个人再说一句就顶掉上一句 */
@@ -279,8 +284,8 @@
       const S = Math.round(Math.max(36, Math.min(52, c.r * 2 * 1.15)));
       const k = Math.max(0.75, Math.min(1.1, c.r / 26));     // 头像越小，溅得越近
       const ctx = { c, S, k, av, top: roomy(c, S) };
-      const end = landPoint(ev.prop, ctx);
-      const el = mk('gz-sp-flyer', ART[ev.prop]);
+      const end = (kit && kit.landPoint ? kit.landPoint : landPoint)(ev.prop, ctx);
+      const el = mk('gz-sp-flyer', PIC[ev.prop]);
       el.style.width = el.style.height = S + 'px';
       if (reduce()) {   // 减少动画：不飞，直接在落点淡入淡出
         done(el.animate([{ transform: at(end.x, end.y, S, S), opacity: 0 }, { transform: at(end.x, end.y, S, S), opacity: 1, offset: 0.2 }, { transform: at(end.x, end.y, S, S), opacity: 1, offset: 0.75 }, { transform: at(end.x, end.y, S, S), opacity: 0 }], { duration: 1200, fill: 'both' }), el);
@@ -289,18 +294,20 @@
         return;
       }
       const frames = [], N = 18;
-      const lift = 90 + Math.hypot(end.x - a.x, end.y - a.y) * 0.18;
+      let lift = 90 + Math.hypot(end.x - a.x, end.y - a.y) * 0.18;
+      // 别的游戏（竖屏、对手全在上面一排）：弧顶别飞出屏幕上沿
+      if (kit) lift = Math.max(24, Math.min(lift, Math.min(a.y, end.y) - S));
       const cx = (a.x + end.x) / 2, cy = Math.min(a.y, end.y) - lift;
       for (let i = 0; i <= N; i++) {
         const t = i / N, u = 1 - t;
         const x = u * u * a.x + 2 * u * t * cx + t * t * end.x, y = u * u * a.y + 2 * u * t * cy + t * t * end.y;
         const s = 0.55 + 0.33 * Math.sin(Math.PI * t) + 0.45 * t;
-        frames.push({ transform: at(x, y, S, S, ' rotate(' + (SPIN[ev.prop] * t).toFixed(1) + 'deg) scale(' + s.toFixed(3) + ')') });
+        frames.push({ transform: at(x, y, S, S, ' rotate(' + (((kit ? kit.spin : SPIN)[ev.prop] || 0) * t).toFixed(1) + 'deg) scale(' + s.toFixed(3) + ')') });
       }
       host.sfx('whoosh');
       const FLY = 640;
       el.animate(frames, { duration: FLY, easing: 'cubic-bezier(.35,.1,.45,1)', fill: 'forwards' }).finished.then(() => {
-        LAND[ev.prop](el, ctx);
+        LANDS[ev.prop](el, ctx);
         afterLand(ev, 0);
       }, () => el.remove());
       host.sfx('p' + ev.prop, FLY);
@@ -309,8 +316,8 @@
     function afterLand(ev, extra) {
       if (ev.from !== 0 || !host.autoBots || !host.autoBots() || !host.isBot(ev.to) || prefs.hide) return;
       const r = Math.random();
-      if (r < 0.5) later(1100 + extra, () => play({ kind: 'chat', from: ev.to, text: pick(REPLY[ev.prop]) }));
-      else if (r < 0.72) later(1300 + extra, () => play({ kind: 'prop', from: ev.to, to: 0, prop: Math.random() < 0.5 ? ev.prop : pick(PROP_KEYS) }));
+      if (r < 0.5) later(1100 + extra, () => play({ kind: 'chat', from: ev.to, text: pick(REPLIES[ev.prop]) }));
+      else if (r < 0.72) later(1300 + extra, () => play({ kind: 'prop', from: ev.to, to: 0, prop: Math.random() < 0.5 ? ev.prop : pick(KEYS) }));
     }
 
     // 头顶放得下吗（上家贴着上沿时改在头像右侧）
@@ -509,6 +516,9 @@
       },
     };
 
+    // 别的游戏的落地效果用这些小零件拼（kit.land(helpers)）
+    const LANDS = kit ? kit.land({ mk, at, done, later, rnd, pick, center, particles, hearts, shake, jump, wobble, tint, glow, arcs, sparks, steam, drips, settle, HEART }) : LAND;
+
     function clear() {
       gen++;
       closePop();
@@ -519,5 +529,5 @@
     return { openProps, openChat, play, clear, close: closePop, isOpen: () => !!pop };
   }
 
-  window.GongzhuSocial = { create, PROP_KEYS, PROP_NAMES, LINES, REPLY, ART, cleanText, TEXT_MAX };
+  window.GongzhuSocial = { create, PROP_KEYS, PROP_NAMES, LINES, REPLY, ART, cleanText, TEXT_MAX, sticker };
 })();

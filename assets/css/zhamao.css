@@ -784,3 +784,49 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-dialog.is-stage > p, .zm-dialog.is-stage .zm-muted { text-align: center; }
 .zm-dialog.is-stage .zm-actions { justify-content: center; }
 .zm-dialog.is-stage.is-cards .zm-grid { overflow: visible; max-height: none; }
+
+/* 牌桌互动（道具 / 说一句）：样式照抄拱猪 gongzhu.css 的 .gz-social 一节（类名沿用 gz-，变量换成本游戏的） */
+.gz-social { position: fixed; inset: 0; z-index: 45; pointer-events: none; overflow: hidden; }
+.gz-social > * { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+.gz-sp-flyer svg { width: 100%; height: 100%; display: block; }
+.gz-sp-dot { border-radius: 50%; }
+.gz-sp-dot svg { display: block; }
+.gz-sp-bubble {
+  max-width: min(190px, 60vw); padding: 7px 11px; border-radius: 13px;
+  background: #fffdf8; color: var(--zm-ink); font-size: 14px; line-height: 1.4; word-break: break-word;
+  box-shadow: 0 4px 14px rgba(60, 40, 20, 0.16), 0 0 0 1px rgba(60, 40, 20, 0.06);
+}
+.gz-sp-bubble::after { content: ''; position: absolute; width: 12px; height: 12px; background: #fffdf8; transform: rotate(45deg); }
+.gz-sp-bubble.is-dn::after { left: var(--tail, calc(50% - 6px)); bottom: -5px; }
+.gz-sp-bubble.is-up::after { left: var(--tail, calc(50% - 6px)); top: -5px; }
+.gz-sp-bubble.is-lf::after { left: -5px; top: calc(50% - 6px); }
+.gz-sp-bubble.is-rt::after { right: -5px; top: calc(50% - 6px); }
+.gz-social-pop {
+  pointer-events: auto; padding: 8px; border-radius: 12px;
+  background: var(--zm-paper); border: 1px solid var(--zm-ink); box-shadow: 0 8px 22px rgba(20, 18, 15, 0.18);
+  animation: gz-sp-in 0.16s ease-out;
+}
+@keyframes gz-sp-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+.gz-sp-title { font-size: 12.5px; color: var(--zm-ink-mute); padding: 0 6px 6px; }
+.gz-sp-props { display: grid; grid-template-columns: repeat(3, 58px); gap: 2px; }
+.gz-sp-props button, .gz-sp-lines button, .gz-sp-foot button, .gz-sp-custom button {
+  border: 0; background: none; font: inherit; color: inherit; cursor: pointer; padding: 0;
+}
+.gz-sp-props button { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 0 3px; border-radius: 9px; }
+.gz-sp-props button:hover, .gz-sp-props button:active, .gz-sp-lines button:hover, .gz-sp-lines button:active { background: var(--zm-wash); }
+.gz-sp-ic { width: 44px; height: 44px; display: block; }
+.gz-sp-ic svg { width: 100%; height: 100%; display: block; }
+.gz-sp-props .gz-sp-lb { font-size: 12px; color: var(--zm-ink-mute); }
+.gz-sp-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px; padding: 7px 6px 0; border-top: 1px solid var(--zm-wash); font-size: 12.5px; color: var(--zm-ink-mute); }
+.gz-sp-foot button { color: var(--zm-seal); font-size: 13px; }
+.gz-sp-chat { width: 240px; max-width: calc(100vw - 16px); }
+.gz-sp-lines { display: flex; flex-direction: column; gap: 1px; max-height: min(260px, 42vh); overflow-y: auto; }
+.gz-sp-lines button { text-align: left; padding: 7px 10px; border-radius: 8px; font-size: 14.5px; }
+.gz-sp-custom { display: flex; gap: 6px; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--zm-wash); }
+.gz-sp-custom input { flex: 1; min-width: 0; padding: 6px 9px; border: 1px solid var(--zm-ink-faint); border-radius: 8px; background: var(--zm-card); color: var(--zm-ink); font: inherit; font-size: 16px; }
+.gz-sp-custom input:focus { outline: 2px solid var(--zm-seal); outline-offset: 0; border-color: transparent; }
+.gz-sp-custom button { padding: 6px 12px; border-radius: 8px; background: var(--zm-ink); color: var(--zm-seal-ink); font-size: 14px; }
+.gz-sp-hide { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 6px 0; font-size: 12.5px; color: var(--zm-ink-mute); cursor: pointer; }
+.gz-sp-hide input { width: 16px; height: 16px; margin: 0; accent-color: var(--zm-seal); }
+/* 能扔道具的头像：鼠标移上去给个手形 */
+.zm-app.can-social .zm-opps .zm-seat:not(.is-out) .zm-av { cursor: pointer; }
