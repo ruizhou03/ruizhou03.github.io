@@ -2941,11 +2941,12 @@
     const saved = loadSaved();
     const resume = saved && (coverPick == null || coverPick === saved.state.n);
     const n = resume ? saved.state.n : (coverPick || settings.players);
-    $('zmCoverSolo').textContent = resume ? '接着打上一局' : '新开一局 · 机器猫' + AI.TIER_NAMES[settings.tier];
+    $('zmCoverSolo').textContent = '';   // 单机键下面不写说明（用户：已经很直接了）
     $('zmCoverSeats').querySelectorAll('[data-n]').forEach((b) => { const on = +b.dataset.n === n; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on); });
     let seen = true;
     try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { /* 无痕 */ }
-    els.cover.querySelector('[data-cover="tutorial"]').textContent = seen ? '新手教程' : '第一次玩？先学一局';
+    els.cover.querySelector('[data-cover="tutorial"]').textContent = '新手教程';
+    void seen;
     els.cover.querySelector('[data-cover="exit"]').hidden = !FROM_SITE;
     const sess = NET && NET.readSession(), rb = els.cover.querySelector('[data-cover="resume"]');
     if (rb) { rb.hidden = !sess; if (sess) rb.querySelector('small').textContent = '房间 ' + sess.code; }

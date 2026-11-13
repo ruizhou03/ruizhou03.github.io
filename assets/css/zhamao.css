@@ -32,6 +32,17 @@ body.zm-fullscreen .site-footer { display: none !important; }
   box-sizing: border-box;
 }
 .zm-app *, .zm-app *::before, .zm-app *::after { box-sizing: border-box; }
+/* 夜间模式（2026-11-12 用户手机夜间模式看不清字）：游戏是一张奶油色纸面，配色自成一套、不跟系统深浅变。
+ * 站点的 main.css 在夜间会把 --color-ink / --color-text 等换成浅色（白字），游戏里凡是继承了站点样式的字（大标题、弹窗标题……）
+ * 就成了白字压奶油底。这里在游戏根上把那几个变量钉回浅色模式的值，并声明只用浅色（表单控件、滚动条也按浅色画） */
+body.zm-fullscreen, .zm-app {
+  color-scheme: light;
+  --color-ink: #1a1a2e; --color-text: #374151; --color-muted: #6b7280; --color-light: #9ca3af;
+  --color-border: #e5e7eb; --color-bg: #fafaf9; --color-bg-warm: #f5f4f0; --color-card: #ffffff;
+  --color-accent: #1e3a5f; --color-accent-light: #2d5a8e; --color-accent-soft: rgba(30, 58, 95, 0.12);
+  --color-nav-bg: rgba(250, 250, 249, 0.92);
+}
+body.zm-fullscreen { background: #f3eee3; }
 /* 游戏里的字一律不能选（微信里长按会选中字、弹「搜一搜 / 翻译」）；只有输入框能选 */
 body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .zm-app input, .zm-app textarea { -webkit-user-select: text; user-select: text; }
@@ -736,3 +747,4 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-defuse-scene .hero-boom { transform-box: fill-box; transform-origin: 50% 70%; }
 .zm-defuse-scene .hero-boom > * { transform-box: view-box; }
 .zm-defuse-scene .hero-wand { transform-box: view-box; transform-origin: 96px 98px; }
+.zm-cover-btn small:empty { display: none; }
