@@ -249,33 +249,19 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-card[data-k="wild"] .zm-nm::before, .zm-card[data-k="wild"] .zm-nm::after { content: '✦'; font-size: 9cqw; color: #fff4c8; }
 /* 出牌方向箭头（转向）：相邻两个对手之间，淡金 */
 .zm-dir { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
-.zm-dir i { position: absolute; display: block; color: #b8914a; opacity: 0.85; }
+.zm-dir i { position: absolute; display: block; color: #b8914a; }
 .zm-dir svg { width: 100%; height: 100%; display: block; }
-/* 箭头流动（预览三版，见 zhamao.js renderDir）。--j = 顺着出牌方向排第几个，--cyc = 一圈多长 */
+/* 箭头流动（用户挑定丙 · 三连跑马灯）：三道细箭依次点亮往前跑，箭头之间顺着出牌方向接力。--j = 顺着出牌方向排第几个，--cyc = 一圈多长；
+ * 指向当前出牌人的那个箭头朱红、底子亮一些 */
+.zm-dir i { opacity: 0.95; }
 .zm-dir i.is-hot { color: var(--zm-seal); }
-/* 甲 · 流光接力：平时淡（.55），流光走到时亮起、微微放大、带一圈暖光；指着当前出牌人的那个一直是满亮的朱红 */
-.zm-dir.fx-a i { opacity: 1; }
-.zm-dir.fx-a i svg { opacity: 0.55; animation: zm-dir-chase var(--cyc, 2.6s) ease-in-out infinite; animation-delay: calc(var(--j, 0) * 0.18s); }
-.zm-dir.fx-a i.is-hot svg { animation-name: zm-dir-chase-hot; }
-@keyframes zm-dir-chase { 0%, 24%, 100% { scale: 1; filter: none; opacity: 0.55; } 10% { scale: 1.25; filter: brightness(1.25) drop-shadow(0 0 3px rgba(240, 200, 110, 0.95)); opacity: 1; } }
-@keyframes zm-dir-chase-hot { 0%, 24%, 100% { scale: 1; filter: none; opacity: 1; } 10% { scale: 1.25; filter: drop-shadow(0 0 3px rgba(240, 200, 110, 0.95)); opacity: 1; } }
-/* 乙 · 灯带扫光：箭头本身是一条金带（用箭头形状做遮罩），一道亮光顺着箭头方向扫过 */
-.zm-dir.fx-b i { opacity: 0.9; }
-.zm-dir.fx-b i b { position: absolute; inset: 0; display: block; --c: #b8914a;
-  background: linear-gradient(90deg, var(--c) 0 38%, #fff4d2 50%, var(--c) 62% 100%); background-size: 300% 100%;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M7 4l6 6-6 6' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M7 4l6 6-6 6' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
-  animation: zm-dir-sweep var(--cyc, 2.6s) linear infinite; animation-delay: calc(var(--j, 0) * 0.18s); }
-.zm-dir.fx-b i.is-hot b { --c: var(--zm-seal); }
-@keyframes zm-dir-sweep { 0% { background-position: 100% 0; } 26%, 100% { background-position: 0 0; } }
-/* 丙 · 三连跑马灯 */
-.zm-dir.fx-c i { opacity: 0.95; }
-.zm-dir.fx-c path { opacity: 0.28; animation: zm-dir-run var(--cyc, 2.6s) linear infinite; animation-delay: calc(var(--j, 0) * 0.18s + var(--p, 0) * 0.1s); }
-.zm-dir.fx-c path:nth-child(2) { --p: 1; }
-.zm-dir.fx-c path:nth-child(3) { --p: 2; }
+.zm-dir path { opacity: 0.28; animation: zm-dir-run var(--cyc, 2.6s) linear infinite; animation-delay: calc(var(--j, 0) * 0.18s + var(--p, 0) * 0.1s); }
+.zm-dir path:nth-child(2) { --p: 1; }
+.zm-dir path:nth-child(3) { --p: 2; }
 @keyframes zm-dir-run { 0%, 22%, 100% { opacity: 0.28; } 7% { opacity: 1; } }
-.zm-dir.fx-c i.is-hot path { animation-name: zm-dir-run-hot; }
+.zm-dir i.is-hot path { animation-name: zm-dir-run-hot; }
 @keyframes zm-dir-run-hot { 0%, 22%, 100% { opacity: 0.6; } 7% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .zm-dir i *, .zm-dir i { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .zm-dir path { animation: none !important; opacity: 0.85; } }
 .zm-card.is-back { background: none; border: 0; }
 .zm-card.is-back svg { width: 100%; height: 100%; display: block; }
 

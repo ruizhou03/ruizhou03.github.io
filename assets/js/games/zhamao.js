@@ -252,25 +252,16 @@
   }
   /* 出牌方向（2026-11-13 用户挑甲、去掉屏幕两边那两个）：相邻两个对手之间一个淡金小箭头，指向下一个出牌的人；打出「转向」全部掉头。
    * 只有对手 ≥ 2 家才有（两个人玩方向无所谓）。箭头落在两人名字之间的空里（弧形排布时头像小，箭头也跟着小） */
-  const DIR_SVG = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function dirNow() { return game && game.state && game.state.dir === -1 ? -1 : 1; }
-  /* 箭头的流动感（预览中，2026-11-13 用户：要有灯带一样的流动，但别抢注意力）：window.__zmDirFx = 'a' | 'b' | 'c'，不设 = 现在线上（静止）
-   *   a 甲 = 流光接力：一道暖光顺着出牌方向一个箭头接一个亮过去（亮一下、微微放大），循环；
-   *   b 乙 = 灯带扫光：每个箭头里有一道高光顺着箭头方向扫过，一个接一个，像灯带里的光在流；
-   *   c 丙 = 三连跑马灯：每个箭头是三道细箭（›››），三道依次点亮往前跑，箭头之间也接力。
-   * 三版都有：指向当前出牌的人的那个箭头变朱红（和他头像的红圈呼应），轮到谁红箭头就跟着挪过去 */
+  /* 箭头的流动感（2026-11-13 用户挑定丙 · 三连跑马灯）：每个箭头是三道细箭（›››），三道依次点亮往前跑，箭头之间顺着出牌方向接力；
+   * 指向当前出牌的人的那个箭头变朱红（和他头像的红圈呼应），轮到谁红箭头就跟着挪过去 */
   const DIR3_SVG = '<svg viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5l5 5-5 5"/><path d="M8 5l5 5-5 5"/><path d="M13.5 5l5 5-5 5"/></g></svg>';
   function renderDir() {
     if (!els.dir) { els.dir = document.createElement('div'); els.dir.setAttribute('aria-hidden', 'true'); els.table.appendChild(els.dir); }
-    const v = window.__zmDirFx || '';
-    els.dir.className = 'zm-dir' + (v ? ' fx-' + v : '');
+    els.dir.className = 'zm-dir';
     const n = game && game.state ? game.state.n : 0;
     if (n < 3 || !els.opps.children.length) { els.dir.innerHTML = ''; return; }
-    if (els.dir.children.length !== n - 2 || els.dir.dataset.v !== v) {
-      const inner = v === 'b' ? '<b></b>' : v === 'c' ? DIR3_SVG : DIR_SVG;
-      els.dir.innerHTML = Array.from({ length: n - 2 }, () => '<i>' + inner + '</i>').join('');
-      els.dir.dataset.v = v;
-    }
+    if (els.dir.children.length !== n - 2) els.dir.innerHTML = Array.from({ length: n - 2 }, () => '<i>' + DIR3_SVG + '</i>').join('');
     const tb = els.table.getBoundingClientRect(), d = dirNow();
     els.dir.style.setProperty('--cyc', Math.max(2.6, (n - 2) * 0.18 + 1.8).toFixed(2) + 's');
     Array.from(els.dir.children).forEach((el, k) => {
@@ -294,7 +285,7 @@
     if (!list.length || !st) return;
     const t = st.phase === 'over' ? -1 : D().turn, d = dirNow();
     const k = t < 0 ? -1 : d === -1 ? t - 1 : t - 2;
-    Array.from(list).forEach((el, i) => el.classList.toggle('is-hot', !!window.__zmDirFx && i === k));
+    Array.from(list).forEach((el, i) => el.classList.toggle('is-hot', i === k));
   }
   /* 打出转向：箭头从出牌人那边起，一个接一个转半圈掉头 */
   async function animReverse(e, t) {
@@ -4576,6 +4567,7 @@
       swap: () => { give(0, R.SWAP); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.SWAP)], target: bot }); },
       swapme: () => { give(bot, R.SWAP); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SWAP)], target: 0 }); },
       stack: () => { give(bot, R.ATTACK); s.turn = bot; s.turnsLeft = 2; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
+      reverse: () => { give(bot, R.REVERSE); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.REVERSE)] }); },
       skip: () => { give(bot, R.SKIP); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
       shuffle: () => { give(bot, R.SHUFFLE); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SHUFFLE)] }); },
       future: () => { give(0, R.FUTURE); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.FUTURE)] }); },
