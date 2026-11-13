@@ -551,8 +551,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-solo-back svg { width: 40px; height: 40px; display: block; transition: transform .15s ease; }
 .zm-solo-back:active svg { transform: translateX(-3px) scale(.94); }
 /* 二级菜单：左边一窄列只放返回箭头（竖向居中），右边一列是按钮 / 卡片 */
-.zm-solo { position: relative; padding-left: 50px; }
-.zm-solo > .zm-solo-back { position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
+/* 按钮 / 卡片和「百变小咪」四个字居中对齐（两边各让出一样宽），返回箭头放在左边让出来的那块里 */
+.zm-solo { position: relative; width: calc(100% - 100px); align-self: center; }
+.zm-solo > .zm-solo-back { position: absolute; right: calc(100% + 6px); top: 50%; transform: translateY(-50%); }
 .zm-solo-pick { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px 14px 16px; background: var(--zm-card); border: 1.5px solid var(--zm-ink); border-radius: 14px; }
 .zm-solo-cap { font-size: 13px; color: var(--zm-ink-mute); letter-spacing: 0.1em; }
 .zm-solo-step { display: flex; align-items: center; gap: 22px; }
