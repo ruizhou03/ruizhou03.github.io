@@ -108,10 +108,14 @@ body_class: zm-fullscreen
         <button type="button" class="zm-cover-btn is-resume" data-cover="resume" hidden><b>回到房间</b><small></small></button>
         <button type="button" class="zm-cover-btn" data-cover="online" hidden><b>联机</b></button>
       </div>
-      <!-- 点「单机」之后：选几个人玩（加减按钮 + 一排头像）、机器猫难度、开始；有上一局存档就在最上面单独一行「接着打上一局」 -->
+      <!-- 点「单机」：有上一局 → 先选「接着打 / 开新的一局」；开新的（或没有上一局）→ 选几个人玩（加减按钮 + 一排头像）、机器猫难度、开始 -->
+      <div class="zm-solo" data-cover-step="again" hidden>
+        <button type="button" class="zm-solo-back" data-cover="back">‹ 返回</button>
+        <button type="button" class="zm-cover-btn is-primary" data-cover="resume-solo"><b>接着打上一局</b><small></small></button>
+        <button type="button" class="zm-cover-btn" data-cover="fresh"><b>开新的一局</b></button>
+      </div>
       <div class="zm-solo" data-cover-step="solo" hidden>
         <button type="button" class="zm-solo-back" data-cover="back">‹ 返回</button>
-        <button type="button" class="zm-solo-resume" data-cover="resume-solo" hidden>接着打上一局<small></small></button>
         <section class="zm-solo-pick">
           <span class="zm-solo-cap">几个人玩</span>
           <div class="zm-solo-step">

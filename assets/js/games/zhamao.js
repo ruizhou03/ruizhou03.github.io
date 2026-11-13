@@ -51,7 +51,7 @@
   // 2026-11-12 起甩锅默认叠加：老设置里存的「不叠加」是当时的默认值，改成新默认（之后自己再改就记住）
   if (settings.rulesV !== 2) { settings.rules = Object.assign({}, settings.rules, { stackAttack: true }); settings.rulesV = 2; }
   settings.rules = R.normalizeRules(settings.rules);
-  if (!(settings.players >= 2 && settings.players <= 5)) settings.players = 4;
+  if (!(settings.players >= R.MIN_PLAYERS && settings.players <= R.MAX_PLAYERS)) settings.players = 4;
   if (AI.TIERS.indexOf(settings.tier) < 0) settings.tier = 'normal';
   const saveSettings = () => writeJSON(SETTINGS_KEY, settings);
 
@@ -147,7 +147,9 @@
     const faces = AV ? AV.ROBOT.map((x) => x.id) : [];
     const take = (arr) => arr.length ? arr.splice((Math.random() * arr.length) | 0, 1)[0] : null;
     const out = [{ nick: profile.nick, avatar: profile.avatar }];
-    for (let i = 1; i < n; i++) out.push({ nick: take(names), avatar: faces.length ? take(faces) : null });
+    // 机器猫头像只有几种：人多时用完一轮再来一轮（名字不重）
+    let pool = faces.slice();
+    for (let i = 1; i < n; i++) { if (!pool.length) pool = faces.slice(); out.push({ nick: take(names), avatar: pool.length ? take(pool) : null }); }
     return out;
   }
   function avatarHtml(seat) {
@@ -199,6 +201,7 @@
     u = Math.max(46, Math.floor(u));
     els.app.style.setProperty('--u', u + 'px');
     layoutHand();
+    layoutOpps();
   }
 
   /* ───── 座位 ───── */
@@ -220,6 +223,25 @@
     });
     els.me.dataset.seat = 0;
     for (let s = 0; s < game.state.n; s++) seatEl(s).innerHTML = '';
+    layoutOpps();
+  }
+  /* 6–9 人（对手 5–8 家）：还是一排，但排成一道往下弯的弧（两头低、中间高，像围着桌子坐），头像跟着屏幕宽度缩小；
+   * 角标（手牌数 / 还要摸几回合）挪到头像右上 / 右下角，免得挤到旁边那家 */
+  function layoutOpps() {
+    const m = game && game.state ? game.state.n - 1 : 0;
+    const arc = m >= 5;
+    els.opps.classList.toggle('is-arc', arc);
+    if (!arc) { els.opps.style.removeProperty('--av-o'); els.opps.style.removeProperty('--arc'); return; }
+    const W = els.opps.clientWidth || els.table.clientWidth || innerWidth;
+    const per = W / m;
+    const av = Math.max(30, Math.min(46, Math.floor(per - 16)));
+    const A = Math.round(Math.min(34, av * 0.75));
+    els.opps.style.setProperty('--av-o', av + 'px');
+    els.opps.style.setProperty('--arc', A + 'px');
+    Array.from(els.opps.children).forEach((b, j) => {
+      const t = m > 1 ? (j - (m - 1) / 2) / ((m - 1) / 2) : 0;
+      b.style.setProperty('--dy', (A * t * t).toFixed(1) + 'px');
+    });
   }
   function renderSeat(seat) {
     const s = game.state, d = D(), box = seatEl(seat);
@@ -1197,7 +1219,10 @@
       const w = PU() * 0.6;
       fan = document.createElement('div');
       fan.className = 'zm-steal-fan';
-      fan.style.left = (ar.left + ar.width / 2) + 'px';
+      // 扇面中心对着他的头像，但最左 / 最右那家的扇面别伸出屏幕：整把往里挪
+      const half = ((count - 1) / 2) * w * Math.min(0.5, 2.6 / Math.max(1, count)) + w * 0.75;
+      const cx = Math.min(Math.max(ar.left + ar.width / 2, half + 6), innerWidth - half - 6);
+      fan.style.left = cx + 'px';
       fan.style.top = (ar.top + ar.height + 30) + 'px';
       for (let i = 0; i < count; i++) {
         const off = i - (count - 1) / 2;
@@ -1399,7 +1424,7 @@
     el.style.width = u + 'px'; el.style.height = u * 1.4 + 'px';
     el.innerHTML = cardHtml(e.named) + '<div class="zm-cross">' + ART.PROPS.cross + '</div>';
     els.fly.appendChild(el);
-    const x = b.x - u / 2, y = b.y - u * 1.6;
+    const x = Math.min(Math.max(b.x - u / 2, 8), innerWidth - u - 8), y = b.y - u * 1.6;
     await fx.animate(el, [
       { transform: fx.T(x, y + 20, 0.3, 0), opacity: 0 },
       { transform: fx.T(x, y, 1.05, 0), opacity: 1, offset: 0.16 },
@@ -2082,21 +2107,23 @@
     await wait(460);
     if (skipped()) return;
     // 先把炸毛猫一只只从牌堆里抽出来、翻开、摆在牌堆上方一排（谁也不拿，等发完牌再塞回去）
-    const u0 = U(), pu0 = PU(), kw = pu0 * 0.82;
+    const kf = kits.length > 4 ? 0.6 : 1;   // 人多（炸毛猫多）时一只只摆出来 / 塞回去都快一点，整段发牌别拖太久
+    const u0 = U(), pu0 = PU(), kw = Math.min(pu0 * 0.82, (innerWidth - 24) / (kits.length * 1.12));   // 人多（炸毛猫多）时排得下
     const pr = els.deck.parentElement.getBoundingClientRect(), dtop = deckTopRect();
     const aside = [];
     for (let i = 0; i < kits.length; i++) {
       if (skipped()) { aside.forEach((x) => x && x.remove()); return; }
-      const spot = { x: pr.left + pr.width / 2 + (i - (kits.length - 1) / 2) * kw * 1.12, y: dtop.top - pu0 * 0.78 };
+      const half = kits.length * kw * 0.56 + 4, cx0 = Math.min(Math.max(pr.left + pr.width / 2, half), innerWidth - half);
+      const spot = { x: cx0 + (i - (kits.length - 1) / 2) * kw * 1.12, y: dtop.top - pu0 * 0.78 };
       const from = deckTopRect();
       ov.deckSize -= 1; ov.kittens -= 1;
       renderPiles();
       snd('hiss', 120);
-      const node = await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), flip: 'up', flipAt: 0.25, from, to: spot, w: kw, s0: pu0 / kw, s1: 1, r0: 0, r1: (i % 2 ? 6 : -6), dur: 380, lift: 30, keep: true, land: false });
+      const node = await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), flip: 'up', flipAt: 0.25, from, to: spot, w: kw, s0: pu0 / kw, s1: 1, r0: 0, r1: (i % 2 ? 6 : -6), dur: 380 * kf, lift: 30, keep: true, land: false });
       if (node) node.classList.add('zm-angry');
       aside.push(node);
       fx.burst(spot.x, spot.y, { n: 6, shapes: ['fur'], colors: FUR, radius: kw * 0.7, size: [5, 11], alignOut: true, life: 500, pattern: 'ring' });
-      await wait(140);
+      await wait(140 * kf);
     }
     void u0;
     if (skipped()) { aside.forEach((x) => x && x.remove()); return; }
@@ -2122,7 +2149,7 @@
       } else {
         flights.push(fx.fly({ html: backHtml(), from, to: avPoint(seat), w: pu, s0: 1, s1: 0.4, r0: -10, r1: 20, dur: 380, lift: 40, fadeOut: true, land: false }).then(() => { if (!skipped()) { ov.counts[seat] += 1; renderSeat(seat); } }));
       }
-      await wait(85);
+      await wait(85 * Math.min(1, 20 / order.length));
     }
     await Promise.all(flights);
     if (skipped()) return;
@@ -2157,7 +2184,7 @@
       const rr = node ? node.getBoundingClientRect() : deckTopRect();
       if (node) node.remove();
       snd('insert');
-      await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), flip: 'down', flipAt: 0.15, from: rr, to: deckTopRect(), w: pu, s0: rr.width / pu, s1: 1, r0: 0, r1: 0, dur: 300, lift: 16 });
+      await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), flip: 'down', flipAt: 0.15, from: rr, to: deckTopRect(), w: pu, s0: rr.width / pu, s1: 1, r0: 0, r1: 0, dur: 300 * kf, lift: 16 });
       if (skipped()) { aside.forEach((x) => x && x.isConnected && x.remove()); return; }
       ov.deckSize += 1; ov.kittens += 1;
       renderPiles();
@@ -2598,13 +2625,12 @@
   function showSettings(fromCover) {
     const segs = (key, opts, val) => '<div class="zs-seg" data-seg="' + key + '" role="group">' + opts.map(([v, t]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(val)) + '">' + t + '</button>').join('') + '</div>';
     const sw = (key, on) => '<button type="button" class="zs-switch" data-sw="' + key + '" role="switch" aria-checked="' + !!on + '"><i></i></button>';
-    const players = segs('players', [[2, '2 人'], [3, '3 人'], [4, '4 人'], [5, '5 人']], settings.players);
     const tier = segs('tier', AI.TIERS.map((t) => [t, AI.TIER_NAMES[t]]), settings.tier);
     const secs = segs('turnSec', [[20, '20 秒'], [0, '不限时']], turnSec());
     const rulesBefore = JSON.stringify(settings.rules);
     const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b><small>' + note + '</small></div>' + ctl + '</div>';
     let html = '<h2>设置</h2>' +
-      '<section class="zs-card"><div class="zs-line"><span>几个人玩</span>' + players + '</div>' +
+      '<section class="zs-card">' +
       '<div class="zs-line"><span>机器猫</span>' + tier + '</div>' +
       '<div class="zs-line"><span>出牌限时</span>' + secs + '</div></section>' +
       '<div class="zs-cap">玩法</div><section class="zs-card">' +
@@ -2988,7 +3014,8 @@
   }
   /* 点「单机」之后那一屏（2026-11-12 用户挑的方案甲）：− 人数 +、下面一排头像（我 + 几只机器猫）、机器猫难度、开始；
    * 有上一局存档：最上面单独一行「接着打上一局」（以前是点单机直接接着打，想开新局得先点人数，不直观） */
-  const SOLO_MAX = 5;   // 6–9 人的牌桌排布做好之前先到 5
+  let coverFrom = 'main';   // 选人数那一屏「‹ 返回」回哪：有上一局时回「接着打 / 开新的」那一步
+  const SOLO_MAX = R.MAX_PLAYERS;   // 9 人（6 人起用两副牌）
   function refreshSolo() {
     const n = Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players));
     $('zmSoloNum').innerHTML = n + '<small>人</small>';
@@ -3000,7 +3027,6 @@
     $('zmSoloSub').textContent = '你 + ' + (n - 1) + ' 只机器猫';
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
     const saved = loadSaved(), rb = els.cover.querySelector('[data-cover="resume-solo"]');
-    rb.hidden = !saved;
     if (saved) rb.querySelector('small').textContent = saved.state.n + ' 人 · 还剩 ' + saved.state.alive.filter(Boolean).length + ' 家';
   }
   function soloStart() {
@@ -3970,8 +3996,10 @@
     const b = e.target.closest('[data-cover]');
     if (!b) return;
     const k = b.dataset.cover;
-    if (k === 'solo') { refreshSolo(); coverStep('solo'); snd('tap'); return; }
-    if (k === 'back') { coverStep('main'); return; }
+    // 单机：有上一局 → 先问「接着打 / 开新的一局」；没有就直接选人数
+    if (k === 'solo') { refreshSolo(); coverFrom = loadSaved() ? 'again' : 'main'; coverStep(coverFrom === 'again' ? 'again' : 'solo'); snd('tap'); return; }
+    if (k === 'fresh') { refreshSolo(); coverStep('solo'); snd('tap'); return; }
+    if (k === 'back') { const step = els.cover.querySelector('[data-cover-step="solo"]:not([hidden])') && coverFrom === 'again' ? 'again' : 'main'; coverStep(step); if (step === 'main') coverFrom = 'main'; return; }
     if (k === 'start') { settings.players = Math.min(SOLO_MAX, settings.players); soloStart(); return; }
     if (k === 'resume-solo') { const saved = loadSaved(); if (saved) resumeGame(saved); else refreshSolo(); return; }
     if (k === 'online') { showOnlineEntry(); return; }

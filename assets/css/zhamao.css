@@ -548,15 +548,13 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 点「单机」之后：选几个人玩（方案甲：− 人数 +、一排头像、难度、开始） */
 .zm-solo { width: 100%; display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
 .zm-solo-back { align-self: flex-start; border: 0; background: none; font: inherit; font-size: 14px; color: var(--zm-ink-mute); padding: 2px 0; cursor: pointer; }
-.zm-solo-resume { display: flex; justify-content: center; align-items: baseline; gap: 8px; padding: 10px; border: 1.5px dashed var(--zm-ink); border-radius: 12px; background: transparent; font: inherit; font-size: 15px; color: var(--zm-ink); cursor: pointer; }
-.zm-solo-resume small { font-size: 12.5px; color: var(--zm-ink-mute); }
 .zm-solo-pick { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px 14px 16px; background: var(--zm-card); border: 1.5px solid var(--zm-ink); border-radius: 14px; }
 .zm-solo-cap { font-size: 13px; color: var(--zm-ink-mute); letter-spacing: 0.1em; }
 .zm-solo-step { display: flex; align-items: center; gap: 22px; }
 .zm-solo-step button { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid var(--zm-ink); background: var(--zm-paper); font: inherit; font-size: 26px; line-height: 1; color: var(--zm-ink); cursor: pointer; }
 .zm-solo-step button:disabled { opacity: 0.3; cursor: default; }
 .zm-solo-step button:not(:disabled):active { transform: scale(0.94); }
-.zm-solo-num { font-size: 46px; font-weight: 700; line-height: 1; min-width: 64px; text-align: center; }
+.zm-solo-num { font-size: 46px; font-weight: 700; line-height: 1; min-width: 64px; text-align: center; font-variant-numeric: lining-nums; }
 .zm-solo-num small { font-size: 16px; font-weight: 400; margin-left: 2px; }
 .zm-solo-faces { display: flex; justify-content: center; min-height: 34px; }
 .zm-solo-faces i { width: 34px; height: 34px; border-radius: 50%; background: var(--zm-wash); border: 2px solid var(--zm-card); margin-left: -7px; overflow: hidden; display: grid; place-items: center; font-style: normal; font-size: 13px; }
@@ -771,3 +769,11 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app.is-spectator .zm-seat-me .zm-av { cursor: pointer; }
 /* 观战时下面坐的是别人：头像下写上他的名字 */
 .zm-seat-me.is-watched .zm-name { display: block; position: absolute; left: calc(var(--av) / 2); top: calc(50% + var(--av) / 2 + 3px); transform: translateX(-50%); white-space: nowrap; font-size: 12px; max-width: 30vw; overflow: hidden; text-overflow: ellipsis; }
+/* 6–9 人：对手排成一道弧（两头低、中间高），头像缩小；角标挪到头像角上（layoutOpps 设 --av-o / --arc / --dy） */
+.zm-opps.is-arc { --av: var(--av-o, 38px); gap: 0; justify-content: space-around; min-height: calc(var(--av) + 40px + var(--arc, 24px)); padding-left: 4px; padding-right: 4px; }
+.zm-opps.is-arc .zm-seat { min-width: 0; flex: 1 1 0; gap: 2px; transform: translateY(var(--dy, 0px)); }
+.zm-opps.is-arc .zm-name { font-size: 11.5px; max-width: 100%; }
+.zm-opps.is-arc .zm-tier { font-size: 9.5px; padding: 0 4px; line-height: 14px; }
+.zm-opps.is-arc .zm-count { left: auto; right: -9px; top: -7px; min-width: 18px; height: 21px; font-size: 11px; border-radius: 4px; }
+.zm-opps.is-arc .zm-turns { left: auto; right: -11px; bottom: -6px; height: 17px; min-width: 24px; padding: 0 4px; font-size: 10.5px; line-height: 17px; }
+.zm-opps.is-arc .zm-av { font-size: 14px; }
