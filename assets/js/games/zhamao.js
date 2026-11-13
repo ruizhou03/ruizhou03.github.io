@@ -82,6 +82,7 @@
     const total = s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0) + (s.defuse ? 1 : 0);
     // 旧存档：加「抽底」前是 64 张、加第二副（6–9 人）前是 68 张。没出现过的牌全收进盒子（removed），照样接着打
     if ((total !== R.DECK_SIZE && total !== R.BASE_SIZE && total !== R.BASE_SIZE - R.COUNTS.bottom) || !Array.isArray(d.tiers) || d.tiers.length !== s.n) return null;
+    s.rules = R.normalizeRules(s.rules);   // 老存档的规则按现在的来（例如甩锅一律叠加）
     if (total !== R.DECK_SIZE) {
       const seen = new Set(s.deck.concat(s.discard, s.removed, ...s.hands, s.defuse ? [s.defuse.card] : []));
       for (let id = 0; id < R.DECK_SIZE; id++) if (!seen.has(id)) s.removed.push(id);
@@ -2286,6 +2287,7 @@
     const limit = dlgLimit();
     snd('peek');
     openStage('<h2>改命 · 最上面 ' + order.length + ' 张</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
+      '<p class="zm-muted zm-alter-tip">拖一张插到别处，或点两张互换</p>' +
       '<div class="zm-alter-row"><span class="end">顶</span><div class="zm-alter" data-alter>' + order.map((id, i) => '<button type="button" class="zm-alter-slot" data-i="' + i + '">' + cardHtml(id) + '</button>').join('') + '</div><span class="end">底</span></div>' +
       '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好了</button></div>', (d) => {
       const slots = Array.from(d.querySelectorAll('.zm-alter-slot'));
@@ -2311,54 +2313,83 @@
         slots.forEach((x) => x.classList.remove('is-sel')); sel = -1;
         snd('flip');
       };
-      // 拖到哪张上：看被拖那张牌的中心离哪个位置最近（不看手指在哪——手指捏在牌的边上时也算得准）
-      const dropTarget = (i, card) => {
+      /* 拖：按住一张拖到别处松手 = 把它「插」到那个位置（2026-11-13 用户：把第一张拖到第三张后面，应该是插过去而不是互换）；
+       * 拖的时候别的牌实时让位，看得出会插在哪。点：点一张、再点另一张 = 两张互换（照旧）。
+       * 位置只看被拖那张牌的中心（不看手指在哪——手指捏在牌边上也算得准）；格子本身不动，动的是格子里的牌 */
+      const cardsNow = () => slots.map((x) => x.querySelector('.zm-card'));
+      const centers = () => slots.map((x) => { const q = x.getBoundingClientRect(); return q.left + q.width / 2; });
+      const insertAt = (i, card) => {
         const r = card.getBoundingClientRect(), cx = r.left + r.width / 2;
-        let best = -1, bd = Infinity;
-        slots.forEach((x, j) => {
-          if (j === i) return;
-          const q = x.getBoundingClientRect(), d = Math.abs(q.left + q.width / 2 - cx);
-          if (d < bd) { bd = d; best = j; }
-        });
-        const w = slots[0].getBoundingClientRect().width;
-        return bd < w * 0.75 ? best : -1;
+        let k = 0;
+        centers().forEach((c, j) => { if (j !== i && c < cx) k++; });
+        return k;
       };
-      // 点：点一张、再点另一张 = 换位置；拖：按住一张拖到另一张上松手 = 换位置
+      // 拖着 i、准备插到 k：别的牌往旁边让一格
+      const preview = (i, k, cards) => {
+        const cs = centers(), pitch = cs.length > 1 ? cs[1] - cs[0] : 0;
+        cards.forEach((c, j) => {
+          if (j === i) return;
+          let to = j;
+          if (i < k && j > i && j <= k) to = j - 1;
+          else if (k < i && j >= k && j < i) to = j + 1;
+          c.style.transition = 'transform .15s ease';
+          c.style.transform = to === j ? '' : 'translateX(' + ((to - j) * pitch).toFixed(1) + 'px)';
+        });
+      };
+      // 真的挪：order 里把 i 拿出来插到 k，牌放进新格子，再从各自原来（看上去）的位置滑过去
+      const move = (i, k, dropRect) => {
+        const cards = cardsNow();
+        const before = cards.map((c, j) => (j === i && dropRect ? dropRect : c.getBoundingClientRect()));
+        cards.forEach((c) => { c.style.transition = ''; c.style.transform = ''; c.style.zIndex = ''; });
+        const idx = order.map((_, j) => j);
+        idx.splice(i, 1); idx.splice(k, 0, i);
+        order = idx.map((j) => order[j]);
+        idx.forEach((j, pos) => slots[pos].insertBefore(cards[j], slots[pos].firstChild));
+        if (!fx.reduce()) cards.forEach((c, j) => {
+          const now = c.getBoundingClientRect(), r = before[j];
+          if (Math.abs(r.left - now.left) < 1 && Math.abs(r.top - now.top) < 1) return;
+          c.animate([{ transform: 'translate(' + (r.left - now.left) + 'px,' + (r.top - now.top) + 'px)' }, { transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.3,.8,.4,1)' });
+        });
+        slots.forEach((x) => x.classList.remove('is-sel')); sel = -1;
+        snd('flip');
+      };
       let drag = null;
       slots.forEach((slot, i) => {
         slot.addEventListener('pointerdown', (ev) => {
           const card = slot.querySelector('.zm-card');
-          drag = { i, x0: ev.clientX, y0: ev.clientY, card, moved: false, id: ev.pointerId };
+          drag = { i, x0: ev.clientX, y0: ev.clientY, card, moved: false, id: ev.pointerId, k: i };
           try { slot.setPointerCapture(ev.pointerId); } catch (_) { /* */ }
         });
         slot.addEventListener('pointermove', (ev) => {
           if (!drag || drag.i !== i) return;
           const dx = ev.clientX - drag.x0, dy = ev.clientY - drag.y0;
           if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+          if (!drag.moved && sel >= 0) { slots.forEach((x) => x.classList.remove('is-sel')); sel = -1; }
           drag.moved = true;
+          drag.card.style.transition = '';
           drag.card.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + (dx * 0.04).toFixed(1) + 'deg) scale(1.06)';
           drag.card.style.zIndex = 5;
           slot.classList.add('is-dragging');
-          const over = dropTarget(i, drag.card);
-          slots.forEach((x, j) => x.classList.toggle('is-over', j === over));
+          const k = insertAt(i, drag.card);
+          if (k !== drag.k) { drag.k = k; preview(i, k, cardsNow()); snd('tick'); }
         });
-        const end = (ev) => {
+        const end = () => {
           if (!drag || drag.i !== i) return;
           const d = drag;
           drag = null;
           slot.classList.remove('is-dragging');
-          slots.forEach((x) => x.classList.remove('is-over'));
-          if (!d.moved) { // 当成一次点击
+          if (!d.moved) { // 当成一次点击：点两张互换
             if (sel < 0) { sel = i; slot.classList.add('is-sel'); snd('tap'); return; }
             if (sel === i) { slot.classList.remove('is-sel'); sel = -1; snd('untap'); return; }
             swap(sel, i);
             return;
           }
           const dropRect = d.card.getBoundingClientRect();
-          const j = dropTarget(i, d.card);   // 先按拖到的位置算目标，再把牌放回
-          d.card.style.transform = ''; d.card.style.zIndex = '';
-          if (j >= 0) swap(i, j, dropRect);
-          else if (!fx.reduce()) { const now = d.card.getBoundingClientRect(); d.card.animate([{ transform: 'translate(' + (dropRect.left - now.left) + 'px,' + (dropRect.top - now.top) + 'px)' }, { transform: 'none' }], { duration: 220, easing: 'ease-out' }); }
+          const k = insertAt(i, d.card);
+          if (k !== i) { move(i, k, dropRect); return; }
+          // 放回原位
+          cardsNow().forEach((c) => { c.style.transition = ''; c.style.transform = ''; c.style.zIndex = ''; });
+          if (!fx.reduce()) { const now = d.card.getBoundingClientRect(); d.card.animate([{ transform: 'translate(' + (dropRect.left - now.left) + 'px,' + (dropRect.top - now.top) + 'px)' }, { transform: 'none' }], { duration: 220, easing: 'ease-out' }); }
         };
         slot.addEventListener('pointerup', end);
         slot.addEventListener('pointercancel', end);
@@ -2619,7 +2650,7 @@
       li('boom', '摸到就炸毛出局，除非有逗猫棒') +
       li('defuse', '摸到炸毛猫时自动用掉，然后你把炸毛猫偷偷塞回牌堆任意位置') +
       li('nope', '作废别人刚出的牌（不管轮没轮到你）。也能作废别人的「作废」，叠了单数张 = 作废。挡不了炸毛猫和逗猫棒') +
-      li('attack', '结束回合、不摸牌，下家连着摸两回合' + (settings.rules.stackAttack ? '（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）' : '（被甩锅的人再甩锅，下家也还是两回合）')) +
+      li('attack', '结束回合、不摸牌，下家连着摸两回合（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）') +
       li('tattack', '同甩锅，但可以甩给任意一个人（点他的头像）') +
       li('skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合') +
       li('swap', '和指定的一个人整手交换手牌（各自的逗猫棒不换）' + (settings.rules.swap ? '' : '。设置里开了「交换牌」才有')) +
@@ -2649,7 +2680,7 @@
     const segs = (key, opts, val) => '<div class="zs-seg" data-seg="' + key + '" role="group">' + opts.map(([v, t]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(val)) + '">' + t + '</button>').join('') + '</div>';
     const sw = (key, on) => '<button type="button" class="zs-switch" data-sw="' + key + '" role="switch" aria-checked="' + !!on + '"><i></i></button>';
     const tier = segs('tier', AI.TIERS.map((t) => [t, AI.TIER_NAMES[t]]), settings.tier);
-    const secs = segs('turnSec', [[20, '20 秒'], [0, '不限时']], turnSec());
+    const secs = segs('turnSec', [[10, '10 秒'], [20, '20 秒'], [0, '不限时']], turnSec());
     const rulesBefore = JSON.stringify(settings.rules);
     const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b><small>' + note + '</small></div>' + ctl + '</div>';
     let html = '<h2>设置</h2>' +
@@ -2657,7 +2688,6 @@
       '<div class="zs-line"><span>机器猫</span>' + tier + '</div>' +
       '<div class="zs-line"><span>出牌限时</span>' + secs + '</div></section>' +
       '<div class="zs-cap">玩法</div><section class="zs-card">' +
-      row('attack', '甩锅叠加', '被甩锅的人再甩锅，剩下的回合 +2 一起甩走', sw('stackAttack', settings.rules.stackAttack)) +
       row('swap', '交换牌', '和一个人整手交换（逗猫棒不换）', sw('swap', settings.rules.swap)) +
       row('defuse', '多的逗猫棒全放回', '关着 = 最多放回 2 张', sw('extraDefuse', settings.rules.extraDefuse === 'all')) +
       '</section>';
@@ -3907,41 +3937,41 @@
   }
 
   /* ───── 主页「联机」：建房 / 输房间号加入 ───── */
+  /* 点「联机」：主菜单换成联机那一步（和单机一样，不弹框）。邀请链接带房间号进来：直接摆好「加入房间」那一行、填好号 */
   function showOnlineEntry(code) {
     if (!NET) { toast('联机暂时用不了'); return; }
     NET.warm();
-    openDialog('<h2>联机</h2>' +
-      '<button type="button" class="zm-cover-btn is-primary zm-online-new" data-new><b>建一个房间</b><small>你当房主，可以加机器猫凑人数</small></button>' +
-      '<div class="zm-field-label">或者输房间号加入</div><div class="zm-join-row"><input class="zm-input" data-code inputmode="numeric" maxlength="4" placeholder="4 位数字" value="' + esc(code || '') + '" autocomplete="off"><button type="button" class="zm-btn zm-btn-primary" data-join>加入</button></div>' +
-      '<p class="zm-muted zm-err" data-err hidden></p>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-watch' + (code ? '' : ' hidden') + '>只观战</button><button type="button" class="zm-btn" data-cancel>取消</button></div>', (d) => {
-      const err = d.querySelector('[data-err]'), input = d.querySelector('[data-code]');
-      const fail = (e) => { err.textContent = NET.message(e); err.hidden = false; d.querySelectorAll('button').forEach((b) => { b.disabled = false; }); };
-      const lock = () => d.querySelectorAll('button').forEach((b) => { b.disabled = true; });
-      input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 4); d.querySelector('[data-watch]').hidden = input.value.length !== 4; });
-      d.querySelector('[data-cancel]').addEventListener('click', closeDialog);
-      d.querySelector('[data-new]').addEventListener('click', async () => {
-        lock();
-        try {
-          const res = await withConn('正在建房间…', () => NET.create(profile.nick, profile.avatar, { rules: settings.rules, turnSec: turnSec() || 0 }));
-          closeDialog(); startOnline(res.state, res.token);
-        } catch (e) { fail(e); }
-      });
-      const join = async (mode) => {
-        const c = input.value.trim();
-        if (!/^\d{4}$/.test(c)) { fail({ error: 'bad_code' }); return; }
-        lock();
-        try {
-          const res = await withConn('正在进房间…', () => NET.join(c, profile.nick, profile.avatar, mode));
-          closeDialog(); startOnline(res.state, res.token);
-          if (res.fellBack) toast(NET.message({ error: res.fellBack }));
-        } catch (e) { fail(e); }
-      };
-      d.querySelector('[data-join]').addEventListener('click', () => join('play'));
-      d.querySelector('[data-watch]').addEventListener('click', () => join('watch'));
-      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') join('play'); });
-      if (!code) setTimeout(() => input.focus(), 50);
-    });
+    els.cover.hidden = false;
+    const join = els.cover.querySelector('.zm-join'), open = els.cover.querySelector('[data-cover="join-open"]'), input = $('zmJoinCode');
+    $('zmOnlineErr').hidden = true;
+    input.value = code ? String(code).replace(/\D/g, '').slice(0, 4) : '';
+    join.hidden = !code; open.hidden = !!code;
+    els.cover.querySelector('[data-cover="watch"]').hidden = input.value.length !== 4;
+    els.cover.querySelectorAll('[data-cover-step="online"] button').forEach((x) => { x.disabled = false; });
+    coverStep('online');
+  }
+  function onlineFail(e) {
+    const err = $('zmOnlineErr');
+    err.textContent = NET.message(e); err.hidden = false;
+    els.cover.querySelectorAll('[data-cover-step="online"] button').forEach((x) => { x.disabled = false; });
+  }
+  const onlineLock = () => els.cover.querySelectorAll('[data-cover-step="online"] button').forEach((x) => { x.disabled = true; });
+  async function onlineCreate() {
+    onlineLock();
+    try {
+      const res = await withConn('正在创建房间…', () => NET.create(profile.nick, profile.avatar, { rules: settings.rules, turnSec: TURN_OPTS.some(([v]) => v === turnSec()) ? turnSec() : 20 }));
+      startOnline(res.state, res.token);
+    } catch (e) { onlineFail(e); }
+  }
+  async function onlineJoin(mode) {
+    const c = $('zmJoinCode').value.trim();
+    if (!/^\d{4}$/.test(c)) { onlineFail({ error: 'bad_code' }); return; }
+    onlineLock();
+    try {
+      const res = await withConn('正在进房间…', () => NET.join(c, profile.nick, profile.avatar, mode));
+      startOnline(res.state, res.token);
+      if (res.fellBack) toast(NET.message({ error: res.fellBack }));
+    } catch (e) { onlineFail(e); }
   }
   async function resumeOnline(sess) {
     try {
@@ -3966,7 +3996,8 @@
     bgm('menu');
     renderLobby(st, prev);
   }
-  const TURN_OPTS = [[20, '20 秒'], [30, '30 秒'], [0, '不限时']];
+  // 出牌限时（2026-11-13 用户：30 秒太长；5 秒扣掉网络来回和别人的动画只剩三四秒，太紧）：10 / 20 / 不限时
+  const TURN_OPTS = [[10, '10 秒'], [20, '20 秒'], [0, '不限时']];
   function renderLobby(st) {
     if (!lobbyEl) {
       lobbyEl = document.createElement('div');
@@ -3997,7 +4028,6 @@
       (st.spectators.length ? '<p class="zm-muted zm-lobby-watch">' + st.spectators.length + ' 个人在观战' + (st.spectator ? '（包括你）' : '') + '</p>' : '') +
       '<section class="zs-card zs-b zm-lobby-rules"><div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
       TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
-      row('attack', '甩锅叠加', '被甩锅的人再甩锅，剩下的回合 +2 一起甩走', sw('stackAttack', rules.stackAttack)) +
       row('swap', '交换牌', '和一个人整手交换（逗猫棒不换）', sw('swap', rules.swap)) +
       row('defuse', '多的逗猫棒全放回', '关着 = 最多放回 2 张', sw('extraDefuse', rules.extraDefuse === 'all')) +
       '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">规则由房主定</p>') +
@@ -4109,11 +4139,27 @@
     if (k === 'start') { settings.players = Math.min(SOLO_MAX, settings.players); soloStart(); return; }
     if (k === 'resume-solo') { const saved = loadSaved(); if (saved) resumeGame(saved); else refreshSolo(); return; }
     if (k === 'online') { showOnlineEntry(); return; }
+    if (k === 'create') { onlineCreate(); return; }
+    if (k === 'join-open') {
+      b.hidden = true; els.cover.querySelector('.zm-join').hidden = false; $('zmOnlineErr').hidden = true;
+      setTimeout(() => $('zmJoinCode').focus(), 30);
+      return;
+    }
+    if (k === 'join') { onlineJoin('play'); return; }
+    if (k === 'watch') { onlineJoin('watch'); return; }
     if (k === 'resume') { const sess = NET && NET.readSession(); if (sess) resumeOnline(sess); return; }
     if (k === 'tutorial') startTutorial();
     else if (k === 'settings') showSettings(true);
     else if (k === 'exit') location.href = '/toolbox/';
   });
+  // 加入房间：只收数字、满 4 位才露「只观战」、回车 = 加入
+  $('zmJoinCode').addEventListener('input', (e) => {
+    const inp = e.target;
+    inp.value = inp.value.replace(/\D/g, '').slice(0, 4);
+    els.cover.querySelector('[data-cover="watch"]').hidden = inp.value.length !== 4;
+    $('zmOnlineErr').hidden = true;
+  });
+  $('zmJoinCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') onlineJoin('play'); });
   els.cover.querySelector('.zm-solo-pick').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;

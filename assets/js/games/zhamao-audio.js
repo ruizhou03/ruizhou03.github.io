@@ -204,11 +204,21 @@
       const go = () => { if (a.state === 'running') startMusic(); };
       if (a.state === 'suspended') a.resume().then(go, () => {}); else go();
     };
-    ['pointerdown', 'touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, unlock, { passive: true }));
+    /* 2026-11-13 用户：侧滑返回滑到一半，同时响两股音乐（这一页的局内音乐 + 上一页的主菜单音乐）。
+     * 原因：上一页如果也是本游戏（比如从「返回百宝奇巧」出去又点回来），侧滑时浏览器把它从缓存里「复活」预览，
+     * 它收到 visibilitychange（变可见）就自己接着放了。改成：离开的这一页（pagehide）立刻停声；
+     * 从缓存复活的那一页（pageshow.persisted）先不出声，等用户真的点一下才恢复（unlock 里会重新起音乐） */
+    let dormant = false;
+    const wake = () => { if (dormant) { dormant = false; } unlock(); };
+    ['pointerdown', 'touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, wake, { passive: true }));
     document.addEventListener('visibilitychange', () => {
       if (!ctx) return;
-      if (document.hidden) ctx.suspend(); else ctx.resume().then(() => { if (wantMusic && prefs.music) startMusic(); });
+      if (document.hidden) { ctx.suspend(); return; }
+      if (dormant) return;
+      ctx.resume().then(() => { if (!dormant && !document.hidden && wantMusic && prefs.music) startMusic(); });
     });
+    window.addEventListener('pagehide', () => { if (ctx) ctx.suspend(); });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) { dormant = true; if (ctx) ctx.suspend(); } });
   }
 
   window.ZhamaoAudio = { sfx, set, music, scene, danger, knockedOut, prefs: () => Object.assign({}, prefs), SFX };

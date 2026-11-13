@@ -173,15 +173,23 @@ test('skip ends one turn; attack gives next two turns', () => {
   assert.equal(s.turn, 2); assert.equal(s.turnsLeft, 1);
 });
 
-test('attack while attacked: original = 2, stacking = remaining + 2', () => {
-  for (const [stack, want] of [[false, 2], [true, 4]]) {
+test('attack while attacked always stacks: remaining + 2 (the old non-stacking option is gone)', () => {
+  for (const stack of [false, true, undefined]) {
     const s = rig([['attack'], ['attack'], ['cow']], ['orange', 'calico', 'cow']);
     s.rules = R.normalizeRules({ stackAttack: stack });
+    assert.equal(s.rules.stackAttack, true);
     R.play(s, 0, [idOf(s, 0, 'attack')]); closeAll(s);
     R.play(s, 1, [idOf(s, 1, 'attack')]); closeAll(s);
     assert.equal(s.turn, 2);
-    assert.equal(s.turnsLeft, want);
+    assert.equal(s.turnsLeft, 4);
   }
+  // 摸过一张之后再甩：剩下 1 + 2 = 3；4 回合摸一张剩 3、再甩 = 5
+  const s = rig([['attack', 'attack'], ['cow'], ['cow']], ['orange', 'calico', 'cow', 'tabby', 'siamese']);
+  s.turnsLeft = 4;
+  R.draw(s, 0);
+  assert.equal(s.turnsLeft, 3);
+  R.play(s, 0, [idOf(s, 0, 'attack')]); closeAll(s);
+  assert.equal(s.turn, 1); assert.equal(s.turnsLeft, 5);
 });
 
 test('targeted attack: any alive player, stacks with remaining turns by default', () => {

@@ -132,6 +132,17 @@ body_class: zm-fullscreen
         </section>
         <button type="button" class="zm-cover-btn is-primary" data-cover="start"><b>开始</b></button>
       </div>
+      <!-- 点「联机」之后（2026-11-13 用户：和单机一样进一个新菜单，不弹框）：上面「创建房间」点了就建；下面「加入房间」点了变成输房间号那一行 -->
+      <div class="zm-solo" data-cover-step="online" hidden>
+        <button type="button" class="zm-solo-back" data-cover="back">‹ 返回</button>
+        <button type="button" class="zm-cover-btn is-primary" data-cover="create"><b>创建房间</b></button>
+        <button type="button" class="zm-cover-btn" data-cover="join-open"><b>加入房间</b></button>
+        <div class="zm-join" hidden>
+          <div class="zm-join-row"><input class="zm-input" id="zmJoinCode" inputmode="numeric" maxlength="4" placeholder="房间号" autocomplete="off" aria-label="房间号"><button type="button" class="zm-btn zm-btn-primary" data-cover="join">加入</button></div>
+          <button type="button" class="zm-cover-link zm-join-watch" data-cover="watch" hidden>只观战</button>
+        </div>
+        <p class="zm-err zm-online-err" id="zmOnlineErr" hidden></p>
+      </div>
       <div class="zm-cover-foot" data-cover-step="main" hidden>
         <button type="button" class="zm-cover-link" data-cover="tutorial">新手教程</button>
         <button type="button" class="zm-cover-link" data-cover="settings">设置</button>

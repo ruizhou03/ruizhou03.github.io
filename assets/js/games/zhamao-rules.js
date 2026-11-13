@@ -84,7 +84,7 @@
   const usesSecondDeck = (n) => n >= TWO_DECKS_FROM;
 
   const RULE_OPTIONS = Object.freeze({
-    stackAttack: [false, true],
+    stackAttack: [true],   // 2026-11-13 用户：甩锅次数永远累加——不再是可选项，老存档 / 老房间读进来也一律按叠加
     extraDefuse: ['two', 'all'],
     swap: [false, true],
   });

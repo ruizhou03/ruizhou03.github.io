@@ -830,3 +830,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .gz-sp-hide input { width: 16px; height: 16px; margin: 0; accent-color: var(--zm-seal); }
 /* 能扔道具的头像：鼠标移上去给个手形 */
 .zm-app.can-social .zm-opps .zm-seat:not(.is-out) .zm-av { cursor: pointer; }
+/* 主页「联机」那一步：创建房间 / 加入房间（点了变成输房间号那一行） */
+.zm-join { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.zm-join .zm-join-row { width: 100%; }
+.zm-join .zm-join-row .zm-btn { padding-left: 22px; padding-right: 22px; }
+.zm-online-err { text-align: center; margin: 0; font-size: 13.5px; }
