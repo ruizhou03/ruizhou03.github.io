@@ -941,120 +941,65 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-lobby-inner.is-v2 .zm-lseat.is-me .ord { background: var(--zm-seal); }
 .zm-lobby-tools { position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 12px; display: flex; gap: 8px; z-index: 2; }
 
-/* ═════ 预览中（2026-11-13 用户：互动框 / 说一句框 / 暂停框要更好看）：#zmApp 上的 data-uiv-props / data-uiv-chat / data-uiv-pause = a | b | c，不设 = 现在 ═════ */
-/* 互动框：三版都去掉「扔给 某某」标题 */
-.zm-app[data-uiv-props] .gz-social-pop:not(.gz-sp-chat) .gz-sp-title { display: none; }
-/* 互动 甲 · 裱框圆章：宣纸底 + 双线裱框，每样道具坐在一枚淡金圆章里 */
-.zm-app[data-uiv-props="a"] .gz-social-pop:not(.gz-sp-chat) { padding: 12px 10px 8px; border-radius: 16px; background: #fbf7ee; outline: 1px solid rgba(29, 27, 24, 0.28); outline-offset: -5px; box-shadow: 0 12px 28px rgba(29, 27, 24, 0.22); }
-.zm-app[data-uiv-props="a"] .gz-sp-props { grid-template-columns: repeat(3, 66px); gap: 6px 2px; }
-.zm-app[data-uiv-props="a"] .gz-sp-props button { gap: 4px; padding: 4px 0; }
-.zm-app[data-uiv-props="a"] .gz-sp-props button:hover, .zm-app[data-uiv-props="a"] .gz-sp-props button:active { background: none; }
-.zm-app[data-uiv-props="a"] .gz-sp-ic { width: 52px; height: 52px; padding: 4px; border-radius: 50%; background: #f1e8d6; box-shadow: inset 0 0 0 1.5px rgba(184, 145, 74, 0.45); transition: transform 0.15s ease, box-shadow 0.15s ease; }
-.zm-app[data-uiv-props="a"] .gz-sp-props button:hover .gz-sp-ic, .zm-app[data-uiv-props="a"] .gz-sp-props button:active .gz-sp-ic { transform: scale(1.08); box-shadow: inset 0 0 0 2px #c9a24a, 0 4px 10px rgba(184, 145, 74, 0.35); }
-.zm-app[data-uiv-props="a"] .gz-sp-props .gz-sp-lb { font-size: 11.5px; color: var(--zm-ink); }
-/* 互动 乙 · 墨色胶囊：一条深色胶囊横排六样，不写名字 */
-.zm-app[data-uiv-props="b"] .gz-social-pop:not(.gz-sp-chat) { padding: 6px 8px; border: 0; border-radius: 30px; background: #2b2723; box-shadow: 0 0 0 2px #fbf6ec, 0 12px 26px rgba(20, 18, 15, 0.35); }
-.zm-app[data-uiv-props="b"] .gz-sp-props { display: flex; gap: 2px; }
-.zm-app[data-uiv-props="b"] .gz-sp-props button { padding: 3px; border-radius: 50%; }
-.zm-app[data-uiv-props="b"] .gz-sp-props button:hover, .zm-app[data-uiv-props="b"] .gz-sp-props button:active { background: rgba(255, 250, 240, 0.12); }
-.zm-app[data-uiv-props="b"] .gz-sp-ic { width: 42px; height: 42px; }
-.zm-app[data-uiv-props="b"] .gz-sp-props .gz-sp-lb { display: none; }
-.zm-app[data-uiv-props="b"] .gz-sp-foot { border-top: 0; margin-top: 2px; padding: 2px 8px 2px; justify-content: center; color: rgba(251, 246, 236, 0.6); font-size: 11.5px; }
-.zm-app[data-uiv-props="b"] .gz-sp-foot button { color: #f3b9a8; font-size: 12px; }
-/* 互动 丙 · 彩色贴纸格：白卡大圆角，每样道具一块自己的淡彩底 */
-.zm-app[data-uiv-props="c"] .gz-social-pop:not(.gz-sp-chat) { padding: 12px; border: 0; border-radius: 20px; background: #fffdf8; box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.08), 0 14px 34px rgba(29, 27, 24, 0.22); }
-.zm-app[data-uiv-props="c"] .gz-sp-props { grid-template-columns: repeat(3, 70px); gap: 8px; }
-.zm-app[data-uiv-props="c"] .gz-sp-props button { gap: 3px; padding: 8px 0 6px; border-radius: 16px; transition: transform 0.15s ease; }
-.zm-app[data-uiv-props="c"] .gz-sp-props button:hover, .zm-app[data-uiv-props="c"] .gz-sp-props button:active { transform: translateY(-2px); }
-.zm-app[data-uiv-props="c"] [data-prop="fish"] { background: #fbecd2; }
-.zm-app[data-uiv-props="c"] [data-prop="yarn"] { background: #fde3e8; }
-.zm-app[data-uiv-props="c"] [data-prop="catnip"] { background: #e5f2dc; }
-.zm-app[data-uiv-props="c"] [data-prop="spray"] { background: #e1eef8; }
-.zm-app[data-uiv-props="c"] [data-prop="paw"] { background: #fcf1d2; }
-.zm-app[data-uiv-props="c"] [data-prop="boom"] { background: #ece8e2; }
-.zm-app[data-uiv-props="c"] .gz-sp-props .gz-sp-lb { font-size: 12px; color: var(--zm-ink); }
-.zm-app[data-uiv-props="c"] .gz-sp-foot { border-top-color: rgba(29, 27, 24, 0.08); }
-
-/* 说一句 甲 · 裱框词条：和互动甲一套，常用语是一颗颗胶囊，发送是圆形纸飞机 */
-.zm-app[data-uiv-chat="a"] .gz-sp-chat { width: 276px; padding: 14px 12px 10px; border-radius: 16px; background: #fbf7ee; outline: 1px solid rgba(29, 27, 24, 0.28); outline-offset: -5px; box-shadow: 0 12px 28px rgba(29, 27, 24, 0.22); }
-.zm-app[data-uiv-chat="a"] .gz-sp-chat .gz-sp-title { font-size: 13px; color: var(--zm-ink); font-weight: 700; letter-spacing: 0.04em; padding: 0 4px 9px; }
-.zm-app[data-uiv-chat="a"] .gz-sp-lines { flex-direction: row; flex-wrap: wrap; gap: 6px; }
-.zm-app[data-uiv-chat="a"] .gz-sp-lines button { padding: 6px 11px; border-radius: 999px; background: #f1e8d6; box-shadow: inset 0 0 0 1px rgba(184, 145, 74, 0.35); font-size: 13.5px; }
-.zm-app[data-uiv-chat="a"] .gz-sp-lines button:hover, .zm-app[data-uiv-chat="a"] .gz-sp-lines button:active { background: #ead9b8; }
-.zm-app[data-uiv-chat="a"] .gz-sp-custom { margin-top: 10px; padding-top: 10px; border-top-color: rgba(29, 27, 24, 0.1); align-items: center; }
-.zm-app[data-uiv-chat="a"] .gz-sp-custom input { border-radius: 999px; padding: 8px 14px; border-color: rgba(29, 27, 24, 0.22); }
-.zm-app[data-uiv-chat="a"] .gz-sp-custom button, .zm-app[data-uiv-chat="b"] .gz-sp-custom button { width: 38px; height: 38px; flex: none; padding: 0; border-radius: 50%; font-size: 0; background: var(--zm-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 12l15-7-5 15-3-6z' fill='%23fbf6ec'/%3E%3C/svg%3E") 45% 55% / 19px no-repeat; }
-.zm-app[data-uiv-chat="a"] .gz-sp-hide { font-size: 12px; }
-/* 说一句 乙 · 对话气泡：常用语是一个个白色小气泡（左下角有尾巴），像聊天记录 */
-.zm-app[data-uiv-chat="b"] .gz-sp-chat { width: 264px; padding: 12px 12px 10px; border: 0; border-radius: 18px; background: #ebe5d8; box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.1), 0 14px 30px rgba(29, 27, 24, 0.24); }
-.zm-app[data-uiv-chat="b"] .gz-sp-chat .gz-sp-title { font-size: 12px; padding: 0 2px 8px; }
-.zm-app[data-uiv-chat="b"] .gz-sp-lines { gap: 7px; align-items: flex-start; }
-.zm-app[data-uiv-chat="b"] .gz-sp-lines button { background: #fffdf8; border-radius: 14px 14px 14px 4px; padding: 7px 12px; font-size: 14px; box-shadow: 0 1px 2px rgba(29, 27, 24, 0.12); }
-.zm-app[data-uiv-chat="b"] .gz-sp-lines button:hover, .zm-app[data-uiv-chat="b"] .gz-sp-lines button:active { background: #fff6dc; }
-.zm-app[data-uiv-chat="b"] .gz-sp-custom { border-top: 0; margin-top: 10px; padding: 4px; background: #fffdf8; border-radius: 999px; align-items: center; }
-.zm-app[data-uiv-chat="b"] .gz-sp-custom input { border: 0; background: none; padding: 6px 10px; }
-.zm-app[data-uiv-chat="b"] .gz-sp-custom input:focus { outline: none; }
-.zm-app[data-uiv-chat="b"] .gz-sp-custom button { width: 34px; height: 34px; background-color: #c9a24a; }
-/* 说一句 丙 · 墨色面板：和互动乙一套，深底奶油字 */
-.zm-app[data-uiv-chat="c"] .gz-sp-chat { width: 260px; padding: 12px 10px 10px; border: 0; border-radius: 16px; background: #2b2723; color: #fbf6ec; box-shadow: 0 0 0 2px #fbf6ec, 0 14px 30px rgba(20, 18, 15, 0.35); }
-.zm-app[data-uiv-chat="c"] .gz-sp-chat .gz-sp-title { color: rgba(251, 246, 236, 0.6); font-size: 12px; }
-.zm-app[data-uiv-chat="c"] .gz-sp-lines button { font-size: 14.5px; padding: 8px 10px; border-radius: 10px; }
-.zm-app[data-uiv-chat="c"] .gz-sp-lines button + button { box-shadow: 0 -1px 0 rgba(251, 246, 236, 0.08); }
-.zm-app[data-uiv-chat="c"] .gz-sp-lines button:hover, .zm-app[data-uiv-chat="c"] .gz-sp-lines button:active { background: rgba(251, 246, 236, 0.1); }
-.zm-app[data-uiv-chat="c"] .gz-sp-custom { border-top-color: rgba(251, 246, 236, 0.12); }
-.zm-app[data-uiv-chat="c"] .gz-sp-custom input { background: rgba(251, 246, 236, 0.08); border-color: rgba(251, 246, 236, 0.25); color: #fbf6ec; border-radius: 10px; }
-.zm-app[data-uiv-chat="c"] .gz-sp-custom input::placeholder { color: rgba(251, 246, 236, 0.45); }
-.zm-app[data-uiv-chat="c"] .gz-sp-custom button { background: #c9a24a; color: #2b2723; border-radius: 10px; font-weight: 700; }
-.zm-app[data-uiv-chat="c"] .gz-sp-hide { color: rgba(251, 246, 236, 0.6); }
-
-/* 暂停：小猫和那句话平时藏着，只有乙露出来 */
-.zm-pause-cat, .zm-pause-say { display: none; }
-/* 暂停 甲 · 朱印 + 竖排键：裱框窄卡，正中一枚朱红「暂停」印，下面整宽「继续」，「回到主页面」退成一行小字 */
-.zm-app[data-uiv-pause="a"] .zm-dialog.is-pause { width: min(100%, 290px); padding: 26px 22px 14px; border-radius: 18px; background: #fbf7ee; outline: 1px solid rgba(29, 27, 24, 0.28); outline-offset: -6px; }
-.zm-app[data-uiv-pause="a"] .zm-pause-ic svg { width: 92px; height: 92px; }
-.zm-app[data-uiv-pause="a"] .zm-pause-ic circle { fill: var(--zm-seal); }
-.zm-app[data-uiv-pause="a"] .zm-pause-ic rect { fill: #fbf6ec; }
-.zm-app[data-uiv-pause="a"] .zm-pause-ic { margin: 0 0 22px; }
-.zm-app[data-uiv-pause="a"] .zm-pause-actions { flex-direction: column-reverse; gap: 6px; }
-.zm-app[data-uiv-pause="a"] .zm-pause-actions .zm-btn { flex: none; }
-.zm-app[data-uiv-pause="a"] .zm-pause-actions .zm-btn-primary { height: 48px; border-radius: 999px; }
-.zm-app[data-uiv-pause="a"] .zm-pause-actions .zm-btn:not(.zm-btn-primary) { border: 0; background: none; height: 34px; font-size: 13.5px; color: var(--zm-ink-mute); }
-/* 暂停 乙 · 打盹小猫：「跳过」牌上那只睡觉的猫换掉暂停图标，下面一句「小咪打个盹…」，两个圆角键 */
-.zm-app[data-uiv-pause="b"] .zm-dialog.is-pause { width: min(100%, 300px); padding: 18px 20px 18px; border: 0; border-radius: 22px; background: #fffdf8; box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.08), 0 20px 46px rgba(29, 27, 24, 0.28); }
-.zm-app[data-uiv-pause="b"] .zm-pause-ic { display: none; }
-.zm-app[data-uiv-pause="b"] .zm-pause-cat { display: block; width: 150px; height: 150px; margin: 0 auto -6px; }
-.zm-app[data-uiv-pause="b"] .zm-pause-cat svg { width: 100%; height: 100%; display: block; }
-.zm-app[data-uiv-pause="b"] .zm-pause-say { display: block; text-align: center; margin: 0 0 16px; font-size: 14px; color: var(--zm-ink-mute); letter-spacing: 0.08em; }
-.zm-app[data-uiv-pause="b"] .zm-pause-actions .zm-btn { border-radius: 999px; }
-/* 暂停 丙 · 毛玻璃：不要框，整个牌桌蒙一层磨砂宣纸，正中大暂停图标，下面两颗胶囊键 */
-.zm-app[data-uiv-pause="c"] .zm-dialog-mask:has(.is-pause) { background: rgba(243, 238, 227, 0.55); -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px); }
-.zm-app[data-uiv-pause="c"] .zm-dialog.is-pause { width: min(100%, 300px); background: none; border: 0; box-shadow: none; overflow: visible; }
-.zm-app[data-uiv-pause="c"] .zm-pause-ic svg { width: 128px; height: 128px; filter: drop-shadow(0 10px 20px rgba(29, 27, 24, 0.25)); }
-.zm-app[data-uiv-pause="c"] .zm-pause-actions .zm-btn { border-radius: 999px; box-shadow: 0 6px 16px rgba(29, 27, 24, 0.14); }
-.zm-app[data-uiv-pause="c"] .zm-pause-actions .zm-btn:not(.zm-btn-primary) { background: #fffdf8; }
-
-/* 预览 · 指了谁（data-uiv-aim）：paw = 一串金色猫爪印一步步冒出来；dots = 一串金点往被指的人那边流，终点一颗亮点 */
-.zm-trail { position: absolute; inset: 0; pointer-events: none; }
-.zm-trail i { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; color: #c9a24a; opacity: 0; animation: zm-trail-step 0.28s ease-out forwards; }
-.zm-trail i svg { width: 100%; height: 100%; display: block; fill: currentColor; filter: drop-shadow(0 0 2px rgba(255, 246, 220, 0.9)); }
-@keyframes zm-trail-step { from { opacity: 0; scale: 0.4; } 60% { opacity: 1; scale: 1.2; } to { opacity: 0.92; scale: 1; } }
-.zm-trail-dots { position: absolute; left: 0; top: 0; overflow: visible; }
-.zm-trail-dots path { fill: none; stroke-linecap: round; }
-.zm-trail-dots .halo { stroke: rgba(255, 246, 220, 0.75); stroke-width: 9; }
-.zm-trail-dots .dots { stroke: #c9a24a; stroke-width: 5; stroke-dasharray: 0.1 13; }
-.zm-trail-dots .end { fill: #c9a24a; filter: drop-shadow(0 0 4px rgba(201, 162, 74, 0.9)); }
-
-/* 预览 · 方向甲「醒目流光」（data-uiv-dir="a"，不要灯带）：箭头大一号、线粗、平时也看得清，流光走到时亮成暖金并带光晕，一路接力很明显 */
-.zm-app[data-uiv-dir="a"] .zm-dir i { scale: 1.3; }
-.zm-app[data-uiv-dir="a"] .zm-dir i path { stroke-width: 3; animation-name: zm-dir-run-a; }
+/* ═════ 2026-11-13 用户挑定：互动框丙（彩色贴纸格，去掉「扔给 某某」）+ 说一句甲（裱框词条，不要标题）——两个框都带一个指向的小尖角；
+ * 暂停乙（打盹小猫）；出牌方向甲（醒目流光：箭头大一号、平时也看得清，流光走到时亮成暖金带光晕） ═════ */
+.zm-app .gz-sp-chat .gz-sp-title { display: none; }
+.zm-app .zm-pause-ic { display: none; }
+.zm-app .gz-social-pop:not(.gz-sp-chat) .gz-sp-title { display: none; }
+.zm-app .gz-social-pop:not(.gz-sp-chat) { padding: 12px; border: 0; border-radius: 20px; background: #fffdf8; box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.08), 0 14px 34px rgba(29, 27, 24, 0.22); }
+.zm-app .gz-sp-props { grid-template-columns: repeat(3, 70px); gap: 8px; }
+.zm-app .gz-sp-props button { gap: 3px; padding: 8px 0 6px; border-radius: 16px; transition: transform 0.15s ease; }
+.zm-app .gz-sp-props button:hover, .zm-app .gz-sp-props button:active { transform: translateY(-2px); }
+.zm-app [data-prop="fish"] { background: #fbecd2; }
+.zm-app [data-prop="yarn"] { background: #fde3e8; }
+.zm-app [data-prop="catnip"] { background: #e5f2dc; }
+.zm-app [data-prop="spray"] { background: #e1eef8; }
+.zm-app [data-prop="paw"] { background: #fcf1d2; }
+.zm-app [data-prop="boom"] { background: #ece8e2; }
+.zm-app .gz-sp-props .gz-sp-lb { font-size: 12px; color: var(--zm-ink); }
+.zm-app .gz-sp-foot { border-top-color: rgba(29, 27, 24, 0.08); }
+.zm-app .gz-sp-chat { width: 276px; padding: 14px 12px 10px; border-radius: 16px; background: #fbf7ee; outline: 1px solid rgba(29, 27, 24, 0.28); outline-offset: -5px; box-shadow: 0 12px 28px rgba(29, 27, 24, 0.22); }
+.zm-app .gz-sp-chat .gz-sp-title { font-size: 13px; color: var(--zm-ink); font-weight: 700; letter-spacing: 0.04em; padding: 0 4px 9px; }
+.zm-app .gz-sp-lines { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+.zm-app .gz-sp-lines button { padding: 6px 11px; border-radius: 999px; background: #f1e8d6; box-shadow: inset 0 0 0 1px rgba(184, 145, 74, 0.35); font-size: 13.5px; }
+.zm-app .gz-sp-lines button:hover, .zm-app .gz-sp-lines button:active { background: #ead9b8; }
+.zm-app .gz-sp-custom { margin-top: 10px; padding-top: 10px; border-top-color: rgba(29, 27, 24, 0.1); align-items: center; }
+.zm-app .gz-sp-custom input { border-radius: 999px; padding: 8px 14px; border-color: rgba(29, 27, 24, 0.22); }
+.zm-app .gz-sp-custom button { width: 38px; height: 38px; flex: none; padding: 0; border-radius: 50%; font-size: 0; background: var(--zm-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 12l15-7-5 15-3-6z' fill='%23fbf6ec'/%3E%3C/svg%3E") 45% 55% / 19px no-repeat; }
+.zm-app .gz-sp-hide { font-size: 12px; }
+.zm-app .zm-dialog.is-pause { width: min(100%, 300px); padding: 18px 20px 18px; border: 0; border-radius: 22px; background: #fffdf8; box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.08), 0 20px 46px rgba(29, 27, 24, 0.28); }
+.zm-app .zm-pause-ic { display: none; }
+.zm-app .zm-pause-cat { display: block; width: 150px; height: 150px; margin: 0 auto -6px; }
+.zm-app .zm-pause-cat svg { width: 100%; height: 100%; display: block; }
+.zm-app .zm-pause-say { display: block; text-align: center; margin: 0 0 16px; font-size: 14px; color: var(--zm-ink-mute); letter-spacing: 0.08em; }
+.zm-app .zm-pause-actions .zm-btn { border-radius: 999px; }
+.zm-app .zm-dir i { scale: 1.3; }
+.zm-app .zm-dir i path { stroke-width: 3; animation-name: zm-dir-run-a; }
 @keyframes zm-dir-run-a { 0%, 26%, 100% { opacity: 0.45; filter: none; } 9% { opacity: 1; filter: brightness(1.35) drop-shadow(0 0 3.5px rgba(240, 196, 100, 1)); } }
-.zm-app[data-uiv-dir="a"] .zm-dir i.is-hot path { animation-name: zm-dir-run-a-hot; }
+.zm-app .zm-dir i.is-hot path { animation-name: zm-dir-run-a-hot; }
 @keyframes zm-dir-run-a-hot { 0%, 26%, 100% { opacity: 0.85; filter: drop-shadow(0 0 2.5px rgba(200, 70, 58, 0.7)); } 9% { opacity: 1; filter: drop-shadow(0 0 5px rgba(200, 70, 58, 1)); } }
-/* 预览 · 方向乙「新灯带」（data-uiv-dir="b"）：金带 + 一串流动的亮珠 + 一道光扫过；轮到的人下面一圈朱红光环 */
-.zm-strip { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
-.zm-strip path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.zm-strip .base { stroke: rgba(184, 145, 74, 0.32); stroke-width: 3; }
-.zm-strip .glow { stroke: rgba(246, 210, 120, 0.7); stroke-width: 7; filter: blur(2.5px); }
-.zm-strip .beads { stroke: #d6ad55; stroke-width: 4.5; stroke-dasharray: 0.1 14; }
-.zm-strip .hot { fill: rgba(200, 70, 58, 0.18); stroke: var(--zm-seal); stroke-width: 2.5; filter: drop-shadow(0 0 5px rgba(200, 70, 58, 0.8)); animation: zm-strip-hot 1.1s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
-@keyframes zm-strip-hot { to { scale: 1.3; } }
+/* 互动框 / 说一句框的小尖角（popTail 量好在哪条边、离边头多远） */
+.zm-app .gz-social-pop[data-tail]::before { content: ''; position: absolute; width: 14px; height: 14px; background: inherit; transform: rotate(45deg); }
+.zm-app .gz-social-pop[data-tail="top"]::before { top: -7px; left: calc(var(--tail) - 7px); box-shadow: -1px -1px 0 rgba(29, 27, 24, 0.1); }
+.zm-app .gz-social-pop[data-tail="bottom"]::before { bottom: -7px; left: calc(var(--tail) - 7px); box-shadow: 1px 1px 0 rgba(29, 27, 24, 0.1); }
+.zm-app .gz-social-pop[data-tail="left"]::before { left: -7px; top: calc(var(--tail) - 7px); box-shadow: -1px 1px 0 rgba(29, 27, 24, 0.1); }
+.zm-app .gz-social-pop[data-tail="right"]::before { right: -7px; top: calc(var(--tail) - 7px); box-shadow: 1px -1px 0 rgba(29, 27, 24, 0.1); }
+/* 倒计时藏在按钮里（2026-11-13 用户，像诺克牌那样）：按钮本来是满的墨色，时间条从右往左一点点退掉、露出浅一点的底；最后几秒变朱红一闪一闪 */
+.zm-btn.zm-timed { position: relative; overflow: hidden; background: #a39b8f; border-color: var(--zm-ink); isolation: isolate; }
+.zm-btn.zm-timed > .zm-dlg-timer { position: absolute; inset: 0; height: auto; margin: 0; border-radius: 0; background: none; z-index: -1; }
+.zm-btn.zm-timed > .zm-dlg-timer i { height: 100%; background: var(--zm-ink); }
+.zm-btn.zm-timed > .zm-dlg-timer.is-hurry i { background: var(--zm-seal); }
+.zm-btn.zm-timed > b { font-weight: inherit; }
+.zm-actions.is-center { justify-content: center; }
+.zm-actions.is-center .zm-btn { min-width: 150px; }
+/* 预览 · 桌沿（data-uiv-rim="1"） */
+.zm-rim { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
+.zm-rim path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.zm-rim .base { stroke: rgba(184, 145, 74, 0.26); stroke-width: 1.6; }
+.zm-rim .drift { stroke: rgba(226, 184, 92, 0.55); stroke-width: 2.4; filter: blur(0.6px); }
+.zm-rim .lglow { stroke: rgba(246, 210, 120, 0.55); stroke-width: 9; filter: blur(3px); }
+.zm-rim .lline { stroke: #d2a24c; stroke-width: 3.2; }
+.zm-rim .lhead { fill: #fff3cf; stroke: #d2a24c; stroke-width: 2; filter: drop-shadow(0 0 5px rgba(240, 196, 100, 1)); }
+.zm-rim .lend { fill: none; stroke: #d2a24c; stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.zm-rim .lend.is-on { opacity: 1; animation: zm-rim-end 0.9s ease-in-out infinite alternate; }
+@keyframes zm-rim-end { from { scale: 0.8; opacity: 1; } to { scale: 1.6; opacity: 0.35; } }

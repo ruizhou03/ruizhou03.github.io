@@ -296,38 +296,101 @@
         'transform:translate(-50%,-50%) rotate(' + (base + (d === -1 ? Math.PI : 0)).toFixed(4) + 'rad);--j:' + j;
       el.dataset.base = base;
     });
-    placeStrip(d);
+    rimRender();
   }
-  /* 预览中 · 方向乙「新灯带」（#zmApp data-uiv-dir="b"）：对手一排下面一条金带，上面一串亮珠顺着出牌方向一直流；轮到的那家下面一圈朱红光环 */
-  function placeStrip(d) {
-    let sv = els.table.querySelector(':scope > .zm-strip');
+  /* ───── 预览中 · 桌沿（#zmApp data-uiv-rim="1"，2026-11-13 用户提的想法）─────
+   * 一条细金线绕牌桌一圈：对手一排下面 → 右边往下 → 我头像上方 → 左边往上，所有人（包括我）都在这一圈上。
+   * 平时：淡金线，一点柔光顺着出牌方向慢慢绕。指人时：从出牌人那点起，一截亮金沿桌沿（走近的那边）长到被指的人，到了那儿亮一圈；
+   * 结算后（抽到牌 / 给了牌 / 被作废……）这截从被指的人那头缩回出牌人，淡回平时。 */
+  const RIM_STEP = 5;
+  function rimGeom() {
     const n = game && game.state ? game.state.n : 0;
-    if (els.app.dataset.uivDir !== 'b' || n < 3) { if (sv) sv.remove(); return; }
-    const tb = els.table.getBoundingClientRect();
-    const pts = [];
-    for (let seat = 1; seat < n; seat++) { const se = seatEl(seat); if (!se) return; const r = se.getBoundingClientRect(); pts.push([r.left + r.width / 2 - tb.left, r.bottom + 7 - tb.top]); }
-    if (d === -1) pts.reverse();
-    const ext = (p, q) => [p[0] + (p[0] - q[0]) * 0.5, p[1] + (p[1] - q[1]) * 0.5];
-    const all = [ext(pts[0], pts[1])].concat(pts, [ext(pts[pts.length - 1], pts[pts.length - 2])]);
-    let path = 'M' + all[0][0].toFixed(1) + ' ' + all[0][1].toFixed(1);
-    for (let i = 1; i < all.length - 1; i++) { const m = [(all[i][0] + all[i + 1][0]) / 2, (all[i][1] + all[i + 1][1]) / 2]; path += 'Q' + all[i][0].toFixed(1) + ' ' + all[i][1].toFixed(1) + ' ' + m[0].toFixed(1) + ' ' + m[1].toFixed(1); }
-    path += 'L' + all[all.length - 1][0].toFixed(1) + ' ' + all[all.length - 1][1].toFixed(1);
+    if (n < 2 || !avEl(0)) return null;
+    for (let i = 1; i < n; i++) if (!seatEl(i)) return null;   // 座位还没建好
+    const tb = els.table.getBoundingClientRect(), W = tb.width;
+    const anchor = (seat) => {
+      if (seat === 0) { const r = avEl(0).getBoundingClientRect(); return { x: r.left + r.width / 2 - tb.left, y: r.top - 9 - tb.top }; }
+      const r = seatEl(seat).getBoundingClientRect(); return { x: r.left + r.width / 2 - tb.left, y: r.bottom + 6 - tb.top };
+    };
+    const opp = []; for (let i = 1; i < n; i++) opp.push(anchor(i));
+    opp.sort((a, b) => b.x - a.x);   // 右 → 左
+    const me = anchor(0), m = 16, R = 26, yb = me.y;
+    const top = opp.length ? opp : [{ x: W / 2, y: 120 }];
+    const yR = top[0].y, yL = top[top.length - 1].y;
+    // 一圈：我 → 右下角 → 右边往上 → 沿对手一排（右→左）→ 左边往下 → 左下角 → 回到我
+    let d = 'M' + me.x.toFixed(1) + ' ' + yb.toFixed(1) + 'L' + (W - m - R).toFixed(1) + ' ' + yb.toFixed(1) + 'Q' + (W - m) + ' ' + yb.toFixed(1) + ' ' + (W - m) + ' ' + (yb - R).toFixed(1) +
+      'L' + (W - m) + ' ' + (yR + R).toFixed(1) + 'Q' + (W - m) + ' ' + yR.toFixed(1) + ' ' + (W - m - R).toFixed(1) + ' ' + yR.toFixed(1);
+    let prev = { x: W - m - R, y: yR };
+    for (let i = 0; i < top.length; i++) { const c = top[i], mid = { x: (prev.x + c.x) / 2, y: (prev.y + c.y) / 2 }; d += 'Q' + prev.x.toFixed(1) + ' ' + prev.y.toFixed(1) + ' ' + mid.x.toFixed(1) + ' ' + mid.y.toFixed(1); prev = c; }
+    d += 'Q' + prev.x.toFixed(1) + ' ' + prev.y.toFixed(1) + ' ' + ((prev.x + m + R) / 2).toFixed(1) + ' ' + ((prev.y + yL) / 2).toFixed(1) + 'L' + (m + R) + ' ' + yL.toFixed(1) +
+      'Q' + m + ' ' + yL.toFixed(1) + ' ' + m + ' ' + (yL + R).toFixed(1) + 'L' + m + ' ' + (yb - R).toFixed(1) + 'Q' + m + ' ' + yb.toFixed(1) + ' ' + (m + R) + ' ' + yb.toFixed(1) + 'Z';
+    return { d, W, H: tb.height, anchor };
+  }
+  function rimRender() {
+    let sv = els.table.querySelector(':scope > .zm-rim');
+    if (els.app.dataset.uivRim !== '1' || !game || !game.state) { if (sv) sv.remove(); return null; }
+    const g = rimGeom();
+    if (!g) return null;
     if (!sv) {
-      sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); sv.setAttribute('class', 'zm-strip');
-      sv.innerHTML = '<path class="base"/><path class="glow"/><path class="beads"/><circle class="hot" r="6"/>';
+      sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); sv.setAttribute('class', 'zm-rim');
+      sv.innerHTML = '<path class="base"/><path class="drift"/><g class="links"></g>';
       els.table.insertBefore(sv, els.dir);
     }
-    sv.querySelectorAll('path').forEach((p) => p.setAttribute('d', path));
-    const beads = sv.querySelector('.beads');
-    if (!beads._anim && !fx.reduce()) beads._anim = beads.animate([{ strokeDashoffset: 0 }, { strokeDashoffset: -28 }], { duration: 900, iterations: Infinity, easing: 'linear' });
-    const glow = sv.querySelector('.glow'), L = glow.getTotalLength();
-    if (!glow._anim || Math.abs(glow._L - L) > 2) {
-      if (glow._anim) glow._anim.cancel();
-      glow._L = L; glow.style.strokeDasharray = '70 ' + Math.ceil(L + 70);
-      glow._anim = fx.reduce() ? null : glow.animate([{ strokeDashoffset: 70 }, { strokeDashoffset: -L }], { duration: 2600, iterations: Infinity, easing: 'linear' });
+    sv.querySelectorAll(':scope > path').forEach((p) => p.setAttribute('d', g.d));
+    const base = sv.querySelector('.base'), L = base.getTotalLength();
+    // 采样成一串点（每 5px 一个），连线时按点在圈上走
+    const pts = []; for (let l = 0; l < L; l += RIM_STEP) { const q = base.getPointAtLength(l); pts.push({ x: q.x, y: q.y }); }
+    sv._pts = pts; sv._anchor = g.anchor;
+    const drift = sv.querySelector('.drift'), dir = dirNow();
+    if (!drift._anim || Math.abs(drift._L - L) > 2 || drift._dir !== dir) {
+      if (drift._anim) drift._anim.cancel();
+      drift._L = L; drift._dir = dir;
+      drift.style.strokeDasharray = '60 ' + Math.ceil(L);
+      // 路径本身是逆时针（我 → 右 → 上 → 左），出牌方向 1 = 座位号往上走 = 桌上逆时针，所以 dir 1 顺着路径走、-1 倒着走
+      drift._anim = fx.reduce() ? null : drift.animate(dir === 1 ? [{ strokeDashoffset: 0 }, { strokeDashoffset: -L }] : [{ strokeDashoffset: -L }, { strokeDashoffset: 0 }], { duration: 9000, iterations: Infinity, easing: 'linear' });
     }
-    const t = game.state.phase === 'over' ? -1 : D().turn, hot = sv.querySelector('.hot');
-    if (t > 0) { const r = seatEl(t).getBoundingClientRect(); hot.setAttribute('cx', (r.left + r.width / 2 - tb.left).toFixed(1)); hot.setAttribute('cy', (r.bottom + 7 - tb.top).toFixed(1)); hot.style.display = ''; } else hot.style.display = 'none';
+    return sv;
+  }
+  function releaseRim() { if (game && game.rimLk) { game.rimLk.remove(); game.rimLk = null; } }
+  function rimLink(a, b) {
+    const sv = rimRender();
+    if (!sv || a === b) return null;
+    const pts = sv._pts, N = pts.length;
+    const near = (p) => { let bi = 0, bd = Infinity; pts.forEach((q, i) => { const dd = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (dd < bd) { bd = dd; bi = i; } }); return bi; };
+    const ia = near(sv._anchor(a)), ib = near(sv._anchor(b));
+    const fwd = (ib - ia + N) % N, back = (ia - ib + N) % N;
+    const stepDir = fwd <= back ? 1 : -1, cnt = Math.min(fwd, back);
+    const seg = []; for (let k = 0; k <= cnt; k++) seg.push(pts[(ia + stepDir * k + N) % N]);
+    const d = 'M' + seg.map((q) => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join('L');
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const end = seg[seg.length - 1];
+    g.innerHTML = '<path class="lglow" d="' + d + '"/><path class="lline" d="' + d + '"/><circle class="lhead" r="4"/><circle class="lend" cx="' + end.x.toFixed(1) + '" cy="' + end.y.toFixed(1) + '" r="6"/>';
+    sv.querySelector('.links').appendChild(g);
+    const paths = g.querySelectorAll('path'), len = paths[1].getTotalLength(), head = g.querySelector('.lhead'), endDot = g.querySelector('.lend');
+    paths.forEach((p) => { p.style.strokeDasharray = len + ' ' + (len + 10); p.style.strokeDashoffset = len; });
+    const grow = Math.min(650, 220 + len * 0.9);
+    const anims = [];
+    let raf = 0, t0 = performance.now(), mode = 'grow', from = 0;
+    const place = (frac) => { const q = paths[1].getPointAtLength(len * frac); head.setAttribute('cx', q.x.toFixed(1)); head.setAttribute('cy', q.y.toFixed(1)); paths.forEach((p) => { p.style.strokeDashoffset = (len * (1 - frac)).toFixed(1); }); };
+    const loop = (now) => {
+      const k = Math.min(1, (now - t0) / (mode === 'grow' ? grow : Math.min(480, 180 + len * 0.6)));
+      const e = mode === 'grow' ? 1 - Math.pow(1 - k, 3) : k * k;
+      place(mode === 'grow' ? e : from * (1 - e));
+      if (k < 1) raf = requestAnimationFrame(loop);
+      else if (mode === 'grow') { endDot.classList.add('is-on'); }
+      else g.remove();
+    };
+    if (fx.reduce()) { place(1); endDot.classList.add('is-on'); } else raf = requestAnimationFrame(loop);
+    return {
+      remove() {   // 从被指的人那头缩回出牌人
+        cancelAnimationFrame(raf);
+        endDot.classList.remove('is-on');
+        if (fx.reduce()) { g.remove(); return; }
+        const cur = 1 - parseFloat(paths[1].style.strokeDashoffset || 0) / len;
+        mode = 'back'; from = cur; t0 = performance.now(); raf = requestAnimationFrame(loop);
+        void anims;
+      },
+    };
   }
   /* 指向当前出牌的人的那个箭头标红：顺时针（d = 1）是从 t-1 指向 t 的那个（第 t-2 个），反过来是从 t+1 指向 t 的那个（第 t-1 个） */
   function dirHot() {
@@ -337,7 +400,6 @@
     const t = st.phase === 'over' ? -1 : D().turn, d = dirNow();
     const k = t < 0 ? -1 : d === -1 ? t - 1 : t - 2;
     Array.from(list).forEach((el, i) => el.classList.toggle('is-hot', i === k));
-    placeStrip(d);
   }
   /* 打出转向：箭头从出牌人那边起，一个接一个转半圈掉头 */
   async function animReverse(e, t) {
@@ -674,8 +736,9 @@
     }, 140);
   }
   function stopFuse() { if (fuseSparkTimer) { clearInterval(fuseSparkTimer); fuseSparkTimer = null; } const f = els.stage.querySelector('.zm-fuse'); if (f) f.classList.add('is-out'); }
-  function clearStage() {
+  function clearStage(keepRim) {
     stopFuse();
+    if (!keepRim) releaseRim();
     if (game && game.arrow) { game.arrow.remove(); game.arrow = null; }
     setActing(-1);
     markVictim(-1);
@@ -994,8 +1057,8 @@
     const tg = targetOf(p);
     if (tg >= 0) {
       game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK || p.type === R.TATTACK ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
-      const tr = game.arrow && p.type !== R.ATTACK ? aimTrail(p.by, tg) : null;
-      if (tr) { const ar = game.arrow; game.arrow = { remove() { ar.remove(); tr.remove(); } }; }
+      releaseRim();
+      if (p.type !== R.ATTACK) game.rimLk = rimLink(p.by, tg);   // 桌沿连线单独记着：等牌真的拿到 / 给到 / 换完才缩回（不跟准星一起收）
     }
     await mimic(p.cards, t);   // 万能猫顶了谁：演完、停一下再往下走（只有组合里有万能猫时才多这一下）
     if (t !== token) return;
@@ -1090,6 +1153,7 @@
   async function animResolve(e, t) {
     stopFuse();
     if (game.arrow && (e.cancelled || (e.type !== R.FAVOR))) { game.arrow.remove(); game.arrow = null; }
+    if (e.cancelled || (e.type !== R.FAVOR && e.type !== R.SWAP && e.type !== 'pair' && e.type !== 'triple')) releaseRim();
     const inner = els.stage.querySelector('.zm-stage-inner');
     const lab = inner && inner.querySelector('.zm-stage-label');
     if (lab && game.lastNopes) lab.textContent = e.cancelled ? '作废了' : '照样生效';
@@ -1119,7 +1183,7 @@
     const items = cs.map((c) => ({ id: +c.dataset.id, r: c.getBoundingClientRect(), gray: els.stage.classList.contains('is-cancelled') }));
     if (inner && !fx.reduce()) inner.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
     cs.forEach((c) => { c.style.visibility = 'hidden'; });
-    setTimeout(() => { if (t === token) clearStage(); }, 170);
+    setTimeout(() => { if (t === token) clearStage(true); }, 170);   // 桌沿连线留着：等牌真的拿到 / 给到再缩回
     snd('sweep');
     await Promise.all(items.map((it, i) => fx.fly({
       html: cardHtml(it.id), from: it.r, to, w: pu, s0: it.r.width / pu, s1: 1, r0: 0, r1: pileRot(it.id),
@@ -1389,6 +1453,7 @@
     let to = avPoint(e.to);
     if (e.to === 0) to = aboveSlot(reserveHandSlot(e.card));
     snd(kind === 'give' ? 'give' : 'steal');
+    releaseRim();   // 牌开始飞了：桌沿那截从被指的人那头缩回出牌人
     if (kind === 'give' && !fx.reduce()) {
       const a = e.from === 0 ? fx.center(src) : src, b = e.to === 0 ? fx.center(to) : to;
       for (let i = 1; i <= 4; i++) {
@@ -1484,12 +1549,14 @@
     const s = game.state, from = s.steal.from, k = s.steal.perm.length;
     const limit = k <= 1 ? 0 : dlgLimit();   // 只剩一张：没得挑，不计时
     markVictim(from);
-    openStage('<h2>抽 ' + esc(nameOf(from)) + ' 一张牌</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
+    // 2026-11-13 用户：不要顶上「抽 某某 一张牌」那行字；倒计时藏进底下的按钮里（按钮本来填满，时间条从右往左一点点退掉）
+    openStage(
       // 扣着的牌像捏在手里一样扇形摊开（用户 2026-11-12：别一板一眼排一排）；张数多就收窄每张的角度
       '<div class="zm-steal-pick is-fan" data-steal data-stagger style="--fan-h:' + (k > 7 ? 1.18 : 1.08) + '">' + Array.from({ length: k }, (_, i) => {
         const step = Math.min(13, 78 / Math.max(1, k - 1)), ang = (i - (k - 1) / 2) * step;
         return '<button type="button" data-i="' + i + '" aria-label="第 ' + (i + 1) + ' 张" style="--a:' + ang.toFixed(1) + 'deg;z-index:' + (i + 1) + '">' + backHtml() + '</button>';
-      }).join('') + '</div>', (d) => {
+      }).join('') + '</div>' +
+      (k > 1 ? '<div class="zm-actions is-center"><button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-rand>' + (limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>随手抽一张</b></button></div>' : ''), (d) => {
       d.classList.add('is-cards');
       const btns = Array.from(d.querySelectorAll('[data-i]'));
       let done = false, timer = 0, roam = 0;
@@ -1507,6 +1574,8 @@
         if (auto && timeouts >= 2) setAutopilot(true);
       };
       btns.forEach((b, i) => b.addEventListener('click', () => commit(i, false)));
+      const rb = d.querySelector('[data-rand]');
+      if (rb) rb.addEventListener('click', () => commit((Math.random() * k) | 0, false));
       if (k <= 1) { setTimeout(() => commit(0, false), ms(260)); return; }   // 只剩一张：直接选中它、停一下就抽走
       if (limit) {
         const my = token, bar = d.querySelector('.zm-dlg-timer');
@@ -1530,51 +1599,6 @@
 
   /* 交换：两个人的牌在空中交叉着换过去（逗猫棒不动）——一边从上面的弧线走、另一边从下面走；
    * 我参与的话：我换出去的从手牌原位飞走（背面朝上），换来的半路翻开、先落到牌槽上方再滑进去 */
-  /* 预览中 · 指了谁（#zmApp data-uiv-aim）：'paw' = 一串金色小猫爪印从出牌人一步步走到被指的人；'dots' = 一串金色小圆点像传送带一样往他那边流。
-   * 都不画箭头；对手之间在名字下面兜一个 U，对手 ↔ 我往桌子中间稍微弯一点 */
-  function aimTrail(a, b) {
-    const v = els.app.dataset.uivAim;
-    if (!v || a === b) return null;
-    const anchor = (seat) => {
-      if (seat === 0) { const r = avEl(0) ? avEl(0).getBoundingClientRect() : { left: innerWidth / 2, width: 0, top: innerHeight - 120 }; return { x: r.left + r.width / 2, y: r.top - 6 }; }
-      const se = seatEl(seat), r = se ? se.getBoundingClientRect() : { left: innerWidth / 2, width: 0, bottom: 90 };
-      return { x: r.left + r.width / 2, y: r.bottom + 4 };
-    };
-    const P0 = anchor(a), P1 = anchor(b);
-    const mx = (P0.x + P1.x) / 2, my = (P0.y + P1.y) / 2, len = Math.hypot(P1.x - P0.x, P1.y - P0.y) || 1;
-    let C;
-    if (a !== 0 && b !== 0) C = { x: mx, y: Math.max(P0.y, P1.y) + Math.max(34, Math.min(100, 26 + len * 0.24)) };
-    else {
-      let nx = -(P1.y - P0.y) / len, ny = (P1.x - P0.x) / len;
-      if ((innerWidth / 2 - mx) * nx + (innerHeight * 0.45 - my) * ny < 0) { nx = -nx; ny = -ny; }
-      C = { x: mx + nx * len * 0.18, y: my + ny * len * 0.18 };
-    }
-    const q = (t) => ({ x: (1 - t) * (1 - t) * P0.x + 2 * (1 - t) * t * C.x + t * t * P1.x, y: (1 - t) * (1 - t) * P0.y + 2 * (1 - t) * t * C.y + t * t * P1.y });
-    const box = document.createElement('div');
-    box.className = 'zm-trail';
-    els.fly.appendChild(box);
-    if (v === 'paw') {
-      // 按弧长等距撒爪印（左右脚交替、脚尖朝前进方向），一步一步冒出来
-      const N = 80, pts = [];
-      let acc = 0, prev = q(0);
-      for (let i = 1; i <= N; i++) { const p = q(i / N); acc += Math.hypot(p.x - prev.x, p.y - prev.y); pts.push({ p, acc, prev }); prev = p; }
-      const step = 13, k = Math.max(4, Math.floor(acc / step));
-      let html = '';
-      for (let j = 1; j < k; j++) {
-        const want = j * acc / k, it = pts.find((x) => x.acc >= want) || pts[pts.length - 1];
-        const ang = Math.atan2(it.p.y - it.prev.y, it.p.x - it.prev.x), side = j % 2 ? 1 : -1;
-        const x = it.p.x + Math.cos(ang + Math.PI / 2) * 3.5 * side, y = it.p.y + Math.sin(ang + Math.PI / 2) * 3.5 * side;
-        html += '<i style="left:' + x.toFixed(1) + 'px;top:' + y.toFixed(1) + 'px;rotate:' + (ang * 180 / Math.PI + 90).toFixed(0) + 'deg;animation-delay:' + (j * 45) + 'ms">' + window.ZhamaoFx.SHAPES.paw + '</i>';
-      }
-      box.innerHTML = html;
-    } else {
-      const d = 'M' + P0.x.toFixed(1) + ' ' + P0.y.toFixed(1) + 'Q' + C.x.toFixed(1) + ' ' + C.y.toFixed(1) + ' ' + P1.x.toFixed(1) + ' ' + P1.y.toFixed(1);
-      box.innerHTML = '<svg class="zm-trail-dots" width="' + innerWidth + '" height="' + innerHeight + '"><path class="halo" d="' + d + '"/><path class="dots" d="' + d + '"/><circle class="end" cx="' + P1.x.toFixed(1) + '" cy="' + P1.y.toFixed(1) + '" r="4.5"/></svg>';
-      const dots = box.querySelector('.dots');
-      if (!fx.reduce()) dots.animate([{ strokeDashoffset: 0 }, { strokeDashoffset: -26 }], { duration: 700, iterations: Infinity, easing: 'linear' });
-    }
-    return { remove() { if (fx.reduce()) { box.remove(); return; } box.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: 'forwards' }).finished.then(() => box.remove()).catch(() => box.remove()); } };
-  }
   async function animSwap(e, t) {
     if (game.arrow) { game.arrow.remove(); game.arrow = null; }
     const a = e.a, b = e.b, u = U(), pu = PU();
@@ -1615,6 +1639,7 @@
     fx.pop(avEl(a), { scale: 1.15 }); fx.pop(avEl(b), { scale: 1.15 });
     snd('thud');
     await wait(ms(260));
+    releaseRim();
     markVictim(-1);
   }
 
@@ -1714,6 +1739,7 @@
     await wait(ms(700));
     if (t !== token) { el.remove(); return; }
     // ③ 飞进出牌人手里
+    releaseRim();
     const src = el.getBoundingClientRect();
     el.remove();
     if (e.from === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.from] -= 1; renderSeat(e.from); }
@@ -1731,6 +1757,7 @@
     const { el, x, y, u, h } = c;
     // ② 没有：摇头、打红叉、冒烟
     el.classList.add('is-miss');
+    releaseRim();
     el.querySelector('.zm-callout-q').innerHTML = qGlyph('no');   // 没有：朱红泡 + 叉
     el.insertAdjacentHTML('beforeend', '<div class="zm-cross" style="animation-delay:.25s">' + ART.PROPS.cross + '</div>');
     snd('miss');
@@ -2392,7 +2419,7 @@
       }
     }
     if (mode !== 'target') {
-      if (social && socialOk() && seat > 0 && els.mask.hidden) social.openProps(seat);
+      if (social && socialOk() && seat > 0 && els.mask.hidden) { social.openProps(seat); popTail(avEl(seat)); }
       return;
     }
     if (!targetCb) return;
@@ -2610,10 +2637,10 @@
     let order = s.alter.cards.slice(), sel = -1;
     const limit = dlgLimit();
     snd('peek');
-    openStage('<h2>改命 · 最上面 ' + order.length + ' 张</h2>' + (limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '') +
+    openStage('<h2>改命 · 最上面 ' + order.length + ' 张</h2>' +
       '<p class="zm-muted zm-alter-tip">拖一张插到别处，或点两张互换</p>' +
       '<div class="zm-alter-row"><span class="end">顶</span><div class="zm-alter" data-alter>' + order.map((id, i) => '<button type="button" class="zm-alter-slot" data-i="' + i + '">' + cardHtml(id) + '</button>').join('') + '</div><span class="end">底</span></div>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好了</button></div>', (d) => {
+      '<div class="zm-actions is-center"><button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-ok data-focus>' + (limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>好了</b></button></div>', (d) => {
       const slots = Array.from(d.querySelectorAll('.zm-alter-slot'));
       const okBtn = d.querySelector('[data-ok]');
       let done = false, timer = 0;
@@ -2818,10 +2845,10 @@
     const limit = size ? dlgLimit() : 0;
     const badge = (p) => (p === 0 ? '顶' : p === size ? '底' : String(p + 1));
     // 2026-11-12 用户定稿（甲）：直接在牌堆上按住左右拖炸毛猫（或点哪道缝塞哪），炸毛猫头上小红标写第几张；只留「随机」「塞进去」
-    const timerHtml = limit ? '<div class="zm-dlg-timer" aria-hidden="true"><i></i></div>' : '';
-    const body = '<h2 class="zm-ins-h">塞回牌堆</h2>' + timerHtml +
+    const timerHtml = limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '';
+    const body = '<h2 class="zm-ins-h">塞回牌堆</h2>' +
       '<div class="zm-insert-fan is-solo is-drag" data-fan>' + fanHtml + cardHtml('boom', 'is-kit') + '<span class="zm-ins-badge" data-badge>' + badge(0) + '</span></div>' +
-      '<div class="zm-actions is-tight">' + (size ? '<button type="button" class="zm-btn" data-q="rand">随机</button>' : '') + '<button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>塞进去</button></div>';
+      '<div class="zm-actions is-tight">' + (size ? '<button type="button" class="zm-btn" data-q="rand">随机</button>' : '') + '<button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-ok data-focus>' + timerHtml + '<b>塞进去</b></button></div>';
     openStage(body, (d) => {
       const range = d.querySelector('[data-range]');
       const fan = d.querySelector('[data-fan]');
@@ -3265,6 +3292,24 @@
   const lobbySrv = (l) => (l + lobbyBase()) % LOBBY_N;
   const lobbyLoc = (srv) => (srv - lobbyBase() + LOBBY_N) % LOBBY_N;
   const lobbyPlayer = (l) => (online && online.st ? online.st.players.find((p) => p.seat === lobbySrv(l) && !p.left) || null : null);
+  /* 互动框 / 说一句框像对话气泡一样长一个小尖角，指着点的那个头像 / 说一句键（2026-11-13 用户：框和点的东西之间要有衔接）。
+   * 框已经按头像摆好了（gongzhu-social placePop）：看它在头像哪一边，就在那条边上、对着头像中心长尖角 */
+  function popTail(anchor) {
+    const p = els.app.querySelector('.gz-social-pop');
+    if (!p || !anchor) return;
+    // 框摆在头像下面时，往下挪到整个座位（名字、档位签）下面，别盖住名字
+    const seat = anchor.closest && anchor.closest('.zm-seat');
+    if (seat) {
+      const r0 = p.getBoundingClientRect(), sr = seat.getBoundingClientRect(), av = anchor.getBoundingClientRect();
+      if (r0.top >= av.top + av.height / 2 && sr.bottom + 12 + r0.height < innerHeight - 8) p.style.top = Math.round(sr.bottom + 12) + 'px';
+    }
+    const pr = p.getBoundingClientRect(), ar = (seat || anchor).getBoundingClientRect();
+    const avr = anchor.getBoundingClientRect(), ax = avr.left + avr.width / 2, ay = avr.top + avr.height / 2;
+    const side = pr.top >= ar.bottom - 4 ? 'top' : pr.bottom <= ar.top + 4 ? 'bottom' : pr.left >= ar.right - 4 ? 'left' : 'right';
+    const off = side === 'top' || side === 'bottom' ? Math.max(20, Math.min(pr.width - 20, ax - pr.left)) : Math.max(20, Math.min(pr.height - 20, ay - pr.top));
+    p.dataset.tail = side;
+    p.style.setProperty('--tail', off.toFixed(0) + 'px');
+  }
   function socialOk() {
     if (inLobby()) return !online.st.spectator && online.st.mySeat >= 0 && online.fxSeq != null;
     if (!game || game.tutorial || !game.state || !els.cover.hidden) return false;
@@ -3308,7 +3353,7 @@
       reduce: () => fx.reduce(),
       popSide: (l) => (l === 0 ? 'above' : 'below'),
     });
-    $('zmChatBtn').addEventListener('click', (e) => { e.stopPropagation(); if (socialOk()) social.openChat(e.currentTarget); });
+    $('zmChatBtn').addEventListener('click', (e) => { e.stopPropagation(); if (socialOk()) { social.openChat(e.currentTarget); popTail(e.currentTarget); } });
   }
   let soundPanel = null;
   function refreshSoundBtn() {
@@ -4494,7 +4539,7 @@
     if (b.dataset.l === 'invite') { showInvite(); return; }
     if (b.dataset.l === 'qr') { lobbyQr = !lobbyQr; renderLobby(st); return; }
     if (b.dataset.l === 'menu') { toggleMenu(e); return; }
-    if (b.dataset.l === 'chat') { if (social && socialOk()) social.openChat(b); return; }
+    if (b.dataset.l === 'chat') { if (social && socialOk()) { social.openChat(b); popTail(b); } return; }
     if (b.dataset.l === 'copy') {
       const url = NET.inviteUrl(st.code);
       (async () => { try { if (navigator.share && /Mobi|Android|iPhone/.test(navigator.userAgent)) { await navigator.share({ title: '来玩百变小咪', text: '房间 ' + st.code, url }); return; } await navigator.clipboard.writeText(url); toast('链接复制好了'); } catch (_) { toast('复制不了，点「二维码」让朋友扫'); } })();
