@@ -5064,6 +5064,7 @@
   };
   let ffBtn = null;
   function updateFF() {
+    if (!game) { if (ffBtn) { ffBtn.remove(); ffBtn = null; } return; }   // 主页 / 房间页：没有牌局（以前这里会每 0.4 秒报一次错）
     let mode = '';
     if (game && !game.online && !online) {
       // 单机：我出局、自己那下炸完了（fastOut），机器猫还在接着打 → 我自己的 ⏩
