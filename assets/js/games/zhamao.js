@@ -4519,10 +4519,15 @@
   }
 
   /* ───── 收到服务器状态 ───── */
-  function onState(st) {
+  /* 网络一来一回要多久（毫秒；还没量到就按 0.5 秒算）——国内 / 走 VPN 的朋友常常 0.5–1.5 秒（2026-11-14） */
+  const netRtt = () => { const r = NET && NET.rtt ? NET.rtt() : null; return r == null ? 500 : r; };
+  // rttMs：这份状态是动作请求带回来的，就用这一次实际量到的来回；长轮询回来的用平时估的来回
+  function onState(st, rttMs) {
     if (!online || !st) return;
     if (online.st && st.version < online.st.version) return;   // 旧的（长轮询和动作回应赛跑）
-    online.skew = st.serverNow - Date.now();
+    // 服务器时间 = 它发出时的 serverNow + 路上那半程；以前没加这半程，网慢的人看到的倒计时比服务器的晚结束，
+    // 最后一刻点的作废 / 出牌到服务器时窗口已经关了（2026-11-14 国内朋友）
+    online.skew = st.serverNow + (rttMs != null ? rttMs : netRtt()) / 2 - Date.now();
     const prev = online.st;
     online.st = st;
     if (st.phase === 'lobby') { enterLobby(st, prev); return; }
@@ -4740,7 +4745,9 @@
     // 2026-11-13 用户 8 人局：「问作废的时间太短 / 点了没生效」——服务器按估的动画时长开窗，网页这边动画常常播得更久（人多、手机慢、
     // 前面还排着动画），轮到我表态时导火索只剩一点点、甚至 0（立刻自动取消）。现在问到我时至少给满 1.8 秒；
     // 服务器那边多留的一截（graceMs）兜得住，但也不能超过服务器真正关窗前 0.5 秒（留给网络）
-    const give = canN ? Math.max(0, Math.min(Math.max(remain, 1800), g.deadline - (Date.now() + online.skew) - 500)) : remain;
+    // 留给网络的那截按这台设备实际的来回算（以前写死 0.5 秒，网慢的人最后一刻点的作废会赶不上）
+    const pad = Math.min(2000, Math.max(400, netRtt() + 250));
+    const give = canN ? Math.max(0, Math.min(Math.max(remain, 1800), g.deadline - (Date.now() + online.skew) - pad)) : remain;
     reactOpen = canN;
     busy = !canN;
     renderHand({ flip: false });
@@ -4814,7 +4821,7 @@
     try {
       const res = await NET.act(online.code, online.token, 'move', body);
       clearTimeout(slow);
-      onState(res.state);
+      onState(res.state, res._rtt);
     } catch (err) {
       clearTimeout(slow);
       if (d.type === 'pass' && err && err.status === 409) return;   // 窗口已经关了（别人作废 / 已结算）：没关系，等下一份状态
@@ -4824,7 +4831,7 @@
       game.previewSrc = null;
       // 作废没生效要说清楚（2026-11-13 用户：有人点了作废却没生效、也不知道为什么）
       if (d.type === 'nope' && err && err.error === 'stale') toast('有人抢先出了作废，看一眼桌上再决定');
-      else if (d.type === 'nope' && err && (err.error === 'no_reaction' || err.error === 'not_your_call')) toast('晚了一步，这张牌已经结算了');
+      else if (d.type === 'nope' && err && (err.error === 'no_reaction' || err.error === 'not_your_call')) toast(netRtt() >= 700 ? '网络有点慢（来回约 ' + (netRtt() / 1000).toFixed(1) + ' 秒），作废没赶上，这张牌已经结算了' : '晚了一步，这张牌已经结算了');
       else if (err && err.error !== 'stale') toast(NET.message(err));
       resync();
     }
@@ -4832,11 +4839,11 @@
   async function onlineAuto(on) {
     if (!online || !game || game.spectator) return;
     snd(on ? 'tick' : 'tap');
-    try { const res = await NET.act(online.code, online.token, 'auto', { on }); onState(res.state); } catch (err) { toast(NET.message(err)); }
+    try { const res = await NET.act(online.code, online.token, 'auto', { on }); onState(res.state, res._rtt); } catch (err) { toast(NET.message(err)); }
   }
   async function onlineAct(action, body) {
     if (!online) return null;
-    try { const res = await NET.act(online.code, online.token, action, body || {}); if (res && res.state) onState(res.state); return res; }
+    try { const res = await NET.act(online.code, online.token, action, body || {}); if (res && res.state) onState(res.state, res._rtt); return res; }
     catch (err) { toast(NET.message(err)); if (err && (err.status === 401 || err.status === 404)) leaveOnline(false, '房间已经不在了'); return null; }
   }
 
@@ -4872,7 +4879,10 @@
     try { const u = new URL(location.href); u.searchParams.set('room', st.code); history.replaceState(null, '', u.toString()); } catch (_) { /* */ }
     onState(st);
     pollLoop();
+    if (NET && NET.ping) NET.ping();
   }
+  // 在房间里每 8 秒量一次来回（没出牌的人也有数）：倒计时校准用，也随请求报给服务器
+  setInterval(() => { if (online && NET && NET.ping && !document.hidden) NET.ping(); }, 8000);
   async function pollLoop() {
     const my = { abort: false };
     online.poll = my;

@@ -40,8 +40,22 @@
     return ERRORS[err.error] || (err.status === 429 ? '操作太快了，歇一下再试' : '网络出了点问题，再试一次');
   }
 
-  async function request(method, action, { code, token, body, query, signal } = {}) {
-    const q = new URLSearchParams(Object.assign({ action }, code ? { code } : {}, query || {}));
+  /* 网络快慢（2026-11-14 国内朋友：作废常常来不及点）：量每个动作请求一来一回要多久（长轮询会挂着等，不算），
+   * 取最近几次里偏小的那个当「这台设备到服务器的来回」——网页用它校准倒计时，也随请求报给服务器，服务器按它给慢的人多留一截 */
+  const rttSamples = [];
+  function noteRtt(ms) {
+    if (!(ms > 0) || ms > 15000) return;
+    rttSamples.push(ms); if (rttSamples.length > 8) rttSamples.shift();
+  }
+  function rtt() {
+    if (!rttSamples.length) return null;
+    const s = rttSamples.slice().sort((x, y) => x - y);
+    return Math.round(s[Math.floor((s.length - 1) / 3)]);   // 偏小的三分位：偶尔一次卡顿不把估计拉高，网真慢了几次之后才跟上
+  }
+  async function request(method, action, { code, token, body, query, signal, timed } = {}) {
+    const r = rtt();
+    const q = new URLSearchParams(Object.assign({ action }, code ? { code } : {}, query || {}, r != null ? { rtt: String(r) } : {}));
+    const t0 = performance.now();
     const res = await fetch(BASE + '?' + q.toString(), {
       method,
       headers: Object.assign({ 'Content-Type': 'application/json' }, token ? { Authorization: 'Bearer ' + token } : {}),
@@ -50,6 +64,11 @@
     });
     let json = null;
     try { json = await res.json(); } catch (_) { /* 空响应 */ }
+    if (timed) {
+      const ms = performance.now() - t0;
+      noteRtt(ms);
+      if (json && typeof json === 'object') Object.defineProperty(json, '_rtt', { value: ms, enumerable: false });
+    }
     if (!res.ok) {
       const e = new Error((json && json.error) || 'http_' + res.status);
       e.status = res.status;
@@ -88,7 +107,10 @@
     create: (nick, avatar, config) => request('POST', 'create', { body: { nick, avatar, deviceId: deviceId(), config } }),
     // mode：'play' 想坐下（坐不下服务器就让我先观战，回应里 fellBack 写原因）；'watch' 只观战
     join: (code, nick, avatar, mode) => request('POST', 'join', { body: { code, nick, avatar, deviceId: deviceId(), mode: mode || 'play' } }),
-    act: (code, token, action, body) => request('POST', action, { code, token, body }),
+    act: (code, token, action, body) => request('POST', action, { code, token, body, timed: true }),
+    rtt,
+    // 量一下来回：最便宜的请求（不碰数据库），一局里每隔一阵发一次，没出牌的人也有来回可量
+    ping: () => { const t0 = performance.now(); return fetch(BASE + '?action=state&code=0', { method: 'GET', cache: 'no-store' }).then(() => { noteRtt(performance.now() - t0); }, () => {}); },
     // 叫醒服务器：fly 上没人用会休眠，第一下要 2–3 秒。点开「联机」就先发一个最便宜的请求（不碰数据库），等真建房时它多半醒了
     warm: () => fetch(BASE + '?action=state&code=0', { method: 'GET', cache: 'no-store' }).catch(() => {}),
     // fx：牌桌互动的序号（-1 = 刚进来，只要序号）；带上它，有新互动时长轮询也会立刻回来（回应里 fx / fxSeq，房间没变时不带 state）
