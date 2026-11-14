@@ -1847,10 +1847,13 @@
       if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
       // 标签 + 「知道了」
       const labels = ['最上面', '第 2 张', '第 3 张'];
+      // 自己收起的倒计时（2026-11-14 用户：托管打出窥探后没人点「知道了」，整局卡住）：托管 1.8 秒；联机 4 秒（服务器的出牌限时在走）；
+      // 单机有出牌限时就 6 秒；单机不限时、自己在打才等我点
+      const peekLimit = autopilot ? 1800 : game.online ? 4000 : turnSec() > 0 ? 6000 : 0;
       const lay = document.createElement('div');
       lay.className = 'zm-peek';
       lay.innerHTML = spots.map((p, i) => '<span class="zm-peek-lab" style="left:' + p.x + 'px;top:' + (p.y + u * 0.78) + 'px">' + labels[i] + '</span>').join('') +
-        '<button type="button" class="zm-btn zm-btn-primary zm-peek-ok" style="left:' + c.x + 'px;top:' + (c.y + u * 1.12) + 'px">知道了</button>';
+        '<button type="button" class="zm-btn zm-btn-primary zm-peek-ok' + (peekLimit ? ' zm-timed' : '') + '" style="left:' + c.x + 'px;top:' + (c.y + u * 1.12) + 'px">' + (peekLimit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>知道了</b></button>';
       els.fly.appendChild(lay);
       els.fly.classList.add('is-interactive');
       await new Promise((res) => {
@@ -1858,7 +1861,11 @@
         ok.focus({ preventScroll: true });
         ok.addEventListener('click', res, { once: true });
         game.peekDone = res;
-        if (game.online) setTimeout(res, 4000);   // 联机：服务器的出牌限时在走，看 4 秒自己收起
+        if (peekLimit) {
+          const bar = ok.querySelector('.zm-dlg-timer i');
+          if (bar) bar.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: peekLimit, easing: 'linear', fill: 'forwards' });
+          setTimeout(res, peekLimit);
+        }
       });
       game.peekDone = null;
       els.fly.classList.remove('is-interactive');
@@ -2897,7 +2904,9 @@
     mode = 'target';
     targetCb = cb;
     let k = 0;
-    for (let seat = 1; seat < game.state.n; seat++) {
+    // 一个个亮起来的先后顺着出牌方向（2026-11-14 用户：以前总是从右往左）：座位号变大 = 出牌方向 1 往下传，方向 -1 就倒过来亮
+    const n = game.state.n, order = Array.from({ length: n - 1 }, (_, i) => (dirNow() === 1 ? i + 1 : n - 1 - i));
+    for (const seat of order) {
       const b = seatEl(seat), on = ts.indexOf(seat) >= 0;
       b.classList.toggle('is-target', on);
       b.classList.toggle('is-target-off', !on);
