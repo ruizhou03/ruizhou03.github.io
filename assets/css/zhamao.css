@@ -909,7 +909,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-cover-btns { width: calc(100% - 100px); align-self: center; }
 /* 教程讲解（2026-11-13 用户：照拱猪——讲的话摆在正中，别的都蒙灰，不弹框）：
    讲解时整张桌子蒙一层浅宣纸色；讲解本身不要框，大字居中、周围一圈宣纸色晕开，上面一枚「教」字小印，下面一笔淡金细线 */
-.zm-app::after { content: ''; position: absolute; inset: 0; z-index: 41; background: rgba(243, 238, 227, 0.78); opacity: 0; pointer-events: none; transition: opacity 0.22s ease; }
+.zm-app::after { content: ''; position: absolute; inset: 0; z-index: 41; background: rgba(243, 238, 227, 0.88); opacity: 0; pointer-events: none; transition: opacity 0.22s ease; }
 .zm-app.is-coaching::after { opacity: 1; }
 .zm-coach:not(.is-hint) { background: none; border: 0; box-shadow: none; padding: 0 6px; width: min(94%, 460px); display: flex; flex-direction: column; align-items: center; text-align: center; }
 .zm-coach:not(.is-hint) .zm-coach-seal { position: static; transform: rotate(-4deg); margin-bottom: 10px; }
@@ -918,10 +918,13 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-coach:not(.is-hint) .zm-coach-more { text-align: center; margin-top: 12px; letter-spacing: 0.2em; }
 .zm-coach:not(.is-hint) .zm-card { --cw: 40px; width: 40px; }
 /* 讲解时正在讲的东西提到浅宣纸色上面（手牌 / 牌堆 / 刚出的牌 / 某个人）；讲解的字再压在最上面 */
-.zm-app.is-coaching .is-coach-focus { position: relative; z-index: 43; }
+.zm-app.is-coaching .is-coach-focus, .zm-app.is-coaching .zm-table .zm-opps .zm-seat.is-coach-focus { position: relative; z-index: 43; }   /* 后一条：名字截断那套给出牌的人提了 z-index:3，会把「被讲到的那家」压回蒙层底下 */
 .zm-app.is-coaching .zm-stage.is-coach-focus { position: absolute; }
 .zm-app.is-coaching .zm-seat-me.is-coach-focus { position: absolute; }
 .zm-app.is-coaching .zm-coach { z-index: 44; }
+/* 字后面一圈宣纸色晕（没有框）：万一还是叠在亮着的牌 / 头像上，字也看得清（2026-11-14 用户：对比度不够） */
+.zm-coach:not(.is-hint)::before { content: ''; position: absolute; inset: -22px -18px; z-index: -1; pointer-events: none; border-radius: 40px;
+  background: radial-gradient(closest-side, rgba(243, 238, 227, 0.97) 62%, rgba(243, 238, 227, 0.85) 80%, rgba(243, 238, 227, 0)); }
 .zm-coach[hidden] { display: none !important; }   /* 上面讲解样式写了 display:flex，别把「藏起来」盖掉 */
 /* 大厅新版（预览 ?lobbyv=2） */
 .zm-lobby-inner.is-v2 { gap: 12px; }
@@ -1074,9 +1077,15 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 预览：扣锅版甩锅动画里飞的锅（倒扣时别把锅底的影子翻到上面）和锅肚上的 ×N */
 .zm-prop-hat svg ellipse { display: none; }
 .zm-hat-lab { position: absolute; left: 0; top: 0; pointer-events: none; color: #f3e6c4; font-weight: 700; font-family: Georgia, serif; line-height: 1; white-space: nowrap; z-index: 2; text-shadow: 0 0 2px rgba(29, 27, 24, 0.5); }
-/* 联机：这局服务器上已经打完、我这边还在播机器猫出牌时，直接看结果（2026-11-14 用户） */
-.zm-skip { position: absolute; left: 50%; top: 64%; translate: -50% 0;   /* 牌桌中间偏下的空处：不压手牌、不压「摸牌」那一排 */ z-index: 30; border: 1px solid var(--zm-ink); background: var(--zm-card); color: var(--zm-ink);
-  border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 14px; box-shadow: 0 6px 18px rgba(29, 27, 24, 0.18); cursor: pointer; white-space: nowrap; }
+/* 联机：桌沿右下角的快进 ⏩（真人都出局后 5 倍速播完）/ 下一局 ⏭（房主，结算看过以后）——小、淡，不抢眼（2026-11-14 用户） */
+.zm-ff { position: absolute; right: 14px; bottom: 14px; z-index: 8; width: 34px; height: 34px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(201, 169, 110, 0.7); background: rgba(255, 253, 248, 0.7); color: var(--zm-ink-mute); cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+.zm-ff svg { width: 18px; height: 18px; fill: currentColor; stroke: none; display: block; }
+.zm-ff svg .bar { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.zm-ff:hover { color: var(--zm-ink); border-color: var(--zm-gold); }
+.zm-ff.is-on { background: var(--zm-gold); border-color: var(--zm-gold); color: #2a2318; }
+.zm-ff[data-mode="next"] { color: var(--zm-ink); border-color: var(--zm-gold); }
+.zm-ff:disabled { opacity: 0.4; cursor: default; }
 /* 本房间战绩表（排行榜弹窗 / 房间准备页）：平均名次 + 每一局各第几（局多了横着滑） */
 .zm-record-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .zm-record { margin: 14px 0 4px; }
@@ -1099,11 +1108,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app .zm-host-seats { flex-wrap: wrap; margin-bottom: 10px; }
 .zm-app .zm-host-acts { flex-wrap: wrap; }
 /* 设置 · 问我要不要作废「挑着问」的勾选项（2026-11-14 用户） */
-.zm-app .zm-nope-also { padding: 4px 2px 8px; }
-.zm-app .zm-nope-also small { display: block; font-size: 12px; color: var(--zm-ink-mute); margin: 2px 2px 6px; }
-.zm-app .zm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.zm-app .zm-chips button { font: inherit; font-size: 12.5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--zm-ink-faint); background: transparent; color: var(--zm-ink-mute); cursor: pointer; }
-.zm-app .zm-chips button[aria-pressed="true"] { border-color: var(--zm-ink); background: var(--zm-ink); color: var(--zm-paper); }
 
 /* ───── 房主：图标按钮 / 编辑模式（长按头像：跳一下、轻轻晃、右上角 ×、拖动换座）2026-11-14 用户 ───── */
 .zm-app .zm-icbtn { width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--zm-ink); background: var(--zm-card); color: var(--zm-ink); display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
@@ -1127,7 +1131,27 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .is-dragging { opacity: 0.35; }
 .is-drop .av, .is-drop .zm-av, .zm-lseat.is-drop { box-shadow: 0 0 0 3px var(--zm-gold), 0 0 0 7px rgba(201, 169, 110, 0.3) !important; }
 .zm-drag-ghost { position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; border-radius: 50%; box-shadow: 0 10px 24px rgba(29, 27, 24, 0.3); transform: scale(1.12); animation: none !important; }
-.zm-edit-bar { position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); translate: -50% 0; z-index: 60; display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 14px; background: var(--zm-card); border: 1px solid rgba(29, 27, 24, 0.18); border-radius: 999px; box-shadow: 0 10px 28px rgba(29, 27, 24, 0.22); white-space: nowrap; max-width: calc(100vw - 16px); }
-.zm-edit-bar > span { font-size: 12.5px; color: var(--zm-ink-mute); overflow: hidden; text-overflow: ellipsis; }
-.zm-edit-bar .zm-btn { padding: 6px 12px; min-height: 0; font-size: 13px; }
+.zm-edit-bar { position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); translate: -50% 0; z-index: 60; display: flex; align-items: center; gap: 8px; padding: 6px; background: var(--zm-card); border: 1px solid rgba(29, 27, 24, 0.18); border-radius: 999px; box-shadow: 0 10px 28px rgba(29, 27, 24, 0.22); white-space: nowrap; max-width: calc(100vw - 16px); }
+.zm-edit-bar .zm-btn { padding: 7px 22px; min-height: 0; font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .is-editing .zm-lseat .av, .zm-table.is-editing .zm-seat .zm-av { animation: none; } }
+/* 设置里「问我作废」（2026-11-14 用户挑定乙）：两张选项卡 + 八个图标格子，点亮 = 问 */
+.zm-nope { padding: 10px 0 8px; }
+.zm-nope-head { font-size: 14px; font-weight: 700; margin: 0 2px 8px; }
+.zm-nope-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.zm-nope-opt { position: relative; text-align: left; font: inherit; padding: 10px 12px 10px; border-radius: 12px; border: 1.5px solid rgba(29, 27, 24, 0.18); background: #fffdf8; color: var(--zm-ink); cursor: pointer; display: flex; flex-direction: column; gap: 3px; }
+.zm-nope-opt b { font-size: 15px; }
+.zm-nope-opt small { font-size: 11.5px; color: var(--zm-ink-mute); line-height: 1.3; }
+.zm-nope-opt .ck { position: absolute; top: 9px; right: 9px; width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid rgba(29, 27, 24, 0.25); }
+.zm-nope-opt[aria-pressed="true"] { border-color: var(--zm-ink); box-shadow: 0 0 0 1px var(--zm-ink); }
+.zm-nope-opt[aria-pressed="true"] .ck { border-color: var(--zm-ink); background: var(--zm-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.2l2.6 2.6L12 5.4' fill='none' stroke='%23fbf6ec' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat; }
+.zm-nope .zm-nope-also { padding: 12px 0 0; }
+.zm-nope .zm-nope-also small { display: block; font-size: 12px; color: var(--zm-ink-mute); margin: 0 2px 6px; }
+.zm-nope-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.zm-nope-tile { position: relative; font: inherit; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 2px 8px; border-radius: 12px; border: 1.5px dashed rgba(29, 27, 24, 0.2); background: transparent; color: var(--zm-ink-mute); cursor: pointer; }
+.zm-nope-tile .ic { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(29, 27, 24, 0.05); filter: grayscale(1) opacity(0.55); transition: filter 0.2s, background 0.2s; }
+.zm-nope-tile .ic svg { width: 22px; height: 22px; }
+.zm-nope-tile span { font-size: 12px; white-space: nowrap; }
+.zm-nope-tile[aria-pressed="true"] { border: 1.5px solid var(--zm-ink); background: #fffdf8; color: var(--zm-ink); }
+.zm-nope-tile[aria-pressed="true"] .ic { background: var(--tone); filter: none; }
+.zm-nope-tile .ck { position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; }
+.zm-nope-tile[aria-pressed="true"] .ck { background: var(--zm-seal) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.2l2.6 2.6L12 5.4' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 9px no-repeat; }

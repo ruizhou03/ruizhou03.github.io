@@ -40,8 +40,10 @@
   const PACE = { bot: 760, react: 2800, quiet: 260, botNope: [500, 1100], fly: 460, k: 1 };
   const FAST = { bot: 240, react: 0, quiet: 120, botNope: [200, 300], fly: 260, k: 0.55 };
   const TUT_PACE = { bot: 1050, react: 0, quiet: 500, botNope: [900, 900], fly: 540, k: 1.2 };
+  // 联机里真人都出局了、点了桌沿右下角的快进：剩下机器猫的出牌按 5 倍速播完（2026-11-14 用户）
+  const TURBO = { bot: 150, react: 0, quiet: 50, botNope: [100, 200], fly: 120, k: 0.2 };
   // 我出局后加速看完：等我那一下炸完、手牌全落进弃牌堆（game.fastOut，animOut 最后才置上）才快起来，别把我自己的出局动画也快进了
-  const pace = () => (game && game.tutorial ? TUT_PACE : game && game.fastOut ? FAST : PACE);
+  const pace = () => (game && game.tutorial ? TUT_PACE : game && game.turbo ? TURBO : game && game.fastOut ? FAST : PACE);
   const ms = (x) => Math.round(x * pace().k);
 
   const FUR = ['#3a3632', '#4a4540', '#2a2622', '#5c5650'];
@@ -1218,8 +1220,21 @@
   }
 
   /* ───── 流程 ───── */
-  const wait = (t) => new Promise((r) => setTimeout(r, fx.reduce() ? 1 : t));
-  function schedule(t, fn) { const k = token; setTimeout(() => { if (k === token) fn(); }, t); }
+  const turboK = () => (game && game.turbo ? 5 : 1);
+  const wait = (t) => new Promise((r) => setTimeout(r, fx.reduce() ? 1 : t / turboK()));
+  function schedule(t, fn) { const k = token; setTimeout(() => { if (k === token) fn(); }, t / turboK()); }
+  /* 快进（5 倍速）：动画好多是写死的时长，不走 pace()——快进时桌上新起的动画一律 5 倍速放，已经在放的也跟着提速 */
+  const nativeAnimate = Element.prototype.animate;
+  Element.prototype.animate = function (k, o) {
+    const a = nativeAnimate.call(this, k, o);
+    if (game && game.turbo && els.app.contains(this)) { const t = a.effect && a.effect.getTiming(); if (t && t.iterations !== Infinity) a.playbackRate = 5; }
+    return a;
+  };
+  function setTurbo(on) {
+    if (!game) return;
+    game.turbo = on;
+    els.app.getAnimations({ subtree: true }).forEach((a) => { const t = a.effect && a.effect.getTiming(); if (t && t.iterations !== Infinity) a.playbackRate = on ? 5 : 1; });
+  }
   function renderAll() { renderSeats(); renderPiles(); renderHand(); renderBand(); refreshTools(); }
 
   function step() {
@@ -2657,6 +2672,18 @@
     return NOPE_ALSO.some(([k, , types]) => nopeAlsoOn(k) && types.indexOf(p.type) >= 0);
   }
   const askMeNope = (s) => nopeAsks(s.pending, 0, s.alive);
+  /* 设置里「问我作废」那一块（2026-11-14 用户从三版里挑了乙）：上面两张选项卡「全都问 / 挑着问」，
+   * 挑着问时下面八个图标格子，点亮 = 别人之间出这种牌也问我（和我有关的一定问） */
+  const NOPE_IC = { five: 'wild', swap: 'swap', triple: 'orange', pair: 'tabby', favor: 'favor', attack: 'attack', shuffle: 'shuffle', alter: 'alter' };
+  const NOPE_SHORT = { five: '凑五种', swap: '交换', triple: '三张点名', pair: '两张偷牌', favor: '索要', attack: '甩锅', shuffle: '洗牌', alter: '改命' };
+  function nopeSettingsHtml() {
+    const mode = nopeAskMode();
+    const card = (m, t, sub) => '<button type="button" class="zm-nope-opt" data-nope-mode="' + m + '" aria-pressed="' + (mode === m) + '"><b>' + t + '</b><small>' + sub + '</small><i class="ck" aria-hidden="true"></i></button>';
+    return '<div class="zm-nope"><div class="zm-nope-head">什么时候问我出「作废」</div><div class="zm-nope-opts">' + card('all', '全都问', '每张牌都停下来问') + card('pick', '挑着问', '和我有关的 + 下面点亮的') + '</div>' +
+      '<div class="zm-nope-also" data-nope-also' + (mode === 'pick' ? '' : ' hidden') + '><small>别人之间出这些牌也问我（点亮 = 问）</small><div class="zm-nope-grid">' +
+      NOPE_ALSO.map(([k, t]) => '<button type="button" class="zm-nope-tile" data-also="' + k + '" aria-pressed="' + nopeAlsoOn(k) + '" title="' + t + '" style="--tone:' + ART.TONE[NOPE_IC[k]].bg + '"><i class="ic">' + ART.icon(NOPE_IC[k]) + '</i><span>' + NOPE_SHORT[k] + '</span><i class="ck" aria-hidden="true"></i></button>').join('') +
+      '</div></div></div>';
+  }
 
   /* ───── 反应窗：出完牌大家决定要不要「不行」 ───── */
   function clearReactTimer() { if (reactTimer) { clearTimeout(reactTimer); reactTimer = null; } }
@@ -3551,9 +3578,7 @@
       row('boom', '塞回炸毛猫看得出大概位置', '像线下一样：放最上 / 最底一眼看得出', sw('insertSeen', R.normalizeRules(settings.rules).insertSeen)) +
       '</section>';
     const pref = '<div class="zs-cap">操作</div><section class="zs-card">' +
-      '<div class="zs-line"><span>问我作废</span>' + segs('nopeAsk', [['all', '全都问'], ['pick', '挑着问']], nopeAskMode()) + '</div>' +
-      '<div class="zm-nope-also" data-nope-also' + (nopeAskMode() === 'pick' ? '' : ' hidden') + '><small>和我有关的一定问，另外这些也问：</small><div class="zm-chips">' +
-      NOPE_ALSO.map(([k, t]) => '<button type="button" data-also="' + k + '" aria-pressed="' + nopeAlsoOn(k) + '">' + t + '</button>').join('') + '</div></div>' +
+      nopeSettingsHtml() +
       '</section>';
     // 联机：机器猫 / 规则由房主定，这里只有自己的操作偏好
     // 联机：机器猫 / 规则由房主定，这里只有自己的偏好——「作废」怎么问、观战的人能不能看我的手牌（坐着的人才有）
@@ -3579,7 +3604,6 @@
         g.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
         fx.pop(b, { scale: 1.06, dur: 200 });
         const key = g.dataset.seg, v = b.dataset.v;
-        if (key === 'nopeAsk') { settings.nopeAsk = v; const box = d.querySelector('[data-nope-also]'); if (box) box.hidden = v !== 'pick'; saveSettings(); snd('tap'); return; }
         if (key === 'players') settings.players = +v;
         else if (key === 'tier') settings.tier = v;
         else if (key === 'turnSec') settings.turnSec = +v;
@@ -3592,6 +3616,12 @@
         b.setAttribute('aria-checked', String(on));
         snd('tap');
         onlineAct('reveal', { on });
+      }));
+      d.querySelectorAll('[data-nope-mode]').forEach((b) => b.addEventListener('click', () => {
+        settings.nopeAsk = b.dataset.nopeMode;
+        d.querySelectorAll('[data-nope-mode]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        const box = d.querySelector('[data-nope-also]'); if (box) box.hidden = settings.nopeAsk !== 'pick';
+        saveSettings(); snd('tap');
       }));
       d.querySelectorAll('[data-also]').forEach((b) => b.addEventListener('click', () => {
         const on = b.getAttribute('aria-pressed') !== 'true';
@@ -3833,6 +3863,7 @@
   });
   function refreshTools() {
     $('zmPauseBtn').hidden = !(game && !game.tutorial && !game.online && els.cover.hidden);
+    $('zmRankBtn').hidden = !(game && game.online && online);
     syncSocialUi();
   }
 
@@ -4023,21 +4054,41 @@
     const text = typeof m === 'string' ? m : m.t;
     setCoachFocus((m && m.focus) || []);
     els.coach.querySelector('.zm-coach-text').innerHTML = inlineCards(text);
+    placeCoach();
     if (!fx.reduce()) {
       if (wasHidden) els.coach.animate([{ opacity: 0, translate: '0 14px' }, { opacity: 1, translate: '0 0' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1)' });
       else els.coach.querySelector('.zm-coach-text').animate([{ opacity: 0, translate: '8px 0' }, { opacity: 1, translate: '0 0' }], { duration: 220, easing: 'ease-out' });
     }
   }
+  /* 讲解别压在牌堆 / 桌上的牌上（2026-11-14 用户：有时字和底下的东西对比度不够）：牌堆正好在桌心，字摆正中会叠在牌背和
+   * 「几张 / 几只」那行数上；被点名讲的牌堆还不蒙灰，更看不清。量一下：牌堆（和舞台上的牌）上面那块空处放得下就放上面，
+   * 不然放下面，都放不下才压在正中（那时靠字后面那圈宣纸色晕兜底） */
+  function placeCoach() {
+    const st = els.coach.style;
+    st.top = st.bottom = st.transform = '';
+    if (els.coach.hidden || els.coach.classList.contains('is-hint')) return;
+    const c = els.center.getBoundingClientRect(), h = els.coach.offsetHeight;
+    const obs = [els.deck.parentElement, els.stage.querySelector('.zm-stage-inner')].filter(Boolean).map((e) => e.getBoundingClientRect()).filter((r) => r.height > 0);
+    if (!obs.length || !h) return;
+    const top = Math.min(...obs.map((r) => r.top)), bot = Math.max(...obs.map((r) => r.bottom)), gap = 14;
+    let y = null;
+    if (top - c.top >= h + gap * 2) y = (c.top + top) / 2 - h / 2;
+    else if (c.bottom - bot >= h + gap * 2) y = (bot + c.bottom) / 2 - h / 2;
+    if (y == null) return;
+    st.top = Math.round(y - c.top) + 'px'; st.bottom = 'auto'; st.transform = 'translateX(-50%)';
+  }
+  window.addEventListener('resize', () => { if (coachQueue) placeCoach(); });
   function hint(text) { // 不挡操作的小提示（落在桌子下沿）
     if (!text) { if (!coachQueue) hideCoach(); return; }
     const was = !els.coach.hidden && els.coach.classList.contains('is-hint');
     els.coach.hidden = false;
     els.coach.classList.add('is-hint');
+    els.coach.style.top = els.coach.style.bottom = els.coach.style.transform = '';
     els.app.classList.remove('is-coaching');   // 提示（等我操作）不蒙桌子
     els.coach.querySelector('.zm-coach-text').innerHTML = inlineCards(text);
     if (!was && !fx.reduce()) els.coach.animate([{ opacity: 0, translate: '0 10px' }, { opacity: 1, translate: '0 0' }], { duration: 240, easing: 'ease-out' });
   }
-  function hideCoach() { els.coach.hidden = true; els.coach.classList.remove('is-hint'); els.app.classList.remove('is-coaching'); setCoachFocus([]); }
+  function hideCoach() { els.coach.style.top = els.coach.style.bottom = els.coach.style.transform = ''; els.coach.hidden = true; els.coach.classList.remove('is-hint'); els.app.classList.remove('is-coaching'); setCoachFocus([]); }
   function setCoachFocus(list) {
     els.app.querySelectorAll('.is-coach-focus').forEach((x) => x.classList.remove('is-coach-focus'));
     const pick = (f) => (f === 'hand' ? els.hand : f === 'deck' ? els.deck.parentElement : f === 'stage' ? els.stage : f === 'opps' ? els.opps : f === 'me' ? els.me : typeof f === 'number' ? seatEl(f) : null);
@@ -4684,6 +4735,8 @@
     if (!g || !game || !game.online) return;
     token++;
     online.queue = []; online.playing = false;
+    // 发牌动画播到一半被重摆打断：dealIntro 看到 token 变了就提前返回，没人把 dealing 放下——之后 onlineIdle 一直早退，整局卡死（2026-11-14 测出来的）
+    game.dealing = false;
     if (game.wander) { game.wander.cancel(); game.wander = null; }
     if (game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
     stopClock(); clearReactTimer(); clearStage(); wipeFx();
@@ -4990,24 +5043,76 @@
   }
   // 在房间里每 8 秒量一次来回（没出牌的人也有数）：倒计时校准用，也随请求报给服务器
   setInterval(() => { if (online && NET && NET.ping && !document.hidden) NET.ping(); }, 8000);
-  /* 跳过，直接看结果（2026-11-14 用户）：服务器上这局已经打完了（真人都出局后，剩下的机器猫是一瞬间算完的），
-   * 我这边还在一步步播机器猫出牌——给个按钮直接跳到排行榜；房主在排行榜上就能开下一局。
-   * 也是那次「国内朋友比我早十几秒看到谁赢」的原因：他网不稳，断档后网页按快照重摆，一下跳到了结尾 */
-  let skipBtn = null;
-  function updateSkip() {
-    const g = online && game && game.online ? G() : null;
-    const show = !!(g && g.over && game.finishShown !== g.matchNo && (online.playing || online.queue.length) && els.mask.hidden);
-    if (!show) { if (skipBtn) { skipBtn.remove(); skipBtn = null; } return; }
-    if (skipBtn) return;
-    skipBtn = document.createElement('button');
-    skipBtn.type = 'button';
-    skipBtn.className = 'zm-skip';
-    skipBtn.textContent = '这局已经打完了 · 直接看结果';
-    skipBtn.addEventListener('click', (e) => { e.stopPropagation(); if (skipBtn) { skipBtn.remove(); skipBtn = null; } resync(); });
-    els.table.appendChild(skipBtn);
-    if (!fx.reduce()) skipBtn.animate([{ opacity: 0, translate: '-50% 10px' }, { opacity: 1, translate: '-50% 0' }], { duration: 260, easing: 'ease-out' });
+  /* 桌沿右下角的小按钮（2026-11-14 用户：牌桌上的编辑面板拿掉，真正要的只有「下一局」，做成音乐里的快进键，别太显眼）：
+   * · 真人都出局了（服务器上这局已经算完），网页还在一步步播机器猫出牌 → ⏩ 快进：剩下的按 5 倍速播完（再点一下恢复），
+   *   播完照常弹结算——不直接跳过：结果大家都想看一眼，房主一点就把所有人的结尾掐掉不合适。
+   *   联机只有房主有这个键，点了服务器记一个开关，所有人一起快（大家看到的进度一样）；单机是我自己出局后自己点
+   * · 结算看过了、这局确实结束 → 房主看到 ⏭ 下一局（别人没有） */
+  const FF_IC = {
+    ff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5v11L11 12ZM12 6.5v11l7.5-5.5Z"/></svg>',
+    next: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5v11L10 12ZM10.5 6.5v11L17 12Z"/><path d="M19 6.5v11" class="bar"/></svg>',
+  };
+  let ffBtn = null;
+  function updateFF() {
+    let mode = '';
+    if (game && !game.online && !online) {
+      // 单机：我出局、自己那下炸完了（fastOut），机器猫还在接着打 → 我自己的 ⏩
+      const s = game.state;
+      if (!game.tutorial && s && !s.alive[0] && s.phase !== 'over' && game.fastOut) mode = 'ff';
+    } else {
+      const g = online && game && game.online ? G() : null;
+      // 我这边也得看到真人全出局了才算（网慢、播得落后时，服务器早算完了，但我这边自己还活着——这时快进 / 露键都等于剧透）
+      const humansOutHere = () => game.state && online.st.players.every((p) => p.isAi || p.left || p.seat == null || !game.state.alive[locOf(p.seat)]);
+      const replaying = !!(g && g.over && game.finishShown !== g.matchNo && (online.playing || online.queue.length) && humansOutHere());
+      // 联机（2026-11-14 用户）：只有房主有这个键，房主点了大家一起 5 倍速——所有人看到的进度一样；别人跟着服务器上的开关走
+      // 房主刚点、服务器的状态还没回来：先按房主点的算，别一闪又被旧状态拨回去（4 秒没回来就作罢）
+      const req = game.turboReq && performance.now() - game.turboReq.at < 4000 && game.turboReq.on !== !!g.turbo ? game.turboReq.on : null;
+      const want = !!(replaying && (req != null ? req : g.turbo));
+      if (!!game.turbo !== want) setTurbo(want);
+      const canNext = !!(g && g.over && game.finishShown === g.matchNo && isHost() && !online.playing && !online.queue.length);
+      mode = replaying && isHost() ? 'ff' : canNext ? 'next' : '';
+    }
+    if (!mode) { if (ffBtn) { ffBtn.remove(); ffBtn = null; } return; }
+    if (!ffBtn || !els.center.contains(ffBtn)) {
+      if (ffBtn) ffBtn.remove();
+      ffBtn = document.createElement('button');
+      ffBtn.type = 'button';
+      ffBtn.className = 'zm-ff';
+      ffBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const b = e.currentTarget;
+        if (b.dataset.mode === 'ff') {
+          const on = !(game && game.turbo);
+          setTurbo(on);   // 我这边先快起来；联机再告诉服务器，别人下一份状态里看到就跟上
+          b.classList.toggle('is-on', on);
+          snd('tap');
+          if (online && game && game.online) { game.turboReq = { on, at: performance.now() }; onlineAct('turbo', { on }); }
+        } else if (b.dataset.mode === 'next') { b.disabled = true; exitEdit(); onlineAct('next'); }
+      });
+      els.center.appendChild(ffBtn);
+      if (!fx.reduce()) ffBtn.animate([{ opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1 }], { duration: 260, easing: 'cubic-bezier(.3,.7,.4,1.4)' });
+    }
+    if (ffBtn.dataset.mode !== mode) {
+      ffBtn.dataset.mode = mode;
+      ffBtn.innerHTML = FF_IC[mode];
+      ffBtn.disabled = false;
+      const label = mode === 'ff' ? '快进：剩下的 5 倍速播完' : '下一局';
+      ffBtn.setAttribute('aria-label', label); ffBtn.title = label;
+    }
+    ffBtn.classList.toggle('is-on', mode === 'ff' && !!game.turbo);
   }
-  setInterval(updateSkip, 400);
+  setInterval(updateFF, 400);
+  /* 顶栏「排行榜」（联机里谁都能随时点开）：这局结算过了 → 这局名次 + 本房间战绩；还在打 → 只看本房间战绩 */
+  function showRoomRank() {
+    if (!online || !online.st) return;
+    const g = G();
+    if (g && g.over && game && game.finishShown === g.matchNo) { showRanking(); return; }
+    const body = recordHtml(online.st.record, 1);
+    openDialog('<h2>排行榜</h2>' + (body || '<p class="zm-muted">还没打完一局。打完第一局，这里就有每个人的平均名次了。</p>') +
+      '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (d) => {
+      d.querySelector('[data-ok]').addEventListener('click', closeDialog);
+    });
+  }
   async function pollLoop() {
     const my = { abort: false };
     online.poll = my;
@@ -5366,6 +5471,9 @@
         av.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-9px) scale(1.06)', offset: 0.4 }, { transform: 'translateY(0)' }], { duration: 360, delay: i * 35, easing: 'cubic-bezier(.3,.7,.4,1.4)' });
       }
     });
+    // 2026-11-14 用户：不用教房主怎么调座位，让他自己摸索——牌桌上什么面板都不加（点桌面空处就退出，下一局在桌沿右下角的快进键）；
+    // 房间页只留一个「完成」
+    if (where === 'table') { const b0 = els.app.querySelector('.zm-edit-bar'); if (b0) b0.remove(); return; }
     let bar = els.app.querySelector('.zm-edit-bar');
     if (!bar) {
       bar = document.createElement('div');
@@ -5379,9 +5487,7 @@
         else if (b.dataset.e === 'next') { b.disabled = true; exitEdit(); onlineAct('next'); }
       });
     }
-    bar.innerHTML = '<span>拖头像换座 · 点 × 请离</span>' +
-      (where === 'table' ? '<button type="button" class="zm-btn" data-e="rank">排行榜</button><button type="button" class="zm-btn zm-btn-primary" data-e="next">下一局</button>' : '') +
-      '<button type="button" class="zm-btn' + (where === 'table' ? '' : ' zm-btn-primary') + '" data-e="done">完成</button>';
+    bar.innerHTML = '<button type="button" class="zm-btn zm-btn-primary" data-e="done">完成</button>';
   }
   // 换座前记下每个人头像在哪（按人认，不按座位）；新状态画好后从旧位置滑过来
   function spotsByPid(where) {
@@ -5482,7 +5588,7 @@
       const x = e.target.closest('.zm-x');
       if (x) { e.stopPropagation(); const info = editPlayer(x.closest(sel), where); if (info && info.p) askKick(info.p, false); return; }
       if (e.target.closest(sel)) { e.stopPropagation(); return; }   // 编辑模式里点头像不弹别的
-      if (e.target.closest('button, .zs-card, input')) return;   // 房间页的规则开关照常能点
+      if (e.target.closest('button, .zs-card, input, .zm-edit-bar')) return;   // 房间页的规则开关照常能点
       e.stopPropagation(); exitEdit();
     }, true);
   }
@@ -5597,10 +5703,12 @@
   els.cancelBtn.addEventListener('click', cancelTarget);
   els.skipTut.addEventListener('click', skipTutorial);
   $('zmPauseBtn').addEventListener('click', pauseGame);
+  $('zmRankBtn').addEventListener('click', (e) => { e.stopPropagation(); showRoomRank(); });
   $('zmRulesBtn').addEventListener('click', showRules);
   $('zmMenuBtn').addEventListener('click', toggleMenu);
   $('zmSoundBtn').addEventListener('click', toggleSoundPanel);
-  els.mask.addEventListener('click', (e) => { if (e.target === els.mask && els.dialog.querySelector('[data-ok]') && !els.dialog.querySelector('[data-range]')) { const cb = closeDialog(); if (cb) cb(); } });
+  // 联机排行榜也能点外面收起（2026-11-14：排行榜挪到了顶栏，随时能再打开；收起后房主在桌沿右下角点 ⏭ 开下一局）
+  els.mask.addEventListener('click', (e) => { if (e.target === els.mask && (els.dialog.querySelector('[data-ok]') || els.dialog.querySelector('.zm-rank')) && !els.dialog.querySelector('[data-range]')) { const cb = closeDialog(); if (cb) cb(); } });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && mode === 'target') cancelTarget();
     if ((e.key === 'Escape' || e.key === 'Enter') && game && game.peekDone) game.peekDone();
