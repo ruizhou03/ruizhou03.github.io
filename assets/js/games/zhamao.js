@@ -145,14 +145,20 @@
     });
   }
 
-  function drawBots(n) {
-    const names = AV ? AV.BOT_NICKS.slice() : ['阿尔法', '贝塔', '伽马', '德尔塔'];
-    const faces = AV ? AV.ROBOT.map((x) => x.id) : [];
+  /* 机器猫的名字和头像按档从各自的池子里抽（2026-11-13 用户：高手一套名字 + 深色金眼头像、普通希腊字母 + 现在四个、入门零一…零九 + 马卡龙大眼睛；
+   * 对局里不再挂档位小签，看名字和头像就知道是哪一档） */
+  function tierPool(tier) {
+    const T = AV && AV.BOT_TIERS && (AV.BOT_TIERS[tier] || AV.BOT_TIERS.normal);
+    if (T) return { nicks: T.nicks, faces: T.faces.map((x) => x.id) };
+    return { nicks: AV ? AV.BOT_NICKS : ['阿尔法', '贝塔', '伽马', '德尔塔'], faces: AV ? AV.ROBOT.map((x) => x.id) : [] };
+  }
+  function drawBots(n, tier) {
+    const P = tierPool(tier), names = P.nicks.slice();
     const take = (arr) => arr.length ? arr.splice((Math.random() * arr.length) | 0, 1)[0] : null;
     const out = [{ nick: profile.nick, avatar: profile.avatar }];
-    // 机器猫头像只有几种：人多时用完一轮再来一轮（名字不重）
-    let pool = faces.slice();
-    for (let i = 1; i < n; i++) { if (!pool.length) pool = faces.slice(); out.push({ nick: take(names), avatar: pool.length ? take(pool) : null }); }
+    // 每档头像只有四种：人多时用完一轮再来一轮（名字不重）
+    let pool = P.faces.slice();
+    for (let i = 1; i < n; i++) { if (!pool.length) pool = P.faces.slice(); out.push({ nick: take(names), avatar: pool.length ? take(pool) : null }); }
     return out;
   }
   function avatarHtml(seat) {
@@ -604,12 +610,13 @@
     if (turn) dirHot();
     // 结构只建一次：头像 / 名字不重画（动画要拿稳定的元素），只改数字和标记
     if (!box.querySelector('.zm-av')) {
-      const tier = seat !== 0 && !game.tutorial ? '<span class="zm-tier"' + (game.tiers[seat] || (game.tags && game.tags[seat]) ? '' : ' hidden') + '></span>' : '';
+      const tier = seat !== 0 && !game.tutorial ? '<span class="zm-tier"' + (game.tags && game.tags[seat] ? '' : ' hidden') + '></span>' : '';
       box.innerHTML = '<div class="zm-av"><span class="zm-av-face">' + avatarHtml(seat) + '</span>' + CLOCK_SVG + '</div>' +
         '<span class="zm-name">' + esc(nameOf(seat)) + '</span>' + tier;
     }
     const tg = box.querySelector('.zm-tier');
-    if (tg) { const txt = (game.tags && game.tags[seat]) || (game.tiers[seat] ? AI.TIER_NAMES[game.tiers[seat]] : ''); tg.textContent = txt; tg.hidden = !txt; }
+    // 档位不再挂签（看名字 + 头像色系）；只留教程等场合的特别标签
+    if (tg) { const txt = (game.tags && game.tags[seat]) || ''; tg.textContent = txt; tg.hidden = !txt; }
     const av = box.querySelector('.zm-av');
     setBadge(av, 'zm-count', seat !== 0 && !out ? String(d.counts[seat]) : '');
     setBadge(av, 'zm-turns', turn && (d.turnsLeft > 1 || game.attackSeat === seat) ? '×' + d.turnsLeft : '');
@@ -3737,7 +3744,7 @@
     els.skipTut.hidden = true;
     const n = settings.players;
     const st = R.createGame(n, (Math.random() * 2 ** 31) | 0, settings.rules);
-    game = { state: st, bots: drawBots(n), tiers: [null].concat(Array(n - 1).fill(settings.tier)), tutorial: false };
+    game = { state: st, bots: drawBots(n, settings.tier), tiers: [null].concat(Array(n - 1).fill(settings.tier)), tutorial: false };
     els.cover.hidden = true;
     buildSeats();
     solveSize();
@@ -3787,7 +3794,7 @@
     $('zmSoloNum').innerHTML = n + '<small>人</small>';
     const [minus, plus] = els.cover.querySelectorAll('.zm-solo-step button');
     minus.disabled = n <= R.MIN_PLAYERS; plus.disabled = n >= SOLO_MAX;
-    const faces = AV ? AV.ROBOT : [];
+    const faces = AV ? (AV.BOT_TIERS && AV.BOT_TIERS[settings.tier] ? AV.BOT_TIERS[settings.tier].faces : AV.ROBOT) : [];   // 预览选中那一档的头像
     const meFace = profile.avatar && AV && AV.byId[profile.avatar] ? AV.byId[profile.avatar].svg : '<span>我</span>';
     $('zmSoloFaces').innerHTML = '<i class="is-me">' + meFace + '</i>' + Array.from({ length: n - 1 }, (_, i) => '<i>' + (faces.length ? faces[i % faces.length].svg : '') + '</i>').join('');
     // 头像一排排不下就整体缩小（9 人时人数卡里放不下 9 个 34px 的头像；2026-11-13 用户：别超出宽度）；「你 + 几只机器猫」那行说明去掉

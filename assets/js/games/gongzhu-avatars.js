@@ -100,8 +100,8 @@
   ];
 
   // 机器人：圆角方头 + 天线，几种颜色和眼睛，方便同一桌两个机器人分得清
-  const robot = (bg, head, eyesSvg) => tile(bg,
-    '<path d="M32 8v8" stroke="' + INK + '" stroke-width="3.2" stroke-linecap="round"/><circle cx="32" cy="8" r="3.6" fill="#d6483c"/>' +
+  const robot = (bg, head, eyesSvg, ball) => tile(bg,
+    '<path d="M32 8v8" stroke="' + INK + '" stroke-width="3.2" stroke-linecap="round"/><circle cx="32" cy="8" r="3.6" fill="' + (ball || '#d6483c') + '"/>' +
     '<rect x="13" y="16" width="38" height="32" rx="10" fill="' + head + '"/><rect x="8" y="27" width="5" height="10" rx="2" fill="' + head + '"/><rect x="51" y="27" width="5" height="10" rx="2" fill="' + head + '"/>' + eyesSvg);
   const ROBOT = [
     { id: 'bot-navy', name: '藏蓝机器人', svg: robot('#dde6f2', '#3d5878', '<circle cx="25" cy="30" r="4.5" fill="' + CREAM + '"/><circle cx="39" cy="30" r="4.5" fill="' + CREAM + '"/><rect x="24" y="39" width="16" height="3.5" rx="1.75" fill="' + CREAM + '"/>') },
@@ -109,6 +109,31 @@
     { id: 'bot-mint', name: '薄荷机器人', svg: robot('#f3dede', '#7cbfa8', '<rect x="21" y="26" width="8" height="8" rx="2" fill="' + INK + '"/><rect x="35" y="26" width="8" height="8" rx="2" fill="' + INK + '"/><rect x="23" y="39" width="18" height="4" rx="2" fill="' + INK + '"/>') },
     { id: 'bot-coral', name: '珊瑚机器人', svg: robot('#e3ecd9', '#e07b62', '<path d="M21 31q4-5 8 0M35 31q4-5 8 0" stroke="' + CREAM + '" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M26 39q6 5 12 0" stroke="' + CREAM + '" stroke-width="3" fill="none" stroke-linecap="round"/>') },
   ];
+
+  /* 百变小咪的机器猫按档分开（2026-11-13 用户定稿）：每档一套名字、一套头像色系，对局里不再挂「高手 / 普通 / 入门」小签。
+   * 高手 = 深色机身 + 金眼睛金天线球（北斗星名）；普通 = 上面这四个（希腊字母）；入门 = 马卡龙浅色 + 圆圆大眼睛腮红（零一…零九）。
+   * 只是往后加，拱猪照旧用 ROBOT / BOT_NICKS */
+  const GOLD = '#e7c46a';
+  const ROBOT_PRO = [
+    { id: 'bot-pro-ink', name: '墨金机器人', svg: robot('#efe0b6', '#2b2723', '<rect x="19" y="26" width="26" height="8" rx="4" fill="' + GOLD + '"/><path d="M26 41h12" stroke="' + GOLD + '" stroke-width="3" stroke-linecap="round"/>', GOLD) },
+    { id: 'bot-pro-navy', name: '深蓝金机器人', svg: robot('#e9dcc0', '#24385a', '<circle cx="25" cy="30" r="4.2" fill="' + GOLD + '"/><circle cx="39" cy="30" r="4.2" fill="' + GOLD + '"/><path d="M25 40q7 3.5 14 0" stroke="' + GOLD + '" stroke-width="3" fill="none" stroke-linecap="round"/>', GOLD) },
+    { id: 'bot-pro-wine', name: '酒红金机器人', svg: robot('#f1dfc4', '#6e2a28', '<path d="M20 30h9M35 30h9" stroke="' + GOLD + '" stroke-width="3.6" stroke-linecap="round"/><rect x="25" y="39" width="14" height="3.5" rx="1.75" fill="' + GOLD + '"/>', GOLD) },
+    { id: 'bot-pro-teal', name: '墨绿金机器人', svg: robot('#e6e2c6', '#1f4f4b', '<rect x="21" y="26" width="8" height="8" rx="2" fill="' + GOLD + '"/><rect x="35" y="26" width="8" height="8" rx="2" fill="' + GOLD + '"/><path d="M26 41q6 3 12 0" stroke="' + GOLD + '" stroke-width="3" fill="none" stroke-linecap="round"/>', GOLD) },
+  ];
+  const bigEye = (x, y) => '<circle cx="' + x + '" cy="' + y + '" r="4.6" fill="' + INK + '"/><circle cx="' + (x - 1.5) + '" cy="' + (y - 1.7) + '" r="1.7" fill="#fff"/>';
+  const babyFace = bigEye(25, 30) + bigEye(39, 30) + '<ellipse cx="20" cy="38" rx="3" ry="1.8" fill="#f2a0a0" opacity=".75"/><ellipse cx="44" cy="38" rx="3" ry="1.8" fill="#f2a0a0" opacity=".75"/>' +
+    '<path d="M28.5 40q3.5 3 7 0" stroke="' + INK + '" stroke-width="2.4" fill="none" stroke-linecap="round"/>';
+  const ROBOT_NEW = [
+    { id: 'bot-new-blue', name: '浅蓝小机器人', svg: robot('#fbf3e6', '#a9c8e8', babyFace, '#f6b3b8') },
+    { id: 'bot-new-pink', name: '浅粉小机器人', svg: robot('#fbf3e6', '#f3bcc8', babyFace, '#9fd0ef') },
+    { id: 'bot-new-lemon', name: '柠檬小机器人', svg: robot('#fbf3e6', '#f2df8f', babyFace, '#f6b3b8') },
+    { id: 'bot-new-lilac', name: '浅紫小机器人', svg: robot('#fbf3e6', '#cdbde6', babyFace, '#f2df8f') },
+  ];
+  const BOT_TIERS = {
+    hard: { nicks: ['天枢', '天璇', '天玑', '天权', '玉衡', '开阳', '摇光', '北辰', '启明'], faces: ROBOT_PRO },
+    normal: { nicks: ['阿尔法', '贝塔', '伽马', '德尔塔', '泽塔', '西塔', '卡帕', '西格玛', '欧米伽'], faces: ROBOT },
+    easy: { nicks: ['零一', '零二', '零三', '零四', '零五', '零六', '零七', '零八', '零九'], faces: ROBOT_NEW },
+  };
 
   // 真人不填昵称时的随机昵称：两个字、好念、带点烟火气（吃的 / 自然 / 吉祥话），避开容易撞的真名
   const NICKS = ['小满', '阿福', '团子', '豆包', '汤圆', '年糕', '麻薯', '栗子', '橙子', '柚子', '青团', '桂花',
@@ -120,10 +145,10 @@
     '天枢', '天璇', '开阳', '摇光', '启明', '北辰', '星尘', '极光', '光年', '量子', '银河'];
 
   const byId = {};
-  for (const a of HUMAN.concat(ROBOT)) byId[a.id] = a;
+  for (const a of HUMAN.concat(ROBOT, ROBOT_PRO, ROBOT_NEW)) byId[a.id] = a;
   const pick = (arr) => arr[(Math.random() * arr.length) | 0];
   window.GongzhuAvatars = {
-    HUMAN, ROBOT, NICKS, BOT_NICKS, byId,
+    HUMAN, ROBOT, NICKS, BOT_NICKS, byId, ROBOT_PRO, ROBOT_NEW, BOT_TIERS,
     svg: (id) => (byId[id] ? byId[id].svg : ''),
     randomHuman: () => pick(HUMAN).id,
     randomNick: () => pick(NICKS),
