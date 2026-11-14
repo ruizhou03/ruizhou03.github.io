@@ -830,7 +830,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 6–9 人：对手排成一道弧（两头低、中间高），头像缩小；角标挪到头像角上（layoutOpps 设 --av-o / --arc / --dy） */
 .zm-opps.is-arc { --av: var(--av-o, 38px); gap: 0; justify-content: space-around; min-height: calc(var(--av) + 40px + var(--arc, 24px)); padding-left: 4px; padding-right: 4px; }
 .zm-opps.is-arc .zm-seat { min-width: 0; flex: 1 1 0; gap: 2px; transform: translateY(var(--dy, 0px)); }
-.zm-opps.is-arc .zm-name { font-size: 11.5px; max-width: 100%; }
+.zm-opps.is-arc .zm-name { font-size: 11.5px; max-width: calc(100% - 10px); }   /* 名字长时（6–9 人）两边各留 5px，名字之间的方向箭头不被挤没 */
 .zm-opps.is-arc .zm-tier { font-size: 9.5px; padding: 0 4px; line-height: 14px; }
 .zm-opps.is-arc .zm-count { left: auto; right: -9px; top: -7px; min-width: 18px; height: 21px; font-size: 11px; border-radius: 4px; }
 .zm-opps.is-arc .zm-turns { left: auto; right: -11px; bottom: -6px; height: 17px; min-width: 24px; padding: 0 4px; font-size: 10.5px; line-height: 17px; }
@@ -995,11 +995,17 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 桌沿：绕牌桌一圈的细金线（平时一点柔光顺着出牌方向绕）；指人时亮金一截从出牌人长到被指的人，结算后缩回 */
 .zm-rim { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
 .zm-rim path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.zm-rim .base { stroke: rgba(184, 145, 74, 0.26); stroke-width: 1.6; }
-.zm-rim .drift { stroke: rgba(226, 184, 92, 0.55); stroke-width: 2.4; filter: blur(0.6px); }
+.zm-rim .base { stroke: var(--rim-base, rgba(184, 145, 74, 0.26)); stroke-width: 1.6; transition: stroke 1.2s ease; }
+.zm-rim .drift { stroke: var(--rim-drift, rgba(226, 184, 92, 0.55)); stroke-width: 2.4; filter: blur(0.6px); transition: stroke 1.2s ease; }
 .zm-rim .lglow { stroke: rgba(246, 210, 120, 0.55); stroke-width: 9; filter: blur(3px); }
 .zm-rim .lline { stroke: #d2a24c; stroke-width: 3.2; }
 .zm-rim .lhead { fill: #fff3cf; stroke: #d2a24c; stroke-width: 2; filter: drop-shadow(0 0 5px rgba(240, 196, 100, 1)); }
 .zm-rim .lend { fill: none; stroke: #d2a24c; stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
 .zm-rim .lend.is-on { opacity: 1; animation: zm-rim-end 0.9s ease-in-out infinite alternate; }
 @keyframes zm-rim-end { from { scale: 0.8; opacity: 1; } to { scale: 1.6; opacity: 0.35; } }
+.zm-rim .lend.is-hit { opacity: 1; animation: zm-rim-hit 0.6s ease-out forwards; }
+@keyframes zm-rim-hit { from { scale: 1; opacity: 1; } to { scale: 2.6; opacity: 0; } }
+.zm-rim .fx path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.zm-rim .flash path { stroke-width: 4; opacity: 0; filter: drop-shadow(0 0 6px currentColor); }
+.zm-rim .ripple path { filter: drop-shadow(0 0 5px currentColor); }
+.zm-rim .swirl path { stroke-width: 5; filter: drop-shadow(0 0 6px currentColor); }

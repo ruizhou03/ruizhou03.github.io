@@ -308,23 +308,46 @@
     if (n < 2 || !avEl(0)) return null;
     for (let i = 1; i < n; i++) if (!seatEl(i)) return null;   // 座位还没建好
     const tb = els.table.getBoundingClientRect(), W = tb.width;
+    // 和名字之间留的缝：手机上多留一点（2026-11-13 用户：手机上灯带和名字挨得太紧）
+    const gap = W < 520 ? 13 : 9;
     const anchor = (seat) => {
       if (seat === 0) { const r = avEl(0).getBoundingClientRect(); return { x: r.left + r.width / 2 - tb.left, y: r.top - 9 - tb.top }; }
-      const r = seatEl(seat).getBoundingClientRect(); return { x: r.left + r.width / 2 - tb.left, y: r.bottom + 6 - tb.top };
+      const r = seatEl(seat).getBoundingClientRect(); return { x: r.left + r.width / 2 - tb.left, y: r.bottom + gap - tb.top };
     };
     const opp = []; for (let i = 1; i < n; i++) opp.push(anchor(i));
-    opp.sort((a, b) => b.x - a.x);   // 右 → 左
     const me = anchor(0), m = 16, R = 26, yb = me.y;
-    const top = opp.length ? opp : [{ x: W / 2, y: 120 }];
-    const yR = top[0].y, yL = top[top.length - 1].y;
-    // 一圈：我 → 右下角 → 右边往上 → 沿对手一排（右→左）→ 左边往下 → 左下角 → 回到我
-    let d = 'M' + me.x.toFixed(1) + ' ' + yb.toFixed(1) + 'L' + (W - m - R).toFixed(1) + ' ' + yb.toFixed(1) + 'Q' + (W - m) + ' ' + yb.toFixed(1) + ' ' + (W - m) + ' ' + (yb - R).toFixed(1) +
-      'L' + (W - m) + ' ' + (yR + R).toFixed(1) + 'Q' + (W - m) + ' ' + yR.toFixed(1) + ' ' + (W - m - R).toFixed(1) + ' ' + yR.toFixed(1);
-    let prev = { x: W - m - R, y: yR };
-    for (let i = 0; i < top.length; i++) { const c = top[i], mid = { x: (prev.x + c.x) / 2, y: (prev.y + c.y) / 2 }; d += 'Q' + prev.x.toFixed(1) + ' ' + prev.y.toFixed(1) + ' ' + mid.x.toFixed(1) + ' ' + mid.y.toFixed(1); prev = c; }
-    d += 'Q' + prev.x.toFixed(1) + ' ' + prev.y.toFixed(1) + ' ' + ((prev.x + m + R) / 2).toFixed(1) + ' ' + ((prev.y + yL) / 2).toFixed(1) + 'L' + (m + R) + ' ' + yL.toFixed(1) +
-      'Q' + m + ' ' + yL.toFixed(1) + ' ' + m + ' ' + (yL + R).toFixed(1) + 'L' + m + ' ' + (yb - R).toFixed(1) + 'Q' + m + ' ' + yb.toFixed(1) + ' ' + (m + R) + ' ' + yb.toFixed(1) + 'Z';
-    return { d, W, H: tb.height, anchor };
+    /* 顶边：不再硬穿过每家下面的点（手机上最右 / 最左那家比圆角还靠外，线会折回来，接缝不顺）——
+     * 用一条抛物线 y = a·x² + b·x + c 拟合各家下面的点，再整条往下挪到不压住任何一家；两个圆角顺着这条线的切线接上去，处处光滑 */
+    const fit = (() => {
+      const k = opp.length;
+      if (!k) return { y: () => 110, dy: () => 0 };
+      if (k < 3) { const c = Math.max(...opp.map((p) => p.y)); return { y: () => c, dy: () => 0 }; }
+      const cx = W / 2, sx = W / 2, X = opp.map((p) => (p.x - cx) / sx);
+      // 最小二乘：解 3×3 正规方程（x 归一化到 [-1, 1]）
+      const S = (f) => X.reduce((t, x, i) => t + f(x, opp[i].y), 0);
+      const A = [[S((x) => x ** 4), S((x) => x ** 3), S((x) => x * x)], [S((x) => x ** 3), S((x) => x * x), S((x) => x)], [S((x) => x * x), S((x) => x), k]];
+      const B = [S((x, y) => x * x * y), S((x, y) => x * y), S((x, y) => y)];
+      const det = (M) => M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
+      const D0 = det(A);
+      if (Math.abs(D0) < 1e-9) { const c = Math.max(...opp.map((p) => p.y)); return { y: () => c, dy: () => 0 }; }
+      const col = (j) => A.map((row, i) => row.map((v, jj) => (jj === j ? B[i] : v)));
+      let qa = det(col(0)) / D0, qb = det(col(1)) / D0, qc = det(col(2)) / D0;
+      // 整条往下挪，保证每一家下面都不被压
+      const yAt = (x) => { const u = (x - cx) / sx; return qa * u * u + qb * u + qc; };
+      const lift = Math.max(0, ...opp.map((p) => p.y - yAt(p.x)));
+      qc += lift;
+      return { y: (x) => { const u = (x - cx) / sx; return qa * u * u + qb * u + qc; }, dy: (x) => { const u = (x - cx) / sx; return (2 * qa * u + qb) / sx; } };
+    })();
+    const xR = W - m - R, xL = m + R;
+    const yR = fit.y(xR), yL = fit.y(xL);
+    const ycR = yR + fit.dy(xR) * (W - m - xR), ycL = yL + fit.dy(xL) * (m - xL);   // 圆角控制点：顶边在端点处的切线和两条竖边的交点
+    const f = (v) => v.toFixed(1);
+    let d = 'M' + f(me.x) + ' ' + f(yb) + 'L' + f(W - m - R) + ' ' + f(yb) + 'Q' + (W - m) + ' ' + f(yb) + ' ' + (W - m) + ' ' + f(yb - R) +
+      'L' + (W - m) + ' ' + f(ycR + R) + 'Q' + (W - m) + ' ' + f(ycR) + ' ' + f(xR) + ' ' + f(yR);
+    for (let x = xR - 6; x > xL; x -= 6) d += 'L' + f(x) + ' ' + f(fit.y(x));   // 顶边：每 6px 一个点，看着就是一条顺滑的弧
+    d += 'L' + f(xL) + ' ' + f(yL) + 'Q' + m + ' ' + f(ycL) + ' ' + m + ' ' + f(ycL + R) +
+      'L' + m + ' ' + f(yb - R) + 'Q' + m + ' ' + f(yb) + ' ' + (m + R) + ' ' + f(yb) + 'Z';
+    return { d, W, H: tb.height, anchor: (seat) => (seat === 0 ? me : { x: anchor(seat).x, y: fit.y(anchor(seat).x) }) };
   }
   function rimRender() {
     let sv = els.table.querySelector(':scope > .zm-rim');
@@ -366,31 +389,119 @@
     const end = seg[seg.length - 1];
     g.innerHTML = '<path class="lglow" d="' + d + '"/><path class="lline" d="' + d + '"/><circle class="lhead" r="4"/><circle class="lend" cx="' + end.x.toFixed(1) + '" cy="' + end.y.toFixed(1) + '" r="6"/>';
     sv.querySelector('.links').appendChild(g);
-    const paths = g.querySelectorAll('path'), len = paths[1].getTotalLength(), head = g.querySelector('.lhead'), endDot = g.querySelector('.lend');
+    const paths = g.querySelectorAll('path'), len = Math.max(1, paths[1].getTotalLength()), head = g.querySelector('.lhead'), endDot = g.querySelector('.lend');
     paths.forEach((p) => { p.style.strokeDasharray = len + ' ' + (len + 10); p.style.strokeDashoffset = len; });
-    const grow = Math.min(650, 220 + len * 0.9);
-    const anims = [];
-    let raf = 0, t0 = performance.now(), mode = 'grow', from = 0;
-    const place = (frac) => { const q = paths[1].getPointAtLength(len * frac); head.setAttribute('cx', q.x.toFixed(1)); head.setAttribute('cy', q.y.toFixed(1)); paths.forEach((p) => { p.style.strokeDashoffset = (len * (1 - frac)).toFixed(1); }); };
-    const loop = (now) => {
-      const k = Math.min(1, (now - t0) / (mode === 'grow' ? grow : Math.min(480, 180 + len * 0.6)));
-      const e = mode === 'grow' ? 1 - Math.pow(1 - k, 3) : k * k;
-      place(mode === 'grow' ? e : from * (1 - e));
-      if (k < 1) raf = requestAnimationFrame(loop);
-      else if (mode === 'grow') { endDot.classList.add('is-on'); }
-      else g.remove();
+    const growMs = Math.min(650, 220 + len * 0.9);
+    let raf = 0, grown = false, pending = null, dead = false;
+    // 可见的一截 = [lo, hi]（0..1，沿出牌人 → 被指的人）；head 画在 hi 处
+    const show = (lo, hi) => {
+      const q = paths[1].getPointAtLength(len * hi); head.setAttribute('cx', q.x.toFixed(1)); head.setAttribute('cy', q.y.toFixed(1));
+      paths.forEach((p) => { p.style.strokeDasharray = Math.max(0.01, len * (hi - lo)).toFixed(1) + ' ' + (len * 2).toFixed(0); p.style.strokeDashoffset = (-len * lo).toFixed(1); });
     };
-    if (fx.reduce()) { place(1); endDot.classList.add('is-on'); } else raf = requestAnimationFrame(loop);
+    const tween = (ms, fn, done) => {
+      const t0 = performance.now();
+      const step = (now) => { const k = Math.min(1, (now - t0) / ms); fn(k); if (k < 1) raf = requestAnimationFrame(step); else if (done) done(); };
+      raf = requestAnimationFrame(step);
+    };
+    const finish = (opts) => {
+      endDot.classList.remove('is-on');
+      if (fx.reduce()) { g.remove(); return; }
+      if (opts && opts.mode === 'push') {
+        // 推过去（甩锅）：尾巴从出牌人这头追到被指的人那头，像锅一路滑到他面前
+        endDot.classList.add('is-hit');
+        tween(Math.min(620, 260 + len * 0.7), (k) => show(k * k * (3 - 2 * k), 1), () => { g.remove(); });
+      } else {
+        // 缩回（抽到 / 给到 / 换完 / 落空 / 被作废）：头从被指的人那头缩回出牌人
+        tween(Math.min(480, 180 + len * 0.6), (k) => show(0, 1 - k * k), () => g.remove());
+      }
+    };
+    if (fx.reduce()) { show(0, 1); grown = true; endDot.classList.add('is-on'); }
+    else tween(growMs, (k) => show(0, 1 - Math.pow(1 - k, 3)), () => {
+      grown = true; endDot.classList.add('is-on');
+      if (pending) { const o = pending; pending = null; setTimeout(() => { if (!dead) finish(o); }, (o && o.hold) || 220); }
+    });
     return {
-      remove() {   // 从被指的人那头缩回出牌人
-        cancelAnimationFrame(raf);
-        endDot.classList.remove('is-on');
-        if (fx.reduce()) { g.remove(); return; }
-        const cur = 1 - parseFloat(paths[1].style.strokeDashoffset || 0) / len;
-        mode = 'back'; from = cur; t0 = performance.now(); raf = requestAnimationFrame(loop);
-        void anims;
+      // 还在长就先长完、停一下再收（2026-11-13 用户：别人甩锅给我，线还没长到我这儿动画就结束了）
+      remove(opts) {
+        if (dead) return;
+        if (!grown) { pending = opts || {}; return; }
+        dead = true; cancelAnimationFrame(raf);
+        if (opts && opts.hold) setTimeout(() => finish(opts), opts.hold); else finish(opts);
       },
     };
+  }
+  /* ───── 桌沿的情绪 / 进程效果（预览中：#zmApp data-uiv-rimfx="1"）─────
+   * 摸到炸毛猫：整圈红光闪三下 + 从他那儿往两边漾开一圈红；逗猫棒救回来：金绿的波纹从他那儿温柔地漾开；炸出局：暗红波纹慢慢漾开、整圈暗一下；
+   * 洗牌：一道光绕桌飞转一圈半；转向：一道光倒着扫一圈；作废：紫色小波纹；赢了：金光从赢家绕满一圈、整圈亮两下。
+   * 平时：牌堆里炸毛猫越多，桌沿越暖（金 → 橙 → 红）、那点柔光绕得越快 */
+  const rimFxOn = () => els.app.dataset.uivRimfx === '1' && !fx.reduce();
+  function rimLayer(cls) {
+    const sv = rimRender();
+    if (!sv) return null;
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'fx ' + (cls || ''));
+    sv.insertBefore(g, sv.querySelector('.links'));
+    return { sv, g };
+  }
+  function rimFlash(color, times, ms) {
+    const L = rimLayer('flash'); if (!L) return;
+    L.g.innerHTML = '<path d="' + L.sv.querySelector('.base').getAttribute('d') + '" style="stroke:' + color + ';color:' + color + '"/>';
+    const p = L.g.firstChild, f = [];
+    for (let i = 0; i < times; i++) f.push({ opacity: 0, offset: i / times }, { opacity: 1, offset: (i + 0.35) / times });
+    f.push({ opacity: 0 });
+    p.animate(f, { duration: ms * times, easing: 'ease-in-out' }).finished.then(() => L.g.remove()).catch(() => L.g.remove());
+  }
+  function rimRipple(seat, color, ms, width) {
+    const L = rimLayer('ripple'); if (!L) return;
+    const pts = L.sv._pts, N = pts.length;
+    const p0 = L.sv._anchor(seat); let i0 = 0, bd = Infinity;
+    pts.forEach((q, i) => { const dd = (q.x - p0.x) ** 2 + (q.y - p0.y) ** 2; if (dd < bd) { bd = dd; i0 = i; } });
+    const half = Math.floor(N / 2);
+    [1, -1].forEach((dir) => {
+      const seg = []; for (let k = 0; k <= half; k++) seg.push(pts[(i0 + dir * k + N) % N]);
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      el.setAttribute('d', 'M' + seg.map((q) => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join('L'));
+      el.style.stroke = color; el.style.color = color; el.style.strokeWidth = (width || 3.5) + 1;
+      L.g.appendChild(el);
+      const len = el.getTotalLength(), w = 120;
+      el.style.strokeDasharray = w + ' ' + (len + w);
+      el.animate([{ strokeDashoffset: w, opacity: 1 }, { strokeDashoffset: -len, opacity: 0.2 }], { duration: ms, easing: 'cubic-bezier(.3,.6,.4,1)', fill: 'forwards' });
+    });
+    setTimeout(() => L.g.remove(), ms + 60);
+  }
+  function rimSwirl(color, laps, ms, reverse) {
+    const L = rimLayer('swirl'); if (!L) return;
+    L.g.innerHTML = '<path d="' + L.sv.querySelector('.base').getAttribute('d') + '" style="stroke:' + color + '"/>';
+    const p = L.g.firstChild, len = p.getTotalLength(), w = 180;
+    p.style.color = color;
+    p.style.strokeDasharray = w + ' ' + (len - w);
+    const a = reverse === -1 ? [{ strokeDashoffset: -len * laps }, { strokeDashoffset: 0 }] : [{ strokeDashoffset: 0 }, { strokeDashoffset: -len * laps }];
+    p.animate(a, { duration: ms, easing: 'cubic-bezier(.4,0,.3,1)' }).finished.then(() => L.g.remove()).catch(() => L.g.remove());
+  }
+  function rimFx(e) {
+    if (!rimFxOn()) return;
+    switch (e.t) {
+      case 'boom': rimFlash('#d2483a', 3, 380); rimRipple(e.seat, '#d2483a', 900, 4); break;
+      case 'defuse': rimRipple(e.seat, '#7fb06a', 1300, 3.5); setTimeout(() => rimRipple(e.seat, '#d9b45a', 1300, 2.5), 180); break;
+      case 'out': rimRipple(e.seat, '#7a2a22', 1600, 5); rimDim(1800); break;
+      case 'shuffle': rimSwirl('#e6bd62', 1.5, 1300); break;
+      case 'reverse': rimSwirl('#9fc3d6', 1, 1100, e.dir); break;
+      case 'nope': rimRipple(e.seat, '#8a68a8', 700, 3); break;
+      case 'win': rimSwirl('#f0c862', 1, 1500); rimFlash('#f0c862', 2, 600); break;
+    }
+  }
+  function rimDim(ms) { const sv = rimRender(); if (!sv) return; sv.animate([{ opacity: 1 }, { opacity: 0.35, offset: 0.3 }, { opacity: 1 }], { duration: ms, easing: 'ease-in-out' }); }
+  // 牌堆里炸毛猫的占比 → 桌沿多暖、柔光绕多快
+  function rimHeat(p) {
+    const sv = els.table.querySelector(':scope > .zm-rim');
+    if (!sv) return;
+    const h = rimFxOn() ? Math.max(0, Math.min(1, (p - 0.1) / 0.35)) : 0;
+    const mix = (a, b) => Math.round(a + (b - a) * h);
+    const base = h < 0.5 ? [mix(184, 214), mix(145, 120), mix(74, 50)] : [mix(214, 205), mix(120, 70), mix(50, 52)];
+    sv.style.setProperty('--rim-base', 'rgba(' + (h ? base.join(',') : '184,145,74') + ',' + (0.26 + h * 0.2).toFixed(2) + ')');
+    sv.style.setProperty('--rim-drift', h ? 'rgba(' + [mix(226, 232), mix(184, 110), mix(92, 70)].join(',') + ',0.65)' : 'rgba(226,184,92,0.55)');
+    const drift = sv.querySelector('.drift');
+    if (drift && drift._anim) drift._anim.playbackRate = 1 + h * 1.4;
   }
   /* 指向当前出牌的人的那个箭头标红：顺时针（d = 1）是从 t-1 指向 t 的那个（第 t-2 个），反过来是从 t+1 指向 t 的那个（第 t-1 个） */
   function dirHot() {
@@ -866,6 +977,7 @@
     if (tut && !coachQueue) hint('');
     if (s.phase === 'over') { finish(); return; }
     if (window.ZhamaoAudio && s.deck.length) window.ZhamaoAudio.danger(R.kittensInDeck(s) / s.deck.length);   // 背景音乐按公开的炸毛猫概率换版
+    if (s.deck.length) rimHeat(R.kittensInDeck(s) / s.deck.length);
     if (s.phase === 'act') startClock(s.turn, s.turn === 0 && !autopilot ? onMyTimeout : null);
     else if (s.phase === 'give' && s.give.from === 0 && !autopilot) startClock(0, onMyTimeout);
     else stopClock();
@@ -993,6 +1105,7 @@
 
   /* ───── 事件动画 ───── */
   async function anim(e, t, next) {
+    rimFx(e);
     switch (e.t) {
       case 'play': return animPlay(e, t);
       case 'nope': return animNope(e, t);
@@ -1058,7 +1171,7 @@
     if (tg >= 0) {
       game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK || p.type === R.TATTACK ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
       releaseRim();
-      if (p.type !== R.ATTACK) game.rimLk = rimLink(p.by, tg);   // 桌沿连线单独记着：等牌真的拿到 / 给到 / 换完才缩回（不跟准星一起收）
+      game.rimLk = rimLink(p.by, tg);   // 桌沿连线单独记着：等牌真的拿到 / 给到 / 换完才收（不跟准星一起收）；甩锅给下家也连
     }
     await mimic(p.cards, t);   // 万能猫顶了谁：演完、停一下再往下走（只有组合里有万能猫时才多这一下）
     if (t !== token) return;
@@ -1153,7 +1266,8 @@
   async function animResolve(e, t) {
     stopFuse();
     if (game.arrow && (e.cancelled || (e.type !== R.FAVOR))) { game.arrow.remove(); game.arrow = null; }
-    if (e.cancelled || (e.type !== R.FAVOR && e.type !== R.SWAP && e.type !== 'pair' && e.type !== 'triple')) releaseRim();
+    if (!e.cancelled && (e.type === R.ATTACK || e.type === R.TATTACK)) { if (game.rimLk) { game.rimLk.remove({ mode: 'push', hold: 450 }); game.rimLk = null; } }   // 甩锅：长完、停一下，再推到他面前
+    else if (e.cancelled || (e.type !== R.FAVOR && e.type !== R.SWAP && e.type !== 'pair' && e.type !== 'triple')) releaseRim();
     const inner = els.stage.querySelector('.zm-stage-inner');
     const lab = inner && inner.querySelector('.zm-stage-label');
     if (lab && game.lastNopes) lab.textContent = e.cancelled ? '作废了' : '照样生效';
@@ -4129,6 +4243,7 @@
     autopilot = !game.spectator && !!g.auto[online.base];
     els.me.classList.toggle('is-auto', autopilot);
     if (window.ZhamaoAudio && s.deck.length) window.ZhamaoAudio.danger(R.kittensInDeck(s) / s.deck.length);
+    if (s.deck.length) rimHeat(R.kittensInDeck(s) / s.deck.length);
     release();
     if (g.over) { renderAll(); onlineFinish(); return; }
     const mine = !!g.myCall && !autopilot && !game.spectator;
