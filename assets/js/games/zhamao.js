@@ -539,14 +539,15 @@
     const near = (p) => { let bi = 0, bd = Infinity; pts.forEach((q, i) => { const dd = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (dd < bd) { bd = dd; bi = i; } }); return bi; };
     const ia = near(sv._anchor(a)), ib = near(sv._anchor(b));
     const fwd = (ib - ia + N) % N, back = (ia - ib + N) % N;
-    /* 往哪边走（2026-11-14 用户：最右那家甩锅给对角的我，出牌方向是顺时针、线却逆时针绕过整排对手）：
-     * 以前按像素挑近的那边；现在按座位挑——沿出牌顺序数，中间隔着的（还活着的）人少的那边；一样多就顺着出牌方向。
-     * 甩锅给下家永远是顺着出牌方向那一步；索要 / 交换 / 偷 / 点名同样按这个规则。
-     * 路径上序号变大 = 座位号变大（我 → 1 号 → 2 号 …），所以「顺着出牌方向」= 序号往 dirNow() 那边走 */
-    const n = game.state.n, alive = game.state.alive, dir = dirNow();
-    const between = (step) => { let c = 0; for (let s = (a + step + n) % n; s !== b; s = (s + step + n) % n) if (alive[s]) c++; return c; };
-    const playWay = between(dir) <= between(-dir) ? dir : -dir;
-    const stepDir = playWay === 1 ? 1 : -1, cnt = stepDir === 1 ? fwd : back;
+    /* 往哪边走（2026-11-14 用户两次反馈）：
+     * ① 5 人局最右那家甩锅给左下角的我（屏幕上两条路差不多长）：线逆着出牌方向走，应该顺着；
+     * ② 9 人局零七（上排偏右）索要我：按「中间隔几个人」挑了往右那边，可我坐在左下角、对手全在上排，
+     *    往右要绕右边 + 整条底边，屏幕上反而是长的那条，还逆着出牌方向。
+     * 现在按屏幕上实际走的路程挑：一边明显短（短 25% 以上）就走短的；两边差不多（对角）就顺着出牌方向。
+     * 甩锅 / 索要 / 交换 / 偷 / 点名都按这个。路径上序号变大 = 座位号变大（我 → 1 号 → 2 号 …），所以「顺着出牌方向」= 序号往 dirNow() 那边走 */
+    const dir = dirNow();
+    const shortWay = fwd <= back ? 1 : -1, clear = Math.min(fwd, back) < Math.max(fwd, back) * 0.75;
+    const stepDir = clear ? shortWay : (dir === -1 ? -1 : 1), cnt = stepDir === 1 ? fwd : back;
     const seg = []; for (let k = 0; k <= cnt; k++) seg.push(pts[(ia + stepDir * k + N) % N]);
     const d = 'M' + seg.map((q) => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join('L');
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
