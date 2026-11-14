@@ -3,7 +3,8 @@
    页面 front-matter 写 body_class: mk-cat 后生效；只覆盖这四页，不碰 main.css。
    设计定稿见 2026-10 画布 A2 分页。
    ============================================================ */
-@import url("https://cdn.jsdelivr.net/npm/@fontsource/ma-shan-zheng@5/400.css");
+/* 毛笔字体（马善政）以前在这里 @import jsdelivr——@import 会卡住整张样式表，国内连不上 jsdelivr 就白屏；
+   2026-11-14 改到 _layouts/default.html 里异步加载（连不上就先用系统字体）。 */
 
 body.mk-cat{
   --mk-paper:#f3eee3; --mk-paper2:#f8f4ea; --mk-panel:#ebe5d8; --mk-cell:#ece6d9;

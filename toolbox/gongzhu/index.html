@@ -15,8 +15,8 @@ body_class: gz-fullscreen
      （按字形分片懒加载，有系统宋体的设备一片都不会下载）。不补的话微信 iOS 会落到日文明朝体：
      日文也有的字（机、局）是宋体，简体专用字（联、对）退回黑体，一行里两种字。数字仍是 Georgia，不加载 Cormorant -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css"></noscript>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css"></noscript>
 <link rel="stylesheet" href="/assets/css/gongzhu.css?v={{ site.time | date: '%s' }}">
 
 <div class="gz-app" id="gzApp">

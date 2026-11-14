@@ -8,25 +8,22 @@
   <title>{{ page.title | default: site.title }}</title>
 
   {%- comment -%}
-    字体托管：jsdelivr fontsource 镜像。fonts.googleapis.com / fonts.gstatic.com
-    国内基本被墙，jsdelivr 大概率通。fontsource 的 CSS 自带 unicode-range 子集
-    分片，思源宋体 CN 子集只在中文页按需下载（~1MB 而非整套 ~8MB）。
-    pin @5 主版本号，自动吃 5.x 补丁更新，不会跨大版本 break。
+    字体托管（2026-11-14 改）：国内朋友反馈不挂 VPN 打不开网站——以前这里十个样式表全从 cdn.jsdelivr.net 同步加载，
+    jsdelivr 在国内经常连不上，浏览器就卡在头部一直等，整页白屏。现在：
+    · Cormorant（英文 / 数字）复制到本站自己托管（/assets/css/fonts-cormorant.css，只留 latin + latin-ext），和页面同源，不会卡；
+    · 思源宋体仍走 jsdelivr fontsource（101 个按字形懒加载的子集，自托管太大），但改成异步加载（media=print → onload 切 all），
+      连不上也不挡页面——先用系统宋体（字体栈里的 Songti SC / STSong）显示，下好了再换上。
   {%- endcomment -%}
   {%- unless page.minimal_app_shell -%}
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   {%- comment -%} 预加载 Cormorant 拉丁主字重：尽早就绪、缩短首屏 FOUT（牌面点数等"先变粗→再恢复"的字体换装闪烁）。Noto 中文是 101 个按字形范围懒加载的子集，无法实际预加载。 {%- endcomment -%}
-  <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/files/cormorant-garamond-latin-700-normal.woff2">
-  <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/files/cormorant-garamond-latin-600-normal.woff2">
-  <link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/files/cormorant-garamond-latin-400-normal.woff2">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/400.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/500.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/600.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/700.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/400-italic.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/cormorant-garamond@5/500-italic.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/fonts/cormorant-garamond/cormorant-garamond-latin-700-normal.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/fonts/cormorant-garamond/cormorant-garamond-latin-600-normal.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/fonts/cormorant-garamond/cormorant-garamond-latin-400-normal.woff2">
+  <link rel="stylesheet" href="/assets/css/fonts-cormorant.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/400.css"></noscript>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css"></noscript>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ma-shan-zheng@5/400.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ma-shan-zheng@5/400.css"></noscript>
   {%- endunless -%}
 
   {%- comment -%}
