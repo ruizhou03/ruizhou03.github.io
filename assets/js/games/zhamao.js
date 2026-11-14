@@ -82,7 +82,7 @@
 
   function save() {
     if (!game || game.tutorial || game.online) return;
-    if (game.state.phase === 'over') { localStorage.removeItem(STORE_KEY); return; }
+    if (game.state.phase === 'over') { try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ } return; }
     writeJSON(STORE_KEY, { v: VERSION, state: game.state, bots: game.bots, tiers: game.tiers });
   }
   function loadSaved() {
@@ -484,7 +484,7 @@
     if (!g) return sv;
     if (!sv) {
       sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); sv.setAttribute('class', 'zm-rim');
-      sv.innerHTML = '<path class="base"/><g class="amb"><path class="tail"/><path class="head"/></g><g class="mood"><path class="bulb a"/><path class="bulb b"/></g><g class="fuse"><path class="trail"/><path class="spark"/></g><g class="links"></g>';
+      sv.innerHTML = '<path class="base"/><g class="amb"><path class="tail"/><path class="head"/></g><g class="fuse"><path class="trail"/><path class="spark"/></g><g class="links"></g>';
       els.table.insertBefore(sv, els.dir);
     }
     sv._anchor = g.anchor;
@@ -494,29 +494,34 @@
     if (same && sv._dir === dir) return sv;
     sv._keys = g.keys;
     sv._d = g.d; sv._dir = dir;
-    sv.querySelectorAll('.base, .amb path, .mood path, .fuse path').forEach((p) => p.setAttribute('d', g.d));
+    sv.querySelectorAll('.base, .amb path, .fuse path').forEach((p) => p.setAttribute('d', g.d));
     const base = sv.querySelector('.base'), L = base.getTotalLength();
     const pts = []; for (let l = 0; l < L; l += RIM_STEP) { const q = base.getPointAtLength(l); pts.push({ x: q.x, y: q.y }); }   // 连线时按点在圈上走
     sv._pts = pts;
-    // 常驻三颗彗星：尾巴 64px、亮头 16px，头在前进方向那一端
-    const P = L / 3, tail = sv.querySelector('.amb .tail'), head = sv.querySelector('.amb .head');
+    buildAmb(sv);
+    rimMood(sv, true);
+    return sv;
+  }
+  /* 常驻彗星：尾巴 64px、亮头 16px，头在前进方向那一端。平时三颗；马戏团六颗互相追（2026-11-14 用户：大胆一点，至少五颗）。
+   * 每颗走的速度不变（一段 = 一圈的 1/N，时长跟着按比例缩） */
+  function ambCount(sv) { return sv.dataset.mood === 'circus' ? 6 : 3; }
+  function buildAmb(sv) {
+    const L = sv.querySelector('.base').getTotalLength(), N = ambCount(sv), P = L / N, dur = AMB_MS * 3 / N, dir = dirNow();
+    const tail = sv.querySelector('.amb .tail'), head = sv.querySelector('.amb .head');
     tail.style.strokeDasharray = '64 ' + (P - 64).toFixed(2);
     head.style.strokeDasharray = '16 ' + (P - 16).toFixed(2);
     const t0 = sv._ambAnims && sv._ambAnims[0] ? (sv._ambAnims[0].currentTime || 0) : 0;
     (sv._ambAnims || []).forEach((an) => an.cancel());
-    sv._ambAnims = [];
-    if (!fx.reduce()) {
-      // 路径本身逆时针（我 → 右 → 上 → 左）；出牌方向 1 = 桌上逆时针 = 顺着路径走（dashoffset 变小），-1 倒着走
-      const hOff = dir === 1 ? -48 : 0;
-      [[tail, 0], [head, hOff]].forEach(([el, off]) => {
-        const an = el.animate(dir === 1 ? [{ strokeDashoffset: off }, { strokeDashoffset: off - P }] : [{ strokeDashoffset: off }, { strokeDashoffset: off + P }], { duration: AMB_MS, iterations: Infinity, easing: 'linear' });
-        an.currentTime = t0 % AMB_MS;
-        an.playbackRate = (sv._rate || 1) * (sv._moodRate || 1);
-        sv._ambAnims.push(an);
-      });
-    }
-    rimMood(sv, true);
-    return sv;
+    sv._ambAnims = []; sv._ambN = N;
+    if (fx.reduce()) return;
+    // 路径本身逆时针（我 → 右 → 上 → 左）；出牌方向 1 = 桌上逆时针 = 顺着路径走（dashoffset 变小），-1 倒着走
+    const hOff = dir === 1 ? -48 : 0;
+    [[tail, 0], [head, hOff]].forEach(([el, off]) => {
+      const an = el.animate(dir === 1 ? [{ strokeDashoffset: off }, { strokeDashoffset: off - P }] : [{ strokeDashoffset: off }, { strokeDashoffset: off + P }], { duration: dur, iterations: Infinity, easing: 'linear' });
+      an.currentTime = t0 % dur;
+      an.playbackRate = (sv._rate || 1) * (sv._moodRate || 1);
+      sv._ambAnims.push(an);
+    });
   }
   /* 桌沿跟着背景音乐换气氛（2026-11-14 用户：音乐一变氛围就变，平时轮巡的那圈光也要跟着变；音乐变回来，光也变回来）。
    * 跟的是「正在放的那一版」（ZhamaoMusic.state().track，没开音乐时按导演想放的那版），所以和音乐在同一小节换：
@@ -541,13 +546,10 @@
     els.app.dataset.rimMood = mood;   // 箭头也跟着换情绪（CSS）
     (sv._moodAnims || []).forEach((an) => an.cancel());
     sv._moodAnims = [];
-    sv._moodRate = mood === 'chip' ? 2.1 : 1;
+    // 马戏团（用户三版里挑了丙 · 双色彗星）：六颗樱桃红尾巴、金色亮头的彗星互相追，绕得快一点，踩拍鼓一下
+    sv._moodRate = mood === 'chip' ? 2.1 : mood === 'circus' ? 1.4 : 1;
+    if (sv._ambN !== ambCount(sv)) buildAmb(sv);
     (sv._ambAnims || []).forEach((an) => { const r = (sv._rate || 1) * sv._moodRate; if (an.updatePlaybackRate) an.updatePlaybackRate(r); else an.playbackRate = r; });
-    if (mood === 'circus') {
-      const L = sv.querySelector('.base').getTotalLength(), n = Math.max(12, Math.round(L / 20));
-      sv._bulbS = L / n;
-      sv.querySelectorAll('.mood .bulb').forEach((p, i) => { p.style.strokeDasharray = '0.01 ' + (2 * sv._bulbS - 0.01).toFixed(2); p.style.strokeDashoffset = i ? -sv._bulbS : 0; });
-    }
     if (mood === 'funk' && !fx.reduce()) {
       const L = sv.querySelector('.base').getTotalLength(), trail = sv.querySelector('.fuse .trail'), spark = sv.querySelector('.fuse .spark');
       trail.style.strokeDasharray = FUSE_TRAIL + ' ' + (L - FUSE_TRAIL).toFixed(2);
@@ -563,19 +565,11 @@
     const beat = 60000 / MOOD_BPM[mood];
     if (mood === 'chip') {
       sv._moodAnims.push(sv.querySelector('.base').animate([{ strokeWidth: 3.4, opacity: 1 }, { strokeWidth: 1.6, opacity: 0.55, offset: 0.35 }, { strokeWidth: 1.6, opacity: 0.55 }], { duration: beat, iterations: Infinity, easing: 'ease-out' }));
-    } else if (mood === 'circus') {
-      const L = sv.querySelector('.base').getTotalLength(), n = Math.max(12, Math.round(L / 20)), S = L / n;
-      sv.querySelectorAll('.mood .bulb').forEach((p, i) => {
-        p.style.strokeDasharray = '0.01 ' + (2 * S - 0.01).toFixed(2);
-        const o = i ? -S : 0;   // 两色错开一格，相间
-        // 一拍走一格：两格一个循环（steps 跳着走，像灯泡一个个亮）；出牌方向 1 = 顺着路径（dashoffset 变小）
-        sv._moodAnims.push(p.animate([{ strokeDashoffset: o }, { strokeDashoffset: o + (dir === 1 ? -2 * S : 2 * S) }], { duration: 2 * beat, iterations: Infinity, easing: 'steps(2, end)' }));
-      });
     }
   }
   setInterval(() => { if (game && game.state) rimMood(); }, 400);
   /* 踩鼓点（2026-11-14 用户：光要和音乐节奏一致，最好踩在鼓点上）：每一帧问音乐「现在听到的是哪一版的第几格」，
-   * 走到底鼓那一格就让桌沿和箭头动一下。甲只在第 1、3 拍（两下底鼓）轻轻亮；乙每拍一下心跳；丙每拍跑马灯走一格、箭头明暗换一次。
+   * 走到底鼓那一格就让桌沿和箭头动一下。甲只在第 1、3 拍（两下底鼓）轻轻亮；乙每拍一下心跳；丙六颗彗星的亮头每拍鼓一下、箭头强拍点头。
    * 没开音乐 / 静音：没有时钟，就退回 rimMood 里那套自己按拍速走的 */
   const BEAT_STEPS = { chase: [0, 8], chip: [0, 4, 8, 12], circus: [0, 4, 8, 12], funk: [0, 7, 10] };   // 放克：第 1 拍、切分的「7」、第 10 格三下底鼓
   let lastBeatKey = '';
@@ -620,12 +614,9 @@
       const q = sv.querySelector('.base').getPointAtLength(((-off % f.L) + f.L) % f.L), r = sv.getBoundingClientRect();
       fx.burst(r.left + q.x, r.top + q.y, { n: b === 0 ? 7 : 4, shapes: ['dot', 'star'], colors: ['#ffd27a', '#ff9a3c', '#fff4c8'], radius: b === 0 ? 26 : 18, size: [3, 7], life: 520, gravity: 30, pattern: 'scatter' });
     } else if (mood === 'circus') {
-      // 马戏团：灯泡顺着出牌方向走一格，箭头一明一暗交替
-      sv._bulbK = ((sv._bulbK || 0) + 1) % 2;
-      const S = sv._bulbS || 20, dir = dirNow();
-      sv.querySelectorAll('.mood .bulb').forEach((p, i) => { p.style.strokeDashoffset = ((i ? -S : 0) - dir * S * sv._bulbK).toFixed(2); });
-      if (els.dir) els.dir.classList.toggle('is-flip');
-      arrows.forEach((a) => a.animate([{ scale: '1.45' }, { scale: '1.3' }], { duration: beatMs * 0.6, easing: 'ease-out' }));
+      // 马戏团：六颗彗星的亮头每拍鼓一下，箭头只在强拍点头（2026-11-14 用户：原来的跑马灯太晃眼）
+      sv.querySelector('.amb .head').animate([{ strokeWidth: 4.4 }, { strokeWidth: 2.8 }], { duration: beatMs * 0.85, easing: 'ease-out' });
+      if (b === 0 || b === 8) arrows.forEach((a) => a.animate([{ scale: '1.4' }, { scale: '1.3' }], { duration: beatMs * 0.8, easing: 'ease-out' }));
     }
   }
   // 特殊效果占用桌沿时，常驻光淡下去让位（不停）；都结束了再亮回来
@@ -3573,34 +3564,24 @@
     });
   }
 
-  /* ───── 终局：赢家头顶落下一顶皇冠、满桌撒爪印 / 小鱼 / 星星彩纸，再弹排名 ───── */
+  /* ───── 终局：聚光灯（2026-11-14 用户：给赢家戴皇冠有点土，三版里挑了乙）─────
+   * 整桌暗下来，一圈暖光从大往赢家身上收拢，赢家头像浮起来一点，几粒金色微尘慢慢往上飘；放完光圈淡掉，再弹排名 */
   async function celebrate(winner) {
-    const t = token;
-    const a = avPoint(winner);
-    const won = winner === 0;
+    const t = token, a = avPoint(winner), r = avR(winner), won = winner === 0;
     snd(won ? 'win' : 'lose');
-    const crown = document.createElement('div');
-    crown.className = 'zm-prop zm-crown';
-    crown.innerHTML = ART.PROPS.crown;
-    const S = 64;
-    crown.style.width = crown.style.height = S + 'px';
-    els.fly.appendChild(crown);
-    fx.animate(crown, [
-      { transform: fx.T(a.x - S / 2, a.y - S / 2 - 160, 0.6, -30), opacity: 0 },
-      { transform: fx.T(a.x - S / 2, a.y - S / 2 - 38, 1.15, 8), opacity: 1, offset: 0.55, easing: 'cubic-bezier(.3,.8,.4,1)' },
-      { transform: fx.T(a.x - S / 2, a.y - S / 2 - 46, 1, -4), opacity: 1, offset: 0.75 },
-      { transform: fx.T(a.x - S / 2, a.y - S / 2 - 42, 1, 0), opacity: 1 },
-    ], { duration: 900 });
-    fx.ring(a.x, a.y, { color: '#c9a96e', size: 180, width: 6, dur: 800, delay: 450 });
-    fx.burst(a.x, a.y - S * 0.75, { n: 10, shapes: ['star'], colors: ['#fff6d8', '#f3d27f', '#e2b45a'], radius: S * 0.9, size: [5, 12], life: 900, delay: 500 });
-    fx.pop(avEl(winner), { scale: 1.25, dur: 500, delay: 450 });
-    const W = innerWidth;
-    for (let i = 0; i < 6; i++) {
-      fx.burst(W * (0.12 + 0.76 * (i / 5)), innerHeight * 0.18, { n: won ? 22 : 12, shapes: ['paw', 'star', 'heart', 'fish', 'dot'], colors: CONFETTI, radius: 120, size: [10, 24], life: 1800, gravity: innerHeight * 0.45, pattern: 'fountain', delay: 300 + i * 160 });
-    }
-    await wait(won ? 1700 : 1300);
-    if (t !== token) return false;
-    return true;
+    if (fx.reduce()) { await wait(600); return t === token; }
+    const dim = document.createElement('div');
+    dim.className = 'zm-win-spot';
+    dim.style.setProperty('--x', a.x + 'px'); dim.style.setProperty('--y', a.y + 'px'); dim.style.setProperty('--r', (r * 1.45) + 'px');
+    els.fly.appendChild(dim);
+    dim.animate([{ opacity: 0, transform: 'scale(3.2)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 750, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });   // 光圈从大往赢家身上收拢
+    const av = avEl(winner);
+    if (av) av.animate([{ transform: 'none' }, { transform: 'translateY(-6px) scale(1.18)', offset: 0.4 }, { transform: 'translateY(-4px) scale(1.12)' }], { duration: 900, delay: 350, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards' });
+    for (let i = 0; i < 3; i++) fx.burst(a.x, a.y + r * 0.6, { n: 6, shapes: ['dot'], colors: ['#f7dfa0', '#e9c46a', '#fff6d8'], radius: r * 1.4, size: [3, 6], life: 1500, gravity: -45, pattern: 'fountain', spin: false, delay: 450 + i * 280 });
+    await wait(won ? 1800 : 1500);
+    dim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished.then(() => dim.remove()).catch(() => dim.remove());
+    if (av) av.getAnimations().forEach((an) => an.cancel());
+    return t === token;
   }
   // 前三名奖章：金 / 银 / 铜（金属渐变圆牌 + 一条小绶带 + 名次数字）
   const MEDALS = [['#fff1bf', '#e5b552', '#9a6a1f', '#c8463a'], ['#ffffff', '#c9ccd2', '#7d838c', '#2f4a6d'], ['#ffd9b8', '#c98a55', '#7c4a22', '#4f8a5f']];
@@ -3637,7 +3618,7 @@
       });
       return;
     }
-    localStorage.removeItem(STORE_KEY);
+    try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ }
     bgm('menu');   // 结算页算游戏外：接上丁（一局结束时先淡出，皇冠彩纸放完、排行榜出来再起）
     openDialog('<h2>排行榜</h2>' +
       '<ol class="zm-rank" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 ? '<small>（我）</small>' : '') + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
@@ -5944,7 +5925,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimMood: (re) => rimMood(null, re), celebrate };
   }
   window.ZhamaoTable = { cardHtml, backHtml, rulesHtml };
 })();

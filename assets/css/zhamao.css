@@ -593,8 +593,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   .zm-clock circle, .zm-aim svg, .zm-cover-art .hero-boom, .zm-cover-art .hero-wand, .zm-cover-art .wand-tail, .zm-av-wand .wand-tail, .zm-angry .zm-card, .zm-deck.is-hot .zm-deck-stack .zm-card:last-child { animation: none !important; }
 }
 
-/* 终局皇冠：金属质感靠 SVG 渐变，这里只加一层落影 */
-.zm-crown svg { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 3px 3px rgba(70, 45, 10, 0.35)); }
 
 /* 主菜单：几个人玩（含你） */
 /* 点「单机」之后：选几个人玩（方案甲：− 人数 +、一排头像、难度、开始） */
@@ -1023,22 +1021,15 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 平常（甲）也再显眼一点（2026-11-14 用户：彗星走得不太看得出来）：尾巴更亮更粗、亮头带一圈金色微光 */
 .zm-rim .amb .tail { opacity: 0.62; stroke-width: 3.4; }
 .zm-rim .amb .head { stroke-width: 2.8; filter: drop-shadow(0 0 3px rgba(242, 207, 122, 0.95)); }
-/* 箭头跟着音乐换情绪：乙 暖橙（当前出牌人那个仍是朱红，分得开）；丙 一明一暗相间、每拍交换（is-flip） */
+/* 箭头跟着音乐换情绪：乙 暖橙；丙 亮金（当前出牌人那个始终朱红，分得开） */
 .zm-app[data-rim-mood="chip"] .zm-dir i:not(.is-hot) { color: #d9822f; }
-.zm-app[data-rim-mood="circus"] .zm-dir i:not(.is-hot):nth-child(odd) { color: #e0b04a; filter: drop-shadow(0 0 2px rgba(224, 176, 74, 0.7)); }
-.zm-app[data-rim-mood="circus"] .zm-dir i:not(.is-hot):nth-child(even) { color: #b8914a; opacity: 0.55; }
-.zm-app[data-rim-mood="circus"] .zm-dir.is-flip i:not(.is-hot):nth-child(odd) { color: #b8914a; opacity: 0.55; filter: none; }
-.zm-app[data-rim-mood="circus"] .zm-dir.is-flip i:not(.is-hot):nth-child(even) { color: #e0b04a; opacity: 0.95; filter: drop-shadow(0 0 2px rgba(224, 176, 74, 0.7)); }
-.zm-rim .mood { opacity: 0; transition: opacity 0.8s ease; }
-.zm-rim .mood .bulb { stroke-width: 5; stroke-linecap: round; }
-.zm-rim .mood .bulb.a { stroke: #f2cf7a; filter: drop-shadow(0 0 3px rgba(242, 207, 122, 0.9)); }
-.zm-rim .mood .bulb.b { stroke: #d2475a; filter: drop-shadow(0 0 3px rgba(210, 71, 90, 0.8)); }
-.zm-rim[data-mood="circus"] .mood { opacity: 0.9; }
-.zm-rim[data-mood="circus"] .amb { opacity: 0; }
+.zm-app[data-rim-mood="circus"] .zm-dir i:not(.is-hot) { color: #c9a24f; }
+/* 丙 · 马戏团（用户挑定双色彗星）：六颗樱桃红尾巴、金色亮头的彗星互相追 */
+.zm-rim[data-mood="circus"] .amb .tail { stroke: rgba(210, 71, 90, 0.6); }
+.zm-rim[data-mood="circus"] .amb .head { stroke: #f2cf7a; }
 .zm-rim[data-mood="chip"] .amb .tail { stroke: rgba(232, 96, 70, 0.7); }
 .zm-rim[data-mood="chip"] .amb .head { stroke: #ff9a6e; }
 .zm-rim[data-mood="chip"] .base { stroke: rgba(214, 84, 62, 0.42); }
-.zm-rim.is-busy .mood { opacity: 0.15; transition-duration: 0.25s; }
 /* 丁 · 导火索（结算时）：常驻彗星让位，一颗火星拖着余烬沿桌沿爬，桌沿本身像一根烧过的引信（暖棕） */
 .zm-rim .fuse { opacity: 0; transition: opacity 0.8s ease; }
 .zm-rim[data-mood="funk"] .fuse { opacity: 1; }
@@ -1184,3 +1175,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-nope-tile[aria-pressed="true"] .ic { background: var(--tone); filter: none; }
 .zm-nope-tile .ck { position: absolute; top: 5px; right: 5px; width: 12px; height: 12px; border-radius: 50%; }
 .zm-nope-tile[aria-pressed="true"] .ck { background: var(--zm-seal) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.2l2.6 2.6L12 5.4' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 9px no-repeat; }
+/* 结算：聚光灯（用户挑定乙）——整桌暗、赢家身上一圈暖光 */
+.zm-win-spot { position: fixed; inset: 0; pointer-events: none; transform-origin: var(--x) var(--y);
+  background: radial-gradient(circle at var(--x) var(--y), rgba(255, 226, 160, 0.32) 0, rgba(255, 226, 160, 0.1) var(--r), rgba(24, 20, 16, 0.5) calc(var(--r) * 2.6)); }
