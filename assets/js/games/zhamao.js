@@ -261,7 +261,7 @@
     if (!els.dir) { els.dir = document.createElement('div'); els.dir.setAttribute('aria-hidden', 'true'); els.table.appendChild(els.dir); }
     els.dir.className = 'zm-dir';
     const n = game && game.state ? game.state.n : 0;
-    if (n < 3 || !els.opps.children.length) { els.dir.innerHTML = ''; placeStrip(1); return; }
+    if (n < 3 || !els.opps.children.length) { els.dir.innerHTML = ''; return; }
     if (els.dir.children.length !== n - 2) els.dir.innerHTML = Array.from({ length: n - 2 }, () => '<i>' + DIR3_SVG + '</i>').join('');
     els.dir.style.setProperty('--cyc', Math.max(2.6, (n - 2) * 0.18 + 1.8).toFixed(2) + 's');
     placeDir();
@@ -296,41 +296,6 @@
         'transform:translate(-50%,-50%) rotate(' + (base + (d === -1 ? Math.PI : 0)).toFixed(4) + 'rad);--j:' + j;
       el.dataset.base = base;
     });
-    placeStrip(d);
-  }
-  /* 灯带（2026-11-13 用户挑定乙）：一条细细的金带顺着对手那一排、从每家「高手」签下面穿过去，一道亮光顺着出牌方向在带子上流；
-   * 轮到的那家下面一颗朱红光点（一明一暗）。对手少于两家（2 人局）没有这条带子 */
-  function placeStrip(d) {
-    let sv = els.table.querySelector(':scope > .zm-strip');   // 放在牌桌上、箭头层外面（放进箭头层会打乱箭头的序号）
-    const n = game && game.state ? game.state.n : 0;
-    if (n < 3) { if (sv) sv.remove(); return; }
-    const tb = els.table.getBoundingClientRect();
-    const pts = [];
-    for (let seat = 1; seat < n; seat++) { const se = seatEl(seat); if (!se) return; const r = se.getBoundingClientRect(); pts.push([r.left + r.width / 2 - tb.left, r.bottom + 5 - tb.top]); }
-    if (d === -1) pts.reverse();
-    // 两头各往外伸半个座位，带子从屏幕边上流进来、流出去
-    const ext = (p, q) => [p[0] + (p[0] - q[0]) * 0.5, p[1] + (p[1] - q[1]) * 0.5];
-    const all = [ext(pts[0], pts[1])].concat(pts, [ext(pts[pts.length - 1], pts[pts.length - 2])]);
-    let path = 'M' + all[0][0].toFixed(1) + ' ' + all[0][1].toFixed(1);
-    for (let i = 1; i < all.length - 1; i++) { const m = [(all[i][0] + all[i + 1][0]) / 2, (all[i][1] + all[i + 1][1]) / 2]; path += 'Q' + all[i][0].toFixed(1) + ' ' + all[i][1].toFixed(1) + ' ' + m[0].toFixed(1) + ' ' + m[1].toFixed(1); }
-    path += 'L' + all[all.length - 1][0].toFixed(1) + ' ' + all[all.length - 1][1].toFixed(1);
-    if (!sv) { sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); sv.setAttribute('class', 'zm-strip'); sv.innerHTML = '<path class="base"/><path class="glow"/><path class="flow"/><circle class="hot" r="3.5"/>'; els.table.insertBefore(sv, els.dir); }
-    sv.setAttribute('width', tb.width); sv.setAttribute('height', tb.height);
-    sv.querySelectorAll('path').forEach((p) => p.setAttribute('d', path));
-    const L = sv.querySelector('.base').getTotalLength();
-    // 亮光：一截 46px 的亮段顺着带子从头流到尾（虚线偏移做动画；不用 CSS calc，微信 iOS 内核不认 dasharray 里的 calc）
-    const cyc = parseFloat(els.dir.style.getPropertyValue('--cyc')) * 1000 || 2600;
-    sv.querySelectorAll('.glow, .flow').forEach((p) => {
-      if (p._anim && Math.abs(p._L - L) < 2 && p._cyc === cyc) return;
-      if (p._anim) p._anim.cancel();
-      p._L = L; p._cyc = cyc;
-      p.style.strokeDasharray = '46 ' + Math.ceil(L + 46);
-      p.style.strokeDashoffset = '46';
-      p._anim = fx.reduce() ? null : p.animate([{ strokeDashoffset: 46 }, { strokeDashoffset: -L }], { duration: cyc, iterations: Infinity, easing: 'linear' });
-    });
-    const t = game.state.phase === 'over' ? -1 : D().turn;
-    const hot = sv.querySelector('.hot');
-    if (t > 0) { const se = seatEl(t).getBoundingClientRect(); hot.setAttribute('cx', (se.left + se.width / 2 - tb.left).toFixed(1)); hot.setAttribute('cy', (se.bottom + 5 - tb.top).toFixed(1)); hot.style.display = ''; } else hot.style.display = 'none';
   }
   /* 指向当前出牌的人的那个箭头标红：顺时针（d = 1）是从 t-1 指向 t 的那个（第 t-2 个），反过来是从 t+1 指向 t 的那个（第 t-1 个） */
   function dirHot() {
@@ -340,7 +305,6 @@
     const t = st.phase === 'over' ? -1 : D().turn, d = dirNow();
     const k = t < 0 ? -1 : d === -1 ? t - 1 : t - 2;
     Array.from(list).forEach((el, i) => el.classList.toggle('is-hot', i === k));
-    placeStrip(d);
   }
   /* 打出转向：箭头从出牌人那边起，一个接一个转半圈掉头 */
   async function animReverse(e, t) {
@@ -997,8 +961,6 @@
     const tg = targetOf(p);
     if (tg >= 0) {
       game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK || p.type === R.TATTACK ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
-      // 指了谁：除了准星，出牌人到被指的人之间再连一道金弧（2026-11-13 用户：8 人局看不清是对谁）；甩锅给下家不连（本来就是下家）
-      if (game.arrow && p.type !== R.ATTACK && p.by !== tg) { const lk = linkSeats(p.by, tg, p.type === R.SWAP), ar = game.arrow; game.arrow = { remove() { ar.remove(); lk.remove(); } }; }
     }
     await mimic(p.cards, t);   // 万能猫顶了谁：演完、停一下再往下走（只有组合里有万能猫时才多这一下）
     if (t !== token) return;
@@ -1533,48 +1495,13 @@
 
   /* 交换：两个人的牌在空中交叉着换过去（逗猫棒不动）——一边从上面的弧线走、另一边从下面走；
    * 我参与的话：我换出去的从手牌原位飞走（背面朝上），换来的半路翻开、先落到牌槽上方再滑进去 */
-  /* 两个人之间连一道金色弧线（交换用两头箭头）：人一多牌在两个背面头像之间飞，看不清是谁和谁换（2026-11-13 用户 8 人局）。
-   * 弧线往桌子中间鼓，描出来、停着，remove() 时淡掉 */
-  let linkSeq = 0;
-  function linkSeats(a, b, both) {
-    // 端点：对手从他整个座位（头像 + 名字 + 档位签）正下方起，我从头像正上方起——不压在脸和名字上
-    const anchor = (seat) => {
-      if (seat === 0) { const r = avEl(0) ? avEl(0).getBoundingClientRect() : { left: innerWidth / 2, width: 0, top: innerHeight - 120 }; return { x: r.left + r.width / 2, y: r.top - 6 }; }
-      const se = seatEl(seat), r = se ? se.getBoundingClientRect() : { left: innerWidth / 2, width: 0, bottom: 90 };
-      return { x: r.left + r.width / 2, y: r.bottom + 3 };
-    };
-    const P0 = anchor(a), P1 = anchor(b);
-    const mx = (P0.x + P1.x) / 2, my = (P0.y + P1.y) / 2, len = Math.hypot(P1.x - P0.x, P1.y - P0.y) || 1;
-    let cx2, cy2;
-    if (a !== 0 && b !== 0) {   // 两个对手：在名字下面兜一个 U，挨着的两家也看得清
-      cx2 = mx; cy2 = Math.max(P0.y, P1.y) + Math.max(36, Math.min(110, 30 + len * 0.25));
-    } else {                    // 对手 ↔ 我：往桌子中间稍微弯一点
-      let nx = -(P1.y - P0.y) / len, ny = (P1.x - P0.x) / len;
-      if ((innerWidth / 2 - mx) * nx + (innerHeight * 0.45 - my) * ny < 0) { nx = -nx; ny = -ny; }
-      cx2 = mx + nx * len * 0.18; cy2 = my + ny * len * 0.18;
-    }
-    const id = 'zmlk' + (++linkSeq);
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'zm-link');
-    svg.setAttribute('width', innerWidth); svg.setAttribute('height', innerHeight);
-    svg.innerHTML = '<defs><marker id="' + id + '" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L8 5L1 9" fill="none" stroke="#b8913e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>' +
-      '<path class="halo" d="M' + P0.x.toFixed(1) + ' ' + P0.y.toFixed(1) + 'Q' + cx2.toFixed(1) + ' ' + cy2.toFixed(1) + ' ' + P1.x.toFixed(1) + ' ' + P1.y.toFixed(1) + '"/>' +
-      '<path class="line" d="M' + P0.x.toFixed(1) + ' ' + P0.y.toFixed(1) + 'Q' + cx2.toFixed(1) + ' ' + cy2.toFixed(1) + ' ' + P1.x.toFixed(1) + ' ' + P1.y.toFixed(1) + '" marker-end="url(#' + id + ')"' + (both ? ' marker-start="url(#' + id + ')"' : '') + '/>';
-    els.fly.appendChild(svg);
-    const line = svg.querySelector('.line'), L = line.getTotalLength ? line.getTotalLength() : 300;
-    if (!fx.reduce()) {
-      [line, svg.querySelector('.halo')].forEach((pth) => { pth.style.strokeDasharray = L; pth.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }], { duration: 320, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'both' }); });
-    }
-    return { remove() { if (fx.reduce()) { svg.remove(); return; } svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' }).finished.then(() => svg.remove()).catch(() => svg.remove()); } };
-  }
   async function animSwap(e, t) {
     if (game.arrow) { game.arrow.remove(); game.arrow = null; }
     const a = e.a, b = e.b, u = U(), pu = PU();
-    // 是谁和谁换：两人头像都亮着（出牌人金光、被换的人一明一暗），中间一道两头箭头的金弧，先描出来停一下再飞牌
+    // 是谁和谁换：两人头像都亮着（出牌人金光、被换的人一明一暗），停一下再飞牌（2026-11-13 用户：不要连线箭头）
     setActing(a); markVictim(b);
-    const link = linkSeats(a, b, true);
-    await wait(ms(380));
-    if (t !== token) { link.remove(); return; }
+    await wait(ms(300));
+    if (t !== token) return;
     snd('swipe');
     const flights = [];
     const pt = (seat) => avPoint(seat);
@@ -1608,7 +1535,6 @@
     fx.pop(avEl(a), { scale: 1.15 }); fx.pop(avEl(b), { scale: 1.15 });
     snd('thud');
     await wait(ms(260));
-    link.remove();
     markVictim(-1);
   }
 
