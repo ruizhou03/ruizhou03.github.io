@@ -522,6 +522,7 @@
   function ambQuiet(ms) {
     const sv = els.table.querySelector(':scope > .zm-rim');
     if (!sv) return;
+    ms /= turboK();
     ambHoldUntil = Math.max(ambHoldUntil, performance.now() + ms);
     sv.classList.add('is-busy');
     clearTimeout(ambTimer);
@@ -553,25 +554,28 @@
     const stepDir = !flow && clear ? shortWay : (dir === -1 ? -1 : 1), cnt = stepDir === 1 ? fwd : back;
     const seg = []; for (let k = 0; k <= cnt; k++) seg.push(pts[(ia + stepDir * k + N) % N]);
     const d = 'M' + seg.map((q) => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join('L');
+    // 任何时候桌沿上只有一条指向的光带（2026-11-14 用户：5 倍速时好几条叠在一起打架）：新的一来，旧的马上撤
+    sv.querySelectorAll('.links > g').forEach((old) => { if (old._kill) old._kill(); else old.remove(); });
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     const end = seg[seg.length - 1];
     g.innerHTML = '<path class="lglow" d="' + d + '"/><path class="lline" d="' + d + '"/><circle class="lhead" r="4"/><circle class="lend" cx="' + end.x.toFixed(1) + '" cy="' + end.y.toFixed(1) + '" r="6"/>';
     sv.querySelector('.links').appendChild(g);
     const paths = g.querySelectorAll('path'), len = Math.max(1, paths[1].getTotalLength()), head = g.querySelector('.lhead'), endDot = g.querySelector('.lend');
     paths.forEach((p) => { p.style.strokeDasharray = len + ' ' + (len + 10); p.style.strokeDashoffset = len; });
-    const growMs = Math.min(650, 220 + len * 0.9);
+    const growMs = Math.min(650, 220 + len * 0.9);   // 光带的长 / 收是 requestAnimationFrame 自己算的：tween 里按快进倍数缩
     let raf = 0, grown = false, pending = null, dead = false;
     // 可见的一截 = [lo, hi]（0..1，沿出牌人 → 被指的人）；head 画在 hi 处
     const show = (lo, hi) => {
       const q = paths[1].getPointAtLength(len * hi); head.setAttribute('cx', q.x.toFixed(1)); head.setAttribute('cy', q.y.toFixed(1));
       paths.forEach((p) => { p.style.strokeDasharray = Math.max(0.01, len * (hi - lo)).toFixed(1) + ' ' + (len * 2).toFixed(0); p.style.strokeDashoffset = (-len * lo).toFixed(1); });
     };
-    const tween = (ms, fn, done) => {
-      const t0 = performance.now();
+    const tween = (ms0, fn, done) => {
+      const ms = ms0 / turboK(), t0 = performance.now();
       const step = (now) => { const k = Math.min(1, (now - t0) / ms); fn(k); if (k < 1) raf = requestAnimationFrame(step); else if (done) done(); };
       raf = requestAnimationFrame(step);
     };
     const finish = (opts) => {
+      if (!g.isConnected) return;
       endDot.classList.remove('is-on');
       if (fx.reduce()) { g.remove(); return; }
       if (opts && opts.mode === 'push') {
@@ -588,8 +592,9 @@
     if (fx.reduce()) { show(0, 1); grown = true; endDot.classList.add('is-on'); }
     else tween(growMs, (k) => show(0, 1 - Math.pow(1 - k, 3)), () => {
       grown = true; endDot.classList.add('is-on');
-      if (pending) { const o = pending; pending = null; setTimeout(() => { if (!dead) finish(o); }, (o && o.hold) || 220); }
+      if (pending) { const o = pending; pending = null; setTimeout(() => { if (!dead) finish(o); }, ((o && o.hold) || 220) / turboK()); }
     });
+    g._kill = () => { dead = true; pending = null; cancelAnimationFrame(raf); g.remove(); };
     return {
       // 有人作废（单数张）就变灰、再被作废回来就亮回金色（2026-11-13 用户：被作废时灯带用灰色收回来，情绪更到位）
       setDull(on) { if (!dead) g.classList.toggle('is-dull', !!on); },
@@ -598,7 +603,7 @@
         if (dead) return;
         if (!grown) { pending = opts || {}; return; }
         dead = true; cancelAnimationFrame(raf);
-        if (opts && opts.hold) setTimeout(() => finish(opts), opts.hold); else finish(opts);
+        if (opts && opts.hold) setTimeout(() => finish(opts), opts.hold / turboK()); else finish(opts);
       },
     };
   }
@@ -640,7 +645,7 @@
       el.style.strokeDasharray = w + ' ' + (len + w);
       el.animate([{ strokeDashoffset: w, opacity: 1 }, { strokeDashoffset: -len, opacity: 0.2 }], { duration: ms, easing: 'cubic-bezier(.3,.6,.4,1)', fill: 'forwards' });
     });
-    setTimeout(() => L.g.remove(), ms + 60);
+    setTimeout(() => L.g.remove(), (ms + 60) / turboK());
   }
   function rimSwirl(color, laps, ms, reverse) {
     const L = rimLayer('swirl'); if (!L) return;
@@ -657,10 +662,10 @@
       case 'boom': break;   // 不在这儿放：摸牌时还没揭晓是不是炸毛猫，要等它炸开那一下（animBoom）再红（2026-11-14 用户：保留悬念）
       case 'defuse': rimRipple(e.seat, '#7fb06a', 1300, 3.5); setTimeout(() => rimRipple(e.seat, '#d9b45a', 1300, 2.5), 180); break;
       case 'out': rimRipple(e.seat, '#7a2a22', 1600, 5); rimDim(1800); break;
-      case 'shuffle': rimSwirl('#e6bd62', 1.5, 1300); break;
+      case 'shuffle': rimSwirl('#e6bd62', 1.5, 1300, dirNow()); break;   // 绕桌飞转跟着出牌方向（2026-11-14 用户：转向后洗牌还逆时针转）
       case 'reverse': rimSwirl('#9fc3d6', 1, 1100, e.dir); break;
       case 'nope': rimRipple(e.seat, '#8a68a8', 700, 3); break;
-      case 'win': rimSwirl('#f0c862', 1, 1500); rimFlash('#f0c862', 2, 600); break;
+      case 'win': rimSwirl('#f0c862', 1, 1500, dirNow()); rimFlash('#f0c862', 2, 600); break;
       case 'play': if (e.type === 'five') rimRainbow(e.seat); break;   // 五种猫各一张：五色彗星从他那儿绕桌一圈
       case 'pick': rimRipple(e.seat, '#e2b85c', 1000, 3.5); break;     // 从弃牌堆捡到了：金色波纹
     }
@@ -681,7 +686,7 @@
       const a = -start, b = dir === 1 ? -start - len : -start + len;
       el.animate([{ strokeDashoffset: a, opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 1, offset: 0.85 }, { strokeDashoffset: b, opacity: 0 }], { duration: 1700, delay: k * 110, easing: 'cubic-bezier(.35,.1,.3,1)', fill: 'both' });
     });
-    setTimeout(() => L.g.remove(), 1700 + 5 * 110 + 60);
+    setTimeout(() => L.g.remove(), (1700 + 5 * 110 + 60) / turboK());
   }
   function rimDim(ms) { const sv = rimRender(); if (!sv) return; sv.animate([{ opacity: 1 }, { opacity: 0.35, offset: 0.3 }, { opacity: 1 }], { duration: ms, easing: 'ease-in-out' }); }
   // 牌堆里炸毛猫的占比 → 桌沿多暖、柔光绕多快
@@ -1003,7 +1008,8 @@
     // 牌还没翻开就知道自己完了。game.state 是结算后的，我一摸它就已经写着出局，所以不能按 alive 直接藏
     else if (!s.alive[0] && !game.fastOut && !game.spectator) { /* 灰着等动画 */ }
     else if (game.online && (!s.alive[0] || game.spectator)) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
-    else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '下一局'; }
+    // 我出局后不再有「下一局」直接开（2026-11-14 用户：要么看着打完，要么点桌沿右下角的 ⏩ 快进，看完结算才能开下一局——保持一局完整）
+    else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (autopilot) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消托管'; }   // 我出局了：自动接着看他们打完，想走就开下一局
     else if (mode === 'target') { els.drawBtn.hidden = true; }
     else if (mode === 'give') { els.playBtn.textContent = '给牌'; els.playBtn.disabled = selected.length !== 1; }
@@ -2797,7 +2803,7 @@
     const s = game.state;
     if (autopilot) { setAutopilot(false); return; }
     if (s.phase === 'react' && reactOpen) { passReact(); return; }
-    if (!s.alive[0] && s.phase !== 'over') { if (game.fastOut && !game.online && !online) newGame(); return; }   // 联机里出局了不能就地开单机局（还在房间里）
+    if (!s.alive[0] && s.phase !== 'over') { return; }   // 出局后「摸牌」那个键已经收起，不能再从这儿直接开下一局   // 联机里出局了不能就地开单机局（还在房间里）
     if (!myTurnToAct()) return;
     if (tut && tut.allow && !tut.allow({ type: 'draw' })) { shake(els.drawBtn); return; }
     selected = [];

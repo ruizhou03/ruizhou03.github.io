@@ -214,11 +214,11 @@
 
   /* ───── 导演：现在该放哪一版 ───── */
   const D = { scene: 'off', mode: null, announced: 0, urgentBars: 0, p: 0, p0: null };
-  /* 紧张度三档（牌堆里炸毛猫的占比）：2026-11-13 用户嫌门槛太高，从 25% / 40% / 60% 降到 20% / 32% / 50%。
-   * 同一天牌量改小了（「快局」开局就有 21–26%），所以门槛也跟着这一局开局时的占比 p0 抬：至少比开局高一截才算紧张 */
+  /* 紧张度三档（牌堆里炸毛猫的占比）：2026-11-13 降到 20% / 32% / 50%，2026-11-14 用户觉得换得太早，调回原先的 25% / 40% / 60%。
+   * 牌量改小后「快局」开局就有 21–26%，所以门槛仍跟着这一局开局时的占比 p0 抬：至少比开局高一截才算紧张 */
   const tierOf = (p) => {
     const p0 = D.p0 || 0;
-    const t1 = Math.max(0.2, p0 + 0.06), t2 = Math.max(0.32, p0 + 0.15), t3 = Math.max(0.5, p0 + 0.3);
+    const t1 = Math.max(0.25, p0 + 0.06), t2 = Math.max(0.4, p0 + 0.15), t3 = Math.max(0.6, p0 + 0.3);
     return p >= t3 ? 3 : p >= t2 ? 2 : p >= t1 ? 1 : 0;
   };
   function setScene(scene) {
@@ -235,7 +235,7 @@
     D.p = p;
     if (D.p0 == null) D.p0 = p;   // 这一局第一次报的就是开局占比
     const tier = tierOf(p);
-    if (p < Math.max(0.12, D.p0 * 0.8)) {
+    if (p < Math.max(0.15, D.p0 * 0.8)) {
       D.announced = 0;
       if (D.mode === 'urgent') D.mode = 'sustain';
       return;
