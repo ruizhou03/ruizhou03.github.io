@@ -992,7 +992,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-btn.zm-timed > b { font-weight: inherit; }
 .zm-actions.is-center { justify-content: center; }
 .zm-actions.is-center .zm-btn { min-width: 150px; }
-/* 预览 · 桌沿（data-uiv-rim="1"） */
+/* 桌沿：绕牌桌一圈的细金线（平时一点柔光顺着出牌方向绕）；指人时亮金一截从出牌人长到被指的人，结算后缩回 */
 .zm-rim { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
 .zm-rim path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .zm-rim .base { stroke: rgba(184, 145, 74, 0.26); stroke-width: 1.6; }

@@ -298,7 +298,7 @@
     });
     rimRender();
   }
-  /* ───── 预览中 · 桌沿（#zmApp data-uiv-rim="1"，2026-11-13 用户提的想法）─────
+  /* ───── 桌沿（2026-11-13 用户提的想法、看过预览后定稿上线）─────
    * 一条细金线绕牌桌一圈：对手一排下面 → 右边往下 → 我头像上方 → 左边往上，所有人（包括我）都在这一圈上。
    * 平时：淡金线，一点柔光顺着出牌方向慢慢绕。指人时：从出牌人那点起，一截亮金沿桌沿（走近的那边）长到被指的人，到了那儿亮一圈；
    * 结算后（抽到牌 / 给了牌 / 被作废……）这截从被指的人那头缩回出牌人，淡回平时。 */
@@ -328,7 +328,7 @@
   }
   function rimRender() {
     let sv = els.table.querySelector(':scope > .zm-rim');
-    if (els.app.dataset.uivRim !== '1' || !game || !game.state) { if (sv) sv.remove(); return null; }
+    if (!game || !game.state) { if (sv) sv.remove(); return null; }
     const g = rimGeom();
     if (!g) return null;
     if (!sv) {
