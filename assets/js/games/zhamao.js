@@ -202,9 +202,22 @@
   function release() { ov = null; handHidden.clear(); }
 
   /* ───── 尺寸：只算 --u ───── */
+  /* 一局里尺寸锁死（2026-11-14 用户：玩着玩着整桌突然变大、顶上名字和箭头挤成一团）：
+   * 以前每个 resize 都重算——手机切后台截快照会把网页临时转成横屏、浏览器工具栏伸缩也发 resize，量到的是临时尺寸，回来就一直错着。
+   * 现在只在开局 / 进房时算一次；之后只有窗口宽度真变了（转屏，差 40px 以上）且停稳 300ms、页面在前台时才重算。
+   * 量的是 offsetWidth / offsetHeight（不含桌子抖动时的 transform） */
+  let sizeW = 0, sizeTimer = 0;
+  const viewW = () => document.documentElement.clientWidth || innerWidth;
+  function recheckSize() {
+    clearTimeout(sizeTimer);
+    sizeTimer = setTimeout(() => {
+      if (!game || document.hidden || Math.abs(viewW() - sizeW) < 40) return;
+      solveSize();
+    }, 300);
+  }
   function solveSize() {
-    const tb = els.table.getBoundingClientRect();
-    const W = tb.width - 24, H = tb.height;
+    sizeW = viewW();
+    const W = els.table.offsetWidth - 24, H = els.table.offsetHeight;
     const av = W < 500 ? 46 : 54;
     const fixed = 50 + (av + 50) + 66 + 26 + 40;
     let u = Math.min(W / 5.5, (H - fixed) / 2.7, 98);
@@ -3467,6 +3480,7 @@
   }
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && canPause() && els.mask.hidden) pauseGame();
+    if (!document.hidden) recheckSize();   // 回到前台：万一后台时按临时横屏量过，这里按真实宽度对一遍
   });
   function refreshTools() {
     $('zmPauseBtn').hidden = !(game && !game.tutorial && !game.online && els.cover.hidden);
@@ -4942,7 +4956,7 @@
     if (mode === 'target') { cancelTarget(); return; }
     if (selected.length && mode !== 'give') { selected = []; renderHand(); renderBand(); }
   });
-  window.addEventListener('resize', () => { if (game) solveSize(); });
+  window.addEventListener('resize', recheckSize);
   refreshSoundBtn();
   initSocial();
   refreshCover();

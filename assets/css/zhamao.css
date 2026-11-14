@@ -1027,3 +1027,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rim .links g.is-dull .lhead { fill: #e3ddd2; stroke: #8f877c; filter: none; }
 .zm-rim .links g.is-dull .lend { stroke: #8f877c; }
 .zm-rim .rainbow path { stroke-width: 4.5; filter: drop-shadow(0 0 4px currentColor); }
+/* 预览（仅本机对比，未定）：甩锅「×N」标记换位置 */
+.zm-app[data-uiv-turns="a"] .zm-opps .zm-turns { left: 50%; right: auto; top: auto; bottom: -3px; transform: translateX(-50%); }
+.zm-app[data-uiv-turns="b"] .zm-opps .zm-turns { left: auto; right: -9px; top: 15px; }
+.zm-app[data-uiv-turns="b"] .zm-opps:not(.is-arc) .zm-turns { left: calc(100% + 4px); right: auto; top: 30px; }
