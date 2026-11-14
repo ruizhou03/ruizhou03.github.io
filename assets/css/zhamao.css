@@ -1071,3 +1071,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 整名牌子浮在原来那行名字上面，不占位置：座位不会被撑宽、别人不会被挤动 */
 .zm-app[data-uiv-names] .zm-opps .zm-seat.is-turn .zm-name.is-long::after { content: attr(data-full); position: absolute; left: 50%; top: 50%; translate: -50% -50%; white-space: nowrap;
   color: var(--zm-ink); font-size: 11.5px; line-height: 17px; background: var(--zm-card); border: 1px solid var(--zm-seal); border-radius: 999px; padding: 0 6px; box-shadow: 0 1px 4px rgba(29, 27, 24, 0.12); }
+/* 预览：扣锅版甩锅动画里飞的锅（倒扣时别把锅底的影子翻到上面）和锅肚上的 ×N */
+.zm-prop-hat svg ellipse { display: none; }
+.zm-hat-lab { position: absolute; left: 0; top: 0; pointer-events: none; color: #f3e6c4; font-weight: 700; font-family: Georgia, serif; line-height: 1; white-space: nowrap; z-index: 2; text-shadow: 0 0 2px rgba(29, 27, 24, 0.5); }

@@ -26,6 +26,12 @@
     drawBtn: $('zmDrawBtn'), playBtn: $('zmPlayBtn'), nopeBtn: $('zmNopeBtn'), cancelBtn: $('zmCancelBtn'),
     cover: $('zmCover'), mask: $('zmDialogMask'), dialog: $('zmDialog'), skipTut: $('zmSkipTut'),
   };
+  /* 2026-11-14 用户看过预览后定稿：
+   * 甩锅标记 = 扣锅（锅扣在头上写 ×N）；甩锅动画 = 乙（一口大锅在头顶翻个面「哐」地扣下去，×1 一路数到 ×N），甩给对手 / 甩给我都一样
+   * 联机改名 / 换头像 = 乙（换牌匾：旧名往上滑走、新名从下面滑上来；新头像从中间晕开盖住旧的）
+   * 6–9 人那一排名字按宽度截（8–9 人最多 3 个汉字宽、6–7 人 4 个），不加「…」、轮到谁也不展开全名
+   * （代码里还按这几个开关分支走，开关在这里一次定死） */
+  Object.assign(els.app.dataset, { uivTurns: 'hat', uivAtk: 'b', uivRename: 'slide', uivNames: 'cut' });
 
   const snd = (name, delay) => { if (window.ZhamaoAudio) window.ZhamaoAudio.sfx(name, delay); };
   const fx = window.ZhamaoFx.create(els.fly, { sound: snd });
@@ -260,7 +266,10 @@
   function recheckSize() {
     clearTimeout(sizeTimer);
     sizeTimer = setTimeout(() => {
-      if (!game || document.hidden || Math.abs(viewW() - sizeW) < 40) return;
+      if (!game || document.hidden) return;
+      // 牌和头像的大小一局里不变；但窗口宽了 / 窄了一点，座位会跟着重新排开——桌沿和名字间的箭头是按座位位置画的，
+      // 必须跟着重量重画，不然就是「座位铺满了、桌沿还停在原来那么宽」（2026-11-14 用户在预览里看到桌沿只占半边）
+      if (Math.abs(viewW() - sizeW) < 40) { renderDir(); return; }
       solveSize();
     }, 300);
   }
@@ -329,8 +338,31 @@
    * 2–5 人：先整名显示；放不下先把字缩一档（13 → 11.5 → 10.5px），还放不下才在末尾「…」
    * 6–9 人：桌上只放得下 3–4 个字——不打「…」（省一个字的位置），超出的部分在右边淡出；
    *        轮到谁，谁的名字就展开成一枚小牌子，整名盖在两边上面（他是全桌焦点，盖一下邻座名字可以接受）；点头像也会弹整名 */
+  /* 预览 cut（2026-11-14 用户：9 人局名字不要超过 3 个汉字，出牌时也别展开全名）：
+   * 6–9 人那一排按「宽度」截——8–9 人最多 3 个汉字宽、6–7 人最多 4 个汉字宽；英文按实际宽度算（3 个汉字宽 ≈ 6 个小写字母），
+   * 截掉就截掉，不加「…」、不淡出、不展开；整名放在 title 里（长按 / 悬停能看） */
+  const nameCtx = document.createElement('canvas').getContext('2d');
+  function cutToWidth(text, font, maxW) {
+    nameCtx.font = font;
+    const cs = [...text];
+    while (cs.length > 1 && nameCtx.measureText(cs.join('')).width > maxW + 0.5) cs.pop();
+    return cs.join('');
+  }
   function fitNames() {
     const arc = els.opps.classList.contains('is-arc');
+    if (els.app.dataset.uivNames === 'cut') {
+      const n = game && game.state ? game.state.n : 0, units = n >= 8 ? 3 : 4;
+      els.app.querySelectorAll('.zm-seat .zm-name').forEach((nm) => {
+        const seat = +nm.closest('.zm-seat').dataset.seat, full = nameOf(seat) || nm.textContent;
+        nm.classList.remove('is-long'); nm.style.removeProperty('font-size'); nm.style.removeProperty('max-width');
+        if (!arc || !nm.closest('.zm-opps')) { if (nm.textContent !== full) nm.textContent = full; nm.removeAttribute('title'); return; }
+        const cs = getComputedStyle(nm), fs = parseFloat(cs.fontSize);
+        const shown = cutToWidth(full, cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily, units * fs);
+        if (nm.textContent !== shown) nm.textContent = shown;
+        if (shown !== full) nm.title = full; else nm.removeAttribute('title');
+      });
+      return;
+    }
     const m = Math.max(1, els.opps.children.length);
     const room = Math.floor(Math.min(116, (els.opps.clientWidth || 360) / m - 14));   // 2–5 人：一家能占的宽度（以前一律 84px，4 人局两边其实还空着）
     els.app.querySelectorAll('.zm-seat .zm-name').forEach((nm) => {
@@ -763,9 +795,11 @@
       }
       return;
     }
+    const landed = fresh && kind === 'hat' && game && game.hatLand === +(av.closest('.zm-seat') || {}).dataset?.seat;
+    if (landed) game.hatLand = -1;
     if (fresh) {
       m.innerHTML = '<i>' + ART.PROPS.pot + '</i><b></b>';
-      m.animate(kind === 'hat' ? [{ opacity: 0, translate: '0 -26px', rotate: '-30deg' }, { opacity: 1, translate: '0 2px', rotate: '4deg', offset: 0.75 }, { opacity: 1, translate: '0 0', rotate: '0deg' }]
+      if (!landed) m.animate(kind === 'hat' ? [{ opacity: 0, translate: '0 -26px', rotate: '-30deg' }, { opacity: 1, translate: '0 2px', rotate: '4deg', offset: 0.75 }, { opacity: 1, translate: '0 0', rotate: '0deg' }]
         : [{ opacity: 0, translate: '10px 6px' }, { opacity: 1, translate: '0 0' }], { duration: 380, easing: 'ease-out' });
     }
     const b = m.querySelector('b');
@@ -1575,6 +1609,10 @@
   async function atkPots(from, to, n, t) {
     await fxPot(from, to, t);
     if (t !== token || fx.reduce()) return;
+    // 预览：标记用「扣锅」时，甩锅动画的收尾也换成把锅扣到头上（data-uiv-atk：a 锅叠锅收成一口 / b 一口大锅扣下来 / c 一口口扣上去）
+    const hatMode = els.app.dataset.uivTurns === 'hat' ? (els.app.dataset.uivAtk || 'a') : '';
+    if (hatMode === 'b') return atkHatSlam(to, n, t);
+    if (hatMode === 'c') return atkHatStack(to, n, t);
     const a = avPoint(to), r = avR(to), up = a.y > innerHeight / 2;   // 我在下面：往上叠；对手在上面：叠在头像下方
     const P = Math.max(18, Math.min(28, r * 0.9)), step = P * 0.48;
     const baseY = up ? a.y - r - P * 0.35 : a.y + r + P * 0.35 + (n - 1) * step;
@@ -1606,10 +1644,97 @@
     tower.style.transformOrigin = a.x + 'px ' + baseY + 'px';
     await wait(ms(620));
     if (t !== token) { tower.remove(); lab.remove(); return; }
+    if (hatMode === 'a') {
+      // 整摞飞到头顶、翻过来，叠成一口扣在头上；×N 跟着飞到锅肚上
+      const hb = hatBox(to);
+      pots.forEach((p, i) => {
+        const last = i === pots.length - 1;
+        p.animate([{ opacity: 1 }, { transform: 'translate(' + (hb.x - P / 2).toFixed(1) + 'px,' + (hb.y - P / 2).toFixed(1) + 'px) rotate(168deg) scale(' + (hb.w / P).toFixed(3) + ')', opacity: last ? 1 : 0 }],
+          { duration: ms(340), delay: (pots.length - 1 - i) * 30, easing: 'cubic-bezier(.5,0,.4,1)', fill: 'forwards' });
+      });
+      lab.animate([{ transform: at2(Math.min(innerWidth - 40, lx), ly, 1), opacity: 1 }, { transform: at2(hb.x, hb.y - hb.w * 0.12, 0.62), opacity: 1 }], { duration: ms(340), easing: 'cubic-bezier(.5,0,.4,1)', fill: 'forwards' });
+      await wait(ms(360) + pots.length * 30);
+      if (t !== token) { tower.remove(); lab.remove(); return; }
+      snd('clang');
+      hatImpact(to);
+      await wait(ms(160));
+      game.hatLand = to;
+      tower.remove(); lab.remove();
+      return;
+    }
     const bp = badgePt(to);
     pots.forEach((p, i) => p.animate([{ opacity: 1 }, { transform: fx.T(bp.x - P / 2, bp.y - P / 2, 0.2, 0), opacity: 0 }], { duration: ms(260), delay: i * 25, easing: 'ease-in', fill: 'forwards' }));
     await lab.animate([{ transform: at2(Math.min(innerWidth - 40, lx), ly, 1), opacity: 1 }, { transform: at2(bp.x, bp.y, 0.3), opacity: 0 }], { duration: ms(300), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
     tower.remove(); lab.remove();
+  }
+  /* ───── 预览：扣锅版甩锅动画（data-uiv-turns="hat" 时才走）───── */
+  // 头上那口锅的位置和大小（和 CSS .zm-pm-hat 一致：头像宽的 76%，偏左、往上探 30%）
+  const hatBox = (seat) => { const r = avEl(seat).getBoundingClientRect(); const w = r.width * 0.76; return { x: r.left + r.width * 0.04 + w / 2, y: r.top - r.height * 0.30 + w / 2, w }; };
+  const hatT = (x, y, w, size, rot, flip) => 'translate(' + (x - size / 2).toFixed(1) + 'px,' + (y - size / 2).toFixed(1) + 'px) rotate(' + rot + 'deg) scale(' + (w / size).toFixed(3) + ',' + ((flip ? -1 : 1) * w / size).toFixed(3) + ')';
+  function flyPot(size) { const p = document.createElement('div'); p.className = 'zm-prop zm-prop-hat'; p.innerHTML = ART.PROPS.pot; p.style.width = p.style.height = size + 'px'; els.fly.appendChild(p); return p; }
+  function hatLabel(hb) { const el = document.createElement('div'); el.className = 'zm-hat-lab'; el.style.fontSize = Math.max(9, hb.w * 0.36).toFixed(1) + 'px'; els.fly.appendChild(el); return el; }
+  function hatImpact(seat) {
+    const av = avEl(seat); if (!av) return;
+    av.animate([{ transform: 'scale(1,1)' }, { transform: 'scale(1.08,0.86)', offset: 0.3 }, { transform: 'scale(0.97,1.04)', offset: 0.65 }, { transform: 'scale(1,1)' }], { duration: ms(360), easing: 'ease-out' });
+    fx.shake(seatEl(seat), { amp: 4, dur: 260 });
+    const hb = hatBox(seat);
+    fx.burst(hb.x, hb.y + hb.w * 0.25, { n: 8, shapes: ['dot', 'star'], colors: ['#c9a96e', '#8a8178', '#e2b85c'], radius: hb.w * 0.9, size: [4, 8], life: 520 });
+  }
+  // b 一口大锅扣下来：锅在头顶上空翻个面，「哐」地扣下去缩成帽子，×1 ×2 … 一路数到 ×N
+  async function atkHatSlam(to, n, t) {
+    const hb = hatBox(to), S = Math.max(56, hb.w * 2.2);
+    // 在头顶上空翻面：对手在最上面一排时上面没多少地方，别探出屏幕
+    const up = Math.max(30, Math.min(84, hb.y - S / 2 - 6));
+    const p = flyPot(S);
+    p.animate([{ transform: hatT(hb.x, hb.y - up + 10, S * 0.7, S, -20, false), opacity: 0 }, { transform: hatT(hb.x, hb.y - up + 4, S, S, 0, false), opacity: 1, offset: 0.35 },
+      { transform: hatT(hb.x, hb.y - up, S, S, 8, true), opacity: 1 }], { duration: ms(380), easing: 'ease-out', fill: 'forwards' });
+    await wait(ms(420));
+    if (t !== token) { p.remove(); return; }
+    await p.animate([{ transform: hatT(hb.x, hb.y - up, S, S, 8, true) }, { transform: hatT(hb.x, hb.y, hb.w, S, -12, true) }], { duration: ms(170), easing: 'cubic-bezier(.6,0,1,.6)', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token) { p.remove(); return; }
+    snd('clang'); hatImpact(to);
+    const lab = hatLabel(hb);
+    for (let i = 1; i <= n; i++) {
+      lab.textContent = '×' + i;
+      lab.animate([{ transform: at2(hb.x, hb.y - hb.w * 0.12, 1.6), opacity: 0.4 }, { transform: at2(hb.x, hb.y - hb.w * 0.12, 1), opacity: 1 }], { duration: ms(160), easing: 'ease-out', fill: 'forwards' });
+      if (i > 1) snd('tick');
+      await wait(ms(i === 1 ? 220 : 150));
+      if (t !== token) { p.remove(); lab.remove(); return; }
+    }
+    snd('stamp');
+    await wait(ms(260));
+    game.hatLand = to;
+    p.remove(); lab.remove();
+  }
+  // c 一口口扣上去：几回合就几口锅倒扣着从天上掉下来，一口叠一口摞在头上，数字跟着涨；叠完「噗」地压成一口
+  async function atkHatStack(to, n, t) {
+    const hb = hatBox(to), S = hb.w, gap = hb.w * 0.34;
+    const pots = [], lab = hatLabel(hb);
+    lab.style.opacity = '0';
+    for (let i = 0; i < n; i++) {
+      const p = flyPot(S), y = hb.y - i * gap, rot = -12 + (i % 2 ? 7 : -5);
+      pots.push(p);
+      p.animate([{ transform: hatT(hb.x + (i % 2 ? 6 : -6), y - 80, S, S, rot - 25, true), opacity: 0 }, { transform: hatT(hb.x, y + 2, S, S, rot, true), opacity: 1, offset: 0.8 }, { transform: hatT(hb.x, y, S, S, rot, true), opacity: 1 }],
+        { duration: ms(240), easing: 'cubic-bezier(.5,0,.8,.6)', fill: 'forwards' });
+      await wait(ms(200));
+      if (t !== token) { pots.forEach((q) => q.remove()); lab.remove(); return; }
+      snd(i === n - 1 ? 'clang' : 'tick');
+      fx.shake(seatEl(to), { amp: 2 + i * 0.7, dur: 150 });
+      lab.textContent = '×' + (i + 1);
+      lab.animate([{ transform: at2(hb.x, y - hb.w * 0.12, 1.5), opacity: 0.3 }, { transform: at2(hb.x, y - hb.w * 0.12, 1), opacity: 1 }], { duration: ms(150), easing: 'ease-out', fill: 'forwards' });
+      await wait(ms(i < 2 ? 140 : 100));
+    }
+    await wait(ms(260));
+    if (t !== token) { pots.forEach((q) => q.remove()); lab.remove(); return; }
+    // 压扁成一口：上面的往下合并
+    pots.forEach((p, i) => { if (i) p.animate([{ opacity: 1 }, { transform: hatT(hb.x, hb.y, S, S, -12, true), opacity: 0 }], { duration: ms(220), delay: (n - 1 - i) * 20, easing: 'ease-in', fill: 'forwards' }); });
+    pots[0].animate([{ transform: hatT(hb.x, hb.y, S, S, -12, true) }], { duration: 1, fill: 'forwards' });
+    lab.animate([{ opacity: 1 }, { transform: at2(hb.x, hb.y - hb.w * 0.12, 1), opacity: 1 }], { duration: ms(220), easing: 'ease-in', fill: 'forwards' });
+    await wait(ms(240));
+    snd('stamp'); hatImpact(to);
+    await wait(ms(200));
+    game.hatLand = to;
+    pots.forEach((q) => q.remove()); lab.remove();
   }
   async function fxPot(from, to, t) {
     snd('whoosh');
