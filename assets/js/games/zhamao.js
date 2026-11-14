@@ -484,7 +484,7 @@
     if (!g) return sv;
     if (!sv) {
       sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); sv.setAttribute('class', 'zm-rim');
-      sv.innerHTML = '<path class="base"/><g class="amb"><path class="tail"/><path class="head"/></g><g class="links"></g>';
+      sv.innerHTML = '<path class="base"/><g class="amb"><path class="tail"/><path class="head"/></g><g class="mood"><path class="bulb a"/><path class="bulb b"/></g><g class="fuse"><path class="trail"/><path class="spark"/></g><g class="links"></g>';
       els.table.insertBefore(sv, els.dir);
     }
     sv._anchor = g.anchor;
@@ -494,7 +494,7 @@
     if (same && sv._dir === dir) return sv;
     sv._keys = g.keys;
     sv._d = g.d; sv._dir = dir;
-    sv.querySelectorAll('.base, .amb path').forEach((p) => p.setAttribute('d', g.d));
+    sv.querySelectorAll('.base, .amb path, .mood path, .fuse path').forEach((p) => p.setAttribute('d', g.d));
     const base = sv.querySelector('.base'), L = base.getTotalLength();
     const pts = []; for (let l = 0; l < L; l += RIM_STEP) { const q = base.getPointAtLength(l); pts.push({ x: q.x, y: q.y }); }   // 连线时按点在圈上走
     sv._pts = pts;
@@ -511,11 +511,122 @@
       [[tail, 0], [head, hOff]].forEach(([el, off]) => {
         const an = el.animate(dir === 1 ? [{ strokeDashoffset: off }, { strokeDashoffset: off - P }] : [{ strokeDashoffset: off }, { strokeDashoffset: off + P }], { duration: AMB_MS, iterations: Infinity, easing: 'linear' });
         an.currentTime = t0 % AMB_MS;
-        if (sv._rate) an.playbackRate = sv._rate;
+        an.playbackRate = (sv._rate || 1) * (sv._moodRate || 1);
         sv._ambAnims.push(an);
       });
     }
+    rimMood(sv, true);
     return sv;
+  }
+  /* 桌沿跟着背景音乐换气氛（2026-11-14 用户：音乐一变氛围就变，平时轮巡的那圈光也要跟着变；音乐变回来，光也变回来）。
+   * 跟的是「正在放的那一版」（ZhamaoMusic.state().track，没开音乐时按导演想放的那版），所以和音乐在同一小节换：
+   *   甲 chase 猫捉老鼠（平常）：三颗金色彗星顺着出牌方向慢慢绕（原样）
+   *   乙 chip 电子炸毛（紧张）：彗星变珊瑚红、绕得快一倍，整圈跟着 160 拍一下一下地「心跳」
+   *   丙 circus 疯狂马戏团：彗星淡去，换成一圈跑马灯小灯泡，金 / 樱桃红相间，踩着 176 拍顺着出牌方向一格一格跑 */
+  const MOOD_BPM = { chase: 152, chip: 160, circus: 176, funk: 118 };
+  /* 丁 funk 导火索放克（一局打完、结算的时候放）：桌沿变成一根慢慢烧的导火索——一颗火星拖着一小截余烬顺着出牌方向爬，
+   * 踩在放克那几下切分的底鼓上闪一下、溅几点火花（2026-11-14 用户批） */
+  const FUSE_MS = 16000, FUSE_TRAIL = 70;
+  function musicMood() {
+    const Mz = window.ZhamaoMusic, st = Mz && Mz.state ? Mz.state() : null;
+    const id = st && (st.track || st.want);
+    return MOOD_BPM[id] ? id : 'chase';
+  }
+  function rimMood(sv, rebuild) {
+    sv = sv || els.table.querySelector(':scope > .zm-rim');
+    if (!sv || !sv._d) return;
+    const mood = musicMood(), dir = dirNow();
+    if (!rebuild && sv.dataset.mood === mood) return;
+    sv.dataset.mood = mood;
+    els.app.dataset.rimMood = mood;   // 箭头也跟着换情绪（CSS）
+    (sv._moodAnims || []).forEach((an) => an.cancel());
+    sv._moodAnims = [];
+    sv._moodRate = mood === 'chip' ? 2.1 : 1;
+    (sv._ambAnims || []).forEach((an) => { const r = (sv._rate || 1) * sv._moodRate; if (an.updatePlaybackRate) an.updatePlaybackRate(r); else an.playbackRate = r; });
+    if (mood === 'circus') {
+      const L = sv.querySelector('.base').getTotalLength(), n = Math.max(12, Math.round(L / 20));
+      sv._bulbS = L / n;
+      sv.querySelectorAll('.mood .bulb').forEach((p, i) => { p.style.strokeDasharray = '0.01 ' + (2 * sv._bulbS - 0.01).toFixed(2); p.style.strokeDashoffset = i ? -sv._bulbS : 0; });
+    }
+    if (mood === 'funk' && !fx.reduce()) {
+      const L = sv.querySelector('.base').getTotalLength(), trail = sv.querySelector('.fuse .trail'), spark = sv.querySelector('.fuse .spark');
+      trail.style.strokeDasharray = FUSE_TRAIL + ' ' + (L - FUSE_TRAIL).toFixed(2);
+      spark.style.strokeDasharray = '0.01 ' + (L - 0.01).toFixed(2);
+      // 火星在余烬往前走的那一头：方向 1 = 顺着路径（dashoffset 变小），火星在这截的尾端；方向 -1 在开头
+      const sOff = dir === 1 ? -FUSE_TRAIL : 0, go = dir === 1 ? -L : L;
+      sv._moodAnims.push(trail.animate([{ strokeDashoffset: 0 }, { strokeDashoffset: go }], { duration: FUSE_MS, iterations: Infinity, easing: 'linear' }));
+      const sa = spark.animate([{ strokeDashoffset: sOff }, { strokeDashoffset: sOff + go }], { duration: FUSE_MS, iterations: Infinity, easing: 'linear' });
+      sv._moodAnims.push(sa);
+      sv._fuse = { anim: sa, L, sOff, go };
+    }
+    if (fx.reduce() || sv._synced) return;   // 跟上音乐的鼓点了：心跳 / 跑马灯由 onBeat 一拍一拍地打，不用下面这套自己走的
+    const beat = 60000 / MOOD_BPM[mood];
+    if (mood === 'chip') {
+      sv._moodAnims.push(sv.querySelector('.base').animate([{ strokeWidth: 3.4, opacity: 1 }, { strokeWidth: 1.6, opacity: 0.55, offset: 0.35 }, { strokeWidth: 1.6, opacity: 0.55 }], { duration: beat, iterations: Infinity, easing: 'ease-out' }));
+    } else if (mood === 'circus') {
+      const L = sv.querySelector('.base').getTotalLength(), n = Math.max(12, Math.round(L / 20)), S = L / n;
+      sv.querySelectorAll('.mood .bulb').forEach((p, i) => {
+        p.style.strokeDasharray = '0.01 ' + (2 * S - 0.01).toFixed(2);
+        const o = i ? -S : 0;   // 两色错开一格，相间
+        // 一拍走一格：两格一个循环（steps 跳着走，像灯泡一个个亮）；出牌方向 1 = 顺着路径（dashoffset 变小）
+        sv._moodAnims.push(p.animate([{ strokeDashoffset: o }, { strokeDashoffset: o + (dir === 1 ? -2 * S : 2 * S) }], { duration: 2 * beat, iterations: Infinity, easing: 'steps(2, end)' }));
+      });
+    }
+  }
+  setInterval(() => { if (game && game.state) rimMood(); }, 400);
+  /* 踩鼓点（2026-11-14 用户：光要和音乐节奏一致，最好踩在鼓点上）：每一帧问音乐「现在听到的是哪一版的第几格」，
+   * 走到底鼓那一格就让桌沿和箭头动一下。甲只在第 1、3 拍（两下底鼓）轻轻亮；乙每拍一下心跳；丙每拍跑马灯走一格、箭头明暗换一次。
+   * 没开音乐 / 静音：没有时钟，就退回 rimMood 里那套自己按拍速走的 */
+  const BEAT_STEPS = { chase: [0, 8], chip: [0, 4, 8, 12], circus: [0, 4, 8, 12], funk: [0, 7, 10] };   // 放克：第 1 拍、切分的「7」、第 10 格三下底鼓
+  let lastBeatKey = '';
+  function beatTick() {
+    requestAnimationFrame(beatTick);
+    const sv = game && game.state ? els.table.querySelector(':scope > .zm-rim') : null;
+    if (!sv) return;
+    const Mz = window.ZhamaoMusic, c = !fx.reduce() && Mz && Mz.clock ? Mz.clock() : null;
+    let m = null;
+    if (c) for (let i = c.marks.length - 1; i >= 0; i--) if (c.marks[i].t <= c.now) { m = c.marks[i]; break; }
+    const ok = !!(m && c.now - m.t < 3 && BEAT_STEPS[m.id]);
+    if (ok !== !!sv._synced) { sv._synced = ok; rimMood(sv, true); }   // 跟上 / 断了：换另一套
+    if (!ok) return;
+    const st = (m.st0 + m.st1) / 2, step = Math.floor((c.now - m.t) / st);
+    let b = -1; for (const x of BEAT_STEPS[m.id]) if (x <= step) b = x;
+    if (b < 0 || step > 15) return;
+    const key = m.t.toFixed(3) + ':' + b;
+    if (key === lastBeatKey) return;
+    lastBeatKey = key;
+    if (c.now - (m.t + b * st) > 0.12) return;   // 已经过了这一拍一截（切回前台之类）：不补打
+    onBeat(sv, sv.dataset.mood, b, st * 4 * 1000);
+  }
+  requestAnimationFrame(beatTick);
+  function onBeat(sv, mood, b, beatMs) {
+    const arrows = els.dir ? els.dir.querySelectorAll('i') : [];
+    if (mood === 'chase') {
+      // 平常：两颗金彗星的亮头鼓一下、尾巴亮一下，箭头轻轻点一下头
+      sv.querySelector('.amb .head').animate([{ strokeWidth: 4.6 }, { strokeWidth: 2.8 }], { duration: beatMs * 0.9, easing: 'ease-out' });
+      sv.querySelector('.amb .tail').animate([{ opacity: 0.95 }, { opacity: 0.62 }], { duration: beatMs * 0.9, easing: 'ease-out' });
+      arrows.forEach((a) => a.animate([{ scale: '1.42' }, { scale: '1.3' }], { duration: beatMs * 0.7, easing: 'ease-out' }));
+    } else if (mood === 'chip') {
+      // 紧张：整圈心跳（拍头最粗最亮、很快落下去），箭头跟着跳得更狠
+      sv.querySelector('.base').animate([{ strokeWidth: 3.6, opacity: 1 }, { strokeWidth: 1.6, opacity: 0.55 }], { duration: beatMs * 0.85, easing: 'cubic-bezier(.2,.7,.3,1)' });
+      arrows.forEach((a) => a.animate([{ scale: '1.55' }, { scale: '1.3' }], { duration: beatMs * 0.8, easing: 'cubic-bezier(.2,.7,.3,1)' }));
+    } else if (mood === 'funk') {
+      // 导火索：火星一亮、溅几点火花
+      const f = sv._fuse;
+      if (!f) return;
+      sv.querySelector('.fuse .spark').animate([{ strokeWidth: 12 }, { strokeWidth: 5 }], { duration: beatMs * 0.8, easing: 'ease-out' });
+      sv.querySelector('.fuse .trail').animate([{ opacity: 1 }, { opacity: 0.7 }], { duration: beatMs * 0.8, easing: 'ease-out' });
+      const pr = f.anim.effect.getComputedTiming().progress || 0, off = f.sOff + f.go * pr;
+      const q = sv.querySelector('.base').getPointAtLength(((-off % f.L) + f.L) % f.L), r = sv.getBoundingClientRect();
+      fx.burst(r.left + q.x, r.top + q.y, { n: b === 0 ? 7 : 4, shapes: ['dot', 'star'], colors: ['#ffd27a', '#ff9a3c', '#fff4c8'], radius: b === 0 ? 26 : 18, size: [3, 7], life: 520, gravity: 30, pattern: 'scatter' });
+    } else if (mood === 'circus') {
+      // 马戏团：灯泡顺着出牌方向走一格，箭头一明一暗交替
+      sv._bulbK = ((sv._bulbK || 0) + 1) % 2;
+      const S = sv._bulbS || 20, dir = dirNow();
+      sv.querySelectorAll('.mood .bulb').forEach((p, i) => { p.style.strokeDashoffset = ((i ? -S : 0) - dir * S * sv._bulbK).toFixed(2); });
+      if (els.dir) els.dir.classList.toggle('is-flip');
+      arrows.forEach((a) => a.animate([{ scale: '1.45' }, { scale: '1.3' }], { duration: beatMs * 0.6, easing: 'ease-out' }));
+    }
   }
   // 特殊效果占用桌沿时，常驻光淡下去让位（不停）；都结束了再亮回来
   let ambHoldUntil = 0, ambTimer = 0;
@@ -699,7 +810,7 @@
     sv.style.setProperty('--rim-base', 'rgba(' + (h ? base.join(',') : '184,145,74') + ',' + (0.26 + h * 0.2).toFixed(2) + ')');
     sv.style.setProperty('--rim-drift', h ? 'rgba(' + [mix(226, 232), mix(184, 110), mix(92, 70)].join(',') + ',0.65)' : 'rgba(226,184,92,0.55)');
     sv._rate = 1 + h * 1.4;
-    (sv._ambAnims || []).forEach((an) => { if (an.updatePlaybackRate) an.updatePlaybackRate(sv._rate); else an.playbackRate = sv._rate; });
+    (sv._ambAnims || []).forEach((an) => { const r = sv._rate * (sv._moodRate || 1); if (an.updatePlaybackRate) an.updatePlaybackRate(r); else an.playbackRate = r; });
   }
   /* 指向当前出牌的人的那个箭头标红：顺时针（d = 1）是从 t-1 指向 t 的那个（第 t-2 个），反过来是从 t+1 指向 t 的那个（第 t-1 个） */
   function dirHot() {

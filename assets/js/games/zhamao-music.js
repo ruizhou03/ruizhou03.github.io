@@ -260,6 +260,10 @@
 
   /* ───── 播放器：提前 0.5 秒一小节一小节排；换版要等到乐句边界，用一个「变身小节」过渡 ───── */
   const P = { on: false, cur: null, bar: 0, nextT: 0, timer: null, stopAt: 0, cut: false };
+  /* 节拍时钟（2026-11-14 用户：桌沿的光要踩在鼓点上）：每排一小节记一笔「哪一版、从几点开始、每格多长」，
+   * 牌桌按 ac.currentTime 对上第几格，就知道这会儿该不该亮一下。只留最近十几笔 */
+  const MARKS = [];
+  function mark(id, t, st0, st1) { MARKS.push({ id, t, st0, st1: st1 || st0 }); if (MARKS.length > 16) MARKS.shift(); }
   const LEVELS = { funk: 1, chase: 1, chip: 0.85, circus: 0.9 };
   // 变身从哪一小节开始：进乙（紧张）= 句尾那一小节、变一小节；往放松走 = 一段的最后两小节、慢慢变两小节。做完新版正好从一句的开头进来
   const bridgeLen = (want) => (want === 'chip' ? 1 : 2);
@@ -294,6 +298,7 @@
         let t = t0;
         for (let k = 0; k < n; k++) {
           const st0 = sa + (sb - sa) * k / n, st1 = sa + (sb - sa) * (k + 1) / n;
+          mark(want, t, st0, st1);
           scheduleBar(from, P.bar, t, st0, st1);
           const d = scheduleBar(want, P.bar, t, st0, st1);
           t += d;
@@ -311,6 +316,7 @@
         P.nextT = t; P.bar = (P.bar + 1) % 16;
         continue;
       }
+      mark(P.cur, P.nextT, stepSec(P.cur));
       P.nextT += scheduleBar(P.cur, P.bar, P.nextT);
       onBar(P.cur);
       P.bar = (P.bar + 1) % 16;
@@ -350,6 +356,8 @@
   root.ZhamaoMusic = {
     connect, start, stop, setScene, setDanger, onOut,
     state: () => ({ scene: D.scene, mode: D.mode, track: P.cur, want: target(), announced: D.announced, urgentBars: D.urgentBars, p: D.p, bar: P.bar }),
+    // 现在听到的是几点（扣掉声卡输出的延迟）+ 最近排下的小节；没在放就是 null
+    clock: () => (ac && P.on && P.cur && ac.state === 'running' ? { now: ac.currentTime - (ac.outputLatency || ac.baseLatency || 0), marks: MARKS } : null),
     VERSIONS, MOTIF, INST, freq, build, barsOf, scheduleBar, stepSec,
     _attach: attach,
   };
