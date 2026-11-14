@@ -97,9 +97,10 @@
     swap: [false, true],
     swapDefuse: [false, true],   // 2026-11-13 用户：交换要不要连逗猫棒一起换（以前玩的是整副手牌全换）；默认不换，开房的人 / 单机自己选
     deckSize: ['std', 'quick', 'more'],   // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 官方密度 / 快局更短 / 多 = 以前的整副（两副）
+    insertSeen: [true, false],   // 塞回炸毛猫看得出大概位置（2026-11-14 用户，默认开）：动画插在真实高度，像线下一样最上 / 最底一眼看得出、中间只能估；不报第几张。选「随机」的照旧看不出
   });
   // 2026-11-13 起「多的逗猫棒全放回」默认开（官方规则：每人先发 1 根逗猫棒，剩下的全洗回牌堆）
-  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std' });
+  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std', insertSeen: true });
   const swapsInPlay = (n) => Math.min(usesSecondDeck(n) ? 6 : 3, n - 1);
   /* 牌量（2026-11-13 用户）：以前 5 人及以下整副 63 张普通牌、6 人起两副 126 张，牌堆是官方的 2–7 倍，炸毛猫只占 4–8%。
    * 「标准」「快局」按人数定这一局用多少张普通牌（不算炸毛猫 / 逗猫棒 / 交换）：63 × 人数系数 × 档位系数，人数系数 = 人数 / 5，夹在 0.8–1.8；
@@ -517,6 +518,7 @@
     if (!Array.isArray(order) || order.length !== cards.length || order.some((id) => cards.indexOf(id) < 0) || new Set(order).size !== order.length) throw new Error('illegal alter order');
     s.deck.splice(0, order.length, ...order);
     for (let k = 0; k < s.n; k++) if (k !== seat) s.memo[k].deck = s.memo[k].deck.filter((id) => cards.indexOf(id) < 0);
+    if (s.ins && s.ins.seen) s.ins.seen = null;   // 改命动过顶上几张：大家看到它塞在最上 / 最底的那点信息不准了
     s.alter = null;
     s.phase = 'act';
     return [{ t: 'altered', seat, cards: order.slice(), priv: [seat] }];
@@ -579,8 +581,8 @@
     return ev;
   }
 
-  /* pos：0 = 最上面，deck.length = 最底下 */
-  function insertKitten(s, seat, pos) {
+  /* pos：0 = 最上面，deck.length = 最底下；rand = 玩家点的「随机」（或倒计时到了随机塞），连他自己都不知道在哪 */
+  function insertKitten(s, seat, pos, rand) {
     if (s.phase !== 'defuse' || s.defuse.by !== seat) throw new Error('illegal insert');
     pos = Math.max(0, Math.min(s.deck.length, pos | 0));
     const id = s.defuse.card;
@@ -588,9 +590,17 @@
     for (let k = 0; k < s.n; k++) if (k !== seat) s.memo[k].deck = []; // 别人不知道塞在哪，原先记的位置全乱了
     if (s.memo[seat].deck.indexOf(id) < 0) s.memo[seat].deck.push(id);
     s.defuse = null;
-    s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0 };
+    // 规则「看得出大概位置」：动画插在牌堆的真实高度，所有人都看得到——但只发一个粗略的高度 vis（0 = 最上、1 = 最底、中间取到 1/8），
+    // 不发第几张：懂技术的人抓网络数据，拿到的也只和肉眼看到的一样多
+    let vis = null;
+    if (!rand && !(s.rules && s.rules.insertSeen === false)) {
+      const last = s.deck.length - 1;
+      vis = pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / last) * 8) / 8));
+    }
+    // seen：别人「看得出」它在最上 / 最底（中间的看不准，不算知道）；之后从那头摸走一张、洗牌、改命、再塞一只就作废
+    s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
     s.seq += 1;
-    const ev = [{ t: 'insert', seat, card: id, pos, size: s.deck.length, priv: [seat] }];
+    const ev = [{ t: 'insert', seat, card: id, pos, size: s.deck.length, vis, priv: [seat] }];
     endOneTurn(s, ev);
     return ev;
   }

@@ -549,3 +549,75 @@ test('转向：方向反过来、结束一回合不摸牌；被甩锅时只顶�
   const r2 = rev(d2, 0); R.play(d2, 0, [r2]); closeAll(d2);
   assert.equal(d2.turn, 1);
 });
+
+test('insertSeen (default on): public coarse height, random hides it, bots see top/bottom only, invalidated by draws / alter / shuffle', () => {
+  const AI = require('../assets/js/games/zhamao-ai.js');
+  assert.equal(R.DEFAULT_RULES.insertSeen, true);
+  assert.equal(R.normalizeRules({}).insertSeen, true);
+  assert.equal(R.normalizeRules({ insertSeen: false }).insertSeen, false);
+  // 造一个「刚拆完炸毛猫、该塞回去」的局面
+  function atDefuse(rules) {
+    const s = R.createGame(3, 11, rules);
+    const me = s.turn;
+    const boom = s.deck.find((id) => R.KIND_OF[id] === R.BOOM);
+    s.deck.splice(s.deck.indexOf(boom), 1); s.deck.unshift(boom);
+    if (!s.hands[me].some((id) => R.KIND_OF[id] === R.DEFUSE)) {
+      const def = ofKind(R.DEFUSE).find((id) => s.deck.includes(id));
+      s.deck.splice(s.deck.indexOf(def), 1); s.hands[me].push(def);
+    }
+    R.draw(s, me);
+    assert.equal(s.phase, 'defuse');
+    return { s, me, boom };
+  }
+  const visOf = (ev) => ev.find((e) => e.t === 'insert').vis;
+  // 最上 / 最底照实；中间取到 1/8，且不会被取成 0 或 1
+  let t = atDefuse(); assert.equal(visOf(R.insertKitten(t.s, t.me, 0)), 0);
+  t = atDefuse(); const size = t.s.deck.length; assert.equal(visOf(R.insertKitten(t.s, t.me, size)), 1);
+  t = atDefuse(); const v1 = visOf(R.insertKitten(t.s, t.me, 1)); assert.ok(v1 > 0 && v1 < 1 && Math.abs(v1 * 8 - Math.round(v1 * 8)) < 1e-9);
+  t = atDefuse(); const vm = visOf(R.insertKitten(t.s, t.me, Math.floor(size / 2))); assert.ok(vm > 0 && vm < 1);
+  // 随机 / 规则关：vis 为空，别人什么也看不出
+  t = atDefuse(); assert.equal(visOf(R.insertKitten(t.s, t.me, 0, true)), null); assert.equal(t.s.ins.seen, null);
+  t = atDefuse({ insertSeen: false }); assert.equal(visOf(R.insertKitten(t.s, t.me, 0)), null);
+  // 去敏：别人拿到 vis，拿不到 pos / card
+  t = atDefuse(); const other = (t.me + 1) % 3;
+  const red = R.redactEvents(R.insertKitten(t.s, t.me, 0), other).find((e) => e.t === 'insert');
+  assert.equal(red.vis, 0); assert.equal(red.pos, undefined); assert.equal(red.card, undefined);
+  // 机器猫：别人放在最上 → 它知道顶上是炸毛猫，不会去摸（有别的办法时）；真人的记忆（牌堆发红光用的）不变
+  assert.equal(t.s.ins.seen, 'top');
+  assert.ok(!t.s.memo[other].deck.includes(t.boom));
+  const vTop = R.view(t.s, other);
+  assert.ok(!vTop.known.some((k) => k.id === t.boom));
+  // 从顶上摸走一张以后就不准了：模拟 top 计数
+  t.s.ins.top = 1;
+  const d1 = AI.decide(t.s, t.s.turn, 'normal', () => 0.5); assert.ok(d1);
+  // 改命动过顶上 → seen 清掉
+  t = atDefuse(); R.insertKitten(t.s, t.me, 0); assert.equal(t.s.ins.seen, 'top');
+  t.s.phase = 'alter'; t.s.alter = { by: (t.me + 1) % 3, cards: t.s.deck.slice(0, 3) };
+  R.alterTop(t.s, t.s.alter.by, t.s.alter.cards.slice().reverse());
+  assert.equal(t.s.ins.seen, null);
+  assert.equal(total(t.s), R.DECK_SIZE);
+});
+
+test('insertSeen: a bot that saw the kitten go on top avoids drawing it when it can', () => {
+  const AI = require('../assets/js/games/zhamao-ai.js');
+  let avoided = 0, tried = 0;
+  for (let seed = 1; seed <= 40; seed++) {
+    const s = R.createGame(3, seed);
+    const me = s.turn, nxt = R.nextAlive(s, me);
+    const boom = s.deck.find((id) => R.KIND_OF[id] === R.BOOM);
+    s.deck.splice(s.deck.indexOf(boom), 1); s.deck.unshift(boom);
+    if (!s.hands[me].some((id) => R.KIND_OF[id] === R.DEFUSE)) { const def = ofKind(R.DEFUSE).find((id) => s.deck.includes(id)); s.deck.splice(s.deck.indexOf(def), 1); s.hands[me].push(def); }
+    R.draw(s, me);
+    R.insertKitten(s, me, 0);
+    if (s.turn !== nxt || s.phase !== 'act') continue;
+    // 给下家一张跳过，让它有得躲
+    const skip = ofKind(R.SKIP).find((id) => s.deck.includes(id));
+    if (skip == null) continue;
+    s.deck.splice(s.deck.indexOf(skip), 1); s.hands[nxt].push(skip);
+    tried++;
+    const d = AI.decide(s, nxt, 'normal', () => 0.5);
+    if (d.type !== 'draw') avoided++;
+  }
+  assert.ok(tried >= 10, 'enough cases');
+  assert.ok(avoided / tried > 0.8, 'bot avoids a visibly-topped kitten: ' + avoided + '/' + tried);
+});

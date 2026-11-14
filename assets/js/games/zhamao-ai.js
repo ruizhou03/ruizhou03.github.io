@@ -537,10 +537,20 @@
   function cardValue(hand, id) { return NB.cardValue(hand, id); }
   function topInfo(v) { return pol(v).topInfo(v); }
 
+  /* 规则「塞回看得出大概位置」：别人塞在最上 / 最底的那只炸毛猫，机器猫和真人一样看在眼里（中间的看不准，不算知道）；
+   * 那头被摸走过一张 / 洗牌 / 改命之后就不准了（ins.seen 由规则引擎清掉，top / bot 计数非 0 也不算） */
+  function withSeen(v) {
+    const ins = v.ins;
+    if (!ins || !ins.seen || ins.card == null || ins.by === v.me || !v.deckSize) return v;
+    const pos = ins.seen === 'top' ? (ins.top === 0 ? 0 : -1) : (ins.bot === 0 ? v.deckSize - 1 : -1);
+    if (pos < 0 || v.known.some((k) => k.id === ins.card || k.pos === pos)) return v;
+    v.known = v.known.concat([{ pos, id: ins.card }]).sort((a, b) => a.pos - b.pos);
+    return v;
+  }
   /* 一步到位：给定 state 和座位，按档位产出该座位此刻的决定（UI / 服务器用） */
   function decide(state, seat, tier, rng) {
     rng = rng || Math.random;
-    const v = R.view(state, seat);
+    const v = withSeen(R.view(state, seat));
     switch (state.phase) {
       case 'act': return actFor(v, tier, rng);
       case 'react': return { type: reactFor(v, tier, rng) ? 'nope' : 'pass' };

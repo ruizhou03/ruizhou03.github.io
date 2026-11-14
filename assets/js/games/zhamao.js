@@ -531,7 +531,8 @@
     ambTimer = setTimeout(check, Math.max(60, ms));
   }
   function releaseRim(opts) { if (game && game.rimLk) { game.rimLk.remove(opts); game.rimLk = null; } }
-  function rimLink(a, b) {
+  // flow：甩锅 / 自由甩锅——锅是顺着出牌方向往前传的，连线一律顺着当前方向走（自由甩锅给上家就几乎绕一圈，扫过被跳过的每一家）
+  function rimLink(a, b, flow) {
     const sv = rimRender();
     if (!sv || !sv._pts || a === b) return null;
     ambQuiet(400);
@@ -547,7 +548,7 @@
      * 甩锅 / 索要 / 交换 / 偷 / 点名都按这个。路径上序号变大 = 座位号变大（我 → 1 号 → 2 号 …），所以「顺着出牌方向」= 序号往 dirNow() 那边走 */
     const dir = dirNow();
     const shortWay = fwd <= back ? 1 : -1, clear = Math.min(fwd, back) < Math.max(fwd, back) * 0.75;
-    const stepDir = clear ? shortWay : (dir === -1 ? -1 : 1), cnt = stepDir === 1 ? fwd : back;
+    const stepDir = !flow && clear ? shortWay : (dir === -1 ? -1 : 1), cnt = stepDir === 1 ? fwd : back;
     const seg = []; for (let k = 0; k <= cnt; k++) seg.push(pts[(ia + stepDir * k + N) % N]);
     const d = 'M' + seg.map((q) => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join('L');
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -1294,6 +1295,8 @@
   function decideBot(seat) {
     const s = game.state;
     if (tut && tut.bot) { const d = tut.bot(s, seat); if (d) return d; }
+    // 本机演示（__zmDebug.demo('ins…')）：指定机器猫这次把炸毛猫塞到哪
+    if (s.phase === 'defuse' && game.forceInsert) { const f = game.forceInsert; game.forceInsert = null; return f.rand ? { type: 'insert', pos: (Math.random() * (s.deck.length + 1)) | 0, rand: true } : { type: 'insert', pos: f.pos === 'end' ? s.deck.length : f.pos === 'mid' ? Math.floor(s.deck.length / 2) : f.pos }; }
     return AI.decide(s, seat, game.tiers[seat] || 'normal');
   }
   function botAct(seat) {
@@ -1317,7 +1320,7 @@
       else if (d.type === 'play') ev = R.play(s, seat, d.cards, d);
       else if (d.type === 'give') ev = R.give(s, seat, d.card);
       else if (d.type === 'pick') ev = R.pickDiscard(s, seat, d.card);
-      else if (d.type === 'insert') ev = R.insertKitten(s, seat, d.pos);
+      else if (d.type === 'insert') ev = R.insertKitten(s, seat, d.pos, !!d.rand);
       else if (d.type === 'alter') ev = R.alterTop(s, seat, d.order);
       else if (d.type === 'steal') ev = R.stealPick(s, seat, d.idx);
       else throw new Error('bad move');
@@ -1427,7 +1430,7 @@
     if (tg >= 0) {
       game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK || p.type === R.TATTACK ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
       releaseRim();
-      game.rimLk = rimLink(p.by, tg);   // 桌沿连线单独记着：等牌真的拿到 / 给到 / 换完才收（不跟准星一起收）；甩锅给下家也连
+      game.rimLk = rimLink(p.by, tg, p.type === R.ATTACK || p.type === R.TATTACK);   // 甩锅 / 自由甩锅一律顺着出牌方向连（2026-11-14 用户）；桌沿连线单独记着：等牌真的拿到 / 给到 / 换完才收（不跟准星一起收）；甩锅给下家也连
     }
     await mimic(p.cards, t);   // 万能猫顶了谁：演完、停一下再往下走（只有组合里有万能猫时才多这一下）
     if (t !== token) return;
@@ -2535,12 +2538,19 @@
     const av = avEl(e.seat);
     const from = node ? node.getBoundingClientRect() : av ? av.getBoundingClientRect() : els.center.getBoundingClientRect();
     if (node) node.remove();
-    // 掀开的「盖子」= 顶上那张 + 上面将近一半的纸边；炸毛猫从侧面插进这道缝：真的放进牌堆那一摞里（盖子压在它上面、下半截垫在它下面）。
-    // 不管实际塞第几张，缝都开在同一个高度，别人从动画看不出位置
+    // 掀开的「盖子」= 缝上面那几层；炸毛猫从侧面插进这道缝：真的放进牌堆那一摞里（盖子压在它上面、下半截垫在它下面）。
+    // 牌堆每一张都画成一层纸边（DOM 里从底往上）。
+    // · 规则「看得出大概位置」（e.vis 有值，2026-11-14 用户，默认开）：缝开在真实高度——放最上就盖在最顶上、放最底就塞到最底下；
+    //   自己塞的按自己挑的那张（e.pos），别人那儿按服务器给的粗略高度（最上 / 最底照实，中间取到 1/8），认真看能估出个大概
+    // · 规则关着、或点的「随机」（e.vis 为空）：不管实际塞第几张，缝都开在同一个高度，谁也看不出位置
     const stack = els.deck.querySelector('.zm-deck-stack');
-    const layers = Array.from(stack.children);
-    const split = Math.max(1, Math.floor(layers.length * 0.55));
-    const lid = layers.slice(split), floor = layers[split - 1] || layers[0];
+    const layers = Array.from(stack.children), L0 = layers.length;
+    let above;
+    if (e.vis == null) above = L0 - Math.max(1, Math.floor(L0 * 0.55));
+    else above = Math.max(0, Math.min(L0, e.seat === 0 && e.pos != null ? e.pos : Math.round(e.vis * L0)));   // 单机里机器猫的事件也带 pos，别人塞的一律只按粗略高度
+    const lid = layers.slice(L0 - above);
+    const atBottom = L0 > 0 && above >= L0;
+    const floor = atBottom ? layers[0] : layers[L0 - above - 1];
     if (!floor) {
       await fx.fly({ html: backHtml(), from, to: deckTopRect(), w: pu, s0: from.width / pu, s1: 1, r0: 0, r1: 0, dur: ms(380), lift: 40 });
     } else {
@@ -2553,9 +2563,10 @@
       const card = document.createElement('div');
       card.innerHTML = backHtml('is-inserting');
       const el = card.firstChild;
-      el.style.transform = floor.style.transform || '';
+      // 塞到最底下：比最底那层再低一层，垫在整摞下面
+      el.style.transform = atBottom ? 'translate(' + (DECK_LOOK.sx * pu).toFixed(2) + 'px,' + (DECK_LOOK.sy * pu).toFixed(2) + 'px)' : floor.style.transform || '';
       el.style.filter = 'drop-shadow(0 0 6px rgba(200, 70, 58, 0.55))';
-      stack.insertBefore(el, lid[0] || null);
+      stack.insertBefore(el, atBottom ? layers[0] : lid[0] || null);
       await el.animate([{ translate: (-off) + 'px -2px', rotate: '-8deg' }, { translate: '0 -2px', rotate: '0deg' }], { duration: ms(300), easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).finished.catch(() => {});
       el.remove();
     }
@@ -3356,17 +3367,18 @@
       // 定下来：三个快捷键点了就直接塞（不用再点「塞进去」）；拖滑块的要点「塞进去」；倒计时到了 = 随机塞
       let done = false, timer = 0, tick = 0;
       const okBtn = d.querySelector('[data-ok]');
-      const commit = (p) => {
+      // rand = 点了「随机」或倒计时到了：连自己都不知道塞在哪，动画也不露位置（规则「看得出大概位置」只管自己挑的）
+      const commit = (p, rand) => {
         if (done || !okBtn.isConnected) return;   // 弹窗已经被关掉（托管 / 暂停）就不算数
         if (tut && tut.allow && !tut.allow({ type: 'insert', pos: p })) { shake(d.querySelector('[data-ok]')); return; }
         done = true; clearTimeout(timer); clearInterval(tick);
-        if (p !== pos) set(p);
+        if (p !== pos && !rand) set(p);
         closeDialog();
-        apply(0, { type: 'insert', pos: p });
+        apply(0, rand ? { type: 'insert', pos: p, rand: true } : { type: 'insert', pos: p });
       };
       d.querySelectorAll('[data-q]').forEach((b) => b.addEventListener('click', () => {
         const q = b.dataset.q;
-        commit(q === 'end' ? size : q === 'rand' ? (Math.random() * (size + 1)) | 0 : +q);
+        if (q === 'rand') commit((Math.random() * (size + 1)) | 0, true); else commit(q === 'end' ? size : +q);
       }));
       d.querySelector('[data-ok]').addEventListener('click', () => commit(pos));
       if (limit) {
@@ -3379,7 +3391,7 @@
           snd('tick');
           tick = setInterval(() => { if (my !== token || done) { clearInterval(tick); return; } snd('tick'); }, 1000);
         }, Math.max(0, limit - HURRY_MS));
-        timer = setTimeout(() => { if (my === token && !done && okBtn.isConnected) { timeouts += 1; autoAct = true; commit((Math.random() * (size + 1)) | 0); if (timeouts >= 2) setAutopilot(true); } }, limit);
+        timer = setTimeout(() => { if (my === token && !done && okBtn.isConnected) { timeouts += 1; autoAct = true; commit((Math.random() * (size + 1)) | 0, true); if (timeouts >= 2) setAutopilot(true); } }, limit);
       }
     });
   }
@@ -3465,7 +3477,7 @@
       '<h3>每人开局</h3><ul><li>4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸毛猫是里面还有几只。</li></ul>' +
       '<h3>牌</h3><ul>' +
       li('boom', '摸到就炸毛出局，除非有逗猫棒') +
-      li('defuse', '摸到炸毛猫时自动用掉，然后你把炸毛猫偷偷塞回牌堆任意位置') +
+      li('defuse', (() => { const r = R.normalizeRules((game && game.state && game.state.rules) || settings.rules); return '摸到炸毛猫时自动用掉，然后你把炸毛猫塞回牌堆任意位置' + (r.insertSeen ? '——大家看得到你塞进去的大概高度（最上 / 最底一眼看得出，中间只能估；不报第几张；点「随机」的看不出）' : '，别人看不出塞在哪'); })()) +
       li('nope', '作废别人刚出的牌（不管轮没轮到你）。也能作废别人的「作废」，叠了单数张 = 作废。挡不了炸毛猫和逗猫棒') +
       li('attack', '结束回合、不摸牌，下家连着摸两回合（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）') +
       li('tattack', '同甩锅，但可以甩给任意一个人（点他的头像）') +
@@ -3513,6 +3525,8 @@
       row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
       // 交换连逗猫棒一起换（2026-11-13 用户：以前玩的是整副手牌全换）；没开交换牌时这行藏着
       row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', settings.rules.swapDefuse)).replace('<div class="zs-row"', '<div class="zs-row" data-dep="swap"' + (settings.rules.swap ? '' : ' hidden')) +
+      // 2026-11-14 用户：塞回炸毛猫时动画插在真实高度（默认开），最上 / 最底看得出、中间只能估；不报第几张
+      row('boom', '塞回炸毛猫看得出大概位置', '像线下一样：放最上 / 最底一眼看得出', sw('insertSeen', R.normalizeRules(settings.rules).insertSeen)) +
       '</section>';
     const pref = '<div class="zs-cap">操作</div><section class="zs-card">' +
       row('nope', '「作废」只在和我有关时询问', '', '<button type="button" class="zs-switch" data-pref="nopeMine" role="switch" aria-checked="' + !!settings.nopeMine + '"><i></i></button>') +
@@ -5093,6 +5107,7 @@
       DECK_OPTS.map(([v, t]) => '<button type="button" data-deck="' + v + '" aria-pressed="' + (v === rules.deckSize) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
       row('swap', '有交换牌', '', sw('swap', rules.swap)) +
       (rules.swap ? row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', rules.swapDefuse)) : '') +
+      row('boom', '塞回炸毛猫看得出大概位置', '', sw('insertSeen', rules.insertSeen !== false)) +
       '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">规则由房主定</p>') +
       '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">离开房间</button>' +
       (host ? '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (seated.length >= 2 ? '' : ' disabled') + '>开始（' + seated.length + ' 人）</button>'
@@ -5331,6 +5346,13 @@
       swap: () => { give(0, R.SWAP); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.SWAP)], target: bot }); },
       swapme: () => { give(bot, R.SWAP); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SWAP)], target: 0 }); },
       stack: () => { give(bot, R.ATTACK); s.turn = bot; s.turnsLeft = 2; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
+      // 机器猫拆了炸毛猫、塞回指定位置（看塞回动画）：最上 / 中间 / 最底 / 随机
+      insTop: () => { game.forceInsert = { pos: 0 }; plays.defuse(); },
+      insMid: () => { game.forceInsert = { pos: 'mid' }; plays.defuse(); },
+      insEnd: () => { game.forceInsert = { pos: 'end' }; plays.defuse(); },
+      insRand: () => { game.forceInsert = { rand: true }; plays.defuse(); },
+      // 自由甩锅甩给出牌顺序上自己的上家：连线顺着出牌方向几乎绕一圈
+      tattackBack: () => { give(bot, R.TATTACK); s.turn = bot; const prev = R.nextAlive(Object.assign({}, s, { dir: -(s.dir || 1) }), bot); apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.TATTACK)], target: prev }); },
       reverse: () => { give(bot, R.REVERSE); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.REVERSE)] }); },
       skip: () => { give(bot, R.SKIP); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
       shuffle: () => { give(bot, R.SHUFFLE); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SHUFFLE)] }); },
