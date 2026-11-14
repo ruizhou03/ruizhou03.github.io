@@ -178,9 +178,12 @@
       p.setAttribute('role', 'dialog');
       p.setAttribute('aria-label', '扔给 ' + host.name(l));
       const mutable = host.mutable && host.mutable(l), muted = mutable && host.muted(l);
+      const extra = (host.extra && host.extra(l)) || [];
       p.innerHTML = '<div class="gz-sp-title"></div><div class="gz-sp-props">' +
         KEYS.map((k) => '<button type="button" data-prop="' + k + '"><span class="gz-sp-ic">' + PIC[k] + '</span><span class="gz-sp-lb">' + NAMES[k] + '</span></button>').join('') + '</div>' +
-        (mutable ? '<div class="gz-sp-foot"><span>' + (muted ? '已屏蔽他的互动' : '不想看他的互动') + '</span><button type="button" data-mute>' + (muted ? '取消屏蔽' : '屏蔽他') + '</button></div>' : '');
+        (mutable ? '<div class="gz-sp-foot"><span>' + (muted ? '已屏蔽他的互动' : '不想看他的互动') + '</span><button type="button" data-mute>' + (muted ? '取消屏蔽' : '屏蔽他') + '</button></div>' : '') +
+        // 可选：游戏自己往弹窗底下加一排按钮（百变小咪：房主的托管 / 禁言 / 请离）；没给 extra 的游戏（拱猪）照旧
+        (extra.length ? '<div class="gz-sp-foot gz-sp-extra"><span>' + (host.extraTitle ? host.extraTitle(l) : '') + '</span><span class="gz-sp-extra-btns">' + extra.map((x, i) => '<button type="button" data-extra="' + i + '">' + x.label + '</button>').join('') + '</span></div>' : '');
       p.querySelector('.gz-sp-title').textContent = '扔给 ' + host.name(l);
       layer.appendChild(p);
       pop = p; popFor = av;
@@ -196,6 +199,7 @@
       }));
       const mb = p.querySelector('[data-mute]');
       if (mb) mb.addEventListener('click', () => { host.setMuted(l, !muted); closePop(); });
+      p.querySelectorAll('[data-extra]').forEach((b) => b.addEventListener('click', () => { closePop(); extra[+b.dataset.extra].on(); }));
     }
 
     function openChat(btn) {

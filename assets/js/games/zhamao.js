@@ -2873,6 +2873,9 @@
   }
   function onSeatTap(seat) {
     if (game && game.online && !game.dealing && (game.spectator || !game.state.alive[0]) && game.state.phase !== 'over') {
+      // 房主出局了也得能管人（托管 / 禁言 / 请离）：点真人弹房主菜单（里面有「坐他身后看」）；点机器猫照旧换视角
+      const hp = !game.spectator && isHost() && seat > 0 ? playerAt(srvOf(seat)) : null;
+      if (hp && !hp.isAi && !hp.left) { hostPersonMenu(hp, { lobby: false, view: game.state.alive[seat] ? () => onlineView(srvOf(seat)) : null }); return; }
       if (seat > 0 && game.state.alive[seat]) onlineView(srvOf(seat));
       return;
     }
@@ -3901,10 +3904,10 @@
       canSend: socialOk,
       // 联机：我发的本机先画，同时发给服务器（座位换成服务器座位号）；别人的跟长轮询来（onFx）
       send(ev) {
-        if (inLobby() && ev.kind === 'chat') { NET.emote(online.code, online.token, { text: ev.text }).catch((e) => { if (e && e.status === 429) toast('慢一点，歇一下再发'); }); return; }
+        if (inLobby() && ev.kind === 'chat') { NET.emote(online.code, online.token, { text: ev.text }).catch((e) => { if (e && e.error === 'muted') toast('房主把你禁言了'); else if (e && e.status === 429) toast('慢一点，歇一下再发'); }); return; }
         if (!game || !game.online || !online) return;
         const body = ev.kind === 'prop' ? { to: srvOf(ev.to), prop: ev.prop } : { text: ev.text };
-        NET.emote(online.code, online.token, body).catch((e) => { if (e && e.status === 429) toast('慢一点，歇一下再发'); });
+        NET.emote(online.code, online.token, body).catch((e) => { if (e && e.error === 'muted') toast('房主把你禁言了'); else if (e && e.status === 429) toast('慢一点，歇一下再发'); });
       },
       autoBots: () => !!(game && !game.online),
       isBot: (l) => (game && game.online ? !!(playerAt(srvOf(l)) && (playerAt(srvOf(l)).isAi || playerAt(srvOf(l)).left)) : l > 0),
@@ -3915,6 +3918,19 @@
         if (!p) return;
         if (on) mutedIds.add(p.id); else mutedIds.delete(p.id);
         toast(on ? '已屏蔽' + p.nick + '的互动' : '不再屏蔽' + p.nick);
+      },
+      // 房主点一个真人：底下多一排「托管 / 禁言 / 请离」（2026-11-14 用户）
+      extraTitle: () => '房主',
+      extra: (l) => {
+        if (!game || !game.online || !online || !online.st || !isHost() || l === 0 || inLobby()) return [];
+        const p = playerAt(srvOf(l));
+        if (!p || p.isAi || p.left) return [];
+        const g = G(), seat = srvOf(l), auto = !!(g && g.auto && g.auto[seat]), alive = !!(g && !g.over && g.st.alive[seat]);
+        const out = [];
+        if (alive) out.push({ label: auto ? '取消托管' : '托管', on: () => onlineAct('host_auto', { seat, on: !auto }).then((r) => { if (r) toast(auto ? '已取消' + p.nick + '的托管' : p.nick + '改由机器猫托管（他点自己头像能收回）'); }) });
+        out.push({ label: p.muted ? '解禁' : '禁言', on: () => onlineAct('mute', { pid: p.id, on: !p.muted }).then((r) => { if (r) toast(p.muted ? '已解除' + p.nick + '的禁言' : '已禁言' + p.nick); }) });
+        out.push({ label: '请离', on: () => hostPersonMenu(p, { lobby: false }) });
+        return out;
       },
       sfx: (name, delay) => { if (SFX[name]) snd(SFX[name], delay); },
       reduce: () => fx.reduce(),
@@ -4552,7 +4568,7 @@
     if (!game || !game.online || game.matchNo !== g.matchNo || online.base !== base || online.n !== g.n) {
       // 观战换了一家：桌子转过去（先记下每一家头像现在在哪，重摆之后从旧位置滑到新位置）
       const turning = game && game.online && game.matchNo === g.matchNo && online.n === g.n && online.base !== base ? seatSpots() : null;
-      enterGame(st, !!(prev && prev.phase === 'lobby'));
+      enterGame(st, !!(prev && (prev.phase === 'lobby' || (prev.game && prev.game.matchNo !== g.matchNo))));   // 房主点「下一局」直接开：也从发牌播起
       if (turning) turnTable(turning);
       return;
     }
@@ -4859,7 +4875,7 @@
   async function onlineAct(action, body) {
     if (!online) return null;
     try { const res = await NET.act(online.code, online.token, action, body || {}); if (res && res.state) onState(res.state, res._rtt); return res; }
-    catch (err) { toast(NET.message(err)); if (err && (err.status === 401 || err.status === 404)) leaveOnline(false, '房间已经不在了'); return null; }
+    catch (err) { if (err && err.error === 'kicked') { leaveOnline(false, '房主请你离开了房间'); return null; } toast(NET.message(err)); if (err && (err.status === 401 || err.status === 404)) leaveOnline(false, '房间已经不在了'); return null; }
   }
 
   /* ───── 一局结束 ───── */
@@ -4876,14 +4892,32 @@
     if (!ok || !online || !G() || !G().over) return;
     const host = isHost();
     bgm('menu');   // 结算页算游戏外：接上丁（一局结束时先淡出，皇冠彩纸放完、排行榜出来再起）
+    // 2026-11-14 用户：房间里直接开下一局（房主「下一局」= 同样的人、座位、规则直接开打）；要请人走 / 调座位 / 改规则就「回房间」；
+    // 下面接着列本房间战绩（打满两局才列，按平均名次排）
     openDialog('<h2>排行榜</h2>' +
       '<ol class="zm-rank" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 && !game.spectator ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 && !game.spectator ? '<small>（我）</small>' : '') + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
+      recordHtml(online.st && online.st.record, 2) +
       (host ? '' : '<p class="zm-muted">等房主开下一局</p>') +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-leave>离开房间</button>' + (host ? '<button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button>' : '') + '</div>', (d) => {
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-leave>离开房间</button>' + (host ? '<button type="button" class="zm-btn" data-again>回房间</button><button type="button" class="zm-btn zm-btn-primary" data-next data-focus>下一局</button>' : '') + '</div>', (d) => {
       d.querySelector('[data-leave]').addEventListener('click', () => { closeDialog(); leaveOnline(true); });
       const a = d.querySelector('[data-again]');
       if (a) a.addEventListener('click', () => { a.disabled = true; onlineAct('rematch'); });
+      const nx = d.querySelector('[data-next]');
+      if (nx) nx.addEventListener('click', () => { nx.disabled = true; onlineAct('next'); });
     });
+  }
+  /* 本房间战绩表（2026-11-14 用户：连着打很多局，按「平均名次」排）：名次 / 名字 / 平均名次 / 赢的局数 / 打的局数 / 最近几局各第几 */
+  function recordHtml(rec, minMatches) {
+    if (!rec || !rec.rows || !rec.matches || rec.matches.length < (minMatches || 1)) return '';
+    const me = online && online.st ? online.st.me : null;
+    const face = (r) => (r.avatar && AV && AV.byId[r.avatar] ? AV.byId[r.avatar].svg : '<span>' + esc((r.nick || '?').slice(0, 1)) + '</span>');
+    const last = rec.matches.slice(-5);
+    return '<div class="zm-record"><div class="zm-record-h">本房间战绩 · ' + rec.matches.length + ' 局<small>按平均名次</small></div>' +
+      '<table><thead><tr><th></th><th class="nm"></th><th>平均名次</th><th>赢</th><th>局</th><th class="rk">最近几局</th></tr></thead><tbody>' +
+      rec.rows.map((r, i) => '<tr class="' + (r.id === me ? 'is-me' : '') + '"><td class="pos">' + (i + 1) + '</td><td class="nm"><span class="mini">' + face(r) + '</span><span>' + esc(r.nick) + '</span></td>' +
+        '<td class="avg">' + r.avg.toFixed(1) + '</td><td>' + r.wins + '</td><td>' + r.games + '</td><td class="rk">' +
+        last.map((m) => { const x = r.ranks.find((k) => k.m === m); return '<i class="' + (x && x.r === 1 ? 'is-win' : '') + '">' + (x ? x.r : '–') + '</i>'; }).join('') + '</td></tr>').join('') +
+      '</tbody></table></div>';
   }
 
   /* ───── 进 / 出房间、长轮询 ───── */
@@ -4898,6 +4932,24 @@
   }
   // 在房间里每 8 秒量一次来回（没出牌的人也有数）：倒计时校准用，也随请求报给服务器
   setInterval(() => { if (online && NET && NET.ping && !document.hidden) NET.ping(); }, 8000);
+  /* 跳过，直接看结果（2026-11-14 用户）：服务器上这局已经打完了（真人都出局后，剩下的机器猫是一瞬间算完的），
+   * 我这边还在一步步播机器猫出牌——给个按钮直接跳到排行榜；房主在排行榜上就能开下一局。
+   * 也是那次「国内朋友比我早十几秒看到谁赢」的原因：他网不稳，断档后网页按快照重摆，一下跳到了结尾 */
+  let skipBtn = null;
+  function updateSkip() {
+    const g = online && game && game.online ? G() : null;
+    const show = !!(g && g.over && game.finishShown !== g.matchNo && (online.playing || online.queue.length) && els.mask.hidden);
+    if (!show) { if (skipBtn) { skipBtn.remove(); skipBtn = null; } return; }
+    if (skipBtn) return;
+    skipBtn = document.createElement('button');
+    skipBtn.type = 'button';
+    skipBtn.className = 'zm-skip';
+    skipBtn.textContent = '这局已经打完了 · 直接看结果';
+    skipBtn.addEventListener('click', (e) => { e.stopPropagation(); if (skipBtn) { skipBtn.remove(); skipBtn = null; } resync(); });
+    els.table.appendChild(skipBtn);
+    if (!fx.reduce()) skipBtn.animate([{ opacity: 0, translate: '-50% 10px' }, { opacity: 1, translate: '-50% 0' }], { duration: 260, easing: 'ease-out' });
+  }
+  setInterval(updateSkip, 400);
   async function pollLoop() {
     const my = { abort: false };
     online.poll = my;
@@ -4912,6 +4964,7 @@
       } catch (err) {
         if (my.abort || !online) return;
         if (err && (err.status === 401 || err.status === 404)) { leaveOnline(false, '房间已经不在了'); return; }
+        if (err && err.error === 'kicked') { leaveOnline(false, '房主请你离开了房间'); return; }
         fails++;
         if (fails === 2) toast('连接断了，正在重连…');
         await new Promise((r) => setTimeout(r, Math.min(8000, 800 * fails)));
@@ -5101,6 +5154,7 @@
       (lobbyQr ? '<div class="zm-lobby-qr" data-qr></div>' : '') +
       '<div class="zm-lobby-seats">' + Array.from({ length: shownSeats }, (_, i) => seatHtml(i)).join('') + '</div>' +
       (st.spectators.length ? '<p class="zm-muted zm-lobby-watch">' + st.spectators.length + ' 个人在观战' + (st.spectator ? '（包括你）' : '') + '</p>' : '') +
+      recordHtml(st.record, 1) +
       '<section class="zs-card zs-b zm-lobby-rules"><div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
       TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
       '<div class="zs-line"><span>牌量</span><div class="zs-seg" role="group">' +
@@ -5157,12 +5211,44 @@
       });
       return;
     }
-    if (host) {
-      openDialog('<h2>' + esc(p.nick) + '</h2><p class="zm-muted">请他离开这个房间？</p><div class="zm-actions"><button type="button" class="zm-btn" data-cancel>算了</button><button type="button" class="zm-btn zm-btn-primary" data-kick>请他离开</button></div>', (d) => {
-        d.querySelector('[data-cancel]').addEventListener('click', closeDialog);
-        d.querySelector('[data-kick]').addEventListener('click', () => { closeDialog(); onlineAct('kick', { pid: p.id }); });
+    if (host) hostPersonMenu(p, { lobby: true });
+  }
+  /* 房主点一个真人（2026-11-14 用户）：局与局之间能换座位 / 请他离开，任何时候能禁言；牌局中还能替他开 / 关托管。
+   * 牌局中请离 = 这一座交给机器猫代打、这局打完移走（他那边会收到「房主请你离开了房间」） */
+  function hostPersonMenu(p, o) {
+    const st = online && online.st;
+    if (!st) return;
+    const g = st.game, seat = p.seat;
+    const inGame = !o.lobby && g && !g.over;
+    const auto = inGame && g.auto && g.auto[seat];
+    const alive = inGame && g.st && g.st.alive && g.st.alive[seat];
+    const seats = o.lobby ? Math.min(R.MAX_PLAYERS, Math.max(5, st.players.reduce((m, x) => Math.max(m, x.seat), -1) + 2)) : 0;
+    const status = [!p.online ? '掉线了' : '', auto ? '托管中' : '', p.muted ? '已禁言' : ''].filter(Boolean).join(' · ');
+    openDialog('<h2>' + esc(p.nick) + '</h2>' + (status ? '<p class="zm-muted">' + status + '</p>' : '') +
+      (o.lobby ? '<div class="zm-field-label">换到几号位（和那里的人 / 机器猫对调）</div><div class="zs-seg zm-host-seats" role="group">' +
+        Array.from({ length: seats }, (_, i) => '<button type="button" data-to="' + i + '" aria-pressed="' + (i === seat) + '">' + (i + 1) + '</button>').join('') + '</div>' : '') +
+      '<div class="zm-actions zm-host-acts">' +
+      (o.view ? '<button type="button" class="zm-btn" data-view>坐他身后看</button>' : '') +
+      (alive ? '<button type="button" class="zm-btn" data-auto>' + (auto ? '取消托管' : '让他托管') + '</button>' : '') +
+      '<button type="button" class="zm-btn" data-mute>' + (p.muted ? '解除禁言' : '禁言') + '</button>' +
+      '<button type="button" class="zm-btn" data-kick>请他离开</button>' +
+      '<button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (d) => {
+      d.classList.add('zs');
+      d.querySelector('[data-ok]').addEventListener('click', closeDialog);
+      const vb = d.querySelector('[data-view]');
+      if (vb) vb.addEventListener('click', () => { closeDialog(); o.view(); });
+      d.querySelectorAll('[data-to]').forEach((b) => b.addEventListener('click', () => { if (+b.dataset.to === seat) return; closeDialog(); onlineAct('swap_seats', { a: seat, b: +b.dataset.to }); }));
+      const ab = d.querySelector('[data-auto]');
+      if (ab) ab.addEventListener('click', () => { closeDialog(); onlineAct('host_auto', { seat, on: !auto }).then((r) => { if (r) toast(auto ? '已取消' + p.nick + '的托管' : p.nick + '改由机器猫托管（他点自己头像能收回）'); }); });
+      d.querySelector('[data-mute]').addEventListener('click', () => { closeDialog(); onlineAct('mute', { pid: p.id, on: !p.muted }).then((r) => { if (r) toast(p.muted ? '已解除' + p.nick + '的禁言' : '已禁言' + p.nick); }); });
+      d.querySelector('[data-kick]').addEventListener('click', () => {
+        openDialog('<h2>请' + esc(p.nick) + '离开？</h2><p class="zm-muted">' + (inGame ? '这一局他那一座交给机器猫打完，打完就把他移出房间。' : '他会被移出房间。') + '</p>' +
+          '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>算了</button><button type="button" class="zm-btn zm-btn-primary" data-yes>请他离开</button></div>', (d2) => {
+          d2.querySelector('[data-cancel]').addEventListener('click', closeDialog);
+          d2.querySelector('[data-yes]').addEventListener('click', () => { closeDialog(); onlineAct('kick', { pid: p.id }); });
+        });
       });
-    }
+    });
   }
 
   /* ───── 绑定 ───── */

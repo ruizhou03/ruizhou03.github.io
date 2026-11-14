@@ -1074,3 +1074,26 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 预览：扣锅版甩锅动画里飞的锅（倒扣时别把锅底的影子翻到上面）和锅肚上的 ×N */
 .zm-prop-hat svg ellipse { display: none; }
 .zm-hat-lab { position: absolute; left: 0; top: 0; pointer-events: none; color: #f3e6c4; font-weight: 700; font-family: Georgia, serif; line-height: 1; white-space: nowrap; z-index: 2; text-shadow: 0 0 2px rgba(29, 27, 24, 0.5); }
+/* 联机：这局服务器上已经打完、我这边还在播机器猫出牌时，直接看结果（2026-11-14 用户） */
+.zm-skip { position: absolute; left: 50%; top: 64%; translate: -50% 0;   /* 牌桌中间偏下的空处：不压手牌、不压「摸牌」那一排 */ z-index: 30; border: 1px solid var(--zm-ink); background: var(--zm-card); color: var(--zm-ink);
+  border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 14px; box-shadow: 0 6px 18px rgba(29, 27, 24, 0.18); cursor: pointer; white-space: nowrap; }
+/* 本房间战绩表（排行榜弹窗 / 房间准备页） */
+.zm-record { margin: 14px 0 4px; }
+.zm-record-h { font-weight: 700; font-size: 14px; margin: 0 2px 6px; display: flex; align-items: baseline; gap: 8px; }
+.zm-record-h small { font-weight: 400; font-size: 12px; color: var(--zm-ink-mute); }
+.zm-record table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.zm-record th { font-weight: 400; font-size: 11px; color: var(--zm-ink-mute); text-align: center; padding: 0 3px 4px; white-space: nowrap; }
+.zm-record td { text-align: center; padding: 5px 3px; border-top: 1px solid rgba(29, 27, 24, 0.08); white-space: nowrap; }
+.zm-record tr.is-me td { background: var(--zm-wash); }
+.zm-record td.pos { font: 700 14px/1 Georgia, serif; width: 20px; }
+.zm-record td.nm { text-align: left; display: flex; align-items: center; gap: 6px; max-width: 9em; overflow: hidden; }
+.zm-record td.nm > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.zm-record .mini { width: 24px; height: 24px; flex: none; border-radius: 50%; overflow: hidden; background: var(--zm-wash); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--zm-ink-mute); }
+.zm-record .mini svg { width: 100%; height: 100%; display: block; }
+.zm-record td.avg { font: 700 14px/1 Georgia, serif; }
+.zm-record td.rk i { display: inline-block; min-width: 1.3em; font-style: normal; color: var(--zm-ink-mute); font-family: Georgia, serif; }
+.zm-record td.rk i.is-win { color: var(--zm-seal); font-weight: 700; }
+/* 房主在牌桌上点一个真人：互动弹窗底下多一排（托管 / 禁言 / 请离） */
+.zm-app .gz-sp-extra .gz-sp-extra-btns { display: flex; gap: 10px; }
+.zm-app .zm-host-seats { flex-wrap: wrap; margin-bottom: 10px; }
+.zm-app .zm-host-acts { flex-wrap: wrap; }

@@ -34,6 +34,10 @@
     not_in_room: '你现在在观战，下一局坐下才能打',
     game_not_over: '这一局还没打完',
     you_are_out: '你已经出局了',
+    muted: '房主把你禁言了',
+    kicked: '房主请你离开了房间',
+    no_player_there: '那个座位上已经没人了',
+    no_game: '这一局已经结束了',
   };
   function message(err) {
     if (!err) return '网络出了点问题，再试一次';
