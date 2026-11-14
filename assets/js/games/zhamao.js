@@ -296,6 +296,38 @@
         'transform:translate(-50%,-50%) rotate(' + (base + (d === -1 ? Math.PI : 0)).toFixed(4) + 'rad);--j:' + j;
       el.dataset.base = base;
     });
+    placeStrip(d);
+  }
+  /* 预览中 · 方向乙「新灯带」（#zmApp data-uiv-dir="b"）：对手一排下面一条金带，上面一串亮珠顺着出牌方向一直流；轮到的那家下面一圈朱红光环 */
+  function placeStrip(d) {
+    let sv = els.table.querySelector(':scope > .zm-strip');
+    const n = game && game.state ? game.state.n : 0;
+    if (els.app.dataset.uivDir !== 'b' || n < 3) { if (sv) sv.remove(); return; }
+    const tb = els.table.getBoundingClientRect();
+    const pts = [];
+    for (let seat = 1; seat < n; seat++) { const se = seatEl(seat); if (!se) return; const r = se.getBoundingClientRect(); pts.push([r.left + r.width / 2 - tb.left, r.bottom + 7 - tb.top]); }
+    if (d === -1) pts.reverse();
+    const ext = (p, q) => [p[0] + (p[0] - q[0]) * 0.5, p[1] + (p[1] - q[1]) * 0.5];
+    const all = [ext(pts[0], pts[1])].concat(pts, [ext(pts[pts.length - 1], pts[pts.length - 2])]);
+    let path = 'M' + all[0][0].toFixed(1) + ' ' + all[0][1].toFixed(1);
+    for (let i = 1; i < all.length - 1; i++) { const m = [(all[i][0] + all[i + 1][0]) / 2, (all[i][1] + all[i + 1][1]) / 2]; path += 'Q' + all[i][0].toFixed(1) + ' ' + all[i][1].toFixed(1) + ' ' + m[0].toFixed(1) + ' ' + m[1].toFixed(1); }
+    path += 'L' + all[all.length - 1][0].toFixed(1) + ' ' + all[all.length - 1][1].toFixed(1);
+    if (!sv) {
+      sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); sv.setAttribute('class', 'zm-strip');
+      sv.innerHTML = '<path class="base"/><path class="glow"/><path class="beads"/><circle class="hot" r="6"/>';
+      els.table.insertBefore(sv, els.dir);
+    }
+    sv.querySelectorAll('path').forEach((p) => p.setAttribute('d', path));
+    const beads = sv.querySelector('.beads');
+    if (!beads._anim && !fx.reduce()) beads._anim = beads.animate([{ strokeDashoffset: 0 }, { strokeDashoffset: -28 }], { duration: 900, iterations: Infinity, easing: 'linear' });
+    const glow = sv.querySelector('.glow'), L = glow.getTotalLength();
+    if (!glow._anim || Math.abs(glow._L - L) > 2) {
+      if (glow._anim) glow._anim.cancel();
+      glow._L = L; glow.style.strokeDasharray = '70 ' + Math.ceil(L + 70);
+      glow._anim = fx.reduce() ? null : glow.animate([{ strokeDashoffset: 70 }, { strokeDashoffset: -L }], { duration: 2600, iterations: Infinity, easing: 'linear' });
+    }
+    const t = game.state.phase === 'over' ? -1 : D().turn, hot = sv.querySelector('.hot');
+    if (t > 0) { const r = seatEl(t).getBoundingClientRect(); hot.setAttribute('cx', (r.left + r.width / 2 - tb.left).toFixed(1)); hot.setAttribute('cy', (r.bottom + 7 - tb.top).toFixed(1)); hot.style.display = ''; } else hot.style.display = 'none';
   }
   /* 指向当前出牌的人的那个箭头标红：顺时针（d = 1）是从 t-1 指向 t 的那个（第 t-2 个），反过来是从 t+1 指向 t 的那个（第 t-1 个） */
   function dirHot() {
@@ -305,6 +337,7 @@
     const t = st.phase === 'over' ? -1 : D().turn, d = dirNow();
     const k = t < 0 ? -1 : d === -1 ? t - 1 : t - 2;
     Array.from(list).forEach((el, i) => el.classList.toggle('is-hot', i === k));
+    placeStrip(d);
   }
   /* 打出转向：箭头从出牌人那边起，一个接一个转半圈掉头 */
   async function animReverse(e, t) {
@@ -961,6 +994,8 @@
     const tg = targetOf(p);
     if (tg >= 0) {
       game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK || p.type === R.TATTACK ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
+      const tr = game.arrow && p.type !== R.ATTACK ? aimTrail(p.by, tg) : null;
+      if (tr) { const ar = game.arrow; game.arrow = { remove() { ar.remove(); tr.remove(); } }; }
     }
     await mimic(p.cards, t);   // 万能猫顶了谁：演完、停一下再往下走（只有组合里有万能猫时才多这一下）
     if (t !== token) return;
@@ -1495,6 +1530,51 @@
 
   /* 交换：两个人的牌在空中交叉着换过去（逗猫棒不动）——一边从上面的弧线走、另一边从下面走；
    * 我参与的话：我换出去的从手牌原位飞走（背面朝上），换来的半路翻开、先落到牌槽上方再滑进去 */
+  /* 预览中 · 指了谁（#zmApp data-uiv-aim）：'paw' = 一串金色小猫爪印从出牌人一步步走到被指的人；'dots' = 一串金色小圆点像传送带一样往他那边流。
+   * 都不画箭头；对手之间在名字下面兜一个 U，对手 ↔ 我往桌子中间稍微弯一点 */
+  function aimTrail(a, b) {
+    const v = els.app.dataset.uivAim;
+    if (!v || a === b) return null;
+    const anchor = (seat) => {
+      if (seat === 0) { const r = avEl(0) ? avEl(0).getBoundingClientRect() : { left: innerWidth / 2, width: 0, top: innerHeight - 120 }; return { x: r.left + r.width / 2, y: r.top - 6 }; }
+      const se = seatEl(seat), r = se ? se.getBoundingClientRect() : { left: innerWidth / 2, width: 0, bottom: 90 };
+      return { x: r.left + r.width / 2, y: r.bottom + 4 };
+    };
+    const P0 = anchor(a), P1 = anchor(b);
+    const mx = (P0.x + P1.x) / 2, my = (P0.y + P1.y) / 2, len = Math.hypot(P1.x - P0.x, P1.y - P0.y) || 1;
+    let C;
+    if (a !== 0 && b !== 0) C = { x: mx, y: Math.max(P0.y, P1.y) + Math.max(34, Math.min(100, 26 + len * 0.24)) };
+    else {
+      let nx = -(P1.y - P0.y) / len, ny = (P1.x - P0.x) / len;
+      if ((innerWidth / 2 - mx) * nx + (innerHeight * 0.45 - my) * ny < 0) { nx = -nx; ny = -ny; }
+      C = { x: mx + nx * len * 0.18, y: my + ny * len * 0.18 };
+    }
+    const q = (t) => ({ x: (1 - t) * (1 - t) * P0.x + 2 * (1 - t) * t * C.x + t * t * P1.x, y: (1 - t) * (1 - t) * P0.y + 2 * (1 - t) * t * C.y + t * t * P1.y });
+    const box = document.createElement('div');
+    box.className = 'zm-trail';
+    els.fly.appendChild(box);
+    if (v === 'paw') {
+      // 按弧长等距撒爪印（左右脚交替、脚尖朝前进方向），一步一步冒出来
+      const N = 80, pts = [];
+      let acc = 0, prev = q(0);
+      for (let i = 1; i <= N; i++) { const p = q(i / N); acc += Math.hypot(p.x - prev.x, p.y - prev.y); pts.push({ p, acc, prev }); prev = p; }
+      const step = 13, k = Math.max(4, Math.floor(acc / step));
+      let html = '';
+      for (let j = 1; j < k; j++) {
+        const want = j * acc / k, it = pts.find((x) => x.acc >= want) || pts[pts.length - 1];
+        const ang = Math.atan2(it.p.y - it.prev.y, it.p.x - it.prev.x), side = j % 2 ? 1 : -1;
+        const x = it.p.x + Math.cos(ang + Math.PI / 2) * 3.5 * side, y = it.p.y + Math.sin(ang + Math.PI / 2) * 3.5 * side;
+        html += '<i style="left:' + x.toFixed(1) + 'px;top:' + y.toFixed(1) + 'px;rotate:' + (ang * 180 / Math.PI + 90).toFixed(0) + 'deg;animation-delay:' + (j * 45) + 'ms">' + window.ZhamaoFx.SHAPES.paw + '</i>';
+      }
+      box.innerHTML = html;
+    } else {
+      const d = 'M' + P0.x.toFixed(1) + ' ' + P0.y.toFixed(1) + 'Q' + C.x.toFixed(1) + ' ' + C.y.toFixed(1) + ' ' + P1.x.toFixed(1) + ' ' + P1.y.toFixed(1);
+      box.innerHTML = '<svg class="zm-trail-dots" width="' + innerWidth + '" height="' + innerHeight + '"><path class="halo" d="' + d + '"/><path class="dots" d="' + d + '"/><circle class="end" cx="' + P1.x.toFixed(1) + '" cy="' + P1.y.toFixed(1) + '" r="4.5"/></svg>';
+      const dots = box.querySelector('.dots');
+      if (!fx.reduce()) dots.animate([{ strokeDashoffset: 0 }, { strokeDashoffset: -26 }], { duration: 700, iterations: Infinity, easing: 'linear' });
+    }
+    return { remove() { if (fx.reduce()) { box.remove(); return; } box.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: 'forwards' }).finished.then(() => box.remove()).catch(() => box.remove()); } };
+  }
   async function animSwap(e, t) {
     if (game.arrow) { game.arrow.remove(); game.arrow = null; }
     const a = e.a, b = e.b, u = U(), pu = PU();
@@ -3135,7 +3215,8 @@
     busy = true;
     renderAll();
     // 不写「暂停」二字：正中一个大大的暂停图标，左下「回到主页面」，右下「继续」（带个播放三角）
-    openDialog('<div class="zm-pause-ic" aria-label="暂停"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/><rect x="34" y="28" width="11" height="44" rx="3.5"/><rect x="55" y="28" width="11" height="44" rx="3.5"/></svg></div>' +
+    openDialog('<div class="zm-pause-cat" aria-hidden="true">' + ART.face(R.SKIP) + '</div><p class="zm-pause-say">小咪打个盹…</p>' +
+      '<div class="zm-pause-ic" aria-label="暂停"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/><rect x="34" y="28" width="11" height="44" rx="3.5"/><rect x="55" y="28" width="11" height="44" rx="3.5"/></svg></div>' +
       '<div class="zm-pause-actions"><button type="button" class="zm-btn" data-home>回到主页面</button>' +
       '<button type="button" class="zm-btn zm-btn-primary" data-go data-focus><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>继续</button></div>', (d) => {
       d.classList.add('is-pause');
