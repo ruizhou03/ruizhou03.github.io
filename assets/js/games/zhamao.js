@@ -311,8 +311,9 @@
     // 和名字之间留的缝：手机上多留一点（2026-11-13 用户：手机上灯带和名字挨得太紧）
     const gap = W < 520 ? 13 : 9;
     const anchor = (seat) => {
-      if (seat === 0) { const r = avEl(0).getBoundingClientRect(); return { x: r.left + r.width / 2 - tb.left, y: r.top - 9 - tb.top }; }
-      const r = seatEl(seat).getBoundingClientRect(); return { x: r.left + r.width / 2 - tb.left, y: r.bottom + gap - tb.top };
+      // 取整：小数点后的抖动不该让整圈重画
+      if (seat === 0) { const r = avEl(0).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(r.top - 9 - tb.top) }; }
+      const r = seatEl(seat).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(r.bottom + gap - tb.top) };
     };
     const opp = []; for (let i = 1; i < n; i++) opp.push(anchor(i));
     const me = anchor(0), m = 16, R = 26, yb = me.y;
@@ -347,37 +348,73 @@
     for (let x = xR - 6; x > xL; x -= 6) d += 'L' + f(x) + ' ' + f(fit.y(x));   // 顶边：每 6px 一个点，看着就是一条顺滑的弧
     d += 'L' + f(xL) + ' ' + f(yL) + 'Q' + m + ' ' + f(ycL) + ' ' + m + ' ' + f(ycL + R) +
       'L' + m + ' ' + f(yb - R) + 'Q' + m + ' ' + f(yb) + ' ' + (m + R) + ' ' + f(yb) + 'Z';
-    return { d, W, H: tb.height, anchor: (seat) => (seat === 0 ? me : { x: anchor(seat).x, y: fit.y(anchor(seat).x) }) };
+    return { d, W, H: tb.height, keys: [me.x, me.y, W].concat(...opp.map((p) => [p.x, p.y])), anchor: (seat) => (seat === 0 ? me : { x: anchor(seat).x, y: fit.y(anchor(seat).x) }) };
   }
+  /* 桌沿只在形状真变了（窗口变了、座位重排了）时才重量重画；以前每次刷新座位都重画、长度一变就让常驻光从头开始绕，
+   * 手机上看着就是「卡住、又闪到别处」（2026-11-13 用户）。
+   * 常驻光（2026-11-13 用户提议）：三颗彗星（亮头 + 渐淡的尾巴）等距绕桌，花样周期 = 一圈的 1/3，所以永远无缝循环；
+   * 形状变了也接着原来的进度走。指人 / 情绪效果出来时它们不停，只是淡下去让位，效果收了再慢慢亮回来——一直在动，没有「衔接」的跳变 */
+  const AMB_MS = 3000;   // 每颗走完 1/3 圈的时间（= 一整圈 9 秒）
   function rimRender() {
     let sv = els.table.querySelector(':scope > .zm-rim');
     if (!game || !game.state) { if (sv) sv.remove(); return null; }
     const g = rimGeom();
-    if (!g) return null;
+    if (!g) return sv;
     if (!sv) {
       sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); sv.setAttribute('class', 'zm-rim');
-      sv.innerHTML = '<path class="base"/><path class="drift"/><g class="links"></g>';
+      sv.innerHTML = '<path class="base"/><g class="amb"><path class="tail"/><path class="head"/></g><g class="links"></g>';
       els.table.insertBefore(sv, els.dir);
     }
-    sv.querySelectorAll(':scope > path').forEach((p) => p.setAttribute('d', g.d));
+    sv._anchor = g.anchor;
+    const dir = dirNow();
+    // 座位跳一下 / 抖一下、取整翻了 1px 都不算「变了」：各点都在 2px 以内就不重画
+    const same = sv._keys && sv._keys.length === g.keys.length && g.keys.every((v, i) => Math.abs(v - sv._keys[i]) <= 2);
+    if (same && sv._dir === dir) return sv;
+    sv._keys = g.keys;
+    sv._d = g.d; sv._dir = dir;
+    sv.querySelectorAll('.base, .amb path').forEach((p) => p.setAttribute('d', g.d));
     const base = sv.querySelector('.base'), L = base.getTotalLength();
-    // 采样成一串点（每 5px 一个），连线时按点在圈上走
-    const pts = []; for (let l = 0; l < L; l += RIM_STEP) { const q = base.getPointAtLength(l); pts.push({ x: q.x, y: q.y }); }
-    sv._pts = pts; sv._anchor = g.anchor;
-    const drift = sv.querySelector('.drift'), dir = dirNow();
-    if (!drift._anim || Math.abs(drift._L - L) > 2 || drift._dir !== dir) {
-      if (drift._anim) drift._anim.cancel();
-      drift._L = L; drift._dir = dir;
-      drift.style.strokeDasharray = '60 ' + Math.ceil(L);
-      // 路径本身是逆时针（我 → 右 → 上 → 左），出牌方向 1 = 座位号往上走 = 桌上逆时针，所以 dir 1 顺着路径走、-1 倒着走
-      drift._anim = fx.reduce() ? null : drift.animate(dir === 1 ? [{ strokeDashoffset: 0 }, { strokeDashoffset: -L }] : [{ strokeDashoffset: -L }, { strokeDashoffset: 0 }], { duration: 9000, iterations: Infinity, easing: 'linear' });
+    const pts = []; for (let l = 0; l < L; l += RIM_STEP) { const q = base.getPointAtLength(l); pts.push({ x: q.x, y: q.y }); }   // 连线时按点在圈上走
+    sv._pts = pts;
+    // 常驻三颗彗星：尾巴 64px、亮头 16px，头在前进方向那一端
+    const P = L / 3, tail = sv.querySelector('.amb .tail'), head = sv.querySelector('.amb .head');
+    tail.style.strokeDasharray = '64 ' + (P - 64).toFixed(2);
+    head.style.strokeDasharray = '16 ' + (P - 16).toFixed(2);
+    const t0 = sv._ambAnims && sv._ambAnims[0] ? (sv._ambAnims[0].currentTime || 0) : 0;
+    (sv._ambAnims || []).forEach((an) => an.cancel());
+    sv._ambAnims = [];
+    if (!fx.reduce()) {
+      // 路径本身逆时针（我 → 右 → 上 → 左）；出牌方向 1 = 桌上逆时针 = 顺着路径走（dashoffset 变小），-1 倒着走
+      const hOff = dir === 1 ? -48 : 0;
+      [[tail, 0], [head, hOff]].forEach(([el, off]) => {
+        const an = el.animate(dir === 1 ? [{ strokeDashoffset: off }, { strokeDashoffset: off - P }] : [{ strokeDashoffset: off }, { strokeDashoffset: off + P }], { duration: AMB_MS, iterations: Infinity, easing: 'linear' });
+        an.currentTime = t0 % AMB_MS;
+        if (sv._rate) an.playbackRate = sv._rate;
+        sv._ambAnims.push(an);
+      });
     }
     return sv;
+  }
+  // 特殊效果占用桌沿时，常驻光淡下去让位（不停）；都结束了再亮回来
+  let ambHoldUntil = 0, ambTimer = 0;
+  function ambQuiet(ms) {
+    const sv = els.table.querySelector(':scope > .zm-rim');
+    if (!sv) return;
+    ambHoldUntil = Math.max(ambHoldUntil, performance.now() + ms);
+    sv.classList.add('is-busy');
+    clearTimeout(ambTimer);
+    const check = () => {
+      const busy = performance.now() < ambHoldUntil || sv.querySelector('.links g, .fx');
+      if (busy) { ambTimer = setTimeout(check, 200); return; }
+      sv.classList.remove('is-busy');
+    };
+    ambTimer = setTimeout(check, Math.max(60, ms));
   }
   function releaseRim(opts) { if (game && game.rimLk) { game.rimLk.remove(opts); game.rimLk = null; } }
   function rimLink(a, b) {
     const sv = rimRender();
-    if (!sv || a === b) return null;
+    if (!sv || !sv._pts || a === b) return null;
+    ambQuiet(400);
     const pts = sv._pts, N = pts.length;
     const near = (p) => { let bi = 0, bd = Infinity; pts.forEach((q, i) => { const dd = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (dd < bd) { bd = dd; bi = i; } }); return bi; };
     const ia = near(sv._anchor(a)), ib = near(sv._anchor(b));
@@ -441,7 +478,8 @@
   const rimFxOn = () => !fx.reduce();
   function rimLayer(cls) {
     const sv = rimRender();
-    if (!sv) return null;
+    if (!sv || !sv._pts) return null;
+    ambQuiet(1400);
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.setAttribute('class', 'fx ' + (cls || ''));
     sv.insertBefore(g, sv.querySelector('.links'));
@@ -492,7 +530,27 @@
       case 'reverse': rimSwirl('#9fc3d6', 1, 1100, e.dir); break;
       case 'nope': rimRipple(e.seat, '#8a68a8', 700, 3); break;
       case 'win': rimSwirl('#f0c862', 1, 1500); rimFlash('#f0c862', 2, 600); break;
+      case 'play': if (e.type === 'five') rimRainbow(e.seat); break;   // 五种猫各一张：五色彗星从他那儿绕桌一圈
+      case 'pick': rimRipple(e.seat, '#e2b85c', 1000, 3.5); break;     // 从弃牌堆捡到了：金色波纹
     }
+  }
+  const CAT_HUES = ['#eea25a', '#e58e46', '#3a3530', '#8c7a62', '#7a5644'];   // 橘 / 三花 / 奶牛 / 狸花 / 暹罗
+  function rimRainbow(seat) {
+    const L = rimLayer('rainbow'); if (!L) return;
+    const pts = L.sv._pts, d = L.sv.querySelector('.base').getAttribute('d');
+    const p0 = L.sv._anchor(seat); let i0 = 0, bd = Infinity;
+    pts.forEach((q, i) => { const dd = (q.x - p0.x) ** 2 + (q.y - p0.y) ** 2; if (dd < bd) { bd = dd; i0 = i; } });
+    const start = i0 * RIM_STEP, dir = dirNow();
+    CAT_HUES.forEach((c, k) => {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      el.setAttribute('d', d); el.style.stroke = c; el.style.color = c;
+      L.g.appendChild(el);
+      const len = el.getTotalLength(), w = 34;
+      el.style.strokeDasharray = w + ' ' + (len - w);
+      const a = -start, b = dir === 1 ? -start - len : -start + len;
+      el.animate([{ strokeDashoffset: a, opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 1, offset: 0.85 }, { strokeDashoffset: b, opacity: 0 }], { duration: 1700, delay: k * 110, easing: 'cubic-bezier(.35,.1,.3,1)', fill: 'both' });
+    });
+    setTimeout(() => L.g.remove(), 1700 + 5 * 110 + 60);
   }
   function rimDim(ms) { const sv = rimRender(); if (!sv) return; sv.animate([{ opacity: 1 }, { opacity: 0.35, offset: 0.3 }, { opacity: 1 }], { duration: ms, easing: 'ease-in-out' }); }
   // 牌堆里炸毛猫的占比 → 桌沿多暖、柔光绕多快
@@ -504,8 +562,8 @@
     const base = h < 0.5 ? [mix(184, 214), mix(145, 120), mix(74, 50)] : [mix(214, 205), mix(120, 70), mix(50, 52)];
     sv.style.setProperty('--rim-base', 'rgba(' + (h ? base.join(',') : '184,145,74') + ',' + (0.26 + h * 0.2).toFixed(2) + ')');
     sv.style.setProperty('--rim-drift', h ? 'rgba(' + [mix(226, 232), mix(184, 110), mix(92, 70)].join(',') + ',0.65)' : 'rgba(226,184,92,0.55)');
-    const drift = sv.querySelector('.drift');
-    if (drift && drift._anim) drift._anim.playbackRate = 1 + h * 1.4;
+    sv._rate = 1 + h * 1.4;
+    (sv._ambAnims || []).forEach((an) => { if (an.updatePlaybackRate) an.updatePlaybackRate(sv._rate); else an.playbackRate = sv._rate; });
   }
   /* 指向当前出牌的人的那个箭头标红：顺时针（d = 1）是从 t-1 指向 t 的那个（第 t-2 个），反过来是从 t+1 指向 t 的那个（第 t-1 个） */
   function dirHot() {
@@ -1857,8 +1915,9 @@
     await fx.animate(el, [{ transform: fx.T(x, y, 1, 0) }, { transform: fx.T(x, y - 8, 1.16, 0), offset: 0.4 }, { transform: fx.T(x, y, 1, 0) }], { duration: ms(420), easing: 'ease-out' }).finished.catch(() => {});
     await wait(ms(700));
     if (t !== token) { el.remove(); return; }
-    // ③ 飞进出牌人手里
+    // ③ 飞进出牌人手里；桌沿那截缩回，出牌人那儿漾开一圈金色（点中了！）
     releaseRim();
+    if (rimFxOn()) setTimeout(() => rimRipple(e.to, '#e2b85c', 900, 3), 260);
     const src = el.getBoundingClientRect();
     el.remove();
     if (e.from === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.from] -= 1; renderSeat(e.from); }
@@ -1874,9 +1933,9 @@
     const c = await namedCallout(e, t);
     if (!c) return;
     const { el, x, y, u, h } = c;
-    // ② 没有：摇头、打红叉、冒烟
+    // ② 没有：摇头、打红叉、冒烟；桌沿那截变灰、蔫蔫地缩回（和被作废一样）
     el.classList.add('is-miss');
-    releaseRim();
+    releaseRim({ dull: true });
     el.querySelector('.zm-callout-q').innerHTML = qGlyph('no');   // 没有：朱红泡 + 叉
     el.insertAdjacentHTML('beforeend', '<div class="zm-cross" style="animation-delay:.25s">' + ART.PROPS.cross + '</div>');
     snd('miss');

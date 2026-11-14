@@ -142,8 +142,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   box-shadow: 2px 2px 0 rgba(47, 74, 109, 0.35), 0 0 0 1.5px var(--zm-paper);
 }
 /* 被推锅：还要摸几回合 */
+/* 挪到头像左上（2026-11-13 用户：放右下会和名字之间的方向箭头重叠；右上是手牌数，左上空着） */
 .zm-turns {
-  position: absolute; bottom: -4px; left: calc(100% + 4px); height: 22px; min-width: 30px; padding: 0 6px; border-radius: 999px;
+  position: absolute; top: -3px; right: calc(100% + 4px); height: 22px; min-width: 30px; padding: 0 6px; border-radius: 999px;
   background: var(--zm-seal); color: var(--zm-seal-ink); font: 700 12px/22px Georgia, serif; text-align: center;
   box-shadow: 0 0 0 1.5px var(--zm-paper);
 }
@@ -262,7 +263,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-dir i path:nth-child(2) { --p: 1; }
 .zm-dir i path:nth-child(3) { --p: 2; }
 @keyframes zm-dir-run { 0%, 22%, 100% { opacity: 0.28; } 7% { opacity: 1; } }
-.zm-dir i.is-hot path { animation-name: zm-dir-run-hot; }
 @keyframes zm-dir-run-hot { 0%, 22%, 100% { opacity: 0.6; } 7% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .zm-dir i path { animation: none !important; opacity: 0.85; } }
 .zm-card.is-back { background: none; border: 0; }
@@ -833,7 +833,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-opps.is-arc .zm-name { font-size: 11.5px; max-width: calc(100% - 4px); }   /* 名字长时（6–9 人）两边各留 2px，方向箭头不被挤没；9 人局三个字的名字仍放得下 */
 .zm-opps.is-arc .zm-tier { font-size: 9.5px; padding: 0 4px; line-height: 14px; }
 .zm-opps.is-arc .zm-count { left: auto; right: -9px; top: -7px; min-width: 18px; height: 21px; font-size: 11px; border-radius: 4px; }
-.zm-opps.is-arc .zm-turns { left: auto; right: -11px; bottom: -6px; height: 17px; min-width: 24px; padding: 0 4px; font-size: 10.5px; line-height: 17px; }
+.zm-seat-me .zm-turns { top: auto; bottom: -4px; right: auto; left: calc(100% + 4px); }   /* 我自己在左下角、旁边没有箭头：留在头像右下 */
+.zm-opps.is-arc .zm-turns { right: auto; left: -11px; top: -7px; height: 17px; min-width: 24px; padding: 0 4px; font-size: 10.5px; line-height: 17px; }
 .zm-opps.is-arc .zm-av { font-size: 14px; }
 /* 局内决定（偷哪张 / 点名 / 改命 / 捡牌 / 塞炸毛猫）不弹框：内容直接摆在桌子正中，底下蒙一层浅宣纸色（和「窥探」摊牌同一套） */
 .zm-dialog-mask.is-stage { background: rgba(243, 238, 227, 0.62); -webkit-backdrop-filter: blur(1px); backdrop-filter: blur(1px); }
@@ -976,9 +977,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app .zm-pause-actions .zm-btn { border-radius: 999px; }
 .zm-app .zm-dir i { scale: 1.3; }
 .zm-app .zm-dir i path { stroke-width: 3; animation-name: zm-dir-run-a; }
-@keyframes zm-dir-run-a { 0%, 26%, 100% { opacity: 0.45; filter: none; } 9% { opacity: 1; filter: brightness(1.35) drop-shadow(0 0 3.5px rgba(240, 196, 100, 1)); } }
-.zm-app .zm-dir i.is-hot path { animation-name: zm-dir-run-a-hot; }
-@keyframes zm-dir-run-a-hot { 0%, 26%, 100% { opacity: 0.85; filter: drop-shadow(0 0 2.5px rgba(200, 70, 58, 0.7)); } 9% { opacity: 1; filter: drop-shadow(0 0 5px rgba(200, 70, 58, 1)); } }
+/* 只动 opacity（手机上便宜、不掉帧）；指着当前出牌人的那个只换颜色和底亮度（--base），不换动画——以前一换动画就从头放，跟别的箭头接不上 */
+@keyframes zm-dir-run-a { 0%, 26%, 100% { opacity: var(--base, 0.42); } 9% { opacity: 1; } }
+.zm-app .zm-dir i.is-hot { --base: 0.85; filter: drop-shadow(0 0 2.5px rgba(200, 70, 58, 0.6)); }
 /* 互动框 / 说一句框的小尖角（popTail 量好在哪条边、离边头多远） */
 .zm-app .gz-social-pop[data-tail]::before { content: ''; position: absolute; width: 14px; height: 14px; background: inherit; transform: rotate(45deg); }
 .zm-app .gz-social-pop[data-tail="top"]::before { top: -7px; left: calc(var(--tail) - 7px); box-shadow: -1px -1px 0 rgba(29, 27, 24, 0.1); }
@@ -997,7 +998,12 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rim { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
 .zm-rim path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .zm-rim .base { stroke: var(--rim-base, rgba(184, 145, 74, 0.26)); stroke-width: 1.6; transition: stroke 1.2s ease; }
-.zm-rim .drift { stroke: var(--rim-drift, rgba(226, 184, 92, 0.55)); stroke-width: 2.4; filter: blur(0.6px); transition: stroke 1.2s ease; }
+.zm-rim .amb path { fill: none; stroke-linecap: round; }
+/* 常驻三颗彗星：尾巴宽而淡、头细而亮；不用 blur（手机上每帧重画 blur 很费，会掉帧） */
+.zm-rim .amb { transition: opacity 0.6s ease; }
+.zm-rim.is-busy .amb { opacity: 0.18; transition-duration: 0.25s; }
+.zm-rim .amb .tail { stroke: var(--rim-drift, rgba(226, 184, 92, 0.55)); stroke-width: 3; opacity: 0.45; }
+.zm-rim .amb .head { stroke: #f2cf7a; stroke-width: 2.4; }
 .zm-rim .lglow { stroke: rgba(246, 210, 120, 0.55); stroke-width: 9; filter: blur(3px); }
 .zm-rim .lline { stroke: #d2a24c; stroke-width: 3.2; }
 .zm-rim .lhead { fill: #fff3cf; stroke: #d2a24c; stroke-width: 2; filter: drop-shadow(0 0 5px rgba(240, 196, 100, 1)); }
@@ -1015,3 +1021,4 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rim .links g.is-dull .lglow { stroke: rgba(120, 112, 100, 0.28); }
 .zm-rim .links g.is-dull .lhead { fill: #e3ddd2; stroke: #8f877c; filter: none; }
 .zm-rim .links g.is-dull .lend { stroke: #8f877c; }
+.zm-rim .rainbow path { stroke-width: 4.5; filter: drop-shadow(0 0 4px currentColor); }
