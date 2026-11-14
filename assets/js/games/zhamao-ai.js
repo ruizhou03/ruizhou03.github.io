@@ -191,16 +191,18 @@
       return { known: false, boom: false, p: b.length ? b[0] : 1 };
     }
 
-    /* 交换：逗猫棒不跟着换，所以只比「能换走的牌」——换过来的不知道的牌按 swapUnk 估值，至少多出 swapMargin 才换 */
+    /* 交换：逗猫棒默认不跟着换，所以只比「能换走的牌」——换过来的不知道的牌按 swapUnk 估值，至少多出 swapMargin 才换。
+     * 规则 swapDefuse 开着时逗猫棒也换：我的逗猫棒算进「换走的」（按满分 30 计，舍不得），对方的牌全算未知 */
     function swapMove(v) {
       if (!has(v, R.SWAP)) return null;
       const sid = one(v, R.SWAP);
-      const mine = v.hand.filter((id) => id !== sid && K[id] !== R.DEFUSE);
+      const all = !!(v.rules && v.rules.swapDefuse);
+      const mine = v.hand.filter((id) => id !== sid && (all || K[id] !== R.DEFUSE));
       const myVal = mine.reduce((a, id) => a + Math.min(30, cardValue(v.hand, id)), 0);
       let best = -1, bestGain = -Infinity;
       for (let t = 0; t < v.n; t++) {
         if (t === v.me || !v.alive[t]) continue;
-        const knownDef = v.handKnown[t].filter((id) => K[id] === R.DEFUSE).length;
+        const knownDef = all ? 0 : v.handKnown[t].filter((id) => K[id] === R.DEFUSE).length;
         const theirs = Math.max(0, v.counts[t] - knownDef);
         const gain = theirs * P.swapUnk - myVal;
         if (gain > bestGain) { bestGain = gain; best = t; }

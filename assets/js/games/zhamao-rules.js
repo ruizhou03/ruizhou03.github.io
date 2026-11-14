@@ -23,7 +23,7 @@
  * 回合：可以出任意多张 / 组合（每出一次都留一个「不行」反应窗），最后摸一张牌结束回合。
  *       甩锅叠加（RULES.stackAttack）：默认开 = 被甩锅的人再甩锅，剩下的回合 +2 一起甩走（可以一路越叠越多）；关 = 下家仍只摸两回合。
  *   指定甩锅 ×3  同甩锅，但甩给任意一个还在场的人（不一定是下家）
- *   交换（可选，RULES.swap，默认关）  和指定的一个人整手交换——各自的逗猫棒不换。整副里有 3 张，开局只放 min(3, 人数−1) 张进来
+ *   交换（可选，RULES.swap，默认关）  和指定的一个人整手交换——各自的逗猫棒默认不换（RULES.swapDefuse 开了就连逗猫棒一起换）。整副里有 3 张，开局只放 min(3, 人数−1) 张进来
  *     （2 人 1 张、3 人 2 张、4–5 人 3 张：人越多、每人摸到的机会越被摊薄，所以随人数加；但封顶 3 张，免得满桌一直换手），其余收进盒子
  * 只剩一人没炸毛时他赢。
  *
@@ -95,9 +95,10 @@
     stackAttack: [true],   // 2026-11-13 用户：甩锅次数永远累加——不再是可选项，老存档 / 老房间读进来也一律按叠加
     extraDefuse: ['all'],   // 2026-11-13 用户：开关拿掉，固定「剩下的逗猫棒全放回」（官方规则）；老存档 / 老房间读进来也按这个
     swap: [false, true],
+    swapDefuse: [false, true],   // 2026-11-13 用户：交换要不要连逗猫棒一起换（以前玩的是整副手牌全换）；默认不换，开房的人 / 单机自己选
   });
   // 2026-11-13 起「多的逗猫棒全放回」默认开（官方规则：每人先发 1 根逗猫棒，剩下的全洗回牌堆）
-  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false });
+  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false });
   const swapsInPlay = (n) => Math.min(usesSecondDeck(n) ? 6 : 3, n - 1);
   function normalizeRules(r) {
     const out = {};
@@ -379,11 +380,12 @@
         break;
       }
       case SWAP: {
-        // 整手交换，逗猫棒各自留着；两人都看得到对方换过来的是哪些，别人只知道换了几张、以前记得的全作废
+        // 整手交换，逗猫棒默认各自留着（规则 swapDefuse 开了就连逗猫棒一起换）；两人都看得到对方换过来的是哪些，别人只知道换了几张、以前记得的全作废
         const a = me, b = p.target;
         if (!s.alive[b]) break;
-        const keepA = s.hands[a].filter((id) => KIND_OF[id] === DEFUSE), keepB = s.hands[b].filter((id) => KIND_OF[id] === DEFUSE);
-        const moveA = s.hands[a].filter((id) => KIND_OF[id] !== DEFUSE), moveB = s.hands[b].filter((id) => KIND_OF[id] !== DEFUSE);
+        const stays = (id) => KIND_OF[id] === DEFUSE && !(s.rules && s.rules.swapDefuse);
+        const keepA = s.hands[a].filter(stays), keepB = s.hands[b].filter(stays);
+        const moveA = s.hands[a].filter((id) => !stays(id)), moveB = s.hands[b].filter((id) => !stays(id));
         for (const id of moveA.concat(moveB)) forgetCard(s, id);
         s.hands[a] = sortHand(keepA.concat(moveB));
         s.hands[b] = sortHand(keepB.concat(moveA));

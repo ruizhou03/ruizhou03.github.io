@@ -316,6 +316,10 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 
 /* ───── 飞牌层 ───── */
 .zm-fly { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+.zm-link { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.zm-link path { fill: none; stroke-linecap: round; }
+.zm-link .halo { stroke: rgba(255, 250, 235, 0.85); stroke-width: 7; }
+.zm-link .line { stroke: #b8913e; stroke-width: 3; }
 
 
 /* ───── 教程讲解 ───── */

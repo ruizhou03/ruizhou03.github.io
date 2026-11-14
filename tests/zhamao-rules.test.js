@@ -464,6 +464,19 @@ test('swap: optional, scales with players, keeps defuses', () => {
   void theirs;
 });
 
+test('swap with swapDefuse: the whole hand moves, defuses included', () => {
+  const s = rig([['swap', 'defuse', 'cow'], ['defuse', 'defuse', 'skip', 'tabby'], ['orange']], ['orange', 'calico', 'cow']);
+  s.rules = R.normalizeRules({ swap: true, swapDefuse: true });
+  assert.equal(s.rules.swapDefuse, true);
+  R.play(s, 0, [idOf(s, 0, 'swap')], { target: 1 });
+  const sw = closeAll(s).find((e) => e.t === 'swap');
+  assert.equal(sw.toB, 2); assert.equal(sw.toA, 4);
+  assert.equal(R.countKind(s.hands[0], 'defuse'), 2); assert.equal(R.countKind(s.hands[1], 'defuse'), 1);
+  assert.equal(s.hands[0].length, 4); assert.equal(s.hands[1].length, 2);
+  assert.equal(total(s), R.DECK_SIZE);
+  assert.equal(R.normalizeRules({}).swapDefuse, false, '默认不换逗猫棒');
+});
+
 test('万能猫能顶任何一种猫：对子 / 三张 / 五种各一张', () => {
   const id = (k, skip) => R.KIND_OF.findIndex((x, i) => x === k && i >= (skip || 0));
   const w1 = id(R.WILD), w2 = id(R.WILD, w1 + 1), w3 = id(R.WILD, w2 + 1);

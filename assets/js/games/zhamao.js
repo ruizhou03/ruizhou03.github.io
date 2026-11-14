@@ -262,21 +262,39 @@
     const n = game && game.state ? game.state.n : 0;
     if (n < 3 || !els.opps.children.length) { els.dir.innerHTML = ''; return; }
     if (els.dir.children.length !== n - 2) els.dir.innerHTML = Array.from({ length: n - 2 }, () => '<i>' + DIR3_SVG + '</i>').join('');
-    const tb = els.table.getBoundingClientRect(), d = dirNow();
     els.dir.style.setProperty('--cyc', Math.max(2.6, (n - 2) * 0.18 + 1.8).toFixed(2) + 's');
+    placeDir();
+    // 座位刚建好 / 刚排成弧 / 名字刚换时量到的位置可能还是旧的（8 人局箭头全在一条水平线上、两头的座位却已经往下沉了）：
+    // 下一帧再量一遍，箭头稳稳落在名字上
+    cancelAnimationFrame(dirRaf);
+    dirRaf = requestAnimationFrame(() => { dirRaf = requestAnimationFrame(placeDir); });
+    dirHot();
+  }
+  let dirRaf = 0;
+  function placeDir() {
+    if (!els.dir || !game || !game.state) return;
+    const n = game.state.n;
+    if (els.dir.children.length !== n - 2) return;
+    const tb = els.table.getBoundingClientRect(), d = dirNow();
+    // 2026-11-13 用户 8 人局：箭头没把名字串起来——以前按两个头像中心往下挪一截，人多头像小时落在名字和「高手」签之间。
+    // 现在按名字摆：在两个名字之间的空隙正中、和名字一样高，顺着两个名字的连线歪；空隙窄就缩小
+    const nameOf = (seat) => { const se = seatEl(seat); return se && (se.querySelector('.zm-name') || se.querySelector('.zm-av')); };
     Array.from(els.dir.children).forEach((el, k) => {
-      const a = avEl(k + 1), b = avEl(k + 2);
+      const a = nameOf(k + 1), b = nameOf(k + 2);
       if (!a || !b) return;
       const A = a.getBoundingClientRect(), B = b.getBoundingClientRect();
       const ax = A.left + A.width / 2, ay = A.top + A.height / 2, bx = B.left + B.width / 2, by = B.top + B.height / 2;
-      const sz = Math.max(12, Math.min(20, Math.round(A.width * 0.42)));
+      const L = ax < bx ? A : B, Rr = ax < bx ? B : A;
+      const gap = Rr.left - L.right;
+      const avw = avEl(k + 1) ? avEl(k + 1).getBoundingClientRect().width : 40;
+      const sz = Math.max(10, Math.min(20, Math.round(avw * 0.46), Math.round(gap - 2)));
       const base = Math.atan2(by - ay, bx - ax);   // 座位号往上走 = 从 k+1 指向 k+2；反过来（d = -1）就掉头
       const j = d === -1 ? n - 3 - k : k;          // 流光的先后：顺着出牌方向排
-      el.style.cssText = 'left:' + ((ax + bx) / 2 - tb.left).toFixed(1) + 'px;top:' + ((ay + by) / 2 + A.height / 2 + sz * 1.2 - tb.top).toFixed(1) + 'px;width:' + sz + 'px;height:' + sz + 'px;' +
+      const cx = (L.right + Rr.left) / 2, cy = (ay + by) / 2;
+      el.style.cssText = 'left:' + (cx - tb.left).toFixed(1) + 'px;top:' + (cy - tb.top).toFixed(1) + 'px;width:' + sz + 'px;height:' + sz + 'px;' +
         'transform:translate(-50%,-50%) rotate(' + (base + (d === -1 ? Math.PI : 0)).toFixed(4) + 'rad);--j:' + j;
       el.dataset.base = base;
     });
-    dirHot();
   }
   /* 指向当前出牌的人的那个箭头标红：顺时针（d = 1）是从 t-1 指向 t 的那个（第 t-2 个），反过来是从 t+1 指向 t 的那个（第 t-1 个） */
   function dirHot() {
@@ -934,7 +952,11 @@
     await Promise.all(flights);
     if (t !== token) return;
     const tg = targetOf(p);
-    if (tg >= 0) game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK || p.type === R.TATTACK ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
+    if (tg >= 0) {
+      game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK || p.type === R.TATTACK ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
+      // 指了谁：除了准星，出牌人到被指的人之间再连一道金弧（2026-11-13 用户：8 人局看不清是对谁）；甩锅给下家不连（本来就是下家）
+      if (game.arrow && p.type !== R.ATTACK && p.by !== tg) { const lk = linkSeats(p.by, tg, p.type === R.SWAP), ar = game.arrow; game.arrow = { remove() { ar.remove(); lk.remove(); } }; }
+    }
     await mimic(p.cards, t);   // 万能猫顶了谁：演完、停一下再往下走（只有组合里有万能猫时才多这一下）
     if (t !== token) return;
     const named = els.stage.querySelector('.zm-stage-named');
@@ -1468,9 +1490,48 @@
 
   /* 交换：两个人的牌在空中交叉着换过去（逗猫棒不动）——一边从上面的弧线走、另一边从下面走；
    * 我参与的话：我换出去的从手牌原位飞走（背面朝上），换来的半路翻开、先落到牌槽上方再滑进去 */
+  /* 两个人之间连一道金色弧线（交换用两头箭头）：人一多牌在两个背面头像之间飞，看不清是谁和谁换（2026-11-13 用户 8 人局）。
+   * 弧线往桌子中间鼓，描出来、停着，remove() 时淡掉 */
+  let linkSeq = 0;
+  function linkSeats(a, b, both) {
+    // 端点：对手从他整个座位（头像 + 名字 + 档位签）正下方起，我从头像正上方起——不压在脸和名字上
+    const anchor = (seat) => {
+      if (seat === 0) { const r = avEl(0) ? avEl(0).getBoundingClientRect() : { left: innerWidth / 2, width: 0, top: innerHeight - 120 }; return { x: r.left + r.width / 2, y: r.top - 6 }; }
+      const se = seatEl(seat), r = se ? se.getBoundingClientRect() : { left: innerWidth / 2, width: 0, bottom: 90 };
+      return { x: r.left + r.width / 2, y: r.bottom + 3 };
+    };
+    const P0 = anchor(a), P1 = anchor(b);
+    const mx = (P0.x + P1.x) / 2, my = (P0.y + P1.y) / 2, len = Math.hypot(P1.x - P0.x, P1.y - P0.y) || 1;
+    let cx2, cy2;
+    if (a !== 0 && b !== 0) {   // 两个对手：在名字下面兜一个 U，挨着的两家也看得清
+      cx2 = mx; cy2 = Math.max(P0.y, P1.y) + Math.max(36, Math.min(110, 30 + len * 0.25));
+    } else {                    // 对手 ↔ 我：往桌子中间稍微弯一点
+      let nx = -(P1.y - P0.y) / len, ny = (P1.x - P0.x) / len;
+      if ((innerWidth / 2 - mx) * nx + (innerHeight * 0.45 - my) * ny < 0) { nx = -nx; ny = -ny; }
+      cx2 = mx + nx * len * 0.18; cy2 = my + ny * len * 0.18;
+    }
+    const id = 'zmlk' + (++linkSeq);
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'zm-link');
+    svg.setAttribute('width', innerWidth); svg.setAttribute('height', innerHeight);
+    svg.innerHTML = '<defs><marker id="' + id + '" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L8 5L1 9" fill="none" stroke="#b8913e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>' +
+      '<path class="halo" d="M' + P0.x.toFixed(1) + ' ' + P0.y.toFixed(1) + 'Q' + cx2.toFixed(1) + ' ' + cy2.toFixed(1) + ' ' + P1.x.toFixed(1) + ' ' + P1.y.toFixed(1) + '"/>' +
+      '<path class="line" d="M' + P0.x.toFixed(1) + ' ' + P0.y.toFixed(1) + 'Q' + cx2.toFixed(1) + ' ' + cy2.toFixed(1) + ' ' + P1.x.toFixed(1) + ' ' + P1.y.toFixed(1) + '" marker-end="url(#' + id + ')"' + (both ? ' marker-start="url(#' + id + ')"' : '') + '/>';
+    els.fly.appendChild(svg);
+    const line = svg.querySelector('.line'), L = line.getTotalLength ? line.getTotalLength() : 300;
+    if (!fx.reduce()) {
+      [line, svg.querySelector('.halo')].forEach((pth) => { pth.style.strokeDasharray = L; pth.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }], { duration: 320, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'both' }); });
+    }
+    return { remove() { if (fx.reduce()) { svg.remove(); return; } svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' }).finished.then(() => svg.remove()).catch(() => svg.remove()); } };
+  }
   async function animSwap(e, t) {
     if (game.arrow) { game.arrow.remove(); game.arrow = null; }
     const a = e.a, b = e.b, u = U(), pu = PU();
+    // 是谁和谁换：两人头像都亮着（出牌人金光、被换的人一明一暗），中间一道两头箭头的金弧，先描出来停一下再飞牌
+    setActing(a); markVictim(b);
+    const link = linkSeats(a, b, true);
+    await wait(ms(380));
+    if (t !== token) { link.remove(); return; }
     snd('swipe');
     const flights = [];
     const pt = (seat) => avPoint(seat);
@@ -1503,7 +1564,9 @@
     renderSeat(a); renderSeat(b);
     fx.pop(avEl(a), { scale: 1.15 }); fx.pop(avEl(b), { scale: 1.15 });
     snd('thud');
-    await wait(ms(160));
+    await wait(ms(260));
+    link.remove();
+    markVictim(-1);
   }
 
   /* 两张一样偷一张：一只大猫爪从他头像上扑过去、扒拉一下，抓着一张牌拖回来 */
@@ -2195,6 +2258,7 @@
     if (t !== token || !preview) return;
     snd('thud');
     busy = false;
+    const early = preview.tap;   // 牌还在往桌上飞时就点了头像：落定后直接当选了他（见 onSeatTap）
     pickTarget(ts, (seat) => {
       // 记下桌上这几张的位置：真出牌时从这里接着演，不再从手里飞一遍
       const m = {};
@@ -2204,6 +2268,7 @@
       els.stage.classList.remove('is-preview');
       cb(seat);
     });
+    if (early != null && ts.indexOf(early) >= 0) onSeatTap(early);
   }
   function endPreview() {   // 不出了：桌上的牌飞回手里原位
     if (!preview) return;
@@ -2264,6 +2329,18 @@
     if (game && !game.tutorial && !game.online && !game.state.alive[0] && game.state.phase !== 'over' && seat > 0) {
       if (game.state.alive[seat]) watch(seat);
       return;
+    }
+    // 2026-11-13 用户：要甩锅给别人，点头像却先弹出了互动表情——点「出牌」后牌要先飞上桌（约 0.4 秒）才开始选人，
+    // 这段时间点头像落到了「互动」。现在：牌在飞 / 等选人时点头像 = 记下来，落定后直接选他；选人模式里永远不弹互动
+    if (preview && mode !== 'target') { if (seat > 0) preview.tap = seat; return; }
+    // 已经选好了要指人的牌（还没按「出牌」）就点了一个能指的人：当作出给他（和先按出牌再点他一样，牌照样先飞上桌）
+    if (mode == null && seat > 0 && !busy && selected.length && myTurnToAct() && els.mask.hidden) {
+      const c = R.classify(selected);
+      if (c && c.needsTarget && R.validTargets(game.state, 0, c.type).indexOf(seat) >= 0 && !(tut && tut.allow && !tut.allow({ type: 'play', cards: selected.slice(), preview: true }))) {
+        onPlay();
+        if (preview) preview.tap = seat; else if (mode === 'target') onSeatTap(seat);
+        return;
+      }
     }
     if (mode !== 'target') {
       if (social && socialOk() && seat > 0 && els.mask.hidden) social.openProps(seat);
@@ -2855,7 +2932,7 @@
       li('tattack', '同甩锅，但可以甩给任意一个人（点他的头像）') +
       li('skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合') +
       li('reverse', '出牌方向倒过来（对手之间的小箭头跟着掉头），并像跳过一样结束一个回合、不摸牌。被甩锅时只顶掉其中一回合；两个人玩就等于跳过') +
-      li('swap', '和指定的一个人整手交换手牌（各自的逗猫棒不换）' + (settings.rules.swap ? '' : '。设置里开了「有交换牌」才有')) +
+      li('swap', (() => { const r = (game && game.state && game.state.rules) || settings.rules; return '和指定的一个人整手交换手牌' + (r.swapDefuse ? '（连逗猫棒一起换）' : '（各自的逗猫棒不换）') + (r.swap ? '' : '。设置里开了「有交换牌」才有'); })()) +
       li('favor', '指定一人，他自己挑一张给你') +
       li('shuffle', '把牌堆洗乱') +
       li('future', '看牌堆最上面三张') +
@@ -2892,6 +2969,8 @@
       '<div class="zs-line"><span>出牌限时</span>' + secs + '</div></section>' +
       '<div class="zs-cap">玩法</div><section class="zs-card">' +
       row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
+      // 交换连逗猫棒一起换（2026-11-13 用户：以前玩的是整副手牌全换）；没开交换牌时这行藏着
+      row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', settings.rules.swapDefuse)).replace('<div class="zs-row"', '<div class="zs-row" data-dep="swap"' + (settings.rules.swap ? '' : ' hidden')) +
       '</section>';
     const pref = '<div class="zs-cap">操作</div><section class="zs-card">' +
       row('nope', '「作废」只在和我有关时询问', '', '<button type="button" class="zs-switch" data-pref="nopeMine" role="switch" aria-checked="' + !!settings.nopeMine + '"><i></i></button>') +
@@ -2899,7 +2978,7 @@
     // 联机：机器猫 / 规则由房主定，这里只有自己的操作偏好
     // 联机：机器猫 / 规则由房主定，这里只有自己的偏好——「作废」怎么问、观战的人能不能看我的手牌（坐着的人才有）
     const meP = online && online.st ? online.st.players.find((p) => p.id === online.st.me && !p.left) : null;
-    const revealRow = meP ? row('future', '观战者能看我的手牌', '', '<button type="button" class="zs-switch" data-online-reveal role="switch" aria-checked="' + !!meP.showHand + '"><i></i></button>') : '';
+    const revealRow = meP ? row('future', '观战者能看我的手牌', '即时生效；开局就开着、中途没关过，出局后才能看机器猫的牌', '<button type="button" class="zs-switch" data-online-reveal role="switch" aria-checked="' + !!meP.showHand + '"><i></i></button>') : '';
     if (online) html = '<h2>设置</h2>' + pref.replace('</section>', revealRow + '</section>');
     else html += pref;
     html += '<p class="zs-note" data-rule-note hidden>规则从下一局起生效</p><div class="zm-actions">' +
@@ -2923,7 +3002,7 @@
         if (key === 'players') settings.players = +v;
         else if (key === 'tier') settings.tier = v;
         else if (key === 'turnSec') settings.turnSec = +v;
-        else if (key === 'stackAttack' || key === 'swap') settings.rules[key] = v === 'true';
+        else if (key === 'stackAttack' || key === 'swap' || key === 'swapDefuse') settings.rules[key] = v === 'true';
         else settings.rules[key] = v;
         persist();
       }));
@@ -2945,6 +3024,7 @@
         b.setAttribute('aria-checked', String(on));
         const k = b.dataset.sw;
         settings.rules[k] = k === 'extraDefuse' ? (on ? 'all' : 'two') : on;
+        d.querySelectorAll('[data-dep="' + k + '"]').forEach((x) => { x.hidden = !on; });
         snd('tap');
         persist();
       }));
@@ -3021,8 +3101,8 @@
     else if (k === 'invite') showInvite();
     else if (k === 'leave') { if (confirm(game && game.online && !game.over && game.state.alive[0] ? '离开房间？这一局交给机器猫替你打完' : '离开房间？')) leaveOnline(true); }
   }
-  /* 「观战者能看我的手牌」：每人自己定，默认不给看；联机时在「设置」里改（开局时锁定，局中改了下一局生效——
-   * 也决定我出局后能不能看机器猫的牌：自己给别人看，才能看机器猫） */
+  /* 「观战者能看我的手牌」：每人自己定，默认不给看；联机时在「设置」里改，自己的牌一拨就生效（2026-11-13 用户改规则）。
+   * 也决定我出局后能不能看机器猫的牌：开局时就开着、这局里一次都没关过，才能看机器猫（中途关过一次，这局就看不到了） */
   function myPlayer() { const st = online && online.st; return st ? st.players.find((p) => p.id === st.me && !p.left) || null : null; }
   let menu = null;
   function closeMenu() {
@@ -3486,7 +3566,7 @@
   function onlineRemain() {
     const g = G();
     if (!g || !g.deadline) return 0;
-    const graceMs = g.st.phase === 'react' ? 1200 : 3000;   // 服务器比网页多等的那一截（REACT_GRACE_MS / GRACE_MS）
+    const graceMs = g.graceMs != null ? g.graceMs : g.st.phase === 'react' ? 1200 : 3000;   // 服务器比网页多等的那一截（服务器发来的；老服务器没发就按以前的值）
     return Math.max(0, g.deadline - graceMs - (Date.now() + online.skew));
   }
   function toast(text) {
@@ -3782,8 +3862,10 @@
     const st = online.st, p = playerAt(online.base);
     if (!p) return '';
     if (!game.state.alive[0]) return '';
-    if (!p.isAi && !p.left) return 'TA 这局没开「观战者能看我的手牌」';
-    return st.spectator ? '只观战看不到机器猫的牌' : '这局开局时你没开「观战者能看我的手牌」，看不到机器猫的牌';
+    if (!p.isAi && !p.left) return 'TA 没开「观战者能看我的手牌」';
+    if (st.spectator) return '只观战看不到机器猫的牌';
+    const me = myPlayer();
+    return me && me.showHand ? '这局中途关过「观战者能看我的手牌」，看不到机器猫的牌' : '开局时就开着「观战者能看我的手牌」、中途没关过，才看得到机器猫的牌';
   }
 
   /* ───── 收到服务器状态 ───── */
@@ -3997,6 +4079,10 @@
     const s = game.state;
     if (!els.stage.querySelector('.zm-stage-inner')) { showStage(s.pending, false); if (s.pending.nopes.length) stageVerdict(s.pending.nopes.length); }
     const canN = mine && R.canNope(s, 0) && askMeNope(s);
+    // 2026-11-13 用户 8 人局：「问作废的时间太短 / 点了没生效」——服务器按估的动画时长开窗，网页这边动画常常播得更久（人多、手机慢、
+    // 前面还排着动画），轮到我表态时导火索只剩一点点、甚至 0（立刻自动取消）。现在问到我时至少给满 1.8 秒；
+    // 服务器那边多留的一截（graceMs）兜得住，但也不能超过服务器真正关窗前 0.5 秒（留给网络）
+    const give = canN ? Math.max(0, Math.min(Math.max(remain, 1800), g.deadline - (Date.now() + online.skew) - 500)) : remain;
     reactOpen = canN;
     busy = !canN;
     renderHand({ flip: false });
@@ -4004,7 +4090,7 @@
     // 导火索：问到我才马上点着；没问我的话先不露，过 0.9 秒窗口还开着（有人在想要不要作废）才点着剩下那段——
     // 大家都自动跳过时（没作废 / 开了「只在和我有关时询问」）窗口 0.3–0.7 秒就关，导火索根本不出现
     clearTimeout(fuseLater);
-    if (canN) fuse(remain > 0 ? remain : 0);
+    if (canN) fuse(give > 0 ? give : 0);
     else if (online.fuseFor !== g.seq) {
       online.fuseFor = g.seq;
       fuse(0);
@@ -4026,7 +4112,7 @@
       renderBand(); renderHand({ flip: false });
       onlineMove({ type: 'pass' });
     };
-    if (canN) { snd('ask'); reactAuto = setTimeout(autoPass, Math.max(0, remain)); }
+    if (canN) { snd('ask'); reactAuto = setTimeout(autoPass, Math.max(0, give)); }
     else earlyPass(g);   // 没作废：收到状态时多半已经排好了，这里兜个底
   }
 
@@ -4078,7 +4164,10 @@
       if (!online) return;
       online.pendingSrc = null;
       game.previewSrc = null;
-      if (err && err.error !== 'stale') toast(NET.message(err));
+      // 作废没生效要说清楚（2026-11-13 用户：有人点了作废却没生效、也不知道为什么）
+      if (d.type === 'nope' && err && err.error === 'stale') toast('有人抢先出了作废，看一眼桌上再决定');
+      else if (d.type === 'nope' && err && (err.error === 'no_reaction' || err.error === 'not_your_call')) toast('晚了一步，这张牌已经结算了');
+      else if (err && err.error !== 'stale') toast(NET.message(err));
       resync();
     }
   }
@@ -4332,6 +4421,7 @@
       '<section class="zs-card zs-b zm-lobby-rules"><div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
       TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
       row('swap', '有交换牌', '', sw('swap', rules.swap)) +
+      (rules.swap ? row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', rules.swapDefuse)) : '') +
       '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">规则由房主定</p>') +
       '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">离开房间</button>' +
       (host ? '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (seated.length >= 2 ? '' : ' disabled') + '>开始（' + seated.length + ' 人）</button>'
@@ -4491,6 +4581,8 @@
   });
   els.drawBtn.addEventListener('click', onDraw);
   els.playBtn.addEventListener('click', onPlay);
+  // 座位滑进弧形（transform 过渡 0.35 秒）结束时再摆一次箭头：开局那一下量到的是滑动前的位置（2026-11-13 8 人局箭头没对上名字）
+  els.opps.addEventListener('transitionend', (e) => { if (e.propertyName === 'transform' && e.target.classList && e.target.classList.contains('zm-seat')) placeDir(); });
   els.nopeBtn.addEventListener('click', pressNope);
   els.cancelBtn.addEventListener('click', cancelTarget);
   els.skipTut.addEventListener('click', skipTutorial);
