@@ -1123,7 +1123,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .is-editing .zm-lseat:not(.is-empty) .av, .zm-table.is-editing .zm-seat .zm-av { animation: zm-wiggle 0.42s ease-in-out infinite alternate; }
 .is-editing .zm-lseat:nth-child(2n) .av, .zm-table.is-editing .zm-seat:nth-child(2n) .zm-av { animation-delay: -0.21s; }
 @keyframes zm-wiggle { from { rotate: -2.5deg; } to { rotate: 2.5deg; } }
-.zm-lseat, .zm-seat { position: relative; }
+.zm-lseat, .zm-opps .zm-seat { position: relative; }   /* 只给对手 / 房间座位：别把我自己（.zm-seat-me 绝对定位在左下角）也改成 relative，否则我的头像会挤到「摸牌」旁边 */
 .zm-x { position: absolute; top: -6px; right: -6px; z-index: 6; width: 22px; height: 22px; border-radius: 50%; background: var(--zm-seal); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--zm-paper); cursor: pointer; }
 .zm-app .zm-x svg { width: 12px; height: 12px; stroke-width: 2.2; }
 .zm-opps .zm-seat > .zm-x { top: -4px; right: calc(50% - var(--av) / 2 - 8px); }
