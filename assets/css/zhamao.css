@@ -971,9 +971,14 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app .gz-sp-hide { font-size: 12px; }
 .zm-app .zm-dialog.is-pause { width: min(100%, 300px); padding: 18px 20px 18px; border: 0; border-radius: 22px; background: #fffdf8; box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.08), 0 20px 46px rgba(29, 27, 24, 0.28); }
 .zm-app .zm-pause-ic { display: none; }
-.zm-app .zm-pause-cat { display: block; width: 150px; height: 150px; margin: 0 auto -6px; }
-.zm-app .zm-pause-cat svg { width: 100%; height: 100%; display: block; }
-.zm-app .zm-pause-say { display: block; text-align: center; margin: 0 0 16px; font-size: 14px; color: var(--zm-ink-mute); letter-spacing: 0.08em; }
+.zm-app .zm-pause-cat { display: block; width: 160px; height: 160px; margin: 0 auto 10px; padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.zm-app .zm-pause-cat svg { width: 100%; height: 100%; display: block; overflow: visible; }
+/* 头顶的 Z z z：一个接一个从头顶冒出来，边飘边变大、变淡 */
+.zm-nap-z > g { opacity: 0; animation: zm-nap-z 2.7s ease-out infinite; animation-delay: calc(var(--i) * 0.9s); }
+@keyframes zm-nap-z { 0% { opacity: 0; transform: translate(0, 0) scale(0.55); } 18% { opacity: 1; } 70% { opacity: 0.85; } 100% { opacity: 0; transform: translate(-6px, -40px) scale(1.5); } }
+.zm-nap-say { transform-box: fill-box; transform-origin: 20% 100%; animation: zm-pop-say 0.3s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes zm-pop-say { from { transform: scale(0.3); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .zm-nap-z > g { animation: none; opacity: 0.8; } .zm-nap-z > g:nth-child(2) { transform: translate(-3px, -14px) scale(1.1); } .zm-nap-z > g:nth-child(3) { transform: translate(-6px, -28px) scale(1.4); } }
 .zm-app .zm-pause-actions .zm-btn { border-radius: 999px; }
 .zm-app .zm-dir i { scale: 1.3; }
 .zm-app .zm-dir i path { stroke-width: 3; animation-name: zm-dir-run-a; }

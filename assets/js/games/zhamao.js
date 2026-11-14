@@ -529,7 +529,7 @@
   function rimFx(e) {
     if (!rimFxOn()) return;
     switch (e.t) {
-      case 'boom': rimFlash('#d2483a', 3, 380); rimRipple(e.seat, '#d2483a', 900, 4); break;
+      case 'boom': break;   // 不在这儿放：摸牌时还没揭晓是不是炸毛猫，要等它炸开那一下（animBoom）再红（2026-11-14 用户：保留悬念）
       case 'defuse': rimRipple(e.seat, '#7fb06a', 1300, 3.5); setTimeout(() => rimRipple(e.seat, '#d9b45a', 1300, 2.5), 180); break;
       case 'out': rimRipple(e.seat, '#7a2a22', 1600, 5); rimDim(1800); break;
       case 'shuffle': rimSwirl('#e6bd62', 1.5, 1300); break;
@@ -2171,6 +2171,7 @@
     if (t !== token) return;
     game.boomNode = null;
     snd('boom');
+    if (rimFxOn()) { rimFlash('#d2483a', 3, 380); rimRipple(e.seat, '#d2483a', 900, 4); }   // 炸开的这一刻桌沿才红：之前所有摸牌都一个样，保留悬念
     bombAvatar(e.seat, true);
     const av = avEl(e.seat), ar = av ? av.getBoundingClientRect() : { width: 54 };
     fx.shake(els.table, { amp: 8, dur: 420, rot: 0.4 });
@@ -3417,6 +3418,23 @@
   function canPause() {
     return !!(game && !game.tutorial && !game.online && !game.dealing && game.state.phase !== 'over' && els.cover.hidden && !coachQueue);
   }
+  /* 暂停页的小咪（只留「打盹」这一张，2026-11-14 用户定）：睡着时头顶 Z z z 一直往上冒；点它就翻身睁一只眼「喵？」 */
+  function napArt(awake) {
+    const NAVYc = '#2f4a6d', GOLDc = '#c9a96e';
+    let g = '<ellipse cx="50" cy="92" rx="34" ry="5" fill="rgba(29,27,24,.08)"/><ellipse cx="50" cy="72" rx="32" ry="18" fill="#9bb0cc"/>' +
+      '<path d="M20 74c4 12 30 18 48 10" stroke="#7d93b2" stroke-width="9" stroke-linecap="round" fill="none"/>' +
+      '<path d="M72 14a12 12 0 1 0 10 18 9 9 0 1 1 -10 -18Z" fill="' + GOLDc + '"/>';
+    if (awake) {
+      g += ART.catHead(42, 58, 0.88, '#b4c5dd', { eyes: 'side', mouth: 'flat', ear: '#e6c3cf', blushC: '#f4b0b8' });
+      g += '<g class="zm-nap-say"><rect x="58" y="32" width="32" height="19" rx="9.5" fill="#fff" stroke="#1d1b18" stroke-width="1.6"/><path d="M64 51l-3 6 7-6" fill="#fff" stroke="#1d1b18" stroke-width="1.6" stroke-linejoin="round"/>' +
+        '<text x="74" y="45.5" text-anchor="middle" font-size="10" font-weight="700" fill="#1d1b18">喵？</text></g>';
+    } else {
+      g += ART.catHead(40, 62, 0.85, '#b4c5dd', { eyes: 'closed', mouth: 'none', ear: '#e6c3cf', blushC: '#f4b0b8' });
+      const z = '<path d="M-3.5 -4h7l-7 8h7" stroke="' + NAVYc + '" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+      g += '<g class="zm-nap-z" transform="translate(56 44)">' + [0, 1, 2].map((i) => '<g style="--i:' + i + '">' + z + '</g>').join('') + '</g>';
+    }
+    return '<svg viewBox="0 0 100 100" aria-hidden="true">' + g + '</svg>';
+  }
   function pauseGame() {
     if (!canPause() || !els.mask.hidden) return;
     closeMenu();
@@ -3427,11 +3445,22 @@
     busy = true;
     renderAll();
     // 不写「暂停」二字：正中一个大大的暂停图标，左下「回到主页面」，右下「继续」（带个播放三角）
-    openDialog('<div class="zm-pause-cat" aria-hidden="true">' + ART.face(R.SKIP) + '</div><p class="zm-pause-say">小咪打个盹…</p>' +
+    openDialog('<button type="button" class="zm-pause-cat" aria-label="摸摸小咪">' + napArt(false) + '</button>' +
       '<div class="zm-pause-ic" aria-label="暂停"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/><rect x="34" y="28" width="11" height="44" rx="3.5"/><rect x="55" y="28" width="11" height="44" rx="3.5"/></svg></div>' +
       '<div class="zm-pause-actions"><button type="button" class="zm-btn" data-home>回到主页面</button>' +
       '<button type="button" class="zm-btn zm-btn-primary" data-go data-focus><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>继续</button></div>', (d) => {
       d.classList.add('is-pause');
+      // 点小咪：翻过身睁一只眼「喵？」，过一会儿又睡回去（2026-11-14 用户：暂停页加点互动）
+      const cat = d.querySelector('.zm-pause-cat');
+      let wake = 0;
+      cat.addEventListener('click', () => {
+        if (wake) return;
+        cat.innerHTML = napArt(true);
+        cat.classList.add('is-awake');
+        snd('ask');
+        if (!fx.reduce()) cat.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-8px)', offset: 0.35 }, { transform: 'translateY(0)' }], { duration: 360, easing: 'ease-out' });
+        wake = setTimeout(() => { wake = 0; if (!cat.isConnected) return; cat.classList.remove('is-awake'); cat.innerHTML = napArt(false); }, 1700);
+      });
       d.querySelector('[data-go]').addEventListener('click', () => { closeDialog(); renderAll(); schedule(260, step); });
       d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
     });
