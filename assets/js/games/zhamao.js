@@ -175,6 +175,7 @@
   const backHtml = (cls, style) => '<div class="zm-card is-back' + (cls ? ' ' + cls : '') + '"' + (style ? ' style="' + style + '"' : '') + '>' + ART.BACK + '</div>';
   const pileRot = (id) => ((id * 37) % 13) - 6;
   const U = () => parseFloat(getComputedStyle(els.app).getPropertyValue('--u')) || 64;
+  const POP = () => Math.min(U() * 1.3, 120);   // 弹出来看的牌（窥探 / 改命 / 抽牌 / 捡弃牌 / 点名）统一的大号，和 CSS 的 --pop 一致
   const PU = () => U() * 0.92;     // 牌堆 / 弃牌堆的牌宽
   const SU = () => PU() * 1.15;    // 刚出的牌（压在弃牌堆上）的牌宽
 
@@ -1286,7 +1287,7 @@
     snd('peek');
     const r = deckTopRect(), pu = PU();
     if (e.cards && e.seat === 0) {
-      const u = U() * 1.3;
+      const u = POP();
       if (ov) { ov.lifted = (ov.lifted || 0) + e.cards.length; renderPiles(); }   // 拿起来的几张：牌堆看着薄了，数字不变（牌并没被拿走）
       const box = els.center.getBoundingClientRect(), c = fx.center(box);
       const gap = u * 1.12;
@@ -1667,7 +1668,7 @@
     if (game.arrow) { game.arrow.remove(); game.arrow = null; }
     markVictim(e.from);
     const av = avEl(e.from), ar = av ? av.getBoundingClientRect() : { left: innerWidth / 2 - 20, top: 80, width: 40, height: 40, bottom: 120 };
-    const u = Math.min(104, Math.max(U(), 76)), h = u * 1.4;   // 要看得清：至少 76px 宽
+    const u = POP(), h = u * 1.4;   // 和别的弹出来看的牌一样大（--pop）
     const below = ar.top + ar.height / 2 < innerHeight / 2;
     const se = seatEl(e.from), sb = se ? se.getBoundingClientRect().bottom : ar.bottom + 30;
     const fr = frameX(), x = Math.min(Math.max(ar.left + ar.width / 2 - u / 2, fr.l), fr.r - u - 20);   // 右边多留 20px：右上角的对话泡探出牌外
