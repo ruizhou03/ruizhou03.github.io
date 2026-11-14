@@ -2637,7 +2637,26 @@
     if (p.type === R.ATTACK) { const n = alive.length; for (let k = 1; k < n; k++) { const x = (p.by + k) % n; if (alive[x]) return x === me; } }
     return false;
   }
-  const askMeNope = (s) => !settings.nopeMine || aboutSeat(s.pending, 0, s.alive);
+  /* 什么时候问我要不要出「作废」（2026-11-14 用户：局里临时改开关来不及，得事先设好）：
+   * 「全都问」= 每张牌都问；「挑着问」= 和我有关的一定问，再加上勾选的这几种（默认勾：凑五种捡弃牌堆 / 别人之间交换 / 别人之间三张点名）。
+   * 老设置「只在和我有关时询问」开着的 = 挑着问 */
+  const NOPE_ALSO = [
+    ['five', '凑五种去捡弃牌堆', ['five'], true],
+    ['swap', '别人之间交换手牌', [R.SWAP], true],
+    ['triple', '别人之间三张点名', ['triple'], true],
+    ['pair', '别人之间两张偷牌', ['pair'], false],
+    ['favor', '别人之间索要', [R.FAVOR], false],
+    ['attack', '甩锅（不甩给我）', [R.ATTACK, R.TATTACK], false],
+    ['shuffle', '洗牌', [R.SHUFFLE], false],
+    ['alter', '改命', [R.ALTER], false],
+  ];
+  const nopeAskMode = () => settings.nopeAsk || (settings.nopeMine ? 'pick' : 'all');
+  const nopeAlsoOn = (k) => { const o = settings.nopeAlso; const def = NOPE_ALSO.find((x) => x[0] === k); return o && k in o ? !!o[k] : !!(def && def[3]); };
+  function nopeAsks(p, me, alive) {
+    if (nopeAskMode() === 'all' || !p || aboutSeat(p, me, alive)) return true;
+    return NOPE_ALSO.some(([k, , types]) => nopeAlsoOn(k) && types.indexOf(p.type) >= 0);
+  }
+  const askMeNope = (s) => nopeAsks(s.pending, 0, s.alive);
 
   /* ───── 反应窗：出完牌大家决定要不要「不行」 ───── */
   function clearReactTimer() { if (reactTimer) { clearTimeout(reactTimer); reactTimer = null; } }
@@ -2749,7 +2768,7 @@
     const s = game.state;
     if (autopilot) { setAutopilot(false); return; }
     if (s.phase === 'react' && reactOpen) { passReact(); return; }
-    if (!s.alive[0] && s.phase !== 'over') { if (game.fastOut) newGame(); return; }
+    if (!s.alive[0] && s.phase !== 'over') { if (game.fastOut && !game.online && !online) newGame(); return; }   // 联机里出局了不能就地开单机局（还在房间里）
     if (!myTurnToAct()) return;
     if (tut && tut.allow && !tut.allow({ type: 'draw' })) { shake(els.drawBtn); return; }
     selected = [];
@@ -3532,7 +3551,9 @@
       row('boom', '塞回炸毛猫看得出大概位置', '像线下一样：放最上 / 最底一眼看得出', sw('insertSeen', R.normalizeRules(settings.rules).insertSeen)) +
       '</section>';
     const pref = '<div class="zs-cap">操作</div><section class="zs-card">' +
-      row('nope', '「作废」只在和我有关时询问', '', '<button type="button" class="zs-switch" data-pref="nopeMine" role="switch" aria-checked="' + !!settings.nopeMine + '"><i></i></button>') +
+      '<div class="zs-line"><span>问我作废</span>' + segs('nopeAsk', [['all', '全都问'], ['pick', '挑着问']], nopeAskMode()) + '</div>' +
+      '<div class="zm-nope-also" data-nope-also' + (nopeAskMode() === 'pick' ? '' : ' hidden') + '><small>和我有关的一定问，另外这些也问：</small><div class="zm-chips">' +
+      NOPE_ALSO.map(([k, t]) => '<button type="button" data-also="' + k + '" aria-pressed="' + nopeAlsoOn(k) + '">' + t + '</button>').join('') + '</div></div>' +
       '</section>';
     // 联机：机器猫 / 规则由房主定，这里只有自己的操作偏好
     // 联机：机器猫 / 规则由房主定，这里只有自己的偏好——「作废」怎么问、观战的人能不能看我的手牌（坐着的人才有）
@@ -3558,6 +3579,7 @@
         g.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
         fx.pop(b, { scale: 1.06, dur: 200 });
         const key = g.dataset.seg, v = b.dataset.v;
+        if (key === 'nopeAsk') { settings.nopeAsk = v; const box = d.querySelector('[data-nope-also]'); if (box) box.hidden = v !== 'pick'; saveSettings(); snd('tap'); return; }
         if (key === 'players') settings.players = +v;
         else if (key === 'tier') settings.tier = v;
         else if (key === 'turnSec') settings.turnSec = +v;
@@ -3570,6 +3592,13 @@
         b.setAttribute('aria-checked', String(on));
         snd('tap');
         onlineAct('reveal', { on });
+      }));
+      d.querySelectorAll('[data-also]').forEach((b) => b.addEventListener('click', () => {
+        const on = b.getAttribute('aria-pressed') !== 'true';
+        b.setAttribute('aria-pressed', String(on));
+        settings.nopeAlso = Object.assign({}, settings.nopeAlso, { [b.dataset.also]: on });
+        saveSettings();
+        snd('tap');
       }));
       d.querySelectorAll('[data-pref]').forEach((b) => b.addEventListener('click', () => {
         const on = b.getAttribute('aria-checked') !== 'true';
@@ -3927,9 +3956,9 @@
         if (!p || p.isAi || p.left) return [];
         const g = G(), seat = srvOf(l), auto = !!(g && g.auto && g.auto[seat]), alive = !!(g && !g.over && g.st.alive[seat]);
         const out = [];
-        if (alive) out.push({ label: auto ? '取消托管' : '托管', on: () => onlineAct('host_auto', { seat, on: !auto }).then((r) => { if (r) toast(auto ? '已取消' + p.nick + '的托管' : p.nick + '改由机器猫托管（他点自己头像能收回）'); }) });
-        out.push({ label: p.muted ? '解禁' : '禁言', on: () => onlineAct('mute', { pid: p.id, on: !p.muted }).then((r) => { if (r) toast(p.muted ? '已解除' + p.nick + '的禁言' : '已禁言' + p.nick); }) });
-        out.push({ label: '请离', on: () => hostPersonMenu(p, { lobby: false }) });
+        if (alive) out.push({ label: '<span class="zm-ic-only" title="' + (auto ? '取消托管' : '让他托管') + '">' + (auto ? HOST_IC.unauto : HOST_IC.auto) + '</span>', on: () => onlineAct('host_auto', { seat, on: !auto }).then((r) => { if (r) toast(auto ? '已取消' + p.nick + '的托管' : p.nick + '改由机器猫托管（他点自己头像能收回）'); }) });
+        out.push({ label: '<span class="zm-ic-only" title="' + (p.muted ? '解除禁言' : '禁言') + '">' + (p.muted ? HOST_IC.unmute : HOST_IC.mute) + '</span>', on: () => onlineAct('mute', { pid: p.id, on: !p.muted }).then((r) => { if (r) toast(p.muted ? '已解除' + p.nick + '的禁言' : '已禁言' + p.nick); }) });
+        out.push({ label: '<span class="zm-ic-only" title="请他离开">' + HOST_IC.kick + '</span>', on: () => askKick(p, true) });
         return out;
       },
       sfx: (name, delay) => { if (SFX[name]) snd(SFX[name], delay); },
@@ -4568,11 +4597,16 @@
     if (!game || !game.online || game.matchNo !== g.matchNo || online.base !== base || online.n !== g.n) {
       // 观战换了一家：桌子转过去（先记下每一家头像现在在哪，重摆之后从旧位置滑到新位置）
       const turning = game && game.online && game.matchNo === g.matchNo && online.n === g.n && online.base !== base ? seatSpots() : null;
+      // 一局打完后房主把自己和别人对调：桌子跟着转（我还在下面），排行榜别重新弹
+      keepFinish = turning && game.finishShown === g.matchNo ? g.matchNo : -1;
       enterGame(st, !!(prev && (prev.phase === 'lobby' || (prev.game && prev.game.matchNo !== g.matchNo))));   // 房主点「下一局」直接开：也从发牌播起
-      if (turning) turnTable(turning);
+      if (editing.flip && editing.flip.where === 'table') afterEditRender('table');
+      else { if (turning) turnTable(turning); if (editing.on) applyEdit(false); }
       return;
     }
     syncPeople(st);
+    if (editing.on || editing.flip) { renderDir(); afterEditRender('table'); }
+    if (editing.on && editing.where === 'table' && !g.over) exitEdit();
     const fresh = g.log.filter((e) => e.n > online.lastQueued);
     if (fresh.length && fresh[0].n !== online.lastQueued + 1 && online.lastQueued < g.seq) { resync(); return; }
     if (!fresh.length) { if (!online.playing && !busyLocal()) onlineIdle(); return; }
@@ -4589,15 +4623,19 @@
   // 名字 / 头像 / 机器猫档位 / 离开代打
   function syncPeople(st) {
     if (!game) return;
-    const was = game.bots.slice();
+    const was = game.bots.slice(), wasPid = (game.pids || []).slice();
+    game.pids = [];
     for (let l = 0; l < online.n; l++) {
       const p = playerAt(srvOf(l));
       game.bots[l] = p ? { nick: p.nick, avatar: p.avatar } : { nick: '?', avatar: null };
+      game.pids[l] = p ? p.id : null;
       game.tiers[l] = p && p.isAi ? p.aiLevel : null;
       game.tags[l] = p && !p.isAi ? (p.left ? '代打' : !p.online ? '掉线' : (st.game && st.game.auto[srvOf(l)] ? '托管' : '')) : '';
     }
     if (game.state) for (let l = 0; l < online.n; l++) {
       const o = was[l], b = game.bots[l];
+      // 座位上换了个人（房主在一局打完后调了座位）：整个座位重画，头像按人从旧位置滑过来（afterEditRender），不当成改名
+      if (wasPid.length && wasPid[l] !== game.pids[l]) { const box = seatEl(l); if (box) { box.innerHTML = ''; renderSeat(l); } continue; }
       if (els.app.dataset.uivRename && o && b && o.nick !== '?' && (o.nick !== b.nick || o.avatar !== b.avatar)) { renameFx(l, o); continue; }
       const box = seatEl(l); if (box) { const nm = box.querySelector('.zm-name'); if (nm) nm.textContent = nameOf(l); }
     }
@@ -4605,6 +4643,7 @@
   // fromLobby：在大厅里看着开局的 → 从发牌开始播；中途进来 / 刷新回来的 → 直接按快照摆好
   function enterGame(st, fromLobby) {
     const g = st.game;
+    if (editing.on && editing.where === 'lobby') exitEdit();   // 房间页编辑着就开局了：编辑条别留在牌桌上
     resetTable();
     els.cover.hidden = true;
     hideLobby();
@@ -4760,7 +4799,7 @@
   //   仍然随机，窗口关得早晚看不出谁有没有作废）
   function earlyPass(g) {
     if (!online || !g || !g.myCall || (game && game.spectator) || g.st.phase !== 'react' || online.passFor === g.seq) return;
-    if (g.st.hand.some((id) => R.KIND_OF[id] === R.NOPE) && (!settings.nopeMine || aboutSeat(g.st.pending, online.base, g.st.alive))) return;
+    if (g.st.hand.some((id) => R.KIND_OF[id] === R.NOPE) && nopeAsks(g.st.pending, online.base, g.st.alive)) return;
     online.passFor = g.seq;
     const at = g.seq;
     setTimeout(() => {
@@ -4879,8 +4918,10 @@
   }
 
   /* ───── 一局结束 ───── */
+  let keepFinish = -1;
   async function onlineFinish() {
     const g = G();
+    if (g && keepFinish === g.matchNo) { game.finishShown = g.matchNo; keepFinish = -1; return; }
     if (!g || game.finishShown === g.matchNo) return;
     game.finishShown = g.matchNo;
     busy = true;
@@ -4892,11 +4933,25 @@
     if (!ok || !online || !G() || !G().over) return;
     const host = isHost();
     bgm('menu');   // 结算页算游戏外：接上丁（一局结束时先淡出，皇冠彩纸放完、排行榜出来再起）
-    // 2026-11-14 用户：房间里直接开下一局（房主「下一局」= 同样的人、座位、规则直接开打）；要请人走 / 调座位 / 改规则就「回房间」；
-    // 下面接着列本房间战绩（打满两局才列，按平均名次排）
-    openDialog('<h2>排行榜</h2>' +
-      '<ol class="zm-rank" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 && !game.spectator ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 && !game.spectator ? '<small>（我）</small>' : '') + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
-      recordHtml(online.st && online.st.record, 2) +
+    showRanking(order);
+  }
+  /* 排行榜（一局结束；编辑模式里点「排行榜」也回到这里）。2026-11-14 用户：房主「下一局」= 同样的人、座位、规则直接开打；
+   * 「回房间」改规则 / 加减机器猫；⇄ 进编辑模式（长按头像也行）：拖头像换座位、点 × 请离。下面列本房间战绩。
+   * 名字按这局打完那一刻记下的（座位调过之后再打开也对得上） */
+  function showRanking(order0) {
+    const g = G();
+    if (!g || !online) return;
+    const host = isHost(), st = online.st, rec = st && st.record;
+    const lastM = rec && rec.matches && rec.matches[rec.matches.length - 1];
+    let rows = null;
+    if (rec && lastM === g.matchNo) rows = rec.rows.map((r) => ({ r, k: r.ranks.find((x) => x.m === lastM) })).filter((x) => x.k).sort((a, b) => a.k.r - b.k.r).map((x) => x.r);
+    const order = order0 || (g.ranking || []).map(locOf);
+    const face = (r) => (r.avatar && AV && AV.byId[r.avatar] ? AV.byId[r.avatar].svg : '<span>' + esc((r.nick || '?').slice(0, 1)) + '</span>');
+    const items = rows ? rows.map((r) => ({ me: r.id === st.me && !game.spectator, face: face(r), nick: r.nick }))
+      : order.map((seat) => ({ me: seat === 0 && !game.spectator, face: avatarHtml(seat), nick: nameOf(seat) }));
+    openDialog('<h2>排行榜' + (host ? '<button type="button" class="zm-icbtn zm-rank-edit" data-edit aria-label="调座位 / 请人离开" title="调座位 / 请人离开">' + HOST_IC.swap + '</button>' : '') + '</h2>' +
+      '<ol class="zm-rank" data-stagger>' + items.map((x, i) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + x.face + '</span><span class="nm">' + esc(x.nick) + (x.me ? '<small>（我）</small>' : '') + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
+      recordHtml(st && st.record, 2) +
       (host ? '' : '<p class="zm-muted">等房主开下一局</p>') +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-leave>离开房间</button>' + (host ? '<button type="button" class="zm-btn" data-again>回房间</button><button type="button" class="zm-btn zm-btn-primary" data-next data-focus>下一局</button>' : '') + '</div>', (d) => {
       d.querySelector('[data-leave]').addEventListener('click', () => { closeDialog(); leaveOnline(true); });
@@ -4904,20 +4959,23 @@
       if (a) a.addEventListener('click', () => { a.disabled = true; onlineAct('rematch'); });
       const nx = d.querySelector('[data-next]');
       if (nx) nx.addEventListener('click', () => { nx.disabled = true; onlineAct('next'); });
+      const ed = d.querySelector('[data-edit]');
+      if (ed) ed.addEventListener('click', () => { closeDialog(); enterEdit('table'); });
     });
   }
   /* 本房间战绩表（2026-11-14 用户：连着打很多局，按「平均名次」排）：名次 / 名字 / 平均名次 / 赢的局数 / 打的局数 / 最近几局各第几 */
   function recordHtml(rec, minMatches) {
     if (!rec || !rec.rows || !rec.matches || rec.matches.length < (minMatches || 1)) return '';
+    // 2026-11-14 用户：一局里赢的只有一个，「赢了几局」没意义——只列平均名次和每一局各第几（从第一局一路排到现在）
     const me = online && online.st ? online.st.me : null;
     const face = (r) => (r.avatar && AV && AV.byId[r.avatar] ? AV.byId[r.avatar].svg : '<span>' + esc((r.nick || '?').slice(0, 1)) + '</span>');
-    const last = rec.matches.slice(-5);
-    return '<div class="zm-record"><div class="zm-record-h">本房间战绩 · ' + rec.matches.length + ' 局<small>按平均名次</small></div>' +
-      '<table><thead><tr><th></th><th class="nm"></th><th>平均名次</th><th>赢</th><th>局</th><th class="rk">最近几局</th></tr></thead><tbody>' +
+    const ms = rec.matches;
+    return '<div class="zm-record"><div class="zm-record-h">本房间战绩 · ' + ms.length + ' 局<small>按平均名次</small></div><div class="zm-record-scroll">' +
+      '<table><thead><tr><th></th><th class="nm"></th><th>平均名次</th>' + ms.map((m, i) => '<th class="rk">' + (i + 1) + '</th>').join('') + '</tr></thead><tbody>' +
       rec.rows.map((r, i) => '<tr class="' + (r.id === me ? 'is-me' : '') + '"><td class="pos">' + (i + 1) + '</td><td class="nm"><span class="mini">' + face(r) + '</span><span>' + esc(r.nick) + '</span></td>' +
-        '<td class="avg">' + r.avg.toFixed(1) + '</td><td>' + r.wins + '</td><td>' + r.games + '</td><td class="rk">' +
-        last.map((m) => { const x = r.ranks.find((k) => k.m === m); return '<i class="' + (x && x.r === 1 ? 'is-win' : '') + '">' + (x ? x.r : '–') + '</i>'; }).join('') + '</td></tr>').join('') +
-      '</tbody></table></div>';
+        '<td class="avg">' + r.avg.toFixed(1) + '</td>' +
+        ms.map((m) => { const x = r.ranks.find((k) => k.m === m); return '<td class="rk' + (x && x.r === 1 ? ' is-win' : '') + '">' + (x ? x.r : '–') + '</td>'; }).join('') + '</tr>').join('') +
+      '</tbody></table></div></div>';
   }
 
   /* ───── 进 / 出房间、长轮询 ───── */
@@ -5101,6 +5159,7 @@
   let lobbyEl = null;
   function hideLobby() { if (lobbyEl) lobbyEl.hidden = true; }
   function enterLobby(st, prev) {
+    if (editing.on && editing.where === 'table') exitEdit();
     if (game && game.online) { resetTable(); game = null; }
     if (!els.mask.hidden && els.dialog.querySelector('.zm-rank')) closeDialog();
     els.cover.hidden = true;
@@ -5115,6 +5174,7 @@
       lobbyEl.className = 'zm-lobby';
       els.app.appendChild(lobbyEl);
       lobbyEl.addEventListener('click', onLobbyClick);
+      bindEdit(lobbyEl, 'lobby');
     }
     lobbyEl.hidden = false;
     const host = isHost(), me = st.me, cfg = st.config || {};
@@ -5126,6 +5186,8 @@
     const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b>' + (note ? '<small>' + note + '</small>' : '') + '</div>' + ctl + '</div>';
     const ts = TURN_OPTS.some(([v]) => v === cfg.turnSec) ? cfg.turnSec : 20;
     renderLobbyV2(st, { host, me, cfg, rules, seated, shownSeats, row, sw, ts });
+    if (!host && editing.on) exitEdit();
+    afterEditRender('lobby');
   }
   /* 大厅（2026-11-13 用户挑定的新版）：
    *  ① 头部和主页一致：小一号的插画 +「百变小咪」，房间号在下面当主角
@@ -5211,10 +5273,20 @@
       });
       return;
     }
-    if (host) hostPersonMenu(p, { lobby: true });
+    if (host) hostPersonMenu(p, { lobby: true });   // 换座位：长按进编辑模式拖
   }
-  /* 房主点一个真人（2026-11-14 用户）：局与局之间能换座位 / 请他离开，任何时候能禁言；牌局中还能替他开 / 关托管。
-   * 牌局中请离 = 这一座交给机器猫代打、这局打完移走（他那边会收到「房主请你离开了房间」） */
+  /* 房主操作用图标（2026-11-14 用户：托管 / 禁言 / 请离都用图标，不写字；长按 / 悬停有说明） */
+  const HOST_IC = {
+    auto: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="8" width="15" height="11" rx="3.5"/><path d="M12 4.5V8M9 13v1.2M15 13v1.2M2.5 13v2.5M21.5 13v2.5"/></svg>',
+    unauto: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="8" width="15" height="11" rx="3.5"/><path d="M12 4.5V8M9 13v1.2M15 13v1.2M3 3l18 18"/></svg>',
+    mute: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-7l-4.5 3.5V16.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5Z"/><path d="M3 3l18 18"/></svg>',
+    unmute: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-7l-4.5 3.5V16.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5Z"/><path d="M8.5 11h7"/></svg>',
+    kick: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H14"/><path d="M11 12h10M17.5 8.5 21 12l-3.5 3.5"/></svg>',
+    view: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
+    swap: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/></svg>',
+  };
+  const icBtn = (attr, ic, label) => '<button type="button" class="zm-icbtn" ' + attr + ' aria-label="' + label + '" title="' + label + '">' + ic + '</button>';
+  /* 房主点一个真人：托管（牌局里还活着才有）/ 禁言 / 请离，房主出局后还多一个「坐他身后看」。换座位改成长按进编辑模式拖 */
   function hostPersonMenu(p, o) {
     const st = online && online.st;
     if (!st) return;
@@ -5222,34 +5294,199 @@
     const inGame = !o.lobby && g && !g.over;
     const auto = inGame && g.auto && g.auto[seat];
     const alive = inGame && g.st && g.st.alive && g.st.alive[seat];
-    const seats = o.lobby ? Math.min(R.MAX_PLAYERS, Math.max(5, st.players.reduce((m, x) => Math.max(m, x.seat), -1) + 2)) : 0;
     const status = [!p.online ? '掉线了' : '', auto ? '托管中' : '', p.muted ? '已禁言' : ''].filter(Boolean).join(' · ');
     openDialog('<h2>' + esc(p.nick) + '</h2>' + (status ? '<p class="zm-muted">' + status + '</p>' : '') +
-      (o.lobby ? '<div class="zm-field-label">换到几号位（和那里的人 / 机器猫对调）</div><div class="zs-seg zm-host-seats" role="group">' +
-        Array.from({ length: seats }, (_, i) => '<button type="button" data-to="' + i + '" aria-pressed="' + (i === seat) + '">' + (i + 1) + '</button>').join('') + '</div>' : '') +
-      '<div class="zm-actions zm-host-acts">' +
-      (o.view ? '<button type="button" class="zm-btn" data-view>坐他身后看</button>' : '') +
-      (alive ? '<button type="button" class="zm-btn" data-auto>' + (auto ? '取消托管' : '让他托管') + '</button>' : '') +
-      '<button type="button" class="zm-btn" data-mute>' + (p.muted ? '解除禁言' : '禁言') + '</button>' +
-      '<button type="button" class="zm-btn" data-kick>请他离开</button>' +
-      '<button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (d) => {
-      d.classList.add('zs');
+      '<div class="zm-host-icons">' +
+      (o.view ? icBtn('data-view', HOST_IC.view, '坐他身后看') : '') +
+      (alive ? icBtn('data-auto', auto ? HOST_IC.unauto : HOST_IC.auto, auto ? '取消托管' : '让他托管') : '') +
+      icBtn('data-mute', p.muted ? HOST_IC.unmute : HOST_IC.mute, p.muted ? '解除禁言' : '禁言') +
+      icBtn('data-kick', HOST_IC.kick, '请他离开') +
+      '</div><div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (d) => {
       d.querySelector('[data-ok]').addEventListener('click', closeDialog);
       const vb = d.querySelector('[data-view]');
       if (vb) vb.addEventListener('click', () => { closeDialog(); o.view(); });
-      d.querySelectorAll('[data-to]').forEach((b) => b.addEventListener('click', () => { if (+b.dataset.to === seat) return; closeDialog(); onlineAct('swap_seats', { a: seat, b: +b.dataset.to }); }));
       const ab = d.querySelector('[data-auto]');
       if (ab) ab.addEventListener('click', () => { closeDialog(); onlineAct('host_auto', { seat, on: !auto }).then((r) => { if (r) toast(auto ? '已取消' + p.nick + '的托管' : p.nick + '改由机器猫托管（他点自己头像能收回）'); }); });
       d.querySelector('[data-mute]').addEventListener('click', () => { closeDialog(); onlineAct('mute', { pid: p.id, on: !p.muted }).then((r) => { if (r) toast(p.muted ? '已解除' + p.nick + '的禁言' : '已禁言' + p.nick); }); });
-      d.querySelector('[data-kick]').addEventListener('click', () => {
-        openDialog('<h2>请' + esc(p.nick) + '离开？</h2><p class="zm-muted">' + (inGame ? '这一局他那一座交给机器猫打完，打完就把他移出房间。' : '他会被移出房间。') + '</p>' +
-          '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>算了</button><button type="button" class="zm-btn zm-btn-primary" data-yes>请他离开</button></div>', (d2) => {
-          d2.querySelector('[data-cancel]').addEventListener('click', closeDialog);
-          d2.querySelector('[data-yes]').addEventListener('click', () => { closeDialog(); onlineAct('kick', { pid: p.id }); });
-        });
-      });
+      d.querySelector('[data-kick]').addEventListener('click', () => askKick(p, inGame));
     });
   }
+  function askKick(p, inGame) {
+    const bot = p.isAi;
+    openDialog('<h2>' + (bot ? '移走' : '请') + esc(p.nick) + (bot ? '？' : '离开？') + '</h2><p class="zm-muted">' + (bot ? '这个座位空出来。' : inGame ? '这一局他那一座交给机器猫打完，打完就把他移出房间。' : '他会被移出房间。') + '</p>' +
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>算了</button><button type="button" class="zm-btn zm-btn-primary" data-yes>' + (bot ? '移走' : '请他离开') + '</button></div>', (d) => {
+      d.querySelector('[data-cancel]').addEventListener('click', closeDialog);
+      d.querySelector('[data-yes]').addEventListener('click', () => { closeDialog(); onlineAct(bot ? 'remove_ai' : 'kick', bot ? { seat: p.seat } : { pid: p.id }); });
+    });
+  }
+
+  /* ───── 房主编辑模式（2026-11-14 用户）─────
+   * 房间页任何时候、牌桌上一局打完下一局没开的时候：房主长按任意一个头像 → 所有头像跳一下、轻轻晃，可请离的人右上角出一个 ×；
+   * 这时按住头像拖到另一个座位上松手 = 两人对调（空位也能拖过去）；点 × = 请他离开（先确认）；点空白处或「完成」退出。
+   * 换座的动画：两个人从各自原来的位置滑到新位置；房主自己被换走时整桌一起转，保持「我」在下面（牌桌上）。
+   * 打到一半不能换座（座位连着手牌和出牌顺序），只能点头像托管 / 禁言 / 请离 */
+  const editing = { on: false, where: null, flip: null };
+  let editSuppressClick = false;
+  const editSel = (where) => (where === 'lobby' ? '.zm-lseat' : '.zm-seat');
+  const editRoot = (where) => (where === 'lobby' ? lobbyEl : els.table);
+  const editTableOk = () => { const g = G(); return !!(online && game && game.online && g && g.over && isHost() && !game.spectator); };
+  function editPlayer(el, where) {
+    const st = online && online.st;
+    if (!st || !el) return null;
+    const srv = where === 'lobby' ? +el.dataset.seat : srvOf(+el.dataset.seat);
+    return { srv, p: st.players.find((x) => x.seat === srv && !x.left) || null };
+  }
+  function editRemovable(p, where) { return !!(p && p.id !== online.st.me && (!p.isAi || where === 'lobby')); }
+  function enterEdit(where) {
+    if (!isHost() || (where === 'table' && !editTableOk())) return;
+    editing.on = true; editing.where = where;
+    applyEdit(true);
+    snd('tap');
+  }
+  function exitEdit() {
+    if (!editing.on) return;
+    const root = editRoot(editing.where);
+    editing.on = false;
+    if (root) { root.classList.remove('is-editing'); root.querySelectorAll('.zm-x').forEach((x) => x.remove()); }
+    const bar = els.app.querySelector('.zm-edit-bar'); if (bar) bar.remove();
+  }
+  function applyEdit(bounce) {
+    if (!editing.on) return;
+    const where = editing.where, root = editRoot(where);
+    if (!root || (where === 'table' && !editTableOk())) { exitEdit(); return; }
+    root.classList.add('is-editing');
+    const seats = Array.from(root.querySelectorAll(editSel(where)));
+    seats.forEach((el, i) => {
+      const info = editPlayer(el, where);
+      let x = el.querySelector(':scope > .zm-x');
+      if (editRemovable(info && info.p, where)) { if (!x) { x = document.createElement('span'); x.className = 'zm-x'; x.setAttribute('role', 'button'); x.setAttribute('aria-label', '请他离开'); x.innerHTML = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9"/></svg>'; el.appendChild(x); } }
+      else if (x) x.remove();
+      if (bounce && !fx.reduce()) {
+        const av = el.querySelector(where === 'lobby' ? '.av' : '.zm-av') || el;
+        av.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-9px) scale(1.06)', offset: 0.4 }, { transform: 'translateY(0)' }], { duration: 360, delay: i * 35, easing: 'cubic-bezier(.3,.7,.4,1.4)' });
+      }
+    });
+    let bar = els.app.querySelector('.zm-edit-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'zm-edit-bar';
+      els.app.appendChild(bar);
+      bar.addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b) return;
+        e.stopPropagation();
+        if (b.dataset.e === 'done') exitEdit();
+        else if (b.dataset.e === 'rank') { exitEdit(); showRanking(); }
+        else if (b.dataset.e === 'next') { b.disabled = true; exitEdit(); onlineAct('next'); }
+      });
+    }
+    bar.innerHTML = '<span>拖头像换座 · 点 × 请离</span>' +
+      (where === 'table' ? '<button type="button" class="zm-btn" data-e="rank">排行榜</button><button type="button" class="zm-btn zm-btn-primary" data-e="next">下一局</button>' : '') +
+      '<button type="button" class="zm-btn' + (where === 'table' ? '' : ' zm-btn-primary') + '" data-e="done">完成</button>';
+  }
+  // 换座前记下每个人头像在哪（按人认，不按座位）；新状态画好后从旧位置滑过来
+  function spotsByPid(where) {
+    const out = {};
+    const root = editRoot(where);
+    if (!root) return out;
+    root.querySelectorAll(editSel(where)).forEach((el) => { const info = editPlayer(el, where); const av = el.querySelector(where === 'lobby' ? '.av' : '.zm-av'); if (info && info.p && av) out[info.p.id] = av.getBoundingClientRect(); });
+    return out;
+  }
+  // elapsed：动画已经播了多久——房间页收到同一份状态会整块重画（动作回应 + 长轮询各来一次），重画后接着刚才的进度播，不从头来
+  function flipFrom(before, where, elapsed) {
+    const root = editRoot(where);
+    if (!root || !before || fx.reduce()) return;
+    root.querySelectorAll(editSel(where)).forEach((el) => {
+      const info = editPlayer(el, where), av = el.querySelector(where === 'lobby' ? '.av' : '.zm-av');
+      const old = info && info.p && before[info.p.id];
+      if (!old || !av) return;
+      const now = av.getBoundingClientRect();
+      const dx = old.left + old.width / 2 - (now.left + now.width / 2), dy = old.top + old.height / 2 - (now.top + now.height / 2);
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      const sc = old.width / Math.max(1, now.width);
+      const an = el.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + sc.toFixed(3) + ')', zIndex: 5 }, { transform: 'none', zIndex: 5 }], { duration: 480, easing: 'cubic-bezier(.3,.75,.3,1)' });
+      if (elapsed) an.currentTime = elapsed;
+    });
+    if (!elapsed) snd('flip');
+  }
+  function editSwap(fromEl, toEl, where) {
+    const a = editPlayer(fromEl, where), b = editPlayer(toEl, where);
+    if (!a || !b || a.srv === b.srv) return;
+    // ready：等服务器真换好了再滑（动作回应回来之前的长轮询还是旧座位，别对着旧座位画）
+    const flip = editing.flip = { where, before: spotsByPid(where), ready: false };
+    onlineAct('swap_seats', { a: a.srv, b: b.srv }).then((r) => {
+      if (!r) { editing.flip = null; return; }
+      flip.ready = true;
+      if (editing.flip !== flip || !online || !online.st) return;
+      if (where === 'lobby') renderLobby(online.st); else afterEditRender('table');   // 牌桌：座位已经按新状态重画好了，直接滑
+    });
+  }
+  // 新状态画完之后调用：补上编辑模式的样子，按人把头像滑到新位置
+  function afterEditRender(where) {
+    if (editing.on && editing.where === where) applyEdit(false);
+    const f = editing.flip;
+    if (!f || f.where !== where || !f.ready) return;
+    if (!f.t0) { f.t0 = performance.now(); flipFrom(f.before, where, 0); return; }
+    const el = performance.now() - f.t0;
+    if (el >= 480) { editing.flip = null; return; }
+    flipFrom(f.before, where, el);
+  }
+  function startEditDrag(e, el, where) {
+    const info = editPlayer(el, where);
+    if (!info || !info.p) return;
+    const root = editRoot(where), sel = editSel(where);
+    const av = el.querySelector(where === 'lobby' ? '.av' : '.zm-av') || el;
+    const x0 = e.clientX, y0 = e.clientY;
+    let ghost = null, over = null;
+    const mv = (ev) => {
+      if (!ghost) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+        const r = av.getBoundingClientRect();
+        ghost = av.cloneNode(true);
+        ghost.classList.add('zm-drag-ghost');
+        ghost.style.width = r.width + 'px'; ghost.style.height = r.height + 'px';
+        els.app.appendChild(ghost);
+        el.classList.add('is-dragging');
+      }
+      const r = ghost.getBoundingClientRect();
+      ghost.style.left = (ev.clientX - r.width / 2) + 'px'; ghost.style.top = (ev.clientY - r.height / 2) + 'px';
+      const hit = document.elementFromPoint(ev.clientX, ev.clientY);
+      const t = hit && hit.closest(sel);
+      const tgt = t && root.contains(t) && t !== el ? t : null;
+      if (tgt !== over) { if (over) over.classList.remove('is-drop'); over = tgt; if (over) over.classList.add('is-drop'); }
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+      if (ghost) { ghost.remove(); el.classList.remove('is-dragging'); editSuppressClick = true; }
+      if (over) { over.classList.remove('is-drop'); editSwap(el, over, where); }
+    };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  }
+  function bindEdit(root, where) {
+    const sel = editSel(where);
+    root.addEventListener('pointerdown', (e) => {
+      if (!online || !isHost() || e.button > 0) return;
+      const el = e.target.closest(sel);
+      if (!el || !root.contains(el) || e.target.closest('.zm-x')) return;
+      if (where === 'table' && !editTableOk()) return;
+      if (editing.on && editing.where === where) { startEditDrag(e, el, where); return; }
+      // 长按 0.45 秒进编辑模式（手指没挪）
+      const x0 = e.clientX, y0 = e.clientY;
+      const timer = setTimeout(() => { done(); editSuppressClick = true; if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) { /* */ } } enterEdit(where); }, 450);
+      const mv = (ev) => { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) done(); };
+      const done = () => { clearTimeout(timer); window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', done); window.removeEventListener('pointercancel', done); };
+      window.addEventListener('pointermove', mv); window.addEventListener('pointerup', done); window.addEventListener('pointercancel', done);
+    }, true);
+    root.addEventListener('click', (e) => {
+      if (editSuppressClick) { editSuppressClick = false; e.stopPropagation(); e.preventDefault(); return; }
+      if (!editing.on || editing.where !== where) return;
+      const x = e.target.closest('.zm-x');
+      if (x) { e.stopPropagation(); const info = editPlayer(x.closest(sel), where); if (info && info.p) askKick(info.p, false); return; }
+      if (e.target.closest(sel)) { e.stopPropagation(); return; }   // 编辑模式里点头像不弹别的
+      if (e.target.closest('button, .zs-card, input')) return;   // 房间页的规则开关照常能点
+      e.stopPropagation(); exitEdit();
+    }, true);
+  }
+  bindEdit(els.table, 'table');
 
   /* ───── 绑定 ───── */
   // 长按不选字、不弹系统菜单（微信里会弹「搜一搜 / 翻译」）；输入框照常

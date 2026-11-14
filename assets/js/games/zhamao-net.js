@@ -114,7 +114,7 @@
     act: (code, token, action, body) => request('POST', action, { code, token, body, timed: true }),
     rtt,
     // 量一下来回：最便宜的请求（不碰数据库），一局里每隔一阵发一次，没出牌的人也有来回可量
-    ping: () => { const t0 = performance.now(); return fetch(BASE + '?action=state&code=0', { method: 'GET', cache: 'no-store' }).then(() => { noteRtt(performance.now() - t0); }, () => {}); },
+    ping: () => { const t0 = performance.now(); return fetch(BASE + '?action=ping', { method: 'GET', cache: 'no-store' }).then(() => { noteRtt(performance.now() - t0); }, () => {}); },
     // 叫醒服务器：fly 上没人用会休眠，第一下要 2–3 秒。点开「联机」就先发一个最便宜的请求（不碰数据库），等真建房时它多半醒了
     warm: () => fetch(BASE + '?action=state&code=0', { method: 'GET', cache: 'no-store' }).catch(() => {}),
     // fx：牌桌互动的序号（-1 = 刚进来，只要序号）；带上它，有新互动时长轮询也会立刻回来（回应里 fx / fxSeq，房间没变时不带 state）

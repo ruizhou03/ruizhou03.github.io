@@ -958,7 +958,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app [data-prop="paw"] { background: #fcf1d2; }
 .zm-app [data-prop="boom"] { background: #ece8e2; }
 .zm-app .gz-sp-props .gz-sp-lb { font-size: 13px; font-weight: 700; color: var(--zm-ink); letter-spacing: 0.04em; }
-.zm-app .gz-sp-props .gz-sp-sub { font-size: 10.5px; color: var(--zm-ink-mute); line-height: 1.1; margin-top: -1px; }
+.zm-app .gz-sp-props .gz-sp-sub { display: none; }   /* 2026-11-14 用户：互动只留第一行（投喂 / 逗你玩…），小鱼干 / 毛线球这种第二行不要；长按 / 悬停的说明照旧 */
 .zm-app .gz-sp-foot { border-top-color: rgba(29, 27, 24, 0.08); }
 .zm-app .gz-sp-chat { width: 276px; padding: 14px 12px 10px; border-radius: 16px; background: #fbf7ee; outline: 1px solid rgba(29, 27, 24, 0.28); outline-offset: -5px; box-shadow: 0 12px 28px rgba(29, 27, 24, 0.22); }
 .zm-app .gz-sp-chat .gz-sp-title { font-size: 13px; color: var(--zm-ink); font-weight: 700; letter-spacing: 0.04em; padding: 0 4px 9px; }
@@ -1077,7 +1077,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 联机：这局服务器上已经打完、我这边还在播机器猫出牌时，直接看结果（2026-11-14 用户） */
 .zm-skip { position: absolute; left: 50%; top: 64%; translate: -50% 0;   /* 牌桌中间偏下的空处：不压手牌、不压「摸牌」那一排 */ z-index: 30; border: 1px solid var(--zm-ink); background: var(--zm-card); color: var(--zm-ink);
   border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 14px; box-shadow: 0 6px 18px rgba(29, 27, 24, 0.18); cursor: pointer; white-space: nowrap; }
-/* 本房间战绩表（排行榜弹窗 / 房间准备页） */
+/* 本房间战绩表（排行榜弹窗 / 房间准备页）：平均名次 + 每一局各第几（局多了横着滑） */
+.zm-record-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .zm-record { margin: 14px 0 4px; }
 .zm-record-h { font-weight: 700; font-size: 14px; margin: 0 2px 6px; display: flex; align-items: baseline; gap: 8px; }
 .zm-record-h small { font-weight: 400; font-size: 12px; color: var(--zm-ink-mute); }
@@ -1091,9 +1092,42 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-record .mini { width: 24px; height: 24px; flex: none; border-radius: 50%; overflow: hidden; background: var(--zm-wash); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--zm-ink-mute); }
 .zm-record .mini svg { width: 100%; height: 100%; display: block; }
 .zm-record td.avg { font: 700 14px/1 Georgia, serif; }
-.zm-record td.rk i { display: inline-block; min-width: 1.3em; font-style: normal; color: var(--zm-ink-mute); font-family: Georgia, serif; }
-.zm-record td.rk i.is-win { color: var(--zm-seal); font-weight: 700; }
+.zm-record th.rk, .zm-record td.rk { min-width: 1.6em; padding-left: 2px; padding-right: 2px; font-family: Georgia, serif; color: var(--zm-ink-mute); }
+.zm-record td.rk.is-win { color: var(--zm-seal); font-weight: 700; }
 /* 房主在牌桌上点一个真人：互动弹窗底下多一排（托管 / 禁言 / 请离） */
 .zm-app .gz-sp-extra .gz-sp-extra-btns { display: flex; gap: 10px; }
 .zm-app .zm-host-seats { flex-wrap: wrap; margin-bottom: 10px; }
 .zm-app .zm-host-acts { flex-wrap: wrap; }
+/* 设置 · 问我要不要作废「挑着问」的勾选项（2026-11-14 用户） */
+.zm-app .zm-nope-also { padding: 4px 2px 8px; }
+.zm-app .zm-nope-also small { display: block; font-size: 12px; color: var(--zm-ink-mute); margin: 2px 2px 6px; }
+.zm-app .zm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.zm-app .zm-chips button { font: inherit; font-size: 12.5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--zm-ink-faint); background: transparent; color: var(--zm-ink-mute); cursor: pointer; }
+.zm-app .zm-chips button[aria-pressed="true"] { border-color: var(--zm-ink); background: var(--zm-ink); color: var(--zm-paper); }
+
+/* ───── 房主：图标按钮 / 编辑模式（长按头像：跳一下、轻轻晃、右上角 ×、拖动换座）2026-11-14 用户 ───── */
+.zm-app .zm-icbtn { width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--zm-ink); background: var(--zm-card); color: var(--zm-ink); display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.zm-app .zm-icbtn svg, .zm-app .zm-ic-only svg, .zm-app .zm-x svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: block; }
+.zm-app .zm-icbtn[data-kick] { color: var(--zm-seal); border-color: var(--zm-seal); }
+.zm-app .zm-host-icons { display: flex; justify-content: center; gap: 16px; margin: 8px 0 14px; }
+.zm-app .zm-ic-only { display: inline-flex; }
+.zm-app .zm-ic-only svg { width: 20px; height: 20px; }
+.zm-app .zm-rank-edit { width: 34px; height: 34px; margin-left: 10px; vertical-align: middle; }
+.zm-app .zm-rank-edit svg { width: 18px; height: 18px; }
+.zm-app .zm-dialog h2 .zm-rank-edit { float: right; margin-top: -4px; }
+.is-editing .zm-lseat, .is-editing .zm-seat { touch-action: none; -webkit-user-select: none; user-select: none; }
+.is-editing .zm-lseat:not(.is-empty) .av, .zm-table.is-editing .zm-seat .zm-av { animation: zm-wiggle 0.42s ease-in-out infinite alternate; }
+.is-editing .zm-lseat:nth-child(2n) .av, .zm-table.is-editing .zm-seat:nth-child(2n) .zm-av { animation-delay: -0.21s; }
+@keyframes zm-wiggle { from { rotate: -2.5deg; } to { rotate: 2.5deg; } }
+.zm-lseat, .zm-seat { position: relative; }
+.zm-x { position: absolute; top: -6px; right: -6px; z-index: 6; width: 22px; height: 22px; border-radius: 50%; background: var(--zm-seal); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--zm-paper); cursor: pointer; }
+.zm-app .zm-x svg { width: 12px; height: 12px; stroke-width: 2.2; }
+.zm-opps .zm-seat > .zm-x { top: -4px; right: calc(50% - var(--av) / 2 - 8px); }
+.zm-seat-me > .zm-x { display: none; }
+.is-dragging { opacity: 0.35; }
+.is-drop .av, .is-drop .zm-av, .zm-lseat.is-drop { box-shadow: 0 0 0 3px var(--zm-gold), 0 0 0 7px rgba(201, 169, 110, 0.3) !important; }
+.zm-drag-ghost { position: fixed; left: 0; top: 0; z-index: 9999; pointer-events: none; border-radius: 50%; box-shadow: 0 10px 24px rgba(29, 27, 24, 0.3); transform: scale(1.12); animation: none !important; }
+.zm-edit-bar { position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); translate: -50% 0; z-index: 60; display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 14px; background: var(--zm-card); border: 1px solid rgba(29, 27, 24, 0.18); border-radius: 999px; box-shadow: 0 10px 28px rgba(29, 27, 24, 0.22); white-space: nowrap; max-width: calc(100vw - 16px); }
+.zm-edit-bar > span { font-size: 12.5px; color: var(--zm-ink-mute); overflow: hidden; text-overflow: ellipsis; }
+.zm-edit-bar .zm-btn { padding: 6px 12px; min-height: 0; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .is-editing .zm-lseat .av, .zm-table.is-editing .zm-seat .zm-av { animation: none; } }
