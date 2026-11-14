@@ -111,8 +111,57 @@
   // 把我的名字 / 头像套到这一局（存档里记的是旧的也换成现在的）
   function applyProfile() {
     if (!game || game.tutorial) return;
+    const o = game.bots[0];
     game.bots[0] = { nick: profile.nick, avatar: profile.avatar };
+    if (els.app.dataset.uivRename && o && els.me && els.me.querySelector('.zm-av')) { renameFx(0, o); return; }
     if (els.me) { els.me.innerHTML = ''; renderSeat(0); }
+  }
+  /* 预览（本机对比，未定）：联机时有人改了名字 / 头像，大家看到的那个座位怎么换（data-uiv-rename）
+   * 以前：名字直接跳成新的，头像要到下一局才换。
+   * flip  翻牌：头像像翻一张牌，翻过去背面就是新头像；名字同时上下翻一下
+   * slide 换牌匾：旧名字往上滑走、新名字从下面滑上来；新头像从中间一圈圈晕开盖住旧的
+   * ink   墨晕：旧头像和名字晕开淡掉、新的从模糊里显出来，头顶冒一个小签「旧名 → 新名」，告诉大家是谁改了名 */
+  function renameFx(seat, old) {
+    const box = seatEl(seat), kind = els.app.dataset.uivRename;
+    const face = box && box.querySelector('.zm-av-face'), nm = box && box.querySelector('.zm-name');
+    if (!face || !nm) return;
+    const nickNew = nameOf(seat) || (game.bots[seat] && game.bots[seat].nick) || '';
+    const avNew = avatarHtml(seat), avChanged = old.avatar !== (game.bots[seat] && game.bots[seat].avatar), nickChanged = old.nick !== nickNew;
+    const half = (el, outKf, inKf, swap, d1, d2) => {
+      const a1 = el.animate(outKf, { duration: d1, easing: 'ease-in', fill: 'forwards' });
+      let a2 = null;
+      a1.finished.then(() => { swap(); a2 = el.animate(inKf, { duration: d2, easing: 'cubic-bezier(.2,.9,.3,1.2)', fill: 'forwards' }); return a2.finished; })
+        .catch(() => swap()).then(() => { a1.cancel(); if (a2) a2.cancel(); });
+    };
+    const swapFace = () => { face.innerHTML = avNew; };
+    const swapName = () => { nm.textContent = nickNew; };
+    if (kind === 'flip') {
+      if (avChanged) half(face, [{ transform: 'perspective(200px) rotateY(0deg)' }, { transform: 'perspective(200px) rotateY(90deg)' }], [{ transform: 'perspective(200px) rotateY(-90deg)' }, { transform: 'perspective(200px) rotateY(0deg)' }], swapFace, 200, 320);
+      else fx.pop(face, { scale: 1.12, dur: 300 });
+      if (nickChanged) half(nm, [{ transform: 'rotateX(0deg)' }, { transform: 'rotateX(90deg)' }], [{ transform: 'rotateX(-90deg)' }, { transform: 'rotateX(0deg)' }], swapName, 180, 300);
+      const av = box.querySelector('.zm-av'); const c = fx.center(av.getBoundingClientRect());
+      setTimeout(() => fx.burst(c.x, c.y, { n: 10, shapes: ['star', 'dot'], colors: ['#c9a96e', '#e2b85c', '#f3e6c4'], radius: 34, size: [5, 9], life: 600 }), 200);
+    } else if (kind === 'slide') {
+      if (nickChanged) half(nm, [{ translate: '0 0', opacity: 1 }, { translate: '0 -10px', opacity: 0 }], [{ translate: '0 10px', opacity: 0 }, { translate: '0 0', opacity: 1 }], swapName, 180, 280);
+      if (avChanged) {
+        const ov = document.createElement('span');
+        ov.className = 'zm-av-face zm-av-reveal'; ov.innerHTML = avNew;
+        face.parentNode.insertBefore(ov, face.nextSibling);
+        ov.animate([{ clipPath: 'circle(0% at 50% 50%)' }, { clipPath: 'circle(75% at 50% 50%)' }], { duration: 520, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).finished.then(() => { swapFace(); ov.remove(); }, () => { swapFace(); ov.remove(); });
+      }
+    } else {
+      const blurOut = [{ filter: 'blur(0) saturate(1)', opacity: 1 }, { filter: 'blur(5px) saturate(0.2)', opacity: 0.15 }];
+      const blurIn = [{ filter: 'blur(5px) saturate(0.2)', opacity: 0.15 }, { filter: 'blur(0) saturate(1)', opacity: 1 }];
+      if (avChanged) half(face, blurOut, blurIn, swapFace, 300, 420);
+      if (nickChanged) {
+        half(nm, blurOut, blurIn, swapName, 300, 420);
+        const tip = document.createElement('div');
+        tip.className = 'zm-rename-tip';
+        tip.innerHTML = '<s>' + esc(old.nick) + '</s><i>→</i><b>' + esc(nickNew) + '</b>';
+        box.appendChild(tip);
+        tip.animate([{ opacity: 0, translate: '-50% 6px' }, { opacity: 1, translate: '-50% 0', offset: 0.12 }, { opacity: 1, translate: '-50% 0', offset: 0.85 }, { opacity: 0, translate: '-50% -6px' }], { duration: 2400, easing: 'ease-out', fill: 'forwards' }).finished.then(() => tip.remove(), () => tip.remove());
+      }
+    }
   }
   function showProfile() {
     if (!AV) return;
@@ -276,7 +325,27 @@
   /* 箭头的流动感（2026-11-13 用户挑定丙 · 三连跑马灯）：每个箭头是三道细箭（›››），三道依次点亮往前跑，箭头之间顺着出牌方向接力；
    * 指向当前出牌的人的那个箭头变朱红（和他头像的红圈呼应），轮到谁红箭头就跟着挪过去 */
   const DIR3_SVG = '<svg viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5l5 5-5 5"/><path d="M8 5l5 5-5 5"/><path d="M13.5 5l5 5-5 5"/></g></svg>';
+  /* 预览（本机对比，未定）：名字按人数分档显示（data-uiv-names="fit"）
+   * 2–5 人：先整名显示；放不下先把字缩一档（13 → 11.5 → 10.5px），还放不下才在末尾「…」
+   * 6–9 人：桌上只放得下 3–4 个字——不打「…」（省一个字的位置），超出的部分在右边淡出；
+   *        轮到谁，谁的名字就展开成一枚小牌子，整名盖在两边上面（他是全桌焦点，盖一下邻座名字可以接受）；点头像也会弹整名 */
+  function fitNames() {
+    const arc = els.opps.classList.contains('is-arc');
+    const m = Math.max(1, els.opps.children.length);
+    const room = Math.floor(Math.min(116, (els.opps.clientWidth || 360) / m - 14));   // 2–5 人：一家能占的宽度（以前一律 84px，4 人局两边其实还空着）
+    els.app.querySelectorAll('.zm-seat .zm-name').forEach((nm) => {
+      nm.classList.remove('is-long'); nm.style.removeProperty('font-size');
+      if (!arc && nm.closest('.zm-opps')) nm.style.maxWidth = room + 'px'; else nm.style.removeProperty('max-width');
+      if (nm.scrollWidth <= nm.clientWidth + 1) return;
+      if (!arc || !nm.closest('.zm-opps')) {
+        const base = parseFloat(getComputedStyle(nm).fontSize);
+        for (const fs of [base - 1.5, base - 2.5]) { nm.style.fontSize = fs + 'px'; if (nm.scrollWidth <= nm.clientWidth + 1) return; }
+      }
+      nm.classList.add('is-long'); nm.dataset.full = nm.textContent;
+    });
+  }
   function renderDir() {
+    if (els.app.dataset.uivNames) fitNames();
     if (!els.dir) { els.dir = document.createElement('div'); els.dir.setAttribute('aria-hidden', 'true'); els.table.appendChild(els.dir); }
     els.dir.className = 'zm-dir';
     const n = game && game.state ? game.state.n : 0;
@@ -319,7 +388,7 @@
   }
   /* ───── 桌沿（2026-11-13 用户提的想法、看过预览后定稿上线）─────
    * 一条细金线绕牌桌一圈：对手一排下面 → 右边往下 → 我头像上方 → 左边往上，所有人（包括我）都在这一圈上。
-   * 平时：淡金线，一点柔光顺着出牌方向慢慢绕。指人时：从出牌人那点起，一截亮金沿桌沿（走近的那边）长到被指的人，到了那儿亮一圈；
+   * 平时：淡金线，一点柔光顺着出牌方向慢慢绕。指人时：从出牌人那点起，一截亮金沿桌沿（隔的人少的那边，一样多就顺着出牌方向）长到被指的人，到了那儿亮一圈；
    * 结算后（抽到牌 / 给了牌 / 被作废……）这截从被指的人那头缩回出牌人，淡回平时。 */
   const RIM_STEP = 5;
   function rimGeom() {
@@ -438,7 +507,14 @@
     const near = (p) => { let bi = 0, bd = Infinity; pts.forEach((q, i) => { const dd = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (dd < bd) { bd = dd; bi = i; } }); return bi; };
     const ia = near(sv._anchor(a)), ib = near(sv._anchor(b));
     const fwd = (ib - ia + N) % N, back = (ia - ib + N) % N;
-    const stepDir = fwd <= back ? 1 : -1, cnt = Math.min(fwd, back);
+    /* 往哪边走（2026-11-14 用户：最右那家甩锅给对角的我，出牌方向是顺时针、线却逆时针绕过整排对手）：
+     * 以前按像素挑近的那边；现在按座位挑——沿出牌顺序数，中间隔着的（还活着的）人少的那边；一样多就顺着出牌方向。
+     * 甩锅给下家永远是顺着出牌方向那一步；索要 / 交换 / 偷 / 点名同样按这个规则。
+     * 路径上序号变大 = 座位号变大（我 → 1 号 → 2 号 …），所以「顺着出牌方向」= 序号往 dirNow() 那边走 */
+    const n = game.state.n, alive = game.state.alive, dir = dirNow();
+    const between = (step) => { let c = 0; for (let s = (a + step + n) % n; s !== b; s = (s + step + n) % n) if (alive[s]) c++; return c; };
+    const playWay = between(dir) <= between(-dir) ? dir : -dir;
+    const stepDir = playWay === 1 ? 1 : -1, cnt = stepDir === 1 ? fwd : back;
     const seg = []; for (let k = 0; k <= cnt; k++) seg.push(pts[(ia + stepDir * k + N) % N]);
     const d = 'M' + seg.map((q) => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join('L');
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -632,7 +708,69 @@
     if (tg) { const txt = (game.tags && game.tags[seat]) || ''; tg.textContent = txt; tg.hidden = !txt; }
     const av = box.querySelector('.zm-av');
     setBadge(av, 'zm-count', seat !== 0 && !out ? String(d.counts[seat]) : '');
-    setBadge(av, 'zm-turns', turn && (d.turnsLeft > 1 || game.attackSeat === seat) ? '×' + d.turnsLeft : '');
+    const nT = turn && (d.turnsLeft > 1 || game.attackSeat === seat) ? d.turnsLeft : 0;
+    const tv = els.app.dataset.uivTurns;   // 预览（本机对比，未定）：hat 扣锅 / ring 红圈分段 / beads 红珠
+    if (tv) { setBadge(av, 'zm-turns', ''); setPotMark(av, tv, nT); } else setBadge(av, 'zm-turns', nT ? '×' + nT : '');
+  }
+  /* 预览：甩锅标记的三种新画法（都不往头像外面伸出角标）
+   * hat  扣锅：一口倒扣的锅扣在头上（「把锅扣他头上」），锅肚上写 ×N；摸完一回合数字弹一下，全摸完锅被掀飞
+   * ring 红圈分段：轮到他的那圈红描边切成 N 段，摸完一回合熄一段，全熄了才算结清
+   * beads 红珠：头像描边左上那段串 N 颗朱红小珠（像算盘珠），摸完一回合掉一颗，掉完才算结清 */
+  function setPotMark(av, kind, n) {
+    let m = av.querySelector('.zm-pm');
+    if (m && m.dataset.kind !== kind) { m.remove(); m = null; }
+    if (!n) {
+      if (!m || m.classList.contains('is-gone')) return;
+      m.classList.add('is-gone');
+      const out = kind === 'ring' || kind === 'beads' ? [{ opacity: 1 }, { opacity: 0, scale: '1.2' }]
+        : kind === 'hat' ? [{ opacity: 1, translate: '0 0', rotate: '0deg' }, { opacity: 1, translate: '4px -10px', rotate: '20deg', offset: 0.4 }, { opacity: 0, translate: '18px -30px', rotate: '70deg' }]
+        : [{ opacity: 1, translate: '0 0' }, { opacity: 0, translate: '-14px 8px', rotate: '-25deg' }];
+      const mm = m;
+      mm.animate(out, { duration: kind === 'ring' ? 420 : 560, easing: 'cubic-bezier(.4,0,.7,.6)', fill: 'forwards' }).finished.then(() => mm.remove(), () => mm.remove());
+      return;
+    }
+    const fresh = !m || m.classList.contains('is-gone');
+    if (fresh) {
+      if (m) m.remove();
+      m = document.createElement('span');
+      m.className = 'zm-pm zm-pm-' + kind; m.dataset.kind = kind;
+      av.appendChild(m);
+    }
+    const prev = +m.dataset.n || 0;
+    if (prev === n) return;
+    m.dataset.n = n;
+    if (kind === 'ring') {
+      const total = Math.max(n, +m.dataset.total || 0);
+      m.dataset.total = total;
+      const gap = total > 1 ? 7 : 0, seg = 100 / total - gap;
+      m.innerHTML = '<svg viewBox="0 0 50 50" aria-hidden="true">' + Array.from({ length: total }, (_, k) =>
+        '<circle cx="25" cy="25" r="23" pathLength="100" class="' + (k >= n ? 'is-used' : '') + '" style="stroke-dasharray:' + seg.toFixed(2) + ' ' + (100 - seg).toFixed(2) + ';stroke-dashoffset:' + (-(k * 100 / total + gap / 2)).toFixed(2) + '"/>').join('') + '</svg>';
+      if (fresh) m.animate([{ opacity: 0, scale: '1.25' }, { opacity: 1, scale: '1' }], { duration: 320, easing: 'ease-out' });
+      else { const c = m.querySelectorAll('circle')[n]; if (c) c.animate([{ stroke: 'var(--zm-seal)', strokeWidth: 5 }, { stroke: '#d9cfbf', strokeWidth: 3 }], { duration: 480, easing: 'ease-out' }); }
+      return;
+    }
+    if (kind === 'beads') {
+      const have = Array.from(m.querySelectorAll('i:not(.is-gone)'));
+      for (let k = have.length; k < Math.min(n, 6); k++) {
+        const e = document.createElement('i');
+        e.style.setProperty('--a', (-90 - k * 26) + 'deg');
+        m.appendChild(e);
+        e.animate([{ opacity: 0, scale: '2.2' }, { opacity: 1, scale: '1' }], { duration: 260, delay: (k - have.length) * 80, easing: 'ease-out', fill: 'backwards' });
+      }
+      for (let k = have.length - 1; k >= n; k--) {
+        const e = have[k]; e.classList.add('is-gone');
+        e.animate([{ opacity: 1, scale: '1' }, { opacity: 1, scale: '1.6', offset: 0.3 }, { opacity: 0, scale: '0.3' }], { duration: 420, easing: 'ease-in', fill: 'forwards' }).finished.then(() => e.remove(), () => e.remove());
+      }
+      return;
+    }
+    if (fresh) {
+      m.innerHTML = '<i>' + ART.PROPS.pot + '</i><b></b>';
+      m.animate(kind === 'hat' ? [{ opacity: 0, translate: '0 -26px', rotate: '-30deg' }, { opacity: 1, translate: '0 2px', rotate: '4deg', offset: 0.75 }, { opacity: 1, translate: '0 0', rotate: '0deg' }]
+        : [{ opacity: 0, translate: '10px 6px' }, { opacity: 1, translate: '0 0' }], { duration: 380, easing: 'ease-out' });
+    }
+    const b = m.querySelector('b');
+    b.textContent = '×' + n;
+    if (!fresh) fx.pop(b, { scale: 1.45, dur: 320 });
   }
   // 角标：数字变了就弹一下
   function setBadge(av, cls, text) {
@@ -3431,22 +3569,69 @@
   function canPause() {
     return !!(game && !game.tutorial && !game.online && !game.dealing && game.state.phase !== 'over' && els.cover.hidden && !coachQueue);
   }
-  /* 暂停页的小咪（只留「打盹」这一张，2026-11-14 用户定）：睡着时头顶 Z z z 一直往上冒；点它就翻身睁一只眼「喵？」 */
-  function napArt(awake) {
+  /* 暂停页的小咪（只留「打盹」这一张，2026-11-14 用户定）：睡着时头顶 Z z z 一直往上冒。
+   * 点它（2026-11-14 用户）：飘着的 Z 像泡泡一样「啵」地破掉，小咪抬头睁眼（不说话），过一会儿眨两下眼，
+   * 再慢慢合上眼、头低回去，Z 重新冒出来。头是同一个位置画两张（睁眼 / 闭眼）叠着，眨眼只是切换，不重画整张图 */
+  function napArt() {
     const NAVYc = '#2f4a6d', GOLDc = '#c9a96e';
-    let g = '<ellipse cx="50" cy="92" rx="34" ry="5" fill="rgba(29,27,24,.08)"/><ellipse cx="50" cy="72" rx="32" ry="18" fill="#9bb0cc"/>' +
+    const head = (eyes) => ART.catHead(40, 62, 0.85, '#b4c5dd', { eyes, mouth: 'none', ear: '#e6c3cf', blushC: '#f4b0b8' });
+    const z = '<path d="M-3.5 -4h7l-7 8h7" stroke="' + NAVYc + '" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+    return '<svg viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy="92" rx="34" ry="5" fill="rgba(29,27,24,.08)"/><ellipse cx="50" cy="72" rx="32" ry="18" fill="#9bb0cc"/>' +
       '<path d="M20 74c4 12 30 18 48 10" stroke="#7d93b2" stroke-width="9" stroke-linecap="round" fill="none"/>' +
-      '<path d="M72 14a12 12 0 1 0 10 18 9 9 0 1 1 -10 -18Z" fill="' + GOLDc + '"/>';
-    if (awake) {
-      g += ART.catHead(42, 58, 0.88, '#b4c5dd', { eyes: 'side', mouth: 'flat', ear: '#e6c3cf', blushC: '#f4b0b8' });
-      g += '<g class="zm-nap-say"><rect x="58" y="32" width="32" height="19" rx="9.5" fill="#fff" stroke="#1d1b18" stroke-width="1.6"/><path d="M64 51l-3 6 7-6" fill="#fff" stroke="#1d1b18" stroke-width="1.6" stroke-linejoin="round"/>' +
-        '<text x="74" y="45.5" text-anchor="middle" font-size="10" font-weight="700" fill="#1d1b18">喵？</text></g>';
+      '<path d="M72 14a12 12 0 1 0 10 18 9 9 0 1 1 -10 -18Z" fill="' + GOLDc + '"/>' +
+      '<g class="zm-nap-head"><g class="zm-nap-open">' + head('open') + '</g><g class="zm-nap-shut">' + head('closed') + '</g></g>' +
+      '<g class="zm-nap-z" transform="translate(56 44)">' + [0, 1, 2].map((k) => '<g style="--i:' + k + '">' + z + '</g>').join('') + '</g></svg>';
+  }
+  // 点一下：Z 泡泡破掉 → 睁眼 → 眨两下 → 犯困合眼 → 头低回去、Z 再冒
+  function napWake(cat) {
+    const svg = cat.querySelector('svg'), zs = svg && svg.querySelector('.zm-nap-z');
+    if (!svg || !zs) return;
+    (cat._napT || []).forEach(clearTimeout);
+    const T = cat._napT = [];
+    const at = (ms, fn) => T.push(setTimeout(() => { if (cat.isConnected) fn(); }, ms));
+    const still = fx.reduce();
+    if (!cat.classList.contains('is-awake')) {
+      snd('tap');
+      // 还看得见的 Z 原地定住、鼓一下再破：一圈细环往外散，四颗小水点溅开
+      Array.from(zs.children).forEach((g) => {
+        const op = parseFloat(getComputedStyle(g).opacity) || 0;
+        g.getAnimations().forEach((a) => a.pause());
+        if (op < 0.12 || still) { g.style.opacity = '0'; return; }
+        g.style.opacity = String(op);
+        const path = g.querySelector('path');
+        path.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.35)', opacity: 1, offset: 0.45 }, { transform: 'scale(0.2)', opacity: 0 }], { duration: 260, easing: 'ease-in', fill: 'forwards' });
+        const NS = 'http://www.w3.org/2000/svg';
+        const ring = document.createElementNS(NS, 'circle');
+        ring.setAttribute('r', '6'); ring.setAttribute('fill', 'none'); ring.setAttribute('stroke', '#2f4a6d'); ring.setAttribute('stroke-width', '1.2');
+        g.appendChild(ring);
+        ring.animate([{ transform: 'scale(0.6)', opacity: 0 }, { transform: 'scale(1)', opacity: 0.8, offset: 0.35 }, { transform: 'scale(1.9)', opacity: 0 }], { duration: 380, delay: 90, easing: 'ease-out', fill: 'both' });
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dy], k) => {
+          const d = document.createElementNS(NS, 'circle');
+          d.setAttribute('r', '1.3'); d.setAttribute('fill', '#2f4a6d');
+          g.appendChild(d);
+          d.animate([{ transform: 'translate(0,0)', opacity: 0 }, { transform: 'translate(' + dx * 4 + 'px,' + dy * 4 + 'px)', opacity: 0.9, offset: 0.3 }, { transform: 'translate(' + dx * 10 + 'px,' + (dy * 10 + 3) + 'px)', opacity: 0 }], { duration: 420, delay: 110 + k * 15, easing: 'ease-out', fill: 'both' });
+        });
+      });
+      cat.classList.add('is-awake', 'is-up');
+      at(130, () => cat.classList.add('is-open'));
     } else {
-      g += ART.catHead(40, 62, 0.85, '#b4c5dd', { eyes: 'closed', mouth: 'none', ear: '#e6c3cf', blushC: '#f4b0b8' });
-      const z = '<path d="M-3.5 -4h7l-7 8h7" stroke="' + NAVYc + '" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
-      g += '<g class="zm-nap-z" transform="translate(56 44)">' + [0, 1, 2].map((i) => '<g style="--i:' + i + '">' + z + '</g>').join('') + '</g>';
+      // 醒着又点一下：轻轻一缩，眨个眼，重新计时
+      if (!still) cat.animate([{ transform: 'scale(1)' }, { transform: 'scale(0.96)', offset: 0.4 }, { transform: 'scale(1)' }], { duration: 240, easing: 'ease-out' });
+      cat.classList.remove('is-open'); at(120, () => cat.classList.add('is-open'));
     }
-    return '<svg viewBox="0 0 100 100" aria-hidden="true">' + g + '</svg>';
+    const blink = (t) => { at(t, () => cat.classList.remove('is-open')); at(t + 130, () => cat.classList.add('is-open')); };
+    blink(1400); blink(1700);                                   // 眨两下
+    at(3000, () => cat.classList.remove('is-open'));            // 犯困：眼一合
+    blink(3000 + 380);                                          // 又勉强睁一下
+    at(3800, () => cat.classList.remove('is-open'));            // 真合上了
+    at(4200, () => cat.classList.remove('is-up'));              // 头慢慢低回去
+    at(4800, () => {                                            // 重新睡着：Z 从头开始冒
+      cat.classList.remove('is-awake');
+      const fresh = zs.cloneNode(false);
+      fresh.innerHTML = Array.from(zs.children).map((g, k) => '<g style="--i:' + k + '">' + g.querySelector('path').outerHTML + '</g>').join('');
+      fresh.querySelectorAll('path').forEach((pth) => pth.removeAttribute('style'));
+      zs.replaceWith(fresh);
+    });
   }
   function pauseGame() {
     if (!canPause() || !els.mask.hidden) return;
@@ -3458,22 +3643,14 @@
     busy = true;
     renderAll();
     // 不写「暂停」二字：正中一个大大的暂停图标，左下「回到主页面」，右下「继续」（带个播放三角）
-    openDialog('<button type="button" class="zm-pause-cat" aria-label="摸摸小咪">' + napArt(false) + '</button>' +
+    openDialog('<button type="button" class="zm-pause-cat" aria-label="摸摸小咪">' + napArt() + '</button>' +
       '<div class="zm-pause-ic" aria-label="暂停"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/><rect x="34" y="28" width="11" height="44" rx="3.5"/><rect x="55" y="28" width="11" height="44" rx="3.5"/></svg></div>' +
       '<div class="zm-pause-actions"><button type="button" class="zm-btn" data-home>回到主页面</button>' +
       '<button type="button" class="zm-btn zm-btn-primary" data-go data-focus><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>继续</button></div>', (d) => {
       d.classList.add('is-pause');
-      // 点小咪：翻过身睁一只眼「喵？」，过一会儿又睡回去（2026-11-14 用户：暂停页加点互动）
+      // 点小咪：Z 泡泡破掉、抬头睁眼，眨两下又睡回去（2026-11-14 用户）
       const cat = d.querySelector('.zm-pause-cat');
-      let wake = 0;
-      cat.addEventListener('click', () => {
-        if (wake) return;
-        cat.innerHTML = napArt(true);
-        cat.classList.add('is-awake');
-        snd('ask');
-        if (!fx.reduce()) cat.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-8px)', offset: 0.35 }, { transform: 'translateY(0)' }], { duration: 360, easing: 'ease-out' });
-        wake = setTimeout(() => { wake = 0; if (!cat.isConnected) return; cat.classList.remove('is-awake'); cat.innerHTML = napArt(false); }, 1700);
-      });
+      cat.addEventListener('click', () => napWake(cat));
       d.querySelector('[data-go]').addEventListener('click', () => { closeDialog(); renderAll(); schedule(260, step); });
       d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
     });
@@ -4251,13 +4428,18 @@
   // 名字 / 头像 / 机器猫档位 / 离开代打
   function syncPeople(st) {
     if (!game) return;
+    const was = game.bots.slice();
     for (let l = 0; l < online.n; l++) {
       const p = playerAt(srvOf(l));
       game.bots[l] = p ? { nick: p.nick, avatar: p.avatar } : { nick: '?', avatar: null };
       game.tiers[l] = p && p.isAi ? p.aiLevel : null;
       game.tags[l] = p && !p.isAi ? (p.left ? '代打' : !p.online ? '掉线' : (st.game && st.game.auto[srvOf(l)] ? '托管' : '')) : '';
     }
-    if (game.state) for (let l = 0; l < online.n; l++) { const box = seatEl(l); if (box) { const nm = box.querySelector('.zm-name'); if (nm) nm.textContent = nameOf(l); } }
+    if (game.state) for (let l = 0; l < online.n; l++) {
+      const o = was[l], b = game.bots[l];
+      if (els.app.dataset.uivRename && o && b && o.nick !== '?' && (o.nick !== b.nick || o.avatar !== b.avatar)) { renameFx(l, o); continue; }
+      const box = seatEl(l); if (box) { const nm = box.querySelector('.zm-name'); if (nm) nm.textContent = nameOf(l); }
+    }
   }
   // fromLobby：在大厅里看着开局的 → 从发牌开始播；中途进来 / 刷新回来的 → 直接按快照摆好
   function enterGame(st, fromLobby) {
@@ -5042,7 +5224,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink };
   }
   window.ZhamaoTable = { cardHtml, backHtml, rulesHtml };
 })();

@@ -976,8 +976,14 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 头顶的 Z z z：一个接一个从头顶冒出来，边飘边变大、变淡 */
 .zm-nap-z > g { opacity: 0; animation: zm-nap-z 2.7s ease-out infinite; animation-delay: calc(var(--i) * 0.9s); }
 @keyframes zm-nap-z { 0% { opacity: 0; transform: translate(0, 0) scale(0.55); } 18% { opacity: 1; } 70% { opacity: 0.85; } 100% { opacity: 0; transform: translate(-6px, -40px) scale(1.5); } }
-.zm-nap-say { transform-box: fill-box; transform-origin: 20% 100%; animation: zm-pop-say 0.3s cubic-bezier(.3, 1.6, .5, 1); }
-@keyframes zm-pop-say { from { transform: scale(0.3); opacity: 0; } }
+/* 醒来：Z 破掉后整组藏起来；头抬起一点、微微偏一下；睁眼 / 闭眼两张叠着切换 */
+.zm-pause-cat.is-awake .zm-nap-z { visibility: hidden; transition: visibility 0s 0.6s; }
+.zm-nap-head { transform-box: view-box; transform-origin: 40px 74px; transition: transform 0.55s cubic-bezier(.3, .7, .3, 1); }
+.zm-pause-cat.is-up .zm-nap-head { transform: translate(1px, -4px) rotate(-4deg); transition-duration: 0.28s; }
+.zm-nap-open { opacity: 0; }
+.zm-pause-cat.is-open .zm-nap-open { opacity: 1; }
+.zm-pause-cat.is-open .zm-nap-shut { opacity: 0; }
+.zm-nap-z circle, .zm-nap-z path { transform-box: fill-box; transform-origin: center; }
 @media (prefers-reduced-motion: reduce) { .zm-nap-z > g { animation: none; opacity: 0.8; } .zm-nap-z > g:nth-child(2) { transform: translate(-3px, -14px) scale(1.1); } .zm-nap-z > g:nth-child(3) { transform: translate(-6px, -28px) scale(1.4); } }
 .zm-app .zm-pause-actions .zm-btn { border-radius: 999px; }
 .zm-app .zm-dir i { scale: 1.3; }
@@ -1027,7 +1033,41 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rim .links g.is-dull .lhead { fill: #e3ddd2; stroke: #8f877c; filter: none; }
 .zm-rim .links g.is-dull .lend { stroke: #8f877c; }
 .zm-rim .rainbow path { stroke-width: 4.5; filter: drop-shadow(0 0 4px currentColor); }
-/* 预览（仅本机对比，未定）：甩锅「×N」标记换位置 */
-.zm-app[data-uiv-turns="a"] .zm-opps .zm-turns { left: 50%; right: auto; top: auto; bottom: -3px; transform: translateX(-50%); }
-.zm-app[data-uiv-turns="b"] .zm-opps .zm-turns { left: auto; right: -9px; top: 15px; }
-.zm-app[data-uiv-turns="b"] .zm-opps:not(.is-arc) .zm-turns { left: calc(100% + 4px); right: auto; top: 30px; }
+/* 预览（仅本机对比，未定）：甩锅标记三种新画法（JS setPotMark） */
+.zm-pm { position: absolute; pointer-events: none; z-index: 3; }
+.zm-pm i { display: block; width: 100%; height: 100%; }
+.zm-pm i svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.zm-pm i svg ellipse { display: none; }
+.zm-pm b { position: absolute; left: 50%; translate: -50% -50%; font: 700 calc(var(--av) * 0.27)/1 Georgia, serif; white-space: nowrap; }
+/* 扣锅：倒扣在头顶偏左，锅沿压住额头 */
+.zm-pm-hat { width: 76%; aspect-ratio: 1; left: 4%; top: -30%; rotate: -12deg; transform-origin: 50% 70%; }
+.zm-pm-hat i { transform: scaleY(-1); filter: drop-shadow(0 1.5px 0 var(--zm-paper)); }
+.zm-pm-hat b { top: 40%; color: #f3e6c4; }
+/* 红圈分段：贴着头像描边外面一圈 */
+.zm-pm-ring { inset: -4px; z-index: 0; }
+.zm-app[data-uiv-turns] .zm-count { z-index: 4; }
+.zm-pm-ring svg { width: 100%; height: 100%; display: block; overflow: visible; rotate: -90deg; }
+.zm-pm-ring circle { fill: none; stroke: var(--zm-seal); stroke-width: 3.4; stroke-linecap: round; transition: stroke 0.4s ease; }
+.zm-pm-ring circle.is-used { stroke: #d9cfbf; stroke-width: 2.4; }
+.zm-seat.is-turn:has(.zm-pm-ring) .zm-av { box-shadow: 0 0 0 1.5px var(--zm-ink); }
+/* 红珠：沿头像描边左上那段串起来 */
+.zm-pm-beads { inset: 0; z-index: 2; }
+.zm-pm-beads i { position: absolute; left: 50%; top: 50%; width: calc(var(--av) * 0.24); height: calc(var(--av) * 0.24); min-width: 7px; min-height: 7px; margin: calc(var(--av) * -0.12); border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #e8806f, var(--zm-seal) 62%); box-shadow: 0 0 0 1.5px var(--zm-paper);
+  transform: rotate(var(--a)) translateX(calc(var(--av) / 2 + 1px)); }
+/* 预览（仅本机对比，未定）：改名 / 换头像的过渡（JS renameFx） */
+.zm-av-reveal { position: absolute; inset: 0; z-index: 1; }
+.zm-rename-tip { position: absolute; left: 50%; bottom: calc(100% + 4px); translate: -50% 0; z-index: 6; pointer-events: none; white-space: nowrap;
+  background: var(--zm-card); border: 1.5px solid var(--zm-ink); border-radius: 10px; padding: 2px 8px; font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.zm-seat-me .zm-rename-tip { bottom: auto; top: calc(var(--av) + 4px); left: calc(var(--av) / 2); }
+.zm-opps .zm-rename-tip { bottom: auto; top: calc(100% + 3px); }   /* 对手在最上面一排：往下冒，别压顶栏按钮 */
+.zm-rename-tip s { color: var(--zm-ink-mute); text-decoration-thickness: 1px; }
+.zm-rename-tip i { font-style: normal; color: var(--zm-gold); }
+.zm-rename-tip b { color: var(--zm-ink); }
+/* 预览（仅本机对比，未定）：名字按人数分档（JS fitNames） */
+.zm-app[data-uiv-names] .zm-opps.is-arc .zm-name.is-long { text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 9px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 9px), transparent); }
+.zm-app[data-uiv-names] .zm-opps .zm-seat.is-turn { z-index: 3; }
+.zm-app[data-uiv-names] .zm-opps .zm-seat.is-turn .zm-name.is-long { position: relative; overflow: visible; color: transparent; -webkit-mask-image: none; mask-image: none; }
+/* 整名牌子浮在原来那行名字上面，不占位置：座位不会被撑宽、别人不会被挤动 */
+.zm-app[data-uiv-names] .zm-opps .zm-seat.is-turn .zm-name.is-long::after { content: attr(data-full); position: absolute; left: 50%; top: 50%; translate: -50% -50%; white-space: nowrap;
+  color: var(--zm-ink); font-size: 11.5px; line-height: 17px; background: var(--zm-card); border: 1px solid var(--zm-seal); border-radius: 999px; padding: 0 6px; box-shadow: 0 1px 4px rgba(29, 27, 24, 0.12); }
