@@ -999,8 +999,10 @@
     els.drawBtn.classList.remove('is-ready');
     if (s.phase === 'over') { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (game.dealing) { /* 发牌中：两个键都灰着 */ }
+    // 摸到炸毛猫、我那一下还没炸完（game.fastOut 在出局动画最后才置上）：两个键照常灰着——2026-11-14 用户：一摸牌键就被收走，
+    // 牌还没翻开就知道自己完了。game.state 是结算后的，我一摸它就已经写着出局，所以不能按 alive 直接藏
+    else if (!s.alive[0] && !game.fastOut && !game.spectator) { /* 灰着等动画 */ }
     else if (game.online && (!s.alive[0] || game.spectator)) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
-    else if (!s.alive[0] && !game.fastOut) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }   // 炸毛的动画还没播完：先别露「下一局」（不然一摸牌就知道自己出局了）
     else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '下一局'; }
     else if (autopilot) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消托管'; }   // 我出局了：自动接着看他们打完，想走就开下一局
     else if (mode === 'target') { els.drawBtn.hidden = true; }
@@ -4724,6 +4726,7 @@
       return;
     }
     game.state = mirrorFromSnapshot(g);
+    if (!game.state.alive[0]) game.fastOut = true;   // 按快照直接摆（进房 / 重摆）时我已经出局：没有出局动画可等
     online.lastQueued = g.seq;
     buildSeats(); solveSize();
     renderAll();
@@ -4743,6 +4746,7 @@
     if (!els.mask.hidden && !els.dialog.querySelector('.zm-rank')) closeDialog();
     preview = null; mode = null; selected = [];
     game.state = mirrorFromSnapshot(g);
+    if (!game.state.alive[0]) game.fastOut = true;   // 按快照直接摆（进房 / 重摆）时我已经出局：没有出局动画可等
     online.lastQueued = g.seq;
     release();
     renderAll();
