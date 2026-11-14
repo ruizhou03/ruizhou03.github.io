@@ -830,7 +830,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 6–9 人：对手排成一道弧（两头低、中间高），头像缩小；角标挪到头像角上（layoutOpps 设 --av-o / --arc / --dy） */
 .zm-opps.is-arc { --av: var(--av-o, 38px); gap: 0; justify-content: space-around; min-height: calc(var(--av) + 40px + var(--arc, 24px)); padding-left: 4px; padding-right: 4px; }
 .zm-opps.is-arc .zm-seat { min-width: 0; flex: 1 1 0; gap: 2px; transform: translateY(var(--dy, 0px)); }
-.zm-opps.is-arc .zm-name { font-size: 11.5px; max-width: calc(100% - 10px); }   /* 名字长时（6–9 人）两边各留 5px，名字之间的方向箭头不被挤没 */
+.zm-opps.is-arc .zm-name { font-size: 11.5px; max-width: calc(100% - 4px); }   /* 名字长时（6–9 人）两边各留 2px，方向箭头不被挤没；9 人局三个字的名字仍放得下 */
 .zm-opps.is-arc .zm-tier { font-size: 9.5px; padding: 0 4px; line-height: 14px; }
 .zm-opps.is-arc .zm-count { left: auto; right: -9px; top: -7px; min-width: 18px; height: 21px; font-size: 11px; border-radius: 4px; }
 .zm-opps.is-arc .zm-turns { left: auto; right: -11px; bottom: -6px; height: 17px; min-width: 24px; padding: 0 4px; font-size: 10.5px; line-height: 17px; }
@@ -956,7 +956,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app [data-prop="spray"] { background: #e1eef8; }
 .zm-app [data-prop="paw"] { background: #fcf1d2; }
 .zm-app [data-prop="boom"] { background: #ece8e2; }
-.zm-app .gz-sp-props .gz-sp-lb { font-size: 12px; color: var(--zm-ink); }
+.zm-app .gz-sp-props .gz-sp-lb { font-size: 13px; font-weight: 700; color: var(--zm-ink); letter-spacing: 0.04em; }
+.zm-app .gz-sp-props .gz-sp-sub { font-size: 10.5px; color: var(--zm-ink-mute); line-height: 1.1; margin-top: -1px; }
 .zm-app .gz-sp-foot { border-top-color: rgba(29, 27, 24, 0.08); }
 .zm-app .gz-sp-chat { width: 276px; padding: 14px 12px 10px; border-radius: 16px; background: #fbf7ee; outline: 1px solid rgba(29, 27, 24, 0.28); outline-offset: -5px; box-shadow: 0 12px 28px rgba(29, 27, 24, 0.22); }
 .zm-app .gz-sp-chat .gz-sp-title { font-size: 13px; color: var(--zm-ink); font-weight: 700; letter-spacing: 0.04em; padding: 0 4px 9px; }
@@ -1009,3 +1010,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rim .flash path { stroke-width: 4; opacity: 0; filter: drop-shadow(0 0 6px currentColor); }
 .zm-rim .ripple path { filter: drop-shadow(0 0 5px currentColor); }
 .zm-rim .swirl path { stroke-width: 5; filter: drop-shadow(0 0 6px currentColor); }
+.zm-rim .links path, .zm-rim .links circle { transition: stroke 0.35s ease, fill 0.35s ease, opacity 0.35s ease; }
+.zm-rim .links g.is-dull .lline { stroke: #9a9186; }
+.zm-rim .links g.is-dull .lglow { stroke: rgba(120, 112, 100, 0.28); }
+.zm-rim .links g.is-dull .lhead { fill: #e3ddd2; stroke: #8f877c; filter: none; }
+.zm-rim .links g.is-dull .lend { stroke: #8f877c; }

@@ -374,7 +374,7 @@
     }
     return sv;
   }
-  function releaseRim() { if (game && game.rimLk) { game.rimLk.remove(); game.rimLk = null; } }
+  function releaseRim(opts) { if (game && game.rimLk) { game.rimLk.remove(opts); game.rimLk = null; } }
   function rimLink(a, b) {
     const sv = rimRender();
     if (!sv || a === b) return null;
@@ -411,8 +411,10 @@
         endDot.classList.add('is-hit');
         tween(Math.min(620, 260 + len * 0.7), (k) => show(k * k * (3 - 2 * k), 1), () => { g.remove(); });
       } else {
-        // 缩回（抽到 / 给到 / 换完 / 落空 / 被作废）：头从被指的人那头缩回出牌人
-        tween(Math.min(480, 180 + len * 0.6), (k) => show(0, 1 - k * k), () => g.remove());
+        // 缩回（抽到 / 给到 / 换完 / 落空 / 被作废）：头从被指的人那头缩回出牌人；被作废的话整条先变灰、慢慢地蔫回去
+        if (opts && opts.dull) g.classList.add('is-dull');
+        const ms = opts && opts.dull ? Math.min(900, 420 + len * 0.8) : Math.min(480, 180 + len * 0.6);
+        tween(ms, (k) => show(0, 1 - (opts && opts.dull ? k * k * (3 - 2 * k) : k * k)), () => g.remove());
       }
     };
     if (fx.reduce()) { show(0, 1); grown = true; endDot.classList.add('is-on'); }
@@ -421,6 +423,8 @@
       if (pending) { const o = pending; pending = null; setTimeout(() => { if (!dead) finish(o); }, (o && o.hold) || 220); }
     });
     return {
+      // 有人作废（单数张）就变灰、再被作废回来就亮回金色（2026-11-13 用户：被作废时灯带用灰色收回来，情绪更到位）
+      setDull(on) { if (!dead) g.classList.toggle('is-dull', !!on); },
       // 还在长就先长完、停一下再收（2026-11-13 用户：别人甩锅给我，线还没长到我这儿动画就结束了）
       remove(opts) {
         if (dead) return;
@@ -819,6 +823,7 @@
     // 不盖「作废 / 生效」章：被作废的那几张变灰，又被顶回来就复原
     const cancelled = count % 2 === 1;
     els.stage.classList.toggle('is-cancelled', cancelled);
+    if (game && game.rimLk && game.rimLk.setDull) game.rimLk.setDull(cancelled);
   }
   /* 导火索：绳子从右往左烧短，火星跟着走、一路冒小火花；最后一秒半变红、闪 */
   let fuseSparkTimer = null;
@@ -1267,7 +1272,7 @@
     stopFuse();
     if (game.arrow && (e.cancelled || (e.type !== R.FAVOR))) { game.arrow.remove(); game.arrow = null; }
     if (!e.cancelled && (e.type === R.ATTACK || e.type === R.TATTACK)) { if (game.rimLk) { game.rimLk.remove({ mode: 'push', hold: 450 }); game.rimLk = null; } }   // 甩锅：长完、停一下，再推到他面前
-    else if (e.cancelled || (e.type !== R.FAVOR && e.type !== R.SWAP && e.type !== 'pair' && e.type !== 'triple')) releaseRim();
+    else if (e.cancelled || (e.type !== R.FAVOR && e.type !== R.SWAP && e.type !== 'pair' && e.type !== 'triple')) releaseRim(e.cancelled ? { dull: true } : null);
     const inner = els.stage.querySelector('.zm-stage-inner');
     const lab = inner && inner.querySelector('.zm-stage-label');
     if (lab && game.lastNopes) lab.textContent = e.cancelled ? '作废了' : '照样生效';
@@ -2533,7 +2538,7 @@
       }
     }
     if (mode !== 'target') {
-      if (social && socialOk() && seat > 0 && els.mask.hidden) { social.openProps(seat); popTail(avEl(seat)); }
+      if (social && socialOk() && seat > 0 && els.mask.hidden) { social.openProps(seat); propLabels(); popTail(avEl(seat)); }
       return;
     }
     if (!targetCb) return;
@@ -3408,6 +3413,28 @@
   const lobbyPlayer = (l) => (online && online.st ? online.st.players.find((p) => p.seat === lobbySrv(l) && !p.left) || null : null);
   /* 互动框 / 说一句框像对话气泡一样长一个小尖角，指着点的那个头像 / 说一句键（2026-11-13 用户：框和点的东西之间要有衔接）。
    * 框已经按头像摆好了（gongzhu-social placePop）：看它在头像哪一边，就在那条边上、对着头像中心长尖角 */
+  /* 六样互动道具：大字写「是什么意思」，小字写道具名（2026-11-13 用户：有的表情不明所以，点了会怎样也不清楚）；
+   * 长按 / 鼠标停在上面有一句「点了会怎样」 */
+  const PROP_TIP = {
+    fish: ['投喂', '小鱼干', '扔给 TA 一条小鱼干，TA 会开心地吃掉'],
+    yarn: ['逗你玩', '毛线球', '毛线球在 TA 头上弹三下再滚走'],
+    catnip: ['迷晕你', '猫薄荷', '撒一把猫薄荷，TA 晕乎乎地晃脑袋'],
+    spray: ['泼冷水', '喷水壶', '对着 TA 噗噗喷水，TA 冻得直哆嗦'],
+    paw: ['夸夸', '猫爪拍拍', '两只肉垫给 TA 拍手叫好'],
+    boom: ['吓一跳', '炸毛猫', '一只炸毛猫砸到 TA 头上「嘭」地炸开'],
+  };
+  function propLabels() {
+    const p = els.app.querySelector('.gz-social-pop:not(.gz-sp-chat)');
+    if (!p) return;
+    p.querySelectorAll('[data-prop]').forEach((b) => {
+      const t = PROP_TIP[b.dataset.prop], lb = b.querySelector('.gz-sp-lb');
+      if (!t || !lb || b.querySelector('.gz-sp-sub')) return;
+      lb.textContent = t[0];
+      lb.insertAdjacentHTML('afterend', '<small class="gz-sp-sub">' + t[1] + '</small>');
+      b.title = t[2];
+      b.setAttribute('aria-label', t[0] + '（' + t[1] + '）：' + t[2]);
+    });
+  }
   function popTail(anchor) {
     const p = els.app.querySelector('.gz-social-pop');
     if (!p || !anchor) return;
