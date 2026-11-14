@@ -69,7 +69,7 @@ test('抽底: draws the bottom card and ends the turn; a kitten at the bottom ex
 test('setup for 2..5 players', () => {
   for (let n = 2; n <= 5; n++) {
     for (let seed = 1; seed <= 20; seed++) {
-      const s = R.createGame(n, seed);
+      const s = R.createGame(n, seed, { deckSize: 'more' });
       assert.equal(total(s), R.DECK_SIZE);
       assert.equal(R.kittensInDeck(s), n - 1);
       for (const h of s.hands) {
@@ -86,14 +86,14 @@ test('setup for 2..5 players', () => {
     }
   }
   assert.equal(R.normalizeRules({ extraDefuse: 'two' }).extraDefuse, 'all');   // 开关拿掉了：一律全放回
-  const all = R.createGame(2, 3, { extraDefuse: 'all' });
+  const all = R.createGame(2, 3, { extraDefuse: 'all', deckSize: 'more' });
   assert.equal(all.deck.filter((id) => R.KIND_OF[id] === R.DEFUSE).length, 4);
 });
 
 test('setup for 6..9 players (two decks)', () => {
   for (let n = 6; n <= 9; n++) {
     for (let seed = 1; seed <= 20; seed++) {
-      const s = R.createGame(n, seed);
+      const s = R.createGame(n, seed, { deckSize: 'more' });
       assert.equal(total(s), R.DECK_SIZE);
       assert.equal(R.kittensInDeck(s), n - 1);
       assert.equal(s.hands.length, n);
@@ -441,9 +441,9 @@ test('alter with a single card left = just a peek', () => {
 
 test('swap: optional, scales with players, keeps defuses', () => {
   for (const n of [2, 3, 4, 5]) {
-    const off = R.createGame(n, 11);
+    const off = R.createGame(n, 11, { deckSize: 'more' });
     assert.equal(off.deck.concat(...off.hands).filter((id) => R.KIND_OF[id] === 'swap').length, 0);
-    const on = R.createGame(n, 11, { swap: true });
+    const on = R.createGame(n, 11, { swap: true, deckSize: 'more' });
     assert.equal(on.deck.concat(...on.hands).filter((id) => R.KIND_OF[id] === 'swap').length, Math.min(3, n - 1));
     assert.equal(total(on), R.DECK_SIZE);
   }
@@ -462,6 +462,27 @@ test('swap: optional, scales with players, keeps defuses', () => {
   assert.equal(R.view(s, 0).handKnown[1].length, 1);   // 我知道我的奶牛猫现在在他手里
   assert.equal(total(s), R.DECK_SIZE);
   void theirs;
+});
+
+test('deckSize: 标准 / 快局 shrink the pile by player count, cats cut most, booms stay n−1, nothing lost', () => {
+  assert.equal(R.normalizeRules({}).deckSize, 'std', '默认标准');
+  const count = (s, k) => s.deck.concat(...s.hands).filter((id) => R.KIND_OF[id] === k).length;
+  for (let n = 2; n <= 9; n++) {
+    const more = R.createGame(n, 5, { deckSize: 'more' }), std = R.createGame(n, 5, { deckSize: 'std' }), quick = R.createGame(n, 5, { deckSize: 'quick' });
+    for (const s of [std, quick]) {
+      assert.equal(total(s), R.DECK_SIZE);
+      assert.equal(count(s, 'boom'), n - 1);
+      assert.ok(s.hands.every((h) => h.length === 5 && R.countKind(h, 'defuse') >= 1));
+      for (const c of R.CATS) assert.ok(count(s, c) >= 2, n + ' 人 ' + c + ' 至少 2 张');
+      assert.ok(count(s, 'nope') >= 2 && count(s, 'skip') >= 2 && count(s, 'attack') >= 2);
+    }
+    assert.ok(std.deck.length < more.deck.length && quick.deck.length < std.deck.length, n + ' 人：快局 < 标准 < 多');
+    // 猫砍得比作废狠
+    const ratio = (k) => count(std, k) / count(more, k);
+    assert.ok(ratio('orange') <= ratio('nope') + 1e-9);
+  }
+  assert.equal(R.createGame(4, 7, { deckSize: 'std' }).deck.length, 24);
+  assert.equal(R.createGame(8, 7, { deckSize: 'std' }).deck.length, 49);
 });
 
 test('swap with swapDefuse: the whole hand moves, defuses included', () => {

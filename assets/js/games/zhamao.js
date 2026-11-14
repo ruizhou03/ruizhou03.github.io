@@ -260,7 +260,7 @@
     if (!els.dir) { els.dir = document.createElement('div'); els.dir.setAttribute('aria-hidden', 'true'); els.table.appendChild(els.dir); }
     els.dir.className = 'zm-dir';
     const n = game && game.state ? game.state.n : 0;
-    if (n < 3 || !els.opps.children.length) { els.dir.innerHTML = ''; return; }
+    if (n < 3 || !els.opps.children.length) { els.dir.innerHTML = ''; placeStrip(1); return; }
     if (els.dir.children.length !== n - 2) els.dir.innerHTML = Array.from({ length: n - 2 }, () => '<i>' + DIR3_SVG + '</i>').join('');
     els.dir.style.setProperty('--cyc', Math.max(2.6, (n - 2) * 0.18 + 1.8).toFixed(2) + 's');
     placeDir();
@@ -295,6 +295,41 @@
         'transform:translate(-50%,-50%) rotate(' + (base + (d === -1 ? Math.PI : 0)).toFixed(4) + 'rad);--j:' + j;
       el.dataset.base = base;
     });
+    placeStrip(d);
+  }
+  /* 灯带（2026-11-13 用户挑定乙）：一条细细的金带顺着对手那一排、从每家「高手」签下面穿过去，一道亮光顺着出牌方向在带子上流；
+   * 轮到的那家下面一颗朱红光点（一明一暗）。对手少于两家（2 人局）没有这条带子 */
+  function placeStrip(d) {
+    let sv = els.table.querySelector(':scope > .zm-strip');   // 放在牌桌上、箭头层外面（放进箭头层会打乱箭头的序号）
+    const n = game && game.state ? game.state.n : 0;
+    if (n < 3) { if (sv) sv.remove(); return; }
+    const tb = els.table.getBoundingClientRect();
+    const pts = [];
+    for (let seat = 1; seat < n; seat++) { const se = seatEl(seat); if (!se) return; const r = se.getBoundingClientRect(); pts.push([r.left + r.width / 2 - tb.left, r.bottom + 5 - tb.top]); }
+    if (d === -1) pts.reverse();
+    // 两头各往外伸半个座位，带子从屏幕边上流进来、流出去
+    const ext = (p, q) => [p[0] + (p[0] - q[0]) * 0.5, p[1] + (p[1] - q[1]) * 0.5];
+    const all = [ext(pts[0], pts[1])].concat(pts, [ext(pts[pts.length - 1], pts[pts.length - 2])]);
+    let path = 'M' + all[0][0].toFixed(1) + ' ' + all[0][1].toFixed(1);
+    for (let i = 1; i < all.length - 1; i++) { const m = [(all[i][0] + all[i + 1][0]) / 2, (all[i][1] + all[i + 1][1]) / 2]; path += 'Q' + all[i][0].toFixed(1) + ' ' + all[i][1].toFixed(1) + ' ' + m[0].toFixed(1) + ' ' + m[1].toFixed(1); }
+    path += 'L' + all[all.length - 1][0].toFixed(1) + ' ' + all[all.length - 1][1].toFixed(1);
+    if (!sv) { sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); sv.setAttribute('class', 'zm-strip'); sv.innerHTML = '<path class="base"/><path class="glow"/><path class="flow"/><circle class="hot" r="3.5"/>'; els.table.insertBefore(sv, els.dir); }
+    sv.setAttribute('width', tb.width); sv.setAttribute('height', tb.height);
+    sv.querySelectorAll('path').forEach((p) => p.setAttribute('d', path));
+    const L = sv.querySelector('.base').getTotalLength();
+    // 亮光：一截 46px 的亮段顺着带子从头流到尾（虚线偏移做动画；不用 CSS calc，微信 iOS 内核不认 dasharray 里的 calc）
+    const cyc = parseFloat(els.dir.style.getPropertyValue('--cyc')) * 1000 || 2600;
+    sv.querySelectorAll('.glow, .flow').forEach((p) => {
+      if (p._anim && Math.abs(p._L - L) < 2 && p._cyc === cyc) return;
+      if (p._anim) p._anim.cancel();
+      p._L = L; p._cyc = cyc;
+      p.style.strokeDasharray = '46 ' + Math.ceil(L + 46);
+      p.style.strokeDashoffset = '46';
+      p._anim = fx.reduce() ? null : p.animate([{ strokeDashoffset: 46 }, { strokeDashoffset: -L }], { duration: cyc, iterations: Infinity, easing: 'linear' });
+    });
+    const t = game.state.phase === 'over' ? -1 : D().turn;
+    const hot = sv.querySelector('.hot');
+    if (t > 0) { const se = seatEl(t).getBoundingClientRect(); hot.setAttribute('cx', (se.left + se.width / 2 - tb.left).toFixed(1)); hot.setAttribute('cy', (se.bottom + 5 - tb.top).toFixed(1)); hot.style.display = ''; } else hot.style.display = 'none';
   }
   /* 指向当前出牌的人的那个箭头标红：顺时针（d = 1）是从 t-1 指向 t 的那个（第 t-2 个），反过来是从 t+1 指向 t 的那个（第 t-1 个） */
   function dirHot() {
@@ -304,6 +339,7 @@
     const t = st.phase === 'over' ? -1 : D().turn, d = dirNow();
     const k = t < 0 ? -1 : d === -1 ? t - 1 : t - 2;
     Array.from(list).forEach((el, i) => el.classList.toggle('is-hot', i === k));
+    placeStrip(d);
   }
   /* 打出转向：箭头从出牌人那边起，一个接一个转半圈掉头 */
   async function animReverse(e, t) {
@@ -938,6 +974,12 @@
       const to = target.getBoundingClientRect();
       const mine = e.seat === 0 && src[id];
       const rot = (i - (e.cards.length - 1) / 2) * 5;
+      // 联机里我出的牌已经先飞上桌摆好了（乐观出牌 / 先摆上桌再选人）：服务器回话后别再从原地「飞」一遍——
+      // 以前会带着 90px 的弧线原地蹦一下，看着像动画重播了一次（2026-11-13 用户：牌落定后好像重复了一下、卡一下）
+      if (mine && Math.hypot(src[id].left + src[id].width / 2 - (to.left + to.width / 2), src[id].top + src[id].height / 2 - (to.top + to.height / 2)) < 6) {
+        target.classList.remove('is-incoming');
+        return Promise.resolve();
+      }
       return fx.fly({
         html: cardHtml(id), back: backHtml(), flip: mine ? null : 'up', flipAt: 0.15,
         from: mine ? src[id] : start, to: { x: to.left + to.width / 2, y: to.top + to.height / 2 }, w: su,
@@ -2956,6 +2998,7 @@
 
   /* 设置（2026-11-12 用户定稿「卡片 + 开关」，参考拱猪）：上面一张卡放人数 / 机器猫 / 限时，下面「玩法」卡每条一个牌面小图标 + 开关。
    * 和拱猪一样点了立刻生效、存下来，不再有「取消 / 保存」；规则从下一局起生效，局中改了规则「重开一局」变红 */
+  const DECK_OPTS = [['quick', '快局'], ['std', '标准'], ['more', '多']];
   function showSettings(fromCover) {
     const segs = (key, opts, val) => '<div class="zs-seg" data-seg="' + key + '" role="group">' + opts.map(([v, t]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(val)) + '">' + t + '</button>').join('') + '</div>';
     const sw = (key, on) => '<button type="button" class="zs-switch" data-sw="' + key + '" role="switch" aria-checked="' + !!on + '"><i></i></button>';
@@ -2968,6 +3011,8 @@
       '<div class="zs-line"><span>机器猫</span>' + tier + '</div>' +
       '<div class="zs-line"><span>出牌限时</span>' + secs + '</div></section>' +
       '<div class="zs-cap">玩法</div><section class="zs-card">' +
+      // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 官方密度（默认）/ 快局更短 / 多 = 以前的整副
+      '<div class="zs-line"><span>牌量</span>' + segs('deckSize', DECK_OPTS, R.normalizeRules(settings.rules).deckSize) + '</div>' +
       row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
       // 交换连逗猫棒一起换（2026-11-13 用户：以前玩的是整副手牌全换）；没开交换牌时这行藏着
       row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', settings.rules.swapDefuse)).replace('<div class="zs-row"', '<div class="zs-row" data-dep="swap"' + (settings.rules.swap ? '' : ' hidden')) +
@@ -4063,7 +4108,9 @@
    *   手里没作废 → 不露「取消」，0.5–1 秒后自动替我表态（不立刻：不然「一出牌窗口就关」等于告诉大家我没作废）；
    *   手里有作废 → 照旧「作废 / 取消」，导火索一烧完就自动算取消（不再干等服务器多留的那 1.2 秒）。 */
   let reactAuto = 0, fuseLater = 0;
-  // 一收到「有人出牌、轮到我表态、我手里没作废」就开始计时（和桌上的动画同时走，不等动画播完），0.3–0.7 秒后表态
+  // 一收到「有人出牌、轮到我表态、我手里没作废」就开始计时（和桌上的动画同时走，不等动画播完），0.15–0.4 秒后表态
+  // （2026-11-13 用户：牌落定后还要卡一下才出结果——大家这一下表态 + 来回网络常常比出牌动画还长；缩短后多半在牌落定前就表完了，
+  //   仍然随机，窗口关得早晚看不出谁有没有作废）
   function earlyPass(g) {
     if (!online || !g || !g.myCall || (game && game.spectator) || g.st.phase !== 'react' || online.passFor === g.seq) return;
     if (g.st.hand.some((id) => R.KIND_OF[id] === R.NOPE) && (!settings.nopeMine || aboutSeat(g.st.pending, online.base, g.st.alive))) return;
@@ -4073,7 +4120,7 @@
       const gg = G();
       if (!online || !gg || gg.seq !== at || !gg.myCall || gg.st.phase !== 'react') return;
       onlineMove({ type: 'pass' });
-    }, 300 + Math.random() * 400);
+    }, 150 + Math.random() * 250);
   }
   function onlineReact(g, mine, remain) {
     const s = game.state;
@@ -4420,6 +4467,8 @@
       (st.spectators.length ? '<p class="zm-muted zm-lobby-watch">' + st.spectators.length + ' 个人在观战' + (st.spectator ? '（包括你）' : '') + '</p>' : '') +
       '<section class="zs-card zs-b zm-lobby-rules"><div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
       TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
+      '<div class="zs-line"><span>牌量</span><div class="zs-seg" role="group">' +
+      DECK_OPTS.map(([v, t]) => '<button type="button" data-deck="' + v + '" aria-pressed="' + (v === rules.deckSize) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
       row('swap', '有交换牌', '', sw('swap', rules.swap)) +
       (rules.swap ? row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', rules.swapDefuse)) : '') +
       '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">规则由房主定</p>') +
@@ -4446,6 +4495,7 @@
     if (b.dataset.l === 'leave') { leaveOnline(true); return; }
     if (b.dataset.l === 'start') { b.disabled = true; onlineAct('start'); return; }
     if (b.dataset.turn != null) { onlineAct('config', { config: { turnSec: +b.dataset.turn } }); return; }
+    if (b.dataset.deck != null) { onlineAct('config', { config: { rules: { deckSize: b.dataset.deck } } }); return; }
     if (b.dataset.rule) {
       const k = b.dataset.rule, on = b.getAttribute('aria-checked') !== 'true';
       b.setAttribute('aria-checked', String(on));

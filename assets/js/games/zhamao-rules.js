@@ -96,10 +96,42 @@
     extraDefuse: ['all'],   // 2026-11-13 用户：开关拿掉，固定「剩下的逗猫棒全放回」（官方规则）；老存档 / 老房间读进来也按这个
     swap: [false, true],
     swapDefuse: [false, true],   // 2026-11-13 用户：交换要不要连逗猫棒一起换（以前玩的是整副手牌全换）；默认不换，开房的人 / 单机自己选
+    deckSize: ['std', 'quick', 'more'],   // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 官方密度 / 快局更短 / 多 = 以前的整副（两副）
   });
   // 2026-11-13 起「多的逗猫棒全放回」默认开（官方规则：每人先发 1 根逗猫棒，剩下的全洗回牌堆）
-  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false });
+  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std' });
   const swapsInPlay = (n) => Math.min(usesSecondDeck(n) ? 6 : 3, n - 1);
+  /* 牌量（2026-11-13 用户）：以前 5 人及以下整副 63 张普通牌、6 人起两副 126 张，牌堆是官方的 2–7 倍，炸毛猫只占 4–8%。
+   * 「标准」「快局」按人数定这一局用多少张普通牌（不算炸毛猫 / 逗猫棒 / 交换）：63 × 人数系数 × 档位系数，人数系数 = 人数 / 5，夹在 0.8–1.8；
+   * 减的时候分三档：猫牌（含万能猫）砍得最多，转向 / 抽底 / 改命 / 洗牌 / 窥探次之，作废 / 跳过 / 甩锅 / 索要 / 自由甩锅基本保住；
+   * 牌堆里多放的逗猫棒也跟着收（「多」照旧全放回）。炸毛猫永远 人数 − 1 */
+  const DECK_FACTOR = { std: 0.7, quick: 0.5 };
+  const KEEP = { nope: 1, skip: 1, attack: 1, favor: 1, tattack: 1, shuffle: 0.75, future: 0.75, alter: 0.75, bottom: 0.75, reverse: 0.75 };   // 其余（猫 / 万能猫）0.55
+  const MIN_KEEP = { nope: 2, skip: 2, attack: 2, favor: 1, tattack: 1, wild: 1 };   // 猫每种至少 2 张（凑得出对子），其余至少 1 张
+  function deckQuota(n, size, avail) {
+    const f = DECK_FACTOR[size];
+    if (!f) return null;
+    const target = Math.round(63 * Math.max(0.8, Math.min(1.8, n / 5)) * f);
+    const kinds = Object.keys(avail).filter((k) => avail[k] > 0);
+    const w = (k) => avail[k] * (KEEP[k] || 0.55);
+    const minOf = (k) => Math.min(avail[k], MIN_KEEP[k] || (isCat(k) ? 2 : 1));
+    // 按权重分，四舍五入用最大余数法；不少于下限、不多于手上有的
+    let sc = target / kinds.reduce((t, k) => t + w(k), 0);
+    let q = {};
+    for (let it = 0; it < 30; it++) {
+      const raw = kinds.map((k) => [k, Math.max(minOf(k), Math.min(avail[k], w(k) * sc))]);
+      const base = raw.map(([k, v]) => [k, Math.floor(v), v - Math.floor(v)]);
+      let left = target - base.reduce((t, x) => t + x[1], 0);
+      base.sort((a, b) => b[2] - a[2]);
+      q = {};
+      for (const [k, v] of base) { q[k] = v; }
+      for (const x of base) { if (left <= 0) break; if (q[x[0]] < avail[x[0]]) { q[x[0]]++; left--; } }
+      const sum = Object.values(q).reduce((t, v) => t + v, 0);
+      if (Math.abs(sum - target) <= 1) break;
+      sc *= target / Math.max(1, sum);
+    }
+    return q;
+  }
   function normalizeRules(r) {
     const out = {};
     for (const k of Object.keys(DEFAULT_RULES)) {
@@ -160,7 +192,18 @@
       const k = KIND_OF[id];
       if (k === BOOM) booms.push(id); else if (k === DEFUSE) defuses.push(id); else if (k === SWAP) swaps.push(id); else rest.push(id);
     }
-    const swapIn = rules.swap ? swaps.slice(0, swapsInPlay(n)) : [];
+    // 牌量：标准 / 快局按配额每种留前几张，其余收进盒子
+    const avail = {};
+    for (const id of rest) avail[KIND_OF[id]] = (avail[KIND_OF[id]] || 0) + 1;
+    const quota = deckQuota(n, rules.deckSize, avail);
+    if (quota) {
+      const seen = {};
+      const keep = [];
+      for (const id of rest) { const k = KIND_OF[id]; seen[k] = (seen[k] || 0) + 1; if (seen[k] <= quota[k]) keep.push(id); else unused.push(id); }
+      rest.length = 0; rest.push(...keep);
+    }
+    const nSwaps = quota ? Math.min(swapsInPlay(n), Math.max(1, Math.round((n - 1) / 2))) : swapsInPlay(n);
+    const swapIn = rules.swap ? swaps.slice(0, nSwaps) : [];
     rest.push(...swapIn);
     shuffleIn(state, rest);
     for (let s = 0; s < n; s++) {
@@ -168,7 +211,8 @@
       state.alive.push(true);
     }
     shuffleIn(state, booms);
-    const extra = rules.extraDefuse === 'all' ? defuses.length : Math.min(2, defuses.length);
+    let extra = rules.extraDefuse === 'all' ? defuses.length : Math.min(2, defuses.length);
+    if (quota) extra = Math.min(extra, Math.max(1, Math.round((n - 1) * 0.6)));   // 牌堆变小了，多放的逗猫棒也跟着收
     state.deck = shuffleIn(state, rest.concat(booms.slice(0, n - 1), defuses.slice(0, extra)));
     state.removed = booms.slice(n - 1).concat(defuses.slice(extra), swaps.slice(swapIn.length), unused); // 这局不用的，收进盒子
 
@@ -605,7 +649,7 @@
 
   return {
     BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
-    MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay,
+    MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay, deckQuota,
     kindOf, isCat, catLike, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,
     classify, validTargets, checkPlay, play, awaitingReaction, canNope, nope, pass, reactionDone, isCancelled, closeReaction,

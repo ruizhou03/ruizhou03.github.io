@@ -255,13 +255,21 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
  * 指向当前出牌人的那个箭头朱红、底子亮一些 */
 .zm-dir i { opacity: 0.95; }
 .zm-dir i.is-hot { color: var(--zm-seal); }
-.zm-dir path { opacity: 0.28; animation: zm-dir-run var(--cyc, 2.6s) linear infinite; animation-delay: calc(var(--j, 0) * 0.18s + var(--p, 0) * 0.1s); }
-.zm-dir path:nth-child(2) { --p: 1; }
-.zm-dir path:nth-child(3) { --p: 2; }
+.zm-dir i path { opacity: 0.28; animation: zm-dir-run var(--cyc, 2.6s) linear infinite; animation-delay: calc(var(--j, 0) * 0.18s + var(--p, 0) * 0.1s); }
+.zm-dir i path:nth-child(2) { --p: 1; }
+.zm-dir i path:nth-child(3) { --p: 2; }
 @keyframes zm-dir-run { 0%, 22%, 100% { opacity: 0.28; } 7% { opacity: 1; } }
 .zm-dir i.is-hot path { animation-name: zm-dir-run-hot; }
 @keyframes zm-dir-run-hot { 0%, 22%, 100% { opacity: 0.6; } 7% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .zm-dir path { animation: none !important; opacity: 0.85; } }
+/* 灯带（用户挑定乙）：对手一排下面一条细金带，亮光顺着出牌方向流；箭头照旧在名字之间；当前出牌人下面一颗朱红光点 */
+.zm-strip { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
+.zm-strip path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.zm-strip .base { stroke: rgba(184, 145, 74, 0.28); stroke-width: 2; }
+.zm-strip .glow { stroke: rgba(240, 200, 110, 0.45); stroke-width: 6; filter: blur(2px); }
+.zm-strip .flow { stroke: #e2b85c; stroke-width: 2.4; }
+.zm-strip .hot { fill: var(--zm-seal); filter: drop-shadow(0 0 4px rgba(200, 70, 58, 0.85)); animation: zm-strip-hot 1.2s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+@keyframes zm-strip-hot { to { scale: 1.35; } }
+@media (prefers-reduced-motion: reduce) { .zm-dir i path { animation: none !important; opacity: 0.85; } .zm-strip .hot { animation: none !important; } }
 .zm-card.is-back { background: none; border: 0; }
 .zm-card.is-back svg { width: 100%; height: 100%; display: block; }
 
