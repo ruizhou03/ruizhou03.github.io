@@ -2761,24 +2761,25 @@
     renderSeat(e.seat);
     await wait(ms(520));
     if (t !== token) return;
-    // 手牌散落进弃牌堆（翻开给大家看）
+    // 手牌连同那只炸毛猫一起鱼贯落进弃牌堆（翻开给大家看），炸毛猫排在最后、落在最上面
+    // （2026-11-14 用户：手里没牌的人炸了要看得到炸毛猫回去；但别分成两波——炸毛猫跟在手牌后面一起出）
     const cards = e.cards || [];
     const srcRects = e.seat === 0 ? cards.map((id) => handRectOf(id)) : null;
     if (e.seat === 0) { ov.hand = []; renderHand({ flip: false }); }
     const to = discardRect(), pu = PU();
-    await Promise.all(cards.map((id, i) => fx.fly({
-      html: cardHtml(id), back: backHtml(), flip: e.seat === 0 ? null : 'up', flipAt: 0.2,
-      from: srcRects ? srcRects[i] : a, to, w: pu, s0: srcRects ? srcRects[i].width / pu : 0.35, s1: 1, r0: (Math.random() - 0.5) * 60, r1: pileRot(id),
-      dur: ms(520), delay: i * ms(70), lift: 60 + Math.random() * 50,
-    }).then(() => { if (t === token && ov) { ov.discard.push(id); renderPiles(); } })));
-    if (t !== token) return;
-    // 炸毛猫最后也从他身上吐回弃牌堆、落在最上面（2026-11-14 用户：手里没牌的人炸了，看不到有牌回去）
     const kit = game.state.discard[game.state.discard.length - 1];
-    if (kit != null && R.KIND_OF[kit] === R.BOOM) {
-      await fx.fly({ html: cardHtml(kit), from: a, to, w: pu, s0: 0.45, s1: 1, r0: -25, r1: pileRot(kit), dur: ms(560), lift: 80 });
-      if (t !== token) return;
-    }
-    if (ov && kit != null) { ov.discard.push(kit); renderPiles(); }
+    const withKit = kit != null && R.KIND_OF[kit] === R.BOOM && cards.indexOf(kit) < 0;
+    const list = withKit ? cards.concat([kit]) : cards;
+    await Promise.all(list.map((id, i) => {
+      const fromHand = srcRects && i < cards.length;
+      return fx.fly({
+        html: cardHtml(id), back: backHtml(), flip: fromHand || id === kit ? null : 'up', flipAt: 0.2,
+        from: fromHand ? srcRects[i] : a, to, w: pu, s0: fromHand ? srcRects[i].width / pu : 0.35, s1: 1, r0: (Math.random() - 0.5) * 60, r1: pileRot(id),
+        dur: ms(520), delay: i * ms(70), lift: 60 + Math.random() * 50,
+      }).then(() => { if (t === token && ov) { ov.discard.push(id); renderPiles(); } });
+    }));
+    if (t !== token) return;
+    if (!withKit && ov && kit != null && ov.discard[ov.discard.length - 1] !== kit) { ov.discard.push(kit); renderPiles(); }
     await wait(ms(300));
     if (e.seat === 0) { game.fastOut = true; renderBand(); }
   }
