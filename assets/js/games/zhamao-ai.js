@@ -84,10 +84,10 @@
     return best;
   }
   // 索要找谁：角色猫「黑猫」第一次被索要会溜走——没用过的黑猫先不找
-  function favorTarget(v) {
+  function favorTarget(v, pair) {
     let best = -1, score = -1;
     for (const t of targets(v)) {
-      if (v.roles && v.roles[t] === 'shadow') continue;   // 黑猫：索要 / 两张偷牌对他整局扑空
+      if (pair && v.roles && v.roles[t] === 'shadow') continue;   // 黑猫：两张偷牌对他整局扑空（索要照常）
       const sc = v.counts[t] + (v.handKnown[t].some((id) => K[id] === R.DEFUSE) ? 100 : 0);
       if (sc > score) { score = sc; best = t; }
     }
@@ -252,13 +252,14 @@
         if (by[k].length >= 3 && (desperate || R.catLike(k) || VALUE[k] <= 15)) return playMove(by[k].slice(0, 3), t, R.DEFUSE);
       }
       for (const k of R.CATS) { const c = catSet(by, k, 3); if (c) return playMove(c, t, R.DEFUSE); }   // 拿万能猫凑三张
+      if (v.roles && v.roles[v.me] === 'calico') { const cs = v.hand.filter((id) => R.catLike(K[id])); if (cs.length >= 3) return playMove(cs.slice(0, 3), t, R.DEFUSE); }   // 角色猫「三花」：任意三只猫点名要逗猫棒
       if (desperate || v.discard.some((id) => K[id] === R.DEFUSE)) {
         const five = fiveCats(v);
         if (five && v.discard.some((id) => K[id] === R.DEFUSE)) return playMove(five);
       }
       let pr = catPair(by);
       if (!pr && v.roles && v.roles[v.me] === 'calico') { const cs = v.hand.filter((id) => R.catLike(K[id])); if (cs.length >= 2) pr = cs.slice(0, 2); }   // 角色猫「三花」：任意两只猫
-      if (pr) { const pt = v.roles && v.roles[t] === 'shadow' ? favorTarget(v) : t; if (pt >= 0) return playMove(pr, pt); }
+      if (pr) { const pt = v.roles && v.roles[t] === 'shadow' ? favorTarget(v, true) : t; if (pt >= 0) return playMove(pr, pt); }
       if (has(v, R.FAVOR)) return playMove([one(v, R.FAVOR)], t);
       if (desperate) for (const k of Object.keys(by)) if (k !== R.DEFUSE && by[k].length >= 2) return playMove(by[k].slice(0, 2), t);
       return null;
@@ -349,7 +350,7 @@
       if (sw) return sw;
       // 闲着的索要 / 成对的猫：拿去偷一张
       if (def && has(v, R.FAVOR) && ts.length) { const ft = favorTarget(v); if (ft >= 0) return playMove([one(v, R.FAVOR)], ft); }
-      for (const k of R.CATS) if ((by[k] || []).length >= 2 && ts.length) { const pt = favorTarget(v); if (pt >= 0) return playMove(by[k].slice(0, 2), pt); }
+      for (const k of R.CATS) if ((by[k] || []).length >= 2 && ts.length) { const pt = favorTarget(v, true); if (pt >= 0) return playMove(by[k].slice(0, 2), pt); }
       return DRAW;
     }
 

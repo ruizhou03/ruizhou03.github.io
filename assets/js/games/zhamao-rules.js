@@ -108,25 +108,25 @@
   // 2026-11-15 用户：不叠锅 / 暗塞 / 千里眼 / 慷慨太弱、感觉不到 → 换成 九命 / 掀顶 / 烫手 / 双猫急救
   // 2026-11-15 用户定的名字和说法（掀顶→透视、明塞→火眼、静音→静默、双猫急救→急救）；id 不变（老存档照常）
   const FLUX_RULES = Object.freeze([
-    { id: 'nine', name: '九命', desc: '摸到炸毛猫时若无逗猫棒，大喊「九命」并存活，炸毛猫随机放回牌堆。最多生效一次' },
+    { id: 'nine', name: '九命', desc: '摸到炸毛猫时若无逗猫棒，大喊「九命」并存活，炸毛猫随机放回牌堆。每人最多生效一次' },
     { id: 'peektop', name: '透视', desc: '牌堆第一张牌对所有人可见' },
     { id: 'exact', name: '火眼', desc: '炸毛猫塞回的位置对所有人可见' },
     { id: 'bottom', name: '摸底', desc: '摸牌改从牌堆底部摸' },
-    { id: 'hot', name: '烫手', desc: '每个回合都要摸两次' },
+    { id: 'hot', name: '烫手', desc: '每个普通回合都要摸两次（被甩锅的次数不变）' },
     { id: 'mute', name: '静默', desc: '不能打「作废」' },
-    { id: 'catsave', name: '急救', desc: '摸到炸毛猫时若无逗猫棒，可打出两张相同的牌代替，炸毛猫随机放回牌堆。最多生效一次' },
+    { id: 'catsave', name: '急救', desc: '摸到炸毛猫时若无逗猫棒，可打出两张相同的牌代替，炸毛猫随机放回牌堆。每人最多生效一次' },
   ]);
   /* 2026-11-15 用户：删掉无关痛痒的——逆行（和「转向」牌重复）拿掉；静音（玩家对战里挺有用）、双猫急救（改成任意一对一样的牌都行，功能牌也算）留着。
    * 逆行的代码留着：老存档里正生效的照常结算 */
   const FLUX_IDS = FLUX_RULES.map((r) => r.id);
   /* 角色猫（2026-11-15 用户同意提案：技能全部自动触发、不加按钮）。开局每人随机一只，大家都看得到 */
   const ROLES = Object.freeze([
-    { id: 'timid', name: '胆小猫', desc: '第一次轮到他时，自动偷看牌堆顶 1 张', once: true },
-    { id: 'fat', name: '胖橘', desc: '开局多发 1 张手牌', once: false },
-    { id: 'shadow', name: '黑猫', desc: '别人对他出的「索要」「两张偷牌」都会扑空', once: false },   // 2026-11-15 用户：角色要整局有效
+    { id: 'timid', name: '胆小猫', desc: '每次被甩锅，先偷看牌堆顶 3 张', once: false },
+    { id: 'fat', name: '胖橘', desc: '每次被索要、被偷，就从牌堆底补一张：不是炸毛猫归他；是炸毛猫，算拿他牌的那个人摸到的', once: false },
+    { id: 'shadow', name: '黑猫', desc: '别人对他出的「两张偷牌」都会扑空', once: false },   // 2026-11-15 用户：角色要整局有效（索要也躲时胜率 1.24 太强，只躲偷牌）
     { id: 'cow', name: '奶牛猫', desc: '每次被甩锅都少摸 1 张（再甩给下家时，少的这张也跟着算）', once: false },
-    { id: 'calico', name: '三花', desc: '任意两只不同的猫牌也能凑成一对来偷牌', once: false },
-    { id: 'tabby', name: '狸花', desc: '开局多一张「作废」；他打出的作废都不能再被作废', once: false },   // 2026-11-15 平衡：原来只有第一张作废锁死，太弱（胜率 0.83 → 整局锁死 0.93 → 再加一张作废）
+    { id: 'calico', name: '三花', desc: '任意两只猫牌算一对、任意三只算三张，都能拿来偷牌', once: false },
+    { id: 'tabby', name: '狸花', desc: '每次「作废」成功，顺手叼走对方一张牌', once: false },   // 2026-11-15 用户：换个有意思的（原来是作废不能被作废 + 多一张作废）
   ]);
   const ROLE_IDS = ROLES.map((r) => r.id);
   const roleOf = (s, seat) => (s.roles ? s.roles[seat] : null);
@@ -221,7 +221,7 @@
       deck: [], discard: [], removed: [], hands: [], alive: [], outOrder: [],
       turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
       winner: -1, seq: 0, memo: newMemo(n), ins: null, peek: null,
-      flux: null, fluxDeck: [], rescue: null, winnerTeam: -1, roles: null, roleUsed: null, cowCut: -1,   // 百变模式：现在生效的那条百变规则（null = 还没有）、还没抽到的规则（洗好的，从末尾抽）
+      flux: null, fluxDeck: [], rescue: null, winnerTeam: -1, roles: null, roleUsed: null, cowCut: -1, hotGiven: -1,   // 百变模式：现在生效的那条百变规则（null = 还没有）、还没抽到的规则（洗好的，从末尾抽）
       dir: 1,   // 出牌方向：1 = 座位号往上走（桌上画成逆时针），-1 = 打过单数张转向后反过来
     };
     const booms = [], defuses = [], rest = [], swaps = [], unused = [], fluxes = [];
@@ -261,9 +261,8 @@
       state.roleUsed = Array.from({ length: n }, () => false);
     }
     for (let s = 0; s < n; s++) {
-      const extra = state.roles && state.roles[s] === 'fat' ? 1 : 0;
-      let bonus = [];
-      if (state.roles && state.roles[s] === 'tabby') { const i = rest.findIndex((id) => KIND_OF[id] === NOPE); if (i >= 0) bonus = rest.splice(i, 1); }   // 狸花：开局多一张作废
+      const extra = 0;
+      const bonus = [];
       state.hands.push(sortHand(rest.splice(0, 4 + extra).concat(defuses.shift(), handFlux.length ? [handFlux[s]] : [], bonus)));
       state.alive.push(true);
     }
@@ -291,7 +290,7 @@
       winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
       flux: s.flux || null, fluxDeck: (s.fluxDeck || []).slice(), nineUsed: s.nineUsed ? s.nineUsed.slice() : null, saveUsed: s.saveUsed ? s.saveUsed.slice() : null,
       rescue: s.rescue ? Object.assign({}, s.rescue) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
-      roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null, cowCut: s.cowCut != null ? s.cowCut : -1,
+      roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null, cowCut: s.cowCut != null ? s.cowCut : -1, hotGiven: s.hotGiven != null ? s.hotGiven : -1,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
   }
@@ -361,7 +360,7 @@
     if (!cards.every((id) => hand.indexOf(id) >= 0)) return null;
     let c = classify(cards);
     // 角色猫「三花」：任意两只猫（含万能猫）也算一对
-    if (!c && roleOf(s, seat) === 'calico' && cards.length === 2 && new Set(cards).size === 2 && cards.every((id) => catLike(KIND_OF[id]))) c = { type: 'pair', needsTarget: true, needsName: false };
+    if (!c && roleOf(s, seat) === 'calico' && (cards.length === 2 || cards.length === 3) && new Set(cards).size === cards.length && cards.every((id) => catLike(KIND_OF[id]))) c = cards.length === 2 ? { type: 'pair', needsTarget: true, needsName: false } : { type: 'triple', needsTarget: true, needsName: true };
     if (!c) return null;
     if (c.needsTarget && validTargets(s, seat, c.type).indexOf(opts.target) < 0) return null;
     if (c.needsName && (KINDS.indexOf(opts.named) < 0 || opts.named === BOOM)) return null;
@@ -389,7 +388,7 @@
   /* 角色猫「胆小猫」：第一次轮到他时自动偷看牌堆顶 1 张（ev 为空 = 开局，那时不发事件，只记在他的记忆里） */
   function turnStarts(s, ev) {
     const seat = s.turn;
-    if (!roleReady(s, seat, 'timid') || !s.deck.length || !s.alive[seat]) return;
+    if (true) return;   // 2026-11-15 胆小猫改成「被甩锅时偷看 2 张」，开局 / 第一次轮到不再偷看
     s.roleUsed[seat] = true;
     const top = s.deck[0], m = s.memo[seat].deck;
     if (m.indexOf(top) < 0) m.push(top);
@@ -403,6 +402,7 @@
       s.cowCut = -1;   // 奶牛猫这一串甩锅结束了
       s.turn = nextAlive(s, s.turn);
       s.turnsLeft = s.flux === 'hot' ? 2 : 1;   // 百变「烫手」：每人的回合都摸两张
+      s.hotGiven = s.flux === 'hot' ? s.turn : -1;
       s.phase = 'act';
       ev.push({ t: 'turn', seat: s.turn, turnsLeft: s.turnsLeft });
       turnStarts(s, ev);
@@ -451,7 +451,6 @@
     s.pending.passed = [];
     s.seq += 1;
     const ev = [{ t: 'nope', seat, card: id, count: s.pending.nopes.length }];
-    if (roleOf(s, seat) === 'tabby') { s.pending.locked = true; ev.push({ t: 'role', seat, role: 'tabby' }); }   // 角色猫「狸花」：他的作废都不能再被作废
     return ev;
   }
   function pass(s, seat) {
@@ -470,10 +469,21 @@
     s.pending = null;
     s.phase = 'act';
     ev.push({ t: 'resolve', seat: p.by, type: p.type, cancelled, target: p.target, named: p.named });
+    // 角色猫「狸花」：作废成功（这张作废最后算数了）就顺手叼走被他作废的那个人一张随机的牌
+    if (s.roles) p.nopes.forEach((nx, i) => {
+      if (roleOf(s, nx.seat) !== 'tabby') return;
+      const won = i % 2 === 0 ? cancelled : !cancelled;   // 第 1、3… 张作废是挡原牌的；第 2、4… 张是挡别人的作废
+      const victim = i === 0 ? p.by : p.nopes[i - 1].seat;
+      if (!won || victim === nx.seat || !s.alive[victim] || !s.hands[victim].length) return;
+      const pick = s.hands[victim][(rand(s) * s.hands[victim].length) | 0];
+      moveCard(s, victim, nx.seat, pick, [nx.seat, victim]);
+      ev.push({ t: 'role', seat: nx.seat, role: 'tabby', from: victim });
+      ev.push({ t: 'steal', from: victim, to: nx.seat, card: pick, idx: 0, priv: [nx.seat, victim], role: 'tabby' });
+    });
     if (cancelled) return ev;
     const me = p.by;
     // 角色猫「黑猫」：第一次被索要 / 偷 / 点名——溜走了，什么都不发生
-    if ((p.type === FAVOR || p.type === 'pair') && p.target >= 0 && roleOf(s, p.target) === 'shadow') {   // 黑猫：整局都扑空
+    if (p.type === 'pair' && p.target >= 0 && roleOf(s, p.target) === 'shadow') {   // 黑猫：两张偷牌整局都扑空
       ev.push({ t: 'role', seat: p.target, role: 'shadow', by: me });
       return ev;
     }
@@ -497,9 +507,10 @@
         const next = p.type === TATTACK && s.alive[p.target] && p.target !== me ? p.target : nextAlive(s, me);
         s.turn = next;
         // 被甩锅的人再甩：剩下的回合 +2 一起甩走。奶牛猫把 2 减成 1 以后再甩，下家照样是 1 + 2 = 3（2026-11-15 用户：减的那一张跟着传下去）
-        const chained = left > 1 || (left === 1 && s.cowCut === me);
+        const chained = (left > 1 && s.hotGiven !== me) || (left === 1 && s.cowCut === me);   // 烫手给的两次不算被甩锅（2026-11-15 用户：烫手只管普通回合）
         s.turnsLeft = s.rules.stackAttack && chained ? left + 2 : 2;
-        s.cowCut = -1;
+        s.cowCut = -1; s.hotGiven = -1;   // 被甩锅的回合数不算烫手给的
+        if (roleOf(s, next) === 'timid' && s.deck.length) { const top = s.deck.slice(0, 3), m = s.memo[next].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); ev.push({ t: 'role', seat: next, role: 'timid', cards: top, priv: [next] }); }   // 角色猫「胆小猫」：被甩锅先偷看 2 张
         if (roleOf(s, next) === 'cow' && s.turnsLeft > 1) { s.turnsLeft -= 1; s.cowCut = next; ev.push({ t: 'role', seat: next, role: 'cow' }); }   // 角色猫「奶牛猫」：每次被甩锅少摸 1 张
         ev.push({ t: 'turn', seat: next, turnsLeft: s.turnsLeft, attacked: true });
         if (next !== me) turnStarts(s, ev);
@@ -561,7 +572,13 @@
         const prev = s.flux || null, rule = s.fluxDeck.pop();
         s.flux = rule;
         if ((prev === 'reverse') !== (rule === 'reverse')) s.dir = s.dir === -1 ? 1 : -1;
+        // 九命 / 急救：「每人最多一次」按每次转到这条算（2026-11-15 用户）——转到就重置
+        if (rule === 'nine') s.nineUsed = Array.from({ length: s.n }, () => false);
+        if (rule === 'catsave') s.saveUsed = Array.from({ length: s.n }, () => false);
         ev.push({ t: 'flux', seat: me, rule, prev, dir: s.dir });
+        // 烫手立刻生效、双向都算（用户 2026-11-15）：转到烫手，这个回合马上要摸两次；烫手时把它换走，这回合多出来的那一次也没了
+        if (rule === 'hot' && prev !== 'hot' && s.turnsLeft === 1 && s.cowCut !== me) { s.turnsLeft = 2; s.hotGiven = me; ev.push({ t: 'turn', seat: me, turnsLeft: 2 }); }
+        else if (prev === 'hot' && rule !== 'hot' && s.hotGiven === me && s.turnsLeft > 1) { s.turnsLeft -= 1; s.hotGiven = -1; ev.push({ t: 'turn', seat: me, turnsLeft: s.turnsLeft }); }
         break;
       }
       case 'pair': {
@@ -579,6 +596,7 @@
         if (id != null) {
           moveCard(s, p.target, me, id, 'all');
           ev.push({ t: 'take', from: p.target, to: me, card: id, named: p.named });
+          fatRefill(s, p.target, me, ev);
         } else {
           ev.push({ t: 'miss', from: p.target, to: me, named: p.named });
         }
@@ -595,13 +613,29 @@
     return ev;
   }
 
+  /* 角色猫「胖橘」（2026-11-15 用户定）：被索要 / 被偷 / 被点名拿走一张，就从牌堆底补一张——
+   * 不是炸毛猫：归他（只有他知道是哪张）；是炸毛猫：算拿他牌的那个人摸到的（有逗猫棒就拆、塞回，然后这一回合结束；没有就出局） */
+  function fatRefill(s, seat, taker, ev) {
+    if (roleOf(s, seat) !== 'fat' || !s.alive[seat] || !s.deck.length || s.phase !== 'act') return;
+    const id = s.deck[s.deck.length - 1];
+    ev.push({ t: 'role', seat, role: 'fat', boom: KIND_OF[id] === BOOM, taker });
+    if (KIND_OF[id] === BOOM) { ev.push(...takeCard(s, taker, true)); return; }
+    s.deck.pop();
+    if (s.ins) s.ins.bot += 1;
+    for (const m of s.memo) { const j = m.deck.indexOf(id); if (j >= 0) m.deck.splice(j, 1); }
+    s.hands[seat].push(id); s.hands[seat] = sortHand(s.hands[seat]);
+    s.seq += 1;
+    ev.push({ t: 'draw', seat, card: id, priv: [seat], bottom: true, refill: true });
+  }
   function give(s, seat, id) {
     if (s.phase !== 'give' || s.give.from !== seat || s.hands[seat].indexOf(id) < 0) throw new Error('illegal give');
     const to = s.give.to;
     moveCard(s, seat, to, id, [seat, to]);
     s.give = null;
     s.phase = 'act';
-    return [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }];
+    const ev = [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }];
+    fatRefill(s, seat, to, ev);
+    return ev;
   }
 
   function pickDiscard(s, seat, id) {
@@ -626,7 +660,9 @@
     moveCard(s, from, seat, id, [seat, from]);
     s.steal = null;
     s.phase = 'act';
-    return [{ t: 'steal', from, to: seat, card: id, idx, priv: [seat, from] }];
+    const ev = [{ t: 'steal', from, to: seat, card: id, idx, priv: [seat, from] }];
+    fatRefill(s, from, seat, ev);
+    return ev;
   }
 
   /* 「重排」：按 order（就是 s.alter.cards 换个顺序）放回牌堆顶；别人之前知道的这几张的位置作废 */
@@ -743,6 +779,7 @@
     }
     s.turn = nextAlive(s, seat);
     s.turnsLeft = s.flux === 'hot' ? 2 : 1;
+    s.hotGiven = s.flux === 'hot' ? s.turn : -1;
     s.phase = 'act';
     ev.push({ t: 'turn', seat: s.turn, turnsLeft: s.turnsLeft });
     turnStarts(s, ev);
