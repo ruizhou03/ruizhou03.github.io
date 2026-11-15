@@ -1028,13 +1028,72 @@
       dl.querySelector('[data-ok]').addEventListener('click', closeDialog);
     });
   }
-  // 换规则：旧那张翻过去、新的翻过来，冒彩色小星星；换上 / 换走「逆行」时出牌方向的小箭头跟着掉头
+  /* 换规则（2026-11-15 用户挑乙 · 转盘）：桌子中间弹出八格转盘（每格一条规则的图标 + 名字），转四圈慢慢停下、每过一格「嗒」一声，
+   * 指针那格闪三下，转盘缩进牌堆下面的规则位；规则牌翻成新的那条、冒彩色小星星。换上 / 换走「逆行」时出牌方向的小箭头跟着掉头 */
+  let wheelSvgCache = '';
+  function wheelSvg() {
+    if (wheelSvgCache) return wheelSvgCache;
+    const rs = R.FLUX_RULES, n = rs.length;
+    let s = '<svg viewBox="-115 -115 230 230" aria-hidden="true"><circle r="113" fill="#5b3a8a"/><circle r="109" fill="#e9c86a"/>';
+    rs.forEach((r, k) => {
+      const a0 = (k / n) * Math.PI * 2 - Math.PI / 2 - Math.PI / n, a1 = a0 + (Math.PI * 2) / n;
+      const p = (a) => (Math.cos(a) * 104).toFixed(1) + ' ' + (Math.sin(a) * 104).toFixed(1);
+      s += '<path class="seg" data-k="' + k + '" d="M0 0L' + p(a0) + 'A104 104 0 0 1 ' + p(a1) + 'Z" fill="' + (k % 2 ? '#fffdf8' : ART.TONE[FLUX_IC[r.id]].bg) + '" stroke="#e9c86a" stroke-width="1.2"/>';
+      const am = (a0 + a1) / 2, x = Math.cos(am) * 70, y = Math.sin(am) * 70;
+      s += '<g transform="translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + ((am * 180) / Math.PI + 90).toFixed(1) + ')"><g transform="translate(-11 -16) scale(.92)">' + ART.icon(FLUX_IC[r.id]).replace('<svg', '<svg width="24" height="24"') + '</g>' +
+        '<text y="20" text-anchor="middle" font-size="10" fill="#1d1b18">' + r.name + '</text></g>';
+    });
+    s += '<circle r="16" fill="#5b3a8a"/><circle r="11" fill="#e9c86a"/></svg>';
+    return (wheelSvgCache = s);
+  }
+  async function fluxWheel(idx, t) {
+    const box = els.center.getBoundingClientRect();
+    const S = Math.round(Math.max(150, Math.min(240, box.width * 0.72, box.height * 0.62)));
+    const cx = box.left + box.width / 2, cy = box.top + box.height / 2 - S * 0.08;
+    const wrap = document.createElement('div');
+    wrap.className = 'zm-wheel';
+    wrap.style.cssText = 'left:' + (cx - S / 2) + 'px;top:' + (cy - S / 2) + 'px;width:' + S + 'px;height:' + S + 'px';
+    wrap.innerHTML = '<div class="zm-wheel-disc">' + wheelSvg() + '</div><i class="zm-wheel-ptr"><svg viewBox="0 0 22 26" aria-hidden="true"><path d="M11 25 2 4Q11 -1 20 4Z" fill="#b5432f" stroke="#fffdf8" stroke-width="2" stroke-linejoin="round"/></svg></i>';
+    els.fly.appendChild(wrap);
+    const disc = wrap.firstChild, n = R.FLUX_RULES.length, seg = 360 / n;
+    snd('flip');
+    await wrap.animate([{ transform: 'scale(.2)', opacity: 0 }, { transform: 'scale(1.05)', opacity: 1, offset: 0.7 }, { transform: 'scale(1)' }], { duration: ms(380), easing: 'cubic-bezier(.3,.8,.4,1.2)' }).finished.catch(() => {});
+    if (t !== token) { wrap.remove(); return; }
+    const end = 360 * 4 - idx * seg, dur = ms(2600);
+    if (rimFxOn()) rimSwirl('#a77bb5', 1, dur, dirNow());
+    await new Promise((res) => {
+      const t0 = performance.now();
+      let last = -1;
+      const tickF = (now) => {
+        if (t !== token) { res(); return; }
+        const k = Math.min(1, (now - t0) / dur), a = end * (1 - Math.pow(1 - k, 4));   // 先快后慢停下
+        disc.style.transform = 'rotate(' + a + 'deg)';
+        const sgi = Math.floor((a + seg / 2) / seg);
+        if (sgi !== last) { if (last >= 0) snd('tick'); last = sgi; }
+        if (k < 1) requestAnimationFrame(tickF); else res();
+      };
+      requestAnimationFrame(tickF);
+    });
+    if (t !== token) { wrap.remove(); return; }
+    const win = disc.querySelector('.seg[data-k="' + idx + '"]');
+    if (win) win.classList.add('is-win');
+    snd('ding');
+    await wait(ms(800));
+    if (t !== token) { wrap.remove(); return; }
+    // 缩进牌堆下面的规则位（规则牌还没摆出来时按它会在的位置）
+    const el = document.getElementById('zmFlux'), er = el && el.getBoundingClientRect();
+    const tx = er ? er.left + er.width / 2 : cx, ty = er ? er.top + er.height / 2 : box.top + box.height / 2 + PU() * 1.11 + 50;
+    await wrap.animate([{ transform: 'none', opacity: 1 }, { transform: 'translate(' + (tx - cx) + 'px,' + (ty - (cy)) + 'px) scale(.12)', opacity: 0 }], { duration: ms(380), easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
+    wrap.remove();
+  }
   async function animFlux(e, t) {
     const prev = ov ? ov.flux : null;
     if (ov) ov.flux = e.rule;
+    const idx = Math.max(0, R.FLUX_RULES.findIndex((r) => r.id === e.rule));
+    if (!fx.reduce()) await fluxWheel(idx, t);
+    if (t !== token) return;
     let el = document.getElementById('zmFlux');
-    snd('flip');
-    if (el && !fx.reduce()) await el.animate([{ transform: 'translateX(-50%) rotateY(0deg)' }, { transform: 'translateX(-50%) rotateY(90deg)' }], { duration: ms(220), easing: 'ease-in' }).finished.catch(() => {});
+    if (el && !fx.reduce()) await el.animate([{ transform: 'translateX(-50%) rotateY(0deg)' }, { transform: 'translateX(-50%) rotateY(90deg)' }], { duration: ms(180), easing: 'ease-in' }).finished.catch(() => {});
     if (t !== token) return;
     renderFlux({ flux: e.rule });   // 第一次：这时才把牌摆出来
     el = document.getElementById('zmFlux');
@@ -1044,8 +1103,7 @@
       const r = el.getBoundingClientRect();
       fx.burst(r.left + r.width / 2, r.top + r.height / 2, { n: 12, shapes: ['star'], colors: ['#8e4a9c', '#e2b85c', '#e0893e', '#3f7f86'], radius: 70, size: [6, 14], life: 800 });
     }
-    snd('ding');
-    await wait(ms(800));
+    await wait(ms(500));
     if (t !== token) return;
     if ((prev === 'reverse') !== (e.rule === 'reverse')) await animReverse({ seat: e.seat, dir: e.dir }, t);
   }

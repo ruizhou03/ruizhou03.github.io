@@ -1253,3 +1253,11 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-card[data-k="flux"] .zm-nm { background: #5b3a8a; color: #f6dc8c; gap: 3cqw; }
 .zm-card[data-k="flux"] .zm-nm::before, .zm-card[data-k="flux"] .zm-nm::after { content: '✦'; font-size: 9cqw; color: #f6dc8c; }
 @media (prefers-reduced-motion: reduce) { .zm-card[data-k="flux"] .zm-art::after { animation: none; transform: translateX(-12%); } }
+/* 百变转盘（2026-11-15 用户挑乙）：桌子中间弹出，转完缩进规则位 */
+.zm-wheel { position: absolute; pointer-events: none; z-index: 5; filter: drop-shadow(0 12px 22px rgba(29, 27, 24, 0.25)); }
+.zm-wheel-disc, .zm-wheel-disc svg { width: 100%; height: 100%; display: block; }
+.zm-wheel-disc text { font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif; }
+.zm-wheel-ptr { position: absolute; left: 50%; top: -10px; width: 22px; height: 26px; margin-left: -11px; }
+.zm-wheel-ptr svg { width: 100%; height: 100%; display: block; }
+.zm-wheel .seg.is-win { stroke: #b5432f; stroke-width: 4; animation: zm-wheel-win 0.27s ease-in-out 3; }
+@keyframes zm-wheel-win { 50% { opacity: 0.45; } }
