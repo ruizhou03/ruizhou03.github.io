@@ -268,6 +268,11 @@
     function actBottom(v) {
       const b = bottomInfo(v), def = saveOk(v), by = pairsOf(v), ts = targets(v);
       const flux = one(v, R.FLUX);
+      // 「摸底」时抽底变「抽顶」（从最上面摸）：底下是炸毛猫、或者顶上明显比底下安全，就用它
+      if (has(v, R.BOTTOM) && v.deckSize > 1) {
+        const top = topInfo(v), botP = b.known ? (b.boom ? 1 : 0) : (() => { const bl = kittenBelief(v, v.deckSize); return bl.length ? bl[bl.length - 1] : 0; })();
+        if (!(top.known && top.boom) && (top.known ? 0 : top.p) + 0.08 < botP) return playMove([one(v, R.BOTTOM)]);
+      }
       if (b.known && b.boom) {
         const am = attackMove(v); if (am) return am;
         if (skipIdP(v) != null) return playMove([skipIdP(v)]);

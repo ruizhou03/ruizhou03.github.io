@@ -228,12 +228,34 @@
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]); }
 
   /* ───── 牌 ───── */
+  // 百变「摸底」生效时，抽底牌换成「抽顶」的牌面（规则上它也改成从最上面摸）
+  const topdrawNow = () => !!(game && game.state && (ov && ov.flux !== undefined ? ov.flux : game.state.flux) === 'bottom');
   function cardHtml(kindOrId, cls, style) {
     const k = typeof kindOrId === 'number' ? R.KIND_OF[kindOrId] : kindOrId;
-    const t = ART.TONE[k];
+    const vk = k === R.BOTTOM && topdrawNow() ? 'topdraw' : k;   // 看起来是哪种（data-k 仍是真牌种，出牌判断不受影响）
+    const t = ART.TONE[vk];
     return '<div class="zm-card' + (cls ? ' ' + cls : '') + '" data-k="' + k + '"' + (typeof kindOrId === 'number' ? ' data-id="' + kindOrId + '"' : '') +
       ' style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + (style ? ';' + style : '') + '">' +
-      '<div class="zm-art">' + ART.face(k) + '</div><i class="zm-ic">' + ART.icon(k) + '</i><b class="zm-nm">' + R.NAMES[k] + '</b></div>';
+      '<div class="zm-art">' + ART.face(vk) + '</div><i class="zm-ic">' + ART.icon(vk) + '</i><b class="zm-nm">' + (vk === 'topdraw' ? '抽顶' : R.NAMES[k]) + '</b></div>';
+  }
+  // 换上 / 换走「摸底」：手里每张抽底翻一下、换成抽顶（或换回来）
+  async function flipBottomCards(t) {
+    const cards = Array.from(els.hand.querySelectorAll('.zm-card[data-k="' + R.BOTTOM + '"][data-id]'));
+    if (!cards.length) return;
+    snd('flip');
+    await Promise.all(cards.map((c, i) => {
+      if (fx.reduce()) { c.outerHTML = cardHtml(+c.dataset.id, c.className.replace(/\bzm-card\b/, '').trim(), c.getAttribute('style').split(';').filter((x) => !/^--(bg|band|ink)/.test(x.trim())).join(';')); return null; }
+      const half = { duration: ms(180), delay: i * ms(60), easing: 'ease-in', fill: 'forwards' };
+      return c.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], half).finished.then(() => {
+        if (t !== token) return;
+        const tmp = document.createElement('div'); tmp.innerHTML = cardHtml(+c.dataset.id);
+        const fresh = tmp.firstChild;
+        c.style.setProperty('--bg', fresh.style.getPropertyValue('--bg')); c.style.setProperty('--band', fresh.style.getPropertyValue('--band')); c.style.setProperty('--ink', fresh.style.getPropertyValue('--ink'));
+        c.innerHTML = fresh.innerHTML;
+        c.getAnimations().forEach((a) => a.cancel());
+        return c.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { duration: ms(200), easing: 'ease-out' }).finished;
+      }).catch(() => {});
+    }));
   }
   const backHtml = (cls, style) => '<div class="zm-card is-back' + (cls ? ' ' + cls : '') + '"' + (style ? ' style="' + style + '"' : '') + '>' + ART.BACK + '</div>';
   const pileRot = (id) => ((id * 37) % 13) - 6;
@@ -1133,6 +1155,7 @@
     if (el && !fx.reduce()) await el.animate([{ transform: 'translateX(-50%) rotateY(0deg)' }, { transform: 'translateX(-50%) rotateY(90deg)' }], { duration: ms(180), easing: 'ease-in' }).finished.catch(() => {});
     if (t !== token) return;
     renderFlux({ flux: e.rule });   // 第一次：这时才把牌摆出来
+    if ((e.rule === 'bottom') !== (prev === 'bottom')) flipBottomCards(t);   // 摸底：手里的抽底翻成抽顶（换走时翻回来）
     if (ov && (e.rule === 'peektop' || prev === 'peektop')) { const st = game.state; ov.topFace = e.rule === 'peektop' && st.deck.length ? st.deck[0] : null; renderPiles(); }   // 掀顶生效：顶上那张翻起来；换走：盖回去
     el = document.getElementById('zmFlux');
     if (!el) return;
@@ -2671,41 +2694,46 @@
     paw.style.width = paw.style.height = S + 'px';
     els.fly.appendChild(paw);
     // 爪子从左下方伸到牌堆最下沿的左下角
+    // 2026-11-15 用户：抽底动画有点卡、僵——以前三段（伸爪 / 拖出 / 换一张再捏起来悬一下）一段等一段，中途还换了一次元素、角度从 -11° 跳回 -5°。
+    // 现在：爪子还没伸到位就开始拖（两段叠着），拖出来直接停在后面飞向手里那一段的起始角度（-5°），不再另捏一张悬着；只有危险时多抖一下
     const ch = pu * 1.4;
     const py = fr.top + ch * 0.86 - S / 2, px0 = fr.left - pu * 1.3, px1 = fr.left - S * 0.3;
     snd('swipe');
-    await fx.animate(paw, [
+    const reach = ms(240);
+    fx.animate(paw, [
       { transform: fx.T(px0, py + pu * 0.5, 0.6, 50), opacity: 0 },
-      { transform: fx.T(px1, py, 1, 62), opacity: 1, easing: 'cubic-bezier(.2,.8,.3,1)' },
-    ], { duration: ms(300) }).finished.catch(() => {});
+      { transform: fx.T(px1, py, 1, 62), opacity: 1 },
+    ], { duration: reach }, 'cubic-bezier(.2,.8,.3,1)');
+    await wait(reach * 0.7);
     if (t !== token) { paw.remove(); el.remove(); return null; }
-    // 3. 勾住往外拖：牌从整摞底下滑出来，牌堆被带得一抬一晃
+    // 3. 勾住往外拖：牌从整摞底下顺滑地滑出来，牌堆被带得轻轻一晃
     ov.deckSize -= 1;
-    const ox = -pu * 0.78, oy = pu * 0.62, dur = ms(480);   // 往左下方滑出来，上半截一直压在牌堆底下
+    const ox = -pu * 0.72, oy = pu * 0.5, dur = ms(400);
     const tense = danger() >= 0.2;
     snd('peel');
     if (tense) snd('heartbeat', 80);
-    stack.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '2px -4px', rotate: '1.2deg', offset: 0.35 }, { translate: '0 -1px', rotate: '-0.6deg', offset: 0.7 }, { translate: '0 0', rotate: '0deg' }], { duration: dur, easing: 'ease-out' });
-    fx.animate(paw, [{ transform: fx.T(px1, py, 1, 62) }, { transform: fx.T(px1 + ox, py + oy, 1, 56) }], { duration: dur }, 'cubic-bezier(.45,0,.3,1)');
-    await el.animate([{ translate: '0 0', rotate: '0deg' }, { translate: (ox * 0.25) + 'px ' + (oy * 0.2) + 'px', rotate: '-3deg', offset: 0.3 }, { translate: ox + 'px ' + oy + 'px', rotate: '-11deg' }], { duration: dur, easing: 'cubic-bezier(.45,0,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+    stack.animate([{ translate: '0 0' }, { translate: '1px -2px', offset: 0.4 }, { translate: '0 0' }], { duration: dur, easing: 'ease-out' });
+    fx.animate(paw, [{ transform: fx.T(px1, py, 1, 62) }, { transform: fx.T(px1 + ox, py + oy, 1, 58) }], { duration: dur }, 'cubic-bezier(.3,.6,.25,1)');
+    await el.animate([{ translate: '0 0', rotate: '0deg' }, { translate: ox + 'px ' + oy + 'px', rotate: '-5deg' }], { duration: dur, easing: 'cubic-bezier(.3,.6,.25,1)', fill: 'forwards' }).finished.catch(() => {});
     if (t !== token) { paw.remove(); el.remove(); return null; }
     const r = el.getBoundingClientRect();
+    paw.animate([{ opacity: 1 }, { opacity: 0, transform: fx.T(px1 + ox - pu * 0.4, py + oy + pu * 0.3, 0.6, 50) }], { duration: ms(240), fill: 'forwards' }).finished.then(() => paw.remove(), () => paw.remove());
+    if (!tense) { el.remove(); renderPiles(); return r; }
+    // 危险时：停在那儿抖两下再飞（和从顶上摸一样的心跳感）
     el.remove();
     renderPiles();
-    paw.animate([{ opacity: 1 }, { opacity: 0, transform: fx.T(px1 + ox - pu * 0.4, py + oy + pu * 0.3, 0.6, 50) }], { duration: ms(260), fill: 'forwards' }).finished.then(() => paw.remove(), () => paw.remove());
-    // 4. 换成桌面上的一张，捏起来悬一下（和平常摸牌一样，危险时多抖两下）
     const node = document.createElement('div');
     node.className = 'zm-flyer';
     node.style.width = pu + 'px'; node.style.height = pu * 1.4 + 'px';
     node.innerHTML = backHtml();
     els.fly.appendChild(node);
-    const x = r.left + (r.width - pu) / 2, y = r.top + (r.height - pu * 1.4) / 2;   // 旋转过的牌：用外框中心对齐
+    const x = r.left + (r.width - pu) / 2, y = r.top + (r.height - pu * 1.4) / 2;
     await fx.animate(node, [
-      { transform: fx.T(x, y, 1, -11), boxShadow: '0 2px 3px rgba(29,27,24,.2)' },
-      { transform: fx.T(x - 4, y - 16, 1.05, -5), boxShadow: '0 12px 20px rgba(29,27,24,.26)', offset: 0.5 },
-      ...(tense ? [{ transform: fx.T(x - 2.5, y - 17, 1.05, -3), offset: 0.7 }, { transform: fx.T(x - 5.5, y - 16, 1.05, -6), offset: 0.85 }] : []),
-      { transform: fx.T(x - 4, y - 16, 1.05, -5), boxShadow: '0 12px 20px rgba(29,27,24,.26)' },
-    ], { duration: ms(tense ? 520 : 240) }).finished.catch(() => {});
+      { transform: fx.T(x, y, 1, -5) },
+      { transform: fx.T(x + 1.5, y - 2, 1.03, -3), offset: 0.33 },
+      { transform: fx.T(x - 1.5, y - 1, 1.03, -7), offset: 0.66 },
+      { transform: fx.T(x, y, 1, -5) },
+    ], { duration: ms(380) }).finished.catch(() => {});
     if (t !== token) { node.remove(); return null; }
     const rr = node.getBoundingClientRect();
     node.remove();
@@ -3920,7 +3948,7 @@
       li('favor', '指定一人，他自己挑一张给你') +
       li('shuffle', '把牌堆洗乱') +
       li('future', '看牌堆最上面三张') +
-      li('bottom', '这一回合不从顶上摸，改从牌堆最底下摸一张') +
+      li('bottom', '这一回合不从顶上摸，改从牌堆最底下摸一张' + (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? '（百变「摸底」生效时它变成「抽顶」：改从最上面摸）' : '')) +
       li('alter', '看牌堆最上面三张，并按你想要的顺序放回去（别人看不到）') +
       '</ul><h3>组合（任何同名牌都算）</h3><ul>' +
       '<li><b>两张一样</b>　指定一人，随机偷他一张</li>' +

@@ -34,7 +34,8 @@
     siamese: { bg: '#fbf4e6', band: '#6b4a3a', ink: '#fffaf0' },
     wild:    { bg: '#fbf1dc', band: '#b08a3e', ink: '#fffaf0' },   // 万能猫：暖金名字条（实际名字条是五彩渐变，见 zhamao.css）
     reverse: { bg: '#dcebf2', band: '#1f7a9c', ink: '#f4fbff' },   // 转向：天青
-    flux:    { bg: '#f1e4f3', band: '#8e4a9c', ink: '#fdf7ff' },   // 百变：梅紫（2026-11-15 工作稿，牌面待用户挑）
+    flux:    { bg: '#f1e4f3', band: '#8e4a9c', ink: '#fdf7ff' },
+    topdraw: { bg: '#f1e4ee', band: '#8a4f7a', ink: '#fff7fb' },   // 抽顶（百变「摸底」时抽底变成它）：和抽底同一套颜色   // 百变：梅紫（2026-11-15 工作稿，牌面待用户挑）
   };
 
   /* ───── 积木 ───── */
@@ -209,6 +210,26 @@
     svg += paw(44, 78, 0.6, '#eea25a');
     return svg;
   }
+  /* 抽顶（2026-11-15 用户：百变「摸底」生效时手里的抽底变成「抽顶」）。三个候选，用户挑了乙（抽底的镜像），甲 / 丙留着备查 */
+  const backCard = (x, y, rot) => '<g transform="translate(' + f(x) + ' ' + f(y) + ') rotate(' + rot + ')"><rect x="-15" y="-20" width="30" height="40" rx="5" fill="' + NAVY + '" stroke="' + CREAM + '" stroke-width="2.2"/><rect x="-10" y="-15" width="20" height="30" rx="3" fill="none" stroke="' + GOLD + '" stroke-width="1.6"/></g>';
+  const TOPDRAW = {
+    // 甲：猫站在一摞牌顶上，两只爪子把最上面那张举过头顶
+    a: () => { let svg = ground(); for (let i = 0; i < 6; i++) svg += backCard(50 + (i % 2 ? 0.8 : -0.8), 80 - i * 5.4, 0); svg += backCard(50, 14, -6);
+      svg += catHead(50, 40, 0.58, '#eea25a', { eyes: 'happy', mouth: 'o', patch: line('M-4 -17v5M0 -18v6M4 -17v5', 2.6, '#d27a36'), muzzle: '#fff4e3' });
+      svg += line('M41 34 44 24', 6, '#eea25a') + line('M59 34 56 24', 6, '#eea25a') + paw(44, 24, 0.42, '#eea25a') + paw(56, 24, 0.42, '#eea25a');
+      svg += '<path d="M78 66c6-12 6-26-2-38" stroke="#8a4f7a" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M71 30l7-8 3 10Z" fill="#8a4f7a"/>'; return svg; },
+    // 乙：和抽底一个构图、上下反过来：猫趴在一边，伸爪子把最上面那张斜着拖下来；一道往上拐的箭头
+    b: () => { let svg = ground(); for (let i = 0; i < 6; i++) svg += backCard(64 + (i % 2 ? 0.8 : -0.8), 86 - i * 6, 0); svg += backCard(42, 30, 14);
+      svg += '<path d="M60 22c-10-7-26-6-34 3" stroke="#8a4f7a" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M22 30l1-11 9 4Z" fill="#8a4f7a"/>';
+      svg += catHead(24, 66, 0.62, '#eea25a', { eyes: 'wide', mouth: 'o', patch: line('M-4 -17v5M0 -18v6M4 -17v5', 2.6, '#d27a36'), muzzle: '#fff4e3' });
+      svg += '<path d="M32 56c4-10 8-16 12-20" stroke="#eea25a" stroke-width="8" stroke-linecap="round" fill="none"/>' + paw(45, 36, 0.6, '#eea25a'); return svg; },
+    // 丙：就是抽底那幅画倒过来（字面意思的「反过来」），右上角一个转圈小箭头
+    c: () => '<g transform="translate(50 50) rotate(180) translate(-50 -50)">' + bottomArt() + '</g>' +
+      '<path d="M86 22a8 8 0 1 0 -4 9" stroke="#8a4f7a" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M78 33l5 -5 2 6Z" fill="#8a4f7a"/>',
+  };
+  const TOPDRAW_LOOK = 'b';
+  const topdrawArt = () => TOPDRAW[TOPDRAW_LOOK]();
+
   function favorArt() {
     // 蹭一张：猫咪眯眼蹭过来，捧着一张牌，冒小心心
     let svg = ground();
@@ -311,9 +332,10 @@
 
   const FACE = {
     boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, tattack: tattackArt, skip: skipArt, bottom: bottomArt, favor: favorArt, shuffle: shuffleArt, future: futureArt, alter: alterArt, swap: swapArt,
-    orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'), wild: wildArt, reverse: reverseArt, flux: fluxArt,
+    orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'), wild: wildArt, reverse: reverseArt, flux: fluxArt, topdraw: topdrawArt,
   };
   const cache = {};
+  function topdrawFace(v) { return '<svg viewBox="0 0 100 100" aria-hidden="true">' + TOPDRAW[v]() + '</svg>'; }
   function face(kind) {
     if (!cache[kind]) cache[kind] = '<svg viewBox="0 0 100 100" aria-hidden="true">' + FACE[kind]() + '</svg>';
     return cache[kind];
@@ -348,6 +370,8 @@
   // 转向角标：两道弧形箭头首尾相接围成一圈
   ICON.reverse = () => '<path d="M19.5 9.5A8 8 0 0 0 5.6 7" fill="none" stroke="#1f7a9c" stroke-width="2.4" stroke-linecap="round"/><path d="M0 0-4-2.6V2.6Z" fill="#1f7a9c" transform="translate(4.6 8.4) rotate(130)"/>' +
     '<path d="M4.5 14.5A8 8 0 0 0 18.4 17" fill="none" stroke="#1f7a9c" stroke-width="2.4" stroke-linecap="round"/><path d="M0 0-4-2.6V2.6Z" fill="#1f7a9c" transform="translate(19.4 15.6) rotate(-50)"/>';
+  // 抽顶角标：抽底角标上下翻过来
+  ICON.topdraw = () => '<g transform="translate(0 24) scale(1 -1)">' + ICON.bottom() + '</g>';
   // 百变角标：一颗梅紫四角星 + 一颗小金星
   ICON.flux = () => spark(10.5, 12.5, 8.5, '#8e4a9c') + spark(19, 5.5, 4, GOLD);
   const icache = {};
@@ -414,5 +438,5 @@
     cross: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M20 20 80 80M80 20 20 80" stroke="' + RED + '" stroke-width="14" stroke-linecap="round"/></svg>',
   };
 
-  return { TONE, face, icon, BACK, hero, wand, heart, paw, pawPrint, catHead, PROPS };
+  return { TONE, face, icon, BACK, hero, wand, heart, paw, pawPrint, catHead, PROPS, topdrawFace };
 });

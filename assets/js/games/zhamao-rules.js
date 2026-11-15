@@ -488,7 +488,7 @@
         break;
       case BOTTOM:
         // 抽底：这一回合不从顶上摸，改从牌堆最底下摸一张（摸完照常结束这一回合；摸到炸毛猫照样炸）
-        if (s.deck.length) ev.push(...takeCard(s, me, true));
+        if (s.deck.length) ev.push(...takeCard(s, me, s.flux !== 'bottom'));   // 百变「摸底」生效时反过来：抽底变「抽顶」，从最上面摸（2026-11-15 用户）
         break;
       case ATTACK:
       case TATTACK: {
