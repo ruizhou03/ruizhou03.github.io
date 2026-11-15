@@ -307,6 +307,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-hand .zm-card.is-combo { box-shadow: 0 0 0 2.5px var(--zm-gold), 0 0 0 6px rgba(201, 169, 110, 0.28), 0 12px 18px rgba(29, 27, 24, 0.2); animation: zm-combo 1.1s ease-in-out infinite; }
 @keyframes zm-combo { 50% { box-shadow: 0 0 0 2.5px var(--zm-gold), 0 0 0 10px rgba(201, 169, 110, 0.12), 0 12px 18px rgba(29, 27, 24, 0.2); } }
 .zm-hand .zm-card.is-incoming { visibility: hidden; }
+/* 刚出的牌在桌上的落点：先占好位置但藏着，等飞过来的那张真落到这儿才露出来（2026-11-14 用户：牌还没飞到，弃牌堆上就已经是那张牌了；
+   出两张时看着像三张——以前只藏了手牌里的，桌上的落点一出牌就亮着） */
+.zm-stage .zm-card.is-incoming { visibility: hidden; }
 /* 反应窗里手上的「不行」：紫光、轻轻跳，点它也能作废 */
 .zm-hand .zm-card.is-nope-ready { box-shadow: 0 0 0 2.5px #7a5a96, 0 0 16px rgba(122, 90, 150, 0.55); animation: zm-nope-bob 0.8s ease-in-out infinite; }
 @keyframes zm-nope-bob { 50% { transform: translateY(-8px); } }
