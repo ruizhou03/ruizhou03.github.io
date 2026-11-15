@@ -1096,7 +1096,8 @@
   // 别人出牌后我有「不行」：紫色「喵？不行」顶在「出牌」的位置；点人时「摸牌」换成「取消」；别人索要我的牌时「出牌」换成「给牌」
   function renderBand() {
     const s = game.state;
-    const canNope = s.phase === 'react' && reactOpen && R.canNope(s, 0);
+    // 只有真的在问我时才露紫色「作废」（2026-11-14：挑着问里不问我的牌，按钮也会闪一下，看着像设置没生效）
+    const canNope = s.phase === 'react' && reactOpen && R.canNope(s, 0) && (askMeNope(s) || !!tut);
     const onlinePass = !!(game.online && s.phase === 'react' && reactOpen);   // 联机：每次出牌都有导火索，没「作废」也能点「取消」提前结束
     els.nopeBtn.hidden = !canNope;
     els.cancelBtn.hidden = mode !== 'target';
@@ -1649,7 +1650,8 @@
   /* 结算：被作废——灰掉的牌连同「不行」一起扫进弃牌堆；生效——牌金光一闪，再扫进弃牌堆，接着放效果 */
   async function animResolve(e, t) {
     stopFuse();
-    if (game.arrow && (e.cancelled || (e.type !== R.FAVOR))) { game.arrow.remove(); game.arrow = null; }
+    // 准星留到真的动手那一下：索要（对方挑牌）、两张抽牌（我在他扣着的牌里点）、三张点名、交换——各自的动画里再撤（2026-11-14 用户：抽别人牌时对方头上也要有准星）
+    if (game.arrow && (e.cancelled || (e.type !== R.FAVOR && e.type !== 'pair' && e.type !== 'triple' && e.type !== R.SWAP))) { game.arrow.remove(); game.arrow = null; }
     if (!e.cancelled && (e.type === R.ATTACK || e.type === R.TATTACK)) { if (game.rimLk) { game.rimLk.remove({ mode: 'push', hold: 450 }); game.rimLk = null; } }   // 甩锅：长完、停一下，再推到他面前
     else if (e.cancelled || (e.type !== R.FAVOR && e.type !== R.SWAP && e.type !== 'pair' && e.type !== 'triple')) releaseRim(e.cancelled ? { dull: true } : null);
     const inner = els.stage.querySelector('.zm-stage-inner');
@@ -2714,6 +2716,9 @@
   /* 出局：炸毛猫扑向那个人，大爆炸——更大的红光、黑毛、烟、冲击波；头像变灰冒黑烟，「炸毛」大章砸下来；
    * 他的手牌全翻开、一张张散落进弃牌堆 */
   async function animOut(e, t) {
+    // 最后一个出局（之后只剩赢家）：快进到这儿就停，最后这一炸和结算的聚光灯按原速放——让大家看清冠军是谁（2026-11-14 用户）
+    if (ov && ov.alive.filter(Boolean).length <= 2 && game.turbo) { game.turboOff = true; setTurbo(false); }
+    else if (ov && ov.alive.filter(Boolean).length <= 2) game.turboOff = true;
     if (window.ZhamaoAudio) window.ZhamaoAudio.knockedOut();
     const node = game.boomNode;
     game.boomNode = null;
@@ -2754,8 +2759,12 @@
       dur: ms(520), delay: i * ms(70), lift: 60 + Math.random() * 50,
     }).then(() => { if (t === token && ov) { ov.discard.push(id); renderPiles(); } })));
     if (t !== token) return;
-    // 炸毛猫最后也落在弃牌堆最上面
+    // 炸毛猫最后也从他身上吐回弃牌堆、落在最上面（2026-11-14 用户：手里没牌的人炸了，看不到有牌回去）
     const kit = game.state.discard[game.state.discard.length - 1];
+    if (kit != null && R.KIND_OF[kit] === R.BOOM) {
+      await fx.fly({ html: cardHtml(kit), from: a, to, w: pu, s0: 0.45, s1: 1, r0: -25, r1: pileRot(kit), dur: ms(560), lift: 80 });
+      if (t !== token) return;
+    }
     if (ov && kit != null) { ov.discard.push(kit); renderPiles(); }
     await wait(ms(300));
     if (e.seat === 0) { game.fastOut = true; renderBand(); }
@@ -2784,8 +2793,18 @@
   ];
   const nopeAskMode = () => settings.nopeAsk || (settings.nopeMine ? 'pick' : 'all');
   const nopeAlsoOn = (k) => { const o = settings.nopeAlso; const def = NOPE_ALSO.find((x) => x[0] === k); return o && k in o ? !!o[k] : !!(def && def[3]); };
+  /* 残局全都问（2026-11-14 用户：前八成局面和我无关的我不管，最后两成想微调，别人之间的牌也可能想作废）：
+   * 「挑着问」时，牌堆剩下不到开局的这一成数，就当「全都问」。默认两成，设置里能选 关 / 30% / 20% / 10% */
+  const nopeLate = () => (settings.nopeLate == null ? 0.2 : +settings.nopeLate || 0);
+  function deckLeft() {
+    const st = game && game.state;
+    if (!st || !st.deck) return 1;
+    if (!game.deck0) { try { game.deck0 = R.createGame(st.n, 1, st.rules).deck.length; } catch (_) { game.deck0 = st.deck.length || 1; } }   // 开局牌堆多大只跟人数和牌量规则有关
+    return st.deck.length / Math.max(1, game.deck0);
+  }
   function nopeAsks(p, me, alive) {
     if (nopeAskMode() === 'all' || !p || aboutSeat(p, me, alive)) return true;
+    if (nopeLate() > 0 && deckLeft() <= nopeLate()) return true;
     return NOPE_ALSO.some(([k, , types]) => nopeAlsoOn(k) && types.indexOf(p.type) >= 0);
   }
   const askMeNope = (s) => nopeAsks(s.pending, 0, s.alive);
@@ -2799,7 +2818,8 @@
     return '<div class="zm-nope"><div class="zm-nope-head">什么时候问我出「作废」</div><div class="zm-nope-opts">' + card('all', '全都问', '每张牌都停下来问') + card('pick', '挑着问', '和我有关的 + 下面点亮的') + '</div>' +
       '<div class="zm-nope-also" data-nope-also' + (mode === 'pick' ? '' : ' hidden') + '><small>别人之间出这些牌也问我（点亮 = 问）</small><div class="zm-nope-grid">' +
       NOPE_ALSO.map(([k, t]) => '<button type="button" class="zm-nope-tile" data-also="' + k + '" aria-pressed="' + nopeAlsoOn(k) + '" title="' + t + '" style="--tone:' + ART.TONE[NOPE_IC[k]].bg + '"><i class="ic">' + ART.icon(NOPE_IC[k]) + '</i><span>' + NOPE_SHORT[k] + '</span><i class="ck" aria-hidden="true"></i></button>').join('') +
-      '</div></div></div>';
+      '</div><div class="zm-nope-late"><b>快打完时全都问</b><small>牌堆剩下不到开局的这么多，别人之间出什么牌都问我</small>' +
+      '<div class="zs-seg" data-seg="nopeLate" role="group">' + [[0, '关'], [0.3, '剩 30%'], [0.2, '剩 20%'], [0.1, '剩 10%']].map(([v, t]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (nopeLate() === v) + '">' + t + '</button>').join('') + '</div></div></div></div>';
   }
 
   /* ───── 反应窗：出完牌大家决定要不要「不行」 ───── */
@@ -3713,6 +3733,7 @@
         g.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
         fx.pop(b, { scale: 1.06, dur: 200 });
         const key = g.dataset.seg, v = b.dataset.v;
+        if (key === 'nopeLate') { settings.nopeLate = +v; saveSettings(); snd('tap'); return; }   // 个人偏好，即时生效，不算规则
         if (key === 'players') settings.players = +v;
         else if (key === 'tier') settings.tier = v;
         else if (key === 'turnSec') settings.turnSec = +v;
@@ -5170,7 +5191,7 @@
     if (game && !game.online && !online) {
       // 单机：我出局、自己那下炸完了（fastOut），机器猫还在接着打 → 我自己的 ⏩
       const s = game.state;
-      if (!game.tutorial && s && !s.alive[0] && s.phase !== 'over' && game.fastOut) mode = 'ff';
+      if (!game.tutorial && s && !s.alive[0] && s.phase !== 'over' && game.fastOut && !game.turboOff) mode = 'ff';
     } else {
       const g = online && game && game.online ? G() : null;
       // 我这边也得看到真人全出局了才算（网慢、播得落后时，服务器早算完了，但我这边自己还活着——这时快进 / 露键都等于剧透）
@@ -5179,10 +5200,10 @@
       // 联机（2026-11-14 用户）：只有房主有这个键，房主点了大家一起 5 倍速——所有人看到的进度一样；别人跟着服务器上的开关走
       // 房主刚点、服务器的状态还没回来：先按房主点的算，别一闪又被旧状态拨回去（4 秒没回来就作罢）
       const req = game.turboReq && performance.now() - game.turboReq.at < 4000 && game.turboReq.on !== !!g.turbo ? game.turboReq.on : null;
-      const want = !!(replaying && (req != null ? req : g.turbo));
+      const want = !!(replaying && !game.turboOff && (req != null ? req : g.turbo));
       if (!!game.turbo !== want) setTurbo(want);
       const canNext = !!(g && g.over && game.finishShown === g.matchNo && isHost() && !online.playing && !online.queue.length);
-      mode = replaying && isHost() ? 'ff' : canNext ? 'next' : '';
+      mode = replaying && isHost() && !game.turboOff ? 'ff' : canNext ? 'next' : '';
     }
     if (!mode) { if (ffBtn) { ffBtn.remove(); ffBtn = null; } return; }
     if (!ffBtn || !els.center.contains(ffBtn)) {

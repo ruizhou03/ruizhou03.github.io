@@ -1178,3 +1178,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 结算：聚光灯（用户挑定乙）——整桌暗、赢家身上一圈暖光 */
 .zm-win-spot { position: fixed; inset: 0; pointer-events: none; transform-origin: var(--x) var(--y);
   background: radial-gradient(circle at var(--x) var(--y), rgba(255, 226, 160, 0.32) 0, rgba(255, 226, 160, 0.1) var(--r), rgba(24, 20, 16, 0.5) calc(var(--r) * 2.6)); }
+/* 作废设置里的「快打完时全都问」 */
+.zm-nope-late { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(29, 27, 24, 0.1); }
+.zm-nope-late b { display: block; font-size: 14px; margin: 0 2px 2px; }
+.zm-nope .zm-nope-late small { margin-bottom: 8px; }
+.zm-nope-late .zs-seg { width: 100%; }

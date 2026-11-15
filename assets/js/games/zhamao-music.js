@@ -46,6 +46,7 @@
   let ac = null, master = null, fxDelay, fxVerb, noiseBuf = null, OUT = null;   // OUT：正在排的这一版自己的音量通道（换版时两版各自淡入淡出）
   /* 接到一个 AudioContext 的某个节点上（游戏里是 ZhamaoAudio 的音乐总线；离线自测可以接 OfflineAudioContext） */
   function attach(ctx, dest, level) {
+    if (ac && ac !== ctx) { Object.keys(BUS).forEach((k) => delete BUS[k]); P.cur = null; P.bar = 0; P.nextT = 0; MARKS.length = 0; }   // 换了一个新的声音上下文（旧的被系统关掉了）：旧通道不能再用
     ac = ctx; noiseBuf = null;
     master = ac.createGain(); master.gain.value = level == null ? 1 : level;
     master.connect(dest);

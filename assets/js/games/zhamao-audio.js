@@ -17,8 +17,13 @@
 
   let ctx = null, bus = null;
   const MUSIC_LEVEL = 0.32;  // 音乐总线（编曲内部的混音在 zhamao-music.js；和试听页的听感对齐，再比音效低一点）
+  /* 2026-11-14 用户：局中切出去再切回来就没音乐了，得退出重进。iPhone 上切到后台，声音上下文被系统标成「interrupted」（不是 suspended），
+   * 以前只认 suspended，回来后变可见、再点屏幕都没去叫醒它。现在凡是不在 running（suspended / interrupted）一律 resume；
+   * 万一被系统关掉了（closed）就重建一个，音乐重新接上 */
+  const asleep = (a) => a && a.state !== 'running' && a.state !== 'closed';
   function ensure() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return ctx; }
+    if (ctx && ctx.state === 'closed') { ctx = null; bus = null; attached = false; if (window.__zmCtx && window.__zmCtx.state === 'closed') window.__zmCtx = null; }
+    if (ctx) { if (asleep(ctx)) ctx.resume().catch(() => {}); return ctx; }
     try { ctx = window.__zmCtx || new (window.AudioContext || window.webkitAudioContext)(); window.__zmCtx = ctx; } catch (_) { return null; }   // 页面开头那段可能已经建好、解锁了
     // 音效、音乐各走各的压缩器：以前共用一个，底鼓 / 音效一响整首音乐跟着被压扁（用户 2026-11-12 嫌对局里音乐「闷」）
     const compOf = (th, ratio) => { const c = ctx.createDynamicsCompressor(); c.threshold.value = th; c.knee.value = 6; c.ratio.value = ratio; c.attack.value = 0.004; c.release.value = 0.2; c.connect(ctx.destination); return c; };
@@ -172,7 +177,7 @@
   function music(on) {
     wantMusic = !!on;
     if (!wantMusic) { stopMusic(); return; }
-    if (ctx && ctx.state === 'suspended') ctx.resume().then(startMusic, () => {}); else startMusic();
+    if (asleep(ctx)) ctx.resume().then(startMusic, () => {}); else startMusic();
   }
   // 场景：'menu'（主页 / 设置 / 大厅，丁）| 'game'（一局开始，甲起）| 'end'（一局结束，淡出）
   function scene(name) { if (M()) M().setScene(name); }
@@ -202,7 +207,7 @@
         src.buffer = b; src.connect(a.destination); src.start(0);
       } catch (_) { /* */ }
       const go = () => { if (a.state === 'running') startMusic(); };
-      if (a.state === 'suspended') a.resume().then(go, () => {}); else go();
+      if (asleep(a)) a.resume().then(go, () => {}); else go();
     };
     /* 2026-11-13 用户：侧滑返回滑到一半，同时响两股音乐（这一页的局内音乐 + 上一页的主菜单音乐）。
      * 原因：上一页如果也是本游戏（比如从「返回百宝奇巧」出去又点回来），侧滑时浏览器把它从缓存里「复活」预览，
@@ -215,7 +220,7 @@
       if (!ctx) return;
       if (document.hidden) { ctx.suspend(); return; }
       if (dormant) return;
-      ctx.resume().then(() => { if (!dormant && !document.hidden && wantMusic && prefs.music) startMusic(); });
+      ctx.resume().then(() => { if (!dormant && !document.hidden && wantMusic && prefs.music) startMusic(); }, () => { /* 要等用户点一下才放行：unlock 里会再叫醒 */ });
     });
     window.addEventListener('pagehide', () => { if (ctx) ctx.suspend(); });
     window.addEventListener('pageshow', (e) => { if (e.persisted) { dormant = true; if (ctx) ctx.suspend(); } });
