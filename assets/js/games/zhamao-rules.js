@@ -112,9 +112,11 @@
     { id: 'exact', name: '明塞', desc: '塞回炸毛猫，大家都看得到在第几张' },
     { id: 'bottom', name: '摸底', desc: '结束回合时从牌堆最底下摸' },
     { id: 'hot', name: '烫手', desc: '每个人的回合都要摸两张' },
+    { id: 'mute', name: '静音', desc: '谁都不能出「作废」（这时打百变也挡不住，一定会换）' },
+    { id: 'catsave', name: '双猫急救', desc: '摸到炸毛猫又没逗猫棒，交出任意一对一样的牌顶上（猫牌、功能牌都行）' },
   ]);
-  /* 2026-11-15 用户：删掉无关痛痒的。1500 局实测「生效期间每 10 回合真正起作用几次」：掀顶 10 / 摸底 6.5 / 烫手 4.9 / 明塞 1.0 / 九命 0.8（每次救一条命）
-   * 留下；静音 0.3、双猫急救 0.14 几乎感觉不到，逆行和「转向」牌重复——这三条拿掉（代码留着：老存档里正生效的照常结算） */
+  /* 2026-11-15 用户：删掉无关痛痒的——逆行（和「转向」牌重复）拿掉；静音（玩家对战里挺有用）、双猫急救（改成任意一对一样的牌都行，功能牌也算）留着。
+   * 逆行的代码留着：老存档里正生效的照常结算 */
   const FLUX_IDS = FLUX_RULES.map((r) => r.id);
   /* 角色猫（2026-11-15 用户同意提案：技能全部自动触发、不加按钮）。开局每人随机一只，大家都看得到 */
   const ROLES = Object.freeze([
@@ -307,13 +309,17 @@
   }
   const countKind = (hand, k) => hand.reduce((a, id) => a + (KIND_OF[id] === k ? 1 : 0), 0);
   const findKind = (hand, k) => hand.find((id) => KIND_OF[id] === k);
-  // 一对一样的猫：纯的优先，其次真猫 + 万能猫，最后两张万能猫（百变「双猫急救」用）
+  // 百变「双猫急救」用的一对（2026-11-15 用户：任意一对一样的牌都行，功能牌也算）：先交最不值钱的——
+  // 一样的猫 → 真猫 + 万能猫 → 两张万能猫 → 功能牌（洗牌 / 抽底 / 窥探 … 由便宜到金贵）
+  const PAIR_ORDER = [SHUFFLE, BOTTOM, FUTURE, REVERSE, ALTER, FAVOR, SKIP, SWAP, FLUX, ATTACK, TATTACK, NOPE];
   function catPairIds(hand) {
     const by = {};
-    for (const id of hand) { const k = KIND_OF[id]; if (catLike(k)) (by[k] = by[k] || []).push(id); }
+    for (const id of hand) { const k = KIND_OF[id]; (by[k] = by[k] || []).push(id); }
     for (const k of CATS) if ((by[k] || []).length >= 2) return by[k].slice(0, 2);
     for (const k of CATS) if ((by[k] || []).length && (by[WILD] || []).length) return [by[k][0], by[WILD][0]];
-    return (by[WILD] || []).length >= 2 ? by[WILD].slice(0, 2) : null;
+    if ((by[WILD] || []).length >= 2) return by[WILD].slice(0, 2);
+    for (const k of PAIR_ORDER) if ((by[k] || []).length >= 2) return by[k].slice(0, 2);
+    return null;
   }
   const kittensInDeck = (s) => s.deck.reduce((a, id) => a + (KIND_OF[id] === BOOM ? 1 : 0), 0);
 
@@ -686,7 +692,13 @@
       s.nineUsed[seat] = true;
       const pos = (rand(s) * (s.deck.length + 1)) | 0;
       s.deck.splice(pos, 0, id);
-      ev.push({ t: 'nine', seat, card: id, size: s.deck.length });
+      for (let k = 0; k < s.n; k++) s.memo[k].deck = s.memo[k].deck.filter((x) => x !== id);
+      // 动画按真实高度塞回去（2026-11-15 用户），所以和「看得出大概位置」一样：公开一个粗略高度 vis，机器猫也按它估
+      const last = s.deck.length - 1;
+      const vis = pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / Math.max(1, last)) * 8) / 8));
+      s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
+      s.peek = null;
+      ev.push({ t: 'nine', seat, card: id, size: s.deck.length, vis });
       endOneTurn(s, ev);
       return ev;
     }

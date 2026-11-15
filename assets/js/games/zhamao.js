@@ -253,6 +253,7 @@
       discard: s.discard.filter((id) => onStage.indexOf(id) < 0),
       turn: s.turn, turnsLeft: s.turnsLeft, alive: s.alive.slice(),
       flux: s.flux || null,   // 百变规则牌上现在写的那条（动画播到「换规则」才变）
+      topFace: s.flux === 'peektop' && s.deck.length ? s.deck[0] : null,   // 百变「掀顶」：牌堆顶翻开着的那张（动画里一张张跟着换）
     };
   }
   const D = () => ov || liveDisplay();
@@ -1132,6 +1133,7 @@
     if (el && !fx.reduce()) await el.animate([{ transform: 'translateX(-50%) rotateY(0deg)' }, { transform: 'translateX(-50%) rotateY(90deg)' }], { duration: ms(180), easing: 'ease-in' }).finished.catch(() => {});
     if (t !== token) return;
     renderFlux({ flux: e.rule });   // 第一次：这时才把牌摆出来
+    if (ov && (e.rule === 'peektop' || prev === 'peektop')) { const st = game.state; ov.topFace = e.rule === 'peektop' && st.deck.length ? st.deck[0] : null; renderPiles(); }   // 掀顶生效：顶上那张翻起来；换走：盖回去
     el = document.getElementById('zmFlux');
     if (!el) return;
     if (!fx.reduce()) {
@@ -1150,7 +1152,7 @@
     calmAvatar(e.seat, t, ms(500));
     await wait(ms(500));
     if (t !== token) return;
-    await animInsert({ seat: e.seat, vis: null }, t);
+    await animInsert({ seat: e.seat, vis: e.vis != null ? e.vis : null }, t);   // 按随机塞到的大概高度开缝（2026-11-15 用户）
   }
   // 角色猫技能触发：冒一句话；胆小猫是我自己的话，把偷看到的那张亮给我看
   async function animRole(e, t) {
@@ -1203,11 +1205,17 @@
     // 百变「掀顶」：牌堆最上面那张翻开摆着（只在没动画时摆，动画里照常是牌背）
     {
       const stack = els.deck.querySelector('.zm-deck-stack'), top = stack && stack.querySelector('.zm-card.is-top');
-      const faceId = !ov && s.flux === 'peektop' && s.deck.length && top ? s.deck[0] : null;
+      const faceId = d.topFace != null && d.deckSize > 0 && top ? d.topFace : null;
       let fc = stack && stack.querySelector('.zm-deck-face');
       if (faceId == null) { if (fc) fc.remove(); }
       else {
-        if (!fc || +fc.dataset.id !== faceId) { if (fc) fc.remove(); stack.insertAdjacentHTML('beforeend', '<div class="zm-deck-face" data-id="' + faceId + '">' + cardHtml(faceId) + '</div>'); fc = stack.lastElementChild; }
+        if (!fc || +fc.dataset.id !== faceId) {
+          if (fc) fc.remove();
+          stack.insertAdjacentHTML('beforeend', '<div class="zm-deck-face" data-id="' + faceId + '">' + cardHtml(faceId) + '</div>');
+          fc = stack.lastElementChild;
+          // 新翻上来的那张：从牌背翻成正面（2026-11-15 用户：掀顶生效 / 每摸走一张，下一张都要翻起来）
+          if (!fx.reduce()) fc.firstElementChild.animate([{ transform: 'perspective(400px) rotateY(90deg)', filter: 'brightness(.8)' }, { transform: 'perspective(400px) rotateY(0deg)', filter: 'none' }], { duration: ms(320), easing: 'cubic-bezier(.3,.7,.3,1)' });
+        }
         fc.style.transform = top.style.transform;
       }
     }
@@ -2709,9 +2717,12 @@
     const node = document.createElement('div');
     node.className = 'zm-flyer';
     node.style.width = pu + 'px'; node.style.height = pu * 1.4 + 'px';
-    node.innerHTML = backHtml();
+    const face = ov && ov.topFace != null ? ov.topFace : null;   // 百变「掀顶」：拿走的是那张翻开的明牌
+    game.peelFace = face;
+    node.innerHTML = face != null ? cardHtml(face) : backHtml();
     els.fly.appendChild(node);
     ov.deckSize -= 1;
+    if (face != null) { const st = game.state; ov.topFace = st.flux === 'peektop' && st.deck.length ? st.deck[0] : null; }   // 下一张翻起来
     renderPiles();
     const tense = danger() >= 0.2;
     snd('peel');
@@ -2735,16 +2746,18 @@
     const from = await peel(t, e.bottom);
     if (!from) return;
     const u = U(), pu = PU();
+    const open = game.peelFace != null && !e.bottom;   // 掀顶：摸走的本来就是明牌，不用再翻
+    game.peelFace = null;
     if (e.seat === 0 && e.card != null) {
       const to = aboveSlot(reserveHandSlot(e.card));
-      await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: 'up', flipAt: 0.3, from, to, w: u, s0: pu * 1.04 / u, s1: 1, r0: -5, r1: 0, dur: ms(560), lift: 70, swell: 0.18 });
+      await fx.fly(open ? { html: cardHtml(e.card), from, to, w: u, s0: pu * 1.04 / u, s1: 1, r0: -5, r1: 0, dur: ms(560), lift: 70, swell: 0.18 } : { html: cardHtml(e.card), back: backHtml(), flip: 'up', flipAt: 0.3, from, to, w: u, s0: pu * 1.04 / u, s1: 1, r0: -5, r1: 0, dur: ms(560), lift: 70, swell: 0.18 });
       if (t !== token) return;
       snd('flip');
       revealHandCard(e.card, to);
       if (R.KIND_OF[e.card] === R.DEFUSE) { const r = handRectOf(e.card); fx.burst(r.left + r.width / 2, r.top + r.height / 2, { n: 10, shapes: ['star'], colors: ['#4f8a5f', '#9bc8a2', '#c9a96e'], radius: u * 0.8, size: [6, 14], life: 700 }); }
     } else {
       const a = avPoint(e.seat);
-      await fx.fly({ html: backHtml(), from, to: a, w: pu, s0: 1.04, s1: 0.32, r0: -5, r1: 10, dur: ms(480), lift: 50, fadeOut: true, land: false });
+      await fx.fly({ html: open && e.card != null ? cardHtml(e.card) : backHtml(), from, to: a, w: pu, s0: 1.04, s1: 0.32, r0: -5, r1: 10, dur: ms(480), lift: 50, fadeOut: true, land: false });
       if (t !== token) return;
       ov.counts[e.seat] += 1;
       renderSeat(e.seat);
@@ -2812,7 +2825,8 @@
     ov.kittens = Math.max(0, ov.kittens - 1);
     renderPiles();
     const pu = PU(), a = avPoint(e.seat);
-    await fx.fly({ html: backHtml(), from, to: a, w: pu, s0: 1.04, s1: 0.32, r0: -5, r1: 10, dur: ms(480), lift: 50, fadeOut: true, land: false });
+    const open = game.peelFace != null && !e.bottom; game.peelFace = null;   // 掀顶：大家早看见是炸毛猫了，飞过去也是正面
+    await fx.fly({ html: open ? cardHtml(e.card) : backHtml(), from, to: a, w: pu, s0: 1.04, s1: 0.32, r0: -5, r1: 10, dur: ms(480), lift: 50, fadeOut: true, land: false });
     if (t !== token) return;
     game.boomNode = null;
     snd('boom');
@@ -3026,6 +3040,7 @@
     ['five', '凑五种去捡弃牌堆', ['five'], true],
     ['swap', '别人之间交换手牌', [R.SWAP], true],
     ['triple', '别人之间三张点名', ['triple'], true],
+    ['flux', '别人打百变', [R.FLUX], true],   // 2026-11-15 用户：百变也能作废——挡住别人换掉对我有利的规则
     ['pair', '别人之间两张偷牌', ['pair'], false],
     ['favor', '别人之间索要', [R.FAVOR], false],
     ['attack', '甩锅（不甩给我）', [R.ATTACK, R.TATTACK], false],
