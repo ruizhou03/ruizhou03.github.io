@@ -3847,7 +3847,9 @@
 
   function rulesHtml() {
     const li = (k, t) => '<li>' + cardHtml(k) + '<b>' + R.NAMES[k] + '</b>　' + t + '</li>';
+    const teamRules = ((game && game.state && game.state.rules) || settings.rules || {}).mode === 'team';
     return '<div class="zm-rules"><h2>怎么玩</h2>' +
+      (teamRules ? '<h3>组队（2v2）</h3><ul><li>4 个人，坐对面的是队友（头像同一个颜色的光圈），两队轮流出牌。</li><li>你和队友谁窥探 / 改命，另一个人也看得到那几张。</li><li>摸到炸毛猫又没有逗猫棒：队友手里有逗猫棒就能救你（他的逗猫棒用掉，你自己把炸毛猫塞回去）。</li><li>一队全炸毛出局，另一队赢——只剩一个人也算赢。</li></ul>' : '') +
       '<p>牌堆里藏着炸毛猫（比人数少一只）。轮到你时，可以出任意多张牌，也可以一张不出，<b>最后摸一张牌结束回合</b>。摸到炸毛猫、手里又没有逗猫棒，就出局。撑到最后的人赢。</p>' +
       '<h3>每人开局</h3><ul><li>4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸毛猫是里面还有几只。</li></ul>' +
       '<h3>牌</h3><ul>' +
@@ -4557,8 +4559,8 @@
   els.cover.querySelectorAll('.zm-solo-back').forEach((b) => { b.innerHTML = BACK_ART; });
   let coverFrom = 'main';   // 选人数那一屏「‹ 返回」回哪：有上一局时回「接着打 / 开新的」那一步
   const SOLO_MAX = R.MAX_PLAYERS;   // 9 人（6 人起用两副牌）
-  const TEAM_LAB = (() => { try { const q = new URLSearchParams(location.search); if (q.has('zmteam')) localStorage.setItem('zm.teamlab', '1'); return localStorage.getItem('zm.teamlab') === '1'; } catch (_) { return false; } })();   // 组队还在等用户挑两队的标记，先藏着
-  const SOLO_MODES = [['classic', '经典', 'boom'], ['flux', '百变', 'flux']].concat(TEAM_LAB ? [['team', '组队', 'favor']] : []);
+  // 2026-11-15 组队单机正式开放（两队标记用户挑甲 · 同色光圈）
+  const SOLO_MODES = [['classic', '经典', 'boom'], ['flux', '百变', 'flux'], ['team', '组队', 'favor']];
   const miniCard = (k) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm">' + R.NAMES[k] + '</b></span>'; };
   const soloN = () => (R.normalizeRules(settings.rules).mode === 'team' ? 4 : Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players)));   // 组队只有 4 人
   function refreshSolo() {
