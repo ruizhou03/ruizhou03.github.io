@@ -2941,10 +2941,11 @@
 
   /* 「作废只在和我有关时问」（设置里，默认关）：和我有关 = 这张牌是我出的（被人作废了，我可能想作废回去）、
    * 指着我（索要 / 偷牌 / 点名 / 交换 / 自由甩锅）、或者是甩锅而下一家就是我。别的（洗牌、窥探、改命、跳过、抽底、互相甩锅 / 偷牌……）一律不问 */
-  function aboutSeat(p, me, alive) {
+  function aboutSeat(p, me, alive, dir) {
     if (!p) return true;
     if (p.by === me || p.target === me) return true;
-    if (p.type === R.ATTACK) { const n = alive.length; for (let k = 1; k < n; k++) { const x = (p.by + k) % n; if (alive[x]) return x === me; } }
+    // 甩锅给「下家」：要按当前出牌方向找（2026-11-15 用户：别人甩锅到我头上却不问我作废——转向 / 逆行以后下家在另一边，以前一律往座位号大的那边数）
+    if (p.type === R.ATTACK) { const n = alive.length, d = dir === -1 ? -1 : 1; for (let k = 1; k < n; k++) { const x = (((p.by + d * k) % n) + n) % n; if (alive[x]) return x === me; } }
     return false;
   }
   /* 什么时候问我要不要出「作废」（2026-11-14 用户：局里临时改开关来不及，得事先设好）：
@@ -2972,12 +2973,12 @@
     if (!game.deck0) { try { game.deck0 = R.createGame(st.n, 1, st.rules).deck.length; } catch (_) { game.deck0 = st.deck.length || 1; } }   // 开局牌堆多大只跟人数和牌量规则有关
     return st.deck.length / Math.max(1, game.deck0);
   }
-  function nopeAsks(p, me, alive) {
-    if (nopeAskMode() === 'all' || !p || aboutSeat(p, me, alive)) return true;
+  function nopeAsks(p, me, alive, dir) {
+    if (nopeAskMode() === 'all' || !p || aboutSeat(p, me, alive, dir)) return true;
     if (nopeLate() > 0 && deckLeft() <= nopeLate()) return true;
     return NOPE_ALSO.some(([k, , types]) => nopeAlsoOn(k) && types.indexOf(p.type) >= 0);
   }
-  const askMeNope = (s) => nopeAsks(s.pending, 0, s.alive);
+  const askMeNope = (s) => nopeAsks(s.pending, 0, s.alive, s.dir);
   /* ───── 反应窗：出完牌大家决定要不要「不行」 ───── */
   function clearReactTimer() { if (reactTimer) { clearTimeout(reactTimer); reactTimer = null; } }
   function reactPhase() {
@@ -4624,7 +4625,8 @@
     const used = new Set(o.hand.concat(o.discard, o.removed, o.known.map((x) => x.id)));
     o.handKnown.forEach((h, i) => { if (i !== 0) h.forEach((id) => used.add(id)); });
     if (o.defuse && o.defuse.card != null) used.add(o.defuse.card);
-    const pool = shuffled(ALL_IDS.filter((id) => !used.has(id) && (!R.inSecondDeck(id) || R.usesSecondDeck(n))));
+    const fluxOn = !!(o.rules && o.rules.mode === 'flux');   // 经典房间不拿「百变」牌号当占位（服务器那副牌里可能根本没有这些号）
+    const pool = shuffled(ALL_IDS.filter((id) => !used.has(id) && (!R.inSecondDeck(id) || R.usesSecondDeck(n)) && (fluxOn || R.KIND_OF[id] !== R.FLUX)));
     const take = (pred) => { const i = pool.findIndex(pred); return i >= 0 ? pool.splice(i, 1)[0] : null; };
     const hands = [];
     for (let i = 0; i < n; i++) {
@@ -5131,7 +5133,7 @@
   //   仍然随机，窗口关得早晚看不出谁有没有作废）
   function earlyPass(g) {
     if (!online || !g || !g.myCall || (game && game.spectator) || g.st.phase !== 'react' || online.passFor === g.seq) return;
-    if (g.st.hand.some((id) => R.KIND_OF[id] === R.NOPE) && nopeAsks(g.st.pending, online.base, g.st.alive)) return;
+    if (g.st.hand.some((id) => R.KIND_OF[id] === R.NOPE) && nopeAsks(g.st.pending, online.base, g.st.alive, g.st.dir)) return;
     online.passFor = g.seq;
     const at = g.seq;
     setTimeout(() => {

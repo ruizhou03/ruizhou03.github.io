@@ -59,7 +59,7 @@
   const ACTIONS = Object.freeze([ATTACK, TATTACK, SKIP, REVERSE, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, FLUX]);
   const COUNTS = Object.freeze({
     boom: 4, defuse: 6, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3, bottom: 4,
-    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4, reverse: 4, flux: 4,
+    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4, reverse: 4, flux: 10,
   });
   const KINDS = Object.freeze(Object.keys(COUNTS));
   const NAMES = Object.freeze({
@@ -70,12 +70,12 @@
    * 5 人及以下它一开局就整副收进盒子。牌号接在第一副后面（0..67 不变，旧存档 / 联机局照常） */
   const COUNTS2 = Object.freeze({
     boom: 4, defuse: 5, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3, bottom: 4,
-    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4, reverse: 4, flux: 4,
+    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4, reverse: 4, flux: 10,
   });
   /* 2026-11-13 加万能猫（每副 4 张）：为了旧存档 / 联机局的牌号不变，它们的牌号接在最后——135..138 属第一副、139..142 属第二副。
    * 所以「是哪一副的牌」不能再拿 id < 68 判断，用 DECK_OF[id]（1 | 2）/ inSecondDeck(id) */
   /* 同一天又加转向（每副 4 张）：接在万能猫后面——143..146 第一副、147..150 第二副（万能猫的牌号不变） */
-  /* 2026-11-15 又加「百变」（每副 4 张，只在百变模式里进牌堆）：接在转向后面——151..154 第一副、155..158 第二副 */
+  /* 2026-11-15 又加「百变」（只在百变模式里用）：接在转向后面——每副 10 张，151..160 第一副、161..170 第二副（开局每人发一张，所以要多） */
   const LATE = [WILD, REVERSE, FLUX];   // 后加的牌种：牌号排在两副老牌之后，按这个顺序一种种往后接
   const KIND_OF = [], DECK_OF = [];
   for (const k of KINDS) if (LATE.indexOf(k) < 0) for (let i = 0; i < COUNTS[k]; i++) { KIND_OF.push(k); DECK_OF.push(1); }
@@ -87,7 +87,7 @@
   Object.freeze(KIND_OF); Object.freeze(DECK_OF);
   const BASE_SIZE = KINDS.reduce((t, k) => t + COUNTS[k], 0);   // 76：第一副的张数（含 3 张交换、4 张抽底、4 张万能猫、4 张转向）
   const DECK_SIZE = KIND_OF.length;                              // 151：两副的牌号总数
-  const LEGACY_SIZES = Object.freeze([151, 143, 135, 68, 64]);   // 以前的存档：加百变前 / 加转向前 / 加万能猫前两副 / 一副 / 一副没抽底
+  const LEGACY_SIZES = Object.freeze([159, 151, 143, 135, 68, 64]);   // 以前的存档：百变每副 4 张时 / 加百变前 / 加转向前 / 加万能猫前两副 / 一副 / 一副没抽底
   const inSecondDeck = (id) => DECK_OF[id] === 2;
   const MIN_PLAYERS = 2, MAX_PLAYERS = 9, TWO_DECKS_FROM = 6;
   const usesSecondDeck = (n) => n >= TWO_DECKS_FROM;
@@ -230,14 +230,16 @@
     const nSwaps = quota ? Math.min(swapsInPlay(n), Math.max(1, Math.round((n - 1) / 2))) : swapsInPlay(n);
     const swapIn = rules.swap ? swaps.slice(0, nSwaps) : [];
     rest.push(...swapIn);
-    // 百变：标准 / 快局按人数放 2–6 张（4 人 3 张），「多」整副都放
-    const nFlux = quota ? Math.max(2, Math.min(6, Math.round(n * 0.7))) : fluxes.length;
+    // 百变（2026-11-15 用户：它只是抽奖、本身不如跳过好用，开局人人白送一张，牌堆里也多放）：
+    // 开局每人额外一张（不占那 4 张）；牌堆里标准 / 快局按人数放 2–7 张（4 人 3 张），「多」把剩下的都放
+    const handFlux = rules.mode === 'flux' ? fluxes.splice(0, n) : [];
+    const nFlux = quota ? Math.max(2, Math.min(7, Math.round(n * 0.8))) : fluxes.length;
     rest.push(...fluxes.slice(0, nFlux));
     unused.push(...fluxes.slice(nFlux));
     if (rules.mode === 'flux') { state.fluxDeck = shuffleIn(state, FLUX_IDS.slice()); state.nineUsed = Array.from({ length: n }, () => false); }
     shuffleIn(state, rest);
     for (let s = 0; s < n; s++) {
-      state.hands.push(sortHand(rest.splice(0, 4).concat(defuses.shift())));
+      state.hands.push(sortHand(rest.splice(0, 4).concat(defuses.shift(), handFlux.length ? [handFlux[s]] : [])));
       state.alive.push(true);
     }
     shuffleIn(state, booms);
