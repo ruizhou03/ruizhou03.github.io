@@ -120,13 +120,14 @@
    * 逆行的代码留着：老存档里正生效的照常结算 */
   const FLUX_IDS = FLUX_RULES.map((r) => r.id);
   /* 角色猫（2026-11-15 用户同意提案：技能全部自动触发、不加按钮）。开局每人随机一只，大家都看得到 */
+  // 2026-11-15 用户：技能要简单直接、一句话一个效果，不靠打补丁平衡；哪个方向平衡不了就换方向
   const ROLES = Object.freeze([
-    { id: 'timid', name: '胆小猫', desc: '每次被甩锅，先偷看牌堆顶 3 张；最上面是炸毛猫就往下挪一张', once: false },
-    { id: 'fat', name: '胖橘', desc: '每次被偷、被点名拿走一张，就从牌堆底补一张：不是炸毛猫归他；是炸毛猫，算拿他牌的人摸到的', once: false },
-    { id: 'shadow', name: '黑猫', desc: '别人对他出的「两张偷牌」都会扑空', once: false },   // 2026-11-15 用户：角色要整局有效（索要也躲时胜率 1.24 太强，只躲偷牌）
-    { id: 'cow', name: '奶牛猫', desc: '被甩锅永远只摸 1 张；他甩出去的锅，下家摸 3 张', once: false },
-    { id: 'calico', name: '三花', desc: '任意两只猫牌算一对、任意三只算三张；两张偷牌时一次偷两张', once: false },
-    { id: 'tabby', name: '狸花', desc: '每次「作废」成功，顺手叼走对方一张牌', once: false },   // 2026-11-15 用户：换个有意思的（原来是作废不能被作废 + 多一张作废）
+    { id: 'timid', name: '胆小猫', desc: '被甩锅时，先偷看牌堆顶 3 张', once: false },
+    { id: 'fat', name: '胖橘', desc: '出「索要」时，对方要给两张', once: false },
+    { id: 'shadow', name: '黑猫', desc: '两张偷牌对他无效', once: false },
+    { id: 'cow', name: '奶牛猫', desc: '被甩锅时只摸 1 张', once: false },
+    { id: 'calico', name: '三花', desc: '任意两只猫算一对，任意三只算三张', once: false },
+    { id: 'tabby', name: '狸花', desc: '作废成功，顺手叼走对方一张牌', once: false },
   ]);
   const ROLE_IDS = ROLES.map((r) => r.id);
   const roleOf = (s, seat) => (s.roles ? s.roles[seat] : null);
@@ -510,9 +511,8 @@
         const viaCow = left === 1 && s.cowCut === me;
         const chained = (left > 1 && s.hotGiven !== me) || viaCow;   // 烫手给的两次不算被甩锅（2026-11-15 用户：烫手只管普通回合）
         s.turnsLeft = s.rules.stackAttack && chained ? left + 2 : 2;
-        if (roleOf(s, me) === 'cow' && !viaCow) s.turnsLeft += 1;   // 角色猫「奶牛猫」：自己甩出去的锅，下家多摸 1 张（被甩锅后再甩出去的照用户定的规则：1 + 2 = 3，不再加）
         s.cowCut = -1; s.hotGiven = -1;   // 被甩锅的回合数不算烫手给的
-        if (roleOf(s, next) === 'timid' && s.deck.length) { if (s.deck.length > 1 && KIND_OF[s.deck[0]] === BOOM) { const b0 = s.deck.shift(); s.deck.splice(1, 0, b0); for (let k = 0; k < s.n; k++) if (k !== next) s.memo[k].deck = s.memo[k].deck.filter((id) => id !== b0); } const top = s.deck.slice(0, 3), m = s.memo[next].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); ev.push({ t: 'role', seat: next, role: 'timid', cards: top, priv: [next] }); }   // 角色猫「胆小猫」：被甩锅先偷看 2 张
+        if (roleOf(s, next) === 'timid' && s.deck.length) { const top = s.deck.slice(0, 3), m = s.memo[next].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); ev.push({ t: 'role', seat: next, role: 'timid', cards: top, priv: [next] }); }   // 角色猫「胆小猫」：被甩锅先偷看 2 张
         if (roleOf(s, next) === 'cow' && s.turnsLeft > 1) { s.turnsLeft = 1; s.cowCut = next; ev.push({ t: 'role', seat: next, role: 'cow' }); }   // 角色猫「奶牛猫」：每次被甩锅少摸 1 张
         ev.push({ t: 'turn', seat: next, turnsLeft: s.turnsLeft, attacked: true });
         if (next !== me) turnStarts(s, ev);
@@ -564,7 +564,7 @@
       case FAVOR:
         if (s.hands[p.target].length) {
           s.phase = 'give';
-          s.give = { from: p.target, to: me };
+          s.give = { from: p.target, to: me, left: roleOf(s, me) === 'fat' ? 2 : 1 };
           ev.push({ t: 'askGive', from: p.target, to: me });
         }
         break;
@@ -598,7 +598,6 @@
         if (id != null) {
           moveCard(s, p.target, me, id, 'all');
           ev.push({ t: 'take', from: p.target, to: me, card: id, named: p.named });
-          fatRefill(s, p.target, me, ev);
         } else {
           ev.push({ t: 'miss', from: p.target, to: me, named: p.named });
         }
@@ -615,24 +614,12 @@
     return ev;
   }
 
-  /* 角色猫「胖橘」（2026-11-15 用户定）：被索要 / 被偷 / 被点名拿走一张，就从牌堆底补一张——
-   * 不是炸毛猫：归他（只有他知道是哪张）；是炸毛猫：算拿他牌的那个人摸到的（有逗猫棒就拆、塞回，然后这一回合结束；没有就出局） */
-  function fatRefill(s, seat, taker, ev) {
-    if (roleOf(s, seat) !== 'fat' || !s.alive[seat] || !s.deck.length || s.phase !== 'act') return;
-    const id = s.deck[s.deck.length - 1];
-    ev.push({ t: 'role', seat, role: 'fat', boom: KIND_OF[id] === BOOM, taker });
-    if (KIND_OF[id] === BOOM) { ev.push(...takeCard(s, taker, true)); return; }
-    s.deck.pop();
-    if (s.ins) s.ins.bot += 1;
-    for (const m of s.memo) { const j = m.deck.indexOf(id); if (j >= 0) m.deck.splice(j, 1); }
-    s.hands[seat].push(id); s.hands[seat] = sortHand(s.hands[seat]);
-    s.seq += 1;
-    ev.push({ t: 'draw', seat, card: id, priv: [seat], bottom: true, refill: true });
-  }
   function give(s, seat, id) {
     if (s.phase !== 'give' || s.give.from !== seat || s.hands[seat].indexOf(id) < 0) throw new Error('illegal give');
     const to = s.give.to;
     moveCard(s, seat, to, id, [seat, to]);
+    // 角色猫「胖橘」：他出的索要，对方要给两张——给完第一张接着再挑一张
+    if (s.give.left > 1 && s.hands[seat].length) { s.give.left -= 1; return [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }, { t: 'askGive', from: seat, to }]; }
     s.give = null;
     s.phase = 'act';
     return [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }];   // 胖橘被索要不补牌（2026-11-15 平衡：索要本来就由他自己挑）
@@ -661,9 +648,6 @@
     s.steal = null;
     s.phase = 'act';
     const ev = [{ t: 'steal', from, to: seat, card: id, idx, priv: [seat, from] }];
-    // 角色猫「三花」：两张偷牌一次偷两张（第二张随机）
-    if (roleOf(s, seat) === 'calico' && s.hands[from].length) { const id2 = s.hands[from][(rand(s) * s.hands[from].length) | 0]; moveCard(s, from, seat, id2, [seat, from]); ev.push({ t: 'steal', from, to: seat, card: id2, idx: 0, priv: [seat, from], role: 'calico' }); }
-    fatRefill(s, from, seat, ev);
     return ev;
   }
 

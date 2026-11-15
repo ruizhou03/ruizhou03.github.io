@@ -1178,7 +1178,7 @@
   }
   // 角色猫技能触发：冒一句话；胆小猫是我自己的话，把偷看到的那张亮给我看
   async function animRole(e, t) {
-    const txt = e.role === 'fat' && e.boom ? '底下是炸毛猫，归你了！' : { timid: '偷看了三张', shadow: '扑空了！', cow: '只摸一张', tabby: '叼走一张！', fat: '又长回来一张' }[e.role];
+    const txt = { timid: '偷看了三张', shadow: '扑空了！', cow: '只摸一张', tabby: '叼走一张！' }[e.role];
     const av = avEl(e.seat), rb = av && av.querySelector('.zm-role');
     if (rb) fx.pop(rb, { scale: 1.6, dur: 420 });
     if (e.role === 'timid' && e.seat === 0 && e.cards) await animFuture({ t: 'future', seat: 0, cards: e.cards }, t);
