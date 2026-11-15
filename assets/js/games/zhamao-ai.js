@@ -78,8 +78,17 @@
     let best = -1, score = -1;
     for (const t of targets(v)) {
       const knows = wantKind ? v.handKnown[t].some((id) => K[id] === wantKind) : false;
-      const shadow = v.roles && v.roles[t] === 'shadow' && v.roleUsed && !v.roleUsed[t];   // 角色猫「黑猫」第一次会溜走：先别偷他
-      const sc = v.counts[t] + (knows ? 100 : 0) - (shadow ? 1000 : 0);
+      const sc = v.counts[t] + (knows ? 100 : 0);
+      if (sc > score) { score = sc; best = t; }
+    }
+    return best;
+  }
+  // 索要找谁：角色猫「黑猫」第一次被索要会溜走——没用过的黑猫先不找
+  function favorTarget(v) {
+    let best = -1, score = -1;
+    for (const t of targets(v)) {
+      if (v.roles && v.roles[t] === 'shadow' && v.roleUsed && !v.roleUsed[t]) continue;
+      const sc = v.counts[t] + (v.handKnown[t].some((id) => K[id] === R.DEFUSE) ? 100 : 0);
       if (sc > score) { score = sc; best = t; }
     }
     return best;
@@ -334,7 +343,7 @@
       const sw = swapMove(v);
       if (sw) return sw;
       // 闲着的索要 / 成对的猫：拿去偷一张
-      if (def && has(v, R.FAVOR) && ts.length) return playMove([one(v, R.FAVOR)], richest(v, R.DEFUSE));
+      if (def && has(v, R.FAVOR) && ts.length) { const ft = favorTarget(v); if (ft >= 0) return playMove([one(v, R.FAVOR)], ft); }
       for (const k of R.CATS) if ((by[k] || []).length >= 2 && ts.length) return playMove(by[k].slice(0, 2), richest(v, R.DEFUSE));
       return DRAW;
     }

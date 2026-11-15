@@ -121,10 +121,10 @@
   const ROLES = Object.freeze([
     { id: 'timid', name: '胆小猫', desc: '第一次轮到他时，自动偷看牌堆顶 1 张', once: true },
     { id: 'fat', name: '胖橘', desc: '开局多发 1 张手牌', once: false },
-    { id: 'shadow', name: '黑猫', desc: '第一次被索要 / 偷 / 点名时溜走，什么都不发生', once: true },
+    { id: 'shadow', name: '黑猫', desc: '第一次被索要时溜走，什么都不给', once: true },   // 2026-11-15 平衡：原来索要 / 偷 / 点名都躲，太强（胜率 1.31）
     { id: 'cow', name: '奶牛猫', desc: '第一次被甩锅时少摸 1 张', once: true },
     { id: 'calico', name: '三花', desc: '任意两只不同的猫牌也能凑成一对来偷牌', once: false },
-    { id: 'tabby', name: '狸花', desc: '他打出的第一张「作废」不能再被作废', once: true },
+    { id: 'tabby', name: '狸花', desc: '开局多一张「作废」；他打出的作废都不能再被作废', once: false },   // 2026-11-15 平衡：原来只有第一张作废锁死，太弱（胜率 0.83 → 整局锁死 0.93 → 再加一张作废）
   ]);
   const ROLE_IDS = ROLES.map((r) => r.id);
   const roleOf = (s, seat) => (s.roles ? s.roles[seat] : null);
@@ -260,7 +260,9 @@
     }
     for (let s = 0; s < n; s++) {
       const extra = state.roles && state.roles[s] === 'fat' ? 1 : 0;
-      state.hands.push(sortHand(rest.splice(0, 4 + extra).concat(defuses.shift(), handFlux.length ? [handFlux[s]] : [])));
+      let bonus = [];
+      if (state.roles && state.roles[s] === 'tabby') { const i = rest.findIndex((id) => KIND_OF[id] === NOPE); if (i >= 0) bonus = rest.splice(i, 1); }   // 狸花：开局多一张作废
+      state.hands.push(sortHand(rest.splice(0, 4 + extra).concat(defuses.shift(), handFlux.length ? [handFlux[s]] : [], bonus)));
       state.alive.push(true);
     }
     shuffleIn(state, booms);
@@ -442,7 +444,7 @@
     s.pending.passed = [];
     s.seq += 1;
     const ev = [{ t: 'nope', seat, card: id, count: s.pending.nopes.length }];
-    if (roleReady(s, seat, 'tabby')) { s.roleUsed[seat] = true; s.pending.locked = true; ev.push({ t: 'role', seat, role: 'tabby' }); }   // 角色猫「狸花」：第一张作废不能再被作废
+    if (roleOf(s, seat) === 'tabby') { s.pending.locked = true; ev.push({ t: 'role', seat, role: 'tabby' }); }   // 角色猫「狸花」：他的作废都不能再被作废
     return ev;
   }
   function pass(s, seat) {
@@ -464,7 +466,7 @@
     if (cancelled) return ev;
     const me = p.by;
     // 角色猫「黑猫」：第一次被索要 / 偷 / 点名——溜走了，什么都不发生
-    if ((p.type === FAVOR || p.type === 'pair' || p.type === 'triple') && p.target >= 0 && roleReady(s, p.target, 'shadow')) {
+    if (p.type === FAVOR && p.target >= 0 && roleReady(s, p.target, 'shadow')) {
       s.roleUsed[p.target] = true;
       ev.push({ t: 'role', seat: p.target, role: 'shadow', by: me });
       return ev;
