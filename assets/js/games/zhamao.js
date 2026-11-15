@@ -649,10 +649,10 @@
      * ① 5 人局最右那家甩锅给左下角的我（屏幕上两条路差不多长）：线逆着出牌方向走，应该顺着；
      * ② 9 人局零七（上排偏右）索要我：按「中间隔几个人」挑了往右那边，可我坐在左下角、对手全在上排，
      *    往右要绕右边 + 整条底边，屏幕上反而是长的那条，还逆着出牌方向。
-     * 现在按屏幕上实际走的路程挑：一边明显短（短 25% 以上）就走短的；两边差不多（对角）就顺着出牌方向。
+     * 现在按屏幕上实际走的路程挑：一边明显短（比另一边短 30% 以上）就走短的；两边差不超过 30%（对角之类）就顺着出牌方向（2026-11-14 用户定 30%，原来是 25%）。
      * 甩锅 / 索要 / 交换 / 偷 / 点名都按这个。路径上序号变大 = 座位号变大（我 → 1 号 → 2 号 …），所以「顺着出牌方向」= 序号往 dirNow() 那边走 */
     const dir = dirNow();
-    const shortWay = fwd <= back ? 1 : -1, clear = Math.min(fwd, back) < Math.max(fwd, back) * 0.75;
+    const shortWay = fwd <= back ? 1 : -1, clear = Math.min(fwd, back) < Math.max(fwd, back) * 0.7;
     const stepDir = !flow && clear ? shortWay : (dir === -1 ? -1 : 1), cnt = stepDir === 1 ? fwd : back;
     const seg = []; for (let k = 0; k <= cnt; k++) seg.push(pts[(ia + stepDir * k + N) % N]);
     const d = 'M' + seg.map((q) => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join('L');
