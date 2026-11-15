@@ -1264,3 +1264,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 百变「掀顶」：牌堆最上面那张翻开摆着 */
 .zm-deck-face { position: absolute; left: 0; top: 0; width: var(--pu); pointer-events: none; z-index: 1; }
 .zm-deck-face .zm-card { position: relative; box-shadow: 0 0 0 2px #e9c86a, 0 3px 8px rgba(29, 27, 24, 0.2); }
+/* 单机开局卡最上面的「玩法」（2026-11-15 用户挑甲：先单机 / 联机，再选玩法）：一张张玩法牌，选中的墨底白字 */
+.zm-solo-modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; align-self: stretch; }
+.zm-solo-modes button { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 5px 10px; border-radius: 12px; border: 1.5px solid var(--zm-ink); background: var(--zm-paper); color: var(--zm-ink); font: inherit; font-size: 15.5px; font-weight: 700; letter-spacing: 0.08em; cursor: pointer; }
+.zm-solo-modes button[aria-pressed="true"] { background: var(--zm-ink); color: #fffaf0; }
+.zm-solo-modes .zm-card { --cw: 25px; width: 25px; display: block; flex: none; box-shadow: 0 2px 6px rgba(29, 27, 24, 0.18); }
+.zm-solo-modes .zm-card .zm-nm { font-size: 0; }

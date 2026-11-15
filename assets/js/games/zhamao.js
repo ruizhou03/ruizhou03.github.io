@@ -3859,8 +3859,6 @@
       '<div class="zs-cap">玩法</div><section class="zs-card">' +
       // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 官方密度（默认）/ 快局更短 / 多 = 以前的整副
       '<div class="zs-line"><span>牌量</span>' + segs('deckSize', DECK_OPTS, R.normalizeRules(settings.rules).deckSize) + '</div>' +
-      // 2026-11-15 百变模式单机正式开放（联机还没有：联机的规则由房主在房间里定，那边暂时只有经典）
-      '<div class="zs-line"><span>模式</span>' + segs('mode', [['classic', '经典'], ['flux', '百变']], R.normalizeRules(settings.rules).mode) + '</div>' +
       row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
       // 交换连逗猫棒一起换（2026-11-13 用户：以前玩的是整副手牌全换）；没开交换牌时这行藏着
       row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', settings.rules.swapDefuse)).replace('<div class="zs-row"', '<div class="zs-row" data-dep="swap"' + (settings.rules.swap ? '' : ' hidden')) +
@@ -4518,6 +4516,8 @@
   els.cover.querySelectorAll('.zm-solo-back').forEach((b) => { b.innerHTML = BACK_ART; });
   let coverFrom = 'main';   // 选人数那一屏「‹ 返回」回哪：有上一局时回「接着打 / 开新的」那一步
   const SOLO_MAX = R.MAX_PLAYERS;   // 9 人（6 人起用两副牌）
+  const SOLO_MODES = [['classic', '经典', 'boom'], ['flux', '百变', 'flux']];
+  const miniCard = (k) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm">' + R.NAMES[k] + '</b></span>'; };
   function refreshSolo() {
     const n = Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players));
     $('zmSoloNum').innerHTML = n + '<small>人</small>';
@@ -4529,6 +4529,9 @@
     // 头像一排排不下就整体缩小（9 人时人数卡里放不下 9 个 34px 的头像；2026-11-13 用户：别超出宽度）；「你 + 几只机器猫」那行说明去掉
     const fw = $('zmSoloFaces').clientWidth || 200, lap = 7;
     $('zmSoloFaces').style.setProperty('--fs', Math.min(34, Math.floor((fw + (n - 1) * lap) / n)) + 'px');
+    // 玩法（2026-11-15 用户挑甲：先单机 / 联机，再在这张卡最上面选玩法；以后的组队 / 角色猫往这排后面加）
+    const mode = R.normalizeRules(settings.rules).mode;
+    $('zmSoloModes').innerHTML = SOLO_MODES.map(([m, name, k]) => '<button type="button" data-mode="' + m + '" aria-pressed="' + (m === mode) + '">' + miniCard(k) + '<b>' + name + '</b></button>').join('');
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
     const saved = loadSaved(), rb = els.cover.querySelector('[data-cover="resume-solo"]');
     // 单机菜单：有上一局才露「接着打上一局」（红键）；没有就「开始新的一局」当红键
@@ -5963,6 +5966,11 @@
     } else if (b.dataset.tier) {
       settings.tier = b.dataset.tier;
       saveSettings(); refreshSolo();
+      snd('tap');
+    } else if (b.dataset.mode) {
+      settings.rules = R.normalizeRules(Object.assign({}, settings.rules, { mode: b.dataset.mode }));
+      saveSettings(); refreshSolo();
+      fx.pop(b, { scale: 1.05, dur: 200 });
       snd('tap');
     }
   });
