@@ -4,10 +4,15 @@
  * 决策点：act（出什么 / 摸牌）、react（要不要作废）、give（被索要时给哪张）、pick（五张各不同捡哪张）、
  *         insert（炸毛猫塞哪）、alter（改命怎么排）、steal（偷哪张——扣着的牌没信息，随便点）。
  *
- * 三档（2026-11-14 按当时规则重训：标准牌量、万能猫、转向、塞回看得出大概位置；详见 ~/zhamao-rl/REPORT.md「重训」一节）：
- *   easy   入门：和普通同一套牌值，但不太会防守——顶上危险也很少窥探 / 躲，被甩锅多半硬摸
+ * 三档（2026-11-15 第二次重训，详见 ~/zhamao-rl/REPORT.md「看动作 / 连摸 / 塞猫 / 交换时机」一节）：
+ *   easy   入门：和普通同一套牌值，但不太会防守——顶上危险也很少窥探 / 躲，被甩锅多半硬摸；也不会下面那四招
  *   normal 普通：算牌堆顶是炸毛猫的概率（公开的塞猫历史 + 粗略高度 vis 一起估那只猫在哪），
- *          危险就窥探 / 躲 / 甩锅，知道顶上是炸毛猫就躲；没逗猫棒时想办法偷。牌值和阈值全部自博弈调出来（3–8 人局）
+ *          危险就窥探 / 躲 / 甩锅，知道顶上是炸毛猫就躲；没逗猫棒时想办法偷。另外四招（2026-11-15 用户提的）：
+ *          · 看别人的动作：窥探 / 改命后紧接着躲 → 顶上多半是炸毛猫；改命后自己摸了 → 第二张多半是（规则公开记 peek）
+ *          · 被甩锅要连摸几张：按「这几张里有炸毛猫」的合起来的概率决定先窥探 / 改命（lookMulti）
+ *          · 自己还要摸几张时拆了炸毛猫：塞在自己那几张之后（insSmart），别塞回自己要摸的范围里
+ *          · 交换看时机：牌堆用掉一半以前不换（swapPhase）
+ *          牌值和阈值全部自博弈调出来（3–8 人局；对手桌混了现普通 / 入门 / 小推演量高手，防止只对一种打法过拟合）
  *   hard   高手：以「普通」为底，出牌和塞炸毛猫用 PIMC——按自己知道的信息随机补全别人手牌和牌堆，
  *          每个候选在同一批假想局面里用「普通」打到底；出牌比普通的选择好出 ANCHOR 才换
  *
@@ -42,16 +47,18 @@
     swapMargin: 20, swapUnk: 12,
   });
   const P_HIST = Object.freeze({
-    vNope: 7.702, vTattack: 54.909, vAttack: 33.983, vSwap: 1.558, vSkip: 22.342, vBottom: 34.563, vAlter: 40.18, vFuture: 26.494, vShuffle: 24.51, vFavor: 40.225, vCatPair: 13.525, vCatSingle: 2.828, vReverse: 24.284, vWild: 23.3, lookDef: 0.721, lookNo: 0.041, dodgeDef: 0.752, dodgeNo: 0.252, multiAtk: 0.024, insTop: 0.034, insSpread: 1, nopeBackP: 0.474, bottomDef: 1, histW: 0.981, histTop: 0.917, visW: 0.598, shuffleAt: 0.767, revFirst: 0, swapMargin: 48.551, swapUnk: 25.601, swapKnown: 0,
+    vNope: 5.173868606282884, vTattack: 54.81251435426122, vAttack: 32.25433573800855, vSwap: 1.6378944775114421, vSkip: 26.390046944865855, vBottom: 34.74888220637459, vAlter: 44.095831358754346, vFuture: 35.57359491155989, vShuffle: 31.353431727146518, vFavor: 50.35570038735816, vCatPair: 11.353744369645538, vCatSingle: 7.431878472971573, lookDef: 0.7139460282283023, lookNo: 0.0752337634387242, dodgeDef: 0.5181769074015586, dodgeNo: 0.23920113740200882, multiAtk: 0.012377850538347163, insTop: 0.02492938216246054, insSpread: 1, nopeBackP: 0.4270700936922569, bottomDef: 1, vReverse: 21.31434164164689, vWild: 26.35809716610347, revFirst: 0, swapUnk: 27.96817849532888, swapMargin: 52.889793295711826, swapKnown: 0, histW: 0.9735790210284175, histTop: 0.9423860296710509, visW: 0.8451744270857915, shuffleAt: 0.3809381978339131, insSmart: 1, insOffset: 0.7931641120482025, lookMulti: 0.09776146289812056, swapPhase: 0.4464807106202662, sigFutDodge: 0.6179664537693169, sigAltDodge: 0.5769204278246585, sigAltDraw: 0.3841732271713346,
   });
 
   /* 入门（2026-11-14 重训起）= 新普通的牌值，但不太会防守：顶上危险也很少窥探 / 躲，被甩锅多半硬摸（look / dodge / multiAtk 调高）。
-   * 普通对它：3 / 4 / 6 / 8 人胜率 +6.3 / +4.3 / +4.9 / +5.6 个百分点——和高手比普通拉开的差不多，三档间距均匀 */
+   * 普通对它：3 / 4 / 6 / 8 人胜率 +10.1 / +4.4 / +5.6 / +4.5 个百分点；高手对普通 +10.8 / +8.5 / +6.1 / +4.1——三档间距均匀（2026-11-15） */
   const P_OLD = Object.freeze({
-    vNope: 7.702, vTattack: 54.909, vAttack: 33.983, vSwap: 1.558, vSkip: 22.342, vBottom: 34.563, vAlter: 40.18, vFuture: 26.494, vShuffle: 24.51, vFavor: 40.225, vCatPair: 13.525, vCatSingle: 2.828, vReverse: 24.284, vWild: 23.3, lookDef: 0.95, lookNo: 0.5, dodgeDef: 0.98, dodgeNo: 0.6, multiAtk: 0.6, insTop: 0.034, insSpread: 1, nopeBackP: 0.474, bottomDef: 1, histW: 0.981, histTop: 0.917, visW: 0.598, shuffleAt: 0.767, revFirst: 0, swapMargin: 48.551, swapUnk: 25.601, swapKnown: 0,
+    vNope: 5.173868606282884, vTattack: 54.81251435426122, vAttack: 32.25433573800855, vSwap: 1.6378944775114421, vSkip: 26.390046944865855, vBottom: 34.74888220637459, vAlter: 44.095831358754346, vFuture: 35.57359491155989, vShuffle: 31.353431727146518, vFavor: 50.35570038735816, vCatPair: 11.353744369645538, vCatSingle: 7.431878472971573, lookDef: 0.95, lookNo: 0.5, dodgeDef: 0.98, dodgeNo: 0.6, multiAtk: 0.6, insTop: 0.02492938216246054, insSpread: 1, nopeBackP: 0.4270700936922569, bottomDef: 1, vReverse: 21.31434164164689, vWild: 26.35809716610347, revFirst: 0, swapUnk: 27.96817849532888, swapMargin: 52.889793295711826, swapKnown: 0, histW: 0.9735790210284175, histTop: 0.9423860296710509, visW: 0.8451744270857915, shuffleAt: 0.3809381978339131, insSmart: 0, insOffset: 0.7931641120482025, sigFutDodge: 0, sigAltDodge: 0, sigAltDraw: 0,
   });
 
   const has = (v, k) => R.countKind(v.hand, k) > 0;
+  const D0 = new Map();   // 每种人数 / 规则开局牌堆有多少张（交换看时机用）
+  const deck0 = (v) => { const k = v.n + ':' + JSON.stringify(v.rules || {}); if (!D0.has(k)) D0.set(k, R.createGame(v.n, 1, v.rules).deck.length); return D0.get(k); };
   const one = (v, k) => R.findKind(v.hand, k);
   const pickRand = (arr, rng) => arr[(rng() * arr.length) | 0];
   function nextAliveV(v, seat) {   // 按当前出牌方向（转向以后反过来）
@@ -182,6 +189,12 @@
           out[i] = Math.min(1, ph + (1 - ph) * uniRest);
         } else out[i] = slots > 0 ? unk / slots : 1;
       }
+      // 看别人的动作猜（2026-11-14 用户）：窥探后接着躲 → 顶上多半是炸毛猫；改命后接着躲 → 同上；改命后自己摸了 → 他多半把炸毛猫排在第二张留给下家
+      const pk = v.peek;
+      if (pk && pk.by !== v.me && pk.act) {
+        const sig = pk.act === 'dodge' ? { o: 0, w: pk.kind === 'future' ? (P.sigFutDodge || 0) : (P.sigAltDodge || 0) } : pk.kind === 'alter' ? { o: 1, w: P.sigAltDraw || 0 } : null;
+        if (sig && sig.w > 0) { const i2 = sig.o - pk.top; if (i2 >= 0 && i2 < out.length && !knownAt.has(i2)) out[i2] = out[i2] + sig.w * (1 - out[i2]); }
+      }
       return out;
     }
     function topInfo(v) {
@@ -196,6 +209,7 @@
      * 规则 swapDefuse 开着时逗猫棒也换：我的逗猫棒算进「换走的」（按满分 30 计，舍不得），对方的牌全算未知 */
     function swapMove(v) {
       if (!has(v, R.SWAP)) return null;
+      if (P.swapPhase != null && v.deckSize > P.swapPhase * deck0(v)) return null;   // 牌堆还剩很多时先不换（早换没意义，牌还会变）
       const sid = one(v, R.SWAP);
       const all = !!(v.rules && v.rules.swapDefuse);
       const mine = v.hand.filter((id) => id !== sid && (all || K[id] !== R.DEFUSE));
@@ -267,6 +281,15 @@
       const dodgeAt = def ? P.dodgeDef : P.dodgeNo;
       if (risk >= lookAt && has(v, R.FUTURE) && v.deckSize > 1) return playMove([one(v, R.FUTURE)]);
       if (risk >= lookAt && has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);
+      if (P.lookMulti != null && v.turnsLeft >= 2 && v.deckSize > 1 && (has(v, R.FUTURE) || has(v, R.ALTER))) {
+        // 要连着摸好几张：按「接下来这几张里有炸毛猫」的概率决定先看一眼 / 改命，看完按已知的安全牌连着摸
+        const mK = Math.min(v.turnsLeft, 3, v.deckSize), kn = new Set(v.known.map((x) => x.pos));
+        let allKnown = true; for (let i = 0; i < mK; i++) if (!kn.has(i)) allKnown = false;
+        if (!allKnown) {
+        const b = kittenBelief(v, mK); const riskK = 1 - b.reduce((a, p) => a * (1 - p), 1);
+        if (riskK >= P.lookMulti) return playMove([one(v, has(v, R.FUTURE) ? R.FUTURE : R.ALTER)]);
+        }
+      }
       if (v.turnsLeft >= 2 && risk >= P.multiAtk) { const am = attackMove(v); if (am) return am; }
       if (risk >= dodgeAt) {
         const am = attackMove(v);
@@ -336,6 +359,7 @@
     function insert(v, tier, rng) {
       const size = v.deckSize; // 塞之前牌堆的张数：pos 0..size
       if (tier === 'easy') return (rng() * (size + 1)) | 0;
+      if (v.turnsLeft > 1 && P.insSmart) return Math.min(size, (v.turnsLeft - 1) + Math.round(P.insOffset || 0));   // 自己还要摸几张：塞在我这几张之后（正好留给后面的人）
       if (v.turnsLeft > 1) return Math.min(size, 2 + ((rng() * Math.max(1, size - 1)) | 0)); // 自己还要摸，别塞顶上
       if (rng() < P.insTop) return 0;
       return Math.min(size, 1 + ((rng() * P.insSpread) | 0));
@@ -400,6 +424,7 @@
       winner: -1, seq: 0, memo,
     };
     if (v.ins !== undefined) s.ins = v.ins && Object.assign({}, v.ins);
+    if (v.peek !== undefined) s.peek = v.peek && Object.assign({}, v.peek);
     if (v.phase === 'defuse') { s.phase = 'defuse'; s.defuse = { by: v.me, card: v.defuse.card }; }
     if (v.phase === 'react' && v.pending) {
       s.phase = 'react';
@@ -515,7 +540,8 @@
 
   function hardInsert(v, rng) {
     const size = v.deckSize;
-    const cands = Array.from(new Set([0, 1, 2, 3, Math.floor(size / 2), size].filter((p) => p <= size)));
+    const rem = Math.max(0, v.turnsLeft - 1);   // 自己还要摸的张数：塞在这之后也是候选
+    const cands = Array.from(new Set([0, 1, 2, 3, rem, rem + 1, rem + 2, Math.floor(size / 2), size].filter((p) => p <= size)));
     const scores = evaluate(v, (s, pos) => R.insertKitten(s, v.me, pos), cands, INSERT_S, rng);
     return cands[argmax(scores)];
   }

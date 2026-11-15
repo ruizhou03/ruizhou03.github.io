@@ -183,7 +183,7 @@
       n, rules, rs: (seed >>> 0) || 1,
       deck: [], discard: [], removed: [], hands: [], alive: [], outOrder: [],
       turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
-      winner: -1, seq: 0, memo: newMemo(n), ins: null,
+      winner: -1, seq: 0, memo: newMemo(n), ins: null, peek: null,
       dir: 1,   // 出牌方向：1 = 座位号往上走（桌上画成逆时针），-1 = 打过单数张转向后反过来
     };
     const booms = [], defuses = [], rest = [], swaps = [], unused = [];
@@ -231,7 +231,7 @@
       give: s.give && Object.assign({}, s.give), pick: s.pick && Object.assign({}, s.pick), defuse: s.defuse && Object.assign({}, s.defuse),
       alter: s.alter && { by: s.alter.by, cards: s.alter.cards.slice() },
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
-      winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, dir: s.dir || 1,
+      winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
   }
@@ -323,6 +323,7 @@
   function play(s, seat, cards, opts) {
     opts = opts || {};
     const c = checkPlay(s, seat, cards, opts);
+    if (s.peek && s.peek.by === seat && s.peek.act == null && s.peek.top === 0 && [ATTACK, TATTACK, SKIP, REVERSE, BOTTOM].indexOf(c.type) >= 0) s.peek.act = 'dodge';   // 看过顶上、接着就躲（大家都看得到）
     if (!c) throw new Error('illegal play');
     for (const id of cards) { s.hands[seat].splice(s.hands[seat].indexOf(id), 1); s.discard.push(id); forgetCard(s, id); }
     s.seq += 1;
@@ -401,6 +402,7 @@
       case SHUFFLE:
         shuffleIn(s, s.deck);
         s.ins = null;
+        s.peek = null;
         for (const m of s.memo) m.deck = [];
         ev.push({ t: 'shuffle', seat: me });
         break;
@@ -409,6 +411,7 @@
         const m = s.memo[me].deck;
         for (const id of top) if (m.indexOf(id) < 0) m.push(id);
         ev.push({ t: 'future', seat: me, cards: top, priv: [me] });
+        s.peek = { by: me, kind: 'future', top: 0, act: null };
         break;
       }
       case ALTER: {
@@ -521,6 +524,7 @@
     if (s.ins && s.ins.seen) s.ins.seen = null;   // 改命动过顶上几张：大家看到它塞在最上 / 最底的那点信息不准了
     s.alter = null;
     s.phase = 'act';
+    s.peek = { by: seat, kind: 'alter', top: 0, act: null };
     return [{ t: 'altered', seat, cards: order.slice(), priv: [seat] }];
   }
 
@@ -531,6 +535,7 @@
   }
   // 摸一张（bottom = 从最底下摸，抽底用）：事件带 bottom 标记，动画从牌堆底下抽
   function takeCard(s, seat, bottom) {
+    if (s.peek && !bottom) { if (s.peek.by === seat && s.peek.act == null && s.peek.top === 0) s.peek.act = 'draw'; s.peek.top += 1; }
     const id = bottom ? s.deck.pop() : s.deck.shift();
     const B = bottom ? { bottom: true } : null;
     s.seq += 1;
@@ -601,6 +606,7 @@
     // vis 也放进公开历史：动画里人人看得到的那个粗略高度，机器猫也按它估（2026-11-14 重训）
     s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
     s.seq += 1;
+    s.peek = null;
     const ev = [{ t: 'insert', seat, card: id, pos, size: s.deck.length, vis, priv: [seat] }];
     endOneTurn(s, ev);
     return ev;
@@ -642,6 +648,7 @@
       defuse: s.defuse && (s.defuse.by === seat ? { by: seat, card: s.defuse.card } : { by: s.defuse.by }),
       alter: s.alter && (s.alter.by === seat ? { by: seat, cards: s.alter.cards.slice() } : { by: s.alter.by }),
       steal: s.steal && { by: s.steal.by, from: s.steal.from, count: s.steal.perm.length },
+      peek: s.peek ? Object.assign({}, s.peek) : null, // 公开：最近谁窥探 / 改命过顶上三张、之后从顶上摸走了几张、他自己接着是躲了（dodge）还是摸了（draw）
       ins: s.ins ? Object.assign({}, s.ins) : null, // 公开：最近一次塞回炸毛猫的人、塞完后牌堆张数、之后从顶 / 底各摸走几张
       removed: s.removed.slice(), // 收进盒子的牌种是公开的（多余的炸毛猫 / 逗猫棒）
     };
