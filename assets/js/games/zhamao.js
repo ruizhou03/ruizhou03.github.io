@@ -1802,7 +1802,18 @@
   }
   /* ───── 预览：扣锅版甩锅动画（data-uiv-turns="hat" 时才走）───── */
   // 头上那口锅的位置和大小（和 CSS .zm-pm-hat 一致：头像宽的 76%，偏左、往上探 30%）
-  const hatBox = (seat) => { const r = avEl(seat).getBoundingClientRect(); const w = r.width * 0.76; return { x: r.left + r.width * 0.04 + w / 2, y: r.top - r.height * 0.30 + w / 2, w }; };
+  /* 头上那口锅最后停在哪（和 CSS 的 .zm-pm-hat 一模一样：left 4% / top -30% / 宽 76%，绕自身 (50%, 70%) 转 -12°）。
+   * 2026-11-14 用户：甩锅动画落定的位置和锅最后停的位置差一点。原因：以前按头像当下的屏幕框量，动画开始那一刻头像正在「弹一下」
+   * （缩到 42px 左右），量出来的锅偏小偏高；另外 CSS 绕 (50%, 70%) 转、飞的锅绕中心转，中心又差一点点。
+   * 现在按排版尺寸（不受动画缩放影响）算，再把转轴的差补上 */
+  const HAT_SIN = Math.sin(12 * Math.PI / 180), HAT_COS = Math.cos(12 * Math.PI / 180);
+  const hatBox = (seat) => {
+    // 位置用头像在屏幕上的中心（「弹一下」是绕中心缩放，中心不动）；大小用排版尺寸（不受缩放影响，也没有取整误差）
+    const av = avEl(seat), r = av.getBoundingClientRect(), W = av.offsetWidth, H = av.offsetHeight;
+    const L = r.left + r.width / 2 - W / 2, T = r.top + r.height / 2 - H / 2;
+    const w = W * 0.76;
+    return { x: L + W * 0.04 + w / 2 - 0.2 * w * HAT_SIN, y: T - H * 0.30 + w / 2 + 0.2 * w * (1 - HAT_COS), w };
+  };
   const hatT = (x, y, w, size, rot, flip) => 'translate(' + (x - size / 2).toFixed(1) + 'px,' + (y - size / 2).toFixed(1) + 'px) rotate(' + rot + 'deg) scale(' + (w / size).toFixed(3) + ',' + ((flip ? -1 : 1) * w / size).toFixed(3) + ')';
   function flyPot(size) { const p = document.createElement('div'); p.className = 'zm-prop zm-prop-hat'; p.innerHTML = ART.PROPS.pot; p.style.width = p.style.height = size + 'px'; els.fly.appendChild(p); return p; }
   function hatLabel(hb) { const el = document.createElement('div'); el.className = 'zm-hat-lab'; el.style.fontSize = Math.max(9, hb.w * 0.36).toFixed(1) + 'px'; els.fly.appendChild(el); return el; }
