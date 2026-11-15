@@ -78,7 +78,8 @@
     let best = -1, score = -1;
     for (const t of targets(v)) {
       const knows = wantKind ? v.handKnown[t].some((id) => K[id] === wantKind) : false;
-      const sc = v.counts[t] + (knows ? 100 : 0);
+      const shadow = v.roles && v.roles[t] === 'shadow' && v.roleUsed && !v.roleUsed[t];   // 角色猫「黑猫」第一次会溜走：先别偷他
+      const sc = v.counts[t] + (knows ? 100 : 0) - (shadow ? 1000 : 0);
       if (sc > score) { score = sc; best = t; }
     }
     return best;
@@ -246,7 +247,8 @@
         const five = fiveCats(v);
         if (five && v.discard.some((id) => K[id] === R.DEFUSE)) return playMove(five);
       }
-      const pr = catPair(by);
+      let pr = catPair(by);
+      if (!pr && v.roles && v.roles[v.me] === 'calico') { const cs = v.hand.filter((id) => R.catLike(K[id])); if (cs.length >= 2) pr = cs.slice(0, 2); }   // 角色猫「三花」：任意两只猫
       if (pr) return playMove(pr, t);
       if (has(v, R.FAVOR)) return playMove([one(v, R.FAVOR)], t);
       if (desperate) for (const k of Object.keys(by)) if (k !== R.DEFUSE && by[k].length >= 2) return playMove(by[k].slice(0, 2), t);

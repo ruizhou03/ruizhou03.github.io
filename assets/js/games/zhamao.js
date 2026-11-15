@@ -869,6 +869,29 @@
     const nT = turn && (d.turnsLeft > 1 || game.attackSeat === seat) ? d.turnsLeft : 0;
     const tv = els.app.dataset.uivTurns;   // 预览（本机对比，未定）：hat 扣锅 / ring 红圈分段 / beads 红珠
     if (tv) { setBadge(av, 'zm-turns', ''); setPotMark(av, tv, nT); } else setBadge(av, 'zm-turns', nT ? '×' + nT : '');
+    // 角色猫：头像左上角一枚小猫头（这只角色），一局一次的技能用掉了就变灰
+    const role = s.roles ? s.roles[seat] : null;
+    let rb = av.querySelector('.zm-role');
+    if (!role) { if (rb) rb.remove(); }
+    else {
+      if (!rb || rb.dataset.role !== role) { if (rb) rb.remove(); rb = document.createElement('i'); rb.className = 'zm-role'; rb.dataset.role = role; rb.innerHTML = roleArt(role); av.appendChild(rb); }
+      const info = R.ROLES.find((r) => r.id === role);
+      rb.classList.toggle('is-used', !!(info && info.once && s.roleUsed && s.roleUsed[seat]));
+      rb.title = info ? info.name + '：' + info.desc : '';
+    }
+  }
+  /* 角色猫的小猫头（24×24）：每只一种毛色 / 花纹 */
+  const ROLE_LOOK = {
+    timid: ['#c9d3e2', { eyes: 'wide', ear: '#e6c3cf' }],
+    fat: ['#eea25a', { ear: '#f6b9a6' }],
+    shadow: ['#2f2b28', { eyes: 'side', ear: '#6b5a55', blushC: '#8a5a5a' }],
+    cow: ['#fbf7ee', { ear: '#f3c2c8', patch: '<ellipse cx="-10" cy="-7" rx="9" ry="7" fill="#2a2622"/><ellipse cx="11" cy="9" rx="6" ry="4.5" fill="#2a2622"/>' }],
+    calico: ['#fbf4e6', { ear: '#f3c2c8', patch: '<ellipse cx="-10" cy="-6" rx="9" ry="7" fill="#e58e46"/><ellipse cx="11" cy="-5" rx="7" ry="6" fill="#2a2622"/>' }],
+    tabby: ['#a88c6c', { ear: '#e9c3b0' }],
+  };
+  function roleArt(role) {
+    const L = ROLE_LOOK[role] || ROLE_LOOK.fat;
+    return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ART.catHead(12, 13.5, role === 'fat' ? 0.46 : 0.42, L[0], L[1]) + '</svg>';
   }
   /* 预览：甩锅标记的三种新画法（都不往头像外面伸出角标）
    * hat  扣锅：一口倒扣的锅扣在头上（「把锅扣他头上」），锅肚上写 ×N；摸完一回合数字弹一下，全摸完锅被掀飞
@@ -1128,6 +1151,15 @@
     await wait(ms(500));
     if (t !== token) return;
     await animInsert({ seat: e.seat, vis: null }, t);
+  }
+  // 角色猫技能触发：冒一句话；胆小猫是我自己的话，把偷看到的那张亮给我看
+  async function animRole(e, t) {
+    const txt = { timid: '偷看了一眼', shadow: '溜走了！', cow: '少摸一张', tabby: '这张挡不住！' }[e.role];
+    const av = avEl(e.seat), rb = av && av.querySelector('.zm-role');
+    if (rb) fx.pop(rb, { scale: 1.6, dur: 420 });
+    if (e.role === 'timid' && e.seat === 0 && e.cards) await animFuture({ t: 'future', seat: 0, cards: e.cards }, t);
+    else if (txt) { bubble(e.seat, txt, { loud: true, ms: 1600 }); await wait(ms(650)); }
+    if (t === token) renderSeat(e.seat);
   }
   // 组队：队友摸到炸毛猫没逗猫棒——他喊「救我！」，有逗猫棒的队友想一下
   async function animAskRescue(e, t) {
@@ -1696,6 +1728,7 @@
       case 'flux': return animFlux(e, t);
       case 'nine': return animNine(e, t);
       case 'askRescue': return animAskRescue(e, t);
+      case 'role': return animRole(e, t);
       case 'noRescue': bubble(e.by, '没逗猫棒了…', { ms: 1400 }); return wait(ms(500));
       case 'out': return animOut(e, t);
       case 'win': return;
@@ -3845,10 +3878,17 @@
     });
   }
 
+  // 角色猫：这一桌每个人是哪只猫、技能是什么
+  function rolesHtml() {
+    const st = game && game.state;
+    if (!st || !st.roles) return (settings.rules || {}).mode === 'roles' ? '<h3>角色猫</h3><ul>' + R.ROLES.map((r) => '<li><b>' + r.name + '</b>　' + r.desc + '</li>').join('') + '</ul>' : '';
+    return '<h3>角色猫（这一桌）</h3><ul class="zm-role-list">' + st.roles.map((r, k) => { const info = R.ROLES.find((x) => x.id === r); return '<li><i class="zm-role is-inline">' + roleArt(r) + '</i><b>' + esc(nameOf(k)) + (k === 0 ? '（我）' : '') + ' · ' + info.name + '</b>　' + info.desc + (info.once && st.roleUsed && st.roleUsed[k] ? '（已用）' : '') + '</li>'; }).join('') + '</ul>';
+  }
   function rulesHtml() {
     const li = (k, t) => '<li>' + cardHtml(k) + '<b>' + R.NAMES[k] + '</b>　' + t + '</li>';
     const teamRules = ((game && game.state && game.state.rules) || settings.rules || {}).mode === 'team';
     return '<div class="zm-rules"><h2>怎么玩</h2>' +
+      (rolesHtml()) +
       (teamRules ? '<h3>组队（2v2）</h3><ul><li>4 个人，坐对面的是队友（头像同一个颜色的光圈），两队轮流出牌。</li><li>你和队友谁窥探 / 改命，另一个人也看得到那几张。</li><li>摸到炸毛猫又没有逗猫棒：队友手里有逗猫棒就能救你（他的逗猫棒用掉，你自己把炸毛猫塞回去）。</li><li>一队全炸毛出局，另一队赢——只剩一个人也算赢。</li></ul>' : '') +
       '<p>牌堆里藏着炸毛猫（比人数少一只）。轮到你时，可以出任意多张牌，也可以一张不出，<b>最后摸一张牌结束回合</b>。摸到炸毛猫、手里又没有逗猫棒，就出局。撑到最后的人赢。</p>' +
       '<h3>每人开局</h3><ul><li>4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸毛猫是里面还有几只。</li></ul>' +
@@ -4560,7 +4600,8 @@
   let coverFrom = 'main';   // 选人数那一屏「‹ 返回」回哪：有上一局时回「接着打 / 开新的」那一步
   const SOLO_MAX = R.MAX_PLAYERS;   // 9 人（6 人起用两副牌）
   // 2026-11-15 组队单机正式开放（两队标记用户挑甲 · 同色光圈）
-  const SOLO_MODES = [['classic', '经典', 'boom'], ['flux', '百变', 'flux'], ['team', '组队', 'favor']];
+  const ROLE_LAB = (() => { try { const q = new URLSearchParams(location.search); if (q.has('zmroles')) localStorage.setItem('zm.rolelab', '1'); return localStorage.getItem('zm.rolelab') === '1'; } catch (_) { return false; } })();   // 角色猫还在等用户看样子，先藏着
+  const SOLO_MODES = [['classic', '经典', 'boom'], ['flux', '百变', 'flux'], ['team', '组队', 'favor']].concat(ROLE_LAB ? [['roles', '角色', 'calico']] : []);
   const miniCard = (k) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm">' + R.NAMES[k] + '</b></span>'; };
   const soloN = () => (R.normalizeRules(settings.rules).mode === 'team' ? 4 : Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players)));   // 组队只有 4 人
   function refreshSolo() {
@@ -4576,6 +4617,7 @@
     $('zmSoloFaces').style.setProperty('--fs', Math.min(34, Math.floor((fw + (n - 1) * lap) / n)) + 'px');
     // 玩法（2026-11-15 用户挑甲：先单机 / 联机，再在这张卡最上面选玩法；以后的组队 / 角色猫往这排后面加）
     const mode = R.normalizeRules(settings.rules).mode;
+    $('zmSoloModes').style.setProperty('--n', SOLO_MODES.length);
     $('zmSoloModes').innerHTML = SOLO_MODES.map(([m, name, k]) => '<button type="button" data-mode="' + m + '" aria-pressed="' + (m === mode) + '">' + miniCard(k) + '<b>' + name + '</b></button>').join('');
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
     const saved = loadSaved(), rb = els.cover.querySelector('[data-cover="resume-solo"]');

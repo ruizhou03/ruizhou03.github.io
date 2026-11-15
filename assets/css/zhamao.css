@@ -1265,7 +1265,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-deck-face { position: absolute; left: 0; top: 0; width: var(--pu); pointer-events: none; z-index: 1; }
 .zm-deck-face .zm-card { position: relative; box-shadow: 0 0 0 2px #e9c86a, 0 3px 8px rgba(29, 27, 24, 0.2); }
 /* 单机开局卡最上面的「玩法」（2026-11-15 用户挑甲：先单机 / 联机，再选玩法）：一张张玩法牌，选中的墨底白字 */
-.zm-solo-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; align-self: stretch; }   /* 三种玩法一排：牌在上、名字在下 */
+.zm-solo-modes { display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); gap: 6px; align-self: stretch; }   /* 三种玩法一排：牌在上、名字在下 */
 .zm-solo-modes button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 4px 5px; border-radius: 12px; border: 1.5px solid var(--zm-ink); background: var(--zm-paper); color: var(--zm-ink); font: inherit; font-size: 14px; font-weight: 700; letter-spacing: 0.08em; cursor: pointer; }
 .zm-solo-modes button[aria-pressed="true"] { background: var(--zm-ink); color: #fffaf0; }
 .zm-solo-modes .zm-card { --cw: 25px; width: 25px; display: block; flex: none; box-shadow: 0 2px 6px rgba(29, 27, 24, 0.18); }
@@ -1276,3 +1276,10 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-seat-mate .zm-name { font-size: 11.5px; max-width: 72px; }
 .zm-app.is-team .zm-seat[data-team="us"] .zm-av { box-shadow: 0 0 0 2.5px #e2b85c, 0 0 0 4px var(--zm-paper); }
 .zm-app.is-team .zm-seat[data-team="them"] .zm-av { box-shadow: 0 0 0 2.5px #7d93b2, 0 0 0 4px var(--zm-paper); }
+/* ═════ 角色猫（2026-11-15）：头像左上角一枚小猫头，技能用掉变灰 ═════ */
+.zm-av .zm-role { position: absolute; left: -7px; top: -7px; width: 24px; height: 24px; border-radius: 50%; background: var(--zm-paper); box-shadow: 0 0 0 1.5px var(--zm-ink); z-index: 4; display: block; overflow: hidden; }
+.zm-av .zm-role svg { width: 100%; height: 100%; display: block; border-radius: 0; }
+.zm-role.is-used { filter: grayscale(1); opacity: 0.45; }
+.zm-role.is-inline { position: relative; left: 0; top: 0; display: inline-block; width: 22px; height: 22px; border-radius: 50%; vertical-align: -6px; margin-right: 6px; box-shadow: 0 0 0 1.2px var(--zm-ink); background: var(--zm-paper); overflow: hidden; }
+.zm-role.is-inline svg { width: 100%; height: 100%; display: block; }
+.zm-role-list li { margin-bottom: 4px; }
