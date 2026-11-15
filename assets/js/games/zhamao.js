@@ -291,8 +291,10 @@
   /* ───── 座位 ───── */
   // 轮到谁（照拱猪）：头像描一圈朱红、外面一道淡光；限时的话外圈一道红环顺时针收走，最后 5 秒头像跳
   const CLOCK_SVG = '<svg class="zm-clock" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="23" pathLength="100"/></svg>';
-  function seatOrder() { const out = []; for (let s = game.state.n - 1; s >= 1; s--) out.push(s); return out; }
-  function seatEl(seat) { return seat === 0 ? els.me : els.opps.querySelector('[data-seat="' + seat + '"]'); }
+  /* 2v2 组队（2026-11-15 用户）：队友（对面那位 = 2 号）的头像放到底下一行——我、摸牌 / 出牌右边那块空位；上面一排只剩两个对手 */
+  const teamGame = () => !!(game && game.state && R.isTeam && R.isTeam(game.state));
+  function seatOrder() { const out = []; for (let s = game.state.n - 1; s >= 1; s--) if (!(teamGame() && s === 2)) out.push(s); return out; }
+  function seatEl(seat) { return seat === 0 ? els.me : teamGame() && seat === 2 ? els.mate : els.opps.querySelector('[data-seat="' + seat + '"]'); }
   function avEl(seat) { const s = seatEl(seat); return s && s.querySelector('.zm-av'); }
   /* 游戏框（牌桌的双线裱框，内线缩进 6px）左右能放东西的范围：飞出来的扇面 / 点名牌都别越过内线（2026-11-13 用户：最左 / 最右那家手牌多时扇面出框）。
    * 以前按整个窗口算，手机上贴着边、电脑上桌子居中时更是直接跑到框外 */
@@ -309,6 +311,17 @@
       els.opps.appendChild(d);
     });
     els.me.dataset.seat = 0;
+    if (els.mate) { els.mate.remove(); els.mate = null; }
+    if (teamGame()) {
+      els.mate = document.createElement('section');
+      els.mate.className = 'zm-seat zm-seat-mate';
+      els.mate.dataset.seat = 2;
+      els.mate.addEventListener('click', () => onSeatTap(2));
+      els.me.parentNode.appendChild(els.mate);
+    }
+    // 两队各自的标记（队友和我一个样，两个对手一个样）
+    els.app.classList.toggle('is-team', teamGame());
+    for (let k = 0; k < game.state.n; k++) seatEl(k).dataset.team = teamGame() ? (k % 2 === 0 ? 'us' : 'them') : '';
     for (let s = 0; s < game.state.n; s++) seatEl(s).innerHTML = '';
     layoutOpps();
   }
@@ -384,7 +397,7 @@
     if (!els.dir) { els.dir = document.createElement('div'); els.dir.setAttribute('aria-hidden', 'true'); els.table.appendChild(els.dir); }
     els.dir.className = 'zm-dir';
     const n = game && game.state ? game.state.n : 0;
-    if (n < 3 || !els.opps.children.length) { els.dir.innerHTML = ''; return; }
+    if (n < 3 || !els.opps.children.length || teamGame()) { els.dir.innerHTML = ''; return; }   // 组队：轮流顺序是两队交替、不是绕桌一圈，不画小箭头
     if (els.dir.children.length !== n - 2) els.dir.innerHTML = Array.from({ length: n - 2 }, () => '<i>' + DIR3_SVG + '</i>').join('');
     els.dir.style.setProperty('--cyc', Math.max(2.6, (n - 2) * 0.18 + 1.8).toFixed(2) + 's');
     placeDir();
@@ -435,10 +448,10 @@
     const gap = W < 520 ? 13 : 9;
     const anchor = (seat) => {
       // 取整：小数点后的抖动不该让整圈重画
-      if (seat === 0) { const r = avEl(0).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(r.top - 9 - tb.top) }; }
+      if (seat === 0 || (teamGame() && seat === 2)) { const r = avEl(seat).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(avEl(0).getBoundingClientRect().top - 9 - tb.top) }; }   // 组队：队友在底边上
       const r = seatEl(seat).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(r.bottom + gap - tb.top) };
     };
-    const opp = []; for (let i = 1; i < n; i++) opp.push(anchor(i));
+    const opp = []; for (let i = 1; i < n; i++) if (!(teamGame() && i === 2)) opp.push(anchor(i));   // 顶边只按上面一排拟合
     const me = anchor(0), m = 16, R = 26, yb = me.y;
     /* 顶边：不再硬穿过每家下面的点（手机上最右 / 最左那家比圆角还靠外，线会折回来，接缝不顺）——
      * 用一条抛物线 y = a·x² + b·x + c 拟合各家下面的点，再整条往下挪到不压住任何一家；两个圆角顺着这条线的切线接上去，处处光滑 */
@@ -1116,6 +1129,21 @@
     if (t !== token) return;
     await animInsert({ seat: e.seat, vis: null }, t);
   }
+  // 组队：队友摸到炸毛猫没逗猫棒——他喊「救我！」，有逗猫棒的队友想一下
+  async function animAskRescue(e, t) {
+    bubble(e.for, '救我！', { loud: true, alarm: true, ms: 2200 });
+    if (e.by !== 0) bubble(e.by, '', { think: true, ms: 1400 });
+    await wait(ms(500));
+    void t;
+  }
+  function rescueDialog() {
+    const s = game.state, who = nameOf(s.rescue.for);
+    openDialog('<h2>队友炸毛了！</h2><p>' + who + '摸到了炸毛猫、手里没有逗猫棒。用你的逗猫棒救他吗？（救了你就少一根）</p>' +
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-no>不救</button><button type="button" class="zm-btn zm-btn-primary" data-yes data-focus>救他</button></div>', (d) => {
+      d.querySelector('[data-yes]').addEventListener('click', () => { closeDialog(); apply(0, { type: 'rescue', yes: true }); });
+      d.querySelector('[data-no]').addEventListener('click', () => { closeDialog(); apply(0, { type: 'rescue', yes: false }); });
+    });
+  }
   // 百变「明塞」：塞完在牌堆旁亮一下「第 N 张」
   function insertAtLabel(at) {
     const r = els.deck.getBoundingClientRect();
@@ -1541,6 +1569,10 @@
         if (s.alter.by === 0) { busy = false; alterDialog(); }
         else schedule(pace().bot, () => apply(s.alter.by, decideBot(s.alter.by)));
         break;
+      case 'rescue':
+        if (s.rescue.by === 0) { busy = false; rescueDialog(); }
+        else schedule(pace().bot, () => apply(s.rescue.by, decideBot(s.rescue.by)));
+        break;
       case 'defuse':
         if (s.defuse.by === 0) {
           if (!s.deck.length && !(tut && tut.allow && !tut.allow({ type: 'insert', pos: 0 }))) { schedule(ms(260), () => apply(0, { type: 'insert', pos: 0 })); break; }
@@ -1596,6 +1628,7 @@
       else if (d.type === 'insert') ev = R.insertKitten(s, seat, d.pos, !!d.rand);
       else if (d.type === 'alter') ev = R.alterTop(s, seat, d.order);
       else if (d.type === 'steal') ev = R.stealPick(s, seat, d.idx);
+      else if (d.type === 'rescue') ev = R.rescue(s, seat, !!d.yes);
       else throw new Error('bad move');
     } catch (err) {
       console.error(err, d);
@@ -1662,6 +1695,8 @@
       case 'insert': return animInsert(e, t).then(() => { if (e.at != null && t === token) insertAtLabel(e.at); });
       case 'flux': return animFlux(e, t);
       case 'nine': return animNine(e, t);
+      case 'askRescue': return animAskRescue(e, t);
+      case 'noRescue': bubble(e.by, '没逗猫棒了…', { ms: 1400 }); return wait(ms(500));
       case 'out': return animOut(e, t);
       case 'win': return;
     }
@@ -2099,7 +2134,8 @@
   async function animFuture(e, t) {
     snd('peek');
     const r = deckTopRect(), pu = PU();
-    if (e.cards && e.seat === 0) {
+    const mateSaw = teamGame() && e.seat === 2;   // 组队：队友窥探到的三张我也看得到
+    if (e.cards && (e.seat === 0 || mateSaw)) {
       const u = e.cards.length > 3 ? Math.min(POP(), (els.center.getBoundingClientRect().width - 16) / (e.cards.length * 1.12)) : POP();   // 百变「千里眼」看 5 张：排得下
       if (ov) { ov.lifted = (ov.lifted || 0) + e.cards.length; renderPiles(); }   // 拿起来的几张：牌堆看着薄了，数字不变（牌并没被拿走）
       const box = els.center.getBoundingClientRect(), c = fx.center(box);
@@ -2114,7 +2150,7 @@
       const labels = ['最上面', '第 2 张', '第 3 张', '第 4 张', '第 5 张'];
       // 自己收起的倒计时（2026-11-14 用户：托管打出窥探后没人点「知道了」，整局卡住）：托管 1.8 秒；联机 4 秒（服务器的出牌限时在走）；
       // 单机有出牌限时就 6 秒；单机不限时、自己在打才等我点
-      const peekLimit = autopilot ? 1800 : game.online ? 4000 : turnSec() > 0 ? 6000 : 0;
+      const peekLimit = mateSaw ? 2800 : autopilot ? 1800 : game.online ? 4000 : turnSec() > 0 ? 6000 : 0;
       const lay = document.createElement('div');
       lay.className = 'zm-peek';
       lay.innerHTML = spots.map((p, i) => '<span class="zm-peek-lab" style="left:' + p.x + 'px;top:' + (p.y + u * 0.78) + 'px">' + labels[i] + '</span>').join('') +
@@ -2772,8 +2808,10 @@
     return el;
   }
   function takeDefuseCard(e) {
-    const src = e.seat === 0 ? handRectOf(e.card) : avPoint(e.seat);
-    if (e.seat === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.seat] -= 1; renderSeat(e.seat); }
+    const who = e.from != null ? e.from : e.seat;   // 组队：队友出的逗猫棒从队友那儿飞出来
+    const src = who === 0 ? handRectOf(e.card) : avPoint(who);
+    if (who === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[who] -= 1; renderSeat(who); }
+    if (e.rescue) bubble(who, '接着！', { loud: true, ms: 1600 });
     return src;
   }
   async function defuseToDiscard(e, t, from, w) {
@@ -3777,7 +3815,9 @@
     const s = game.state;
     clearStage();
     renderAll();
-    const order = [s.winner].concat(s.outOrder.slice().reverse());
+    // 组队：赢的那一队（还活着的）都排在最前、都写「胜利」，然后按出局顺序倒着排
+    const winners = teamGame() ? s.alive.map((a, k) => (a ? k : -1)).filter((k) => k >= 0) : [s.winner];
+    const order = winners.concat(s.outOrder.slice().reverse());
     const won = s.winner === 0;
     const ok = await celebrate(s.winner);
     if (!ok) return;
@@ -3797,8 +3837,8 @@
     }
     try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ }
     bgm('menu');   // 结算页算游戏外：接上丁（一局结束时先淡出，皇冠彩纸放完、排行榜出来再起）
-    openDialog('<h2>排行榜</h2>' +
-      '<ol class="zm-rank" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 ? '<small>（我）</small>' : '') + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
+    openDialog('<h2>' + (teamGame() ? (s.winnerTeam === 0 ? '我们队赢了！' : '对面那队赢了') : '排行榜') + '</h2>' +
+      '<ol class="zm-rank" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 ? '<small>（我）</small>' : '') + '</span><span class="tag">' + (i < winners.length ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', (d) => {
       d.querySelector('[data-again]').addEventListener('click', () => { closeDialog(); newGame(); });
       d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
@@ -4470,7 +4510,7 @@
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     tut = null;
     els.skipTut.hidden = true;
-    const n = settings.players;
+    const n = R.normalizeRules(settings.rules).mode === 'team' ? 4 : settings.players;
     const st = R.createGame(n, (Math.random() * 2 ** 31) | 0, settings.rules);
     game = { state: st, bots: drawBots(n, settings.tier), tiers: [null].concat(Array(n - 1).fill(settings.tier)), tutorial: false };
     els.cover.hidden = true;
@@ -4517,13 +4557,15 @@
   els.cover.querySelectorAll('.zm-solo-back').forEach((b) => { b.innerHTML = BACK_ART; });
   let coverFrom = 'main';   // 选人数那一屏「‹ 返回」回哪：有上一局时回「接着打 / 开新的」那一步
   const SOLO_MAX = R.MAX_PLAYERS;   // 9 人（6 人起用两副牌）
-  const SOLO_MODES = [['classic', '经典', 'boom'], ['flux', '百变', 'flux']];
+  const TEAM_LAB = (() => { try { const q = new URLSearchParams(location.search); if (q.has('zmteam')) localStorage.setItem('zm.teamlab', '1'); return localStorage.getItem('zm.teamlab') === '1'; } catch (_) { return false; } })();   // 组队还在等用户挑两队的标记，先藏着
+  const SOLO_MODES = [['classic', '经典', 'boom'], ['flux', '百变', 'flux']].concat(TEAM_LAB ? [['team', '组队', 'favor']] : []);
   const miniCard = (k) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm">' + R.NAMES[k] + '</b></span>'; };
+  const soloN = () => (R.normalizeRules(settings.rules).mode === 'team' ? 4 : Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players)));   // 组队只有 4 人
   function refreshSolo() {
-    const n = Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players));
+    const n = soloN(), teamOn = R.normalizeRules(settings.rules).mode === 'team';
     $('zmSoloNum').innerHTML = n + '<small>人</small>';
     const [minus, plus] = els.cover.querySelectorAll('.zm-solo-step button');
-    minus.disabled = n <= R.MIN_PLAYERS; plus.disabled = n >= SOLO_MAX;
+    minus.disabled = teamOn || n <= R.MIN_PLAYERS; plus.disabled = teamOn || n >= SOLO_MAX;
     const faces = AV ? (AV.BOT_TIERS && AV.BOT_TIERS[settings.tier] ? AV.BOT_TIERS[settings.tier].faces : AV.ROBOT) : [];   // 预览选中那一档的头像
     const meFace = profile.avatar && AV && AV.byId[profile.avatar] ? AV.byId[profile.avatar].svg : '<span>我</span>';
     $('zmSoloFaces').innerHTML = '<i class="is-me">' + meFace + '</i>' + Array.from({ length: n - 1 }, (_, i) => '<i>' + (faces.length ? faces[i % faces.length].svg : '') + '</i>').join('');

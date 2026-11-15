@@ -70,7 +70,7 @@
   const skipId = (v) => { const a = one(v, R.SKIP); return a != null ? a : one(v, R.REVERSE); };
   function targets(v) {
     const out = [];
-    for (let t = 0; t < v.n; t++) if (t !== v.me && v.alive[t] && v.counts[t] > 0) out.push(t);
+    for (let t = 0; t < v.n; t++) if (t !== v.me && t !== v.mate && v.alive[t] && v.counts[t] > 0) out.push(t);   // 组队：不偷 / 不要队友的
     return out;
   }
   /* 偷谁：知道他手里有逗猫棒的优先，其次手牌最多的 */
@@ -87,7 +87,7 @@
   function victim(v) {
     let best = -1, score = Infinity;
     for (let t = 0; t < v.n; t++) {
-      if (t === v.me || !v.alive[t]) continue;
+      if (t === v.me || t === v.mate || !v.alive[t]) continue;   // 组队：不甩给队友
       const knowsDef = v.handKnown[t].some((id) => K[id] === R.DEFUSE);
       const sc = v.counts[t] + (knowsDef ? 50 : 0);
       if (sc < score) { score = sc; best = t; }
@@ -218,7 +218,7 @@
       const myVal = mine.reduce((a, id) => a + Math.min(30, cardValue(v.hand, id)), 0);
       let best = -1, bestGain = -Infinity;
       for (let t = 0; t < v.n; t++) {
-        if (t === v.me || !v.alive[t]) continue;
+        if (t === v.me || t === v.mate || !v.alive[t]) continue;   // 组队：不和队友换
         const knownDef = all ? 0 : v.handKnown[t].filter((id) => K[id] === R.DEFUSE).length;
         const theirs = Math.max(0, v.counts[t] - knownDef);
         let gain = theirs * P.swapUnk - myVal;
@@ -341,6 +341,12 @@
     function againstMe(v) {
       const p = v.pending;
       if (!p) return false;
+      // 组队：冲着队友来的也挡（甩锅给他 / 指定他 / 偷他）；队友自己出的不挡
+      if (v.mate >= 0 && p.by !== v.mate && v.alive[v.mate]) {
+        if (p.type === R.ATTACK && nextAliveV(v, p.by) === v.mate) return true;
+        if ((p.type === R.TATTACK || p.type === R.FAVOR || p.type === 'pair' || p.type === 'triple') && p.target === v.mate) return true;
+      }
+      if (v.mate >= 0 && p.by === v.mate) return false;
       if (p.type === R.ATTACK) return nextAliveV(v, p.by) === v.me;
       if (p.type === R.TATTACK) return p.target === v.me;
       if (p.type === R.SWAP) return p.target === v.me && v.hand.filter((id) => K[id] !== R.DEFUSE).length >= Math.max(0, v.counts[p.by] - 1);   // 他那手比我还少才挡
@@ -490,10 +496,12 @@
       case 'defuse': { const b = s.defuse.by, v = R.view(s, b); R.insertKitten(s, b, polT(v, tier(b)).insert(v, 'normal', rng)); return; }
       case 'alter': { const b = s.alter.by, v = R.view(s, b); R.alterTop(s, b, polT(v, tier(b)).alter(v, 'normal', rng)); return; }
       case 'steal': { const b = s.steal.by; R.stealPick(s, b, (rng() * s.steal.perm.length) | 0); return; }
+      case 'rescue': { R.rescue(s, s.rescue.by, true); return; }   // 组队：队友总是救
     }
   }
   // 名次分：赢 1，第 i 个出局 i/(n-1)（算上模拟开始前已经出局的人）
   function scoreOf(s, me, deadBefore) {
+    if (R.isTeam && R.isTeam(s)) { if (s.phase === 'over') return R.teamOf(me) === s.winnerTeam ? 1 : 0; return s.alive[me] ? 0.6 : 0.4; }   // 组队：看哪队赢
     if (s.winner === me) return 1;
     const i = s.outOrder.indexOf(me);
     if (i < 0) return 0.5;
@@ -618,6 +626,7 @@
       case 'defuse': return { type: 'insert', pos: insertFor(v, tier, rng) };
       case 'alter': return { type: 'alter', order: chooseAlter(v, tier, rng) };
       case 'steal': return { type: 'steal', idx: (rng() * v.steal.count) | 0 };   // 扣着的牌没信息，随便点
+      case 'rescue': return { type: 'rescue', yes: true };   // 组队：队友炸了、我有逗猫棒——救
       default: return null;
     }
   }

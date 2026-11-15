@@ -99,7 +99,7 @@
     swapDefuse: [false, true],   // 2026-11-13 用户：交换要不要连逗猫棒一起换（以前玩的是整副手牌全换）；默认不换，开房的人 / 单机自己选
     deckSize: ['std', 'quick', 'more'],   // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 官方密度 / 快局更短 / 多 = 以前的整副（两副）
     insertSeen: [true, false],
-    mode: ['classic', 'flux'],   // 2026-11-15：经典 / 百变（牌堆里加「百变」牌，打出就从百变规则堆里抽一条换上）   // 塞回炸毛猫看得出大概位置（2026-11-14 用户，默认开）：动画插在真实高度，像线下一样最上 / 最底一眼看得出、中间只能估；不报第几张。选「随机」的照旧看不出
+    mode: ['classic', 'flux', 'team'],   // team = 2v2 组队（2026-11-15，只能 4 人：0、2 一队，1、3 一队）   // 2026-11-15：经典 / 百变（牌堆里加「百变」牌，打出就从百变规则堆里抽一条换上）   // 塞回炸毛猫看得出大概位置（2026-11-14 用户，默认开）：动画插在真实高度，像线下一样最上 / 最底一眼看得出、中间只能估；不报第几张。选「随机」的照旧看不出
   });
   // 2026-11-13 起「多的逗猫棒全放回」默认开（官方规则：每人先发 1 根逗猫棒，剩下的全洗回牌堆）
   const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std', insertSeen: true, mode: 'classic' });
@@ -201,12 +201,13 @@
   function createGame(n, seed, rules) {
     if (!(n >= MIN_PLAYERS && n <= MAX_PLAYERS)) throw new Error('bad player count');
     rules = normalizeRules(rules);
+    if (rules.mode === 'team' && n !== 4) rules = Object.assign({}, rules, { mode: 'classic' });   // 组队只有 4 人局
     const state = {
       n, rules, rs: (seed >>> 0) || 1,
       deck: [], discard: [], removed: [], hands: [], alive: [], outOrder: [],
       turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
       winner: -1, seq: 0, memo: newMemo(n), ins: null, peek: null,
-      flux: null, fluxDeck: [],   // 百变模式：现在生效的那条百变规则（null = 还没有）、还没抽到的规则（洗好的，从末尾抽）
+      flux: null, fluxDeck: [], rescue: null, winnerTeam: -1,   // 百变模式：现在生效的那条百变规则（null = 还没有）、还没抽到的规则（洗好的，从末尾抽）
       dir: 1,   // 出牌方向：1 = 座位号往上走（桌上画成逆时针），-1 = 打过单数张转向后反过来
     };
     const booms = [], defuses = [], rest = [], swaps = [], unused = [], fluxes = [];
@@ -264,11 +265,16 @@
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
       winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
       flux: s.flux || null, fluxDeck: (s.fluxDeck || []).slice(), nineUsed: s.nineUsed ? s.nineUsed.slice() : null,
+      rescue: s.rescue ? Object.assign({}, s.rescue) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
   }
 
   /* ───── 查询 ───── */
+  // 2v2 组队：对面坐的是队友（0、2 一队，1、3 一队）
+  const isTeam = (s) => !!(s.rules && s.rules.mode === 'team' && s.n === 4);
+  const mateOf = (s, seat) => (isTeam(s) ? (seat + 2) % 4 : -1);
+  const teamOf = (seat) => seat % 2;
   const aliveCount = (s) => s.alive.reduce((a, b) => a + (b ? 1 : 0), 0);
   // 按当前方向的下一个还在场的人（老存档没有 dir：按 1）
   function nextAlive(s, seat) {
@@ -449,22 +455,22 @@
         break;
       case FUTURE: {
         const top = s.deck.slice(0, 3);
-        const m = s.memo[me].deck;
-        for (const id of top) if (m.indexOf(id) < 0) m.push(id);
-        ev.push({ t: 'future', seat: me, cards: top, priv: [me] });
+        const mate = mateOf(s, me), who = mate >= 0 ? [me, mate] : [me];   // 组队：队友也看得到
+        for (const k of who) { const m = s.memo[k].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); }
+        ev.push({ t: 'future', seat: me, cards: top, priv: who });
         s.peek = { by: me, kind: 'future', top: 0, act: null };
         break;
       }
       case ALTER: {
         const top = s.deck.slice(0, 3);
-        const m = s.memo[me].deck;
-        for (const id of top) if (m.indexOf(id) < 0) m.push(id);
+        const mate = mateOf(s, me), who = mate >= 0 ? [me, mate] : [me];
+        for (const k of who) { const m = s.memo[k].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); }
         if (top.length >= 2) {
           s.phase = 'alter';
           s.alter = { by: me, cards: top.slice() };
-          ev.push({ t: 'alter', seat: me, cards: top, priv: [me] });
+          ev.push({ t: 'alter', seat: me, cards: top, priv: who });
         } else {
-          ev.push({ t: 'future', seat: me, cards: top, priv: [me] }); // 只剩一张：没得排，等于偷看
+          ev.push({ t: 'future', seat: me, cards: top, priv: who }); // 只剩一张：没得排，等于偷看
         }
         break;
       }
@@ -570,12 +576,13 @@
     const cards = s.alter.cards;
     if (!Array.isArray(order) || order.length !== cards.length || order.some((id) => cards.indexOf(id) < 0) || new Set(order).size !== order.length) throw new Error('illegal alter order');
     s.deck.splice(0, order.length, ...order);
-    for (let k = 0; k < s.n; k++) if (k !== seat) s.memo[k].deck = s.memo[k].deck.filter((id) => cards.indexOf(id) < 0);
+    const mate = mateOf(s, seat);
+    for (let k = 0; k < s.n; k++) if (k !== seat && k !== mate) s.memo[k].deck = s.memo[k].deck.filter((id) => cards.indexOf(id) < 0);
     if (s.ins && s.ins.seen) s.ins.seen = null;   // 改命动过顶上几张：大家看到它塞在最上 / 最底的那点信息不准了
     s.alter = null;
     s.phase = 'act';
     s.peek = { by: seat, kind: 'alter', top: 0, act: null };
-    return [{ t: 'altered', seat, cards: order.slice(), priv: [seat] }];
+    return [{ t: 'altered', seat, cards: order.slice(), priv: mate >= 0 ? [seat, mate] : [seat] }];
   }
 
   /* ───── 摸牌（结束一个回合） ───── */
@@ -634,7 +641,18 @@
       endOneTurn(s, ev);
       return ev;
     }
-    // 炸毛出局：手牌连同炸毛猫全进弃牌堆，剩下的回合作废
+    // 组队：队友手里有逗猫棒 → 停下来问队友要不要救（救了：队友的逗猫棒用掉，被救的人自己塞回去）
+    const mate = mateOf(s, seat);
+    if (mate >= 0 && s.alive[mate] && findKind(s.hands[mate], DEFUSE) != null) {
+      s.phase = 'rescue';
+      s.rescue = { by: mate, for: seat, card: id };
+      ev.push({ t: 'askRescue', by: mate, for: seat });
+      return ev;
+    }
+    return eliminate(s, seat, id, ev);
+  }
+  // 炸毛出局：手牌连同炸毛猫全进弃牌堆，剩下的回合作废
+  function eliminate(s, seat, id, ev) {
     s.alive[seat] = false;
     s.outOrder.push(seat);
     const hand = s.hands[seat];
@@ -643,16 +661,35 @@
     s.discard.push(id);
     for (const m of s.memo) m.hands[seat] = [];
     ev.push({ t: 'out', seat, cards: hand });
-    if (aliveCount(s) <= 1) {
+    const teams = isTeam(s) ? new Set(s.alive.map((a, k) => (a ? teamOf(k) : -1)).filter((x) => x >= 0)) : null;
+    if (teams ? teams.size <= 1 : aliveCount(s) <= 1) {
       s.phase = 'over';
       s.winner = s.alive.indexOf(true);
-      ev.push({ t: 'win', seat: s.winner });
+      if (teams) s.winnerTeam = teamOf(s.winner);   // 组队：剩下的那一队赢（只剩一人也算）
+      ev.push({ t: 'win', seat: s.winner, team: teams ? s.winnerTeam : undefined });
       return ev;
     }
     s.turn = nextAlive(s, seat);
     s.turnsLeft = s.flux === 'hot' ? 2 : 1;
     s.phase = 'act';
     ev.push({ t: 'turn', seat: s.turn, turnsLeft: s.turnsLeft });
+    return ev;
+  }
+
+  /* 组队：队友决定救不救（yes = 交出自己的逗猫棒） */
+  function rescue(s, seat, yes) {
+    if (s.phase !== 'rescue' || s.rescue.by !== seat) throw new Error('illegal rescue');
+    const r = s.rescue, ev = [];
+    s.rescue = null;
+    s.seq += 1;
+    const def = yes ? findKind(s.hands[seat], DEFUSE) : null;
+    if (def == null) { ev.push({ t: 'noRescue', by: seat, for: r.for }); return eliminate(s, r.for, r.card, ev); }
+    s.hands[seat].splice(s.hands[seat].indexOf(def), 1);
+    s.discard.push(def);
+    forgetCard(s, def);
+    s.phase = 'defuse';
+    s.defuse = { by: r.for, card: r.card };
+    ev.push({ t: 'defuse', seat: r.for, card: def, kitten: r.card, from: seat, rescue: true });
     return ev;
   }
 
@@ -698,6 +735,7 @@
       case 'defuse': return [s.defuse.by];
       case 'alter': return [s.alter.by];
       case 'steal': return [s.steal.by];
+      case 'rescue': return [s.rescue.by];
       default: return [];
     }
   }
@@ -711,6 +749,7 @@
     known.sort((a, b) => a.pos - b.pos);
     return {
       me: seat, n: s.n, rules: rulesOf(s), flux: s.flux || null, nineUsed: s.nineUsed ? s.nineUsed.slice() : null,
+      mate: mateOf(s, seat), rescue: s.rescue ? { by: s.rescue.by, for: s.rescue.for } : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
       hand: s.hands[seat].slice(),
       counts: s.hands.map((h) => h.length),
       alive: s.alive.slice(),
@@ -743,7 +782,7 @@
   }
 
   return {
-    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, isTeam, mateOf, teamOf, rescue, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay, deckQuota,
     kindOf, isCat, catLike, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,
