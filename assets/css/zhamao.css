@@ -1198,3 +1198,26 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rules-x { position: absolute; top: 10px; right: 10px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--zm-paper); color: var(--zm-ink); display: grid; place-items: center; cursor: pointer; padding: 0; }
 .zm-rules-x svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .zm-rules-x:active { transform: scale(0.92); }
+
+/* ═════ 发言框丙 · 漫画对白（2026-11-15 用户从甲乙丙里挑定）：头像旁的对话泡 + 「说一句」框 ═════
+ * 泡：白底、2.2px 墨边、更圆、字大一号加粗、微微歪一点；我说的话朱红底白字。框：墨边圆角卡，词条本身是一个个小对白泡 */
+.zm-app .gz-sp-bubble { background: #fff; color: var(--zm-ink); padding: 6px 13px; border-radius: 18px; border: 2.2px solid var(--zm-ink); box-shadow: none; font-size: 15px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.35; rotate: -2deg; }
+.zm-app .gz-sp-bubble.is-dn { background: var(--zm-seal); border-color: var(--zm-seal); color: #fff; rotate: 1.5deg; }   /* 只有我自己的泡朝下（放在我头像上面） */
+.zm-app .gz-sp-bubble::after { width: 11px; height: 11px; background: inherit; border: 0 solid var(--zm-ink); }
+.zm-app .gz-sp-bubble.is-dn::after { bottom: -7.5px; border-right-width: 2.2px; border-bottom-width: 2.2px; border-color: var(--zm-seal); }
+.zm-app .gz-sp-bubble.is-up::after { top: -7.5px; border-left-width: 2.2px; border-top-width: 2.2px; }
+.zm-app .gz-sp-bubble.is-lf::after { left: -7.5px; border-left-width: 2.2px; border-bottom-width: 2.2px; }
+.zm-app .gz-sp-bubble.is-rt::after { right: -7.5px; border-right-width: 2.2px; border-top-width: 2.2px; }
+.zm-app .gz-sp-chat { padding: 12px; border-radius: 20px; background: #fffdf8; outline: 0; border: 2.2px solid var(--zm-ink); box-shadow: 0 12px 26px rgba(29, 27, 24, 0.18); }
+.zm-app .gz-sp-chat .gz-sp-lines { gap: 9px 7px; padding-bottom: 3px; }
+.zm-app .gz-sp-chat .gz-sp-lines button { position: relative; padding: 5px 11px; border-radius: 14px; background: #fff; box-shadow: none; border: 1.6px solid var(--zm-ink); font-size: 13px; font-weight: 700; }
+.zm-app .gz-sp-chat .gz-sp-lines button::after { content: ''; position: absolute; left: 10px; bottom: -5px; width: 7px; height: 7px; background: inherit; border-right: 1.6px solid var(--zm-ink); border-bottom: 1.6px solid var(--zm-ink); transform: rotate(45deg); }
+.zm-app .gz-sp-chat .gz-sp-lines button:hover, .zm-app .gz-sp-chat .gz-sp-lines button:active { background: #f6efe1; }
+.zm-app .gz-sp-chat .gz-sp-custom { border-top: 2px solid rgba(29, 27, 24, 0.12); }
+.zm-app .gz-sp-chat .gz-sp-custom input { border-radius: 16px; border: 1.8px solid var(--zm-ink); background: #fff; }
+/* 说一句框的小尖角跟着描墨边 */
+.zm-app .gz-sp-chat[data-tail]::before { width: 13px; height: 13px; box-shadow: none; border: 0 solid var(--zm-ink); }
+.zm-app .gz-sp-chat[data-tail="top"]::before { top: -8.5px; border-left-width: 2.2px; border-top-width: 2.2px; }
+.zm-app .gz-sp-chat[data-tail="bottom"]::before { bottom: -8.5px; border-right-width: 2.2px; border-bottom-width: 2.2px; }
+.zm-app .gz-sp-chat[data-tail="left"]::before { left: -8.5px; border-left-width: 2.2px; border-bottom-width: 2.2px; }
+.zm-app .gz-sp-chat[data-tail="right"]::before { right: -8.5px; border-right-width: 2.2px; border-top-width: 2.2px; }
