@@ -121,11 +121,11 @@
   const FLUX_IDS = FLUX_RULES.map((r) => r.id);
   /* 角色猫（2026-11-15 用户同意提案：技能全部自动触发、不加按钮）。开局每人随机一只，大家都看得到 */
   const ROLES = Object.freeze([
-    { id: 'timid', name: '胆小猫', desc: '每次被甩锅，先偷看牌堆顶 3 张', once: false },
-    { id: 'fat', name: '胖橘', desc: '每次被索要、被偷，就从牌堆底补一张：不是炸毛猫归他；是炸毛猫，算拿他牌的那个人摸到的', once: false },
+    { id: 'timid', name: '胆小猫', desc: '每次被甩锅，先偷看牌堆顶 3 张；最上面是炸毛猫就往下挪一张', once: false },
+    { id: 'fat', name: '胖橘', desc: '每次被偷、被点名拿走一张，就从牌堆底补一张：不是炸毛猫归他；是炸毛猫，算拿他牌的人摸到的', once: false },
     { id: 'shadow', name: '黑猫', desc: '别人对他出的「两张偷牌」都会扑空', once: false },   // 2026-11-15 用户：角色要整局有效（索要也躲时胜率 1.24 太强，只躲偷牌）
-    { id: 'cow', name: '奶牛猫', desc: '每次被甩锅都少摸 1 张（再甩给下家时，少的这张也跟着算）', once: false },
-    { id: 'calico', name: '三花', desc: '任意两只猫牌算一对、任意三只算三张，都能拿来偷牌', once: false },
+    { id: 'cow', name: '奶牛猫', desc: '被甩锅永远只摸 1 张；他甩出去的锅，下家摸 3 张', once: false },
+    { id: 'calico', name: '三花', desc: '任意两只猫牌算一对、任意三只算三张；两张偷牌时一次偷两张', once: false },
     { id: 'tabby', name: '狸花', desc: '每次「作废」成功，顺手叼走对方一张牌', once: false },   // 2026-11-15 用户：换个有意思的（原来是作废不能被作废 + 多一张作废）
   ]);
   const ROLE_IDS = ROLES.map((r) => r.id);
@@ -507,11 +507,13 @@
         const next = p.type === TATTACK && s.alive[p.target] && p.target !== me ? p.target : nextAlive(s, me);
         s.turn = next;
         // 被甩锅的人再甩：剩下的回合 +2 一起甩走。奶牛猫把 2 减成 1 以后再甩，下家照样是 1 + 2 = 3（2026-11-15 用户：减的那一张跟着传下去）
-        const chained = (left > 1 && s.hotGiven !== me) || (left === 1 && s.cowCut === me);   // 烫手给的两次不算被甩锅（2026-11-15 用户：烫手只管普通回合）
+        const viaCow = left === 1 && s.cowCut === me;
+        const chained = (left > 1 && s.hotGiven !== me) || viaCow;   // 烫手给的两次不算被甩锅（2026-11-15 用户：烫手只管普通回合）
         s.turnsLeft = s.rules.stackAttack && chained ? left + 2 : 2;
+        if (roleOf(s, me) === 'cow' && !viaCow) s.turnsLeft += 1;   // 角色猫「奶牛猫」：自己甩出去的锅，下家多摸 1 张（被甩锅后再甩出去的照用户定的规则：1 + 2 = 3，不再加）
         s.cowCut = -1; s.hotGiven = -1;   // 被甩锅的回合数不算烫手给的
-        if (roleOf(s, next) === 'timid' && s.deck.length) { const top = s.deck.slice(0, 3), m = s.memo[next].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); ev.push({ t: 'role', seat: next, role: 'timid', cards: top, priv: [next] }); }   // 角色猫「胆小猫」：被甩锅先偷看 2 张
-        if (roleOf(s, next) === 'cow' && s.turnsLeft > 1) { s.turnsLeft -= 1; s.cowCut = next; ev.push({ t: 'role', seat: next, role: 'cow' }); }   // 角色猫「奶牛猫」：每次被甩锅少摸 1 张
+        if (roleOf(s, next) === 'timid' && s.deck.length) { if (s.deck.length > 1 && KIND_OF[s.deck[0]] === BOOM) { const b0 = s.deck.shift(); s.deck.splice(1, 0, b0); for (let k = 0; k < s.n; k++) if (k !== next) s.memo[k].deck = s.memo[k].deck.filter((id) => id !== b0); } const top = s.deck.slice(0, 3), m = s.memo[next].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); ev.push({ t: 'role', seat: next, role: 'timid', cards: top, priv: [next] }); }   // 角色猫「胆小猫」：被甩锅先偷看 2 张
+        if (roleOf(s, next) === 'cow' && s.turnsLeft > 1) { s.turnsLeft = 1; s.cowCut = next; ev.push({ t: 'role', seat: next, role: 'cow' }); }   // 角色猫「奶牛猫」：每次被甩锅少摸 1 张
         ev.push({ t: 'turn', seat: next, turnsLeft: s.turnsLeft, attacked: true });
         if (next !== me) turnStarts(s, ev);
         break;
@@ -633,9 +635,7 @@
     moveCard(s, seat, to, id, [seat, to]);
     s.give = null;
     s.phase = 'act';
-    const ev = [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }];
-    fatRefill(s, seat, to, ev);
-    return ev;
+    return [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }];   // 胖橘被索要不补牌（2026-11-15 平衡：索要本来就由他自己挑）
   }
 
   function pickDiscard(s, seat, id) {
@@ -661,6 +661,8 @@
     s.steal = null;
     s.phase = 'act';
     const ev = [{ t: 'steal', from, to: seat, card: id, idx, priv: [seat, from] }];
+    // 角色猫「三花」：两张偷牌一次偷两张（第二张随机）
+    if (roleOf(s, seat) === 'calico' && s.hands[from].length) { const id2 = s.hands[from][(rand(s) * s.hands[from].length) | 0]; moveCard(s, from, seat, id2, [seat, from]); ev.push({ t: 'steal', from, to: seat, card: id2, idx: 0, priv: [seat, from], role: 'calico' }); }
     fatRefill(s, from, seat, ev);
     return ev;
   }

@@ -88,6 +88,7 @@
     let best = -1, score = -1;
     for (const t of targets(v)) {
       if (pair && v.roles && v.roles[t] === 'shadow') continue;   // 黑猫：两张偷牌对他整局扑空（索要照常）
+      if (v.roles && v.roles[t] === 'fat') continue;   // 胖橘：拿他的牌他会补、还可能补出炸毛猫给我——先找别人
       const sc = v.counts[t] + (v.handKnown[t].some((id) => K[id] === R.DEFUSE) ? 100 : 0);
       if (sc > score) { score = sc; best = t; }
     }
