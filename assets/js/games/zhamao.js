@@ -4600,8 +4600,8 @@
   let coverFrom = 'main';   // 选人数那一屏「‹ 返回」回哪：有上一局时回「接着打 / 开新的」那一步
   const SOLO_MAX = R.MAX_PLAYERS;   // 9 人（6 人起用两副牌）
   // 2026-11-15 组队单机正式开放（两队标记用户挑甲 · 同色光圈）
-  const ROLE_LAB = (() => { try { const q = new URLSearchParams(location.search); if (q.has('zmroles')) localStorage.setItem('zm.rolelab', '1'); return localStorage.getItem('zm.rolelab') === '1'; } catch (_) { return false; } })();   // 角色猫还在等用户看样子，先藏着
-  const SOLO_MODES = [['classic', '经典', 'boom'], ['flux', '百变', 'flux'], ['team', '组队', 'favor']].concat(ROLE_LAB ? [['roles', '角色', 'calico']] : []);
+  // 2026-11-15 角色猫单机正式开放
+  const SOLO_MODES = [['classic', '经典', 'boom'], ['flux', '百变', 'flux'], ['team', '组队', 'favor'], ['roles', '角色', 'calico']];
   const miniCard = (k) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm">' + R.NAMES[k] + '</b></span>'; };
   const soloN = () => (R.normalizeRules(settings.rules).mode === 'team' ? 4 : Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players)));   // 组队只有 4 人
   function refreshSolo() {
