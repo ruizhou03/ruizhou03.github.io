@@ -980,8 +980,10 @@
     els.deck.classList.toggle('is-empty', !n);
     els.deck.style.setProperty('--thick', Math.min(1, n / 50).toFixed(3));
   }
+  // 弃牌堆最多叠这么多层纸边（≈ 30 张）就不再变高（2026-11-14 用户：人多打到后面堆得太高，出牌区对不上堆顶）
+  const DISCARD_CAP = 26;
   function renderDiscard(list) {
-    const pu = PU(), faces = list.slice(-4), m = Math.max(0, list.length - faces.length);
+    const pu = PU(), faces = list.slice(-4), m = Math.min(DISCARD_CAP, Math.max(0, list.length - faces.length));
     const sy = DECK_LOOK.sy * pu * 0.8;
     let h = '';
     // 底下歪歪扭扭的纸边（每张随它自己的 id 定歪多少，不会每次重画都乱跳）
@@ -1150,7 +1152,7 @@
   function placeStage() {
     const inner = els.stage.querySelector('.zm-stage-inner');
     if (!inner) return;
-    const sr = els.stage.getBoundingClientRect(), dr = els.discard.getBoundingClientRect();
+    const sr = els.stage.getBoundingClientRect(), dr = discardRect();   // 对准弃牌堆最上面那张（堆高了就跟着高），结算时原地压下去，不再往上跳一截
     inner.style.left = (dr.left + dr.width / 2 - sr.left).toFixed(1) + 'px';
     inner.style.top = (dr.top + dr.height / 2 - sr.top).toFixed(1) + 'px';
   }
