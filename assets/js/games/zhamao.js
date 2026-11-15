@@ -1074,7 +1074,7 @@
     rs.forEach((r, k) => {
       const a0 = (k / n) * Math.PI * 2 - Math.PI / 2 - Math.PI / n, a1 = a0 + (Math.PI * 2) / n;
       const p = (a) => (Math.cos(a) * 104).toFixed(1) + ' ' + (Math.sin(a) * 104).toFixed(1);
-      s += '<path class="seg" data-k="' + k + '" d="M0 0L' + p(a0) + 'A104 104 0 0 1 ' + p(a1) + 'Z" fill="' + (k % 2 ? '#fffdf8' : ART.TONE[FLUX_IC[r.id]].bg) + '" stroke="#e9c86a" stroke-width="1.2"/>';
+      s += '<path class="seg" data-k="' + k + '" d="M0 0L' + p(a0) + 'A104 104 0 0 1 ' + p(a1) + 'Z" fill="' + ART.TONE[FLUX_IC[r.id]].bg + '" stroke="#e9c86a" stroke-width="1.6"/>';   // 每格用这条规则自己的底色（规则数是单数时也不会两格同色挨着）
       const am = (a0 + a1) / 2, x = Math.cos(am) * 70, y = Math.sin(am) * 70;
       s += '<g transform="translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + ((am * 180) / Math.PI + 90).toFixed(1) + ')"><g transform="translate(-11 -16) scale(.92)">' + ART.icon(FLUX_IC[r.id]).replace('<svg', '<svg width="24" height="24"') + '</g>' +
         '<text y="20" text-anchor="middle" font-size="10" fill="#1d1b18">' + r.name + '</text></g>';
