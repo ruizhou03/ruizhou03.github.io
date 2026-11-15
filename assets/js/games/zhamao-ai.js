@@ -4,12 +4,12 @@
  * 决策点：act（出什么 / 摸牌）、react（要不要作废）、give（被索要时给哪张）、pick（五张各不同捡哪张）、
  *         insert（炸毛猫塞哪）、alter（改命怎么排）、steal（偷哪张——扣着的牌没信息，随便点）。
  *
- * 三档：
- *   easy   入门：大多直接摸牌，偶尔随手出张牌；炸毛猫随便塞
- *   normal 普通：算牌堆顶是炸毛猫的概率（规则公开了「最近一次谁塞回炸毛猫、之后摸走几张」时，按它估计那只猫在哪），
- *          危险就窥探 / 躲 / 甩锅，知道顶上是炸毛猫就躲；没逗猫棒时想办法偷。阈值和牌值是自博弈调出来的（2026-11，~/zhamao-rl）
+ * 三档（2026-11-14 按当时规则重训：标准牌量、万能猫、转向、塞回看得出大概位置；详见 ~/zhamao-rl/REPORT.md「重训」一节）：
+ *   easy   入门：和普通同一套牌值，但不太会防守——顶上危险也很少窥探 / 躲，被甩锅多半硬摸
+ *   normal 普通：算牌堆顶是炸毛猫的概率（公开的塞猫历史 + 粗略高度 vis 一起估那只猫在哪），
+ *          危险就窥探 / 躲 / 甩锅，知道顶上是炸毛猫就躲；没逗猫棒时想办法偷。牌值和阈值全部自博弈调出来（3–8 人局）
  *   hard   高手：以「普通」为底，出牌和塞炸毛猫用 PIMC——按自己知道的信息随机补全别人手牌和牌堆，
- *          每个候选在同一批假想局面里用「普通」打到底；出牌只有明显比普通的选择好（名次分高 ANCHOR）才换（防噪声乱换）
+ *          每个候选在同一批假想局面里用「普通」打到底；出牌比普通的选择好出 ANCHOR 才换
  *
  * 两套参数：规则的 view 里有 ins 字段（公开塞猫历史）用 P_HIST，没有用 P_BASE（两套都是调出来的，互相不通用）。
  */
@@ -42,19 +42,13 @@
     swapMargin: 20, swapUnk: 12,
   });
   const P_HIST = Object.freeze({
-    vNope: 35.38, vTattack: 31.125, vAttack: 55.499, vSwap: 2.029, vSkip: 21.424, vBottom: 10.926, vAlter: 34.115, vFuture: 12.706,
-    vShuffle: 10.197, vFavor: 11.578, vCatPair: 29.18, vCatSingle: 7.359,
-    lookDef: 0.632, lookNo: 0.016, dodgeDef: 0.709, dodgeNo: 0.213, multiAtk: 0.075,
-    insTop: 0.96, insSpread: 2, nopeBackP: 0.494, bottomDef: 1, histW: 0.994, histTop: 0.733, shuffleAt: 0.56,
-    swapMargin: 20, swapUnk: 12,
+    vNope: 7.702, vTattack: 54.909, vAttack: 33.983, vSwap: 1.558, vSkip: 22.342, vBottom: 34.563, vAlter: 40.18, vFuture: 26.494, vShuffle: 24.51, vFavor: 40.225, vCatPair: 13.525, vCatSingle: 2.828, vReverse: 24.284, vWild: 23.3, lookDef: 0.721, lookNo: 0.041, dodgeDef: 0.752, dodgeNo: 0.252, multiAtk: 0.024, insTop: 0.034, insSpread: 1, nopeBackP: 0.474, bottomDef: 1, histW: 0.981, histTop: 0.917, visW: 0.598, shuffleAt: 0.767, revFirst: 0, swapMargin: 48.551, swapUnk: 25.601, swapKnown: 0,
   });
 
-  /* 入门（2026-11-13 起）= 原来线上「普通」的那套常数：排行赛里它和原来的高手同属第三梯队，原来的入门远低于它，不再用 */
+  /* 入门（2026-11-14 重训起）= 新普通的牌值，但不太会防守：顶上危险也很少窥探 / 躲，被甩锅多半硬摸（look / dodge / multiAtk 调高）。
+   * 普通对它：3 / 4 / 6 / 8 人胜率 +6.3 / +4.3 / +4.9 / +5.6 个百分点——和高手比普通拉开的差不多，三档间距均匀 */
   const P_OLD = Object.freeze({
-    vNope: 30, vTattack: 28, vAttack: 26, vSwap: 22, vSkip: 20, vBottom: 18, vAlter: 17, vFuture: 15, vShuffle: 13, vFavor: 10, vCatPair: 7, vCatSingle: 2,
-    lookDef: 0.22, lookNo: 0.10, dodgeDef: 0.45, dodgeNo: 0.20, multiAtk: 0.12,
-    insTop: 0.6, insSpread: 3, nopeBackP: 0.3, bottomDef: 0, histW: 0, histTop: 0.6, shuffleAt: 2,
-    swapMargin: 20, swapUnk: 12,
+    vNope: 7.702, vTattack: 54.909, vAttack: 33.983, vSwap: 1.558, vSkip: 22.342, vBottom: 34.563, vAlter: 40.18, vFuture: 26.494, vShuffle: 24.51, vFavor: 40.225, vCatPair: 13.525, vCatSingle: 2.828, vReverse: 24.284, vWild: 23.3, lookDef: 0.95, lookNo: 0.5, dodgeDef: 0.98, dodgeNo: 0.6, multiAtk: 0.6, insTop: 0.034, insSpread: 1, nopeBackP: 0.474, bottomDef: 1, histW: 0.981, histTop: 0.917, visW: 0.598, shuffleAt: 0.767, revFirst: 0, swapMargin: 48.551, swapUnk: 25.601, swapKnown: 0,
   });
 
   const has = (v, k) => R.countKind(v.hand, k) > 0;
@@ -139,11 +133,12 @@
 
   /* ───── 普通（一套参数一个实例） ───── */
   function makeNormal(P) {
-    const VALUE = { defuse: 100, nope: P.vNope, tattack: P.vTattack, attack: P.vAttack, swap: P.vSwap, skip: P.vSkip, reverse: P.vSkip, bottom: P.vBottom, alter: P.vAlter, future: P.vFuture, shuffle: P.vShuffle, favor: P.vFavor };
+    const VALUE = { defuse: 100, nope: P.vNope, tattack: P.vTattack, attack: P.vAttack, swap: P.vSwap, skip: P.vSkip, reverse: P.vReverse != null ? P.vReverse : P.vSkip, bottom: P.vBottom, alter: P.vAlter, future: P.vFuture, shuffle: P.vShuffle, favor: P.vFavor };
+    const skipIdP = (v) => { if (!P.revFirst) return skipId(v); const a = one(v, R.REVERSE); return a != null ? a : one(v, R.SKIP); };   // 先用跳过还是转向（调参项）
     function cardValue(hand, id) {
       const k = K[id];
       if (VALUE[k] != null) return VALUE[k];
-      if (k === R.WILD) return P.vCatPair;   // 万能猫跟哪只猫都能凑对
+      if (k === R.WILD) return P.vWild != null ? P.vWild : P.vCatPair;   // 万能猫跟哪只猫都能凑对
       return R.countKind(hand, k) + R.countKind(hand, R.WILD) >= 2 ? P.vCatPair : P.vCatSingle; // 猫：成对才有用
     }
 
@@ -166,6 +161,12 @@
             if (p === 0) w[p] = P.histTop;
             else if (p <= 3) w[p] = (1 - P.histTop) * 0.5 / Math.min(3, S - 1);
             else w[p] = (1 - P.histTop) * 0.5 / rest;
+          }
+          // 规则「看得出大概位置」：公开的粗略高度 vis（0 最上 / 1 最底 / 中间取到 1/8）把可能的位置圈出来（权重 visW 是调出来的）
+          if (P.visW > 0 && v.ins.vis != null) {
+            const last = S - 1, visOf = (p) => (p <= 0 ? 0 : p >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((p / last) * 8) / 8)));
+            let n1 = 0; for (let p = 0; p < S; p++) if (visOf(p) === v.ins.vis) n1++;
+            if (n1) for (let p = 0; p < S; p++) w[p] = (1 - P.visW) * w[p] + P.visW * (visOf(p) === v.ins.vis ? 1 / n1 : 0);
           }
           let tot = 0;
           const cur = new Array(size).fill(0);
@@ -204,7 +205,8 @@
         if (t === v.me || !v.alive[t]) continue;
         const knownDef = all ? 0 : v.handKnown[t].filter((id) => K[id] === R.DEFUSE).length;
         const theirs = Math.max(0, v.counts[t] - knownDef);
-        const gain = theirs * P.swapUnk - myVal;
+        let gain = theirs * P.swapUnk - myVal;
+        if (P.swapKnown) { const kn = v.handKnown[t].filter((id) => all || K[id] !== R.DEFUSE); gain = kn.reduce((a, id) => a + Math.min(30, cardValue(v.hand, id)), 0) + Math.max(0, theirs - kn.length) * P.swapUnk - myVal; }
         if (gain > bestGain) { bestGain = gain; best = t; }
       }
       return best >= 0 && bestGain >= P.swapMargin ? playMove([sid], best) : null;
@@ -244,7 +246,7 @@
       if (top.known && top.boom) {
         const am = attackMove(v);
         if (am) return am;
-        if (skipId(v) != null) return playMove([skipId(v)]);
+        if (skipIdP(v) != null) return playMove([skipIdP(v)]);
         if (bottomOk(v)) return playMove([one(v, R.BOTTOM)]);   // 顶上是炸毛猫：从底下摸
         if (has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);   // 把顶上的炸毛猫往下塞
         if (has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
@@ -269,7 +271,7 @@
       if (risk >= dodgeAt) {
         const am = attackMove(v);
         if (am) return am;
-        if (skipId(v) != null) return playMove([skipId(v)]);
+        if (skipIdP(v) != null) return playMove([skipIdP(v)]);
         if (bottomOk(v) && (bottomInfo(v).known || !def || P.bottomDef)) return playMove([one(v, R.BOTTOM)]);
       }
       if (risk >= P.shuffleAt && has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
@@ -345,7 +347,7 @@
   const polT = (v, tier) => (tier === 'easy' ? NO : pol(v));   // 入门 = 原来的普通
 
   /* ───── PIMC（高手） ───── */
-  const BUDGET = 900, MIN_S = 16, MAX_S = 80, INSERT_S = 40, ANCHOR = 0.2;
+  const BUDGET = 900, MIN_S = 16, MAX_S = 80, INSERT_S = 40, ANCHOR = 0.05;   // 2026-11-14 重训：门槛 0.2 → 0.05（底子换成新普通后，敢改主意反而更强）
   const ALL_IDS = Array.from({ length: R.DECK_SIZE }, (_, i) => i);
 
   /* 按 v 补全一个完整局面（别人手牌 + 牌堆未知位置随机；别人刚塞回的炸毛猫按信念放），phase 取 v 当前的 */

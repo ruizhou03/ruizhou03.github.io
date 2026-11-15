@@ -598,7 +598,8 @@
       vis = pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / last) * 8) / 8));
     }
     // seen：别人「看得出」它在最上 / 最底（中间的看不准，不算知道）；之后从那头摸走一张、洗牌、改命、再塞一只就作废
-    s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
+    // vis 也放进公开历史：动画里人人看得到的那个粗略高度，机器猫也按它估（2026-11-14 重训）
+    s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
     s.seq += 1;
     const ev = [{ t: 'insert', seat, card: id, pos, size: s.deck.length, vis, priv: [seat] }];
     endOneTurn(s, ev);
