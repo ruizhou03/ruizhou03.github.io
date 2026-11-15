@@ -1081,7 +1081,7 @@
   }
   function showFluxHelp() {
     const cur = game && game.state ? D().flux : null;
-    openDialog('<h2>百变规则</h2><p>打出「百变」（没被作废）：从下面这些里随机抽一条换上，抽到什么算什么。同一时间只有一条。</p>' +
+    openDialog('<h2>百变规则</h2><p>每打出一张百变，就转一次转盘换规则；同时只生效一条。</p>' +
       '<ul class="zm-flux-list">' + R.FLUX_RULES.map((r) => '<li' + (r.id === cur ? ' class="is-cur"' : '') + '><i class="ic" style="--tone:' + ART.TONE[FLUX_IC[r.id]].bg + '">' + ART.icon(FLUX_IC[r.id]) + '</i><b>' + r.name + '</b><span>' + r.desc + '</span></li>').join('') + '</ul>' +
       '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (dl) => {
       dl.querySelector('[data-ok]').addEventListener('click', closeDialog);
@@ -1170,8 +1170,7 @@
   }
   // 百变「九命」：炸了没出局——头顶冒「九命！」，头像缓过来，炸毛猫从他那儿飞回牌堆（缝开在看不出的高度）
   async function animNine(e, t) {
-    bubble(e.seat, '九命！', { loud: true, ms: 1800 });
-    snd('defuse');
+    if (e.why !== 'save') { bubble(e.seat, '九命！', { loud: true, ms: 1800 }); snd('defuse'); }   // 急救：前面那张「急救！」已经喊过了
     calmAvatar(e.seat, t, ms(500));
     await wait(ms(500));
     if (t !== token) return;
@@ -1179,7 +1178,7 @@
   }
   // 角色猫技能触发：冒一句话；胆小猫是我自己的话，把偷看到的那张亮给我看
   async function animRole(e, t) {
-    const txt = { timid: '偷看了一眼', shadow: '溜走了！', cow: '少摸一张', tabby: '这张挡不住！' }[e.role];
+    const txt = { timid: '偷看了一眼', shadow: '扑空了！', cow: '少摸一张', tabby: '这张挡不住！' }[e.role];
     const av = avEl(e.seat), rb = av && av.querySelector('.zm-role');
     if (rb) fx.pop(rb, { scale: 1.6, dur: 420 });
     if (e.role === 'timid' && e.seat === 0 && e.cards) await animFuture({ t: 'future', seat: 0, cards: e.cards }, t);
@@ -2930,7 +2929,7 @@
     if (e.extra != null) {   // 百变「双猫急救」：一对猫顶逗猫棒——另一张也从手里拿走、进弃牌堆
       if (e.seat === 0) { dropFromHand([e.extra]); renderHand(); } else if (ov) { ov.counts[e.seat] -= 1; renderSeat(e.seat); }
       if (ov) ov.discard.push(e.extra);
-      bubble(e.seat, '双猫急救！', { loud: true, ms: 1800 });
+      bubble(e.seat, '急救！', { loud: true, ms: 1800 });
     }
     const W = u * 1.2;
     await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: e.seat === 0 ? null : 'up', flipAt: 0.15, from: src, to: c, w: W, s0: e.seat === 0 ? u / W : 0.35, s1: 1, r0: 0, r1: 0, dur: ms(440), lift: 60 });
@@ -3968,12 +3967,12 @@
       li('tattack', '同甩锅，但可以甩给任意一个人（点他的头像）') +
       li('skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合') +
       li('reverse', '出牌方向倒过来（对手之间的小箭头跟着掉头），并像跳过一样结束一个回合、不摸牌。被甩锅时只顶掉其中一回合；两个人玩就等于跳过') +
-      (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? li('flux', '百变模式才有：打出后从百变规则里随机抽一条换上（桌上牌堆下面那张写着现在是哪条，点它看全部）。可以被作废') : '') +
+      (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? li('flux', '转一次转盘，换上抽到的规则。能被作废') : '') +
       li('swap', (() => { const r = (game && game.state && game.state.rules) || settings.rules; return '和指定的一个人整手交换手牌' + (r.swapDefuse ? '（连逗猫棒一起换）' : '（各自的逗猫棒不换）') + (r.swap ? '' : '。设置里开了「有交换牌」才有'); })()) +
       li('favor', '指定一人，他自己挑一张给你') +
       li('shuffle', '把牌堆洗乱') +
       li('future', '看牌堆最上面三张') +
-      li('bottom', '这一回合不从顶上摸，改从牌堆最底下摸一张' + (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? '（百变「摸底」生效时它变成「抽顶」：改从最上面摸）' : '')) +
+      li('bottom', '这一回合不从顶上摸，改从牌堆最底下摸一张' + (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? '（摸底规则下变成抽顶，从顶部摸）' : '')) +
       li('alter', '看牌堆最上面三张，并按你想要的顺序放回去（别人看不到）') +
       '</ul><h3>组合（任何同名牌都算）</h3><ul>' +
       '<li><b>两张一样</b>　指定一人，随机偷他一张</li>' +

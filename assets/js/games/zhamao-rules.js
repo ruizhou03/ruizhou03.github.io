@@ -106,14 +106,15 @@
   /* 百变规则（2026-11-15 用户：不预告，打「百变」就抽一条，抽到什么算什么；桌上固定一张「百变规则」牌）。
    * id 进状态 s.flux；desc 是桌上规则牌 / 说明里的一句话 */
   // 2026-11-15 用户：不叠锅 / 暗塞 / 千里眼 / 慷慨太弱、感觉不到 → 换成 九命 / 掀顶 / 烫手 / 双猫急救
+  // 2026-11-15 用户定的名字和说法（掀顶→透视、明塞→火眼、静音→静默、双猫急救→急救）；id 不变（老存档照常）
   const FLUX_RULES = Object.freeze([
-    { id: 'nine', name: '九命', desc: '摸到炸毛猫又没逗猫棒，不出局（每人一局一次），炸毛猫随机塞回去' },
-    { id: 'peektop', name: '掀顶', desc: '牌堆最上面那张一直翻开，大家都看得到' },
-    { id: 'exact', name: '明塞', desc: '塞回炸毛猫，大家都看得到在第几张' },
-    { id: 'bottom', name: '摸底', desc: '结束回合时从牌堆最底下摸' },
-    { id: 'hot', name: '烫手', desc: '每个人的回合都要摸两张' },
-    { id: 'mute', name: '静音', desc: '谁都不能出「作废」（这时打百变也挡不住，一定会换）' },
-    { id: 'catsave', name: '双猫急救', desc: '摸到炸毛猫又没逗猫棒，交出任意一对一样的牌顶上（猫牌、功能牌都行）' },
+    { id: 'nine', name: '九命', desc: '摸到炸毛猫时若无逗猫棒，大喊「九命」并存活，炸毛猫随机放回牌堆。最多生效一次' },
+    { id: 'peektop', name: '透视', desc: '牌堆第一张牌对所有人可见' },
+    { id: 'exact', name: '火眼', desc: '炸毛猫塞回的位置对所有人可见' },
+    { id: 'bottom', name: '摸底', desc: '摸牌改从牌堆底部摸' },
+    { id: 'hot', name: '烫手', desc: '每个回合都要摸两次' },
+    { id: 'mute', name: '静默', desc: '不能打「作废」' },
+    { id: 'catsave', name: '急救', desc: '摸到炸毛猫时若无逗猫棒，可打出两张相同的牌代替，炸毛猫随机放回牌堆。最多生效一次' },
   ]);
   /* 2026-11-15 用户：删掉无关痛痒的——逆行（和「转向」牌重复）拿掉；静音（玩家对战里挺有用）、双猫急救（改成任意一对一样的牌都行，功能牌也算）留着。
    * 逆行的代码留着：老存档里正生效的照常结算 */
@@ -122,8 +123,8 @@
   const ROLES = Object.freeze([
     { id: 'timid', name: '胆小猫', desc: '第一次轮到他时，自动偷看牌堆顶 1 张', once: true },
     { id: 'fat', name: '胖橘', desc: '开局多发 1 张手牌', once: false },
-    { id: 'shadow', name: '黑猫', desc: '第一次被索要时溜走，什么都不给', once: true },   // 2026-11-15 平衡：原来索要 / 偷 / 点名都躲，太强（胜率 1.31）
-    { id: 'cow', name: '奶牛猫', desc: '第一次被甩锅时少摸 1 张', once: true },
+    { id: 'shadow', name: '黑猫', desc: '别人对他出的「索要」「两张偷牌」都会扑空', once: false },   // 2026-11-15 用户：角色要整局有效
+    { id: 'cow', name: '奶牛猫', desc: '每次被甩锅都少摸 1 张（再甩给下家时，少的这张也跟着算）', once: false },
     { id: 'calico', name: '三花', desc: '任意两只不同的猫牌也能凑成一对来偷牌', once: false },
     { id: 'tabby', name: '狸花', desc: '开局多一张「作废」；他打出的作废都不能再被作废', once: false },   // 2026-11-15 平衡：原来只有第一张作废锁死，太弱（胜率 0.83 → 整局锁死 0.93 → 再加一张作废）
   ]);
@@ -220,7 +221,7 @@
       deck: [], discard: [], removed: [], hands: [], alive: [], outOrder: [],
       turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
       winner: -1, seq: 0, memo: newMemo(n), ins: null, peek: null,
-      flux: null, fluxDeck: [], rescue: null, winnerTeam: -1, roles: null, roleUsed: null,   // 百变模式：现在生效的那条百变规则（null = 还没有）、还没抽到的规则（洗好的，从末尾抽）
+      flux: null, fluxDeck: [], rescue: null, winnerTeam: -1, roles: null, roleUsed: null, cowCut: -1,   // 百变模式：现在生效的那条百变规则（null = 还没有）、还没抽到的规则（洗好的，从末尾抽）
       dir: 1,   // 出牌方向：1 = 座位号往上走（桌上画成逆时针），-1 = 打过单数张转向后反过来
     };
     const booms = [], defuses = [], rest = [], swaps = [], unused = [], fluxes = [];
@@ -288,9 +289,9 @@
       alter: s.alter && { by: s.alter.by, cards: s.alter.cards.slice() },
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
       winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
-      flux: s.flux || null, fluxDeck: (s.fluxDeck || []).slice(), nineUsed: s.nineUsed ? s.nineUsed.slice() : null,
+      flux: s.flux || null, fluxDeck: (s.fluxDeck || []).slice(), nineUsed: s.nineUsed ? s.nineUsed.slice() : null, saveUsed: s.saveUsed ? s.saveUsed.slice() : null,
       rescue: s.rescue ? Object.assign({}, s.rescue) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
-      roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null,
+      roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null, cowCut: s.cowCut != null ? s.cowCut : -1,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
   }
@@ -399,6 +400,7 @@
   function endOneTurn(s, ev) {
     s.turnsLeft -= 1;
     if (s.turnsLeft <= 0) {
+      s.cowCut = -1;   // 奶牛猫这一串甩锅结束了
       s.turn = nextAlive(s, s.turn);
       s.turnsLeft = s.flux === 'hot' ? 2 : 1;   // 百变「烫手」：每人的回合都摸两张
       s.phase = 'act';
@@ -471,8 +473,7 @@
     if (cancelled) return ev;
     const me = p.by;
     // 角色猫「黑猫」：第一次被索要 / 偷 / 点名——溜走了，什么都不发生
-    if (p.type === FAVOR && p.target >= 0 && roleReady(s, p.target, 'shadow')) {
-      s.roleUsed[p.target] = true;
+    if ((p.type === FAVOR || p.type === 'pair') && p.target >= 0 && roleOf(s, p.target) === 'shadow') {   // 黑猫：整局都扑空
       ev.push({ t: 'role', seat: p.target, role: 'shadow', by: me });
       return ev;
     }
@@ -495,8 +496,11 @@
         const left = s.turnsLeft;
         const next = p.type === TATTACK && s.alive[p.target] && p.target !== me ? p.target : nextAlive(s, me);
         s.turn = next;
-        s.turnsLeft = s.rules.stackAttack && left > 1 ? left + 2 : 2;
-        if (roleReady(s, next, 'cow')) { s.roleUsed[next] = true; s.turnsLeft = Math.max(1, s.turnsLeft - 1); ev.push({ t: 'role', seat: next, role: 'cow' }); }   // 角色猫「奶牛猫」：第一次被甩锅少摸 1 张
+        // 被甩锅的人再甩：剩下的回合 +2 一起甩走。奶牛猫把 2 减成 1 以后再甩，下家照样是 1 + 2 = 3（2026-11-15 用户：减的那一张跟着传下去）
+        const chained = left > 1 || (left === 1 && s.cowCut === me);
+        s.turnsLeft = s.rules.stackAttack && chained ? left + 2 : 2;
+        s.cowCut = -1;
+        if (roleOf(s, next) === 'cow' && s.turnsLeft > 1) { s.turnsLeft -= 1; s.cowCut = next; ev.push({ t: 'role', seat: next, role: 'cow' }); }   // 角色猫「奶牛猫」：每次被甩锅少摸 1 张
         ev.push({ t: 'turn', seat: next, turnsLeft: s.turnsLeft, attacked: true });
         if (next !== me) turnStarts(s, ev);
         break;
@@ -679,26 +683,21 @@
       return ev;
     }
     // 百变「双猫急救」：没逗猫棒，交出一对一样的猫牌（万能猫能顶）当逗猫棒用，照样塞回去
-    const pair = s.flux === 'catsave' ? catPairIds(s.hands[seat]) : null;
+    // 急救（用户 2026-11-15）：交出一对相同的牌，炸毛猫随机放回牌堆；每人最多一次
+    const pair = s.flux === 'catsave' && !(s.saveUsed && s.saveUsed[seat]) ? catPairIds(s.hands[seat]) : null;
     if (pair) {
+      if (!s.saveUsed) s.saveUsed = Array.from({ length: s.n }, () => false);
+      s.saveUsed[seat] = true;
       for (const c of pair) { s.hands[seat].splice(s.hands[seat].indexOf(c), 1); s.discard.push(c); forgetCard(s, c); }
-      s.phase = 'defuse';
-      s.defuse = { by: seat, card: id };
       ev.push({ t: 'defuse', seat, card: pair[0], extra: pair[1], kitten: id, save: 'cats' });
+      ev.push(...reinsertRandom(s, seat, id, 'save'));
+      endOneTurn(s, ev);
       return ev;
     }
     // 百变「九命」：每人一局一次，不出局；炸毛猫随机塞回牌堆（谁也不知道在哪），这一回合照常结束
     if (s.flux === 'nine' && s.nineUsed && !s.nineUsed[seat]) {
       s.nineUsed[seat] = true;
-      const pos = (rand(s) * (s.deck.length + 1)) | 0;
-      s.deck.splice(pos, 0, id);
-      for (let k = 0; k < s.n; k++) s.memo[k].deck = s.memo[k].deck.filter((x) => x !== id);
-      // 动画按真实高度塞回去（2026-11-15 用户），所以和「看得出大概位置」一样：公开一个粗略高度 vis，机器猫也按它估
-      const last = s.deck.length - 1;
-      const vis = pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / Math.max(1, last)) * 8) / 8));
-      s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
-      s.peek = null;
-      ev.push({ t: 'nine', seat, card: id, size: s.deck.length, vis });
+      ev.push(...reinsertRandom(s, seat, id, 'nine'));
       endOneTurn(s, ev);
       return ev;
     }
@@ -711,6 +710,18 @@
       return ev;
     }
     return eliminate(s, seat, id, ev);
+  }
+  /* 九命 / 急救：炸毛猫随机塞回牌堆（谁也不挑位置）。动画按真实高度开缝（2026-11-15 用户），所以和「看得出大概位置」一样公开一个粗略高度 vis，机器猫也按它估 */
+  function reinsertRandom(s, seat, id, why) {
+    const pos = (rand(s) * (s.deck.length + 1)) | 0;
+    s.deck.splice(pos, 0, id);
+    for (let k = 0; k < s.n; k++) s.memo[k].deck = s.memo[k].deck.filter((x) => x !== id);
+    const last = s.deck.length - 1;
+    const vis = pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / Math.max(1, last)) * 8) / 8));
+    s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
+    s.peek = null;
+    s.seq += 1;
+    return [{ t: 'nine', seat, card: id, size: s.deck.length, vis, why }];
   }
   // 炸毛出局：手牌连同炸毛猫全进弃牌堆，剩下的回合作废
   function eliminate(s, seat, id, ev) {
