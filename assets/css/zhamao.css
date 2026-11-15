@@ -439,6 +439,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zs-b .zs-line .zs-seg button { padding: 6px 2px; font-size: 13.5px; }
 .zs-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid rgba(29, 27, 24, 0.1); }
 .zs-row:first-child { border-top: 0; }
+.zs-row[hidden] { display: none; }   /* 依赖别的开关的那行（交换时逗猫棒也换）：没开时真藏起来（display:flex 会盖过 hidden） */
 .zs-ic { flex: none; width: 30px; height: 30px; border-radius: 8px; background: var(--zm-paper); border: 1px solid rgba(29, 27, 24, 0.16); display: grid; place-items: center; }
 .zs-ic svg { width: 20px; height: 20px; }
 .zs-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -607,6 +608,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 按钮 / 卡片和「百变小咪」四个字居中对齐（两边各让出一样宽），返回箭头放在左边让出来的那块里 */
 .zm-solo { position: relative; width: calc(100% - 100px); align-self: center; }
 .zm-solo > .zm-solo-back { position: absolute; right: calc(100% + 6px); top: 50%; transform: translateY(-50%); }
+/* 底下挂着「新手教程 · 设置」小字时：箭头对准上面那两个按钮的正中，不算底下那行（6 外边距 + 12 间距 + 32 行高 = 50，2026-11-15 用户） */
+.zm-solo:has(> .zm-cover-foot:not([hidden])) > .zm-solo-back { top: calc(50% - 25px); }
 .zm-solo-pick { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px 14px 16px; background: var(--zm-card); border: 1.5px solid var(--zm-ink); border-radius: 14px; }
 .zm-solo-cap { font-size: 13px; color: var(--zm-ink-mute); letter-spacing: 0.1em; }
 .zm-solo-step { display: flex; align-items: center; gap: 22px; }
@@ -755,6 +758,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-pause-actions { display: flex; justify-content: space-between; gap: 12px; }
 .zm-pause-actions .zm-btn { flex: 1; height: 46px; font-size: 15.5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; }
 .zm-pause-actions .zm-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.zm-pause-actions .zm-btn svg.ln { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* 按钮左右：摸牌 / 取消在左，出牌 / 作废在右 */
 #zmDrawBtn, #zmCancelBtn { order: 1; }
@@ -1186,3 +1190,11 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-nope-late b { display: block; font-size: 14px; margin: 0 2px 2px; }
 .zm-nope .zm-nope-late small { margin-bottom: 8px; }
 .zm-nope-late .zs-seg { width: 100%; }
+
+/* 规则（2026-11-15 用户）：不占满全屏、右上角一个叉、点窗外也能关；叉固定在角上，内容在底下滚 */
+.zm-dialog.is-rules { position: relative; width: min(calc(100% - 24px), 400px); max-height: min(74%, 640px); padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.zm-dialog.is-rules .zm-rules { overflow: auto; padding: 18px 18px 16px; min-height: 0; }
+.zm-dialog.is-rules .zm-rules h2 { padding-right: 34px; }
+.zm-rules-x { position: absolute; top: 10px; right: 10px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--zm-paper); color: var(--zm-ink); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.zm-rules-x svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.zm-rules-x:active { transform: scale(0.92); }

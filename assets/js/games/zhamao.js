@@ -1222,7 +1222,7 @@
   function clearStage(keepRim) {
     stopFuse();
     if (!keepRim) releaseRim();
-    if (game && game.arrow) { game.arrow.remove(); game.arrow = null; }
+    if (!keepRim && game && game.arrow) { game.arrow.remove(); game.arrow = null; }   // 扫完舞台（keepRim）时准星也留着：索要 / 偷 / 点名 / 交换要瞄到真动手（2026-11-15 用户）
     setActing(-1);
     markVictim(-1);
     els.stage.innerHTML = '';
@@ -1556,6 +1556,7 @@
     if (t !== token) return;
     const tg = targetOf(p);
     if (tg >= 0) {
+      if (game.arrow) game.arrow.remove();
       game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK || p.type === R.TATTACK ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
       releaseRim();
       game.rimLk = rimLink(p.by, tg, p.type === R.ATTACK || p.type === R.TATTACK);   // 甩锅 / 自由甩锅一律顺着出牌方向连（2026-11-14 用户）；桌沿连线单独记着：等牌真的拿到 / 给到 / 换完才收（不跟准星一起收）；甩锅给下家也连
@@ -2211,7 +2212,6 @@
   /* 交换：两个人的牌在空中交叉着换过去（逗猫棒不动）——一边从上面的弧线走、另一边从下面走；
    * 我参与的话：我换出去的从手牌原位飞走（背面朝上），换来的半路翻开、先落到牌槽上方再滑进去 */
   async function animSwap(e, t) {
-    if (game.arrow) { game.arrow.remove(); game.arrow = null; }
     const a = e.a, b = e.b, u = U(), pu = PU();
     // 是谁和谁换：两人头像都亮着（出牌人金光、被换的人一明一暗），停一下再飞牌（2026-11-13 用户：不要连线箭头）
     setActing(a); markVictim(b);
@@ -2246,6 +2246,7 @@
       ov.counts[a] = ov.counts[a] - e.toB + e.toA;
       ov.counts[b] = ov.counts[b] - e.toA + e.toB;
     }
+    if (game.arrow) { game.arrow.remove(); game.arrow = null; }   // 换完才撤准星
     renderSeat(a); renderSeat(b);
     fx.pop(avEl(a), { scale: 1.15 }); fx.pop(avEl(b), { scale: 1.15 });
     snd('thud');
@@ -2256,7 +2257,6 @@
 
   /* 两张一样偷一张：一只大猫爪从他头像上扑过去、扒拉一下，抓着一张牌拖回来 */
   async function animSteal(e, t) {
-    if (game.arrow) { game.arrow.remove(); game.arrow = null; }
     let picked = null;
     if (game.wander) {
       const w = game.wander;
@@ -2284,6 +2284,7 @@
       { transform: fx.T(b.x - S / 2, b.y - S / 2, 1, ang), opacity: 1 },
     ], { duration: ms(520) }).finished.catch(() => {});
     if (t !== token) { paw.remove(); return; }
+    if (game.arrow) { game.arrow.remove(); game.arrow = null; }   // 准星一直瞄到爪子扒拉到那一下（2026-11-15 用户）
     fx.shake(seatEl(e.from), { amp: 6, dur: 320 });
     fx.burst(b.x, b.y, { n: 8, shapes: ['fur'], colors: ['#b39c7e', '#eea25a', '#8f8a99'], radius: 40, size: [6, 14], life: 600 });
     // 爪子拖着牌回去
@@ -2307,7 +2308,6 @@
    *   ② 有：这张牌亮金边、蹦一下、冒星星，停一会儿让大家看清是什么；没有：牌左右摇头、打红叉、冒烟；
    *   ③ 有的话：这张牌从那儿飞进出牌人手里（我拿到就落进手牌） */
   async function namedCallout(e, t) {
-    if (game.arrow) { game.arrow.remove(); game.arrow = null; }
     markVictim(e.from);
     const av = avEl(e.from), ar = av ? av.getBoundingClientRect() : { left: innerWidth / 2 - 20, top: 80, width: 40, height: 40, bottom: 120 };
     const u = POP(), h = u * 1.4;   // 和别的弹出来看的牌一样大（--pop）
@@ -2351,6 +2351,7 @@
     if (t !== token) { el.remove(); return; }
     // ③ 飞进出牌人手里；桌沿那截缩回，出牌人那儿漾开一圈金色（点中了！）
     releaseRim();
+    if (game.arrow) { game.arrow.remove(); game.arrow = null; }   // 牌被拿走那一下准星才撤
     if (rimFxOn()) setTimeout(() => rimRipple(e.to, '#e2b85c', 900, 3), 260);
     const src = el.getBoundingClientRect();
     el.remove();
@@ -2385,6 +2386,7 @@
     await wait(ms(650));
     await fx.animate(el, [{ transform: fx.T(x, y, 1, 0), opacity: 1 }, { transform: fx.T(x, y - 20, 0.8, 0), opacity: 0 }], { duration: ms(360) }).finished.catch(() => {});
     el.remove();
+    if (game.arrow) { game.arrow.remove(); game.arrow = null; }
     markVictim(-1);
     void t;
   }
@@ -2805,11 +2807,12 @@
     ['shuffle', '洗牌', [R.SHUFFLE], false],
     ['alter', '改命', [R.ALTER], false],
   ];
-  const nopeAskMode = () => settings.nopeAsk || (settings.nopeMine ? 'pick' : 'all');
-  const nopeAlsoOn = (k) => { const o = settings.nopeAlso; const def = NOPE_ALSO.find((x) => x[0] === k); return o && k in o ? !!o[k] : !!(def && def[3]); };
+  // 2026-11-15 用户：能选的东西太多、怕有人看不懂——不再给选，定死成「挑着问」+ 默认勾的那三种 + 最后两成全都问（老存档里的选择一律不看）
+  const nopeAskMode = () => 'pick';
+  const nopeAlsoOn = (k) => { const def = NOPE_ALSO.find((x) => x[0] === k); return !!(def && def[3]); };
   /* 残局全都问（2026-11-14 用户：前八成局面和我无关的我不管，最后两成想微调，别人之间的牌也可能想作废）：
    * 「挑着问」时，牌堆剩下不到开局的这一成数，就当「全都问」。默认两成，设置里能选 关 / 30% / 20% / 10% */
-  const nopeLate = () => (settings.nopeLate == null ? 0.2 : +settings.nopeLate || 0);
+  const nopeLate = () => 0.2;
   function deckLeft() {
     const st = game && game.state;
     if (!st || !st.deck) return 1;
@@ -2822,20 +2825,6 @@
     return NOPE_ALSO.some(([k, , types]) => nopeAlsoOn(k) && types.indexOf(p.type) >= 0);
   }
   const askMeNope = (s) => nopeAsks(s.pending, 0, s.alive);
-  /* 设置里「问我作废」那一块（2026-11-14 用户从三版里挑了乙）：上面两张选项卡「全都问 / 挑着问」，
-   * 挑着问时下面八个图标格子，点亮 = 别人之间出这种牌也问我（和我有关的一定问） */
-  const NOPE_IC = { five: 'wild', swap: 'swap', triple: 'orange', pair: 'tabby', favor: 'favor', attack: 'attack', shuffle: 'shuffle', alter: 'alter' };
-  const NOPE_SHORT = { five: '凑五种', swap: '交换', triple: '三张点名', pair: '两张偷牌', favor: '索要', attack: '甩锅', shuffle: '洗牌', alter: '改命' };
-  function nopeSettingsHtml() {
-    const mode = nopeAskMode();
-    const card = (m, t, sub) => '<button type="button" class="zm-nope-opt" data-nope-mode="' + m + '" aria-pressed="' + (mode === m) + '"><b>' + t + '</b><small>' + sub + '</small><i class="ck" aria-hidden="true"></i></button>';
-    return '<div class="zm-nope"><div class="zm-nope-head">什么时候问我出「作废」</div><div class="zm-nope-opts">' + card('all', '全都问', '每张牌都停下来问') + card('pick', '挑着问', '和我有关的 + 下面点亮的') + '</div>' +
-      '<div class="zm-nope-also" data-nope-also' + (mode === 'pick' ? '' : ' hidden') + '><small>别人之间出这些牌也问我（点亮 = 问）</small><div class="zm-nope-grid">' +
-      NOPE_ALSO.map(([k, t]) => '<button type="button" class="zm-nope-tile" data-also="' + k + '" aria-pressed="' + nopeAlsoOn(k) + '" title="' + t + '" style="--tone:' + ART.TONE[NOPE_IC[k]].bg + '"><i class="ic">' + ART.icon(NOPE_IC[k]) + '</i><span>' + NOPE_SHORT[k] + '</span><i class="ck" aria-hidden="true"></i></button>').join('') +
-      '</div><div class="zm-nope-late"><b>快打完时全都问</b><small>牌堆剩下不到开局的这么多，别人之间出什么牌都问我</small>' +
-      '<div class="zs-seg" data-seg="nopeLate" role="group">' + [[0, '关'], [0.3, '剩 30%'], [0.2, '剩 20%'], [0.1, '剩 10%']].map(([v, t]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (nopeLate() === v) + '">' + t + '</button>').join('') + '</div></div></div></div>';
-  }
-
   /* ───── 反应窗：出完牌大家决定要不要「不行」 ───── */
   function clearReactTimer() { if (reactTimer) { clearTimeout(reactTimer); reactTimer = null; } }
   function reactPhase() {
@@ -3692,7 +3681,9 @@
       '<li>别人出的牌落在弃牌堆上时，下面那根导火索在烧：你手里有「作废」就会出现紫色按钮，烧完之前点它。</li></ul></div>';
   }
   function showRules() {
-    openDialog(rulesHtml() + '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (d) => {
+    // 2026-11-15 用户：窗口别占满全屏；右上角一个叉，点窗外任何地方也能关（遮罩点击认 data-ok）
+    openDialog('<button type="button" class="zm-rules-x" data-ok data-focus aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' + rulesHtml(), (d) => {
+      d.classList.add('is-rules');
       d.querySelector('[data-ok]').addEventListener('click', closeDialog);
     });
   }
@@ -3718,17 +3709,13 @@
       // 交换连逗猫棒一起换（2026-11-13 用户：以前玩的是整副手牌全换）；没开交换牌时这行藏着
       row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', settings.rules.swapDefuse)).replace('<div class="zs-row"', '<div class="zs-row" data-dep="swap"' + (settings.rules.swap ? '' : ' hidden')) +
       // 2026-11-14 用户：塞回炸毛猫时动画插在真实高度（默认开），最上 / 最底看得出、中间只能估；不报第几张
-      row('boom', '塞回炸毛猫看得出大概位置', '像线下一样：放最上 / 最底一眼看得出', sw('insertSeen', R.normalizeRules(settings.rules).insertSeen)) +
-      '</section>';
-    const pref = '<div class="zs-cap">操作</div><section class="zs-card">' +
-      nopeSettingsHtml() +
+      row('boom', '塞回看得出高低', '', sw('insertSeen', R.normalizeRules(settings.rules).insertSeen)) +
       '</section>';
     // 联机：机器猫 / 规则由房主定，这里只有自己的操作偏好
     // 联机：机器猫 / 规则由房主定，这里只有自己的偏好——「作废」怎么问、观战的人能不能看我的手牌（坐着的人才有）
     const meP = online && online.st ? online.st.players.find((p) => p.id === online.st.me && !p.left) : null;
     const revealRow = meP ? row('future', '观战者能看我的手牌', '即时生效；开局就开着、中途没关过，出局后才能看机器猫的牌', '<button type="button" class="zs-switch" data-online-reveal role="switch" aria-checked="' + !!meP.showHand + '"><i></i></button>') : '';
-    if (online) html = '<h2>设置</h2>' + pref.replace('</section>', revealRow + '</section>');
-    else html += pref;
+    if (online) html = '<h2>设置</h2>' + (revealRow ? '<section class="zs-card">' + revealRow + '</section>' : '<p class="zm-muted">联机时机器猫和玩法都由房主定。</p>');
     html += '<p class="zs-note" data-rule-note hidden>规则从下一局起生效</p><div class="zm-actions">' +
       (fromCover || !game || game.tutorial || online ? '' : '<button type="button" class="zm-btn" data-restart>重开一局</button>') +
       '<button type="button" class="zm-btn zm-btn-primary" data-close data-focus>好</button></div>';
@@ -3747,7 +3734,6 @@
         g.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
         fx.pop(b, { scale: 1.06, dur: 200 });
         const key = g.dataset.seg, v = b.dataset.v;
-        if (key === 'nopeLate') { settings.nopeLate = +v; saveSettings(); snd('tap'); return; }   // 个人偏好，即时生效，不算规则
         if (key === 'players') settings.players = +v;
         else if (key === 'tier') settings.tier = v;
         else if (key === 'turnSec') settings.turnSec = +v;
@@ -3760,19 +3746,6 @@
         b.setAttribute('aria-checked', String(on));
         snd('tap');
         onlineAct('reveal', { on });
-      }));
-      d.querySelectorAll('[data-nope-mode]').forEach((b) => b.addEventListener('click', () => {
-        settings.nopeAsk = b.dataset.nopeMode;
-        d.querySelectorAll('[data-nope-mode]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-        const box = d.querySelector('[data-nope-also]'); if (box) box.hidden = settings.nopeAsk !== 'pick';
-        saveSettings(); snd('tap');
-      }));
-      d.querySelectorAll('[data-also]').forEach((b) => b.addEventListener('click', () => {
-        const on = b.getAttribute('aria-pressed') !== 'true';
-        b.setAttribute('aria-pressed', String(on));
-        settings.nopeAlso = Object.assign({}, settings.nopeAlso, { [b.dataset.also]: on });
-        saveSettings();
-        snd('tap');
       }));
       d.querySelectorAll('[data-pref]').forEach((b) => b.addEventListener('click', () => {
         const on = b.getAttribute('aria-checked') !== 'true';
@@ -3832,7 +3805,7 @@
   };
   function menuItems() {
     const exit = FROM_SITE ? [['exit', '返回百宝奇巧']] : [];
-    if (game && game.tutorial) return [['skip', tut && tut.mini ? '退出本关' : '跳过教程'], ['rules', '规则'], ['line'], ['cover', '回到主菜单'], ...exit];
+    if (game && game.tutorial) return [['skip', tut && tut.mini ? '退出本关' : '跳过教程'], ['rules', '规则'], ['line'], ['cover', '回到主页面'], ...exit];
     if (online) return [['invite', '房间号 / 邀请'], ['profile', '改名字 / 头像'], ['settings', '设置'], ['rules', '规则'], ['line'], ['leave', '离开房间']];
     return [
       ...(canPause() ? [['pause', '暂停']] : []),
@@ -3842,7 +3815,7 @@
       ['rules', '规则'],
       ['tutorial', '新手教程'],
       ['line'],
-      ['cover', '回到主菜单'],
+      ['cover', '回到主页面'],
       ...exit,
     ];
   }
@@ -3988,10 +3961,10 @@
     save();
     busy = true;
     renderAll();
-    // 不写「暂停」二字：正中一个大大的暂停图标，左下「回到主页面」，右下「继续」（带个播放三角）
+    // 不写「暂停」二字：正中一个大大的暂停图标，左下「主页面」（带小房子，2026-11-15 用户），右下「继续」（带个播放三角）
     openDialog('<button type="button" class="zm-pause-cat" aria-label="摸摸小咪">' + napArt() + '</button>' +
       '<div class="zm-pause-ic" aria-label="暂停"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/><rect x="34" y="28" width="11" height="44" rx="3.5"/><rect x="55" y="28" width="11" height="44" rx="3.5"/></svg></div>' +
-      '<div class="zm-pause-actions"><button type="button" class="zm-btn" data-home>回到主页面</button>' +
+      '<div class="zm-pause-actions"><button type="button" class="zm-btn" data-home><svg class="ln" viewBox="0 0 24 24" aria-hidden="true">' + MENU_ICONS.cover + '</svg>主页面</button>' +
       '<button type="button" class="zm-btn zm-btn-primary" data-go data-focus><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>继续</button></div>', (d) => {
       d.classList.add('is-pause');
       // 点小咪：Z 泡泡破掉、抬头睁眼，眨两下又睡回去（2026-11-14 用户）
@@ -5475,7 +5448,7 @@
       DECK_OPTS.map(([v, t]) => '<button type="button" data-deck="' + v + '" aria-pressed="' + (v === rules.deckSize) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
       row('swap', '有交换牌', '', sw('swap', rules.swap)) +
       (rules.swap ? row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', rules.swapDefuse)) : '') +
-      row('boom', '塞回炸毛猫看得出大概位置', '', sw('insertSeen', rules.insertSeen !== false)) +
+      row('boom', '塞回看得出高低', '', sw('insertSeen', rules.insertSeen !== false)) +
       '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">规则由房主定</p>') +
       '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">离开房间</button>' +
       (host ? '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (seated.length >= 2 ? '' : ' disabled') + '>开始（' + seated.length + ' 人）</button>'
