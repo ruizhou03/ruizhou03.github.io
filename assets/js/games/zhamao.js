@@ -1201,16 +1201,40 @@
       d.querySelector('[data-no]').addEventListener('click', () => { closeDialog(); apply(0, { type: 'rescue', yes: false }); });
     });
   }
-  // 百变「明塞」：塞完在牌堆旁亮一下「第 N 张」
-  function insertAtLabel(at) {
-    const r = els.deck.getBoundingClientRect();
-    const lab = document.createElement('span');
-    lab.className = 'zm-insert-at';
-    lab.textContent = '第 ' + (at + 1) + ' 张';
-    lab.style.left = (r.left + r.width / 2) + 'px'; lab.style.top = (r.top - 8) + 'px';
-    els.fly.appendChild(lab);
-    setTimeout(() => lab.remove(), 2200);
+  /* 百变「明塞」（2026-11-15 用户挑甲2 · 塞歪了）：被明着塞回去的炸毛猫是一张真牌，夹在它那一层、往右下歪着露出一截（上面几层压着它）。
+   * 一直留着：有人摸牌它跟着往上挪；被摸走 / 洗牌 / 改命动过（我的记忆里不再知道它在哪）就收回去。动画中途不重算，播完再摆 */
+  function renderOpenKits() {
+    const stack = els.deck.querySelector('.zm-deck-stack');
+    if (!stack) return;
+    const st = game && game.state;
+    const want = [];
+    if (st && game.openKits && game.openKits.size && !ov) {
+      for (const id of Array.from(game.openKits)) {
+        const pos = st.deck.indexOf(id);
+        if (pos < 0 || st.memo[0].deck.indexOf(id) < 0) { game.openKits.delete(id); continue; }
+        if (pos > 0) want.push({ id, pos });   // 在最上面那张：牌堆顶本来就会亮红光提示，不再另插
+      }
+    }
+    if (ov) return;
+    stack.querySelectorAll('.zm-deck-kit').forEach((k) => { if (!want.some((w) => +k.dataset.id === w.id && +k.dataset.pos === w.pos)) k.remove(); });
+    const sheets = Array.from(stack.querySelectorAll('.zm-sheet')), top = stack.querySelector('.zm-card.is-top');
+    const n = sheets.length + (top ? 1 : 0);
+    for (const w of want) {
+      if (stack.querySelector('.zm-deck-kit[data-id="' + w.id + '"][data-pos="' + w.pos + '"]')) continue;
+      const li = n - 1 - w.pos, sh = sheets[li];   // 从下往上数第 li 层
+      if (!sh) continue;
+      const box = document.createElement('div');
+      box.className = 'zm-deck-kit'; box.dataset.id = w.id; box.dataset.pos = w.pos;
+      box.style.transform = sh.style.transform;
+      box.innerHTML = cardHtml(w.id);
+      sh.after(box);
+      game.kitShown = game.kitShown || new Set();
+      if (game.kitShown.has(w.id)) continue;   // 已经露过的：换层就直接摆过去，不再重演歪出来的那一下
+      game.kitShown.add(w.id);
+      if (!fx.reduce()) box.firstElementChild.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '28% 7%', rotate: '9deg', offset: 0.7 }, { translate: '24% 6%', rotate: '7deg' }], { duration: ms(420), easing: 'cubic-bezier(.3,.7,.3,1)' });
+    }
   }
+
 
   function renderPiles() {
     const s = game.state, d = D();
@@ -1225,6 +1249,7 @@
     if (lastKit >= 0 && lastKit !== d.kittens && d.kittens) { fx.pop(els.kit, { scale: 1.5, dur: 420 }); }
     lastKit = d.kittens;
     renderDiscard(d.discard);
+    renderOpenKits();
     // 百变「掀顶」：牌堆最上面那张翻开摆着（只在没动画时摆，动画里照常是牌背）
     {
       const stack = els.deck.querySelector('.zm-deck-stack'), top = stack && stack.querySelector('.zm-card.is-top');
@@ -1755,7 +1780,7 @@
       case 'draw': return animDraw(e, t);
       case 'boom': return animBoom(e, t, next);
       case 'defuse': return animDefuse(e, t);
-      case 'insert': return animInsert(e, t).then(() => { if (e.at != null && t === token) insertAtLabel(e.at); });
+      case 'insert': if (e.at != null && game) (game.openKits = game.openKits || new Set()).add(e.card); return animInsert(e, t);   // 百变「明塞」：塞完那张露一截在牌堆里（renderOpenKits）
       case 'flux': return animFlux(e, t);
       case 'nine': return animNine(e, t);
       case 'askRescue': return animAskRescue(e, t);
