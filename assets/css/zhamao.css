@@ -1245,3 +1245,11 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-flux-list span { color: var(--zm-ink-mute); font-size: 12.5px; line-height: 1.4; }
 .zm-insert-at { position: fixed; z-index: 60; transform: translate(-50%, -100%); padding: 3px 10px; border-radius: 999px; background: var(--zm-ink); color: #fff; font-size: 13px; font-weight: 700; pointer-events: none; animation: zm-insert-at 2.2s ease forwards; }
 @keyframes zm-insert-at { 0% { opacity: 0; transform: translate(-50%, -80%) scale(0.7); } 12%, 80% { opacity: 1; transform: translate(-50%, -100%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -120%); } }
+/* 百变牌（2026-11-15 用户挑甲 1）：五彩渐变描边 + 牌面一道慢慢扫过的斜光 + 深紫名字条金字、两边小星——一手奶油色的牌里一眼认得出 */
+.zm-card[data-k="flux"] { border: 2px solid transparent; background: linear-gradient(var(--zm-card), var(--zm-card)) padding-box, linear-gradient(135deg, #e0893e, #d4607e 30%, #8a63a8 55%, #2f8a83 78%, #c9a24a) border-box; }
+.zm-card[data-k="flux"] .zm-art { background: linear-gradient(160deg, #f4e3f4, #fbe9da); }
+.zm-card[data-k="flux"] .zm-art::after { content: ''; position: absolute; inset: -20%; pointer-events: none; background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.7) 50%, transparent 58%); transform: translateX(-70%); animation: zm-flux-sheen 3.6s ease-in-out infinite; }
+@keyframes zm-flux-sheen { 0% { transform: translateX(-70%); } 55%, 100% { transform: translateX(70%); } }
+.zm-card[data-k="flux"] .zm-nm { background: #5b3a8a; color: #f6dc8c; gap: 3cqw; }
+.zm-card[data-k="flux"] .zm-nm::before, .zm-card[data-k="flux"] .zm-nm::after { content: '✦'; font-size: 9cqw; color: #f6dc8c; }
+@media (prefers-reduced-motion: reduce) { .zm-card[data-k="flux"] .zm-art::after { animation: none; transform: translateX(-12%); } }

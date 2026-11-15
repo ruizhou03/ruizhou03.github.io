@@ -286,15 +286,26 @@
     return svg;
   }
 
-  // 百变（工作稿）：一只猫被四颗不同颜色的小星星围着——规则说变就变
+  // 百变（2026-11-15 用户挑甲 1 · 魔法棒）：不戴帽子、耳朵全露出来（用户：猫耳朵最有灵魂，别挡）；爪子侧举一根金头木杆、顶上五角星的魔法棒，
+  // 头顶一道金色星点弧线撒过去。牌框的五彩描边、斜光、深紫金字名字条在 zhamao.css
   const spark = (x, y, r, c) => '<path d="M' + x + ' ' + f(y - r) + 'Q' + f(x + r * 0.18) + ' ' + f(y - r * 0.18) + ' ' + f(x + r) + ' ' + y + 'Q' + f(x + r * 0.18) + ' ' + f(y + r * 0.18) + ' ' + x + ' ' + f(y + r) + 'Q' + f(x - r * 0.18) + ' ' + f(y + r * 0.18) + ' ' + f(x - r) + ' ' + y + 'Q' + f(x - r * 0.18) + ' ' + f(y - r * 0.18) + ' ' + x + ' ' + f(y - r) + 'Z" fill="' + c + '"/>';
+  function star5(x, y, R, r, c, st) {
+    let d = '';
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r : R; d += (i ? 'L' : 'M') + f(x + Math.cos(a) * rr) + ' ' + f(y + Math.sin(a) * rr); }
+    return '<path d="' + d + 'Z" fill="' + c + '"' + (st ? ' stroke="' + st + '" stroke-width="1.3" stroke-linejoin="round"' : '') + '/>';
+  }
   function fluxArt() {
     let svg = ground();
-    svg += line('M64 84c10-1 14-10 9-18', 6, '#b79ac0');
+    svg += line('M66 84c10-1 14-10 9-18', 6, '#b79ac0');
     svg += body(50, 74, 20, 14, '#cdb4d6');
-    svg += catHead(50, 46, 0.86, '#dcc8e4', { eyes: 'side', ear: '#efc7d6', blushC: '#f4b0b8' });
-    svg += spark(20, 26, 8, '#e0893e') + spark(80, 22, 7, '#3f7f86') + spark(84, 56, 5.5, '#c4607a') + spark(16, 60, 6, GOLD);
+    svg += catHead(50, 50, 0.82, '#dcc8e4', { eyes: 'side', ear: '#efc7d6', blushC: '#f4b0b8' });
     svg += '<ellipse cx="44" cy="86" rx="5" ry="3.4" fill="#f1e8f4"/><ellipse cx="56" cy="86" rx="5" ry="3.4" fill="#f1e8f4"/>';
+    // 魔法棒：木杆 + 握手那截金色 + 顶上金色五角星
+    svg += line('M66 72 84 40', 3.4, '#6b4a2e') + line('M66 72 70.5 64', 3.4, '#e9c86a') + star5(85.5, 37.5, 8.5, 3.6, '#f6dc8c', '#c9a24a');
+    svg += paw(66, 72, 0.62, '#dcc8e4');
+    // 头顶一道星点弧线（圆头短线 = 一颗颗金点），撒下几颗彩色小星
+    svg += '<path d="M80 30Q60 6 30 18" stroke="#e9c86a" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-dasharray="0.1 4.2"/>';
+    svg += spark(30, 18, 4.5, '#d4607e') + spark(44, 10, 3.4, '#2f8a83') + spark(62, 9, 3, '#e0893e') + spark(16, 40, 4, '#8a63a8') + spark(14, 62, 3, GOLD);
     return svg;
   }
 
