@@ -134,6 +134,8 @@
     if (b) return { known: true, boom: K[b.id] === R.BOOM };
     return { known: false, boom: false };
   }
+  // 摸到炸毛猫能不能活：有逗猫棒；或百变「九命」这条命还没用；或百变「双猫急救」手里有一对猫
+  const saveOk = (v) => has(v, R.DEFUSE) || (v.flux === 'nine' && !!v.nineUsed && !v.nineUsed[v.me]) || (v.flux === 'catsave' && !!R.catPairIds(v.hand));
   const bottomOk = (v) => has(v, R.BOTTOM) && v.deckSize > 1 && !bottomInfo(v).boom;
 
 
@@ -253,7 +255,7 @@
 
     /* 百变「摸底」生效时：结束回合摸的是最底下那张——危险看底牌；窥探 / 改命 / 抽底都管不到底下，只剩躲、洗、换规则 */
     function actBottom(v) {
-      const b = bottomInfo(v), def = has(v, R.DEFUSE), by = pairsOf(v), ts = targets(v);
+      const b = bottomInfo(v), def = saveOk(v), by = pairsOf(v), ts = targets(v);
       const flux = one(v, R.FLUX);
       if (b.known && b.boom) {
         const am = attackMove(v); if (am) return am;
@@ -281,7 +283,7 @@
       const fx = one(v, R.FLUX);
       if (fx != null && ((v.flux === 'mute' && has(v, R.NOPE)) || R.countKind(v.hand, R.FLUX) >= 2)) return playMove([fx]);
       const top = topInfo(v);
-      const def = has(v, R.DEFUSE);
+      const def = saveOk(v);
       const by = pairsOf(v);
       const ts = targets(v);
 

@@ -999,7 +999,7 @@
   /* ───── 百变规则牌（2026-11-15 用户：用甲的样子、不预告；打「百变」从百变规则堆里抽一条，抽到什么算什么）─────
    * 牌堆下面固定一张横放的牌，标题「百变规则」+ 这条的名字 + 一句话；点它看全部规则。
    * 还没人打过百变时什么都不摆（用户：别写「还没有」，土）——第一次抽到时才翻出来 */
-  const FLUX_IC = { nostack: 'attack', hidden: 'boom', exact: 'boom', bottom: 'bottom', reverse: 'reverse', mute: 'nope', farsight: 'future', generous: 'favor' };
+  const FLUX_IC = { nine: 'defuse', peektop: 'future', exact: 'boom', bottom: 'bottom', reverse: 'reverse', mute: 'nope', hot: 'tattack', catsave: 'calico' };
   const fluxRule = (id) => (R.FLUX_RULES || []).find((r) => r.id === id) || null;
   function fluxHtml(id) {
     const r = fluxRule(id), k = FLUX_IC[r.id];
@@ -1107,6 +1107,15 @@
     if (t !== token) return;
     if ((prev === 'reverse') !== (e.rule === 'reverse')) await animReverse({ seat: e.seat, dir: e.dir }, t);
   }
+  // 百变「九命」：炸了没出局——头顶冒「九命！」，头像缓过来，炸毛猫从他那儿飞回牌堆（缝开在看不出的高度）
+  async function animNine(e, t) {
+    bubble(e.seat, '九命！', { loud: true, ms: 1800 });
+    snd('defuse');
+    calmAvatar(e.seat, t, ms(500));
+    await wait(ms(500));
+    if (t !== token) return;
+    await animInsert({ seat: e.seat, vis: null }, t);
+  }
   // 百变「明塞」：塞完在牌堆旁亮一下「第 N 张」
   function insertAtLabel(at) {
     const r = els.deck.getBoundingClientRect();
@@ -1131,6 +1140,17 @@
     if (lastKit >= 0 && lastKit !== d.kittens && d.kittens) { fx.pop(els.kit, { scale: 1.5, dur: 420 }); }
     lastKit = d.kittens;
     renderDiscard(d.discard);
+    // 百变「掀顶」：牌堆最上面那张翻开摆着（只在没动画时摆，动画里照常是牌背）
+    {
+      const stack = els.deck.querySelector('.zm-deck-stack'), top = stack && stack.querySelector('.zm-card.is-top');
+      const faceId = !ov && s.flux === 'peektop' && s.deck.length && top ? s.deck[0] : null;
+      let fc = stack && stack.querySelector('.zm-deck-face');
+      if (faceId == null) { if (fc) fc.remove(); }
+      else {
+        if (!fc || +fc.dataset.id !== faceId) { if (fc) fc.remove(); stack.insertAdjacentHTML('beforeend', '<div class="zm-deck-face" data-id="' + faceId + '">' + cardHtml(faceId) + '</div>'); fc = stack.lastElementChild; }
+        fc.style.transform = top.style.transform;
+      }
+    }
     // 我知道顶上是炸毛猫：牌堆顶那张抖、发红光
     const known = !ov && s.alive[0] && s.memo[0].deck.length > 0 && R.KIND_OF[s.deck[0]] === R.BOOM && s.memo[0].deck.indexOf(s.deck[0]) >= 0;
     els.deck.classList.toggle('is-hot', known);
@@ -1641,6 +1661,7 @@
       case 'defuse': return animDefuse(e, t);
       case 'insert': return animInsert(e, t).then(() => { if (e.at != null && t === token) insertAtLabel(e.at); });
       case 'flux': return animFlux(e, t);
+      case 'nine': return animNine(e, t);
       case 'out': return animOut(e, t);
       case 'win': return;
     }
@@ -2768,6 +2789,11 @@
   async function animDefuse(e, t) {
     const u = U(), c = fx.center(els.center.getBoundingClientRect());
     const src = takeDefuseCard(e);
+    if (e.extra != null) {   // 百变「双猫急救」：一对猫顶逗猫棒——另一张也从手里拿走、进弃牌堆
+      if (e.seat === 0) { dropFromHand([e.extra]); renderHand(); } else if (ov) { ov.counts[e.seat] -= 1; renderSeat(e.seat); }
+      if (ov) ov.discard.push(e.extra);
+      bubble(e.seat, '双猫急救！', { loud: true, ms: 1800 });
+    }
     const W = u * 1.2;
     await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: e.seat === 0 ? null : 'up', flipAt: 0.15, from: src, to: c, w: W, s0: e.seat === 0 ? u / W : 0.35, s1: 1, r0: 0, r1: 0, dur: ms(440), lift: 60 });
     if (t !== token) return;
