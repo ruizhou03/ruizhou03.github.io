@@ -3845,7 +3845,6 @@
   /* 设置（2026-11-12 用户定稿「卡片 + 开关」，参考拱猪）：上面一张卡放人数 / 机器猫 / 限时，下面「玩法」卡每条一个牌面小图标 + 开关。
    * 和拱猪一样点了立刻生效、存下来，不再有「取消 / 保存」；规则从下一局起生效，局中改了规则「重开一局」变红 */
   const DECK_OPTS = [['quick', '快局'], ['std', '标准'], ['more', '多']];
-  const FLUX_LAB = (() => { try { const q = new URLSearchParams(location.search); if (q.has('zmflux')) localStorage.setItem('zm.fluxlab', '1'); return localStorage.getItem('zm.fluxlab') === '1'; } catch (_) { return false; } })();
   function showSettings(fromCover) {
     const segs = (key, opts, val) => '<div class="zs-seg" data-seg="' + key + '" role="group">' + opts.map(([v, t]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(val)) + '">' + t + '</button>').join('') + '</div>';
     const sw = (key, on) => '<button type="button" class="zs-switch" data-sw="' + key + '" role="switch" aria-checked="' + !!on + '"><i></i></button>';
@@ -3860,8 +3859,8 @@
       '<div class="zs-cap">玩法</div><section class="zs-card">' +
       // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 官方密度（默认）/ 快局更短 / 多 = 以前的整副
       '<div class="zs-line"><span>牌量</span>' + segs('deckSize', DECK_OPTS, R.normalizeRules(settings.rules).deckSize) + '</div>' +
-      // 2026-11-15 百变模式：还在等用户挑牌面 / 抽规则的样子，先藏在 ?zmflux=1 后面（之前开过的人照常看得到）
-      (FLUX_LAB || R.normalizeRules(settings.rules).mode === 'flux' ? '<div class="zs-line"><span>模式</span>' + segs('mode', [['classic', '经典'], ['flux', '百变']], R.normalizeRules(settings.rules).mode) + '</div>' : '') +
+      // 2026-11-15 百变模式单机正式开放（联机还没有：联机的规则由房主在房间里定，那边暂时只有经典）
+      '<div class="zs-line"><span>模式</span>' + segs('mode', [['classic', '经典'], ['flux', '百变']], R.normalizeRules(settings.rules).mode) + '</div>' +
       row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
       // 交换连逗猫棒一起换（2026-11-13 用户：以前玩的是整副手牌全换）；没开交换牌时这行藏着
       row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', settings.rules.swapDefuse)).replace('<div class="zs-row"', '<div class="zs-row" data-dep="swap"' + (settings.rules.swap ? '' : ' hidden')) +
