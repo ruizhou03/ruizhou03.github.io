@@ -83,18 +83,18 @@
   function save() {
     if (!game || game.tutorial || game.online) return;
     if (game.state.phase === 'over') { try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ } return; }
-    writeJSON(STORE_KEY, { v: VERSION, state: game.state, bots: game.bots, tiers: game.tiers });
+    writeJSON(STORE_KEY, { v: VERSION, state: game.state, bots: game.bots, tiers: game.tiers, openKits: game.openKits ? Array.from(game.openKits) : [] });   // 火眼露在牌堆里的那几只也存上
   }
   function loadSaved() {
     const d = readJSON(STORE_KEY);
     if (!d || d.v !== VERSION || !d.state || d.state.phase === 'over') return null;
     const s = d.state;
-    const total = s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0) + (s.defuse ? 1 : 0);
+    const total = s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0) + (s.defuse ? 1 : 0) + (s.rescue ? 1 : 0);   // 组队：等队友救的那只炸毛猫也算上（2026-11-15 漏了它，停在这一步的存档读不回来）
     // 旧存档：加「抽底」前是 64 张、加第二副（6–9 人）前是 68 张、加万能猫前是 135 张。没出现过的牌全收进盒子（removed），照样接着打（那局就没有万能猫）
     if ((total !== R.DECK_SIZE && R.LEGACY_SIZES.indexOf(total) < 0) || !Array.isArray(d.tiers) || d.tiers.length !== s.n) return null;
     s.rules = R.normalizeRules(s.rules);   // 老存档的规则按现在的来（例如甩锅一律叠加）
     if (total !== R.DECK_SIZE) {
-      const seen = new Set(s.deck.concat(s.discard, s.removed, ...s.hands, s.defuse ? [s.defuse.card] : []));
+      const seen = new Set(s.deck.concat(s.discard, s.removed, ...s.hands, s.defuse ? [s.defuse.card] : [], s.rescue ? [s.rescue.card] : []));
       for (let id = 0; id < R.DECK_SIZE; id++) if (!seen.has(id)) s.removed.push(id);
     }
     return d;
@@ -230,6 +230,8 @@
   /* ───── 牌 ───── */
   // 百变「摸底」生效时，抽底牌换成「抽顶」的牌面（规则上它也改成从最上面摸）
   const topdrawNow = () => !!(game && game.state && (ov && ov.flux !== undefined ? ov.flux : game.state.flux) === 'bottom');
+  // 我出这组牌算什么（角色猫三花：任意两只 / 三只猫也算）
+  const classifyMine = (cards) => (R.classifyFor && game && game.state ? R.classifyFor(game.state, 0, cards) : R.classify(cards));
   function cardHtml(kindOrId, cls, style) {
     const k = typeof kindOrId === 'number' ? R.KIND_OF[kindOrId] : kindOrId;
     const vk = k === R.BOTTOM && topdrawNow() ? 'topdraw' : k;   // 看起来是哪种（data-k 仍是真牌种，出牌判断不受影响）
@@ -897,7 +899,12 @@
     let rb = av.querySelector('.zm-role');
     if (!role) { if (rb) rb.remove(); }
     else {
-      if (!rb || rb.dataset.role !== role) { if (rb) rb.remove(); rb = document.createElement('i'); rb.className = 'zm-role'; rb.dataset.role = role; rb.innerHTML = roleArt(role); av.appendChild(rb); }
+      if (!rb || rb.dataset.role !== role) {
+        if (rb) rb.remove();
+        rb = document.createElement('i'); rb.className = 'zm-role'; rb.dataset.role = role; rb.innerHTML = roleArt(role); av.appendChild(rb);
+        // 手机上没有悬停：点小猫头弹一句它的技能（2026-11-15 巡查补）
+        rb.addEventListener('click', (ev) => { ev.stopPropagation(); const info = R.ROLES.find((r) => r.id === role); if (info) toast(nameOf(seat) + ' · ' + info.name + '：' + info.desc); });
+      }
       const info = R.ROLES.find((r) => r.id === role);
       rb.classList.toggle('is-used', !!(info && info.once && s.roleUsed && s.roleUsed[seat]));
       rb.title = info ? info.name + '：' + info.desc : '';
@@ -1198,6 +1205,9 @@
       '<div class="zm-actions"><button type="button" class="zm-btn" data-no>不救</button><button type="button" class="zm-btn zm-btn-primary" data-yes data-focus>救他</button></div>', (d) => {
       d.querySelector('[data-yes]').addEventListener('click', () => { closeDialog(); apply(0, { type: 'rescue', yes: true }); });
       d.querySelector('[data-no]').addEventListener('click', () => { closeDialog(); apply(0, { type: 'rescue', yes: false }); });
+      // 有出牌限时：到点没选就当「救他」（和别的弹窗一样不让一局卡住）
+      const lim = dlgLimit();
+      if (lim) { const k = token; setTimeout(() => { if (k === token && game && game.state.phase === 'rescue' && game.state.rescue.by === 0 && d.isConnected && !els.mask.hidden) { closeDialog(); apply(0, { type: 'rescue', yes: true }); } }, lim); }
     });
   }
   /* 百变「明塞」（2026-11-15 用户挑甲2 · 塞歪了）：被明着塞回去的炸毛猫是一张真牌，夹在它那一层、往右下歪着露出一截（上面几层压着它）。
@@ -1290,7 +1300,7 @@
     selected = selected.filter((id) => hand.indexOf(id) >= 0);
     const prev = new Map();
     if (o.flip !== false) els.hand.querySelectorAll('.zm-card').forEach((c) => prev.set(c.dataset.id, c.getBoundingClientRect()));
-    const combo = selected.length && R.classify(selected) && mode !== 'give';
+    const combo = selected.length && classifyMine(selected) && mode !== 'give';
     const note = !hand.length ? watchNote() : '';
     els.hand.innerHTML = (note ? '<p class="zm-hand-note">' + esc(note) + '</p>' : '') + hand.map((id) => cardHtml(id,
       (selected.indexOf(id) >= 0 ? 'is-sel' + (combo ? ' is-combo' : '') : '') + (handHidden.has(id) ? ' is-incoming' : '') +
@@ -1382,7 +1392,7 @@
     else if (myTurnToAct()) {
       els.drawBtn.disabled = false;
       els.drawBtn.classList.toggle('is-ready', !selected.length);
-      const c = selected.length ? R.classify(selected) : null;
+      const c = selected.length ? classifyMine(selected) : null;
       els.playBtn.disabled = !(c && (!c.needsTarget || R.validTargets(s, 0, c.type).length));
     }
     // 「出牌」刚亮起来就弹一下
@@ -3218,7 +3228,7 @@
     const i = selected.indexOf(id);
     if (i >= 0) selected.splice(i, 1); else selected.push(id);
     snd(i >= 0 ? 'untap' : 'tap');
-    const wasCombo = !!(selected.length > 1 && R.classify(selected));
+    const wasCombo = !!(selected.length > 1 && classifyMine(selected));
     renderHand();
     renderBand();
     if (wasCombo) snd('combo');
@@ -3245,7 +3255,7 @@
     }
     if (!myTurnToAct()) return;
     const cards = selected.slice();
-    const c = R.classify(cards);
+    const c = classifyMine(cards);
     if (!c) return;
     const go = (target, named) => {
       const d = { type: 'play', cards, target, named };
@@ -3368,7 +3378,7 @@
     if (preview && mode !== 'target') { if (seat > 0) preview.tap = seat; return; }
     // 已经选好了要指人的牌（还没按「出牌」）就点了一个能指的人：当作出给他（和先按出牌再点他一样，牌照样先飞上桌）
     if (mode == null && seat > 0 && !busy && selected.length && myTurnToAct() && els.mask.hidden) {
-      const c = R.classify(selected);
+      const c = classifyMine(selected);
       if (c && c.needsTarget && R.validTargets(game.state, 0, c.type).indexOf(seat) >= 0 && !(tut && tut.allow && !tut.allow({ type: 'play', cards: selected.slice(), preview: true }))) {
         onPlay();
         if (preview) preview.tap = seat; else if (mode === 'target') onSeatTap(seat);
@@ -4633,7 +4643,7 @@
     resetTable();
     viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
-    game = { state: d.state, bots: d.bots, tiers: d.tiers, tutorial: false, fastOut: !d.state.alive[0] };
+    game = { state: d.state, bots: d.bots, tiers: d.tiers, tutorial: false, fastOut: !d.state.alive[0], openKits: new Set(d.openKits || []), kitShown: new Set(d.openKits || []) };
     game.bots[0] = { nick: profile.nick, avatar: profile.avatar };
     els.cover.hidden = true;
     buildSeats();

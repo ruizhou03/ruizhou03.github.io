@@ -346,10 +346,16 @@
     return null;
   }
 
+  /* 这个座位出这组牌算什么（考虑角色猫：三花任意两只猫算一对、任意三只算三张）——界面判断能不能出也用它 */
+  function classifyFor(s, seat, cards) {
+    const c = classify(cards);
+    if (c || !s || roleOf(s, seat) !== 'calico' || !cards || (cards.length !== 2 && cards.length !== 3) || new Set(cards).size !== cards.length || !cards.every((id) => catLike(KIND_OF[id]))) return c;
+    return cards.length === 2 ? { type: 'pair', needsTarget: true, needsName: false } : { type: 'triple', needsTarget: true, needsName: true };
+  }
   /* 能被指定的人：还在场、不是自己、手里有牌（指定甩锅不看手牌：在场的人都能甩） */
   function validTargets(s, seat, type) {
     const out = [];
-    for (let t = 0; t < s.n; t++) if (t !== seat && s.alive[t] && (type === TATTACK || type === SWAP || s.hands[t].length > 0)) out.push(t);
+    for (let t = 0; t < s.n; t++) if (t !== seat && s.alive[t] && (type === TATTACK || type === SWAP || s.hands[t].length > 0) && !(type === 'pair' && roleOf(s, t) === 'shadow')) out.push(t);   // 黑猫：两张偷牌不能指他（指了也白指）
     return out;
   }
 
@@ -359,9 +365,7 @@
     if (s.phase !== 'act' || s.turn !== seat) return null;
     const hand = s.hands[seat];
     if (!cards.every((id) => hand.indexOf(id) >= 0)) return null;
-    let c = classify(cards);
-    // 角色猫「三花」：任意两只猫（含万能猫）也算一对
-    if (!c && roleOf(s, seat) === 'calico' && (cards.length === 2 || cards.length === 3) && new Set(cards).size === cards.length && cards.every((id) => catLike(KIND_OF[id]))) c = cards.length === 2 ? { type: 'pair', needsTarget: true, needsName: false } : { type: 'triple', needsTarget: true, needsName: true };
+    const c = classifyFor(s, seat, cards);
     if (!c) return null;
     if (c.needsTarget && validTargets(s, seat, c.type).indexOf(opts.target) < 0) return null;
     if (c.needsName && (KINDS.indexOf(opts.named) < 0 || opts.named === BOOM)) return null;
@@ -879,7 +883,7 @@
   }
 
   return {
-    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, isTeam, mateOf, teamOf, rescue, ROLES, roleOf, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, isTeam, mateOf, teamOf, rescue, ROLES, roleOf, classifyFor, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay, deckQuota,
     kindOf, isCat, catLike, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,
