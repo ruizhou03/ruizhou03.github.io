@@ -397,7 +397,7 @@
     if (!els.dir) { els.dir = document.createElement('div'); els.dir.setAttribute('aria-hidden', 'true'); els.table.appendChild(els.dir); }
     els.dir.className = 'zm-dir';
     const n = game && game.state ? game.state.n : 0;
-    if (n < 3 || !els.opps.children.length || teamGame()) { els.dir.innerHTML = ''; return; }   // 组队：轮流顺序是两队交替、不是绕桌一圈，不画小箭头
+    if (n < 3 || !els.opps.children.length || teamGame()) { els.dir.innerHTML = ''; if (n >= 2) rimRender(); return; }   // 组队：轮流顺序是两队交替、不是绕桌一圈，不画小箭头（桌沿照画）
     if (els.dir.children.length !== n - 2) els.dir.innerHTML = Array.from({ length: n - 2 }, () => '<i>' + DIR3_SVG + '</i>').join('');
     els.dir.style.setProperty('--cyc', Math.max(2.6, (n - 2) * 0.18 + 1.8).toFixed(2) + 's');
     placeDir();
