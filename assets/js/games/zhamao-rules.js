@@ -54,28 +54,29 @@
   'use strict';
 
   const BOOM = 'boom', DEFUSE = 'defuse', NOPE = 'nope', ATTACK = 'attack', TATTACK = 'tattack', SKIP = 'skip', BOTTOM = 'bottom',
-    FAVOR = 'favor', SHUFFLE = 'shuffle', FUTURE = 'future', ALTER = 'alter', SWAP = 'swap', WILD = 'wild', REVERSE = 'reverse';
+    FAVOR = 'favor', SHUFFLE = 'shuffle', FUTURE = 'future', ALTER = 'alter', SWAP = 'swap', WILD = 'wild', REVERSE = 'reverse', FLUX = 'flux';
   const CATS = Object.freeze(['orange', 'calico', 'cow', 'tabby', 'siamese']);
-  const ACTIONS = Object.freeze([ATTACK, TATTACK, SKIP, REVERSE, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP]);
+  const ACTIONS = Object.freeze([ATTACK, TATTACK, SKIP, REVERSE, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, FLUX]);
   const COUNTS = Object.freeze({
     boom: 4, defuse: 6, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3, bottom: 4,
-    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4, reverse: 4,
+    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4, reverse: 4, flux: 4,
   });
   const KINDS = Object.freeze(Object.keys(COUNTS));
   const NAMES = Object.freeze({
     boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '自由甩锅', skip: '跳过', bottom: '抽底', favor: '索要',
-    shuffle: '洗牌', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗', wild: '万能猫', reverse: '转向',
+    shuffle: '洗牌', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗', wild: '万能猫', reverse: '转向', flux: '百变',
   });
   /* 第二副牌（2026-11-12 起最多 9 人）：6 人以上开局把它也洗进来——炸毛猫最多 8 只、逗猫棒最多 11 根，功能牌和猫牌也多一倍；
    * 5 人及以下它一开局就整副收进盒子。牌号接在第一副后面（0..67 不变，旧存档 / 联机局照常） */
   const COUNTS2 = Object.freeze({
     boom: 4, defuse: 5, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3, bottom: 4,
-    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4, reverse: 4,
+    orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4, reverse: 4, flux: 4,
   });
   /* 2026-11-13 加万能猫（每副 4 张）：为了旧存档 / 联机局的牌号不变，它们的牌号接在最后——135..138 属第一副、139..142 属第二副。
    * 所以「是哪一副的牌」不能再拿 id < 68 判断，用 DECK_OF[id]（1 | 2）/ inSecondDeck(id) */
   /* 同一天又加转向（每副 4 张）：接在万能猫后面——143..146 第一副、147..150 第二副（万能猫的牌号不变） */
-  const LATE = [WILD, REVERSE];   // 后加的牌种：牌号排在两副老牌之后，按这个顺序一种种往后接
+  /* 2026-11-15 又加「百变」（每副 4 张，只在百变模式里进牌堆）：接在转向后面——151..154 第一副、155..158 第二副 */
+  const LATE = [WILD, REVERSE, FLUX];   // 后加的牌种：牌号排在两副老牌之后，按这个顺序一种种往后接
   const KIND_OF = [], DECK_OF = [];
   for (const k of KINDS) if (LATE.indexOf(k) < 0) for (let i = 0; i < COUNTS[k]; i++) { KIND_OF.push(k); DECK_OF.push(1); }
   for (const k of KINDS) if (LATE.indexOf(k) < 0) for (let i = 0; i < (COUNTS2[k] || 0); i++) { KIND_OF.push(k); DECK_OF.push(2); }
@@ -86,7 +87,7 @@
   Object.freeze(KIND_OF); Object.freeze(DECK_OF);
   const BASE_SIZE = KINDS.reduce((t, k) => t + COUNTS[k], 0);   // 76：第一副的张数（含 3 张交换、4 张抽底、4 张万能猫、4 张转向）
   const DECK_SIZE = KIND_OF.length;                              // 151：两副的牌号总数
-  const LEGACY_SIZES = Object.freeze([143, 135, 68, 64]);        // 以前的存档：加转向前 / 加万能猫前两副 / 一副 / 一副没抽底
+  const LEGACY_SIZES = Object.freeze([151, 143, 135, 68, 64]);   // 以前的存档：加百变前 / 加转向前 / 加万能猫前两副 / 一副 / 一副没抽底
   const inSecondDeck = (id) => DECK_OF[id] === 2;
   const MIN_PLAYERS = 2, MAX_PLAYERS = 9, TWO_DECKS_FROM = 6;
   const usesSecondDeck = (n) => n >= TWO_DECKS_FROM;
@@ -97,10 +98,32 @@
     swap: [false, true],
     swapDefuse: [false, true],   // 2026-11-13 用户：交换要不要连逗猫棒一起换（以前玩的是整副手牌全换）；默认不换，开房的人 / 单机自己选
     deckSize: ['std', 'quick', 'more'],   // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 官方密度 / 快局更短 / 多 = 以前的整副（两副）
-    insertSeen: [true, false],   // 塞回炸毛猫看得出大概位置（2026-11-14 用户，默认开）：动画插在真实高度，像线下一样最上 / 最底一眼看得出、中间只能估；不报第几张。选「随机」的照旧看不出
+    insertSeen: [true, false],
+    mode: ['classic', 'flux'],   // 2026-11-15：经典 / 百变（牌堆里加「百变」牌，打出就从百变规则堆里抽一条换上）   // 塞回炸毛猫看得出大概位置（2026-11-14 用户，默认开）：动画插在真实高度，像线下一样最上 / 最底一眼看得出、中间只能估；不报第几张。选「随机」的照旧看不出
   });
   // 2026-11-13 起「多的逗猫棒全放回」默认开（官方规则：每人先发 1 根逗猫棒，剩下的全洗回牌堆）
-  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std', insertSeen: true });
+  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std', insertSeen: true, mode: 'classic' });
+  /* 百变规则（2026-11-15 用户：不预告，打「百变」就抽一条，抽到什么算什么；桌上固定一张「百变规则」牌）。
+   * id 进状态 s.flux；desc 是桌上规则牌 / 说明里的一句话 */
+  const FLUX_RULES = Object.freeze([
+    { id: 'nostack', name: '不叠锅', desc: '甩锅不叠加，被甩锅最多摸 2 张' },
+    { id: 'hidden', name: '暗塞', desc: '塞回炸毛猫谁也看不出高低' },
+    { id: 'exact', name: '明塞', desc: '塞回炸毛猫，大家都看得到在第几张' },
+    { id: 'bottom', name: '摸底', desc: '结束回合时从牌堆最底下摸' },
+    { id: 'reverse', name: '逆行', desc: '出牌方向反过来（换走时再转回来）' },
+    { id: 'mute', name: '静音', desc: '谁都不能出「作废」' },
+    { id: 'farsight', name: '千里眼', desc: '窥探看 5 张' },
+    { id: 'generous', name: '慷慨', desc: '索要时由你从他扣着的牌里抽一张' },
+  ]);
+  const FLUX_IDS = FLUX_RULES.map((r) => r.id);
+  // 生效规则 = 基本规则 + 百变那条叠上去（机器猫的 view.rules 给的就是这个）
+  function rulesOf(s) {
+    const r = Object.assign({}, s.rules);
+    if (s.flux === 'nostack') r.stackAttack = false;
+    if (s.flux === 'hidden') r.insertSeen = false;
+    if (s.flux === 'exact') r.insertSeen = 'exact';
+    return r;
+  }
   const swapsInPlay = (n) => Math.min(usesSecondDeck(n) ? 6 : 3, n - 1);
   /* 牌量（2026-11-13 用户）：以前 5 人及以下整副 63 张普通牌、6 人起两副 126 张，牌堆是官方的 2–7 倍，炸毛猫只占 4–8%。
    * 「标准」「快局」按人数定这一局用多少张普通牌（不算炸毛猫 / 逗猫棒 / 交换）：63 × 人数系数 × 档位系数，人数系数 = 人数 / 5，夹在 0.8–1.8；
@@ -164,7 +187,7 @@
   }
 
   /* 手牌排序：逗猫棒、不行、行动牌、猫，同种挨着 */
-  const ORDER = [DEFUSE, NOPE, ATTACK, TATTACK, SKIP, REVERSE, BOTTOM, FAVOR, SWAP, SHUFFLE, FUTURE, ALTER].concat(CATS, [WILD, BOOM]);
+  const ORDER = [DEFUSE, NOPE, ATTACK, TATTACK, SKIP, REVERSE, BOTTOM, FAVOR, SWAP, SHUFFLE, FUTURE, ALTER, FLUX].concat(CATS, [WILD, BOOM]);
   function sortHand(hand) {
     return hand.slice().sort((a, b) => (ORDER.indexOf(KIND_OF[a]) - ORDER.indexOf(KIND_OF[b])) || (a - b));
   }
@@ -184,13 +207,15 @@
       deck: [], discard: [], removed: [], hands: [], alive: [], outOrder: [],
       turn: 0, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
       winner: -1, seq: 0, memo: newMemo(n), ins: null, peek: null,
+      flux: null, fluxDeck: [],   // 百变模式：现在生效的那条百变规则（null = 还没有）、还没抽到的规则（洗好的，从末尾抽）
       dir: 1,   // 出牌方向：1 = 座位号往上走（桌上画成逆时针），-1 = 打过单数张转向后反过来
     };
-    const booms = [], defuses = [], rest = [], swaps = [], unused = [];
+    const booms = [], defuses = [], rest = [], swaps = [], unused = [], fluxes = [];
     const two = usesSecondDeck(n);   // 5 人及以下只用第一副
     for (let id = 0; id < DECK_SIZE; id++) {
       if (inSecondDeck(id) && !two) { unused.push(id); continue; }
       const k = KIND_OF[id];
+      if (k === FLUX) { if (rules.mode === 'flux') fluxes.push(id); else unused.push(id); continue; }   // 百变牌只在百变模式里用，不进牌量配额
       if (k === BOOM) booms.push(id); else if (k === DEFUSE) defuses.push(id); else if (k === SWAP) swaps.push(id); else rest.push(id);
     }
     // 牌量：标准 / 快局按配额每种留前几张，其余收进盒子
@@ -206,6 +231,11 @@
     const nSwaps = quota ? Math.min(swapsInPlay(n), Math.max(1, Math.round((n - 1) / 2))) : swapsInPlay(n);
     const swapIn = rules.swap ? swaps.slice(0, nSwaps) : [];
     rest.push(...swapIn);
+    // 百变：标准 / 快局按人数放 2–6 张（4 人 3 张），「多」整副都放
+    const nFlux = quota ? Math.max(2, Math.min(6, Math.round(n * 0.7))) : fluxes.length;
+    rest.push(...fluxes.slice(0, nFlux));
+    unused.push(...fluxes.slice(nFlux));
+    if (rules.mode === 'flux') state.fluxDeck = shuffleIn(state, FLUX_IDS.slice());
     shuffleIn(state, rest);
     for (let s = 0; s < n; s++) {
       state.hands.push(sortHand(rest.splice(0, 4).concat(defuses.shift())));
@@ -232,6 +262,7 @@
       alter: s.alter && { by: s.alter.by, cards: s.alter.cards.slice() },
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
       winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
+      flux: s.flux || null, fluxDeck: (s.fluxDeck || []).slice(),
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
   }
@@ -323,8 +354,8 @@
   function play(s, seat, cards, opts) {
     opts = opts || {};
     const c = checkPlay(s, seat, cards, opts);
-    if (s.peek && s.peek.by === seat && s.peek.act == null && s.peek.top === 0 && [ATTACK, TATTACK, SKIP, REVERSE, BOTTOM].indexOf(c.type) >= 0) s.peek.act = 'dodge';   // 看过顶上、接着就躲（大家都看得到）
     if (!c) throw new Error('illegal play');
+    if (s.peek && s.peek.by === seat && s.peek.act == null && s.peek.top === 0 && [ATTACK, TATTACK, SKIP, REVERSE, BOTTOM].indexOf(c.type) >= 0) s.peek.act = 'dodge';   // 看过顶上、接着就躲（大家都看得到）
     for (const id of cards) { s.hands[seat].splice(s.hands[seat].indexOf(id), 1); s.discard.push(id); forgetCard(s, id); }
     s.seq += 1;
     s.pending = {
@@ -340,12 +371,13 @@
   function lastActor(s) { const p = s.pending; return p.nopes.length ? p.nopes[p.nopes.length - 1].seat : p.by; }
   function awaitingReaction(s) {
     if (s.phase !== 'react') return [];
+    if (s.flux === 'mute') return [];   // 百变「静音」：谁都不能作废，反应窗直接关
     const last = lastActor(s), out = [];
     for (let t = 0; t < s.n; t++) if (s.alive[t] && t !== last && s.pending.passed.indexOf(t) < 0) out.push(t);
     return out;
   }
   function canNope(s, seat) {
-    return s.phase === 'react' && s.alive[seat] && seat !== lastActor(s) && countKind(s.hands[seat], NOPE) > 0;
+    return s.phase === 'react' && s.flux !== 'mute' && s.alive[seat] && seat !== lastActor(s) && countKind(s.hands[seat], NOPE) > 0;
   }
   function nope(s, seat) {
     if (!canNope(s, seat)) throw new Error('illegal nope');
@@ -395,7 +427,7 @@
         const left = s.turnsLeft;
         const next = p.type === TATTACK && s.alive[p.target] && p.target !== me ? p.target : nextAlive(s, me);
         s.turn = next;
-        s.turnsLeft = s.rules.stackAttack && left > 1 ? left + 2 : 2;
+        s.turnsLeft = rulesOf(s).stackAttack && left > 1 ? left + 2 : 2;   // 百变「不叠锅」时不叠
         ev.push({ t: 'turn', seat: next, turnsLeft: s.turnsLeft, attacked: true });
         break;
       }
@@ -407,7 +439,7 @@
         ev.push({ t: 'shuffle', seat: me });
         break;
       case FUTURE: {
-        const top = s.deck.slice(0, 3);
+        const top = s.deck.slice(0, s.flux === 'farsight' ? 5 : 3);   // 百变「千里眼」：看 5 张
         const m = s.memo[me].deck;
         for (const id of top) if (m.indexOf(id) < 0) m.push(id);
         ev.push({ t: 'future', seat: me, cards: top, priv: [me] });
@@ -443,12 +475,26 @@
         break;
       }
       case FAVOR:
-        if (s.hands[p.target].length) {
+        if (s.flux === 'generous' && s.hands[p.target].length) {   // 百变「慷慨」：不是他挑着给，而是你从他扣着的牌里抽（和两张偷牌一样）
+          const h = s.hands[p.target];
+          s.phase = 'steal';
+          s.steal = { by: me, from: p.target, perm: shuffleIn(s, h.slice()) };
+          ev.push({ t: 'askSteal', by: me, from: p.target, count: h.length, favor: true });
+        } else if (s.hands[p.target].length) {
           s.phase = 'give';
           s.give = { from: p.target, to: me };
           ev.push({ t: 'askGive', from: p.target, to: me });
         }
         break;
+      case FLUX: {
+        // 百变：从百变规则堆里抽一条换上（抽完了：除了现在这条，其余洗回去）；「逆行」换上 / 换走时各转一次方向
+        if (!s.fluxDeck || !s.fluxDeck.length) s.fluxDeck = shuffleIn(s, FLUX_IDS.filter((id) => id !== s.flux));
+        const prev = s.flux || null, rule = s.fluxDeck.pop();
+        s.flux = rule;
+        if ((prev === 'reverse') !== (rule === 'reverse')) s.dir = s.dir === -1 ? 1 : -1;
+        ev.push({ t: 'flux', seat: me, rule, prev, dir: s.dir });
+        break;
+      }
       case 'pair': {
         // 不再随机抽：对方的手牌打乱顺序扣着摆出来，出牌人自己点一张（stealPick）
         const h = s.hands[p.target];
@@ -531,7 +577,7 @@
   /* ───── 摸牌（结束一个回合） ───── */
   function draw(s, seat) {
     if (s.phase !== 'act' || s.turn !== seat) throw new Error('illegal draw');
-    return takeCard(s, seat, false);
+    return takeCard(s, seat, s.flux === 'bottom');   // 百变「摸底」：结束回合从最底下摸
   }
   // 摸一张（bottom = 从最底下摸，抽底用）：事件带 bottom 标记，动画从牌堆底下抽
   function takeCard(s, seat, bottom) {
@@ -598,7 +644,8 @@
     // 规则「看得出大概位置」：动画插在牌堆的真实高度，所有人都看得到——但只发一个粗略的高度 vis（0 = 最上、1 = 最底、中间取到 1/8），
     // 不发第几张：懂技术的人抓网络数据，拿到的也只和肉眼看到的一样多
     let vis = null;
-    if (!rand && !(s.rules && s.rules.insertSeen === false)) {
+    const R0 = rulesOf(s);
+    if (!rand && R0.insertSeen !== false) {
       const last = s.deck.length - 1;
       vis = pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / last) * 8) / 8));
     }
@@ -608,6 +655,11 @@
     s.seq += 1;
     s.peek = null;
     const ev = [{ t: 'insert', seat, card: id, pos, size: s.deck.length, vis, priv: [seat] }];
+    // 百变「明塞」：人人知道塞在第几张（自己点「随机」的除外）——等于所有人都记住了这张牌在牌堆里的位置
+    if (!rand && R0.insertSeen === 'exact') {
+      for (let k = 0; k < s.n; k++) if (s.memo[k].deck.indexOf(id) < 0) s.memo[k].deck.push(id);
+      ev[0].at = pos;
+    }
     endOneTurn(s, ev);
     return ev;
   }
@@ -633,7 +685,7 @@
     for (const id of memo.deck) { const pos = s.deck.indexOf(id); if (pos >= 0) known.push({ pos, id }); }
     known.sort((a, b) => a.pos - b.pos);
     return {
-      me: seat, n: s.n, rules: s.rules,
+      me: seat, n: s.n, rules: rulesOf(s), flux: s.flux || null,
       hand: s.hands[seat].slice(),
       counts: s.hands.map((h) => h.length),
       alive: s.alive.slice(),
@@ -666,7 +718,7 @@
   }
 
   return {
-    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay, deckQuota,
     kindOf, isCat, catLike, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,

@@ -140,7 +140,7 @@
 
   /* ───── 普通（一套参数一个实例） ───── */
   function makeNormal(P) {
-    const VALUE = { defuse: 100, nope: P.vNope, tattack: P.vTattack, attack: P.vAttack, swap: P.vSwap, skip: P.vSkip, reverse: P.vReverse != null ? P.vReverse : P.vSkip, bottom: P.vBottom, alter: P.vAlter, future: P.vFuture, shuffle: P.vShuffle, favor: P.vFavor };
+    const VALUE = { defuse: 100, nope: P.vNope, tattack: P.vTattack, attack: P.vAttack, swap: P.vSwap, skip: P.vSkip, reverse: P.vReverse != null ? P.vReverse : P.vSkip, bottom: P.vBottom, alter: P.vAlter, future: P.vFuture, shuffle: P.vShuffle, favor: P.vFavor, flux: P.vFlux != null ? P.vFlux : 18 };
     const skipIdP = (v) => { if (!P.revFirst) return skipId(v); const a = one(v, R.REVERSE); return a != null ? a : one(v, R.SKIP); };   // 先用跳过还是转向（调参项）
     function cardValue(hand, id) {
       const k = K[id];
@@ -251,7 +251,35 @@
       return null;
     }
 
+    /* 百变「摸底」生效时：结束回合摸的是最底下那张——危险看底牌；窥探 / 改命 / 抽底都管不到底下，只剩躲、洗、换规则 */
+    function actBottom(v) {
+      const b = bottomInfo(v), def = has(v, R.DEFUSE), by = pairsOf(v), ts = targets(v);
+      const flux = one(v, R.FLUX);
+      if (b.known && b.boom) {
+        const am = attackMove(v); if (am) return am;
+        if (skipIdP(v) != null) return playMove([skipIdP(v)]);
+        if (has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
+        if (flux != null) return playMove([flux]);   // 换条规则碰碰运气（出百变不结束回合）
+        if (def) return DRAW;
+        const steal = stealMove(v, by, ts, true); if (steal) return steal;
+        return DRAW;
+      }
+      if (b.known) return DRAW;
+      if (!def) { const steal = stealMove(v, by, ts, false); if (steal) return steal; }
+      const bel = kittenBelief(v, v.deckSize), risk = bel.length ? bel[bel.length - 1] : 0;
+      const dodgeAt = def ? P.dodgeDef : P.dodgeNo;
+      if (risk >= dodgeAt) { const am = attackMove(v); if (am) return am; if (skipIdP(v) != null) return playMove([skipIdP(v)]); }
+      if (risk >= P.shuffleAt && has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
+      const sw = swapMove(v); if (sw) return sw;
+      if (def && has(v, R.FAVOR) && ts.length) return playMove([one(v, R.FAVOR)], richest(v, R.DEFUSE));
+      for (const k of R.CATS) if ((by[k] || []).length >= 2 && ts.length) return playMove(by[k].slice(0, 2), richest(v, R.DEFUSE));
+      return DRAW;
+    }
     function act(v) {
+      if (v.flux === 'bottom') return actBottom(v);
+      // 百变：「静音」时手里的作废全成了废牌 → 先打百变把规则换掉；手里攒了两张以上百变也先打一张
+      const fx = one(v, R.FLUX);
+      if (fx != null && ((v.flux === 'mute' && has(v, R.NOPE)) || R.countKind(v.hand, R.FLUX) >= 2)) return playMove([fx]);
       const top = topInfo(v);
       const def = has(v, R.DEFUSE);
       const by = pairsOf(v);
@@ -264,6 +292,7 @@
         if (bottomOk(v)) return playMove([one(v, R.BOTTOM)]);   // 顶上是炸毛猫：从底下摸
         if (has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);   // 把顶上的炸毛猫往下塞
         if (has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
+        if (fx != null) return playMove([fx]);   // 百变：没别的办法时换条规则碰碰运气（可能抽到「摸底」）
         if (def) return DRAW;
         const steal = stealMove(v, by, ts, true);
         if (steal) return steal;

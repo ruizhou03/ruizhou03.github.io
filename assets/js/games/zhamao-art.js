@@ -34,6 +34,7 @@
     siamese: { bg: '#fbf4e6', band: '#6b4a3a', ink: '#fffaf0' },
     wild:    { bg: '#fbf1dc', band: '#b08a3e', ink: '#fffaf0' },   // 万能猫：暖金名字条（实际名字条是五彩渐变，见 zhamao.css）
     reverse: { bg: '#dcebf2', band: '#1f7a9c', ink: '#f4fbff' },   // 转向：天青
+    flux:    { bg: '#f1e4f3', band: '#8e4a9c', ink: '#fdf7ff' },   // 百变：梅紫（2026-11-15 工作稿，牌面待用户挑）
   };
 
   /* ───── 积木 ───── */
@@ -285,9 +286,21 @@
     return svg;
   }
 
+  // 百变（工作稿）：一只猫被四颗不同颜色的小星星围着——规则说变就变
+  const spark = (x, y, r, c) => '<path d="M' + x + ' ' + f(y - r) + 'Q' + f(x + r * 0.18) + ' ' + f(y - r * 0.18) + ' ' + f(x + r) + ' ' + y + 'Q' + f(x + r * 0.18) + ' ' + f(y + r * 0.18) + ' ' + x + ' ' + f(y + r) + 'Q' + f(x - r * 0.18) + ' ' + f(y + r * 0.18) + ' ' + f(x - r) + ' ' + y + 'Q' + f(x - r * 0.18) + ' ' + f(y - r * 0.18) + ' ' + x + ' ' + f(y - r) + 'Z" fill="' + c + '"/>';
+  function fluxArt() {
+    let svg = ground();
+    svg += line('M64 84c10-1 14-10 9-18', 6, '#b79ac0');
+    svg += body(50, 74, 20, 14, '#cdb4d6');
+    svg += catHead(50, 46, 0.86, '#dcc8e4', { eyes: 'side', ear: '#efc7d6', blushC: '#f4b0b8' });
+    svg += spark(20, 26, 8, '#e0893e') + spark(80, 22, 7, '#3f7f86') + spark(84, 56, 5.5, '#c4607a') + spark(16, 60, 6, GOLD);
+    svg += '<ellipse cx="44" cy="86" rx="5" ry="3.4" fill="#f1e8f4"/><ellipse cx="56" cy="86" rx="5" ry="3.4" fill="#f1e8f4"/>';
+    return svg;
+  }
+
   const FACE = {
     boom: boomArt, defuse: defuseArt, nope: nopeArt, attack: attackArt, tattack: tattackArt, skip: skipArt, bottom: bottomArt, favor: favorArt, shuffle: shuffleArt, future: futureArt, alter: alterArt, swap: swapArt,
-    orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'), wild: wildArt, reverse: reverseArt,
+    orange: () => breedCat('orange'), calico: () => breedCat('calico'), cow: () => breedCat('cow'), tabby: () => breedCat('tabby'), siamese: () => breedCat('siamese'), wild: wildArt, reverse: reverseArt, flux: fluxArt,
   };
   const cache = {};
   function face(kind) {
@@ -324,6 +337,8 @@
   // 转向角标：两道弧形箭头首尾相接围成一圈
   ICON.reverse = () => '<path d="M19.5 9.5A8 8 0 0 0 5.6 7" fill="none" stroke="#1f7a9c" stroke-width="2.4" stroke-linecap="round"/><path d="M0 0-4-2.6V2.6Z" fill="#1f7a9c" transform="translate(4.6 8.4) rotate(130)"/>' +
     '<path d="M4.5 14.5A8 8 0 0 0 18.4 17" fill="none" stroke="#1f7a9c" stroke-width="2.4" stroke-linecap="round"/><path d="M0 0-4-2.6V2.6Z" fill="#1f7a9c" transform="translate(19.4 15.6) rotate(-50)"/>';
+  // 百变角标：一颗梅紫四角星 + 一颗小金星
+  ICON.flux = () => spark(10.5, 12.5, 8.5, '#8e4a9c') + spark(19, 5.5, 4, GOLD);
   const icache = {};
   function icon(kind) {
     if (!icache[kind]) icache[kind] = '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[kind]() + '</svg>';

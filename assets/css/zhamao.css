@@ -1221,3 +1221,27 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app .gz-sp-chat[data-tail="bottom"]::before { bottom: -8.5px; border-right-width: 2.2px; border-bottom-width: 2.2px; }
 .zm-app .gz-sp-chat[data-tail="left"]::before { left: -8.5px; border-left-width: 2.2px; border-bottom-width: 2.2px; }
 .zm-app .gz-sp-chat[data-tail="right"]::before { right: -8.5px; border-right-width: 2.2px; border-top-width: 2.2px; }
+
+/* ═════ 百变规则牌（2026-11-15，用户挑甲：牌堆下面一张横放的牌、不预告）═════ */
+.zm-flux {
+  position: absolute; left: 50%; top: calc(50% + var(--pu) * 1.11 + 22px); transform: translateX(-50%); z-index: 3;   /* 牌堆下面那行张数之下再空 22px */
+  display: grid; grid-template-columns: 34px auto; align-items: center; gap: 8px; min-width: 132px; max-width: min(240px, 86%);
+  padding: 8px 12px 8px 10px; border-radius: 10px; background: #fffdf8; border: 1.6px solid var(--zm-ink); color: var(--zm-ink);
+  box-shadow: 0 0 0 3px #fffdf8, 0 0 0 4.4px #c9a96e, 0 6px 14px rgba(29, 27, 24, 0.14); font: inherit; text-align: left; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; backface-visibility: hidden;
+}
+.zm-flux .tag { position: absolute; top: -9px; left: 12px; font-size: 10px; line-height: 1.5; background: var(--zm-seal); color: #fff; padding: 0 7px; border-radius: 999px; letter-spacing: 0.1em; }
+.zm-flux .ic { width: 34px; height: 34px; border-radius: 9px; background: var(--tone, #f1e4f3); padding: 5px; display: block; }
+.zm-flux .ic svg { width: 100%; height: 100%; display: block; }
+.zm-flux .txt b { display: block; font-size: 16px; letter-spacing: 0.06em; line-height: 1.25; }
+.zm-flux .txt small { display: block; font-size: 10.5px; color: var(--zm-ink-mute); line-height: 1.35; margin-top: 1px; }
+.zm-center:has(.zm-stage-inner) .zm-flux { opacity: 0.35; }
+.zm-flux-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.zm-flux-list li { display: grid; grid-template-columns: 28px 52px 1fr; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; font-size: 13.5px; }
+.zm-flux-list li.is-cur { background: #f6efe1; box-shadow: inset 0 0 0 1.5px var(--zm-seal); }
+.zm-flux-list .ic { width: 28px; height: 28px; border-radius: 7px; background: var(--tone); padding: 4px; display: block; }
+.zm-flux-list .ic svg { width: 100%; height: 100%; display: block; }
+.zm-flux-list b { letter-spacing: 0.04em; }
+.zm-flux-list span { color: var(--zm-ink-mute); font-size: 12.5px; line-height: 1.4; }
+.zm-insert-at { position: fixed; z-index: 60; transform: translate(-50%, -100%); padding: 3px 10px; border-radius: 999px; background: var(--zm-ink); color: #fff; font-size: 13px; font-weight: 700; pointer-events: none; animation: zm-insert-at 2.2s ease forwards; }
+@keyframes zm-insert-at { 0% { opacity: 0; transform: translate(-50%, -80%) scale(0.7); } 12%, 80% { opacity: 1; transform: translate(-50%, -100%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -120%); } }

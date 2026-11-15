@@ -252,6 +252,7 @@
       deckSize: s.deck.length, lifted: s.phase === 'alter' && s.alter ? s.alter.cards.length : 0, kittens: R.kittensInDeck(s),   // 重排时那几张正举在牌堆上方（数字照旧）
       discard: s.discard.filter((id) => onStage.indexOf(id) < 0),
       turn: s.turn, turnsLeft: s.turnsLeft, alive: s.alive.slice(),
+      flux: s.flux || null,   // 百变规则牌上现在写的那条（动画播到「换规则」才变）
     };
   }
   const D = () => ov || liveDisplay();
@@ -766,6 +767,7 @@
       case 'out': rimRipple(e.seat, '#7a2a22', 1600, 5); rimDim(1800); break;
       case 'shuffle': rimSwirl('#e6bd62', 1.5, 1300, dirNow()); break;   // 绕桌飞转跟着出牌方向（2026-11-14 用户：转向后洗牌还逆时针转）
       case 'reverse': rimSwirl('#9fc3d6', 1, 1100, e.dir); break;
+      case 'flux': rimRipple(e.seat, '#a77bb5', 1100, 3.5); break;   // 换百变规则：梅紫波纹
       case 'nope': rimRipple(e.seat, '#8a68a8', 700, 3); break;
       case 'win': rimSwirl('#f0c862', 1, 1500, dirNow()); rimFlash('#f0c862', 2, 600); break;
       case 'play': if (e.type === 'five') rimRainbow(e.seat); break;   // 五种猫各一张：五色彗星从他那儿绕桌一圈
@@ -994,8 +996,73 @@
     h += faces.map((id, i) => cardHtml(id, '', 'transform:translate(' + ((i - faces.length + 1) * 1.5).toFixed(1) + 'px,' + (-m * sy).toFixed(2) + 'px) rotate(' + pileRot(id) + 'deg)')).join('');
     els.discard.innerHTML = h;
   }
+  /* ───── 百变规则牌（2026-11-15 用户：用甲的样子、不预告；打「百变」从百变规则堆里抽一条，抽到什么算什么）─────
+   * 牌堆下面固定一张横放的牌，标题「百变规则」+ 这条的名字 + 一句话；点它看全部规则。
+   * 还没人打过百变时什么都不摆（用户：别写「还没有」，土）——第一次抽到时才翻出来 */
+  const FLUX_IC = { nostack: 'attack', hidden: 'boom', exact: 'boom', bottom: 'bottom', reverse: 'reverse', mute: 'nope', farsight: 'future', generous: 'favor' };
+  const fluxRule = (id) => (R.FLUX_RULES || []).find((r) => r.id === id) || null;
+  function fluxHtml(id) {
+    const r = fluxRule(id), k = FLUX_IC[r.id];
+    return '<span class="tag">百变规则</span><i class="ic" style="--tone:' + ART.TONE[k].bg + '">' + ART.icon(k) + '</i>' +
+      '<span class="txt"><b>' + r.name + '</b><small>' + r.desc + '</small></span>';
+  }
+  function renderFlux(d) {
+    const st = game && game.state, on = !!(st && st.rules && st.rules.mode === 'flux');
+    let el = document.getElementById('zmFlux');
+    const id = (d && d.flux) || null;
+    if (!on || !fluxRule(id)) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement('button');
+      el.type = 'button'; el.id = 'zmFlux'; el.className = 'zm-flux';
+      el.setAttribute('aria-label', '百变规则');
+      el.addEventListener('click', showFluxHelp);
+      els.center.appendChild(el);
+    }
+    if (el.dataset.rule !== String(id)) { el.dataset.rule = String(id); el.innerHTML = fluxHtml(id); }
+  }
+  function showFluxHelp() {
+    const cur = game && game.state ? D().flux : null;
+    openDialog('<h2>百变规则</h2><p>打出「百变」（没被作废）：从下面这些里随机抽一条换上，抽到什么算什么。同一时间只有一条。</p>' +
+      '<ul class="zm-flux-list">' + R.FLUX_RULES.map((r) => '<li' + (r.id === cur ? ' class="is-cur"' : '') + '><i class="ic" style="--tone:' + ART.TONE[FLUX_IC[r.id]].bg + '">' + ART.icon(FLUX_IC[r.id]) + '</i><b>' + r.name + '</b><span>' + r.desc + '</span></li>').join('') + '</ul>' +
+      '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (dl) => {
+      dl.querySelector('[data-ok]').addEventListener('click', closeDialog);
+    });
+  }
+  // 换规则：旧那张翻过去、新的翻过来，冒彩色小星星；换上 / 换走「逆行」时出牌方向的小箭头跟着掉头
+  async function animFlux(e, t) {
+    const prev = ov ? ov.flux : null;
+    if (ov) ov.flux = e.rule;
+    let el = document.getElementById('zmFlux');
+    snd('flip');
+    if (el && !fx.reduce()) await el.animate([{ transform: 'translateX(-50%) rotateY(0deg)' }, { transform: 'translateX(-50%) rotateY(90deg)' }], { duration: ms(220), easing: 'ease-in' }).finished.catch(() => {});
+    if (t !== token) return;
+    renderFlux({ flux: e.rule });   // 第一次：这时才把牌摆出来
+    el = document.getElementById('zmFlux');
+    if (!el) return;
+    if (!fx.reduce()) {
+      el.animate([{ transform: 'translateX(-50%) rotateY(-90deg)' }, { transform: 'translateX(-50%) rotateY(0deg) scale(1.08)', offset: 0.7 }, { transform: 'translateX(-50%) rotateY(0deg) scale(1)' }], { duration: ms(420), easing: 'cubic-bezier(.3,.8,.4,1.2)' });
+      const r = el.getBoundingClientRect();
+      fx.burst(r.left + r.width / 2, r.top + r.height / 2, { n: 12, shapes: ['star'], colors: ['#8e4a9c', '#e2b85c', '#e0893e', '#3f7f86'], radius: 70, size: [6, 14], life: 800 });
+    }
+    snd('ding');
+    await wait(ms(800));
+    if (t !== token) return;
+    if ((prev === 'reverse') !== (e.rule === 'reverse')) await animReverse({ seat: e.seat, dir: e.dir }, t);
+  }
+  // 百变「明塞」：塞完在牌堆旁亮一下「第 N 张」
+  function insertAtLabel(at) {
+    const r = els.deck.getBoundingClientRect();
+    const lab = document.createElement('span');
+    lab.className = 'zm-insert-at';
+    lab.textContent = '第 ' + (at + 1) + ' 张';
+    lab.style.left = (r.left + r.width / 2) + 'px'; lab.style.top = (r.top - 8) + 'px';
+    els.fly.appendChild(lab);
+    setTimeout(() => lab.remove(), 2200);
+  }
+
   function renderPiles() {
     const s = game.state, d = D();
+    renderFlux(d);
     renderDeck(Math.max(0, d.deckSize - (d.lifted || 0)));
     els.deck.classList.toggle('no-count', !d.deckSize);
     els.deckCount.textContent = d.deckSize;
@@ -1514,7 +1581,8 @@
       case 'draw': return animDraw(e, t);
       case 'boom': return animBoom(e, t, next);
       case 'defuse': return animDefuse(e, t);
-      case 'insert': return animInsert(e, t);
+      case 'insert': return animInsert(e, t).then(() => { if (e.at != null && t === token) insertAtLabel(e.at); });
+      case 'flux': return animFlux(e, t);
       case 'out': return animOut(e, t);
       case 'win': return;
     }
@@ -1953,7 +2021,7 @@
     snd('peek');
     const r = deckTopRect(), pu = PU();
     if (e.cards && e.seat === 0) {
-      const u = POP();
+      const u = e.cards.length > 3 ? Math.min(POP(), (els.center.getBoundingClientRect().width - 16) / (e.cards.length * 1.12)) : POP();   // 百变「千里眼」看 5 张：排得下
       if (ov) { ov.lifted = (ov.lifted || 0) + e.cards.length; renderPiles(); }   // 拿起来的几张：牌堆看着薄了，数字不变（牌并没被拿走）
       const box = els.center.getBoundingClientRect(), c = fx.center(box);
       const gap = u * 1.12;
@@ -1964,7 +2032,7 @@
       }).then((n) => { if (n && R.KIND_OF[id] === R.BOOM && t === token) { snd('gasp'); n.classList.add('zm-angry'); fx.burst(spots[i].x, spots[i].y, { n: 12, shapes: ['fur'], colors: FUR, radius: u * 0.9, size: [8, 18], alignOut: true, life: 700, pattern: 'ring' }); } return n; })));
       if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
       // 标签 + 「知道了」
-      const labels = ['最上面', '第 2 张', '第 3 张'];
+      const labels = ['最上面', '第 2 张', '第 3 张', '第 4 张', '第 5 张'];
       // 自己收起的倒计时（2026-11-14 用户：托管打出窥探后没人点「知道了」，整局卡住）：托管 1.8 秒；联机 4 秒（服务器的出牌限时在走）；
       // 单机有出牌限时就 6 秒；单机不限时、自己在打才等我点
       const peekLimit = autopilot ? 1800 : game.online ? 4000 : turnSec() > 0 ? 6000 : 0;
@@ -2695,7 +2763,8 @@
     const stack = els.deck.querySelector('.zm-deck-stack');
     const layers = Array.from(stack.children), L0 = layers.length;
     let above;
-    if (e.vis == null) above = L0 - Math.max(1, Math.floor(L0 * 0.55));
+    if (e.at != null) above = Math.max(0, Math.min(L0, e.at));   // 百变「明塞」：缝开在真实那一张
+    else if (e.vis == null) above = L0 - Math.max(1, Math.floor(L0 * 0.55));
     else above = Math.max(0, Math.min(L0, e.seat === 0 && e.pos != null ? e.pos : Math.round(e.vis * L0)));   // 单机里机器猫的事件也带 pos，别人塞的一律只按粗略高度
     const lid = layers.slice(L0 - above);
     const atBottom = L0 > 0 && above >= L0;
@@ -3664,6 +3733,7 @@
       li('tattack', '同甩锅，但可以甩给任意一个人（点他的头像）') +
       li('skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合') +
       li('reverse', '出牌方向倒过来（对手之间的小箭头跟着掉头），并像跳过一样结束一个回合、不摸牌。被甩锅时只顶掉其中一回合；两个人玩就等于跳过') +
+      (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? li('flux', '百变模式才有：打出后从百变规则里随机抽一条换上（桌上牌堆下面那张写着现在是哪条，点它看全部）。可以被作废') : '') +
       li('swap', (() => { const r = (game && game.state && game.state.rules) || settings.rules; return '和指定的一个人整手交换手牌' + (r.swapDefuse ? '（连逗猫棒一起换）' : '（各自的逗猫棒不换）') + (r.swap ? '' : '。设置里开了「有交换牌」才有'); })()) +
       li('favor', '指定一人，他自己挑一张给你') +
       li('shuffle', '把牌堆洗乱') +
@@ -3691,6 +3761,7 @@
   /* 设置（2026-11-12 用户定稿「卡片 + 开关」，参考拱猪）：上面一张卡放人数 / 机器猫 / 限时，下面「玩法」卡每条一个牌面小图标 + 开关。
    * 和拱猪一样点了立刻生效、存下来，不再有「取消 / 保存」；规则从下一局起生效，局中改了规则「重开一局」变红 */
   const DECK_OPTS = [['quick', '快局'], ['std', '标准'], ['more', '多']];
+  const FLUX_LAB = (() => { try { const q = new URLSearchParams(location.search); if (q.has('zmflux')) localStorage.setItem('zm.fluxlab', '1'); return localStorage.getItem('zm.fluxlab') === '1'; } catch (_) { return false; } })();
   function showSettings(fromCover) {
     const segs = (key, opts, val) => '<div class="zs-seg" data-seg="' + key + '" role="group">' + opts.map(([v, t]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(val)) + '">' + t + '</button>').join('') + '</div>';
     const sw = (key, on) => '<button type="button" class="zs-switch" data-sw="' + key + '" role="switch" aria-checked="' + !!on + '"><i></i></button>';
@@ -3705,6 +3776,8 @@
       '<div class="zs-cap">玩法</div><section class="zs-card">' +
       // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 官方密度（默认）/ 快局更短 / 多 = 以前的整副
       '<div class="zs-line"><span>牌量</span>' + segs('deckSize', DECK_OPTS, R.normalizeRules(settings.rules).deckSize) + '</div>' +
+      // 2026-11-15 百变模式：还在等用户挑牌面 / 抽规则的样子，先藏在 ?zmflux=1 后面（之前开过的人照常看得到）
+      (FLUX_LAB || R.normalizeRules(settings.rules).mode === 'flux' ? '<div class="zs-line"><span>模式</span>' + segs('mode', [['classic', '经典'], ['flux', '百变']], R.normalizeRules(settings.rules).mode) + '</div>' : '') +
       row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
       // 交换连逗猫棒一起换（2026-11-13 用户：以前玩的是整副手牌全换）；没开交换牌时这行藏着
       row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', settings.rules.swapDefuse)).replace('<div class="zs-row"', '<div class="zs-row" data-dep="swap"' + (settings.rules.swap ? '' : ' hidden')) +
@@ -4600,6 +4673,7 @@
       case 'resolve': s.pending = null; s.phase = 'act'; break;
       case 'turn': s.turn = e.seat; s.turnsLeft = e.turnsLeft; s.phase = 'act'; break;
       case 'reverse': s.dir = e.dir === -1 ? -1 : 1; break;
+      case 'flux': s.flux = e.rule; s.dir = e.dir === -1 ? -1 : 1; break;
       case 'shuffle': shuffled(s.deck); s.memo[0].deck = []; break;
       case 'future': case 'alter': {
         const k = e.cards ? e.cards.length : e.count;
