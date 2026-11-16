@@ -301,15 +301,27 @@
       // 必须跟着重量重画，不然就是「座位铺满了、桌沿还停在原来那么宽」（2026-11-14 用户在预览里看到桌沿只占半边）
       if (Math.abs(viewW() - sizeW) < 40) { renderDir(); return; }
       solveSize();
+      // 转屏（2026-11-15 横屏布局）：有的浏览器 resize 先到、横竖屏那套 CSS 后生效，第一遍量到的是旧布局——停稳后再按最终布局量一遍、重画桌沿和箭头
+      setTimeout(() => { if (game && !document.hidden) { solveSize(); } }, 450);
     }, 300);
   }
+  const LANDSCAPE_SHORT = window.matchMedia('(orientation: landscape) and (max-height: 540px)');   // 和 CSS 里横屏那段用同一个条件
   function solveSize() {
     sizeW = viewW();
     const W = els.table.offsetWidth - 24, H = els.table.offsetHeight;
-    const av = W < 500 ? 46 : 54;
-    const fixed = 50 + (av + 50) + 66 + 26 + 40;
-    let u = Math.min(W / 5.5, (H - fixed) / 2.7, 98);
-    u = Math.max(46, Math.floor(u));
+    let u;
+    if (LANDSCAPE_SHORT.matches) {
+      /* 手机横屏（2026-11-15 用户：横屏是必须设计的比例）：顶上一行 = 标题 + 对手 + 工具，底下一行 = 我 + 手牌 + 按钮，中间整块给桌子；
+       * 卡牌大小按「底下手牌一行 + 桌子里牌堆那张」两份高度分 */
+      const fixed = (40 + 44) + 22 + 26 + 16;   // 顶行（头像 + 名字）+ 手牌上下留白 + 牌堆下的张数 + 边框
+      u = Math.min(W / 9, (H - fixed) / 3.7, 76);
+      u = Math.max(40, Math.floor(u));
+    } else {
+      const av = W < 500 ? 46 : 54;
+      const fixed = 50 + (av + 50) + 66 + 26 + 40;
+      u = Math.min(W / 5.5, (H - fixed) / 2.7, 98);
+      u = Math.max(46, Math.floor(u));
+    }
     els.app.style.setProperty('--u', u + 'px');
     layoutHand();
     layoutOpps();
@@ -368,7 +380,7 @@
     const W = els.opps.clientWidth || els.table.clientWidth || innerWidth;
     const per = W / m;
     const av = Math.max(30, Math.min(46, Math.floor(per - 16)));
-    const A = Math.round(Math.min(34, av * 0.75));
+    const A = LANDSCAPE_SHORT.matches ? 0 : Math.round(Math.min(34, av * 0.75));   // 横屏够宽：一排摆平，不往下弯（弯下来会压到桌子）
     els.opps.style.setProperty('--av-o', av + 'px');
     els.opps.style.setProperty('--arc', A + 'px');
     Array.from(els.opps.children).forEach((b, j) => {
@@ -488,7 +500,7 @@
     const gap = W < 520 ? 13 : 9;
     const anchor = (seat) => {
       // 取整：小数点后的抖动不该让整圈重画
-      if (seat === 0 || seat === mateSeat()) { const r = avEl(seat).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(avEl(0).getBoundingClientRect().top - 9 - tb.top) }; }   // 组队：队友在底边上
+      if (seat === 0 || seat === mateSeat()) { const r = avEl(seat).getBoundingClientRect(), hr = els.hand.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(Math.min(avEl(0).getBoundingClientRect().top, hr.height ? hr.top + 6 : Infinity) - 9 - tb.top) }; }   // 横屏时我和手牌在同一行：底边落在手牌上沿之上   // 组队：队友在底边上
       const r = seatEl(seat).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(r.bottom + gap - tb.top) };
     };
     const opp = []; for (let i = 1; i < n; i++) if (i !== mateSeat()) opp.push(anchor(i));   // 顶边只按上面一排拟合
@@ -1132,7 +1144,7 @@
   }
   async function fluxWheel(idx, t) {
     const box = els.center.getBoundingClientRect();
-    const S = Math.round(Math.max(150, Math.min(240, box.width * 0.72, box.height * 0.62)));
+    const S = LANDSCAPE_SHORT.matches ? Math.round(Math.max(96, Math.min(200, box.width * 0.5, box.height * 0.92))) : Math.round(Math.max(150, Math.min(240, box.width * 0.72, box.height * 0.62)));   // 横屏桌子矮：转盘按桌子高度来，别冒出桌沿
     const cx = box.left + box.width / 2, cy = box.top + box.height / 2 - S * 0.08;
     const wrap = document.createElement('div');
     wrap.className = 'zm-wheel';
@@ -6334,6 +6346,7 @@
     if (selected.length && mode !== 'give') { selected = []; renderHand(); renderBand(); }
   });
   window.addEventListener('resize', recheckSize);
+  if (LANDSCAPE_SHORT.addEventListener) LANDSCAPE_SHORT.addEventListener('change', () => { sizeW = 0; recheckSize(); });   // 横竖屏切换：一定重算（不管宽度差多少）
   refreshSoundBtn();
   initSocial();
   refreshCover();

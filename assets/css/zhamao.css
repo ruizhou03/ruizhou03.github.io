@@ -1348,3 +1348,51 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rim .links.is-give g:not(.is-dull) .lline { stroke: #e0566e; }
 .zm-rim .links.is-give g:not(.is-dull) .lglow { stroke: rgba(224, 86, 110, 0.4); }
 .zm-rim .links.is-give g:not(.is-dull) .lhead, .zm-rim .links.is-give g:not(.is-dull) .lend { stroke: #e0566e; }
+/* ═════ 手机横屏（2026-11-15 用户：横屏是必须设计的比例，不是极端情况）═════
+ * 竖屏的五行（顶栏 / 对手 / 桌子 / 我那排 / 手牌）塞进 390 高只剩一条缝，牌堆压到桌沿上。横屏改成三行：
+ * 顶行 = 标题 · 对手 · 工具；中间整块是桌子；底行 = 我 · 手牌 · 按钮（组队时队友排在这一行另一端，整圈仍是逆时针） */
+@media (orientation: landscape) and (max-height: 540px) {
+  .zm-app { --av: 40px; }
+  .zm-table {
+    max-width: none; padding: 4px 12px 6px;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "tl opps opps tr" "ctr ctr ctr ctr" "me hand band mate";
+    column-gap: 10px;
+  }
+  .zm-topbar, .zm-mebar { display: contents; }
+  .zm-topleft { grid-area: tl; align-self: start; padding-top: 6px; }
+  .zm-tools { grid-area: tr; align-self: start; padding-top: 4px; }
+  .zm-tool { width: 34px; height: 34px; }
+  .zm-opps { grid-area: opps; min-height: 0; min-width: 0; padding: 4px 0 0; }   /* min-width:0：人多时别把整列撑出屏幕（会把下面的手牌挤歪） */
+  .zm-opps .zm-seat { min-width: 0; }
+  .zm-center { grid-area: ctr; }
+  .zm-hand { grid-area: hand; padding-top: 12px; }
+  .zm-seat-me { grid-area: me; position: relative; left: auto; right: auto; top: auto; bottom: auto; align-self: center; padding-left: 4px; }
+  .zm-band { grid-area: band; flex-direction: column; gap: 8px; align-self: center; }
+  .zm-band .zm-btn { min-width: 88px; }
+  .zm-seat-mate { grid-area: mate; position: relative; left: auto; right: auto; top: auto; bottom: auto; align-self: center; padding-right: 26px; }
+  .zm-app.is-mate-left .zm-table { grid-template-areas: "tl opps opps tr" "ctr ctr ctr ctr" "mate hand band me"; }
+  .zm-app.is-mate-left .zm-seat-mate { padding-right: 0; padding-left: 4px; }
+  .zm-app.is-mate-left .zm-seat-me { padding-left: 0; padding-right: 4px; }
+  /* 百变规则牌：横屏放到牌堆右边（下面没地方了） */
+  .zm-flux { top: 50%; left: calc(50% + var(--pu) * 1.75 + 14px); transform: translateY(-50%); }
+}
+/* 横屏的主菜单 / 选人数那层（2026-11-15）：竖着排会把「开始」挤到屏幕外——改成左右两栏：左边插画 + 标题，右边按钮 / 设置卡 */
+@media (orientation: landscape) and (max-height: 540px) {
+  .zm-cover { align-items: center; padding: 10px 20px; }
+  .zm-cover-inner { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); grid-template-rows: auto auto; column-gap: 28px; row-gap: 6px; width: min(780px, 100%); align-items: center; }
+  .zm-cover-art { grid-column: 1; grid-row: 1; width: min(30vw, 210px); justify-self: center; align-self: end; }
+  .zm-cover-title { grid-column: 1; grid-row: 2; font-size: 30px; margin: 0; justify-self: center; align-self: start; }
+  .zm-cover-inner > [data-cover-step] { grid-column: 2; grid-row: 1 / span 2; align-self: center; width: 100%; }
+  .zm-cover-inner > .zm-cover-btns { grid-row: 1; align-self: end; }
+  /* 选人数那张卡：横屏压紧一点（人数和「几个人玩」并成一行、间距收小），「开始」和下面两行小字都留在屏幕里 */
+  .zm-solo { gap: 8px; }
+  .zm-solo-pick { gap: 6px; padding: 8px 12px 10px; }
+  .zm-solo-num { font-size: 32px; }
+  .zm-solo-step button { width: 40px; height: 40px; font-size: 22px; }
+  .zm-solo-faces { display: none; }
+  .zm-solo .zm-cover-btn { padding-top: 8px; padding-bottom: 8px; }
+  .zm-cover-foot { margin-top: 0; }
+  .zm-cover-inner > .zm-cover-foot { grid-row: 2; align-self: start; }
+}
