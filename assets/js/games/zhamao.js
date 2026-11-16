@@ -3650,8 +3650,8 @@
     wipeFx();
     release();
     renderAll();
-    roleIntro();
-    schedule(200, step);
+    const tk = token;
+    roleIntro().then(() => { if (tk === token) schedule(200, step); });   // 角色猫亮相完再开打
   }
   async function startWithDeal() {
     const t = token;
@@ -3660,18 +3660,45 @@
     if (t !== token) return;
     game.dealing = false;
     release();
-    roleIntro();
+    await roleIntro();   // 角色猫亮相完再开打（没有角色猫立刻返回）
+    if (t !== token) return;
     step();
   }
   // 角色猫：发完牌告诉我抽到的是哪只猫、技能是什么（2026-11-15 巡查：以前只有头像角上一枚小猫头，不点不知道）
+  /* 角色猫开局（2026-11-15 用户：不靠文字）：我的那只角色猫在桌心放大亮相，然后缩小飞进头像角上的小猫头、小猫头弹一下。
+   * 技能说明照旧点小猫头看 */
   function roleIntro() {
     const st = game && game.state, r = st && st.roles && st.roles[0];
-    if (!r || game.tutorial || game.online) return;
-    const info = R.ROLES.find((x) => x.id === r);
-    if (!info) return;
-    toast('你是' + info.name + '：' + info.desc.replace(/他/g, '你') + '（点头像角上的小猫头随时看）');
-    const rb = avEl(0) && avEl(0).querySelector('.zm-role');
-    if (rb) fx.pop(rb, { scale: 1.8, dur: 520 });
+    if (!r || game.tutorial || game.online) return Promise.resolve();
+    const av = avEl(0), rb = av && av.querySelector('.zm-role');
+    if (!rb) return Promise.resolve();
+    if (fx.reduce()) { fx.pop(rb, { scale: 1.8, dur: 520 }); return Promise.resolve(); }
+    const t = token, c = fx.center(els.center.getBoundingClientRect());
+    const S = Math.round(Math.max(84, Math.min(140, els.center.getBoundingClientRect().height * 0.6)));
+    const el = document.createElement('div');
+    el.className = 'zm-role-reveal';
+    el.style.width = el.style.height = S + 'px';
+    el.innerHTML = roleArt(r);
+    els.fly.appendChild(el);
+    rb.style.visibility = 'hidden';   // 飞到之前，头像角上先空着
+    const at = (x, y, k) => 'translate(' + (x - S / 2).toFixed(1) + 'px,' + (y - S / 2).toFixed(1) + 'px) scale(' + k + ')';
+    snd('ding');
+    return el.animate([
+      { transform: at(c.x, c.y, 0.2), opacity: 0 },
+      { transform: at(c.x, c.y, 1.12), opacity: 1, offset: 0.6 },
+      { transform: at(c.x, c.y, 1), opacity: 1 },
+    ], { duration: 420, easing: 'cubic-bezier(.3,.8,.4,1.2)', fill: 'forwards' }).finished.then(() => {
+      if (t !== token) return null;
+      return wait(650);
+    }).then(() => {
+      if (t !== token || !rb.isConnected) return null;
+      const br = rb.getBoundingClientRect(), b = fx.center(br), k = br.width / S;
+      return el.animate([{ transform: at(c.x, c.y, 1) }, { transform: at(b.x, b.y, k.toFixed(3)) }], { duration: 520, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' }).finished;
+    }).catch(() => {}).then(() => {
+      el.remove();
+      rb.style.visibility = '';
+      if (t === token) { fx.pop(rb, { scale: 1.8, dur: 520 }); snd('tap'); }
+    });
   }
 
   /* ───── 弹窗：遮罩淡入、弹窗从下面弹上来 ───── */
