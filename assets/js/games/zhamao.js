@@ -715,6 +715,7 @@
     sv.querySelectorAll('.links > g').forEach((old) => { if (old._kill) old._kill(); else old.remove(); });
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     const end = seg[seg.length - 1];
+    if (b === 0) g.classList.add('is-me');   // 冲着我：连线红色（2026-11-15 乙1）
     g.innerHTML = '<path class="lglow" d="' + d + '"/><path class="lline" d="' + d + '"/><circle class="lhead" r="4"/><circle class="lend" cx="' + end.x.toFixed(1) + '" cy="' + end.y.toFixed(1) + '" r="6"/>';
     sv.querySelector('.links').appendChild(g);
     const paths = g.querySelectorAll('path'), len = Math.max(1, paths[1].getTotalLength()), head = g.querySelector('.lhead'), endDot = g.querySelector('.lend');
@@ -1391,6 +1392,21 @@
     const canNope = s.phase === 'react' && reactOpen && R.canNope(s, 0) && (askMeNope(s) || !!tut);
     const onlinePass = !!(game.online && s.phase === 'react' && reactOpen);   // 联机：每次出牌都有导火索，没「作废」也能点「取消」提前结束
     els.nopeBtn.hidden = !canNope;
+    /* 作废提示（2026-11-15 用户挑「乙1 收敛」，不靠文字）：和我有关（我出的、指着我、甩到我头上；组队算上队友）= 「冲着我」：
+     * 作废键实心紫加一圈红、头像红圈（准星本来就有）、桌沿连线变红、嘶一声；别人之间的牌（设置里打开了才会问）= 「收敛」：
+     * 作废缩成一枚小圆图标键、主键写「不管」、手里的作废牌不亮不跳 */
+    const nopeHot = canNope && !tut && nopeAboutMe(s);
+    const nopeQuiet = canNope && !tut && !nopeHot;
+    els.app.classList.toggle('is-nope-hot', nopeHot);
+    els.app.classList.toggle('is-nope-quiet', nopeQuiet);
+    if (nopeHot && !lastNopeHot) snd('hiss');
+    lastNopeHot = nopeHot;
+    // 被索要、轮到我挑牌（2026-11-15 用户挑「给3」的手牌区、不要文字）：整排手牌抬起描粉边、我的头像粉圈、「给牌」粉色、桌沿那条连线变粉
+    const giving = !!(mode === 'give' && s.phase === 'give' && s.give && s.give.from === 0);
+    if (giving && !els.app.classList.contains('is-giving')) snd('ask');
+    els.app.classList.toggle('is-giving', giving);
+    const lk = els.table && els.table.querySelector(':scope > .zm-rim .links');
+    if (lk) lk.classList.toggle('is-give', giving);
     els.cancelBtn.hidden = mode !== 'target';
     els.playBtn.hidden = false; els.drawBtn.hidden = false;
     els.playBtn.disabled = true; els.drawBtn.disabled = true;
@@ -1412,7 +1428,7 @@
       els.playBtn.textContent = two ? '给牌 ' + (gv.left > 1 ? 1 : 2) + '/2' : '给牌';
       els.playBtn.disabled = selected.length !== 1;
     }
-    else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消'; }
+    else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = nopeQuiet ? '不管' : nopeHot ? '不挡' : '取消'; }
     else if (myTurnToAct()) {
       els.drawBtn.disabled = false;
       els.drawBtn.classList.toggle('is-ready', !selected.length);
@@ -1424,22 +1440,15 @@
     if (on && !lastPlayOn) fx.pop(els.playBtn, { scale: 1.1, dur: 280 });
     lastPlayOn = on;
     els.hint.textContent = '';
-    renderGiveTip();
   }
-  /* 有人向我索要（2026-11-15 用户：先是作废那一轮，作废窗关了直接进「我挑一张给他」，中间没有任何提示，以为结束了）：
-   * 轮到我给牌时，按钮上方一直挂着一条提示「XX 向你索要一张牌 · 点一张，再点「给牌」」，给完才收；刚出现时响一声、弹一下 */
-  function renderGiveTip() {
-    const bar = els.playBtn && els.playBtn.closest('.zm-mebar');
-    let tip = bar && bar.querySelector('.zm-give-tip');
-    const s = game && game.state, gv = s && s.give;
-    const on = !!(bar && mode === 'give' && gv && gv.from === 0 && s.phase === 'give');
-    if (!on) { if (tip) tip.remove(); return; }
-    const two = R.roleOf && R.roleOf(s, gv.to) === 'fat';
-    const html = '<b>' + esc(nameOf(gv.to)) + '</b> 向你索要' + (two ? (gv.left > 1 ? '两张牌' : '两张牌 · 还差一张') : '一张牌') + ' · 点一张，再点「给牌」';
-    const fresh = !tip;
-    if (!tip) { tip = document.createElement('div'); tip.className = 'zm-give-tip'; tip.setAttribute('role', 'status'); bar.appendChild(tip); }
-    if (tip.innerHTML !== html) tip.innerHTML = html;
-    if (fresh) { snd('ask'); fx.pop(tip, { scale: 1.12, dur: 320 }); }
+  let lastNopeHot = false;
+  // 这张待作废的牌和我有关吗（组队：和队友有关也算）——决定作废键是「冲着我」还是「收敛」
+  function nopeAboutMe(s) {
+    const p = s.pending;
+    if (!p) return false;
+    if (aboutSeat(p, 0, s.alive, s.dir)) return true;
+    const m = R.isTeam && R.isTeam(s) ? R.mateOf(s, 0) : -1;
+    return m >= 0 && s.alive[m] && aboutSeat(p, m, s.alive, s.dir);
   }
   /* ───── 舞台：刚出的牌摆在桌子正中，导火索烧完前大家决定要不要「不行」 ───── */
   let reactOpen = false;
@@ -6282,6 +6291,8 @@
   // 座位滑进弧形（transform 过渡 0.35 秒）结束时再摆一次箭头：开局那一下量到的是滑动前的位置（2026-11-13 8 人局箭头没对上名字）
   els.opps.addEventListener('transitionend', (e) => { if (e.propertyName === 'transform' && e.target.classList && e.target.classList.contains('zm-seat')) placeDir(); });
   els.nopeBtn.addEventListener('click', pressNope);
+  els.nopeBtn.insertAdjacentHTML('afterbegin', '<i class="zm-nope-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6 18.4 18.4"/></svg></i>');
+  els.nopeBtn.setAttribute('aria-label', '作废');
   els.cancelBtn.addEventListener('click', cancelTarget);
   els.skipTut.addEventListener('click', skipTutorial);
   $('zmPauseBtn').addEventListener('click', pauseGame);
