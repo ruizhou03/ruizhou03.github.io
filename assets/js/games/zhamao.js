@@ -441,7 +441,7 @@
     dirRaf = requestAnimationFrame(() => { dirRaf = requestAnimationFrame(placeDir); });
     dirHot();
   }
-  let dirRaf = 0;
+  let dirRaf = 0, tableTurning = 0;   // tableTurning：观战换视角、头像正在滑的时候不量箭头 / 桌沿（量到的是半路的位置）
   /* 上面一排里相邻两家（座位号相连）各一个箭头：普通局 = 1→2、2→3……；组队（2026-11-15 改成队友挨着我坐）上排只剩两个对手，中间一个 */
   function dirPairs() {
     const n = game && game.state ? game.state.n : 0, m = mateSeat(), out = [];
@@ -449,7 +449,7 @@
     return out;
   }
   function placeDir() {
-    if (!els.dir || !game || !game.state) return;
+    if (!els.dir || !game || !game.state || tableTurning) return;
     const pairs = dirPairs(), np = pairs.length;
     if (els.dir.children.length !== np) return;
     const tb = els.table.getBoundingClientRect(), d = dirNow();
@@ -534,6 +534,7 @@
   function rimRender() {
     let sv = els.table.querySelector(':scope > .zm-rim');
     if (!game || !game.state) { if (sv) sv.remove(); return null; }
+    if (tableTurning) return sv;   // 头像还在滑：先留着原来那圈，滑完再重画
     const g = rimGeom();
     if (!g) return sv;
     if (!sv) {
@@ -1321,7 +1322,7 @@
     const combo = selected.length && classifyMine(selected) && mode !== 'give';
     const note = !hand.length ? watchNote() : '';
     els.hand.innerHTML = (note ? '<p class="zm-hand-note">' + esc(note) + '</p>' : '') + hand.map((id) => cardHtml(id,
-      (selected.indexOf(id) >= 0 ? 'is-sel' + (combo ? ' is-combo' : '') : '') + (handHidden.has(id) ? ' is-incoming' : '') +
+      (selected.indexOf(id) >= 0 ? 'is-sel' + (combo ? ' is-combo' : '') : (reactOpen && nopeLift.has(id) ? 'is-sel' : '')) + (handHidden.has(id) ? ' is-incoming' : '') +
       (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : ''))).join('');
     els.hand.querySelectorAll('.zm-card').forEach((c) => {
       c.addEventListener('click', (e) => { e.stopPropagation(); onCardTap(+c.dataset.id, c); });
@@ -1423,9 +1424,26 @@
     if (on && !lastPlayOn) fx.pop(els.playBtn, { scale: 1.1, dur: 280 });
     lastPlayOn = on;
     els.hint.textContent = '';
+    renderGiveTip();
+  }
+  /* 有人向我索要（2026-11-15 用户：先是作废那一轮，作废窗关了直接进「我挑一张给他」，中间没有任何提示，以为结束了）：
+   * 轮到我给牌时，按钮上方一直挂着一条提示「XX 向你索要一张牌 · 点一张，再点「给牌」」，给完才收；刚出现时响一声、弹一下 */
+  function renderGiveTip() {
+    const bar = els.playBtn && els.playBtn.closest('.zm-mebar');
+    let tip = bar && bar.querySelector('.zm-give-tip');
+    const s = game && game.state, gv = s && s.give;
+    const on = !!(bar && mode === 'give' && gv && gv.from === 0 && s.phase === 'give');
+    if (!on) { if (tip) tip.remove(); return; }
+    const two = R.roleOf && R.roleOf(s, gv.to) === 'fat';
+    const html = '<b>' + esc(nameOf(gv.to)) + '</b> 向你索要' + (two ? (gv.left > 1 ? '两张牌' : '两张牌 · 还差一张') : '一张牌') + ' · 点一张，再点「给牌」';
+    const fresh = !tip;
+    if (!tip) { tip = document.createElement('div'); tip.className = 'zm-give-tip'; tip.setAttribute('role', 'status'); bar.appendChild(tip); }
+    if (tip.innerHTML !== html) tip.innerHTML = html;
+    if (fresh) { snd('ask'); fx.pop(tip, { scale: 1.12, dur: 320 }); }
   }
   /* ───── 舞台：刚出的牌摆在桌子正中，导火索烧完前大家决定要不要「不行」 ───── */
   let reactOpen = false;
+  const nopeLift = new Set();   // 反应窗里点起来的作废（只是抬着，不会打出去）
   function targetOf(p) {
     if (p.target >= 0) return p.target;
     if (p.type === R.ATTACK) return R.nextAlive(game.state, p.by);
@@ -3151,12 +3169,19 @@
     ['shuffle', '洗牌', [R.SHUFFLE], false],
     ['alter', '改命', [R.ALTER], false],
   ];
-  // 2026-11-15 用户：能选的东西太多、怕有人看不懂——不再给选，定死成「挑着问」+ 默认勾的那三种 + 最后两成全都问（老存档里的选择一律不看）
-  const nopeAskMode = () => 'pick';
-  const nopeAlsoOn = (k) => { const def = NOPE_ALSO.find((x) => x[0] === k); return !!(def && def[3]); };
+  /* 2026-11-15 晚 用户（朋友局反馈：别人之间出牌也弹「作废」，新手以为冲着自己、点了才发现不用）：
+   * 默认全程只在和我有关时问（组队时和队友有关也算），残局也不再自动全问；设置里打开「别人之间的牌也问我」才有细项——
+   * 勾哪几种也问（默认勾原来那四种）、牌堆剩多少时全都问（默认两成）。没打开的人看不到细项 */
+  const nopeAskMode = () => (settings.nopeOthers ? 'pick' : 'mine');
+  const nopeAlsoOn = (k) => {
+    if (!settings.nopeOthers) return false;
+    if (Array.isArray(settings.nopeAlso)) return settings.nopeAlso.indexOf(k) >= 0;
+    const def = NOPE_ALSO.find((x) => x[0] === k); return !!(def && def[3]);
+  };
   /* 残局全都问（2026-11-14 用户：前八成局面和我无关的我不管，最后两成想微调，别人之间的牌也可能想作废）：
    * 「挑着问」时，牌堆剩下不到开局的这一成数，就当「全都问」。默认两成，设置里能选 关 / 30% / 20% / 10% */
-  const nopeLate = () => 0.2;
+  const nopeLateSet = () => (settings.nopeLate != null ? +settings.nopeLate : 0.2);
+  const nopeLate = () => (settings.nopeOthers ? nopeLateSet() : 0);
   function deckLeft() {
     const st = game && game.state;
     if (!st || !st.deck) return 1;
@@ -3264,7 +3289,9 @@
     const s = game.state;
     if (!s.alive[0]) return;   // 观战时看到的是别人的牌，点了没用
     if (autopilot) { setAutopilot(false); return; }   // 托管中点手牌 = 收回来自己打
-    if (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE) { pressNope(); return; }
+    // 别人出牌后点手里的「作废」：只是抬起 / 放下（2026-11-15 朋友反馈：以前点一下就直接打出去，抬起来就放不回去了）；要打出去点紫色「作废」键
+    if (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE) { if (nopeLift.has(id)) nopeLift.delete(id); else nopeLift.add(id); snd(nopeLift.has(id) ? 'tap' : 'untap'); renderHand({ flip: false }); return; }
+    nopeLift.clear();
     if (mode === 'give') { selected = selected[0] === id ? [] : [id]; snd('tap'); renderHand(); renderBand(); return; }
     if (mode === 'target') { cancelTarget(); }
     if (!myTurnToAct()) { shake(node); return; }
@@ -4064,7 +4091,7 @@
       '<ul>' + li('wild', '能顶任何一种猫：和一只猫凑成两张一样 / 三张一样，五种猫缺哪种也能拿它顶；两张万能猫也算一对。单出没用') + '</ul>' +
       '<h3>操作</h3><ul><li>点手牌选中（可多选），再点「出牌」；需要指定人时，能选的人头像会亮，点他的头像。</li>' +
       '<li>不想出牌就点「摸牌」结束回合。轮到你时头像外有一圈红环在收，收完还没动就自动替你摸一张（设置里可改成不限时）。</li>' +
-      '<li>别人出的牌落在弃牌堆上时，下面那根导火索在烧：你手里有「作废」就会出现紫色按钮，烧完之前点它。</li></ul></div>';
+      '<li>别人出了和你有关的牌（指着你的、甩到你头上的，组队时也包括队友），下面那根导火索在烧：你手里有「作废」就会出现紫色按钮，烧完之前点它。点手里的「作废」牌只会抬起来，不会打出去。和你无关的牌默认不问你，想管别人之间的牌就到设置里打开「别人之间的牌也问我」。</li></ul></div>';
   }
   function showRules() {
     // 2026-11-15 用户：窗口别占满全屏；右上角一个叉，点窗外任何地方也能关（遮罩点击认 data-ok）
@@ -4097,11 +4124,20 @@
       // 2026-11-14 用户：塞回炸毛猫时动画插在真实高度（默认开），最上 / 最底看得出、中间只能估；不报第几张
       row('boom', '塞回看得出高低', '', sw('insertSeen', R.normalizeRules(settings.rules).insertSeen)) +
       '</section>';
+    // 「作废」什么时候问我（自己的偏好，单机联机都有）
+    const nopeShort = (t) => t.replace('别人之间', '').replace('别人打', '').replace('（不甩给我）', '').replace('凑五种去捡弃牌堆', '凑五种捡牌');
+    const nopeCard = '<div class="zs-cap">作废</div><section class="zs-card">' +
+      row('nope', '别人之间的牌也问我', '关着时只在和我有关时问：我出的、指着我的、甩到我头上的', '<button type="button" class="zs-switch" data-nope-others role="switch" aria-checked="' + !!settings.nopeOthers + '"><i></i></button>') +
+      '<div class="zs-sub" data-nope-dep' + (settings.nopeOthers ? '' : ' hidden') + '>' +
+      '<div class="zs-subcap">也问这些</div><div class="zs-chips">' + NOPE_ALSO.map(([k, t]) => '<button type="button" data-nk="' + k + '" aria-pressed="' + (Array.isArray(settings.nopeAlso) ? settings.nopeAlso.indexOf(k) >= 0 : !!NOPE_ALSO.find((x) => x[0] === k)[3]) + '">' + nopeShort(t) + '</button>').join('') + '</div>' +
+      '<div class="zs-line"><span>残局全问</span>' + segs('nopeLate', [[0, '不用'], [0.3, '剩三成'], [0.2, '剩两成'], [0.1, '剩一成']], nopeLateSet()) + '</div>' +
+      '</div></section>';
+    html += nopeCard;
     // 联机：机器猫 / 规则由房主定，这里只有自己的操作偏好
     // 联机：机器猫 / 规则由房主定，这里只有自己的偏好——「作废」怎么问、观战的人能不能看我的手牌（坐着的人才有）
     const meP = online && online.st ? online.st.players.find((p) => p.id === online.st.me && !p.left) : null;
     const revealRow = meP ? row('future', '观战者能看我的手牌', '即时生效；开局就开着、中途没关过，出局后才能看机器猫的牌', '<button type="button" class="zs-switch" data-online-reveal role="switch" aria-checked="' + !!meP.showHand + '"><i></i></button>') : '';
-    if (online) html = '<h2>设置</h2>' + (revealRow ? '<section class="zs-card">' + revealRow + '</section>' : '<p class="zm-muted">联机时机器猫和玩法都由房主定。</p>');
+    if (online) html = '<h2>设置</h2>' + (revealRow ? '<section class="zs-card">' + revealRow + '</section>' : '<p class="zm-muted">联机时机器猫和玩法都由房主定。</p>') + nopeCard;
     html += '<p class="zs-note" data-rule-note hidden>规则从下一局起生效</p><div class="zm-actions">' +
       (fromCover || !game || game.tutorial || online ? '' : '<button type="button" class="zm-btn" data-restart>重开一局</button>') +
       '<button type="button" class="zm-btn zm-btn-primary" data-close data-focus>好</button></div>';
@@ -4120,12 +4156,27 @@
         g.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
         fx.pop(b, { scale: 1.06, dur: 200 });
         const key = g.dataset.seg, v = b.dataset.v;
+        if (key === 'nopeLate') { settings.nopeLate = +v; saveSettings(); return; }
         if (key === 'players') settings.players = +v;
         else if (key === 'tier') settings.tier = v;
         else if (key === 'turnSec') settings.turnSec = +v;
         else if (key === 'stackAttack' || key === 'swap' || key === 'swapDefuse') settings.rules[key] = v === 'true';
         else settings.rules[key] = v;
         persist();
+      }));
+      const nopeSw = d.querySelector('[data-nope-others]');
+      if (nopeSw) nopeSw.addEventListener('click', () => {
+        const on = nopeSw.getAttribute('aria-checked') !== 'true';
+        nopeSw.setAttribute('aria-checked', String(on));
+        settings.nopeOthers = on;
+        const dep = d.querySelector('[data-nope-dep]'); if (dep) dep.hidden = !on;
+        saveSettings(); snd('tap');
+      });
+      d.querySelectorAll('[data-nk]').forEach((b) => b.addEventListener('click', () => {
+        const on = b.getAttribute('aria-pressed') !== 'true';
+        b.setAttribute('aria-pressed', String(on));
+        settings.nopeAlso = Array.from(d.querySelectorAll('[data-nk][aria-pressed="true"]')).map((x) => x.dataset.nk);
+        saveSettings(); snd('tap');
       }));
       d.querySelectorAll('[data-online-reveal]').forEach((b) => b.addEventListener('click', () => {
         const on = b.getAttribute('aria-checked') !== 'true';
@@ -5115,13 +5166,21 @@
   // 换视角的「转桌」：每一家的座位从原来的位置滑到新位置（被看的人从上面滑到下面），手牌淡进来
   function turnTable(before) {
     if (fx.reduce() || !game || !game.state) return;
+    const slides = [];
     for (let l = 0; l < online.n; l++) {
       const box = seatEl(l), a = avEl(l), old = before[srvOf(l)];
       if (!box || !a || !old) continue;
       const now = fx.center(a.getBoundingClientRect());
       const dx = old.x - now.x, dy = old.y - now.y;
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
-      box.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)' }, { transform: 'none' }], { duration: 460, easing: 'cubic-bezier(.3,.75,.3,1)' });
+      slides.push(box.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)' }, { transform: 'none' }], { duration: 460, easing: 'cubic-bezier(.3,.75,.3,1)' }).finished.catch(() => {}));
+    }
+    /* 2026-11-15 朋友局截图：出局后点别人的视角，桌沿弯成一道横贯全桌的大弧、方向箭头歪到一边，过一会儿才好。
+     * 原因：头像正从旧位置滑向新位置时，箭头 / 桌沿在下一帧就按头像「此刻」的位置重量了——上排有一家还停在底下，顶边拟合成一条往下兜的抛物线，
+     * 又因为「形状没变就不重画」被缓存住，要等别的东西触发重画才恢复。现在滑动期间不量，滑完再按最终位置画一次 */
+    if (slides.length) {
+      const k = (tableTurning = (tableTurning || 0) + 1);
+      Promise.all(slides).then(() => { if (tableTurning === k) { tableTurning = 0; if (game && game.state) renderDir(); } });
     }
     els.hand.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 360, delay: 160, easing: 'ease-out', fill: 'backwards' });
     snd('flip');
