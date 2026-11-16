@@ -4297,10 +4297,18 @@
       ...exit,
     ];
   }
+  /* 确认框用游戏自己的弹窗（2026-11-15 巡查：以前用浏览器原生 confirm——样式和别的弹窗不一样，微信里还顶着网址；有的内嵌浏览器直接吞掉，点了没反应） */
+  function askConfirm(title, text, okLabel, onOk) {
+    openDialog('<h2>' + esc(title) + '</h2>' + (text ? '<p>' + esc(text) + '</p>' : '') +
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-no>取消</button><button type="button" class="zm-btn zm-btn-primary" data-yes data-focus>' + esc(okLabel) + '</button></div>', (d) => {
+      d.querySelector('[data-no]').addEventListener('click', closeDialog);
+      d.querySelector('[data-yes]').addEventListener('click', () => { closeDialog(); onOk(); });
+    });
+  }
   function menuAct(k) {
     closeMenu();
     if (k === 'restart') {
-      if (game && !game.dealing && game.state.phase !== 'over' && !confirm('放弃这一局，重新开一局？')) return;
+      if (game && !game.dealing && game.state.phase !== 'over') { askConfirm('重新开一局？', '这一局就放弃了', '重开', newGame); return; }
       newGame();
     }
     else if (k === 'settings') showSettings(false);
@@ -4312,7 +4320,7 @@
     else if (k === 'cover') { if (game && game.tutorial) quitTutorial(); else showCover(); }
     else if (k === 'exit') location.href = '/toolbox/';
     else if (k === 'invite') showInvite();
-    else if (k === 'leave') { if (confirm(game && game.online && !game.over && game.state.alive[0] ? '离开房间？这一局交给机器猫替你打完' : '离开房间？')) leaveOnline(true); }
+    else if (k === 'leave') askConfirm('离开房间？', game && game.online && !game.spectator && game.state && game.state.phase !== 'over' && game.state.alive[0] ? '这一局交给机器猫替你打完' : '', '离开', () => leaveOnline(true));
   }
   /* 「观战者能看我的手牌」：每人自己定，默认不给看；联机时在「设置」里改，自己的牌一拨就生效（2026-11-13 用户改规则）。
    * 也决定我出局后能不能看机器猫的牌：开局时就开着、这局里一次都没关过，才能看机器猫（中途关过一次，这局就看不到了） */

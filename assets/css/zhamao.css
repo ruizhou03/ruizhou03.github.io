@@ -1396,3 +1396,17 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   .zm-cover-foot { margin-top: 0; }
   .zm-cover-inner > .zm-cover-foot { grid-row: 2; align-self: start; }
 }
+/* 横屏的联机房间（2026-11-15）：竖着排把玩法设置和「开始」挤到屏幕外——左栏 = 小插画 + 房间号 + 座位，右栏 = 玩法设置 + 离开 / 开始 */
+@media (orientation: landscape) and (max-height: 540px) {
+  .zm-lobby { padding: 10px 16px; align-items: center; }
+  .zm-lobby-inner, .zm-lobby-inner.is-v2 { display: grid; width: min(860px, 100%); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 20px; row-gap: 8px;
+    grid-template-areas: "brand rules" "code rules" "seats rules" "seats actions"; align-items: start; }
+  .zm-lobby-brand { grid-area: brand; flex-direction: row; justify-content: center; gap: 10px; margin-top: 0; }
+  .zm-lobby-brand .art { width: 54px; }
+  .zm-lobby-brand b { font-size: 20px; }
+  .zm-lobby-code { grid-area: code; }
+  .zm-lobby-seats { grid-area: seats; }
+  .zm-lobby-rules { grid-area: rules; align-self: stretch; }
+  .zm-lobby-actions { grid-area: actions; margin-top: 0; align-self: end; }
+  .zm-lobby-note, .zm-lobby-watch { grid-column: 2; }
+}
