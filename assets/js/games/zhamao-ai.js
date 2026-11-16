@@ -534,7 +534,14 @@
   }
   // 名次分：赢 1，第 i 个出局 i/(n-1)（算上模拟开始前已经出局的人）
   function scoreOf(s, me, deadBefore) {
-    if (R.isTeam && R.isTeam(s)) { if (s.phase === 'over') return R.teamOf(s, me) === s.winnerTeam ? 1 : 0; return s.alive[me] ? 0.6 : 0.4; }   // 组队：看哪队赢
+    // 组队：看哪队赢；同样是赢 / 输再分细一点（赢时我方还剩几个、输时拉下了几个对手），分数没那么吵
+    if (R.isTeam && R.isTeam(s)) {
+      if (s.phase !== 'over') return s.alive[me] ? 0.6 : 0.4;
+      const my = R.teamOf(s, me);
+      let mine = 0, theirs = 0;
+      for (let k = 0; k < s.n; k++) if (s.alive[k]) { if (R.teamOf(s, k) === my) mine++; } else if (R.teamOf(s, k) !== my) theirs++;
+      return my === s.winnerTeam ? 0.8 + 0.1 * mine : 0.15 * theirs;
+    }
     if (s.winner === me) return 1;
     const i = s.outOrder.indexOf(me);
     if (i < 0) return 0.5;
@@ -590,10 +597,16 @@
   }
   const moveKey = (m) => m.type + ':' + (m.cards || []).map((id) => K[id]).sort().join(',') + ':' + (m.target == null ? '' : m.target) + ':' + (m.named || '');
 
+  /* 组队（2026-11-15 实测，高手队 vs 普通队，每组 480–2000 局）：只有输赢、分数很吵，PIMC 怎么调（样本 ×2/×3、平滑分、名次分、复核、改门槛）
+   * 都停在赢 52–57%（普通参数在组队里重新交叉熵调参也没有更好的）。所以组队里：平静的回合直接照普通走（危险 < 0.35 时多想无益），
+   * 危险时才算；第一轮挑出的「最好」再用一批新假想局和普通的选择复核一遍；塞炸毛猫用普通的规则（搜索在组队里没增益）。
+   * 结果：2000 局 55.3% ±2.2（和原来一样强），每步平均 47ms（原来 200ms） */
+  const TEAM_CALM = 0.35, TEAM_SCREEN = 0.05, TEAM_VERIFY = 150, TEAM_ANCHOR = 0.04;
   function hardAct(v, rng) {
     const N = pol(v);
     const nm = N.act(v);
     if (nm.type === 'play' && nm.cards.length === 1 && (K[nm.cards[0]] === R.FUTURE || K[nm.cards[0]] === R.ALTER)) return nm;
+    if (v.mate >= 0) { const tp = N.topInfo(v); if (!(tp.known && tp.boom) && tp.p < TEAM_CALM) return nm; }
     const cands = actCandidates(v);
     if (cands.length === 1) return DRAW;
     // 总模拟次数封顶（候选多时每个少模拟几次），最坏一步也不卡住动画
@@ -601,15 +614,18 @@
     // 普通的选择也在候选里（找不到就补进去）；别的候选平均名次分要高出 ANCHOR 才换
     let ai = cands.findIndex((c) => moveKey(c) === moveKey(N.act(v)));
     if (ai < 0) { cands.push(N.act(v)); ai = cands.length - 1; }
-    const scores = evaluate(v, (s, m, rr) => {
+    const applyAct = (s, m, rr) => {
       if (m.type === 'draw') { R.draw(s, v.me); return; }
       R.play(s, v.me, m.cards, m);
       let g = 0;
       while (s.phase === 'react' && g++ < 20) stepWith(s, null, rr); // 反应窗按普通处理
-    }, cands, samples, rng);
+    };
+    const scores = evaluate(v, applyAct, cands, samples, rng);
     const bi = argmax(scores);
-    // 组队只有输赢、没有名次分，模拟出来的分数很吵：要比普通的选择好得多才换（2026-11-15：门槛 0.05 时高手组队反而只赢普通 44–47%，0.15 回到 52%）
-    return scores[bi] - scores[ai] < (v.mate >= 0 ? 0.15 : ANCHOR) * samples ? cands[ai] : cands[bi];
+    if (!(v.mate >= 0)) return scores[bi] - scores[ai] < ANCHOR * samples ? cands[ai] : cands[bi];
+    if (bi === ai || scores[bi] - scores[ai] < TEAM_SCREEN * samples) return cands[ai];
+    const two = evaluate(v, applyAct, [cands[ai], cands[bi]], TEAM_VERIFY, rng);   // 复核：新假想局里还赢普通的选择才换
+    return two[1] - two[0] >= TEAM_ANCHOR * TEAM_VERIFY ? cands[bi] : cands[ai];
   }
 
   function hardInsert(v, rng) {
@@ -630,7 +646,7 @@
   function reactFor(v, tier, rng) { return polT(v, tier).react(v, rng || Math.random, 'normal'); }
   function insertFor(v, tier, rng) {
     rng = rng || Math.random;
-    if (tier === 'hard') return hardInsert(v, rng);
+    if (tier === 'hard' && !(v.mate >= 0)) return hardInsert(v, rng);   // 组队塞猫按普通的（搜索没增益，见 hardAct 上面）
     return polT(v, tier).insert(v, 'normal', rng);
   }
   function chooseGive(v, tier, rng) { return polT(v, tier).give(v, 'normal', rng || Math.random); }
