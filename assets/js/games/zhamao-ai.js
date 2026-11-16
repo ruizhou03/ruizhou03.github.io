@@ -66,6 +66,8 @@
     for (let i = 1; i <= v.n; i++) { const t = (((seat + d * i) % v.n) + v.n) % v.n; if (v.alive[t]) return t; }
     return seat;
   }
+  // 组队：下一个摸牌的是我队友（2026-11-15 队友改成挨着坐）——甩锅 / 跳过 / 把炸毛猫放顶上都会坑到他
+  const mateNext = (v) => v.mate >= 0 && v.alive[v.mate] && nextAliveV(v, v.me) === v.mate;
   // 跳过一回合用的牌：跳过优先，没有就拿转向顶（转向也是结束一回合不摸牌，顺带把方向反过来）
   const skipId = (v) => { const a = one(v, R.SKIP); return a != null ? a : one(v, R.REVERSE); };
   function targets(v) {
@@ -239,6 +241,7 @@
     }
     // 甩锅（普通或指定）：有普通的先用普通，留着指定的
     function attackMove(v) {
+      if (mateNext(v)) { if (has(v, R.TATTACK)) { const t = victim(v); if (t >= 0) return playMove([one(v, R.TATTACK)], t); } return null; }   // 普通甩锅会甩给队友：只用指定甩锅甩给对手
       if (has(v, R.ATTACK)) return playMove([one(v, R.ATTACK)]);
       if (has(v, R.TATTACK)) { const t = victim(v); if (t >= 0) return playMove([one(v, R.TATTACK)], t); }
       return null;
@@ -307,6 +310,13 @@
       if (top.known && top.boom) {
         const am = attackMove(v);
         if (am) return am;
+        if (mateNext(v)) {   // 组队、下家是队友：跳过会把炸毛猫留给他——转向（掉头后下家是对手）/ 抽底 / 改命 / 洗牌都比跳过好
+          if (has(v, R.REVERSE)) return playMove([one(v, R.REVERSE)]);
+          if (bottomOk(v)) return playMove([one(v, R.BOTTOM)]);
+          if (has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);
+          if (has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
+          if (def) return DRAW;
+        }
         if (skipIdP(v) != null) return playMove([skipIdP(v)]);
         if (bottomOk(v)) return playMove([one(v, R.BOTTOM)]);   // 顶上是炸毛猫：从底下摸
         if (has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);   // 把顶上的炸毛猫往下塞
@@ -406,13 +416,15 @@
       const booms = cards.filter((id) => K[id] === R.BOOM), safe = cards.filter((id) => K[id] !== R.BOOM);
       if (!booms.length) return cards.slice();
       const canDodge = has(v, R.ATTACK) || has(v, R.TATTACK) || has(v, R.SKIP) || has(v, R.REVERSE) || has(v, R.BOTTOM);
-      if (canDodge) return booms.concat(safe);
-      const k = Math.min(v.turnsLeft, safe.length);
+      const mn = mateNext(v) ? 1 : 0;   // 组队、下家是队友：多垫一张安全牌给他，炸毛猫留给后面的对手
+      if (canDodge) return safe.slice(0, mn).concat(booms, safe.slice(mn));
+      const k = Math.min(v.turnsLeft + mn, safe.length);
       return safe.slice(0, k).concat(booms, safe.slice(k));
     }
     function insert(v, tier, rng) {
       const size = v.deckSize; // 塞之前牌堆的张数：pos 0..size
       if (tier === 'easy') return (rng() * (size + 1)) | 0;
+      // （试过组队下家是队友时往下挪一张：4000 局反而少赢 6%，不挪）
       if (v.turnsLeft > 1 && P.insSmart) return Math.min(size, (v.turnsLeft - 1) + Math.round(P.insOffset || 0));   // 自己还要摸几张：塞在我这几张之后（正好留给后面的人）
       if (v.turnsLeft > 1) return Math.min(size, 2 + ((rng() * Math.max(1, size - 1)) | 0)); // 自己还要摸，别塞顶上
       if (rng() < P.insTop) return 0;
@@ -476,6 +488,10 @@
       turn: v.turn, turnsLeft: v.turnsLeft, phase: 'act',
       pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
       winner: -1, seq: 0, memo,
+      // 2026-11-15：以前这里没带方向 / 百变规则 / 角色 / 组队座次——高手的假想局里转向没转、规则没生效、队友认错人（组队改成挨着坐后高手胜率从 66% 掉到 43%）
+      dir: v.dir === -1 ? -1 : 1, flux: v.flux || null, fluxDeck: [], nineUsed: v.nineUsed ? v.nineUsed.slice() : null,
+      roles: v.roles ? v.roles.slice() : null, roleUsed: v.roleUsed ? v.roleUsed.slice() : null, cowCut: -1, hotGiven: -1,
+      teams: v.teams ? v.teams.slice() : null, rescue: null, winnerTeam: -1,
     };
     if (v.ins !== undefined) s.ins = v.ins && Object.assign({}, v.ins);
     if (v.peek !== undefined) s.peek = v.peek && Object.assign({}, v.peek);
@@ -518,7 +534,7 @@
   }
   // 名次分：赢 1，第 i 个出局 i/(n-1)（算上模拟开始前已经出局的人）
   function scoreOf(s, me, deadBefore) {
-    if (R.isTeam && R.isTeam(s)) { if (s.phase === 'over') return R.teamOf(me) === s.winnerTeam ? 1 : 0; return s.alive[me] ? 0.6 : 0.4; }   // 组队：看哪队赢
+    if (R.isTeam && R.isTeam(s)) { if (s.phase === 'over') return R.teamOf(s, me) === s.winnerTeam ? 1 : 0; return s.alive[me] ? 0.6 : 0.4; }   // 组队：看哪队赢
     if (s.winner === me) return 1;
     const i = s.outOrder.indexOf(me);
     if (i < 0) return 0.5;
@@ -539,7 +555,8 @@
         const rr = () => R.rand(s);
         try { applyFn(s, c, rr); } catch (e) { scores[ci] += -1; return; }
         let guard = 0;
-        while (s.phase !== 'over' && s.alive[v.me] && guard++ < 3000) stepWith(s, null, rr);
+        const team = R.isTeam && R.isTeam(s);   // 组队：我出局了队伍还没输，接着打到分出胜负
+        while (s.phase !== 'over' && (team || s.alive[v.me]) && guard++ < 3000) stepWith(s, null, rr);
         scores[ci] += (s.phase === 'over' || !s.alive[v.me]) ? scoreOf(s, v.me, deadBefore) : 0.5;
       });
     }
@@ -591,7 +608,8 @@
       while (s.phase === 'react' && g++ < 20) stepWith(s, null, rr); // 反应窗按普通处理
     }, cands, samples, rng);
     const bi = argmax(scores);
-    return scores[bi] - scores[ai] < ANCHOR * samples ? cands[ai] : cands[bi];
+    // 组队只有输赢、没有名次分，模拟出来的分数很吵：要比普通的选择好得多才换（2026-11-15：门槛 0.05 时高手组队反而只赢普通 44–47%，0.15 回到 52%）
+    return scores[bi] - scores[ai] < (v.mate >= 0 ? 0.15 : ANCHOR) * samples ? cands[ai] : cands[bi];
   }
 
   function hardInsert(v, rng) {

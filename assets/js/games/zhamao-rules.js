@@ -274,6 +274,7 @@
     state.removed = booms.slice(n - 1).concat(defuses.slice(extra), swaps.slice(swapIn.length), unused); // 这局不用的，收进盒子
 
     state.turn = (rand(state) * n) | 0;
+    if (rules.mode === 'team') state.teams = rand(state) < 0.5 ? [0, 0, 1, 1] : [0, 1, 1, 0];   // 队友是我的下家 / 上家，随机
     turnStarts(state, null);
     return state;
   }
@@ -290,17 +291,19 @@
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
       winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
       flux: s.flux || null, fluxDeck: (s.fluxDeck || []).slice(), nineUsed: s.nineUsed ? s.nineUsed.slice() : null, saveUsed: s.saveUsed ? s.saveUsed.slice() : null,
-      rescue: s.rescue ? Object.assign({}, s.rescue) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
+      rescue: s.rescue ? Object.assign({}, s.rescue) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1, teams: s.teams ? s.teams.slice() : null,
       roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null, cowCut: s.cowCut != null ? s.cowCut : -1, hotGiven: s.hotGiven != null ? s.hotGiven : -1,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
   }
 
   /* ───── 查询 ───── */
-  // 2v2 组队：对面坐的是队友（0、2 一队，1、3 一队）
+  // 2v2 组队（2026-11-15 用户改：队友和我出牌顺序挨着——我是队友的上家或下家，不再两队交替）：
+  // s.teams[座位] = 队号（0 号座位那队永远是 0 队）。开局随机 [0,0,1,1]（队友是我下家）或 [0,1,1,0]（队友是我上家）。
+  // 老存档没有 s.teams：照旧对面是队友（0、2 一队，1、3 一队）
   const isTeam = (s) => !!(s.rules && s.rules.mode === 'team' && s.n === 4);
-  const mateOf = (s, seat) => (isTeam(s) ? (seat + 2) % 4 : -1);
-  const teamOf = (seat) => seat % 2;
+  const teamOf = (s, seat) => (typeof s === 'number' ? s % 2 : s && s.teams ? s.teams[seat] : seat % 2);
+  const mateOf = (s, seat) => { if (!isTeam(s)) return -1; for (let k = 0; k < s.n; k++) if (k !== seat && teamOf(s, k) === teamOf(s, seat)) return k; return -1; };
   const aliveCount = (s) => s.alive.reduce((a, b) => a + (b ? 1 : 0), 0);
   // 按当前方向的下一个还在场的人（老存档没有 dir：按 1）
   function nextAlive(s, seat) {
@@ -759,11 +762,11 @@
     s.discard.push(id);
     for (const m of s.memo) m.hands[seat] = [];
     ev.push({ t: 'out', seat, cards: hand });
-    const teams = isTeam(s) ? new Set(s.alive.map((a, k) => (a ? teamOf(k) : -1)).filter((x) => x >= 0)) : null;
+    const teams = isTeam(s) ? new Set(s.alive.map((a, k) => (a ? teamOf(s, k) : -1)).filter((x) => x >= 0)) : null;
     if (teams ? teams.size <= 1 : aliveCount(s) <= 1) {
       s.phase = 'over';
       s.winner = s.alive.indexOf(true);
-      if (teams) s.winnerTeam = teamOf(s.winner);   // 组队：剩下的那一队赢（只剩一人也算）
+      if (teams) s.winnerTeam = teamOf(s, s.winner);   // 组队：剩下的那一队赢（只剩一人也算）
       ev.push({ t: 'win', seat: s.winner, team: teams ? s.winnerTeam : undefined });
       return ev;
     }
@@ -850,7 +853,7 @@
     return {
       me: seat, n: s.n, rules: rulesOf(s), flux: s.flux || null, nineUsed: s.nineUsed ? s.nineUsed.slice() : null,
       roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null,
-      mate: mateOf(s, seat), rescue: s.rescue ? { by: s.rescue.by, for: s.rescue.for } : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
+      mate: mateOf(s, seat), teams: s.teams ? s.teams.slice() : null, rescue: s.rescue ? { by: s.rescue.by, for: s.rescue.for } : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
       hand: s.hands[seat].slice(),
       counts: s.hands.map((h) => h.length),
       alive: s.alive.slice(),

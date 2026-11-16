@@ -1307,3 +1307,12 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-av .zm-role { pointer-events: auto; cursor: pointer; }
 .zm-app #zmFlux { transition: opacity 0.2s ease; }
 .zm-app.is-peeking #zmFlux { opacity: 0; pointer-events: none; }
+/* 组队、队友是我上家（2026-11-15 用户：队友和我出牌顺序挨着，左右跟着顺序走）：队友坐左下、我坐右下，整桌仍是逆时针一圈 */
+.zm-app.is-mate-left .zm-seat-me { left: auto; right: 14px; }
+.zm-app.is-mate-left .zm-seat-mate { right: auto; left: 14px; }
+@media (max-width: 359px) {
+  .zm-app.is-mate-left .zm-seat-me { left: auto; right: 6px; }
+  .zm-app.is-mate-left .zm-seat-mate { right: auto; left: 6px; }
+}
+/* 队友坐左下时右边紧挨着「摸牌」：手牌数角标改挂在头像右上角（和 6–9 人那排一样），不再伸到按钮上 */
+.zm-app.is-mate-left .zm-seat-mate .zm-count { left: auto; right: -9px; top: -7px; min-width: 18px; height: 21px; font-size: 11px; border-radius: 4px; }

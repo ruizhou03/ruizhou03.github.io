@@ -46,7 +46,7 @@
   const pace = () => (game && game.tutorial ? TUT_PACE : game && game.turbo ? TURBO : game && game.fastOut && !mateWatching() ? FAST : PACE);
   const ms = (x) => Math.round(x * pace().k);
   // 组队：我出局了但队友还在打——照常速度，坐在队友身后看他的牌（2026-11-15 巡查）
-  const mateWatching = () => !!(game && !game.online && game.state && R.isTeam && R.isTeam(game.state) && !game.state.alive[0] && game.state.alive[2] && game.state.phase !== 'over');
+  const mateWatching = () => !!(game && !game.online && game.state && R.isTeam && R.isTeam(game.state) && !game.state.alive[0] && game.state.alive[R.mateOf(game.state, 0)] && game.state.phase !== 'over');
 
   const FUR = ['#3a3632', '#4a4540', '#2a2622', '#5c5650'];
   const GOLDS = ['#c9a96e', '#dcb86c', '#e9d46a'];
@@ -320,8 +320,11 @@
   const CLOCK_SVG = '<svg class="zm-clock" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="23" pathLength="100"/></svg>';
   /* 2v2 组队（2026-11-15 用户）：队友（对面那位 = 2 号）的头像放到底下一行——我、摸牌 / 出牌右边那块空位；上面一排只剩两个对手 */
   const teamGame = () => !!(game && game.state && R.isTeam && R.isTeam(game.state));
-  function seatOrder() { const out = []; for (let s = game.state.n - 1; s >= 1; s--) if (!(teamGame() && s === 2)) out.push(s); return out; }
-  function seatEl(seat) { return seat === 0 ? els.me : teamGame() && seat === 2 ? els.mate : els.opps.querySelector('[data-seat="' + seat + '"]'); }
+  /* 2026-11-15 用户：队友和我出牌顺序挨着（我是他的上家或下家），桌上整圈仍是逆时针：我 → 右 → 上排从右往左 → 左 → 我。
+   * 队友是我下家：我在左下、队友在右下；队友是我上家：队友在左下、我在右下（els.app 加 is-mate-left） */
+  const mateSeat = () => (teamGame() ? R.mateOf(game.state, 0) : -1);
+  function seatOrder() { const m = mateSeat(), out = []; for (let s = game.state.n - 1; s >= 1; s--) if (s !== m) out.push(s); return out; }
+  function seatEl(seat) { return seat === 0 ? els.me : seat === mateSeat() && els.mate ? els.mate : els.opps.querySelector('[data-seat="' + seat + '"]'); }
   const allSeatEls = () => Array.from(els.opps.querySelectorAll('.zm-seat')).concat(els.mate ? [els.mate] : []);   // 对手 + 组队时底下那位队友
   function avEl(seat) { const s = seatEl(seat); return s && s.querySelector('.zm-av'); }
   /* 游戏框（牌桌的双线裱框，内线缩进 6px）左右能放东西的范围：飞出来的扇面 / 点名牌都别越过内线（2026-11-13 用户：最左 / 最右那家手牌多时扇面出框）。
@@ -343,13 +346,15 @@
     if (teamGame()) {
       els.mate = document.createElement('section');
       els.mate.className = 'zm-seat zm-seat-mate';
-      els.mate.dataset.seat = 2;
-      els.mate.addEventListener('click', () => onSeatTap(2));
+      const ms = mateSeat();
+      els.mate.dataset.seat = ms;
+      els.mate.addEventListener('click', () => onSeatTap(ms));
       els.me.parentNode.appendChild(els.mate);
     }
     // 两队各自的标记（队友和我一个样，两个对手一个样）
     els.app.classList.toggle('is-team', teamGame());
-    for (let k = 0; k < game.state.n; k++) seatEl(k).dataset.team = teamGame() ? (k % 2 === 0 ? 'us' : 'them') : '';
+    els.app.classList.toggle('is-mate-left', teamGame() && mateSeat() === game.state.n - 1);   // 队友是我上家：他坐左下、我坐右下
+    for (let k = 0; k < game.state.n; k++) seatEl(k).dataset.team = teamGame() ? (R.teamOf(game.state, k) === R.teamOf(game.state, 0) ? 'us' : 'them') : '';
     for (let s = 0; s < game.state.n; s++) seatEl(s).innerHTML = '';
     layoutOpps();
   }
@@ -425,8 +430,9 @@
     if (!els.dir) { els.dir = document.createElement('div'); els.dir.setAttribute('aria-hidden', 'true'); els.table.appendChild(els.dir); }
     els.dir.className = 'zm-dir';
     const n = game && game.state ? game.state.n : 0;
-    if (n < 3 || !els.opps.children.length || teamGame()) { els.dir.innerHTML = ''; if (n >= 2) rimRender(); return; }   // 组队：轮流顺序是两队交替、不是绕桌一圈，不画小箭头（桌沿照画）
-    if (els.dir.children.length !== n - 2) els.dir.innerHTML = Array.from({ length: n - 2 }, () => '<i>' + DIR3_SVG + '</i>').join('');
+    const pairs = dirPairs();
+    if (n < 3 || !els.opps.children.length || !pairs.length) { els.dir.innerHTML = ''; if (n >= 2) rimRender(); return; }
+    if (els.dir.children.length !== pairs.length) els.dir.innerHTML = pairs.map(() => '<i>' + DIR3_SVG + '</i>').join('');
     els.dir.style.setProperty('--cyc', Math.max(2.6, (n - 2) * 0.18 + 1.8).toFixed(2) + 's');
     placeDir();
     // 座位刚建好 / 刚排成弧 / 名字刚换时量到的位置可能还是旧的（8 人局箭头全在一条水平线上、两头的座位却已经往下沉了）：
@@ -436,25 +442,31 @@
     dirHot();
   }
   let dirRaf = 0;
+  /* 上面一排里相邻两家（座位号相连）各一个箭头：普通局 = 1→2、2→3……；组队（2026-11-15 改成队友挨着我坐）上排只剩两个对手，中间一个 */
+  function dirPairs() {
+    const n = game && game.state ? game.state.n : 0, m = mateSeat(), out = [];
+    for (let a = 1; a + 1 < n; a++) if (a !== m && a + 1 !== m) out.push([a, a + 1]);
+    return out;
+  }
   function placeDir() {
     if (!els.dir || !game || !game.state) return;
-    const n = game.state.n;
-    if (els.dir.children.length !== n - 2) return;
+    const pairs = dirPairs(), np = pairs.length;
+    if (els.dir.children.length !== np) return;
     const tb = els.table.getBoundingClientRect(), d = dirNow();
     // 2026-11-13 用户 8 人局：箭头没把名字串起来——以前按两个头像中心往下挪一截，人多头像小时落在名字和「高手」签之间。
     // 现在按名字摆：在两个名字之间的空隙正中、和名字一样高，顺着两个名字的连线歪；空隙窄就缩小
     const nameOf = (seat) => { const se = seatEl(seat); return se && (se.querySelector('.zm-name') || se.querySelector('.zm-av')); };
     Array.from(els.dir.children).forEach((el, k) => {
-      const a = nameOf(k + 1), b = nameOf(k + 2);
+      const a = nameOf(pairs[k][0]), b = nameOf(pairs[k][1]);
       if (!a || !b) return;
       const A = a.getBoundingClientRect(), B = b.getBoundingClientRect();
       const ax = A.left + A.width / 2, ay = A.top + A.height / 2, bx = B.left + B.width / 2, by = B.top + B.height / 2;
       const L = ax < bx ? A : B, Rr = ax < bx ? B : A;
       const gap = Rr.left - L.right;
-      const avw = avEl(k + 1) ? avEl(k + 1).getBoundingClientRect().width : 40;
+      const avw = avEl(pairs[k][0]) ? avEl(pairs[k][0]).getBoundingClientRect().width : 40;
       const sz = Math.max(10, Math.min(20, Math.round(avw * 0.46), Math.round(gap - 2)));
       const base = Math.atan2(by - ay, bx - ax);   // 座位号往上走 = 从 k+1 指向 k+2；反过来（d = -1）就掉头
-      const j = d === -1 ? n - 3 - k : k;          // 流光的先后：顺着出牌方向排
+      const j = d === -1 ? np - 1 - k : k;         // 流光的先后：顺着出牌方向排
       const cx = (L.right + Rr.left) / 2, cy = (ay + by) / 2;
       el.style.cssText = 'left:' + (cx - tb.left).toFixed(1) + 'px;top:' + (cy - tb.top).toFixed(1) + 'px;width:' + sz + 'px;height:' + sz + 'px;' +
         'transform:translate(-50%,-50%) rotate(' + (base + (d === -1 ? Math.PI : 0)).toFixed(4) + 'rad);--j:' + j;
@@ -476,10 +488,10 @@
     const gap = W < 520 ? 13 : 9;
     const anchor = (seat) => {
       // 取整：小数点后的抖动不该让整圈重画
-      if (seat === 0 || (teamGame() && seat === 2)) { const r = avEl(seat).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(avEl(0).getBoundingClientRect().top - 9 - tb.top) }; }   // 组队：队友在底边上
+      if (seat === 0 || seat === mateSeat()) { const r = avEl(seat).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(avEl(0).getBoundingClientRect().top - 9 - tb.top) }; }   // 组队：队友在底边上
       const r = seatEl(seat).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(r.bottom + gap - tb.top) };
     };
-    const opp = []; for (let i = 1; i < n; i++) if (!(teamGame() && i === 2)) opp.push(anchor(i));   // 顶边只按上面一排拟合
+    const opp = []; for (let i = 1; i < n; i++) if (i !== mateSeat()) opp.push(anchor(i));   // 顶边只按上面一排拟合
     const me = anchor(0), m = 16, R = 26, yb = me.y;
     /* 顶边：不再硬穿过每家下面的点（手机上最右 / 最左那家比圆角还靠外，线会折回来，接缝不顺）——
      * 用一条抛物线 y = a·x² + b·x + c 拟合各家下面的点，再整条往下挪到不压住任何一家；两个圆角顺着这条线的切线接上去，处处光滑 */
@@ -512,7 +524,7 @@
     for (let x = xR - 6; x > xL; x -= 6) d += 'L' + f(x) + ' ' + f(fit.y(x));   // 顶边：每 6px 一个点，看着就是一条顺滑的弧
     d += 'L' + f(xL) + ' ' + f(yL) + 'Q' + m + ' ' + f(ycL) + ' ' + m + ' ' + f(ycL + R) +
       'L' + m + ' ' + f(yb - R) + 'Q' + m + ' ' + f(yb) + ' ' + (m + R) + ' ' + f(yb) + 'Z';
-    return { d, W, H: tb.height, keys: [me.x, me.y, W].concat(...opp.map((p) => [p.x, p.y])), anchor: (seat) => (seat === 0 ? me : { x: anchor(seat).x, y: fit.y(anchor(seat).x) }) };
+    return { d, W, H: tb.height, keys: [me.x, me.y, W].concat(...opp.map((p) => [p.x, p.y])), anchor: (seat) => (seat === 0 ? me : seat === mateSeat() ? { x: anchor(seat).x, y: yb } : { x: anchor(seat).x, y: fit.y(anchor(seat).x) }) };   // 组队：队友在底边上（以前被投到顶边，指他的连线跑到上面去）
   }
   /* 桌沿只在形状真变了（窗口变了、座位重排了）时才重量重画；以前每次刷新座位都重画、长度一变就让常驻光从头开始绕，
    * 手机上看着就是「卡住、又闪到别处」（2026-11-13 用户）。
@@ -851,16 +863,17 @@
     if (!els.dir) return;
     const list = els.dir.children, st = game && game.state;
     if (!list.length || !st) return;
-    const t = st.phase === 'over' ? -1 : D().turn, d = dirNow();
-    const k = t < 0 ? -1 : d === -1 ? t - 1 : t - 2;
-    Array.from(list).forEach((el, i) => el.classList.toggle('is-hot', i === k));
+    const t = st.phase === 'over' ? -1 : D().turn, d = dirNow(), pairs = dirPairs();
+    // 指向当前出牌的人的那个箭头变红：方向 1 指向一对里的后一个，-1 指向前一个
+    Array.from(list).forEach((el, i) => el.classList.toggle('is-hot', t >= 0 && !!pairs[i] && (d === -1 ? pairs[i][0] : pairs[i][1]) === t));
   }
   /* 打出转向：箭头从出牌人那边起，一个接一个转半圈掉头 */
   async function animReverse(e, t) {
     if (!els.dir || !els.dir.children.length) return;
     snd('flip');
     const list = Array.from(els.dir.children), d = e.dir === -1 ? -1 : 1;
-    const order = e.seat >= 1 && e.seat <= list.length ? list.map((_, k) => k).sort((x, y) => Math.abs(x + 1.5 - e.seat) - Math.abs(y + 1.5 - e.seat)) : list.map((_, k) => k);
+    const pairs = dirPairs(), mid = (k) => (pairs[k] ? (pairs[k][0] + pairs[k][1]) / 2 : k + 1.5);
+    const order = e.seat >= 1 && e.seat < game.state.n ? list.map((_, k) => k).sort((x, y) => Math.abs(mid(x) - e.seat) - Math.abs(mid(y) - e.seat)) : list.map((_, k) => k);
     const anims = order.map((k, i) => {
       const el = list[k], to = +el.dataset.base + (d === -1 ? Math.PI : 0), ang = to - Math.PI;   // 从旧方向转半圈到新方向
       if (fx.reduce()) { el.style.transform = 'translate(-50%,-50%) rotate(' + to + 'rad)'; return null; }
@@ -906,7 +919,7 @@
         if (rb) rb.remove();
         rb = document.createElement('i'); rb.className = 'zm-role'; rb.dataset.role = role; rb.innerHTML = roleArt(role); av.appendChild(rb);
         // 手机上没有悬停：点小猫头弹一句它的技能（2026-11-15 巡查补）
-        rb.addEventListener('click', (ev) => { ev.stopPropagation(); const info = R.ROLES.find((r) => r.id === role); if (info) toast(nameOf(seat) + ' · ' + info.name + '：' + info.desc); });
+        rb.addEventListener('click', (ev) => { ev.stopPropagation(); const info = R.ROLES.find((r) => r.id === role); if (info) toast((seat === 0 ? '我' : nameOf(seat)) + ' · ' + info.name + '：' + (seat === 0 ? info.desc.replace(/他/g, '你') : info.desc)); });
       }
       const info = R.ROLES.find((r) => r.id === role);
       rb.classList.toggle('is-used', !!(info && info.once && s.roleUsed && s.roleUsed[seat]));
@@ -1392,7 +1405,12 @@
     else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (autopilot) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消托管'; }   // 我出局了：自动接着看他们打完，想走就开下一局
     else if (mode === 'target') { els.drawBtn.hidden = true; }
-    else if (mode === 'give') { els.playBtn.textContent = '给牌'; els.playBtn.disabled = selected.length !== 1; }
+    else if (mode === 'give') {
+      // 胖橘出的索要要给两张：按钮上写第几张（2026-11-15 巡查：以前给完一张又要给，不知道怎么回事）
+      const gv = s.give, two = gv && R.roleOf && R.roleOf(s, gv.to) === 'fat';
+      els.playBtn.textContent = two ? '给牌 ' + (gv.left > 1 ? 1 : 2) + '/2' : '给牌';
+      els.playBtn.disabled = selected.length !== 1;
+    }
     else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消'; }
     else if (myTurnToAct()) {
       els.drawBtn.disabled = false;
@@ -2248,7 +2266,7 @@
     snd('peek');
     const r = deckTopRect(), pu = PU();
     const tf = liftTopFace();
-    const mateSaw = teamGame() && e.seat === 2;   // 组队：队友窥探到的三张我也看得到
+    const mateSaw = teamGame() && e.seat === mateSeat();   // 组队：队友窥探到的三张我也看得到
     if (e.cards && (e.seat === 0 || mateSaw)) {
       const u = e.cards.length > 3 ? Math.min(POP(), (els.center.getBoundingClientRect().width - 16) / (e.cards.length * 1.12)) : POP();   // 百变「千里眼」看 5 张：排得下
       if (ov) { ov.lifted = (ov.lifted || 0) + e.cards.length; renderPiles(); }   // 拿起来的几张：牌堆看着薄了，数字不变（牌并没被拿走）
@@ -3107,7 +3125,7 @@
     if (t !== token) return;
     if (!withKit && ov && kit != null && ov.discard[ov.discard.length - 1] !== kit) { ov.discard.push(kit); renderPiles(); }
     await wait(ms(300));
-    if (e.seat === 0) { game.fastOut = true; if (mateWatching() && viewSeat !== 2) watch(2); renderBand(); }
+    if (e.seat === 0) { game.fastOut = true; if (mateWatching() && viewSeat !== mateSeat()) watch(mateSeat()); renderBand(); }
   }
 
   /* 「作废只在和我有关时问」（设置里，默认关）：和我有关 = 这张牌是我出的（被人作废了，我可能想作废回去）、
@@ -3151,7 +3169,7 @@
     return NOPE_ALSO.some(([k, , types]) => nopeAlsoOn(k) && types.indexOf(p.type) >= 0);
   }
   // 组队：和队友有关（队友出的、指着队友、甩到队友头上）也算和我有关——帮队友挡一下 / 别挡了队友（2026-11-15 巡查）
-  const askMeNope = (s) => nopeAsks(s.pending, 0, s.alive, s.dir) || (R.isTeam && R.isTeam(s) && s.alive[2] && !!s.pending && nopeAskMode() !== 'all' && aboutSeat(s.pending, 2, s.alive, s.dir));
+  const askMeNope = (s) => nopeAsks(s.pending, 0, s.alive, s.dir) || (R.isTeam && R.isTeam(s) && s.alive[R.mateOf(s, 0)] && !!s.pending && nopeAskMode() !== 'all' && aboutSeat(s.pending, R.mateOf(s, 0), s.alive, s.dir));
   /* ───── 反应窗：出完牌大家决定要不要「不行」 ───── */
   function clearReactTimer() { if (reactTimer) { clearTimeout(reactTimer); reactTimer = null; } }
   function reactPhase() {
@@ -3564,6 +3582,7 @@
     wipeFx();
     release();
     renderAll();
+    roleIntro();
     schedule(200, step);
   }
   async function startWithDeal() {
@@ -3573,7 +3592,18 @@
     if (t !== token) return;
     game.dealing = false;
     release();
+    roleIntro();
     step();
+  }
+  // 角色猫：发完牌告诉我抽到的是哪只猫、技能是什么（2026-11-15 巡查：以前只有头像角上一枚小猫头，不点不知道）
+  function roleIntro() {
+    const st = game && game.state, r = st && st.roles && st.roles[0];
+    if (!r || game.tutorial || game.online) return;
+    const info = R.ROLES.find((x) => x.id === r);
+    if (!info) return;
+    toast('你是' + info.name + '：' + info.desc.replace(/他/g, '你') + '（点头像角上的小猫头随时看）');
+    const rb = avEl(0) && avEl(0).querySelector('.zm-role');
+    if (rb) fx.pop(rb, { scale: 1.8, dur: 520 });
   }
 
   /* ───── 弹窗：遮罩淡入、弹窗从下面弹上来 ───── */
@@ -3968,9 +3998,9 @@
     // 组队：赢的那一队（还活着的）都排在最前、都写「胜利」，然后按出局顺序倒着排
     // 组队（2026-11-15 巡查）：赢的那一队两个人都算赢（中途出局的队友也算），不发个人名次 / 奖牌；先列赢的队、再列输的队，队里还在场的排前面
     const team = teamGame();
-    const winners = team ? [0, 1, 2, 3].filter((k) => R.teamOf(k) === s.winnerTeam).sort((a, b) => (s.alive[b] ? 1 : 0) - (s.alive[a] ? 1 : 0)) : [s.winner];
+    const winners = team ? [0, 1, 2, 3].filter((k) => R.teamOf(s, k) === s.winnerTeam).sort((a, b) => (s.alive[b] ? 1 : 0) - (s.alive[a] ? 1 : 0)) : [s.winner];
     const order = team ? winners.concat([0, 1, 2, 3].filter((k) => winners.indexOf(k) < 0).sort((a, b) => s.outOrder.indexOf(b) - s.outOrder.indexOf(a))) : winners.concat(s.outOrder.slice().reverse());
-    const won = team ? R.teamOf(0) === s.winnerTeam : s.winner === 0;
+    const won = team ? R.teamOf(s, 0) === s.winnerTeam : s.winner === 0;
     const ok = await celebrate(s.winner, team ? winners : null);
     if (!ok) return;
     if (game.tutorial && tut && tut.mini) { showCoach(tut.finish ? tut.finish(won) : [], lessonDone); return; }
@@ -3990,7 +4020,7 @@
     try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ }
     bgm('menu');   // 结算页算游戏外：接上丁（一局结束时先淡出，皇冠彩纸放完、排行榜出来再起）
     openDialog('<h2>' + (teamGame() ? (s.winnerTeam === 0 ? '我们队赢了！' : '对面那队赢了') : '排行榜') + '</h2>' +
-      '<ol class="zm-rank' + (team ? ' is-team' : '') + '" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + (team && i === winners.length ? ' is-split' : '') + '"><span class="pos">' + (team ? (i < winners.length ? medal(0) : '') : i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 ? '<small>（我）</small>' : team && seat === 2 ? '<small>（队友）</small>' : '') + '</span><span class="tag">' + (i < winners.length ? '胜利' : team ? '惜败' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
+      '<ol class="zm-rank' + (team ? ' is-team' : '') + '" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + (team && i === winners.length ? ' is-split' : '') + '"><span class="pos">' + (team ? (i < winners.length ? medal(0) : '') : i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 ? '<small>（我）</small>' : team && seat === mateSeat() ? '<small>（队友）</small>' : '') + '</span><span class="tag">' + (i < winners.length ? '胜利' : team ? '惜败' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', (d) => {
       d.querySelector('[data-again]').addEventListener('click', () => { closeDialog(); newGame(); });
       d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
@@ -4008,7 +4038,7 @@
     const teamRules = ((game && game.state && game.state.rules) || settings.rules || {}).mode === 'team';
     return '<div class="zm-rules"><h2>怎么玩</h2>' +
       (rolesHtml()) +
-      (teamRules ? '<h3>组队（2v2）</h3><ul><li>4 个人两两一队。你的队友坐在下面一排右边（和你一样是金色光圈），上面两个是对手（蓝灰光圈）；出牌顺序是我 → 右上 → 队友 → 左上，两队交替（打出「转向」就倒过来）。</li><li>你和队友谁窥探 / 改命，另一个人也看得到那几张。</li><li>摸到炸毛猫又没有逗猫棒：队友手里有逗猫棒就能救你（他的逗猫棒用掉，你自己把炸毛猫塞回去）。</li><li>一队全炸毛出局，另一队赢——只剩一个人也算赢。</li></ul>' : '') +
+      (teamRules ? '<h3>组队（2v2）</h3><ul><li>4 个人两两一队。队友和你坐在下面一排（和你一样是金色光圈），出牌顺序和你挨着——他是你的上家或下家，开局随机；上面两个是对手（蓝灰光圈）。整桌逆时针轮一圈：下排往右、上排从右往左、再回到下排（打出「转向」就倒过来，上排的小箭头会掉头）。</li><li>下家是队友时，普通「甩锅」和「跳过」都会坑到他——想躲就用「指定甩锅」甩给对手，或者先「转向」。</li><li>你和队友谁窥探 / 改命，另一个人也看得到那几张。</li><li>摸到炸毛猫又没有逗猫棒：队友手里有逗猫棒就能救你（他的逗猫棒用掉，你自己把炸毛猫塞回去）。</li><li>一队全炸毛出局，另一队赢——只剩一个人也算赢。</li></ul>' : '') +
       '<p>牌堆里藏着炸毛猫（比人数少一只）。轮到你时，可以出任意多张牌，也可以一张不出，<b>最后摸一张牌结束回合</b>。摸到炸毛猫、手里又没有逗猫棒，就出局。撑到最后的人赢。</p>' +
       '<h3>每人开局</h3><ul><li>4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸毛猫是里面还有几只。</li></ul>' +
       '<h3>牌</h3><ul>' +
