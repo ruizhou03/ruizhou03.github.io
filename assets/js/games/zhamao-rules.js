@@ -112,7 +112,7 @@
     { id: 'peektop', name: '透视', desc: '牌堆第一张牌对所有人可见' },
     { id: 'exact', name: '火眼', desc: '炸毛猫塞回的位置对所有人可见' },
     { id: 'bottom', name: '摸底', desc: '摸牌改从牌堆底部摸' },
-    { id: 'hot', name: '烫手', desc: '每个普通回合都要摸两次（被甩锅的次数不变）' },
+    { id: 'hot', name: '烫手', desc: '每个人的回合一开始就像被甩了一次锅' },
     { id: 'mute', name: '静默', desc: '不能打「作废」' },
     { id: 'catsave', name: '急救', desc: '摸到炸毛猫时若无逗猫棒，可打出两张相同的牌代替，炸毛猫随机放回牌堆。每人最多生效一次' },
   ]);
@@ -516,7 +516,8 @@
         s.turn = next;
         // 被甩锅的人再甩：剩下的回合 +2 一起甩走。奶牛猫把 2 减成 1 以后再甩，下家照样是 1 + 2 = 3（2026-11-15 用户：减的那一张跟着传下去）
         const viaCow = left === 1 && s.cowCut === me;
-        const chained = (left > 1 && s.hotGiven !== me) || viaCow;   // 烫手给的两次不算被甩锅（2026-11-15 用户：烫手只管普通回合）
+        // 烫手（2026-11-15 晚 用户定「套一层甩锅」）：烫手回合一开始就像被甩了一次锅，所以这时再甩锅照常叠加（下家 2 + 2 = 4）——以前烫手给的两次不算，甩锅等于白出
+        const chained = left > 1 || viaCow;
         s.turnsLeft = s.rules.stackAttack && chained ? left + 2 : 2;
         s.cowCut = -1; s.hotGiven = -1;   // 被甩锅的回合数不算烫手给的
         if (roleOf(s, next) === 'timid' && s.deck.length) { const top = s.deck.slice(0, 3), m = s.memo[next].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); ev.push({ t: 'role', seat: next, role: 'timid', cards: top, priv: [next] }); }   // 角色猫「胆小猫」：被甩锅先偷看 2 张
