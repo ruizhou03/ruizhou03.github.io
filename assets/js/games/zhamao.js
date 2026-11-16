@@ -1330,6 +1330,17 @@
     const s = game.state;
     const hand = D().hand;
     selected = selected.filter((id) => hand.indexOf(id) >= 0);
+    /* 问到我要不要作废（2026-11-16 用户：作废牌要默认替我点起来）：每个新的反应窗，手里第一张作废自动抬起；
+     * 再点它放回去（这一窗里不再自动抬），点上面的紫色「作废」键才真的打出去 */
+    if (s.phase === 'react' && reactOpen && s.pending) {
+      const key = (s.pending.by) + ':' + s.pending.cards.join(',') + ':' + s.pending.nopes.length;   // 同一张牌、同一层作废 = 同一个窗
+      if (nopeAutoKey !== key) {
+        nopeAutoKey = key;
+        nopeLift.clear();
+        const first = hand.find((id) => R.KIND_OF[id] === R.NOPE);
+        if (first != null) nopeLift.add(first);
+      }
+    }
     const prev = new Map();
     if (o.flip !== false) els.hand.querySelectorAll('.zm-card').forEach((c) => prev.set(c.dataset.id, c.getBoundingClientRect()));
     const combo = selected.length && classifyMine(selected) && mode !== 'give';
@@ -1465,6 +1476,7 @@
   /* ───── 舞台：刚出的牌摆在桌子正中，导火索烧完前大家决定要不要「不行」 ───── */
   let reactOpen = false;
   const nopeLift = new Set();   // 反应窗里点起来的作废（只是抬着，不会打出去）
+  let nopeAutoKey = '';          // 哪个反应窗已经替我自动抬过作废（同一窗里我放下了就不再抬）
   function targetOf(p) {
     if (p.target >= 0) return p.target;
     if (p.type === R.ATTACK) return R.nextAlive(game.state, p.by);
@@ -2852,8 +2864,10 @@
     return rr;
   }
   async function peel(t, bottom) {
-    if (bottom) return peelBottom(t);
+    const lift = game.drawLift; game.drawLift = null;   // 联机：点「摸牌」时已经掀起来悬着的那张——从它现在的位置接着摸
+    if (bottom) { if (lift) lift.cancel(); return peelBottom(t); }
     const r = deckTopRect(), pu = PU();
+    if (lift) requestAnimationFrame(() => lift.cancel());
     const node = document.createElement('div');
     node.className = 'zm-flyer';
     node.style.width = pu + 'px'; node.style.height = pu * 1.4 + 'px';
@@ -5587,7 +5601,16 @@
     busy = true;
     stopClock();
     if (d.type === 'play' && !game.previewSrc) game.preFlyP = preFly(d.cards);
-    else if (d.type === 'draw' && !fx.reduce()) { const top = els.deck.querySelector('.zm-deck-stack > .zm-card'); if (top) top.animate([{ translate: '0 0' }, { translate: '0 -10px' }, { translate: '0 0' }], { duration: 320, easing: 'ease-out', composite: 'add' }); }
+    /* 摸牌（2026-11-16 用户和国内的朋友：联机摸牌「卡一下」）：服务器一来一回要 0.6–1 秒（国内更久），以前点了只抖一下、等回来才开始摸。
+     * 现在一点就把顶上那张掀起来悬着，回来后摸牌动画从悬着的位置接着播（peel 里接手），等待变成动作的一部分 */
+    else if (d.type === 'draw' && !fx.reduce()) {
+      const top = els.deck.querySelector('.zm-deck-stack > .zm-card');
+      if (top) {
+        if (game.drawLift) game.drawLift.cancel();
+        game.drawLift = top.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '3px -18px', rotate: '-4deg' }], { duration: 200, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards', composite: 'add' });
+        snd('tap');
+      }
+    }
     if (d.type !== 'pass' && d.type !== 'nope' && !game.preFlyP) online.pendingSrc = captureSources(0, d);
     const slow = d.type === 'pass' ? 0 : setTimeout(() => toast('网络有点慢，稍等…'), 1800);
     const body = { d: Object.assign({}, d, d.target != null && d.target >= 0 ? { target: srvOf(d.target) } : {}), at: g ? g.seq : undefined };
@@ -5599,6 +5622,7 @@
       onState(res.state, res._rtt);
     } catch (err) {
       clearTimeout(slow);
+      if (game && game.drawLift) { game.drawLift.cancel(); game.drawLift = null; }   // 没摸成：掀起来的那张放回去
       if (d.type === 'pass' && err && err.status === 409) return;   // 窗口已经关了（别人作废 / 已结算）：没关系，等下一份状态
       if (game && game.preFlyP) { await game.preFlyP; game.preFlyP = null; if (!online) return; preview = { cards: d.cards }; endPreview(); }
       if (!online) return;
