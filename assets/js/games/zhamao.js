@@ -5949,11 +5949,28 @@
     if (NET) NET.writeSession(null);
     try { const u = new URL(location.href); u.searchParams.delete('room'); history.replaceState(null, '', u.toString()); } catch (_) { /* */ }
     if (sendLeave && NET) NET.act(o.code, o.token, 'leave', {}).catch(() => {});
-    hideLobby();
     game = null;
     els.app.classList.remove('is-spectator');
+    // 被动离开（房间没了 / 被请离）：牌桌先别撤，盖一张和暂停页一样的卡片，只留「主页面」一个键，点了才回去（2026-11-17 用户）
+    if (msg) { roomGoneDialog(); return; }
+    hideLobby();
     showCover();
-    if (msg) toast(msg);
+  }
+  function roomGoneDialog() {
+    openDialog('<div class="zm-pause-cat zm-gone-art">' + roomGoneArt() + '</div>' +
+      '<div class="zm-pause-actions"><button type="button" class="zm-btn zm-btn-primary" data-home data-focus><svg class="ln" viewBox="0 0 24 24" aria-hidden="true">' + MENU_ICONS.cover + '</svg>主页面</button></div>', (d) => {
+      d.classList.add('is-pause', 'is-gone');
+      d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); hideLobby(); showCover(); });
+    });
+  }
+  /* 房间没了的小咪（2026-11-17 用户定丙）：空坐垫 + 一串爪印越走越淡 + 一弯月亮——人都走了 */
+  function roomGoneArt() {
+    const NAVYc = '#2f4a6d', GOLDc = '#c9a96e';
+    const print = (x, y, s, r, o) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + r + ') scale(' + s + ') translate(-12 -12)" fill="' + NAVYc + '" opacity="' + o + '">' + ART.pawPrint() + '</g>';
+    return '<svg viewBox="0 0 100 100" aria-hidden="true">' +
+      '<ellipse cx="34" cy="76" rx="26" ry="11" fill="#e9dcc2"/><ellipse cx="34" cy="74" rx="22" ry="8" fill="#f3e9d6"/><path d="M12 76q22 10 44 0" stroke="' + GOLDc + '" stroke-width="2" fill="none" opacity=".7"/>' +
+      print(60, 64, 0.38, 70, 0.85) + print(70, 56, 0.36, 60, 0.65) + print(79, 47, 0.34, 55, 0.45) + print(87, 37, 0.32, 50, 0.28) +
+      '<path d="M70 18a10 10 0 1 0 8 15 7.5 7.5 0 1 1 -8 -15Z" fill="' + GOLDc + '" opacity=".9"/></svg>';
   }
   function showInvite() {
     if (!online) return;
@@ -6628,7 +6645,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, rimMood: (re) => rimMood(null, re), celebrate };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, rimMood: (re) => rimMood(null, re), celebrate };
   }
   window.ZhamaoTable = { cardHtml, backHtml, rulesHtml };
 })();
