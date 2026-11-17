@@ -43,7 +43,8 @@
   // 联机里真人都出局了、点了桌沿右下角的快进：剩下机器猫的出牌按 5 倍速播完（2026-11-14 用户）
   const TURBO = { bot: 150, react: 0, quiet: 50, botNope: [100, 200], fly: 120, k: 0.2 };
   // 我出局后加速看完：等我那一下炸完、手牌全落进弃牌堆（game.fastOut，animOut 最后才置上）才快起来，别把我自己的出局动画也快进了
-  const pace = () => (game && game.tutorial ? TUT_PACE : game && game.turbo ? TURBO : game && game.fastOut && !mateWatching() ? FAST : PACE);
+  // 联机（2026-11-17 用户）：我出局了但还有别的真人在打——照常速度；真人全出局了才加速（右下角同时出 ⏩）
+  const pace = () => (game && game.tutorial ? TUT_PACE : game && game.turbo ? TURBO : game && game.fastOut && !mateWatching() && (!game.online || humansOutHere()) ? FAST : PACE);
   const ms = (x) => Math.round(x * pace().k);
   // 组队：我出局了但队友还在打——照常速度，坐在队友身后看他的牌（2026-11-15 巡查）
   const mateWatching = () => !!(game && !game.online && game.state && R.isTeam && R.isTeam(game.state) && !game.state.alive[0] && game.state.alive[R.mateOf(game.state, 0)] && game.state.phase !== 'over');
@@ -5900,6 +5901,10 @@
     next: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5v11L10 12ZM10.5 6.5v11L17 12Z"/><path d="M19 6.5v11" class="bar"/></svg>',
   };
   let ffBtn = null;
+  // 联机：我这边看到的真人全出局了（网慢、播得落后时，服务器早算完了，但我这边自己还活着——这时加速 / 露快进键都等于剧透）
+  function humansOutHere() {
+    return !!(game && game.online && game.state && online && online.st && online.st.players.every((p) => p.isAi || p.left || p.seat == null || !game.state.alive[locOf(p.seat)]));
+  }
   function updateFF() {
     if (!game) { if (ffBtn) { ffBtn.remove(); ffBtn = null; } return; }   // 主页 / 房间页：没有牌局（以前这里会每 0.4 秒报一次错）
     let mode = '';
@@ -5910,7 +5915,6 @@
     } else {
       const g = online && game && game.online ? G() : null;
       // 我这边也得看到真人全出局了才算（网慢、播得落后时，服务器早算完了，但我这边自己还活着——这时快进 / 露键都等于剧透）
-      const humansOutHere = () => game.state && online.st.players.every((p) => p.isAi || p.left || p.seat == null || !game.state.alive[locOf(p.seat)]);
       const replaying = !!(g && g.over && game.finishShown !== g.matchNo && (online.playing || online.queue.length) && humansOutHere());
       // 联机（2026-11-14 用户）：只有房主有这个键，房主点了大家一起 5 倍速——所有人看到的进度一样；别人跟着服务器上的开关走
       // 房主刚点、服务器的状态还没回来：先按房主点的算，别一闪又被旧状态拨回去（4 秒没回来就作罢）
@@ -6686,7 +6690,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, rimMood: (re) => rimMood(null, re), celebrate };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate };
   }
   window.ZhamaoTable = { cardHtml, backHtml, rulesHtml };
 })();
