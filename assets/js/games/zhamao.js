@@ -1400,12 +1400,17 @@
     if (o.flip !== false) els.hand.querySelectorAll('.zm-card').forEach((c) => prev.set(c.dataset.id, c.getBoundingClientRect()));
     const combo = selected.length && classifyMine(selected) && mode !== 'give';
     const note = !hand.length ? watchNote() : '';
-    els.hand.innerHTML = (note ? '<p class="zm-hand-note">' + esc(note) + '</p>' : '') + hand.map((id) => cardHtml(id,
+    // 我出局了、还没坐到谁背后：给「点头像就能看他的牌」一点线索（2026-11-17 预览甲乙丙，data-uiv-watch）
+    const idle = !hand.length && outIdle();
+    els.app.classList.toggle('is-out-idle', idle);
+    const pick = idle && els.app.dataset.uivWatch === 'c' ? watchPickHtml() : '';
+    els.hand.innerHTML = (note ? '<p class="zm-hand-note">' + esc(note) + '</p>' : '') + pick + hand.map((id) => cardHtml(id,
       (selected.indexOf(id) >= 0 ? 'is-sel' + (combo ? ' is-combo' : '') : (reactOpen && nopeLift.has(id) ? 'is-sel' : '')) + (handHidden.has(id) ? ' is-incoming' : '') +
       (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : ''))).join('');
     els.hand.querySelectorAll('.zm-card').forEach((c) => {
       c.addEventListener('click', (e) => { e.stopPropagation(); onCardTap(+c.dataset.id, c); });
     });
+    els.hand.querySelectorAll('[data-watch]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); watchFromOut(+b.dataset.watch); }));
     els.hand.classList.toggle('is-giving', mode === 'give');
     els.hand.classList.toggle('is-myturn', myTurnToAct() && !mode);
     layoutHand();
@@ -3286,7 +3291,8 @@
     fx.smoke(a.x, a.y, { n: 12, spread: u * 0.8, size: [u * 0.7, u * 1.4], rise: 60, tint: 'dark', delay: 60 });
     ov.alive[e.seat] = false;
     ov.counts[e.seat] = 0;
-    if (e.seat === viewSeat) watch(viewSeat);
+    // 我正坐在他背后看，他也出局了：自动换到下一家还在场的（2026-11-17；以前视角停在空座位上）
+    if (e.seat === viewSeat) { const nx = nextWatchable(e.seat, ov.alive); watch(nx > 0 ? nx : viewSeat); }
     if (e.seat === 0) els.app.classList.add('is-spectator');
     if (ov.turn === e.seat) ov.turn = -1;
     renderSeat(e.seat);
@@ -3320,7 +3326,12 @@
     if (t !== token) return;
     if (!withKit && ov && kit != null && ov.discard[ov.discard.length - 1] !== kit) { ov.discard.push(kit); renderPiles(); }
     await wait(ms(300));
-    if (e.seat === 0) { game.fastOut = true; if (mateWatching() && viewSeat !== mateSeat()) watch(mateSeat()); renderBand(); }
+    if (e.seat === 0) {
+      game.fastOut = true;
+      if (mateWatching() && viewSeat !== mateSeat()) watch(mateSeat());
+      else if (!game.online && els.app.dataset.uivWatch === 'a' && viewSeat < 0) { const nx = nextWatchable(0, game.state.alive); if (nx > 0) watch(nx); }
+      renderBand();
+    }
   }
 
   /* 「作废只在和我有关时问」（设置里，默认关）：和我有关 = 这张牌是我出的（被人作废了，我可能想作废回去）、
@@ -3607,6 +3618,30 @@
     snd(viewSeat > 0 ? 'flip' : 'untap');
     if (ov) ov.hand = viewSeat > 0 ? game.state.hands[viewSeat].slice() : [];
     renderHand();
+  }
+  // 我出局了（不是纯观战）、这一局还没完、也还没坐到谁背后
+  function outIdle() {
+    if (!game || !game.state || game.tutorial || game.dealing || game.state.phase === 'over') return false;
+    if (game.online) { const g = G(), st = online && online.st; return !!(g && st && !game.spectator && st.mySeat >= 0 && g.st.alive && !g.st.alive[st.mySeat] && !g.over); }
+    return !game.state.alive[0] && viewSeat < 0;
+  }
+  function watchFromOut(seat) {
+    if (!game || !game.state.alive[seat]) return;
+    if (game.online) onlineView(srvOf(seat)); else watch(seat);
+  }
+  // 丙：空出来的手牌区摆一排还在场的人的小头像，点谁就坐到谁背后
+  function watchPickHtml() {
+    const s = game.state, out = [], seats = [];
+    for (let j = 1; j < s.alive.length; j++) if (s.alive[j] && avEl(j)) seats.push([j, avEl(j).getBoundingClientRect().left]);
+    seats.sort((a, b) => a[1] - b[1]);   // 和上面座位从左到右一个顺序
+    for (const [j] of seats) out.push('<button type="button" class="zm-watch-pick" data-watch="' + j + '"><span class="zm-wp-av">' + avatarHtml(j) + '</span></button>');
+    return out.length ? '<div class="zm-watch-row">' + out.join('') + '</div>' : '';
+  }
+  // 从 seat 往下数，第一家还在场的（不算我自己）；没有 = -1
+  function nextWatchable(seat, alive) {
+    const n = alive.length;
+    for (let k = 1; k < n; k++) { const j = (seat + k) % n; if (j !== 0 && alive[j]) return j; }
+    return -1;
   }
   function onSeatTap(seat) {
     if (game && game.online && !game.dealing && (game.spectator || !game.state.alive[0]) && game.state.phase !== 'over') {
@@ -4107,7 +4142,8 @@
     // 2026-11-12 用户定稿（甲）：直接在牌堆上按住左右拖炸毛猫（或点哪道缝塞哪），炸毛猫头上小红标写第几张；只留「随机」「塞进去」
     const timerHtml = limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '';
     const body = '<h2 class="zm-ins-h">塞回牌堆</h2>' +
-      '<div class="zm-insert-fan is-solo is-drag" data-fan>' + fanHtml + cardHtml('boom', 'is-kit') + '<span class="zm-ins-badge" data-badge>' + badge(0) + '</span></div>' +
+      '<div class="zm-insert-fan is-solo is-drag" data-fan>' + fanHtml + cardHtml('boom', 'is-kit') + '<span class="zm-ins-badge" data-badge>' + badge(0) + '</span>' +
+        (size > 1 ? '<span class="zm-ins-end" data-end="top">顶</span><span class="zm-ins-end" data-end="bot">底</span>' : '') + '</div>' +
       '<div class="zm-actions is-tight">' + (size ? '<button type="button" class="zm-btn" data-q="rand">随机</button>' : '') + '<button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-ok data-focus>' + timerHtml + '<b>塞进去</b></button></div>';
     openStage(body, (d) => {
       const range = d.querySelector('[data-range]');
@@ -4126,6 +4162,10 @@
         kit.style.transform = 'translateX(' + kx.toFixed(1) + 'px) translateY(-10px)';
         const bd = fan.querySelector('[data-badge]');
         if (bd) { bd.textContent = badge(pos); bd.style.transform = 'translateX(' + (kx + kw / 2).toFixed(1) + 'px)'; }
+        // 牌堆两头常驻小字「顶 / 底」（2026-11-17：以前只有塞到最右才显示「底」，中间的「20」不知道是从上还是从下数）
+        const et = fan.querySelector('[data-end="top"]'), eb = fan.querySelector('[data-end="bot"]');
+        if (et) et.style.transform = 'translateX(' + (x0 + cw / 2).toFixed(1) + 'px)';
+        if (eb) eb.style.transform = 'translateX(' + (x0 + total - cw / 2).toFixed(1) + 'px)';
         geo = { x0, step, cw, n };
       };
       let geo = null;
@@ -5613,6 +5653,16 @@
     if (s.deck.length) rimHeat(R.kittensInDeck(s) / s.deck.length);
     release();
     if (g.over) { renderAll(); onlineFinish(); return; }
+    // 我坐在别人背后看，他也出局了：自动换到下一家还在场的（2026-11-17；以前视角停在他的空座位上）
+    if (game.spectator && online.st.viewSeat >= 0 && g.st.alive && !g.st.alive[online.base]) {
+      for (let k = 1; k < online.n; k++) { const j = (online.base + k) % online.n; if (g.st.alive[j]) { onlineView(j); break; } }
+    }
+    // 甲：我刚出局、还没坐到谁背后——自动坐到下家背后（一局只自动一次，点回自己座位后不再拉走）
+    if (els.app.dataset.uivWatch === 'a' && outIdle() && online.autoWatch !== g.matchNo) {
+      online.autoWatch = g.matchNo;
+      const me = online.st.mySeat;
+      for (let k = 1; k < online.n; k++) { const j = (me + k) % online.n; if (g.st.alive[j]) { onlineView(j); break; } }
+    }
     const mine = !!g.myCall && !autopilot && !game.spectator;
     const remain = onlineRemain();
     stopClock();
