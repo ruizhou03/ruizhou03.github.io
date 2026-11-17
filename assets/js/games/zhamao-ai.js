@@ -17,12 +17,16 @@
  *          每个候选在同一批假想局面里用「普通」打到底；出牌比普通的选择好出 ANCHOR 才换
  *
  * 两套参数：规则的 view 里有 ins 字段（公开塞猫历史）用 P_HIST，没有用 P_BASE（两套都是调出来的，互相不通用）。
+ *
+ * 百变模式（2026-11-17 夜训，~/zhamao-rl/REPORT-flux.md）：普通 / 高手另用一套 P_HIST + FX_N——会看当前百变规则决定换不换
+ * （火眼、静默且手里有作废时换；没规则 / 透视 / 急救 / 九命时留着）、摸底时塞猫顶底对调等；入门照旧。只在 mode === 'flux' 时走，
+ * 经典 / 组队 / 角色猫逐局不变。
  */
 (function (root, factory) {
   const api = factory(root.ZhamaoRules || (typeof require === 'function' ? require('./zhamao-rules.js') : null));
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.ZhamaoAI = api;
-})(typeof self !== 'undefined' ? self : this, function (R) {
+})(typeof self !== 'undefined' ? self : this, function zhamaoAI(R, FXO) {
   'use strict';
 
   const K = R.KIND_OF;
@@ -56,7 +60,30 @@
     vNope: 5.173868606282884, vTattack: 54.81251435426122, vAttack: 32.25433573800855, vSwap: 1.6378944775114421, vSkip: 26.390046944865855, vBottom: 34.74888220637459, vAlter: 44.095831358754346, vFuture: 35.57359491155989, vShuffle: 31.353431727146518, vFavor: 50.35570038735816, vCatPair: 11.353744369645538, vCatSingle: 7.431878472971573, lookDef: 0.95, lookNo: 0.5, dodgeDef: 0.98, dodgeNo: 0.6, multiAtk: 0.6, insTop: 0.02492938216246054, insSpread: 1, nopeBackP: 0.4270700936922569, bottomDef: 1, vReverse: 21.31434164164689, vWild: 26.35809716610347, revFirst: 0, swapUnk: 27.96817849532888, swapMargin: 52.889793295711826, swapKnown: 0, histW: 0.9735790210284175, histTop: 0.9423860296710509, visW: 0.8451744270857915, shuffleAt: 0.3809381978339131, insSmart: 0, insOffset: 0.7931641120482025, sigFutDodge: 0, sigAltDodge: 0, sigAltDraw: 0,
   });
 
+  /* 百变模式（2026-11-16 夜训，详见 ~/zhamao-rl/REPORT-flux.md）：mode === 'flux' 时普通 / 高手换用 P_HIST + FX_N、入门用 P_OLD + FX_E，
+   * 别的模式完全不走这里（逐局一致）。FX_DEF = 加这些判断之前的行为（训练场用来对照）。
+   * fK_*      当前这条百变规则「留着」对我的好处（越低越想打百变换掉；none = 还没有规则）
+   * fMuteNope 静默时手里有作废、fCount 手里每多一张百变、fRisk 顶上危险、fHot 烫手且这回合还要摸 ≥2 张、fSave 没逗猫棒时九命 / 急救还能救我（加到「留着」上）
+   * fPlayAt   上面加起来 > 它就先打一张百变
+   * fBotFlux  摸底时也按上面的算（原来摸底时只在底牌是炸毛猫、别的躲法都没有时才打）
+   * fBotMargin 摸底时顶上比底下安全多少就抽「顶」；fBotMirror 摸底时塞炸毛猫按顶 / 底对调
+   * fExP / fExDepth 火眼时（位置人人看得见）以 fExP 的概率塞在第 fExDepth 张
+   * fAhead   顶上已知安全、这回合还要摸 ≥2 张：第二张危险 ≥ dodge 阈值就先甩锅
+   * fMuteNopeV 静默时作废的牌值（给牌 / 捡牌 / 交换用）
+   * fHotMulti 烫手（只摸 2 张、没被甩锅）时用它代替 multiAtk */
+  const FX_DEF = Object.freeze({
+    fx: 1, fK_none: 0, fK_nine: 0, fK_peektop: 0, fK_exact: 0, fK_bottom: 0, fK_hot: 0, fK_mute: 0, fK_catsave: 0,
+    fMuteNope: 10, fCount: 10, fRisk: 0, fHot: 0, fSave: 0, fPlayAt: 5, fBotFlux: 0, fBotMargin: 0.08, fBotMirror: 0, fExP: 0, fExDepth: 0, fAhead: 0, fMuteNopeV: null, fHotMulti: null,
+  });
+  /* 调出来的（2026-11-17 凌晨，交叉熵 30 代 × 32 个候选，百变 3–6 人桌，对手 = 现普通 / 现入门 + 1/4 对自己；选第 13 代）。
+   * 大意：没有规则 / 透视 / 急救 / 九命时留着不换；火眼、静默且手里有作废时换；顶上越危险越不换（换了也躲不掉）；
+   * 百变牌本身不值钱（vFlux≈3，能给就给）；摸底时塞炸毛猫顶底对调；有逗猫棒时更少躲、被甩锅时更晚甩 */
+  const FX_TUNED = Object.freeze({ fK_none: 15.7457, fK_nine: 6.6918, fK_peektop: 18.3012, fK_exact: -13.0072, fK_bottom: 0.6604, fK_hot: 2.22, fK_mute: -0.5201, fK_catsave: 15.0365, fMuteNope: 14.0158, fCount: 0.1795, fRisk: -10.1096, fHot: -0.0925, fSave: 2.6106, fBotFlux: 0, fBotMargin: 0.1702, fBotMirror: 1, fExP: 0.2108, fExDepth: 1.6106, fAhead: 0, fMuteNopeV: 3.8601, fHotMulti: 0.461, vFlux: 3.2768, lookDef: 0.8636, lookNo: 0.0585, dodgeDef: 0.9015, dodgeNo: 0.2566, multiAtk: 0.2736, shuffleAt: 0.3619 });
+  const FX_N = Object.freeze(Object.assign({}, FX_DEF, FX_TUNED, (FXO && FXO.normal) || {}));
+  const FX_E = Object.freeze(Object.assign({}, FX_DEF, (FXO && FXO.easy) || {}));
+
   const has = (v, k) => R.countKind(v.hand, k) > 0;
+  const isFlux = (v) => !!(v.rules && v.rules.mode === 'flux');
   const D0 = new Map();   // 每种人数 / 规则开局牌堆有多少张（交换看时机用）
   const deck0 = (v) => { const k = v.n + ':' + JSON.stringify(v.rules || {}); if (!D0.has(k)) D0.set(k, R.createGame(v.n, 1, v.rules).deck.length); return D0.get(k); };
   const one = (v, k) => R.findKind(v.hand, k);
@@ -156,6 +183,10 @@
   function makeNormal(P) {
     const VALUE = { defuse: 100, nope: P.vNope, tattack: P.vTattack, attack: P.vAttack, swap: P.vSwap, skip: P.vSkip, reverse: P.vReverse != null ? P.vReverse : P.vSkip, bottom: P.vBottom, alter: P.vAlter, future: P.vFuture, shuffle: P.vShuffle, favor: P.vFavor, flux: P.vFlux != null ? P.vFlux : 18 };
     const skipIdP = (v) => { if (!P.revFirst) return skipId(v); const a = one(v, R.REVERSE); return a != null ? a : one(v, R.SKIP); };   // 先用跳过还是转向（调参项）
+    function cardValueV(v, id) {   // 百变「静默」时作废不能打：按 fMuteNopeV 估（其余同 cardValue）
+      if (P.fx && P.fMuteNopeV != null && v.flux === 'mute' && K[id] === R.NOPE) return P.fMuteNopeV;
+      return cardValue(v.hand, id);
+    }
     function cardValue(hand, id) {
       const k = K[id];
       if (VALUE[k] != null) return VALUE[k];
@@ -275,7 +306,7 @@
       // 「摸底」时抽底变「抽顶」（从最上面摸）：底下是炸毛猫、或者顶上明显比底下安全，就用它
       if (has(v, R.BOTTOM) && v.deckSize > 1) {
         const top = topInfo(v), botP = b.known ? (b.boom ? 1 : 0) : (() => { const bl = kittenBelief(v, v.deckSize); return bl.length ? bl[bl.length - 1] : 0; })();
-        if (!(top.known && top.boom) && (top.known ? 0 : top.p) + 0.08 < botP) return playMove([one(v, R.BOTTOM)]);
+        if (!(top.known && top.boom) && (top.known ? 0 : top.p) + (P.fx ? P.fBotMargin : 0.08) < botP) return playMove([one(v, R.BOTTOM)]);
       }
       if (b.known && b.boom) {
         const am = attackMove(v); if (am) return am;
@@ -297,11 +328,25 @@
       for (const k of R.CATS) if ((by[k] || []).length >= 2 && ts.length) return playMove(by[k].slice(0, 2), richest(v, R.DEFUSE));
       return DRAW;
     }
+    /* 百变（P.fx）：这条规则对我多不利 → 要不要先打一张百变换掉（打百变不结束回合） */
+    function fluxWant(v) {
+      const nF = R.countKind(v.hand, R.FLUX);
+      if (!nF) return false;
+      const keep = P['fK_' + (v.flux || 'none')] || 0;
+      let sc = -keep + P.fCount * (nF - 1);
+      if (v.flux === 'mute' && has(v, R.NOPE)) sc += P.fMuteNope;
+      if (v.flux === 'hot' && v.turnsLeft >= 2) sc += P.fHot;
+      if ((v.flux === 'nine' || v.flux === 'catsave') && !has(v, R.DEFUSE) && saveOk(v)) sc -= P.fSave;
+      if (P.fRisk) { const tp = topInfo(v); sc += P.fRisk * (tp.known ? (tp.boom ? 1 : 0) : tp.p); }
+      return sc > P.fPlayAt;
+    }
     function act(v) {
+      if (P.fx && v.flux !== 'bottom' && fluxWant(v)) return playMove([one(v, R.FLUX)]);
+      if (P.fx && P.fBotFlux && v.flux === 'bottom' && fluxWant(v)) return playMove([one(v, R.FLUX)]);   // 摸底时原来不主动换（fBotFlux 打开才按上面的算）
       if (v.flux === 'bottom') return actBottom(v);
       // 百变：「静音」时手里的作废全成了废牌 → 先打百变把规则换掉；手里攒了两张以上百变也先打一张
       const fx = one(v, R.FLUX);
-      if (fx != null && ((v.flux === 'mute' && has(v, R.NOPE)) || R.countKind(v.hand, R.FLUX) >= 2)) return playMove([fx]);
+      if (!P.fx && fx != null && ((v.flux === 'mute' && has(v, R.NOPE)) || R.countKind(v.hand, R.FLUX) >= 2)) return playMove([fx]);
       const top = topInfo(v);
       const def = saveOk(v);
       const by = pairsOf(v);
@@ -327,6 +372,11 @@
         if (steal) return steal;
         return DRAW;
       }
+      if (top.known && P.fx && P.fAhead && v.turnsLeft >= 2 && v.deckSize > 1) {
+        // 百变（透视 / 火眼常见）：顶上安全但这回合还要摸第二张——第二张危险就先把锅甩出去
+        const b2 = kittenBelief(v, 2);
+        if (b2.length > 1 && b2[1] >= (saveOk(v) ? P.dodgeDef : P.dodgeNo)) { const am = attackMove(v); if (am) return am; }
+      }
       if (top.known) return DRAW; // 顶上是安全牌，放心摸
 
       // 没逗猫棒：先想办法弄一张
@@ -348,7 +398,8 @@
         if (riskK >= P.lookMulti) return playMove([one(v, has(v, R.FUTURE) ? R.FUTURE : R.ALTER)]);
         }
       }
-      if (v.turnsLeft >= 2 && risk >= P.multiAtk) { const am = attackMove(v); if (am) return am; }
+      const mAtk = P.fx && P.fHotMulti != null && v.flux === 'hot' && v.turnsLeft === 2 ? P.fHotMulti : P.multiAtk;
+      if (v.turnsLeft >= 2 && risk >= mAtk) { const am = attackMove(v); if (am) return am; }
       if (risk >= dodgeAt) {
         const am = attackMove(v);
         if (am) return am;
@@ -400,12 +451,14 @@
     function give(v, tier, rng) {
       const hand = v.hand;
       if (tier === 'easy') { const non = hand.filter((id) => K[id] !== R.DEFUSE); return pickRand(non.length ? non : hand, rng); }
+      if (P.fx) return hand.slice().sort((a, b) => cardValueV(v, a) - cardValueV(v, b))[0];
       return hand.slice().sort((a, b) => cardValue(hand, a) - cardValue(hand, b))[0];
     }
     function pick(v, tier, rng) {
       const cands = v.discard.filter((id) => K[id] !== R.BOOM);
       if (tier === 'easy') return pickRand(cands, rng);
       const hand = v.hand;
+      if (P.fx) return cands.slice().sort((a, b) => cardValueV(v, b) - cardValueV(v, a))[0];
       return cands.slice().sort((a, b) => cardValue(hand, b) - cardValue(hand, a))[0];
     }
     /* 改命：顶上有炸毛猫——这回合躲得掉（甩锅 / 跳过 / 抽底）就把它放最上面留给下一个人；
@@ -422,6 +475,11 @@
       return safe.slice(0, k).concat(booms, safe.slice(k));
     }
     function insert(v, tier, rng) {
+      if (P.fx && P.fBotMirror && v.flux === 'bottom') return v.deckSize - insert0(v, tier, rng);   // 摸底：从底下摸，位置顶底对调
+      if (P.fx && P.fExP > 0 && v.flux === 'exact' && v.turnsLeft <= 1 && rng() < P.fExP) return Math.min(v.deckSize, Math.round(P.fExDepth));
+      return insert0(v, tier, rng);
+    }
+    function insert0(v, tier, rng) {
       const size = v.deckSize; // 塞之前牌堆的张数：pos 0..size
       if (tier === 'easy') return (rng() * (size + 1)) | 0;
       // （试过组队下家是队友时往下挪一张：4000 局反而少赢 6%，不挪）
@@ -433,11 +491,12 @@
     return { P, cardValue, kittenBelief, topInfo, act, react, give, pick, alter, insert };
   }
   const NB = makeNormal(P_BASE), NH = makeNormal(P_HIST), NO = makeNormal(P_OLD);
-  const pol = (v) => (v.ins !== undefined ? NH : NB);   // 规则公开塞猫历史就用对应那套
-  const polT = (v, tier) => (tier === 'easy' ? NO : pol(v));   // 入门 = 原来的普通
+  const NF = makeNormal(Object.assign({}, P_HIST, FX_N)), NFE = makeNormal(Object.assign({}, P_OLD, FX_E));   // 百变模式专用
+  const pol = (v) => (isFlux(v) ? NF : v.ins !== undefined ? NH : NB);   // 规则公开塞猫历史就用对应那套
+  const polT = (v, tier) => (tier === 'easy' ? (isFlux(v) ? NFE : NO) : pol(v));   // 入门 = 原来的普通
 
   /* ───── PIMC（高手） ───── */
-  const BUDGET = 900, MIN_S = 16, MAX_S = 80, INSERT_S = 40, ANCHOR = 0.05;   // 2026-11-14 重训：门槛 0.2 → 0.05（底子换成新普通后，敢改主意反而更强）
+  const BUDGET = (FXO && FXO.budget) || 900, MIN_S = 16, MAX_S = 80, INSERT_S = 40, ANCHOR = 0.05;   // 2026-11-14 重训：门槛 0.2 → 0.05（底子换成新普通后，敢改主意反而更强）
   const ALL_IDS = Array.from({ length: R.DECK_SIZE }, (_, i) => i);
 
   /* 按 v 补全一个完整局面（别人手牌 + 牌堆未知位置随机；别人刚塞回的炸毛猫按信念放），phase 取 v 当前的 */
@@ -685,5 +744,6 @@
   return {
     TIERS, TIER_NAMES, cardValue, topInfo, determinize, decide,
     actFor, reactFor, insertFor, chooseGive, choosePick, chooseAlter, stepWith,
+    withFlux: (o) => zhamaoAI(R, o),   // 训练场：换一套百变参数造一个新实例（{ normal, easy, budget }）
   };
 });
