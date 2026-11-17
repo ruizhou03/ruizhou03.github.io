@@ -557,7 +557,7 @@
     if (!g) return sv;
     if (!sv) {
       sv = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); sv.setAttribute('class', 'zm-rim');
-      sv.innerHTML = '<path class="base"/><g class="amb"><path class="tail"/><path class="head"/></g><g class="fuse"><path class="trail"/><path class="spark"/></g><g class="links"></g>';
+      sv.innerHTML = '<path class="base"/><g class="amb"><path class="tail"/><path class="halo"/><path class="head"/></g><g class="fuse"><path class="trail"/><path class="sglow"/><path class="spark"/></g><g class="links"></g>';
       els.table.insertBefore(sv, els.dir);
     }
     sv._anchor = g.anchor;
@@ -580,16 +580,18 @@
   function ambCount(sv) { return sv.dataset.mood === 'circus' ? 6 : 3; }
   function buildAmb(sv) {
     const L = sv.querySelector('.base').getTotalLength(), N = ambCount(sv), P = L / N, dur = AMB_MS * 3 / N, dir = dirNow();
-    const tail = sv.querySelector('.amb .tail'), head = sv.querySelector('.amb .head');
+    const tail = sv.querySelector('.amb .tail'), head = sv.querySelector('.amb .head'), halo = sv.querySelector('.amb .halo');
     tail.style.strokeDasharray = '64 ' + (P - 64).toFixed(2);
     head.style.strokeDasharray = '16 ' + (P - 16).toFixed(2);
+    // 亮头的光晕：不用 drop-shadow（2026-11-16 实测：每帧整圈桌沿重做 blur，掉帧多一倍），改成一截更宽更淡的线跟着亮头走，两头各多出 3px
+    halo.style.strokeDasharray = '22 ' + (P - 22).toFixed(2);
     const t0 = sv._ambAnims && sv._ambAnims[0] ? (sv._ambAnims[0].currentTime || 0) : 0;
     (sv._ambAnims || []).forEach((an) => an.cancel());
     sv._ambAnims = []; sv._ambN = N;
     if (fx.reduce()) return;
     // 路径本身逆时针（我 → 右 → 上 → 左）；出牌方向 1 = 桌上逆时针 = 顺着路径走（dashoffset 变小），-1 倒着走
     const hOff = dir === 1 ? -48 : 0;
-    [[tail, 0], [head, hOff]].forEach(([el, off]) => {
+    [[tail, 0], [halo, hOff + 3], [head, hOff]].forEach(([el, off]) => {
       const an = el.animate(dir === 1 ? [{ strokeDashoffset: off }, { strokeDashoffset: off - P }] : [{ strokeDashoffset: off }, { strokeDashoffset: off + P }], { duration: dur, iterations: Infinity, easing: 'linear' });
       an.currentTime = t0 % dur;
       an.playbackRate = (sv._rate || 1) * (sv._moodRate || 1);
@@ -624,14 +626,17 @@
     if (sv._ambN !== ambCount(sv)) buildAmb(sv);
     (sv._ambAnims || []).forEach((an) => { const r = (sv._rate || 1) * sv._moodRate; if (an.updatePlaybackRate) an.updatePlaybackRate(r); else an.playbackRate = r; });
     if (mood === 'funk' && !fx.reduce()) {
-      const L = sv.querySelector('.base').getTotalLength(), trail = sv.querySelector('.fuse .trail'), spark = sv.querySelector('.fuse .spark');
+      const L = sv.querySelector('.base').getTotalLength(), trail = sv.querySelector('.fuse .trail'), spark = sv.querySelector('.fuse .spark'), sglow = sv.querySelector('.fuse .sglow');
       trail.style.strokeDasharray = FUSE_TRAIL + ' ' + (L - FUSE_TRAIL).toFixed(2);
       spark.style.strokeDasharray = '0.01 ' + (L - 0.01).toFixed(2);
+      sglow.style.strokeDasharray = '0.01 ' + (L - 0.01).toFixed(2);   // 火星的光晕：一颗更大更淡的圆点跟着走（代替 drop-shadow）
       // 火星在余烬往前走的那一头：方向 1 = 顺着路径（dashoffset 变小），火星在这截的尾端；方向 -1 在开头
       const sOff = dir === 1 ? -FUSE_TRAIL : 0, go = dir === 1 ? -L : L;
       sv._moodAnims.push(trail.animate([{ strokeDashoffset: 0 }, { strokeDashoffset: go }], { duration: FUSE_MS, iterations: Infinity, easing: 'linear' }));
       const sa = spark.animate([{ strokeDashoffset: sOff }, { strokeDashoffset: sOff + go }], { duration: FUSE_MS, iterations: Infinity, easing: 'linear' });
       sv._moodAnims.push(sa);
+      const ga = sglow.animate([{ strokeDashoffset: sOff }, { strokeDashoffset: sOff + go }], { duration: FUSE_MS, iterations: Infinity, easing: 'linear' });
+      sv._moodAnims.push(ga);
       sv._fuse = { anim: sa, L, sOff, go };
     }
     if (fx.reduce() || sv._synced) return;   // 跟上音乐的鼓点了：心跳 / 跑马灯由 onBeat 一拍一拍地打，不用下面这套自己走的

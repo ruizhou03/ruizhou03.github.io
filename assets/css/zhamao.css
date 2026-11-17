@@ -1027,7 +1027,10 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rim .amb .tail, .zm-rim .amb .head { transition: stroke 0.8s ease; }
 /* 平常（甲）也再显眼一点（2026-11-14 用户：彗星走得不太看得出来）：尾巴更亮更粗、亮头带一圈金色微光 */
 .zm-rim .amb .tail { opacity: 0.62; stroke-width: 3.4; }
-.zm-rim .amb .head { stroke-width: 2.8; filter: drop-shadow(0 0 3px rgba(242, 207, 122, 0.95)); }
+.zm-rim .amb .head { stroke-width: 2.8; }
+/* 亮头的金色微光：一截更宽更淡的线跟着亮头走（2026-11-16 实测：drop-shadow 每帧整圈重画，掉帧多一倍 → 换成纯线条） */
+.zm-rim .amb .halo { stroke: rgba(242, 207, 122, 0.3); stroke-width: 6.5; transition: stroke 0.8s ease; }
+.zm-rim[data-mood="chip"] .amb .halo { stroke: rgba(255, 154, 110, 0.3); }
 /* 箭头跟着音乐换情绪：乙 暖橙；丙 亮金（当前出牌人那个始终朱红，分得开） */
 .zm-app[data-rim-mood="chip"] .zm-dir i:not(.is-hot) { color: #d9822f; }
 .zm-app[data-rim-mood="circus"] .zm-dir i:not(.is-hot) { color: #c9a24f; }
@@ -1042,8 +1045,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rim[data-mood="funk"] .fuse { opacity: 1; }
 .zm-rim[data-mood="funk"] .amb { opacity: 0; }
 .zm-rim[data-mood="funk"] .base { stroke: rgba(150, 100, 52, 0.42); }
-.zm-rim .fuse .trail { stroke: rgba(236, 140, 58, 0.6); stroke-width: 4; filter: drop-shadow(0 0 4px rgba(240, 150, 60, 0.9)); }
-.zm-rim .fuse .spark { stroke: #fff4c8; stroke-width: 5; stroke-linecap: round; filter: drop-shadow(0 0 5px #ffb347) drop-shadow(0 0 2px #fff); }
+.zm-rim .fuse .trail { stroke: rgba(236, 140, 58, 0.72); stroke-width: 4.6; }
+.zm-rim .fuse .sglow { stroke: rgba(255, 179, 71, 0.45); stroke-width: 16; stroke-linecap: round; }
+.zm-rim .fuse .spark { stroke: #fff4c8; stroke-width: 5; stroke-linecap: round; }
 .zm-rim.is-busy .fuse { opacity: 0.2; transition-duration: 0.25s; }
 .zm-rim .lglow { stroke: rgba(246, 210, 120, 0.55); stroke-width: 9; filter: blur(3px); }
 .zm-rim .lline { stroke: #d2a24c; stroke-width: 3.2; }
