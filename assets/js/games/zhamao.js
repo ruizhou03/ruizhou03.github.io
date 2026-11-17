@@ -2148,8 +2148,11 @@
     if (e.hot === 'off' && !fx.reduce()) await hotHatOff(e.seat, t);
     if (t !== token) return;
     if (ov) { ov.turn = e.seat; ov.turnsLeft = e.turnsLeft; }
-    // 被甩锅的人：轮到他的这几回合里一直挂着 ×N（剩最后一回合也挂着 ×1），轮到别人才摘
-    if (e.attacked) game.attackSeat = e.seat; else if (e.seat !== game.attackSeat) game.attackSeat = -1;
+    // 被甩锅的人：轮到他的这几回合里一直挂着 ×N（剩最后一回合也挂着 ×1），轮到别人才摘。
+    // 百变「烫手」给的那口锅也一样（2026-11-17 用户：×2 摸了一张锅就没了，应该变 ×1）；烫手被换走、锅摘下来（hot: 'off'）就不挂了
+    if (e.hot === 'off') game.attackSeat = -1;
+    else if (e.attacked || (e.turnsLeft > 1 && e.seat !== game.attackSeat)) game.attackSeat = e.seat;
+    else if (e.seat !== game.attackSeat) game.attackSeat = -1;
     renderSeats();
     const a = avPoint(e.seat);
     fx.ring(a.x, a.y, { color: '#b4392c', size: 110, width: 3, dur: 520 });
