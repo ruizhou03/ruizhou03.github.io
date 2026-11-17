@@ -1434,12 +1434,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app .zm-gone-art { cursor: default; }
 .zm-dialog.is-gone .zm-pause-actions { justify-content: center; }
 
-/* 预览（2026-11-17，未定）：我出局了、还没坐到谁背后时，提示「点头像就能看他的牌」（JS outIdle，data-uiv-watch） */
-/* 乙：还在场的人头像外一圈墨色淡圈，慢慢往外扩散 */
-.zm-app[data-uiv-watch="b"].is-out-idle .zm-opps .zm-seat:not(.is-out) .zm-av,
-.zm-app[data-uiv-watch="b"].is-out-idle .zm-seat-mate:not(.is-out) .zm-av { animation: zm-watch-call 1.8s ease-out infinite; }
-@keyframes zm-watch-call { 0% { box-shadow: 0 0 0 2px var(--zm-ink), 0 0 0 0 rgba(29, 27, 24, 0.28); } 70%, 100% { box-shadow: 0 0 0 2px var(--zm-ink), 0 0 0 12px rgba(29, 27, 24, 0); } }
-/* 丙：空手牌区一排还在场的人的小头像 */
+/* 我出局了、还没坐到谁背后：空手牌区一排还在场的人的小头像，点谁就看谁（2026-11-17 用户定丙） */
 .zm-watch-row { margin: auto; display: flex; gap: 14px; justify-content: center; align-items: center; align-self: center; }
 .zm-watch-pick { padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .zm-watch-pick .zm-wp-av { position: relative; display: block; background: var(--zm-card); width: 48px; height: 48px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 2px var(--zm-ink), 0 6px 14px rgba(29, 27, 24, 0.16); animation: zm-watch-bob 2.4s ease-in-out infinite; }
@@ -1448,4 +1443,4 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-watch-pick:nth-child(4) .zm-wp-av { animation-delay: 0.9s; }
 .zm-watch-pick .zm-wp-av > svg, .zm-watch-pick .zm-wp-av > img { width: 100%; height: 100%; display: block; }
 @keyframes zm-watch-bob { 50% { translate: 0 -4px; } }
-@media (prefers-reduced-motion: reduce) { .zm-watch-pick .zm-wp-av, .zm-app[data-uiv-watch="b"].is-out-idle .zm-seat .zm-av { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .zm-watch-pick .zm-wp-av { animation: none; } }

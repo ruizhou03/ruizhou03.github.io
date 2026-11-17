@@ -1400,10 +1400,8 @@
     if (o.flip !== false) els.hand.querySelectorAll('.zm-card').forEach((c) => prev.set(c.dataset.id, c.getBoundingClientRect()));
     const combo = selected.length && classifyMine(selected) && mode !== 'give';
     const note = !hand.length ? watchNote() : '';
-    // 我出局了、还没坐到谁背后：给「点头像就能看他的牌」一点线索（2026-11-17 预览甲乙丙，data-uiv-watch）
-    const idle = !hand.length && outIdle();
-    els.app.classList.toggle('is-out-idle', idle);
-    const pick = idle && els.app.dataset.uivWatch === 'c' ? watchPickHtml() : '';
+    // 我出局了、还没坐到谁背后：空出来的手牌区摆一排还在场的人的小头像，点谁就坐到谁背后（2026-11-17 用户定丙）
+    const pick = !hand.length && outIdle() ? watchPickHtml() : '';
     els.hand.innerHTML = (note ? '<p class="zm-hand-note">' + esc(note) + '</p>' : '') + pick + hand.map((id) => cardHtml(id,
       (selected.indexOf(id) >= 0 ? 'is-sel' + (combo ? ' is-combo' : '') : (reactOpen && nopeLift.has(id) ? 'is-sel' : '')) + (handHidden.has(id) ? ' is-incoming' : '') +
       (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : ''))).join('');
@@ -3329,7 +3327,6 @@
     if (e.seat === 0) {
       game.fastOut = true;
       if (mateWatching() && viewSeat !== mateSeat()) watch(mateSeat());
-      else if (!game.online && els.app.dataset.uivWatch === 'a' && viewSeat < 0) { const nx = nextWatchable(0, game.state.alive); if (nx > 0) watch(nx); }
       renderBand();
     }
   }
@@ -3629,7 +3626,7 @@
     if (!game || !game.state.alive[seat]) return;
     if (game.online) onlineView(srvOf(seat)); else watch(seat);
   }
-  // 丙：空出来的手牌区摆一排还在场的人的小头像，点谁就坐到谁背后
+  // 空出来的手牌区：一排还在场的人的小头像（和上面座位同一个左右顺序）
   function watchPickHtml() {
     const s = game.state, out = [], seats = [];
     for (let j = 1; j < s.alive.length; j++) if (s.alive[j] && avEl(j)) seats.push([j, avEl(j).getBoundingClientRect().left]);
@@ -5656,12 +5653,6 @@
     // 我坐在别人背后看，他也出局了：自动换到下一家还在场的（2026-11-17；以前视角停在他的空座位上）
     if (game.spectator && online.st.viewSeat >= 0 && g.st.alive && !g.st.alive[online.base]) {
       for (let k = 1; k < online.n; k++) { const j = (online.base + k) % online.n; if (g.st.alive[j]) { onlineView(j); break; } }
-    }
-    // 甲：我刚出局、还没坐到谁背后——自动坐到下家背后（一局只自动一次，点回自己座位后不再拉走）
-    if (els.app.dataset.uivWatch === 'a' && outIdle() && online.autoWatch !== g.matchNo) {
-      online.autoWatch = g.matchNo;
-      const me = online.st.mySeat;
-      for (let k = 1; k < online.n; k++) { const j = (me + k) % online.n; if (g.st.alive[j]) { onlineView(j); break; } }
     }
     const mine = !!g.myCall && !autopilot && !game.spectator;
     const remain = onlineRemain();
