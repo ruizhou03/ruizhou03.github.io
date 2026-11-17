@@ -35,6 +35,41 @@
     card: '<svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="3"/></svg>',
   };
 
+  /* 粒子画在一张 canvas 上（2026-11-16 iPhone 实测：一次炸开十几二十个 SVG 小元素、各占一个 GPU 图层，那一下会顿 100ms 以上）。
+   * 形状照 SHAPES 的 24×24 SVG 转成 Path2D（只转一次），轨迹 / 缩放 / 旋转 / 透明度 / 每段缓动跟原来的关键帧一模一样 */
+  const PATHS = new Map();
+  function shapePaths(svg) {
+    if (PATHS.has(svg)) return PATHS.get(svg);
+    const t = document.createElement('template');
+    t.innerHTML = svg;
+    const out = [], root = t.content.firstElementChild;
+    for (const el of root ? root.children : []) {
+      const n = (a) => parseFloat(el.getAttribute(a)) || 0, tag = el.tagName.toLowerCase();
+      let p = null;
+      if (tag === 'path') p = new Path2D(el.getAttribute('d'));
+      else if (tag === 'ellipse') { const m = /rotate\(([-\d.]+)/.exec(el.getAttribute('transform') || ''); p = new Path2D(); p.ellipse(n('cx'), n('cy'), n('rx'), n('ry'), m ? (+m[1]) * Math.PI / 180 : 0, 0, Math.PI * 2); }
+      else if (tag === 'circle') { p = new Path2D(); p.arc(n('cx'), n('cy'), n('r'), 0, Math.PI * 2); }
+      else if (tag === 'rect') { p = new Path2D(); if (p.roundRect) p.roundRect(n('x'), n('y'), n('width'), n('height'), n('rx')); else p.rect(n('x'), n('y'), n('width'), n('height')); }
+      if (p) out.push({ p, fill: el.getAttribute('fill') });
+    }
+    PATHS.set(svg, out);
+    return out;
+  }
+  // cubic-bezier(x1,y1,x2,y2) 求值（和 CSS 一样：先由 x 解出参数 t，再取 y）
+  function bezier(x1, y1, x2, y2) {
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    const X = (t) => ((ax * t + bx) * t + cx) * t, Y = (t) => ((ay * t + by) * t + cy) * t, dX = (t) => (3 * ax * t + 2 * bx) * t + cx;
+    return (x) => {
+      if (x <= 0) return 0; if (x >= 1) return 1;
+      let t = x;
+      for (let i = 0; i < 6; i++) { const e = X(t) - x, d = dX(t); if (Math.abs(e) < 1e-4) return Y(t); if (Math.abs(d) < 1e-6) break; t -= e / d; }
+      let lo = 0, hi = 1; t = x;
+      for (let i = 0; i < 20; i++) { const v = X(t); if (Math.abs(v - x) < 1e-4) break; if (v < x) lo = t; else hi = t; t = (lo + hi) / 2; }
+      return Y(t);
+    };
+  }
+  const EASE_SPARK = bezier(0.12, 0.8, 0.3, 1), EASE_IN = bezier(0.42, 0, 1, 1);
+
   function create(layer, opts) {
     opts = opts || {};
     const snd = opts.sound || (() => {});
@@ -122,6 +157,54 @@
       return anim.finished.then(() => { if (!o.keep) el.remove(); return el; }, () => { el.remove(); return null; });
     }
 
+    // 粒子画布：有粒子才显示、才跑 rAF；时间按 speed()（快进 5 倍）走
+    let cv = null, cx2 = null, parts = [], clk = 0, lastT = 0, raf = 0;
+    function canvas() {
+      if (!cv) {
+        cv = document.createElement('canvas');
+        cv.className = 'zm-spark-cv';
+        cv.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:1;display:none';
+        layer.appendChild(cv);
+        cx2 = cv.getContext('2d');
+      }
+      if (!cv.isConnected) layer.appendChild(cv);
+      return cv;
+    }
+    function tick(now) {
+      raf = 0;
+      clk += Math.min(100, now - lastT) * speed(); lastT = now;
+      const dpr = Math.min(2, window.devicePixelRatio || 1), W = layer.clientWidth || innerWidth, H = layer.clientHeight || innerHeight;
+      const pw = Math.round(W * dpr), ph = Math.round(H * dpr);
+      if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
+      const g = cx2;
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.clearRect(0, 0, pw, ph);
+      parts = parts.filter((q) => clk < q.t0 + q.dur);
+      for (const q of parts) {
+        const pr = (clk - q.t0) / q.dur;
+        if (pr <= 0) continue;   // 还在延迟里：第一帧本来就是透明的
+        const K = q.k; let i = 0;
+        while (i < K.length - 2 && pr > K[i + 1].o) i++;
+        const a = K[i], b = K[i + 1], u = (b.o > a.o) ? Math.min(1, Math.max(0, (pr - a.o) / (b.o - a.o))) : 1, e = a.ease(u);
+        const L = (m) => a[m] + (b[m] - a[m]) * e;
+        const op = L('a'); if (op <= 0.003) continue;
+        const sc = L('s') * q.sz / 24, rot = L('r') * Math.PI / 180;
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        g.translate(L('x'), L('y')); g.rotate(rot); g.scale(sc, sc); g.translate(-12, -12);
+        g.globalAlpha = Math.min(1, op);
+        for (const sp of q.paths) { g.fillStyle = sp.fill || q.color; g.fill(sp.p); }
+      }
+      g.globalAlpha = 1;
+      if (parts.length) raf = requestAnimationFrame(tick);
+      else { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height); cv.style.display = 'none'; }
+    }
+    function addParts(list) {
+      canvas();
+      cv.style.display = '';
+      parts.push(...list);
+      if (!raf) { lastT = performance.now(); raf = requestAnimationFrame(tick); }
+    }
+
     /* 粒子绽放。shapes：SHAPES 的键或 svg 字符串数组；colors：颜色数组。
      * 样式每次随机：一整圈 / 内外两圈 / 螺旋 / 喷泉 / 随意散开；少数大个、大个更稳，小的会翻飞 */
     function burst(x, y, o) {
@@ -130,10 +213,10 @@
       if (lite()) o.n = Math.max(2, Math.ceil(o.n / 4));
       const pat = o.pattern || ['ring', 'double', 'spiral', 'fountain', 'scatter'][(Math.random() * 5) | 0];
       const turn = Math.random() * Math.PI * 2;
+      const list = [];
       for (let k = 0; k < o.n; k++) {
         const sh = o.shapes[k % o.shapes.length];
-        const el = node('zm-spark', SHAPES[sh] || sh, o.behind);
-        el.style.color = o.colors[k % o.colors.length];
+        const color = o.colors[k % o.colors.length];
         const big = Math.random() < 0.15;
         const t = big ? rnd(0.75, 1) : Math.pow(Math.random(), 1.6) * 0.7;
         const sz = o.size[0] + t * (o.size[1] - o.size[0]);
@@ -156,17 +239,17 @@
             else { r0 = rnd(-40, 40); r1 = r0 + (Math.random() < 0.5 ? -1 : 1) * rnd(150, 320); }
           }
         }
-        const half = sz / 2;
         const life = (big ? 1.15 : 1) * o.life;
-        animate(el, [
-          { transform: T(x - half, y - half, 0.3, r0), opacity: 0 },
-          { transform: T(x - half, y - half, 0.7, r0), opacity: 1, offset: 0.06 },
-          { transform: T(tx - half, ty - half, big ? 1.1 : 1, (r0 + r1) * 0.5), opacity: 1, offset: 0.45 },
-          { transform: T(tx - half, ty - half + 6, 1, (r0 + r1) * 0.6), opacity: 1, offset: 0.58, easing: 'ease-in' },
-          { transform: T(tx - half, ty - half + fall, 0.7, r1), opacity: 0 },
-        ], { duration: life, delay: o.delay + lag }, 'cubic-bezier(.12, .8, .3, 1)');
-        later(() => el.remove(), life + o.delay + lag + 60);
+        const E = EASE_SPARK;
+        list.push({ paths: shapePaths(SHAPES[sh] || sh), color, sz, t0: clk + o.delay + lag, dur: life, k: [
+          { o: 0, x: x, y: y, s: 0.3, r: r0, a: 0, ease: E },
+          { o: 0.06, x: x, y: y, s: 0.7, r: r0, a: 1, ease: E },
+          { o: 0.45, x: tx, y: ty, s: big ? 1.1 : 1, r: (r0 + r1) * 0.5, a: 1, ease: E },
+          { o: 0.58, x: tx, y: ty + 6, s: 1, r: (r0 + r1) * 0.6, a: 1, ease: EASE_IN },
+          { o: 1, x: tx, y: ty + fall, s: 0.7, r: r1, a: 0, ease: E },
+        ] });
       }
+      if (list.length) addParts(list);
     }
 
     function smoke(x, y, o) {
@@ -294,7 +377,7 @@
       };
     }
 
-    function clear() { layer.querySelectorAll('.zm-spark, .zm-smoke, .zm-ring, .zm-floater, .zm-arrow, .zm-screenflash').forEach((n) => n.remove()); }
+    function clear() { layer.querySelectorAll('.zm-spark, .zm-smoke, .zm-ring, .zm-floater, .zm-arrow, .zm-screenflash').forEach((n) => n.remove()); parts = []; }
 
     return { animate, fly, burst, smoke, ring, flash, shake, pop, float, arrow, clear, center, T, reduce, snd };
   }

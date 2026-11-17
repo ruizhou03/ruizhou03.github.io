@@ -5534,8 +5534,8 @@
     if (!online || online.playing) return;
     online.playing = true;
     const t = token;
-    while (online.queue.length) {
-      if (t !== token || !online) { if (online) online.playing = false; return; }
+    while (online && online.queue.length) {   // 播的时候房间可能没了（被请离 / 房间解散 → online = null）：下一轮先看还在不在
+      if (t !== token) { online.playing = false; return; }
       const grp = online.queue.shift();
       online.cur = grp.map((e) => e.t).join('+');
       await playGroup(grp, t);
