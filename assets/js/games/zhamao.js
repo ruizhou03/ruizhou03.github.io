@@ -1222,9 +1222,10 @@
     const faceKit = fc && game.openKits.has(+fc.dataset.id) ? fc : null;
     game.openKits.clear();
     if (game.kitShown) game.kitShown.clear();
+    if (game.kitSide) game.kitSide.clear();
     if (fx.reduce() || (!kits.length && !faceKit)) return;
     snd('flip');
-    const anims = kits.map((c) => c.animate([{ translate: '24% 6%', rotate: '7deg', opacity: 1 }, { translate: '0 0', rotate: '0deg', opacity: 1, offset: 0.6 }, { translate: '0 0', rotate: '0deg', opacity: 0 }], { duration: ms(460), easing: 'cubic-bezier(.4,0,.3,1)', fill: 'forwards' }).finished.catch(() => {}));
+    const anims = kits.map((c) => { const sx = c.parentElement && c.parentElement.classList.contains('is-left') ? -1 : 1; return c.animate([{ translate: (24 * sx) + '% 6%', rotate: (7 * sx) + 'deg', opacity: 1 }, { translate: '0 0', rotate: '0deg', opacity: 1, offset: 0.6 }, { translate: '0 0', rotate: '0deg', opacity: 0 }], { duration: ms(460), easing: 'cubic-bezier(.4,0,.3,1)', fill: 'forwards' }).finished.catch(() => {}); });
     if (faceKit && faceKit.firstElementChild) anims.push(faceKit.firstElementChild.animate([{ transform: 'perspective(400px) rotateY(0deg)' }, { transform: 'perspective(400px) rotateY(90deg)' }], { duration: ms(260), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {}));
     await Promise.all(anims);
     if (t !== token) return;
@@ -1280,6 +1281,16 @@
       }
     }
     if (ov) return;
+    /* 好几只露着时（2026-11-16 用户挑甲 · 两边交替）：每只第一次露出来时定一个方向——离它最近（4 层以内）的那只往哪边，它就往另一边；
+     * 附近没有就往右。方向记住不再变（别的那只被摸走，剩下的也不会突然换边） */
+    want.sort((a, b) => a.pos - b.pos);
+    game.kitSide = game.kitSide || new Map();
+    for (const w of want) {
+      if (game.kitSide.has(w.id)) continue;
+      let near = null;
+      for (const o of want) if (o.id !== w.id && game.kitSide.has(o.id) && Math.abs(o.pos - w.pos) <= 4 && (!near || Math.abs(o.pos - w.pos) < Math.abs(near.pos - w.pos))) near = o;
+      game.kitSide.set(w.id, near ? -game.kitSide.get(near.id) : 1);
+    }
     stack.querySelectorAll('.zm-deck-kit').forEach((k) => { if (!want.some((w) => +k.dataset.id === w.id && +k.dataset.pos === w.pos)) k.remove(); });
     const sheets = Array.from(stack.querySelectorAll('.zm-sheet')), top = stack.querySelector('.zm-card.is-top');
     const n = sheets.length + (top ? 1 : 0);
@@ -1288,14 +1299,16 @@
       const li = n - 1 - w.pos, sh = sheets[li];   // 从下往上数第 li 层
       if (!sh) continue;
       const box = document.createElement('div');
-      box.className = 'zm-deck-kit'; box.dataset.id = w.id; box.dataset.pos = w.pos;
+      const left = game.kitSide.get(w.id) === -1;
+      box.className = 'zm-deck-kit' + (left ? ' is-left' : ''); box.dataset.id = w.id; box.dataset.pos = w.pos;
       box.style.transform = sh.style.transform;
       box.innerHTML = cardHtml(w.id);
       sh.after(box);
       game.kitShown = game.kitShown || new Set();
       if (game.kitShown.has(w.id)) continue;   // 已经露过的：换层就直接摆过去，不再重演歪出来的那一下
       game.kitShown.add(w.id);
-      if (!fx.reduce()) box.firstElementChild.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '28% 7%', rotate: '9deg', offset: 0.7 }, { translate: '24% 6%', rotate: '7deg' }], { duration: ms(420), easing: 'cubic-bezier(.3,.7,.3,1)' });
+      const sx = left ? -1 : 1;
+      if (!fx.reduce()) box.firstElementChild.animate([{ translate: '0 0', rotate: '0deg' }, { translate: (28 * sx) + '% 7%', rotate: (9 * sx) + 'deg', offset: 0.7 }, { translate: (24 * sx) + '% 6%', rotate: (7 * sx) + 'deg' }], { duration: ms(420), easing: 'cubic-bezier(.3,.7,.3,1)' });
     }
   }
 

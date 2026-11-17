@@ -1304,6 +1304,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 百变「明塞」（用户挑甲2 · 塞歪了）：明着塞回去的炸毛猫夹在它那一层，往右下歪着露出一截 */
 .zm-deck-kit { position: absolute; left: 0; top: 0; width: var(--pu); pointer-events: none; }
 .zm-deck-kit .zm-card { position: relative; translate: 24% 6%; rotate: 7deg; box-shadow: 1px 2px 4px rgba(29, 27, 24, 0.22); }
+.zm-deck-kit.is-left .zm-card { translate: -24% 6%; rotate: -7deg; box-shadow: -1px 2px 4px rgba(29, 27, 24, 0.22); }   /* 甲 · 两边交替：挨着的那只往左下歪出 */
 .zm-av .zm-role { pointer-events: auto; cursor: pointer; }
 .zm-app #zmFlux { transition: opacity 0.2s ease; }
 .zm-app.is-peeking #zmFlux { opacity: 0; pointer-events: none; }
