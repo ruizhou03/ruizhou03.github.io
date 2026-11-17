@@ -220,7 +220,6 @@
         const big = Math.random() < 0.15;
         const t = big ? rnd(0.75, 1) : Math.pow(Math.random(), 1.6) * 0.7;
         const sz = o.size[0] + t * (o.size[1] - o.size[0]);
-        el.style.width = el.style.height = sz.toFixed(0) + 'px';
         let a, d, lag = 0, fall = big ? o.gravity * 0.6 : o.gravity;
         if (pat === 'ring') { a = turn + (k / o.n) * Math.PI * 2 + rnd(-0.12, 0.12); d = o.radius * rnd(0.85, 1.08); }
         else if (pat === 'double') { const inner = k % 2 === 1; a = turn + (k / o.n) * Math.PI * 2; d = o.radius * (inner ? rnd(0.42, 0.58) : rnd(0.95, 1.18)); lag = inner ? 0 : 100; }
