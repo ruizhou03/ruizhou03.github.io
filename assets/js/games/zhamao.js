@@ -2491,21 +2491,26 @@
       renderPiles();
       return;
     }
-    /* 别人在偷看（2026-11-17 用户：和我自己看走同一套——三张从牌堆顶飞到桌子正中摆成一排，只是不翻面；上面一只眼睛眨一眨，再按原样落回去）。
-     * 以前是朝偷看那家的头像扇开：坐到别人背后看时那家在下面，牌就扇到牌堆下面去了 */
+    // 别人在偷看
+    const a = avPoint(e.seat), dc = fx.center(r);
+    /* 牌永远在牌堆上方扇开（2026-11-17 用户）：朝偷看那家的方向偏，但不往下——坐到别人背后观战时，偷看的人就是下面那家，以前牌扇到牌堆下面去了 */
+    const dir = { x: a.x - dc.x, y: -Math.abs(a.y - dc.y) || -1 }, len = Math.hypot(dir.x, dir.y) || 1;
     const k = Math.max(0, Math.min(3, e.count || D().deckSize));   // 牌堆不到三张就只抬起剩下那几张
-    const u = POP(), c = fx.center(els.center.getBoundingClientRect()), gap = u * 1.12;
-    const spots = []; for (let i = 0; i < k; i++) spots.push({ x: c.x + (i - (k - 1) / 2) * gap, y: c.y - u * 0.1 });
-    const face = (i) => (i === 0 && tf != null ? cardHtml(tf) : backHtml());   // 透视：最上面那张一直是正面
+    const out = [];
+    for (let i = 0; i < k; i++) {
+      const fan = (i - (k - 1) / 2);
+      const to = { x: dc.x + dir.x / len * pu * 0.9 + fan * pu * 0.42, y: dc.y + dir.y / len * pu * 0.9 - Math.abs(fan) * 4 };
+      out.push(fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: r, to, w: pu, s0: 1, s1: 0.86, r0: 0, r1: fan * 14, dur: ms(380), delay: i * 60, lift: 20, keep: true, land: false }));
+    }
     if (ov && k) { ov.lifted = (ov.lifted || 0) + k; renderPiles(); }
-    const nodes = await Promise.all(spots.map((p, i) => fx.fly({ html: face(i), from: r, to: p, w: u, s0: pu / u, s1: 1, r0: 0, r1: 0, dur: ms(620), delay: i * ms(170), lift: 70, keep: true })));
+    const nodes = await Promise.all(out);
     if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
     const eye = document.createElement('div');
     eye.className = 'zm-prop zm-eye';
     eye.innerHTML = ART.PROPS.eye;
-    const S = u * 0.9;
+    const S = pu * 1.1;
     eye.style.width = eye.style.height = S + 'px';
-    const ep = { x: c.x, y: c.y - u * 0.1 - u * 0.62 - S * 0.55 };   // 那一排正上方
+    const ep = { x: dc.x + dir.x / len * pu * 0.9, y: dc.y + dir.y / len * pu * 0.9 - pu * 1.05 };
     els.fly.appendChild(eye);
     await fx.animate(eye, [
       { transform: fx.T(ep.x - S / 2, ep.y - S / 2, 0.2, 0), opacity: 0 },
@@ -2516,16 +2521,14 @@
       { transform: fx.T(ep.x - S / 2 + 6, ep.y - S / 2, 1, 0), opacity: 1, offset: 0.68 },
       { transform: fx.T(ep.x - S / 2 - 6, ep.y - S / 2, 1, 0), opacity: 1, offset: 0.84 },
       { transform: fx.T(ep.x - S / 2, ep.y - S / 2, 0.6, 0), opacity: 0 },
-    ], { duration: ms(1500) }).finished.catch(() => {});
+    ], { duration: ms(1250) }).finished.catch(() => {});
     eye.remove();
-    if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
-    // 倒着落回牌堆（和我自己看完一样）
     await Promise.all(nodes.map((n, i) => {
       if (!n) return null;
+      const rr = n.getBoundingClientRect();
       n.remove();
-      return fx.fly({ html: face(i), from: spots[i], to: deckTopRect(), w: u, s0: 1, s1: pu / u, dur: ms(480), delay: (k - 1 - i) * ms(110), lift: 40 });
+      return fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: rr, to: deckTopRect(), w: pu, s0: 0.86, s1: 1, r0: (i - (k - 1) / 2) * 14, r1: 0, dur: ms(320), delay: i * 50, lift: 10 });
     }));
-    snd('thud');
     if (ov && k) ov.lifted -= k;
     restoreTopFace(tf);
     renderPiles();
