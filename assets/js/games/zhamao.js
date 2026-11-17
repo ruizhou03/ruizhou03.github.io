@@ -44,7 +44,8 @@
   const TURBO = { bot: 150, react: 0, quiet: 50, botNope: [100, 200], fly: 120, k: 0.2 };
   // 我出局后加速看完：等我那一下炸完、手牌全落进弃牌堆（game.fastOut，animOut 最后才置上）才快起来，别把我自己的出局动画也快进了
   // 联机（2026-11-17 用户）：我出局了但还有别的真人在打——照常速度；真人全出局了才加速（右下角同时出 ⏩）
-  const pace = () => (game && game.tutorial ? TUT_PACE : game && game.turbo ? TURBO : game && game.fastOut && !mateWatching() && (!game.online || humansOutHere()) ? FAST : PACE);
+  // 联机落后了（网卡了一阵，攒了一串没播的动作）：先按快档追上大家，追上了再回原速（2026-11-17）
+  const pace = () => (game && game.tutorial ? TUT_PACE : game && game.turbo ? TURBO : game && ((game.fastOut && !mateWatching() && (!game.online || humansOutHere())) || (game.online && online && online.behind)) ? FAST : PACE);
   const ms = (x) => Math.round(x * pace().k);
   // 组队：我出局了但队友还在打——照常速度，坐在队友身后看他的牌（2026-11-15 巡查）
   const mateWatching = () => !!(game && !game.online && game.state && R.isTeam && R.isTeam(game.state) && !game.state.alive[0] && game.state.alive[R.mateOf(game.state, 0)] && game.state.phase !== 'over');
@@ -5551,7 +5552,7 @@
     const g = G();
     if (!g || !game || !game.online) return;
     token++;
-    online.queue = []; online.playing = false;
+    online.queue = []; online.playing = false; online.behind = false;
     // 发牌动画播到一半被重摆打断：dealIntro 看到 token 变了就提前返回，没人把 dealing 放下——之后 onlineIdle 一直早退，整局卡死（2026-11-14 测出来的）
     game.dealing = false;
     if (game.wander) { game.wander.cancel(); game.wander = null; }
@@ -5575,12 +5576,15 @@
     while (online && online.queue.length) {   // 播的时候房间可能没了（被请离 / 房间解散 → online = null）：下一轮先看还在不在
       if (t !== token) { online.playing = false; return; }
       const grp = online.queue.shift();
+      // 落后多少：服务器估的「大家应该播完」的时刻（animUntil）已经过去 4 秒以上（正常打四人局实测最多慢 1.9 秒），我还在播 → 落后了，快档追
+      { const g = G(); online.behind = !!(g && g.animUntil && Date.now() + (online.skew || 0) > g.animUntil + 4000 && online.queue.length > 0); }
       online.cur = grp.map((e) => e.t).join('+');
       await playGroup(grp, t);
       if (online) online.cur = null;
     }
     if (!online || t !== token) return;
     online.playing = false;
+    online.behind = false;
     onlineIdle();
   }
   async function playGroup(grp, t) {
@@ -5871,10 +5875,15 @@
     try { const u = new URL(location.href); u.searchParams.set('room', st.code); history.replaceState(null, '', u.toString()); } catch (_) { /* */ }
     onState(st);
     pollLoop();
-    if (NET && NET.ping) NET.ping();
+    if (NET && NET.ping) NET.ping(online.code);
   }
-  // 在房间里每 8 秒量一次来回（没出牌的人也有数）：倒计时校准用，也随请求报给服务器
-  setInterval(() => { if (online && NET && NET.ping && !document.hidden) NET.ping(); }, 8000);
+  // 在房间里每 3 秒量一次来回（没出牌的人也有数）：倒计时校准用，也随请求报给服务器；回来的房间进度用来看长轮询有没有卡住
+  setInterval(() => {
+    if (!online || !NET || !NET.ping || document.hidden) return;
+    const o = online;
+    NET.ping(o.code).then((r) => { if (online === o && r && r.v != null) pollStalled(r.v); });
+    pollStalled(null);
+  }, 3000);
   /* 桌沿右下角的小按钮（2026-11-14 用户：牌桌上的编辑面板拿掉，真正要的只有「下一局」，做成音乐里的快进键，别太显眼）：
    * · 真人都出局了（服务器上这局已经算完），网页还在一步步播机器猫出牌 → ⏩ 快进：剩下的按 5 倍速播完（再点一下恢复），
    *   播完照常弹结算——不直接跳过：结果大家都想看一眼，房主一点就把所有人的结尾掐掉不合适。
@@ -5949,19 +5958,34 @@
       d.querySelector('[data-ok]').addEventListener('click', closeDialog);
     });
   }
+  /* 长轮询卡住了怎么办（2026-11-17 用户：国内的朋友那边一卡十来秒，然后一下子跳到最新）：
+   * 每条长轮询记下发出的时间；对时的小请求（每 3 秒一次）顺便问服务器房间进度，服务器已经比我新、这条却还挂着 = 卡住了 → 丢掉重发；
+   * 挂得比服务器最长等待（20 秒）还久也丢。丢掉的那条卡了多久，下一条报给服务器记日志 */
+  const POLL_GIVEUP_MS = 26000, STALL_MIN_MS = 2500;
+  function pollStalled(v) {
+    const pr = online && online.pollReq;
+    if (!pr || pr.ctl.signal.aborted) return;
+    const age = performance.now() - pr.t0;
+    if ((v != null && v > pr.since && age > STALL_MIN_MS) || age > POLL_GIVEUP_MS) { online.stallMs = age; pr.ctl.abort(); }
+  }
   async function pollLoop() {
     const my = { abort: false };
     online.poll = my;
     let fails = 0;
     while (online && online.poll === my && !my.abort) {
+      const ctl = new AbortController(), since = online.st ? online.st.version : 0;
+      online.pollReq = { ctl, t0: performance.now(), since };
+      const stall = online.stallMs || 0;
+      online.stallMs = 0;
       try {
-        const res = await NET.state(online.code, online.token, online.st ? online.st.version : 0, undefined, online.fxSeq == null ? -1 : online.fxSeq);
+        const res = await NET.state(online.code, online.token, since, ctl.signal, online.fxSeq == null ? -1 : online.fxSeq, stall);
         if (my.abort || !online) return;
         fails = 0;
         if (res && res.state) onState(res.state);
         if (res && res.fxSeq != null) onFx(res);
       } catch (err) {
         if (my.abort || !online) return;
+        if (ctl.signal.aborted) continue;   // 是我嫌它卡住、自己丢掉的：马上重发，不算失败
         if (err && (err.status === 401 || err.status === 404)) { leaveOnline(false, '房间已经不在了'); return; }
         if (err && err.error === 'kicked') { leaveOnline(false, '房主请你离开了房间'); return; }
         fails++;

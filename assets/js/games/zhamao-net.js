@@ -114,11 +114,13 @@
     act: (code, token, action, body) => request('POST', action, { code, token, body, timed: true }),
     rtt,
     // 量一下来回：最便宜的请求（不碰数据库），一局里每隔一阵发一次，没出牌的人也有来回可量
-    ping: () => { const t0 = performance.now(); return fetch(BASE + '?action=ping', { method: 'GET', cache: 'no-store' }).then(() => { noteRtt(performance.now() - t0); }, () => {}); },
+    // 带房间号时服务器顺便报房间进度 v（2026-11-17）：网页拿来判断长轮询是不是卡住了；失败回 null
+    ping: (code) => { const t0 = performance.now(); return fetch(BASE + '?action=ping' + (code ? '&code=' + encodeURIComponent(code) : ''), { method: 'GET', cache: 'no-store' }).then((r) => { noteRtt(performance.now() - t0); return r.json().catch(() => null); }, () => null); },
     // 叫醒服务器：fly 上没人用会休眠，第一下要 2–3 秒。点开「联机」就先发一个最便宜的请求（不碰数据库），等真建房时它多半醒了
     warm: () => fetch(BASE + '?action=state&code=0', { method: 'GET', cache: 'no-store' }).catch(() => {}),
     // fx：牌桌互动的序号（-1 = 刚进来，只要序号）；带上它，有新互动时长轮询也会立刻回来（回应里 fx / fxSeq，房间没变时不带 state）
-    state: (code, token, since, signal, fx) => request('GET', 'state', { code, token, query: Object.assign({ since: String(since || 0) }, fx != null ? { fx: String(fx) } : {}), signal }),
+    // stall：上一条长轮询卡了多少毫秒被我丢掉（报给服务器记日志）
+    state: (code, token, since, signal, fx, stall) => request('GET', 'state', { code, token, query: Object.assign({ since: String(since || 0) }, fx != null ? { fx: String(fx) } : {}, stall ? { stall: String(Math.round(stall)) } : {}), signal }),
     emote: (code, token, body) => request('POST', 'emote', { code, token, body }),
   };
 })();
