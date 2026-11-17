@@ -739,15 +739,15 @@
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     const end = seg[seg.length - 1];
     if (b === 0) g.classList.add('is-me');   // 冲着我：连线红色（2026-11-15 乙1）
-    g.innerHTML = '<path class="lglow" d="' + d + '"/><path class="lline" d="' + d + '"/><circle class="lhead" r="4"/><circle class="lend" cx="' + end.x.toFixed(1) + '" cy="' + end.y.toFixed(1) + '" r="6"/>';
+    g.innerHTML = '<path class="lglow" d="' + d + '"/><path class="lline" d="' + d + '"/><circle class="lhalo" r="8"/><circle class="lhead" r="4"/><circle class="lend" cx="' + end.x.toFixed(1) + '" cy="' + end.y.toFixed(1) + '" r="6"/>';
     sv.querySelector('.links').appendChild(g);
-    const paths = g.querySelectorAll('path'), len = Math.max(1, paths[1].getTotalLength()), head = g.querySelector('.lhead'), endDot = g.querySelector('.lend');
+    const paths = g.querySelectorAll('path'), len = Math.max(1, paths[1].getTotalLength()), head = g.querySelector('.lhead'), halo = g.querySelector('.lhalo'), endDot = g.querySelector('.lend');
     paths.forEach((p) => { p.style.strokeDasharray = len + ' ' + (len + 10); p.style.strokeDashoffset = len; });
     const growMs = Math.min(650, 220 + len * 0.9);   // 光带的长 / 收是 requestAnimationFrame 自己算的：tween 里按快进倍数缩
     let raf = 0, grown = false, pending = null, dead = false;
     // 可见的一截 = [lo, hi]（0..1，沿出牌人 → 被指的人）；head 画在 hi 处
     const show = (lo, hi) => {
-      const q = paths[1].getPointAtLength(len * hi); head.setAttribute('cx', q.x.toFixed(1)); head.setAttribute('cy', q.y.toFixed(1));
+      const q = paths[1].getPointAtLength(len * hi), x = q.x.toFixed(1), y = q.y.toFixed(1); head.setAttribute('cx', x); head.setAttribute('cy', y); halo.setAttribute('cx', x); halo.setAttribute('cy', y);
       paths.forEach((p) => { p.style.strokeDasharray = Math.max(0.01, len * (hi - lo)).toFixed(1) + ' ' + (len * 2).toFixed(0); p.style.strokeDashoffset = (-len * lo).toFixed(1); });
     };
     const tween = (ms0, fn, done) => {
@@ -802,13 +802,25 @@
     sv.insertBefore(g, sv.querySelector('.links'));
     return { sv, g };
   }
+  /* 光晕：同一条线复制一条更宽、更淡的垫在下面，动画照样放两份（2026-11-16 实测：drop-shadow / blur 在整圈桌沿这么大的 SVG 上
+   * 每帧都要重做，彗星那条去掉后 Chrome 掉帧 34→1；涟漪 / 闪光 / 绕圈 / 五色彗星 / 连线也一并换成这招。Safari 里 drop-shadow 本身不贵，
+   * 所以只垫一层、别叠多层——多一条动画线在 WebKit 上就多一份主线程开销） */
+  function glowTwin(el, extra) {
+    // 只垫一层（2026-11-16 三浏览器实测：两层在 Chrome 好、Safari / 微信（WebKit）反而多费；一层两边都最接近「不发光」的开销）
+    const c = el.cloneNode(false);
+    c.classList.add('glw');
+    c.style.strokeWidth = (parseFloat(getComputedStyle(el).strokeWidth) || 4) + (extra || 7) * 0.8;
+    el.parentNode.insertBefore(c, el);
+    return [c];
+  }
+  const animTwins = (els, kf, opts) => els.map((x) => x.animate(kf, opts))[els.length - 1];
   function rimFlash(color, times, ms) {
     const L = rimLayer('flash'); if (!L) return;
     L.g.innerHTML = '<path d="' + L.sv.querySelector('.base').getAttribute('d') + '" style="stroke:' + color + ';color:' + color + '"/>';
     const p = L.g.firstChild, f = [];
     for (let i = 0; i < times; i++) f.push({ opacity: 0, offset: i / times }, { opacity: 1, offset: (i + 0.35) / times });
     f.push({ opacity: 0 });
-    p.animate(f, { duration: ms * times, easing: 'ease-in-out' }).finished.then(() => L.g.remove()).catch(() => L.g.remove());
+    animTwins([...glowTwin(p, 9), p], f, { duration: ms * times, easing: 'ease-in-out' }).finished.then(() => L.g.remove()).catch(() => L.g.remove());
   }
   function rimRipple(seat, color, ms, width) {
     const L = rimLayer('ripple'); if (!L) return;
@@ -824,7 +836,7 @@
       L.g.appendChild(el);
       const len = el.getTotalLength(), w = 120;
       el.style.strokeDasharray = w + ' ' + (len + w);
-      el.animate([{ strokeDashoffset: w, opacity: 1 }, { strokeDashoffset: -len, opacity: 0.2 }], { duration: ms, easing: 'cubic-bezier(.3,.6,.4,1)', fill: 'forwards' });
+      animTwins([...glowTwin(el, 7), el], [{ strokeDashoffset: w, opacity: 1 }, { strokeDashoffset: -len, opacity: 0.2 }], { duration: ms, easing: 'cubic-bezier(.3,.6,.4,1)', fill: 'forwards' });
     });
     setTimeout(() => L.g.remove(), (ms + 60) / turboK());
   }
@@ -835,7 +847,7 @@
     p.style.color = color;
     p.style.strokeDasharray = w + ' ' + (len - w);
     const a = reverse === -1 ? [{ strokeDashoffset: -len * laps }, { strokeDashoffset: 0 }] : [{ strokeDashoffset: 0 }, { strokeDashoffset: -len * laps }];
-    p.animate(a, { duration: ms, easing: 'cubic-bezier(.4,0,.3,1)' }).finished.then(() => L.g.remove()).catch(() => L.g.remove());
+    animTwins([...glowTwin(p, 9), p], a, { duration: ms, easing: 'cubic-bezier(.4,0,.3,1)' }).finished.then(() => L.g.remove()).catch(() => L.g.remove());
   }
   function rimFx(e) {
     if (!rimFxOn()) return;
@@ -866,7 +878,7 @@
       const len = el.getTotalLength(), w = 34;
       el.style.strokeDasharray = w + ' ' + (len - w);
       const a = -start, b = dir === 1 ? -start - len : -start + len;
-      el.animate([{ strokeDashoffset: a, opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 1, offset: 0.85 }, { strokeDashoffset: b, opacity: 0 }], { duration: 1700, delay: k * 110, easing: 'cubic-bezier(.35,.1,.3,1)', fill: 'both' });
+      animTwins([...glowTwin(el, 6), el], [{ strokeDashoffset: a, opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 1, offset: 0.85 }, { strokeDashoffset: b, opacity: 0 }], { duration: 1700, delay: k * 110, easing: 'cubic-bezier(.35,.1,.3,1)', fill: 'both' });
     });
     setTimeout(() => L.g.remove(), (1700 + 5 * 110 + 60) / turboK());
   }
@@ -6600,7 +6612,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimMood: (re) => rimMood(null, re), celebrate };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, rimMood: (re) => rimMood(null, re), celebrate };
   }
   window.ZhamaoTable = { cardHtml, backHtml, rulesHtml };
 })();
