@@ -34,7 +34,7 @@
   Object.assign(els.app.dataset, { uivTurns: 'hat', uivAtk: 'b', uivRename: 'slide', uivNames: 'cut' });
 
   const snd = (name, delay) => { if (window.ZhamaoAudio) window.ZhamaoAudio.sfx(name, delay); };
-  const fx = window.ZhamaoFx.create(els.fly, { sound: snd });
+  const fx = window.ZhamaoFx.create(els.fly, { sound: snd, speed: () => (game && game.turbo ? 5 : 1) });   // 快进时特效减量、清理也按倍速（见 zhamao-fx.js）
 
   // 节奏（毫秒）：机器人想一下、反应窗、飞牌、停顿
   const PACE = { bot: 760, react: 2800, quiet: 260, botNope: [500, 1100], fly: 460, k: 1 };
@@ -781,7 +781,7 @@
    * 摸到炸毛猫：整圈红光闪三下 + 从他那儿往两边漾开一圈红；逗猫棒救回来：金绿的波纹从他那儿温柔地漾开；炸出局：暗红波纹慢慢漾开、整圈暗一下；
    * 洗牌：一道光绕桌飞转一圈半；转向：一道光倒着扫一圈；作废：紫色小波纹；赢了：金光从赢家绕满一圈、整圈亮两下。
    * 平时：牌堆里炸毛猫越多，桌沿越暖（金 → 橙 → 红）、那点柔光绕得越快 */
-  const rimFxOn = () => !fx.reduce();
+  const rimFxOn = () => !fx.reduce() && !(game && game.turbo);   // 快进时桌沿的涟漪 / 闪光 / 绕圈不放（一串串叠起来最卡，2026-11-16）
   function rimLayer(cls) {
     const sv = rimRender();
     if (!sv || !sv._pts) return null;
@@ -2071,6 +2071,9 @@
     if (e.attacked) {
       await atkPots(prevTurn >= 0 ? prevTurn : R.nextAlive(game.state, e.seat), e.seat, e.turnsLeft, t);
     }
+    if (e.hot === 'on' && !fx.reduce()) await hotHatOn(e.seat, e.turnsLeft, t);
+    if (e.hot === 'off' && !fx.reduce()) await hotHatOff(e.seat, t);
+    if (t !== token) return;
     if (ov) { ov.turn = e.seat; ov.turnsLeft = e.turnsLeft; }
     // 被甩锅的人：轮到他的这几回合里一直挂着 ×N（剩最后一回合也挂着 ×1），轮到别人才摘
     if (e.attacked) game.attackSeat = e.seat; else if (e.seat !== game.attackSeat) game.attackSeat = -1;
@@ -2204,6 +2207,50 @@
     await wait(ms(260));
     game.hatLand = to;
     p.remove(); lab.remove();
+  }
+  /* 百变「烫手」（2026-11-16 用户）：抽到烫手时，这口锅从桌上那张百变规则牌里飞出来，在头顶上空翻个面、「哐」地扣到当前那个人头上（×2）；
+   * 换成别的规则时，这口锅从他头上掀起来、飞回规则牌里收掉——不再凭空出现 / 凭空消失 */
+  const fluxPoint = () => { const el = document.getElementById('zmFlux'), r = (el || els.center).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, el }; };
+  async function hotHatOn(to, n, t) {
+    const hb = hatBox(to), S = Math.max(56, hb.w * 2.2), f = fluxPoint();
+    const up = Math.max(30, Math.min(84, hb.y - S / 2 - 6));
+    if (f.el) fx.pop(f.el, { scale: 1.08, dur: 260 });
+    fx.burst(f.x, f.y, { n: 10, shapes: ['dot', 'star'], colors: ['#e0893e', '#c8463a', '#f2c14e'], radius: 46, size: [4, 9], life: 520 });
+    snd('whoosh');
+    const p = flyPot(S);
+    await p.animate([
+      { transform: hatT(f.x, f.y, S * 0.28, S, 0, false), opacity: 0 },
+      { transform: hatT(f.x, f.y - 24, S * 0.55, S, -10, false), opacity: 1, offset: 0.22 },
+      { transform: hatT(hb.x, hb.y - up, S, S, 8, true), opacity: 1 },
+    ], { duration: ms(560), easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token) { p.remove(); return; }
+    await p.animate([{ transform: hatT(hb.x, hb.y - up, S, S, 8, true) }, { transform: hatT(hb.x, hb.y, hb.w, S, -12, true) }], { duration: ms(170), easing: 'cubic-bezier(.6,0,1,.6)', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token) { p.remove(); return; }
+    snd('clang'); hatImpact(to);
+    const lab = hatLabel(hb);
+    lab.textContent = '×' + n;
+    lab.animate([{ transform: at2(hb.x, hb.y - hb.w * 0.12, 1.6), opacity: 0.4 }, { transform: at2(hb.x, hb.y - hb.w * 0.12, 1), opacity: 1 }], { duration: ms(180), easing: 'ease-out', fill: 'forwards' });
+    await wait(ms(260));
+    game.hatLand = to;   // 头上那口锅直接摆上，不再从天上掉一次
+    p.remove(); lab.remove();
+  }
+  async function hotHatOff(from, t) {
+    const av = avEl(from), m = av && av.querySelector('.zm-pm-hat');
+    if (!m) return;
+    const hb = hatBox(from), S = Math.max(40, hb.w * 1.6), f = fluxPoint();
+    m.remove();   // 头上那口换成飞的那口（别再演「被掀飞」那段）
+    const p = flyPot(S);
+    p.animate([{ transform: hatT(hb.x, hb.y, hb.w, S, -12, true) }], { duration: 1, fill: 'forwards' });
+    snd('whoosh');
+    await p.animate([
+      { transform: hatT(hb.x, hb.y, hb.w, S, -12, true), opacity: 1 },
+      { transform: hatT(hb.x + 6, hb.y - 22, hb.w * 1.05, S, 6, true), opacity: 1, offset: 0.25 },
+      { transform: hatT(f.x, f.y, S * 0.25, S, 40, false), opacity: 0 },
+    ], { duration: ms(560), easing: 'cubic-bezier(.4,0,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+    p.remove();
+    if (t !== token) return;
+    if (f.el) fx.pop(f.el, { scale: 1.06, dur: 240 });
+    fx.burst(f.x, f.y, { n: 8, shapes: ['dot'], colors: ['#a89a8a', '#d9cfbf'], radius: 34, size: [3, 7], life: 420 });
   }
   // c 一口口扣上去：几回合就几口锅倒扣着从天上掉下来，一口叠一口摞在头上，数字跟着涨；叠完「噗」地压成一口
   async function atkHatStack(to, n, t) {

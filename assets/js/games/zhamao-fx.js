@@ -38,6 +38,12 @@
   function create(layer, opts) {
     opts = opts || {};
     const snd = opts.sound || (() => {});
+    /* 快进（2026-11-16 用户：5 倍速快进到结束时一卡一卡的）：粒子 / 烟 / 圆环 / 闪光的动画本身跟着 5 倍速放完了，
+     * 可删掉它们的定时器还按原速等 1–1.5 秒——看不见的元素一层层堆在动画层上，新的又不停冒。
+     * 现在 speed() > 1（快进）时：清理定时器也按倍速；粒子只放四分之一；烟、全屏闪光、整块震动直接不放（最费的几样） */
+    const speed = opts.speed || (() => 1);
+    const lite = () => speed() > 1;
+    const later = (fn, ms) => setTimeout(fn, ms / speed());
 
     function animate(el, frames, o, ease) {
       const e = ease || 'cubic-bezier(.25, .8, .35, 1)';
@@ -121,6 +127,7 @@
     function burst(x, y, o) {
       o = Object.assign({ n: 18, shapes: ['star'], colors: ['#c9a96e'], radius: 110, size: [8, 26], delay: 0, life: 1100, gravity: 40, spin: true }, o);
       if (reduce()) return;
+      if (lite()) o.n = Math.max(2, Math.ceil(o.n / 4));
       const pat = o.pattern || ['ring', 'double', 'spiral', 'fountain', 'scatter'][(Math.random() * 5) | 0];
       const turn = Math.random() * Math.PI * 2;
       for (let k = 0; k < o.n; k++) {
@@ -158,13 +165,13 @@
           { transform: T(tx - half, ty - half + 6, 1, (r0 + r1) * 0.6), opacity: 1, offset: 0.58, easing: 'ease-in' },
           { transform: T(tx - half, ty - half + fall, 0.7, r1), opacity: 0 },
         ], { duration: life, delay: o.delay + lag }, 'cubic-bezier(.12, .8, .3, 1)');
-        setTimeout(() => el.remove(), life + o.delay + lag + 60);
+        later(() => el.remove(), life + o.delay + lag + 60);
       }
     }
 
     function smoke(x, y, o) {
       o = Object.assign({ n: 10, spread: 50, size: [60, 130], delay: 0, tint: 'cream', rise: 46, behind: false, alpha: 0.9 }, o);
-      if (reduce()) return;
+      if (reduce() || lite()) return;
       for (let k = 0; k < o.n; k++) {
         const el = node('zm-smoke' + (o.tint === 'dark' ? ' is-dark' : ''), null, o.behind);
         const a = Math.random() * Math.PI * 2, d = Math.random() * o.spread;
@@ -178,7 +185,7 @@
           { transform: T(x + (px - x) * 1.25 - h, py - 6 - h, 1, 0), opacity: o.alpha, offset: 0.22 },
           { transform: T(x + (px - x) * 1.8 - h, py - o.rise - h, 1.7, 0), opacity: 0 },
         ], { duration: life, delay, fill: 'both', easing: 'cubic-bezier(.2,.7,.3,1)' });
-        setTimeout(() => el.remove(), delay + life + 60);
+        later(() => el.remove(), delay + life + 60);
       }
     }
 
@@ -194,11 +201,11 @@
         { transform: T(x - s / 2, y - s / 2, 0.1, 0), opacity: 0.95 },
         { transform: T(x - s / 2, y - s / 2, 1, 0), opacity: 0 },
       ], { duration: o.dur, delay: o.delay }, 'cubic-bezier(.15,.7,.3,1)');
-      setTimeout(() => el.remove(), o.delay + o.dur + 60);
+      later(() => el.remove(), o.delay + o.dur + 60);
     }
 
     function flash(color, delay, dur) {
-      if (reduce()) return;
+      if (reduce() || lite()) return;
       const el = node('zm-screenflash', null, true);
       el.style.background = 'radial-gradient(circle at 50% 46%, ' + color + ', rgba(0,0,0,0) 62%)';
       animate(el, [{ opacity: 0 }, { opacity: 1, offset: 0.12 }, { opacity: 0 }], { duration: dur || 900, delay: delay || 0 }, 'ease-out');
@@ -206,7 +213,7 @@
     }
 
     function shake(el, o) {
-      if (!el || reduce()) return;
+      if (!el || reduce() || lite()) return;
       o = Object.assign({ amp: 6, dur: 420, delay: 0, rot: 0 }, o);
       const fr = [];
       const n = 8;
