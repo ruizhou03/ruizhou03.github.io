@@ -5438,7 +5438,15 @@
     if (editing.on && editing.where === 'table' && !g.over) exitEdit();
     const fresh = g.log.filter((e) => e.n > online.lastQueued);
     if (fresh.length && fresh[0].n !== online.lastQueued + 1 && online.lastQueued < g.seq) { resync(); return; }
-    if (!fresh.length) { if (!online.playing && !busyLocal()) onlineIdle(); return; }
+    if (!fresh.length) {
+      // 房间没变（长轮询 20 秒空回一次 / 有人上线下线）：只更新头像上的「掉线 / 托管」，别动我正在选的牌、正在指的人、抬着的作废——
+      // 以前每次都走 onlineIdle，把 mode / selected 清掉（2026-11-16 四人实测：选好要指人的牌、点出牌后牌又回到手里；用户和朋友玩时「作废点不起来」）
+      const pg = prev && prev.game;
+      const calm = pg && pg.seq === g.seq && pg.myCall === g.myCall && pg.deadline === g.deadline && pg.over === g.over && String(pg.auto) === String(g.auto);
+      if (calm) { for (let l = 0; l < online.n; l++) renderSeat(l); return; }   // 观战的人进出 / 有人上下线 / 房主禁言这类：牌局本身没动
+      if (!online.playing && !busyLocal()) onlineIdle();
+      return;
+    }
     online.lastQueued = fresh[fresh.length - 1].n;
     earlyPass(g);
     for (const raw of fresh) {
