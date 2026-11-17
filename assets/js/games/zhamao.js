@@ -279,10 +279,16 @@
       discard: s.discard.filter((id) => onStage.indexOf(id) < 0),
       turn: s.turn, turnsLeft: s.turnsLeft, alive: s.alive.slice(),
       flux: s.flux || null,   // 百变规则牌上现在写的那条（动画播到「换规则」才变）
-      topFace: s.flux === 'peektop' && s.deck.length && s.phase !== 'alter' ? s.deck[0] : null,   // 百变「掀顶」（重排时顶上几张举在空中，牌堆上不再翻着一张）：牌堆顶翻开着的那张（动画里一张张跟着换）
+      topFace: faceTop(s),   // 百变「掀顶」（重排时顶上几张举在空中，牌堆上不再翻着一张）：牌堆顶翻开着的那张（动画里一张张跟着换）
     };
   }
   const D = () => ov || liveDisplay();
+  /* 牌堆顶要不要翻着：百变「透视」；或者顶上那张正是「火眼」露着位置的炸毛猫（2026-11-16 用户：它一路被摸到最上面时又盖回去了，前后不一致） */
+  const isOpenKit = (st, id) => !!(game && game.openKits && game.openKits.has(id) && st.memo && st.memo[0] && st.memo[0].deck.indexOf(id) >= 0);
+  function faceTop(st) {
+    if (!st || !st.deck || !st.deck.length || st.phase === 'alter') return null;
+    return st.flux === 'peektop' || isOpenKit(st, st.deck[0]) ? st.deck[0] : null;
+  }
   function snapshot() { ov = liveDisplay(); return ov; }
   function release() { ov = null; handHidden.clear(); }
 
@@ -1193,7 +1199,9 @@
     if (t !== token) return;
     renderFlux({ flux: e.rule });   // 第一次：这时才把牌摆出来
     if ((e.rule === 'bottom') !== (prev === 'bottom')) flipBottomCards(t);   // 摸底：手里的抽底翻成抽顶（换走时翻回来）
-    if (ov && (e.rule === 'peektop' || prev === 'peektop')) { const st = game.state; ov.topFace = e.rule === 'peektop' && st.deck.length ? st.deck[0] : null; renderPiles(); }   // 掀顶生效：顶上那张翻起来；换走：盖回去
+    if (prev === 'exact' && e.rule !== 'exact' && game.openKits && game.openKits.size) await tuckKits(t);   // 火眼换走：露着的炸毛猫收回去
+    if (t !== token) return;
+    if (ov && (e.rule === 'peektop' || prev === 'peektop' || prev === 'exact')) { ov.topFace = faceTop(game.state); renderPiles(); }   // 掀顶生效：顶上那张翻起来；换走：盖回去
     el = document.getElementById('zmFlux');
     if (!el) return;
     if (!fx.reduce()) {
@@ -1204,6 +1212,23 @@
     await wait(ms(500));
     if (t !== token) return;
     if ((prev === 'reverse') !== (e.rule === 'reverse')) await animReverse({ seat: e.seat, dir: e.dir }, t);
+  }
+  /* 火眼被换成别的规则（2026-11-16 用户：换走以后露着的炸毛猫还一直明着）：歪着露出的那几张摆正、塞回原来那层、翻成牌背；
+   * 最上面翻着的那张（它刚好到了顶上）也翻回去。之后谁也不再看得到它们在哪（就像没有火眼时一样） */
+  async function tuckKits(t) {
+    const stack = els.deck.querySelector('.zm-deck-stack');
+    const kits = stack ? Array.from(stack.querySelectorAll('.zm-deck-kit .zm-card')) : [];
+    const fc = stack && stack.querySelector('.zm-deck-face');
+    const faceKit = fc && game.openKits.has(+fc.dataset.id) ? fc : null;
+    game.openKits.clear();
+    if (game.kitShown) game.kitShown.clear();
+    if (fx.reduce() || (!kits.length && !faceKit)) return;
+    snd('flip');
+    const anims = kits.map((c) => c.animate([{ translate: '24% 6%', rotate: '7deg', opacity: 1 }, { translate: '0 0', rotate: '0deg', opacity: 1, offset: 0.6 }, { translate: '0 0', rotate: '0deg', opacity: 0 }], { duration: ms(460), easing: 'cubic-bezier(.4,0,.3,1)', fill: 'forwards' }).finished.catch(() => {}));
+    if (faceKit && faceKit.firstElementChild) anims.push(faceKit.firstElementChild.animate([{ transform: 'perspective(400px) rotateY(0deg)' }, { transform: 'perspective(400px) rotateY(90deg)' }], { duration: ms(260), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {}));
+    await Promise.all(anims);
+    if (t !== token) return;
+    stack.querySelectorAll('.zm-deck-kit').forEach((k) => k.remove());
   }
   // 百变「九命」：炸了没出局——头顶冒「九命！」，头像缓过来，炸毛猫从他那儿飞回牌堆（缝开在看不出的高度）
   async function animNine(e, t) {
@@ -2342,7 +2367,7 @@
     }
     await Promise.all(all);
     // 透视：洗完牌顶上换了一张——直接翻开新的那张（以前先摆出洗之前那张，过一会儿才换）
-    if (ov && ov.topFace != null) { const st = game.state; ov.topFace = st.flux === 'peektop' && st.deck.length ? st.deck[0] : null; }
+    if (ov && ov.topFace != null) ov.topFace = faceTop(game.state);
     els.deck.classList.remove('is-shuffling');
     if (t !== token) return;
     snd('thud');
@@ -2851,9 +2876,14 @@
     const pu = PU();
     if (!stack || !floor || fx.reduce()) return peel(t, false);
     const fr = floor.getBoundingClientRect();
+    // 火眼露着的炸毛猫正好在最底下（2026-11-16 用户）：爪子拖出来的就是露着的那张（正面），不再另塞一张牌背
+    const kitBox = floor.nextElementSibling && floor.nextElementSibling.classList.contains('zm-deck-kit') ? floor.nextElementSibling : null;
+    const kitId = kitBox ? +kitBox.dataset.id : null;
+    game.peelFace = kitId;
+    if (kitBox) kitBox.remove();
     // 1. 最底下塞一张牌背（被上面的纸边压着）
     const wrap = document.createElement('div');
-    wrap.innerHTML = backHtml('is-inserting');
+    wrap.innerHTML = kitId != null ? cardHtml(kitId) : backHtml('is-inserting');
     const el = wrap.firstChild;
     el.style.transform = floor.style.transform || '';
     stack.insertBefore(el, stack.firstChild);
@@ -2896,7 +2926,7 @@
     const node = document.createElement('div');
     node.className = 'zm-flyer';
     node.style.width = pu + 'px'; node.style.height = pu * 1.4 + 'px';
-    node.innerHTML = backHtml();
+    node.innerHTML = kitId != null ? cardHtml(kitId) : backHtml();
     els.fly.appendChild(node);
     const x = r.left + (r.width - pu) / 2, y = r.top + (r.height - pu * 1.4) / 2;
     await fx.animate(node, [
@@ -2912,6 +2942,7 @@
   }
   async function peel(t, bottom) {
     const lift = game.drawLift; game.drawLift = null;   // 联机：点「摸牌」时已经掀起来悬着的那张——从它现在的位置接着摸
+    game.peelFace = null;
     if (bottom) { if (lift) lift.cancel(); return peelBottom(t); }
     const r = deckTopRect(), pu = PU();
     if (lift) requestAnimationFrame(() => lift.cancel());
@@ -2923,7 +2954,7 @@
     node.innerHTML = face != null ? cardHtml(face) : backHtml();
     els.fly.appendChild(node);
     ov.deckSize -= 1;
-    if (face != null) { const st = game.state; ov.topFace = st.flux === 'peektop' && st.deck.length ? st.deck[0] : null; }   // 下一张翻起来
+    ov.topFace = faceTop(game.state);   // 下一张该翻着就翻起来（透视；或火眼露着的炸毛猫刚好到了最上面）
     renderPiles();
     const tense = danger() >= 0.2;
     snd('peel');
@@ -2947,7 +2978,7 @@
     const from = await peel(t, e.bottom);
     if (!from) return;
     const u = U(), pu = PU();
-    const open = game.peelFace != null && !e.bottom;   // 掀顶：摸走的本来就是明牌，不用再翻
+    const open = game.peelFace != null;   // 透视 / 火眼：摸走的本来就是明牌，不用再翻
     game.peelFace = null;
     if (e.seat === 0 && e.card != null) {
       const to = aboveSlot(reserveHandSlot(e.card));
@@ -3026,24 +3057,29 @@
     ov.kittens = Math.max(0, ov.kittens - 1);
     renderPiles();
     const pu = PU(), a = avPoint(e.seat);
-    const open = game.peelFace != null && !e.bottom; game.peelFace = null;   // 掀顶：大家早看见是炸毛猫了，飞过去也是正面
-    /* 没逗猫棒、这一下就出局（2026-11-15 用户）：炸毛猫翻开停在桌心，不再先钻进头像、挂成头像上的小炸弹——
-     * 头像就地炸开，然后他的牌鱼贯落进弃牌堆、炸毛猫从桌心跟在最后（以前我自己出局时手牌往弃牌堆飞、炸毛猫却从头像飞出，兵分两路） */
+    const open = game.peelFace != null; game.peelFace = null;   // 透视 / 火眼：大家早看见是炸毛猫了，飞过去也是正面
+    /* 没逗猫棒、这一下就出局（2026-11-16 用户纠正）：摸到炸毛猫和摸到别的牌一样——自己的飞进手里成为最后一张、别人的飞进他的头像，
+     * 不先翻开、不停在桌心、头像上也不挂小炸弹；头像一抖、「嘭」，接着出局时手牌连同它（就当它是手里最后一张）一股脑鱼贯落进弃牌堆 */
     if (next && next.t === 'out') {
-      const c = fx.center(els.center.getBoundingClientRect()), W = pu * 1.25;
-      const node = await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: open ? null : 'up', flipAt: 0.35, from, to: { x: c.x, y: c.y - pu * 0.15 }, w: W, s0: pu / W, s1: 1, r0: -5, r1: -4, dur: ms(480), lift: 50, keep: true, land: false });
-      if (t !== token) { if (node) node.remove(); return; }
-      if (node) node.classList.add('zm-angry');
-      game.boomNode = node;
+      if (e.seat === 0 && e.card != null) {
+        const u = U(), to = aboveSlot(reserveHandSlot(e.card));
+        await fx.fly(open ? { html: cardHtml(e.card), from, to, w: u, s0: pu * 1.04 / u, s1: 1, r0: -5, r1: 0, dur: ms(560), lift: 70, swell: 0.18 } : { html: cardHtml(e.card), back: backHtml(), flip: 'up', flipAt: 0.3, from, to, w: u, s0: pu * 1.04 / u, s1: 1, r0: -5, r1: 0, dur: ms(560), lift: 70, swell: 0.18 });
+        if (t !== token) return;
+        revealHandCard(e.card, to);
+        const hc = handCard(e.card);
+        if (hc) hc.classList.add('zm-angry');
+      } else {
+        await fx.fly({ html: open ? cardHtml(e.card) : backHtml(), from, to: a, w: pu, s0: 1.04, s1: 0.32, r0: -5, r1: 10, dur: ms(480), lift: 50, fadeOut: true, land: false });
+        if (t !== token) return;
+        ov.counts[e.seat] += 1;
+        renderSeat(e.seat);
+      }
       snd('boom');
       if (rimFxOn()) { rimFlash('#d2483a', 3, 380); rimRipple(e.seat, '#d2483a', 900, 4); }
-      fx.shake(els.table, { amp: 8, dur: 420, rot: 0.4 });
-      fx.flash('rgba(200,70,58,.3)', 0, 700);
-      fx.burst(c.x, c.y, { n: 16, shapes: ['fur', 'fur', 'spike'], colors: FUR, radius: W * 1.1, size: [8, 20], alignOut: true, life: 800, gravity: 30, pattern: 'ring' });
       const av = avEl(e.seat);
       if (av && !fx.reduce()) av.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-10px) scale(1.14)', offset: 0.25 }, { transform: 'translateY(0) scale(1)' }], { duration: 460, easing: 'ease-out', composite: 'add' });
-      fx.shake(seatEl(e.seat), { amp: 6, dur: 520, delay: 120 });
-      await wait(ms(800));
+      fx.shake(seatEl(e.seat), { amp: 6, dur: 520, delay: 60 });
+      await wait(ms(560));
       return;
     }
     await fx.fly({ html: open ? cardHtml(e.card) : backHtml(), from, to: a, w: pu, s0: 1.04, s1: 0.32, r0: -5, r1: 10, dur: ms(480), lift: 50, fadeOut: true, land: false });
@@ -3196,7 +3232,7 @@
     if (ov && ov.alive.filter(Boolean).length <= 2 && game.turbo) { game.turboOff = true; setTurbo(false); }
     else if (ov && ov.alive.filter(Boolean).length <= 2) game.turboOff = true;
     if (window.ZhamaoAudio) window.ZhamaoAudio.knockedOut();
-    const node = game.boomNode;   // 摸到就出局：炸毛猫翻开停在桌心（animBoom），等手牌落完它最后一个落进弃牌堆
+    const node = game.boomNode;   // （旧路径留着兜底：九命 / 急救之类没走到这儿；正常出局时为空）
     game.boomNode = null;
     const a = e.seat === 0 ? fx.center(els.me.querySelector('.zm-av').getBoundingClientRect()) : avPoint(e.seat);
     const u = U();
@@ -3221,20 +3257,21 @@
     // 手牌连同那只炸毛猫一起鱼贯落进弃牌堆（翻开给大家看），炸毛猫排在最后、落在最上面
     // （2026-11-14 用户：手里没牌的人炸了要看得到炸毛猫回去；但别分成两波——炸毛猫跟在手牌后面一起出）
     const cards = e.cards || [];
-    const srcRects = e.seat === 0 ? cards.map((id) => handRectOf(id)) : null;
-    if (e.seat === 0) { ov.hand = []; renderHand({ flip: false }); }
     const to = discardRect(), pu = PU();
     const kit = game.state.discard[game.state.discard.length - 1];
     const withKit = kit != null && R.KIND_OF[kit] === R.BOOM && cards.indexOf(kit) < 0;
     const list = withKit ? cards.concat([kit]) : cards;
+    // 我自己：炸毛猫刚飞进手里当最后一张——和别的手牌一样从手里出发（以前它单独从头像飞出，兵分两路）
+    const srcRects = e.seat === 0 ? list.map((id) => (handCard(id) ? handRectOf(id) : null)) : null;
+    if (e.seat === 0) { ov.hand = []; renderHand({ flip: false }); }
     const kitNode = node && node.isConnected ? node : null, kitRect = kitNode ? kitNode.getBoundingClientRect() : null;
     await Promise.all(list.map((id, i) => {
-      const fromHand = srcRects && i < cards.length;
+      const fromHand = !!(srcRects && srcRects[i]);
       const fromNode = id === kit && kitRect;   // 桌心那只炸毛猫：轮到它时才从原地起飞（之前一直停着），落在最上面
       const go = () => {
         if (fromNode) kitNode.remove();
         return fx.fly({
-          html: cardHtml(id), back: backHtml(), flip: fromHand || id === kit ? null : 'up', flipAt: 0.2,
+          html: cardHtml(id), back: backHtml(), flip: fromHand || fromNode ? null : 'up', flipAt: 0.2,
           from: fromHand ? srcRects[i] : fromNode ? kitRect : a, to, w: pu, s0: fromHand ? srcRects[i].width / pu : fromNode ? kitRect.width / pu : 0.35, s1: 1,
           r0: fromNode ? -4 : (Math.random() - 0.5) * 60, r1: pileRot(id), dur: ms(fromNode ? 440 : 520), delay: fromNode ? 0 : i * ms(70), lift: fromNode ? 26 : 60 + Math.random() * 50,
         }).then(() => { if (t === token && ov) { ov.discard.push(id); renderPiles(); } });
@@ -3991,7 +4028,7 @@
     if (t !== token) return;
     if (ov) ov.lifted -= k;
     // 透视：落定后新的最上面那张翻起来（renderPiles 里换了张就会演翻面）
-    if (ov && game.alterFace != null) { const st = game.state; ov.topFace = st.flux === 'peektop' && st.deck.length ? st.deck[0] : null; }
+    if (ov && game.alterFace != null) ov.topFace = faceTop(game.state);
     game.alterFace = null;
     snd('thud');
     renderPiles();
