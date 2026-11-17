@@ -1513,11 +1513,19 @@
       const c = selected.length ? classifyMine(selected) : null;
       els.playBtn.disabled = !(c && (!c.needsTarget || R.validTargets(s, 0, c.type).length));
     }
+    // 选中一张要指人的牌（还没点出牌）：能指的人头像先亮一圈淡金圈（2026-11-17 定甲）
+    aimHint(mode !== 'target' && !busy && myTurnToAct() && selected.length ? (() => { const c = classifyMine(selected); return c && c.needsTarget ? R.validTargets(s, 0, c.type) : []; })() : []);
     // 「出牌」刚亮起来就弹一下
     const on = !els.playBtn.hidden && !els.playBtn.disabled;
     if (on && !lastPlayOn) fx.pop(els.playBtn, { scale: 1.1, dur: 280 });
     lastPlayOn = on;
     els.hint.textContent = '';
+  }
+  function aimHint(ts) {
+    for (const box of allSeatEls()) {
+      const seat = +box.dataset.seat;
+      if (seat) box.classList.toggle('is-aim', ts.indexOf(seat) >= 0);
+    }
   }
   let lastNopeHot = false;
   // 这张待作废的牌和我有关吗（组队：和队友有关也算）——决定作废键是「冲着我」还是「收敛」

@@ -1423,3 +1423,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 角色猫开局亮相：桌心一只大猫头，飞进头像角上的小猫头 */
 .zm-role-reveal { position: absolute; left: 0; top: 0; border-radius: 50%; overflow: hidden; background: var(--zm-paper); box-shadow: 0 0 0 2.5px var(--zm-ink), 0 0 0 7px rgba(201, 169, 110, 0.35), 0 10px 24px rgba(29, 27, 24, 0.22); transform-origin: 50% 50%; will-change: transform; }
 .zm-role-reveal svg { width: 100%; height: 100%; display: block; }
+
+/* 选中要指人的牌、还没点「出牌」时：能指的人头像外一圈淡金圈轻呼吸（比点了出牌后的金圈淡一档；2026-11-17 定甲） */
+.zm-seat.is-aim .zm-av { box-shadow: 0 0 0 2px rgba(201, 169, 110, 0.85), 0 0 0 6px rgba(201, 169, 110, 0.16); animation: zm-aim-breathe 1.6s ease-in-out infinite; cursor: pointer; }
+@keyframes zm-aim-breathe { 50% { box-shadow: 0 0 0 2px rgba(201, 169, 110, 0.85), 0 0 0 9px rgba(201, 169, 110, 0.06); } }
