@@ -122,10 +122,15 @@
   // 把我的名字 / 头像套到这一局（存档里记的是旧的也换成现在的）
   function applyProfile() {
     if (!game || game.tutorial) return;
-    const o = game.bots[0];
-    game.bots[0] = { nick: profile.nick, avatar: profile.avatar };
-    if (els.app.dataset.uivRename && o && els.me && els.me.querySelector('.zm-av')) { renameFx(0, o); return; }
-    if (els.me) { els.me.innerHTML = ''; renderSeat(0); }
+    /* 联机里坐到别人背后看时，下面那个座位是被看的人，不是我（2026-11-17 用户：切到贝塔视角再改名，贝塔的名字头像被改了一下又变回去）。
+     * 改的永远是我自己那一座；纯观战的人桌上没有自己的座位，等服务器回来就行 */
+    const me = !game.online ? 0 : online && online.st && online.st.mySeat >= 0 ? locOf(online.st.mySeat) : -1;
+    if (me < 0) return;
+    const o = game.bots[me];
+    game.bots[me] = { nick: profile.nick, avatar: profile.avatar };
+    const box = seatEl(me);
+    if (els.app.dataset.uivRename && o && box && box.querySelector('.zm-av')) { renameFx(me, o); return; }
+    if (box) { box.innerHTML = ''; renderSeat(me); }
   }
   /* 预览（本机对比，未定）：联机时有人改了名字 / 头像，大家看到的那个座位怎么换（data-uiv-rename）
    * 以前：名字直接跳成新的，头像要到下一局才换。
@@ -2485,25 +2490,21 @@
       renderPiles();
       return;
     }
-    // 别人在偷看
-    const a = avPoint(e.seat), dc = fx.center(r);
-    const dir = { x: a.x - dc.x, y: a.y - dc.y }, len = Math.hypot(dir.x, dir.y) || 1;
+    /* 别人在偷看（2026-11-17 用户：和我自己看走同一套——三张从牌堆顶飞到桌子正中摆成一排，只是不翻面；上面一只眼睛眨一眨，再按原样落回去）。
+     * 以前是朝偷看那家的头像扇开：坐到别人背后看时那家在下面，牌就扇到牌堆下面去了 */
     const k = Math.max(0, Math.min(3, e.count || D().deckSize));   // 牌堆不到三张就只抬起剩下那几张
-    const out = [];
-    for (let i = 0; i < k; i++) {
-      const fan = (i - (k - 1) / 2);
-      const to = { x: dc.x + dir.x / len * pu * 0.9 + fan * pu * 0.42, y: dc.y + dir.y / len * pu * 0.9 - Math.abs(fan) * 4 };
-      out.push(fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: r, to, w: pu, s0: 1, s1: 0.86, r0: 0, r1: fan * 14, dur: ms(380), delay: i * 60, lift: 20, keep: true, land: false }));
-    }
+    const u = POP(), c = fx.center(els.center.getBoundingClientRect()), gap = u * 1.12;
+    const spots = []; for (let i = 0; i < k; i++) spots.push({ x: c.x + (i - (k - 1) / 2) * gap, y: c.y - u * 0.1 });
+    const face = (i) => (i === 0 && tf != null ? cardHtml(tf) : backHtml());   // 透视：最上面那张一直是正面
     if (ov && k) { ov.lifted = (ov.lifted || 0) + k; renderPiles(); }
-    const nodes = await Promise.all(out);
+    const nodes = await Promise.all(spots.map((p, i) => fx.fly({ html: face(i), from: r, to: p, w: u, s0: pu / u, s1: 1, r0: 0, r1: 0, dur: ms(620), delay: i * ms(170), lift: 70, keep: true })));
     if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
     const eye = document.createElement('div');
     eye.className = 'zm-prop zm-eye';
     eye.innerHTML = ART.PROPS.eye;
-    const S = pu * 1.1;
+    const S = u * 0.9;
     eye.style.width = eye.style.height = S + 'px';
-    const ep = { x: dc.x + dir.x / len * pu * 0.9, y: dc.y + dir.y / len * pu * 0.9 - pu * 1.05 };
+    const ep = { x: c.x, y: c.y - u * 0.1 - u * 0.62 - S * 0.55 };   // 那一排正上方
     els.fly.appendChild(eye);
     await fx.animate(eye, [
       { transform: fx.T(ep.x - S / 2, ep.y - S / 2, 0.2, 0), opacity: 0 },
@@ -2514,14 +2515,16 @@
       { transform: fx.T(ep.x - S / 2 + 6, ep.y - S / 2, 1, 0), opacity: 1, offset: 0.68 },
       { transform: fx.T(ep.x - S / 2 - 6, ep.y - S / 2, 1, 0), opacity: 1, offset: 0.84 },
       { transform: fx.T(ep.x - S / 2, ep.y - S / 2, 0.6, 0), opacity: 0 },
-    ], { duration: ms(1250) }).finished.catch(() => {});
+    ], { duration: ms(1500) }).finished.catch(() => {});
     eye.remove();
+    if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
+    // 倒着落回牌堆（和我自己看完一样）
     await Promise.all(nodes.map((n, i) => {
       if (!n) return null;
-      const rr = n.getBoundingClientRect();
       n.remove();
-      return fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: rr, to: deckTopRect(), w: pu, s0: 0.86, s1: 1, r0: (i - (k - 1) / 2) * 14, r1: 0, dur: ms(320), delay: i * 50, lift: 10 });
+      return fx.fly({ html: face(i), from: spots[i], to: deckTopRect(), w: u, s0: 1, s1: pu / u, dur: ms(480), delay: (k - 1 - i) * ms(110), lift: 40 });
     }));
+    snd('thud');
     if (ov && k) ov.lifted -= k;
     restoreTopFace(tf);
     renderPiles();
@@ -3100,30 +3103,8 @@
     renderPiles();
     const pu = PU(), a = avPoint(e.seat);
     const open = game.peelFace != null; game.peelFace = null;   // 透视 / 火眼：大家早看见是炸毛猫了，飞过去也是正面
-    /* 没逗猫棒、这一下就出局（2026-11-16 用户纠正）：摸到炸毛猫和摸到别的牌一样——自己的飞进手里成为最后一张、别人的飞进他的头像，
-     * 不先翻开、不停在桌心、头像上也不挂小炸弹；头像一抖、「嘭」，接着出局时手牌连同它（就当它是手里最后一张）一股脑鱼贯落进弃牌堆 */
-    if (next && next.t === 'out') {
-      if (e.seat === 0 && e.card != null) {
-        const u = U(), to = aboveSlot(reserveHandSlot(e.card));
-        await fx.fly(open ? { html: cardHtml(e.card), from, to, w: u, s0: pu * 1.04 / u, s1: 1, r0: -5, r1: 0, dur: ms(560), lift: 70, swell: 0.18 } : { html: cardHtml(e.card), back: backHtml(), flip: 'up', flipAt: 0.3, from, to, w: u, s0: pu * 1.04 / u, s1: 1, r0: -5, r1: 0, dur: ms(560), lift: 70, swell: 0.18 });
-        if (t !== token) return;
-        revealHandCard(e.card, to);
-        const hc = handCard(e.card);
-        if (hc) hc.classList.add('zm-angry');
-      } else {
-        await fx.fly({ html: open ? cardHtml(e.card) : backHtml(), from, to: a, w: pu, s0: 1.04, s1: 0.32, r0: -5, r1: 10, dur: ms(480), lift: 50, fadeOut: true, land: false });
-        if (t !== token) return;
-        ov.counts[e.seat] += 1;
-        renderSeat(e.seat);
-      }
-      snd('boom');
-      if (rimFxOn()) { rimFlash('#d2483a', 3, 380); rimRipple(e.seat, '#d2483a', 900, 4); }
-      const av = avEl(e.seat);
-      if (av && !fx.reduce()) av.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-10px) scale(1.14)', offset: 0.25 }, { transform: 'translateY(0) scale(1)' }], { duration: 460, easing: 'ease-out', composite: 'add' });
-      fx.shake(seatEl(e.seat), { amp: 6, dur: 520, delay: 60 });
-      await wait(ms(560));
-      return;
-    }
+    /* 2026-11-17 用户定：出不出局都走同一套——和平常摸牌一样飞进摸到的人的头像（自己也飞进自己头像，不进手牌），一落进去头像变成炸毛猫、炸开；
+     * 有逗猫棒：桌心逗猫棒安抚、头像变回原样（animDefuse）；没有：头像再「嘭」一下出局，手牌连同这只炸毛猫一起落进弃牌堆，炸毛猫从头像里飞出、排在最后（animOut） */
     await fx.fly({ html: open ? cardHtml(e.card) : backHtml(), from, to: a, w: pu, s0: 1.04, s1: 0.32, r0: -5, r1: 10, dur: ms(480), lift: 50, fadeOut: true, land: false });
     if (t !== token) return;
     game.boomNode = null;
@@ -3138,7 +3119,7 @@
     fx.burst(a.x, a.y - ar.width * 0.3, { n: 10, shapes: ['star', 'dot'], colors: GOLDS.concat(['#c8463a']), radius: ar.width, size: [5, 13], life: 900, delay: 60 });
     if (av && !fx.reduce()) av.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-10px) scale(1.14)', offset: 0.25 }, { transform: 'translateY(0) scale(1)' }], { duration: 460, easing: 'ease-out', composite: 'add' });
     fx.shake(seatEl(e.seat), { amp: 6, dur: 520, delay: 120 });
-    await wait(ms(next && next.t === 'defuse' ? 700 : 900));
+    await wait(ms(next && next.t === 'defuse' ? 700 : next && next.t === 'out' ? 820 : 900));
   }
 
   // 一张停在 (x, y) 的牌（不在飞）：拿来接着做动画
@@ -3304,7 +3285,7 @@
     const kit = game.state.discard[game.state.discard.length - 1];
     const withKit = kit != null && R.KIND_OF[kit] === R.BOOM && cards.indexOf(kit) < 0;
     const list = withKit ? cards.concat([kit]) : cards;
-    // 我自己：炸毛猫刚飞进手里当最后一张——和别的手牌一样从手里出发（以前它单独从头像飞出，兵分两路）
+    // 我自己的手牌从手里出发；炸毛猫在头像里（2026-11-17 起不再飞进手里），和别人一样从头像飞出
     const srcRects = e.seat === 0 ? list.map((id) => (handCard(id) ? handRectOf(id) : null)) : null;
     if (e.seat === 0) { ov.hand = []; renderHand({ flip: false }); }
     const kitNode = node && node.isConnected ? node : null, kitRect = kitNode ? kitNode.getBoundingClientRect() : null;
@@ -5423,7 +5404,10 @@
       const now = fx.center(a.getBoundingClientRect());
       const dx = old.x - now.x, dy = old.y - now.y;
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
-      slides.push(box.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)' }, { transform: 'none' }], { duration: 460, easing: 'cubic-bezier(.3,.75,.3,1)' }).finished.catch(() => {}));
+      /* 用单独的 translate 属性滑，叠在座位自己的 transform 上（2026-11-17 用户：换视角时顶上一瞬间变直、过一会儿又拱回来）——
+       * 6 人以上对手排成弧，靠的是 .is-arc 座位上的 transform: translateY(--dy)；以前滑动动画也写 transform，把这截下沉整个盖掉，
+       * 滑的半秒里整排变平、桌沿也按平的量，滑完才突然弯回去 */
+      slides.push(box.animate([{ translate: dx.toFixed(1) + 'px ' + dy.toFixed(1) + 'px' }, { translate: '0px 0px' }], { duration: 460, easing: 'cubic-bezier(.3,.75,.3,1)' }).finished.catch(() => {}));
     }
     /* 2026-11-15 朋友局截图：出局后点别人的视角，桌沿弯成一道横贯全桌的大弧、方向箭头歪到一边，过一会儿才好。
      * 原因：头像正从旧位置滑向新位置时，箭头 / 桌沿在下一帧就按头像「此刻」的位置重量了——上排有一家还停在底下，顶边拟合成一条往下兜的抛物线，
