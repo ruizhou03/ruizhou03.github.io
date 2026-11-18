@@ -16,6 +16,9 @@
  *   hard   高手：以「普通」为底，出牌和塞炸毛猫用 PIMC——按自己知道的信息随机补全别人手牌和牌堆，
  *          每个候选在同一批假想局面里用「普通」打到底；出牌比普通的选择好出 ANCHOR 才换
  *
+ * 经典模式（2026-11-18 起）：普通出牌换成 zhamao-brain.js 的神经网络（上面那套规则仍管窥探 / 改命时机和出牌以外的所有决定），
+ * 高手的锚点也换成网络的选择（推演时别人仍按上面那套规则打）。百变 / 组队 / 角色猫不变。见 brainAct。
+ *
  * 两套参数：规则的 view 里有 ins 字段（公开塞猫历史）用 P_HIST，没有用 P_BASE（两套都是调出来的，互相不通用）。
  *
  * 百变模式（2026-11-17 夜训，~/zhamao-rl/REPORT-flux.md）：普通 / 高手另用一套 P_HIST + FX_N——会看当前百变规则决定换不换
@@ -661,9 +664,80 @@
    * 危险时才算；第一轮挑出的「最好」再用一批新假想局和普通的选择复核一遍；塞炸毛猫用普通的规则（搜索在组队里没增益）。
    * 结果：2000 局 55.3% ±2.2（和原来一样强），每步平均 47ms（原来 200ms） */
   const TEAM_CALM = 0.35, TEAM_SCREEN = 0.05, TEAM_VERIFY = 150, TEAM_ANCHOR = 0.04;
+  /* ───── 经典模式的「直觉」网络（2026-11-18 夜训，~/zhamao-rl/dmc/REPORT.md；用户选甲：普通 = 网络，高手 = 网络 + 推演） ─────
+   * 只在经典模式（不是百变 / 组队 / 角色猫）、且 zhamao-brain.js 在场时用；出牌这一步给每个候选打分取最高，
+   * 窥探 / 改命的时机仍照原普通。特征必须和训练场 feat.js（FEAT_VER 1）逐位一致——改这里要重训。
+   * 对一桌原普通：3 / 4 / 5 人胜率 45.7 / 37.9 / 31.7%（原高手 43.2 / 34.7 / 25.5）；对一桌原高手打平；每步约 0.15 ms */
+  const BRAIN = (() => {
+    if (typeof self !== 'undefined' && self.ZhamaoBrain) return self.ZhamaoBrain;
+    if (typeof require === 'function') { try { return require('./zhamao-brain.js'); } catch (_) { return null; } }
+    return null;
+  })();
+  const useBrain = (v) => !!BRAIN && !isFlux(v) && !(v.mate >= 0) && !v.roles && (!v.rules || !v.rules.mode || v.rules.mode === 'classic');
+  const KI = {}; R.KINDS.forEach((k, i) => { KI[k] = i; });
+  const NK = R.KINDS.length;   // 20
+  function bNext(v, step) {   // 按出牌方向第 step 个活着的对手（-1 = 没那么多）
+    let s = v.me, c = 0;
+    for (let g = 0; g < v.n * 2; g++) { s = (s + (v.dir || 1) + v.n) % v.n; if (s === v.me) continue; if (v.alive[s]) { c++; if (c === step) return s; } }
+    return -1;
+  }
+  function bKnown(v, seat, kind) { const h = v.handKnown && v.handKnown[seat]; if (!h) return 0; let c = 0; for (const id of h) if (K[id] === kind) c++; return c; }
+  const S_DIM = 86, A_DIM = 34;
+  function brainState(v) {
+    const f = new Float32Array(S_DIM + A_DIM); let o = 0;
+    const alive = v.alive.filter(Boolean).length;
+    f[o + Math.min(5, Math.max(0, alive - 2))] = 1; o += 5;
+    f[o++] = v.n / 8;
+    for (const id of v.hand) f[o + KI[K[id]]] += 1 / 3; o += NK;
+    f[o++] = v.hand.length / 10;
+    f[o++] = v.deckSize / 30; f[o++] = (v.kittens || 0) / 4; f[o++] = v.deckSize ? Math.min(1, (v.kittens || 0) / v.deckSize) : 1;
+    let kb = []; try { kb = pol(v).kittenBelief(v, 4); } catch (_) { kb = []; }
+    for (let i = 0; i < 4; i++) f[o + i] = kb[i] != null ? kb[i] : 0; o += 4;
+    for (let i = 0; i < 4; i++) { const k = v.known.find((x) => x.pos === i); if (k) f[o + i * 2 + (K[k.id] === R.BOOM ? 0 : 1)] = 1; } o += 8;
+    { const b = v.known.find((x) => x.pos === v.deckSize - 1); if (b) f[o + (K[b.id] === R.BOOM ? 0 : 1)] = 1; } o += 2;
+    f[o + Math.min(3, Math.max(0, (v.turnsLeft || 1) - 1))] = 1; o += 4;
+    for (let j = 1; j <= 4; j++) {
+      const s = bNext(v, j);
+      if (s >= 0) { f[o] = 1; f[o + 1] = v.counts[s] / 10; f[o + 2] = bKnown(v, s, R.DEFUSE) / 2; f[o + 3] = bKnown(v, s, R.NOPE) / 2; }
+      o += 4;
+    }
+    for (const id of v.discard) f[o + KI[K[id]]] += 1 / Math.max(1, R.COUNTS[K[id]]); o += NK;
+    f[o++] = v.dir === -1 ? 1 : 0;
+    f[o++] = v.flux ? 1 : 0;
+    return f;
+  }
+  function brainScore(v, sf, m) {
+    const f = sf.slice(); let o = S_DIM;
+    if (m.type === 'draw') f[o] = 1;
+    else {
+      const n = m.cards.length;
+      f[o + (n === 1 ? 1 : n === 2 ? 2 : n === 3 ? 3 : 4)] = 1; o += 5;
+      for (const id of m.cards) f[o + KI[K[id]]] += 1 / 3; o += NK;
+      if (m.target != null) {
+        let rel = -1; for (let j = 1; j <= 4; j++) if (bNext(v, j) === m.target) { rel = j - 1; break; }
+        f[o + (rel < 0 ? 4 : rel)] = 1; o += 5;
+        f[o++] = v.counts[m.target] / 10; f[o++] = bKnown(v, m.target, R.DEFUSE) / 2; f[o++] = bKnown(v, m.target, R.NOPE) / 2;
+      } else o += 8;
+      f[o++] = m.named === R.DEFUSE ? 1 : 0;
+    }
+    return BRAIN.score(f);
+  }
+  const isPeekMove = (m) => m.type === 'play' && m.cards.length === 1 && (K[m.cards[0]] === R.FUTURE || K[m.cards[0]] === R.ALTER);
+  function brainAct(v) {
+    const nm = pol(v).act(v);
+    if (isPeekMove(nm)) return nm;
+    const cands = actCandidates(v);
+    if (!cands.some((c) => moveKey(c) === moveKey(nm))) cands.push(nm);
+    if (cands.length === 1) return cands[0];
+    const sf = brainState(v);
+    let bi = 0, bv = -Infinity;
+    for (let i = 0; i < cands.length; i++) { const q = brainScore(v, sf, cands[i]); if (q > bv) { bv = q; bi = i; } }
+    return cands[bi];
+  }
+
   function hardAct(v, rng) {
     const N = pol(v);
-    const nm = N.act(v);
+    const nm = useBrain(v) ? brainAct(v) : N.act(v);   // 经典模式：锚点换成网络的选择
     if (nm.type === 'play' && nm.cards.length === 1 && (K[nm.cards[0]] === R.FUTURE || K[nm.cards[0]] === R.ALTER)) return nm;
     if (v.mate >= 0) { const tp = N.topInfo(v); if (!(tp.known && tp.boom) && tp.p < TEAM_CALM) return nm; }
     const cands = actCandidates(v);
@@ -671,8 +745,8 @@
     // 总模拟次数封顶（候选多时每个少模拟几次），最坏一步也不卡住动画
     const samples = Math.max(MIN_S, Math.min(MAX_S, Math.floor(BUDGET / cands.length)));
     // 普通的选择也在候选里（找不到就补进去）；别的候选平均名次分要高出 ANCHOR 才换
-    let ai = cands.findIndex((c) => moveKey(c) === moveKey(N.act(v)));
-    if (ai < 0) { cands.push(N.act(v)); ai = cands.length - 1; }
+    let ai = cands.findIndex((c) => moveKey(c) === moveKey(nm));
+    if (ai < 0) { cands.push(nm); ai = cands.length - 1; }
     const applyAct = (s, m, rr) => {
       if (m.type === 'draw') { R.draw(s, v.me); return; }
       R.play(s, v.me, m.cards, m);
@@ -699,6 +773,7 @@
   function actFor(v, tier, rng) {
     rng = rng || Math.random;
     if (tier === 'hard') return hardAct(v, rng);
+    if (tier === 'normal' && useBrain(v)) return brainAct(v);
     return polT(v, tier).act(v);
   }
   // 各档内部的细节判断一律按「普通」的走法（原来入门那套随手乱出的已经不用了）
@@ -745,5 +820,6 @@
     TIERS, TIER_NAMES, cardValue, topInfo, determinize, decide,
     actFor, reactFor, insertFor, chooseGive, choosePick, chooseAlter, stepWith,
     withFlux: (o) => zhamaoAI(R, o),   // 训练场：换一套百变参数造一个新实例（{ normal, easy, budget }）
+    hasBrain: !!BRAIN,
   };
 });
