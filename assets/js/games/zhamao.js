@@ -514,7 +514,13 @@
     const anchor = (seat) => {
       // 取整：小数点后的抖动不该让整圈重画
       if (seat === 0 || seat === mateSeat()) { const r = avEl(seat).getBoundingClientRect(), hr = els.hand.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(Math.min(avEl(0).getBoundingClientRect().top, hr.height ? hr.top + 6 : Infinity) - 9 - tb.top) }; }   // 横屏时我和手牌在同一行：底边落在手牌上沿之上   // 组队：队友在底边上
-      const r = seatEl(seat).getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(r.bottom + gap - tb.top) };
+      // 只量头像 + 名字（2026-11-17 用户：名字下面的「代打 / 掉线 / 托管」小标签只属于头像，不该把这一家的底边拉低、让桌沿歪掉）
+      // 按排版位置量（offsetTop / offsetHeight），头像跳一下、放大一下这类动画不算；座位自己的下沉（排成弧）在 r.top 里
+      const box = seatEl(seat), r = box.getBoundingClientRect(), nm = box.querySelector('.zm-name'), av = box.querySelector('.zm-av');
+      const low = (el) => (el && el.offsetParent === box ? el.offsetTop + el.offsetHeight : null);
+      const lows = [low(nm), low(av)].filter((v) => v != null);
+      const bottom = lows.length ? r.top + Math.max(...lows) : r.bottom;
+      return { x: Math.round(r.left + r.width / 2 - tb.left), y: Math.round(bottom + gap - tb.top) };
     };
     const opp = []; for (let i = 1; i < n; i++) if (i !== mateSeat()) opp.push(anchor(i));   // 顶边只按上面一排拟合
     const me = anchor(0), m = 16, R = 26, yb = me.y;
@@ -1517,7 +1523,7 @@
       els.playBtn.textContent = two ? '给牌 ' + (gv.left > 1 ? 1 : 2) + '/2' : '给牌';
       els.playBtn.disabled = selected.length !== 1;
     }
-    else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = nopeQuiet ? '不管' : nopeHot ? '不挡' : '取消'; }
+    else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消'; }
     else if (myTurnToAct()) {
       els.drawBtn.disabled = false;
       els.drawBtn.classList.toggle('is-ready', !selected.length);
@@ -1549,6 +1555,22 @@
   }
   /* ───── 舞台：刚出的牌摆在桌子正中，导火索烧完前大家决定要不要「不行」 ───── */
   let reactOpen = false;
+  /* 作废导火索多长（2026-11-17 用户：单机联机统一）：牌冲着我 = 出牌限时的 1/4（10 秒局 3 秒，20 秒 / 不限时 5 秒），只是问问我 = 2.5 秒。
+   * 联机以服务器发来的 reactMs 为准（同一个算法） */
+  const nopeFullMs = () => { const t = game && game.online ? (game.reactMsSrv || 0) : 0; if (t) return t; const ts = turnSec(); return ts ? Math.min(5000, Math.max(3000, ts * 250)) : 5000; };
+  const nopeWindowMs = (s) => (nopeAboutMe(s) ? nopeFullMs() : Math.min(2500, nopeFullMs()));
+  /* 几乎同时作废（2026-11-17 用户：上家刚作废、我也同时点了作废，别把我算成「作废回去」）：
+   * 别人刚出了一张作废、又轮到我表态时，先按住 0.7 秒——作废键和手里那张先灰着，看清桌上多了一张作废再决定 */
+  const NOPE_HOLD_MS = 700;
+  let nopeHoldUntil = 0, nopeHoldTimer = 0;
+  function startNopeHold(s) {
+    clearTimeout(nopeHoldTimer);
+    nopeHoldUntil = s && s.pending && s.pending.nopes.length && lastActorSeat(s) !== 0 ? performance.now() + NOPE_HOLD_MS : 0;
+    els.app.classList.toggle('is-nope-hold', !!nopeHoldUntil);
+    if (nopeHoldUntil) nopeHoldTimer = setTimeout(() => { nopeHoldUntil = 0; els.app.classList.remove('is-nope-hold'); }, NOPE_HOLD_MS);
+  }
+  const nopeHeld = () => nopeHoldUntil && performance.now() < nopeHoldUntil;
+  const lastActorSeat = (s) => (s.pending.nopes.length ? s.pending.nopes[s.pending.nopes.length - 1].seat : s.pending.by);
   const nopeLift = new Set();   // 反应窗里点起来的作废（只是抬着，不会打出去）
   let nopeAutoKey = '';          // 哪个反应窗已经替我自动抬过作废（同一窗里我放下了就不再抬）
   function targetOf(p) {
@@ -3389,7 +3411,7 @@
     const meCan = !autopilot && R.canNope(s, 0) && R.awaitingReaction(s).indexOf(0) >= 0 && (askMeNope(s) || !!tut);
     const tutWaitMe = tut && tut.mustNope && tut.mustNope(s);
     const botDelay = botSeat >= 0 ? P.botNope[0] + Math.random() * (P.botNope[1] - P.botNope[0]) : Infinity;
-    const windowMs = meCan ? (tutWaitMe ? Infinity : P.react || 1400) : P.quiet;
+    const windowMs = meCan ? (tutWaitMe ? Infinity : P === PACE ? nopeWindowMs(s) + (s.pending.nopes.length ? NOPE_HOLD_MS : 0) : P.react || 1400) : P.quiet;
     const fireAt = Math.min(botDelay, windowMs);
     const now = performance.now();
     game.reactPlan = { botSeat, botAt: now + botDelay, windowEnd: now + windowMs };
@@ -3398,7 +3420,7 @@
     renderHand({ flip: false });
     renderBand();
     fuse(meCan ? windowMs : 0);
-    if (meCan) { snd('ask'); idle(); }
+    if (meCan) { startNopeHold(s); snd('ask'); idle(); }
     if (!isFinite(fireAt)) return; // 教程：等我自己点
     const k = token;
     reactTimer = setTimeout(() => {
@@ -3464,12 +3486,10 @@
     const s = game.state;
     if (!s.alive[0]) return;   // 观战时看到的是别人的牌，点了没用
     if (autopilot) { setAutopilot(false); return; }   // 托管中点手牌 = 收回来自己打
-    // 别人出牌后点手里的「作废」：没抬起的先抬起来；已经抬起来的（问到我时会自动抬一张）再点一下 = 打出去
+    // 别人出牌后点手里的「作废」= 打出去（问到我时会自动抬一张，所有作废都发紫光）
     // （2026-11-15 以前是一点就打、2026-11-16 改成只抬起 / 放下；2026-11-17 朋友局又反馈「再点一下以为是出牌、结果放下了」，用户定：点抬起的 = 打出）
-    if (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE) {
-      if (nopeLift.has(id)) { pressNope(); return; }
-      nopeLift.clear(); nopeLift.add(id); snd('tap'); renderHand({ flip: false }); return;
-    }
+    // 2026-11-17 拟人模拟截图：手里两张作废时两张都在发紫光上下跳，点没抬起的那张只是换着抬，像没反应——作废牌都一样，问我的时候点哪张都直接打出
+    if (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE) { if (nopeHeld()) { shake(node); return; } pressNope(); return; }
     nopeLift.clear();
     if (mode === 'give') { selected = selected[0] === id ? [] : [id]; snd('tap'); renderHand(); renderBand(); return; }
     if (mode === 'target') { cancelTarget(); }
@@ -3673,6 +3693,7 @@
   function pressNope() {
     const s = game.state;
     if (s.phase !== 'react' || !reactOpen || !R.canNope(s, 0)) return;
+    if (nopeHeld()) { shake(els.nopeBtn); return; }
     if (tut && tut.allow && !tut.allow({ type: 'nope' })) { shake(els.nopeBtn); return; }
     doNope(0);
   }
@@ -5490,6 +5511,8 @@
       return;
     }
     online.lastQueued = fresh[fresh.length - 1].n;
+    // 我正被问作废、局面已经往前走了（多半是别人先出了作废）：作废键马上收起，等动画播到再重新问我
+    if (reactOpen && game.state.phase === 'react') { clearTimeout(reactAuto); reactOpen = false; stopFuse(); renderBand(); renderHand({ flip: false }); }
     earlyPass(g);
     for (const raw of fresh) {
       const e = rotEvent(raw);
@@ -5695,7 +5718,7 @@
     setTimeout(() => {
       const gg = G();
       if (!online || !gg || gg.seq !== at || !gg.myCall || gg.st.phase !== 'react') return;
-      onlineMove({ type: 'pass' });
+      onlineMove({ type: 'pass' }, at);   // 明确对着这一窗（这时 onlineReact 多半还没轮到它，askSeq 还是上一窗的）
     }, 150 + Math.random() * 250);
   }
   function onlineReact(g, mine, remain) {
@@ -5713,8 +5736,9 @@
     let give = remain;
     if (canN) {
       if (!online.reactEnd || online.reactEnd.seq !== g.seq) {
-        const full = g.reactMs || 3000;
-        const base = nopeAboutMe(s) ? full : Math.min(2500, full);
+        game.reactMsSrv = g.reactMs || 0;
+        const base = nopeWindowMs(s) + (s.pending.nopes.length ? NOPE_HOLD_MS : 0);
+        startNopeHold(s);
         if (g.deadline - (Date.now() + online.skew) - pad < base) {
           NET.act(online.code, online.token, 'move', { d: { type: 'seen' }, at: g.seq }).catch(() => {});
         }
@@ -5722,6 +5746,7 @@
       }
       give = Math.max(0, online.reactEnd.end - performance.now());
     }
+    online.askSeq = g.seq;   // 我是对着哪一窗表态的：作废 / 取消都带这个，不带最新收到的（见 onState）
     reactOpen = canN;
     busy = !canN;
     renderHand({ flip: false });
@@ -5749,7 +5774,7 @@
       if (!online || !gg || gg.seq !== at || !gg.myCall || game.state.phase !== 'react') return;
       reactOpen = false;
       renderBand(); renderHand({ flip: false });
-      onlineMove({ type: 'pass' });
+      onlineMove({ type: 'pass' }, at);
     };
     if (canN) { snd('ask'); reactAuto = setTimeout(autoPass, Math.max(0, give)); }
     else earlyPass(g);   // 没作废：收到状态时多半已经排好了，这里兜个底
@@ -5780,7 +5805,7 @@
     game.previewSrc = m;
     preview = null;
   }
-  async function onlineMove(d) {
+  async function onlineMove(d, atSeq) {
     if (!online) return;
     const g = G();
     busy = true;
@@ -5798,7 +5823,10 @@
     }
     if (d.type !== 'pass' && d.type !== 'nope' && !game.preFlyP) online.pendingSrc = captureSources(0, d);
     const slow = d.type === 'pass' ? 0 : setTimeout(() => toast('网络有点慢，稍等…'), 1800);
-    const body = { d: Object.assign({}, d, d.target != null && d.target >= 0 ? { target: srvOf(d.target) } : {}), at: g ? g.seq : undefined };
+    // 作废 / 取消：带上我看到的那一窗（askSeq）。别人的作废已经到了、动画还没播到时我点的作废，服务器会按「过时」拒掉，
+    // 不会被当成「作废回去」（两张作废 = 原牌又生效，违背两个人的本意）
+    const at = atSeq != null ? atSeq : (d.type === 'nope' || d.type === 'pass') && online.askSeq != null ? online.askSeq : g ? g.seq : undefined;
+    const body = { d: Object.assign({}, d, d.target != null && d.target >= 0 ? { target: srvOf(d.target) } : {}), at };
     mode = null;
     renderBand();
     try {
@@ -5814,7 +5842,7 @@
       online.pendingSrc = null;
       game.previewSrc = null;
       // 作废没生效要说清楚（2026-11-13 用户：有人点了作废却没生效、也不知道为什么）
-      if (d.type === 'nope' && err && err.error === 'stale') toast('有人抢先出了作废，看一眼桌上再决定');
+      if (d.type === 'nope' && err && err.error === 'stale') toast('有人先你一步出了作废，你这张没打出去——看清桌上再决定要不要作废回去');
       else if (d.type === 'nope' && err && (err.error === 'no_reaction' || err.error === 'not_your_call')) toast(netRtt() >= 700 ? '网络有点慢（来回约 ' + (netRtt() / 1000).toFixed(1) + ' 秒），作废没赶上，这张牌已经结算了' : '晚了一步，这张牌已经结算了');
       else if (err && err.error !== 'stale') toast(NET.message(err));
       resync();

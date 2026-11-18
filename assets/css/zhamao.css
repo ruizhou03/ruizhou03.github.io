@@ -1342,9 +1342,13 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 @media (prefers-reduced-motion: reduce) { .zm-app.is-nope-hot #zmNopeBtn { animation: none; box-shadow: 0 0 0 3px var(--zm-paper), 0 0 0 5.5px var(--zm-seal); } }
 .zm-app.is-nope-hot #zmDrawBtn { background: transparent; color: var(--zm-ink); border-color: var(--zm-ink); }
 .zm-app.is-nope-hot .zm-seat-me .zm-av { box-shadow: 0 0 0 2px var(--zm-seal), 0 0 0 7px rgba(180, 57, 44, 0.22); }
-.zm-app.is-nope-quiet #zmNopeBtn { width: 44px; min-width: 44px; height: 44px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-  background: transparent; color: #7a5a96; border: 1.5px solid rgba(122, 90, 150, 0.55); animation: none; box-shadow: none; }
-.zm-app.is-nope-quiet #zmNopeBtn > span, .zm-app.is-nope-quiet #zmNopeBtn .zm-nope-ring { display: none; }
+/* 2026-11-17 用户：作废 / 取消和出牌 / 摸牌同一个位置、同样大小、就叫「作废」「取消」——收敛时不再缩成小圆图标，只是不闪 */
+.zm-app.is-nope-quiet #zmNopeBtn { animation: none; }
+.zm-app.is-nope-hot .zm-nope-ic, .zm-app.is-nope-quiet .zm-nope-ic { display: none; }
+.zm-app.is-nope-hot #zmNopeBtn { display: inline-flex; align-items: center; justify-content: center; gap: 0; }
+/* 别人刚作废、又问到我：先按住 0.7 秒，作废键和手里的作废牌灰着 */
+.zm-app.is-nope-hold #zmNopeBtn { opacity: 0.45; animation: none; box-shadow: none; }
+.zm-app.is-nope-hold .zm-hand .zm-card.is-nope-ready { animation: none; filter: grayscale(0.6); }
 .zm-app.is-nope-quiet .zm-hand .zm-card.is-nope-ready:not(.is-sel) { box-shadow: 0 2px 6px rgba(29, 27, 24, 0.18); animation: none; }
 .zm-rim .links g.is-me:not(.is-dull) .lline { stroke: var(--zm-seal); }
 .zm-rim .links g.is-me:not(.is-dull) .lglow { stroke: rgba(180, 57, 44, 0.26); }
