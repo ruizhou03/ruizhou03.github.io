@@ -48,7 +48,11 @@
   const pace = () => (game && game.tutorial ? TUT_PACE : game && game.turbo ? TURBO : game && ((game.fastOut && !mateWatching() && (!game.online || humansOutHere())) || (game.online && online && online.behind)) ? FAST : PACE);
   const ms = (x) => Math.round(x * pace().k);
   // 组队：我出局了但队友还在打——照常速度，坐在队友身后看他的牌（2026-11-15 巡查）
-  const mateWatching = () => !!(game && !game.online && game.state && R.isTeam && R.isTeam(game.state) && !game.state.alive[0] && game.state.alive[R.mateOf(game.state, 0)] && game.state.phase !== 'over');
+  /* 单机观战 = 真的换到那只机器猫的视角（2026-11-17 用户：「切到对家就直接是对家的视角，我和其他人相对他的位置都跟着变，
+   * 和他手机上看到的一模一样，只是没有出牌按钮」）：game.pov = 被看那家原来的座位号；game.state 里所有座位都按他重新编号（他是 0 号、坐在底下），
+   * 和联机按 viewBase 转桌是同一个做法。我自己这时坐在 meSeat() */
+  const meSeat = () => (game && !game.online && game.pov && game.state ? (game.state.n - game.pov) % game.state.n : 0);
+  const mateWatching = () => !!(game && !game.online && game.state && R.isTeam && R.isTeam(game.state) && !game.state.alive[meSeat()] && game.state.alive[R.mateOf(game.state, meSeat())] && game.state.phase !== 'over');
 
   const FUR = ['#3a3632', '#4a4540', '#2a2622', '#5c5650'];
   const GOLDS = ['#c9a96e', '#dcb86c', '#e9d46a'];
@@ -87,7 +91,8 @@
   function save() {
     if (!game || game.tutorial || game.online) return;
     if (game.state.phase === 'over') { try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ } return; }
-    writeJSON(STORE_KEY, { v: VERSION, state: game.state, bots: game.bots, tiers: game.tiers, openKits: game.openKits ? Array.from(game.openKits) : [] });   // 火眼露在牌堆里的那几只也存上
+    const back = game.pov ? game.state.n - game.pov : 0;   // 观战时桌子是转过的：存回我自己坐在 0 号的样子
+    writeJSON(STORE_KEY, { v: VERSION, state: rotState(game.state, back), bots: rotSeats(game.bots, back), tiers: rotSeats(game.tiers, back), openKits: game.openKits ? Array.from(game.openKits) : [] });   // 火眼露在牌堆里的那几只也存上
   }
   function loadSaved() {
     const d = readJSON(STORE_KEY);
@@ -125,7 +130,7 @@
     if (!game || game.tutorial) return;
     /* 联机里坐到别人背后看时，下面那个座位是被看的人，不是我（2026-11-17 用户：切到贝塔视角再改名，贝塔的名字头像被改了一下又变回去）。
      * 改的永远是我自己那一座；纯观战的人桌上没有自己的座位，等服务器回来就行 */
-    const me = !game.online ? 0 : online && online.st && online.st.mySeat >= 0 ? locOf(online.st.mySeat) : -1;
+    const me = !game.online ? meSeat() : online && online.st && online.st.mySeat >= 0 ? locOf(online.st.mySeat) : -1;
     if (me < 0) return;
     const o = game.bots[me];
     game.bots[me] = { nick: profile.nick, avatar: profile.avatar };
@@ -1477,7 +1482,7 @@
   function dropFromHand(ids) { if (!ov) return; ov.hand = ov.hand.filter((x) => ids.indexOf(x) < 0); selected = selected.filter((x) => ids.indexOf(x) < 0); }
 
   /* ───── 按钮带 ───── */
-  function myTurnToAct() { const s = game.state; return !busy && s.phase === 'act' && s.turn === 0 && s.alive[0]; }
+  function myTurnToAct() { const s = game.state; return !busy && !game.spectator && s.phase === 'act' && s.turn === 0 && s.alive[0]; }
   let lastPlayOn = false;
   // 按钮带（正中间）：「出牌」「摸牌」两个键一直在；没选牌 / 选的凑不成能出的 →「出牌」灰着。不写说明字（教程里教）。
   // 别人出牌后我有「不行」：紫色「喵？不行」顶在「出牌」的位置；点人时「摸牌」换成「取消」；别人索要我的牌时「出牌」换成「给牌」
@@ -1512,7 +1517,7 @@
     // 摸到炸毛猫、我那一下还没炸完（game.fastOut 在出局动画最后才置上）：两个键照常灰着——2026-11-14 用户：一摸牌键就被收走，
     // 牌还没翻开就知道自己完了。game.state 是结算后的，我一摸它就已经写着出局，所以不能按 alive 直接藏
     else if (!s.alive[0] && !game.fastOut && !game.spectator) { /* 灰着等动画 */ }
-    else if (game.online && (!s.alive[0] || game.spectator)) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
+    else if (game.spectator || (game.online && !s.alive[0])) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     // 我出局后不再有「下一局」直接开（2026-11-14 用户：要么看着打完，要么点桌沿右下角的 ⏩ 快进，看完结算才能开下一局——保持一局完整）
     else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (autopilot) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消托管'; }   // 我出局了：自动接着看他们打完，想走就开下一局
@@ -1870,7 +1875,12 @@
   function step() {
     if (!game) return;
     if (game.online) { onlineIdle(); return; }   // 联机：谁走下一步由服务器说了算
+    // 观战换人留到这一步之间才转桌（被看的那只出局时动画里点的）；一局打完先转回我自己的座位再结算
+    const wantPov = game.state.phase === 'over' ? 0 : game.povWant != null ? game.povWant : game.pov || 0;
+    game.povWant = null;
+    if (wantPov !== (game.pov || 0)) { switchPov(wantPov); return; }
     const s = game.state;
+    const H = game.spectator ? -1 : 0;   // 底下那家是我自己（-1：底下坐的是被看的机器猫，它的每一步都交给机器猫）
     save();
     clearReactTimer();
     reactOpen = false;
@@ -1880,27 +1890,27 @@
     if (s.phase === 'over') { finish(); return; }
     if (window.ZhamaoAudio && s.deck.length) window.ZhamaoAudio.danger(R.kittensInDeck(s) / s.deck.length);   // 背景音乐按公开的炸毛猫概率换版
     if (s.deck.length) rimHeat(R.kittensInDeck(s) / s.deck.length);
-    if (s.phase === 'act') startClock(s.turn, s.turn === 0 && !autopilot ? onMyTimeout : null);
-    else if (s.phase === 'give' && s.give.from === 0 && !autopilot) startClock(0, onMyTimeout);
+    if (s.phase === 'act') startClock(s.turn, s.turn === H && !autopilot ? onMyTimeout : null);
+    else if (s.phase === 'give' && s.give.from === H && !autopilot) startClock(0, onMyTimeout);
     else stopClock();
     // 托管：轮到我做决定的地方都交给机器猫
     if (autopilot && canAuto() && R.whoActs(s).indexOf(0) >= 0 && s.phase !== 'react') { busy = true; mode = null; renderBand(); autoMove(); return; }
     switch (s.phase) {
       case 'act':
-        if (s.turn === 0) { busy = false; mode = null; renderHand(); renderBand(); myTurnCue(); idle(); }
+        if (s.turn === H) { busy = false; mode = null; renderHand(); renderBand(); myTurnCue(); idle(); }
         else botAct(s.turn);
         break;
       case 'react': reactPhase(); break;
       case 'give':
-        if (s.give.from === 0) { busy = false; mode = 'give'; selected = []; renderHand(); renderBand(); idle(); }
+        if (s.give.from === H) { busy = false; mode = 'give'; selected = []; renderHand(); renderBand(); idle(); }
         else schedule(pace().bot, () => apply(s.give.from, decideBot(s.give.from)));
         break;
       case 'pick':
-        if (s.pick.by === 0) { busy = false; pickDialog(); }
+        if (s.pick.by === H) { busy = false; pickDialog(); }
         else schedule(pace().bot, () => apply(s.pick.by, decideBot(s.pick.by)));
         break;
       case 'steal':
-        if (s.steal.by === 0) { busy = false; stealPicker(); }
+        if (s.steal.by === H) { busy = false; stealPicker(); }
         else {
           // 机器猫在挑：红光先在被偷的人的牌上游走，想好了（apply）再落下去
           const by = s.steal.by;
@@ -1910,15 +1920,15 @@
         }
         break;
       case 'alter':
-        if (s.alter.by === 0) { busy = false; alterDialog(); }
+        if (s.alter.by === H) { busy = false; alterDialog(); }
         else schedule(pace().bot, () => apply(s.alter.by, decideBot(s.alter.by)));
         break;
       case 'rescue':
-        if (s.rescue.by === 0) { busy = false; rescueDialog(); }
+        if (s.rescue.by === H) { busy = false; rescueDialog(); }
         else schedule(pace().bot, () => apply(s.rescue.by, decideBot(s.rescue.by)));
         break;
       case 'defuse':
-        if (s.defuse.by === 0) {
+        if (s.defuse.by === H) {
           if (!s.deck.length && !(tut && tut.allow && !tut.allow({ type: 'insert', pos: 0 }))) { schedule(ms(260), () => apply(0, { type: 'insert', pos: 0 })); break; }
           busy = false; insertDialog();
         }
@@ -2005,11 +2015,15 @@
     step();
   }
 
+  let evPlaying = 0;   // 正在播一串事件动画（单机观战换人：动画里自动换的留到播完再转桌）
   async function playEvents(ev, t) {
-    for (let i = 0; i < ev.length; i++) {
-      if (t !== token) return;
-      await anim(ev[i], t, ev[i + 1]);
-    }
+    evPlaying++;
+    try {
+      for (let i = 0; i < ev.length; i++) {
+        if (t !== token) return;
+        await anim(ev[i], t, ev[i + 1]);
+      }
+    } finally { evPlaying--; }
   }
 
   /* ───── 事件动画 ───── */
@@ -2557,11 +2571,11 @@
       const labels = ['最上面', '第 2 张', '第 3 张', '第 4 张', '第 5 张'];
       // 自己收起的倒计时（2026-11-14 用户：托管打出窥探后没人点「知道了」，整局卡住）：托管 1.8 秒；联机 4 秒（服务器的出牌限时在走）；
       // 单机有出牌限时就 6 秒；单机不限时、自己在打才等我点
-      const peekLimit = mateSaw ? 2800 : autopilot ? 1800 : game.online ? 4000 : turnSec() > 0 ? 6000 : 0;
+      const peekLimit = mateSaw || game.spectator ? 2800 : autopilot ? 1800 : game.online ? 4000 : turnSec() > 0 ? 6000 : 0;
       const lay = document.createElement('div');
       lay.className = 'zm-peek';
       lay.innerHTML = spots.map((p, i) => '<span class="zm-peek-lab" style="left:' + p.x + 'px;top:' + (p.y + u * 0.78) + 'px">' + labels[i] + '</span>').join('') +
-        '<button type="button" class="zm-btn zm-btn-primary zm-peek-ok' + (peekLimit ? ' zm-timed' : '') + '" style="left:' + c.x + 'px;top:' + (c.y + u * 1.12) + 'px">' + (peekLimit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>知道了</b></button>';
+        '<button type="button"' + (game.spectator ? ' hidden' : '') + ' class="zm-btn zm-btn-primary zm-peek-ok' + (peekLimit ? ' zm-timed' : '') + '" style="left:' + c.x + 'px;top:' + (c.y + u * 1.12) + 'px">' + (peekLimit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>知道了</b></button>';
       els.fly.appendChild(lay);
       els.fly.classList.add('is-interactive');
       els.app.classList.add('is-peeking');   // 摊开的三张 + 「知道了」会压到牌堆下面的百变规则牌：看的时候先把规则牌淡掉
@@ -3532,13 +3546,13 @@
     // 机器人：第一个想作废的人，过一会儿出手（我可以抢在前面）
     let botSeat = -1;
     for (const x of R.awaitingReaction(s)) {
-      if (x === 0 && !autopilot) continue;
+      if (x === 0 && !autopilot && !game.spectator) continue;
       let want;
       if (tut && tut.botNope) want = tut.botNope(s, x);
       if (want == null) want = R.canNope(s, x) && AI.decide(s, x, game.tiers[x] || 'normal').type === 'nope';
       if (want) { botSeat = x; break; }
     }
-    const meCan = !autopilot && R.canNope(s, 0) && R.awaitingReaction(s).indexOf(0) >= 0 && (askMeNope(s) || !!tut);
+    const meCan = !autopilot && !game.spectator && R.canNope(s, 0) && R.awaitingReaction(s).indexOf(0) >= 0 && (askMeNope(s) || !!tut);
     const tutWaitMe = tut && tut.mustNope && tut.mustNope(s);
     const botDelay = botSeat >= 0 ? P.botNope[0] + Math.random() * (P.botNope[1] - P.botNope[0]) : Infinity;
     const windowMs = meCan ? (tutWaitMe ? Infinity : P === PACE ? nopeWindowMs(s) + (s.pending.nopes.length ? NOPE_HOLD_MS : 0) : P.react || 1400) : P.quiet;
@@ -3614,7 +3628,7 @@
   function shake(node) { if (!node) return; node.classList.remove('zm-shake'); void node.offsetWidth; node.classList.add('zm-shake'); }
   function onCardTap(id, node) {
     const s = game.state;
-    if (!s.alive[0]) return;   // 观战时看到的是别人的牌，点了没用
+    if (!s.alive[0] || game.spectator) return;   // 观战时看到的是别人的牌，点了没用
     if (autopilot) { setAutopilot(false); return; }   // 托管中点手牌 = 收回来自己打
     // 别人出牌后点手里的「作废」= 打出去（问到我时会自动抬一张，所有作废都发紫光）
     // （2026-11-15 以前是一点就打、2026-11-16 改成只抬起 / 放下；2026-11-17 朋友局又反馈「再点一下以为是出牌、结果放下了」，用户定：点抬起的 = 打出）
@@ -3751,14 +3765,59 @@
     endPreview();
     renderBand();
   }
-  // 观战：我已经出局（单机）→ 点一只还在场的机器猫，坐到它背后看它的手牌；再点一下 / 点别的就换
-  function watch(seat) {
-    viewSeat = viewSeat === seat ? -1 : seat;
-    allSeatEls().forEach((b) => b.classList.toggle('is-watched', +b.dataset.seat === viewSeat));
-    els.app.classList.toggle('is-watching', viewSeat > 0);
-    snd(viewSeat > 0 ? 'flip' : 'untap');
-    if (ov) ov.hand = viewSeat > 0 ? game.state.hands[viewSeat].slice() : [];
-    renderHand();
+  /* 观战：我已经出局（单机）→ 点一只还在场的机器猫，整张桌子转到它的视角（它坐到底下，看到的和它自己看到的一样，只是没有操作键）；
+   * 点底下的它 / 点我自己 = 回到我的座位，点别的 = 换人。seat 是现在桌上的座位号。
+   * now：我自己点的——正在播的动画直接收掉、马上转；动画里自动换的（被看的那只出局了）等这一串播完再转 */
+  function watch(seat, now) {
+    if (!game || game.online || !game.state) return;
+    const n = game.state.n, cur = game.pov || 0;
+    const want = seat === viewSeat || (game.spectator && seat === meSeat()) ? 0 : (seat + cur) % n;
+    if (!now && evPlaying) { game.povWant = want; return; }
+    if (want === cur) return;
+    switchPov(want);
+  }
+  // 单机局面按座位转一圈：新的 j 号 = 原来的 (j + d) 号（座位号全换、谁先谁后不变，引擎和机器猫照常算）
+  const rotSeats = (a, d) => (Array.isArray(a) && d % a.length ? a.map((_, j) => a[(j + d) % a.length]) : a);
+  function rotState(s, d) {
+    const n = s.n;
+    d = ((d % n) + n) % n;
+    if (!d) return s;
+    const f = (x) => (typeof x === 'number' && x >= 0 ? (x - d + n) % n : x);
+    const by = (o, keys) => { if (!o) return o; const c = Object.assign({}, o); keys.forEach((k) => { c[k] = f(c[k]); }); return c; };
+    const p = s.pending;
+    return Object.assign({}, s, {
+      hands: rotSeats(s.hands, d), alive: rotSeats(s.alive, d), outOrder: s.outOrder.map(f),
+      turn: f(s.turn), winner: f(s.winner), cowCut: f(s.cowCut), hotGiven: f(s.hotGiven),
+      pending: p ? Object.assign(by(p, ['by', 'target']), { nopes: p.nopes.map((x) => Object.assign({}, x, { seat: f(x.seat) })), passed: p.passed.map(f) }) : p,
+      give: by(s.give, ['from', 'to']), pick: by(s.pick, ['by']), defuse: by(s.defuse, ['by']), alter: by(s.alter, ['by']), steal: by(s.steal, ['by', 'from']),
+      ins: by(s.ins, ['by']), peek: by(s.peek, ['by']), rescue: by(s.rescue, ['by', 'for']),
+      nineUsed: rotSeats(s.nineUsed, d), saveUsed: rotSeats(s.saveUsed, d), teams: rotSeats(s.teams, d), roles: rotSeats(s.roles, d), roleUsed: rotSeats(s.roleUsed, d),
+      memo: rotSeats(s.memo, d).map((m) => Object.assign({}, m, { hands: rotSeats(m.hands, d) })),
+    });
+  }
+  // 转到 k 号（原来的座位号）的视角：和联机换视角一样——正在播的收掉，按现在的局面重摆，每家头像从旧位置滑到新位置，再接着打
+  function switchPov(k) {
+    const n = game.state.n, cur = game.pov || 0, d = (k - cur + n) % n;
+    game.povWant = null;
+    if (!d) return;
+    const before = spotsBy((l) => (l + cur) % n);
+    resetTable();
+    game.state = rotState(game.state, d);
+    game.bots = rotSeats(game.bots, d);
+    game.tiers = rotSeats(game.tiers, d);
+    if (game.attackSeat >= 0) game.attackSeat = (game.attackSeat - d + n) % n;
+    game.pov = k;
+    game.spectator = k !== 0;
+    viewSeat = k ? 0 : -1;
+    lastCue = '';
+    els.app.classList.toggle('is-watching', !!k);
+    els.app.classList.toggle('is-spectator', !game.state.alive[meSeat()]);
+    els.me.classList.toggle('is-watched', !!k);
+    buildSeats();
+    renderAll();
+    turnTable(before, (l) => (l + k) % n);
+    busy = true;
+    schedule(fx.reduce() ? 120 : 480, step);   // 桌子转完（滑 0.46 秒）再接着打
   }
   // 我出局了（不是纯观战）、这一局还没完、也还没坐到谁背后
   function outIdle() {
@@ -3768,7 +3827,7 @@
   }
   function watchFromOut(seat) {
     if (!game || !game.state.alive[seat]) return;
-    if (game.online) onlineView(srvOf(seat)); else watch(seat);
+    if (game.online) onlineView(srvOf(seat)); else watch(seat, true);
   }
   // 空出来的手牌区：一排还在场的人的小头像（和上面座位同一个左右顺序）
   function watchPickHtml() {
@@ -3792,8 +3851,8 @@
       if (seat > 0 && game.state.alive[seat]) onlineView(srvOf(seat));
       return;
     }
-    if (game && !game.tutorial && !game.online && !game.state.alive[0] && game.state.phase !== 'over' && seat > 0) {
-      if (game.state.alive[seat]) watch(seat);
+    if (game && !game.tutorial && !game.online && !game.dealing && (game.spectator || !game.state.alive[0]) && game.state.phase !== 'over') {
+      if (seat > 0 && (game.state.alive[seat] || seat === meSeat())) watch(seat, true);   // 点还在场的换过去；点我自己（已出局）回到我的座位
       return;
     }
     // 2026-11-13 用户：要甩锅给别人，点头像却先弹出了互动表情——点「出牌」后牌要先飞上桌（约 0.4 秒）才开始选人，
@@ -5089,7 +5148,7 @@
     if (!TUT) return;
     id = id || 'basic';
     resetTable();
-    viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator');
+    viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator'); els.me.classList.remove('is-watched');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     const ctl = TUT.create(R, { hint, say: (msgs, then) => showCoach(msgs, then || step) }, id);
     tut = ctl;
@@ -5144,7 +5203,7 @@
   /* ───── 开局 / 封面 ───── */
   function newGame() {
     resetTable();
-    viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator');
+    viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator'); els.me.classList.remove('is-watched');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     tut = null;
     els.skipTut.hidden = true;
@@ -5160,7 +5219,7 @@
   }
   function resumeGame(d) {
     resetTable();
-    viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator');
+    viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator'); els.me.classList.remove('is-watched');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     game = { state: d.state, bots: d.bots, tiers: d.tiers, tutorial: false, fastOut: !d.state.alive[0], openKits: new Set(d.openKits || []), kitShown: new Set(d.openKits || []) };
     game.bots[0] = { nick: profile.nick, avatar: profile.avatar };
@@ -5564,17 +5623,38 @@
 
   // 我坐在哪一家身后：观战的人 = 他选的那家；出局后换过视角 = 那一家；平常 = 自己的座位
   const viewBase = (st) => (st.spectator ? st.viewSeat : st.viewSeat >= 0 ? st.viewSeat : st.mySeat);
-  function seatSpots() {
+  // 每一家头像现在在哪（key：不随视角变的编号）
+  function spotsBy(key) {
     const out = {};
-    for (let l = 0; l < online.n; l++) { const a = avEl(l); if (a) out[srvOf(l)] = fx.center(a.getBoundingClientRect()); }
+    if (game && game.state) for (let l = 0; l < game.state.n; l++) { const a = avEl(l); if (a) out[key(l)] = fx.center(a.getBoundingClientRect()); }
     return out;
   }
-  // 换视角的「转桌」：每一家的座位从原来的位置滑到新位置（被看的人从上面滑到下面），手牌淡进来
-  function turnTable(before) {
-    if (fx.reduce() || !game || !game.state) return;
+  const seatSpots = () => spotsBy(srvOf);
+  /* 换完视角按现在的局面补回那些「挂着」的东西（2026-11-17 用户：要和被看那家屏幕上一模一样）：
+   * 出了要指人的牌、还在等作废 → 准星 + 桌沿连线；被索要 → 粉准星；在挑偷哪张 → 准星；摸到炸毛猫在塞回去 → 头像变炸毛猫 */
+  function restoreAim() {
+    const s = game && game.state;
+    if (!s || game.dealing) return;
+    if (game.arrow) { game.arrow.remove(); game.arrow = null; }
+    releaseRim();
+    if (s.phase === 'react' && s.pending) {
+      const p = s.pending, tg = targetOf(p), atk = p.type === R.ATTACK || p.type === R.TATTACK;
+      if (tg >= 0) {
+        game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : atk ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
+        game.rimLk = rimLink(p.by, tg, atk);
+      }
+    } else if (s.phase === 'give' && s.give) game.arrow = aim(s.give.from, '#e0566e');
+    else if (s.phase === 'steal' && s.steal) game.arrow = aim(s.steal.from, '#c9a96e');
+    else if (s.phase === 'defuse' && s.defuse) bombAvatar(s.defuse.by, true);
+  }
+  /* 换视角的「转桌」（联机 / 单机共用）：每一家的座位从原来的位置滑到新位置（被看的人从上面滑到下面），手牌淡进来；
+   * key(本地座位) = 这一家不随视角变的编号（联机 = 服务器座位，单机 = 原来的座位号）。滑完再补上准星 / 桌沿连线 */
+  function turnTable(before, key) {
+    key = key || srvOf;
+    if (fx.reduce() || !game || !game.state) { restoreAim(); return; }
     const slides = [];
-    for (let l = 0; l < online.n; l++) {
-      const box = seatEl(l), a = avEl(l), old = before[srvOf(l)];
+    for (let l = 0; l < game.state.n; l++) {
+      const box = seatEl(l), a = avEl(l), old = before[key(l)];
       if (!box || !a || !old) continue;
       const now = fx.center(a.getBoundingClientRect());
       const dx = old.x - now.x, dy = old.y - now.y;
@@ -5589,8 +5669,8 @@
      * 又因为「形状没变就不重画」被缓存住，要等别的东西触发重画才恢复。现在滑动期间不量，滑完再按最终位置画一次 */
     if (slides.length) {
       const k = (tableTurning = (tableTurning || 0) + 1);
-      Promise.all(slides).then(() => { if (tableTurning === k) { tableTurning = 0; if (game && game.state) renderDir(); } });
-    }
+      Promise.all(slides).then(() => { if (tableTurning === k) { tableTurning = 0; if (game && game.state) { renderDir(); restoreAim(); } } });
+    } else restoreAim();
     els.hand.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 360, delay: 160, easing: 'ease-out', fill: 'backwards' });
     snd('flip');
   }
@@ -6100,7 +6180,7 @@
     if (game && !game.online && !online) {
       // 单机：我出局、自己那下炸完了（fastOut），机器猫还在接着打 → 我自己的 ⏩
       const s = game.state;
-      if (!game.tutorial && s && !s.alive[0] && s.phase !== 'over' && game.fastOut && !game.turboOff) mode = 'ff';
+      if (!game.tutorial && s && !s.alive[meSeat()] && s.phase !== 'over' && game.fastOut && !game.turboOff) mode = 'ff';
     } else {
       const g = online && game && game.online ? G() : null;
       // 我这边也得看到真人全出局了才算（网慢、播得落后时，服务器早算完了，但我这边自己还活着——这时快进 / 露键都等于剧透）
@@ -6771,6 +6851,7 @@
     if (!e.target.closest('.zm-av')) return;
     // 出局后在看别人：点下面这个头像回到自己座位
     if (game && game.online && game.spectator && online && online.st && online.st.mySeat >= 0 && online.base !== online.st.mySeat) { onlineView(online.st.mySeat); return; }
+    if (game && !game.online && game.spectator) { if (!game.dealing && game.state.phase !== 'over') watch(0, true); return; }
     if (canAuto() && !game.dealing) setAutopilot(!autopilot);
   });
   els.drawBtn.addEventListener('click', onDraw);
