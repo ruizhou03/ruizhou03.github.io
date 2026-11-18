@@ -732,25 +732,30 @@
     ambTimer = setTimeout(check, Math.max(60, ms));
   }
   function releaseRim(opts) { if (game && game.rimLk) { game.rimLk.remove(opts); game.rimLk = null; } }
+  // 桌沿上从 a 走到 b 的那一串点的序号（rimLink 的连线、作废导火索的局部灯带共用）。往哪边走见 rimLink 里的说明
+  function rimNear(sv, p) { const pts = sv._pts; let bi = 0, bd = Infinity; pts.forEach((q, i) => { const dd = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (dd < bd) { bd = dd; bi = i; } }); return bi; }
+  function rimRoute(sv, a, b, flow) {
+    const N = sv._pts.length, ia = rimNear(sv, sv._anchor(a)), ib = rimNear(sv, sv._anchor(b));
+    const fwd = (ib - ia + N) % N, back = (ia - ib + N) % N;
+    const dir = dirNow();
+    const shortWay = fwd <= back ? 1 : -1, clear = Math.min(fwd, back) < Math.max(fwd, back) * 0.7;
+    const stepDir = !flow && clear ? shortWay : (dir === -1 ? -1 : 1), cnt = stepDir === 1 ? fwd : back;
+    const out = []; for (let k = 0; k <= cnt; k++) out.push((ia + stepDir * k + N) % N);
+    return out;
+  }
   // flow：甩锅 / 自由甩锅——锅是顺着出牌方向往前传的，连线一律顺着当前方向走（自由甩锅给上家就几乎绕一圈，扫过被跳过的每一家）
   function rimLink(a, b, flow) {
     const sv = rimRender();
     if (!sv || !sv._pts || a === b) return null;
     ambQuiet(400);
-    const pts = sv._pts, N = pts.length;
-    const near = (p) => { let bi = 0, bd = Infinity; pts.forEach((q, i) => { const dd = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (dd < bd) { bd = dd; bi = i; } }); return bi; };
-    const ia = near(sv._anchor(a)), ib = near(sv._anchor(b));
-    const fwd = (ib - ia + N) % N, back = (ia - ib + N) % N;
+    const pts = sv._pts;
+    const seg = rimRoute(sv, a, b, flow).map((i) => pts[i]);
     /* 往哪边走（2026-11-14 用户两次反馈）：
      * ① 5 人局最右那家甩锅给左下角的我（屏幕上两条路差不多长）：线逆着出牌方向走，应该顺着；
      * ② 9 人局零七（上排偏右）索要我：按「中间隔几个人」挑了往右那边，可我坐在左下角、对手全在上排，
      *    往右要绕右边 + 整条底边，屏幕上反而是长的那条，还逆着出牌方向。
      * 现在按屏幕上实际走的路程挑：一边明显短（比另一边短 30% 以上）就走短的；两边差不超过 30%（对角之类）就顺着出牌方向（2026-11-14 用户定 30%，原来是 25%）。
      * 甩锅 / 索要 / 交换 / 偷 / 点名都按这个。路径上序号变大 = 座位号变大（我 → 1 号 → 2 号 …），所以「顺着出牌方向」= 序号往 dirNow() 那边走 */
-    const dir = dirNow();
-    const shortWay = fwd <= back ? 1 : -1, clear = Math.min(fwd, back) < Math.max(fwd, back) * 0.7;
-    const stepDir = !flow && clear ? shortWay : (dir === -1 ? -1 : 1), cnt = stepDir === 1 ? fwd : back;
-    const seg = []; for (let k = 0; k <= cnt; k++) seg.push(pts[(ia + stepDir * k + N) % N]);
     const d = 'M' + seg.map((q) => q.x.toFixed(1) + ' ' + q.y.toFixed(1)).join('L');
     // 任何时候桌沿上只有一条指向的光带（2026-11-14 用户：5 倍速时好几条叠在一起打架）：新的一来，旧的马上撤
     sv.querySelectorAll('.links > g').forEach((old) => { if (old._kill) old._kill(); else old.remove(); });
@@ -1710,12 +1715,20 @@
   }
   function stopRope() { if (fuseSparkTimer) { clearInterval(fuseSparkTimer); fuseSparkTimer = null; } const f = els.stage.querySelector('.zm-fuse'); if (f) f.classList.add('is-out'); }
   const RIM_GOLD = '#d2a24c', RIM_PURPLE = '#8a68a8';
-  let nf = null;   // 这一轮的灯带导火索：{ key, g, path, glow, sparks, i0, x, paintFrom, paintAt, paintMs, burnFrom, burnAt, burnEnd, raf }
+  /* 局部灯带（2026-11-17 用户在四套重设计里挑了丙）：
+   * · 主灯带只亮「出牌人 → 被冲着的人」那一段桌沿（和准星那条连线同一条路），从出牌人那头铺到目标，再从出牌人那头往目标烧——
+   *   烧到目标就生效。没人被冲着的牌（洗牌 / 跳过 / 窥探…）从出牌人往两边各亮一小段。金 = 现在算数，紫 = 被作废了。
+   * · 每有人作废：在桌沿内侧一圈，从「他」到「被他作废的那个人」亮起一段紫光（谁挡了谁），之前的几段淡下去留着；主灯带换色、重新铺满再烧。
+   * 一张牌结算完（clearStage）整组收掉 */
+  let nf = null;   // 这一轮主灯带：{ key, g, path, glow, sparks, idx(点序号，从出牌人往目标), sym, paintAt, paintMs, burnFrom, burnAt, burnEnd, raf }
+  let nArcs = null;   // 这张牌的作废弧：{ key, g, n }
+  const RIM_SYM = 0.07;   // 没目标时每边亮几成圈
   function rimFuse(msLeft) {
     const s = game && game.state;
     if (!s || s.phase !== 'react' || !s.pending) return;
-    const p = s.pending, last = p.nopes.length ? p.nopes[p.nopes.length - 1].seat : p.by;
-    const key = p.by + ':' + p.cards.join(',') + ':' + p.nopes.length;
+    const p = s.pending;
+    const base = p.by + ':' + p.cards.join(',');
+    const key = base + ':' + p.nopes.length;
     const now = performance.now();
     if (nf && nf.key === key && nf.g.isConnected) {   // 同一轮又收到一次：不重铺，只把「烧完」的时刻对齐到新的剩余时间
       const x = nfX(nf, now);
@@ -1725,25 +1738,29 @@
     }
     stopRimFuse(true);
     const L = rimLayer('nfuse'); if (!L || !L.sv._anchor) return;
+    L.sv.appendChild(L.g);   // 压在准星连线上面
+    const sv = L.sv, N = sv._pts.length;
     const col = p.nopes.length % 2 ? RIM_PURPLE : RIM_GOLD;
-    const pts = L.sv._pts, a = L.sv._anchor(last);
-    let i0 = 0, bd = Infinity;
-    pts.forEach((q, i) => { const d = (q.x - a.x) ** 2 + (q.y - a.y) ** 2; if (d < bd) { bd = d; i0 = i; } });
-    L.g.innerHTML = '<path style="stroke:' + col + ';color:' + col + ';stroke-width:3.6"/><circle r="3.6" style="fill:#fffaf0;stroke:' + col + ';stroke-width:2"/><circle r="3.6" style="fill:#fffaf0;stroke:' + col + ';stroke-width:2"/>';
-    const path = L.g.querySelector('path'), glow = glowTwin(path, 7)[0], sparks = L.g.querySelectorAll('circle');
-    const paintMs = isFinite(msLeft) ? Math.min(700, msLeft * 0.4) : 700;
-    nf = { key, g: L.g, sv: L.sv, path, glow, sparks, i0, paintAt: now, paintMs, burnFrom: 1, burnAt: now + paintMs, burnEnd: now + msLeft };
+    const tg = targetOf(p);
+    let idx, sym = false;
+    if (tg >= 0 && tg !== p.by) idx = rimRoute(sv, p.by, tg, p.type === R.ATTACK || p.type === R.TATTACK);
+    else { sym = true; const i0 = rimNear(sv, sv._anchor(p.by)), k = Math.max(4, Math.round(N * RIM_SYM)); idx = []; for (let j = -k; j <= k; j++) idx.push(((i0 + j) % N + N) % N); }
+    L.g.innerHTML = '<path style="stroke:' + col + ';color:' + col + ';stroke-width:4.2"/><circle r="3.8" style="fill:#fffaf0;stroke:' + col + ';stroke-width:2"/><circle r="3.8" style="fill:#fffaf0;stroke:' + col + ';stroke-width:2"/>';
+    const path = L.g.querySelector('path'), glow = glowTwin(path, 8)[0], sparks = L.g.querySelectorAll('circle');
+    const paintMs = isFinite(msLeft) ? Math.min(600, msLeft * 0.35) : 600;
+    nf = { key, g: L.g, sv, path, glow, sparks, idx, sym, paintAt: now, paintMs, burnFrom: 1, burnAt: now + paintMs, burnEnd: now + msLeft };
     if (fx.reduce()) { nf.paintMs = 0; nf.burnAt = now; }
+    nopeArc(sv, p, base);
     const tick = () => {
       if (!nf || nf.g !== L.g || !L.g.isConnected) return;
       const t = performance.now();
       if (t > nf.burnEnd && t > nf.paintAt + nf.paintMs) { stopRimFuse(true); return; }   // 烧完了：撤掉这一层，常驻光才亮得回来
-      drawRimFuse(nf, nfX(nf, t));
+      drawRimFuse(nf, nfX(nf, t), t < nf.paintAt + nf.paintMs);
       nf.raf = requestAnimationFrame(tick);
     };
     tick();
   }
-  // 现在铺到 / 烧到哪儿：x = 每边占半圈的几成（0..1）
+  // 现在铺到 / 剩下几成（0..1）
   function nfX(f, now) {
     if (now < f.paintAt + f.paintMs) { const q = (now - f.paintAt) / f.paintMs; return 1 - Math.pow(1 - q, 3); }
     if (!isFinite(f.burnEnd)) return 1;
@@ -1751,18 +1768,58 @@
     const q = f.burnEnd > start ? Math.min(1, Math.max(0, (now - start) / (f.burnEnd - start))) : 1;
     return f.burnFrom * (1 - q);
   }
-  function drawRimFuse(f, x) {
-    const pts = f.sv._pts, N = pts.length;
-    if (!N) return;
-    const k = Math.round(x * Math.floor(N / 2));
-    if (k < 1) { f.path.setAttribute('d', ''); f.glow.setAttribute('d', ''); f.sparks.forEach((c) => c.setAttribute('opacity', 0)); return; }
-    const at = (j) => pts[((f.i0 + j) % N + N) % N];
-    let d = '';
-    for (let j = -k; j <= k; j++) { const q = at(j); d += (j === -k ? 'M' : 'L') + q.x.toFixed(1) + ' ' + q.y.toFixed(1); }
+  const ptsD = (arr) => { let d = ''; arr.forEach((q, j) => { d += (j ? 'L' : 'M') + q.x.toFixed(1) + ' ' + q.y.toFixed(1); }); return d; };
+  function drawRimFuse(f, x, painting) {
+    const pts = f.sv._pts, idx = f.idx, M = idx.length - 1;
+    if (!pts.length || M < 1) return;
+    let lo, hi;   // 序号区间
+    if (f.sym) { const c = M / 2, k = Math.round(x * c); lo = c - k; hi = c + k; }
+    else if (painting) { lo = 0; hi = Math.round(x * M); }   // 从出牌人往目标铺
+    else { lo = Math.round((1 - x) * M); hi = M; }            // 从出牌人那头往目标烧
+    if (hi - lo < 1) { f.path.setAttribute('d', ''); f.glow.setAttribute('d', ''); f.sparks.forEach((c) => c.setAttribute('opacity', 0)); return; }
+    const seg = []; for (let j = Math.round(lo); j <= Math.round(hi); j++) seg.push(pts[idx[j]]);
+    const d = ptsD(seg);
     f.path.setAttribute('d', d); f.glow.setAttribute('d', d);
-    const ends = [at(-k), at(k)], burning = performance.now() >= f.paintAt + f.paintMs && isFinite(f.burnEnd);
-    f.sparks.forEach((c, i) => { c.setAttribute('cx', ends[i].x.toFixed(1)); c.setAttribute('cy', ends[i].y.toFixed(1)); c.setAttribute('opacity', burning ? 1 : 0); });
+    const burning = !painting && isFinite(f.burnEnd);
+    const ends = f.sym ? [seg[0], seg[seg.length - 1]] : [seg[0], null];   // 火星：烧的那头（有目标时只有出牌人那一头在烧）
+    f.sparks.forEach((c, i) => { const q = ends[i]; if (!q) { c.setAttribute('opacity', 0); return; } c.setAttribute('cx', q.x.toFixed(1)); c.setAttribute('cy', q.y.toFixed(1)); c.setAttribute('opacity', burning ? 1 : 0); });
   }
+  /* 作废弧：桌沿内侧一圈（往桌心收 11px），从刚作废的人到被他作废的人；之前的弧淡到三成留着 */
+  function nopeArc(sv, p, base) {
+    if (nArcs && (nArcs.key !== base || !nArcs.g.isConnected)) { nArcs.g.remove(); nArcs = null; }
+    const n = p.nopes.length;
+    if (!n || (nArcs && nArcs.n >= n)) return;
+    if (!nArcs) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('class', 'fx narcs');
+      sv.appendChild(g); nArcs = { key: base, g, n: 0 };
+    }
+    nArcs.n = n;
+    const by = p.nopes[n - 1].seat, victim = n >= 2 ? p.nopes[n - 2].seat : p.by;
+    if (by === victim) return;
+    nArcs.g.querySelectorAll('g').forEach((o) => { o.style.transition = 'opacity .3s'; o.style.opacity = 0.3; });
+    const pts = sv._pts, cx = pts.reduce((t, q) => t + q.x, 0) / pts.length, cy = pts.reduce((t, q) => t + q.y, 0) / pts.length;
+    const inset = (q) => { const dx = cx - q.x, dy = cy - q.y, l = Math.hypot(dx, dy) || 1; return { x: q.x + dx / l * 11, y: q.y + dy / l * 11 }; };
+    const seg = rimRoute(sv, by, victim, false).map((i) => inset(pts[i]));
+    if (seg.length < 2) return;
+    const a = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    a.innerHTML = '<path style="stroke:' + RIM_PURPLE + ';color:' + RIM_PURPLE + ';stroke-width:3.4;fill:none;stroke-linecap:round"/><circle r="5" style="fill:' + RIM_PURPLE + '"/>';
+    nArcs.g.appendChild(a);
+    const path = a.querySelector('path'), dot = a.querySelector('circle'), glow = glowTwin(path, 6)[0];
+    const end = seg[seg.length - 1]; dot.setAttribute('cx', end.x.toFixed(1)); dot.setAttribute('cy', end.y.toFixed(1)); dot.setAttribute('opacity', 0);
+    const full = ptsD(seg);
+    if (fx.reduce()) { path.setAttribute('d', full); glow.setAttribute('d', full); dot.setAttribute('opacity', 1); return; }
+    const t0 = performance.now(), dur = Math.min(520, 200 + seg.length * 3);
+    const step = () => {
+      if (!a.isConnected) return;
+      const k = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      const d = ptsD(seg.slice(0, Math.max(2, Math.round(e * seg.length))));
+      path.setAttribute('d', d); glow.setAttribute('d', d);
+      if (k < 1) requestAnimationFrame(step);
+      else { dot.setAttribute('opacity', 1); if (dot.animate) dot.animate([{ r: 5 }, { r: 10 }, { r: 5 }], { duration: 360 }); }
+    };
+    step();
+  }
+  function stopNopeArcs() { if (nArcs) { const g = nArcs.g; nArcs = null; if (fx.reduce()) g.remove(); else g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished.then(() => g.remove(), () => g.remove()); } }
   function stopRimFuse(now) {
     if (!nf) return;
     const f = nf; nf = null;
@@ -1772,6 +1829,7 @@
   }
   function clearStage(keepRim) {
     stopFuse();
+    stopNopeArcs();
     if (!keepRim) releaseRim();
     if (!keepRim && game && game.arrow) { game.arrow.remove(); game.arrow = null; }   // 扫完舞台（keepRim）时准星也留着：索要 / 偷 / 点名 / 交换要瞄到真动手（2026-11-15 用户）
     setActing(-1);
@@ -3919,6 +3977,7 @@
 
   function wipeFx() {
     stopRimFuse(true);
+    if (nArcs) { nArcs.g.remove(); nArcs = null; }
     clearBombAvatars();
     if (game && game.wander) { game.wander.cancel(); game.wander = null; }
     if (game && game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
@@ -7009,7 +7068,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, rimFuse, clearStage };
   }
   window.ZhamaoTable = { cardHtml, backHtml, rulesHtml };
 })();
