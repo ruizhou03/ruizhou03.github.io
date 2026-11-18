@@ -722,6 +722,9 @@
     }
     return BRAIN.score(f);
   }
+  /* 普通只有一部分出牌步数用网络、其余照原规则（2026-11-18 用户：普通调弱到入门和高手中间）。
+   * 全用网络时普通和高手一样强（练不出更强的高手：更大网络 / 接着练 / 推演里对手也用网络都只和它打平），档位拉不开 */
+  const NORMAL_BRAIN_P = (FXO && FXO.brainP != null) ? FXO.brainP : 0.3;
   const isPeekMove = (m) => m.type === 'play' && m.cards.length === 1 && (K[m.cards[0]] === R.FUTURE || K[m.cards[0]] === R.ALTER);
   function brainAct(v) {
     const nm = pol(v).act(v);
@@ -773,7 +776,7 @@
   function actFor(v, tier, rng) {
     rng = rng || Math.random;
     if (tier === 'hard') return hardAct(v, rng);
-    if (tier === 'normal' && useBrain(v)) return brainAct(v);
+    if (tier === 'normal' && useBrain(v) && rng() < NORMAL_BRAIN_P) return brainAct(v);   // 普通 = 一部分步数用网络（调到入门和高手正中间）
     return polT(v, tier).act(v);
   }
   // 各档内部的细节判断一律按「普通」的走法（原来入门那套随手乱出的已经不用了）
