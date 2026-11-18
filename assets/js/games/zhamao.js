@@ -744,7 +744,7 @@
     return out;
   }
   // flow：甩锅 / 自由甩锅——锅是顺着出牌方向往前传的，连线一律顺着当前方向走（自由甩锅给上家就几乎绕一圈，扫过被跳过的每一家）
-  function rimLink(a, b, flow) {
+  function rimLink(a, b, flow, color) {
     const sv = rimRender();
     if (!sv || !sv._pts || a === b) return null;
     ambQuiet(400);
@@ -761,7 +761,8 @@
     sv.querySelectorAll('.links > g').forEach((old) => { if (old._kill) old._kill(); else old.remove(); });
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     const end = seg[seg.length - 1];
-    if (b === 0) g.classList.add('is-me');   // 冲着我：连线红色（2026-11-15 乙1）
+    if (b === 0) g.classList.add('is-me');
+    if (color) g.style.setProperty('--lh', color);   // 连线 = 牌色（2026-11-18；原来冲着我一律红，改成和准星同一个牌色）；被作废变灰见 CSS .is-dull
     g.innerHTML = '<path class="lglow" d="' + d + '"/><path class="lline" d="' + d + '"/><circle class="lhalo" r="8"/><circle class="lhead" r="4"/><circle class="lend" cx="' + end.x.toFixed(1) + '" cy="' + end.y.toFixed(1) + '" r="6"/>';
     sv.querySelector('.links').appendChild(g);
     const paths = g.querySelectorAll('path'), len = Math.max(1, paths[1].getTotalLength()), head = g.querySelector('.lhead'), halo = g.querySelector('.lhalo'), endDot = g.querySelector('.lend');
@@ -769,8 +770,12 @@
     const growMs = Math.min(650, 220 + len * 0.9);   // 光带的长 / 收是 requestAnimationFrame 自己算的：tween 里按快进倍数缩
     let raf = 0, grown = false, pending = null, dead = false;
     // 可见的一截 = [lo, hi]（0..1，沿出牌人 → 被指的人）；head 画在 hi 处
+    let cur = [0, 0], draf = 0;   // cur：现在露出来的那截；draf：作废之后变灰收回那段动画自己的帧（收的时候先停掉它）
+    const bye = () => g.remove();
     const show = (lo, hi) => {
+      cur = [lo, hi];
       const q = paths[1].getPointAtLength(len * hi), x = q.x.toFixed(1), y = q.y.toFixed(1); head.setAttribute('cx', x); head.setAttribute('cy', y); halo.setAttribute('cx', x); halo.setAttribute('cy', y);
+      const gone = hi - lo < 0.012; head.style.opacity = gone ? 0 : ''; halo.style.opacity = gone ? 0 : '';
       paths.forEach((p) => { p.style.strokeDasharray = Math.max(0.01, len * (hi - lo)).toFixed(1) + ' ' + (len * 2).toFixed(0); p.style.strokeDashoffset = (-len * lo).toFixed(1); });
     };
     const tween = (ms0, fn, done) => {
@@ -779,18 +784,20 @@
       raf = requestAnimationFrame(step);
     };
     const finish = (opts) => {
+      cancelAnimationFrame(draf);
       if (!g.isConnected) return;
       endDot.classList.remove('is-on');
-      if (fx.reduce()) { g.remove(); return; }
+      if (fx.reduce()) { bye(); return; }
       if (opts && opts.mode === 'push') {
         // 推过去（甩锅）：尾巴从出牌人这头追到被指的人那头，像锅一路滑到他面前
         endDot.classList.add('is-hit');
-        tween(Math.min(620, 260 + len * 0.7), (k) => show(k * k * (3 - 2 * k), 1), () => { g.remove(); });
+        tween(Math.min(620, 260 + len * 0.7), (k) => show(k * k * (3 - 2 * k), 1), bye);
       } else {
         // 缩回（抽到 / 给到 / 换完 / 落空 / 被作废）：头从被指的人那头缩回出牌人；被作废的话整条先变灰、慢慢地蔫回去
         if (opts && opts.dull) g.classList.add('is-dull');
-        const ms = opts && opts.dull ? Math.min(900, 420 + len * 0.8) : Math.min(480, 180 + len * 0.6);
-        tween(ms, (k) => show(0, 1 - (opts && opts.dull ? k * k * (3 - 2 * k) : k * k)), () => g.remove());
+        if (cur[1] - cur[0] < 0.012) { bye(); return; }   // 作废时已经收回去了
+        const ms = opts && opts.dull ? Math.min(480, 180 + len * 0.6) : Math.min(480, 180 + len * 0.6), h0 = cur[1], l0 = cur[0];
+        tween(ms, (k) => show(l0, l0 + (h0 - l0) * (1 - k * k)), bye);
       }
     };
     if (fx.reduce()) { show(0, 1); grown = true; endDot.classList.add('is-on'); }
@@ -798,10 +805,26 @@
       grown = true; endDot.classList.add('is-on');
       if (pending) { const o = pending; pending = null; setTimeout(() => { if (!dead) finish(o); }, ((o && o.hold) || 220) / turboK()); }
     });
-    g._kill = () => { dead = true; pending = null; cancelAnimationFrame(raf); g.remove(); };
+    g._kill = () => { dead = true; pending = null; cancelAnimationFrame(raf); cancelAnimationFrame(draf); bye(); };
     return {
       // 有人作废（单数张）就变灰、再被作废回来就亮回金色（2026-11-13 用户：被作废时灯带用灰色收回来，情绪更到位）
-      setDull(on) { if (!dead) g.classList.toggle('is-dull', !!on); },
+      /* 被作废（2026-11-18 用户定）：伸出去的连线变灰、从被冲着的人那头收回出牌人；再被作废回来就重新伸出去、恢复牌色。
+       * 打在作废牌拍到桌上那一下（stageVerdict），单机里没人再表态也照样放完。准星同时变灰停转 */
+      setDull(on) {
+        if (dead) return;
+        on = !!on;
+        if (g.classList.contains('is-dull') === on) return;
+        if (game && game.arrow && game.arrow.tint) game.arrow.tint(on ? '#a2998b' : null);
+        g.classList.toggle('is-dull', on);
+        endDot.classList.toggle('is-on', !on);
+        cancelAnimationFrame(draf);
+        const h0 = cur[1], h1 = on ? 0 : 1;
+        if (fx.reduce()) { show(cur[0], h1); return; }
+        // 收回和伸出走同一种运动、时间一样长（2026-11-18 用户：加速收回显得仓促）：伸出是先快后慢地长到头，收回就是它倒着放——先慢后快地缩回、收干净
+        const D = growMs / turboK(), t0 = performance.now();
+        const step = (now) => { if (dead) return; const k = Math.min(1, (now - t0) / D), e = on ? Math.pow(k, 3) : 1 - Math.pow(1 - k, 3); show(cur[0], h0 + (h1 - h0) * e); if (k < 1) draf = requestAnimationFrame(step); };
+        draf = requestAnimationFrame(step);
+      },
       // 还在长就先长完、停一下再收（2026-11-13 用户：别人甩锅给我，线还没长到我这儿动画就结束了）
       remove(opts) {
         if (dead) return;
@@ -881,7 +904,7 @@
       case 'shuffle': rimSwirl('#e6bd62', 1.5, 1300, dirNow()); break;   // 绕桌飞转跟着出牌方向（2026-11-14 用户：转向后洗牌还逆时针转）
       case 'reverse': rimSwirl('#9fc3d6', 1, 1100, e.dir); break;
       case 'flux': rimRipple(e.seat, '#a77bb5', 1100, 3.5); break;   // 换百变规则：梅紫波纹
-      case 'nope': rimRipple(e.seat, '#8a68a8', 700, 3); break;
+      case 'nope': break;   // 作废不再在桌沿漾紫波（2026-11-18 用户：多余，往光带某个角涌）
       case 'win': rimSwirl('#f0c862', 1, 1500, dirNow()); rimFlash('#f0c862', 2, 600); break;
       case 'play': if (e.type === 'five') rimRainbow(e.seat); break;   // 五种猫各一张：五色彗星从他那儿绕桌一圈
       case 'pick': rimRipple(e.seat, '#e2b85c', 1000, 3.5); break;     // 从弃牌堆捡到了：金色波纹
@@ -1620,7 +1643,7 @@
   // 舞台不加框、不写字：只有放大的牌 + 下面一根导火索。谁出的 = 牌从他头像飞出来 + 他头像亮一圈金光；指了谁 = 那人头像上套一个准星
   function showStage(p, hidden) {
     els.stage.classList.remove('is-cancelled', 'is-out');
-    const named = p.type === 'triple' && p.named ? '<div class="zm-stage-named">' + cardHtml(p.named) + '</div>' : '';   // 先摆上桌、还没点名时没有这张
+    const named = '';   // 点名要：桌上只摆三张猫，点名的那张不再放旁边（2026-11-18 用户）——到结算时在被点名的人旁边走原来那套对话泡动画
     els.stage.innerHTML = '<div class="zm-stage-inner">' +
       '<div class="zm-stage-cards">' + p.cards.map((id, i) => cardHtml(id, hidden ? 'is-incoming' : '', 'transform:rotate(' + ((i - (p.cards.length - 1) / 2) * 5).toFixed(1) + 'deg)')).join('') + named + '<div class="zm-stage-nopes"></div></div>' +
       '<div class="zm-fuse" aria-hidden="true"><i class="rope"></i><i class="spark"></i></div></div>';
@@ -1648,7 +1671,7 @@
   }
   // 抽牌前「想一下」多久：只剩一张没得挑，不用红光游走，停一下就抽
   const stealThink = (count) => (count <= 1 ? ms(250) : pace().bot + ms(700));
-  // 准星：套在被指的人头像上（代替原来那根长虚线箭头）；颜色按牌：蹭一张粉、推锅橙、偷 / 点名金
+  // 准星：套在被指的人头像上（代替原来那根长虚线箭头）；颜色 = 牌色（cardHue）
   function aim(seat, color) {
     const box = seatEl(seat), av = box && box.querySelector('.zm-av');
     if (!av) return null;
@@ -1659,11 +1682,11 @@
     av.appendChild(m);
     box.classList.add('is-aimed');
     fx.pop(av, { scale: 1.14, dur: 320 });
-    return { remove() { m.remove(); box.classList.remove('is-aimed'); } };
+    return { remove() { m.remove(); box.classList.remove('is-aimed'); }, tint(c) { m.style.setProperty('--aim', c || color); m.classList.toggle('is-dull', !!c); } };
   }
   const stageCard = (id) => els.stage.querySelector('.zm-stage-cards [data-id="' + id + '"]');
   function stageCardsEl() { return els.stage.querySelector('.zm-stage-cards'); }
-  function stageVerdict(count) {
+  function stageVerdict(count, by) {
     const inner = els.stage.querySelector('.zm-stage-inner');
     if (!inner) return;
     // 不盖「作废 / 生效」章：被作废的那几张变灰，又被顶回来就复原
@@ -1683,11 +1706,11 @@
     if (!RIM_FUSE) { ropeFuse(msLeft); return; }
     const ring = els.nopeBtn.querySelector('.zm-nope-ring');
     ring.getAnimations().forEach((a) => a.cancel());
-    if (!(msLeft > 0)) { stopRimFuse(); return; }
+    if (!(msLeft > 0)) { stopCardFuse(); return; }
     if (isFinite(msLeft)) ring.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: msLeft, easing: 'linear', fill: 'forwards' });
-    rimFuse(msLeft);
+    cardFuse(msLeft);
   }
-  function stopFuse() { stopRope(); stopRimFuse(); }
+  function stopFuse() { stopRope(); stopCardFuse(); }
   /* 导火索：绳子从右往左烧短，火星跟着走、一路冒小火花；最后一秒半变红、闪 */
   function ropeFuse(msLeft) {
     const f = els.stage.querySelector('.zm-fuse');
@@ -1714,122 +1737,58 @@
     }, 140);
   }
   function stopRope() { if (fuseSparkTimer) { clearInterval(fuseSparkTimer); fuseSparkTimer = null; } const f = els.stage.querySelector('.zm-fuse'); if (f) f.classList.add('is-out'); }
-  const RIM_GOLD = '#d2a24c', RIM_PURPLE = '#8a68a8';
-  /* 局部灯带（2026-11-17 用户在四套重设计里挑了丙）：
-   * · 主灯带只亮「出牌人 → 被冲着的人」那一段桌沿（和准星那条连线同一条路），从出牌人那头铺到目标，再从出牌人那头往目标烧——
-   *   烧到目标就生效。没人被冲着的牌（洗牌 / 跳过 / 窥探…）从出牌人往两边各亮一小段。金 = 现在算数，紫 = 被作废了。
-   * · 每有人作废：在桌沿内侧一圈，从「他」到「被他作废的那个人」亮起一段紫光（谁挡了谁），之前的几段淡下去留着；主灯带换色、重新铺满再烧。
-   * 一张牌结算完（clearStage）整组收掉 */
-  let nf = null;   // 这一轮主灯带：{ key, g, path, glow, sparks, idx(点序号，从出牌人往目标), sym, paintAt, paintMs, burnFrom, burnAt, burnEnd, raf }
-  let nArcs = null;   // 这张牌的作废弧：{ key, g, n }
-  const RIM_SYM = 0.07;   // 没目标时每边亮几成圈
-  function rimFuse(msLeft) {
-    const s = game && game.state;
-    if (!s || s.phase !== 'react' || !s.pending) return;
-    const p = s.pending;
-    const base = p.by + ':' + p.cards.join(',');
-    const key = base + ':' + p.nopes.length;
-    const now = performance.now();
-    if (nf && nf.key === key && nf.g.isConnected) {   // 同一轮又收到一次：不重铺，只把「烧完」的时刻对齐到新的剩余时间
-      const x = nfX(nf, now);
-      if (now < nf.paintAt + nf.paintMs) { nf.burnEnd = now + msLeft; return; }
-      nf.burnFrom = x; nf.burnAt = now; nf.burnEnd = now + msLeft;
-      return;
-    }
-    stopRimFuse(true);
-    const L = rimLayer('nfuse'); if (!L || !L.sv._anchor) return;
-    L.sv.appendChild(L.g);   // 压在准星连线上面
-    const sv = L.sv, N = sv._pts.length;
-    const col = p.nopes.length % 2 ? RIM_PURPLE : RIM_GOLD;
-    const tg = targetOf(p);
-    let idx, sym = false;
-    if (tg >= 0 && tg !== p.by) idx = rimRoute(sv, p.by, tg, p.type === R.ATTACK || p.type === R.TATTACK);
-    else { sym = true; const i0 = rimNear(sv, sv._anchor(p.by)), k = Math.max(4, Math.round(N * RIM_SYM)); idx = []; for (let j = -k; j <= k; j++) idx.push(((i0 + j) % N + N) % N); }
-    L.g.innerHTML = '<path style="stroke:' + col + ';color:' + col + ';stroke-width:4.2"/><circle r="3.8" style="fill:#fffaf0;stroke:' + col + ';stroke-width:2"/><circle r="3.8" style="fill:#fffaf0;stroke:' + col + ';stroke-width:2"/>';
-    const path = L.g.querySelector('path'), glow = glowTwin(path, 8)[0], sparks = L.g.querySelectorAll('circle');
-    const paintMs = isFinite(msLeft) ? Math.min(600, msLeft * 0.35) : 600;
-    nf = { key, g: L.g, sv, path, glow, sparks, idx, sym, paintAt: now, paintMs, burnFrom: 1, burnAt: now + paintMs, burnEnd: now + msLeft };
-    if (fx.reduce()) { nf.paintMs = 0; nf.burnAt = now; }
-    nopeArc(sv, p, base);
+  /* 作废倒计时（2026-11-18 用户挑丙「桌心牌计时」）：桌心那张（那几张）牌外一圈紫色描边——紫 = 作废（作废牌 / 作废键 / 流星都是这个紫），
+   * 描边从顶上正中开始顺时针收，收的那头顶着一颗作废图标，收完就不能再作废。桌沿只留「谁冲着谁」那一根牌色连线（rimLink），
+   * 没目标的牌桌沿不亮。原来的桌沿导火索 / 内圈紫弧（2026-11-17 丙）撤掉：两根线叠在一起颜色打架，单机里作废了也看不到变紫 */
+  const NOPE_PURPLE = '#7a5a96';
+  let cfz = null;   // { svg, raf }
+  function cardFuse(msLeft) {
+    stopCardFuse(true);
+    const host = els.stage.querySelector('.zm-stage-cards');
+    if (!host) return;
+    const pad = Math.max(7, U() * 0.12), w = host.offsetWidth + pad * 2, h = host.offsetHeight + pad * 2, r = Math.min(16, w * 0.12);
+    if (w < 20 || h < 20) return;
+    const x0 = 2, y0 = 2, x1 = w - 2, y1 = h - 2, cx = w / 2;
+    const d = 'M' + cx + ' ' + y0 + 'H' + (x1 - r) + 'Q' + x1 + ' ' + y0 + ' ' + x1 + ' ' + (y0 + r) + 'V' + (y1 - r) + 'Q' + x1 + ' ' + y1 + ' ' + (x1 - r) + ' ' + y1 +
+      'H' + (x0 + r) + 'Q' + x0 + ' ' + y1 + ' ' + x0 + ' ' + (y1 - r) + 'V' + (y0 + r) + 'Q' + x0 + ' ' + y0 + ' ' + (x0 + r) + ' ' + y0 + 'Z';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'zm-cfuse'); svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('width', w); svg.setAttribute('height', h); svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+    svg.style.left = -pad + 'px'; svg.style.top = -pad + 'px';
+    svg.innerHTML = '<path class="trk" d="' + d + '"/><path class="bar" d="' + d + '"/><g class="hd"><circle r="9"/><circle class="o" r="4.6"/><path d="M-3.2 -3.2 3.2 3.2"/></g>';
+    host.appendChild(svg);
+    const bar = svg.querySelector('.bar'), hd = svg.querySelector('.hd'), L = bar.getTotalLength();
+    bar.style.strokeDasharray = L + ' ' + (L + 4);
+    const f = { svg, raf: 0 }; cfz = f;
+    const put = (off) => { const q = bar.getPointAtLength(Math.min(L - 0.01, Math.max(0, off))); hd.setAttribute('transform', 'translate(' + q.x.toFixed(1) + ' ' + q.y.toFixed(1) + ')'); };
+    if (!isFinite(msLeft) || fx.reduce()) { bar.style.strokeDashoffset = 0; put(0); if (!isFinite(msLeft)) return; }
+    const t0 = performance.now();
     const tick = () => {
-      if (!nf || nf.g !== L.g || !L.g.isConnected) return;
-      const t = performance.now();
-      if (t > nf.burnEnd && t > nf.paintAt + nf.paintMs) { stopRimFuse(true); return; }   // 烧完了：撤掉这一层，常驻光才亮得回来
-      drawRimFuse(nf, nfX(nf, t), t < nf.paintAt + nf.paintMs);
-      nf.raf = requestAnimationFrame(tick);
+      if (cfz !== f || !svg.isConnected) return;
+      const k = Math.min(1, (performance.now() - t0) / msLeft), off = -L * k;
+      bar.style.strokeDashoffset = off.toFixed(1); put(-off);
+      svg.classList.toggle('is-urgent', msLeft - (performance.now() - t0) < 900);
+      if (k < 1) f.raf = requestAnimationFrame(tick); else stopCardFuse();
     };
     tick();
   }
-  // 现在铺到 / 剩下几成（0..1）
-  function nfX(f, now) {
-    if (now < f.paintAt + f.paintMs) { const q = (now - f.paintAt) / f.paintMs; return 1 - Math.pow(1 - q, 3); }
-    if (!isFinite(f.burnEnd)) return 1;
-    const start = Math.max(f.burnAt, f.paintAt + f.paintMs);
-    const q = f.burnEnd > start ? Math.min(1, Math.max(0, (now - start) / (f.burnEnd - start))) : 1;
-    return f.burnFrom * (1 - q);
-  }
-  const ptsD = (arr) => { let d = ''; arr.forEach((q, j) => { d += (j ? 'L' : 'M') + q.x.toFixed(1) + ' ' + q.y.toFixed(1); }); return d; };
-  function drawRimFuse(f, x, painting) {
-    const pts = f.sv._pts, idx = f.idx, M = idx.length - 1;
-    if (!pts.length || M < 1) return;
-    let lo, hi;   // 序号区间
-    if (f.sym) { const c = M / 2, k = Math.round(x * c); lo = c - k; hi = c + k; }
-    else if (painting) { lo = 0; hi = Math.round(x * M); }   // 从出牌人往目标铺
-    else { lo = Math.round((1 - x) * M); hi = M; }            // 从出牌人那头往目标烧
-    if (hi - lo < 1) { f.path.setAttribute('d', ''); f.glow.setAttribute('d', ''); f.sparks.forEach((c) => c.setAttribute('opacity', 0)); return; }
-    const seg = []; for (let j = Math.round(lo); j <= Math.round(hi); j++) seg.push(pts[idx[j]]);
-    const d = ptsD(seg);
-    f.path.setAttribute('d', d); f.glow.setAttribute('d', d);
-    const burning = !painting && isFinite(f.burnEnd);
-    const ends = f.sym ? [seg[0], seg[seg.length - 1]] : [seg[0], null];   // 火星：烧的那头（有目标时只有出牌人那一头在烧）
-    f.sparks.forEach((c, i) => { const q = ends[i]; if (!q) { c.setAttribute('opacity', 0); return; } c.setAttribute('cx', q.x.toFixed(1)); c.setAttribute('cy', q.y.toFixed(1)); c.setAttribute('opacity', burning ? 1 : 0); });
-  }
-  /* 作废弧：桌沿内侧一圈（往桌心收 11px），从刚作废的人到被他作废的人；之前的弧淡到三成留着 */
-  function nopeArc(sv, p, base) {
-    if (nArcs && (nArcs.key !== base || !nArcs.g.isConnected)) { nArcs.g.remove(); nArcs = null; }
-    const n = p.nopes.length;
-    if (!n || (nArcs && nArcs.n >= n)) return;
-    if (!nArcs) {
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('class', 'fx narcs');
-      sv.appendChild(g); nArcs = { key: base, g, n: 0 };
-    }
-    nArcs.n = n;
-    const by = p.nopes[n - 1].seat, victim = n >= 2 ? p.nopes[n - 2].seat : p.by;
-    if (by === victim) return;
-    nArcs.g.querySelectorAll('g').forEach((o) => { o.style.transition = 'opacity .3s'; o.style.opacity = 0.3; });
-    const pts = sv._pts, cx = pts.reduce((t, q) => t + q.x, 0) / pts.length, cy = pts.reduce((t, q) => t + q.y, 0) / pts.length;
-    const inset = (q) => { const dx = cx - q.x, dy = cy - q.y, l = Math.hypot(dx, dy) || 1; return { x: q.x + dx / l * 11, y: q.y + dy / l * 11 }; };
-    const seg = rimRoute(sv, by, victim, false).map((i) => inset(pts[i]));
-    if (seg.length < 2) return;
-    const a = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    a.innerHTML = '<path style="stroke:' + RIM_PURPLE + ';color:' + RIM_PURPLE + ';stroke-width:3.4;fill:none;stroke-linecap:round"/><circle r="5" style="fill:' + RIM_PURPLE + '"/>';
-    nArcs.g.appendChild(a);
-    const path = a.querySelector('path'), dot = a.querySelector('circle'), glow = glowTwin(path, 6)[0];
-    const end = seg[seg.length - 1]; dot.setAttribute('cx', end.x.toFixed(1)); dot.setAttribute('cy', end.y.toFixed(1)); dot.setAttribute('opacity', 0);
-    const full = ptsD(seg);
-    if (fx.reduce()) { path.setAttribute('d', full); glow.setAttribute('d', full); dot.setAttribute('opacity', 1); return; }
-    const t0 = performance.now(), dur = Math.min(520, 200 + seg.length * 3);
-    const step = () => {
-      if (!a.isConnected) return;
-      const k = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-      const d = ptsD(seg.slice(0, Math.max(2, Math.round(e * seg.length))));
-      path.setAttribute('d', d); glow.setAttribute('d', d);
-      if (k < 1) requestAnimationFrame(step);
-      else { dot.setAttribute('opacity', 1); if (dot.animate) dot.animate([{ r: 5 }, { r: 10 }, { r: 5 }], { duration: 360 }); }
-    };
-    step();
-  }
-  function stopNopeArcs() { if (nArcs) { const g = nArcs.g; nArcs = null; if (fx.reduce()) g.remove(); else g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished.then(() => g.remove(), () => g.remove()); } }
-  function stopRimFuse(now) {
-    if (!nf) return;
-    const f = nf; nf = null;
+  function stopCardFuse(now) {
+    if (!cfz) return;
+    const f = cfz; cfz = null;
     cancelAnimationFrame(f.raf);
-    if (now || fx.reduce()) { f.g.remove(); return; }
-    f.g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' }).finished.then(() => f.g.remove()).catch(() => f.g.remove());
+    if (now || fx.reduce() || !f.svg.isConnected) { f.svg.remove(); return; }
+    f.svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: 'forwards' }).finished.then(() => f.svg.remove()).catch(() => f.svg.remove());
+  }
+  /* 牌色（2026-11-18 用户：不同的牌有自己的颜色，索要 = 粉）：光的颜色 = 这张牌名字条的颜色；猫牌组合（偷 / 点名 / 五种）一律金；
+   * 索要用一直以来的那个粉（被索要挑牌时整排手牌描的也是它）。准星、桌沿连线都用它 */
+  function cardHue(p) {
+    if (p.type === R.FAVOR) return '#e0566e';
+    if (p.type === 'pair' || p.type === 'triple' || p.type === 'five') return '#c9a24a';
+    const t = ART.TONE[p.type] || (p.cards && p.cards.length ? ART.TONE[R.KIND_OF[p.cards[0]]] : null);
+    return t ? t.band : '#c9a96e';
   }
   function clearStage(keepRim) {
     stopFuse();
-    stopNopeArcs();
     if (!keepRim) releaseRim();
     if (!keepRim && game && game.arrow) { game.arrow.remove(); game.arrow = null; }   // 扫完舞台（keepRim）时准星也留着：索要 / 偷 / 点名 / 交换要瞄到真动手（2026-11-15 用户）
     setActing(-1);
@@ -2185,9 +2144,9 @@
     const tg = targetOf(p);
     if (tg >= 0) {
       if (game.arrow) game.arrow.remove();
-      game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : p.type === R.ATTACK || p.type === R.TATTACK ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
+      game.arrow = aim(tg, cardHue(p));
       releaseRim();
-      game.rimLk = rimLink(p.by, tg, p.type === R.ATTACK || p.type === R.TATTACK);   // 甩锅 / 自由甩锅一律顺着出牌方向连（2026-11-14 用户）；桌沿连线单独记着：等牌真的拿到 / 给到 / 换完才收（不跟准星一起收）；甩锅给下家也连
+      game.rimLk = rimLink(p.by, tg, p.type === R.ATTACK || p.type === R.TATTACK, cardHue(p));   // 甩锅 / 自由甩锅一律顺着出牌方向连（2026-11-14 用户）；桌沿连线单独记着：等牌真的拿到 / 给到 / 换完才收（不跟准星一起收）；甩锅给下家也连
     }
     await mimic(p.cards, t);   // 万能猫顶了谁：演完、停一下再往下走（只有组合里有万能猫时才多这一下）
     if (t !== token) return;
@@ -2244,13 +2203,17 @@
     if (e.seat === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.seat] -= 1; renderSeat(e.seat); }
     const cards = stageCardsEl();
     const box = cards ? cards.getBoundingClientRect() : els.center.getBoundingClientRect();
-    const c = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
-    const rot = e.count % 2 ? -11 : 9;
-    const u = U();
+    const rot = e.count % 2 ? -4 : 3;   // 叠上去的作废只微微歪一点（2026-11-18 用户：别错开太多）
+    // 先把桌上那张作废摆好（藏着）、量它真正落在哪、多大，飞过去就落在那儿（2026-11-18 用户：第二张作废拍下去最后一帧和落脚处对不上）
+    const slot = stageNope(e.card, e.count, rot);
+    if (slot) slot.style.visibility = 'hidden';
+    const sr = slot ? slot.getBoundingClientRect() : box;
+    const c = { x: sr.left + sr.width / 2, y: sr.top + sr.height / 2 };
+    const u = slot ? slot.offsetWidth : U();
     // 先飞到上方举高、放大，再狠狠拍下去
     const node = await fx.fly({
       html: cardHtml(e.card), back: backHtml(), flip: src ? null : 'up', flipAt: 0.1,
-      from, to: { x: c.x, y: c.y - u * 0.5 }, w: u, s0: src ? 1 : 0.35, s1: 1.45, r0: 0, r1: rot * 2, dur: ms(380), lift: 70, land: false, keep: true,
+      from, to: { x: c.x, y: c.y - u * 0.5 }, w: u, s0: src ? from.width / u : 0.35, s1: 1.45, r0: 0, r1: rot * 2, dur: ms(380), lift: 70, land: false, keep: true,
     });
     if (t !== token) { if (node) node.remove(); return; }
     if (node) {
@@ -2262,20 +2225,21 @@
       ], { duration: ms(240) }, 'cubic-bezier(.6,0,.9,.5)').finished.catch(() => {});
       node.remove();
     }
+    if (slot) slot.style.visibility = '';
     if (t !== token) return;
     // 拍下去
     snd('slam');
     fx.shake(stageCardsEl(), { amp: 7, dur: 320 });
     fx.ring(c.x, c.y, { color: '#7a5a96', size: u * 3.2, width: 5, dur: 520 });
     fx.burst(c.x, c.y, { n: 12, shapes: ['star', 'dot'], colors: PURPLES, radius: u * 1.3, size: [5, 16], life: 760, pattern: 'ring' });
-    stageNope(e.card, e.count, rot);
-    stageVerdict(e.count);
+    stageVerdict(e.count, e.seat);
     await wait(ms(260));
   }
   function stageNope(id, count, rot) {
     const box = els.stage.querySelector('.zm-stage-nopes');
     if (!box) return;
     box.insertAdjacentHTML('beforeend', cardHtml(id, '', 'transform:translate(-50%,-50%) rotate(' + rot + 'deg)'));
+    return box.lastElementChild;
   }
 
   /* 结算：被作废——灰掉的牌连同「不行」一起扫进弃牌堆；生效——牌金光一闪，再扫进弃牌堆，接着放效果 */
@@ -3006,7 +2970,7 @@
   async function namedCallout(e, t) {
     markVictim(e.from);
     const av = avEl(e.from), ar = av ? av.getBoundingClientRect() : { left: innerWidth / 2 - 20, top: 80, width: 40, height: 40, bottom: 120 };
-    const u = POP(), h = u * 1.4;   // 和别的弹出来看的牌一样大（--pop）
+    const u = PU() * 0.72, h = u * 1.4;   // 小一号（约桌上牌的六成，和被抽牌时摊开的那把差不多大；2026-11-18 用户：原来 --pop 大号、手牌大小都偏大）
     const below = ar.top + ar.height / 2 < innerHeight / 2;
     const se = seatEl(e.from), sb = se ? se.getBoundingClientRect().bottom : ar.bottom + 30;
     const fr = frameX(), x = Math.min(Math.max(ar.left + ar.width / 2 - u / 2, fr.l), fr.r - u - 20);   // 右边多留 20px：右上角的对话泡探出牌外
@@ -3614,7 +3578,9 @@
   /* 2026-11-15 晚 用户（朋友局反馈：别人之间出牌也弹「作废」，新手以为冲着自己、点了才发现不用）：
    * 默认全程只在和我有关时问（组队时和队友有关也算），残局也不再自动全问；设置里打开「别人之间的牌也问我」才有细项——
    * 勾哪几种也问（默认勾原来那四种）、牌堆剩多少时全都问（默认两成）。没打开的人看不到细项 */
-  const nopeAskMode = () => (settings.nopeOthers ? 'pick' : 'mine');
+  /* 2026-11-18 用户：默认每张牌都问（手里有作废时，别人之间的转向 / 洗牌……也出那一圈倒计时），设置里能关成只问和我有关的。
+   * 没设过（undefined）= 开；以前打开过的「挑着问」也一并当「全都问」 */
+  const nopeAskMode = () => (settings.nopeOthers === false ? 'mine' : 'all');
   const nopeAlsoOn = (k) => {
     if (!settings.nopeOthers) return false;
     if (Array.isArray(settings.nopeAlso)) return settings.nopeAlso.indexOf(k) >= 0;
@@ -3650,13 +3616,16 @@
       if (x === 0 && !autopilot && !game.spectator) continue;
       let want;
       if (tut && tut.botNope) want = tut.botNope(s, x);
+      if (want == null && (Array.isArray(game.forceNope) ? game.forceNope[0] === x : game.forceNope === x) && R.canNope(s, x)) want = true;   // 本机演示：指定这只（这一串）机器猫一定作废（__zmDebug.demo；真作废了才清掉 / 轮到下一个）
       if (want == null) want = R.canNope(s, x) && AI.decide(s, x, game.tiers[x] || 'normal').type === 'nope';
       if (want) { botSeat = x; break; }
     }
     const meCan = !autopilot && !game.spectator && R.canNope(s, 0) && R.awaitingReaction(s).indexOf(0) >= 0 && (askMeNope(s) || !!tut);
     const tutWaitMe = tut && tut.mustNope && tut.mustNope(s);
     const botDelay = botSeat >= 0 ? P.botNope[0] + Math.random() * (P.botNope[1] - P.botNope[0]) : Infinity;
-    const windowMs = meCan ? (tutWaitMe ? Infinity : P === PACE ? nopeWindowMs(s) + (s.pending.nopes.length ? NOPE_HOLD_MS : 0) : P.react || 1400) : P.quiet;
+    /* 不问我时（我没作废牌 / 是我自己的牌 / 不该问我）：原来窗口只开 quiet（约 0.26 秒），机器猫要「想」0.5–1 秒才作废，永远赶不上——
+     * 单机里只要我不能表态，机器猫就从来不会作废（自上线起的 bug，2026-11-18 查出）。现在有机器猫想作废时，窗口等它想完 */
+    const windowMs = meCan ? (tutWaitMe ? Infinity : P === PACE ? nopeWindowMs(s) + (s.pending.nopes.length ? NOPE_HOLD_MS : 0) : P.react || 1400) : botSeat >= 0 ? botDelay : P.quiet;
     const fireAt = Math.min(botDelay, windowMs);
     const now = performance.now();
     game.reactPlan = { botSeat, botAt: now + botDelay, windowEnd: now + windowMs };
@@ -3695,6 +3664,7 @@
     } else closeReact();
   }
   async function doNope(seat) {
+    if (game && (Array.isArray(game.forceNope) ? game.forceNope[0] === seat : game.forceNope === seat)) { if (Array.isArray(game.forceNope)) { game.forceNope.shift(); if (!game.forceNope.length) game.forceNope = null; } else game.forceNope = null; }
     if (game.online) { if (seat === 0) { reactOpen = false; renderBand(); renderHand({ flip: false }); onlineMove({ type: 'nope' }); } return; }
     clearReactTimer();
     const s = game.state, t = token;
@@ -3990,8 +3960,7 @@
 
 
   function wipeFx() {
-    stopRimFuse(true);
-    if (nArcs) { nArcs.g.remove(); nArcs = null; }
+    stopCardFuse(true);
     clearBombAvatars();
     if (game && game.wander) { game.wander.cancel(); game.wander = null; }
     if (game && game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
@@ -4726,13 +4695,9 @@
       row('boom', '塞回看得出高低', '', sw('insertSeen', R.normalizeRules(settings.rules).insertSeen)) +
       '</section>';
     // 「作废」什么时候问我（自己的偏好，单机联机都有）
-    const nopeShort = (t) => t.replace('别人之间', '').replace('别人打', '').replace('（不甩给我）', '').replace('凑五种去捡弃牌堆', '凑五种捡牌');
     const nopeCard = '<div class="zs-cap">作废</div><section class="zs-card">' +
-      row('nope', '别人之间的牌也问我', '关着时只在和我有关时问：我出的、指着我的、甩到我头上的', '<button type="button" class="zs-switch" data-nope-others role="switch" aria-checked="' + !!settings.nopeOthers + '"><i></i></button>') +
-      '<div class="zs-sub" data-nope-dep' + (settings.nopeOthers ? '' : ' hidden') + '>' +
-      '<div class="zs-subcap">也问这些</div><div class="zs-chips">' + NOPE_ALSO.map(([k, t]) => '<button type="button" data-nk="' + k + '" aria-pressed="' + (Array.isArray(settings.nopeAlso) ? settings.nopeAlso.indexOf(k) >= 0 : !!NOPE_ALSO.find((x) => x[0] === k)[3]) + '">' + nopeShort(t) + '</button>').join('') + '</div>' +
-      '<div class="zs-line"><span>残局全问</span>' + segs('nopeLate', [[0, '不用'], [0.3, '剩三成'], [0.2, '剩两成'], [0.1, '剩一成']], nopeLateSet()) + '</div>' +
-      '</div></section>';
+      row('nope', '别人之间的牌也问我', '开着时每张牌都问；关掉只在和我有关时问：我出的、指着我的、甩到我头上的', '<button type="button" class="zs-switch" data-nope-others role="switch" aria-checked="' + (settings.nopeOthers !== false) + '"><i></i></button>') +
+      '</section>';
     html += nopeCard;
     // 联机：机器猫 / 规则由房主定，这里只有自己的操作偏好
     // 联机：机器猫 / 规则由房主定，这里只有自己的偏好——「作废」怎么问、观战的人能不能看我的手牌（坐着的人才有）
@@ -5898,8 +5863,8 @@
     if (s.phase === 'react' && s.pending) {
       const p = s.pending, tg = targetOf(p), atk = p.type === R.ATTACK || p.type === R.TATTACK;
       if (tg >= 0) {
-        game.arrow = aim(tg, p.type === R.FAVOR ? '#e0566e' : atk ? '#c0742e' : p.type === R.SWAP ? '#2f8a83' : '#c9a96e');
-        game.rimLk = rimLink(p.by, tg, atk);
+        game.arrow = aim(tg, cardHue(p));
+        game.rimLk = rimLink(p.by, tg, atk, cardHue(p));
       }
     } else if (s.phase === 'give' && s.give) game.arrow = aim(s.give.from, '#e0566e');
     else if (s.phase === 'steal' && s.steal) game.arrow = aim(s.steal.from, '#c9a96e');
@@ -6116,7 +6081,7 @@
     busy = true;
     stopClock();
     clearReactTimer();
-    if ((nf || els.stage.querySelector('.zm-fuse.is-lit')) && first.t !== 'nope') stopFuse();   // 这一轮结算了（不是又来一张作废）：桌沿导火索收掉
+    if ((cfz || els.stage.querySelector('.zm-fuse.is-lit')) && first.t !== 'nope') stopFuse();   // 这一轮结算了（不是又来一张作废）：桌沿导火索收掉
     // 机器猫（含替人代打）做的一步：先「想一下」再播；偷牌先让红光在被偷的人牌上游走一会儿
     if (first.t === 'steal' && first.to !== 0) {
       if (!game.wander) { const cnt = game.state.steal ? game.state.steal.perm.length : game.state.hands[first.from].length; game.wander = startWander(first.from, cnt); await wait(stealThink(cnt)); }
@@ -7219,6 +7184,13 @@
       wildfive: () => { ['orange', 'calico', 'cow', R.WILD, R.WILD].forEach((k) => give(0, k)); s.turn = 0; const w = s.hands[0].filter((id) => R.KIND_OF[id] === R.WILD).slice(0, 2); apply(0, { type: 'play', cards: ['orange', 'calico', 'cow'].map((k) => R.findKind(s.hands[0], k)).concat(w) }); },
       // 我点名要机器猫的「跳过」（他有）/ 机器猫点名要我的「交换」（没开交换牌，一定落空）
       triplehit: () => { give(0, 'tabby'); give(0, 'tabby'); give(0, 'tabby'); give(bot, R.SKIP); s.turn = 0; apply(0, { type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: bot, named: R.SKIP }); },
+      // 叠加作废：西家索要东家，东家、西家、东家轮流作废（三张叠起来）；mestack：机器猫索要我，我手里两张作废，它会作废回来一次
+      nopestack: () => { const o = 2 % s.n; give(bot, R.FAVOR); [bot, o].forEach((x) => { while (R.countKind(s.hands[x], R.NOPE) < 2) { const n0 = R.countKind(s.hands[x], R.NOPE); give(x, R.NOPE); if (R.countKind(s.hands[x], R.NOPE) === n0) break; } }); s.turn = bot; game.forceNope = [o, bot, o]; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.FAVOR)], target: o }); },
+      mestack: () => { give(bot, R.FAVOR); if (R.countKind(s.hands[bot], R.NOPE) === 0) give(bot, R.NOPE); s.turn = bot; game.forceNope = [bot]; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.FAVOR)], target: 0 }); },
+      skipnoped: () => { give(0, R.SKIP); s.turn = 0; game.forceNope = bot; if (R.countKind(s.hands[bot], R.NOPE) === 0) give(bot, R.NOPE); apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.SKIP)] }); },
+      reversenoped: () => { give(0, R.REVERSE); s.turn = 0; game.forceNope = bot; if (R.countKind(s.hands[bot], R.NOPE) === 0) give(bot, R.NOPE); apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.REVERSE)] }); },
+      shufflenoped: () => { give(0, R.SHUFFLE); s.turn = 0; game.forceNope = bot; if (R.countKind(s.hands[bot], R.NOPE) === 0) give(bot, R.NOPE); apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.SHUFFLE)] }); },
+      triplemissme: () => { give(0, 'tabby'); give(0, 'tabby'); give(0, 'tabby'); s.turn = 0; apply(0, { type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: bot, named: R.SWAP }); },
       triplemiss: () => { give(bot, 'tabby'); give(bot, 'tabby'); give(bot, 'tabby'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: 0, named: R.SWAP }); },
       nope: () => { give(0, R.NOPE); give(bot, R.ATTACK); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
       // 百变「急救」：没逗猫棒、手里一对奶牛猫，摸到炸毛猫（我 / 机器猫）；牌堆只剩一张时抽底
@@ -7234,7 +7206,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, rimFuse, clearStage };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage };
   }
   window.ZhamaoTable = { cardHtml, backHtml, rulesHtml };
 })();
