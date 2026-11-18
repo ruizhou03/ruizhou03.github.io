@@ -3511,6 +3511,11 @@
 
   /* 出局：炸毛猫扑向那个人，大爆炸——更大的红光、黑毛、烟、冲击波；头像变灰冒黑烟，「炸毛」大章砸下来；
    * 他的手牌全翻开、一张张散落进弃牌堆 */
+  /* 出局（2026-11-17 用户逐帧看过后定）：
+   * ① 头像上那只炸毛猫「嘭」地炸开（头像还是炸毛猫，抖着、冒烟，不立刻变灰）
+   * ② 手牌先走：我的从手牌区、别人的从头像里，一张张翻开落进弃牌堆
+   * ③ 最后炸毛猫正面朝上、头像那么大，从头像上整个剥下来，落在弃牌堆最上面——它一离开，头像才变灰
+   * ④ 整段播完，我自己出局的话手牌区才出那排「看谁」的小头像 */
   async function animOut(e, t) {
     // 最后一个出局（之后只剩赢家）：快进到这儿就停，最后这一炸和结算的聚光灯按原速放——让大家看清冠军是谁（2026-11-14 用户）
     if (ov && ov.alive.filter(Boolean).length <= 2 && game.turbo) { game.turboOff = true; setTurbo(false); }
@@ -3518,11 +3523,13 @@
     if (window.ZhamaoAudio) window.ZhamaoAudio.knockedOut();
     const node = game.boomNode;   // （旧路径留着兜底：九命 / 急救之类没走到这儿；正常出局时为空）
     game.boomNode = null;
-    const a = e.seat === 0 ? fx.center(els.me.querySelector('.zm-av').getBoundingClientRect()) : avPoint(e.seat);
+    if (node) node.remove();
+    const avNode = e.seat === 0 ? els.me.querySelector('.zm-av') : avEl(e.seat);
+    const a = avNode ? fx.center(avNode.getBoundingClientRect()) : avPoint(e.seat);
     const u = U();
-    if (t !== token) { if (node) node.remove(); return; }
+    if (t !== token) return;
     snd('kaboom');
-    bombAvatar(e.seat, false);
+    bombAvatar(e.seat, true);   // 九命之类没先变身的：这时候补上
     fx.shake(els.table, { amp: 15, dur: 700, rot: 1 });
     fx.flash('rgba(200,70,58,.55)', 0, 1100);
     fx.ring(a.x, a.y, { color: '#c8463a', size: u * 5, width: 10, dur: 760 });
@@ -3530,47 +3537,54 @@
     fx.burst(a.x, a.y, { n: 40, shapes: ['fur', 'fur', 'spike'], colors: FUR, radius: u * 2.6, size: [12, 34], alignOut: true, life: 1200, gravity: 50, pattern: 'ring' });
     fx.burst(a.x, a.y, { n: 20, shapes: ['star', 'dot'], colors: GOLDS.concat(['#c8463a']), radius: u * 2, size: [6, 20], life: 1200, delay: 100 });
     fx.smoke(a.x, a.y, { n: 12, spread: u * 0.8, size: [u * 0.7, u * 1.4], rise: 60, tint: 'dark', delay: 60 });
-    ov.alive[e.seat] = false;
+    fx.shake(seatEl(e.seat), { amp: 7, dur: 700, delay: 40 });
     ov.counts[e.seat] = 0;
-    // 我正坐在他背后看，他也出局了：自动换到下一家还在场的（2026-11-17；以前视角停在空座位上）
-    if (e.seat === viewSeat) { const nx = nextWatchable(e.seat, ov.alive); watch(nx > 0 ? nx : viewSeat); }
-    if (e.seat === 0) els.app.classList.add('is-spectator');
     if (ov.turn === e.seat) ov.turn = -1;
     renderSeat(e.seat);
-    await wait(ms(520));
+    await wait(ms(560));
     if (t !== token) return;
-    // 手牌连同那只炸毛猫一起鱼贯落进弃牌堆（翻开给大家看），炸毛猫排在最后、落在最上面
-    // （2026-11-14 用户：手里没牌的人炸了要看得到炸毛猫回去；但别分成两波——炸毛猫跟在手牌后面一起出）
     const cards = e.cards || [];
     const to = discardRect(), pu = PU();
     const kit = game.state.discard[game.state.discard.length - 1];
     const withKit = kit != null && R.KIND_OF[kit] === R.BOOM && cards.indexOf(kit) < 0;
-    const list = withKit ? cards.concat([kit]) : cards;
-    // 我自己的手牌从手里出发；炸毛猫在头像里（2026-11-17 起不再飞进手里），和别人一样从头像飞出
-    const srcRects = e.seat === 0 ? list.map((id) => (handCard(id) ? handRectOf(id) : null)) : null;
+    const hand = cards.filter((id) => id !== kit);
+    // ② 手牌：我的从手里出发（正面），别人的从头像里出来、半路翻开
+    const srcRects = e.seat === 0 ? hand.map((id) => (handCard(id) ? handRectOf(id) : null)) : null;
     if (e.seat === 0) { ov.hand = []; renderHand({ flip: false }); }
-    const kitNode = node && node.isConnected ? node : null, kitRect = kitNode ? kitNode.getBoundingClientRect() : null;
-    await Promise.all(list.map((id, i) => {
+    await Promise.all(hand.map((id, i) => {
       const fromHand = !!(srcRects && srcRects[i]);
-      const fromNode = id === kit && kitRect;   // 桌心那只炸毛猫：轮到它时才从原地起飞（之前一直停着），落在最上面
-      const go = () => {
-        if (fromNode) kitNode.remove();
-        return fx.fly({
-          html: cardHtml(id), back: backHtml(), flip: fromHand || fromNode ? null : 'up', flipAt: 0.2,
-          from: fromHand ? srcRects[i] : fromNode ? kitRect : a, to, w: pu, s0: fromHand ? srcRects[i].width / pu : fromNode ? kitRect.width / pu : 0.35, s1: 1,
-          r0: fromNode ? -4 : (Math.random() - 0.5) * 60, r1: pileRot(id), dur: ms(fromNode ? 440 : 520), delay: fromNode ? 0 : i * ms(70), lift: fromNode ? 26 : 60 + Math.random() * 50,
-        }).then(() => { if (t === token && ov) { ov.discard.push(id); renderPiles(); } });
-      };
-      return fromNode ? wait(i * ms(70) + ms(120)).then(() => (t === token ? go() : (kitNode.remove(), null))) : go();
+      return fx.fly({
+        html: cardHtml(id), back: backHtml(), flip: fromHand ? null : 'up', flipAt: 0.2,
+        from: fromHand ? srcRects[i] : a, to, w: pu, s0: fromHand ? srcRects[i].width / pu : 0.35, s1: 1,
+        r0: (Math.random() - 0.5) * 60, r1: pileRot(id), dur: ms(520), delay: i * ms(70), lift: 60 + Math.random() * 50,
+      }).then(() => { if (t === token && ov) { ov.discard.push(id); renderPiles(); } });
     }));
-    if (kitNode && kitNode.isConnected) kitNode.remove();
     if (t !== token) return;
-    if (!withKit && ov && kit != null && ov.discard[ov.discard.length - 1] !== kit) { ov.discard.push(kit); renderPiles(); }
+    // ③ 炸毛猫：正面、头像那么大，从头像上剥下来，落在最上面；它一走头像就变灰
+    if (withKit) {
+      await wait(ms(160));
+      if (t !== token) return;
+      const ar = avNode ? avNode.getBoundingClientRect() : { width: pu * 0.6 };
+      bombAvatar(e.seat, false);
+      ov.alive[e.seat] = false;
+      renderSeat(e.seat);
+      snd('flip');
+      await fx.fly({ html: cardHtml(kit), from: a, to, w: pu, s0: Math.max(0.3, ar.width / pu), s1: 1, r0: -6, r1: pileRot(kit), dur: ms(560), lift: 40 });
+      if (t === token && ov) { ov.discard.push(kit); renderPiles(); snd('thud'); }
+    } else if (ov && kit != null && ov.discard[ov.discard.length - 1] !== kit) { ov.discard.push(kit); renderPiles(); }
+    if (t !== token) return;
+    bombAvatar(e.seat, false);
+    ov.alive[e.seat] = false;
+    renderSeat(e.seat);
+    // 我正坐在他背后看，他也出局了：自动换到下一家还在场的（2026-11-17；以前视角停在空座位上）
+    if (e.seat === viewSeat) { const nx = nextWatchable(e.seat, ov.alive); watch(nx > 0 ? nx : viewSeat); }
+    if (e.seat === 0) els.app.classList.add('is-spectator');
     await wait(ms(300));
     if (e.seat === 0) {
       game.fastOut = true;
       if (mateWatching() && viewSeat !== mateSeat()) watch(mateSeat());
       renderBand();
+      renderHand();   // ④ 这时候才出「看谁」的小头像
     }
   }
 
@@ -3909,8 +3923,8 @@
   // 我出局了（不是纯观战）、这一局还没完、也还没坐到谁背后
   function outIdle() {
     if (!game || !game.state || game.tutorial || game.dealing || game.state.phase === 'over') return false;
-    if (game.online) { const g = G(), st = online && online.st; return !!(g && st && !game.spectator && st.mySeat >= 0 && g.st.alive && !g.st.alive[st.mySeat] && !g.over); }
-    return !game.state.alive[0] && viewSeat < 0;
+    if (game.online) { const g = G(), st = online && online.st; return !!(g && st && !game.spectator && st.mySeat >= 0 && g.st.alive && !g.st.alive[st.mySeat] && !g.over && !!game.fastOut); }   // fastOut：我那一下出局动画播完了（按快照摆进来时已经置上）
+    return !game.state.alive[0] && viewSeat < 0 && !!game.fastOut;   // fastOut：我那一下出局动画播完了
   }
   function watchFromOut(seat) {
     if (!game || !game.state.alive[seat]) return;
