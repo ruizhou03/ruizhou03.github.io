@@ -1449,3 +1449,79 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-watch-pick .zm-wp-av > svg, .zm-watch-pick .zm-wp-av > img { width: 100%; height: 100%; display: block; }
 @keyframes zm-watch-bob { 50% { translate: 0 -4px; } }
 @media (prefers-reduced-motion: reduce) { .zm-watch-pick .zm-wp-av { animation: none; } }
+
+/* ───── 主菜单 · 乙「玩法当主角」（2026-11-18）─────
+ * 加载时插画 + 大字在正中；跑完插画收起、标题滑到上面，中间一叠玩法牌左右滑，下面并排 单机 / 联机。
+ * 盖掉上面「插画 + 按钮」那版的定位（is-loading 的 translateY、按插画高度算的 padding-top） */
+.zm-cover { --mw: min(200px, 50vw, calc((100svh - 400px) / 1.4)); padding-top: max(18px, calc(50svh - (var(--mw) * 1.4 + 300px) / 2)); }
+.zm-cover.is-loading { align-items: center; padding-top: 24px; }
+.zm-cover-inner, .zm-cover.is-loading .zm-cover-inner { transform: none; transition: none; }
+.zm-cover:not(.is-loading) .zm-cover-art { display: none; }
+.zm-cover:not(.is-loading) .zm-cover-title { margin: 0; }
+.zm-cover-btns.is-row { width: 100%; flex-direction: row; }
+.zm-cover-btns.is-row .zm-cover-btn { flex: 1; min-width: 0; }
+.zm-cover-btns.is-row .zm-cover-btn b { letter-spacing: 0.3em; text-indent: 0.3em; }
+
+/* 接着打上一局：标题下面一颗小药丸（朱红小点 + 玩法 · 人数 + 折号） */
+.zm-resume { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px 0 13px; border: 0; border-radius: 18px; background: var(--zm-wash); color: var(--zm-ink); font: inherit; font-size: 14px; letter-spacing: 0.04em; cursor: pointer; }
+.zm-resume i { width: 8px; height: 8px; border-radius: 50%; background: var(--zm-seal); flex: none; }
+.zm-resume::after { content: ''; width: 7px; height: 7px; border: solid var(--zm-ink-mute); border-width: 2px 2px 0 0; transform: rotate(45deg); margin-left: 2px; }
+.zm-resume:active { transform: translateY(1px); }
+
+/* 玩法牌叠：横向滚动吸附，中间一张最大；两边的由 JS 按离中心多远缩小、歪、淡 */
+.zm-mdeck { width: min(100vw, 520px); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.zm-mdeck-track { position: relative; z-index: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; padding: 12px calc(50% - var(--mw) / 2) 44px; margin-bottom: -18px; }
+.zm-mdeck-track::-webkit-scrollbar { display: none; }
+.zm-mslide { flex: none; width: var(--mw); margin: 0 calc(var(--mw) * -0.12); padding: 0; border: 0; background: none; scroll-snap-align: center; cursor: pointer; transform-origin: 50% 85%; -webkit-tap-highlight-color: transparent; }
+.zm-mslide:first-child { margin-left: 0; }
+.zm-mslide:last-child { margin-right: 0; }
+.zm-mslide .zm-card { --cw: var(--mw); width: var(--mw); display: block; border-width: 1.5px; box-shadow: 0 16px 30px rgba(29, 27, 24, 0.16); }
+.zm-mslide:focus-visible { outline: none; }
+.zm-mslide:focus-visible .zm-card { box-shadow: 0 0 0 3px var(--zm-seal), 0 16px 30px rgba(29, 27, 24, 0.16); }
+.zm-mdeck-desc { margin: 0; min-height: 1.5em; font-size: 14px; color: var(--zm-ink-mute); letter-spacing: 0.04em; text-align: center; }
+.zm-mdeck-dots { display: flex; gap: 7px; margin: 6px 0 4px; }
+.zm-mdeck-dots i { width: 7px; height: 7px; border-radius: 4px; background: #cfc6b6; transition: width 0.25s ease, background 0.25s ease; }
+.zm-mdeck-dots i.is-on { width: 18px; background: var(--zm-ink); }
+
+/* 单机设置单：从底下升起 */
+.zm-setsheet-mask { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; background: rgba(29, 27, 24, 0.28); }
+.zm-setsheet { width: min(520px, 100%); box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 10px 26px calc(22px + env(safe-area-inset-bottom)); background: var(--zm-paper); border-radius: 24px 24px 0 0; box-shadow: 0 -10px 30px rgba(29, 27, 24, 0.14); }
+.zm-setsheet-grab { align-self: center; width: 40px; height: 5px; border-radius: 3px; background: #cfc6b6; margin-bottom: 2px; }
+.zm-setsheet-head { display: flex; align-items: center; gap: 12px; }
+.zm-setsheet-head .zm-card { --cw: 34px; width: 34px; flex: none; }
+.zm-setsheet-head .zm-card .zm-nm { font-size: 0; }
+.zm-setsheet-head b { display: block; font-size: 18px; letter-spacing: 0.15em; }
+.zm-setsheet-head small { display: block; font-size: 13px; color: var(--zm-ink-mute); margin-top: 2px; }
+.zm-setsheet .zm-solo-pick { padding: 0; border: 0; background: none; gap: 14px; }
+
+/* 横屏（矮）：左栏 标题 + 玩法牌，右栏 药丸 + 单机 / 联机 + 小字（联机那层也在右栏） */
+@media (orientation: landscape) and (max-height: 540px) {
+  .zm-cover, .zm-cover.is-loading { --mw: min(150px, calc((100svh - 150px) / 1.4)); align-items: center; padding: 10px 20px; }
+  .zm-cover:not(.is-loading) .zm-cover-inner { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr auto auto; }
+  .zm-cover:not(.is-loading) .zm-cover-title { grid-column: 1; grid-row: 1; align-self: end; }
+  .zm-mdeck { grid-column: 1; grid-row: 2 / span 3; width: 100%; }
+  .zm-resume { grid-column: 2; grid-row: 1; justify-self: center; align-self: end; }
+  .zm-cover-inner > .zm-cover-btns { grid-column: 2; grid-row: 2 / span 2; align-self: center; }
+  .zm-cover-inner > .zm-cover-foot { grid-column: 2; grid-row: 4; }
+  .zm-cover-inner > [data-cover-step="online"] { grid-column: 2; grid-row: 1 / span 4; }
+  .zm-setsheet { gap: 10px; padding-bottom: 14px; }
+}
+
+/* ───── 结算 · 领奖台（2026-11-18 用户挑乙）：2-1-3 三级台子，台面刻名次；第四名起在下面一列 ───── */
+.zm-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; margin: 0; }
+.zm-dialog.is-podium { position: relative; padding-top: 26px; }
+.zm-podium { display: flex; align-items: flex-end; justify-content: center; gap: 8px; margin: 0 4px; padding: 0 8px; border-bottom: 2px solid var(--zm-ink); }
+.zm-pod { flex: 0 1 104px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.zm-pod .av { width: 56px; height: 56px; border-radius: 50%; overflow: hidden; background: var(--zm-wash); box-shadow: 0 0 0 3px var(--pc); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--zm-ink-mute); }
+.zm-pod.is-p1 .av { width: 76px; height: 76px; }
+.zm-pod .av svg { width: 100%; height: 100%; display: block; }
+.zm-pod .nm { max-width: 100%; display: flex; align-items: center; gap: 4px; font-size: 14px; white-space: nowrap; overflow: hidden; }
+.zm-pod .me { flex: none; font-style: normal; font-size: 11px; line-height: 16px; padding: 0 5px; border-radius: 8px; background: var(--zm-seal); color: var(--zm-seal-ink); }
+.zm-pod .blk { align-self: stretch; height: 58px; box-sizing: border-box; display: flex; justify-content: center; padding-top: 8px; background: var(--pc); border-radius: 10px 10px 0 0; transform-origin: 50% 100%; }
+.zm-pod .blk span { font: 700 28px/1 Georgia, serif; color: #fffdf8; }
+.zm-pod.is-p1 .blk { height: 118px; }
+.zm-pod.is-p2 .blk { height: 84px; }
+.zm-rank-rest { margin-top: 10px; }
+.zm-app .zm-rank-edit.is-corner { position: absolute; top: 10px; right: 10px; margin: 0; z-index: 1; }
+
+/* 终局庆祝 · 乙 金星绽放：赢家头像外画出来的两圈金环（stroke-dashoffset 从 100 画到 0） */

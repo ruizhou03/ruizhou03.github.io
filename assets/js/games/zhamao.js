@@ -4526,31 +4526,48 @@
     });
   }
 
+  /* 2026-11-18 用户：聚光灯那段只有一束光，庆祝不够——聚光灯照旧，上面再叠一套庆祝；三版（礼花炮 / 金星绽放 / 猫咪狂欢）里用户挑了丙：
+   * 满屏从上往下飘爪印 / 小心心 / 小鱼 / 星星 / 彩带，赢家脚下喷一捧，其他人的头像也跟着左右晃着欢呼 */
+  const PARTY = ['#c8463a', '#e9c46a', '#2f4a6d', '#4f8a5f', '#8e4a9c', '#e58e46', '#f3d9a4'];
+  const RIBBON = '<svg viewBox="0 0 24 24"><rect x="8.5" y="2" width="7" height="20" rx="1.6"/></svg>';
+  function celParty(pts, winners) {
+    const W = innerWidth;
+    for (let i = 0; i < 9; i++) {
+      const x = W * (0.06 + 0.88 * (i / 8)) + (Math.random() - 0.5) * 30;
+      fx.burst(x, -16, { n: 7, shapes: ['paw', 'heart', 'fish', 'star', RIBBON], colors: PARTY, angle: Math.PI / 2, spread: 0.5, radius: innerHeight * (0.45 + Math.random() * 0.35), size: [10, 20], life: 2600, gravity: 160, pattern: 'scatter', delay: 600 + i * 90 + Math.random() * 200 });
+    }
+    pts.forEach(({ x, y, r }) => fx.burst(x, y, { n: 16, shapes: ['heart', 'paw', 'star'], colors: ['#c8463a', '#e9c46a', '#e58e46', '#f7dfa0'], radius: r * 3, size: [9, 18], life: 1600, gravity: 30, pattern: 'fountain', delay: 750 }));
+    // 别人也替赢家高兴：头像左右晃着、往上蹦一下
+    const all = game && game.state ? Array.from({ length: game.state.n }, (_, k) => k) : [];
+    all.filter((k) => winners.indexOf(k) < 0).forEach((k, i) => { const av = avEl(k); if (av) av.animate([{ transform: 'none' }, { transform: 'translateY(-7px) rotate(-10deg)', offset: 0.25 }, { transform: 'translateY(0) rotate(8deg)', offset: 0.5 }, { transform: 'translateY(-5px) rotate(-6deg)', offset: 0.75 }, { transform: 'none' }], { duration: 900, delay: 800 + i * 90, iterations: 2, easing: 'ease-in-out' }); });
+    setTimeout(() => snd('combo'), 700);
+    return 2900;
+  }
   /* ───── 终局：聚光灯（2026-11-14 用户：给赢家戴皇冠有点土，三版里挑了乙）─────
-   * 整桌暗下来，一圈暖光从大往赢家身上收拢，赢家头像浮起来一点，几粒金色微尘慢慢往上飘；放完光圈淡掉，再弹排名 */
+   * 整桌暗下来，一圈暖光从大往赢家身上收拢，赢家头像浮起来一点，几粒金色微尘慢慢往上飘；上面再叠一场猫咪狂欢（celParty）；放完光圈淡掉，再弹排名 */
   async function celebrate(winner, mates) {
     const t = token, a = avPoint(winner), r = avR(winner), won = mates ? mates.indexOf(0) >= 0 : winner === 0;
     snd(won ? 'win' : 'lose');
     if (fx.reduce()) { await wait(600); return t === token; }
+    const winners = mates || [winner];
+    const pts = winners.map((k) => Object.assign({ av: avEl(k), r: avR(k) }, avPoint(k)));
+    const lift = [{ transform: 'none' }, { transform: 'translateY(-6px) scale(1.18)', offset: 0.4 }, { transform: 'translateY(-4px) scale(1.12)' }];
+    let dim = null;
     if (mates) {   // 组队：赢的那队两个人一起跳、一起冒金点（不打聚光灯——一束光只能罩一个人）
-      const avs = mates.map((k) => avEl(k)).filter(Boolean);
-      avs.forEach((av) => av.animate([{ transform: 'none' }, { transform: 'translateY(-6px) scale(1.18)', offset: 0.4 }, { transform: 'translateY(-4px) scale(1.12)' }], { duration: 900, delay: 200, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards' }));
-      mates.forEach((k) => { const p = avPoint(k), rr = avR(k); for (let i = 0; i < 3; i++) fx.burst(p.x, p.y + rr * 0.6, { n: 6, shapes: ['dot'], colors: ['#f7dfa0', '#e9c46a', '#fff6d8'], radius: rr * 1.4, size: [3, 6], life: 1500, gravity: -45, pattern: 'fountain', spin: false, delay: 300 + i * 280 }); });
-      await wait(won ? 1800 : 1500);
-      avs.forEach((av) => av.getAnimations().forEach((an) => an.cancel()));
-      return t === token;
+      pts.forEach(({ av }) => av && av.animate(lift, { duration: 900, delay: 200, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards' }));
+    } else {
+      dim = document.createElement('div');
+      dim.className = 'zm-win-spot';
+      dim.style.setProperty('--x', a.x + 'px'); dim.style.setProperty('--y', a.y + 'px'); dim.style.setProperty('--r', (r * 1.45) + 'px');
+      els.fly.appendChild(dim);
+      dim.animate([{ opacity: 0, transform: 'scale(3.2)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 750, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });   // 光圈从大往赢家身上收拢
+      if (pts[0].av) pts[0].av.animate(lift, { duration: 900, delay: 350, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards' });
     }
-    const dim = document.createElement('div');
-    dim.className = 'zm-win-spot';
-    dim.style.setProperty('--x', a.x + 'px'); dim.style.setProperty('--y', a.y + 'px'); dim.style.setProperty('--r', (r * 1.45) + 'px');
-    els.fly.appendChild(dim);
-    dim.animate([{ opacity: 0, transform: 'scale(3.2)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 750, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });   // 光圈从大往赢家身上收拢
-    const av = avEl(winner);
-    if (av) av.animate([{ transform: 'none' }, { transform: 'translateY(-6px) scale(1.18)', offset: 0.4 }, { transform: 'translateY(-4px) scale(1.12)' }], { duration: 900, delay: 350, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards' });
-    for (let i = 0; i < 3; i++) fx.burst(a.x, a.y + r * 0.6, { n: 6, shapes: ['dot'], colors: ['#f7dfa0', '#e9c46a', '#fff6d8'], radius: r * 1.4, size: [3, 6], life: 1500, gravity: -45, pattern: 'fountain', spin: false, delay: 450 + i * 280 });
-    await wait(won ? 1800 : 1500);
-    dim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished.then(() => dim.remove()).catch(() => dim.remove());
-    if (av) av.getAnimations().forEach((an) => an.cancel());
+    pts.forEach(({ x, y, r: rr }) => { for (let i = 0; i < 3; i++) fx.burst(x, y + rr * 0.6, { n: 6, shapes: ['dot'], colors: ['#f7dfa0', '#e9c46a', '#fff6d8'], radius: rr * 1.4, size: [3, 6], life: 1500, gravity: -45, pattern: 'fountain', spin: false, delay: 450 + i * 280 }); });
+    const hold = celParty(pts, winners);
+    await wait(Math.max(won ? 1800 : 1500, hold));
+    if (dim) dim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished.then(() => dim.remove()).catch(() => dim.remove());
+    pts.forEach(({ av }) => av && av.getAnimations().forEach((an) => an.cancel()));
     return t === token;
   }
   // 前三名奖章：金 / 银 / 铜（金属渐变圆牌 + 一条小绶带 + 名次数字）
@@ -4563,6 +4580,35 @@
       '<circle cx="20" cy="28" r="13" fill="url(#' + id + ')" stroke="' + c + '" stroke-width="1.4"/>' +
       '<circle cx="20" cy="28" r="9.5" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1"/>' +
       '<text x="20" y="32.6" text-anchor="middle" font-family="Georgia,serif" font-size="13" font-weight="700" fill="' + c + '">' + (i + 1) + '</text></svg>';
+  }
+  /* 领奖台（2026-11-18 用户挑乙）：前三名站 2-1-3 三级台子（金 / 银 / 铜，台面上刻名次），第四名起在下面排一列；
+   * 不写「第几名」「胜利」之类的字——台子高低和颜色已经说明了。items：[{ face, nick, me }]，按名次排好 */
+  const POD_COLORS = ['#c9a96e', '#a9adb5', '#c98a55'];
+  function podiumHtml(items) {
+    const col = (i) => {
+      const x = items[i];
+      if (!x) return '';
+      return '<div class="zm-pod is-p' + (i + 1) + (x.me ? ' is-me' : '') + '" style="--pc:' + POD_COLORS[i] + '">' +
+        '<span class="av">' + x.face + '</span><b class="nm">' + esc(x.nick) + (x.me ? '<i class="me">我</i>' : '') + '</b>' +
+        '<span class="blk"><span>' + (i + 1) + '</span></span></div>';
+    };
+    const rest = items.slice(3);
+    return '<h2 class="zm-sr">排行榜</h2><div class="zm-podium">' + col(1) + col(0) + col(2) + '</div>' +
+      (rest.length ? '<ol class="zm-rank zm-rank-rest">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="mini">' + x.face + '</span><span class="nm">' + esc(x.nick) + (x.me ? '<small>（我）</small>' : '') + '</span></li>').join('') + '</ol>' : '');
+  }
+  // 台子从底下长出来（三、二、一依次），头像随后落到台上，冠军那一下冒一圈金星
+  function animPodium(d) {
+    if (fx.reduce()) return;
+    const order = ['.is-p3', '.is-p2', '.is-p1'];
+    order.forEach((sel, j) => {
+      const p = d.querySelector('.zm-pod' + sel);
+      if (!p) return;
+      const at = 120 + j * 220;
+      p.querySelector('.blk').animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1.06)', offset: 0.75 }, { transform: 'scaleY(1)' }], { duration: 460, delay: at, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' });
+      p.querySelectorAll('.av, .nm').forEach((n) => n.animate([{ transform: 'translateY(-36px)', opacity: 0 }, { transform: 'translateY(4px)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 440, delay: at + 300, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
+      if (sel === '.is-p1') setTimeout(() => { const r = p.querySelector('.av').getBoundingClientRect(); if (r.width) fx.burst(r.left + r.width / 2, r.top + r.height / 2, { n: 14, shapes: ['star', 'dot'], colors: ['#f7dfa0', '#e9c46a', '#fff6d8', '#c9a96e'], radius: r.width * 1.1, size: [5, 13], life: 1100, gravity: 18, pattern: 'ring' }); }, at + 560);
+    });
+    d.querySelectorAll('.zm-rank-rest li').forEach((li, i) => li.animate([{ transform: 'translateY(12px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 360, delay: 900 + i * 70, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
   }
   async function finish() {
     busy = true;
@@ -4594,12 +4640,19 @@
     }
     try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ }
     bgm('menu');   // 结算页算游戏外：接上丁（一局结束时先淡出，皇冠彩纸放完、排行榜出来再起）
-    openDialog('<h2>' + (teamGame() ? (s.winnerTeam === 0 ? '我们队赢了！' : '对面那队赢了') : '排行榜') + '</h2>' +
-      '<ol class="zm-rank' + (team ? ' is-team' : '') + '" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + (team && i === winners.length ? ' is-split' : '') + '"><span class="pos">' + (team ? (i < winners.length ? medal(0) : '') : i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 ? '<small>（我）</small>' : team && seat === mateSeat() ? '<small>（队友）</small>' : '') + '</span><span class="tag">' + (i < winners.length ? '胜利' : team ? '惜败' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', (d) => {
-      d.querySelector('[data-again]').addEventListener('click', () => { closeDialog(); newGame(); });
-      d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
-    });
+    // 组队：赢的队两个人都算赢，不排个人名次——还是一列（赢的队 / 输的队）；其余用领奖台
+    if (team) {
+      openDialog('<h2>' + (s.winnerTeam === 0 ? '我们队赢了！' : '对面那队赢了') + '</h2>' +
+        '<ol class="zm-rank is-team" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + (i === winners.length ? ' is-split' : '') + '"><span class="pos">' + (i < winners.length ? medal(0) : '') + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 ? '<small>（我）</small>' : seat === mateSeat() ? '<small>（队友）</small>' : '') + '</span><span class="tag">' + (i < winners.length ? '胜利' : '惜败') + '</span></li>').join('') + '</ol>' +
+        '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', soloEndWire);
+      return;
+    }
+    openDialog(podiumHtml(order.map((seat) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0 }))) +
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); });
+  }
+  function soloEndWire(d) {
+    d.querySelector('[data-again]').addEventListener('click', () => { closeDialog(); newGame(); });
+    d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
   }
 
   // 角色猫：这一桌每个人是哪只猫、技能是什么
@@ -5332,13 +5385,9 @@
     bgm('game');
     schedule(300, step);
   }
-  // 主菜单上直接挑几个人（2–5，含你）；有存档时默认亮存档的人数、写「接着打上一局」，换个人数就是新开一局
+  // 主菜单
   function refreshCover() {
-    $('zmCoverSolo').textContent = '';   // 单机键下面不写说明（用户：已经很直接了）
     refreshSolo();
-    let seen = true;
-    try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { /* 无痕 */ }
-    void seen;
     els.cover.querySelector('[data-cover="exit"]').hidden = !FROM_SITE;
     const sess = NET && NET.readSession(), rb = els.cover.querySelector('[data-cover="resume"]');
     if (rb) {   // 联机那一层：还在某个房间里 →「回到房间 1234」排第一个、朱红；「创建房间」退成普通键
@@ -5348,40 +5397,135 @@
     }
     const ob = els.cover.querySelector('[data-cover="online"]');
     if (ob) ob.hidden = !NET;
+    refreshResume();
   }
-  /* 点「单机」之后那一屏（2026-11-12 用户挑的方案甲）：− 人数 +、下面一排头像（我 + 几只机器猫）、机器猫难度、开始；
-   * 有上一局存档：最上面单独一行「接着打上一局」（以前是点单机直接接着打，想开新局得先点人数，不直观） */
-  /* 二级菜单（单机 / 联机）左边一窄列放返回箭头（2026-11-13 用户挑：乙·朱红折号，去掉底下的圆，折号本身朱红、瘦长一些） */
+  /* 二级菜单（联机）左边一窄列放返回箭头（2026-11-13 用户挑：乙·朱红折号，去掉底下的圆，折号本身朱红、瘦长一些） */
   const BACK_ART = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M24.5 6.5 13 20l11.5 13.5" fill="none" stroke="#b4392c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   els.cover.querySelectorAll('.zm-solo-back').forEach((b) => { b.innerHTML = BACK_ART; });
-  let coverFrom = 'main';   // 选人数那一屏「‹ 返回」回哪：有上一局时回「接着打 / 开新的」那一步
   const SOLO_MAX = R.MAX_PLAYERS;   // 9 人（6 人起用两副牌）
-  // 2026-11-15 组队单机正式开放（两队标记用户挑甲 · 同色光圈）
-  // 2026-11-15 角色猫单机正式开放
-  const SOLO_MODES = [['classic', '经典', 'boom'], ['flux', '百变', 'flux'], ['team', '组队', 'favor'], ['roles', '角色', 'calico']];
-  const miniCard = (k) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm">' + R.NAMES[k] + '</b></span>'; };
-  const soloN = () => (R.normalizeRules(settings.rules).mode === 'team' ? 4 : Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players)));   // 组队只有 4 人
+  /* 玩法（2026-11-18 用户挑乙「玩法当主角」）：主菜单中间一叠牌左右滑，停在哪张就是哪个玩法——单机开局、联机建房都用它。
+   * [玩法, 名字, 牌面, 一句话] */
+  const SOLO_MODES = [
+    ['classic', '经典', 'boom', '原汁原味：躲开炸毛猫'],
+    ['flux', '百变', 'flux', '抽规则牌，规则随时在变'],
+    ['team', '组队', 'favor', '二对二，队友能救你'],
+    ['roles', '角色', 'calico', '每人一只带技能的猫'],
+  ];
+  const miniCard = (k, name) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm">' + (name || R.NAMES[k]) + '</b></span>'; };
+  const curMode = () => R.normalizeRules(settings.rules).mode;
+  const modeIdx = (m) => Math.max(0, SOLO_MODES.findIndex(([x]) => x === (m || curMode())));
+  const soloN = () => (curMode() === 'team' ? 4 : Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players)));   // 组队只有 4 人
   function refreshSolo() {
-    const n = soloN(), teamOn = R.normalizeRules(settings.rules).mode === 'team';
+    const n = soloN(), teamOn = curMode() === 'team';
     $('zmSoloNum').innerHTML = n + '<small>人</small>';
     const [minus, plus] = els.cover.querySelectorAll('.zm-solo-step button');
     minus.disabled = teamOn || n <= R.MIN_PLAYERS; plus.disabled = teamOn || n >= SOLO_MAX;
     const faces = AV ? (AV.BOT_TIERS && AV.BOT_TIERS[settings.tier] ? AV.BOT_TIERS[settings.tier].faces : AV.ROBOT) : [];   // 预览选中那一档的头像
     const meFace = profile.avatar && AV && AV.byId[profile.avatar] ? AV.byId[profile.avatar].svg : '<span>我</span>';
     $('zmSoloFaces').innerHTML = '<i class="is-me">' + meFace + '</i>' + Array.from({ length: n - 1 }, (_, i) => '<i>' + (faces.length ? faces[i % faces.length].svg : '') + '</i>').join('');
-    // 头像一排排不下就整体缩小（9 人时人数卡里放不下 9 个 34px 的头像；2026-11-13 用户：别超出宽度）；「你 + 几只机器猫」那行说明去掉
-    const fw = $('zmSoloFaces').clientWidth || 200, lap = 7;
+    // 头像一排排不下就整体缩小（9 人时放不下 9 个 34px 的头像；2026-11-13 用户：别超出宽度）
+    const fw = $('zmSoloFaces').clientWidth || 260, lap = 7;
     $('zmSoloFaces').style.setProperty('--fs', Math.min(34, Math.floor((fw + (n - 1) * lap) / n)) + 'px');
-    // 玩法（2026-11-15 用户挑甲：先单机 / 联机，再在这张卡最上面选玩法；以后的组队 / 角色猫往这排后面加）
-    const mode = R.normalizeRules(settings.rules).mode;
-    $('zmSoloModes').style.setProperty('--n', SOLO_MODES.length);
-    $('zmSoloModes').innerHTML = SOLO_MODES.map(([m, name, k]) => '<button type="button" data-mode="' + m + '" aria-pressed="' + (m === mode) + '">' + miniCard(k) + '<b>' + name + '</b></button>').join('');
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
-    const saved = loadSaved(), rb = els.cover.querySelector('[data-cover="resume-solo"]');
-    // 单机菜单：有上一局才露「接着打上一局」（红键）；没有就「开始新的一局」当红键
-    rb.hidden = !saved;
-    els.cover.querySelector('[data-cover="fresh"]').classList.toggle('is-primary', !saved);
+    const [, name, k, desc] = SOLO_MODES[modeIdx()];
+    $('zmSheetHead').innerHTML = miniCard(k, name) + '<span><b>' + name + '</b><small>' + desc + '</small></span>';
+    refreshDeck();
   }
+  // 「接着打上一局」小药丸：写上那局的玩法和人数
+  function refreshResume() {
+    const saved = loadSaved();
+    if (saved) $('zmResumeTxt').textContent = '接着打上一局 · ' + SOLO_MODES[modeIdx(R.normalizeRules(saved.state.rules).mode)][1] + ' ' + saved.state.n + ' 人';
+    return saved;
+  }
+
+  /* ───── 玩法牌叠：横向滚动 + 吸附，中间那张最大，两边的缩小、歪一点、淡一点（滚的时候逐帧算） ───── */
+  const deckEl = $('zmModeDeck'), track = $('zmModeTrack');
+  track.innerHTML = SOLO_MODES.map(([m, name, k]) => '<button type="button" class="zm-mslide" data-mode="' + m + '" aria-label="' + name + '">' + miniCard(k, name) + '</button>').join('');
+  $('zmModeDots').innerHTML = SOLO_MODES.map(() => '<i></i>').join('');
+  const slides = Array.from(track.children);
+  function deckNearest() {
+    const c = track.scrollLeft + track.clientWidth / 2;
+    let best = 0, bd = Infinity;
+    slides.forEach((sl, i) => { const d = Math.abs(sl.offsetLeft + sl.offsetWidth / 2 - c); if (d < bd) { bd = d; best = i; } });
+    return best;
+  }
+  function deckPaint() {
+    const c = track.scrollLeft + track.clientWidth / 2;
+    slides.forEach((sl) => {
+      const d = (sl.offsetLeft + sl.offsetWidth / 2 - c) / (sl.offsetWidth || 1), a = Math.min(1, Math.abs(d)), dc = Math.max(-1.4, Math.min(1.4, d));
+      sl.style.transform = 'translateY(' + (a * 16).toFixed(1) + 'px) rotate(' + (dc * 7).toFixed(2) + 'deg) scale(' + (1 - 0.26 * a).toFixed(3) + ')';
+      sl.style.opacity = (1 - 0.42 * a).toFixed(3);
+      sl.style.zIndex = String(10 - Math.round(Math.abs(d) * 2));
+    });
+  }
+  function refreshDeck() {
+    const i = modeIdx();
+    $('zmModeDesc').textContent = SOLO_MODES[i][3];
+    Array.from($('zmModeDots').children).forEach((d, j) => d.classList.toggle('is-on', j === i));
+    slides.forEach((sl, j) => sl.setAttribute('aria-pressed', String(j === i)));
+  }
+  function deckTo(i, smooth) {
+    const sl = slides[i];
+    if (!sl || !track.clientWidth) return;
+    track.scrollTo({ left: sl.offsetLeft + sl.offsetWidth / 2 - track.clientWidth / 2, behavior: smooth && !fx.reduce() ? 'smooth' : 'auto' });
+    deckPaint();
+  }
+  let deckRaf = 0, deckSettle = 0;
+  track.addEventListener('scroll', () => {
+    if (!deckRaf) deckRaf = requestAnimationFrame(() => { deckRaf = 0; deckPaint(); });
+    clearTimeout(deckSettle);
+    deckSettle = setTimeout(() => {   // 停稳了：停在哪张就换成哪个玩法
+      const m = SOLO_MODES[deckNearest()][0];
+      if (m === curMode()) return;
+      settings.rules = R.normalizeRules(Object.assign({}, settings.rules, { mode: m }));
+      saveSettings(); refreshSolo();
+      snd('tick');
+    }, 120);
+  }, { passive: true });
+  track.addEventListener('click', (e) => {
+    const sl = e.target.closest('.zm-mslide');
+    if (!sl) return;
+    const i = slides.indexOf(sl);
+    if (i !== deckNearest()) { deckTo(i, true); snd('tap'); } else fx.pop(sl.firstElementChild, { scale: 1.05, dur: 220 });
+  });
+  window.addEventListener('resize', () => { if (!deckEl.hidden) deckTo(modeIdx(), false); });
+  const deckSync = () => requestAnimationFrame(() => deckTo(modeIdx(), false));
+
+  /* ───── 单机设置单：底下升起；点外面 / 往下拖 / Esc 收起 ───── */
+  const sheetMask = $('zmSoloSheet'), sheet = sheetMask.querySelector('.zm-setsheet');
+  function openSheet() {
+    refreshSolo();
+    sheetMask.hidden = false;
+    refreshSolo();   // 头像那排按显示出来以后的宽度再算一次
+    snd('tap');
+    if (fx.reduce()) return;
+    sheetMask.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
+    sheet.animate([{ transform: 'translateY(100%)' }, { transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.2,.8,.25,1)' });
+  }
+  function closeSheet() {
+    if (sheetMask.hidden || sheetMask._closing) return;
+    if (fx.reduce()) { sheetMask.hidden = true; return; }
+    sheetMask._closing = true;
+    const now = getComputedStyle(sheet).transform;
+    sheetMask.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: 'ease-in', fill: 'forwards' });
+    sheet.animate([{ transform: now === 'none' ? 'none' : now }, { transform: 'translateY(100%)' }], { duration: 220, easing: 'cubic-bezier(.4,0,.8,.4)', fill: 'forwards' }).finished
+      .catch(() => {}).then(() => { sheetMask.hidden = true; sheetMask._closing = false; sheet.style.transform = ''; sheetMask.getAnimations().concat(sheet.getAnimations()).forEach((a) => a.cancel()); });
+  }
+  sheetMask.addEventListener('click', (e) => { if (e.target === sheetMask) closeSheet(); });
+  (function sheetDrag() {   // 往下拖设置单：跟手，拖过 80px（或甩得快）就收起
+    let y0 = null, t0 = 0, dy = 0;
+    sheet.addEventListener('pointerdown', (e) => { if (e.target.closest('button')) return; y0 = e.clientY; t0 = performance.now(); dy = 0; sheet.setPointerCapture(e.pointerId); });
+    sheet.addEventListener('pointermove', (e) => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); sheet.style.transform = 'translateY(' + dy + 'px)'; });
+    const end = () => {
+      if (y0 == null) return;
+      const fast = dy / Math.max(1, performance.now() - t0) > 0.6;
+      y0 = null;
+      if (dy > 80 || (fast && dy > 24)) closeSheet();
+      else if (dy) sheet.animate([{ transform: 'translateY(' + dy + 'px)' }, { transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.3,.8,.4,1)' }).finished.catch(() => {}).then(() => { sheet.style.transform = ''; });
+    };
+    sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
+  })();
+
   function soloStart() {
     let seen = false;
     try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { seen = true; }
@@ -5392,10 +5536,15 @@
       });
     } else newGame();
   }
-  // 主菜单两步：先是一条进度条，跑完换成按钮
-  const soloFoot = (on) => { const f = els.cover.querySelector('[data-cover-step="solo"] .zm-cover-foot'); if (f) f.hidden = !on; };
+  // 主菜单几步：load（插画 + 大字 + 进度条）→ main（玩法牌 + 单机 / 联机）→ online（玩法牌留着，按钮换成 建 / 进房间）
   function coverStep(k) {
     els.cover.querySelectorAll('[data-cover-step]').forEach((x) => { x.hidden = x.dataset.coverStep !== k; });
+    const pill = els.cover.querySelector('.zm-resume');
+    pill.hidden = k !== 'main' || !refreshResume();
+    const wasHidden = deckEl.hidden;
+    deckEl.hidden = k === 'load';
+    if (wasHidden && !deckEl.hidden) deckSync();
+    if (k !== 'main') sheetMask.hidden = true;
   }
   function showCover() {
     if (game && !game.tutorial && !game.dealing) save();
@@ -5404,29 +5553,36 @@
     els.skipTut.hidden = true;
     if (soundPanel) soundPanel.hidden = true;
     refreshCover();
-    coverStep('main');
     els.cover.classList.remove('is-loading');
+    coverStep('main');
+    sheetMask.hidden = true;
     els.cover.hidden = false;
+    deckSync();
     refreshTools();
     bgm('menu');
     coverIntro(false);
   }
-  // 主菜单：标题一个字一个字落下来，按钮依次浮上来（只在进来那一次落字，回主菜单时只浮按钮）
+  // 主菜单：标题一个字一个字落下来（只在进来那一次）；回主菜单时玩法牌、按钮依次浮上来
   function coverIntro(title) {
     if (fx.reduce()) return;
     const h = els.cover.querySelector('.zm-cover-title');
     if (!h.querySelector('span')) h.innerHTML = Array.from(h.textContent).map((ch) => '<span>' + ch + '</span>').join('');
     if (title) h.querySelectorAll('span').forEach((sp, i) => sp.animate([{ transform: 'translateY(-26px) rotate(-8deg)', opacity: 0 }, { transform: 'translateY(4px) rotate(2deg)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 480, delay: 120 + i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
-    const items = title ? els.cover.querySelectorAll('.zm-cover-art') : els.cover.querySelectorAll('.zm-cover-art, .zm-cover-btn:not([hidden]), .zm-cover-foot:not([hidden])');
+    const items = title ? els.cover.querySelectorAll('.zm-cover-art') : els.cover.querySelectorAll('.zm-resume:not([hidden]), .zm-mdeck, .zm-cover-btn:not([hidden]), .zm-cover-foot:not([hidden])');
     items.forEach((n, i) => n.animate([{ transform: 'translateY(16px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 420, delay: i === 0 ? 0 : (title ? 380 : 60) + i * 80, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
   }
-  // 进度条跑完：按钮一个个浮上来
-  // 进度条跑完：插画和标题往上滑到位，单机 / 联机跟着一个个浮上来
-  function coverReveal() {
-    coverStep('main');
+  // 进度条跑完：插画往上淡走，标题从正中滑到顶上（FLIP），玩法牌、单机 / 联机一个个浮上来
+  async function coverReveal() {
+    const art = els.cover.querySelector('.zm-cover-art'), h = els.cover.querySelector('.zm-cover-title');
+    if (!fx.reduce()) await art.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-18px) scale(.92)' }], { duration: 260, easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
+    const r0 = h.getBoundingClientRect();
     els.cover.classList.remove('is-loading');
+    coverStep('main');
+    art.getAnimations().forEach((a) => a.cancel());
     if (fx.reduce()) return;
-    els.cover.querySelectorAll('[data-cover-step="main"] .zm-cover-btn:not([hidden]), .zm-cover-foot[data-cover-step="main"]:not([hidden])').forEach((n, i) => n.animate([{ transform: 'translateY(18px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 420, delay: 260 + i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
+    const r1 = h.getBoundingClientRect();
+    h.animate([{ transform: 'translate(' + (r0.left - r1.left) + 'px,' + (r0.top - r1.top) + 'px)' }, { transform: 'none' }], { duration: 560, easing: 'cubic-bezier(.3,.8,.3,1)' });
+    els.cover.querySelectorAll('.zm-resume:not([hidden]), .zm-mdeck, [data-cover-step="main"] .zm-cover-btn:not([hidden]), .zm-cover-foot[data-cover-step="main"]').forEach((n, i) => n.animate([{ transform: 'translateY(22px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 460, delay: 200 + i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
   }
 
   /* ═════════════ 联机（第二期，2026-11-12）═════════════
@@ -6216,11 +6372,12 @@
     const face = (r) => (r.avatar && AV && AV.byId[r.avatar] ? AV.byId[r.avatar].svg : '<span>' + esc((r.nick || '?').slice(0, 1)) + '</span>');
     const items = rows ? rows.map((r) => ({ me: r.id === st.me && !game.spectator, face: face(r), nick: r.nick }))
       : order.map((seat) => ({ me: seat === 0 && !game.spectator, face: avatarHtml(seat), nick: nameOf(seat) }));
-    openDialog('<h2>排行榜' + (host ? '<button type="button" class="zm-icbtn zm-rank-edit" data-edit aria-label="调座位 / 请人离开" title="调座位 / 请人离开">' + HOST_IC.swap + '</button>' : '') + '</h2>' +
-      '<ol class="zm-rank" data-stagger>' + items.map((x, i) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (i < 3 ? medal(i) : i + 1) + '</span><span class="mini">' + x.face + '</span><span class="nm">' + esc(x.nick) + (x.me ? '<small>（我）</small>' : '') + '</span><span class="tag">' + (i === 0 ? '胜利' : '第 ' + (i + 1) + ' 名') + '</span></li>').join('') + '</ol>' +
+    openDialog((host ? '<button type="button" class="zm-icbtn zm-rank-edit is-corner" data-edit aria-label="调座位 / 请人离开" title="调座位 / 请人离开">' + HOST_IC.swap + '</button>' : '') +
+      podiumHtml(items) +
       recordHtml(st && st.record, 2) +
       (host ? '' : '<p class="zm-muted">等房主开下一局</p>') +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-leave>离开房间</button>' + (host ? '<button type="button" class="zm-btn" data-again>回房间</button><button type="button" class="zm-btn zm-btn-primary" data-next data-focus>下一局</button>' : '') + '</div>', (d) => {
+      d.classList.add('is-podium'); animPodium(d);
       d.querySelector('[data-leave]').addEventListener('click', () => { closeDialog(); leaveOnline(true); });
       const a = d.querySelector('[data-again]');
       if (a) a.addEventListener('click', () => { a.disabled = true; onlineAct('rematch'); });
@@ -6905,10 +7062,9 @@
     const k = b.dataset.cover;
     // 单机：有上一局 → 先问「接着打 / 开新的一局」；没有就直接选人数
     // 2026-11-13 用户：没有没打完的局 → 点单机直接到选人数（不经过「接着打 / 开新的」那一步）；新手教程 · 设置这时挂在选人数那屏底下
-    if (k === 'solo') { refreshSolo(); const saved = !!loadSaved(); coverFrom = saved ? 'again' : 'main'; coverStep(saved ? 'again' : 'solo'); soloFoot(!saved); snd('tap'); return; }
-    if (k === 'fresh') { refreshSolo(); coverStep('solo'); soloFoot(false); snd('tap'); return; }
+    if (k === 'solo') { openSheet(); return; }
     if (k === 'back' && !els.cover.querySelector('.zm-join').hidden && !els.cover.querySelector('[data-cover-step="online"]').hidden) { setJoinMode(false); return; }
-    if (k === 'back') { const step = els.cover.querySelector('[data-cover-step="solo"]:not([hidden])') && coverFrom === 'again' ? 'again' : 'main'; coverStep(step); if (step === 'main') coverFrom = 'main'; return; }
+    if (k === 'back') { coverStep('main'); return; }
     if (k === 'start') { settings.players = Math.min(SOLO_MAX, settings.players); soloStart(); return; }
     if (k === 'resume-solo') { const saved = loadSaved(); if (saved) resumeGame(saved); else refreshSolo(); return; }
     if (k === 'online') { showOnlineEntry(); return; }
@@ -6942,11 +7098,6 @@
       settings.tier = b.dataset.tier;
       saveSettings(); refreshSolo();
       snd('tap');
-    } else if (b.dataset.mode) {
-      settings.rules = R.normalizeRules(Object.assign({}, settings.rules, { mode: b.dataset.mode }));
-      saveSettings(); refreshSolo();
-      fx.pop(b, { scale: 1.05, dur: 200 });
-      snd('tap');
     }
   });
   els.me.addEventListener('click', (e) => {
@@ -6973,6 +7124,7 @@
   // 联机排行榜也能点外面收起（2026-11-14：排行榜挪到了顶栏，随时能再打开；收起后房主在桌沿右下角点 ⏭ 开下一局）
   els.mask.addEventListener('click', (e) => { if (e.target === els.mask && (els.dialog.querySelector('[data-ok]') || els.dialog.querySelector('.zm-rank')) && !els.dialog.querySelector('[data-range]')) { const cb = closeDialog(); if (cb) cb(); } });
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !sheetMask.hidden) { closeSheet(); return; }
     if (e.key === 'Escape' && mode === 'target') cancelTarget();
     if ((e.key === 'Escape' || e.key === 'Enter') && game && game.peekDone) game.peekDone();
   });
