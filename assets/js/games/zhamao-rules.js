@@ -588,7 +588,10 @@
         ev.push({ t: 'flux', seat: me, rule, prev, dir: s.dir });
         // 烫手立刻生效、双向都算（用户 2026-11-15）：转到烫手，这个回合马上要摸两次；烫手时把它换走，这回合多出来的那一次也没了
         // hot：'on' / 'off' 告诉网页这口锅是百变「烫手」扣上的 / 收走的（动画从规则牌飞出来、飞回去）
-        if (rule === 'hot' && prev !== 'hot' && s.turnsLeft === 1 && s.cowCut !== me) { s.turnsLeft = 2; s.hotGiven = me; ev.push({ t: 'turn', seat: me, turnsLeft: 2, hot: 'on' }); }
+        // 边界（2026-11-17 用户排查）：
+        //  · 已经被甩锅、头上有好几口锅（turnsLeft > 1）时转到烫手：不再加——烫手 = 「回合一开始像被甩了一次锅」，这一回合开头已经是真被甩的了，不重复算
+        //  · 这一回合烫手给的那一次已经摸掉了（hotGiven 还是我）：换走再换回来不再给第二次
+        if (rule === 'hot' && prev !== 'hot' && s.turnsLeft === 1 && s.cowCut !== me && s.hotGiven !== me) { s.turnsLeft = 2; s.hotGiven = me; ev.push({ t: 'turn', seat: me, turnsLeft: 2, hot: 'on' }); }
         else if (prev === 'hot' && rule !== 'hot' && s.hotGiven === me && s.turnsLeft > 1) { s.turnsLeft -= 1; s.hotGiven = -1; ev.push({ t: 'turn', seat: me, turnsLeft: s.turnsLeft, hot: 'off' }); }
         break;
       }

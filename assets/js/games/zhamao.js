@@ -3095,7 +3095,8 @@
   async function peel(t, bottom) {
     const lift = game.drawLift; game.drawLift = null;   // 联机：点「摸牌」时已经掀起来悬着的那张——从它现在的位置接着摸
     game.peelFace = null;
-    if (bottom) { if (lift) lift.cancel(); return peelBottom(t); }
+    // 牌堆只剩一张时，底和顶是同一张：照从顶上摸来演（2026-11-17 用户：以前从底下抽出来的那一瞬，牌堆上还摆着一张，看着像有两张）
+    if (bottom && ov && ov.deckSize > 1) { if (lift) lift.cancel(); return peelBottom(t); }
     const r = deckTopRect(), pu = PU();
     if (lift) requestAnimationFrame(() => lift.cancel());
     const node = document.createElement('div');
@@ -3258,18 +3259,21 @@
   /* 用逗猫棒拆掉（2026-11-12 用户挑的方案甲「牌化成画」）：逗猫棒那张牌落在桌心不消失，就地「展开」成封面那幅画（牌放大淡出、画从牌那么大长出来，同一个位置），
    * 只有画里这一根逗猫棒在挥（头像那儿不再另外冒一根），画里的炸毛猫消气的同时头像那只也消气；最后画收回成那张牌，牌落进弃牌堆 */
   async function animDefuse(e, t) {
+    if (e.extra != null) return animCatSave(e, t);
     const u = U(), c = fx.center(els.center.getBoundingClientRect());
     const src = takeDefuseCard(e);
-    if (e.extra != null) {   // 百变「双猫急救」：一对猫顶逗猫棒——另一张也从手里拿走、进弃牌堆
-      if (e.seat === 0) { dropFromHand([e.extra]); renderHand(); } else if (ov) { ov.counts[e.seat] -= 1; renderSeat(e.seat); }
-      if (ov) ov.discard.push(e.extra);
-      bubble(e.seat, '急救！', { loud: true, ms: 1800 });
-    }
     const W = u * 1.2;
     const giver = e.from != null ? e.from : e.seat;   // 组队救援：逗猫棒是队友的，从谁手里出就按谁的样子飞
     await fx.fly({ html: cardHtml(e.card), back: backHtml(), flip: giver === 0 ? null : 'up', flipAt: 0.15, from: src, to: c, w: W, s0: giver === 0 ? u / W : 0.35, s1: 1, r0: 0, r1: 0, dur: ms(440), lift: 60 });
     if (t !== token) return;
     const card = restCard(cardHtml(e.card), c.x, c.y, W);
+    if (!(await defuseHero(e, t, c, W, card))) return;
+    card.remove();
+    await defuseToDiscard(e, t, c, W);
+  }
+  /* 逗猫棒那张牌在桌心「展开」成画、挥逗猫棒让炸毛猫消气、再收回成那张牌（card 留在原处，调用的人自己处理）；返回 false = 中途被打断 */
+  async function defuseHero(e, t, c, W, card) {
+    const u = U();
     const SW = Math.min(innerWidth * 0.62, u * 3.4), SH = SW * 0.63;
     const scene = document.createElement('div');
     scene.className = 'zm-defuse-scene';
@@ -3294,13 +3298,62 @@
     fx.ring(c.x, c.y, { color: '#4f8a5f', size: SW * 1.2, width: 5, dur: 900, delay: grow + ms(450) });
     ['heart', 'note', 'heart', 'note', 'heart'].forEach((sh, i) => fx.float(c.x + (i - 2) * SW * 0.13, c.y - SH * 0.3, sh, { dy: -u * 1.1, dx: (i - 2) * 8, size: 16 + (i % 2) * 6, color: sh === 'heart' ? PINKS[i % 3] : '#4f8a5f', delay: grow + ms(250 + i * 160), dur: ms(1100) }));
     await wait(grow + dur);
-    if (t !== token) { scene.remove(); card.remove(); return; }
+    if (t !== token) { scene.remove(); card.remove(); return false; }
     // 画收回成那张牌
     const back = ms(320);
     scene.animate([{ transform: 'none', opacity: 1 }, { transform: 'scale(' + k.toFixed(3) + ')', opacity: 0 }], { duration: back, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' });
     await card.animate([{ transform: base + ' scale(' + (SW / W * 0.7).toFixed(3) + ')', opacity: 0 }, { transform: base + ' scale(1)', opacity: 1 }], { duration: back, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' }).finished.catch(() => {});
-    scene.remove(); card.remove();
-    await defuseToDiscard(e, t, c, W);
+    scene.remove();
+    if (t !== token) { card.remove(); return false; }
+    return true;
+  }
+  /* 百变「急救」（2026-11-17 用户）：没逗猫棒、拿一对一样的牌顶——两张牌一左一右飞到桌心，往中间一合、闪一下变成一根逗猫棒，
+   * 接着走平常逗猫棒救人那套（展开成画、挥棒消气、收回），最后逗猫棒又分回原来那两张、一起落进弃牌堆（弃牌堆里真的是这两张）。
+   * 不再冒「急救！」字——两张合成一根就说明了一切 */
+  async function animCatSave(e, t) {
+    const u = U(), c = fx.center(els.center.getBoundingClientRect()), W = u * 1.2;
+    const mine = e.seat === 0;
+    const src2 = mine ? handRectOf(e.extra) : avPoint(e.seat);
+    const src1 = takeDefuseCard(e);
+    if (mine) { dropFromHand([e.extra]); renderHand(); } else if (ov) { ov.counts[e.seat] -= 1; renderSeat(e.seat); }
+    const gap = W * 0.62, PL = { x: c.x - gap, y: c.y }, PR = { x: c.x + gap, y: c.y };
+    const flyOpts = (id, from, to, d) => ({ html: cardHtml(id), back: backHtml(), flip: mine ? null : 'up', flipAt: 0.15, from, to, w: W, s0: mine ? u / W : 0.35, s1: 1, r0: 0, r1: d, dur: ms(440), lift: 60 });
+    await Promise.all([fx.fly(flyOpts(e.card, src1, PL, -6)), fx.fly(Object.assign(flyOpts(e.extra, src2, PR, 6), { delay: ms(70) }))]);
+    if (t !== token) return;
+    const a = restCard(cardHtml(e.card), PL.x, PL.y, W), b = restCard(cardHtml(e.extra), PR.x, PR.y, W);
+    a.style.transform += ' rotate(-6deg)'; b.style.transform += ' rotate(6deg)';
+    // 往中间一合：先各自往外让一点蓄力，再撞到一起
+    const slide = ms(380);
+    snd('whoosh');
+    a.animate([{ translate: '0 0' }, { translate: (-u * 0.12) + 'px 0', offset: 0.35 }, { translate: gap + 'px 0', rotate: '6deg' }], { duration: slide, easing: 'cubic-bezier(.5,0,.7,1)', fill: 'forwards' });
+    await b.animate([{ translate: '0 0' }, { translate: (u * 0.12) + 'px 0', offset: 0.35 }, { translate: (-gap) + 'px 0', rotate: '-6deg' }], { duration: slide, easing: 'cubic-bezier(.5,0,.7,1)', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token) { a.remove(); b.remove(); return; }
+    // 合成：一道光、一圈绿金火花，两张不见了，换成一根逗猫棒（弹一下）
+    snd('combo');
+    fx.ring(c.x, c.y, { color: '#e9d46a', size: u * 2.6, width: 6, dur: 520 });
+    fx.burst(c.x, c.y, { n: 14, shapes: ['star', 'dot'], colors: ['#4f8a5f', '#7fb06a', '#e9d46a', '#fff4c8'], radius: u * 1.2, size: [5, 14], life: 700, pattern: 'ring' });
+    a.remove(); b.remove();
+    const wand = restCard(cardHtml(R.DEFUSE), c.x, c.y, W);
+    await wand.animate([{ scale: '0.6', filter: 'brightness(2.2)' }, { scale: '1.15', filter: 'brightness(1.4)', offset: 0.55 }, { scale: '1', filter: 'none' }], { duration: ms(360), easing: 'cubic-bezier(.3,.8,.4,1.2)' }).finished.catch(() => {});
+    if (t !== token) { wand.remove(); return; }
+    if (!(await defuseHero(e, t, c, W, wand))) return;
+    // 逗猫棒分回那两张，一起落进弃牌堆
+    wand.remove();
+    const a2 = restCard(cardHtml(e.card), c.x, c.y, W), b2 = restCard(cardHtml(e.extra), c.x, c.y, W);
+    a2.animate([{ translate: '0 0' }, { translate: (-u * 0.35) + 'px 0', rotate: '-8deg' }], { duration: ms(200), easing: 'ease-out', fill: 'forwards' });
+    await b2.animate([{ translate: '0 0' }, { translate: (u * 0.35) + 'px 0', rotate: '8deg' }], { duration: ms(200), easing: 'ease-out', fill: 'forwards' }).finished.catch(() => {});
+    const r1 = a2.getBoundingClientRect(), r2 = b2.getBoundingClientRect();
+    a2.remove(); b2.remove();
+    if (t !== token) return;
+    const to = discardRect();
+    await Promise.all([
+      fx.fly({ html: cardHtml(e.card), from: r1, to, w: PU(), s0: W / PU(), s1: 1, r0: -8, r1: pileRot(e.card), dur: ms(360), lift: 30 }),
+      fx.fly({ html: cardHtml(e.extra), from: r2, to, w: PU(), s0: W / PU(), s1: 1, r0: 8, r1: pileRot(e.extra), dur: ms(360), delay: ms(80), lift: 30 }),
+    ]);
+    if (t !== token || !ov) return;
+    ov.discard.push(e.card, e.extra);
+    renderPiles();
+    snd('thud');
   }
   /* 塞回去：背面的炸毛猫飞回牌堆，牌堆上半截掀开一道口、它滑进去、合上（不论塞在哪动画都一样，不泄露位置） */
   async function animInsert(e, t) {
@@ -5458,7 +5511,18 @@
       case 'defuse': {
         putInHand(s, e.seat, e.card);
         const h = s.hands[e.seat]; h.splice(h.indexOf(e.card), 1); s.discard.push(e.card); forget(s, e.card);
+        // 百变「急救」：另一张也交出去（以前镜像里漏了这张，手牌 / 弃牌堆对不上，联机每次急救都要整桌重同步）
+        if (e.extra != null) { putInHand(s, e.seat, e.extra); const h2 = s.hands[e.seat]; h2.splice(h2.indexOf(e.extra), 1); s.discard.push(e.extra); forget(s, e.extra); }
         s.phase = 'defuse'; s.defuse = { by: e.seat, card: e.kitten }; s.netBoom = null;
+        break;
+      }
+      case 'nine': {
+        // 九命 / 急救：炸毛猫随机塞回牌堆（2026-11-17：镜像以前没这一步，牌堆少一只，联机每次都要整桌重同步）。位置按公开的粗略高度放
+        const id = e.card != null ? e.card : s.defuse ? s.defuse.card : s.netBoom;
+        const n = s.deck.length, pos = e.vis == null ? (Math.random() * (n + 1)) | 0 : Math.round(e.vis * n);
+        if (id != null) s.deck.splice(Math.max(0, Math.min(n, pos)), 0, id);
+        s.memo[0].deck = s.memo[0].deck.filter((x) => x !== id);
+        s.defuse = null; s.netBoom = null; s.seq += 1;
         break;
       }
       case 'insert': {
@@ -6822,6 +6886,10 @@
       triplehit: () => { give(0, 'tabby'); give(0, 'tabby'); give(0, 'tabby'); give(bot, R.SKIP); s.turn = 0; apply(0, { type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: bot, named: R.SKIP }); },
       triplemiss: () => { give(bot, 'tabby'); give(bot, 'tabby'); give(bot, 'tabby'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: 0, named: R.SWAP }); },
       nope: () => { give(0, R.NOPE); give(bot, R.ATTACK); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
+      // 百变「急救」：没逗猫棒、手里一对奶牛猫，摸到炸毛猫（我 / 机器猫）；牌堆只剩一张时抽底
+      catsave: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(0, 'cow'); give(0, 'cow'); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
+      catsavebot: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(bot, 'cow'); give(bot, 'cow'); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
+      bottom1: () => { const keep = s.deck.find((id) => R.KIND_OF[id] !== R.BOOM); s.removed.push(...s.deck.filter((id) => id !== keep)); s.deck = [keep]; give(bot, 'bottom'); s.turn = bot; apply(bot, { type: 'play', cards: [s.hands[bot].find((id) => R.KIND_OF[id] === 'bottom')] }); },
       win: () => { for (let i = 1; i < s.n; i++) { s.alive[i] = false; s.outOrder.push(i); s.hands[i] = []; } s.phase = 'over'; s.winner = 0; release(); renderAll(); finish(); },
       deal: () => newGame(),
     };
