@@ -1266,9 +1266,38 @@
     if (t !== token) return;
     stack.querySelectorAll('.zm-deck-kit').forEach((k) => k.remove());
   }
-  // 百变「九命」：炸了没出局——头顶冒「九命！」，头像缓过来，炸毛猫从他那儿飞回牌堆（缝开在看不出的高度）
+  // 百变「九命」：炸了没出局——头像外一圈九颗心转出来、最上面那颗碎掉落下（用掉一条命），头像缓过来，
+  // 炸毛猫从他那儿飞回牌堆（缝开在看不出的高度）。2026-11-17 用户：不要「九命！」字，换成图形
+  function nineLives(seat) {
+    const av = seat === 0 ? els.me.querySelector('.zm-av') : avEl(seat);
+    const c = av ? fx.center(av.getBoundingClientRect()) : avPoint(seat);
+    const u = U(), ar = av ? av.getBoundingClientRect().width / 2 : u * 0.42, sz = Math.max(14, u * 0.24), R = ar + sz * 0.75;
+    const box = document.createElement('div');
+    box.className = 'zm-nine';
+    box.style.cssText = 'position:fixed;left:' + c.x + 'px;top:' + c.y + 'px;width:0;height:0;z-index:70;pointer-events:none';
+    const hs = [];
+    for (let i = 0; i < 9; i++) {
+      const a = (-90 + i * 40) * Math.PI / 180, x = Math.cos(a) * R, y = Math.sin(a) * R;
+      const h = document.createElement('i');
+      h.style.cssText = 'position:absolute;left:' + (-sz / 2) + 'px;top:' + (-sz / 2) + 'px;width:' + sz + 'px;height:' + sz + 'px';
+      h.innerHTML = '<svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true">' + ART.heart(12, 13, 8, '#e0566e') + '</svg>';
+      box.appendChild(h); hs.push({ h, x, y });
+      h.animate([{ transform: 'translate(0,0) scale(0)', opacity: 0 }, { transform: 'translate(' + x + 'px,' + y + 'px) scale(1.25)', opacity: 1, offset: 0.7 }, { transform: 'translate(' + x + 'px,' + y + 'px) scale(1)', opacity: 1 }],
+        { duration: ms(360), delay: ms(i * 45), easing: 'cubic-bezier(.2,.8,.4,1)', fill: 'both' });
+    }
+    els.app.appendChild(box);
+    box.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(40deg)' }], { duration: ms(1700), easing: 'ease-out', fill: 'forwards' });
+    // 最上面那颗：变灰、裂开、掉下去
+    const top = hs[0];
+    setTimeout(() => {
+      const p = top.h.querySelector('path'); if (p) p.setAttribute('fill', '#9e9586');
+      top.h.animate([{ transform: 'translate(' + top.x + 'px,' + top.y + 'px) scale(1)', opacity: 1 }, { transform: 'translate(' + top.x + 'px,' + top.y + 'px) scale(1.3) rotate(-12deg)', opacity: 1, offset: 0.2 },
+        { transform: 'translate(' + top.x + 'px,' + (top.y + u * 1.1) + 'px) scale(.7) rotate(40deg)', opacity: 0 }], { duration: ms(650), easing: 'cubic-bezier(.5,0,.8,.6)', fill: 'forwards' });
+    }, ms(780));
+    setTimeout(() => box.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(350), fill: 'forwards' }).finished.then(() => box.remove(), () => box.remove()), ms(1650));
+  }
   async function animNine(e, t) {
-    if (e.why !== 'save') { bubble(e.seat, '九命！', { loud: true, ms: 1800 }); snd('defuse'); }   // 急救：前面那张「急救！」已经喊过了
+    if (e.why !== 'save') { nineLives(e.seat); snd('defuse'); }   // 急救：前面已经演过「两张合成逗猫棒」
     calmAvatar(e.seat, t, ms(500));
     await wait(ms(500));
     if (t !== token) return;
@@ -6970,6 +6999,7 @@
       // 百变「急救」：没逗猫棒、手里一对奶牛猫，摸到炸毛猫（我 / 机器猫）；牌堆只剩一张时抽底
       catsave: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(0, 'cow'); give(0, 'cow'); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       catsavebot: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(bot, 'cow'); give(bot, 'cow'); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
+      nine: () => { s.flux = 'nine'; s.nineUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
       bottom1: () => { const keep = s.deck.find((id) => R.KIND_OF[id] !== R.BOOM); s.removed.push(...s.deck.filter((id) => id !== keep)); s.deck = [keep]; give(bot, 'bottom'); s.turn = bot; apply(bot, { type: 'play', cards: [s.hands[bot].find((id) => R.KIND_OF[id] === 'bottom')] }); },
       win: () => { for (let i = 1; i < s.n; i++) { s.alive[i] = false; s.outOrder.push(i); s.hands[i] = []; } s.phase = 'over'; s.winner = 0; release(); renderAll(); finish(); },
       deal: () => newGame(),
