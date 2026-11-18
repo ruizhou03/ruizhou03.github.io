@@ -1632,9 +1632,25 @@
     els.stage.classList.toggle('is-cancelled', cancelled);
     if (game && game.rimLk && game.rimLk.setDull) game.rimLk.setDull(cancelled);
   }
-  /* 导火索：绳子从右往左烧短，火星跟着走、一路冒小火花；最后一秒半变红、闪 */
+  /* 导火索就是灯带（2026-11-17 用户在三个预览里挑了丙）：每开一轮作废（出牌后、每张作废后），颜色从刚出牌 / 刚出作废的那个人
+   * 向两边铺满整圈桌沿（金 = 这张牌现在算数，紫 = 被作废了），再从两头往回烧、缩回这个人；还没烧完，除他以外谁都还能作废。
+   * 以前牌堆下那根小绳子不再用（.zm-fuse 留着占位、看不见）；作废键里那条细进度照旧 */
   let fuseSparkTimer = null;
+  /* 默认开（2026-11-17 在本机联机里亲眼看过：出牌金色从出牌人铺满整圈再烧回、作废后紫色从作废的人铺开）；
+   * 网址带 ?rimfuse=0 关掉、退回牌堆下那根小绳子（记在本机），?rimfuse=1 再打开 */
+  const RIM_FUSE = (() => { try { if (/[?&]rimfuse=0\b/.test(location.search)) localStorage.setItem('zm.rimfuse', '0'); if (/[?&]rimfuse=1\b/.test(location.search)) localStorage.removeItem('zm.rimfuse'); return localStorage.getItem('zm.rimfuse') !== '0'; } catch (_) { return !/[?&]rimfuse=0\b/.test(location.search); } })();
+  if (RIM_FUSE) els.app.classList.add('is-rimfuse');
   function fuse(msLeft) {
+    if (!RIM_FUSE) { ropeFuse(msLeft); return; }
+    const ring = els.nopeBtn.querySelector('.zm-nope-ring');
+    ring.getAnimations().forEach((a) => a.cancel());
+    if (!(msLeft > 0)) { stopRimFuse(); return; }
+    if (isFinite(msLeft)) ring.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: msLeft, easing: 'linear', fill: 'forwards' });
+    rimFuse(msLeft);
+  }
+  function stopFuse() { stopRope(); stopRimFuse(); }
+  /* 导火索：绳子从右往左烧短，火星跟着走、一路冒小火花；最后一秒半变红、闪 */
+  function ropeFuse(msLeft) {
     const f = els.stage.querySelector('.zm-fuse');
     if (fuseSparkTimer) { clearInterval(fuseSparkTimer); fuseSparkTimer = null; }
     if (!f) return;
@@ -1658,7 +1674,68 @@
       fx.burst(r.left + r.width / 2, r.top + r.height / 2, { n: 3, shapes: ['dot', 'star'], colors: left < 1500 ? ['#c8463a', '#e9d46a'] : GOLDS, radius: 16, size: [3, 7], life: 420, gravity: 10, pattern: 'fountain' });
     }, 140);
   }
-  function stopFuse() { if (fuseSparkTimer) { clearInterval(fuseSparkTimer); fuseSparkTimer = null; } const f = els.stage.querySelector('.zm-fuse'); if (f) f.classList.add('is-out'); }
+  function stopRope() { if (fuseSparkTimer) { clearInterval(fuseSparkTimer); fuseSparkTimer = null; } const f = els.stage.querySelector('.zm-fuse'); if (f) f.classList.add('is-out'); }
+  const RIM_GOLD = '#d2a24c', RIM_PURPLE = '#8a68a8';
+  let nf = null;   // 这一轮的灯带导火索：{ key, g, path, glow, sparks, i0, x, paintFrom, paintAt, paintMs, burnFrom, burnAt, burnEnd, raf }
+  function rimFuse(msLeft) {
+    const s = game && game.state;
+    if (!s || s.phase !== 'react' || !s.pending) return;
+    const p = s.pending, last = p.nopes.length ? p.nopes[p.nopes.length - 1].seat : p.by;
+    const key = p.by + ':' + p.cards.join(',') + ':' + p.nopes.length;
+    const now = performance.now();
+    if (nf && nf.key === key && nf.g.isConnected) {   // 同一轮又收到一次：不重铺，只把「烧完」的时刻对齐到新的剩余时间
+      const x = nfX(nf, now);
+      if (now < nf.paintAt + nf.paintMs) { nf.burnEnd = now + msLeft; return; }
+      nf.burnFrom = x; nf.burnAt = now; nf.burnEnd = now + msLeft;
+      return;
+    }
+    stopRimFuse(true);
+    const L = rimLayer('nfuse'); if (!L || !L.sv._anchor) return;
+    const col = p.nopes.length % 2 ? RIM_PURPLE : RIM_GOLD;
+    const pts = L.sv._pts, a = L.sv._anchor(last);
+    let i0 = 0, bd = Infinity;
+    pts.forEach((q, i) => { const d = (q.x - a.x) ** 2 + (q.y - a.y) ** 2; if (d < bd) { bd = d; i0 = i; } });
+    L.g.innerHTML = '<path style="stroke:' + col + ';color:' + col + ';stroke-width:3.6"/><circle r="3.6" style="fill:#fffaf0;stroke:' + col + ';stroke-width:2"/><circle r="3.6" style="fill:#fffaf0;stroke:' + col + ';stroke-width:2"/>';
+    const path = L.g.querySelector('path'), glow = glowTwin(path, 7)[0], sparks = L.g.querySelectorAll('circle');
+    const paintMs = isFinite(msLeft) ? Math.min(700, msLeft * 0.4) : 700;
+    nf = { key, g: L.g, sv: L.sv, path, glow, sparks, i0, paintAt: now, paintMs, burnFrom: 1, burnAt: now + paintMs, burnEnd: now + msLeft };
+    if (fx.reduce()) { nf.paintMs = 0; nf.burnAt = now; }
+    const tick = () => {
+      if (!nf || nf.g !== L.g || !L.g.isConnected) return;
+      const t = performance.now();
+      if (t > nf.burnEnd && t > nf.paintAt + nf.paintMs) { stopRimFuse(true); return; }   // 烧完了：撤掉这一层，常驻光才亮得回来
+      drawRimFuse(nf, nfX(nf, t));
+      nf.raf = requestAnimationFrame(tick);
+    };
+    tick();
+  }
+  // 现在铺到 / 烧到哪儿：x = 每边占半圈的几成（0..1）
+  function nfX(f, now) {
+    if (now < f.paintAt + f.paintMs) { const q = (now - f.paintAt) / f.paintMs; return 1 - Math.pow(1 - q, 3); }
+    if (!isFinite(f.burnEnd)) return 1;
+    const start = Math.max(f.burnAt, f.paintAt + f.paintMs);
+    const q = f.burnEnd > start ? Math.min(1, Math.max(0, (now - start) / (f.burnEnd - start))) : 1;
+    return f.burnFrom * (1 - q);
+  }
+  function drawRimFuse(f, x) {
+    const pts = f.sv._pts, N = pts.length;
+    if (!N) return;
+    const k = Math.round(x * Math.floor(N / 2));
+    if (k < 1) { f.path.setAttribute('d', ''); f.glow.setAttribute('d', ''); f.sparks.forEach((c) => c.setAttribute('opacity', 0)); return; }
+    const at = (j) => pts[((f.i0 + j) % N + N) % N];
+    let d = '';
+    for (let j = -k; j <= k; j++) { const q = at(j); d += (j === -k ? 'M' : 'L') + q.x.toFixed(1) + ' ' + q.y.toFixed(1); }
+    f.path.setAttribute('d', d); f.glow.setAttribute('d', d);
+    const ends = [at(-k), at(k)], burning = performance.now() >= f.paintAt + f.paintMs && isFinite(f.burnEnd);
+    f.sparks.forEach((c, i) => { c.setAttribute('cx', ends[i].x.toFixed(1)); c.setAttribute('cy', ends[i].y.toFixed(1)); c.setAttribute('opacity', burning ? 1 : 0); });
+  }
+  function stopRimFuse(now) {
+    if (!nf) return;
+    const f = nf; nf = null;
+    cancelAnimationFrame(f.raf);
+    if (now || fx.reduce()) { f.g.remove(); return; }
+    f.g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' }).finished.then(() => f.g.remove()).catch(() => f.g.remove());
+  }
   function clearStage(keepRim) {
     stopFuse();
     if (!keepRim) releaseRim();
@@ -3700,6 +3777,7 @@
 
 
   function wipeFx() {
+    stopRimFuse(true);
     clearBombAvatars();
     if (game && game.wander) { game.wander.cancel(); game.wander = null; }
     if (game && game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
@@ -5636,7 +5714,7 @@
     busy = true;
     stopClock();
     clearReactTimer();
-    if (els.stage.querySelector('.zm-fuse.is-lit') && first.t !== 'nope') stopFuse();
+    if ((nf || els.stage.querySelector('.zm-fuse.is-lit')) && first.t !== 'nope') stopFuse();   // 这一轮结算了（不是又来一张作废）：桌沿导火索收掉
     // 机器猫（含替人代打）做的一步：先「想一下」再播；偷牌先让红光在被偷的人牌上游走一会儿
     if (first.t === 'steal' && first.to !== 0) {
       if (!game.wander) { const cnt = game.state.steal ? game.state.steal.perm.length : game.state.hands[first.from].length; game.wander = startWander(first.from, cnt); await wait(stealThink(cnt)); }
@@ -5842,8 +5920,9 @@
       online.pendingSrc = null;
       game.previewSrc = null;
       // 作废没生效要说清楚（2026-11-13 用户：有人点了作废却没生效、也不知道为什么）
-      if (d.type === 'nope' && err && err.error === 'stale') toast('有人先你一步出了作废，你这张没打出去——看清桌上再决定要不要作废回去');
-      else if (d.type === 'nope' && err && (err.error === 'no_reaction' || err.error === 'not_your_call')) toast(netRtt() >= 700 ? '网络有点慢（来回约 ' + (netRtt() / 1000).toFixed(1) + ' 秒），作废没赶上，这张牌已经结算了' : '晚了一步，这张牌已经结算了');
+      // 作废没打出去（别人先作废了 / 这一轮已经结算）：不弹文字（2026-11-17 用户：文字提示很蠢），手里的作废抖一下表示「没出去、还在手里」；
+      // 桌沿的颜色会从先出作废的那个人那儿重新铺开，一看就知道发生了什么
+      if (d.type === 'nope' && err && (err.error === 'stale' || err.error === 'no_reaction' || err.error === 'not_your_call')) els.hand.querySelectorAll('.zm-card[data-k="nope"]').forEach((c) => shake(c));
       else if (err && err.error !== 'stale') toast(NET.message(err));
       resync();
     }
