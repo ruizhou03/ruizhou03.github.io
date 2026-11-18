@@ -1393,7 +1393,8 @@
     const hand = D().hand;
     selected = selected.filter((id) => hand.indexOf(id) >= 0);
     /* 问到我要不要作废（2026-11-16 用户：作废牌要默认替我点起来）：每个新的反应窗，手里第一张作废自动抬起；
-     * 再点它放回去（这一窗里不再自动抬），点上面的紫色「作废」键才真的打出去 */
+     * 再点这张抬起的就打出去（2026-11-17 朋友局：都以为再点一下是出牌，结果放下了、时间到了也没作废成），
+     * 点上面的紫色「作废」键也一样；不想挡点「不挡 / 不管」 */
     if (s.phase === 'react' && reactOpen && s.pending) {
       const key = (s.pending.by) + ':' + s.pending.cards.join(',') + ':' + s.pending.nopes.length;   // 同一张牌、同一层作废 = 同一个窗
       if (nopeAutoKey !== key) {
@@ -3463,8 +3464,12 @@
     const s = game.state;
     if (!s.alive[0]) return;   // 观战时看到的是别人的牌，点了没用
     if (autopilot) { setAutopilot(false); return; }   // 托管中点手牌 = 收回来自己打
-    // 别人出牌后点手里的「作废」：只是抬起 / 放下（2026-11-15 朋友反馈：以前点一下就直接打出去，抬起来就放不回去了）；要打出去点紫色「作废」键
-    if (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE) { if (nopeLift.has(id)) nopeLift.delete(id); else nopeLift.add(id); snd(nopeLift.has(id) ? 'tap' : 'untap'); renderHand({ flip: false }); return; }
+    // 别人出牌后点手里的「作废」：没抬起的先抬起来；已经抬起来的（问到我时会自动抬一张）再点一下 = 打出去
+    // （2026-11-15 以前是一点就打、2026-11-16 改成只抬起 / 放下；2026-11-17 朋友局又反馈「再点一下以为是出牌、结果放下了」，用户定：点抬起的 = 打出）
+    if (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE) {
+      if (nopeLift.has(id)) { pressNope(); return; }
+      nopeLift.clear(); nopeLift.add(id); snd('tap'); renderHand({ flip: false }); return;
+    }
     nopeLift.clear();
     if (mode === 'give') { selected = selected[0] === id ? [] : [id]; snd('tap'); renderHand(); renderBand(); return; }
     if (mode === 'target') { cancelTarget(); }
@@ -5702,7 +5707,21 @@
     // 服务器那边多留的一截（graceMs）兜得住，但也不能超过服务器真正关窗前 0.5 秒（留给网络）
     // 留给网络的那截按这台设备实际的来回算（以前写死 0.5 秒，网慢的人最后一刻点的作废会赶不上）
     const pad = Math.min(2000, Math.max(400, netRtt() + 250));
-    const give = canN ? Math.max(0, Math.min(Math.max(remain, 1800), g.deadline - (Date.now() + online.skew) - pad)) : remain;
+    /* 2026-11-17 用户朋友局「作废点不上」：以前这里只剩 1.8–2.5 秒，长轮询卡一下（线上实测 2.7–4.4 秒）就只剩零点几秒甚至直接自动取消。
+     * 现在从我真正看到这一窗起算：牌冲着我 = 出牌限时的 1/4（服务器发来的 reactMs：10 秒局 3 秒，其余 5 秒），只是问问我 = 2.5 秒；
+     * 服务器那边的窗口不够这么长（我看到得晚）就报到一声（seen），服务器从现在起续一整根。同一窗只算一次起点，状态再推过来也不重新烧 */
+    let give = remain;
+    if (canN) {
+      if (!online.reactEnd || online.reactEnd.seq !== g.seq) {
+        const full = g.reactMs || 3000;
+        const base = nopeAboutMe(s) ? full : Math.min(2500, full);
+        if (g.deadline - (Date.now() + online.skew) - pad < base) {
+          NET.act(online.code, online.token, 'move', { d: { type: 'seen' }, at: g.seq }).catch(() => {});
+        }
+        online.reactEnd = { seq: g.seq, end: performance.now() + base };
+      }
+      give = Math.max(0, online.reactEnd.end - performance.now());
+    }
     reactOpen = canN;
     busy = !canN;
     renderHand({ flip: false });
