@@ -361,6 +361,8 @@
   const CLOCK_SVG = '<svg class="zm-clock" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="23" pathLength="100"/></svg>';
   /* 2v2 组队（2026-11-15 用户）：队友（对面那位 = 2 号）的头像放到底下一行——我、摸牌 / 出牌右边那块空位；上面一排只剩两个对手 */
   const teamGame = () => !!(game && game.state && R.isTeam && R.isTeam(game.state));
+  /* 2026-11-19 用户：围桌一圈不再只给组队——经典 / 百变 / 角色也一律所有人坐在桌沿（灯带）上，全员推送、不做设置开关。队色（头像底色、彗星跟队变色）仍只在组队里有 */
+  const ringGame = () => !!(game && game.state);
   /* 2026-11-15 用户：队友和我出牌顺序挨着（我是他的上家或下家），桌上整圈仍是逆时针：我 → 右 → 上排从右往左 → 左 → 我。
    * 队友是我下家：我在左下、队友在右下；队友是我上家：队友在左下、我在右下（els.app 加 is-mate-left） */
   /* 2026-11-18 起组队一律「围桌一圈」（is-ring）：所有人（包括我）都坐在桌沿上，不再有底下那排的队友座位——mateSeat 只剩老代码兼容（恒为 -1） */
@@ -388,8 +390,8 @@
     if (els.mate) { els.mate.remove(); els.mate = null; }
     // 组队：队伍看头像底色（2026-11-18 用户：外圈只管状态）；座位排成围桌一圈
     els.app.classList.toggle('is-team', teamGame());
-    els.app.classList.toggle('is-ring', teamGame());
-    if (!teamGame()) { els.me.style.removeProperty('left'); els.me.style.removeProperty('top'); els.me.style.removeProperty('bottom'); if (els.me.parentNode) els.me.parentNode.style.removeProperty('padding-left'); els.opps.style.removeProperty('min-height'); }
+    els.app.classList.toggle('is-ring', ringGame());
+    if (!ringGame()) { els.me.style.removeProperty('left'); els.me.style.removeProperty('top'); els.me.style.removeProperty('bottom'); if (els.me.parentNode) els.me.parentNode.style.removeProperty('padding-left'); els.opps.style.removeProperty('min-height'); }
     renderScore();
     els.app.classList.toggle('is-mate-left', teamGame() && mateSeat() === game.state.n - 1);   // 队友是我上家：他坐左下、我坐右下
     for (let k = 0; k < game.state.n; k++) seatEl(k).dataset.team = teamGame() ? String(teamIdx(k)) : '';
@@ -399,7 +401,7 @@
   /* 6–9 人（对手 5–8 家）：还是一排，但排成一道往下弯的弧（两头低、中间高，像围着桌子坐），头像跟着屏幕宽度缩小；
    * 角标（手牌数 / 还要摸几回合）挪到头像右上 / 右下角，免得挤到旁边那家 */
   function layoutOpps() {
-    if (teamGame()) { els.opps.classList.remove('is-arc'); renderDir(); return; }
+    if (ringGame()) { els.opps.classList.remove('is-arc'); renderDir(); return; }
     const m = game && game.state ? game.state.n - 1 : 0;
     const arc = m >= 5;
     els.opps.classList.toggle('is-arc', arc);
@@ -437,6 +439,17 @@
     const others = n - 1;
     // 头像大小：按三条直边能分到的间距定（侧边上下两家之间还要放名字）；两侧桌沿往里收到头像 + 名字 + 手牌数角标都不出框
     let av = 46, y0 = 0, segs = null, x0 = RING_M, x1 = W - RING_M;
+    /* 2026-11-19 经典 / 百变 / 角色也围桌一圈：三条边按长度分人（左右两边人数一样、对称），顶边至少坐 1 家（对手单数）或 2 家（双数）——
+     * 不然竖屏 5 人局四家全挤在左右两条边上、顶边空着，像隔着桌子对坐。每条边上的人在这条边上均匀排开。组队不走这个（保持 2026-11-18 定的整圈均分） */
+    let sp = null;
+    const split = (side, top) => {
+      if (teamGame()) return null;
+      let s = Math.max(0, Math.round(others * side / Math.max(1, 2 * side + top)));
+      let t = others - 2 * s;
+      const tMin = others % 2 ? 1 : Math.min(2, others);
+      if (t < tMin) { t = tMin; s = (others - t) / 2; }
+      return { s, t };
+    };
     for (let it = 0; it < 3; it++) {
       const inset = Math.max(RING_M, Math.round(av / 2 + 20));
       x0 = inset; x1 = W - inset;
@@ -452,14 +465,20 @@
         { len: top, at: (d) => [tR - d, y0] },              // 顶边：从右往左
         { len: side, at: (d) => [x0, y0 + cm + d] },        // 左边：从上往下
       ];
-      const L = side * 2 + top, gap = L / Math.max(1, others);
+      sp = split(side, top);
+      const L = side * 2 + top, gap = sp ? Math.min(sp.s ? side / sp.s : Infinity, sp.t ? top / sp.t : Infinity) : L / Math.max(1, others);
       const want = Math.max(28, Math.min(land ? 38 : W < 520 ? 44 : 50, Math.floor(gap - 26)));
       if (want === av) break;
       av = want;
     }
     const L = segs.reduce((a, s) => a + s.len, 0), gap = L / Math.max(1, others);
     const pos = {};
-    for (let k = 1; k <= others; k++) {
+    if (sp) {
+      const cnt = [sp.s, sp.t, sp.s];
+      let k = 1;
+      segs.forEach((sg, e) => { for (let i = 0; i < cnt[e]; i++) pos[k++] = sg.at(sg.len * (i + 0.5) / cnt[e]).map(Math.round); });
+    }
+    for (let k = 1; k <= others && !sp; k++) {
       let d = gap * (k - 0.5);
       for (const sg of segs) { if (d <= sg.len || sg === segs[segs.length - 1]) { pos[k] = sg.at(Math.min(d, sg.len)).map(Math.round); break; } d -= sg.len; }
     }
@@ -577,15 +596,15 @@
     });
   }
   function renderDir() {
-    if (teamGame() && !tableTurning) layoutRing();   // 围桌一圈：顶栏工具键开局后才露出来（横屏时顶边能坐的范围跟着变），每次都重新量
+    if (ringGame() && !tableTurning) layoutRing();   // 围桌一圈：顶栏工具键开局后才露出来（横屏时顶边能坐的范围跟着变），每次都重新量
     if (els.app.dataset.uivNames) fitNames();
     if (!els.dir) { els.dir = document.createElement('div'); els.dir.setAttribute('aria-hidden', 'true'); els.table.appendChild(els.dir); }
-    if (teamGame()) { ringDir(); return; }
+    if (ringGame()) { ringDir(); return; }
     els.dir.className = 'zm-dir';
     const n = game && game.state ? game.state.n : 0;
     const pairs = dirPairs();
     if (n < 3 || !els.opps.children.length || !pairs.length) { els.dir.innerHTML = ''; if (n >= 2) rimRender(); return; }
-    els.dir.classList.toggle('is-ring', teamGame());
+    els.dir.classList.toggle('is-ring', ringGame());
     if (els.dir.children.length !== pairs.length) els.dir.innerHTML = pairs.map(() => '<i>' + DIR3_SVG + '</i>').join('');
     els.dir.style.setProperty('--cyc', Math.max(2.6, (n - 2) * 0.18 + 1.8).toFixed(2) + 's');
     placeDir();
@@ -599,7 +618,7 @@
   /* 上面一排里相邻两家（座位号相连）各一个箭头：普通局 = 1→2、2→3……；组队（2026-11-15 改成队友挨着我坐）上排只剩两个对手，中间一个 */
   function dirPairs() {
     const n = game && game.state ? game.state.n : 0, m = mateSeat(), out = [];
-    if (teamGame()) {   // 围桌一圈：只在还活着的人之间（2026-11-18 用户：有人出局后箭头指到空座位上）
+    if (ringGame()) {   // 围桌一圈：只在还活着的人之间（2026-11-18 用户：有人出局后箭头指到空座位上）
       const al = (D() || {}).alive || game.state.alive, live = [];
       for (let a = 0; a < n; a++) if (al[a]) live.push(a);
       if (live.length > 1) live.forEach((a, i) => out.push([a, live[(i + 1) % live.length]]));
@@ -612,7 +631,7 @@
     if (!els.dir || !game || !game.state || tableTurning) return;
     const pairs = dirPairs(), np = pairs.length;
     if (els.dir.children.length !== np) return;
-    if (teamGame()) { ringDir(); return; }
+    if (ringGame()) { ringDir(); return; }
     const tb = els.table.getBoundingClientRect(), d = dirNow();
     // 2026-11-13 用户 8 人局：箭头没把名字串起来——以前按两个头像中心往下挪一截，人多头像小时落在名字和「高手」签之间。
     // 现在按名字摆：在两个名字之间的空隙正中、和名字一样高，顺着两个名字的连线歪；空隙窄就缩小
@@ -643,7 +662,7 @@
   function rimGeom() {
     const n = game && game.state ? game.state.n : 0;
     if (n < 2 || !avEl(0)) return null;
-    if (teamGame() && ringLay) {
+    if (ringGame() && ringLay) {
       const { x0, x1, y0, y1, r, pos } = ringLay, me = pos[0][0], f = (v) => v.toFixed(1);
       const d = 'M' + me + ' ' + y1 + 'L' + (x1 - r) + ' ' + y1 + 'Q' + x1 + ' ' + y1 + ' ' + x1 + ' ' + (y1 - r) + 'L' + x1 + ' ' + (y0 + r) + 'Q' + x1 + ' ' + y0 + ' ' + (x1 - r) + ' ' + y0 +
         'L' + (x0 + r) + ' ' + y0 + 'Q' + x0 + ' ' + y0 + ' ' + x0 + ' ' + (y0 + r) + 'L' + x0 + ' ' + (y1 - r) + 'Q' + x0 + ' ' + y1 + ' ' + (x0 + r) + ' ' + y1 + 'Z';
@@ -1084,7 +1103,7 @@
     if (!els.dir) return;
     const list = els.dir.children, st = game && game.state;
     if (!list.length || !st) return;
-    if (teamGame()) {   // 围桌一圈：从轮到的人到下一个出牌的人那一段（按 data-k 认是哪一对）亮朱红
+    if (ringGame()) {   // 围桌一圈：从轮到的人到下一个出牌的人那一段（按 data-k 认是哪一对）亮朱红
       const t = st.phase === 'over' ? -1 : D().turn, d = dirNow(), pairs = dirPairs();
       Array.from(list).forEach((el) => { const pr = pairs[+el.dataset.k]; const on = t >= 0 && !!pr && (d === -1 ? pr[1] : pr[0]) === t; el.classList.toggle('is-hot', on); el.classList.toggle('is-next', on); });
       return;
@@ -3121,7 +3140,7 @@
       // 坐在底下那排的（组队的队友）：往下摊会压住我的手牌（2026-11-18 用户）——改摊在他头像上方，扇面底边离头像留一道缝
       if (ar.top > innerHeight * 0.5) fan.style.top = (ar.top - 14 - w * 1.4 - ((count - 1) / 2) * 2.5 - 4) + 'px';
       // 围桌一圈（组队）坐在左右两条边上的（2026-11-19 用户）：扇面摊在头像朝桌子里的那一侧——左边那家摊在他右边、右边那家摊在他左边，和头像竖着居中
-      const rp = teamGame() && ringLay && ringLay.pos[fromSeat];
+      const rp = ringGame() && ringLay && ringLay.pos[fromSeat];
       const edge = rp && rp[1] !== ringLay.y0 ? (rp[0] === ringLay.x0 ? 1 : rp[0] === ringLay.x1 ? -1 : 0) : 0;
       if (edge) {
         fan.style.left = (edge > 0 ? ar.right + 14 + half : ar.left - 14 - half) + 'px';
@@ -5571,7 +5590,7 @@
   function refreshTools() {
     const pz = $('zmPauseBtn').hidden;
     $('zmPauseBtn').hidden = !(game && !game.tutorial && !game.online && els.cover.hidden);
-    if (pz !== $('zmPauseBtn').hidden && teamGame() && LANDSCAPE_SHORT.matches) requestAnimationFrame(renderDir);   // 横屏：工具键多了一颗，顶边能坐的范围变了
+    if (pz !== $('zmPauseBtn').hidden && ringGame() && LANDSCAPE_SHORT.matches) requestAnimationFrame(renderDir);   // 横屏：工具键多了一颗，顶边能坐的范围变了
     $('zmRankBtn').hidden = !(game && game.online && online);
     syncSocialUi();
   }
@@ -7318,7 +7337,7 @@
       if (!fx.reduce()) ffBtn.animate([{ opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1 }], { duration: 260, easing: 'cubic-bezier(.3,.7,.4,1.4)' });
     }
     // 组队围桌一圈（2026-11-18 用户）：桌沿是另算的一圈，不是牌桌中间那块的边——快进键贴着桌沿右下角往里一点放
-    if (teamGame() && ringLay) {
+    if (ringGame() && ringLay) {
       const tb = els.table.getBoundingClientRect(), cb = els.center.getBoundingClientRect(), S = ffBtn.offsetWidth || 34, pad = 10;
       ffBtn.style.right = 'auto'; ffBtn.style.bottom = 'auto';
       ffBtn.style.left = Math.round(ringLay.x1 - pad - S - (cb.left - tb.left)) + 'px';
