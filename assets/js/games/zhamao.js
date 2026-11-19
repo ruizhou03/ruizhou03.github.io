@@ -3132,6 +3132,13 @@
       fan.style.top = (Math.max(sb, ar.top + ar.height) + 16) + 'px';   // 落在整个座位（名字、档位签）下方，不压字
       // 坐在底下那排的（组队的队友）：往下摊会压住我的手牌（2026-11-18 用户）——改摊在他头像上方，扇面底边离头像留一道缝
       if (ar.top > innerHeight * 0.5) fan.style.top = (ar.top - 14 - w * 1.4 - ((count - 1) / 2) * 2.5 - 4) + 'px';
+      // 围桌一圈（组队）坐在左右两条边上的（2026-11-19 用户）：扇面摊在头像朝桌子里的那一侧——左边那家摊在他右边、右边那家摊在他左边，和头像竖着居中
+      const rp = teamGame() && ringLay && ringLay.pos[fromSeat];
+      const edge = rp && rp[1] !== ringLay.y0 ? (rp[0] === ringLay.x0 ? 1 : rp[0] === ringLay.x1 ? -1 : 0) : 0;
+      if (edge) {
+        fan.style.left = (edge > 0 ? ar.right + 14 + half : ar.left - 14 - half) + 'px';
+        fan.style.top = (ar.top + ar.height / 2 - w * 0.7 - ((count - 1) / 2) * 1.25) + 'px';
+      }
       for (let i = 0; i < count; i++) {
         const off = i - (count - 1) / 2;
         const c = document.createElement('div');
@@ -7011,7 +7018,9 @@
   //   仍然随机，窗口关得早晚看不出谁有没有作废）
   function earlyPass(g) {
     if (!online || !g || !g.myCall || (game && game.spectator) || g.st.phase !== 'react' || online.passFor === g.seq) return;
-    if (g.st.hand.some((id) => R.KIND_OF[id] === R.NOPE) && nopeAsks(g.st.pending, online.base, g.st.alive, g.st.dir)) return;
+    // 组队：和队友有关（队友出的、指着队友、甩到队友头上）也算和我有关，跟单机的 askMeNope 一致（2026-11-19 用户：别人甩锅给我队友，联机不问我作废——这里以前没算队友，先替我点了取消）
+    const st = g.st, mates = st.teams ? st.teams.map((t, k) => k).filter((k) => k !== online.base && st.teams[k] === st.teams[online.base] && st.alive[k]) : [];
+    if (st.hand.some((id) => R.KIND_OF[id] === R.NOPE) && (nopeAsks(st.pending, online.base, st.alive, st.dir) || mates.some((m) => aboutSeat(st.pending, m, st.alive, st.dir)))) return;
     online.passFor = g.seq;
     const at = g.seq;
     setTimeout(() => {
@@ -7187,12 +7196,18 @@
     // 按队第一次出现的先后定名次；同一队的人排在一起，队与队之间一道线
     const tr = new Map();
     order.forEach((seat) => { const t = R.teamOf(s, seat); if (!tr.has(t)) tr.set(t, tr.size); });
-    const rows = order.slice().sort((a, b) => tr.get(R.teamOf(s, a)) - tr.get(R.teamOf(s, b)));
     void won;
+    // 右边写个人名次（2026-11-19 用户）：第几个出局定名次——最后出局的排在活着的人后面，第一个出局的垫底；赢的时候还活着的几个人并列第 1，不分先后
+    const prank = (seat) => {
+      if (s.alive[seat]) return 1;
+      const k = s.outOrder.indexOf(seat);
+      return k >= 0 ? s.n - k : order.indexOf(seat) + 1;
+    };
+    const rows = order.slice().sort((a, b) => tr.get(R.teamOf(s, a)) - tr.get(R.teamOf(s, b)) || prank(a) - prank(b));   // 队内按个人名次排
     return '<h2>排行榜</h2>' +   // 2026-11-18 用户：标题一律叫「排行榜」，中性（不写「我们队赢了 / 对面那队赢了」）
       '<ol class="zm-rank is-team" data-stagger>' + rows.map((seat, i) => {
         const k = tr.get(R.teamOf(s, seat)), split = i > 0 && k !== tr.get(R.teamOf(s, rows[i - 1]));
-        return '<li class="' + (seat === me ? 'is-me' : '') + (split ? ' is-split' : '') + (k ? ' is-lost' : '') + '"><span class="pos">' + (k < MEDALS.length ? medal(k) : '') + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === me ? '<small>（我）</small>' : me === 0 && isMate(seat) ? '<small>（队友）</small>' : '') + '</span><span class="tag">' + (k === 0 ? '胜利' : '第 ' + (k + 1) + ' 名') + '</span></li>';
+        return '<li class="' + (seat === me ? 'is-me' : '') + (split ? ' is-split' : '') + (k ? ' is-lost' : '') + '"><span class="pos">' + (k < MEDALS.length ? medal(k) : '') + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === me ? '<small>（我）</small>' : me === 0 && isMate(seat) ? '<small>（队友）</small>' : '') + '</span><span class="tag">第 ' + prank(seat) + ' 名</span></li>';
       }).join('') + '</ol>';
   }
   function showRanking(order0) {
