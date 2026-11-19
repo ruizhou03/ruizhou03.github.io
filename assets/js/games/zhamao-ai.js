@@ -702,9 +702,44 @@
     return -1;
   }
   function bKnown(v, seat, kind) { const h = v.handKnown && v.handKnown[seat]; if (!h) return 0; let c = 0; for (const id of h) if (K[id] === kind) c++; return c; }
-  const S_DIM = 86, A_DIM = 34;
+  const S_DIM = 86, A_DIM = 34, V1_DIM = S_DIM + A_DIM, H_DIM = 31;
+  /* v2（2026-11-18 晚，REPORT 第五阶段）：输入 190 = v1 120 + 历史 31 + 塞猫动作 10 + 作废动作 29（作废这块线上不用，留 0）。
+   * 网络也管塞炸毛猫的位置（brainInsert）。对一桌 v1 网络名次分 3/4/5 人 0.563/0.529/0.510，对一桌原普通 0.654/0.634/0.628（v1 0.606/0.615/0.618） */
+  const BRAIN_V2 = !!BRAIN && BRAIN.DIM === V1_DIM + H_DIM + 10 + 29;
+  const TOTAL = {}; for (let id = 0; id < K.length; id++) TOTAL[K[id]] = (TOTAL[K[id]] || 0) + 1;   // 171 张全在局里（用不上的在盒子 removed 里）
+  function bRel(v, seat) { if (seat === v.me) return 0; for (let j = 1; j <= 4; j++) if (bNext(v, j) === seat) return j; return 5; }
+  function bHiddenEst(v, kind) {   // 已知的 + 没露面的按「未知位置」（别人没看清的手牌 + 牌堆未知位置）平摊
+    let seen = 0;
+    for (const id of v.discard) if (K[id] === kind) seen++;
+    for (const id of v.removed) if (K[id] === kind) seen++;
+    for (const id of v.hand) if (K[id] === kind) seen++;
+    for (const x of v.known) if (K[x.id] === kind) seen++;
+    let unk = Math.max(0, v.deckSize - v.known.length);
+    const hk = (s) => (v.handKnown && v.handKnown[s]) || [];
+    for (let s = 0; s < v.n; s++) { if (s === v.me) continue; seen += bKnown(v, s, kind); unk += Math.max(0, v.counts[s] - hk(s).length); }
+    const unacc = Math.max(0, (TOTAL[kind] || 0) - seen);
+    return (s) => bKnown(v, s, kind) + (unk ? unacc * Math.max(0, v.counts[s] - hk(s).length) / unk : 0);
+  }
+  function brainHist(v, f, o) {   // 必须和训练场 feat.js histFeat 逐位一致
+    const pk = v.peek;
+    if (pk) {
+      f[o + bRel(v, pk.by)] = 1; o += 6;
+      f[o + (pk.kind === 'alter' ? 1 : 0)] = 1; o += 2;
+      f[o++] = Math.min(3, pk.top || 0) / 3;
+      f[o + (pk.act === 'dodge' ? 1 : pk.act === 'draw' ? 2 : 0)] = 1; o += 3;
+    } else o += 12;
+    const ins = v.ins;
+    if (ins) {
+      f[o + bRel(v, ins.by)] = 1; o += 6;
+      f[o++] = Math.min(30, ins.size || 0) / 30;
+      f[o++] = Math.min(4, ins.top || 0) / 4; f[o++] = Math.min(4, ins.bot || 0) / 4;
+      f[o + (ins.seen === 'top' ? 0 : 1)] = ins.seen ? 1 : 0; o += 2;
+    } else o += 11;
+    const dE = bHiddenEst(v, R.DEFUSE), nE = bHiddenEst(v, R.NOPE);
+    for (let j = 1; j <= 4; j++) { const s = bNext(v, j); if (s >= 0) { f[o] = Math.min(2, dE(s)) / 2; f[o + 1] = Math.min(2, nE(s)) / 2; } o += 2; }
+  }
   function brainState(v) {
-    const f = new Float32Array(S_DIM + A_DIM); let o = 0;
+    const f = new Float32Array(BRAIN_V2 ? BRAIN.DIM : V1_DIM); let o = 0;
     const alive = v.alive.filter(Boolean).length;
     f[o + Math.min(5, Math.max(0, alive - 2))] = 1; o += 5;
     f[o++] = v.n / 8;
@@ -724,6 +759,7 @@
     for (const id of v.discard) f[o + KI[K[id]]] += 1 / Math.max(1, R.COUNTS[K[id]]); o += NK;
     f[o++] = v.dir === -1 ? 1 : 0;
     f[o++] = v.flux ? 1 : 0;
+    if (BRAIN_V2) brainHist(v, f, V1_DIM);
     return f;
   }
   function brainScore(v, sf, m) {
@@ -757,6 +793,26 @@
     for (let i = 0; i < cands.length; i++) { const q = brainScore(v, sf, cands[i]); if (q > bv) { bv = q; bi = i; } }
     return cands[bi];
   }
+  // v2：塞炸毛猫的位置也让网络挑（pos = 塞之前牌堆的第几张，0 = 顶）。和训练场 feat.js insFeat / game.js netInsert 一致
+  function brainInsert(v) {
+    const size = v.deckSize, rem = Math.max(0, (v.turnsLeft || 1) - 1);
+    const cands = Array.from(new Set([0, 1, 2, 3, 4, 5, 6, rem, rem + 1, rem + 2, rem + 3, Math.floor(size / 2), size].filter((p) => p >= 0 && p <= size))).sort((a, b) => a - b);
+    if (cands.length === 1) return cands[0];
+    const sf = brainState(v), others = v.alive.filter((a, i) => a && i !== v.me).length || 1;
+    let bi = 0, bv = -Infinity;
+    for (let i = 0; i < cands.length; i++) {
+      const pos = cands[i], f = sf.slice(); let o = V1_DIM + H_DIM;
+      f[o++] = 1;
+      f[o++] = Math.min(30, pos) / 30; f[o++] = pos === 0 ? 1 : 0; f[o++] = pos >= size ? 1 : 0;
+      let who;   // 粗估会被谁摸到：我先摸 rem 张，之后活着的人按顺序各摸一张
+      if (pos < rem) who = 0; else { const k = (pos - rem) % (others + 1); who = k === others ? 0 : Math.min(5, k + 1); }
+      f[o + who] = 1;
+      const q = BRAIN.score(f); if (q > bv) { bv = q; bi = i; }
+    }
+    return cands[bi];
+  }
+  const NORMAL_INS = (FXO && FXO.brainIns) || 'p';    // 普通塞猫：p = 和出牌同一比例用网络 / all / none（实测用）
+  const HARD_INS = (FXO && FXO.hardIns) || 'brain';   // 高手塞猫：brain = 网络 / pimc = 原来的推演（实测用）
 
   function hardAct(v, rng) {
     const N = pol(v);
@@ -803,6 +859,10 @@
   function reactFor(v, tier, rng) { return polT(v, tier).react(v, rng || Math.random, 'normal'); }
   function insertFor(v, tier, rng) {
     rng = rng || Math.random;
+    if (BRAIN_V2 && useBrain(v)) {   // 经典模式：塞猫跟出牌配套交给网络（v2 出牌是和网络塞猫一起练的，配原规则塞猫反而掉分）
+      if (tier === 'hard' && HARD_INS === 'brain') return brainInsert(v);
+      if (tier === 'normal' && (NORMAL_INS === 'all' || (NORMAL_INS === 'p' && rng() < NORMAL_BRAIN_P))) return brainInsert(v);
+    }
     if (tier === 'hard' && !teamV(v)) return hardInsert(v, rng);   // 组队塞猫按普通的（搜索没增益，见 hardAct 上面）
     return polT(v, tier).insert(v, 'normal', rng);
   }
@@ -842,7 +902,8 @@
   return {
     TIERS, TIER_NAMES, cardValue, topInfo, determinize, decide,
     actFor, reactFor, insertFor, chooseGive, choosePick, chooseAlter, stepWith,
-    withFlux: (o) => zhamaoAI(R, o),   // 训练场：换一套百变参数造一个新实例（{ normal, easy, budget }）
+    withFlux: (o) => zhamaoAI(R, o),
+    _brain: { state: brainState, insert: brainInsert, v2: BRAIN_V2 },   // 训练场对位验证用   // 训练场：换一套百变参数造一个新实例（{ normal, easy, budget }）
     hasBrain: !!BRAIN,
   };
 });
