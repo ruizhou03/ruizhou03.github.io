@@ -514,7 +514,8 @@
     const bar = els.table && els.table.querySelector('.zm-topleft');
     if (!bar) return;
     let sc = bar.querySelector('.zm-score');
-    if (!teamGame()) { if (sc) sc.remove(); return; }
+    if (sc) sc.remove();
+    return;   // 2026-11-18 用户：左上角留给招牌，不放比分条（场上谁还活着看头像就行）
     if (!sc) { sc = document.createElement('div'); sc.className = 'zm-score'; sc.setAttribute('aria-label', '各队剩几个人'); bar.appendChild(sc); }
     const s = game.state, d = ov || null, alive = d && d.alive ? d.alive : s.alive, T = R.teamCount(s);
     const html = Array.from({ length: T }, (_, ti) => '<span>' + Array.from({ length: s.n }, (_, k) => k).filter((k) => teamIdx(k) === ti).map((k) => '<i class="' + (alive[k] ? '' : 'is-out') + '" style="--tc:' + TEAM_INK[ti] + '"></i>').join('') + '</span>').join('');
@@ -1089,6 +1090,8 @@
     const t = st.phase === 'over' ? -1 : D().turn, d = dirNow(), pairs = dirPairs();
     // 指向当前出牌的人的那个箭头变红：方向 1 指向一对里的后一个，-1 指向前一个
     Array.from(list).forEach((el, i) => el.classList.toggle('is-hot', t >= 0 && !!pairs[i] && (d === -1 ? pairs[i][0] : pairs[i][1]) === t));
+    // 围桌一圈（2026-11-18 用户：大家拉开那么远，一圈箭头没必要）：只留轮到的人身边那一个，指向下一个出牌的人
+    Array.from(list).forEach((el, i) => el.classList.toggle('is-next', t >= 0 && !!pairs[i] && (d === -1 ? pairs[i][1] : pairs[i][0]) === t));
   }
   /* 打出转向：箭头从出牌人那边起，一个接一个转半圈掉头 */
   async function animReverse(e, t) {
@@ -4849,8 +4852,7 @@
     bgm('menu');   // 结算页算游戏外：接上丁（一局结束时先淡出，皇冠彩纸放完、排行榜出来再起）
     // 组队：赢的队两个人都算赢，不排个人名次——还是一列（赢的队 / 输的队）；其余用领奖台
     if (team) {
-      openDialog('<h2>' + (won ? '我们队赢了！' : R.teamCount(s) > 2 ? '别的队赢了' : '对面那队赢了') + '</h2>' +
-        '<ol class="zm-rank is-team" data-stagger>' + order.map((seat, i) => '<li class="' + (seat === 0 ? 'is-me' : '') + (i === winners.length ? ' is-split' : '') + '"><span class="pos">' + (i < winners.length ? medal(0) : '') + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === 0 ? '<small>（我）</small>' : isMate(seat) ? '<small>（队友）</small>' : '') + '</span><span class="tag">' + (i < winners.length ? '胜利' : '惜败') + '</span></li>').join('') + '</ol>' +
+      openDialog(teamRankHtml(order, winners.length, won) +
         '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', soloEndWire);
       return;
     }
@@ -5878,6 +5880,9 @@
     h.classList.add('is-glyph');
     h.setAttribute('aria-label', '百变小咪');
     h.innerHTML = glyphSvg('百', [], '') + glyphSvg('变', [], '') + glyphSvg('小', [2], wandStroke()) + glyphSvg('咪', [3, 4, 5], catGlyph(226, 450, 205));
+    // 游戏里左上角的招牌也用同一套艺术字（2026-11-18 用户），小一号、不动
+    const g = els.table && els.table.querySelector('.zm-title');
+    if (g) { g.classList.add('is-glyph'); g.setAttribute('aria-label', '百变小咪'); g.innerHTML = h.innerHTML; }
   }
   /* ── 玩法背景 ── */
   const BG_BAND = { classic: '200,70,58', flux: '142,74,156', team: '196,96,122', roles: '176,110,52' };   // 角色：比牌面名字条深一档的焦糖棕（原来的棕在奶油底上太淡，2026-11-18 用户挑戊时看的就是这个色）
@@ -6077,6 +6082,7 @@
       alter: o.alter ? { by: o.alter.by, cards: o.alter.cards ? o.alter.cards.slice() : deck.slice(0, o.alter.count) } : null,
       steal: o.steal ? { by: o.steal.by, from: o.steal.from, perm: shuffled(hands[o.steal.from].slice()) } : null,
       winner: o.winner, seq: 0, memo, dir: o.dir === -1 ? -1 : 1,
+      teams: o.teams ? o.teams.slice() : null, rescue: o.rescue || null, winnerTeam: o.winnerTeam != null ? o.winnerTeam : -1,
     };
   }
   // 服务器座位 → 本地座位
@@ -6091,6 +6097,7 @@
       pending: st.pending ? Object.assign(fixSeat(st.pending, ['by', 'target']), { nopes: st.pending.nopes.map((x) => ({ seat: locOf(x.seat), card: x.card })) }) : null,
       give: fixSeat(st.give, ['from', 'to']), pick: fixSeat(st.pick, ['by']), defuse: fixSeat(st.defuse, ['by']),
       alter: fixSeat(st.alter, ['by']), steal: fixSeat(st.steal, ['by', 'from']),
+      teams: st.teams ? rotArr(st.teams) : null, rescue: st.rescue ? Object.assign(fixSeat(st.rescue, ['by', 'for']), { queue: [] }) : null, winnerTeam: st.winnerTeam,
       hideHand: !!game.hideHand,
     });
   }
@@ -6100,10 +6107,10 @@
       n, rules: g.rules, hand: e.hand || [], counts: Array(n).fill(5), deckSize: e.deckSize, kittens: e.kittens,
       discard: [], removed: e.removed || [], known: [], handKnown: Array.from({ length: n }, () => []), alive: Array(n).fill(true),
       outOrder: [], winner: -1, turn: e.turn, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
-      startDefuse: true, hideHand: !!game.hideHand,
+      startDefuse: true, hideHand: !!game.hideHand, teams: g.st && g.st.teams ? rotArr(g.st.teams) : null,
     });
   }
-  const ROT_KEYS = ['seat', 'target', 'from', 'to', 'a', 'b', 'who', 'turn'];
+  const ROT_KEYS = ['seat', 'target', 'from', 'to', 'a', 'b', 'who', 'turn', 'by', 'for'];   // by / for：组队救人（askRescue / noRescue）
   function rotEvent(e) {
     const o = Object.assign({}, e);
     for (const k of ROT_KEYS) if (typeof o[k] === 'number' && o[k] >= 0) o[k] = locOf(o[k]);
@@ -6243,9 +6250,13 @@
         s.seq += 1;
         break;
       }
+      case 'askRescue': s.phase = 'rescue'; s.rescue = { by: e.by, for: e.for, card: s.netBoom, queue: [] }; break;   // 组队：问队友救不救
+      case 'noRescue': break;
       case 'defuse': {
-        putInHand(s, e.seat, e.card);
-        const h = s.hands[e.seat]; h.splice(h.indexOf(e.card), 1); s.discard.push(e.card); forget(s, e.card);
+        const src = e.rescue && e.from != null ? e.from : e.seat;   // 组队救人：逗猫棒是队友出的
+        putInHand(s, src, e.card);
+        const h = s.hands[src]; h.splice(h.indexOf(e.card), 1); s.discard.push(e.card); forget(s, e.card);
+        s.rescue = null;
         // 百变「急救」：另一张也交出去（以前镜像里漏了这张，手牌 / 弃牌堆对不上，联机每次急救都要整桌重同步）
         if (e.extra != null) { putInHand(s, e.seat, e.extra); const h2 = s.hands[e.seat]; h2.splice(h2.indexOf(e.extra), 1); s.discard.push(e.extra); forget(s, e.extra); }
         s.phase = 'defuse'; s.defuse = { by: e.seat, card: e.kitten }; s.netBoom = null;
@@ -6265,7 +6276,8 @@
         const id = e.card != null ? e.card : s.defuse ? s.defuse.card : null;
         const pos = e.pos != null ? e.pos : (Math.random() * (s.deck.length + 1)) | 0;
         s.deck.splice(pos, 0, id);
-        if (e.seat === 0) { if (!e.rand && s.memo[0].deck.indexOf(id) < 0) s.memo[0].deck.push(id); } else s.memo[0].deck = [];   // 随机塞的：我自己也不知道在哪
+        // 随机塞的：我自己（和队友）也不知道在哪；组队：队友挑位置塞的我也知道
+        if (!e.rand && (e.seat === 0 || (e.pos != null && R.isTeam(s) && R.teamOf(s, e.seat) === R.teamOf(s, 0)))) { if (s.memo[0].deck.indexOf(id) < 0) s.memo[0].deck.push(id); } else if (e.seat !== 0) s.memo[0].deck = [];
         s.defuse = null; s.seq += 1;
         break;
       }
@@ -6280,7 +6292,7 @@
         s.turnsLeft = 1;
         break;
       }
-      case 'win': s.phase = 'over'; s.winner = e.seat; break;
+      case 'win': s.phase = 'over'; s.winner = e.seat; if (e.team != null) s.winnerTeam = e.team; break;
     }
   }
   // 镜像和服务器快照对得上吗（只比看得见的东西）
@@ -6573,7 +6585,18 @@
     if (g.over) { renderAll(); onlineFinish(); return; }
     // 我坐在别人背后看，他也出局了：自动换到下一家还在场的（2026-11-17；以前视角停在他的空座位上）
     if (game.spectator && online.st.viewSeat >= 0 && g.st.alive && !g.st.alive[online.base]) {
-      for (let k = 1; k < online.n; k++) { const j = (online.base + k) % online.n; if (g.st.alive[j]) { onlineView(j); break; } }
+      // 组队：先坐到自己还活着的队友身后（出局的人能看队友的牌）
+      const tm = g.st.teams, mine0 = online.st.mySeat >= 0 ? online.st.mySeat : online.base;
+      const pick = tm ? Array.from({ length: online.n - 1 }, (_, k) => (online.base + k + 1) % online.n).find((j) => g.st.alive[j] && tm[j] === tm[mine0]) : undefined;
+      if (pick != null) onlineView(pick);
+      else for (let k = 1; k < online.n; k++) { const j = (online.base + k) % online.n; if (g.st.alive[j]) { onlineView(j); break; } }
+    }
+    // 组队：我刚出局（还坐在自己的空座位上）→ 这局第一次自动坐到还活着的队友身后（出局的人能看队友的牌）；之后想换人照常点小头像
+    if (!game.spectator && g.st.teams && online.st.mySeat >= 0 && online.base === online.st.mySeat && g.st.alive && !g.st.alive[online.st.mySeat] && game.mateAuto !== g.matchNo) {
+      game.mateAuto = g.matchNo;
+      const tm = g.st.teams, me0 = online.st.mySeat;
+      const pick = Array.from({ length: online.n - 1 }, (_, k) => (me0 + k + 1) % online.n).find((j) => g.st.alive[j] && tm[j] === tm[me0]);
+      if (pick != null) onlineView(pick);
     }
     const mine = !!g.myCall && !autopilot && !game.spectator;
     const remain = onlineRemain();
@@ -6582,7 +6605,7 @@
     busy = true;
     mode = null;
     // 头像上的倒计时红环：现在该谁做决定
-    const who = s.phase === 'act' ? s.turn : s.phase === 'give' ? s.give.from : s.phase === 'pick' ? s.pick.by : s.phase === 'steal' ? s.steal.by : s.phase === 'alter' ? s.alter.by : s.phase === 'defuse' ? s.defuse.by : -1;
+    const who = s.phase === 'act' ? s.turn : s.phase === 'give' ? s.give.from : s.phase === 'pick' ? s.pick.by : s.phase === 'steal' ? s.steal.by : s.phase === 'alter' ? s.alter.by : s.phase === 'rescue' && s.rescue ? s.rescue.by : s.phase === 'defuse' ? s.defuse.by : -1;
     if (s.phase === 'react') { renderAll(); onlineReact(g, mine, remain); return; }
     if (g.turnSec && who >= 0 && remain > 0) startClock(who, null, remain);
     if (!mine) {
@@ -6597,6 +6620,7 @@
       case 'steal': busy = false; renderAll(); stealPicker(); break;
       case 'alter': busy = false; renderAll(); alterDialog(); break;
       case 'defuse': busy = false; renderAll(); insertDialog(); break;
+      case 'rescue': busy = false; renderAll(); rescueDialog(); break;   // 组队：队友炸毛了，问我救不救
       default: renderAll();
     }
   }
@@ -6770,7 +6794,7 @@
     clearStage();
     renderAll();
     const order = (g.ranking || []).map(locOf);
-    const ok = await celebrate(order[0]);
+    const ok = await celebrate(order[0], teamGame() ? order.slice(0, g.winners || 1) : null);
     if (!ok || !online || !G() || !G().over) return;
     const host = isHost();
     bgm('menu');   // 结算页算游戏外：接上丁（一局结束时先淡出，皇冠彩纸放完、排行榜出来再起）
@@ -6779,6 +6803,20 @@
   /* 排行榜（一局结束；编辑模式里点「排行榜」也回到这里）。2026-11-14 用户：房主「下一局」= 同样的人、座位、规则直接开打；
    * 「回房间」改规则 / 加减机器猫；⇄ 进编辑模式（长按头像也行）：拖头像换座位、点 × 请离。下面列本房间战绩。
    * 名字按这局打完那一刻记下的（座位调过之后再打开也对得上） */
+  // 组队结算（单机 / 联机共用）：赢的那一队都写「胜利」、都挂奖牌，下面一道线隔开输的
+  function teamRankHtml(order, w, won) {
+    const s = game.state, me = game.spectator ? -1 : 0;
+    // 每一队一个名次（2026-11-18 用户：不只第一队有奖牌）：赢的队第 1，其余按「全队出局得越晚越靠前」——order 里输的人本来就是越晚出局越靠前，
+    // 按队第一次出现的先后定名次；同一队的人排在一起，队与队之间一道线
+    const tr = new Map();
+    order.forEach((seat) => { const t = R.teamOf(s, seat); if (!tr.has(t)) tr.set(t, tr.size); });
+    const rows = order.slice().sort((a, b) => tr.get(R.teamOf(s, a)) - tr.get(R.teamOf(s, b)));
+    return '<h2>' + (game.spectator ? '这一局结束了' : won ? '我们队赢了！' : R.teamCount(s) > 2 ? '别的队赢了' : '对面那队赢了') + '</h2>' +
+      '<ol class="zm-rank is-team" data-stagger>' + rows.map((seat, i) => {
+        const k = tr.get(R.teamOf(s, seat)), split = i > 0 && k !== tr.get(R.teamOf(s, rows[i - 1]));
+        return '<li class="' + (seat === me ? 'is-me' : '') + (split ? ' is-split' : '') + (k ? ' is-lost' : '') + '"><span class="pos">' + (k < MEDALS.length ? medal(k) : '') + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === me ? '<small>（我）</small>' : me === 0 && isMate(seat) ? '<small>（队友）</small>' : '') + '</span><span class="tag">' + (k === 0 ? '胜利' : '第 ' + (k + 1) + ' 名') + '</span></li>';
+      }).join('') + '</ol>';
+  }
   function showRanking(order0) {
     const g = G();
     if (!g || !online) return;
@@ -6790,12 +6828,13 @@
     const face = (r) => (r.avatar && AV && AV.byId[r.avatar] ? AV.byId[r.avatar].svg : '<span>' + esc((r.nick || '?').slice(0, 1)) + '</span>');
     const items = rows ? rows.map((r) => ({ me: r.id === st.me && !game.spectator, face: face(r), nick: r.nick }))
       : order.map((seat) => ({ me: seat === 0 && !game.spectator, face: avatarHtml(seat), nick: nameOf(seat) }));
+    const teamW = teamGame() ? (g.winners || 1) : 0;   // 组队：赢的那一队都算赢，不上领奖台，用队伍名单
     openDialog((host ? '<button type="button" class="zm-icbtn zm-rank-edit is-corner" data-edit aria-label="调座位 / 请人离开" title="调座位 / 请人离开">' + HOST_IC.swap + '</button>' : '') +
-      podiumHtml(items) +
+      (teamW ? teamRankHtml(order, teamW, !game.spectator && order.slice(0, teamW).indexOf(0) >= 0) : podiumHtml(items)) +
       recordHtml(st && st.record, 2) +
       (host ? '' : '<p class="zm-muted">等房主开下一局</p>') +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-leave>离开房间</button>' + (host ? '<button type="button" class="zm-btn" data-again>回房间</button><button type="button" class="zm-btn zm-btn-primary" data-next data-focus>下一局</button>' : '') + '</div>', (d) => {
-      d.classList.add('is-podium'); animPodium(d);
+      if (!teamW) { d.classList.add('is-podium'); animPodium(d); }
       d.querySelector('[data-leave]').addEventListener('click', () => { closeDialog(); leaveOnline(true); });
       const a = d.querySelector('[data-again]');
       if (a) a.addEventListener('click', () => { a.disabled = true; onlineAct('rematch'); });
@@ -7116,7 +7155,8 @@
     const rules = R.normalizeRules(cfg.rules);
     const seated = st.players.filter((p) => !p.left);
     // 最多 9 座：平时摆 5 个，坐满到哪就多露一个空位（第二排），免得一上来 9 个空位一大片
-    const shownSeats = Math.min(R.MAX_PLAYERS, Math.max(5, seated.reduce((m, p) => Math.max(m, p.seat), -1) + 2));
+    const teamN = rules.mode === 'team' ? R.teamPlayers(rules) : 0;   // 组队：座位正好是队形的人数（多坐了的另外列出来）
+    const shownSeats = teamN ? Math.min(R.MAX_PLAYERS, Math.max(teamN, seated.reduce((m, p) => Math.max(m, p.seat), -1) + 1)) : Math.min(R.MAX_PLAYERS, Math.max(5, seated.reduce((m, p) => Math.max(m, p.seat), -1) + 2));
     const sw = (key, on) => '<button type="button" class="zs-switch" data-rule="' + key + '" role="switch" aria-checked="' + !!on + '"' + (host ? '' : ' disabled') + '><i></i></button>';
     const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b>' + (note ? '<small>' + note + '</small>' : '') + '</div>' + ctl + '</div>';
     const ts = TURN_OPTS.some(([v]) => v === cfg.turnSec) ? cfg.turnSec : 20;
@@ -7134,10 +7174,17 @@
   function renderLobbyV2(st, o) {
     const { host, me, rules, seated, shownSeats, row, sw, ts } = o;
     const order = seated.slice().sort((a, b) => a.seat - b.seat).map((p) => p.seat);
+    /* 组队（2026-11-18 联机）：座位按顺序分段就是分队——前 k 个一队、再 k 个一队……；每段一块队色底板，头像底色也换成队色（我那队永远蓝）。
+     * 想换队：坐到别的队的空位上（或房主长按拖）；房主多一颗「随机分队」。「随机打乱」的座次开局再洗 */
+    const teamOn = rules.mode === 'team', form = teamOn ? R.TEAM_FORMS[rules.teamForm] : null, tsize = form ? form[0] : 0, teamN = form ? form.reduce((a, b) => a + b, 0) : 0;
+    const mineSeat = (seated.find((x) => x.id === me) || {}).seat;
+    const myBlock = teamOn && mineSeat != null && mineSeat < teamN ? Math.floor(mineSeat / tsize) : 0;
+    const relTeam = (seat) => (teamOn && seat < teamN ? (Math.floor(seat / tsize) - myBlock + form.length) % form.length : -1);
+    const tint = (svg, seat) => { const k = relTeam(seat); return k >= 0 ? svg.replace(/(<circle cx="32" cy="32" r="32" fill=")#[0-9a-fA-F]{3,8}/, '$1' + TEAM_BG[k]) : svg; };
     const seatHtml = (seat) => {
       const p = seated.find((x) => x.seat === seat);
       if (!p) return '<button type="button" class="zm-lseat is-empty" data-seat="' + seat + '"><span class="av">+</span><b>' + (host ? '加机器猫' : '空位') + '</b><small>' + (st.spectator ? '坐这里' : host ? '' : '换到这') + '</small></button>';
-      const av = p.avatar && AV && AV.byId[p.avatar] ? AV.byId[p.avatar].svg : '<span>' + esc(p.nick.slice(0, 1)) + '</span>';
+      const av = p.avatar && AV && AV.byId[p.avatar] ? tint(AV.byId[p.avatar].svg, seat) : '<span>' + esc(p.nick.slice(0, 1)) + '</span>';
       const tag = p.isAi ? AI.TIER_NAMES[p.aiLevel] || '普通' : p.id === st.hostId ? '房主' : !p.online ? '掉线' : '';
       return '<button type="button" class="zm-lseat' + (p.id === me ? ' is-me' : '') + (p.isAi ? ' is-bot' : '') + '" data-seat="' + seat + '"><i class="ord">' + (order.indexOf(seat) + 1) + '</i><span class="av">' + av + '</span><b>' + esc(p.nick) + '</b><small>' + esc(tag) + '</small></button>';
     };
@@ -7149,10 +7196,17 @@
       '<div class="zm-lobby-code"><div><small>房间号</small><b>' + esc(st.code) + '</b></div>' +
         '<div class="acts"><button type="button" class="zm-pill" data-l="copy">复制链接</button><button type="button" class="zm-pill' + (lobbyQr ? ' is-on' : '') + '" data-l="qr">二维码</button></div></div>' +
       (lobbyQr ? '<div class="zm-lobby-qr" data-qr></div>' : '') +
-      '<div class="zm-lobby-seats">' + Array.from({ length: shownSeats }, (_, i) => seatHtml(i)).join('') + '</div>' +
+      (teamOn
+        ? '<div class="zm-lobby-seats is-team">' + form.map((k, b) => '<div class="zm-lteam" style="--tc:' + TEAM_PIP[(b - myBlock + form.length) % form.length] + ';--tbg:' + TEAM_BG[(b - myBlock + form.length) % form.length] + '">' + Array.from({ length: k }, (_, i) => seatHtml(b * tsize + i)).join('') + '</div>').join('') +
+          (shownSeats > teamN ? '<div class="zm-lteam is-extra"><small>多出来的（挪进队里才能开始）</small>' + Array.from({ length: shownSeats - teamN }, (_, i) => seatHtml(teamN + i)).join('') + '</div>' : '') + '</div>'
+        : '<div class="zm-lobby-seats">' + Array.from({ length: shownSeats }, (_, i) => seatHtml(i)).join('') + '</div>') +
       (st.spectators.length ? '<p class="zm-muted zm-lobby-watch">' + st.spectators.length + ' 个人在观战' + (st.spectator ? '（包括你）' : '') + '</p>' : '') +
       recordHtml(st.record, 1) +
-      '<section class="zs-card zs-b zm-lobby-rules"><div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
+      '<section class="zs-card zs-b zm-lobby-rules">' +
+      '<div class="zs-line"><span>玩法</span><div class="zs-seg" role="group">' + [['classic', '经典'], ['team', '组队']].map(([v, tx]) => '<button type="button" data-mode="' + v + '" aria-pressed="' + (rules.mode === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' +
+      (teamOn ? '<div class="zs-line"><span>队形</span><div class="zs-seg" role="group">' + TEAM_FORM_UI.map((f) => '<button type="button" data-form="' + f + '" aria-pressed="' + (rules.teamForm === f) + '"' + (host ? '' : ' disabled') + ' aria-label="' + f + '">' + pipHtml(f) + '</button>').join('') + '</div></div>' +
+        '<div class="zs-line"><span>座位</span><div class="zs-seg" role="group">' + [['together', '同队坐一起'], ['random', '随机打乱']].map(([v, tx]) => '<button type="button" data-tseat="' + v + '" aria-pressed="' + (rules.teamSeat === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' : '') +
+      '<div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
       TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
       '<div class="zs-line"><span>牌量</span><div class="zs-seg" role="group">' +
       DECK_OPTS.map(([v, t]) => '<button type="button" data-deck="' + v + '" aria-pressed="' + (v === rules.deckSize) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
@@ -7161,7 +7215,10 @@
       row('boom', '塞回看得出高低', '', sw('insertSeen', rules.insertSeen !== false)) +
       '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">规则由房主定</p>') +
       '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">离开房间</button>' +
-      (host ? '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (seated.length >= 2 ? '' : ' disabled') + '>开始（' + seated.length + ' 人）</button>'
+      (host && teamOn ? '<button type="button" class="zm-btn" data-l="tshuffle">随机分队</button>' : '') +
+      (host ? (teamOn
+        ? (() => { const extra = seated.filter((p) => p.seat >= teamN).length, lack = teamN - seated.filter((p) => p.seat < teamN).length; return '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (lack || extra ? ' disabled' : '') + '>' + (lack ? '开始（还差 ' + lack + ' 人）' : extra ? '先把多出来的人挪进队里' : '开始（' + teamN + ' 人）') + '</button>'; })()
+        : '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (seated.length >= 2 ? '' : ' disabled') + '>开始（' + seated.length + ' 人）</button>')
         : '<span class="zm-lobby-wait">等房主开始…</span>') + '</div></div>';
     const qr = lobbyEl.querySelector('[data-qr]');
     if (qr) { if (window.GamesShell && GamesShell.QR) { try { GamesShell.QR.render(qr, url, { scale: 4, margin: 2, dark: '#1d1b18', light: '#fbf8f1' }); } catch (_) { qr.remove(); } } else qr.remove(); }
@@ -7184,6 +7241,10 @@
     if (b.dataset.l === 'start') { b.disabled = true; onlineAct('start'); return; }
     if (b.dataset.turn != null) { onlineAct('config', { config: { turnSec: +b.dataset.turn } }); return; }
     if (b.dataset.deck != null) { onlineAct('config', { config: { rules: { deckSize: b.dataset.deck } } }); return; }
+    if (b.dataset.mode != null) { onlineAct('config', { config: { rules: { mode: b.dataset.mode } } }); return; }   // 组队 / 经典
+    if (b.dataset.form != null) { onlineAct('config', { config: { rules: { teamForm: b.dataset.form } } }); return; }
+    if (b.dataset.tseat != null) { onlineAct('config', { config: { rules: { teamSeat: b.dataset.tseat } } }); return; }
+    if (b.dataset.l === 'tshuffle') { onlineAct('team_shuffle'); snd('shuffle'); return; }
     if (b.dataset.rule) {
       const k = b.dataset.rule, on = b.getAttribute('aria-checked') !== 'true';
       b.setAttribute('aria-checked', String(on));

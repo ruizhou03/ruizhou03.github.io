@@ -1314,10 +1314,10 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 }
 /* 2026-11-18：队伍改看头像底色（avatarHtml 换圆底），外圈只管状态——原来的同队金圈 / 对手蓝灰圈和它们的覆盖规则都拿掉了 */
 .zm-app.is-spectator .zm-seat-mate:not(.is-out) .zm-av, .zm-app.can-social .zm-seat-mate:not(.is-out) .zm-av { cursor: pointer; }
-.zm-rank.is-team li:not(.is-split) .tag { color: var(--zm-seal); font-weight: 700; }
+.zm-rank.is-team li .tag { color: var(--zm-seal); font-weight: 700; }
 .zm-rank.is-team li.is-split { margin-top: 6px; position: relative; }
 .zm-rank.is-team li.is-split::before { content: ""; position: absolute; left: 10px; right: 10px; top: -7px; border-top: 1px solid var(--zm-line, rgba(29, 27, 24, 0.14)); }
-.zm-rank.is-team li.is-split .tag, .zm-rank.is-team li.is-split ~ li .tag { color: var(--zm-ink-mute); font-weight: 400; }
+.zm-rank.is-team li.is-lost .tag { color: var(--zm-ink-mute); font-weight: 400; }   /* 每队都挂奖牌（2026-11-18 用户），输的队名次写灰字 */
 /* ═════ 角色猫（2026-11-15）：头像左上角一枚小猫头，技能用掉变灰 ═════ */
 .zm-av .zm-role { --zr: clamp(15px, calc(var(--av) * 0.5), 26px); position: absolute; left: calc(var(--zr) * -0.3); top: calc(var(--zr) * -0.3); width: var(--zr); height: var(--zr); border-radius: 50%; background: var(--zm-paper); box-shadow: 0 0 0 1.5px var(--zm-ink); z-index: 4; display: block; overflow: hidden; }
 .zm-av .zm-role svg { width: 100%; height: 100%; display: block; border-radius: 0; }
@@ -1641,14 +1641,12 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app.is-ring .zm-seat-me { z-index: 3; justify-content: flex-start; }
 .zm-app.is-ring .zm-mebar { justify-content: flex-start; padding-right: 6px; }
 .zm-app.is-ring .zm-band { flex: 1; }
-.zm-app.is-ring .zm-dir i { opacity: 0.85; }
 /* 彗星跟着轮到的那队变色（金 / 紫的导火索、瞄准线照旧） */
 .zm-app.is-team .zm-rim.is-teamtint .amb .tail { stroke: var(--team-c, #e2b85c); opacity: 0.5; }
 .zm-app.is-team .zm-rim.is-teamtint .amb .head { stroke: var(--team-c, #f2cf7a); }
 .zm-app.is-team .zm-rim.is-teamtint .amb .halo { stroke: var(--team-c, #f2cf7a); stroke-opacity: 0.22; }
 .zm-app.is-team .zm-rim .amb .tail, .zm-app.is-team .zm-rim .amb .head, .zm-app.is-team .zm-rim .amb .halo { transition: stroke 0.6s ease; }
 /* 顶栏左边的比分条：组队时代替「百变小咪」四个字 */
-.zm-app.is-team .zm-title { display: none; }
 .zm-score { display: flex; gap: 8px; align-items: center; }
 .zm-score span { display: inline-flex; gap: 3px; padding: 4px 7px; border-radius: 999px; background: var(--zm-card); box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.12); }
 .zm-score i { width: 9px; height: 9px; border-radius: 50%; background: var(--tc); display: block; transition: background 0.3s ease; }
@@ -1677,3 +1675,22 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   .zm-app.is-ring .zm-opps { grid-area: opps; min-height: 0 !important; }
   .zm-app.is-ring .zm-hand { grid-area: hand; padding-top: 22px; }
 }
+/* 联机大厅 · 组队（2026-11-18）：座位按队分段，每段一块队色淡底板；多坐了的人另起一行 */
+.zm-lobby-seats.is-team { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.zm-lteam { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px; border-radius: 14px; border: 1.5px solid var(--tc); background: color-mix(in srgb, var(--tbg) 35%, transparent); }
+.zm-lteam.is-extra { border: 1.5px dashed rgba(29, 27, 24, 0.3); background: transparent; }
+.zm-lteam.is-extra small { grid-column: 1 / -1; font-size: 11.5px; color: var(--zm-ink-mute); }
+.zm-lobby-rules .zs-seg .zm-pips { gap: 3px; } .zm-lobby-rules .zs-seg .zm-pips span { gap: 1.5px; } .zm-lobby-rules .zs-seg .zm-pips i { width: 6px; height: 6px; }
+
+/* 游戏里左上角招牌：和主页同一套笔画艺术字（2026-11-18 用户），小一号、静止 */
+.zm-title.is-glyph { display: flex; align-items: center; gap: 0.12em; font-size: 19px; letter-spacing: 0; line-height: 1; color: var(--zm-ink); padding-top: 0.15em; }
+.zm-title.is-glyph > span { display: block; width: 1.18em; height: 1.18em; }
+.zm-title.is-glyph svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.zm-title.is-glyph * { animation: none !important; }
+/* 围桌一圈：方向箭头只留一个——轮到的人身边、指向下一个出牌的人（朱红）；其余收掉（转圈的彗星本来就顺着出牌方向走） */
+.zm-app .zm-dir.is-ring i { opacity: 0; transition: opacity 0.3s ease; }
+.zm-app .zm-dir.is-ring i.is-next { opacity: 1; color: var(--zm-seal); --base: 0.85; filter: drop-shadow(0 0 2.5px rgba(200, 70, 58, 0.6)); }
+/* 组队出局的头像（2026-11-18 用户）：不变成一片透明灰——垫一层实心纸色底（桌沿线不再从头像里穿过去），
+ * 头像本身只褪掉大半颜色、淡一些，队色底还认得出是哪一队 */
+.zm-app.is-team .zm-seat.is-out .zm-av { filter: none; background: var(--zm-paper); }
+.zm-app.is-team .zm-seat.is-out .zm-av-face { filter: grayscale(0.4) brightness(1.03); opacity: 0.6; }
