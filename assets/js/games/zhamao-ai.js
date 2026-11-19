@@ -138,6 +138,11 @@
     }
     return best;
   }
+  /* 两张偷牌的目标：首选 t；角色猫「影子猫」两张偷牌指不到（规则 validTargets 不收），换成能指的人里最好的，没有返回 -1。
+   * 2026-11-19 修：以前「走投无路随便凑一对」和「摸底时凑猫对」直接指 t，偶尔指到影子猫 → 不合法、被兜底改成摸牌 */
+  function pairTarget(v, t) {
+    return v.roles && v.roles[t] === 'shadow' ? favorTarget(v, true) : t;
+  }
   /* 指定甩锅甩给谁：手牌最少的（最可能没有逗猫棒 / 作废），知道他有逗猫棒的往后排 */
   function victim(v) {
     let best = -1, score = Infinity;
@@ -309,9 +314,10 @@
       }
       let pr = catPair(by);
       if (!pr && v.roles && v.roles[v.me] === 'calico') { const cs = v.hand.filter((id) => R.catLike(K[id])); if (cs.length >= 2) pr = cs.slice(0, 2); }   // 角色猫「三花」：任意两只猫
-      if (pr) { const pt = v.roles && v.roles[t] === 'shadow' ? favorTarget(v, true) : t; if (pt >= 0) return playMove(pr, pt); }
+      const pt = pairTarget(v, t);   // 两张偷牌指不到影子猫：换个能指的人，没有就不出对子
+      if (pr && pt >= 0) return playMove(pr, pt);
       if (has(v, R.FAVOR)) return playMove([one(v, R.FAVOR)], t);
-      if (desperate) for (const k of Object.keys(by)) if (k !== R.DEFUSE && by[k].length >= 2) return playMove(by[k].slice(0, 2), t);
+      if (desperate && pt >= 0) for (const k of Object.keys(by)) if (k !== R.DEFUSE && by[k].length >= 2) return playMove(by[k].slice(0, 2), pt);
       return null;
     }
 
@@ -341,7 +347,7 @@
       if (risk >= P.shuffleAt && has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
       const sw = swapMove(v); if (sw) return sw;
       if (def && has(v, R.FAVOR) && ts.length) return playMove([one(v, R.FAVOR)], richest(v, R.DEFUSE));
-      for (const k of R.CATS) if ((by[k] || []).length >= 2 && ts.length) return playMove(by[k].slice(0, 2), richest(v, R.DEFUSE));
+      for (const k of R.CATS) if ((by[k] || []).length >= 2 && ts.length) { const pt = pairTarget(v, richest(v, R.DEFUSE)); if (pt >= 0) return playMove(by[k].slice(0, 2), pt); }
       return DRAW;
     }
     /* 百变（P.fx）：这条规则对我多不利 → 要不要先打一张百变换掉（打百变不结束回合） */
