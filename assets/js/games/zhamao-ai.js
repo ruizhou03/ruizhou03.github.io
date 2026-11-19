@@ -18,7 +18,7 @@
  *
  * 经典模式（2026-11-18 起）：普通出牌换成 zhamao-brain.js 的神经网络（上面那套规则仍管窥探 / 改命时机和出牌以外的所有决定），
  * 高手的锚点也换成网络的选择（推演时别人仍按上面那套规则打）。见 brainAct。
- * 组队 / 百变（2026-11-19 起）：同样的用法，各换一个认得队友 / 百变规则的网络（zhamao-brain-team.js / -flux.js）。角色猫不变。
+ * 组队 / 百变（2026-11-19 起）：同样的用法，各换一个认得队友 / 百变规则的网络（zhamao-brain-team.js / -flux.js）；角色猫同理换认得每人角色的 zhamao-brain-roles.js。
  *
  * 两套参数：规则的 view 里有 ins 字段（公开塞猫历史）用 P_HIST，没有用 P_BASE（两套都是调出来的，互相不通用）。
  *
@@ -656,6 +656,7 @@
 
   function actCandidates(v) {
     const out = [DRAW], by = pairsOf(v), ts = targets(v);
+    const ps = v.roles ? ts.filter((t) => v.roles[t] !== 'shadow') : ts;   // 角色猫「影子猫」：两张偷牌指不到它（三张点名照常）
     for (const k of R.ACTIONS) {
       const id = one(v, k);
       if (id == null) continue;
@@ -665,14 +666,19 @@
     }
     for (const k of Object.keys(by)) {
       if (k === R.DEFUSE) continue;
-      if (by[k].length >= 2 && (R.catLike(k) || by[k].length >= 3)) for (const t of ts) out.push(playMove(by[k].slice(0, 2), t));
+      if (by[k].length >= 2 && (R.catLike(k) || by[k].length >= 3)) for (const t of ps) out.push(playMove(by[k].slice(0, 2), t));
       if (by[k].length >= 3) for (const t of ts) out.push(playMove(by[k].slice(0, 3), t, R.DEFUSE));
     }
     if (by[R.WILD]) for (const k of R.CATS) {   // 真猫 + 万能猫凑的对子 / 三张（纯的上面已经有了）
       const real = (by[k] || []).length;
       const c2 = real < 2 && catSet(by, k, 2), c3 = real < 3 && catSet(by, k, 3);
-      if (c2) for (const t of ts) out.push(playMove(c2, t));
+      if (c2) for (const t of ps) out.push(playMove(c2, t));
       if (c3) for (const t of ts) out.push(playMove(c3, t, R.DEFUSE));
+    }
+    if (v.roles && v.roles[v.me] === 'calico') {   // 角色猫「百搭猫」：不同的猫也能凑对 / 凑三张——拿凑不成对的单张猫来凑
+      const singles = R.CATS.filter((k) => (by[k] || []).length === 1).map((k) => by[k][0]);
+      for (let i = 0; i < singles.length; i++) for (let j = i + 1; j < singles.length; j++) for (const t of ps) out.push(playMove([singles[i], singles[j]], t));
+      if (singles.length >= 3) for (const t of ts) out.push(playMove(singles.slice(0, 3), t, R.DEFUSE));
     }
     const five = fiveCats(v);
     if (five) out.push(playMove(five));
@@ -697,12 +703,18 @@
   const BRAIN = loadBrain('ZhamaoBrain', './zhamao-brain.js');
   /* 组队 / 百变各一个网络（2026-11-19 夜训，REPORT 第六阶段）：输入 210 = 经典 v2 的 190 + 20 维 X（组队 10 + 百变 10，见 brainX）。
    * 组队 t2.json 整队 vs 普通队 2v2 / 3v3 / 2v2v2 / 4v4 胜率 56.6 / 65.8 / 47.0 / 69.3%（原高手队 54.0 / 54.2 / 37.3 / 55.2）；
-   * 百变 f.json vs 一桌普通 3 / 4 / 5 人名次分 0.656 / 0.625 / 0.604（原高手 0.567 / 0.564 / 0.539）。角色猫仍不用网络 */
+   * 百变 f.json vs 一桌普通 3 / 4 / 5 人名次分 0.656 / 0.625 / 0.604（原高手 0.567 / 0.564 / 0.539）。
+   * 角色猫 r.json（2026-11-19，250 维 = 210 + 角色 40：自己 / 下家们的角色、出牌目标的角色）：高手 vs 一桌原普通 2-6 人名次分
+   * 0.785 / 0.677 / 0.640 / 0.636 / 0.641；普通（30% 网络）0.585 / 0.547 / 0.545 / 0.525 / 0.532。 */
   const X3_DIM = 210;
   const BRAIN_T = (() => { const b = loadBrain('ZhamaoBrainTeam', './zhamao-brain-team.js'); return b && b.DIM === X3_DIM ? b : null; })();
   const BRAIN_F = (() => { const b = loadBrain('ZhamaoBrainFlux', './zhamao-brain-flux.js'); return b && b.DIM === X3_DIM ? b : null; })();
+  /* 角色猫网络（2026-11-19，REPORT 第七阶段）：输入 250 = 210 + 40 维角色（我的角色、下家 1..4 的角色、模式位、出牌目标的角色，见 brainX） */
+  const X4_DIM = 250;
+  const BRAIN_R = (() => { const b = loadBrain('ZhamaoBrainRoles', './zhamao-brain-roles.js'); return b && b.DIM === X4_DIM ? b : null; })();
+  const ROLE_IDS = ['timid', 'fat', 'shadow', 'cow', 'calico', 'tabby'];
   const brainOf = (v) => {
-    if (v.roles) return null;
+    if (v.roles) return BRAIN_R;
     if (teamV(v)) return BRAIN_T;
     if (isFlux(v)) return BRAIN_F;
     return (!v.rules || !v.rules.mode || v.rules.mode === 'classic') ? BRAIN : null;
@@ -733,6 +745,11 @@
     }
     if (v.flux) { const i = FLUX_IDS.indexOf(v.flux); if (i >= 0) f[o + 10 + i] = 1; }
     if (isFlux(v)) { f[o + 17] = 1; f[o + 18] = v.nineUsed && v.nineUsed[v.me] ? 1 : 0; }
+    if (v.roles && f.length >= X4_DIM) {   // 角色猫（feat.js v4）：o+20 我的角色、o+26.. 下家 1..4 的角色、o+50 模式位；o+51.. 出牌目标的角色由候选填
+      const r = ROLE_IDS.indexOf(v.roles[v.me]); if (r >= 0) f[o + 20 + r] = 1;
+      for (let j = 1; j <= 4; j++) { const s = bNext(v, j); if (s >= 0) { const q = ROLE_IDS.indexOf(v.roles[s]); if (q >= 0) f[o + 26 + (j - 1) * 6 + q] = 1; } }
+      f[o + 50] = 1;
+    }
   }
   const TOTAL = {}; for (let id = 0; id < K.length; id++) TOTAL[K[id]] = (TOTAL[K[id]] || 0) + 1;   // 171 张全在局里（用不上的在盒子 removed 里）
   function bRel(v, seat) { if (seat === v.me) return 0; for (let j = 1; j <= 4; j++) if (bNext(v, j) === seat) return j; return 5; }
@@ -789,12 +806,13 @@
     f[o++] = v.dir === -1 ? 1 : 0;
     f[o++] = v.flux ? 1 : 0;
     if (isV2(B)) brainHist(v, f, V1_DIM);
-    if (B && B.DIM === X3_DIM) brainX(v, f, V2_DIM);
+    if (B && B.DIM >= X3_DIM) brainX(v, f, V2_DIM);
     return f;
   }
   function brainVec(v, sf, m) {
     const f = sf.slice(); let o = S_DIM;
-    if (f.length === X3_DIM && m.target != null && isMateV(v, m.target)) f[V2_DIM + 8] = 1;
+    if (f.length >= X3_DIM && m.target != null && isMateV(v, m.target)) f[V2_DIM + 8] = 1;
+    if (f.length >= X4_DIM && m.target != null && v.roles) { const q = ROLE_IDS.indexOf(v.roles[m.target]); if (q >= 0) f[V2_DIM + 51 + q] = 1; }
     if (m.type === 'draw') f[o] = 1;
     else {
       const n = m.cards.length;
@@ -845,7 +863,7 @@
     let who;   // 粗估会被谁摸到：我先摸 rem 张，之后活着的人按顺序各摸一张
     if (pos < rem) who = 0; else { const k = (pos - rem) % (others + 1); who = k === others ? 0 : Math.min(5, k + 1); }
     f[o + who] = 1;
-    if (f.length === X3_DIM && pos >= rem) {   // 组队：这只猫粗估会被队友摸到（同 feat.js xIns）
+    if (f.length >= X3_DIM && pos >= rem) {   // 组队：这只猫粗估会被队友摸到（同 feat.js xIns）
       const order = []; for (let j = 1; j <= 5; j++) { const s = bNext(v, j); if (s < 0) break; order.push(s); }
       const k = (pos - rem) % (others + 1);
       if (k < others && order[k] != null && isMateV(v, order[k])) f[V2_DIM + 9] = 1;
