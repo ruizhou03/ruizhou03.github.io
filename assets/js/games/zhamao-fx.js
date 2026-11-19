@@ -129,18 +129,20 @@
         const x = u * u * a.x + 2 * u * t * cx + t * t * b.x;
         const y = u * u * a.y + 2 * u * t * cy + t * t * b.y;
         const arcLift = Math.sin(Math.PI * (k / N));
-        const s = s0 + (s1 - s0) * t + (o.swell != null ? o.swell : 0.08) * arcLift;
+        // sink（0–1）：从这段路程起边缩边淡，最后一帧缩到 s1 的 65%、透明（像被头像吞进去；不再最后一帧「啪」地没了）
+        const q = o.sink != null && k / N > o.sink ? (k / N - o.sink) / (1 - o.sink) : 0;
+        const s = (s0 + (s1 - s0) * t + (o.swell != null ? o.swell : 0.08) * arcLift) * (1 - 0.35 * q);
         frames.push({
           transform: T(x - w / 2, y - h / 2, s, r0 + (r1 - r0) * t),
           boxShadow: o.shadow === false ? 'none' : '0 ' + f1(3 + 16 * arcLift) + 'px ' + f1(6 + 22 * arcLift) + 'px rgba(29,27,24,' + (0.14 + 0.14 * arcLift).toFixed(2) + ')',
-          opacity: k === 0 && o.fadeIn ? 0 : 1,
+          opacity: k === 0 && o.fadeIn ? 0 : 1 - q,
           offset: travel * (k / N), easing: 'linear',
         });
       }
       if (land) {
         frames.push({ transform: T(b.x - w / 2, b.y - h / 2, s1 * 0.95, r1), boxShadow: '0 1px 2px rgba(29,27,24,.16)', opacity: 1, offset: 0.93, easing: 'cubic-bezier(.3,.7,.4,1)' });
       }
-      frames.push({ transform: T(b.x - w / 2, b.y - h / 2, s1, r1), boxShadow: o.shadow === false ? 'none' : '0 1px 2px rgba(29,27,24,.16)', opacity: o.fadeOut ? 0 : 1 });
+      if (o.sink == null) frames.push({ transform: T(b.x - w / 2, b.y - h / 2, s1, r1), boxShadow: o.shadow === false ? 'none' : '0 1px 2px rgba(29,27,24,.16)', opacity: o.fadeOut ? 0 : 1 });
       // 翻面的牌：影子不能画在外层这个不翻的方框上（牌翻到侧面变窄时，方框的影子会勾出一块比牌宽的「底板」，2026-11-18 用户慢放看到）
       // → 外层不要影子，同一套影子挪到跟着翻的那层上
       const shadows = o.flip ? frames.map((fr) => ({ boxShadow: fr.boxShadow, offset: fr.offset, easing: fr.easing })) : null;
