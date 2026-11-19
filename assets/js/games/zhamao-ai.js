@@ -17,7 +17,8 @@
  *          每个候选在同一批假想局面里用「普通」打到底；出牌比普通的选择好出 ANCHOR 才换
  *
  * 经典模式（2026-11-18 起）：普通出牌换成 zhamao-brain.js 的神经网络（上面那套规则仍管窥探 / 改命时机和出牌以外的所有决定），
- * 高手的锚点也换成网络的选择（推演时别人仍按上面那套规则打）。百变 / 组队 / 角色猫不变。见 brainAct。
+ * 高手的锚点也换成网络的选择（推演时别人仍按上面那套规则打）。见 brainAct。
+ * 组队 / 百变（2026-11-19 起）：同样的用法，各换一个认得队友 / 百变规则的网络（zhamao-brain-team.js / -flux.js）。角色猫不变。
  *
  * 两套参数：规则的 view 里有 ins 字段（公开塞猫历史）用 P_HIST，没有用 P_BASE（两套都是调出来的，互相不通用）。
  *
@@ -688,12 +689,25 @@
    * 只在经典模式（不是百变 / 组队 / 角色猫）、且 zhamao-brain.js 在场时用；出牌这一步给每个候选打分取最高，
    * 窥探 / 改命的时机仍照原普通。特征必须和训练场 feat.js（FEAT_VER 1）逐位一致——改这里要重训。
    * 对一桌原普通：3 / 4 / 5 人胜率 45.7 / 37.9 / 31.7%（原高手 43.2 / 34.7 / 25.5）；对一桌原高手打平；每步约 0.15 ms */
-  const BRAIN = (() => {
-    if (typeof self !== 'undefined' && self.ZhamaoBrain) return self.ZhamaoBrain;
-    if (typeof require === 'function') { try { return require('./zhamao-brain.js'); } catch (_) { return null; } }
+  const loadBrain = (g, file) => {
+    if (typeof self !== 'undefined' && self[g]) return self[g];
+    if (typeof require === 'function') { try { return require(file); } catch (_) { return null; } }
     return null;
-  })();
-  const useBrain = (v) => !!BRAIN && !isFlux(v) && !teamV(v) && !v.roles && (!v.rules || !v.rules.mode || v.rules.mode === 'classic');
+  };
+  const BRAIN = loadBrain('ZhamaoBrain', './zhamao-brain.js');
+  /* 组队 / 百变各一个网络（2026-11-19 夜训，REPORT 第六阶段）：输入 210 = 经典 v2 的 190 + 20 维 X（组队 10 + 百变 10，见 brainX）。
+   * 组队 t2.json 整队 vs 普通队 2v2 / 3v3 / 2v2v2 / 4v4 胜率 56.6 / 65.8 / 47.0 / 69.3%（原高手队 54.0 / 54.2 / 37.3 / 55.2）；
+   * 百变 f.json vs 一桌普通 3 / 4 / 5 人名次分 0.656 / 0.625 / 0.604（原高手 0.567 / 0.564 / 0.539）。角色猫仍不用网络 */
+  const X3_DIM = 210;
+  const BRAIN_T = (() => { const b = loadBrain('ZhamaoBrainTeam', './zhamao-brain-team.js'); return b && b.DIM === X3_DIM ? b : null; })();
+  const BRAIN_F = (() => { const b = loadBrain('ZhamaoBrainFlux', './zhamao-brain-flux.js'); return b && b.DIM === X3_DIM ? b : null; })();
+  const brainOf = (v) => {
+    if (v.roles) return null;
+    if (teamV(v)) return BRAIN_T;
+    if (isFlux(v)) return BRAIN_F;
+    return (!v.rules || !v.rules.mode || v.rules.mode === 'classic') ? BRAIN : null;
+  };
+  const useBrain = (v) => !!brainOf(v);
   const KI = {}; R.KINDS.forEach((k, i) => { KI[k] = i; });
   const NK = R.KINDS.length;   // 20
   function bNext(v, step) {   // 按出牌方向第 step 个活着的对手（-1 = 没那么多）
@@ -705,7 +719,21 @@
   const S_DIM = 86, A_DIM = 34, V1_DIM = S_DIM + A_DIM, H_DIM = 31;
   /* v2（2026-11-18 晚，REPORT 第五阶段）：输入 190 = v1 120 + 历史 31 + 塞猫动作 10 + 作废动作 29（作废这块线上不用，留 0）。
    * 网络也管塞炸毛猫的位置（brainInsert）。对一桌 v1 网络名次分 3/4/5 人 0.563/0.529/0.510，对一桌原普通 0.654/0.634/0.628（v1 0.606/0.615/0.618） */
-  const BRAIN_V2 = !!BRAIN && BRAIN.DIM === V1_DIM + H_DIM + 10 + 29;
+  const V2_DIM = V1_DIM + H_DIM + 10 + 29;   // 190
+  const isV2 = (B) => !!B && B.DIM >= V2_DIM;
+  const BRAIN_V2 = isV2(BRAIN);
+  const FLUX_IDS = ['nine', 'peektop', 'exact', 'bottom', 'hot', 'mute', 'catsave'];
+  function brainX(v, f, o) {   // v3 的 X 20 维，必须和训练场 feat.js xState 逐位一致（出牌目标是队友 o+8、塞的猫会被队友摸到 o+9 由候选填）
+    const mates = matesV(v);
+    if (mates.length) {
+      for (let j = 1; j <= 4; j++) { const s = bNext(v, j); if (s >= 0 && mates.indexOf(s) >= 0) f[o + j - 1] = 1; }
+      let am = 0, ae = 0, mh = 0; const teams = new Set();
+      for (let s = 0; s < v.n; s++) { if (!v.alive[s]) continue; if (v.teams) teams.add(v.teams[s]); if (s === v.me) continue; if (mates.indexOf(s) >= 0) { am++; mh += v.counts[s]; } else ae++; }
+      f[o + 4] = am / 3; f[o + 5] = ae / 6; f[o + 6] = teams.size / 4; f[o + 7] = Math.min(20, mh) / 20;
+    }
+    if (v.flux) { const i = FLUX_IDS.indexOf(v.flux); if (i >= 0) f[o + 10 + i] = 1; }
+    if (isFlux(v)) { f[o + 17] = 1; f[o + 18] = v.nineUsed && v.nineUsed[v.me] ? 1 : 0; }
+  }
   const TOTAL = {}; for (let id = 0; id < K.length; id++) TOTAL[K[id]] = (TOTAL[K[id]] || 0) + 1;   // 171 张全在局里（用不上的在盒子 removed 里）
   function bRel(v, seat) { if (seat === v.me) return 0; for (let j = 1; j <= 4; j++) if (bNext(v, j) === seat) return j; return 5; }
   function bHiddenEst(v, kind) {   // 已知的 + 没露面的按「未知位置」（别人没看清的手牌 + 牌堆未知位置）平摊
@@ -739,7 +767,8 @@
     for (let j = 1; j <= 4; j++) { const s = bNext(v, j); if (s >= 0) { f[o] = Math.min(2, dE(s)) / 2; f[o + 1] = Math.min(2, nE(s)) / 2; } o += 2; }
   }
   function brainState(v) {
-    const f = new Float32Array(BRAIN_V2 ? BRAIN.DIM : V1_DIM); let o = 0;
+    const B = brainOf(v);
+    const f = new Float32Array(isV2(B) ? B.DIM : V1_DIM); let o = 0;
     const alive = v.alive.filter(Boolean).length;
     f[o + Math.min(5, Math.max(0, alive - 2))] = 1; o += 5;
     f[o++] = v.n / 8;
@@ -759,11 +788,13 @@
     for (const id of v.discard) f[o + KI[K[id]]] += 1 / Math.max(1, R.COUNTS[K[id]]); o += NK;
     f[o++] = v.dir === -1 ? 1 : 0;
     f[o++] = v.flux ? 1 : 0;
-    if (BRAIN_V2) brainHist(v, f, V1_DIM);
+    if (isV2(B)) brainHist(v, f, V1_DIM);
+    if (B && B.DIM === X3_DIM) brainX(v, f, V2_DIM);
     return f;
   }
-  function brainScore(v, sf, m) {
+  function brainVec(v, sf, m) {
     const f = sf.slice(); let o = S_DIM;
+    if (f.length === X3_DIM && m.target != null && isMateV(v, m.target)) f[V2_DIM + 8] = 1;
     if (m.type === 'draw') f[o] = 1;
     else {
       const n = m.cards.length;
@@ -776,8 +807,9 @@
       } else o += 8;
       f[o++] = m.named === R.DEFUSE ? 1 : 0;
     }
-    return BRAIN.score(f);
+    return f;
   }
+  const brainScore = (v, sf, m) => brainOf(v).score(brainVec(v, sf, m));
   /* 普通只有一部分出牌步数用网络、其余照原规则（2026-11-18 用户：普通调弱到入门和高手中间）。
    * 全用网络时普通和高手一样强（练不出更强的高手：更大网络 / 接着练 / 推演里对手也用网络都只和它打平），档位拉不开 */
   const NORMAL_BRAIN_P = (FXO && FXO.brainP != null) ? FXO.brainP : 0.3;
@@ -798,25 +830,42 @@
     const size = v.deckSize, rem = Math.max(0, (v.turnsLeft || 1) - 1);
     const cands = Array.from(new Set([0, 1, 2, 3, 4, 5, 6, rem, rem + 1, rem + 2, rem + 3, Math.floor(size / 2), size].filter((p) => p >= 0 && p <= size))).sort((a, b) => a - b);
     if (cands.length === 1) return cands[0];
-    const sf = brainState(v), others = v.alive.filter((a, i) => a && i !== v.me).length || 1;
+    const B = brainOf(v), sf = brainState(v);
     let bi = 0, bv = -Infinity;
     for (let i = 0; i < cands.length; i++) {
-      const pos = cands[i], f = sf.slice(); let o = V1_DIM + H_DIM;
-      f[o++] = 1;
-      f[o++] = Math.min(30, pos) / 30; f[o++] = pos === 0 ? 1 : 0; f[o++] = pos >= size ? 1 : 0;
-      let who;   // 粗估会被谁摸到：我先摸 rem 张，之后活着的人按顺序各摸一张
-      if (pos < rem) who = 0; else { const k = (pos - rem) % (others + 1); who = k === others ? 0 : Math.min(5, k + 1); }
-      f[o + who] = 1;
-      const q = BRAIN.score(f); if (q > bv) { bv = q; bi = i; }
+      const q = B.score(insVec(v, sf, cands[i])); if (q > bv) { bv = q; bi = i; }
     }
     return cands[bi];
   }
+  function insVec(v, sf, pos) {
+    const size = v.deckSize, rem = Math.max(0, (v.turnsLeft || 1) - 1), others = v.alive.filter((a, i) => a && i !== v.me).length || 1;
+    const f = sf.slice(); let o = V1_DIM + H_DIM;
+    f[o++] = 1;
+    f[o++] = Math.min(30, pos) / 30; f[o++] = pos === 0 ? 1 : 0; f[o++] = pos >= size ? 1 : 0;
+    let who;   // 粗估会被谁摸到：我先摸 rem 张，之后活着的人按顺序各摸一张
+    if (pos < rem) who = 0; else { const k = (pos - rem) % (others + 1); who = k === others ? 0 : Math.min(5, k + 1); }
+    f[o + who] = 1;
+    if (f.length === X3_DIM && pos >= rem) {   // 组队：这只猫粗估会被队友摸到（同 feat.js xIns）
+      const order = []; for (let j = 1; j <= 5; j++) { const s = bNext(v, j); if (s < 0) break; order.push(s); }
+      const k = (pos - rem) % (others + 1);
+      if (k < others && order[k] != null && isMateV(v, order[k])) f[V2_DIM + 9] = 1;
+    }
+    return f;
+  }
   const NORMAL_INS = (FXO && FXO.brainIns) || 'p';    // 普通塞猫：p = 和出牌同一比例用网络 / all / none（实测用）
   const HARD_INS = (FXO && FXO.hardIns) || 'brain';   // 高手塞猫：brain = 网络 / pimc = 原来的推演（实测用）
+  const FLUX_INS_MAX_N = (FXO && FXO.fluxInsN) || 5;   // 百变几人起塞猫不交给网络（实测用）
+  /* 组队 / 百变高手 = 只用网络（brain），不再接推演（pimc）：站点代码实测（2026-11-19）整队 vs 原普通队 2v2 / 3v3 / 2v2v2 / 4v4
+   * 只用网络 66.7 / 72.3 / 51.8 / 74.5%，网络 + 推演 63.3 / 67.9 / 52.2 / 75.4%（原高手 51.7 / 54.2 / 36.7 / 57.1）；
+   * 百变 vs 一桌原普通名次分 3 / 4 / 5 人 只用网络 0.670 / 0.662 / 0.625，网络 + 推演 0.635 / 0.624 / 0.602（原高手 0.562 / 0.572 / 0.520）。
+   * 不比推演差还快得多。普通 = 30% 步数用网络（同经典）：整队 vs 原普通 54.8 / 55.8 / 42.7 / 57.8%，百变 0.567 / 0.548 / 0.542，
+   * 约等于原高手；新高手 vs 新普通 61.3 / 65.2 / 46.7 / 67.2%、百变 0.636 / 0.610 / 0.592，入门 < 普通 < 高手间距和经典相仿 */
+  const TF_HARD = (FXO && FXO.tfHard) || 'brain';     // pimc = 网络锚点 + 推演（同经典，实测用）
 
   function hardAct(v, rng) {
     const N = pol(v);
-    const nm = useBrain(v) ? brainAct(v) : N.act(v);   // 经典模式：锚点换成网络的选择
+    const nm = useBrain(v) ? brainAct(v) : N.act(v);   // 有网络的模式：锚点换成网络的选择
+    if (TF_HARD === 'brain' && useBrain(v) && brainOf(v) !== BRAIN) return nm;
     if (nm.type === 'play' && nm.cards.length === 1 && (K[nm.cards[0]] === R.FUTURE || K[nm.cards[0]] === R.ALTER)) return nm;
     if (teamV(v)) { const tp = N.topInfo(v); if (!(tp.known && tp.boom) && tp.p < TEAM_CALM) return nm; }
     const cands = actCandidates(v);
@@ -859,7 +908,7 @@
   function reactFor(v, tier, rng) { return polT(v, tier).react(v, rng || Math.random, 'normal'); }
   function insertFor(v, tier, rng) {
     rng = rng || Math.random;
-    if (BRAIN_V2 && useBrain(v)) {   // 经典模式：塞猫跟出牌配套交给网络（v2 出牌是和网络塞猫一起练的，配原规则塞猫反而掉分）
+    if (isV2(brainOf(v)) && !(isFlux(v) && v.n >= FLUX_INS_MAX_N)) {   // 塞猫跟出牌配套交给网络（v2 出牌是和网络塞猫一起练的，配原规则塞猫反而掉分）；百变 5 人以上网络塞猫反而略差
       if (tier === 'hard' && HARD_INS === 'brain') return brainInsert(v);
       if (tier === 'normal' && (NORMAL_INS === 'all' || (NORMAL_INS === 'p' && rng() < NORMAL_BRAIN_P))) return brainInsert(v);
     }
@@ -903,7 +952,7 @@
     TIERS, TIER_NAMES, cardValue, topInfo, determinize, decide,
     actFor, reactFor, insertFor, chooseGive, choosePick, chooseAlter, stepWith,
     withFlux: (o) => zhamaoAI(R, o),
-    _brain: { state: brainState, insert: brainInsert, v2: BRAIN_V2 },   // 训练场对位验证用   // 训练场：换一套百变参数造一个新实例（{ normal, easy, budget }）
+    _brain: { state: brainState, insert: brainInsert, v2: BRAIN_V2, vec: brainVec, insVec, of: brainOf },   // 训练场对位验证用   // 训练场：换一套百变参数造一个新实例（{ normal, easy, budget }）
     hasBrain: !!BRAIN,
   };
 });
