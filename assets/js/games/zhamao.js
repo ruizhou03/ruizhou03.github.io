@@ -5649,7 +5649,7 @@
    *         炸毛猫占「咪」的口字旁（用户挑甲）
    * 玩法背景：对角剪影（用户挑乙）——每个玩法一对纯色剪影，大的从左上角探进来、小的从右下角；不铺底色。
    *         四层各对应一个玩法，透明度 = max(0, 1 − |p − i|)，p = 玩法牌滚到第几张（小数，逐帧算），剪影跟着 (i − p) 视差平移——跟手本身就是过渡。
-   *         角色那层暂时留白（用户：重画的几版都不行，先空着，之后照另外三个的路子再做）
+   *         角色用最初那版三花猫剪影（用户：后来重画的都更丑）
    * 接着打上一局：首页不放浮窗（用户挑乙）——单机键角上一颗小黄点（有没打完的局）、联机键同理（还在某个房间里）；
    *         点单机后设置单最上面一张「接着打」卡，下面「或」再新开一局 */
   var coverReady = false, coverLayers = [], coverBgEl = null, coverResCard = null, coverResOr = null;
@@ -5696,8 +5696,9 @@
     h.innerHTML = glyphSvg('百', [], '') + glyphSvg('变', [], '') + glyphSvg('小', [2], wandStroke()) + glyphSvg('咪', [3, 4, 5], catGlyph(226, 450, 205));
   }
   /* ── 玩法背景 ── */
-  const BG_BAND = { classic: '200,70,58', flux: '142,74,156', team: '196,96,122', roles: '122,82,42' };   // 角色的奶茶色太浅、剪影看不出，压深两档
+  const BG_BAND = { classic: '200,70,58', flux: '142,74,156', team: '196,96,122', roles: '185,138,90' };
   const maskSvg = (svg) => "url('data:image/svg+xml," + encodeURIComponent(svg).replace(/'/g, '%27') + "')";
+  const maskOf = (k) => maskSvg(ART.face(k).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '));
   const sil100 = (inner, vb) => maskSvg('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + (vb || '0 0 100 100') + '">' + inner + '</svg>');
   // 剪影小件（100 × 100）：实心部分 = 显示，挖空（眼睛 / 耳内）用 SVG 自带的 mask 抠掉
   const star = (cx, cy, n, R, r, rot) => { let d = ''; for (let i = 0; i < n * 2; i++) { const a = (rot || -90) * Math.PI / 180 + i * Math.PI / n, rr = i % 2 ? r : R; d += (i ? 'L' : 'M') + (cx + Math.cos(a) * rr).toFixed(1) + ' ' + (cy + Math.sin(a) * rr).toFixed(1); } return d + 'Z'; };
@@ -5727,7 +5728,7 @@
     },
     // 百变：一根细魔法棒，顶上一颗大星星，划出一道光点弧线，旁边几颗小闪光
     flux: () => [
-      sil100('<path d="M10 96 13 99 58 52 53 47Z"/><path d="' + star(64, 36, 5, 22, 9.5) + '" stroke="#000" stroke-width="3" stroke-linejoin="round"/>' +
+      sil100('<path d="M12 96 63 37" stroke="#000" stroke-width="5.5" stroke-linecap="round"/><path d="' + star(64, 36, 5, 22, 9.5) + '" stroke="#000" stroke-width="3" stroke-linejoin="round"/>' +
         '<g>' + [[84, 38, 3.4], [90, 48, 3], [93, 58, 2.6], [94, 68, 2.2], [93, 77, 1.8]].map(([x, y, r]) => '<circle cx="' + x + '" cy="' + y + '" r="' + r + '"/>').join('') + '</g>' +
         '<path d="' + spk(30, 22, 8) + spk(88, 14, 5.5) + spk(22, 50, 4.5) + '"/>'),
       sil100('<path d="' + spk(48, 50, 44) + spk(86, 14, 11) + spk(16, 86, 7) + '"/>'), [-26, -6, -4, 30, 26, 0, 1]],
@@ -5737,7 +5738,8 @@
       return [silCut(A[0] + B[0] + '<path d="' + heartD(50, 20, 0.3) + '"/>', A[1] + B[1]),
         sil100('<path d="' + heartD(44, 56, 1.12) + heartD(84, 18, 0.42) + '"/>'), [-12, -12, -6, 22, 20, 10, 1]];
     },
-    // 角色：暂时留白（见上）
+    // 角色：用最初那版（2026-11-18 用户：后面重画的都更丑）——牌面那只三花猫的剪影，大的左上、小的右下镜像，摆位 / 颜色 / 透明度都和最初一样
+    roles: () => [maskOf('calico'), maskOf('calico'), [-42, -30, -14, 38, 30, 16, -1]],
   };
 
   function coverBg() {
