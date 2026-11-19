@@ -435,6 +435,9 @@
     const hb = land ? (() => { const r = els.opps.getBoundingClientRect(); return { bottom: r.top - 2 }; })() : bar.getBoundingClientRect();
     // 横屏（2026-11-19 用户挑甲）：桌沿顶边整条压到标题 / 工具键那一行下面（顶边那几家头像骑在线上）——以前穿过那一行，左上压着「百变小咪」、右上压着工具键
     const landLow = land ? Math.max(...['.zm-topleft', '.zm-tools'].map((q) => { const e = els.table.querySelector(q); return e ? e.getBoundingClientRect().bottom : 0; })) : 0;
+    /* 横屏 7 人起（2026-11-19 用户挑丙）：顶边那一排整个沉到标题行下面，顶边就能用满整个宽度——不然顶边挤 4–6 家只能坐在标题和工具键中间那段，
+     * 相邻两家中间露出的灯带只剩二十几像素，指向隔壁那家时那截亮金线看不清。6 人及以下顶边不挤，照旧骑在线上（给桌子中间多留点高度） */
+    const sink = land && n - 1 >= 6;
     const mb = land ? els.center.getBoundingClientRect() : mebar.getBoundingClientRect();
     const avMe = parseFloat(getComputedStyle(els.me).getPropertyValue('--av')) || 46;
     const y1 = Math.round((land ? mb.bottom : mb.top) - tb.top + 2);
@@ -455,12 +458,12 @@
     for (let it = 0; it < 3; it++) {
       const inset = Math.max(RING_M, Math.round(av / 2 + 20));
       x0 = inset; x1 = W - inset;
-      y0 = land ? Math.round(landLow - tb.top + 6) : Math.round(hb.bottom - tb.top + av / 2 + 8);
+      y0 = land ? Math.round(landLow - tb.top + (sink ? av / 2 + 4 : 6)) : Math.round(hb.bottom - tb.top + av / 2 + 8);
       const cm = RING_R + av / 2 + 8;   // 离拐角的余量
       const side = Math.max(0, (y1 - y0) - 2 * cm);
       // 顶边：横屏时顶上那一行左右是比分条和工具键，只在中间那段（.zm-opps 的范围）坐人
       let tR = x1 - cm, tL = x0 + cm;
-      if (land) { const orr = els.opps.getBoundingClientRect(); tR = Math.min(tR, orr.right - tb.left - av / 2 - 4); tL = Math.max(tL, orr.left - tb.left + av / 2 + 4); }
+      if (land && !sink) { const orr = els.opps.getBoundingClientRect(); tR = Math.min(tR, orr.right - tb.left - av / 2 - 4); tL = Math.max(tL, orr.left - tb.left + av / 2 + 4); }
       const top = Math.max(0, tR - tL);
       segs = [
         { len: side, at: (d) => [x1, y1 - cm - d] },        // 右边：从下往上
