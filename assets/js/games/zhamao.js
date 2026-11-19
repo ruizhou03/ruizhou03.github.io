@@ -3666,7 +3666,10 @@
     const last = Math.max(0, size - 1), back = last - pos;
     if (pos <= 0) return '最上面';
     if (back <= 0) return '最后一张';
-    return pos <= back ? '第 ' + (pos + 1) + ' 张' : '倒数第 ' + (back + 1) + ' 张';
+    // 倒数只用在最后那一小截（2026-11-18 用户定 15%、最多 5 张）：40 张里放第 21 张说「第 21 张」，第 36 张起才说「倒数第 5 张」；
+    // 6 张时只有最后一张说「最后一张」，其余都正着数
+    const k = Math.min(5, Math.max(1, Math.floor(size * 0.15)));
+    return back < k ? '倒数第 ' + (back + 1) + ' 张' : '第 ' + (pos + 1) + ' 张';
   }
   function randTag() { insertTag(0, 0, null, '随机'); }
   function insertTag(pos, size, slot, text, cls, icon) {
