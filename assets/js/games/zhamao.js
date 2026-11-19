@@ -3217,7 +3217,7 @@
         const step = Math.min(13, 78 / Math.max(1, k - 1)), ang = (i - (k - 1) / 2) * step;
         return '<button type="button" data-i="' + i + '" aria-label="第 ' + (i + 1) + ' 张" style="--a:' + ang.toFixed(1) + 'deg;z-index:' + (i + 1) + '">' + backHtml() + '</button>';
       }).join('') + '</div>' +
-      (k > 1 ? '<div class="zm-actions is-center"><button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-rand>' + (limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>随手抽一张</b></button></div>' : ''), (d) => {
+      (k > 1 ? '<div class="zm-actions is-center"><button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-rand>' + (limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>抽一张</b></button></div>' : ''), (d) => {
       d.classList.add('is-cards');
       const btns = Array.from(d.querySelectorAll('[data-i]'));
       let done = false, timer = 0, roam = 0;
@@ -4542,9 +4542,10 @@
     release();
     step();
   }
-  /* 开局抽角色（2026-11-18 用户；2026-11-19 改）：桌心一摞焦糖色角色牌（几个人就几张，不多放）→ 整摞洗一遍（劈成两半、左右交替落回，
-   * 后落的压在上面）→ 摊成一排，我先抽：发光呼吸，点一张（5 秒不点 / 托管自动抽）→ 我那张飞到桌心放大翻面亮相 → 缩成头像角上的猫章
-   * → 剩下的按座次发给机器猫：飞到各自头像旁翻开亮一下、缩进角上。点桌面空白照旧跳过整段开场 */
+  /* 开局抽角色（2026-11-18 用户；2026-11-19 两轮改）：桌心一摞焦糖色角色牌（几个人就几张）→ 洗一遍（劈两半左右分开、交替落回，后落的压上面）
+   * → 桌面蒙一层宣纸色遮罩（同偷牌那层），牌放大成扇形摊在正中，一张张轮流往上冒一下暗示「点一张」，底下「抽一张」按钮带倒计时
+   * → 我那张桌心放大翻面亮相，剩下的收回桌心一摞 → 缩成头像角上的猫章、遮罩退掉 → 从这摞顶上按座次发给机器猫：
+   * 飞到头像朝桌心那一侧翻开亮一下、缩进角上。点桌面空白照旧跳过整段开场 */
   async function roleDraw(t) {
     const g = game, st = g.state;
     if (!st.roles || g.tutorial || g.online) return;
@@ -4559,68 +4560,86 @@
     hideEls.forEach((x) => { x.style.visibility = 'hidden'; });
     try {
       const cr = els.center.getBoundingClientRect(), c = { x: cr.left + cr.width / 2, y: cr.top + cr.height / 2 };
-      const cw = Math.round(Math.max(40, Math.min(PU() * 0.9, (cr.width - 40) / (n * 0.7 + 0.5), cr.height * 0.42 / 1.4)));
-      const spread = Math.min(cw * 0.78, (cr.width - cw - 30) / Math.max(1, n - 1));
-      const slot = (i) => { const k = i - (n - 1) / 2; return { x: c.x + k * spread, y: c.y + Math.abs(k) * k * 0.6 + 6, r: k * (22 / Math.max(4, n)) }; };
-      const pile = (i) => ({ x: c.x - i * 0.6, y: c.y - i * 1.2, r: 0 });   // 一摞：越上面越往左上错一点
+      // 牌宽：桌心放得下「两半分开」和扇面就行，越大越清楚（手机 ~80，电脑 ~120）
+      const cw = Math.round(Math.max(56, Math.min(124, (cr.width - 24) / (n * 0.6 + 1.1), (cr.width - 24) / 2.6, cr.height * 0.36 / 1.4)));
       const tf = (p) => 'translate(' + (p.x - cw / 2).toFixed(1) + 'px,' + (p.y - cw * 0.7).toFixed(1) + 'px) rotate(' + (p.r || 0) + 'deg) scale(' + (p.s == null ? 1 : p.s) + ')';
       const mv = (d, a, b, dur, ease, delay) => d.animate([{ transform: tf(a) }, { transform: tf(b) }], { duration: dur, easing: ease || 'cubic-bezier(.45,0,.25,1)', delay: delay || 0, fill: 'both' }).finished.catch(() => {});
+      const pile = (k, s) => ({ x: c.x - k * 0.8, y: c.y - k * 1.6, r: 0, s });   // 一摞：越上面越往左上错一点，看得出厚度
       let zTop = 1;
-      const lift = (d) => { d.style.zIndex = String(5 + (zTop++)); };   // 正在动的那张永远压在最上面
-      // 一摞落在桌心（cards[0] 在最底）
-      const cards = seats.map((i) => { const d = document.createElement('div'); d.className = 'zm-rd'; d.innerHTML = roleBackHtml(cw); els.fly.appendChild(d); nodes.push(d); lift(d); d.style.transform = tf({ x: c.x, y: c.y - 40, s: 0.4 }); d.style.opacity = '0'; return d; });
+      const lift = (d) => { d.style.zIndex = String(5 + (zTop++)); };
+      const cards = seats.map(() => { const d = document.createElement('div'); d.className = 'zm-rd'; d.innerHTML = roleBackHtml(cw); els.fly.appendChild(d); nodes.push(d); lift(d); d.style.transform = tf({ x: c.x, y: c.y - 40, s: 0.4 }); d.style.opacity = '0'; return d; });
       const at = cards.map((_, i) => pile(i));
       snd('whoosh');
-      await Promise.all(cards.map((d, i) => d.animate([{ transform: tf({ x: c.x, y: c.y - 40, s: 0.4 }), opacity: 0 }, { transform: tf(at[i]), opacity: 1 }], { duration: 380, delay: i * 40, easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'both' }).finished.catch(() => {})));
+      await Promise.all(cards.map((d, i) => d.animate([{ transform: tf({ x: c.x, y: c.y - 40, s: 0.4 }), opacity: 0 }, { transform: tf(at[i]), opacity: 1 }], { duration: 360, delay: i * 50, easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'both' }).finished.catch(() => {})));
       cards.forEach((d) => { d.style.opacity = ''; });
       if (gone()) return;
-      // 洗：整摞劈成两半往左右分开，再左右交替一张张落回中间（后落的压在上面）；洗两遍
-      let order = cards.slice();
-      for (let r = 0; r < 2; r++) {
-        const half = Math.ceil(order.length / 2), L = order.slice(0, half), Rt = order.slice(half), dx = cw * 0.62;
-        snd('tick');
-        await Promise.all(order.map((d, i) => { const left = i < half, j = left ? i : i - half, from = at[cards.indexOf(d)], to = { x: c.x + (left ? -dx : dx) - j * 0.6, y: c.y - j * 1.2, r: left ? -7 : 7 }; at[cards.indexOf(d)] = to; return mv(d, from, to, 260); }));
-        if (gone()) return;
-        const next = [];
-        let fromL = Math.random() < 0.5;
-        while (L.length || Rt.length) { const side = (fromL && L.length) || !Rt.length ? L : Rt; next.push(side.shift()); fromL = !fromL; }
-        await Promise.all(next.map((d, k) => wait(k * 55).then(() => { if (gone()) return; lift(d); const i = cards.indexOf(d), from = at[i], to = pile(k); at[i] = to; if (k % 2 === 0) snd('tap'); return mv(d, from, to, 200, 'cubic-bezier(.4,0,.6,1)'); })));
-        order = next;
-        if (gone()) return;
-      }
-      // 摊开成一排（从最上面那张开始往两边摊；左边的在下、右边的压在上面）
+      await wait(160);
+      // 洗一遍：上半摞往左、下半摞往右分开（中间留出一道缝，不叠），再左右交替一张张落回桌心，后落的压上面
+      const half = Math.ceil(n / 2), L = cards.slice(half), Rt = cards.slice(0, half), dx = cw * 0.74;
+      snd('tick');
+      await Promise.all(cards.map((d, i) => { const left = i >= half, j = left ? i - half : i, to = { x: c.x + (left ? -dx : dx) - j * 0.8, y: c.y - j * 1.6, r: left ? -6 : 6 }; const fr = at[i]; at[i] = to; return mv(d, fr, to, 300, 'cubic-bezier(.3,.7,.3,1)'); }));
+      if (gone()) return;
+      const order = [];
+      let fromL = Math.random() < 0.5;
+      while (L.length || Rt.length) { const side = (fromL && L.length) || !Rt.length ? L : Rt; order.push(side.shift()); fromL = !fromL; }
+      await Promise.all(order.map((d, k) => wait(k * 90).then(() => { if (gone()) return; lift(d); const i = cards.indexOf(d), fr = at[i], to = pile(k); at[i] = to; snd('tap'); return mv(d, fr, to, 220, 'cubic-bezier(.5,0,.6,1)'); })));
+      if (gone()) return;
+      await wait(140);
+      // 抽：遮罩淡入，牌放大摊成扇面（绕扇面下方一点转，左边的压在下面）
+      const mask = document.createElement('div');
+      mask.className = 'zm-rd-mask';
+      els.fly.appendChild(mask); nodes.push(mask);
+      mask.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, fill: 'both' });
+      const S = 1.18, R = cw * S * 2.6, stepA = Math.min(11, 56 / Math.max(1, n - 1));
+      const fanY = c.y - cw * 0.2, pivot = { x: c.x, y: fanY + R };
+      const slot = (k) => { const ang = (k - (n - 1) / 2) * stepA, rad = ang * Math.PI / 180; return { x: pivot.x + R * Math.sin(rad), y: pivot.y - R * Math.cos(rad), r: ang, s: S }; };
       const where = new Array(n);
       order.forEach((d, k) => { d.style.zIndex = String(5 + k); });
       zTop = n + 1;
-      await Promise.all(order.map((d, k) => { const i = cards.indexOf(d); where[i] = slot(k); return mv(d, at[i], where[i], 420, 'cubic-bezier(.3,.8,.3,1)', (n - 1 - k) * 30); }));
+      await Promise.all(order.map((d, k) => { const i = cards.indexOf(d); where[i] = slot(k); return mv(d, at[i], where[i], 440, 'cubic-bezier(.3,.8,.3,1)', (n - 1 - k) * 35); }));
       if (gone()) return;
-      // 我先抽
       const left = cards.map((_, i) => i);
       left.forEach((i) => cards[i].classList.add('can-pick'));
+      // 底下一颗「抽一张」按钮，按钮本身就是倒计时条（同偷牌）
+      const lim = autopilot ? 600 : 8000;
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'zm-btn zm-btn-primary zm-timed zm-rd-btn';
+      btn.innerHTML = '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span><b>抽一张</b>';
+      const fanBottom = fanY + cw * S * 0.72 + Math.abs(slot(0).y - fanY) + 18;
+      btn.style.cssText = 'left:' + c.x + 'px;top:' + Math.min(innerHeight - 56, fanBottom) + 'px';
+      els.fly.appendChild(btn); nodes.push(btn);
+      btn.animate([{ opacity: 0, translate: '-50% 8px' }, { opacity: 1, translate: '-50% 0' }], { duration: 260, fill: 'both' });
+      btn.querySelector('.zm-dlg-timer i').animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: lim, easing: 'linear', fill: 'forwards' });
+      // 暗示：每隔一会儿，从左到右一张张往上冒一下，像在说「挑一张」
+      let wv = 0;
+      const wave = () => { left.forEach((i, k) => setTimeout(() => { const el = cards[i]; if (!el.isConnected || !el.classList.contains('can-pick')) return; el.classList.add('is-wave'); setTimeout(() => el.classList.remove('is-wave'), 260); }, k * 110)); };
+      const wvStart = setTimeout(() => { wave(); wv = setInterval(wave, 2400); }, 500);
       const mine = await new Promise((res) => {
-        const lim = autopilot ? 600 : 5000;
         const tm = setTimeout(() => res(left[(Math.random() * left.length) | 0]), lim);
         left.forEach((i) => cards[i].addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(i); }, { once: true }));
+        btn.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(left[(Math.random() * left.length) | 0]); }, { once: true });
         const chk = setInterval(() => { if (gone()) { clearInterval(chk); clearTimeout(tm); res(-1); } }, 200);
         setTimeout(() => clearInterval(chk), lim + 50);
       });
+      clearTimeout(wvStart); clearInterval(wv);
+      btn.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
       if (gone() || mine < 0) return;
-      left.forEach((i) => cards[i].classList.remove('can-pick'));
+      left.forEach((i) => cards[i].classList.remove('can-pick', 'is-wave'));
       left.splice(left.indexOf(mine), 1);
-      // 我的这张：飞到桌心放大、翻面（背后一圈淡金光芒 + 角色色光晕）；剩下的往两边让一让、收拢
+      // 我的这张：飞到桌心放大、翻面（背后一圈淡金光芒 + 角色色光晕）；剩下的收回桌心一摞，压在大卡底下
       const myRole = st.roles[me];
       const BW = Math.round(Math.max(150, Math.min(230, innerWidth * 0.52, cr.height * 0.82 / 1.4)));
       const big = document.createElement('div');
       big.className = 'zm-rd-big';
       big.style.cssText = 'left:' + (c.x - BW / 2) + 'px;top:' + (c.y - BW * 0.7) + 'px;--glow:' + (ART.ROLE_TONE[myRole] || ART.ROLE_TONE.fat).band;
+      big.style.zIndex = '200';   // 永远压在剩下那摞上面（那摞的 z 会随抽牌一路往上加）
       big.innerHTML = '<i class="zm-rd-rays"></i>' + roleFlipHtml(myRole, BW, true);
       els.fly.appendChild(big); nodes.push(big);
       const from = cards[mine].getBoundingClientRect();
       cards[mine].remove();
-      // 剩下的收成一小摞，退到桌心下方（给大卡让地方）
-      const rest = { x: c.x, y: Math.min(cr.bottom - cw * 0.5, c.y + BW * 0.62), r: 0, s: 0.7 };
-      left.forEach((i, k) => { const to = { x: rest.x - k * 0.6, y: rest.y - k * 1.0, r: 0, s: 0.7 }; cards[i].style.zIndex = String(5 + k); mv(cards[i], where[i], to, 380); where[i] = to; });
-      await flipFrom(big, from, 460, where[mine].r);
+      left.forEach((i, k) => { const to = pile(k, 0.9); cards[i].style.zIndex = String(5 + k); mv(cards[i], where[i], to, 380, null, k * 30); where[i] = to; });
+      zTop = n + 1;
+      await flipFrom(big, from, 460, where[mine] ? where[mine].r : 0);
       if (gone()) return;
       big.classList.add('is-rays');
       snd('ding');
@@ -4628,36 +4647,39 @@
       if (gone()) return;
       big.classList.add('is-glow');
       fx.burst(c.x, c.y, { n: 14, shapes: ['star', 'dot'], colors: ['#c9a96e', (ART.ROLE_TONE[myRole] || ART.ROLE_TONE.fat).band], radius: BW * 0.9, size: [5, 12], life: 800 });
-      await new Promise((res) => { const tm = setTimeout(res, autopilot ? 900 : 2200); big.style.pointerEvents = 'auto'; big.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(); }, { once: true }); });
+      await new Promise((res) => { const tm = setTimeout(res, autopilot ? 900 : 2200); big.style.pointerEvents = 'auto'; big.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(); }, { once: true }); mask.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(); }, { once: true }); });
       if (gone()) return;
       game.roleHide.delete(me); renderSeats();
       const myB = roleBadge(me); if (myB) myB.style.visibility = 'hidden';
       big.classList.remove('is-rays');
+      mask.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 420, fill: 'forwards' });
       await flipTo(big, myB ? myB.getBoundingClientRect() : null, 520, 0);
-      big.remove();
+      big.remove(); mask.remove();
       if (myB) { myB.style.visibility = ''; fx.pop(myB, { scale: 1.8, dur: 420 }); }
       snd('tap');
       if (gone()) return;
-      // 剩下的按座次从摞顶一张张发给机器猫：飞到头像旁、翻开亮一下、缩进角上的猫章
+      // 发给机器猫：从这摞顶上一张张飞到头像朝桌心那一侧（不出桌沿），翻开亮一下，缩进角上
       const others = seats.filter((k) => k !== me);
       await Promise.all(others.map(async (seat, k) => {
-        await wait(k * 200);
+        await wait(k * 220);
         if (gone()) return;
         const el = cards[left[left.length - 1 - k]];
         lift(el);
         const fr = el.getBoundingClientRect(), a = avEl(seat).getBoundingClientRect();
-        const w = Math.round(Math.max(44, Math.min(70, a.width * 1.25)));
-        const below = a.top + a.height / 2 < innerHeight / 2;
+        const w = Math.round(Math.max(48, Math.min(76, cw * 0.72)));
+        const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+        const vx = c.x - ax, vy = c.y - ay, vl = Math.hypot(vx, vy) || 1;
+        const off = a.width / 2 + w * 0.95 + 8;
+        const x = Math.max(cr.left + w * 0.6, Math.min(cr.right - w * 0.6, ax + vx / vl * off));
+        const y = Math.max(cr.top + w * 0.75, Math.min(cr.bottom - w * 0.75, ay + vy / vl * off));
         const box = document.createElement('div');
         box.className = 'zm-rd-small';
-        const sb = seatEl(seat).getBoundingClientRect().bottom;
-        const x = Math.max(w * 0.6, Math.min(innerWidth - w * 0.6, a.left + a.width / 2)), y = below ? Math.max(a.bottom, sb) + w * 0.7 + 8 : a.top - w * 0.7 - 10;
-        box.style.cssText = 'left:' + (x - w / 2) + 'px;top:' + (y - w * 0.7) + 'px';
+        box.style.cssText = 'left:' + (x - w / 2) + 'px;top:' + (y - w * 0.7) + 'px;z-index:' + (200 + k);
         box.innerHTML = roleFlipHtml(st.roles[seat], w, false);
         els.fly.appendChild(box); nodes.push(box);
         el.remove();
         snd('tap');
-        await flipFrom(box, fr, 360, 0);
+        await flipFrom(box, fr, 380, 0);
         if (gone()) return;
         await box.querySelector('.zm-rc-flip-in').animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: 400, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
         await wait(900);
