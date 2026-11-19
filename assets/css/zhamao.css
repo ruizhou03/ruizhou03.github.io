@@ -1601,7 +1601,11 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 @keyframes zm-tg-cat { 0%, 70%, 100% { transform: none; } 74% { transform: translateY(-6%) rotate(-6deg); } 79% { transform: rotate(5deg); } 84% { transform: translateY(-3%) rotate(-3deg); } 89% { transform: none; } }
 .tg-tassel { transform-box: view-box; animation: zm-tg-sway 1.3s ease-in-out infinite alternate; }
 @keyframes zm-tg-sway { from { transform: rotate(-7deg); } to { transform: rotate(6deg); } }
-@media (prefers-reduced-motion: reduce) { .tg-cat, .tg-tassel, .tg-wand { animation: none; } }
+.tg-star { transform-box: fill-box; transform-origin: 50% 50%; animation: zm-tg-twinkle 2.8s ease-in-out infinite; animation-delay: var(--d, 0s); }   /* 「变」的三颗星光轮流闪一下 */
+@keyframes zm-tg-twinkle { 0%, 70%, 100% { transform: none; } 80% { transform: scale(1.22) rotate(45deg); } 90% { transform: scale(0.92) rotate(45deg); } }
+.tg-tail { transform-box: view-box; transform-origin: 300px 560px; animation: zm-tg-wag 3.4s ease-in-out infinite; }   /* 「变」的猫尾巴从根上慢慢摆 */
+@keyframes zm-tg-wag { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-2.5deg); } }
+@media (prefers-reduced-motion: reduce) { .tg-cat, .tg-tassel, .tg-wand, .tg-star, .tg-tail { animation: none; } }
 
 /* 玩法背景：四层叠着，透明度 / 视差由 JS 跟着玩法牌滚动逐帧算（--px = 这层离当前玩法差几张；剪影和牌往同一边走，只是走得慢一点） */
 .zm-cover-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; transition: opacity 0.6s ease; }

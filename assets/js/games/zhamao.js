@@ -5904,11 +5904,28 @@
       '<circle cx="508" cy="118" r="66" fill="' + INKC + '"/>' +
       wandTassel(508, 92, 790, -40, 620, -220, 1.7) + '</g>';
   }
+  /* 「百」「变」（2026-11-18 用户在九版里挑「猫脸 + 星光 + 猫尾」）：
+   *   百：「日」字框变成猫脸——框的两角长出耳朵，上格一对眼睛，下格红鼻子 + ω 嘴 + 腮红（中横、底横照旧，字还认得）
+   *   变：上面三个点换成星光（顶金、左粉、右青 = 百变牌名字条的颜色），最后那一捺整笔换成往上卷的猫尾巴 */
+  const tgStar = (cx, cy, r, c, k) => { const q = r * 0.22; return '<path class="tg-star" style="--d:' + k + 's" d="M' + cx + ' ' + (cy - r) + 'Q' + (cx + q) + ' ' + (cy - q) + ' ' + (cx + r) + ' ' + cy + 'Q' + (cx + q) + ' ' + (cy + q) + ' ' + cx + ' ' + (cy + r) + 'Q' + (cx - q) + ' ' + (cy + q) + ' ' + (cx - r) + ' ' + cy + 'Q' + (cx - q) + ' ' + (cy - q) + ' ' + cx + ' ' + (cy - r) + 'Z" fill="' + c + '"/>'; };
+  function baiCatFace() {
+    const ear = (x0, x1, tip) => '<path d="M' + x0 + ' 350L' + tip + ' 196L' + x1 + ' 350Z" fill="' + INKC + '" stroke="' + INKC + '" stroke-width="24" stroke-linejoin="round"/>';
+    return '<g class="tg-face">' + ear(185, 360, 214) + ear(650, 821, 794) +
+      '<ellipse cx="402" cy="472" rx="40" ry="46" fill="' + INKC + '"/><ellipse cx="612" cy="472" rx="40" ry="46" fill="' + INKC + '"/>' +
+      '<circle cx="414" cy="456" r="13" fill="#fff"/><circle cx="624" cy="456" r="13" fill="#fff"/>' +
+      '<path d="M486 668h56l-28 30Z" fill="#c8463a"/>' +
+      '<path d="M440 724q37 38 74 0q37 38 74 0" fill="none" stroke="' + INKC + '" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<ellipse cx="360" cy="690" rx="44" ry="22" fill="#e58e8e" opacity=".85"/><ellipse cx="668" cy="690" rx="44" ry="22" fill="#e58e8e" opacity=".85"/></g>';
+  }
+  function bianStarsTail() {
+    return '<path class="tg-tail" d="M300 560C360 720 520 860 760 905C860 924 930 900 948 836C966 770 916 724 866 742C826 756 828 806 862 812" fill="none" stroke="' + INKC + '" stroke-width="86" stroke-linecap="round" stroke-linejoin="round"/>' +
+      tgStar(492, 112, 118, '#e9b949', 0) + tgStar(205, 400, 92, '#e0566e', 0.9) + tgStar(805, 392, 86, '#2f8a83', 1.7);
+  }
   function coverTitle() {
     const h = els.cover.querySelector('.zm-cover-title');
     h.classList.add('is-glyph');
     h.setAttribute('aria-label', '百变小咪');
-    h.innerHTML = glyphSvg('百', [], '') + glyphSvg('变', [], '') + glyphSvg('小', [2], wandStroke()) + glyphSvg('咪', [3, 4, 5], catGlyph(226, 450, 205));
+    h.innerHTML = glyphSvg('百', [], baiCatFace()) + glyphSvg('变', [0, 5, 6, 8], bianStarsTail()) + glyphSvg('小', [2], wandStroke()) + glyphSvg('咪', [3, 4, 5], catGlyph(226, 450, 205));
     // 游戏里左上角的招牌也用同一套艺术字（2026-11-18 用户），小一号、不动
     const g = els.table && els.table.querySelector('.zm-title');
     if (g) { g.classList.add('is-glyph'); g.setAttribute('aria-label', '百变小咪'); g.innerHTML = h.innerHTML; }
