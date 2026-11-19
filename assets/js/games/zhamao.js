@@ -3655,8 +3655,10 @@
     renderPiles();
     fx.pop(els.deck, { scale: 1.05 });
     // 组队（2026-11-18 用户：聊天气泡不好看）：队友 / 我自己挑位置塞的，在牌堆旁边那道缝的高度挂一枚小标签，几秒后淡掉。
-    // 靠后的说「倒数第几张 / 最后一张」——40 张里说「第 40 张」没参考价值；随机塞的谁也不知道，不挂
+    // 靠后的说「倒数第几张 / 最后一张」——40 张里说「第 40 张」没参考价值
     if (teamGame() && e.pos != null && !e.rand && (mateIns || e.seat === 0)) insertTag(e.pos, e.size, slotR);
+    // 随机塞的（点「随机」/ 到点自动塞）：谁也不知道在哪，挂一枚「随机」（2026-11-18 用户：丁的样子、写「随机」两个字）
+    else if (teamGame() && e.rand && (isMate(e.seat) || e.seat === 0)) randTag();
     await wait(ms(260));
   }
 
@@ -3666,11 +3668,12 @@
     if (back <= 0) return '最后一张';
     return pos <= back ? '第 ' + (pos + 1) + ' 张' : '倒数第 ' + (back + 1) + ' 张';
   }
-  function insertTag(pos, size, slot) {
+  function randTag() { insertTag(0, 0, null, '随机'); }
+  function insertTag(pos, size, slot, text, cls, icon) {
     const dr = els.deck.getBoundingClientRect();
     const tag = document.createElement('span');
-    tag.className = 'zm-ins-tag';
-    tag.innerHTML = '<i>' + ART.icon(R.BOOM) + '</i>' + insertTagText(pos, size);
+    tag.className = 'zm-ins-tag' + (cls ? ' ' + cls : '');
+    tag.innerHTML = '<i>' + (icon || ART.icon(R.BOOM)) + '</i>' + (text != null ? text : insertTagText(pos, size));
     // 挂在牌堆正上方、尖角朝下指着牌堆（左右两边手机上会压到侧边的人 / 弃牌堆）；位置靠文字说
     tag.style.left = Math.round(dr.left + dr.width / 2) + 'px';
     tag.style.top = Math.round(dr.top - 12) + 'px';
