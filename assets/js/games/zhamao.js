@@ -433,6 +433,8 @@
     const land = LANDSCAPE_SHORT.matches;
     // 横屏（顶栏 / 我这一行都是 display:contents 摊进整张桌子的网格）：桌沿顶边穿过顶上那一行，底边压在桌子中间那块的下沿
     const hb = land ? (() => { const r = els.opps.getBoundingClientRect(); return { bottom: r.top - 2 }; })() : bar.getBoundingClientRect();
+    // 横屏（2026-11-19 用户挑甲）：桌沿顶边整条压到标题 / 工具键那一行下面（顶边那几家头像骑在线上）——以前穿过那一行，左上压着「百变小咪」、右上压着工具键
+    const landLow = land ? Math.max(...['.zm-topleft', '.zm-tools'].map((q) => { const e = els.table.querySelector(q); return e ? e.getBoundingClientRect().bottom : 0; })) : 0;
     const mb = land ? els.center.getBoundingClientRect() : mebar.getBoundingClientRect();
     const avMe = parseFloat(getComputedStyle(els.me).getPropertyValue('--av')) || 46;
     const y1 = Math.round((land ? mb.bottom : mb.top) - tb.top + 2);
@@ -444,7 +446,7 @@
     let sp = null;
     const split = (side, top) => {
       if (teamGame()) return null;
-      let s = Math.max(0, Math.round(others * side / Math.max(1, 2 * side + top)));
+      let s = Math.max(0, Math.min(Math.floor(side / 72), Math.round(others * side / Math.max(1, 2 * side + top))));   // 一条边上每家至少占 72px（头像 + 名字 + 留白），横屏侧边短，坐不下就挪到顶边
       let t = others - 2 * s;
       const tMin = others % 2 ? 1 : Math.min(2, others);
       if (t < tMin) { t = tMin; s = (others - t) / 2; }
@@ -453,7 +455,7 @@
     for (let it = 0; it < 3; it++) {
       const inset = Math.max(RING_M, Math.round(av / 2 + 20));
       x0 = inset; x1 = W - inset;
-      y0 = Math.round(hb.bottom - tb.top + av / 2 + 8);
+      y0 = land ? Math.round(landLow - tb.top + 6) : Math.round(hb.bottom - tb.top + av / 2 + 8);
       const cm = RING_R + av / 2 + 8;   // 离拐角的余量
       const side = Math.max(0, (y1 - y0) - 2 * cm);
       // 顶边：横屏时顶上那一行左右是比分条和工具键，只在中间那段（.zm-opps 的范围）坐人
@@ -500,6 +502,9 @@
     els.me.style.bottom = 'auto';
     if (land) { mebar.style.removeProperty('padding-left'); els.table.style.setProperty('--ring-me-w', Math.round(meX + avMe / 2 + 2) + 'px'); }
     else mebar.style.paddingLeft = Math.round(meX + avMe / 2 + 10 - (op.left - tb.left)) + 'px';
+    // 横屏：顶边那几家（头像 + 名字）往下压进了桌子中间那块——牌堆 / 弃牌堆在剩下的高度里居中，别顶到名字
+    if (land) { const ct = els.center.getBoundingClientRect().top - tb.top; els.center.style.paddingTop = Math.max(0, Math.round(y0 + av / 2 + 18 - ct)) + 'px'; }
+    else els.center.style.removeProperty('padding-top');
     ringLay = { x0, x1, y0, y1, r: RING_R, pos, av, avMe, W };
   }
   // 桌沿上从我出发、逆时针走 d 像素到哪（ring 分支：彗星 / 方向箭头用）

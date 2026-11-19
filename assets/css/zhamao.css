@@ -1745,6 +1745,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   .zm-app.is-ring .zm-seat-me { position: absolute; grid-area: auto; padding: 0; align-self: auto; }
   .zm-app.is-ring .zm-opps { grid-area: opps; min-height: 0 !important; }
   .zm-app.is-ring .zm-hand { grid-area: hand; padding-top: 22px; }
+  /* 2026-11-19 用户：摸牌 / 出牌固定到最右下角（以前最右那一列被顶上的工具键撑宽、底下却空着，两颗键被挤到中间、手牌只剩窄窄一条） */
+  .zm-app.is-ring .zm-table { grid-template-areas: "tl opps opps tr" "ctr ctr ctr ctr" "me hand hand band"; }
+  .zm-app.is-ring .zm-band { justify-self: end; }
 }
 /* 联机大厅 · 组队（2026-11-18）：座位按队分段，每段一块队色淡底板；多坐了的人另起一行 */
 /* 2026-11-19 用户：队伍框按人数收紧、居中；每队 2 人时一行放两队（2v2 一行；2v2v2 = 两队 + 下面一队居中，2v2v2v2 = 两行各两队）。
