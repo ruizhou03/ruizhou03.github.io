@@ -12,7 +12,7 @@
   const ENABLED = LIVE || LOCAL || /[?&]zmonline=1\b/.test(location.search);
 
   const ERRORS = {
-    room_not_found: '房间不存在或已经解散',
+    room_not_found: '房间不存在或已解散',
     room_full: '房间已满（座位都是真人）',
     team_seats: '组队要把每一队的座位都坐满（空位可以加机器猫）',
     room_in_progress: '这一局已经开始了',

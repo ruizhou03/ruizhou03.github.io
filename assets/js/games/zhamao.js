@@ -6147,18 +6147,23 @@
       });
   }
   sheetMask.addEventListener('click', (e) => { if (e.target === sheetMask) closeSheet(); });
+  let ghostUntil = 0;   // 甩收设置单后的一小段：主页按钮上冒出来的 click 当成手势的余波吞掉（兜底，见下面 touchend）
   Object.values(sheets).forEach((sh) => {   // 往下拖设置单：跟手，拖过 80px（或甩得快）就收起（横屏抽屉不拖）
-    let y0 = null, t0 = 0, dy = 0;
+    let y0 = null, t0 = 0, dy = 0, dragged = false;
     sh.addEventListener('pointerdown', (e) => { if (e.target.closest('button, input') || sheetOff().indexOf('Y') < 0) return; y0 = e.clientY; t0 = performance.now(); dy = 0; sh.setPointerCapture(e.pointerId); });
     sh.addEventListener('pointermove', (e) => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); sh.style.transform = 'translateY(' + dy + 'px)'; });
     const end = () => {
       if (y0 == null) return;
       const fast = dy / Math.max(1, performance.now() - t0) > 0.6;
       y0 = null;
-      if (dy > 80 || (fast && dy > 24)) closeSheet();
+      dragged = dy > 4;
+      if (dy > 80 || (fast && dy > 24)) { closeSheet(); ghostUntil = performance.now() + 700; }
       else if (dy) sh.animate([{ transform: 'translateY(' + dy + 'px)' }, { transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.3,.8,.4,1)' }).finished.catch(() => {}).then(() => { sh.style.transform = ''; });
     };
     sh.addEventListener('pointerup', end); sh.addEventListener('pointercancel', end);
+    // iOS（2026-11-19 用户录屏）：往下一甩收起设置单，手指离开后约 0.35 秒 WebKit 还会在抬手的位置补发一次 click——
+    // 那时设置单已经滑走，那个位置正好是主页的「单机」键，于是「点联机却弹出单机」。拖过就把这次 touchend 的默认动作取消（不补发 click）
+    sh.addEventListener('touchend', (e) => { if (dragged) { dragged = false; e.preventDefault(); } }, { passive: false });
   });
 
   function soloStart() {
@@ -7539,6 +7544,7 @@
     refreshCover();   // 「回到房间」按眼下还在不在房间里重摆
     const input = $('zmJoinCode');
     $('zmOnlineErr').hidden = true;
+    joinGone(false);
     input.value = code ? String(code).replace(/\D/g, '').slice(0, 4) : '';
     joinReady();
     sheets.online.querySelectorAll('button').forEach((x) => { x.disabled = false; });
@@ -7551,8 +7557,32 @@
     sheets.online.querySelector('[data-cover="join"]').classList.toggle('is-primary', ok);
     sheets.online.querySelector('[data-cover="create"]').classList.toggle('is-primary', !ok && !sess);
   }
+  /* 房间号不对（不存在 / 已解散，2026-11-19 用户）：不在底下另起一行字，直接在输入的数字上蒙一层，写「房间不存在或已解散」；
+   * 一改房间号 / 点回输入框就揭掉 */
+  let goneTimer = 0, goneSeq = 0;
+  const joinGone = (on, clear) => {
+    const g = $('zmJoinGone');
+    clearTimeout(goneTimer);
+    if (!g || g.hidden === !on) return;
+    const seq = ++goneSeq;   // 淡出途中又点了框 / 又报错：旧的那次淡出收尾作废，别把新输的号清掉
+    const field = g.parentNode, done = () => { if (seq !== goneSeq) return; g.hidden = true; field.classList.remove('is-gone'); if (clear) { $('zmJoinCode').value = ''; joinReady(); } };
+    if (on) {
+      g.hidden = false; field.classList.add('is-gone');
+      if (!fx.reduce()) g.animate([{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'cubic-bezier(.3,.8,.4,1)' });
+      goneTimer = setTimeout(() => joinGone(false, true), 2400);   // 2026-11-19 用户：显示一小会儿自己消失，顺手清空房间号
+      return;
+    }
+    if (clear && !fx.reduce()) g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-in' }).finished.catch(() => {}).then(done);
+    else done();
+  };
   function onlineFail(e) {
     const err = $('zmOnlineErr');
+    if (e && (e.error === 'room_not_found' || e.status === 404)) {
+      err.hidden = true; joinGone(true);
+      sheets.online.querySelectorAll('button').forEach((x) => { x.disabled = false; });
+      return;
+    }
+    joinGone(false);
     err.textContent = NET.message(e); err.hidden = false;
     sheets.online.querySelectorAll('button').forEach((x) => { x.disabled = false; });
   }
@@ -7999,6 +8029,7 @@
     const b = e.target.closest('[data-cover]');
     if (!b) return;
     const k = b.dataset.cover;
+    if (performance.now() < ghostUntil && !b.closest('.zm-setsheet-mask')) { ghostUntil = 0; return; }   // 甩收设置单的余波，不是真点
     // 单机：有上一局 → 先问「接着打 / 开新的一局」；没有就直接选人数
     // 2026-11-13 用户：没有没打完的局 → 点单机直接到选人数（不经过「接着打 / 开新的」那一步）；新手教程 · 设置这时挂在选人数那屏底下
     if (k === 'solo') { openSheet('solo'); return; }
@@ -8015,7 +8046,13 @@
     else if (k === 'exit') location.href = '/toolbox/';
   });
   // 加入房间：只收数字、满 4 位「加入」变朱红、回车 = 加入
+  // 点回输入框：揭掉提示，原来的号整段选中——直接打新号就替换掉，不用先删
+  // （按回车加入的话光标本来就在框里，不会再触发 focus，所以按下也算）
+  const joinRetry = (e) => { if (!$('zmJoinGone').hidden) { joinGone(false); const inp = e.currentTarget; setTimeout(() => inp.select(), 0); } };
+  $('zmJoinCode').addEventListener('focus', joinRetry);
+  $('zmJoinCode').addEventListener('pointerdown', joinRetry);
   $('zmJoinCode').addEventListener('input', (e) => {
+    joinGone(false);
     const inp = e.target;
     inp.value = inp.value.replace(/\D/g, '').slice(0, 4);
     $('zmOnlineErr').hidden = true;

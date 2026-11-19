@@ -167,7 +167,7 @@ body_class: zm-fullscreen
         </div>
         <div class="zm-on-or" aria-hidden="true"><span>或</span></div>
         <div class="zm-on-join">
-          <input class="zm-input zm-join-code" id="zmJoinCode" inputmode="numeric" maxlength="4" placeholder="房间号" autocomplete="off" aria-label="房间号">
+          <div class="zm-join-field"><input class="zm-input zm-join-code" id="zmJoinCode" inputmode="numeric" maxlength="4" placeholder="房间号" autocomplete="off" aria-label="房间号"><span class="zm-join-gone" id="zmJoinGone" role="alert" hidden>房间不存在或已解散</span></div>
           <div class="zm-join-btns"><button type="button" class="zm-cover-btn" data-cover="watch"><b>观战</b></button><button type="button" class="zm-cover-btn" data-cover="join"><b>加入</b></button></div>
         </div>
         <p class="zm-err zm-online-err" id="zmOnlineErr" hidden></p>

@@ -1560,6 +1560,11 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-on-or { display: flex; align-items: center; gap: 12px; color: var(--zm-ink-faint); font-size: 13px; letter-spacing: 0.2em; }
 .zm-on-or::before, .zm-on-or::after { content: ''; flex: 1; height: 1px; background: rgba(29, 27, 24, 0.16); }
 .zm-on-join .zm-join-code { height: 54px; }
+/* 房间号不对（2026-11-19 用户挑乙）：输入框上蒙一层淡淡的纸色，字在上半截，原来输的号往下让一点、还看得清；
+ * 不挡点击（点框就揭掉、号整段选中），过两秒多自己淡掉并清空 */
+.zm-join-field { position: relative; display: grid; }
+.zm-join-gone { position: absolute; inset: 0; display: grid; justify-items: center; align-items: start; padding-top: 5px; border-radius: 12px; background: color-mix(in srgb, var(--zm-paper) 38%, transparent); box-shadow: inset 0 0 0 1.5px var(--zm-seal); color: var(--zm-seal); font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em; pointer-events: none; }
+.zm-join-field.is-gone .zm-join-code { padding-top: 16px; color: color-mix(in srgb, var(--zm-ink) 72%, transparent); }
 .zm-setsheet .zm-online-err:empty { display: none; }
 
 /* ───── 横屏（矮，2026-11-18 第二版）─────
