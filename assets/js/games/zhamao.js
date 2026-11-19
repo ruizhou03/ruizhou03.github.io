@@ -5452,7 +5452,7 @@
     }
     const ob = els.cover.querySelector('[data-cover="online"]');
     if (ob) ob.hidden = !NET;
-    refreshResume();
+    coverResume();
   }
   /* 设置单右上角的收起键（横屏没有往下拖的把手时用）：朱红折号转个向——竖屏朝下、横屏抽屉朝右，跟它收走的方向一致 */
   const BACK_ART = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M24.5 6.5 13 20l11.5 13.5" fill="none" stroke="#b4392c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -5486,12 +5486,6 @@
     $('zmSheetHead').innerHTML = $('zmOnlineHead').innerHTML = miniCard(k, name) + '<span><b>' + name + '</b></span>';
     refreshDeck();
   }
-  // 「接着打上一局」小药丸：写上那局的玩法和人数
-  function refreshResume() {
-    const saved = loadSaved();
-    if (saved) $('zmResumeTxt').textContent = '接着打上一局 · ' + SOLO_MODES[modeIdx(R.normalizeRules(saved.state.rules).mode)][1] + ' ' + saved.state.n + ' 人';
-    return saved;
-  }
 
   /* ───── 玩法牌叠：横向滚动 + 吸附，中间那张最大，两边的缩小、歪一点、淡一点（滚的时候逐帧算） ───── */
   const deckEl = $('zmModeDeck'), track = $('zmModeTrack');
@@ -5512,6 +5506,7 @@
       sl.style.opacity = (1 - 0.42 * a).toFixed(3);
       sl.style.zIndex = String(10 - Math.round(Math.abs(d) * 2));
     });
+    coverBgPaint(c);
   }
   function refreshDeck() {
     const i = modeIdx();
@@ -5557,6 +5552,7 @@
     Object.keys(sheets).forEach((k) => { sheets[k].hidden = k !== kind; });
     sheet = sheets[kind];
     sheetMask.dataset.kind = kind;
+    coverResume();
     refreshSolo();
     sheetMask.hidden = false;
     refreshSolo();   // 头像那排按显示出来以后的宽度再算一次
@@ -5602,8 +5598,7 @@
   // 主菜单两步：load（插画 + 大字 + 进度条）→ main（玩法牌 + 单机 / 联机；点了各自升起设置单）
   function coverStep(k) {
     els.cover.querySelectorAll('[data-cover-step]').forEach((x) => { x.hidden = x.dataset.coverStep !== k; });
-    const pill = els.cover.querySelector('.zm-resume');
-    pill.hidden = k !== 'main' || !refreshResume();
+    coverResume();   // 2026-11-18 用户：首页不放「接着打」药丸，改成单机键小黄点 + 设置单里那张卡
     const wasHidden = deckEl.hidden;
     deckEl.hidden = k === 'load';
     if (wasHidden && !deckEl.hidden) deckSync();
@@ -5631,7 +5626,7 @@
     const h = els.cover.querySelector('.zm-cover-title');
     if (!h.querySelector('span')) h.innerHTML = Array.from(h.textContent).map((ch) => '<span>' + ch + '</span>').join('');
     if (title) h.querySelectorAll('span').forEach((sp, i) => sp.animate([{ transform: 'translateY(-26px) rotate(-8deg)', opacity: 0 }, { transform: 'translateY(4px) rotate(2deg)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 480, delay: 120 + i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
-    const items = title ? els.cover.querySelectorAll('.zm-cover-art') : els.cover.querySelectorAll('.zm-resume:not([hidden]), .zm-mdeck, .zm-cover-btn:not([hidden]), .zm-cover-foot:not([hidden])');
+    const items = title ? els.cover.querySelectorAll('.zm-cover-art') : els.cover.querySelectorAll('.zm-mdeck, .zm-cover-btn:not([hidden]), .zm-cover-foot:not([hidden])');
     items.forEach((n, i) => n.animate([{ transform: 'translateY(16px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 420, delay: i === 0 ? 0 : (title ? 380 : 60) + i * 80, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
   }
   // 进度条跑完：插画往上淡走，标题从正中滑到顶上（FLIP），玩法牌、单机 / 联机一个个浮上来
@@ -5645,8 +5640,160 @@
     if (fx.reduce()) return;
     const r1 = h.getBoundingClientRect();
     h.animate([{ transform: 'translate(' + (r0.left - r1.left) + 'px,' + (r0.top - r1.top) + 'px)' }, { transform: 'none' }], { duration: 560, easing: 'cubic-bezier(.3,.8,.3,1)' });
-    els.cover.querySelectorAll('.zm-resume:not([hidden]), .zm-mdeck, [data-cover-step="main"] .zm-cover-btn:not([hidden]), .zm-cover-foot[data-cover-step="main"]').forEach((n, i) => n.animate([{ transform: 'translateY(22px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 460, delay: 200 + i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
+    els.cover.querySelectorAll('.zm-mdeck, [data-cover-step="main"] .zm-cover-btn:not([hidden]), .zm-cover-foot[data-cover-step="main"]').forEach((n, i) => n.animate([{ transform: 'translateY(22px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 460, delay: 200 + i * 90, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
   }
+
+
+  /* ───── 主页封面（2026-11-18 第三轮，用户逐项挑定）─────
+   * 标题字：四个字各是一张字形 SVG（Noto Serif SC 粗体轮廓，OFL），「小」的竖钩整根换成逗猫棒（顶上拴绳挂羽毛穗、杆尾弯成手柄、握手处两道朱红），
+   *         炸毛猫占「咪」的口字旁（用户挑甲）
+   * 玩法背景：对角剪影（用户挑乙）——每个玩法一对纯色剪影，大的从左上角探进来、小的从右下角；不铺底色。
+   *         四层各对应一个玩法，透明度 = max(0, 1 − |p − i|)，p = 玩法牌滚到第几张（小数，逐帧算），剪影跟着 (i − p) 视差平移——跟手本身就是过渡。
+   *         角色那层暂时留白（用户：重画的几版都不行，先空着，之后照另外三个的路子再做）
+   * 接着打上一局：首页不放浮窗（用户挑乙）——单机键角上一颗小黄点（有没打完的局）、联机键同理（还在某个房间里）；
+   *         点单机后设置单最上面一张「接着打」卡，下面「或」再新开一局 */
+  var coverReady = false, coverLayers = [], coverBgEl = null, coverResCard = null, coverResOr = null;
+  /* ── 标题字 ── */
+  const GLYPH = {'百':['M53 753H753L822 839Q822 839 835 830Q848 820 868 805Q888 790 910 773Q931 756 949 741Q945 725 920 725H61Z','M700 547H690L746 610L861 519Q857 513 847 508Q837 502 821 499V-44Q821 -48 804 -56Q788 -64 764 -71Q740 -78 719 -78H700Z','M185 547V598L312 547H755V518H304V-41Q304 -48 290 -58Q275 -68 252 -76Q230 -83 204 -83H185Z','M241 33H757V5H241Z','M241 301H757V272H241Z','M415 753H575Q553 714 526 672Q500 629 472 592Q444 554 416 528H394Q398 556 402 596Q407 635 410 677Q414 719 415 753Z'],'变':['M291 327Q334 253 406 200Q477 148 568 114Q659 80 762 60Q866 41 973 33L972 21Q934 11 910 -18Q886 -46 876 -90Q736 -64 620 -16Q503 33 416 114Q330 194 278 318Z','M641 327 716 392 825 289Q819 280 809 277Q799 274 779 273Q662 127 470 35Q279 -57 34 -89L28 -76Q164 -37 286 22Q409 82 504 159Q600 236 655 327Z','M731 327V299H175L166 327Z','M450 377Q449 373 425 364Q401 354 358 354H338V698H450Z','M661 379Q660 376 636 366Q611 356 568 356H548V697H661Z','M403 855Q472 856 512 842Q553 827 571 805Q589 783 588 760Q587 738 572 722Q557 705 533 701Q509 697 481 714Q475 738 461 764Q447 789 430 812Q413 834 396 850Z','M341 566Q337 558 326 554Q316 549 300 553Q247 486 182 439Q116 392 48 364L37 375Q84 417 132 486Q179 555 211 634Z','M820 790Q820 790 832 781Q844 772 862 758Q880 743 900 726Q920 710 936 695Q932 679 909 679H71L63 707H756Z','M685 612Q769 601 820 576Q872 552 897 522Q922 491 926 462Q929 433 916 412Q904 392 880 387Q856 382 826 400Q815 437 791 474Q767 512 736 546Q706 580 677 605Z'],'小':['M663 587Q766 539 829 484Q892 428 922 374Q953 320 957 275Q961 230 946 202Q931 173 902 169Q874 165 839 193Q832 242 813 294Q794 345 768 396Q743 447 713 494Q683 540 652 581Z','M220 600 384 536Q381 528 373 523Q365 518 346 518Q317 455 273 386Q229 316 170 252Q110 187 32 139L24 148Q63 195 94 252Q126 309 150 370Q175 431 192 490Q210 549 220 600Z','M447 835 608 819Q606 809 598 802Q590 794 571 791V61Q571 18 559 -12Q547 -43 510 -62Q473 -81 396 -88Q392 -57 385 -36Q378 -14 361 1Q345 15 319 26Q293 36 243 45V58Q243 58 258 57Q274 56 298 55Q321 54 346 52Q372 51 392 50Q413 49 421 49Q437 49 442 54Q447 59 447 70Z'],'咪':['M373 448H802L862 530Q862 530 873 521Q884 512 901 498Q918 483 936 467Q955 451 970 436Q966 420 942 420H381Z','M712 435Q737 365 780 304Q823 244 876 198Q928 152 984 124L982 113Q914 98 888 10Q814 78 769 184Q724 289 700 431Z','M544 439H682V423Q636 276 534 164Q431 52 271 -21L262 -10Q335 44 390 116Q446 188 484 270Q523 353 544 439Z','M67 722V769L179 722H326V693H175V99Q175 93 162 84Q149 75 128 68Q108 61 84 61H67Z','M252 722H242L294 780L401 696Q397 690 386 684Q375 678 360 675V141Q360 137 344 129Q329 121 308 115Q288 109 269 109H252Z','M118 241H322V212H118Z','M404 760Q467 728 502 691Q536 654 548 618Q561 583 556 554Q552 526 536 510Q519 494 496 495Q473 496 449 520Q452 559 444 600Q436 642 422 682Q409 723 393 755Z','M812 763 961 702Q957 693 946 688Q936 683 920 685Q883 633 840 584Q798 535 754 498L742 506Q752 538 764 580Q777 623 790 671Q802 719 812 763Z','M595 849 745 834Q744 824 736 816Q729 808 708 805V-48Q708 -54 694 -64Q681 -73 660 -80Q638 -88 617 -88H595Z']};
+  const INKC = 'currentColor';
+  // 炸毛猫（墨色刺球 + 两只大眼 + 腮红），cx/cy/R 都是字形单位（1000 一个字）
+  function catGlyph(cx, cy, R) {
+    let d = '';
+    for (let i = 0; i < 32; i++) { const a = -Math.PI / 2 + i * Math.PI / 16, r = i % 2 ? R * 0.72 : R; d += (i ? 'L' : 'M') + (cx + Math.cos(a) * r).toFixed(1) + ' ' + (cy + Math.sin(a) * r).toFixed(1); }
+    const e = R * 0.21;
+    return '<g class="tg-cat">' +
+      '<path d="' + d + 'Z" fill="' + INKC + '"/>' +
+      '<circle cx="' + (cx - R * 0.33) + '" cy="' + (cy - R * 0.02) + '" r="' + e + '" fill="#fff"/><circle cx="' + (cx + R * 0.33) + '" cy="' + (cy - R * 0.02) + '" r="' + e + '" fill="#fff"/>' +
+      '<circle cx="' + (cx - R * 0.3) + '" cy="' + (cy - R * 0.05) + '" r="' + e * 0.5 + '" fill="' + INKC + '"/><circle cx="' + (cx + R * 0.36) + '" cy="' + (cy - R * 0.05) + '" r="' + e * 0.5 + '" fill="' + INKC + '"/>' +
+      '<ellipse cx="' + (cx - R * 0.52) + '" cy="' + (cy + R * 0.28) + '" rx="' + R * 0.14 + '" ry="' + R * 0.08 + '" fill="#e58e8e"/><ellipse cx="' + (cx + R * 0.52) + '" cy="' + (cy + R * 0.28) + '" rx="' + R * 0.14 + '" ry="' + R * 0.08 + '" fill="#e58e8e"/>' +
+      '<path d="M' + (cx + R * 0.55) + ' ' + (cy - R * 1.05) + 'l' + R * 0.1 + ' ' + R * 0.2 + ' ' + R * 0.2 + ' ' + R * 0.05 + '-' + R * 0.17 + ' ' + R * 0.12 + '.03 ' + R * 0.22 + '-' + R * 0.16 + '-' + R * 0.14 + '-' + R * 0.16 + ' ' + R * 0.14 + '.03-' + R * 0.22 + '-' + R * 0.17 + '-' + R * 0.12 + ' ' + R * 0.2 + '-' + R * 0.05 + 'Z" fill="#e9c46a"/></g>';
+  }
+  // 逗猫棒的绳 + 羽毛穗：从 (x, y) 拴出，绳往 (tx, ty) 甩，穗挂在绳头；整组绕拴绳点轻轻晃
+  function wandTassel(x, y, tx, ty, c1x, c1y, s) {
+    s = s || 1;
+    return '<g class="tg-tassel" style="transform-origin:' + x + 'px ' + y + 'px">' +
+      '<path d="M' + x + ' ' + y + 'Q' + c1x + ' ' + c1y + ' ' + tx + ' ' + ty + '" fill="none" stroke="' + INKC + '" stroke-width="26" stroke-linecap="round"/>' +
+      '<g transform="translate(' + tx + ' ' + ty + ') scale(' + s + ')">' +
+      '<path d="M0 0c-54-16-100 22-90 80 42 0 86-27 90-80Z" fill="#e0566e"/><path d="M0 0c-13 54 13 100 70 96 0-45-27-83-70-96Z" fill="#e9c46a"/>' +
+      '<path d="M0 0c-38 45-38 96 0 128 32-45 26-90 0-128Z" fill="#6fa8dc"/><circle r="20" fill="#c8463a"/></g></g>';
+  }
+  function glyphSvg(ch, drop, extra) {
+    const paths = GLYPH[ch].map((d, i) => (drop.indexOf(i) >= 0 ? '' : '<path d="' + d + '"/>')).join('');
+    return '<span><svg viewBox="0 0 1000 1000" aria-hidden="true" overflow="visible"><g transform="translate(0 880) scale(1 -1)" fill="currentColor">' + paths + '</g>' + (extra || '') + '</svg></span>';
+  }
+  // 「小」的竖钩整根换成逗猫棒：顶上圆头拴绳挂穗，往下一根杆，杆尾弯成手柄（就是原来的钩），握手处缠两道朱红
+  function wandStroke() {
+    return '<g class="tg-wand">' +
+      '<path d="M508 150V860Q508 968 404 962Q300 956 262 836" fill="none" stroke="' + INKC + '" stroke-width="100" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<rect x="452" y="676" width="112" height="24" rx="8" fill="#c8463a"/><rect x="452" y="728" width="112" height="24" rx="8" fill="#c8463a"/>' +
+      '<circle cx="508" cy="118" r="66" fill="' + INKC + '"/>' +
+      wandTassel(508, 92, 790, -40, 620, -220, 1.7) + '</g>';
+  }
+  function coverTitle() {
+    const h = els.cover.querySelector('.zm-cover-title');
+    h.classList.add('is-glyph');
+    h.setAttribute('aria-label', '百变小咪');
+    h.innerHTML = glyphSvg('百', [], '') + glyphSvg('变', [], '') + glyphSvg('小', [2], wandStroke()) + glyphSvg('咪', [3, 4, 5], catGlyph(226, 450, 205));
+  }
+  /* ── 玩法背景 ── */
+  const BG_BAND = { classic: '200,70,58', flux: '142,74,156', team: '196,96,122', roles: '122,82,42' };   // 角色的奶茶色太浅、剪影看不出，压深两档
+  const maskSvg = (svg) => "url('data:image/svg+xml," + encodeURIComponent(svg).replace(/'/g, '%27') + "')";
+  const sil100 = (inner, vb) => maskSvg('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + (vb || '0 0 100 100') + '">' + inner + '</svg>');
+  // 剪影小件（100 × 100）：实心部分 = 显示，挖空（眼睛 / 耳内）用 SVG 自带的 mask 抠掉
+  const star = (cx, cy, n, R, r, rot) => { let d = ''; for (let i = 0; i < n * 2; i++) { const a = (rot || -90) * Math.PI / 180 + i * Math.PI / n, rr = i % 2 ? r : R; d += (i ? 'L' : 'M') + (cx + Math.cos(a) * rr).toFixed(1) + ' ' + (cy + Math.sin(a) * rr).toFixed(1); } return d + 'Z'; };
+  const spk = (cx, cy, r) => 'M' + cx + ' ' + (cy - r) + 'C' + (cx + r * 0.16) + ' ' + (cy - r * 0.16) + ' ' + (cx + r * 0.16) + ' ' + (cy - r * 0.16) + ' ' + (cx + r) + ' ' + cy + 'C' + (cx + r * 0.16) + ' ' + (cy + r * 0.16) + ' ' + (cx + r * 0.16) + ' ' + (cy + r * 0.16) + ' ' + cx + ' ' + (cy + r) + 'C' + (cx - r * 0.16) + ' ' + (cy + r * 0.16) + ' ' + (cx - r * 0.16) + ' ' + (cy + r * 0.16) + ' ' + (cx - r) + ' ' + cy + 'C' + (cx - r * 0.16) + ' ' + (cy - r * 0.16) + ' ' + (cx - r * 0.16) + ' ' + (cy - r * 0.16) + ' ' + cx + ' ' + (cy - r) + 'Z';
+  const heartD = (cx, cy, s) => 'M' + cx + ' ' + (cy + 30 * s) + 'C' + (cx - 10 * s) + ' ' + (cy + 22 * s) + ' ' + (cx - 34 * s) + ' ' + (cy + 8 * s) + ' ' + (cx - 34 * s) + ' ' + (cy - 10 * s) + 'C' + (cx - 34 * s) + ' ' + (cy - 26 * s) + ' ' + (cx - 14 * s) + ' ' + (cy - 32 * s) + ' ' + cx + ' ' + (cy - 16 * s) + 'C' + (cx + 14 * s) + ' ' + (cy - 32 * s) + ' ' + (cx + 34 * s) + ' ' + (cy - 26 * s) + ' ' + (cx + 34 * s) + ' ' + (cy - 10 * s) + 'C' + (cx + 34 * s) + ' ' + (cy + 8 * s) + ' ' + (cx + 10 * s) + ' ' + (cy + 22 * s) + ' ' + cx + ' ' + (cy + 30 * s) + 'Z';
+  // 圆脸猫头：脸 + 两只耳朵；holes = 眼睛 + 耳内（挖空）
+  const catFace = (cx, cy, r, rot, eyes) => {
+    const ear = (sx) => 'M' + (cx + sx * r * 0.95) + ' ' + (cy - r * 0.05) + 'L' + (cx + sx * r * 0.8) + ' ' + (cy - r * 1.18) + 'L' + (cx + sx * r * 0.08) + ' ' + (cy - r * 0.72) + 'Z';
+    const earIn = (sx) => 'M' + (cx + sx * r * 0.74) + ' ' + (cy - r * 0.42) + 'L' + (cx + sx * r * 0.7) + ' ' + (cy - r * 0.92) + 'L' + (cx + sx * r * 0.36) + ' ' + (cy - r * 0.7) + 'Z';
+    const T = rot ? ' transform="rotate(' + rot + ' ' + cx + ' ' + cy + ')"' : '';
+    const solid = '<g' + T + '><ellipse cx="' + cx + '" cy="' + cy + '" rx="' + r + '" ry="' + (r * 0.86) + '"/><path d="' + ear(-1) + ear(1) + '"/></g>';
+    const holes = '<g' + T + '><path d="' + earIn(-1) + earIn(1) + '"/>' + (eyes === 'happy'
+      ? '<path d="M' + (cx - r * 0.5) + ' ' + (cy + r * 0.02) + 'q' + (r * 0.17) + ' ' + (-r * 0.26) + ' ' + (r * 0.34) + ' 0M' + (cx + r * 0.16) + ' ' + (cy + r * 0.02) + 'q' + (r * 0.17) + ' ' + (-r * 0.26) + ' ' + (r * 0.34) + ' 0" fill="none" stroke="#000" stroke-width="' + (r * 0.11) + '" stroke-linecap="round"/>'
+      : '<circle cx="' + (cx - r * 0.34) + '" cy="' + cy + '" r="' + (r * 0.14) + '"/><circle cx="' + (cx + r * 0.34) + '" cy="' + cy + '" r="' + (r * 0.14) + '"/>') + '</g>';
+    return [solid, holes];
+  };
+  // 拼一张剪影：solid 实心，holes 用 mask 抠掉
+  const silCut = (solid, holes, over) => sil100('<defs><mask id="h"><rect x="-50" y="-50" width="200" height="200" fill="#fff"/><g fill="#000">' + (holes || '') + '</g></mask></defs><g mask="url(#h)">' + solid + '</g>' + (over || ''));
+  // 对角剪影每个玩法一对（大的左上、小的右下），第三项 = 摆位 [大的 x, y, 转角, 小的 x, y, 转角, 小的镜像]（x/y 是自身宽度的百分比，往屏外推多少）
+  const SIL = {
+    // 经典：一只刺球炸毛猫（耳朵、挖空的眼睛、头顶一颗火星）；右下一团炸开的爆点
+    classic: () => {
+      const cat = '<path d="' + star(50, 56, 15, 40, 30) + '"/><path d="M28 30 22 8 42 22ZM72 30 78 8 58 22Z"/>' + '<path d="' + star(80, 14, 6, 10, 4.5) + '"/>';
+      const holes = '<circle cx="40" cy="54" r="7.5"/><circle cx="60" cy="54" r="7.5"/><path d="M45 68q5 5 10 0"  fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>';
+      const pupils = '<circle cx="41.5" cy="55.5" r="3.2"/><circle cx="61.5" cy="55.5" r="3.2"/>';
+      return [silCut(cat, holes, pupils), silCut('<path d="' + star(50, 50, 11, 46, 24, -80) + '"/><circle cx="88" cy="16" r="5"/><circle cx="14" cy="84" r="3.5"/>', '<path d="' + star(50, 50, 11, 19, 10, -64) + '"/>'), [-36, -26, -12, 34, 28, 14, 1]];
+    },
+    // 百变：一根细魔法棒，顶上一颗大星星，划出一道光点弧线，旁边几颗小闪光
+    flux: () => [
+      sil100('<path d="M10 96 13 99 58 52 53 47Z"/><path d="' + star(64, 36, 5, 22, 9.5) + '" stroke="#000" stroke-width="3" stroke-linejoin="round"/>' +
+        '<g>' + [[84, 38, 3.4], [90, 48, 3], [93, 58, 2.6], [94, 68, 2.2], [93, 77, 1.8]].map(([x, y, r]) => '<circle cx="' + x + '" cy="' + y + '" r="' + r + '"/>').join('') + '</g>' +
+        '<path d="' + spk(30, 22, 8) + spk(88, 14, 5.5) + spk(22, 50, 4.5) + '"/>'),
+      sil100('<path d="' + spk(48, 50, 44) + spk(86, 14, 11) + spk(16, 86, 7) + '"/>'), [-26, -6, -4, 30, 26, 0, 1]],
+    // 组队：两颗猫头互相歪着靠在一起（眯眼笑），中间上方飘一颗心；右下一大一小两颗心
+    team: () => {
+      const A = catFace(34, 62, 24, -14, 'happy'), B = catFace(66, 58, 22, 12, 'happy');
+      return [silCut(A[0] + B[0] + '<path d="' + heartD(50, 20, 0.3) + '"/>', A[1] + B[1]),
+        sil100('<path d="' + heartD(44, 56, 1.12) + heartD(84, 18, 0.42) + '"/>'), [-12, -12, -6, 22, 20, 10, 1]];
+    },
+    // 角色：暂时留白（见上）
+  };
+
+  function coverBg() {
+    if (!coverBgEl) { coverBgEl = document.createElement('div'); coverBgEl.className = 'zm-cover-bg'; coverBgEl.setAttribute('aria-hidden', 'true'); els.cover.prepend(coverBgEl); }
+    coverBgEl.innerHTML = SOLO_MODES.map(([m]) => {
+      if (!SIL[m]) return '<div class="zm-bgl"></div>';
+      const band = BG_BAND[m], pair = SIL[m](), q = pair[2];
+      const pose = '--t1x:' + q[0] + '%;--t1y:' + q[1] + '%;--r1:' + q[2] + 'deg;--t2x:' + q[3] + '%;--t2y:' + q[4] + '%;--r2:' + q[5] + 'deg;--f2:' + q[6] + ';' + (q[7] ? '--o1:' + q[7] + ';--o2:' + q[8] + ';' : '');
+      const sil = (k, mk) => '<i class="sil ' + k + '" style="' + pose + 'background:rgb(' + band + ');-webkit-mask-image:' + mk + ';mask-image:' + mk + '"></i>';
+      return '<div class="zm-bgl">' + sil('s1', pair[0]) + sil('s2', pair[1]) + '</div>';
+    }).join('');
+    coverLayers = Array.from(coverBgEl.children);
+    coverBgPaint();
+  }
+  function coverBgPaint(c) {
+    if (!coverReady || !coverLayers.length) return;
+    if (c == null) c = track.scrollLeft + track.clientWidth / 2;
+    const ctr = slides.map((sl) => sl.offsetLeft + sl.offsetWidth / 2);
+    let p = 0;
+    if (!track.clientWidth) p = modeIdx();
+    else if (c <= ctr[0]) p = 0;
+    else if (c >= ctr[ctr.length - 1]) p = ctr.length - 1;
+    else for (let i = 0; i < ctr.length - 1; i++) if (c >= ctr[i] && c <= ctr[i + 1]) { p = i + (c - ctr[i]) / ((ctr[i + 1] - ctr[i]) || 1); break; }
+    coverLayers.forEach((l, i) => {
+      const o = Math.max(0, 1 - Math.abs(p - i)), dd = i - p;
+      l.style.opacity = o.toFixed(3);
+      l.style.setProperty('--px', dd.toFixed(3));
+    });
+  }
+  /* ── 接着打上一局：小黄点 + 设置单里那张卡 ── */
+  function coverResume() {
+    if (!coverReady) return;
+    const saved = loadSaved();
+    const ZN = window.ZhamaoNet && window.ZhamaoNet.ENABLED ? window.ZhamaoNet : null;   // NET 在下面才声明，这里初始化时还用不了
+    const sess = ZN && ZN.readSession();
+    els.cover.querySelector('[data-cover="solo"]').classList.toggle('has-dot', !!saved);
+    const ob = els.cover.querySelector('[data-cover="online"]');
+    if (ob) ob.classList.toggle('has-dot', !!sess);
+    coverResCard.hidden = coverResOr.hidden = !saved;
+    sheets.solo.querySelector('[data-cover="start"] b').textContent = saved ? '新开一局' : '开始';
+    if (!saved) return;
+    const [, name, k] = SOLO_MODES[modeIdx(R.normalizeRules(saved.state.rules).mode)];
+    const left = saved.state.deck ? saved.state.deck.length : null;
+    coverResCard.style.setProperty('--tone', ART.TONE[k].bg);
+    coverResCard.style.setProperty('--band', ART.TONE[k].band);
+    coverResCard.innerHTML = '<span class="cw">' + miniCard(k, name) + '</span><span class="tx"><b>接着打上一局</b><small>' + name + ' · ' + saved.state.n + ' 人' + (left != null ? ' · 牌堆还剩 ' + left + ' 张' : '') + '</small></span><i class="go" aria-hidden="true"></i>';
+  }
+  (function coverInit() {
+    coverResCard = document.createElement('button');
+    coverResCard.type = 'button'; coverResCard.className = 'zm-sheet-resume'; coverResCard.dataset.cover = 'resume-solo'; coverResCard.hidden = true;
+    coverResOr = document.createElement('div');
+    coverResOr.className = 'zm-on-or'; coverResOr.setAttribute('aria-hidden', 'true'); coverResOr.innerHTML = '<span>或</span>'; coverResOr.hidden = true;
+    sheets.solo.querySelector('.zm-setsheet-head').before(coverResCard, coverResOr);
+    coverReady = true;
+    coverTitle(); coverBg(); coverResume();
+  })();
 
   /* ═════════════ 联机（第二期，2026-11-12）═════════════
    * 服务器权威（backends/urge/lib/zhamao-room.js）：洗牌、校验、机器猫、超时都在服务器。网页只是「看」和「点」：

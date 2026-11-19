@@ -118,14 +118,13 @@ body_class: zm-fullscreen
 
   <!-- 主菜单（2026-11-18 用户挑乙「玩法当主角」）：加载时插画 + 大字居中，进度条跑完插画收起、标题上移，
        中间一叠可以左右滑的玩法牌（挑中的那张就是这局 / 这个房间的玩法），下面并排「单机」「联机」；
-       有没打完的单机局 → 标题下面一颗「接着打上一局」小药丸。单机 → 底下升起一张设置单（人数 / 难度 / 开始）；
+       有没打完的单机局 → 单机键角上一颗小黄点，设置单最上面一张「接着打」卡。单机 → 底下升起一张设置单（人数 / 难度 / 开始）；
        联机 → 同样升起一张设置单（回到房间 / 创建房间 / 输房间号加入；建房用的就是玩法牌上挑的那张） -->
   <div class="zm-cover" id="zmCover">
     <div class="zm-cover-inner">
       <div class="zm-cover-art" id="zmCoverArt" aria-hidden="true"></div>
       <h1 class="zm-cover-title">百变小咪</h1>
       <div class="zm-cover-load" data-cover-step="load" role="progressbar" aria-label="加载中"><i></i></div>
-      <button type="button" class="zm-resume" data-cover="resume-solo" hidden><i aria-hidden="true"></i><span id="zmResumeTxt">接着打上一局</span></button>
       <div class="zm-mdeck" id="zmModeDeck" hidden>
         <div class="zm-mdeck-track" id="zmModeTrack" role="group" aria-label="玩法"></div>
         <div class="zm-mdeck-dots" id="zmModeDots" aria-hidden="true"></div>

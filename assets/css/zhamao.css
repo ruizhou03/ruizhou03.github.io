@@ -1481,12 +1481,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-cover-btns.is-row .zm-cover-btn { flex: 1; min-width: 0; }
 .zm-cover-btns.is-row .zm-cover-btn b { letter-spacing: 0.3em; text-indent: 0.3em; }
 
-/* 接着打上一局：标题下面一颗小药丸（朱红小点 + 玩法 · 人数 + 折号） */
-.zm-resume { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px 0 13px; border: 0; border-radius: 18px; background: var(--zm-wash); color: var(--zm-ink); font: inherit; font-size: 14px; letter-spacing: 0.04em; cursor: pointer; }
-.zm-resume i { width: 8px; height: 8px; border-radius: 50%; background: var(--zm-seal); flex: none; }
-.zm-resume::after { content: ''; width: 7px; height: 7px; border: solid var(--zm-ink-mute); border-width: 2px 2px 0 0; transform: rotate(45deg); margin-left: 2px; }
-.zm-resume:active { transform: translateY(1px); }
-
 /* 玩法牌叠：横向滚动吸附，中间一张最大；两边的由 JS 按离中心多远缩小、歪、淡 */
 .zm-mdeck { width: min(100vw, 520px); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .zm-mdeck-track { position: relative; z-index: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; padding: 12px calc(50% - var(--mw) / 2) 44px; margin-bottom: -18px; }
@@ -1539,7 +1533,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   .zm-mdeck { grid-column: 1; grid-row: 1 / -1; width: 100%; align-self: center; }
   .zm-mdeck-track { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%); }
   .zm-cover:not(.is-loading) .zm-cover-title { grid-column: 2; grid-row: 2; justify-self: center; font-size: 34px; }
-  .zm-resume { grid-column: 2; grid-row: 3; justify-self: center; }
   .zm-cover-inner > .zm-cover-btns { grid-column: 2; grid-row: 4; width: 100%; align-self: center; }
   .zm-cover-btns.is-row .zm-cover-btn { padding: 12px 10px; }
   .zm-cover-inner > .zm-cover-foot { grid-column: 2; grid-row: 5; align-self: start; margin: 0; }
@@ -1580,7 +1573,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rank-rest { margin-top: 10px; }
 .zm-app .zm-rank-edit.is-corner { position: absolute; top: 10px; right: 10px; margin: 0; z-index: 1; }
 
-/* 终局庆祝 · 乙 金星绽放：赢家头像外画出来的两圈金环（stroke-dashoffset 从 100 画到 0） */
 
 
 /* ═════ 组队·救队友（2026-11-18 用户：原来的白底文字框太丑；挑了甲「递棒」舞台）═════
@@ -1605,3 +1597,41 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-dialog.is-rescue .zm-actions { margin-top: 14px; }
 .zm-dialog.is-rescue .zm-btn { min-width: 96px; }
 @media (prefers-reduced-motion: reduce) { .zm-rescue-av, .zm-rescue-wand, .zm-rescue-arc .arc { animation: none !important; } }
+
+/* ───── 主页封面第三轮（2026-11-18）：标题字 / 玩法背景（对角剪影）/ 接着打（小黄点 + 设置单卡） ───── */
+/* 标题：四个字各是一张字形 SVG（「小」的竖钩换成逗猫棒、「咪」的口字旁换成炸毛猫），字间距照旧 */
+.zm-cover-title.is-glyph { position: relative; display: flex; align-items: center; justify-content: center; gap: 0.18em; padding-top: 0.24em; font-size: 46px; text-indent: 0; letter-spacing: 0; line-height: 1; color: var(--zm-ink); }
+.zm-cover-title.is-glyph > span { display: block; width: 1.22em; height: 1.22em; }
+.zm-cover-title.is-glyph svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.tg-cat { transform-box: fill-box; transform-origin: 50% 90%; animation: zm-tg-cat 3.4s ease-in-out infinite; }
+@keyframes zm-tg-cat { 0%, 70%, 100% { transform: none; } 74% { transform: translateY(-6%) rotate(-6deg); } 79% { transform: rotate(5deg); } 84% { transform: translateY(-3%) rotate(-3deg); } 89% { transform: none; } }
+.tg-tassel { transform-box: view-box; animation: zm-tg-sway 2.6s ease-in-out infinite alternate; }
+@keyframes zm-tg-sway { from { transform: rotate(-7deg); } to { transform: rotate(6deg); } }
+
+/* 玩法背景：四层叠着，透明度 / 视差由 JS 跟着玩法牌滚动逐帧算（--px = 这层离当前玩法差几张） */
+.zm-cover-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; transition: opacity 0.6s ease; }
+.zm-cover.is-loading .zm-cover-bg { opacity: 0; }
+.zm-cover-inner { position: relative; z-index: 1; }
+.zm-bgl { position: absolute; inset: 0; opacity: 0; --px: 0; }
+/* 对角剪影：每个玩法一对纯色剪影，大的从左上角探进来、小的从右下角，夹着中间的牌（摆位 / 透明度由 JS 按玩法给） */
+.zm-bgl .sil { position: absolute; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+.zm-bgl .s1 { width: min(110vw, 620px); aspect-ratio: 1; left: 0; top: 0; opacity: var(--o1, 0.13); transform: translate(var(--t1x, -42%), var(--t1y, -30%)) translateX(calc(var(--px) * -30vw)) rotate(calc(var(--r1, -14deg) + var(--px) * -12deg)); }
+.zm-bgl .s2 { width: min(86vw, 480px); aspect-ratio: 1; right: 0; bottom: 0; opacity: var(--o2, 0.11); transform: translate(var(--t2x, 38%), var(--t2y, 30%)) translateX(calc(var(--px) * -18vw)) rotate(calc(var(--r2, 16deg) + var(--px) * 12deg)) scaleX(var(--f2, -1)); }
+@media (orientation: landscape) and (max-height: 540px) { .zm-cover:not(.is-loading) .zm-cover-title.is-glyph { font-size: 38px; } }
+
+/* 小黄点：单机（有没打完的局）/ 联机（还在某个房间里）键角上一颗；点单机后设置单最上面一张「接着打」卡 */
+.zm-cover-btn.has-dot, .zm-cover-btn.is-primary.has-dot { overflow: visible; }
+.zm-cover-btn.has-dot::before { content: ''; position: absolute; top: -5px; right: -5px; width: 14px; height: 14px; border-radius: 50%; background: #f0b43c; box-shadow: 0 0 0 3px var(--zm-paper); z-index: 2; animation: zm-dot 2.4s ease-in-out infinite; }
+@keyframes zm-dot { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+.zm-sheet-resume { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 70px; box-sizing: border-box; padding: 10px 16px 10px 14px; border: 1.5px solid var(--zm-ink); border-radius: 14px; background: var(--tone, #fff8f1); color: var(--zm-ink); font: inherit; text-align: left; cursor: pointer; overflow: visible; }
+.zm-sheet-resume .cw { flex: none; width: 40px; transform: rotate(-7deg) translateY(-8px); }
+.zm-sheet-resume .cw .zm-card { --cw: 40px; width: 40px; display: block; box-shadow: 2px 3px 0 rgba(29, 27, 24, 0.14); }
+.zm-sheet-resume .cw .zm-card .zm-nm { font-size: 0; }
+.zm-sheet-resume .tx { flex: 1; min-width: 0; }
+.zm-sheet-resume b { display: block; font-size: 17px; letter-spacing: 0.12em; }
+.zm-sheet-resume small { display: block; font-size: 13px; color: var(--zm-ink-mute); margin-top: 3px; }
+.zm-sheet-resume .go { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--band, #b4392c); position: relative; }
+.zm-sheet-resume .go::after { content: ''; position: absolute; left: 11px; top: 12px; width: 8px; height: 8px; border: solid #fffaf2; border-width: 2.4px 2.4px 0 0; transform: rotate(45deg); }
+.zm-sheet-resume:active { transform: translateY(1px); }
+@media (prefers-reduced-motion: reduce) { .zm-cover-btn.has-dot::before { animation: none; } }
+
