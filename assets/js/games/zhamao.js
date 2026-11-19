@@ -6200,18 +6200,24 @@
       '<circle cx="508" cy="118" r="66" fill="' + INKC + '"/>' +
       wandTassel(508, 92, 790, -40, 620, -220, 1.7) + '</g>';
   }
-  /* 「百」「变」（2026-11-18 用户在九版里挑「猫脸 + 星光 + 猫尾」）：
-   *   百：「日」字框变成猫脸——框的两角长出耳朵，上格一对眼睛，下格红鼻子 + ω 嘴 + 腮红（中横、底横照旧，字还认得）
+  /* 「百」「变」（2026-11-18 用户逐轮挑定）：
+   *   百：顶横右端那个往上翘的凸起换成一只趴着的黑猫——脑袋歪着搁在横的右端、闭眼睡（两道平缓的闭眼线，不画嘴、不画腮红：
+   *       笑眼 + ω 嘴 + 腮红用户嫌「猥琐」），一只圆爪子从横前面耷拉下来；身子顺着横往左趴，圆屁股正好压在撇上，
+   *       撇就当垂下来的尾巴，尾尖往回勾一小段
    *   变：上面三个点换成星光（顶金、左粉、右青 = 百变牌名字条的颜色），最后那一捺整笔换成往上卷的猫尾巴 */
   const tgStar = (cx, cy, r, c, k) => { const q = r * 0.22; return '<path class="tg-star" style="--d:' + k + 's" d="M' + cx + ' ' + (cy - r) + 'Q' + (cx + q) + ' ' + (cy - q) + ' ' + (cx + r) + ' ' + cy + 'Q' + (cx + q) + ' ' + (cy + q) + ' ' + cx + ' ' + (cy + r) + 'Q' + (cx - q) + ' ' + (cy + q) + ' ' + (cx - r) + ' ' + cy + 'Q' + (cx - q) + ' ' + (cy - q) + ' ' + cx + ' ' + (cy - r) + 'Z" fill="' + c + '"/>'; };
-  function baiCatFace() {
-    const ear = (x0, x1, tip) => '<path d="M' + x0 + ' 350L' + tip + ' 196L' + x1 + ' 350Z" fill="' + INKC + '" stroke="' + INKC + '" stroke-width="24" stroke-linejoin="round"/>';
-    return '<g class="tg-face">' + ear(185, 360, 214) + ear(650, 821, 794) +
-      '<ellipse cx="402" cy="472" rx="40" ry="46" fill="' + INKC + '"/><ellipse cx="612" cy="472" rx="40" ry="46" fill="' + INKC + '"/>' +
-      '<circle cx="414" cy="456" r="13" fill="#fff"/><circle cx="624" cy="456" r="13" fill="#fff"/>' +
-      '<path d="M486 668h56l-28 30Z" fill="#c8463a"/>' +
-      '<path d="M440 724q37 38 74 0q37 38 74 0" fill="none" stroke="' + INKC + '" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<ellipse cx="360" cy="690" rx="44" ry="22" fill="#e58e8e" opacity=".85"/><ellipse cx="668" cy="690" rx="44" ry="22" fill="#e58e8e" opacity=".85"/></g>';
+  function baiSleepyCat() {
+    const ear = (x1, y1, x2, y2, x3, y3) => '<path d="M' + x1 + ' ' + y1 + 'Q' + x2 + ' ' + y2 + ' ' + x3 + ' ' + y3 + 'Z" stroke="' + INKC + '" stroke-width="22" stroke-linejoin="round"/>';
+    return '<g class="tg-nap"><g fill="' + INKC + '">' +
+      '<path d="M53 127H880V155H61Z"/>' +   // 顶横（去掉右端凸起，猫头占那儿）
+      '<path d="M414 155C392 96 420 44 494 40C556 37 590 64 640 70C690 76 720 52 770 60C790 64 800 90 800 155Z"/>' +   // 身子：圆屁股 → 腰微塌 → 肩膀拱起
+      '<rect x="838" y="128" width="60" height="58" rx="30"/>' +   // 耷拉下来的爪子
+      '</g>' +
+      '<path d="M408 330C394 374 352 390 324 368" fill="none" stroke="' + INKC + '" stroke-width="30" stroke-linecap="round"/>' +   // 撇（尾巴）的尖往回勾
+      '<g transform="rotate(10 838 140)"><g fill="' + INKC + '"><ellipse cx="838" cy="74" rx="96" ry="78"/>' + ear(752, 46, 748, -66, 818, 2) + ear(858, 2, 928, -66, 924, 46) + '</g>' +
+      '<path d="M770 22Q768 -20 792 4Z" fill="#f2b8c0"/><path d="M906 22Q908 -20 884 4Z" fill="#f2b8c0"/>' +   // 耳内一点粉
+      '<path d="M780 84q20 7 40 0M856 84q20 7 40 0" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round"/>' +   // 闭眼
+      '<path d="M830 100h16l-8 9Z" fill="#c8463a"/></g></g>';   // 小红鼻子
   }
   function bianStarsTail() {
     return '<path class="tg-tail" d="M300 560C360 720 520 860 760 905C860 924 930 900 948 836C966 770 916 724 866 742C826 756 828 806 862 812" fill="none" stroke="' + INKC + '" stroke-width="86" stroke-linecap="round" stroke-linejoin="round"/>' +
@@ -6221,7 +6227,7 @@
     const h = els.cover.querySelector('.zm-cover-title');
     h.classList.add('is-glyph');
     h.setAttribute('aria-label', '百变小咪');
-    h.innerHTML = glyphSvg('百', [], baiCatFace()) + glyphSvg('变', [0, 5, 6, 8], bianStarsTail()) + glyphSvg('小', [2], wandStroke()) + glyphSvg('咪', [3, 4, 5], catGlyph(226, 450, 205));
+    h.innerHTML = glyphSvg('百', [0], baiSleepyCat()) + glyphSvg('变', [0, 5, 6, 8], bianStarsTail()) + glyphSvg('小', [2], wandStroke()) + glyphSvg('咪', [3, 4, 5], catGlyph(226, 450, 205));
     // 游戏里左上角的招牌也用同一套艺术字（2026-11-18 用户），小一号、不动
     const g = els.table && els.table.querySelector('.zm-title');
     if (g) { g.classList.add('is-glyph'); g.setAttribute('aria-label', '百变小咪'); g.innerHTML = h.innerHTML; }
