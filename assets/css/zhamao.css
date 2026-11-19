@@ -1337,8 +1337,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rc-back { aspect-ratio: 100 / 140; }
 .zm-rc-back svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 3px rgba(29, 27, 24, 0.25)); }
 /* 头像左上角斜插一张小角色卡（点它 = 展开整张） */
-.zm-av .zm-role { --zr: clamp(17px, calc(var(--av) * 0.44), 26px); position: absolute; left: calc(var(--zr) * -0.42); top: calc(var(--zr) * -0.6); width: var(--zr); z-index: 4; display: block; transform: rotate(-10deg); filter: drop-shadow(0 1px 1.5px rgba(29, 27, 24, 0.35)); pointer-events: auto; cursor: pointer; }
-.zm-av .zm-role .zm-rc { width: 100%; }
+/* 头像左上角的角色猫章（2026-11-19 用户：只留猫的形象）：角色底色圆章 + 墨描边 + 一圈奶油底，里面整只猫 */
+.zm-av .zm-role { --zr: clamp(20px, calc(var(--av) * 0.5), 30px); position: absolute; left: calc(var(--zr) * -0.34); top: calc(var(--zr) * -0.34); width: var(--zr); height: var(--zr); z-index: 4; display: block; border-radius: 50%; background: var(--rbg, #fbe6cf); border: 1.2px solid var(--zm-ink); box-shadow: 0 0 0 1.5px var(--zm-card, #fffdf8), 0 1px 3px rgba(29, 27, 24, 0.35); overflow: hidden; pointer-events: auto; cursor: pointer; }
+.zm-av .zm-role svg { width: 118%; height: 118%; margin: -6% 0 0 -9%; display: block; }
 .zm-role.is-used { filter: grayscale(1); opacity: 0.45; }
 /* 规则窗里的角色表 */
 .zm-role-list { list-style: none; padding: 0; margin: 6px 0 10px; display: grid; gap: 8px; }
@@ -1355,10 +1356,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-role-chip-av { width: 22px; height: 22px; display: inline-block; }
 .zm-role-chip-av svg { width: 100%; height: 100%; display: block; border-radius: 50%; }
 /* 桌角那一叠（本桌图鉴）：桌面左上角斜叠着本桌几张小角色卡 */
-.zm-role-fan { position: absolute; left: 10px; top: 8px; z-index: 3; border: 0; background: none; padding: 0; cursor: pointer; width: calc(26px + (var(--n) - 1) * 9px + 10px); height: 46px; }
-.zm-role-fan i { position: absolute; left: calc(var(--i) * 9px); top: calc(4px + var(--k) * var(--k) * 0.6px); width: 26px; transform: rotate(calc(var(--k) * 8deg)); filter: drop-shadow(0 1px 2px rgba(29, 27, 24, 0.3)); }
-.zm-role-fan:hover i, .zm-role-fan:focus-visible i { filter: drop-shadow(0 0 4px rgba(201, 169, 110, 0.95)); }
-.zm-center:has(.zm-stage-inner) .zm-role-fan { opacity: 0.35; }
 /* 技能触发的「亮牌」：小卡从头像角上弹出来，停在头像旁边，外圈一道角色色光晕 */
 .zm-role-pop { position: fixed; z-index: 6; pointer-events: none; }
 .zm-role-pop .zm-rc { transition: box-shadow 0.3s ease; }
