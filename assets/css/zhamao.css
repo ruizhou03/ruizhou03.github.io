@@ -1503,17 +1503,55 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-setsheet-head small { display: block; font-size: 13px; color: var(--zm-ink-mute); margin-top: 2px; }
 .zm-setsheet .zm-solo-pick { padding: 0; border: 0; background: none; gap: 14px; }
 
-/* 横屏（矮）：左栏 标题 + 玩法牌，右栏 药丸 + 单机 / 联机 + 小字（联机那层也在右栏） */
+/* 设置单：单机 / 联机两张，同一层遮罩里只露一张 */
+.zm-setsheet { position: relative; }
+.zm-setsheet[hidden] { display: none !important; }
+.zm-setsheet-x { display: none; position: absolute; top: 8px; left: 8px; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; place-items: center; z-index: 1; }
+.zm-setsheet-x svg { width: 30px; height: 30px; display: block; transition: transform .15s ease; }
+.zm-setsheet-x:active svg { transform: scale(.92); }
+
+/* 联机设置单：（回到房间）/ 玩法 + 创建房间 / —— 或 —— / 房间号 + 观战 · 加入 */
+.zm-on-create, .zm-on-join { display: flex; flex-direction: column; gap: 12px; }
+.zm-on-or { display: flex; align-items: center; gap: 12px; color: var(--zm-ink-faint); font-size: 13px; letter-spacing: 0.2em; }
+.zm-on-or::before, .zm-on-or::after { content: ''; flex: 1; height: 1px; background: rgba(29, 27, 24, 0.16); }
+.zm-on-join .zm-join-code { height: 54px; }
+.zm-setsheet .zm-online-err:empty { display: none; }
+
+/* ───── 横屏（矮，2026-11-18 第二版）─────
+ * 首页：左边玩法牌（两头淡出、不再被硬切），右边 标题 / 药丸 / 单机 · 联机 / 小字 竖着居中；加载页：插画 + 大字 + 进度条竖排居中 */
 @media (orientation: landscape) and (max-height: 540px) {
-  .zm-cover, .zm-cover.is-loading { --mw: min(150px, calc((100svh - 150px) / 1.4)); align-items: center; padding: 10px 20px; }
-  .zm-cover:not(.is-loading) .zm-cover-inner { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr auto auto; }
-  .zm-cover:not(.is-loading) .zm-cover-title { grid-column: 1; grid-row: 1; align-self: end; }
-  .zm-mdeck { grid-column: 1; grid-row: 2 / span 3; width: 100%; }
-  .zm-resume { grid-column: 2; grid-row: 1; justify-self: center; align-self: end; }
-  .zm-cover-inner > .zm-cover-btns { grid-column: 2; grid-row: 2 / span 2; align-self: center; }
-  .zm-cover-inner > .zm-cover-foot { grid-column: 2; grid-row: 4; }
-  .zm-cover-inner > [data-cover-step="online"] { grid-column: 2; grid-row: 1 / span 4; }
-  .zm-setsheet { gap: 10px; padding-bottom: 14px; }
+  .zm-cover, .zm-cover.is-loading { --mw: min(156px, calc((100svh - 120px) / 1.4)); align-items: center; padding: 8px 24px; }
+  .zm-cover.is-loading .zm-cover-inner { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .zm-cover.is-loading .zm-cover-inner > * { align-self: center; }
+  .zm-cover.is-loading .zm-cover-art { width: min(52vh, 220px); }
+  .zm-cover.is-loading .zm-cover-title { font-size: 30px; }
+  .zm-cover.is-loading .zm-cover-load { width: 220px; margin: 10px 0 0; }
+  .zm-cover:not(.is-loading) .zm-cover-inner { width: min(820px, 100%); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); grid-template-rows: 1fr auto auto auto auto 1fr; column-gap: 28px; row-gap: 14px; align-items: center; min-height: calc(100svh - 16px); }
+  .zm-mdeck { grid-column: 1; grid-row: 1 / -1; width: 100%; align-self: center; }
+  .zm-mdeck-track { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%); }
+  .zm-cover:not(.is-loading) .zm-cover-title { grid-column: 2; grid-row: 2; justify-self: center; font-size: 34px; }
+  .zm-resume { grid-column: 2; grid-row: 3; justify-self: center; }
+  .zm-cover-inner > .zm-cover-btns { grid-column: 2; grid-row: 4; width: 100%; align-self: center; }
+  .zm-cover-btns.is-row .zm-cover-btn { padding: 12px 10px; }
+  .zm-cover-inner > .zm-cover-foot { grid-column: 2; grid-row: 5; align-self: start; margin: 0; }
+
+  /* 设置单里压紧一点 */
+  .zm-setsheet { gap: 10px; padding: 12px 22px 14px; }
+  .zm-setsheet .zm-solo-pick { gap: 10px; }
+  .zm-solo-num { font-size: 34px; }
+  .zm-solo-step button { width: 40px; height: 40px; font-size: 22px; }
+  .zm-solo-faces { display: flex; min-height: 28px; }
+  .zm-solo-faces i { --fs: 28px; }
+  .zm-setsheet .zm-cover-btn { padding: 11px 14px; }
+  .zm-on-join .zm-join-code { height: 46px; }
+  .zm-setsheet-head .zm-card { --cw: 30px; width: 30px; }
+
+  /* 设置单 = 右侧抽屉（2026-11-18 用户在 原地换栏 / 右侧抽屉 / 居中两栏 里挑了抽屉）：从右边滑出一整条，左边压暗；折号朝右 = 收回去 */
+  .zm-cover .zm-setsheet-mask { flex-direction: row; justify-content: flex-end; align-items: stretch; }
+  .zm-cover .zm-setsheet { width: min(400px, 52%); height: 100%; justify-content: center; padding: 10px 26px 10px 54px; border-radius: 22px 0 0 22px; box-shadow: -10px 0 30px rgba(29, 27, 24, 0.14); overflow-y: auto; }
+  .zm-cover .zm-setsheet-grab { display: none; }
+  .zm-cover .zm-setsheet-x { display: grid; top: 50%; left: 6px; transform: translateY(-50%) scaleX(-1); }
+
 }
 
 /* ───── 结算 · 领奖台（2026-11-18 用户挑乙）：2-1-3 三级台子，台面刻名次；第四名起在下面一列 ───── */

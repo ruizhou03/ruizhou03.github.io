@@ -119,7 +119,7 @@ body_class: zm-fullscreen
   <!-- 主菜单（2026-11-18 用户挑乙「玩法当主角」）：加载时插画 + 大字居中，进度条跑完插画收起、标题上移，
        中间一叠可以左右滑的玩法牌（挑中的那张就是这局 / 这个房间的玩法），下面并排「单机」「联机」；
        有没打完的单机局 → 标题下面一颗「接着打上一局」小药丸。单机 → 底下升起一张设置单（人数 / 难度 / 开始）；
-       联机 → 按钮那块换成 回到房间 / 创建房间 / 加入房间（玩法牌留着：建房就用它） -->
+       联机 → 同样升起一张设置单（回到房间 / 创建房间 / 输房间号加入；建房用的就是玩法牌上挑的那张） -->
   <div class="zm-cover" id="zmCover">
     <div class="zm-cover-inner">
       <div class="zm-cover-art" id="zmCoverArt" aria-hidden="true"></div>
@@ -135,30 +135,18 @@ body_class: zm-fullscreen
         <button type="button" class="zm-cover-btn is-primary" data-cover="solo"><b>单机</b></button>
         <button type="button" class="zm-cover-btn" data-cover="online" hidden><b>联机</b></button>
       </div>
-      <!-- 点「联机」之后（2026-11-13 用户：和单机一样进一个新菜单，不弹框）：上面「创建房间」点了就建；下面「加入房间」点了变成输房间号那一行 -->
-      <div class="zm-solo" data-cover-step="online" hidden>
-        <button type="button" class="zm-solo-back" data-cover="back" aria-label="返回"></button>
-        <!-- 2026-11-13 用户：首页只留单机、联机；「回到房间」（还在某个房间里才有）挪进联机这一层，排第一个 -->
-        <button type="button" class="zm-cover-btn is-primary" data-cover="resume" hidden><b>回到房间</b></button>
-        <button type="button" class="zm-cover-btn is-primary" data-cover="create"><b>创建房间</b></button>
-        <button type="button" class="zm-cover-btn" data-cover="join-open"><b>加入房间</b></button>
-        <!-- 点了「加入房间」：「创建房间」收起来，只剩输房间号 + 左「观战」右「加入」 -->
-        <div class="zm-join" hidden>
-          <input class="zm-input zm-join-code" id="zmJoinCode" inputmode="numeric" maxlength="4" placeholder="房间号" autocomplete="off" aria-label="房间号">
-          <div class="zm-join-btns"><button type="button" class="zm-cover-btn" data-cover="watch"><b>观战</b></button><button type="button" class="zm-cover-btn is-primary" data-cover="join"><b>加入</b></button></div>
-        </div>
-        <p class="zm-err zm-online-err" id="zmOnlineErr" hidden></p>
-      </div>
       <div class="zm-cover-foot" data-cover-step="main" hidden>
         <button type="button" class="zm-cover-link" data-cover="tutorial">新手教程</button>
         <button type="button" class="zm-cover-link" data-cover="settings">设置</button>
         <button type="button" class="zm-cover-link" data-cover="exit" hidden>返回百宝奇巧</button>
       </div>
     </div>
-    <!-- 点「单机」：底下升起的设置单（点外面 / 往下拖 / Esc 收起） -->
+    <!-- 点「单机」/「联机」：底下升起一张设置单（点外面 / 往下拖 / Esc 收起；2026-11-18 用户：联机也照单机这么弄，去掉「创建 / 加入房间」那一层）。
+         横屏几种摆法见 zhamao.css 末尾 -->
     <div class="zm-setsheet-mask" id="zmSoloSheet" hidden>
-      <section class="zm-setsheet" role="dialog" aria-modal="true" aria-label="单机设置">
+      <section class="zm-setsheet" data-sheet="solo" role="dialog" aria-modal="true" aria-label="单机设置" hidden>
         <i class="zm-setsheet-grab" aria-hidden="true"></i>
+        <button type="button" class="zm-setsheet-x" data-cover="sheet-close" aria-label="收起"></button>
         <div class="zm-setsheet-head" id="zmSheetHead"></div>
         <div class="zm-solo-pick">
           <div class="zm-solo-step">
@@ -170,6 +158,22 @@ body_class: zm-fullscreen
           <div class="zs-seg zm-solo-tier" id="zmSoloTier" role="group" aria-label="机器猫难度"></div>
         </div>
         <button type="button" class="zm-cover-btn is-primary" data-cover="start"><b>开始</b></button>
+      </section>
+      <!-- 联机：上半「开个房间」（玩法就是主页上挑的那张）；下半输房间号 观战 / 加入。还在某个房间里时最上面多一颗「回到房间」 -->
+      <section class="zm-setsheet" data-sheet="online" role="dialog" aria-modal="true" aria-label="联机" hidden>
+        <i class="zm-setsheet-grab" aria-hidden="true"></i>
+        <button type="button" class="zm-setsheet-x" data-cover="sheet-close" aria-label="收起"></button>
+        <button type="button" class="zm-cover-btn is-primary zm-on-resume" data-cover="resume" hidden><b>回到房间</b></button>
+        <div class="zm-on-create">
+          <div class="zm-setsheet-head" id="zmOnlineHead"></div>
+          <button type="button" class="zm-cover-btn is-primary" data-cover="create"><b>创建房间</b></button>
+        </div>
+        <div class="zm-on-or" aria-hidden="true"><span>或</span></div>
+        <div class="zm-on-join">
+          <input class="zm-input zm-join-code" id="zmJoinCode" inputmode="numeric" maxlength="4" placeholder="房间号" autocomplete="off" aria-label="房间号">
+          <div class="zm-join-btns"><button type="button" class="zm-cover-btn" data-cover="watch"><b>观战</b></button><button type="button" class="zm-cover-btn" data-cover="join"><b>加入</b></button></div>
+        </div>
+        <p class="zm-err zm-online-err" id="zmOnlineErr" hidden></p>
       </section>
     </div>
   </div>

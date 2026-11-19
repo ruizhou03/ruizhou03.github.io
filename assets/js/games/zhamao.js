@@ -5355,7 +5355,7 @@
     refreshSolo();
     els.cover.querySelector('[data-cover="exit"]').hidden = !FROM_SITE;
     const sess = NET && NET.readSession(), rb = els.cover.querySelector('[data-cover="resume"]');
-    if (rb) {   // 联机那一层：还在某个房间里 →「回到房间 1234」排第一个、朱红；「创建房间」退成普通键
+    if (rb) {   // 联机设置单：还在某个房间里 →「回到房间 1234」排第一个、朱红；「创建房间」退成普通键
       rb.hidden = !sess;
       rb.querySelector('b').textContent = sess ? '回到房间 ' + sess.code : '回到房间';
       els.cover.querySelector('[data-cover="create"]').classList.toggle('is-primary', !sess);
@@ -5364,9 +5364,9 @@
     if (ob) ob.hidden = !NET;
     refreshResume();
   }
-  /* 二级菜单（联机）左边一窄列放返回箭头（2026-11-13 用户挑：乙·朱红折号，去掉底下的圆，折号本身朱红、瘦长一些） */
+  /* 设置单右上角的收起键（横屏没有往下拖的把手时用）：朱红折号转个向——竖屏朝下、横屏抽屉朝右，跟它收走的方向一致 */
   const BACK_ART = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M24.5 6.5 13 20l11.5 13.5" fill="none" stroke="#b4392c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  els.cover.querySelectorAll('.zm-solo-back').forEach((b) => { b.innerHTML = BACK_ART; });
+  els.cover.querySelectorAll('.zm-setsheet-x').forEach((b) => { b.innerHTML = BACK_ART; });
   const SOLO_MAX = R.MAX_PLAYERS;   // 9 人（6 人起用两副牌）
   /* 玩法（2026-11-18 用户挑乙「玩法当主角」）：主菜单中间一叠牌左右滑，停在哪张就是哪个玩法——单机开局、联机建房都用它。
    * [玩法, 名字, 牌面, 一句话] */
@@ -5393,7 +5393,7 @@
     $('zmSoloFaces').style.setProperty('--fs', Math.min(34, Math.floor((fw + (n - 1) * lap) / n)) + 'px');
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
     const [, name, k, desc] = SOLO_MODES[modeIdx()];
-    $('zmSheetHead').innerHTML = miniCard(k, name) + '<span><b>' + name + '</b><small>' + desc + '</small></span>';
+    $('zmSheetHead').innerHTML = $('zmOnlineHead').innerHTML = miniCard(k, name) + '<span><b>' + name + '</b><small>' + desc + '</small></span>';
     refreshDeck();
   }
   // 「接着打上一局」小药丸：写上那局的玩法和人数
@@ -5456,16 +5456,25 @@
   window.addEventListener('resize', () => { if (!deckEl.hidden) deckTo(modeIdx(), false); });
   const deckSync = () => requestAnimationFrame(() => deckTo(modeIdx(), false));
 
-  /* ───── 单机设置单：底下升起；点外面 / 往下拖 / Esc 收起 ───── */
-  const sheetMask = $('zmSoloSheet'), sheet = sheetMask.querySelector('.zm-setsheet');
-  function openSheet() {
+  /* ───── 设置单（单机 / 联机共用一层遮罩）：竖屏从底下升起；点外面 / 往下拖 / Esc 收起 ─────
+   * 横屏（矮）改成从右边滑出的抽屉（2026-11-18 用户在 原地换栏 / 右侧抽屉 / 居中两栏 里挑了抽屉） */
+  const sheetMask = $('zmSoloSheet'), sheets = { solo: sheetMask.querySelector('[data-sheet="solo"]'), online: sheetMask.querySelector('[data-sheet="online"]') };
+  let sheet = sheets.solo;
+  const isLand = () => matchMedia('(orientation: landscape) and (max-height: 540px)').matches;
+  // 设置单从哪儿进出：竖屏从底下，横屏抽屉从右边
+  const sheetOff = () => (isLand() ? 'translateX(100%)' : 'translateY(100%)');
+  function openSheet(kind) {
+    kind = kind || 'solo';
+    Object.keys(sheets).forEach((k) => { sheets[k].hidden = k !== kind; });
+    sheet = sheets[kind];
+    sheetMask.dataset.kind = kind;
     refreshSolo();
     sheetMask.hidden = false;
     refreshSolo();   // 头像那排按显示出来以后的宽度再算一次
     snd('tap');
     if (fx.reduce()) return;
     sheetMask.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
-    sheet.animate([{ transform: 'translateY(100%)' }, { transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.2,.8,.25,1)' });
+    sheet.animate([{ transform: sheetOff() }, { transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.2,.8,.25,1)' });
   }
   function closeSheet() {
     if (sheetMask.hidden || sheetMask._closing) return;
@@ -5473,23 +5482,23 @@
     sheetMask._closing = true;
     const now = getComputedStyle(sheet).transform;
     sheetMask.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: 'ease-in', fill: 'forwards' });
-    sheet.animate([{ transform: now === 'none' ? 'none' : now }, { transform: 'translateY(100%)' }], { duration: 220, easing: 'cubic-bezier(.4,0,.8,.4)', fill: 'forwards' }).finished
+    sheet.animate([{ transform: now === 'none' ? 'none' : now }, { transform: sheetOff() }], { duration: 220, easing: 'cubic-bezier(.4,0,.8,.4)', fill: 'forwards' }).finished
       .catch(() => {}).then(() => { sheetMask.hidden = true; sheetMask._closing = false; sheet.style.transform = ''; sheetMask.getAnimations().concat(sheet.getAnimations()).forEach((a) => a.cancel()); });
   }
   sheetMask.addEventListener('click', (e) => { if (e.target === sheetMask) closeSheet(); });
-  (function sheetDrag() {   // 往下拖设置单：跟手，拖过 80px（或甩得快）就收起
+  Object.values(sheets).forEach((sh) => {   // 往下拖设置单：跟手，拖过 80px（或甩得快）就收起（横屏抽屉不拖）
     let y0 = null, t0 = 0, dy = 0;
-    sheet.addEventListener('pointerdown', (e) => { if (e.target.closest('button')) return; y0 = e.clientY; t0 = performance.now(); dy = 0; sheet.setPointerCapture(e.pointerId); });
-    sheet.addEventListener('pointermove', (e) => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); sheet.style.transform = 'translateY(' + dy + 'px)'; });
+    sh.addEventListener('pointerdown', (e) => { if (e.target.closest('button, input') || sheetOff().indexOf('Y') < 0) return; y0 = e.clientY; t0 = performance.now(); dy = 0; sh.setPointerCapture(e.pointerId); });
+    sh.addEventListener('pointermove', (e) => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); sh.style.transform = 'translateY(' + dy + 'px)'; });
     const end = () => {
       if (y0 == null) return;
       const fast = dy / Math.max(1, performance.now() - t0) > 0.6;
       y0 = null;
       if (dy > 80 || (fast && dy > 24)) closeSheet();
-      else if (dy) sheet.animate([{ transform: 'translateY(' + dy + 'px)' }, { transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.3,.8,.4,1)' }).finished.catch(() => {}).then(() => { sheet.style.transform = ''; });
+      else if (dy) sh.animate([{ transform: 'translateY(' + dy + 'px)' }, { transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.3,.8,.4,1)' }).finished.catch(() => {}).then(() => { sh.style.transform = ''; });
     };
-    sheet.addEventListener('pointerup', end); sheet.addEventListener('pointercancel', end);
-  })();
+    sh.addEventListener('pointerup', end); sh.addEventListener('pointercancel', end);
+  });
 
   function soloStart() {
     let seen = false;
@@ -5501,7 +5510,7 @@
       });
     } else newGame();
   }
-  // 主菜单几步：load（插画 + 大字 + 进度条）→ main（玩法牌 + 单机 / 联机）→ online（玩法牌留着，按钮换成 建 / 进房间）
+  // 主菜单两步：load（插画 + 大字 + 进度条）→ main（玩法牌 + 单机 / 联机；点了各自升起设置单）
   function coverStep(k) {
     els.cover.querySelectorAll('[data-cover-step]').forEach((x) => { x.hidden = x.dataset.coverStep !== k; });
     const pill = els.cover.querySelector('.zm-resume');
@@ -6580,33 +6589,33 @@
   }
 
   /* ───── 主页「联机」：建房 / 输房间号加入 ───── */
-  /* 点「联机」：主菜单换成联机那一步（和单机一样，不弹框）。邀请链接带房间号进来：直接摆好「加入房间」那一行、填好号 */
+  /* 点「联机」：和单机一样升起一张设置单。邀请链接带房间号进来：直接填好号、光标落在「加入」上 */
   function showOnlineEntry(code) {
     if (!NET) { toast('联机暂时用不了'); return; }
     NET.warm();
     els.cover.hidden = false;
-    const join = els.cover.querySelector('.zm-join'), open = els.cover.querySelector('[data-cover="join-open"]'), input = $('zmJoinCode');
+    if (els.cover.classList.contains('is-loading')) { els.cover.classList.remove('is-loading'); coverStep('main'); }
+    refreshCover();   // 「回到房间」按眼下还在不在房间里重摆
+    const input = $('zmJoinCode');
     $('zmOnlineErr').hidden = true;
     input.value = code ? String(code).replace(/\D/g, '').slice(0, 4) : '';
-    setJoinMode(!!code);
-    els.cover.querySelectorAll('[data-cover-step="online"] button').forEach((x) => { x.disabled = false; });
-    coverStep('online');
+    joinReady();
+    sheets.online.querySelectorAll('button').forEach((x) => { x.disabled = false; });
+    openSheet('online');
+    if (code) setTimeout(() => sheets.online.querySelector('[data-cover="join"]').focus(), 360);
   }
-  // 联机这一步的两种样子：选「创建 / 加入」，或者已经点了加入（只剩输房间号 + 观战 / 加入）
-  function setJoinMode(on) {
-    els.cover.querySelector('.zm-join').hidden = !on;
-    els.cover.querySelector('[data-cover="join-open"]').hidden = on;
-    els.cover.querySelector('[data-cover="create"]').hidden = on;
-    const rb = els.cover.querySelector('[data-cover="resume"]');
-    if (on) rb.hidden = true; else { const sess = NET && NET.readSession(); rb.hidden = !sess; }
-    $('zmOnlineErr').hidden = true;
+  // 房间号输满 4 位：「加入」变朱红（「创建房间」退成普通键），删掉又换回来
+  function joinReady() {
+    const ok = /^\d{4}$/.test($('zmJoinCode').value.trim()), sess = NET && NET.readSession();
+    sheets.online.querySelector('[data-cover="join"]').classList.toggle('is-primary', ok);
+    sheets.online.querySelector('[data-cover="create"]').classList.toggle('is-primary', !ok && !sess);
   }
   function onlineFail(e) {
     const err = $('zmOnlineErr');
     err.textContent = NET.message(e); err.hidden = false;
-    els.cover.querySelectorAll('[data-cover-step="online"] button').forEach((x) => { x.disabled = false; });
+    sheets.online.querySelectorAll('button').forEach((x) => { x.disabled = false; });
   }
-  const onlineLock = () => els.cover.querySelectorAll('[data-cover-step="online"] button').forEach((x) => { x.disabled = true; });
+  const onlineLock = () => sheets.online.querySelectorAll('button').forEach((x) => { x.disabled = true; });
   async function onlineCreate() {
     onlineLock();
     try {
@@ -7027,14 +7036,12 @@
     const k = b.dataset.cover;
     // 单机：有上一局 → 先问「接着打 / 开新的一局」；没有就直接选人数
     // 2026-11-13 用户：没有没打完的局 → 点单机直接到选人数（不经过「接着打 / 开新的」那一步）；新手教程 · 设置这时挂在选人数那屏底下
-    if (k === 'solo') { openSheet(); return; }
-    if (k === 'back' && !els.cover.querySelector('.zm-join').hidden && !els.cover.querySelector('[data-cover-step="online"]').hidden) { setJoinMode(false); return; }
-    if (k === 'back') { coverStep('main'); return; }
+    if (k === 'solo') { openSheet('solo'); return; }
+    if (k === 'sheet-close') { closeSheet(); return; }
     if (k === 'start') { settings.players = Math.min(SOLO_MAX, settings.players); soloStart(); return; }
     if (k === 'resume-solo') { const saved = loadSaved(); if (saved) resumeGame(saved); else refreshSolo(); return; }
     if (k === 'online') { showOnlineEntry(); return; }
     if (k === 'create') { onlineCreate(); return; }
-    if (k === 'join-open') { setJoinMode(true); setTimeout(() => $('zmJoinCode').focus(), 30); return; }
     if (k === 'join') { onlineJoin('play'); return; }
     if (k === 'watch') { onlineJoin('watch'); return; }
     if (k === 'resume') { const sess = NET && NET.readSession(); if (sess) resumeOnline(sess); return; }
@@ -7042,11 +7049,12 @@
     else if (k === 'settings') showSettings(true);
     else if (k === 'exit') location.href = '/toolbox/';
   });
-  // 加入房间：只收数字、满 4 位才露「只观战」、回车 = 加入
+  // 加入房间：只收数字、满 4 位「加入」变朱红、回车 = 加入
   $('zmJoinCode').addEventListener('input', (e) => {
     const inp = e.target;
     inp.value = inp.value.replace(/\D/g, '').slice(0, 4);
     $('zmOnlineErr').hidden = true;
+    joinReady();
   });
   $('zmJoinCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') onlineJoin('play'); });
   els.cover.querySelector('.zm-solo-pick').addEventListener('click', (e) => {
