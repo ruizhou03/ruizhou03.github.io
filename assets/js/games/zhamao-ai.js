@@ -97,12 +97,24 @@
     return seat;
   }
   // 组队：下一个摸牌的是我队友（2026-11-15 队友改成挨着坐）——甩锅 / 跳过 / 把炸毛猫放顶上都会坑到他
-  const mateNext = (v) => v.mate >= 0 && v.alive[v.mate] && nextAliveV(v, v.me) === v.mate;
+  // 2026-11-18 起一队可以 2–4 人：队友是一组（view.mates，老 view 只有 mate）
+  const matesV = (v) => v.mates || (v.mate >= 0 ? [v.mate] : []);
+  const isMateV = (v, t) => matesV(v).indexOf(t) >= 0;
+  const teamV = (v) => matesV(v).length > 0;
+  const mateNext = (v) => { const nx = nextAliveV(v, v.me); return nx !== v.me && isMateV(v, nx); };
+  // 三队以上：哪队活着的人多，就是领先的那队——指定甩锅优先冲他们
+  function teamLead(v, t) {
+    if (!v.teams || !teamV(v)) return 0;
+    const alive = {}; v.teams.forEach((tm, k) => { if (v.alive[k]) alive[tm] = (alive[tm] || 0) + 1; });
+    const live = Object.keys(alive);
+    if (live.length < 3) return 0;
+    return (alive[v.teams[t]] || 0) - Math.min(...live.map((k) => alive[k]));
+  }
   // 跳过一回合用的牌：跳过优先，没有就拿转向顶（转向也是结束一回合不摸牌，顺带把方向反过来）
   const skipId = (v) => { const a = one(v, R.SKIP); return a != null ? a : one(v, R.REVERSE); };
   function targets(v) {
     const out = [];
-    for (let t = 0; t < v.n; t++) if (t !== v.me && t !== v.mate && v.alive[t] && v.counts[t] > 0) out.push(t);   // 组队：不偷 / 不要队友的
+    for (let t = 0; t < v.n; t++) if (t !== v.me && !isMateV(v, t) && v.alive[t] && v.counts[t] > 0) out.push(t);   // 组队：不偷 / 不要队友的
     return out;
   }
   /* 偷谁：知道他手里有逗猫棒的优先，其次手牌最多的 */
@@ -129,9 +141,9 @@
   function victim(v) {
     let best = -1, score = Infinity;
     for (let t = 0; t < v.n; t++) {
-      if (t === v.me || t === v.mate || !v.alive[t]) continue;   // 组队：不甩给队友
+      if (t === v.me || isMateV(v, t) || !v.alive[t]) continue;   // 组队：不甩给队友
       const knowsDef = v.handKnown[t].some((id) => K[id] === R.DEFUSE);
-      const sc = v.counts[t] + (knowsDef ? 50 : 0);
+      const sc = v.counts[t] + (knowsDef ? 50 : 0) - 1.5 * teamLead(v, t);
       if (sc < score) { score = sc; best = t; }
     }
     return best;
@@ -264,7 +276,7 @@
       const myVal = mine.reduce((a, id) => a + Math.min(30, cardValue(v.hand, id)), 0);
       let best = -1, bestGain = -Infinity;
       for (let t = 0; t < v.n; t++) {
-        if (t === v.me || t === v.mate || !v.alive[t]) continue;   // 组队：不和队友换
+        if (t === v.me || isMateV(v, t) || !v.alive[t]) continue;   // 组队：不和队友换
         const knownDef = all ? 0 : v.handKnown[t].filter((id) => K[id] === R.DEFUSE).length;
         const theirs = Math.max(0, v.counts[t] - knownDef);
         let gain = theirs * P.swapUnk - myVal;
@@ -423,11 +435,11 @@
       const p = v.pending;
       if (!p) return false;
       // 组队：冲着队友来的也挡（甩锅给他 / 指定他 / 偷他）；队友自己出的不挡
-      if (v.mate >= 0 && p.by !== v.mate && v.alive[v.mate]) {
-        if (p.type === R.ATTACK && nextAliveV(v, p.by) === v.mate) return true;
-        if ((p.type === R.TATTACK || p.type === R.FAVOR || p.type === 'pair' || p.type === 'triple') && p.target === v.mate) return true;
+      if (teamV(v) && !isMateV(v, p.by) && p.by !== v.me) {
+        if (p.type === R.ATTACK && isMateV(v, nextAliveV(v, p.by))) return true;
+        if ((p.type === R.TATTACK || p.type === R.FAVOR || p.type === 'pair' || p.type === 'triple') && isMateV(v, p.target) && v.alive[p.target]) return true;
       }
-      if (v.mate >= 0 && p.by === v.mate) return false;
+      if (isMateV(v, p.by)) return false;
       if (p.type === R.ATTACK) return nextAliveV(v, p.by) === v.me;
       if (p.type === R.TATTACK) return p.target === v.me;
       if (p.type === R.SWAP) return p.target === v.me && v.hand.filter((id) => K[id] !== R.DEFUSE).length >= Math.max(0, v.counts[p.by] - 1);   // 他那手比我还少才挡
@@ -454,7 +466,7 @@
     function give(v, tier, rng) {
       const hand = v.hand;
       // 组队：是队友找我要（等于传牌）——挑最有用的给他；逗猫棒只在我有两根以上时才给（最后一根自己留着保命）
-      if (v.mate >= 0 && v.give && v.give.to === v.mate) {
+      if (v.give && isMateV(v, v.give.to)) {
         const nDef = hand.filter((id) => K[id] === R.DEFUSE).length;
         const pool = hand.filter((id) => K[id] !== R.DEFUSE || nDef >= 2);
         const src = pool.length ? pool : hand;
@@ -681,7 +693,7 @@
     if (typeof require === 'function') { try { return require('./zhamao-brain.js'); } catch (_) { return null; } }
     return null;
   })();
-  const useBrain = (v) => !!BRAIN && !isFlux(v) && !(v.mate >= 0) && !v.roles && (!v.rules || !v.rules.mode || v.rules.mode === 'classic');
+  const useBrain = (v) => !!BRAIN && !isFlux(v) && !teamV(v) && !v.roles && (!v.rules || !v.rules.mode || v.rules.mode === 'classic');
   const KI = {}; R.KINDS.forEach((k, i) => { KI[k] = i; });
   const NK = R.KINDS.length;   // 20
   function bNext(v, step) {   // 按出牌方向第 step 个活着的对手（-1 = 没那么多）
@@ -750,7 +762,7 @@
     const N = pol(v);
     const nm = useBrain(v) ? brainAct(v) : N.act(v);   // 经典模式：锚点换成网络的选择
     if (nm.type === 'play' && nm.cards.length === 1 && (K[nm.cards[0]] === R.FUTURE || K[nm.cards[0]] === R.ALTER)) return nm;
-    if (v.mate >= 0) { const tp = N.topInfo(v); if (!(tp.known && tp.boom) && tp.p < TEAM_CALM) return nm; }
+    if (teamV(v)) { const tp = N.topInfo(v); if (!(tp.known && tp.boom) && tp.p < TEAM_CALM) return nm; }
     const cands = actCandidates(v);
     if (cands.length === 1) return DRAW;
     // 总模拟次数封顶（候选多时每个少模拟几次），最坏一步也不卡住动画
@@ -766,7 +778,7 @@
     };
     const scores = evaluate(v, applyAct, cands, samples, rng);
     const bi = argmax(scores);
-    if (!(v.mate >= 0)) return scores[bi] - scores[ai] < ANCHOR * samples ? cands[ai] : cands[bi];
+    if (!teamV(v)) return scores[bi] - scores[ai] < ANCHOR * samples ? cands[ai] : cands[bi];
     if (bi === ai || scores[bi] - scores[ai] < TEAM_SCREEN * samples) return cands[ai];
     const two = evaluate(v, applyAct, [cands[ai], cands[bi]], TEAM_VERIFY, rng);   // 复核：新假想局里还赢普通的选择才换
     return two[1] - two[0] >= TEAM_ANCHOR * TEAM_VERIFY ? cands[bi] : cands[ai];
@@ -791,7 +803,7 @@
   function reactFor(v, tier, rng) { return polT(v, tier).react(v, rng || Math.random, 'normal'); }
   function insertFor(v, tier, rng) {
     rng = rng || Math.random;
-    if (tier === 'hard' && !(v.mate >= 0)) return hardInsert(v, rng);   // 组队塞猫按普通的（搜索没增益，见 hardAct 上面）
+    if (tier === 'hard' && !teamV(v)) return hardInsert(v, rng);   // 组队塞猫按普通的（搜索没增益，见 hardAct 上面）
     return polT(v, tier).insert(v, 'normal', rng);
   }
   function chooseGive(v, tier, rng) { return polT(v, tier).give(v, 'normal', rng || Math.random); }

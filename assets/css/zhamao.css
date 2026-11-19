@@ -1314,14 +1314,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   .zm-seat-mate { right: 22px; }
   .zm-seat-mate .zm-count { left: auto; right: -9px; top: -7px; min-width: 18px; height: 21px; font-size: 11px; border-radius: 4px; }
 }
-.zm-app.is-team .zm-seat[data-team="us"] .zm-av { box-shadow: 0 0 0 2.5px #e2b85c, 0 0 0 4px var(--zm-paper); }
-.zm-app.is-team .zm-seat[data-team="them"] .zm-av { box-shadow: 0 0 0 2.5px #7d93b2, 0 0 0 4px var(--zm-paper); }
-/* 队伍色圈不能盖掉「轮到谁」的朱红圈、「能指谁」的金圈、「在看谁」的墨圈（2026-11-15 巡查：组队局看不出轮到谁、选人时也不亮） */
-.zm-app.is-team .zm-seat.is-turn .zm-av { box-shadow: 0 0 0 2px var(--zm-seal), 0 0 0 5px rgba(180, 57, 44, 0.22); }
-.zm-app.is-team .zm-seat.is-turn.is-timed .zm-av { box-shadow: 0 0 0 2px var(--zm-seal); }
-.zm-app.is-team .zm-seat.is-turn:has(.zm-pm-ring) .zm-av { box-shadow: 0 0 0 1.5px var(--zm-ink); }
-.zm-app.is-team .zm-seat.is-target .zm-av { box-shadow: 0 0 0 3px var(--zm-gold), 0 0 0 8px rgba(201, 169, 110, 0.28); }
-.zm-app.is-team .zm-seat.is-watched .zm-av { box-shadow: 0 0 0 2.5px var(--zm-ink), 0 0 0 6px rgba(29, 27, 24, 0.12); }
+/* 2026-11-18：队伍改看头像底色（avatarHtml 换圆底），外圈只管状态——原来的同队金圈 / 对手蓝灰圈和它们的覆盖规则都拿掉了 */
 .zm-app.is-spectator .zm-seat-mate:not(.is-out) .zm-av, .zm-app.can-social .zm-seat-mate:not(.is-out) .zm-av { cursor: pointer; }
 .zm-rank.is-team li:not(.is-split) .tag { color: var(--zm-seal); font-weight: 700; }
 .zm-rank.is-team li.is-split { margin-top: 6px; position: relative; }
@@ -1639,3 +1632,50 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-sheet-resume:active { transform: translateY(1px); }
 @media (prefers-reduced-motion: reduce) { .zm-cover-btn.has-dot::before { animation: none; } }
 
+
+/* ═════ 组队 · 围桌一圈（2026-11-18 用户定）═════
+ * 所有人坐在桌沿上（座位由 layoutRing 用 left / top 摆，头像中心压在桌沿上）；名字垫一块纸色底，桌沿线不穿过字 */
+.zm-app.is-ring .zm-opps { display: block; position: static; padding: 0; --av: var(--av-o, 44px); }
+.zm-app.is-ring .zm-opps .zm-seat { position: absolute; transform: translateX(-50%); min-width: 0; z-index: 3; }
+.zm-app.is-ring .zm-opps .zm-count { left: auto; right: -9px; top: -7px; min-width: 18px; height: 21px; font-size: 11px; border-radius: 4px; }
+.zm-app.is-ring .zm-opps .zm-turns { right: auto; left: -9px; top: -7px; }
+.zm-app.is-ring .zm-opps .zm-name { background: var(--zm-paper); border-radius: 6px; padding: 0 4px; font-size: 12px; max-width: 76px; }
+.zm-app.is-ring .zm-seat-me { z-index: 3; justify-content: flex-start; }
+.zm-app.is-ring .zm-mebar { justify-content: flex-start; padding-right: 6px; }
+.zm-app.is-ring .zm-band { flex: 1; }
+.zm-app.is-ring .zm-dir i { opacity: 0.85; }
+/* 彗星跟着轮到的那队变色（金 / 紫的导火索、瞄准线照旧） */
+.zm-app.is-team .zm-rim.is-teamtint .amb .tail { stroke: var(--team-c, #e2b85c); opacity: 0.5; }
+.zm-app.is-team .zm-rim.is-teamtint .amb .head { stroke: var(--team-c, #f2cf7a); }
+.zm-app.is-team .zm-rim.is-teamtint .amb .halo { stroke: var(--team-c, #f2cf7a); stroke-opacity: 0.22; }
+.zm-app.is-team .zm-rim .amb .tail, .zm-app.is-team .zm-rim .amb .head, .zm-app.is-team .zm-rim .amb .halo { transition: stroke 0.6s ease; }
+/* 顶栏左边的比分条：组队时代替「百变小咪」四个字 */
+.zm-app.is-team .zm-title { display: none; }
+.zm-score { display: flex; gap: 8px; align-items: center; }
+.zm-score span { display: inline-flex; gap: 3px; padding: 4px 7px; border-radius: 999px; background: var(--zm-card); box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.12); }
+.zm-score i { width: 9px; height: 9px; border-radius: 50%; background: var(--tc); display: block; transition: background 0.3s ease; }
+.zm-score i.is-out { background: transparent; box-shadow: inset 0 0 0 1.5px var(--tc); }
+@media (max-width: 400px) { .zm-score { gap: 5px; } .zm-score span { padding: 3px 5px; gap: 2px; } .zm-score i { width: 7px; height: 7px; } }
+
+/* 组队设置：队形一排彩点（点的颜色 = 桌上头像底色）+ 座位两选一 */
+.zm-team-pick { display: grid; gap: 10px; align-self: stretch; min-width: 0; width: 100%; }
+.zm-team-pick .zs-seg button { min-width: 0; }
+.zm-team-forms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.zm-team-forms button { min-width: 0; display: grid; justify-items: center; gap: 4px; padding: 8px 2px 6px; border-radius: 12px; border: 1.5px solid rgba(29, 27, 24, 0.22); background: var(--zm-paper); color: var(--zm-ink); font: inherit; cursor: pointer; }
+.zm-team-forms button small { font-size: 12px; color: var(--zm-ink-mute); }
+.zm-team-forms button[aria-pressed="true"] { border-color: var(--zm-ink); background: var(--zm-ink); }
+.zm-team-forms button[aria-pressed="true"] small { color: var(--zm-paper); }
+.zm-team-forms button[aria-pressed="true"] .zm-pips i { box-shadow: 0 0 0 1.5px var(--zm-ink); }
+.zm-pips { display: inline-flex; gap: 5px; align-items: center; }
+.zm-pips span { display: inline-flex; gap: 2px; }
+.zm-pips i { width: 8px; height: 8px; border-radius: 50%; display: block; }
+.zm-solo-faces i.is-gap { margin-left: 4px; }   /* 组队：队与队之间空开一点 */
+.zm-team-forms .zm-pips { gap: 4px; } .zm-team-forms .zm-pips span { gap: 1.5px; } .zm-team-forms .zm-pips i { width: 7px; height: 7px; }
+
+/* 组队围桌一圈 · 手机横屏：我绝对定位压在桌沿底边上，左下那一格只留出我的宽度（--ring-me-w，JS 量），手牌从我右边开始 */
+@media (orientation: landscape) and (max-height: 540px) {
+  .zm-app.is-ring .zm-table { grid-template-columns: var(--ring-me-w, 80px) minmax(0, 1fr) auto auto; }
+  .zm-app.is-ring .zm-seat-me { position: absolute; grid-area: auto; padding: 0; align-self: auto; }
+  .zm-app.is-ring .zm-opps { grid-area: opps; min-height: 0 !important; }
+  .zm-app.is-ring .zm-hand { grid-area: hand; padding-top: 22px; }
+}

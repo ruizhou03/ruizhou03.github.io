@@ -99,10 +99,15 @@
     swapDefuse: [false, true],   // 2026-11-13 用户：交换要不要连逗猫棒一起换（以前玩的是整副手牌全换）；默认不换，开房的人 / 单机自己选
     deckSize: ['std', 'quick', 'more'],   // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 官方密度 / 快局更短 / 多 = 以前的整副（两副）
     insertSeen: [true, false],
-    mode: ['classic', 'flux', 'team', 'roles'],   // roles = 角色猫（2026-11-15）   // team = 2v2 组队（2026-11-15，只能 4 人：0、2 一队，1、3 一队）   // 2026-11-15：经典 / 百变（牌堆里加「百变」牌，打出就从百变规则堆里抽一条换上）   // 塞回炸毛猫看得出大概位置（2026-11-14 用户，默认开）：动画插在真实高度，像线下一样最上 / 最底一眼看得出、中间只能估；不报第几张。选「随机」的照旧看不出
+    mode: ['classic', 'flux', 'team', 'roles'],
+    // 组队（2026-11-18 用户）：队形（每队人数相等，不做以少打多）+ 座位排法（同队坐一起 / 随机打乱）。只在 mode = team 时有用
+    teamForm: ['2v2', '3v3', '4v4', '2v2v2', '2v2v2v2', '3v3v3'],
+    teamSeat: ['together', 'random'],   // roles = 角色猫（2026-11-15）   // team = 2v2 组队（2026-11-15，只能 4 人：0、2 一队，1、3 一队）   // 2026-11-15：经典 / 百变（牌堆里加「百变」牌，打出就从百变规则堆里抽一条换上）   // 塞回炸毛猫看得出大概位置（2026-11-14 用户，默认开）：动画插在真实高度，像线下一样最上 / 最底一眼看得出、中间只能估；不报第几张。选「随机」的照旧看不出
   });
   // 2026-11-13 起「多的逗猫棒全放回」默认开（官方规则：每人先发 1 根逗猫棒，剩下的全洗回牌堆）
-  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std', insertSeen: true, mode: 'classic' });
+  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std', insertSeen: true, mode: 'classic', teamForm: '2v2', teamSeat: 'together' });
+  const TEAM_FORMS = Object.freeze({ '2v2': [2, 2], '3v3': [3, 3], '4v4': [4, 4], '2v2v2': [2, 2, 2], '2v2v2v2': [2, 2, 2, 2], '3v3v3': [3, 3, 3] });
+  const teamPlayers = (rules) => { const f = TEAM_FORMS[(rules && rules.teamForm) || '2v2'] || TEAM_FORMS['2v2']; return f.reduce((a, b) => a + b, 0); };
   /* 百变规则（2026-11-15 用户：不预告，打「百变」就抽一条，抽到什么算什么；桌上固定一张「百变规则」牌）。
    * id 进状态 s.flux；desc 是桌上规则牌 / 说明里的一句话 */
   // 2026-11-15 用户：不叠锅 / 暗塞 / 千里眼 / 慷慨太弱、感觉不到 → 换成 九命 / 掀顶 / 烫手 / 双猫急救
@@ -216,7 +221,7 @@
   function createGame(n, seed, rules) {
     if (!(n >= MIN_PLAYERS && n <= MAX_PLAYERS)) throw new Error('bad player count');
     rules = normalizeRules(rules);
-    if (rules.mode === 'team' && n !== 4) rules = Object.assign({}, rules, { mode: 'classic' });   // 组队只有 4 人局
+    if (rules.mode === 'team' && n !== teamPlayers(rules)) rules = Object.assign({}, rules, { mode: 'classic' });   // 组队：人数必须正好是队形的人数
     const state = {
       n, rules, rs: (seed >>> 0) || 1,
       deck: [], discard: [], removed: [], hands: [], alive: [], outOrder: [],
@@ -274,9 +279,22 @@
     state.removed = booms.slice(n - 1).concat(defuses.slice(extra), swaps.slice(swapIn.length), unused); // 这局不用的，收进盒子
 
     state.turn = (rand(state) * n) | 0;
-    if (rules.mode === 'team') state.teams = rand(state) < 0.5 ? [0, 0, 1, 1] : [0, 1, 1, 0];   // 队友是我的下家 / 上家，随机
+    if (rules.mode === 'team') state.teams = seatTeams(state, rules);
     turnStarts(state, null);
     return state;
+  }
+
+  /* 组队排座（2026-11-18）：s.teams[座位] = 队号，0 号座位（单机里就是我）那队永远是 0 队，其余按出牌顺序先出现的编 1、2…
+   *   together：同队连着坐，一圈分成几段；我在自己那段里排第几随机（2v2 就是「队友是我下家 / 上家」各一半，和以前一样）
+   *   random：整圈随机打乱，可能挨着、可能被拆开、也可能一人隔一人 */
+  function seatTeams(state, rules) {
+    const form = TEAM_FORMS[rules.teamForm] || TEAM_FORMS['2v2'];
+    let seq = [];
+    form.forEach((k, t) => { for (let i = 0; i < k; i++) seq.push(t); });
+    if (rules.teamSeat === 'random') seq = shuffleIn(state, seq);
+    else { const off = (rand(state) * seq.length) | 0; seq = seq.slice(off).concat(seq.slice(0, off)); }
+    const map = {}; let next = 0;
+    return seq.map((t) => { if (!(t in map)) map[t] = next++; return map[t]; });
   }
 
   function cloneGame(s) {
@@ -291,7 +309,7 @@
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
       winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
       flux: s.flux || null, fluxDeck: (s.fluxDeck || []).slice(), nineUsed: s.nineUsed ? s.nineUsed.slice() : null, saveUsed: s.saveUsed ? s.saveUsed.slice() : null,
-      rescue: s.rescue ? Object.assign({}, s.rescue) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1, teams: s.teams ? s.teams.slice() : null,
+      rescue: s.rescue ? Object.assign({}, s.rescue, { queue: (s.rescue.queue || []).slice() }) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1, teams: s.teams ? s.teams.slice() : null,
       roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null, cowCut: s.cowCut != null ? s.cowCut : -1, hotGiven: s.hotGiven != null ? s.hotGiven : -1,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
@@ -301,9 +319,17 @@
   // 2v2 组队（2026-11-15 用户改：队友和我出牌顺序挨着——我是队友的上家或下家，不再两队交替）：
   // s.teams[座位] = 队号（0 号座位那队永远是 0 队）。开局随机 [0,0,1,1]（队友是我下家）或 [0,1,1,0]（队友是我上家）。
   // 老存档没有 s.teams：照旧对面是队友（0、2 一队，1、3 一队）
-  const isTeam = (s) => !!(s.rules && s.rules.mode === 'team' && s.n === 4);
+  const isTeam = (s) => !!(s.rules && s.rules.mode === 'team' && (s.teams ? s.teams.length === s.n : s.n === 4));
   const teamOf = (s, seat) => (typeof s === 'number' ? s % 2 : s && s.teams ? s.teams[seat] : seat % 2);
-  const mateOf = (s, seat) => { if (!isTeam(s)) return -1; for (let k = 0; k < s.n; k++) if (k !== seat && teamOf(s, k) === teamOf(s, seat)) return k; return -1; };
+  // 队友（2026-11-18 起一队可以 2–4 人）：按出牌顺序从近到远排；mateOf 只给第一个（老代码 / 2v2 用）
+  const matesOf = (s, seat) => {
+    if (!isTeam(s)) return [];
+    const d = s.dir === -1 ? -1 : 1, out = [];
+    for (let i = 1; i < s.n; i++) { const k = (((seat + d * i) % s.n) + s.n) % s.n; if (teamOf(s, k) === teamOf(s, seat)) out.push(k); }
+    return out;
+  };
+  const mateOf = (s, seat) => { const m = matesOf(s, seat); return m.length ? m[0] : -1; };
+  const teamCount = (s) => (isTeam(s) ? Math.max(...s.alive.map((_, k) => teamOf(s, k))) + 1 : 0);
   const aliveCount = (s) => s.alive.reduce((a, b) => a + (b ? 1 : 0), 0);
   // 按当前方向的下一个还在场的人（老存档没有 dir：按 1）
   function nextAlive(s, seat) {
@@ -535,7 +561,7 @@
         break;
       case FUTURE: {
         const top = s.deck.slice(0, 3);
-        const mate = mateOf(s, me), who = mate >= 0 ? [me, mate] : [me];   // 组队：队友也看得到
+        const who = [me].concat(matesOf(s, me));   // 组队：全队都看得到
         for (const k of who) { const m = s.memo[k].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); }
         ev.push({ t: 'future', seat: me, cards: top, priv: who });
         s.peek = { by: me, kind: 'future', top: 0, act: null };
@@ -543,7 +569,7 @@
       }
       case ALTER: {
         const top = s.deck.slice(0, 3);
-        const mate = mateOf(s, me), who = mate >= 0 ? [me, mate] : [me];
+        const who = [me].concat(matesOf(s, me));
         for (const k of who) { const m = s.memo[k].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); }
         if (top.length >= 2) {
           s.phase = 'alter';
@@ -669,13 +695,13 @@
     const cards = s.alter.cards;
     if (!Array.isArray(order) || order.length !== cards.length || order.some((id) => cards.indexOf(id) < 0) || new Set(order).size !== order.length) throw new Error('illegal alter order');
     s.deck.splice(0, order.length, ...order);
-    const mate = mateOf(s, seat);
-    for (let k = 0; k < s.n; k++) if (k !== seat && k !== mate) s.memo[k].deck = s.memo[k].deck.filter((id) => cards.indexOf(id) < 0);
+    const mates = matesOf(s, seat);
+    for (let k = 0; k < s.n; k++) if (k !== seat && mates.indexOf(k) < 0) s.memo[k].deck = s.memo[k].deck.filter((id) => cards.indexOf(id) < 0);
     if (s.ins && s.ins.seen) s.ins.seen = null;   // 改命动过顶上几张：大家看到它塞在最上 / 最底的那点信息不准了
     s.alter = null;
     s.phase = 'act';
     s.peek = { by: seat, kind: 'alter', top: 0, act: null };
-    return [{ t: 'altered', seat, cards: order.slice(), priv: mate >= 0 ? [seat, mate] : [seat] }];
+    return [{ t: 'altered', seat, cards: order.slice(), priv: [seat].concat(mates) }];
   }
 
   /* ───── 摸牌（结束一个回合） ───── */
@@ -735,12 +761,13 @@
       endOneTurn(s, ev);
       return ev;
     }
-    // 组队：队友手里有逗猫棒 → 停下来问队友要不要救（救了：队友的逗猫棒用掉，被救的人自己塞回去）
-    const mate = mateOf(s, seat);
-    if (mate >= 0 && s.alive[mate] && findKind(s.hands[mate], DEFUSE) != null) {
+    // 组队：队友手里有逗猫棒 → 停下来问队友要不要救（救了：队友的逗猫棒用掉，被救的人自己塞回去）。
+    // 几个队友都有：按出牌顺序离他最近的先问，不救就问下一个（2026-11-18）
+    const savers = matesOf(s, seat).filter((k) => s.alive[k] && findKind(s.hands[k], DEFUSE) != null);
+    if (savers.length) {
       s.phase = 'rescue';
-      s.rescue = { by: mate, for: seat, card: id };
-      ev.push({ t: 'askRescue', by: mate, for: seat });
+      s.rescue = { by: savers[0], for: seat, card: id, queue: savers.slice(1) };
+      ev.push({ t: 'askRescue', by: savers[0], for: seat });
       return ev;
     }
     return eliminate(s, seat, id, ev);
@@ -791,7 +818,16 @@
     s.rescue = null;
     s.seq += 1;
     const def = yes ? findKind(s.hands[seat], DEFUSE) : null;
-    if (def == null) { ev.push({ t: 'noRescue', by: seat, for: r.for }); return eliminate(s, r.for, r.card, ev); }
+    if (def == null) {
+      ev.push({ t: 'noRescue', by: seat, for: r.for });
+      const rest = (r.queue || []).filter((k) => s.alive[k] && findKind(s.hands[k], DEFUSE) != null);
+      if (rest.length) {   // 还有别的队友能救：接着问下一个
+        s.rescue = { by: rest[0], for: r.for, card: r.card, queue: rest.slice(1) };
+        ev.push({ t: 'askRescue', by: rest[0], for: r.for });
+        return ev;
+      }
+      return eliminate(s, r.for, r.card, ev);
+    }
     s.hands[seat].splice(s.hands[seat].indexOf(def), 1);
     s.discard.push(def);
     forgetCard(s, def);
@@ -811,9 +847,9 @@
     // 原先记得的牌也就还记得（位置是按牌算的，插一张进来大家都知道它们往下挪了一格）；点「随机」/ 超时随机塞也照样可见
     const exactAll = rulesOf(s).insertSeen === 'exact';
     // 组队（2026-11-18）：队友之间顶上几张的情报共享（窥探 / 改命都是），塞回去的位置也一样——队友看得见塞在第几张，原先记的也不乱
-    const mate = mateOf(s, seat);
-    if (!exactAll) for (let k = 0; k < s.n; k++) if (k !== seat && k !== mate) s.memo[k].deck = []; // 别人不知道塞在哪，原先记的位置全乱了
-    for (const k of mate >= 0 ? [seat, mate] : [seat]) if (s.memo[k].deck.indexOf(id) < 0) s.memo[k].deck.push(id);
+    const mates = matesOf(s, seat);
+    if (!exactAll) for (let k = 0; k < s.n; k++) if (k !== seat && mates.indexOf(k) < 0) s.memo[k].deck = []; // 别人不知道塞在哪，原先记的位置全乱了
+    for (const k of [seat].concat(mates)) if (s.memo[k].deck.indexOf(id) < 0) s.memo[k].deck.push(id);
     s.defuse = null;
     // 规则「看得出大概位置」：动画插在牌堆的真实高度，所有人都看得到——但只发一个粗略的高度 vis（0 = 最上、1 = 最底、中间取到 1/8），
     // 不发第几张：懂技术的人抓网络数据，拿到的也只和肉眼看到的一样多
@@ -828,7 +864,7 @@
     s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
     s.seq += 1;
     s.peek = null;
-    const ev = [{ t: 'insert', seat, card: id, pos, size: s.deck.length, vis, priv: mate >= 0 ? [seat, mate] : [seat] }];
+    const ev = [{ t: 'insert', seat, card: id, pos, size: s.deck.length, vis, priv: [seat].concat(mates) }];
     // 百变「火眼」：人人知道塞在第几张——等于所有人都记住了这张牌在牌堆里的位置
     if (exactAll) {
       for (let k = 0; k < s.n; k++) if (s.memo[k].deck.indexOf(id) < 0) s.memo[k].deck.push(id);
@@ -863,7 +899,7 @@
     return {
       me: seat, n: s.n, rules: rulesOf(s), flux: s.flux || null, nineUsed: s.nineUsed ? s.nineUsed.slice() : null,
       roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null,
-      mate: mateOf(s, seat), teams: s.teams ? s.teams.slice() : null, rescue: s.rescue ? { by: s.rescue.by, for: s.rescue.for } : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
+      mate: mateOf(s, seat), mates: matesOf(s, seat), teams: s.teams ? s.teams.slice() : null, rescue: s.rescue ? { by: s.rescue.by, for: s.rescue.for } : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
       hand: s.hands[seat].slice(),
       counts: s.hands.map((h) => h.length),
       alive: s.alive.slice(),
@@ -896,7 +932,7 @@
   }
 
   return {
-    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, isTeam, mateOf, teamOf, rescue, ROLES, roleOf, classifyFor, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, isTeam, mateOf, matesOf, teamOf, teamCount, TEAM_FORMS, teamPlayers, rescue, ROLES, roleOf, classifyFor, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay, deckQuota,
     kindOf, isCat, catLike, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,
