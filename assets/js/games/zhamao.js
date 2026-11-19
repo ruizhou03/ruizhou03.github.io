@@ -506,8 +506,8 @@
     if (land) { mebar.style.removeProperty('padding-left'); els.table.style.setProperty('--ring-me-w', Math.round(meX + avMe / 2 + 2) + 'px'); }
     else mebar.style.paddingLeft = Math.round(meX + avMe / 2 + 10 - (op.left - tb.left)) + 'px';
     // 横屏：顶边那几家（头像 + 名字）往下压进了桌子中间那块——牌堆 / 弃牌堆在剩下的高度里居中，别顶到名字
-    if (land) { const ct = els.center.getBoundingClientRect().top - tb.top; els.center.style.paddingTop = Math.max(0, Math.round(y0 + av / 2 + 18 - ct)) + 'px'; }
-    else els.center.style.removeProperty('padding-top');
+    if (land) { const ct = els.center.getBoundingClientRect().top - tb.top; const pad = Math.max(0, Math.round(y0 + av / 2 + 18 - ct)); els.center.style.paddingTop = pad + 'px'; els.center.style.setProperty('--ctr-pad', pad + 'px'); }
+    else { els.center.style.removeProperty('padding-top'); els.center.style.removeProperty('--ctr-pad'); }
     ringLay = { x0, x1, y0, y1, r: RING_R, pos, av, avMe, W };
   }
   // 桌沿上从我出发、逆时针走 d 像素到哪（ring 分支：彗星 / 方向箭头用）
@@ -1462,9 +1462,11 @@
     return (wheelSvgCache = s);
   }
   async function fluxWheel(idx, t) {
-    const box = els.center.getBoundingClientRect();
+    // 横屏人多时桌子中间那块顶上让给了顶边几家（padding-top）：转盘只在剩下的桌面里转，别盖住顶边那几家（2026-11-19）
+    const box0 = els.center.getBoundingClientRect(), padT = parseFloat(getComputedStyle(els.center).paddingTop) || 0;
+    const box = { left: box0.left, width: box0.width, top: box0.top + padT, height: box0.height - padT };
     const S = LANDSCAPE_SHORT.matches ? Math.round(Math.max(96, Math.min(200, box.width * 0.5, box.height * 0.92))) : Math.round(Math.max(150, Math.min(240, box.width * 0.72, box.height * 0.62)));   // 横屏桌子矮：转盘按桌子高度来，别冒出桌沿
-    const cx = box.left + box.width / 2, cy = box.top + box.height / 2 - S * 0.08;
+    const cx = box.left + box.width / 2, cy = box.top + box.height / 2 - (padT ? 0 : S * 0.08);
     const wrap = document.createElement('div');
     wrap.className = 'zm-wheel';
     wrap.style.cssText = 'left:' + (cx - S / 2) + 'px;top:' + (cy - S / 2) + 'px;width:' + S + 'px;height:' + S + 'px';
@@ -1508,7 +1510,7 @@
     if (!fx.reduce()) await fluxWheel(idx, t);
     if (t !== token) return;
     let el = document.getElementById('zmFlux');
-    if (el && !fx.reduce()) await el.animate([{ transform: 'translateX(-50%) rotateY(0deg)' }, { transform: 'translateX(-50%) rotateY(90deg)' }], { duration: ms(180), easing: 'ease-in' }).finished.catch(() => {});
+    if (el && !fx.reduce()) await el.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { duration: ms(180), easing: 'ease-in' }).finished.catch(() => {});
     if (t !== token) return;
     renderFlux({ flux: e.rule });   // 第一次：这时才把牌摆出来
     if ((e.rule === 'bottom') !== (prev === 'bottom')) flipBottomCards(t);   // 摸底：手里的抽底翻成抽顶（换走时翻回来）
@@ -1518,7 +1520,7 @@
     el = document.getElementById('zmFlux');
     if (!el) return;
     if (!fx.reduce()) {
-      el.animate([{ transform: 'translateX(-50%) rotateY(-90deg)' }, { transform: 'translateX(-50%) rotateY(0deg) scale(1.08)', offset: 0.7 }, { transform: 'translateX(-50%) rotateY(0deg) scale(1)' }], { duration: ms(420), easing: 'cubic-bezier(.3,.8,.4,1.2)' });
+      el.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg) scale(1.08)', offset: 0.7 }, { transform: 'rotateY(0deg) scale(1)' }], { duration: ms(420), easing: 'cubic-bezier(.3,.8,.4,1.2)' });
       const r = el.getBoundingClientRect();
       fx.burst(r.left + r.width / 2, r.top + r.height / 2, { n: 12, shapes: ['star'], colors: ['#8e4a9c', '#e2b85c', '#e0893e', '#3f7f86'], radius: 70, size: [6, 14], life: 800 });
     }
