@@ -618,7 +618,7 @@
       case 'defuse': { const b = s.defuse.by, v = R.view(s, b); R.insertKitten(s, b, polT(v, tier(b)).insert(v, 'normal', rng)); return; }
       case 'alter': { const b = s.alter.by, v = R.view(s, b); R.alterTop(s, b, polT(v, tier(b)).alter(v, 'normal', rng)); return; }
       case 'steal': { const b = s.steal.by; R.stealPick(s, b, (rng() * s.steal.perm.length) | 0); return; }
-      case 'rescue': { R.rescue(s, s.rescue.by, true); return; }   // 组队：队友总是救
+      case 'rescue': { const w = R.rescueWaiting(s); if (w.length) R.rescue(s, w[0], true); else R.closeRescue(s); return; }   // 组队：有逗猫棒的队友总是救（离得近的先）
     }
   }
   // 名次分：赢 1，第 i 个出局 i/(n-1)（算上模拟开始前已经出局的人）

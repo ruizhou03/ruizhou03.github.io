@@ -310,7 +310,7 @@
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
       winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
       flux: s.flux || null, fluxDeck: (s.fluxDeck || []).slice(), nineUsed: s.nineUsed ? s.nineUsed.slice() : null, saveUsed: s.saveUsed ? s.saveUsed.slice() : null,
-      rescue: s.rescue ? Object.assign({}, s.rescue, { queue: (s.rescue.queue || []).slice() }) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1, teams: s.teams ? s.teams.slice() : null,
+      rescue: s.rescue ? (rescueOf(s), Object.assign({}, s.rescue, { mates: s.rescue.mates.slice(), wait: s.rescue.wait.slice() })) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1, teams: s.teams ? s.teams.slice() : null,
       roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null, cowCut: s.cowCut != null ? s.cowCut : -1, hotGiven: s.hotGiven != null ? s.hotGiven : -1,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
@@ -763,13 +763,15 @@
       endOneTurn(s, ev);
       return ev;
     }
-    // 组队：队友手里有逗猫棒 → 停下来问队友要不要救（救了：队友的逗猫棒用掉，被救的人自己塞回去）。
-    // 几个队友都有：按出牌顺序离他最近的先问，不救就问下一个（2026-11-18）
-    const savers = matesOf(s, seat).filter((k) => s.alive[k] && findKind(s.hands[k], DEFUSE) != null);
-    if (savers.length) {
+    // 组队（2026-11-19 用户改）：还有活着的队友就当众喊「救我！」，所有队友同时被问，谁先点「救」用谁的逗猫棒。
+    // 当众的只有「他喊救了、哪几个队友在想」——不管队友手里有没有逗猫棒都一样（以前只在有的时候才问，等于说出「他队友有逗猫棒」）。
+    // 真正弹窗问的只是手里有逗猫棒的队友（wait，私密）；不救也不公开。都不救 / 没人有 → 由驾驶的一方（单机网页 / 联机服务器）
+    // 等够一段固定的「想一想」再 closeRescue，所以没人有和有人不肯看起来一样
+    const mates = matesOf(s, seat).filter((k) => s.alive[k]);
+    if (mates.length) {
       s.phase = 'rescue';
-      s.rescue = { by: savers[0], for: seat, card: id, queue: savers.slice(1) };
-      ev.push({ t: 'askRescue', by: savers[0], for: seat });
+      s.rescue = { for: seat, card: id, mates, wait: mates.filter((k) => findKind(s.hands[k], DEFUSE) != null) };
+      ev.push({ t: 'askRescue', for: seat, mates: mates.slice() });
       return ev;
     }
     return eliminate(s, seat, id, ev);
@@ -813,30 +815,41 @@
     return ev;
   }
 
-  /* 组队：队友决定救不救（yes = 交出自己的逗猫棒） */
+  /* 组队：老存档里的 rescue 是 { by, for, card, queue }（一个个问）——读出来时换成同时问的样子 */
+  function rescueOf(s) {
+    const r = s.rescue;
+    if (r && !r.wait) {
+      r.mates = matesOf(s, r.for).filter((k) => s.alive[k]);
+      r.wait = r.mates.filter((k) => findKind(s.hands[k], DEFUSE) != null);
+      delete r.by; delete r.queue;
+    }
+    return r;
+  }
+  /* 还没表态、手里有逗猫棒的队友（按出牌顺序离被炸的人从近到远）。私密：只给驾驶的一方用，别发给别人 */
+  function rescueWaiting(s) { const r = s.phase === 'rescue' && rescueOf(s); return r ? r.wait.slice() : []; }
+  /* 组队：一个队友表态。yes 且手里有逗猫棒 = 救下（先到先得——救下以后别人再点就是 illegal，逗猫棒不会白掉）；
+   * 不救 = 从等着的名单里划掉，不出任何事件（不公开谁不肯救） */
   function rescue(s, seat, yes) {
-    if (s.phase !== 'rescue' || s.rescue.by !== seat) throw new Error('illegal rescue');
-    const r = s.rescue, ev = [];
+    const r = s.phase === 'rescue' && rescueOf(s);
+    if (!r || r.wait.indexOf(seat) < 0) throw new Error('illegal rescue');
+    const def = yes ? findKind(s.hands[seat], DEFUSE) : null;
+    if (def == null) { r.wait = r.wait.filter((k) => k !== seat); return []; }
     s.rescue = null;
     s.seq += 1;
-    const def = yes ? findKind(s.hands[seat], DEFUSE) : null;
-    if (def == null) {
-      ev.push({ t: 'noRescue', by: seat, for: r.for });
-      const rest = (r.queue || []).filter((k) => s.alive[k] && findKind(s.hands[k], DEFUSE) != null);
-      if (rest.length) {   // 还有别的队友能救：接着问下一个
-        s.rescue = { by: rest[0], for: r.for, card: r.card, queue: rest.slice(1) };
-        ev.push({ t: 'askRescue', by: rest[0], for: r.for });
-        return ev;
-      }
-      return eliminate(s, r.for, r.card, ev);
-    }
     s.hands[seat].splice(s.hands[seat].indexOf(def), 1);
     s.discard.push(def);
     forgetCard(s, def);
     s.phase = 'defuse';
     s.defuse = { by: r.for, card: r.card };
-    ev.push({ t: 'defuse', seat: r.for, card: def, kitten: r.card, from: seat, rescue: true });
-    return ev;
+    return [{ t: 'defuse', seat: r.for, card: def, kitten: r.card, from: seat, rescue: true, mates: r.mates.slice() }];
+  }
+  /* 组队：没人救（都不肯 / 没人有 / 到点了）→ 被炸的人出局 */
+  function closeRescue(s) {
+    const r = s.phase === 'rescue' && rescueOf(s);
+    if (!r) throw new Error('illegal closeRescue');
+    s.rescue = null;
+    s.seq += 1;
+    return eliminate(s, r.for, r.card, [{ t: 'noRescue', for: r.for, mates: r.mates.slice() }]);
   }
 
   /* pos：0 = 最上面，deck.length = 最底下；rand = 玩家点的「随机」（或倒计时到了随机塞），连他自己都不知道在哪 */
@@ -888,7 +901,7 @@
       case 'defuse': return [s.defuse.by];
       case 'alter': return [s.alter.by];
       case 'steal': return [s.steal.by];
-      case 'rescue': return [s.rescue.by];
+      case 'rescue': return rescueWaiting(s);
       default: return [];
     }
   }
@@ -903,7 +916,7 @@
     return {
       me: seat, n: s.n, rules: rulesOf(s), flux: s.flux || null, nineUsed: s.nineUsed ? s.nineUsed.slice() : null,
       roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null,
-      mate: mateOf(s, seat), mates: matesOf(s, seat), teams: s.teams ? s.teams.slice() : null, rescue: s.rescue ? { by: s.rescue.by, for: s.rescue.for } : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
+      mate: mateOf(s, seat), mates: matesOf(s, seat), teams: s.teams ? s.teams.slice() : null, rescue: s.rescue ? { for: s.rescue.for, mates: (rescueOf(s).mates || []).slice() } : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
       hand: s.hands[seat].slice(),
       counts: s.hands.map((h) => h.length),
       alive: s.alive.slice(),
@@ -936,7 +949,7 @@
   }
 
   return {
-    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, isTeam, mateOf, matesOf, teamOf, teamCount, TEAM_FORMS, teamPlayers, rescue, ROLES, roleOf, classifyFor, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, isTeam, mateOf, matesOf, teamOf, teamCount, TEAM_FORMS, teamPlayers, rescue, rescueWaiting, closeRescue, ROLES, roleOf, classifyFor, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay, deckQuota,
     kindOf, isCat, catLike, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,

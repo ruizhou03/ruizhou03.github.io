@@ -1352,11 +1352,11 @@
     if (!box) return null;
     box.querySelectorAll('.zm-bubble').forEach((b) => b.remove());
     const b = document.createElement('span');
-    b.className = 'zm-bubble' + (o.loud ? ' is-loud' : '') + (o.alarm ? ' is-alarm' : '') + (o.think ? ' is-think' : '');
+    b.className = 'zm-bubble' + (o.loud ? ' is-loud' : '') + (o.alarm ? ' is-alarm' : '') + (o.think ? ' is-think' : '') + (o.cls ? ' ' + o.cls : '');
     if (o.think) b.innerHTML = '<i></i><i></i><i></i>';
     else if (o.icon) { b.classList.add('is-icon'); b.innerHTML = ART.icon(o.icon); }   // 只冒一个牌的图标，不写字
     else b.textContent = text;
-    b.style.animationDuration = o.ms + 'ms';
+    if (!o.sos) b.style.animationDuration = o.ms + 'ms';   // 求救的省略号：冒出来的动画按 CSS 的 0.3 秒走（ms = 60000 时整段淡入会被拉成一分钟，几乎看不见）
     box.appendChild(b);
     if (o.ms < 60000) setTimeout(() => b.remove(), o.ms);
     return b;
@@ -1676,39 +1676,159 @@
     nodes.forEach((d) => d.remove());
     void t;
   }
-  // 组队：队友摸到炸毛猫没逗猫棒——他喊「救我！」，有逗猫棒的队友想一下
+  /* 组队·求救（2026-11-19 用户改）：前半段永远一个样——被炸的人喊「救我！」，活着的队友（不管几个、不管有没有逗猫棒）头上都冒一个
+   * 会动的省略号在想。有人救：他的省略号变成「接着！」，别的队友的省略号收回；没人救（没有 / 不肯 / 到点）：省略号全收回，被炸的人出局。
+   * 别人从动画里看不出谁有逗猫棒、谁不肯救 */
+  function clearRescueThink(mates, keep) {
+    for (const k of mates || []) {
+      if (k === keep) continue;
+      const box = seatEl(k);
+      if (box) box.querySelectorAll('.zm-bubble.is-think').forEach((b) => b.animate([{ opacity: 1, transform: 'translateX(-50%) scale(1)' }, { opacity: 0, transform: 'translateX(-50%) scale(.6)' }], { duration: 220, easing: 'ease-in', fill: 'forwards' }).finished.then(() => b.remove(), () => b.remove()));
+    }
+  }
   async function animAskRescue(e, t) {
+    game.rescueAnswered = false;
     bubble(e.for, '救我！', { loud: true, alarm: true, ms: 2200 });
-    if (e.by !== 0) bubble(e.by, '', { think: true, ms: 1400 });
-    await wait(ms(500));
+    // 2026-11-19 用户：喊「救我！」的同一刻，所有活着的队友（包括我自己）一起冒省略号——醒目一点（金边、大一号的点）
+    const mates = e.mates || (e.by != null ? [e.by] : []);   // 老服务器只发 by
+    mates.forEach((k) => bubble(k, '', { think: true, ms: 60000, cls: 'is-sos', sos: true }));
+    await wait(ms(450));
     void t;
   }
-  /* 组队·救队友（2026-11-18 用户：原来那个白底文字框太丑；两版里挑了甲「递棒」）：到点没选 = 救（不让一局卡住）；点我的逗猫棒本身也算「救」 */
+  // 没人救：省略号收回，弹窗（到点 / 我点了不救后还开着的）收掉，接着播出局
+  async function animNoRescue(e, t) {
+    if (game.rescueDlg) { game.rescueDlg = null; closeDialog(); }
+    clearRescueThink(e.mates || (e.by != null ? [e.by] : []));
+    await wait(ms(260));
+    void t;
+  }
+  // 有人救：别的队友的省略号收回；我也有逗猫棒、弹窗还开着（没点 / 点了但别人先到）→ 弹窗里先演一下「被他抢先救了」再收
+  async function rescueResolved(e, t) {
+    clearRescueThink(e.mates, e.from);
+    const dlg = game.rescueDlg;
+    game.rescueDlg = null;
+    if (!dlg) return;
+    if (e.from === 0) { closeDialog(); return; }
+    await dlg.taken(e.from, t);
+  }
+  /* 组队·救队友（2026-11-18 用户挑了甲「递棒」；2026-11-19 用户：「救！」改成绿色，倒计时时绿色一点点减少、底下是灰色——像生命在流逝，
+   * 到点没救 = 没救成。只有手里有逗猫棒的队友才弹这个窗；几个队友同时被问，谁先点「救」用谁的） */
   function rescueTimer(btn, lim, k, act) {
     if (!lim) return;
-    const bar = btn && btn.querySelector('.zm-dlg-timer i');
-    if (bar) bar.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: lim, easing: 'linear', fill: 'forwards' });
-    if (bar && lim > 3000) setTimeout(() => { if (k === token && bar.parentNode) bar.parentNode.classList.add('is-hurry'); }, lim - 3000);
-    setTimeout(() => { if (k === token && game && game.state.phase === 'rescue' && game.state.rescue.by === 0) act(true); }, lim);
+    const life = btn && btn.querySelector('.zm-life i');
+    if (life) btn.lifeAnim = life.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: lim, easing: 'linear', fill: 'forwards' });
+    if (lim > 3000) setTimeout(() => { if (k === token && btn.isConnected) btn.classList.add('is-hurry'); }, lim - 3000);
+    setTimeout(() => { if (k === token && game && game.rescueDlg && game.state.phase === 'rescue') act(false); }, lim);
   }
-  const RESCUE_ARROW = '<svg class="zm-rescue-arc" viewBox="0 0 120 60" aria-hidden="true"><path class="arc" d="M112 46 C 86 4, 40 2, 14 34"/><path class="tip" d="M26 34 L13 35 L17 22"/></svg>';
+  // 逗猫棒和队友之间不画线（2026-11-19 用户在四版里挑了丙：逗猫棒自己往队友那边探身，队友身后一圈金光一起一伏）
+  const RESCUE_GAP = '<div class="zm-rescue-gap" aria-hidden="true"></div>';
   function rescueDialog() {
-    const s = game.state, f = s.rescue.for, lim = dlgLimit(), k = token;
-    const timer = lim ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '';
+    // 限时和作废一样长（2026-11-19 用户）：单机按出牌限时的 1/4（10 秒局 3 秒、其余 5 秒）；联机按服务器给的
+    const s = game.state, f = s.rescue.for, lim = !game || game.tutorial ? 0 : game.online ? onlineRemain() : nopeFullMs(), k = token;
+    if (game.rescueDlg && els.dialog.querySelector('[data-rescue]')) return;   // 已经开着
+    if (game.rescueAnswered) return;   // 这一回我已经表过态（联机：服务器的新状态还没到）
     // 桌子蒙一层宣纸色，正中左边是炸毛了的队友（头像发抖、背后竖着那只炸毛猫），右边是我那根逗猫棒（金光），中间一道弧线箭头
     openStage('<div class="zm-rescue" data-rescue>' +
         '<div class="zm-rescue-mate"><div class="zm-rescue-kit zm-angry">' + cardHtml('boom') + '</div><div class="zm-rescue-av">' + avatarHtml(f) + '</div><b class="zm-rescue-nm">' + esc(nameOf(f)) + '</b></div>' +
-        RESCUE_ARROW +
+        RESCUE_GAP +
         '<button type="button" class="zm-rescue-wand" data-yes aria-label="用逗猫棒救队友">' + cardHtml(R.DEFUSE) + '</button>' +
       '</div>' +
-      '<div class="zm-actions is-center"><button type="button" class="zm-btn" data-no>不救</button><button type="button" class="zm-btn zm-btn-primary' + (lim ? ' zm-timed' : '') + '" data-yes data-ok data-focus>' + timer + '<b>救！</b></button></div>', (d) => {
+      '<div class="zm-actions is-center"><button type="button" class="zm-btn" data-no>不救</button><button type="button" class="zm-btn zm-btn-life" data-yes data-ok data-focus><span class="zm-life" aria-hidden="true"><i></i></span><b>救！</b></button></div>', (d) => {
       d.classList.add('is-rescue');
       let done = false;
-      const act = (yes) => { if (done) return; done = true; closeDialog(); apply(0, { type: 'rescue', yes }); };
+      const box = d.querySelector('[data-rescue]'), okBtn = d.querySelector('[data-ok]');
+      const act = (yes) => {
+        if (done) return;
+        done = true;
+        game.rescueAnswered = true;
+        if (!yes || !game.online) { game.rescueDlg = null; closeDialog(); apply(0, { type: 'rescue', yes }); return; }
+        // 联机：点了「救」先举着逗猫棒等服务器——可能别的队友先到了，那就演「被他抢先」，我的逗猫棒不会白掉
+        box.classList.add('is-sent');
+        d.querySelectorAll('.zm-btn').forEach((b) => { b.disabled = true; });
+        if (okBtn.lifeAnim) okBtn.lifeAnim.pause();
+        apply(0, { type: 'rescue', yes: true });
+      };
+      game.rescueDlg = {
+        /* 别的队友先救了（2026-11-19 用户：原来那版太糙）：一段段演——
+         * ① 按钮淡出，我的逗猫棒收回去、变灰；② 先救的那位队友的头像在上方「啵」地冒出来；
+         * ③ 他的逗猫棒从头像里甩出去，转一圈划弧落到炸毛猫上；④ 落点炸开一圈金光，炸毛猫一下子不抖了、缩回去，队友头像亮金圈；⑤ 整窗淡出 */
+        taken: async (from, t) => {
+          done = true;
+          if (okBtn.lifeAnim) okBtn.lifeAnim.pause();
+          d.querySelectorAll('.zm-btn').forEach((b) => { b.disabled = true; });
+          const acts = d.querySelector('.zm-actions');
+          if (acts) acts.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(220), fill: 'forwards' });
+          box.classList.add('is-taken');
+          const wand = box.querySelector('.zm-rescue-wand'), kit = box.querySelector('.zm-rescue-kit'), mateAv = box.querySelector('.zm-rescue-av');
+          const r0 = box.getBoundingClientRect();
+          const rel = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2 - r0.left, y: r.top + r.height / 2 - r0.top, w: r.width, h: r.height }; };
+          const W = rel(wand), K = rel(kit), A = rel(mateAv), rc = A.w / 0.72;
+          const at = (x, y, more) => 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) translate(-50%,-50%) ' + (more || '');
+          const fxEl = (cls, html, x, y) => { const e = document.createElement('div'); e.className = 'zm-rescue-fx ' + cls; e.innerHTML = html || ''; e.style.opacity = '0'; e.style.transform = at(x, y); box.appendChild(e); return e; };
+          // ①
+          wand.animate([{ transform: 'none', filter: 'grayscale(0)', opacity: 1 }, { transform: 'translate(8px, 16px) rotate(10deg) scale(.9)', filter: 'grayscale(1)', opacity: 0.35 }], { duration: ms(480), easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
+          // ②
+          const P = { x: (W.x + A.x) / 2, y: Math.max(rc * 0.3, Math.min(K.y - K.h * 0.35, W.y - W.h * 0.45)) };
+          const av = fxEl('zm-rescue-by', avatarHtml(from), P.x, P.y);
+          await wait(ms(140));
+          if (t !== token) return;
+          await av.animate([{ transform: at(P.x, P.y, 'scale(0)'), opacity: 0 }, { transform: at(P.x, P.y, 'scale(1.2)'), opacity: 1, offset: 0.65 }, { transform: at(P.x, P.y, 'scale(1)'), opacity: 1 }], { duration: ms(340), easing: 'ease-out', fill: 'forwards' }).finished.catch(() => {});
+          if (t !== token) return;
+          // ③
+          const toss = fxEl('zm-rescue-toss', cardHtml(R.DEFUSE), P.x, P.y);
+          const M = { x: (P.x + K.x) / 2, y: Math.min(P.y, K.y) - rc * 0.4 };
+          snd('whoosh');
+          await toss.animate([
+            { transform: at(P.x, P.y, 'rotate(-10deg) scale(.3)'), opacity: 0 },
+            { transform: at(P.x, P.y, 'rotate(-40deg) scale(.85)'), opacity: 1, offset: 0.15 },
+            { transform: at(M.x, M.y, 'rotate(-220deg) scale(1)'), opacity: 1, offset: 0.55 },
+            { transform: at(K.x, K.y, 'rotate(-372deg) scale(.92)'), opacity: 1 },
+          ], { duration: ms(620), easing: 'cubic-bezier(.45,.05,.35,1)', fill: 'forwards' }).finished.catch(() => {});
+          if (t !== token) return;
+          // ④
+          box.classList.add('is-saved');
+          snd('thud');
+          const burst = fxEl('zm-rescue-burst', '', K.x, K.y);
+          burst.animate([{ transform: at(K.x, K.y, 'scale(.3)'), opacity: 1 }, { transform: at(K.x, K.y, 'scale(2)'), opacity: 0 }], { duration: ms(560), easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' });
+          kit.animate([{ transform: 'scale(1.1)' }, { transform: 'scale(.88) rotate(5deg)', filter: 'saturate(.45)', opacity: 0.75 }], { duration: ms(420), easing: 'cubic-bezier(.3,1.4,.5,1)', fill: 'forwards' });
+          mateAv.animate([{ scale: '1' }, { scale: '1.12', offset: 0.4 }, { scale: '1' }], { duration: ms(420), easing: 'ease-out' });
+          toss.animate([{ transform: at(K.x, K.y, 'rotate(-372deg) scale(.92)'), opacity: 1 }, { transform: at(K.x, K.y + 8, 'rotate(-372deg) scale(.7)'), opacity: 0 }], { duration: ms(380), delay: ms(300), fill: 'forwards' });
+          av.animate([{ transform: at(P.x, P.y, 'scale(1)'), opacity: 1 }, { transform: at(P.x, P.y - 14, 'scale(.9)'), opacity: 0 }], { duration: ms(360), delay: ms(360), fill: 'forwards' });
+          await wait(ms(820));
+          if (t !== token) return;
+          // ⑤
+          const fades = [d.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.97)' }], { duration: ms(260), easing: 'ease-in', fill: 'forwards' }), els.mask.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(260), easing: 'ease-in', fill: 'forwards' })];
+          await fades[0].finished.catch(() => {});
+          closeDialog();
+          fades.forEach((a) => a.cancel());
+        },
+      };
       d.querySelectorAll('[data-yes]').forEach((b) => b.addEventListener('click', () => act(true)));
       d.querySelector('[data-no]').addEventListener('click', () => act(false));
-      rescueTimer(d.querySelector('[data-ok]'), lim, k, act);
+      rescueTimer(okBtn, lim, k, act);
     });
+  }
+  /* 单机：求救这一段谁来动。手里有逗猫棒的机器猫队友「想一想」后去救（离得近的先）；我有逗猫棒就弹窗，可能比机器猫先点；
+   * 没人有 / 都不救：等够机器猫想作废的最长时间再判出局——没人有和有人不肯看起来一样 */
+  function rescuePhase(H) {
+    const s = game.state, key = s.rescue.for + ':' + s.rescue.card + ':' + s.seq;
+    const wait0 = R.rescueWaiting(s);
+    if (!game.rr || game.rr.key !== key) {
+      game.rr = { key, t0: Date.now() };
+      const bot = wait0.find((k) => k !== H || autopilot);
+      const P = pace();   // 机器猫想救不救的时间和想作废一样（2026-11-19 用户）
+      if (bot != null) schedule(P.botNope[0] + Math.random() * (P.botNope[1] - P.botNope[0]), () => {
+        if (game.state.phase === 'rescue' && game.rr && game.rr.key === key && R.rescueWaiting(game.state).indexOf(bot) >= 0) apply(bot, decideBot(bot));
+      });
+    }
+    const left = R.rescueWaiting(s);
+    if (left.indexOf(H) >= 0 && !autopilot) { busy = false; rescueDialog(); return; }
+    if (!left.length) {
+      const rr = game.rr;
+      if (rr.closing) return;
+      rr.closing = true;
+      schedule(Math.max(0, rr.t0 + pace().botNope[1] + 150 - Date.now()), () => { if (game.state.phase === 'rescue' && game.rr === rr) apply(-1, { type: 'closeRescue' }); });
+    }
   }
   /* 百变「明塞」（2026-11-15 用户挑甲2 · 塞歪了）：被明着塞回去的炸毛猫是一张真牌，夹在它那一层、往右下歪着露出一截（上面几层压着它）。
    * 一直留着：有人摸牌它跟着往上挪；被摸走 / 洗牌 / 改命动过（我的记忆里不再知道它在哪）就收回去。动画中途不重算，播完再摆 */
@@ -2331,10 +2451,7 @@
         if (s.alter.by === H) { busy = false; alterDialog(); }
         else schedule(pace().bot, () => apply(s.alter.by, decideBot(s.alter.by)));
         break;
-      case 'rescue':
-        if (s.rescue.by === H) { busy = false; rescueDialog(); }
-        else schedule(pace().bot, () => apply(s.rescue.by, decideBot(s.rescue.by)));
-        break;
+      case 'rescue': rescuePhase(H); break;
       case 'defuse':
         if (s.defuse.by === H) {
           if (!s.deck.length && !(tut && tut.allow && !tut.allow({ type: 'insert', pos: 0 }))) { schedule(ms(260), () => apply(0, { type: 'insert', pos: 0 })); break; }
@@ -2391,6 +2508,7 @@
       else if (d.type === 'alter') ev = R.alterTop(s, seat, d.order);
       else if (d.type === 'steal') ev = R.stealPick(s, seat, d.idx);
       else if (d.type === 'rescue') ev = R.rescue(s, seat, !!d.yes);
+      else if (d.type === 'closeRescue') ev = R.closeRescue(s);
       else throw new Error('bad move');
     } catch (err) {
       console.error(err, d);
@@ -2476,7 +2594,7 @@
       case 'nine': return animNine(e, t);
       case 'askRescue': return animAskRescue(e, t);
       case 'role': return animRole(e, t);
-      case 'noRescue': bubble(e.by, '没逗猫棒了…', { ms: 1400 }); return wait(ms(500));
+      case 'noRescue': return animNoRescue(e, t);
       case 'out': return animOut(e, t);
       case 'win': return;
     }
@@ -3730,6 +3848,7 @@
    * 只有画里这一根逗猫棒在挥（头像那儿不再另外冒一根），画里的炸毛猫消气的同时头像那只也消气；最后画收回成那张牌，牌落进弃牌堆 */
   async function animDefuse(e, t) {
     if (e.extra != null) return animCatSave(e, t);
+    if (e.rescue) { await rescueResolved(e, t); if (t !== token) return; }
     const u = U(), c = fx.center(els.center.getBoundingClientRect());
     const src = takeDefuseCard(e);
     const W = u * 1.2;
@@ -5263,7 +5382,7 @@
     const teamRules = ((game && game.state && game.state.rules) || settings.rules || {}).mode === 'team';
     return '<div class="zm-rules"><h2>怎么玩</h2>' +
       (rolesHtml()) +
-      (teamRules ? '<h3>组队</h3><ul><li>每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。</li><li>出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。</li><li>下家是队友时，普通「甩锅」和「装睡」都会坑到他——想躲就用「自由甩锅」甩给对手，或者先「转向」。</li><li>队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸毛猫的位置你也知道。</li><li>摸到炸毛猫又没有逗猫棒：队友手里有逗猫棒就能救你（离你最近的先问；他的逗猫棒用掉，你自己把炸毛猫塞回去）。</li><li>一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。</li></ul>' : '') +
+      (teamRules ? '<h3>组队</h3><ul><li>每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。</li><li>出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。</li><li>下家是队友时，普通「甩锅」和「装睡」都会坑到他——想躲就用「自由甩锅」甩给对手，或者先「转向」。</li><li>队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸毛猫的位置你也知道。</li><li>摸到炸毛猫又没有逗猫棒：你喊「救我！」，所有队友一起被问，谁先点「救」就用谁的逗猫棒，你自己把炸毛猫塞回去。没人救就出局。不管队友有没有逗猫棒，大家看到的都一样，对手看不出你们队还剩几根。</li><li>一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。</li></ul>' : '') +
       '<p>牌堆里藏着炸毛猫（比人数少一只）。轮到你时，可以出任意多张牌，也可以一张不出，<b>最后摸一张牌结束回合</b>。摸到炸毛猫、手里又没有逗猫棒，就出局。撑到最后的人赢。</p>' +
       '<h3>每人开局</h3><ul><li>4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸毛猫是里面还有几只。</li></ul>' +
       '<h3>牌</h3><ul>' +
@@ -6566,7 +6685,7 @@
       pending: st.pending ? Object.assign(fixSeat(st.pending, ['by', 'target']), { nopes: st.pending.nopes.map((x) => ({ seat: locOf(x.seat), card: x.card })) }) : null,
       give: fixSeat(st.give, ['from', 'to']), pick: fixSeat(st.pick, ['by']), defuse: fixSeat(st.defuse, ['by']),
       alter: fixSeat(st.alter, ['by']), steal: fixSeat(st.steal, ['by', 'from']),
-      teams: st.teams ? rotArr(st.teams) : null, rescue: st.rescue ? Object.assign(fixSeat(st.rescue, ['by', 'for']), { queue: [] }) : null, winnerTeam: st.winnerTeam,
+      teams: st.teams ? rotArr(st.teams) : null, rescue: st.rescue ? { for: locOf(st.rescue.for), card: st.rescue.card, mates: (st.rescue.mates || (st.rescue.by != null ? [st.rescue.by] : [])).map(locOf), wait: g.myCall && st.phase === 'rescue' ? [0] : [] } : null, winnerTeam: st.winnerTeam,
       flux: st.flux, nineUsed: st.nineUsed ? rotArr(st.nineUsed) : null, saveUsed: st.saveUsed ? rotArr(st.saveUsed) : null,
       hotGiven: st.hotGiven != null && st.hotGiven >= 0 ? locOf(st.hotGiven) : -1, cowCut: st.cowCut != null && st.cowCut >= 0 ? locOf(st.cowCut) : -1,
       roles: st.roles ? rotArr(st.roles) : null, roleUsed: st.roleUsed ? rotArr(st.roleUsed) : null,
@@ -6590,6 +6709,7 @@
   function rotEvent(e) {
     const o = Object.assign({}, e);
     for (const k of ROT_KEYS) if (typeof o[k] === 'number' && o[k] >= 0) o[k] = locOf(o[k]);
+    if (Array.isArray(o.mates)) o.mates = o.mates.map(locOf);   // 组队求救：同时被问的几个队友
     return o;
   }
   // 让 id 出现在 seat 手里：和他手里一张「我不知道是什么」的占位牌对调
@@ -6750,7 +6870,12 @@
         s.seq += 1;
         break;
       }
-      case 'askRescue': s.phase = 'rescue'; s.rescue = { by: e.by, for: e.for, card: s.netBoom, queue: [] }; break;   // 组队：问队友救不救
+      case 'askRescue': {   // 组队：同时问活着的队友（老服务器只发 by = 一个个问）；等不等我 = 我是不是队友、手里有没有逗猫棒
+        const mates = e.mates || (e.by != null ? [e.by] : []);
+        s.phase = 'rescue';
+        s.rescue = { for: e.for, card: s.netBoom, mates: mates.slice(), wait: mates.indexOf(0) >= 0 && R.countKind(s.hands[0], R.DEFUSE) > 0 ? [0] : [] };
+        break;
+      }
       case 'noRescue': break;
       case 'defuse': {
         const src = e.rescue && e.from != null ? e.from : e.seat;   // 组队救人：逗猫棒是队友出的
@@ -7059,7 +7184,7 @@
     // 机器猫（含替人代打）做的一步：先「想一下」再播；偷牌先让红光在被偷的人牌上游走一会儿
     if (first.t === 'steal' && first.to !== 0) {
       if (!game.wander) { const cnt = game.state.steal ? game.state.steal.perm.length : game.state.hands[first.from].length; game.wander = startWander(first.from, cnt); await wait(stealThink(cnt)); }
-    } else if (first.bot && first.who > 0) {
+    } else if (first.bot && first.who > 0 && !(first.t === 'defuse' && first.rescue)) {   // 机器猫去救人：省略号早就冒着了，服务器也已经等过它想
       if (first.t === 'nope') await wait(500 + Math.random() * 500);
       else { const b = bubble(first.who, '', { think: true, ms: 60000 }); await wait(pace().bot); if (b) b.remove(); }
     }
@@ -7114,7 +7239,7 @@
     busy = true;
     mode = null;
     // 头像上的倒计时红环：现在该谁做决定
-    const who = s.phase === 'act' ? s.turn : s.phase === 'give' ? s.give.from : s.phase === 'pick' ? s.pick.by : s.phase === 'steal' ? s.steal.by : s.phase === 'alter' ? s.alter.by : s.phase === 'rescue' && s.rescue ? s.rescue.by : s.phase === 'defuse' ? s.defuse.by : -1;
+    const who = s.phase === 'act' ? s.turn : s.phase === 'give' ? s.give.from : s.phase === 'pick' ? s.pick.by : s.phase === 'steal' ? s.steal.by : s.phase === 'alter' ? s.alter.by : s.phase === 'rescue' && s.rescue ? s.rescue.for : s.phase === 'defuse' ? s.defuse.by : -1;
     if (s.phase === 'react') { renderAll(); onlineReact(g, mine, remain); return; }
     if (g.turnSec && who >= 0 && remain > 0) startClock(who, null, remain);
     if (!mine) {
@@ -7270,6 +7395,7 @@
       clearTimeout(slow);
       if (game && game.drawLift) { game.drawLift.cancel(); game.drawLift = null; }   // 没摸成：掀起来的那张放回去
       if (d.type === 'pass' && err && err.status === 409) return;   // 窗口已经关了（别人作废 / 已结算）：没关系，等下一份状态
+      if (d.type === 'rescue' && err && (err.error === 'stale' || err.error === 'not_your_turn' || err.error === 'not_your_call')) return;   // 别的队友先救了：等事件推过来，弹窗里演「被他抢先」
       if (game && game.preFlyP) { await game.preFlyP; game.preFlyP = null; if (!online) return; preview = { cards: d.cards }; endPreview(); }
       if (!online) return;
       online.pendingSrc = null;
@@ -8224,6 +8350,7 @@
     if (!game) newGame();
     const s = game.state;
     resetTable();
+    els.app.querySelectorAll('.zm-bubble').forEach((b) => b.remove());   // 被打断的机器猫「想一下」的气泡（它那一步不会再来收）
     game.dealing = false;
     const pool = (k) => R.KIND_OF.map((x, id) => (x === k ? id : -1)).filter((id) => id >= 0 && s.hands.every((h) => h.indexOf(id) < 0) && (s.deck.indexOf(id) >= 0 || s.discard.indexOf(id) >= 0 || s.removed.indexOf(id) >= 0));
     const give = (seat, k) => { const id = pool(k)[0]; if (id == null) return; const src = s.deck.indexOf(id) >= 0 ? s.deck : s.discard.indexOf(id) >= 0 ? s.discard : s.removed; src.splice(src.indexOf(id), 1); s.hands[seat].push(id); s.hands[seat] = R.sortHand(s.hands[seat]); };
@@ -8251,6 +8378,8 @@
       attack: () => { give(bot, R.ATTACK); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
       // 组队（只在组队局里有意义）：队友摸到炸毛猫、手里没逗猫棒、我有 → 问我救不救；队友窥探 / 改命（我该看得到）；我出局后看队友
       rescue: () => { const m = R.mateOf(s, 0); if (m < 0) return; s.hands[m] = s.hands[m].filter((id) => R.KIND_OF[id] !== R.DEFUSE); if (R.countKind(s.hands[0], R.DEFUSE) === 0) give(0, R.DEFUSE); top(R.BOOM); s.turn = m; apply(m, { type: 'draw' }); },
+      rescuenone: () => { const m = R.mateOf(s, 0); if (m < 0) return; for (const k of [0, m]) s.hands[k] = s.hands[k].filter((id) => R.KIND_OF[id] !== R.DEFUSE); top(R.BOOM); s.turn = m; apply(m, { type: 'draw' }); },   // 队友炸了、谁都没逗猫棒 → 照样喊救、省略号，然后出局
+      rescuerace: () => { const ms3 = R.matesOf(s, 0); if (ms3.length < 2) return; const f = ms3[0], o = ms3[1]; s.hands[f] = s.hands[f].filter((id) => R.KIND_OF[id] !== R.DEFUSE); if (R.countKind(s.hands[0], R.DEFUSE) === 0) give(0, R.DEFUSE); if (R.countKind(s.hands[o], R.DEFUSE) === 0) give(o, R.DEFUSE); top(R.BOOM); s.turn = f; apply(f, { type: 'draw' }); },   // 3 人一队：我和另一个机器猫队友都有，看它抢先救的样子
       rescueme: () => { const m = R.mateOf(s, 0); if (m < 0) return; s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); if (R.countKind(s.hands[m], R.DEFUSE) === 0) give(m, R.DEFUSE); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       stealmate: () => { const m = R.mateOf(s, 0); if (m < 0) return; const a = [1, 2, 3].find((k) => k !== m); ['orange', 'calico', 'tabby', 'skip', 'shuffle', 'attack'].forEach((k) => give(m, k)); give(a, 'cow'); give(a, 'cow'); s.turn = a; apply(a, { type: 'play', cards: s.hands[a].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: m }); },
       // 组队：对面只剩最后一个人、他摸到炸毛猫没逗猫棒（队友也都出局了）→ 我们队赢，看结算

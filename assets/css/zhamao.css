@@ -172,6 +172,10 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-bubble.is-think i:nth-child(2) { animation-delay: 0.15s; }
 .zm-bubble.is-think i:nth-child(3) { animation-delay: 0.3s; }
 @keyframes zm-dot { 30% { transform: translateY(-4px); background: var(--zm-ink); } 60% { transform: none; } }
+.zm-bubble.is-think.is-sos { gap: 5px; padding: 8px 12px; border-color: #c99a3e; box-shadow: 0 0 0 3px rgba(233, 200, 106, 0.35), 0 4px 12px rgba(29, 27, 24, 0.18); animation: zm-sos-pop 0.32s cubic-bezier(.3,1.6,.5,1) both; }
+.zm-bubble.is-think.is-sos::after { border-color: #c99a3e; }
+.zm-bubble.is-think.is-sos i { width: 8px; height: 8px; background: var(--zm-ink); animation-duration: 0.75s; }
+@keyframes zm-sos-pop { from { opacity: 0; transform: translate(-50%, 10px) scale(.4); } }
 @keyframes zm-bubble-in { from { opacity: 0; transform: translate(-50%, 6px) scale(.7); } }
 
 /* ───── 中间：牌堆 · 弃牌堆 · 舞台 ───── */
@@ -1626,23 +1630,55 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-dialog.is-rescue { width: min(100%, 420px); }
 .zm-rescue { --rc: clamp(84px, 24vw, 112px); display: flex; align-items: center; justify-content: center; gap: 4px; padding: 18px 0 6px; }
 .zm-rescue-mate { position: relative; width: calc(var(--rc) * 1.3); height: calc(var(--rc) * 1.62); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
-.zm-rescue-kit { position: absolute; left: 50%; top: 0; width: calc(var(--rc) * 0.8); translate: -78% -6%; rotate: -12deg; }
-.zm-rescue-kit .zm-card { --cw: calc(var(--rc) * 0.8); width: 100%; box-shadow: 0 6px 16px rgba(160, 50, 40, 0.28); }
+.zm-rescue-kit { position: absolute; left: 50%; top: 0; width: calc(var(--rc) * 0.8); translate: -78% -6%; rotate: -12deg; animation: zm-kit-frantic 0.46s linear infinite; }
+.zm-rescue-kit .zm-card { --cw: calc(var(--rc) * 0.8); width: 100%; }
+.zm-rescue-kit.zm-angry .zm-card:not(.is-back) { animation: zm-tremble 0.14s linear infinite, zm-kit-flare 0.9s ease-in-out infinite; }
+/* 炸毛猫（2026-11-19 用户：要更疯）：整张牌乱抖、时不时猛一蹿，红光一阵一阵往外冒 */
+@keyframes zm-kit-frantic {
+  0% { transform: translate(0, 0) rotate(0deg); } 10% { transform: translate(-3px, 2px) rotate(-5deg); } 20% { transform: translate(3px, -2px) rotate(4deg); }
+  30% { transform: translate(-2px, -3px) rotate(-3deg) scale(1.03); } 40% { transform: translate(4px, 1px) rotate(6deg); } 50% { transform: translate(-4px, 0) rotate(-7deg) scale(1.06); }
+  60% { transform: translate(2px, 3px) rotate(3deg); } 70% { transform: translate(-3px, -1px) rotate(-4deg); } 80% { transform: translate(3px, -3px) rotate(5deg) scale(1.02); } 90% { transform: translate(-1px, 2px) rotate(-2deg); } 100% { transform: translate(0, 0) rotate(0deg); }
+}
+@keyframes zm-kit-flare { 0%, 100% { box-shadow: 0 6px 16px rgba(160, 50, 40, 0.28), 0 0 0 0 rgba(200, 70, 58, 0); } 50% { box-shadow: 0 6px 16px rgba(160, 50, 40, 0.28), 0 0 18px 6px rgba(200, 70, 58, 0.55); } }
 .zm-rescue-av { position: relative; z-index: 1; width: calc(var(--rc) * 0.72); height: calc(var(--rc) * 0.72); border-radius: 50%; overflow: hidden; background: var(--zm-card); translate: 22% 0; box-shadow: 0 0 0 3px var(--zm-seal), 0 0 0 7px rgba(180, 57, 44, 0.18), 0 6px 14px rgba(29, 27, 24, 0.22); animation: zm-sos-shake 0.5s ease-in-out infinite; display: flex; align-items: center; justify-content: center; font-weight: 700; }
 .zm-rescue-av svg { width: 100%; height: 100%; display: block; }
 .zm-rescue-nm { position: relative; z-index: 1; margin-top: 7px; translate: 22% 0; font-size: 13px; letter-spacing: 0.06em; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.zm-rescue-arc { width: calc(var(--rc) * 0.8); height: calc(var(--rc) * 0.4); flex: none; overflow: visible; margin-bottom: calc(var(--rc) * 0.25); }
-.zm-rescue-arc path { fill: none; stroke: var(--zm-seal); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
-.zm-rescue-arc .arc { stroke-dasharray: 7 9; animation: zm-rescue-flow 0.9s linear infinite; }
-@keyframes zm-rescue-flow { to { stroke-dashoffset: 16; } }
-.zm-rescue-wand { all: unset; cursor: pointer; width: calc(var(--rc) * 0.9); border-radius: 10px; animation: zm-rescue-glow 1.4s ease-in-out infinite; rotate: 6deg; transition: transform 0.15s ease; }
-.zm-rescue-wand .zm-card { --cw: calc(var(--rc) * 0.9); width: 100%; }
+/* 逗猫棒 → 队友（2026-11-19 用户在四版里挑了丙）：不画线，逗猫棒自己往队友那边探身，队友身后一圈金光跟着一起一伏 */
+.zm-rescue-gap { width: calc(var(--rc) * 0.3); flex: none; }
+.zm-rescue-wand { all: unset; cursor: pointer; width: calc(var(--rc) * 1.18); border-radius: 12px; rotate: 6deg; transform-origin: 70% 90%; transition: transform 0.15s ease; animation: zm-rescue-glow 1.4s ease-in-out infinite, zm-wand-offer 1.4s ease-in-out infinite; }
+.zm-rescue-wand .zm-card { --cw: calc(var(--rc) * 1.18); width: 100%; }
 .zm-rescue-wand:hover, .zm-rescue-wand:focus-visible { transform: translateY(-4px) scale(1.04); }
 @keyframes zm-rescue-glow { 0%, 100% { box-shadow: 0 0 0 2px #e9c86a, 0 0 14px rgba(233, 200, 106, 0.55); } 50% { box-shadow: 0 0 0 3px #e9c86a, 0 0 26px rgba(233, 200, 106, 0.9); } }
-@keyframes zm-sos-shake { 0%, 100% { translate: 0 0; rotate: 0deg; } 25% { translate: -2px 0; rotate: -3deg; } 75% { translate: 2px 0; rotate: 3deg; } }
+@keyframes zm-wand-offer { 0%, 100% { translate: 0 0; rotate: 6deg; } 50% { translate: calc(var(--rc) * -0.14) -4px; rotate: -10deg; } }
+.zm-rescue-mate::before { content: ''; position: absolute; z-index: 0; left: 50%; bottom: calc(var(--rc) * 0.12); width: calc(var(--rc) * 1.05); aspect-ratio: 1; translate: -40% 0; border-radius: 50%; background: radial-gradient(circle, rgba(242, 210, 122, 0.55) 0%, rgba(242, 210, 122, 0.18) 45%, rgba(242, 210, 122, 0) 70%); animation: zm-mate-halo 1.4s ease-in-out infinite; }
+@keyframes zm-mate-halo { 0%, 100% { opacity: 0.35; scale: 0.9; } 50% { opacity: 1; scale: 1.08; } }
+@keyframes zm-sos-shake { 0%, 100% { translate: 22% 0; rotate: 0deg; } 25% { translate: calc(22% - 2px) 0; rotate: -3deg; } 75% { translate: calc(22% + 2px) 0; rotate: 3deg; } }
 .zm-dialog.is-rescue .zm-actions { margin-top: 14px; }
 .zm-dialog.is-rescue .zm-btn { min-width: 96px; }
-@media (prefers-reduced-motion: reduce) { .zm-rescue-av, .zm-rescue-wand, .zm-rescue-arc .arc { animation: none !important; } }
+/* 「救！」（2026-11-19 用户）：绿色是队友的命，倒计时一点点往左缩、露出底下的灰——到点没救 = 没救成 */
+.zm-btn.zm-btn-life { position: relative; overflow: hidden; isolation: isolate; background: #9c978c; border-color: transparent; color: #fff; text-shadow: 0 1px 2px rgba(29, 27, 24, 0.35); }
+.zm-btn-life .zm-life { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.zm-btn-life .zm-life i { position: absolute; inset: 0; background: #5d8a6b; transform-origin: left center; }
+.zm-btn-life.is-hurry .zm-life i { animation: zm-life-beat 0.6s ease-in-out infinite; }
+@keyframes zm-life-beat { 50% { background: #6f9e7c; } }
+.zm-btn-life:hover .zm-life i { background: #67977a; }
+/* 联机：点了「救」在等服务器——逗猫棒举起来亮着 */
+.zm-rescue { position: relative; }
+.zm-rescue.is-sent .zm-rescue-wand { animation: zm-rescue-glow 0.7s ease-in-out infinite; translate: calc(var(--rc) * -0.1) -10px; rotate: -6deg; }
+.zm-actions .zm-btn:disabled { cursor: default; }
+/* 被别的队友抢先救了（taken 里用 WAAPI 一段段演）：我的逗猫棒收回去变灰；他的头像在上方冒出来，他的逗猫棒从头像里甩出去、
+ * 划一道弧落到炸毛猫上，落点炸开一圈金光；炸毛猫一下子不抖了、缩回去，队友头像亮金圈；最后整窗淡出 */
+.zm-rescue.is-taken .zm-rescue-wand { animation: none; pointer-events: none; }
+.zm-rescue.is-taken .zm-rescue-mate::before { animation: none; opacity: 0; transition: opacity 0.3s; }
+.zm-rescue.is-saved .zm-rescue-av { animation: none; translate: 22% 0; box-shadow: 0 0 0 3px #e9c86a, 0 0 0 9px rgba(233, 200, 106, 0.35), 0 6px 14px rgba(29, 27, 24, 0.22); transition: box-shadow 0.3s; }
+.zm-rescue.is-saved .zm-rescue-kit, .zm-rescue.is-saved .zm-rescue-kit .zm-card:not(.is-back) { animation: none; }
+.zm-rescue-fx { position: absolute; z-index: 3; left: 0; top: 0; pointer-events: none; }
+.zm-rescue-by { width: calc(var(--rc) * 0.56); height: calc(var(--rc) * 0.56); border-radius: 50%; overflow: hidden; background: var(--zm-card); box-shadow: 0 0 0 3px #e9c86a, 0 0 18px rgba(233, 200, 106, 0.7), 0 4px 10px rgba(29, 27, 24, 0.25); display: flex; align-items: center; justify-content: center; }
+.zm-rescue-by svg { width: 100%; height: 100%; display: block; }
+.zm-rescue-toss { width: calc(var(--rc) * 0.62); border-radius: 8px; box-shadow: 0 0 0 2px #e9c86a, 0 0 16px rgba(233, 200, 106, 0.85); }
+.zm-rescue-toss .zm-card { --cw: calc(var(--rc) * 0.62); width: 100%; }
+.zm-rescue-burst { width: calc(var(--rc) * 0.9); height: calc(var(--rc) * 0.9); border-radius: 50%; border: 3px solid #e9c86a; box-shadow: 0 0 18px rgba(233, 200, 106, 0.8), inset 0 0 14px rgba(233, 200, 106, 0.6); }
+@media (prefers-reduced-motion: reduce) { .zm-rescue-av, .zm-rescue-wand, .zm-rescue-kit, .zm-rescue-kit .zm-card, .zm-rescue-mate::before { animation: none !important; } }
 
 /* ───── 主页封面第三轮（2026-11-18）：标题字 / 玩法背景（对角剪影）/ 接着打（小黄点 + 设置单卡） ───── */
 /* 标题：四个字各是一张字形 SVG（「小」的竖钩换成逗猫棒、「咪」的口字旁换成炸毛猫），字间距照旧 */

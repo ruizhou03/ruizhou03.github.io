@@ -628,3 +628,40 @@ test('insertSeen: a bot that saw the kitten go on top avoids drawing it when it 
   assert.ok(tried >= 10, 'enough cases');
   assert.ok(avoided / tried > 0.8, 'bot avoids a visibly-topped kitten: ' + avoided + '/' + tried);
 });
+
+test('team rescue: everyone asked at once, first yes wins, declines are silent, nobody-holds looks the same', () => {
+  const C = R.CATS[0];
+  const team = (hands, deck, teams) => { const s = rig(hands, deck); s.rules = Object.assign({}, s.rules, { mode: 'team' }); s.teams = teams; return s; };
+  // 3v3：0、1、2 一队。1、2 都有逗猫棒 → 同时问，公开事件只说「谁喊救、哪几个队友在想」
+  let s = team([[C], [R.DEFUSE], [R.DEFUSE], [C], [C], [C]], [R.BOOM, C, C], [0, 0, 0, 1, 1, 1]);
+  let ev = R.draw(s, 0);
+  const ask = ev.find((e) => e.t === 'askRescue');
+  assert.deepEqual(ask.mates, [1, 2]); assert.equal(ask.by, undefined);
+  assert.deepEqual(R.rescueWaiting(s), [1, 2]);
+  assert.deepEqual(R.view(s, 3).rescue, { for: 0, mates: [1, 2] }, '对手看不到谁有逗猫棒');
+  // 2 先点救：用 2 的逗猫棒；1 再点 = 不合法，1 的逗猫棒还在
+  ev = R.rescue(s, 2, true);
+  assert.equal(ev[0].from, 2); assert.equal(s.phase, 'defuse'); assert.equal(s.defuse.by, 0);
+  assert.throws(() => R.rescue(s, 1, true));
+  assert.equal(R.countKind(s.hands[1], R.DEFUSE), 1); assert.equal(R.countKind(s.hands[2], R.DEFUSE), 0);
+  // 不救不出事件；都不救 → closeRescue 出局
+  s = team([[C], [R.DEFUSE], [C], [C], [C], [C]], [R.BOOM, C, C], [0, 0, 0, 1, 1, 1]);
+  R.draw(s, 0);
+  assert.deepEqual(R.rescueWaiting(s), [1]);
+  assert.deepEqual(R.rescue(s, 1, false), []);
+  assert.equal(s.phase, 'rescue'); assert.deepEqual(R.rescueWaiting(s), []);
+  ev = R.closeRescue(s);
+  assert.equal(ev[0].t, 'noRescue'); assert.ok(ev.some((e) => e.t === 'out' && e.seat === 0));
+  // 队友都没逗猫棒：照样当众求救（等的名单是空的）
+  s = team([[C], [C], [C], [C], [C], [C]], [R.BOOM, C, C], [0, 0, 0, 1, 1, 1]);
+  ev = R.draw(s, 0);
+  assert.deepEqual(ev.find((e) => e.t === 'askRescue').mates, [1, 2]); assert.deepEqual(R.rescueWaiting(s), []);
+  // 队友全出局：不问，直接出局
+  s = team([[C], [C], [C], [C], [C], [C]], [R.BOOM, C, C], [0, 0, 0, 1, 1, 1]); s.alive[1] = false; s.alive[2] = false;
+  ev = R.draw(s, 0);
+  assert.ok(!ev.some((e) => e.t === 'askRescue')); assert.equal(s.alive[0], false);
+  // 老存档（一个个问）读进来也能接着走
+  s = team([[C], [R.DEFUSE], [C], [C], [C], [C]], [C, C], [0, 0, 0, 1, 1, 1]);
+  s.phase = 'rescue'; s.rescue = { by: 1, for: 0, card: ofKind(R.BOOM)[0], queue: [] };
+  assert.deepEqual(R.rescueWaiting(s), [1]);
+});
