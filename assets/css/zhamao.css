@@ -1747,8 +1747,13 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   .zm-app.is-ring .zm-hand { grid-area: hand; padding-top: 22px; }
 }
 /* 联机大厅 · 组队（2026-11-18）：座位按队分段，每段一块队色淡底板；多坐了的人另起一行 */
-.zm-lobby-seats.is-team { display: grid; grid-template-columns: 1fr; gap: 8px; }
-.zm-lteam { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px; border-radius: 14px; border: 1.5px solid var(--tc); background: color-mix(in srgb, var(--tbg) 35%, transparent); }
+/* 2026-11-19 用户：队伍框按人数收紧、居中；三队及以上、每队 2 人时一行放两队（2v2v2 = 两队 + 下面一队居中，2v2v2v2 = 两行各两队）。
+ * 座位宽度各种分法都一样：按「一行两个两人队正好放满」算（--sw） */
+.zm-lobby-seats.is-team { container-type: inline-size; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.zm-lobby-seats.is-team.is-pairs { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+.zm-lobby-seats.is-team .zm-lteam { --sw: calc((100cqw - 62px) / 4); }
+.zm-lteam { display: grid; grid-template-columns: repeat(var(--k, 4), var(--sw, 1fr)); gap: 6px; padding: 8px; border-radius: 14px; border: 1.5px solid var(--tc); background: color-mix(in srgb, var(--tbg) 35%, transparent); }
+.zm-lobby-seats.is-team .zm-lteam.is-extra { align-self: stretch; width: auto; flex-basis: 100%; grid-template-columns: repeat(auto-fill, var(--sw)); justify-content: center; }
 .zm-lteam.is-extra { border: 1.5px dashed rgba(29, 27, 24, 0.3); background: transparent; }
 .zm-lteam.is-extra small { grid-column: 1 / -1; font-size: 11.5px; color: var(--zm-ink-mute); }
 .zm-lobby-rules .zs-seg .zm-pips { gap: 3px; } .zm-lobby-rules .zs-seg .zm-pips span { gap: 1.5px; } .zm-lobby-rules .zs-seg .zm-pips i { width: 6px; height: 6px; }
