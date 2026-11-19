@@ -1149,16 +1149,18 @@
   }
   // 弃牌堆最多叠这么多层纸边（≈ 30 张）就不再变高（2026-11-14 用户：人多打到后面堆得太高，出牌区对不上堆顶）
   const DISCARD_CAP = 26;
+  const pileY = (j) => -Math.min(j, DISCARD_CAP + 3) * DECK_LOOK.sy * PU() * 0.8;   // 弃牌堆第 j 层（从底下数）的高度
+  /* 弃牌堆（2026-11-18 用户：新牌落下来，底下旧牌之间的交叠会跟着变一点）：以前每张的位置按「离堆顶第几张」算——
+   * 顶上 4 张左右错开、整体高度跟着总张数走、第 5 张被压下去时换成另一套歪法的纸边，所以每落一张，旧牌都挪一下。
+   * 现在每张只看它自己：第 j 层的高度 pileY(j)、歪多少 pileRot(id)，落下以后再也不变；压到下面变纸边也保持原来的歪法 */
   function renderDiscard(list) {
-    const pu = PU(), faces = list.slice(-4), m = Math.min(DISCARD_CAP, Math.max(0, list.length - faces.length));
-    const sy = DECK_LOOK.sy * pu * 0.8;
+    const n = list.length, faceFrom = Math.max(0, n - 4), m = Math.min(DISCARD_CAP, faceFrom);
     let h = '';
-    // 底下歪歪扭扭的纸边（每张随它自己的 id 定歪多少，不会每次重画都乱跳）
     for (let j = 0; j < m; j++) {
       const id = list[j];
-      h += '<i class="zm-sheet' + (j === 0 ? ' is-floor' : '') + '" style="background:' + EDGES[id % EDGES.length] + ';transform:translate(' + ((jit(id, 5) - 0.5) * pu * 0.07).toFixed(2) + 'px,' + (-j * sy).toFixed(2) + 'px) rotate(' + ((jit(id, 6) - 0.5) * 7).toFixed(2) + 'deg)"></i>';
+      h += '<i class="zm-sheet' + (j === 0 ? ' is-floor' : '') + '" style="background:' + EDGES[id % EDGES.length] + ';transform:translate(0px,' + pileY(j).toFixed(2) + 'px) rotate(' + pileRot(id) + 'deg)"></i>';
     }
-    h += faces.map((id, i) => cardHtml(id, '', 'transform:translate(' + ((i - faces.length + 1) * 1.5).toFixed(1) + 'px,' + (-m * sy).toFixed(2) + 'px) rotate(' + pileRot(id) + 'deg)')).join('');
+    for (let j = faceFrom; j < n; j++) h += cardHtml(list[j], '', 'transform:translate(0px,' + pileY(j).toFixed(2) + 'px) rotate(' + pileRot(list[j]) + 'deg)');
     els.discard.innerHTML = h;
   }
   /* ───── 百变规则牌（2026-11-15 用户：用甲的样子、不预告；打「百变」从百变规则堆里抽一条，抽到什么算什么）─────
@@ -1447,7 +1449,15 @@
     return c ? c.getBoundingClientRect() : els.deck.getBoundingClientRect();
   }
   // 弃牌堆顶：落牌落在最上面那张的位置（堆高了就落得高一点）
-  function discardRect() {
+  function discardRect() { return fx.steady(discardRectRaw); }   // 量的是不震时的位置（桌子在震也不会落偏、落下再挪一下）
+  // 下一张（前面还有 extra 张在半路）落进弃牌堆后、它在堆顶的确切位置：堆高了一层，落点也跟着高一层（和 renderDiscard 同一个算法）
+  function discardSlot(extra) {
+    return fx.steady(() => {
+      const r = els.discard.getBoundingClientRect(), dy = pileY((D().discard || []).length + (extra || 0));
+      return { left: r.left, top: r.top + dy, width: r.width, height: r.height, right: r.right, bottom: r.bottom + dy };
+    });
+  }
+  function discardRectRaw() {
     const cs = els.discard.querySelectorAll('.zm-card');
     if (!cs.length) return els.discard.getBoundingClientRect();
     const r = els.discard.getBoundingClientRect(), dy = parseFloat((cs[cs.length - 1].style.transform.match(/translate\([^,]+,\s*(-?[\d.]+)px/) || [0, 0])[1]) || 0;
@@ -3493,7 +3503,10 @@
     const u = U();
     if (t !== token) return;
     snd('kaboom');
-    bombAvatar(e.seat, true);   // 九命之类没先变身的：这时候补上
+    // 2026-11-18 用户：炸开那一下头像就直接变灰；同时他的牌一张接一张翻进弃牌堆，炸毛猫就是这一串里的最后一张
+    // （和别的牌同一个起点、同样大小、同样节奏，不再停一下再从头像上单独剥下来）
+    bombAvatar(e.seat, false);
+    ov.alive[e.seat] = false;
     fx.shake(els.table, { amp: 15, dur: 700, rot: 1 });
     fx.flash('rgba(200,70,58,.55)', 0, 1100);
     fx.ring(a.x, a.y, { color: '#c8463a', size: u * 5, width: 10, dur: 760 });
@@ -3505,37 +3518,36 @@
     ov.counts[e.seat] = 0;
     if (ov.turn === e.seat) ov.turn = -1;
     renderSeat(e.seat);
-    await wait(ms(560));
-    if (t !== token) return;
     const cards = e.cards || [];
-    const to = discardRect(), pu = PU();
+    const pu = PU();
     const kit = game.state.discard[game.state.discard.length - 1];
     const withKit = kit != null && R.KIND_OF[kit] === R.BOOM && cards.indexOf(kit) < 0;
-    const hand = cards.filter((id) => id !== kit);
-    // ② 手牌：我的从手里出发（正面），别人的从头像里出来、半路翻开
-    const srcRects = e.seat === 0 ? hand.map((id) => (handCard(id) ? handRectOf(id) : null)) : null;
-    if (e.seat === 0) { ov.hand = []; renderHand({ flip: false }); }
-    await Promise.all(hand.map((id, i) => {
-      const fromHand = !!(srcRects && srcRects[i]);
-      return fx.fly({
-        html: cardHtml(id), back: backHtml(), flip: fromHand ? null : 'up', flipAt: 0.2,
-        from: fromHand ? srcRects[i] : a, to, w: pu, s0: fromHand ? srcRects[i].width / pu : 0.35, s1: 1,
-        r0: (Math.random() - 0.5) * 60, r1: pileRot(id), dur: ms(520), delay: i * ms(70), lift: 60 + Math.random() * 50,
-      }).then(() => { if (t === token && ov) { ov.discard.push(id); renderPiles(); } });
-    }));
+    const list = cards.filter((id) => id !== kit).concat(withKit ? [kit] : []);
+    // 2026-11-18 用户：每张牌轮到它才出现、才起飞（以前先在起点摆着等：别人头像上挂着牌背、我的手牌原地歪着等）；
+    // 落点按不震时的位置、按它落下后在堆顶的确切那一层算（以前起飞时量的是震歪的位置，落下后会挪一下）。
+    // 炸毛猫绝不进手牌区（用户）：它一直在头像里，最后一个从头像出来（大家早看见了，正面）。
+    // 别人出局：所有牌都从他头像里一张接一张冒出来、半路翻开，炸毛猫压轴。
+    // 我出局（2026-11-18 用户挑丙）：手牌从手里原位依次飞走，紧接着炸毛猫从头像出来压轴（丁「先吸进头像再吐」没要）
+    const mine = e.seat === 0;
+    await wait(ms(220));   // 和「嘭」几乎同时：烟还没散，牌就一张张出来
     if (t !== token) return;
-    // ③ 炸毛猫：正面、头像那么大，从头像上剥下来，落在最上面；它一走头像就变灰
-    if (withKit) {
-      await wait(ms(160));
-      if (t !== token) return;
-      const ar = avNode ? avNode.getBoundingClientRect() : { width: pu * 0.6 };
-      bombAvatar(e.seat, false);
-      ov.alive[e.seat] = false;
-      renderSeat(e.seat);
-      snd('flip');
-      await fx.fly({ html: cardHtml(kit), from: a, to, w: pu, s0: Math.max(0.3, ar.width / pu), s1: 1, r0: -6, r1: pileRot(kit), dur: ms(560), lift: 40 });
-      if (t === token && ov) { ov.discard.push(kit); renderPiles(); snd('thud'); }
-    } else if (ov && kit != null && ov.discard[ov.discard.length - 1] !== kit) { ov.discard.push(kit); renderPiles(); }
+    const step = ms(80);
+    let inAir = 0;
+    await Promise.all(list.map((id, i) => wait(i * step).then(() => {
+      if (t !== token) return null;
+      let r = null;
+      if (mine && id !== kit) { const c = handCard(id); if (c) { r = c.getBoundingClientRect(); c.style.visibility = 'hidden'; } }
+      const faceUp = !!r || id === kit || mine;   // 从头像出来的：别人的牌半路翻开；炸毛猫和我自己的牌本来就是明的
+      const to = discardSlot(inAir++);
+      return fx.fly({
+        html: cardHtml(id), back: backHtml(), flip: faceUp ? null : 'up', flipAt: 0.2,
+        from: r || a, to, w: pu, s0: r ? r.width / pu : 0.35, s1: 1,
+        r0: r ? 0 : (Math.random() - 0.5) * 50, r1: pileRot(id), dur: ms(id === kit ? 560 : 500), lift: r ? 50 + Math.random() * 30 : 60 + Math.random() * 40,
+      }).then(() => { inAir--; if (t === token && ov) { ov.discard.push(id); renderPiles(); if (id === kit) snd('thud'); } });
+    })));
+    if (mine && ov) { ov.hand = []; renderHand({ flip: false }); }
+    if (t !== token) return;
+    if (!withKit && ov && kit != null && ov.discard[ov.discard.length - 1] !== kit) { ov.discard.push(kit); renderPiles(); }
     if (t !== token) return;
     bombAvatar(e.seat, false);
     ov.alive[e.seat] = false;

@@ -141,9 +141,15 @@
         frames.push({ transform: T(b.x - w / 2, b.y - h / 2, s1 * 0.95, r1), boxShadow: '0 1px 2px rgba(29,27,24,.16)', opacity: 1, offset: 0.93, easing: 'cubic-bezier(.3,.7,.4,1)' });
       }
       frames.push({ transform: T(b.x - w / 2, b.y - h / 2, s1, r1), boxShadow: o.shadow === false ? 'none' : '0 1px 2px rgba(29,27,24,.16)', opacity: o.fadeOut ? 0 : 1 });
+      // 翻面的牌：影子不能画在外层这个不翻的方框上（牌翻到侧面变窄时，方框的影子会勾出一块比牌宽的「底板」，2026-11-18 用户慢放看到）
+      // → 外层不要影子，同一套影子挪到跟着翻的那层上
+      const shadows = o.flip ? frames.map((fr) => ({ boxShadow: fr.boxShadow, offset: fr.offset, easing: fr.easing })) : null;
+      if (o.flip) frames.forEach((fr) => { fr.boxShadow = 'none'; });
       const anim = el.animate(frames, { duration: dur, delay: o.delay || 0, fill: 'both', easing: 'linear' });
       if (o.flip) {
         const inner = el.firstChild;
+        inner.style.borderRadius = el.style.borderRadius;
+        inner.animate(shadows.map((x) => { const y = { boxShadow: x.boxShadow }; if (x.offset != null) y.offset = x.offset; if (x.easing) y.easing = x.easing; return y; }), { duration: dur, delay: o.delay || 0, fill: 'both', easing: 'linear' });
         const fromDeg = o.flip === 'up' ? 180 : 0, toDeg = o.flip === 'up' ? 0 : 180;
         const at0 = o.flipAt != null ? o.flipAt : 0.25, at1 = Math.min(0.86, at0 + 0.4);
         inner.animate([
@@ -305,7 +311,17 @@
         const dy = i === n ? 0 : rnd(-0.5, 0.5) * o.amp * k;
         fr.push({ transform: 'translate(' + f1(dx) + 'px,' + f1(dy) + 'px) rotate(' + f1((i % 2 ? -1 : 1) * o.rot * k) + 'deg)' });
       }
-      el.animate(fr, { duration: o.dur, delay: o.delay, easing: 'linear', composite: 'add' });
+      const a = el.animate(fr, { duration: o.dur, delay: o.delay, easing: 'linear', composite: 'add' });
+      shaking.add(a);
+      a.finished.then(() => { if (a.playState === 'finished') shaking.delete(a); }, () => shaking.delete(a));
+    }
+    /* 量落点时先把震动拿掉（2026-11-18 用户：牌飞进弃牌堆，最后一帧和真落下的位置差一点、会挪一下——
+     * 因为「嘭」时整张桌子在震，起飞时量到的是震歪了的位置）。fn 里量到的都是不震时的位置，量完原样放回去 */
+    const shaking = new Set();
+    function steady(fn) {
+      const saved = [];
+      shaking.forEach((a) => { if (a.playState === 'finished' || a.playState === 'idle') { shaking.delete(a); return; } try { const end = a.effect.getComputedTiming().endTime; saved.push([a, a.currentTime]); a.currentTime = end + 1; } catch (_) { /* */ } });
+      try { return fn(); } finally { saved.forEach(([a, t]) => { try { a.currentTime = t; } catch (_) { /* */ } }); }
     }
 
     function pop(el, o) {
@@ -378,7 +394,7 @@
 
     function clear() { layer.querySelectorAll('.zm-spark, .zm-smoke, .zm-ring, .zm-floater, .zm-arrow, .zm-screenflash').forEach((n) => n.remove()); parts = []; }
 
-    return { animate, fly, burst, smoke, ring, flash, shake, pop, float, arrow, clear, center, T, reduce, snd };
+    return { animate, fly, burst, smoke, ring, flash, shake, steady, pop, float, arrow, clear, center, T, reduce, snd };
   }
 
   window.ZhamaoFx = { create, SHAPES };

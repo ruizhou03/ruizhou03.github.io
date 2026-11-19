@@ -148,7 +148,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   background: var(--zm-seal); color: var(--zm-seal-ink); font: 700 12px/22px Georgia, serif; text-align: center;
   box-shadow: 0 0 0 1.5px var(--zm-paper);
 }
-.zm-seat.is-out .zm-av { filter: grayscale(1) opacity(0.45); }
+.zm-seat.is-out .zm-av { filter: grayscale(1) opacity(0.45); transition: box-shadow 0.25s ease; }   /* 炸开那一下直接变灰，不淡入（2026-11-18 用户） */
 .zm-seat.is-out .zm-name, .zm-seat.is-out .zm-tier { opacity: 0.45; }
 /* 头像旁的小气泡：装睡 Zz、偷牌落空… */
 .zm-bubble {
