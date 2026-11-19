@@ -47,7 +47,7 @@
   /* 接到一个 AudioContext 的某个节点上（游戏里是 ZhamaoAudio 的音乐总线；离线自测可以接 OfflineAudioContext） */
   function attach(ctx, dest, level) {
     if (ac && ac !== ctx) { Object.keys(BUS).forEach((k) => delete BUS[k]); P.cur = null; P.bar = 0; P.nextT = 0; MARKS.length = 0; }   // 换了一个新的声音上下文（旧的被系统关掉了）：旧通道不能再用
-    ac = ctx; noiseBuf = null;
+    ac = ctx; noiseBuf = null; VOICES.length = 0;
     master = ac.createGain(); master.gain.value = level == null ? 1 : level;
     master.connect(dest);
     // 回声
@@ -61,7 +61,20 @@
     return master;
   }
   function noise() { if (noiseBuf) return noiseBuf; const n = ac.sampleRate; noiseBuf = ac.createBuffer(1, n, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; return noiseBuf; }
-  function out(g, send) { g.connect(OUT || master); if (send && send.delay) { const s = ac.createGain(); s.gain.value = send.delay; g.connect(s); s.connect(fxDelay); } if (send && send.verb) { const s = ac.createGain(); s.gain.value = send.verb; g.connect(s); s.connect(fxVerb); } }
+  /* 每个音放完就自己从总线上拔掉（2026-11-19 用户：结算页停三四分钟，音乐卡得断断续续，退出重进又顺了）。
+   * 音乐每秒要新建约 90 个声音节点，以前全靠浏览器回收：电脑上的 Chrome 收得及时（实测常驻约 1000 个），
+   * iPhone 的 WebKit 要等 JS 垃圾回收才断开——结算页几乎不分配 JS 内存、回收迟迟不来，接在总线上的旧节点越积越多，
+   * 音频线程每一小段都要把它们全过一遍，算不过来就断音；刷新页面才清零。现在每个音记一个「最晚什么时候放完」，
+   * pump 里到点就 disconnect，断开后整串上游节点不再被音频线程拉取。排程最多提前约 5 秒、单个音（含扫频 / 镲片尾巴）不超过 4 秒，留 12 秒余量 */
+  const VOICES = [];
+  function out(g, send) { g.connect(OUT || master); const v = [g]; if (send && send.delay) { const s = ac.createGain(); s.gain.value = send.delay; g.connect(s); s.connect(fxDelay); v.push(s); } if (send && send.verb) { const s = ac.createGain(); s.gain.value = send.verb; g.connect(s); s.connect(fxVerb); v.push(s); } VOICES.push({ end: ac.currentTime + 12, v }); }
+  function sweep() {
+    if (!ac) return;
+    const now = ac.currentTime;
+    let i = 0;
+    while (i < VOICES.length && VOICES[i].end <= now) { VOICES[i].v.forEach((n) => { try { n.disconnect(); } catch (_) { /* */ } }); i++; }
+    if (i) VOICES.splice(0, i);
+  }
   function env(g, t, a, peak, d, sus, rel, end) {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + a);
@@ -270,6 +283,7 @@
   const bridgeLen = (want) => (want === 'chip' ? 1 : 2);
   const bridgeOk = (bar, want) => (want === 'chip' ? bar % 2 === 1 : bar % 4 === 2);
   function pump() {
+    sweep();
     if (!ac || !P.on) return;
     if (ac.state !== 'running') return;
     if (P.nextT < ac.currentTime) P.nextT = ac.currentTime + 0.06;   // 掉帧 / 切回前台：别补排一堆过期的小节
