@@ -259,7 +259,7 @@
   const TRACK = { menu: 'funk', calm: 'chase', urgent: 'chip', sustain: 'circus' };
   const target = () => (D.mode ? TRACK[D.mode] : null);
 
-  /* ───── 播放器：提前 0.5 秒一小节一小节排；换版要等到乐句边界，用一个「变身小节」过渡 ───── */
+  /* ───── 播放器：提前 1.2 秒一小节一小节排；换版要等到乐句边界，用一个「变身小节」过渡 ───── */
   const P = { on: false, cur: null, bar: 0, nextT: 0, timer: null, stopAt: 0, cut: false };
   /* 节拍时钟（2026-11-14 用户：桌沿的光要踩在鼓点上）：每排一小节记一笔「哪一版、从几点开始、每格多长」，
    * 牌桌按 ac.currentTime 对上第几格，就知道这会儿该不该亮一下。只留最近十几笔 */
@@ -285,7 +285,8 @@
         OUT = busFor(want); DR.crash(P.nextT, 0.8); DR.kick(P.nextT, 1); OUT = null;
       }
     }
-    while (P.nextT < ac.currentTime + 0.5) {
+    // 提前排 1.2 秒（2026-11-18：原来 0.5 秒，主线程一卡超过半秒——比如开屏第一次滑到某个玩法、开局发牌——就断拍，补排的鼓点硬切进来像「爆」一下）
+    while (P.nextT < ac.currentTime + 1.2) {
       const want = target();
       if (!want && !P.cur) return;
       if (want && !P.cur) {

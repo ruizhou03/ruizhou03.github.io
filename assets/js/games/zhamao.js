@@ -5959,11 +5959,39 @@
       if (!SIL[m]) return '<div class="zm-bgl"></div>';
       const band = BG_BAND[m], pair = SIL[m](), q = pair[2];
       const pose = '--t1x:' + q[0] + '%;--t1y:' + q[1] + '%;--r1:' + q[2] + 'deg;--t2x:' + q[3] + '%;--t2y:' + q[4] + '%;--r2:' + q[5] + 'deg;--f2:' + q[6] + ';' + (q[7] ? '--o1:' + q[7] + ';--o2:' + q[8] + ';' : '');
-      const sil = (k, mk) => '<i class="sil ' + k + '" style="' + pose + 'background:rgb(' + band + ');-webkit-mask-image:' + mk + ';mask-image:' + mk + '"></i>';
+      const sil = (k, mk) => '<i class="sil ' + k + '" style="' + pose + 'background:rgb(' + band + ');-webkit-mask-image:' + mk + ';mask-image:' + mk + '" data-m="' + mk.slice(5, -2) + '"></i>';   // mk = url('data:…')，data-m 存里面那段给 bakeCoverBg
       return '<div class="zm-bgl">' + sil('s1', pair[0]) + sil('s2', pair[1]) + '</div>';
     }).join('');
     coverLayers = Array.from(coverBgEl.children);
     coverBgPaint();
+    bakeCoverBg();
+  }
+  /* 剪影烤成位图（2026-11-18 用户：开屏切玩法时声音爆一下）。
+   * 原来每个剪影是「纯色底 + SVG 遮罩」，WebKit 每次换玩法 / 每帧改位置都要重新栅格化遮罩：Safari（M1）实测第一次滑到某个玩法主线程卡 0.3–0.6 秒，
+   * 手机更久；音乐靠主线程提前排音符，一卡就断拍、补排的鼓点硬切进来＝「爆点」。
+   * 现在页面一开就把每个剪影按显示尺寸画进一张带颜色的 canvas，摘掉遮罩——之后滑动只是平移一张现成的图，几乎不花主线程。
+   * 烤好之前（几十毫秒）先用原来的遮罩顶着，看起来一模一样 */
+  function bakeCoverBg() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    coverBgEl.querySelectorAll('.sil').forEach((el) => {
+      const src = el.dataset.m;
+      if (!src) return;
+      const col = el.style.backgroundColor;
+      const img = new Image();
+      img.onload = () => {
+        const px = Math.min(1024, Math.round(Math.max(el.offsetWidth, 320) * dpr));
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = px;
+        const g = cv.getContext('2d');
+        try { g.drawImage(img, 0, 0, px, px); } catch (_) { return; }   // 画不出来就留着遮罩
+        g.globalCompositeOperation = 'source-in';
+        g.fillStyle = col; g.fillRect(0, 0, px, px);
+        cv.className = 'sil-bmp';
+        el.style.background = 'none'; el.style.webkitMaskImage = el.style.maskImage = 'none';
+        el.appendChild(cv);
+      };
+      img.src = src;
+    });
   }
   function coverBgPaint(c) {
     if (!coverReady || !coverLayers.length) return;
@@ -5977,6 +6005,7 @@
     coverLayers.forEach((l, i) => {
       const o = Math.max(0, 1 - Math.abs(p - i)), dd = i - p;
       l.style.opacity = o.toFixed(3);
+      l.style.visibility = o > 0 ? '' : 'hidden';   // 完全看不见的层不画
       l.style.setProperty('--px', dd.toFixed(3));
     });
   }

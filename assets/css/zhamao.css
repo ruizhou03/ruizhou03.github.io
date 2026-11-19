@@ -1610,6 +1610,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-bgl { position: absolute; inset: 0; opacity: 0; --px: 0; }
 /* 对角剪影：每个玩法一对纯色剪影，大的从左上角探进来、小的从右下角，夹着中间的牌（摆位 / 透明度由 JS 按玩法给） */
 .zm-bgl .sil { position: absolute; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+.zm-bgl .sil-bmp { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }   /* 烤好的剪影位图（见 zhamao.js bakeCoverBg） */
 .zm-bgl .s1 { width: min(110vw, 620px); aspect-ratio: 1; left: 0; top: 0; opacity: var(--o1, 0.13); transform: translate(var(--t1x, -42%), var(--t1y, -30%)) translateX(calc(var(--px) * 30vw)) rotate(calc(var(--r1, -14deg) + var(--px) * -12deg)); }
 .zm-bgl .s2 { width: min(86vw, 480px); aspect-ratio: 1; right: 0; bottom: 0; opacity: var(--o2, 0.11); transform: translate(var(--t2x, 38%), var(--t2y, 30%)) translateX(calc(var(--px) * 18vw)) rotate(calc(var(--r2, 16deg) + var(--px) * 12deg)) scaleX(var(--f2, -1)); }
 /* 横屏（2026-11-18 用户）：主剪影（竖屏左上那个）挪到右上、次剪影（竖屏右下那个）挪到左下——整组左右镜像：
