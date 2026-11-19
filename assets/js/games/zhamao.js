@@ -90,15 +90,19 @@
   let autoAct = false;   // 这一步是超时 / 托管替我做的（不清零超时次数）
   const handHidden = new Set();   // 手牌里「位置先占好、牌还在路上」的那几张
 
+  /* 兜底（2026-11-18 用户）：离开超过半小时，这局就算结束了——不再挂小黄点 / 「接着打上一局」、联机也不再自动接回那个房间。
+   * 「离开」从最后一次存档算起：每步都存、切后台 / 关页面 / 回主页面也会存一次，所以就是「最后一次还在玩」的时候 */
+  const STALE_MS = 30 * 60 * 1000;
   function save() {
-    if (!game || game.tutorial || game.online) return;
+    if (!game || game.tutorial || game.online || game.stale) return;
     if (game.state.phase === 'over') { try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ } return; }
     const back = game.pov ? game.state.n - game.pov : 0;   // 观战时桌子是转过的：存回我自己坐在 0 号的样子
-    writeJSON(STORE_KEY, { v: VERSION, state: rotState(game.state, back), bots: rotSeats(game.bots, back), tiers: rotSeats(game.tiers, back), openKits: game.openKits ? Array.from(game.openKits) : [] });   // 火眼露在牌堆里的那几只也存上
+    writeJSON(STORE_KEY, { v: VERSION, t: Date.now(), state: rotState(game.state, back), bots: rotSeats(game.bots, back), tiers: rotSeats(game.tiers, back), openKits: game.openKits ? Array.from(game.openKits) : [] });   // 火眼露在牌堆里的那几只也存上
   }
   function loadSaved() {
     const d = readJSON(STORE_KEY);
     if (!d || d.v !== VERSION || !d.state || d.state.phase === 'over') return null;
+    if (!(Date.now() - (d.t || 0) < STALE_MS)) { try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ } return null; }   // 没时间戳的老存档也按过期算
     const s = d.state;
     const total = s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0) + (s.defuse ? 1 : 0) + (s.rescue ? 1 : 0);   // 组队：等队友救的那只炸毛猫也算上（2026-11-15 漏了它，停在这一步的存档读不回来）
     // 旧存档：加「抽底」前是 64 张、加第二副（6–9 人）前是 68 张、加万能猫前是 135 张。没出现过的牌全收进盒子（removed），照样接着打（那局就没有万能猫）
@@ -5221,7 +5225,25 @@
       d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
     });
   }
+  let hiddenAt = 0;
+  function markAway() {
+    hiddenAt = Date.now();
+    if (game && !game.tutorial && !game.online && !game.dealing) save();   // 已暂停的局也重存一次，时间戳 = 离开那一刻
+    if (online && NET) NET.writeSession({ code: online.code, token: online.token });   // 联机：刷新「最后还在」的时间
+  }
+  window.addEventListener('pagehide', markAway);
   document.addEventListener('visibilitychange', () => {
+    if (document.hidden) markAway();
+    else if (hiddenAt && Date.now() - hiddenAt >= STALE_MS && game && !game.tutorial && !game.online && els.cover.hidden) {
+      // 页面一直开着、人走开超过半小时：这局结束，回主页面（不再留「接着打」）
+      hiddenAt = 0;
+      closeDialog();
+      showCover();
+      game.stale = true;   // 这局作废：之后还在半路的动画 / 回调都不许再把它存回去
+      try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ }
+      coverResume();
+      return;
+    }
     if (document.hidden && canPause() && els.mask.hidden) pauseGame();
     if (!document.hidden) recheckSize();   // 回到前台：万一后台时按临时横屏量过，这里按真实宽度对一遍
   });
@@ -5860,7 +5882,7 @@
     h.innerHTML = glyphSvg('百', [], '') + glyphSvg('变', [], '') + glyphSvg('小', [2], wandStroke()) + glyphSvg('咪', [3, 4, 5], catGlyph(226, 450, 205));
   }
   /* ── 玩法背景 ── */
-  const BG_BAND = { classic: '200,70,58', flux: '142,74,156', team: '196,96,122', roles: '185,138,90' };
+  const BG_BAND = { classic: '200,70,58', flux: '142,74,156', team: '196,96,122', roles: '176,110,52' };   // 角色：比牌面名字条深一档的焦糖棕（原来的棕在奶油底上太淡，2026-11-18 用户挑戊时看的就是这个色）
   const maskSvg = (svg) => "url('data:image/svg+xml," + encodeURIComponent(svg).replace(/'/g, '%27') + "')";
   const maskOf = (k) => maskSvg(ART.face(k).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '));
   const sil100 = (inner, vb) => maskSvg('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + (vb || '0 0 100 100') + '">' + inner + '</svg>');
@@ -5902,9 +5924,31 @@
       return [silCut(A[0] + B[0] + '<path d="' + heartD(50, 20, 0.3) + '"/>', A[1] + B[1]),
         sil100('<path d="' + heartD(44, 56, 1.12) + heartD(84, 18, 0.42) + '"/>'), [-12, -12, -6, 22, 20, 10, 1]];
     },
-    // 角色：用最初那版（2026-11-18 用户：后面重画的都更丑）——牌面那只三花猫的剪影，大的左上、小的右下镜像，摆位 / 颜色 / 透明度都和最初一样
-    roles: () => [maskOf('calico'), maskOf('calico'), [-42, -30, -14, 38, 30, 16, -1]],
+    // 角色（2026-11-18 用户在十版里挑了戊、再微调）：左上一扇五张角色牌，每张挖空一只不同的猫头（胖脸 / 圆眼 / 眯缝眼尖耳 / 额头条纹 / 斑点），比预览稿再往上一点；
+    // 右下保留最初那只三花猫剪影（摆位不变）
+    roles: () => [roleFan(), maskOf('calico'), [-12, -15, -8, 38, 30, 16, -1, 0.16, 0.11]],
   };
+  // 角色牌扇：直接在 mask 里按层画（每张牌先描一圈黑当缝、再填白，后画的压前面的），猫头画黑 = 挖空、五官画白 = 填回
+  function roleFan() {
+    const q = (n) => Math.round(n * 100) / 100;
+    const ears = (cx, cy, r, w) => { const e = (s) => 'M' + q(cx + s * r * 0.98) + ' ' + q(cy - r * 0.02) + 'L' + q(cx + s * r * 0.82 * w) + ' ' + q(cy - r * 1.2) + 'L' + q(cx + s * r * 0.1) + ' ' + q(cy - r * 0.74) + 'Z'; return e(-1) + e(1); };
+    const head = (cx, cy, r, ry, w) => '<ellipse cx="' + q(cx) + '" cy="' + q(cy) + '" rx="' + q(r) + '" ry="' + q(r * ry) + '"/><path d="' + ears(cx, cy, r, w) + '"/>';
+    const dots = (cx, cy, r, k) => '<circle cx="' + q(cx - r * 0.36) + '" cy="' + q(cy) + '" r="' + q(r * k) + '"/><circle cx="' + q(cx + r * 0.36) + '" cy="' + q(cy) + '" r="' + q(r * k) + '"/>';
+    const ln = (d, w) => '<path d="' + d + '" fill="none" stroke="#fff" stroke-width="' + q(w) + '" stroke-linecap="round"/>';
+    const CATS = [
+      [(x, y, r) => head(x, y, r * 1.12, 0.76, 1.05), (x, y, r) => dots(x, y, r * 1.1, 0.12)],
+      [(x, y, r) => head(x, y, r, 0.86, 1), (x, y, r) => dots(x, y, r, 0.22)],
+      [(x, y, r) => head(x, y, r, 0.86, 0.84), (x, y, r) => ln('M' + q(x - r * 0.55) + ' ' + y + 'h' + q(r * 0.36) + 'M' + q(x + r * 0.19) + ' ' + y + 'h' + q(r * 0.36), r * 0.13)],
+      [(x, y, r) => head(x, y, r, 0.86, 1), (x, y, r) => dots(x, y, r, 0.13) + ln('M' + q(x - r * 0.22) + ' ' + q(y - r * 0.62) + 'v' + q(r * 0.24) + 'M' + q(x) + ' ' + q(y - r * 0.68) + 'v' + q(r * 0.28) + 'M' + q(x + r * 0.22) + ' ' + q(y - r * 0.62) + 'v' + q(r * 0.24), r * 0.1)],
+      [(x, y, r) => head(x, y, r, 0.86, 1), (x, y, r) => dots(x, y, r, 0.13) + '<ellipse cx="' + q(x - r * 0.48) + '" cy="' + q(y - r * 0.42) + '" rx="' + q(r * 0.3) + '" ry="' + q(r * 0.22) + '" fill="none" stroke="#fff" stroke-width="' + q(r * 0.09) + '"/>'],
+    ];
+    const W = 30, H = 44, px = 50, py = 98, x = px - W / 2, y = 26, fy = y + H * 0.46, r = 8.6;
+    const body = [-28, -14, 0, 14, 28].map((ang, i) => '<g transform="rotate(' + ang + ' ' + px + ' ' + py + ')">' +
+      '<rect x="' + (x - 2.2) + '" y="' + (y - 2.2) + '" width="' + (W + 4.4) + '" height="' + (H + 4.4) + '" rx="6.5" fill="#000"/>' +
+      '<rect x="' + x + '" y="' + y + '" width="' + W + '" height="' + H + '" rx="4.5" fill="#fff"/>' +
+      '<g fill="#000">' + CATS[i][0](px, fy, r) + '</g><g fill="#fff">' + CATS[i][1](px, fy, r) + '</g></g>').join('');
+    return sil100('<defs><mask id="f" maskUnits="userSpaceOnUse" x="-60" y="-60" width="220" height="220">' + body + '</mask></defs><rect x="-60" y="-60" width="220" height="220" mask="url(#f)"/>');
+  }
 
   function coverBg() {
     if (!coverBgEl) { coverBgEl = document.createElement('div'); coverBgEl.className = 'zm-cover-bg'; coverBgEl.setAttribute('aria-hidden', 'true'); els.cover.prepend(coverBgEl); }
@@ -5946,10 +5990,10 @@
     sheets.solo.querySelector('[data-cover="start"] b').textContent = saved ? '新开一局' : '开始';
     if (!saved) return;
     const [, name, k] = SOLO_MODES[modeIdx(R.normalizeRules(saved.state.rules).mode)];
-    const left = saved.state.deck ? saved.state.deck.length : null;
+    // 2026-11-18 用户：卡上不写玩法 / 几人 / 牌堆剩几张（多余），左边小牌面就够认出是哪个玩法
     coverResCard.style.setProperty('--tone', ART.TONE[k].bg);
     coverResCard.style.setProperty('--band', ART.TONE[k].band);
-    coverResCard.innerHTML = '<span class="cw">' + miniCard(k, name) + '</span><span class="tx"><b>接着打上一局</b><small>' + name + ' · ' + saved.state.n + ' 人' + (left != null ? ' · 牌堆还剩 ' + left + ' 张' : '') + '</small></span><i class="go" aria-hidden="true"></i>';
+    coverResCard.innerHTML = '<span class="cw">' + miniCard(k, name) + '</span><span class="tx"><b>接着打上一局</b></span><i class="go" aria-hidden="true"></i>';
   }
   (function coverInit() {
     coverResCard = document.createElement('button');

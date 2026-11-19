@@ -82,9 +82,16 @@
     return json;
   }
 
-  function readSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (_) { return null; } }
+  // 兜底（2026-11-18 用户）：离开房间超过半小时就不再提示「回到房间」、也不自动接回。t = 最后一次还在房间里的时间（进房间、切后台、关页面时都会写）
+  const SESSION_STALE_MS = 30 * 60 * 1000;
+  function readSession() {
+    let s = null;
+    try { s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (_) { return null; }
+    if (s && !(Date.now() - (s.t || 0) < SESSION_STALE_MS)) { writeSession(null); return null; }
+    return s;
+  }
   function writeSession(s) {
-    try { if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); } catch (_) { /* 无痕模式：刷新后就接不回了 */ }
+    try { if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(Object.assign({}, s, { t: Date.now() }))); else localStorage.removeItem(SESSION_KEY); } catch (_) { /* 无痕模式：刷新后就接不回了 */ }
   }
 
   function deviceId() {
