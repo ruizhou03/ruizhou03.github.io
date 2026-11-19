@@ -1612,6 +1612,16 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-bgl .sil { position: absolute; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
 .zm-bgl .s1 { width: min(110vw, 620px); aspect-ratio: 1; left: 0; top: 0; opacity: var(--o1, 0.13); transform: translate(var(--t1x, -42%), var(--t1y, -30%)) translateX(calc(var(--px) * 30vw)) rotate(calc(var(--r1, -14deg) + var(--px) * -12deg)); }
 .zm-bgl .s2 { width: min(86vw, 480px); aspect-ratio: 1; right: 0; bottom: 0; opacity: var(--o2, 0.11); transform: translate(var(--t2x, 38%), var(--t2y, 30%)) translateX(calc(var(--px) * 18vw)) rotate(calc(var(--r2, 16deg) + var(--px) * 12deg)) scaleX(var(--f2, -1)); }
+/* 横屏（2026-11-18 用户）：主剪影（竖屏左上那个）挪到右上、次剪影（竖屏右下那个）挪到左下——整组左右镜像：
+ * 锚点换边、横向推出量取反、转角取反、再 scaleX 翻一次，所以「从角落探进来」的样子和竖屏一模一样，只是换了对角。
+ * 尺寸按屏高算（横屏矮，按宽度算会大得只剩一角）。推出量不用竖屏各玩法那套（有的玩法推得浅，横屏会整个压在标题 / 按钮后面），
+ * 统一推到角上：主剪影从右上角探进来、主体露在标题上方和右边，次剪影在左下牌叠底下露出来 */
+@media (orientation: landscape) and (max-height: 540px) {
+  .zm-bgl .s1 { left: auto; right: 0; width: min(108svh, 46vw, 520px);
+    transform: translate(30%, -14%) translateX(calc(var(--px) * 30vw)) rotate(calc(var(--r1, -14deg) * -1 + var(--px) * -12deg)) scaleX(-1); }
+  .zm-bgl .s2 { right: auto; left: 0; width: min(84svh, 36vw, 400px);
+    transform: translate(-30%, 22%) translateX(calc(var(--px) * 18vw)) rotate(calc(var(--r2, 16deg) * -1 + var(--px) * 12deg)) scaleX(calc(var(--f2, -1) * -1)); }
+}
 @media (orientation: landscape) and (max-height: 540px) { .zm-cover:not(.is-loading) .zm-cover-title.is-glyph { font-size: 38px; } }
 
 /* 小黄点：单机（有没打完的局）/ 联机（还在某个房间里）键角上一颗；点单机后设置单最上面一张「接着打」卡 */
