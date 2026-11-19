@@ -562,8 +562,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 @keyframes zm-fadein { from { opacity: 0; } }
 
 /* 牌堆：我知道顶上是炸毛猫——顶上那张发红光、抖 */
-.zm-deck.is-hot .zm-deck-stack .zm-card:last-child { box-shadow: 0 0 0 3px #c8463a, 0 0 18px rgba(200, 70, 58, 0.55); animation: zm-hot 1.2s ease-in-out infinite; }
-@keyframes zm-hot { 0%, 100% { rotate: 0deg; } 8% { rotate: -2deg; } 12% { rotate: 2deg; } 16% { rotate: -1deg; } 20% { rotate: 0deg; } }
 .zm-deck-count, #zmDeckCount, .zm-kit { display: inline-flex; }
 
 /* 舞台：生效时金光一闪；章换的时候旧章淡出 */
@@ -609,7 +607,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 @keyframes zm-ready { 50% { box-shadow: 0 0 0 6px rgba(29, 27, 24, 0.1); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .zm-clock circle, .zm-aim svg, .zm-cover-art .hero-boom, .zm-cover-art .hero-wand, .zm-cover-art .wand-tail, .zm-av-wand .wand-tail, .zm-angry .zm-card, .zm-deck.is-hot .zm-deck-stack .zm-card:last-child { animation: none !important; }
+  .zm-clock circle, .zm-aim svg, .zm-cover-art .hero-boom, .zm-cover-art .hero-wand, .zm-cover-art .wand-tail, .zm-av-wand .wand-tail, .zm-angry .zm-card { animation: none !important; }
 }
 
 

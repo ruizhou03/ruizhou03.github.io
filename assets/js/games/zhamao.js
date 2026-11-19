@@ -1536,7 +1536,7 @@
       for (const id of Array.from(game.openKits)) {
         const pos = st.deck.indexOf(id);
         if (pos < 0 || st.memo[0].deck.indexOf(id) < 0) { game.openKits.delete(id); continue; }
-        if (pos > 0) want.push({ id, pos });   // 在最上面那张：牌堆顶本来就会亮红光提示，不再另插
+        if (pos > 0) want.push({ id, pos });   // 在最上面那张：faceTop 让牌堆顶直接翻成正面，不再另插
       }
     }
     if (ov) return;
@@ -1605,9 +1605,7 @@
         fc.style.transform = top.style.transform;
       }
     }
-    // 我知道顶上是炸毛猫：牌堆顶那张抖、发红光
-    const known = !ov && s.alive[0] && s.memo[0].deck.length > 0 && R.KIND_OF[s.deck[0]] === R.BOOM && s.memo[0].deck.indexOf(s.deck[0]) >= 0;
-    els.deck.classList.toggle('is-hot', known);
+    // 2026-11-18 用户：牌堆顶不再因为「我知道它是炸毛猫」发红光——不替玩家记牌（自己塞的位置也一样，忘了就是忘了）
   }
   function deckTopRect() {
     const c = els.deck.querySelector('.zm-deck-stack > .zm-card');
