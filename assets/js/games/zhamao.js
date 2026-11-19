@@ -7592,7 +7592,7 @@
         '<div class="acts"><button type="button" class="zm-pill" data-l="copy">复制链接</button><button type="button" class="zm-pill' + (lobbyQr ? ' is-on' : '') + '" data-l="qr">二维码</button></div></div>' +
       (lobbyQr ? '<div class="zm-lobby-qr" data-qr></div>' : '') +
       (teamOn
-        ? '<div class="zm-lobby-seats is-team' + (form.length >= 3 && tsize === 2 ? ' is-pairs' : '') + '">' + form.map((k, b) => '<div class="zm-lteam" style="--k:' + k + ';--tc:' + TEAM_PIP[(b - myBlock + form.length) % form.length] + ';--tbg:' + TEAM_BG[(b - myBlock + form.length) % form.length] + '">' + Array.from({ length: k }, (_, i) => seatHtml(b * tsize + i)).join('') + '</div>').join('') +
+        ? '<div class="zm-lobby-seats is-team' + (tsize === 2 ? ' is-pairs' : '') + '">' + form.map((k, b) => '<div class="zm-lteam" style="--k:' + k + ';--tc:' + TEAM_PIP[(b - myBlock + form.length) % form.length] + ';--tbg:' + TEAM_BG[(b - myBlock + form.length) % form.length] + '">' + Array.from({ length: k }, (_, i) => seatHtml(b * tsize + i)).join('') + '</div>').join('') +
           (shownSeats > teamN ? '<div class="zm-lteam is-extra"><small>多出来的（挪进队里才能开始）</small>' + Array.from({ length: shownSeats - teamN }, (_, i) => seatHtml(teamN + i)).join('') + '</div>' : '') + '</div>'
         : '<div class="zm-lobby-seats">' + Array.from({ length: shownSeats }, (_, i) => seatHtml(i)).join('') + '</div>') +
       (st.spectators.length ? '<p class="zm-muted zm-lobby-watch">' + st.spectators.length + ' 个人在观战' + (st.spectator ? '（包括你）' : '') + '</p>' : '') +
