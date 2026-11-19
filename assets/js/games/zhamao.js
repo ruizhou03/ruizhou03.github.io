@@ -68,7 +68,7 @@
   const settings = Object.assign({ players: 4, tier: 'normal', turnSec: 20 }, readJSON(SETTINGS_KEY) || {});
   // 2026-11-12 起甩锅默认叠加：老设置里存的「不叠加」是当时的默认值，改成新默认（之后自己再改就记住）
   if (settings.rulesV !== 2 && settings.rulesV !== 3) { settings.rules = Object.assign({}, settings.rules, { stackAttack: true }); settings.rulesV = 2; }
-  // 2026-11-13 起「多的逗猫棒全放回」默认开（官方规则）：老设置里存的「最多放回 2 张」是当时的默认值，改成新默认（之后自己再关就记住）
+  // 2026-11-13 起「多的逗猫棒全放回」默认开：老设置里存的「最多放回 2 张」是当时的默认值，改成新默认（之后自己再关就记住）
   if (settings.rulesV !== 3) { settings.rules = Object.assign({}, settings.rules, { extraDefuse: 'all' }); settings.rulesV = 3; }
   settings.rules = R.normalizeRules(settings.rules);
   if (!(settings.players >= R.MIN_PLAYERS && settings.players <= R.MAX_PLAYERS)) settings.players = 4;
@@ -4014,9 +4014,9 @@
     ['triple', '别人之间三张点名', ['triple'], true],
     ['flux', '别人打百变', [R.FLUX], true],   // 2026-11-15 用户：百变也能作废——挡住别人换掉对我有利的规则
     ['pair', '别人之间两张偷牌', ['pair'], false],
-    ['favor', '别人之间索要', [R.FAVOR], false],
+    ['favor', '别人之间讨要', [R.FAVOR], false],
     ['attack', '甩锅（不甩给我）', [R.ATTACK, R.TATTACK], false],
-    ['shuffle', '洗牌', [R.SHUFFLE], false],
+    ['shuffle', '捣乱', [R.SHUFFLE], false],
     ['alter', '改命', [R.ALTER], false],
   ];
   /* 2026-11-15 晚 用户（朋友局反馈：别人之间出牌也弹「作废」，新手以为冲着自己、点了才发现不用）：
@@ -5263,7 +5263,7 @@
     const teamRules = ((game && game.state && game.state.rules) || settings.rules || {}).mode === 'team';
     return '<div class="zm-rules"><h2>怎么玩</h2>' +
       (rolesHtml()) +
-      (teamRules ? '<h3>组队</h3><ul><li>每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。</li><li>出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。</li><li>下家是队友时，普通「甩锅」和「跳过」都会坑到他——想躲就用「指定甩锅」甩给对手，或者先「转向」。</li><li>队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸毛猫的位置你也知道。</li><li>摸到炸毛猫又没有逗猫棒：队友手里有逗猫棒就能救你（离你最近的先问；他的逗猫棒用掉，你自己把炸毛猫塞回去）。</li><li>一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。</li></ul>' : '') +
+      (teamRules ? '<h3>组队</h3><ul><li>每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。</li><li>出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。</li><li>下家是队友时，普通「甩锅」和「装睡」都会坑到他——想躲就用「指定甩锅」甩给对手，或者先「转向」。</li><li>队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸毛猫的位置你也知道。</li><li>摸到炸毛猫又没有逗猫棒：队友手里有逗猫棒就能救你（离你最近的先问；他的逗猫棒用掉，你自己把炸毛猫塞回去）。</li><li>一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。</li></ul>' : '') +
       '<p>牌堆里藏着炸毛猫（比人数少一只）。轮到你时，可以出任意多张牌，也可以一张不出，<b>最后摸一张牌结束回合</b>。摸到炸毛猫、手里又没有逗猫棒，就出局。撑到最后的人赢。</p>' +
       '<h3>每人开局</h3><ul><li>4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸毛猫是里面还有几只。</li></ul>' +
       '<h3>牌</h3><ul>' +
@@ -5273,7 +5273,7 @@
       li('attack', '结束回合、不摸牌，下家连着摸两回合（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）') +
       li('tattack', '同甩锅，但可以甩给任意一个人（点他的头像）') +
       li('skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合') +
-      li('reverse', '出牌方向倒过来（对手之间的小箭头跟着掉头），并像跳过一样结束一个回合、不摸牌。被甩锅时只顶掉其中一回合；两个人玩就等于跳过') +
+      li('reverse', '出牌方向倒过来（对手之间的小箭头跟着掉头），并像装睡一样结束一个回合、不摸牌。被甩锅时只顶掉其中一回合；两个人玩就等于装睡') +
       (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? li('flux', '转一次转盘，换上抽到的规则。能被作废') : '') +
       li('swap', (() => { const r = (game && game.state && game.state.rules) || settings.rules; return '和指定的一个人整手交换手牌' + (r.swapDefuse ? '（连逗猫棒一起换）' : '（各自的逗猫棒不换）') + (r.swap ? '' : '。设置里开了「有交换牌」才有'); })()) +
       li('favor', '指定一人，他自己挑一张给你') +
@@ -5314,7 +5314,7 @@
       '<div class="zs-line"><span>机器猫</span>' + tier + '</div>' +
       '<div class="zs-line"><span>出牌限时</span>' + secs + '</div></section>' +
       '<div class="zs-cap">玩法</div><section class="zs-card">' +
-      // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 官方密度（默认）/ 快局更短 / 多 = 以前的整副
+      // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 一副 56 张的密度（默认）/ 快局更短 / 多 = 以前的整副
       '<div class="zs-line"><span>牌量</span>' + segs('deckSize', DECK_OPTS, R.normalizeRules(settings.rules).deckSize) + '</div>' +
       row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
       // 交换连逗猫棒一起换（2026-11-13 用户：以前玩的是整副手牌全换）；没开交换牌时这行藏着
@@ -5826,7 +5826,7 @@
     els.coach.classList.remove('is-hint');
     els.app.classList.add('is-coaching');   // 讲解（照拱猪）：字摆在正中，别的都蒙一层浅宣纸色
     // 正在讲的东西别蒙住：一句话可以写成 { t, focus: ['hand' | 'deck' | 'stage' | 'opps' | 'me' | 座位号…] }；
-    // 桌上刚出的牌（舞台）只要还摆着就一直亮着（「老师出了【索要】」时得看得见那张索要）
+    // 桌上刚出的牌（舞台）只要还摆着就一直亮着（「小橘出了【讨要】」时得看得见那张讨要）
     const text = typeof m === 'string' ? m : m.t;
     setCoachFocus((m && m.focus) || []);
     els.coach.querySelector('.zm-coach-text').innerHTML = inlineCards(text);

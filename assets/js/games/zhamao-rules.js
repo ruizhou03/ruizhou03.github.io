@@ -7,9 +7,9 @@
  *   逗猫棒 ×6    摸到炸毛猫时自动打出，把炸毛猫偷偷塞回牌堆任意位置
  *   喵？不行 ×5  作废别人刚出的牌（也能作废「不行」，叠来叠去，单数张=作废）。不能挡炸毛猫 / 逗猫棒
  *   攻击 ×4      结束自己的回合、不摸牌，下家连着摸两回合
- *   跳过 ×4      结束一个回合、不摸牌（被攻击时只顶掉其中一回合）
- *   索要 ×4      指定一人，他自己挑一张给你
- *   洗牌 ×4      把牌堆洗乱
+ *   装睡 ×4      结束一个回合、不摸牌（被攻击时只顶掉其中一回合）
+ *   讨要 ×4      指定一人，他自己挑一张给你
+ *   捣乱 ×4      把牌堆洗乱
  *   窥探 ×5      看牌堆最上面三张（不改顺序、别人看不到）
  *   橘猫 / 三花 / 奶牛 / 狸花 / 暹罗 各 ×4   本身没用，凑组合
  * 组合（任何同名牌都算，炸毛猫除外）：
@@ -62,8 +62,8 @@
   });
   const KINDS = Object.freeze(Object.keys(COUNTS));
   const NAMES = Object.freeze({
-    boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '自由甩锅', skip: '跳过', bottom: '抽底', favor: '索要',
-    shuffle: '洗牌', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗', wild: '万能猫', reverse: '转向', flux: '百变',
+    boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '自由甩锅', skip: '装睡', bottom: '抽底', favor: '讨要',
+    shuffle: '捣乱', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗', wild: '万能猫', reverse: '转向', flux: '百变',
   });
   /* 第二副牌（2026-11-12 起最多 9 人）：6 人以上开局把它也洗进来——炸毛猫最多 8 只、逗猫棒最多 11 根，功能牌和猫牌也多一倍；
    * 5 人及以下它一开局就整副收进盒子。牌号接在第一副后面（0..67 不变，旧存档 / 联机局照常） */
@@ -110,10 +110,10 @@
   /* 百变规则（2026-11-15 用户：不预告，打「百变」就抽一条，抽到什么算什么；桌上固定一张「百变规则」牌）。
    * id 进状态 s.flux；desc 是桌上规则牌 / 说明里的一句话 */
   // 2026-11-15 用户：不叠锅 / 暗塞 / 千里眼 / 慷慨太弱、感觉不到 → 换成 九命 / 掀顶 / 烫手 / 双猫急救
-  // 2026-11-15 用户定的名字和说法（掀顶→透视、明塞→火眼、静音→静默、双猫急救→急救）；id 不变（老存档照常）
+  // 2026-11-15 用户定的名字和说法（掀顶→透视（2026-11-19 又改天眼）、明塞→火眼、静音→静默、双猫急救→急救）；id 不变（老存档照常）
   const FLUX_RULES = Object.freeze([
     { id: 'nine', name: '九命', desc: '摸到炸毛猫时若无逗猫棒，大喊「九命」并存活，炸毛猫随机放回牌堆。每人最多生效一次' },
-    { id: 'peektop', name: '透视', desc: '牌堆第一张牌对所有人可见' },
+    { id: 'peektop', name: '天眼', desc: '牌堆第一张牌对所有人可见' },
     { id: 'exact', name: '火眼', desc: '炸毛猫塞回的位置对所有人可见' },
     { id: 'bottom', name: '摸底', desc: '摸牌改从牌堆底部摸' },
     { id: 'hot', name: '烫手', desc: '每个人的回合一开始就像被甩了一次锅' },
@@ -129,7 +129,7 @@
   // id 不变（存档 / 机器猫照旧）
   const ROLES = Object.freeze([
     { id: 'timid', name: '胆小猫', desc: '被甩锅，先偷看顶上 3 张', once: false },
-    { id: 'fat', name: '贪吃猫', desc: '出索要，对方要给 2 张', once: false },
+    { id: 'fat', name: '贪吃猫', desc: '出讨要，对方要给 2 张', once: false },
     { id: 'shadow', name: '影子猫', desc: '两张偷牌指不到它', once: false },
     { id: 'cow', name: '扛锅猫', desc: '被甩锅，只摸 1 张', once: false },
     { id: 'calico', name: '百搭猫', desc: '杂猫也能凑对、凑三张', once: false },
@@ -147,7 +147,7 @@
   const swapsInPlay = (n) => Math.min(usesSecondDeck(n) ? 6 : 3, n - 1);
   /* 牌量（2026-11-13 用户）：以前 5 人及以下整副 63 张普通牌、6 人起两副 126 张，牌堆是一副 56 张的 2–7 倍，炸毛猫只占 4–8%。
    * 「标准」「快局」按人数定这一局用多少张普通牌（不算炸毛猫 / 逗猫棒 / 交换）：63 × 人数系数 × 档位系数，人数系数 = 人数 / 5，夹在 0.8–1.8；
-   * 减的时候分三档：猫牌（含万能猫）砍得最多，转向 / 抽底 / 改命 / 洗牌 / 窥探次之，作废 / 跳过 / 甩锅 / 索要 / 自由甩锅基本保住；
+   * 减的时候分三档：猫牌（含万能猫）砍得最多，转向 / 抽底 / 改命 / 捣乱 / 窥探次之，作废 / 装睡 / 甩锅 / 讨要 / 自由甩锅基本保住；
    * 牌堆里多放的逗猫棒也跟着收（「多」照旧全放回）。炸毛猫永远 人数 − 1 */
   const DECK_FACTOR = { std: 0.7, quick: 0.5 };
   const KEEP = { nope: 1, skip: 1, attack: 1, favor: 1, tattack: 1, shuffle: 0.75, future: 0.75, alter: 0.75, bottom: 0.75, reverse: 0.75 };   // 其余（猫 / 万能猫）0.55
@@ -252,7 +252,7 @@
     const nSwaps = quota ? Math.min(swapsInPlay(n), Math.max(1, Math.round((n - 1) / 2))) : swapsInPlay(n);
     const swapIn = rules.swap ? swaps.slice(0, nSwaps) : [];
     rest.push(...swapIn);
-    // 百变（2026-11-15 用户：它只是抽奖、本身不如跳过好用，开局人人白送一张，牌堆里也多放）：
+    // 百变（2026-11-15 用户：它只是抽奖、本身不如装睡好用，开局人人白送一张，牌堆里也多放）：
     // 开局每人额外一张（不占那 4 张）；牌堆里标准 / 快局按人数放 2–7 张（4 人 3 张），「多」把剩下的都放
     const handFlux = rules.mode === 'flux' ? fluxes.splice(0, n) : [];
     const nFlux = quota ? Math.max(2, Math.min(7, Math.round(n * 0.8))) : fluxes.length;
@@ -341,7 +341,7 @@
   const countKind = (hand, k) => hand.reduce((a, id) => a + (KIND_OF[id] === k ? 1 : 0), 0);
   const findKind = (hand, k) => hand.find((id) => KIND_OF[id] === k);
   // 百变「双猫急救」用的一对（2026-11-15 用户：任意一对一样的牌都行，功能牌也算）：先交最不值钱的——
-  // 一样的猫 → 真猫 + 万能猫 → 两张万能猫 → 功能牌（洗牌 / 抽底 / 窥探 … 由便宜到金贵）
+  // 一样的猫 → 真猫 + 万能猫 → 两张万能猫 → 功能牌（捣乱 / 抽底 / 窥探 … 由便宜到金贵）
   const PAIR_ORDER = [SHUFFLE, BOTTOM, FUTURE, REVERSE, ALTER, FAVOR, SKIP, SWAP, FLUX, ATTACK, TATTACK, NOPE];
   function catPairIds(hand) {
     const by = {};
@@ -517,7 +517,7 @@
     });
     if (cancelled) return ev;
     const me = p.by;
-    // 角色猫「黑猫」：第一次被索要 / 偷 / 点名——溜走了，什么都不发生
+    // 角色猫「黑猫」：第一次被讨要 / 偷 / 点名——溜走了，什么都不发生
     if (p.type === 'pair' && p.target >= 0 && roleOf(s, p.target) === 'shadow') {   // 黑猫：两张偷牌整局都扑空
       ev.push({ t: 'role', seat: p.target, role: 'shadow', by: me });
       return ev;
@@ -527,7 +527,7 @@
         endOneTurn(s, ev);
         break;
       case REVERSE:
-        // 转向：出牌方向反过来，然后像「跳过」一样结束一个回合、不摸牌（被甩锅时只顶掉其中一回合；两个人玩就等于跳过）
+        // 转向：出牌方向反过来，然后像「装睡」一样结束一个回合、不摸牌（被甩锅时只顶掉其中一回合；两个人玩就等于装睡）
         s.dir = s.dir === -1 ? 1 : -1;
         ev.push({ t: 'reverse', seat: me, dir: s.dir });
         endOneTurn(s, ev);
@@ -657,11 +657,11 @@
     if (s.phase !== 'give' || s.give.from !== seat || s.hands[seat].indexOf(id) < 0) throw new Error('illegal give');
     const to = s.give.to;
     moveCard(s, seat, to, id, [seat, to]);
-    // 角色猫「胖橘」：他出的索要，对方要给两张——给完第一张接着再挑一张
+    // 角色猫「胖橘」：他出的讨要，对方要给两张——给完第一张接着再挑一张
     if (s.give.left > 1 && s.hands[seat].length) { s.give.left -= 1; return [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }, { t: 'askGive', from: seat, to }]; }
     s.give = null;
     s.phase = 'act';
-    return [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }];   // 胖橘被索要不补牌（2026-11-15 平衡：索要本来就由他自己挑）
+    return [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }];   // 胖橘被讨要不补牌（2026-11-15 平衡：讨要本来就由他自己挑）
   }
 
   function pickDiscard(s, seat, id) {
