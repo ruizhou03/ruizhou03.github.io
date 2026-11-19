@@ -1318,18 +1318,74 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rank.is-team li.is-split { margin-top: 6px; position: relative; }
 .zm-rank.is-team li.is-split::before { content: ""; position: absolute; left: 10px; right: 10px; top: -7px; border-top: 1px solid var(--zm-line, rgba(29, 27, 24, 0.14)); }
 .zm-rank.is-team li.is-lost .tag { color: var(--zm-ink-mute); font-weight: 400; }   /* 每队都挂奖牌（2026-11-18 用户），输的队名次写灰字 */
-/* ═════ 角色猫（2026-11-15）：头像左上角一枚小猫头，技能用掉变灰 ═════ */
-.zm-av .zm-role { --zr: clamp(15px, calc(var(--av) * 0.5), 26px); position: absolute; left: calc(var(--zr) * -0.3); top: calc(var(--zr) * -0.3); width: var(--zr); height: var(--zr); border-radius: 50%; background: var(--zm-paper); box-shadow: 0 0 0 1.5px var(--zm-ink); z-index: 4; display: block; overflow: hidden; }
-.zm-av .zm-role svg { width: 100%; height: 100%; display: block; border-radius: 0; }
+/* ═════ 角色猫（2026-11-18 改版：角色卡 = 甲 · 牌桌同款）═════
+ * .zm-rc 宽 100cqw、高 140cqw：墨边奶油卡 + 角色画 + 一行技能图示 + 名字条；is-big 多一句说明；is-tiny（头像角上 / 桌角那叠）只留画 + 名字条颜色 */
+.zm-rc { position: relative; flex: none; aspect-ratio: 100 / 140; container-type: inline-size; background: var(--zm-card); border: 1px solid var(--zm-ink); border-radius: 9% / 6.4%; color: var(--zm-ink); text-align: center; }
+.zm-rc svg { display: block; border-radius: 0; }
+.zm-rc .zm-rc-art { position: absolute; left: 5cqw; right: 5cqw; top: 5cqw; height: 86cqw; border-radius: 6cqw; background: var(--rbg); overflow: hidden; }
+.zm-rc .zm-rc-art svg { width: 100%; height: 100%; }
+.zm-rc .zm-rc-gl { position: absolute; left: 10cqw; right: 10cqw; top: 93cqw; height: 15cqw; display: flex; justify-content: center; }
+.zm-rc .zm-rc-gl svg { height: 100%; width: auto; max-width: 100%; }
+.zm-rc .zm-rc-nm { position: absolute; left: 5cqw; right: 5cqw; bottom: 5cqw; height: 20cqw; border-radius: 5cqw; background: var(--rband); color: #fffaf0; display: flex; align-items: center; justify-content: center; font-size: 13cqw; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; }
+.zm-rc.is-big .zm-rc-art { height: 74cqw; }
+.zm-rc.is-big .zm-rc-gl { top: 82cqw; height: 13cqw; }
+.zm-rc .zm-rc-tx { position: absolute; left: 6cqw; right: 6cqw; top: 97cqw; font-size: 7.2cqw; line-height: 1.35; color: var(--zm-ink-mute); white-space: nowrap; }
+.zm-rc.is-tiny { border-radius: 12% / 8.6%; }
+.zm-rc.is-tiny .zm-rc-gl { display: none; }
+.zm-rc.is-tiny .zm-rc-art { height: 104cqw; border-radius: 8cqw; }
+.zm-rc.is-tiny .zm-rc-nm { font-size: 0; height: 18cqw; }
+.zm-rc-back { aspect-ratio: 100 / 140; }
+.zm-rc-back svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 3px rgba(29, 27, 24, 0.25)); }
+/* 头像左上角斜插一张小角色卡（点它 = 展开整张） */
+.zm-av .zm-role { --zr: clamp(17px, calc(var(--av) * 0.44), 26px); position: absolute; left: calc(var(--zr) * -0.42); top: calc(var(--zr) * -0.6); width: var(--zr); z-index: 4; display: block; transform: rotate(-10deg); filter: drop-shadow(0 1px 1.5px rgba(29, 27, 24, 0.35)); pointer-events: auto; cursor: pointer; }
+.zm-av .zm-role .zm-rc { width: 100%; }
 .zm-role.is-used { filter: grayscale(1); opacity: 0.45; }
-.zm-role.is-inline { position: relative; left: 0; top: 0; display: inline-block; width: 22px; height: 22px; border-radius: 50%; vertical-align: -6px; margin-right: 6px; box-shadow: 0 0 0 1.2px var(--zm-ink); background: var(--zm-paper); overflow: hidden; }
-.zm-role.is-inline svg { width: 100%; height: 100%; display: block; }
-.zm-role-list li { margin-bottom: 4px; }
+/* 规则窗里的角色表 */
+.zm-role-list { list-style: none; padding: 0; margin: 6px 0 10px; display: grid; gap: 8px; }
+.zm-role-list li { display: flex; align-items: center; gap: 10px; margin: 0; }
+.zm-role-list li span { display: flex; flex-direction: column; line-height: 1.4; }
+.zm-role-list li small { color: var(--zm-ink-mute); font-size: 12px; }
+.zm-role-list li b { font-size: 15px; }
+/* 展开角色卡 / 本桌图鉴：宣纸色蒙一层，卡从头像角上（或桌角那叠）飞出来 */
+.zm-role-view { position: fixed; inset: 0; z-index: 5; pointer-events: auto; background: rgba(243, 238, 227, 0.86); -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.zm-role-view-in { display: grid; grid-template-columns: repeat(var(--cols, 1), auto); gap: 16px 14px; justify-items: center; }
+.zm-role-it { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.zm-role-it .zm-rc { filter: drop-shadow(0 12px 20px rgba(29, 27, 24, 0.22)); }
+.zm-role-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--zm-card); border: 1.2px solid var(--zm-ink); border-radius: 999px; padding: 2px 10px 2px 3px; font-size: 13px; white-space: nowrap; }
+.zm-role-chip-av { width: 22px; height: 22px; display: inline-block; }
+.zm-role-chip-av svg { width: 100%; height: 100%; display: block; border-radius: 50%; }
+/* 桌角那一叠（本桌图鉴）：桌面左上角斜叠着本桌几张小角色卡 */
+.zm-role-fan { position: absolute; left: 10px; top: 8px; z-index: 3; border: 0; background: none; padding: 0; cursor: pointer; width: calc(26px + (var(--n) - 1) * 9px + 10px); height: 46px; }
+.zm-role-fan i { position: absolute; left: calc(var(--i) * 9px); top: calc(4px + var(--k) * var(--k) * 0.6px); width: 26px; transform: rotate(calc(var(--k) * 8deg)); filter: drop-shadow(0 1px 2px rgba(29, 27, 24, 0.3)); }
+.zm-role-fan:hover i, .zm-role-fan:focus-visible i { filter: drop-shadow(0 0 4px rgba(201, 169, 110, 0.95)); }
+.zm-center:has(.zm-stage-inner) .zm-role-fan { opacity: 0.35; }
+/* 技能触发的「亮牌」：小卡从头像角上弹出来，停在头像旁边，外圈一道角色色光晕 */
+.zm-role-pop { position: fixed; z-index: 6; pointer-events: none; }
+.zm-role-pop .zm-rc { transition: box-shadow 0.3s ease; }
+.zm-role-pop.is-on .zm-rc { box-shadow: 0 0 0 2.5px var(--glow), 0 0 18px 4px color-mix(in srgb, var(--glow) 50%, transparent); }
+.zm-lift3 { position: fixed; z-index: 4; pointer-events: none; filter: drop-shadow(0 3px 5px rgba(29, 27, 24, 0.25)); }
+/* 给牌键上的 ×N（贪吃猫要两张）：和被甩锅的 ×N 一种小角标 */
+.zm-btn .zm-xn { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; height: 18px; padding: 0 6px; border-radius: 999px; background: #fffaf0; color: var(--zm-seal); font: 700 12px/1 Georgia, serif; }
+/* 开局抽角色 */
+.zm-rd { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: auto; cursor: pointer; will-change: transform; }
+.zm-rd.can-pick .zm-rc-back { animation: zm-rd-breathe 1.3s ease-in-out infinite; }
+@keyframes zm-rd-breathe { 50% { filter: drop-shadow(0 0 8px rgba(232, 200, 120, 0.95)); translate: 0 -4px; } }
+.zm-rd-big, .zm-rd-small { position: fixed; z-index: 6; pointer-events: none; }
+.zm-rd-big { z-index: 7; }
+.zm-rc-flip { perspective: 900px; }
+.zm-rc-flip-in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
+.zm-rc-flip-b, .zm-rc-flip-f { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.zm-rc-flip-f { transform: rotateY(180deg); }
+.zm-rd-big.is-glow .zm-rc { box-shadow: 0 0 0 3px var(--glow), 0 0 26px 6px color-mix(in srgb, var(--glow) 45%, transparent); transition: box-shadow 0.4s; }
+.zm-rd-rays { position: absolute; left: 50%; top: 50%; width: 210%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; opacity: 0; transition: opacity 0.5s ease; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgba(232, 207, 150, 0.85) 0 6deg, transparent 6deg 22.5deg);
+  -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 62%); mask-image: radial-gradient(circle, #000 20%, transparent 62%); animation: zm-rays 24s linear infinite; }
+.zm-rd-big.is-rays .zm-rd-rays { opacity: 0.7; }
+@keyframes zm-rays { to { rotate: 360deg; } }
 /* 百变「明塞」（用户挑甲2 · 塞歪了）：明着塞回去的炸毛猫夹在它那一层，往右下歪着露出一截 */
 .zm-deck-kit { position: absolute; left: 0; top: 0; width: var(--pu); pointer-events: none; }
 .zm-deck-kit .zm-card { position: relative; translate: 24% 6%; rotate: 7deg; box-shadow: 1px 2px 4px rgba(29, 27, 24, 0.22); }
 .zm-deck-kit.is-left .zm-card { translate: -24% 6%; rotate: -7deg; box-shadow: -1px 2px 4px rgba(29, 27, 24, 0.22); }   /* 甲 · 两边交替：挨着的那只往左下歪出 */
-.zm-av .zm-role { pointer-events: auto; cursor: pointer; }
 .zm-app #zmFlux { transition: opacity 0.2s ease; }
 .zm-app.is-peeking #zmFlux { opacity: 0; pointer-events: none; }
 /* 组队、队友是我上家（2026-11-15 用户：队友和我出牌顺序挨着，左右跟着顺序走）：队友坐左下、我坐右下，整桌仍是逆时针一圈 */
@@ -1438,8 +1494,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   .zm-lobby-note, .zm-lobby-watch { grid-column: 2; }
 }
 /* 角色猫开局亮相：桌心一只大猫头，飞进头像角上的小猫头 */
-.zm-role-reveal { position: absolute; left: 0; top: 0; border-radius: 50%; overflow: hidden; background: var(--zm-paper); box-shadow: 0 0 0 2.5px var(--zm-ink), 0 0 0 7px rgba(201, 169, 110, 0.35), 0 10px 24px rgba(29, 27, 24, 0.22); transform-origin: 50% 50%; will-change: transform; }
-.zm-role-reveal svg { width: 100%; height: 100%; display: block; }
 
 /* 选中要指人的牌、还没点「出牌」时：能指的人头像外一圈淡金圈轻呼吸（比点了出牌后的金圈淡一档；2026-11-17 定甲） */
 .zm-seat.is-aim .zm-av { box-shadow: 0 0 0 2px rgba(201, 169, 110, 0.85), 0 0 0 6px rgba(201, 169, 110, 0.16); animation: zm-aim-breathe 1.6s ease-in-out infinite; cursor: pointer; }

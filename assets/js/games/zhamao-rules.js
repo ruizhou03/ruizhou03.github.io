@@ -126,13 +126,15 @@
   const FLUX_IDS = FLUX_RULES.map((r) => r.id);
   /* 角色猫（2026-11-15 用户同意提案：技能全部自动触发、不加按钮）。开局每人随机一只，大家都看得到 */
   // 2026-11-15 用户：技能要简单直接、一句话一个效果，不靠打补丁平衡；哪个方向平衡不了就换方向
+  // 2026-11-18 改名（用户定）：角色名不再用品种名——以前「三花 / 奶牛猫 / 狸花」和猫牌同名、「胖橘」和橘猫牌几乎一样，说起来分不清是牌还是人。
+  // id 不变（存档 / 机器猫照旧）
   const ROLES = Object.freeze([
-    { id: 'timid', name: '胆小猫', desc: '被甩锅时，先偷看牌堆顶 3 张', once: false },
-    { id: 'fat', name: '胖橘', desc: '出「索要」时，对方要给两张', once: false },
-    { id: 'shadow', name: '黑猫', desc: '两张偷牌对他无效', once: false },
-    { id: 'cow', name: '奶牛猫', desc: '被甩锅时只摸 1 张', once: false },
-    { id: 'calico', name: '三花', desc: '任意两只猫算一对，任意三只算三张', once: false },
-    { id: 'tabby', name: '狸花', desc: '作废成功，顺手叼走对方一张牌', once: false },
+    { id: 'timid', name: '胆小猫', desc: '被甩锅，先偷看顶上 3 张', once: false },
+    { id: 'fat', name: '贪吃猫', desc: '出索要，对方要给 2 张', once: false },
+    { id: 'shadow', name: '影子猫', desc: '两张偷牌指不到它', once: false },
+    { id: 'cow', name: '扛锅猫', desc: '被甩锅，只摸 1 张', once: false },
+    { id: 'calico', name: '百搭猫', desc: '杂猫也能凑对、凑三张', once: false },
+    { id: 'tabby', name: '截胡猫', desc: '作废成功，顺走对方一张', once: false },
   ]);
   const ROLE_IDS = ROLES.map((r) => r.id);
   const roleOf = (s, seat) => (s.roles ? s.roles[seat] : null);
@@ -546,8 +548,8 @@
         const chained = left > 1 || viaCow;
         s.turnsLeft = s.rules.stackAttack && chained ? left + 2 : 2;
         s.cowCut = -1; s.hotGiven = -1;   // 被甩锅的回合数不算烫手给的
-        if (roleOf(s, next) === 'timid' && s.deck.length) { const top = s.deck.slice(0, 3), m = s.memo[next].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); ev.push({ t: 'role', seat: next, role: 'timid', cards: top, priv: [next] }); }   // 角色猫「胆小猫」：被甩锅先偷看 2 张
-        if (roleOf(s, next) === 'cow' && s.turnsLeft > 1) { s.turnsLeft = 1; s.cowCut = next; ev.push({ t: 'role', seat: next, role: 'cow' }); }   // 角色猫「奶牛猫」：每次被甩锅少摸 1 张
+        if (roleOf(s, next) === 'timid' && s.deck.length) { const top = s.deck.slice(0, 3), m = s.memo[next].deck; for (const id of top) if (m.indexOf(id) < 0) m.push(id); ev.push({ t: 'role', seat: next, role: 'timid', cards: top, priv: [next] }); }   // 角色猫「胆小猫」：被甩锅先偷看 3 张
+        if (roleOf(s, next) === 'cow' && s.turnsLeft > 1) { const was = s.turnsLeft; s.turnsLeft = 1; s.cowCut = next; ev.push({ t: 'role', seat: next, role: 'cow', from: was }); }   // from：本来要摸几张（界面先挂 ×from 再翻成 ×1）   // 角色猫「奶牛猫」：每次被甩锅少摸 1 张
         ev.push({ t: 'turn', seat: next, turnsLeft: s.turnsLeft, attacked: true });
         if (next !== me) turnStarts(s, ev);
         break;

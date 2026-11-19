@@ -438,5 +438,103 @@
     cross: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M20 20 80 80M80 20 20 80" stroke="' + RED + '" stroke-width="14" stroke-linecap="round"/></svg>',
   };
 
-  return { TONE, face, icon, BACK, hero, wand, heart, paw, pawPrint, catHead, PROPS, topdrawFace };
+
+  /* ───── 角色猫（2026-11-18 用户定：卡片甲 · 牌桌同款；贪吃猫 = 捧碗、截胡猫 = 禁止光环）─────
+   * 每只角色是「一只带道具的猫」，和五种猫牌的坐姿猫一眼分开。roleFace(id) 100×100；roleGlyph(id) 一行小图示（代替说明文字） */
+  const RE = (cx, cy, rx, ry, c) => '<ellipse cx="' + f(cx) + '" cy="' + f(cy) + '" rx="' + f(rx) + '" ry="' + f(ry) + '" fill="' + c + '"/>';
+  const rGround = () => RE(50, 93, 34, 4.5, 'rgba(29,27,24,.09)');
+  const rStripes = (c) => line('M-4 -17v5M0 -18v6M4 -17v5', 2.6, c) + line('M-23 0h5M-23 5h5M23 0h-5M23 5h-5', 2.6, c);
+  function rSit(o) {
+    let s = rGround() + line(o.tailD || 'M70 84c12-2 16-14 10-24', 7, o.tail);
+    s += RE(50, 76, 24, 17, o.fur) + (o.bodyX || '');
+    return s + RE(43, 89, 6, 4, o.foot || o.fur) + RE(57, 89, 6, 4, o.foot || o.fur);
+  }
+  const NOPE_C = '#7a5a96';
+  const banSign = (cx, cy, r, w, fill) => '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + (fill || 'none') + '" stroke="' + NOPE_C + '" stroke-width="' + w + '"/><path d="M' + f(cx - r * 0.7) + ' ' + f(cy - r * 0.7) + 'L' + f(cx + r * 0.7) + ' ' + f(cy + r * 0.7) + '" stroke="' + NOPE_C + '" stroke-width="' + w + '" stroke-linecap="round"/>';
+  const ROLE_ART = {
+    // 胆小猫：缩在纸箱里只露半张脸 + 两只爪，冒一滴汗
+    timid() {
+      const fur = '#c9d3e2';
+      let s = rGround() + '<path d="M20 58h60l-5-7H25Z" fill="#a97b45"/>';
+      s += catHead(50, 50, 0.95, fur, { eyes: 'wide', ear: '#e6c3cf', mouth: 'none', blushC: '#f4b0b8' });
+      s += '<rect x="16" y="58" width="68" height="34" rx="3" fill="#d9ad6e"/>' + blob('M16 58 5 47l13-4 7 9Z', '#e7c18a') + blob('M84 58l11-11-13-4-7 9Z', '#e7c18a');
+      s += '<g transform="translate(41 67) scale(.75)" fill="#b98a4e">' + pawPrint() + '</g>';
+      s += RE(37, 58, 6.5, 4.6, fur) + RE(63, 58, 6.5, 4.6, fur) + line('M35 57.5v2.6M39 57.5v2.6M61 57.5v2.6M65 57.5v2.6', 1.8, '#9aa7ba');
+      s += '<path d="M76 22c3 5 5 8 5 10a5 5 0 0 1-10 0c0-2 2-5 5-10Z" fill="#8fb4e0"/>' + line('M17 30q-3 4 0 8M11 28q-4 6 0 12', 2.4, '#9aa7ba');
+      return s;
+    },
+    // 贪吃猫：两只爪捧着一只红碗，碗里两条鱼，舔舌头
+    fat() {
+      const fur = '#eea25a', dark = '#d27a36', light = '#fff4e3';
+      const fish = (x, y, r, sc, c) => '<g transform="translate(' + x + ' ' + y + ') rotate(' + r + ') scale(' + sc + ')">' + RE(0, 0, 10, 5, c) + '<path d="M8.5 0l7.5-5.5v11Z" fill="' + c + '"/><path d="M-3 -4.6q2 4.6 0 9.2" stroke="rgba(255,255,255,.55)" stroke-width="1.6" fill="none"/><circle cx="-5.6" cy="-1.2" r="1.5" fill="' + INK + '"/></g>';
+      let s = rSit({ fur, tail: dark, foot: light, bodyX: RE(50, 79, 14, 10, light) + line('M38 66v5M62 66v5', 2.6, dark) });
+      s += catHead(50, 40, 1.05, fur, { eyes: 'happy', mouth: 'none', patch: rStripes(dark), muzzle: light });
+      s += '<path d="M46.8 50.6h6.4v2.6a3.2 3.2 0 0 1-6.4 0Z" fill="#e06d78"/>';
+      s += fish(31, 62, -62, 0.95, '#6fa6c0') + fish(69, 62, -118, 0.95, '#5f97b3');
+      s += '<path d="M22 72h56c0 13-12 21-28 21S22 85 22 72Z" fill="#c8463a"/>' + RE(50, 72, 28, 5.5, '#e0604f') + RE(50, 72.5, 23, 3.4, '#8a2e24');
+      s += '<g transform="translate(43.5 76) scale(.55)" fill="#fbe1d6">' + pawPrint() + '</g>';
+      return s + RE(24, 73, 6.5, 5.5, fur) + RE(76, 73, 6.5, 5.5, fur);
+    },
+    // 影子猫：月牙下的黑猫，只看得清一对黄眼睛
+    shadow() {
+      const fur = '#2f2b28';
+      let s = '<path d="M76 10a15 15 0 1 0 0 30a12 12 0 1 1 0-30Z" fill="#e3c27a"/><circle cx="20" cy="18" r="1.8" fill="#e3c27a"/><circle cx="28" cy="10" r="1.2" fill="#e3c27a"/>';
+      s += rSit({ fur, tail: '#1f1c1a', foot: '#3d3834', tailD: 'M70 86c14 0 18-16 8-26' });
+      s += catHead(50, 42, 1.05, fur, { eyes: 'wide', ear: '#6b5a55', blushC: '#8a5a5a', mouth: 'smile' }).replace(/stroke="#1d1b18" stroke-width="2.4"/g, 'stroke="#8a7f74" stroke-width="2.4"');
+      for (const x of [40.55, 59.45]) s += RE(x, 40.95, 6.6, 6.8, '#f2d45c') + RE(x, 40.95, 1.7, 5, INK) + '<circle cx="' + f(x - 2.4) + '" cy="38.4" r="1.4" fill="#fff"/>';
+      return s;
+    },
+    // 扛锅猫：奶牛花色，头上倒扣一口锅，一脸无所谓
+    cow() {
+      const fur = '#fffdf8', blk = '#2a2622';
+      let s = rSit({ fur, tail: blk, bodyX: RE(61, 72, 8, 6, blk) });
+      s += catHead(50, 46, 1.0, fur, { earFur: blk, ear: '#f6b9a6', eyes: 'closed', mouth: 'smile', patch: '<path d="M-24 2c-1-11 4-19 13-21 3 6 2 14-3 17-4 3-8 4-10 4Z" fill="' + blk + '"/><ellipse cx="13" cy="-10" rx="6" ry="4.5" fill="' + blk + '"/>' });
+      s += '<path d="M25 30h50c0-13-11-21-25-21S25 17 25 30Z" fill="#3a3632"/><path d="M33 22c3-5 8-7 13-7" stroke="#6e675f" stroke-width="3.4" fill="none" stroke-linecap="round"/>';
+      return s + '<rect x="20" y="28" width="60" height="7" rx="3.5" fill="#5c5650"/><rect x="13" y="29" width="9" height="5" rx="2.5" fill="#8a6a3e"/><rect x="78" y="29" width="9" height="5" rx="2.5" fill="#8a6a3e"/>';
+    },
+    // 百搭猫：三花抱着一块拼布，爪里捏针
+    calico() {
+      const fur = '#fff6ea';
+      let s = '<g transform="translate(25 60) rotate(-9)"><rect x="-15" y="-15" width="15" height="15" fill="#e58e46"/><rect x="0" y="-15" width="15" height="15" fill="#fff6ea"/><rect x="-15" y="0" width="15" height="15" fill="#3c3530"/><rect x="0" y="0" width="15" height="15" fill="#f0b9a8"/>' +
+        '<rect x="-15" y="-15" width="30" height="30" rx="2" fill="none" stroke="' + GOLD + '" stroke-width="1.8" stroke-dasharray="3 2.4"/><path d="M0 -15v30M-15 0h30" stroke="' + GOLD + '" stroke-width="1.8" stroke-dasharray="3 2.4"/></g>';
+      s += line('M81 53C94 72 70 99 30 74', 2.2, '#c8463a');
+      s += '<g transform="translate(8 0)">' + rSit({ fur, tail: '#e58e46', bodyX: RE(38, 74, 8, 6, '#e58e46') + RE(62, 80, 6, 5, '#3c3530') });
+      s += catHead(50, 42, 1.05, fur, { ear: '#f6b9a6', earFur: fur, eyes: 'happy', patch: '<path d="M-24 -2c-1-10 6-17 14-18 3 4 1 12-5 15-3 2-7 3-9 3Z" fill="#e58e46"/><path d="M24 2c0-9-5-16-12-18-3 5 0 11 4 14 3 2 6 3 8 4Z" fill="#3c3530"/>' }) + '</g>';
+      return s + line('M66 70 82 52', 3, '#9aa3ad') + '<circle cx="81" cy="53" r="1.6" fill="none" stroke="#9aa3ad" stroke-width="1.4"/>' + RE(64, 72, 6, 5, fur);
+    },
+    // 截胡猫：身后一圈大大的禁止符号，举起一只爪掌心朝外——「停！」
+    tabby() {
+      const fur = '#b39c7e', dark = '#6e5c48';
+      let s = '<circle cx="50" cy="44" r="36" fill="#ece1f2"/>' + banSign(50, 44, 36, 6);
+      s += rSit({ fur, tail: dark, tailD: 'M70 84c14-4 14-22 6-30', bodyX: line('M42 66v6M50 65v7M58 66v6', 2.6, dark) });
+      s += catHead(50, 42, 1.05, fur, { eyes: 'open', mouth: 'flat', muzzle: '#efe3cf', patch: line('M-6 -16l3 4 3-4 3 4 3-4', 2.6, dark) + line('M-23 -1h6M-23 5h6M23 -1h-6M23 5h-6', 2.6, dark) });
+      return s + line('M66 72q10-8 10-20', 9, fur) + paw(76, 46, 1.05, fur, '#f4b6c0');
+    },
+  };
+  // 角色牌的颜色：bg 画底，band 名字条
+  const ROLE_TONE = {
+    timid: { bg: '#e3e9f2', band: '#5d7394' }, fat: { bg: '#fbe6cf', band: '#d27a36' }, shadow: { bg: '#dfdde9', band: '#3b3550' },
+    cow: { bg: '#efe8da', band: '#8a6a3e' }, calico: { bg: '#f8e4e2', band: '#b0566a' }, tabby: { bg: '#ebe3ef', band: '#6a4f86' },
+  };
+  const rcache = {};
+  function roleFace(id) { if (!rcache[id]) rcache[id] = '<svg viewBox="0 0 100 100" aria-hidden="true">' + (ROLE_ART[id] || ROLE_ART.fat)() + '</svg>'; return rcache[id]; }
+  // 技能小图示：一行图标（甩锅 → 猫眼 + 三张 ……），高 24
+  const gIc = (k, x) => '<svg x="' + x + '" y="0" width="24" height="24" viewBox="0 0 24 24">' + ICON[k]() + '</svg>';
+  const gBack = (x, y, r) => '<g transform="translate(' + f(x) + ' ' + f(y) + ') rotate(' + (r || 0) + ')"><rect x="-6" y="-8.5" width="12" height="17" rx="2.2" fill="' + NAVY + '" stroke="' + GOLD + '" stroke-width="1.2"/></g>';
+  const gArrow = (x) => '<path d="M' + x + ' 12h9" stroke="#8a7f74" stroke-width="2.2" stroke-linecap="round"/><path d="M' + (x + 12) + ' 12l-4.5-3.4v6.8Z" fill="#8a7f74"/>';
+  const GLYPH = {
+    timid: () => [92, gIc('attack', 0) + gArrow(27) + gIc('future', 42) + gBack(72, 13, -14) + gBack(79, 12, 0) + gBack(86, 13, 14)],
+    fat: () => [94, gIc('favor', 0) + gArrow(27) + gBack(52, 12, -8) + gBack(62, 12, 8) + '<text x="74" y="17" font-size="12" font-weight="700" fill="#d27a36" font-family="Georgia,serif">×2</text>'],
+    shadow: () => [82, gIc('orange', 0) + gIc('orange', 18) + gArrow(44) + '<circle cx="70" cy="12" r="9.5" fill="none" stroke="#c8463a" stroke-width="2.4"/><path d="M63.3 5.3l13.4 13.4" stroke="#c8463a" stroke-width="2.4" stroke-linecap="round"/>'],
+    cow: () => [86, gIc('attack', 0) + gIc('attack', 20) + gArrow(47) + gIc('attack', 62)],
+    calico: () => [100, gIc('orange', 0) + gIc('cow', 20) + '<path d="M48 9.5h9M48 14.5h9" stroke="#8a7f74" stroke-width="2.2" stroke-linecap="round"/>' + gIc('orange', 62) + gIc('orange', 80)],
+    tabby: () => [72, gIc('nope', 0) + gArrow(27) + gBack(52, 12, -10) + '<path d="M62 12h8M66 8v8" stroke="#6a4f86" stroke-width="2.4" stroke-linecap="round"/>'],
+  };
+  const gcache = {};
+  function roleGlyph(id) { if (!gcache[id]) { const g = (GLYPH[id] || GLYPH.fat)(); gcache[id] = '<svg viewBox="0 0 ' + g[0] + ' 24" aria-hidden="true">' + g[1] + '</svg>'; } return gcache[id]; }
+  // 角色牌背：焦糖棕 + 金框 + 中间一颗金色猫头（和藏蓝的游戏牌背分开）
+  const ROLE_BACK = '<svg viewBox="0 0 100 140" aria-hidden="true"><rect width="100" height="140" rx="9" fill="#7a4f2a"/><rect x="7" y="7" width="86" height="126" rx="6" fill="none" stroke="' + GOLD + '" stroke-width="2.4"/><rect x="12" y="12" width="76" height="116" rx="4" fill="none" stroke="' + GOLD + '" stroke-width="1" opacity=".55"/>' +
+    '<circle cx="50" cy="70" r="27" fill="#8e6036"/>' + catHead(50, 74, 0.82, GOLD, { ear: '#e3cf9f', eyes: 'closed', mouth: 'none', blush: false }) + '</svg>';
+
+  return { TONE, face, icon, BACK, hero, wand, heart, paw, pawPrint, catHead, PROPS, topdrawFace, ROLE_TONE, roleFace, roleGlyph, ROLE_BACK };
 });

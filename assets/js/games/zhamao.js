@@ -1138,34 +1138,113 @@
     const nT = turn && (d.turnsLeft > 1 || game.attackSeat === seat) ? d.turnsLeft : 0;
     const tv = els.app.dataset.uivTurns;   // 预览（本机对比，未定）：hat 扣锅 / ring 红圈分段 / beads 红珠
     if (tv) { setBadge(av, 'zm-turns', ''); setPotMark(av, tv, nT); } else setBadge(av, 'zm-turns', nT ? '×' + nT : '');
-    // 角色猫：头像左上角一枚小猫头（这只角色），一局一次的技能用掉了就变灰
+    // 角色猫：头像左上角斜插一张小角色卡（2026-11-18 用户定甲 · 牌桌同款）；点它 = 展开整张角色卡
     const role = s.roles ? s.roles[seat] : null;
     let rb = av.querySelector('.zm-role');
     if (!role) { if (rb) rb.remove(); }
     else {
       if (!rb || rb.dataset.role !== role) {
         if (rb) rb.remove();
-        rb = document.createElement('i'); rb.className = 'zm-role'; rb.dataset.role = role; rb.innerHTML = roleArt(role); av.appendChild(rb);
-        // 手机上没有悬停：点小猫头弹一句它的技能（2026-11-15 巡查补）
-        rb.addEventListener('click', (ev) => { ev.stopPropagation(); const info = R.ROLES.find((r) => r.id === role); if (info) toast((seat === 0 ? '我' : nameOf(seat)) + ' · ' + info.name + '：' + (seat === 0 ? info.desc.replace(/他/g, '你') : info.desc)); });
+        rb = document.createElement('i'); rb.className = 'zm-role'; rb.dataset.role = role; rb.innerHTML = roleCardHtml(role, { tiny: true }); av.appendChild(rb);
+        rb.addEventListener('click', (ev) => { ev.stopPropagation(); expandRole(+rb.closest('.zm-seat').dataset.seat); });
       }
+      rb.style.visibility = game.roleHide && game.roleHide.has(seat) ? 'hidden' : '';   // 开局抽角色：亮出来之前角上空着
       const info = R.ROLES.find((r) => r.id === role);
       rb.classList.toggle('is-used', !!(info && info.once && s.roleUsed && s.roleUsed[seat]));
       rb.title = info ? info.name + '：' + info.desc : '';
     }
   }
-  /* 角色猫的小猫头（24×24）：每只一种毛色 / 花纹 */
-  const ROLE_LOOK = {
-    timid: ['#c9d3e2', { eyes: 'wide', ear: '#e6c3cf' }],
-    fat: ['#eea25a', { ear: '#f6b9a6' }],
-    shadow: ['#2f2b28', { eyes: 'side', ear: '#6b5a55', blushC: '#8a5a5a' }],
-    cow: ['#fbf7ee', { ear: '#f3c2c8', patch: '<ellipse cx="-10" cy="-7" rx="9" ry="7" fill="#2a2622"/><ellipse cx="11" cy="9" rx="6" ry="4.5" fill="#2a2622"/>' }],
-    calico: ['#fbf4e6', { ear: '#f3c2c8', patch: '<ellipse cx="-10" cy="-6" rx="9" ry="7" fill="#e58e46"/><ellipse cx="11" cy="-5" rx="7" ry="6" fill="#2a2622"/>' }],
-    tabby: ['#a88c6c', { ear: '#e9c3b0' }],
-  };
-  function roleArt(role) {
-    const L = ROLE_LOOK[role] || ROLE_LOOK.fat;
-    return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ART.catHead(12, 13.5, role === 'fat' ? 0.46 : 0.42, L[0], L[1]) + '</svg>';
+  /* ───── 角色卡（2026-11-18 用户定甲 · 牌桌同款：墨边 + 画 + 一行技能图示 + 名字条；大卡多一句说明）───── */
+  function roleInfo(id) { return R.ROLES.find((r) => r.id === id) || { id, name: '', desc: '' }; }
+  function roleCardHtml(id, o) {
+    o = o || {};
+    const t = ART.ROLE_TONE[id] || ART.ROLE_TONE.fat, info = roleInfo(id);
+    return '<div class="zm-rc' + (o.big ? ' is-big' : '') + (o.tiny ? ' is-tiny' : '') + '" data-role="' + id + '" style="--rbg:' + t.bg + ';--rband:' + t.band + (o.w ? ';width:' + o.w + 'px' : '') + '">' +
+      '<div class="zm-rc-art">' + ART.roleFace(id) + '</div><div class="zm-rc-gl">' + ART.roleGlyph(id) + '</div>' +
+      (o.big ? '<div class="zm-rc-tx">' + esc(info.desc) + '</div>' : '') + '<div class="zm-rc-nm">' + info.name + '</div></div>';
+  }
+  const roleBackHtml = (w) => '<div class="zm-rc-back" style="width:' + w + 'px">' + ART.ROLE_BACK + '</div>';
+  function roleFlipHtml(id, w, big) {
+    return '<div class="zm-rc-flip" style="width:' + w + 'px;height:' + Math.round(w * 1.4) + 'px"><div class="zm-rc-flip-in"><div class="zm-rc-flip-b">' + roleBackHtml(w) + '</div><div class="zm-rc-flip-f">' + roleCardHtml(id, { big, w }) + '</div></div></div>';
+  }
+  const roleBadge = (seat) => { const a = avEl(seat); return a && a.querySelector('.zm-role'); };
+  // 一个元素从 from 矩形「飞」到它自己现在的位置（FLIP）；rot 起始歪多少度
+  function flipFrom(el, from, dur, rot, ease) {
+    const r = el.getBoundingClientRect();
+    if (!from || !r.width || fx.reduce()) return Promise.resolve();
+    const dx = from.left + from.width / 2 - (r.left + r.width / 2), dy = from.top + from.height / 2 - (r.top + r.height / 2), k = from.width / r.width;
+    return el.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k.toFixed(3) + ') rotate(' + (rot || 0) + 'deg)' }, { transform: 'none' }],
+      { duration: dur, easing: ease || 'cubic-bezier(.3,.8,.3,1)' }).finished.catch(() => {});
+  }
+  function flipTo(el, to, dur, rot) {
+    const r = el.getBoundingClientRect();
+    if (!to || !r.width || fx.reduce()) return Promise.resolve();
+    const dx = to.left + to.width / 2 - (r.left + r.width / 2), dy = to.top + to.height / 2 - (r.top + r.height / 2), k = to.width / r.width;
+    return el.animate([{ transform: 'none' }, { transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k.toFixed(3) + ') rotate(' + (rot || 0) + 'deg)' }],
+      { duration: dur, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+  }
+
+  /* 点头像角上的小卡 → 小卡从头像飞到桌心放大成整张角色卡，上面挂这人的头像 + 名字；点哪儿都收回去（代替以前那条文字提示） */
+  let roleView = null;
+  function closeRoleView() {
+    const v = roleView;
+    if (!v) return;
+    roleView = null;
+    if (!v.wrap.isConnected) return;
+    v.wrap.style.pointerEvents = 'none';
+    v.wrap.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards', delay: 120 });
+    Promise.all(v.items.map((it) => { const b = it.back(); return flipTo(it.card, b && b.isConnected ? b.getBoundingClientRect() : null, 340, -10); })).then(() => {
+      v.wrap.remove();
+      v.items.forEach((it) => { const b = it.back(); if (b) { b.style.visibility = ''; fx.pop(b, { scale: 1.5, dur: 320 }); } });
+    });
+  }
+  function openRoleView(seats, from) {
+    if (roleView || !game || !game.state.roles) return;
+    const st = game.state, big = seats.length === 1;
+    const wrap = document.createElement('div');
+    wrap.className = 'zm-role-view' + (big ? '' : ' is-gal');
+    const vw = innerWidth, vh = innerHeight, n = seats.length;
+    const cols = big ? 1 : vw < 600 ? Math.min(n, n > 4 ? 3 : 2) : Math.min(n, 5);
+    const rows = Math.ceil(n / cols);
+    const w = Math.round(big ? Math.min(240, vw * 0.58, vh * 0.42) : Math.min(180, (vw - 40) / cols - 14, (vh - 60) / rows / 1.62));
+    wrap.style.setProperty('--cols', cols);
+    wrap.innerHTML = '<div class="zm-role-view-in">' + seats.map((seat) => '<div class="zm-role-it"><div class="zm-role-chip"><span class="zm-role-chip-av">' + avatarHtml(seat) + '</span><b>' + esc(seat === meSeat() ? '我' : nameOf(seat)) + '</b></div>' + roleCardHtml(st.roles[seat], { big: true, w }) + '</div>').join('') + '</div>';
+    els.fly.appendChild(wrap);
+    const items = [...wrap.querySelectorAll('.zm-role-it')].map((it, i) => ({ it, card: it.querySelector('.zm-rc'), back: () => (from === 'fan' ? (document.querySelectorAll('.zm-role-fan .zm-rc')[i] || null) : roleBadge(seats[i])) }));
+    wrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220 });
+    items.forEach((x, i) => {
+      const b = x.back();
+      if (b && from !== 'fan') b.style.visibility = 'hidden';
+      x.card.style.opacity = '0';
+      setTimeout(() => { x.card.style.opacity = ''; flipFrom(x.card, b ? b.getBoundingClientRect() : null, 420, -10); }, big ? 0 : i * 60);
+      const chip = x.it.querySelector('.zm-role-chip');
+      if (!fx.reduce()) chip.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 240, delay: 300 + (big ? 0 : i * 60), fill: 'backwards' });
+    });
+    snd('tap');
+    roleView = { wrap, items };
+    wrap.addEventListener('click', (ev) => { ev.stopPropagation(); closeRoleView(); });
+  }
+  function expandRole(seat) { if (game && game.state.roles && game.state.roles[seat]) openRoleView([seat], 'badge'); }
+  /* 本桌图鉴（2026-11-18 用户定甲 · 桌角一叠）：桌面左上角斜叠着本桌几张小角色卡，点开 = 全部摊开 */
+  function renderRoleFan() {
+    const st = game && game.state;
+    let el = document.getElementById('zmRoleFan');
+    if (!st || !st.roles || game.roleHide || game.tutorial) { if (el) el.remove(); return; }
+    const seats = st.roles.map((_, i) => i);
+    const key = st.roles.join(',');
+    if (!el) {
+      el = document.createElement('button');
+      el.type = 'button'; el.id = 'zmRoleFan'; el.className = 'zm-role-fan';
+      el.setAttribute('aria-label', '本桌角色');
+      el.addEventListener('click', (ev) => { ev.stopPropagation(); openRoleView(seats.filter((k) => game.state.roles[k]), 'fan'); });
+      els.center.appendChild(el);
+    }
+    if (el.dataset.key !== key) {
+      el.dataset.key = key;
+      const n = seats.length;
+      el.style.setProperty('--n', n);
+      el.innerHTML = st.roles.map((r, i) => '<i style="--i:' + i + ';--k:' + (i - (n - 1) / 2).toFixed(2) + '">' + roleCardHtml(r, { tiny: true }) + '</i>').join('');
+    }
   }
   /* 预览：甩锅标记的三种新画法（都不往头像外面伸出角标）
    * hat  扣锅：一口倒扣的锅扣在头上（「把锅扣他头上」），锅肚上写 ×N；摸完一回合数字弹一下，全摸完锅被掀飞
@@ -1487,14 +1566,93 @@
     if (t !== token) return;
     await animInsert({ seat: e.seat, vis: e.vis != null ? e.vis : null }, t);   // 按随机塞到的大概高度开缝（2026-11-15 用户）
   }
-  // 角色猫技能触发：冒一句话；胆小猫是我自己的话，把偷看到的那张亮给我看
+  /* 角色猫技能触发（2026-11-18 用户：第一版「另编一段表演」太牵强）：
+   * 一律 = 「亮牌」（头像角上的小卡弹出来、立在头像旁边，外圈一道角色色的光）+ 规则本来就有的那个动作，不出字 */
+  async function flashRole(seat, t, hold) {
+    const rb = roleBadge(seat), av = avEl(seat);
+    const st = game && game.state, role = st && st.roles && st.roles[seat];
+    if (!rb || !av || !role) return { back: () => Promise.resolve() };
+    snd('ding');
+    if (fx.reduce()) { fx.pop(rb, { scale: 1.8, dur: 420 }); if (hold) await wait(ms(hold)); return { back: () => Promise.resolve() }; }
+    const ar = av.getBoundingClientRect(), br = rb.getBoundingClientRect(), sr = seatEl(seat).getBoundingClientRect();
+    const w = Math.round(Math.max(54, Math.min(84, ar.width * 1.35))), h = w * 1.4;
+    const below = ar.top + ar.height / 2 < innerHeight / 2;
+    let x = ar.left + ar.width / 2 + (below ? 0 : ar.width * 0.35);
+    x = Math.max(w * 0.6 + 4, Math.min(innerWidth - w * 0.6 - 4, x));
+    const y = below ? Math.max(ar.bottom, sr.bottom) + h / 2 + 8 : ar.top - h / 2 - 14;
+    const el = document.createElement('div');
+    el.className = 'zm-role-pop';
+    el.style.cssText = 'left:' + (x - w / 2).toFixed(1) + 'px;top:' + (y - h / 2).toFixed(1) + 'px;--glow:' + (ART.ROLE_TONE[role] || ART.ROLE_TONE.fat).band;
+    el.innerHTML = roleCardHtml(role, { w });
+    els.fly.appendChild(el);
+    rb.style.visibility = 'hidden';
+    await flipFrom(el, br, ms(380), -10, 'cubic-bezier(.3,.9,.4,1.15)');
+    if (t !== token) { el.remove(); return { back: () => Promise.resolve() }; }
+    el.classList.add('is-on');
+    fx.burst(x, y, { n: 8, shapes: ['star', 'dot'], colors: [(ART.ROLE_TONE[role] || ART.ROLE_TONE.fat).band, '#c9a96e'], radius: w * 0.85, size: [4, 9], life: 600 });
+    if (hold) await wait(ms(hold));
+    let done = null;
+    return {
+      back() {
+        if (done) return done;
+        el.classList.remove('is-on');
+        const b = roleBadge(seat);
+        done = flipTo(el, b && b.isConnected ? b.getBoundingClientRect() : null, ms(320), -10).then(() => {
+          el.remove();
+          const b2 = roleBadge(seat);
+          if (b2) { b2.style.visibility = ''; fx.pop(b2, { scale: 1.5, dur: 300 }); }
+        });
+        return done;
+      },
+    };
+  }
   async function animRole(e, t) {
-    const txt = { timid: '偷看了三张', shadow: '扑空了！', cow: '只摸一张', tabby: '叼走一张！' }[e.role];
-    const av = avEl(e.seat), rb = av && av.querySelector('.zm-role');
-    if (rb) fx.pop(rb, { scale: 1.6, dur: 420 });
-    if (e.role === 'timid' && e.seat === 0 && e.cards) await animFuture({ t: 'future', seat: 0, cards: e.cards }, t);
-    else if (txt) { bubble(e.seat, txt, { loud: true, ms: 1600 }); await wait(ms(650)); }
-    if (t === token) renderSeat(e.seat);
+    if (e.role === 'timid') {
+      const fl = await flashRole(e.seat, t);
+      if (t !== token) return fl.back();
+      // 他在看牌堆顶 3 张：是我就照窥探把三张正面摊给我；是别人就在牌堆上方掀起三张牌背摊一下，再放回去
+      if (e.seat === meSeat() && e.cards) await animFuture({ t: 'future', seat: e.seat, cards: e.cards }, t);
+      else await liftTop3(Math.min(3, D().deckSize || 3), t);
+      return fl.back();
+    }
+    if (e.role === 'cow') {
+      const fl = await flashRole(e.seat, t, 420);
+      if (t !== token) return fl.back();
+      if (ov && ov.turn === e.seat) { ov.turnsLeft = 1; renderSeat(e.seat); }   // ×N 直接翻成 ×1
+      const pm = avEl(e.seat) && avEl(e.seat).querySelector('.zm-pm, .zm-turns');
+      if (pm) fx.pop(pm, { scale: 1.7, dur: 360 });
+      await wait(ms(520));
+      return fl.back();
+    }
+    if (e.role === 'tabby') {   // 截胡猫：亮牌；顺走的那一张接着用偷牌同一个飞法（下一个事件 steal）
+      const fl = await flashRole(e.seat, t, 380);
+      return fl.back();
+    }
+    const fl = await flashRole(e.seat, t, 600);   // 影子猫等：只亮牌
+    await fl.back();
+  }
+  // 牌堆顶 N 张在牌堆上方掀起来摊一下（别人在看，我看不到正面），再放回去
+  async function liftTop3(n, t) {
+    if (fx.reduce() || !n) { await wait(ms(500)); return; }
+    const dr = deckTopRect(), u = dr.width * 0.82, cx = dr.left + dr.width / 2, cy = dr.top + dr.height / 2;
+    const nodes = [];
+    for (let i = 0; i < n; i++) {
+      const d = document.createElement('div');
+      d.className = 'zm-lift3';
+      d.style.cssText = 'width:' + u + 'px;left:' + (cx - u / 2) + 'px;top:' + (cy - u * 0.7) + 'px';
+      d.innerHTML = backHtml();
+      els.fly.appendChild(d);
+      nodes.push(d);
+      const k = i - (n - 1) / 2;
+      d.animate([{ transform: 'none' }, { transform: 'translate(' + (k * u * 0.55).toFixed(1) + 'px,' + (-dr.height * 0.95).toFixed(1) + 'px) rotate(' + (k * 9) + 'deg)' }],
+        { duration: ms(360), delay: i * ms(60), easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'forwards' });
+    }
+    snd('whoosh');
+    await wait(ms(360 + 60 * n + 820));
+    nodes.forEach((d, i) => d.animate([{ opacity: 1 }, { transform: 'none', opacity: 1 }], { duration: ms(300), delay: (n - 1 - i) * ms(50), easing: 'ease-in', fill: 'forwards', composite: 'replace' }));
+    await wait(ms(300 + 50 * n));
+    nodes.forEach((d) => d.remove());
+    void t;
   }
   // 组队：队友摸到炸毛猫没逗猫棒——他喊「救我！」，有逗猫棒的队友想一下
   async function animAskRescue(e, t) {
@@ -1580,6 +1738,7 @@
   function renderPiles() {
     const s = game.state, d = D();
     renderFlux(d);
+    renderRoleFan();
     renderDeck(Math.max(0, d.deckSize - (d.lifted || 0)));
     els.deck.classList.toggle('no-count', !d.deckSize);
     els.deckCount.textContent = d.deckSize;
@@ -1745,7 +1904,10 @@
     els.cancelBtn.hidden = mode !== 'target';
     els.playBtn.hidden = false; els.drawBtn.hidden = false;
     els.playBtn.disabled = true; els.drawBtn.disabled = true;
-    els.playBtn.textContent = '出牌'; els.drawBtn.textContent = '摸牌';
+    // 贪吃猫要我给第二张：两张之间（第一张还在飞）键上别闪回「出牌」，灰着的「给牌 ×1」等下一张（2026-11-18 巡查）
+    const giveNext = s.phase === 'give' && s.give && s.give.from === 0 && mode !== 'give';
+    if (giveNext && R.roleOf(s, s.give.to) === 'fat') els.playBtn.innerHTML = '给牌<b class="zm-xn">×' + (s.give.left > 1 ? 2 : 1) + '</b>'; else els.playBtn.textContent = giveNext ? '给牌' : '出牌';
+    els.drawBtn.textContent = '摸牌';
     els.drawBtn.classList.remove('is-ready');
     if (s.phase === 'over') { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (game.dealing) { /* 发牌中：两个键都灰着 */ }
@@ -1760,7 +1922,7 @@
     else if (mode === 'give') {
       // 胖橘出的索要要给两张：按钮上写第几张（2026-11-15 巡查：以前给完一张又要给，不知道怎么回事）
       const gv = s.give, two = gv && R.roleOf && R.roleOf(s, gv.to) === 'fat';
-      els.playBtn.textContent = two ? '给牌 ' + (gv.left > 1 ? 1 : 2) + '/2' : '给牌';
+      if (two) els.playBtn.innerHTML = '给牌<b class="zm-xn">×' + (gv.left > 1 ? 2 : 1) + '</b>'; else els.playBtn.textContent = '给牌';
       els.playBtn.disabled = selected.length !== 1;
     }
     else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消'; }
@@ -2245,14 +2407,27 @@
     try {
       for (let i = 0; i < ev.length; i++) {
         if (t !== token) return;
-        await anim(ev[i], t, ev[i + 1]);
+        const e = ev[i], nx = ev[i + 1];
+        if (e.t === 'role' && (e.role === 'timid' || e.role === 'cow') && nx && nx.t === 'turn' && nx.attacked && nx.seat === e.seat) {
+          await anim(e.role === 'cow' && e.from ? Object.assign({}, nx, { turnsLeft: e.from }) : nx, t, e);
+          if (t !== token) return;
+          await anim(e, t, ev[i + 2]);
+          if (e.role === 'cow' && ov && ov.turn === nx.seat && ov.turnsLeft !== nx.turnsLeft) { ov.turnsLeft = nx.turnsLeft; renderSeat(nx.seat); }
+          i++;
+          continue;
+        }
+        await anim(e, t, nx);
       }
     } finally { evPlaying--; }
   }
 
   /* ───── 事件动画 ───── */
+  let lastEv = null;
   async function anim(e, t, next) {
     rimFx(e);
+    const prev = lastEv;
+    lastEv = e;
+    if (e.t === 'askGive') return animAskGive(e, t, prev);
     switch (e.t) {
       case 'play': return animPlay(e, t);
       case 'nope': return animNope(e, t);
@@ -2325,6 +2500,11 @@
       game.arrow = aim(tg, cardHue(p));
       releaseRim();
       game.rimLk = rimLink(p.by, tg, p.type === R.ATTACK || p.type === R.TATTACK, cardHue(p));   // 甩锅 / 自由甩锅一律顺着出牌方向连（2026-11-14 用户）；桌沿连线单独记着：等牌真的拿到 / 给到 / 换完才收（不跟准星一起收）；甩锅给下家也连
+    }
+    if (s.roles && R.roleOf(s, e.seat) === 'calico' && e.cards && !R.classify(e.cards)) {   // 百搭猫：杂猫凑的一对 / 三张——亮牌，告诉大家为什么算数
+      const fl = await flashRole(e.seat, t, 520);
+      await fl.back();
+      if (t !== token) return;
     }
     await mimic(p.cards, t);   // 万能猫顶了谁：演完、停一下再往下走（只有组合里有万能猫时才多这一下）
     if (t !== token) return;
@@ -2881,9 +3061,16 @@
   }
 
   /* 被蹭：粉色箭头还在，他头顶冒「…」在挑 */
-  async function animAskGive(e, t) {
+  async function animAskGive(e, t, prev) {
     if (game.arrow) game.arrow.remove();
     game.arrow = aim(e.from, '#e0566e');
+    // 贪吃猫出的索要：第一次问的时候亮牌（第二次是同一张索要的第二张，不再亮）
+    const st = game.state;
+    if (st.roles && R.roleOf(st, e.to) === 'fat' && !(prev && prev.t === 'give' && prev.from === e.from && prev.to === e.to)) {
+      game.giveTwo = true;
+      const fl = await flashRole(e.to, t, 500);
+      fl.back();
+    } else if (!(prev && prev.t === 'give')) game.giveTwo = false;
     if (e.from !== 0) bubble(e.from, '', { think: true, ms: 60000 });
     await wait(ms(260));
     void t;
@@ -4157,7 +4344,11 @@
     }
     if (!targetCb) return;
     const b = seatEl(seat);
-    if (!b.classList.contains('is-target')) { shake(b); return; }
+    if (!b.classList.contains('is-target')) {
+      const st = game.state;
+      if (st.roles && R.roleOf(st, seat) === 'shadow' && st.alive[seat] && st.hands[seat].length && b.classList.contains('is-target-off')) { flashRole(seat, token, 700).then((fl) => fl.back()); return; }   // 影子猫：两张偷牌指不到它——点它 = 它亮一下牌告诉你为什么
+      shake(b); return;
+    }
     const cb = targetCb;
     mode = null; targetCb = null;
     allSeatEls().forEach((x) => x.classList.remove('is-target', 'is-target-off'));
@@ -4173,6 +4364,7 @@
 
 
   function wipeFx() {
+    roleView = null;
     stopCardFuse(true);
     clearBombAvatars();
     if (game && game.wander) { game.wander.cancel(); game.wander = null; }
@@ -4199,7 +4391,9 @@
     ov = { counts: Array(n).fill(0), hand: [], deckSize: s.deck.length + dealt, kittens: kits.length, discard: [], turn: -1, turnsLeft: 1, alive: s.alive.slice() };
     game.dealing = true;
     renderAll();
+    await roleDraw(t);   // 角色玩法：发牌前先抽角色（没有角色立刻返回）
     const skipped = () => t !== token || !game.dealing;
+    if (skipped()) return;
     // 牌堆落下
     if (!fx.reduce()) {
       els.deck.animate([{ transform: 'translateY(-60px) scale(1.15)', opacity: 0 }, { transform: 'translateY(4px) scale(.98)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.3,.7,.4,1)' });
@@ -4307,8 +4501,9 @@
     wipeFx();
     release();
     renderAll();
-    const tk = token;
-    roleIntro().then(() => { if (tk === token) schedule(200, step); });   // 角色猫亮相完再开打
+    if (game.roleHide) game.roleHide = null;   // 抽角色时点了跳过：直接全亮出来
+    renderAll();
+    schedule(200, step);
   }
   async function startWithDeal() {
     const t = token;
@@ -4317,47 +4512,141 @@
     if (t !== token) return;
     game.dealing = false;
     release();
-    await roleIntro();   // 角色猫亮相完再开打（没有角色猫立刻返回）
-    if (t !== token) return;
     step();
   }
-  // 角色猫：发完牌告诉我抽到的是哪只猫、技能是什么（2026-11-15 巡查：以前只有头像角上一枚小猫头，不点不知道）
-  /* 角色猫开局（2026-11-15 用户：不靠文字）：我的那只角色猫在桌心放大亮相，然后缩小飞进头像角上的小猫头、小猫头弹一下。
-   * 技能说明照旧点小猫头看 */
-  function roleIntro() {
-    const st = game && game.state, r = st && st.roles && st.roles[0];
-    if (!r || game.tutorial || game.online) return Promise.resolve();
-    const av = avEl(0), rb = av && av.querySelector('.zm-role');
-    if (!rb) return Promise.resolve();
-    if (fx.reduce()) { fx.pop(rb, { scale: 1.8, dur: 520 }); return Promise.resolve(); }
-    const t = token, c = fx.center(els.center.getBoundingClientRect());
-    const S = Math.round(Math.max(84, Math.min(140, els.center.getBoundingClientRect().height * 0.6)));
-    const el = document.createElement('div');
-    el.className = 'zm-role-reveal';
-    el.style.width = el.style.height = S + 'px';
-    el.innerHTML = roleArt(r);
-    els.fly.appendChild(el);
-    rb.style.visibility = 'hidden';   // 飞到之前，头像角上先空着
-    const at = (x, y, k) => 'translate(' + (x - S / 2).toFixed(1) + 'px,' + (y - S / 2).toFixed(1) + 'px) scale(' + k + ')';
-    snd('ding');
-    return el.animate([
-      { transform: at(c.x, c.y, 0.2), opacity: 0 },
-      { transform: at(c.x, c.y, 1.12), opacity: 1, offset: 0.6 },
-      { transform: at(c.x, c.y, 1), opacity: 1 },
-    ], { duration: 420, easing: 'cubic-bezier(.3,.8,.4,1.2)', fill: 'forwards' }).finished.then(() => {
-      if (t !== token) return null;
-      return wait(650);
-    }).then(() => {
-      if (t !== token || !rb.isConnected) return null;
-      const br = rb.getBoundingClientRect(), b = fx.center(br), k = br.width / S;
-      return el.animate([{ transform: at(c.x, c.y, 1) }, { transform: at(b.x, b.y, k.toFixed(3)) }], { duration: 520, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' }).finished;
-    }).catch(() => {}).then(() => {
-      el.remove();
-      rb.style.visibility = '';
-      if (t === token) { fx.pop(rb, { scale: 1.8, dur: 520 }); snd('tap'); }
-    });
+  /* 开局抽角色（2026-11-18 用户）：发牌之前，桌心飞出一摞焦糖色角色牌背摊成扇形 → 机器猫按座次各抽一张（扣着停在头像旁）
+   * → 轮到我：剩下的发光呼吸，点一张（5 秒不点 / 托管自动抽）→ 我那张飞到桌心放大翻面亮相 → 缩进头像角上
+   * → 别人的在各自头像旁翻开亮一下、收进角上 → 没人抽的收回盒子 → 本桌几张飞到桌角那一叠。点桌面空白照旧跳过整段开场 */
+  async function roleDraw(t) {
+    const g = game, st = g.state;
+    if (!st.roles || g.tutorial || g.online) return;
+    const n = st.n, seats = Array.from({ length: n }, (_, i) => i), me = meSeat();
+    game.roleHide = new Set(seats);
+    renderSeats(); renderRoleFan();
+    const hideEls = [els.deck, els.discard];
+    const nodes = [];
+    const gone = () => t !== token;
+    const cleanup = () => { nodes.forEach((d) => d.remove()); hideEls.forEach((x) => { x.style.visibility = ''; }); };
+    if (fx.reduce()) { game.roleHide = null; renderSeats(); renderRoleFan(); return; }
+    hideEls.forEach((x) => { x.style.visibility = 'hidden'; });
+    try {
+      const cr = els.center.getBoundingClientRect(), c = { x: cr.left + cr.width / 2, y: cr.top + cr.height / 2 };
+      const m = Math.min(Math.max(n + 2, 6), 11);
+      const cw = Math.round(Math.max(40, Math.min(PU() * 0.9, (cr.width - 40) / (m * 0.62 + 0.6), cr.height * 0.42 / 1.4)));
+      const spread = Math.min(cw * 0.66, (cr.width - cw - 30) / Math.max(1, m - 1));
+      const slot = (i) => { const k = i - (m - 1) / 2; return { x: c.x + k * spread, y: c.y + Math.abs(k) * k * 0.5 + 6, r: k * (24 / m) }; };
+      const place = (d, p, sc) => { d.style.transform = 'translate(' + (p.x - cw / 2).toFixed(1) + 'px,' + (p.y - cw * 0.7).toFixed(1) + 'px) rotate(' + (p.r || 0) + 'deg) scale(' + (sc == null ? 1 : sc) + ')'; };
+      const mv = (d, a, b, dur, ease, delay) => d.animate([{ transform: tf(a) }, { transform: tf(b) }], { duration: dur, easing: ease || 'cubic-bezier(.45,0,.25,1)', delay: delay || 0, fill: 'forwards' }).finished.catch(() => {});
+      const tf = (p) => 'translate(' + (p.x - cw / 2).toFixed(1) + 'px,' + (p.y - cw * 0.7).toFixed(1) + 'px) rotate(' + (p.r || 0) + 'deg) scale(' + (p.s == null ? 1 : p.s) + ')';
+      const cards = Array.from({ length: m }, () => { const d = document.createElement('div'); d.className = 'zm-rd'; d.innerHTML = roleBackHtml(cw); els.fly.appendChild(d); nodes.push(d); place(d, { x: c.x, y: c.y - 30, s: 0.3 }); d.style.opacity = '0'; return d; });
+      snd('whoosh');
+      await Promise.all(cards.map((d, i) => { d.style.opacity = ''; return mv(d, { x: c.x, y: c.y - 30, s: 0.3 }, slot(i), 520, 'cubic-bezier(.3,.8,.3,1)', i * 45); }));
+      if (gone()) return;
+      const where = cards.map((_, i) => slot(i));
+      // 洗一下：两两换位
+      for (let k = 0; k < 2; k++) {
+        const a = (Math.random() * m) | 0, b = (a + 1 + ((Math.random() * (m - 1)) | 0)) % m;
+        const pa = where[a], pb = where[b];
+        snd('tick');
+        await Promise.all([mv(cards[a], pa, pb, 320), mv(cards[b], pb, pa, 320)]);
+        where[a] = pb; where[b] = pa;
+        if (gone()) return;
+      }
+      const left = cards.map((_, i) => i), got = {};
+      const parkOf = (seat) => { const a = avEl(seat).getBoundingClientRect(); const s0 = Math.min(1, a.width * 0.62 / cw); return { x: Math.max(cw * s0 * 0.55, a.left - cw * s0 * 0.5), y: a.top + a.height / 2, r: -8, s: s0 }; };
+      // 机器猫按出牌顺序各抽一张（我之前的、我之后的都在这一轮里，我最后点）
+      for (const seat of seats) {
+        if (seat === me) continue;
+        const i = left.splice((Math.random() * left.length) | 0, 1)[0];
+        got[seat] = i;
+        await mv(cards[i], where[i], parkOf(seat), 380);
+        snd('tap');
+        if (gone()) return;
+      }
+      // 轮到我：剩下几张呼吸发光，点一张
+      left.forEach((i) => cards[i].classList.add('can-pick'));
+      const mine = await new Promise((res) => {
+        const lim = autopilot ? 600 : 5000;
+        const tm = setTimeout(() => res(left[(Math.random() * left.length) | 0]), lim);
+        left.forEach((i) => cards[i].addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(i); }, { once: true }));
+        const chk = setInterval(() => { if (gone()) { clearInterval(chk); clearTimeout(tm); res(-1); } }, 200);
+        setTimeout(() => clearInterval(chk), lim + 50);
+      });
+      if (gone() || mine < 0) return;
+      left.forEach((i) => cards[i].classList.remove('can-pick'));
+      left.splice(left.indexOf(mine), 1);
+      // 我的这张：飞到桌心放大、翻面（背后一圈淡金光芒 + 角色色光晕）
+      const myRole = st.roles[me];
+      const BW = Math.round(Math.max(150, Math.min(230, innerWidth * 0.52, cr.height * 0.82 / 1.4)));
+      const big = document.createElement('div');
+      big.className = 'zm-rd-big';
+      big.style.cssText = 'left:' + (c.x - BW / 2) + 'px;top:' + (c.y - BW * 0.7) + 'px;--glow:' + (ART.ROLE_TONE[myRole] || ART.ROLE_TONE.fat).band;
+      big.innerHTML = '<i class="zm-rd-rays"></i>' + roleFlipHtml(myRole, BW, true);
+      els.fly.appendChild(big); nodes.push(big);
+      const from = cards[mine].getBoundingClientRect();
+      cards[mine].remove();
+      await flipFrom(big, from, 460, where[mine].r);
+      if (gone()) return;
+      big.classList.add('is-rays');
+      snd('ding');
+      await big.querySelector('.zm-rc-flip-in').animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: 520, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
+      if (gone()) return;
+      big.classList.add('is-glow');
+      fx.burst(c.x, c.y, { n: 14, shapes: ['star', 'dot'], colors: ['#c9a96e', (ART.ROLE_TONE[myRole] || ART.ROLE_TONE.fat).band], radius: BW * 0.9, size: [5, 12], life: 800 });
+      await new Promise((res) => { const tm = setTimeout(res, autopilot ? 900 : 2200); big.style.pointerEvents = 'auto'; big.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(); }, { once: true }); });
+      if (gone()) return;
+      game.roleHide.delete(me); renderSeats();
+      const myB = roleBadge(me); if (myB) myB.style.visibility = 'hidden';
+      big.classList.remove('is-rays');
+      await flipTo(big, myB ? myB.getBoundingClientRect() : null, 520, -10);
+      big.remove();
+      if (myB) { myB.style.visibility = ''; fx.pop(myB, { scale: 1.8, dur: 420 }); }
+      snd('tap');
+      if (gone()) return;
+      // 别人的：在各自头像旁翻开亮一下，再收进角上
+      const others = seats.filter((k) => k !== me);
+      await Promise.all(others.map(async (seat, k) => {
+        await wait(k * 160);
+        if (gone()) return;
+        const el = cards[got[seat]], fr = el.getBoundingClientRect(), a = avEl(seat).getBoundingClientRect();
+        const w = Math.round(Math.max(44, Math.min(70, a.width * 1.25)));
+        const below = a.top + a.height / 2 < innerHeight / 2;
+        const box = document.createElement('div');
+        box.className = 'zm-rd-small';
+        const sb = seatEl(seat).getBoundingClientRect().bottom;
+        const x = Math.max(w * 0.6, Math.min(innerWidth - w * 0.6, a.left + a.width / 2)), y = below ? Math.max(a.bottom, sb) + w * 0.7 + 8 : a.top - w * 0.7 - 10;
+        box.style.cssText = 'left:' + (x - w / 2) + 'px;top:' + (y - w * 0.7) + 'px';
+        box.innerHTML = roleFlipHtml(st.roles[seat], w, false);
+        els.fly.appendChild(box); nodes.push(box);
+        el.remove();
+        await flipFrom(box, fr, 300, -8);
+        if (gone()) return;
+        await box.querySelector('.zm-rc-flip-in').animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: 400, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
+        await wait(900);
+        if (gone()) return;
+        game.roleHide.delete(seat); renderSeat(seat);
+        const b = roleBadge(seat); if (b) b.style.visibility = 'hidden';
+        await flipTo(box, b ? b.getBoundingClientRect() : null, 400, -10);
+        box.remove();
+        if (b) { b.style.visibility = ''; fx.pop(b, { scale: 1.6, dur: 360 }); }
+      }));
+      if (gone()) return;
+      // 没人抽到的收回盒子
+      await Promise.all(left.map((i, k) => cards[i].animate([{ transform: tf(where[i]), opacity: 1 }, { transform: tf({ x: c.x, y: c.y, s: 0.3 }), opacity: 0 }], { duration: 340, delay: k * 50, easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {})));
+      if (gone()) return;
+      // 本桌几张飞到桌角那一叠
+      game.roleHide = null;
+      renderSeats(); renderRoleFan();
+      const fan = document.getElementById('zmRoleFan');
+      if (fan && !fx.reduce()) {
+        const fcs = [...fan.querySelectorAll('.zm-rc')];
+        await Promise.all(fcs.map((fc, i) => { const b = roleBadge(i); fc.style.opacity = '0'; return wait(i * 70).then(() => { fc.style.opacity = ''; return flipFrom(fc, b ? b.getBoundingClientRect() : null, 520, -10); }); }));
+      }
+    } finally {
+      cleanup();
+      if (gone()) g.roleHide = null;
+    }
   }
-
   /* ───── 弹窗：遮罩淡入、弹窗从下面弹上来 ───── */
   let dialogClose = null;
   /* 局内要我做决定的（偷哪张 / 点名 / 改命 / 从弃牌堆捡 / 炸毛猫塞哪）：不弹框，直接摆在桌子正中，
@@ -4893,11 +5182,12 @@
     d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
   }
 
-  // 角色猫：这一桌每个人是哪只猫、技能是什么
+  // 角色猫：这一桌每个人是哪只猫（小角色卡 + 名字 + 一句技能）；没开局时列出全部 6 只
   function rolesHtml() {
     const st = game && game.state;
-    if (!st || !st.roles) return (settings.rules || {}).mode === 'roles' ? '<h3>角色猫</h3><ul>' + R.ROLES.map((r) => '<li><b>' + r.name + '</b>　' + r.desc + '</li>').join('') + '</ul>' : '';
-    return '<h3>角色猫（这一桌）</h3><ul class="zm-role-list">' + st.roles.map((r, k) => { const info = R.ROLES.find((x) => x.id === r); return '<li><i class="zm-role is-inline">' + roleArt(r) + '</i><b>' + esc(nameOf(k)) + (k === 0 ? '（我）' : '') + ' · ' + info.name + '</b>　' + info.desc + (info.once && st.roleUsed && st.roleUsed[k] ? '（已用）' : '') + '</li>'; }).join('') + '</ul>';
+    const row = (r, who) => '<li>' + roleCardHtml(r, { w: 54 }) + '<span>' + (who ? '<small>' + who + '</small>' : '') + '<b>' + roleInfo(r).name + '</b>' + esc(roleInfo(r).desc) + '</span></li>';
+    if (!st || !st.roles) return (settings.rules || {}).mode === 'roles' ? '<h3>角色猫</h3><ul class="zm-role-list">' + R.ROLES.map((r) => row(r.id, '')).join('') + '</ul>' : '';
+    return '<h3>角色猫（这一桌）</h3><ul class="zm-role-list">' + st.roles.map((r, k) => row(r, esc(k === meSeat() ? '我' : nameOf(k)))).join('') + '</ul>';
   }
   function rulesHtml() {
     const li = (k, t) => '<li>' + cardHtml(k) + '<b>' + R.NAMES[k] + '</b>　' + t + '</li>';
@@ -5522,7 +5812,7 @@
     if (social) social.clear();
     els.app.classList.remove('is-peeking');
     preview = null;
-    if (game) game.previewSrc = null;
+    if (game) { game.previewSrc = null; game.roleHide = null; }   // 抽角色半路被打断（暂停 / 重开 / 演示）：角色全亮出来
     stopClock();
     closeDialog();
     token++;
@@ -7727,8 +8017,17 @@
     const top = (k) => { const id = s.deck.find((x) => R.KIND_OF[x] === k); s.deck.splice(s.deck.indexOf(id), 1); s.deck.unshift(id); };
     s.phase = 'act'; s.pending = null;
     const bot = 1 % s.n;
+    const setRole = (seat, id) => { if (!s.roles) { s.roles = Array.from({ length: s.n }, (_, k) => R.ROLES[k % R.ROLES.length].id); s.roleUsed = s.roles.map(() => false); } const k = s.roles.indexOf(id); if (k >= 0) s.roles[k] = s.roles[seat]; s.roles[seat] = id; renderAll(); };
     const plays = {
       boom: () => { top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
+      // 角色猫技能（2026-11-18 改版：亮牌 + 原动作）：who 那一家换成这只角色再演
+      roletimid: () => { const nx = R.nextAlive(s, bot); setRole(nx, 'timid'); plays.attack(); },
+      rolecow: () => { const nx = R.nextAlive(s, bot); setRole(nx, 'cow'); plays.attack(); },
+      rolefat: () => { setRole(bot, 'fat'); plays.favor(); },
+      rolefatme: () => { setRole(0, 'fat'); give(0, R.FAVOR); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.FAVOR)], target: bot }); },
+      rolecalico: () => { setRole(bot, 'calico'); give(bot, 'orange'); give(bot, 'siamese'); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], 'orange'), R.findKind(s.hands[bot], 'siamese')], target: 0 }); },
+      roletabby: () => { const o = 2 % s.n; setRole(o, 'tabby'); if (R.countKind(s.hands[o], R.NOPE) === 0) give(o, R.NOPE); give(bot, R.SKIP); s.turn = bot; game.forceNope = [o]; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
+      roleshadow: () => { setRole(bot, 'shadow'); give(0, 'cow'); give(0, 'cow'); s.turn = 0; release(); renderAll(); step(); },
       boomme: () => { top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       defuse: () => { if (R.countKind(s.hands[bot], R.DEFUSE) === 0) give(bot, R.DEFUSE); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
       stack5: () => { give(bot, R.ATTACK); s.turn = bot; s.turnsLeft = 3; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
@@ -7799,7 +8098,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage, flashRole: (seat, hold) => flashRole(seat, token, hold), expandRole, openRoleView, liftTop3: (n) => liftTop3(n, token) };
   }
   window.ZhamaoTable = { cardHtml, backHtml, rulesHtml };
 })();
