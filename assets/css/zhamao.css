@@ -1725,7 +1725,12 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 组队设置：队形一排彩点（点的颜色 = 桌上头像底色）+ 座位两选一 */
 .zm-team-pick { display: grid; gap: 10px; align-self: stretch; min-width: 0; width: 100%; }
 .zm-team-pick .zs-seg button { min-width: 0; }
-.zm-team-forms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+/* 2026-11-19 两步：几个人玩（一排数字）→ 怎么分（这个人数的一两种分法） */
+.zm-team-row { display: grid; gap: 6px; min-width: 0; }
+.zm-team-row > small { font-size: 12.5px; color: var(--zm-ink-mute); }
+.zs-seg button.is-none { opacity: 0.32; cursor: default; }
+.zm-team-forms { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.zm-team-forms button { min-height: 40px; align-content: center; }
 .zm-team-forms button { min-width: 0; display: grid; justify-items: center; gap: 4px; padding: 8px 2px 6px; border-radius: 12px; border: 1.5px solid rgba(29, 27, 24, 0.22); background: var(--zm-paper); color: var(--zm-ink); font: inherit; cursor: pointer; }
 .zm-team-forms button small { font-size: 12px; color: var(--zm-ink-mute); }
 .zm-team-forms button[aria-pressed="true"] { border-color: var(--zm-ink); background: var(--zm-ink); }

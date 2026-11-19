@@ -5974,7 +5974,12 @@
   const soloN = () => (curMode() === 'team' ? R.teamPlayers(R.normalizeRules(settings.rules)) : Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players)));   // 组队：人数跟着队形走
   /* 组队的设置（2026-11-18 用户）：队形（每队人数相等）+ 座位（同队坐一起 / 随机打乱）。队友共享情报、救队友、能对队友出牌都是组队自带，不进设置。
    * 队形用彩色小点表示几队几人（点的颜色就是桌上头像底色），不写「3v3」也看得懂 */
-  const TEAM_FORM_UI = ['2v2', '3v3', '4v4', '2v2v2'];
+  /* 2026-11-19 用户挑「丙」：先选几个人玩、再选怎么分。每队人数相等（「戊」：不做不均等，联机凑不齐就加机器猫），9 人以内一共这 6 种分法；
+   * 5、7 人没有等分法，按钮灰着点不了 */
+  const TEAM_FORM_UI = ['2v2', '3v3', '4v4', '2v2v2', '2v2v2v2', '3v3v3'];
+  const TEAM_NS = [4, 5, 6, 7, 8, 9];
+  const formsOf = (n) => TEAM_FORM_UI.filter((f) => R.teamPlayers({ teamForm: f }) === n);
+  const nRowHtml = (cur, attrs) => TEAM_NS.map((n) => '<button type="button" data-tn="' + n + '" aria-pressed="' + (n === cur) + '"' + (formsOf(n).length ? attrs : ' class="is-none" disabled') + '>' + n + '</button>').join('');
   const TEAM_PIP = ['#2f5d8a', '#3f7a55', '#c7772e', '#c0648f'];
   const pipHtml = (form) => '<span class="zm-pips">' + R.TEAM_FORMS[form].map((k, t) => '<span>' + ('<i style="background:' + TEAM_PIP[t] + '"></i>').repeat(k) + '</span>').join('') + '</span>';
 
@@ -5985,7 +5990,8 @@
     tp.hidden = !teamOn;
     els.cover.querySelector('.zm-solo-step').hidden = teamOn;
     if (teamOn) {
-      tp.innerHTML = '<div class="zm-team-forms" role="group" aria-label="队形">' + TEAM_FORM_UI.map((f) => '<button type="button" data-form="' + f + '" aria-pressed="' + (tr.teamForm === f) + '" aria-label="' + f + '">' + pipHtml(f) + '<small>' + R.teamPlayers({ teamForm: f }) + ' 人</small></button>').join('') + '</div>' +
+      tp.innerHTML = '<div class="zm-team-row"><small>几个人玩</small><div class="zs-seg zm-team-ns" role="group" aria-label="几个人玩">' + nRowHtml(n, '') + '</div></div>' +
+        '<div class="zm-team-row"><small>怎么分</small><div class="zm-team-forms" role="group" aria-label="怎么分">' + formsOf(n).map((f) => '<button type="button" data-form="' + f + '" aria-pressed="' + (tr.teamForm === f) + '" aria-label="' + f + '">' + pipHtml(f) + '</button>').join('') + '</div></div>' +
         '<div class="zs-seg zm-team-seat" role="group" aria-label="座位">' + [['together', '同队坐一起'], ['random', '随机打乱']].map(([v, name]) => '<button type="button" data-seat="' + v + '" aria-pressed="' + (tr.teamSeat === v) + '">' + name + '</button>').join('') + '</div>';
     }
     const [minus, plus] = els.cover.querySelectorAll('.zm-solo-step button');
@@ -7604,7 +7610,8 @@
       recordHtml(st.record, 1) +
       '<section class="zs-card zs-b zm-lobby-rules">' +
       '<div class="zs-line"><span>玩法</span><div class="zs-seg" role="group">' + [['classic', '经典'], ['team', '组队']].map(([v, tx]) => '<button type="button" data-mode="' + v + '" aria-pressed="' + (rules.mode === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' +
-      (teamOn ? '<div class="zs-line"><span>队形</span><div class="zs-seg" role="group">' + TEAM_FORM_UI.map((f) => '<button type="button" data-form="' + f + '" aria-pressed="' + (rules.teamForm === f) + '"' + (host ? '' : ' disabled') + ' aria-label="' + f + '">' + pipHtml(f) + '</button>').join('') + '</div></div>' +
+      (teamOn ? '<div class="zs-line"><span>人数</span><div class="zs-seg" role="group">' + nRowHtml(teamN, host ? '' : ' disabled') + '</div></div>' +
+        '<div class="zs-line"><span>分法</span><div class="zs-seg" role="group">' + formsOf(teamN).map((f) => '<button type="button" data-form="' + f + '" aria-pressed="' + (rules.teamForm === f) + '"' + (host ? '' : ' disabled') + ' aria-label="' + f + '">' + pipHtml(f) + '</button>').join('') + '</div></div>' +
         '<div class="zs-line"><span>座位</span><div class="zs-seg" role="group">' + [['together', '同队坐一起'], ['random', '随机打乱']].map(([v, tx]) => '<button type="button" data-tseat="' + v + '" aria-pressed="' + (rules.teamSeat === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' : '') +
       '<div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
       TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
@@ -7643,6 +7650,7 @@
     if (b.dataset.deck != null) { onlineAct('config', { config: { rules: { deckSize: b.dataset.deck } } }); return; }
     if (b.dataset.mode != null) { onlineAct('config', { config: { rules: { mode: b.dataset.mode } } }); return; }   // 组队 / 经典
     if (b.dataset.form != null) { onlineAct('config', { config: { rules: { teamForm: b.dataset.form } } }); return; }
+    if (b.dataset.tn != null) { const f = formsOf(+b.dataset.tn)[0]; if (f && R.teamPlayers(R.normalizeRules(((online.st && online.st.config) || {}).rules)) !== +b.dataset.tn) onlineAct('config', { config: { rules: { teamForm: f } } }); return; }
     if (b.dataset.tseat != null) { onlineAct('config', { config: { rules: { teamSeat: b.dataset.tseat } } }); return; }
     if (b.dataset.l === 'tshuffle') { onlineAct('team_shuffle'); snd('shuffle'); return; }
     if (b.dataset.rule) {
@@ -7976,8 +7984,11 @@
       settings.tier = b.dataset.tier;
       saveSettings(); refreshSolo();
       snd('tap');
-    } else if (b.dataset.form || b.dataset.seat) {   // 组队：队形 / 座位
-      settings.rules = R.normalizeRules(Object.assign({}, settings.rules, b.dataset.form ? { teamForm: b.dataset.form } : { teamSeat: b.dataset.seat }));
+    } else if (b.dataset.form || b.dataset.seat || b.dataset.tn) {   // 组队：人数 / 分法 / 座位（换人数时分法取这个人数的第一种：两队优先）
+      const tf = b.dataset.tn ? formsOf(+b.dataset.tn)[0] : b.dataset.form;
+      if (b.dataset.tn && R.teamPlayers(R.normalizeRules(settings.rules)) === +b.dataset.tn) return;
+      settings.rules = R.normalizeRules(Object.assign({}, settings.rules, tf ? { teamForm: tf } : { teamSeat: b.dataset.seat }));
+      if (b.dataset.tn) fx.pop($('zmSoloFaces'), { scale: 1.06, dur: 220 });
       saveSettings(); refreshSolo();
       if (b.dataset.form) fx.pop($('zmSoloFaces'), { scale: 1.06, dur: 220 });
       snd('tick');
