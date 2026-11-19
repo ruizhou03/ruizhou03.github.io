@@ -5369,12 +5369,12 @@
   els.cover.querySelectorAll('.zm-setsheet-x').forEach((b) => { b.innerHTML = BACK_ART; });
   const SOLO_MAX = R.MAX_PLAYERS;   // 9 人（6 人起用两副牌）
   /* 玩法（2026-11-18 用户挑乙「玩法当主角」）：主菜单中间一叠牌左右滑，停在哪张就是哪个玩法——单机开局、联机建房都用它。
-   * [玩法, 名字, 牌面, 一句话] */
+   * 不配介绍文字（2026-11-18 用户：一句话介绍有 AI 味，全删）：靠牌面插画 + 名字认，规则看新手教程。[玩法, 名字, 牌面] */
   const SOLO_MODES = [
-    ['classic', '经典', 'boom', '原汁原味：躲开炸毛猫'],
-    ['flux', '百变', 'flux', '抽规则牌，规则随时在变'],
-    ['team', '组队', 'favor', '二对二，队友能救你'],
-    ['roles', '角色', 'calico', '每人一只带技能的猫'],
+    ['classic', '经典', 'boom'],
+    ['flux', '百变', 'flux'],
+    ['team', '组队', 'favor'],
+    ['roles', '角色', 'calico'],
   ];
   const miniCard = (k, name) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm">' + (name || R.NAMES[k]) + '</b></span>'; };
   const curMode = () => R.normalizeRules(settings.rules).mode;
@@ -5392,8 +5392,8 @@
     const fw = $('zmSoloFaces').clientWidth || 260, lap = 7;
     $('zmSoloFaces').style.setProperty('--fs', Math.min(34, Math.floor((fw + (n - 1) * lap) / n)) + 'px');
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
-    const [, name, k, desc] = SOLO_MODES[modeIdx()];
-    $('zmSheetHead').innerHTML = $('zmOnlineHead').innerHTML = miniCard(k, name) + '<span><b>' + name + '</b><small>' + desc + '</small></span>';
+    const [, name, k] = SOLO_MODES[modeIdx()];
+    $('zmSheetHead').innerHTML = $('zmOnlineHead').innerHTML = miniCard(k, name) + '<span><b>' + name + '</b></span>';
     refreshDeck();
   }
   // 「接着打上一局」小药丸：写上那局的玩法和人数
@@ -5425,7 +5425,6 @@
   }
   function refreshDeck() {
     const i = modeIdx();
-    $('zmModeDesc').textContent = SOLO_MODES[i][3];
     Array.from($('zmModeDots').children).forEach((d, j) => d.classList.toggle('is-on', j === i));
     slides.forEach((sl, j) => sl.setAttribute('aria-pressed', String(j === i)));
   }

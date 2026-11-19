@@ -1487,7 +1487,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-mslide .zm-card { --cw: var(--mw); width: var(--mw); display: block; border-width: 1.5px; box-shadow: 0 16px 30px rgba(29, 27, 24, 0.16); }
 .zm-mslide:focus-visible { outline: none; }
 .zm-mslide:focus-visible .zm-card { box-shadow: 0 0 0 3px var(--zm-seal), 0 16px 30px rgba(29, 27, 24, 0.16); }
-.zm-mdeck-desc { margin: 0; min-height: 1.5em; font-size: 14px; color: var(--zm-ink-mute); letter-spacing: 0.04em; text-align: center; }
 .zm-mdeck-dots { display: flex; gap: 7px; margin: 6px 0 4px; }
 .zm-mdeck-dots i { width: 7px; height: 7px; border-radius: 4px; background: #cfc6b6; transition: width 0.25s ease, background 0.25s ease; }
 .zm-mdeck-dots i.is-on { width: 18px; background: var(--zm-ink); }
