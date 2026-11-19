@@ -26,11 +26,14 @@ const idOf = (s, seat, k) => s.hands[seat].find((id) => R.KIND_OF[id] === k);
 const closeAll = (s) => { for (const t of R.awaitingReaction(s)) R.pass(s, t); return R.closeReaction(s); };
 
 test('deck composition', () => {
-  // 第一副 76 张（老牌 0..67 + 万能猫 135..138 + 转向 143..146）；6 人及以上再加第二副 75 张（68..134 + 139..142 + 147..150）
-  assert.equal(R.BASE_SIZE, 76);
-  assert.equal(R.DECK_SIZE, 151);
+  // 第一副 86 张（老牌 0..67 + 万能猫 135..138 + 转向 143..146 + 百变 151..160）；6 人及以上再加第二副 85 张（68..134 + 139..142 + 147..150 + 161..170）
+  // 百变牌：e56205d2 加进来每副 4 张，cff4e047 改成每副 10 张（百变模式开局人人白送一张）——当时测试没跟着改
+  assert.equal(R.BASE_SIZE, 86);
+  assert.equal(R.DECK_SIZE, 171);
   assert.deepEqual(R.KIND_OF.slice(135, 143).every((k) => k === R.WILD), true, '万能猫的牌号接在最后，老牌号不变');
-  assert.deepEqual(R.KIND_OF.slice(143).every((k) => k === R.REVERSE), true, '转向接在万能猫后面');
+  assert.deepEqual(R.KIND_OF.slice(143, 151).every((k) => k === R.REVERSE), true, '转向接在万能猫后面');
+  assert.deepEqual(R.KIND_OF.slice(151).every((k) => k === R.FLUX), true, '百变接在转向后面');
+  assert.equal(R.KIND_OF.filter((k) => k === R.FLUX).length, 20);
   assert.equal(R.KIND_OF.filter((k) => k === R.REVERSE).length, 8);
   assert.equal(R.KIND_OF.filter((k) => k === R.WILD).length, 8);
   const base = (k) => ofKind(k).filter((id) => !R.inSecondDeck(id)).length;
@@ -81,7 +84,7 @@ test('setup for 2..5 players', () => {
       assert.equal(defInDeck, 6 - n);   // 默认：剩下的逗猫棒全放回（官方规则）
       // 没放回的炸毛猫 / 逗猫棒收进盒子（不参与这局），弃牌堆一开始是空的
       assert.equal(s.discard.length, 0);
-      assert.equal(s.removed.length, (4 - (n - 1)) + 3 + (R.DECK_SIZE - R.BASE_SIZE)); // + 3 张交换（没开交换牌）+ 整个第二副
+      assert.equal(s.removed.length, (4 - (n - 1)) + 3 + R.COUNTS.flux + (R.DECK_SIZE - R.BASE_SIZE)); // + 3 张交换（没开交换牌）+ 第一副的百变（只有百变模式用）+ 整个第二副
       assert.ok(s.deck.concat(...s.hands).every((id) => !R.inSecondDeck(id)), '5 人及以下只用第一副');
     }
   }
