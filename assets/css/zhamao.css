@@ -1541,11 +1541,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-setsheet-mask { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; background: rgba(29, 27, 24, 0.28); }
 .zm-setsheet { width: min(520px, 100%); box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 10px 26px calc(22px + env(safe-area-inset-bottom)); background: var(--zm-paper); border-radius: 24px 24px 0 0; box-shadow: 0 -10px 30px rgba(29, 27, 24, 0.14); }
 .zm-setsheet-grab { align-self: center; width: 40px; height: 5px; border-radius: 3px; background: #cfc6b6; margin-bottom: 2px; }
-.zm-setsheet-head { display: flex; align-items: center; gap: 12px; }
-.zm-setsheet-head .zm-card { --cw: 34px; width: 34px; flex: none; }
-.zm-setsheet-head .zm-card .zm-nm { font-size: 0; }
-.zm-setsheet-head b { display: block; font-size: 18px; letter-spacing: 0.15em; }
-.zm-setsheet-head small { display: block; font-size: 13px; color: var(--zm-ink-mute); margin-top: 2px; }
 .zm-setsheet .zm-solo-pick { padding: 0; border: 0; background: none; gap: 14px; }
 
 /* 设置单：单机 / 联机两张，同一层遮罩里只露一张 */
@@ -1588,7 +1583,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   .zm-solo-faces i { --fs: 28px; }
   .zm-setsheet .zm-cover-btn { padding: 11px 14px; }
   .zm-on-join .zm-join-code { height: 46px; }
-  .zm-setsheet-head .zm-card { --cw: 30px; width: 30px; }
 
   /* 设置单 = 右侧抽屉（2026-11-18 用户在 原地换栏 / 右侧抽屉 / 居中两栏 里挑了抽屉）：从右边滑出一整条，左边压暗；折号朝右 = 收回去 */
   .zm-cover .zm-setsheet-mask { flex-direction: row; justify-content: flex-end; align-items: stretch; }

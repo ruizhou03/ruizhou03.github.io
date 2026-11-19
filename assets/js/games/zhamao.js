@@ -6019,8 +6019,6 @@
     const fw = $('zmSoloFaces').clientWidth || 260, lap = 7;
     $('zmSoloFaces').style.setProperty('--fs', Math.min(34, Math.floor((fw + (n - 1) * lap) / n)) + 'px');
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
-    const [, name, k] = SOLO_MODES[modeIdx()];
-    $('zmSheetHead').innerHTML = $('zmOnlineHead').innerHTML = miniCard(k, name) + '<span><b>' + name + '</b></span>';
     refreshDeck();
   }
 
@@ -6420,7 +6418,7 @@
     coverResCard.type = 'button'; coverResCard.className = 'zm-sheet-resume'; coverResCard.dataset.cover = 'resume-solo'; coverResCard.hidden = true;
     coverResOr = document.createElement('div');
     coverResOr.className = 'zm-on-or'; coverResOr.setAttribute('aria-hidden', 'true'); coverResOr.innerHTML = '<span>或</span>'; coverResOr.hidden = true;
-    sheets.solo.querySelector('.zm-setsheet-head').before(coverResCard, coverResOr);
+    sheets.solo.querySelector('.zm-solo-pick').before(coverResCard, coverResOr);   // 2026-11-19 用户：设置单顶上那行玩法牌删了（主页牌叠已经看得出是哪个玩法）
     coverReady = true;
     coverTitle(); coverBg(); coverResume();
   })();
