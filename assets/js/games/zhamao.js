@@ -4564,7 +4564,9 @@
    * 飞到头像朝桌心那一侧翻开亮一下、缩进角上。点桌面空白照旧跳过整段开场 */
   async function roleDraw(t) {
     const g = game, st = g.state;
-    if (!st.roles || g.tutorial || g.online) return;
+    // 联机（2026-11-19）也走这一整段：角色服务器发牌时就定了，点哪张都是自己那只（单机也一样）；限时到了自动抽。
+    // 纯观战 / 坐在别人身后看：不等人点，很快自动翻开被看的那一家
+    if (!st.roles || g.tutorial) return;
     const n = st.n, seats = Array.from({ length: n }, (_, i) => i), me = meSeat();
     game.roleHide = new Set(seats);
     renderSeats(); renderRoleFan();
@@ -4617,7 +4619,7 @@
       const left = cards.map((_, i) => i);
       left.forEach((i) => cards[i].classList.add('can-pick'));
       // 底下一颗「抽一张」按钮，按钮本身就是倒计时条（同偷牌）
-      const lim = autopilot ? 600 : 8000;
+      const lim = autopilot || g.spectator ? 600 : 8000;
       const btn = document.createElement('button');
       btn.type = 'button'; btn.className = 'zm-btn zm-btn-primary zm-timed zm-rd-btn';
       btn.innerHTML = '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span><b>抽一张</b>';
@@ -6508,6 +6510,7 @@
     const used = new Set(o.hand.concat(o.discard, o.removed, o.known.map((x) => x.id)));
     o.handKnown.forEach((h, i) => { if (i !== 0) h.forEach((id) => used.add(id)); });
     if (o.defuse && o.defuse.card != null) used.add(o.defuse.card);
+    if (o.rescue && o.rescue.card != null) used.add(o.rescue.card);   // 组队：正在问队友救不救——那只炸毛猫摸出来了，不在牌堆里
     const fluxOn = !!(o.rules && o.rules.mode === 'flux');   // 经典房间不拿「百变」牌号当占位（服务器那副牌里可能根本没有这些号）
     const pool = shuffled(ALL_IDS.filter((id) => !used.has(id) && (!R.inSecondDeck(id) || R.usesSecondDeck(n)) && (fluxOn || R.KIND_OF[id] !== R.FLUX)));
     const take = (pred) => { const i = pool.findIndex(pred); return i >= 0 ? pool.splice(i, 1)[0] : null; };
@@ -6544,6 +6547,11 @@
       steal: o.steal ? { by: o.steal.by, from: o.steal.from, perm: shuffled(hands[o.steal.from].slice()) } : null,
       winner: o.winner, seq: 0, memo, dir: o.dir === -1 ? -1 : 1,
       teams: o.teams ? o.teams.slice() : null, rescue: o.rescue || null, winnerTeam: o.winnerTeam != null ? o.winnerTeam : -1,
+      netBoom: o.rescue && o.rescue.card != null ? o.rescue.card : null,   // 在「问救不救」时重连：不救出局时这只要进弃牌堆
+      // 百变 / 角色猫（2026-11-19 联机）：都是公开的；还没抽到的规则堆不知道（镜像不自己抽规则，全听服务器的 flux 事件）
+      flux: o.flux || null, fluxDeck: [], nineUsed: o.nineUsed ? o.nineUsed.slice() : null, saveUsed: o.saveUsed ? o.saveUsed.slice() : null,
+      hotGiven: o.hotGiven != null ? o.hotGiven : -1, cowCut: o.cowCut != null ? o.cowCut : -1,
+      roles: o.roles ? o.roles.slice() : null, roleUsed: o.roleUsed ? o.roleUsed.slice() : (o.roles ? o.roles.map(() => false) : null),
     };
   }
   // 服务器座位 → 本地座位
@@ -6559,16 +6567,23 @@
       give: fixSeat(st.give, ['from', 'to']), pick: fixSeat(st.pick, ['by']), defuse: fixSeat(st.defuse, ['by']),
       alter: fixSeat(st.alter, ['by']), steal: fixSeat(st.steal, ['by', 'from']),
       teams: st.teams ? rotArr(st.teams) : null, rescue: st.rescue ? Object.assign(fixSeat(st.rescue, ['by', 'for']), { queue: [] }) : null, winnerTeam: st.winnerTeam,
+      flux: st.flux, nineUsed: st.nineUsed ? rotArr(st.nineUsed) : null, saveUsed: st.saveUsed ? rotArr(st.saveUsed) : null,
+      hotGiven: st.hotGiven != null && st.hotGiven >= 0 ? locOf(st.hotGiven) : -1, cowCut: st.cowCut != null && st.cowCut >= 0 ? locOf(st.cowCut) : -1,
+      roles: st.roles ? rotArr(st.roles) : null, roleUsed: st.roleUsed ? rotArr(st.roleUsed) : null,
       hideHand: !!game.hideHand,
     });
   }
   function mirrorFromDeal(g, e) {
     const n = g.n;
     return buildMirror({
-      n, rules: g.rules, hand: e.hand || [], counts: Array(n).fill(5), deckSize: e.deckSize, kittens: e.kittens,
+      // 开局人人张数一样：经典 / 角色 5 张（4 + 逗猫棒），百变多白送一张「百变」= 6 张（看自己的手牌最准；观战没有手牌就按玩法算）
+      n, rules: g.rules, hand: e.hand || [], counts: Array(n).fill(e.hand && e.hand.length ? e.hand.length : 5 + (g.rules && g.rules.mode === 'flux' ? 1 : 0)), deckSize: e.deckSize, kittens: e.kittens,
       discard: [], removed: e.removed || [], known: [], handKnown: Array.from({ length: n }, () => []), alive: Array(n).fill(true),
       outOrder: [], winner: -1, turn: e.turn, turnsLeft: 1, phase: 'act', pending: null, give: null, pick: null, defuse: null, alter: null, steal: null,
       startDefuse: true, hideHand: !!game.hideHand, teams: g.st && g.st.teams ? rotArr(g.st.teams) : null,
+      // 角色开局就定了、整局不变：快照里的就是发牌那一刻的；百变开局还没有规则，九命 / 急救都没用过
+      roles: g.st && g.st.roles ? rotArr(g.st.roles) : null,
+      nineUsed: g.rules && g.rules.mode === 'flux' ? Array(n).fill(false) : null,
     });
   }
   const ROT_KEYS = ['seat', 'target', 'from', 'to', 'a', 'b', 'who', 'turn', 'by', 'for'];   // by / for：组队救人（askRescue / noRescue）
@@ -6591,7 +6606,11 @@
     const from = locate(s, id);
     const kn = s.memo[0].hands[seat] || [];
     let vi = -1;
-    for (let i = 0; i < h.length; i++) if (seat !== 0 && kn.indexOf(h[i]) < 0 && R.KIND_OF[h[i]] !== R.BOOM && !(keep && keep.indexOf(h[i]) >= 0)) { vi = i; break; }
+    // 0 号座位是我自己的真牌，不能换——除非我在观战、看不到这家的牌（hideHand：那也全是占位）
+    const ph = seat !== 0 || !!game.hideHand;
+    for (let i = 0; i < h.length; i++) if (ph && kn.indexOf(h[i]) < 0 && R.KIND_OF[h[i]] !== R.BOOM && !(keep && keep.indexOf(h[i]) >= 0)) { vi = i; break; }
+    // 都是「我记得他有」的牌：那份记忆过期了（那张早被他私下给出 / 被偷走，我看不到是哪张，服务器那边早忘了）——换掉一张记着的，别从别人手里白扣一张
+    if (vi < 0 && ph) for (let i = 0; i < h.length; i++) if (R.KIND_OF[h[i]] !== R.BOOM && !(keep && keep.indexOf(h[i]) >= 0)) { vi = i; const j = kn.indexOf(h[i]); if (j >= 0) kn.splice(j, 1); break; }
     if (vi < 0) { if (from) from.arr.splice(from.i, 1); h.push(id); return; }
     const victim = h[vi];
     h[vi] = id;
@@ -6644,9 +6663,28 @@
         break;
       }
       case 'resolve': s.pending = null; s.phase = 'act'; break;
-      case 'turn': s.turn = e.seat; s.turnsLeft = e.turnsLeft; s.phase = 'act'; break;
+      case 'turn': {
+        s.turn = e.seat; s.turnsLeft = e.turnsLeft; s.phase = 'act';
+        // 扛锅猫 / 烫手的记账跟着 zhamao-rules.js 走（界面不靠它，留着让镜像和服务器的局面一致）
+        if (e.hot) s.hotGiven = e.hot === 'on' ? e.seat : -1;
+        else if (e.attacked) { s.hotGiven = -1; if (s.cowCut !== e.seat) s.cowCut = -1; }
+        else { s.cowCut = -1; s.hotGiven = s.flux === 'hot' ? e.seat : -1; }
+        break;
+      }
       case 'reverse': s.dir = e.dir === -1 ? -1 : 1; break;
-      case 'flux': s.flux = e.rule; s.dir = e.dir === -1 ? -1 : 1; break;
+      case 'flux': {
+        s.flux = e.rule; s.dir = e.dir === -1 ? -1 : 1;
+        // 九命 / 急救：「每人最多一次」按每次转到这条算——转到就重置（同 zhamao-rules.js）
+        if (e.rule === 'nine') s.nineUsed = Array(s.n).fill(false);
+        if (e.rule === 'catsave') s.saveUsed = Array(s.n).fill(false);
+        break;
+      }
+      case 'role': {
+        // 角色猫：胆小猫被甩锅偷看顶上 3 张（是我才有 cards）；扛锅猫这一串只摸 1 张（后面的 turn 事件会带上 turnsLeft）
+        if (e.role === 'timid' && e.cards) { e.cards.forEach((id, j) => putTop(s, j, id)); e.cards.forEach((id) => { if (s.memo[0].deck.indexOf(id) < 0) s.memo[0].deck.push(id); }); }
+        if (e.role === 'cow') { s.turnsLeft = 1; s.cowCut = e.seat; }
+        break;
+      }
       case 'shuffle': shuffled(s.deck); s.memo[0].deck = []; break;
       case 'future': case 'alter': {
         const k = e.cards ? e.cards.length : e.count;
@@ -6700,6 +6738,7 @@
         const id = e.bottom ? s.deck.pop() : s.deck.shift();
         const kd = s.memo[0].deck.indexOf(id); if (kd >= 0) s.memo[0].deck.splice(kd, 1);
         moveTo(s, e.seat, id);
+        if (e.seen && e.seat !== 0 && s.memo[0].hands[e.seat] && s.memo[0].hands[e.seat].indexOf(id) < 0) s.memo[0].hands[e.seat].push(id);   // 百变「掀顶」：摸走的是翻着的那张，大家都知道进了他手里
         s.seq += 1;
         break;
       }
@@ -6720,6 +6759,7 @@
         s.rescue = null;
         // 百变「急救」：另一张也交出去（以前镜像里漏了这张，手牌 / 弃牌堆对不上，联机每次急救都要整桌重同步）
         if (e.extra != null) { putInHand(s, e.seat, e.extra); const h2 = s.hands[e.seat]; h2.splice(h2.indexOf(e.extra), 1); s.discard.push(e.extra); forget(s, e.extra); }
+        if (e.save === 'cats') { if (!s.saveUsed) s.saveUsed = Array(s.n).fill(false); s.saveUsed[e.seat] = true; }
         s.phase = 'defuse'; s.defuse = { by: e.seat, card: e.kitten }; s.netBoom = null;
         break;
       }
@@ -6729,16 +6769,18 @@
         const n = s.deck.length, pos = e.vis == null ? (Math.random() * (n + 1)) | 0 : Math.round(e.vis * n);
         if (id != null) s.deck.splice(Math.max(0, Math.min(n, pos)), 0, id);
         s.memo[0].deck = s.memo[0].deck.filter((x) => x !== id);
+        if (e.why !== 'save') { if (!s.nineUsed) s.nineUsed = Array(s.n).fill(false); s.nineUsed[e.seat] = true; }   // 九命这一轮他用过了
         s.defuse = null; s.netBoom = null; s.seq += 1;
         break;
       }
       case 'insert': {
         // 别人塞的：服务器把牌号和位置都藏了（只给他自己），可是是哪只炸毛猫大家早看见了（defuse 事件里的 kitten）；位置随便放
         const id = e.card != null ? e.card : s.defuse ? s.defuse.card : null;
-        const pos = e.pos != null ? e.pos : (Math.random() * (s.deck.length + 1)) | 0;
-        s.deck.splice(pos, 0, id);
-        // 随机塞的：我自己（和队友）也不知道在哪；组队：队友挑位置塞的我也知道
-        if (!e.rand && (e.seat === 0 || (e.pos != null && R.isTeam(s) && R.teamOf(s, e.seat) === R.teamOf(s, 0)))) { if (s.memo[0].deck.indexOf(id) < 0) s.memo[0].deck.push(id); } else if (e.seat !== 0) s.memo[0].deck = [];
+        const pos = e.pos != null ? e.pos : e.at != null ? e.at : (Math.random() * (s.deck.length + 1)) | 0;
+        s.deck.splice(Math.max(0, Math.min(s.deck.length, pos)), 0, id);
+        // 随机塞的：我自己（和队友）也不知道在哪；组队：队友挑位置塞的我也知道；百变「火眼」（at）：人人都看见塞在第几张，原先记的也不乱
+        if (e.at != null) { if (s.memo[0].deck.indexOf(id) < 0) s.memo[0].deck.push(id); }
+        else if (!e.rand && (e.seat === 0 || (e.pos != null && R.isTeam(s) && R.teamOf(s, e.seat) === R.teamOf(s, 0)))) { if (s.memo[0].deck.indexOf(id) < 0) s.memo[0].deck.push(id); } else if (e.seat !== 0) s.memo[0].deck = [];
         s.defuse = null; s.seq += 1;
         break;
       }
@@ -6755,20 +6797,26 @@
       }
       case 'win': s.phase = 'over'; s.winner = e.seat; if (e.team != null) s.winnerTeam = e.team; break;
     }
+    // 百变「掀顶」：服务器在每一步最后一条事件上挂着这一步完了牌堆顶是哪张（公开）——镜像把它摆到顶上，牌堆顶就翻对了
+    if (e.top != null && s.deck.length) putTop(s, 0, e.top);
   }
   // 镜像和服务器快照对得上吗（只比看得见的东西）
+  let driftWhy = '';   // 上一次对不上的是哪一项（只用来打日志，方便查是哪种事件没镜像对）
   function sameAsSnapshot() {
     const g = G(), s = game.state;
     if (!g || !s) return true;
     const st = g.st, sameArr = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
     const counts = rotArr(st.counts), alive = rotArr(st.alive);
-    if (s.deck.length !== st.deckSize || R.kittensInDeck(s) !== st.kittens) return false;
-    if (!sameArr(s.hands.map((h) => h.length), counts) || !sameArr(s.alive, alive)) return false;
-    if (!sameArr(s.discard, st.discard)) return false;
-    if (!game.hideHand && !sameArr(R.sortHand(s.hands[0].slice()), R.sortHand(st.hand.slice()))) return false;
-    if (s.phase !== st.phase || (st.phase !== 'over' && (s.turn !== locOf(st.turn) || s.turnsLeft !== st.turnsLeft))) return false;
+    const bad = (why) => { driftWhy = why; return false; };
+    if (s.deck.length !== st.deckSize || R.kittensInDeck(s) !== st.kittens) return bad('deck ' + s.deck.length + '/' + st.deckSize + ' kittens ' + R.kittensInDeck(s) + '/' + st.kittens);
+    if (!sameArr(s.hands.map((h) => h.length), counts) || !sameArr(s.alive, alive)) return bad('counts ' + s.hands.map((h) => h.length) + ' / ' + counts);
+    if (!sameArr(s.discard, st.discard)) return bad('discard ' + s.discard.length + '/' + st.discard.length);
+    if (st.flux !== undefined && (s.flux || null) !== (st.flux || null)) return bad('flux ' + s.flux + '/' + st.flux);   // 百变规则牌对不上
+    if (!game.hideHand && !sameArr(R.sortHand(s.hands[0].slice()), R.sortHand(st.hand.slice()))) return bad('hand');
+    if (s.phase !== st.phase || (st.phase !== 'over' && (s.turn !== locOf(st.turn) || s.turnsLeft !== st.turnsLeft))) return bad('phase ' + s.phase + '/' + st.phase + ' turn ' + s.turn + '/' + locOf(st.turn) + ' left ' + s.turnsLeft + '/' + st.turnsLeft);
     return true;
   }
+
 
   // 我坐在哪一家身后：观战的人 = 他选的那家；出局后换过视角 = 那一家；平常 = 自己的座位
   const viewBase = (st) => (st.spectator ? st.viewSeat : st.viewSeat >= 0 ? st.viewSeat : st.mySeat);
@@ -7036,7 +7084,7 @@
   function onlineIdle(fromResync) {
     const g = G();
     if (!game || !game.online || !g || online.playing || game.dealing) return;
-    if (!fromResync && !sameAsSnapshot()) { console.warn('[zhamao] mirror drifted, resync'); resync(); return; }
+    if (!fromResync && !sameAsSnapshot()) { console.warn('[zhamao] mirror drifted, resync:', driftWhy, '(seq ' + g.seq + ')'); resync(); return; }
     const s = game.state;
     autopilot = !game.spectator && !!g.auto[online.base];
     els.me.classList.toggle('is-auto', autopilot);
@@ -7705,7 +7753,7 @@
       (st.spectators.length ? '<p class="zm-muted zm-lobby-watch">' + st.spectators.length + ' 个人在观战' + (st.spectator ? '（包括你）' : '') + '</p>' : '') +
       recordHtml(st.record, 1) +
       '<section class="zs-card zs-b zm-lobby-rules">' +
-      '<div class="zs-line"><span>玩法</span><div class="zs-seg" role="group">' + [['classic', '经典'], ['team', '组队']].map(([v, tx]) => '<button type="button" data-mode="' + v + '" aria-pressed="' + (rules.mode === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' +
+      '<div class="zs-line"><span>玩法</span><div class="zs-seg" role="group">' + SOLO_MODES.map(([v, tx]) => '<button type="button" data-mode="' + v + '" aria-pressed="' + (rules.mode === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' +
       (teamOn ? '<div class="zs-line"><span>人数</span><div class="zs-seg" role="group">' + nRowHtml(teamN, host ? '' : ' disabled') + '</div></div>' +
         '<div class="zs-line"><span>分法</span><div class="zs-seg" role="group">' + formsOf(teamN).map((f) => '<button type="button" data-form="' + f + '" aria-pressed="' + (rules.teamForm === f) + '"' + (host ? '' : ' disabled') + ' aria-label="' + f + '">' + pipHtml(f) + '</button>').join('') + '</div></div>' +
         '<div class="zs-line"><span>座位</span><div class="zs-seg" role="group">' + [['together', '同队坐一起'], ['random', '随机打乱']].map(([v, tx]) => '<button type="button" data-tseat="' + v + '" aria-pressed="' + (rules.teamSeat === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' : '') +
@@ -7744,7 +7792,7 @@
     if (b.dataset.l === 'start') { b.disabled = true; onlineAct('start'); return; }
     if (b.dataset.turn != null) { onlineAct('config', { config: { turnSec: +b.dataset.turn } }); return; }
     if (b.dataset.deck != null) { onlineAct('config', { config: { rules: { deckSize: b.dataset.deck } } }); return; }
-    if (b.dataset.mode != null) { onlineAct('config', { config: { rules: { mode: b.dataset.mode } } }); return; }   // 组队 / 经典
+    if (b.dataset.mode != null) { onlineAct('config', { config: { rules: { mode: b.dataset.mode } } }); return; }   // 经典 / 百变 / 组队 / 角色（和单机设置单同一排）
     if (b.dataset.form != null) { onlineAct('config', { config: { rules: { teamForm: b.dataset.form } } }); return; }
     if (b.dataset.tn != null) { const f = formsOf(+b.dataset.tn)[0]; if (f && R.teamPlayers(R.normalizeRules(((online.st && online.st.config) || {}).rules)) !== +b.dataset.tn) onlineAct('config', { config: { rules: { teamForm: f } } }); return; }
     if (b.dataset.tseat != null) { onlineAct('config', { config: { rules: { teamSeat: b.dataset.tseat } } }); return; }

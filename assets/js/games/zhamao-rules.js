@@ -727,7 +727,8 @@
     if (KIND_OF[id] !== BOOM) {
       s.hands[seat].push(id);
       s.hands[seat] = sortHand(s.hands[seat]);
-      ev.push(Object.assign({ t: 'draw', seat, card: id, priv: [seat] }, B));
+      // 掀顶时摸走的是大家都看着的那张：不藏（联机去敏不去掉 card，seen 告诉网页镜像「这张大家都知道进了他手里」）
+      ev.push(Object.assign({ t: 'draw', seat, card: id }, topSeen ? { seen: true } : { priv: [seat] }, B));
       endOneTurn(s, ev);
       return ev;
     }
