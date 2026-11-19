@@ -3483,14 +3483,12 @@
   /* 抽底（2026-11-12 用户嫌粗糙，重做）：一只猫爪从牌堆左边伸进来，勾住最底下那张，往外拖——
    * 那张真的在整摞牌下面（放进牌堆那一摞的最底层，上面的牌压着它），牌堆被带得一抬一晃；
    * 拖出来以后才换成桌面上的一张牌、捏起来悬一下（和平常摸牌接上） */
-  async function peelBottom(t, seat) {
+  async function peelBottom(t) {   // 2026-11-19 用户看过四个座位的对比后定：保持原版（爪子从左边伸进来、拖出半张多就起飞），乙「往抽牌人那边拖」已撤回
     const stack = els.deck.querySelector('.zm-deck-stack');
     const floor = stack && (stack.querySelector('.zm-sheet.is-floor') || stack.querySelector(':scope > .zm-card'));
     const pu = PU();
     if (!stack || !floor || fx.reduce()) return peel(t, false);
     const fr = floor.getBoundingClientRect();
-    // 整摞牌实际的外沿（纸边一层层往上码，会高出牌堆框；顶上那张牌背也算）——拖到完全离开它才算拖干净
-    const sr = Array.from(stack.children).reduce((u, c) => { const q = c.getBoundingClientRect(); if (!q.width) return u; return { left: Math.min(u.left, q.left), top: Math.min(u.top, q.top), right: Math.max(u.right, q.right), bottom: Math.max(u.bottom, q.bottom) }; }, stack.getBoundingClientRect());
     // 火眼露着的炸毛猫正好在最底下（2026-11-16 用户）：爪子拖出来的就是露着的那张（正面），不再另塞一张牌背
     const kitBox = floor.nextElementSibling && floor.nextElementSibling.classList.contains('zm-deck-kit') ? floor.nextElementSibling : null;
     const kitId = kitBox ? +kitBox.dataset.id : null;
@@ -3502,63 +3500,41 @@
     const el = wrap.firstChild;
     el.style.transform = floor.style.transform || '';
     stack.insertBefore(el, stack.firstChild);
-    // 往右拖会从弃牌堆底下钻过去：拖的这一会儿牌堆整个压在弃牌堆上面（拖出来的牌从弃牌堆上面滑过，换飞行牌时不跳层）
-    els.deck.style.zIndex = '3';
-    const done = () => { els.deck.style.zIndex = ''; };
-    /* 2026-11-19 用户定「乙 · 往摸牌人那边拖」：以前爪子总从左边伸进来、只拖出半张多，再换成一张飞行牌（在最上层、大 4%）——
-     * 压在牌堆底下那一截一帧内跳到牌堆上面。现在爪子从摸牌人那一侧伸过来，把牌往自己方向拖，一直拖到整张牌离开牌堆，
-     * 这时再换成飞行牌（不压着任何东西、大小不变，看不出换过）；拖和飞是一个方向、一口气 */
-    const cw = fr.width, ch = fr.height, c = { x: fr.left + cw / 2, y: fr.top + ch / 2 };
-    let tg;
-    if (seat === 0 && els.hand) { const hr = els.hand.getBoundingClientRect(); tg = hr.width ? { x: hr.left + hr.width / 2, y: hr.top + hr.height / 2 } : avPoint(0); }
-    else tg = avPoint(seat);
-    let vx = tg.x - c.x, vy = tg.y - c.y;
-    const vl = Math.hypot(vx, vy) || 1;
-    vx /= vl; vy /= vl;
-    if (Math.abs(vx) < 0.02 && Math.abs(vy) < 0.02) { vx = 0; vy = 1; }
-    const m = 6 + pu * 0.06;   // 留一点余量（牌歪 5°，角会多出几像素）
-    const need = [];
-    if (vx < -1e-3) need.push((fr.right - sr.left + m) / -vx);
-    if (vx > 1e-3) need.push((sr.right + m - fr.left) / vx);
-    if (vy < -1e-3) need.push((fr.bottom - sr.top + m) / -vy);
-    if (vy > 1e-3) need.push((sr.bottom + m - fr.top) / vy);
-    const dd = Math.min(...need.filter((x) => x > 0));
-    const ox = vx * dd, oy = vy * dd, rot = vx < -0.05 ? -5 : vx > 0.05 ? 5 : -5;
-    // 2. 猫爪从摸牌人那边伸到牌的这一侧边上（爪尖朝牌堆）
+    // 2. 猫爪从左边伸到那张牌的左边沿
     const S = pu * 0.62;
     const paw = document.createElement('div');
     paw.className = 'zm-prop zm-paw';
     paw.innerHTML = window.ZhamaoFx.SHAPES.paw;
     paw.style.width = paw.style.height = S + 'px';
     els.fly.appendChild(paw);
-    const ang = Math.atan2(vy, vx) * 180 / Math.PI - 90;
-    const reachOut = Math.abs(vx) * cw / 2 + Math.abs(vy) * ch / 2;   // 牌心到牌边（沿拖的方向）
-    const ex = c.x + vx * (reachOut * 0.92), ey = c.y + vy * (reachOut * 0.92);
-    const P = (x, y, sc, r) => fx.T(x - S / 2, y - S / 2, sc, r);
+    // 爪子从左下方伸到牌堆最下沿的左下角
+    // 2026-11-15 用户：抽底动画有点卡、僵——以前三段（伸爪 / 拖出 / 换一张再捏起来悬一下）一段等一段，中途还换了一次元素、角度从 -11° 跳回 -5°。
+    // 现在：爪子还没伸到位就开始拖（两段叠着），拖出来直接停在后面飞向手里那一段的起始角度（-5°），不再另捏一张悬着；只有危险时多抖一下
+    const ch = pu * 1.4;
+    const py = fr.top + ch * 0.86 - S / 2, px0 = fr.left - pu * 1.3, px1 = fr.left - S * 0.3;
     snd('swipe');
     const reach = ms(240);
     fx.animate(paw, [
-      { transform: P(ex + vx * pu, ey + vy * pu, 0.6, ang), opacity: 0 },
-      { transform: P(ex, ey, 1, ang), opacity: 1 },
+      { transform: fx.T(px0, py + pu * 0.5, 0.6, 50), opacity: 0 },
+      { transform: fx.T(px1, py, 1, 62), opacity: 1 },
     ], { duration: reach }, 'cubic-bezier(.2,.8,.3,1)');
     await wait(reach * 0.7);
-    if (t !== token) { paw.remove(); el.remove(); done(); return null; }
-    // 3. 勾住往自己这边拖：牌从整摞底下顺滑地滑出来、拖干净，牌堆被带得轻轻一晃
+    if (t !== token) { paw.remove(); el.remove(); return null; }
+    // 3. 勾住往外拖：牌从整摞底下顺滑地滑出来，牌堆被带得轻轻一晃
     ov.deckSize -= 1;
-    const dur = ms(Math.max(420, Math.min(580, 300 + dd / pu * 150)));
+    const ox = -pu * 0.72, oy = pu * 0.5, dur = ms(400);
     const tense = danger() >= 0.2;
     snd('peel');
     if (tense) snd('heartbeat', 80);
-    stack.animate([{ translate: '0 0' }, { translate: (-vx * 1.5).toFixed(1) + 'px ' + (-vy * 1.5 - 1).toFixed(1) + 'px', offset: 0.3 }, { translate: '0 0' }], { duration: dur, easing: 'ease-out' });
-    fx.animate(paw, [{ transform: P(ex, ey, 1, ang) }, { transform: P(ex + ox, ey + oy, 1, ang - 4) }], { duration: dur }, 'cubic-bezier(.3,.6,.25,1)');
-    await el.animate([{ translate: '0 0', rotate: '0deg' }, { translate: ox + 'px ' + oy + 'px', rotate: rot + 'deg' }], { duration: dur, easing: 'cubic-bezier(.3,.6,.25,1)', fill: 'forwards' }).finished.catch(() => {});
-    if (t !== token) { paw.remove(); el.remove(); done(); return null; }
+    stack.animate([{ translate: '0 0' }, { translate: '1px -2px', offset: 0.4 }, { translate: '0 0' }], { duration: dur, easing: 'ease-out' });
+    fx.animate(paw, [{ transform: fx.T(px1, py, 1, 62) }, { transform: fx.T(px1 + ox, py + oy, 1, 58) }], { duration: dur }, 'cubic-bezier(.3,.6,.25,1)');
+    await el.animate([{ translate: '0 0', rotate: '0deg' }, { translate: ox + 'px ' + oy + 'px', rotate: '-5deg' }], { duration: dur, easing: 'cubic-bezier(.3,.6,.25,1)', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token) { paw.remove(); el.remove(); return null; }
     const r = el.getBoundingClientRect();
-    paw.animate([{ opacity: 1 }, { opacity: 0, transform: P(ex + ox + vx * pu * 0.4, ey + oy + vy * pu * 0.4, 0.6, ang) }], { duration: ms(240), fill: 'forwards' }).finished.then(() => paw.remove(), () => paw.remove());
-    game.peelS = 1; game.peelRot = rot;   // 接着飞的那段从这张牌原样起飞：不放大、角度接上
-    if (!tense) { el.remove(); done(); renderPiles(); return r; }
+    paw.animate([{ opacity: 1 }, { opacity: 0, transform: fx.T(px1 + ox - pu * 0.4, py + oy + pu * 0.3, 0.6, 50) }], { duration: ms(240), fill: 'forwards' }).finished.then(() => paw.remove(), () => paw.remove());
+    if (!tense) { el.remove(); renderPiles(); return r; }
     // 危险时：停在那儿抖两下再飞（和从顶上摸一样的心跳感）
-    el.remove(); done();
+    el.remove();
     renderPiles();
     const node = document.createElement('div');
     node.className = 'zm-flyer';
@@ -3567,10 +3543,10 @@
     els.fly.appendChild(node);
     const x = r.left + (r.width - pu) / 2, y = r.top + (r.height - pu * 1.4) / 2;
     await fx.animate(node, [
-      { transform: fx.T(x, y, 1, rot) },
-      { transform: fx.T(x + 1.5, y - 2, 1.03, rot + 2), offset: 0.33 },
-      { transform: fx.T(x - 1.5, y - 1, 1.03, rot - 2), offset: 0.66 },
-      { transform: fx.T(x, y, 1, rot) },
+      { transform: fx.T(x, y, 1, -5) },
+      { transform: fx.T(x + 1.5, y - 2, 1.03, -3), offset: 0.33 },
+      { transform: fx.T(x - 1.5, y - 1, 1.03, -7), offset: 0.66 },
+      { transform: fx.T(x, y, 1, -5) },
     ], { duration: ms(380) }).finished.catch(() => {});
     if (t !== token) { node.remove(); return null; }
     const rr = node.getBoundingClientRect();
@@ -3581,7 +3557,7 @@
     const lift = game.drawLift; game.drawLift = null;   // 联机：点「摸牌」时已经掀起来悬着的那张——从它现在的位置接着摸
     game.peelFace = null; game.peelS = 1.04; game.peelRot = -5;
     // 牌堆只剩一张时，底和顶是同一张：照从顶上摸来演（2026-11-17 用户：以前从底下抽出来的那一瞬，牌堆上还摆着一张，看着像有两张）
-    if (bottom && ov && ov.deckSize > 1) { if (lift) lift.cancel(); return peelBottom(t, seat); }
+    if (bottom && ov && ov.deckSize > 1) { if (lift) lift.cancel(); return peelBottom(t); }
     const r = deckTopRect(), pu = PU();
     if (lift) requestAnimationFrame(() => lift.cancel());
     const node = document.createElement('div');
