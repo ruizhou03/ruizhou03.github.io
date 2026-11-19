@@ -6084,8 +6084,18 @@
   const isLand = () => matchMedia('(orientation: landscape) and (max-height: 540px)').matches;
   // 设置单从哪儿进出：竖屏从底下，横屏抽屉从右边
   const sheetOff = () => (isLand() ? 'translateX(100%)' : 'translateY(100%)');
+  /* 2026-11-19 用户：点过单机、收起后再点联机，有时弹出来的还是单机 / 什么都不弹。根子：单机、联机共用一层遮罩，
+   * 收起动画（fill: forwards）播的 220 毫秒里点了另一张，旧的收起收尾会把新开的整层藏掉，且只清掉「当前那张」的动画，
+   * 另一张身上留着定格在屏外的收起动画，下次打开它滑上来又被拽回去。现在每次开 / 收都带代号：开的时候把两张的残留动画全清掉，
+   * 收尾只在期间没人重新打开时才藏遮罩 */
+  let sheetGen = 0;
+  const clearSheetFx = () => [sheetMask, sheets.solo, sheets.online].forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); el.style.transform = ''; });
   function openSheet(kind) {
     kind = kind || 'solo';
+    sheetGen += 1;
+    sheetMask._closing = false;
+    sheetMask.style.pointerEvents = '';
+    clearSheetFx();
     Object.keys(sheets).forEach((k) => { sheets[k].hidden = k !== kind; });
     sheet = sheets[kind];
     sheetMask.dataset.kind = kind;
@@ -6102,10 +6112,14 @@
     if (sheetMask.hidden || sheetMask._closing) return;
     if (fx.reduce()) { sheetMask.hidden = true; return; }
     sheetMask._closing = true;
-    const now = getComputedStyle(sheet).transform;
+    const gen = sheetGen, sh = sheet, now = getComputedStyle(sh).transform;
+    sheetMask.style.pointerEvents = 'none';   // 正在收：底下的「单机 / 联机」马上就能点（以前这 0.2 秒点下去会被遮罩吃掉）
     sheetMask.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: 'ease-in', fill: 'forwards' });
-    sheet.animate([{ transform: now === 'none' ? 'none' : now }, { transform: sheetOff() }], { duration: 220, easing: 'cubic-bezier(.4,0,.8,.4)', fill: 'forwards' }).finished
-      .catch(() => {}).then(() => { sheetMask.hidden = true; sheetMask._closing = false; sheet.style.transform = ''; sheetMask.getAnimations().concat(sheet.getAnimations()).forEach((a) => a.cancel()); });
+    sh.animate([{ transform: now === 'none' ? 'none' : now }, { transform: sheetOff() }], { duration: 220, easing: 'cubic-bezier(.4,0,.8,.4)', fill: 'forwards' }).finished
+      .catch(() => {}).then(() => {
+        if (gen !== sheetGen) return;   // 收的过程中又打开了（单机 / 联机都算）：别把新开的那张藏掉，残留动画打开时已经清了
+        sheetMask.hidden = true; sheetMask._closing = false; sheetMask.style.pointerEvents = ''; clearSheetFx();
+      });
   }
   sheetMask.addEventListener('click', (e) => { if (e.target === sheetMask) closeSheet(); });
   Object.values(sheets).forEach((sh) => {   // 往下拖设置单：跟手，拖过 80px（或甩得快）就收起（横屏抽屉不拖）
