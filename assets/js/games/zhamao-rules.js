@@ -849,7 +849,8 @@
     // 组队（2026-11-18）：队友之间顶上几张的情报共享（窥探 / 改命都是），塞回去的位置也一样——队友看得见塞在第几张，原先记的也不乱
     const mates = matesOf(s, seat);
     if (!exactAll) for (let k = 0; k < s.n; k++) if (k !== seat && mates.indexOf(k) < 0) s.memo[k].deck = []; // 别人不知道塞在哪，原先记的位置全乱了
-    for (const k of [seat].concat(mates)) if (s.memo[k].deck.indexOf(id) < 0) s.memo[k].deck.push(id);
+    // 点「随机」/ 倒计时到了随机塞：连他自己（和队友）都不知道塞在哪，不记进记忆（2026-11-18 用户：以前照记，它转到牌堆顶时牌堆发红光，等于把炸毛猫露出来了）
+    if (!rand) for (const k of [seat].concat(mates)) if (s.memo[k].deck.indexOf(id) < 0) s.memo[k].deck.push(id);
     s.defuse = null;
     // 规则「看得出大概位置」：动画插在牌堆的真实高度，所有人都看得到——但只发一个粗略的高度 vis（0 = 最上、1 = 最底、中间取到 1/8），
     // 不发第几张：懂技术的人抓网络数据，拿到的也只和肉眼看到的一样多
@@ -865,6 +866,7 @@
     s.seq += 1;
     s.peek = null;
     const ev = [{ t: 'insert', seat, card: id, pos, size: s.deck.length, vis, priv: [seat].concat(mates) }];
+    if (rand) ev[0].rand = true;   // 联机镜像据此不把它记成「我知道的牌」
     // 百变「火眼」：人人知道塞在第几张——等于所有人都记住了这张牌在牌堆里的位置
     if (exactAll) {
       for (let k = 0; k < s.n; k++) if (s.memo[k].deck.indexOf(id) < 0) s.memo[k].deck.push(id);

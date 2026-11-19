@@ -577,6 +577,10 @@ test('insertSeen (default on): public coarse height, random hides it, bots see t
   t = atDefuse(); const vm = visOf(R.insertKitten(t.s, t.me, Math.floor(size / 2))); assert.ok(vm > 0 && vm < 1);
   // 随机 / 规则关：vis 为空，别人什么也看不出
   t = atDefuse(); assert.equal(visOf(R.insertKitten(t.s, t.me, 0, true)), null); assert.equal(t.s.ins.seen, null);
+  // 随机塞：塞的人自己也不记得它在哪（以前记进 memo，转到牌堆顶时牌堆发红光露了底）；事件带 rand 给联机镜像用
+  assert.ok(!t.s.memo[t.me].deck.includes(t.boom)); assert.ok(!R.view(t.s, t.me).known.some((k) => k.id === t.boom));
+  t = atDefuse(); assert.equal(R.insertKitten(t.s, t.me, 0, true).find((e) => e.t === 'insert').rand, true);
+  t = atDefuse(); R.insertKitten(t.s, t.me, 2); assert.ok(t.s.memo[t.me].deck.includes(t.boom));   // 自己挑的位置照记
   t = atDefuse({ insertSeen: false }); assert.equal(visOf(R.insertKitten(t.s, t.me, 0)), null);
   // 去敏：别人拿到 vis，拿不到 pos / card
   t = atDefuse(); const other = (t.me + 1) % 3;

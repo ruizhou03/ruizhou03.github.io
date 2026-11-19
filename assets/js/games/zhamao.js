@@ -6267,7 +6267,7 @@
         const id = e.card != null ? e.card : s.defuse ? s.defuse.card : null;
         const pos = e.pos != null ? e.pos : (Math.random() * (s.deck.length + 1)) | 0;
         s.deck.splice(pos, 0, id);
-        if (e.seat === 0) { if (s.memo[0].deck.indexOf(id) < 0) s.memo[0].deck.push(id); } else s.memo[0].deck = [];
+        if (e.seat === 0) { if (!e.rand && s.memo[0].deck.indexOf(id) < 0) s.memo[0].deck.push(id); } else s.memo[0].deck = [];   // 随机塞的：我自己也不知道在哪
         s.defuse = null; s.seq += 1;
         break;
       }
