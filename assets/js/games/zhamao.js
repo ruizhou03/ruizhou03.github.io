@@ -3617,7 +3617,7 @@
     const stack = els.deck.querySelector('.zm-deck-stack');
     const layers = Array.from(stack.children).filter((c) => c.matches('.zm-sheet, .zm-card')), L0 = layers.length;   // 只算牌堆本身的层（透视翻着的那张、火眼露出的那只不算一层）
     const faceEl = stack.querySelector('.zm-deck-face');
-    const mateIns = isMate(e.seat) && e.pos != null, mine = e.seat === 0 || mateIns;
+    const mateIns = isMate(e.seat) && e.pos != null && !e.rand, mine = e.seat === 0 || mateIns;
     // 组队（2026-11-18）：队友塞回去的位置我也知道——开缝开在真实那一张（上面），落定后队友报一声塞在第几张
     let above;
     if (e.at != null) above = Math.max(0, Math.min(L0, e.at));   // 百变「明塞」：缝开在真实那一张
@@ -3628,6 +3628,7 @@
     if (faceEl && lid.length) lid.push(faceEl);   // 透视：翻着的顶牌跟着盖子一起掀
     const atBottom = L0 > 0 && above >= L0;
     const floor = atBottom ? layers[0] : layers[L0 - above - 1];
+    const slotR = (floor || els.deck).getBoundingClientRect();   // 缝在哪儿（插完会重画牌堆，先量下来给位置小标签用）
     if (!floor) {
       await fx.fly({ html: backHtml(), from, to: deckTopRect(), w: pu, s0: from.width / pu, s1: 1, r0: 0, r1: 0, dur: ms(380), lift: 40 });
     } else {
@@ -3653,10 +3654,36 @@
     ov.kittens += 1;
     renderPiles();
     fx.pop(els.deck, { scale: 1.05 });
-    if (mateIns) bubble(e.seat, e.pos <= 0 ? '放最上面了' : e.pos >= e.size - 1 ? '放最底下了' : '放第 ' + (e.pos + 1) + ' 张', { ms: 2600 });
+    // 组队（2026-11-18 用户：聊天气泡不好看）：队友 / 我自己挑位置塞的，在牌堆旁边那道缝的高度挂一枚小标签，几秒后淡掉。
+    // 靠后的说「倒数第几张 / 最后一张」——40 张里说「第 40 张」没参考价值；随机塞的谁也不知道，不挂
+    if (teamGame() && e.pos != null && !e.rand && (mateIns || e.seat === 0)) insertTag(e.pos, e.size, slotR);
     await wait(ms(260));
   }
 
+  function insertTagText(pos, size) {
+    const last = Math.max(0, size - 1), back = last - pos;
+    if (pos <= 0) return '最上面';
+    if (back <= 0) return '最后一张';
+    return pos <= back ? '第 ' + (pos + 1) + ' 张' : '倒数第 ' + (back + 1) + ' 张';
+  }
+  function insertTag(pos, size, slot) {
+    const dr = els.deck.getBoundingClientRect();
+    const tag = document.createElement('span');
+    tag.className = 'zm-ins-tag';
+    tag.innerHTML = '<i>' + ART.icon(R.BOOM) + '</i>' + insertTagText(pos, size);
+    // 挂在牌堆正上方、尖角朝下指着牌堆（左右两边手机上会压到侧边的人 / 弃牌堆）；位置靠文字说
+    tag.style.left = Math.round(dr.left + dr.width / 2) + 'px';
+    tag.style.top = Math.round(dr.top - 12) + 'px';
+    void slot;
+    els.fly.appendChild(tag);
+    const keep = 2800, k = token;
+    if (!fx.reduce()) tag.animate([{ opacity: 0, translate: '-50% calc(-100% + 8px)' }, { opacity: 1, translate: '-50% -100%' }], { duration: 220, easing: 'cubic-bezier(.3,.8,.4,1.2)', fill: 'backwards' });
+    setTimeout(() => {
+      if (!tag.isConnected) return;
+      if (fx.reduce() || k !== token) { tag.remove(); return; }
+      tag.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' }).finished.then(() => tag.remove(), () => tag.remove());
+    }, keep);
+  }
   /* 出局：炸毛猫扑向那个人，大爆炸——更大的红光、黑毛、烟、冲击波；头像变灰冒黑烟，「炸毛」大章砸下来；
    * 他的手牌全翻开、一张张散落进弃牌堆 */
   /* 出局（2026-11-17 用户逐帧看过后定）：
@@ -6961,6 +6988,13 @@
       els.center.appendChild(ffBtn);
       if (!fx.reduce()) ffBtn.animate([{ opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1 }], { duration: 260, easing: 'cubic-bezier(.3,.7,.4,1.4)' });
     }
+    // 组队围桌一圈（2026-11-18 用户）：桌沿是另算的一圈，不是牌桌中间那块的边——快进键贴着桌沿右下角往里一点放
+    if (teamGame() && ringLay) {
+      const tb = els.table.getBoundingClientRect(), cb = els.center.getBoundingClientRect(), S = ffBtn.offsetWidth || 34, pad = 10;
+      ffBtn.style.right = 'auto'; ffBtn.style.bottom = 'auto';
+      ffBtn.style.left = Math.round(ringLay.x1 - pad - S - (cb.left - tb.left)) + 'px';
+      ffBtn.style.top = Math.round(ringLay.y1 - pad - S - (cb.top - tb.top)) + 'px';
+    } else { ffBtn.style.removeProperty('left'); ffBtn.style.removeProperty('top'); ffBtn.style.removeProperty('right'); ffBtn.style.removeProperty('bottom'); }
     if (ffBtn.dataset.mode !== mode) {
       ffBtn.dataset.mode = mode;
       ffBtn.innerHTML = FF_IC[mode];
