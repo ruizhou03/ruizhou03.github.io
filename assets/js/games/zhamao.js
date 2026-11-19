@@ -989,7 +989,7 @@
     // 档位不再挂签（看名字 + 头像色系）；只留教程等场合的特别标签
     if (tg) { const txt = (game.tags && game.tags[seat]) || ''; tg.textContent = txt; tg.hidden = !txt; }
     const av = box.querySelector('.zm-av');
-    setBadge(av, 'zm-count', seat !== 0 && !out ? String(d.counts[seat]) : '');
+    setBadge(av, 'zm-count', !out ? String(d.counts[seat]) : '');   // 2026-11-18 用户：我自己也挂手牌数（右上角小角标）
     const nT = turn && (d.turnsLeft > 1 || game.attackSeat === seat) ? d.turnsLeft : 0;
     const tv = els.app.dataset.uivTurns;   // 预览（本机对比，未定）：hat 扣锅 / ring 红圈分段 / beads 红珠
     if (tv) { setBadge(av, 'zm-turns', ''); setPotMark(av, tv, nT); } else setBadge(av, 'zm-turns', nT ? '×' + nT : '');
@@ -1349,15 +1349,31 @@
     await wait(ms(500));
     void t;
   }
+  /* 组队·救队友（2026-11-18 用户：原来那个白底文字框太丑；两版里挑了甲「递棒」）：到点没选 = 救（不让一局卡住）；点我的逗猫棒本身也算「救」 */
+  function rescueTimer(btn, lim, k, act) {
+    if (!lim) return;
+    const bar = btn && btn.querySelector('.zm-dlg-timer i');
+    if (bar) bar.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: lim, easing: 'linear', fill: 'forwards' });
+    if (bar && lim > 3000) setTimeout(() => { if (k === token && bar.parentNode) bar.parentNode.classList.add('is-hurry'); }, lim - 3000);
+    setTimeout(() => { if (k === token && game && game.state.phase === 'rescue' && game.state.rescue.by === 0) act(true); }, lim);
+  }
+  const RESCUE_ARROW = '<svg class="zm-rescue-arc" viewBox="0 0 120 60" aria-hidden="true"><path class="arc" d="M112 46 C 86 4, 40 2, 14 34"/><path class="tip" d="M26 34 L13 35 L17 22"/></svg>';
   function rescueDialog() {
-    const s = game.state, who = nameOf(s.rescue.for);
-    openDialog('<h2>队友炸毛了！</h2><p>' + who + '摸到了炸毛猫、手里没有逗猫棒。用你的逗猫棒救他吗？（救了你就少一根）</p>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-no>不救</button><button type="button" class="zm-btn zm-btn-primary" data-yes data-focus>救他</button></div>', (d) => {
-      d.querySelector('[data-yes]').addEventListener('click', () => { closeDialog(); apply(0, { type: 'rescue', yes: true }); });
-      d.querySelector('[data-no]').addEventListener('click', () => { closeDialog(); apply(0, { type: 'rescue', yes: false }); });
-      // 有出牌限时：到点没选就当「救他」（和别的弹窗一样不让一局卡住）
-      const lim = dlgLimit();
-      if (lim) { const k = token; setTimeout(() => { if (k === token && game && game.state.phase === 'rescue' && game.state.rescue.by === 0 && d.isConnected && !els.mask.hidden) { closeDialog(); apply(0, { type: 'rescue', yes: true }); } }, lim); }
+    const s = game.state, f = s.rescue.for, lim = dlgLimit(), k = token;
+    const timer = lim ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '';
+    // 桌子蒙一层宣纸色，正中左边是炸毛了的队友（头像发抖、背后竖着那只炸毛猫），右边是我那根逗猫棒（金光），中间一道弧线箭头
+    openStage('<div class="zm-rescue" data-rescue>' +
+        '<div class="zm-rescue-mate"><div class="zm-rescue-kit zm-angry">' + cardHtml('boom') + '</div><div class="zm-rescue-av">' + avatarHtml(f) + '</div><b class="zm-rescue-nm">' + esc(nameOf(f)) + '</b></div>' +
+        RESCUE_ARROW +
+        '<button type="button" class="zm-rescue-wand" data-yes aria-label="用逗猫棒救队友">' + cardHtml(R.DEFUSE) + '</button>' +
+      '</div>' +
+      '<div class="zm-actions is-center"><button type="button" class="zm-btn" data-no>不救</button><button type="button" class="zm-btn zm-btn-primary' + (lim ? ' zm-timed' : '') + '" data-yes data-ok data-focus>' + timer + '<b>救！</b></button></div>', (d) => {
+      d.classList.add('is-rescue');
+      let done = false;
+      const act = (yes) => { if (done) return; done = true; closeDialog(); apply(0, { type: 'rescue', yes }); };
+      d.querySelectorAll('[data-yes]').forEach((b) => b.addEventListener('click', () => act(true)));
+      d.querySelector('[data-no]').addEventListener('click', () => act(false));
+      rescueTimer(d.querySelector('[data-ok]'), lim, k, act);
     });
   }
   /* 百变「明塞」（2026-11-15 用户挑甲2 · 塞歪了）：被明着塞回去的炸毛猫是一张真牌，夹在它那一层、往右下歪着露出一截（上面几层压着它）。
@@ -2775,6 +2791,8 @@
       fan.style.left = cx + 'px';
       const se = seatEl(fromSeat), sb = se ? se.getBoundingClientRect().bottom : ar.top + ar.height + 30;
       fan.style.top = (Math.max(sb, ar.top + ar.height) + 16) + 'px';   // 落在整个座位（名字、档位签）下方，不压字
+      // 坐在底下那排的（组队的队友）：往下摊会压住我的手牌（2026-11-18 用户）——改摊在他头像上方，扇面底边离头像留一道缝
+      if (ar.top > innerHeight * 0.5) fan.style.top = (ar.top - 14 - w * 1.4 - ((count - 1) / 2) * 2.5 - 4) + 'px';
       for (let i = 0; i < count; i++) {
         const off = i - (count - 1) / 2;
         const c = document.createElement('div');
@@ -3447,10 +3465,13 @@
     const stack = els.deck.querySelector('.zm-deck-stack');
     const layers = Array.from(stack.children).filter((c) => c.matches('.zm-sheet, .zm-card')), L0 = layers.length;   // 只算牌堆本身的层（透视翻着的那张、火眼露出的那只不算一层）
     const faceEl = stack.querySelector('.zm-deck-face');
+    const mateIns = teamGame() && e.seat === mateSeat() && e.pos != null, mine = e.seat === 0 || mateIns;
+    // 组队（2026-11-18）：队友塞回去的位置我也知道——开缝开在真实那一张（上面），落定后队友报一声塞在第几张
     let above;
     if (e.at != null) above = Math.max(0, Math.min(L0, e.at));   // 百变「明塞」：缝开在真实那一张
+    else if (mateIns) above = Math.max(0, Math.min(L0, e.pos));
     else if (e.vis == null) above = L0 - Math.max(1, Math.floor(L0 * 0.55));
-    else above = Math.max(0, Math.min(L0, e.seat === 0 && e.pos != null ? e.pos : Math.round(e.vis * L0)));   // 单机里机器猫的事件也带 pos，别人塞的一律只按粗略高度
+    else above = Math.max(0, Math.min(L0, mine && e.pos != null ? e.pos : Math.round(e.vis * L0)));   // 单机里机器猫的事件也带 pos，别人塞的一律只按粗略高度（组队：队友塞的我看得准）
     const lid = layers.slice(L0 - above);
     if (faceEl && lid.length) lid.push(faceEl);   // 透视：翻着的顶牌跟着盖子一起掀
     const atBottom = L0 > 0 && above >= L0;
@@ -3480,6 +3501,7 @@
     ov.kittens += 1;
     renderPiles();
     fx.pop(els.deck, { scale: 1.05 });
+    if (mateIns) bubble(e.seat, e.pos <= 0 ? '放最上面了' : e.pos >= e.size - 1 ? '放最底下了' : '放第 ' + (e.pos + 1) + ' 张', { ms: 2600 });
     await wait(ms(260));
   }
 
@@ -4330,6 +4352,21 @@
   }
   /* 重排：打出来时顶上几张牌背从牌堆上抬起、在牌堆上方摆一排（牌堆真的少了这几张）；
    * 排好顺序后（我在弹窗里排 / 机器猫在想），这一排在空中互相换位洗两轮，再一张张平着落回牌堆顶。谁排都一样演，看不出顺序 */
+  // 队友改命时那一排下面的小标签（最上面 / 第 2 张 / 第 3 张），和窥探摊开时一样
+  function alterLabels(spots, pu) {
+    els.fly.querySelectorAll('.zm-alter-lab').forEach((n) => n.remove());
+    if (!spots) return;
+    // 那排牌下面紧挨着牌堆，标签挂在牌的上方；牌小（手机）就只写「顶 / 2 / 3」
+    const roomy = pu * 0.86 >= 56;
+    const labels = roomy ? ['最上面', '第 2 张', '第 3 张', '第 4 张', '第 5 张'] : ['顶', '2', '3', '4', '5'];
+    spots.forEach((p, i) => {
+      const s = document.createElement('span');
+      s.className = 'zm-peek-lab zm-alter-lab' + (i === 0 ? ' is-top' : '');
+      s.textContent = labels[i] || '';
+      s.style.left = p.x + 'px'; s.style.top = (p.y - pu * 0.82 * 1.4 / 2 - 24) + 'px';
+      els.fly.appendChild(s);
+    });
+  }
   async function animAlterLift(e, t) {
     if (game.alterRow) { game.alterRow.forEach((n) => n && n.remove()); game.alterRow = null; }
     const k = e.count || (e.cards ? e.cards.length : 3);
@@ -4340,12 +4377,22 @@
     const spots = Array.from({ length: k }, (_, i) => ({ x: c.x + (i - (k - 1) / 2) * pu * 0.9, y: rowY }));
     const tf = liftTopFace();   // 透视：翻着的那张正面抬起来
     game.alterFace = tf;
+    // 组队（2026-11-18 用户）：队友改命，那三张我也看得到——抬起来就翻成正面，他怎么排我看着（我不能动）
+    const open = teamGame() && e.seat === mateSeat() && e.cards && e.cards.length === k ? e.cards.slice() : null;
+    game.alterOpen = open;
     if (ov) { ov.lifted = (ov.lifted || 0) + k; renderPiles(); }
-    const nodes = await Promise.all(spots.map((p, i) => fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: deckTopRect(), to: p, w: pu, s0: 1, s1: 0.82, r0: 0, r1: 0, dur: ms(320), delay: i * ms(70), lift: 16, keep: true, land: false })));
+    const nodes = await Promise.all(spots.map((p, i) => fx.fly(open
+      ? Object.assign({ html: cardHtml(open[i]), from: deckTopRect(), to: p, w: pu, s0: 1, s1: 0.82, r0: 0, r1: 0, dur: ms(420), delay: i * ms(90), lift: 16, keep: true, land: false }, i === 0 && tf != null ? {} : { back: backHtml(), flip: 'up', flipAt: 0.35 })
+      : { html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: deckTopRect(), to: p, w: pu, s0: 1, s1: 0.82, r0: 0, r1: 0, dur: ms(320), delay: i * ms(70), lift: 16, keep: true, land: false })));
     if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
     game.alterRow = nodes;
     game.alterSpots = spots;
-    if (e.seat !== 0) bubble(e.seat, '', { think: true, ms: 1400 });
+    if (open) {
+      nodes.forEach((n, i) => { if (n && R.KIND_OF[open[i]] === R.BOOM) n.classList.add('zm-angry'); });
+      if (open.some((id) => R.KIND_OF[id] === R.BOOM)) snd('gasp');
+      alterLabels(spots, pu);
+    }
+    if (e.seat !== 0) bubble(e.seat, '', { think: true, ms: open ? 2400 : 1400 });
     await wait(ms(160));
   }
   async function animAltered(e, t) {
@@ -4358,8 +4405,39 @@
       if (ov) ov.lifted -= kk;
       nodes = game.alterRow; spots = game.alterSpots; game.alterRow = null;
     }
-    if (t !== token || !nodes) { (nodes || []).forEach((n) => n && n.remove()); return; }
+    if (t !== token || !nodes) { (nodes || []).forEach((n) => n && n.remove()); alterLabels(null); return; }
     const k = nodes.length;
+    const open = game.alterOpen;
+    game.alterOpen = null;
+    if (open && e.cards && open.length === k && e.cards.length === k) {
+      // 组队：队友排好了——每张正面滑到它的新位置（我看清他怎么排的），停一下，再扣回牌背落回牌堆
+      snd('shuffle');
+      const to = open.map((id) => e.cards.indexOf(id));
+      nodes = await Promise.all(nodes.map((n, i) => {
+        if (!n) return null;
+        const rr = n.getBoundingClientRect();
+        n.remove();
+        const moved = to[i] !== i;
+        return fx.fly({ html: cardHtml(open[i]), from: rr, to: spots[to[i]], w: pu, s0: rr.width / pu, s1: 0.82, r0: 0, r1: 0, dur: ms(moved ? 460 : 1), lift: moved ? (to[i] > i ? 1 : -1) * pu * 0.32 : 0, keep: true, land: false })
+          .then((m) => { if (m && R.KIND_OF[open[i]] === R.BOOM) m.classList.add('zm-angry'); return m; });
+      }));
+      if (t !== token) { nodes.forEach((n) => n && n.remove()); alterLabels(null); return; }
+      await wait(ms(1100));
+      alterLabels(null);
+      await Promise.all(nodes.map((n, i) => {
+        if (!n) return null;
+        const rr = n.getBoundingClientRect();
+        n.remove();
+        return fx.fly({ html: cardHtml(open[i]), back: backHtml(), flip: 'down', flipAt: 0.1, from: rr, to: deckTopRect(), w: pu, s0: rr.width / pu, s1: 1, r0: 0, r1: 0, dur: ms(300), delay: (k - 1 - to[i]) * ms(80), lift: 10 });
+      }));
+      if (t !== token) return;
+      if (ov) ov.lifted -= k;
+      if (ov && game.alterFace != null) ov.topFace = faceTop(game.state);
+      game.alterFace = null;
+      snd('thud');
+      renderPiles();
+      return;
+    }
     snd('shuffle');
     // 两轮：每张飞到另一个位置（错开一点高度、弧线），始终平着、不翻面
     let at = nodes.map((_, i) => i);
@@ -7172,6 +7250,13 @@
       out: () => { top(R.BOOM); s.turn = bot; s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); apply(bot, { type: 'draw' }); },
       draw: () => { s.turn = 0; apply(0, { type: 'draw' }); },
       attack: () => { give(bot, R.ATTACK); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
+      // 组队（只在组队局里有意义）：队友摸到炸毛猫、手里没逗猫棒、我有 → 问我救不救；队友窥探 / 改命（我该看得到）；我出局后看队友
+      rescue: () => { const m = R.mateOf(s, 0); if (m < 0) return; s.hands[m] = s.hands[m].filter((id) => R.KIND_OF[id] !== R.DEFUSE); if (R.countKind(s.hands[0], R.DEFUSE) === 0) give(0, R.DEFUSE); top(R.BOOM); s.turn = m; apply(m, { type: 'draw' }); },
+      rescueme: () => { const m = R.mateOf(s, 0); if (m < 0) return; s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); if (R.countKind(s.hands[m], R.DEFUSE) === 0) give(m, R.DEFUSE); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
+      stealmate: () => { const m = R.mateOf(s, 0); if (m < 0) return; const a = [1, 2, 3].find((k) => k !== m); ['orange', 'calico', 'tabby', 'skip', 'shuffle', 'attack'].forEach((k) => give(m, k)); give(a, 'cow'); give(a, 'cow'); s.turn = a; apply(a, { type: 'play', cards: s.hands[a].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: m }); },
+      futuremate: () => { const m = R.mateOf(s, 0); if (m < 0) return; give(m, R.FUTURE); s.turn = m; apply(m, { type: 'play', cards: [R.findKind(s.hands[m], R.FUTURE)] }); },
+      altermate: () => { const m = R.mateOf(s, 0); if (m < 0) return; give(m, R.ALTER); s.turn = m; apply(m, { type: 'play', cards: [R.findKind(s.hands[m], R.ALTER)] }); },
+      outme: () => { s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); const m = R.mateOf(s, 0); if (m >= 0) s.hands[m] = s.hands[m].filter((id) => R.KIND_OF[id] !== R.DEFUSE); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       alterbot: () => { give(bot, R.ALTER); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ALTER)] }); },
       alter: () => { give(0, R.ALTER); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.ALTER)] }); },
       swap: () => { give(0, R.SWAP); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.SWAP)], target: bot }); },

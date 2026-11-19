@@ -810,8 +810,10 @@
     // 百变「火眼」（2026-11-16 用户：塞回的位置对所有人可见——第二只塞回去时第一只的位置不该跟着丢）：塞在哪大家都看见，
     // 原先记得的牌也就还记得（位置是按牌算的，插一张进来大家都知道它们往下挪了一格）；点「随机」/ 超时随机塞也照样可见
     const exactAll = rulesOf(s).insertSeen === 'exact';
-    if (!exactAll) for (let k = 0; k < s.n; k++) if (k !== seat) s.memo[k].deck = []; // 别人不知道塞在哪，原先记的位置全乱了
-    if (s.memo[seat].deck.indexOf(id) < 0) s.memo[seat].deck.push(id);
+    // 组队（2026-11-18）：队友之间顶上几张的情报共享（窥探 / 改命都是），塞回去的位置也一样——队友看得见塞在第几张，原先记的也不乱
+    const mate = mateOf(s, seat);
+    if (!exactAll) for (let k = 0; k < s.n; k++) if (k !== seat && k !== mate) s.memo[k].deck = []; // 别人不知道塞在哪，原先记的位置全乱了
+    for (const k of mate >= 0 ? [seat, mate] : [seat]) if (s.memo[k].deck.indexOf(id) < 0) s.memo[k].deck.push(id);
     s.defuse = null;
     // 规则「看得出大概位置」：动画插在牌堆的真实高度，所有人都看得到——但只发一个粗略的高度 vis（0 = 最上、1 = 最底、中间取到 1/8），
     // 不发第几张：懂技术的人抓网络数据，拿到的也只和肉眼看到的一样多
@@ -826,7 +828,7 @@
     s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
     s.seq += 1;
     s.peek = null;
-    const ev = [{ t: 'insert', seat, card: id, pos, size: s.deck.length, vis, priv: [seat] }];
+    const ev = [{ t: 'insert', seat, card: id, pos, size: s.deck.length, vis, priv: mate >= 0 ? [seat, mate] : [seat] }];
     // 百变「火眼」：人人知道塞在第几张——等于所有人都记住了这张牌在牌堆里的位置
     if (exactAll) {
       for (let k = 0; k < s.n; k++) if (s.memo[k].deck.indexOf(id) < 0) s.memo[k].deck.push(id);

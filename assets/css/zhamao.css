@@ -556,6 +556,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-fly .zm-peek { position: fixed; inset: 0; z-index: -1; }
 .zm-peek-lab { position: absolute; transform: translateX(-50%); font-size: 14px; font-weight: 700; color: var(--zm-ink); background: var(--zm-card); border: 1px solid var(--zm-ink); border-radius: 999px; padding: 2px 10px; white-space: nowrap; animation: zm-fadein 0.3s ease 0.1s both; }
 .zm-peek-lab:first-child { background: var(--zm-ink); color: var(--zm-paper); }
+.zm-alter-lab { z-index: 2; pointer-events: none; font-size: 12px; padding: 1px 8px; min-width: 22px; text-align: center; }
+.zm-alter-lab.is-top { background: var(--zm-ink); color: var(--zm-paper); }
 .zm-peek-ok { position: absolute; transform: translateX(-50%); pointer-events: auto; animation: zm-fadein 0.3s ease 0.2s both; }
 @keyframes zm-fadein { from { opacity: 0; } }
 
@@ -1297,12 +1299,20 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-seat-mate { position: absolute; right: 26px; top: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
 .zm-seat-mate .zm-tier { display: none; }
 .zm-seat-mate .zm-name { font-size: 11.5px; max-width: 72px; }
+/* 2026-11-18 用户：队友头像比我的高一截（名字也算在那一列里一起居中了）、手牌数贴着右边框——
+ * 名字改成挂在头像底下、不占位，头像就和我的头像在同一条水平线上；整个座位往里收，手牌数离边框留出一截 */
+.zm-seat-mate { right: 34px; }
+@media (max-width: 430px) { .zm-app.is-team .zm-band { gap: 10px; } .zm-app.is-team .zm-band .zm-btn { min-width: 84px; } }   /* 手机：两颗键收一点，给队友头像和按钮之间留口气 */
+.zm-seat-mate .zm-name { position: absolute; left: 50%; top: calc(50% + var(--av) / 2 + 3px); transform: translateX(-50%); white-space: nowrap; }
+/* 我自己的手牌数（2026-11-18 用户：全局都加）：挂在头像右上角的小角标，不往右伸——右边是「被推锅还要摸几回合」和「摸牌」键 */
+.zm-seat-me .zm-count { left: auto; right: -9px; top: -7px; min-width: 18px; height: 21px; font-size: 11px; border-radius: 4px; }
 /* 320 宽（老 iPhone SE）：两颗按钮收窄、我和队友的头像往两边靠，免得队友头像压住「出牌」 */
 @media (max-width: 359px) {
   .zm-band { gap: 8px; }
   .zm-band .zm-btn { min-width: 76px; padding: 0 10px; }
   .zm-seat-me { left: 6px; }
   .zm-seat-mate { right: 22px; }
+  .zm-seat-mate .zm-count { left: auto; right: -9px; top: -7px; min-width: 18px; height: 21px; font-size: 11px; border-radius: 4px; }
 }
 .zm-app.is-team .zm-seat[data-team="us"] .zm-av { box-shadow: 0 0 0 2.5px #e2b85c, 0 0 0 4px var(--zm-paper); }
 .zm-app.is-team .zm-seat[data-team="them"] .zm-av { box-shadow: 0 0 0 2.5px #7d93b2, 0 0 0 4px var(--zm-paper); }
@@ -1572,3 +1582,26 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 
 /* 终局庆祝 · 乙 金星绽放：赢家头像外画出来的两圈金环（stroke-dashoffset 从 100 画到 0） */
 
+
+/* ═════ 组队·救队友（2026-11-18 用户：原来的白底文字框太丑；挑了甲「递棒」舞台）═════
+ * 左边炸毛了的队友（背后竖着那只炸毛猫、头像发抖），右边我的逗猫棒（金光），中间一道朱红弧线箭头 */
+.zm-dialog.is-rescue { width: min(100%, 420px); }
+.zm-rescue { --rc: clamp(84px, 24vw, 112px); display: flex; align-items: center; justify-content: center; gap: 4px; padding: 18px 0 6px; }
+.zm-rescue-mate { position: relative; width: calc(var(--rc) * 1.3); height: calc(var(--rc) * 1.62); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+.zm-rescue-kit { position: absolute; left: 50%; top: 0; width: calc(var(--rc) * 0.8); translate: -78% -6%; rotate: -12deg; }
+.zm-rescue-kit .zm-card { --cw: calc(var(--rc) * 0.8); width: 100%; box-shadow: 0 6px 16px rgba(160, 50, 40, 0.28); }
+.zm-rescue-av { position: relative; z-index: 1; width: calc(var(--rc) * 0.72); height: calc(var(--rc) * 0.72); border-radius: 50%; overflow: hidden; background: var(--zm-card); translate: 22% 0; box-shadow: 0 0 0 3px var(--zm-seal), 0 0 0 7px rgba(180, 57, 44, 0.18), 0 6px 14px rgba(29, 27, 24, 0.22); animation: zm-sos-shake 0.5s ease-in-out infinite; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.zm-rescue-av svg { width: 100%; height: 100%; display: block; }
+.zm-rescue-nm { position: relative; z-index: 1; margin-top: 7px; translate: 22% 0; font-size: 13px; letter-spacing: 0.06em; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zm-rescue-arc { width: calc(var(--rc) * 0.8); height: calc(var(--rc) * 0.4); flex: none; overflow: visible; margin-bottom: calc(var(--rc) * 0.25); }
+.zm-rescue-arc path { fill: none; stroke: var(--zm-seal); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.zm-rescue-arc .arc { stroke-dasharray: 7 9; animation: zm-rescue-flow 0.9s linear infinite; }
+@keyframes zm-rescue-flow { to { stroke-dashoffset: 16; } }
+.zm-rescue-wand { all: unset; cursor: pointer; width: calc(var(--rc) * 0.9); border-radius: 10px; animation: zm-rescue-glow 1.4s ease-in-out infinite; rotate: 6deg; transition: transform 0.15s ease; }
+.zm-rescue-wand .zm-card { --cw: calc(var(--rc) * 0.9); width: 100%; }
+.zm-rescue-wand:hover, .zm-rescue-wand:focus-visible { transform: translateY(-4px) scale(1.04); }
+@keyframes zm-rescue-glow { 0%, 100% { box-shadow: 0 0 0 2px #e9c86a, 0 0 14px rgba(233, 200, 106, 0.55); } 50% { box-shadow: 0 0 0 3px #e9c86a, 0 0 26px rgba(233, 200, 106, 0.9); } }
+@keyframes zm-sos-shake { 0%, 100% { translate: 0 0; rotate: 0deg; } 25% { translate: -2px 0; rotate: -3deg; } 75% { translate: 2px 0; rotate: 3deg; } }
+.zm-dialog.is-rescue .zm-actions { margin-top: 14px; }
+.zm-dialog.is-rescue .zm-btn { min-width: 96px; }
+@media (prefers-reduced-motion: reduce) { .zm-rescue-av, .zm-rescue-wand, .zm-rescue-arc .arc { animation: none !important; } }

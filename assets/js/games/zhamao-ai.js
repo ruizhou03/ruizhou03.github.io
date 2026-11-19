@@ -453,6 +453,14 @@
 
     function give(v, tier, rng) {
       const hand = v.hand;
+      // 组队：是队友找我要（等于传牌）——挑最有用的给他；逗猫棒只在我有两根以上时才给（最后一根自己留着保命）
+      if (v.mate >= 0 && v.give && v.give.to === v.mate) {
+        const nDef = hand.filter((id) => K[id] === R.DEFUSE).length;
+        const pool = hand.filter((id) => K[id] !== R.DEFUSE || nDef >= 2);
+        const src = pool.length ? pool : hand;
+        if (nDef >= 2) return src.find((id) => K[id] === R.DEFUSE);
+        return src.slice().sort((a, b) => (P.fx ? cardValueV(v, b) - cardValueV(v, a) : cardValue(hand, b) - cardValue(hand, a)))[0];
+      }
       if (tier === 'easy') { const non = hand.filter((id) => K[id] !== R.DEFUSE); return pickRand(non.length ? non : hand, rng); }
       if (P.fx) return hand.slice().sort((a, b) => cardValueV(v, a) - cardValueV(v, b))[0];
       return hand.slice().sort((a, b) => cardValue(hand, a) - cardValue(hand, b))[0];
