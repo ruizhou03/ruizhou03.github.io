@@ -98,9 +98,9 @@
     if (g && g.online) { const O = TB().online && TB().online(); return !!(O && !O.over && O.me >= 0); }
     return !!(g && g.hl && !g.tutorial && g.state && g.state.phase !== 'over' && TB().canPause && TB().canPause());
   }
-  const inMenu = () => NARROW.matches && available();
+  const inMenu = () => available();   // 2026-11-20 用户：顶栏只留三格，「反馈」一律在菜单里
   let btn = null, sheet = null;
-  function sync() { if (btn) btn.hidden = NARROW.matches || !available(); }
+  function sync() { if (btn) btn.hidden = true; }
   function close() {
     if (!sheet) return;
     sheet.remove(); sheet = null;

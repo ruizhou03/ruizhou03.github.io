@@ -2259,13 +2259,20 @@
    * 网址带 ?rimfuse=0 关掉、退回牌堆下那根小绳子（记在本机），?rimfuse=1 再打开 */
   const RIM_FUSE = (() => { try { if (/[?&]rimfuse=0\b/.test(location.search)) localStorage.setItem('zm.rimfuse', '0'); if (/[?&]rimfuse=1\b/.test(location.search)) localStorage.removeItem('zm.rimfuse'); return localStorage.getItem('zm.rimfuse') !== '0'; } catch (_) { return !/[?&]rimfuse=0\b/.test(location.search); } })();
   if (RIM_FUSE) els.app.classList.add('is-rimfuse');
-  function fuse(msLeft) {
+  /* totalMs：这一窗一整根有多长（2026-11-20：联机状态一推过来就重画导火索，以前每次都从头起、用剩下的时间跑完整圈——
+   * 🚫 一圈圈越跑越快。现在只在新的一窗点一次；万一舞台重画了要补画，就从「已经烧到的地方」接着烧） */
+  function fuse(msLeft, totalMs) {
     if (!RIM_FUSE) { ropeFuse(msLeft); return; }
     const ring = els.nopeBtn.querySelector('.zm-nope-ring');
     ring.getAnimations().forEach((a) => a.cancel());
     if (!(msLeft > 0)) { stopCardFuse(); return; }
-    if (isFinite(msLeft)) ring.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: msLeft, easing: 'linear', fill: 'forwards' });
-    cardFuse(msLeft);
+    const total = totalMs > msLeft ? totalMs : msLeft;
+    let clock = null;
+    if (isFinite(msLeft)) {
+      clock = ring.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: total, easing: 'linear', fill: 'forwards' });
+      if (total > msLeft) clock.currentTime = total - msLeft;
+    }
+    cardFuse(msLeft, total, clock);
   }
   function stopFuse() { stopRope(); stopCardFuse(); }
   /* 导火索：绳子从右往左烧短，火星跟着走、一路冒小火花；最后一秒半变红、闪 */
@@ -2299,12 +2306,21 @@
    * 没目标的牌桌沿不亮。原来的桌沿导火索 / 内圈紫弧（2026-11-17 丙）撤掉：两根线叠在一起颜色打架，单机里作废了也看不到变紫 */
   const NOPE_PURPLE = '#7a5a96';
   let cfz = null;   // { svg, raf }
-  function cardFuse(msLeft) {
+  /* 方形导火索：绕着桌心刚出的牌一圈，🚫 是火头。clock = 作废键里那条细进度的动画——两根读同一个钟（以前 🚫 自己按 performance.now 走、
+   * 细进度走 WAAPI，两边起点 / 暂停 / 快进不一致就会一快一慢，2026-11-20 用户：「🚫 走得比灯带明显快」）。
+   * 舞台的牌还没摆上来（联机状态先到、出牌动画还在飞）：等它摆好再画，不再直接不画——凡是问我作废，一定有这一圈（2026-11-20 用户定） */
+  function cardFuse(msLeft, total, clock) {
     stopCardFuse(true);
+    total = total > msLeft ? total : msLeft;
+    const startAt = performance.now(), endAt = startAt + msLeft;
     const host = els.stage.querySelector('.zm-stage-cards');
-    if (!host) return;
-    const pad = Math.max(7, U() * 0.12), w = host.offsetWidth + pad * 2, h = host.offsetHeight + pad * 2, r = Math.min(16, w * 0.12);
-    if (w < 20 || h < 20) return;
+    const pad = Math.max(7, U() * 0.12), w = host ? host.offsetWidth + pad * 2 : 0, h = host ? host.offsetHeight + pad * 2 : 0, r = Math.min(16, w * 0.12);
+    if (!host || w < 20 || h < 20) {
+      if (!isFinite(msLeft) || endAt - performance.now() < 250) return;
+      const f0 = { svg: null, raf: 0, retry: 0 }; cfz = f0;
+      f0.retry = setTimeout(() => { if (cfz === f0) { cfz = null; const left = endAt - performance.now(); if (left > 250) cardFuse(left, total, clock); } }, 90);
+      return;
+    }
     const x0 = 2, y0 = 2, x1 = w - 2, y1 = h - 2, cx = w / 2;
     const d = 'M' + cx + ' ' + y0 + 'H' + (x1 - r) + 'Q' + x1 + ' ' + y0 + ' ' + x1 + ' ' + (y0 + r) + 'V' + (y1 - r) + 'Q' + x1 + ' ' + y1 + ' ' + (x1 - r) + ' ' + y1 +
       'H' + (x0 + r) + 'Q' + x0 + ' ' + y1 + ' ' + x0 + ' ' + (y1 - r) + 'V' + (y0 + r) + 'Q' + x0 + ' ' + y0 + ' ' + (x0 + r) + ' ' + y0 + 'Z';
@@ -2312,19 +2328,27 @@
     svg.setAttribute('class', 'zm-cfuse'); svg.setAttribute('aria-hidden', 'true');
     svg.setAttribute('width', w); svg.setAttribute('height', h); svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
     svg.style.left = -pad + 'px'; svg.style.top = -pad + 'px';
-    svg.innerHTML = '<path class="trk" d="' + d + '"/><path class="bar" d="' + d + '"/><g class="hd"><circle r="9"/><circle class="o" r="4.6"/><path d="M-3.2 -3.2 3.2 3.2"/></g>';
+    // 火头里面再包一层 g：最后一秒「一跳一跳」放大只放大里面这层（放大的中心 = 火头自己）。
+    // 以前直接放大外层——外层带着 translate，放大的中心是整圈左上角，火头会被甩到前面去
+    svg.innerHTML = '<path class="trk" d="' + d + '"/><path class="bar" d="' + d + '"/><g class="hd"><g class="hd-in"><circle r="9"/><circle class="o" r="4.6"/><path d="M-3.2 -3.2 3.2 3.2"/></g></g>';
     host.appendChild(svg);
     const bar = svg.querySelector('.bar'), hd = svg.querySelector('.hd'), L = bar.getTotalLength();
     bar.style.strokeDasharray = L + ' ' + (L + 4);
     const f = { svg, raf: 0 }; cfz = f;
     const put = (off) => { const q = bar.getPointAtLength(Math.min(L - 0.01, Math.max(0, off))); hd.setAttribute('transform', 'translate(' + q.x.toFixed(1) + ' ' + q.y.toFixed(1) + ')'); };
     if (!isFinite(msLeft) || fx.reduce()) { bar.style.strokeDashoffset = 0; put(0); if (!isFinite(msLeft)) return; }
-    const t0 = performance.now();
+    const k0 = 1 - msLeft / total;   // 补画时：已经烧掉的那一截
+    // 读钟：作废键那条细进度的动画在走就跟它（同一个钟）；没有 / 被取消了就按时间算
+    const progress = () => {
+      const ct = clock && clock.playState !== 'idle' ? clock.currentTime : null;
+      if (ct != null) return Math.min(1, ct / total);
+      return Math.min(1, k0 + (performance.now() - startAt) / total);
+    };
     const tick = () => {
       if (cfz !== f || !svg.isConnected) return;
-      const k = Math.min(1, (performance.now() - t0) / msLeft), off = -L * k;
+      const k = progress(), off = -L * k;
       bar.style.strokeDashoffset = off.toFixed(1); put(-off);
-      svg.classList.toggle('is-urgent', msLeft - (performance.now() - t0) < 900);
+      svg.classList.toggle('is-urgent', (1 - k) * total < 900);
       if (k < 1) f.raf = requestAnimationFrame(tick); else stopCardFuse();
     };
     tick();
@@ -2333,6 +2357,8 @@
     if (!cfz) return;
     const f = cfz; cfz = null;
     cancelAnimationFrame(f.raf);
+    if (f.retry) clearTimeout(f.retry);
+    if (!f.svg) return;
     if (now || fx.reduce() || !f.svg.isConnected) { f.svg.remove(); return; }
     f.svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: 'forwards' }).finished.then(() => f.svg.remove()).catch(() => f.svg.remove());
   }
@@ -5682,17 +5708,24 @@
     exit: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
     invite: '<path d="M9.5 14.5 14.5 9.5"/><path d="M11 6.5l1.6-1.6a3.8 3.8 0 0 1 5.4 5.4L16.4 12M13 17.5l-1.6 1.6a3.8 3.8 0 0 1-5.4-5.4L7.6 12"/>',
     leave: '<path d="M14 4.5h4.5v15H14"/><path d="M10 8l-4 4 4 4M6 12h9"/>',
+    chat: '<path d="M4.5 5.5h15v10h-9l-4 3.5v-3.5h-2z"/><path d="M9 10.5h.01M12 10.5h.01M15 10.5h.01"/>',
+    rank: '<path d="M5 20V11h4v9M10 20V5h4v15M15 20v-6h4v6"/>',
   };
   function menuItems() {
     const exit = FROM_SITE ? [['exit', T('ui.exitSite', '返回百宝奇巧')]] : [];
     if (game && game.tutorial) return [['skip', tut && tut.mini ? T('tut.quitLesson', '退出本关') : T('tut.skip', '跳过教程')], ['rules', T('ui.rules', '规则')], ['line'], ['cover', T('ui.home', '回到主页面')], ...exit];
-    if (online) return [...(window.ZhamaoFeedback && window.ZhamaoFeedback.inMenu() ? [['feedback', T('fb.btn', '这步不对')]] : []), ['invite', T('ui.menu.invite', '房间号 / 邀请')], ['profile', T('ui.menu.profile', '改名字 / 头像')], ['settings', T('ui.settings', '设置')], ['rules', T('ui.rules', '规则')], ['line'], ['leave', T('ui.leaveRoom', '离开房间')]];
+    /* 2026-11-20 用户定：顶栏只留三格（单机 暂停 · 声音 · 菜单；联机 说一句 · 声音 · 菜单，房主多一颗暂停），其余都进菜单；
+     * 菜单不再重复顶栏已有的暂停；分组 = 本局 / 我 / 帮助 / 离开，组间一道线。「重新开一局」→「新的一局」，「这步不对」→「反馈」 */
+    const fb = window.ZhamaoFeedback && window.ZhamaoFeedback.inMenu() ? [['feedback', T('ui.menu.feedback', '反馈')]] : [];
+    if (online) return [['rank', T('ui.rank.title', '排行榜')], ...fb, ['line'], ['invite', T('ui.menu.invite', '房间号 / 邀请')], ['profile', T('ui.menu.profile', '改名字 / 头像')], ['settings', T('ui.settings', '设置')], ['line'], ['rules', T('ui.rules', '规则')], ['line'], ['leave', T('ui.leaveRoom', '离开房间')]];
     return [
-      ...(canPause() ? [['pause', T('ui.pause', '暂停')]] : []),
-      ...(window.ZhamaoFeedback && window.ZhamaoFeedback.inMenu() ? [['feedback', T('fb.btn', '这步不对')]] : []),   // 「这步不对」反馈：手机竖屏顶栏挤，收进菜单（zhamao-feedback.js）
-      ['restart', T('ui.menu.restart', '重新开一局')],
+      ['restart', T('ui.menu.newGame', '新的一局')],
+      ...fb,
+      ...(social && socialOk() ? [['chat', T('ui.chat', '说一句')]] : []),
+      ['line'],
       ['profile', T('ui.menu.profile', '改名字 / 头像')],
       ['settings', T('ui.settings', '设置')],
+      ['line'],
       ['rules', T('ui.rules', '规则')],
       ['tutorial', T('ui.tutorial', '新手教程')],
       ['line'],
@@ -5721,6 +5754,8 @@
     else if (k === 'skip') skipTutorial();
     else if (k === 'pause') pauseGame();
     else if (k === 'feedback') { if (window.ZhamaoFeedback) window.ZhamaoFeedback.open(); }
+    else if (k === 'rank') showRoomRank();
+    else if (k === 'chat') { if (social && socialOk()) social.openChat($('zmMenuBtn')); }
     else if (k === 'cover') { if (game && game.tutorial) quitTutorial(); else showCover(); }
     else if (k === 'exit') location.href = '/toolbox/';
     else if (k === 'invite') showInvite();
@@ -5889,9 +5924,11 @@
   function refreshTools() {
     if (window.ZhamaoFeedback) window.ZhamaoFeedback.sync();
     const pz = $('zmPauseBtn').hidden;
-    $('zmPauseBtn').hidden = !(game && !game.tutorial && !game.online && els.cover.hidden);
+    // 联机：只有房主有暂停键（2026-11-20 用户），一局打完就没了
+    $('zmPauseBtn').hidden = !(game && !game.tutorial && els.cover.hidden && (!game.online || (online && isHost() && G() && 'paused' in G() && !G().over && !game.dealing)));
     if (pz !== $('zmPauseBtn').hidden && ringGame() && LANDSCAPE_SHORT.matches) requestAnimationFrame(renderDir);   // 横屏：工具键多了一颗，顶边能坐的范围变了
-    $('zmRankBtn').hidden = !(game && game.online && online);
+    $('zmRankBtn').hidden = true;   // 2026-11-20：排行榜 / 规则收进菜单，顶栏只留三格
+    $('zmRulesBtn').hidden = true;
     syncSocialUi();
   }
 
@@ -5977,7 +6014,7 @@
   function syncSocialUi() {
     const ok = !!social && socialOk();
     const btn = $('zmChatBtn');
-    if (btn) btn.hidden = !ok;
+    if (btn) btn.hidden = !ok || !online;   // 2026-11-20 用户：单机顶栏只留 暂停 · 声音 · 菜单，「说一句」收进菜单
     els.app.classList.toggle('can-social', ok);
     if (!ok && social) social.close();
   }
@@ -7182,6 +7219,7 @@
     }
     syncPeople(st);
     syncNoHelp(g);
+    syncOnlinePause(g);
     if (editing.on || editing.flip) { renderDir(); afterEditRender('table'); }
     if (editing.on && editing.where === 'table' && !g.over) exitEdit();
     const fresh = g.log.filter((e) => e.n > online.lastQueued);
@@ -7347,9 +7385,59 @@
   }
 
   /* ───── 停下来等人：轮到谁、我要不要做决定 ───── */
+  /* 联机暂停（2026-11-20 用户：只有房主能暂停）：服务器那边所有倒计时停住、谁都不能出牌。这边——
+   * 人人都看到和单机一样的暂停页（打盹的小咪 + 大暂停图标），只有房主有「继续」；别人那儿只有「离开房间」，正中下方是房主的小头像（谁停的）。
+   * 本地的计时（出牌红环、作废导火索、自动取消）一起停；继续时导火索从停下的地方接着烧，红环按服务器顺延后的时刻重算 */
+  const pauseShown = () => !els.mask.hidden && els.dialog.classList.contains('is-online-pause');
+  function syncOnlinePause(g) {
+    if (!game || !game.online || !g) return;
+    const on = !!g.paused && !g.over;
+    if (on === !!online.pausedAt) return;
+    if (on) {
+      online.pausedAt = performance.now();
+      clearTimeout(reactAuto);
+      pauseClock();
+      els.nopeBtn.querySelectorAll('.zm-nope-ring').forEach((r) => r.getAnimations().forEach((a) => a.pause()));   // 方形导火索读的就是这个钟：一起停
+      busy = true;
+      showOnlinePause();
+    } else {
+      const d = performance.now() - online.pausedAt;
+      online.pausedAt = 0;
+      if (online.reactEnd) online.reactEnd.end += d;
+      els.nopeBtn.querySelectorAll('.zm-nope-ring').forEach((r) => r.getAnimations().forEach((a) => a.play()));
+      if (pauseShown()) closeDialog();
+      clock.paused = false;
+      if (!online.playing) onlineIdle();
+    }
+    refreshTools();
+  }
+  function showOnlinePause() {
+    if (!online || !online.pausedAt) return;
+    closeMenu();
+    if (soundPanel) soundPanel.hidden = true;
+    const host = isHost();
+    const hp = online.st && (online.st.players || []).find((p) => p.id === online.st.hostId);
+    const hostFace = hp ? (hp.avatar && AV && AV.byId[hp.avatar] ? AV.byId[hp.avatar].svg : '<span>' + esc((hp.nick || '?').slice(0, 1)) + '</span>') : '';
+    openDialog('<button type="button" class="zm-pause-cat" aria-label="' + T('ui.pause.pet', '摸摸小咪') + '">' + napArt() + '</button>' +
+      '<div class="zm-pause-ic" aria-label="' + T('ui.pause', '暂停') + '"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/><rect x="34" y="28" width="11" height="44" rx="3.5"/><rect x="55" y="28" width="11" height="44" rx="3.5"/></svg>' +
+'</div>' +
+      (!host && hostFace ? '<div class="zm-pause-by" title="' + esc(hp.nick || '') + '"><span class="av">' + hostFace + '</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><rect x="8" y="7" width="2.8" height="10" rx="1"/><rect x="13.2" y="7" width="2.8" height="10" rx="1"/></svg></div>' : '') +
+      '<div class="zm-pause-actions">' + (host
+        ? '<button type="button" class="zm-btn zm-btn-primary" data-go data-focus><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>' + T('ui.resume', '继续') + '</button>'
+        : '<button type="button" class="zm-btn" data-leave><svg class="ln" viewBox="0 0 24 24" aria-hidden="true">' + MENU_ICONS.leave + '</svg>' + T('ui.leaveRoom', '离开房间') + '</button>') + '</div>', (d) => {
+      d.classList.add('is-pause', 'is-online-pause');
+      const cat = d.querySelector('.zm-pause-cat');
+      cat.addEventListener('click', () => napWake(cat));
+      const go = d.querySelector('[data-go]');
+      if (go) go.addEventListener('click', () => { go.disabled = true; onlineAct('pause', { on: false }); });
+      const lv = d.querySelector('[data-leave]');
+      if (lv) lv.addEventListener('click', () => { closeDialog(); leaveOnline(true); });
+    });
+  }
   function onlineIdle(fromResync) {
     const g = G();
     if (!game || !game.online || !g || online.playing || game.dealing) return;
+    if (online.pausedAt && g.paused && !g.over) { if (!pauseShown()) showOnlinePause(); return; }   // 房主暂停中：动画播完也别弹出牌 / 挑牌
     if (!fromResync && !sameAsSnapshot()) { console.warn('[zhamao] mirror drifted, resync:', driftWhy, '(seq ' + g.seq + ')'); resync(); return; }
     const s = game.state;
     autopilot = !game.spectator && !!g.auto[online.base];
@@ -7441,7 +7529,7 @@
         if (g.deadline - (Date.now() + online.skew) - pad < base) {
           NET.act(online.code, online.token, 'move', { d: { type: 'seen' }, at: g.seq }).catch(() => {});
         }
-        online.reactEnd = { seq: g.seq, end: performance.now() + base };
+        online.reactEnd = { seq: g.seq, end: performance.now() + base, total: base };
       }
       give = Math.max(0, online.reactEnd.end - performance.now());
     }
@@ -7450,21 +7538,12 @@
     busy = !canN;
     renderHand({ flip: false });
     renderBand();
-    // 导火索：问到我才马上点着；没问我的话先不露，过 0.9 秒窗口还开着（有人在想要不要作废）才点着剩下那段——
-    // 大家都自动跳过时（没作废 / 开了「只在和我有关时询问」）窗口 0.3–0.7 秒就关，导火索根本不出现
+    // 导火索：只在问到我的时候点（2026-11-20 用户：别人在想要不要作废时不再给我看导火索——看着像在问我，
+    // 而且「窗口过了 0.9 秒还开着」等于告诉全桌有人手里有作废）。同一窗只点一次；舞台被重画、那圈没了才补画，从烧到的地方接着烧
     clearTimeout(fuseLater);
-    if (canN) fuse(give > 0 ? give : 0);
-    else if (online.fuseFor !== g.seq) {
-      online.fuseFor = g.seq;
-      fuse(0);
-      const at = g.seq, end = performance.now() + Math.max(0, remain);
-      fuseLater = setTimeout(() => {
-        const gg = G();
-        if (!online || !gg || gg.seq !== at || game.state.phase !== 'react' || reactOpen) return;
-        const left = end - performance.now();
-        if (left > 300) fuse(left);
-      }, 900);
-    }
+    if (canN) {
+      if (online.fuseFor !== g.seq || !cfz) { online.fuseFor = g.seq; fuse(give > 0 ? give : 0, online.reactEnd.total); }
+    } else { online.fuseFor = g.seq; if (cfz) fuse(0); }   // 没问我 / 我已经表过态：不点、点着的收掉
     clearTimeout(reactAuto);
     if (!mine) return;
     const at = g.seq;
@@ -8428,7 +8507,7 @@
   els.nopeBtn.setAttribute('aria-label', R.NAMES.nope);
   els.cancelBtn.addEventListener('click', cancelTarget);
   els.skipTut.addEventListener('click', skipTutorial);
-  $('zmPauseBtn').addEventListener('click', pauseGame);
+  $('zmPauseBtn').addEventListener('click', () => { if (game && game.online) { if (isHost() && G() && !G().paused) onlineAct('pause', { on: true }); return; } pauseGame(); });
   $('zmRankBtn').addEventListener('click', (e) => { e.stopPropagation(); showRoomRank(); });
   $('zmRulesBtn').addEventListener('click', showRules);
   $('zmMenuBtn').addEventListener('click', toggleMenu);
