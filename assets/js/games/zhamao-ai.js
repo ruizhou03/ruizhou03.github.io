@@ -716,13 +716,17 @@
   const X3_DIM = 210;
   const BRAIN_T = (() => { const b = loadBrain('ZhamaoBrainTeam', './zhamao-brain-team.js'); return b && (b.DIM === X3_DIM || b.DIM === 250) ? b : null; })();   // 2026-11-20 起 t4 是 250 维（角色那 40 列在组队里恒为 0）
   const BRAIN_F = (() => { const b = loadBrain('ZhamaoBrainFlux', './zhamao-brain-flux.js'); return b && (b.DIM === X3_DIM || b.DIM === 250) ? b : null; })();   // 2026-11-20 起 f2 是 250 维
+  /* 组队·开了交换的局（2026-11-20 下午，REPORT 第十阶段）：t5.json = t4 加练可选规则（交换 / 交换连逗猫棒 / 塞回看不出位置 / 牌量按真人开房比例抽），
+   * 输入多 3 个规则位（brainX 的 o+19 / o+57 / o+58；老网络这几列权重全 0，填了也不变）。整队 vs t4：交换+连逗猫棒 2v2 / 3v3 / 2v2v2 / 4v4 胜率
+   * 53.8 / 56.4 / 39.7 / 55.4%（均等 50 / 50 / 33.3 / 50）；不开交换时 2v2v2、4v4 略输 2–3 个点 → 只在开了交换的局用它，默认规则仍用 t4 */
+  const BRAIN_TS = (() => { const b = loadBrain('ZhamaoBrainTeamSwap', './zhamao-brain-team-swap.js'); return b && b.DIM === 250 ? b : null; })();
   /* 角色猫网络（2026-11-19，REPORT 第七阶段）：输入 250 = 210 + 40 维角色（我的角色、下家 1..4 的角色、模式位、出牌目标的角色，见 brainX） */
   const X4_DIM = 250;
   const BRAIN_R = (() => { const b = loadBrain('ZhamaoBrainRoles', './zhamao-brain-roles.js'); return b && b.DIM === X4_DIM ? b : null; })();
   const ROLE_IDS = ['timid', 'fat', 'shadow', 'cow', 'calico', 'tabby'];
   const brainOf = (v) => {
     if (v.roles) return BRAIN_R;
-    if (teamV(v)) return BRAIN_T;
+    if (teamV(v)) return (v.rules && v.rules.swap && BRAIN_TS) || BRAIN_T;
     if (isFlux(v)) return BRAIN_F;
     return (!v.rules || !v.rules.mode || v.rules.mode === 'classic') ? BRAIN : null;
   };
@@ -752,6 +756,10 @@
     }
     if (v.flux) { const i = FLUX_IDS.indexOf(v.flux); if (i >= 0) f[o + 10 + i] = 1; }
     if (isFlux(v)) { f[o + 17] = 1; f[o + 18] = v.nineUsed && v.nineUsed[v.me] ? 1 : 0; }
+    if (v.rules) {   // 可选规则位（feat.js v4 xState，2026-11-20）：o+19 交换在局、o+57 交换连逗猫棒、o+58 塞回看不出位置
+      if (v.rules.swap) f[o + 19] = 1;
+      if (f.length >= X4_DIM) { if (v.rules.swap && v.rules.swapDefuse) f[o + 57] = 1; if (v.rules.insertSeen === false) f[o + 58] = 1; }
+    }
     if (v.roles && f.length >= X4_DIM) {   // 角色猫（feat.js v4）：o+20 我的角色、o+26.. 下家 1..4 的角色、o+50 模式位；o+51.. 出牌目标的角色由候选填
       const r = ROLE_IDS.indexOf(v.roles[v.me]); if (r >= 0) f[o + 20 + r] = 1;
       for (let j = 1; j <= 4; j++) { const s = bNext(v, j); if (s >= 0) { const q = ROLE_IDS.indexOf(v.roles[s]); if (q >= 0) f[o + 26 + (j - 1) * 6 + q] = 1; } }
