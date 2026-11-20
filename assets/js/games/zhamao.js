@@ -8,6 +8,8 @@
   'use strict';
 
   const R = window.ZhamaoRules;
+  const T = R.T;   // 多语言：T('键', '简体原文', { 占位 })，见 zhamao-rules.js。站点网页不装语言包时原样返回简体
+  const LANG = R.lang();
   const AI = window.ZhamaoAI;
   const HL = window.ZhamaoHlog || null;   // 真人单机对局匿名日志（zhamao-hlog.js，2026-11-19）
   const ART = window.ZhamaoArt;
@@ -32,6 +34,13 @@
    * 联机改名 / 换头像 = 乙（换牌匾：旧名往上滑走、新名从下面滑上来；新头像从中间晕开盖住旧的）
    * 6–9 人那一排名字按宽度截（8–9 人最多 3 个汉字宽、6–7 人 4 个），不加「…」、轮到谁也不展开全名
    * （代码里还按这几个开关分支走，开关在这里一次定死） */
+  /* 入口页（index.html）里写死的简体文案：标了 data-i18n（正文）/ data-i18n-aria（aria-label）/ data-i18n-ph（placeholder）的，
+   * 繁体 / 英文界面启动时按语言包换掉；简体一律不动（站点网页和以前一字不差） */
+  if (LANG !== 'zh-Hans') document.querySelectorAll('[data-i18n],[data-i18n-aria],[data-i18n-ph]').forEach((el) => {
+    if (el.dataset.i18n) el.textContent = T(el.dataset.i18n, el.textContent);
+    if (el.dataset.i18nAria) el.setAttribute('aria-label', T(el.dataset.i18nAria, el.getAttribute('aria-label')));
+    if (el.dataset.i18nPh) el.setAttribute('placeholder', T(el.dataset.i18nPh, el.getAttribute('placeholder')));
+  });
   Object.assign(els.app.dataset, { uivTurns: 'hat', uivAtk: 'b', uivRename: 'slide', uivNames: 'cut' });
 
   const snd = (name, delay) => { if (window.ZhamaoAudio) window.ZhamaoAudio.sfx(name, delay); };
@@ -122,7 +131,9 @@
   const CAT_NICKS = ['三花', '暹罗', '金渐层', '银渐层', '布偶', '橘座', '狸花', '奶牛', '英短', '美短', '缅因', '波斯', '玳瑁', '无毛',
     '折耳', '狮子猫', '德文', '加菲', '豹猫', '孟加拉', '挪威森林', '俄罗斯蓝', '乌云踏雪', '煤球', '雪球', '黑猫警长'];
   const ident = () => (window.GamesShell && window.GamesShell.Identity) || null;
-  const randomNick = () => { const pool = CAT_NICKS.concat(AV ? AV.NICKS : []); return pool[(Math.random() * pool.length) | 0]; };
+  // 多语言：繁体 / 英文没有拱猪那套两字名，只用语言包里的一串猫名（顿号分隔，下面机器猫名字同理）
+  const L_NICKS = LANG === 'zh-Hans' ? null : T('nick.cats', '三花、暹罗、金渐层、银渐层、布偶、橘座、狸花、奶牛、英短、美短、缅因、波斯、玳瑁、无毛、折耳、狮子猫、德文、加菲、豹猫、孟加拉、挪威森林、俄罗斯蓝、乌云踏雪、煤球、雪球、黑猫警长').split('、');
+  const randomNick = () => { const pool = L_NICKS || CAT_NICKS.concat(AV ? AV.NICKS : []); return pool[(Math.random() * pool.length) | 0]; };
   function loadProfile() {
     const p = readJSON(PROFILE_KEY) || {};
     const shared = ident() && ident().getNick ? ident().getNick() : null;
@@ -195,12 +206,12 @@
   function showProfile() {
     if (!AV) return;
     let pick = profile.avatar;
-    openDialog('<h2>名字和头像</h2><div class="zm-field-label">名字（删空 = 随机起一个）</div>' +
+    openDialog('<h2>' + T('ui.profile.title', '名字和头像') + '</h2><div class="zm-field-label">' + T('ui.profile.nick', '名字（删空 = 随机起一个）') + '</div>' +
       '<input class="zm-input" data-nick maxlength="12" autocomplete="nickname" value="' + esc(profile.nick) + '">' +
-      '<div class="zm-field-label">头像</div><div class="zm-av-grid" role="group">' +
+      '<div class="zm-field-label">' + T('ui.profile.avatar', '头像') + '</div><div class="zm-av-grid" role="group">' +
       AV.HUMAN.map((a) => '<button type="button" class="zm-av-pick" data-av="' + a.id + '" aria-label="' + esc(a.name) + '" aria-pressed="' + (a.id === pick) + '">' + a.svg + '</button>').join('') +
       '</div><p class="zm-muted zm-err" data-err hidden></p>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>取消</button><button type="button" class="zm-btn zm-btn-primary" data-save data-focus>保存</button></div>', (d) => {
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>' + T('ui.cancel', '取消') + '</button><button type="button" class="zm-btn zm-btn-primary" data-save data-focus>' + T('ui.save', '保存') + '</button></div>', (d) => {
       const err = d.querySelector('[data-err]'), nickIn = d.querySelector('[data-nick]');
       d.querySelector('[data-cancel]').addEventListener('click', closeDialog);
       d.querySelectorAll('[data-av]').forEach((b) => b.addEventListener('click', () => {
@@ -210,7 +221,7 @@
       }));
       d.querySelector('[data-save]').addEventListener('click', () => {
         const v = nickIn.value.trim();
-        if (v && ([...v].length > 12 || /[<>&"'/\\]/.test(v))) { err.textContent = '名字最多 12 个字，不能有特殊符号'; err.hidden = false; nickIn.focus(); return; }
+        if (v && ([...v].length > 12 || /[<>&"'/\\]/.test(v))) { err.textContent = T('ui.profile.bad', '名字最多 12 个字，不能有特殊符号'); err.hidden = false; nickIn.focus(); return; }
         const I = ident();
         if (v) { if (I && I.setNick) I.setNick(v); } else if (I && I.clearNick) I.clearNick();
         profile = { nick: v || randomNick(), avatar: pick };
@@ -225,10 +236,15 @@
 
   /* 机器猫的名字和头像按档从各自的池子里抽（2026-11-13 用户：高手一套名字 + 深色金眼头像、普通希腊字母 + 现在四个、入门零一…零九 + 马卡龙大眼睛；
    * 对局里不再挂档位小签，看名字和头像就知道是哪一档） */
+  const L_BOTS = LANG === 'zh-Hans' ? null : {
+    hard: T('nick.bot.hard', '天枢、天璇、天玑、天权、玉衡、开阳、摇光、北辰、启明').split('、'),
+    normal: T('nick.bot.normal', '阿尔法、贝塔、伽马、德尔塔、泽塔、西塔、卡帕、西格玛、欧米伽').split('、'),
+    easy: T('nick.bot.easy', '零一、零二、零三、零四、零五、零六、零七、零八、零九').split('、'),
+  };
   function tierPool(tier) {
-    const T = AV && AV.BOT_TIERS && (AV.BOT_TIERS[tier] || AV.BOT_TIERS.normal);
-    if (T) return { nicks: T.nicks, faces: T.faces.map((x) => x.id) };
-    return { nicks: AV ? AV.BOT_NICKS : ['阿尔法', '贝塔', '伽马', '德尔塔'], faces: AV ? AV.ROBOT.map((x) => x.id) : [] };
+    const BT = AV && AV.BOT_TIERS && (AV.BOT_TIERS[tier] || AV.BOT_TIERS.normal);
+    if (BT) return { nicks: L_BOTS ? (L_BOTS[tier] || L_BOTS.normal) : BT.nicks, faces: BT.faces.map((x) => x.id) };
+    return { nicks: L_BOTS ? L_BOTS.normal : AV ? AV.BOT_NICKS : ['阿尔法', '贝塔', '伽马', '德尔塔'], faces: AV ? AV.ROBOT.map((x) => x.id) : [] };
   }
   function drawBots(n, tier) {
     const P = tierPool(tier), names = P.nicks.slice();
@@ -247,7 +263,7 @@
       if (teamGame()) return svg.replace(/(<circle cx="32" cy="32" r="32" fill=")#[0-9a-fA-F]{3,8}/, '$1' + TEAM_BG[teamIdx(seat)]);
       return svg;
     }
-    if (seat === 0) return '<span>我</span>';
+    if (seat === 0) return '<span>' + T('ui.me', '我') + '</span>';
     return '<span>' + esc((b && b.nick || '?').slice(0, 1)) + '</span>';
   }
   const nameOf = (seat) => (game && game.bots[seat] ? game.bots[seat].nick : '');
@@ -264,7 +280,7 @@
     const t = ART.TONE[vk];
     return '<div class="zm-card' + (cls ? ' ' + cls : '') + '" data-k="' + k + '"' + (typeof kindOrId === 'number' ? ' data-id="' + kindOrId + '"' : '') +
       ' style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + (style ? ';' + style : '') + '">' +
-      '<div class="zm-art">' + ART.face(vk) + '</div><i class="zm-ic">' + ART.icon(vk) + '</i><b class="zm-nm">' + (vk === 'topdraw' ? '抽顶' : R.NAMES[k]) + '</b></div>';
+      '<div class="zm-art">' + ART.face(vk) + '</div><i class="zm-ic">' + ART.icon(vk) + '</i><b class="zm-nm">' + (vk === 'topdraw' ? T('card.topdraw.name', '抽顶') : R.NAMES[k]) + '</b></div>';
   }
   // 换上 / 换走「摸底」：手里每张抽底翻一下、换成抽顶（或换回来）
   async function flipBottomCards(t) {
@@ -536,7 +552,7 @@
   // 头像底色 = 队色（我这队永远第一种：藏蓝）。四种都避开朱红（轮到谁）/ 金（能指谁）/ 作废紫，2026-11-18 用户挑「中」档深浅
   const TEAM_BG = ['#a9c3e0', '#b2d4b4', '#f0c48f', '#eab3cb'];
   const TEAM_INK = ['#2f5d8a', '#3f7a55', '#c7772e', '#c0648f'];   // 同一色相的深色：彗星、比分条
-  function teamIdx(seat) { const s = game.state, T = R.teamCount(s) || 2; return ((R.teamOf(s, seat) - R.teamOf(s, 0)) % T + T) % T; }
+  function teamIdx(seat) { const s = game.state, TC = R.teamCount(s) || 2; return ((R.teamOf(s, seat) - R.teamOf(s, 0)) % TC + TC) % TC; }
   // 顶栏左边的比分条（组队时代替「百变小咪」四个字）：每队一组小圆点，出局一个空一个
   function renderScore() {
     const bar = els.table && els.table.querySelector('.zm-topleft');
@@ -544,9 +560,9 @@
     let sc = bar.querySelector('.zm-score');
     if (sc) sc.remove();
     return;   // 2026-11-18 用户：左上角留给招牌，不放比分条（场上谁还活着看头像就行）
-    if (!sc) { sc = document.createElement('div'); sc.className = 'zm-score'; sc.setAttribute('aria-label', '各队剩几个人'); bar.appendChild(sc); }
-    const s = game.state, d = ov || null, alive = d && d.alive ? d.alive : s.alive, T = R.teamCount(s);
-    const html = Array.from({ length: T }, (_, ti) => '<span>' + Array.from({ length: s.n }, (_, k) => k).filter((k) => teamIdx(k) === ti).map((k) => '<i class="' + (alive[k] ? '' : 'is-out') + '" style="--tc:' + TEAM_INK[ti] + '"></i>').join('') + '</span>').join('');
+    if (!sc) { sc = document.createElement('div'); sc.className = 'zm-score'; sc.setAttribute('aria-label', T('ui.team.left', '各队剩几个人')); bar.appendChild(sc); }
+    const s = game.state, d = ov || null, alive = d && d.alive ? d.alive : s.alive, TC = R.teamCount(s);
+    const html = Array.from({ length: TC }, (_, ti) => '<span>' + Array.from({ length: s.n }, (_, k) => k).filter((k) => teamIdx(k) === ti).map((k) => '<i class="' + (alive[k] ? '' : 'is-out') + '" style="--tc:' + TEAM_INK[ti] + '"></i>').join('') + '</span>').join('');
     if (sc.innerHTML !== html) sc.innerHTML = html;
   }
   /* 组队围桌一圈的出牌方向（2026-11-18 用户在四版里挑了甲）：不放箭头——大家拉开坐了，方向靠桌沿转圈的彗星（顺着出牌方向走、带着轮到那队的颜色），
@@ -1243,7 +1259,7 @@
     const rows = Math.ceil(n / cols);
     const w = Math.round(big ? Math.min(240, vw * 0.58, vh * 0.42) : Math.min(180, (vw - 40) / cols - 14, (vh - 60) / rows / 1.62));
     wrap.style.setProperty('--cols', cols);
-    wrap.innerHTML = '<div class="zm-role-view-in">' + seats.map((seat) => '<div class="zm-role-it"><div class="zm-role-chip"><span class="zm-role-chip-av">' + avatarHtml(seat) + '</span><b>' + esc(seat === meSeat() ? '我' : nameOf(seat)) + '</b></div>' + roleCardHtml(st.roles[seat], { big: true, w }) + '</div>').join('') + '</div>';
+    wrap.innerHTML = '<div class="zm-role-view-in">' + seats.map((seat) => '<div class="zm-role-it"><div class="zm-role-chip"><span class="zm-role-chip-av">' + avatarHtml(seat) + '</span><b>' + esc(seat === meSeat() ? T('ui.me', '我') : nameOf(seat)) + '</b></div>' + roleCardHtml(st.roles[seat], { big: true, w }) + '</div>').join('') + '</div>';
     els.fly.appendChild(wrap);
     const items = [...wrap.querySelectorAll('.zm-role-it')].map((it, i) => ({ it, card: it.querySelector('.zm-rc'), back: () => roleBadge(seats[i]) }));
     wrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220 });
@@ -1424,7 +1440,7 @@
   const fluxRule = (id) => (R.FLUX_RULES || []).find((r) => r.id === id) || null;
   function fluxHtml(id) {
     const r = fluxRule(id), k = FLUX_IC[r.id];
-    return '<span class="tag">百变规则</span><i class="ic" style="--tone:' + ART.TONE[k].bg + '">' + ART.icon(k) + '</i>' +
+    return '<span class="tag">' + T('ui.flux.title', '百变规则') + '</span><i class="ic" style="--tone:' + ART.TONE[k].bg + '">' + ART.icon(k) + '</i>' +
       '<span class="txt"><b>' + r.name + '</b><small>' + r.desc + '</small></span>';
   }
   function renderFlux(d) {
@@ -1435,7 +1451,7 @@
     if (!el) {
       el = document.createElement('button');
       el.type = 'button'; el.id = 'zmFlux'; el.className = 'zm-flux';
-      el.setAttribute('aria-label', '百变规则');
+      el.setAttribute('aria-label', T('ui.flux.title', '百变规则'));
       el.addEventListener('click', showFluxHelp);
       els.center.appendChild(el);
     }
@@ -1443,9 +1459,9 @@
   }
   function showFluxHelp() {
     const cur = game && game.state ? D().flux : null;
-    openDialog('<h2>百变规则</h2><p>每打出一张百变，就转一次转盘换规则；同时只生效一条。</p>' +
+    openDialog('<h2>' + T('ui.flux.title', '百变规则') + '</h2><p>' + T('ui.flux.help', '每打出一张百变，就转一次转盘换规则；同时只生效一条。') + '</p>' +
       '<ul class="zm-flux-list">' + R.FLUX_RULES.map((r) => '<li' + (r.id === cur ? ' class="is-cur"' : '') + '><i class="ic" style="--tone:' + ART.TONE[FLUX_IC[r.id]].bg + '">' + ART.icon(FLUX_IC[r.id]) + '</i><b>' + r.name + '</b><span>' + r.desc + '</span></li>').join('') + '</ul>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (dl) => {
+      '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>' + T('ui.ok', '好') + '</button></div>', (dl) => {
       dl.querySelector('[data-ok]').addEventListener('click', closeDialog);
     });
   }
@@ -1689,7 +1705,7 @@
   }
   async function animAskRescue(e, t) {
     game.rescueAnswered = false;
-    bubble(e.for, '救我！', { loud: true, alarm: true, ms: 2200 });
+    bubble(e.for, T('ui.rescue.help', '救我！'), { loud: true, alarm: true, ms: 2200 });
     // 2026-11-19 用户：喊「救我！」的同一刻，所有活着的队友（包括我自己）一起冒省略号——醒目一点（金边、大一号的点）
     const mates = e.mates || (e.by != null ? [e.by] : []);   // 老服务器只发 by
     mates.forEach((k) => bubble(k, '', { think: true, ms: 60000, cls: 'is-sos', sos: true }));
@@ -1732,9 +1748,9 @@
     openStage('<div class="zm-rescue" data-rescue>' +
         '<div class="zm-rescue-mate"><div class="zm-rescue-kit zm-angry">' + cardHtml('boom') + '</div><div class="zm-rescue-av">' + avatarHtml(f) + '</div><b class="zm-rescue-nm">' + esc(nameOf(f)) + '</b></div>' +
         RESCUE_GAP +
-        '<button type="button" class="zm-rescue-wand" data-yes aria-label="用逗猫棒救队友">' + cardHtml(R.DEFUSE) + '</button>' +
+        '<button type="button" class="zm-rescue-wand" data-yes aria-label="' + T('ui.rescue.wand', '用逗猫棒救队友') + '">' + cardHtml(R.DEFUSE) + '</button>' +
       '</div>' +
-      '<div class="zm-actions is-center"><button type="button" class="zm-btn" data-no>不救</button><button type="button" class="zm-btn zm-btn-life" data-yes data-ok data-focus><span class="zm-life" aria-hidden="true"><i></i></span><b>救！</b></button></div>', (d) => {
+      '<div class="zm-actions is-center"><button type="button" class="zm-btn" data-no>' + T('ui.rescue.no', '不救') + '</button><button type="button" class="zm-btn zm-btn-life" data-yes data-ok data-focus><span class="zm-life" aria-hidden="true"><i></i></span><b>' + T('ui.rescue.yes', '救！') + '</b></button></div>', (d) => {
       d.classList.add('is-rescue');
       let done = false;
       const box = d.querySelector('[data-rescue]'), okBtn = d.querySelector('[data-ok]');
@@ -1888,7 +1904,7 @@
     if (lastDeck >= 0 && lastDeck !== d.deckSize) fx.pop(els.deckCount, { scale: 1.25, dur: 260 });
     lastDeck = d.deckSize;
     els.kit.innerHTML = (d.kittens || d.deckSize) ? '<span class="sep">/</span>' + ART.icon('boom') + '<span>' + d.kittens + '</span>' : '';
-    els.kit.title = '牌堆里还有 ' + d.kittens + ' 只炸毛猫';
+    els.kit.title = T('ui.deck.kittens', '牌堆里还有 {n} 只炸毛猫', { n: d.kittens });
     if (lastKit >= 0 && lastKit !== d.kittens && d.kittens) { fx.pop(els.kit, { scale: 1.5, dur: 420 }); }
     lastKit = d.kittens;
     renderDiscard(d.discard);
@@ -2049,8 +2065,8 @@
     els.playBtn.disabled = true; els.drawBtn.disabled = true;
     // 贪吃猫要我给第二张：两张之间（第一张还在飞）键上别闪回「出牌」，灰着的「给牌 ×1」等下一张（2026-11-18 巡查）
     const giveNext = s.phase === 'give' && s.give && s.give.from === 0 && mode !== 'give';
-    if (giveNext && R.roleOf(s, s.give.to) === 'fat') els.playBtn.innerHTML = '给牌<b class="zm-xn">×' + (s.give.left > 1 ? 2 : 1) + '</b>'; else els.playBtn.textContent = giveNext ? '给牌' : '出牌';
-    els.drawBtn.textContent = '摸牌';
+    if (giveNext && R.roleOf(s, s.give.to) === 'fat') els.playBtn.innerHTML = T('ui.btn.give', '给牌') + '<b class="zm-xn">×' + (s.give.left > 1 ? 2 : 1) + '</b>'; else els.playBtn.textContent = giveNext ? T('ui.btn.give', '给牌') : T('ui.btn.play', '出牌');
+    els.drawBtn.textContent = T('ui.btn.draw', '摸牌');
     els.drawBtn.classList.remove('is-ready');
     if (s.phase === 'over') { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (game.dealing) { /* 发牌中：两个键都灰着 */ }
@@ -2060,15 +2076,15 @@
     else if (game.spectator || (game.online && !s.alive[0])) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     // 我出局后不再有「下一局」直接开（2026-11-14 用户：要么看着打完，要么点桌沿右下角的 ⏩ 快进，看完结算才能开下一局——保持一局完整）
     else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
-    else if (autopilot) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消托管'; }   // 我出局了：自动接着看他们打完，想走就开下一局
+    else if (autopilot) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = T('ui.btn.unauto', '取消托管'); }   // 我出局了：自动接着看他们打完，想走就开下一局
     else if (mode === 'target') { els.drawBtn.hidden = true; }
     else if (mode === 'give') {
       // 胖橘出的索要要给两张：按钮上写第几张（2026-11-15 巡查：以前给完一张又要给，不知道怎么回事）
       const gv = s.give, two = gv && R.roleOf && R.roleOf(s, gv.to) === 'fat';
-      if (two) els.playBtn.innerHTML = '给牌<b class="zm-xn">×' + (gv.left > 1 ? 2 : 1) + '</b>'; else els.playBtn.textContent = '给牌';
+      if (two) els.playBtn.innerHTML = T('ui.btn.give', '给牌') + '<b class="zm-xn">×' + (gv.left > 1 ? 2 : 1) + '</b>'; else els.playBtn.textContent = T('ui.btn.give', '给牌');
       els.playBtn.disabled = selected.length !== 1;
     }
-    else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = '取消'; }
+    else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = T('ui.cancel', '取消'); }
     else if (myTurnToAct()) {
       els.drawBtn.disabled = false;
       els.drawBtn.classList.toggle('is-ready', !selected.length);
@@ -2539,7 +2555,7 @@
   function afterEvents(ev) {
     if (tut && tut.after) {
       const msgs = tut.after(ev, game.state);
-      if (tut.done) { showCoach(msgs && msgs.length ? msgs : ['做到了！'], lessonDone); return; }   // 小关卡：这一关的事做完了
+      if (tut.done) { showCoach(msgs && msgs.length ? msgs : [T('tut.done', '做到了！')], lessonDone); return; }   // 小关卡：这一关的事做完了
       if (msgs && msgs.length) { showCoach(msgs, step); return; }
     }
     step();
@@ -2753,7 +2769,7 @@
     else if (e.cancelled || (e.type !== R.FAVOR && e.type !== R.SWAP && e.type !== 'pair' && e.type !== 'triple')) releaseRim(e.cancelled ? { dull: true } : null);
     const inner = els.stage.querySelector('.zm-stage-inner');
     const lab = inner && inner.querySelector('.zm-stage-label');
-    if (lab && game.lastNopes) lab.textContent = e.cancelled ? '作废了' : '照样生效';
+    if (lab && game.lastNopes) lab.textContent = e.cancelled ? T('ui.nope.done', '作废了') : T('ui.nope.stands', '照样生效');
     if (e.cancelled) {
       snd('cancel');
       await wait(ms(560));
@@ -2911,9 +2927,9 @@
   const hatBox = (seat) => {
     // 位置用头像在屏幕上的中心（「弹一下」是绕中心缩放，中心不动）；大小用排版尺寸（不受缩放影响，也没有取整误差）
     const av = avEl(seat), r = av.getBoundingClientRect(), W = av.offsetWidth, H = av.offsetHeight;
-    const L = r.left + r.width / 2 - W / 2, T = r.top + r.height / 2 - H / 2;
+    const L = r.left + r.width / 2 - W / 2, TP = r.top + r.height / 2 - H / 2;
     const w = W * 0.76;
-    return { x: L + W * 0.04 + w / 2 - 0.2 * w * HAT_SIN, y: T - H * 0.30 + w / 2 + 0.2 * w * (1 - HAT_COS), w };
+    return { x: L + W * 0.04 + w / 2 - 0.2 * w * HAT_SIN, y: TP - H * 0.30 + w / 2 + 0.2 * w * (1 - HAT_COS), w };
   };
   const hatT = (x, y, w, size, rot, flip) => 'translate(' + (x - size / 2).toFixed(1) + 'px,' + (y - size / 2).toFixed(1) + 'px) rotate(' + rot + 'deg) scale(' + (w / size).toFixed(3) + ',' + ((flip ? -1 : 1) * w / size).toFixed(3) + ')';
   function flyPot(size) { const p = document.createElement('div'); p.className = 'zm-prop zm-prop-hat'; p.innerHTML = ART.PROPS.pot; p.style.width = p.style.height = size + 'px'; els.fly.appendChild(p); return p; }
@@ -3121,14 +3137,14 @@
       }).then((n) => { if (n && R.KIND_OF[id] === R.BOOM && t === token) { snd('gasp'); n.classList.add('zm-angry'); fx.burst(spots[i].x, spots[i].y, { n: 12, shapes: ['fur'], colors: FUR, radius: u * 0.9, size: [8, 18], alignOut: true, life: 700, pattern: 'ring' }); } return n; })));
       if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
       // 标签 + 「知道了」
-      const labels = ['最上面', '第 2 张', '第 3 张', '第 4 张', '第 5 张'];
+      const labels = [T('ui.pos.top', '最上面'), ...[2, 3, 4, 5].map((n) => T('ui.pos.nth', '第 {n} 张', { n }))];
       // 自己收起的倒计时（2026-11-14 用户：托管打出窥探后没人点「知道了」，整局卡住）：托管 1.8 秒；联机 4 秒（服务器的出牌限时在走）；
       // 单机有出牌限时就 6 秒；单机不限时、自己在打才等我点
       const peekLimit = mateSaw || game.spectator ? 2800 : autopilot ? 1800 : game.online ? 4000 : turnSec() > 0 ? 6000 : 0;
       const lay = document.createElement('div');
       lay.className = 'zm-peek';
       lay.innerHTML = spots.map((p, i) => '<span class="zm-peek-lab" style="left:' + p.x + 'px;top:' + (p.y + u * 0.78) + 'px">' + labels[i] + '</span>').join('') +
-        '<button type="button"' + (game.spectator ? ' hidden' : '') + ' class="zm-btn zm-btn-primary zm-peek-ok' + (peekLimit ? ' zm-timed' : '') + '" style="left:' + c.x + 'px;top:' + (c.y + u * 1.12) + 'px">' + (peekLimit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>知道了</b></button>';
+        '<button type="button"' + (game.spectator ? ' hidden' : '') + ' class="zm-btn zm-btn-primary zm-peek-ok' + (peekLimit ? ' zm-timed' : '') + '" style="left:' + c.x + 'px;top:' + (c.y + u * 1.12) + 'px">' + (peekLimit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>' + T('ui.gotit', '知道了') + '</b></button>';
       els.fly.appendChild(lay);
       els.fly.classList.add('is-interactive');
       els.app.classList.add('is-peeking');   // 摊开的三张 + 「知道了」会压到牌堆下面的百变规则牌：看的时候先把规则牌淡掉
@@ -3344,9 +3360,9 @@
       // 扣着的牌像捏在手里一样扇形摊开（用户 2026-11-12：别一板一眼排一排）；张数多就收窄每张的角度
       '<div class="zm-steal-pick is-fan" data-steal data-stagger style="--fan-h:' + (k > 7 ? 1.18 : 1.08) + '">' + Array.from({ length: k }, (_, i) => {
         const step = Math.min(13, 78 / Math.max(1, k - 1)), ang = (i - (k - 1) / 2) * step;
-        return '<button type="button" data-i="' + i + '" aria-label="第 ' + (i + 1) + ' 张" style="--a:' + ang.toFixed(1) + 'deg;z-index:' + (i + 1) + '">' + backHtml() + '</button>';
+        return '<button type="button" data-i="' + i + '" aria-label="' + T('ui.pos.nth', '第 {n} 张', { n: i + 1 }) + '" style="--a:' + ang.toFixed(1) + 'deg;z-index:' + (i + 1) + '">' + backHtml() + '</button>';
       }).join('') + '</div>' +
-      (k > 1 ? '<div class="zm-actions is-center"><button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-rand>' + (limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>抽一张</b></button></div>' : ''), (d) => {
+      (k > 1 ? '<div class="zm-actions is-center"><button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-rand>' + (limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>' + T('ui.steal.rand', '抽一张') + '</b></button></div>' : ''), (d) => {
       d.classList.add('is-cards');
       const btns = Array.from(d.querySelectorAll('[data-i]'));
       let done = false, timer = 0, roam = 0;
@@ -3837,7 +3853,7 @@
     const who = e.from != null ? e.from : e.seat;   // 组队：队友出的逗猫棒从队友那儿飞出来
     const src = who === 0 ? handRectOf(e.card) : avPoint(who);
     if (who === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[who] -= 1; renderSeat(who); }
-    if (e.rescue) bubble(who, '接着！', { loud: true, ms: 1600 });
+    if (e.rescue) bubble(who, T('ui.rescue.catch', '接着！'), { loud: true, ms: 1600 });
     return src;
   }
   async function defuseToDiscard(e, t, from, w) {
@@ -4012,14 +4028,14 @@
 
   function insertTagText(pos, size) {
     const last = Math.max(0, size - 1), back = last - pos;
-    if (pos <= 0) return '最上面';
-    if (back <= 0) return '最后一张';
+    if (pos <= 0) return T('ui.pos.top', '最上面');
+    if (back <= 0) return T('ui.pos.last', '最后一张');
     // 倒数只用在最后那一小截（2026-11-18 用户定 15%、最多 5 张）：40 张里放第 21 张说「第 21 张」，第 36 张起才说「倒数第 5 张」；
     // 6 张时只有最后一张说「最后一张」，其余都正着数
     const k = Math.min(5, Math.max(1, Math.floor(size * 0.15)));
-    return back < k ? '倒数第 ' + (back + 1) + ' 张' : '第 ' + (pos + 1) + ' 张';
+    return back < k ? T('ui.pos.fromBottom', '倒数第 {n} 张', { n: back + 1 }) : T('ui.pos.nth', '第 {n} 张', { n: pos + 1 });
   }
-  function randTag() { insertTag(0, 0, null, '随机'); }
+  function randTag() { insertTag(0, 0, null, T('ui.random', '随机')); }
   function insertTag(pos, size, slot, text, cls, icon) {
     const dr = els.deck.getBoundingClientRect();
     const tag = document.createElement('span');
@@ -4132,15 +4148,15 @@
    * 「全都问」= 每张牌都问；「挑着问」= 和我有关的一定问，再加上勾选的这几种（默认勾：凑五种捡弃牌堆 / 别人之间交换 / 别人之间三张点名）。
    * 老设置「只在和我有关时询问」开着的 = 挑着问 */
   const NOPE_ALSO = [
-    ['five', '凑五种去捡弃牌堆', ['five'], true],
-    ['swap', '别人之间交换手牌', [R.SWAP], true],
-    ['triple', '别人之间三张点名', ['triple'], true],
-    ['flux', '别人打百变', [R.FLUX], true],   // 2026-11-15 用户：百变也能作废——挡住别人换掉对我有利的规则
-    ['pair', '别人之间两张偷牌', ['pair'], false],
-    ['favor', '别人之间讨要', [R.FAVOR], false],
-    ['attack', '甩锅（不甩给我）', [R.ATTACK, R.TATTACK], false],
-    ['shuffle', '捣乱', [R.SHUFFLE], false],
-    ['alter', '改命', [R.ALTER], false],
+    ['five', T('ui.nopeAlso.five', '凑五种去捡弃牌堆'), ['five'], true],
+    ['swap', T('ui.nopeAlso.swap', '别人之间交换手牌'), [R.SWAP], true],
+    ['triple', T('ui.nopeAlso.triple', '别人之间三张点名'), ['triple'], true],
+    ['flux', T('ui.nopeAlso.flux', '别人打百变'), [R.FLUX], true],   // 2026-11-15 用户：百变也能作废——挡住别人换掉对我有利的规则
+    ['pair', T('ui.nopeAlso.pair', '别人之间两张偷牌'), ['pair'], false],
+    ['favor', T('ui.nopeAlso.favor', '别人之间讨要'), [R.FAVOR], false],
+    ['attack', T('ui.nopeAlso.attack', '甩锅（不甩给我）'), [R.ATTACK, R.TATTACK], false],
+    ['shuffle', R.NAMES.shuffle, [R.SHUFFLE], false],
+    ['alter', R.NAMES.alter, [R.ALTER], false],
   ];
   /* 2026-11-15 晚 用户（朋友局反馈：别人之间出牌也弹「作废」，新手以为冲着自己、点了才发现不用）：
    * 默认全程只在和我有关时问（组队时和队友有关也算），残局也不再自动全问；设置里打开「别人之间的牌也问我」才有细项——
@@ -4747,7 +4763,7 @@
       const lim = autopilot || g.spectator ? 600 : 8000;
       const btn = document.createElement('button');
       btn.type = 'button'; btn.className = 'zm-btn zm-btn-primary zm-timed zm-rd-btn';
-      btn.innerHTML = '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span><b>抽一张</b>';
+      btn.innerHTML = '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span><b>' + T('ui.steal.rand', '抽一张') + '</b>';
       const fanBottom = fanY + cw * S * 0.72 + Math.abs(slot(0).y - fanY) + 18;
       btn.style.cssText = 'left:' + c.x + 'px;top:' + Math.min(innerHeight - 56, fanBottom) + 'px';
       els.fly.appendChild(btn); nodes.push(btn);
@@ -4879,9 +4895,9 @@
 
   function nameDialog(cb) {
     const kinds = R.KINDS.filter((k) => k !== R.BOOM);
-    openStage('<h2>点名要哪种牌？</h2><p class="zm-muted">他手里有，就得给你一张；没有就落空</p>' +
+    openStage('<h2>' + T('ui.name.title', '点名要哪种牌？') + '</h2><p class="zm-muted">' + T('ui.name.tip', '他手里有，就得给你一张；没有就落空') + '</p>' +
       '<div class="zm-grid" data-stagger>' + kinds.map((k) => '<button type="button" data-k="' + k + '">' + cardHtml(k) + '</button>').join('') + '</div>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>算了</button></div>', (d) => {
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>' + T('ui.nevermind', '算了') + '</button></div>', (d) => {
       d.classList.add('is-cards');
       d.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => { closeDialog(); cb(b.dataset.k); }));
       d.querySelector('[data-cancel]').addEventListener('click', () => { closeDialog(); if (game.previewSrc) { preview = { cards: Object.keys(game.previewSrc).map(Number) }; endPreview(); } renderBand(); });
@@ -4894,10 +4910,10 @@
     let order = s.alter.cards.slice(), sel = -1;
     const limit = dlgLimit();
     snd('peek');
-    openStage('<h2>改命 · 最上面 ' + order.length + ' 张</h2>' +
-      '<p class="zm-muted zm-alter-tip">拖一张插到别处，或点两张互换</p>' +
-      '<div class="zm-alter-row"><span class="end">顶</span><div class="zm-alter" data-alter>' + order.map((id, i) => '<button type="button" class="zm-alter-slot" data-i="' + i + '">' + cardHtml(id) + '</button>').join('') + '</div><span class="end">底</span></div>' +
-      '<div class="zm-actions is-center"><button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-ok data-focus>' + (limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>好了</b></button></div>', (d) => {
+    openStage('<h2>' + T('ui.alter.title', '改命 · 最上面 {n} 张', { n: order.length }) + '</h2>' +
+      '<p class="zm-muted zm-alter-tip">' + T('ui.alter.tip', '拖一张插到别处，或点两张互换') + '</p>' +
+      '<div class="zm-alter-row"><span class="end">' + T('ui.pos.topShort', '顶') + '</span><div class="zm-alter" data-alter>' + order.map((id, i) => '<button type="button" class="zm-alter-slot" data-i="' + i + '">' + cardHtml(id) + '</button>').join('') + '</div><span class="end">' + T('ui.pos.bottomShort', '底') + '</span></div>' +
+      '<div class="zm-actions is-center"><button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-ok data-focus>' + (limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>' + T('ui.done', '好了') + '</b></button></div>', (d) => {
       const slots = Array.from(d.querySelectorAll('.zm-alter-slot'));
       const okBtn = d.querySelector('[data-ok]');
       let done = false, timer = 0;
@@ -5020,7 +5036,7 @@
     if (!spots) return;
     // 那排牌下面紧挨着牌堆，标签挂在牌的上方；牌小（手机）就只写「顶 / 2 / 3」
     const roomy = pu * 0.86 >= 56;
-    const labels = roomy ? ['最上面', '第 2 张', '第 3 张', '第 4 张', '第 5 张'] : ['顶', '2', '3', '4', '5'];
+    const labels = roomy ? [T('ui.pos.top', '最上面'), ...[2, 3, 4, 5].map((n) => T('ui.pos.nth', '第 {n} 张', { n }))] : [T('ui.pos.topShort', '顶'), '2', '3', '4', '5'];
     spots.forEach((p, i) => {
       const s = document.createElement('span');
       s.className = 'zm-peek-lab zm-alter-lab' + (i === 0 ? ' is-top' : '');
@@ -5137,7 +5153,7 @@
     for (const id of s.discard) { const k = R.KIND_OF[id]; if (k !== R.BOOM) (by[k] = by[k] || []).push(id); }
     const kinds = R.KINDS.filter((k) => by[k]);
     // 只列有哪几种（只能拿一张，每种有几张不重要）
-    openStage('<h2>从弃牌堆捡一张</h2>' +
+    openStage('<h2>' + T('ui.pick.title', '从弃牌堆捡一张') + '</h2>' +
       '<div class="zm-grid" data-stagger>' + kinds.map((k) => '<button type="button" data-k="' + k + '">' + cardHtml(k) + '</button>').join('') + '</div>', (d) => {
       d.classList.add('is-cards');
       d.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => {
@@ -5163,13 +5179,13 @@
     for (let i = 0; i < n; i++) fanHtml += backHtml();
     snd('ask');
     const limit = size ? dlgLimit() : 0;
-    const badge = (p) => (p === 0 ? '顶' : p === size ? '底' : String(p + 1));
+    const badge = (p) => (p === 0 ? T('ui.pos.topShort', '顶') : p === size ? T('ui.pos.bottomShort', '底') : String(p + 1));
     // 2026-11-12 用户定稿（甲）：直接在牌堆上按住左右拖炸毛猫（或点哪道缝塞哪），炸毛猫头上小红标写第几张；只留「随机」「塞进去」
     const timerHtml = limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '';
-    const body = '<h2 class="zm-ins-h">塞回牌堆</h2>' +
+    const body = '<h2 class="zm-ins-h">' + T('ui.insert.title', '塞回牌堆') + '</h2>' +
       '<div class="zm-insert-fan is-solo is-drag" data-fan>' + fanHtml + cardHtml('boom', 'is-kit') + '<span class="zm-ins-badge" data-badge>' + badge(0) + '</span>' +
-        (size > 1 ? '<span class="zm-ins-end" data-end="top">顶</span><span class="zm-ins-end" data-end="bot">底</span>' : '') + '</div>' +
-      '<div class="zm-actions is-tight">' + (size ? '<button type="button" class="zm-btn" data-q="rand">随机</button>' : '') + '<button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-ok data-focus>' + timerHtml + '<b>塞进去</b></button></div>';
+        (size > 1 ? '<span class="zm-ins-end" data-end="top">' + T('ui.pos.topShort', '顶') + '</span><span class="zm-ins-end" data-end="bot">' + T('ui.pos.bottomShort', '底') + '</span>' : '') + '</div>' +
+      '<div class="zm-actions is-tight">' + (size ? '<button type="button" class="zm-btn" data-q="rand">' + T('ui.random', '随机') + '</button>' : '') + '<button type="button" class="zm-btn zm-btn-primary' + (limit ? ' zm-timed' : '') + '" data-ok data-focus>' + timerHtml + '<b>' + T('ui.insert.ok', '塞进去') + '</b></button></div>';
     openStage(body, (d) => {
       const range = d.querySelector('[data-range]');
       const fan = d.querySelector('[data-fan]');
@@ -5295,7 +5311,7 @@
   const MEDALS = [['#fff1bf', '#e5b552', '#9a6a1f', '#c8463a'], ['#ffffff', '#c9ccd2', '#7d838c', '#2f4a6d'], ['#ffd9b8', '#c98a55', '#7c4a22', '#4f8a5f']];
   function medal(i) {
     const [a, b, c, rib] = MEDALS[i], id = 'zmMd' + i;
-    return '<svg class="zm-medal" viewBox="0 0 40 44" aria-label="第 ' + (i + 1) + ' 名"><defs><radialGradient id="' + id + '" cx=".35" cy=".3" r=".85">' +
+    return '<svg class="zm-medal" viewBox="0 0 40 44" aria-label="' + T('ui.rank.nth', '第 {n} 名', { n: i + 1 }) + '"><defs><radialGradient id="' + id + '" cx=".35" cy=".3" r=".85">' +
       '<stop offset="0" stop-color="' + a + '"/><stop offset=".55" stop-color="' + b + '"/><stop offset="1" stop-color="' + c + '"/></radialGradient></defs>' +
       '<path d="M12 2h7l-4 14h-7z" fill="' + rib + '"/><path d="M28 2h-7l4 14h7z" fill="' + rib + '" opacity=".8"/>' +
       '<circle cx="20" cy="28" r="13" fill="url(#' + id + ')" stroke="' + c + '" stroke-width="1.4"/>' +
@@ -5310,12 +5326,12 @@
       const x = items[i];
       if (!x) return '';
       return '<div class="zm-pod is-p' + (i + 1) + (x.me ? ' is-me' : '') + '" style="--pc:' + POD_COLORS[i] + '">' +
-        '<span class="av">' + x.face + '</span><b class="nm">' + esc(x.nick) + (x.me ? '<i class="me">我</i>' : '') + '</b>' +
+        '<span class="av">' + x.face + '</span><b class="nm">' + esc(x.nick) + (x.me ? '<i class="me">' + T('ui.me', '我') + '</i>' : '') + '</b>' +
         '<span class="blk"><span>' + (i + 1) + '</span></span></div>';
     };
     const rest = items.slice(3);
-    return '<h2 class="zm-sr">排行榜</h2><div class="zm-podium">' + col(1) + col(0) + col(2) + '</div>' +
-      (rest.length ? '<ol class="zm-rank zm-rank-rest">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="mini">' + x.face + '</span><span class="nm">' + esc(x.nick) + (x.me ? '<small>（我）</small>' : '') + '</span></li>').join('') + '</ol>' : '');
+    return '<h2 class="zm-sr">' + T('ui.rank.title', '排行榜') + '</h2><div class="zm-podium">' + col(1) + col(0) + col(2) + '</div>' +
+      (rest.length ? '<ol class="zm-rank zm-rank-rest">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="mini">' + x.face + '</span><span class="nm">' + esc(x.nick) + (x.me ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : '') + '</span></li>').join('') + '</ol>' : '');
   }
   // 台子从底下长出来（三、二、一依次），头像随后落到台上，冠军那一下冒一圈金星
   function animPodium(d) {
@@ -5353,8 +5369,8 @@
       const msgs = tut && tut.finish ? tut.finish(won) : [];
       showCoach(msgs, () => {
         bgm('menu');
-        openDialog('<h2>教程完成</h2><p>来一局真的吧：' + settings.players + ' 人，机器猫' + AI.TIER_NAMES[settings.tier] + '（菜单里的设置可以改）。</p>' +
-          '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-go data-focus>开始对局</button></div>', (d) => {
+        openDialog('<h2>' + T('tut.end.title', '教程完成') + '</h2><p>' + T('tut.end.body', '来一局真的吧：{n} 人，机器猫{tier}（菜单里的设置可以改）。', { n: settings.players, tier: AI.TIER_NAMES[settings.tier] }) + '</p>' +
+          '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-go data-focus>' + T('ui.startGame', '开始对局') + '</button></div>', (d) => {
           d.querySelector('[data-go]').addEventListener('click', () => { closeDialog(); endTutorial(true); });
           d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); endTutorial(false); });
         });
@@ -5366,11 +5382,11 @@
     // 组队：赢的队两个人都算赢，不排个人名次——还是一列（赢的队 / 输的队）；其余用领奖台
     if (team) {
       openDialog(teamRankHtml(order, winners.length, won) +
-        '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', soloEndWire);
+        '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', soloEndWire);
       return;
     }
     openDialog(podiumHtml(order.map((seat) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0 }))) +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>回到主页面</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>再来一局</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); });
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); });
   }
   function soloEndWire(d) {
     d.querySelector('[data-again]').addEventListener('click', () => { closeDialog(); newGame(); });
@@ -5381,45 +5397,45 @@
   function rolesHtml() {
     const st = game && game.state;
     const row = (r, who) => '<li>' + roleCardHtml(r, { w: 54 }) + '<span>' + (who ? '<small>' + who + '</small>' : '') + '<b>' + roleInfo(r).name + '</b>' + esc(roleInfo(r).desc) + '</span></li>';
-    if (!st || !st.roles) return (settings.rules || {}).mode === 'roles' ? '<h3>角色猫</h3><ul class="zm-role-list">' + R.ROLES.map((r) => row(r.id, '')).join('') + '</ul>' : '';
-    return '<h3>角色猫（这一桌）</h3><ul class="zm-role-list">' + st.roles.map((r, k) => row(r, esc(k === meSeat() ? '我' : nameOf(k)))).join('') + '</ul>';
+    if (!st || !st.roles) return (settings.rules || {}).mode === 'roles' ? '<h3>' + T('rules.roles', '角色猫') + '</h3><ul class="zm-role-list">' + R.ROLES.map((r) => row(r.id, '')).join('') + '</ul>' : '';
+    return '<h3>' + T('rules.rolesTable', '角色猫（这一桌）') + '</h3><ul class="zm-role-list">' + st.roles.map((r, k) => row(r, esc(k === meSeat() ? T('ui.me', '我') : nameOf(k)))).join('') + '</ul>';
   }
   function rulesHtml() {
     const li = (k, t) => '<li>' + cardHtml(k) + '<b>' + R.NAMES[k] + '</b>　' + t + '</li>';
     const teamRules = ((game && game.state && game.state.rules) || settings.rules || {}).mode === 'team';
-    return '<div class="zm-rules"><h2>怎么玩</h2>' +
+    return '<div class="zm-rules"><h2>' + T('rules.title', '怎么玩') + '</h2>' +
       (rolesHtml()) +
-      (teamRules ? '<h3>组队</h3><ul><li>每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。</li><li>出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。</li><li>下家是队友时，普通「甩锅」和「装睡」都会坑到他——想躲就用「自由甩锅」甩给对手，或者先「转向」。</li><li>队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸毛猫的位置你也知道。</li><li>摸到炸毛猫又没有逗猫棒：你喊「救我！」，所有队友一起被问，谁先点「救」就用谁的逗猫棒，你自己把炸毛猫塞回去。没人救就出局。不管队友有没有逗猫棒，大家看到的都一样，对手看不出你们队还剩几根。</li><li>一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。</li></ul>' : '') +
-      '<p>牌堆里藏着炸毛猫（比人数少一只）。轮到你时，可以出任意多张牌，也可以一张不出，<b>最后摸一张牌结束回合</b>。摸到炸毛猫、手里又没有逗猫棒，就出局。撑到最后的人赢。</p>' +
-      '<h3>每人开局</h3><ul><li>4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸毛猫是里面还有几只。</li></ul>' +
-      '<h3>牌</h3><ul>' +
-      li('boom', '摸到就炸毛出局，除非有逗猫棒') +
-      li('defuse', (() => { const r = R.normalizeRules((game && game.state && game.state.rules) || settings.rules); return '摸到炸毛猫时自动用掉，然后你把炸毛猫塞回牌堆任意位置' + (r.insertSeen ? '——大家看得到你塞进去的大概高度（最上 / 最底一眼看得出，中间只能估；不报第几张；点「随机」的看不出）' : '，别人看不出塞在哪'); })()) +
-      li('nope', '作废别人刚出的牌（不管轮没轮到你）。也能作废别人的「作废」，叠了单数张 = 作废。挡不了炸毛猫和逗猫棒') +
-      li('attack', '结束回合、不摸牌，下家连着摸两回合（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）') +
-      li('tattack', '同甩锅，但可以甩给任意一个人（点他的头像）') +
-      li('skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合') +
-      li('reverse', '出牌方向倒过来（对手之间的小箭头跟着掉头），并像装睡一样结束一个回合、不摸牌。被甩锅时只顶掉其中一回合；两个人玩就等于装睡') +
-      (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? li('flux', '转一次转盘，换上抽到的规则。能被作废') : '') +
-      li('swap', (() => { const r = (game && game.state && game.state.rules) || settings.rules; return '和指定的一个人整手交换手牌' + (r.swapDefuse ? '（连逗猫棒一起换）' : '（各自的逗猫棒不换）') + (r.swap ? '' : '。设置里开了「有交换牌」才有'); })()) +
-      li('favor', '指定一人，他自己挑一张给你') +
-      li('shuffle', '把牌堆洗乱') +
-      li('future', '看牌堆最上面三张') +
-      li('bottom', '这一回合不从顶上摸，改从牌堆最底下摸一张' + (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? '（摸底规则下变成抽顶，从顶部摸）' : '')) +
-      li('alter', '看牌堆最上面三张，并按你想要的顺序放回去（别人看不到）') +
-      '</ul><h3>组合（任何同名牌都算）</h3><ul>' +
-      '<li><b>两张一样</b>　指定一人，随机偷他一张</li>' +
-      '<li><b>三张一样</b>　指定一人并点名一种牌，他有就得给你</li>' +
-      '<li><b>五种猫各一张</b>　橘猫、三花、奶牛猫、狸花、暹罗凑齐：从弃牌堆捡任意一张（行动牌、作废不算）</li>' +
-      '<li>橘猫、三花、奶牛猫、狸花、暹罗本身没用，专门凑组合</li></ul>' +
-      '<ul>' + li('wild', '能顶任何一种猫：和一只猫凑成两张一样 / 三张一样，五种猫缺哪种也能拿它顶；两张万能猫也算一对。单出没用') + '</ul>' +
-      '<h3>操作</h3><ul><li>点手牌选中（可多选），再点「出牌」；需要指定人时，能选的人头像会亮，点他的头像。</li>' +
-      '<li>不想出牌就点「摸牌」结束回合。轮到你时头像外有一圈红环在收，收完还没动就自动替你摸一张（设置里可改成不限时）。</li>' +
-      '<li>别人出了和你有关的牌（指着你的、甩到你头上的，组队时也包括队友），下面那根导火索在烧：你手里有「作废」就会出现紫色按钮，烧完之前点它。点手里的「作废」牌只会抬起来，不会打出去。和你无关的牌默认不问你，想管别人之间的牌就到设置里打开「别人之间的牌也问我」。</li></ul></div>';
+      (teamRules ? '<h3>' + T('rules.team', '组队') + '</h3><ul>' + '<li>' + T('rules.team.1', '每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。') + '</li>' + '<li>' + T('rules.team.2', '出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。') + '</li>' + '<li>' + T('rules.team.3', '下家是队友时，普通「甩锅」和「装睡」都会坑到他——想躲就用「自由甩锅」甩给对手，或者先「转向」。') + '</li>' + '<li>' + T('rules.team.4', '队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸毛猫的位置你也知道。') + '</li>' + '<li>' + T('rules.team.5', '摸到炸毛猫又没有逗猫棒：你喊「救我！」，所有队友一起被问，谁先点「救」就用谁的逗猫棒，你自己把炸毛猫塞回去。没人救就出局。不管队友有没有逗猫棒，大家看到的都一样，对手看不出你们队还剩几根。') + '</li>' + '<li>' + T('rules.team.6', '一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。') + '</li>' + '</ul>' : '') +
+      '<p>' + T('rules.intro', '牌堆里藏着炸毛猫（比人数少一只）。轮到你时，可以出任意多张牌，也可以一张不出，<b>最后摸一张牌结束回合</b>。摸到炸毛猫、手里又没有逗猫棒，就出局。撑到最后的人赢。') + '</p>' +
+      '<h3>' + T('rules.deal', '每人开局') + '</h3><ul><li>' + T('rules.deal.1', '4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸毛猫是里面还有几只。') + '</li></ul>' +
+      '<h3>' + T('rules.cards', '牌') + '</h3><ul>' +
+      li('boom', T('rules.card.boom', '摸到就炸毛出局，除非有逗猫棒')) +
+      li('defuse', (() => { const r = R.normalizeRules((game && game.state && game.state.rules) || settings.rules); return T('rules.card.defuse', '摸到炸毛猫时自动用掉，然后你把炸毛猫塞回牌堆任意位置') + (r.insertSeen ? T('rules.card.defuse.seen', '——大家看得到你塞进去的大概高度（最上 / 最底一眼看得出，中间只能估；不报第几张；点「随机」的看不出）') : T('rules.card.defuse.hidden', '，别人看不出塞在哪')); })()) +
+      li('nope', T('rules.card.nope', '作废别人刚出的牌（不管轮没轮到你）。也能作废别人的「作废」，叠了单数张 = 作废。挡不了炸毛猫和逗猫棒')) +
+      li('attack', T('rules.card.attack', '结束回合、不摸牌，下家连着摸两回合（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）')) +
+      li('tattack', T('rules.card.tattack', '同甩锅，但可以甩给任意一个人（点他的头像）')) +
+      li('skip', T('rules.card.skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合')) +
+      li('reverse', T('rules.card.reverse', '出牌方向倒过来（对手之间的小箭头跟着掉头），并像装睡一样结束一个回合、不摸牌。被甩锅时只顶掉其中一回合；两个人玩就等于装睡')) +
+      (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? li('flux', T('rules.card.flux', '转一次转盘，换上抽到的规则。能被作废')) : '') +
+      li('swap', (() => { const r = (game && game.state && game.state.rules) || settings.rules; return T('rules.card.swap', '和指定的一个人整手交换手牌') + (r.swapDefuse ? T('rules.card.swap.wand', '（连逗猫棒一起换）') : T('rules.card.swap.keep', '（各自的逗猫棒不换）')) + (r.swap ? '' : T('rules.card.swap.off', '。设置里开了「有交换牌」才有')); })()) +
+      li('favor', T('rules.card.favor', '指定一人，他自己挑一张给你')) +
+      li('shuffle', T('rules.card.shuffle', '把牌堆洗乱')) +
+      li('future', T('rules.card.future', '看牌堆最上面三张')) +
+      li('bottom', T('rules.card.bottom', '这一回合不从顶上摸，改从牌堆最底下摸一张') + (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? T('rules.card.bottom.flux', '（摸底规则下变成抽顶，从顶部摸）') : '')) +
+      li('alter', T('rules.card.alter', '看牌堆最上面三张，并按你想要的顺序放回去（别人看不到）')) +
+      '</ul><h3>' + T('rules.combos', '组合（任何同名牌都算）') + '</h3><ul>' +
+      '<li><b>' + T('rules.combo.pair', '两张一样') + '</b>　' + T('rules.combo.pair.d', '指定一人，随机偷他一张') + '</li>' +
+      '<li><b>' + T('rules.combo.three', '三张一样') + '</b>　' + T('rules.combo.three.d', '指定一人并点名一种牌，他有就得给你') + '</li>' +
+      '<li><b>' + T('rules.combo.five', '五种猫各一张') + '</b>　' + T('rules.combo.five.d', '橘猫、三花、奶牛猫、狸花、暹罗凑齐：从弃牌堆捡任意一张（行动牌、作废不算）') + '</li>' +
+      '<li>' + T('rules.combo.cats', '橘猫、三花、奶牛猫、狸花、暹罗本身没用，专门凑组合') + '</li></ul>' +
+      '<ul>' + li('wild', T('rules.card.wild', '能顶任何一种猫：和一只猫凑成两张一样 / 三张一样，五种猫缺哪种也能拿它顶；两张万能猫也算一对。单出没用')) + '</ul>' +
+      '<h3>' + T('rules.how', '操作') + '</h3><ul><li>' + T('rules.how.1', '点手牌选中（可多选），再点「出牌」；需要指定人时，能选的人头像会亮，点他的头像。') + '</li>' +
+      '<li>' + T('rules.how.2', '不想出牌就点「摸牌」结束回合。轮到你时头像外有一圈红环在收，收完还没动就自动替你摸一张（设置里可改成不限时）。') + '</li>' +
+      '<li>' + T('rules.how.3', '别人出了和你有关的牌（指着你的、甩到你头上的，组队时也包括队友），下面那根导火索在烧：你手里有「作废」就会出现紫色按钮，烧完之前点它。点手里的「作废」牌只会抬起来，不会打出去。和你无关的牌默认不问你，想管别人之间的牌就到设置里打开「别人之间的牌也问我」。') + '</li></ul></div>';
   }
   function showRules() {
     // 2026-11-15 用户：窗口别占满全屏；右上角一个叉，点窗外任何地方也能关（遮罩点击认 data-ok）
-    openDialog('<button type="button" class="zm-rules-x" data-ok data-focus aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' + rulesHtml(), (d) => {
+    openDialog('<button type="button" class="zm-rules-x" data-ok data-focus aria-label="' + T('ui.close', '关闭') + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' + rulesHtml(), (d) => {
       d.classList.add('is-rules');
       d.querySelector('[data-ok]').addEventListener('click', closeDialog);
     });
@@ -5427,40 +5443,44 @@
 
   /* 设置（2026-11-12 用户定稿「卡片 + 开关」，参考拱猪）：上面一张卡放人数 / 机器猫 / 限时，下面「玩法」卡每条一个牌面小图标 + 开关。
    * 和拱猪一样点了立刻生效、存下来，不再有「取消 / 保存」；规则从下一局起生效，局中改了规则「重开一局」变红 */
-  const DECK_OPTS = [['quick', '快局'], ['std', '标准'], ['more', '多']];
+  const DECK_OPTS = [['quick', T('ui.set.deck.quick', '快局')], ['std', T('ui.set.deck.std', '标准')], ['more', T('ui.set.deck.more', '多')]];
+  // 界面语言（只有 App 里有：app/i18n.js 装了 PuffcatI18n 才出这一行）。三个选项各用自己的语言写，切换后重载页面（存档在 localStorage，重载后接着打）
+  const I18N = window.PuffcatI18n && window.PuffcatI18n.SUPPORTED ? window.PuffcatI18n : null;
+  const LANG_OPTS = [['zh-Hans', '简体中文'], ['zh-Hant', '繁體中文'], ['en', 'English']];
   function showSettings(fromCover) {
     const segs = (key, opts, val) => '<div class="zs-seg" data-seg="' + key + '" role="group">' + opts.map(([v, t]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(val)) + '">' + t + '</button>').join('') + '</div>';
     const sw = (key, on) => '<button type="button" class="zs-switch" data-sw="' + key + '" role="switch" aria-checked="' + !!on + '"><i></i></button>';
     const tier = segs('tier', AI.TIERS.map((t) => [t, AI.TIER_NAMES[t]]), settings.tier);
-    const secs = segs('turnSec', [[10, '10 秒'], [20, '20 秒'], [0, '不限时']], turnSec());
+    const secs = segs('turnSec', TURN_OPTS, turnSec());
     const rulesBefore = JSON.stringify(settings.rules);
     const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b>' + (note ? '<small>' + note + '</small>' : '') + '</div>' + ctl + '</div>';
-    let html = '<h2>设置</h2>' +
+    const langLine = I18N ? '<div class="zs-line zs-lang"><span>' + T('ui.set.lang', '语言') + '</span>' + segs('lang', LANG_OPTS, LANG) + '</div>' : '';
+    let html = '<h2>' + T('ui.settings', '设置') + '</h2>' +
       '<section class="zs-card">' +
-      '<div class="zs-line"><span>机器猫</span>' + tier + '</div>' +
-      '<div class="zs-line"><span>出牌限时</span>' + secs + '</div></section>' +
-      '<div class="zs-cap">玩法</div><section class="zs-card">' +
+      '<div class="zs-line"><span>' + T('ui.set.bots', '机器猫') + '</span>' + tier + '</div>' +
+      '<div class="zs-line"><span>' + T('ui.set.timer', '出牌限时') + '</span>' + secs + '</div>' + langLine + '</section>' +
+      '<div class="zs-cap">' + T('ui.set.mode', '玩法') + '</div><section class="zs-card">' +
       // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 一副 56 张的密度（默认）/ 快局更短 / 多 = 以前的整副
-      '<div class="zs-line"><span>牌量</span>' + segs('deckSize', DECK_OPTS, R.normalizeRules(settings.rules).deckSize) + '</div>' +
-      row('swap', '有交换牌', '', sw('swap', settings.rules.swap)) +
+      '<div class="zs-line"><span>' + T('ui.set.deck', '牌量') + '</span>' + segs('deckSize', DECK_OPTS, R.normalizeRules(settings.rules).deckSize) + '</div>' +
+      row('swap', T('ui.set.swap', '有交换牌'), '', sw('swap', settings.rules.swap)) +
       // 交换连逗猫棒一起换（2026-11-13 用户：以前玩的是整副手牌全换）；没开交换牌时这行藏着
-      row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', settings.rules.swapDefuse)).replace('<div class="zs-row"', '<div class="zs-row" data-dep="swap"' + (settings.rules.swap ? '' : ' hidden')) +
+      row('defuse', T('ui.set.swapDefuse', '交换时逗猫棒也换'), '', sw('swapDefuse', settings.rules.swapDefuse)).replace('<div class="zs-row"', '<div class="zs-row" data-dep="swap"' + (settings.rules.swap ? '' : ' hidden')) +
       // 2026-11-14 用户：塞回炸毛猫时动画插在真实高度（默认开），最上 / 最底看得出、中间只能估；不报第几张
-      row('boom', '塞回看得出高低', '', sw('insertSeen', R.normalizeRules(settings.rules).insertSeen)) +
+      row('boom', T('ui.set.insertSeen', '塞回看得出高低'), '', sw('insertSeen', R.normalizeRules(settings.rules).insertSeen)) +
       '</section>';
     // 「作废」什么时候问我（自己的偏好，单机联机都有）
-    const nopeCard = '<div class="zs-cap">作废</div><section class="zs-card">' +
-      row('nope', '别人之间的牌也问我', '开着时每张牌都问；关掉只在和我有关时问：我出的、指着我的、甩到我头上的', '<button type="button" class="zs-switch" data-nope-others role="switch" aria-checked="' + (settings.nopeOthers !== false) + '"><i></i></button>') +
+    const nopeCard = '<div class="zs-cap">' + R.NAMES.nope + '</div><section class="zs-card">' +
+      row('nope', T('ui.set.nopeOthers', '别人之间的牌也问我'), T('ui.set.nopeOthers.note', '开着时每张牌都问；关掉只在和我有关时问：我出的、指着我的、甩到我头上的'), '<button type="button" class="zs-switch" data-nope-others role="switch" aria-checked="' + (settings.nopeOthers !== false) + '"><i></i></button>') +
       '</section>';
     html += nopeCard;
     // 联机：机器猫 / 规则由房主定，这里只有自己的操作偏好
     // 联机：机器猫 / 规则由房主定，这里只有自己的偏好——「作废」怎么问、观战的人能不能看我的手牌（坐着的人才有）
     const meP = online && online.st ? online.st.players.find((p) => p.id === online.st.me && !p.left) : null;
-    const revealRow = meP ? row('future', '观战者能看我的手牌', '即时生效；开局就开着、中途没关过，出局后才能看机器猫的牌', '<button type="button" class="zs-switch" data-online-reveal role="switch" aria-checked="' + !!meP.showHand + '"><i></i></button>') : '';
-    if (online) html = '<h2>设置</h2>' + (revealRow ? '<section class="zs-card">' + revealRow + '</section>' : '<p class="zm-muted">联机时机器猫和玩法都由房主定。</p>') + nopeCard;
-    html += '<p class="zs-note" data-rule-note hidden>规则从下一局起生效</p><div class="zm-actions">' +
-      (fromCover || !game || game.tutorial || online ? '' : '<button type="button" class="zm-btn" data-restart>重开一局</button>') +
-      '<button type="button" class="zm-btn zm-btn-primary" data-close data-focus>好</button></div>';
+    const revealRow = meP ? row('future', T('ui.set.reveal', '观战者能看我的手牌'), T('ui.set.reveal.note', '即时生效；开局就开着、中途没关过，出局后才能看机器猫的牌'), '<button type="button" class="zs-switch" data-online-reveal role="switch" aria-checked="' + !!meP.showHand + '"><i></i></button>') : '';
+    if (online) html = '<h2>' + T('ui.settings', '设置') + '</h2>' + (revealRow ? '<section class="zs-card">' + revealRow + '</section>' : '<p class="zm-muted">' + T('ui.set.onlineHost', '联机时机器猫和玩法都由房主定。') + '</p>') + nopeCard;
+    html += '<p class="zs-note" data-rule-note hidden>' + T('ui.set.nextGame', '规则从下一局起生效') + '</p><div class="zm-actions">' +
+      (fromCover || !game || game.tutorial || online ? '' : '<button type="button" class="zm-btn" data-restart>' + T('ui.restart', '重开一局') + '</button>') +
+      '<button type="button" class="zm-btn zm-btn-primary" data-close data-focus>' + T('ui.ok', '好') + '</button></div>';
     openDialog(html, (d) => {
       d.classList.add('zs', 'zs-b');
       const persist = () => { settings.rules = R.normalizeRules(settings.rules); saveSettings(); refreshCover(); syncNote(); };
@@ -5477,6 +5497,7 @@
         fx.pop(b, { scale: 1.06, dur: 200 });
         const key = g.dataset.seg, v = b.dataset.v;
         if (key === 'nopeLate') { settings.nopeLate = +v; saveSettings(); return; }
+        if (key === 'lang') { if (v !== LANG && I18N) { save(); I18N.setLang(v); } return; }
         if (key === 'players') settings.players = +v;
         else if (key === 'tier') settings.tier = v;
         else if (key === 'turnSec') settings.turnSec = +v;
@@ -5561,25 +5582,25 @@
     leave: '<path d="M14 4.5h4.5v15H14"/><path d="M10 8l-4 4 4 4M6 12h9"/>',
   };
   function menuItems() {
-    const exit = FROM_SITE ? [['exit', '返回百宝奇巧']] : [];
-    if (game && game.tutorial) return [['skip', tut && tut.mini ? '退出本关' : '跳过教程'], ['rules', '规则'], ['line'], ['cover', '回到主页面'], ...exit];
-    if (online) return [['invite', '房间号 / 邀请'], ['profile', '改名字 / 头像'], ['settings', '设置'], ['rules', '规则'], ['line'], ['leave', '离开房间']];
+    const exit = FROM_SITE ? [['exit', T('ui.exitSite', '返回百宝奇巧')]] : [];
+    if (game && game.tutorial) return [['skip', tut && tut.mini ? T('tut.quitLesson', '退出本关') : T('tut.skip', '跳过教程')], ['rules', T('ui.rules', '规则')], ['line'], ['cover', T('ui.home', '回到主页面')], ...exit];
+    if (online) return [['invite', T('ui.menu.invite', '房间号 / 邀请')], ['profile', T('ui.menu.profile', '改名字 / 头像')], ['settings', T('ui.settings', '设置')], ['rules', T('ui.rules', '规则')], ['line'], ['leave', T('ui.leaveRoom', '离开房间')]];
     return [
-      ...(canPause() ? [['pause', '暂停']] : []),
-      ['restart', '重新开一局'],
-      ['profile', '改名字 / 头像'],
-      ['settings', '设置'],
-      ['rules', '规则'],
-      ['tutorial', '新手教程'],
+      ...(canPause() ? [['pause', T('ui.pause', '暂停')]] : []),
+      ['restart', T('ui.menu.restart', '重新开一局')],
+      ['profile', T('ui.menu.profile', '改名字 / 头像')],
+      ['settings', T('ui.settings', '设置')],
+      ['rules', T('ui.rules', '规则')],
+      ['tutorial', T('ui.tutorial', '新手教程')],
       ['line'],
-      ['cover', '回到主页面'],
+      ['cover', T('ui.home', '回到主页面')],
       ...exit,
     ];
   }
   /* 确认框用游戏自己的弹窗（2026-11-15 巡查：以前用浏览器原生 confirm——样式和别的弹窗不一样，微信里还顶着网址；有的内嵌浏览器直接吞掉，点了没反应） */
   function askConfirm(title, text, okLabel, onOk) {
     openDialog('<h2>' + esc(title) + '</h2>' + (text ? '<p>' + esc(text) + '</p>' : '') +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-no>取消</button><button type="button" class="zm-btn zm-btn-primary" data-yes data-focus>' + esc(okLabel) + '</button></div>', (d) => {
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-no>' + T('ui.cancel', '取消') + '</button><button type="button" class="zm-btn zm-btn-primary" data-yes data-focus>' + esc(okLabel) + '</button></div>', (d) => {
       d.querySelector('[data-no]').addEventListener('click', closeDialog);
       d.querySelector('[data-yes]').addEventListener('click', () => { closeDialog(); onOk(); });
     });
@@ -5587,7 +5608,7 @@
   function menuAct(k) {
     closeMenu();
     if (k === 'restart') {
-      if (game && !game.dealing && game.state.phase !== 'over') { askConfirm('重新开一局？', '这一局就放弃了', '重开', newGame); return; }
+      if (game && !game.dealing && game.state.phase !== 'over') { askConfirm(T('ui.restart.ask', '重新开一局？'), T('ui.restart.note', '这一局就放弃了'), T('ui.restart.ok', '重开'), newGame); return; }
       newGame();
     }
     else if (k === 'settings') showSettings(false);
@@ -5599,7 +5620,7 @@
     else if (k === 'cover') { if (game && game.tutorial) quitTutorial(); else showCover(); }
     else if (k === 'exit') location.href = '/toolbox/';
     else if (k === 'invite') showInvite();
-    else if (k === 'leave') askConfirm('离开房间？', game && game.online && !game.spectator && game.state && game.state.phase !== 'over' && game.state.alive[0] ? '这一局交给机器猫替你打完' : '', '离开', () => leaveOnline(true));
+    else if (k === 'leave') askConfirm(T('ui.leave.ask', '离开房间？'), game && game.online && !game.spectator && game.state && game.state.phase !== 'over' && game.state.alive[0] ? T('ui.leave.note', '这一局交给机器猫替你打完') : '', T('ui.leave.ok', '离开'), () => leaveOnline(true));
   }
   /* 「观战者能看我的手牌」：每人自己定，默认不给看；联机时在「设置」里改，自己的牌一拨就生效（2026-11-13 用户改规则）。
    * 也决定我出局后能不能看机器猫的牌：开局时就开着、这局里一次都没关过，才能看机器猫（中途关过一次，这局就看不到了） */
@@ -5671,8 +5692,8 @@
     const svg = cat.querySelector('svg'), zs = svg && svg.querySelector('.zm-nap-z');
     if (!svg || !zs) return;
     (cat._napT || []).forEach(clearTimeout);
-    const T = cat._napT = [];
-    const at = (ms, fn) => T.push(setTimeout(() => { if (cat.isConnected) fn(); }, ms));
+    const NT = cat._napT = [];
+    const at = (ms, fn) => NT.push(setTimeout(() => { if (cat.isConnected) fn(); }, ms));
     const still = fx.reduce();
     if (!cat.classList.contains('is-awake')) {
       snd('tap');
@@ -5727,10 +5748,10 @@
     busy = true;
     renderAll();
     // 不写「暂停」二字：正中一个大大的暂停图标，左下「主页面」（带小房子，2026-11-15 用户），右下「继续」（带个播放三角）
-    openDialog('<button type="button" class="zm-pause-cat" aria-label="摸摸小咪">' + napArt() + '</button>' +
-      '<div class="zm-pause-ic" aria-label="暂停"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/><rect x="34" y="28" width="11" height="44" rx="3.5"/><rect x="55" y="28" width="11" height="44" rx="3.5"/></svg></div>' +
-      '<div class="zm-pause-actions"><button type="button" class="zm-btn" data-home><svg class="ln" viewBox="0 0 24 24" aria-hidden="true">' + MENU_ICONS.cover + '</svg>主页面</button>' +
-      '<button type="button" class="zm-btn zm-btn-primary" data-go data-focus><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>继续</button></div>', (d) => {
+    openDialog('<button type="button" class="zm-pause-cat" aria-label="' + T('ui.pause.pet', '摸摸小咪') + '">' + napArt() + '</button>' +
+      '<div class="zm-pause-ic" aria-label="' + T('ui.pause', '暂停') + '"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/><rect x="34" y="28" width="11" height="44" rx="3.5"/><rect x="55" y="28" width="11" height="44" rx="3.5"/></svg></div>' +
+      '<div class="zm-pause-actions"><button type="button" class="zm-btn" data-home><svg class="ln" viewBox="0 0 24 24" aria-hidden="true">' + MENU_ICONS.cover + '</svg>' + T('ui.homeShort', '主页面') + '</button>' +
+      '<button type="button" class="zm-btn zm-btn-primary" data-go data-focus><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>' + T('ui.resume', '继续') + '</button></div>', (d) => {
       d.classList.add('is-pause');
       // 点小咪：Z 泡泡破掉、抬头睁眼，眨两下又睡回去（2026-11-14 用户）
       const cat = d.querySelector('.zm-pause-cat');
@@ -5807,12 +5828,12 @@
   /* 六样互动道具：大字写「是什么意思」，小字写道具名（2026-11-13 用户：有的表情不明所以，点了会怎样也不清楚）；
    * 长按 / 鼠标停在上面有一句「点了会怎样」 */
   const PROP_TIP = {
-    fish: ['投喂', '小鱼干', '扔给 TA 一条小鱼干，TA 会开心地吃掉'],
-    yarn: ['逗你玩', '毛线球', '毛线球在 TA 头上弹三下再滚走'],
-    catnip: ['迷晕你', '猫薄荷', '撒一把猫薄荷，TA 晕乎乎地晃脑袋'],
-    spray: ['泼冷水', '喷水壶', '对着 TA 噗噗喷水，TA 冻得直哆嗦'],
-    paw: ['夸夸', '猫爪拍拍', '两只肉垫给 TA 拍手叫好'],
-    boom: ['吓一跳', '炸毛猫', '一只炸毛猫砸到 TA 头上「嘭」地炸开'],
+    fish: [T('prop.fish.verb', '投喂'), T('prop.fish.name', '小鱼干'), T('prop.fish.tip', '扔给 TA 一条小鱼干，TA 会开心地吃掉')],
+    yarn: [T('prop.yarn.verb', '逗你玩'), T('prop.yarn.name', '毛线球'), T('prop.yarn.tip', '毛线球在 TA 头上弹三下再滚走')],
+    catnip: [T('prop.catnip.verb', '迷晕你'), T('prop.catnip.name', '猫薄荷'), T('prop.catnip.tip', '撒一把猫薄荷，TA 晕乎乎地晃脑袋')],
+    spray: [T('prop.spray.verb', '泼冷水'), T('prop.spray.name', '喷水壶'), T('prop.spray.tip', '对着 TA 噗噗喷水，TA 冻得直哆嗦')],
+    paw: [T('prop.paw.verb', '夸夸'), T('prop.paw.name', '猫爪拍拍'), T('prop.paw.tip', '两只肉垫给 TA 拍手叫好')],
+    boom: [T('prop.boom.verb', '吓一跳'), R.NAMES.boom, T('prop.boom.tip', '一只炸毛猫砸到 TA 头上「嘭」地炸开')],
   };
   function propLabels() {
     const p = els.app.querySelector('.gz-social-pop:not(.gz-sp-chat)');
@@ -5866,10 +5887,10 @@
       canSend: socialOk,
       // 联机：我发的本机先画，同时发给服务器（座位换成服务器座位号）；别人的跟长轮询来（onFx）
       send(ev) {
-        if (inLobby() && ev.kind === 'chat') { NET.emote(online.code, online.token, { text: ev.text }).catch((e) => { if (e && e.error === 'muted') toast('房主把你禁言了'); else if (e && e.status === 429) toast('慢一点，歇一下再发'); }); return; }
+        if (inLobby() && ev.kind === 'chat') { NET.emote(online.code, online.token, { text: ev.text }).catch((e) => { if (e && e.error === 'muted') toast(T('net.err.muted', '房主把你禁言了')); else if (e && e.status === 429) toast(T('ui.chat.slow', '慢一点，歇一下再发')); }); return; }
         if (!game || !game.online || !online) return;
         const body = ev.kind === 'prop' ? { to: srvOf(ev.to), prop: ev.prop } : { text: ev.text };
-        NET.emote(online.code, online.token, body).catch((e) => { if (e && e.error === 'muted') toast('房主把你禁言了'); else if (e && e.status === 429) toast('慢一点，歇一下再发'); });
+        NET.emote(online.code, online.token, body).catch((e) => { if (e && e.error === 'muted') toast(T('net.err.muted', '房主把你禁言了')); else if (e && e.status === 429) toast(T('ui.chat.slow', '慢一点，歇一下再发')); });
       },
       autoBots: () => !!(game && !game.online),
       isBot: (l) => (game && game.online ? !!(playerAt(srvOf(l)) && (playerAt(srvOf(l)).isAi || playerAt(srvOf(l)).left)) : l > 0),
@@ -5879,19 +5900,19 @@
         const p = game && game.online ? playerAt(srvOf(l)) : null;
         if (!p) return;
         if (on) mutedIds.add(p.id); else mutedIds.delete(p.id);
-        toast(on ? '已屏蔽' + p.nick + '的互动' : '不再屏蔽' + p.nick);
+        toast(on ? T('ui.mute.on', '已屏蔽{who}的互动', { who: p.nick }) : T('ui.mute.off', '不再屏蔽{who}', { who: p.nick }));
       },
       // 房主点一个真人：底下多一排「托管 / 禁言 / 请离」（2026-11-14 用户）
-      extraTitle: () => '房主',
+      extraTitle: () => T('ui.host', '房主'),
       extra: (l) => {
         if (!game || !game.online || !online || !online.st || !isHost() || l === 0 || inLobby()) return [];
         const p = playerAt(srvOf(l));
         if (!p || p.isAi || p.left) return [];
         const g = G(), seat = srvOf(l), auto = !!(g && g.auto && g.auto[seat]), alive = !!(g && !g.over && g.st.alive[seat]);
         const out = [];
-        if (alive) out.push({ label: '<span class="zm-ic-only" title="' + (auto ? '取消托管' : '让他托管') + '">' + (auto ? HOST_IC.unauto : HOST_IC.auto) + '</span>', on: () => onlineAct('host_auto', { seat, on: !auto }).then((r) => { if (r) toast(auto ? '已取消' + p.nick + '的托管' : p.nick + '改由机器猫托管（他点自己头像能收回）'); }) });
-        out.push({ label: '<span class="zm-ic-only" title="' + (p.muted ? '解除禁言' : '禁言') + '">' + (p.muted ? HOST_IC.unmute : HOST_IC.mute) + '</span>', on: () => onlineAct('mute', { pid: p.id, on: !p.muted }).then((r) => { if (r) toast(p.muted ? '已解除' + p.nick + '的禁言' : '已禁言' + p.nick); }) });
-        out.push({ label: '<span class="zm-ic-only" title="请他离开">' + HOST_IC.kick + '</span>', on: () => askKick(p, true) });
+        if (alive) out.push({ label: '<span class="zm-ic-only" title="' + (auto ? T('ui.btn.unauto', '取消托管') : T('ui.host.auto', '让他托管')) + '">' + (auto ? HOST_IC.unauto : HOST_IC.auto) + '</span>', on: () => onlineAct('host_auto', { seat, on: !auto }).then((r) => { if (r) toast(auto ? T('ui.host.autoOff', '已取消{who}的托管', { who: p.nick }) : T('ui.host.autoOn', '{who}改由机器猫托管（他点自己头像能收回）', { who: p.nick })); }) });
+        out.push({ label: '<span class="zm-ic-only" title="' + (p.muted ? T('ui.host.unmute', '解除禁言') : T('ui.host.mute', '禁言')) + '">' + (p.muted ? HOST_IC.unmute : HOST_IC.mute) + '</span>', on: () => onlineAct('mute', { pid: p.id, on: !p.muted }).then((r) => { if (r) toast(p.muted ? T('ui.host.unmuted', '已解除{who}的禁言', { who: p.nick }) : T('ui.host.muted', '已禁言{who}', { who: p.nick })); }) });
+        out.push({ label: '<span class="zm-ic-only" title="' + T('ui.host.kick', '请他离开') + '">' + HOST_IC.kick + '</span>', on: () => askKick(p, true) });
         return out;
       },
       sfx: (name, delay) => { if (SFX[name]) snd(SFX[name], delay); },
@@ -5915,7 +5936,7 @@
       soundPanel = document.createElement('div');
       soundPanel.className = 'zm-sound-panel';
       soundPanel.hidden = true;
-      soundPanel.innerHTML = [['sfx', '音效'], ['music', '背景音乐']].map(([k, t]) => '<label class="zm-sound-row"><input type="checkbox" data-track="' + k + '"><span>' + t + '</span></label>').join('');
+      soundPanel.innerHTML = [['sfx', T('ui.sound.sfx', '音效')], ['music', T('ui.sound.music', '背景音乐')]].map(([k, t]) => '<label class="zm-sound-row"><input type="checkbox" data-track="' + k + '"><span>' + t + '</span></label>').join('');
       soundPanel.addEventListener('change', (ev) => { const k = ev.target.dataset.track; if (k) { A.set(k, ev.target.checked); refreshSoundBtn(); } });
       document.addEventListener('click', (ev) => { if (soundPanel && !soundPanel.hidden && !ev.target.closest('.zm-sound-panel, #zmSoundBtn')) soundPanel.hidden = true; });
       els.app.appendChild(soundPanel);
@@ -6030,8 +6051,8 @@
     if (id) markLesson(id);
     const L = TUT.LESSONS || [], i = L.findIndex((x) => x.id === id), next = i >= 0 && i + 1 < L.length ? L[i + 1] : null;
     bgm('menu');
-    openStage('<h2>本关完成</h2>' + (next ? '<p class="zm-muted">下一关：' + esc(next.title) + '</p>' : '<p class="zm-muted">全部学完啦</p>') +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-list>回到主页面</button>' + (next ? '<button type="button" class="zm-btn zm-btn-primary" data-next data-focus>下一关</button>' : '<button type="button" class="zm-btn zm-btn-primary" data-play data-focus>开始对局</button>') + '</div>', (d) => {
+    openStage('<h2>' + T('tut.lesson.done', '本关完成') + '</h2>' + (next ? '<p class="zm-muted">' + T('tut.lesson.next', '下一关：{title}', { title: esc(next.title) }) + '</p>' : '<p class="zm-muted">' + T('tut.lesson.all', '全部学完啦') + '</p>') +
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-list>' + T('ui.home', '回到主页面') + '</button>' + (next ? '<button type="button" class="zm-btn zm-btn-primary" data-next data-focus>' + T('tut.lesson.nextBtn', '下一关') + '</button>' : '<button type="button" class="zm-btn zm-btn-primary" data-play data-focus>' + T('ui.startGame', '开始对局') + '</button>') + '</div>', (d) => {
       d.querySelector('[data-list]').addEventListener('click', () => { closeDialog(); leaveLesson(); showCover(); });
       const nb = d.querySelector('[data-next]'); if (nb) nb.addEventListener('click', () => { closeDialog(); startTutorial(next.id); });
       const pb = d.querySelector('[data-play]'); if (pb) pb.addEventListener('click', () => { closeDialog(); endTutorial(true); });
@@ -6052,7 +6073,7 @@
     game = { state: ctl.state, bots: [{ nick: profile.nick, avatar: profile.avatar }].concat(opp), tiers: [null].concat(opp.map(() => 'normal')), tutorial: true, lesson: id };
     els.cover.hidden = true;
     els.skipTut.hidden = false;
-    els.skipTut.textContent = ctl.mini ? '退出本关' : '跳过教程';
+    els.skipTut.textContent = ctl.mini ? T('tut.quitLesson', '退出本关') : T('tut.skip', '跳过教程');
     bgm('game');
     buildSeats();
     solveSize();
@@ -6134,7 +6155,7 @@
     const sess = NET && NET.readSession(), rb = els.cover.querySelector('[data-cover="resume"]');
     if (rb) {   // 联机设置单：还在某个房间里 →「回到房间 1234」排第一个、朱红；「创建房间」退成普通键
       rb.hidden = !sess;
-      rb.querySelector('b').textContent = sess ? '回到房间 ' + sess.code : '回到房间';
+      rb.querySelector('b').textContent = sess ? T('ui.room.backTo', '回到房间 {code}', { code: sess.code }) : T('ui.room.back', '回到房间');
       els.cover.querySelector('[data-cover="create"]').classList.toggle('is-primary', !sess);
     }
     const ob = els.cover.querySelector('[data-cover="online"]');
@@ -6148,10 +6169,10 @@
   /* 玩法（2026-11-18 用户挑乙「玩法当主角」）：主菜单中间一叠牌左右滑，停在哪张就是哪个玩法——单机开局、联机建房都用它。
    * 不配介绍文字（2026-11-18 用户：一句话介绍有 AI 味，全删）：靠牌面插画 + 名字认，规则看新手教程。[玩法, 名字, 牌面] */
   const SOLO_MODES = [
-    ['classic', '经典', 'boom'],
-    ['flux', '百变', 'flux'],
-    ['team', '组队', 'favor'],
-    ['roles', '角色', 'calico'],
+    ['classic', T('mode.classic.name', '经典'), 'boom'],
+    ['flux', T('mode.flux.name', '百变'), 'flux'],
+    ['team', T('mode.team.name', '组队'), 'favor'],
+    ['roles', T('mode.roles.name', '角色'), 'calico'],
   ];
   const miniCard = (k, name) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm">' + (name || R.NAMES[k]) + '</b></span>'; };
   const curMode = () => R.normalizeRules(settings.rules).mode;
@@ -6170,19 +6191,19 @@
 
   function refreshSolo() {
     const n = soloN(), teamOn = curMode() === 'team';
-    $('zmSoloNum').innerHTML = n + '<small>人</small>';
+    $('zmSoloNum').innerHTML = n + '<small>' + T('ui.solo.people', '人', { n }) + '</small>';
     const tr = R.normalizeRules(settings.rules), tp = $('zmTeamPick');
     tp.hidden = !teamOn;
     els.cover.querySelector('.zm-solo-step').hidden = teamOn;
     if (teamOn) {
-      tp.innerHTML = '<div class="zm-team-row"><small>几个人玩</small><div class="zs-seg zm-team-ns" role="group" aria-label="几个人玩">' + nRowHtml(n, '') + '</div></div>' +
-        '<div class="zm-team-row"><small>怎么分</small><div class="zm-team-forms" role="group" aria-label="怎么分">' + formsOf(n).map((f) => '<button type="button" data-form="' + f + '" aria-pressed="' + (tr.teamForm === f) + '" aria-label="' + f + '">' + pipHtml(f) + '</button>').join('') + '</div></div>' +
-        '<div class="zs-seg zm-team-seat" role="group" aria-label="座位">' + [['together', '同队坐一起'], ['random', '随机打乱']].map(([v, name]) => '<button type="button" data-seat="' + v + '" aria-pressed="' + (tr.teamSeat === v) + '">' + name + '</button>').join('') + '</div>';
+      tp.innerHTML = '<div class="zm-team-row"><small>' + T('ui.team.players', '几个人玩') + '</small><div class="zs-seg zm-team-ns" role="group" aria-label="' + T('ui.team.players', '几个人玩') + '">' + nRowHtml(n, '') + '</div></div>' +
+        '<div class="zm-team-row"><small>' + T('ui.team.split', '怎么分') + '</small><div class="zm-team-forms" role="group" aria-label="' + T('ui.team.split', '怎么分') + '">' + formsOf(n).map((f) => '<button type="button" data-form="' + f + '" aria-pressed="' + (tr.teamForm === f) + '" aria-label="' + f + '">' + pipHtml(f) + '</button>').join('') + '</div></div>' +
+        '<div class="zs-seg zm-team-seat" role="group" aria-label="' + T('ui.team.seats', '座位') + '">' + [['together', T('ui.team.together', '同队坐一起')], ['random', T('ui.team.shuffle', '随机打乱')]].map(([v, name]) => '<button type="button" data-seat="' + v + '" aria-pressed="' + (tr.teamSeat === v) + '">' + name + '</button>').join('') + '</div>';
     }
     const [minus, plus] = els.cover.querySelectorAll('.zm-solo-step button');
     minus.disabled = teamOn || n <= R.MIN_PLAYERS; plus.disabled = teamOn || n >= SOLO_MAX;
     const faces = AV ? (AV.BOT_TIERS && AV.BOT_TIERS[settings.tier] ? AV.BOT_TIERS[settings.tier].faces : AV.ROBOT) : [];   // 预览选中那一档的头像
-    const meFace = profile.avatar && AV && AV.byId[profile.avatar] ? AV.byId[profile.avatar].svg : '<span>我</span>';
+    const meFace = profile.avatar && AV && AV.byId[profile.avatar] ? AV.byId[profile.avatar].svg : '<span>' + T('ui.me', '我') + '</span>';
     // 组队：头像按队排、换成队色底（和桌上一样），我这队在最前面
     const tint = (svg, ti) => (teamOn ? svg.replace(/(<circle cx="32" cy="32" r="32" fill=")#[0-9a-fA-F]{3,8}/, '$1' + TEAM_BG[ti]) : svg);
     const form = teamOn ? R.TEAM_FORMS[tr.teamForm] : null, teamOfFace = (i) => { if (!form) return 0; let k = i; for (let t = 0; t < form.length; t++) { if (k < form[t]) return t; k -= form[t]; } return 0; };
@@ -6315,7 +6336,7 @@
     let seen = false;
     try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { seen = true; }
     if (!seen && TUT) {
-      openDialog('<h2>第一次玩？</h2><p>先花两分钟走一遍新手教程，跟着做就会了。</p><div class="zm-actions"><button type="button" class="zm-btn" data-skip>直接开始</button><button type="button" class="zm-btn zm-btn-primary" data-tut data-focus>看教程</button></div>', (d) => {
+      openDialog('<h2>' + T('tut.first.title', '第一次玩？') + '</h2><p>' + T('tut.first.body', '先花两分钟走一遍新手教程，跟着做就会了。') + '</p><div class="zm-actions"><button type="button" class="zm-btn" data-skip>' + T('tut.first.skip', '直接开始') + '</button><button type="button" class="zm-btn zm-btn-primary" data-tut data-focus>' + T('tut.first.go', '看教程') + '</button></div>', (d) => {
         d.querySelector('[data-tut]').addEventListener('click', () => startTutorial());
         d.querySelector('[data-skip]').addEventListener('click', () => { try { localStorage.setItem(TUT_KEY, '1'); } catch (_) { /* */ } newGame(); });
       });
@@ -6440,6 +6461,8 @@
   }
   function coverTitle() {
     const h = els.cover.querySelector('.zm-cover-title');
+    // 艺术字是按简体「百变小咪」四个字画的：繁体 / 英文界面不套，直接写语言包里的名字（标题样式见 zhamao.css .zm-cover-title）
+    if (LANG !== 'zh-Hans') { const nm = T('game.name', '百变小咪'); h.textContent = nm; const g0 = els.table && els.table.querySelector('.zm-title'); if (g0) g0.textContent = nm; return; }
     h.classList.add('is-glyph');
     h.setAttribute('aria-label', '百变小咪');
     h.innerHTML = glyphSvg('百', [0], baiSleepyCat()) + glyphSvg('变', [0, 5, 6, 8], bianStarsTail()) + glyphSvg('小', [2], wandStroke()) + glyphSvg('咪', [3, 4, 5], catGlyph(226, 450, 205));
@@ -6460,9 +6483,9 @@
   const catFace = (cx, cy, r, rot, eyes) => {
     const ear = (sx) => 'M' + (cx + sx * r * 0.95) + ' ' + (cy - r * 0.05) + 'L' + (cx + sx * r * 0.8) + ' ' + (cy - r * 1.18) + 'L' + (cx + sx * r * 0.08) + ' ' + (cy - r * 0.72) + 'Z';
     const earIn = (sx) => 'M' + (cx + sx * r * 0.74) + ' ' + (cy - r * 0.42) + 'L' + (cx + sx * r * 0.7) + ' ' + (cy - r * 0.92) + 'L' + (cx + sx * r * 0.36) + ' ' + (cy - r * 0.7) + 'Z';
-    const T = rot ? ' transform="rotate(' + rot + ' ' + cx + ' ' + cy + ')"' : '';
-    const solid = '<g' + T + '><ellipse cx="' + cx + '" cy="' + cy + '" rx="' + r + '" ry="' + (r * 0.86) + '"/><path d="' + ear(-1) + ear(1) + '"/></g>';
-    const holes = '<g' + T + '><path d="' + earIn(-1) + earIn(1) + '"/>' + (eyes === 'happy'
+    const TR = rot ? ' transform="rotate(' + rot + ' ' + cx + ' ' + cy + ')"' : '';
+    const solid = '<g' + TR + '><ellipse cx="' + cx + '" cy="' + cy + '" rx="' + r + '" ry="' + (r * 0.86) + '"/><path d="' + ear(-1) + ear(1) + '"/></g>';
+    const holes = '<g' + TR + '><path d="' + earIn(-1) + earIn(1) + '"/>' + (eyes === 'happy'
       ? '<path d="M' + (cx - r * 0.5) + ' ' + (cy + r * 0.02) + 'q' + (r * 0.17) + ' ' + (-r * 0.26) + ' ' + (r * 0.34) + ' 0M' + (cx + r * 0.16) + ' ' + (cy + r * 0.02) + 'q' + (r * 0.17) + ' ' + (-r * 0.26) + ' ' + (r * 0.34) + ' 0" fill="none" stroke="#000" stroke-width="' + (r * 0.11) + '" stroke-linecap="round"/>'
       : '<circle cx="' + (cx - r * 0.34) + '" cy="' + cy + '" r="' + (r * 0.14) + '"/><circle cx="' + (cx + r * 0.34) + '" cy="' + cy + '" r="' + (r * 0.14) + '"/>') + '</g>';
     return [solid, holes];
@@ -6582,19 +6605,19 @@
     const ob = els.cover.querySelector('[data-cover="online"]');
     if (ob) ob.classList.toggle('has-dot', !!sess);
     coverResCard.hidden = coverResOr.hidden = !saved;
-    sheets.solo.querySelector('[data-cover="start"] b').textContent = saved ? '新开一局' : '开始';
+    sheets.solo.querySelector('[data-cover="start"] b').textContent = saved ? T('ui.newGame', '新开一局') : T('ui.start', '开始');
     if (!saved) return;
     const [, name, k] = SOLO_MODES[modeIdx(R.normalizeRules(saved.state.rules).mode)];
     // 2026-11-18 用户：卡上不写玩法 / 几人 / 牌堆剩几张（多余），左边小牌面就够认出是哪个玩法
     coverResCard.style.setProperty('--tone', ART.TONE[k].bg);
     coverResCard.style.setProperty('--band', ART.TONE[k].band);
-    coverResCard.innerHTML = '<span class="cw">' + miniCard(k, name) + '</span><span class="tx"><b>接着打上一局</b></span><i class="go" aria-hidden="true"></i>';
+    coverResCard.innerHTML = '<span class="cw">' + miniCard(k, name) + '</span><span class="tx"><b>' + T('ui.resumeLast', '接着打上一局') + '</b></span><i class="go" aria-hidden="true"></i>';
   }
   (function coverInit() {
     coverResCard = document.createElement('button');
     coverResCard.type = 'button'; coverResCard.className = 'zm-sheet-resume'; coverResCard.dataset.cover = 'resume-solo'; coverResCard.hidden = true;
     coverResOr = document.createElement('div');
-    coverResOr.className = 'zm-on-or'; coverResOr.setAttribute('aria-hidden', 'true'); coverResOr.innerHTML = '<span>或</span>'; coverResOr.hidden = true;
+    coverResOr.className = 'zm-on-or'; coverResOr.setAttribute('aria-hidden', 'true'); coverResOr.innerHTML = '<span>' + T('ui.or', '或') + '</span>'; coverResOr.hidden = true;
     sheets.solo.querySelector('.zm-solo-pick').before(coverResCard, coverResOr);   // 2026-11-19 用户：设置单顶上那行玩法牌删了（主页牌叠已经看得出是哪个玩法）
     coverReady = true;
     coverTitle(); coverBg(); coverResume();
@@ -7018,10 +7041,10 @@
     const st = online.st, p = playerAt(online.base);
     if (!p) return '';
     if (!game.state.alive[0]) return '';
-    if (!p.isAi && !p.left) return 'TA 没开「观战者能看我的手牌」';
-    if (st.spectator) return '只观战看不到机器猫的牌';
+    if (!p.isAi && !p.left) return T('ui.watch.noReveal', 'TA 没开「观战者能看我的手牌」');
+    if (st.spectator) return T('ui.watch.spectator', '只观战看不到机器猫的牌');
     const me = myPlayer();
-    return me && me.showHand ? '这局中途关过「观战者能看我的手牌」，看不到机器猫的牌' : '开局时就开着「观战者能看我的手牌」、中途没关过，才看得到机器猫的牌';
+    return me && me.showHand ? T('ui.watch.closed', '这局中途关过「观战者能看我的手牌」，看不到机器猫的牌') : T('ui.watch.need', '开局时就开着「观战者能看我的手牌」、中途没关过，才看得到机器猫的牌');
   }
 
   /* ───── 收到服务器状态 ───── */
@@ -7086,7 +7109,7 @@
       game.bots[l] = p ? { nick: p.nick, avatar: p.avatar } : { nick: '?', avatar: null };
       game.pids[l] = p ? p.id : null;
       game.tiers[l] = p && p.isAi ? p.aiLevel : null;
-      game.tags[l] = p && !p.isAi ? (p.left ? '代打' : !p.online ? '掉线' : (st.game && st.game.auto[srvOf(l)] ? '托管' : '')) : '';
+      game.tags[l] = p && !p.isAi ? (p.left ? T('ui.tag.covered', '代打') : !p.online ? T('ui.tag.offline', '掉线') : (st.game && st.game.auto[srvOf(l)] ? T('ui.tag.auto', '托管') : '')) : '';
     }
     if (game.state) for (let l = 0; l < online.n; l++) {
       const o = was[l], b = game.bots[l];
@@ -7390,7 +7413,7 @@
       }
     }
     if (d.type !== 'pass' && d.type !== 'nope' && !game.preFlyP) online.pendingSrc = captureSources(0, d);
-    const slow = d.type === 'pass' ? 0 : setTimeout(() => toast('网络有点慢，稍等…'), 1800);
+    const slow = d.type === 'pass' ? 0 : setTimeout(() => toast(T('net.slow', '网络有点慢，稍等…')), 1800);
     // 作废 / 取消：带上我看到的那一窗（askSeq）。别人的作废已经到了、动画还没播到时我点的作废，服务器会按「过时」拒掉，
     // 不会被当成「作废回去」（两张作废 = 原牌又生效，违背两个人的本意）
     const at = atSeq != null ? atSeq : (d.type === 'nope' || d.type === 'pass') && online.askSeq != null ? online.askSeq : g ? g.seq : undefined;
@@ -7426,7 +7449,7 @@
   async function onlineAct(action, body) {
     if (!online) return null;
     try { const res = await NET.act(online.code, online.token, action, body || {}); if (res && res.state) onState(res.state, res._rtt); return res; }
-    catch (err) { if (err && err.error === 'kicked') { leaveOnline(false, '房主请你离开了房间'); return null; } toast(NET.message(err)); if (err && (err.status === 401 || err.status === 404)) leaveOnline(false, '房间已经不在了'); return null; }
+    catch (err) { if (err && err.error === 'kicked') { leaveOnline(false, T('net.err.kicked', '房主请你离开了房间')); return null; } toast(NET.message(err)); if (err && (err.status === 401 || err.status === 404)) leaveOnline(false, T('net.gone', '房间已经不在了')); return null; }
   }
 
   /* ───── 一局结束 ───── */
@@ -7465,10 +7488,10 @@
       return k >= 0 ? s.n - k : order.indexOf(seat) + 1;
     };
     const rows = order.slice().sort((a, b) => tr.get(R.teamOf(s, a)) - tr.get(R.teamOf(s, b)) || prank(a) - prank(b));   // 队内按个人名次排
-    return '<h2>排行榜</h2>' +   // 2026-11-18 用户：标题一律叫「排行榜」，中性（不写「我们队赢了 / 对面那队赢了」）
+    return '<h2>' + T('ui.rank.title', '排行榜') + '</h2>' +   // 2026-11-18 用户：标题一律叫「排行榜」，中性（不写「我们队赢了 / 对面那队赢了」）
       '<ol class="zm-rank is-team" data-stagger>' + rows.map((seat, i) => {
         const k = tr.get(R.teamOf(s, seat)), split = i > 0 && k !== tr.get(R.teamOf(s, rows[i - 1]));
-        return '<li class="' + (seat === me ? 'is-me' : '') + (split ? ' is-split' : '') + (k ? ' is-lost' : '') + '"><span class="pos">' + (k < MEDALS.length ? medal(k) : '') + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === me ? '<small>（我）</small>' : me === 0 && isMate(seat) ? '<small>（队友）</small>' : '') + '</span><span class="tag">第 ' + prank(seat) + ' 名</span></li>';
+        return '<li class="' + (seat === me ? 'is-me' : '') + (split ? ' is-split' : '') + (k ? ' is-lost' : '') + '"><span class="pos">' + (k < MEDALS.length ? medal(k) : '') + '</span><span class="mini">' + avatarHtml(seat) + '</span><span class="nm">' + esc(nameOf(seat)) + (seat === me ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : me === 0 && isMate(seat) ? '<small>' + T('ui.rank.mate', '（队友）') + '</small>' : '') + '</span><span class="tag">' + T('ui.rank.nth', '第 {n} 名', { n: prank(seat) }) + '</span></li>';
       }).join('') + '</ol>';
   }
   function showRanking(order0) {
@@ -7483,11 +7506,11 @@
     const items = rows ? rows.map((r) => ({ me: r.id === st.me && !game.spectator, face: face(r), nick: r.nick }))
       : order.map((seat) => ({ me: seat === 0 && !game.spectator, face: avatarHtml(seat), nick: nameOf(seat) }));
     const teamW = teamGame() ? (g.winners || 1) : 0;   // 组队：赢的那一队都算赢，不上领奖台，用队伍名单
-    openDialog((host ? '<button type="button" class="zm-icbtn zm-rank-edit is-corner" data-edit aria-label="调座位 / 请人离开" title="调座位 / 请人离开">' + HOST_IC.swap + '</button>' : '') +
+    openDialog((host ? '<button type="button" class="zm-icbtn zm-rank-edit is-corner" data-edit aria-label="' + T('ui.host.edit', '调座位 / 请人离开') + '" title="' + T('ui.host.edit', '调座位 / 请人离开') + '">' + HOST_IC.swap + '</button>' : '') +
       (teamW ? teamRankHtml(order, teamW, !game.spectator && order.slice(0, teamW).indexOf(0) >= 0) : podiumHtml(items)) +
       recordHtml(st && st.record, 2) +
-      (host ? '' : '<p class="zm-muted">等房主开下一局</p>') +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-leave>离开房间</button>' + (host ? '<button type="button" class="zm-btn" data-again>回房间</button><button type="button" class="zm-btn zm-btn-primary" data-next data-focus>下一局</button>' : '') + '</div>', (d) => {
+      (host ? '' : '<p class="zm-muted">' + T('ui.room.waitNext', '等房主开下一局') + '</p>') +
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-leave>' + T('ui.leaveRoom', '离开房间') + '</button>' + (host ? '<button type="button" class="zm-btn" data-again>' + T('ui.room.backShort', '回房间') + '</button><button type="button" class="zm-btn zm-btn-primary" data-next data-focus>' + T('ui.nextGame', '下一局') + '</button>' : '') + '</div>', (d) => {
       if (!teamW) { d.classList.add('is-podium'); animPodium(d); }
       d.querySelector('[data-leave]').addEventListener('click', () => { closeDialog(); leaveOnline(true); });
       const a = d.querySelector('[data-again]');
@@ -7505,8 +7528,8 @@
     const me = online && online.st ? online.st.me : null;
     const face = (r) => (r.avatar && AV && AV.byId[r.avatar] ? AV.byId[r.avatar].svg : '<span>' + esc((r.nick || '?').slice(0, 1)) + '</span>');
     const ms = rec.matches;
-    return '<div class="zm-record"><div class="zm-record-h">本房间战绩 · ' + ms.length + ' 局<small>按平均名次</small></div><div class="zm-record-scroll">' +
-      '<table><thead><tr><th></th><th class="nm"></th><th>平均名次</th>' + ms.map((m, i) => '<th class="rk">' + (i + 1) + '</th>').join('') + '</tr></thead><tbody>' +
+    return '<div class="zm-record"><div class="zm-record-h">' + T('ui.record.title', '本房间战绩 · {n} 局', { n: ms.length }) + '<small>' + T('ui.record.by', '按平均名次') + '</small></div><div class="zm-record-scroll">' +
+      '<table><thead><tr><th></th><th class="nm"></th><th>' + T('ui.record.avg', '平均名次') + '</th>' + ms.map((m, i) => '<th class="rk">' + (i + 1) + '</th>').join('') + '</tr></thead><tbody>' +
       rec.rows.map((r, i) => '<tr class="' + (r.id === me ? 'is-me' : '') + '"><td class="pos">' + (i + 1) + '</td><td class="nm"><span class="mini">' + face(r) + '</span><span>' + esc(r.nick) + '</span></td>' +
         '<td class="avg">' + r.avg.toFixed(1) + '</td>' +
         ms.map((m) => { const x = r.ranks.find((k) => k.m === m); return '<td class="rk' + (x && x.r === 1 ? ' is-win' : '') + '">' + (x ? x.r : '–') + '</td>'; }).join('') + '</tr>').join('') +
@@ -7594,7 +7617,7 @@
       ffBtn.dataset.mode = mode;
       ffBtn.innerHTML = FF_IC[mode];
       ffBtn.disabled = false;
-      const label = mode === 'ff' ? '快进：剩下的 5 倍速播完' : '下一局';
+      const label = mode === 'ff' ? T('ui.ff', '快进：剩下的 5 倍速播完') : T('ui.nextGame', '下一局');
       ffBtn.setAttribute('aria-label', label); ffBtn.title = label;
     }
     ffBtn.classList.toggle('is-on', mode === 'ff' && !!game.turbo);
@@ -7606,8 +7629,8 @@
     const g = G();
     if (g && g.over && game && game.finishShown === g.matchNo) { showRanking(); return; }
     const body = recordHtml(online.st.record, 1);
-    openDialog('<h2>排行榜</h2>' + (body || '<p class="zm-muted">还没打完一局。打完第一局，这里就有每个人的平均名次了。</p>') +
-      '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (d) => {
+    openDialog('<h2>' + T('ui.rank.title', '排行榜') + '</h2>' + (body || '<p class="zm-muted">' + T('ui.record.empty', '还没打完一局。打完第一局，这里就有每个人的平均名次了。') + '</p>') +
+      '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>' + T('ui.ok', '好') + '</button></div>', (d) => {
       d.querySelector('[data-ok]').addEventListener('click', closeDialog);
     });
   }
@@ -7639,10 +7662,10 @@
       } catch (err) {
         if (my.abort || !online) return;
         if (ctl.signal.aborted) continue;   // 是我嫌它卡住、自己丢掉的：马上重发，不算失败
-        if (err && (err.status === 401 || err.status === 404)) { leaveOnline(false, '房间已经不在了'); return; }
-        if (err && err.error === 'kicked') { leaveOnline(false, '房主请你离开了房间'); return; }
+        if (err && (err.status === 401 || err.status === 404)) { leaveOnline(false, T('net.gone', '房间已经不在了')); return; }
+        if (err && err.error === 'kicked') { leaveOnline(false, T('net.err.kicked', '房主请你离开了房间')); return; }
         fails++;
-        if (fails === 2) toast('连接断了，正在重连…');
+        if (fails === 2) toast(T('net.reconnect', '连接断了，正在重连…'));
         await new Promise((r) => setTimeout(r, Math.min(8000, 800 * fails)));
       }
     }
@@ -7664,7 +7687,7 @@
   }
   function roomGoneDialog() {
     openDialog('<div class="zm-pause-cat zm-gone-art">' + roomGoneArt() + '</div>' +
-      '<div class="zm-pause-actions"><button type="button" class="zm-btn zm-btn-primary" data-home data-focus><svg class="ln" viewBox="0 0 24 24" aria-hidden="true">' + MENU_ICONS.cover + '</svg>主页面</button></div>', (d) => {
+      '<div class="zm-pause-actions"><button type="button" class="zm-btn zm-btn-primary" data-home data-focus><svg class="ln" viewBox="0 0 24 24" aria-hidden="true">' + MENU_ICONS.cover + '</svg>' + T('ui.homeShort', '主页面') + '</button></div>', (d) => {
       d.classList.add('is-pause', 'is-gone');
       d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); hideLobby(); showCover(); });
     });
@@ -7681,15 +7704,15 @@
   function showInvite() {
     if (!online) return;
     const url = NET.inviteUrl(online.code);
-    openDialog('<h2>房间 ' + esc(online.code) + '</h2><p class="zm-muted">把链接发给朋友，或者让他扫码；也可以在主页「联机」里输房间号</p>' +
+    openDialog('<h2>' + T('ui.room.title', '房间 {code}', { code: esc(online.code) }) + '</h2><p class="zm-muted">' + T('ui.invite.tip', '把链接发给朋友，或者让他扫码；也可以在主页「联机」里输房间号') + '</p>' +
       '<div class="zm-invite-qr" data-qr></div><div class="zm-invite-url">' + esc(url) + '</div>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-copy>复制链接</button><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (d) => {
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-copy>' + T('ui.invite.copy', '复制链接') + '</button><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>' + T('ui.ok', '好') + '</button></div>', (d) => {
       const qr = d.querySelector('[data-qr]');
       if (window.GamesShell && GamesShell.QR) { try { GamesShell.QR.render(qr, url, { scale: 4, margin: 2, dark: '#1d1b18', light: '#fbf8f1' }); } catch (_) { qr.remove(); } } else qr.remove();
       d.querySelector('[data-ok]').addEventListener('click', closeDialog);
       d.querySelector('[data-copy]').addEventListener('click', async (ev) => {
         const b = ev.currentTarget;
-        try { if (navigator.share && /Mobi|Android|iPhone/.test(navigator.userAgent)) { await navigator.share({ title: '来玩百变小咪', text: '房间 ' + online.code, url }); return; } await navigator.clipboard.writeText(url); b.textContent = '复制好了'; } catch (_) { b.textContent = '长按上面的链接复制'; }
+        try { if (navigator.share && /Mobi|Android|iPhone/.test(navigator.userAgent)) { await navigator.share({ title: T('ui.invite.share', '来玩百变小咪'), text: T('ui.room.title', '房间 {code}', { code: online.code }), url }); return; } await navigator.clipboard.writeText(url); b.textContent = T('ui.invite.copied', '复制好了'); } catch (_) { b.textContent = T('ui.invite.longPress', '长按上面的链接复制'); }
       });
     });
   }
@@ -7712,10 +7735,10 @@
         connEl = document.createElement('div');
         connEl.className = 'zm-connecting';
         connEl.innerHTML = '<div class="zm-conn-box"><div class="zm-conn-paws"><i class="zm-conn-paw">' + ART.icon('orange') + '</i><i class="zm-conn-paw">' + ART.icon('calico') + '</i><i class="zm-conn-paw">' + ART.icon('cow') + '</i></div>' +
-          '<b data-t></b><div class="zm-conn-bar" role="progressbar" aria-label="连接中"><i></i></div></div>';
+          '<b data-t></b><div class="zm-conn-bar" role="progressbar" aria-label="' + T('net.connecting', '连接中') + '"><i></i></div></div>';
         els.app.appendChild(connEl);
       }
-      connEl.querySelector('[data-t]').textContent = text || '正在连接…';
+      connEl.querySelector('[data-t]').textContent = text || T('net.connectingDots', '正在连接…');
       const bar = connEl.querySelector('.zm-conn-bar i');
       bar.style.transition = 'none';
       bar.style.transform = 'scaleX(0)';
@@ -7735,7 +7758,7 @@
   /* ───── 主页「联机」：建房 / 输房间号加入 ───── */
   /* 点「联机」：和单机一样升起一张设置单。邀请链接带房间号进来：直接填好号、光标落在「加入」上 */
   function showOnlineEntry(code) {
-    if (!NET) { toast('联机暂时用不了'); return; }
+    if (!NET) { toast(T('net.unavailable', '联机暂时用不了')); return; }
     NET.warm();
     els.cover.hidden = false;
     if (els.cover.classList.contains('is-loading')) { els.cover.classList.remove('is-loading'); coverStep('main'); }
@@ -7788,7 +7811,7 @@
   async function onlineCreate() {
     onlineLock();
     try {
-      const res = await withConn('正在创建房间…', () => NET.create(profile.nick, profile.avatar, { rules: settings.rules, turnSec: TURN_OPTS.some(([v]) => v === turnSec()) ? turnSec() : 20 }));
+      const res = await withConn(T('net.creating', '正在创建房间…'), () => NET.create(profile.nick, profile.avatar, { rules: settings.rules, turnSec: TURN_OPTS.some(([v]) => v === turnSec()) ? turnSec() : 20 }));
       startOnline(res.state, res.token);
     } catch (e) { onlineFail(e); }
   }
@@ -7797,14 +7820,14 @@
     if (!/^\d{4}$/.test(c)) { onlineFail({ error: 'bad_code' }); return; }
     onlineLock();
     try {
-      const res = await withConn('正在进房间…', () => NET.join(c, profile.nick, profile.avatar, mode));
+      const res = await withConn(T('net.joining', '正在进房间…'), () => NET.join(c, profile.nick, profile.avatar, mode));
       startOnline(res.state, res.token);
       if (res.fellBack) toast(NET.message({ error: res.fellBack }));
     } catch (e) { onlineFail(e); }
   }
   async function resumeOnline(sess) {
     try {
-      const res = await withConn('正在回到房间…', () => NET.state(sess.code, sess.token, 0));
+      const res = await withConn(T('net.rejoining', '正在回到房间…'), () => NET.state(sess.code, sess.token, 0));
       if (res && res.state) { startOnline(res.state, sess.token); return true; }
     } catch (err) {
       if (err && (err.status === 401 || err.status === 404)) NET.writeSession(null);
@@ -7827,7 +7850,7 @@
     renderLobby(st, prev);
   }
   // 出牌限时（2026-11-13 用户：30 秒太长；5 秒扣掉网络来回和别人的动画只剩三四秒，太紧）：10 / 20 / 不限时
-  const TURN_OPTS = [[10, '10 秒'], [20, '20 秒'], [0, '不限时']];
+  const TURN_OPTS = [[10, T('ui.secs', '{n} 秒', { n: 10 })], [20, T('ui.secs', '{n} 秒', { n: 20 })], [0, T('ui.set.noLimit', '不限时')]];
   function renderLobby(st) {
     if (!lobbyEl) {
       lobbyEl = document.createElement('div');
@@ -7869,44 +7892,44 @@
     const tint = (svg, seat) => { const k = relTeam(seat); return k >= 0 ? svg.replace(/(<circle cx="32" cy="32" r="32" fill=")#[0-9a-fA-F]{3,8}/, '$1' + TEAM_BG[k]) : svg; };
     const seatHtml = (seat) => {
       const p = seated.find((x) => x.seat === seat);
-      if (!p) return '<button type="button" class="zm-lseat is-empty" data-seat="' + seat + '"><span class="av">+</span><b>' + (host ? '加机器猫' : '空位') + '</b><small>' + (st.spectator ? '坐这里' : host ? '' : '换到这') + '</small></button>';
+      if (!p) return '<button type="button" class="zm-lseat is-empty" data-seat="' + seat + '"><span class="av">+</span><b>' + (host ? T('lobby.addBot', '加机器猫') : T('lobby.empty', '空位')) + '</b><small>' + (st.spectator ? T('lobby.sitHere', '坐这里') : host ? '' : T('lobby.moveHere', '换到这')) + '</small></button>';
       const av = p.avatar && AV && AV.byId[p.avatar] ? tint(AV.byId[p.avatar].svg, seat) : '<span>' + esc(p.nick.slice(0, 1)) + '</span>';
-      const tag = p.isAi ? AI.TIER_NAMES[p.aiLevel] || '普通' : p.id === st.hostId ? '房主' : !p.online ? '掉线' : '';
+      const tag = p.isAi ? AI.TIER_NAMES[p.aiLevel] || AI.TIER_NAMES.normal : p.id === st.hostId ? T('ui.host', '房主') : !p.online ? T('ui.tag.offline', '掉线') : '';
       return '<button type="button" class="zm-lseat' + (p.id === me ? ' is-me' : '') + (p.isAi ? ' is-bot' : '') + '" data-seat="' + seat + '"><i class="ord">' + (order.indexOf(seat) + 1) + '</i><span class="av">' + av + '</span><b>' + esc(p.nick) + '</b><small>' + esc(tag) + '</small></button>';
     };
     const url = NET.inviteUrl(st.code);
-    const tools = '<div class="zm-lobby-tools">' + ($('zmChatBtn') && social && socialOk() ? '<button type="button" class="zm-tool" data-l="chat" aria-label="说一句">' + $('zmChatBtn').innerHTML + '</button>' : '') +
-      '<button type="button" class="zm-tool" data-l="menu" aria-label="菜单">' + $('zmMenuBtn').innerHTML + '</button></div>';
+    const tools = '<div class="zm-lobby-tools">' + ($('zmChatBtn') && social && socialOk() ? '<button type="button" class="zm-tool" data-l="chat" aria-label="' + T('ui.chat', '说一句') + '">' + $('zmChatBtn').innerHTML + '</button>' : '') +
+      '<button type="button" class="zm-tool" data-l="menu" aria-label="' + T('ui.menu', '菜单') + '">' + $('zmMenuBtn').innerHTML + '</button></div>';
     lobbyEl.innerHTML = tools + '<div class="zm-lobby-inner is-v2">' +
-      '<div class="zm-lobby-brand"><div class="art">' + ART.hero() + '</div><b>百变小咪</b></div>' +
-      '<div class="zm-lobby-code"><div><small>房间号</small><b>' + esc(st.code) + '</b></div>' +
-        '<div class="acts"><button type="button" class="zm-pill" data-l="copy">复制链接</button><button type="button" class="zm-pill' + (lobbyQr ? ' is-on' : '') + '" data-l="qr">二维码</button></div></div>' +
+      '<div class="zm-lobby-brand"><div class="art">' + ART.hero() + '</div><b>' + T('game.name', '百变小咪') + '</b></div>' +
+      '<div class="zm-lobby-code"><div><small>' + T('ui.roomCode', '房间号') + '</small><b>' + esc(st.code) + '</b></div>' +
+        '<div class="acts"><button type="button" class="zm-pill" data-l="copy">' + T('ui.invite.copy', '复制链接') + '</button><button type="button" class="zm-pill' + (lobbyQr ? ' is-on' : '') + '" data-l="qr">' + T('lobby.qr', '二维码') + '</button></div></div>' +
       (lobbyQr ? '<div class="zm-lobby-qr" data-qr></div>' : '') +
       (teamOn
         ? '<div class="zm-lobby-seats is-team' + (tsize === 2 ? ' is-pairs' : '') + '">' + form.map((k, b) => '<div class="zm-lteam" style="--k:' + k + ';--tc:' + TEAM_PIP[(b - myBlock + form.length) % form.length] + ';--tbg:' + TEAM_BG[(b - myBlock + form.length) % form.length] + '">' + Array.from({ length: k }, (_, i) => seatHtml(b * tsize + i)).join('') + '</div>').join('') +
-          (shownSeats > teamN ? '<div class="zm-lteam is-extra"><small>多出来的（挪进队里才能开始）</small>' + Array.from({ length: shownSeats - teamN }, (_, i) => seatHtml(teamN + i)).join('') + '</div>' : '') + '</div>'
+          (shownSeats > teamN ? '<div class="zm-lteam is-extra"><small>' + T('lobby.extra', '多出来的（挪进队里才能开始）') + '</small>' + Array.from({ length: shownSeats - teamN }, (_, i) => seatHtml(teamN + i)).join('') + '</div>' : '') + '</div>'
         : '<div class="zm-lobby-seats">' + Array.from({ length: shownSeats }, (_, i) => seatHtml(i)).join('') + '</div>') +
-      (st.spectators.length ? '<p class="zm-muted zm-lobby-watch">' + st.spectators.length + ' 个人在观战' + (st.spectator ? '（包括你）' : '') + '</p>' : '') +
+      (st.spectators.length ? '<p class="zm-muted zm-lobby-watch">' + T('lobby.watching', '{n} 个人在观战', { n: st.spectators.length }) + (st.spectator ? T('lobby.inclYou', '（包括你）') : '') + '</p>' : '') +
       recordHtml(st.record, 1) +
       '<section class="zs-card zs-b zm-lobby-rules">' +
-      '<div class="zs-line"><span>玩法</span><div class="zs-seg" role="group">' + SOLO_MODES.map(([v, tx]) => '<button type="button" data-mode="' + v + '" aria-pressed="' + (rules.mode === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' +
-      (teamOn ? '<div class="zs-line"><span>人数</span><div class="zs-seg" role="group">' + nRowHtml(teamN, host ? '' : ' disabled') + '</div></div>' +
-        '<div class="zs-line"><span>分法</span><div class="zs-seg" role="group">' + formsOf(teamN).map((f) => '<button type="button" data-form="' + f + '" aria-pressed="' + (rules.teamForm === f) + '"' + (host ? '' : ' disabled') + ' aria-label="' + f + '">' + pipHtml(f) + '</button>').join('') + '</div></div>' +
-        '<div class="zs-line"><span>座位</span><div class="zs-seg" role="group">' + [['together', '同队坐一起'], ['random', '随机打乱']].map(([v, tx]) => '<button type="button" data-tseat="' + v + '" aria-pressed="' + (rules.teamSeat === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' : '') +
-      '<div class="zs-line"><span>出牌限时</span><div class="zs-seg" role="group">' +
+      '<div class="zs-line"><span>' + T('ui.set.mode', '玩法') + '</span><div class="zs-seg" role="group">' + SOLO_MODES.map(([v, tx]) => '<button type="button" data-mode="' + v + '" aria-pressed="' + (rules.mode === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' +
+      (teamOn ? '<div class="zs-line"><span>' + T('lobby.players', '人数') + '</span><div class="zs-seg" role="group">' + nRowHtml(teamN, host ? '' : ' disabled') + '</div></div>' +
+        '<div class="zs-line"><span>' + T('lobby.split', '分法') + '</span><div class="zs-seg" role="group">' + formsOf(teamN).map((f) => '<button type="button" data-form="' + f + '" aria-pressed="' + (rules.teamForm === f) + '"' + (host ? '' : ' disabled') + ' aria-label="' + f + '">' + pipHtml(f) + '</button>').join('') + '</div></div>' +
+        '<div class="zs-line"><span>' + T('ui.team.seats', '座位') + '</span><div class="zs-seg" role="group">' + [['together', T('ui.team.together', '同队坐一起')], ['random', T('ui.team.shuffle', '随机打乱')]].map(([v, tx]) => '<button type="button" data-tseat="' + v + '" aria-pressed="' + (rules.teamSeat === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' : '') +
+      '<div class="zs-line"><span>' + T('ui.set.timer', '出牌限时') + '</span><div class="zs-seg" role="group">' +
       TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
-      '<div class="zs-line"><span>牌量</span><div class="zs-seg" role="group">' +
+      '<div class="zs-line"><span>' + T('ui.set.deck', '牌量') + '</span><div class="zs-seg" role="group">' +
       DECK_OPTS.map(([v, t]) => '<button type="button" data-deck="' + v + '" aria-pressed="' + (v === rules.deckSize) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
-      row('swap', '有交换牌', '', sw('swap', rules.swap)) +
-      (rules.swap ? row('defuse', '交换时逗猫棒也换', '', sw('swapDefuse', rules.swapDefuse)) : '') +
-      row('boom', '塞回看得出高低', '', sw('insertSeen', rules.insertSeen !== false)) +
-      '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">规则由房主定</p>') +
-      '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">离开房间</button>' +
-      (host && teamOn ? '<button type="button" class="zm-btn" data-l="tshuffle">随机分队</button>' : '') +
+      row('swap', T('ui.set.swap', '有交换牌'), '', sw('swap', rules.swap)) +
+      (rules.swap ? row('defuse', T('ui.set.swapDefuse', '交换时逗猫棒也换'), '', sw('swapDefuse', rules.swapDefuse)) : '') +
+      row('boom', T('ui.set.insertSeen', '塞回看得出高低'), '', sw('insertSeen', rules.insertSeen !== false)) +
+      '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">' + T('lobby.hostRules', '规则由房主定') + '</p>') +
+      '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">' + T('ui.leaveRoom', '离开房间') + '</button>' +
+      (host && teamOn ? '<button type="button" class="zm-btn" data-l="tshuffle">' + T('lobby.shuffleTeams', '随机分队') + '</button>' : '') +
       (host ? (teamOn
-        ? (() => { const extra = seated.filter((p) => p.seat >= teamN).length, lack = teamN - seated.filter((p) => p.seat < teamN).length; return '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (lack || extra ? ' disabled' : '') + '>' + (lack ? '开始（还差 ' + lack + ' 人）' : extra ? '先把多出来的人挪进队里' : '开始（' + teamN + ' 人）') + '</button>'; })()
-        : '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (seated.length >= 2 ? '' : ' disabled') + '>开始（' + seated.length + ' 人）</button>')
-        : '<span class="zm-lobby-wait">等房主开始…</span>') + '</div></div>';
+        ? (() => { const extra = seated.filter((p) => p.seat >= teamN).length, lack = teamN - seated.filter((p) => p.seat < teamN).length; return '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (lack || extra ? ' disabled' : '') + '>' + (lack ? T('lobby.startLack', '开始（还差 {n} 人）', { n: lack }) : extra ? T('lobby.moveExtra', '先把多出来的人挪进队里') : T('lobby.startN', '开始（{n} 人）', { n: teamN })) + '</button>'; })()
+        : '<button type="button" class="zm-btn zm-btn-primary" data-l="start"' + (seated.length >= 2 ? '' : ' disabled') + '>' + T('lobby.startN', '开始（{n} 人）', { n: seated.length }) + '</button>')
+        : '<span class="zm-lobby-wait">' + T('lobby.waitHost', '等房主开始…') + '</span>') + '</div></div>';
     const qr = lobbyEl.querySelector('[data-qr]');
     if (qr) { if (window.GamesShell && GamesShell.QR) { try { GamesShell.QR.render(qr, url, { scale: 4, margin: 2, dark: '#1d1b18', light: '#fbf8f1' }); } catch (_) { qr.remove(); } } else qr.remove(); }
   }
@@ -7921,7 +7944,7 @@
     if (b.dataset.l === 'chat') { if (social && socialOk()) { social.openChat(b); popTail(b); } return; }
     if (b.dataset.l === 'copy') {
       const url = NET.inviteUrl(st.code);
-      (async () => { try { if (navigator.share && /Mobi|Android|iPhone/.test(navigator.userAgent)) { await navigator.share({ title: '来玩百变小咪', text: '房间 ' + st.code, url }); return; } await navigator.clipboard.writeText(url); toast('链接复制好了'); } catch (_) { toast('复制不了，点「二维码」让朋友扫'); } })();
+      (async () => { try { if (navigator.share && /Mobi|Android|iPhone/.test(navigator.userAgent)) { await navigator.share({ title: T('ui.invite.share', '来玩百变小咪'), text: T('ui.room.title', '房间 {code}', { code: st.code }), url }); return; } await navigator.clipboard.writeText(url); toast(T('ui.invite.copiedLink', '链接复制好了')); } catch (_) { toast(T('ui.invite.noCopy', '复制不了，点「二维码」让朋友扫')); } })();
       return;
     }
     if (b.dataset.l === 'leave') { leaveOnline(true); return; }
@@ -7948,7 +7971,7 @@
     if (p.isAi) {
       if (!host) { onlineAct('sit', { seat }); return; }
       openDialog('<h2>' + esc(p.nick) + '</h2><div class="zs-seg" role="group">' + AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === p.aiLevel) + '">' + AI.TIER_NAMES[t] + '</button>').join('') + '</div>' +
-        '<div class="zm-actions"><button type="button" class="zm-btn" data-sit>我坐这里</button><button type="button" class="zm-btn" data-rm>移走</button><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (d) => {
+        '<div class="zm-actions"><button type="button" class="zm-btn" data-sit>' + T('lobby.iSitHere', '我坐这里') + '</button><button type="button" class="zm-btn" data-rm>' + T('lobby.remove', '移走') + '</button><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>' + T('ui.ok', '好') + '</button></div>', (d) => {
         d.classList.add('zs');
         d.querySelectorAll('[data-tier]').forEach((x) => x.addEventListener('click', () => { d.querySelectorAll('[data-tier]').forEach((y) => y.setAttribute('aria-pressed', String(y === x))); onlineAct('set_ai', { seat, level: x.dataset.tier }); }));
         d.querySelector('[data-rm]').addEventListener('click', () => { closeDialog(); onlineAct('remove_ai', { seat }); });
@@ -7978,27 +8001,27 @@
     const inGame = !o.lobby && g && !g.over;
     const auto = inGame && g.auto && g.auto[seat];
     const alive = inGame && g.st && g.st.alive && g.st.alive[seat];
-    const status = [!p.online ? '掉线了' : '', auto ? '托管中' : '', p.muted ? '已禁言' : ''].filter(Boolean).join(' · ');
+    const status = [!p.online ? T('ui.st.offline', '掉线了') : '', auto ? T('ui.st.auto', '托管中') : '', p.muted ? T('ui.st.muted', '已禁言') : ''].filter(Boolean).join(' · ');
     openDialog('<h2>' + esc(p.nick) + '</h2>' + (status ? '<p class="zm-muted">' + status + '</p>' : '') +
       '<div class="zm-host-icons">' +
-      (o.view ? icBtn('data-view', HOST_IC.view, '坐他身后看') : '') +
-      (alive ? icBtn('data-auto', auto ? HOST_IC.unauto : HOST_IC.auto, auto ? '取消托管' : '让他托管') : '') +
-      icBtn('data-mute', p.muted ? HOST_IC.unmute : HOST_IC.mute, p.muted ? '解除禁言' : '禁言') +
-      icBtn('data-kick', HOST_IC.kick, '请他离开') +
-      '</div><div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>好</button></div>', (d) => {
+      (o.view ? icBtn('data-view', HOST_IC.view, T('ui.host.view', '坐他身后看')) : '') +
+      (alive ? icBtn('data-auto', auto ? HOST_IC.unauto : HOST_IC.auto, auto ? T('ui.btn.unauto', '取消托管') : T('ui.host.auto', '让他托管')) : '') +
+      icBtn('data-mute', p.muted ? HOST_IC.unmute : HOST_IC.mute, p.muted ? T('ui.host.unmute', '解除禁言') : T('ui.host.mute', '禁言')) +
+      icBtn('data-kick', HOST_IC.kick, T('ui.host.kick', '请他离开')) +
+      '</div><div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>' + T('ui.ok', '好') + '</button></div>', (d) => {
       d.querySelector('[data-ok]').addEventListener('click', closeDialog);
       const vb = d.querySelector('[data-view]');
       if (vb) vb.addEventListener('click', () => { closeDialog(); o.view(); });
       const ab = d.querySelector('[data-auto]');
-      if (ab) ab.addEventListener('click', () => { closeDialog(); onlineAct('host_auto', { seat, on: !auto }).then((r) => { if (r) toast(auto ? '已取消' + p.nick + '的托管' : p.nick + '改由机器猫托管（他点自己头像能收回）'); }); });
-      d.querySelector('[data-mute]').addEventListener('click', () => { closeDialog(); onlineAct('mute', { pid: p.id, on: !p.muted }).then((r) => { if (r) toast(p.muted ? '已解除' + p.nick + '的禁言' : '已禁言' + p.nick); }); });
+      if (ab) ab.addEventListener('click', () => { closeDialog(); onlineAct('host_auto', { seat, on: !auto }).then((r) => { if (r) toast(auto ? T('ui.host.autoOff', '已取消{who}的托管', { who: p.nick }) : T('ui.host.autoOn', '{who}改由机器猫托管（他点自己头像能收回）', { who: p.nick })); }); });
+      d.querySelector('[data-mute]').addEventListener('click', () => { closeDialog(); onlineAct('mute', { pid: p.id, on: !p.muted }).then((r) => { if (r) toast(p.muted ? T('ui.host.unmuted', '已解除{who}的禁言', { who: p.nick }) : T('ui.host.muted', '已禁言{who}', { who: p.nick })); }); });
       d.querySelector('[data-kick]').addEventListener('click', () => askKick(p, inGame));
     });
   }
   function askKick(p, inGame) {
     const bot = p.isAi;
-    openDialog('<h2>' + (bot ? '移走' : '请') + esc(p.nick) + (bot ? '？' : '离开？') + '</h2><p class="zm-muted">' + (bot ? '这个座位空出来。' : inGame ? '这一局他那一座交给机器猫打完，打完就把他移出房间。' : '他会被移出房间。') + '</p>' +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>算了</button><button type="button" class="zm-btn zm-btn-primary" data-yes>' + (bot ? '移走' : '请他离开') + '</button></div>', (d) => {
+    openDialog('<h2>' + (bot ? T('lobby.removeAsk', '移走{who}？', { who: esc(p.nick) }) : T('lobby.kickAsk', '请{who}离开？', { who: esc(p.nick) })) + '</h2><p class="zm-muted">' + (bot ? T('lobby.removeNote', '这个座位空出来。') : inGame ? T('lobby.kickNoteGame', '这一局他那一座交给机器猫打完，打完就把他移出房间。') : T('lobby.kickNote', '他会被移出房间。')) + '</p>' +
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-cancel>' + T('ui.nevermind', '算了') + '</button><button type="button" class="zm-btn zm-btn-primary" data-yes>' + (bot ? T('lobby.remove', '移走') : T('ui.host.kick', '请他离开')) + '</button></div>', (d) => {
       d.querySelector('[data-cancel]').addEventListener('click', closeDialog);
       d.querySelector('[data-yes]').addEventListener('click', () => { closeDialog(); onlineAct(bot ? 'remove_ai' : 'kick', bot ? { seat: p.seat } : { pid: p.id }); });
     });
@@ -8043,7 +8066,7 @@
     seats.forEach((el, i) => {
       const info = editPlayer(el, where);
       let x = el.querySelector(':scope > .zm-x');
-      if (editRemovable(info && info.p, where)) { if (!x) { x = document.createElement('span'); x.className = 'zm-x'; x.setAttribute('role', 'button'); x.setAttribute('aria-label', '请他离开'); x.innerHTML = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9"/></svg>'; el.appendChild(x); } }
+      if (editRemovable(info && info.p, where)) { if (!x) { x = document.createElement('span'); x.className = 'zm-x'; x.setAttribute('role', 'button'); x.setAttribute('aria-label', T('ui.host.kick', '请他离开')); x.innerHTML = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9"/></svg>'; el.appendChild(x); } }
       else if (x) x.remove();
       if (bounce && !fx.reduce()) {
         const av = el.querySelector(where === 'lobby' ? '.av' : '.zm-av') || el;
@@ -8066,7 +8089,7 @@
         else if (b.dataset.e === 'next') { b.disabled = true; exitEdit(); onlineAct('next'); }
       });
     }
-    bar.innerHTML = '<button type="button" class="zm-btn zm-btn-primary" data-e="done">完成</button>';
+    bar.innerHTML = '<button type="button" class="zm-btn zm-btn-primary" data-e="done">' + T('ui.finish', '完成') + '</button>';
   }
   // 换座前记下每个人头像在哪（按人认，不按座位）；新状态画好后从旧位置滑过来
   function spotsByPid(where) {
@@ -8294,7 +8317,7 @@
   els.opps.addEventListener('transitionend', (e) => { if (e.propertyName === 'transform' && e.target.classList && e.target.classList.contains('zm-seat')) placeDir(); });
   els.nopeBtn.addEventListener('click', pressNope);
   els.nopeBtn.insertAdjacentHTML('afterbegin', '<i class="zm-nope-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6 18.4 18.4"/></svg></i>');
-  els.nopeBtn.setAttribute('aria-label', '作废');
+  els.nopeBtn.setAttribute('aria-label', R.NAMES.nope);
   els.cancelBtn.addEventListener('click', cancelTarget);
   els.skipTut.addEventListener('click', skipTutorial);
   $('zmPauseBtn').addEventListener('click', pauseGame);
