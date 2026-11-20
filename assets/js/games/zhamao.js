@@ -5686,7 +5686,7 @@
   function menuItems() {
     const exit = FROM_SITE ? [['exit', T('ui.exitSite', '返回百宝奇巧')]] : [];
     if (game && game.tutorial) return [['skip', tut && tut.mini ? T('tut.quitLesson', '退出本关') : T('tut.skip', '跳过教程')], ['rules', T('ui.rules', '规则')], ['line'], ['cover', T('ui.home', '回到主页面')], ...exit];
-    if (online) return [['invite', T('ui.menu.invite', '房间号 / 邀请')], ['profile', T('ui.menu.profile', '改名字 / 头像')], ['settings', T('ui.settings', '设置')], ['rules', T('ui.rules', '规则')], ['line'], ['leave', T('ui.leaveRoom', '离开房间')]];
+    if (online) return [...(window.ZhamaoFeedback && window.ZhamaoFeedback.inMenu() ? [['feedback', T('fb.btn', '这步不对')]] : []), ['invite', T('ui.menu.invite', '房间号 / 邀请')], ['profile', T('ui.menu.profile', '改名字 / 头像')], ['settings', T('ui.settings', '设置')], ['rules', T('ui.rules', '规则')], ['line'], ['leave', T('ui.leaveRoom', '离开房间')]];
     return [
       ...(canPause() ? [['pause', T('ui.pause', '暂停')]] : []),
       ...(window.ZhamaoFeedback && window.ZhamaoFeedback.inMenu() ? [['feedback', T('fb.btn', '这步不对')]] : []),   // 「这步不对」反馈：手机竖屏顶栏挤，收进菜单（zhamao-feedback.js）
@@ -8596,5 +8596,8 @@
     return true;
   }
   function fbResume() { renderAll(); schedule(260, step); }
-  window.ZhamaoTable = { cardHtml, backHtml, rulesHtml, game: () => game, hold: fbHold, resume: fbResume, canPause: () => canPause() };
+  // 联机的「这步不对」：机器猫的动作取自服务器发下来的事件流（不暂停），发事件序号给服务器，由它找回是第几步（2026-11-20）
+  const fbOnline = () => (online && online.st && online.st.game && game && game.online ? { log: online.st.game.log || [], me: online.st.mySeat, loc: locOf, over: !!online.st.game.over } : null);
+  const fbSend = (n, why) => (online && NET ? NET.act(online.code, online.token, 'fb', { n, why }).catch(() => {}) : null);
+  window.ZhamaoTable = { cardHtml, backHtml, rulesHtml, game: () => game, hold: fbHold, resume: fbResume, canPause: () => canPause(), online: fbOnline, sendFb: fbSend };
 })();

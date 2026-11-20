@@ -2,7 +2,7 @@
  * 单机局：顶栏一颗皱眉猫按钮（手机竖屏顶栏挤，收进右上角菜单）。点开 = 像暂停一样停住，底下滑出最近 8 步机器猫的动作
  * （取自本局日志 game.hl.acts，精确到第几步），点一步、可选个理由、发送；关掉接着打。
  * 反馈记进日志 game.hl.fb（[第几步, 理由, 开局后毫秒]），当场先发一份「打到一半」的快照（防这局没打完就丢了），打完整局再随日志发一次。
- * 联机 / 教程局不出现。 */
+ * 联机（2026-11-20 起）：不暂停；动作取自服务器发下来的事件流，发事件序号给服务器（action=fb），由它对应到第几步、随整局日志存。教程局不出现。 */
 (function (root) {
   'use strict';
   const R = root.ZhamaoRules;
@@ -46,8 +46,9 @@
   const TICK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5"/></svg>';
   const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
+  let ONLINE = null;   // 打开时如果是联机局：{ log, me, loc }（事件里的座位是服务器座位，loc 换成网页上的位置）
   function avatar(seat, sm) {
-    const g = gameOf(), n = g ? g.state.n : 1, disp = ((seat - ((g && g.pov) || 0)) % n + n) % n;
+    const g = gameOf(), n = g ? g.state.n : 1, disp = ONLINE ? ONLINE.loc(seat) : ((seat - ((g && g.pov) || 0)) % n + n) % n;
     const el = document.querySelector(disp === 0 ? '.zm-seat-me .zm-av-face' : '.zm-seat[data-seat="' + disp + '"] .zm-av-face');
     return '<span class="zmfb-av' + (sm ? ' is-sm' : '') + '">' + (el ? el.innerHTML : '') + '</span>';
   }
@@ -58,8 +59,8 @@
     let mid = '';
     if (d.type === 'play') mid = '<span class="zmfb-cards">' + d.cards.map(card).join('') + '</span>' + (d.target >= 0 ? '<span class="zmfb-arrow">→</span>' + avatar(d.target, true) : '');
     else if (d.type === 'insert') mid = '<span class="zmfb-cards">' + card(R.BOOM) + '</span><span class="zmfb-pos">' + (d.rand ? '?' : '#' + (d.pos + 1)) + '</span>';
-    else if (d.type === 'give' || d.type === 'pick') mid = '<span class="zmfb-cards">' + card(d.card) + '</span>';
-    else if (d.type === 'alter') mid = '<span class="zmfb-cards">' + d.order.map(card).join('') + '</span>';
+    else if ((d.type === 'give' || d.type === 'pick') && d.card != null) mid = '<span class="zmfb-cards">' + card(d.card) + '</span>';
+    else if (d.type === 'alter') mid = '<span class="zmfb-cards">' + (d.order && d.order.length ? d.order.map(card).join('') : card(R.ALTER)) + '</span>';
     else if (d.type === 'nope') mid = '<span class="zmfb-cards">' + card(R.NOPE) + '</span>';
     else if (d.type === 'rescue') mid = '<span class="zmfb-cards">' + card(R.DEFUSE) + '</span>';
     else mid = '<span class="zmfb-cards">' + back() + '</span>';   // 摸牌 / 偷牌（看不到是哪张）
@@ -77,9 +78,25 @@
     }
     return out.reverse();
   }
+  // 联机：从服务器发下来的事件流里挑机器猫（含托管）做的动作，一步取它的第一条事件；序号 n 发给服务器去对应第几步
+  const ON_TYPES = { play: 1, draw: 1, insert: 1, nope: 1, give: 1, pick: 1, steal: 1, alter: 1 };
+  function recentOnline(max) {
+    const O = TB().online && TB().online();
+    if (!O) return [];
+    const firsts = new Map();
+    for (const e of O.log) if (e && e.act != null && !firsts.has(e.act)) firsts.set(e.act, e);
+    const out = [];
+    for (const e of firsts.values()) {
+      if (!e.bot || !(e.who >= 0) || e.who === O.me || !ON_TYPES[e.t]) continue;
+      const d = e.t === 'play' ? { type: 'play', cards: e.cards || [], target: e.target } : e.t === 'insert' ? { type: 'insert', pos: e.pos, rand: e.pos == null } : { type: e.t, card: e.card };
+      out.push([[e.who, 0, d], e.n]);
+    }
+    return out.slice(-max);
+  }
   function available() {
     const g = gameOf();
-    return !!(g && g.hl && !g.online && !g.tutorial && g.state && g.state.phase !== 'over' && TB().canPause && TB().canPause());
+    if (g && g.online) { const O = TB().online && TB().online(); return !!(O && !O.over && O.me >= 0); }
+    return !!(g && g.hl && !g.tutorial && g.state && g.state.phase !== 'over' && TB().canPause && TB().canPause());
   }
   const inMenu = () => NARROW.matches && available();
   let btn = null, sheet = null;
@@ -88,18 +105,22 @@
     if (!sheet) return;
     sheet.remove(); sheet = null;
     document.removeEventListener('keydown', onKey, true);
-    if (TB().resume) TB().resume();
+    if (!ONLINE && TB().resume) TB().resume();   // 联机不暂停，也就不用接着
+    ONLINE = null;
   }
   function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } }
   function open() {
     if (sheet || !available()) return;
-    const items = recent(MAX);
-    if (!items.length || !TB().hold || !TB().hold()) return;   // 机器猫还没走过：没东西可挑
+    const g0 = gameOf(), online = !!(g0 && g0.online);
+    ONLINE = online ? TB().online() : null;
+    const items = online ? recentOnline(MAX) : recent(MAX);
+    if (!items.length) { ONLINE = null; return; }   // 机器猫还没走过：没东西可挑
+    if (!online && (!TB().hold || !TB().hold())) return;   // 单机：像暂停一样停住；联机别人还在打，不停
     const n = items.length;
     const mask = document.createElement('div');
     mask.className = 'zmfb-mask';
     mask.innerHTML = '<div class="zmfb-sheet" role="dialog" aria-modal="true" aria-label="' + esc(T('fb.title', '哪一步不对？')) + '"><div class="zmfb-head">' + esc(T('fb.title', '哪一步不对？')) +
-      '<span class="zmfb-paused" aria-hidden="true">' + PAUSE + '</span><button type="button" class="zmfb-x" aria-label="' + esc(T('ui.close', '关闭')) + '">' + X + '</button></div>' +
+      (online ? '' : '<span class="zmfb-paused" aria-hidden="true">' + PAUSE + '</span>') + '<button type="button" class="zmfb-x" aria-label="' + esc(T('ui.close', '关闭')) + '">' + X + '</button></div>' +
       '<div class="zmfb-strip">' + items.map(([a, i], k) => moveHtml(a, i, n - k)).join('') + '</div>' +
       '<div class="zmfb-why">' + REASONS.map(([id, zh]) => '<button type="button" data-why="' + id + '">' + esc(T('fb.why.' + id, zh)) + '</button>').join('') +
       '<button type="button" class="zmfb-send" data-send>' + esc(T('fb.send', '发送')) + '</button></div></div>';
@@ -117,7 +138,8 @@
       if (s && pick >= 0 && !sent) {
         sent = true;
         const g = gameOf();
-        if (g && g.hl) {
+        if (online) { if (TB().sendFb) TB().sendFb(pick, why || 'other'); }
+        else if (g && g.hl) {
           (g.hl.fb = g.hl.fb || []).push([pick, why || 'other', Math.max(0, Date.now() - (g.hl.t0 || Date.now()))]);
           if (root.ZhamaoHlog && root.ZhamaoHlog.snapshot) root.ZhamaoHlog.snapshot(g);
         }
