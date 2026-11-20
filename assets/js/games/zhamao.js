@@ -57,6 +57,14 @@
   // 联机落后了（网卡了一阵，攒了一串没播的动作）：先按快档追上大家，追上了再回原速（2026-11-17）
   const pace = () => (game && game.tutorial ? TUT_PACE : game && game.turbo ? TURBO : game && ((game.fastOut && !mateWatching() && (!game.online || humansOutHere())) || (game.online && online && online.behind)) ? FAST : PACE);
   const ms = (x) => Math.round(x * pace().k);
+  /* 加速看完（我出局后的快档 / ⏩ 快进）时，窥探、改命只演「拿起来看一眼、放回去」的动作，不摊开牌面、不等「知道了」——
+   * 坐到谁背后观战、他自己打的也一样（2026-11-20 用户：加速时窥探的窗口展开没跟着快）。我自己还活着在打时照常摊给我看 */
+  const meLive = () => {
+    if (!game || !game.state || game.spectator) return false;
+    if (game.online) { const g = G(), st = online && online.st; return !!(g && st && st.mySeat >= 0 && g.st && g.st.alive && g.st.alive[st.mySeat]); }
+    return !!game.state.alive[meSeat()];
+  };
+  const glance = () => { const p = pace(); return (p === FAST || p === TURBO) && !meLive(); };
   // 组队：我出局了但队友还在打——照常速度，坐在队友身后看他的牌（2026-11-15 巡查）
   /* 单机观战 = 真的换到那只机器猫的视角（2026-11-17 用户：「切到对家就直接是对家的视角，我和其他人相对他的位置都跟着变，
    * 和他手机上看到的一模一样，只是没有出牌按钮」）：game.pov = 被看那家原来的座位号；game.state 里所有座位都按他重新编号（他是 0 号、坐在底下），
@@ -3234,7 +3242,7 @@
     const r = deckTopRect(), pu = PU();
     const tf = liftTopFace();
     const mateSaw = isMate(e.seat);   // 组队：队友窥探到的三张我也看得到
-    if (e.cards && (e.seat === 0 || mateSaw)) {
+    if (e.cards && (e.seat === 0 || mateSaw) && !glance()) {
       const u = e.cards.length > 3 ? Math.min(POP(), (els.center.getBoundingClientRect().width - 16) / (e.cards.length * 1.12)) : POP();   // 百变「千里眼」看 5 张：排得下
       if (ov) { ov.lifted = (ov.lifted || 0) + e.cards.length; renderPiles(); }   // 拿起来的几张：牌堆看着薄了，数字不变（牌并没被拿走）
       const open0 = (i) => i === 0 && tf != null && tf === e.cards[0];   // 透视：最上面那张一直是正面
@@ -3266,7 +3274,7 @@
         if (peekLimit) {
           const bar = ok.querySelector('.zm-dlg-timer i');
           if (bar) bar.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: peekLimit, easing: 'linear', fill: 'forwards' });
-          setTimeout(res, peekLimit);
+          setTimeout(res, peekLimit / turboK());
         }
       });
       game.peekDone = null;
@@ -3296,7 +3304,7 @@
     for (let i = 0; i < k; i++) {
       const fan = (i - (k - 1) / 2);
       const to = { x: dc.x + dir.x / len * pu * 0.9 + fan * pu * 0.42, y: dc.y + dir.y / len * pu * 0.9 - Math.abs(fan) * 4 };
-      out.push(fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: r, to, w: pu, s0: 1, s1: 0.86, r0: 0, r1: fan * 14, dur: ms(380), delay: i * 60, lift: 20, keep: true, land: false }));
+      out.push(fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: r, to, w: pu, s0: 1, s1: 0.86, r0: 0, r1: fan * 14, dur: ms(380), delay: i * ms(60), lift: 20, keep: true, land: false }));
     }
     if (ov && k) { ov.lifted = (ov.lifted || 0) + k; renderPiles(); }
     const nodes = await Promise.all(out);
@@ -3323,7 +3331,7 @@
       if (!n) return null;
       const rr = n.getBoundingClientRect();
       n.remove();
-      return fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: rr, to: deckTopRect(), w: pu, s0: 0.86, s1: 1, r0: (i - (k - 1) / 2) * 14, r1: 0, dur: ms(320), delay: i * 50, lift: 10 });
+      return fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: rr, to: deckTopRect(), w: pu, s0: 0.86, s1: 1, r0: (i - (k - 1) / 2) * 14, r1: 0, dur: ms(320), delay: i * ms(50), lift: 10 });
     }));
     if (ov && k) ov.lifted -= k;
     restoreTopFace(tf);
@@ -5245,7 +5253,7 @@
     const tf = liftTopFace();   // 透视：翻着的那张正面抬起来
     game.alterFace = tf;
     // 组队（2026-11-18 用户）：队友改命，那三张我也看得到——抬起来就翻成正面，他怎么排我看着（我不能动）
-    const open = isMate(e.seat) && e.cards && e.cards.length === k ? e.cards.slice() : null;
+    const open = isMate(e.seat) && !glance() && e.cards && e.cards.length === k ? e.cards.slice() : null;
     game.alterOpen = open;
     if (ov) { ov.lifted = (ov.lifted || 0) + k; renderPiles(); }
     const nodes = await Promise.all(spots.map((p, i) => fx.fly(open
