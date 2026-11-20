@@ -1745,7 +1745,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-app.is-ring .zm-opps .zm-seat { position: absolute; transform: translateX(-50%); min-width: 0; z-index: 3; }
 .zm-app.is-ring .zm-opps .zm-count { left: auto; right: -9px; top: -7px; min-width: 18px; height: 21px; font-size: 11px; border-radius: 4px; }
 .zm-app.is-ring .zm-opps .zm-turns { right: auto; left: -9px; top: -7px; }
-.zm-app.is-ring .zm-opps .zm-name { background: var(--zm-paper); border-radius: 6px; padding: 0 4px; font-size: 12px; max-width: 76px; }
+.zm-app.is-ring .zm-opps .zm-name { font-size: 12px; max-width: 76px; }   /* 2026-11-20 用户：名字不要垫纸色底（出局变淡时像多了一层） */
 .zm-app.is-ring .zm-seat-me { z-index: 3; justify-content: flex-start; }
 .zm-app.is-ring .zm-mebar { justify-content: flex-start; padding-right: 6px; }
 .zm-app.is-ring .zm-band { flex: 1; }

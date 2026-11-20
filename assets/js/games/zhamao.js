@@ -554,7 +554,13 @@
   // 头像底色 = 队色（我这队永远第一种：藏蓝）。四种都避开朱红（轮到谁）/ 金（能指谁）/ 作废紫，2026-11-18 用户挑「中」档深浅
   const TEAM_BG = ['#a9c3e0', '#b2d4b4', '#f0c48f', '#eab3cb'];
   const TEAM_INK = ['#2f5d8a', '#3f7a55', '#c7772e', '#c0648f'];   // 同一色相的深色：彗星、比分条
-  function teamIdx(seat) { const s = game.state, TC = R.teamCount(s) || 2; return ((R.teamOf(s, seat) - R.teamOf(s, 0)) % TC + TC) % TC; }
+  /* 队色按「我」那队算（我这队永远蓝）。2026-11-20 用户：我那队全出局、转去看别队的人时，桌子转成他坐底下，
+   * 以前按底下那家算，被看的橙队就变成了蓝队。现在按我自己的座位：单机 meSeat()（转桌后我在哪），联机按我坐的座位；纯观战的人没有自己的队，按底下那家 */
+  function teamIdx(seat) {
+    const s = game.state, TC = R.teamCount(s) || 2;
+    const me = !game.online ? meSeat() : online && online.st && online.st.mySeat >= 0 ? locOf(online.st.mySeat) : 0;
+    return ((R.teamOf(s, seat) - R.teamOf(s, me)) % TC + TC) % TC;
+  }
   // 顶栏左边的比分条（组队时代替「百变小咪」四个字）：每队一组小圆点，出局一个空一个
   function renderScore() {
     const bar = els.table && els.table.querySelector('.zm-topleft');
@@ -5773,13 +5779,13 @@
     /* 2026-11-20 用户定：顶栏只留三格（单机 暂停 · 声音 · 菜单；联机 说一句 · 声音 · 菜单，房主多一颗暂停），其余都进菜单；
      * 菜单不再重复顶栏已有的暂停；分组 = 本局 / 我 / 帮助 / 离开，组间一道线。「重新开一局」→「新的一局」，「这步不对」→「反馈」 */
     const fb = window.ZhamaoFeedback && window.ZhamaoFeedback.inMenu() ? [['feedback', T('ui.menu.feedback', '反馈')]] : [];
-    if (online) return [['rank', T('ui.rank.title', '排行榜')], ...fb, ['line'], ['invite', T('ui.menu.invite', '房间号 / 邀请')], ['profile', T('ui.menu.profile', '改名字 / 头像')], ['settings', T('ui.settings', '设置')], ['line'], ['rules', T('ui.rules', '规则')], ['line'], ['leave', T('ui.leaveRoom', '离开房间')]];
+    if (online) return [['rank', T('ui.rank.title', '排行榜')], ...fb, ['line'], ['invite', T('ui.menu.invite', '房间号 / 邀请')], ['profile', T('ui.menu.profile', '修改昵称/头像')], ['settings', T('ui.settings', '设置')], ['line'], ['rules', T('ui.rules', '规则')], ['line'], ['leave', T('ui.leaveRoom', '离开房间')]];
     return [
       ['restart', T('ui.menu.newGame', '新的一局')],
       ...fb,
-      ...(social && socialOk() ? [['chat', T('ui.chat', '说一句')]] : []),
+      ...(social && socialOk() ? [['chat', T('ui.chat', '聊天')]] : []),
       ['line'],
-      ['profile', T('ui.menu.profile', '改名字 / 头像')],
+      ['profile', T('ui.menu.profile', '修改昵称/头像')],
       ['settings', T('ui.settings', '设置')],
       ['line'],
       ['rules', T('ui.rules', '规则')],
@@ -6844,6 +6850,16 @@
   const srvOf = (l) => (l == null || l < 0 || !online ? l : (l + online.base) % online.n);
   const playerAt = (srvSeat) => online && online.st ? online.st.players.find((p) => p.seat === srvSeat && !(p.left && online.st.phase === 'lobby')) || null : null;
   const isHost = () => !!(online && online.st && online.st.hostId === online.st.me);
+  /* 加机器猫用哪一档：上一次加 / 调过的那档（记在本机，换房间也接着用）；没调过 = 这桌最后一只机器猫的档，再没有就普通 */
+  function botLevel(set) {
+    const K = 'zm.botLevel';
+    if (set) { try { localStorage.setItem(K, set); } catch (_) { /* */ } return set; }
+    let v = null;
+    try { v = localStorage.getItem(K); } catch (_) { /* */ }
+    if (v && AI.TIERS.indexOf(v) >= 0) return v;
+    const bots = online && online.st ? (online.st.players || []).filter((x) => x.isAi && !x.left) : [];
+    return bots.length && AI.TIERS.indexOf(bots[bots.length - 1].aiLevel) >= 0 ? bots[bots.length - 1].aiLevel : 'normal';
+  }
   function onlineRemain() {
     const g = G();
     if (!g || !g.deadline) return 0;
@@ -8150,7 +8166,7 @@
       return '<button type="button" class="zm-lseat' + (p.id === me ? ' is-me' : '') + (p.isAi ? ' is-bot' : '') + '" data-seat="' + seat + '"><i class="ord">' + (order.indexOf(seat) + 1) + '</i><span class="av">' + av + '</span><b>' + esc(p.nick) + '</b><small>' + esc(tag) + '</small></button>';
     };
     const url = NET.inviteUrl(st.code);
-    const tools = '<div class="zm-lobby-tools">' + ($('zmChatBtn') && social && socialOk() ? '<button type="button" class="zm-tool" data-l="chat" aria-label="' + T('ui.chat', '说一句') + '">' + $('zmChatBtn').innerHTML + '</button>' : '') +
+    const tools = '<div class="zm-lobby-tools">' + ($('zmChatBtn') && social && socialOk() ? '<button type="button" class="zm-tool" data-l="chat" aria-label="' + T('ui.chat', '聊天') + '">' + $('zmChatBtn').innerHTML + '</button>' : '') +
       '<button type="button" class="zm-tool" data-l="menu" aria-label="' + T('ui.menu', '菜单') + '">' + $('zmMenuBtn').innerHTML + '</button></div>';
     lobbyEl.innerHTML = tools + '<div class="zm-lobby-inner is-v2">' +
       '<div class="zm-lobby-brand"><div class="art">' + ART.hero() + '</div><b>' + T('game.name', '百变小咪') + '</b></div>' +
@@ -8218,14 +8234,14 @@
     const seat = +b.dataset.seat;
     const p = st.players.find((x) => x.seat === seat && !x.left);
     if (st.spectator) { if (!p || p.isAi) onlineAct('sit', { seat }); return; }
-    if (!p) { if (host) onlineAct('add_ai', { seat, level: 'normal' }); else onlineAct('sit', { seat }); return; }
+    if (!p) { if (host) onlineAct('add_ai', { seat, level: botLevel() }); else onlineAct('sit', { seat }); return; }   // 新加的机器猫跟上一只同档（2026-11-20 用户：每次都要从普通调到高手太麻烦）
     if (p.id === st.me) { showProfile(); return; }
     if (p.isAi) {
       if (!host) { onlineAct('sit', { seat }); return; }
       openDialog('<h2>' + esc(p.nick) + '</h2><div class="zs-seg" role="group">' + AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === p.aiLevel) + '">' + AI.TIER_NAMES[t] + '</button>').join('') + '</div>' +
         '<div class="zm-actions"><button type="button" class="zm-btn" data-sit>' + T('lobby.iSitHere', '我坐这里') + '</button><button type="button" class="zm-btn" data-rm>' + T('lobby.remove', '移走') + '</button><button type="button" class="zm-btn zm-btn-primary" data-ok data-focus>' + T('ui.ok', '好') + '</button></div>', (d) => {
         d.classList.add('zs');
-        d.querySelectorAll('[data-tier]').forEach((x) => x.addEventListener('click', () => { d.querySelectorAll('[data-tier]').forEach((y) => y.setAttribute('aria-pressed', String(y === x))); onlineAct('set_ai', { seat, level: x.dataset.tier }); }));
+        d.querySelectorAll('[data-tier]').forEach((x) => x.addEventListener('click', () => { d.querySelectorAll('[data-tier]').forEach((y) => y.setAttribute('aria-pressed', String(y === x))); botLevel(x.dataset.tier); onlineAct('set_ai', { seat, level: x.dataset.tier }); }));
         d.querySelector('[data-rm]').addEventListener('click', () => { closeDialog(); onlineAct('remove_ai', { seat }); });
         d.querySelector('[data-sit]').addEventListener('click', () => { closeDialog(); onlineAct('sit', { seat }); });
         d.querySelector('[data-ok]').addEventListener('click', closeDialog);
