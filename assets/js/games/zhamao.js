@@ -9,6 +9,7 @@
 
   const R = window.ZhamaoRules;
   const AI = window.ZhamaoAI;
+  const HL = window.ZhamaoHlog || null;   // 真人单机对局匿名日志（zhamao-hlog.js，2026-11-19）
   const ART = window.ZhamaoArt;
   const AV = window.GongzhuAvatars || null;
   const TUT = window.ZhamaoTutorial || null;
@@ -97,7 +98,7 @@
     if (!game || game.tutorial || game.online || game.stale) return;
     if (game.state.phase === 'over') { try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ } return; }
     const back = game.pov ? game.state.n - game.pov : 0;   // 观战时桌子是转过的：存回我自己坐在 0 号的样子
-    writeJSON(STORE_KEY, { v: VERSION, t: Date.now(), state: rotState(game.state, back), bots: rotSeats(game.bots, back), tiers: rotSeats(game.tiers, back), openKits: game.openKits ? Array.from(game.openKits) : [] });   // 火眼露在牌堆里的那几只也存上
+    writeJSON(STORE_KEY, { v: VERSION, t: Date.now(), state: rotState(game.state, back), bots: rotSeats(game.bots, back), tiers: rotSeats(game.tiers, back), openKits: game.openKits ? Array.from(game.openKits) : [], hl: game.hl || null });   // 火眼露在牌堆里的那几只也存上
   }
   function loadSaved() {
     const d = readJSON(STORE_KEY);
@@ -2495,10 +2496,11 @@
     const s = game.state, t = token;
     busy = true;
     stopClock();
+    const byAuto = seat === 0 && autoAct;
     if (seat === 0) { if (!autoAct) timeouts = 0; autoAct = false; }
     const rects = captureSources(seat, d);
     snapshot();
-    let ev;
+    let ev, logged = d;
     try {
       if (d.type === 'draw') ev = R.draw(s, seat);
       else if (d.type === 'play') ev = R.play(s, seat, d.cards, d);
@@ -2514,7 +2516,9 @@
       console.error(err, d);
       release();
       if (seat !== 0) { try { snapshot(); ev = R.draw(s, seat); } catch (_) { release(); return; } } else { busy = false; step(); return; }
+      logged = { type: 'draw' };
     }
+    if (HL) HL.act(game, seat, logged, byAuto || (seat === 0 && autopilot) ? 1 : 0);
     if (seat === 0) selected = [];
     mode = null;
     game.src = rects;
@@ -4238,6 +4242,7 @@
     renderBand();
     renderHand({ flip: false });   // 手里「作废」那几张的紫光立刻停
     const ev = R.nope(s, seat);
+    if (HL) HL.act(game, seat, { type: 'nope' }, seat === 0 && autopilot ? 1 : 0);
     await playEvents(ev, t);
     if (t !== token) return;
     afterEvents(ev);
@@ -4251,6 +4256,7 @@
     snapshot();
     renderBand();
     renderHand({ flip: false });   // 导火索烧完：紫色按钮、手里「作废」的紫光一起停
+    if (HL) HL.close(game);
     for (const x of R.awaitingReaction(s)) R.pass(s, x);
     const ev = R.closeReaction(s);
     await playEvents(ev, t);
@@ -5326,6 +5332,7 @@
     d.querySelectorAll('.zm-rank-rest li').forEach((li, i) => li.animate([{ transform: 'translateY(12px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 360, delay: 900 + i * 70, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }));
   }
   async function finish() {
+    if (HL && !game.tutorial && !game.online) HL.finish(game);
     busy = true;
     bgm('end');
     const s = game.state;
@@ -6095,8 +6102,10 @@
     tut = null;
     els.skipTut.hidden = true;
     const nr = R.normalizeRules(settings.rules), n = nr.mode === 'team' ? R.teamPlayers(nr) : settings.players;
-    const st = R.createGame(n, (Math.random() * 2 ** 31) | 0, settings.rules);
+    const seed = ((Math.random() * 2 ** 31) | 0) || 1;
+    const st = R.createGame(n, seed, settings.rules);
     game = { state: st, bots: drawBots(n, settings.tier), tiers: [null].concat(Array(n - 1).fill(settings.tier)), tutorial: false };
+    if (HL) HL.start(game, st, seed);
     els.cover.hidden = true;
     buildSeats();
     solveSize();
@@ -6109,6 +6118,7 @@
     viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator'); els.me.classList.remove('is-watched');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     game = { state: d.state, bots: d.bots, tiers: d.tiers, tutorial: false, fastOut: !d.state.alive[0], openKits: new Set(d.openKits || []), kitShown: new Set(d.openKits || []) };
+    if (HL) HL.restore(game, d.hl);
     game.bots[0] = { nick: profile.nick, avatar: profile.avatar };
     els.cover.hidden = true;
     buildSeats();
@@ -8348,6 +8358,7 @@
   // 本机调试：__zmDebug.demo('boom') 之类，单独放一段动画看效果（见 demo()）
   function demo(name) {
     if (!game) newGame();
+    game.hl = null;   // 动过手脚的局不发日志
     const s = game.state;
     resetTable();
     els.app.querySelectorAll('.zm-bubble').forEach((b) => b.remove());   // 被打断的机器猫「想一下」的气泡（它那一步不会再来收）
