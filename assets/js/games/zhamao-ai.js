@@ -720,6 +720,9 @@
    * 输入多 3 个规则位（brainX 的 o+19 / o+57 / o+58；老网络这几列权重全 0，填了也不变）。整队 vs t4：交换+连逗猫棒 2v2 / 3v3 / 2v2v2 / 4v4 胜率
    * 53.8 / 56.4 / 39.7 / 55.4%（均等 50 / 50 / 33.3 / 50）；不开交换时 2v2v2、4v4 略输 2–3 个点 → 只在开了交换的局用它，默认规则仍用 t4 */
   const BRAIN_TS = (() => { const b = loadBrain('ZhamaoBrainTeamSwap', './zhamao-brain-team-swap.js'); return b && b.DIM === 250 ? b : null; })();
+  /* 百变·开了交换的局（2026-11-20 傍晚，REPORT 10.3）：f3.json = f2 加练可选规则。vs f2 开交换+连逗猫棒 3/4/5/6 人胜率 34.8 / 33.1 / 25.9 / 23.6%
+   * （均等 33.3 / 25 / 20 / 16.7）；不开交换时 3、5 人略掉 ~2 个点 → 只在开了交换的百变局用它，默认规则仍用 f2 */
+  const BRAIN_FS = (() => { const b = loadBrain('ZhamaoBrainFluxSwap', './zhamao-brain-flux-swap.js'); return b && b.DIM === 250 ? b : null; })();
   /* 角色猫网络（2026-11-19，REPORT 第七阶段）：输入 250 = 210 + 40 维角色（我的角色、下家 1..4 的角色、模式位、出牌目标的角色，见 brainX） */
   const X4_DIM = 250;
   const BRAIN_R = (() => { const b = loadBrain('ZhamaoBrainRoles', './zhamao-brain-roles.js'); return b && b.DIM === X4_DIM ? b : null; })();
@@ -727,7 +730,7 @@
   const brainOf = (v) => {
     if (v.roles) return BRAIN_R;
     if (teamV(v)) return (v.rules && v.rules.swap && BRAIN_TS) || BRAIN_T;
-    if (isFlux(v)) return BRAIN_F;
+    if (isFlux(v)) return (v.rules && v.rules.swap && BRAIN_FS) || BRAIN_F;
     return (!v.rules || !v.rules.mode || v.rules.mode === 'classic') ? BRAIN : null;
   };
   const useBrain = (v) => !!brainOf(v);
