@@ -56,10 +56,19 @@
     if (body.acts.length < 2 || body.res.outOrder.length >= n) return;
     try { fetch(URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).catch(() => {}); } catch (_) { /* 离线 */ }
   }
+  // 「这步不对」反馈（zhamao-feedback.js）：当场发一份打到一半的快照（res.open），这局要是没打完反馈也不丢；打完整局日志里同样带着 fb
+  function snapshot(game) {
+    const h = game && game.hl;
+    if (!h || !h.fb || !h.fb.length) return;
+    const s = game.state, r = (x) => (x >= 0 ? real(game, x) : -1);
+    const body = Object.assign({}, h, { id: h.id + 'f' + h.fb.length, acts: h.acts.slice(), fb: h.fb.slice(), res: { open: true, winner: -1, winnerTeam: -1, outOrder: s.outOrder.map(r) } });
+    delete body.t0;
+    try { fetch(URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).catch(() => {}); } catch (_) { /* 离线 */ }
+  }
   // 接着打上一局：存档里带着这局的日志就接着记（t0 按存档那一刻往后接，中间离开的时间不算）
   function restore(game, saved) {
     const h = saved && saved.v === 1 && Array.isArray(saved.acts) ? saved : null;
     game.hl = h && !optOut() ? Object.assign(h, { t0: Date.now() - (h.acts.length ? h.acts[h.acts.length - 1][1] : 0) }) : null;
   }
-  root.ZhamaoHlog = { start, act, close, finish, restore };
+  root.ZhamaoHlog = { start, act, close, finish, restore, snapshot };
 })(typeof window !== 'undefined' ? window : this);

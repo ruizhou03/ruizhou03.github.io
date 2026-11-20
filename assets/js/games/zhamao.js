@@ -5569,6 +5569,7 @@
     return '<path d="' + d + 'Z"/><circle cx="12" cy="12" r="2.8"/>';
   })();
   const MENU_ICONS = {
+    feedback: '<path d="M5 9 4 3.5 9 6.5h6L20 3.5 19 9c1.2 1.4 1.8 3 1.8 4.6C20.8 18 16.9 21 12 21s-8.8-3-8.8-7.4C3.2 12 3.8 10.4 5 9Z"/><path d="M9.6 17.2c1.5-1.2 3.3-1.2 4.8 0"/><path d="M9 12.6h.01M15 12.6h.01"/>',
     restart: '<path d="M19.5 12a7.5 7.5 0 1 1-2.3-5.4"/><path d="M19.6 4.2v4.2h-4.2"/>',
     settings: GEAR,
     rules: '<circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.4a2.4 2.4 0 1 1 3.3 2.2c-.7.3-1 .8-1 1.4v.5"/><path d="M12 16.6v.1"/>',
@@ -5587,6 +5588,7 @@
     if (online) return [['invite', T('ui.menu.invite', '房间号 / 邀请')], ['profile', T('ui.menu.profile', '改名字 / 头像')], ['settings', T('ui.settings', '设置')], ['rules', T('ui.rules', '规则')], ['line'], ['leave', T('ui.leaveRoom', '离开房间')]];
     return [
       ...(canPause() ? [['pause', T('ui.pause', '暂停')]] : []),
+      ...(window.ZhamaoFeedback && window.ZhamaoFeedback.inMenu() ? [['feedback', T('fb.btn', '这步不对')]] : []),   // 「这步不对」反馈：手机竖屏顶栏挤，收进菜单（zhamao-feedback.js）
       ['restart', T('ui.menu.restart', '重新开一局')],
       ['profile', T('ui.menu.profile', '改名字 / 头像')],
       ['settings', T('ui.settings', '设置')],
@@ -5617,6 +5619,7 @@
     else if (k === 'tutorial') startTutorial();
     else if (k === 'skip') skipTutorial();
     else if (k === 'pause') pauseGame();
+    else if (k === 'feedback') { if (window.ZhamaoFeedback) window.ZhamaoFeedback.open(); }
     else if (k === 'cover') { if (game && game.tutorial) quitTutorial(); else showCover(); }
     else if (k === 'exit') location.href = '/toolbox/';
     else if (k === 'invite') showInvite();
@@ -5783,6 +5786,7 @@
     if (!document.hidden) recheckSize();   // 回到前台：万一后台时按临时横屏量过，这里按真实宽度对一遍
   });
   function refreshTools() {
+    if (window.ZhamaoFeedback) window.ZhamaoFeedback.sync();
     const pz = $('zmPauseBtn').hidden;
     $('zmPauseBtn').hidden = !(game && !game.tutorial && !game.online && els.cover.hidden);
     if (pz !== $('zmPauseBtn').hidden && ringGame() && LANDSCAPE_SHORT.matches) requestAnimationFrame(renderDir);   // 横屏：工具键多了一颗，顶边能坐的范围变了
@@ -8477,5 +8481,16 @@
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
     window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage, flashRole: (seat, hold) => flashRole(seat, token, hold), expandRole, openRoleView, liftTop3: (n) => liftTop3(n, token) };
   }
-  window.ZhamaoTable = { cardHtml, backHtml, rulesHtml };
+  /* 「这步不对」反馈（zhamao-feedback.js）：打开时像暂停一样停住（不弹暂停页），关掉接着打 */
+  function fbHold() {
+    if (!canPause() || !els.mask.hidden) return false;
+    closeMenu();
+    resetTable();
+    save();
+    busy = true;
+    renderAll();
+    return true;
+  }
+  function fbResume() { renderAll(); schedule(260, step); }
+  window.ZhamaoTable = { cardHtml, backHtml, rulesHtml, game: () => game, hold: fbHold, resume: fbResume, canPause: () => canPause() };
 })();
