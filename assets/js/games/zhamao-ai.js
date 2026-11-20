@@ -710,11 +710,12 @@
   /* 组队 / 百变各一个网络（2026-11-19 夜训，REPORT 第六阶段）：输入 210 = 经典 v2 的 190 + 20 维 X（组队 10 + 百变 10，见 brainX）。
    * 组队 t2.json 整队 vs 普通队 2v2 / 3v3 / 2v2v2 / 4v4 胜率 56.6 / 65.8 / 47.0 / 69.3%（原高手队 54.0 / 54.2 / 37.3 / 55.2）；
    * 百变 f.json vs 一桌普通 3 / 4 / 5 人名次分 0.656 / 0.625 / 0.604（原高手 0.567 / 0.564 / 0.539）。
+   * 2026-11-20 夜训（REPORT 第八阶段）换上 t4.json / f2.json（250 维、带对手池加练）：t4 整队 vs t2 老四种队形打平，2v2v2v2 / 3v3v3 各多赢约 3 个点；f2 vs f 名次分 +~1%。
    * 角色猫 r.json（2026-11-19，250 维 = 210 + 角色 40：自己 / 下家们的角色、出牌目标的角色）：高手 vs 一桌原普通 2-6 人名次分
    * 0.785 / 0.677 / 0.640 / 0.636 / 0.641；普通（30% 网络）0.585 / 0.547 / 0.545 / 0.525 / 0.532。 */
   const X3_DIM = 210;
-  const BRAIN_T = (() => { const b = loadBrain('ZhamaoBrainTeam', './zhamao-brain-team.js'); return b && b.DIM === X3_DIM ? b : null; })();
-  const BRAIN_F = (() => { const b = loadBrain('ZhamaoBrainFlux', './zhamao-brain-flux.js'); return b && b.DIM === X3_DIM ? b : null; })();
+  const BRAIN_T = (() => { const b = loadBrain('ZhamaoBrainTeam', './zhamao-brain-team.js'); return b && (b.DIM === X3_DIM || b.DIM === 250) ? b : null; })();   // 2026-11-20 起 t4 是 250 维（角色那 40 列在组队里恒为 0）
+  const BRAIN_F = (() => { const b = loadBrain('ZhamaoBrainFlux', './zhamao-brain-flux.js'); return b && (b.DIM === X3_DIM || b.DIM === 250) ? b : null; })();   // 2026-11-20 起 f2 是 250 维
   /* 角色猫网络（2026-11-19，REPORT 第七阶段）：输入 250 = 210 + 40 维角色（我的角色、下家 1..4 的角色、模式位、出牌目标的角色，见 brainX） */
   const X4_DIM = 250;
   const BRAIN_R = (() => { const b = loadBrain('ZhamaoBrainRoles', './zhamao-brain-roles.js'); return b && b.DIM === X4_DIM ? b : null; })();
