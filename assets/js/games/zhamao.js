@@ -274,13 +274,15 @@
   const topdrawNow = () => !!(game && game.state && (ov && ov.flux !== undefined ? ov.flux : game.state.flux) === 'bottom');
   // 我出这组牌算什么（角色猫三花：任意两只 / 三只猫也算）
   const classifyMine = (cards) => (R.classifyFor && game && game.state ? R.classifyFor(game.state, 0, cards) : R.classify(cards));
+  // 名字条放不下的长名字（英文）：按字数缩一档 / 两档字号（zhamao.css 末尾「多语言」一段）。简体一律不加，站点和以前一样
+  const nmCls = (s) => (LANG === 'zh-Hans' ? '' : String(s).length > 12 ? ' is-xlong' : String(s).length > 8 ? ' is-long' : '');
   function cardHtml(kindOrId, cls, style) {
     const k = typeof kindOrId === 'number' ? R.KIND_OF[kindOrId] : kindOrId;
     const vk = k === R.BOTTOM && topdrawNow() ? 'topdraw' : k;   // 看起来是哪种（data-k 仍是真牌种，出牌判断不受影响）
     const t = ART.TONE[vk];
     return '<div class="zm-card' + (cls ? ' ' + cls : '') + '" data-k="' + k + '"' + (typeof kindOrId === 'number' ? ' data-id="' + kindOrId + '"' : '') +
       ' style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + (style ? ';' + style : '') + '">' +
-      '<div class="zm-art">' + ART.face(vk) + '</div><i class="zm-ic">' + ART.icon(vk) + '</i><b class="zm-nm">' + (vk === 'topdraw' ? T('card.topdraw.name', '抽顶') : R.NAMES[k]) + '</b></div>';
+      '<div class="zm-art">' + ART.face(vk) + '</div><i class="zm-ic">' + ART.icon(vk) + '</i><b class="zm-nm' + nmCls(R.NAMES[k]) + '">' + (vk === 'topdraw' ? T('card.topdraw.name', '抽顶') : R.NAMES[k]) + '</b></div>';
   }
   // 换上 / 换走「摸底」：手里每张抽底翻一下、换成抽顶（或换回来）
   async function flipBottomCards(t) {
@@ -1205,7 +1207,7 @@
     const t = ART.ROLE_TONE[id] || ART.ROLE_TONE.fat, info = roleInfo(id);
     return '<div class="zm-rc' + (o.big ? ' is-big' : '') + (o.tiny ? ' is-tiny' : '') + '" data-role="' + id + '" style="--rbg:' + t.bg + ';--rband:' + t.band + (o.w ? ';width:' + o.w + 'px' : '') + '">' +
       '<div class="zm-rc-art">' + ART.roleFace(id) + '</div><div class="zm-rc-gl">' + ART.roleGlyph(id) + '</div>' +
-      (o.big ? '<div class="zm-rc-tx">' + esc(info.desc) + '</div>' : '') + '<div class="zm-rc-nm">' + info.name + '</div></div>';
+      (o.big ? '<div class="zm-rc-tx">' + esc(info.desc) + '</div>' : '') + '<div class="zm-rc-nm' + nmCls(info.name) + '">' + info.name + '</div></div>';
   }
   const roleBackHtml = (w) => '<div class="zm-rc-back" style="width:' + w + 'px">' + ART.ROLE_BACK + '</div>';
   function roleFlipHtml(id, w, big) {
@@ -6174,7 +6176,7 @@
     ['team', T('mode.team.name', '组队'), 'favor'],
     ['roles', T('mode.roles.name', '角色'), 'calico'],
   ];
-  const miniCard = (k, name) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm">' + (name || R.NAMES[k]) + '</b></span>'; };
+  const miniCard = (k, name) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm' + nmCls(name || R.NAMES[k]) + '">' + (name || R.NAMES[k]) + '</b></span>'; };
   const curMode = () => R.normalizeRules(settings.rules).mode;
   const modeIdx = (m) => Math.max(0, SOLO_MODES.findIndex(([x]) => x === (m || curMode())));
   const soloN = () => (curMode() === 'team' ? R.teamPlayers(R.normalizeRules(settings.rules)) : Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players)));   // 组队：人数跟着队形走
