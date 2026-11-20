@@ -41,7 +41,9 @@
   // flag：1 = 超时 / 托管替我做的（不是真人自己点的）
   function act(game, seat, d, flag) {
     if (!game || !game.hl || !d) return;
-    const a = [real(game, seat), Date.now() - game.hl.t0, slim(d)];
+    const m = slim(d);
+    if (m.target != null && m.target >= 0) m.target = real(game, m.target);   // 2026-11-20 修：出局后换视角观战时，出牌目标也要转回「我坐 0 号」（以前只转了出手的人）
+    const a = [real(game, seat), Date.now() - game.hl.t0, m];
     if (flag) a.push(flag);
     push(game, a);
   }
