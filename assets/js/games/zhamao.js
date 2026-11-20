@@ -2504,8 +2504,7 @@
   }
   function botAct(seat) {
     busy = true;
-    const b = bubble(seat, '', { think: true, ms: 60000 });
-    schedule(pace().bot, () => { if (b) b.remove(); apply(seat, decideBot(seat)); });
+    schedule(pace().bot, () => apply(seat, decideBot(seat)));   // 停一下再走，不冒省略号（省略号只在改命、求救时出现——用户 2026-11-19）
   }
 
   /* 把一个决定落到引擎上，然后播动画、回到 step */
@@ -3222,7 +3221,7 @@
     renderPiles();
   }
 
-  /* 被蹭：粉色箭头还在，他头顶冒「…」在挑 */
+  /* 被蹭：粉色箭头还在，等他挑一张 */
   async function animAskGive(e, t, prev) {
     if (game.arrow) game.arrow.remove();
     game.arrow = aim(e.from, '#e0566e');
@@ -3233,7 +3232,6 @@
       const fl = await flashRole(e.to, t, 500);
       fl.back();
     } else if (!(prev && prev.t === 'give')) game.giveTwo = false;
-    if (e.from !== 0) bubble(e.from, '', { think: true, ms: 60000 });
     await wait(ms(260));
     void t;
   }
@@ -7216,12 +7214,12 @@
     stopClock();
     clearReactTimer();
     if ((cfz || els.stage.querySelector('.zm-fuse.is-lit')) && first.t !== 'nope') stopFuse();   // 这一轮结算了（不是又来一张作废）：桌沿导火索收掉
-    // 机器猫（含替人代打）做的一步：先「想一下」再播；偷牌先让红光在被偷的人牌上游走一会儿
+    // 机器猫（含替人代打）做的一步：先停一下再播（不冒省略号）；偷牌先让红光在被偷的人牌上游走一会儿
     if (first.t === 'steal' && first.to !== 0) {
       if (!game.wander) { const cnt = game.state.steal ? game.state.steal.perm.length : game.state.hands[first.from].length; game.wander = startWander(first.from, cnt); await wait(stealThink(cnt)); }
     } else if (first.bot && first.who > 0 && !(first.t === 'defuse' && first.rescue)) {   // 机器猫去救人：省略号早就冒着了，服务器也已经等过它想
       if (first.t === 'nope') await wait(500 + Math.random() * 500);
-      else { const b = bubble(first.who, '', { think: true, ms: 60000 }); await wait(pace().bot); if (b) b.remove(); }
+      else await wait(pace().bot);
     }
     if (t !== token) return;
     if (first.t === 'nope') stopFuse();
