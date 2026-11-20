@@ -6,6 +6,8 @@
 (function () {
   'use strict';
 
+  // 多语言：百变小咪的页面里有 ZhamaoRules.T（App 换繁体 / 英文用）；拱猪页面没有，原样用简体
+  const T = (window.ZhamaoRules && window.ZhamaoRules.T) || ((k, zh, v) => (v ? zh.replace(/\{(\w+)\}/g, (m, x) => (v[x] != null ? String(v[x]) : m)) : zh));
   const PROP_KEYS = ['flower', 'coffee', 'water', 'rooster', 'clap', 'pig'];
   const PROP_NAMES = { flower: '献花', coffee: '咖啡', water: '泼水', rooster: '叫醒', clap: '鼓掌', pig: '送猪' };
   const LINES = ['大家好呀', '这把我不当猪', '猪在谁手里？', '手下留情', '快点出吧，猪都睡着了', '好牌！', '又是我吃红桃……', '运气来了挡不住'];
@@ -176,15 +178,15 @@
       const p = document.createElement('div');
       p.className = 'gz-social-pop';
       p.setAttribute('role', 'dialog');
-      p.setAttribute('aria-label', '扔给 ' + host.name(l));
+      p.setAttribute('aria-label', T('social.throwTo', '扔给 {who}', { who: host.name(l) }));
       const mutable = host.mutable && host.mutable(l), muted = mutable && host.muted(l);
       const extra = (host.extra && host.extra(l)) || [];
       p.innerHTML = '<div class="gz-sp-title"></div><div class="gz-sp-props">' +
         KEYS.map((k) => '<button type="button" data-prop="' + k + '"><span class="gz-sp-ic">' + PIC[k] + '</span><span class="gz-sp-lb">' + NAMES[k] + '</span></button>').join('') + '</div>' +
-        (mutable ? '<div class="gz-sp-foot"><span>' + (muted ? '已屏蔽他的互动' : '不想看他的互动') + '</span><button type="button" data-mute>' + (muted ? '取消屏蔽' : '屏蔽他') + '</button></div>' : '') +
+        (mutable ? '<div class="gz-sp-foot"><span>' + (muted ? T('social.muted', '已屏蔽他的互动') : T('social.muteAsk', '不想看他的互动')) + '</span><button type="button" data-mute>' + (muted ? T('social.unmute', '取消屏蔽') : T('social.mute', '屏蔽他')) + '</button></div>' : '') +
         // 可选：游戏自己往弹窗底下加一排按钮（百变小咪：房主的托管 / 禁言 / 请离）；没给 extra 的游戏（拱猪）照旧
         (extra.length ? '<div class="gz-sp-foot gz-sp-extra"><span>' + (host.extraTitle ? host.extraTitle(l) : '') + '</span><span class="gz-sp-extra-btns">' + extra.map((x, i) => '<button type="button" data-extra="' + i + '">' + x.label + '</button>').join('') + '</span></div>' : '');
-      p.querySelector('.gz-sp-title').textContent = '扔给 ' + host.name(l);
+      p.querySelector('.gz-sp-title').textContent = T('social.throwTo', '扔给 {who}', { who: host.name(l) });
       layer.appendChild(p);
       pop = p; popFor = av;
       placePop(p, av, host.popSide ? host.popSide(l) : l === 2 ? 'below' : l === 3 ? 'right' : l === 1 ? 'left' : 'above');
@@ -208,11 +210,11 @@
       const p = document.createElement('div');
       p.className = 'gz-social-pop gz-sp-chat';
       p.setAttribute('role', 'dialog');
-      p.setAttribute('aria-label', '说一句');
-      p.innerHTML = '<div class="gz-sp-title">说一句（大家都看得到）</div><div class="gz-sp-lines">' +
+      p.setAttribute('aria-label', T('ui.chat', '说一句'));
+      p.innerHTML = '<div class="gz-sp-title">' + T('social.chatTitle', '说一句（大家都看得到）') + '</div><div class="gz-sp-lines">' +
         SAY.map((t) => '<button type="button"></button>').join('') + '</div>' +
-        '<form class="gz-sp-custom"><input type="text" maxlength="' + TEXT_MAX + '" placeholder="自己写一句…" enterkeyhint="send" autocomplete="off"><button type="submit">发送</button></form>' +
-        '<label class="gz-sp-hide"><input type="checkbox"' + (prefs.hide ? ' checked' : '') + '><span>不看别人的互动</span></label>';
+        '<form class="gz-sp-custom"><input type="text" maxlength="' + TEXT_MAX + '" placeholder="' + T('social.write', '自己写一句…') + '" enterkeyhint="send" autocomplete="off"><button type="submit">' + T('social.send', '发送') + '</button></form>' +
+        '<label class="gz-sp-hide"><input type="checkbox"' + (prefs.hide ? ' checked' : '') + '><span>' + T('social.hideAll', '不看别人的互动') + '</span></label>';
       p.querySelectorAll('.gz-sp-lines button').forEach((b, i) => { b.textContent = SAY[i]; });
       layer.appendChild(p);
       pop = p; popFor = btn;

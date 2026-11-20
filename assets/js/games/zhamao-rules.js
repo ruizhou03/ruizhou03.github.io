@@ -61,9 +61,25 @@
     orange: 4, calico: 4, cow: 4, tabby: 4, siamese: 4, wild: 4, reverse: 4, flux: 10,
   });
   const KINDS = Object.freeze(Object.keys(COUNTS));
+  /* 多语言（2026-11-19）：界面文案一律写成 T('键', '简体原文', { 占位 })，占位写 {name}。
+   * 站点网页不装语言包 → 原样返回简体原文（和以前一字不差）；App 先加载 app/i18n.js（window.PuffcatI18n），
+   * 按系统语言换成繁体 / 英文，缺的键回落到这里写的简体原文。键和原文由 puffcat-app 的 build-i18n 从源码里抽，
+   * 所以键和原文都要写成字面量（别拼键名）。英文单复数：语言包里写 { one, other }，按 vars.n 挑 */
+  const i18n = () => { const g = typeof self !== 'undefined' ? self : typeof globalThis !== 'undefined' ? globalThis : null; return (g && g.PuffcatI18n) || null; };
+  function T(key, zh, vars) {
+    const I = i18n();
+    let s = I && I.lookup ? I.lookup(key) : null;
+    if (s == null) s = zh;
+    if (typeof s === 'object') s = vars && +vars.n === 1 ? s.one : s.other;
+    return vars ? String(s).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m)) : s;
+  }
+  const lang = () => { const I = i18n(); return (I && I.lang) || 'zh-Hans'; };
   const NAMES = Object.freeze({
-    boom: '炸毛猫', defuse: '逗猫棒', nope: '作废', attack: '甩锅', tattack: '自由甩锅', skip: '装睡', bottom: '抽底', favor: '讨要',
-    shuffle: '捣乱', future: '窥探', alter: '改命', swap: '交换', orange: '橘猫', calico: '三花', cow: '奶牛猫', tabby: '狸花', siamese: '暹罗', wild: '万能猫', reverse: '转向', flux: '百变',
+    boom: T('card.boom.name', '炸毛猫'), defuse: T('card.defuse.name', '逗猫棒'), nope: T('card.nope.name', '作废'), attack: T('card.attack.name', '甩锅'),
+    tattack: T('card.tattack.name', '自由甩锅'), skip: T('card.skip.name', '装睡'), bottom: T('card.bottom.name', '抽底'), favor: T('card.favor.name', '讨要'),
+    shuffle: T('card.shuffle.name', '捣乱'), future: T('card.future.name', '窥探'), alter: T('card.alter.name', '改命'), swap: T('card.swap.name', '交换'),
+    orange: T('card.orange.name', '橘猫'), calico: T('card.calico.name', '三花'), cow: T('card.cow.name', '奶牛猫'), tabby: T('card.tabby.name', '狸花'),
+    siamese: T('card.siamese.name', '暹罗'), wild: T('card.wild.name', '万能猫'), reverse: T('card.reverse.name', '转向'), flux: T('card.flux.name', '百变'),
   });
   /* 第二副牌（2026-11-12 起最多 9 人）：6 人以上开局把它也洗进来——炸毛猫最多 8 只、逗猫棒最多 11 根，功能牌和猫牌也多一倍；
    * 5 人及以下它一开局就整副收进盒子。牌号接在第一副后面（0..67 不变，旧存档 / 联机局照常） */
@@ -112,13 +128,13 @@
   // 2026-11-15 用户：不叠锅 / 暗塞 / 千里眼 / 慷慨太弱、感觉不到 → 换成 九命 / 掀顶 / 烫手 / 双猫急救
   // 2026-11-15 用户定的名字和说法（掀顶→透视（2026-11-19 又改天眼）、明塞→火眼、静音→静默、双猫急救→急救）；id 不变（老存档照常）
   const FLUX_RULES = Object.freeze([
-    { id: 'nine', name: '九命', desc: '摸到炸毛猫时若无逗猫棒，大喊「九命」并存活，炸毛猫随机放回牌堆。每人最多生效一次' },
-    { id: 'peektop', name: '天眼', desc: '牌堆第一张牌对所有人可见' },
-    { id: 'exact', name: '火眼', desc: '炸毛猫塞回的位置对所有人可见' },
-    { id: 'bottom', name: '摸底', desc: '摸牌改从牌堆底部摸' },
-    { id: 'hot', name: '烫手', desc: '每个人的回合一开始就像被甩了一次锅' },
-    { id: 'mute', name: '静默', desc: '不能打「作废」' },
-    { id: 'catsave', name: '急救', desc: '摸到炸毛猫时若无逗猫棒，可打出两张相同的牌代替，炸毛猫随机放回牌堆。每人最多生效一次' },
+    { id: 'nine', name: T('flux.nine.name', '九命'), desc: T('flux.nine.desc', '摸到炸毛猫时若无逗猫棒，大喊「九命」并存活，炸毛猫随机放回牌堆。每人最多生效一次') },
+    { id: 'peektop', name: T('flux.peektop.name', '天眼'), desc: T('flux.peektop.desc', '牌堆第一张牌对所有人可见') },
+    { id: 'exact', name: T('flux.exact.name', '火眼'), desc: T('flux.exact.desc', '炸毛猫塞回的位置对所有人可见') },
+    { id: 'bottom', name: T('flux.bottom.name', '摸底'), desc: T('flux.bottom.desc', '摸牌改从牌堆底部摸') },
+    { id: 'hot', name: T('flux.hot.name', '烫手'), desc: T('flux.hot.desc', '每个人的回合一开始就像被甩了一次锅') },
+    { id: 'mute', name: T('flux.mute.name', '静默'), desc: T('flux.mute.desc', '不能打「作废」') },
+    { id: 'catsave', name: T('flux.catsave.name', '急救'), desc: T('flux.catsave.desc', '摸到炸毛猫时若无逗猫棒，可打出两张相同的牌代替，炸毛猫随机放回牌堆。每人最多生效一次') },
   ]);
   /* 2026-11-15 用户：删掉无关痛痒的——逆行（和「转向」牌重复）拿掉；静音（玩家对战里挺有用）、双猫急救（改成任意一对一样的牌都行，功能牌也算）留着。
    * 逆行的代码留着：老存档里正生效的照常结算 */
@@ -128,12 +144,12 @@
   // 2026-11-18 改名（用户定）：角色名不再用品种名——以前「三花 / 奶牛猫 / 狸花」和猫牌同名、「胖橘」和橘猫牌几乎一样，说起来分不清是牌还是人。
   // id 不变（存档 / 机器猫照旧）
   const ROLES = Object.freeze([
-    { id: 'timid', name: '胆小猫', desc: '被甩锅，先偷看顶上 3 张', once: false },
-    { id: 'fat', name: '贪吃猫', desc: '出讨要，对方要给 2 张', once: false },
-    { id: 'shadow', name: '影子猫', desc: '两张偷牌指不到它', once: false },
-    { id: 'cow', name: '扛锅猫', desc: '被甩锅，只摸 1 张', once: false },
-    { id: 'calico', name: '百搭猫', desc: '杂猫也能凑对、凑三张', once: false },
-    { id: 'tabby', name: '截胡猫', desc: '作废成功，顺走对方一张', once: false },
+    { id: 'timid', name: T('role.timid.name', '胆小猫'), desc: T('role.timid.desc', '被甩锅，先偷看顶上 3 张'), once: false },
+    { id: 'fat', name: T('role.fat.name', '贪吃猫'), desc: T('role.fat.desc', '出讨要，对方要给 2 张'), once: false },
+    { id: 'shadow', name: T('role.shadow.name', '影子猫'), desc: T('role.shadow.desc', '两张偷牌指不到它'), once: false },
+    { id: 'cow', name: T('role.cow.name', '扛锅猫'), desc: T('role.cow.desc', '被甩锅，只摸 1 张'), once: false },
+    { id: 'calico', name: T('role.calico.name', '百搭猫'), desc: T('role.calico.desc', '杂猫也能凑对、凑三张'), once: false },
+    { id: 'tabby', name: T('role.tabby.name', '截胡猫'), desc: T('role.tabby.desc', '作废成功，顺走对方一张'), once: false },
   ]);
   const ROLE_IDS = ROLES.map((r) => r.id);
   const roleOf = (s, seat) => (s.roles ? s.roles[seat] : null);
@@ -949,6 +965,7 @@
   }
 
   return {
+    T, lang,
     BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, isTeam, mateOf, matesOf, teamOf, teamCount, TEAM_FORMS, teamPlayers, rescue, rescueWaiting, closeRescue, ROLES, roleOf, classifyFor, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay, deckQuota,
     kindOf, isCat, catLike, cardName, sortHand, rand, shuffleIn,

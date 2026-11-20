@@ -35,7 +35,7 @@
 
   const K = R.KIND_OF;
   const TIERS = Object.freeze(['easy', 'normal', 'hard']);
-  const TIER_NAMES = Object.freeze({ easy: '入门', normal: '普通', hard: '高手' });
+  const TIER_NAMES = Object.freeze({ easy: R.T('tier.easy.name', '入门'), normal: R.T('tier.normal.name', '普通'), hard: R.T('tier.hard.name', '高手') });
 
   /* ───── 调参结果（交叉熵搜索 + 自博弈，详见 ~/zhamao-rl/REPORT.md） ─────
    * v*        牌「留着有多值钱」（给牌 / 捡牌 / 交换 / 三张点名用），逗猫棒固定 100

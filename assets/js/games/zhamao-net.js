@@ -11,38 +11,39 @@
   const LIVE = true;   // 2026-11-12 后端已部署
   const ENABLED = LIVE || LOCAL || /[?&]zmonline=1\b/.test(location.search);
 
+  const T = (window.ZhamaoRules && window.ZhamaoRules.T) || ((k, zh) => zh);   // 多语言：见 zhamao-rules.js 的 T
   const ERRORS = {
-    room_not_found: '房间不存在或已解散',
-    room_full: '房间已满（座位都是真人）',
-    team_seats: '组队要把每一队的座位都坐满（空位可以加机器猫）',
-    room_in_progress: '这一局已经开始了',
-    wait_game_end: '这一局还在打，先观战，下一局就能坐下',
-    nick_taken_in_room: '这个名字房间里已经有人用了，换一个试试',
-    bad_nick: '名字 1–12 个字，不能有特殊符号',
-    bad_code: '房间号是 4 位数字',
-    need_two: '至少两个人（可以加机器猫）才能开始',
-    seat_taken: '这个座位已经有人了',
-    bad_avatar: '这个头像不能用',
-    host_only: '只有房主能这么做',
-    host_must_sit: '房主不能去观战',
-    room_busy: '房间有点忙，再试一次',
-    not_your_turn: '还没轮到你',
-    not_your_call: '这一下不用你表态',
-    illegal_move: '这一步现在不能这么走',
-    stale: '慢了一步，局面已经变了',
-    on_auto: '托管中，先点自己头像收回来',
-    spectators_full: '观战的人太多了，过一会儿再来',
-    not_in_room: '你现在在观战，下一局坐下才能打',
-    game_not_over: '这一局还没打完',
-    you_are_out: '你已经出局了',
-    muted: '房主把你禁言了',
-    kicked: '房主请你离开了房间',
-    no_player_there: '那个座位上已经没人了',
-    no_game: '这一局已经结束了',
+    room_not_found: T('net.err.room_not_found', '房间不存在或已解散'),
+    room_full: T('net.err.room_full', '房间已满（座位都是真人）'),
+    team_seats: T('net.err.team_seats', '组队要把每一队的座位都坐满（空位可以加机器猫）'),
+    room_in_progress: T('net.err.room_in_progress', '这一局已经开始了'),
+    wait_game_end: T('net.err.wait_game_end', '这一局还在打，先观战，下一局就能坐下'),
+    nick_taken_in_room: T('net.err.nick_taken_in_room', '这个名字房间里已经有人用了，换一个试试'),
+    bad_nick: T('net.err.bad_nick', '名字 1–12 个字，不能有特殊符号'),
+    bad_code: T('net.err.bad_code', '房间号是 4 位数字'),
+    need_two: T('net.err.need_two', '至少两个人（可以加机器猫）才能开始'),
+    seat_taken: T('net.err.seat_taken', '这个座位已经有人了'),
+    bad_avatar: T('net.err.bad_avatar', '这个头像不能用'),
+    host_only: T('net.err.host_only', '只有房主能这么做'),
+    host_must_sit: T('net.err.host_must_sit', '房主不能去观战'),
+    room_busy: T('net.err.room_busy', '房间有点忙，再试一次'),
+    not_your_turn: T('net.err.not_your_turn', '还没轮到你'),
+    not_your_call: T('net.err.not_your_call', '这一下不用你表态'),
+    illegal_move: T('net.err.illegal_move', '这一步现在不能这么走'),
+    stale: T('net.err.stale', '慢了一步，局面已经变了'),
+    on_auto: T('net.err.on_auto', '托管中，先点自己头像收回来'),
+    spectators_full: T('net.err.spectators_full', '观战的人太多了，过一会儿再来'),
+    not_in_room: T('net.err.not_in_room', '你现在在观战，下一局坐下才能打'),
+    game_not_over: T('net.err.game_not_over', '这一局还没打完'),
+    you_are_out: T('net.err.you_are_out', '你已经出局了'),
+    muted: T('net.err.muted', '房主把你禁言了'),
+    kicked: T('net.err.kicked', '房主请你离开了房间'),
+    no_player_there: T('net.err.no_player_there', '那个座位上已经没人了'),
+    no_game: T('net.err.no_game', '这一局已经结束了'),
   };
   function message(err) {
-    if (!err) return '网络出了点问题，再试一次';
-    return ERRORS[err.error] || (err.status === 429 ? '操作太快了，歇一下再试' : '网络出了点问题，再试一次');
+    if (!err) return T('net.err.generic', '网络出了点问题，再试一次');
+    return ERRORS[err.error] || (err.status === 429 ? T('net.err.too_fast', '操作太快了，歇一下再试') : T('net.err.generic', '网络出了点问题，再试一次'));
   }
 
   /* 网络快慢（2026-11-14 国内朋友：作废常常来不及点）：量每个动作请求一来一回要多久（长轮询会挂着等，不算），

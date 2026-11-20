@@ -7,11 +7,12 @@
   if (!GS) return;
 
   const KEYS = ['fish', 'yarn', 'catnip', 'spray', 'paw', 'boom'];
-  const NAMES = { fish: '小鱼干', yarn: '毛线球', catnip: '猫薄荷', spray: '喷水壶', paw: '猫爪拍拍', boom: '炸毛猫' };
-  const LINES = ['大家好呀', '手下留情', '别甩给我！', '牌堆顶有猫，我闻到了', '谁塞的猫？站出来', '好险好险', '我有逗猫棒，不怕', '这把稳了'];
+  const T = (window.ZhamaoRules && window.ZhamaoRules.T) || ((k, zh) => zh);   // 多语言：见 zhamao-rules.js 的 T
+  const NAMES = { fish: T('prop.fish.name', '小鱼干'), yarn: T('prop.yarn.name', '毛线球'), catnip: T('prop.catnip.name', '猫薄荷'), spray: T('prop.spray.name', '喷水壶'), paw: T('prop.paw.name', '猫爪拍拍'), boom: T('card.boom.name', '炸毛猫') };
+  const LINES = [T('chat.line.1', '大家好呀'), T('chat.line.2', '手下留情'), T('chat.line.3', '别甩给我！'), T('chat.line.4', '牌堆顶有猫，我闻到了'), T('chat.line.5', '谁塞的猫？站出来'), T('chat.line.6', '好险好险'), T('chat.line.7', '我有逗猫棒，不怕'), T('chat.line.8', '这把稳了')];
   const REPLY = {
-    fish: ['谢谢小鱼干！', '好香好香'], yarn: ['别闹，我在想牌', '毛线缠住了……'], catnip: ['有点晕乎乎……', '再来一点'],
-    spray: ['别喷了！', '猫最怕水啊！'], paw: ['过奖过奖', '击个掌'], boom: ['吓死我了！', '这只送还给你'],
+    fish: [T('chat.reply.fish.1', '谢谢小鱼干！'), T('chat.reply.fish.2', '好香好香')], yarn: [T('chat.reply.yarn.1', '别闹，我在想牌'), T('chat.reply.yarn.2', '毛线缠住了……')], catnip: [T('chat.reply.catnip.1', '有点晕乎乎……'), T('chat.reply.catnip.2', '再来一点')],
+    spray: [T('chat.reply.spray.1', '别喷了！'), T('chat.reply.spray.2', '猫最怕水啊！')], paw: [T('chat.reply.paw.1', '过奖过奖'), T('chat.reply.paw.2', '击个掌')], boom: [T('chat.reply.boom.1', '吓死我了！'), T('chat.reply.boom.2', '这只送还给你')],
   };
   const SPIN = { fish: 30, yarn: 540, catnip: 0, spray: 0, paw: 0, boom: 360 };
 
