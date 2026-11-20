@@ -42,6 +42,10 @@
     if (el.dataset.i18nPh) el.setAttribute('placeholder', T(el.dataset.i18nPh, el.getAttribute('placeholder')));
   });
   Object.assign(els.app.dataset, { uivTurns: 'hat', uivAtk: 'b', uivRename: 'slide', uivNames: 'cut' });
+  /* 预览开关（2026-11-20，给用户挑版本用；线上默认都不开，只认网址参数）：
+   *   ?zmskip=a|b|c   跳过开场发牌：甲 直接切到发完 / 乙 点一下剩下的 5 倍速放完 / 丙 宣纸色一闪、底下换成发完
+   *   ?zmkits=fan     开局炸毛猫：只摆在桌心范围、放不下就叠成扇形（默认 = 现在的一长排） */
+  const LAB = (() => { const o = {}; try { const q = new URLSearchParams(location.search); ['skip', 'kits', 'tut', 'sos', 'favor'].forEach((k) => { const v = q.get('zm' + k); if (v) o[k] = v; }); } catch (_) { /* */ } return o; })();
 
   const snd = (name, delay) => { if (window.ZhamaoAudio) window.ZhamaoAudio.sfx(name, delay); };
   const fx = window.ZhamaoFx.create(els.fly, { sound: snd, speed: () => (game && game.turbo ? 5 : 1) });   // 快进时特效减量、清理也按倍速（见 zhamao-fx.js）
@@ -1409,6 +1413,21 @@
     }
   }
 
+  /* 组队求救的三句：喊救 / 别救我 / 接着（递逗猫棒）。默认 = 原样（紫 / 红底大字）。
+   * 预览 ?zmsos=a：还是字，但换成救援那套颜色——救我 = 朱红、接着 = 暖金（逗猫棒的光）、别救我 = 灰纸；
+   *      ?zmsos=b：不写字，只冒图标——救我 = 朱红底炸毛猫、接着 = 暖金底逗猫棒、别救我 = 灰底逗猫棒划一道 */
+  function rescueBubble(seat, kind) {
+    const ms = kind === 'catch' ? 1600 : 2200;
+    const text = kind === 'help' ? T('ui.rescue.help', '救我！') : kind === 'catch' ? T('ui.rescue.catch', '接着！') : T('ui.rescue.refuse', '别救我！');
+    if (LAB.sos === 'a' || LAB.sos === 'b') {
+      const b = LAB.sos === 'b'
+        ? bubble(seat, '', { icon: kind === 'help' ? R.BOOM : R.DEFUSE, ms, cls: 'is-sos-' + kind })
+        : bubble(seat, text, { loud: true, ms, cls: 'is-sos-' + kind });
+      if (b && LAB.sos === 'b') b.setAttribute('aria-label', text);
+      return b;
+    }
+    return kind === 'help' ? bubble(seat, text, { loud: true, alarm: true, ms }) : bubble(seat, text, { loud: true, ms });
+  }
   function bubble(seat, text, o) {
     o = Object.assign({ ms: 1700, loud: false, think: false }, o);
     const box = seatEl(seat);
@@ -1753,11 +1772,11 @@
     game.rescueAnswered = false;
     // 「别救我」：只有同队知道（联机时对手收到的事件里没有 refused）——他喊「别救我！」，谁都不冒省略号；对手那边照常是喊救、队友想了想
     if (e.refused && (e.for === 0 || isMate(e.for))) {
-      bubble(e.for, T('ui.rescue.refuse', '别救我！'), { loud: true, ms: 2200 });
+      rescueBubble(e.for, 'refuse');
       await wait(ms(450));
       return;
     }
-    bubble(e.for, T('ui.rescue.help', '救我！'), { loud: true, alarm: true, ms: 2200 });
+    rescueBubble(e.for, 'help');
     // 2026-11-19 用户：喊「救我！」的同一刻，所有活着的队友（包括我自己）一起冒省略号——醒目一点（金边、大一号的点）
     const mates = e.mates || (e.by != null ? [e.by] : []);   // 老服务器只发 by
     mates.forEach((k) => bubble(k, '', { think: true, ms: 60000, cls: 'is-sos', sos: true }));
@@ -2016,7 +2035,7 @@
       if (nopeAutoKey !== key) {
         nopeAutoKey = key;
         nopeLift.clear();
-        const first = hand.find((id) => R.KIND_OF[id] === R.NOPE);
+        const first = favorAsk() ? null : hand.find((id) => R.KIND_OF[id] === R.NOPE);   // 预览合一：手牌要拿来挑，不替我抬作废
         if (first != null) nopeLift.add(first);
       }
     }
@@ -2033,7 +2052,7 @@
       c.addEventListener('click', (e) => { e.stopPropagation(); onCardTap(+c.dataset.id, c); });
     });
     els.hand.querySelectorAll('[data-watch]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); watchFromOut(+b.dataset.watch); }));
-    els.hand.classList.toggle('is-giving', mode === 'give');
+    els.hand.classList.toggle('is-giving', mode === 'give' || favorLook());
     els.hand.classList.toggle('is-myturn', myTurnToAct() && !mode);
     layoutHand();
     if (prev.size && !fx.reduce()) {
@@ -2107,7 +2126,8 @@
     if (nopeHot && !lastNopeHot) snd('hiss');
     lastNopeHot = nopeHot;
     // 被索要、轮到我挑牌（2026-11-15 用户挑「给3」的手牌区、不要文字）：整排手牌抬起描粉边、我的头像粉圈、「给牌」粉色、桌沿那条连线变粉
-    const giving = !!(mode === 'give' && s.phase === 'give' && s.give && s.give.from === 0);
+    const fa = favorAsk();
+    const giving = !!(mode === 'give' && s.phase === 'give' && s.give && s.give.from === 0) || favorLook();
     if (giving && !els.app.classList.contains('is-giving')) snd('ask');
     els.app.classList.toggle('is-giving', giving);
     const lk = els.table && els.table.querySelector(':scope > .zm-rim .links');
@@ -2136,6 +2156,7 @@
       if (two) els.playBtn.innerHTML = T('ui.btn.give', '给牌') + '<b class="zm-xn">×' + (gv.left > 1 ? 2 : 1) + '</b>'; else els.playBtn.textContent = T('ui.btn.give', '给牌');
       els.playBtn.disabled = selected.length !== 1;
     }
+    else if (fa) { els.drawBtn.hidden = true; els.playBtn.textContent = T('ui.btn.give', '给牌'); els.playBtn.disabled = !(selected.length === 1 && R.KIND_OF[selected[0]] !== R.NOPE); }   // 预览合一：作废 · 给牌 两个键
     else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = T('ui.cancel', '取消'); }
     else if (myTurnToAct()) {
       els.drawBtn.disabled = false;
@@ -2191,6 +2212,15 @@
   const nopeHeld = () => nopeHoldUntil && performance.now() < nopeHoldUntil;
   const lastActorSeat = (s) => (s.pending.nopes.length ? s.pending.nopes[s.pending.nopes.length - 1].seat : s.pending.by);
   const nopeLift = new Set();   // 反应窗里点起来的作废（只是抬着，不会打出去）
+  /* 预览 ?zmfavor=one（2026-11-20，只做单机）：别人索要我、我手里有作废——不再先问「作废吗」、点掉再挑牌，合成一步：
+   * 一开始就是挑牌的样子（整排手牌抬起描粉边、「给牌」粉色），手里的作废照旧发紫光，作废键也在。点作废牌 / 作废键 = 作废；
+   * 挑一张别的牌点「给牌」= 不作废、直接给这张（反应窗一关就飞过去，不再停一下等我挑）。导火索烧完没动 = 照常进挑牌，样子不变 */
+  // 已经挑好、等窗口关：样子保持挑牌（粉边、那张抬着），别闪回一下普通手牌
+  const favorLook = () => favorAsk() || !!(game && game.favorPre != null && (game.state.phase === 'react' || game.state.phase === 'give'));
+  function favorAsk() {
+    const s = game && game.state, p = s && s.pending;
+    return !!(LAB.favor === 'one' && game && !game.online && !game.tutorial && s.phase === 'react' && reactOpen && p && p.type === R.FAVOR && p.target === 0 && !p.nopes.length && R.canNope(s, 0) && !(R.roleOf && R.roleOf(s, p.by) === 'fat'));
+  }
   let nopeAutoKey = '';          // 哪个反应窗已经替我自动抬过作废（同一窗里我放下了就不再抬）
   function targetOf(p) {
     if (p.target >= 0) return p.target;
@@ -2509,7 +2539,8 @@
     game.povWant = null;
     if (wantPov !== (game.pov || 0)) { switchPov(wantPov); return; }
     const s = game.state;
-    const H = game.spectator ? -1 : 0;   // 底下那家是我自己（-1：底下坐的是被看的机器猫，它的每一步都交给机器猫）
+    const H = game.spectator ? -1 : 0;   // 底下那家是我自己
+    if (game.favorPre != null && s.phase !== 'react' && s.phase !== 'give') { game.favorPre = null; selected = []; }   // 预览合一：索要被别人作废了，挑好的那张作罢（-1：底下坐的是被看的机器猫，它的每一步都交给机器猫）
     save();
     clearReactTimer();
     reactOpen = false;
@@ -2531,7 +2562,8 @@
         break;
       case 'react': reactPhase(); break;
       case 'give':
-        if (s.give.from === H) { busy = false; mode = 'give'; selected = []; renderHand(); renderBand(); idle(); }
+        if (s.give.from === H && game.favorPre != null && s.hands[0].indexOf(game.favorPre) >= 0) { const id = game.favorPre; game.favorPre = null; selected = []; apply(0, { type: 'give', card: id }); }   // 预览合一：刚才已经挑好了
+        else if (s.give.from === H) { game.favorPre = null; busy = false; mode = 'give'; selected = []; renderHand(); renderBand(); idle(); }
         else schedule(pace().bot, () => apply(s.give.from, decideBot(s.give.from)));
         break;
       case 'pick':
@@ -3980,7 +4012,7 @@
     const who = e.from != null ? e.from : e.seat;   // 组队：队友出的逗猫棒从队友那儿飞出来
     const src = who === 0 ? handRectOf(e.card) : avPoint(who);
     if (who === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[who] -= 1; renderSeat(who); }
-    if (e.rescue) bubble(who, T('ui.rescue.catch', '接着！'), { loud: true, ms: 1600 });
+    if (e.rescue) rescueBubble(who, 'catch');
     return src;
   }
   async function defuseToDiscard(e, t, from, w) {
@@ -4418,6 +4450,8 @@
     // 2026-11-17 拟人模拟截图：手里两张作废时两张都在发紫光上下跳，点没抬起的那张只是换着抬，像没反应——作废牌都一样，问我的时候点哪张都直接打出
     if (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE) { if (nopeHeld()) { shake(node); return; } pressNope(); return; }
     nopeLift.clear();
+    if (game.favorPre != null) return;   // 预览合一：已经点了给牌，等它飞
+    if (favorAsk()) { selected = selected[0] === id ? [] : [id]; snd('tap'); renderHand({ flip: false }); renderBand(); return; }
     if (mode === 'give') { selected = selected[0] === id ? [] : [id]; snd('tap'); renderHand(); renderBand(); return; }
     if (mode === 'target') { cancelTarget(); }
     if (!myTurnToAct()) { shake(node); return; }
@@ -4442,6 +4476,7 @@
   }
   function onPlay() {
     const s = game.state;
+    if (favorAsk()) { if (selected.length !== 1) return; game.favorPre = selected[0]; passReact(); return; }   // 预览合一：先记下给哪张，窗口一关直接给
     if (mode === 'give') {
       if (selected.length !== 1) return;
       if (tut && tut.allow && !tut.allow({ type: 'give', card: selected[0] })) { shake(els.playBtn); return; }
@@ -4715,18 +4750,24 @@
     if (skipped()) return;
     // 先把炸毛猫一只只从牌堆里抽出来、翻开、摆在牌堆上方一排（谁也不拿，等发完牌再塞回去）
     const kf = kits.length > 4 ? 0.6 : 1;   // 人多（炸毛猫多）时一只只摆出来 / 塞回去都快一点，整段发牌别拖太久
-    const u0 = U(), pu0 = PU(), kw = Math.min(pu0 * 0.82, (frameX().r - frameX().l) / (kits.length * 1.12));   // 人多（炸毛猫多）时排得下
+    const fanKits = LAB.kits === 'fan';
+    const u0 = U(), pu0 = PU(), kw = fanKits ? pu0 * 0.82 : Math.min(pu0 * 0.82, (frameX().r - frameX().l) / (kits.length * 1.12));   // 人多（炸毛猫多）时排得下
     const pr = els.deck.parentElement.getBoundingClientRect(), dtop = deckTopRect();
+    // 预览 ?zmkits=fan：只在桌心这块（不伸到两边头像那儿）；放不下就一张压一张、微微摊成扇形，牌不缩小
+    const ccr = els.center.getBoundingClientRect(), availW = Math.max(kw, ccr.width - 12);
+    const kGap = fanKits ? (kits.length > 1 ? Math.min(kw * 1.12, (availW - kw) / (kits.length - 1)) : 0) : kw * 1.12;
     const aside = [];
     for (let i = 0; i < kits.length; i++) {
       if (skipped()) { aside.forEach((x) => x && x.remove()); return; }
-      const half = kits.length * kw * 0.56 + 4, fr = frameX(), cx0 = Math.min(Math.max(pr.left + pr.width / 2, fr.l + half), fr.r - half);
-      const spot = { x: cx0 + (i - (kits.length - 1) / 2) * kw * 1.12, y: dtop.top - pu0 * 0.78 };
+      const mid = i - (kits.length - 1) / 2;
+      const half = fanKits ? ((kits.length - 1) * kGap + kw) / 2 + 2 : kits.length * kw * 0.56 + 4;
+      const fr = fanKits ? { l: ccr.left + 6, r: ccr.right - 6 } : frameX(), cx0 = Math.min(Math.max(pr.left + pr.width / 2, fr.l + half), fr.r - half);
+      const spot = { x: cx0 + mid * kGap, y: dtop.top - pu0 * 0.78 + (fanKits && kGap < kw ? mid * mid * 1.6 : 0) };
       const from = deckTopRect();
       ov.deckSize -= 1; ov.kittens -= 1;
       renderPiles();
       snd('hiss', 120);
-      const node = await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), flip: 'up', flipAt: 0.25, from, to: spot, w: kw, s0: pu0 / kw, s1: 1, r0: 0, r1: (i % 2 ? 6 : -6), dur: 380 * kf, lift: 30, keep: true, land: false });
+      const node = await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), flip: 'up', flipAt: 0.25, from, to: spot, w: kw, s0: pu0 / kw, s1: 1, r0: 0, r1: fanKits && kGap < kw ? mid * 5 : (i % 2 ? 6 : -6), dur: 380 * kf, lift: 30, keep: true, land: false });
       if (node) node.classList.add('zm-angry');
       aside.push(node);
       fx.burst(spot.x, spot.y, { n: 6, shapes: ['fur'], colors: FUR, radius: kw * 0.7, size: [5, 11], alignOut: true, life: 500, pattern: 'ring' });
@@ -4806,11 +4847,31 @@
     const a = avPoint(s.turn);
     fx.ring(a.x, a.y, { color: '#b4392c', size: 120, width: 3, dur: 560 });
   }
+  /* 点桌面跳过开场（预览 ?zmskip=）：a / 不带 = 直接切到发完；b = 剩下的 5 倍速放完（抽角色那一下照样等我点）；c = 宣纸色一闪，底下换成发完 */
+  function tapSkipDeal() {
+    if (LAB.skip === 'b') { if (!game.dealTurbo) { game.dealTurbo = true; setTurbo(true); } return; }
+    if (LAB.skip === 'c' && !fx.reduce()) {
+      if (els.app.querySelector('.zm-skipveil')) return;
+      const v = document.createElement('div');
+      v.className = 'zm-skipveil';
+      els.app.appendChild(v);
+      v.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 130, easing: 'ease-out', fill: 'forwards' }).finished.catch(() => {}).then(() => {
+        skipDeal();
+        requestAnimationFrame(() => requestAnimationFrame(() => v.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {}).then(() => v.remove())));
+      });
+      return;
+    }
+    skipDeal();
+  }
   function skipDeal() {
     if (!game || !game.dealing) return;
     game.dealing = false;
     token++;
     wipeFx();
+    // 2026-11-20 修：跳过时牌堆空一会儿——洗牌动画给牌堆加的 is-shuffling、抽角色时藏起来的牌堆 / 弃牌堆，要等那段动画自己放完才撤；现在当场撤掉
+    els.deck.classList.remove('is-shuffling');
+    els.deck.style.visibility = ''; els.discard.style.visibility = '';
+    if (game.dealTurbo) { game.dealTurbo = false; setTurbo(false); }
     release();
     renderAll();
     if (game.roleHide) game.roleHide = null;   // 抽角色时点了跳过：直接全亮出来
@@ -4821,6 +4882,7 @@
     const t = token;
     busy = true;
     await dealIntro(t);
+    if (game && game.dealTurbo) { game.dealTurbo = false; setTurbo(false); }   // 预览乙：快进只管开场这一段
     if (t !== token) return;
     game.dealing = false;
     release();
@@ -6430,6 +6492,7 @@
     sheetMask.style.pointerEvents = '';
     clearSheetFx();
     Object.keys(sheets).forEach((k) => { sheets[k].hidden = k !== kind; });
+    if (kind === 'solo') syncTutTile();
     sheet = sheets[kind];
     sheetMask.dataset.kind = kind;
     coverResume();
@@ -6474,15 +6537,48 @@
     sh.addEventListener('touchend', (e) => { if (dragged) { dragged = false; e.preventDefault(); } }, { passive: false });
   });
 
+  /* 第一次点「单机」：问不问走新手教程（2026-11-20 用户：原来那个纯文字框不好看，要重新设计）。默认 = 原样（标题 + 一句话 + 两个按钮）。预览：
+   *   ?zmtut=a  甲 插画弹层：上面主页那只炸毛猫 + 挥着的逗猫棒，下面两张「牌」当按钮：直接开（爪印）/ 跟我学（翻开的书），不写说明句
+   *   ?zmtut=b  乙 不弹窗：单机设置单里「开始」上面多一张教程卡，第一次玩时一直发着暖金光、轻轻起伏；点开始就直接开局，学过了这张卡就没了
+   *   ?zmtut=c  丙 不问：第一次点开始直接进教程第一关，右上角「跳过教程」随时出来 */
   function soloStart() {
     let seen = false;
     try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { seen = true; }
-    if (!seen && TUT) {
-      openDialog('<h2>' + T('tut.first.title', '第一次玩？') + '</h2><p>' + T('tut.first.body', '先花两分钟走一遍新手教程，跟着做就会了。') + '</p><div class="zm-actions"><button type="button" class="zm-btn" data-skip>' + T('tut.first.skip', '直接开始') + '</button><button type="button" class="zm-btn zm-btn-primary" data-tut data-focus>' + T('tut.first.go', '看教程') + '</button></div>', (d) => {
+    if (seen || !TUT || LAB.tut === 'b') { newGame(); return; }
+    if (LAB.tut === 'c') { startTutorial(); return; }
+    const skip = () => { try { localStorage.setItem(TUT_KEY, '1'); } catch (_) { /* */ } newGame(); };
+    if (LAB.tut === 'a') {
+      const book = '<svg viewBox="0 0 24 24" aria-hidden="true">' + MENU_ICONS.tutorial + '</svg>';
+      openDialog('<div class="zm-tutask-art">' + ART.hero() + '</div>' +
+        '<div class="zm-tutask-cards">' +
+          '<button type="button" class="zm-tutask-card" data-skip><span class="pic is-paw"><svg viewBox="0 0 24 24" aria-hidden="true">' + ART.pawPrint() + '</svg></span><b>' + T('tut.first.skipShort', '直接开') + '</b></button>' +
+          '<button type="button" class="zm-tutask-card is-go" data-tut data-focus><span class="pic is-book">' + book + '</span><b>' + T('tut.first.goShort', '跟我学') + '</b></button>' +
+        '</div>', (d) => {
+        d.classList.add('is-tutask');
         d.querySelector('[data-tut]').addEventListener('click', () => startTutorial());
-        d.querySelector('[data-skip]').addEventListener('click', () => { try { localStorage.setItem(TUT_KEY, '1'); } catch (_) { /* */ } newGame(); });
+        d.querySelector('[data-skip]').addEventListener('click', skip);
       });
-    } else newGame();
+      return;
+    }
+    openDialog('<h2>' + T('tut.first.title', '第一次玩？') + '</h2><p>' + T('tut.first.body', '先花两分钟走一遍新手教程，跟着做就会了。') + '</p><div class="zm-actions"><button type="button" class="zm-btn" data-skip>' + T('tut.first.skip', '直接开始') + '</button><button type="button" class="zm-btn zm-btn-primary" data-tut data-focus>' + T('tut.first.go', '看教程') + '</button></div>', (d) => {
+      d.querySelector('[data-tut]').addEventListener('click', () => startTutorial());
+      d.querySelector('[data-skip]').addEventListener('click', skip);
+    });
+  }
+  // 预览乙：单机设置单里的教程卡（学过了就不出）
+  function syncTutTile() {
+    if (LAB.tut !== 'b' || !TUT) return;
+    let seen = false;
+    try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { seen = true; }
+    let tile = sheets.solo.querySelector('.zm-tut-tile');
+    if (seen) { if (tile) tile.remove(); return; }
+    if (tile) return;
+    tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'zm-tut-tile';
+    tile.innerHTML = '<span class="pic"><svg viewBox="0 0 24 24" aria-hidden="true">' + MENU_ICONS.tutorial + '</svg></span><b>' + T('ui.tutorial', '新手教程') + '</b><span class="go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 5.5 15.5 12 9 18.5"/></svg></span>';
+    tile.addEventListener('click', (e) => { e.stopPropagation(); startTutorial(); });
+    sheets.solo.insertBefore(tile, sheets.solo.querySelector('[data-cover="start"]'));
   }
   // 主菜单两步：load（插画 + 大字 + 进度条）→ main（玩法牌 + 单机 / 联机；点了各自升起设置单）
   function coverStep(k) {
@@ -8528,7 +8624,7 @@
   });
   // 点空白处：发牌中=跳过发牌；否则取消选牌 / 取消点人
   els.table.addEventListener('click', (e) => {
-    if (game && game.dealing && !game.tutorial && !game.online) { skipDeal(); return; }
+    if (game && game.dealing && !game.tutorial && !game.online) { tapSkipDeal(); return; }
     if (e.target.closest('.zm-card, .zm-btn, .zm-seat, .zm-tool, .zm-coach')) return;
     if (mode === 'target') { cancelTarget(); return; }
     if (selected.length && mode !== 'give') { selected = []; renderHand(); renderBand(); }
