@@ -1855,9 +1855,6 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-pause-by > svg circle { fill: var(--zm-ink); stroke: #fffdf8; stroke-width: 2; }
 .zm-pause-by > svg rect { fill: var(--zm-paper); }
 
-/* 预览 ?zmskip=c：跳过开场时宣纸色一闪 */
-.zm-skipveil { position: absolute; inset: 0; z-index: 60; background: var(--zm-paper); pointer-events: none; opacity: 0; }
-
 /* 预览 ?zmsos=a / b：组队求救三句换成救援那套颜色（2026-11-20） */
 .zm-bubble.is-sos-help { background: #c8463a; border-color: #9a2f25; color: #fff; }
 .zm-bubble.is-sos-help::after { border-color: #9a2f25; }

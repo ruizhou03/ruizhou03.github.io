@@ -43,9 +43,8 @@
   });
   Object.assign(els.app.dataset, { uivTurns: 'hat', uivAtk: 'b', uivRename: 'slide', uivNames: 'cut' });
   /* 预览开关（2026-11-20，给用户挑版本用；线上默认都不开，只认网址参数）：
-   *   ?zmskip=a|b|c   跳过开场发牌：甲 直接切到发完 / 乙 点一下剩下的 5 倍速放完 / 丙 宣纸色一闪、底下换成发完
-   *   ?zmkits=fan     开局炸毛猫：只摆在桌心范围、放不下就叠成扇形（默认 = 现在的一长排） */
-  const LAB = (() => { const o = {}; try { const q = new URLSearchParams(location.search); ['skip', 'kits', 'tut', 'sos', 'favor'].forEach((k) => { const v = q.get('zm' + k); if (v) o[k] = v; }); } catch (_) { /* */ } return o; })();
+   *   ?zmtut=a|b|c / ?zmsos=a|b / ?zmfavor=one（见各处）。跳过开场（定甲）、开局炸毛猫扇形（批准）2026-11-20 已转正 */
+  const LAB = (() => { const o = {}; try { const q = new URLSearchParams(location.search); ['tut', 'sos', 'favor'].forEach((k) => { const v = q.get('zm' + k); if (v) o[k] = v; }); } catch (_) { /* */ } return o; })();
 
   const snd = (name, delay) => { if (window.ZhamaoAudio) window.ZhamaoAudio.sfx(name, delay); };
   const fx = window.ZhamaoFx.create(els.fly, { sound: snd, speed: () => (game && game.turbo ? 5 : 1) });   // 快进时特效减量、清理也按倍速（见 zhamao-fx.js）
@@ -4750,19 +4749,34 @@
     if (skipped()) return;
     // 先把炸毛猫一只只从牌堆里抽出来、翻开、摆在牌堆上方一排（谁也不拿，等发完牌再塞回去）
     const kf = kits.length > 4 ? 0.6 : 1;   // 人多（炸毛猫多）时一只只摆出来 / 塞回去都快一点，整段发牌别拖太久
-    const fanKits = LAB.kits === 'fan';
+    const fanKits = true;   // 2026-11-20 用户批准：只在桌心摆、放不下叠成扇形（以前一长排铺满桌宽，人多时挡住两侧靠上的头像）
     const u0 = U(), pu0 = PU(), kw = fanKits ? pu0 * 0.82 : Math.min(pu0 * 0.82, (frameX().r - frameX().l) / (kits.length * 1.12));   // 人多（炸毛猫多）时排得下
     const pr = els.deck.parentElement.getBoundingClientRect(), dtop = deckTopRect();
-    // 预览 ?zmkits=fan：只在桌心这块（不伸到两边头像那儿）；放不下就一张压一张、微微摊成扇形，牌不缩小
-    const ccr = els.center.getBoundingClientRect(), availW = Math.max(kw, ccr.width - 12);
+    // 摆在哪（2026-11-20 用户批准扇形）：一排的左右边界 = 和这一排同高的头像（含名字、手牌数）之间——竖屏时桌心是整宽的，只按桌心量会照样压住两侧靠上的头像。
+    // 两个候选：甲 牌堆上方（原来的位置）；乙 牌堆右边、和牌堆同高（横屏时上方那条正好是顶边一排头像，挤不下）。哪个放得开挑哪个
+    const ccr0 = els.center.getBoundingClientRect(), rowH = kw * 1.4 + 16, dr = els.deck.getBoundingClientRect();
+    const bandOf = (y, l, r) => {
+      for (const box of allSeatEls()) {
+        const b = box.getBoundingClientRect();
+        if (!b.width || b.bottom < y - rowH / 2 || b.top > y + rowH / 2) continue;
+        if (b.right <= l + 2 || b.left >= r - 2) continue;
+        if (b.left + b.width / 2 < (l + r) / 2) l = Math.max(l, b.right + 4); else r = Math.min(r, b.left - 4);
+      }
+      return { y, left: l, right: r, width: Math.max(0, r - l) };
+    };
+    const above = bandOf(dtop.top - pu0 * 0.78, ccr0.left, ccr0.right), beside = bandOf(dr.top + dr.height / 2, dr.right + 14, ccr0.right);
+    const need = kits.length * kw * 1.12;
+    const ccr = above.width >= need || above.width >= beside.width ? above : beside;
+    const rowY = ccr.y, rowMid = ccr === above ? pr.left + pr.width / 2 : (ccr.left + ccr.right) / 2;
+    const availW = Math.max(kw, ccr.width - 12);
     const kGap = fanKits ? (kits.length > 1 ? Math.min(kw * 1.12, (availW - kw) / (kits.length - 1)) : 0) : kw * 1.12;
     const aside = [];
     for (let i = 0; i < kits.length; i++) {
       if (skipped()) { aside.forEach((x) => x && x.remove()); return; }
       const mid = i - (kits.length - 1) / 2;
       const half = fanKits ? ((kits.length - 1) * kGap + kw) / 2 + 2 : kits.length * kw * 0.56 + 4;
-      const fr = fanKits ? { l: ccr.left + 6, r: ccr.right - 6 } : frameX(), cx0 = Math.min(Math.max(pr.left + pr.width / 2, fr.l + half), fr.r - half);
-      const spot = { x: cx0 + mid * kGap, y: dtop.top - pu0 * 0.78 + (fanKits && kGap < kw ? mid * mid * 1.6 : 0) };
+      const fr = fanKits ? { l: ccr.left + 6, r: ccr.right - 6 } : frameX(), cx0 = Math.min(Math.max(rowMid, fr.l + half), fr.r - half);
+      const spot = { x: cx0 + mid * kGap, y: rowY + (fanKits && kGap < kw ? mid * mid * 1.6 : 0) };
       const from = deckTopRect();
       ov.deckSize -= 1; ov.kittens -= 1;
       renderPiles();
@@ -4847,22 +4861,6 @@
     const a = avPoint(s.turn);
     fx.ring(a.x, a.y, { color: '#b4392c', size: 120, width: 3, dur: 560 });
   }
-  /* 点桌面跳过开场（预览 ?zmskip=）：a / 不带 = 直接切到发完；b = 剩下的 5 倍速放完（抽角色那一下照样等我点）；c = 宣纸色一闪，底下换成发完 */
-  function tapSkipDeal() {
-    if (LAB.skip === 'b') { if (!game.dealTurbo) { game.dealTurbo = true; setTurbo(true); } return; }
-    if (LAB.skip === 'c' && !fx.reduce()) {
-      if (els.app.querySelector('.zm-skipveil')) return;
-      const v = document.createElement('div');
-      v.className = 'zm-skipveil';
-      els.app.appendChild(v);
-      v.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 130, easing: 'ease-out', fill: 'forwards' }).finished.catch(() => {}).then(() => {
-        skipDeal();
-        requestAnimationFrame(() => requestAnimationFrame(() => v.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {}).then(() => v.remove())));
-      });
-      return;
-    }
-    skipDeal();
-  }
   function skipDeal() {
     if (!game || !game.dealing) return;
     game.dealing = false;
@@ -4871,7 +4869,6 @@
     // 2026-11-20 修：跳过时牌堆空一会儿——洗牌动画给牌堆加的 is-shuffling、抽角色时藏起来的牌堆 / 弃牌堆，要等那段动画自己放完才撤；现在当场撤掉
     els.deck.classList.remove('is-shuffling');
     els.deck.style.visibility = ''; els.discard.style.visibility = '';
-    if (game.dealTurbo) { game.dealTurbo = false; setTurbo(false); }
     release();
     renderAll();
     if (game.roleHide) game.roleHide = null;   // 抽角色时点了跳过：直接全亮出来
@@ -4882,7 +4879,6 @@
     const t = token;
     busy = true;
     await dealIntro(t);
-    if (game && game.dealTurbo) { game.dealTurbo = false; setTurbo(false); }   // 预览乙：快进只管开场这一段
     if (t !== token) return;
     game.dealing = false;
     release();
@@ -8624,7 +8620,7 @@
   });
   // 点空白处：发牌中=跳过发牌；否则取消选牌 / 取消点人
   els.table.addEventListener('click', (e) => {
-    if (game && game.dealing && !game.tutorial && !game.online) { tapSkipDeal(); return; }
+    if (game && game.dealing && !game.tutorial && !game.online) { skipDeal(); return; }   // 2026-11-20 用户在三版里挑甲：直接切到发完
     if (e.target.closest('.zm-card, .zm-btn, .zm-seat, .zm-tool, .zm-coach')) return;
     if (mode === 'target') { cancelTarget(); return; }
     if (selected.length && mode !== 'give') { selected = []; renderHand(); renderBand(); }
