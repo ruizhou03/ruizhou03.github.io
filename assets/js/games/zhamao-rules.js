@@ -296,7 +296,7 @@
     state.removed = booms.slice(n - 1).concat(defuses.slice(extra), swaps.slice(swapIn.length), unused); // 这局不用的，收进盒子
 
     state.turn = (rand(state) * n) | 0;
-    if (rules.mode === 'team') state.teams = seatTeams(state, rules);
+    if (rules.mode === 'team') { state.teams = seatTeams(state, rules); state.noHelp = Array(n).fill(false); }   // 组队「别救我」开关（2026-11-19 用户），每局默认都是可以救
     turnStarts(state, null);
     return state;
   }
@@ -326,7 +326,7 @@
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
       winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
       flux: s.flux || null, fluxDeck: (s.fluxDeck || []).slice(), nineUsed: s.nineUsed ? s.nineUsed.slice() : null, saveUsed: s.saveUsed ? s.saveUsed.slice() : null,
-      rescue: s.rescue ? (rescueOf(s), Object.assign({}, s.rescue, { mates: s.rescue.mates.slice(), wait: s.rescue.wait.slice() })) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1, teams: s.teams ? s.teams.slice() : null,
+      rescue: s.rescue ? (rescueOf(s), Object.assign({}, s.rescue, { mates: s.rescue.mates.slice(), wait: s.rescue.wait.slice() })) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1, teams: s.teams ? s.teams.slice() : null, noHelp: s.noHelp ? s.noHelp.slice() : null,
       roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null, cowCut: s.cowCut != null ? s.cowCut : -1, hotGiven: s.hotGiven != null ? s.hotGiven : -1,
       memo: s.memo.map((m) => ({ deck: m.deck.slice(), hands: m.hands.map((h) => h.slice()) })),
     };
@@ -783,11 +783,15 @@
     // 当众的只有「他喊救了、哪几个队友在想」——不管队友手里有没有逗猫棒都一样（以前只在有的时候才问，等于说出「他队友有逗猫棒」）。
     // 真正弹窗问的只是手里有逗猫棒的队友（wait，私密）；不救也不公开。都不救 / 没人有 → 由驾驶的一方（单机网页 / 联机服务器）
     // 等够一段固定的「想一想」再 closeRescue，所以没人有和有人不肯看起来一样
+    // 「别救我」（2026-11-19 用户）：他事先关了求救——谁都不问（wait 空），照样走一遍求救流程、等够「想一想」再出局。
+    // 只有同队知道是他自己不要救（refused 只发给同队，网页演「别救我！」）；对手看到的仍是喊救、队友想了想、没救成
     const mates = matesOf(s, seat).filter((k) => s.alive[k]);
     if (mates.length) {
+      const refused = !!(s.noHelp && s.noHelp[seat]);
       s.phase = 'rescue';
-      s.rescue = { for: seat, card: id, mates, wait: mates.filter((k) => findKind(s.hands[k], DEFUSE) != null) };
-      ev.push({ t: 'askRescue', for: seat, mates: mates.slice() });
+      s.rescue = { for: seat, card: id, mates, wait: refused ? [] : mates.filter((k) => findKind(s.hands[k], DEFUSE) != null) };
+      if (refused) s.rescue.refused = true;
+      ev.push(refused ? { t: 'askRescue', for: seat, mates: mates.slice(), refused: true, priv: teamSeats(s, seat) } : { t: 'askRescue', for: seat, mates: mates.slice() });
       return ev;
     }
     return eliminate(s, seat, id, ev);
@@ -831,6 +835,14 @@
     return ev;
   }
 
+  /* 组队「别救我」开关：活着的时候随时开 / 关（不占回合、不出事件；联机靠状态里的 noHelp 同步，只给同队看） */
+  function setNoHelp(s, seat, on) {
+    if (!isTeam(s) || !s.alive[seat]) throw new Error('illegal noHelp');
+    if (!s.noHelp) s.noHelp = Array(s.n).fill(false);
+    s.noHelp[seat] = !!on;
+    return [];
+  }
+  const teamSeats = (s, seat) => { const out = []; for (let k = 0; k < s.n; k++) if (teamOf(s, k) === teamOf(s, seat)) out.push(k); return out; };
   /* 组队：老存档里的 rescue 是 { by, for, card, queue }（一个个问）——读出来时换成同时问的样子 */
   function rescueOf(s) {
     const r = s.rescue;
@@ -932,7 +944,8 @@
     return {
       me: seat, n: s.n, rules: rulesOf(s), flux: s.flux || null, nineUsed: s.nineUsed ? s.nineUsed.slice() : null,
       roles: s.roles ? s.roles.slice() : null, roleUsed: s.roleUsed ? s.roleUsed.slice() : null,
-      mate: mateOf(s, seat), mates: matesOf(s, seat), teams: s.teams ? s.teams.slice() : null, rescue: s.rescue ? { for: s.rescue.for, mates: (rescueOf(s).mates || []).slice() } : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
+      mate: mateOf(s, seat), mates: matesOf(s, seat), teams: s.teams ? s.teams.slice() : null, rescue: s.rescue ? Object.assign({ for: s.rescue.for, mates: (rescueOf(s).mates || []).slice() }, s.rescue.refused && teamOf(s, seat) === teamOf(s, s.rescue.for) ? { refused: true } : null) : null,
+      noHelp: s.noHelp && s.teams ? s.noHelp.map((v, k) => !!v && teamOf(s, k) === teamOf(s, seat)) : null, winnerTeam: s.winnerTeam != null ? s.winnerTeam : -1,
       hand: s.hands[seat].slice(),
       counts: s.hands.map((h) => h.length),
       alive: s.alive.slice(),
@@ -958,7 +971,7 @@
     return events.map((e) => {
       if (!e.priv || e.priv.indexOf(seat) >= 0) { const o = Object.assign({}, e); delete o.priv; return o; }
       const o = Object.assign({}, e);
-      delete o.priv; delete o.card; delete o.cards; delete o.pos; delete o.cardsA; delete o.cardsB;
+      delete o.priv; delete o.card; delete o.cards; delete o.pos; delete o.cardsA; delete o.cardsB; delete o.refused;
       if (e.t === 'future' || e.t === 'alter' || e.t === 'altered') o.count = e.cards.length;
       return o;
     });
@@ -966,7 +979,7 @@
 
   return {
     T, lang,
-    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, isTeam, mateOf, matesOf, teamOf, teamCount, TEAM_FORMS, teamPlayers, rescue, rescueWaiting, closeRescue, ROLES, roleOf, classifyFor, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, isTeam, mateOf, matesOf, teamOf, teamCount, TEAM_FORMS, teamPlayers, rescue, rescueWaiting, closeRescue, setNoHelp, ROLES, roleOf, classifyFor, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay, deckQuota,
     kindOf, isCat, catLike, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,

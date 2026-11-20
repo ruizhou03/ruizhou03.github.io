@@ -665,3 +665,31 @@ test('team rescue: everyone asked at once, first yes wins, declines are silent, 
   s.phase = 'rescue'; s.rescue = { by: 1, for: 0, card: ofKind(R.BOOM)[0], queue: [] };
   assert.deepEqual(R.rescueWaiting(s), [1]);
 });
+
+test('team "don\'t save me": nobody is asked, only teammates learn it was refused, opponents see a normal plea', () => {
+  const C = R.CATS[0];
+  const team = (hands, deck, teams) => { const s = rig(hands, deck); s.rules = Object.assign({}, s.rules, { mode: 'team' }); s.teams = teams; return s; };
+  let s = team([[C], [R.DEFUSE], [R.DEFUSE], [C], [C], [C]], [R.BOOM, C, C], [0, 0, 0, 1, 1, 1]);
+  R.setNoHelp(s, 0, true);
+  assert.deepEqual(R.view(s, 1).noHelp, [true, false, false, false, false, false], '队友看得到');
+  assert.deepEqual(R.view(s, 3).noHelp, [false, false, false, false, false, false], '对手看不到');
+  const ev = R.draw(s, 0);
+  const ask = ev.find((e) => e.t === 'askRescue');
+  assert.equal(ask.refused, true); assert.deepEqual(ask.mates, [1, 2]);
+  assert.deepEqual(R.rescueWaiting(s), [], '谁都不问，逗猫棒留着');
+  assert.equal(R.redactEvents([ask], 1)[0].refused, true);
+  const opp = R.redactEvents([ask], 4)[0];
+  assert.equal(opp.refused, undefined); assert.deepEqual(opp.mates, [1, 2], '对手看到的是普通求救');
+  assert.equal(R.view(s, 2).rescue.refused, true); assert.equal(R.view(s, 5).rescue.refused, undefined);
+  assert.throws(() => R.rescue(s, 1, true));
+  const out = R.closeRescue(s);
+  assert.ok(out.some((e) => e.t === 'out' && e.seat === 0));
+  assert.equal(R.countKind(s.hands[1], R.DEFUSE), 1); assert.equal(R.countKind(s.hands[2], R.DEFUSE), 1);
+  // 关回来 = 照常求救；非组队局不能设
+  s = team([[C], [R.DEFUSE], [C], [C], [C], [C]], [R.BOOM, C, C], [0, 0, 0, 1, 1, 1]);
+  R.setNoHelp(s, 0, true); R.setNoHelp(s, 0, false);
+  R.draw(s, 0);
+  assert.deepEqual(R.rescueWaiting(s), [1]);
+  assert.throws(() => R.setNoHelp(rig([[C], [C]], [C]), 0, true));
+  assert.ok(R.createGame(6, 7, { mode: 'team', teamForm: '3v3' }).noHelp.every((v) => v === false));
+});

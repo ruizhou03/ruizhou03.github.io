@@ -1199,6 +1199,50 @@
       rb.classList.toggle('is-used', !!(info && info.once && s.roleUsed && s.roleUsed[seat]));
       rb.title = info ? info.name + '：' + info.desc : '';
     }
+    noHelpChip(seat, av, out);
+  }
+  /* 组队「别救我」（2026-11-19 用户）：我头像左上角一枚小逗猫棒 = 开关，点一下变灰划红线 = 别救我（再点改回来，活着随时能改）；
+   * 同队的人开了，他头像上也挂这枚划线的逗猫棒（只有同队看得到——联机服务器只把同队的发过来，单机机器猫从来不开） */
+  function noHelpChip(seat, av, out) {
+    const s = game.state;
+    const on = !!(s.noHelp && s.noHelp[seat]);
+    const show = teamGame() && !out && !game.tutorial && (seat === 0 ? !game.spectator && viewSeat < 0 : on && isMate(seat));
+    let nb = av.querySelector('.zm-nohelp');
+    if (!show) { if (nb) nb.remove(); return; }
+    if (!nb) {
+      nb = document.createElement(seat === 0 ? 'button' : 'i');
+      nb.className = 'zm-nohelp';
+      nb.innerHTML = ART.icon('defuse');
+      if (seat === 0) { nb.type = 'button'; nb.addEventListener('click', (ev) => { ev.stopPropagation(); toggleNoHelp(); }); }
+      av.appendChild(nb);
+    }
+    nb.classList.toggle('is-off', on);
+    if (seat === 0) { nb.setAttribute('aria-pressed', String(on)); nb.setAttribute('aria-label', on ? T('ui.noHelp.on', '别救我（点一下改回可以救）') : T('ui.noHelp.off', '队友可以救我（点一下改成别救我）')); }
+  }
+  function toggleNoHelp() {
+    const s = game && game.state;
+    if (!s || !teamGame() || !s.alive[0] || game.spectator || game.tutorial) return;
+    const on = !(s.noHelp && s.noHelp[0]);
+    if (!s.noHelp) s.noHelp = Array(s.n).fill(false);
+    if (game.online) {
+      s.noHelp[0] = on;
+      online.nhMine = { on, until: Date.now() + 4000 };   // 服务器回来之前别让旧状态把它翻回去
+      NET.act(online.code, online.token, 'move', { d: { type: 'noHelp', on } }).catch(() => { if (online && game && game.state && game.state.noHelp) { online.nhMine = null; game.state.noHelp[0] = !on; renderSeat(0); } });
+    } else { R.setNoHelp(s, 0, on); save(); }
+    snd(on ? 'untap' : 'tap');
+    renderSeat(0);
+    const nb = avEl(0) && avEl(0).querySelector('.zm-nohelp');
+    if (nb) fx.pop(nb, { scale: 1.3 });
+  }
+  // 联机：同队的开关没有事件，跟着每份状态同步（我自己刚点的，在服务器回话前以本地为准）
+  function syncNoHelp(g) {
+    const s = game && game.state;
+    if (!s || !g || !g.st || !g.st.noHelp) return;
+    const loc = rotArr(g.st.noHelp);
+    if (online.nhMine && Date.now() < online.nhMine.until) loc[0] = online.nhMine.on;
+    const old = s.noHelp || [];
+    s.noHelp = loc;
+    for (let k = 0; k < s.n; k++) if (!!old[k] !== !!loc[k]) renderSeat(k);
   }
   /* ───── 角色卡（2026-11-18 用户定甲 · 牌桌同款：墨边 + 画 + 一行技能图示 + 名字条；大卡多一句说明）───── */
   function roleInfo(id) { return R.ROLES.find((r) => r.id === id) || { id, name: '', desc: '' }; }
@@ -1707,6 +1751,12 @@
   }
   async function animAskRescue(e, t) {
     game.rescueAnswered = false;
+    // 「别救我」：只有同队知道（联机时对手收到的事件里没有 refused）——他喊「别救我！」，谁都不冒省略号；对手那边照常是喊救、队友想了想
+    if (e.refused && (e.for === 0 || isMate(e.for))) {
+      bubble(e.for, T('ui.rescue.refuse', '别救我！'), { loud: true, ms: 2200 });
+      await wait(ms(450));
+      return;
+    }
     bubble(e.for, T('ui.rescue.help', '救我！'), { loud: true, alarm: true, ms: 2200 });
     // 2026-11-19 用户：喊「救我！」的同一刻，所有活着的队友（包括我自己）一起冒省略号——醒目一点（金边、大一号的点）
     const mates = e.mates || (e.by != null ? [e.by] : []);   // 老服务器只发 by
@@ -2120,8 +2170,14 @@
   let reactOpen = false;
   /* 作废导火索多长（2026-11-17 用户：单机联机统一）：牌冲着我 = 出牌限时的 1/4（10 秒局 3 秒，20 秒 / 不限时 5 秒），只是问问我 = 2.5 秒。
    * 联机以服务器发来的 reactMs 为准（同一个算法） */
-  const nopeFullMs = () => { const t = game && game.online ? (game.reactMsSrv || 0) : 0; if (t) return t; const ts = turnSec(); return ts ? Math.min(5000, Math.max(3000, ts * 250)) : 5000; };
-  const nopeWindowMs = (s) => (nopeAboutMe(s) ? nopeFullMs() : Math.min(2500, nopeFullMs()));
+  // 单机（2026-11-19 用户：单机想作废的时间可以短一些——没有网络要等）：冲着我 3 秒（10 秒局 2 秒）、只是问问 1.5 秒；救不救队友跟「冲着我」一样长。联机不变
+  const nopeFullMs = () => {
+    const t = game && game.online ? (game.reactMsSrv || 0) : 0; if (t) return t;
+    const ts = turnSec();
+    if (game && !game.online) return ts ? Math.min(3000, Math.max(2000, ts * 150)) : 3000;
+    return ts ? Math.min(5000, Math.max(3000, ts * 250)) : 5000;
+  };
+  const nopeWindowMs = (s) => (nopeAboutMe(s) ? nopeFullMs() : Math.min(game && !game.online ? 1500 : 2500, nopeFullMs()));
   /* 几乎同时作废（2026-11-17 用户：上家刚作废、我也同时点了作废，别把我算成「作废回去」）：
    * 别人刚出了一张作废、又轮到我表态时，先按住 0.7 秒——作废键和手里那张先灰着，看清桌上多了一张作废再决定 */
   const NOPE_HOLD_MS = 700;
@@ -3274,44 +3330,89 @@
    * 被抽的是我：在我自己的手牌上游走（我看得到被抽走的是哪张）；被抽的是别人：他头像下面摊开一小扇扣着的牌，在上面游走。
    * settle(pick) 随时可以叫——机器猫想好了 / 联机里对方点了 / 超时系统替他点了：再随机跳几下、落到选中那张、亮一下；
    * 选得早就早落（不白等）。这套机制联机直接复用：收到对方的选择就 settle。 */
+  /* 偷牌时被偷那家的手牌扇摆哪（2026-11-19 用户定乙）：贴着他的头像，在四周挑一个不压东西的空位——
+   * 以前一律摊在头像朝桌心那一侧，手机竖屏 4 人以上坐在左右两边、和牌堆同高的那家，扇面整把压在牌堆上，看着像牌堆的一部分。
+   * 挑法：头像四周（朝桌心那侧上下挪、头像正下方、正上方）摆一圈候选；牌太多放不下就先把牌叠紧一点，再不行把牌缩小。
+   * 打分 = 压到的面积（牌堆、别人的座位、我的手牌和按钮、顶栏）+ 离他头像多远 + 叠紧 / 缩小的代价；
+   * 离别人的头像比离他还近的位置重罚——一眼要看得出是谁的牌。（用户否了「搬到桌心」和「整桌蒙遮罩」，别再往那边改） */
+  function fanGeom(count, w, q) {
+    const step = w * Math.min(0.5, 2.6 / Math.max(1, count)) * q, ang = Math.min(8, 30 / Math.max(1, count)) * (0.6 + 0.4 * q), th = ((count - 1) / 2) * ang * Math.PI / 180;
+    return { w, step, ang, half: ((count - 1) / 2) * step + (w / 2) * Math.cos(th) + (w * 0.7) * Math.sin(th) + 6, fh: w * 1.4 + ((count - 1) / 2) * 2.5 + w * 0.5 * Math.sin(th) + 4 };
+  }
+  function fanSpot(seat, count, dbg) {
+    const av = avEl(seat), ar = av.getBoundingClientRect(), se = seatEl(seat), sr = se.getBoundingClientRect();
+    const R2 = (e) => e && e.getBoundingClientRect();
+    const uni = (root) => { if (!root) return null; let r = null; root.querySelectorAll('*').forEach((e) => { const b = e.getBoundingClientRect(); if (!b.width) return; r = r ? { left: Math.min(r.left, b.left), top: Math.min(r.top, b.top), right: Math.max(r.right, b.right), bottom: Math.max(r.bottom, b.bottom) } : { left: b.left, top: b.top, right: b.right, bottom: b.bottom }; }); return r; };   // 牌堆那摞纸边画在容器外面，按里面每一层的实际范围算
+    const others = allSeatEls().concat([els.me]).filter((b) => +b.dataset.seat !== seat && b.querySelector('.zm-av'));
+    const obs = [uni(els.center.querySelector('.zm-piles')), R2(els.table.querySelector('.zm-deck-info')), R2(els.hand), R2(els.drawBtn), R2(els.playBtn), R2(els.table.querySelector('.zm-tools')), R2(els.table.querySelector('.zm-topleft'))]
+      .concat(others.map(R2)).filter((r) => r && r.right > r.left);
+    const otherBox = others.map(R2);
+    const gap = (a, b) => Math.hypot(Math.max(0, b.left - a.r, a.l - b.right), Math.max(0, b.top - a.b, a.t - b.bottom));
+    const fr = frameX(), tb = els.table.getBoundingClientRect();
+    const ov = (a, b) => Math.max(0, Math.min(a.r, b.right) - Math.max(a.l, b.left)) * Math.max(0, Math.min(a.b, b.bottom) - Math.max(a.t, b.top));
+    const acx = ar.left + ar.width / 2, acy = ar.top + ar.height / 2;
+    const rp = ringGame() && ringLay && ringLay.pos[seat];
+    const edge = rp && rp[1] !== ringLay.y0 ? (rp[0] === ringLay.x0 ? 1 : rp[0] === ringLay.x1 ? -1 : 0) : 0;   // 坐在左 / 右边上：1 = 左边那家（桌心在他右边）
+    let best = null;
+    for (const [k, q] of [[1, 1], [1, 0.7], [1, 0.5], [0.85, 0.7], [0.85, 0.5], [0.72, 0.5], [0.62, 0.45]]) {
+      const G = fanGeom(count, PU() * 0.6 * k, q), half = G.half, fh = G.fh;
+      const cand = [];
+      if (edge) {
+        const cx = edge > 0 ? ar.right + 12 + half : ar.left - 12 - half; [0, -0.35, 0.35, -0.7, 0.7, -1, 1].forEach((d) => cand.push({ cx, top: acy - fh / 2 + d * fh, side: true }));
+        // 竖着摊（侧身拿牌）：整把转 90°，牌顶朝桌心，贴着桌边那一条窄缝放——左右两边坐得密时不用把牌缩得很小
+        [0, -0.25, 0.25, -0.5, 0.5].forEach((d) => cand.push({ v: edge, cy: acy + d * half * 2, side: true }));
+      }
+      [0, -0.5, 0.5, -1, 1].forEach((d) => { cand.push({ cx: acx + d * half, top: sr.bottom + 4 }); cand.push({ cx: acx + d * half, top: ar.top - 10 - fh }); });
+      for (const c of cand) {
+        let box;
+        if (c.v) {   // 竖摊：左边那家牌顶朝右（转 90°），右边那家朝左（转 -90°）；被点中往外冒 = 往桌心冒
+          c.cy = Math.min(Math.max(c.cy, tb.top + 4 + half), tb.bottom - 4 - half);
+          const x0 = c.v > 0 ? ar.right + 8 : ar.left - 8 - fh - 16;
+          box = { l: x0, r: x0 + fh + 16, t: c.cy - half, b: c.cy + half };
+          c.cx = c.v > 0 ? x0 + fh : x0 + 16; c.top = c.cy;   // 容器原点：转完以后牌正好落在 box 里
+        } else {
+          c.cx = Math.min(Math.max(c.cx, fr.l + half), fr.r - half);
+          c.top = Math.min(Math.max(c.top, tb.top + 4 + 16), tb.bottom - 4 - fh);
+          box = { l: c.cx - half, r: c.cx + half, t: c.top - 16, b: c.top + fh };   // 上面多留 16：红光点中的那张会往上冒
+        }
+        const hit = obs.reduce((a, o) => a + ov(box, o), 0);
+        const dx = Math.max(0, box.l - sr.right, sr.left - box.r), dy = Math.max(0, box.t - sr.bottom, sr.top - box.b);   // 离他整个座位（头像 + 名字）多远
+        const body = c.v ? box : { l: box.l, r: box.r, t: box.t + 16, b: box.b }, own = gap(body, sr);
+        const foreign = otherBox.some((o) => gap(body, o) < own + 2);   // 离别人的座位（头像 + 名字）比离他还近：看着像别人的牌
+        c.score = hit + 40 * Math.hypot(dx, dy) + (foreign ? 4000 : 0) + (1 - k) * 900 + (1 - q) * 350 + (c.side ? 250 : 0);   // 先找头像正下方 / 正上方（用户：放他头像下面，放不下放上面），都不行才摊到朝桌心那侧
+        c.G = G;
+        if (dbg) dbg.push({ k, q, v: c.v || 0, side: !!c.side, hit: Math.round(hit), d: Math.round(Math.hypot(dx, dy)), foreign, score: Math.round(c.score), box: [box.l, box.t, box.r, box.b].map(Math.round) });
+        if (!best || c.score < best.score) best = c;
+      }
+    }
+    return best;
+  }
   function startWander(fromSeat, count) {
     let fan = null, cur = -1, timer = 0, done = false;
     markVictim(fromSeat);
-    if (fromSeat !== 0) {
-      const av = avEl(fromSeat), ar = av ? av.getBoundingClientRect() : { left: innerWidth / 2, top: 60, width: 40, height: 40 };
-      const w = PU() * 0.6;
+    if (fromSeat !== 0 && avEl(fromSeat)) {
+      const spot = fanSpot(fromSeat, count), G = spot.G;
       fan = document.createElement('div');
       fan.className = 'zm-steal-fan';
-      // 扇面中心对着他的头像，但最左 / 最右那家的扇面别伸出屏幕：整把往里挪
-      // 最外面那张：中心偏出 (count-1)/2 个间距，再按它歪的角度算出旋转后的半宽（牌高 1.4 倍宽），外加红光描边
-      const step = w * Math.min(0.5, 2.6 / Math.max(1, count)), th = ((count - 1) / 2) * Math.min(8, 30 / Math.max(1, count)) * Math.PI / 180;
-      const half = ((count - 1) / 2) * step + (w / 2) * Math.cos(th) + (w * 0.7) * Math.sin(th) + 6;
-      const fr = frameX(), cx = Math.min(Math.max(ar.left + ar.width / 2, fr.l + half), fr.r - half);
-      fan.style.left = cx + 'px';
-      const se = seatEl(fromSeat), sb = se ? se.getBoundingClientRect().bottom : ar.top + ar.height + 30;
-      fan.style.top = (Math.max(sb, ar.top + ar.height) + 16) + 'px';   // 落在整个座位（名字、档位签）下方，不压字
-      // 坐在底下那排的（组队的队友）：往下摊会压住我的手牌（2026-11-18 用户）——改摊在他头像上方，扇面底边离头像留一道缝
-      if (ar.top > innerHeight * 0.5) fan.style.top = (ar.top - 14 - w * 1.4 - ((count - 1) / 2) * 2.5 - 4) + 'px';
-      // 围桌一圈（组队）坐在左右两条边上的（2026-11-19 用户）：扇面摊在头像朝桌子里的那一侧——左边那家摊在他右边、右边那家摊在他左边，和头像竖着居中
-      const rp = ringGame() && ringLay && ringLay.pos[fromSeat];
-      const edge = rp && rp[1] !== ringLay.y0 ? (rp[0] === ringLay.x0 ? 1 : rp[0] === ringLay.x1 ? -1 : 0) : 0;
-      if (edge) {
-        fan.style.left = (edge > 0 ? ar.right + 14 + half : ar.left - 14 - half) + 'px';
-        fan.style.top = (ar.top + ar.height / 2 - w * 0.7 - ((count - 1) / 2) * 1.25) + 'px';
-      }
+      fan.style.left = spot.cx + 'px';
+      fan.style.top = spot.top + 'px';
+      if (spot.v) fan.style.rotate = (spot.v > 0 ? 90 : -90) + 'deg';
       for (let i = 0; i < count; i++) {
         const off = i - (count - 1) / 2;
         const c = document.createElement('div');
         c.className = 'zm-steal-card';
-        c.style.width = w + 'px';
-        c.style.left = (-w / 2 + off * w * Math.min(0.5, 2.6 / Math.max(1, count))) + 'px';
+        c.style.width = G.w + 'px';
+        c.style.left = (-G.w / 2 + off * G.step) + 'px';
         c.style.top = (Math.abs(off) * 2.5) + 'px';
-        c.style.rotate = (off * Math.min(8, 30 / Math.max(1, count))) + 'deg';
+        c.style.rotate = (off * G.ang) + 'deg';
         c.innerHTML = backHtml();
         fan.appendChild(c);
       }
       els.fly.appendChild(fan);
-      if (!fx.reduce()) fan.animate([{ opacity: 0, transform: 'translateY(-14px) scale(.7)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.3,.8,.4,1)' });
+      if (!fx.reduce()) {   // 从他头像那边弹出来
+        const a = fx.center(avEl(fromSeat).getBoundingClientRect()), dx = spot.v ? 0 : (a.x - spot.cx) * 0.35, dy = spot.v ? 0 : (a.y - spot.top - G.fh / 2) * 0.35;   // 竖摊的容器转过 90°，原地弹出
+        fan.animate([{ opacity: 0, transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(.6)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.3,.8,.4,1)' });
+      }
     }
     const items = () => (fromSeat === 0 ? Array.from(els.hand.querySelectorAll('.zm-card')) : fan ? Array.from(fan.children) : []);
     const mark = (i) => { items().forEach((x, j) => x.classList.toggle('is-wander', j === i)); cur = i; };
@@ -4447,7 +4548,7 @@
       pending: p ? Object.assign(by(p, ['by', 'target']), { nopes: p.nopes.map((x) => Object.assign({}, x, { seat: f(x.seat) })), passed: p.passed.map(f) }) : p,
       give: by(s.give, ['from', 'to']), pick: by(s.pick, ['by']), defuse: by(s.defuse, ['by']), alter: by(s.alter, ['by']), steal: by(s.steal, ['by', 'from']),
       ins: by(s.ins, ['by']), peek: by(s.peek, ['by']), rescue: by(s.rescue, ['by', 'for']),
-      nineUsed: rotSeats(s.nineUsed, d), saveUsed: rotSeats(s.saveUsed, d), teams: rotSeats(s.teams, d), roles: rotSeats(s.roles, d), roleUsed: rotSeats(s.roleUsed, d),
+      nineUsed: rotSeats(s.nineUsed, d), saveUsed: rotSeats(s.saveUsed, d), teams: rotSeats(s.teams, d), noHelp: rotSeats(s.noHelp, d), roles: rotSeats(s.roles, d), roleUsed: rotSeats(s.roleUsed, d),
       memo: rotSeats(s.memo, d).map((m) => Object.assign({}, m, { hands: rotSeats(m.hands, d) })),
     });
   }
@@ -5405,7 +5506,7 @@
     const teamRules = ((game && game.state && game.state.rules) || settings.rules || {}).mode === 'team';
     return '<div class="zm-rules"><h2>' + T('rules.title', '怎么玩') + '</h2>' +
       (rolesHtml()) +
-      (teamRules ? '<h3>' + T('rules.team', '组队') + '</h3><ul>' + '<li>' + T('rules.team.1', '每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。') + '</li>' + '<li>' + T('rules.team.2', '出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。') + '</li>' + '<li>' + T('rules.team.3', '下家是队友时，普通「甩锅」和「装睡」都会坑到他——想躲就用「自由甩锅」甩给对手，或者先「转向」。') + '</li>' + '<li>' + T('rules.team.4', '队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸毛猫的位置你也知道。') + '</li>' + '<li>' + T('rules.team.5', '摸到炸毛猫又没有逗猫棒：你喊「救我！」，所有队友一起被问，谁先点「救」就用谁的逗猫棒，你自己把炸毛猫塞回去。没人救就出局。不管队友有没有逗猫棒，大家看到的都一样，对手看不出你们队还剩几根。') + '</li>' + '<li>' + T('rules.team.6', '一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。') + '</li>' + '</ul>' : '') +
+      (teamRules ? '<h3>' + T('rules.team', '组队') + '</h3><ul>' + '<li>' + T('rules.team.1', '每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。') + '</li>' + '<li>' + T('rules.team.2', '出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。') + '</li>' + '<li>' + T('rules.team.3', '下家是队友时，普通「甩锅」和「装睡」都会坑到他——想躲就用「自由甩锅」甩给对手，或者先「转向」。') + '</li>' + '<li>' + T('rules.team.4', '队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸毛猫的位置你也知道。') + '</li>' + '<li>' + T('rules.team.5', '摸到炸毛猫又没有逗猫棒：你喊「救我！」，所有队友一起被问，谁先点「救」就用谁的逗猫棒，你自己把炸毛猫塞回去。没人救就出局。不管队友有没有逗猫棒，大家看到的都一样，对手看不出你们队还剩几根。') + '</li>' + '<li>' + T('rules.team.5b', '不想让队友在你身上耗逗猫棒：点你头像左上角的小逗猫棒，变灰划线就是「别救我」（随时能改回来）。队友头像上也会出现这个记号；真炸了时队友看到你喊「别救我！」、谁都不用想，你直接出局。对手看不到这个记号，炸的时候他们看到的仍是你喊救、没人救成。') + '</li>' + '<li>' + T('rules.team.6', '一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。') + '</li>' + '</ul>' : '') +
       '<p>' + T('rules.intro', '牌堆里藏着炸毛猫（比人数少一只）。轮到你时，可以出任意多张牌，也可以一张不出，<b>最后摸一张牌结束回合</b>。摸到炸毛猫、手里又没有逗猫棒，就出局。撑到最后的人赢。') + '</p>' +
       '<h3>' + T('rules.deal', '每人开局') + '</h3><ul><li>' + T('rules.deal.1', '4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸毛猫是里面还有几只。') + '</li></ul>' +
       '<h3>' + T('rules.cards', '牌') + '</h3><ul>' +
@@ -6703,6 +6804,7 @@
       steal: o.steal ? { by: o.steal.by, from: o.steal.from, perm: shuffled(hands[o.steal.from].slice()) } : null,
       winner: o.winner, seq: 0, memo, dir: o.dir === -1 ? -1 : 1,
       teams: o.teams ? o.teams.slice() : null, rescue: o.rescue || null, winnerTeam: o.winnerTeam != null ? o.winnerTeam : -1,
+      noHelp: o.noHelp ? o.noHelp.slice() : o.teams ? Array(n).fill(false) : null,
       netBoom: o.rescue && o.rescue.card != null ? o.rescue.card : null,   // 在「问救不救」时重连：不救出局时这只要进弃牌堆
       // 百变 / 角色猫（2026-11-19 联机）：都是公开的；还没抽到的规则堆不知道（镜像不自己抽规则，全听服务器的 flux 事件）
       flux: o.flux || null, fluxDeck: [], nineUsed: o.nineUsed ? o.nineUsed.slice() : null, saveUsed: o.saveUsed ? o.saveUsed.slice() : null,
@@ -6722,7 +6824,8 @@
       pending: st.pending ? Object.assign(fixSeat(st.pending, ['by', 'target']), { nopes: st.pending.nopes.map((x) => ({ seat: locOf(x.seat), card: x.card })) }) : null,
       give: fixSeat(st.give, ['from', 'to']), pick: fixSeat(st.pick, ['by']), defuse: fixSeat(st.defuse, ['by']),
       alter: fixSeat(st.alter, ['by']), steal: fixSeat(st.steal, ['by', 'from']),
-      teams: st.teams ? rotArr(st.teams) : null, rescue: st.rescue ? { for: locOf(st.rescue.for), card: st.rescue.card, mates: (st.rescue.mates || (st.rescue.by != null ? [st.rescue.by] : [])).map(locOf), wait: g.myCall && st.phase === 'rescue' ? [0] : [] } : null, winnerTeam: st.winnerTeam,
+      teams: st.teams ? rotArr(st.teams) : null, rescue: st.rescue ? Object.assign({ for: locOf(st.rescue.for), card: st.rescue.card, mates: (st.rescue.mates || (st.rescue.by != null ? [st.rescue.by] : [])).map(locOf), wait: g.myCall && st.phase === 'rescue' ? [0] : [] }, st.rescue.refused ? { refused: true } : null) : null, winnerTeam: st.winnerTeam,
+      noHelp: st.noHelp ? rotArr(st.noHelp) : null,
       flux: st.flux, nineUsed: st.nineUsed ? rotArr(st.nineUsed) : null, saveUsed: st.saveUsed ? rotArr(st.saveUsed) : null,
       hotGiven: st.hotGiven != null && st.hotGiven >= 0 ? locOf(st.hotGiven) : -1, cowCut: st.cowCut != null && st.cowCut >= 0 ? locOf(st.cowCut) : -1,
       roles: st.roles ? rotArr(st.roles) : null, roleUsed: st.roleUsed ? rotArr(st.roleUsed) : null,
@@ -6910,7 +7013,7 @@
       case 'askRescue': {   // 组队：同时问活着的队友（老服务器只发 by = 一个个问）；等不等我 = 我是不是队友、手里有没有逗猫棒
         const mates = e.mates || (e.by != null ? [e.by] : []);
         s.phase = 'rescue';
-        s.rescue = { for: e.for, card: s.netBoom, mates: mates.slice(), wait: mates.indexOf(0) >= 0 && R.countKind(s.hands[0], R.DEFUSE) > 0 ? [0] : [] };
+        s.rescue = e.refused ? { for: e.for, card: s.netBoom, mates: mates.slice(), wait: [], refused: true } : { for: e.for, card: s.netBoom, mates: mates.slice(), wait: mates.indexOf(0) >= 0 && R.countKind(s.hands[0], R.DEFUSE) > 0 ? [0] : [] };
         break;
       }
       case 'noRescue': break;
@@ -7078,6 +7181,7 @@
       return;
     }
     syncPeople(st);
+    syncNoHelp(g);
     if (editing.on || editing.flip) { renderDir(); afterEditRender('table'); }
     if (editing.on && editing.where === 'table' && !g.over) exitEdit();
     const fresh = g.log.filter((e) => e.n > online.lastQueued);
@@ -8479,7 +8583,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage, flashRole: (seat, hold) => flashRole(seat, token, hold), expandRole, openRoleView, liftTop3: (n) => liftTop3(n, token) };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage, flashRole: (seat, hold) => flashRole(seat, token, hold), expandRole, openRoleView, liftTop3: (n) => liftTop3(n, token), startWander, layoutRing, fanSpot, get settings() { return settings; } };
   }
   /* 「这步不对」反馈（zhamao-feedback.js）：打开时像暂停一样停住（不弹暂停页），关掉接着打 */
   function fbHold() {

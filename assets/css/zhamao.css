@@ -1835,3 +1835,12 @@ html[lang="en"] .zm-cover-title:not(.is-glyph) { font-size: 44px; }
 :where(html[lang="en"]) .zm-card .zm-nm:where(.is-xlong) { font-size: 8.4cqw; }
 :where(html[lang="en"]) .zm-rc .zm-rc-nm:where(.is-long) { font-size: 10.5cqw; }
 :where(html[lang="en"]) .zm-rc .zm-rc-nm:where(.is-xlong) { font-size: 9cqw; }
+
+/* 组队「别救我」开关（2026-11-19 用户）：头像左上角一枚小逗猫棒；is-off = 别救我（变灰 + 一道朱红斜线）。我的那枚能点，队友的只是记号 */
+.zm-nohelp { position: absolute; left: -8px; top: -6px; z-index: 6; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: #fbf7ee; box-shadow: 0 0 0 1.5px var(--zm-ink), 0 2px 5px rgba(29, 27, 24, 0.25); display: grid; place-items: center; }
+button.zm-nohelp { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-radius: 50%; }   /* 点得到的范围大一圈 */
+.zm-nohelp svg { width: 17px; height: 17px; display: block; }
+.zm-nohelp.is-off { background: #efe9dc; }
+.zm-nohelp.is-off svg { filter: grayscale(1) opacity(0.55); }
+.zm-nohelp.is-off::after { content: ''; position: absolute; left: 50%; top: 50%; width: 26px; height: 2.6px; border-radius: 2px; background: #c8463a; transform: translate(-50%, -50%) rotate(-45deg); box-shadow: 0 0 0 1.2px #fbf7ee; }
