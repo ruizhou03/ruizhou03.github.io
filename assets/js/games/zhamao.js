@@ -4347,7 +4347,20 @@
     return NOPE_ALSO.some(([k, , types]) => nopeAlsoOn(k) && types.indexOf(p.type) >= 0);
   }
   // 组队：和队友有关（队友出的、指着队友、甩到队友头上）也算和我有关——帮队友挡一下 / 别挡了队友（2026-11-15 巡查）
-  const askMeNope = (s) => nopeAsks(s.pending, 0, s.alive, s.dir) || (R.isTeam && R.isTeam(s) && !!s.pending && nopeAskMode() !== 'all' && R.matesOf(s, 0).some((m) => s.alive[m] && aboutSeat(s.pending, m, s.alive, s.dir)));
+  /* 组队：最后出手的是队友（他刚出的牌，或他刚作废回来的）——我再作废就是拆队友的台，不问；只有冲着我来的（指着我 / 甩锅甩到我头上）照问。
+   * 2026-11-21 用户联机组队：出牌后要等两秒左右才生效——原来队友出的每张牌，手里有作废的队友都被问一遍「要不要作废」，
+   * 服务器要等他点掉或者导火索烧完（3–5 秒）才结算，而出牌的人这边看不到导火索，只觉得卡 */
+  const lastBy = (p) => (p.nopes.length ? p.nopes[p.nopes.length - 1].seat : p.by);
+  function hitsMe(p, me, alive, dir) {
+    if (p.target === me) return true;
+    return p.type === R.ATTACK && p.by !== me && aboutSeat({ type: p.type, by: p.by, target: -1 }, me, alive, dir);
+  }
+  // 「全都问」也照这条：问我要不要作废自己队友的牌没有意义，只会让全桌白等
+  const askMeNope = (s) => {
+    const p = s.pending, team = R.isTeam && R.isTeam(s) && !!p;
+    if (team && lastBy(p) !== 0 && R.teamOf(s, lastBy(p)) === R.teamOf(s, 0)) return hitsMe(p, 0, s.alive, s.dir);
+    return nopeAsks(p, 0, s.alive, s.dir) || (team && nopeAskMode() !== 'all' && R.matesOf(s, 0).some((m) => s.alive[m] && aboutSeat(p, m, s.alive, s.dir)));
+  };
   /* ───── 反应窗：出完牌大家决定要不要「不行」 ───── */
   function clearReactTimer() { if (reactTimer) { clearTimeout(reactTimer); reactTimer = null; } }
   function reactPhase() {
@@ -7587,8 +7600,11 @@
   function earlyPass(g) {
     if (!online || !g || !g.myCall || (game && game.spectator) || g.st.phase !== 'react' || online.passFor === g.seq) return;
     // 组队：和队友有关（队友出的、指着队友、甩到队友头上）也算和我有关，跟单机的 askMeNope 一致（2026-11-19 用户：别人甩锅给我队友，联机不问我作废——这里以前没算队友，先替我点了取消）
-    const st = g.st, mates = st.teams ? st.teams.map((t, k) => k).filter((k) => k !== online.base && st.teams[k] === st.teams[online.base] && st.alive[k]) : [];
-    if (st.hand.some((id) => R.KIND_OF[id] === R.NOPE) && (nopeAsks(st.pending, online.base, st.alive, st.dir) || mates.some((m) => aboutSeat(st.pending, m, st.alive, st.dir)))) return;
+    const st = g.st, me = online.base, mates = st.teams ? st.teams.map((t, k) => k).filter((k) => k !== me && st.teams[k] === st.teams[me] && st.alive[k]) : [];
+    // 组队：最后出手的是队友 → 只有冲着我来的才问（同 askMeNope）
+    const p = st.pending, mateLast = !!(st.teams && p && lastBy(p) !== me && st.teams[lastBy(p)] === st.teams[me]);
+    const asked = !p || (mateLast ? hitsMe(p, me, st.alive, st.dir) : nopeAsks(p, me, st.alive, st.dir) || mates.some((m) => aboutSeat(p, m, st.alive, st.dir)));
+    if (st.hand.some((id) => R.KIND_OF[id] === R.NOPE) && asked) return;
     online.passFor = g.seq;
     const at = g.seq;
     setTimeout(() => {
