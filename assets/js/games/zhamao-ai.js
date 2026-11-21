@@ -706,7 +706,10 @@
     if (typeof require === 'function') { try { return require(file); } catch (_) { return null; } }
     return null;
   };
-  const BRAIN = loadBrain('ZhamaoBrain', './zhamao-brain.js');
+  /* 2026-11-21 经典（开不开交换）都换成共用网络 S3（zhamao-brain-swap.js），高手直接用网络、不再推演；e（zhamao-brain.js）退役。
+   * 站点实测 vs 原线上（e + 推演），默认规则：高手 3 / 4 / 5 人胜率 44.7 / 31.3 / 23.2%（均等 33.3 / 25 / 20），普通打平；
+   * 不推演时 S3 vs e 37.2 / 27.3 / 20.5%，S3 vs p 打平。涨分主要来自去掉推演（推演会把强网络的选择拉回平均）。 */
+  const BRAIN = loadBrain('ZhamaoBrainSwap', './zhamao-brain-swap.js');
   /* 组队 / 百变各一个网络（2026-11-19 夜训，REPORT 第六阶段）：输入 210 = 经典 v2 的 190 + 20 维 X（组队 10 + 百变 10，见 brainX）。
    * 组队 t2.json 整队 vs 普通队 2v2 / 3v3 / 2v2v2 / 4v4 胜率 56.6 / 65.8 / 47.0 / 69.3%（原高手队 54.0 / 54.2 / 37.3 / 55.2）；
    * 百变 f.json vs 一桌普通 3 / 4 / 5 人名次分 0.656 / 0.625 / 0.604（原高手 0.567 / 0.564 / 0.539）。
@@ -726,11 +729,11 @@
    * 2026-11-21 组队 t5p / 百变 f3 都换成共用网络 S3（REPORT 第十三阶段）：一个 250→384→192→1 的网络练所有模式（先蒸馏各专用网络，再混合自博弈，
    * 含可选规则与坑队友扣分）。站点实测 vs 线上（开交换+连逗猫棒，高手）：组队整队 2v2 / 3v3 / 2v2v2 / 4v4 胜率 55.2 / 62.3 / 38.4 / 60.3%，
    * 百变 3 / 4 / 5 人 35.0 / 27.1 / 22.7%（均等 33.3 / 25 / 20）。默认规则 S3 与 t4 / f2 / p 打平，所以默认规则仍用专用网络。 */
-  const BRAIN_SW = (() => { const b = loadBrain('ZhamaoBrainSwap', './zhamao-brain-swap.js'); return b && b.DIM === 250 ? b : null; })();
+  const BRAIN_SW = BRAIN && BRAIN.DIM === 250 ? BRAIN : null;
   /* 经典·开了交换的局也用 S3。站点实测 vs 线上（e，高手 = 网络当锚点 + 推演）：普通 3 / 4 / 5 人胜率 37.8 / 27.1 / 23.5%；
    * 高手若照经典走法加推演只打平（33.5 / 25.3 / 20.2%），直接用网络出反而 40.0 / 29.8 / 23.1% → 开交换的经典高手不推演，和组队 / 百变一样。
-   * 默认规则的经典局仍用 e + 推演。 */
-  const BRAIN_TS = BRAIN_SW, BRAIN_FS = BRAIN_SW, BRAIN_CS = BRAIN_SW;
+   * 同日默认规则的经典局也换成 S3（见上面 BRAIN）。 */
+  const BRAIN_TS = BRAIN_SW, BRAIN_FS = BRAIN_SW;
   /* 角色猫网络（2026-11-19，REPORT 第七阶段）：输入 250 = 210 + 40 维角色（我的角色、下家 1..4 的角色、模式位、出牌目标的角色，见 brainX） */
   const X4_DIM = 250;
   const BRAIN_R = (() => { const b = loadBrain('ZhamaoBrainRoles', './zhamao-brain-roles.js'); return b && b.DIM === X4_DIM ? b : null; })();
@@ -739,7 +742,7 @@
     if (v.roles) return BRAIN_R;
     if (teamV(v)) return (v.rules && v.rules.swap && BRAIN_TS) || BRAIN_T;
     if (isFlux(v)) return (v.rules && v.rules.swap && BRAIN_FS) || BRAIN_F;
-    return (!v.rules || !v.rules.mode || v.rules.mode === 'classic') ? ((v.rules && v.rules.swap && BRAIN_CS) || BRAIN) : null;
+    return (!v.rules || !v.rules.mode || v.rules.mode === 'classic') ? BRAIN : null;
   };
   const useBrain = (v) => !!brainOf(v);
   const KI = {}; R.KINDS.forEach((k, i) => { KI[k] = i; });
@@ -909,7 +912,7 @@
   function hardAct(v, rng) {
     const N = pol(v);
     const nm = useBrain(v) ? brainAct(v) : N.act(v);   // 有网络的模式：锚点换成网络的选择
-    if (TF_HARD === 'brain' && useBrain(v) && brainOf(v) !== BRAIN) return nm;   // 只有默认规则的经典局（e）走推演；开了交换的经典局用 S3 直接出
+    if (TF_HARD === 'brain' && useBrain(v)) return nm;   // 有网络就直接用网络出（2026-11-21 起经典也一样）；没网络才走规则锚点 + 推演
     if (nm.type === 'play' && nm.cards.length === 1 && (K[nm.cards[0]] === R.FUTURE || K[nm.cards[0]] === R.ALTER)) return nm;
     if (teamV(v)) { const tp = N.topInfo(v); if (!(tp.known && tp.boom) && tp.p < TEAM_CALM) return nm; }
     const cands = actCandidates(v);
