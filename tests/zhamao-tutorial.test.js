@@ -1,12 +1,13 @@
 'use strict';
 
-/* 按牌桌调用钩子的方式把新手教程（一局学会全部）从头走到尾：只做剧本放行的操作，每一步都有讲解，最后必须是我赢 */
+/* 按牌桌调用钩子的方式把新手教程从头走到尾：只做剧本放行的操作，最后必须是我赢。
+ * 2026-11-22 教程重做后只教核心 10 样（摸牌 / 炸毛猫 / 逗猫棒和塞回 / 窥探 / 装睡 / 作废 / 讨要 / 一对偷牌 / 甩锅），全程 12 句话 */
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const R = require('../assets/js/games/zhamao-rules.js');
 const T = require('../assets/js/games/zhamao-tutorial.js');
 
-test('tutorial: one game teaches everything and ends with my win', () => {
+test('tutorial: one scripted game teaches the core 10 and ends with my win', () => {
   const hints = [];
   const ctl = T.create(R, { hint: (h) => { if (h) hints.push(h); }, say() {} });
   const s = ctl.state;
@@ -43,6 +44,7 @@ test('tutorial: one game teaches everything and ends with my win', () => {
       else if (mv.type === 'steal') after(R.stealPick(s, 0, mv.idx));
       else if (mv.type === 'pick') after(R.pickDiscard(s, 0, mv.card));
       else if (mv.type === 'alter') after(R.alterTop(s, 0, mv.order));
+      else if (mv.type === 'insert') after(R.insertKitten(s, 0, mv.pos));
       else throw new Error('move ' + mv.type);
       continue;
     }
@@ -56,8 +58,10 @@ test('tutorial: one game teaches everything and ends with my win', () => {
   assert.equal(s.winner, 0, 'I should win');
   assert.equal(moves.length, 0, 'unused moves');
   said.push(...ctl.finish(true));
-  assert.ok(said.length >= 25, 'explanations: ' + said.length);
-  // 一局里每样都用到了
-  for (const k of ['skip', 'favor', 'attack', 'tattack', 'bottom', 'pair', 'triple', 'five']) assert.ok(seen.has('resolve:' + k), 'not covered: ' + k + ' (' + [...seen].join(' ') + ')');
-  for (const t of ['nope', 'future', 'alter', 'altered', 'defuse', 'insert', 'steal', 'take', 'pick', 'out', 'win']) assert.ok(seen.has(t), 'not covered: ' + t);
+  assert.equal(said.length, 12, 'explanations: ' + said.length);   // 全程 12 句话（开场 2 + 过程 8 + 收尾 2）
+  // 核心 10 样一局里都用到了
+  for (const k of ['skip', 'favor', 'attack', 'pair']) assert.ok(seen.has('resolve:' + k), 'not covered: ' + k + ' (' + [...seen].join(' ') + ')');
+  for (const t of ['draw', 'nope', 'future', 'defuse', 'insert', 'steal', 'out', 'win']) assert.ok(seen.has(t), 'not covered: ' + t + ' (' + [...seen].join(' ') + ')');
+  // 留到实战里再教的牌，这一局不该出现
+  for (const k of ['tattack', 'bottom', 'triple', 'five', 'alter', 'shuffle', 'reverse']) assert.ok(!seen.has('resolve:' + k), 'should not be taught here: ' + k);
 });
