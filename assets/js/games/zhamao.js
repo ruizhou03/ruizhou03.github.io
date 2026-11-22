@@ -2586,6 +2586,7 @@
     renderAll();
     if (tut && !coachQueue) hint('');
     if (s.phase === 'over') { finish(); return; }
+    if (!tut && guideGate()) return;   // 实战里的引导：第一次用这个玩法 / 第一次摸到没教过的牌，先讲完再往下走
     if (window.ZhamaoAudio && s.deck.length) window.ZhamaoAudio.danger(R.kittensInDeck(s) / s.deck.length);   // 背景音乐按公开的炸毛猫概率换版
     if (s.deck.length) rimHeat(R.kittensInDeck(s) / s.deck.length);
     if (s.phase === 'act') startClock(s.turn, s.turn === H && !autopilot ? onMyTimeout : null);
@@ -5707,6 +5708,7 @@
     if (game.tutorial && tut && tut.mini) { showCoach(tut.finish ? tut.finish(won) : [], lessonDone); return; }
     if (game.tutorial) {
       markLesson('basic');
+      guideReset();   // 刚学完核心：剩下的牌和玩法，实战里第一次碰到都讲一遍
       const msgs = tut && tut.finish ? tut.finish(won) : [];
       showCoach(msgs, () => {
         bgm('menu');
@@ -6315,6 +6317,91 @@
       return k ? cardHtml(k) + '<b>' + esc(name) + '</b>' : m;
     });
   }
+  /* ───── 实战里的引导（2026-11-22 用户：新手教程只教核心 10 样，其余的在实战里第一次碰到再讲；先做单机） ─────
+   * 第二层（用户挑丙）：没教过的牌第一次进我手里，整张放大亮相 + 一句话，点任意处收起；每种只讲一次。
+   *   三张一样 / 五种猫凑齐 / 被甩锅时手里有甩锅，也各讲一次（亮的是凑成的那几张）。
+   * 第三层（用户挑乙）：第一次用百变 / 组队 / 角色开局，发完牌用教程同款的讲解说两句，指着眼前的东西。
+   * 看过的记在 localStorage（zm.guide.v1）。这个功能上线前就玩过的人一律当看过，不打扰；打完新手教程会清空重记。
+   * 入口只有 step() 里的 guideGate()：有要讲的就先讲（这时不开计时、机器猫也不动），讲完再回 step()。 */
+  const GUIDE_KEY = 'zm.guide.v1';
+  const GUIDE_CARDS = {
+    tattack: () => T('guide.card.tattack', '甩给任意一个人，他连摸两回合'),
+    reverse: () => T('guide.card.reverse', '出牌方向倒过来，你这回合不摸牌'),
+    bottom: () => T('guide.card.bottom', '这回合从牌堆最底下摸'),
+    alter: () => T('guide.card.alter', '看顶上三张，再按你想要的顺序放回去'),
+    shuffle: () => T('guide.card.shuffle', '把牌堆洗乱'),
+    wild: () => T('guide.card.wild', '能顶任何一种猫，用来凑对'),
+    swap: () => T('guide.card.swap', '和一个人交换全部手牌'),
+  };
+  const GUIDE_MODES = {
+    flux: () => [
+      { t: T('guide.mode.flux.1', '这局每人多一张「百变」：打出它，转盘换一条全桌规则。'), focus: ['hand'] },
+      { t: T('guide.mode.flux.2', '抽到的规则牌摆在牌堆下面，对所有人都算数。'), focus: ['deck'] },
+    ],
+    team: () => [
+      { t: T('guide.mode.team.1', '头像底色一样的是队友，你这队是蓝色。一队全部出局就输。'), focus: ['opps', 'me'] },
+      { t: T('guide.mode.team.2', '队友摸到炸毛猫又没有逗猫棒时，你可以把自己的递给他。'), focus: ['hand'] },
+    ],
+    roles: () => [
+      { t: T('guide.mode.roles.1', '这局每人抽到一只角色猫，技能整局自动生效。'), focus: ['opps', 'me'] },
+      { t: T('guide.mode.roles.2', '点头像角上的猫章，看这只猫会什么。'), focus: ['opps', 'me'] },
+    ],
+  };
+  let guideSet = null;
+  function guideLoad() {
+    if (guideSet) return guideSet;
+    let raw = null, old = false;
+    try { raw = localStorage.getItem(GUIDE_KEY); old = !!(localStorage.getItem(TUT_KEY) || localStorage.getItem(STORE_KEY) || localStorage.getItem(SETTINGS_KEY)); } catch (_) { old = true; }
+    if (raw == null) { guideSet = new Set(old ? ['*'] : []); guideStore(); }   // 第一次见到这个功能：以前玩过的人全当看过
+    else { try { guideSet = new Set(JSON.parse(raw)); } catch (_) { guideSet = new Set(['*']); } }
+    return guideSet;
+  }
+  function guideStore() { try { localStorage.setItem(GUIDE_KEY, JSON.stringify([...guideSet])); } catch (_) { /* 无痕 */ } }
+  const guideSeen = (key) => { const g = guideLoad(); return g.has('*') || g.has(key); };
+  function guideMark(key) { guideLoad().add(key); guideStore(); }
+  function guideReset() { guideSet = new Set(); guideStore(); }
+  guideLoad();   // 一进页面就定下「是不是老玩家」（新玩家这时什么都还没存）
+  // 我手里现在有没有该讲的：{ key, cards: [牌种…], text }
+  function guideNext(s) {
+    const hand = s.hands[0], cnt = {};
+    for (const id of hand) { const k = R.KIND_OF[id]; cnt[k] = (cnt[k] || 0) + 1; }
+    for (const id of hand) { const k = R.KIND_OF[id]; if (GUIDE_CARDS[k] && !guideSeen('card:' + k)) return { key: 'card:' + k, cards: [k], text: GUIDE_CARDS[k]() }; }
+    if (!guideSeen('combo:three')) { const k = Object.keys(cnt).find((x) => cnt[x] >= 3 && x !== R.BOOM); if (k) return { key: 'combo:three', cards: [k, k, k], text: T('guide.combo.three', '三张一样一起出：点一个人、说一种牌，他有就得给你') }; }
+    if (!guideSeen('combo:five') && R.CATS.every((k) => cnt[k])) return { key: 'combo:five', cards: R.CATS.slice(), text: T('guide.combo.five', '五种猫各一张一起出：从弃牌堆捡一张') };
+    if (!guideSeen('tip:stack') && s.phase === 'act' && s.turn === 0 && s.turnsLeft > 1 && (cnt[R.ATTACK] || cnt[R.TATTACK])) return { key: 'tip:stack', cards: [cnt[R.ATTACK] ? R.ATTACK : R.TATTACK], text: T('guide.tip.stack', '被甩锅时再甩出去：没摸的回合加 2，一起甩走') };
+    return null;
+  }
+  function showNewCard(item, done) {
+    const k0 = token;
+    const v = document.createElement('div');
+    v.className = 'zm-newcard' + (item.cards.length > 1 ? ' is-multi' : '');
+    v.tabIndex = 0;
+    v.innerHTML = '<div class="zm-newcard-cards">' + item.cards.map((k) => cardHtml(k)).join('') + '</div><p>' + esc(item.text) + '</p><span>' + T('tut.tapOn', '点任意处继续') + '</span>';
+    busy = true;
+    stopClock();
+    els.app.appendChild(v);
+    snd('ask');
+    const close = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (!v.isConnected) return;
+      v.remove();
+      guideMark(item.key);
+      if (k0 === token) done();
+    };
+    v.addEventListener('click', close);
+    v.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') close(e); });
+    try { v.focus({ preventScroll: true }); } catch (_) { /* 老浏览器 */ }
+  }
+  function guideGate() {
+    const s = game.state;
+    if (game.tutorial || game.online || game.spectator || game.dealing || game.turbo || autopilot || !s.alive[0] || s.phase === 'over' || coachQueue) return false;
+    const mode = s.rules.mode, key = 'mode:' + mode;
+    if (GUIDE_MODES[mode] && !guideSeen(key)) { stopClock(); showCoach(GUIDE_MODES[mode](), () => { guideMark(key); step(); }); return true; }
+    const item = guideNext(s);
+    if (item) { showNewCard(item, step); return true; }
+    return false;
+  }
+
   function showCoach(msgs, done) {
     coachQueue = { msgs: msgs.slice(), done };
     busy = true;
@@ -6391,6 +6478,7 @@
     clearReactTimer();
     clearStage();
     wipeFx();
+    { const nv = els.app.querySelector('.zm-newcard'); if (nv) nv.remove(); }
     hideCoach();
     coachQueue = null;
     release();
@@ -8901,7 +8989,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage, flashRole: (seat, hold) => flashRole(seat, token, hold), expandRole, openRoleView, liftTop3: (n) => liftTop3(n, token), startWander, layoutRing, fanSpot, get settings() { return settings; } };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, guideReset, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage, flashRole: (seat, hold) => flashRole(seat, token, hold), expandRole, openRoleView, liftTop3: (n) => liftTop3(n, token), startWander, layoutRing, fanSpot, get settings() { return settings; } };
   }
   /* 「这步不对」反馈（zhamao-feedback.js）：打开时像暂停一样停住（不弹暂停页），关掉接着打 */
   function fbHold() {

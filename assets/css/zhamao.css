@@ -1896,3 +1896,15 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-tutask-card.is-go b { background: #2f4a6d; color: #fdf9ef; }
 .zm-tutask-card.is-go { box-shadow: 0 0 0 1.5px var(--zm-ink), 0 0 0 5px rgba(233, 200, 106, 0.45), 0 4px 14px rgba(29, 27, 24, 0.18); animation: zm-tut-breathe 1.8s ease-in-out infinite; }
 @keyframes zm-tut-breathe { 50% { box-shadow: 0 0 0 1.5px var(--zm-ink), 0 0 0 8px rgba(233, 200, 106, 0.25), 0 4px 14px rgba(29, 27, 24, 0.18); } }
+/* 实战里的引导 · 新牌亮相（2026-11-22 用户挑丙）：没教过的牌第一次进手里，桌面蒙一层宣纸色，牌放大摆在正中 + 一句话，点任意处收起 */
+.zm-newcard { position: absolute; inset: 0; z-index: 60; background: rgba(243, 238, 227, 0.93); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; cursor: pointer; outline: none; animation: zm-newcard-in 0.2s ease-out; }
+.zm-newcard-cards { display: flex; justify-content: center; align-items: center; }
+.zm-newcard .zm-card { --cw: min(42vw, 150px, 34vh); box-shadow: 0 0 0 1.5px rgba(224, 169, 59, 0.8), 0 0 22px 6px rgba(224, 169, 59, 0.3); animation: zm-newcard-pop 0.34s cubic-bezier(.3, 1.3, .5, 1) backwards; }
+.zm-newcard.is-multi .zm-card { --cw: min(21vw, 92px, 24vh); margin: 0 -5px; }
+.zm-newcard.is-multi .zm-card:nth-child(odd) { transform: rotate(-3deg); }
+.zm-newcard.is-multi .zm-card:nth-child(even) { transform: rotate(3deg) translateY(-4px); }
+.zm-newcard p { margin: 0; max-width: min(84%, 320px); text-align: center; font-size: 18px; font-weight: 700; line-height: 1.55; color: var(--zm-ink); text-wrap: balance; }
+.zm-newcard span { font-size: 12.5px; letter-spacing: 0.2em; color: var(--zm-ink-faint); }
+@keyframes zm-newcard-in { from { opacity: 0; } }
+@keyframes zm-newcard-pop { from { opacity: 0; scale: 0.7; } }
+@media (prefers-reduced-motion: reduce) { .zm-newcard, .zm-newcard .zm-card { animation: none; } }
