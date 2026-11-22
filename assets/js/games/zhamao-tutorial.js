@@ -1,11 +1,12 @@
 /* 百变小咪 · 新手教程（window.ZhamaoTutorial / Node require 共用）
- * 2026-11-13 用户：不要关卡列表，设计完整的一局，打完就把所有东西都学会。
- * 三个人（我 / 咪咪老师 / 小橘），牌提前排好，每一步只放行剧本里的那个操作（allow），对手按剧本走（bot），讲解在事件之后弹（after）：
- *   ① 看懂牌堆 → 摸一张（安全）              ② 小橘出【讨要】→ 我用【作废】挡掉
- *   ③ 我【窥探】：顶上是炸毛猫 → 出【装睡】    ④ 老师摸到炸毛猫，【逗猫棒】自救、偷偷塞回去（示范）
- *   ⑤ 小橘【甩锅】给我 ×2 → 我两张一样偷小橘一张、三张一样点名要老师的逗猫棒，再【甩锅】给老师 2+2=4（叠加）
- *   ⑥ 老师【自由甩锅】点我 4+2=6 → 我【抽底】从底下摸、再连摸四张，凑齐五种猫捡回弃牌堆里老师的【自由甩锅】，点小橘（她摸 2 回合）
- *   ⑦ 小橘摸到炸毛猫出局 → 我【改命】把炸毛猫排在老师那一张 → 老师出局，我赢；收尾一句带过【捣乱】和【交换牌】
+ * 2026-11-22 用户：从头重做。一局排好的牌、三个人（我 → 小橘 → 咪咪老师），只教决定九成出牌的 10 样，全程 11 句话；
+ * 其余的牌（自由甩锅 / 转向 / 抽底 / 改命 / 捣乱 / 万能猫 / 三张一样 / 五种猫）和另外三个玩法不在这里教，留到实战里第一次碰到再讲。
+ * 默认项：经典玩法、标准牌量、没有交换牌、塞回炸毛猫看得出大概高度、作废只问和我有关的牌。
+ *   一 摸牌  ① ② 我摸一张（橘猫）→ 小橘摸 → 老师摸到炸毛猫，逗猫棒自救、塞回最上面 ③
+ *   二 躲    ④ 我【窥探】看到顶上是炸毛猫 → ⑤ 出【装睡】→ 小橘摸到、用掉逗猫棒、塞回中间 → 我下一回合摸到【甩锅】
+ *   三 互动  小橘对我出【讨要】⑥ → 我【作废】→ ⑦ 两张橘猫偷一张 → ⑧ 出【甩锅】，小橘连摸两回合、第二张是炸毛猫，出局 ⑨
+ *   四 收尾  我摸到炸毛猫，逗猫棒自救 ⑩ → 我把它塞到最上面 → 老师摸到出局 ⑪ 我赢
+ * 每张牌都在用得上的那一刻才讲；逗猫棒先看别人用、最后自己用（塞回去坑人留给玩家亲手做）；讨要被人用一次就懂，不单讲。
  * 牌桌通过这些钩子调用它：intro / idle / allow / bot / botNope / mustNope / after / finish；
  * 讲解一句可以写成 { t, focus }：focus 里的东西（手牌 / 牌堆 / 某一家）不被蒙住。solve = 测试用的标准走法。 */
 (function (root, factory) {
@@ -15,20 +16,23 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const ME = ['defuse', 'nope', 'future', 'skip', 'bottom', 'cow', 'cow', 'tabby', 'tabby', 'tabby'];
-  const TEACHER = ['defuse', 'defuse', 'tattack', 'siamese'];
-  const XIAOJU = ['favor', 'attack', 'orange', 'orange'];
-  // 牌堆从上到下。第一只炸毛猫先被老师摸到、塞回第 5 张；我连摸四张后它到顶，小橘摸到出局；第二只留给最后的改命
-  const DECK = ['attack', 'cow', 'orange', 'boom', 'calico', 'siamese', 'tabby', 'cow', 'orange', 'calico', 'boom', 'siamese', 'tabby', 'cow', 'alter'];
-  const INSERT_AT = 4;
+  // 座位：0 我 → 1 小橘（我的下家）→ 2 咪咪老师。开局和真的一样：每人 4 张 + 1 根逗猫棒
+  const ME = ['defuse', 'nope', 'future', 'skip', 'orange'];
+  const XIAOJU = ['defuse', 'favor', 'calico', 'cow', 'siamese'];
+  const TEACHER = ['defuse', 'tabby', 'cow', 'siamese', 'calico'];
+  /* 牌堆从上到下。前三张：我（橘猫）、小橘（三花）、老师（炸毛猫 → 塞回最上面）。
+   * 之后是 狸花 甩锅 暹罗 奶牛猫 狸花 三花 炸毛猫 ……：小橘把第一只塞回第 6 张（INSERT_XIAOJU），
+   * 正好是她被甩锅后摸的第二张；第二只轮到我摸，我塞回最上面给老师 */
+  const DECK = ['orange', 'calico', 'boom', 'tabby', 'attack', 'siamese', 'cow', 'tabby', 'calico', 'boom', 'cow', 'siamese', 'shuffle'];
+  const INSERT_XIAOJU = 5;
 
   function create(R, ui) {
     const T = R.T || ((k, zh) => zh);   // 多语言：见 zhamao-rules.js 的 T
     const pool = {};
-    R.KIND_OF.forEach((k, id) => { (pool[k] = pool[k] || []).push(id); });   // 两副牌的号都可以用（教程要的猫多），没用到的全收进盒子
+    R.KIND_OF.forEach((k, id) => { (pool[k] = pool[k] || []).push(id); });
     const take = (k) => { const id = pool[k].shift(); if (id == null) throw new Error('tutorial: out of ' + k); return id; };
     const state = R.createGame(3, 1);
-    state.hands = [ME, TEACHER, XIAOJU].map((h) => R.sortHand(h.map(take)));
+    state.hands = [ME, XIAOJU, TEACHER].map((h) => R.sortHand(h.map(take)));
     state.deck = DECK.map(take);
     state.discard = [];
     state.removed = [].concat(...Object.values(pool));
@@ -39,167 +43,92 @@
     const K = (id) => R.KIND_OF[id];
     const only = (cards, kind, n) => !!cards && cards.length === n && cards.every((id) => K(id) === kind);
     const find = (s, seat, kind) => s.hands[seat].find((id) => K(id) === kind);
-    let stage = 0, draws = 0;
-    // 每一步要我做的事（等我操作时落在下沿的小提示）
-    const HINT = {
-      0: T('tut.hint.0', '点「摸牌」'),
-      1: T('tut.hint.1', '点紫色的「作废」'),
-      2: T('tut.hint.2', '点选【窥探】，再点「出牌」'),
-      3: T('tut.hint.3', '点选【装睡】，再点「出牌」'),
-      5: T('tut.hint.5', '点选两张【奶牛猫】，出牌后点小橘'),
-      6: T('tut.hint.6', '在小橘扣着的牌里点一张'),
-      7: T('tut.hint.7', '点选三张【狸花】，出牌后点咪咪老师，点名要【逗猫棒】'),
-      9: T('tut.hint.9', '点选【甩锅】，再点「出牌」'),
-      20: T('tut.hint.20', '点选【抽底】，再点「出牌」'),
-      11: T('tut.hint.11', '点「摸牌」（还要连摸几张）'),
-      12: T('tut.hint.12', '点选五种不同的猫，再点「出牌」'),
-      13: T('tut.hint.13', '在弃牌堆里点【自由甩锅】'),
-      14: T('tut.hint.14', '点选【自由甩锅】，出牌后点小橘'),
-      16: T('tut.hint.16', '点选【改命】，再点「出牌」'),
-      17: T('tut.hint.17', '把炸毛猫拖到第二张，点「好了」'),
-      18: T('tut.hint.18', '点「摸牌」'),
-    };
     const has = (ev, t, f) => ev.some((e) => e.t === t && (!f || f(e)));
+    /* stage：0 我摸第一张 · 1 等老师摸到炸毛猫塞回 · 2 我窥探 · 3 我装睡 · 4 等一圈、我再摸一张 · 5 小橘讨要、我作废
+     * 6 等一圈 · 7 我出一对橘猫 · 8 我点一张偷 · 9 我甩锅 · 10 等小橘出局 · 11 我摸到炸毛猫 · 12 我塞回最上面 · 13 等老师出局 */
+    let stage = 0;
+    // 等我操作时落在桌子下沿的小提示
+    const HINT = {
+      0: T('tut2.hint.draw', '点「摸牌」'),
+      2: T('tut2.hint.future', '点【窥探】，再点「出牌」'),
+      3: T('tut2.hint.skip', '点【装睡】，再点「出牌」'),
+      4: T('tut2.hint.draw', '点「摸牌」'),
+      5: T('tut2.hint.nope', '点紫色的「作废」'),
+      7: T('tut2.hint.pair', '点两张【橘猫】，出牌后点一个人'),
+      8: T('tut2.hint.steal', '在扣着的牌里点一张'),
+      9: T('tut2.hint.attack', '点【甩锅】，再点「出牌」'),
+      11: T('tut2.hint.draw', '点「摸牌」'),
+      12: T('tut2.hint.insert', '把炸毛猫放到最上面，点「塞进去」'),
+    };
 
     return {
       state,
-      bots: [{ nick: T('tut.bot.teacher', '咪咪老师'), avatar: 'cat' }, { nick: T('tut.bot.xiaoju', '小橘'), avatar: 'fox' }],
+      bots: [{ nick: T('tut.bot.xiaoju', '小橘'), avatar: 'fox' }, { nick: T('tut.bot.teacher', '咪咪老师'), avatar: 'cat' }],
       intro: [
-        T('tut.intro.1', '欢迎来到百变小咪！牌堆里藏着【炸毛猫】，谁摸到谁就炸毛出局，撑到最后的人赢。'),
-        { t: T('tut.intro.2', '轮到你时，想出几张牌都行，也可以一张不出；最后摸一张牌，这个回合就结束了。'), focus: ['hand'] },
-        { t: T('tut.intro.3', '牌堆下面的两个数：左边是还剩几张牌，右边是其中有几只炸毛猫。现在 15 张里只有 2 只，先摸一张试试。'), focus: ['deck'] },
-        { t: T('tut.intro.4', '你手里有一张【逗猫棒】：万一摸到炸毛猫，它会自动救你一命。'), focus: ['hand'] },
+        { t: T('tut2.say.1', '牌堆里藏着 2 只【炸毛猫】，摸到就出局，活到最后的人赢。'), focus: ['deck'] },
+        { t: T('tut2.say.2', '轮到你了：摸一张牌，回合就结束。'), focus: ['deck', 'me'] },
       ],
       idle() { ui.hint(HINT[stage] || ''); },
       allow(d) {
         switch (stage) {
-          case 0: return d.type === 'draw';
-          case 1: return d.type === 'nope';
+          case 0: case 4: case 11: return d.type === 'draw';
           case 2: return d.type === 'play' && only(d.cards, 'future', 1);
           case 3: return d.type === 'play' && only(d.cards, 'skip', 1);
-          case 5: return d.type === 'play' && only(d.cards, 'cow', 2) && (d.preview || d.target === 2);
-          case 6: return d.type === 'steal';
-          case 7: return d.type === 'play' && only(d.cards, 'tabby', 3) && (d.preview || (d.target === 1 && (d.named == null || d.named === R.DEFUSE)));
+          case 5: return d.type === 'nope';
+          case 7: return d.type === 'play' && only(d.cards, 'orange', 2);
+          case 8: return d.type === 'steal';
           case 9: return d.type === 'play' && only(d.cards, 'attack', 1);
-          case 20: return d.type === 'play' && only(d.cards, 'bottom', 1);
-          case 11: return d.type === 'draw';
-          case 12: return d.type === 'play' && !!d.cards && d.cards.length === 5;
-          case 13: return d.type === 'pick' && K(d.card) === R.TATTACK;
-          case 14: return d.type === 'play' && only(d.cards, 'tattack', 1) && (d.preview || d.target === 2);
-          case 16: return d.type === 'play' && only(d.cards, 'alter', 1);
-          case 17: return d.type === 'alter' && !!d.order && K(d.order[1]) === R.BOOM;
-          case 18: return d.type === 'draw';
+          case 12: return d.type === 'insert' && d.pos === 0;
           default: return false;
         }
       },
       bot(s, seat) {
-        if (s.phase === 'defuse') return { type: 'insert', pos: INSERT_AT };
+        if (s.phase === 'defuse') return { type: 'insert', pos: seat === 2 ? 0 : INSERT_XIAOJU };
         if (s.phase !== 'act') return null;
-        if (seat === 2 && stage === 1) { const id = find(s, 2, 'favor'); if (id != null) return { type: 'play', cards: [id], target: 0 }; }
-        if (seat === 2 && stage === 4) { const id = find(s, 2, 'attack'); if (id != null) return { type: 'play', cards: [id] }; }
-        if (seat === 1 && stage === 10) { const id = find(s, 1, 'tattack'); if (id != null) return { type: 'play', cards: [id], target: 0 }; }
+        if (seat === 1 && stage === 5) { const id = find(s, 1, 'favor'); if (id != null) return { type: 'play', cards: [id], target: 0 }; }
         return { type: 'draw' };
       },
       botNope() { return false; },
-      mustNope(s) { return stage === 1 && s.pending && s.pending.by === 2 && s.pending.nopes.length % 2 === 0; },
+      mustNope(s) { return stage === 5 && !!s.pending && s.pending.by === 1 && s.pending.nopes.length % 2 === 0; },
       after(ev) {
-        if (stage === 0 && has(ev, 'draw', (e) => e.seat === 0)) {
-          stage = 1;
-          return [{ t: T('tut.say.01', '摸到一张【甩锅】，安全！先留着，待会儿有大用。你这回合结束了，接下来轮到咪咪老师，再是小橘。'), focus: ['hand'] }];
+        if (stage === 0 && has(ev, 'draw', (e) => e.seat === 0)) { stage = 1; return []; }
+        if (stage === 1 && has(ev, 'insert')) {
+          stage = 2;
+          return [{ t: T('tut2.say.3', '【逗猫棒】救了老师。他把炸毛猫塞回去了，看位置就在最上面。'), focus: ['deck', 2] },
+            { t: T('tut2.say.4', '不放心就出【窥探】，看最上面三张。'), focus: ['hand'] }];
         }
-        if (stage === 1 && has(ev, 'play', (e) => e.seat === 2)) {
-          return [{ t: T('tut.say.02', '小橘出了【讨要】：你得自己挑一张牌送给她。'), focus: [2] },
-            { t: T('tut.say.03', '别急，你手里有【作废】：别人刚出完牌，不管是不是你的回合，都能用它让那张牌不算数。'), focus: ['hand'] }];
-        }
-        if (stage === 1 && has(ev, 'resolve', (e) => e.cancelled)) { stage = 2; return [T('tut.say.04', '作废成功，她的【讨要】白出了！')]; }
-        if (stage === 2 && has(ev, 'draw', (e) => e.seat === 2)) {
-          return [{ t: T('tut.say.05', '又轮到你了。最上面会不会就是炸毛猫？出【窥探】能偷看最上面三张，只有你看得到。'), focus: ['hand'] }];
-        }
-        if (stage === 2 && has(ev, 'future')) {
-          stage = 3;
-          return [T('tut.say.06', '第一张就是【炸毛猫】！这回合要是摸牌，就炸了。'), { t: T('tut.say.07', '出【装睡】：这回合直接结束，不用摸牌。'), focus: ['hand'] }];
-        }
-        if (stage === 3 && has(ev, 'resolve', (e) => e.type === 'skip')) { stage = 4; return [T('tut.say.08', '躲过去了！轮到咪咪老师，他可不知道最上面是什么。')]; }
-        if (stage === 4 && has(ev, 'defuse')) {
-          return [{ t: T('tut.say.09', '老师摸到了炸毛猫！好在他有【逗猫棒】，自动用掉，保住了自己。'), focus: [1] },
-            T('tut.say.10', '用掉逗猫棒以后，要把炸毛猫塞回牌堆。塞在第几张他自己定，别人只看得出大概：靠上、中间还是靠下。')];
-        }
-        if (stage === 4 && has(ev, 'insert')) return [{ t: T('tut.say.11', '塞好了。看刚才插进去的位置，它大概在牌堆的上半截。'), focus: ['deck'] }];
-        if (stage === 4 && has(ev, 'turn', (e) => e.attacked)) {
-          stage = 5;
-          return [{ t: T('tut.say.12', '小橘出了【甩锅】：她这回合不用摸牌，换你连摸两回合（看你头上那口锅：×2）。'), focus: [2, 'me'] },
-            { t: T('tut.say.13', '先别急着摸。两张一样的牌（比如两张【奶牛猫】）一起出，可以抽别人一张牌：她的牌会打乱、扣着摆开，你随便点一张。'), focus: ['hand'] }];
-        }
-        if (stage === 5 && has(ev, 'askSteal')) { stage = 6; return []; }
-        if (stage === 6 && has(ev, 'steal')) {
-          stage = 7;
-          return [{ t: T('tut.say.14', '偷到一张【橘猫】。'), focus: ['hand'] },
-            { t: T('tut.say.15', '三张一样的一起出更厉害：点一个人，再说出一种牌，他有就得给你。老师手里还剩一张【逗猫棒】，把它要过来！'), focus: ['hand', 1] }];
-        }
-        if (stage === 7 && has(ev, 'take')) {
-          stage = 9;
-          return [{ t: T('tut.say.16', '老师的逗猫棒到你手里了，他再摸到炸毛猫就没救了。'), focus: ['hand'] },
-            { t: T('tut.say.17', '你还要摸 2 回合，先别摸。被甩了锅还能接着甩：出【甩锅】，你没摸的 2 回合再加 2，一起甩给老师，他要连摸 4 回合！'), focus: ['hand', 'me'] }];
-        }
-        if (stage === 9 && has(ev, 'turn', (e) => e.attacked)) { stage = 10; return [{ t: T('tut.say.18', '老师要摸 4 回合了！锅就是这样越叠越多的。'), focus: [1] }]; }
-        if (stage === 10 && has(ev, 'turn', (e) => e.attacked && e.seat === 0)) {
-          stage = 20;
-          return [{ t: T('tut.say.19', '老师出了【自由甩锅】：不一定甩给下家，想甩给谁都行，他又甩回给你了。4 再加 2，你要连摸 6 回合！'), focus: ['me'] },
-            { t: T('tut.say.20', '刚才老师塞回去的炸毛猫就在上半截，保险起见，第一张用【抽底】从最底下摸。'), focus: ['hand', 'deck'] }];
-        }
-        if (stage === 20 && has(ev, 'draw', (e) => e.seat === 0 && e.bottom)) {
-          stage = 11;
-          return [{ t: T('tut.say.21', '从底下摸到【改命】，安全！这算摸了一回合，还剩 5 回合。'), focus: ['hand', 'me'] },
-            { t: T('tut.say.22', '你手里有两张【逗猫棒】，不怕，接着摸四张。'), focus: ['hand'] }];
-        }
-        if (stage === 11 && has(ev, 'draw', (e) => e.seat === 0 && !e.bottom)) {
-          draws += 1;
-          if (draws >= 4) {
-            stage = 12;
-            return [{ t: T('tut.say.23', '四张都安全，还剩 1 回合。看看手里：橘猫、三花、奶牛猫、狸花、暹罗——五种猫凑齐了！'), focus: ['hand'] },
-              T('tut.say.24', '五种猫各出一张，就能从弃牌堆里挑一张拿回来。')];
-          }
-          return [];
-        }
-        if (stage === 12 && has(ev, 'askPick')) { stage = 13; return [T('tut.say.25', '弃牌堆里有老师刚用过的【自由甩锅】，把它捡回来。')]; }
-        if (stage === 13 && has(ev, 'pick')) { stage = 14; return [{ t: T('tut.say.26', '捡回来了！最后这回合也别摸，用它甩给小橘，让她连摸两回合。'), focus: ['hand', 2] }]; }
-        if (stage === 14 && has(ev, 'turn', (e) => e.attacked)) { stage = 15; return []; }
-        if (stage === 15 && has(ev, 'out', (e) => e.seat === 2)) {
-          stage = 16;
-          return [T('tut.say.27', '小橘一摸，正是老师塞回去的那只炸毛猫。她没有逗猫棒，炸毛出局！'),
-            { t: T('tut.say.28', '牌堆里还剩最后一只炸毛猫。出【改命】：看最上面三张，再按你想要的顺序重新排。'), focus: ['hand', 'deck'] }];
-        }
-        if (stage === 16 && has(ev, 'alter')) {
-          stage = 17;
-          return [T('tut.say.29', '第三张就是炸毛猫。现在只剩你和老师：你摸第一张，老师摸第二张。把炸毛猫挪到第二张，正好轮到他摸。（拖动可以插到别处，先后点两张是互换）')];
-        }
-        if (stage === 17 && has(ev, 'altered')) { stage = 18; return [T('tut.say.30', '排好了。摸走第一张，下一张就归老师。')]; }
+        if (stage === 2 && has(ev, 'future')) { stage = 3; return [{ t: T('tut2.say.5', '顶上就是炸毛猫。出【装睡】：不摸牌，直接结束回合。'), focus: ['hand'] }]; }
+        if (stage === 3 && has(ev, 'resolve', (e) => e.type === 'skip')) { stage = 4; return []; }
+        if (stage === 4 && has(ev, 'draw', (e) => e.seat === 0)) { stage = 5; return []; }
+        if (stage === 5 && has(ev, 'play', (e) => e.seat === 1)) return [{ t: T('tut2.say.6', '小橘要你送她一张牌。点【作废】，让它不算数。'), focus: [1, 'hand'] }];
+        if (stage === 5 && has(ev, 'resolve', (e) => e.cancelled)) { stage = 6; return []; }
+        if (stage === 6 && has(ev, 'draw', (e) => e.seat === 2)) { stage = 7; return [{ t: T('tut2.say.7', '两张一样的牌一起出，偷别人一张。'), focus: ['hand'] }]; }
+        if (stage === 7 && has(ev, 'askSteal')) { stage = 8; return []; }
+        if (stage === 8 && has(ev, 'steal')) { stage = 9; return [{ t: T('tut2.say.8', '出【甩锅】：你不摸，下家连摸两回合。'), focus: ['hand', 1] }]; }
+        if (stage === 9 && has(ev, 'turn', (e) => e.attacked)) { stage = 10; return []; }
+        if (stage === 10 && has(ev, 'out', (e) => e.seat === 1)) { stage = 11; return [{ t: T('tut2.say.9', '小橘没有逗猫棒了，出局！'), focus: [1] }]; }
+        if (stage === 11 && has(ev, 'defuse', (e) => e.seat === 0)) { stage = 12; return [{ t: T('tut2.say.10', '【逗猫棒】救了你。把炸毛猫塞到最上面，下一个摸牌的就是老师。'), focus: ['deck', 2] }]; }
+        if (stage === 12 && has(ev, 'insert')) { stage = 13; return []; }
         return [];
       },
       finish(won) {
         return [
-          won ? T('tut.say.31', '老师摸到炸毛猫，又没有逗猫棒，炸毛出局。你赢了！') : T('tut.say.32', '这局没赢，不过你已经都学会了。'),
-          { t: T('tut.say.33', '还有一张【捣乱】：知道顶上危险、又没别的办法躲时，把牌堆洗乱，谁也不知道炸毛猫在哪了。'), focus: ['deck'] },
-          T('tut.say.34', '在设置里打开「有交换牌」，还能和别人整手交换手牌（逗猫棒默认不换）。规则随时可以点右上角的问号看。'),
+          won ? T('tut2.say.11', '你赢了！') : T('tut2.say.lost', '这局没赢，不过该会的都会了。'),
+          T('tut2.say.more', '还有几张牌没见过，点右上角的问号随时能查。'),
         ];
       },
       // 测试用：照着走就能打完
       solve: [
-        () => ({ type: 'draw' }), 'nope',
+        () => ({ type: 'draw' }),
         (s) => ({ type: 'play', cards: [find(s, 0, 'future')] }),
         (s) => ({ type: 'play', cards: [find(s, 0, 'skip')] }),
-        (s) => ({ type: 'play', cards: s.hands[0].filter((id) => K(id) === 'cow').slice(0, 2), target: 2 }),
-        () => ({ type: 'steal', idx: 0 }),
-        (s) => ({ type: 'play', cards: s.hands[0].filter((id) => K(id) === 'tabby').slice(0, 3), target: 1, named: R.DEFUSE }),
-        (s) => ({ type: 'play', cards: [find(s, 0, 'attack')] }),
-        (s) => ({ type: 'play', cards: [find(s, 0, 'bottom')] }),
-        () => ({ type: 'draw' }), () => ({ type: 'draw' }), () => ({ type: 'draw' }), () => ({ type: 'draw' }),
-        (s) => ({ type: 'play', cards: R.CATS.map((k) => find(s, 0, k)) }),
-        (s) => ({ type: 'pick', card: s.discard.find((id) => K(id) === R.TATTACK) }),
-        (s) => ({ type: 'play', cards: [find(s, 0, 'tattack')], target: 2 }),
-        (s) => ({ type: 'play', cards: [find(s, 0, 'alter')] }),
-        (s) => ({ type: 'alter', order: [s.alter.cards[0], s.alter.cards[2], s.alter.cards[1]] }),
         () => ({ type: 'draw' }),
+        'nope',
+        (s) => ({ type: 'play', cards: s.hands[0].filter((id) => K(id) === 'orange').slice(0, 2), target: 2 }),
+        () => ({ type: 'steal', idx: 0 }),
+        (s) => ({ type: 'play', cards: [find(s, 0, 'attack')] }),
+        () => ({ type: 'draw' }),
+        () => ({ type: 'insert', pos: 0 }),
       ],
     };
   }
