@@ -12,6 +12,7 @@
   const LANG = R.lang();
   const AI = window.ZhamaoAI;
   const HL = window.ZhamaoHlog || null;   // 真人单机对局匿名日志（zhamao-hlog.js，2026-11-19）
+  const WAL = window.ZhamaoWallet || null;   // 小鱼干（zhamao-wallet.js，2026-11-22）：单机开局领票、名次定下来就结算
   const ART = window.ZhamaoArt;
   const AV = window.GongzhuAvatars || null;
   const TUT = window.ZhamaoTutorial || null;
@@ -115,7 +116,7 @@
     if (!game || game.tutorial || game.online || game.stale) return;
     if (game.state.phase === 'over') { try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ } return; }
     const back = game.pov ? game.state.n - game.pov : 0;   // 观战时桌子是转过的：存回我自己坐在 0 号的样子
-    writeJSON(STORE_KEY, { v: VERSION, t: Date.now(), state: rotState(game.state, back), bots: rotSeats(game.bots, back), tiers: rotSeats(game.tiers, back), openKits: game.openKits ? Array.from(game.openKits) : [], hl: game.hl || null });   // 火眼露在牌堆里的那几只也存上
+    writeJSON(STORE_KEY, { v: VERSION, t: Date.now(), state: rotState(game.state, back), bots: rotSeats(game.bots, back), tiers: rotSeats(game.tiers, back), openKits: game.openKits ? Array.from(game.openKits) : [], hl: game.hl || null, wt: game.wt || null });   // 火眼露在牌堆里的那几只也存上
   }
   function loadSaved() {
     const d = readJSON(STORE_KEY);
@@ -2689,6 +2690,7 @@
       logged = { type: 'draw' };
     }
     if (HL) HL.act(game, seat, logged, byAuto || (seat === 0 && autopilot) ? 1 : 0);
+    if (WAL) WAL.act(game, seat, logged, byAuto || (seat === 0 && autopilot));
     if (seat === 0) selected = [];
     mode = null;
     game.src = rects;
@@ -4394,6 +4396,7 @@
     await wait(ms(300));
     if (e.seat === 0) {
       game.fastOut = true;
+      if (WAL && !game.online) WAL.settle(game);   // 我出局了：名次已定，马上结算（不用等机器猫打完）
       if (mateWatching()) { const lm = liveMate(); if (lm >= 0 && viewSeat !== lm) watch(lm); }
       renderBand();
       renderHand();   // ④ 这时候才出「看谁」的小头像
@@ -4537,6 +4540,7 @@
     renderHand({ flip: false });   // 手里「作废」那几张的紫光立刻停
     const ev = R.nope(s, seat);
     if (HL) HL.act(game, seat, { type: 'nope' }, seat === 0 && autopilot ? 1 : 0);
+    if (WAL) WAL.act(game, seat, { type: 'nope' }, seat === 0 && autopilot);
     await playEvents(ev, t);
     if (t !== token) return;
     afterEvents(ev);
@@ -5691,6 +5695,7 @@
   }
   async function finish() {
     if (HL && !game.tutorial && !game.online) HL.finish(game);
+    const wp = WAL && !game.tutorial && !game.online ? WAL.settle(game) : null;
     busy = true;
     bgm('end');
     const s = game.state;
@@ -5724,12 +5729,12 @@
     bgm('menu');   // 结算页算游戏外：接上丁（一局结束时先淡出，皇冠彩纸放完、排行榜出来再起）
     // 组队：赢的队两个人都算赢，不排个人名次——还是一列（赢的队 / 输的队）；其余用领奖台
     if (team) {
-      openDialog(teamRankHtml(order, winners.length, won) +
-        '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', soloEndWire);
+      openDialog(teamRankHtml(order, winners.length, won) + (wp ? WAL.slot() : '') +
+        '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { soloEndWire(d); if (wp) WAL.fill(d, wp); });
       return;
     }
-    openDialog(podiumHtml(order.map((seat) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0 }))) +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); });
+    openDialog(podiumHtml(order.map((seat) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0 }))) + (wp ? WAL.slot() : '') +
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); if (wp) WAL.fill(d, wp); });
   }
   function soloEndWire(d) {
     d.querySelector('[data-again]').addEventListener('click', () => { closeDialog(); newGame(); });
@@ -6581,6 +6586,7 @@
 
   /* ───── 开局 / 封面 ───── */
   function newGame() {
+    if (WAL && game) WAL.settle(game);   // 上一局我已经出局、没等打完就开新局：名次已定，先结掉
     resetTable();
     viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator'); els.me.classList.remove('is-watched');
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
@@ -6591,6 +6597,7 @@
     const st = R.createGame(n, seed, settings.rules);
     game = { state: st, bots: drawBots(n, settings.tier), tiers: [null].concat(Array(n - 1).fill(settings.tier)), tutorial: false };
     if (HL) HL.start(game, st, seed);
+    if (WAL) WAL.start(game, settings.tier);
     els.cover.hidden = true;
     buildSeats();
     solveSize();
@@ -6604,6 +6611,7 @@
     autopilot = false; timeouts = 0; els.me.classList.remove('is-auto');
     game = { state: d.state, bots: d.bots, tiers: d.tiers, tutorial: false, fastOut: !d.state.alive[0], openKits: new Set(d.openKits || []), kitShown: new Set(d.openKits || []) };
     if (HL) HL.restore(game, d.hl);
+    if (d.wt && d.wt.tid) game.wt = d.wt;   // 这局的小鱼干门票（结算用）
     game.bots[0] = { nick: profile.nick, avatar: profile.avatar };
     els.cover.hidden = true;
     buildSeats();
@@ -6676,6 +6684,7 @@
     const fw = $('zmSoloFaces').clientWidth || 260, lap = 7;
     $('zmSoloFaces').style.setProperty('--fs', Math.min(34, Math.floor((fw + (n - 1) * lap) / n)) + 'px');
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
+    if (WAL) WAL.priceTag(els.cover.querySelector('[data-cover="start"]'), settings.tier, curMode(), n);   // 开始键上标这局门票（小鱼干）
     refreshDeck();
   }
 
@@ -6824,6 +6833,8 @@
     if (k !== 'main') sheetMask.hidden = true;
   }
   function showCover() {
+    if (WAL && game) WAL.settle(game);
+    if (WAL) setTimeout(() => WAL.me(), 1200);   // 回主页面：余额可能刚结算完，稍后刷新左上角
     if (game && !game.tutorial && !game.dealing) save();
     resetTable();
     tut = null;
@@ -8036,10 +8047,12 @@
     const teamW = teamGame() ? (g.winners || 1) : 0;   // 组队：赢的那一队都算赢，不上领奖台，用队伍名单
     openDialog((host ? '<button type="button" class="zm-icbtn zm-rank-edit is-corner" data-edit aria-label="' + T('ui.host.edit', '调座位 / 请人离开') + '" title="' + T('ui.host.edit', '调座位 / 请人离开') + '">' + HOST_IC.swap + '</button>' : '') +
       (teamW ? teamRankHtml(order, teamW, !game.spectator && order.slice(0, teamW).indexOf(0) >= 0) : podiumHtml(items)) +
+      (WAL && g.pay && !game.spectator && !g.pay.refund ? WAL.slot() : '') +
       recordHtml(st && st.record, 2) +
       (host ? '' : '<p class="zm-muted">' + T('ui.room.waitNext', '等房主开下一局') + '</p>') +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-leave>' + T('ui.leaveRoom', '离开房间') + '</button>' + (host ? '<button type="button" class="zm-btn" data-again>' + T('ui.room.backShort', '回房间') + '</button><button type="button" class="zm-btn zm-btn-primary" data-next data-focus>' + T('ui.nextGame', '下一局') + '</button>' : '') + '</div>', (d) => {
       if (!teamW) { d.classList.add('is-podium'); animPodium(d); }
+      if (WAL) WAL.fillOnline(d, !game.spectator ? g.pay : null);
       d.querySelector('[data-leave]').addEventListener('click', () => { closeDialog(); leaveOnline(true); });
       const a = d.querySelector('[data-again]');
       if (a) a.addEventListener('click', () => { a.disabled = true; onlineAct('rematch'); });
@@ -8885,6 +8898,7 @@
   if (LANDSCAPE_SHORT.addEventListener) LANDSCAPE_SHORT.addEventListener('change', () => { sizeW = 0; recheckSize(); });   // 横竖屏切换：一定重算（不管宽度差多少）
   refreshSoundBtn();
   initSocial();
+  if (WAL) WAL.mountChip(els.cover);   // 主菜单左上角：小鱼干余额，点了去猫咪档案
   refreshCover();
   refreshTools();
   // 进来先是主菜单 + 一条进度条（等字体到位，太快也让它走完一程，不闪），跑完换成按钮

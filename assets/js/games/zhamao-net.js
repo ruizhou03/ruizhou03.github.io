@@ -107,6 +107,11 @@
     return did;
   }
 
+  /* 站点登录 token（2026-11-22 小鱼干）：服务器拿它认出这一座记到哪个账号的钱包；没登录就不带，记到这台设备的游客钱包 */
+  function siteToken() {
+    try { return localStorage.getItem('site.auth.token.v1') || undefined; } catch (_) { return undefined; }
+  }
+
   function inviteUrl(code) {
     const u = new URL(location.href);
     u.search = '';
@@ -117,9 +122,9 @@
 
   window.ZhamaoNet = {
     BASE, ENABLED, message, readSession, writeSession, deviceId, inviteUrl,
-    create: (nick, avatar, config) => request('POST', 'create', { body: { nick, avatar, deviceId: deviceId(), config } }),
+    create: (nick, avatar, config) => request('POST', 'create', { body: { nick, avatar, deviceId: deviceId(), siteToken: siteToken(), config } }),
     // mode：'play' 想坐下（坐不下服务器就让我先观战，回应里 fellBack 写原因）；'watch' 只观战
-    join: (code, nick, avatar, mode) => request('POST', 'join', { body: { code, nick, avatar, deviceId: deviceId(), mode: mode || 'play' } }),
+    join: (code, nick, avatar, mode) => request('POST', 'join', { body: { code, nick, avatar, deviceId: deviceId(), siteToken: siteToken(), mode: mode || 'play' } }),
     act: (code, token, action, body) => request('POST', action, { code, token, body, timed: true }),
     rtt,
     // 量一下来回：最便宜的请求（不碰数据库），一局里每隔一阵发一次，没出牌的人也有来回可量

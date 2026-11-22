@@ -143,6 +143,7 @@
           (g.hl.fb = g.hl.fb || []).push([pick, why || 'other', Math.max(0, Date.now() - (g.hl.t0 || Date.now()))]);
           if (root.ZhamaoHlog && root.ZhamaoHlog.snapshot) root.ZhamaoHlog.snapshot(g);
         }
+        if (root.ZhamaoWallet) root.ZhamaoWallet.fb(1);   // 小鱼干：每标一步 +5，每天最多 4 步（2026-11-22）
         s.innerHTML = TICK;
         setTimeout(close, 450);
       }

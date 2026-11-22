@@ -196,6 +196,9 @@ body_class: zm-fullscreen
 <script src="/assets/js/games/zhamao-social.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/zhamao-net.js?v={{ site.time | date: '%s' }}"></script>
+<!-- 小鱼干（2026-11-22）：这一页是精简外壳、没有加载站点登录脚本——单独加上 auth.js（只有登录状态和带登录的请求，没有界面） -->
+<script src="/assets/js/auth/auth.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/zhamao-wallet.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/zhamao-music.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/zhamao-audio.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/zhamao-tutorial.js?v={{ site.time | date: '%s' }}"></script>
