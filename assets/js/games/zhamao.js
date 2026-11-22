@@ -6317,12 +6317,14 @@
       return k ? cardHtml(k) + '<b>' + esc(name) + '</b>' : m;
     });
   }
-  /* ───── 实战里的引导（2026-11-22 用户：新手教程只教核心 10 样，其余的在实战里第一次碰到再讲；先做单机） ─────
+  /* ───── 实战里的引导（2026-11-22 用户：新手教程只教核心 10 样，其余的在实战里第一次碰到再讲） ─────
    * 第二层（用户挑丙）：没教过的牌第一次进我手里，整张放大亮相 + 一句话，点任意处收起；每种只讲一次。
    *   三张一样 / 五种猫凑齐 / 被甩锅时手里有甩锅，也各讲一次（亮的是凑成的那几张）。
    * 第三层（用户挑乙）：第一次用百变 / 组队 / 角色开局，发完牌用教程同款的讲解说两句，指着眼前的东西。
    * 看过的记在 localStorage（zm.guide.v1）。这个功能上线前就玩过的人一律当看过，不打扰；打完新手教程会清空重记。
-   * 入口只有 step() 里的 guideGate()：有要讲的就先讲（这时不开计时、机器猫也不动），讲完再回 step()。 */
+   * 单机入口是 step() 里的 guideGate()：有要讲的就先讲（这时不开计时、机器猫也不动），讲完再回 step()。
+   * 联机入口是 onlineIdle() 里的 guideOnline()（同日用户：联机也加）：牌局不等人，所以只是盖一层、不拦任何东西——
+   *   只在桌上安静时（轮到某个人出牌 / 摸牌）讲；一有事要我表态或挑牌就自己收起来、不算看过，下次安静时再讲。 */
   const GUIDE_KEY = 'zm.guide.v1';
   const GUIDE_CARDS = {
     tattack: () => T('guide.card.tattack', '甩给任意一个人，他连摸两回合'),
@@ -6371,14 +6373,13 @@
     if (!guideSeen('tip:stack') && s.phase === 'act' && s.turn === 0 && s.turnsLeft > 1 && (cnt[R.ATTACK] || cnt[R.TATTACK])) return { key: 'tip:stack', cards: [cnt[R.ATTACK] ? R.ATTACK : R.TATTACK], text: T('guide.tip.stack', '被甩锅时再甩出去：没摸的回合加 2，一起甩走') };
     return null;
   }
-  function showNewCard(item, done) {
+  function showNewCard(item, done, soft) {
     const k0 = token;
     const v = document.createElement('div');
     v.className = 'zm-newcard' + (item.cards.length > 1 ? ' is-multi' : '');
     v.tabIndex = 0;
     v.innerHTML = '<div class="zm-newcard-cards">' + item.cards.map((k) => cardHtml(k)).join('') + '</div><p>' + esc(item.text) + '</p><span>' + T('tut.tapOn', '点任意处继续') + '</span>';
-    busy = true;
-    stopClock();
+    if (!soft) { busy = true; stopClock(); }   // 联机（soft）：只盖一层，倒计时和牌局照走
     els.app.appendChild(v);
     snd('ask');
     const close = (e) => {
@@ -6386,11 +6387,30 @@
       if (!v.isConnected) return;
       v.remove();
       guideMark(item.key);
-      if (k0 === token) done();
+      if (k0 === token || soft) done();
     };
     v.addEventListener('click', close);
     v.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') close(e); });
     try { v.focus({ preventScroll: true }); } catch (_) { /* 老浏览器 */ }
+  }
+  function guideOnline() {
+    if (!game || !game.online || !game.state || game.tutorial) return;
+    const s = game.state, v = els.app.querySelector('.zm-newcard');
+    const quiet = s.phase === 'act' && !game.spectator && !game.dealing && !autopilot && !!s.alive[0];
+    if (!quiet) {   // 桌上有事了：先收起来，不算看过
+      if (v) v.remove();
+      if (game.guideCoach) { game.guideCoach = false; if (coachQueue) { coachQueue = null; hideCoach(); } }
+      return;
+    }
+    if (v || coachQueue || !els.mask.hidden) return;
+    const mode = s.rules.mode, key = 'mode:' + mode;
+    if (GUIDE_MODES[mode] && !guideSeen(key)) {
+      game.guideCoach = true;
+      showCoach(GUIDE_MODES[mode](), () => { if (game) game.guideCoach = false; guideMark(key); guideOnline(); });
+      return;
+    }
+    const item = guideNext(s);
+    if (item) showNewCard(item, guideOnline, true);
   }
   function guideGate() {
     const s = game.state;
@@ -7782,6 +7802,7 @@
       const pick = Array.from({ length: online.n - 1 }, (_, k) => (me0 + k + 1) % online.n).find((j) => g.st.alive[j] && tm[j] === tm[me0]);
       if (pick != null) onlineView(pick);
     }
+    guideOnline();   // 实战里的引导：只盖一层，不拦下面的流程
     const mine = !!g.myCall && !autopilot && !game.spectator;
     const remain = onlineRemain();
     stopClock();
@@ -8989,7 +9010,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, guideReset, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage, flashRole: (seat, hold) => flashRole(seat, token, hold), expandRole, openRoleView, liftTop3: (n) => liftTop3(n, token), startWander, layoutRing, fanSpot, get settings() { return settings; } };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, guideReset, guideOnline, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage, flashRole: (seat, hold) => flashRole(seat, token, hold), expandRole, openRoleView, liftTop3: (n) => liftTop3(n, token), startWander, layoutRing, fanSpot, get settings() { return settings; } };
   }
   /* 「这步不对」反馈（zhamao-feedback.js）：打开时像暂停一样停住（不弹暂停页），关掉接着打 */
   function fbHold() {
