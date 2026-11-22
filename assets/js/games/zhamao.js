@@ -531,7 +531,15 @@
     els.me.style.top = Math.round(y1 - avMe / 2 - (op.top - tb.top)) + 'px';
     els.me.style.bottom = 'auto';
     if (land) { mebar.style.removeProperty('padding-left'); els.table.style.setProperty('--ring-me-w', Math.round(meX + avMe / 2 + 2) + 'px'); }
-    else mebar.style.paddingLeft = Math.round(meX + avMe / 2 + 10 - (op.left - tb.left)) + 'px';
+    else {
+      /* 竖屏排法：两颗键往右让开我的头像。2026-11-22 用户（平板横屏）：桌子很宽、键放正中间也碰不到我时就放正中间——
+       * 按两颗键最宽时的宽度量，正中间那一段左边离我的头像还有 10px 以上就不让 */
+      const padL = Math.round(meX + avMe / 2 + 10 - (op.left - tb.left));
+      const bw = 2 * Math.max(96, ...Array.from(mebar.querySelectorAll('.zm-band .zm-btn')).map((b) => b.offsetWidth)) + 12;
+      const mw = mebar.getBoundingClientRect().width;
+      const wide = window.innerWidth > window.innerHeight;
+      if (wide && (mw - bw) / 2 >= padL) mebar.style.removeProperty('padding-left'); else mebar.style.paddingLeft = padL + 'px';
+    }
     // 横屏：顶边那几家（头像 + 名字）往下压进了桌子中间那块——牌堆 / 弃牌堆在剩下的高度里居中，别顶到名字
     if (land) { const ct = els.center.getBoundingClientRect().top - tb.top; const pad = Math.max(0, Math.round(y0 + av / 2 + 18 - ct)); els.center.style.paddingTop = pad + 'px'; els.center.style.setProperty('--ctr-pad', pad + 'px'); }
     else { els.center.style.removeProperty('padding-top'); els.center.style.removeProperty('--ctr-pad'); }
@@ -1523,6 +1531,20 @@
       els.center.appendChild(el);
     }
     if (el.dataset.rule !== String(id)) { el.dataset.rule = String(id); el.innerHTML = fluxHtml(id); }
+    fluxSpot(el);
+  }
+  /* 规则卡摆哪（2026-11-22 用户：平板横屏，规则卡在牌堆正下方，压到桌沿灯带和「摸牌」键）：
+   * 横着的屏幕、牌堆下面放不下（卡底碰到桌沿底边 / 按钮 / 手牌）→ 摆到弃牌堆右边、和牌堆同高，牌堆那组往左让半个卡宽（和手机横屏一样） */
+  function fluxSpot(el) {
+    const c = els.center;
+    if (!el || !el.isConnected) { c.classList.remove('is-flux-side'); return; }
+    if (LANDSCAPE_SHORT.matches || window.innerWidth <= window.innerHeight) { c.classList.remove('is-flux-side'); return; }
+    c.classList.remove('is-flux-side');
+    const fr = el.getBoundingClientRect(), tb = els.table.getBoundingClientRect();
+    let lim = Infinity;
+    if (ringGame() && ringLay) lim = Math.min(lim, tb.top + ringLay.y1 - 8);
+    for (const e of [els.playBtn, els.drawBtn, els.nopeBtn, els.hand]) { const r = e && !e.hidden ? e.getBoundingClientRect() : null; if (r && r.width) lim = Math.min(lim, r.top - 6); }
+    if (fr.bottom > lim) c.classList.add('is-flux-side');
   }
   function showFluxHelp() {
     const cur = game && game.state ? D().flux : null;
@@ -2142,7 +2164,10 @@
     if (giveNext && R.roleOf(s, s.give.to) === 'fat') els.playBtn.innerHTML = T('ui.btn.give', '给牌') + '<b class="zm-xn">×' + (s.give.left > 1 ? 2 : 1) + '</b>'; else els.playBtn.textContent = giveNext ? T('ui.btn.give', '给牌') : T('ui.btn.play', '出牌');
     els.drawBtn.textContent = T('ui.btn.draw', '摸牌');
     els.drawBtn.classList.remove('is-ready');
-    if (s.phase === 'over') { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
+    // 结束了也等动画播完（ov 还在 = 桌上还在演）再收键（2026-11-22 用户：最后一炸把整局打完时，game.state 当场就是 over，
+    // 两个键一摸牌就没了，牌还没翻开就知道自己挂了）
+    if (s.phase === 'over' && !ov) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
+    else if (s.phase === 'over') { /* 灰着等动画 */ }
     else if (game.dealing) { /* 发牌中：两个键都灰着 */ }
     // 摸到炸毛猫、我那一下还没炸完（game.fastOut 在出局动画最后才置上）：两个键照常灰着——2026-11-14 用户：一摸牌键就被收走，
     // 牌还没翻开就知道自己完了。game.state 是结算后的，我一摸它就已经写着出局，所以不能按 alive 直接藏
@@ -3854,13 +3879,58 @@
     node.remove();
     return rr;
   }
+  // 掀牌的姿势：推出一截 → 捏起来悬着（peel 和联机预掀共用）
+  const peelFrames = (x, y, dx) => [
+    { transform: fx.T(x, y, 1, 0), boxShadow: '0 0 0 rgba(29,27,24,0)', easing: 'cubic-bezier(.3,.6,.4,1)' },
+    { transform: fx.T(x + dx, y - 1, 1, 1.5), boxShadow: '0 2px 3px rgba(29,27,24,.2)', offset: 0.55, easing: 'cubic-bezier(.3,.7,.3,1)' },
+    { transform: fx.T(x + dx * 1.1, y - 14, 1.05, -4), boxShadow: '0 12px 20px rgba(29,27,24,.26)' },
+  ];
+  // 联机点「摸牌」：先把顶上那张推出来捏着悬着（等服务器回话），回话后 peel 从这儿接着演
+  function prePeel() {
+    if (game.drawLift) { game.drawLift.node.remove(); game.drawLift = null; }
+    const r = deckTopRect(), pu = PU();
+    if (!r || !r.width) return;
+    const node = document.createElement('div');
+    node.className = 'zm-flyer';
+    node.style.width = pu + 'px'; node.style.height = pu * 1.4 + 'px';
+    const face = game.state ? faceTop(game.state) : null;
+    node.innerHTML = face != null ? cardHtml(face) : backHtml();
+    els.fly.appendChild(node);
+    snd('peel');
+    const anim = node.animate(peelFrames(r.left, r.top, pu * 0.16), { duration: 220, fill: 'forwards' });
+    game.drawLift = { node, anim, at: performance.now(), face };
+  }
   async function peel(t, bottom, seat) {
     const lift = game.drawLift; game.drawLift = null;   // 联机：点「摸牌」时已经掀起来悬着的那张——从它现在的位置接着摸
     game.peelFace = null; game.peelS = 1.04; game.peelRot = -5;
     // 牌堆只剩一张时，底和顶是同一张：照从顶上摸来演（2026-11-17 用户：以前从底下抽出来的那一瞬，牌堆上还摆着一张，看着像有两张）
-    if (bottom && ov && ov.deckSize > 1) { if (lift) lift.cancel(); return peelBottom(t); }
+    if (bottom && ov && ov.deckSize > 1) { if (lift) lift.node.remove(); return peelBottom(t); }
     const r = deckTopRect(), pu = PU();
-    if (lift) requestAnimationFrame(() => lift.cancel());
+    if (lift && seat === 0 && lift.node.isConnected) {
+      // 接着悬着的那张演：牌堆数字这时才减一；紧张时再抖两下（悬着已经等过一会儿了，不再另外停）
+      const node = lift.node;
+      game.peelFace = lift.face;
+      ov.deckSize -= 1;
+      ov.topFace = faceTop(game.state);
+      renderPiles();
+      const tense = danger() >= 0.2;
+      if (tense) snd('heartbeat', 0);
+      await lift.anim.finished.catch(() => {});
+      const x = r.left + pu * 0.16 * 1.1, y = r.top - 14;
+      const rest = Math.max(0, ms(tense ? 640 : 300) - (performance.now() - lift.at));
+      if (tense || rest > 40) {
+        await fx.animate(node, [
+          { transform: fx.T(x, y, 1.05, -4) },
+          ...(tense ? [{ transform: fx.T(x + 1.5, y - 1, 1.05, -2), offset: 0.4 }, { transform: fx.T(x - 1.5, y, 1.05, -5), offset: 0.75 }] : []),
+          { transform: fx.T(x, y, 1.05, -4) },
+        ], { duration: Math.max(rest, tense ? 260 : 0) }).finished.catch(() => {});
+      }
+      if (t !== token) { node.remove(); return null; }
+      const rr = node.getBoundingClientRect();
+      node.remove();
+      return rr;
+    }
+    if (lift) lift.node.remove();
     const node = document.createElement('div');
     node.className = 'zm-flyer';
     node.style.width = pu + 'px'; node.style.height = pu * 1.4 + 'px';
@@ -4128,14 +4198,36 @@
     snd('thud');
   }
   /* 塞回去：背面的炸毛猫飞回牌堆，牌堆上半截掀开一道口、它滑进去、合上（不论塞在哪动画都一样，不泄露位置） */
+  /* 联机塞回牌堆（2026-11-22 用户：单机很顺，联机像不知道往哪塞、卡一下）：点「塞进去」后要等服务器回话才开演，炸毛猫在桌心干等。
+   * 现在一点就先飞到牌堆左边（和牌堆同高）悬着，回话后 animInsert 从这儿接着：掀开缝、滑进去 */
+  function preInsert() {
+    if (fx.reduce() || game.insPre) return;
+    const node = game.boomNode, pu = PU(), dr = els.deck.getBoundingClientRect();
+    if (!node || !dr.width) return;
+    const from = node.getBoundingClientRect();
+    node.style.visibility = 'hidden';
+    game.insPre = { boom: node, p: fx.fly({ html: backHtml(), from, to: { x: dr.left + dr.width / 2 - pu * 0.95, y: dr.top + dr.height / 2 }, w: pu, s0: from.width / pu, s1: 1, r0: -10, r1: -8, dur: 380, lift: 40, keep: true, land: false }) };
+  }
+  function dropPreInsert() {
+    const pi = game && game.insPre; if (!pi) return;
+    game.insPre = null;
+    if (pi.boom) pi.boom.style.visibility = '';
+    pi.p.then((n) => n && n.remove());
+  }
   async function animInsert(e, t) {
     const node = game.boomNode;
     game.boomNode = null;
     const pu = PU();
-    // 炸毛猫在拆掉它的那个人那儿（头像），从那儿飞回牌堆
+    const pi = e.seat === 0 ? game.insPre : null;
+    game.insPre = null;
+    const preNode = pi ? await pi.p : null;
+    if (t !== token) { if (preNode) preNode.remove(); return; }
+    // 炸毛猫在拆掉它的那个人那儿（头像），从那儿飞回牌堆；联机我自己塞的已经先飞到牌堆左边悬着了，从那儿接着
     const av = avEl(e.seat);
-    const from = node ? node.getBoundingClientRect() : av ? av.getBoundingClientRect() : els.center.getBoundingClientRect();
+    const from = preNode ? (() => { const r = preNode.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })() : node ? node.getBoundingClientRect() : av ? av.getBoundingClientRect() : els.center.getBoundingClientRect();
     if (node) node.remove();
+    if (preNode) preNode.remove();
+    const s0 = preNode ? 1 : from.width / pu, r0 = preNode ? -8 : from.width ? -10 : 0, d1 = ms(preNode ? 220 : 380), lift1 = preNode ? 8 : 40;
     // 掀开的「盖子」= 缝上面那几层；炸毛猫从侧面插进这道缝：真的放进牌堆那一摞里（盖子压在它上面、下半截垫在它下面）。
     // 牌堆每一张都画成一层纸边（DOM 里从底往上）。
     // · 规则「看得出大概位置」（e.vis 有值，2026-11-14 用户，默认开）：缝开在真实高度——放最上就盖在最顶上、放最底就塞到最底下；
@@ -4157,12 +4249,12 @@
     const floor = atBottom ? layers[0] : layers[L0 - above - 1];
     const slotR = (floor || els.deck).getBoundingClientRect();   // 缝在哪儿（插完会重画牌堆，先量下来给位置小标签用）
     if (!floor) {
-      await fx.fly({ html: backHtml(), from, to: deckTopRect(), w: pu, s0: from.width / pu, s1: 1, r0: 0, r1: 0, dur: ms(380), lift: 40 });
+      await fx.fly({ html: backHtml(), from, to: deckTopRect(), w: pu, s0, s1: 1, r0: preNode ? -8 : 0, r1: 0, dur: d1, lift: lift1 });
     } else {
       lid.forEach((c) => c.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '6px -16px', rotate: '-8deg', offset: 0.3 }, { translate: '6px -16px', rotate: '-8deg', offset: 0.72 }, { translate: '0 0', rotate: '0deg' }], { duration: ms(900), easing: 'ease-in-out' }));
       const fr = floor.getBoundingClientRect(), off = pu * 0.95;
       // 先飞到缝的左边
-      await fx.fly({ html: backHtml(), from, to: { x: fr.left + fr.width / 2 - off, y: fr.top + fr.height / 2 - 2 }, w: pu, s0: from.width / pu, s1: 1, r0: from.width ? -10 : 0, r1: -8, dur: ms(380), lift: 40, land: false });
+      await fx.fly({ html: backHtml(), from, to: { x: fr.left + fr.width / 2 - off, y: fr.top + fr.height / 2 - 2 }, w: pu, s0, s1: 1, r0, r1: -8, dur: d1, lift: lift1, land: false });
       if (t !== token) return;
       // 再换成牌堆里的一张，从左边滑进缝里
       const card = document.createElement('div');
@@ -4738,7 +4830,7 @@
     clearBombAvatars();
     if (game && game.wander) { game.wander.cancel(); game.wander = null; }
     if (game && game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
-    if (game) game.alterRow = null;
+    if (game) { game.alterRow = null; game.insPre = null; game.drawLift = null; }   // 联机预掀 / 预塞的那张在 fly 层里，跟着一起清
     els.fly.innerHTML = '';
     els.fly.classList.remove('is-interactive');
     if (game) game.boomNode = null;
@@ -4783,9 +4875,10 @@
     if (rowY - kw * 0.7 < ceil + 6) {
       const fit = (dtop.top - ceil - 14) / 1.4;
       if (fit >= pu0 * 0.55) { kw = Math.min(kw, fit); rowY = (ceil + dtop.top) / 2; }   // 稍微挤：缩一点，摆在头像底和牌堆顶正中间
-      // 上面根本没地方（横屏人多两副牌，牌堆顶都顶到顶边那排头像了）：横在桌子正中，暂时压在牌堆 / 弃牌堆上面，发完牌就一只只塞回去
+      // 上面根本没地方（手机横屏：牌堆顶都顶到顶边那排头像了）：摆到牌堆两边（见下面 sides）
       else { rowY = pr.top + pr.height / 2; rowMid = ccr0.left + ccr0.width / 2; }
     }
+    const noRoomAbove = rowY === pr.top + pr.height / 2;
     const rowH = kw * 1.4;
     const ccr = { left: ccr0.left, right: ccr0.right };
     for (const box of allSeatEls()) {
@@ -4795,19 +4888,46 @@
     }
     ccr.width = Math.max(0, ccr.right - ccr.left);
     const availW = Math.max(kw, ccr.width - 12);
-    const kGap = kits.length > 1 ? Math.min(kw * 1.12, (availW - kw) / (kits.length - 1)) : 0;
+    let kGap = kits.length > 1 ? Math.min(kw * 1.12, (availW - kw) / (kits.length - 1)) : 0;
+    /* 牌堆两边（2026-11-22 用户：横屏时炸毛猫正正压在牌堆上、洗牌时还被洗的牌盖住，不好看）：
+     * 上面放不下时，一半摆在牌堆（连同弃牌堆、张数那行）左边、一半摆在右边，各自叠成一小扇，整体仍然左右对称；
+     * 两边都太窄（缩到六成还放不下）才退回原来的横在正中 */
+    let sides = null;
+    if (noRoomAbove && kits.length) {
+      const pb = [els.deck].concat(Array.from(els.table.querySelectorAll('.zm-deck-info, .zm-flux'))).map((e) => e.getBoundingClientRect()).filter((r) => r.width)
+        .reduce((a, r) => ({ l: Math.min(a.l, r.left), r: Math.max(a.r, r.right) }), { l: 1e9, r: -1e9 });   // 只算看得见的：牌堆 + 张数 + 百变规则卡（发牌时弃牌堆是空的，那块空位不算，不然右边那扇离得远、看着不对称）
+      const nl = Math.ceil(kits.length / 2), nr = kits.length - nl;
+      const wl = pb.l - 10 - (ccr.left + 6), wr = ccr.right - 6 - (pb.r + 10);
+      const room = Math.min(wl, nr ? wr : wl);
+      // 一边 nl 张：kw + (nl-1)·gap ≤ room，gap 至少 0.42·kw（叠着也看得清是一只只的炸毛猫）
+      const kwFit = Math.min(kw, room / (1 + Math.max(0, nl - 1) * 0.42));
+      if (kwFit >= pu0 * 0.6) {
+        kw = kwFit;
+        const g = nl > 1 ? Math.min(kw * 1.12, (room - kw) / (nl - 1)) : 0;
+        // 两边离牌堆一样远：左边那扇的右缘贴 pb.l − 10，右边那扇的左缘贴 pb.r + 10
+        sides = { g, xl: pb.l - 10 - kw / 2 - (nl - 1) * g, xr: pb.r + 10 + kw / 2, nl };
+        kGap = g;
+      }
+    }
     const aside = [];
     for (let i = 0; i < kits.length; i++) {
       if (skipped()) { aside.forEach((x) => x && x.remove()); return; }
-      const mid = i - (kits.length - 1) / 2;
-      const half = ((kits.length - 1) * kGap + kw) / 2 + 2;
-      const fr = { l: ccr.left + 6, r: ccr.right - 6 }, cx0 = Math.min(Math.max(rowMid, fr.l + half), fr.r - half);
-      const spot = { x: cx0 + mid * kGap, y: rowY + (kGap < kw ? mid * mid * 1.6 * kw / 47 : 0) };
+      let mid = i - (kits.length - 1) / 2, spot;
+      if (sides) {
+        const left = i < sides.nl, j = left ? i : i - sides.nl, m = left ? sides.nl : kits.length - sides.nl;
+        mid = j - (m - 1) / 2;
+        spot = { x: (left ? sides.xl : sides.xr) + j * sides.g, y: rowY + (sides.g < kw ? mid * mid * 1.6 * kw / 47 : 0) };
+      } else {
+        const half = ((kits.length - 1) * kGap + kw) / 2 + 2;
+        const fr = { l: ccr.left + 6, r: ccr.right - 6 }, cx0 = Math.min(Math.max(rowMid, fr.l + half), fr.r - half);
+        spot = { x: cx0 + mid * kGap, y: rowY + (kGap < kw ? mid * mid * 1.6 * kw / 47 : 0) };
+      }
       const from = deckTopRect();
       ov.deckSize -= 1; ov.kittens -= 1;
       renderPiles();
       snd('hiss', 120);
-      const node = await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), flip: 'up', flipAt: 0.25, from, to: spot, w: kw, s0: pu0 / kw, s1: 1, r0: 0, r1: kGap < kw ? mid * 5 : (i % 2 ? 6 : -6), dur: 380 * kf, lift: 30, keep: true, land: false });
+      // is-top：摆出来的炸毛猫一直在最上层（洗牌时飞来飞去的牌从它们底下过）
+      const node = await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), cls: 'is-top', flip: 'up', flipAt: 0.25, from, to: spot, w: kw, s0: pu0 / kw, s1: 1, r0: 0, r1: kGap < kw ? mid * 5 : (i % 2 ? 6 : -6), dur: 380 * kf, lift: 30, keep: true, land: false });
       if (node) node.classList.add('zm-angry');
       aside.push(node);
       fx.burst(spot.x, spot.y, { n: 6, shapes: ['fur'], colors: FUR, radius: kw * 0.7, size: [5, 11], alignOut: true, life: 500, pattern: 'ring' });
@@ -5452,6 +5572,7 @@
         done = true; clearTimeout(timer); clearInterval(tick);
         if (p !== pos && !rand) set(p);
         closeDialog();
+        if (game.online) preInsert();
         apply(0, rand ? { type: 'insert', pos: p, rand: true } : { type: 'insert', pos: p });
       };
       d.querySelectorAll('[data-q]').forEach((b) => b.addEventListener('click', () => {
@@ -7697,14 +7818,9 @@
     if (d.type === 'play' && !game.previewSrc) game.preFlyP = preFly(d.cards);
     /* 摸牌（2026-11-16 用户和国内的朋友：联机摸牌「卡一下」）：服务器一来一回要 0.6–1 秒（国内更久），以前点了只抖一下、等回来才开始摸。
      * 现在一点就把顶上那张掀起来悬着，回来后摸牌动画从悬着的位置接着播（peel 里接手），等待变成动作的一部分 */
-    else if (d.type === 'draw' && !fx.reduce()) {
-      const top = els.deck.querySelector('.zm-deck-stack > .zm-card');
-      if (top) {
-        if (game.drawLift) game.drawLift.cancel();
-        game.drawLift = top.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '3px -18px', rotate: '-4deg' }], { duration: 200, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'forwards', composite: 'add' });
-        snd('tap');
-      }
-    }
+    // 2026-11-22 用户：联机摸牌「先错开一点、卡一下、再飞」——以前掀起来的是牌堆上那张的样子，回话后 peel 又从牌堆上重新推一遍（等于退回去重来）。
+    // 现在一点就直接演 peel 的前半段（推出一截、捏起来悬着），回话后 peel 从悬着的地方接着演，中间不倒退
+    else if (d.type === 'draw' && !fx.reduce()) prePeel();
     if (d.type !== 'pass' && d.type !== 'nope' && !game.preFlyP) online.pendingSrc = captureSources(0, d);
     const slow = d.type === 'pass' ? 0 : setTimeout(() => toast(T('net.slow', '网络有点慢，稍等…')), 1800);
     // 作废 / 取消：带上我看到的那一窗（askSeq）。别人的作废已经到了、动画还没播到时我点的作废，服务器会按「过时」拒掉，
@@ -7719,7 +7835,8 @@
       onState(res.state, res._rtt);
     } catch (err) {
       clearTimeout(slow);
-      if (game && game.drawLift) { game.drawLift.cancel(); game.drawLift = null; }   // 没摸成：掀起来的那张放回去
+      if (game && game.drawLift) { game.drawLift.node.remove(); game.drawLift = null; }   // 没摸成：掀起来的那张收掉
+      dropPreInsert();   // 没塞成：先飞出去的那张收掉、桌心的炸毛猫露回来
       if (d.type === 'pass' && err && err.status === 409) return;   // 窗口已经关了（别人作废 / 已结算）：没关系，等下一份状态
       if (d.type === 'rescue' && err && (err.error === 'stale' || err.error === 'not_your_turn' || err.error === 'not_your_call')) return;   // 别的队友先救了：等事件推过来，弹窗里演「被他抢先」
       if (game && game.preFlyP) { await game.preFlyP; game.preFlyP = null; if (!online) return; preview = { cards: d.cards }; endPreview(); }
@@ -7858,7 +7975,12 @@
   let ffBtn = null;
   // 联机：我这边看到的真人全出局了（网慢、播得落后时，服务器早算完了，但我这边自己还活着——这时加速 / 露快进键都等于剧透）
   function humansOutHere() {
-    return !!(game && game.online && game.state && online && online.st && online.st.players.every((p) => p.isAi || p.left || p.seat == null || !game.state.alive[locOf(p.seat)]));
+    // 按桌上演到哪算（ov = 这一步动画开演前的样子），不按已经结算好的 game.state：2026-11-22 用户——最后一张炸毛猫还没翻开，右下角就冒快进键，等于告诉我要挂了。
+    // 我自己还要等那一下炸完（fastOut）
+    if (!(game && game.online && game.state && online && online.st)) return false;
+    const al = (ov || game.state).alive, me = online.st.mySeat;
+    if (me >= 0 && !game.spectator && online.base === me && !game.fastOut) return false;
+    return online.st.players.every((p) => p.isAi || p.left || p.seat == null || !al[locOf(p.seat)]);
   }
   function updateFF() {
     if (!game) { if (ffBtn) { ffBtn.remove(); ffBtn = null; } return; }   // 主页 / 房间页：没有牌局（以前这里会每 0.4 秒报一次错）
@@ -8625,6 +8747,8 @@
   els.mask.addEventListener('click', (e) => {
     if (e.target !== els.mask) return;
     if (els.dialog.querySelector(MUST_ACT)) { const b = els.dialog.querySelector('.zm-btn-primary'); if (b) shake(b); return; }
+    // 结算页（2026-11-22 用户：点了别处整页就关掉、回到刚打完的牌桌，也没有后续提示）：只认那几个键，点别处原地不动、「再来一局 / 下一局」晃一下
+    if (!els.dialog.classList.contains('is-pause') && els.dialog.querySelector('[data-again], [data-next], [data-leave]')) { const b = els.dialog.querySelector('.zm-btn-primary') || els.dialog.querySelector('[data-leave]'); if (b) shake(b); return; }
     if (els.dialog.querySelector('[data-ok]') || els.dialog.querySelector('.zm-rank')) { const cb = closeDialog(); if (cb) cb(); }
   });
   document.addEventListener('keydown', (e) => {

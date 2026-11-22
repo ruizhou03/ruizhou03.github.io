@@ -509,6 +509,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* ═════ 动画层（zhamao-fx.js 画在 .zm-fly 上，全部视口坐标） ═════ */
 .zm-flyer { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; will-change: transform; pointer-events: none; }
 .zm-flyer .zm-card { position: absolute; left: 0; top: 0; width: 100%; }
+.zm-flyer.is-top { z-index: 40; }   /* 发牌时摆在一边的炸毛猫：一直在最上层，洗牌的牌从底下过（2026-11-22） */
 .zm-flyer.is-gray .zm-card { filter: grayscale(0.85) opacity(0.7); }
 .zm-flip { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
 .zm-flyer:has(.zm-flip) { perspective: 700px; }
@@ -1796,6 +1797,9 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   /* 竖直方向和牌堆对齐（2026-11-19 用户：规则卡看着偏上）：桌子中间那块顶上让给顶边几家的 padding（--ctr-pad，JS 量）只算在牌堆那边，卡也跟着往下挪一半 */
   .zm-app.is-ring .zm-flux { left: calc(50% + var(--pu) * 1.35 - 88px); top: calc(50% + var(--ctr-pad, 0px) / 2); width: 200px; max-width: 200px; }
 }
+/* 横着的屏幕但不算矮（平板横屏）：牌堆下面放不下规则卡时（JS 量，见 fluxSpot）摆到弃牌堆右边，牌堆那组往左让（2026-11-22 用户：压到桌沿灯带和摸牌键） */
+.zm-center.is-flux-side .zm-piles { transform: translateX(-112px); transition: transform 0.35s ease; }
+.zm-center.is-flux-side .zm-flux { left: calc(50% + var(--pu) * 1.35 - 88px); top: calc(50% + var(--ctr-pad, 0px) / 2); translate: 0 -50%; width: 200px; max-width: 200px; }
 /* 联机大厅 · 组队（2026-11-18）：座位按队分段，每段一块队色淡底板；多坐了的人另起一行 */
 /* 2026-11-19 用户：队伍框按人数收紧、居中；每队 2 人时一行放两队（2v2 一行；2v2v2 = 两队 + 下面一队居中，2v2v2v2 = 两行各两队）。
  * 座位宽度各种分法都一样：按「一行两个两人队正好放满」算（--sw） */
