@@ -2154,6 +2154,8 @@
     const giving = !!(mode === 'give' && s.phase === 'give' && s.give && s.give.from === 0) || favorLook();
     if (giving && !els.app.classList.contains('is-giving')) snd('ask');
     els.app.classList.toggle('is-giving', giving);
+    els.app.classList.toggle('is-favor-wait', favorNopeStep());
+    els.app.classList.toggle('has-pick', giving && selected.length > 0);   // 挑中了一张：暖光停止呼吸、变淡
     const lk = els.table && els.table.querySelector(':scope > .zm-rim .links');
     if (lk) lk.classList.toggle('is-give', giving);
     els.cancelBtn.hidden = mode !== 'target';
@@ -2184,7 +2186,7 @@
       els.playBtn.disabled = selected.length !== 1;
     }
     else if (fa) { els.drawBtn.hidden = true; els.playBtn.textContent = T('ui.btn.give', '给牌'); els.playBtn.disabled = !(selected.length === 1 && R.KIND_OF[selected[0]] !== R.NOPE); }   // 索要合一：作废 · 给牌 两个键
-    else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = T('ui.cancel', '取消'); }
+    else if (canNope || onlinePass) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = favorNopeStep() ? T('ui.btn.noNope', '不作废') : T('ui.cancel', '取消'); }
     else if (myTurnToAct()) {
       els.drawBtn.disabled = false;
       els.drawBtn.classList.toggle('is-ready', !selected.length);
@@ -2245,7 +2247,14 @@
    * 挑一张别的牌点「给牌」= 不作废、直接给这张（反应窗一关就飞过去，不再停一下等我挑）。导火索烧完没动 = 照常进挑牌，样子不变 */
   // 已经挑好、等窗口关：样子保持挑牌（粉边、那张抬着），别闪回一下普通手牌
   const favorLook = () => favorAsk() || !!(game && game.favorPre != null && (game.state.phase === 'react' || game.state.phase === 'give'));
+  /* 2026-11-22 用户（新玩家看不懂：一上来能点手牌、按钮却是「作废」，几秒后又变「给牌」）：拆回两步，挑了丙——
+   * ① 作废：我或队友手里有作废时先过这一步，手牌灰着不能挑，只有「作废 / 不作废」；② 给牌：手牌底下一层粉色暖光一呼一吸，挑中一张后停。
+   * favorAsk 留着（联机协议 favorOne 还认），但不再走合一 */
+  const FAVOR_MERGE = false;
+  // 作废这一步、牌是冲着我来的索要：手牌灰着，「取消」写成「不作废」
+  const favorNopeStep = () => { const s = game && game.state, p = s && s.pending; return !!(s && s.phase === 'react' && reactOpen && p && p.type === R.FAVOR && p.target === 0 && !game.tutorial); };
   function favorAsk() {
+    if (!FAVOR_MERGE) return false;
     const s = game && game.state, p = s && s.pending;
     // 联机要服务器认「不作废 + 给哪张」一起报（view.favorOne）；老服务器照旧两段
     return !!(game && !game.tutorial && !game.spectator && (!game.online || !!(G() && G().favorOne)) && s.phase === 'react' && reactOpen && p && p.type === R.FAVOR && p.target === 0 && !p.nopes.length && R.canNope(s, 0) && !(R.roleOf && R.roleOf(s, p.by) === 'fat'));
