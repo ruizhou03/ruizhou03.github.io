@@ -4167,14 +4167,14 @@
     coverStep('main');
     el.hidden = false;
     els.app.classList.add('is-cover');
-    if (coverPv) coverPv.show();
+    if (coverUi) coverUi.show();
     if (msg) toast(msg);
   }
   function hideCover() {
     coverOn = false;
     $('gzCover').hidden = true;
     els.app.classList.remove('is-cover');
-    if (coverPv) coverPv.hide();
+    if (coverUi) coverUi.hide();
   }
   // 封面两步：先选单机 / 联机；联机再选创建 / 加入
   function coverStep(k) {
@@ -4236,7 +4236,7 @@
     const b = e.target.closest('[data-cover]');
     if (!b) return;
     const k = b.dataset.cover;
-    if (coverPv && coverPv.click(k, b)) return;
+    if (coverUi && coverUi.click(k, b)) return;
     if (k === 'solo') playSolo(soloBots() ? match : loadSaved());
     else if (k === 'online') {
       if (!liveRoom) { NET.warm(); coverStep('online'); return; }
@@ -4244,7 +4244,8 @@
       resumeOnline(sess).then((ok) => {
         if (ok) return;
         if (NET.readSession()) { showCover('连不上服务器，过一会儿再试'); return; }
-        liveRoom = null; showCover('上次的房间已经没了'); coverStep('online');
+        liveRoom = null; showCover('上次的房间已经没了');
+        if (!coverUi || !coverUi.click('online')) coverStep('online');
       });
     }
     else if (k === 'back') coverStep('main');
@@ -4417,16 +4418,16 @@
     schedule(loop, 500);
   }
 
-  /* ───── 封面改版预览：?gzpv=cover-a | cover-b | cover-c（2026-11-22）─────
-   * 用户挑定之前线上默认不变：只有带这个参数进来，才加载 gongzhu-cover-pv.js / .css，把封面换成那一版。
-   * 参数只在进页面时读一次（这次页面里一直有效）；三版的界面都写在那个文件里，这里只递它要用的几样 */
-  const COVER_PV = (() => { const q = new URLSearchParams(location.search).get('gzpv') || ''; return /^cover-[a-d]$/.test(q) ? q : ''; })();
-  let coverPv = null;
-  // 单机新开一盘（不管有没有存档）；bots 给了就用这三位（预览里先摆出来、各自选了档位的那三位）
+  /* ───── 封面：单机 / 联机的设置单（2026-11-22 用户在三版预览里挑了甲，界面在 gongzhu-cover.js）─────
+   * 这里只把它要用的几样递过去；它没装上（脚本没加载到）就照老样子：单机一步开局、联机两层 */
+  let coverUi = null;
+  // 单机新开一盘（不管有没有存档）；bots 给了就用这三位（设置单上先摆出来、各自选了档位的那三位）
   function playSoloFresh(bots) {
     hideCover();
     stopClock();
-    busy = false; selected = -1; ov.trick = null; exposePick = []; ov.held = []; exposeWait = null;
+    clearScene();
+    busy = false; selected = -1; exposePick = []; ov.held = []; exposeWait = null;
+    setAutopilot(false);
     if (social) social.clear();
     newMatch();
     if (bots && bots.length === 3) { match.bots = bots; applySoloIdentity(); }
@@ -4442,37 +4443,20 @@
     if (res.fellBack === 'room_full') toast('房间满了，先观战；有空位时可以坐下');
     else if (res.fellBack === 'wait_round_end') toast('这一局还在打，先观战；打完这一局就能坐下');
   }
-  function loadCoverPv() {
-    if (!COVER_PV) return Promise.resolve();
-    const v = '?v=' + (window.GZ_BUILD || '');
-    const css = document.createElement('link');
-    css.rel = 'stylesheet';
-    css.href = '/assets/css/gongzhu-cover-pv.css' + v;
-    document.body.appendChild(css);   // 挂在 body 末尾：排在页面里的 gongzhu.css 后面，同等优先级时这边说了算
-    return new Promise((done) => {
-      const js = document.createElement('script');
-      js.src = '/assets/js/games/gongzhu-cover-pv.js' + v;
-      js.onload = () => {
-        try {
-          coverPv = window.GongzhuCoverPV && window.GongzhuCoverPV.install({
-            variant: COVER_PV, cover: $('gzCover'), settings, R, NET, TIER_LABELS, TIER_ORDER, RULE_UI,
-            saveSettings: () => writeJSON(SETTINGS_KEY, settings),
-            saved: () => (soloBots() ? match : loadSaved()),
-            resume: (m) => playSolo(m),
-            fresh: playSoloFresh,
-            drawBots,
-            face: (id) => (window.GongzhuAvatars ? GongzhuAvatars.svg(id) : ''),
-            createRoom, showJoin, joinByCode,
-            liveRoom: () => liveRoom,
-            openDialog, closeDialog, toast, coverStep, esc,
-          });
-        } catch (e) { coverPv = null; }
-        done();
-      };
-      js.onerror = () => done();
-      document.head.appendChild(js);
+  try {
+    coverUi = window.GongzhuCover && window.GongzhuCover.install({
+      cover: $('gzCover'), settings, R, NET, TIER_LABELS, TIER_ORDER, RULE_UI,
+      saveSettings: () => writeJSON(SETTINGS_KEY, settings),
+      saved: () => (soloBots() ? match : loadSaved()),
+      resume: (m) => playSolo(m),
+      fresh: playSoloFresh,
+      drawBots,
+      face: (id) => (window.GongzhuAvatars ? GongzhuAvatars.svg(id) : ''),
+      createRoom, showJoin, joinByCode,
+      liveRoom: () => liveRoom,
+      openDialog, closeDialog, toast, coverStep, esc,
     });
-  }
+  } catch (_) { coverUi = null; }
 
   buildSeats();
   solveSize();
@@ -4504,7 +4488,6 @@
   const t0 = performance.now();
   let roomNow = null;   // 启动时问到的房间现状（房间还在才有）
   Promise.all([
-    loadCoverPv(),
     (document.fonts ? Promise.race([document.fonts.ready, sleep(1500)]) : Promise.resolve()).then(() => bump(got + 0.3)),
     // 上次的房间还在不在（顺带把可能睡着的服务器叫醒，之后建房 / 进房快）；最多等 4 秒。
     // 只有服务器明确回 401 / 404 才算房间没了；连不上 / 等不到都当它还在，封面上留「回到房间」，点的时候再说
