@@ -3499,8 +3499,9 @@
       const res = await withConn('正在回到房间…', () => NET.state(sess.code, sess.token, 0));
       startOnline(res.state, sess.token);
       return true;
-    } catch (_) {
-      NET.writeSession(null);
+    } catch (e) {
+      // 只有服务器明确说房间没了 / 凭证不认（404 / 401）才忘掉；断网、服务器睡着之类的先留着，下次还能接（同百变小咪）
+      if (e && (e.status === 401 || e.status === 404)) NET.writeSession(null);
       return false;
     }
   }
@@ -3705,7 +3706,11 @@
     else if (k === 'online') {
       if (!liveRoom) { NET.warm(); coverStep('online'); return; }
       const sess = liveRoom;
-      resumeOnline(sess).then((ok) => { if (!ok) { liveRoom = null; showCover('上次的房间已经没了'); coverStep('online'); } });
+      resumeOnline(sess).then((ok) => {
+        if (ok) return;
+        if (NET.readSession()) { showCover('连不上服务器，过一会儿再试'); return; }
+        liveRoom = null; showCover('上次的房间已经没了'); coverStep('online');
+      });
     }
     else if (k === 'back') coverStep('main');
     else if (k === 'create') createRoom();
@@ -3824,7 +3829,8 @@
   /* 进来先停在主菜单：拱猪大字下面跑一条进度条（字体、上次的房间还在不在），跑完才露出「单机」「联机」。
    * 不再一进来就硬接回上次的牌局 / 房间（接房间要等服务器醒过来，常常白屏好几秒）：
    *  · 单机有存档 → 「单机」下面写「接着打第 N 局」，点了接着打
-   *  · 上次在联机房间里、房间还在 → 「联机」下面写「回到房间 1234」，点了直接回去；房间没了就悄悄忘掉
+   *  · 上次在联机房间里、房间还在 → 进度条跑完直接接回房间；服务器明确说房间没了（401 / 404）就悄悄忘掉；
+   *    连不上 / 问不到 → 「联机」下面写「回到房间 1234」，点了再试
    *  · 点邀请链接进来 → 进度条跑完弹「加入房间」（房号已填好）；邀请的就是上次那个房间 → 同上「回到房间」
    * 本机自测 ?gzauto=1 不出主菜单，直接打单机 */
   const roomParam = (new URLSearchParams(location.search).get('room') || '').trim();
@@ -3844,16 +3850,21 @@
   bump(0.25);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const t0 = performance.now();
+  let roomNow = null;   // 启动时问到的房间现状（房间还在才有）
   Promise.all([
     (document.fonts ? Promise.race([document.fonts.ready, sleep(1500)]) : Promise.resolve()).then(() => bump(got + 0.3)),
-    // 上次的房间还在不在（顺带把可能睡着的服务器叫醒，之后建房 / 进房快）；最多等 4 秒，等不到当它还在，点的时候再说
-    (sess ? Promise.race([NET.state(sess.code, sess.token, 0).then(() => true, () => false), sleep(4000).then(() => true)]) : Promise.resolve(false))
-      .then((alive) => { if (sess && !alive) { NET.writeSession(null); sess = null; } bump(got + 0.3); }),
+    // 上次的房间还在不在（顺带把可能睡着的服务器叫醒，之后建房 / 进房快）；最多等 4 秒。
+    // 只有服务器明确回 401 / 404 才算房间没了；连不上 / 等不到都当它还在，封面上留「回到房间」，点的时候再说
+    (sess ? Promise.race([NET.state(sess.code, sess.token, 0).then((res) => (res && res.state ? res : 'unknown'),
+      (e) => (e && (e.status === 401 || e.status === 404) ? 'gone' : 'unknown')), sleep(4000).then(() => 'unknown')]) : Promise.resolve(null))
+      .then((r) => { if (sess && r === 'gone') { NET.writeSession(null); sess = null; } if (r && r.state) roomNow = r; bump(got + 0.3); }),
   ]).then(async () => {
     await sleep(Math.max(0, 650 - (performance.now() - t0)));   // 太快也让进度条走完一程，不闪
     bump(1);
     await sleep(220);
     liveRoom = sess;
+    // 房间确实还在：直接接回去，不用再点「回到房间」（封面垫在底下，接回去就收起）
+    if (sess && roomNow) { showCover(); startOnline(roomNow.state, sess.token); return; }
     showCover();
     if (invite) showJoin(invite);
   });
