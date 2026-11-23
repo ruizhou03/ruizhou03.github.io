@@ -3,14 +3,14 @@
  * 身份：站点登录了 = 账号钱包（带 Authorization）；没登录 = 这台设备的游客钱包（X-Device-Id = gs.did.v1）。
  *       登录后每次请求带上这台设备原来的游客设备号（gs.did.anon.v1），后端把游客攒的小鱼干并进账号。
  * 单机：开局领票（扣门票）→ 我的名次一定下来（我出局 / 打完）就结算；联机由服务器结算，结算页读服务器给的 pay。
- * 这里还管：主菜单左上角的小鱼干（点了去猫咪档案页）、单机设置单「开始」键上的门票、结算页的 ±小鱼干。 */
+ * 这里还管：主菜单左上角的小鱼干（点了打开游戏里的猫咪档案面板 zhamao-profile.js，不跳页）、单机设置单「开始」键上的门票、结算页的 ±小鱼干。
+ * ⚠️ 全程不跳页、不压浏览器历史：微信 / iOS 浏览器一有历史就会在屏幕最下面冒出前进后退条。 */
 (function (root) {
   'use strict';
   const R = root.ZhamaoRules;
   const T = R && R.T ? R.T : (k, s) => s;
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   const BASE = root.ZHAMAO_WALLET_URL || (LOCAL ? 'http://127.0.0.1:8789' : 'https://zircon-urge.fly.dev') + '/api/zmw';
-  const ME_PAGE = '/toolbox/puffcat/me/';
   const CACHE = 'zm.wallet.v1';
 
   // ── 规则表（同 lib/zhamao-econ.js）──
@@ -67,7 +67,7 @@
   const fmt = (x) => Math.round(Math.abs(x)).toLocaleString('en-US');
   const CSS = `
 .zmw-fish{width:1.6em;height:1em;flex:none;vertical-align:-.12em}
-.zmw-chip{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 12px);z-index:5;display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 9px;border:1.5px solid #1d1b18;border-radius:999px;background:#fffdf8;color:#1d1b18;text-decoration:none;font:700 15px/1 Georgia,"Noto Serif SC",serif;box-shadow:0 2px 0 #1d1b18;-webkit-tap-highlight-color:transparent}
+.zmw-chip{cursor:pointer;font-family:inherit;position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 12px);z-index:5;display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 9px;border:1.5px solid #1d1b18;border-radius:999px;background:#fffdf8;color:#1d1b18;text-decoration:none;font:700 15px/1 Georgia,"Noto Serif SC",serif;box-shadow:0 2px 0 #1d1b18;-webkit-tap-highlight-color:transparent}
 .zmw-chip:active{transform:translateY(2px);box-shadow:none}
 .zmw-chip[hidden]{display:none}
 .zmw-chip .zmw-dot{position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:#e9b949;border:2px solid #fffdf8}
@@ -83,7 +83,7 @@
 .zmw-res .zmw-bal .zmw-fish{width:22px;height:14px}
 .zmw-res .zmw-star{display:inline-flex;align-items:center;gap:2px;font:700 14px/1 Georgia,serif;color:#b07420}
 .zmw-res .zmw-star svg{width:16px;height:16px}
-.zmw-res .zmw-login{white-space:nowrap;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;border:1.5px solid #b4392c;color:#b4392c;background:#fffdf8;font:600 14px/1 system-ui;text-decoration:none}
+.zmw-res .zmw-login{cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;border:1.5px solid #b4392c;color:#b4392c;background:#fffdf8;font:600 14px/1 system-ui;text-decoration:none}
 .zmw-res .zmw-wait{width:42px;height:6px;border-radius:3px;background:linear-gradient(90deg,#ebe5d8,#d9cfbd,#ebe5d8);background-size:200% 100%;animation:zmwWait 1s linear infinite}
 @keyframes zmwWait{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.zmw-res .zmw-wait{animation:none}}
@@ -111,9 +111,10 @@
   function mountChip(cover) {
     style();
     if (!cover || chip) return;
-    chip = document.createElement('a');
+    chip = document.createElement('button');
+    chip.type = 'button';
     chip.className = 'zmw-chip';
-    chip.href = ME_PAGE;
+    chip.addEventListener('click', openProfile);
     chip.setAttribute('aria-label', T('ui.wallet.title', '小鱼干'));
     chip.innerHTML = FISH + '<b></b><i class="zmw-dot" hidden></i>';
     chip.hidden = true;
@@ -121,7 +122,16 @@
     paintChip();
     listeners.push(paintChip);
     refresh();
+    // 登录 / 登出之后：游客小鱼干并进账号（后端做），左上角跟着刷新
+    if (auth() && auth().onChange) auth().onChange(() => { setTimeout(refresh, 300); });
+    // 老链接 /toolbox/puffcat/me/ 会跳到 ?me=1：进来直接打开档案（用 replaceState 去掉参数，不留历史）
+    if (/[?&]me=1\b/.test(location.search)) {
+      try { const u = new URL(location.href); u.searchParams.delete('me'); history.replaceState(history.state, '', u.toString()); } catch (_) { /* */ }
+      setTimeout(openProfile, 600);
+    }
   }
+  function openProfile() { if (root.ZhamaoProfile) root.ZhamaoProfile.open(); }
+  function login() { if (auth() && auth().openLogin) auth().openLogin(); else openProfile(); }
   function refresh() { return post('me').catch(() => null); }
 
   // ── 单机设置单：「开始」键上标这局门票 ──
@@ -188,7 +198,9 @@
     el.innerHTML = FISH + '<b class="' + cls + '">' + (d > 0 ? '+' : d < 0 ? '−' : '') + '0</b>' +
       (r.firstWin ? '<span class="zmw-star">' + STAR + '+' + r.firstWin + '</span>' : '') +
       (r.bal != null ? '<span class="zmw-bal">' + FISH + fmt(r.bal) + '</span>' : '') +
-      (!loggedIn() ? '<a class="zmw-login" href="' + ME_PAGE + '#login">' + T('ui.wallet.login', '登录保存') + '</a>' : '');
+      (!loggedIn() ? '<button type="button" class="zmw-login" data-zmw-login>' + T('ui.wallet.login', '登录保存') + '</button>' : '');
+    const lg = el.querySelector('[data-zmw-login]');
+    if (lg) lg.addEventListener('click', login);
     const b = el.querySelector('b'), sign = d > 0 ? '+' : d < 0 ? '−' : '';
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || !Math.abs(d)) { b.textContent = sign + fmt(d); return; }
     const t0 = performance.now(), dur = 700;
@@ -211,10 +223,10 @@
   }
 
   root.ZhamaoWallet = {
-    BASE, ME_PAGE, FISH, price, loggedIn, deviceId,
+    BASE, FISH, price, loggedIn, deviceId,
     state: () => state, onChange: (f) => listeners.push(f),
     me: refresh,
     checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile: () => post('profile'), fb: (steps) => post('fb', { steps }).catch(() => null),
-    mountChip, priceTag, start, act, settle, slot, fill, fillOnline,
+    mountChip, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login,
   };
 })(window);

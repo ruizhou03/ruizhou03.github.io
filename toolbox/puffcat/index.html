@@ -196,9 +196,12 @@ body_class: zm-fullscreen
 <script src="/assets/js/games/zhamao-social.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/zhamao-net.js?v={{ site.time | date: '%s' }}"></script>
-<!-- 小鱼干（2026-11-22）：这一页是精简外壳、没有加载站点登录脚本——单独加上 auth.js（只有登录状态和带登录的请求，没有界面） -->
+<!-- 小鱼干（2026-11-22）：这一页是精简外壳、没有加载站点登录——单独加上 auth.js（登录状态 / 带登录的请求）和 auth.html（登录弹层，
+     游戏里点「登录」就地弹出，不跳去网站；颜色由 zhamao-profile.js 给一套游戏的）。猫咪档案是游戏里的一层面板（zhamao-profile.js） -->
 <script src="/assets/js/auth/auth.js?v={{ site.time | date: '%s' }}"></script>
+{% include auth.html %}
 <script src="/assets/js/games/zhamao-wallet.js?v={{ site.time | date: '%s' }}"></script>
+<script src="/assets/js/games/zhamao-profile.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/zhamao-music.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/zhamao-audio.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games/zhamao-tutorial.js?v={{ site.time | date: '%s' }}"></script>
