@@ -1403,7 +1403,7 @@
   }
 
   /* ───── 战绩（gongzhu-stats.js）：一局结束记一笔，一盘结束落成一条；教程 / 演示 / 大厅 / 观战不记 ───── */
-  let statsAuto = false;   // 这一局里我托管过
+  let statsAuto = false;   // 这一局里我托管过（联机的托管在服务器上：局终时看 onlineAuto()，局中自己点开的也记一笔；服务器因超时开、局终前又关掉的漏记）
   function statsNote() {
     const S = window.GongzhuStats;
     if (!S || !S.note || !match || match.tutorial || match.demo || match.lobby || watching()) return;
@@ -1411,7 +1411,7 @@
       S.note({
         mode: match.online ? 'net' : 'solo', id: match.online ? 'n:' + (online && online.code) + ':' + match.matchNo : 's:' + match.seed,
         rules: match.rules, totals: match.totals.slice(), last: match.last, over: !!match.over,
-        losers: match.online ? match.losers || [] : null, tiers: match.online ? null : botTiers(), auto: statsAuto || autopilot,
+        losers: match.online ? match.losers || [] : null, tiers: match.online ? null : botTiers(), auto: statsAuto || autopilot || (!!match.online && onlineAuto()),
       });
     } catch (_) { /* 战绩记不上不影响打牌 */ }
     statsAuto = autopilot;
@@ -4282,7 +4282,7 @@
       if (!online || !online.inGame || !match.round || online.watching) return;
       const on = !onlineAuto();
       onlineAct('auto', { on });
-      if (on) toast('托管中：机器人替你出牌。点头像或手牌收回');
+      if (on) { statsAuto = true; toast('托管中：机器人替你出牌。点头像或手牌收回'); }
       return;
     }
     if (autopilot) { setAutopilot(false); return; }
