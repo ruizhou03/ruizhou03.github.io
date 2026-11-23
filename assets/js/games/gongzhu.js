@@ -33,6 +33,25 @@
   /* 盘终收尾预览（待用户挑）：?gzpv=final-a 领奖台 / final-b 墨园榜单 / final-c 原表加奖章；进页面读一次，不带参数 = 现状 */
   const GZPV = (() => { const v = new URLSearchParams(location.search).get('gzpv') || ''; return /^final-([abc]|b[123]|b3[a-d])$/.test(v) ? v : ''; })();
   const ROLL = GZPV.startsWith('final-b3');   // 乙三宣纸卷及它的几套配色（final-b3a～b3d 只换颜色和装裱，结构相同）
+  /* 新手教程 / 实战引导 / 首次二选一预览（待用户挑；2026-11-22 对照百变小咪审查 D5 + A8）：?gztut=a|b 选剧本，
+   * 可以用逗号接 guide-a|guide-b（实战引导的呈现：桌中放大亮相 / 原位发光加小气泡）、first-a|first-b（第一次点单机的二选一）、
+   * reset（清掉看过的引导和二选一，从头再看一遍）。例：?gztut=b,guide-b,first-a。不带参数 = 现状（旧教程、旧的明牌小提示） */
+  const GZTUT_PV = (() => {
+    const toks = (new URLSearchParams(location.search).get('gztut') || '').split(',').map((x) => x.trim()).filter(Boolean);
+    if (!toks.length) return null;
+    const v = { script: 'a', guide: 'a', first: 'a', reset: false };
+    for (const t of toks) {
+      if (/^[ab]$/.test(t)) v.script = t;
+      else if (/^guide-[ab]$/.test(t)) v.guide = t.slice(6);
+      else if (/^first-[ab]$/.test(t)) v.first = t.slice(6);
+      else if (t === 'reset') v.reset = true;
+    }
+    return v;
+  })();
+  const GUIDE_KEY = 'gz.guide.v1';          // 实战引导看过哪几样（预览中，见 guideShow）
+  const FIRST_PV_KEY = 'gz.firstask.pv';    // 首次二选一预览：问过了（预览不动 gz.tut.v1）
+  let guideSet = null, guideCur = null;
+  if (GZTUT_PV && GZTUT_PV.reset) { try { localStorage.removeItem(GUIDE_KEY); localStorage.removeItem(FIRST_PV_KEY); } catch (_) { /* 无痕 */ } }
   if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, fade: 120, roundEnd: 60 });
   const SETTLE_HOLD = AUTO ? 60 : 1700;   // 累计分在桌上数完（最长约 0.9 秒）后再停一会儿，才弹结算页
   // 教程放慢：机器人出牌、收墩都留足时间看清
@@ -934,6 +953,7 @@
     // 头像咽一下、分牌落进吃牌区这些挂在真元素上的动画：直接停在终点
     els.seats.forEach((el) => el.querySelectorAll('.gz-avatar, .gz-caps .gz-mini').forEach((x) => x.getAnimations().forEach((a) => a.cancel())));
     els.center.classList.remove('is-fxing', 'is-review');
+    guideHide(false);
     ov.deal = null;
     const t = keepTrick ? liveTrick() : null;
     if (t) Object.assign(t, { onTable: true, lead: true, fxing: false, replay: true });
@@ -960,6 +980,7 @@
     if (rt && rt.replay) { rt.replay = false; busy = true; renderAll(); schedule(settleTrick, pace().trickShow); return; }
     if (R.isRoundOver(r)) { schedule(finishRound, pace().roundEnd); return; }
     if (match.tutorial) { tutStep(); return; }
+    guideCheck();
     if (match.exposing.length) { exposeStep(); return; }
     renderSeats();
     if (r.turn === 0 && !AUTO && !autopilot) { busy = false; renderHand(); startClock(0, onMyTimeout); dingMyTurn(); return; }
@@ -1038,7 +1059,7 @@
    * 单机可以直接去学进阶教程（学完回来接着这一局），联机给看规则（直接翻到「明牌」）。出过一次就不再出，不挡出牌 */
   let exposeTip = null;
   function maybeExposeTip() {
-    if (match.tutorial || AUTO || readJSON(ADV_KEY) || readJSON(EXPOSE_TIP_KEY)) return;
+    if (match.tutorial || AUTO || GZTUT_PV || readJSON(ADV_KEY) || readJSON(EXPOSE_TIP_KEY)) return;   // 预览里换成实战引导（guideCheck）
     if (!match.round || !R.EXPOSABLE.some((c) => match.round.hands[0].includes(c))) return;
     writeJSON(EXPOSE_TIP_KEY, 1);
     if (!exposeTip) {
@@ -1484,6 +1505,7 @@
     if (foot) foot.classList.add('gz-dialog-foot');
     els.mask.hidden = false;
     pauseClock();
+    if (guideCur) guideHide(false);   // 弹窗 = 要我表态：实战引导先收起、不算看过
     if (onMount) onMount(d);
     body.scrollTop = 0;
     d.classList.toggle('is-scroll', body.scrollHeight > body.clientHeight + 1);
@@ -1543,6 +1565,9 @@
         });
         if (match.over && GZPV === 'final-c' && !match.tutorial) finalMarks(d, losers);
         bindSettle(d);
+        if (GZTUT_PV && (!match.tutorial || (tut && tut.short)) && !match.online && !match.demo && !AUTO && !guideSeen('settle')) {
+          after(() => { if (!els.mask.hidden && d.querySelector('.gz-res')) guideShow({ key: 'settle', text: '每一行是一家：吃到的分牌、这一局的分、累计的分。', at: 'settle' }); }, 350);
+        }
       }
     );
   }
@@ -2739,13 +2764,14 @@
    * 前几墩照剧本讲（第 4–6 墩只能出指定那张），讲完剩下的牌全部自动快进打完 */
   function startTutorial(firstRun, kind) {
     const adv = kind === 'adv';
-    const M = adv ? T.advanced : T;
+    const short = !adv && GZTUT_PV && T.short ? T.short[GZTUT_PV.script] : null;   // 预览：压短的剧本（见 GZTUT_PV）
+    const M = adv ? T.advanced : short || T;
     clearScene();
     if (social) social.clear();
     stopClock();
     setAutopilot(false);
     hideExposeTip();
-    tut = { coach: M.createCoach(), saved: match && !match.tutorial ? match : (tut && tut.saved), firstRun: !!firstRun, adv, fast: false, introDone: false, exposeTalked: false };
+    tut = { coach: M.createCoach(), saved: match && !match.tutorial ? match : (tut && tut.saved), firstRun: !!firstRun, adv, short, fast: false, introDone: false, exposeTalked: false };
     match = { tutorial: true, adv, rules: M.RULES, totals: [0, 0, 0, 0], roundNo: 1, pigTaker: -1, seed: 0, round: M.createRound(), exposing: adv ? [0] : [], last: null, over: false };
     exposePick = []; ov.held = [];
     exposeWait = adv ? { bots: Promise.resolve(M.EXPOSE) } : null;
@@ -2824,6 +2850,11 @@
         return;
       }
     }
+    if (tut.short) {
+      // 压短的剧本：开打前先说一段（乙：猪和羊）；打到收尾点就讲最后一句、按已经吃到的牌出结算
+      if (!tut.introDone) { tut.introDone = true; if (tut.coach.intro.length) { busy = true; renderHand(); coachSay(tut.coach.intro, tutStep); return; } }
+      if (tut.short.isDone(r)) { busy = true; renderHand(); coachSay(tut.coach.outro(r), finishShortTutorial); return; }
+    }
     if (r.turn === 0) {
       busy = false;
       renderHand();
@@ -2835,7 +2866,18 @@
     busy = true;
     renderHand();
     const seat = r.turn;
-    schedule(() => commit(seat, (tut.adv ? T.advanced : T).director(r, seat)), pace().aiMin);
+    schedule(() => commit(seat, (tut.adv ? T.advanced : tut.short || T).director(r, seat)), pace().aiMin);
+  }
+
+  // 压短的剧本收尾：剩下的牌不演了，按已经吃到的牌算这一局，出和原来一样的「学会了」结算（去向不变）
+  function finishShortTutorial() {
+    const r = match.round;
+    const scores = R.roundScores(r);
+    for (let s = 0; s < 4; s++) match.totals[s] += scores[s];
+    match.last = { roundNo: 1, captured: r.captured.map((c) => c.slice()), scores, ctx: R.scoreCtx(r) };
+    match.round = null;
+    match.over = false;
+    settleOnTable(() => { roundEndSound(scores[0]); showSettlement(); });
   }
 
   // 讲解一段段地说，每段点「继续」；说完回到 done
@@ -2942,6 +2984,181 @@
     if (!f) return false;
     coachNext = null;
     f();
+    return true;
+  }
+
+  /* ───── 实战引导（预览中，GZTUT_PV 开着才有；2026-11-22 对照百变小咪审查 D5） ─────
+   * 新手教程不再讲的东西，实战里第一次碰到时讲一句，每样只讲一次（记在 gz.guide.v1）：
+   *   手里第一次有猪 / 羊 / 变压器；第一次轮到我可以明牌（替掉旧的「第一次碰到明牌？」小提示）；第一次有别家明牌；
+   *   第一次有红桃被收走；第一次有人红桃快收齐（全红的苗头）；第一次看结算表。
+   * 不打断牌局：只盖一层、不拦操作（点哪儿都照常生效，顺带算看过）；桌上一有事要我表态（明牌、弹窗）就自己收起、不算看过，下次安静时再讲。
+   * 两种呈现（?gztut=…,guide-a|guide-b）：甲 桌子中间把那张牌放大亮一下配一句；乙 就在手牌 / 明牌 / 吃牌区原位发金光，旁边一个小气泡。 */
+  function guideLoad() {
+    if (guideSet) return guideSet;
+    let raw = null;
+    try { raw = localStorage.getItem(GUIDE_KEY); } catch (_) { /* 无痕 */ }
+    try { guideSet = new Set(raw ? JSON.parse(raw) : []); } catch (_) { guideSet = new Set(); }
+    return guideSet;
+  }
+  const guideSeen = (k) => guideLoad().has(k);
+  function guideMark(k) { guideLoad().add(k); try { localStorage.setItem(GUIDE_KEY, JSON.stringify([...guideSet])); } catch (_) { /* 无痕 */ } }
+  const whoCn = (s) => (s === 0 ? '你' : NAMES[s]);
+
+  // 现在该讲哪一样：{ key, text, cards, at: 'hand' | 'shown' | 'caps' | 'settle', seat }
+  function guideNext() {
+    const r = match.round;
+    if (!r) return null;
+    const hand = r.hands[0];
+    if (match.exposing.length) {
+      const mine = R.EXPOSABLE.filter((c) => hand.includes(c));
+      if (match.exposing.includes(0) && mine.length && !guideSeen('expose-me')) return { key: 'expose-me', at: 'hand', cards: mine, text: '开打前可以把' + (mine.length > 1 ? '这几张' : '它') + '明出来：大家都看得见，效果翻倍。不想明就点「不明牌」。' };
+      return null;
+    }
+    const other = r.exposed.find(([c, o]) => o !== 0 && r.hands[o].includes(c));
+    if (other && !guideSeen('exposed')) {
+      const c = other[0];
+      const eff = c === R.PIG ? '谁收下猪 −200' : c === R.SHEEP ? '谁收下羊 +200' : c === R.DOUBLER ? '谁收下它，这一局的分 ×4' : '这一局红桃的扣分全部翻倍';
+      return { key: 'exposed', at: 'shown', seat: other[1], cards: [c], text: NAMES[other[1]] + '明了这张牌：' + eff + '。' };
+    }
+    const ONE = [['pig', R.PIG, '猪：谁收下它 −100。能躲就躲，没这门花色时可以把它垫出去。'], ['sheep', R.SHEEP, '羊：谁收下它 +100。'],
+      ['dbl', R.DOUBLER, '变压器：谁收下它，这一局的分翻倍——好的更好，坏的更坏。']];
+    for (const [k, c, t] of ONE) if (hand.includes(c) && !guideSeen(k)) return { key: k, at: 'hand', cards: [c], text: t };
+    const hs = r.captured.map((cs) => cs.filter(R.isHeart).sort((a, b) => R.rankOf(b) - R.rankOf(a)));
+    const has = [0, 1, 2, 3].filter((s) => hs[s].length);
+    if (has.length && !guideSeen('hearts')) {
+      const flat = R.heartValue(R.HEART * 13 + 12, match.rules) === R.heartValue(R.HEART * 13, match.rules);
+      return { key: 'hearts', at: 'caps', seat: has[0], cards: hs[has[0]].slice(0, 1), text: '红桃都扣分' + (flat ? '' : '，牌越大扣得越多') + '。' };
+    }
+    if (has.length === 1 && hs[has[0]].length >= 8 && !guideSeen('allred')) {
+      const all = R.scoreCaptured(Array.from({ length: 13 }, (_, i) => R.HEART * 13 + i), R.scoreCtx(r)).heartScore;
+      if (all > 0) return { key: 'allred', at: 'caps', seat: has[0], cards: hs[has[0]].slice(0, 3), text: whoCn(has[0]) + '已经收了 ' + hs[has[0]].length + ' 张红桃。收齐 13 张，红桃反而一共 +' + all + '，叫「全红」。' };
+    }
+    return null;
+  }
+  // 桌上安静时看看有没有要讲的（step 里每一手调一次）；到了要我表态的时候（明牌）先把别的收起来
+  function guideCheck() {
+    if (!GZTUT_PV || !match || match.tutorial || match.online || match.demo || match.lobby || AUTO || ov.deal) return;
+    const item = guideNext();
+    if (guideCur && match.exposing.length && guideCur.key !== 'expose-me') guideHide(false);
+    if (guideCur || !els.mask.hidden || !item) return;
+    guideShow(item);
+  }
+  function guideTargets(g) {
+    if (g.at === 'hand') return [...els.hand.querySelectorAll('.gz-card')].filter((x) => g.cards.includes(+x.dataset.card));
+    if (g.at === 'shown') return [...els.seats[g.seat].querySelectorAll('.gz-shown .gz-card')].filter((x) => g.cards.includes(+x.dataset.card));
+    if (g.at === 'caps') return [els.seats[g.seat].querySelector('.gz-caps')].filter(Boolean);
+    if (g.at === 'settle') {   // 指着一行吃到了分牌的（先看自己那行）
+      const rows = [...els.dialog.querySelectorAll('.gz-res-row[data-seat]')];
+      const row = rows.find((x) => x.classList.contains('me') && x.querySelector('.gz-res-caps .gz-card')) || rows.find((x) => x.querySelector('.gz-res-caps .gz-card')) || rows[0];
+      return row ? [row] : [];
+    }
+    return [];
+  }
+  function guideShow(item) {
+    const ver = GZTUT_PV.guide;
+    const el = document.createElement('div');
+    el.className = 'gz-guide is-' + ver + (item.at === 'settle' ? ' on-dialog' : '');
+    el.setAttribute('aria-live', 'polite');
+    const cards = (item.cards || []).map((c) => cardHtml(c, 'gz-guide-card')).join('');
+    el.innerHTML = ver === 'a'
+      ? (cards ? '<div class="gz-guide-cards">' + cards + '</div>' : '') + '<p>' + textSuits(item.text) + '</p>'
+      : '<p>' + textSuits(item.text) + '</p><i class="gz-guide-tail" aria-hidden="true"></i>';
+    els.app.appendChild(el);
+    guideCur = Object.assign({ el, glow: [] }, item);
+    snd('bubble');
+    guidePlace();
+    // 手牌 / 座位会整块重画：重画后把金光和气泡位置补回来
+    guideCur.mo = new MutationObserver(() => guidePlace());
+    [els.hand, ...els.seats].forEach((x) => guideCur.mo.observe(x, { childList: true, subtree: true }));
+  }
+  function guidePlace() {
+    const g = guideCur;
+    if (!g) return;
+    const tg = guideTargets(g);
+    g.glow.forEach((x) => { if (!tg.includes(x)) x.classList.remove('gz-guide-glow'); });
+    tg.forEach((x) => x.classList.add('gz-guide-glow'));
+    g.glow = tg;
+    const el = g.el, W = window.innerWidth, H = window.innerHeight;
+    if (el.classList.contains('is-a')) {
+      // 甲：桌子正中；结算时浮在结算框上沿外面（不挡住要讲的那几行），上面放不下就压住框的顶边
+      const box = (g.at === 'settle' ? els.dialog : els.center).getBoundingClientRect();
+      el.style.left = (box.left + box.width / 2) + 'px';
+      el.style.top = (g.at === 'settle' ? Math.max(8 + el.offsetHeight / 2, box.top - 10 - el.offsetHeight / 2) : box.top + box.height / 2) + 'px';
+      return;
+    }
+    // 乙：贴着发光的那几样，放在上方（放不下就放下方），左右夹在屏幕里
+    if (!tg.length) { el.style.left = W / 2 + 'px'; el.style.top = H / 2 + 'px'; return; }
+    const rs = tg.map((x) => x.getBoundingClientRect());
+    const L = Math.min(...rs.map((q) => q.left)), R2 = Math.max(...rs.map((q) => q.right));
+    let T2 = Math.min(...rs.map((q) => q.top));
+    const B2 = Math.max(...rs.map((q) => q.bottom));
+    // 手牌：气泡放到出牌 / 明牌那排键的上面，别挡住键
+    const band = g.at === 'hand' && els.play.closest('.gz-band');
+    if (band) { const bb = band.getBoundingClientRect(); if (bb.height) T2 = Math.min(T2, bb.top); }
+    const bw = el.offsetWidth, bh = el.offsetHeight, cx = (L + R2) / 2;
+    const up = T2 - bh - 14 > 8 && (T2 + B2) / 2 > H * 0.4;   // 上半屏的（别家的明牌、吃牌区）气泡放下面，不挡头像
+    const x = Math.max(8 + bw / 2, Math.min(W - 8 - bw / 2, cx));
+    el.style.left = x + 'px';
+    el.style.top = (up ? T2 - 12 - bh / 2 : B2 + 12 + bh / 2) + 'px';
+    el.classList.toggle('is-below', !up);
+    el.style.setProperty('--tail', Math.max(14, Math.min(bw - 14, cx - (x - bw / 2))) + 'px');
+  }
+  // seen：点过（看过了）才记下；被要我表态的事挤掉的不记，下次安静时再讲
+  function guideHide(seen) {
+    const g = guideCur;
+    if (!g) return;
+    guideCur = null;
+    if (g.mo) g.mo.disconnect();
+    g.glow.forEach((x) => x.classList.remove('gz-guide-glow'));
+    if (seen) guideMark(g.key);
+    g.el.classList.add('is-out');
+    setTimeout(() => g.el.remove(), 220);
+  }
+  // 点任意处：照常生效（选牌、出牌、按钮都不拦），引导顺带收起、算看过
+  document.addEventListener('pointerdown', () => { if (guideCur) guideHide(true); }, true);
+  document.addEventListener('keydown', (e) => { if (guideCur && (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape')) guideHide(true); }, true);
+  window.addEventListener('resize', () => guidePlace());
+
+  /* ───── 第一次点「单机」：直接开 / 跟我学（预览中，?gztut=…,first-a|first-b） ─────
+   * 甲：弹层，上面封面那只猪，下面两张「牌」当按钮（一叠牌 / 翻开的书，后者发暖金光），不写说明句；
+   * 乙：从「单机」键上方冒出一张小卡，两个圆形图标键，点卡外面收起（这次不算问过）。
+   * 正式上线时只问从没学过教程的人；预览里谁都问（问过一次记在 gz.firstask.pv，?gztut=…,reset 可以再看） */
+  const FIRST_ICONS = {
+    go: '<path d="M7.5 5.5h7.2a1.3 1.3 0 0 1 1.3 1.3v11.9a1.3 1.3 0 0 1-1.3 1.3H7.5a1.3 1.3 0 0 1-1.3-1.3V6.8a1.3 1.3 0 0 1 1.3-1.3Z"/><path d="M16 7.6l1.9.5a1.3 1.3 0 0 1 .9 1.6l-2.8 10.4"/><path d="M11.1 10.3 12.6 12.6 11.1 14.9 9.6 12.6Z"/>',
+    learn: MENU_ICONS.tutorial,
+  };
+  let firstPop = null;
+  function firstAsk(btn) {
+    if (!GZTUT_PV || readJSON(FIRST_PV_KEY)) return false;
+    const go = () => { writeJSON(FIRST_PV_KEY, 1); if (!(coverUi && coverUi.click('solo', btn))) playSolo(soloBots() ? match : loadSaved()); };
+    const learn = () => { writeJSON(FIRST_PV_KEY, 1); hideCover(); startTutorial(!readJSON(TUT_KEY)); };
+    const icon = (k) => '<svg viewBox="0 0 24 24" aria-hidden="true">' + FIRST_ICONS[k] + '</svg>';
+    if (GZTUT_PV.first === 'a') {
+      openDialog('<div class="gz-first-art">' + ART.pig + '</div><div class="gz-first-cards">' +
+        '<button type="button" class="gz-first-card" data-first="go"><span class="pic">' + icon('go') + '</span><b>直接开</b></button>' +
+        '<button type="button" class="gz-first-card is-learn" data-first="learn" data-autofocus><span class="pic">' + icon('learn') + '</span><b>跟我学</b></button></div>',
+      (d) => {
+        d.classList.add('is-first');
+        d.querySelector('[data-first="go"]').addEventListener('click', () => { closeDialog(); go(); });
+        d.querySelector('[data-first="learn"]').addEventListener('click', () => { closeDialog(); learn(); });
+      });
+      return true;
+    }
+    if (firstPop) firstPop.remove();
+    const pop = firstPop = document.createElement('div');
+    pop.className = 'gz-first-pop';
+    pop.innerHTML = '<button type="button" data-first="go"><span class="pic">' + icon('go') + '</span><b>直接开</b></button>' +
+      '<button type="button" class="is-learn" data-first="learn"><span class="pic">' + icon('learn') + '</span><b>跟我学</b></button><i class="gz-guide-tail" aria-hidden="true"></i>';
+    els.app.appendChild(pop);
+    const b = btn.getBoundingClientRect();
+    pop.style.left = Math.max(8 + pop.offsetWidth / 2, Math.min(window.innerWidth - 8 - pop.offsetWidth / 2, b.left + b.width / 2)) + 'px';
+    pop.style.top = (b.top - 12) + 'px';
+    const close = () => { pop.remove(); if (firstPop === pop) firstPop = null; document.removeEventListener('pointerdown', outside, true); };
+    const outside = (e) => { if (!pop.contains(e.target)) close(); };
+    setTimeout(() => document.addEventListener('pointerdown', outside, true), 0);
+    pop.querySelector('[data-first="go"]').addEventListener('click', () => { close(); go(); });
+    pop.querySelector('[data-first="learn"]').addEventListener('click', () => { close(); learn(); });
+    pop.querySelector('[data-first="learn"]').focus({ preventScroll: true });
     return true;
   }
 
@@ -4238,6 +4455,7 @@
     const b = e.target.closest('[data-cover]');
     if (!b) return;
     const k = b.dataset.cover;
+    if (k === 'solo' && firstAsk(b)) return;   // 预览：第一次点单机问「直接开 / 跟我学」（见 firstAsk）
     if (coverUi && coverUi.click(k, b)) return;
     if (k === 'solo') playSolo(soloBots() ? match : loadSaved());
     else if (k === 'online') {
