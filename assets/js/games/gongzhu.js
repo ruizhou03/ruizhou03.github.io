@@ -1357,7 +1357,8 @@
   // 正文里的 ♠♥♦♣ 后面补一个「按文字显示」的变体选择符，免得安卓把它们画成彩色 emoji
   function textSuits(html) { return String(html).replace(/([♠♥♦♣])(?!\uFE0E)/g, '$1\uFE0E'); }
   /* 弹窗统一三段：标题钉在顶上、最后一排按钮钉在底下，只有中间内容滚动；打开时从内容的最上面看起。
-   * 点弹窗外面 / Esc = 点它的「好 / 取消 / 知道了」（[data-close]）；没有这个键的（结算、第一次来问要不要学）必须点按钮选 */
+   * 点弹窗外面 / Esc = 点它的「好 / 取消 / 知道了」（[data-close]）；没有这个键的（结算）必须点按钮选。
+   * 叠在弹窗上面的确认框 / 小窗另走一层（askConfirm / subBox） */
   function openDialog(html, onMount) {
     const d = els.dialog;
     d.className = 'gz-dialog';   // 上一个弹窗加的样式（暂停页等）不带过来
@@ -1487,8 +1488,17 @@
     if (!force && editableEl(document.activeElement)) return;
     try { sel.removeAllRanges(); } catch (_) { /* ignore */ }
   }
-  function closeSub() { if (subMask && !subMask.hidden) { subMask.hidden = true; subMask.firstChild.innerHTML = ''; } }
-  function showRoundCard(h) {
+  let subOnClose = null;   // 小窗关掉时要做的事（确认框：没开别的弹窗时把钟接着走）
+  function closeSub() {
+    if (!subMask || subMask.hidden) return;
+    const a = document.activeElement;
+    if (a && subMask.contains(a) && a.blur) a.blur();
+    clearSelection(true);
+    subMask.hidden = true; subMask.firstChild.innerHTML = '';
+    const f = subOnClose; subOnClose = null;
+    if (f) f();
+  }
+  function subBox() {
     if (!subMask) {
       subMask = document.createElement('div');
       subMask.className = 'gz-dialog-mask gz-sub-mask';
@@ -1496,6 +1506,35 @@
       subMask.addEventListener('click', (e) => { if (e.target === subMask || e.target.closest('[data-sub-close]')) closeSub(); });
       els.app.appendChild(subMask);
     }
+    closeSub();
+    // 底下没开弹窗（从菜单直接点的）：问的这会儿钟先停，关掉再走
+    if (els.mask.hidden) { pauseClock(); subOnClose = () => { if (els.mask.hidden) resumeClock(); }; }
+    return subMask.firstChild;
+  }
+  /* 确认框：不用系统的 confirm()——微信内置浏览器会把它吞掉（点了没反应）。叠在当前弹窗上面的小窗，
+   * 取消 / 点外面 / Esc = 什么也不做、回到原来那一层；确定才做。底下的弹窗（结算、房间设置）原样留着 */
+  function askConfirm(title, text, okLabel, onOk) {
+    const box = subBox();
+    box.innerHTML = textSuits('<h2>' + esc(title) + '</h2>' + (text ? '<p>' + esc(text) + '</p>' : '') +
+      '<div class="gz-actions"><button type="button" class="gz-btn" data-sub-close>取消</button>' +
+      '<button type="button" class="gz-btn gz-btn-primary" data-yes>' + esc(okLabel) + '</button></div>');
+    subMask.hidden = false;
+    box.querySelector('[data-yes]').addEventListener('click', () => { closeSub(); onOk(); });
+    box.querySelector('[data-yes]').focus({ preventScroll: true });
+  }
+  // 复制不了（剪贴板接口和 execCommand 都不让）：把内容摆在小窗里，长按自己选中复制
+  function showCopyBox(title, text) {
+    const box = subBox();
+    box.innerHTML = '<h2>' + esc(title) + '</h2><textarea class="gz-copy-text" readonly rows="3"></textarea>' +
+      '<div class="gz-actions"><button type="button" class="gz-btn gz-btn-primary" data-sub-close>好</button></div>';
+    const ta = box.querySelector('textarea');
+    ta.value = text;
+    subMask.hidden = false;
+    ta.addEventListener('focus', () => { try { ta.setSelectionRange(0, text.length); } catch (_) { ta.select(); } });
+    box.querySelector('[data-sub-close]').focus({ preventScroll: true });
+  }
+  function showRoundCard(h) {
+    subBox();
     const cls = (n) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
     const box = subMask.firstChild;
     box.innerHTML = textSuits('<h2>第 ' + h.roundNo + ' 局</h2><div class="gz-res">' +
@@ -1580,12 +1619,13 @@
   ];
 
   function restartMatch() {
-    if (!confirm('放弃这一盘，从 0 分重新开始？')) return;
-    stopClock(); closeDialog(); token++; busy = false; setAutopilot(false); if (social) social.clear(); newMatch(); startRound();
+    askConfirm('放弃这一盘，从 0 分重新开始？', '', '重开', () => {
+      stopClock(); closeDialog(); token++; busy = false; setAutopilot(false); if (social) social.clear(); newMatch(); startRound();
+    });
   }
 
   /* ───── 右上角菜单 ─────
-   * 顶栏只留三个键：声音、规则、菜单。能做的事都收进菜单、写成字，每条下面一行小字说清会怎样，前面一个线条小图标；
+   * 顶栏：声音、规则、菜单，单机多一个暂停、联机多一个「说一句」。能做的事都收进菜单、写成字，前面一个线条小图标；
    * 按场合换内容：单机 / 联机房间里 / 教程里。比分不进菜单：每家头像旁边就写着累计分。 */
   let menuPanel = null;
   // 「返回百宝奇巧」只给从本站点进来的人（记在这个标签页里，刷新也还在）；
@@ -1673,8 +1713,7 @@
       onlineAct('reveal', { on }).then((res) => { if (res) toast(on ? '观战的人现在能看到你的手牌' : '观战的人看不到你的手牌了'); });
     }
     else if (k === 'leave') {
-      if (!confirm(match.lobby || watching() ? '离开房间？' : '离开房间？你的座位会交给机器人接着打。')) return;
-      leaveOnline(null, true);
+      askConfirm('离开房间？', match.lobby || watching() ? '' : '你的座位会交给机器人接着打。', '离开', () => leaveOnline(null, true));
     } else if (k === 'cover') {
       if (match && match.tutorial) quitTutorial(); else freezeSolo();
       showCover();
@@ -2192,7 +2231,7 @@
   const SUIT_TINT = (g) => (g === '♠' || g === '♣' ? '#1f1c18' : g === '♥' || g === '♦' ? '#b4392c' : '#c9a96e');
 
   // 本机调试：控制台里 __gzDebug.playFx({ kind: 'pig', sub: '下家 −100' }, 1) 单独放一段动画
-  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx, match: () => match, render: () => renderAll(), step: () => step(),
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx, copyText, askConfirm, match: () => match, render: () => renderAll(), step: () => step(),
  solveSize: () => { solveSize(); if (match) renderHand(); }, showCoach: (m) => showCoach(m, () => hideCoach()),
  social: () => social };   // __gzDebug.social().play({ kind: 'prop', from: 3, to: 0, prop: 'pig' })
 
@@ -3000,7 +3039,7 @@
     d.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => {
       const act = b.dataset.act;
       if (act === 'ready') { online.readySent = true; b.disabled = true; b.textContent = waitingText(); onlineAct('ready'); }
-      if (act === 'end-match') { if (confirm('现在结束这一盘？按累计分排名，不评猪。')) onlineAct('end_match'); }
+      if (act === 'end-match') askConfirm('现在结束这一盘？', '按累计分排名，不评猪。', '结束', () => onlineAct('end_match'));
       if (act === 'rematch') onlineAct('rematch');
       if (act === 'sit') { b.disabled = true; watchSit(); }
     }));
@@ -3291,7 +3330,7 @@
     ta.blur();
     clearSelection(true);
     ta.remove();
-    if (ok) toast(done); else prompt('复制下面这段发给朋友：', text);
+    if (ok) toast(done); else showCopyBox('复制下面这段发给朋友', text);
   }
 
   /* 房间设置：邀请、看 / 改规则、离开房间 */
@@ -3311,8 +3350,7 @@
         d.querySelector('[data-act="rules"]').addEventListener('click', () => showRoomRules('view'));
         d.querySelector('[data-act="leave"]').addEventListener('click', () => {
           const inGame = st.phase !== 'lobby' && !online.watching;
-          if (!confirm(inGame ? '离开房间？你的座位会交给机器人接着打。' : '离开房间？')) return;
-          leaveOnline(null, true);
+          askConfirm('离开房间？', inGame ? '你的座位会交给机器人接着打。' : '', '离开', () => leaveOnline(null, true));
         });
       });
   }
@@ -3727,7 +3765,7 @@
     if (act === 'rules') showRoomRules('view');
     if (act === 'start') hostStart();
     if (act === 'sit') watchSit();
-    if (act === 'leave' && confirm('离开房间？')) leaveOnline(null, true);
+    if (act === 'leave') askConfirm('离开房间？', '', '离开', () => leaveOnline(null, true));
   });
 
   /* ───── 动画预览：?fxdemo=sweep|eat|clash|sheepdbl|pigdbl|triple ─────

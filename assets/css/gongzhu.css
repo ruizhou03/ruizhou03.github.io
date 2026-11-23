@@ -912,6 +912,8 @@ body.gz-fullscreen, .gz-app * { -webkit-user-select: none; user-select: none; -w
 .gz-sub-mask { z-index: calc(var(--z-dialog) + 2); }
 .gz-sub { width: min(440px, 100%); display: block; overflow-y: auto; }
 .gz-sub .gz-actions { margin-top: 12px; }
+.gz-copy-text { display: block; width: 100%; box-sizing: border-box; resize: none; padding: 8px 10px; border: 1px solid var(--gz-ink-faint); border-radius: 8px;
+  background: var(--gz-wash); color: var(--gz-ink); font: inherit; font-size: 14px; line-height: 1.6; word-break: break-all; }
 
 /* 明牌：底下「不明牌」「明牌 N 张」两个键 */
 .gz-band { gap: 8px; }
