@@ -31,14 +31,16 @@
   // 本机调试：?gzauto=1 让「我」也由 AI 代打并加速，用来一口气验到结算 / 一盘结束
   const AUTO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('gzauto') === '1';
   /* 盘终收尾预览（待用户挑）：?gzpv=final-a 领奖台 / final-b 墨园榜单 / final-c 原表加奖章；进页面读一次，不带参数 = 现状 */
-  const GZPV = (() => { const v = new URLSearchParams(location.search).get('gzpv') || ''; return /^final-([abc]|b[123]|b3[a-d])$/.test(v) ? v : ''; })();
+  const GZPV = (() => { const v = new URLSearchParams(location.search).get('gzpv') || ''; return /^final-([abc]|b[123]|b3[a-d]|b3a[12])$/.test(v) ? v : ''; })();
   const ROLL = GZPV.startsWith('final-b3');
+  // 甲（素绢灰青）里猪印放哪：final-b3a1 盖在分数左边 / final-b3a2 头像直接换成猪（final-b3a 原样：印压在头像角上）
+  const SEAL_AT = ROLL ? GZPV.slice(9) : '';   // 乙三宣纸卷及它的几套配色（final-b3a～b3d 只换颜色和装裱，结构相同）
   /* 局中菜单 / 顶栏 / 暂停页 / 单机身份预览（待用户挑）：?gzmenu=menu-a|b|c, bar-a|b, pause-a|b, me-a|b，逗号分隔可组合；进页面读一次，不带参数 = 现状 */
   const MENU_PV = (() => {
     const set = new Set((new URLSearchParams(location.search).get('gzmenu') || '').split(',').map((x) => x.trim()));
     const one = (keys) => keys.find((k) => set.has(k)) || '';
     return { menu: one(['menu-a', 'menu-b', 'menu-c']), bar: one(['bar-a', 'bar-b']), pause: one(['pause-a', 'pause-b']), me: one(['me-a', 'me-b']) };
-  })();   // 乙三宣纸卷及它的几套配色（final-b3a～b3d 只换颜色和装裱，结构相同）
+  })();
   if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, fade: 120, roundEnd: 60 });
   const SETTLE_HOLD = AUTO ? 60 : 1700;   // 累计分在桌上数完（最长约 0.9 秒）后再停一会儿，才弹结算页
   // 教程放慢：机器人出牌、收墩都留足时间看清
@@ -1784,7 +1786,9 @@
       // 乙三 · 宣纸卷（精修）：黑漆细轴、金色轴头，纸从上往下展开；第一名那行大一号；猪是一枚朱印，按在垫底那行的头像角上
       body = '<div class="gz-fin gz-fin-b3"><div class="gz-roll"><i class="gz-axis"></i><div class="gz-roll-mount"><div class="gz-roll-paper">' +
         order.map((s) => '<div class="gz-roll-row' + (s === me ? ' is-me' : '') + (rank(s) === 1 && !losers.includes(s) ? ' is-top' : '') + (losers.includes(s) ? ' is-pig' : '') + '" data-seat="' + s + '">' +
-          '<span class="gz-fin-av">' + face(s) + (losers.includes(s) ? sealOn() : '') + '</span><span class="gz-slip-mid">' + nm(s) + '<span class="gz-fin-tally">' + cardTally(tally[s]) + '</span></span>' + tot(s) + '</div>').join('') +
+          '<span class="gz-fin-av">' + face(s) + (losers.includes(s) ? (SEAL_AT === '2' ? '<span class="gz-fin-pigface" aria-hidden="true">' + ART.pig + '</span>' : SEAL_AT === '1' ? '' : sealOn()) : '') + '</span>' +
+          '<span class="gz-slip-mid">' + nm(s) + '<span class="gz-fin-tally">' + cardTally(tally[s]) + '</span></span>' +
+          (SEAL_AT === '1' ? '<span class="gz-roll-score">' + (losers.includes(s) ? sealOn() : '') + tot(s) + '</span>' : tot(s)) + '</div>').join('') +
         '</div></div><i class="gz-axis is-bot"></i></div></div>';
     } else {
       // 乙 · 墨园榜单：一卷纸从上往下展开，四行按累计分排；猪盖在垫底那一行的头像上，像一枚章
@@ -1795,7 +1799,7 @@
     }
     openDialog('<h2 class="gz-sr">' + finalTitle(losers) + '</h2>' + body + '<div class="gz-actions">' + settleActions() + '</div>', (d) => {
       d.classList.add('is-final', 'is-' + GZPV);
-      if (ROLL) d.classList.add('is-final-b3', 'tone-' + (GZPV.slice(8) || '0'));
+      if (ROLL) d.classList.add('is-final-b3', 'tone-' + (GZPV.slice(8, 9) || '0'), 'seal-at-' + (SEAL_AT || '0'));
       bindSettle(d);
       if (!intro) return;
       const sounds = [];
@@ -1834,6 +1838,14 @@
         d.querySelectorAll('.gz-roll-row').forEach((x, i) => x.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, delay: 260 + i * 150, easing: 'ease-out', fill: 'backwards' }));
         d.querySelectorAll('.gz-fin-ct').forEach((x, i) => x.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.2)', offset: 0.6 }, { transform: 'none' }], { duration: 280, delay: 800 + i * 50, easing: 'ease-out', fill: 'backwards' }));
         end = 1150;
+        // 头像换成猪：原头像绕竖轴翻过去，背面翻出来的就是猪（几个人同时当猪依次翻）
+        d.querySelectorAll('.gz-fin-pigface').forEach((pf, i) => {
+          const at = end + i * 160, fc = pf.parentNode.querySelector('.gz-fin-face');
+          if (fc) fc.animate([{ transform: 'none' }, { transform: 'perspective(300px) rotateY(90deg)' }], { duration: 180, delay: at, easing: 'ease-in' });
+          pf.animate([{ transform: 'perspective(300px) rotateY(-90deg)' }, { transform: 'perspective(300px) rotateY(0) scale(1.1)', offset: 0.7 }, { transform: 'none' }], { duration: 340, delay: at + 180, easing: 'ease-out', fill: 'backwards' });
+          if (!i) sounds.push([at + 260, 'pig']);
+        });
+        if (SEAL_AT === '2') end += d.querySelectorAll('.gz-fin-pigface').length * 160 + 420;
       } else {
         const paper = d.querySelector('.gz-scroll-paper'), rod = d.querySelector('.gz-rod.is-bot');
         const h = paper.offsetHeight;
@@ -4516,7 +4528,7 @@
     tie: ['两家并列当猪', [140, -1020, 140, -1020], [[1, 3], [3, 3], [2, 1]]],
     stop: ['叫停不评猪', [-380, 210, 455, -90], [[0, 2], [3, 1], [1, 1]]],
   };
-  const FIN_VERS = { '': '现状', 'final-b1': '乙一 红榜', 'final-b2': '乙二 经折', 'final-b3': '乙三 宣纸卷', 'final-b3a': '卷·素绢灰青', 'final-b3b': '卷·檀木赭石', 'final-b3c': '卷·水墨', 'final-b3d': '卷·青绿', 'final-b': '乙 旧卷轴', 'final-c': '丙 原表加奖章', 'final-a': '甲 领奖台' };
+  const FIN_VERS = { '': '现状', 'final-b1': '乙一 红榜', 'final-b2': '乙二 经折', 'final-b3': '乙三 宣纸卷', 'final-b3a': '卷·素绢灰青', 'final-b3a1': '素绢·章在分数左', 'final-b3a2': '素绢·头像换成猪', 'final-b3b': '卷·檀木赭石', 'final-b3c': '卷·水墨', 'final-b3d': '卷·青绿', 'final-b': '乙 旧卷轴', 'final-c': '丙 原表加奖章', 'final-a': '甲 领奖台' };
   function startFinalDemo() {
     const q = new URLSearchParams(location.search);
     const cs = FIN_CASES[q.get('case')] ? q.get('case') : 'one';

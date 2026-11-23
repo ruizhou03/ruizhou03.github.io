@@ -1214,3 +1214,10 @@ body.gz-fullscreen, .gz-app * { -webkit-user-select: none; user-select: none; -w
   --ink: #26302d; --ring: #cdd3c8; --top: #a7905e; --me: #a24f45; --seal: #a3463b; --pos: #3f6b5a; --neg: #a24f45; --sh: rgba(25, 40, 37, 0.26);
   --mt: 18px; --mb: 14px; --ms: 7px; }
 @media (max-width: 380px) { .gz-leaf .gz-fin-av { width: 42px; height: 42px; } .gz-fold { padding: 0 6px; } }
+/* 甲（素绢灰青）猪印位置的两种试法：1 盖在分数左边；2 头像直接换成猪 */
+.gz-roll-score { display: flex; align-items: center; gap: 10px; justify-self: end; }
+.gz-roll-score .gz-fin-seal { position: relative; left: auto; right: auto; bottom: auto; width: 34px; margin: 0; flex: none; }
+.gz-fin-pigface { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; border-radius: 50%; overflow: hidden; background: var(--paper2, #ede9df); }
+.gz-fin-pigface svg { width: 88%; height: auto; display: block; margin-top: 6%; }
+.gz-dialog.seal-at-2 .gz-roll-row.is-pig .gz-fin-av { box-shadow: 0 0 0 2px var(--seal); }
+.gz-dialog.seal-at-2 .gz-roll-row.is-pig.is-me .gz-fin-av { box-shadow: 0 0 0 3px var(--me); }
