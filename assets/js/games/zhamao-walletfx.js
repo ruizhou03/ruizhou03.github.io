@@ -105,9 +105,9 @@
     const clamp = (p) => ({ x: Math.max(18, Math.min(W0 - 18, p.x)), y: Math.max(18, Math.min(H0 - 18, p.y)) });
     const p1 = clamp({ x: a.x + dx * 0.25 + nx * bulge, y: a.y + dy * 0.25 + ny * bulge + lift });
     const p2 = clamp({ x: a.x + dx * 0.75 + nx * bulge * 0.7, y: a.y + dy * 0.75 + ny * bulge * 0.7 });
-    // 朝向一趟只定一次（往右游就整条翻过来脸朝右），之后只在 ±70° 里仰头低头——不会半路突然翻面
+    // 朝向一趟只定一次（往右游就整条翻过来脸朝右），之后只在 ±45° 里仰头低头——不会半路突然翻面（2026-11-23 真渲染录屏：±70° 往上游时几乎竖着，像在爬不像在游）
     const faceRight = Math.abs(dx) > 4 ? dx > 0 : nx > 0;
-    const wig = 6 + rnd() * 5, wigHz = 2.2 + rnd() * 0.8, swish = 16, swishHz = 5 + rnd() * 2;
+    const wig = 6 + rnd() * 5, wigHz = 2.2 + rnd() * 0.8, swish = 12, swishHz = 5 + rnd() * 2;
     const pop = 0.14;   // 前 14%：原地「啵」地冒出来
     let last = a, relHead = 0;
     return tween(opts.dur || 760, (k) => {
@@ -127,7 +127,7 @@
           let head = Math.atan2(vy, vx) * 180 / Math.PI;           // 朝右为 0
           if (!faceRight) head = ((head + 360) % 360) - 180;         // 朝左为 0
           if (head > 180) head -= 360; if (head < -180) head += 360;
-          relHead = Math.max(-70, Math.min(70, head));
+          relHead = Math.max(-45, Math.min(45, head));
         }
         ang = relHead + Math.sin(q * Math.PI * 2 * swishHz) * swish * (1 - q * 0.6);
         sc = q > 0.82 ? 1 - (q - 0.82) / 0.18 * 0.55 : 1;
@@ -170,7 +170,7 @@
     const a = center(fromEl.getBoundingClientRect()), tb = toEl.getBoundingClientRect(), b = { x: tb.left + tb.width / 2, y: tb.top + tb.height / 2 };
     const el = document.createElement('span');
     el.className = 'zmwfx-ticket';
-    el.textContent = label;
+    el.innerHTML = (opts.icon || '') + '<b>' + label + '</b>';
     el.style.cssText = 'position:fixed;left:0;top:0;opacity:0;will-change:transform';
     layer().appendChild(el);
     const w = el.offsetWidth || 64, h = el.offsetHeight || 30;

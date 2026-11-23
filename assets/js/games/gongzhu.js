@@ -35,12 +35,12 @@
   const ROLL = GZPV.startsWith('final-b3');
   // 甲（素绢灰青）里猪印放哪：final-b3a1 盖在分数左边 / final-b3a2 头像直接换成猪（final-b3a 原样：印压在头像角上）
   const SEAL_AT = ROLL ? GZPV.slice(9) : '';   // 乙三宣纸卷及它的几套配色（final-b3a～b3d 只换颜色和装裱，结构相同）
-  /* 房主管人 / 暂停 / 本房间战绩（预览中，待用户挑；画法全在 gongzhu-host-pv.js，这里只留挂钩）：
-   * ?gzhost=<房主那一排 a|b|c><暂停 1|2><战绩 1|2>，例如 a11、b22、c12；只写字母 = a11 / b22 / c12。
-   * 不带参数 = 现状（新后端多出来的字段一概不画） */
+  /* 房主管人 / 暂停 / 本房间战绩（画法全在 gongzhu-host-pv.js，这里只留挂钩）：
+   * 用户 2026-11-23 定 = 房主那一排甲（三颗图标）+ 暂停一（顶栏键 + 罩桌）+ 战绩二（可收起的表），不带参数就是这一套。
+   * 还能拿 ?gzhost=<a|b|c><1|2><1|2> 看别的版本对比；暂停卡样式另用 ?gzpause=（见 gongzhu-host-pv.js） */
   const GZHOST = (() => {
     const m = /^([abc])([12])?([12])?$/.exec(new URLSearchParams(location.search).get('gzhost') || '');
-    if (!m) return null;
+    if (!m) return { row: 'a', pause: '1', rec: '2' };
     const d = { a: '11', b: '22', c: '12' }[m[1]];
     return { row: m[1], pause: m[2] || d[0], rec: m[3] || d[1] };
   })();
@@ -2442,7 +2442,7 @@
         ['room', '邀请朋友'],
         ...(watching() && online.st.seatOpen ? [['sit', '坐下']] : []),
         ...(!online.watching ? [['reveal', meRevealing() ? '不让观战看我的牌' : '让观战看我的牌']] : []),
-        ...(isHost() && match.lobby ? [['roomrules', '自定义规则']] : []),
+        ['roomrules', roomRulesLabel()],
         ...(hostPv ? hostPv.menuItems() : []),
         ...moved,
         ['leave', '离开房间'],
@@ -2462,6 +2462,7 @@
       ...exit,
     ];
   }
+  const roomRulesLabel = () => (isHost() && match && match.lobby ? '自定义规则' : '房间规则');
   // 顶栏预览把「说一句」「规则」收进了菜单（见 syncBarPv）：菜单里补上这两条
   function movedTools() {
     return [
@@ -2490,7 +2491,7 @@
           ...(match.lobby ? [] : [['history', '每局得分']]),
           ['room', '邀请朋友'],
           ...(watching() && online.st.seatOpen ? [['sit', '坐下']] : []),
-          ...(isHost() && match.lobby ? [['roomrules', '自定义规则']] : []),
+          ['roomrules', roomRulesLabel()],
           ...fb,
         ]],
         ['我', [
@@ -4338,7 +4339,6 @@
 
   /* ───── 联机 · 大厅（就用牌桌本身：四个座位在原位，中间是房号 / 邀请 / 规则 / 开始） ───── */
 
-  let lobbyQrCode = '';
   function renderLobby() {
     const st = online.st;
     if (online.inGame) { online.inGame = false; token++; stopClock(); closeDialog(); renderWatchUi(); }
@@ -4370,12 +4370,8 @@
     const box = $('gzLobby');
     box.hidden = false;
     box.querySelector('.gz-lobby-code b').textContent = st.code;
-    const qr = box.querySelector('.gz-lobby-qr');
-    if (lobbyQrCode !== st.code && window.GamesShell && GamesShell.QR) {
-      lobbyQrCode = st.code;
-      GamesShell.QR.render(qr, NET.inviteUrl(st.code), { scale: 3, margin: 2, dark: '#1d1b18', light: '#fbf8f1' });
-    }
-    box.querySelector('[data-lb="rules"]').textContent = host ? '自定义规则' : '查看规则';
+    // 2026-11-23 用户定：大厅不要二维码、复制只留「复制邀请链接」、规则收进右上角菜单。老页面（HTML 还在缓存里）多出来的这几样直接拿掉
+    box.querySelectorAll('.gz-lobby-qr, [data-lb="copy-code"], [data-lb="rules"]').forEach((x) => x.remove());
     const missing = 4 - st.players.length;
     const start = box.querySelector('[data-lb="start"]');
     start.hidden = !host;
@@ -4566,21 +4562,16 @@
     if (ok) toast(done); else showCopyBox('复制下面这段发给朋友', text);
   }
 
-  /* 房间设置：邀请、看 / 改规则、离开房间 */
+  /* 房间设置：邀请、离开房间（规则在右上角菜单「自定义规则 / 房间规则」） */
   function showRoomDialog() {
     const st = online.st;
-    const editable = st.phase === 'lobby' && isHost();
     openDialog('<h2>房间 ' + st.code + '</h2>' +
-      '<div class="gz-actions gz-actions-start"><button type="button" class="gz-btn" data-act="copy-link">复制邀请链接</button>' +
-      '<button type="button" class="gz-btn" data-act="copy-code">复制房号</button>' +
-      '<button type="button" class="gz-btn" data-act="rules">' + (editable ? '自定义规则' : '查看规则') + '</button></div>' +
+      '<div class="gz-actions gz-actions-start"><button type="button" class="gz-btn" data-act="copy-link">复制邀请链接</button></div>' +
       '<div class="gz-actions"><button type="button" class="gz-btn" data-act="leave">离开房间</button>' +
       '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
       (d) => {
         d.querySelector('[data-close]').addEventListener('click', closeDialog);
         d.querySelector('[data-act="copy-link"]').addEventListener('click', () => copyText(NET.inviteUrl(st.code), '邀请链接已复制'));
-        d.querySelector('[data-act="copy-code"]').addEventListener('click', () => copyText(st.code, '房号已复制'));
-        d.querySelector('[data-act="rules"]').addEventListener('click', () => showRoomRules('view'));
         d.querySelector('[data-act="leave"]').addEventListener('click', () => {
           const inGame = st.phase !== 'lobby' && !online.watching;
           askConfirm('离开房间？', inGame ? '你的座位会交给机器人接着打。' : '', '离开', () => leaveOnline(null, true));
@@ -5037,7 +5028,6 @@
     if (!lb || !online) return;
     const act = lb.dataset.lb;
     if (act === 'copy-link') copyText(NET.inviteUrl(online.code), '邀请链接已复制');
-    if (act === 'copy-code') copyText(online.code, '房号已复制');
     if (act === 'rules') showRoomRules('view');
     if (act === 'start') hostStart();
     if (act === 'sit') watchSit();
