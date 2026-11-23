@@ -492,7 +492,7 @@
         if (w === 0) before.push({ text: '你的 ' + label(me) + ' 最大，抢到了羊：+100。', trick, mark: true });
         else {
           const could = [card('♦A'), card('♦K')].filter((c) => B_HANDS[0].includes(c) && !r.history.slice(0, 3).some((h) => h.plays.some((p) => p.card === c)));
-          before.push({ text: whoName(w) + '的 ' + label(top) + ' 收走了羊。' + (could.length ? '出 ' + could.map(label).join(' 或 ') + ' 就是你的。' : ''), trick, mark: true });
+          before.push({ text: whoName(w) + '的 ' + label(top) + ' 收走了羊。' + (could.length ? '刚才出 ' + could.map(label).join(' 或 ') + ' 就能抢到。' : ''), trick, mark: true });
         }
       }
       return { before, after: [] };
