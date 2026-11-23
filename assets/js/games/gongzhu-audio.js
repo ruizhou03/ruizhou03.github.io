@@ -250,6 +250,22 @@
       tone(a, d, t + 0.32, { freq: midi(62), to: midi(55), dur: 0.6, gain: 0.1, type: 'triangle', glide: 0.5 });
     },
     even(a, t, d) { pluck(a, d, t, midi(72), 0.09, 0.8); pluck(a, d, t + 0.12, midi(72), 0.07, 0.8); },
+    // 一盘结束（盘终收尾丙版）：先一记低锣收住整盘，再按名次——赢：五声音阶一路往上、落一个亮和弦；输：慢慢往下走、落在低处；平：两声轻的
+    finale(a, t, d, how) {
+      tone(a, d, t, { freq: 98, to: 92, dur: 1.6, gain: 0.3, attack: 0.006 });
+      tone(a, d, t, { freq: 227, to: 223, dur: 1.1, gain: 0.08, attack: 0.006 });
+      nz(a, d, t, { dur: 0.06, gain: 0.1, type: 'lowpass', freq: 1200, q: 0.7 });
+      const s = t + 0.35;
+      if (how === 'win') {
+        [60, 62, 64, 67, 69, 72, 74, 76].forEach((m, i) => pluck(a, d, s + i * 0.075, midi(m), 0.1, 1));
+        [72, 76, 79, 84].forEach((m) => pluck(a, d, s + 0.68, midi(m), 0.085, 2.4));
+      } else if (how === 'lose') {
+        [69, 67, 64, 62, 60].forEach((m, i) => pluck(a, d, s + i * 0.16, midi(m), 0.09, 1.2));
+        tone(a, d, s + 0.85, { freq: midi(55), to: midi(53), dur: 0.9, gain: 0.09, type: 'triangle', glide: 0.6 });
+      } else {
+        [67, 72].forEach((m, i) => pluck(a, d, s + i * 0.16, midi(m), 0.08, 1.2));
+      }
+    },
 
     /* 牌桌互动（gongzhu-social.js）：道具落地那一刻起算，时间点和动画对齐 */
     // 扔出去：一阵风
