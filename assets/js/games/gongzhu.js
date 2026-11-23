@@ -1426,12 +1426,17 @@
     if (!S || !S.note || !match || match.tutorial || match.demo || match.lobby || watching()) return;
     try {
       S.note({
-        mode: match.online ? 'net' : 'solo', id: match.online ? 'n:' + (online && online.code) + ':' + match.matchNo : 's:' + match.seed,
+        mode: match.online ? 'net' : 'solo', id: match.online ? netStatsId() : 's:' + match.seed,
         rules: match.rules, totals: match.totals.slice(), last: match.last, over: !!match.over,
         losers: match.online ? match.losers || [] : null, tiers: match.online ? null : botTiers(), auto: statsAuto || autopilot || (!!match.online && onlineAuto()),
       });
     } catch (_) { /* 战绩记不上不影响打牌 */ }
     statsAuto = autopilot;
+  }
+  // 联机一盘的 id：房号 + 盘号还不够（「回到房间」后服务器盘号从 1 重数），再拼上第 1 局的四家得分当指纹——一盘里固定不变、刷新也拿得到
+  function netStatsId() {
+    const g = online && online.st && online.st.game, h0 = g && g.history && g.history[0];
+    return 'n:' + (online && online.code) + ':' + match.matchNo + (h0 && h0.scores ? ':' + h0.scores.join('.') : '');
   }
   if (window.GongzhuStats) window.GongzhuStats.art = () => ART;   // 战绩页借牌桌上的猪 / 羊 / 红桃 / 皇冠
 
