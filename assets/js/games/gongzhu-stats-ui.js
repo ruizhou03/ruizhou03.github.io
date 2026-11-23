@@ -125,14 +125,14 @@
 .gzs-a .wide{grid-column:1/-1}
 @media(max-width:620px){.gzs-a .grid{grid-template-columns:minmax(0,1fr)}}
 .gzs-a .h{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;font-size:15px;font-weight:700}
-.gzs-a .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:center;background:#f8f4ea}
-.gzs-a .big{display:flex;flex-direction:column;gap:4px}
-.gzs-a .big .n{font-size:clamp(36px,10vw,52px);line-height:.9}
-.gzs-a .big small{display:flex;align-items:center;gap:5px;color:${C.mute};font-size:13px}
-.gzs-a .big small svg{width:16px;height:16px}
-.gzs-a .pr{display:flex;flex-direction:column;align-items:center;gap:2px}
-.gzs-a .pr .n{font-size:22px;color:${C.seal}}
-.gzs-a .pr .n small{font-size:14px}
+.gzs-a .hero{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:6px;align-items:center;background:#f8f4ea;padding:10px 14px}
+.gzs-a .big{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.gzs-a .big .n{font-size:clamp(28px,8vw,40px);line-height:.9}
+.gzs-a .big small{display:flex;align-items:center;gap:4px;color:${C.mute};font-size:12px;white-space:nowrap}
+.gzs-a .big small svg{width:15px;height:15px}
+.gzs-a .pr{display:flex;align-items:center;gap:4px}
+.gzs-a .pr .n{font-size:20px;color:${C.seal}}
+.gzs-a .pr .n small{font-size:13px}
 .gzs-a .bars{display:grid;gap:9px}
 .gzs-a .bar{display:grid;grid-template-columns:28px minmax(0,1fr) 2.4em;gap:8px;align-items:center}
 .gzs-a .bar .t{height:14px;border-radius:7px;background:${C.wash};overflow:hidden}
@@ -145,15 +145,15 @@
 .gzs-a .tier .k{display:flex;align-items:center;gap:6px;min-width:6.4em;white-space:nowrap}
 .gzs-a .tier .k b{font-size:13px;font-weight:600;color:${C.mute}}
 .gzs-a .recs{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
-@media(max-width:620px){.gzs-a .recs{grid-template-columns:repeat(5,minmax(0,1fr))}}
 .gzs-a .rec{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px 6px;border-radius:12px;background:${C.paper};border:1.5px solid ${C.line}}
-.gzs-a .rec .rk{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 16px/1 ${NUM};color:#fff}
+.gzs-a .rec{display:block;padding:0;background:none;border:0;border-radius:0}
+.gzs-a .rec .rk{width:min(30px,7.4vw);height:min(30px,7.4vw);border-radius:50%;display:grid;place-items:center;font:700 16px/1 ${NUM};color:#fff}
 .gzs-a .rec.is-stop .rk{background:none!important;border:2px dashed ${C.faint};color:${C.mute}}
 .gzs-a .rec .pg{position:absolute;right:-5px;top:-7px;width:24px}
 .gzs-a .rec .pg svg{width:100%;height:auto}
 .gzs-a .rec small{font:600 12px/1 ${NUM};color:${C.mute};font-variant-numeric:tabular-nums}
 .gzs-a .badges{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
-@media(max-width:620px){.gzs-a .badges{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:620px){.gzs-a .badges{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 10px}.gzs-a .gzs-badge .ic{width:min(100%,64px);padding:8px}}
 .gzs-a .gzs-badge .ic{border-radius:50%;background:${C.paper};border:1.5px solid ${C.line};padding:9px}
 .gzs-a .gzs-badge.is-on .ic{border-color:${C.gold};background:#fbf3df}
 .gzs-a .gzs-badge small{font-size:12px;color:${C.mute};white-space:nowrap}
@@ -179,24 +179,17 @@
     const hero = '<div class="card hero">' +
       '<div class="big"><span class="n">' + S.games + '</span><small>' + ICON.deck + '盘</small></div>' +
       '<div class="big"><span class="n">' + S.rounds + '</span><small>' + ICON.round + '局</small></div>' +
-      '<div class="pr">' + ring(S.pigRate, ART().pig, C.seal, 92) + '<span class="n"' + (S.pigRate == null ? ' style="color:' + C.line + '"' : '') + '>' + pct(S.pigRate) + (S.pigRate == null ? '' : '<small>%</small>') + '</span></div></div>';
+      '<div class="big"><span class="n"' + (S.avgRank == null ? ' style="color:' + C.line + '"' : '') + '>' + fix1(S.avgRank) + '</span><small>' + ICON.avg + '平均名次</small></div>' +
+      '<div class="pr">' + ring(S.pigRate, ART().pig, C.seal, 64) + '<span class="n"' + (S.pigRate == null ? ' style="color:' + C.line + '"' : '') + '>' + pct(S.pigRate) + (S.pigRate == null ? '' : '<small>%</small>') + '</span></div></div>';
     if (!has) {
       return hero + '<div class="grid"><div class="card wide"><div class="empty">' + EMPTY_ART + '<span>打完一盘，这里就有了</span></div></div>' +
         '<div class="card wide"><div class="badges">' + badgesHtml(S) + '</div></div></div>';
     }
-    const ranks = '<div class="card"><div class="h">名次</div><div class="bars">' + S.dist.map((x, i) =>
+    const ranks = '<div class="card wide"><div class="h">名次</div><div class="bars">' + S.dist.map((x, i) =>
       '<div class="bar">' + rankIcon(i) + '<span class="t"><i style="width:' + (x / dmax * 100).toFixed(1) + '%;background:' + (i === 3 ? C.seal : RANK_C[i]) + '"></i></span><span class="n">' + x + '</span></div>').join('') + '</div></div>';
-    const tiers = '<div class="card"><div class="h">对手<span style="font-size:12px;color:' + C.mute + ';font-weight:600">平均名次</span></div>' + S.tiers.map((t) =>
-      '<div class="tier"><span class="k">' + face(t.key) + '<b>' + TIER_NAME[t.key] + '</b></span>' + stack(t.dist) + '<span class="n">' + fix1(t.avgRank) + '<small>' + t.n + ' 盘</small></span></div>').join('') + '</div>';
     const recs = '<div class="card wide"><div class="h">最近十盘</div><div class="recs">' + S.recent.slice().reverse().map((g) =>
-      '<div class="rec' + (g.stop ? ' is-stop' : '') + '"><span class="rk" style="background:' + dotC(g) + '">' + g.rank + '</span>' +
-      (g.pig ? '<span class="pg">' + (ART().pig || '') + '</span>' : '') + '<small>' + md(g.t) + '</small></div>').join('') + '</div></div>';
-    const chips = '<div class="card wide"><div class="chips">' +
-      '<span class="chip">' + ICON.avg + '<span class="n">' + fix1(S.avgRank) + '</span></span>' +
-      '<span class="chip">' + ICON.round + '<span class="n">' + fix1(S.avgRounds) + '</span><small style="color:' + C.mute + '">局/盘</small></span>' +
-      '<span class="chip">' + ICON.streak + '<span class="n">' + S.streakBest + '</span><small style="color:' + C.mute + '">连不当猪</small></span>' +
-      (S.abandoned ? '<span class="chip">' + ICON.quit + '<span class="n">' + S.abandoned + '</span></span>' : '') + '</div></div>';
-    return hero + '<div class="grid">' + ranks + tiers + recs + '<div class="card wide"><div class="h">徽章</div><div class="badges">' + badgesHtml(S) + '</div></div>' + chips + '</div>';
+      '<div class="rec' + (g.stop ? ' is-stop' : '') + '"><span class="rk" style="background:' + dotC(g) + '">' + g.rank + '</span></div>').join('') + '</div></div>';
+    return hero + '<div class="grid">' + ranks + recs + '<div class="card wide"><div class="h">徽章</div><div class="badges">' + badgesHtml(S) + '</div></div></div>';
   }
   function badgesHtml(S, cls) {
     return S.badges.map((b) => '<button type="button" class="gzs-badge ' + (b.got ? 'is-on' : 'is-off') + (cls ? ' ' + cls : '') + '" data-b="' + b.id + '"><span class="ic">' + badgeArt(b.id) + '</span>' + (cls === 'bare' ? '' : '<small>' + b.name + '</small>') + '</button>').join('');

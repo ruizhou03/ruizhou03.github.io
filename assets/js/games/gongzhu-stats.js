@@ -246,7 +246,7 @@
     const B = {
       KEY,
       variant: PV,
-      picked: false,   // 用户还没在三版里挑定：菜单可以据此先不露「战绩」入口
+      picked: true,   // 2026-11-23 用户挑定甲（档案卡）；?gzstats=b / c 仍可看乙丙
       note(snap) { const s = read(); note(s, snap); write(s); },
       load() { const s = read(); reconcile(s, soloId()); write(s); return s; },
       data() { return DEMO ? demoStore() : B.load(); },
