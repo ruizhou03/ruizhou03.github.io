@@ -111,7 +111,7 @@
 .zmwfx-up{color:#3f7a52!important}.zmwfx-down{color:#b4392c!important}
 /* 小鱼干不够（2026-11-23 用户：余额不够不能直接开，弹窗说清楚，救济在弹窗里自己点） */
 .zmw-short-mask{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:20px;background:rgba(29,27,24,.42);-webkit-tap-highlight-color:transparent}
-.zmw-short{width:min(320px,100%);padding:22px 20px 18px;border:1.5px solid #1d1b18;border-radius:18px;background:#fffdf8;box-shadow:0 4px 0 #1d1b18;color:#1d1b18;text-align:center;font-family:Georgia,"Noto Serif SC",serif}
+.zmw-short{box-sizing:border-box;width:min(300px,100%);padding:22px 20px 18px;border:1.5px solid #1d1b18;border-radius:18px;background:#fffdf8;box-shadow:0 4px 0 #1d1b18;color:#1d1b18;text-align:center;font-family:Georgia,"Noto Serif SC",serif}
 .zmw-short .zmw-big{width:64px;height:40px;display:block;margin:0 auto 6px;transform:rotate(-14deg)}
 .zmw-short h3{margin:0 0 14px;font:700 19px/1.2 Georgia,"Noto Serif SC",serif}
 .zmw-short .zmw-row{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 18px}
@@ -119,6 +119,7 @@
 .zmw-short .zmw-pill .zmw-fish{width:26px;height:16px}
 .zmw-short .zmw-pill.is-price{background:#f0c9bb}
 .zmw-short .zmw-row i{font-style:normal;color:#8a8275;font:600 18px/1 Georgia,serif}
+.zmw-short *{box-sizing:border-box}
 .zmw-short .zmw-acts{display:flex;flex-direction:column;gap:8px}
 .zmw-short button{cursor:pointer;font:600 16px/1 system-ui,"Noto Sans SC",sans-serif;padding:13px 14px;border-radius:12px;border:1.5px solid #1d1b18;background:#fffdf8;color:#1d1b18;box-shadow:0 2px 0 #1d1b18;display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .zmw-short button .zmw-fish{width:24px;height:15px}
@@ -147,6 +148,7 @@
   const seenBadges = () => { try { return JSON.parse(ls.get('zm.badges.seen')) || []; } catch (_) { return []; } };
   function markBadgesSeen(ids) { ls.set('zm.badges.seen', JSON.stringify(Array.from(new Set(seenBadges().concat(ids || []))))); paintChip(); }
   const hasNews = () => !!state && (state.ck !== today() || (state.badges || []).some((b) => seenBadges().indexOf(b) < 0));
+  let shortOpen = false;   // 「不够了」弹窗开着：鱼游进弹窗里的余额，后面左上角那个不跟着放
   let shown = null;   // 左上角现在显示的数（动画从这里滚到新余额）
   const FX = () => root.ZhamaoWalletFx || null;
   const profileOpen = () => !!(root.ZhamaoProfile && root.ZhamaoProfile.isOpen && root.ZhamaoProfile.isOpen());
@@ -156,7 +158,8 @@
     chip.hidden = !has;
     if (!has) return;
     const b = chip.querySelector('b');
-    if (shown == null) { b.textContent = fmt(state.bal); shown = state.bal; }
+    if (shortOpen && shown != null) { /* 「不够了」弹窗开着：后面这个先不动，关窗时对齐（录屏：弹窗里鱼还没游到，后面已经先跳成新数） */ }
+    else if (shown == null) { b.textContent = fmt(state.bal); shown = state.bal; }
     else if (chip.offsetParent === null) { /* 封面藏着（在打牌）：等回到主页面露出来再滚 */ }
     else if (profileOpen() || shortOpen || !fxOn() || !FX() || shown === state.bal) { b.textContent = fmt(state.bal); shown = state.bal; }   // 档案开着：鱼飞进档案里的余额，后面这个不动
     else { const from = shown; shown = state.bal; animateIn(from, state.bal); }
@@ -202,7 +205,6 @@
 
   /* 小鱼干不够了：余额 / 门票并排，下面是能做的事——领救济（第一次亏空 +2,000，之后每天两次 +500）、今天还没签到就签到；
    * 领完够了，主键变成「开始」。字尽量少 */
-  let shortOpen = false;   // 「不够了」弹窗开着：鱼游进弹窗里的余额，后面左上角那个不跟着放
   function shortDialog(o, p) {
     style();
     shortOpen = true;
@@ -219,12 +221,15 @@
       const end = (ok) => { if (done) return; done = true; shortOpen = false; mask.remove(); if (chip && state) { shown = state.bal; chip.querySelector('b').textContent = fmt(state.bal); } resolve(ok); };
       mask.addEventListener('click', (e) => { if (e.target === mask) end(false); });
       const btn = (cls, html, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.innerHTML = html; b.addEventListener('click', () => fn(b)); acts.appendChild(b); return b; };
-      // 拿到小鱼干：鱼从按钮游进上面的余额、数字滚上去，然后重摆按钮
-      const got = (b, from, to) => {
-        const fx = FX();
-        const after = () => draw();
-        if (fx && fxOn() && to > from) fx.school(FISH, b, balEl, Math.min(4, 2 + Math.round(Math.log10(to - from) - 1)), { spread: 16, gap: 80, dur: 640, lift: -40, size: 26, onLand: () => fx.roll(balEl.querySelector('b'), from, to, 480) }).then(after);
-        else { balEl.querySelector('b').textContent = fmt(to); after(); }
+      // 拿到小鱼干（点下去就放，不等服务器——知道能领多少）：鱼从按钮游进上面的余额、数字滚上去；服务器回来且动画放完再按服务器的余额重摆按钮
+      const claim = (b, amt, req) => {
+        b.disabled = true;
+        const from = state.bal, fx = FX(), numEl = balEl.querySelector('b');
+        const anim = fx && fxOn()
+          ? fx.school(FISH, b, balEl, Math.min(4, 2 + Math.round(Math.log10(amt) - 1)), { spread: 16, gap: 80, dur: 640, lift: -40, size: 26, onLand: () => fx.roll(numEl, from, from + amt, 480) })
+          : Promise.resolve().then(() => { numEl.textContent = fmt(from + amt); });
+        const settle = (v) => { numEl.__zmwRoll = {}; numEl.textContent = fmt(v); draw(); };   // 收掉还在滚的那段，再摆服务器的数（录屏：滚到 1,990 被晚到的一帧盖住）
+        Promise.all([req(), anim]).then(([j]) => settle(j.bal)).catch(() => settle(state.bal));   // 没领成：数字摆回去
       };
       function draw() {
         acts.innerHTML = '';
@@ -233,18 +238,10 @@
         if (bal >= p) { const go = btn('is-main', T('ui.start', '开始'), () => end(true)); go.focus(); btn('is-plain', T('ui.cancel', '取消'), () => end(false)); return; }
         if (rl.first || rl.left > 0) {
           const amt = rl.first ? 2000 : 500;
-          btn('is-main', T('ui.wallet.relief', '领救济') + ' ' + FISH + '+' + fmt(amt), (b) => {
-            b.disabled = true;
-            const from = state.bal;
-            post('relief', { n: o.n, mode: o.mode, tier: o.tier }).then((j) => got(b, from, j.bal)).catch(() => { b.disabled = false; });
-          });
+          btn('is-main', T('ui.wallet.relief', '领救济') + ' ' + FISH + '+' + fmt(amt), (b) => claim(b, amt, () => post('relief', { n: o.n, mode: o.mode, tier: o.tier })));
         }
         if (state.ck !== today()) {
-          btn(rl.first || rl.left > 0 ? '' : 'is-main', T('ui.wallet.checkin', '签到') + ' ' + FISH + '+' + fmt(state.next || 100), (b) => {
-            b.disabled = true;
-            const from = state.bal;
-            api.checkin().then((j) => got(b, from, j.bal)).catch(() => { b.disabled = false; });
-          });
+          btn(rl.first || rl.left > 0 ? '' : 'is-main', T('ui.wallet.checkin', '签到') + ' ' + FISH + '+' + fmt(state.next || 100), (b) => claim(b, state.next || 100, () => api.checkin()));
         }
         btn('is-plain', T('ui.ok', '知道了'), () => end(false));
       }

@@ -65,7 +65,7 @@
     if (!l) {
       l = document.createElement('div');
       l.className = 'zmwfx';
-      l.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:95;overflow:hidden';
+      l.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:130;overflow:hidden';   // 压在所有弹层上面（「不够了」弹窗 120、档案 70、结算 50）——2026-11-23 录屏：95 时鱼在弹窗底下游
       document.body.appendChild(l);
     }
     return l;
@@ -164,7 +164,9 @@
   }
   function bump(el) {
     if (!el || reduce()) return;
-    tween(240, (k) => { el.style.transform = 'scale(' + (1 + 0.12 * Math.sin(k * Math.PI)).toFixed(3) + ')'; }).then(() => { el.style.transform = ''; });
+    // 小东西（左上角余额）弹得明显；整行宽的按钮（「开始」）只轻轻一顿——2026-11-23 录屏：12% 撑得比底下的单子还宽
+    const amp = el.getBoundingClientRect().width > 160 ? 0.03 : 0.12;
+    tween(240, (k) => { el.style.transform = 'scale(' + (1 + amp * Math.sin(k * Math.PI)).toFixed(3) + ')'; }).then(() => { el.style.transform = ''; });
   }
 
   root.ZhamaoWalletFx = { tween, roll, fish, school, bump, cancelAll, setManual, setTime, advance, setSpeed: (x) => { speed = Math.max(0.05, x || 1); }, speed: () => speed, busy: () => jobs.size > 0, reduce };

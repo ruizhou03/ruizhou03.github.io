@@ -5803,9 +5803,9 @@
     d.querySelector('[data-again]').addEventListener('click', (e) => {
       const b = e.currentTarget;
       if (!WAL || !WAL.pay) { closeDialog(); newGame(); return; }
-      if (b.disabled) return;
-      b.disabled = true;
-      WAL.pay({ tier: settings.tier, mode: curMode(), n: soloN(), from: d.querySelector('.zmw-bal'), to: b }).then((ok) => { b.disabled = false; if (ok && d.contains(b) && !els.mask.hidden) { closeDialog(); newGame(); } });
+      if (b.dataset.paying) return;
+      b.dataset.paying = '1';   // 不用 disabled：按钮一变灰，鱼像游进一个点不动的键（2026-11-23 录屏）
+      WAL.pay({ tier: settings.tier, mode: curMode(), n: soloN(), from: d.querySelector('.zmw-bal'), to: b }).then((ok) => { delete b.dataset.paying; if (ok && d.contains(b) && !els.mask.hidden) { closeDialog(); newGame(); } });
     });
     d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
   }
