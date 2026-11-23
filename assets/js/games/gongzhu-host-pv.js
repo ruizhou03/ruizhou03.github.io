@@ -6,7 +6,7 @@
  *     c  三个带短标签的开关挪到框最上面（先管人、再扔道具）；被禁言的人名字后面跟一个「划掉的对话框」小图标
  *   暂停：1 顶栏工具键（和单机的暂停键同一个位置），暂停时牌桌罩一层纸色，中间一张暂停卡（房主卡上有「继续」）
  *         2 左上角局数旁一颗小圆键，暂停时不罩牌桌：桌心一个淡淡的大暂停记号、房主头像角上挂暂停标，倒计时停住
- *     暂停卡样式（待用户挑，?gzpause=a|b|c；不带 = 现在这张）：a 印信（房主大头像 + 暂停小章，不要卡框）
+ *     暂停卡样式（用户 2026-11-23 定 a，不带参数就是 a；?gzpause=b|c 还能看另两版）：a 印信（房主大头像 + 暂停小章，不要卡框）
  *         b 书签（竖长纸签，双线框，中间两道粗竖，底下房主小头像）  c 表盘（一圈金边的圆盘，房主头像压在上沿，房主点圆盘继续）
  *   本房间战绩（大厅）：1 每个座位卡下面一排小点（最近 6 盘的名次，当猪那盘画成猪鼻子）+ 平均名次
  *                       2 大厅中间一张可展开的小表（平均名次 / 当猪次数 / 最近几盘）
@@ -30,7 +30,7 @@
   function create(cfg, A) {
     const root = A.els.app;
     root.classList.add('gzh-row-' + cfg.row, 'gzh-pause-' + cfg.pause, 'gzh-rec-' + cfg.rec);
-    const CARD = (/^[abc]$/.exec(new URLSearchParams(location.search).get('gzpause') || '') || [''])[0];
+    const CARD = (/^[abc]$/.exec(new URLSearchParams(location.search).get('gzpause') || '') || ['a'])[0];   // 2026-11-23 用户定甲（印信）
     let veil = null, chip = null, mark = null;
 
     const st = () => { const o = A.online(); return o && o.st; };
