@@ -166,12 +166,12 @@
     chip.querySelector('.zmw-dot').hidden = !hasNews();
   }
 
-  /* ── 动画（2026-11-22 用户挑甲，第二轮重做：zhamao-walletfx.js；先挂开关 ?walletfx=1，用户看过预览再默认打开）──
+  /* ── 动画（2026-11-22 用户挑甲，第二轮重做：zhamao-walletfx.js；2026-11-23 用户看过录屏后默认打开，?walletfx=0 关、=1 再开；系统「减少动态效果」也关）──
    * 进账：回到主页面时一串小鱼从下面弯弯地游进左上角，数字滚到新余额（加绿、减红）
    * 扣门票：点「开始」→ 门票从左上角小鱼干里抽出来、飘落到「开始」键上（数字同时往下滚）→ 放完才进牌桌（不留半截动画在牌桌上） */
   const FX_KEY = 'zm.walletfx';
   (function () { const m = /[?&]walletfx=([01])\b/.exec(location.search); if (m) ls.set(FX_KEY, m[1]); })();
-  const fxOn = () => ls.get(FX_KEY) === '1' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fxOn = () => ls.get(FX_KEY) !== '0' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   function animateIn(from, to) {
     const b = chip.querySelector('b'), fx = FX();
     if (to < from) { fx.roll(b, from, to, 560); return; }
