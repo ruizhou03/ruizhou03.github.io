@@ -1313,6 +1313,7 @@
   function setAutopilot(on) {
     if (autopilot === on) return;
     autopilot = on;
+    if (on) statsAuto = true;
     if (!on) timeouts = 0;
     els.seats[0].classList.toggle('is-auto', on);
     els.seats[0].setAttribute('aria-label', NAMES[0] + (on ? '（托管中，点头像或手牌收回）' : ''));
@@ -1320,6 +1321,22 @@
     // 收回托管时正轮到我、机器人还没动手：直接把这一手交还给我
     if (!on && r && turnSeat() === 0 && !busy) { stopClock(); step(); }
   }
+
+  /* ───── 战绩（gongzhu-stats.js）：一局结束记一笔，一盘结束落成一条；教程 / 演示 / 大厅 / 观战不记 ───── */
+  let statsAuto = false;   // 这一局里我托管过
+  function statsNote() {
+    const S = window.GongzhuStats;
+    if (!S || !S.note || !match || match.tutorial || match.demo || match.lobby || watching()) return;
+    try {
+      S.note({
+        mode: match.online ? 'net' : 'solo', id: match.online ? 'n:' + (online && online.code) + ':' + match.matchNo : 's:' + match.seed,
+        rules: match.rules, totals: match.totals.slice(), last: match.last, over: !!match.over,
+        losers: match.online ? match.losers || [] : null, tiers: match.online ? null : botTiers(), auto: statsAuto || autopilot,
+      });
+    } catch (_) { /* 战绩记不上不影响打牌 */ }
+    statsAuto = autopilot;
+  }
+  if (window.GongzhuStats) window.GongzhuStats.art = () => ART;   // 战绩页借牌桌上的猪 / 羊 / 红桃 / 皇冠
 
   // 手动托管时正轮到我（出牌或决定明牌）、钟在走：马上交给机器人，不用等超时
   function takeOverNow() {
@@ -1397,6 +1414,7 @@
     match.round = null;
     match.over = R.isMatchOver(match.totals, match.rules, match.roundNo);
     save();
+    statsNote();
     settleOnTable(() => { if (match.over) matchEndSound(); else roundEndSound(scores[0]); showSettlement(); });
   }
 
@@ -3281,6 +3299,7 @@
       over: gv.phase === 'match_end', losers: (gv.losers || []).map(loc), tutorial: false,
     };
     if (match.last) keepRoundCaps(gv.matchNo, match.last);
+    if (ended && match.last) statsNote();   // 刷新 / 重连回到局终：这一局补记（按局号去重）
     closeDialog();
     renderAll();
     renderOnlineBadges();
@@ -3387,6 +3406,7 @@
         match.round = null;
         match.over = gv.phase === 'match_end' && gv.roundNo === ev.roundNo;
         match.losers = match.over ? (gv.losers || []).map(loc) : [];
+        statsNote();
         online.readySent = false;
         renderOnlineBadges();
         // 和单机一样：等最后一轮的本局分翻完，再在桌上把累计分数完，停一下才出结算页
@@ -3405,6 +3425,7 @@
     if (gv.phase === 'match_end' && !match.over && !match.round) {   // 「不设终点」被房主叫停
       match.over = true;
       match.losers = (gv.losers || []).map(loc);
+      statsNote();
       if (!els.mask.hidden) showSettlement();
     }
     if (online.pending >= 0) { busy = true; renderHand(); return; }   // 等服务器确认我刚出的牌
