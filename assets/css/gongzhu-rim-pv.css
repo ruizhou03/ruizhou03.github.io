@@ -1,0 +1,100 @@
+/* 拱猪 · 桌沿灯带 + 大厅重做 —— 预览（?gzrim=，见 assets/js/games/gongzhu-rim-pv.js） */
+.gzr-rim { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.gzr-rim path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.gzr-seg path { transition: stroke 0.3s, opacity 0.3s, stroke-width 0.3s; opacity: 0; }
+.gzr-rim.is-paused { opacity: 0.45; filter: grayscale(0.7); transition: opacity 0.3s; }
+.gzr-rim.is-paused * { animation-play-state: paused !important; }
+
+/* ───── a 金线 ───── */
+.gzr-a .gzr-base { stroke: var(--gz-gold); stroke-width: 1.4; opacity: 0.55; }
+.gzr-a .gzr-line { stroke-width: 3.5; }
+.gzr-a .gzr-halo { stroke-width: 11; }
+.gzr-a .is-turn .gzr-line { opacity: 1; stroke: #b8924f; }
+.gzr-a .is-turn .gzr-halo { opacity: 0.22; stroke: var(--gz-gold); }
+.gzr-a .is-hurry .gzr-line { opacity: 1; stroke: var(--gz-seal); }
+.gzr-a .is-hurry .gzr-halo { opacity: 0.18; stroke: var(--gz-seal); }
+.gzr-a .is-filled .gzr-line { opacity: 1; stroke: #b8924f; stroke-width: 2.6; }
+.gzr-a .is-full .gzr-base { opacity: 0.9; }
+
+/* ───── b 墨线 ───── */
+.gzr-b .gzr-base { stroke: var(--gz-ink); stroke-width: 1.1; opacity: 0.45; }
+.gzr-b .gzr-line { stroke-width: 3.6; stroke-linecap: butt; }
+.gzr-b .is-turn .gzr-line { opacity: 1; stroke: var(--gz-seal); }
+.gzr-b .is-hurry .gzr-line { opacity: 1; stroke: var(--gz-seal); animation: gzr-blink 0.5s ease-in-out infinite alternate; }
+.gzr-b .is-filled .gzr-line { opacity: 0.9; stroke: var(--gz-ink); stroke-width: 2.4; }
+.gzr-b .is-full .gzr-base { opacity: 0.8; }
+
+/* 三版共用：托管 / 掉线 / 快输了 / 大厅空位（缺口） */
+.gzr-rim .is-auto .gzr-line { opacity: 1; stroke: #7d8ea3; stroke-width: 2.8; }
+.gzr-rim .is-offline .gzr-erase, .gzr-rim .is-empty .gzr-erase { opacity: 1; stroke: var(--gz-paper); stroke-width: 6; }
+.gzr-rim .is-danger .gzr-line { opacity: 0.55; stroke: var(--gz-seal); stroke-width: 2.4; }
+.gzr-c .gzr-seg { display: none; }
+.gzr-c .gzr-seg.is-offline, .gzr-c .gzr-seg.is-empty { display: inline; }
+
+/* ───── c 灯珠 ───── */
+.gzr-c .gzr-base { stroke: none; }
+.gzr-dots circle { fill: var(--gz-ink-faint); opacity: 0.45; transition: fill 0.25s, opacity 0.25s, r 0.25s; }
+.gzr-dots circle.is-turn, .gzr-dots circle.is-filled { fill: #c39a52; opacity: 1; r: 3px; }
+.gzr-dots circle.is-hurry { fill: var(--gz-seal); opacity: 1; r: 3px; }
+.gzr-dots circle.is-auto { fill: #7d8ea3; opacity: 0.9; }
+.gzr-dots circle.is-danger { fill: var(--gz-seal); opacity: 0.5; }
+.gzr-dots circle.is-empty, .gzr-dots circle.is-offline { opacity: 0.12; }
+.gzr-c .is-full .gzr-dots circle { fill: #c39a52; opacity: 0.9; }
+
+/* 闪 / 绕圈 */
+.gzr-flash { stroke-width: 9; opacity: 0; }
+.gzr-sweep { stroke-width: 5; opacity: 0; }
+.gzr-fx .tone-red { stroke: var(--gz-seal); }
+.gzr-fx .tone-gold { stroke: #c39a52; }
+.gzr-fx .tone-ink { stroke: var(--gz-ink); }
+@keyframes gzr-blink { to { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .gzr-fx { display: none; } .gzr-rim * { animation: none !important; } }
+
+/* ───── 大厅 ───── */
+.gzr .gz-lobby { gap: 14px; }
+.gzr .gz-lobby-links:empty { display: none; }
+.gzr .gz-lobby-wait[hidden] { display: none; }
+.gzr .gz-lobby-code b { font-size: 46px; letter-spacing: 0.2em; margin-right: -0.2em; }
+
+/* 1 门牌：「房间」两字小金字在上，房号大字，下面一根短金线，再下面一行不起眼的复制 */
+.gzr-lobby-1 .gz-lobby-code { flex-direction: column; align-items: center; gap: 8px; }
+.gzr-lobby-1 .gz-lobby-code span { color: #a8874c; font-size: 12px; letter-spacing: 0.5em; margin-right: -0.5em; }
+.gzr-lobby-1 .gz-lobby-code::after { content: ''; display: block; width: 44px; height: 1px; background: var(--gz-gold); margin-top: 6px; }
+.gzr-copy {
+  display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 6px 10px; border-radius: 99px;
+  font: inherit; font-size: 14px; color: var(--gz-ink-mute); letter-spacing: 0.06em; cursor: pointer;
+}
+.gzr-copy:hover { background: rgba(29, 27, 24, 0.05); color: var(--gz-ink); }
+.gzr-copy svg, .gzr-copy-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 2 名帖：房号印在一张双线框的小帖子上，复制是帖子右下角的小图标 */
+.gzr-lobby-2 .gz-lobby-code {
+  position: relative; flex-direction: column; align-items: center; gap: 6px; padding: 18px 34px 20px; border-radius: 10px;
+  background: var(--gz-card);
+  box-shadow: inset 0 0 0 5px var(--gz-card), inset 0 0 0 6px rgba(201, 169, 110, 0.8), 0 0 0 1px rgba(29, 27, 24, 0.14), 0 8px 22px rgba(20, 18, 15, 0.08);
+}
+.gzr-lobby-2 .gz-lobby-code span { color: #a8874c; font-size: 12px; letter-spacing: 0.5em; margin-right: -0.5em; }
+.gzr-copy-icon {
+  position: absolute; right: -14px; bottom: -14px; width: 34px; height: 34px; border-radius: 50%; padding: 0; cursor: pointer;
+  border: 1px solid var(--gz-ink); background: var(--gz-paper); color: var(--gz-ink); display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* 记录（本房间战绩）和按钮在灯带框里留出气口 */
+.gzr .gzh-rec { margin-top: 4px; }
+
+/* 横屏矮屏：中间那块只有一百来像素高，竖着排一定溢出 —— 改两栏：左边房号 + 复制，右边战绩 + 按钮 */
+@media (max-height: 480px) and (min-aspect-ratio: 1/1) {
+  .gzr .gz-lobby {
+    display: grid; grid-template-columns: auto auto; column-gap: 30px; row-gap: 6px;
+    align-items: center; justify-items: center; width: min(640px, 96%); overflow: visible;
+  }
+  .gzr .gz-lobby > .gz-lobby-code { grid-column: 1; grid-row: 1; }
+  .gzr .gz-lobby > .gz-lobby-links:first-of-type { grid-column: 1; grid-row: 2; }
+  .gzr .gz-lobby > .gz-lobby-wait { grid-column: 1 / -1; }
+  .gzr .gz-lobby > .gzh-rec { grid-column: 2; grid-row: 1; width: 240px; }
+  .gzr .gz-lobby > .gz-lobby-links:last-of-type { grid-column: 2; grid-row: 2; }
+  .gzr .gz-lobby-code b { font-size: 34px; }
+  .gzr-lobby-1 .gz-lobby-code { gap: 3px; }
+  .gzr-lobby-1 .gz-lobby-code::after { margin-top: 2px; }
+  .gzr-lobby-2 .gz-lobby-code { padding: 10px 24px 12px; }
+}

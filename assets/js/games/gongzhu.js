@@ -45,6 +45,12 @@
     return { row: m[1], pause: m[2] || d[0], rec: m[3] || d[1] };
   })();
   let hostPv = null;
+  /* 桌沿灯带 + 大厅重做（预览中，待用户挑；画法全在 gongzhu-rim-pv.js）：?gzrim=<a|b|c><1|2>，只写字母 = 大厅 1。不带参数 = 现状 */
+  const GZRIM = (() => {
+    const m = /^([abc])([12])?$/.exec(new URLSearchParams(location.search).get('gzrim') || '');
+    return m ? { rim: m[1], lobby: m[2] || '1' } : null;
+  })();
+  let rimPv = null;
   /* 局中菜单 / 顶栏 / 暂停页 / 单机身份预览（待用户挑）：?gzmenu=menu-a|b|c, bar-a|b, pause-a|b, me-a|b，逗号分隔可组合；进页面读一次，不带参数 = 现状 */
   const MENU_PV = (() => {
     const set = new Set((new URLSearchParams(location.search).get('gzmenu') || '').split(',').map((x) => x.trim()));
@@ -738,6 +744,7 @@
     syncSocialUi();
     syncHeartsX2();
     for (let s = 0; s < 4; s++) renderSeat(s);
+    if (rimPv) rimPv.sync();
     if (match.online && match.lobby) return;
     els.roundNo.textContent = match.tutorial ? (match.adv ? '进阶教程' : '新手教程') : '第 ' + match.roundNo + (match.rules.end === 'rounds10' ? ' / 10' : '') + ' 局';
   }
@@ -2808,6 +2815,7 @@
 
   function playTrickFx(done, list) {
     const w = done.winner;
+    if (rimPv && list.length) rimPv.fx(list, w);
     if (!list.length) return 0;
     if (window.GongzhuAudio) window.GongzhuAudio.duck(list.reduce((m, fx, k) => Math.max(m, k * FX_GAP + (fx.dur || FX_DUR[fx.kind])), 0));
     let end = 0;
@@ -3794,6 +3802,22 @@
     document.head.appendChild(js);
   }
 
+  function loadRimPv() {
+    const v = '?v=' + (window.GZ_BUILD || VERSION);
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = '/assets/css/gongzhu-rim-pv.css' + v;
+    document.head.appendChild(css);
+    const js = document.createElement('script');
+    js.src = '/assets/js/games/gongzhu-rim-pv.js' + v;
+    js.onload = () => {
+      if (!window.GongzhuRimPv) return;
+      rimPv = GongzhuRimPv.create(GZRIM, { $, els, online: () => online, match: () => match, playerAt, srv });
+      if (online && online.st && online.st.phase === 'lobby') rimPv.lobby(online.st);
+      rimPv.sync();
+    };
+    document.head.appendChild(js);
+  }
+
   /* 进入联机：先停掉单机这一盘（存档还在，离开房间时接着打） */
   function startOnline(st, tok, joined) {
     if (match && !match.online && !match.tutorial) save();
@@ -4273,6 +4297,7 @@
       if (l > 0) { if (auto) el.setAttribute('aria-label', NAMES[l] + '（托管中）'); else el.removeAttribute('aria-label'); }
       if (hostPv) hostPv.badge(l, el, p);
     }
+    if (rimPv) rimPv.sync();
   }
 
   /* ───── 联机 · 结算页 ───── */
@@ -4418,6 +4443,7 @@
         : '等房主开始');
     guestRulesCheck(st);
     if (hostPv) hostPv.lobby(st);
+    if (rimPv) { rimPv.lobby(st); rimPv.sync(); }
   }
 
   /* ───── 大厅里房主的机器人操作：先画上去，再排队慢慢发 ─────
@@ -4839,6 +4865,7 @@
   }));
   initSocial();
   if (GZHOST) loadHostPv();
+  if (GZRIM) loadRimPv();
   $('gzChatBtn').addEventListener('click', () => { if (social && socialOk()) social.openChat($('gzChatBtn')); });
   els.seats[0].addEventListener('click', (e) => {
     if (!e.target.closest('.gz-avatar') || !match || match.tutorial || match.demo || match.lobby || AUTO) return;
