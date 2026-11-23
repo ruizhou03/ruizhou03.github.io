@@ -14,12 +14,14 @@
   const CACHE = 'zm.wallet.v1';
 
   // ── 规则表（同 lib/zhamao-econ.js）──
-  const E = {
-    BASE: { easy: 10, normal: 20, hard: 40 },
-    MODE_F: { classic: 1, team: 1, flux: 1.2, roles: 1.2 },
-    N_F: { 2: 0.7, 3: 0.85, 4: 1, 5: 1.1, 6: 1.2, 7: 1.3, 8: 1.4, 9: 1.5 },
+  // 门票：[2–3 人, 4–5 人, 6–7 人, 8–9 人]，玩法由便宜到贵（2026-11-22 第二版，×10 整数）
+  const PRICE = {
+    classic: { easy: [100, 150, 200, 250], normal: [200, 300, 400, 500], hard: [500, 800, 1000, 1200] },
+    flux: { easy: [150, 200, 250, 300], normal: [250, 400, 500, 600], hard: [600, 1000, 1200, 1500] },
+    roles: { easy: [150, 200, 250, 300], normal: [250, 400, 500, 600], hard: [600, 1000, 1200, 1500] },
+    team: { easy: [200, 250, 300, 400], normal: [400, 450, 600, 750], hard: [1000, 1200, 1500, 1800] },
   };
-  const price = (tier, mode, n) => Math.max(1, Math.round((E.BASE[tier] || 20) * (E.MODE_F[mode] || 1) * (E.N_F[n] || 1)));
+  const price = (tier, mode, n) => ((PRICE[mode] || PRICE.classic)[tier] || PRICE.classic.normal)[n <= 3 ? 0 : n <= 5 ? 1 : n <= 7 ? 2 : 3];
 
   // ── 身份 / 请求 ──
   const ls = {
@@ -37,7 +39,7 @@
   const listeners = [];
   function remember(j) {
     if (!j || j.bal == null) return;
-    state = Object.assign({}, state || {}, { bal: j.bal, t: Date.now() }, j.checkin ? { ck: j.checkin.today ? today() : '' } : {}, j.owner ? { owner: j.owner } : {});
+    state = Object.assign({}, state || {}, { bal: j.bal, t: Date.now() }, j.checkin ? { ck: j.checkin.today ? today() : '' } : {}, j.owner ? { owner: j.owner } : {}, Array.isArray(j.badges) && j.checkin ? { badges: j.badges } : {});
     ls.set(CACHE, JSON.stringify(state));
     listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } });
   }
@@ -84,6 +86,13 @@
 .zmw-res .zmw-star{display:inline-flex;align-items:center;gap:2px;font:700 14px/1 Georgia,serif;color:#b07420}
 .zmw-res .zmw-star svg{width:16px;height:16px}
 .zmw-res .zmw-login{cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;border:1.5px solid #b4392c;color:#b4392c;background:#fffdf8;font:600 14px/1 system-ui;text-decoration:none}
+.zmw-chip b{transition:color .2s}
+.zmw-chip b.is-up{color:#3f7a52}.zmw-chip b.is-down{color:#b4392c}
+.zmw-fly{position:fixed;inset:0;pointer-events:none;z-index:90}
+.zmw-fly .zmw-chip.is-ghost{position:fixed;margin:0}
+.zmw-flyfish{position:fixed;left:0;top:0;width:34px;height:22px;margin:-11px 0 0 -17px}
+.zmw-flyfish .zmw-fish{width:34px;height:22px}
+.zmw-ticket{position:fixed;left:0;top:0;min-width:52px;height:28px;padding:0 8px;display:grid;place-items:center;border-radius:6px;background:#f0c9bb;border:1.5px solid #1d1b18;color:#1d1b18;font:700 14px/1 Georgia,serif;box-shadow:0 2px 0 #1d1b18}
 .zmw-res .zmw-wait{width:42px;height:6px;border-radius:3px;background:linear-gradient(90deg,#ebe5d8,#d9cfbd,#ebe5d8);background-size:200% 100%;animation:zmwWait 1s linear infinite}
 @keyframes zmwWait{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.zmw-res .zmw-wait{animation:none}}
@@ -100,13 +109,73 @@
 
   // ── 主菜单左上角的小鱼干 ──
   let chip = null;
+  /* 小黄点（2026-11-22 用户挑甲）：只在「有东西可以领 / 可以看」时亮——今天还没签到，或者有拿到了还没看过的徽章。余额变了不亮点，靠数字滚动 */
+  const seenBadges = () => { try { return JSON.parse(ls.get('zm.badges.seen')) || []; } catch (_) { return []; } };
+  function markBadgesSeen(ids) { ls.set('zm.badges.seen', JSON.stringify(Array.from(new Set(seenBadges().concat(ids || []))))); paintChip(); }
+  const hasNews = () => !!state && (state.ck !== today() || (state.badges || []).some((b) => seenBadges().indexOf(b) < 0));
+  let shown = null;   // 左上角现在显示的数（动画从这里滚到新余额）
   function paintChip() {
     if (!chip) return;
     const has = state && state.bal != null;
     chip.hidden = !has;
     if (!has) return;
-    chip.querySelector('b').textContent = fmt(state.bal);
-    chip.querySelector('.zmw-dot').hidden = state.ck === today();   // 今天还没签到：亮小黄点
+    const b = chip.querySelector('b');
+    if (shown == null) { b.textContent = fmt(state.bal); shown = state.bal; }
+    else if (chip.offsetParent === null) { /* 封面藏着（在打牌）：等回到主页面露出来再滚 */ }
+    else if (!fxOn() || shown === state.bal) { b.textContent = fmt(state.bal); shown = state.bal; }
+    else { const from = shown; shown = state.bal; animateIn(from, state.bal); }
+    chip.querySelector('.zmw-dot').hidden = !hasNews();
+  }
+
+  /* ── 动画（2026-11-22 用户挑甲；先挂开关 ?walletfx=1 给用户预览，挑定再默认打开）──
+   * 进账：一串小鱼从屏幕中间飞进左上角，数字滚到新余额（加绿、减红）；扣门票：门票从左上角飞到「开始」键，数字往下滚，同时开局 */
+  const FX_KEY = 'zm.walletfx';
+  (function () { const m = /[?&]walletfx=([01])\b/.exec(location.search); if (m) ls.set(FX_KEY, m[1]); })();
+  const fxOn = () => ls.get(FX_KEY) === '1' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function roll(el, from, to, ms) {
+    const t0 = performance.now(), up = to >= from;
+    el.classList.add(up ? 'is-up' : 'is-down');
+    const tick = (t) => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(from + (to - from) * e); if (k < 1) requestAnimationFrame(tick); else setTimeout(() => el.classList.remove('is-up', 'is-down'), 500); };
+    requestAnimationFrame(tick);
+  }
+  function flyLayer() { let l = document.querySelector('.zmw-fly'); if (!l) { l = document.createElement('div'); l.className = 'zmw-fly'; document.body.appendChild(l); } return l; }
+  function animateIn(from, to) {
+    const b = chip.querySelector('b'), r = chip.getBoundingClientRect();
+    if (to < from || !r.width) { roll(b, from, to, 520); return; }
+    const layer = flyLayer(), tx = r.left + 22, ty = r.top + r.height / 2, cx = innerWidth / 2, cy = innerHeight * 0.45;
+    const N = Math.min(6, 2 + Math.round(Math.log10(Math.max(10, to - from))));
+    let landed = 0;
+    for (let i = 0; i < N; i++) {
+      const f = document.createElement('span');
+      f.className = 'zmw-flyfish'; f.innerHTML = FISH;
+      layer.appendChild(f);
+      const sx = cx + (Math.random() - 0.5) * 80, sy = cy + (Math.random() - 0.5) * 50, mx = (sx + tx) / 2 + (Math.random() - 0.5) * 60, my = Math.min(sy, ty) - 40 - Math.random() * 40;
+      f.animate([{ transform: 'translate(' + sx + 'px,' + sy + 'px) scale(.6)', opacity: 0 }, { transform: 'translate(' + sx + 'px,' + sy + 'px) scale(1)', opacity: 1, offset: 0.15 }, { transform: 'translate(' + mx + 'px,' + my + 'px) scale(.9)', offset: 0.55 }, { transform: 'translate(' + tx + 'px,' + ty + 'px) scale(.55)', opacity: 1 }],
+        { duration: 560, delay: i * 55, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'backwards' }).finished.then(() => {
+        f.remove();
+        if (++landed === 1) { roll(b, from, to, 480); chip.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 260 }); }
+      }).catch(() => f.remove());
+    }
+  }
+  /* 扣门票：克隆一份左上角的小鱼干（开局后封面就藏了），门票从那里飞到「开始」键，数字往下滚；0.6 秒内淡掉，牌局照常同时开始 */
+  function animateTicket(price0, balBefore) {
+    if (!fxOn() || !chip || chip.offsetParent === null) return;
+    const btn = document.querySelector('[data-cover="start"]'), r = chip.getBoundingClientRect(), br = btn && btn.offsetParent !== null ? btn.getBoundingClientRect() : null;
+    if (!r.width || !br) return;
+    const layer = flyLayer();
+    const ghost = chip.cloneNode(true);
+    ghost.classList.add('is-ghost'); ghost.style.left = r.left + 'px'; ghost.style.top = r.top + 'px';
+    ghost.querySelector('.zmw-dot').hidden = true;
+    layer.appendChild(ghost);
+    const tk = document.createElement('span');
+    tk.className = 'zmw-ticket'; tk.textContent = price0;
+    layer.appendChild(tk);
+    const sx = r.left + 10, sy = r.top + 6, ex = br.left + br.width / 2 - 26, ey = br.top + br.height / 2 - 14;
+    tk.animate([{ transform: 'translate(' + sx + 'px,' + sy + 'px) rotate(-8deg) scale(.7)', opacity: 0 }, { transform: 'translate(' + sx + 'px,' + (sy + 18) + 'px) rotate(-8deg) scale(1)', opacity: 1, offset: 0.18 }, { transform: 'translate(' + ex + 'px,' + ey + 'px) rotate(6deg) scale(1)', opacity: 1, offset: 0.85 }, { transform: 'translate(' + ex + 'px,' + ey + 'px) rotate(6deg) scale(.4)', opacity: 0 }],
+      { duration: 600, easing: 'cubic-bezier(.45,0,.4,1)', fill: 'forwards' }).finished.then(() => tk.remove()).catch(() => tk.remove());
+    roll(ghost.querySelector('b'), balBefore, Math.max(0, balBefore - price0), 420);
+    ghost.animate([{ opacity: 1 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }], { duration: 760, fill: 'forwards' }).finished.then(() => ghost.remove()).catch(() => ghost.remove());
+    shown = Math.max(0, balBefore - price0);
   }
   function mountChip(cover) {
     style();
@@ -121,7 +190,7 @@
     cover.appendChild(chip);
     paintChip();
     listeners.push(paintChip);
-    refresh();
+    refresh().then(retryPending);
     // 登录 / 登出之后：游客小鱼干并进账号（后端做），左上角跟着刷新
     if (auth() && auth().onChange) auth().onChange(() => { setTimeout(refresh, 300); });
     // 老链接 /toolbox/puffcat/me/ 会跳到 ?me=1：进来直接打开档案（用 replaceState 去掉参数，不留历史）
@@ -143,12 +212,24 @@
     tag.innerHTML = FISH + price(tier, mode, n);
   }
 
+  // ── 没结算成的单机局（网断了）：存在本机，下次打开游戏补上 ──
+  const PEND = 'zm.wallet.pending';
+  const pendList = () => { try { return JSON.parse(ls.get(PEND)) || []; } catch (_) { return []; } };
+  function keepPending(body) { const l = pendList().filter((x) => x.tid !== body.tid); l.push(Object.assign({ t: Date.now() }, body)); ls.set(PEND, JSON.stringify(l.slice(-10))); }
+  function dropPending(tid) { ls.set(PEND, JSON.stringify(pendList().filter((x) => x.tid !== tid))); }
+  function retryPending() {
+    const l = pendList().filter((x) => Date.now() - (x.t || 0) < 11 * 3600e3);
+    ls.set(PEND, JSON.stringify(l));
+    l.reduce((p, x) => p.then(() => { const b = Object.assign({}, x); delete b.t; return post('settle', b).then(() => dropPending(x.tid)).catch((e) => { if (e.status === 409 || e.status === 403) dropPending(x.tid); }); }), Promise.resolve());
+  }
+
   // ── 单机：开局领票、记我的步数、结算 ──
   const pending = new WeakMap();
   function start(game, tier) {
     if (!game || game.tutorial || game.online) return;
     const st = game.state, mode = R.normalizeRules(st.rules).mode;
     const wt = game.wt = { n: st.n, mode, tier, all: 0, auto: 0 };
+    if (state && state.bal >= price(tier, mode, st.n)) animateTicket(price(tier, mode, st.n), state.bal);
     post('ticket', { n: st.n, mode, tier, gid: game.hl && game.hl.id }).then((r) => {
       if (game.wt !== wt) return;
       if (r.tid) { wt.tid = r.tid; wt.price = r.price; } else wt.short = true;
@@ -183,8 +264,13 @@
       body = { tid: wt.tid, rank };
     }
     body.autoShare = wt.all ? wt.auto / wt.all : 0;
-    const p = post('settle', body).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, bal: r.bal }; return wt.done; })
-      .catch((e) => { if (e.status === 409) wt.done = { gone: true }; return null; });
+    const p = post('settle', body).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, bal: r.bal }; dropPending(wt.tid); return wt.done; })
+      .catch((e) => {
+        if (e.status === 409 || e.status === 403) { wt.done = { gone: true }; dropPending(wt.tid); return null; }
+        keepPending(body);   // 网断了 / 服务器没回：记下来，下次打开游戏再补结算（票在服务器上留 12 小时）
+        pending.delete(game);
+        return null;
+      });
     pending.set(game, p);
     return p;
   }
@@ -227,6 +313,6 @@
     state: () => state, onChange: (f) => listeners.push(f),
     me: refresh,
     checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile: () => post('profile'), fb: (steps) => post('fb', { steps }).catch(() => null),
-    mountChip, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login,
+    mountChip, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn,
   };
 })(window);

@@ -6640,11 +6640,12 @@
   const SOLO_MAX = R.MAX_PLAYERS;   // 9 人（6 人起用两副牌）
   /* 玩法（2026-11-18 用户挑乙「玩法当主角」）：主菜单中间一叠牌左右滑，停在哪张就是哪个玩法——单机开局、联机建房都用它。
    * 不配介绍文字（2026-11-18 用户：一句话介绍有 AI 味，全删）：靠牌面插画 + 名字认，规则看新手教程。[玩法, 名字, 牌面] */
+  // 2026-11-22 用户：玩法牌按小鱼干门票由便宜到贵排——经典、百变、角色、组队（角色和组队对调）
   const SOLO_MODES = [
     ['classic', T('mode.classic.name', '经典'), 'boom'],
     ['flux', T('mode.flux.name', '百变'), 'flux'],
-    ['team', T('mode.team.name', '组队'), 'favor'],
     ['roles', T('mode.roles.name', '角色'), 'calico'],
+    ['team', T('mode.team.name', '组队'), 'favor'],
   ];
   const miniCard = (k, name) => { const t = ART.TONE[k]; return '<span class="zm-card" data-k="' + k + '" style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + '"><span class="zm-art">' + ART.face(k) + '</span><b class="zm-nm' + nmCls(name || R.NAMES[k]) + '">' + (name || R.NAMES[k]) + '</b></span>'; };
   const curMode = () => R.normalizeRules(settings.rules).mode;
