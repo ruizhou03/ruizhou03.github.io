@@ -1,0 +1,95 @@
+/* 拱猪 · 实战引导 + 第一次点单机的二选一（预览中，?gztut=…；见 gongzhu.js「实战引导」「第一次点单机」）
+ * 只在预览参数打开时才会出现这些元素，不带参数时这份样式什么也不影响 */
+
+/* ───── 实战引导：共用 ───── */
+.gz-guide {
+  position: fixed; z-index: calc(var(--z-dialog) - 4); pointer-events: none;
+  transform: translate(-50%, -50%); color: var(--gz-ink); text-align: center;
+  animation: gz-guide-in 0.42s cubic-bezier(.3, .8, .4, 1.15) both;
+}
+.gz-guide.on-dialog { z-index: calc(var(--z-dialog) + 1); }
+.gz-guide.is-out { animation: gz-guide-out 0.2s ease-in forwards; }
+.gz-guide p { margin: 0; text-wrap: balance; letter-spacing: 0.02em; }
+@keyframes gz-guide-in { from { opacity: 0; transform: translate(-50%, -50%) scale(0.7); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes gz-guide-out { to { opacity: 0; transform: translate(-50%, -50%) scale(0.94); } }
+
+/* 甲：桌子中间放大亮相——牌放大、背后一圈暖金光，下面一句话 */
+.gz-guide.is-a {
+  width: min(400px, 86vw); padding: 18px 20px 16px; box-sizing: border-box; border-radius: 16px;
+  background: rgba(251, 248, 241, 0.94); box-shadow: 0 10px 30px rgba(29, 27, 24, 0.16), 0 0 0 1px rgba(201, 169, 110, 0.35);
+}
+.gz-guide.is-a .gz-guide-cards { position: relative; display: flex; justify-content: center; gap: 10px; margin-bottom: 12px; }
+.gz-guide.is-a .gz-guide-cards::before {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 180px; height: 180px; margin: -90px 0 0 -90px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 169, 110, 0.5), rgba(201, 169, 110, 0) 68%);
+  animation: gz-guide-halo 1.6s ease-in-out infinite alternate;
+}
+.gz-guide .gz-card.gz-guide-card { position: relative; --q: 74px; width: 74px; height: 107px; box-shadow: 0 6px 16px rgba(29, 27, 24, 0.22); }
+.gz-guide.is-a .gz-guide-card { animation: gz-guide-pop 0.6s cubic-bezier(.3, .8, .4, 1.3) both; }
+.gz-guide.is-a .gz-guide-card:nth-child(2) { animation-delay: 0.08s; }
+.gz-guide.is-a .gz-guide-card:nth-child(3) { animation-delay: 0.16s; }
+.gz-guide.is-a p { font-size: 18px; line-height: 1.65; }
+@keyframes gz-guide-pop { from { transform: scale(0.4) rotate(-8deg); opacity: 0; } 70% { transform: scale(1.12) rotate(2deg); opacity: 1; } to { transform: none; } }
+@keyframes gz-guide-halo { from { opacity: 0.55; transform: scale(0.9); } to { opacity: 1; transform: scale(1.08); } }
+
+/* 乙：原位发光 + 小气泡（气泡尾巴指着发光的那几样） */
+.gz-guide.is-b {
+  width: max-content; max-width: min(300px, 78vw); padding: 9px 14px; box-sizing: border-box; border-radius: 12px;
+  background: var(--gz-ink); color: var(--gz-paper); box-shadow: 0 6px 18px rgba(29, 27, 24, 0.25);
+}
+.gz-guide.is-b p { font-size: 15px; line-height: 1.55; }
+.gz-guide-tail {
+  position: absolute; left: var(--tail, 50%); bottom: -6px; width: 12px; height: 12px; margin-left: -6px;
+  background: inherit; transform: rotate(45deg); border-radius: 2px;
+}
+.gz-guide.is-b.is-below .gz-guide-tail { bottom: auto; top: -6px; }
+.gz-guide-glow { animation: gz-guide-glow 1.3s ease-in-out infinite alternate !important; }
+.gz-caps.gz-guide-glow, .gz-res-row.gz-guide-glow { border-radius: 8px; }
+@keyframes gz-guide-glow {
+  from { box-shadow: 0 0 0 2px rgba(201, 169, 110, 0.9), 0 0 8px 2px rgba(201, 169, 110, 0.45); }
+  to { box-shadow: 0 0 0 2px rgba(201, 169, 110, 1), 0 0 18px 6px rgba(201, 169, 110, 0.6); }
+}
+/* 手牌里的那张：抬一点，发光 */
+.gz-hand .gz-card.gz-guide-glow { translate: 0 calc(var(--u) * -0.12); }
+
+/* ───── 第一次点单机：直接开 / 跟我学 ───── */
+.gz-icon-card { display: block; }
+/* 甲：弹层 = 封面那只猪 + 两张「牌」当按钮 */
+.gz-dialog.is-first { width: min(360px, 90vw); padding-top: 18px; }
+.gz-first-art { width: 120px; margin: 0 auto 10px; }
+.gz-first-art svg { display: block; width: 100%; height: auto; }
+.gz-first-cards { display: flex; justify-content: center; gap: 16px; padding-bottom: 6px; }
+.gz-first-card {
+  width: 118px; height: 158px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  border: 0; border-radius: 12px; background: var(--gz-card); color: var(--gz-ink); font: inherit; cursor: pointer;
+  box-shadow: 0 1px 0 rgba(29, 27, 24, 0.08), 0 0 0 1.5px rgba(29, 27, 24, 0.16), 0 6px 14px rgba(29, 27, 24, 0.1);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.gz-first-card:hover, .gz-first-card:focus-visible { transform: translateY(-3px); outline: none; }
+.gz-first-card b { font-size: 18px; letter-spacing: 0.12em; }
+.gz-first-card .pic, .gz-first-pop .pic { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; background: var(--gz-wash); }
+.gz-first-card svg, .gz-first-pop svg { width: 30px; height: 30px; fill: none; stroke: var(--gz-ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.gz-first-card.is-learn { box-shadow: 0 0 0 2px var(--gz-gold), 0 0 18px 2px rgba(201, 169, 110, 0.45), 0 6px 14px rgba(29, 27, 24, 0.1); animation: gz-first-breathe 1.8s ease-in-out infinite alternate; }
+.gz-first-card.is-learn .pic, .gz-first-pop .is-learn .pic { background: rgba(201, 169, 110, 0.28); }
+@keyframes gz-first-breathe { to { box-shadow: 0 0 0 2px var(--gz-gold), 0 0 26px 6px rgba(201, 169, 110, 0.55), 0 6px 14px rgba(29, 27, 24, 0.1); } }
+
+/* 乙：从「单机」键上方冒出的一张小卡 */
+.gz-first-pop {
+  position: fixed; z-index: calc(var(--z-dialog) - 1); transform: translate(-50%, -100%);
+  display: flex; gap: 10px; padding: 12px; border-radius: 14px; background: var(--gz-card);
+  box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.12), 0 10px 26px rgba(29, 27, 24, 0.18);
+  animation: gz-first-pop 0.36s cubic-bezier(.3, .8, .4, 1.2) both; transform-origin: 50% 100%;
+}
+.gz-first-pop .gz-guide-tail { background: var(--gz-card); box-shadow: 1px 1px 0 rgba(29, 27, 24, 0.12); }
+.gz-first-pop button {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; width: 86px; padding: 8px 4px; border: 0; border-radius: 10px;
+  background: transparent; color: var(--gz-ink); font: inherit; cursor: pointer;
+}
+.gz-first-pop button b { font-size: 15px; letter-spacing: 0.1em; }
+.gz-first-pop button:hover, .gz-first-pop button:focus-visible { background: var(--gz-wash); outline: none; }
+.gz-first-pop .is-learn .pic { box-shadow: 0 0 0 2px var(--gz-gold), 0 0 14px 2px rgba(201, 169, 110, 0.5); }
+@keyframes gz-first-pop { from { opacity: 0; transform: translate(-50%, -100%) scale(0.6); } to { opacity: 1; transform: translate(-50%, -100%) scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .gz-guide, .gz-guide-card, .gz-guide-glow, .gz-first-pop, .gz-first-card.is-learn { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; }
+}

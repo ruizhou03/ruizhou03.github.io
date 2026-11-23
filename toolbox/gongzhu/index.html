@@ -32,6 +32,7 @@ body_class: gz-fullscreen
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5/700.css"></noscript>
 <link rel="stylesheet" href="/assets/css/gongzhu.css?v={{ site.time | date: '%s' }}">
 <link rel="stylesheet" href="/assets/css/gongzhu-cover.css?v={{ site.time | date: '%s' }}">
+<link rel="stylesheet" href="/assets/css/gongzhu-guide.css?v={{ site.time | date: '%s' }}">
 <link rel="stylesheet" href="/assets/css/gongzhu-menu-pv.css?v={{ site.time | date: '%s' }}">
 
 <div class="gz-app" id="gzApp">
@@ -81,15 +82,12 @@ body_class: gz-fullscreen
       <!-- 联机大厅：人没凑齐时盖在牌桌中央（房号 / 邀请 / 本盘规则 / 开始） -->
       <div class="gz-lobby" id="gzLobby" hidden>
         <div class="gz-lobby-code"><span>房号</span><b></b></div>
-        <div class="gz-lobby-qr" aria-hidden="true"></div>
         <div class="gz-lobby-links">
           <button type="button" class="gz-btn" data-lb="copy-link">复制邀请链接</button>
-          <button type="button" class="gz-btn" data-lb="copy-code">复制房号</button>
         </div>
         <p class="gz-lobby-wait"></p>
         <div class="gz-lobby-links">
           <button type="button" class="gz-btn" data-lb="leave">离开</button>
-          <button type="button" class="gz-btn" data-lb="rules">查看规则</button>
           <button type="button" class="gz-btn gz-btn-primary" data-lb="start">开始</button>
           <button type="button" class="gz-btn gz-btn-primary" data-lb="sit" hidden>坐下</button>
         </div>
@@ -141,6 +139,9 @@ body_class: gz-fullscreen
   </div>
 </div>
 
+<!-- 联机才动态加载的房主管人 / 暂停 / 战绩：这里预取一下，也让离线版本号把它们算进去 -->
+<link rel="prefetch" href="/assets/js/games/gongzhu-host-pv.js?v={{ site.time | date: '%s' }}">
+<link rel="prefetch" href="/assets/css/gongzhu-host-pv.css?v={{ site.time | date: '%s' }}">
 <script>window.GZ_BUILD = "{{ site.time | date: '%s' }}";</script>
 <script src="/assets/js/games-shell/identity.js?v={{ site.time | date: '%s' }}"></script>
 <script src="/assets/js/games-shell/qrcode.js?v={{ site.time | date: '%s' }}"></script>

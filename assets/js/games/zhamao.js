@@ -8164,8 +8164,9 @@
    *   联机只有房主有这个键，点了服务器记一个开关，所有人一起快（大家看到的进度一样）；单机是我自己出局后自己点
    * · 结算看过了、这局确实结束 → 房主看到 ⏭ 下一局（别人没有） */
   const FF_IC = {
-    ff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5v11L11 12ZM12 6.5v11l7.5-5.5Z"/></svg>',
-    next: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5v11L10 12ZM10.5 6.5v11L17 12Z"/><path d="M19 6.5v11" class="bar"/></svg>',
+    // 2026-11-23：⏩ 现在是「直接看结果」——图标换成「跳到最后」（两个三角 + 一道竖线）；房主的「下一局」改成一个三角 + 竖线，两个不撞
+    ff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5v11L10 12ZM10.5 6.5v11L17 12Z"/><path d="M19 6.5v11" class="bar"/></svg>',
+    next: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6.5v11l8-5.5Z"/><path d="M17.5 6.5v11" class="bar"/></svg>',
   };
   let ffBtn = null;
   // 联机：我这边看到的真人全出局了（网慢、播得落后时，服务器早算完了，但我这边自己还活着——这时加速 / 露快进键都等于剧透）

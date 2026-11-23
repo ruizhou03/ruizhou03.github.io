@@ -368,5 +368,143 @@
     createRound: advRound, director: advDirector, guide: advGuide, createCoach: createAdvCoach,
   };
 
-  return { HANDS, RULES, createRound, director, createCoach, card, cards, advanced };
+  /* ───── 压短的新手教程（预览中，?gztut=a|b；2026-11-22 对照百变小咪审查 D5） ─────
+   * 只教四件事：跟牌、没有这门就垫牌、猪要躲、羊要抢。红桃、变压器、明牌、全红留给实战里第一次碰到时讲（gongzhu.js 的 guide）。
+   * 两版共用一套接口：createRound / director / createCoach() → { intro, hint, afterTrick, outro } / isDone(r)（打到哪收尾）。
+   * 收尾不再把剩下的牌演完：讲完最后一句直接出结算（按已经吃到的牌算分）。
+   * 任意合法牌都能演完：tests/gongzhu-tutorial.test.js 穷举。 */
+
+  const SUIT_NAME = ['黑桃', '红桃', '方块', '草花'];
+  const whoName = (s) => (s === 0 ? '你' : NAMES[s]);
+  const iDiscarded = (r) => r.history.some((t) => { const m = t.plays.find((p) => p.seat === 0); return m && suitOf(m.card) !== suitOf(t.plays[0].card); });
+
+  /* 甲：还是原来那副牌，只打前几轮——猪打出去、我自己垫过一次（或已经打满六轮）就收尾。
+   * 前三轮和原教程一样（♠2 先出 → 上家 ♠A 吃；跟草花；唯一的方块 ♦J 吃下 = 抢到羊），
+   * 第 4 轮起我先出：先出猪 → 下家 ♠K 吃；先出红桃 → 对家收、再领小黑桃拱出我的猪；先出草花 → 我又赢、接着出。
+   * 收尾前下家不交出 ♣10（变压器留到实战里讲）。 */
+  const A_MAX = 6;
+  function aDirector(r, s) {
+    const c = director(r, s);
+    if (c !== DOUBLER || r.trickNo >= A_MAX) return c;
+    const legal = R.legalFor(r, s).filter((x) => x !== DOUBLER && x !== K_SPADE);
+    const lead = R.leadSuitOf(r);
+    const pool = lead < 0 ? (of(legal, DIAMOND).length ? of(legal, DIAMOND) : legal)
+      : (of(legal, lead).length ? of(legal, lead) : legal.filter((x) => !R.isHeart(x)));
+    return lo(pool.length ? pool : R.legalFor(r, s));
+  }
+  function aDone(r) {
+    if (r.trick.length || !r.trickNo) return false;
+    return r.played[PIG] && (iDiscarded(r) || r.trickNo >= A_MAX);
+  }
+  function createACoach() {
+    const seen = new Set();
+    const once = (k) => (seen.has(k) ? false : (seen.add(k), true));
+    function hint(r) {
+      const lead = R.leadSuitOf(r), hand = r.hands[0];
+      if (r.trickNo === 0 && lead < 0) return '第一局 ' + label(R.SPADE_TWO) + ' 先出，已经帮你选好，点「出牌」。';
+      if (lead < 0) return once('lead') ? '这一轮你先出，哪张都行。' + (hand.includes(PIG) ? label(PIG) + ' 是猪，谁收下谁 −100。' : '') : null;
+      if (!of(hand, lead).length) return once('discard') ? '你没有' + SUIT_NAME[lead] + '了，可以垫任意一张。' : null;
+      if (lead === SPADE && hand.includes(PIG) && of(hand, SPADE).length === 1 && once('forced-pig')) return '你只剩猪这一张黑桃，只能出它。';
+      if (once('follow')) return whoName(r.trick[0].seat) + '出了' + SUIT_NAME[lead] + '，你有' + SUIT_NAME[lead] + '就得出' + SUIT_NAME[lead] + '。';
+      return null;
+    }
+    function afterTrick(done, r) {
+      const before = [], plays = done.plays, w = done.winner, trick = { plays, winner: w };
+      const cs = plays.map((p) => p.card), lead = suitOf(cs[0]), top = plays.find((p) => p.seat === w).card;
+      const me = plays.find((p) => p.seat === 0).card;
+      if (r.trickNo === 1) {
+        before.push({ text: '每门花色都是 2 最小、A 最大。' + whoName(w) + '的 ' + label(top) + ' 最大，收走这一轮，下一轮由他先出。', trick, mark: true });
+        return { before, after: [] };
+      }
+      if (cs.includes(SHEEP) && w === 0) before.push({ text: label(SHEEP) + ' 是羊，谁收下谁 +100。你的方块只有它，又正好最大——抢到了。', trick, mark: true });
+      if (cs.includes(PIG)) {
+        const t = plays[0].card === PIG ? '你先把猪出了，' + whoName(w) + '的 ' + label(top) + ' 比它大，猪归' + whoName(w) + '，−100。'
+          : whoName(plays[0].seat) + '出小黑桃，把你的猪逼了出来，这叫「拱猪」。' + whoName(w) + '的 ' + label(top) + ' 最大，猪归他，−100。';
+        before.push({ text: t, trick, mark: true });
+      }
+      const others = plays.filter((p) => p.seat !== 0 && suitOf(p.card) !== lead);
+      if (suitOf(me) !== lead && once('disc-after')) {
+        seen.add('disc-told');
+        before.push({ text: '垫的牌不比大小。' + SUIT_NAME[lead] + '里 ' + label(top) + ' 最大，' + whoName(w) + '收走这一轮。', trick, mark: true });
+      } else if (others.length && !seen.has('disc-told')) {
+        seen.add('disc-told');
+        before.push({ text: others.map((p) => NAMES[p.seat]).join('和') + '没有' + SUIT_NAME[lead] + '，' + (others.length > 1 ? '各' : '') + '垫了一张：没这门花色时，出哪张都行，叫「垫牌」。垫的牌不比大小。', trick, mark: true });
+      }
+      return { before, after: [] };
+    }
+    function outro(r) {
+      const sc = R.roundScores(r), bits = [];
+      if (r.captured[0].includes(SHEEP)) bits.push('你吃羊 +100');
+      const pt = [0, 1, 2, 3].find((s) => r.captured[s].includes(PIG));
+      if (pt != null) bits.push(whoName(pt) + '吃猪 −100');
+      return [{ text: '先打到这里：' + bits.join('，') + '。剩下的牌照这样打完；红桃、变压器这些，碰到时再讲。', scores: sc }];
+    }
+    return { intro: [], hint, afterTrick, outro };
+  }
+
+  /* 乙：专门为这四件事配的一副牌，上家拿 ♠2 先出，四轮收尾：
+   *   第 1 轮 上家领 ♠2 → 我跟黑桃（♠3 或猪 ♠Q）→ 对家 ♠A 吃（我在这出猪 = 躲掉）
+   *   第 2 轮 对家领草花，我一张草花都没有 → 亲手垫一张（垫猪 = 躲掉）→ 上家 ♣A 吃
+   *   第 3 轮 上家领小黑桃：猪还在我手里就被拱出来，下家 ♠K 吃 → 下家先出
+   *   第 4 轮 下家领小方块，对家只有羊 ♦J、上家 ♦Q，我最后出：♦A / ♦K 抢到羊，小的就让上家收走
+   * 猪无论怎样都不会落到我手里；羊抢不抢得到看我自己。 */
+  const B_HANDS = [
+    cards('♠3 ♠Q ♦A ♦K ♦4 ♦2 ♥2 ♥3 ♥4 ♥5 ♥6 ♥7 ♥8'),
+    cards('♠4 ♠6 ♠K ♣7 ♣8 ♣10 ♦3 ♦5 ♦6 ♦7 ♦8 ♦9 ♦10'),
+    cards('♠A ♦J ♣2 ♣3 ♣4 ♣5 ♣6 ♥9 ♥10 ♥J ♥Q ♥K ♥A'),
+    cards('♠2 ♠5 ♠7 ♠8 ♠9 ♠10 ♠J ♣A ♣9 ♣J ♣Q ♣K ♦Q'),
+  ];
+  const B_MAX = 4;
+  function bRound() { return R.createRound(B_HANDS, 3, R.SPADE_TWO, RULES); }
+  function bDirector(r, s) {
+    const legal = R.legalFor(r, s), lead = R.leadSuitOf(r);
+    const want = (t) => (legal.includes(card(t)) ? card(t) : -1);
+    const quiet = () => { const q = legal.filter((x) => !R.isScoring(x) && x !== K_SPADE && x !== DOUBLER); return lo(q.length ? q : legal); };
+    if (lead < 0) {
+      if (s === 3) return lo(of(legal, SPADE).length ? of(legal, SPADE) : legal);   // 第 1、3 轮：上家领小黑桃
+      if (s === 2) return lo(of(legal, CLUB).length ? of(legal, CLUB) : legal);     // 第 2 轮：对家领小草花
+      return lo(of(legal, DIAMOND).length ? of(legal, DIAMOND) : legal);            // 第 4 轮：下家领小方块
+    }
+    const pick = [want('♠A'), want('♣A'), want('♦Q'), r.trickNo === 2 ? want('♠K') : -1].find((x) => x >= 0 && suitOf(x) === lead);
+    if (pick != null) return pick;
+    const f = of(legal, lead).filter((x) => x !== DOUBLER && x !== K_SPADE);
+    return f.length ? lo(f) : quiet();
+  }
+  function bDone(r) { return !r.trick.length && r.trickNo >= B_MAX; }
+  function createBCoach() {
+    const intro = [{ text: label(PIG) + ' 是猪，谁收下谁 −100；' + label(SHEEP) + ' 是羊，谁收下谁 +100。你手里有猪。' }];
+    function hint(r) {
+      const lead = R.leadSuitOf(r), hand = r.hands[0], t = r.trickNo;
+      if (t === 0) return '上家出了黑桃。你有黑桃，就得出黑桃。';
+      if (t === 1) return '这一轮是草花，你一张草花都没有——可以垫任意一张。';
+      if (t === 2 && hand.includes(PIG) && of(hand, SPADE).length === 1) return '你只剩猪这一张黑桃，只能出它。';
+      if (t === 3 && lead === DIAMOND && r.trick.some((p) => p.card === SHEEP)) return '羊已经在桌上了。';
+      return null;
+    }
+    function afterTrick(done, r) {
+      const before = [], plays = done.plays, w = done.winner, trick = { plays, winner: w };
+      const top = plays.find((p) => p.seat === w).card, me = plays.find((p) => p.seat === 0).card;
+      const t = r.trickNo;
+      if (t === 1) before.push({ text: '每门花色都是 2 最小、A 最大：' + whoName(w) + '的 ' + label(top) + ' 最大，收走这一轮。' + (me === PIG ? '你的猪也跟着归了他——躲掉了。' : ''), trick, mark: true });
+      else if (t === 2) before.push({ text: '垫的牌不比大小，' + whoName(w) + '的 ' + label(top) + ' 最大，收走这一轮。' + (me === PIG ? '你把猪垫给了他——躲掉了。' : ''), trick, mark: true });
+      else if (t === 3 && me === PIG) before.push({ text: '猪被小黑桃逼了出来，这叫「拱猪」。幸好' + whoName(w) + '的 ' + label(top) + ' 更大，猪归了他。', trick, mark: true });
+      else if (t === 4) {
+        if (w === 0) before.push({ text: '你的 ' + label(me) + ' 最大，抢到了羊：+100。', trick, mark: true });
+        else {
+          const could = [card('♦A'), card('♦K')].filter((c) => B_HANDS[0].includes(c) && !r.history.slice(0, 3).some((h) => h.plays.some((p) => p.card === c)));
+          before.push({ text: whoName(w) + '的 ' + label(top) + ' 收走了羊。' + (could.length ? '刚才出 ' + could.map(label).join(' 或 ') + ' 就能抢到。' : ''), trick, mark: true });
+        }
+      }
+      return { before, after: [] };
+    }
+    function outro() { return [{ text: '跟牌、垫牌、躲猪、抢羊，就这四样。红桃、变压器这些，打的时候碰到再讲。' }]; }
+    return { intro, hint, afterTrick, outro };
+  }
+
+  const short = {
+    a: { id: 'a', HANDS, RULES, MAX: A_MAX, createRound, director: aDirector, createCoach: createACoach, isDone: aDone },
+    b: { id: 'b', HANDS: B_HANDS, RULES, MAX: B_MAX, createRound: bRound, director: bDirector, createCoach: createBCoach, isDone: bDone },
+  };
+
+  return { HANDS, RULES, createRound, director, createCoach, card, cards, advanced, short };
 });

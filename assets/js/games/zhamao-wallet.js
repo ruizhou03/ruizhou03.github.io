@@ -88,7 +88,7 @@
 .zmw-res .zmw-login{cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;border:1.5px solid #b4392c;color:#b4392c;background:#fffdf8;font:600 14px/1 system-ui;text-decoration:none}
 .zmw-chip b{transition:color .2s}
 .zmwfx-up{color:#3f7a52!important}.zmwfx-down{color:#b4392c!important}
-.zmwfx-ticket{display:inline-grid;place-items:center;min-width:58px;height:30px;padding:0 10px;border-radius:6px;background:#f0c9bb;border:1.5px solid #1d1b18;color:#1d1b18;font:700 15px/1 Georgia,serif;box-shadow:0 2px 0 #1d1b18;white-space:nowrap}
+.zmwfx-ticket{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:58px;height:30px;padding:0 10px;border-radius:6px;background:#f0c9bb;border:1.5px solid #1d1b18;color:#1d1b18;font:700 15px/1 Georgia,serif;box-shadow:0 2px 0 #1d1b18;white-space:nowrap}.zmwfx-ticket .zmw-fish{width:20px;height:13px;flex:none}.zmwfx-ticket b{font:inherit}
 .zmw-chip b.is-up{color:#3f7a52}.zmw-chip b.is-down{color:#b4392c}
 .zmw-res .zmw-wait{width:42px;height:6px;border-radius:3px;background:linear-gradient(90deg,#ebe5d8,#d9cfbd,#ebe5d8);background-size:200% 100%;animation:zmwWait 1s linear infinite}
 @keyframes zmwWait{to{background-position:-200% 0}}
@@ -147,7 +147,7 @@
     const gen = fxGen, btn = document.querySelector('[data-cover="start"]'), b = chip.querySelector('b'), from = state.bal;
     shown = from - p;
     fx.roll(b, from, from - p, 460, { delay: 140 });
-    return fx.ticket(chip, btn, p).then(() => gen === fxGen);
+    return fx.ticket(chip, btn, p, { icon: FISH }).then(() => gen === fxGen);
   }
   function cancelFx() { fxGen++; if (FX()) FX().cancelAll(); }
   function mountChip(cover) {
