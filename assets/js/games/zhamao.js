@@ -6648,6 +6648,7 @@
 
   /* ───── 开局 / 封面 ───── */
   function newGame() {
+    if (WAL && WAL.cancelFx) WAL.cancelFx();   // 主页面上的小鱼干动画（进账 / 扣票）一律收掉，不带进牌桌
     if (WAL && game) WAL.settle(game);   // 上一局我已经出局、没等打完就开新局：名次已定，先结掉
     resetTable();
     viewSeat = -1; els.app.classList.remove('is-watching', 'is-spectator'); els.me.classList.remove('is-watched');
@@ -8183,6 +8184,8 @@
       // 单机：我出局、自己那下炸完了（fastOut），机器猫还在接着打 → 我自己的 ⏩
       const s = game.state;
       if (!game.tutorial && s && !s.alive[meSeat()] && s.phase !== 'over' && game.fastOut && !game.turboOff) mode = 'ff';
+      // 2026-11-22 用户：我出局了就直接 5 倍速播（以前要自己点 ⏩ 才 5 倍）；⏩ 改成「直接看结果」
+      if (mode === 'ff' && !game.turbo && !game.autoTurbo) { game.autoTurbo = true; setTurbo(true); }
     } else {
       const g = online && game && game.online ? G() : null;
       // 我这边也得看到真人全出局了才算（网慢、播得落后时，服务器早算完了，但我这边自己还活着——这时快进 / 露键都等于剧透）
@@ -8190,10 +8193,12 @@
       // 联机（2026-11-14 用户）：只有房主有这个键，房主点了大家一起 5 倍速——所有人看到的进度一样；别人跟着服务器上的开关走
       // 房主刚点、服务器的状态还没回来：先按房主点的算，别一闪又被旧状态拨回去（4 秒没回来就作罢）
       const req = game.turboReq && performance.now() - game.turboReq.at < 4000 && game.turboReq.on !== !!g.turbo ? game.turboReq.on : null;
-      const want = !!(replaying && !game.turboOff && (req != null ? req : g.turbo));
+      // 2026-11-22 用户：真人全出局了，每个人自己这边自动 5 倍速播（不用等房主点）；⏩ 谁都有，点了直接看结果
+      void req;
+      const want = !!(replaying && !game.turboOff);
       if (!!game.turbo !== want) setTurbo(want);
       const canNext = !!(g && g.over && game.finishShown === g.matchNo && isHost() && !online.playing && !online.queue.length);
-      mode = replaying && isHost() && !game.turboOff ? 'ff' : canNext ? 'next' : '';
+      mode = replaying ? 'ff' : canNext ? 'next' : '';
     }
     if (!mode) { if (ffBtn) { ffBtn.remove(); ffBtn = null; } return; }
     if (!ffBtn || !els.center.contains(ffBtn)) {
@@ -8205,11 +8210,9 @@
         e.stopPropagation();
         const b = e.currentTarget;
         if (b.dataset.mode === 'ff') {
-          const on = !(game && game.turbo);
-          setTurbo(on);   // 我这边先快起来；联机再告诉服务器，别人下一份状态里看到就跟上
-          b.classList.toggle('is-on', on);
+          b.disabled = true;
           snd('tap');
-          if (online && game && game.online) { game.turboReq = { on, at: performance.now() }; onlineAct('turbo', { on }); }
+          jumpToEnd();   // 2026-11-22 用户：⏩ = 直接看结果（剩下的瞬间算完，跳到排行榜）
         } else if (b.dataset.mode === 'next') { b.disabled = true; exitEdit(); onlineAct('next'); }
       });
       els.center.appendChild(ffBtn);
@@ -8226,10 +8229,81 @@
       ffBtn.dataset.mode = mode;
       ffBtn.innerHTML = FF_IC[mode];
       ffBtn.disabled = false;
-      const label = mode === 'ff' ? T('ui.ff', '快进：剩下的 5 倍速播完') : T('ui.nextGame', '下一局');
+      const label = mode === 'ff' ? T('ui.ffEnd', '直接看结果') : T('ui.nextGame', '下一局');
       ffBtn.setAttribute('aria-label', label); ffBtn.title = label;
     }
     ffBtn.classList.toggle('is-on', mode === 'ff' && !!game.turbo);
+  }
+
+  /* 直接看结果（2026-11-22 用户挑甲）：我的名次已经定了（单机我出局 / 联机真人全出局），剩下的不再一步步播——
+   * 单机：照服务器 advance 那一套，让机器猫在后台瞬间打完（日志照记，训练场能重放），然后走正常的结算（转回我的座位、聚光灯、排行榜）；
+   * 联机：服务器早就算完了，丢掉还没播的那串事件，按最后的快照重摆，接着就是结算 */
+  function jumpToEnd() {
+    if (!game) return;
+    if (game.online) { const g = G(); if (online && g && g.over) { game.turboOff = true; resync(); } return; }
+    const s = game.state;
+    if (s.phase === 'over' || s.alive[meSeat()] || game.tutorial) return;
+    token++;
+    game.dealing = false;
+    if (game.wander) { game.wander.cancel(); game.wander = null; }
+    if (game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
+    stopClock(); clearReactTimer(); clearStage(); wipeFx();
+    if (!els.mask.hidden) closeDialog();
+    preview = null; mode = null; selected = [];
+    game.turboOff = true;
+    setTurbo(false);
+    busy = true;
+    const t = token, g0 = game;
+    // 分片算（每片 ~25 毫秒就让一下浏览器）：高手机器猫一步要算一会儿，手机上一口气算完会卡住画面
+    simulateRest(s, () => t === token && game === g0).then((done) => {
+      if (!done || t !== token || game !== g0) return;
+      release();
+      renderAll();
+      step();
+    });
+  }
+  async function simulateRest(s, alive) {
+    const tierOf = (k) => game.tiers[k] || 'normal';
+    const log = (seat, d) => { if (HL) HL.act(game, seat, d, seat >= 0 ? 1 : 0); };
+    let slice = performance.now();
+    for (let guard = 0; guard < 6000 && s.phase !== 'over'; guard++) {
+      if (performance.now() - slice > 25) { await new Promise((r) => setTimeout(r, 0)); if (!alive()) return false; slice = performance.now(); }
+      if (s.phase === 'react') {
+        let noped = false;
+        for (const k of R.awaitingReaction(s)) {
+          const d = AI.decide(s, k, tierOf(k));
+          if (d && d.type === 'nope' && R.canNope(s, k)) { R.nope(s, k); log(k, { type: 'nope' }); noped = true; break; }
+          R.pass(s, k);
+        }
+        if (noped) continue;
+        if (R.reactionDone(s)) { if (HL) HL.close(game); R.closeReaction(s); }
+        continue;
+      }
+      if (s.phase === 'rescue') {
+        const wait = R.rescueWaiting(s);
+        if (wait.length) {
+          const k = wait[0], d = AI.decide(s, k, tierOf(k)), yes = !(d && d.type === 'rescue' && d.yes === false);
+          R.rescue(s, k, yes); log(k, { type: 'rescue', yes });
+        } else { R.closeRescue(s); log(-1, { type: 'closeRescue' }); }
+        continue;
+      }
+      const seat = R.whoActs(s)[0];
+      if (seat == null) break;
+      let d = AI.decide(s, seat, tierOf(seat));
+      const run = (x) => {
+        if (x.type === 'draw') return R.draw(s, seat);
+        if (x.type === 'play') return R.play(s, seat, x.cards, x);
+        if (x.type === 'give') return R.give(s, seat, x.card);
+        if (x.type === 'pick') return R.pickDiscard(s, seat, x.card);
+        if (x.type === 'insert') return R.insertKitten(s, seat, x.pos, !!x.rand);
+        if (x.type === 'alter') return R.alterTop(s, seat, x.order);
+        if (x.type === 'steal') return R.stealPick(s, seat, x.idx);
+        throw new Error('bad move ' + x.type);
+      };
+      try { run(d); } catch (_) { d = s.phase === 'act' ? { type: 'draw' } : AI.decide(s, seat, 'normal'); run(d); }
+      log(seat, d);
+    }
+    return s.phase === 'over';
   }
   setInterval(updateFF, 400);
   /* 顶栏「排行榜」（联机里谁都能随时点开）：这局结算过了 → 这局名次 + 本房间战绩；还在打 → 只看本房间战绩 */
@@ -8864,7 +8938,18 @@
     // 2026-11-13 用户：没有没打完的局 → 点单机直接到选人数（不经过「接着打 / 开新的」那一步）；新手教程 · 设置这时挂在选人数那屏底下
     if (k === 'solo') { openSheet('solo'); return; }
     if (k === 'sheet-close') { closeSheet(); return; }
-    if (k === 'start') { settings.players = Math.min(SOLO_MAX, settings.players); soloStart(); return; }
+    if (k === 'start') {
+      settings.players = Math.min(SOLO_MAX, settings.players);
+      // 小鱼干（2026-11-22 用户）：先在主页面放完扣门票（门票飘到「开始」键上），放完才进牌桌——别让半截动画留在新页面里
+      if (WAL && WAL.playTicket) {
+        if (b.disabled) return;
+        b.disabled = true;
+        // 放到一半被打断（点了别的、设置单被收起）：不开局
+        WAL.playTicket(settings.tier, curMode(), soloN()).then((ok) => { b.disabled = false; if (ok !== false && !els.cover.hidden && !sheetMask.hidden) soloStart(); });
+        return;
+      }
+      soloStart(); return;
+    }
     if (k === 'resume-solo') { const saved = loadSaved(); if (saved) resumeGame(saved); else refreshSolo(); return; }
     if (k === 'online') { showOnlineEntry(); return; }
     if (k === 'create') { onlineCreate(); return; }
