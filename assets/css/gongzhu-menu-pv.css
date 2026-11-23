@@ -20,3 +20,15 @@
 .gz-dialog.is-pause.is-pause-a .gz-btn { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .gz-btn-ic { width: 19px; height: 19px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .gz-btn-ic.is-fill { fill: currentColor; stroke: none; }
+
+/* 预览菜单在横屏矮屏（手机横过来）里：一列放不下就排成两栏，免得要滚；甲乙按组排（一组不拆），丙按条排 */
+.gz-menu-g { display: flex; flex-direction: column; }
+@media (max-height: 520px) and (orientation: landscape) {
+  .gz-menu.is-pv:not([hidden]) { display: block; width: 392px; column-count: 2; column-gap: 8px; column-rule: 1px solid rgba(29, 27, 24, 0.1); }
+  .gz-menu.is-pv .gz-menu-g, .gz-menu.is-pv > button { break-inside: avoid; }
+  .gz-menu.is-pv .gz-menu-g { margin-bottom: 2px; }
+  .gz-menu.is-pv .gz-menu-g > hr { display: none; }
+  .gz-menu.is-pv .gz-menu-g + .gz-menu-g { padding-top: 2px; }
+  .gz-menu.is-pv .gz-menu-grp { padding-top: 6px; }
+  .gz-menu.is-pv button { padding: 7px 10px; }
+}

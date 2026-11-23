@@ -2194,6 +2194,20 @@
       ['离开', [['cover', '回到主页面'], ...exit]],
     ];
   }
+  // 预览菜单：每组包一层（横屏矮屏时排成两栏，一组不拆开；见 gongzhu-menu-pv.css）
+  function pvWrapGroups(panel) {
+    panel.classList.add('is-pv', 'is-' + MENU_PV.menu);
+    if (MENU_PV.menu === 'menu-c') return;
+    let g = null;
+    [...panel.children].forEach((el) => {
+      if (!g || el.tagName === 'HR' || el.classList.contains('gz-menu-grp')) {
+        g = document.createElement('div');
+        g.className = 'gz-menu-g';
+        panel.insertBefore(g, el);
+      }
+      g.appendChild(el);
+    });
+  }
   function pvMenuItems() {
     const groups = pvMenuGroups().filter(([, items]) => items.length);
     const online1 = match && match.online && online;
@@ -2275,6 +2289,7 @@
         : '<button type="button" role="menuitem" data-menu="' + k + '">' +
           '<svg class="gz-menu-ic" viewBox="0 0 24 24" aria-hidden="true">' + (MENU_ICONS[k] || '') + '</svg>' +
           '<b>' + esc(t) + '</b></button>').join('');
+    if (MENU_PV.menu) pvWrapGroups(menuPanel);
     menuPanel.hidden = false;
     $('gzMenuBtn').setAttribute('aria-expanded', 'true');
     pauseClock();   // 翻菜单时不计时（同弹窗）
