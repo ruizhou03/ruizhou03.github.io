@@ -1077,6 +1077,10 @@
     const t = liveTrick();
     if (t) t.fxing = on;
     els.center.classList.toggle('is-fxing', on);
+    if (GZTUT_PV) {   // 教程预览：桌心放印章时实战引导先收起（不算看过），放完再补出来
+      if (on) guideHide(false);
+      else setTimeout(guideCheck, 0);
+    }
   }
   // AI 结果是异步回来的：发请求时就记下 token，回来时已经重开 / 进了教程就丢掉
   function guard(fn) {
@@ -3510,6 +3514,7 @@
     const item = guideNext();
     if (guideCur && match.exposing.length && guideCur.key !== 'expose-me') guideHide(false);
     if (guideCur || !els.mask.hidden || !item) return;
+    if (els.center.classList.contains('is-fxing')) return;   // 桌心正放吃猪 / 吃羊的印章，别抢镜（放完 setFxing 会再叫一次）
     guideShow(item);
   }
   function guideTargets(g) {
