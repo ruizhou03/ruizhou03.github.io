@@ -79,7 +79,8 @@
     const fmt = (n) => (n > 0 ? '+' + n : n < 0 ? '−' + Math.abs(n) : '0');
     function stripHtml(m) {
       const t = m.totals || [0, 0, 0, 0];
-      const faces = ['<i class="gzc-av is-me">我</i>'].concat((m.bots || []).map((b) => '<i class="gzc-av">' + A.face(b.avatar) + '</i>'));
+      const me = A.me && A.me();   // 单机身份预览（?gzmenu=me-*）：我也换成矢量头像
+      const faces = ['<i class="gzc-av is-me">' + (me && me.face.startsWith('svg:') ? A.face(me.face.slice(4)) : '我') + '</i>'].concat((m.bots || []).map((b) => '<i class="gzc-av">' + A.face(b.avatar) + '</i>'));
       return '<span class="gzc-strip">' + faces.map((f, i) => '<span class="gzc-pl">' + f + '<b class="' + (t[i] < 0 ? 'neg' : t[i] > 0 ? 'pos' : '') + '">' + fmt(t[i]) + '</b></span>').join('') + '</span>';
     }
     function resumeHtml(m) {
