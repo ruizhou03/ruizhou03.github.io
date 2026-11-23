@@ -45,9 +45,9 @@
     return { row: m[1], pause: m[2] || d[0], rec: m[3] || d[1] };
   })();
   let hostPv = null;
-  /* 桌沿灯带 + 大厅重做（预览中，待用户挑；画法全在 gongzhu-rim-pv.js）：?gzrim=<a|b|c><1|2>，只写字母 = 大厅 1。不带参数 = 现状 */
+  /* 桌沿灯带 + 大厅重做（预览中，待用户挑；画法全在 gongzhu-rim-pv.js）：?gzrim=<a|b|c|d><1|2>，只写字母 = 大厅 1（d = 金线串座：线穿过头像）。不带参数 = 现状 */
   const GZRIM = (() => {
-    const m = /^([abc])([12])?$/.exec(new URLSearchParams(location.search).get('gzrim') || '');
+    const m = /^([abcd])([12])?$/.exec(new URLSearchParams(location.search).get('gzrim') || '');
     return m ? { rim: m[1], lobby: m[2] || '1' } : null;
   })();
   let rimPv = null;
@@ -2454,6 +2454,7 @@
     chat: '<path d="M5.5 5.5h13a2 2 0 0 1 2 2v7.6a2 2 0 0 1-2 2h-6.7L7.4 20v-2.9H5.5a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2z"/><path d="M8.6 11.3h.01M12 11.3h.01M15.4 11.3h.01"/>',
     advtut: '<path d="M2.5 9.5 12 5l9.5 4.5L12 14Z"/><path d="M6.5 11.5v4c1.5 1.6 3.4 2.4 5.5 2.4s4-.8 5.5-2.4v-4"/><path d="M21.5 9.5v5"/>',
     stats: '<path d="M5 20V11h4v9M10 20V5h4v15M15 20v-6h4v6"/>',
+    gzrrank: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/>',
     feedback: '<path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/>',
   };
   // 每条一个图标 + 一行字，不写说明小字（意思本身就清楚）
@@ -2475,6 +2476,7 @@
         ...(!online.watching ? [['reveal', meRevealing() ? '不让观战看我的牌' : '让观战看我的牌']] : []),
         ['roomrules', roomRulesLabel()],
         ...(hostPv ? hostPv.menuItems() : []),
+        ...(rimPv && !match.lobby ? [['gzrrank', '排行榜']] : []),
         ...moved,
         ['leave', '离开房间'],
         ...exit,
@@ -2592,6 +2594,7 @@
     else if (k === 'room') copyText(NET.inviteUrl(online.code), '邀请链接已复制，发给朋友就能进房间');
     else if (k === 'roomrules') showRoomRules('view');
     else if (hostPv && hostPv.menuAct(k)) { /* 预览模块接走了 */ }
+    else if (k === 'gzrrank') { if (hostPv && hostPv.openRec) hostPv.openRec(); }
     else if (k === 'sit') watchSit();
     else if (k === 'reveal') {
       const on = !meRevealing();
@@ -3811,7 +3814,7 @@
     js.src = '/assets/js/games/gongzhu-rim-pv.js' + v;
     js.onload = () => {
       if (!window.GongzhuRimPv) return;
-      rimPv = GongzhuRimPv.create(GZRIM, { $, els, online: () => online, match: () => match, playerAt, srv });
+      rimPv = GongzhuRimPv.create(GZRIM, { $, els, online: () => online, match: () => match, playerAt, srv, openRec: () => { if (hostPv && hostPv.openRec) hostPv.openRec(); } });
       if (online && online.st && online.st.phase === 'lobby') rimPv.lobby(online.st);
       rimPv.sync();
     };

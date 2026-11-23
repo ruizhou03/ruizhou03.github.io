@@ -79,10 +79,20 @@
   border: 1px solid var(--gz-ink); background: var(--gz-paper); color: var(--gz-ink); display: inline-flex; align-items: center; justify-content: center;
 }
 
-/* 记录（本房间战绩）和按钮在灯带框里留出气口 */
-.gzr .gzh-rec { margin-top: 4px; }
+/* 本房间战绩不放大厅正中：挪到右上角「排行榜」标签（点开弹窗），局中在菜单里 */
+.gzr .gz-lobby > .gzh-rec { display: none; }
+.gzr-rank {
+  height: 40px; padding: 0 16px; border-radius: 99px; border: 1px solid var(--gz-ink); background: var(--gz-paper); color: var(--gz-ink);
+  font: inherit; font-size: 15px; letter-spacing: 0.12em; cursor: pointer; white-space: nowrap;
+}
+.gzr-rank[hidden] { display: none; }
+.gzr-rank:focus-visible { outline: 2px solid var(--gz-seal); outline-offset: 2px; }
+.gzh-rec-sub { margin: 0 0 10px; font-size: 13px; color: var(--gz-ink-mute); }
+.gzh-rec.gzh-rec-dlg { max-width: none; border: 0; background: none; }
+.gzh-rec.gzh-rec-dlg table { font-size: 14px; }
+.gzh-rec.gzh-rec-dlg td.who .gz-avatar { width: 28px; height: 28px; }
 
-/* 横屏矮屏：中间那块只有一百来像素高，竖着排一定溢出 —— 改两栏：左边房号 + 复制，右边战绩 + 按钮 */
+/* 横屏矮屏：中间那块只有一百来像素高，竖着排一定溢出 —— 改两栏：左边房号 + 复制，右边按钮 */
 @media (max-height: 480px) and (min-aspect-ratio: 1/1) {
   .gzr .gz-lobby {
     display: grid; grid-template-columns: auto auto; column-gap: 30px; row-gap: 6px;
@@ -91,10 +101,56 @@
   .gzr .gz-lobby > .gz-lobby-code { grid-column: 1; grid-row: 1; }
   .gzr .gz-lobby > .gz-lobby-links:first-of-type { grid-column: 1; grid-row: 2; }
   .gzr .gz-lobby > .gz-lobby-wait { grid-column: 1 / -1; }
-  .gzr .gz-lobby > .gzh-rec { grid-column: 2; grid-row: 1; width: 240px; }
-  .gzr .gz-lobby > .gz-lobby-links:last-of-type { grid-column: 2; grid-row: 2; }
+  .gzr .gz-lobby > .gz-lobby-links:last-of-type { grid-column: 2; grid-row: 1 / 3; }
   .gzr .gz-lobby-code b { font-size: 34px; }
   .gzr-lobby-1 .gz-lobby-code { gap: 3px; }
   .gzr-lobby-1 .gz-lobby-code::after { margin-top: 2px; }
   .gzr-lobby-2 .gz-lobby-code { padding: 10px 24px 12px; }
 }
+
+/* ───── d 金线串座：线穿过四家头像（画法同 a） ─────
+ * 上家 / 下家坐桌子上面两个角，对家坐上沿正中，我坐左下角（竖屏、横屏一样）；
+ * 上家 / 下家的名字、分数、牌背挪到头像里侧、往下错开（不让线穿字），对家横屏时名字和牌背挪到上沿下面，
+ * 我的名字和吃到的牌挪到底线上面一点（桌里），「出牌」垫一层纸色骑在底线上 */
+.gzr-on .gz-band .gz-btn { background-color: var(--gz-paper); }
+.gzr-on .gz-band .gz-btn.gz-btn-primary:not(:disabled) { background-color: var(--gz-seal); }
+.gzr-on .gz-seat-left, .gzr-on .gz-seat-right { grid-row: 2 / 4; justify-content: flex-start; }
+.gzr-on .gz-seat-left { align-items: flex-start; padding-left: 5px; }
+.gzr-on .gz-seat-right { align-items: flex-end; padding-right: 5px; }
+.gzr-on .gz-seat-left .gz-who, .gzr-on .gz-seat-right .gz-who { flex-direction: row; align-items: flex-start; gap: 6px; }
+.gzr-on .gz-seat-right .gz-who { flex-direction: row-reverse; }
+.gzr-on .gz-seat-left .gz-name-line { padding-top: 20px; align-items: flex-start; }
+.gzr-on .gz-seat-right .gz-name-line { padding-top: 20px; align-items: flex-end; }
+.gzr-on .gz-seat-left > :not(.gz-who):not(.gz-lobby-seat) { margin-left: 40px; max-width: calc(100% - 45px); }
+.gzr-on .gz-seat-right > :not(.gz-who):not(.gz-lobby-seat) { margin-right: 40px; max-width: calc(100% - 45px); }
+.gzr-on .gz-seat-top { align-self: start; }
+.gzr-on .gz-seat-me .gz-who { margin-left: 5px; }
+.gzr-on .gz-seat-me .gz-name-line { flex-direction: row; align-items: baseline; gap: 6px; translate: 0 -15px; }
+.gzr-on .gz-seat-me .gz-caps { translate: 0 -22px; }
+@media (max-aspect-ratio: 1/1) {
+  .gzr-on .gz-seat-left, .gzr-on .gz-seat-right { grid-row: auto; }
+  .gzr-on .gz-slot-3 { translate: 12px 0; }
+  .gzr-on .gz-slot-1 { translate: -12px 0; }
+}
+@media (max-height: 480px) and (min-aspect-ratio: 1/1) {
+  .gzr-on .gz-seat-top { align-items: flex-start; }
+}
+@media (min-aspect-ratio: 1/1) {
+  .gzr-on .gz-seat-top .gz-who { align-items: flex-start; }
+  .gzr-on .gz-seat-top .gz-name-line { flex-direction: row; align-items: baseline; gap: 6px; translate: 0 20px; }
+  .gzr-on .gz-seat-top > :not(.gz-who):not(.gz-lobby-seat) { translate: 0 20px; }
+}
+/* d 大厅：座位卡同样让头像骑线——上家 / 下家的名字、档位挪到头像里侧往下错开，我的名字挪到底线上面 */
+.gzr-on .gz-seat-left .gz-lobby-seat, .gzr-on .gz-seat-right .gz-lobby-seat {
+  display: grid; grid-template-rows: auto auto 1fr; column-gap: 6px; row-gap: 3px; padding: 0 4px 4px 0; align-items: start;
+}
+.gzr-on .gz-seat-left .gz-lobby-seat { grid-template-columns: auto auto; justify-items: start; text-align: left; }
+.gzr-on .gz-seat-right .gz-lobby-seat { grid-template-columns: auto auto; justify-items: end; text-align: right; padding: 0 0 4px 4px; }
+.gzr-on .gz-seat-left .gz-lobby-seat > .gz-avatar { grid-column: 1; grid-row: 1 / 4; }
+.gzr-on .gz-seat-right .gz-lobby-seat > .gz-avatar { grid-column: 2; grid-row: 1 / 4; }
+.gzr-on .gz-seat-left .gz-lobby-seat > :not(.gz-avatar) { grid-column: 2; }
+.gzr-on .gz-seat-right .gz-lobby-seat > :not(.gz-avatar) { grid-column: 1; }
+.gzr-on .gz-seat-left .gz-lobby-name, .gzr-on .gz-seat-right .gz-lobby-name { margin-top: 20px; }
+.gzr-on .gz-seat-top .gz-lobby-seat { padding-top: 0; }
+.gzr-on .gz-seat-me .gz-lobby-seat { padding-left: 5px; }
+.gzr-on .gz-seat-me .gz-lobby-seat > :not(.gz-avatar) { translate: 0 -15px; }

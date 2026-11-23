@@ -6,6 +6,8 @@
  *   a 金线：一圈淡金细线；轮到谁，他面前那段变亮金、外面垫一层淡光；限时的话这段从两头往中间收，最后几秒变印泥红
  *   b 墨线：一圈墨色细线（和裱框同一种线）；轮到谁那段变粗、变印泥红；不垫光，最安静
  *   c 灯珠：一圈小灯珠；轮到谁他面前那几颗亮成金色；限时的话从两头一颗一颗熄
+ *   d 金线串座（2026-11-23 用户选的方向）：画法同 a，但线穿过四家头像——上家 / 下家坐桌子上面两个角、对家坐上沿正中、我坐左下角，
+ *     头像盖住圆角，线把四个人串起来；名字、分数、牌背挪到头像里侧错开，不让线穿字（座位排法见 css「d 金线串座」）
  * 三版共用的状态：
  *   托管 = 那段冷灰蓝；掉线 = 那段断开（虚）；快输了（累计到 −700 以下、规则是输到 −1000 收盘）= 那段常驻一点暖红
  *   吃猪 = 他那段闪两下红；吃羊 = 闪金；变压器 = 按它的颜色闪；全红 = 一道红光从他那儿绕桌一圈；大满贯 = 金光绕两圈
@@ -13,7 +15,8 @@
  * 大厅：空座位 = 灯带上一个缺口；有人坐下那段就亮；四个人齐了，一道光绕一圈、整圈连起来。
  *   1 门牌：房号大字正中，下面一根金线，再下面一个不起眼的「复制邀请链接」；底下离开 / 开始
  *   2 名帖：房号印在一张双线框的小帖子上，复制键是帖子右下角一颗小图标；底下离开 / 开始
- * 大厅不再写「还差 1 人 / 人齐了」——看灯带缺不缺口就知道；只有观战的人还留一句。 */
+ * 大厅不再写「还差 1 人 / 人齐了」——看灯带缺不缺口就知道；只有观战的人还留一句。
+ * 本房间战绩不放大厅正中：大厅右上角一枚「排行榜」标签、局中菜单「排行榜」，点开是弹窗（表格画法在 gongzhu-host-pv.js openRec）。 */
 (function () {
   'use strict';
   const NS = 'http://www.w3.org/2000/svg';
@@ -22,7 +25,10 @@
 
   function create(cfg, A) {
     const root = A.els.app;
-    root.classList.add('gzr', 'gzr-' + cfg.rim, 'gzr-lobby-' + cfg.lobby);
+    // d = 金线串座：画法同 a，但线穿过四家头像中心（人坐在线上、三家落在桌角），座位排法见 css「d 金线串座」
+    const on = cfg.rim === 'd';
+    root.classList.add('gzr', 'gzr-' + (on ? 'a' : cfg.rim), 'gzr-lobby-' + cfg.lobby);
+    if (on) root.classList.add('gzr-on');
     const table = A.els.table;
     const dots = cfg.rim === 'c';
     let sv = null, geo = null, lastKey = '', lobbyFull = false;
@@ -46,7 +52,43 @@
     }
 
     /* 桌面 = 中间出牌区（#gzCenter）往里缩一点的圆角矩形；每家的锚点 = 他头像中心投到最近那条边上，再躲开拐角 */
+    function rrect(x0, y0, x1, y1, R) {
+      return 'M' + (x0 + R) + ' ' + y0 + 'H' + (x1 - R) + 'A' + R + ' ' + R + ' 0 0 1 ' + x1 + ' ' + (y0 + R) +
+        'V' + (y1 - R) + 'A' + R + ' ' + R + ' 0 0 1 ' + (x1 - R) + ' ' + y1 +
+        'H' + (x0 + R) + 'A' + R + ' ' + R + ' 0 0 1 ' + x0 + ' ' + (y1 - R) +
+        'V' + (y0 + R) + 'A' + R + ' ' + R + ' 0 0 1 ' + (x0 + R) + ' ' + y0 + 'Z';
+    }
+    /* d：桌沿 = 穿过四家头像中心的圆角矩形（最左 / 最右 / 最上 / 最下那几个头像定四条边），拐角半径 = 头像半径，
+     * 坐在拐角上的人正好把圆角盖住；每家的锚点 = 路径上离他头像中心最近的那一点，不躲拐角 */
+    function measureOn() {
+      const tb = table.getBoundingClientRect();
+      const pts = A.els.seats.map((el) => {
+        const r = el.querySelector('.gz-avatar') && el.querySelector('.gz-avatar').getBoundingClientRect();
+        return r && r.width ? { cx: r.left + r.width / 2 - tb.left, cy: r.top + r.height / 2 - tb.top, r: r.width / 2 } : null;
+      });
+      const ok = pts.filter(Boolean);
+      if (ok.length < 2) return null;
+      const x0 = Math.min(...ok.map((p) => p.cx)), x1 = Math.max(...ok.map((p) => p.cx));
+      const y0 = Math.min(...ok.map((p) => p.cy)), y1 = Math.max(...ok.map((p) => p.cy));
+      if (x1 - x0 < 60 || y1 - y0 < 60) return null;
+      const R = Math.max(10, Math.min(...ok.map((p) => p.r)));
+      const d = rrect(x0, y0, x1, y1, R);
+      const base = sv.querySelector('.gzr-base');
+      base.setAttribute('d', d);
+      const L = base.getTotalLength();
+      const N = 480, samp = [];
+      for (let i = 0; i < N; i++) { const pt = base.getPointAtLength(i * L / N); samp.push([pt.x, pt.y, i * L / N]); }
+      const seats = pts.map((p) => {
+        if (!p) return null;
+        let best = samp[0], bd = Infinity;
+        for (const q of samp) { const dd = (q[0] - p.cx) ** 2 + (q[1] - p.cy) ** 2; if (dd < bd) { bd = dd; best = q; } }
+        return { a: best[2], h: Math.min(64, L / 10), cx: p.cx, cy: p.cy };
+      });
+      return { d, L, seats, key: 'on|' + [x0, y0, x1, y1].map(Math.round).join() + '|' + seats.map((p) => p ? Math.round(p.a) : '-').join() };
+    }
+
     function measure() {
+      if (on) return measureOn();
       const tb = table.getBoundingClientRect();
       const cr = A.$('gzCenter').getBoundingClientRect();
       if (!cr.width || !cr.height) return null;
@@ -57,10 +99,7 @@
       const R = Math.max(10, Math.min(26, w / 8, h / 8));
       const ew = w - 2 * R, eh = h - 2 * R, q = Math.PI * R / 2;
       const L = 2 * ew + 2 * eh + 4 * q;
-      const d = 'M' + (x0 + R) + ' ' + y0 + 'H' + (x1 - R) + 'A' + R + ' ' + R + ' 0 0 1 ' + x1 + ' ' + (y0 + R) +
-        'V' + (y1 - R) + 'A' + R + ' ' + R + ' 0 0 1 ' + (x1 - R) + ' ' + y1 +
-        'H' + (x0 + R) + 'A' + R + ' ' + R + ' 0 0 1 ' + x0 + ' ' + (y1 - R) +
-        'V' + (y0 + R) + 'A' + R + ' ' + R + ' 0 0 1 ' + (x0 + R) + ' ' + y0 + 'Z';
+      const d = rrect(x0, y0, x1, y1, R);
       // 每条边的起点（沿路径的长度）
       const off = { top: 0, right: ew + q, bottom: ew + eh + 2 * q, left: 2 * ew + eh + 3 * q };
       const seats = [];
@@ -302,20 +341,39 @@
         const lab = code.querySelector('span');
         if (lab) lab.textContent = '房间';
       }
+      rankTag();
       // 大厅不写「还差几人 / 人齐了 / 等房主开始」：灯带看得出来；观战的人留着那句
       const wait = box.querySelector('.gz-lobby-wait');
       if (wait) wait.hidden = !(st && A.online() && A.online().watching);
       requestAnimationFrame(() => { lastKey = ''; layout(); });
     }
 
+    /* 战绩不放大厅正中：大厅右上角一枚「排行榜」标签，点开是本房间战绩表；局中在菜单里（gongzhu.js 的 gzrrank） */
+    let rank = null;
+    function rankTag() {
+      const m = A.match();
+      const show = !!(A.online() && m && m.online && m.lobby);
+      if (show && !rank) {
+        rank = document.createElement('button');
+        rank.type = 'button';
+        rank.className = 'gzr-rank';
+        rank.textContent = '排行榜';
+        rank.addEventListener('click', () => A.openRec());
+        const tools = table.querySelector('.gz-tools');
+        tools.insertBefore(rank, tools.firstChild);
+      }
+      if (rank) rank.hidden = !show;
+    }
+
     const ro = new ResizeObserver(() => layout());
     ro.observe(table);
+    if (on) A.els.seats.forEach((el) => ro.observe(el));   // 串座：线跟着头像走，座位一变就重量
     const mo = new MutationObserver(() => paint());
     A.els.seats.forEach((el) => mo.observe(el, { attributes: true, attributeFilter: ['class'] }));
     mo.observe(root, { attributes: true, attributeFilter: ['class'] });
 
     return {
-      sync() { layout(); paint(); },
+      sync() { layout(); paint(); rankTag(); },
       lobby,
       fx,
     };

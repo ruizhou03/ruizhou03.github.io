@@ -213,6 +213,27 @@
       return rec.games.slice(-n).map((gm) => gm.seats.find((x) => x.id === id)).filter(Boolean);
     }
     const fmtAvg = (v) => (Math.round(v * 10) / 10).toFixed(1);
+    // 本房间战绩表：坐着的人在前、按平均名次排；走了的人淡一点
+    function recTable(s) {
+      const rec = s.record;
+      const seated = s.players.map((p) => p.id);
+      const rows = rec.people.slice().sort((a, b) => (seated.includes(b.id) - seated.includes(a.id)) || a.avgRank - b.avgRank).slice(0, 8);
+      return '<table><thead><tr><th></th><th>平均名次</th><th>当猪</th><th>最近</th></tr></thead><tbody>' +
+        rows.map((q) => '<tr class="' + (seated.includes(q.id) ? '' : 'is-gone') + '"><td class="who"><div><span class="gz-avatar"><span class="gz-av-face">' + A.faceHtml(A.avatarOf(q)) + '</span></span><span>' + A.esc(q.nick) + '</span></div></td>' +
+          '<td class="avg">' + fmtAvg(q.avgRank) + '</td><td class="pig">' + (q.pigs || '') + '</td><td class="dots">' + recentOf(rec, q.id, 5).map(dot).join('') + '</td></tr>').join('') +
+        '</tbody></table>';
+    }
+    // 排行榜弹窗（灯带预览把战绩从大厅正中挪走了：大厅右上角「排行榜」、局中菜单「排行榜」都开这个）
+    function openRec() {
+      const s = st();
+      if (!s) return;
+      const has = !!(s.record && s.record.n);
+      A.openDialog('<h2>排行榜</h2>' +
+        (has ? '<p class="gzh-rec-sub">这个房间打了 ' + s.record.n + ' 盘</p><div class="gzh-rec gzh-rec-dlg">' + recTable(s) + '</div>'
+          : '<p class="gz-note">这个房间还没打完一盘。</p>') +
+        '<div class="gz-actions"><button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
+        (d) => d.querySelector('[data-close]').addEventListener('click', A.closeDialog));
+    }
     function lobby(s) {
       const rec = s.record;
       const has = !!(rec && rec.n);
@@ -237,13 +258,7 @@
           det.className = 'gzh-rec';
           box.querySelector('.gz-lobby-wait').after(det);
         }
-        const seated = s.players.map((p) => p.id);
-        const rows = rec.people.slice().sort((a, b) => (seated.includes(b.id) - seated.includes(a.id)) || a.avgRank - b.avgRank).slice(0, 8);
-        const html = '<summary>' + IC.table + '<span>本房间战绩</span><b>' + rec.n + ' 盘</b></summary>' +
-          '<table><thead><tr><th></th><th>平均名次</th><th>当猪</th><th>最近</th></tr></thead><tbody>' +
-          rows.map((q) => '<tr class="' + (seated.includes(q.id) ? '' : 'is-gone') + '"><td class="who"><div><span class="gz-avatar"><span class="gz-av-face">' + A.faceHtml(A.avatarOf(q)) + '</span></span><span>' + A.esc(q.nick) + '</span></div></td>' +
-            '<td class="avg">' + fmtAvg(q.avgRank) + '</td><td class="pig">' + (q.pigs || '') + '</td><td class="dots">' + recentOf(rec, q.id, 5).map(dot).join('') + '</td></tr>').join('') +
-          '</tbody></table>';
+        const html = '<summary>' + IC.table + '<span>本房间战绩</span><b>' + rec.n + ' 盘</b></summary>' + recTable(s);
         if (det.dataset.h !== html) { det.dataset.h = html; const open = det.open; det.innerHTML = html; det.open = open; }
       }
       // 盘终再来一盘的大厅侧入口：上一盘打完回到房间、有人走了空出座位时，房主一键「再来一盘」——空座补上机器人（场上最强那一档）就开。
@@ -288,7 +303,7 @@
 
     return {
       extraTitle: () => '房主',
-      extra, badge, lobby, onState, reset,
+      extra, badge, lobby, onState, reset, openRec,
       menuItems: () => [],
       menuAct: () => false,
     };
