@@ -32,7 +32,13 @@
   const AUTO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('gzauto') === '1';
   /* 盘终收尾预览（待用户挑）：?gzpv=final-a 领奖台 / final-b 墨园榜单 / final-c 原表加奖章；进页面读一次，不带参数 = 现状 */
   const GZPV = (() => { const v = new URLSearchParams(location.search).get('gzpv') || ''; return /^final-([abc]|b[123]|b3[a-d])$/.test(v) ? v : ''; })();
-  const ROLL = GZPV.startsWith('final-b3');   // 乙三宣纸卷及它的几套配色（final-b3a～b3d 只换颜色和装裱，结构相同）
+  const ROLL = GZPV.startsWith('final-b3');
+  /* 局中菜单 / 顶栏 / 暂停页 / 单机身份预览（待用户挑）：?gzmenu=menu-a|b|c, bar-a|b, pause-a|b, me-a|b，逗号分隔可组合；进页面读一次，不带参数 = 现状 */
+  const MENU_PV = (() => {
+    const set = new Set((new URLSearchParams(location.search).get('gzmenu') || '').split(',').map((x) => x.trim()));
+    const one = (keys) => keys.find((k) => set.has(k)) || '';
+    return { menu: one(['menu-a', 'menu-b', 'menu-c']), bar: one(['bar-a', 'bar-b']), pause: one(['pause-a', 'pause-b']), me: one(['me-a', 'me-b']) };
+  })();   // 乙三宣纸卷及它的几套配色（final-b3a～b3d 只换颜色和装裱，结构相同）
   if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, fade: 120, roundEnd: 60 });
   const SETTLE_HOLD = AUTO ? 60 : 1700;   // 累计分在桌上数完（最长约 0.9 秒）后再停一会儿，才弹结算页
   // 教程放慢：机器人出牌、收墩都留足时间看清
@@ -164,8 +170,8 @@
     const bots = soloBots(), fresh = drawBots(settings.tier);
     if (!bots || !fresh) return;
     bots.splice(0, bots.length, ...fresh);
-    NAMES = ['我'].concat(bots.map((x) => x.nick));
-    AVATARS = ['我'].concat(bots.map((x) => 'svg:' + x.avatar));
+    NAMES = [soloMe().nick].concat(bots.map((x) => x.nick));
+    AVATARS = [soloMe().face].concat(bots.map((x) => 'svg:' + x.avatar));
     els.seats.forEach((el, s) => {
       if (!s) return;
       const n = el.querySelector('.gz-name'), f = el.querySelector('.gz-av-face');
@@ -177,12 +183,83 @@
   function soloBots() { return match && !match.online && !match.tutorial && !match.demo && match.bots ? match.bots : null; }
   function applySoloIdentity() {
     const b = soloBots();
-    NAMES = b ? ['我'].concat(b.map((x) => x.nick)) : SOLO_NAMES.slice();
-    AVATARS = b ? ['我'].concat(b.map((x) => 'svg:' + x.avatar)) : SOLO_AVATARS.slice();
+    const me = soloMe();
+    NAMES = b ? [me.nick].concat(b.map((x) => x.nick)) : SOLO_NAMES.slice();
+    AVATARS = b ? [me.face].concat(b.map((x) => 'svg:' + x.avatar)) : SOLO_AVATARS.slice();
     $('gzPauseBtn').hidden = !b;   // 暂停键只给单机：联机要照顾别人，教程不计时
+    syncBarPv();
     buildSeats();
   }
   function save() { if (!match.tutorial && !match.online && !match.demo) writeJSON(STORE_KEY, { v: VERSION, match }); }
+  /* 单机身份（预览 ?gzmenu=me-a|me-b）：单机也用联机那套名字和矢量头像，名字和联机共用 GamesShell.Identity，头像记在本机；
+   * 没设过就随机起一个（同百变小咪）。不带预览参数时仍是一个「我」字 */
+  const PROFILE_KEY = 'gz.profile.v1';
+  function soloProfile() {
+    const A = window.GongzhuAvatars, ident = window.GamesShell && GamesShell.Identity;
+    const p = readJSON(PROFILE_KEY) || {};
+    const shared = ident && ident.getNick ? ident.getNick() : null;
+    const nick = shared || p.nick || (A ? A.randomNick() : '我');
+    const avatar = p.avatar && A && A.byId[p.avatar] ? p.avatar : A ? A.randomHuman() : null;
+    if (nick !== p.nick || avatar !== p.avatar) writeJSON(PROFILE_KEY, { nick, avatar });
+    return { nick, avatar };
+  }
+  function soloMe() {
+    if (!MENU_PV.me || !window.GongzhuAvatars) return { nick: '我', face: '我' };
+    const p = soloProfile();
+    return { nick: p.nick, face: p.avatar ? 'svg:' + p.avatar : '我' };
+  }
+  // 改完名字 / 头像：就地换掉我这一座的名字和头像（不重建座位）
+  function refreshSoloMe() {
+    if (!soloBots()) return;
+    const me = soloMe(), el = els.seats[0];
+    NAMES[0] = me.nick; AVATARS[0] = me.face;
+    const n = el.querySelector('.gz-name'), f = el.querySelector('.gz-av-face');
+    if (n) n.textContent = me.nick;
+    if (f) { f.dataset.v = me.face; f.innerHTML = faceHtml(me.face); }
+    el.setAttribute('aria-label', me.nick);
+  }
+  function showSoloProfile() {
+    const A = window.GongzhuAvatars;
+    if (!A) return;
+    const prof = soloProfile();
+    let pick = prof.avatar;
+    openDialog('<h2>名字和头像</h2><div class="gz-field-label">名字（删空 = 随机起一个）</div>' +
+      '<input class="gz-input" data-nick maxlength="12" autocomplete="nickname" value="' + esc(prof.nick) + '">' +
+      '<div class="gz-field-label">头像</div><div class="gz-av-grid" role="group">' +
+      A.HUMAN.map((a) => '<button type="button" class="gz-av-pick" data-av="' + a.id + '" aria-label="' + esc(a.name) + '" aria-pressed="' + (a.id === pick) + '">' + a.svg + '</button>').join('') +
+      '</div><p class="gz-note gz-err" data-err hidden></p>' +
+      '<div class="gz-actions"><button type="button" class="gz-btn" data-close>取消</button>' +
+      '<button type="button" class="gz-btn gz-btn-primary" data-act="save" data-autofocus>保存</button></div>',
+      (d) => {
+        const err = d.querySelector('[data-err]'), nickIn = d.querySelector('[data-nick]');
+        d.querySelector('[data-close]').addEventListener('click', closeDialog);
+        d.querySelectorAll('[data-av]').forEach((b) => b.addEventListener('click', () => {
+          pick = b.dataset.av;
+          d.querySelectorAll('[data-av]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        }));
+        d.querySelector('[data-act="save"]').addEventListener('click', () => {
+          const v = nickIn.value.trim();
+          if (v && ([...v].length > 12 || /[<>&"'/\\]/.test(v))) { err.textContent = '名字最多 12 个字，不能有特殊符号'; err.hidden = false; nickIn.focus(); return; }
+          const ident = window.GamesShell && GamesShell.Identity;
+          if (v) { if (ident && ident.setNick) ident.setNick(v); } else if (ident && ident.clearNick) ident.clearNick();
+          writeJSON(PROFILE_KEY, { nick: v || A.randomNick(), avatar: pick });
+          closeDialog();
+          refreshSoloMe();
+        });
+      });
+  }
+  /* 顶栏预览（?gzmenu=bar-a|bar-b）：甲 单机只留 暂停 · 声音 · 菜单（规则、说一句进菜单；联机 说一句 · 声音 · 菜单）；
+   * 乙 单机 暂停 · 声音 · 规则 · 菜单（只把说一句收进菜单）。联机两版都把说一句留在顶栏 */
+  const rulesInMenu = () => MENU_PV.bar === 'bar-a';
+  const chatInMenu = () => !!MENU_PV.bar && !(match && match.online);
+  function syncBarPv() {
+    if (MENU_PV.me) els.app.classList.add('gzm-' + MENU_PV.me);
+    if (!MENU_PV.bar) return;
+    $('gzRulesBtn').hidden = rulesInMenu();
+    els.app.classList.add('gzm-' + MENU_PV.bar);
+  }
+  syncBarPv();   // 一进页面就定下顶栏（直接进联机房间时不经过单机那条路）
+
 
   /* ───── 卡面（四象限，参数逐字取自掼蛋 / 斗地主定稿） ───── */
 
@@ -544,7 +621,8 @@
       el.innerHTML =
         '<div class="gz-who"><span class="gz-avatar"><span class="gz-av-face" data-v="' + esc(AVATARS[s]) + '">' + faceHtml(AVATARS[s]) + '</span>' + CLOCK_SVG + '</span>' +
         '<span class="gz-name-line"><span class="gz-name">' + esc(NAMES[s]) + '</span><span class="gz-total gz-num"></span>' +
-        (s > 0 && !online && soloBots() ? '<span class="gz-tag is-dir">' + SOLO_DIRS[s] + '</span>' : '') + '</span></div>' +
+        (s > 0 && !online && soloBots() ? '<span class="gz-tag is-dir">' + SOLO_DIRS[s] + '</span>' : '') +
+        (s === 0 && !online && soloBots() && MENU_PV.me === 'me-a' ? '<span class="gz-tag is-dir is-me">我</span>' : '') + '</span></div>' +
         (s === 0 ? '' : '<div class="gz-hold"><span class="gz-backs" aria-hidden="true"></span><span class="gz-shown"></span></div>') +
         '<div class="gz-caps"></div>';
       el.setAttribute('aria-label', NAMES[s]);
@@ -2028,12 +2106,19 @@
     cover: '<path d="M4 11.2 12 4.5l8 6.7"/><path d="M6.5 9.5v10h11v-10"/><path d="M10 19.5v-5h4v5"/>',
     reveal: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>',
     sit: '<path d="M7 4v8h10"/><path d="M7 12v8M17 12v8M7 16h10"/>',
+    rules: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.6"/><path d="M12 16.9h.01"/>',
+    chat: '<path d="M5.5 5.5h13a2 2 0 0 1 2 2v7.6a2 2 0 0 1-2 2h-6.7L7.4 20v-2.9H5.5a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2z"/><path d="M8.6 11.3h.01M12 11.3h.01M15.4 11.3h.01"/>',
+    advtut: '<path d="M2.5 9.5 12 5l9.5 4.5L12 14Z"/><path d="M6.5 11.5v4c1.5 1.6 3.4 2.4 5.5 2.4s4-.8 5.5-2.4v-4"/><path d="M21.5 9.5v5"/>',
+    stats: '<path d="M5 20V11h4v9M10 20V5h4v15M15 20v-6h4v6"/>',
+    feedback: '<path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/>',
   };
   // 每条一个图标 + 一行字，不写说明小字（意思本身就清楚）
   function menuItems() {
+    if (MENU_PV.menu) return pvMenuItems();
     const exit = FROM_SITE ? [['exit', '返回百宝奇巧']] : [];
+    const moved = movedTools();
     if (match && match.tutorial) {
-      return [['skip', '跳过教程'], ['cover', '回到主菜单'], ...exit];
+      return [['skip', '跳过教程'], ...moved, ['cover', '回到主页面'], ...exit];
     }
     if (match && match.online && online) {
       return [
@@ -2044,26 +2129,99 @@
         ...(watching() && online.st.seatOpen ? [['sit', '坐下']] : []),
         ...(!online.watching ? [['reveal', meRevealing() ? '不让观战看我的牌' : '让观战看我的牌']] : []),
         ...(isHost() && match.lobby ? [['roomrules', '自定义规则']] : []),
+        ...moved,
         ['leave', '离开房间'],
         ...exit,
       ];
     }
     return [
       ['history', '每局得分'],
-      ['restart', '重新开始一盘'],
+      ['restart', '重开一盘'],
+      ...moved,
       ...(NET ? [['create', '创建房间'], ['join', '加入房间']] : []),
+      ...(MENU_PV.me ? [['profile', '名字 / 头像']] : []),
       ['settings', '设置'],
       ['tutorial', '新手教程'],
       ['line'],
-      ['cover', '回到主菜单'],
+      ['cover', '回到主页面'],
       ...exit,
     ];
+  }
+  // 顶栏预览把「说一句」「规则」收进了菜单（见 syncBarPv）：菜单里补上这两条
+  function movedTools() {
+    return [
+      ...(chatInMenu() && social && socialOk() ? [['chat', '说一句']] : []),
+      ...(rulesInMenu() ? [['rules', '规则']] : []),
+    ];
+  }
+  /* 菜单预览（?gzmenu=menu-a|b|c）：
+   *   甲 照百变小咪分四组 本局 / 我 / 帮助 / 离开，组间一道细线，不写组名；乙 同样分组、每组上面一个很小的组名；
+   *   丙 保持平铺，只去掉单机局里的创建 / 加入房间，补上缺的入口（名字头像、进阶教程、战绩、这步不对）。
+   * 「战绩」「这步不对」两条要等对应模块落地（window.GongzhuStats / window.GongzhuFeedback）才露出 */
+  const statsOk = () => !!(window.GongzhuStats && typeof window.GongzhuStats.open === 'function');
+  const feedbackOk = () => !!(window.GongzhuFeedback && typeof window.GongzhuFeedback.open === 'function' && (!window.GongzhuFeedback.inMenu || window.GongzhuFeedback.inMenu()));
+  function pvMenuGroups() {
+    const exit = FROM_SITE ? [['exit', '返回百宝奇巧']] : [];
+    const chat = chatInMenu() && social && socialOk() ? [['chat', '说一句']] : [];
+    const rules = rulesInMenu() ? [['rules', '规则']] : [];
+    const fb = feedbackOk() ? [['feedback', '这步不对']] : [];
+    const stats = statsOk() ? [['stats', '战绩']] : [];
+    if (match && match.tutorial) {
+      return [['教程', [['skip', '跳过教程']]], ['帮助', rules], ['离开', [['cover', '回到主页面'], ...exit]]];
+    }
+    if (match && match.online && online) {
+      return [
+        ['房间 ' + online.code, [
+          ...(match.lobby ? [] : [['history', '每局得分']]),
+          ['room', '邀请朋友'],
+          ...(watching() && online.st.seatOpen ? [['sit', '坐下']] : []),
+          ...(isHost() && match.lobby ? [['roomrules', '自定义规则']] : []),
+          ...fb,
+        ]],
+        ['我', [
+          ['profile', '名字 / 头像'],
+          ...(!online.watching ? [['reveal', meRevealing() ? '不让观战看我的牌' : '让观战看我的牌']] : []),
+          ...stats,
+        ]],
+        ['帮助', rules],
+        ['离开', [['leave', '离开房间'], ...exit]],
+      ];
+    }
+    return [
+      ['本局', [['history', '每局得分'], ['restart', '重开一盘'], ...chat, ...fb]],
+      ['我', [['profile', '名字 / 头像'], ...stats, ['settings', '设置']]],
+      ['帮助', [...rules, ['tutorial', '新手教程'], ['advtut', '进阶教程']]],
+      ['离开', [['cover', '回到主页面'], ...exit]],
+    ];
+  }
+  function pvMenuItems() {
+    const groups = pvMenuGroups().filter(([, items]) => items.length);
+    const online1 = match && match.online && online;
+    if (MENU_PV.menu === 'menu-c') {
+      // 平铺：离开那一组前面一道线（同现状），其余首尾相接
+      const flat = [];
+      groups.forEach(([, items], i) => { if (i === groups.length - 1) flat.push(['line']); flat.push(...items); });
+      return online1 ? [['head', '房间 ' + online.code], ...flat] : flat;
+    }
+    const out = [];
+    groups.forEach(([label, items], i) => {
+      if (MENU_PV.menu === 'menu-b') out.push(['grp', label]);
+      else if (i) out.push(['line']);
+      else if (online1) out.push(['head', label]);
+      out.push(...items);
+    });
+    return out;
   }
   function menuAct(k) {
     closeMenu();
     if (k === 'restart') restartMatch();
     else if (k === 'history') showHistory();
-    else if (k === 'profile') showProfile();
+    else if (k === 'profile') { if (match && match.online) showProfile(); else showSoloProfile(); }
+    else if (k === 'rules') showRules();
+    else if (k === 'advtut') startTutorial(false, 'adv');
+    else if (k === 'stats') { if (statsOk()) window.GongzhuStats.open(); }
+    else if (k === 'feedback') { if (feedbackOk()) window.GongzhuFeedback.open(); }
+    else if (k === 'chat') { if (social && socialOk()) social.openChat($('gzMenuBtn')); }
     else if (k === 'create') createRoom();
     else if (k === 'join') showJoin('');
     else if (k === 'settings') showSettings();
@@ -2097,7 +2255,15 @@
       menuPanel.setAttribute('role', 'menu');
       menuPanel.hidden = true;
       menuPanel.addEventListener('click', (ev) => { const b = ev.target.closest('[data-menu]'); if (b) menuAct(b.dataset.menu); });
-      menuPanel.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { closeMenu(); $('gzMenuBtn').focus(); } });
+      menuPanel.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') { closeMenu(); $('gzMenuBtn').focus(); return; }
+        // 上下方向键在各条之间走（首尾相接），Home / End 跳到头尾
+        const bs = Array.from(menuPanel.querySelectorAll('button')), i = bs.indexOf(document.activeElement);
+        const to = ev.key === 'ArrowDown' ? (i + 1) % bs.length : ev.key === 'ArrowUp' ? (i - 1 + bs.length) % bs.length : ev.key === 'Home' ? 0 : ev.key === 'End' ? bs.length - 1 : -1;
+        if (to < 0 || !bs.length) return;
+        ev.preventDefault();
+        bs[to].focus();
+      });
       document.addEventListener('click', (ev) => { if (!ev.target.closest('.gz-menu, #gzMenuBtn')) closeMenu(); });
       els.app.appendChild(menuPanel);
     }
@@ -2105,6 +2271,7 @@
     if (soundPanel) soundPanel.hidden = true;
     menuPanel.innerHTML = menuItems().map(([k, t]) =>
       k === 'line' ? '<hr>' : k === 'head' ? '<div class="gz-menu-head">' + esc(t) + '</div>'
+        : k === 'grp' ? '<div class="gz-menu-grp" role="presentation">' + esc(t) + '</div>'
         : '<button type="button" role="menuitem" data-menu="' + k + '">' +
           '<svg class="gz-menu-ic" viewBox="0 0 24 24" aria-hidden="true">' + (MENU_ICONS[k] || '') + '</svg>' +
           '<b>' + esc(t) + '</b></button>').join('');
@@ -3005,7 +3172,7 @@
   function syncSocialUi() {
     const ok = !!social && socialOk();
     const btn = $('gzChatBtn');
-    if (btn) btn.hidden = !ok;
+    if (btn) btn.hidden = !ok || chatInMenu();
     els.app.classList.toggle('can-social', ok);
     if (!ok && social) social.close();
   }
@@ -4192,12 +4359,22 @@
     exposeWait = null;
     save();
   }
+  /* 暂停页预览（?gzmenu=pause-a|pause-b）：甲 照百变小咪——正中一个大暂停图标，下面左「主页面」（小房子）右「继续」（播放三角）；
+   * 乙 保留竖排两颗大键，只把「暂停」两个大字换成同一个图标。点窗外 / Esc 都等于继续（「继续」带 data-close） */
+  const PAUSE_IC = '<div class="gz-pause-ic" role="img" aria-label="暂停"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/><rect x="34" y="28" width="11" height="44" rx="3.5"/><rect x="55" y="28" width="11" height="44" rx="3.5"/></svg></div>';
+  const PLAY_IC = '<svg class="gz-btn-ic is-fill" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
+  const HOME_IC = '<svg class="gz-btn-ic" viewBox="0 0 24 24" aria-hidden="true">' + MENU_ICONS.cover + '</svg>';
   function showPause() {
-    openDialog('<h2>暂停</h2>' +
-      '<div class="gz-actions"><button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>继续</button>' +
-      '<button type="button" class="gz-btn" data-act="cover">回到主菜单</button></div>',
+    const html = MENU_PV.pause === 'pause-a'
+      ? PAUSE_IC + '<div class="gz-actions"><button type="button" class="gz-btn" data-act="cover">' + HOME_IC + '主页面</button>' +
+        '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>' + PLAY_IC + '继续</button></div>'
+      : (MENU_PV.pause === 'pause-b' ? PAUSE_IC : '<h2>暂停</h2>') +
+        '<div class="gz-actions"><button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>继续</button>' +
+        '<button type="button" class="gz-btn" data-act="cover">回到主页面</button></div>';
+    openDialog(html,
       (d) => {
         d.classList.add('is-pause');
+        if (MENU_PV.pause) d.classList.add('is-' + MENU_PV.pause);
         d.querySelector('[data-close]').addEventListener('click', () => { closeDialog(); playSolo(match); });
         d.querySelector('[data-act="cover"]').addEventListener('click', () => showCover());
       });
@@ -4454,6 +4631,7 @@
       fresh: playSoloFresh,
       drawBots,
       face: (id) => (window.GongzhuAvatars ? GongzhuAvatars.svg(id) : ''),
+      me: soloMe,
       createRoom, showJoin, joinByCode,
       liveRoom: () => liveRoom,
       openDialog, closeDialog, toast, coverStep, esc,
