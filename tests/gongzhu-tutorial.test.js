@@ -136,3 +136,71 @@ test('advanced tutorial: the coach has something to say at every beat', () => {
   }
   assert.ok(said.every(Boolean));
 });
+
+/* ───── 压短的新手教程（?gztut=a|b 预览） ─────
+ * 穷举新手每一步的所有合法牌：都要在 MAX 轮内收尾，四件事都讲到，总句数不超过 12 */
+function walkShort(S, onLeaf) {
+  let leaves = 0;
+  function walk(r, line) {
+    if (S.isDone(r)) { leaves++; onLeaf(r, line); return; }
+    assert.ok(!R.isRoundOver(r) && r.trickNo < S.MAX, S.id + '：没在 ' + S.MAX + ' 轮内收尾');
+    const s = r.turn;
+    const moves = s === 0 ? R.legalFor(r, 0) : [S.director(r, s)];
+    for (const c of moves) {
+      assert.ok(R.legalFor(r, s).includes(c), S.id + '：座位 ' + s + ' 出了不合法的 ' + R.cardLabel(c));
+      const d = R.cloneRound(r);
+      R.playCard(d, s, c);
+      walk(d, line.concat([c]));
+    }
+  }
+  walk(S.createRound(), []);
+  return leaves;
+}
+// 照着一条路线重放，收集讲解（和界面一样：轮到我出牌前 hint；一轮打满 afterTrick；收尾 outro）
+function replayShort(S, line) {
+  const r = S.createRound(), coach = S.createCoach(), said = coach.intro.map((m) => m.text);
+  let k = 0;
+  while (!S.isDone(r)) {
+    const s = r.turn;
+    let c;
+    if (s === 0) { const h = coach.hint(r); if (h) said.push(h); }
+    c = line[k++];
+    const done = R.playCard(r, s, c);
+    if (done) { const t = coach.afterTrick(done, r); for (const m of t.before.concat(t.after)) said.push(m.text); }
+  }
+  for (const m of coach.outro(r)) said.push(m.text);
+  return { r, said };
+}
+
+for (const id of ['a', 'b']) {
+  const S = T.short[id];
+  test('short tutorial ' + id + ': full deck', () => {
+    assert.equal(new Set(S.HANDS.flat()).size, 52);
+    S.HANDS.forEach((h) => assert.equal(h.length, 13));
+  });
+  test('short tutorial ' + id + ': every beginner line finishes the script (exhaustive)', () => {
+    let maxLines = 0, maxChars = 0, sheepMine = 0, sheepLost = 0;
+    const leaves = walkShort(S, (r, line) => {
+      const { said } = replayShort(S, line);
+      const all = said.join('\n');
+      maxLines = Math.max(maxLines, said.length);
+      maxChars = Math.max(maxChars, ...said.map((x) => x.replace(/\{[^}]+\}/g, '牌').length));
+      assert.ok(said.length <= 12, id + '：讲了 ' + said.length + ' 句：\n' + all);
+      assert.ok(r.played[R.PIG], id + '：猪没出现');
+      assert.ok(!r.captured[0].includes(R.PIG), id + '：猪落到我手里');
+      assert.ok(r.history.some((t) => t.plays.some((p) => R.suitOf(p.card) !== R.suitOf(t.plays[0].card))), id + '：没人垫过牌');
+      assert.ok(!r.played[R.DOUBLER], id + '：变压器出现了（留给实战讲）');
+      for (const word of ['猪', '羊', '垫']) assert.ok(all.includes(word), id + '：没讲「' + word + '」：\n' + all);
+      if (r.captured[0].includes(R.SHEEP)) sheepMine++; else sheepLost++;
+      if (id === 'a') assert.ok(r.captured[0].includes(R.SHEEP) && r.captured[1].includes(R.PIG), 'a：羊归我、猪归下家');
+      if (id === 'b') {
+        assert.ok(r.played[R.SHEEP], 'b：羊没出现');
+        const mine = r.history[1].plays.find((p) => p.seat === 0).card;
+        assert.notEqual(R.suitOf(mine), R.CLUB, 'b：第 2 轮我必须是垫牌');
+      }
+    });
+    assert.ok(leaves > 10, id + '：路线太少 ' + leaves);
+    if (id === 'b') assert.ok(sheepMine && sheepLost, 'b：羊要能抢到、也要能错过');
+    console.log('  short ' + id + ': ' + leaves + ' 条路线，最多 ' + maxLines + ' 句，最长一句 ' + maxChars + ' 字');
+  });
+}
