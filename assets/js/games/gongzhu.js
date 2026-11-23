@@ -35,6 +35,16 @@
   const ROLL = GZPV.startsWith('final-b3');
   // 甲（素绢灰青）里猪印放哪：final-b3a1 盖在分数左边 / final-b3a2 头像直接换成猪（final-b3a 原样：印压在头像角上）
   const SEAL_AT = ROLL ? GZPV.slice(9) : '';   // 乙三宣纸卷及它的几套配色（final-b3a～b3d 只换颜色和装裱，结构相同）
+  /* 房主管人 / 暂停 / 本房间战绩（预览中，待用户挑；画法全在 gongzhu-host-pv.js，这里只留挂钩）：
+   * ?gzhost=<房主那一排 a|b|c><暂停 1|2><战绩 1|2>，例如 a11、b22、c12；只写字母 = a11 / b22 / c12。
+   * 不带参数 = 现状（新后端多出来的字段一概不画） */
+  const GZHOST = (() => {
+    const m = /^([abc])([12])?([12])?$/.exec(new URLSearchParams(location.search).get('gzhost') || '');
+    if (!m) return null;
+    const d = { a: '11', b: '22', c: '12' }[m[1]];
+    return { row: m[1], pause: m[2] || d[0], rec: m[3] || d[1] };
+  })();
+  let hostPv = null;
   if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, fade: 120, roundEnd: 60 });
   const SETTLE_HOLD = AUTO ? 60 : 1700;   // 累计分在桌上数完（最长约 0.9 秒）后再停一会儿，才弹结算页
   // 教程放慢：机器人出牌、收墩都留足时间看清
@@ -1280,6 +1290,13 @@
     els.seats[clock.seat].classList.remove('is-paused');
     runClock();
   }
+  // 联机房主暂停：钟停住（pauseClock 联机不停，这里专门停）
+  function holdClock() {
+    if (clock.seat < 0) return;
+    clearTimeout(clock.t1); clearTimeout(clock.t2); clearInterval(clock.tk);
+    clock.paused = true;
+    els.seats[clock.seat].classList.add('is-paused');
+  }
   function stopClock() {
     clearTimeout(clock.t1); clearTimeout(clock.t2); clearInterval(clock.tk);
     if (clock.seat >= 0) els.seats[clock.seat].classList.remove('is-timed', 'is-hurry', 'is-paused');
@@ -2056,6 +2073,7 @@
         ...(watching() && online.st.seatOpen ? [['sit', '坐下']] : []),
         ...(!online.watching ? [['reveal', meRevealing() ? '不让观战看我的牌' : '让观战看我的牌']] : []),
         ...(isHost() && match.lobby ? [['roomrules', '自定义规则']] : []),
+        ...(hostPv ? hostPv.menuItems() : []),
         ['leave', '离开房间'],
         ...exit,
       ];
@@ -2083,6 +2101,7 @@
     else if (k === 'skip') endTutorial();
     else if (k === 'room') copyText(NET.inviteUrl(online.code), '邀请链接已复制，发给朋友就能进房间');
     else if (k === 'roomrules') showRoomRules('view');
+    else if (hostPv && hostPv.menuAct(k)) { /* 预览模块接走了 */ }
     else if (k === 'sit') watchSit();
     else if (k === 'reveal') {
       const on = !meRevealing();
@@ -3044,6 +3063,9 @@
         if (on) mutedIds.add(p.id); else mutedIds.delete(p.id);
         toast(on ? '已屏蔽' + p.nick + '的互动' : '不再屏蔽' + p.nick);
       },
+      // 房主点一个真人：底下多一排（托管 / 禁言 / 请离），预览中（?gzhost=），见 gongzhu-host-pv.js
+      extraTitle: (l) => (hostPv ? hostPv.extraTitle(l) : ''),
+      extra: (l) => (hostPv ? hostPv.extra(l) : []),
       sfx: (name, delay) => snd(name, delay),
       reduce: reduceMotion,
     });
@@ -3061,6 +3083,29 @@
       const ev = e.t === 'p' ? { kind: 'prop', from, to: loc(e.to), prop: e.prop } : { kind: 'chat', from, text: e.text };
       social.play(ev, { echo: true, delay: e.delay || 0 });
     }
+  }
+
+  /* 预览模块（?gzhost=）：按需加载，拿到的是一组读状态 / 发动作 / 画弹框的接口，不直接碰这里的变量 */
+  function loadHostPv() {
+    const v = '?v=' + (window.GZ_BUILD || VERSION);
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = '/assets/css/gongzhu-host-pv.css' + v;
+    document.head.appendChild(css);
+    const js = document.createElement('script');
+    js.src = '/assets/js/games/gongzhu-host-pv.js' + v;
+    js.onload = () => {
+      if (!window.GongzhuHostPv) return;
+      hostPv = GongzhuHostPv.create(GZHOST, {
+        $, els, esc, faceHtml, avatarOf, toast, askConfirm, openDialog, closeDialog, snd,
+        online: () => online, match: () => match, isHost, playerAt, srv, loc,
+        act: (action, body) => onlineAct(action, body),
+        lobbyOp, hostStart, tierLabels: TIER_LABELS, tierOrder: TIER_ORDER,
+        names: () => NAMES,
+        redraw: () => { if (!online || !online.st) return; if (online.st.phase === 'lobby') renderLobby(); else renderOnlineBadges(); },
+      });
+      if (online && online.st) { hostPv.onState(online.st); if (online.st.phase === 'lobby') hostPv.lobby(online.st); else renderOnlineBadges(); }
+    };
+    document.head.appendChild(js);
   }
 
   /* 进入联机：先停掉单机这一盘（存档还在，离开房间时接着打） */
@@ -3093,6 +3138,7 @@
     stopClock(); closeDialog();
     busy = false; selected = -1; exposePick = []; ov.trick = null;
     els.app.classList.remove('is-online', 'is-lobby', 'is-watching');
+    if (hostPv) hostPv.reset();
     renderWatchUi();
     $('gzLobby').hidden = true;
     match = null;   // 单机那一盘进房间前已存档，封面上点「单机」接着打
@@ -3191,17 +3237,50 @@
     tick();
   }
 
+  /* 长轮询卡住了怎么办（2026-11-22 照百变小咪）：每条长轮询记下发出的时间，用 AbortController 发；
+   * 连接探测（ping，每 3 秒一次，页面在前台时）顺便问服务器房间进度 v：服务器已经比我新、这条却还挂着 = 卡住了 → 丢掉重发；
+   * 挂得比服务器最长等待（20 秒）还久也丢。丢掉的那条卡了多久，下一条报给服务器记日志。
+   * ping 也量来回、对时（比长轮询回来的 serverNow 准：长轮询回程不定）。老后端没有 ping：只剩「挂太久就丢」这一条 */
+  const POLL_GIVEUP_MS = 26000, STALL_MIN_MS = 2500, PING_MS = 3000;
+  function pollStalled(my, v) {
+    const pr = my.pollReq;
+    if (!pr || pr.ctl.signal.aborted) return;
+    const age = performance.now() - pr.t0;
+    if ((v != null && v > pr.since && age > STALL_MIN_MS) || age > POLL_GIVEUP_MS) { my.stallMs = age; pr.ctl.abort(); }
+  }
+  async function pingLoop(my) {
+    while (online === my && !my.stopped) {
+      await new Promise((r) => setTimeout(r, PING_MS));
+      if (online !== my || my.stopped) return;
+      if (document.hidden || my.noPing) { pollStalled(my, null); continue; }
+      const t0 = performance.now();
+      const j = await NET.ping(my.code);
+      if (online !== my) return;
+      if (j === false) my.noPing = true;   // 老后端：不再问（免得控制台一排 400），只剩「挂太久就丢」
+      if (j) {
+        const ms = performance.now() - t0;
+        if (ms < 3000) my.pingSkew = j.serverNow + ms / 2 - Date.now();   // 对时：服务器时间 + 半个来回
+        pollStalled(my, j.v);
+      } else pollStalled(my, null);
+    }
+  }
   async function pollLoop(my) {
     let fails = 0;
+    pingLoop(my);
     while (online === my && !my.stopped) {
+      const ctl = new AbortController(), since = my.st ? my.st.version : 0;
+      my.pollReq = { ctl, t0: performance.now(), since };
+      const stall = my.stallMs || 0;
+      my.stallMs = 0;
       try {
-        const res = await NET.state(my.code, my.token, my.st ? my.st.version : 0, undefined, my.fxSeq == null ? -1 : my.fxSeq);
+        const res = await NET.state(my.code, my.token, since, ctl.signal, my.fxSeq == null ? -1 : my.fxSeq, stall);
         fails = 0;
         if (online !== my) return;
         if (res.fxSeq != null) onFx(my, res);
         if (res.state) onState(res.state);
       } catch (e) {
         if (online !== my) return;
+        if (ctl.signal.aborted) continue;   // 是我嫌它卡住、自己丢掉的：马上重发，不算失败
         if (e.status === 401 || e.status === 404) { leaveOnline('房间已经解散了'); return; }
         fails++;
         if (fails === 3) toast('网络不太稳，正在重连…');
@@ -3235,10 +3314,10 @@
     if (st.spectator && online.viewPending >= 0 && st.viewSeat !== online.viewPending) return;   // 正在换视角：换之前的快照不要了
     online.base = st;
     online.st = st.phase === 'lobby' ? withOps(st) : st;
-    online.skew = st.serverNow - Date.now();
+    online.skew = online.pingSkew != null ? online.pingSkew : st.serverNow - Date.now();
     const spec = !!st.spectator;
     const me = st.players.find((p) => p.id === st.me);
-    if (!spec && (!me || me.left || st.mySeat < 0)) { leaveOnline('你已经不在这个房间里了'); return; }
+    if (!spec && (!me || me.left || st.mySeat < 0)) { leaveOnline(st.kicked ? '房主请你离开了房间' : '你已经不在这个房间里了'); return; }
     // 观战 ↔ 坐下：看的方向变了，整桌按快照重画
     online.watchSeat = spec ? st.viewSeat | 0 : 0;
     const view = spec ? online.watchSeat : st.mySeat;
@@ -3251,6 +3330,7 @@
     AVATARS = [0, 1, 2, 3].map((l) => avatarOf(l === 0 && !spec ? me : playerAt(srv(l))));
     renderWatchUi();
     syncSocialUi();
+    if (hostPv) hostPv.onState(st);
     if (sat) toast(st.phase === 'lobby' ? '坐下了' : '坐下了，下一局一起打');
     if (st.phase === 'lobby') { renderLobby(); return; }
     if (countdown && !countdown.done) return;   // 房主还在数 3、2、1：数完再进（见 hostStart）
@@ -3430,21 +3510,26 @@
       match.exposing = mine ? [0] : [];
       busy = !mine;
       renderSeats(); renderHand();
-      if (mine) { startClock(0, null, remainMs(gv)); dingMyTurn(); maybeExposeTip(); }
+      if (gv.paused) { busy = true; match.exposing = []; renderHand(); }   // 房主暂停：服务器不收，先别让我点
+      if (mine && !gv.paused) { startClock(0, null, remainMs(gv)); dingMyTurn(); maybeExposeTip(); }
       return;
     }
     match.exposing = [];
     if (gv.phase !== 'playing') return;
-    busy = !(r.turn === 0 && gv.legal.length > 0);
+    busy = !(r.turn === 0 && gv.legal.length > 0) || !!gv.paused;   // 房主暂停：谁都不能出
     renderSeats(); renderHand();
     startClock(r.turn, null, remainMs(gv));
-    if (!busy) dingMyTurn();
+    if (gv.paused) holdClock();   // 暂停：钟停在暂停那一刻（继续时服务器把截止时刻整体后移，按新快照重新走）
+    else if (!busy) dingMyTurn();
   }
   function exposeKey(gv) { return gv.matchNo + ':' + gv.roundNo; }
-  // 倒计时还剩多久：服务器的截止时刻（出牌时它比我这边多等 3 秒，先让我自己的钟走完）
+  // 倒计时还剩多久：服务器的截止时刻（出牌时它比我这边多等一截宽限，先让我自己的钟走完；
+  // 宽限由服务器按网络给、随视图下发 game.grace，老后端没有这个字段 = 3 秒）
   function remainMs(gv) {
     if (!gv.deadline) return 0;
-    const left = gv.deadline - (Date.now() + online.skew) - (gv.phase === 'playing' ? 3000 : 0);
+    const grace = gv.phase === 'playing' ? (gv.grace > 0 ? gv.grace : 3000) : 0;
+    const now = gv.paused && gv.pausedAt ? gv.pausedAt : Date.now() + online.skew;   // 暂停中：钟停在暂停那一刻
+    const left = gv.deadline - now - grace;
     return Math.min(Math.max(left, 0), Math.max(gv.turnSec, 15) * 1000);
   }
 
@@ -3497,6 +3582,7 @@
       if (eb) { eb.hidden = !eyes; eb.querySelector('b').textContent = eyes; }
       if (av) av.setAttribute('aria-label', eyes ? eyes + ' 人在这一家身后观战' : '');
       if (l > 0) { if (auto) el.setAttribute('aria-label', NAMES[l] + '（托管中）'); else el.removeAttribute('aria-label'); }
+      if (hostPv) hostPv.badge(l, el, p);
     }
   }
 
@@ -3647,6 +3733,7 @@
         ? (missing > 0 ? '还差 ' + missing + ' 人' : '人齐了，可以开始')
         : '等房主开始');
     guestRulesCheck(st);
+    if (hostPv) hostPv.lobby(st);
   }
 
   /* ───── 大厅里房主的机器人操作：先画上去，再排队慢慢发 ─────
@@ -4072,6 +4159,7 @@
     if (social && socialOk()) social.openProps(l);
   }));
   initSocial();
+  if (GZHOST) loadHostPv();
   $('gzChatBtn').addEventListener('click', () => { if (social && socialOk()) social.openChat($('gzChatBtn')); });
   els.seats[0].addEventListener('click', (e) => {
     if (!e.target.closest('.gz-avatar') || !match || match.tutorial || match.demo || match.lobby || AUTO) return;
