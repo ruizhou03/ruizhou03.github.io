@@ -7630,7 +7630,7 @@
     online.skew = st.serverNow + (rttMs != null ? rttMs : netRtt()) / 2 - Date.now();
     const prev = online.st;
     online.st = st;
-    if (st.phase === 'lobby') { enterLobby(st, prev); return; }
+    if (st.phase === 'lobby') { enterLobby(st, prev); checkShort(st); return; }
     const g = st.game;
     if (!g) return;
     const base = viewBase(st);
@@ -8537,6 +8537,20 @@
    * 一排五个座位（空位 / 真人 / 机器猫）+ 规则卡（房主能改，别人只看）+ 房间号；房主点空位加机器猫、点机器猫换档 / 移走，点真人可以请出去 */
   let lobbyEl = null;
   function hideLobby() { if (lobbyEl) lobbyEl.hidden = true; }
+  /* 小鱼干（2026-11-23 用户：余额不够不能直接开）：房主点开始时服务器查了每个坐着的人——我不够这局门票，就停在大厅、我这儿弹「小鱼干不够了」
+   * （救济 / 签到都在里面）；凑够了点主键告诉服务器（wallet_ok）。我是房主：主键就是「开始」，凑够了直接开。
+   * 房主那边，不够的人座位上挂一条灰鱼；一次开局只弹一回（关掉了，房主再点开始会再弹） */
+  let shortSeen = 0;
+  function checkShort(st) {
+    const sh = st.short;
+    if (!sh || !WAL || !WAL.topUp || st.spectator || sh.ids.indexOf(st.me) < 0 || shortSeen === sh.at) return;
+    shortSeen = sh.at;
+    const host = st.hostId === st.me;
+    WAL.topUp({ tier: sh.tier, mode: sh.mode, n: sh.n, price: sh.price, okLabel: host ? T('ui.start', '开始') : T('ui.wallet.ready', '好了') }).then((ok) => {
+      if (!ok || !online) return;
+      onlineAct('wallet_ok').then((r) => { if (host && r && r.state && r.state.phase === 'lobby' && !r.state.short) onlineAct('start'); });
+    });
+  }
   function enterLobby(st, prev) {
     if (editing.on && editing.where === 'table') exitEdit();
     if (game && game.online) { resetTable(); game = null; }
@@ -8591,7 +8605,8 @@
       if (!p) return '<button type="button" class="zm-lseat is-empty" data-seat="' + seat + '"><span class="av">+</span><b>' + (host ? T('lobby.addBot', '加机器猫') : T('lobby.empty', '空位')) + '</b><small>' + (st.spectator ? T('lobby.sitHere', '坐这里') : host ? '' : T('lobby.moveHere', '换到这')) + '</small></button>';
       const av = p.avatar && AV && AV.byId[p.avatar] ? tint(AV.byId[p.avatar].svg, seat) : '<span>' + esc(p.nick.slice(0, 1)) + '</span>';
       const tag = p.isAi ? AI.TIER_NAMES[p.aiLevel] || AI.TIER_NAMES.normal : p.id === st.hostId ? T('ui.host', '房主') : !p.online ? T('ui.tag.offline', '掉线') : '';
-      return '<button type="button" class="zm-lseat' + (p.id === me ? ' is-me' : '') + (p.isAi ? ' is-bot' : '') + '" data-seat="' + seat + '"><i class="ord">' + (order.indexOf(seat) + 1) + '</i><span class="av">' + av + '</span><b>' + esc(p.nick) + '</b><small>' + esc(tag) + '</small></button>';
+      const short = !p.isAi && st.short && st.short.ids.indexOf(p.id) >= 0;   // 这局门票不够（房主点开始时服务器查的）
+      return '<button type="button" class="zm-lseat' + (p.id === me ? ' is-me' : '') + (p.isAi ? ' is-bot' : '') + (short ? ' is-short' : '') + '" data-seat="' + seat + '"><i class="ord">' + (order.indexOf(seat) + 1) + '</i>' + (short && WAL ? '<i class="zm-need">' + WAL.FISH + '</i>' : '') + '<span class="av">' + av + '</span><b>' + esc(p.nick) + '</b><small>' + esc(tag) + '</small></button>';
     };
     const url = NET.inviteUrl(st.code);
     const tools = '<div class="zm-lobby-tools">' + ($('zmChatBtn') && social && socialOk() ? '<button type="button" class="zm-tool" data-l="chat" aria-label="' + T('ui.chat', '聊天') + '">' + $('zmChatBtn').innerHTML + '</button>' : '') +

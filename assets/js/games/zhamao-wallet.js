@@ -235,7 +235,7 @@
         acts.innerHTML = '';
         const bal = state.bal, rl = state.relief || {};
         mask.querySelector('h3').hidden = bal >= p;   // 凑够了：标题收起，只剩数字和「开始」
-        if (bal >= p) { const go = btn('is-main', T('ui.start', '开始'), () => end(true)); go.focus(); btn('is-plain', T('ui.cancel', '取消'), () => end(false)); return; }
+        if (bal >= p) { const go = btn('is-main', o.okLabel || T('ui.start', '开始'), () => end(true)); go.focus(); btn('is-plain', T('ui.cancel', '取消'), () => end(false)); return; }
         if (rl.first || rl.left > 0) {
           const amt = rl.first ? 2000 : 500;
           btn('is-main', T('ui.wallet.relief', '领救济') + ' ' + FISH + '+' + fmt(amt), (b) => claim(b, amt, () => post('relief', { n: o.n, mode: o.mode, tier: o.tier })));
@@ -246,6 +246,15 @@
         btn('is-plain', T('ui.ok', '知道了'), () => end(false));
       }
       draw();
+    });
+  }
+  /* 联机（2026-11-23）：房主点开始、服务器说我不够这局门票 → 同一个弹窗（救济 / 签到），凑够了点主键 resolve true。
+   * 门票以服务器给的为准（o.price）；先拉一次余额（本机记的可能是旧的） */
+  function topUp(o) {
+    if (shortOpen) return Promise.resolve(false);
+    return refresh().then(() => {
+      if (!state || state.bal == null) return true;
+      return shortDialog(o, o.price != null ? o.price : price(o.tier, o.mode, o.n));
     });
   }
   function cancelFx() { fxGen++; if (FX()) FX().cancelAll(); }
@@ -398,7 +407,7 @@
     state: () => state, onChange: (f) => listeners.push(f),
     me: refresh,
     checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile: () => post('profile'), fb: (steps) => post('fb', { steps }).catch(() => null),
-    mountChip, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout,
+    mountChip, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
     __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },
   };
 })(window);
