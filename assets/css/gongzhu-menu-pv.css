@@ -1,0 +1,34 @@
+/* 拱猪 · 局中菜单 / 顶栏 / 暂停页 / 单机身份预览（?gzmenu=…，见 gongzhu.js「MENU_PV」）。不带参数时这里的规则都碰不到 */
+
+/* 菜单乙：每组上面一个很小的组名（不点、不进方向键） */
+.gz-menu-grp { font-size: 11px; line-height: 1; color: var(--gz-ink-mute); letter-spacing: 0.12em; padding: 9px 10px 4px; user-select: none; }
+.gz-menu-grp:first-child { padding-top: 5px; }
+
+/* 单机身份甲：我名字后面一枚「我」小签（同机器人的方位小签，墨色实底以示区别） */
+.gz-tag.is-me { border-color: var(--gz-ink); background: var(--gz-ink); color: var(--gz-paper); }
+.gz-seat-me .gz-tag.is-me { margin-left: 6px; margin-top: 0; }
+/* 单机身份乙：不写字，我的头像外圈一道暖金双线（轮到我时照旧变红） */
+.gzm-me-b:not(.is-online) .gz-table:not(.is-tutorial) .gz-seat-me:not(.is-turn) .gz-avatar { border-color: var(--gz-gold, #c9a96e); box-shadow: 0 0 0 2.5px var(--gz-paper, #f3eee3), 0 0 0 4px var(--gz-gold, #c9a96e); }
+
+/* 暂停页：大字换成一个大暂停图标（甲乙同一个） */
+.gz-pause-ic { width: 92px; height: 92px; margin: 6px auto 20px; }
+.gz-pause-ic svg { width: 100%; height: 100%; display: block; }
+.gz-pause-ic circle { fill: none; stroke: var(--gz-ink); stroke-width: 3; }
+.gz-pause-ic rect { fill: var(--gz-ink); }
+/* 甲：两颗键左右并排，各带一个小图标 */
+.gz-dialog.is-pause.is-pause-a .gz-actions { flex-direction: row; align-items: stretch; gap: 12px; }
+.gz-dialog.is-pause.is-pause-a .gz-btn { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.gz-btn-ic { width: 19px; height: 19px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.gz-btn-ic.is-fill { fill: currentColor; stroke: none; }
+
+/* 预览菜单在横屏矮屏（手机横过来）里：一列放不下就排成两栏，免得要滚；甲乙按组排（一组不拆），丙按条排 */
+.gz-menu-g { display: flex; flex-direction: column; }
+@media (max-height: 520px) and (orientation: landscape) {
+  .gz-menu.is-pv:not([hidden]) { display: block; width: 392px; column-count: 2; column-gap: 8px; column-rule: 1px solid rgba(29, 27, 24, 0.1); }
+  .gz-menu.is-pv .gz-menu-g, .gz-menu.is-pv > button { break-inside: avoid; }
+  .gz-menu.is-pv .gz-menu-g { margin-bottom: 2px; }
+  .gz-menu.is-pv .gz-menu-g > hr { display: none; }
+  .gz-menu.is-pv .gz-menu-g + .gz-menu-g { padding-top: 2px; }
+  .gz-menu.is-pv .gz-menu-grp { padding-top: 6px; }
+  .gz-menu.is-pv button { padding: 7px 10px; }
+}

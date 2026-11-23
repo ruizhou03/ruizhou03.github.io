@@ -1273,7 +1273,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-flux-list .ic svg { width: 100%; height: 100%; display: block; }
 .zm-flux-list b { letter-spacing: 0.04em; }
 .zm-flux-list span { color: var(--zm-ink-mute); font-size: 12.5px; line-height: 1.4; }
-.zm-insert-at { position: fixed; z-index: 60; transform: translate(-50%, -100%); padding: 3px 10px; border-radius: 999px; background: var(--zm-ink); color: #fff; font-size: 13px; font-weight: 700; pointer-events: none; animation: zm-insert-at 2.2s ease forwards; }
+.zm-insert-at { position: fixed; z-index: 45; transform: translate(-50%, -100%); padding: 3px 10px; border-radius: 999px; background: var(--zm-ink); color: #fff; font-size: 13px; font-weight: 700; pointer-events: none; animation: zm-insert-at 2.2s ease forwards; }
 @keyframes zm-insert-at { 0% { opacity: 0; transform: translate(-50%, -80%) scale(0.7); } 12%, 80% { opacity: 1; transform: translate(-50%, -100%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -120%); } }
 /* 百变牌（2026-11-15 用户挑甲 1）：五彩渐变描边 + 牌面一道慢慢扫过的斜光 + 深紫名字条金字、两边小星——一手奶油色的牌里一眼认得出 */
 .zm-card[data-k="flux"] { border: 2px solid transparent; background: linear-gradient(var(--zm-card), var(--zm-card)) padding-box, linear-gradient(135deg, #e0893e, #d4607e 30%, #8a63a8 55%, #2f8a83 78%, #c9a24a) border-box; }
@@ -1809,9 +1809,18 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   /* 竖直方向和牌堆对齐（2026-11-19 用户：规则卡看着偏上）：桌子中间那块顶上让给顶边几家的 padding（--ctr-pad，JS 量）只算在牌堆那边，卡也跟着往下挪一半 */
   .zm-app.is-ring .zm-flux { left: calc(50% + var(--pu) * 1.35 - 88px); top: calc(50% + var(--ctr-pad, 0px) / 2); width: 200px; max-width: 200px; }
 }
-/* 横着的屏幕但不算矮（平板横屏）：牌堆下面放不下规则卡时（JS 量，见 fluxSpot）摆到弃牌堆右边，牌堆那组往左让（2026-11-22 用户：压到桌沿灯带和摸牌键） */
-.zm-center.is-flux-side .zm-piles { transform: translateX(-112px); transition: transform 0.35s ease; }
-.zm-center.is-flux-side .zm-flux { left: calc(50% + var(--pu) * 1.35 - 88px); top: calc(50% + var(--ctr-pad, 0px) / 2); translate: 0 -50%; width: 200px; max-width: 200px; }
+/* 百变规则 · 桌面大水印（2026-11-22 用户挑定）：桌沿以内铺一层，规则图标放大摆在桌心（牌堆后面），下面一行淡色大字写规则名。
+ * 压在牌桌最底下（桌沿线、牌堆、头像都在它上面）；点那行大字看全部规则（JS 在牌桌上接点击） */
+.zm-fluxwm { position: absolute; z-index: 0; pointer-events: none; border-radius: 26px; }
+/* 比经典模式「多一层」（2026-11-22 用户挑：淡衬底 + 底色跟着规则换，不要金边）：桌沿以内垫一层淡淡的规则色，水印也比经典桌面深一点 */
+.zm-fluxwm { background: radial-gradient(85% 75% at 50% 45%, color-mix(in srgb, var(--wm-tone, #ecdcee) 70%, transparent), color-mix(in srgb, var(--wm-tone, #ecdcee) 38%, transparent) 70%, color-mix(in srgb, var(--wm-tone, #ecdcee) 16%, transparent)); transition: background-color 0.4s ease; }
+.zm-fluxwm .wm-ic { opacity: 0.2; }
+.zm-fluxwm .wm-name { opacity: 0.26; }
+.zm-fluxwm .wm-ic { position: absolute; left: 50%; top: 44%; translate: -50% -50%; width: min(calc(var(--wm-w) * 0.85), calc(var(--wm-h) * 0.6)); aspect-ratio: 1; opacity: 0.13; }
+.zm-fluxwm .wm-ic svg { width: 100%; height: 100%; display: block; }
+.zm-fluxwm.is-wide .wm-ic { left: 21%; top: 52%; width: calc(var(--wm-h) * 0.78); }
+.zm-fluxwm.is-wide .wm-name { left: auto; right: 6%; width: 30%; bottom: auto; top: 50%; translate: 0 -50%; font-size: clamp(26px, calc(var(--wm-h) * 0.26), 72px); }
+.zm-fluxwm .wm-name { position: absolute; left: 0; right: 0; bottom: 9%; text-align: center; padding-left: 0.2em; font: 700 clamp(26px, min(calc(var(--wm-w) * 0.2), calc(var(--wm-h) * 0.17)), 72px)/1 "Noto Serif SC", "Songti SC", serif; letter-spacing: 0.2em; color: #a8566f; opacity: 0.17; }   /* 规则名一律玫瑰墨色（用户看中的那版），规则靠上面的大图标区分 */
 /* 联机大厅 · 组队（2026-11-18）：座位按队分段，每段一块队色淡底板；多坐了的人另起一行 */
 /* 2026-11-19 用户：队伍框按人数收紧、居中；每队 2 人时一行放两队（2v2 一行；2v2v2 = 两队 + 下面一队居中，2v2v2v2 = 两行各两队）。
  * 座位宽度各种分法都一样：按「一行两个两人队正好放满」算（--sw） */
