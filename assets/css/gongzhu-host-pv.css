@@ -1,0 +1,140 @@
+/* 拱猪联机 · 房主管人 / 暂停 / 本房间战绩 —— 预览（?gzhost=，见 assets/js/games/gongzhu-host-pv.js） */
+
+/* 线条图标：沿用顶栏工具键的画法 */
+.gzh-act svg, .gzh-big svg, .gzh-mb svg, .gzh-mn svg, .gzh-pb svg, .gzh-chip svg, .gzh-glyph svg, .gzh-mark svg, .gzh-rec summary svg, .gzh-again svg {
+  fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: block;
+}
+
+/* ───── 房主那一排 ───── */
+.gz-sp-extra .gz-sp-extra-btns { display: flex; gap: 6px; }
+.gzh-act { display: inline-flex; align-items: center; justify-content: center; color: var(--gz-ink); }
+.gzh-act svg { width: 22px; height: 22px; }
+
+/* 甲：框底三个图标圆键 */
+.gzh-row-a .gz-sp-extra .gz-sp-extra-btns button { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--gz-ink-faint); display: inline-flex; align-items: center; justify-content: center; }
+.gzh-row-a .gz-sp-extra .gz-sp-extra-btns button:hover { background: var(--gz-wash); }
+.gzh-row-a .gzh-act.is-on { color: var(--gz-seal); }
+
+/* 乙：框底一个「管理」键 → 小单子 */
+.gzh-row-b .gz-sp-extra .gz-sp-extra-btns button { width: 38px; height: 38px; border-radius: 50%; background: var(--gz-ink); display: inline-flex; align-items: center; justify-content: center; }
+.gzh-row-b .gz-sp-extra .gzh-act { color: var(--gz-paper); }
+.gzh-sheet { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 4px 0 6px; }
+.gzh-sheet-av { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gzh-sheet-av .gz-avatar { width: 64px; height: 64px; }
+.gzh-sheet-av b { font-size: 16px; }
+.gzh-bigs { display: flex; gap: 18px; }
+.gzh-big { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: none; padding: 0; font: inherit; color: var(--gz-ink); cursor: pointer; }
+.gzh-big > span { width: 56px; height: 56px; border-radius: 50%; border: 1.5px solid var(--gz-ink); display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+.gzh-big svg { width: 26px; height: 26px; }
+.gzh-big small { font-size: 13px; color: var(--gz-ink-mute); }
+.gzh-big.is-on > span { background: var(--gz-ink); color: var(--gz-paper); }
+.gzh-big[data-h="kick"] > span { border-color: var(--gz-seal); color: var(--gz-seal); }
+
+/* 丙：三个带短标签的开关挪到框最上面 */
+.gzh-row-c .gz-social-pop { display: flex; flex-direction: column; }
+.gzh-row-c .gz-sp-extra { order: -1; margin: 0 0 6px; padding: 0 2px 8px; border-top: 0; border-bottom: 1px solid var(--gz-wash); }
+.gzh-row-c .gz-sp-extra > span:first-child { display: none; }
+.gzh-row-c .gz-sp-extra .gz-sp-extra-btns { width: 100%; justify-content: space-between; gap: 4px; }
+.gzh-row-c .gz-sp-extra .gz-sp-extra-btns button { flex: 1; }
+.gzh-row-c .gzh-act { gap: 4px; width: 100%; padding: 6px 8px; border-radius: 999px; border: 1px solid var(--gz-ink-faint); }
+.gzh-row-c .gzh-act svg { width: 18px; height: 18px; }
+.gzh-row-c .gzh-act small { font-size: 12.5px; white-space: nowrap; }
+.gzh-row-c .gzh-act.is-on { background: var(--gz-ink); color: var(--gz-paper); border-color: var(--gz-ink); }
+.gzh-row-c .gz-sp-extra button:last-child .gzh-act { color: var(--gz-seal); border-color: rgba(180, 57, 44, 0.45); }
+
+/* 被禁言的标记 */
+.gzh-mb {   /* 甲：头像左上角一枚划掉的对话框（托管的小机器人在右下角） */
+  position: absolute; left: -6px; top: -5px; width: 19px; height: 19px; border-radius: 50%;
+  background: var(--gz-paper); border: 1.3px solid var(--gz-ink); color: var(--gz-ink);
+  display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 1;
+}
+.gzh-mb svg { width: 12px; height: 12px; stroke-width: 2.2; }
+.gzh-mb[hidden], .gzh-mn[hidden], .gzh-pb[hidden] { display: none; }
+.gzh-row-b .gz-seat.gzh-muted .gz-avatar { border-style: dashed; border-color: var(--gz-ink-mute); }   /* 乙：头像变灰、外圈虚线 */
+.gzh-row-b .gz-seat.gzh-muted .gz-av-face { filter: grayscale(1); opacity: 0.55; }
+.gzh-mn { display: inline-flex; width: 15px; height: 15px; color: var(--gz-ink-mute); vertical-align: -2px; }   /* 丙：名字后面跟一个小图标 */
+.gzh-mn svg { width: 15px; height: 15px; stroke-width: 2; }
+.gz-name-line:has(.gzh-mn:not([hidden])) { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 3px; }
+.gz-name-line:has(.gzh-mn:not([hidden])) .gz-total { flex-basis: 100%; text-align: center; }
+.gz-seat-me .gz-name-line:has(.gzh-mn:not([hidden])) .gz-total, .gz-seat-top .gz-name-line:has(.gzh-mn:not([hidden])) .gz-total { text-align: left; }
+
+/* ───── 暂停 ───── */
+#gzPauseBtn.is-on { color: var(--gz-seal); }
+/* 甲：牌桌罩一层纸色，中间一张暂停卡 */
+.gzh-veil {
+  position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
+  background: rgba(243, 238, 227, 0.74); backdrop-filter: blur(1.5px); -webkit-backdrop-filter: blur(1.5px);
+  animation: gzh-fade 0.2s ease-out;
+}
+.gzh-veil[hidden] { display: none; }
+.gzh-pause-1.gzh-paused .gz-topbar { position: relative; z-index: 31; }
+.gzh-card {
+  display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 22px 30px 20px; border-radius: 18px;
+  background: var(--gz-card); border: 1px solid var(--gz-ink); box-shadow: 0 10px 28px rgba(20, 18, 15, 0.16);
+}
+.gzh-glyph { width: 64px; height: 64px; border-radius: 50%; background: var(--gz-ink); color: var(--gz-paper); display: flex; align-items: center; justify-content: center; }
+.gzh-glyph svg { width: 34px; height: 34px; stroke-width: 2.6; }
+.gzh-host-av { width: 34px; height: 34px; margin-top: -32px; margin-left: 52px; border: 2px solid var(--gz-card); }
+.gzh-card .gz-btn { min-width: 120px; }
+@keyframes gzh-fade { from { opacity: 0; } }
+
+/* 乙：左上角局数旁一颗小圆键；暂停时不罩牌桌，桌心一个淡淡的大暂停记号、房主头像角上挂暂停标 */
+.gzh-chip {
+  width: 30px; height: 30px; margin-left: 6px; border-radius: 50%; border: 1px solid var(--gz-ink); background: var(--gz-card);
+  color: var(--gz-ink); padding: 0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+}
+.gzh-chip[hidden] { display: none; }
+.gzh-chip svg { width: 18px; height: 18px; stroke-width: 2.2; }
+.gzh-chip.is-on { background: var(--gz-ink); color: var(--gz-paper); }
+.gzh-chip.is-on svg { fill: currentColor; }
+.gzh-mark {
+  position: absolute; left: 50%; top: 50%; width: min(30%, 150px); aspect-ratio: 1; transform: translate(-50%, -50%);
+  color: var(--gz-ink); opacity: 0.13; pointer-events: none; z-index: 2; animation: gzh-breathe 2.4s ease-in-out infinite alternate;
+}
+.gzh-mark[hidden] { display: none; }
+.gzh-mark svg { width: 100%; height: 100%; stroke-width: 2.4; }
+@keyframes gzh-breathe { from { opacity: 0.08; } to { opacity: 0.18; } }
+.gzh-pb {
+  position: absolute; left: -6px; bottom: -4px; width: 19px; height: 19px; border-radius: 50%;
+  background: var(--gz-seal); color: var(--gz-paper); border: 1.5px solid var(--gz-paper);
+  display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 1;
+}
+.gzh-pb svg { width: 13px; height: 13px; stroke-width: 2.8; }
+.gzh-pause-2.gzh-paused .gz-hand { opacity: 0.6; }
+@media (prefers-reduced-motion: reduce) { .gzh-mark, .gzh-veil { animation: none; } }
+
+/* ───── 本房间战绩 ───── */
+.gzh-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; }
+.gzh-dot.r1 { background: var(--gz-gold); border: 1px solid #a88a4f; }
+.gzh-dot.r2 { background: var(--gz-ink); }
+.gzh-dot.r3 { border: 1.5px solid var(--gz-ink); }
+.gzh-dot.r4 { border: 1.5px solid var(--gz-off); }
+.gzh-dot.is-pig { width: 13px; height: 11px; border-radius: 0; }
+.gzh-dot.is-pig svg { width: 100%; height: 100%; display: block; }
+.gzh-dot.is-pig ellipse { fill: #e8a9a0; stroke: var(--gz-seal); stroke-width: 1; }
+.gzh-dot.is-pig circle { fill: var(--gz-seal); }
+/* 甲：座位卡下面一排小点 + 平均名次 */
+.gzh-dots { display: inline-flex; align-items: center; gap: 3px; }
+.gz-seat-me .gzh-dots { margin-left: 4px; }
+.gzh-avg { margin-left: 3px; font: 700 12px/1 Georgia, serif; color: var(--gz-ink-mute); }
+/* 乙：大厅中间一张可展开的小表 */
+.gzh-rec { width: 100%; max-width: 340px; border: 1px solid var(--gz-ink-faint); border-radius: 12px; background: rgba(255, 253, 248, 0.7); text-align: left; }
+.gzh-rec summary { display: flex; align-items: center; gap: 7px; padding: 7px 12px; cursor: pointer; list-style: none; font-size: 14px; }
+.gzh-rec summary::-webkit-details-marker { display: none; }
+.gzh-rec summary svg { width: 18px; height: 18px; }
+.gzh-rec summary b { margin-left: auto; font: 700 13px/1 Georgia, serif; color: var(--gz-ink-mute); }
+.gzh-rec[open] summary { border-bottom: 1px solid var(--gz-wash); }
+.gzh-rec table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gzh-rec th { font-weight: 400; font-size: 11.5px; color: var(--gz-ink-mute); padding: 6px 6px 2px; text-align: center; }
+.gzh-rec td { padding: 4px 6px; text-align: center; border-top: 1px solid var(--gz-wash); }
+.gzh-rec td.who { text-align: left; }
+.gzh-rec td.who > div { display: flex; align-items: center; gap: 6px; white-space: nowrap; max-width: 8em; overflow: hidden; }
+.gzh-rec td.who .gz-avatar { width: 24px; height: 24px; font-size: 11px; border-width: 1px; }
+.gzh-rec td.avg { font: 700 14px/1 Georgia, serif; }
+.gzh-rec td.pig { color: var(--gz-seal); font: 700 13px/1 Georgia, serif; }
+.gzh-rec td.dots { white-space: nowrap; }
+.gzh-rec td.dots .gzh-dot { margin: 0 1px; vertical-align: middle; }
+.gzh-rec tr.is-gone { opacity: 0.55; }
+.gzh-again { display: inline-flex; align-items: center; gap: 6px; }
+.gzh-again[hidden] { display: none; }
+.gzh-again svg { width: 16px; height: 16px; }

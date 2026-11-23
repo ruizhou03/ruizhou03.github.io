@@ -87,12 +87,9 @@
 .zmw-res .zmw-star svg{width:16px;height:16px}
 .zmw-res .zmw-login{cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;border:1.5px solid #b4392c;color:#b4392c;background:#fffdf8;font:600 14px/1 system-ui;text-decoration:none}
 .zmw-chip b{transition:color .2s}
+.zmwfx-up{color:#3f7a52!important}.zmwfx-down{color:#b4392c!important}
+.zmwfx-ticket{display:inline-grid;place-items:center;min-width:58px;height:30px;padding:0 10px;border-radius:6px;background:#f0c9bb;border:1.5px solid #1d1b18;color:#1d1b18;font:700 15px/1 Georgia,serif;box-shadow:0 2px 0 #1d1b18;white-space:nowrap}
 .zmw-chip b.is-up{color:#3f7a52}.zmw-chip b.is-down{color:#b4392c}
-.zmw-fly{position:fixed;inset:0;pointer-events:none;z-index:90}
-.zmw-fly .zmw-chip.is-ghost{position:fixed;margin:0}
-.zmw-flyfish{position:fixed;left:0;top:0;width:34px;height:22px;margin:-11px 0 0 -17px}
-.zmw-flyfish .zmw-fish{width:34px;height:22px}
-.zmw-ticket{position:fixed;left:0;top:0;min-width:52px;height:28px;padding:0 8px;display:grid;place-items:center;border-radius:6px;background:#f0c9bb;border:1.5px solid #1d1b18;color:#1d1b18;font:700 14px/1 Georgia,serif;box-shadow:0 2px 0 #1d1b18}
 .zmw-res .zmw-wait{width:42px;height:6px;border-radius:3px;background:linear-gradient(90deg,#ebe5d8,#d9cfbd,#ebe5d8);background-size:200% 100%;animation:zmwWait 1s linear infinite}
 @keyframes zmwWait{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.zmw-res .zmw-wait{animation:none}}
@@ -114,6 +111,8 @@
   function markBadgesSeen(ids) { ls.set('zm.badges.seen', JSON.stringify(Array.from(new Set(seenBadges().concat(ids || []))))); paintChip(); }
   const hasNews = () => !!state && (state.ck !== today() || (state.badges || []).some((b) => seenBadges().indexOf(b) < 0));
   let shown = null;   // 左上角现在显示的数（动画从这里滚到新余额）
+  const FX = () => root.ZhamaoWalletFx || null;
+  const profileOpen = () => !!(root.ZhamaoProfile && root.ZhamaoProfile.isOpen && root.ZhamaoProfile.isOpen());
   function paintChip() {
     if (!chip) return;
     const has = state && state.bal != null;
@@ -122,61 +121,35 @@
     const b = chip.querySelector('b');
     if (shown == null) { b.textContent = fmt(state.bal); shown = state.bal; }
     else if (chip.offsetParent === null) { /* 封面藏着（在打牌）：等回到主页面露出来再滚 */ }
-    else if (!fxOn() || shown === state.bal) { b.textContent = fmt(state.bal); shown = state.bal; }
+    else if (profileOpen() || !fxOn() || !FX() || shown === state.bal) { b.textContent = fmt(state.bal); shown = state.bal; }   // 档案开着：鱼飞进档案里的余额，后面这个不动
     else { const from = shown; shown = state.bal; animateIn(from, state.bal); }
     chip.querySelector('.zmw-dot').hidden = !hasNews();
   }
 
-  /* ── 动画（2026-11-22 用户挑甲；先挂开关 ?walletfx=1 给用户预览，挑定再默认打开）──
-   * 进账：一串小鱼从屏幕中间飞进左上角，数字滚到新余额（加绿、减红）；扣门票：门票从左上角飞到「开始」键，数字往下滚，同时开局 */
+  /* ── 动画（2026-11-22 用户挑甲，第二轮重做：zhamao-walletfx.js；先挂开关 ?walletfx=1，用户看过预览再默认打开）──
+   * 进账：回到主页面时一串小鱼从下面弯弯地游进左上角，数字滚到新余额（加绿、减红）
+   * 扣门票：点「开始」→ 门票从左上角小鱼干里抽出来、飘落到「开始」键上（数字同时往下滚）→ 放完才进牌桌（不留半截动画在牌桌上） */
   const FX_KEY = 'zm.walletfx';
   (function () { const m = /[?&]walletfx=([01])\b/.exec(location.search); if (m) ls.set(FX_KEY, m[1]); })();
   const fxOn = () => ls.get(FX_KEY) === '1' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function roll(el, from, to, ms) {
-    const t0 = performance.now(), up = to >= from;
-    el.classList.add(up ? 'is-up' : 'is-down');
-    const tick = (t) => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(from + (to - from) * e); if (k < 1) requestAnimationFrame(tick); else setTimeout(() => el.classList.remove('is-up', 'is-down'), 500); };
-    requestAnimationFrame(tick);
-  }
-  function flyLayer() { let l = document.querySelector('.zmw-fly'); if (!l) { l = document.createElement('div'); l.className = 'zmw-fly'; document.body.appendChild(l); } return l; }
   function animateIn(from, to) {
-    const b = chip.querySelector('b'), r = chip.getBoundingClientRect();
-    if (to < from || !r.width) { roll(b, from, to, 520); return; }
-    const layer = flyLayer(), tx = r.left + 22, ty = r.top + r.height / 2, cx = innerWidth / 2, cy = innerHeight * 0.45;
-    const N = Math.min(6, 2 + Math.round(Math.log10(Math.max(10, to - from))));
-    let landed = 0;
-    for (let i = 0; i < N; i++) {
-      const f = document.createElement('span');
-      f.className = 'zmw-flyfish'; f.innerHTML = FISH;
-      layer.appendChild(f);
-      const sx = cx + (Math.random() - 0.5) * 80, sy = cy + (Math.random() - 0.5) * 50, mx = (sx + tx) / 2 + (Math.random() - 0.5) * 60, my = Math.min(sy, ty) - 40 - Math.random() * 40;
-      f.animate([{ transform: 'translate(' + sx + 'px,' + sy + 'px) scale(.6)', opacity: 0 }, { transform: 'translate(' + sx + 'px,' + sy + 'px) scale(1)', opacity: 1, offset: 0.15 }, { transform: 'translate(' + mx + 'px,' + my + 'px) scale(.9)', offset: 0.55 }, { transform: 'translate(' + tx + 'px,' + ty + 'px) scale(.55)', opacity: 1 }],
-        { duration: 560, delay: i * 55, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'backwards' }).finished.then(() => {
-        f.remove();
-        if (++landed === 1) { roll(b, from, to, 480); chip.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 260 }); }
-      }).catch(() => f.remove());
-    }
+    const b = chip.querySelector('b'), fx = FX();
+    if (to < from) { fx.roll(b, from, to, 560); return; }
+    const n = Math.min(6, 2 + Math.round(Math.log10(Math.max(10, to - from))));
+    fx.school(FISH, { x: innerWidth / 2, y: innerHeight * 0.72 }, chip, n, { spread: 90, gap: 90, dur: 820, lift: -60, onLand: () => fx.roll(b, from, to, 560) });
   }
-  /* 扣门票：克隆一份左上角的小鱼干（开局后封面就藏了），门票从那里飞到「开始」键，数字往下滚；0.6 秒内淡掉，牌局照常同时开始 */
-  function animateTicket(price0, balBefore) {
-    if (!fxOn() || !chip || chip.offsetParent === null) return;
-    const btn = document.querySelector('[data-cover="start"]'), r = chip.getBoundingClientRect(), br = btn && btn.offsetParent !== null ? btn.getBoundingClientRect() : null;
-    if (!r.width || !br) return;
-    const layer = flyLayer();
-    const ghost = chip.cloneNode(true);
-    ghost.classList.add('is-ghost'); ghost.style.left = r.left + 'px'; ghost.style.top = r.top + 'px';
-    ghost.querySelector('.zmw-dot').hidden = true;
-    layer.appendChild(ghost);
-    const tk = document.createElement('span');
-    tk.className = 'zmw-ticket'; tk.textContent = price0;
-    layer.appendChild(tk);
-    const sx = r.left + 10, sy = r.top + 6, ex = br.left + br.width / 2 - 26, ey = br.top + br.height / 2 - 14;
-    tk.animate([{ transform: 'translate(' + sx + 'px,' + sy + 'px) rotate(-8deg) scale(.7)', opacity: 0 }, { transform: 'translate(' + sx + 'px,' + (sy + 18) + 'px) rotate(-8deg) scale(1)', opacity: 1, offset: 0.18 }, { transform: 'translate(' + ex + 'px,' + ey + 'px) rotate(6deg) scale(1)', opacity: 1, offset: 0.85 }, { transform: 'translate(' + ex + 'px,' + ey + 'px) rotate(6deg) scale(.4)', opacity: 0 }],
-      { duration: 600, easing: 'cubic-bezier(.45,0,.4,1)', fill: 'forwards' }).finished.then(() => tk.remove()).catch(() => tk.remove());
-    roll(ghost.querySelector('b'), balBefore, Math.max(0, balBefore - price0), 420);
-    ghost.animate([{ opacity: 1 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }], { duration: 760, fill: 'forwards' }).finished.then(() => ghost.remove()).catch(() => ghost.remove());
-    shown = Math.max(0, balBefore - price0);
+  /* 点「开始」：先放扣门票（约 0.7 秒），放完再 resolve——调用方这时才真正开局。钱不够 / 没开动画 / 看不到左上角：马上 resolve */
+  let fxGen = 0;   // 每收一次动画 +1：放到一半被收掉的扣票，不能再接着开局
+  function playTicket(tier, mode, n) {
+    const fx = FX(), p = price(tier, mode, n);
+    if (!fx || !fxOn() || !chip || chip.offsetParent === null || !state || state.bal < p) return Promise.resolve(true);
+    cancelFx();
+    const gen = fxGen, btn = document.querySelector('[data-cover="start"]'), b = chip.querySelector('b'), from = state.bal;
+    shown = from - p;
+    fx.roll(b, from, from - p, 460, { delay: 140 });
+    return fx.ticket(chip, btn, p).then(() => gen === fxGen);
   }
+  function cancelFx() { fxGen++; if (FX()) FX().cancelAll(); }
   function mountChip(cover) {
     style();
     if (!cover || chip) return;
@@ -188,6 +161,8 @@
     chip.innerHTML = FISH + '<b></b><i class="zmw-dot" hidden></i>';
     chip.hidden = true;
     cover.appendChild(chip);
+    // 封面一藏起来（开局 / 进联机 / 进教程，不管从哪儿走的）：小鱼干的动画一律当场收掉，不带到下一页
+    if (root.MutationObserver) new MutationObserver(() => { if (cover.hidden) cancelFx(); }).observe(cover, { attributes: true, attributeFilter: ['hidden'] });
     paintChip();
     listeners.push(paintChip);
     refresh().then(retryPending);
@@ -229,7 +204,6 @@
     if (!game || game.tutorial || game.online) return;
     const st = game.state, mode = R.normalizeRules(st.rules).mode;
     const wt = game.wt = { n: st.n, mode, tier, all: 0, auto: 0 };
-    if (state && state.bal >= price(tier, mode, st.n)) animateTicket(price(tier, mode, st.n), state.bal);
     post('ticket', { n: st.n, mode, tier, gid: game.hl && game.hl.id }).then((r) => {
       if (game.wt !== wt) return;
       if (r.tid) { wt.tid = r.tid; wt.price = r.price; } else wt.short = true;
@@ -313,6 +287,7 @@
     state: () => state, onChange: (f) => listeners.push(f),
     me: refresh,
     checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile: () => post('profile'), fb: (steps) => post('fb', { steps }).catch(() => null),
-    mountChip, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn,
+    mountChip, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, cancelFx,
+    __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },
   };
 })(window);

@@ -42,6 +42,7 @@
 .zmp-who .ok svg{width:11px;height:11px}
 .zmp-login{border:1.5px solid #b4392c;color:#b4392c;background:#fffdf8;border-radius:999px;padding:7px 15px;font:700 14px/1 system-ui,sans-serif;cursor:pointer}
 .zmp-bal{text-align:right}
+.zmp-bal .n b{font:inherit;display:inline-block}
 .zmp-bal .n{display:inline-flex;align-items:center;gap:8px;font:900 clamp(30px,8vw,42px)/1 Georgia,serif;font-variant-numeric:tabular-nums}
 .zmp-bal .zmw-fish{width:46px;height:29px}
 .zmp-bal .sub{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;font:700 13px/1 Georgia,serif;color:#6a6358}
@@ -207,7 +208,7 @@
       '<div class="zmp-card zmp-hero2"><div class="zmp-av">' + me.face + '</div><div><div class="zmp-nick">' + esc(me.nick) + '</div><div class="zmp-who">' +
         (p.owner === 'account' ? '<span class="ok">' + TICK + '</span>已登录' : '<button type="button" class="zmp-login" data-login>登录</button>') + '</div>' +
         '<div class="zmp-bdg">' + badges + '</div></div>' +
-        '<div class="zmp-bal"><span class="n">' + FISH + fmt(p.bal) + '</span><div class="sub"><span class="' + (wk >= 0 ? 'up' : 'dn') + '">本周 ' + sign(wk) + '</span><span>' + (p.games || 0) + ' 局</span></div></div></div>' +
+        '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span><div class="sub"><span class="' + (wk >= 0 ? 'up' : 'dn') + '">本周 ' + sign(wk) + '</span><span>' + (p.games || 0) + ' 局</span></div></div></div>' +
       '<div class="zmp-grid">' +
         '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div><div class="zmp-act" aria-label="近四周活跃">' + actHtml(p.heat) + '</div></div>' +
         '<div class="zmp-card wide"><div class="zmp-h">玩法胜率</div><div class="zmp-rings">' + MODES.map(([k, name, c]) => '<div class="zmp-ring">' + ring(p.modes[k].w, p.modes[k].g, c) + '<b>' + name + '</b><small>' + p.modes[k].g + ' 局</small></div>').join('') + '</div></div>' +
@@ -243,7 +244,7 @@
       const bd = e.target.closest('[data-badge]');
       if (bd && last) { const b = (last.badgeList || []).find((x) => x.id === bd.dataset.badge); if (b) badgeCard(b); return; }
       const ck = e.target.closest('[data-ck]');
-      if (ck) { ck.disabled = true; W().checkin().then(load).catch(() => { ck.disabled = false; }); return; }
+      if (ck) { checkinNow(ck); return; }
       if (e.target.closest('[data-login]')) login();
     });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen() && !document.querySelector('#sa-overlay.open')) close(); });
@@ -262,11 +263,30 @@
       if (spark) { draw(); if (root.ResizeObserver) new ResizeObserver(draw).observe(spark); }
     }).catch(() => { body.innerHTML = '<div class="zmp-in zmp-card zmp-empty">连不上服务器，稍后再试</div>'; });
   }
+  /* 签到（2026-11-22 用户：点了要马上有反应，鱼要飞进档案里的余额，不是飞去后面的左上角）：
+   * 点下去这格当场变成「已签」，连签数 +1，余额从格子里游出几条鱼进到上面的大数字、数字滚上去；同时发给服务器，
+   * 服务器回来且动画放完再按服务器的数据重摆一遍；失败就按服务器的样子摆回去 */
+  function checkinNow(ck) {
+    if (!last || ck.dataset.busy) return;
+    ck.dataset.busy = '1';
+    ck.disabled = true;
+    const amt = Number(ck.getAttribute('aria-label').split(' ').pop()) || 0, from = last.bal, to = from + amt;
+    ck.classList.remove('is-now'); ck.classList.add('is-done');
+    const sk = body.querySelector('.zmp-h small'); if (sk) sk.textContent = '连签 ' + (last.checkin.streak + 1) + ' 天';
+    const num = body.querySelector('[data-num]'), fx = root.ZhamaoWalletFx;
+    let anim;
+    if (fx && W().fxOn && W().fxOn()) anim = fx.school(W().FISH, ck, num.parentNode, Math.min(4, 2 + Math.round(amt / 100)), { spread: 16, gap: 90, dur: 700, lift: -50, size: 26, onLand: () => fx.roll(num, from, to, 520) });
+    else if (fx) anim = fx.roll(num, from, to, 420);
+    else { num.textContent = fmt(to); anim = Promise.resolve(); }
+    last.bal = to;
+    W().checkin().then(() => anim).then(() => setTimeout(load, 350)).catch(() => load());
+  }
   function login() {
     if (root.SiteAuth && root.SiteAuth.openLogin) root.SiteAuth.openLogin();
   }
   function open() {
     build();
+    if (root.ZhamaoWalletFx) root.ZhamaoWalletFx.cancelAll();   // 左上角还在放的进账动画收掉（档案盖上来了）
     body.innerHTML = '<div class="zmp-wait"></div>';
     el.hidden = false;
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('is-on')));
@@ -274,6 +294,7 @@
   }
   function hide() {
     if (!el || el.hidden) return;
+    if (root.ZhamaoWalletFx) root.ZhamaoWalletFx.cancelAll();
     el.classList.remove('is-on');
     const done = () => { el.hidden = true; };
     const bm = el.querySelector('.zmp-bmask'); if (bm) bm.remove();
