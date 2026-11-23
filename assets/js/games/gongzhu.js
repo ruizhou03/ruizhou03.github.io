@@ -3856,7 +3856,7 @@
     const css = document.createElement('link');
     css.rel = 'stylesheet';
     css.href = '/assets/css/gongzhu-cover-pv.css' + v;
-    document.head.appendChild(css);
+    document.body.appendChild(css);   // 挂在 body 末尾：排在页面里的 gongzhu.css 后面，同等优先级时这边说了算
     return new Promise((done) => {
       const js = document.createElement('script');
       js.src = '/assets/js/games/gongzhu-cover-pv.js' + v;

@@ -9,13 +9,14 @@
 .gzpv-side { width: 100%; display: flex; flex-direction: column; align-items: stretch; gap: 14px; }
 .gzpv .gz-cover-title { margin-bottom: 22px; }
 /* 主按钮一样高：有没有小字都一样 */
-.gzpv .gz-cover-btn { min-height: 74px; justify-content: center; box-sizing: border-box; }
+.gzpv .gz-cover-btn { height: 78px; min-height: 0; padding-top: 0; padding-bottom: 0; justify-content: center; box-sizing: border-box; }
 .gzpv .gz-cover-btn small:empty { display: none; }
 
 /* 分段选项（复用弹窗里的 .gz-seg），封面上用白底 */
 .gzpv .gzpv-seg { margin: 0; background: var(--gz-card); }
 .gzpv .gzpv-seg button { padding: 8px 2px; font-size: 14px; }
-.gzpv-row { display: grid; grid-template-columns: 3.4em minmax(0, 1fr); align-items: center; gap: 10px; }
+.gzpv-row { display: grid; grid-template-columns: 3.4em minmax(0, 1fr); align-items: start; gap: 10px; }
+.gzpv-row .gzpv-k { line-height: 36px; }
 .gzpv-k { font-size: 13px; color: var(--gz-ink-mute); letter-spacing: 0.1em; }
 .gzpv-v { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 
@@ -26,7 +27,7 @@
 .gzpv-av.is-me { background: var(--gz-ink); color: var(--gz-paper); }
 
 /* 接着打：一张卡，四个头像 + 累计分 */
-.gzpv-resume { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 74px; box-sizing: border-box; padding: 8px 12px 8px 14px;
+.gzpv-resume { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 78px; box-sizing: border-box; padding: 8px 12px 8px 14px;
   border: 1.5px solid var(--gz-ink); border-radius: 12px; background: var(--gz-card); color: var(--gz-ink); font: inherit; text-align: left; cursor: pointer; }
 .gzpv-resume:active { transform: translateY(1px); }
 .gzpv-rtx { flex: none; }
@@ -60,7 +61,7 @@
 .gzpv-or { display: flex; align-items: center; gap: 10px; color: var(--gz-ink-faint); font-size: 12px; margin: -2px 0; }
 .gzpv-or::before, .gzpv-or::after { content: ''; flex: 1; border-top: 1px solid rgba(29, 27, 24, 0.16); }
 .gzpv-join { display: flex; gap: 10px; align-items: stretch; }
-.gzpv-join .gzpv-code { margin: 0; flex: 1; min-width: 0; min-height: 74px; padding: 6px 8px; font-size: 28px; letter-spacing: 0.35em; text-indent: 0.35em; text-align: center; border-width: 1.5px; border-radius: 12px; }
+.gzpv-join .gzpv-code { margin: 0; flex: 1; min-width: 0; height: 78px; padding: 6px 8px; font-size: 28px; letter-spacing: 0.35em; text-indent: 0.35em; text-align: center; border-width: 1.5px; border-radius: 12px; }
 .gzpv-join .gzpv-code::placeholder { font-size: 16px; letter-spacing: 0.08em; text-indent: 0; color: var(--gz-ink-faint); }
 .gzpv-join .gz-cover-btn { flex: 0 0 34%; }
 .gzpv-err { margin: -4px 0 0; font-size: 13px; color: var(--gz-seal); text-align: center; }
@@ -102,8 +103,10 @@
   /* 右栏自己滚，内容少时上下居中（用 margin:auto，内容多时顶端不会被裁掉） */
   .gzpv-side { flex: 1 1 50%; max-width: 400px; height: 100%; overflow-y: auto; padding: 14px 28px 14px 8px; box-sizing: border-box; gap: 10px; }
   .gzpv-side::before, .gzpv-side::after { content: ''; flex: 1 0 0; margin: -5px 0; }
-  .gzpv .gz-cover-btn, .gzpv-resume, .gzpv-join .gzpv-code { min-height: 58px; }
-  .gzpv .gz-cover-btn { padding: 8px 14px; }
+  .gzpv-resume { min-height: 62px; }
+  .gzpv .gz-cover-btn, .gzpv-join .gzpv-code { height: 62px; }
+  .gzpv .gz-cover-btn small { font-size: 12px; }
+  .gzpv-row .gzpv-k { line-height: 30px; }
   .gzpv-panel { gap: 8px; }
   .gzpv .gzpv-seg button { padding: 6px 2px; font-size: 13px; }
   .gzpv-seg.is-4 { flex-wrap: nowrap; }
@@ -119,8 +122,16 @@
   .gzpv-x { display: block; top: 50%; left: 6px; transform: translateY(-50%); }
   .gzpv-mask.is-in .gzpv-sheet { animation-name: gzpv-left; }
   .gzpv-mask.is-out .gzpv-sheet { animation-name: gzpv-left; }
-  .gzpv-bot .gzpv-av { width: 32px; height: 32px; }
+  .gzpv-bot { flex-direction: row; justify-content: center; gap: 4px; padding: 0; }
+  .gzpv-bot .gzpv-av { width: 28px; height: 28px; }
   .gzpv-bots { gap: 2px; }
+  .gzpv-sheet .gzpv-resume { min-height: 54px; padding-top: 4px; padding-bottom: 4px; }
+  .gzpv-sheet .gz-cover-btn { height: 54px; }
+  .gzpv-sheet .gzpv-more { padding: 0 4px; }
+  .gzpv-sheet { padding-top: 6px; padding-bottom: 6px; }
+  .gzpv-sheet .gzpv-body { gap: 7px; }
+  .gzpv-sheet .gzpv-v { gap: 6px; }
+  .gzpv .gzpv-seg.is-4 button { padding: 3px 2px; line-height: 1.2; }
 }
 
 @media (prefers-reduced-motion: reduce) {
