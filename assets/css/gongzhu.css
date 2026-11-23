@@ -1163,18 +1163,54 @@ body.gz-fullscreen, .gz-app * { -webkit-user-select: none; user-select: none; -w
 .gz-leaf .gz-fin-tot { font-size: 18px; margin-top: auto; }
 
 /* 乙三 · 宣纸卷（精修）：黑漆细轴 + 金轴头，纸面整幅 */
+.gz-dialog.is-final-b3 {
+  --ax1: #4a3a30; --ax2: #1d1b18; --ax3: #0f0d0b; --kn1: #f6e3a8; --kn2: #c9a96e; --kn3: #8a6a2c;
+  --silk: transparent; --silk-edge: transparent; --paper1: #fdf9f1; --paper2: #f4ecdc; --rule: rgba(29, 27, 24, 0.1);
+  --ink: #1d1b18; --ring: #d9d0bf; --top: #c9a96e; --me: #b4392c; --seal: #b4392c; --pos: #3d6b4f; --neg: #b4392c; --sh: rgba(29, 27, 24, 0.28);
+  --mt: 0px; --mb: 0px; --ms: 0px;
+}
 .gz-roll { position: relative; padding: 0 8px; }
-.gz-axis { position: relative; z-index: 2; display: block; height: 9px; margin: 0 -2px; border-radius: 5px; background: linear-gradient(#4a3a30, #1d1b18 55%, #0f0d0b); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); }
-.gz-axis::before, .gz-axis::after { content: ''; position: absolute; top: -3.5px; width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f6e3a8, #c9a96e 60%, #8a6a2c); }
+.gz-axis { position: relative; z-index: 2; display: block; height: 9px; margin: 0 -2px; border-radius: 5px; background: linear-gradient(var(--ax1), var(--ax2) 55%, var(--ax3)); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25); }
+.gz-axis::before, .gz-axis::after { content: ''; position: absolute; top: -3.5px; width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--kn1), var(--kn2) 60%, var(--kn3)); }
 .gz-axis::before { left: -12px; } .gz-axis::after { right: -12px; }
-.gz-roll-paper { margin: -4px 0; padding: 14px 18px; background: linear-gradient(90deg, #f4ecdc, #fdf9f1 6%, #fdf9f1 94%, #f4ecdc); box-shadow: 0 10px 24px rgba(29, 27, 24, 0.28); }
-.gz-roll-row { position: relative; display: grid; grid-template-columns: 50px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 4px; border-bottom: 1px solid rgba(29, 27, 24, 0.1); }
+/* 装裱：天头 / 地头 / 两边的绫子（--silk），中间才是纸（原乙三没有绫，四个量都是 0） */
+.gz-roll-mount { margin: -4px 0; padding: var(--mt) var(--ms) var(--mb); background: var(--silk); box-shadow: 0 10px 24px var(--sh), inset 0 0 0 1px var(--silk-edge); }
+.gz-roll-paper { padding: 14px 18px; color: var(--ink); background: linear-gradient(90deg, var(--paper2), var(--paper1) 6%, var(--paper1) 94%, var(--paper2)); }
+.gz-roll-row { position: relative; display: grid; grid-template-columns: 50px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 4px; border-bottom: 1px solid var(--rule); }
 .gz-roll-row:last-child { border-bottom: 0; }
-.gz-roll-row .gz-fin-av { width: 46px; height: 46px; box-shadow: 0 0 0 1.5px #d9d0bf; justify-self: center; }
-.gz-roll-row.is-top .gz-fin-av { width: 56px; height: 56px; font-size: 20px; box-shadow: 0 0 0 3px #c9a96e; }
+.gz-roll-row .gz-fin-av { width: 46px; height: 46px; box-shadow: 0 0 0 1.5px var(--ring); justify-self: center; }
+.gz-roll-row.is-top .gz-fin-av { width: 56px; height: 56px; font-size: 20px; box-shadow: 0 0 0 3px var(--top); }
 .gz-roll-row.is-top .gz-fin-nm { font-size: 17px; }
 .gz-roll-row.is-top .gz-fin-tot { font-size: 24px; }
-.gz-roll-row.is-me .gz-fin-av { box-shadow: 0 0 0 3px #b4392c; }
-.gz-roll-row.is-top.is-me .gz-fin-av { box-shadow: 0 0 0 3px #c9a96e, 0 0 0 6px #b4392c; }
-.gz-roll-row.is-me .gz-fin-nm { font-weight: 700; color: #b4392c; }
+.gz-roll-row.is-me .gz-fin-av { box-shadow: 0 0 0 3px var(--me); }
+.gz-roll-row.is-top.is-me .gz-fin-av { box-shadow: 0 0 0 3px var(--top), 0 0 0 6px var(--me); }
+.gz-roll-row.is-me .gz-fin-nm { font-weight: 700; color: var(--me); }
+.gz-roll-row .gz-fin-tot.pos { color: var(--pos); }
+.gz-roll-row .gz-fin-tot.neg { color: var(--neg); }
+.gz-roll-row .gz-fin-tot { color: var(--ink); }
+.gz-roll-row .gz-fin-ct b { color: color-mix(in srgb, var(--ink) 60%, transparent); }
+.gz-dialog.is-final-b3 .gz-seal-in { background: var(--seal); box-shadow: 0 0 0 2px var(--paper1), 0 0 0 3px var(--seal); }
+.gz-dialog.is-final-b3 .gz-seal-in svg { --pg-nose: var(--seal); --pg-eye: var(--seal); }
+/* 甲 · 素绢灰青：灰青细轴、旧铜轴头、灰绿素绢装裱，纸偏冷白；金和朱都压低了饱和度 */
+.gz-dialog.is-final-b3.tone-a { --ax1: #5b6670; --ax2: #3a434c; --ax3: #2a3038; --kn1: #d6cfbf; --kn2: #a99f8a; --kn3: #776e5d;
+  --silk: #c8cdc5; --silk-edge: rgba(58, 67, 76, 0.18); --paper1: #f8f6f0; --paper2: #ede9df; --rule: rgba(42, 48, 56, 0.11);
+  --ink: #2a2e33; --ring: #cfcabd; --top: #b09a6c; --me: #a4554b; --seal: #a5493f; --pos: #4d6b5c; --neg: #a4554b; --sh: rgba(30, 36, 42, 0.26);
+  --mt: 18px; --mb: 14px; --ms: 7px; }
+/* 乙 · 檀木赭石：哑光檀木轴、木轴头不镀金，茶色绫子，纸是旧米色；点缀用赭石和暗朱 */
+.gz-dialog.is-final-b3.tone-b { --ax1: #7a5a44; --ax2: #5a3f2d; --ax3: #43301f; --kn1: #9b7a5e; --kn2: #6e5038; --kn3: #4a3424;
+  --silk: #d9ccb2; --silk-edge: rgba(90, 63, 45, 0.2); --paper1: #f7f1e5; --paper2: #ece2cf; --rule: rgba(67, 48, 31, 0.12);
+  --ink: #33281f; --ring: #d6c8ae; --top: #a98a55; --me: #9c4a3a; --seal: #9e4636; --pos: #5d6b46; --neg: #9c4a3a; --sh: rgba(60, 40, 25, 0.26);
+  --mt: 18px; --mb: 14px; --ms: 7px; }
+/* 丙 · 水墨：只有墨和纸，朱红只留给印章和「我」；第一名用墨色双圈，不用金 */
+.gz-dialog.is-final-b3.tone-c { --ax1: #3e3c39; --ax2: #2f2d2a; --ax3: #24221f; --kn1: #6e6a63; --kn2: #3e3c39; --kn3: #24221f;
+  --silk: #e6e2d8; --silk-edge: rgba(36, 34, 31, 0.14); --paper1: #fbfaf6; --paper2: #f1eee6; --rule: rgba(36, 34, 31, 0.1);
+  --ink: #2a2826; --ring: #d8d4ca; --top: #3e3c39; --me: #b03a2e; --seal: #b03a2e; --pos: #2a2826; --neg: #b03a2e; --sh: rgba(20, 18, 15, 0.22);
+  --mt: 18px; --mb: 14px; --ms: 7px; }
+.gz-dialog.is-final-b3.tone-c .gz-roll-row.is-top .gz-fin-av { box-shadow: 0 0 0 2px var(--top), 0 0 0 4px var(--paper1), 0 0 0 5px var(--top); }
+.gz-dialog.is-final-b3.tone-c .gz-roll-row.is-top.is-me .gz-fin-av { box-shadow: 0 0 0 2px var(--top), 0 0 0 4px var(--paper1), 0 0 0 5px var(--top), 0 0 0 8px var(--me); }
+/* 丁 · 青绿：石绿细轴、青瓷轴头、淡青绫子，纸暖白；金只在第一名头像上，朱只在印和「我」 */
+.gz-dialog.is-final-b3.tone-d { --ax1: #4a6862; --ax2: #33504b; --ax3: #243a36; --kn1: #cfdcd3; --kn2: #9fb5a9; --kn3: #6d8479;
+  --silk: #bfcdc4; --silk-edge: rgba(36, 58, 54, 0.18); --paper1: #f8f6ee; --paper2: #ede9dc; --rule: rgba(36, 58, 54, 0.11);
+  --ink: #26302d; --ring: #cdd3c8; --top: #a7905e; --me: #a24f45; --seal: #a3463b; --pos: #3f6b5a; --neg: #a24f45; --sh: rgba(25, 40, 37, 0.26);
+  --mt: 18px; --mb: 14px; --ms: 7px; }
 @media (max-width: 380px) { .gz-leaf .gz-fin-av { width: 42px; height: 42px; } .gz-fold { padding: 0 6px; } }
