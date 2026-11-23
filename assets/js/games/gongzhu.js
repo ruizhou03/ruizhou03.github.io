@@ -70,6 +70,18 @@
   const FIRST_PV_KEY = 'gz.firstask.pv';    // 首次二选一预览：问过了（预览不动 gz.tut.v1）
   let guideSet = null, guideCur = null;
   if (GZTUT_PV && GZTUT_PV.reset) { try { localStorage.removeItem(GUIDE_KEY); localStorage.removeItem(FIRST_PV_KEY); } catch (_) { /* 无痕 */ } }
+  /* 出牌预览（待用户挑，2026-11-22）：?gzplay=fly-a,one-b,exp-c ——逗号分隔、三组任意组合，不带 = 现状（见「出牌预览」一节）。
+   *   fly-a 直线 / b 弧线 / c 弧线 + 落定转正压一下 / d 丙 + 别家翻面   牌怎么到出牌位（另带手牌滑动合拢）
+   *   one-a 现状 / b 出牌键亮起等点 / c 隔一拍自动出                     只剩一张能出时（三版都另带：最后一轮自动出、点空白取消、先选好）
+   *   exp-a 「不明牌」放主键上方 / b 两键等宽并排 / c 主键角上小键          明牌阶段的按钮 */
+  const GZPLAY = (() => {
+    const o = { fly: '', one: '', exp: '' };
+    for (const x of (new URLSearchParams(location.search).get('gzplay') || '').split(',')) {
+      const m = /^(fly|one|exp)-([a-d])$/.exec(x.trim());
+      if (m && (m[1] === 'fly' || m[2] !== 'd')) o[m[1]] = m[2];
+    }
+    return o;
+  })();
   if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, fade: 120, roundEnd: 60 });
   const SETTLE_HOLD = AUTO ? 60 : 1700;   // 累计分在桌上数完（最长约 0.9 秒）后再停一会儿，才弹结算页
   // 教程放慢：机器人出牌、收墩都留足时间看清
@@ -166,6 +178,8 @@
    *          lead: 桌心还亮着领出花色, fxing: 特效正放着（桌上的牌调暗）, replay: 暂停打断了，继续时从头重放 }
    *   held   我已经点了「明牌」、还在等别家决定（或等服务器）的那几张：这期间照样按明牌的样子画 */
   const ov = { deal: null, trick: null, held: [] };
+  const landing = new Set();   // 出牌预览（?gzplay=fly-*）：正飞向出牌位的牌，桌上那张先占位不显示（见 flyIn）
+  const one = { key: '', noSel: '' };   // 出牌预览（?gzplay=one-*）：已排了自动出牌的那一手 / 我点空白放下了的那一手（见 oneHook）
   // 这一轮还没收完的那份显示（只认当前这一盘的；换了一盘就当没有）
   const liveTrick = () => (ov.trick && ov.trick.match === match ? ov.trick : null);
   const heldCap = (c) => { const t = liveTrick(); return !!(t && t.hold.has(c)); };
@@ -767,13 +781,15 @@
       const card = buildCard(p.card);
       if (isExposedCard(p.card)) card.classList.add('is-exposed');   // 明出来的牌打到桌上也还是明牌的样子（变压器 ×4）
       if (p === top && plays.length > 1) card.classList.add('is-top');
-      if (p.seat === enteringSeat) card.classList.add('in');
+      if (landing.has(p.card)) card.classList.add('gz-landing');   // 出牌预览：还在飞的那张先占位不显示
+      else if (p.seat === enteringSeat) card.classList.add('in');
       els.slots[p.seat].appendChild(card);
     });
   }
 
   function renderHand() {
     const r = match.round;
+    const was = GZPLAY.fly && !ov.deal ? handRects() : null;   // 出牌预览：记下每张牌现在在哪，重画后从原处滑过去（FLIP）
     els.hand.innerHTML = '';
     if (!r) { els.play.disabled = true; return; }
     if (watching()) { renderWatchHand(r); return; }
@@ -794,7 +810,8 @@
     let x = Math.max(0, (W - total) / 2);
     els.hand.classList.toggle('my-turn', myTurn || exposing);
     // 只剩一张能出（比如开局的 ♠2）就直接替我选好
-    if (myTurn && legal.length === 1 && selected < 0) selected = legal[0];
+    if (myTurn && legal.length === 1 && selected < 0 && !(GZPLAY.one && one.noSel === turnKey())) selected = legal[0];
+    if (GZPLAY.one && myTurn && selected >= 0 && !legal.includes(selected)) selected = -1;   // 先选好的那张轮到我时不能出：放下
     hand.forEach((c, i) => {
       if (i > 0 && R.suitOf(c) !== R.suitOf(hand[i - 1])) x += gapW;
       const el = buildCard(c);
@@ -811,8 +828,11 @@
       x += step;
     });
     syncHeartsX2();
+    if (was) flipHand(was);
     els.noExpose.hidden = !exposing || !!match.tutorial;   // 进阶教程里这一步要明牌
     if (!exposing) hideExposeTip();
+    if (GZPLAY.exp) expBand(exposing, legal.length > 0);
+    if (exposing && GZPLAY.exp) { els.play.textContent = '明牌'; els.play.disabled = !exposePick.length; els.play.hidden = !legal.length; return; }
     if (exposing) {
       // 两个键分开：「不明牌」随时能点；「明牌」要先在手牌里点选（再点一下取消），选了几张写在键上
       els.play.textContent = exposePick.length ? '明牌 ' + exposePick.length + ' 张' : '明牌';
@@ -823,6 +843,7 @@
     els.play.hidden = false;
     els.play.textContent = '出牌';
     els.play.disabled = !(myTurn && selected >= 0 && legal.includes(selected));
+    if (GZPLAY.one) oneHook(r, myTurn, legal, hand.length);
   }
 
   /* 观战：下面这一家的手牌只画牌背（亮出来的牌照常翻开），和别家一样只看得到张数 */
@@ -1044,6 +1065,8 @@
     els.seats.forEach((el) => el.querySelectorAll('.gz-avatar, .gz-caps .gz-mini').forEach((x) => x.getAnimations().forEach((a) => a.cancel())));
     els.center.classList.remove('is-fxing', 'is-review');
     guideHide(false);
+    landing.clear(); one.key = '';   // 出牌预览：在飞的牌、排着的自动出牌一起作废（飞的那张替身是 .gz-flyer，上面已经拿掉）
+    els.app.querySelectorAll('.gz-landing').forEach((x) => x.classList.remove('gz-landing'));
     ov.deal = null;
     const t = keepTrick ? liveTrick() : null;
     if (t) Object.assign(t, { onTable: true, lead: true, fxing: false, replay: true });
@@ -1174,6 +1197,7 @@
 
   function commit(seat, card) {
     const r = match.round;
+    const src = playFrom(seat, card);   // 出牌预览（?gzplay=fly-*）：起点——我的从手里原位，别家的从头像；不带参数为 null
     stopClock();
     const done = R.playCard(r, seat, card);
     snd('play');
@@ -1182,6 +1206,7 @@
     busy = true;   // 下一手由 step() 接手，轮到我时它再放开；早放开会让我抢在 step 前出牌、排出两次 step
     if (done) ov.trick = { match, done, talk: null, hold: new Set(done.plays.map((p) => p.card).filter(R.isScoring)), onTable: true, lead: true, fxing: false, replay: false };
     renderTrick(done ? done.plays : null, seat);
+    if (src) flyIn(seat, card, src);
     markAce(done ? done.plays : r.trick, seat, card);
     renderSeat(seat);
     renderHand();
@@ -1467,6 +1492,7 @@
       return;
     }
     const r = match.round;
+    if (preSelect(c, r)) return;   // 出牌预览（?gzplay=one-*）：别人出牌时先抬起一张
     if (busy || !r || R.isRoundOver(r) || r.turn !== 0) return;
     if (!myLegal(r).includes(c)) { shake(el); return; }
     if (selected === c) { playSelected(); return; }
@@ -1503,6 +1529,236 @@
     busy = true;
     timeouts = 0;
     commit(0, selected);
+  }
+
+  /* ───── 出牌预览（?gzplay=…，待用户挑；不带参数这一节什么都不做）─────
+   * fly：牌从哪儿来——我的从手里原位、别家的从头像，落到出牌位（端正）。真牌先在出牌位占好位置不显示，替身飞到、交给真牌。
+   *      时长都比一轮里等的时间短（AI 至少 400ms、一轮打满停 450ms），不拖慢一轮。手牌另外改成 FLIP：重画前量每张牌在哪，
+   *      重画后从原处滑过去——选中抬起有过渡、出掉一张其余的滑着合拢。替身是 .gz-flyer，clearScene 一并拿掉。
+   * one：只剩一张能出时 甲 现状（替我选好、等我点）/ 乙 另外出牌键呼吸亮起 / 丙 隔一拍自动打出；三版都带：
+   *      最后一轮只剩一张自动出、点牌桌空白放下选中的牌、别人出牌时先抬起一张（轮到我时不能出就放下，能出也不替我出）。
+   * exp：明牌阶段两颗键怎么摆（主键位置、大小始终和「出牌」一样）：甲「不明牌」在主键正上方 / 乙 两键等宽并排占原来那一格 /
+   *      丙「不明牌」做成主键右上角的小签。 */
+  if (GZPLAY.exp) els.app.classList.add('gzx-exp-' + GZPLAY.exp);
+  if (GZPLAY.fly) els.app.classList.add('gzx-fly-' + GZPLAY.fly);
+
+  function playFrom(seat, card) {
+    if (!GZPLAY.fly || reduceMotion() || !match || match.lobby) return null;
+    const h = seat === 0 && !watching() ? els.hand.querySelector('.gz-card[data-card="' + card + '"]') : null;
+    const av = els.seats[seat] && els.seats[seat].querySelector('.gz-avatar');
+    const el = h || av;
+    if (!el) return null;
+    landing.add(card);
+    return { r: el.getBoundingClientRect(), hand: !!h };
+  }
+  const FLY_MS = { a: 200, b: 250, c: 300, d: 320 };
+  const FLY_TILT = [-6, 11, -9, -11];   // 丙丁：出手时略歪（按座位方向），落定时转正
+  function flyIn(seat, card, src) {
+    const slot = els.slots[seat];
+    const target = slot.querySelector('.gz-card[data-card="' + card + '"]');
+    if (!target) { landing.delete(card); return; }
+    const b = target.getBoundingClientRect(), a = src.r, v = GZPLAY.fly;
+    const back = v === 'd' && !src.hand;
+    const dur = Math.max(120, Math.min(FLY_MS[v], pace().trickShow - 40));
+    const fl = buildCard(card);
+    fl.classList.add('gz-flyer', 'gz-pfly');
+    if (target.classList.contains('is-exposed')) fl.classList.add('is-exposed');
+    fl.style.cssText += ';left:' + b.left + 'px;top:' + b.top + 'px;width:' + b.width + 'px;height:' + b.height + 'px;--q:' + b.width + 'px';
+    let bk = null;
+    if (back) { bk = document.createElement('span'); bk.className = 'gz-pfly-back'; fl.appendChild(bk); }
+    els.app.appendChild(fl);
+    const dx = a.left + a.width / 2 - b.left - b.width / 2, dy = a.top + a.height / 2 - b.top - b.height / 2;
+    const s0 = src.hand ? a.width / b.width : Math.min(0.62, a.width / b.width);
+    const c = els.center.getBoundingClientRect();
+    const toC = { x: c.left + c.width / 2 - b.left - b.width / 2, y: c.top + c.height / 2 - b.top - b.height / 2 };
+    const f = flyFrames(v, seat, dx, dy, s0, !src.hand, back, toC);
+    fl.animate(f.frames, { duration: dur, fill: 'both', easing: 'linear' });
+    if (bk) bk.animate([{ opacity: 1 }, { opacity: 1, offset: f.flipAt }, { opacity: 0, offset: f.flipAt }, { opacity: 0 }], { duration: dur, fill: 'both' });
+    after(() => {
+      fl.remove();
+      landing.delete(card);
+      const t = els.slots[seat].querySelector('.gz-card[data-card="' + card + '"]');
+      if (t) t.classList.remove('gz-landing');
+    }, dur);
+  }
+  // 飞行关键帧：坐标相对终点（出牌位）；甲 直线减速 / 乙 二次贝塞尔弧线、途中略鼓起 / 丙 弧线 + 歪着出手、落定转正、落桌一压 / 丁 丙 + 背面朝上飞、半路翻开
+  function flyFrames(v, seat, dx, dy, s0, fadeIn, back, toC) {
+    const N = 10, frames = [];
+    const arcV = v !== 'a', settle = v === 'c' || v === 'd';
+    const lift = arcV ? Math.min(70, Math.hypot(dx, dy) * 0.28) : 0;
+    // 从下面 / 旁边出手：往上抛一道弧；从上面下来（竖屏的三家）：不先往上蹿，往桌子中间那边弯
+    let cx = dx / 2, cy = Math.min(dy, 0) - lift;
+    if (dy < -12 && toC) {
+      const L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
+      const sg = nx * (toC.x - dx / 2) + ny * (toC.y - dy / 2) >= 0 ? 1 : -1;
+      cx = dx / 2 + nx * lift * 0.8 * sg; cy = dy / 2 + ny * lift * 0.8 * sg;
+    }
+    const rot0 = settle ? FLY_TILT[seat] : 0;
+    const travel = settle ? 0.78 : 1;
+    const ease = (t) => 1 - Math.pow(1 - t, arcV ? 2.4 : 3);
+    const SH = (k) => '0 ' + (2 + 12 * k).toFixed(1) + 'px ' + (6 + 16 * k).toFixed(1) + 'px rgba(20, 18, 15, ' + (0.16 + 0.12 * k).toFixed(3) + ')';
+    const T = (x, y, r, sx, sy) => 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) rotate(' + r.toFixed(2) + 'deg) scale(' + sx.toFixed(3) + ',' + sy.toFixed(3) + ')';
+    for (let k = 0; k <= N; k++) {
+      const p = k / N, t = ease(p), u = 1 - t, arc = Math.sin(Math.PI * p);
+      const x = arcV ? u * u * dx + 2 * u * t * cx : dx * u;
+      const y = arcV ? u * u * dy + 2 * u * t * cy : dy * u;
+      const s = s0 + ((settle ? 1.05 : 1) - s0) * t + (arcV ? 0.07 * arc : 0);
+      // 从头像出来：一出手就歪着、慢慢回正一些；从手里出来：起手端正，半空里歪过去——落桌那一下才转正
+      const r = !settle ? 0 : fadeIn ? rot0 * (1 - 0.75 * t) : rot0 * Math.sin(Math.PI * 0.8 * t);
+      const sx = back ? s * Math.abs(Math.cos(Math.PI * Math.min(1, Math.max(0, (p - 0.25) / 0.5)))) : s;
+      frames.push({ transform: T(x, y, r, sx, s), boxShadow: SH(arcV ? (settle ? Math.max(arc, 0.7 * t) : arc) : 0), opacity: k === 0 && fadeIn ? 0 : 1, offset: travel * p });
+    }
+    if (settle) {
+      frames.push({ transform: T(0, 0, -0.08 * rot0, 0.96, 0.96), boxShadow: SH(0), opacity: 1, offset: 0.9, easing: 'cubic-bezier(.3, .7, .4, 1)' });
+      frames.push({ transform: T(0, 0, 0, 1, 1), boxShadow: SH(0), opacity: 1, offset: 1 });
+      frames[frames.length - 3].easing = 'cubic-bezier(.55, 0, .9, .4)';
+    }
+    return { frames, flipAt: travel * 0.5 };
+  }
+
+  // 手牌 FLIP：重画前每张牌在屏幕上的位置（含抬起）；重画后从那儿滑到新位置。独立的 translate 属性，不和抬起用的 transform 打架
+  const CAN_TRANSLATE = !!(window.CSS && CSS.supports && CSS.supports('translate', '1px'));
+  function handRects() {
+    const m = new Map();
+    if (!CAN_TRANSLATE || reduceMotion()) return m;
+    els.hand.querySelectorAll('.gz-card[data-card]').forEach((el) => m.set(el.dataset.card, el.getBoundingClientRect()));
+    return m;
+  }
+  function flipHand(was) {
+    if (!was.size) return;
+    els.hand.querySelectorAll('.gz-card[data-card]').forEach((el) => {
+      const a = was.get(el.dataset.card);
+      if (!a) return;
+      const b = el.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+      el.animate([{ translate: dx.toFixed(1) + 'px ' + dy.toFixed(1) + 'px' }, { translate: '0px 0px' }],
+        { duration: Math.abs(dx) >= 0.5 ? 240 : 150, easing: 'cubic-bezier(.25, .8, .35, 1)' });
+    });
+  }
+
+  // 这一手是谁的哪一手：同一手里重画多少次都是同一个键（联机加上第几盘）
+  function turnKey() {
+    const r = match && match.round;
+    if (!r) return '';
+    const g = match.online && online && online.st && online.st.game;
+    return (g ? g.matchNo : 's') + ':' + match.roundNo + ':' + r.hands[0].length;
+  }
+  function oneHook(r, myTurn, legal, n) {
+    const ready = myTurn && legal.length === 1 && selected === legal[0] && !match.tutorial;
+    els.play.classList.toggle('gz-ready', GZPLAY.one === 'b' && ready);
+    if (!ready || watching() || !(GZPLAY.one === 'c' || n === 1)) return;
+    const key = turnKey();
+    if (one.key === key) return;
+    one.key = key;
+    const card = legal[0];
+    schedule(() => {
+      const rr = match.round;
+      if (one.key !== key || busy || !rr || rr.turn !== 0 || selected !== card || turnKey() !== key) return;
+      playSelected();
+    }, GZPLAY.one === 'c' ? 560 : 380);
+  }
+  // 别人出牌（或这一轮还在收）时点手牌：先抬起 / 放下，不出
+  function preSelect(c, r) {
+    if (!GZPLAY.one || !r || match.tutorial || ov.deal || R.isRoundOver(r) || match.exposing.length || watching()) return false;
+    if (r.turn === 0 && !busy) return false;
+    if (autopilot || !r.hands[0].includes(c)) return false;
+    selected = selected === c ? -1 : c;
+    snd('pick');
+    renderHand();
+    return true;
+  }
+  // 点牌桌空白处：放下选中的牌（这一手里就不再替我选上）
+  els.table.addEventListener('click', (e) => {
+    if (!GZPLAY.one || !match || !match.round || match.tutorial || selected < 0 || ov.deal || exposingMe()) return;
+    if (e.target.closest('.gz-card, button, a, input, select, .gz-avatar, .gz-coach, .gz-lobby, .gz-tip, .gz-demo')) return;
+    selected = -1;
+    one.noSel = turnKey();
+    renderHand();
+  });
+  function expBand(exposing, hasLegal) {
+    els.play.parentElement.classList.toggle('is-exp2', exposing && hasLegal && !match.tutorial);
+  }
+  /* ?fxdemo=play（配 &gzplay=…）：不用真打就能看——一局接一局自己打（不出结算页），「我」由脚本替手点
+   * （点选 → 停一下 → 再点打出；只剩一张能出时让 one-* 自己处理；别人出牌时偶尔先抬起一张；有明牌就点一张再按明牌 / 不明牌）。
+   * 走的是正式出牌的同一套代码，不动存档 */
+  function startPlayDemo() {
+    const rules = R.normalizeRules({});
+    match = { demo: 'play', rules, totals: [0, 0, 0, 0], roundNo: 0, pigTaker: -1, seed: 1, round: null, exposing: [], last: null, over: false };
+    let seed = 11, lead = 0, nExp = 0, preKey = '';
+    const fresh = () => {
+      clearScene(); stopClock();
+      let hands;
+      for (;;) {
+        hands = R.deal(R.makeRng(seed++));   // 整副牌（只发几张 AI 会算错别家的牌）
+        if (R.EXPOSABLE.some((c) => hands[0].includes(c))) break;   // 每局我都有能明的牌：明牌阶段的按钮也看得到
+      }
+      match.roundNo++;
+      match.round = R.createRound(hands, lead, -1, rules);
+      lead = (lead + 1) % 4;
+      match.exposing = [0, 1, 2, 3].filter((s) => R.EXPOSABLE.some((c) => hands[s].includes(c)));
+      selected = -1; exposePick = []; ov.held = []; busy = true;
+      renderAll();
+      schedule(step, 600);
+    };
+    const bar = document.createElement('div');
+    bar.className = 'gz-demo gz-demo-play';
+    const opt = (k, labels) => '<select data-k="' + k + '" aria-label="' + k + '">' + Object.keys(labels).map((x) =>
+      '<option value="' + x + '"' + (GZPLAY[k] === x ? ' selected' : '') + '>' + labels[x] + '</option>').join('') + '</select>';
+    const q = () => ['fly', 'one', 'exp'].map((k) => (GZPLAY[k] ? k + '-' + GZPLAY[k] : '')).filter(Boolean).join(',');
+    bar.innerHTML = '<b>出牌预览</b>' +
+      opt('fly', { '': '飞·现状', a: '飞·甲 直线', b: '飞·乙 弧线', c: '飞·丙 转正', d: '飞·丁 翻面' }) +
+      opt('one', { '': '一张·现状', a: '一张·甲', b: '一张·乙 亮键', c: '一张·丙 自动' }) +
+      opt('exp', { '': '明牌·现状', a: '明牌·甲', b: '明牌·乙', c: '明牌·丙' }) +
+      '<a href="' + location.pathname + (q() ? '?gzplay=' + q() : '') + '">去牌桌</a>';
+    bar.addEventListener('click', (e) => e.stopPropagation());
+    bar.addEventListener('change', () => {
+      const v = [...bar.querySelectorAll('[data-k]')].filter((x) => x.value).map((x) => x.dataset.k + '-' + x.value).join(',');
+      location.search = '?fxdemo=play' + (v ? '&gzplay=' + v : '');
+    });
+    document.body.appendChild(bar);
+    let acting = false, restartAt = 0;
+    const wait = (ms) => new Promise((ok) => setTimeout(ok, ms));
+    const handEl = (c) => els.hand.querySelector('.gz-card[data-card="' + c + '"]');
+    const tap = (c) => { const el = handEl(c); if (el) onCardTap(c, el); };
+    const act = async (fn) => { acting = true; const my = token; try { await fn(() => my === token); } finally { acting = false; } };
+    setInterval(() => {
+      if (!match || match.demo !== 'play' || acting || !els.mask.hidden) return;
+      const r = match.round;
+      if (!r) return;
+      if (R.isRoundOver(r)) {
+        if (els.app.querySelector('.gz-flyer') || liveTrick()) { restartAt = 0; return; }
+        if (!restartAt) restartAt = performance.now() + 500;
+        else if (performance.now() > restartAt) { restartAt = 0; fresh(); }
+        return;
+      }
+      if (exposingMe() && !busy) {
+        act(async (ok) => {
+          await wait(500); if (!ok()) return;
+          tap(R.EXPOSABLE.find((c) => r.hands[0].includes(c)));
+          await wait(1400); if (!ok() || !exposingMe() || busy) return;
+          (nExp++ % 2 ? els.noExpose : els.play).click();
+        });
+        return;
+      }
+      if (match.exposing.length) return;
+      // 别人出牌时：每轮在我前一家出牌时先抬起一张（演示「先选好」）
+      if (GZPLAY.one && r.turn === 3 && r.trick.length && selected < 0 && preKey !== turnKey()) {
+        preKey = turnKey();
+        const c = R.legalFor(r, 0).find((x) => r.hands[0].includes(x));
+        if (c != null) tap(c);
+        return;
+      }
+      if (r.turn !== 0 || busy) return;
+      act(async (ok) => {
+        const legal = myLegal(r);
+        if (GZPLAY.one && legal.length === 1 && (GZPLAY.one === 'c' || r.hands[0].length === 1)) { await wait(1200); return; }   // 让 one-* 自己出
+        await wait(380); if (!ok() || busy || r.turn !== 0) return;
+        if (!(selected >= 0 && legal.includes(selected))) tap(chooseLocal(r, 0, 'normal'));
+        await wait(520); if (!ok() || busy || r.turn !== 0) return;
+        if (selected >= 0) tap(selected);
+      });
+    }, 120);
+    fresh();
   }
 
   function finishRound() {
@@ -4888,6 +5144,7 @@
   function startDemo(kind) {
     if (kind === 'deal') { startDealDemo(); return; }
     if (kind === 'final') { startFinalDemo(); return; }
+    if (kind === 'play') { startPlayDemo(); return; }
     const demo = DEMOS[kind] ? kind : 'sweep';
     match = { demo: true, rules: R.normalizeRules({}), totals: [0, 0, 0, 0], roundNo: 1, pigTaker: -1, seed: 1, round: null, exposing: [], last: null, over: false };
     match.round = R.createRound(R.deal(R.makeRng(7)), 0, -1, match.rules);
