@@ -237,8 +237,10 @@
     const a = document.activeElement;
     return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable);
   }
+  let sizeW = 0;   // 上次量尺寸时的窗口宽度（牌局里宽度变化不到 40px 不重算，见 onResize）
   function solveSize() {
     if (typing()) return;
+    sizeW = document.documentElement.clientWidth || window.innerWidth;
     const w = els.table.clientWidth - 20;
     const h = window.innerHeight;
     const portrait = h > window.innerWidth;
@@ -263,7 +265,10 @@
     const c = els.center.getBoundingClientRect();
     return c.height >= u * 1.44 * 2 && c.width >= u * 3.4;
   }
-  // 放不下时盖一层提示（不硬挤着显示），计时也先停住；放得下了自动收起
+  /* 放不下时盖一层提示（不硬挤着显示）；放得下了自动收起。
+   * 单机一局正打着：整局停下（机器人、动画、钟都停，同切后台暂停走的 freezeSolo），提示收起后从 playSolo 原样接着打；
+   * 联机 / 教程只停我的钟（联机的钟以服务器为准） */
+  let fitFrozen = false;
   function showFitHint(on) {
     const el = $('gzFit');
     if (!el || el.hidden === !on) return;
@@ -275,7 +280,16 @@
         ? (touch ? '屏幕太矮，放不下牌桌。把手机竖过来试试。' : '窗口太矮了，放不下牌桌。把窗口拉高一些。')
         : (touch ? '屏幕太窄，放不下牌桌。把手机横过来试试。' : '窗口太窄了，放不下牌桌。把窗口拉宽一些。');
       el.classList.toggle('to-portrait', wide);
-      if (match) pauseClock();
+      if (match && !AUTO && !coverOn && soloBots() && match.round && els.mask.hidden) {
+        closeMenu();
+        if (soundPanel) soundPanel.hidden = true;
+        freezeSolo();
+        fitFrozen = true;
+      } else if (match) pauseClock();
+    } else if (fitFrozen) {
+      fitFrozen = false;
+      // 这期间切过后台（弹了「暂停」）或回了主菜单：交给那边的「继续」
+      if (!coverOn && els.mask.hidden && soloBots()) playSolo(match);
     } else if (match && els.mask.hidden) resumeClock();
   }
 
@@ -440,6 +454,14 @@
     fan.style.width = '';
     const step = n > 1 ? Math.max(m * 0.16, Math.min(m * 0.44, (avail - m) / (n - 1))) : 0;
     fan.style.setProperty('--fanstep', step.toFixed(1) + 'px');
+  }
+
+  // 窗口变了：四家吃牌区按现在的宽度重排（红桃扇间距、换排、我那排挪位都是按像素算的）
+  function refitCaps() {
+    els.seats.forEach((el) => {
+      const box = el.querySelector('.gz-caps'), row = box && box.querySelector('.gz-caps-row');
+      if (row) fitFan(box, row, row.querySelector('.gz-fan'));
+    });
   }
 
   // 红桃扇是不是被挤得露不到 44%（看不清点数）了
@@ -3607,25 +3629,41 @@
     if (e.key === 'Escape' && subMask && !subMask.hidden) { closeSub(); return; }
     if (e.key === 'Escape' && !els.mask.hidden) dismissDialog();
     if (coverOn || !match) return;
-    if ((e.key === ' ' || e.key === 'Enter') && els.mask.hidden && coachNext) { e.preventDefault(); coachAdvance(); return; }
-    if (e.key === 'Enter' && els.mask.hidden) playSelected();
+    // 焦点停在按钮 / 输入框上：回车是按那个键（或在框里换行），不能顺带把选中的牌打出去
+    const t = e.target, onControl = !!(t && t.closest && t.closest('button, input, textarea, select, a[href], [contenteditable="true"]'));
+    if ((e.key === ' ' || e.key === 'Enter') && els.mask.hidden && coachNext && !onControl) { e.preventDefault(); coachAdvance(); return; }
+    if (e.key === 'Enter' && els.mask.hidden && !onControl && (!subMask || subMask.hidden)) playSelected();
   });
-  // 窗口变了：防抖后重算尺寸（用 setTimeout 不用 rAF，后台页也会重算）
+  /* 窗口变了：防抖后重算尺寸。牌局里（照百变小咪）只在页面在前台、且宽度真变了（转屏 / 拉窗口，差 40px 以上）时才重算——
+   * 手机切后台截快照会把网页临时转成横屏、浏览器工具栏伸缩也发 resize，量到的是临时尺寸，回来就一直错着。
+   * 「请转屏」提示正盖着、或牌桌已经放不下时照常重算（提示要能自己收起 / 弹出）。没在打牌（主菜单）就每次都算。
+   * 尺寸不重算时，吃牌区的红桃扇还是按现在的座位宽度重排一遍（它的叠放间距是按像素写死的） */
   let resizeTimer = 0;
+  const viewW = () => document.documentElement.clientWidth || window.innerWidth;
+  const inGame = () => !!match && !coverOn;
+  const resizeNow = () => {
+    if (inGame() && document.hidden) return;
+    const fitOn = $('gzFit') && !$('gzFit').hidden;
+    // 宽度没怎么变、牌桌也还放得下：不重算（只改高度把桌子挤出界了——比如电脑上把窗口拉矮——照样重算）
+    if (inGame() && !fitOn && Math.abs(viewW() - sizeW) < 40 && tableFits()) { refitCaps(); return; }
+    solveSize(); if (match) { renderHand(); refitCaps(); }
+  };
   const onResize = () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      solveSize(); if (match) renderHand();
+      resizeNow();
       // 转屏时浏览器的布局常常晚一拍才稳定，过一会儿再量一次
-      resizeTimer = setTimeout(() => { solveSize(); if (match) renderHand(); }, 320);
+      resizeTimer = setTimeout(resizeNow, 320);
     }, 80);
   };
   window.addEventListener('resize', onResize);
   window.addEventListener('orientationchange', onResize);
+  // 回到前台：在后台时没量，复核一次
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) onResize(); });
   // 输完收起键盘：补量一次（输入时跳过了）
   document.addEventListener('focusout', () => { if (!typing()) onResize(); });
 
-  /* 单机：接着上次的存档打；没有存档就开一盘（第一次来先问要不要学）。quiet = 从联机房间回来，不再问教程 */
+  /* 单机存档：封面「单机」接着打用（见 playSolo）；坏档 / 旧版本 / 打完的不认 */
   // 存档自检：任何一张牌在手牌 / 吃牌 / 桌上出现两次，就是坏档（旧版本留下的或被改过），直接作废重开
   function saneMatch(m) {
     const ok = (lists) => { const all = lists.flat(); return all.every((c) => Number.isInteger(c) && c >= 0 && c < 52) && new Set(all).size === all.length; };
