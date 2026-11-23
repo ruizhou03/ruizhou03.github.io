@@ -121,7 +121,16 @@
   let match = null;     // { rules, totals, roundNo, pigTaker, seed, round, exposing, last, over }
   let selected = -1;
   let exposePick = [];  // 明牌环节里我点选要明的牌
-  let exposeHeld = [];  // 我已经点了「明牌」、还在等别家决定（或等服务器）的那几张：这期间照样按明牌的样子画
+  /* 显示层：规则引擎（match.round）一步到位，画面跟着动画一步步追上来——动画还没播到的那部分记在这里，画面一律照它画，
+   * 动画播到哪就放掉哪一项。（原来是 flying / dealing / exposeHeld 三个散落的临时标记）
+   *   deal   发牌中：{ have: 每家已经到手几张, mine: 我已经到手的牌, skip }
+   *   trick  一轮刚打满、还在桌上放特效 / 收牌：{ match, done, talk, hold: 还没放进吃牌区的分牌, onTable: 四张牌还摆在桌上,
+   *          lead: 桌心还亮着领出花色, fxing: 特效正放着（桌上的牌调暗）, replay: 暂停打断了，继续时从头重放 }
+   *   held   我已经点了「明牌」、还在等别家决定（或等服务器）的那几张：这期间照样按明牌的样子画 */
+  const ov = { deal: null, trick: null, held: [] };
+  // 这一轮还没收完的那份显示（只认当前这一盘的；换了一盘就当没有）
+  const liveTrick = () => (ov.trick && ov.trick.match === match ? ov.trick : null);
+  const heldCap = (c) => { const t = liveTrick(); return !!(t && t.hold.has(c)); };
   let busy = false;     // 动画 / AI 思考中，屏蔽我的操作
   let token = 0;        // 重开时作废旧的定时回调
   let autopilot = false;  // 托管：连续两次超时自动打开，点手牌 / 头像取消
@@ -541,8 +550,7 @@
     });
   }
 
-  /* 一轮刚打满、分牌还没飞到：规则引擎已经记进了赢家的吃牌，界面先别画，等飞过去时再「划开插入」 */
-  let flying = null;
+  /* 一轮刚打满、分牌还没飞到：规则引擎已经记进了赢家的吃牌，界面先别画（显示层 ov.trick.hold），等飞过去时再「划开插入」 */
 
   function renderSeat(s, incoming, slide) {
     const r = match.round;
@@ -552,7 +560,7 @@
     tot.classList.toggle('neg', match.totals[s] < 0);
     const backs = el.querySelector('.gz-backs');
     if (backs) {
-      const left = dealing ? dealing.have[s] : r ? r.hands[s].length : 0;
+      const left = ov.deal ? ov.deal.have[s] : r ? r.hands[s].length : 0;
       if (backs.childElementCount !== left) backs.innerHTML = '<span class="gz-back"></span>'.repeat(left);
     }
     // 别家亮出、还在手里的牌：牌背旁边摊开给大家看
@@ -573,7 +581,7 @@
     el.dataset.dbl = tone;
     els.slots[s].dataset.dbl = tone;
     if (s === 0) els.hand.dataset.dbl = tone;
-    const caps = r ? r.captured[s].filter((c) => !flying || !flying.has(c)) : [];
+    const caps = r ? r.captured[s].filter((c) => !heldCap(c)) : [];
     renderCaps(el.querySelector('.gz-caps'), caps, incoming, null, slide);
     el.classList.toggle('is-turn', turnSeat() === s);
   }
@@ -597,7 +605,7 @@
   // 我点选了 ♥A、或已经明出去还在等别家 / 服务器：先按明了算，和 ♥A 自己的明牌底色同一刻变
   function syncHeartsX2() {
     const r = match && match.round;
-    const ex = r ? r.exposed.map((e) => e[0]).concat(exposeHeld, exposingMe() ? exposePick : [])
+    const ex = r ? r.exposed.map((e) => e[0]).concat(ov.held, exposingMe() ? exposePick : [])
       : (match && match.last && match.last.ctx && match.last.ctx.exposed) || [];
     els.app.classList.toggle('is-hx2', ex.includes(R.HEART_ACE));
   }
@@ -636,8 +644,11 @@
   function renderTrick(plays, enteringSeat) {
     const r = match.round;
     els.slots.forEach((slot) => { slot.innerHTML = ''; });
-    plays = plays || (r ? r.trick : []);
-    showLead(plays.length ? R.suitOf(plays[0].card) : -1);
+    const t = liveTrick();
+    const fromOv = !plays && !!t;
+    plays = plays || (t ? (t.onTable ? t.done.plays : []) : r ? r.trick : []);
+    showLead(plays.length && (!fromOv || t.lead) ? R.suitOf(plays[0].card) : -1);
+    setFxing(!!(t && t.fxing));
     if (!plays.length) return;
     const lead = R.suitOf(plays[0].card);
     let top = plays[0];
@@ -656,7 +667,7 @@
     els.hand.innerHTML = '';
     if (!r) { els.play.disabled = true; return; }
     if (watching()) { renderWatchHand(r); return; }
-    const hand = dealing ? r.hands[0].filter((c) => dealing.mine.includes(c)) : r.hands[0].slice();
+    const hand = ov.deal ? r.hands[0].filter((c) => ov.deal.mine.includes(c)) : r.hands[0].slice();
     R.sortHand(hand);
     const exposing = exposingMe() && !busy;
     const myTurn = !exposing && !match.exposing.length && !R.isRoundOver(r) && r.turn === 0 && !busy;
@@ -682,7 +693,7 @@
       el.setAttribute('role', 'option');
       el.setAttribute('aria-label', cardName(c));
       if ((myTurn || exposing) && !legal.includes(c)) { el.classList.add('is-illegal'); el.setAttribute('aria-disabled', 'true'); }
-      if (isExposedCard(c) || (exposing && exposePick.includes(c)) || exposeHeld.includes(c)) el.classList.add('is-exposed');
+      if (isExposedCard(c) || (exposing && exposePick.includes(c)) || ov.held.includes(c)) el.classList.add('is-exposed');
       if (c === suggestCard && myTurn) el.classList.add('is-suggest');
       if (exposing ? exposePick.includes(c) : c === selected) { el.classList.add('selected'); el.setAttribute('aria-selected', 'true'); }
       el.addEventListener('click', () => onCardTap(c, el));
@@ -746,7 +757,7 @@
       : [];
     selected = -1;
     exposePick = [];
-    exposeHeld = [];
+    ov.held = [];
     save();
     if (DEAL_FX && !match.tutorial) { dealIntro().then(guard(() => step())); return; }
     renderAll();
@@ -760,7 +771,7 @@
    * 然后从下家开始一圈圈发，拿一张牌堆就真少一层：别家的飞到头像（头像旁的牌背一张张多起来），
    * 我的飞进手里（落地就翻开、按花色排好）。点一下桌面直接发完。?gzdeal=0 关掉（排查用），?fxdemo=deal 循环看。 */
   const DEAL_FX = new URLSearchParams(location.search).get('gzdeal') !== '0';
-  let dealing = null;   // 发牌中：{ have: 每家已经到手几张, mine: 我已经到手的牌, skip }
+  // 发牌中的显示记在 ov.deal：{ have: 每家已经到手几张, mine: 我已经到手的牌, skip }
 
   /* 一摞牌（发牌 / 洗牌用）：fixed 定位在 (x, y) 为中心，n 张就 n 层纸边 + 顶上一张牌背；整摞是一个元素，挪它就连厚度带影子一起挪 */
   const PILE_EDGES = ['#f7f0e1', '#efe6d3', '#f3ebda', '#e8ddc7'];
@@ -801,9 +812,9 @@
     const r = match.round;
     if (!r) return;
     const my = token;
-    const D = dealing = { have: [0, 0, 0, 0], mine: [], skip: false };
-    const alive = () => my === token && dealing === D && !D.skip;
-    const done = () => { if (dealing === D) dealing = null; };
+    const D = ov.deal = { have: [0, 0, 0, 0], mine: [], skip: false };
+    const alive = () => my === token && ov.deal === D && !D.skip;
+    const done = () => { if (ov.deal === D) ov.deal = null; };
     busy = true;
     renderAll();
     const reduce = reduceMotion();
@@ -858,7 +869,7 @@
       snd('deal');
       await anim(deck, [{ transform: 'scaleX(1.05) translateY(-2px)' }, { transform: 'none' }], { duration: 180, easing: 'ease-out' });
     }
-    if (!(my === token && dealing === D)) { cleanup(); done(); return; }
+    if (!(my === token && ov.deal === D)) { cleanup(); done(); return; }
     const target = (s) => {
       if (s === 0) { const hr = els.hand.getBoundingClientRect(); return { x: hr.left + hr.width / 2, y: hr.top + hr.height / 2 }; }
       const av = els.seats[s].querySelector('.gz-avatar').getBoundingClientRect();
@@ -870,7 +881,7 @@
     for (let i = 0; i < order.length; i++) {
       if (!alive()) break;
       const [s, card] = order[i];
-      const land = () => { if (dealing !== D) return; if (s === 0) { D.mine.push(card); renderHand(); } else { D.have[s]++; renderSeat(s); } };
+      const land = () => { if (ov.deal !== D) return; if (s === 0) { D.mine.push(card); renderHand(); } else { D.have[s]++; renderSeat(s); } };
       if (reduce) { land(); continue; }
       const from = pileTop(deck), t = target(s);
       setPile(deck, deck._n - 1);
@@ -891,11 +902,47 @@
     if (my !== token) return;
     renderAll();
   }
-  function skipDeal() { if (dealing) dealing.skip = true; }
+  function skipDeal() { if (ov.deal) ov.deal.skip = true; }
 
+  // 排着的回调都记账：清场时一把清掉（光换 token 只是让它们到点不干活）
+  const fxTimers = new Set();
   function schedule(fn, ms) {
     const my = token;
-    setTimeout(() => { if (my === token) fn(); }, ms);
+    const id = setTimeout(() => { fxTimers.delete(id); if (my === token) fn(); }, ms);
+    fxTimers.add(id);
+    return id;
+  }
+  // 特效的善后（到点把放完的元素拿掉）：不认 token——拿掉一个已经放完的元素什么时候都无害；记账是为了清场时一起清
+  function after(fn, ms) {
+    const id = setTimeout(() => { fxTimers.delete(id); fn(); }, ms);
+    fxTimers.add(id);
+    return id;
+  }
+
+  /* 统一清场：重开 / 进出教程 / 联机重新同步 / 暂停都走这里。作废所有排着的回调、掐掉排在音频时钟上的音效、
+   * 清空动画层（特效、飞着的牌、发牌的牌堆）、撤掉临时样式、放掉显示层；画面按状态重画由调用方接着做。
+   * keepTrick（暂停）：这一轮没收完的那份显示留着，继续时从桌上四张牌重放特效和收牌（见 step） */
+  function clearScene(keepTrick) {
+    token++;
+    fxTimers.forEach((id) => clearTimeout(id));
+    fxTimers.clear();
+    if (window.GongzhuAudio && window.GongzhuAudio.hush) window.GongzhuAudio.hush();
+    fxLayers.forEach((l) => { l._gfx.clear(); if (l !== els.fx) fxLayers.delete(l); });
+    els.fx.innerHTML = '';
+    els.app.querySelectorAll('.gz-flyer, .gz-pile, .gz-deal-card').forEach((x) => x.remove());
+    // 头像咽一下、分牌落进吃牌区这些挂在真元素上的动画：直接停在终点
+    els.seats.forEach((el) => el.querySelectorAll('.gz-avatar, .gz-caps .gz-mini').forEach((x) => x.getAnimations().forEach((a) => a.cancel())));
+    els.center.classList.remove('is-fxing', 'is-review');
+    ov.deal = null;
+    const t = keepTrick ? liveTrick() : null;
+    if (t) Object.assign(t, { onTable: true, lead: true, fxing: false, replay: true });
+    ov.trick = t;
+  }
+  // 桌上这一轮的牌调暗（特效正在桌心放）：跟着显示层走，清场 / 重画时不会残留
+  function setFxing(on) {
+    const t = liveTrick();
+    if (t) t.fxing = on;
+    els.center.classList.toggle('is-fxing', on);
   }
   // AI 结果是异步回来的：发请求时就记下 token，回来时已经重开 / 进了教程就丢掉
   function guard(fn) {
@@ -907,6 +954,9 @@
     if (match && match.online) { onlineStep(); return; }   // 联机：不跑 AI，按服务器发来的事件一条条播
     const r = match.round;
     if (!r) return;
+    // 一轮结束的流程被暂停打断：四张牌摆回桌上，停一下，从头重放特效和收牌
+    const rt = liveTrick();
+    if (rt && rt.replay) { rt.replay = false; busy = true; renderAll(); schedule(settleTrick, pace().trickShow); return; }
     if (R.isRoundOver(r)) { schedule(finishRound, pace().roundEnd); return; }
     if (match.tutorial) { tutStep(); return; }
     if (match.exposing.length) { exposeStep(); return; }
@@ -946,7 +996,7 @@
     stopClock();
     busy = true;
     exposePick = [];
-    if (seat === 0) exposeHeld = cards.slice();
+    if (seat === 0) ov.held = cards.slice();
     renderSeats();
     renderHand();
     finishExpose(cards);
@@ -966,7 +1016,7 @@
       }
       match.exposing = [];
       exposeWait = null;
-      exposeHeld = [];
+      ov.held = [];
       renderSeats();
       renderHand();
       r.exposed.forEach((_, i) => snd('stamp', i * 160));
@@ -1018,7 +1068,7 @@
     if (seat === 0) selected = -1;
     if (seat === 0 && match.tutorial) { hideCoach(); clearTimeout(idleTimer); suggestCard = -1; els.play.classList.remove('is-suggest'); }
     busy = true;   // 下一手由 step() 接手，轮到我时它再放开；早放开会让我抢在 step 前出牌、排出两次 step
-    if (done) flying = new Set(done.plays.map((p) => p.card).filter(R.isScoring));
+    if (done) ov.trick = { match, done, talk: null, hold: new Set(done.plays.map((p) => p.card).filter(R.isScoring)), onTable: true, lead: true, fxing: false, replay: false };
     renderTrick(done ? done.plays : null, seat);
     markAce(done ? done.plays : r.trick, seat, card);
     renderSeat(seat);
@@ -1027,27 +1077,32 @@
     // 一墩完成：停一下让人看清，分牌飞进赢家的吃牌区，没分的牌就地淡出
     for (let s = 0; s < 4; s++) els.seats[s].classList.remove('is-turn');
     // 教程：牌还在桌上时先讲这一轮（桌上的牌调暗，讲解里把四家的牌排出来），讲完再收牌结算，结算后再讲分数
-    const talk = match.tutorial ? tut.coach.afterTrick(done, r) : { before: [], after: [] };
-    const settle = () => {
-      showLead(-1);
-      // 先在桌子中间放完猪 / 羊 / 变压器等特效（四张牌还在桌上、调暗），再把四张牌一起收走、分牌放进吃牌区
-      const fxMs = playTrickFx(done, planTrickFx(done));
-      if (fxMs) els.center.classList.add('is-fxing');
-      schedule(() => {
-        els.center.classList.remove('is-fxing');
-        const ms = flyTrick(done.plays, done.winner);
-        schedule(() => {
-          save();
-          if (match.tutorial) coachSay(talk.after, step);
-          else step();
-        }, ms + 40);
-      }, fxMs ? Math.max(0, fxMs - 150) : 0);
-    };
+    const talk = ov.trick.talk = match.tutorial ? tut.coach.afterTrick(done, r) : { before: [], after: [] };
     schedule(() => {
-      if (!talk.before.length) { settle(); return; }
+      if (!talk.before.length) { settleTrick(); return; }
       els.center.classList.add('is-review');
-      coachSay(talk.before, () => { els.center.classList.remove('is-review'); settle(); });
+      coachSay(talk.before, () => { els.center.classList.remove('is-review'); settleTrick(); });
     }, pace().trickShow);
+  }
+
+  // 一轮打满后的收尾：先在桌子中间放完猪 / 羊 / 变压器等特效（四张牌还在桌上、调暗），再把四张牌一起收走、分牌放进吃牌区
+  function settleTrick() {
+    const t = liveTrick();
+    if (!t) return;
+    const { done, talk } = t;
+    t.lead = false;
+    showLead(-1);
+    const fxMs = playTrickFx(done, planTrickFx(done));
+    if (fxMs) setFxing(true);
+    schedule(() => {
+      setFxing(false);
+      const ms = flyTrick(done.plays, done.winner);
+      schedule(() => {
+        save();
+        if (match.tutorial) coachSay(talk.after, step);
+        else step();
+      }, ms + 40);
+    }, fxMs ? Math.max(0, fxMs - 150) : 0);
   }
 
   /* 一轮结束（猪 / 羊 / 变压器等特效已经先在桌子中间放完）：
@@ -1077,6 +1132,7 @@
       flyers.push({ fl, a });
     });
     els.slots.forEach((slot) => { slot.innerHTML = ''; slot.classList.remove('is-ace'); });
+    if (liveTrick()) ov.trick.onTable = false;
     for (const { fl, a } of flyers) {
       const dx = av.left + av.width / 2 - a.left - a.width / 2, dy = av.top + av.height / 2 - a.top - a.height / 2;
       const gx = (ws.left + ws.width / 2 - a.left - a.width / 2) * GATHER, gy = (ws.top + ws.height / 2 - a.top - a.height / 2) * GATHER;
@@ -1097,9 +1153,9 @@
     const STAGGER = match && match.tutorial ? 140 : 110;
     const ONE = Math.round(pace().fly * 2);
     const placeMs = fresh.length && !reduce ? ONE + STAGGER * (fresh.length - 1) : 0;
-    setTimeout(() => {
+    schedule(() => {
       flyers.forEach(({ fl }) => fl.remove());
-      flying = null;
+      if (liveTrick()) ov.trick = null;   // 显示层放掉：分牌这才进吃牌区
       renderSeat(winner, fresh, true);   // 让出空位：后面的牌和本局分一起滑开
       if (!fresh.length) return;
       const done = () => { caps.querySelectorAll('.incoming').forEach((el) => el.classList.remove('incoming')); rollCapsScore(caps); };
@@ -1156,12 +1212,12 @@
         // 每拿出一张，头像轻轻一动
         avatar.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.1)', offset: 0.4 }, { transform: 'scale(1)' }],
           { duration: 240, delay: i * STAGGER, easing: 'ease-out' });
-        setTimeout(() => {
+        schedule(() => {
           fl.remove();
           if (++landed === fresh.length) rollCapsScore(caps);   // 全部放好才翻分
         }, ONE + i * STAGGER);
       });
-      setTimeout(done, placeMs + 40);   // 兜底：万一哪张没找到落点，也把分翻了
+      schedule(done, placeMs + 40);   // 兜底：万一哪张没找到落点，也把分翻了
     }, sweepMs);
     return sweepMs + placeMs;
   }
@@ -1926,7 +1982,7 @@
 
   function restartMatch() {
     askConfirm('放弃这一盘，从 0 分重新开始？', '', '重开', () => {
-      stopClock(); closeDialog(); token++; busy = false; setAutopilot(false); if (social) social.clear(); newMatch(); startRound();
+      stopClock(); closeDialog(); clearScene(); busy = false; setAutopilot(false); if (social) social.clear(); newMatch(); startRound();
     });
   }
 
@@ -2230,7 +2286,7 @@
     if (window.GongzhuAudio) window.GongzhuAudio.duck(list.reduce((m, fx, k) => Math.max(m, k * FX_GAP + (fx.dur || FX_DUR[fx.kind])), 0));
     let end = 0;
     list.forEach((fx, k) => {
-      setTimeout(() => playFx(fx, w), k * FX_GAP);
+      schedule(() => playFx(fx, w), k * FX_GAP);
       end = Math.max(end, k * FX_GAP + (fx.dur || FX_DUR[fx.kind]));
     });
     return end;
@@ -2242,6 +2298,151 @@
     return el.animate(frames.map((f) => Object.assign({ easing: e }, f)), Object.assign({ easing: 'linear' }, opts));
   }
   const FT = (x, y, sc, rot) => 'translate(-50%, -50%) translate(' + (x || 0) + 'px,' + (y || 0) + 'px) scale(' + (sc == null ? 1 : sc) + ') rotate(' + (rot || 0) + 'deg)';
+
+  /* ───── 特效引擎（games-fx.js，和百变小咪共用）─────
+   * 每个动画层一台：平时是 #gzFx，对撞放不下时是临时搭的缩放舞台。坐标是层自己的坐标，原点在左上角；
+   * 拱猪的特效都以桌子正中为原点写（FT 的 left:50% top:50%），换算一下：fxOrigin() + (x, y)。
+   * 粒子画布盖满整个视口（cover）：#gzFx 只是桌子中间一块，烟花会飞出去。善后定时器走 after（清场时一起清）。 */
+  const fxLayers = new Set();
+  function fxOf(layer) {
+    if (!layer._gfx) {
+      layer._gfx = window.GamesFx.create(layer, { prefix: 'gz', cardRatio: 1.44, cover: true, exact: true, later: after, sound: snd });
+      fxLayers.add(layer);
+    }
+    return layer._gfx;
+  }
+  const fxOrigin = () => ({ x: els.fx.clientWidth / 2, y: els.fx.clientHeight / 2 });
+  // 拱猪烟花的手感（和原来的 DOM 粒子逐项一样：起飞错开、下坠、大个飞近一点、转角、各段缩放、寿命 1250 / 大个 1400、字号取整）
+  const GZ_SPARK = { lag: { double: 110, spiral: 16, fountain: 140, scatter: 170 }, fallBig: 0.65, fountain: [2.75, 1.75], bigDist: 0.85,
+    spin: { steady: [6, 10], near: [14, 40], free: [40, 150, 320] }, scale: [0.3, 0.6, 1.12, 1, 1, 0.75], bigLife: 1.12, round: true };
+  // 中心晕光（原 .gz-flash：90px 圆、径向渐变）；transparent 写成末色的透明版，和 CSS 的预乘插值一致
+  const GLOW_GOLD = [[0, 'rgba(255, 236, 200, 0.95)'], [0.45, 'rgba(201, 169, 110, 0.35)'], [0.7, 'rgba(201, 169, 110, 0)']];
+  const GLOW_RED = [[0, 'rgba(255, 214, 205, 0.9)'], [0.45, 'rgba(180, 57, 44, 0.28)'], [0.7, 'rgba(180, 57, 44, 0)']];
+  /* 粒子形状：四种花色用牌面同一套矢量（和原来 span 里的 suitSVG 同一几何：♠♣ 宽 = 字的步进宽、高 1em、基线 1450.5；♥♦ 1em 见方），
+   * 其余字符（✦）照原样用文字画：line-height 1 的行盒里基线在正中往下 (上伸 − 下伸) / 2 */
+  const SPARK_SHAPES = {};
+  function sparkShape(ch) {
+    if (SPARK_SHAPES[ch]) return SPARK_SHAPES[ch];
+    let draw;
+    const suit = SUIT_OF_CHAR[ch];
+    if (suit != null && GLYPH_SUITS[suit]) {
+      const gl = GLYPH_SUITS[suit], path = new Path2D(gl.d);
+      draw = (g, sz, color) => { const k = sz / 2048; g.translate(-gl.adv * k / 2, -sz / 2); g.scale(k, k); g.translate(0, 1450.5); g.fillStyle = color; g.fill(path); };
+    } else if (suit != null) {
+      const sv = SVG_SUITS[suit], path = new Path2D(sv.d);
+      const ops = [...sv.t.matchAll(/(translate|scale)\(([^)]+)\)/g)].map((m) => [m[1], m[2].trim().split(/[\s,]+/).map(Number)]);
+      draw = (g, sz, color) => {
+        g.translate(-sz / 2, -sz / 2); g.scale(sz / 1000, sz / 1000);
+        for (const [op, v] of ops) { if (op === 'translate') g.translate(v[0], v[1] || 0); else g.scale(v[0], v[1] == null ? v[0] : v[1]); }
+        g.fillStyle = color; g.fill(path);
+      };
+    } else {
+      const txt = ch + '\uFE0E', metric = {};
+      draw = (g, sz, color) => {
+        g.font = sz + "px 'Apple Symbols', 'Segoe UI Symbol', serif";
+        const m = metric[sz] || (metric[sz] = (() => { const t = g.measureText(txt); const A = t.fontBoundingBoxAscent, D = t.fontBoundingBoxDescent; return { w: t.width, dy: A != null ? (A - D) / 2 : sz * 0.3 }; })());
+        g.fillStyle = color; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+        g.fillText(txt, -m.w / 2, m.dy);
+      };
+    }
+    return (SPARK_SHAPES[ch] = { draw });
+  }
+
+  /* 大元素的影子 / 光晕预先画好垫在下面（2026-11-22）：原来插画、大红心、对撞的大花色带 CSS drop-shadow，
+   * 一边缩放一边算大半径模糊；现在按同样的偏移、模糊、颜色在画布上画一次「只有影子」的底，元素本身不再带 filter。
+   * 插画是 SVG 转成图片画的，要先解码：页面空下来时预先载好；万一还没好，这一次照旧用 CSS 的 filter（.is-baked 才去掉） */
+  const BAKE = {   // 插画 → 影子层（由内到外）：[dx, dy, 模糊, 颜色]；第二层是给「插画 + 第一层影子」整体再加的光晕（猪）
+    pig: [[0, 4, 6, 'rgba(20, 18, 15, 0.16)'], [0, 0, 18, 'rgba(122, 30, 26, 0.45)']],
+    sheep: [[0, 4, 6, 'rgba(20, 18, 15, 0.16)']],
+    crown: [[0, 6, 12, 'rgba(169, 130, 58, 0.4)']],
+    heart: [[0, 6, 10, 'rgba(180, 57, 44, 0.3)']],
+  };
+  const artImg = {};
+  function loadArt() {
+    for (const k of Object.keys(BAKE)) {
+      if (artImg[k]) continue;
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ART[k].replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '));
+      artImg[k] = img;
+      if (img.decode) img.decode().catch(() => {});
+    }
+  }
+  if (window.requestIdleCallback) requestIdleCallback(loadArt, { timeout: 3000 }); else setTimeout(loadArt, 1200);
+  // 只画影子：把东西画在画布外很远处、影子偏移回来（画布的影子偏移和模糊都按像素算，不跟 transform 走）
+  function shadowOnly(g, src, x, y, w, h, R, [dx, dy, blur, color]) {
+    const FAR = 10000;
+    g.save();
+    g.shadowColor = color; g.shadowBlur = blur * R; g.shadowOffsetX = FAR + dx * R; g.shadowOffsetY = dy * R;
+    g.drawImage(src, x - FAR, y, w, h);
+    g.restore();
+  }
+  function bakeLayer(w, h, layers, paint) {
+    const R = Math.min(2, window.devicePixelRatio || 1) * 1.25;   // 元素会放大到 1.2 倍左右，按这个分辨率画
+    const pad = Math.ceil(layers.reduce((m, l) => Math.max(m, Math.abs(l[0]) + Math.abs(l[1]) + l[2] * 2), 0)) + 2;
+    const W = Math.ceil((w + pad * 2) * R), H = Math.ceil((h + pad * 2) * R);
+    const shape = document.createElement('canvas');
+    shape.width = W; shape.height = H;
+    const sg = shape.getContext('2d');
+    sg.setTransform(R, 0, 0, R, pad * R, pad * R);
+    paint(sg);
+    sg.setTransform(1, 0, 0, 1, 0, 0);
+    const out = document.createElement('canvas');
+    out.width = W; out.height = H;
+    const og = out.getContext('2d');
+    shadowOnly(og, shape, 0, 0, W, H, R, layers[0]);
+    if (layers[1]) {
+      // 外层光晕是给「本体 + 内层影子」整体加的：先合成一份，再取它的影子
+      const both = document.createElement('canvas');
+      both.width = W; both.height = H;
+      const bg = both.getContext('2d');
+      shadowOnly(bg, shape, 0, 0, W, H, R, layers[0]);
+      bg.drawImage(shape, 0, 0);
+      const tmp = document.createElement('canvas');
+      tmp.width = W; tmp.height = H;
+      const tg = tmp.getContext('2d');
+      shadowOnly(tg, both, 0, 0, W, H, R, layers[1]);
+      tg.drawImage(out, 0, 0);
+      return { cv: tmp, pad };
+    }
+    return { cv: out, pad };
+  }
+  function placeBake(host, baked, w, h) {
+    const c = baked.cv;
+    c.className = 'gz-bake';
+    c.setAttribute('aria-hidden', 'true');
+    c.style.cssText = 'left:' + (-baked.pad) + 'px;top:' + (-baked.pad) + 'px;width:' + (w + baked.pad * 2) + 'px;height:' + (h + baked.pad * 2) + 'px';
+    host.prepend(c);
+    host.classList.add('is-baked');
+  }
+  const bakeCache = new Map();
+  function cachedBake(key, w, h, layers, paint) {
+    let b = bakeCache.get(key);
+    if (!b) { b = bakeLayer(w, h, layers, paint); bakeCache.set(key, b); }
+    const c = document.createElement('canvas');
+    c.width = b.cv.width; c.height = b.cv.height;
+    c.getContext('2d').drawImage(b.cv, 0, 0);
+    return { cv: c, pad: b.pad };
+  }
+  // 一个特效元素里的插画 / 大红心：量出它摆出来的大小，垫上影子
+  function bakeIn(el) {
+    const art = el.querySelector('.gz-fxart, .gz-fxheart');
+    if (!art) return;
+    const svg = art.querySelector('svg');
+    const k = art.classList.contains('gz-fxheart') ? 'heart' : el.classList.contains('kind-pig') ? 'pig' : el.classList.contains('kind-sheep') ? 'sheep' : el.classList.contains('kind-slam') ? 'crown' : '';
+    const img = artImg[k];
+    if (!k || !svg || !img || !img.complete || !img.naturalWidth) return;
+    const vb = svg.viewBox.baseVal, w = parseFloat(getComputedStyle(svg).width), h = w * vb.height / vb.width;
+    if (!(w > 0)) return;
+    placeBake(art, cachedBake(k + ':' + w, w, h, BAKE[k], (g) => g.drawImage(img, 0, 0, w, h)), w, h);
+  }
+  // 对撞中央的大花色：路径就是花色矢量，直接画
+  function bakeGiant(el, suit, size) {
+    const gl = GLYPH_SUITS[suit], w = gl ? size * gl.adv / 2048 : size, h = size;
+    const shape = sparkShape(['♠', '♥', '♦', '♣'][suit]);
+    placeBake(el, cachedBake('giant:' + suit + ':' + size, w, h, [[0, 6, 14, 'rgba(20, 18, 15, 0.22)']],
+      (g) => { g.translate(w / 2, h / 2); shape.draw(g, size, '#000'); }), w, h);
+  }
 
   /* 对撞：猪 / 羊 / 变压器有两张以上同一轮被吃。
    * 两张：一左一右（羊 + 猪：羊左猪右；羊 / 猪 + 变压器：羊或猪在左、×2 在右）；三张：正三角，羊左上、猪右上、×2 在下。
@@ -2265,7 +2466,7 @@
     host.appendChild(stage);
     els.fx = stage;
     try { playClashScene(fx, w); } finally { els.fx = host; }
-    setTimeout(() => stage.remove(), (fx.dur || FX_DUR.clash) + 3200);
+    after(() => { stage.remove(); fxLayers.delete(stage); }, (fx.dur || FX_DUR.clash) + 3200);
   }
   function playClashScene(fx, w) {
     const dur = fx.dur || FX_DUR.clash;
@@ -2288,6 +2489,7 @@
         el.innerHTML = '<div class="gz-fxart">' + ART[pig ? 'pig' : 'sheep'] + '</div>' + tag(pig ? fx.pigSub : fx.sheepSub);
       }
       els.fx.appendChild(el);
+      bakeIn(el);
       const [x, y] = pos[c];
       const len = Math.hypot(x, y) || 1, ux = x / len, uy = y / len;   // 从中间指向它的方向
       const at = (k, sc, rot) => FT(x * k, y * k, sc, rot);
@@ -2324,23 +2526,10 @@
     const tint = (g) => (g === '♣' ? DOUBLER_TONE[fx.dbl.tone || 'gold'].ink : SUIT_TINT(g));
     // 撞上：白光 + 参与者的花色四溅
     burst(0, -18, three ? 56 : 44, glyphs, tint, hit, three ? 220 : 190, { glow: 'gold', spin: true, size: [16, three ? 80 : 72] });
-    // 一团烟：一圈圈灰白的云团鼓起来、往上飘散
-    for (let k = 0; k < (three ? 15 : 11); k++) {
-      const puff = document.createElement('div');
-      puff.className = 'gz-smoke';
-      const a = Math.random() * Math.PI * 2, d = Math.random() * (three ? 60 : 46);
-      const x = Math.cos(a) * d, y = -18 + Math.sin(a) * d * 0.7;
-      const size = 70 + Math.random() * (three ? 90 : 70);
-      puff.style.width = puff.style.height = size.toFixed(0) + 'px';
-      els.fx.appendChild(puff);
-      const life = 1100 + Math.random() * 500, delay = hit + Math.random() * 160;
-      puff.animate([
-        { transform: FT(x, y, 0.25), opacity: 0 },
-        { transform: FT(x * 1.2, y - 6, 1), opacity: 0.85, offset: 0.22 },
-        { transform: FT(x * 1.7, y - 40, 1.7), opacity: 0 },
-      ], { duration: life, delay, fill: 'both', easing: 'cubic-bezier(.2, .7, .3, 1)' });
-      setTimeout(() => puff.remove(), delay + life + 60);
-    }
+    // 一团烟：一圈圈灰白的云团鼓起来、往上飘散（引擎的 smoke，参数是拱猪原来那一组）
+    const oc = fxOrigin();
+    fxOf(els.fx).smoke(oc.x, oc.y - 18, { n: three ? 15 : 11, spread: three ? 60 : 46, size: [70, three ? 160 : 140], delay: hit,
+      rise: 40, alpha: 0.85, life: [1100, 1600], spreadK: [1.2, 1.7] });
     // 爆炸中央浮出巨大的花色：猪 ♠、羊 ♦（变压器只是倍数，两张时不单独出大花色）；
     // 猪羊对撞两个依次冒出、再一起淡掉；三张一起是三个大花色在三角位置接连冒出，各自炸碎成一把同花色的碎片
     const giants = three ? [[R.SHEEP, -70, -55], [R.PIG, 70, -55], [R.DOUBLER, 0, 55]]
@@ -2352,6 +2541,7 @@
       g.style.color = c === R.DOUBLER ? DOUBLER_TONE[fx.dbl.tone || 'gold'].ink : suit === 2 ? '#b4392c' : '#1f1c18';
       g.style.fontSize = (three ? 200 : 260) + 'px';
       g.innerHTML = suitSVG(suit);
+      bakeGiant(g, suit, three ? 200 : 260);
       els.fx.appendChild(g);
       const delay = hit + 90 + i * (three ? 260 : 380);
       const life = three ? 1200 - i * 120 : 1500;
@@ -2372,7 +2562,7 @@
       ], { duration: life, delay, fill: 'both' });   // 缓动逐段给（整体 easing 会把停留段压没）
       // 三张一起：大花色在淡出的那一刻炸碎成一把同花色碎片
       if (three) burst(gx, gy, 30, [['♠', '♥', '♦', '♣'][suit]], tint, delay + life * 0.62, 200, { glow: 'none', spin: true, size: [18, 84] });
-      setTimeout(() => g.remove(), delay + life + 60);
+      after(() => g.remove(), delay + life + 60);
     });
     // 撞完的烟花：两侧、上方接连再炸几朵；三张一起再多两轮、加金星
     const more = three ? glyphs.concat(['✦']) : glyphs;
@@ -2385,7 +2575,7 @@
       burst(95, 75, 26, more, tint2, hit + 1080, 140, { glow: 'none', spin: true, size: [16, 70] });
       burst(0, -10, 44, more, tint2, hit + 1280, 210, { glow: 'gold', spin: true, size: [18, 86] });
     }
-    setTimeout(() => {
+    after(() => {
       actors.forEach((el) => el.remove());
     }, dur);
   }
@@ -2405,6 +2595,7 @@
       (fx.kind === 'slam' ? '<div class="gz-fxword">大满贯</div>' : '') +
       (fx.sub ? '<div class="gz-fxscore ' + (fx.sub[0] === '−' ? 'neg' : 'pos') + '">' + fx.sub + '</div>' : '');
     els.fx.appendChild(item);
+    bakeIn(item);
     // 声音跟着动作：猪抖身子时哼两声再刨地、羊一出场就咩、变压器落定时叮、全红大红心跳时怦怦、金冠落下时奏一串
     ({ pig: () => snd('pig', 250), sheep: () => snd('sheep', 120), doubler: () => snd('doubler', 180),
       allhearts: () => snd('heartbeat', dur * 0.33), slam: () => snd('slam', dur * 0.13) })[fx.kind]();
@@ -2466,14 +2657,14 @@
       const holdEnd = frames[frames.length - 2].offset || 0.66;
       animate(label, [{ opacity: 1 }, { opacity: 1, offset: holdEnd }, { opacity: 0, offset: Math.min(0.95, holdEnd + 0.08) }, { opacity: 0 }], { duration: dur, fill: 'forwards' }, 'ease-out');
     }
-    setTimeout(() => item.remove(), dur);
+    after(() => item.remove(), dur);
   }
 
   /* 全红 + 猪 / 羊 / ×2 同一轮：全红放到快收尾时接上猪 / 羊 / ×2（或对撞） */
   const COMBO_GAP = 2300;
   function playCombo(fx, w) {
     playFx(fx.all, w);
-    setTimeout(() => playFx(fx.spec, w), COMBO_GAP);
+    schedule(() => playFx(fx.spec, w), COMBO_GAP);
   }
 
   // 一朵烟花：n 颗粒子从 (x, y) 炸开，往外飞、再带点下坠淡出
@@ -2489,60 +2680,19 @@
 
   /* opts：glow 'gold' | 'red' | 'none'（中心晕光）；spin 允许旋转；size [最小, 最大] 字号 px。
    * colors 可以是数组（按顺序轮换）或函数 glyph → 颜色。
-   * 粒子的姿态：大小拉开（少数很大），大部分接近正放；越大的越正、越稳，只有少数小的会大角度翻飞。 */
+   * 粒子的姿态：大小拉开（少数很大），大部分接近正放；越大的越正、越稳，只有少数小的会大角度翻飞。
+   * 2026-11-22 粒子改画在画布上（引擎 games-fx.js）：原来每粒一个 span + 一段 SVG + 一条动画，三张对撞那一场同步建三百多个元素；
+   * 轨迹、大小分布、角度、每段缓动、晕光都照原来的逐项搬过去（GZ_SPARK），调用方式不变 */
   function burst(x, y, n, glyphs, colors, delay, radius, opts) {
     const o = Object.assign({ glow: 'gold', spin: false, size: [15, 28] }, opts);
     snd('pop', delay, n / 44);   // 每朵烟花「嘭」一下，跟着粒子数大小
-    if (o.glow !== 'none') {
-      const flash = document.createElement('div');
-      flash.className = 'gz-flash' + (o.glow === 'red' ? ' red' : '');
-      els.fx.appendChild(flash);
-      animate(flash, [{ transform: FT(x, y, 0.2), opacity: 0.85 }, { transform: FT(x, y, 1.5), opacity: 0 }],
-        { duration: 520, delay, fill: 'both' }, 'ease-out');
-      setTimeout(() => flash.remove(), 520 + delay + 60);
-    }
-    const rnd = (a, b) => a + Math.random() * (b - a);
+    const fx = fxOf(els.fx), c = fxOrigin();
+    if (o.glow !== 'none') fx.glow(c.x + x, c.y + y, { stops: o.glow === 'red' ? GLOW_RED : GLOW_GOLD, delay });
+    const tints = [];
+    for (let k = 0; k < n; k++) tints.push(typeof colors === 'function' ? colors(glyphs[k % glyphs.length]) : colors[k % colors.length]);
     // 绽放样式：每次随机一种（一整圈 / 内外两圈 / 螺旋 / 喷泉 / 随意散开），同一种动画每回看起来都不一样
-    const pat = o.pattern || ['ring', 'double', 'spiral', 'fountain', 'scatter'][(Math.random() * 5) | 0];
-    const turn = Math.random() * Math.PI * 2;
-    for (let k = 0; k < n; k++) {
-      const g = glyphs[k % glyphs.length];
-      const el = document.createElement('span');
-      el.className = 'gz-spark';
-      // 四种花色用和牌面同一套矢量（各系统长一个样，安卓也不会变 emoji）；其余字符照常
-      if (g in SUIT_OF_CHAR) el.innerHTML = suitSVG(SUIT_OF_CHAR[g]); else el.textContent = g + '\uFE0E';
-      el.style.color = typeof colors === 'function' ? colors(g) : colors[k % colors.length];
-      // 大小：约 15% 是大个（区间顶部四分之一），其余偏小到中等
-      const big = Math.random() < 0.15;
-      const t = big ? rnd(0.75, 1) : Math.pow(Math.random(), 1.6) * 0.7;
-      el.style.fontSize = (o.size[0] + t * (o.size[1] - o.size[0])).toFixed(0) + 'px';
-      els.fx.appendChild(el);
-      let a, d, lag = 0, fall = big ? 26 : 40;
-      if (pat === 'ring') { a = turn + (k / n) * Math.PI * 2 + rnd(-0.12, 0.12); d = radius * rnd(0.85, 1.08); }
-      else if (pat === 'double') { const inner = k % 2 === 1; a = turn + (k / n) * Math.PI * 2; d = radius * (inner ? rnd(0.42, 0.58) : rnd(0.95, 1.18)); lag = inner ? 0 : 110; }
-      else if (pat === 'spiral') { a = turn + (k / n) * Math.PI * 4; d = radius * (0.3 + 0.85 * k / n); lag = k * 16; }
-      else if (pat === 'fountain') { a = -Math.PI / 2 + rnd(-1.05, 1.05); d = radius * rnd(0.7, 1.3); lag = rnd(0, 140); fall = big ? 70 : 110; }
-      else { a = Math.random() * Math.PI * 2; d = radius * rnd(0.35, 1.2); lag = rnd(0, 170); }
-      if (big) d *= 0.85;
-      const tx = x + Math.cos(a) * d, ty = y + Math.sin(a) * d;
-      // 姿态：大个几乎正放、只轻轻晃；七成小个接近正放；三成小个翻飞
-      let r0 = 0, r1 = 0;
-      if (o.spin) {
-        const mode = big ? 'steady' : Math.random() < 0.7 ? 'near' : 'free';
-        if (mode === 'steady') { r0 = rnd(-6, 6); r1 = r0 + rnd(-10, 10); }
-        else if (mode === 'near') { r0 = rnd(-14, 14); r1 = r0 + rnd(-40, 40); }
-        else { r0 = rnd(-40, 40); r1 = r0 + (Math.random() < 0.5 ? -1 : 1) * rnd(150, 320); }
-      }
-      const pop = big ? 1.12 : 1;
-      animate(el, [
-        { transform: FT(x, y, 0.3, r0), opacity: 0 },
-        { transform: FT(x, y, 0.6, r0), opacity: 1, offset: 0.06 },
-        { transform: FT(tx, ty, pop, (r0 + r1) * 0.5), opacity: 1, offset: 0.45 },
-        { transform: FT(tx, ty + 6, 1, (r0 + r1) * 0.6), opacity: 1, offset: 0.58, easing: 'ease-in' },   // 飞到最远后开始下坠
-        { transform: FT(tx, ty + fall, 0.75, r1), opacity: 0 },
-      ], { duration: big ? 1400 : 1250, delay: delay + lag, fill: 'both' }, 'cubic-bezier(.12, .8, .3, 1)');
-      setTimeout(() => el.remove(), (big ? 1400 : 1250) + delay + lag + 60);
-    }
+    fx.burst(c.x + x, c.y + y, { n, shapes: glyphs.map(sparkShape), colors: tints, radius, size: o.size, delay, life: 1250, gravity: 40,
+      spin: o.spin, pattern: o.pattern, profile: GZ_SPARK });
   }
   // 花色本色：黑桃草花墨黑、红桃方块朱红、星点金色
   const SUIT_TINT = (g) => (g === '♠' || g === '♣' ? '#1f1c18' : g === '♥' || g === '♦' ? '#b4392c' : '#c9a96e');
@@ -2550,7 +2700,11 @@
   // 本机调试：控制台里 __gzDebug.playFx({ kind: 'pig', sub: '下家 −100' }, 1) 单独放一段动画
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__gzDebug = { playFx, copyText, askConfirm, match: () => match, render: () => renderAll(), step: () => step(),
  solveSize: () => { solveSize(); if (match) renderHand(); }, showCoach: (m) => showCoach(m, () => hideCoach()),
- social: () => social };   // __gzDebug.social().play({ kind: 'prop', from: 3, to: 0, prop: 'pig' })
+ social: () => social,
+ parts: () => [...fxLayers].flatMap((l) => {   // 画布粒子此刻的状态（换成视口坐标，逐帧比对用）
+   const r = l.getBoundingClientRect(), k = l.offsetWidth ? r.width / l.offsetWidth : 1;
+   return l._gfx.peek().map((q) => Object.assign(q, { x: r.left + q.x * k, y: r.top + q.y * k, s: q.s * k }));
+ }) };   // __gzDebug.social().play({ kind: 'prop', from: 3, to: 0, prop: 'pig' })
 
   function reduceMotion() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
 
@@ -2584,14 +2738,14 @@
   function startTutorial(firstRun, kind) {
     const adv = kind === 'adv';
     const M = adv ? T.advanced : T;
-    token++;
+    clearScene();
     if (social) social.clear();
     stopClock();
     setAutopilot(false);
     hideExposeTip();
     tut = { coach: M.createCoach(), saved: match && !match.tutorial ? match : (tut && tut.saved), firstRun: !!firstRun, adv, fast: false, introDone: false, exposeTalked: false };
     match = { tutorial: true, adv, rules: M.RULES, totals: [0, 0, 0, 0], roundNo: 1, pigTaker: -1, seed: 0, round: M.createRound(), exposing: adv ? [0] : [], last: null, over: false };
-    exposePick = []; exposeHeld = [];
+    exposePick = []; ov.held = [];
     exposeWait = adv ? { bots: Promise.resolve(M.EXPOSE) } : null;
     applySoloIdentity();
     selected = -1;
@@ -2609,7 +2763,7 @@
     if (tut) tut.firstRun = false;
   }
   function endTutorial() {
-    token++;
+    clearScene();
     clearTimeout(idleTimer);
     suggestCard = -1;
     els.play.classList.remove('is-suggest');
@@ -2635,7 +2789,7 @@
 
   // 教程打到一半回封面：收拾教程的样子，不记「学过了」，原来那一盘留在内存里（封面上点单机接着打）
   function quitTutorial() {
-    token++;
+    clearScene();
     clearTimeout(idleTimer);
     suggestCard = -1;
     els.play.classList.remove('is-suggest');
@@ -2923,7 +3077,7 @@
     try { const u = new URL(location.href); u.searchParams.delete('room'); history.replaceState(null, '', u); } catch (_) { /* ignore */ }
     token++;
     stopClock(); closeDialog();
-    busy = false; selected = -1; exposePick = []; flying = null;
+    busy = false; selected = -1; exposePick = []; ov.trick = null;
     els.app.classList.remove('is-online', 'is-lobby', 'is-watching');
     renderWatchUi();
     $('gzLobby').hidden = true;
@@ -3054,7 +3208,7 @@
       toast(NET.message(e));
       if (e.status === 401 || e.status === 404) { leaveOnline(); return null; }
       if (my.pending >= 0) my.pending = -1;
-      if (action === 'expose') { my.exposeSent = null; exposeHeld = []; }   // 没送到：让我重新表态
+      if (action === 'expose') { my.exposeSent = null; ov.held = []; }   // 没送到：让我重新表态
       if (my.inGame && my.st && my.st.game) resync();
       return null;
     }
@@ -3112,10 +3266,10 @@
   /* 按快照直接画出当前局面（不播动画）：刚进来、断线回来、或者播完对不上时 */
   function resync() {
     const gv = online.st.game;
-    token++;
+    clearScene();
     stopClock();
-    flying = null; busy = true; selected = -1; exposePick = [];
-    if (online.exposeSent !== exposeKey(gv)) exposeHeld = [];
+    busy = true; selected = -1; exposePick = [];
+    if (online.exposeSent !== exposeKey(gv)) ov.held = [];
     online.queue = []; online.applied = gv.seq; online.pending = -1;
     const ended = gv.phase === 'round_end' || gv.phase === 'match_end';
     match = {
@@ -3199,7 +3353,7 @@
         match.roundNo = ev.roundNo; match.over = false; match.losers = [];
         match.round = R.createRound([gv.dealt ? gv.dealt.slice() : blank(), blank(), blank(), blank()], loc(ev.leader), ev.mustLead, match.rules);
         match.exposing = [];
-        selected = -1; exposePick = []; exposeHeld = []; busy = true; online.readySent = false;
+        selected = -1; exposePick = []; ov.held = []; busy = true; online.readySent = false;
         if (DEAL_FX && !watching()) { dealIntro().then(() => { if (match && match.online) schedule(step, 120); }); return; }
         renderAll();
         snd('deal');
@@ -3209,7 +3363,7 @@
       if (!r) { resync(); return; }
       if (ev.t === 'expose') {
         for (const [c, s] of ev.exposed) { const l = loc(s); ensureCard(r, l, c); R.expose(r, l, c); }
-        match.exposing = []; exposeHeld = [];
+        match.exposing = []; ov.held = [];
         renderSeats(); renderHand();
         ev.exposed.forEach((_, i) => snd('stamp', i * 160));
         schedule(step, 900);
@@ -3284,7 +3438,7 @@
     if (exposingMe()) {
       if (busy || !exposePick.length) return;
       const cards = exposePick.slice();
-      busy = true; match.exposing = []; exposePick = []; exposeHeld = cards.slice();
+      busy = true; match.exposing = []; exposePick = []; ov.held = cards.slice();
       online.exposeSent = exposeKey(online.st.game);
       stopClock(); renderHand();
       onlineAct('expose', { cards });
@@ -3429,7 +3583,7 @@
     const st = online.st;
     if (online.inGame) { online.inGame = false; token++; stopClock(); closeDialog(); renderWatchUi(); }
     match = { online: true, lobby: true, rules: st.config.rules, totals: [0, 0, 0, 0], roundNo: 0, round: null, exposing: [], last: null, over: false, losers: [] };
-    busy = true; selected = -1; flying = null;
+    busy = true; selected = -1; ov.trick = null;
     els.app.classList.add('is-online', 'is-lobby');
     els.hand.innerHTML = '';
     els.slots.forEach((x) => { x.innerHTML = ''; });
@@ -3880,7 +4034,7 @@
     if (!match || !exposingMe() || busy) return;
     exposePick = [];
     if (match.online) {
-      busy = true; match.exposing = []; exposeHeld = [];
+      busy = true; match.exposing = []; ov.held = [];
       online.exposeSent = exposeKey(online.st.game);
       stopClock(); renderHand();
       onlineAct('expose', { cards: [] });
@@ -4030,13 +4184,10 @@
   // 单机停下来：作废所有排着的回调（机器人出牌、动画），钟停住，存一下。之后从 playSolo 原样接着打——和刷新页面后接存档走的是同一条路
   function freezeSolo() {
     if (!soloBots()) return;
-    token++;
+    clearScene(true);
     stopClock();
     busy = true;
-    flying = null;
     exposeWait = null;
-    els.fx.innerHTML = '';
-    els.center.classList.remove('is-fxing');
     save();
   }
   function showPause() {
@@ -4053,7 +4204,7 @@
   function playSolo(m) {
     hideCover();
     stopClock();
-    busy = false; selected = -1; flying = null; exposePick = []; exposeHeld = []; exposeWait = null;
+    busy = false; selected = -1; exposePick = []; ov.held = []; exposeWait = null;   // ov.trick 留着：暂停打断的那一轮由 step 重放
     if (!m) { newMatch(); startRound(); return; }
     match = m;
     if (!match.bots) match.bots = drawBots();   // 老存档没有机器人名字：现在抽一次，记进去
@@ -4104,7 +4255,7 @@
   });
   // 大厅：点座位（空位加机器人 / 坐过去，机器人换档，房主请人离开）；中间面板的几个按钮
   els.table.addEventListener('click', (e) => {
-    if (dealing) { skipDeal(); return; }   // 发牌中点一下：直接发完
+    if (ov.deal) { skipDeal(); return; }   // 发牌中点一下：直接发完
     if (countdown) return;
     const seat = e.target.closest('[data-lseat]');
     if (seat && online && match && match.lobby) { showSeatMenu(+seat.dataset.lseat); return; }
@@ -4247,18 +4398,18 @@
       r.captured = [[], [], [], []];
       r.captured[w] = pre.slice();
       r.exposed = [];
-      flying = null;
+      ov.trick = null;
       renderSeats();
       renderTrick(plays);
       schedule(() => {
         r.captured[w] = pre.concat(cards.filter(R.isScoring));
         const done = { winner: w, plays };
-        flying = new Set(cards.filter(R.isScoring));
+        ov.trick = { match, done, talk: null, hold: new Set(cards.filter(R.isScoring)), onTable: true, lead: false, fxing: false, replay: false };
         showLead(-1);
         const fxMs = playTrickFx(done, planTrickFx(done));
-        if (fxMs) els.center.classList.add('is-fxing');
+        if (fxMs) setFxing(true);
         schedule(() => {
-          els.center.classList.remove('is-fxing');
+          setFxing(false);
           schedule(loop, flyTrick(plays, w) + 1500);
         }, fxMs ? Math.max(0, fxMs - 150) : 0);
       }, 1100);
@@ -4275,7 +4426,7 @@
   function playSoloFresh(bots) {
     hideCover();
     stopClock();
-    busy = false; selected = -1; flying = null; exposePick = []; exposeHeld = []; exposeWait = null;
+    busy = false; selected = -1; ov.trick = null; exposePick = []; ov.held = []; exposeWait = null;
     if (social) social.clear();
     newMatch();
     if (bots && bots.length === 3) { match.bots = bots; applySoloIdentity(); }

@@ -235,6 +235,11 @@ body.gz-fullscreen .site-footer { display: none !important; }
 .gz-fxart svg { display: block; width: 190px; height: auto; filter: drop-shadow(0 4px 6px rgba(20, 18, 15, 0.16)); }
 .kind-slam .gz-fxart svg { width: 176px; filter: drop-shadow(0 6px 12px rgba(169, 130, 58, 0.4)); }
 .kind-pig .gz-fxart { filter: drop-shadow(0 0 18px rgba(122, 30, 26, 0.45)); }
+/* 影子 / 光晕预先画好垫在下面（见 gongzhu.js bakeIn / bakeGiant）：垫好了就去掉缩放时要重算的 drop-shadow */
+.gz-bake { position: absolute; pointer-events: none; }
+.gz-fxart.is-baked { position: relative; }
+.gz-fxart.is-baked, .is-baked > svg, .gz-giant.is-baked { filter: none; }
+.is-baked > svg { position: relative; }
 /* 分数大字：扣分朱红、加分墨绿 */
 .gz-fxscore { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 52px; line-height: 1; letter-spacing: 0.02em;
   text-shadow: 0 0 12px var(--gz-paper), 0 0 4px var(--gz-paper); }
@@ -759,7 +764,7 @@ body.gz-fullscreen, .gz-app * { -webkit-user-select: none; user-select: none; -w
 .gz-fxitem.is-duel .gz-fxart svg { width: 150px; }
 .gz-fxitem.is-duel .gz-fxscore { font-size: 40px; }
 .gz-smoke {
-  position: absolute; left: 50%; top: 50%; z-index: 3; border-radius: 50%; pointer-events: none; opacity: 0;
+  position: absolute; left: 0; top: 0; z-index: 3; border-radius: 50%; pointer-events: none; opacity: 0;
   background: radial-gradient(circle at 45% 40%, rgba(255, 252, 246, 0.98) 0%, rgba(226, 219, 207, 0.85) 42%, rgba(205, 197, 184, 0) 70%);
 }
 .gz-fxitem.is-duel .gz-fxcoin { width: 104px; height: 104px; }

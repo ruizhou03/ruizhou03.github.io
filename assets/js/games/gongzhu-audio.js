@@ -28,7 +28,7 @@
     comp.threshold.value = -10; comp.knee.value = 6; comp.ratio.value = 8; comp.attack.value = 0.003; comp.release.value = 0.2;
     comp.connect(ctx.destination);
     const make = (v) => { const g = ctx.createGain(); g.gain.value = v; g.connect(comp); return g; };
-    bus = { sfx: make(0.75), music: make(MUSIC_LEVEL) };
+    bus = { sfx: make(0.75), music: make(MUSIC_LEVEL), comp };
     if (ctx.state === 'suspended') ctx.resume();
     return ctx;
   }
@@ -314,6 +314,18 @@
     try { SFX[name](ctx, ctx.currentTime + 0.01 + (delay || 0) / 1000, bus.sfx, arg); } catch (_) { /* 声音坏了也不影响打牌 */ }
   }
 
+  /* 清场（暂停 / 重开 / 进教程）时掐掉已经排在音频时钟上、还没响的音效：换一条新的音效总线，旧的那条连同排在上面的声音一起淡出断开。
+   * 不然特效的烟花「嘭」、对撞的「轰」会在暂停页后面接着响 */
+  function hush() {
+    if (!bus || !ctx) return;
+    const old = bus.sfx;
+    bus.sfx = ctx.createGain();
+    bus.sfx.gain.value = old.gain.value;
+    bus.sfx.connect(bus.comp);
+    try { old.gain.cancelScheduledValues(ctx.currentTime); old.gain.setTargetAtTime(0, ctx.currentTime, 0.015); } catch (_) { /* */ }
+    setTimeout(() => { try { old.disconnect(); } catch (_) { /* */ } }, 250);
+  }
+
   // 大特效时把音乐压低一阵
   function duck(ms) {
     if (!bus || !ctx) return;
@@ -579,5 +591,5 @@
     ['pointerdown', 'touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, unlock, { capture: true, passive: true }));
   }
 
-  window.GongzhuAudio = { sfx, duck, set, prefs: () => Object.assign({}, prefs), SFX, renderMusic };
+  window.GongzhuAudio = { sfx, duck, hush, set, prefs: () => Object.assign({}, prefs), SFX, renderMusic };
 })();
