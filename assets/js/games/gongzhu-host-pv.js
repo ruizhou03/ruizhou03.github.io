@@ -1,14 +1,16 @@
-/* 拱猪联机 · 房主管人 / 暂停 / 本房间战绩 —— 预览（2026-11-22，待用户挑版本）
- * 只在 ?gzhost= 时由 gongzhu.js 加载（见那边 GZHOST / loadHostPv），不带参数的页面根本不加载这个文件。
+/* 拱猪联机 · 房主管人 / 暂停 / 本房间战绩
+ * 2026-11-23 用户定：房主那一排 a + 暂停 1 + 战绩 2，不带参数就是这一套（gongzhu.js 的 GZHOST 默认值）；其余版本留着，?gzhost= 还能看。
  *   房主那一排（点别人头像弹出的互动框里）：
  *     a  框底一排三个图标（托管 / 禁言 / 请离，照百变小咪）；被禁言的人头像左上角挂一枚「划掉的对话框」
  *     b  框底只有一个「管理」图标，点开一张小单子：大头像 + 三个带短标签的大圆键（开着的实心）；被禁言的人头像变灰、外圈虚线
  *     c  三个带短标签的开关挪到框最上面（先管人、再扔道具）；被禁言的人名字后面跟一个「划掉的对话框」小图标
  *   暂停：1 顶栏工具键（和单机的暂停键同一个位置），暂停时牌桌罩一层纸色，中间一张暂停卡（房主卡上有「继续」）
  *         2 左上角局数旁一颗小圆键，暂停时不罩牌桌：桌心一个淡淡的大暂停记号、房主头像角上挂暂停标，倒计时停住
+ *     暂停卡样式（待用户挑，?gzpause=a|b|c；不带 = 现在这张）：a 印信（房主大头像 + 暂停小章，不要卡框）
+ *         b 书签（竖长纸签，双线框，中间两道粗竖，底下房主小头像）  c 表盘（一圈金边的圆盘，房主头像压在上沿，房主点圆盘继续）
  *   本房间战绩（大厅）：1 每个座位卡下面一排小点（最近 6 盘的名次，当猪那盘画成猪鼻子）+ 平均名次
  *                       2 大厅中间一张可展开的小表（平均名次 / 当猪次数 / 最近几盘）
- * 新后端才有的字段（game.paused、players[].muted、record）缺了就什么都不画：连现在线上的后端，预览页和现状一样。 */
+ * 新后端才有的字段（game.paused、players[].muted、record）缺了就什么都不画。 */
 (function () {
   'use strict';
 
@@ -28,6 +30,7 @@
   function create(cfg, A) {
     const root = A.els.app;
     root.classList.add('gzh-row-' + cfg.row, 'gzh-pause-' + cfg.pause, 'gzh-rec-' + cfg.rec);
+    const CARD = (/^[abc]$/.exec(new URLSearchParams(location.search).get('gzpause') || '') || [''])[0];
     let veil = null, chip = null, mark = null;
 
     const st = () => { const o = A.online(); return o && o.st; };
@@ -117,6 +120,25 @@
       const o = A.online(), g = gv();
       return !!(o && o.inGame && !o.watching && A.isHost() && supports() && g.phase !== 'match_end');
     }
+    function pauseCard(h, host) {
+      const av = (cls) => h ? '<span class="gz-avatar ' + cls + '"><span class="gz-av-face">' + A.faceHtml(A.avatarOf(h)) + '</span></span>' : '';
+      const go = host ? '<button type="button" class="gz-btn gz-btn-primary gzh-pc-go" data-resume>' + IC.play + '<span>继续</span></button>' : '';
+      const wait = '<span class="gzh-pc-wait" aria-hidden="true"><i></i><i></i><i></i></span>';
+      const bars = '<span class="gzh-pc-bars" aria-hidden="true"><i></i><i></i></span>';
+      if (CARD === 'a') {
+        return '<div class="gzh-pc gzh-pc-a"><span class="gzh-pc-seal">' + av('gzh-pc-av') + '<span class="gzh-pc-badge">' + bars + '</span></span>' +
+          (host ? go : wait) + '</div>';
+      }
+      if (CARD === 'b') {
+        return '<div class="gzh-pc gzh-pc-b"><div class="gzh-pc-slip"><span class="gzh-pc-hole"></span>' + bars + av('gzh-pc-av') + '</div>' + go + '</div>';
+      }
+      if (CARD === 'c') {
+        return '<div class="gzh-pc gzh-pc-c">' + (host ? '<button type="button" class="gzh-pc-dial" data-resume aria-label="继续">' : '<span class="gzh-pc-dial">') +
+          av('gzh-pc-av') + bars + (host ? '</button>' : '</span>') + (host ? '<span class="gzh-pc-hint">' + IC.play + '继续</span>' : wait) + '</div>';
+      }
+      return '<div class="gzh-card"><span class="gzh-glyph">' + IC.pause + '</span>' + av('gzh-host-av') +
+        (host ? '<button type="button" class="gz-btn gz-btn-primary" data-resume>继续</button>' : '') + '</div>';
+    }
     function togglePause() {
       const g = gv();
       if (!canPause()) return;
@@ -135,7 +157,7 @@
         }
         if (paused && !veil) {
           veil = document.createElement('div');
-          veil.className = 'gzh-veil';
+          veil.className = 'gzh-veil' + (CARD ? ' gzh-veil-' + CARD : '');
           A.$('gzTable').appendChild(veil);
         }
         if (veil) {
@@ -145,9 +167,7 @@
             const key = (A.isHost() ? 'h' : 'g') + (h ? h.id + h.avatar : '');
             if (veil.dataset.k !== key) {
               veil.dataset.k = key;
-              veil.innerHTML = '<div class="gzh-card"><span class="gzh-glyph">' + IC.pause + '</span>' +
-                (h ? '<span class="gz-avatar gzh-host-av"><span class="gz-av-face">' + A.faceHtml(A.avatarOf(h)) + '</span></span>' : '') +
-                (A.isHost() ? '<button type="button" class="gz-btn gz-btn-primary" data-resume>继续</button>' : '') + '</div>';
+              veil.innerHTML = pauseCard(h, A.isHost());
               const r = veil.querySelector('[data-resume]');
               if (r) r.addEventListener('click', togglePause);
             }
@@ -226,7 +246,7 @@
           '</tbody></table>';
         if (det.dataset.h !== html) { det.dataset.h = html; const open = det.open; det.innerHTML = html; det.open = open; }
       }
-      // 盘终再来一盘的大厅侧入口：上一盘打完回到房间、有人走了空出座位时，房主一键「照上一盘再来」——空座补上机器人（场上最强那一档）就开。
+      // 盘终再来一盘的大厅侧入口：上一盘打完回到房间、有人走了空出座位时，房主一键「再来一盘」——空座补上机器人（场上最强那一档）就开。
       // 座位是满的就和「开始」一样，不另出；出的时候顶替（这时本来就点不了的）「开始」的位置
       let again = box.querySelector('[data-gzh="again"]');
       const empty = [0, 1, 2, 3].some((seat) => !s.players.some((p) => p.seat === seat));
@@ -236,9 +256,9 @@
       if (show && !again) {
         again = document.createElement('button');
         again.type = 'button';
-        again.className = 'gz-btn gzh-again';
+        again.className = 'gz-btn gz-btn-primary gzh-again';
         again.dataset.gzh = 'again';
-        again.innerHTML = IC.again + '<span>照上一盘再来</span>';
+        again.innerHTML = IC.again + '<span>再来一盘</span>';
         again.addEventListener('click', againFromLobby);
         box.querySelector('[data-lb="start"]').before(again);
       }

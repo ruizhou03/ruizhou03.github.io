@@ -1,4 +1,4 @@
-/* 拱猪联机 · 房主管人 / 暂停 / 本房间战绩 —— 预览（?gzhost=，见 assets/js/games/gongzhu-host-pv.js） */
+/* 拱猪联机 · 房主管人 / 暂停 / 本房间战绩（默认 甲 / 一 / 二；别的版本 ?gzhost=，暂停卡 ?gzpause=，见 assets/js/games/gongzhu-host-pv.js） */
 
 /* 线条图标：沿用顶栏工具键的画法 */
 .gzh-act svg, .gzh-big svg, .gzh-mb svg, .gzh-mn svg, .gzh-pb svg, .gzh-chip svg, .gzh-glyph svg, .gzh-mark svg, .gzh-rec summary svg, .gzh-again svg {
@@ -138,3 +138,55 @@
 .gzh-again { display: inline-flex; align-items: center; gap: 6px; }
 .gzh-again[hidden] { display: none; }
 .gzh-again svg { width: 16px; height: 16px; }
+
+/* ───── 暂停卡三版（?gzpause=a|b|c，待用户挑）：不加字，只靠头像 / 暂停记号 / 金边；房主多一颗「继续」 ───── */
+.gzh-veil-a, .gzh-veil-b, .gzh-veil-c {
+  background: radial-gradient(ellipse at center, rgba(251, 248, 241, 0.9) 0%, rgba(243, 238, 227, 0.82) 55%, rgba(226, 218, 202, 0.86) 100%);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.gzh-pc { display: flex; flex-direction: column; align-items: center; gap: 18px; animation: gzh-rise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.gzh-pc-bars { display: inline-flex; gap: 22%; align-items: center; justify-content: center; }
+.gzh-pc-bars i { display: block; background: currentColor; border-radius: 99px; }
+.gzh-pc-go { display: inline-flex; align-items: center; gap: 6px; min-width: 112px; justify-content: center; border-radius: 99px; padding-left: 18px; padding-right: 22px; }
+.gzh-pc-go svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+.gzh-pc-wait { display: inline-flex; gap: 7px; height: 36px; align-items: center; }
+.gzh-pc-wait i { width: 6px; height: 6px; border-radius: 50%; background: var(--gz-ink-mute); opacity: 0.25; animation: gzh-breathe 1.5s ease-in-out infinite; }
+.gzh-pc-wait i:nth-child(2) { animation-delay: 0.25s; }
+.gzh-pc-wait i:nth-child(3) { animation-delay: 0.5s; }
+@keyframes gzh-rise { from { opacity: 0; transform: translateY(8px) scale(0.97); } }
+@keyframes gzh-breathe { 50% { opacity: 0.85; } }
+
+/* a 印信：房主大头像套一圈金，右下角压一枚深色暂停小章；没有卡框 */
+.gzh-pc-seal { position: relative; display: flex; line-height: 0; padding: 5px; border-radius: 50%; background: var(--gz-card); box-shadow: 0 0 0 1.5px var(--gz-gold), 0 12px 30px rgba(20, 18, 15, 0.14); }
+.gzh-veil .gzh-pc-a .gz-avatar.gzh-pc-av { flex: none; margin: 0; aspect-ratio: 1; width: 84px; height: 84px; min-height: 0; max-height: none; font-size: 40px; border: 0; }
+.gzh-pc-badge { position: absolute; right: -4px; bottom: -4px; width: 34px; height: 34px; border-radius: 50%; background: var(--gz-ink); color: var(--gz-paper); border: 3px solid var(--gz-card); display: flex; align-items: center; justify-content: center; }
+.gzh-pc-badge .gzh-pc-bars { width: 14px; height: 14px; }
+.gzh-pc-badge .gzh-pc-bars i { width: 4px; height: 13px; }
+
+/* b 书签：竖长纸签，上端一个穿绳小孔，里面一圈细线框；中间两道粗竖，底下房主小头像 */
+.gzh-pc-b { gap: 16px; }
+.gzh-pc-slip {
+  position: relative; width: 116px; height: 172px; border-radius: 12px; background: var(--gz-card);
+  box-shadow: inset 0 0 0 7px var(--gz-card), inset 0 0 0 8px rgba(201, 169, 110, 0.75), 0 14px 32px rgba(20, 18, 15, 0.16), 0 0 0 1px rgba(29, 27, 24, 0.12);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; transform: rotate(-2deg);
+}
+.gzh-pc-hole { position: absolute; top: 16px; left: 50%; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; background: var(--gz-paper); box-shadow: inset 0 1px 2px rgba(20, 18, 15, 0.25); }
+.gzh-pc-b .gzh-pc-bars { color: var(--gz-ink); width: 40px; height: 46px; margin-top: 10px; }
+.gzh-pc-b .gzh-pc-bars i { width: 11px; height: 46px; border-radius: 4px; }
+.gzh-veil .gzh-pc-b .gz-avatar.gzh-pc-av { flex: none; margin: 0; aspect-ratio: 1; width: 34px; height: 34px; min-height: 0; font-size: 17px; }
+
+/* c 表盘：一圈金边的大圆盘，中间两道粗竖，房主头像压在上沿；房主点圆盘就继续 */
+.gzh-pc-c { gap: 14px; }
+.gzh-pc-dial {
+  position: relative; width: 132px; height: 132px; border-radius: 50%; padding: 0; border: 0; cursor: default; color: var(--gz-ink);
+  background: var(--gz-card); display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 0 0 1.5px rgba(29, 27, 24, 0.14), 0 0 0 6px var(--gz-card), 0 0 0 7.5px var(--gz-gold), 0 16px 34px rgba(20, 18, 15, 0.16);
+}
+button.gzh-pc-dial { cursor: pointer; }
+button.gzh-pc-dial:active { transform: scale(0.97); }
+.gzh-pc-dial .gzh-pc-bars { width: 44px; height: 46px; }
+.gzh-pc-dial .gzh-pc-bars i { width: 12px; height: 46px; }
+.gzh-veil .gzh-pc-c .gz-avatar.gzh-pc-av { flex: none; aspect-ratio: 1; min-height: 0; position: absolute; top: -20px; left: 50%; margin-left: -20px; width: 40px; height: 40px; font-size: 20px; border: 3px solid var(--gz-card); }
+.gzh-pc-hint { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 15px; font-weight: 600; color: var(--gz-ink); letter-spacing: 0.08em; }
+.gzh-pc-hint svg { width: 15px; height: 15px; fill: currentColor; stroke: none; }
+@media (prefers-reduced-motion: reduce) { .gzh-pc, .gzh-pc-wait i { animation: none; } }
