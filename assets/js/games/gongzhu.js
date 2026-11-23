@@ -31,7 +31,7 @@
   // 本机调试：?gzauto=1 让「我」也由 AI 代打并加速，用来一口气验到结算 / 一盘结束
   const AUTO = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('gzauto') === '1';
   /* 盘终收尾预览（待用户挑）：?gzpv=final-a 领奖台 / final-b 墨园榜单 / final-c 原表加奖章；进页面读一次，不带参数 = 现状 */
-  const GZPV = (() => { const v = new URLSearchParams(location.search).get('gzpv') || ''; return /^final-[abc]$/.test(v) ? v : ''; })();
+  const GZPV = (() => { const v = new URLSearchParams(location.search).get('gzpv') || ''; return /^final-([abc]|b[123])$/.test(v) ? v : ''; })();
   if (AUTO) Object.assign(PACE, { aiMin: 30, trickShow: 120, fly: 200, fade: 120, roundEnd: 60 });
   const SETTLE_HOLD = AUTO ? 60 : 1700;   // 累计分在桌上数完（最长约 0.9 秒）后再停一会儿，才弹结算页
   // 教程放慢：机器人出牌、收墩都留足时间看清
@@ -1450,7 +1450,7 @@
   function showSettlement() {
     const last = match.last;
     if (!match.round) syncHeartsX2();
-    if (match.over && !match.tutorial && (GZPV === 'final-a' || GZPV === 'final-b')) { showFinal(); return; }
+    if (match.over && !match.tutorial && GZPV && GZPV !== 'final-c') { showFinal(); return; }
     const losers = match.online || match.losers ? match.losers || [] : match.over ? R.matchLosers(match.totals) : [];   // 演示「叫停」时 losers = []
     const cls = (n) => (n < 0 ? 'neg' : n > 0 ? 'pos' : '');
     // 自己永远在最上面；其余三家按分从高到低（整盘结束按累计，平时按本局），同分按出牌顺序（下家 → 对家 → 上家）
@@ -1548,6 +1548,19 @@
     const one = (k, n) => (n ? '<span class="gz-fin-tl is-' + k + '"><i>' + ART[k] + '</i>' + (n > 1 ? '<b class="gz-num">×' + n + '</b>' : '') + '</span>' : '');
     return one('pig', x.pig) + one('sheep', x.sheep);
   }
+  // 乙一～乙三的猪 / 羊次数：用牌桌上同一套小牌面（Q♠ 猪、J♦ 羊），两次以上旁边写 ×n
+  function cardTally(x) {
+    if (!x) return '';
+    const one = (c, k, n) => {
+      if (!n) return '';
+      const el = buildCard(c);
+      el.classList.add('gz-mini');
+      return '<span class="gz-fin-ct is-' + k + '">' + el.outerHTML + (n > 1 ? '<b class="gz-num">×' + n + '</b>' : '') + '</span>';
+    };
+    return one(R.PIG, 'pig', x.pig) + one(R.SHEEP, 'sheep', x.sheep);
+  }
+  // 乙三：猪盖成一枚朱印（方印里是同一只猪）
+  function sealOn() { return '<span class="gz-fin-pig gz-fin-seal" aria-hidden="true"><span class="gz-seal-in">' + ART.pig + '</span><i class="gz-fin-dust"></i><i class="gz-fin-dust"></i></span>'; }
   // 猪从上面掉下来、落在头像上（压扁一下再弹回），落地「哼」一声、扬两团灰
   function dropPig(pig, at, stamp) {
     if (stamp) {   // 乙：像盖章——猪从大往下一按，落定略歪
@@ -1620,6 +1633,24 @@
       body = '<div class="gz-fin gz-fin-a"><div class="gz-podium">' + col(1) + col(0) + col(2) + '</div>' +
         (down.length ? '<div class="gz-fin-under">' + down.map((s) => '<div class="gz-fin-low' + (s === me ? ' is-me' : '') + (losers.includes(s) ? ' is-pig' : '') + '" data-seat="' + s + '">' +
           '<span class="gz-fin-av">' + face(s) + pig(s) + '</span>' + nm(s) + tot(s) + '</div>').join('') + '</div>' : '') + '</div>';
+    } else if (GZPV === 'final-b1') {
+      // 乙一 · 红榜：一块朱红榜板，四张宣纸帖子按名次一张张贴上去；猪盖在垫底那张帖子的头像上
+      body = '<div class="gz-fin gz-fin-b1"><div class="gz-hb"><i class="gz-hb-knot is-l"></i><i class="gz-hb-knot is-r"></i>' +
+        order.map((s, i) => '<div class="gz-slip' + (s === me ? ' is-me' : '') + (rank(s) === 1 && !losers.includes(s) ? ' is-top' : '') + (losers.includes(s) ? ' is-pig' : '') + '" style="--tilt:' + [-0.6, 0.5, -0.4, 0.7][i] + 'deg" data-seat="' + s + '">' +
+          '<span class="gz-fin-av">' + face(s) + pig(s) + '</span><span class="gz-slip-mid">' + nm(s) + '<span class="gz-fin-tally">' + cardTally(tally[s]) + '</span></span>' + tot(s) + '</div>').join('') +
+        '</div></div>';
+    } else if (GZPV === 'final-b2') {
+      // 乙二 · 经折册页：靛蓝封皮夹着四折宣纸，一折一位、从左到右按名次；翻开后名字竖排，猪盖在最后一折的头像上
+      body = '<div class="gz-fin gz-fin-b2"><div class="gz-fold">' +
+        order.map((s) => '<div class="gz-leaf' + (s === me ? ' is-me' : '') + (rank(s) === 1 && !losers.includes(s) ? ' is-top' : '') + (losers.includes(s) ? ' is-pig' : '') + '" data-seat="' + s + '">' +
+          '<span class="gz-fin-av">' + face(s) + pig(s) + '</span>' + nm(s) + '<span class="gz-fin-tally">' + cardTally(tally[s]) + '</span>' + tot(s) + '</div>').join('') +
+        '</div></div>';
+    } else if (GZPV === 'final-b3') {
+      // 乙三 · 宣纸卷（精修）：黑漆细轴、金色轴头，纸从上往下展开；第一名那行大一号；猪是一枚朱印，按在垫底那行的头像角上
+      body = '<div class="gz-fin gz-fin-b3"><div class="gz-roll"><i class="gz-axis"></i><div class="gz-roll-paper">' +
+        order.map((s) => '<div class="gz-roll-row' + (s === me ? ' is-me' : '') + (rank(s) === 1 && !losers.includes(s) ? ' is-top' : '') + (losers.includes(s) ? ' is-pig' : '') + '" data-seat="' + s + '">' +
+          '<span class="gz-fin-av">' + face(s) + (losers.includes(s) ? sealOn() : '') + '</span><span class="gz-slip-mid">' + nm(s) + '<span class="gz-fin-tally">' + cardTally(tally[s]) + '</span></span>' + tot(s) + '</div>').join('') +
+        '</div><i class="gz-axis is-bot"></i></div></div>';
     } else {
       // 乙 · 墨园榜单：一卷纸从上往下展开，四行按累计分排；猪盖在垫底那一行的头像上，像一枚章
       body = '<div class="gz-fin gz-fin-b"><div class="gz-scroll"><i class="gz-rod is-top"></i><div class="gz-scroll-paper"><ol class="gz-board">' +
@@ -1628,7 +1659,7 @@
         '</ol></div><i class="gz-rod is-bot"></i></div></div>';
     }
     openDialog('<h2 class="gz-sr">' + finalTitle(losers) + '</h2>' + body + '<div class="gz-actions">' + settleActions() + '</div>', (d) => {
-      d.classList.add('is-final');
+      d.classList.add('is-final', 'is-' + GZPV);
       bindSettle(d);
       if (!intro) return;
       const sounds = [];
@@ -1644,6 +1675,29 @@
         });
         d.querySelectorAll('.gz-fin-low').forEach((x, i) => x.animate([{ opacity: 0, transform: 'translateY(-10px)' }, { opacity: 1, transform: 'none' }], { duration: 320, delay: 760 + i * 90, easing: 'ease-out', fill: 'backwards' }));
         end = 1150;
+      } else if (GZPV === 'final-b1') {
+        // 榜板先亮出来，帖子从上到下一张张「贴」上去（略放大、带影子落定），小牌随后冒出
+        d.querySelector('.gz-hb').animate([{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'ease-out', fill: 'backwards' });
+        d.querySelectorAll('.gz-slip').forEach((x, i) => { const tl = 'rotate(' + x.style.getPropertyValue('--tilt') + ')'; x.animate([
+          { opacity: 0, transform: 'translateY(-14px) scale(1.06) ' + tl, boxShadow: '0 14px 22px rgba(60,10,5,.35)' },
+          { opacity: 1, transform: tl, boxShadow: '0 2px 6px rgba(60,10,5,.28)' },
+        ], { duration: 300, delay: 260 + i * 170, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' }); });
+        d.querySelectorAll('.gz-fin-ct').forEach((x, i) => x.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.2)', offset: 0.6 }, { transform: 'none' }], { duration: 280, delay: 900 + i * 50, easing: 'ease-out', fill: 'backwards' }));
+        end = 1250;
+      } else if (GZPV === 'final-b2') {
+        // 一折一折翻开（绕左边的折痕转过来），小牌随后冒出
+        d.querySelectorAll('.gz-leaf').forEach((x, i) => x.animate([{ transform: 'perspective(700px) rotateY(-88deg)', opacity: 0.2 }, { transform: 'perspective(700px) rotateY(6deg)', opacity: 1, offset: 0.75 }, { transform: 'none', opacity: 1 }],
+          { duration: 420, delay: 80 + i * 180, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'backwards' }));
+        d.querySelectorAll('.gz-fin-ct').forEach((x, i) => x.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.2)', offset: 0.6 }, { transform: 'none' }], { duration: 280, delay: 900 + i * 50, easing: 'ease-out', fill: 'backwards' }));
+        end = 1250;
+      } else if (GZPV === 'final-b3') {
+        const paper = d.querySelector('.gz-roll-paper'), axis = d.querySelector('.gz-axis.is-bot');
+        const h = paper.offsetHeight;
+        paper.animate([{ clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: 760, delay: 100, easing: 'cubic-bezier(.35,.1,.25,1)', fill: 'backwards' });
+        axis.animate([{ transform: 'translateY(' + (-h) + 'px)' }, { transform: 'none' }], { duration: 760, delay: 100, easing: 'cubic-bezier(.35,.1,.25,1)', fill: 'backwards' });
+        d.querySelectorAll('.gz-roll-row').forEach((x, i) => x.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, delay: 260 + i * 150, easing: 'ease-out', fill: 'backwards' }));
+        d.querySelectorAll('.gz-fin-ct').forEach((x, i) => x.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.2)', offset: 0.6 }, { transform: 'none' }], { duration: 280, delay: 800 + i * 50, easing: 'ease-out', fill: 'backwards' }));
+        end = 1150;
       } else {
         const paper = d.querySelector('.gz-scroll-paper'), rod = d.querySelector('.gz-rod.is-bot');
         const h = paper.offsetHeight;
@@ -1654,7 +1708,7 @@
         end = 1250;
       }
       const pigs = d.querySelectorAll('.gz-fin-pig');
-      pigs.forEach((p, i) => { const land = dropPig(p, end + i * 160, GZPV === 'final-b'); if (i === 0) sounds.push([land, 'pig']); });
+      pigs.forEach((p, i) => { const land = dropPig(p, end + i * 160, GZPV !== 'final-a'); if (i === 0) sounds.push([land, 'pig']); });
       runFinIntro(d, (pigs.length ? end + (pigs.length - 1) * 160 + 640 : end) + 200, sounds);
     });
   }
@@ -4116,7 +4170,7 @@
     tie: ['两家并列当猪', [140, -1020, 140, -1020], [[1, 3], [3, 3], [2, 1]]],
     stop: ['叫停不评猪', [-380, 210, 455, -90], [[0, 2], [3, 1], [1, 1]]],
   };
-  const FIN_VERS = { '': '现状', 'final-a': '甲 领奖台', 'final-b': '乙 榜单', 'final-c': '丙 原表加奖章' };
+  const FIN_VERS = { '': '现状', 'final-b1': '乙一 红榜', 'final-b2': '乙二 经折', 'final-b3': '乙三 宣纸卷', 'final-b': '乙 旧卷轴', 'final-c': '丙 原表加奖章', 'final-a': '甲 领奖台' };
   function startFinalDemo() {
     const q = new URLSearchParams(location.search);
     const cs = FIN_CASES[q.get('case')] ? q.get('case') : 'one';
