@@ -130,15 +130,36 @@
     applySoloIdentity();
   }
 
-  /* 单机的三家机器人：每一盘开局抽签起名字、分头像（和联机里的机器人同一套），记进存档，下次进来还是这三位。
+  /* 单机的三家机器人：每一盘开局按当前 AI 水平抽签起名字、分头像（同百变小咪：高手北斗星名 + 深色金眼、普通希腊字母、
+   * 入门零一…零九 + 马卡龙大眼睛，看名字和头像就知道是哪一档），记进存档，下次进来还是这三位（老存档里抽好的名字不动）。
    * 名字下面一枚小签写方位（下家 / 对家 / 上家），免得分不清谁坐哪。教程里仍叫「上家 / 对家 / 下家」——讲解词里就是这么称呼的 */
   const SOLO_DIRS = ['', '下家', '对家', '上家'];
-  function drawBots() {
+  function tierPool(tier) {
+    const A = window.GongzhuAvatars;
+    const BT = A.BOT_TIERS && (A.BOT_TIERS[tier] || A.BOT_TIERS.normal);
+    return BT ? { nicks: BT.nicks, faces: BT.faces.map((x) => x.id) } : { nicks: A.BOT_NICKS, faces: A.ROBOT.map((x) => x.id) };
+  }
+  function drawBots(tier) {
     const A = window.GongzhuAvatars;
     if (!A) return null;
-    const names = A.BOT_NICKS.slice(), faces = A.ROBOT.map((x) => x.id);
+    const P = tierPool(tier || settings.tier), names = P.nicks.slice(), faces = P.faces.slice();
     const take = (arr) => arr.splice((Math.random() * arr.length) | 0, 1)[0];
     return [1, 2, 3].map(() => ({ nick: take(names), avatar: take(faces) }));
+  }
+  // 局中换了 AI 水平：三家按新档位重新起名、换头像，就地改座位上的名字和头像（不重建座位，手里的牌和吃牌不动）
+  function renameSoloBots() {
+    const bots = soloBots(), fresh = drawBots(settings.tier);
+    if (!bots || !fresh) return;
+    bots.splice(0, bots.length, ...fresh);
+    NAMES = ['我'].concat(bots.map((x) => x.nick));
+    AVATARS = ['我'].concat(bots.map((x) => 'svg:' + x.avatar));
+    els.seats.forEach((el, s) => {
+      if (!s) return;
+      const n = el.querySelector('.gz-name'), f = el.querySelector('.gz-av-face');
+      if (n) n.textContent = NAMES[s];
+      if (f) { f.dataset.v = AVATARS[s]; f.innerHTML = faceHtml(AVATARS[s]); }
+      el.setAttribute('aria-label', NAMES[s]);
+    });
   }
   function soloBots() { return match && !match.online && !match.tutorial && !match.demo && match.bots ? match.bots : null; }
   function applySoloIdentity() {
@@ -1778,8 +1799,13 @@
 
   function showSettings() {
     if (match && match.online) { showRoomDialog(); return; }
-    const seg = Object.keys(TIER_LABELS).map((k) => '<button type="button" data-tier="' + k + '" aria-pressed="' + (settings.tier === k) + '">' + TIER_LABELS[k] + '</button>').join('');
-    const secs = [20, 0].map((k) => '<button type="button" data-sec="' + k + '" aria-pressed="' + (turnSec() === k) + '">' + TURN_SEC_OPTS[k] + '</button>').join('');
+    // 亮的是三家实际在用的档位（从联机大厅转来的单机局，三家可能各是一档：几档都亮）
+    const inUse = new Set(match && !match.online ? botTiers() : [settings.tier]);
+    const seg = Object.keys(TIER_LABELS).map((k) => '<button type="button" data-tier="' + k + '" aria-pressed="' + inUse.has(k) + '">' + TIER_LABELS[k] + '</button>').join('');
+    // 这一盘的限时不是 20 秒 / 不限时（从联机大厅带来的 30 秒）：照实多画一格亮着，不然两格都不亮
+    const secOpts = [20, 0];
+    if (!secOpts.includes(turnSec())) secOpts.splice(1, 0, turnSec());
+    const secs = secOpts.map((k) => '<button type="button" data-sec="' + k + '" aria-pressed="' + (turnSec() === k) + '">' + (TURN_SEC_OPTS[k] || k + ' 秒') + '</button>').join('');
     openDialog(
       '<h2>设置</h2><div class="gz-field-label">AI 水平</div><div class="gz-seg" role="group">' + seg + '</div>' +
       '<div class="gz-field-label">出牌限时</div><div class="gz-seg" role="group">' + secs + '</div>' +
@@ -1793,10 +1819,16 @@
       '<button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
       (d) => {
         d.querySelectorAll('[data-tier]').forEach((b) => b.addEventListener('click', () => {
+          const was = botTiers();
           settings.tier = b.dataset.tier;
           writeJSON(SETTINGS_KEY, settings);
           const bots = soloBots();
-          if (bots) { bots.forEach((x) => { delete x.tier; }); save(); }   // 房间里带过来的各家档位：在设置里选过就统一成这一档
+          if (bots) {
+            bots.forEach((x) => { delete x.tier; });   // 房间里带过来的各家档位：在设置里选过就统一成这一档
+            // 档位真换了：机器人当场换上这一档的名字和头像（看名字就知道是哪一档，不能挂着高手的名字打入门的牌）
+            if (was.some((t) => t !== settings.tier)) renameSoloBots();
+            save();
+          }
           d.querySelectorAll('[data-tier]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
         }));
         d.querySelectorAll('[data-sec]').forEach((b) => b.addEventListener('click', () => {
@@ -2655,8 +2687,9 @@
       rules: R.normalizeRules(st.config.rules), totals: [0, 0, 0, 0], roundNo: 0, pigTaker: -1, seed: (Math.random() * 2 ** 31) | 0,
       round: null, exposing: [], last: null, over: false, turnSec: st.config.turnSec | 0,
       bots: bots.map((p) => {
-        const nick = p.pending && A ? pick(A.BOT_NICKS, used) : p.nick;
-        const avatar = A && A.byId[p.avatar] && !p.pending ? p.avatar : A ? pick(A.ROBOT.map((x) => x.id), faces) : 'bot-navy';
+        const P = A ? tierPool(TIER_LABELS[p.aiLevel] ? p.aiLevel : settings.tier) : null;   // 还没被服务器确认的机器人：按它的档位起名
+        const nick = p.pending && A ? pick(P.nicks, used) : p.nick;
+        const avatar = A && A.byId[p.avatar] && !p.pending ? p.avatar : A ? pick(P.faces, faces) : 'bot-navy';
         used.push(nick); faces.push(avatar);
         return { nick, avatar, tier: TIER_LABELS[p.aiLevel] ? p.aiLevel : settings.tier };
       }),
@@ -3762,6 +3795,7 @@
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden || AUTO || coverOn || !soloBots() || !match.round || !els.mask.hidden) return;
     closeMenu();
+    if (soundPanel) soundPanel.hidden = true;   // 声音面板层级比弹窗高，不收会压在暂停页上
     freezeSolo();
     showPause();
   });
@@ -3770,6 +3804,7 @@
   $('gzPauseBtn').addEventListener('click', () => {
     if (coverOn || !soloBots() || !match.round || !els.mask.hidden) return;
     closeMenu();
+    if (soundPanel) soundPanel.hidden = true;
     freezeSolo();
     showPause();
   });
