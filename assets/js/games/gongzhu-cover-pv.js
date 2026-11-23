@@ -35,7 +35,7 @@
     let tierTouched = false;
     const getOpt = (k) => (k === 'tier' ? S.tier : k === 'sec' ? (S.turnSec | 0) : S.rules[k]);
     function setOpt(k, v) {
-      if (k === 'tier') { S.tier = v; delete S.pvBotTiers; tierTouched = true; }
+      if (k === 'tier') { S.tier = v; delete S.pvBotTiers; tierTouched = true; pend = null; }   // 名字头像跟着档位走：三位换成新档的人
       else if (k === 'sec') S.turnSec = v;
       else S.rules = A.R.normalizeRules(Object.assign({}, S.rules, { [k]: v }));
       A.saveSettings();
@@ -52,7 +52,14 @@
     /* ───── 机器人（甲：点某个头像单独换档）─────
      * 先把这一盘要来的三位摆出来（名字、头像抽好），开局就用这三位；各自换过档就记在 settings.pvBotTiers */
     let pend = null;
-    const pendBots = () => pend || (pend = A.drawBots() || []);
+    const pendBots = () => pend || (pend = A.drawBots(S.tier) || []);
+    // 单独换了档的那一位：从新档的名字 / 头像里另抽一位（不和另两位撞）
+    function redrawBot(i, tier) {
+      const others = pendBots().filter((_, j) => j !== i);
+      const pool = (A.drawBots(tier) || []).concat(A.drawBots(tier) || []);
+      const pick = pool.find((b) => others.every((o) => o.nick !== b.nick && o.avatar !== b.avatar));
+      if (pick) pend[i] = pick;
+    }
     const botTier = (i) => (S.pvBotTiers && S.pvBotTiers[i]) || S.tier;
     const botTierMixed = () => !!(S.pvBotTiers && S.pvBotTiers.some((t, i) => t && botTier(i) !== S.tier));
     function botsHtml() {
@@ -84,7 +91,7 @@
     function doResume() {
       const m = A.saved();
       if (!m) return;
-      if (tierTouched && m.bots) m.bots.forEach((b) => { delete b.tier; });   // 刚改过档位：接着打的这一盘也换成这一档（同局内「设置」）
+      if (tierTouched && m.bots) { const fresh = A.drawBots(S.tier); if (fresh) m.bots = fresh; }   // 刚改过档位：接着打的这一盘也换成这一档的三位（同局内「设置」）
       A.resume(m);
     }
     // 有存档时「新开一盘」要点两下：第一下变成「确定新开？」，3 秒内再点才开（一盘拱猪很长，别一碰就没了）
@@ -293,6 +300,7 @@
         const order = A.TIER_ORDER;
         const t = order[(order.indexOf(botTier(i)) + 1) % order.length];
         S.pvBotTiers = [0, 1, 2].map((j) => (j === i ? t : botTier(j)));
+        redrawBot(i, t);
         if (S.pvBotTiers.every((x) => x === S.tier)) delete S.pvBotTiers;
         A.saveSettings();
         const box = b.closest('.gzpv-row');
