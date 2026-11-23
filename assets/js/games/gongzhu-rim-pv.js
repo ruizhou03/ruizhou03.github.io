@@ -6,8 +6,8 @@
  *   a 金线：一圈淡金细线；轮到谁，他面前那段变亮金、外面垫一层淡光；限时的话这段从两头往中间收，最后几秒变印泥红
  *   b 墨线：一圈墨色细线（和裱框同一种线）；轮到谁那段变粗、变印泥红；不垫光，最安静
  *   c 灯珠：一圈小灯珠；轮到谁他面前那几颗亮成金色；限时的话从两头一颗一颗熄
- *   d 金线串座（2026-11-23 用户选的方向）：画法同 a，但线穿过四家头像——上家 / 下家坐桌子上面两个角、对家坐上沿正中、我坐左下角，
- *     头像盖住圆角，线把四个人串起来；名字、分数、牌背挪到头像里侧错开，不让线穿字（座位排法见 css「d 金线串座」）
+ *   d / e 金线串座（2026-11-23 用户：线把人串起来，但人不坐拐角、拐角要圆）：画法同 a，线穿过四家头像——
+ *     上家坐左边、对家坐上边、下家坐右边、我坐底边；d 拐角半径 30，e 拐角取到不压人的最大值（「出牌」往右让一点，桌子更圆）
  * 三版共用的状态：
  *   托管 = 那段冷灰蓝；掉线 = 那段断开（虚）；快输了（累计到 −700 以下、规则是输到 −1000 收盘）= 那段常驻一点暖红
  *   吃猪 = 他那段闪两下红；吃羊 = 闪金；变压器 = 按它的颜色闪；全红 = 一道红光从他那儿绕桌一圈；大满贯 = 金光绕两圈
@@ -26,9 +26,9 @@
   function create(cfg, A) {
     const root = A.els.app;
     // d = 金线串座：画法同 a，但线穿过四家头像中心（人坐在线上、三家落在桌角），座位排法见 css「d 金线串座」
-    const on = cfg.rim === 'd';
+    const on = cfg.rim === 'd' || cfg.rim === 'e';
     root.classList.add('gzr', 'gzr-' + (on ? 'a' : cfg.rim), 'gzr-lobby-' + cfg.lobby);
-    if (on) root.classList.add('gzr-on');
+    if (on) root.classList.add('gzr-on', 'gzr-' + cfg.rim);
     const table = A.els.table;
     const dots = cfg.rim === 'c';
     let sv = null, geo = null, lastKey = '', lobbyFull = false;
@@ -71,7 +71,21 @@
       const x0 = Math.min(...ok.map((p) => p.cx)), x1 = Math.max(...ok.map((p) => p.cx));
       const y0 = Math.min(...ok.map((p) => p.cy)), y1 = Math.max(...ok.map((p) => p.cy));
       if (x1 - x0 < 60 || y1 - y0 < 60) return null;
-      const R = Math.max(10, Math.min(...ok.map((p) => p.r)));
+      // 拐角半径：不能压到人——左右两边的人离上下两条边、上下两边的人离左右两条边都要留出头像 + 6px；我不算（我按半径往右挪）
+      const av = Math.max(...ok.map((p) => p.r));
+      let Rmax = Math.min((x1 - x0) / 2, (y1 - y0) / 2) - 2;
+      pts.forEach((p, s) => {
+        if (!p || s === 0) return;
+        if (Math.abs(p.cx - x0) < 3 || Math.abs(p.cx - x1) < 3) Rmax = Math.min(Rmax, Math.min(p.cy - y0, y1 - p.cy) - p.r - 6);
+        else Rmax = Math.min(Rmax, Math.min(p.cx - x0, x1 - p.cx) - p.r - 6);
+      });
+      // 我坐底边、在左下拐角和「出牌」键之间：拐角越圆我越往右，不能撞上「出牌」（按键那一格中线往左 60px 算，亮不亮牌两个键都放得下）
+      const band = table.querySelector('.gz-band');
+      const s0 = A.els.seats[0].getBoundingClientRect().left - tb.left;
+      if (band) { const br = band.getBoundingClientRect(); if (br.width) Rmax = Math.min(Rmax, (br.left + br.width / 2 - tb.left - 60) - s0 - 3 * av - 26); }
+      const R = Math.max(av, cfg.rim === 'e' ? Rmax : Math.min(30, Rmax));
+      const meX = Math.round(R + av + 18);
+      if (root.style.getPropertyValue('--gzr-me-x') !== meX + 'px') root.style.setProperty('--gzr-me-x', meX + 'px');
       const d = rrect(x0, y0, x1, y1, R);
       const base = sv.querySelector('.gzr-base');
       base.setAttribute('d', d);

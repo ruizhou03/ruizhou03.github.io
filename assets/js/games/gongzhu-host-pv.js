@@ -223,16 +223,39 @@
           '<td class="avg">' + fmtAvg(q.avgRank) + '</td><td class="pig">' + (q.pigs || '') + '</td><td class="dots">' + recentOf(rec, q.id, 5).map(dot).join('') + '</td></tr>').join('') +
         '</tbody></table>';
     }
-    // 排行榜弹窗（灯带预览把战绩从大厅正中挪走了：大厅右上角「排行榜」、局中菜单「排行榜」都开这个）
+    /* 排行榜弹窗（2026-11-23 用户：按累计分、不要「打了几盘」、要好看）：
+     * 一行一个人——名次 · 头像 · 名字（下面一行小字：当过几次猪）· 累计分；第一名头像描金、我描红；走了的人淡一点。
+     * 累计分 = 这个房间里每盘终局分加起来（后端 people[].total；老房间没有这个字段就拿最近几盘现算） */
+    function totalOf(rec, q) {
+      if (typeof q.total === 'number') return q.total;
+      return rec.games.reduce((a, gm) => { const x = gm.seats.find((y) => y.id === q.id); return a + (x ? x.total : 0); }, 0);
+    }
+    const PIG = '<svg viewBox="0 0 12 12" aria-hidden="true"><ellipse cx="6" cy="6.4" rx="5" ry="4"/><circle cx="4.3" cy="6.6" r="0.85"/><circle cx="7.7" cy="6.6" r="0.85"/></svg>';
     function openRec() {
       const s = st();
       if (!s) return;
-      const has = !!(s.record && s.record.n);
-      A.openDialog('<h2>排行榜</h2>' +
-        (has ? '<p class="gzh-rec-sub">这个房间打了 ' + s.record.n + ' 盘</p><div class="gzh-rec gzh-rec-dlg">' + recTable(s) + '</div>'
-          : '<p class="gz-note">这个房间还没打完一盘。</p>') +
+      const rec = s.record;
+      const has = !!(rec && rec.n);
+      let html = '<p class="gz-note">这个房间还没打完一盘。</p>';
+      if (has) {
+        const o = A.online();
+        const meId = o && s.players.find((p) => p.seat === o.mySeat) && s.players.find((p) => p.seat === o.mySeat).id;
+        const seated = s.players.map((p) => p.id);
+        const rows = rec.people.map((q) => ({ q, t: totalOf(rec, q) })).sort((a, b) => b.t - a.t).slice(0, 8);
+        let rank = 0, prev = null;
+        html = '<ol class="gzr-lb">' + rows.map(({ q, t }, i) => {
+          if (t !== prev) { rank = i + 1; prev = t; }
+          const cls = (rank === 1 ? ' is-top' : '') + (q.id === meId ? ' is-me' : '') + (seated.includes(q.id) ? '' : ' is-gone');
+          return '<li class="gzr-lb-row' + cls + '"><b class="gzr-lb-no">' + rank + '</b>' +
+            '<span class="gz-avatar"><span class="gz-av-face">' + A.faceHtml(A.avatarOf(q)) + '</span></span>' +
+            '<span class="gzr-lb-who"><span class="gzr-lb-nm">' + A.esc(q.nick) + '</span>' +
+            (q.pigs ? '<span class="gzr-lb-pig">' + PIG + '当猪 ' + q.pigs + ' 次</span>' : '') + '</span>' +
+            '<span class="gzr-lb-tot' + (t > 0 ? ' pos' : t < 0 ? ' neg' : '') + '">' + (t > 0 ? '+' : t < 0 ? '−' : '') + Math.abs(t) + '</span></li>';
+        }).join('') + '</ol>';
+      }
+      A.openDialog('<h2>排行榜</h2>' + html +
         '<div class="gz-actions"><button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
-        (d) => d.querySelector('[data-close]').addEventListener('click', A.closeDialog));
+        (d) => { d.classList.add('gzr-lb-dlg'); d.querySelector('[data-close]').addEventListener('click', A.closeDialog); });
     }
     function lobby(s) {
       const rec = s.record;

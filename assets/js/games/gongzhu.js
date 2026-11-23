@@ -45,9 +45,9 @@
     return { row: m[1], pause: m[2] || d[0], rec: m[3] || d[1] };
   })();
   let hostPv = null;
-  /* 桌沿灯带 + 大厅重做（预览中，待用户挑；画法全在 gongzhu-rim-pv.js）：?gzrim=<a|b|c|d><1|2>，只写字母 = 大厅 1（d = 金线串座：线穿过头像）。不带参数 = 现状 */
+  /* 桌沿灯带 + 大厅重做（预览中，待用户挑；画法全在 gongzhu-rim-pv.js）：?gzrim=<a|b|c|d><1|2>，只写字母 = 大厅 1（d / e = 金线串座：线穿过头像，e 拐角更圆）。不带参数 = 现状 */
   const GZRIM = (() => {
-    const m = /^([abcd])([12])?$/.exec(new URLSearchParams(location.search).get('gzrim') || '');
+    const m = /^([abcde])([12])?$/.exec(new URLSearchParams(location.search).get('gzrim') || '');
     return m ? { rim: m[1], lobby: m[2] || '1' } : null;
   })();
   let rimPv = null;
