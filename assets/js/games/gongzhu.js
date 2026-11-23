@@ -4215,7 +4215,7 @@
   /* ───── 封面改版预览：?gzpv=cover-a | cover-b | cover-c（2026-11-22）─────
    * 用户挑定之前线上默认不变：只有带这个参数进来，才加载 gongzhu-cover-pv.js / .css，把封面换成那一版。
    * 参数只在进页面时读一次（这次页面里一直有效）；三版的界面都写在那个文件里，这里只递它要用的几样 */
-  const GZPV = (() => { const q = new URLSearchParams(location.search).get('gzpv') || ''; return /^cover-[a-d]$/.test(q) ? q : ''; })();
+  const COVER_PV = (() => { const q = new URLSearchParams(location.search).get('gzpv') || ''; return /^cover-[a-d]$/.test(q) ? q : ''; })();
   let coverPv = null;
   // 单机新开一盘（不管有没有存档）；bots 给了就用这三位（预览里先摆出来、各自选了档位的那三位）
   function playSoloFresh(bots) {
@@ -4238,7 +4238,7 @@
     else if (res.fellBack === 'wait_round_end') toast('这一局还在打，先观战；打完这一局就能坐下');
   }
   function loadCoverPv() {
-    if (!GZPV) return Promise.resolve();
+    if (!COVER_PV) return Promise.resolve();
     const v = '?v=' + (window.GZ_BUILD || '');
     const css = document.createElement('link');
     css.rel = 'stylesheet';
@@ -4250,7 +4250,7 @@
       js.onload = () => {
         try {
           coverPv = window.GongzhuCoverPV && window.GongzhuCoverPV.install({
-            variant: GZPV, cover: $('gzCover'), settings, R, NET, TIER_LABELS, TIER_ORDER, RULE_UI,
+            variant: COVER_PV, cover: $('gzCover'), settings, R, NET, TIER_LABELS, TIER_ORDER, RULE_UI,
             saveSettings: () => writeJSON(SETTINGS_KEY, settings),
             saved: () => (soloBots() ? match : loadSaved()),
             resume: (m) => playSolo(m),
