@@ -2,7 +2,7 @@
  * 用户：档案要内嵌在游戏里，不能跳到网站的个人页（像进了另一个系统）。所以这是游戏页里的一层面板：
  * 从右边滑进来盖住游戏，左上角折号退回。⚠️ 不碰浏览器历史（不 pushState、不跳页）：微信 / iOS 浏览器一有历史记录，
  * 屏幕最下面就会冒出一条前进后退的左右箭头条（2026-11-22 用户：很丑）。
- * 内容（2026-11-22 用户挑定第二轮「甲」四块）：头像 + 一排徽章（点开看怎么拿、进度、奖励）+ 余额；签到七格 + 近四周活跃；玩法胜率环；最近对局；
+ * 内容（2026-11-22 用户挑定第二轮「甲」四块）：头像 + 一排徽章（点开看怎么拿、进度、奖励）+ 余额；签到七格 + 近四周活跃；玩法胜率环（2026-11-23 用户：「最近对局」拿掉，只留看得出东西的图）；
  * 流水折叠，标题旁一条余额走势细线。
  * 数据走 ZhamaoWallet.profile()（zircon-urge /api/zmw?action=profile）。登录用站点的登录弹层（游戏页里也挂了 auth.html），不离开游戏。 */
 (function (root) {
@@ -13,7 +13,6 @@
   const fmt = (x) => Math.round(Math.abs(x || 0)).toLocaleString('en-US');
   const sign = (x) => (x > 0 ? '+' : x < 0 ? '−' : '') + fmt(x);
   const MODES = [['classic', '经典', '#c8463a'], ['flux', '百变', '#8e4a9c'], ['roles', '角色', '#e58e46'], ['team', '组队', '#2f4a6d']];   // 由便宜到贵，和主菜单玩法牌一个顺序
-  const MODE_C = Object.fromEntries(MODES.map(([k, , c]) => [k, c]));
 
   const CSS = `
 .zmp-ring svg{max-width:80px}
@@ -131,7 +130,6 @@
 #sa-overlay{--color-bg:#fffdf8;--color-bg-warm:#f3eee3;--color-border:#d9cfbd;--color-muted:#6a6358;--color-light:#8a8274;--color-ink:#1d1b18;--color-text:#1d1b18;--color-highlight:#b4392c;--color-accent:#b4392c;--font-display:'Songti SC','Noto Serif SC',serif;font-family:system-ui,-apple-system,'PingFang SC',sans-serif}
 `;
   const BACK = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M24.5 6.5 13 20l11.5 13.5" fill="none" stroke="#b4392c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const CROWN = '<svg viewBox="0 0 24 24"><path d="M3 18 4.5 7l5 5L12 5l2.5 7 5-5L21 18Z" fill="#6b4a12"/></svg>';
   const TICK = '<svg viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const IC = {
     newbie: '<svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2" fill="#e3a83f" stroke="#1d1b18" stroke-width="1.5"/><path d="M12 9v11M4 13h16" stroke="#1d1b18" stroke-width="1.5"/><path d="M12 9c-3-4-7-2-4 0M12 9c3-4 7-2 4 0" fill="none" stroke="#b4392c" stroke-width="1.6"/></svg>',
@@ -198,21 +196,16 @@
       return '<button type="button" class="zmp-day' + (done ? ' is-done' : '') + (now ? ' is-now' : '') + (i === 6 ? ' is-big' : '') + '"' + (now ? ' data-ck' : ' disabled') + ' aria-label="第 ' + (i + 1) + ' 天 ' + amt + '">' + FISH + amt + '</button>';
     }).join('');
     const wk = p.records.filter((r) => Date.now() - r.at < 7 * 86400e3).reduce((a, r) => a + (r.d || 0), 0);
-    const recs = p.records.slice(0, 20).map((r) => {
-      const rk = r.mode === 'team' ? (r.won ? '<span class="rk g1">' + CROWN + '</span>' : '<span class="rk">–</span>') : '<span class="rk' + (r.rank <= 3 ? ' g' + r.rank : '') + '">' + r.rank + '</span>';
-      return '<div class="zmp-rec"><i class="m" style="background:' + (MODE_C[r.mode] || '#999') + '"></i>' + rk + '<span class="d ' + (r.d > 0 ? 'up' : r.d < 0 ? 'dn' : '') + '">' + sign(r.d) + '</span><span class="nn">' + r.n + (r.src === 'online' ? ' · 联' : '') + '</span></div>';
-    }).join('');
     const led = p.ledger.map((x) => '<li><span class="ic">' + (IC[LED[x.why]] || IC.ticket) + '</span><span>' + (LED_NAME[x.why] || esc(x.why)) + '</span><time>' + new Date(x.at).toLocaleDateString() + '</time><b class="' + (x.d > 0 ? 'up' : x.d < 0 ? 'dn' : '') + '">' + sign(x.d) + '</b></li>').join('');
     const badges = (p.badgeList || []).map((b) => '<button type="button" class="' + (b.got ? '' : 'off') + '" data-badge="' + b.id + '" aria-label="' + esc(b.name) + '">' + badgeSvg(b.id) + '</button>').join('');
     return '<div class="zmp-in">' +
       '<div class="zmp-card zmp-hero2"><div class="zmp-av">' + me.face + '</div><div><div class="zmp-nick">' + esc(me.nick) + '</div><div class="zmp-who">' +
-        (p.owner === 'account' ? '<span class="ok">' + TICK + '</span>已登录' : '<button type="button" class="zmp-login" data-login>登录</button>') + '</div>' +
+        (p.owner === 'account' ? '<span class="ok">' + TICK + '</span>已登录' : '<button type="button" class="zmp-login" data-login>登录保存</button>') + '</div>' +
         '<div class="zmp-bdg">' + badges + '</div></div>' +
         '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span><div class="sub"><span class="' + (wk >= 0 ? 'up' : 'dn') + '">本周 ' + sign(wk) + '</span><span>' + (p.games || 0) + ' 局</span></div></div></div>' +
       '<div class="zmp-grid">' +
         '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div><div class="zmp-act" aria-label="近四周活跃">' + actHtml(p.heat) + '</div></div>' +
         '<div class="zmp-card wide"><div class="zmp-h">玩法胜率</div><div class="zmp-rings">' + MODES.map(([k, name, c]) => '<div class="zmp-ring">' + ring(p.modes[k].w, p.modes[k].g, c) + '<b>' + name + '</b><small>' + p.modes[k].g + ' 局</small></div>').join('') + '</div></div>' +
-        '<div class="zmp-card wide"><div class="zmp-h">最近对局</div>' + (recs ? '<div class="zmp-recs">' + recs + '</div><div class="zmp-legend">' + MODES.map(([, name, c]) => '<span><i style="background:' + c + '"></i>' + name + '</span>').join('') + '</div>' : '<div class="zmp-empty">还没打过</div>') + '</div>' +
       '</div>' +
       (led ? '<details class="zmp-card"><summary class="zmp-ledsum"><span>流水</span><span class="sp" data-spark></span></summary><ul class="zmp-led">' + led + '</ul></details>' : '') + '</div>';
   }

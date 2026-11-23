@@ -1,5 +1,6 @@
 /* 百变小咪 · 小鱼干（window.ZhamaoWallet，2026-11-22）
- * 后端 zircon-urge /api/zmw（lib/zhamao-wallet.js）；规则数值见后端 lib/zhamao-econ.js，下面 E 是同一份表（只用来显示门票），改那边要同步改这里。
+ * 后端 zircon-urge /api/zmw（lib/zhamao-wallet.js）；规则数值见后端 lib/zhamao-econ.js，下面的门票表 / payout 是同一份（显示门票、结算页当场算余额），改那边要同步改这里。
+ * 开局前先看余额够不够这局门票：不够弹「小鱼干不够了」（救济、签到在弹窗里自己点，2026-11-23 用户），服务器那边也不再悄悄补。
  * 身份：站点登录了 = 账号钱包（带 Authorization）；没登录 = 这台设备的游客钱包（X-Device-Id = gs.did.v1）。
  *       登录后每次请求带上这台设备原来的游客设备号（gs.did.anon.v1），后端把游客攒的小鱼干并进账号。
  * 单机：开局领票（扣门票）→ 我的名次一定下来（我出局 / 打完）就结算；联机由服务器结算，结算页读服务器给的 pay。
@@ -22,6 +23,25 @@
     team: { easy: [200, 250, 300, 400], normal: [400, 450, 600, 750], hard: [1000, 1200, 1500, 1800] },
   };
   const price = (tier, mode, n) => ((PRICE[mode] || PRICE.classic)[tier] || PRICE.classic.normal)[n <= 3 ? 0 : n <= 5 ? 1 : n <= 7 ? 2 : 3];
+  /* 这局拿回多少（同 lib/zhamao-econ.js payout，一字不差）：结算页一出来就用它当场算好余额，不等服务器（2026-11-23 用户：排行榜出来那一下就要结算） */
+  const RANK_MULT = {
+    2: [1.71, 0.25], 3: [1.75, 1.00, 0.25], 4: [1.81, 1.16, 0.82, 0.25], 5: [1.88, 1.21, 1.00, 0.74, 0.25],
+    6: [1.95, 1.22, 1.08, 0.91, 0.70, 0.25], 7: [2.03, 1.22, 1.12, 1.00, 0.86, 0.68, 0.25],
+    8: [2.11, 1.20, 1.13, 1.05, 0.95, 0.84, 0.68, 0.25], 9: [2.18, 1.17, 1.12, 1.06, 1.00, 0.92, 0.83, 0.70, 0.25],
+  };
+  const TIER_K = { easy: 0.93, normal: 1, hard: 1.03 };
+  const nice = (x) => (x <= 0 ? 0 : x < 100 ? Math.round(x / 10) * 10 : x < 1000 ? Math.round(x / 50) * 50 : Math.round(x / 100) * 100);
+  function payout(o) {
+    const n = Math.max(2, Math.min(9, Number.isInteger(o.n) ? o.n : 4)), tier = TIER_K[o.tier] ? o.tier : 'normal';
+    const p = price(tier, PRICE[o.mode] ? o.mode : 'classic', n);
+    let m;
+    if (o.team) { const w = Math.max(1, Math.min(n - 1, o.team.winners || 1)); m = o.team.won ? (n * 0.97 - 0.3 * (n - w)) / w : 0.3; }
+    else m = (RANK_MULT[n][Math.max(1, Math.min(n, o.rank | 0)) - 1] || 0) * TIER_K[tier];
+    let pay = p * m;
+    const a = Number(o.autoShare) || 0;
+    if (a > 0.7) pay = 0; else if (a > 0.3) pay *= 0.5;
+    return nice(pay);
+  }
 
   // ── 身份 / 请求 ──
   const ls = {
@@ -39,13 +59,14 @@
   const listeners = [];
   function remember(j) {
     if (!j || j.bal == null) return;
-    state = Object.assign({}, state || {}, { bal: j.bal, t: Date.now() }, j.checkin ? { ck: j.checkin.today ? today() : '' } : {}, j.owner ? { owner: j.owner } : {}, Array.isArray(j.badges) && j.checkin ? { badges: j.badges } : {});
+    state = Object.assign({}, state || {}, { bal: j.bal, t: Date.now() }, j.checkin ? { ck: j.checkin.today ? today() : '', next: j.checkin.next } : {}, j.relief ? { relief: j.relief } : {}, j.owner ? { owner: j.owner } : {}, Array.isArray(j.badges) && j.checkin ? { badges: j.badges } : {});
     ls.set(CACHE, JSON.stringify(state));
     listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } });
   }
-  const today = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+  // 手机上的日历日（2026-11-23 用户：签到按用户当地日期算，不按北京时间；服务器只认「世界上某个时区此刻的日期」）
+  const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   async function post(action, body) {
-    const b = Object.assign({}, body || {});
+    const b = Object.assign({ day: today() }, body || {});
     const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
     let res;
     if (loggedIn()) {
@@ -79,16 +100,32 @@
 .zmw-cost .zmw-fish{width:1.5em}
 .zmw-res{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 10px;margin:12px auto 2px;min-height:40px}
 .zmw-res .zmw-fish{width:40px;height:26px}
-.zmw-res b{font:700 30px/1 Georgia,"Noto Serif SC",serif;font-variant-numeric:tabular-nums;color:#1d1b18}
-.zmw-res b.is-up{color:#3f7a52}.zmw-res b.is-down{color:#b4392c}
+.zmw-res>b{font:700 30px/1 Georgia,"Noto Serif SC",serif;font-variant-numeric:tabular-nums;color:#1d1b18}
+.zmw-res>b.is-up{color:#3f7a52}.zmw-res>b.is-down{color:#b4392c}
+.zmw-res .zmw-bal b{font:inherit}
 .zmw-res .zmw-bal{display:inline-flex;align-items:center;gap:4px;padding:4px 10px 4px 7px;border-radius:999px;background:#ebe5d8;font:600 14px/1 Georgia,serif;color:#6a6358}
 .zmw-res .zmw-bal .zmw-fish{width:22px;height:14px}
 .zmw-res .zmw-star{display:inline-flex;align-items:center;gap:2px;font:700 14px/1 Georgia,serif;color:#b07420}
 .zmw-res .zmw-star svg{width:16px;height:16px}
-.zmw-res .zmw-login{cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;border:1.5px solid #b4392c;color:#b4392c;background:#fffdf8;font:600 14px/1 system-ui;text-decoration:none}
 .zmw-chip b{transition:color .2s}
 .zmwfx-up{color:#3f7a52!important}.zmwfx-down{color:#b4392c!important}
-.zmwfx-ticket{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:58px;height:30px;padding:0 10px;border-radius:6px;background:#f0c9bb;border:1.5px solid #1d1b18;color:#1d1b18;font:700 15px/1 Georgia,serif;box-shadow:0 2px 0 #1d1b18;white-space:nowrap}.zmwfx-ticket .zmw-fish{width:20px;height:13px;flex:none}.zmwfx-ticket b{font:inherit}
+/* 小鱼干不够（2026-11-23 用户：余额不够不能直接开，弹窗说清楚，救济在弹窗里自己点） */
+.zmw-short-mask{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:20px;background:rgba(29,27,24,.42);-webkit-tap-highlight-color:transparent}
+.zmw-short{width:min(320px,100%);padding:22px 20px 18px;border:1.5px solid #1d1b18;border-radius:18px;background:#fffdf8;box-shadow:0 4px 0 #1d1b18;color:#1d1b18;text-align:center;font-family:Georgia,"Noto Serif SC",serif}
+.zmw-short .zmw-big{width:64px;height:40px;display:block;margin:0 auto 6px;transform:rotate(-14deg)}
+.zmw-short h3{margin:0 0 14px;font:700 19px/1.2 Georgia,"Noto Serif SC",serif}
+.zmw-short .zmw-row{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 18px}
+.zmw-short .zmw-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 12px 6px 9px;border-radius:999px;background:#ebe5d8;font:700 18px/1 Georgia,serif;font-variant-numeric:tabular-nums}
+.zmw-short .zmw-pill .zmw-fish{width:26px;height:16px}
+.zmw-short .zmw-pill.is-price{background:#f0c9bb}
+.zmw-short .zmw-row i{font-style:normal;color:#8a8275;font:600 18px/1 Georgia,serif}
+.zmw-short .zmw-acts{display:flex;flex-direction:column;gap:8px}
+.zmw-short button{cursor:pointer;font:600 16px/1 system-ui,"Noto Sans SC",sans-serif;padding:13px 14px;border-radius:12px;border:1.5px solid #1d1b18;background:#fffdf8;color:#1d1b18;box-shadow:0 2px 0 #1d1b18;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.zmw-short button .zmw-fish{width:24px;height:15px}
+.zmw-short button.is-main{background:#b4392c;border-color:#1d1b18;color:#fffdf8}
+.zmw-short button.is-plain{border-color:transparent;box-shadow:none;color:#6a6358;padding:9px}
+.zmw-short button:disabled{opacity:.55}
+.zmw-short button:active{transform:translateY(2px);box-shadow:none}
 .zmw-chip b.is-up{color:#3f7a52}.zmw-chip b.is-down{color:#b4392c}
 .zmw-res .zmw-wait{width:42px;height:6px;border-radius:3px;background:linear-gradient(90deg,#ebe5d8,#d9cfbd,#ebe5d8);background-size:200% 100%;animation:zmwWait 1s linear infinite}
 @keyframes zmwWait{to{background-position:-200% 0}}
@@ -121,7 +158,7 @@
     const b = chip.querySelector('b');
     if (shown == null) { b.textContent = fmt(state.bal); shown = state.bal; }
     else if (chip.offsetParent === null) { /* 封面藏着（在打牌）：等回到主页面露出来再滚 */ }
-    else if (profileOpen() || !fxOn() || !FX() || shown === state.bal) { b.textContent = fmt(state.bal); shown = state.bal; }   // 档案开着：鱼飞进档案里的余额，后面这个不动
+    else if (profileOpen() || shortOpen || !fxOn() || !FX() || shown === state.bal) { b.textContent = fmt(state.bal); shown = state.bal; }   // 档案开着：鱼飞进档案里的余额，后面这个不动
     else { const from = shown; shown = state.bal; animateIn(from, state.bal); }
     chip.querySelector('.zmw-dot').hidden = !hasNews();
   }
@@ -138,18 +175,84 @@
     const n = Math.min(6, 2 + Math.round(Math.log10(Math.max(10, to - from))));
     fx.school(FISH, { x: innerWidth / 2, y: innerHeight * 0.72 }, chip, n, { spread: 90, gap: 90, dur: 820, lift: -60, onLand: () => fx.roll(b, from, to, 560) });
   }
-  /* 点「开始」：先放扣门票（约 0.7 秒），放完再 resolve——调用方这时才真正开局。钱不够 / 没开动画 / 看不到左上角：马上 resolve */
+  /* 交门票（2026-11-23 用户：门票不要「鱼 + 数字」的标签飘下来，就是鱼游下来）：
+   * 几条小鱼从余额（主页面左上角 / 结算页的余额）游进要按的那个键（「开始」/「再来一局」），余额同时往下滚，放完才 resolve——调用方这时才真正开局。
+   * 余额不够：先弹「小鱼干不够了」（救济、签到都在里面自己点），凑够了点「开始」才往下走；关掉 = 不开（resolve false）。
+   * 不知道余额（连不上服务器）/ 没开动画：直接 resolve true（照旧开局，服务器那边不够就不计分） */
   let fxGen = 0;   // 每收一次动画 +1：放到一半被收掉的扣票，不能再接着开局
-  function playTicket(tier, mode, n) {
-    const fx = FX(), p = price(tier, mode, n);
-    if (!fx || !fxOn() || !chip || chip.offsetParent === null || !state || state.bal < p) return Promise.resolve(true);
+  function pay(o) {
+    const p = price(o.tier, o.mode, o.n);
+    if (state && state.bal != null && state.bal < p) return shortDialog(o, p).then((ok) => (ok ? fishPay(p, o.from, o.to) : false));
+    return fishPay(p, o.from, o.to);
+  }
+  function fishPay(p, from, to) {
+    const fx = FX();
+    if (!fx || !fxOn() || !from || !to || from.offsetParent === null || !state || state.bal == null) return Promise.resolve(true);
     cancelFx();
-    const gen = fxGen, btn = document.querySelector('[data-cover="start"]'), b = chip.querySelector('b'), from = state.bal;
-    shown = from - p;
-    fx.roll(b, from, from - p, 460, { delay: 140 });
-    return fx.ticket(chip, btn, p, { icon: FISH }).then(() => gen === fxGen);
+    const gen = fxGen, b = from.querySelector('b') || from;
+    const bal = from === chip ? (shown != null ? shown : state.bal) : (Number(String(b.textContent).replace(/[^\d]/g, '')) || state.bal);   // 结算页：从它上面显示的数往下滚
+    if (from === chip) shown = bal - p;
+    fx.roll(b, bal, bal - p, 520, { delay: 120 });
+    const n = Math.min(5, 2 + Math.round(Math.log10(Math.max(10, p)) - 1));
+    return fx.school(FISH, from, to, n, { spread: 14, gap: 70, dur: 700, lift: 30, size: 28, toPoint: center(to) }).then(() => gen === fxGen);
+  }
+  const center = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+  // 旧名字（zhamao.js 的「开始」键还在用）
+  function playTicket(tier, mode, n) { return pay({ tier, mode, n, from: chip, to: document.querySelector('[data-cover="start"]') }); }
+
+  /* 小鱼干不够了：余额 / 门票并排，下面是能做的事——领救济（第一次亏空 +2,000，之后每天两次 +500）、今天还没签到就签到；
+   * 领完够了，主键变成「开始」。字尽量少 */
+  let shortOpen = false;   // 「不够了」弹窗开着：鱼游进弹窗里的余额，后面左上角那个不跟着放
+  function shortDialog(o, p) {
+    style();
+    shortOpen = true;
+    return new Promise((resolve) => {
+      const mask = document.createElement('div');
+      mask.className = 'zmw-short-mask';
+      mask.innerHTML = '<div class="zmw-short" role="dialog" aria-modal="true"><svg class="zmw-big" viewBox="0 0 32 20" aria-hidden="true">' + FISH.replace(/^<svg[^>]*>/, '').replace('</svg>', '') + '</svg>' +
+        '<h3>' + T('ui.wallet.short', '小鱼干不够了') + '</h3>' +
+        '<div class="zmw-row"><span class="zmw-pill" data-bal>' + FISH + '<b>' + fmt(state.bal) + '</b></span><i>/</i><span class="zmw-pill is-price">' + FISH + fmt(p) + '</span></div>' +
+        '<div class="zmw-acts"></div></div>';
+      document.body.appendChild(mask);
+      const acts = mask.querySelector('.zmw-acts'), balEl = mask.querySelector('[data-bal]');
+      let done = false;
+      const end = (ok) => { if (done) return; done = true; shortOpen = false; mask.remove(); if (chip && state) { shown = state.bal; chip.querySelector('b').textContent = fmt(state.bal); } resolve(ok); };
+      mask.addEventListener('click', (e) => { if (e.target === mask) end(false); });
+      const btn = (cls, html, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.innerHTML = html; b.addEventListener('click', () => fn(b)); acts.appendChild(b); return b; };
+      // 拿到小鱼干：鱼从按钮游进上面的余额、数字滚上去，然后重摆按钮
+      const got = (b, from, to) => {
+        const fx = FX();
+        const after = () => draw();
+        if (fx && fxOn() && to > from) fx.school(FISH, b, balEl, Math.min(4, 2 + Math.round(Math.log10(to - from) - 1)), { spread: 16, gap: 80, dur: 640, lift: -40, size: 26, onLand: () => fx.roll(balEl.querySelector('b'), from, to, 480) }).then(after);
+        else { balEl.querySelector('b').textContent = fmt(to); after(); }
+      };
+      function draw() {
+        acts.innerHTML = '';
+        const bal = state.bal, rl = state.relief || {};
+        mask.querySelector('h3').hidden = bal >= p;   // 凑够了：标题收起，只剩数字和「开始」
+        if (bal >= p) { const go = btn('is-main', T('ui.start', '开始'), () => end(true)); go.focus(); btn('is-plain', T('ui.cancel', '取消'), () => end(false)); return; }
+        if (rl.first || rl.left > 0) {
+          const amt = rl.first ? 2000 : 500;
+          btn('is-main', T('ui.wallet.relief', '领救济') + ' ' + FISH + '+' + fmt(amt), (b) => {
+            b.disabled = true;
+            const from = state.bal;
+            post('relief', { n: o.n, mode: o.mode, tier: o.tier }).then((j) => got(b, from, j.bal)).catch(() => { b.disabled = false; });
+          });
+        }
+        if (state.ck !== today()) {
+          btn(rl.first || rl.left > 0 ? '' : 'is-main', T('ui.wallet.checkin', '签到') + ' ' + FISH + '+' + fmt(state.next || 100), (b) => {
+            b.disabled = true;
+            const from = state.bal;
+            api.checkin().then((j) => got(b, from, j.bal)).catch(() => { b.disabled = false; });
+          });
+        }
+        btn('is-plain', T('ui.ok', '知道了'), () => end(false));
+      }
+      draw();
+    });
   }
   function cancelFx() { fxGen++; if (FX()) FX().cancelAll(); }
+  function canPay(tier, mode, n) { return !(state && state.bal != null && state.bal < price(tier, mode, n)); }
   function mountChip(cover) {
     style();
     if (!cover || chip) return;
@@ -206,8 +309,7 @@
     const wt = game.wt = { n: st.n, mode, tier, all: 0, auto: 0 };
     post('ticket', { n: st.n, mode, tier, gid: game.hl && game.hl.id }).then((r) => {
       if (game.wt !== wt) return;
-      if (r.tid) { wt.tid = r.tid; wt.price = r.price; } else wt.short = true;
-      if (r.relief) wt.relief = r.relief;
+      if (r.tid) { wt.tid = r.tid; wt.price = r.price; wt.bal0 = r.bal; } else wt.short = true;
     }).catch(() => { if (game.wt === wt) wt.off = true; });
   }
   function act(game, seat, d, byAuto) {
@@ -238,6 +340,10 @@
       body = { tid: wt.tid, rank };
     }
     body.autoShare = wt.all ? wt.auto / wt.all : 0;
+    // 当场估好（同服务器的算法）：结算页一出来就有数，服务器回来再对一下（首胜奖励只有服务器知道）
+    const pay = payout({ tier: wt.tier, mode: wt.mode, n, rank: body.rank, team: body.team ? { won: body.won, winners: body.winners } : null, autoShare: body.autoShare });
+    wt.est = { delta: pay - wt.price, pay, price: wt.price, firstWin: 0, bal: (wt.bal0 != null ? wt.bal0 : state ? state.bal : 0) + pay, est: true };
+    if (state) state = Object.assign({}, state, { bal: wt.est.bal });   // 本机先记上（「再来一局」够不够按这个算），服务器回来会覆盖
     const p = post('settle', body).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, bal: r.bal }; dropPending(wt.tid); return wt.done; })
       .catch((e) => {
         if (e.status === 409 || e.status === 403) { wt.done = { gone: true }; dropPending(wt.tid); return null; }
@@ -257,21 +363,27 @@
     const d = r.delta - (r.firstWin || 0), cls = d > 0 ? 'is-up' : d < 0 ? 'is-down' : '';   // 大字 = 这局本身（拿回 − 门票）；首胜奖励单独挂星星
     el.innerHTML = FISH + '<b class="' + cls + '">' + (d > 0 ? '+' : d < 0 ? '−' : '') + '0</b>' +
       (r.firstWin ? '<span class="zmw-star">' + STAR + '+' + r.firstWin + '</span>' : '') +
-      (r.bal != null ? '<span class="zmw-bal">' + FISH + fmt(r.bal) + '</span>' : '') +
-      (!loggedIn() ? '<button type="button" class="zmw-login" data-zmw-login>' + T('ui.wallet.login', '登录保存') + '</button>' : '');
-    const lg = el.querySelector('[data-zmw-login]');
-    if (lg) lg.addEventListener('click', login);
-    const b = el.querySelector('b'), sign = d > 0 ? '+' : d < 0 ? '−' : '';
+      (r.bal != null ? '<span class="zmw-bal">' + FISH + '<b>' + fmt(r.bal) + '</b></span>' : '');   // 「登录保存」只在猫咪档案里提（2026-11-23 用户：排行榜里放着丑）
+    const b = el.querySelector(':scope > b'), sign = d > 0 ? '+' : d < 0 ? '−' : '';
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || !Math.abs(d)) { b.textContent = sign + fmt(d); return; }
     const t0 = performance.now(), dur = 700;
     const tick = (t) => { const k = Math.min(1, (t - t0) / dur); b.textContent = sign + fmt(Math.abs(d) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); };
     requestAnimationFrame(tick);
   }
-  function fill(dialog, p) {
+  function fill(dialog, p, game) {
     const el = dialog && dialog.querySelector('[data-zmw-res]');
     if (!el) return;
     if (!p) { el.remove(); return; }
-    Promise.resolve(p).then((r) => paintRes(el, r));
+    const est = game && game.wt && game.wt.done ? game.wt.done : game && game.wt && game.wt.est;
+    if (est) paintRes(el, est);
+    Promise.resolve(p).then((r) => {
+      if (!est) { paintRes(el, r); return; }
+      if (!r) return;   // 网断了：留着估的数（下次打开游戏补结算）
+      if (r.delta - (r.firstWin || 0) !== est.delta - (est.firstWin || 0)) { paintRes(el, r); return; }
+      // 和估的一样：只把首胜星星补上、余额对成服务器的
+      if (r.firstWin && !el.querySelector('.zmw-star')) { const st = document.createElement('span'); st.className = 'zmw-star'; st.innerHTML = STAR + '+' + r.firstWin; el.querySelector('b').after(st); }
+      const bl = el.querySelector('.zmw-bal'); if (bl && r.bal != null) bl.innerHTML = FISH + '<b>' + fmt(r.bal) + '</b>';
+    });
   }
   /* 联机：服务器在这局的视图里给了我的 { price, pay, d, refund } */
   function fillOnline(dialog, pay) {
@@ -279,15 +391,17 @@
     if (!el) return;
     if (!pay || pay.refund) { el.remove(); return; }
     // 余额由服务器另外记账：稍等一下再拉一次余额（首胜奖励也在里面）
-    setTimeout(() => { refresh().then((j) => paintRes(el, { delta: pay.d, bal: j ? j.bal : null })); }, 900);
+    // 2026-11-23：先用本机余额 + 这局输赢当场摆出来，服务器那边记完账再对一下
+    if (state && state.bal != null) paintRes(el, { delta: pay.d, bal: state.bal + pay.d });
+    setTimeout(() => { refresh().then((j) => { const bl = el.querySelector('.zmw-bal'); if (j && bl) bl.innerHTML = FISH + '<b>' + fmt(j.bal) + '</b>'; else if (j && !bl) paintRes(el, { delta: pay.d, bal: j.bal }); }); }, 900);
   }
 
-  root.ZhamaoWallet = {
+  const api = root.ZhamaoWallet = {
     BASE, FISH, price, loggedIn, deviceId,
     state: () => state, onChange: (f) => listeners.push(f),
     me: refresh,
     checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile: () => post('profile'), fb: (steps) => post('fb', { steps }).catch(() => null),
-    mountChip, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, cancelFx,
+    mountChip, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout,
     __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },
   };
 })(window);

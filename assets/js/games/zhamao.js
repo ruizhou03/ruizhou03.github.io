@@ -5792,14 +5792,21 @@
     // 组队：赢的队两个人都算赢，不排个人名次——还是一列（赢的队 / 输的队）；其余用领奖台
     if (team) {
       openDialog(teamRankHtml(order, winners.length, won) + (wp ? WAL.slot() : '') +
-        '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { soloEndWire(d); if (wp) WAL.fill(d, wp); });
+        '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { soloEndWire(d); if (wp) WAL.fill(d, wp, game); });
       return;
     }
     openDialog(podiumHtml(order.map((seat) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0 }))) + (wp ? WAL.slot() : '') +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); if (wp) WAL.fill(d, wp); });
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); if (wp) WAL.fill(d, wp, game); });
   }
   function soloEndWire(d) {
-    d.querySelector('[data-again]').addEventListener('click', () => { closeDialog(); newGame(); });
+    // 再来一局（2026-11-23 用户：以前不管余额够不够直接开，也看不出交没交门票）：够 → 几条小鱼从结算页的余额游进「再来一局」、余额往下滚，再开；不够 → 弹「小鱼干不够了」
+    d.querySelector('[data-again]').addEventListener('click', (e) => {
+      const b = e.currentTarget;
+      if (!WAL || !WAL.pay) { closeDialog(); newGame(); return; }
+      if (b.disabled) return;
+      b.disabled = true;
+      WAL.pay({ tier: settings.tier, mode: curMode(), n: soloN(), from: d.querySelector('.zmw-bal'), to: b }).then((ok) => { b.disabled = false; if (ok && d.contains(b) && !els.mask.hidden) { closeDialog(); newGame(); } });
+    });
     d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
   }
 
@@ -5953,7 +5960,7 @@
       }));
       d.querySelector('[data-close]').addEventListener('click', closeDialog);
       const rb = d.querySelector('[data-restart]');
-      if (rb) rb.addEventListener('click', () => { closeDialog(); newGame(); });
+      if (rb) rb.addEventListener('click', () => { closeDialog(); newGamePaid(); });
       syncNote();
     });
   }
@@ -6027,8 +6034,8 @@
   function menuAct(k) {
     closeMenu();
     if (k === 'restart') {
-      if (game && !game.dealing && game.state.phase !== 'over') { askConfirm(T('ui.restart.ask', '重新开一局？'), T('ui.restart.note', '这一局就放弃了'), T('ui.restart.ok', '重开'), newGame); return; }
-      newGame();
+      if (game && !game.dealing && game.state.phase !== 'over') { askConfirm(T('ui.restart.ask', '重新开一局？'), T('ui.restart.note', '这一局就放弃了'), T('ui.restart.ok', '重开'), newGamePaid); return; }
+      newGamePaid();
     }
     else if (k === 'settings') showSettings(false);
     else if (k === 'profile') showProfile();
@@ -6647,6 +6654,11 @@
   function quitTutorial() { tut = null; els.skipTut.hidden = true; showCover(); }
 
   /* ───── 开局 / 封面 ───── */
+  // 玩家自己点的「重开」：先看小鱼干够不够这局门票（不够弹窗，救济在里面领）——2026-11-23 用户
+  function newGamePaid() {
+    if (!WAL || !WAL.pay) { newGame(); return; }
+    WAL.pay({ tier: settings.tier, mode: curMode(), n: soloN() }).then((ok) => { if (ok) newGame(); });
+  }
   function newGame() {
     if (WAL && WAL.cancelFx) WAL.cancelFx();   // 主页面上的小鱼干动画（进账 / 扣票）一律收掉，不带进牌桌
     if (WAL && game) WAL.settle(game);   // 上一局我已经出局、没等打完就开新局：名次已定，先结掉

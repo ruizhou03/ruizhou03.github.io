@@ -79,8 +79,12 @@
     const fmtFn = (opts && opts.fmt) || fmt;
     if (reduce()) { el.textContent = fmtFn(to); return Promise.resolve(); }
     const cls = to >= from ? 'zmwfx-up' : 'zmwfx-down';
+    // 同一个数字上新滚的接管旧的（2026-11-23 录屏：救济进账和扣门票两段同时滚一个数，来回打架）
+    const tok = {}; el.__zmwRoll = tok;
+    el.classList.remove('zmwfx-up', 'zmwfx-down');
     el.classList.add(cls);
-    return tween(dur, (k) => { el.textContent = fmtFn(from + (to - from) * ease.outCubic(k)); }, opts).then(() => {
+    return tween(dur, (k) => { if (el.__zmwRoll === tok) el.textContent = fmtFn(from + (to - from) * ease.outCubic(k)); }, opts).then(() => {
+      if (el.__zmwRoll !== tok) return;
       el.textContent = fmtFn(to);
       setTimeout(() => el.classList.remove(cls), manual ? 0 : 420 / speed);
     });
@@ -163,42 +167,5 @@
     tween(240, (k) => { el.style.transform = 'scale(' + (1 + 0.12 * Math.sin(k * Math.PI)).toFixed(3) + ')'; }).then(() => { el.style.transform = ''; });
   }
 
-  /* 门票：从 fromEl（左上角小鱼干）弹出来，像纸片一样边飘边晃落到 toEl（「开始」键）上，盖下去。label = 门票上的数 */
-  function ticket(fromEl, toEl, label, opts) {
-    opts = opts || {};
-    if (reduce() || !fromEl || !toEl) return Promise.resolve();
-    const a = center(fromEl.getBoundingClientRect()), tb = toEl.getBoundingClientRect(), b = { x: tb.left + tb.width / 2, y: tb.top + tb.height / 2 };
-    const el = document.createElement('span');
-    el.className = 'zmwfx-ticket';
-    el.innerHTML = (opts.icon || '') + '<b>' + label + '</b>';
-    el.style.cssText = 'position:fixed;left:0;top:0;opacity:0;will-change:transform';
-    layer().appendChild(el);
-    const w = el.offsetWidth || 64, h = el.offsetHeight || 30;
-    const p1 = { x: a.x + (b.x - a.x) * 0.05 + 70, y: a.y + 30 }, p2 = { x: b.x - 60, y: b.y - (b.y - a.y) * 0.45 };
-    const total = opts.dur || 720;
-    return tween(total, (k) => {
-      let x, y, rot, sc = 1, op = 1;
-      if (k < 0.16) {                       // 从小鱼干里「抽」出来：往下一弹、放大
-        const q = k / 0.16;
-        x = a.x + 6 * q; y = a.y + 22 * ease.outBack(q); rot = -10 * q; sc = 0.5 + 0.5 * ease.outBack(q); op = Math.min(1, q * 2.5);
-      } else if (k < 0.84) {                // 像纸片一样飘下去：沿弧线走，一路左右晃、轻轻翻
-        const q = (k - 0.16) / 0.68, u = ease.inOutSine(q);
-        const c = bez({ x: a.x + 6, y: a.y + 22 }, p1, p2, b, u);
-        x = c.x + Math.sin(q * Math.PI * 2.4) * 14 * (1 - q); y = c.y;
-        rot = -10 + Math.sin(q * Math.PI * 3.2) * 18 * (1 - q * 0.5) + 8 * q;
-        sc = 1 + 0.06 * Math.sin(q * Math.PI);
-      } else {                               // 落到「开始」键上：压一下、钻进去
-        const q = (k - 0.84) / 0.16;
-        x = b.x; y = b.y; rot = 4 * (1 - q); sc = q < 0.4 ? 1 - 0.18 * (q / 0.4) : 0.82 - 0.5 * ((q - 0.4) / 0.6); op = q < 0.5 ? 1 : 1 - (q - 0.5) / 0.5;
-      }
-      el.style.opacity = op.toFixed(3);
-      el.style.transform = 'translate(' + (x - w / 2).toFixed(1) + 'px,' + (y - h / 2).toFixed(1) + 'px) rotate(' + rot.toFixed(1) + 'deg) scale(' + sc.toFixed(3) + ')';
-    }).then(() => { el.remove(); press(toEl); });
-  }
-  function press(el) {
-    if (!el || reduce()) return;
-    tween(200, (k) => { el.style.transform = 'scale(' + (1 - 0.05 * Math.sin(k * Math.PI)).toFixed(3) + ')'; }).then(() => { el.style.transform = ''; });
-  }
-
-  root.ZhamaoWalletFx = { tween, roll, fish, school, ticket, bump, cancelAll, setManual, setTime, advance, setSpeed: (x) => { speed = Math.max(0.05, x || 1); }, speed: () => speed, busy: () => jobs.size > 0, reduce };
+  root.ZhamaoWalletFx = { tween, roll, fish, school, bump, cancelAll, setManual, setTime, advance, setSpeed: (x) => { speed = Math.max(0.05, x || 1); }, speed: () => speed, busy: () => jobs.size > 0, reduce };
 })(window);
