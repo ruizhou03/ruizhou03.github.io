@@ -1,0 +1,128 @@
+/* 拱猪 · 封面改版预览（?gzpv=cover-a|b|c，见 gongzhu-cover-pv.js）。只在带参数时加载，全部挂在 .gzpv 下面 */
+
+/* ───── 三版共用：插画标题钉在固定高度，下面内容多少都不跳；竖屏上下、横屏左右 ───── */
+.gz-cover.gzpv { align-items: flex-start; padding: 0 16px; }
+.gzpv .gz-cover-inner { gap: 0; min-height: 100%; justify-content: flex-start;
+  padding: max(20px, calc(50vh - 210px)) 0 calc(24px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+.gzpv-head { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.gzpv-head .gz-cover-load { margin-top: 18px; }
+.gzpv-side { width: 100%; display: flex; flex-direction: column; align-items: stretch; gap: 14px; }
+.gzpv .gz-cover-title { margin-bottom: 22px; }
+/* 主按钮一样高：有没有小字都一样 */
+.gzpv .gz-cover-btn { min-height: 74px; justify-content: center; box-sizing: border-box; }
+.gzpv .gz-cover-btn small:empty { display: none; }
+
+/* 分段选项（复用弹窗里的 .gz-seg），封面上用白底 */
+.gzpv .gzpv-seg { margin: 0; background: var(--gz-card); }
+.gzpv .gzpv-seg button { padding: 8px 2px; font-size: 14px; }
+.gzpv-row { display: grid; grid-template-columns: 3.4em minmax(0, 1fr); align-items: center; gap: 10px; }
+.gzpv-k { font-size: 13px; color: var(--gz-ink-mute); letter-spacing: 0.1em; }
+.gzpv-v { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+/* 头像 */
+.gzpv-av { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: var(--gz-wash); font-style: normal; font-size: 15px; font-weight: 700; color: var(--gz-ink); flex: none; }
+.gzpv-av svg { width: 100%; height: 100%; display: block; }
+.gzpv-av.is-me { background: var(--gz-ink); color: var(--gz-paper); }
+
+/* 接着打：一张卡，四个头像 + 累计分 */
+.gzpv-resume { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 74px; box-sizing: border-box; padding: 8px 12px 8px 14px;
+  border: 1.5px solid var(--gz-ink); border-radius: 12px; background: var(--gz-card); color: var(--gz-ink); font: inherit; text-align: left; cursor: pointer; }
+.gzpv-resume:active { transform: translateY(1px); }
+.gzpv-rtx { flex: none; }
+.gzpv-rtx b { display: block; font-size: 17px; letter-spacing: 0.15em; }
+.gzpv-rtx small { display: block; font-size: 12px; color: var(--gz-ink-mute); margin-top: 2px; }
+.gzpv-strip { flex: 1; min-width: 0; display: flex; justify-content: space-around; gap: 2px; }
+.gzpv-pl { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+.gzpv-pl .gzpv-av { width: 30px; height: 30px; font-size: 13px; }
+.gzpv-pl b { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--gz-ink-mute); }
+.gzpv-pl b.neg { color: var(--gz-seal); }
+.gzpv-pl b.pos { color: var(--gz-good); }
+.gzpv-go { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--gz-seal); position: relative; }
+.gzpv-go::after { content: ''; position: absolute; left: 10px; top: 11px; width: 8px; height: 8px; border: solid var(--gz-seal-ink); border-width: 2.4px 2.4px 0 0; transform: rotate(45deg); }
+
+/* 机器人三位：点头像换档 */
+.gzpv-bots { display: flex; gap: 6px; }
+.gzpv-bot { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0; border: 0; background: none; font: inherit; cursor: pointer; color: var(--gz-ink); }
+.gzpv-bot .gzpv-av { width: 40px; height: 40px; box-shadow: 0 0 0 1.5px var(--gz-ink); }
+.gzpv-bot:active .gzpv-av { transform: scale(0.94); }
+.gzpv-tier { font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 8px; border: 1px solid rgba(61, 88, 120, 0.4); color: #3d5878; background: rgba(61, 88, 120, 0.07); }
+.gzpv-tier.t-easy { border-color: rgba(61, 107, 79, 0.45); color: var(--gz-good); background: rgba(61, 107, 79, 0.08); }
+.gzpv-tier.t-hard { border-color: rgba(180, 57, 44, 0.45); color: var(--gz-seal); background: rgba(180, 57, 44, 0.07); }
+
+/* 开始 / 新开一盘：点了一下等确认时换成墨色 */
+.gzpv .gz-cover-btn.is-armed { background: var(--gz-ink); border-color: var(--gz-ink); color: var(--gz-paper); }
+.gzpv .gz-cover-btn.is-armed small { color: rgba(243, 238, 227, 0.8); }
+.gzpv-more { align-self: center; padding: 2px 4px; }
+.gzpv-back { align-self: center; text-decoration: none; }
+
+/* 联机一层：创建 / 或 / 房号 + 加入 / 只观战 */
+.gzpv-or { display: flex; align-items: center; gap: 10px; color: var(--gz-ink-faint); font-size: 12px; margin: -2px 0; }
+.gzpv-or::before, .gzpv-or::after { content: ''; flex: 1; border-top: 1px solid rgba(29, 27, 24, 0.16); }
+.gzpv-join { display: flex; gap: 10px; align-items: stretch; }
+.gzpv-join .gzpv-code { margin: 0; flex: 1; min-width: 0; min-height: 74px; padding: 6px 8px; font-size: 28px; letter-spacing: 0.35em; text-indent: 0.35em; text-align: center; border-width: 1.5px; border-radius: 12px; }
+.gzpv-join .gzpv-code::placeholder { font-size: 16px; letter-spacing: 0.08em; text-indent: 0; color: var(--gz-ink-faint); }
+.gzpv-join .gz-cover-btn { flex: 0 0 34%; }
+.gzpv-err { margin: -4px 0 0; font-size: 13px; color: var(--gz-seal); text-align: center; }
+.gzpv-watch { align-self: center; padding: 0 4px; }
+
+/* 乙 / 丙：原地换出来的面板，宽度和主按钮一样 */
+.gzpv-panel { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; }
+
+/* 丙：接着打 / 新开一盘 并排 */
+.gzpv-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gzpv-pair .gz-cover-btn b { letter-spacing: 0.1em; text-indent: 0.1em; }
+
+/* ───── 甲：设置单 ───── */
+.gzpv-mask { position: absolute; inset: 0; z-index: 5; background: rgba(29, 27, 24, 0.3); display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.gzpv-mask[hidden] { display: none !important; }
+.gzpv-sheet { position: relative; width: 100%; max-width: 460px; max-height: 92%; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--gz-paper); border-radius: 22px 22px 0 0; box-shadow: 0 -10px 30px rgba(29, 27, 24, 0.16);
+  padding: 22px 22px calc(18px + env(safe-area-inset-bottom)); touch-action: pan-y; }
+.gzpv-body { display: flex; flex-direction: column; gap: 14px; }
+.gzpv-grab { position: absolute; left: 50%; top: 8px; width: 38px; height: 4px; margin-left: -19px; border-radius: 2px; background: rgba(29, 27, 24, 0.2); }
+.gzpv-x { display: none; position: absolute; border: 0; background: none; width: 36px; height: 36px; cursor: pointer; }
+.gzpv-x::after { content: ''; position: absolute; left: 11px; top: 13px; width: 10px; height: 10px; border: solid var(--gz-ink-mute); border-width: 2px 2px 0 0; transform: rotate(45deg); }
+.gzpv-mask.is-in { animation: gzpv-fade 0.22s ease-out; }
+.gzpv-mask.is-in .gzpv-sheet { animation: gzpv-up 0.34s cubic-bezier(.2, .8, .25, 1); }
+.gzpv-mask.is-out { animation: gzpv-fade 0.2s ease-in reverse forwards; pointer-events: none; }
+.gzpv-mask.is-out .gzpv-sheet { animation: gzpv-up 0.22s cubic-bezier(.4, 0, .8, .4) reverse forwards; }
+@keyframes gzpv-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gzpv-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes gzpv-left { from { transform: translateX(100%); } to { transform: none; } }
+
+/* ───── 横屏（矮）：左边插画标题、右边按钮；甲的单子变右侧抽屉 ───── */
+@media (orientation: landscape) and (max-height: 540px) {
+  .gz-cover.gzpv { padding: 0; overflow: hidden; }
+  .gzpv .gz-cover-inner { width: 100%; height: 100%; min-height: 0; padding: 0; flex-direction: row; align-items: stretch; }
+  .gzpv-head { flex: 1 1 50%; justify-content: center; gap: 10px; padding: 16px; box-sizing: border-box; }
+  .gzpv-head .gz-cover-art { width: 96px; height: 84px; }
+  .gzpv .gz-cover-title { margin: 0; font-size: 36px; }
+  .gzpv-head .gz-cover-load { width: min(240px, 80%); }
+  /* 右栏自己滚，内容少时上下居中（用 margin:auto，内容多时顶端不会被裁掉） */
+  .gzpv-side { flex: 1 1 50%; max-width: 400px; height: 100%; overflow-y: auto; padding: 14px 28px 14px 8px; box-sizing: border-box; gap: 10px; }
+  .gzpv-side::before, .gzpv-side::after { content: ''; flex: 1 0 0; margin: -5px 0; }
+  .gzpv .gz-cover-btn, .gzpv-resume, .gzpv-join .gzpv-code { min-height: 58px; }
+  .gzpv .gz-cover-btn { padding: 8px 14px; }
+  .gzpv-panel { gap: 8px; }
+  .gzpv .gzpv-seg button { padding: 6px 2px; font-size: 13px; }
+  .gzpv-seg.is-4 { flex-wrap: nowrap; }
+  .gzpv-seg.is-4 button { flex: 1 1 0; font-size: 12px !important; }
+  .gzpv-seg.is-4 button:nth-child(3) { border-left: 1px solid var(--gz-ink); }
+  .gzpv-seg.is-4 button:nth-child(n+3) { border-top: 0; }
+
+  .gzpv-mask { flex-direction: row; justify-content: flex-end; align-items: stretch; }
+  .gzpv-sheet { width: min(420px, 54%); max-width: none; max-height: none; height: 100%; border-radius: 22px 0 0 22px;
+    padding: 12px 24px 12px 50px; box-shadow: -10px 0 30px rgba(29, 27, 24, 0.16); display: flex; flex-direction: column; }
+  .gzpv-sheet .gzpv-body { margin: auto 0; gap: 9px; }
+  .gzpv-grab { display: none; }
+  .gzpv-x { display: block; top: 50%; left: 6px; transform: translateY(-50%); }
+  .gzpv-mask.is-in .gzpv-sheet { animation-name: gzpv-left; }
+  .gzpv-mask.is-out .gzpv-sheet { animation-name: gzpv-left; }
+  .gzpv-bot .gzpv-av { width: 32px; height: 32px; }
+  .gzpv-bots { gap: 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gzpv-mask.is-in, .gzpv-mask.is-in .gzpv-sheet, .gzpv-mask.is-out, .gzpv-mask.is-out .gzpv-sheet { animation: none; }
+}
