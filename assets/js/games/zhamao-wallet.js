@@ -59,7 +59,7 @@
   const listeners = [];
   function remember(j) {
     if (!j || j.bal == null) return;
-    state = Object.assign({}, state || {}, { bal: j.bal, t: Date.now() }, j.checkin ? { ck: j.checkin.today ? today() : '', next: j.checkin.next } : {}, j.relief ? { relief: j.relief } : {}, j.owner ? { owner: j.owner } : {}, Array.isArray(j.badges) && j.checkin ? { badges: j.badges } : {});
+    state = Object.assign({}, state || {}, { bal: j.bal, t: Date.now() }, j.checkin ? { ck: j.checkin.today ? today() : '', next: j.checkin.next } : {}, j.relief ? { relief: j.relief } : {}, j.winToday != null ? { winToday: !!j.winToday } : {}, j.owner ? { owner: j.owner } : {}, Array.isArray(j.badges) && j.checkin ? { badges: j.badges } : {});
     ls.set(CACHE, JSON.stringify(state));
     listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } });
   }
@@ -127,6 +127,11 @@
 .zmw-short button.is-plain{border-color:transparent;box-shadow:none;color:#6a6358;padding:9px}
 .zmw-short button:disabled{opacity:.55}
 .zmw-short button:active{transform:translateY(2px);box-shadow:none}
+.zmw-short .zmw-tasks{margin:0 0 4px;border:1.5px solid #1d1b18;border-radius:12px;overflow:hidden;text-align:left}
+.zmw-short .zmw-tasks p{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;padding:9px 10px 9px 14px;min-height:50px;border-top:1px solid rgba(29,27,24,.12);font:600 15px/1.2 system-ui,"Noto Sans SC",sans-serif}
+.zmw-short .zmw-tasks p:first-child{border-top:0}
+.zmw-short .zmw-tasks button{padding:8px 14px;border-radius:999px;font-size:14px;background:#b4392c;color:#fffdf8;box-shadow:0 2px 0 #1d1b18}
+.zmw-short .zmw-tasks em{font-style:normal;font:500 14px/1 system-ui,"Noto Sans SC",sans-serif;color:#8a8275;padding:8px 4px}
 .zmw-chip b.is-up{color:#3f7a52}.zmw-chip b.is-down{color:#b4392c}
 .zmw-res .zmw-wait{width:42px;height:6px;border-radius:3px;background:linear-gradient(90deg,#ebe5d8,#d9cfbd,#ebe5d8);background-size:200% 100%;animation:zmwWait 1s linear infinite}
 @keyframes zmwWait{to{background-position:-200% 0}}
@@ -203,7 +208,9 @@
   // 旧名字（zhamao.js 的「开始」键还在用）
   function playTicket(tier, mode, n) { return pay({ tier, mode, n, from: chip, to: document.querySelector('[data-cover="start"]') }); }
 
-  /* 小鱼干不够了：余额 / 门票并排，下面是能做的事——领救济（第一次亏空 +2,000，之后每天两次 +500）、今天还没签到就签到；
+  /* 小鱼干不够了：余额 / 门票并排，下面一张今天的任务单（2026-11-23 用户定：只列主流的三项，不写给多少）——
+   *   领取救济（第一次亏空 +3,000，之后每天三次 +1,000）/ 每日签到 / 对局获胜（每天第一次赢）
+   *   没做的右边「前往」：救济、签到当场领（鱼游进上面的余额）；对局获胜 = 关掉弹窗回去开一局；做过的写「已完成」。
    * 领完够了，主键变成「开始」。字尽量少 */
   function shortDialog(o, p) {
     style();
@@ -222,13 +229,15 @@
       mask.addEventListener('click', (e) => { if (e.target === mask) end(false); });
       const btn = (cls, html, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.innerHTML = html; b.addEventListener('click', () => fn(b)); acts.appendChild(b); return b; };
       // 拿到小鱼干（点下去就放，不等服务器——知道能领多少）：鱼从按钮游进上面的余额、数字滚上去；服务器回来且动画放完再按服务器的余额重摆按钮
+      let busy = 0;
       const claim = (b, amt, req) => {
         b.disabled = true;
+        busy++;
         const from = state.bal, fx = FX(), numEl = balEl.querySelector('b');
         const anim = fx && fxOn()
           ? fx.school(FISH, b, balEl, Math.min(4, 2 + Math.round(Math.log10(amt) - 1)), { spread: 16, gap: 80, dur: 640, lift: -40, size: 26, onLand: () => fx.roll(numEl, from, from + amt, 480) })
           : Promise.resolve().then(() => { numEl.textContent = fmt(from + amt); });
-        const settle = (v) => { numEl.__zmwRoll = {}; numEl.textContent = fmt(v); draw(); };   // 收掉还在滚的那段，再摆服务器的数（录屏：滚到 1,990 被晚到的一帧盖住）
+        const settle = (v) => { busy--; numEl.__zmwRoll = {}; numEl.textContent = fmt(v); draw(); };   // 收掉还在滚的那段，再摆服务器的数（录屏：滚到 1,990 被晚到的一帧盖住）
         Promise.all([req(), anim]).then(([j]) => settle(j.bal)).catch(() => settle(state.bal));   // 没领成：数字摆回去
       };
       function draw() {
@@ -236,16 +245,24 @@
         const bal = state.bal, rl = state.relief || {};
         mask.querySelector('h3').hidden = bal >= p;   // 凑够了：标题收起，只剩数字和「开始」
         if (bal >= p) { const go = btn('is-main', o.okLabel || T('ui.start', '开始'), () => end(true)); go.focus(); btn('is-plain', T('ui.cancel', '取消'), () => end(false)); return; }
-        if (rl.first || rl.left > 0) {
-          const amt = rl.first ? 2000 : 500;
-          btn('is-main', T('ui.wallet.relief', '领救济') + ' ' + FISH + '+' + fmt(amt), (b) => claim(b, amt, () => post('relief', { n: o.n, mode: o.mode, tier: o.tier })));
-        }
-        if (state.ck !== today()) {
-          btn(rl.first || rl.left > 0 ? '' : 'is-main', T('ui.wallet.checkin', '签到') + ' ' + FISH + '+' + fmt(state.next || 100), (b) => claim(b, state.next || 100, () => api.checkin()));
-        }
+        const list = document.createElement('div');
+        list.className = 'zmw-tasks';
+        acts.appendChild(list);
+        const task = (name, isDone, go) => {
+          const row = document.createElement('p');
+          row.innerHTML = '<span>' + name + '</span>';
+          if (isDone) row.insertAdjacentHTML('beforeend', '<em>' + T('ui.wallet.done', '已完成') + '</em>');
+          else { const b = document.createElement('button'); b.type = 'button'; b.textContent = T('ui.wallet.go', '前往'); b.addEventListener('click', () => go(b)); row.appendChild(b); }
+          list.appendChild(row);
+        };
+        const amt = rl.first ? 3000 : 1000;
+        task(T('ui.wallet.relief', '领取救济'), !(rl.first || rl.left > 0), (b) => claim(b, amt, () => post('relief', { n: o.n, mode: o.mode, tier: o.tier })));
+        task(T('ui.wallet.checkin', '每日签到'), state.ck === today(), (b) => claim(b, state.next || 100, () => api.checkin()));
+        task(T('ui.wallet.win', '对局获胜'), !!state.winToday, () => end(false));
         btn('is-plain', T('ui.ok', '知道了'), () => end(false));
       }
       draw();
+      refresh().then(() => { if (!done && !busy) draw(); });   // 任务单以服务器为准（今天赢过没有、救济还剩几次）
     });
   }
   /* 联机（2026-11-23）：房主点开始、服务器说我不够这局门票 → 同一个弹窗（救济 / 签到），凑够了点主键 resolve true。
