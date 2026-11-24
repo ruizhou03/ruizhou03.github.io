@@ -982,12 +982,60 @@
     v.known = v.known.concat([{ pos, id: ins.card }]).sort((a, b) => a.pos - b.pos);
     return v;
   }
+  /* 铁律一「必死不摸」（2026-11-24 用户定）：这一摸一定是炸毛猫（我看过 / 大家看见塞在那头 / 牌堆全是猫）、
+   * 手里没逗猫棒、也没有别的救命办法（九命没用过 / 急救手里有一对 / 组队还有活着的队友都不算必死），
+   * 而手里有能躲的牌——就把「摸牌」从候选里去掉，在剩下的动作里挑（有网络就按网络打分，没有就按固定顺序）。
+   * 能躲的：甩锅 / 自由甩锅 / 跳过 / 转向，牌堆不全是猫时还有洗牌 / 改命 / 摸底（底下那张没看到是猫）；
+   * 一张也没有时，退一步用能拿到牌的（讨要 / 交换 / 两张三张五张）去碰运气摸个逗猫棒。不改网络，只是过滤。
+   * 对打 60 局经典 4 人高手：这种局面下原来 6.9% 直接摸，百变约 15%。 */
+  const ESCAPE_KINDS = [R.TATTACK, R.ATTACK, R.SKIP, R.REVERSE, R.BOTTOM, R.SHUFFLE, R.ALTER];
+  function doomedDraw(v) {
+    if (!v.deckSize || has(v, R.DEFUSE)) return false;
+    if (teamV(v) && matesV(v).some((m) => v.alive[m])) return false;   // 组队：队友可能救我
+    if (v.flux === 'nine' && v.nineUsed && !v.nineUsed[v.me]) return false;
+    if (v.flux === 'catsave' && R.catPairIds(v.hand)) return false;   // 急救用没用过 view 里看不到，有对子就当还能救
+    if ((v.kittens || 0) >= v.deckSize) return true;
+    const pos = v.flux === 'bottom' ? v.deckSize - 1 : 0;
+    const k = v.known.find((x) => x.pos === pos);
+    return !!(k && K[k.id] === R.BOOM);
+  }
+  function escapeUseful(v, kind) {
+    const allBoom = (v.kittens || 0) >= v.deckSize;
+    if (kind === R.SHUFFLE || kind === R.ALTER) return !allBoom;
+    if (kind === R.BOTTOM) {
+      if (allBoom || v.flux === 'bottom') return false;
+      const b = v.known.find((x) => x.pos === v.deckSize - 1);
+      return !(b && K[b.id] === R.BOOM);
+    }
+    return true;
+  }
+  function guardDoom(state, seat, v, d) {
+    if (!d || d.type !== 'draw' || !doomedDraw(v)) return d;
+    const legal = (m) => m.type === 'play' && !!R.checkPlay(state, seat, m.cards, m);
+    const kindOf = (m) => (m.cards.length === 1 ? K[m.cards[0]] : null);
+    const notMate = (m) => !(m.target != null && isMateV(v, m.target));
+    const cands = actCandidates(v).filter((m) => legal(m) && notMate(m));
+    const esc = cands.filter((m) => { const k = kindOf(m); return k && ESCAPE_KINDS.indexOf(k) >= 0 && escapeUseful(v, k); });
+    // 改命不在 actCandidates 里（平时照普通的时机出），这里补上
+    if (has(v, R.ALTER) && escapeUseful(v, R.ALTER)) { const m = playMove([one(v, R.ALTER)]); if (legal(m)) esc.push(m); }
+    const gain = cands.filter((m) => { const k = kindOf(m); return k === R.FAVOR || k === R.SWAP || m.cards.length >= 2; });
+    const pool = esc.length ? esc : gain;
+    if (!pool.length) return d;
+    if (useBrain(v)) {
+      const sf = brainState(v);
+      let best = pool[0], bs = -Infinity;
+      for (const m of pool) { const sc = brainScore(v, sf, m); if (sc > bs) { bs = sc; best = m; } }
+      return best;
+    }
+    for (const k of ESCAPE_KINDS) { const m = pool.find((x) => kindOf(x) === k); if (m) return m; }
+    return pool[0];
+  }
   /* 一步到位：给定 state 和座位，按档位产出该座位此刻的决定（UI / 服务器用） */
   function decide(state, seat, tier, rng) {
     rng = rng || Math.random;
     const v = withSeen(R.view(state, seat));
     switch (state.phase) {
-      case 'act': return actFor(v, tier, rng);
+      case 'act': return guardDoom(state, seat, v, actFor(v, tier, rng));
       case 'react': return { type: reactFor(v, tier, rng) ? 'nope' : 'pass' };
       case 'give': return { type: 'give', card: chooseGive(v, tier, rng) };
       case 'pick': return { type: 'pick', card: choosePick(v, tier, rng) };
