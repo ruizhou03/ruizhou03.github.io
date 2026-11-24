@@ -54,6 +54,9 @@
     return m ? { rim: m[1], lobby: m[2] || '1' } : { rim: 'f', lobby: '2' };
   })();
   let rimPv = null;
+  /* 房间首页预览（2026-11-24，待用户挑；画法全在 gongzhu-room-pv.js）：?gzroom=a = 邀请弹窗改名帖 / b = 邀请整页请帖；两版的「联机」单子都改名帖房号格。不带参数 = 现状 */
+  const GZROOM = (/^[ab]$/.exec(new URLSearchParams(location.search).get('gzroom') || '') || [null])[0];
+  let roomPv = null, roomPvReady = null;
   /* 局中菜单 / 顶栏 / 暂停页 / 单机身份预览（待用户挑）：?gzmenu=menu-a|b|c, bar-a|b, pause-a|b, me-a|b，逗号分隔可组合；进页面读一次，不带参数 = 现状 */
   const MENU_PV = (() => {
     const set = new Set((new URLSearchParams(location.search).get('gzmenu') || '').split(',').map((x) => x.trim()));
@@ -4767,10 +4770,46 @@
     finally { creating = false; }
   }
 
+  // 房间首页预览用：按房号 + 名字进房间。成功回 null，失败回要显示的那句话（规则同 showJoin 里的 join）
+  async function joinAs(c, v, mode) {
+    if (mode !== 'watch') mode = 'play';
+    c = String(c || '').trim(); v = String(v || '').trim();
+    if (!/^\d{4}$/.test(c)) return '房号是 4 位数字';
+    if (v && ([...v].length > 12 || /[<>&"'/\\]/.test(v))) return '名字最多 12 个字，不能有特殊符号';
+    const ident = window.GamesShell && GamesShell.Identity;
+    if (ident) { if (v) { if (ident.setNick) ident.setNick(v); } else if (ident.clearNick) ident.clearNick(); }
+    try {
+      const res = await withConn(mode === 'watch' ? '正在进房间观战…' : '正在进房间…', () => NET.join(c, v, mode));
+      closeDialog();
+      startOnline(res.state, res.token, true);
+      if (res.fellBack === 'room_full') toast('房间满了，先观战；有空位时可以坐下');
+      else if (res.fellBack === 'wait_round_end') toast('这一局还在打，先观战；打完这一局就能坐下');
+      return null;
+    } catch (e) { return NET.message(e); }
+  }
+  function loadRoomPv() {
+    const v = '?v=' + (window.GZ_BUILD || VERSION);
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = '/assets/css/gongzhu-room-pv.css' + v;
+    document.head.appendChild(css);
+    roomPvReady = new Promise((done) => {
+      const js = document.createElement('script');
+      js.src = '/assets/js/games/gongzhu-room-pv.js' + v;
+      js.onload = () => {
+        const ident = window.GamesShell && GamesShell.Identity;
+        if (window.GongzhuRoomPv) roomPv = GongzhuRoomPv.create(GZROOM, { $, els, esc, joinAs, openDialog, closeDialog, cover: $('gzCover'), nick: () => (ident && ident.getNick && ident.getNick()) || '' });
+        done();
+      };
+      js.onerror = () => done();
+      document.head.appendChild(js);
+    });
+  }
+
   /* 加入房间：来的人脑子里记着的是那 4 位房号，所以房号放最上面、做大；昵称在下面，选填（填过的自动带上） */
-  function showJoin(code) {
+  function showJoin(code, plain) {
     if (!NET) return;
     if (match && match.tutorial) { toast('先打完或跳过教程，再开联机'); return; }
+    if (GZROOM && !plain) { NET.warm(); roomPvReady.then(() => (roomPv ? roomPv.showJoin(code) : showJoin(code, true))); return; }
     NET.warm();
     const ident = window.GamesShell && GamesShell.Identity;
     const nick = (ident && ident.getNick && ident.getNick()) || '';
@@ -4877,6 +4916,7 @@
     els.app.classList.add('gzr', 'gzr-' + (on ? 'a' : GZRIM.rim), 'gzr-lobby-' + GZRIM.lobby, ...(on ? ['gzr-on', 'gzr-' + GZRIM.rim] : []));
     loadRimPv();
   }
+  if (GZROOM) loadRoomPv();
   $('gzChatBtn').addEventListener('click', () => { if (social && socialOk()) social.openChat($('gzChatBtn')); });
   els.seats[0].addEventListener('click', (e) => {
     if (!e.target.closest('.gz-avatar') || !match || match.tutorial || match.demo || match.lobby || AUTO) return;

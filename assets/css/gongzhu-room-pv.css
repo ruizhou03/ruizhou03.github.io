@@ -1,0 +1,52 @@
+/* 拱猪 · 房间首页预览（?gzroom=a|b，见 assets/js/games/gongzhu-room-pv.js） */
+
+/* 名帖：和大厅那张房号帖同一种双线框；四个数字格，打一位亮一格 */
+.gzrm-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; max-width: 300px; margin: 0 auto;
+  padding: 16px 20px 20px; border-radius: 10px; background: var(--gz-card); cursor: text;
+  box-shadow: inset 0 0 0 5px var(--gz-card), inset 0 0 0 6px rgba(201, 169, 110, 0.8), 0 0 0 1px rgba(29, 27, 24, 0.14), 0 8px 22px rgba(20, 18, 15, 0.08);
+}
+.gzrm-lab { color: #a8874c; font-size: 12px; letter-spacing: 0.5em; margin-right: -0.5em; }
+.gzrm-slots { display: flex; gap: 12px; }
+.gzrm-slots i {
+  display: flex; align-items: flex-end; justify-content: center; width: 40px; height: 52px; padding-bottom: 4px; font-style: normal;
+  font-family: var(--gz-num-font, inherit); font-size: 40px; line-height: 1; font-weight: 400; font-variant-numeric: lining-nums tabular-nums; color: var(--gz-ink); border-bottom: 1.5px solid rgba(201, 169, 110, 0.7);
+}
+.gzrm-slots i.is-on { border-bottom-color: var(--gz-ink); }
+.gzrm-slots i.is-at { border-bottom: 2px solid var(--gz-seal); }
+.gzrm-in {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; border-radius: 10px;
+  background: transparent; color: transparent; caret-color: transparent; font-size: 16px; opacity: 0.01; cursor: text;
+}
+.gzrm-in:focus-visible { outline: none; }
+.gzrm-card:focus-within { box-shadow: inset 0 0 0 5px var(--gz-card), inset 0 0 0 6px var(--gz-gold), 0 0 0 1px rgba(29, 27, 24, 0.22), 0 8px 22px rgba(20, 18, 15, 0.1); }
+
+/* 封面「联机」单子：名帖 + 一条整宽的「加入」（打满 4 位才亮） */
+.gzrm .gzrm-join { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.gzrm .gzrm-join .gzrm-go { height: 52px; min-height: 0; opacity: 0.4; transition: opacity 0.2s; }
+.gzrm .gzrm-join .gzrm-go.is-ready { opacity: 1; }
+
+/* 邀请进来：「有人邀你来打拱猪」+ 名帖 + 名字一行 + 入座 + 底下一行小字 */
+.gzrm-inv { display: flex; flex-direction: column; align-items: stretch; gap: 16px; text-align: center; }
+.gzrm-kicker { margin: 0; font-size: 15px; letter-spacing: 0.2em; color: var(--gz-ink-mute); }
+.gzrm-name { display: flex; align-items: baseline; gap: 12px; width: 100%; max-width: 300px; margin: 0 auto; padding: 0 4px; border-bottom: 1px solid rgba(29, 27, 24, 0.25); }
+.gzrm-name span { flex: none; font-size: 14px; color: var(--gz-ink-mute); letter-spacing: 0.1em; }
+.gzrm-nick { flex: 1; min-width: 0; height: 40px; border: 0; background: none; font: inherit; font-size: 17px; color: var(--gz-ink); outline: none; }
+.gzrm-nick::placeholder { color: var(--gz-ink-faint); font-size: 14px; }
+.gzrm-name:focus-within { border-bottom-color: var(--gz-ink); }
+.gzrm-err { margin: -6px 0 0; font-size: 13px; color: var(--gz-seal); }
+.gzrm-err[hidden] { display: none; }
+.gzrm-sit { width: 100%; max-width: 300px; height: 54px; margin: 2px auto 0; font-size: 19px; letter-spacing: 0.5em; }
+.gzrm-sit span { margin-right: -0.5em; }
+.gzrm-links { display: flex; align-items: center; justify-content: center; gap: 14px; margin: -4px 0 0; }
+.gzrm-links i { width: 3px; height: 3px; border-radius: 50%; background: var(--gz-ink-faint); }
+.gzrm-link { border: 0; background: none; padding: 6px 4px; font: inherit; font-size: 14px; color: var(--gz-ink-mute); cursor: pointer; }
+.gzrm-link:hover { color: var(--gz-ink); }
+
+/* a 弹窗：去掉弹窗自己的标题行，留白多一点 */
+.gz-dialog.gzrm-dlg .gz-dialog-body { padding-top: 22px; padding-bottom: 18px; }
+
+/* b 整页请帖：换掉封面下半截（单机 / 联机先藏起来） */
+.gzrm-inviting > :not(.gzrm-page) { display: none !important; }
+.gzrm-page { width: 100%; max-width: 340px; margin: 0 auto; padding: 4px 0 8px; }
+.gzrm-b .gzrm-page .gzrm-kicker { font-size: 16px; color: var(--gz-ink); }
