@@ -36,11 +36,11 @@
   // 甲（素绢灰青）里猪印放哪：final-b3a1 盖在分数左边 / final-b3a2 头像直接换成猪（final-b3a 原样：印压在头像角上）
   const SEAL_AT = ROLL ? GZPV.slice(9) : '';   // 乙三宣纸卷及它的几套配色（final-b3a～b3d 只换颜色和装裱，结构相同）
   /* 房主管人 / 暂停 / 本房间战绩（画法全在 gongzhu-host-pv.js，这里只留挂钩）：
-   * 用户 2026-11-23 定 = 房主那一排甲（三颗图标）+ 暂停一（顶栏键 + 罩桌）+ 战绩二（可收起的表），不带参数就是这一套。
-   * 还能拿 ?gzhost=<a|b|c><1|2><1|2> 看别的版本对比；暂停卡样式另用 ?gzpause=（见 gongzhu-host-pv.js） */
+   * 用户 2026-11-23 定 = 房主那一排甲（三颗图标）+ 暂停一（顶栏键 + 罩桌）+ 战绩三（排行榜：大厅右上角标签 / 局中菜单，按累计分），不带参数就是这一套。
+   * 还能拿 ?gzhost=<a|b|c><1|2><1|2|3> 看别的版本对比；暂停卡样式另用 ?gzpause=（见 gongzhu-host-pv.js） */
   const GZHOST = (() => {
-    const m = /^([abc])([12])?([12])?$/.exec(new URLSearchParams(location.search).get('gzhost') || '');
-    if (!m) return { row: 'a', pause: '1', rec: '2' };
+    const m = /^([abc])([12])?([123])?$/.exec(new URLSearchParams(location.search).get('gzhost') || '');
+    if (!m) return { row: 'a', pause: '1', rec: '3' };
     const d = { a: '11', b: '22', c: '12' }[m[1]];
     return { row: m[1], pause: m[2] || d[0], rec: m[3] || d[1] };
   })();
@@ -2476,7 +2476,6 @@
         ...(!online.watching ? [['reveal', meRevealing() ? '不让观战看我的牌' : '让观战看我的牌']] : []),
         ['roomrules', roomRulesLabel()],
         ...(hostPv ? hostPv.menuItems() : []),
-        ...(rimPv && !match.lobby ? [['gzrrank', '排行榜']] : []),
         ...moved,
         ['leave', '离开房间'],
         ...exit,
@@ -2594,7 +2593,6 @@
     else if (k === 'room') copyText(NET.inviteUrl(online.code), '邀请链接已复制，发给朋友就能进房间');
     else if (k === 'roomrules') showRoomRules('view');
     else if (hostPv && hostPv.menuAct(k)) { /* 预览模块接走了 */ }
-    else if (k === 'gzrrank') { if (hostPv && hostPv.openRec) hostPv.openRec(); }
     else if (k === 'sit') watchSit();
     else if (k === 'reveal') {
       const on = !meRevealing();
@@ -3814,7 +3812,7 @@
     js.src = '/assets/js/games/gongzhu-rim-pv.js' + v;
     js.onload = () => {
       if (!window.GongzhuRimPv) return;
-      rimPv = GongzhuRimPv.create(GZRIM, { $, els, online: () => online, match: () => match, playerAt, srv, openRec: () => { if (hostPv && hostPv.openRec) hostPv.openRec(); } });
+      rimPv = GongzhuRimPv.create(GZRIM, { $, els, online: () => online, match: () => match, playerAt, srv });
       if (online && online.st && online.st.phase === 'lobby') rimPv.lobby(online.st);
       rimPv.sync();
     };

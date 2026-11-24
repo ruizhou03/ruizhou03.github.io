@@ -79,34 +79,6 @@
   border: 1px solid var(--gz-ink); background: var(--gz-paper); color: var(--gz-ink); display: inline-flex; align-items: center; justify-content: center;
 }
 
-/* 本房间战绩不放大厅正中：挪到右上角「排行榜」标签（点开弹窗），局中在菜单里 */
-.gzr .gz-lobby > .gzh-rec { display: none; }
-.gzr-rank {
-  height: 40px; padding: 0 16px; border-radius: 99px; border: 1px solid var(--gz-ink); background: var(--gz-paper); color: var(--gz-ink);
-  font: inherit; font-size: 15px; letter-spacing: 0.12em; cursor: pointer; white-space: nowrap;
-}
-.gzr-rank[hidden] { display: none; }
-.gzr-rank:focus-visible { outline: 2px solid var(--gz-seal); outline-offset: 2px; }
-/* 排行榜：一行一个人，名次 · 头像 · 名字 / 当猪 · 累计分 */
-.gzr-lb { list-style: none; margin: 2px 0 0; padding: 0; }
-.gzr-lb-row { display: grid; grid-template-columns: 22px 42px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 11px 8px; border-top: 1px solid rgba(29, 27, 24, 0.1); }
-.gzr-lb-row:first-child { border-top: 0; }
-.gzr-lb-no { font: 700 17px/1 Georgia, 'Songti SC', serif; color: var(--gz-ink-faint); text-align: center; }
-.gzr-lb-row.is-top .gzr-lb-no { color: #a8874c; }
-.gzr-lb-row .gz-avatar { width: 42px; height: 42px; font-size: 16px; border: 0; box-shadow: 0 0 0 1.5px var(--gz-ink-faint); }
-.gzr-lb-row.is-top .gz-avatar { box-shadow: 0 0 0 2.5px var(--gz-gold); }
-.gzr-lb-row.is-me { background: rgba(180, 57, 44, 0.06); border-radius: 10px; border-top-color: transparent; }
-.gzr-lb-row.is-me + .gzr-lb-row { border-top-color: transparent; }
-.gzr-lb-row.is-me .gzr-lb-nm { font-weight: 700; }
-.gzr-lb-who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.gzr-lb-nm { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gzr-lb-pig { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--gz-ink-mute); }
-.gzr-lb-pig svg { width: 13px; height: 13px; fill: #e9a5a5; }
-.gzr-lb-pig svg circle { fill: #8c3b36; }
-.gzr-lb-tot { font: 700 20px/1 Georgia, serif; color: var(--gz-ink-mute); letter-spacing: 0.02em; }
-.gzr-lb-tot.pos { color: var(--gz-good); }
-.gzr-lb-tot.neg { color: var(--gz-seal); }
-.gzr-lb-row.is-gone { opacity: 0.5; }
 
 /* 横屏矮屏：中间那块只有一百来像素高，竖着排一定溢出 —— 改两栏：左边房号 + 复制，右边按钮 */
 @media (max-height: 480px) and (min-aspect-ratio: 1/1) {
@@ -151,8 +123,13 @@
   .gzr-on .gz-seat-left { grid-row: 3; grid-column: 1 / span 2; justify-self: start; align-self: start; padding-top: 36px; }
   .gzr-on .gz-seat-right { grid-row: 3; grid-column: 2 / span 2; justify-self: end; align-self: start; padding-top: 36px; }
   .gzr-on .gz-seat-left .gz-name-line, .gzr-on .gz-seat-right .gz-name-line { flex-direction: row; align-items: baseline; gap: 6px; }
-  .gzr-on .gz-slot-3 { translate: 14px 0; }
-  .gzr-on .gz-slot-1 { translate: -14px 0; }
+  /* 左右两家吃到的牌：挪到头像上方那块空地（放在牌背下面会压到自己面前出的那张），从下往上长 */
+  .gzr-on .gz-seat-left, .gzr-on .gz-seat-right { position: relative; }
+  .gzr-on .gz-seat-left > .gz-caps.gz-caps, .gzr-on .gz-seat-right > .gz-caps.gz-caps {
+    position: absolute; top: 30px; translate: 0 -100%; width: auto; margin: 0; align-items: flex-end;
+  }
+  .gzr-on .gz-seat-left > .gz-caps.gz-caps { left: 47px; width: 132px; max-width: none; justify-content: flex-start; }
+  .gzr-on .gz-seat-right > .gz-caps.gz-caps { right: 47px; width: 132px; max-width: none; justify-content: flex-end; }
   /* e 大圆角：「出牌」往右让 56px，我才能离拐角更远、拐角才能更圆；我吃到的牌再往上提一点躲开按键 */
   .gzr-e .gz-band { translate: 56px 0; }
   .gzr-e .gz-seat-me .gz-caps { translate: 0 -40px; }
@@ -185,3 +162,10 @@
 .gzr-on .gz-seat-top .gz-lobby-seat { padding-top: 0; }
 .gzr-on .gz-seat-me .gz-lobby-seat { padding-left: 0; }
 .gzr-on .gz-seat-me .gz-lobby-seat > :not(.gz-avatar) { translate: 0 -16px; }
+/* 出牌区：正菱形，中心在桌沿一圈的正中（--gzr-cx / cy / dh / dv 由 js 按桌沿算） */
+.gzr-on .gz-slot { left: calc(var(--gzr-cx, 50%) - var(--tu) / 2); top: calc(var(--gzr-cy, 50%) - var(--th) / 2); right: auto; bottom: auto; margin: 0; }
+.gzr-on .gz-slot-0 { translate: 0 var(--gzr-dv, 0px); }
+.gzr-on .gz-slot-2 { translate: 0 calc(var(--gzr-dv, 0px) * -1); }
+.gzr-on .gz-slot-1 { translate: var(--gzr-dh, 0px) 0; }
+.gzr-on .gz-slot-3 { translate: calc(var(--gzr-dh, 0px) * -1) 0; }
+.gzr-on .gz-lead { left: var(--gzr-cx, 50%); top: var(--gzr-cy, 50%); }

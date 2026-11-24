@@ -16,7 +16,7 @@
  *   1 门牌：房号大字正中，下面一根金线，再下面一个不起眼的「复制邀请链接」；底下离开 / 开始
  *   2 名帖：房号印在一张双线框的小帖子上，复制键是帖子右下角一颗小图标；底下离开 / 开始
  * 大厅不再写「还差 1 人 / 人齐了」——看灯带缺不缺口就知道；只有观战的人还留一句。
- * 本房间战绩不放大厅正中：大厅右上角一枚「排行榜」标签、局中菜单「排行榜」，点开是弹窗（表格画法在 gongzhu-host-pv.js openRec）。 */
+ * 本房间战绩：已正式上线为「排行榜」（gongzhu-host-pv.js，战绩三），这里不再管。 */
 (function () {
   'use strict';
   const NS = 'http://www.w3.org/2000/svg';
@@ -98,7 +98,31 @@
         for (const q of samp) { const dd = (q[0] - p.cx) ** 2 + (q[1] - p.cy) ** 2; if (dd < bd) { bd = dd; best = q; } }
         return { a: best[2], h: Math.min(64, L / 10), cx: p.cx, cy: p.cy };
       });
+      diamond(x0, y0, x1, y1, tb);
       return { d, L, seats, key: 'on|' + [x0, y0, x1, y1].map(Math.round).join() + '|' + seats.map((p) => p ? Math.round(p.a) : '-').join() };
+    }
+
+    /* 出牌区摆成正菱形（2026-11-23 用户：方方正正，左右两张别压得太低）：
+     * 菱形中心 = 这一圈桌沿的正中（不是中间那一格的正中——竖屏上面整排是对家，那一格偏下）；
+     * 上下两张离中心 D、左右两张也离中心 D（横屏太矮放不下，左右至少错开一张牌宽，别叠到上下那两张） */
+    function diamond(x0, y0, x1, y1, tb) {
+      const ce = A.$('gzCenter'), sl = ce && ce.querySelector('.gz-slot');
+      if (!ce || !sl) return;
+      const cr = ce.getBoundingClientRect(), sr = sl.getBoundingClientRect();
+      const tu = sr.width, th = sr.height;
+      if (!tu || !th || !cr.height) return;
+      // 上面不能压到对家的名字 / 牌背（横屏时它们挪到了上沿下面、伸进这一格）
+      let top = 0;
+      A.els.seats[2].querySelectorAll('.gz-name-line, .gz-hold').forEach((e) => { const r = e.getBoundingClientRect(); if (r.height) top = Math.max(top, r.bottom - cr.top + 6); });
+      const H = cr.height - top;
+      const want = th * 1.3, need = want + th / 2 + 4;
+      let cy = (y0 + y1) / 2 - (cr.top - tb.top);
+      cy = H >= 2 * need ? Math.min(Math.max(cy, top + need), cr.height - need) : top + H / 2;
+      const dv = Math.max(th * 0.55, Math.min(want, cy - top - th / 2 - 4, cr.height - cy - th / 2 - 4));
+      const cx = (x0 + x1) / 2 - (cr.left - tb.left);
+      const dh = Math.max(dv, tu + 10);
+      const set = (k, v) => { const x = Math.round(v) + 'px'; if (ce.style.getPropertyValue(k) !== x) ce.style.setProperty(k, x); };
+      set('--gzr-cx', cx); set('--gzr-cy', cy); set('--gzr-dv', dv); set('--gzr-dh', dh);
     }
 
     function measure() {
@@ -355,28 +379,10 @@
         const lab = code.querySelector('span');
         if (lab) lab.textContent = '房间';
       }
-      rankTag();
       // 大厅不写「还差几人 / 人齐了 / 等房主开始」：灯带看得出来；观战的人留着那句
       const wait = box.querySelector('.gz-lobby-wait');
       if (wait) wait.hidden = !(st && A.online() && A.online().watching);
       requestAnimationFrame(() => { lastKey = ''; layout(); });
-    }
-
-    /* 战绩不放大厅正中：大厅右上角一枚「排行榜」标签，点开是本房间战绩表；局中在菜单里（gongzhu.js 的 gzrrank） */
-    let rank = null;
-    function rankTag() {
-      const m = A.match();
-      const show = !!(A.online() && m && m.online && m.lobby);
-      if (show && !rank) {
-        rank = document.createElement('button');
-        rank.type = 'button';
-        rank.className = 'gzr-rank';
-        rank.textContent = '排行榜';
-        rank.addEventListener('click', () => A.openRec());
-        const tools = table.querySelector('.gz-tools');
-        tools.insertBefore(rank, tools.firstChild);
-      }
-      if (rank) rank.hidden = !show;
     }
 
     const ro = new ResizeObserver(() => layout());
@@ -387,7 +393,7 @@
     mo.observe(root, { attributes: true, attributeFilter: ['class'] });
 
     return {
-      sync() { layout(); paint(); rankTag(); },
+      sync() { layout(); paint(); },
       lobby,
       fx,
     };

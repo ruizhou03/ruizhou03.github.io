@@ -190,3 +190,31 @@ button.gzh-pc-dial:active { transform: scale(0.97); }
 .gzh-pc-hint { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 15px; font-weight: 600; color: var(--gz-ink); letter-spacing: 0.08em; }
 .gzh-pc-hint svg { width: 15px; height: 15px; fill: currentColor; stroke: none; }
 @media (prefers-reduced-motion: reduce) { .gzh-pc, .gzh-pc-wait i { animation: none; } }
+
+/* 战绩三 · 排行榜（2026-11-23 上线）：大厅右上角标签，局中菜单；弹窗一行一个人：名次 · 头像 · 名字 / 当猪 · 累计分 */
+.gzh-rank {
+  height: 40px; padding: 0 16px; border-radius: 99px; border: 1px solid var(--gz-ink); background: var(--gz-paper); color: var(--gz-ink);
+  font: inherit; font-size: 15px; letter-spacing: 0.12em; cursor: pointer; white-space: nowrap;
+}
+.gzh-rank[hidden] { display: none; }
+.gzh-rank:focus-visible { outline: 2px solid var(--gz-seal); outline-offset: 2px; }
+/* 排行榜：一行一个人，名次 · 头像 · 名字 / 当猪 · 累计分 */
+.gzh-lb { list-style: none; margin: 2px 0 0; padding: 0; }
+.gzh-lb-row { display: grid; grid-template-columns: 22px 42px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 11px 8px; border-top: 1px solid rgba(29, 27, 24, 0.1); }
+.gzh-lb-row:first-child { border-top: 0; }
+.gzh-lb-no { font: 700 17px/1 Georgia, 'Songti SC', serif; color: var(--gz-ink-faint); text-align: center; }
+.gzh-lb-row.is-top .gzh-lb-no { color: #a8874c; }
+.gzh-lb-row .gz-avatar { width: 42px; height: 42px; font-size: 16px; border: 0; box-shadow: 0 0 0 1.5px var(--gz-ink-faint); }
+.gzh-lb-row.is-top .gz-avatar { box-shadow: 0 0 0 2.5px var(--gz-gold); }
+.gzh-lb-row.is-me { background: rgba(180, 57, 44, 0.06); border-radius: 10px; border-top-color: transparent; }
+.gzh-lb-row.is-me + .gzh-lb-row { border-top-color: transparent; }
+.gzh-lb-row.is-me .gzh-lb-nm { font-weight: 700; }
+.gzh-lb-who { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.gzh-lb-nm { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gzh-lb-pig { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--gz-ink-mute); }
+.gzh-lb-pig svg { width: 13px; height: 13px; fill: #e9a5a5; }
+.gzh-lb-pig svg circle { fill: #8c3b36; }
+.gzh-lb-tot { font: 700 20px/1 Georgia, serif; color: var(--gz-ink-mute); letter-spacing: 0.02em; }
+.gzh-lb-tot.pos { color: var(--gz-good); }
+.gzh-lb-tot.neg { color: var(--gz-seal); }
+.gzh-lb-row.is-gone { opacity: 0.5; }

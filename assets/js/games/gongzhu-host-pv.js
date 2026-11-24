@@ -243,21 +243,38 @@
         const seated = s.players.map((p) => p.id);
         const rows = rec.people.map((q) => ({ q, t: totalOf(rec, q) })).sort((a, b) => b.t - a.t).slice(0, 8);
         let rank = 0, prev = null;
-        html = '<ol class="gzr-lb">' + rows.map(({ q, t }, i) => {
+        html = '<ol class="gzh-lb">' + rows.map(({ q, t }, i) => {
           if (t !== prev) { rank = i + 1; prev = t; }
           const cls = (rank === 1 ? ' is-top' : '') + (q.id === meId ? ' is-me' : '') + (seated.includes(q.id) ? '' : ' is-gone');
-          return '<li class="gzr-lb-row' + cls + '"><b class="gzr-lb-no">' + rank + '</b>' +
+          return '<li class="gzh-lb-row' + cls + '"><b class="gzh-lb-no">' + rank + '</b>' +
             '<span class="gz-avatar"><span class="gz-av-face">' + A.faceHtml(A.avatarOf(q)) + '</span></span>' +
-            '<span class="gzr-lb-who"><span class="gzr-lb-nm">' + A.esc(q.nick) + '</span>' +
-            (q.pigs ? '<span class="gzr-lb-pig">' + PIG + '当猪 ' + q.pigs + ' 次</span>' : '') + '</span>' +
-            '<span class="gzr-lb-tot' + (t > 0 ? ' pos' : t < 0 ? ' neg' : '') + '">' + (t > 0 ? '+' : t < 0 ? '−' : '') + Math.abs(t) + '</span></li>';
+            '<span class="gzh-lb-who"><span class="gzh-lb-nm">' + A.esc(q.nick) + '</span>' +
+            (q.pigs ? '<span class="gzh-lb-pig">' + PIG + '当猪 ' + q.pigs + ' 次</span>' : '') + '</span>' +
+            '<span class="gzh-lb-tot' + (t > 0 ? ' pos' : t < 0 ? ' neg' : '') + '">' + (t > 0 ? '+' : t < 0 ? '−' : '') + Math.abs(t) + '</span></li>';
         }).join('') + '</ol>';
       }
       A.openDialog('<h2>排行榜</h2>' + html +
         '<div class="gz-actions"><button type="button" class="gz-btn gz-btn-primary" data-close data-autofocus>好</button></div>',
-        (d) => { d.classList.add('gzr-lb-dlg'); d.querySelector('[data-close]').addEventListener('click', A.closeDialog); });
+        (d) => { d.classList.add('gzh-lb-dlg'); d.querySelector('[data-close]').addEventListener('click', A.closeDialog); });
+    }
+    /* 战绩三（2026-11-23 用户定、上线）：本房间战绩不放大厅正中，大厅右上角一枚「排行榜」标签，点开是排行榜弹窗 */
+    let rank = null;
+    function rankTag() {
+      const m = A.match();
+      const show = cfg.rec === '3' && !!(A.online() && m && m.online && m.lobby);
+      if (show && !rank) {
+        rank = document.createElement('button');
+        rank.type = 'button';
+        rank.className = 'gzh-rank';
+        rank.textContent = '排行榜';
+        rank.addEventListener('click', openRec);
+        const tools = A.els.table.querySelector('.gz-tools');
+        tools.insertBefore(rank, tools.firstChild);
+      }
+      if (rank) rank.hidden = !show;
     }
     function lobby(s) {
+      rankTag();
       const rec = s.record;
       const has = !!(rec && rec.n);
       // 甲：座位卡下面一排小点
@@ -315,9 +332,11 @@
 
     function onState(s) {
       pauseUi();
+      rankTag();
       if (s.phase !== 'lobby' && A.online() && A.online().inGame) for (let l = 0; l < 4; l++) badge(l, A.els.seats[l], A.playerAt(A.srv(l)));
     }
     function reset() {
+      if (rank) rank.hidden = true;
       root.classList.remove('gzh-paused');
       if (veil) veil.hidden = true;
       if (chip) chip.hidden = true;
@@ -327,8 +346,9 @@
     return {
       extraTitle: () => '房主',
       extra, badge, lobby, onState, reset, openRec,
-      menuItems: () => [],
-      menuAct: () => false,
+      // 排行榜（战绩三）：局中在菜单里，大厅在右上角标签
+      menuItems: () => { const m = A.match(); return cfg.rec === '3' && m && !m.lobby ? [['gzrrank', '排行榜']] : []; },
+      menuAct: (k) => { if (k !== 'gzrrank') return false; openRec(); return true; },
     };
   }
 
