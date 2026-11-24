@@ -3460,62 +3460,130 @@
    * 被抽的是我：在我自己的手牌上游走（我看得到被抽走的是哪张）；被抽的是别人：他头像下面摊开一小扇扣着的牌，在上面游走。
    * settle(pick) 随时可以叫——机器猫想好了 / 联机里对方点了 / 超时系统替他点了：再随机跳几下、落到选中那张、亮一下；
    * 选得早就早落（不白等）。这套机制联机直接复用：收到对方的选择就 settle。 */
-  /* 偷牌时被偷那家的手牌扇摆哪（2026-11-19 用户定乙）：贴着他的头像，在四周挑一个不压东西的空位——
-   * 以前一律摊在头像朝桌心那一侧，手机竖屏 4 人以上坐在左右两边、和牌堆同高的那家，扇面整把压在牌堆上，看着像牌堆的一部分。
-   * 挑法：头像四周（朝桌心那侧上下挪、头像正下方、正上方）摆一圈候选；牌太多放不下就先把牌叠紧一点，再不行把牌缩小。
-   * 打分 = 压到的面积（牌堆、别人的座位、我的手牌和按钮、顶栏）+ 离他头像多远 + 叠紧 / 缩小的代价；
-   * 离别人的头像比离他还近的位置重罚——一眼要看得出是谁的牌。（用户否了「搬到桌心」和「整桌蒙遮罩」，别再往那边改） */
+  /* 偷牌时被偷那家的手牌扇摆哪（2026-11-22 重新统一，规则全文见 docs/puffcat-steal-fan.md）：
+   * 扇子永远横着摊（不转 90°——用户：竖着摊太丑），形状就是原来那把（fanGeom，1–9 张一点没变）。
+   * 摆法按顺序试，挑第一个「什么都不压、一眼看得出是他的」位置：
+   *   ① 他名字正下方（可往桌心那侧错开）；② 头上（用户：放他头像下面，放不下放上面）；③ 头像朝桌心那一侧，再不行另一侧。
+   *   原大放不下先试 0.92 / 0.85（每档先把牌叠紧一点），最后才缩到 0.78（再小用户嫌丑）。
+   *   牌堆的位置写死，不管偷谁都不挪（用户 2026-11-23：别因为抽了不同的人就让牌堆跟着动）。
+   * 「不压」= 摸牌那摞（连牌数那行）、百变规则牌、别人的头像 / 名字 / 角标、我的手牌和按钮、顶栏，以及他自己的头像和名字——
+   *   被点中那张会往上冒 16px，冒起来也不能碰到。弃牌堆可以压一点（算软障碍）。
+   * 「看得出是他的」= 扇子正中离他比离任何别人都近、且不贴着别人（边上离邻座近不算：顶排人挤时扇子本来就比座位间距宽）。
+   * （用户否过「搬到桌心」「整桌蒙遮罩」「竖着摊」，别再往那边改） */
+  const FAN_POP = 16;   // 被点中那张往上冒多少（和 CSS .zm-steal-card.is-chosen 一致）
+  const FAN_K = [1, 0.92, 0.85, 0.78];
+  // 第 off 张牌（off = i − (n−1)/2）的中心相对「中间那张上沿正中」往右 x、往下 y。
+  // 9 张以内：横向等距、往下按 |off| 沉（和线上原来那把一模一样）。
+  // 10 张起（用户 11-24：牌多了成 V 字、不像弧）：两头下沉改成抛物线 y = D·(off/offMax)²，看着是一条顺的弧；
+  //   D = 半宽 × tan(最外那张的角度)，和牌少时那把的弯度差不多，封顶 11px。
+  function fanPos(G, off) { return { x: off * G.step, y: G.arc ? G.arc * (off / G.om) * (off / G.om) : Math.abs(off) * G.drop }; }
   function fanGeom(count, w, q) {
-    const step = w * Math.min(0.5, 2.6 / Math.max(1, count)) * q, ang = Math.min(8, 30 / Math.max(1, count)) * (0.6 + 0.4 * q), th = ((count - 1) / 2) * ang * Math.PI / 180;
-    return { w, step, ang, half: ((count - 1) / 2) * step + (w / 2) * Math.cos(th) + (w * 0.7) * Math.sin(th) + 6, fh: w * 1.4 + ((count - 1) / 2) * 2.5 + w * 0.5 * Math.sin(th) + 4 };
+    const n = Math.max(1, count);
+    // 13 张起牌缝别挤到 3px 以下
+    const step = w * Math.max(Math.min(0.5, 2.6 / n), n >= 13 ? 0.15 : 0) * q, ang = Math.min(8, 30 / n) * (0.6 + 0.4 * q), drop = 2.5;
+    const om = (n - 1) / 2, arc = n >= 10 ? Math.min(11, om * step * Math.tan(om * ang * Math.PI / 180)) : 0;
+    const h = w * 1.4, G = { w, h, step, ang, drop, arc, om };
+    let l = 0, r = 0, b = 0;
+    for (let i = 0; i < n; i++) {   // 每张牌转完以后的外接框（相对容器原点：中间那张的上沿正中）
+      const off = i - om, a = Math.abs(off * ang) * Math.PI / 180, P = fanPos(G, off), cx = P.x, cy = P.y + h / 2;
+      const hx = (w / 2) * Math.cos(a) + (h / 2) * Math.sin(a), hy = (w / 2) * Math.sin(a) + (h / 2) * Math.cos(a);
+      l = Math.min(l, cx - hx); r = Math.max(r, cx + hx); b = Math.max(b, cy + hy);
+    }
+    G.half = Math.max(-l, r); G.fh = b;
+    return G;
+  }
+  // 扇子里每张牌（摆在 cx / top 时）的外接框；冒起来的样子 = 往上挪 FAN_POP
+  function fanRects(G, count, cx, top) {
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      const off = i - (count - 1) / 2, a = Math.abs(off * G.ang) * Math.PI / 180, P = fanPos(G, off), x = cx + P.x, y = top + P.y + G.h / 2;
+      const hx = (G.w / 2) * Math.cos(a) + (G.h / 2) * Math.sin(a), hy = (G.w / 2) * Math.sin(a) + (G.h / 2) * Math.cos(a);
+      out.push({ l: x - hx, r: x + hx, t: y - hy, b: y + hy });
+    }
+    return out;
   }
   function fanSpot(seat, count, dbg) {
-    const av = avEl(seat), ar = av.getBoundingClientRect(), se = seatEl(seat), sr = se.getBoundingClientRect();
-    const R2 = (e) => e && e.getBoundingClientRect();
-    const uni = (root) => { if (!root) return null; let r = null; root.querySelectorAll('*').forEach((e) => { const b = e.getBoundingClientRect(); if (!b.width) return; r = r ? { left: Math.min(r.left, b.left), top: Math.min(r.top, b.top), right: Math.max(r.right, b.right), bottom: Math.max(r.bottom, b.bottom) } : { left: b.left, top: b.top, right: b.right, bottom: b.bottom }; }); return r; };   // 牌堆那摞纸边画在容器外面，按里面每一层的实际范围算
-    const others = allSeatEls().concat([els.me]).filter((b) => +b.dataset.seat !== seat && b.querySelector('.zm-av'));
-    const obs = [uni(els.center.querySelector('.zm-piles')), R2(els.table.querySelector('.zm-deck-info')), R2(els.hand), R2(els.drawBtn), R2(els.playBtn), R2(els.table.querySelector('.zm-tools')), R2(els.table.querySelector('.zm-topleft'))]
-      .concat(others.map(R2)).filter((r) => r && r.right > r.left);
-    const otherBox = others.map(R2);
-    const gap = (a, b) => Math.hypot(Math.max(0, b.left - a.r, a.l - b.right), Math.max(0, b.top - a.b, a.t - b.bottom));
-    const fr = frameX(), tb = els.table.getBoundingClientRect();
-    const ov = (a, b) => Math.max(0, Math.min(a.r, b.right) - Math.max(a.l, b.left)) * Math.max(0, Math.min(a.b, b.bottom) - Math.max(a.t, b.top));
-    const acx = ar.left + ar.width / 2, acy = ar.top + ar.height / 2;
-    const rp = ringGame() && ringLay && ringLay.pos[seat];
-    const edge = rp && rp[1] !== ringLay.y0 ? (rp[0] === ringLay.x0 ? 1 : rp[0] === ringLay.x1 ? -1 : 0) : 0;   // 坐在左 / 右边上：1 = 左边那家（桌心在他右边）
-    let best = null;
-    for (const [k, q] of [[1, 1], [1, 0.7], [1, 0.5], [0.85, 0.7], [0.85, 0.5], [0.72, 0.5], [0.62, 0.45]]) {
-      const G = fanGeom(count, PU() * 0.6 * k, q), half = G.half, fh = G.fh;
-      const cand = [];
-      if (edge) {
-        const cx = edge > 0 ? ar.right + 12 + half : ar.left - 12 - half; [0, -0.35, 0.35, -0.7, 0.7, -1, 1].forEach((d) => cand.push({ cx, top: acy - fh / 2 + d * fh, side: true }));
-        // 竖着摊（侧身拿牌）：整把转 90°，牌顶朝桌心，贴着桌边那一条窄缝放——左右两边坐得密时不用把牌缩得很小
-        [0, -0.25, 0.25, -0.5, 0.5].forEach((d) => cand.push({ v: edge, cy: acy + d * half * 2, side: true }));
-      }
-      [0, -0.5, 0.5, -1, 1].forEach((d) => { cand.push({ cx: acx + d * half, top: sr.bottom + 4 }); cand.push({ cx: acx + d * half, top: ar.top - 10 - fh }); });
-      for (const c of cand) {
-        let box;
-        if (c.v) {   // 竖摊：左边那家牌顶朝右（转 90°），右边那家朝左（转 -90°）；被点中往外冒 = 往桌心冒
-          c.cy = Math.min(Math.max(c.cy, tb.top + 4 + half), tb.bottom - 4 - half);
-          const x0 = c.v > 0 ? ar.right + 8 : ar.left - 8 - fh - 16;
-          box = { l: x0, r: x0 + fh + 16, t: c.cy - half, b: c.cy + half };
-          c.cx = c.v > 0 ? x0 + fh : x0 + 16; c.top = c.cy;   // 容器原点：转完以后牌正好落在 box 里
-        } else {
-          c.cx = Math.min(Math.max(c.cx, fr.l + half), fr.r - half);
-          c.top = Math.min(Math.max(c.top, tb.top + 4 + 16), tb.bottom - 4 - fh);
-          box = { l: c.cx - half, r: c.cx + half, t: c.top - 16, b: c.top + fh };   // 上面多留 16：红光点中的那张会往上冒
+    const box = (e) => { const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
+    const join = (rs) => rs.reduce((a, r) => (a ? { l: Math.min(a.l, r.l), t: Math.min(a.t, r.t), r: Math.max(a.r, r.r), b: Math.max(a.b, r.b) } : r), null);
+    const okR = (r) => r && r.r - r.l > 1 && r.b - r.t > 1;
+    const grow = (r, d) => ({ l: r.l - d, t: r.t - d, r: r.r + d, b: r.b + d });
+    // 一个座位看得见的部分：头像、名字、手牌数 / 扣锅 / 档位角标（气泡不算）
+    const partsOf = (s) => { const a = s.querySelector('.zm-av'); return [a].concat(Array.from(s.children), a ? Array.from(a.children) : []).filter((e) => e && !e.classList.contains('zm-bubble') && !e.classList.contains('zm-clock')).map(box).filter(okR); };
+    const deep = (root) => (root ? join([root].concat(Array.from(root.querySelectorAll('*'))).map(box).filter(okR)) : null);   // 牌堆那摞纸边画在容器外面，按里面每一层的实际范围算
+    const ov = (a, b) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
+    const gap = (a, b) => Math.hypot(Math.max(0, b.l - a.r, a.l - b.r), Math.max(0, b.t - a.b, a.t - b.b));
+    const se = seatEl(seat), A = box(avEl(seat)), mine = partsOf(se), S = join(mine);
+    const others = allSeatEls().concat([els.me]).filter((b) => +b.dataset.seat !== seat && b.querySelector('.zm-av')).map(partsOf).filter((p) => p.length);
+    const otherBox = others.map(join);
+    // 摸牌那摞先当硬的（实在放不下时可以暂时压住，见下面）；牌数那行永远是硬的；弃牌堆是软的（可以压一点）
+    const fluxEl = document.getElementById('zmFlux');
+    const pile = [deep(els.deck)].filter(okR);
+    const hard = [box(els.table.querySelector('.zm-deck-info') || els.deck)].filter(okR);
+    // 百变规则现在是铺满桌面的淡水印（#zmFlux 整层），不算障碍；只有下面那行规则名大字算软的（压一点没关系）
+    const soft = [deep(els.discard)].concat(fluxEl ? Array.from(fluxEl.querySelectorAll('.wm-name')).map(box) : []).filter(okR);
+    hard.push(...[els.hand, els.drawBtn, els.playBtn, els.table.querySelector('.zm-tools'), els.table.querySelector('.zm-topleft')].filter(Boolean).map(box).filter(okR)
+      .concat(others.flat().map((r) => grow(r, 2))));
+    const tb = box(els.table), fr = { l: tb.l + 10, r: tb.r - 10, t: tb.t + 8, b: tb.b - 8 };
+    // 他坐哪条边：左 / 右边上的人「朝桌心」是横着朝里，顶边的人是往下
+    const tcx = (tb.l + tb.r) / 2, acx = (A.l + A.r) / 2, acy = (A.t + A.b) / 2, scx = (S.l + S.r) / 2;
+    const side = Math.abs(acx - tcx) > (tb.r - tb.l) * 0.28 ? (acx < tcx ? 1 : -1) : 0;   // 1 = 左边那家（桌心在他右边）
+    const tryAt = (ks, pileCost, only, fMax = 9) => {
+      let best = null;
+      for (const k of ks) for (const q of [1, 0.8]) {
+        const G = fanGeom(count, PU() * 0.6 * k, q), half = G.half, fh = G.fh;
+        const cand = [];
+        // ① 名字正下方：顶着名字往下排（留出冒起来的 16px），可往桌心那侧错开
+        // 顶边的人最多错开 ¼ 个半宽（用户 11-24：错开半把以上看着就不在他正下方了，宁可压牌堆也要对齐）
+        for (const gapY of [FAN_POP + 3, 8, 32, 48, 64, 80]) for (const f of (side ? [0, 0.25, 0.5, 0.75, 1, -0.25, -0.5] : [0, 0.25, -0.25])) {
+          const dx = (side ? side : (acx < tcx ? 1 : -1)) * f * half;
+          cand.push({ cx: scx + dx, top: S.b + gapY, kind: 'below', f, pen: Math.abs(f) * 40 + Math.max(0, gapY - FAN_POP - 3) * 2 });
         }
-        const hit = obs.reduce((a, o) => a + ov(box, o), 0);
-        const dx = Math.max(0, box.l - sr.right, sr.left - box.r), dy = Math.max(0, box.t - sr.bottom, sr.top - box.b);   // 离他整个座位（头像 + 名字）多远
-        const body = c.v ? box : { l: box.l, r: box.r, t: box.t + 16, b: box.b }, own = gap(body, sr);
-        const foreign = otherBox.some((o) => gap(body, o) < own + 2);   // 离别人的座位（头像 + 名字）比离他还近：看着像别人的牌
-        c.score = hit + 40 * Math.hypot(dx, dy) + (foreign ? 4000 : 0) + (1 - k) * 900 + (1 - q) * 350 + (c.side ? 250 : 0);   // 先找头像正下方 / 正上方（用户：放他头像下面，放不下放上面），都不行才摊到朝桌心那侧
-        c.G = G;
-        if (dbg) dbg.push({ k, q, v: c.v || 0, side: !!c.side, hit: Math.round(hit), d: Math.round(Math.hypot(dx, dy)), foreign, score: Math.round(c.score), box: [box.l, box.t, box.r, box.b].map(Math.round) });
-        if (!best || c.score < best.score) best = c;
+        // ② 头上（用户：放他头像下面，放不下放上面）：扇子底离头像（连角标）顶 6px，可左右错开
+        for (const f of [0, 0.25, 0.5, -0.25, -0.5]) cand.push({ cx: scx + (side || 1) * f * half, top: S.t - 6 - fh, kind: 'above', f, pen: 60 + Math.abs(f) * 40 });
+        // ③ 头像旁边（朝桌心那侧优先）：和头像中线对齐，可上下挪
+        for (const dir of [side || 1, -(side || 1)]) for (const f of [0, 0.25, -0.25, 0.5, -0.5, 0.75, -0.75, 1]) {
+          const cx = dir > 0 ? Math.max(A.r, S.r) + 6 + half : Math.min(A.l, S.l) - 6 - half;
+          cand.push({ cx, top: acy - fh / 2 + f * fh, kind: dir === side ? 'inward' : 'beside', f, pen: (dir === side ? 110 : 170) + Math.abs(f) * 40 });
+        }
+        for (const c of cand) {
+          if ((only && c.kind !== only) || Math.abs(c.f) > fMax) continue;
+          c.cx = Math.min(Math.max(c.cx, fr.l + half), fr.r - half);
+          const rs = fanRects(G, count, c.cx, c.top);
+          const body = join(rs), up = rs.map((r) => ({ l: r.l, r: r.r, t: r.t - FAN_POP, b: r.b }));   // 连冒起来的那一截一起算
+          let bad = 0, softHit = 0, pileHit = 0;
+          for (const r of up) {
+            for (const o of hard) bad += ov(r, o);
+            for (const o of pile) pileHit += ov(r, o);
+            for (const o of mine) bad += ov(r, o);
+            for (const o of soft) softHit += ov(r, o);
+            bad += (r.r - r.l) * (r.b - r.t) - ov(r, fr);   // 出框
+          }
+          // 看得出是他的：扇子正中离他（头像 + 名字那一团的中心）比离任何别人都近，且不贴着别人（4px 内）。
+          // 只是边上离邻座近（顶排人挤、扇子比座位间距宽）不算——正对着他摊开一眼就是他的；但能离远点就离远点（near）
+          const own = gap(body, S), fc = [(body.l + body.r) / 2, (body.t + body.b) / 2], cd = (o) => Math.hypot((o.l + o.r) / 2 - fc[0], (o.t + o.b) / 2 - fc[1]);
+          const ownC = cd(S), foreign = otherBox.some((o) => cd(o) < ownC + 8 || gap(body, o) < 4), near = otherBox.some((o) => gap(body, o) < own + 4);
+          if (pileCost) softHit += pileHit * pileCost / 0.25; else bad += pileHit;
+          c.score = (bad > 2 ? 6000 + bad * 4 : 0) + (foreign ? 3000 : 0) + (near ? 150 : 0) + softHit * 0.25 + own * 3 + c.pen + (1 - k) * 2600 + (1 - q) * 500;
+          c.G = G; c.k = k; c.q = q; c.body = body; c.bad = bad; c.foreign = foreign; c.pileHit = pileHit;
+          if (dbg) dbg.push({ k, q, kind: c.kind, cx: Math.round(c.cx), top: Math.round(c.top), pileHit: Math.round(pileHit), bad: Math.round(bad), soft: Math.round(softHit), d: Math.round(own), foreign, score: Math.round(c.score) });
+          if (!best || c.score < best.score) best = c;
+        }
+        if (best && best.score < 1000 && best.k === k) break;   // 这一档（这么大）已经有好位置了：不再往小里试
       }
-    }
-    return best;
+      return best;
+    };
+    const clean = (c) => c && c.score < 1000;
+    // 原大 → 0.92 → 0.85 找一个什么都不压的位置
+    let best = tryAt([1, 0.92, 0.85]);
+    if (clean(best)) return best;
+    // 放不下（2026-11-24 用户定甲）：贴着他头像朝桌心摊开（左右两边的人横着朝里，顶边的人往下），原大到 0.85，
+    // 暂时压在摸牌那摞上——牌堆不挪，偷完扇子就收。牌数那行、别人的座位照样不压。
+    // 压牌堆时扇子要正对着他（用户 11-24：横屏顶边那家扇子往旁边错开，看着没对齐）：顶边的人正下方不错开，左右两边的人上下最多错开 ¼ 个扇高
+    const inward = tryAt([1, 0.92, 0.85], 0.04, side ? 'inward' : 'below', side ? 0.25 : 0);
+    if (inward && inward.bad <= 2 && !inward.foreign) return inward;
+    // 朝桌心那边也被挡死了（极少）：哪儿都试、可以压牌堆，最后才缩到 0.78
+    const any = tryAt([1, 0.92, 0.85, 0.78], 0.04);
+    return [best, inward, any].filter(Boolean).sort((a, b) => a.score - b.score)[0];
   }
   function startWander(fromSeat, count) {
     let fan = null, cur = -1, timer = 0, done = false;
@@ -3526,14 +3594,14 @@
       fan.className = 'zm-steal-fan';
       fan.style.left = spot.cx + 'px';
       fan.style.top = spot.top + 'px';
-      if (spot.v) fan.style.rotate = (spot.v > 0 ? 90 : -90) + 'deg';
       for (let i = 0; i < count; i++) {
         const off = i - (count - 1) / 2;
         const c = document.createElement('div');
         c.className = 'zm-steal-card';
         c.style.width = G.w + 'px';
-        c.style.left = (-G.w / 2 + off * G.step) + 'px';
-        c.style.top = (Math.abs(off) * 2.5) + 'px';
+        const P = fanPos(G, off);
+        c.style.left = (-G.w / 2 + P.x) + 'px';
+        c.style.top = P.y + 'px';
         c.style.rotate = (off * G.ang) + 'deg';
         c.innerHTML = backHtml();
         fan.appendChild(c);
