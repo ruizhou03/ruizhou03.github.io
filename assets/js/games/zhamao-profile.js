@@ -91,7 +91,7 @@
 .zmp details{margin-top:14px}
 .zmp summary{cursor:pointer;font-size:15px;font-weight:700;padding:6px 0}
 .zmp-led{list-style:none;margin:6px 0 0;padding:0}
-.zmp-led li{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dashed #d9cfbd;font-size:14px}
+.zmp-led li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dashed #d9cfbd;font-size:14px}
 .zmp-led .ic{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#ebe5d8}
 .zmp-led .ic svg{width:15px;height:15px}
 .zmp-led time{color:#6a6358;font:12px system-ui,sans-serif;white-space:nowrap}
@@ -108,8 +108,31 @@
 .zmp-hero2 .zmp-bal{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left}
 .zmp-hero2 .zmp-bal .sub{margin:0}
 .zmp-act{display:grid;grid-template-columns:repeat(28,minmax(0,1fr));gap:2px;margin-top:8px}
-.zmp-act i{aspect-ratio:1;border-radius:2px;background:#ebe5d8}
-.zmp-act i.l1{background:#f0c9bb}.zmp-act i.l2{background:#dc8b76}.zmp-act i.l3{background:#c4553f}.zmp-act i.l4{background:#b4392c}
+.zmp-act i{position:relative;aspect-ratio:1;border-radius:3px;background:#ebe5d8}
+.zmp-act i.ck{background:#1d1b18}
+.zmp-act i.now{box-shadow:0 0 0 1.5px #b4392c}
+.zmp-act i b{position:absolute;left:50%;top:50%;width:46%;height:46%;transform:translate(-50%,-50%);border-radius:50%;background:#b4392c}
+.zmp-act i b.l1{opacity:.4}.zmp-act i b.l2{opacity:.65}.zmp-act i b.l3{opacity:.85}
+.zmp-actl{display:flex;align-items:center;gap:12px;margin-top:6px;font:600 12px/1 system-ui,sans-serif;color:#6a6358}
+.zmp-actl span{display:inline-flex;align-items:center;gap:4px}
+.zmp-actl i{display:inline-block;width:10px;height:10px;border-radius:2px;background:#1d1b18}
+.zmp-actl i.g{border-radius:50%;background:#b4392c;width:8px;height:8px}
+.zmp-actl em{font-style:normal;margin-right:auto}
+.zmp-lf{display:flex;gap:6px;margin:8px 0 2px}
+.zmp-lf button{border:1.5px solid #d9cfbd;background:#f3eee3;color:#6a6358;border-radius:999px;padding:6px 13px;font:600 13px/1 system-ui,sans-serif;cursor:pointer}
+.zmp-lf button.on{border-color:#1d1b18;background:#1d1b18;color:#f3eee3}
+.zmp-lday{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 0;padding-bottom:4px;border-bottom:1.5px solid #1d1b18;font:700 13px/1.2 system-ui,sans-serif;color:#1d1b18}
+.zmp-lday b{font:700 13px Georgia,serif;font-variant-numeric:tabular-nums}
+.zmp-lday b.up{color:#3f7a52}.zmp-lday b.dn{color:#b4392c}
+.zmp-led li.g{cursor:pointer}
+.zmp-led .nm small{display:block;margin-top:2px;font:12px/1.2 system-ui,sans-serif;color:#6a6358}
+.zmp-led .nm small.warn{color:#b4392c}
+.zmp-led li .parts{grid-column:2/-1;display:none;font:12px/1.6 system-ui,sans-serif;color:#6a6358}
+.zmp-led li.open .parts{display:block}
+.zmp-led li .parts span{display:flex;justify-content:space-between}
+.zmp-led li .parts em{font-style:normal}
+.zmp-led li .parts b{font:600 12px Georgia,serif;min-width:0;color:#6a6358}
+.zmp-lmore{display:block;width:100%;margin-top:10px;padding:10px;border:1.5px dashed #d9cfbd;border-radius:12px;background:none;color:#6a6358;font:600 14px/1 system-ui,sans-serif;cursor:pointer}
 .zmp-ledsum{display:flex;align-items:center;gap:10px}
 .zmp-ledsum .sp{flex:1;height:28px;min-width:60px}
 .zmp-ledsum .sp svg{width:100%;height:100%;display:block}
@@ -168,15 +191,97 @@
       (g ? '<circle cx="40" cy="40" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + (c * k).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 40 40)"/>' : '') +
       '<text x="40" y="45" text-anchor="middle" font-family="Georgia,serif" font-size="16" font-weight="700" fill="#1d1b18">' + (g ? Math.round(k * 100) + '%' : '–') + '</text></svg>';
   }
-  // 近四周活跃：28 格，最左是 27 天前，最右是今天
-  function actHtml(heat) {
-    const now = new Date(Date.now() + 8 * 3600e3), day0 = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  /* 近四周（2026-11-24 用户：签了三天，底下格子只亮一个——以前这排是「每天打了几局」，看着像签到）：
+   * 28 格 = 28 天（当地日期，最右是今天），签到过的那天涂黑，打过牌的那天中间一个红点（局数越多越红） */
+  const localToday = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  function actHtml(p) {
+    const heat = p.heat || {}, ck = new Set(p.ckDays || []), day0 = Date.parse((p.today || localToday()) + 'T00:00:00Z');
     let out = '';
     for (let i = 27; i >= 0; i--) {
       const d = new Date(day0 - i * 86400e3).toISOString().slice(0, 10), n = heat[d] || 0;
-      out += '<i class="' + (n >= 12 ? 'l4' : n >= 6 ? 'l3' : n >= 3 ? 'l2' : n ? 'l1' : '') + '"></i>';
+      out += '<i class="' + (ck.has(d) ? 'ck' : '') + (i === 0 ? ' now' : '') + '" title="' + d.slice(5).replace('-', '/') + (ck.has(d) ? ' 签到' : '') + (n ? ' ' + n + ' 局' : '') + '">' + (n ? '<b class="' + (n >= 6 ? '' : n >= 3 ? 'l3' : n >= 2 ? 'l2' : 'l1') + '"></b>' : '') + '</i>';
     }
     return out;
+  }
+
+  /* ── 流水（2026-11-24 用户：点开一股脑全列出来不理性）──
+   * 按天分组（标题右边是当天净变化）；一局的门票 / 名次奖励 / 首胜 / 离开罚票合成一行（点开看明细）；先列 20 行，「再看更早的」每次再加 20 行，
+   * 本机拿到的不够了再向服务器要下一页；上面三个筛选：全部 / 对局 / 福利 */
+  const TIER_NAME = { easy: '入门', normal: '普通', hard: '高手' };
+  const MODE_NAME = { classic: '经典', flux: '百变', roles: '角色', team: '组队' };
+  const GAME_WHY = new Set(['ticket', 'win', 'online', 'penalty']);
+  function ledItems(ledger) {
+    const items = [], byG = new Map(), open = [];   // open：老流水没有对局号，按「门票之后第一笔同玩法同人数同档位的结果」配对
+    const sig = (x) => (x.mode || '') + '|' + (x.n || '') + '|' + (x.tier || '');
+    const asc = ledger.slice().sort((a, b) => (a.at || 0) - (b.at || 0));
+    let lastGame = null;
+    for (const x of asc) {
+      let it = null;
+      if (x.g && byG.has(x.g)) it = byG.get(x.g);
+      else if (x.why === 'ticket' || (x.g && GAME_WHY.has(x.why))) { it = { game: true, parts: [] }; if (x.g) byG.set(x.g, it); else open.push(it); items.push(it); }
+      else if (!x.g && (x.why === 'win' || x.why === 'online')) { const k = open.findIndex((o) => sig(o.parts[0]) === sig(x)); if (k >= 0) { it = open[k]; open.splice(k, 1); } }
+      else if (!x.g && x.why === 'firstwin' && lastGame && Math.abs((x.at || 0) - (lastGame.at || 0)) < 10000) it = lastGame;
+      else if (!x.g && x.why === 'penalty') it = items.slice().reverse().find((o) => o.game && o.parts[0] && o.parts[0].mode === x.mode && o.parts[0].n === x.n) || null;
+      if (!it) { items.push({ game: false, parts: [x], at: x.at }); continue; }
+      it.parts.push(x); it.at = x.at;
+      if (x.why === 'win' || x.why === 'online') { it.res = x; lastGame = it; }
+    }
+    for (const it of items) { it.d = it.parts.reduce((a, x) => a + (Number(x.d) || 0), 0); if (it.game) it.head = it.parts.find((x) => x.why === 'ticket') || it.parts[0]; }
+    return items.sort((a, b) => (b.at || 0) - (a.at || 0));
+  }
+  const dayKey = (t) => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  function dayTitle(k) {
+    if (k === localToday()) return '今天';
+    if (k === dayKey(Date.now() - 86400e3)) return '昨天';
+    const d = new Date(k + 'T12:00:00');
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 周' + '日一二三四五六'[d.getDay()];
+  }
+  function gameLine(it) {
+    const h = it.head || {}, r = it.res;
+    const name = (MODE_NAME[h.mode] || '对局') + (h.n ? ' · ' + h.n + ' 人' : '') + (TIER_NAME[h.tier] ? ' · ' + TIER_NAME[h.tier] : '') + (h.src === 'online' ? ' · 联机' : '');
+    let sub = '', warn = false;
+    if (!r) { sub = it.parts.some((x) => x.why === 'penalty') ? '中途离开' : '没打完，门票不退'; warn = true; }
+    else {
+      sub = r.left ? '中途离开' : h.mode === 'team' || r.rank == null ? (r.won ? '赢了' : '输了') : '第 ' + r.rank + ' 名';
+      if (r.auto > 0.7) { sub += ' · 托管七成以上，不发奖'; warn = true; } else if (r.auto > 0.3) { sub += ' · 托管三成以上，奖励减半'; warn = true; }
+    }
+    const NAMES = { ticket: '门票', win: '名次奖励', online: '名次奖励', firstwin: '今日首胜', penalty: '中途离开罚票' };
+    const parts = it.parts.filter((x) => x.d || x.why === 'ticket').map((x) => '<span><em>' + (NAMES[x.why] || LED_NAME[x.why] || esc(x.why)) + '</em><b>' + sign(x.d) + '</b></span>').join('');
+    return '<li class="g" data-lg><span class="ic">' + (r && r.won ? IC.win : IC.ticket) + '</span><span class="nm">' + name + '<small' + (warn ? ' class="warn"' : '') + '>' + sub + '</small></span><b class="' + (it.d > 0 ? 'up' : it.d < 0 ? 'dn' : '') + '">' + sign(it.d) + '</b><div class="parts">' + parts + '</div></li>';
+  }
+  function oneLine(x) {
+    const extra = x.why === 'checkin' && x.day ? '连签第 ' + x.day + ' 天' : x.why === 'badge' && x.badge && BADGE_ART[x.badge] ? BADGE_ART[x.badge][0] : x.why === 'feedback' && x.steps ? x.steps + ' 步' : '';
+    return '<li><span class="ic">' + (IC[LED[x.why]] || IC.ticket) + '</span><span class="nm">' + (LED_NAME[x.why] || esc(x.why)) + (extra ? '<small>' + esc(extra) + '</small>' : '') + '</span><b class="' + (x.d > 0 ? 'up' : x.d < 0 ? 'dn' : '') + '">' + sign(x.d) + '</b></li>';
+  }
+  const LED_STEP = 20;
+  let led = { all: [], more: false, filter: 'all', show: LED_STEP, busy: false, open: false };
+  const ledList = () => ledItems(led.all).filter((it) => led.filter === 'all' || (led.filter === 'game') === it.game);
+  function ledHtml() {
+    const items = ledList(), shown = items.slice(0, led.show), days = new Map();
+    for (const it of items) { const k = dayKey(it.at); days.set(k, (days.get(k) || 0) + it.d); }
+    let out = '', cur = '';
+    for (const it of shown) {
+      const k = dayKey(it.at);
+      if (k !== cur) { if (cur) out += '</ul>'; cur = k; const n = days.get(k); out += '<div class="zmp-lday">' + dayTitle(k) + '<b class="' + (n > 0 ? 'up' : n < 0 ? 'dn' : '') + '">' + sign(n) + '</b></div><ul class="zmp-led">'; }
+      out += it.game ? gameLine(it) : oneLine(it.parts[0]);
+    }
+    if (cur) out += '</ul>';
+    if (!shown.length) out = '<div class="zmp-empty">' + (led.filter === 'game' ? '还没有对局' : led.filter === 'perk' ? '还没有福利' : '还没有流水') + '</div>';
+    const canMore = items.length > led.show || led.more;
+    const chip = (k, t) => '<button type="button" data-lf="' + k + '"' + (led.filter === k ? ' class="on"' : '') + '>' + t + '</button>';
+    return '<div class="zmp-lf">' + chip('all', '全部') + chip('game', '对局') + chip('perk', '福利') + '</div>' + out +
+      (canMore ? '<button type="button" class="zmp-lmore" data-lmore>' + (led.busy ? '…' : '再看更早的') + '</button>' : '');
+  }
+  function paintLed() { const box = body && body.querySelector('[data-led]'); if (box) box.innerHTML = ledHtml(); }
+  function moreLed() {
+    led.show += LED_STEP;
+    if (ledList().length >= led.show || !led.more || led.busy || !W().ledger) { paintLed(); return; }
+    led.busy = true; paintLed();
+    W().ledger(led.all.length).then((r) => {
+      const seen = new Set(led.all.map((x) => x.at + x.why + x.d));
+      led.all = led.all.concat((r.ledger || []).filter((x) => !seen.has(x.at + x.why + x.d)));
+      led.more = !!r.more;
+    }).catch(() => { /* 连不上：先这样 */ }).then(() => { led.busy = false; paintLed(); });
   }
   // 流水标题旁的余额走势细线（老到新）
   function sparkSvg(ledger, W0, H) {
@@ -196,18 +301,18 @@
       return '<button type="button" class="zmp-day' + (done ? ' is-done' : '') + (now ? ' is-now' : '') + (i === 6 ? ' is-big' : '') + '"' + (now ? ' data-ck' : ' disabled') + ' aria-label="第 ' + (i + 1) + ' 天 ' + amt + '">' + FISH + amt + '</button>';
     }).join('');
     const wk = p.records.filter((r) => Date.now() - r.at < 7 * 86400e3).reduce((a, r) => a + (r.d || 0), 0);
-    const led = p.ledger.map((x) => '<li><span class="ic">' + (IC[LED[x.why]] || IC.ticket) + '</span><span>' + (LED_NAME[x.why] || esc(x.why)) + '</span><time>' + new Date(x.at).toLocaleDateString() + '</time><b class="' + (x.d > 0 ? 'up' : x.d < 0 ? 'dn' : '') + '">' + sign(x.d) + '</b></li>').join('');
+    const hasLed = !!(p.ledger && p.ledger.length);
     const badges = (p.badgeList || []).map((b) => '<button type="button" class="' + (b.got ? '' : 'off') + '" data-badge="' + b.id + '" aria-label="' + esc(b.name) + '">' + badgeSvg(b.id) + '</button>').join('');
     return '<div class="zmp-in">' +
       '<div class="zmp-card zmp-hero2"><div class="zmp-av">' + me.face + '</div><div><div class="zmp-nick">' + esc(me.nick) + '</div><div class="zmp-who">' +
         (p.owner === 'account' ? '<span class="ok">' + TICK + '</span>已登录' : '<button type="button" class="zmp-login" data-login>登录保存</button>') + '</div>' +
         '<div class="zmp-bdg">' + badges + '</div></div>' +
-        '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span><div class="sub"><span class="' + (wk >= 0 ? 'up' : 'dn') + '">本周 ' + sign(wk) + '</span><span>' + (p.games || 0) + ' 局</span></div></div></div>' +
+        '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span><div class="sub"><span class="' + (wk >= 0 ? 'up' : 'dn') + '">近 7 天对局 ' + sign(wk) + '</span><span>' + (p.games || 0) + ' 局</span></div></div></div>' +
       '<div class="zmp-grid">' +
-        '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div><div class="zmp-act" aria-label="近四周活跃">' + actHtml(p.heat) + '</div></div>' +
+        '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div><div class="zmp-act" aria-label="近四周：签到和打牌">' + actHtml(p) + '</div><div class="zmp-actl"><em>近四周</em><span><i></i>签到</span><span><i class="g"></i>打牌</span></div></div>' +
         '<div class="zmp-card wide"><div class="zmp-h">玩法胜率</div><div class="zmp-rings">' + MODES.map(([k, name, c]) => '<div class="zmp-ring">' + ring(p.modes[k].w, p.modes[k].g, c) + '<b>' + name + '</b><small>' + p.modes[k].g + ' 局</small></div>').join('') + '</div></div>' +
       '</div>' +
-      (led ? '<details class="zmp-card"><summary class="zmp-ledsum"><span>流水</span><span class="sp" data-spark></span></summary><ul class="zmp-led">' + led + '</ul></details>' : '') + '</div>';
+      (hasLed ? '<details class="zmp-card"' + (led.open ? ' open' : '') + '><summary class="zmp-ledsum"><span>流水</span><span class="sp" data-spark></span></summary><div data-led>' + ledHtml() + '</div></details>' : '') + '</div>';
   }
   // 点徽章：小卡（怎么拿、进度、奖励）。点哪儿都收起
   function badgeCard(b) {
@@ -236,6 +341,11 @@
     body.addEventListener('click', (e) => {
       const bd = e.target.closest('[data-badge]');
       if (bd && last) { const b = (last.badgeList || []).find((x) => x.id === bd.dataset.badge); if (b) badgeCard(b); return; }
+      const lf = e.target.closest('[data-lf]');
+      if (lf) { led.filter = lf.dataset.lf; led.show = LED_STEP; paintLed(); return; }
+      if (e.target.closest('[data-lmore]')) { moreLed(); return; }
+      const lg = e.target.closest('[data-lg]');
+      if (lg) { lg.classList.toggle('open'); return; }
       const ck = e.target.closest('[data-ck]');
       if (ck) { checkinNow(ck); return; }
       if (e.target.closest('[data-login]')) login();
@@ -254,7 +364,10 @@
   function render(p) {
     {
       last = p;
+      const keep = led.all.length > (p.ledger || []).length && led.all[0] && p.ledger && p.ledger[0] && led.all[0].at === p.ledger[0].at;   // 翻过页、又没有新流水：留着翻到的
+      if (!keep) led = Object.assign({}, led, { all: (p.ledger || []).slice(), more: !!p.ledgerMore });
       body.innerHTML = html(p);
+      const dt = body.querySelector('details.zmp-card'); if (dt) dt.addEventListener('toggle', () => { led.open = dt.open; });
       // 打开档案就算看过了：拿到的徽章不再让左上角亮小黄点
       if (W().markBadgesSeen) W().markBadgesSeen((p.badgeList || []).filter((b) => b.got).map((b) => b.id));
       spark = body.querySelector('[data-spark]');
@@ -287,6 +400,7 @@
     build();
     if (root.ZhamaoWalletFx) root.ZhamaoWalletFx.cancelAll();   // 左上角还在放的进账动画收掉（档案盖上来了）
     last = null;
+    led = { all: [], more: false, filter: 'all', show: LED_STEP, busy: false, open: false };
     const cached = W() && W().profileCached ? W().profileCached() : null;   // 先摆上次存的，服务器回来再换（2026-11-23 用户：等两秒太久）
     if (cached) render(cached); else body.innerHTML = '<div class="zmp-wait"></div>';
     el.hidden = false;
