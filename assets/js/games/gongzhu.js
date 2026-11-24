@@ -54,8 +54,13 @@
     return m ? { rim: m[1], lobby: m[2] || '1' } : { rim: 'f', lobby: '2' };
   })();
   let rimPv = null;
-  /* 房间首页预览（2026-11-24，待用户挑；画法全在 gongzhu-room-pv.js）：?gzroom=a = 邀请弹窗改名帖 / b = 邀请整页请帖；两版的「联机」单子都改名帖房号格。不带参数 = 现状 */
-  const GZROOM = (/^[ab]$/.exec(new URLSearchParams(location.search).get('gzroom') || '') || [null])[0];
+  /* 房间首页（画法全在 gongzhu-room-pv.js）：2026-11-24 用户定 = b 整页请帖（邀请链接进来，封面下半截换成请帖），「联机」单子房号框换名帖，不带参数就是这一套。
+   * ?gzroom=a = 邀请弹窗版对比；?gzroom=0 = 改版前（普通加入弹窗） */
+  const GZROOM = (() => {
+    const q = new URLSearchParams(location.search).get('gzroom');
+    if (q === '0') return null;
+    return /^[ab]$/.test(q || '') ? q : 'b';
+  })();
   let roomPv = null, roomPvReady = null;
   /* 局中菜单 / 顶栏 / 暂停页 / 单机身份预览（待用户挑）：?gzmenu=menu-a|b|c, bar-a|b, pause-a|b, me-a|b，逗号分隔可组合；进页面读一次，不带参数 = 现状 */
   const MENU_PV = (() => {
@@ -4789,9 +4794,11 @@
   }
   function loadRoomPv() {
     const v = '?v=' + (window.GZ_BUILD || VERSION);
-    const css = document.createElement('link');
-    css.rel = 'stylesheet'; css.href = '/assets/css/gongzhu-room-pv.css' + v;
-    document.head.appendChild(css);
+    if (!document.querySelector('link[rel="stylesheet"][href*="gongzhu-room-pv.css"]')) {
+      const css = document.createElement('link');
+      css.rel = 'stylesheet'; css.href = '/assets/css/gongzhu-room-pv.css' + v;
+      document.head.appendChild(css);
+    }
     roomPvReady = new Promise((done) => {
       const js = document.createElement('script');
       js.src = '/assets/js/games/gongzhu-room-pv.js' + v;

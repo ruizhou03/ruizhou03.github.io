@@ -1,4 +1,4 @@
-/* 拱猪 · 房间首页预览（2026-11-24，待用户挑；?gzroom=a|b，只在带参数时由 gongzhu.js 加载）
+/* 拱猪 · 房间首页（2026-11-24 用户定 b 整页请帖，默认就是 b；?gzroom=a 看弹窗版，?gzroom=0 = 改版前，见 gongzhu.js GZROOM）
  * 跟大厅的名帖一路：房号就是那张双线框小帖子，四个数字格，打一位亮一格。
  *   两版共用：封面「联机」那张单子——「创建房间」照旧在上；下面的房号框换成名帖（点帖子就能打字），打满 4 位「加入」才亮
  *   a 邀请弹窗：朋友点邀请链接进来，还是一个弹窗，但改成「有人邀你来打拱猪」+ 名帖（房号已填好）+ 名字一行 + 一个大「入座」，
@@ -60,7 +60,7 @@
 
     /* ───── 邀请进来 ───── */
     function invHtml(code) {
-      return '<p class="gzrm-kicker">有人邀你来打拱猪</p>' + cardHtml(code, 'data-code') +
+      return '<p class="gzrm-kicker">' + (code ? '有人邀你来打拱猪' : '加入房间') + '</p>' + cardHtml(code, 'data-code') +
         '<label class="gzrm-name"><span>名字</span><input class="gzrm-nick" data-nick maxlength="12" autocomplete="nickname" placeholder="不填就随机起一个" value="' + A.esc(A.nick()) + '"></label>' +
         '<p class="gzrm-err" data-err hidden></p>' +
         '<button type="button" class="gz-btn gz-btn-primary gzrm-sit" data-go><span>入座</span></button>' +
@@ -87,7 +87,9 @@
     }
 
     function showJoin(code) {
-      if (kind === 'a') {
+      // 整页请帖只在封面露着、而且是带着房号进来（邀请链接）时用；局中菜单的「加入房间」封面是藏着的，走弹窗
+      const coverUp = !cover.hidden && cover.offsetParent !== null;
+      if (kind === 'a' || !code || !coverUp) {
         A.openDialog('<h2 class="gz-sr">加入房间</h2><div class="gzrm-inv">' + invHtml(code) + '</div>', (d) => {
           d.classList.add('gzrm-dlg');
           bindInv(d, (ok) => { if (!ok) A.closeDialog(); });
