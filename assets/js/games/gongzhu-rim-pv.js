@@ -8,6 +8,8 @@
  *   c 灯珠：一圈小灯珠；轮到谁他面前那几颗亮成金色；限时的话从两头一颗一颗熄
  *   d / e 金线串座（2026-11-23 用户：线把人串起来，但人不坐拐角、拐角要圆）：画法同 a，线穿过四家头像——
  *     上家坐左边、对家坐上边、下家坐右边、我坐底边；d 拐角半径 30，e 拐角取到不压人的最大值（「出牌」往右让一点，桌子更圆）
+ *     左右两家吃到的牌折成一行小计（猪 / 羊 / 变压器 + 红桃几张 + 本局分），点开看全部；出牌区正菱形，排在别家名字 / 吃牌区下面
+ *   f 三家在上（2026-11-24 对比用）：竖屏三家照旧坐上面一排、吃牌完整陈列，线从三家头像穿过；横屏同 d
  * 三版共用的状态：
  *   托管 = 那段冷灰蓝；掉线 = 那段断开（虚）；快输了（累计到 −700 以下、规则是输到 −1000 收盘）= 那段常驻一点暖红
  *   吃猪 = 他那段闪两下红；吃羊 = 闪金；变压器 = 按它的颜色闪；全红 = 一道红光从他那儿绕桌一圈；大满贯 = 金光绕两圈
@@ -26,7 +28,7 @@
   function create(cfg, A) {
     const root = A.els.app;
     // d = 金线串座：画法同 a，但线穿过四家头像中心（人坐在线上、三家落在桌角），座位排法见 css「d 金线串座」
-    const on = cfg.rim === 'd' || cfg.rim === 'e';
+    const on = cfg.rim === 'd' || cfg.rim === 'e' || cfg.rim === 'f';
     root.classList.add('gzr', 'gzr-' + (on ? 'a' : cfg.rim), 'gzr-lobby-' + cfg.lobby);
     if (on) root.classList.add('gzr-on', 'gzr-' + cfg.rim);
     const table = A.els.table;
@@ -66,25 +68,28 @@
         const r = el.querySelector('.gz-avatar') && el.querySelector('.gz-avatar').getBoundingClientRect();
         return r && r.width ? { cx: r.left + r.width / 2 - tb.left, cy: r.top + r.height / 2 - tb.top, r: r.width / 2 } : null;
       });
-      const ok = pts.filter(Boolean);
-      if (ok.length < 2) return null;
-      const x0 = Math.min(...ok.map((p) => p.cx)), x1 = Math.max(...ok.map((p) => p.cx));
-      const y0 = Math.min(...ok.map((p) => p.cy)), y1 = Math.max(...ok.map((p) => p.cy));
+      const others = [1, 2, 3].map((s) => pts[s]).filter(Boolean);
+      if (others.length < 1 || !pts[0]) return null;
+      const av = Math.max(...pts.filter(Boolean).map((p) => p.r));
+      const s0 = A.els.seats[0].getBoundingClientRect().left - tb.left;
+      // 三家都在上面那一排（f 竖屏）：左右两条边贴着桌框走，上沿穿过三家；否则左右两条边穿过上家 / 下家
+      const topThree = others.length === 3 && others.every((p) => Math.abs(p.cy - pts[2].cy) < 6);
+      const x0 = topThree ? s0 + 12 : Math.min(...others.map((p) => p.cx));
+      const x1 = topThree ? tb.width - (s0 + 12) : Math.max(...others.map((p) => p.cx));
+      const y0 = Math.min(...others.map((p) => p.cy)), y1 = pts[0].cy;
       if (x1 - x0 < 60 || y1 - y0 < 60) return null;
-      // 拐角半径：不能压到人——左右两边的人离上下两条边、上下两边的人离左右两条边都要留出头像 + 6px；我不算（我按半径往右挪）
-      const av = Math.max(...ok.map((p) => p.r));
+      // 拐角半径：不能压到人——坐竖边的人离上下两条边、坐横边的人离左右两条边都要留出头像 + 6px；我不算（我按半径往右挪）
       let Rmax = Math.min((x1 - x0) / 2, (y1 - y0) / 2) - 2;
-      pts.forEach((p, s) => {
-        if (!p || s === 0) return;
+      others.forEach((p) => {
         if (Math.abs(p.cx - x0) < 3 || Math.abs(p.cx - x1) < 3) Rmax = Math.min(Rmax, Math.min(p.cy - y0, y1 - p.cy) - p.r - 6);
         else Rmax = Math.min(Rmax, Math.min(p.cx - x0, x1 - p.cx) - p.r - 6);
       });
-      // 我坐底边、在左下拐角和「出牌」键之间：拐角越圆我越往右，不能撞上「出牌」（按键那一格中线往左 60px 算，亮不亮牌两个键都放得下）
-      const band = table.querySelector('.gz-band');
-      const s0 = A.els.seats[0].getBoundingClientRect().left - tb.left;
-      if (band) { const br = band.getBoundingClientRect(); if (br.width) Rmax = Math.min(Rmax, (br.left + br.width / 2 - tb.left - 60) - s0 - 3 * av - 26); }
-      const R = Math.max(av, cfg.rim === 'e' ? Rmax : Math.min(30, Rmax));
-      const meX = Math.round(R + av + 18);
+      // 我坐底边、在左下拐角和「出牌」键之间：拐角越圆我越往右，不能撞上「出牌」那一格（按键那格的中线往左 68px 算；明牌时两个键另往右让）
+      const portrait = matchMedia('(max-aspect-ratio: 1/1)').matches;
+      const bandMid = tb.width / 2 + (cfg.rim === 'e' && portrait ? 56 : 0);
+      Rmax = Math.min(Rmax, bandMid - 68 - x0 - 2 * av - 10);
+      const R = Math.max(Math.min(av, 14), cfg.rim === 'e' ? Rmax : Math.min(30, Rmax));
+      const meX = Math.round(x0 + R + 10 - s0);
       if (root.style.getPropertyValue('--gzr-me-x') !== meX + 'px') root.style.setProperty('--gzr-me-x', meX + 'px');
       const d = rrect(x0, y0, x1, y1, R);
       const base = sv.querySelector('.gzr-base');
@@ -99,7 +104,7 @@
         return { a: best[2], h: Math.min(64, L / 10), cx: p.cx, cy: p.cy };
       });
       diamond(x0, y0, x1, y1, tb);
-      return { d, L, seats, key: 'on|' + [x0, y0, x1, y1].map(Math.round).join() + '|' + seats.map((p) => p ? Math.round(p.a) : '-').join() };
+      return { d, L, seats, key: 'on|' + [x0, y0, x1, y1, R].map(Math.round).join() + '|' + seats.map((p) => p ? Math.round(p.a) : '-').join() };
     }
 
     /* 出牌区摆成正菱形（2026-11-23 用户：方方正正，左右两张别压得太低）：
@@ -111,15 +116,20 @@
       const cr = ce.getBoundingClientRect(), sr = sl.getBoundingClientRect();
       const tu = sr.width, th = sr.height;
       if (!tu || !th || !cr.height) return;
-      // 上面不能压到对家的名字 / 牌背（横屏时它们挪到了上沿下面、伸进这一格）
-      let top = 0;
-      A.els.seats[2].querySelectorAll('.gz-name-line, .gz-hold').forEach((e) => { const r = e.getBoundingClientRect(); if (r.height) top = Math.max(top, r.bottom - cr.top + 6); });
-      const H = cr.height - top;
+      // 上面不能压到别家的名字 / 牌背 / 吃牌区：凡是伸进菱形那几列、又在这一格上半截的，菱形都从它们下面开始
       const want = th * 1.3, need = want + th / 2 + 4;
+      const cx = (x0 + x1) / 2 - (cr.left - tb.left);
+      const spanL = cr.left + cx - want - tu / 2 - 4, spanR = cr.left + cx + want + tu / 2 + 4;
+      let top = 0;
+      [1, 2, 3].forEach((k) => A.els.seats[k].querySelectorAll('.gz-name-line, .gz-hold, .gz-caps, .gzr-tally').forEach((e) => {
+        const r = e.getBoundingClientRect();
+        if (!r.height || getComputedStyle(e).display === 'none' || r.right < spanL || r.left > spanR) return;
+        if (r.bottom - cr.top < cr.height * 0.6) top = Math.max(top, r.bottom - cr.top + 8);
+      }));
+      const H = cr.height - top;
       let cy = (y0 + y1) / 2 - (cr.top - tb.top);
       cy = H >= 2 * need ? Math.min(Math.max(cy, top + need), cr.height - need) : top + H / 2;
       const dv = Math.max(th * 0.55, Math.min(want, cy - top - th / 2 - 4, cr.height - cy - th / 2 - 4));
-      const cx = (x0 + x1) / 2 - (cr.left - tb.left);
       const dh = Math.max(dv, tu + 10);
       const set = (k, v) => { const x = Math.round(v) + 'px'; if (ce.style.getPropertyValue(k) !== x) ce.style.setProperty(k, x); };
       set('--gzr-cx', cx); set('--gzr-cy', cy); set('--gzr-dv', dv); set('--gzr-dh', dh);
@@ -383,6 +393,53 @@
       const wait = box.querySelector('.gz-lobby-wait');
       if (wait) wait.hidden = !(st && A.online() && A.online().watching);
       requestAnimationFrame(() => { lastKey = ''; layout(); });
+    }
+
+    /* 左右两家吃到的牌折叠成一行小计（乙 d / e 竖屏、所有串座版横屏）——猪 / 羊 / 变压器照原样小牌、红桃只写几张、本局分；点小计在旁边摊开全部。
+     * 原来的吃牌区（.gz-caps）照常由 gongzhu.js 画，只是竖屏藏起来，摊开时直接把它亮出来 */
+    const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.7 1.2 5.3 3.2 1.6-2 3.1-3.2 5.3-3.2 3.7 0 5.8 3.9 4.3 7.2C19.5 16.4 12 21 12 21z"/></svg>';
+    function tally(k) {
+      const seat = A.els.seats[k];
+      const caps = seat.querySelector(':scope > .gz-caps');
+      if (!caps) return;
+      let t = seat.querySelector(':scope > .gzr-tally');
+      if (!t) {
+        t = document.createElement('button');
+        t.type = 'button';
+        t.className = 'gzr-tally';
+        t.setAttribute('aria-label', '吃到的牌');
+        t.addEventListener('click', (e) => { e.stopPropagation(); const open = !seat.classList.contains('gzr-caps-open'); closeCaps(); seat.classList.toggle('gzr-caps-open', open); });
+        caps.before(t);
+      }
+      const cards = [...caps.querySelectorAll('.gz-card[data-card]')];
+      const ids = cards.map((c) => +c.dataset.card);
+      const sc = caps.querySelector('.gz-cap-score');
+      const key = ids.join() + '|' + (sc ? sc.className + sc.textContent : '');
+      if (t.dataset.k === key) return;
+      t.dataset.k = key;
+      t.hidden = !ids.length;
+      if (!ids.length) seat.classList.remove('gzr-caps-open');
+      const hearts = ids.filter((c) => c >= 13 && c <= 25).length;
+      const sp = cards.filter((c) => [10, 35, 47].includes(+c.dataset.card)).map((c) => { const x = c.cloneNode(true); x.classList.remove('in', 'incoming', 'is-focus'); return x.outerHTML; });
+      const tone = sc ? (sc.classList.contains('pos') ? ' pos' : sc.classList.contains('neg') ? ' neg' : sc.classList.contains('gold') ? ' gold' : '') : '';
+      t.innerHTML = sp.join('') + (hearts ? '<span class="gzr-tally-h">' + HEART + hearts + '</span>' : '') + (sc && /[1-9]/.test(sc.textContent) ? '<b class="gzr-tally-s' + tone + '">' + sc.textContent.trim() + '</b>' : '');
+      // 摊开层：特殊牌一排、红桃按点数叠成一把扇、右边本局分
+      let pop = seat.querySelector(':scope > .gzr-tally-pop');
+      if (!pop) { pop = document.createElement('div'); pop.className = 'gzr-tally-pop'; t.after(pop); }
+      const clone = (c) => { const x = c.cloneNode(true); x.classList.remove('in', 'incoming', 'is-focus'); return x.outerHTML; };
+      const hs = cards.filter((c) => +c.dataset.card >= 13 && +c.dataset.card <= 25).sort((a, b) => a.dataset.card - b.dataset.card);
+      const others = cards.filter((c) => !(+c.dataset.card >= 13 && +c.dataset.card <= 25));
+      pop.innerHTML = (others.length ? '<div class="gzr-pop-row">' + others.map(clone).join('') + '</div>' : '') +
+        (hs.length ? '<div class="gzr-pop-row gzr-pop-fan">' + hs.map(clone).join('') + '</div>' : '') +
+        (sc && /[1-9]/.test(sc.textContent) ? '<b class="gzr-tally-s' + tone + '">' + sc.textContent.trim() + '</b>' : '');
+    }
+    function closeCaps() { [1, 3].forEach((k) => A.els.seats[k].classList.remove('gzr-caps-open')); }
+    if (on) {
+      document.addEventListener('click', closeCaps);
+      [1, 3].forEach((k) => {
+        tally(k);
+        new MutationObserver(() => tally(k)).observe(A.els.seats[k], { childList: true, subtree: true, characterData: true });
+      });
     }
 
     const ro = new ResizeObserver(() => layout());

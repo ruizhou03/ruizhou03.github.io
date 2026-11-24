@@ -118,25 +118,69 @@
 .gzr-on .gz-seat-me .gz-name-line { position: absolute; left: 50%; bottom: calc(100% + 1px); translate: -50% 0; flex-direction: row; align-items: baseline; gap: 6px; white-space: nowrap; }
 .gzr-on .gz-seat-me .gz-caps { translate: 0 -22px; }
 @media (max-aspect-ratio: 1/1) {
-  /* 竖屏：对家独占上面一整排；上家 / 下家叠到桌面那一格的左上 / 右上 */
-  .gzr-on .gz-seat-top { grid-column: 1 / -1; }
-  .gzr-on .gz-seat-left { grid-row: 3; grid-column: 1 / span 2; justify-self: start; align-self: start; padding-top: 36px; }
-  .gzr-on .gz-seat-right { grid-row: 3; grid-column: 2 / span 2; justify-self: end; align-self: start; padding-top: 36px; }
-  .gzr-on .gz-seat-left .gz-name-line, .gzr-on .gz-seat-right .gz-name-line { flex-direction: row; align-items: baseline; gap: 6px; }
-  /* 左右两家吃到的牌：挪到头像上方那块空地（放在牌背下面会压到自己面前出的那张），从下往上长 */
-  .gzr-on .gz-seat-left, .gzr-on .gz-seat-right { position: relative; }
-  .gzr-on .gz-seat-left > .gz-caps.gz-caps, .gzr-on .gz-seat-right > .gz-caps.gz-caps {
-    position: absolute; top: 30px; translate: 0 -100%; width: auto; margin: 0; align-items: flex-end;
-  }
-  .gzr-on .gz-seat-left > .gz-caps.gz-caps { left: 47px; width: 132px; max-width: none; justify-content: flex-start; }
-  .gzr-on .gz-seat-right > .gz-caps.gz-caps { right: 47px; width: 132px; max-width: none; justify-content: flex-end; }
+  /* 乙（d / e）竖屏：对家独占上面一整排；上家 / 下家叠到桌面那一格的左上 / 右上 */
+  :is(.gzr-d, .gzr-e) .gz-seat-top { grid-column: 1 / -1; }
+  :is(.gzr-d, .gzr-e) .gz-seat-left { grid-row: 3; grid-column: 1 / span 2; justify-self: start; align-self: start; padding-top: 0; margin-top: -14px; }
+  :is(.gzr-d, .gzr-e) .gz-seat-right { grid-row: 3; grid-column: 2 / span 2; justify-self: end; align-self: start; padding-top: 0; margin-top: -14px; }
+  :is(.gzr-d, .gzr-e) .gz-seat-left .gz-name-line, :is(.gzr-d, .gzr-e) .gz-seat-right .gz-name-line { flex-direction: row; align-items: baseline; gap: 6px; }
+  /* 「上家 / 下家」签不要了：坐在哪边已经说明了；名字行短一点，不往菱形那边伸 */
+  :is(.gzr-d, .gzr-e) .gz-seat-left .gz-tag.is-dir, :is(.gzr-d, .gzr-e) .gz-seat-right .gz-tag.is-dir { display: none; }
+  /* 吃到的牌折叠成一行小计（猪 / 羊 / 变压器小牌 + 红桃几张 + 本局分），在名字和牌背之间；点小计在旁边摊开全部 */
+  :is(.gzr-d, .gzr-e) .gz-seat-left, :is(.gzr-d, .gzr-e) .gz-seat-right { position: relative; }
+  :is(.gzr-d, .gzr-e) .gz-seat-left > .gz-hold, :is(.gzr-d, .gzr-e) .gz-seat-right > .gz-hold { order: 2; }
+  :is(.gzr-d, .gzr-e) .gzr-tally { order: 1; }
+  :is(.gzr-d, .gzr-e) .gzr-tally:not([hidden]) { display: inline-flex; }
+  :is(.gzr-d, .gzr-e) .gz-seat-left > .gz-caps.gz-caps, :is(.gzr-d, .gzr-e) .gz-seat-right > .gz-caps.gz-caps { display: none; }
+  :is(.gzr-d, .gzr-e) .gzr-caps-open > .gzr-tally-pop { display: flex; }
+  :is(.gzr-d, .gzr-e) .gz-seat-left > .gzr-tally-pop { left: 40px; }
+  :is(.gzr-d, .gzr-e) .gz-seat-right > .gzr-tally-pop { right: 40px; align-items: flex-end; }
+  /* 明牌时「不明牌 / 明牌」两个键比「出牌」宽：整组往右让，不压我的头像 */
+  .gzr-on .gz-band:has(> #gzNoExposeBtn:not([hidden])) { translate: 44px 0; }
   /* e 大圆角：「出牌」往右让 56px，我才能离拐角更远、拐角才能更圆；我吃到的牌再往上提一点躲开按键 */
   .gzr-e .gz-band { translate: 56px 0; }
   .gzr-e .gz-seat-me .gz-caps { translate: 0 -40px; }
+  /* 甲（f）竖屏：三家照旧坐上面一排（吃牌照旧完整陈列在各自名字下面），线从三家头像中间穿过；左右两条边贴着桌框 */
+  .gzr-f .gz-seat-left, .gzr-f .gz-seat-right { align-items: center; padding: 0 0 4px; }
+  .gzr-f .gz-seat-left .gz-who, .gzr-f .gz-seat-right .gz-who { flex-direction: column; align-items: center; gap: 3px; }
+  .gzr-f .gz-seat-left .gz-name-line, .gzr-f .gz-seat-right .gz-name-line { align-items: center; }
+  .gzr-f .gz-seat-left > :not(.gz-who):not(.gz-lobby-seat), .gzr-f .gz-seat-right > :not(.gz-who):not(.gz-lobby-seat) { margin: 0; max-width: 100%; }
+  .gzr-f .gz-seat-left .gz-lobby-seat, .gzr-f .gz-seat-right .gz-lobby-seat { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 8px 6px; }
+  .gzr-f .gz-seat-left .gz-lobby-name, .gzr-f .gz-seat-right .gz-lobby-name { grid-row: auto; }
 }
+/* 小计摊开层 */
+.gzr-tally-pop {
+  display: none; position: absolute; z-index: 6; top: calc(100% + 4px); width: max-content; flex-direction: column; align-items: flex-start; gap: 6px;
+  padding: 10px 12px; border-radius: 12px; background: var(--gz-card); box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.12), 0 8px 22px rgba(20, 18, 15, 0.16);
+}
+.gzr-pop-row { display: flex; gap: 4px; }
+.gzr-pop-fan .gz-card + .gz-card { margin-left: -16px; }
+.gzr-tally-pop .gz-card.gz-mini { animation: none; }
+/* 小计那一行 */
+.gzr-tally {
+  display: none; align-items: center; gap: 5px; height: 26px; padding: 0 8px 0 4px; margin-top: 2px; border: 0; border-radius: 99px;
+  background: rgba(29, 27, 24, 0.05); font: inherit; color: inherit; cursor: pointer; white-space: nowrap;
+}
+.gzr-tally .gz-card.gz-mini { transform: scale(0.72); margin: 0 -5px; pointer-events: none; }
+.gzr-tally-h { display: inline-flex; align-items: center; gap: 2px; font: 700 14px/1 Georgia, serif; color: var(--gz-red); }
+.gzr-tally-h svg { width: 13px; height: 13px; fill: currentColor; }
+.gzr-tally-s { font: 700 15px/1 Georgia, serif; color: var(--gz-ink-mute); margin-left: 2px; }
+.gzr-tally-s.pos { color: var(--gz-good); }
+.gzr-tally-s.neg { color: var(--gz-seal); }
+.gzr-tally-s.gold { color: #a8874c; }
 @media (min-aspect-ratio: 1/1) {
+  /* 横屏左右两栏只有一百来像素高，吃满红桃会长到三排、压到我：两版都把左右两家吃到的牌折成一行小计（点开看全部） */
+  .gzr-on .gz-seat-left, .gzr-on .gz-seat-right { position: relative; }
+  .gzr-on .gz-seat-left > .gz-hold, .gzr-on .gz-seat-right > .gz-hold { order: 2; }
+  .gzr-on .gzr-tally { order: 1; }
+  .gzr-on .gz-seat-left > .gz-caps.gz-caps, .gzr-on .gz-seat-right > .gz-caps.gz-caps { display: none; }
+  .gzr-on .gzr-tally:not([hidden]) { display: inline-flex; }
+  .gzr-on .gzr-caps-open > .gzr-tally-pop { display: flex; }
+  .gzr-on .gz-seat-left > .gzr-tally-pop { left: 40px; }
+  .gzr-on .gz-seat-right > .gzr-tally-pop { right: 40px; align-items: flex-end; }
+  .gzr-on .gz-seat-left .gz-name-line, .gzr-on .gz-seat-right .gz-name-line { flex-direction: row; align-items: baseline; gap: 6px; }
+  .gzr-on .gz-seat-left .gz-tag.is-dir, .gzr-on .gz-seat-right .gz-tag.is-dir { display: none; }
   /* 横屏：上家 / 下家从同一高度起排（不按中线居中——谁多一行档位、谁吃了牌，头像都不跟着上下跳，线也不跟着变） */
-  .gzr-on .gz-seat-left, .gzr-on .gz-seat-right { justify-content: flex-start; padding-top: 22px; }
+  .gzr-on .gz-seat-left, .gzr-on .gz-seat-right { justify-content: flex-start; padding-top: 14px; gap: 6px; }
   /* 横屏：对家的名字 / 牌背挪到上沿下面 */
   .gzr-on .gz-seat-top { align-self: start; }
   .gzr-on .gz-seat-top .gz-who { align-items: flex-start; }
