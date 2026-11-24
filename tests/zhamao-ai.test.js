@@ -95,6 +95,41 @@ test('normal dodges a known kitten on top', () => {
   assert.ok(kitten >= 0);
 });
 
+test('iron rule: never draws a certain kitten without a defuse while holding a dodge (self-play, hard)', () => {
+  // 对打里数：这一摸一定是猫（看过 / 看见塞在最上面 / 牌堆全是猫）、没逗猫棒、没别的救法、手里有甩锅 / 跳过 / 转向——还摸了，就算违规。
+  // 改之前：经典 4 人高手这种局面里约 7% 直接摸，百变开交换约 15%
+  const dodge = [R.ATTACK, R.TATTACK, R.SKIP, R.REVERSE];
+  const rulesList = [Object.assign({}, R.DEFAULT_RULES), Object.assign({}, R.DEFAULT_RULES, { mode: 'flux', swap: true, swapDefuse: true })];
+  let seen = 0;
+  for (const rules of rulesList) for (let g = 0; g < 12; g++) {
+    const s = R.createGame(4, 900 + g, rules);
+    const st = { rs: g + 3 }; const rng = () => R.rand(st);
+    let guard = 0;
+    while (s.phase !== 'over') {
+      assert.ok(++guard < 4000, 'runaway');
+      if (s.phase === 'react') {
+        for (const t of R.awaitingReaction(s)) { const d = A.decide(s, t, 'hard', rng); if (d.type === 'nope') { R.nope(s, t); break; } R.pass(s, t); }
+        if (R.reactionDone(s)) R.closeReaction(s);
+        continue;
+      }
+      const seat = R.whoActs(s)[0];
+      const d = A.decide(s, seat, 'hard', rng);
+      if (s.phase === 'act' && s.turn === seat && !s.flux) {
+        const v = R.view(s, seat), hand = s.hands[seat].map((id) => R.KIND_OF[id]);
+        const ins = v.ins, seenTop = ins && ins.seen === 'top' && ins.top === 0 && ins.card != null && ins.by !== seat;
+        const certain = v.kittens >= v.deckSize || seenTop || v.known.some((k) => k.pos === 0 && R.KIND_OF[k.id] === R.BOOM);
+        const teamSave = v.mates && v.mates.some((m) => v.alive[m]);
+        if (certain && !teamSave && hand.indexOf(R.DEFUSE) < 0 && hand.some((k) => dodge.indexOf(k) >= 0)) {
+          seen++;
+          assert.notEqual(d.type, 'draw', 'drew a certain kitten while holding a dodge');
+        }
+      }
+      apply(s, seat, d);
+    }
+  }
+  assert.ok(seen > 5, 'too few doomed spots to test: ' + seen);
+});
+
 test('hard beats normal heads-up (sanity, small sample)', () => {
   let hard = 0;
   const G = 40;
