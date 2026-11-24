@@ -291,6 +291,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   transition: transform 0.12s ease, opacity 0.2s ease;
 }
 .zm-btn:active { transform: scale(0.96); }
+/* 「回到主页面」的房子图标（2026-11-24 用户：按钮要统一，另一侧「再来一局」挂着门票） */
+.zm-btn .zm-btn-ic { width: 1.2em; height: 1.2em; margin-right: 5px; vertical-align: -0.22em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .zm-btn[disabled] { opacity: 0.35; cursor: default; }
 .zm-btn-primary { background: var(--zm-ink); color: var(--zm-paper); }
 .zm-btn-nope { background: #7a5a96; border-color: #7a5a96; color: #fff; overflow: hidden; animation: zm-nope-pulse 0.9s ease-in-out infinite; }

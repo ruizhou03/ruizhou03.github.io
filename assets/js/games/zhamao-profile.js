@@ -111,13 +111,6 @@
 .zmp-act i{position:relative;aspect-ratio:1;border-radius:3px;background:#ebe5d8}
 .zmp-act i.ck{background:#1d1b18}
 .zmp-act i.now{box-shadow:0 0 0 1.5px #b4392c}
-.zmp-act i b{position:absolute;left:50%;top:50%;width:46%;height:46%;transform:translate(-50%,-50%);border-radius:50%;background:#b4392c}
-.zmp-act i b.l1{opacity:.4}.zmp-act i b.l2{opacity:.65}.zmp-act i b.l3{opacity:.85}
-.zmp-actl{display:flex;align-items:center;gap:12px;margin-top:6px;font:600 12px/1 system-ui,sans-serif;color:#6a6358}
-.zmp-actl span{display:inline-flex;align-items:center;gap:4px}
-.zmp-actl i{display:inline-block;width:10px;height:10px;border-radius:2px;background:#1d1b18}
-.zmp-actl i.g{border-radius:50%;background:#b4392c;width:8px;height:8px}
-.zmp-actl em{font-style:normal;margin-right:auto}
 .zmp-lf{display:flex;gap:6px;margin:8px 0 2px}
 .zmp-lf button{border:1.5px solid #d9cfbd;background:#f3eee3;color:#6a6358;border-radius:999px;padding:6px 13px;font:600 13px/1 system-ui,sans-serif;cursor:pointer}
 .zmp-lf button.on{border-color:#1d1b18;background:#1d1b18;color:#f3eee3}
@@ -192,14 +185,14 @@
       '<text x="40" y="45" text-anchor="middle" font-family="Georgia,serif" font-size="16" font-weight="700" fill="#1d1b18">' + (g ? Math.round(k * 100) + '%' : '–') + '</text></svg>';
   }
   /* 近四周（2026-11-24 用户：签了三天，底下格子只亮一个——以前这排是「每天打了几局」，看着像签到）：
-   * 28 格 = 28 天（当地日期，最右是今天），签到过的那天涂黑，打过牌的那天中间一个红点（局数越多越红） */
+   * 28 格 = 28 天（当地日期，最右是今天），签到过的那天涂黑。只表示签到（用户：标对局很 misleading，红点和图例都拿掉） */
   const localToday = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   function actHtml(p) {
-    const heat = p.heat || {}, ck = new Set(p.ckDays || []), day0 = Date.parse((p.today || localToday()) + 'T00:00:00Z');
+    const ck = new Set(p.ckDays || []), day0 = Date.parse((p.today || localToday()) + 'T00:00:00Z');
     let out = '';
     for (let i = 27; i >= 0; i--) {
-      const d = new Date(day0 - i * 86400e3).toISOString().slice(0, 10), n = heat[d] || 0;
-      out += '<i class="' + (ck.has(d) ? 'ck' : '') + (i === 0 ? ' now' : '') + '" title="' + d.slice(5).replace('-', '/') + (ck.has(d) ? ' 签到' : '') + (n ? ' ' + n + ' 局' : '') + '">' + (n ? '<b class="' + (n >= 6 ? '' : n >= 3 ? 'l3' : n >= 2 ? 'l2' : 'l1') + '"></b>' : '') + '</i>';
+      const d = new Date(day0 - i * 86400e3).toISOString().slice(0, 10);
+      out += '<i class="' + (ck.has(d) ? 'ck' : '') + (i === 0 ? ' now' : '') + '" title="' + d.slice(5).replace('-', '/') + (ck.has(d) ? ' 签到' : '') + '"></i>';
     }
     return out;
   }
@@ -309,7 +302,7 @@
         '<div class="zmp-bdg">' + badges + '</div></div>' +
         '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span><div class="sub"><span class="' + (wk >= 0 ? 'up' : 'dn') + '">近 7 天对局 ' + sign(wk) + '</span><span>' + (p.games || 0) + ' 局</span></div></div></div>' +
       '<div class="zmp-grid">' +
-        '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div><div class="zmp-act" aria-label="近四周：签到和打牌">' + actHtml(p) + '</div><div class="zmp-actl"><em>近四周</em><span><i></i>签到</span><span><i class="g"></i>打牌</span></div></div>' +
+        '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div><div class="zmp-act" aria-label="近四周签到">' + actHtml(p) + '</div></div>' +
         '<div class="zmp-card wide"><div class="zmp-h">玩法胜率</div><div class="zmp-rings">' + MODES.map(([k, name, c]) => '<div class="zmp-ring">' + ring(p.modes[k].w, p.modes[k].g, c) + '<b>' + name + '</b><small>' + p.modes[k].g + ' 局</small></div>').join('') + '</div></div>' +
       '</div>' +
       (hasLed ? '<details class="zmp-card"' + (led.open ? ' open' : '') + '><summary class="zmp-ledsum"><span>流水</span><span class="sp" data-spark></span></summary><div data-led>' + ledHtml() + '</div></details>' : '') + '</div>';

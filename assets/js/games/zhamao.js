@@ -5848,7 +5848,7 @@
       showCoach(msgs, () => {
         bgm('menu');
         openDialog('<h2>' + T('tut.end.title', '教程完成') + '</h2><p>' + T('tut.end.body', '来一局真的吧：{n} 人，机器猫{tier}（菜单里的设置可以改）。', { n: settings.players, tier: AI.TIER_NAMES[settings.tier] }) + '</p>' +
-          '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-go data-focus>' + T('ui.startGame', '开始对局') + '</button></div>', (d) => {
+          '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + homeLabel() + '</button><button type="button" class="zm-btn zm-btn-primary" data-go data-focus>' + T('ui.startGame', '开始对局') + '</button></div>', (d) => {
           tagNextPrice(d.querySelector('[data-go]'));
           d.querySelector('[data-go]').addEventListener('click', () => { closeDialog(); payThenPlay(); });
           d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); endTutorial(false); });
@@ -5861,11 +5861,11 @@
     // 组队：赢的队两个人都算赢，不排个人名次——还是一列（赢的队 / 输的队）；其余用领奖台
     if (team) {
       openDialog(teamRankHtml(order, winners.length, won) + (wp ? WAL.slot() : '') +
-        '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { soloEndWire(d); if (wp) WAL.fill(d, wp, game); });
+        '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + homeLabel() + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { soloEndWire(d); if (wp) WAL.fill(d, wp, game); });
       return;
     }
     openDialog(podiumHtml(order.map((seat) => ({ face: avatarHtml(seat), nick: nameOf(seat), me: seat === 0 }))) + (wp ? WAL.slot() : '') +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + T('ui.home', '回到主页面') + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); if (wp) WAL.fill(d, wp, game); });
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-home>' + homeLabel() + '</button><button type="button" class="zm-btn zm-btn-primary" data-again data-focus>' + T('ui.again', '再来一局') + '</button></div>', (d) => { d.classList.add('is-podium'); soloEndWire(d); animPodium(d); if (wp) WAL.fill(d, wp, game); });
   }
   function soloEndWire(d) {
     // 再来一局（2026-11-23 用户：以前不管余额够不够直接开，也看不出交没交门票）：够 → 几条小鱼从结算页的余额游进「再来一局」、余额往下滚，再开；不够 → 弹「小鱼干不够了」
@@ -6056,6 +6056,8 @@
     }
     return '<path d="' + d + 'Z"/><circle cx="12" cy="12" r="2.8"/>';
   })();
+  /* 「回到主页面」按钮一律带房子图标（2026-11-24 用户：旁边的「再来一局」挂着门票，按钮要统一）——和菜单里那个房子同一个图 */
+  const homeLabel = () => '<svg class="zm-btn-ic" viewBox="0 0 24 24" aria-hidden="true">' + MENU_ICONS.cover + '</svg>' + T('ui.home', '回到主页面');
   const MENU_ICONS = {
     feedback: '<path d="M5 9 4 3.5 9 6.5h6L20 3.5 19 9c1.2 1.4 1.8 3 1.8 4.6C20.8 18 16.9 21 12 21s-8.8-3-8.8-7.4C3.2 12 3.8 10.4 5 9Z"/><path d="M9.6 17.2c1.5-1.2 3.3-1.2 4.8 0"/><path d="M9 12.6h.01M15 12.6h.01"/>',
     restart: '<path d="M19.5 12a7.5 7.5 0 1 1-2.3-5.4"/><path d="M19.6 4.2v4.2h-4.2"/>',
@@ -6669,7 +6671,7 @@
     const L = TUT.LESSONS || [], i = L.findIndex((x) => x.id === id), next = i >= 0 && i + 1 < L.length ? L[i + 1] : null;
     bgm('menu');
     openStage('<h2>' + T('tut.lesson.done', '本关完成') + '</h2>' + (next ? '<p class="zm-muted">' + T('tut.lesson.next', '下一关：{title}', { title: esc(next.title) }) + '</p>' : '<p class="zm-muted">' + T('tut.lesson.all', '全部学完啦') + '</p>') +
-      '<div class="zm-actions"><button type="button" class="zm-btn" data-list>' + T('ui.home', '回到主页面') + '</button>' + (next ? '<button type="button" class="zm-btn zm-btn-primary" data-next data-focus>' + T('tut.lesson.nextBtn', '下一关') + '</button>' : '<button type="button" class="zm-btn zm-btn-primary" data-play data-focus>' + T('ui.startGame', '开始对局') + '</button>') + '</div>', (d) => {
+      '<div class="zm-actions"><button type="button" class="zm-btn" data-list>' + homeLabel() + '</button>' + (next ? '<button type="button" class="zm-btn zm-btn-primary" data-next data-focus>' + T('tut.lesson.nextBtn', '下一关') + '</button>' : '<button type="button" class="zm-btn zm-btn-primary" data-play data-focus>' + T('ui.startGame', '开始对局') + '</button>') + '</div>', (d) => {
       d.querySelector('[data-list]').addEventListener('click', () => { closeDialog(); leaveLesson(); showCover(); });
       const nb = d.querySelector('[data-next]'); if (nb) nb.addEventListener('click', () => { closeDialog(); startTutorial(next.id); });
       const pb = d.querySelector('[data-play]'); if (pb) { tagNextPrice(pb); pb.addEventListener('click', () => { closeDialog(); payThenPlay(); }); }
