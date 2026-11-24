@@ -241,12 +241,18 @@
       if (e.target.closest('[data-login]')) login();
     });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen() && !document.querySelector('#sa-overlay.open')) close(); });
-    if (root.SiteAuth && root.SiteAuth.onChange) root.SiteAuth.onChange(() => { if (isOpen()) load(); });
+    if (root.SiteAuth && root.SiteAuth.onChange) root.SiteAuth.onChange(() => { if (isOpen()) load(true); });
   }
   const isOpen = () => !!(el && !el.hidden);
-  function load() {
+  function load(force) {
     if (!W()) return;
-    W().profile().then((p) => {
+    W().profile(force).then((p) => {
+      if (!force && body.querySelector('[data-busy]')) return;   // 正在签到的动画：签到那边放完会自己再拉   // 正在签到的动画：签到那边放完会自己再拉
+      render(p);
+    }).catch(() => { if (!last) body.innerHTML = '<div class="zmp-in zmp-card zmp-empty">连不上服务器，稍后再试</div>'; });
+  }
+  function render(p) {
+    {
       last = p;
       body.innerHTML = html(p);
       // 打开档案就算看过了：拿到的徽章不再让左上角亮小黄点
@@ -254,7 +260,7 @@
       spark = body.querySelector('[data-spark]');
       const draw = () => { if (spark && spark.isConnected) spark.innerHTML = sparkSvg(p.ledger, Math.max(60, spark.clientWidth), spark.clientHeight || 28); };
       if (spark) { draw(); if (root.ResizeObserver) new ResizeObserver(draw).observe(spark); }
-    }).catch(() => { body.innerHTML = '<div class="zmp-in zmp-card zmp-empty">连不上服务器，稍后再试</div>'; });
+    }
   }
   /* 签到（2026-11-22 用户：点了要马上有反应，鱼要飞进档案里的余额，不是飞去后面的左上角）：
    * 点下去这格当场变成「已签」，连签数 +1，余额从格子里游出几条鱼进到上面的大数字、数字滚上去；同时发给服务器，
@@ -272,7 +278,7 @@
     else if (fx) anim = fx.roll(num, from, to, 420);
     else { num.textContent = fmt(to); anim = Promise.resolve(); }
     last.bal = to;
-    W().checkin().then(() => anim).then(() => setTimeout(load, 350)).catch(() => load());
+    W().checkin().then(() => anim).then(() => setTimeout(() => load(true), 350)).catch(() => load(true));
   }
   function login() {
     if (root.SiteAuth && root.SiteAuth.openLogin) root.SiteAuth.openLogin();
@@ -280,7 +286,9 @@
   function open() {
     build();
     if (root.ZhamaoWalletFx) root.ZhamaoWalletFx.cancelAll();   // 左上角还在放的进账动画收掉（档案盖上来了）
-    body.innerHTML = '<div class="zmp-wait"></div>';
+    last = null;
+    const cached = W() && W().profileCached ? W().profileCached() : null;   // 先摆上次存的，服务器回来再换（2026-11-23 用户：等两秒太久）
+    if (cached) render(cached); else body.innerHTML = '<div class="zmp-wait"></div>';
     el.hidden = false;
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('is-on')));
     load();

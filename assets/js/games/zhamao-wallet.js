@@ -266,6 +266,7 @@
     chip.type = 'button';
     chip.className = 'zmw-chip';
     chip.addEventListener('click', openProfile);
+    chip.addEventListener('pointerdown', () => { profile().catch(() => null); });   // 按下就去拿，松手打开时已经在路上
     chip.setAttribute('aria-label', T('ui.wallet.title', '小鱼干'));
     chip.innerHTML = FISH + '<b></b><i class="zmw-dot" hidden></i>';
     chip.hidden = true;
@@ -274,7 +275,7 @@
     if (root.MutationObserver) new MutationObserver(() => { if (cover.hidden) cancelFx(); }).observe(cover, { attributes: true, attributeFilter: ['hidden'] });
     paintChip();
     listeners.push(paintChip);
-    refresh().then(retryPending);
+    refresh().then(retryPending).then(() => { if (!profileCached()) setTimeout(() => profile().catch(() => null), 2500); });
     // 登录 / 登出之后：游客小鱼干并进账号（后端做），左上角跟着刷新
     if (auth() && auth().onChange) auth().onChange(() => { setTimeout(refresh, 300); });
     // 老链接 /toolbox/puffcat/me/ 会跳到 ?me=1：进来直接打开档案（用 replaceState 去掉参数，不留历史）
@@ -282,6 +283,29 @@
       try { const u = new URL(location.href); u.searchParams.delete('me'); history.replaceState(history.state, '', u.toString()); } catch (_) { /* */ }
       setTimeout(openProfile, 600);
     }
+  }
+  /* 猫咪档案的数据（2026-11-23 用户：点开档案要等两秒）：
+   *  ① 每次拿到都存一份在本机（按是谁存：换了账号 / 游客不混用），下次一点开先摆上次的，服务器回来再换成新的；
+   *  ② 手指一按下左上角小鱼干就先去拿（松手时请求已经在路上了）；1.5 秒内的重复请求共用同一个；
+   *  ③ 本机还没存过（第一次玩）：主页面摆好后闲下来先拿一份 */
+  const PROF = 'zm.wprof.v1';
+  const who = () => { if (!loggedIn()) return 'd:' + deviceId(); const u = auth().getUser ? auth().getUser() : null; return 'a:' + ((u && (u.id || u.accountId)) || ''); };
+  let profP = null, profAt = 0;
+  function profile(fresh) {
+    if (!fresh && profP && Date.now() - profAt < 1500) return profP;
+    profAt = Date.now();
+    const me = who();
+    profP = post('profile').then((p) => { try { ls.set(PROF, JSON.stringify({ who: me, t: Date.now(), p })); } catch (_) { /* 存不下就算了 */ } return p; });
+    profP.catch(() => { profP = null; });
+    return profP;
+  }
+  function profileCached() {
+    try {
+      const c = JSON.parse(ls.get(PROF));
+      if (!c || !c.p || c.who !== who()) return null;
+      if (state && state.bal != null) c.p.bal = state.bal;   // 余额以左上角为准（存档之后可能又打了几局）
+      return c.p;
+    } catch (_) { return null; }
   }
   function openProfile() { if (root.ZhamaoProfile) root.ZhamaoProfile.open(); }
   function login() { if (auth() && auth().openLogin) auth().openLogin(); else openProfile(); }
@@ -406,7 +430,7 @@
     BASE, FISH, price, loggedIn, deviceId,
     state: () => state, onChange: (f) => listeners.push(f),
     me: refresh,
-    checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile: () => post('profile'), fb: (steps) => post('fb', { steps }).catch(() => null),
+    checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, fb: (steps) => post('fb', { steps }).catch(() => null),
     mountChip, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
     __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },
   };
