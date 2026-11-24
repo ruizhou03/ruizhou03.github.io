@@ -45,10 +45,13 @@
     return { row: m[1], pause: m[2] || d[0], rec: m[3] || d[1] };
   })();
   let hostPv = null;
-  /* 桌沿灯带 + 大厅重做（预览中，待用户挑；画法全在 gongzhu-rim-pv.js）：?gzrim=<a|b|c|d><1|2>，只写字母 = 大厅 1（d / e = 金线串座：线穿过头像，e 拐角更圆）。不带参数 = 现状 */
+  /* 桌沿金线 + 大厅名帖（画法全在 gongzhu-rim-pv.js）：2026-11-24 用户定 = f（三家在上、小圆角金线穿过四家头像、正菱形出牌区）+ 名帖大厅，不带参数就是这一套。
+   * 还能拿 ?gzrim=<a|b|c|d|e|f><1|2> 看别的版本对比；?gzrim=0 = 改版前的牌桌（没有金线） */
   const GZRIM = (() => {
-    const m = /^([abcdef])([12])?$/.exec(new URLSearchParams(location.search).get('gzrim') || '');
-    return m ? { rim: m[1], lobby: m[2] || '1' } : null;
+    const q = new URLSearchParams(location.search).get('gzrim');
+    if (q === '0') return null;
+    const m = /^([abcdef])([12])?$/.exec(q || '');
+    return m ? { rim: m[1], lobby: m[2] || '1' } : { rim: 'f', lobby: '2' };
   })();
   let rimPv = null;
   /* 局中菜单 / 顶栏 / 暂停页 / 单机身份预览（待用户挑）：?gzmenu=menu-a|b|c, bar-a|b, pause-a|b, me-a|b，逗号分隔可组合；进页面读一次，不带参数 = 现状 */
@@ -3805,9 +3808,11 @@
 
   function loadRimPv() {
     const v = '?v=' + (window.GZ_BUILD || VERSION);
-    const css = document.createElement('link');
-    css.rel = 'stylesheet'; css.href = '/assets/css/gongzhu-rim-pv.css' + v;
-    document.head.appendChild(css);
+    if (!document.querySelector('link[rel="stylesheet"][href*="gongzhu-rim-pv.css"]')) {
+      const css = document.createElement('link');
+      css.rel = 'stylesheet'; css.href = '/assets/css/gongzhu-rim-pv.css' + v;
+      document.head.appendChild(css);
+    }
     const js = document.createElement('script');
     js.src = '/assets/js/games/gongzhu-rim-pv.js' + v;
     js.onload = () => {
@@ -4866,7 +4871,12 @@
   }));
   initSocial();
   if (GZHOST) loadHostPv();
-  if (GZRIM) loadRimPv();
+  if (GZRIM) {
+    // 类名先挂上（样式表在页面里直接引入），第一次画桌就是新排法；金线那层 svg 等脚本到了再画，不会先显示旧布局再跳
+    const on = 'def'.includes(GZRIM.rim);
+    els.app.classList.add('gzr', 'gzr-' + (on ? 'a' : GZRIM.rim), 'gzr-lobby-' + GZRIM.lobby, ...(on ? ['gzr-on', 'gzr-' + GZRIM.rim] : []));
+    loadRimPv();
+  }
   $('gzChatBtn').addEventListener('click', () => { if (social && socialOk()) social.openChat($('gzChatBtn')); });
   els.seats[0].addEventListener('click', (e) => {
     if (!e.target.closest('.gz-avatar') || !match || match.tutorial || match.demo || match.lobby || AUTO) return;

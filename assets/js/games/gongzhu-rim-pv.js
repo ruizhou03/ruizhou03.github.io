@@ -445,6 +445,9 @@
     const ro = new ResizeObserver(() => layout());
     ro.observe(table);
     if (on) A.els.seats.forEach((el) => ro.observe(el));   // 串座：线跟着头像走，座位一变就重量
+    // 保险：字体到位后、以及每两秒都重量一次（头像挪了但座位尺寸没变时 ResizeObserver 不报；量一次很便宜，没变就什么都不做）
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => layout());
+    setInterval(() => { if (!document.hidden) layout(); }, 2000);
     const mo = new MutationObserver(() => paint());
     A.els.seats.forEach((el) => mo.observe(el, { attributes: true, attributeFilter: ['class'] }));
     mo.observe(root, { attributes: true, attributeFilter: ['class'] });

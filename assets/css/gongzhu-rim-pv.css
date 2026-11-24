@@ -140,12 +140,12 @@
   .gzr-e .gz-band { translate: 56px 0; }
   .gzr-e .gz-seat-me .gz-caps { translate: 0 -40px; }
   /* 甲（f）竖屏：三家照旧坐上面一排（吃牌照旧完整陈列在各自名字下面），线从三家头像中间穿过；左右两条边贴着桌框 */
-  .gzr-f .gz-seat-left, .gzr-f .gz-seat-right { align-items: center; padding: 0 0 4px; }
-  .gzr-f .gz-seat-left .gz-who, .gzr-f .gz-seat-right .gz-who { flex-direction: column; align-items: center; gap: 3px; }
-  .gzr-f .gz-seat-left .gz-name-line, .gzr-f .gz-seat-right .gz-name-line { align-items: center; }
-  .gzr-f .gz-seat-left > :not(.gz-who):not(.gz-lobby-seat), .gzr-f .gz-seat-right > :not(.gz-who):not(.gz-lobby-seat) { margin: 0; max-width: 100%; }
-  .gzr-f .gz-seat-left .gz-lobby-seat, .gzr-f .gz-seat-right .gz-lobby-seat { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 8px 6px; }
-  .gzr-f .gz-seat-left .gz-lobby-name, .gzr-f .gz-seat-right .gz-lobby-name { grid-row: auto; }
+  .gzr-on.gzr-f .gz-seat-left, .gzr-on.gzr-f .gz-seat-right { align-items: center; padding: 0 0 4px; }
+  .gzr-on.gzr-f .gz-seat-left .gz-who, .gzr-on.gzr-f .gz-seat-right .gz-who { flex-direction: column; align-items: center; gap: 3px; }
+  .gzr-on.gzr-f .gz-seat-left .gz-name-line, .gzr-on.gzr-f .gz-seat-right .gz-name-line { align-items: center; }
+  .gzr-on.gzr-f .gz-seat-left > :not(.gz-who):not(.gz-lobby-seat), .gzr-on.gzr-f .gz-seat-right > :not(.gz-who):not(.gz-lobby-seat) { margin: 0; max-width: 100%; }
+  .gzr-on.gzr-f .gz-seat-left .gz-lobby-seat, .gzr-on.gzr-f .gz-seat-right .gz-lobby-seat { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 8px 6px; }
+  .gzr-on.gzr-f .gz-seat-left .gz-lobby-name, .gzr-on.gzr-f .gz-seat-right .gz-lobby-name { grid-row: auto; }
 }
 /* 小计摊开层 */
 .gzr-tally-pop {
