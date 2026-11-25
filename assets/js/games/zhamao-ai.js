@@ -1018,7 +1018,9 @@
     const esc = cands.filter((m) => { const k = kindOf(m); return k && ESCAPE_KINDS.indexOf(k) >= 0 && escapeUseful(v, k); });
     // 改命不在 actCandidates 里（平时照普通的时机出），这里补上
     if (has(v, R.ALTER) && escapeUseful(v, R.ALTER)) { const m = playMove([one(v, R.ALTER)]); if (legal(m)) esc.push(m); }
-    const gain = cands.filter((m) => { const k = kindOf(m); return k === R.FAVOR || k === R.SWAP || m.cards.length >= 2; });
+    // 交换只有连逗猫棒一起换、对方手里有牌时才可能换来救命的逗猫棒；否则换了也白换（2026-11-25 用户见过必死局面 10 张换 2 张）
+    const swapHelps = (m) => !!(v.rules && v.rules.swapDefuse) && v.counts[m.target] > 0;
+    const gain = cands.filter((m) => { const k = kindOf(m); return k === R.FAVOR || (k === R.SWAP && swapHelps(m)) || m.cards.length >= 2; });
     const pool = esc.length ? esc : gain;
     if (!pool.length) return d;
     if (useBrain(v)) {
