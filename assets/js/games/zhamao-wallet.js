@@ -24,18 +24,19 @@
   };
   const price = (tier, mode, n) => ((PRICE[mode] || PRICE.classic)[tier] || PRICE.classic.normal)[n <= 3 ? 0 : n <= 5 ? 1 : n <= 7 ? 2 : 3];
   /* 这局拿回多少（同 lib/zhamao-econ.js payout，一字不差）：结算页一出来就用它当场算好余额，不等服务器（2026-11-23 用户：排行榜出来那一下就要结算） */
-  const RANK_MULT = {
-    2: [1.71, 0.25], 3: [1.75, 1.00, 0.25], 4: [1.81, 1.16, 0.82, 0.25], 5: [1.88, 1.21, 1.00, 0.74, 0.25],
-    6: [1.95, 1.22, 1.08, 0.91, 0.70, 0.25], 7: [2.03, 1.22, 1.12, 1.00, 0.86, 0.68, 0.25],
-    8: [2.11, 1.20, 1.13, 1.05, 0.95, 0.84, 0.68, 0.25], 9: [2.18, 1.17, 1.12, 1.06, 1.00, 0.92, 0.83, 0.70, 0.25],
+  const RANK_MULT = {   // 2026-11-25 用户挑乙：第二名 1.5、最后一名 0.4、第一名 2.0 + 0.15 ×（人数 − 1）
+    2: [2.15, 0.60], 3: [2.30, 1.50, 0.40],
+    4: [2.45, 1.50, 0.75, 0.40], 5: [2.60, 1.50, 1.12, 0.75, 0.40],
+    6: [2.75, 1.50, 1.25, 1.00, 0.75, 0.40], 7: [2.90, 1.50, 1.31, 1.12, 0.94, 0.75, 0.40],
+    8: [3.05, 1.50, 1.35, 1.20, 1.05, 0.90, 0.75, 0.40], 9: [3.20, 1.50, 1.38, 1.25, 1.12, 1.00, 0.88, 0.75, 0.40],
   };
   const TIER_K = { easy: 0.93, normal: 1, hard: 1.03 };
-  const nice = (x) => (x <= 0 ? 0 : x < 100 ? Math.round(x / 10) * 10 : x < 1000 ? Math.round(x / 50) * 50 : Math.round(x / 100) * 100);
+  const nice = (x) => (x <= 0 ? 0 : x < 100 ? Math.round(x / 10) * 10 : Math.round(x / 100) * 100);   // 同后端：100 以上到百（2026-11-25 用户）
   function payout(o) {
     const n = Math.max(2, Math.min(9, Number.isInteger(o.n) ? o.n : 4)), tier = TIER_K[o.tier] ? o.tier : 'normal';
     const p = price(tier, PRICE[o.mode] ? o.mode : 'classic', n);
     let m;
-    if (o.team) { const w = Math.max(1, Math.min(n - 1, o.team.winners || 1)); m = o.team.won ? (n * 0.97 - 0.3 * (n - w)) / w : 0.3; }
+    if (o.team) { const w = Math.max(1, Math.min(n - 1, o.team.winners || 1)); m = o.team.won ? (n * 1.25 - 0.6 * (n - w)) / w : 0.6; }   // 组队同后端 TEAM_R 1.25 / TEAM_LOSE 0.6（2026-11-25）
     else m = (RANK_MULT[n][Math.max(1, Math.min(n, o.rank | 0)) - 1] || 0) * TIER_K[tier];
     let pay = p * m;
     const a = Number(o.autoShare) || 0;
