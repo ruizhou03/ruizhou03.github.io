@@ -553,14 +553,15 @@ test('转向：方向反过来、结束一回合不摸牌；被甩锅时只顶�
   assert.equal(d2.turn, 1);
 });
 
-test('insertSeen (default on): public coarse height, random hides it, bots see top/bottom only, invalidated by draws / alter / shuffle', () => {
+test('insertSeen (default off since 2026-11-25; when on): public coarse height, random hides it, bots see top/bottom only, invalidated by draws / alter / shuffle', () => {
   const AI = require('../assets/js/games/zhamao-ai.js');
-  assert.equal(R.DEFAULT_RULES.insertSeen, true);
-  assert.equal(R.normalizeRules({}).insertSeen, true);
+  assert.equal(R.DEFAULT_RULES.insertSeen, false);
+  assert.equal(R.normalizeRules({}).insertSeen, false);
+  assert.equal(R.normalizeRules({ insertSeen: true }).insertSeen, true);
   assert.equal(R.normalizeRules({ insertSeen: false }).insertSeen, false);
   // 造一个「刚拆完炸毛猫、该塞回去」的局面
   function atDefuse(rules) {
-    const s = R.createGame(3, 11, rules);
+    const s = R.createGame(3, 11, Object.assign({ insertSeen: true }, rules));
     const me = s.turn;
     const boom = s.deck.find((id) => R.KIND_OF[id] === R.BOOM);
     s.deck.splice(s.deck.indexOf(boom), 1); s.deck.unshift(boom);

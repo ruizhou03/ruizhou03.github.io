@@ -119,8 +119,9 @@
     teamForm: ['2v2', '3v3', '4v4', '2v2v2', '2v2v2v2', '3v3v3'],
     teamSeat: ['together', 'random'],   // roles = 角色猫（2026-11-15）   // team = 2v2 组队（2026-11-15，只能 4 人：0、2 一队，1、3 一队）   // 2026-11-15：经典 / 百变（牌堆里加「百变」牌，打出就从百变规则堆里抽一条换上）   // 塞回炸毛猫看得出大概位置（2026-11-14 用户，默认开）：动画插在真实高度，像线下一样最上 / 最底一眼看得出、中间只能估；不报第几张。选「随机」的照旧看不出
   });
+  // 2026-11-25 用户：塞回炸毛猫默认看不出位置（insertSeen 默认关；设置里的开关叫「塞回看不出位置」，默认开）
   // 2026-11-13 起「多的逗猫棒全放回」默认开（每人先发 1 根逗猫棒，剩下的全洗回牌堆）
-  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std', insertSeen: true, mode: 'classic', teamForm: '2v2', teamSeat: 'together' });
+  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std', insertSeen: false, mode: 'classic', teamForm: '2v2', teamSeat: 'together' });
   const TEAM_FORMS = Object.freeze({ '2v2': [2, 2], '3v3': [3, 3], '4v4': [4, 4], '2v2v2': [2, 2, 2], '2v2v2v2': [2, 2, 2, 2], '3v3v3': [3, 3, 3] });
   const teamPlayers = (rules) => { const f = TEAM_FORMS[(rules && rules.teamForm) || '2v2'] || TEAM_FORMS['2v2']; return f.reduce((a, b) => a + b, 0); };
   /* 百变规则（2026-11-15 用户：不预告，打「百变」就抽一条，抽到什么算什么；桌上固定一张「百变规则」牌）。
