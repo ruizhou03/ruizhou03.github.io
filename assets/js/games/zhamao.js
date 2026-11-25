@@ -4355,6 +4355,8 @@
     let above;
     if (e.at != null) above = Math.max(0, Math.min(L0, e.at));   // 百变「明塞」：缝开在真实那一张
     else if (mateIns) above = Math.max(0, Math.min(L0, e.pos));
+    // 2026-11-25 用户：「塞回看不出位置」时我自己挑位置塞的，在我屏幕上照实开缝（我知道塞在哪；以前也开统一的缝，和自己选的对不上）。别人看到的照旧是统一的缝
+    else if (e.seat === 0 && e.pos != null && !e.rand) above = Math.max(0, Math.min(L0, e.pos));
     else if (e.vis == null) above = L0 - Math.max(1, Math.floor(L0 * 0.55));
     else above = Math.max(0, Math.min(L0, mine && e.pos != null ? e.pos : Math.round(e.vis * L0)));   // 单机里机器猫的事件也带 pos，别人塞的一律只按粗略高度（组队：队友塞的我看得准）
     const lid = layers.slice(L0 - above);
