@@ -803,7 +803,8 @@
     s.deck.splice(pos, 0, id);
     for (let k = 0; k < s.n; k++) s.memo[k].deck = s.memo[k].deck.filter((x) => x !== id);
     const last = s.deck.length - 1;
-    const vis = pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / Math.max(1, last)) * 8) / 8));
+    // 2026-11-25 用户：「塞回看不出位置」（insertSeen 关，默认）时九命 / 急救也一样看不出——不发高度，动画开统一的缝
+    const vis = rulesOf(s).insertSeen === false ? null : pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / Math.max(1, last)) * 8) / 8));
     s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
     s.peek = null;
     s.seq += 1;
@@ -889,7 +890,8 @@
     s.deck.splice(pos, 0, id);
     // 百变「火眼」（2026-11-16 用户：塞回的位置对所有人可见——第二只塞回去时第一只的位置不该跟着丢）：塞在哪大家都看见，
     // 原先记得的牌也就还记得（位置是按牌算的，插一张进来大家都知道它们往下挪了一格）；点「随机」/ 超时随机塞也照样可见
-    const exactAll = rulesOf(s).insertSeen === 'exact';
+    // 2026-11-25 用户：百变「透视」（顶上那张人人看得见）时塞在最上面，顶上那张一换大家立刻知道——这时也按精确的来（缝开在顶上、人人记住），逻辑统一
+    const exactAll = rulesOf(s).insertSeen === 'exact' || (s.flux === 'peektop' && pos === 0);
     // 组队（2026-11-18）：队友之间顶上几张的情报共享（窥探 / 改命都是），塞回去的位置也一样——队友看得见塞在第几张，原先记的也不乱
     const mates = matesOf(s, seat);
     if (!exactAll) for (let k = 0; k < s.n; k++) if (k !== seat && mates.indexOf(k) < 0) s.memo[k].deck = []; // 别人不知道塞在哪，原先记的位置全乱了
@@ -904,6 +906,7 @@
       const last = s.deck.length - 1;
       vis = pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / last) * 8) / 8));
     }
+    if (vis == null && exactAll && pos === 0) vis = 0;   // 透视 / 火眼塞在最上面：人人看得见，机器猫也当作知道
     // seen：别人「看得出」它在最上 / 最底（中间的看不准，不算知道）；之后从那头摸走一张、洗牌、改命、再塞一只就作废
     // vis 也放进公开历史：动画里人人看得到的那个粗略高度，机器猫也按它估（2026-11-14 重训）
     s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };

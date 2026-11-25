@@ -2798,7 +2798,7 @@
       case 'draw': return animDraw(e, t);
       case 'boom': return animBoom(e, t, next);
       case 'defuse': return animDefuse(e, t);
-      case 'insert': if (e.at != null && game) (game.openKits = game.openKits || new Set()).add(e.card); return animInsert(e, t);   // 百变「明塞」：塞完那张露一截在牌堆里（renderOpenKits）
+      case 'insert': if (e.at != null && game && game.state && game.state.flux === 'exact') (game.openKits = game.openKits || new Set()).add(e.card); return animInsert(e, t);   // 百变「明塞」：塞完那张露一截在牌堆里（renderOpenKits）
       case 'flux': return animFlux(e, t);
       case 'nine': return animNine(e, t);
       case 'askRescue': return animAskRescue(e, t);
