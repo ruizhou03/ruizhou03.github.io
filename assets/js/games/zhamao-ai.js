@@ -909,7 +909,7 @@
     }
     return f;
   }
-  const NORMAL_INS = (FXO && FXO.brainIns) || 'p';    // 普通塞猫：p = 和出牌同一比例用网络 / all / none（实测用）
+  const NORMAL_INS = (FXO && FXO.brainIns) || 'all';    // 普通塞猫：p = 和出牌同一比例用网络 / all / none（实测用）
   const HARD_INS = (FXO && FXO.hardIns) || 'brain';
   const INS_TEMP = FXO && FXO.insTemp != null ? FXO.insTemp : 0.02;   // 塞猫随机的温度（0 = 永远挑最高分）
   const ALTER_S = FXO && FXO.alterS != null ? FXO.alterS : 40;   // 高手改命每种排法推演几局（0 = 照规则）   // 高手塞猫：brain = 网络 / pimc = 原来的推演（实测用）
