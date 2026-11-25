@@ -130,6 +130,35 @@ test('iron rule: never draws a certain kitten without a defuse while holding a d
   assert.ok(seen > 5, 'too few doomed spots to test: ' + seen);
 });
 
+test('iron rule: never swaps a much bigger hand for a small one (self-play, roles, hard)', () => {
+  // 改之前：角色猫模式高手约 15% 的交换是「我换出去的比换过来的多 4 张以上」（例：11 张换 2 张）
+  const rules = Object.assign({}, R.DEFAULT_RULES, { mode: 'roles', swap: true, swapDefuse: true });
+  let swaps = 0;
+  for (let g = 0; g < 16; g++) {
+    const s = R.createGame(4, 1234 + g, rules);
+    const st = { rs: g + 9 }; const rng = () => R.rand(st);
+    let guard = 0;
+    while (s.phase !== 'over') {
+      assert.ok(++guard < 5000, 'runaway');
+      if (s.phase === 'react') {
+        for (const t of R.awaitingReaction(s)) { const d = A.decide(s, t, 'hard', rng); if (d.type === 'nope') { R.nope(s, t); break; } R.pass(s, t); }
+        if (R.reactionDone(s)) R.closeReaction(s);
+        continue;
+      }
+      const seat = R.whoActs(s)[0];
+      const d = A.decide(s, seat, 'hard', rng);
+      if (d.type === 'play' && d.cards.length === 1 && R.KIND_OF[d.cards[0]] === R.SWAP) {
+        swaps++;
+        const v = R.view(s, seat), mine = s.hands[seat].length - 1, theirs = s.hands[d.target].length;
+        const myDef = s.hands[seat].filter((id) => R.KIND_OF[id] === R.DEFUSE).length, thDef = v.handKnown[d.target].filter((id) => R.KIND_OF[id] === R.DEFUSE).length;
+        if (thDef <= myDef) assert.ok(mine < theirs + 3, `swapped ${mine} cards for ${theirs}`);
+      }
+      apply(s, seat, d);
+    }
+  }
+  assert.ok(swaps > 5, 'too few swaps to test: ' + swaps);
+});
+
 test('hard beats normal heads-up (sanity, small sample)', () => {
   let hard = 0;
   const G = 40;

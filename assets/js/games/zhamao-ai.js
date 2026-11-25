@@ -1030,12 +1030,44 @@
     for (const k of ESCAPE_KINDS) { const m = pool.find((x) => kindOf(x) === k); if (m) return m; }
     return pool[0];
   }
+  /* 铁律「不拿大手换小手」（用户 2026-11-25 反馈：手里 10 张去换只有 2 张的人）：交换时我换出去的牌比对方换过来的
+   * 多 3 张以上，就把这一步拿掉，在剩下的动作里挑（有网络按网络打分，没有就摸牌）。例外：连逗猫棒一起换、
+   * 对方身上看得见的逗猫棒比我多（换过来能救命）。实测高手在角色猫模式里约 15% 的交换是这种，经典 / 百变 / 组队几乎没有。 */
+  const SWAP_GAP = 3;
+  function swapMovable(v, t, sid) {   // [我换出去几张, 对方换过来几张]（逗猫棒不跟着换时各自留下）
+    const all = !!(v.rules && v.rules.swapDefuse);
+    const mine = v.hand.filter((id) => id !== sid && (all || K[id] !== R.DEFUSE)).length;
+    const theirs = Math.max(0, v.counts[t] - (all ? 0 : v.handKnown[t].filter((id) => K[id] === R.DEFUSE).length));
+    return [mine, theirs];
+  }
+  function badSwap(v, m) {
+    if (!m || m.type !== 'play' || m.cards.length !== 1 || K[m.cards[0]] !== R.SWAP || m.target == null) return false;
+    const [mine, theirs] = swapMovable(v, m.target, m.cards[0]);
+    if (mine < theirs + SWAP_GAP) return false;
+    if (v.rules && v.rules.swapDefuse) {
+      const myDef = v.hand.filter((id) => K[id] === R.DEFUSE).length, thDef = v.handKnown[m.target].filter((id) => K[id] === R.DEFUSE).length;
+      if (thDef > myDef) return false;
+    }
+    return true;
+  }
+  function guardSwap(state, seat, v, d) {
+    if (!badSwap(v, d)) return d;
+    const legal = (m) => m.type !== 'play' || !!R.checkPlay(state, seat, m.cards, m);
+    const pool = actCandidates(v).filter((m) => legal(m) && !badSwap(v, m));
+    if (useBrain(v) && pool.length) {
+      const sf = brainState(v);
+      let best = pool[0], bs = -Infinity;
+      for (const m of pool) { const sc = brainScore(v, sf, m); if (sc > bs) { bs = sc; best = m; } }
+      return best;
+    }
+    return DRAW;
+  }
   /* 一步到位：给定 state 和座位，按档位产出该座位此刻的决定（UI / 服务器用） */
   function decide(state, seat, tier, rng) {
     rng = rng || Math.random;
     const v = withSeen(R.view(state, seat));
     switch (state.phase) {
-      case 'act': return guardDoom(state, seat, v, actFor(v, tier, rng));
+      case 'act': return guardDoom(state, seat, v, guardSwap(state, seat, v, actFor(v, tier, rng)));
       case 'react': return { type: reactFor(v, tier, rng) ? 'nope' : 'pass' };
       case 'give': return { type: 'give', card: chooseGive(v, tier, rng) };
       case 'pick': return { type: 'pick', card: choosePick(v, tier, rng) };
