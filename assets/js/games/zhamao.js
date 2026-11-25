@@ -89,6 +89,8 @@
   if (settings.rulesV !== 2 && settings.rulesV !== 3) { settings.rules = Object.assign({}, settings.rules, { stackAttack: true }); settings.rulesV = 2; }
   // 2026-11-13 起「多的逗猫棒全放回」默认开：老设置里存的「最多放回 2 张」是当时的默认值，改成新默认（之后自己再关就记住）
   if (settings.rulesV !== 3) { settings.rules = Object.assign({}, settings.rules, { extraDefuse: 'all' }); settings.rulesV = 3; }
+  // 2026-11-25 用户：开关改成「塞回看不出位置」、默认打开（= 规则 insertSeen 默认关）；老设置里存的「看得出」是当时的默认值，改成新默认一次（之后自己再关就记住）
+  if (settings.hideInsV !== 1) { settings.rules = Object.assign({}, settings.rules, { insertSeen: false }); settings.hideInsV = 1; }
   settings.rules = R.normalizeRules(settings.rules);
   if (!(settings.players >= R.MIN_PLAYERS && settings.players <= R.MAX_PLAYERS)) settings.players = 4;
   if (AI.TIERS.indexOf(settings.tier) < 0) settings.tier = 'normal';
@@ -2796,7 +2798,7 @@
       case 'draw': return animDraw(e, t);
       case 'boom': return animBoom(e, t, next);
       case 'defuse': return animDefuse(e, t);
-      case 'insert': if (e.at != null && game) (game.openKits = game.openKits || new Set()).add(e.card); return animInsert(e, t);   // 百变「明塞」：塞完那张露一截在牌堆里（renderOpenKits）
+      case 'insert': if (e.at != null && game && game.state && game.state.flux === 'exact') (game.openKits = game.openKits || new Set()).add(e.card); return animInsert(e, t);   // 百变「明塞」：塞完那张露一截在牌堆里（renderOpenKits）
       case 'flux': return animFlux(e, t);
       case 'nine': return animNine(e, t);
       case 'askRescue': return animAskRescue(e, t);
@@ -5954,7 +5956,8 @@
       // 交换连逗猫棒一起换（2026-11-13 用户：以前玩的是整副手牌全换）；没开交换牌时这行藏着
       row('defuse', T('ui.set.swapDefuse', '交换时逗猫棒也换'), '', sw('swapDefuse', settings.rules.swapDefuse)).replace('<div class="zs-row"', '<div class="zs-row" data-dep="swap"' + (settings.rules.swap ? '' : ' hidden')) +
       // 2026-11-14 用户：塞回炸毛猫时动画插在真实高度（默认开），最上 / 最底看得出、中间只能估；不报第几张
-      row('boom', T('ui.set.insertSeen', '塞回看得出高低'), '', sw('insertSeen', R.normalizeRules(settings.rules).insertSeen)) +
+      // 2026-11-25 用户：改叫「塞回看不出位置」、默认开着；开 = 规则 insertSeen 关
+      row('boom', T('ui.set.hideIns', '塞回看不出位置'), '', sw('hideIns', R.normalizeRules(settings.rules).insertSeen === false)) +
       '</section>';
     // 「作废」什么时候问我（自己的偏好，单机联机都有）
     const nopeCard = '<div class="zs-cap">' + R.NAMES.nope + '</div><section class="zs-card">' +
@@ -6024,7 +6027,8 @@
         const on = b.getAttribute('aria-checked') !== 'true';
         b.setAttribute('aria-checked', String(on));
         const k = b.dataset.sw;
-        settings.rules[k] = k === 'extraDefuse' ? (on ? 'all' : 'two') : on;
+        if (k === 'hideIns') settings.rules.insertSeen = !on;
+        else settings.rules[k] = k === 'extraDefuse' ? (on ? 'all' : 'two') : on;
         d.querySelectorAll('[data-dep="' + k + '"]').forEach((x) => { x.hidden = !on; });
         snd('tap');
         persist();
@@ -8723,7 +8727,7 @@
       DECK_OPTS.map(([v, t]) => '<button type="button" data-deck="' + v + '" aria-pressed="' + (v === rules.deckSize) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
       row('swap', T('ui.set.swap', '有交换牌'), '', sw('swap', rules.swap)) +
       (rules.swap ? row('defuse', T('ui.set.swapDefuse', '交换时逗猫棒也换'), '', sw('swapDefuse', rules.swapDefuse)) : '') +
-      row('boom', T('ui.set.insertSeen', '塞回看得出高低'), '', sw('insertSeen', rules.insertSeen !== false)) +
+      row('boom', T('ui.set.hideIns', '塞回看不出位置'), '', sw('hideIns', rules.insertSeen === false)) +
       '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">' + T('lobby.hostRules', '规则由房主定') + '</p>') +
       '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">' + T('ui.leaveRoom', '离开房间') + '</button>' +
       (host && teamOn ? '<button type="button" class="zm-btn" data-l="tshuffle">' + T('lobby.shuffleTeams', '随机分队') + '</button>' : '') +
@@ -8760,7 +8764,7 @@
     if (b.dataset.rule) {
       const k = b.dataset.rule, on = b.getAttribute('aria-checked') !== 'true';
       b.setAttribute('aria-checked', String(on));
-      onlineAct('config', { config: { rules: { [k]: k === 'extraDefuse' ? (on ? 'all' : 'two') : on } } });
+      onlineAct('config', { config: { rules: k === 'hideIns' ? { insertSeen: !on } : { [k]: k === 'extraDefuse' ? (on ? 'all' : 'two') : on } } });
       return;
     }
     if (b.dataset.seat == null) return;

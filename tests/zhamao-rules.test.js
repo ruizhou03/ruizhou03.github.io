@@ -553,14 +553,15 @@ test('转向：方向反过来、结束一回合不摸牌；被甩锅时只顶�
   assert.equal(d2.turn, 1);
 });
 
-test('insertSeen (default on): public coarse height, random hides it, bots see top/bottom only, invalidated by draws / alter / shuffle', () => {
+test('insertSeen (default off since 2026-11-25; when on): public coarse height, random hides it, bots see top/bottom only, invalidated by draws / alter / shuffle', () => {
   const AI = require('../assets/js/games/zhamao-ai.js');
-  assert.equal(R.DEFAULT_RULES.insertSeen, true);
-  assert.equal(R.normalizeRules({}).insertSeen, true);
+  assert.equal(R.DEFAULT_RULES.insertSeen, false);
+  assert.equal(R.normalizeRules({}).insertSeen, false);
+  assert.equal(R.normalizeRules({ insertSeen: true }).insertSeen, true);
   assert.equal(R.normalizeRules({ insertSeen: false }).insertSeen, false);
   // 造一个「刚拆完炸毛猫、该塞回去」的局面
   function atDefuse(rules) {
-    const s = R.createGame(3, 11, rules);
+    const s = R.createGame(3, 11, Object.assign({ insertSeen: true }, rules));
     const me = s.turn;
     const boom = s.deck.find((id) => R.KIND_OF[id] === R.BOOM);
     s.deck.splice(s.deck.indexOf(boom), 1); s.deck.unshift(boom);
@@ -692,4 +693,35 @@ test('team "don\'t save me": nobody is asked, only teammates learn it was refuse
   assert.deepEqual(R.rescueWaiting(s), [1]);
   assert.throws(() => R.setNoHelp(rig([[C], [C]], [C]), 0, true));
   assert.ok(R.createGame(6, 7, { mode: 'team', teamForm: '3v3' }).noHelp.every((v) => v === false));
+});
+
+test('hidden insert (default, 2026-11-25): nine reinsert gives no height; peektop top insert and 火眼 are exact', () => {
+  function atDefuse(rules, flux, noDefuse) {
+    const s = R.createGame(3, 11, rules);
+    if (flux) s.flux = flux;
+    if (flux === 'nine') s.nineUsed = s.hands.map(() => false);
+    const me = s.turn;
+    const boom = s.deck.find((id) => R.KIND_OF[id] === R.BOOM);
+    s.deck.splice(s.deck.indexOf(boom), 1); s.deck.unshift(boom);
+    if (noDefuse) s.hands[me] = s.hands[me].filter((id) => R.KIND_OF[id] !== R.DEFUSE);
+    else if (!s.hands[me].some((id) => R.KIND_OF[id] === R.DEFUSE)) {
+      const def = ofKind(R.DEFUSE).find((id) => s.deck.includes(id));
+      s.deck.splice(s.deck.indexOf(def), 1); s.hands[me].push(def);
+    }
+    const ev = R.draw(s, me);
+    return { s, me, boom, ev };
+  }
+  const ins = (ev) => ev.find((e) => e.t === 'insert');
+  // 默认看不出：中间、最上都不发高度、不带 at
+  let t = atDefuse({}); let e = ins(R.insertKitten(t.s, t.me, 0)); assert.equal(e.vis, null); assert.equal(e.at, undefined);
+  // 透视：塞最上面 → 精确（at = 0，人人记住）；塞别处照样看不出
+  t = atDefuse({}, 'peektop'); e = ins(R.insertKitten(t.s, t.me, 0)); assert.equal(e.at, 0); assert.equal(e.vis, 0);
+  assert.ok(t.s.memo.every((m) => m.deck.includes(t.boom)));
+  t = atDefuse({}, 'peektop'); e = ins(R.insertKitten(t.s, t.me, 3)); assert.equal(e.at, undefined); assert.equal(e.vis, null);
+  // 火眼：塞哪儿都精确（随机塞也是）
+  t = atDefuse({}, 'exact'); e = ins(R.insertKitten(t.s, t.me, 3)); assert.equal(e.at, 3);
+  t = atDefuse({}, 'exact'); e = ins(R.insertKitten(t.s, t.me, 2, true)); assert.equal(e.at, 2);
+  // 九命：看不出时不发高度；看得出时照旧发
+  t = atDefuse({}, 'nine', true); let n = t.ev.find((x) => x.t === 'nine'); assert.ok(n); assert.equal(n.vis, null);
+  t = atDefuse({ insertSeen: true }, 'nine', true); n = t.ev.find((x) => x.t === 'nine'); assert.ok(n.vis != null);
 });
