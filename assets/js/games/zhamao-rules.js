@@ -119,8 +119,9 @@
     teamForm: ['2v2', '3v3', '4v4', '2v2v2', '2v2v2v2', '3v3v3'],
     teamSeat: ['together', 'random'],   // roles = 角色猫（2026-11-15）   // team = 2v2 组队（2026-11-15，只能 4 人：0、2 一队，1、3 一队）   // 2026-11-15：经典 / 百变（牌堆里加「百变」牌，打出就从百变规则堆里抽一条换上）   // 塞回炸毛猫看得出大概位置（2026-11-14 用户，默认开）：动画插在真实高度，像线下一样最上 / 最底一眼看得出、中间只能估；不报第几张。选「随机」的照旧看不出
   });
+  // 2026-11-25 用户：塞回炸毛猫默认看不出位置（insertSeen 默认关；设置里的开关叫「塞回看不出位置」，默认开）
   // 2026-11-13 起「多的逗猫棒全放回」默认开（每人先发 1 根逗猫棒，剩下的全洗回牌堆）
-  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std', insertSeen: true, mode: 'classic', teamForm: '2v2', teamSeat: 'together' });
+  const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std', insertSeen: false, mode: 'classic', teamForm: '2v2', teamSeat: 'together' });
   const TEAM_FORMS = Object.freeze({ '2v2': [2, 2], '3v3': [3, 3], '4v4': [4, 4], '2v2v2': [2, 2, 2], '2v2v2v2': [2, 2, 2, 2], '3v3v3': [3, 3, 3] });
   const teamPlayers = (rules) => { const f = TEAM_FORMS[(rules && rules.teamForm) || '2v2'] || TEAM_FORMS['2v2']; return f.reduce((a, b) => a + b, 0); };
   /* 百变规则（2026-11-15 用户：不预告，打「百变」就抽一条，抽到什么算什么；桌上固定一张「百变规则」牌）。
@@ -802,7 +803,8 @@
     s.deck.splice(pos, 0, id);
     for (let k = 0; k < s.n; k++) s.memo[k].deck = s.memo[k].deck.filter((x) => x !== id);
     const last = s.deck.length - 1;
-    const vis = pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / Math.max(1, last)) * 8) / 8));
+    // 2026-11-25 用户：「塞回看不出位置」（insertSeen 关，默认）时九命 / 急救也一样看不出——不发高度，动画开统一的缝
+    const vis = rulesOf(s).insertSeen === false ? null : pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / Math.max(1, last)) * 8) / 8));
     s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
     s.peek = null;
     s.seq += 1;
@@ -888,7 +890,8 @@
     s.deck.splice(pos, 0, id);
     // 百变「火眼」（2026-11-16 用户：塞回的位置对所有人可见——第二只塞回去时第一只的位置不该跟着丢）：塞在哪大家都看见，
     // 原先记得的牌也就还记得（位置是按牌算的，插一张进来大家都知道它们往下挪了一格）；点「随机」/ 超时随机塞也照样可见
-    const exactAll = rulesOf(s).insertSeen === 'exact';
+    // 2026-11-25 用户：百变「透视」（顶上那张人人看得见）时塞在最上面，顶上那张一换大家立刻知道——这时也按精确的来（缝开在顶上、人人记住），逻辑统一
+    const exactAll = rulesOf(s).insertSeen === 'exact' || (s.flux === 'peektop' && pos === 0);
     // 组队（2026-11-18）：队友之间顶上几张的情报共享（窥探 / 改命都是），塞回去的位置也一样——队友看得见塞在第几张，原先记的也不乱
     const mates = matesOf(s, seat);
     if (!exactAll) for (let k = 0; k < s.n; k++) if (k !== seat && mates.indexOf(k) < 0) s.memo[k].deck = []; // 别人不知道塞在哪，原先记的位置全乱了
@@ -903,6 +906,7 @@
       const last = s.deck.length - 1;
       vis = pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / last) * 8) / 8));
     }
+    if (vis == null && exactAll && pos === 0) vis = 0;   // 透视 / 火眼塞在最上面：人人看得见，机器猫也当作知道
     // seen：别人「看得出」它在最上 / 最底（中间的看不准，不算知道）；之后从那头摸走一张、洗牌、改命、再塞一只就作废
     // vis 也放进公开历史：动画里人人看得到的那个粗略高度，机器猫也按它估（2026-11-14 重训）
     s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
