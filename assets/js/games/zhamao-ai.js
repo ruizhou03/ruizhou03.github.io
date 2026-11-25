@@ -877,14 +877,20 @@
     return cands[bi];
   }
   // v2：塞炸毛猫的位置也让网络挑（pos = 塞之前牌堆的第几张，0 = 顶）。和训练场 feat.js insFeat / game.js netInsert 一致
-  function brainInsert(v) {
+  function brainInsert(v, rng) {
     const size = v.deckSize, rem = Math.max(0, (v.turnsLeft || 1) - 1);
     const cands = Array.from(new Set([0, 1, 2, 3, 4, 5, 6, rem, rem + 1, rem + 2, rem + 3, Math.floor(size / 2), size].filter((p) => p >= 0 && p <= size))).sort((a, b) => a - b);
     if (cands.length === 1) return cands[0];
     const B = brainOf(v), sf = brainState(v);
-    let bi = 0, bv = -Infinity;
+    let bi = 0, bv = -Infinity; const qs = [];
     for (let i = 0; i < cands.length; i++) {
-      const q = B.score(insVec(v, sf, cands[i])); if (q > bv) { bv = q; bi = i; }
+      const q = B.score(insVec(v, sf, cands[i])); qs.push(q); if (q > bv) { bv = q; bi = i; }
+    }
+    /* 2026-11-25 塞猫带随机（用户：机器猫老塞第二张，被摸透了）：分数和最高分差不多的位置按 exp(分差 / INS_TEMP) 抽。
+     * 研究版实测（推演老师 + 温度 0.02）对 S5 名次分 0.504，不掉分 */
+    if (rng && INS_TEMP > 0) {
+      const w = qs.map((q) => Math.exp((q - bv) / INS_TEMP)), tot = w.reduce((a, b) => a + b, 0);
+      let r = rng() * tot; for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return cands[i]; }
     }
     return cands[bi];
   }
@@ -904,7 +910,9 @@
     return f;
   }
   const NORMAL_INS = (FXO && FXO.brainIns) || 'p';    // 普通塞猫：p = 和出牌同一比例用网络 / all / none（实测用）
-  const HARD_INS = (FXO && FXO.hardIns) || 'brain';   // 高手塞猫：brain = 网络 / pimc = 原来的推演（实测用）
+  const HARD_INS = (FXO && FXO.hardIns) || 'brain';
+  const INS_TEMP = FXO && FXO.insTemp != null ? FXO.insTemp : 0.02;   // 塞猫随机的温度（0 = 永远挑最高分）
+  const ALTER_S = FXO && FXO.alterS != null ? FXO.alterS : 40;   // 高手改命每种排法推演几局（0 = 照规则）   // 高手塞猫：brain = 网络 / pimc = 原来的推演（实测用）
   const FLUX_INS_MAX_N = (FXO && FXO.fluxInsN) || 5;   // 百变几人起塞猫不交给网络（实测用）
   /* 组队 / 百变高手 = 只用网络（brain），不再接推演（pimc）：站点代码实测（2026-11-19）整队 vs 原普通队 2v2 / 3v3 / 2v2v2 / 4v4
    * 只用网络 66.7 / 72.3 / 51.8 / 74.5%，网络 + 推演 63.3 / 67.9 / 52.2 / 75.4%（原高手 51.7 / 54.2 / 36.7 / 57.1）；
@@ -960,15 +968,29 @@
   function insertFor(v, tier, rng) {
     rng = rng || Math.random;
     if (isV2(brainOf(v)) && !(isFlux(v) && v.n >= FLUX_INS_MAX_N)) {   // 塞猫跟出牌配套交给网络（v2 出牌是和网络塞猫一起练的，配原规则塞猫反而掉分）；百变 5 人以上网络塞猫反而略差
-      if (tier === 'hard' && HARD_INS === 'brain') return brainInsert(v);
-      if (tier === 'normal' && (NORMAL_INS === 'all' || (NORMAL_INS === 'p' && rng() < NORMAL_BRAIN_P))) return brainInsert(v);
+      if (tier === 'hard' && HARD_INS === 'brain') return brainInsert(v, rng);
+      if (tier === 'normal' && (NORMAL_INS === 'all' || (NORMAL_INS === 'p' && rng() < NORMAL_BRAIN_P))) return brainInsert(v, rng);
     }
     if (tier === 'hard' && !teamV(v)) return hardInsert(v, rng);   // 组队塞猫按普通的（搜索没增益，见 hardAct 上面）
     return polT(v, tier).insert(v, 'normal', rng);
   }
   function chooseGive(v, tier, rng) { return polT(v, tier).give(v, 'normal', rng || Math.random); }
   function choosePick(v, tier, rng) { return polT(v, tier).pick(v, 'normal', rng || Math.random); }
-  function chooseAlter(v, tier, rng) { return polT(v, tier).alter(v, 'normal', rng || Math.random); }
+  /* 2026-11-25 高手改命用推演排（用户：猫放第一张再打跳过不理性，人会把猫放第二 / 三张、自己摸一张安全的）：
+   * 顶上几张的每种排法都在同一批假想局面里打到底比名次分。研究版实测对 S5 名次分 0.504 / 开交换 0.514 / 组队胜率 50.7%，
+   * 猫放顶从 47% 降到 17%，多数放第 2、3 张后自己摸 */
+  function perms(a) { if (a.length <= 1) return [a.slice()]; const out = []; a.forEach((x, i) => perms(a.slice(0, i).concat(a.slice(i + 1))).forEach((p) => out.push([x].concat(p)))); return out; }
+  function hardAlter(v, rng) {
+    const cands = perms(v.alter.cards);
+    if (cands.length === 1) return cands[0];
+    const scores = evaluate(v, (s, o) => R.alterTop(s, v.me, o), cands, ALTER_S, rng);
+    return cands[argmax(scores)];
+  }
+  function chooseAlter(v, tier, rng) {
+    rng = rng || Math.random;
+    if (tier === 'hard' && ALTER_S > 0 && v.alter && v.alter.cards && v.alter.cards.length > 1) return hardAlter(v, rng);
+    return polT(v, tier).alter(v, 'normal', rng);
+  }
   function cardValue(hand, id) { return NB.cardValue(hand, id); }
   function topInfo(v) { return pol(v).topInfo(v); }
 
