@@ -1803,7 +1803,9 @@
   // 牌堆顶 N 张在牌堆上方掀起来摊一下（别人在看，我看不到正面），再放回去
   async function liftTop3(n, t) {
     if (fx.reduce() || !n) { await wait(ms(500)); return; }
-    const dr = deckTopRect(), u = dr.width * 0.82, cx = dr.left + dr.width / 2, cy = dr.top + dr.height / 2;
+    // 按放大前的牌堆大小抬（2026-11-26：牌堆放大后这三张跟着变大、抬得更高，手机横屏顶出屏幕上沿）；抬起后牌顶不出屏
+    const bs = U() * 0.92 / PU(), dr = deckTopRect(), u = dr.width * 0.82 * bs, cx = dr.left + dr.width / 2, cy = dr.top + dr.height / 2;
+    const up = Math.max(0, Math.min(dr.height * 0.95 * bs, cy - u * 0.7 - 6));
     const nodes = [];
     for (let i = 0; i < n; i++) {
       const d = document.createElement('div');
@@ -1813,7 +1815,7 @@
       els.fly.appendChild(d);
       nodes.push(d);
       const k = i - (n - 1) / 2;
-      d.animate([{ transform: 'none' }, { transform: 'translate(' + (k * u * 0.55).toFixed(1) + 'px,' + (-dr.height * 0.95).toFixed(1) + 'px) rotate(' + (k * 9) + 'deg)' }],
+      d.animate([{ transform: 'none' }, { transform: 'translate(' + (k * u * 0.55).toFixed(1) + 'px,' + (-up).toFixed(1) + 'px) rotate(' + (k * 9) + 'deg)' }],
         { duration: ms(360), delay: i * ms(60), easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'forwards' });
     }
     snd('whoosh');
@@ -5329,10 +5331,15 @@
      * 左右边界 = 和这一排同高的头像（含名字、手牌数）之间——竖屏时桌心是整宽的，只按桌心量会压住两侧靠上的头像 */
     let ceil = ccr0.top;
     for (const box of allSeatEls()) { const b = box.getBoundingClientRect(); if (b.width && b.bottom <= dtop.top && b.right > pr.left && b.left < pr.right) ceil = Math.max(ceil, b.bottom); }
-    let kw = pu0 * 0.82, rowY = dtop.top - pu0 * 0.78, rowMid = pr.left + pr.width / 2;
+    /* 炸毛猫按放大前的牌堆牌宽 pk 量、摆（2026-11-26：794edbe 牌堆放大 1.25 倍后还按 pu0 量，牌堆上方「放不下」，
+     * 竖屏小屏直接掉进「上面没地方」那支，炸毛猫摆到和牌堆同一行、压在牌堆底下）。从牌堆飞出来时仍从牌堆大小（pu0）缩过去 */
+    const pk = U() * 0.92;
+    let kw = pk * 0.82, rowY = dtop.top - pk * 0.78, rowMid = pr.left + pr.width / 2;
     if (rowY - kw * 0.7 < ceil + 6) {
-      const fit = (dtop.top - ceil - 14) / 1.4;
-      if (fit >= pu0 * 0.55) { kw = Math.min(kw, fit); rowY = (ceil + dtop.top) / 2; }   // 稍微挤：缩一点，摆在头像底和牌堆顶正中间
+      const fit = (dtop.top - ceil - 8) / 1.4;
+      // 竖屏一律摆在上面（再挤也只缩小、最小 0.45 张），不退到牌堆两边——竖屏两边太窄，退回去就压在牌堆底下（2026-11-26 用户：炸毛猫摆到牌堆正下方）
+      // 稍微挤：缩一点，摆在头像底和牌堆顶正中间
+      if (fit >= pk * 0.55 || innerHeight > innerWidth) { kw = Math.max(pk * 0.45, Math.min(kw, fit)); rowY = (ceil + dtop.top) / 2; }
       // 上面根本没地方（手机横屏：牌堆顶都顶到顶边那排头像了）：摆到牌堆两边（见下面 sides）
       else { rowY = pr.top + pr.height / 2; rowMid = ccr0.left + ccr0.width / 2; }
     }
@@ -5359,7 +5366,7 @@
       const room = Math.min(wl, nr ? wr : wl);
       // 一边 nl 张：kw + (nl-1)·gap ≤ room，gap 至少 0.42·kw（叠着也看得清是一只只的炸毛猫）
       const kwFit = Math.min(kw, room / (1 + Math.max(0, nl - 1) * 0.42));
-      if (kwFit >= pu0 * 0.6) {
+      if (kwFit >= pk * 0.6) {
         kw = kwFit;
         const g = nl > 1 ? Math.min(kw * 1.12, (room - kw) / (nl - 1)) : 0;
         // 两边离牌堆一样远：左边那扇的右缘贴 pb.l − 10，右边那扇的左缘贴 pb.r + 10
@@ -5846,14 +5853,18 @@
       els.fly.appendChild(s);
     });
   }
+  /* 改命抬起那一排的缩放：按放大前的牌堆牌宽 × 0.82 摆（2026-11-26：794edbe 牌堆放大 1.25 倍后这一排跟着变大，
+   * 小屏竖屏顶到上面那排头像、盖住名字） */
+  const altS = () => 0.82 * U() * 0.92 / PU();
   async function animAlterLift(e, t) {
     if (game.alterRow) { game.alterRow.forEach((n) => n && n.remove()); game.alterRow = null; }
     const k = e.count || (e.cards ? e.cards.length : 3);
     const r = deckTopRect(), c = fx.center(r), pu = PU();
     snd('peek');
     // 整排浮在牌堆顶上方、和牌堆之间留一道缝（不和牌堆压在一起，看着就是从牌堆里拿出来、举在上面）
-    const rowY = r.top - pu * 1.4 * 0.82 / 2 - 16;
-    const spots = Array.from({ length: k }, (_, i) => ({ x: c.x + (i - (k - 1) / 2) * pu * 0.9, y: rowY }));
+    const as = altS();
+    const rowY = r.top - pu * 1.4 * as / 2 - 16;
+    const spots = Array.from({ length: k }, (_, i) => ({ x: c.x + (i - (k - 1) / 2) * pu * as * 1.1, y: rowY }));
     const tf = liftTopFace();   // 透视：翻着的那张正面抬起来
     game.alterFace = tf;
     // 组队（2026-11-18 用户）：队友改命，那三张我也看得到——抬起来就翻成正面，他怎么排我看着（我不能动）
@@ -5861,15 +5872,15 @@
     game.alterOpen = open;
     if (ov) { ov.lifted = (ov.lifted || 0) + k; renderPiles(); }
     const nodes = await Promise.all(spots.map((p, i) => fx.fly(open
-      ? Object.assign({ html: cardHtml(open[i]), from: deckTopRect(), to: p, w: pu, s0: 1, s1: 0.82, r0: 0, r1: 0, dur: ms(420), delay: i * ms(90), lift: 16, keep: true, land: false }, i === 0 && tf != null ? {} : { back: backHtml(), flip: 'up', flipAt: 0.35 })
-      : { html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: deckTopRect(), to: p, w: pu, s0: 1, s1: 0.82, r0: 0, r1: 0, dur: ms(320), delay: i * ms(70), lift: 16, keep: true, land: false })));
+      ? Object.assign({ html: cardHtml(open[i]), from: deckTopRect(), to: p, w: pu, s0: 1, s1: altS(), r0: 0, r1: 0, dur: ms(420), delay: i * ms(90), lift: 16, keep: true, land: false }, i === 0 && tf != null ? {} : { back: backHtml(), flip: 'up', flipAt: 0.35 })
+      : { html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: deckTopRect(), to: p, w: pu, s0: 1, s1: altS(), r0: 0, r1: 0, dur: ms(320), delay: i * ms(70), lift: 16, keep: true, land: false })));
     if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
     game.alterRow = nodes;
     game.alterSpots = spots;
     if (open) {
       nodes.forEach((n, i) => { if (n && R.KIND_OF[open[i]] === R.BOOM) n.classList.add('zm-angry'); });
       if (open.some((id) => R.KIND_OF[id] === R.BOOM)) snd('gasp');
-      alterLabels(spots, pu);
+      alterLabels(spots, pu * as / 0.82);
     }
     if (e.seat !== 0) bubble(e.seat, '', { think: true, ms: open ? 2400 : 1400 });
     await wait(ms(160));
@@ -5897,7 +5908,7 @@
         const rr = n.getBoundingClientRect();
         n.remove();
         const moved = to[i] !== i;
-        return fx.fly({ html: cardHtml(open[i]), from: rr, to: spots[to[i]], w: pu, s0: rr.width / pu, s1: 0.82, r0: 0, r1: 0, dur: ms(moved ? 460 : 1), lift: moved ? (to[i] > i ? 1 : -1) * pu * 0.32 : 0, keep: true, land: false })
+        return fx.fly({ html: cardHtml(open[i]), from: rr, to: spots[to[i]], w: pu, s0: rr.width / pu, s1: altS(), r0: 0, r1: 0, dur: ms(moved ? 460 : 1), lift: moved ? (to[i] > i ? 1 : -1) * pu * 0.32 : 0, keep: true, land: false })
           .then((m) => { if (m && R.KIND_OF[open[i]] === R.BOOM) m.classList.add('zm-angry'); return m; });
       }));
       if (t !== token) { nodes.forEach((n) => n && n.remove()); alterLabels(null); return; }
@@ -5928,7 +5939,7 @@
         const rr = n.getBoundingClientRect();
         n.remove();
         const open = i === 0 && face0 != null;
-        return fx.fly({ html: open ? cardHtml(face0) : backHtml(), back: open ? backHtml() : undefined, flip: open ? 'down' : null, flipAt: 0.05, from: rr, to: spots[next[i]], w: pu, s0: rr.width / pu, s1: 0.82, r0: 0, r1: 0, dur: ms(300), lift: (i % 2 ? -1 : 1) * pu * 0.28, keep: true, land: false });
+        return fx.fly({ html: open ? cardHtml(face0) : backHtml(), back: open ? backHtml() : undefined, flip: open ? 'down' : null, flipAt: 0.05, from: rr, to: spots[next[i]], w: pu, s0: rr.width / pu, s1: altS(), r0: 0, r1: 0, dur: ms(300), lift: (i % 2 ? -1 : 1) * pu * 0.28, keep: true, land: false });
       }));
       at = next;
       if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
