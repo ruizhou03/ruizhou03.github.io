@@ -1908,6 +1908,7 @@
       await wait(ms(520));
       return fl.back();
     }
+    if (e.role === 'tabby' && e.miss) return tabbyMiss(e.seat, e.from, t);
     if (e.role === 'tabby') {   // 截胡猫：猫章一直亮着；顺走的那一张接着用偷牌同一个飞法（下一个事件 steal），飞完才收
       const fl = await flashRole(e.seat, t, 380);
       if (t !== token) return fl.back();
@@ -3069,7 +3070,6 @@
     if (e.t === 'play') game.nopeSeats = [];
     else if (e.t === 'nope') (game.nopeSeats = game.nopeSeats || []).push(e.seat);
     if (e.t === 'askGive') return animAskGive(e, t, prev);
-    if (e.t === 'resolve' && game.state.roles && game.nopeSeats && game.nopeSeats.length) return animResolve(e, t).then(() => tabbyMiss(e, t));
     if (e.t === 'give' && game.rolePop) return animTransfer(e, t, 'give').then(() => fatGave(e, t));
     if (e.t === 'steal' && game.rolePop) return animSteal(e, t).then(() => (t === token ? wait(ms(200)).then(rolePopDone) : null));
     switch (e.t) {
@@ -3811,14 +3811,9 @@
   }
   /* 截胡猫作废成功、可被作废的那人手里已经没牌（2026-11-26 用户：要表现出想顺没顺到）：猫章亮、紫色灯带照样连过去、
    * 猫爪伸过去扑了个空（在他头像上抓两下、什么都没叼到）缩回来，灯带黯淡着收回，猫章耷拉一下 */
-  async function tabbyMiss(e, t) {
-    const st = game.state, ns = game.nopeSeats || [], d = D();
-    game.nopeSeats = [];
-    for (let i = 0; i < ns.length; i++) {
-      const nx = ns[i];
-      if (R.roleOf(st, nx) !== 'tabby' || t !== token) continue;
-      const won = i % 2 === 0 ? e.cancelled : !e.cancelled, victim = i === 0 ? e.seat : ns[i - 1];
-      if (!won || victim === nx || victim < 0 || !(d.alive ? d.alive[victim] : true) || (d.counts && d.counts[victim] > 0)) continue;
+  // 2026-11-26 起由规则发事件（role tabby + miss）：原牌整个走完以后才判断顺不顺得到，界面不再自己在 resolve 时猜
+  async function tabbyMiss(nx, victim, t) {
+    {
       const fl = await flashRole(nx, t, 200);
       if (t !== token) return fl.back();
       releaseRim();
@@ -5104,7 +5099,14 @@
    * 开着（settings.nopeOthers 不是 true）= 只问和我有关的：我出的、指着我的、甩到我头上的（组队时含队友）；关掉 = 谁出牌都问。
    * 以前的细项（挑哪几种也问、牌堆剩两成时全都问）拿掉了。没设过的人（undefined）按新默认「只问和我有关的」；
    * 自己在设置里动过的保留：存的 false = 只问和我有关、true = 全都问 */
-  const nopeAskMode = () => (settings.nopeOthers === true ? 'all' : 'mine');
+  /* 角色模式里我是截胡猫（作废成功顺一张，2026-11-26 用户）：不管设置怎么设，这一局默认谁出牌都问；
+   * 局内我自己在设置里动了开关（game.nopeMine），这一局就按我动的来 */
+  const tabbyMe = () => { const s = game && game.state; return !!(s && s.roles && R.roleOf(s, 0) === 'tabby'); };
+  const nopeAskMode = () => {
+    if (game && game.nopeMine != null && tabbyMe()) return game.nopeMine ? 'mine' : 'all';
+    if (tabbyMe()) return 'all';
+    return settings.nopeOthers === true ? 'all' : 'mine';
+  };
   /* 就算和我无关也照问（2026-11-26 用户定）：五猫捡弃牌（能捡回逗猫棒 / 作废）、百变牌（全桌规则都变）、只剩两个人（对手出的每张牌都冲着我）。
    * 只看牌型和还剩几个人——都是公开信息，联机时「问了我」不泄露任何东西 */
   const alwaysAsk = (p, alive) => p.type === 'five' || p.type === R.FLUX || alive.filter(Boolean).length <= 2;
@@ -6763,7 +6765,7 @@
       '<section class="zs-card"><div class="zs-line"><span>' + T('ui.set.cardSize', '牌面大小') + '</span>' + segs('cardSize', [['s', T('ui.set.size.s', '小')], ['m', T('ui.set.size.m', '中')], ['l', T('ui.set.size.l', '大')]], sizeNow) + '</div>' +
       '<div class="zs-pv" data-size-prev>' + sizePreviewHtml(sizeNow) + '</div></section>' +
       // 作废提醒（单机联机都有）：开着 = 只问和我有关的（默认）
-      '<section class="zs-card">' + swRow('nope', T('ui.set.nopeMine', '只在直接和我相关时询问<span class="zs-nw">「作废」</span>'), 'data-nope-mine', settings.nopeOthers !== true) + '</section>';
+      '<section class="zs-card">' + swRow('nope', T('ui.set.nopeMine', '只在直接和我相关时询问<span class="zs-nw">「作废」</span>'), 'data-nope-mine', fromCover ? settings.nopeOthers !== true : nopeAskMode() === 'mine') + '</section>';
     // 联机坐着的人：观战者能不能看我的手牌
     const meP = online && online.st ? online.st.players.find((p) => p.id === online.st.me && !p.left) : null;
     if (meP) html += '<section class="zs-card">' + swRow('future', T('ui.set.reveal', '观战者能看我的手牌'), 'data-online-reveal', meP.showHand) + '</section>';
@@ -6800,6 +6802,7 @@
         const on = nopeSw.getAttribute('aria-checked') !== 'true';
         nopeSw.setAttribute('aria-checked', String(on));
         settings.nopeOthers = !on;
+        if (!fromCover && tabbyMe()) game.nopeMine = on;   // 截胡猫局里自己动了开关：这一局按他动的来
         saveSettings(); snd('tap');
       });
       d.querySelectorAll('[data-online-reveal]').forEach((b) => b.addEventListener('click', () => {
@@ -10138,6 +10141,8 @@
       rolecalicoplay: () => { setRole(0, 'calico'); give(0, 'orange'); give(0, 'tabby'); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], 'orange'), R.findKind(s.hands[0], 'tabby')], target: bot }); },   // 我是百搭猫、出两只不同的猫偷：桌上是两张万能猫，生效完刷回本身再进弃牌堆
       rolecalicome: () => { setRole(0, 'calico'); ['orange', 'cow', 'tabby', 'siamese', 'calico'].forEach((k) => give(0, k)); const ck = R.CATS.find((k) => s.deck.some((x) => R.KIND_OF[x] === k)); if (ck) top(ck); s.turn = 0; release(); renderAll(); },   // 我是百搭猫：手里的猫都画成万能猫，顶上放一张猫，摸进来会翻成万能猫
       rolecalico: () => { setRole(bot, 'calico'); give(bot, 'orange'); give(bot, 'siamese'); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], 'orange'), R.findKind(s.hands[bot], 'siamese')], target: 0 }); },
+      // 截胡猫作废了别人的作废：我的三张点名先整个走完（要到牌），再顺牌（2026-11-26 用户）
+      roletabbylate: () => { const o = 2 % s.n; setRole(o, 'tabby'); if (R.countKind(s.hands[o], R.NOPE) === 0) give(o, R.NOPE); if (R.countKind(s.hands[bot], R.NOPE) === 0) give(bot, R.NOPE); give(bot, R.SKIP); give(0, 'orange'); give(0, 'orange'); give(0, 'orange'); s.turn = 0; game.forceNope = [bot, o]; apply(0, { type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'orange').slice(0, 3), target: bot, named: R.SKIP }); },
       roletabby: () => { const o = 2 % s.n; setRole(o, 'tabby'); if (R.countKind(s.hands[o], R.NOPE) === 0) give(o, R.NOPE); give(bot, R.SKIP); s.turn = bot; game.forceNope = [o]; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
       roleshadow: () => { setRole(bot, 'shadow'); give(0, 'cow'); give(0, 'cow'); s.turn = 0; release(); renderAll(); step(); },
       boomme: () => { top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },

@@ -489,6 +489,7 @@
     if (s.peek && s.peek.by === seat && s.peek.act == null && s.peek.top === 0 && [ATTACK, TATTACK, SKIP, REVERSE, BOTTOM].indexOf(c.type) >= 0) s.peek.act = 'dodge';   // 看过顶上、接着就躲（大家都看得到）
     for (const id of cards) { s.hands[seat].splice(s.hands[seat].indexOf(id), 1); s.discard.push(id); forgetCard(s, id); }
     s.seq += 1;
+    s.tabbyLater = null;   // 上一张牌没走完就被打断（有人离场之类）：欠着的截胡不再补
     s.pending = {
       by: seat, type: c.type, cards: cards.slice(),
       target: c.needsTarget ? opts.target : -1, named: c.needsName ? opts.named : null,
@@ -538,24 +539,26 @@
     s.pending = null;
     s.phase = 'act';
     ev.push({ t: 'resolve', seat: p.by, type: p.type, cancelled, target: p.target, named: p.named });
-    // 角色猫「狸花」：作废成功（这张作废最后算数了）就顺手叼走被他作废的那个人一张随机的牌
+    // 角色猫「截胡猫」：作废成功（这张作废最后算数了）就顺走被他作废的那个人一张随机的牌。
+    // 2026-11-26 用户：原牌照常生效时（截胡猫作废了别人的作废），先让原牌整个走完（点名要到牌、索要给完、偷完、捡完、排完），再顺牌
+    const tabby = [];
     if (s.roles) p.nopes.forEach((nx, i) => {
       if (roleOf(s, nx.seat) !== 'tabby') return;
       const won = i % 2 === 0 ? cancelled : !cancelled;   // 第 1、3… 张作废是挡原牌的；第 2、4… 张是挡别人的作废
       const victim = i === 0 ? p.by : p.nopes[i - 1].seat;
-      if (!won || victim === nx.seat || !s.alive[victim] || !s.hands[victim].length) return;
-      const pick = s.hands[victim][(rand(s) * s.hands[victim].length) | 0];
-      moveCard(s, victim, nx.seat, pick, [nx.seat, victim]);
-      ev.push({ t: 'role', seat: nx.seat, role: 'tabby', from: victim });
-      ev.push({ t: 'steal', from: victim, to: nx.seat, card: pick, idx: 0, priv: [nx.seat, victim], role: 'tabby' });
+      if (won && victim !== nx.seat) tabby.push({ seat: nx.seat, victim });
     });
-    if (cancelled) return ev;
+    if (cancelled) { runTabby(s, tabby, ev); return ev; }
     const me = p.by;
     // 角色猫「黑猫」：第一次被索要 / 偷 / 点名——溜走了，什么都不发生
     if (p.type === 'pair' && p.target >= 0 && roleOf(s, p.target) === 'shadow') {   // 黑猫：两张偷牌整局都扑空
+      runTabby(s, tabby, ev);
       ev.push({ t: 'role', seat: p.target, role: 'shadow', by: me });
       return ev;
     }
+    // 抽底会摸牌（可能摸到炸弹猫、出局）：照旧先顺牌
+    if (p.type === BOTTOM) runTabby(s, tabby, ev);
+    else if (tabby.length) s.tabbyLater = tabby;
     switch (p.type) {
       case SKIP:
         endOneTurn(s, ev);
@@ -684,8 +687,21 @@
         }
         break;
     }
+    if (s.phase === 'act') runLater(s, ev);   // 要不要等：索要 / 偷牌 / 捡牌 / 改命还要人挑，挑完再顺
     return ev;
   }
+  /* 截胡猫顺牌：被作废的人还在场、手里有牌就随机顺一张；没牌了照样发事件（miss），界面演扑空 */
+  function runTabby(s, list, ev) {
+    for (const x of list) {
+      if (!s.alive[x.victim] || !s.alive[x.seat]) continue;
+      if (!s.hands[x.victim].length) { ev.push({ t: 'role', seat: x.seat, role: 'tabby', from: x.victim, miss: true }); continue; }
+      const pick = s.hands[x.victim][(rand(s) * s.hands[x.victim].length) | 0];
+      moveCard(s, x.victim, x.seat, pick, [x.seat, x.victim]);
+      ev.push({ t: 'role', seat: x.seat, role: 'tabby', from: x.victim });
+      ev.push({ t: 'steal', from: x.victim, to: x.seat, card: pick, idx: 0, priv: [x.seat, x.victim], role: 'tabby' });
+    }
+  }
+  function runLater(s, ev) { const l = s.tabbyLater; if (!l) return ev; s.tabbyLater = null; runTabby(s, l, ev); return ev; }
 
   function give(s, seat, id) {
     if (s.phase !== 'give' || s.give.from !== seat || s.hands[seat].indexOf(id) < 0) throw new Error('illegal give');
@@ -695,7 +711,7 @@
     if (s.give.left > 1 && s.hands[seat].length) { s.give.left -= 1; return [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }, { t: 'askGive', from: seat, to }]; }
     s.give = null;
     s.phase = 'act';
-    return [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }];   // 胖橘被索要不补牌（2026-11-15 平衡：索要本来就由他自己挑）
+    return runLater(s, [{ t: 'give', from: seat, to, card: id, priv: [seat, to] }]);   // 胖橘被索要不补牌（2026-11-15 平衡：索要本来就由他自己挑）
   }
 
   function pickDiscard(s, seat, id) {
@@ -708,7 +724,7 @@
     for (let k = 0; k < s.n; k++) learnHand(s, k, seat, id);
     s.pick = null;
     s.phase = 'act';
-    return [{ t: 'pick', seat, card: id }];
+    return runLater(s, [{ t: 'pick', seat, card: id }]);
   }
 
   /* 两张一样偷牌：点对方扣着的第 idx 张（perm 是开局就打乱好的顺序，idx 公开、是哪张只有两个人知道） */
@@ -720,8 +736,7 @@
     moveCard(s, from, seat, id, [seat, from]);
     s.steal = null;
     s.phase = 'act';
-    const ev = [{ t: 'steal', from, to: seat, card: id, idx, priv: [seat, from] }];
-    return ev;
+    return runLater(s, [{ t: 'steal', from, to: seat, card: id, idx, priv: [seat, from] }]);
   }
 
   /* 「重排」：按 order（就是 s.alter.cards 换个顺序）放回牌堆顶；别人之前知道的这几张的位置作废 */
@@ -736,7 +751,7 @@
     s.alter = null;
     s.phase = 'act';
     s.peek = { by: seat, kind: 'alter', top: 0, act: null };
-    return [{ t: 'altered', seat, cards: order.slice(), priv: [seat].concat(mates) }];
+    return runLater(s, [{ t: 'altered', seat, cards: order.slice(), priv: [seat].concat(mates) }]);
   }
 
   /* ───── 摸牌（结束一个回合） ───── */
