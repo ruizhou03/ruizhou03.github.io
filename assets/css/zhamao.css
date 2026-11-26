@@ -2004,8 +2004,6 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zr-mc { flex: none; display: grid; place-items: center; width: 34px; aspect-ratio: 100 / 130; box-sizing: border-box; border-radius: 7px; background: var(--bg); border: 1.5px solid #fff; box-shadow: 0 1px 3px rgba(29, 27, 24, 0.24); overflow: hidden; font-style: normal; }
 .zr-mc > svg { width: 90%; height: auto; display: block; }
 .zr-mc svg svg { width: 100%; height: 100%; }   /* 牌面插画套在状态图里（禁止圈、角上的眼）*/
-.zr-chip.is-chg .zr-mc { box-shadow: 0 0 0 2px #e2a23b, 0 1px 3px rgba(29, 27, 24, 0.24); }
-.zr-chip.is-chg small { color: #a87a22; font-weight: 700; }
 .zs-row > .zr-mc { width: 28px; }
 .zr-row .zs-txt b { font-size: 14.5px; }
 .zr-row .zs-seg { flex: none; margin: 0; border-width: 1px; border-radius: 10px; }
@@ -2023,18 +2021,12 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-setsheet.is-rulepg > :not(.zr-page):not(.zm-setsheet-grab):not(.zm-setsheet-x) { display: none; }
 .zm-setsheet .zr-page .zs-card { margin-top: 6px; }
 .zm-lobby-inner .zr-box { margin-top: 10px; }
-/* 设置里：牌面大小的整桌缩略预览 */
-.zs-pv { display: flex; justify-content: center; padding: 2px 0 12px; }
-.zs-pv-box { position: relative; overflow: hidden; border-radius: 12px; border: 1.5px solid var(--zm-ink); background: var(--zm-paper); box-shadow: 0 3px 10px rgba(29, 27, 24, 0.16); }
-.zs-pv-in { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; }
-.zs-pv-title { font-size: 21px; font-weight: 700; letter-spacing: 0.08em; white-space: nowrap; }
-.zs-pv-tool { display: block; border-radius: 50%; border: 1.5px solid var(--zm-ink); box-sizing: border-box; }
-.zs-pv-ring { display: block; box-sizing: border-box; border: 3px solid rgba(201, 169, 110, 0.55); border-radius: 34px; }
-.zs-pv-av { display: block; border-radius: 50%; overflow: hidden; background: var(--zm-wash); box-shadow: 0 0 0 2px var(--zm-paper); }
-.zs-pv-av svg { width: 100%; height: 100%; display: block; }
-.zs-pv-av.is-me { box-shadow: 0 0 0 3px var(--zm-seal); }
-.zs-pv-btn { display: block; box-sizing: border-box; border-radius: 999px; border: 1.5px solid rgba(29, 27, 24, 0.3); }
-.zs-pv-btn.is-dark { background: var(--zm-ink); border-color: var(--zm-ink); }
+/* 设置里：牌面大小的预览——牌堆 + 一手牌按实际大小摆，比框宽的两边淡出 */
+.zs-pv { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 0 -12px; padding: 8px 0 14px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent); }
+.zs-pv-piles, .zs-pv-hand { display: flex; align-items: center; flex: none; pointer-events: none; }
+.zs-pv-hand { align-items: flex-end; }
+.zs-pv .zm-card { flex: none; box-shadow: 0 2px 6px rgba(29, 27, 24, 0.14); }
 .zm-dialog.zs-b .zs-line .zs-seg { margin: 0; }
 .zm-dialog.zs-b .zs-row .zs-txt b { font-size: 14px; }
 .zs-nw { white-space: nowrap; }

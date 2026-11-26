@@ -6446,12 +6446,12 @@
   // 一排小规则牌。open = 整个白框是按钮（右上角「规则 ›」）；否则只读
   function ruleChipsHtml(rules, ts, open) {
     const r = R.normalizeRules(rules), t = ruleTs(ts);
-    const chip = (k, label, chg) => '<span class="zr-chip' + (chg ? ' is-chg' : '') + '">' + ruleFace(k, r, t) + '<small>' + label + '</small></span>';
+    const chip = (k, label) => '<span class="zr-chip">' + ruleFace(k, r, t) + '<small>' + label + '</small></span>';
     const chips = '<span class="zr-chips">' +
-      chip('timer', t ? T('ui.secs', '{n} 秒', { n: t }) : T('ui.set.noLimit', '不限时'), t !== RULE_DEF.turnSec) +
-      chip('deck', (DECK_OPTS.find(([v]) => v === r.deckSize) || DECK_OPTS[1])[1], r.deckSize !== RULE_DEF.deckSize) +
-      chip('swap', r.swap ? T('ui.rule.swapOn', '有交换') : T('ui.rule.swapOff', '无交换'), r.swap !== RULE_DEF.swap || r.swapDefuse !== RULE_DEF.swapDefuse) +
-      chip('boom', r.insertSeen ? T('ui.rule.insSeen', '塞回明') : T('ui.rule.insHid', '塞回暗'), r.insertSeen !== RULE_DEF.insertSeen) + '</span>';
+      chip('timer', t ? T('ui.secs', '{n} 秒', { n: t }) : T('ui.set.noLimit', '不限时')) +
+      chip('deck', (DECK_OPTS.find(([v]) => v === r.deckSize) || DECK_OPTS[1])[1]) +
+      chip('swap', r.swap ? T('ui.rule.swapOn', '有交换') : T('ui.rule.swapOff', '无交换')) +
+      chip('boom', r.insertSeen ? T('ui.rule.insSeen', '塞回明') : T('ui.rule.insHid', '塞回暗')) + '</span>';
     return open
       ? '<button type="button" class="zr-box" data-rules-open aria-label="' + T('ui.rules.edit', '规则') + '"><span class="zr-more">' + T('ui.rules.edit', '规则') + '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.2 2.2 8 6l-3.8 3.8"/></svg></span>' + chips + '</button>'
       : '<div class="zr-box is-ro">' + chips + '</div>';
@@ -6530,46 +6530,28 @@
     title: () => modeName(curMode()) + ' · ' + T('ui.rules.edit', '规则'),
   });
 
-  /* 牌面大小的预览：照这块屏幕、这一档的尺寸摆一整桌（标题、头像、牌堆、出牌区、按钮、一手 7 张牌），整体缩小放进设置里。
-   * 尺寸照 solveSize / CARD_SIZES 算，和真打时一个比例 */
-  function sizePreviewHtml(sz) {
-    const z = CARD_SIZES[sz] || CARD_SIZES.m;
-    const W = Math.round(Math.max(300, els.app.clientWidth || innerWidth)), H = Math.round(Math.max(300, els.app.clientHeight || innerHeight));
-    const land = W > H && H <= 540;
+  /* 牌面大小的预览（2026-11-26 用户：整桌缩小看不出小有多小、大有多大）：按真打时的实际像素摆——上面牌堆 + 出牌区，下面一手 7 张，
+   * 宽度和重叠都照这块屏幕算（同 solveSize / layoutHand）；比设置框宽的部分两边淡出裁掉。点小 / 中 / 大当场变大变小 */
+  function baseU() {
+    if (game && game.state) return U();   // 对局里：就用桌上现在的
+    const W = Math.round(els.app.clientWidth || innerWidth), H = Math.round(els.app.clientHeight || innerHeight);
     const tw = W - 24, th = H - 56;
-    let u;
-    if (land) u = Math.max(40, Math.floor(Math.min(tw / 9, (th - 130) / 3.7, 76)));
-    else { const av = tw < 500 ? 46 : 54; u = Math.max(46, Math.floor(Math.min(tw / 5.5, (th - (50 + av + 50 + 66 + 26 + 40)) / 3.4, 98))); }
-    const hu = Math.min(u * z[0], 120), pu = u * 0.92 * z[1], hh = hu * 1.4, av = land ? 40 : 46;
-    const abs = (x, y, w, h) => 'position:absolute;left:' + x.toFixed(1) + 'px;top:' + y.toFixed(1) + 'px' + (w != null ? ';width:' + w.toFixed(1) + 'px' : '') + (h != null ? ';height:' + h.toFixed(1) + 'px' : '');
-    const faces = AV ? (AV.BOT_TIERS && AV.BOT_TIERS[settings.tier] ? AV.BOT_TIERS[settings.tier].faces : AV.ROBOT || []) : [];
-    const face = (i) => (faces[i] ? faces[i].svg : '');
-    const meFace = profile.avatar && AV && AV.byId[profile.avatar] ? AV.byId[profile.avatar].svg : '';
-    const avatar = (x, y, svg, me) => '<i class="zs-pv-av' + (me ? ' is-me' : '') + '" style="' + abs(x - av / 2, y - av / 2, av, av) + '">' + svg + '</i>';
-    // 手牌：沿底边排，挤不下就一张压一张（照 layoutHand）
-    // 横屏：底下一行 = 我 + 手牌 + 摸牌 / 出牌；竖屏：手牌占满底边，按钮在上面一行
-    const bw = Math.min(110, W * (land ? 0.11 : 0.26)), btnH = 40;
-    const n = 7, hl = land ? av + 40 : 8, hr = land ? W - bw * 2 - 44 : W - 8, hw = hr - hl; let gap = 6;
+    if (LANDSCAPE_SHORT.matches) return Math.max(40, Math.floor(Math.min(tw / 9, (th - 130) / 3.7, 76)));
+    const av = tw < 500 ? 46 : 54;
+    return Math.max(46, Math.floor(Math.min(tw / 5.5, (th - (50 + av + 50 + 66 + 26 + 40)) / 3.4, 98)));
+  }
+  function sizePreviewHtml(sz) {
+    const z = CARD_SIZES[sz] || CARD_SIZES.m, u = baseU();
+    const hu = Math.min(u * z[0], 120), pu = u * 0.92 * z[1];
+    const W = Math.round(els.app.clientWidth || innerWidth);
+    // 手牌：横屏手牌一行两边让出头像和按钮；竖屏占满底边
+    const hw = LANDSCAPE_SHORT.matches ? W * 0.62 : W - 8, n = 7;
+    let gap = 6;
     if (n * hu + (n - 1) * gap > hw) gap = (hw - hu) / (n - 1) - hu;
-    const handW = n * hu + (n - 1) * gap, hx = hl + (hw - handW) / 2, hy = H - hh - 8;
-    const kinds = ['defuse', 'nope', 'attack', 'skip', 'favor', 'shuffle', 'future'];
-    let out = '<b class="zs-pv-title" style="' + abs(14, 12) + '">' + T('game.name', '百变小咪') + '</b>';
-    for (let i = 0; i < 3; i++) out += '<i class="zs-pv-tool" style="' + abs(W - 14 - 34 * (3 - i) - 8 * (2 - i), 10, 34, 34) + '"></i>';
-    // 桌沿（灯带）+ 三家对手 + 我
-    const rx0 = 20, ry0 = 74, rx1 = W - 20, ry1 = land ? hy - 16 : hy - btnH - 30;
-    out += '<i class="zs-pv-ring" style="' + abs(rx0, ry0, rx1 - rx0, ry1 - ry0) + '"></i>';
-    out += avatar(W / 2, ry0, face(0)) + avatar(rx0, (ry0 + ry1) / 2, face(1)) + avatar(rx1, (ry0 + ry1) / 2, face(2));
-    out += land ? avatar(hl / 2 + 4, hy + hh / 2, meFace, true) : avatar(W * 0.32, ry1, meFace, true);
-    // 牌堆 + 出牌区
-    const cy = (ry0 + ry1) / 2 - pu * 0.7;
-    out += backHtml('', abs(W / 2 - pu * 1.3, cy, pu) + ';--cw:' + pu.toFixed(1) + 'px');
-    out += cardHtml('skip', '', abs(W / 2 + pu * 0.3, cy, pu) + ';--cw:' + pu.toFixed(1) + 'px;rotate:4deg');
-    // 摸牌 / 出牌
-    const bx = land ? W - 2 * bw - 26 : W / 2 - bw - 4, by = land ? hy + hh / 2 - btnH / 2 : ry1 + 6;
-    out += '<i class="zs-pv-btn is-dark" style="' + abs(bx, by, bw, btnH) + '"></i><i class="zs-pv-btn" style="' + abs(bx + bw + 12, by, bw, btnH) + '"></i>';
-    kinds.forEach((k, i) => { out += cardHtml(k, '', abs(hx + i * (hu + gap), hy, hu) + ';--cw:' + hu.toFixed(1) + 'px;z-index:' + i); });
-    const box = land ? 236 : 132, k = box / W;
-    return '<div class="zs-pv-box" style="width:' + (W * k).toFixed(1) + 'px;height:' + (H * k).toFixed(1) + 'px" aria-hidden="true"><div class="zs-pv-in" style="width:' + W + 'px;height:' + H + 'px;transform:scale(' + k.toFixed(4) + ')">' + out + '</div></div>';
+    const cw = (k, w, extra) => cardHtml(k, '', '--cw:' + w.toFixed(1) + 'px' + (extra || ''));
+    const hand = ['defuse', 'nope', 'attack', 'skip', 'favor', 'shuffle', 'future'].map((k, i) => cw(k, hu, ';margin-left:' + (i ? gap.toFixed(1) : 0) + 'px;z-index:' + i)).join('');
+    return '<div class="zs-pv-piles" style="gap:' + (pu * 0.7).toFixed(1) + 'px">' + backHtml('', '--cw:' + pu.toFixed(1) + 'px;width:' + pu.toFixed(1) + 'px') + cw('skip', pu, ';rotate:4deg') + '</div>' +
+      '<div class="zs-pv-hand">' + hand + '</div>';
   }
 
   function showSettings(fromCover) {
@@ -6601,7 +6583,12 @@
           settings.cardSize = v; saveSettings(); applyCardSize();
           if (game && game.state) { solveSize(); renderAll(); }
           const pv = d.querySelector('[data-size-prev]');
-          if (pv) { pv.innerHTML = sizePreviewHtml(v); if (!fx.reduce()) pv.firstChild.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' }); }
+          if (pv) {   // 新尺寸从旧尺寸长过去，看得出变了多少
+            const old = pv.querySelector('.zm-card'), w0 = old ? old.offsetWidth : 0;
+            pv.innerHTML = sizePreviewHtml(v);
+            const nw = pv.querySelector('.zm-card'), w1 = nw ? nw.offsetWidth : 0;
+            if (w0 && w1 && !fx.reduce()) pv.querySelectorAll('.zs-pv-piles, .zs-pv-hand').forEach((el) => el.animate([{ transform: 'scale(' + (w0 / w1).toFixed(3) + ')' }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.25,1)' }));
+          }
           snd('tap');
           return;
         }
