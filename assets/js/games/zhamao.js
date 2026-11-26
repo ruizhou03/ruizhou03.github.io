@@ -2137,6 +2137,7 @@
     els.hand.classList.toggle('is-saving', saving);
     els.hand.classList.toggle('is-myturn', myTurnToAct() && !mode);
     layoutHand();
+    if (LOUPE) { bindLoupe(); els.hand.classList.toggle('is-crowded', handCrowded()); }
     if (prev.size && !fx.reduce()) {
       els.hand.querySelectorAll('.zm-card').forEach((c) => {
         const p = prev.get(c.dataset.id);
@@ -2158,6 +2159,91 @@
     let gap = 6;
     if (n * u + (n - 1) * gap > W) gap = (W - u) / (n - 1) - u;
     cards.forEach((c, i) => { c.style.marginLeft = i === 0 ? '0' : gap.toFixed(1) + 'px'; c.style.zIndex = i; });
+  }
+  /* ───── 手牌放大镜（2026-11-26 用户要试）─────
+   * 手牌多到一张压一张、每张只露不到 30px（约 10 张起，大屏 12 张起）时自动开：按住手牌左右滑，手指下那张抬起来，
+   * 手牌上方冒出一张放大的同一张牌跟着手指走；松手 = 点了这张（和平常点一下一样：抬起 / 放下 / 再点作废就打出）；
+   * 滑到手牌上方再松手 = 不算。轻点照旧。先挂开关预览：?loupe=1 打开（记在本机），?loupe=0 关掉 */
+  const LOUPE = (() => { try { if (/[?&]loupe=1\b/.test(location.search)) localStorage.setItem('zm.loupe', '1'); if (/[?&]loupe=0\b/.test(location.search)) localStorage.removeItem('zm.loupe'); return localStorage.getItem('zm.loupe') === '1'; } catch (_) { return /[?&]loupe=1\b/.test(location.search); } })();
+  const LOUPE_STEP = 30;   // 每张露出的宽度小于这个（px）就算挤
+  let loupe = null;   // { pid, x0, y0, t0, on, id, el, node }
+  const handCrowded = () => {
+    const cs = els.hand.querySelectorAll('.zm-card');
+    if (cs.length < 3) return false;
+    return cs[2].getBoundingClientRect().left - cs[1].getBoundingClientRect().left < LOUPE_STEP;
+  };
+  function loupeCardAt(x) {
+    const cs = Array.from(els.hand.querySelectorAll('.zm-card:not(.is-incoming)'));
+    let hit = null;
+    for (const c of cs) { const r = c.getBoundingClientRect(); if (x >= r.left) hit = c; }   // 后面的压着前面的：取左边沿在手指左边的最后一张
+    return hit || cs[0] || null;
+  }
+  function loupeShow(x) {
+    const c = loupeCardAt(x);
+    if (!c) return;
+    if (!loupe.node) {
+      loupe.node = document.createElement('div');
+      loupe.node.className = 'zm-loupe';
+      els.app.appendChild(loupe.node);
+    }
+    if (loupe.el !== c) {
+      if (loupe.el) loupe.el.classList.remove('is-scrub');
+      c.classList.add('is-scrub');
+      loupe.el = c; loupe.id = +c.dataset.id;
+      loupe.node.innerHTML = cardHtml(loupe.id);
+      if (!fx.reduce()) loupe.node.animate([{ transform: 'scale(.92)' }, { transform: 'none' }], { duration: 120, easing: 'ease-out' });
+      snd('tick');
+    }
+    const w = Math.min(HU() * 1.6, 150), h = w * 1.4, hr = els.hand.getBoundingClientRect(), fr = frameX(4);
+    const left = Math.max(fr.l, Math.min(fr.r - w, x - w / 2));
+    loupe.node.style.cssText = 'left:' + left.toFixed(1) + 'px;top:' + Math.max(8, hr.top - h - 6).toFixed(1) + 'px;--lw:' + w.toFixed(1) + 'px';
+    loupe.node.classList.toggle('is-off', loupe.cancel);
+  }
+  function loupeEnd(commit) {
+    if (!loupe) return;
+    const L = loupe; loupe = null;
+    els.hand.classList.remove('is-scrubbing');
+    if (L.el) L.el.classList.remove('is-scrub');
+    if (L.node) L.node.remove();
+    if (L.on) {
+      els.hand.dataset.eatClick = String(performance.now());   // 松手后浏览器还会补一个 click，吃掉
+      if (commit && !L.cancel && L.id != null) { const c = handCard(L.id); if (c) onCardTap(L.id, c); }
+    }
+  }
+  function bindLoupe() {
+    if (!LOUPE || els.hand.dataset.loupe) return;
+    els.hand.dataset.loupe = '1';
+    els.hand.addEventListener('pointerdown', (e) => {
+      if (e.button > 0 || !game || !handCrowded() || !e.target.closest('.zm-card')) return;
+      loupe = { pid: e.pointerId, x0: e.clientX, y0: e.clientY, on: false, cancel: false, id: null, el: null, node: null };
+      loupe.timer = setTimeout(() => { if (loupe && !loupe.on) { loupe.on = true; els.hand.classList.add('is-scrubbing'); loupeShow(loupe.x); } }, 260);   // 按住不动也开
+      loupe.x = e.clientX;
+      try { els.hand.setPointerCapture(e.pointerId); } catch (_) { /* */ }
+    });
+    els.hand.addEventListener('pointermove', (e) => {
+      if (!loupe || e.pointerId !== loupe.pid) return;
+      loupe.x = e.clientX;
+      if (!loupe.on && Math.abs(e.clientX - loupe.x0) > 6) { loupe.on = true; clearTimeout(loupe.timer); els.hand.classList.add('is-scrubbing'); }
+      if (!loupe.on) return;
+      loupe.cancel = e.clientY < els.hand.getBoundingClientRect().top - 10;   // 滑出手牌上沿 = 不算
+      loupeShow(e.clientX);
+    });
+    const up = (commit) => (e) => {
+      if (!loupe || e.pointerId !== loupe.pid) return;
+      clearTimeout(loupe.timer);
+      if (!loupe.on) {   // 轻点：按住时手牌抓着指针，浏览器补的 click 落不到牌上——这里按手指位置自己点那张，再吃掉补的 click
+        loupe = null;
+        els.hand.dataset.eatClick = String(performance.now());
+        const hit = commit && document.elementFromPoint(e.clientX, e.clientY);
+        const c = hit && hit.closest && hit.closest('.zm-hand .zm-card');
+        if (c) onCardTap(+c.dataset.id, c);
+        return;
+      }
+      loupeEnd(commit);
+    };
+    els.hand.addEventListener('pointerup', up(true));
+    els.hand.addEventListener('pointercancel', up(false));
+    els.hand.addEventListener('click', (e) => { const t = +els.hand.dataset.eatClick || 0; if (t && performance.now() - t < 400) { e.stopPropagation(); e.preventDefault(); els.hand.dataset.eatClick = ''; } }, true);
   }
   const handCard = (id) => els.hand.querySelector('[data-id="' + id + '"]');
   function handRectOf(id) { const c = handCard(id); return c ? c.getBoundingClientRect() : els.hand.getBoundingClientRect(); }
