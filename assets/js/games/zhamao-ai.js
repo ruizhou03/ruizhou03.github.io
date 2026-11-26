@@ -904,7 +904,8 @@
       const q = B.score(insVec(v, sf, cands[i])); qs.push(q); if (q > bv) { bv = q; bi = i; }
     }
     /* 2026-11-25 塞猫带随机（用户：机器猫老塞第二张，被摸透了）：分数和最高分差不多的位置按 exp(分差 / INS_TEMP) 抽。
-     * 研究版实测（推演老师 + 温度 0.02）对 S5 名次分 0.504，不掉分 */
+     * 研究版实测（推演老师 + 温度 0.02）对 S5 名次分 0.504，不掉分。
+   * 2026-11-26 用户要去套路：温度 0.02 → 0.035，高手塞顶 42% → 34%（经典 6400 局名次分 0.494 vs 对照 0.496）；0.05 塞顶 31% 但掉 0.7 个点 */
     if (rng && INS_TEMP > 0) {
       const w = qs.map((q) => Math.exp((q - bv) / INS_TEMP)), tot = w.reduce((a, b) => a + b, 0);
       let r = rng() * tot; for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return cands[i]; }
@@ -928,7 +929,7 @@
   }
   const NORMAL_INS = (FXO && FXO.brainIns) || 'all';    // 普通塞猫：p = 和出牌同一比例用网络 / all / none（实测用）
   const HARD_INS = (FXO && FXO.hardIns) || 'brain';
-  const INS_TEMP = FXO && FXO.insTemp != null ? FXO.insTemp : 0.02;   // 塞猫随机的温度（0 = 永远挑最高分）
+  const INS_TEMP = FXO && FXO.insTemp != null ? FXO.insTemp : 0.035;   // 塞猫随机的温度（0 = 永远挑最高分）
   const ALTER_S = FXO && FXO.alterS != null ? FXO.alterS : 40;   // 高手改命每种排法推演几局（0 = 照规则）   // 高手塞猫：brain = 网络 / pimc = 原来的推演（实测用）
   const FLUX_INS_MAX_N = (FXO && FXO.fluxInsN) || 5;   // 百变几人起塞猫不交给网络（实测用）
   /* 组队 / 百变高手 = 只用网络（brain），不再接推演（pimc）：站点代码实测（2026-11-19）整队 vs 原普通队 2v2 / 3v3 / 2v2v2 / 4v4
@@ -1121,8 +1122,17 @@
     const top = v.discard.length ? v.discard[v.discard.length - 1] : null;
     return top != null && K[top] === R.SHUFFLE;
   }
+  /* 2026-11-26 用户：百变「透视」顶上明摆着是逗猫棒，机器猫还打转向。顶上那张确定安全（透视 / 看过 / 别人塞回看得见）时，
+   * 跳过 / 转向 / 抽底 / 洗牌都是白扔一张牌（先摸安全的这张再说）。甩锅不挡（把回合压给下家本身有用）；百变「摸底」时摸的是底，不管顶。
+   * 网络在开交换 / 3 人局约 2% 会这么打；百变 6400 局名次分 0.495 vs 0.495 */
+  const SAFE_WASTE = new Set([R.SKIP, R.REVERSE, R.BOTTOM, R.SHUFFLE].filter(Boolean));
+  function badSafeEscape(v, m) {
+    if (!m || m.type !== 'play' || m.cards.length !== 1 || !SAFE_WASTE.has(K[m.cards[0]]) || v.flux === 'bottom' || !v.deckSize) return false;
+    const k0 = v.known.find((x) => x.pos === 0);
+    return !!k0 && K[k0.id] !== R.BOOM;
+  }
   function guardSwap(state, seat, v, d) {
-    const bad = (m) => badSwap(v, m) || badShuffle(v, m);
+    const bad = (m) => badSwap(v, m) || badShuffle(v, m) || badSafeEscape(v, m);
     if (!bad(d)) return d;
     const legal = (m) => m.type !== 'play' || !!R.checkPlay(state, seat, m.cards, m);
     const pool = actCandidates(v).filter((m) => legal(m) && !bad(m));
