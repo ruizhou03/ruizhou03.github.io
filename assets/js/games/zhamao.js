@@ -1785,8 +1785,14 @@
         if (!fx.reduce()) { rb.animate([{ transform: 'scale(1.45)' }, { transform: 'scale(1.85)', offset: 0.4 }, { transform: 'scale(1.35)', offset: 0.75 }, { transform: 'scale(1.45)' }], { duration: ms(480), easing: 'ease-out' }); roleWave(av, rb, tone.band); }
       },
       pip(k) { if (!pips) return; const ps = pips.querySelectorAll('i'); ps.forEach((p, i) => p.classList.toggle('is-on', i < k)); if (ps[k - 1]) fx.pop(ps[k - 1], { scale: 1.9, dur: 300 }); },
-      back() {
+      back(bo) {
         if (done) return done;
+        if (bo && bo.sad && !fx.reduce() && rb.isConnected) {   // 扑空（截胡猫没牌可顺、贪吃猫只要到一张）：猫章耷拉一下、灰一下再缩回
+          done = rb.animate([{ transform: 'scale(1.45)', filter: 'none' }, { transform: 'scale(1.25) translateY(3px) rotate(-14deg)', filter: 'grayscale(.85) brightness(.95)', offset: 0.35 }, { transform: 'scale(1.2) translateY(3px) rotate(-10deg)', filter: 'grayscale(.85) brightness(.95)', offset: 0.7 }, { transform: 'scale(1)', filter: 'none' }], { duration: ms(1000), easing: 'ease-in-out', fill: 'forwards' }).finished.catch(() => {})
+            .then(() => { rb.classList.remove('is-fire'); rb.getAnimations().forEach((a) => { if (!a.animationName) a.cancel(); }); });
+          if (pips) pips.remove();
+          return done;
+        }
         if (pips) pips.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(240), fill: 'forwards' }).finished.catch(() => {}).then(() => pips.remove());
         const shrink = fx.reduce() || !rb.isConnected ? Promise.resolve() : rb.animate([{ transform: 'scale(1.45)' }, { transform: 'scale(1)' }], { duration: ms(260), easing: 'cubic-bezier(.4,0,.3,1)', fill: 'forwards' }).finished.catch(() => {});
         done = shrink.then(() => { rb.classList.remove('is-fire'); rb.getAnimations().forEach((a) => { if (a.effect && a.effect.getKeyframes && !a.animationName) a.cancel(); }); });
@@ -1822,8 +1828,26 @@
       game.rolePop = { kind: 'tabby', seat: e.seat, fl };
       return;
     }
-    const fl = await flashRole(e.seat, t, 600);   // 影子猫等：只亮猫章
+    if (e.role === 'shadow') {   // 影子猫：两张偷牌指着它（老客户端 / 老服务器才会真指上）——猫章亮、头像化成影子晃一下，连线黯淡着缩回
+      const fl = await flashRole(e.seat, t, 0);
+      await shadowDodge(e.seat);
+      releaseRim({ dull: true });
+      return fl.back();
+    }
+    const fl = await flashRole(e.seat, t, 600);   // 百搭猫等：只亮猫章
     await fl.back();
+  }
+  // 影子猫「指不到」：头像淡成一道影子、左右一闪（像身形一晃躲开了），再显回来
+  function shadowDodge(seat) {
+    const av = avEl(seat);
+    if (!av || fx.reduce()) return wait(ms(500));
+    return av.animate([
+      { transform: 'none', opacity: 1, filter: 'none' },
+      { transform: 'translateX(-7px)', opacity: 0.3, filter: 'blur(1.5px) grayscale(.6)', offset: 0.3 },
+      { transform: 'translateX(6px)', opacity: 0.25, filter: 'blur(1.5px) grayscale(.6)', offset: 0.55 },
+      { transform: 'translateX(-2px)', opacity: 0.6, filter: 'blur(.5px)', offset: 0.8 },
+      { transform: 'none', opacity: 1, filter: 'none' },
+    ], { duration: ms(760), easing: 'ease-in-out' }).finished.catch(() => {});
   }
   // 牌堆顶 N 张在牌堆上方掀起来摊一下（别人在看，我看不到正面），再放回去
   async function liftTop3(n, t) {
@@ -2936,7 +2960,10 @@
     const prev = lastEv;
     lastEv = e;
     if (game.rolePop && !rolePopKeeps(game.rolePop, e)) rolePopDone();
+    if (e.t === 'play') game.nopeSeats = [];
+    else if (e.t === 'nope') (game.nopeSeats = game.nopeSeats || []).push(e.seat);
     if (e.t === 'askGive') return animAskGive(e, t, prev);
+    if (e.t === 'resolve' && game.state.roles && game.nopeSeats && game.nopeSeats.length) return animResolve(e, t).then(() => tabbyMiss(e, t));
     if (e.t === 'give' && game.rolePop) return animTransfer(e, t, 'give').then(() => fatGave(e, t));
     if (e.t === 'steal' && game.rolePop) return animSteal(e, t).then(() => (t === token ? wait(ms(200)).then(rolePopDone) : null));
     switch (e.t) {
@@ -3619,7 +3646,58 @@
     const c = rp.owe && rp.owe.querySelector('i:not(.is-gone)');
     if (c) { c.classList.add('is-gone'); c.animate([{ opacity: 1, transform: 'rotate(' + c.dataset.r + 'deg)' }, { opacity: 0, transform: 'rotate(' + c.dataset.r + 'deg) translateY(-8px) scale(.4)' }], { duration: ms(220), fill: 'forwards' }); }
     const s = game.state, more = rp.n < 2 && s.phase === 'give' && s.give && s.give.from === e.from && s.give.to === e.to;
+    if (!more && rp.n < 2) {   // 对方只剩一张、给完就空了：剩下那张小牌背抖两下散掉，粉色灯带黯淡着缩回，猫章耷拉一下（要不到第二张，有点失落）
+      const c2 = rp.owe && rp.owe.querySelector('i:not(.is-gone)');
+      await wait(ms(260));
+      if (c2 && !fx.reduce()) await c2.animate([{ transform: 'rotate(' + c2.dataset.r + 'deg)', opacity: 1 }, { transform: 'rotate(' + c2.dataset.r + 'deg) translateX(-3px)', offset: 0.2 }, { transform: 'rotate(' + c2.dataset.r + 'deg) translateX(3px)', offset: 0.4 }, { transform: 'rotate(' + c2.dataset.r + 'deg) translateX(-2px)', opacity: 0.8, offset: 0.6 }, { transform: 'rotate(' + c2.dataset.r + 'deg) translateY(6px) scale(.5)', opacity: 0 }], { duration: ms(620), fill: 'forwards' }).finished.catch(() => {});
+      if (t !== token || game.rolePop !== rp) return;
+      releaseRim({ dull: true });
+      game.rolePop = null;
+      if (rp.owe) rp.owe.remove();
+      await rp.fl.back({ sad: true });
+      return;
+    }
     if (!more) { await wait(ms(320)); if (game.rolePop === rp) rolePopDone(); }
+  }
+  /* 截胡猫作废成功、可被作废的那人手里已经没牌（2026-11-26 用户：要表现出想顺没顺到）：猫章亮、紫色灯带照样连过去、
+   * 猫爪伸过去扑了个空（在他头像上抓两下、什么都没叼到）缩回来，灯带黯淡着收回，猫章耷拉一下 */
+  async function tabbyMiss(e, t) {
+    const st = game.state, ns = game.nopeSeats || [], d = D();
+    game.nopeSeats = [];
+    for (let i = 0; i < ns.length; i++) {
+      const nx = ns[i];
+      if (R.roleOf(st, nx) !== 'tabby' || t !== token) continue;
+      const won = i % 2 === 0 ? e.cancelled : !e.cancelled, victim = i === 0 ? e.seat : ns[i - 1];
+      if (!won || victim === nx || victim < 0 || !(d.alive ? d.alive[victim] : true) || (d.counts && d.counts[victim] > 0)) continue;
+      const fl = await flashRole(nx, t, 200);
+      if (t !== token) return fl.back();
+      releaseRim();
+      game.rimLk = rimLink(nx, victim, false, (ART.ROLE_TONE.tabby || {}).band || '#6a4f86');
+      await wait(ms(420));
+      if (t !== token) return fl.back();
+      if (!fx.reduce()) {
+        const a = avPoint(nx), b = avPoint(victim), S = 54;
+        const paw = document.createElement('div');
+        paw.className = 'zm-prop zm-paw';
+        paw.innerHTML = window.ZhamaoFx.SHAPES.paw;
+        paw.style.width = paw.style.height = S + 'px';
+        els.fly.appendChild(paw);
+        const ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI + 90;
+        snd('swipe');
+        await fx.animate(paw, [
+          { transform: fx.T(a.x - S / 2, a.y - S / 2, 0.3, ang), opacity: 0 },
+          { transform: fx.T(a.x - S / 2, a.y - S / 2, 1, ang), opacity: 1, offset: 0.12 },
+          { transform: fx.T(b.x - S / 2, b.y - S / 2 - 12, 1.1, ang - 18), opacity: 1, offset: 0.4, easing: 'cubic-bezier(.5,0,.8,.4)' },
+          { transform: fx.T(b.x - S / 2 - 8, b.y - S / 2, 1, ang + 22), opacity: 1, offset: 0.52 },
+          { transform: fx.T(b.x - S / 2 + 8, b.y - S / 2, 1, ang - 22), opacity: 1, offset: 0.64 },
+          { transform: fx.T(b.x - S / 2, b.y - S / 2 + 4, 0.9, ang), opacity: 1, offset: 0.74 },
+          { transform: fx.T(a.x - S / 2, a.y - S / 2, 0.5, ang), opacity: 0 },
+        ], { duration: ms(1300), easing: 'ease-in-out' }).finished.catch(() => {});
+        paw.remove();
+      }
+      releaseRim({ dull: true });
+      await fl.back({ sad: true });
+    }
   }
 
 
@@ -5297,7 +5375,7 @@
     const b = seatEl(seat);
     if (!b.classList.contains('is-target')) {
       const st = game.state;
-      if (st.roles && R.roleOf(st, seat) === 'shadow' && st.alive[seat] && st.hands[seat].length && b.classList.contains('is-target-off')) { flashRole(seat, token, 700).then((fl) => fl.back()); return; }   // 影子猫：两张偷牌指不到它——点它 = 它亮一下牌告诉你为什么
+      if (st.roles && R.roleOf(st, seat) === 'shadow' && st.alive[seat] && st.hands[seat].length && b.classList.contains('is-target-off')) { flashRole(seat, token, 0).then((fl) => shadowDodge(seat).then(() => fl.back())); return; }   // 影子猫：两张偷牌指不到它——点它 = 它亮一下牌告诉你为什么
       shake(b); return;
     }
     const cb = targetCb;
@@ -9777,6 +9855,10 @@
       // 角色猫技能（2026-11-18 改版：亮牌 + 原动作）：who 那一家换成这只角色再演
       roletimid: () => { const nx = R.nextAlive(s, bot); setRole(nx, 'timid'); plays.attack(); },
       rolecow: () => { const nx = R.nextAlive(s, bot); setRole(nx, 'cow'); plays.attack(); },
+      // 角色边界（2026-11-26）：胆小猫牌堆只剩 2 张；贪吃猫索要的人只剩 1 张；截胡猫作废成功但对方已经没牌（扑空）；影子猫被两张偷牌指上
+      roletimidlow: () => { const nx = R.nextAlive(s, bot); setRole(nx, 'timid'); s.removed.push(...s.deck.splice(2)); plays.attack(); },
+      rolefatone: () => { setRole(0, 'fat'); give(0, R.FAVOR); s.removed.push(...s.hands[bot].splice(1)); s.turn = 0; renderAll(); apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.FAVOR)], target: bot }); },
+      roletabbymiss: () => { const o = 2 % s.n; setRole(o, 'tabby'); if (R.countKind(s.hands[o], R.NOPE) === 0) give(o, R.NOPE); s.removed.push(...s.hands[bot].splice(0)); give(bot, R.SKIP); s.turn = bot; game.forceNope = [o]; renderAll(); apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
       rolefat: () => { setRole(bot, 'fat'); plays.favor(); },
       rolefatme: () => { setRole(0, 'fat'); give(0, R.FAVOR); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.FAVOR)], target: bot }); },
       rolecalico: () => { setRole(bot, 'calico'); give(bot, 'orange'); give(bot, 'siamese'); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], 'orange'), R.findKind(s.hands[bot], 'siamese')], target: 0 }); },
