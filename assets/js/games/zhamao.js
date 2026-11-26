@@ -4668,27 +4668,43 @@
     wand.style.overflow = '';
     if (t !== token) { wand.remove(); return; }
     if (!(await defuseHero(e, t, c, W, wand))) return;
-    // 逗猫棒分回那两张，一起落进弃牌堆
-    // 先亮一下，再从中间往两边「拆」开（窄 → 宽，像从逗猫棒身后滑出来），带几粒小光点
-    await wand.animate([{ filter: 'none', scale: '1' }, { filter: 'brightness(1.9)', scale: '1.06' }], { duration: ms(160), easing: 'ease-in' }).finished.catch(() => {});
+    /* 逗猫棒分回那两张，一起落进弃牌堆（2026-11-26 用户：拆开那段衔接不顺）。和合成那四拍倒着来、而且一口气连下去：
+     * ① 侧身：身后绿金光重新亮起，逗猫棒侧过身去（转到侧面、变亮）——以前是整张泛白一闪、啪地换成两张，换牌那一下看得见
+     * ② 分身：侧到最窄那一刻换成叠着的两张（同样侧着、同样亮，看不出接缝），一小团光 + 几粒光点
+     * ③ 弹开：两张一边转回正面、一边沿小弧往两边上方分开，亮度退回去
+     * ④ 归堆：弹到头不再「回弹—停住—再起飞」，从那儿慢起步直接划弧落进弃牌堆（第二张晚一点点），身后光收掉 */
+    const lite2 = fx.reduce();
+    const aura2 = glowEl('aura', u * 2.6, 'radial-gradient(circle, rgba(233,212,106,.5) 0%, rgba(127,176,106,.28) 38%, rgba(127,176,106,0) 70%)');
+    const turn = ms(lite2 ? 100 : 240);
+    aura2.animate([{ opacity: 0, scale: '0.6' }, { opacity: 0.9, scale: '1' }], { duration: turn, easing: 'ease-out', fill: 'forwards' });
+    snd('whoosh');
+    await wand.animate([
+      { rotate: 'y 0deg', scale: '1', filter: 'none', boxShadow: GLOW0 },
+      { rotate: 'y 86deg', scale: '1.05', filter: 'brightness(1.45)', boxShadow: GLOW1 },
+    ], { duration: turn, easing: 'cubic-bezier(.5,0,.9,.6)', fill: 'forwards' }).finished.catch(() => {});
     wand.remove();
-    if (t !== token) return;
+    if (t !== token) { aura2.remove(); return; }
     const a2 = pinCard(cardHtml(e.card), c.x, c.y, W), b2 = pinCard(cardHtml(e.extra), c.x, c.y, W);
-    fx.burst(c.x, c.y, { n: 8, shapes: ['dot'], colors: ['#e9d46a', '#fff4c8', '#7fb06a'], radius: u * 0.7, size: [4, 8], life: 480 });
+    const core2 = glowEl('core', u * 1.5, 'radial-gradient(circle, #fff 0%, rgba(255,248,214,.9) 25%, rgba(243,221,120,.4) 50%, rgba(243,221,120,0) 70%)');
+    core2.animate([{ opacity: 0.9, scale: '0.5' }, { opacity: 0, scale: '1.4' }], { duration: ms(420), easing: 'ease-out', fill: 'forwards' }).finished.then(() => core2.remove(), () => core2.remove());
+    if (!lite2) fx.burst(c.x, c.y, { n: 10, shapes: ['dot', 'star'], colors: ['#e9d46a', '#fff4c8', '#7fb06a'], radius: u * 0.8, size: [4, 9], life: 520 });
+    const spread = ms(lite2 ? 140 : 300), dx = u * 0.55, dy = -u * 0.2;
     const part = (el, sd) => el.animate([
-      { translate: '0 0', rotate: '0deg', scale: '0.82 0.96', filter: 'brightness(1.8)' },
-      { translate: (sd * u * 0.42).toFixed(1) + 'px 0', rotate: (sd * 9) + 'deg', scale: '1.02 1', filter: 'brightness(1.05)', offset: 0.7 },
-      { translate: (sd * u * 0.38).toFixed(1) + 'px 0', rotate: (sd * 8) + 'deg', scale: '1', filter: 'none' },
-    ], { duration: ms(300), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+      { translate: '0 0', rotate: 'y ' + (-sd * 86) + 'deg', scale: '1.05', filter: 'brightness(1.45)', boxShadow: GLOW1 },
+      { translate: (sd * dx * 0.7).toFixed(1) + 'px ' + (dy * 1.1).toFixed(1) + 'px', rotate: 'z ' + (sd * 6) + 'deg', scale: '1.02', filter: 'brightness(1.12)', boxShadow: GLOW1, offset: 0.55 },
+      { translate: (sd * dx).toFixed(1) + 'px ' + dy.toFixed(1) + 'px', rotate: 'z ' + (sd * 8) + 'deg', scale: '1', filter: 'brightness(1)', boxShadow: GLOW0 },
+    ], { duration: spread, easing: 'cubic-bezier(.25,.7,.45,1)', fill: 'forwards' }).finished.catch(() => {});
     await Promise.all([part(a2, -1), part(b2, 1)]);
-    const r1 = a2.getBoundingClientRect(), r2 = b2.getBoundingClientRect();
-    a2.remove(); b2.remove();
-    if (t !== token) return;
+    if (t !== token) { a2.remove(); b2.remove(); aura2.remove(); return; }
+    aura2.animate([{ opacity: 0.9, scale: '1' }, { opacity: 0, scale: '1.3' }], { duration: ms(420), easing: 'ease-out', fill: 'forwards' }).finished.then(() => aura2.remove(), () => aura2.remove());
     const to = discardRect();
-    await Promise.all([
-      fx.fly({ html: cardHtml(e.card), from: r1, to, w: PU(), s0: W / PU(), s1: 1, r0: -8, r1: pileRot(e.card), dur: ms(360), lift: 30 }),
-      fx.fly({ html: cardHtml(e.extra), from: r2, to, w: PU(), s0: W / PU(), s1: 1, r0: 8, r1: pileRot(e.extra), dur: ms(360), delay: ms(80), lift: 30 }),
-    ]);
+    // 慢起步（弹开到头时速度是零，接着从零加速，不会一顿一冲）
+    const smooth = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
+    const P1 = { x: c.x - dx, y: c.y + dy }, P2 = { x: c.x + dx, y: c.y + dy };
+    const f1 = fx.fly({ html: cardHtml(e.card), from: P1, to, w: PU(), s0: W / PU(), s1: 1, r0: -8, r1: pileRot(e.card), dur: ms(420), lift: u * 0.35, swell: 0.03, easeFn: smooth });
+    const f2 = fx.fly({ html: cardHtml(e.extra), from: P2, to, w: PU(), s0: W / PU(), s1: 1, r0: 8, r1: pileRot(e.extra), dur: ms(420), delay: ms(60), lift: u * 0.35, swell: 0.03, easeFn: smooth });
+    a2.remove(); b2.remove();
+    await Promise.all([f1, f2]);
     if (t !== token || !ov) return;
     ov.discard.push(e.card, e.extra);
     renderPiles();
