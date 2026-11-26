@@ -157,8 +157,8 @@
     feedback: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#fffdf8" stroke="#1d1b18" stroke-width="1.5"/><path d="M9 10h.01M15 10h.01M9 15.5c2-1.4 4-1.4 6 0" stroke="#1d1b18" stroke-width="1.8" stroke-linecap="round"/></svg>',
     merge: '<svg viewBox="0 0 24 24"><path d="M6 4v6a6 6 0 0 0 6 6h6M14 12l4 4-4 4" fill="none" stroke="#1d1b18" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };
-  const LED = { newbie: 'newbie', checkin: 'checkin', ticket: 'ticket', win: 'win', online: 'win', firstwin: 'star', broke1: 'relief', relief: 'relief', feedback: 'feedback', badge: 'star', penalty: 'ticket', merge: 'merge', merged: 'merge', opened: 'merge' };
-  const LED_NAME = { newbie: '新手礼包', checkin: '签到', ticket: '门票', win: '名次奖励', online: '联机奖励', firstwin: '今日首胜', broke1: '第一次亏空', relief: '救济', feedback: '这步不对', badge: '徽章奖励', penalty: '中途离开', merge: '游客小鱼干并入', merged: '并入账号', opened: '账号钱包' };
+  const LED = { newbie: 'newbie', checkin: 'checkin', ticket: 'ticket', win: 'win', online: 'win', firstwin: 'star', broke1: 'relief', relief: 'relief', feedback: 'feedback', badge: 'star', penalty: 'ticket', refund: 'ticket', merge: 'merge', merged: 'merge', opened: 'merge' };
+  const LED_NAME = { newbie: '新手礼包', checkin: '签到', ticket: '门票', win: '名次奖励', online: '联机奖励', firstwin: '今日首胜', broke1: '第一次亏空', relief: '救济', feedback: '这步不对', badge: '徽章奖励', penalty: '中途离开', refund: '门票退回', merge: '游客小鱼干并入', merged: '并入账号', opened: '账号钱包' };
   // 徽章（规则在后端 lib/zhamao-econ.js BADGES，服务器判断、拿到时自动发奖励）：怎么拿 + 图
   const BADGE_ART = {
     streak7: ['连续签到 7 天', '#3f7a52', '<path d="M32 12l5 11 12 1-9 8 3 12-11-6-11 6 3-12-9-8 12-1Z"/>'],
