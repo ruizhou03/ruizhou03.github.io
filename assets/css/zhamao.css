@@ -1264,11 +1264,14 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
  * 泡：白底、2.2px 墨边、更圆、字大一号加粗、微微歪一点；我说的话朱红底白字。框：墨边圆角卡，词条本身是一个个小对白泡 */
 .zm-app .gz-sp-bubble { background: #fff; color: var(--zm-ink); padding: 6px 13px; border-radius: 18px; border: 2.2px solid var(--zm-ink); box-shadow: none; font-size: 15px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.35; rotate: -2deg; }
 .zm-app .gz-sp-bubble.is-dn { background: var(--zm-seal); border-color: var(--zm-seal); color: #fff; rotate: 1.5deg; }   /* 只有我自己的泡朝下（放在我头像上面） */
-.zm-app .gz-sp-bubble::after { width: 11px; height: 11px; background: inherit; border: 0 solid var(--zm-ink); }
-.zm-app .gz-sp-bubble.is-dn::after { bottom: -7.5px; border-right-width: 2.2px; border-bottom-width: 2.2px; border-color: var(--zm-seal); }
-.zm-app .gz-sp-bubble.is-up::after { top: -7.5px; border-left-width: 2.2px; border-top-width: 2.2px; }
-.zm-app .gz-sp-bubble.is-lf::after { left: -7.5px; border-left-width: 2.2px; border-bottom-width: 2.2px; }
-.zm-app .gz-sp-bubble.is-rt::after { right: -7.5px; border-right-width: 2.2px; border-top-width: 2.2px; }
+/* 气泡尾巴（2026-11-26 用户：形状不完善、左边的人气泡也指向右边）：以前是一块转 45° 的方块、只描两条边，接缝处断开、尖头发虚；
+ * 改成一条略弯的手绘尖尾（SVG），根部盖住气泡描边、两侧描边接上，像漫画对白框。根部中心落在 --tx / --ty（gongzhu-social.js 按头像位置算），
+ * 统一画成「朝下」，再按朝向转：朝下 0°、朝上 180°、朝左 90°、朝右 -90°（转轴是根部中心） */
+.zm-app .gz-sp-bubble::after { width: 20px; height: 13px; border: 0; right: auto; bottom: auto; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 13'%3E%3Cpath d='M0 0C5.5 1.5 9 5 9.5 12C11.5 6 14.5 2 20 0' fill='%23fff' stroke='%231d1b18' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%; transform-origin: 50% 0; }
+.zm-app .gz-sp-bubble.is-dn::after { left: var(--tx, 50%); top: 100%; transform: translateX(-50%); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 13'%3E%3Cpath d='M0 0C5.5 1.5 9 5 9.5 12C11.5 6 14.5 2 20 0' fill='%23b4392c' stroke='%23b4392c' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.zm-app .gz-sp-bubble.is-up::after { left: var(--tx, 50%); top: 0; transform: translateX(-50%) rotate(180deg); }
+.zm-app .gz-sp-bubble.is-lf::after { left: 0; top: var(--ty, 50%); transform: translateX(-50%) rotate(90deg); }
+.zm-app .gz-sp-bubble.is-rt::after { left: 100%; top: var(--ty, 50%); transform: translateX(-50%) rotate(-90deg); }
 .zm-app .gz-sp-chat { padding: 12px; border-radius: 20px; background: #fffdf8; outline: 0; border: 2.2px solid var(--zm-ink); box-shadow: 0 12px 26px rgba(29, 27, 24, 0.18); }
 .zm-app .gz-sp-chat .gz-sp-lines { gap: 9px 7px; padding-bottom: 3px; }
 .zm-app .gz-sp-chat .gz-sp-lines button { position: relative; padding: 5px 11px; border-radius: 14px; background: #fff; box-shadow: none; border: 1.6px solid var(--zm-ink); font-size: 13px; font-weight: 700; }

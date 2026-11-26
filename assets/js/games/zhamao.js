@@ -7510,6 +7510,7 @@
       root: els.app,
       avatar: (l) => (inLobby() ? lobbyEl.querySelector('.zm-lseat[data-seat="' + lobbySrv(l) + '"] .av') : avEl(l)),
       name: (l) => (inLobby() ? (lobbyPlayer(l) || {}).nick || '' : nameOf(l)),
+      label: (l) => { const a = inLobby() ? null : seatEl(l); return a && a.querySelector('.zm-name'); },   // 往下的聊天气泡放到名字下面
       canSend: socialOk,
       // 联机：我发的本机先画，同时发给服务器（座位换成服务器座位号）；别人的跟长轮询来（onFx）
       send(ev) {

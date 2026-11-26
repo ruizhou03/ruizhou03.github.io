@@ -259,24 +259,49 @@
       bubbles.set(l, b);
       host.sfx('bubble');
       const c = center(av), vw = window.innerWidth, vh = window.innerHeight;
-      // 头像在屏幕上部（对家；竖屏时三家都挤在上面一排）：气泡一律放头像下面，每个最多占三分之一屏宽，免得三家的气泡叠在一起
+      // 头像在屏幕上部（对家；竖屏时几家都挤在上面一排）：气泡一律放头像下面，宽度不超过和左右邻座的间距，免得几家的气泡叠在一起
       const high = l !== 0 && c.y < vh * 0.32;
-      if (high) b.style.maxWidth = Math.max(96, Math.min(190, vw / 3 - 8)) + 'px';
+      // 左右两边的座位：按头像在屏幕哪一半定朝向（左半边的气泡放头像右边、尾巴朝左指回来；右半边反过来）——不再按座位号猜，多人桌也对
+      const onLeft = c.x < vw / 2;
+      if (high) {
+        let gap = 200;
+        for (let k = 1; k < 16; k++) {
+          if (k === l) continue;
+          const o = host.avatar(k);
+          if (!o) { if (k > 4) break; continue; }
+          const oc = center(o);
+          if (Math.abs(oc.y - c.y) < c.r * 2) gap = Math.min(gap, Math.abs(oc.x - c.x));
+        }
+        b.style.maxWidth = Math.max(130, Math.min(190, gap - 10)) + 'px';   // 至少放得下一句短话不折行；几家同时说才会挨着
+      } else if (l !== 0) {
+        const room = (onLeft ? vw - (c.x + c.r + 12) : c.x - c.r - 12) - 6 - (c.r * 2 + 12);   // 留出对面那家头像，别把它盖住
+        b.style.maxWidth = Math.max(96, Math.min(190, room)) + 'px';
+      }
       const W = b.offsetWidth, H = b.offsetHeight;
+      // 头像底下有名字的（host.label）：往下的气泡放到名字下面，别把名字盖住
+      const lab = high && host.label ? host.label(l) : null, lr = lab && lab.getBoundingClientRect();
+      const below = Math.max(c.y + c.r, lr && lr.height ? lr.bottom : 0);
       let x, y, cls;
       if (l === 0) { x = c.x - 18; y = c.y - c.r - 12 - H; cls = 'is-dn'; }
-      else if (high) { x = c.x - W / 2; y = c.y + c.r + 12; cls = 'is-up'; }
-      else if (l === 3) { x = c.x + c.r + 12; y = c.y - H / 2; cls = 'is-lf'; }
+      else if (high) { x = c.x - W / 2; y = below + 12; cls = 'is-up'; }
+      else if (onLeft) { x = c.x + c.r + 12; y = c.y - H / 2; cls = 'is-lf'; }
       else { x = c.x - c.r - 12 - W; y = c.y - H / 2; cls = 'is-rt'; }
       const cx = Math.max(6, Math.min(vw - W - 6, x));
+      y = Math.max(6, Math.min(vh - H - 6, y));
       b.classList.add(cls);
-      if (cls === 'is-dn' || cls === 'is-up') b.style.setProperty('--tail', Math.max(10, Math.min(W - 22, c.x - cx - 6)) + 'px');
-      const a = b.animate(reduce() ? [{ opacity: 0 }, { opacity: 1, offset: 0.05 }, { opacity: 1, offset: 0.9 }, { opacity: 0 }].map((f) => Object.assign({ transform: 'translate(' + cx + 'px,' + y + 'px)' }, f)) : [
-        { transform: 'translate(' + cx + 'px,' + y + 'px) scale(.6)', opacity: 0 },
-        { transform: 'translate(' + cx + 'px,' + y + 'px) scale(1.04)', opacity: 1, offset: 0.05 },
-        { transform: 'translate(' + cx + 'px,' + y + 'px) scale(1)', opacity: 1, offset: 0.08 },
-        { transform: 'translate(' + cx + 'px,' + y + 'px) scale(1)', opacity: 1, offset: 0.9 },
-        { transform: 'translate(' + cx + 'px,' + (y - 6) + 'px) scale(1)', opacity: 0 },
+      if (cls === 'is-dn' || cls === 'is-up') {
+        b.style.setProperty('--tail', Math.max(10, Math.min(W - 22, c.x - cx - 6)) + 'px');
+        b.style.setProperty('--tx', Math.max(20, Math.min(W - 20, c.x - cx)) + 'px');   // 尾巴根部中心（zhamao 的画法用）
+      } else b.style.setProperty('--ty', Math.max(16, Math.min(H - 16, c.y - y)) + 'px');
+      // 样式里给气泡歪一点（CSS 的 rotate 属性）的：rotate 会先于 transform 生效、把整段平移也转歪（气泡往右下漂 10px 上下、贴边时出屏），挪进 transform 里平移之后再转
+      const rot = getComputedStyle(b).rotate, tilt = rot && rot !== 'none' ? ' rotate(' + rot + ')' : '';
+      if (tilt) b.style.rotate = 'none';
+      const a = b.animate(reduce() ? [{ opacity: 0 }, { opacity: 1, offset: 0.05 }, { opacity: 1, offset: 0.9 }, { opacity: 0 }].map((f) => Object.assign({ transform: 'translate(' + cx + 'px,' + y + 'px)' + tilt }, f)) : [
+        { transform: 'translate(' + cx + 'px,' + y + 'px)' + tilt + ' scale(.6)', opacity: 0 },
+        { transform: 'translate(' + cx + 'px,' + y + 'px)' + tilt + ' scale(1.04)', opacity: 1, offset: 0.05 },
+        { transform: 'translate(' + cx + 'px,' + y + 'px)' + tilt + ' scale(1)', opacity: 1, offset: 0.08 },
+        { transform: 'translate(' + cx + 'px,' + y + 'px)' + tilt + ' scale(1)', opacity: 1, offset: 0.9 },
+        { transform: 'translate(' + cx + 'px,' + (y - 6) + 'px)' + tilt + ' scale(1)', opacity: 0 },
       ], { duration: 3400, easing: 'ease-out', fill: 'both' });
       a.finished.then(() => { b.remove(); if (bubbles.get(l) === b) bubbles.delete(l); }, () => b.remove());
     }
