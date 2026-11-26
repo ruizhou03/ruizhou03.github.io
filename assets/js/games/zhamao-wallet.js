@@ -93,7 +93,11 @@
     listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } });
   }
   // 手机上的日历日（2026-11-23 用户：签到按用户当地日期算，不按北京时间；服务器只认「世界上某个时区此刻的日期」）
-  const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  // 2026-11-26 用户：新的一天从凌晨 4 点算（按手机当地时间）——4 点以前还算昨天。后端同规则（lib/zhamao-econ.js）
+  const DAY_CUT = 4 * 3600e3;
+  const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const dayAt = (t) => ymd(new Date((t == null ? Date.now() : t) - DAY_CUT));
+  const today = () => dayAt();
   async function post(action, body, sync) {
     const b = Object.assign({ day: today(), tz: new Date().getTimezoneOffset() }, body || {});   // tz：服务器记下手机时区，联机结算时也按当地日期算首胜（2026-11-24）
     const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
@@ -236,7 +240,7 @@
   }
 
   // ── 主菜单左上角的小鱼干 ──
-  let chip = null;
+  let chip = null, coverEl = null;
   /* 小黄点（2026-11-22 用户挑甲）：只在「有东西可以领 / 可以看」时亮——今天还没签到，或者有拿到了还没看过的徽章。余额变了不亮点，靠数字滚动 */
   const seenBadges = () => { try { return JSON.parse(ls.get('zm.badges.seen')) || []; } catch (_) { return []; } };
   function markBadgesSeen(ids) { ls.set('zm.badges.seen', JSON.stringify(Array.from(new Set(seenBadges().concat(ids || []))))); paintChip(); }
@@ -381,7 +385,7 @@
   function fbUsed() {
     let n = 0;
     try { const o = JSON.parse(ls.get(FBK)); if (o && o.d === today()) n = o.n | 0; } catch (_) { /* */ }
-    try { const c = JSON.parse(ls.get(PROF)); if (c && c.p && c.who === who() && c.p.fbToday != null && c.t && ymd(new Date(c.t)) === today()) n = Math.max(n, c.p.fbToday | 0); } catch (_) { /* */ }
+    try { const c = JSON.parse(ls.get(PROF)); if (c && c.p && c.who === who() && c.p.fbToday != null && c.t && dayAt(c.t) === today()) n = Math.max(n, c.p.fbToday | 0); } catch (_) { /* */ }
     return n;
   }
   function fbAward(host, before) {
@@ -430,12 +434,17 @@
     chip.hidden = true;
     cover.appendChild(chip);
     // 封面一藏起来（开局 / 进联机 / 进教程，不管从哪儿走的）：小鱼干的动画一律当场收掉，不带到下一页
-    if (root.MutationObserver) new MutationObserver(() => { if (cover.hidden) cancelFx(); }).observe(cover, { attributes: true, attributeFilter: ['hidden'] });
+    // 回到主页面（2026-11-26 用户：打完牌回主页面，鱼数突然往上涨）：这局的加减牌桌左上角已经放过了，主页面这个直接摆成现在的数，不再游一遍
+    if (root.MutationObserver) new MutationObserver(() => { if (cover.hidden) cancelFx(); else if (chip && state && state.bal != null) { shown = state.bal; chip.querySelector('b').textContent = fmt(state.bal); } }).observe(cover, { attributes: true, attributeFilter: ['hidden'] });
+    coverEl = cover;
     if (!state) syncing = true;   // 本机没有这个身份的余额：先显示加载，不摆别人的数
     paintChip();
     listeners.push(paintChip);
     // 档案数据闲下来先拿一份：本机没存过、存的不是今天的、或存了超过一分钟（2026-11-26 用户：进档案要已经是好的）
-    refresh().then(() => { if (syncing && syncP === first) { syncing = false; paintChip(); } }).then(retryPending).then(() => { if (profStale()) setTimeout(() => profile().catch(() => null), 1200); });
+    // 进游戏（加载条那会儿）：档案存的不是今天（凌晨 4 点换日）/ 超过一分钟 → 直接拉整份档案（里面就有余额），不然只对一下余额
+    (profStale() ? profile(true).catch(() => null) : refresh()).then(() => { if (syncing && syncP === first) { syncing = false; paintChip(); } }).then(retryPending);
+    // 切回来（锁屏 / 切 App 回来）且在主页面：档案旧了再拉一次。不轮询，打牌时不拉
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && coverEl && !coverEl.hidden && profStale()) profile(true).catch(() => null); });
     // 登录 / 登出之后：游客小鱼干并进账号（后端做），左上角跟着刷新
     // 换了身份（登录 / 登出 / 换账号）：旧身份那份余额当场收掉、左上角显示加载，等服务器（并完游客钱包）回来再摆——宁可转圈，不摆错的数
     if (auth() && auth().onChange) { let was = who(); auth().onChange(() => { const now = who(); if (now !== was) { was = now; switched(); } }); }
@@ -459,16 +468,15 @@
     profP.catch(() => { profP = null; });
     return profP;
   }
-  const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const prevDay = (day) => { const d = new Date(day + 'T12:00:00'); d.setDate(d.getDate() - 1); return ymd(d); };
   function profStale() {
-    try { const c = JSON.parse(ls.get(PROF)); return !c || !c.p || c.who !== who() || !c.t || ymd(new Date(c.t)) !== today() || Date.now() - c.t > 60e3; } catch (_) { return true; }
+    try { const c = JSON.parse(ls.get(PROF)); return !c || !c.p || c.who !== who() || !c.t || dayAt(c.t) !== today() || Date.now() - c.t > 60e3; } catch (_) { return true; }
   }
   /* 存的那份是昨天（或更早）拿的（2026-11-26 用户：新的一天进档案，签到要两三秒才能点）：
    * 按服务器同一套规则在本机先翻到今天——昨天签过连签接着算、断了归零；今日首胜「已领」清掉（待领的那份还在）。
    * 左上角那份（state）比存档新时，以它为准：今天已经签过 / 首胜刚领过 */
   function rollDay(p, t) {
-    const now = today(), then = t ? ymd(new Date(t)) : now;
+    const now = today(), then = t ? dayAt(t) : now;
     if (then < now) {
       if (p.checkin) {
         const keep = p.checkin.today && then === prevDay(now), streak = keep ? p.checkin.streak : 0, cyc = p.checkin.cycle || [];
@@ -479,7 +487,7 @@
       p.today = now;
     }
     if (state && p.checkin && state.ck === now && !p.checkin.today) { p.checkin = Object.assign({}, p.checkin, { today: true, streak: p.checkin.streak + 1 }); p.ckDays = (p.ckDays || []).concat(now); }
-    if (state && state.fw && state.t && state.t > (t || 0) && ymd(new Date(state.t)) === now) p.firstWin = Object.assign({}, p.firstWin || {}, state.fw);
+    if (state && state.fw && state.t && state.t > (t || 0) && dayAt(state.t) === now) p.firstWin = Object.assign({}, p.firstWin || {}, state.fw);
     return p;
   }
   function profileCached() {
@@ -600,7 +608,7 @@
     wt.est = { delta: pay - wt.price, pay, price: wt.price, firstWin: 0, bal: b0 + pay, est: true, auto: body.autoShare, floor };
     holdT();   // 牌桌左上角先停在结算前的数：等结算页一笔一笔游进去（服务器回来的余额不能先跳上去）
     if (state) state = Object.assign({}, state, { bal: wt.est.bal });   // 本机先记上（「再来一局」够不够按这个算），服务器回来会覆盖
-    const p = post('settle', body).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, badges: Array.isArray(r.badges) ? r.badges : [], bal: r.bal, auto: body.autoShare, floor }; dropPending(wt.tid); return wt.done; })
+    const p = post('settle', body, true).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, badges: Array.isArray(r.badges) ? r.badges : [], bal: r.bal, auto: body.autoShare, floor }; dropPending(wt.tid); return wt.done; })
       .catch((e) => {
         if (e.status === 409 || e.status === 403) { wt.done = { gone: true }; dropPending(wt.tid); return null; }
         keepPending(body);   // 网断了 / 服务器没回：记下来，下次打开游戏再补结算（票在服务器上留 12 小时）
@@ -680,6 +688,8 @@
       const bs = ((r && r.badges) || []).filter((id) => BMETA(id));
       bs.forEach((id) => { tQ = tQ.then(() => (gen === tGen ? wait(300).then(() => badgeShow(id, gen)) : null)); });
       tQ = tQ.then(() => { if (gen === tGen) releaseT(); });
+      // 看排行榜这会儿（2026-11-26 用户：最可能接着点回主页面 / 进档案）：后台把档案拉一份新的，进档案时流水不再跳
+      setTimeout(() => profile(true).catch(() => null), 300);
     };
     Promise.resolve(later()).then(finish, () => finish(null));
   }
@@ -843,7 +853,7 @@
     BASE, FISH, price, loggedIn, deviceId,
     state: () => state, onChange: (f) => listeners.push(f),
     me: refresh,
-    checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, synced, who, fb: (steps) => post('fb', { steps }).catch(() => null), fbAward,
+    checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, synced, who, today, fb: (steps) => post('fb', { steps }).catch(() => null), fbAward,
     ledger: (offset) => post('ledger', { offset }), costTag, tagHtml, onNoScore: null,
     mountChip, mountTable, tableStart, tableChip: () => tchip, badgeShow, claimFirstWin, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
     __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },

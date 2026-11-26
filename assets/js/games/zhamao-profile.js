@@ -209,7 +209,7 @@
   }
   /* 近四周（2026-11-24 用户：签了三天，底下格子只亮一个——以前这排是「每天打了几局」，看着像签到）：
    * 28 格 = 28 天（当地日期，最右是今天），签到过的那天涂黑。只表示签到（用户：标对局很 misleading，红点和图例都拿掉） */
-  const localToday = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const localToday = () => W().today();   // 凌晨 4 点换日（2026-11-26 用户）
   function actHtml(p) {
     const ck = new Set(p.ckDays || []), day0 = Date.parse((p.today || localToday()) + 'T00:00:00Z');
     let out = '';
@@ -350,7 +350,7 @@
   }
 
   // ── 面板 ──
-  let el = null, body = null, spark = null, last = null;
+  let el = null, body = null, spark = null, last = null, lastKey = '';
   function build() {
     if (el) return;
     const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
@@ -393,13 +393,14 @@
   function load(force) {
     if (!W()) return;
     W().profile(force).then((p) => {
-      if (!force && body.querySelector('[data-busy]')) return;   // 正在签到的动画：签到那边放完会自己再拉   // 正在签到的动画：签到那边放完会自己再拉
+      if (!force && body.querySelector('[data-busy]')) return;   // 正在签到的动画：签到那边放完会自己再拉
+      if (last && JSON.stringify(p) === lastKey) return;   // 和摆着的（后台预取的那份）一样：不重摆，流水不跳
       render(p);
     }).catch((e) => { if (e && e.message === 'who_changed') return; if (!last) body.innerHTML = '<div class="zmp-in zmp-card zmp-empty">连不上服务器，稍后再试</div>'; });
   }
   function render(p) {
     {
-      last = p;
+      last = p; lastKey = JSON.stringify(p);
       const keep = led.all.length > (p.ledger || []).length && led.all[0] && p.ledger && p.ledger[0] && led.all[0].at === p.ledger[0].at;   // 翻过页、又没有新流水：留着翻到的
       if (!keep) led = Object.assign({}, led, { all: (p.ledger || []).slice(), more: !!p.ledgerMore });
       body.innerHTML = html(p);
