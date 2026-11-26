@@ -152,7 +152,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 /* 2026-11-20 用户：出局的头像以前整颗半透明，桌沿灯带从头像底下透出来、像穿过去一样。现在圆底不透明（纸色，挡住灯带，和活着的人一样灯带在头像边上断开），只把脸褪灰 */
 .zm-seat.is-out .zm-av-face { filter: grayscale(1); opacity: 0.45; }
 .zm-seat.is-out .zm-name, .zm-seat.is-out .zm-tier { opacity: 0.45; }
-/* 头像旁的小气泡：装睡 Zz、偷牌落空… */
+/* 头像旁的小气泡：跳过 Zz、偷牌落空… */
 .zm-bubble {
   position: absolute; left: 50%; bottom: calc(100% - 6px); transform: translateX(-50%);
   background: var(--zm-card); border: 1.5px solid var(--zm-ink); border-radius: 12px; padding: 3px 9px;

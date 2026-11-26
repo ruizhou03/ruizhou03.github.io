@@ -1,7 +1,7 @@
 'use strict';
 
 /* 按牌桌调用钩子的方式把新手教程从头走到尾：只做剧本放行的操作，最后必须是我赢。
- * 2026-11-22 教程重做后只教核心 10 样（摸牌 / 炸毛猫 / 逗猫棒和塞回 / 窥探 / 装睡 / 作废 / 讨要 / 一对偷牌 / 甩锅），全程 12 句话 */
+ * 2026-11-22 教程重做后只教核心 10 样（摸牌 / 炸毛猫 / 逗猫棒和塞回 / 窥探 / 跳过 / 作废 / 索要 / 一对偷牌 / 甩锅），全程 12 句话 */
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const R = require('../assets/js/games/zhamao-rules.js');

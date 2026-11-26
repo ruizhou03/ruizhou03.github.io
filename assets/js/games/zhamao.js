@@ -3004,7 +3004,7 @@
     })));
   }
 
-  /* 装睡：头像歪头打盹，三个 Z 一个比一个大地往右上飘，一弯小月亮 */
+  /* 跳过：头像歪头打盹，三个 Z 一个比一个大地往右上飘，一弯小月亮 */
   async function fxSleep(seat, t) {
     snd('snore');
     const a = avPoint(seat), av = avEl(seat);
@@ -4562,7 +4562,7 @@
     ['triple', T('ui.nopeAlso.triple', '别人之间三张点名'), ['triple'], true],
     ['flux', T('ui.nopeAlso.flux', '别人打百变'), [R.FLUX], true],   // 2026-11-15 用户：百变也能作废——挡住别人换掉对我有利的规则
     ['pair', T('ui.nopeAlso.pair', '别人之间两张偷牌'), ['pair'], false],
-    ['favor', T('ui.nopeAlso.favor', '别人之间讨要'), [R.FAVOR], false],
+    ['favor', T('ui.nopeAlso.favor', '别人之间索要'), [R.FAVOR], false],
     ['attack', T('ui.nopeAlso.attack', '甩锅（不甩给我）'), [R.ATTACK, R.TATTACK], false],
     ['shuffle', R.NAMES.shuffle, [R.SHUFFLE], false],
     ['alter', R.NAMES.alter, [R.ALTER], false],
@@ -5941,7 +5941,7 @@
     const teamRules = ((game && game.state && game.state.rules) || settings.rules || {}).mode === 'team';
     return '<div class="zm-rules"><h2>' + T('rules.title', '怎么玩') + '</h2>' +
       (rolesHtml()) +
-      (teamRules ? '<h3>' + T('rules.team', '组队') + '</h3><ul>' + '<li>' + T('rules.team.1', '每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。') + '</li>' + '<li>' + T('rules.team.2', '出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。') + '</li>' + '<li>' + T('rules.team.3', '下家是队友时，普通「甩锅」和「装睡」都会坑到他——想躲就用「自由甩锅」甩给对手，或者先「转向」。') + '</li>' + '<li>' + T('rules.team.4', '队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸毛猫的位置你也知道。') + '</li>' + '<li>' + T('rules.team.5', '摸到炸毛猫又没有逗猫棒：你喊「救我！」，所有队友一起被问，谁先点「救」就用谁的逗猫棒，你自己把炸毛猫塞回去。没人救就出局。不管队友有没有逗猫棒，大家看到的都一样，对手看不出你们队还剩几根。') + '</li>' + '<li>' + T('rules.team.5b', '不想让队友在你身上耗逗猫棒：点你头像左上角的小逗猫棒，变灰划线就是「别救我」（随时能改回来）。队友头像上也会出现这个记号；真炸了时队友看到你喊「别救我！」、谁都不用想，你直接出局。对手看不到这个记号，炸的时候他们看到的仍是你喊救、没人救成。') + '</li>' + '<li>' + T('rules.team.6', '一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。') + '</li>' + '</ul>' : '') +
+      (teamRules ? '<h3>' + T('rules.team', '组队') + '</h3><ul>' + '<li>' + T('rules.team.1', '每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。') + '</li>' + '<li>' + T('rules.team.2', '出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。') + '</li>' + '<li>' + T('rules.team.3', '下家是队友时，普通「甩锅」和「跳过」都会坑到他——想躲就用「自由甩锅」甩给对手，或者先「转向」。') + '</li>' + '<li>' + T('rules.team.4', '队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸毛猫的位置你也知道。') + '</li>' + '<li>' + T('rules.team.5', '摸到炸毛猫又没有逗猫棒：你喊「救我！」，所有队友一起被问，谁先点「救」就用谁的逗猫棒，你自己把炸毛猫塞回去。没人救就出局。不管队友有没有逗猫棒，大家看到的都一样，对手看不出你们队还剩几根。') + '</li>' + '<li>' + T('rules.team.5b', '不想让队友在你身上耗逗猫棒：点你头像左上角的小逗猫棒，变灰划线就是「别救我」（随时能改回来）。队友头像上也会出现这个记号；真炸了时队友看到你喊「别救我！」、谁都不用想，你直接出局。对手看不到这个记号，炸的时候他们看到的仍是你喊救、没人救成。') + '</li>' + '<li>' + T('rules.team.6', '一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。') + '</li>' + '</ul>' : '') +
       '<p>' + T('rules.intro', '牌堆里藏着炸毛猫（比人数少一只）。轮到你时，可以出任意多张牌，也可以一张不出，<b>最后摸一张牌结束回合</b>。摸到炸毛猫、手里又没有逗猫棒，就出局。撑到最后的人赢。') + '</p>' +
       '<h3>' + T('rules.deal', '每人开局') + '</h3><ul><li>' + T('rules.deal.1', '4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸毛猫是里面还有几只。') + '</li></ul>' +
       '<h3>' + T('rules.cards', '牌') + '</h3><ul>' +
@@ -5951,7 +5951,7 @@
       li('attack', T('rules.card.attack', '结束回合、不摸牌，下家连着摸两回合（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）')) +
       li('tattack', T('rules.card.tattack', '同甩锅，但可以甩给任意一个人（点他的头像）')) +
       li('skip', T('rules.card.skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合')) +
-      li('reverse', T('rules.card.reverse', '出牌方向倒过来（对手之间的小箭头跟着掉头），并像装睡一样结束一个回合、不摸牌。被甩锅时只顶掉其中一回合；两个人玩就等于装睡')) +
+      li('reverse', T('rules.card.reverse', '出牌方向倒过来（对手之间的小箭头跟着掉头），并像跳过一样结束一个回合、不摸牌。被甩锅时只顶掉其中一回合；两个人玩就等于跳过')) +
       (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? li('flux', T('rules.card.flux', '转一次转盘，换上抽到的规则。能被作废')) : '') +
       li('swap', (() => { const r = (game && game.state && game.state.rules) || settings.rules; return T('rules.card.swap', '和指定的一个人整手交换手牌') + (r.swapDefuse ? T('rules.card.swap.wand', '（连逗猫棒一起换）') : T('rules.card.swap.keep', '（各自的逗猫棒不换）')) + (r.swap ? '' : T('rules.card.swap.off', '。设置里开了「有交换牌」才有')); })()) +
       li('favor', T('rules.card.favor', '指定一人，他自己挑一张给你')) +
@@ -6641,7 +6641,7 @@
     els.coach.classList.remove('is-hint');
     els.app.classList.add('is-coaching');   // 讲解（照拱猪）：字摆在正中，别的都蒙一层浅宣纸色
     // 正在讲的东西别蒙住：一句话可以写成 { t, focus: ['hand' | 'deck' | 'stage' | 'opps' | 'me' | 座位号…] }；
-    // 桌上刚出的牌（舞台）只要还摆着就一直亮着（「小橘出了【讨要】」时得看得见那张讨要）
+    // 桌上刚出的牌（舞台）只要还摆着就一直亮着（「小橘出了【索要】」时得看得见那张索要）
     const text = typeof m === 'string' ? m : m.t;
     setCoachFocus((m && m.focus) || []);
     els.coach.querySelector('.zm-coach-text').innerHTML = inlineCards(text);

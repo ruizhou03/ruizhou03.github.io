@@ -189,7 +189,7 @@
     return svg;
   }
   function skipArt() {
-    // 装睡：蜷成一团的猫，尾巴盖着脸，头顶「Z z」和一弯月亮
+    // 跳过：蜷成一团的猫，尾巴盖着脸，头顶「Z z」和一弯月亮
     let svg = ground();
     svg += '<ellipse cx="50" cy="72" rx="32" ry="18" fill="#9bb0cc"/>';
     svg += '<path d="M20 74c4 12 30 18 48 10" stroke="#7d93b2" stroke-width="9" stroke-linecap="round" fill="none"/>';
