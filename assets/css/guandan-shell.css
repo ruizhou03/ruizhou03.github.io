@@ -1,16 +1,17 @@
 /* 掼蛋 · 外壳（2026-11-26）：主页、设置单、☰ 菜单、设置卡、房间、出牌按钮——照百变小咪（zhamao.css）那套做。
  * 配色本来就是同一张「墨园宣纸」（guandan.css 顶上的 --gd-*），这里补的是小咪的形状和字：
- *   - 自带宋体（ZM Serif = 思源宋体子集，和小咪同一份文件；不在子集里的字逐字退回 Noto Serif SC）
+ *   - 自带宋体（GD Serif = 思源宋体子集，scripts/guandan-fonts.py 按掼蛋页面用字截出；数字沿用小咪的 ZM Num）
  *   - 大按钮：12px 圆角、1.5px 墨线，主按钮朱砂底；牌桌上的按钮是胶囊
  *   - 弹层：宣纸底 + 1px 墨线 + 大圆角；设置单从底下升起
  * 只管外壳，不碰牌桌网格和卡面（guandan.css / 规格第 1 节）。 */
 
-@font-face { font-family: 'ZM Serif'; font-weight: 400; font-style: normal; font-display: swap; src: url('/assets/fonts/zhamao/zm-serif-400.woff2') format('woff2'); }
-@font-face { font-family: 'ZM Serif'; font-weight: 700; font-style: normal; font-display: swap; src: url('/assets/fonts/zhamao/zm-serif-700.woff2') format('woff2'); }
+/* 2026-11-26：掼蛋自己的字体子集（scripts/guandan-fonts.py），小咪那份缺「示」「抗」「贡」等字 */
+@font-face { font-family: 'GD Serif'; font-weight: 400; font-style: normal; font-display: swap; src: url('/assets/fonts/guandan/gd-serif-400.woff2') format('woff2'); }
+@font-face { font-family: 'GD Serif'; font-weight: 700; font-style: normal; font-display: swap; src: url('/assets/fonts/guandan/gd-serif-700.woff2') format('woff2'); }
 @font-face { font-family: 'ZM Num'; font-weight: 700; font-style: normal; font-display: swap; src: url('/assets/fonts/zhamao/zm-num-700.woff2') format('woff2'); }
 
 .guandan-wrap {
-  --gd-serif: 'ZM Serif', 'Noto Serif SC', 'Songti SC', 'STSong', 'Source Han Serif SC', 'SimSun', serif;
+  --gd-serif: 'GD Serif', 'Noto Serif SC', 'Songti SC', 'STSong', 'Source Han Serif SC', 'SimSun', serif;
   --gd-num: 'ZM Num', 'Cormorant Garamond', Georgia, serif;
   --gd-card-face: #fffdf8;
   --gd-grab: #cfc6b6;
@@ -431,4 +432,185 @@ body.gd-game-fullscreen .gd-self-clock { font-family: var(--gd-num); }
   .gd-qr-panel h2 { grid-column: 2; margin: 0; }
   .gd-qr-panel .gd-qr-code { grid-column: 2; }
   .gd-qr-panel .gd-confirm-actions { grid-column: 2; margin-top: 8px; align-self: start; }
+}
+
+/* ==========================================================================
+   牌桌第二轮（2026-11-26 用户玩完一局的反馈）：主要场景是微信内置浏览器横屏
+   （顶上那条标题栏收不起来，可用高度约 380px）。原则：靠图形和位置提示，不靠文字。
+   ========================================================================== */
+
+/* 1. 左上角级数：一枚朱砂印 = 本局打几；旁边两行小字是两队各自的级，当前打的那队加粗 */
+.guandan-wrap .gd-levelbar-corner { max-width: none; top: calc(8px + env(safe-area-inset-top, 0px)); left: calc(10px + env(safe-area-inset-left, 0px)); }
+.guandan-wrap .gd-level-now { flex: none; width: 34px; height: 34px; border-radius: 7px; justify-content: center; align-items: center; background: var(--gd-seal); color: var(--gd-seal-ink); box-shadow: inset 0 0 0 2px var(--gd-seal), inset 0 0 0 3px rgba(255, 253, 248, 0.55); transform: rotate(-4deg); }
+.guandan-wrap .gd-level-now .lab { display: none; }
+.guandan-wrap .gd-level-now .val { font-family: var(--gd-num); font-size: 20px; line-height: 1; color: inherit; }
+.guandan-wrap .gd-level-chip { border: 0; background: none; padding: 0; gap: 3px; font-family: var(--gd-serif); }
+.guandan-wrap .gd-level-chip .lab { font-size: 11px; color: var(--gd-ink-mute); letter-spacing: 0.06em; }
+.guandan-wrap .gd-level-chip .val { font-family: var(--gd-num); font-size: 14px; color: var(--gd-ink-mute) !important; font-weight: 700; }
+.guandan-wrap .gd-level-chip.acting .lab, .guandan-wrap .gd-level-chip.acting .val { color: var(--gd-ink) !important; }
+.guandan-wrap .gd-level-chip.acting::after { display: none; }
+.guandan-wrap .gd-levelbar-corner { display: grid; grid-template-columns: 34px auto; grid-template-rows: auto auto; column-gap: 7px; row-gap: 1px; }
+.guandan-wrap .gd-level-now { grid-row: 1 / span 2; }
+
+/* 2. 出牌区：不再给「要压的那一手」描朱砂框；被压过的旧牌照旧淡一点 */
+.guandan-wrap .gd-played.is-best .gd-played-row { outline: 0; }
+
+/* 3. 「不出」：不要胶囊，一笔墨字，淡淡浮现 */
+.guandan-wrap .gd-pass-big {
+  background: none; border: 0; padding: 0; border-radius: 0;
+  font-family: var(--gd-serif); font-weight: 700; font-size: 20px; letter-spacing: 0.28em; text-indent: 0.28em;
+  color: rgba(29, 27, 24, 0.5);
+  animation: gd-pass-ink 0.32s ease-out;
+}
+@keyframes gd-pass-ink { from { opacity: 0; transform: scale(1.25); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+
+/* 4. 倒计时：圆形小闹钟，数字在圈里；别家显示在它出牌 / 不出的同一个位置 */
+.guandan-wrap .gd-played .gd-played-clock,
+.guandan-wrap .gd-self-clock {
+  width: 38px; height: 38px; padding: 0; gap: 0; justify-content: center; border-radius: 50%;
+  border: 1.5px solid var(--gd-ink); background: var(--gd-paper); color: var(--gd-ink);
+  font-family: var(--gd-num); font-size: 15px; box-shadow: 0 2px 6px rgba(29, 27, 24, 0.16);
+}
+.guandan-wrap .gd-played .gd-played-clock svg, .guandan-wrap .gd-self-clock svg,
+.guandan-wrap .gd-played-clock-s, .guandan-wrap .gd-self-clock-s { display: none; }
+.guandan-wrap .gd-played-clock-num, .guandan-wrap .gd-self-clock-num { min-width: 0; text-align: center; }
+.guandan-wrap .gd-played .gd-played-clock::before, .guandan-wrap .gd-self-clock::before {
+  content: ''; position: absolute; top: -5px; left: 50%; width: 10px; height: 4px; margin-left: -5px;
+  border-radius: 2px 2px 0 0; background: currentColor;
+}
+.guandan-wrap .gd-played .gd-played-clock { position: relative; }
+.guandan-wrap .gd-played .gd-played-clock.urgent, .guandan-wrap .gd-self-clock.urgent { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); }
+/* 我的闹钟和我的「不出」放在同一处：出牌按钮正上方居中（2026-11-26 用户：「不出」要在自己正中） */
+.guandan-wrap .gd-play-band { --gd-actions-w: 284px; }
+body.gd-game-fullscreen .guandan-wrap .gd-play-band > .gd-play-actions { gap: 10px; }
+body.gd-game-fullscreen .guandan-wrap .gd-play-actions .gd-btn.gd-slot { width: 88px; min-width: 88px; padding-left: 0; padding-right: 0; }
+.guandan-wrap .gd-play-actions .gd-self-clock { position: absolute; left: 50%; bottom: calc(100% + 12px); transform: translateX(-50%); }
+.guandan-wrap .gd-play-actions .gd-self-clock.urgent { animation: none; }
+.guandan-wrap #gdPlay0Center { position: relative; overflow: visible; }
+.guandan-wrap #gdPlay0Center > .gd-pass-big { position: absolute; left: 50%; top: calc(50% - var(--gd-pass-lift, 53px)); transform: translate(-50%, -50%); animation-name: gd-pass-ink-c; }
+@keyframes gd-pass-ink-c { from { opacity: 0; transform: translate(-50%, -50%) scale(1.25); filter: blur(2px); } to { opacity: 1; transform: translate(-50%, -50%); filter: none; } }
+
+/* 5. 炸弹 / 接风 / 抗贡 / 头游：出牌区正中盖一枚印章，两个字，不带图标和说明 */
+.guandan-wrap .gd-fx-banner { top: 33%; font-family: var(--gd-serif); }
+.guandan-wrap .gd-fx-banner::before, .guandan-wrap .gd-fx-banner::after { display: none !important; }
+.guandan-wrap .gd-fx-banner .gd-fx-main {
+  padding: 6px 12px 6px 16px; border-radius: 8px; letter-spacing: 0.22em; text-indent: 0;
+  border: 2.5px solid currentColor; box-shadow: inset 0 0 0 2px var(--gd-paper), inset 0 0 0 3.5px currentColor;
+  background: rgba(255, 253, 248, 0.92); color: var(--gd-seal); font-size: 30px !important; line-height: 1.15;
+}
+.guandan-wrap .gd-fx-banner.is-bomb .gd-fx-main { background: var(--gd-seal); color: var(--gd-seal-ink); border-color: var(--gd-seal); box-shadow: inset 0 0 0 3px var(--gd-seal), inset 0 0 0 4.5px rgba(255, 253, 248, 0.7), 0 10px 30px rgba(180, 57, 44, 0.35); }
+.guandan-wrap .gd-fx-banner.is-bomb.t2 .gd-fx-main, .guandan-wrap .gd-fx-banner.is-bomb.t3 .gd-fx-main { font-size: 36px !important; }
+.guandan-wrap .gd-fx-banner.is-bomb.t4 .gd-fx-main, .guandan-wrap .gd-fx-banner.is-bomb.t5 .gd-fx-main { font-size: 42px !important; }
+.guandan-wrap .gd-fx-banner.is-bomb.t6 .gd-fx-main, .guandan-wrap .gd-fx-banner.is-bomb.t7 .gd-fx-main { font-size: 48px !important; }
+.guandan-wrap .gd-fx-banner.t3 .gd-fx-main, .guandan-wrap .gd-fx-banner.t7 .gd-fx-main { background: #9a6b16; border-color: #9a6b16; box-shadow: inset 0 0 0 3px #9a6b16, inset 0 0 0 4.5px rgba(255, 253, 248, 0.7), 0 10px 30px rgba(154, 107, 22, 0.35); }
+.guandan-wrap .gd-fx-banner .gd-fx-sub, .guandan-wrap .gd-fx-banner .gd-fx-icon { display: none; }
+.guandan-wrap .gd-fx-banner { animation: gd-stamp var(--gd-fx-dur, 1200ms) cubic-bezier(0.2, 0.8, 0.25, 1) forwards; }
+@keyframes gd-stamp {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(2.1) rotate(-10deg); }
+  14% { opacity: 1; transform: translate(-50%, -50%) scale(0.94) rotate(-5deg); }
+  22% { transform: translate(-50%, -50%) scale(1) rotate(-5deg); }
+  82% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(-5deg); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.04) rotate(-5deg); }
+}
+/* 炸弹那一手：不再铺一团红雾，出牌区只闪一下 */
+.guandan-wrap .gd-played.fx-bomb, .guandan-wrap .gd-played.fx-bomb-2, .guandan-wrap .gd-played.fx-bomb-3,
+.guandan-wrap .gd-played.fx-strflush, .guandan-wrap .gd-played.fx-jokerbomb { background: none; }
+
+/* 6. 级牌（2026-11-26 用户：照欢乐斗地主）：右上角一条斜下来的朱砂飘带，写一个「级」字；
+      牌面本身照常白底。右上角的花色往左让一点，免得被飘带压住。 */
+.guandan-wrap .gd-card.is-level { background: linear-gradient(160deg, var(--gd-card-bg) 0%, var(--gd-card-bg-2) 100%); }
+.guandan-wrap .gd-card.is-level::after {
+  content: '级'; position: absolute; z-index: 3; pointer-events: none;
+  top: calc(var(--gd-card-w, 50px) * 0.07); right: calc(var(--gd-card-w, 50px) * -0.31);
+  width: calc(var(--gd-card-w, 50px) * 0.9); height: calc(var(--gd-card-w, 50px) * 0.2);
+  transform: rotate(45deg);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--gd-seal); color: var(--gd-seal-ink); box-shadow: 0 1px 2px rgba(29, 27, 24, 0.25);
+  font: 700 calc(var(--gd-card-w, 50px) * 0.15)/1 var(--gd-serif);
+}
+.guandan-wrap .gd-card.is-level .q-tr { justify-content: flex-start; padding-left: calc(var(--gd-card-w, 50px) * 0.02); font-size: calc(var(--gd-card-w, 50px) * 0.3); }
+
+/* 7. 大小王：手牌里叠着时那一条「★JOKER」横排写得下，不再顶出牌边 */
+.guandan-wrap .gd-card.is-joker .q-tr { font-size: calc(var(--gd-card-w, 50px) * 0.15); letter-spacing: -0.02em; justify-content: flex-start; padding-left: 1px; }
+.guandan-wrap .gd-card.is-joker .q-bl { font-size: calc(var(--gd-card-w, 50px) * 0.17); letter-spacing: 0; }
+
+/* 8. 左下角：不再放自己的头像 / 张数 / 托管钮（手牌就在眼前）；托管收进 ☰ 菜单，
+      只有正在托管时才亮一颗机器人，点一下取消。名次（头游…）照旧显示。 */
+body.gd-game-fullscreen .guandan-wrap #gdSeat0,
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-count { display: none; }
+body.gd-game-fullscreen .guandan-wrap .gd-autopilot-chip[aria-pressed="false"] { display: none; }
+body.gd-game-fullscreen .guandan-wrap .gd-self-meta .gd-autopilot-chip { margin-top: 0; }
+body.gd-game-fullscreen .guandan-wrap .gd-self-bar { bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
+/* 右下角：只留一颗「理牌」；「恢复默认排序 / 调整顺序」挪进 ☰ 菜单 */
+body.gd-game-fullscreen .guandan-wrap #gdSortMoreBtn { display: none; }
+body.gd-game-fullscreen .guandan-wrap .gd-sort-actions { bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
+
+/* 9. 手牌往下贴：去掉底下那条空白，牌离屏幕底只留一点 */
+body.gd-game-fullscreen .guandan-wrap .gd-table { --gd-hand-l: 14px; --gd-hand-r: 56px; }
+body.gd-game-fullscreen .guandan-wrap .gd-hand { padding-bottom: 2px; }
+body.gd-game-fullscreen .guandan-wrap .gd-table { padding-bottom: calc(2px + env(safe-area-inset-bottom, 0px)); }
+
+/* 10. 局终摊牌：就在各家出牌区摊开，小一号、一张张滑出来，不另开一幕 */
+.guandan-wrap .gd-played.gd-revealing { --gd-card-w: calc(var(--u, 46px) * 0.74); --gd-card-h: calc(var(--u, 46px) * 0.74 * 1.44); min-height: 0; }
+.guandan-wrap .gd-played.gd-revealing .gd-played-row .gd-card.size-full { margin-left: calc(var(--u, 46px) * -0.48); }
+.guandan-wrap .gd-played.gd-revealing .gd-played-row .gd-card.size-full:first-child { margin-left: 0; }
+.guandan-wrap .gd-reveal-wrap { gap: 0; }
+.guandan-wrap .gd-reveal-row + .gd-reveal-row { margin-top: calc(var(--u, 46px) * -0.55); }
+.guandan-wrap .gd-played.gd-revealing .gd-card { animation: gd-reveal-deal 0.36s cubic-bezier(0.2, 0.8, 0.25, 1) both; animation-delay: calc(var(--i, 0) * 45ms); }
+@keyframes gd-reveal-deal { from { opacity: 0; transform: translateY(-14px) rotateY(80deg); } to { opacity: 1; transform: none; } }
+body.gd-game-fullscreen .guandan-wrap .gd-table.gd-showing-reveal > * { visibility: visible !important; pointer-events: auto; }
+body.gd-game-fullscreen .guandan-wrap .gd-table.gd-showing-reveal > .gd-reveal-gallery { display: none !important; }
+body.gd-game-fullscreen .guandan-wrap .gd-table.gd-showing-reveal > .gd-play-band,
+body.gd-game-fullscreen .guandan-wrap .gd-table.gd-showing-reveal > .gd-sort-actions { visibility: hidden !important; }
+
+/* 11. 小局结算：去掉金银渐变和光晕，换成宣纸 + 墨线；赢的那队盖一枚「胜」字印 */
+.guandan-wrap .gd-overlay .gd-result-panel { max-width: 600px; padding: 18px 20px 16px; font-family: var(--gd-serif); }
+.guandan-wrap .gd-result-title { font-family: var(--gd-serif); font-size: 26px; font-weight: 700; letter-spacing: 0.3em; margin: 0 0 12px; filter: none; }
+.guandan-wrap .gd-result-title.win, .guandan-wrap .gd-result-title.lose { background: none; -webkit-text-fill-color: currentColor; }
+.guandan-wrap .gd-result-title.win { color: var(--gd-seal); }
+.guandan-wrap .gd-result-title.lose { color: var(--gd-ink-mute); }
+.guandan-wrap .gd-result-vs { gap: 10px; margin-bottom: 14px; }
+.guandan-wrap .gd-result-team, .guandan-wrap .gd-result-team.you, .guandan-wrap .gd-result-team.opp {
+  position: relative; background: none; border: 1px solid rgba(29, 27, 24, 0.22); border-radius: 14px; box-shadow: none; transform: none; padding: 12px 10px;
+}
+.guandan-wrap .gd-result-team.winning { border: 1.5px solid var(--gd-seal); background: rgba(180, 57, 44, 0.04); }
+.guandan-wrap .gd-result-team.winning::after {
+  content: '胜'; position: absolute; top: -12px; right: -8px; width: 34px; height: 34px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center; transform: rotate(8deg);
+  background: var(--gd-seal); color: var(--gd-seal-ink); font: 700 19px/1 var(--gd-serif);
+  box-shadow: inset 0 0 0 2px var(--gd-seal), inset 0 0 0 3px rgba(255, 253, 248, 0.6);
+  animation: gd-stamp-small 0.45s cubic-bezier(0.2, 0.8, 0.25, 1) 0.35s both;
+}
+@keyframes gd-stamp-small { from { opacity: 0; transform: rotate(8deg) scale(2); } to { opacity: 1; transform: rotate(8deg) scale(1); } }
+.guandan-wrap .gd-result-team-label { font-family: var(--gd-serif); font-size: 15px; letter-spacing: 0.3em; color: var(--gd-ink); }
+.guandan-wrap .gd-result-player { background: none; border: 0; padding: 4px 2px; gap: 4px; }
+.guandan-wrap .gd-result-avatar { width: 34px; height: 34px; border: 1.5px solid rgba(29, 27, 24, 0.35); background: var(--gd-paper); color: var(--gd-ink); }
+.guandan-wrap .gd-result-name { font-size: 13px; color: var(--gd-ink); }
+.guandan-wrap .gd-result-rank, .guandan-wrap .gd-result-rank[data-rank] {
+  background: none; color: var(--gd-ink-mute); border: 1px solid rgba(29, 27, 24, 0.3); border-radius: 6px;
+  font-family: var(--gd-serif); font-size: 12px; padding: 1px 7px; letter-spacing: 0.08em;
+}
+.guandan-wrap .gd-result-rank[data-rank="1"] { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); }
+.guandan-wrap .gd-result-vs-divider { font-family: var(--gd-num); color: rgba(29, 27, 24, 0.35); font-size: 16px; }
+.guandan-wrap .gd-result-team-flip.lc-win .gd-level-flip::after,
+.guandan-wrap .gd-result-team-flip.lc-lose .gd-level-flip::after { box-shadow: none; }
+.guandan-wrap .gd-overlay #gdRoundNext:focus-visible, .guandan-wrap .gd-overlay .gd-result-actions .gd-btn:focus-visible { outline: 2px solid var(--gd-ink); outline-offset: 3px; }
+.guandan-wrap .gd-overlay #gdRoundNext:focus:not(:focus-visible) { outline: 0; }
+@media (max-height: 420px) {
+  .guandan-wrap .gd-overlay .gd-result-panel { padding: 14px 16px 12px; }
+  .guandan-wrap .gd-result-vs { margin-bottom: 10px; }
+  .guandan-wrap .gd-result-team-flip { margin-top: 4px; }
+}
+
+/* 炸弹出牌区不再闪一块红色方框，只让那手牌弹一下 */
+.guandan-wrap .gd-played.fx-bomb, .guandan-wrap .gd-played.fx-bomb-2, .guandan-wrap .gd-played.fx-bomb-3,
+.guandan-wrap .gd-played.fx-strflush, .guandan-wrap .gd-played.fx-jokerbomb { animation: none; box-shadow: none; }
+.guandan-wrap .gd-played:is(.fx-bomb, .fx-bomb-2, .fx-bomb-3, .fx-strflush, .fx-jokerbomb) .gd-played-row { animation: gd-bomb-pop 0.42s cubic-bezier(0.2, 0.8, 0.25, 1.4); }
+@keyframes gd-bomb-pop { 0% { transform: scale(1.18); } 100% { transform: scale(1); } }
+
+/* 12. ☰ 菜单：微信横屏太矮放不下一列，分两列（左：这局牌的操作；右：设置 / 规则 / 战绩榜 / 回主页） */
+@media (max-height: 500px) {
+  .guandan-wrap .gd-menu:not([hidden]) { width: auto; display: grid; grid-auto-flow: column; grid-template-rows: repeat(4, auto); column-gap: 6px; max-height: calc(100vh - 70px); overflow-y: auto; }
+  .guandan-wrap .gd-menu hr { display: none; }
+  .guandan-wrap .gd-menu > button { min-height: 42px; }
 }

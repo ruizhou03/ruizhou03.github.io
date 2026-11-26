@@ -1,38 +1,38 @@
 {
-  "version": "20261126ui16",
+  "version": "20261126ui17",
   "rulesVersion": "gd-huaian-2025-site-v1",
   "modelSha256": "ca389e89e8db98d9968705b0e4495620e025c852cf4db4b4c2e66b086ae03da5",
   "core": [
     {
-      "url": "/assets/css/main.css?v=20261126ui16",
+      "url": "/assets/css/main.css?v=20261126ui17",
       "sha256": "07581044f3c90d47af2316656670b5fa3350fd2fa654ad17a48e7084f60b209d"
     },
     {
-      "url": "/assets/css/guandan.css?v=20261126ui16",
+      "url": "/assets/css/guandan.css?v=20261126ui17",
       "sha256": "d1deedcc6edf9d6fa7919705834219bf1786cb50560eb20fa0b1b83dc818489b"
     },
     {
-      "url": "/assets/css/guandan-shell.css?v=20261126ui16",
-      "sha256": "8fd3093181639950e7ec5626b60faef80985f746072d37644288dcbe830a08fc"
+      "url": "/assets/css/guandan-shell.css?v=20261126ui17",
+      "sha256": "0653bebd9d56ed3e34e14882794eecb453cf5e0eeccea34651e1a0ca67bd2764"
     },
     {
-      "url": "/assets/fonts/zhamao/zm-serif-400.woff2",
-      "sha256": "e110d4fc2bfc3ba8225fe2d91e1aa8e7d225467f4e310501cde2629b29f76b64"
+      "url": "/assets/fonts/guandan/gd-serif-400.woff2",
+      "sha256": "227db053b399926318e260f40f8f2043fc9dbdccd35a403b41dba821f665f998"
     },
     {
-      "url": "/assets/fonts/zhamao/zm-serif-700.woff2",
-      "sha256": "072e4342ba842a79aa5e937c5e2e5f9fff6ac8a0b70d9169d79fdfc44c76348d"
+      "url": "/assets/fonts/guandan/gd-serif-700.woff2",
+      "sha256": "e17b338a51549b1f85b565961ca54bce48d65eb6addaf9a5e54a1434d45f77de"
     },
     {
       "url": "/assets/fonts/zhamao/zm-num-700.woff2",
       "sha256": "f3d79416c36d00c051cbffa9f5d480dac002f342ca6129df3776583fbba68391"
     },
     {
-      "url": "/assets/css/zircon-icons.css?v=20261126ui16",
+      "url": "/assets/css/zircon-icons.css?v=20261126ui17",
       "sha256": "0538dc18024cdadb6908a1489565825baaa384400be55390e6f8079af68c489b"
     },
     {
-      "url": "/assets/css/games-shell.css?v=20261126ui16",
+      "url": "/assets/css/games-shell.css?v=20261126ui17",
       "sha256": "13a6e8a5282dc860fd57f6be9168d455983678416be101bc379b2ef429f164a6"
     },
     {
@@ -56,51 +56,51 @@
       "sha256": "4f07835078148d365efa3408acc84fb56a709eaea4f3d3974d8c45fc7a46a486"
     },
     {
-      "url": "/assets/js/games-shell/identity.js?v=20261126ui16",
+      "url": "/assets/js/games-shell/identity.js?v=20261126ui17",
       "sha256": "8abd1228e92b5ce94064fbe95a8ac4fec176638ac35d474037dae88a3a1c1004"
     },
     {
-      "url": "/assets/js/games-shell/qrcode.js?v=20261126ui16",
+      "url": "/assets/js/games-shell/qrcode.js?v=20261126ui17",
       "sha256": "f0a4ad9164bc5526357316ee36567e207aae7c2884bb764a1e25520b8e21e812"
     },
     {
-      "url": "/assets/js/zircon-icons.js?v=20261126ui16",
+      "url": "/assets/js/zircon-icons.js?v=20261126ui17",
       "sha256": "23846b01965c6628c66d01e2843fd9b783f24880b6f3032aee5e1bad73474014"
     },
     {
-      "url": "/assets/js/offline/offline.js?v=20261126ui16",
+      "url": "/assets/js/offline/offline.js?v=20261126ui17",
       "sha256": "ea074cf21ac449658fe5a53ee7f6f2d2d1781a594e709084fc0b6dc8fdd41291"
     },
     {
-      "url": "/assets/js/games/guandan-contract.js?v=20261126ui16",
-      "sha256": "49a15fbdeac1bb8fe7f2b5d6bafea5abd39245ad9f55e0c86825917ee0976338"
+      "url": "/assets/js/games/guandan-contract.js?v=20261126ui17",
+      "sha256": "8184e6cd32b3248b06af7fce336c6d6eabe945e55f1f8c9eb108361242b019dc"
     },
     {
-      "url": "/assets/js/games/guandan-storage.js?v=20261126ui16",
+      "url": "/assets/js/games/guandan-storage.js?v=20261126ui17",
       "sha256": "09ccb080794805a2ea0f20751972cb4dbba392b31e166d11425197eca72b7dcf"
     },
     {
-      "url": "/assets/js/games/guandan-net.js?v=20261126ui16",
+      "url": "/assets/js/games/guandan-net.js?v=20261126ui17",
       "sha256": "8b3515f8b1fcab6276d550464fcb62ad069f3a10f05a24503e60722bf56d1efb"
     },
     {
-      "url": "/assets/js/games/guandan-audio.js?v=20261126ui16",
+      "url": "/assets/js/games/guandan-audio.js?v=20261126ui17",
       "sha256": "40169738b4ff281d0e50696efd65ab672e651a59cdef14e6e83d4740cf174ce0"
     },
     {
-      "url": "/assets/js/games/guandan-rules.js?v=20261126ui16",
+      "url": "/assets/js/games/guandan-rules.js?v=20261126ui17",
       "sha256": "801edb382aeeaeb37c923a9eaeb414fe3143f197ae34d9b21bd8769a44f46342"
     },
     {
-      "url": "/assets/js/games/guandan-engine.js?v=20261126ui16",
+      "url": "/assets/js/games/guandan-engine.js?v=20261126ui17",
       "sha256": "320da02613c351c8b8355c65e9336ef2cd821a1f90d9a6231f4e6c02dff9a22e"
     },
     {
-      "url": "/assets/js/games/guandan-ui.js?v=20261126ui16",
+      "url": "/assets/js/games/guandan-ui.js?v=20261126ui17",
       "sha256": "5eb5658e55ff70472716bb52b9998028281ffdf9ff16deca82ed599dd7c47483"
     },
     {
-      "url": "/assets/js/games/guandan-debug.js?v=20261126ui16",
+      "url": "/assets/js/games/guandan-debug.js?v=20261126ui17",
       "sha256": "3c2aa58e514b5c7bedd69bdc7a3b0e4851d5649c09f399a666ffb4ef9b0b6808"
     },
     {
@@ -108,15 +108,15 @@
       "sha256": "7a574df2a54ed4851116489a278135519017f9146bda27ff6690c171aed34f13"
     },
     {
-      "url": "/assets/js/games/guandan.min.js?v=20261126ui16",
-      "sha256": "09fffbbb820b907fa92feacb397168fe8f1d11e9fd9b825a8ec10a29b7f95b36"
+      "url": "/assets/js/games/guandan.min.js?v=20261126ui17",
+      "sha256": "bf9d47aa6cd7680d7ca85fba8e651253f8aad14810e294e637fcac206e51f004"
     },
     {
       "url": "/toolbox/guandan/manifest.json",
       "sha256": "fb9d059e8e4d4111d214c33585b8c6d381e89b7808ad0fc019dff5a74cca5cb8"
     },
     {
-      "url": "/assets/audio/guandan-voice.mp3?v=20261126ui16",
+      "url": "/assets/audio/guandan-voice.mp3?v=20261126ui17",
       "sha256": "01f7d3c4f4dea5fa8b04b99f533d8986048ac1a6e32fb1e27ce92d32013ac6c6"
     }
   ],

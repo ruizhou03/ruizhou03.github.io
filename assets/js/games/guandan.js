@@ -1366,13 +1366,15 @@
   function solveTableSize() {
     const table = els.table;
     if (!table) return;
-    const W = table.clientWidth, H = table.clientHeight;
-    if (!W || !H) return;
-    const wide = window.innerHeight >= 500;
-    // 手牌区的可用宽度（.gd-hand 左右 margin 已让出「我 / 托管」与「理牌」，与 --u 无关）
-    const handW = (els.hand && els.hand.clientWidth) || (W - (wide ? 132 + 96 : 70 + 52));
+    // 2026-11-26 用户：横→竖→横转一圈后牌变了大小。改为只按「横屏下的视口宽高」求，
+    // 不再读 .gd-hand 当时的实际宽度（转屏中途量到的是旧布局），同一台手机永远同一个尺寸。
+    const vw = window.innerWidth, vh = window.innerHeight;
+    if (!vw || !vh || !table.clientWidth) return;
+    const W = Math.max(vw, vh), H = Math.min(vw, vh);
+    const wide = H >= 500;
+    const handW = W - (14 + 56) - (wide ? 32 : 22);   // 左右让出理牌键与牌桌内边距（2026-11-26 左下不再放头像）
     const byW = handW / (wide ? 15.5 : 12) - 1;   // -1：列间 1px 缝
-    const byH = wide ? (H * 0.62 - 72) / 4.06 : (H - 160) / 5;
+    const byH = wide ? (H * 0.62 - 72) / 4.06 : (H - 150) / 5;   // 手牌贴底后多出约 10px
     const u = Math.max(36, Math.min(72, Math.floor(Math.min(byW, byH))));
     if (table.style.getPropertyValue('--u') !== u + 'px') table.style.setProperty('--u', u + 'px');
   }
@@ -1415,7 +1417,8 @@
     });
     // 出牌决策带锚到「~6 张深」的高度：随卡片大小自适应，不再死留过多空白。
     // = 桌底+手牌底距 + 6 张摞高(1 张 cardH + 5 个错位 step)，再整体下移 20px(用户两次要按钮更低一点)；CSS 叠加 env(safe-bottom)。
-    document.documentElement.style.setProperty('--gd-band-bottom', Math.round(-2 + cardH + 5 * step) + 'px');
+    // 2026-11-26：微信横屏太矮，按钮行改锚到「5 张深」，给左右两家的出牌和我的闹钟腾出一行
+    document.documentElement.style.setProperty('--gd-band-bottom', Math.round(-2 + cardH + 4 * step) + 'px');
   }
 
   function renderPlayArea(seat) {
@@ -1505,7 +1508,11 @@
       if (!cards.length) continue;
       const row = document.createElement('div');
       row.className = 'gd-played-row gd-reveal-row';
-      for (const c of cards) row.appendChild(buildCardEl(c, 'size-full', level, {}));
+      for (const c of cards) {
+        const el = buildCardEl(c, 'size-full', level, {});
+        el.style.setProperty('--i', row.children.length + groups.indexOf(cards) * 4);
+        row.appendChild(el);
+      }
       wrap.appendChild(row);
     }
     slot.appendChild(wrap);
@@ -1526,16 +1533,20 @@
   }
 
   function renderRevealedHand(seat) {
-    const compact = window.innerWidth <= 700 || window.innerHeight <= 400;
-    const rowCount = compact ? 3 : 2;
-    const sideMax = Math.max(150, (window.innerWidth - 180) / 2);
-    const maxWidth = Math.min(REVEAL_MAX_W, seat === 2 ? window.innerWidth * 0.52 : sideMax);
+    // 2026-11-26 用户：局终不另开一幕，像欢乐斗地主那样在牌桌上把各家剩牌摊开（小一号的牌、逐张滑入）
+    const n = state.hands[seat].length;
+    const rowCount = n > 14 ? 2 : 1;
+    const sideMax = Math.max(140, (window.innerWidth - 220) / 2);
+    const maxWidth = Math.min(REVEAL_MAX_W, seat === 2 ? window.innerWidth * 0.46 : sideMax);
     fillRevealedHand(seatEls[seat].play, seat, rowCount, maxWidth);
   }
 
   function renderRevealGallery() {
     const gallery = els.revealGallery;
     if (!gallery) return;
+    // 2026-11-26：整桌画廊停用，剩牌直接摊在各家出牌区（renderRevealedHand）
+    gallery.hidden = true; gallery.replaceChildren(); gallery.dataset.revealKey = '';
+    if (gallery) return;
     const seats = [0, 1, 2, 3].filter(seat => {
       const hand = state.hands[seat];
       return hand && hand.length > 0 && hand[0] !== -1;
@@ -2372,8 +2383,8 @@
       setSlot(els.passBtn, { primary: noPlay, disabled: mustLead });
       setSlot(els.hintBtn, { disabled: noPlay });
       setSlot(els.playBtn, { primary: !noPlay, disabled: noPlay || !ok });
-      hint = sel.length ? selectionPreview(sel, trick, level)
-        : (noPlay ? '没有能压过的牌' : (mustLead ? '该你出牌' : ''));
+      // 2026-11-26 用户：不要「该你出牌 / 没有能压过的牌」这类文字提示——靠按钮亮灭和「不出」变主按钮来提示
+      hint = '';
     } else {
       hideSlots();
     }
@@ -3095,10 +3106,8 @@
     else { updateActions(); armTurnClock(); notifyMyTurn(); }
     // D1：背景音乐默认关，第一次开局在提示行说一次去哪里开
     const ap = AUDIO.prefs();
-    if (!isNetworked() && !ap.music && !ap.musicHinted) {
-      AUDIO.markMusicHinted();
-      setTimeout(() => flashBandNote('右上角声音按钮里可以打开背景音乐'), 900);
-    }
+    // 2026-11-26 用户不要文字提示：背景音乐开关就在 ☰ → 设置 里，不再在牌桌上弹一句
+    if (!isNetworked() && !ap.music && !ap.musicHinted) AUDIO.markMusicHinted();
   }
   // 轮到我（规格 3.2）：一声轻提示；同一回合只响一次
   let lastTurnChimeKey = '';
@@ -3478,20 +3487,9 @@
     ban.style.setProperty('--gd-fx-dur', o.duration + 'ms');
     const main = document.createElement('div');
     main.className = 'gd-fx-main';
-    if (o.icon) {
-      const icon = document.createElement('span');
-      icon.className = 'gd-fx-icon';
-      icon.textContent = o.icon;
-      main.append(icon);
-    }
+    // 2026-11-26 用户：炸弹 / 接风 / 抗贡只要两个字的印章，不要图标和底下一行说明（说明只给读屏）
     main.append(document.createTextNode(o.text));
     ban.append(main);
-    if (o.sub) {
-      const sub = document.createElement('div');
-      sub.className = 'gd-fx-sub';
-      sub.textContent = o.sub;   // 可能含联机昵称：只用 textContent
-      ban.append(sub);
-    }
     if (window.ZirconIcons) ZirconIcons.hydrate(ban);
     els.table.appendChild(ban);
     announce(o.text + (o.sub ? '，' + o.sub : ''));
@@ -3656,7 +3654,7 @@
       state.out.push(seat);
       // 头游（规格 3.2）：只给第一个出完的人放横幅；二游、三游只换座位标签
       if (state.out.length === 1) {
-        showBanner({ kind: 'info', text: seat === 0 ? '你是头游' : seatName(seat) + ' 头游', priority: 4, duration: 1200 });
+        showBanner({ kind: 'info', text: '头游', sub: seatName(seat), priority: 4, duration: 1200 });
       }
     }
     renderAll();
@@ -6318,11 +6316,25 @@
     menuEl.style.top = Math.round(r.bottom + 8) + 'px';
     menuEl.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w))) + 'px';
   }
+  const menuAuto = $('gdMenuAuto'), menuSort = $('gdMenuSort'), menuOrder = $('gdMenuOrder');
+  if (menuAuto) menuAuto.addEventListener('click', () => { closeMenu(); const b = $('gdAutopilotBtn'); if (b) b.click(); });
+  if (menuSort) menuSort.addEventListener('click', () => { closeMenu(); const b = $('gdSortBtn'); if (b) b.click(); });
+  if (menuOrder) menuOrder.addEventListener('click', () => { closeMenu(); const b = $('gdOrderBtn'); if (b) b.click(); });
   function syncMenuItems() {
     const view = navState.current;
     const inGame = view === NAV_VIEW.PLAYING || view === NAV_VIEW.TRIBUTE || view === NAV_VIEW.SETTLEMENT;
     const online = !!onlineState;
     if (menuNew) menuNew.hidden = online || !inGame;
+    // 2026-11-26 用户嫌按钮太多：托管、恢复排序、调整顺序收进 ☰ 菜单
+    const playingNow = view === NAV_VIEW.PLAYING && !isSpectating();
+    const autoBtn = $('gdAutopilotBtn');
+    if (menuAuto) {
+      menuAuto.hidden = !playingNow;
+      const on = !!(autoBtn && autoBtn.getAttribute('aria-pressed') === 'true');
+      menuAuto.querySelector('b').textContent = on ? '取消托管' : '托管';
+    }
+    if (menuSort) menuSort.hidden = !playingNow;
+    if (menuOrder) menuOrder.hidden = !playingNow;
     if (gdExitBtn) {
       const label = gdExitBtn.querySelector('b');
       if (label) label.textContent = online ? '离开房间' : '回到主页面';
@@ -6483,7 +6495,9 @@
     if(state.revealHands) renderRevealGallery();
   }
   window.addEventListener('resize', gdReflowViewport);
-  window.addEventListener('orientationchange', () => { setTimeout(gdReflowViewport, 120); setTimeout(gdReflowViewport, 400); });
+  // 微信等内置浏览器转屏后视口要过一阵才定下来：多补两次
+  window.addEventListener('orientationchange', () => { [120, 400, 900, 1600].forEach(ms => setTimeout(gdReflowViewport, ms)); });
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(gdReflowViewport, 60));
 
   // ---- 启动 ----
   refreshHs();
