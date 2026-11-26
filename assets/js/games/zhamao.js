@@ -1520,7 +1520,7 @@
   /* ───── 百变规则牌（2026-11-15 用户：用甲的样子、不预告；打「百变」从百变规则堆里抽一条，抽到什么算什么）─────
    * 牌堆下面固定一张横放的牌，标题「百变规则」+ 这条的名字 + 一句话；点它看全部规则。
    * 还没人打过百变时什么都不摆（用户：别写「还没有」，土）——第一次抽到时才翻出来 */
-  const FLUX_IC = { nine: 'defuse', peektop: 'future', exact: 'boom', bottom: 'bottom', reverse: 'reverse', mute: 'nope', hot: 'tattack', catsave: 'calico', allwild: 'wild' };
+  const FLUX_IC = { nine: 'defuse', peektop: 'future', exact: 'boom', bottom: 'bottom', reverse: 'reverse', mute: 'nope', hot: 'tattack', catsave: 'calico', allwild: 'allwild' };
   const fluxRule = (id) => (R.FLUX_RULES || []).find((r) => r.id === id) || null;
   function fluxHtml(id) {
     const r = fluxRule(id), k = FLUX_IC[r.id];

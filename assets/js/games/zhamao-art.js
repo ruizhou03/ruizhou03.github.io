@@ -35,6 +35,7 @@
     wild:    { bg: '#fbf1dc', band: '#b08a3e', ink: '#fffaf0' },   // 万能猫：暖金名字条（实际名字条是五彩渐变，见 zhamao.css）
     reverse: { bg: '#dcebf2', band: '#1f7a9c', ink: '#f4fbff' },   // 转向：天青
     flux:    { bg: '#f1e4f3', band: '#8e4a9c', ink: '#fdf7ff' },
+    allwild: { bg: '#f8e8a6', band: '#b08a3e', ink: '#fffaf0' },   // 百变规则「百搭」：淡明黄（转盘格 / 水印衬底，和急救的奶油色分开）
     topdraw: { bg: '#f1e4ee', band: '#8a4f7a', ink: '#fff7fb' },   // 抽顶（百变「摸底」时抽底变成它）：和抽底同一套颜色   // 百变：梅紫（2026-11-15 工作稿，牌面待用户挑）
   };
 
@@ -370,6 +371,10 @@
   // 转向角标：两道弧形箭头首尾相接围成一圈
   ICON.reverse = () => '<path d="M19.5 9.5A8 8 0 0 0 5.6 7" fill="none" stroke="#1f7a9c" stroke-width="2.4" stroke-linecap="round"/><path d="M0 0-4-2.6V2.6Z" fill="#1f7a9c" transform="translate(4.6 8.4) rotate(130)"/>' +
     '<path d="M4.5 14.5A8 8 0 0 0 18.4 17" fill="none" stroke="#1f7a9c" stroke-width="2.4" stroke-linecap="round"/><path d="M0 0-4-2.6V2.6Z" fill="#1f7a9c" transform="translate(19.4 15.6) rotate(-50)"/>';
+  // 百变规则「百搭」（所有猫都变成万能猫）的标：一道五彩虹 + 一颗小金星。2026-11-26 用户：原来借万能猫的爪印，和「急救」（三花爪印）太像
+  ICON.allwild = () => [[9.4, '#e0893e'], [7.3, '#d4607e'], [5.2, '#8a63a8'], [3.1, '#2f8a83']]
+    .map(([r, c]) => '<path d="M' + f(12 - r) + ' 19A' + r + ' ' + r + ' 0 0 1 ' + f(12 + r) + ' 19" fill="none" stroke="' + c + '" stroke-width="2.1" stroke-linecap="round"/>').join('') +
+    spark(19.6, 4.6, 3.6, GOLD);
   // 抽顶角标：抽底角标上下翻过来
   ICON.topdraw = () => '<g transform="translate(0 24) scale(1 -1)">' + ICON.bottom() + '</g>';
   // 百变角标：一颗梅紫四角星 + 一颗小金星
