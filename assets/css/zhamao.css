@@ -536,6 +536,10 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-flyer:has(.zm-flip) { perspective: 700px; }
 .zm-side { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 .zm-side-back { transform: rotateY(180deg); }
+/* 翻面飞的牌（2026-11-26 用户：抽底摸到百变，牌还是背面时就透出百变那道流光）：流光是 ::after 上一直跑的动画、自成一层，
+ * 浏览器不管外面那层 backface-visibility，背面朝上时也画出来——飞的这一小段不放流光，落进手里照常有 */
+.zm-side-front { transform: rotateY(0deg); }
+.zm-side .zm-card[data-k="flux"] .zm-art::after { animation: none; display: none; }
 /* 气鼓鼓的炸毛猫：牌面一直细细地抖 */
 .zm-angry .zm-card:not(.is-back) { animation: zm-tremble 0.14s linear infinite; }
 @keyframes zm-tremble { 25% { translate: -1.5px 0.5px; rotate: -1deg; } 50% { translate: 1px -1px; rotate: 0.8deg; } 75% { translate: -0.5px 1px; rotate: -0.4deg; } }

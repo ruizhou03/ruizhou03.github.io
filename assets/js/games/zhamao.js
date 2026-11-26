@@ -4914,13 +4914,19 @@
     /* 百变「火眼」（2026-11-22 用户：以前牌背朝上塞进去、塞完再突然歪出来露脸，前后不连贯）：大家都看得见塞在哪，
      * 炸弹猫一路正面朝上——飞到缝旁边（它将来往哪边歪露，就从哪边来），从侧面滑进那一层、直接停在歪着露一截的样子，和之后一直摆着的样子是同一个 */
     const open = e.at != null && !!(game.openKits && game.openKits.has(e.card));
+    /* 百变「透视」塞在最上面（2026-11-26 用户：以前牌背朝上从左边滑进缝、塞完顶上那张又突然一换，像塞到了底下）：
+     * 人人都看得见顶上是它——和火眼塞在最上面一样，正面朝上直接落到顶上，落下就是牌堆顶翻着的那张 */
+    // 联机别人塞的：事件去敏去掉了是哪张，镜像已经按服务器给的牌堆顶（e.top）摆好，顶上那张就是它
+    const peekId = !open && e.at === 0 && game.state && game.state.flux === 'peektop' ? (e.card != null ? e.card : faceTop(game.state)) : null;
+    const peekTop = peekId != null;
     let grew = false;
-    if (open && (above === 0 || !floor)) {
+    if ((open || peekTop) && (above === 0 || !floor)) {
       // 塞在最上面（2026-11-22 用户在甲乙丙里挑甲）：正面朝上直接落到顶上，落下就是牌堆顶那张正面，不再演翻面
-      game.faceQuiet = e.card;
-      await fx.fly({ html: cardHtml(e.card), from, to: deckTopRect(), w: pu, s0, s1: 1, r0, r1: 0, dur: d1, lift: lift1 });
+      const kid = peekTop ? peekId : e.card;
+      game.faceQuiet = kid;
+      await fx.fly({ html: cardHtml(kid), from, to: deckTopRect(), w: pu, s0, s1: 1, r0, r1: 0, dur: d1, lift: lift1 });
       if (t !== token) return;
-      ov.topFace = faceTop(game.state);
+      ov.topFace = peekTop ? kid : faceTop(game.state);
     } else if (open) {
       const sx = kitSideFor(e.card, above) === -1 ? -1 : 1;
       lid.forEach((c) => c.animate([{ translate: '0 0', rotate: '0deg' }, { translate: '6px -16px', rotate: '-8deg', offset: 0.3 }, { translate: '6px -16px', rotate: '-8deg', offset: 0.72 }, { translate: '0 0', rotate: '0deg' }], { duration: ms(900), easing: 'ease-in-out' }));
