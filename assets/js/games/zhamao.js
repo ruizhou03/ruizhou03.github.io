@@ -1313,14 +1313,16 @@
     // 角色猫：头像角上一枚圆章（2026-11-26 起在左下角，让开头上扣的锅 ×N），只画这只猫（2026-11-19 用户：斜插小卡缩小后字和名字糊成一团、看不出是哪只猫）；点它 = 展开整张角色卡
     const role = s.roles ? s.roles[seat] : null;
     let rb = av.querySelector('.zm-role');
-    if (!role) { if (rb) rb.remove(); }
+    if (!role) { if (rb) rb.remove(); roleCat(av, false); }
     else {
       if (!rb || rb.dataset.role !== role) {
         if (rb) rb.remove();
         rb = document.createElement('i'); rb.className = 'zm-role'; rb.dataset.role = role; rb.style.setProperty('--rbg', (ART.ROLE_TONE[role] || ART.ROLE_TONE.fat).bg); rb.innerHTML = ART.roleFace(role); av.appendChild(rb);
         rb.addEventListener('click', (ev) => { ev.stopPropagation(); expandRole(+rb.closest('.zm-seat').dataset.seat); });
       }
-      rb.style.visibility = game.roleHide && game.roleHide.has(seat) ? 'hidden' : '';   // 开局抽角色：亮出来之前角上空着
+      const hid = !!(game.roleHide && game.roleHide.has(seat));
+      rb.style.visibility = hid ? 'hidden' : '';   // 开局抽角色：亮出来之前角上空着
+      roleCat(av, !hid);
       const info = R.ROLES.find((r) => r.id === role);
       rb.classList.toggle('is-used', !!(info && info.once && s.roleUsed && s.roleUsed[seat]));
       rb.title = info ? info.name + '：' + info.desc : '';
@@ -1384,6 +1386,24 @@
     return '<div class="zm-rc-flip" style="width:' + w + 'px;height:' + Math.round(w * 1.4) + 'px"><div class="zm-rc-flip-in"><div class="zm-rc-flip-b">' + roleBackHtml(w) + '</div><div class="zm-rc-flip-f">' + roleCardHtml(id, { big, w }) + '</div></div></div>';
   }
   const roleBadge = (seat) => { const a = avEl(seat); return a && a.querySelector('.zm-role'); };
+  /* 角色模式（2026-11-26 用户定）：亮了身份以后头像和角色互换——大圆里是这只角色猫，本人头像缩成左下角的小圆（原来猫章的位置）；
+   * 出局两个一起变灰。亮身份那一下（发身份 / 抽角色收尾）本人头像从大圆缩进左下角，角色猫的圆章同时盖进大圆 */
+  function roleCat(av, on) {
+    if (av.classList.contains('is-rolecat') === on) return;
+    const f = av.querySelector('.zm-av-face'), r0 = f && on && game && game.roleHide ? f.getBoundingClientRect() : null;
+    av.classList.toggle('is-rolecat', on);
+    if (r0 && !fx.reduce()) {   // 等角色圆章快飞到了再缩（先缩会露出一个空圆）
+      const r = f.getBoundingClientRect(), dx = r0.left + r0.width / 2 - (r.left + r.width / 2), dy = r0.top + r0.height / 2 - (r.top + r.height / 2), k = r0.width / (r.width || 1);
+      f.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k.toFixed(3) + ')' }, { transform: 'none' }], { duration: 380, delay: 240, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'backwards' });
+    }
+    // 点左下角的小头像 = 展开整张角色卡（和以前点角上猫章一样的位置）；选人时照旧当点这个人
+    if (f && !f.dataset.rc) {
+      f.dataset.rc = '1';
+      f.addEventListener('click', (ev) => { if (!av.classList.contains('is-rolecat') || mode === 'target' || preview) return; ev.stopPropagation(); expandRole(+av.closest('.zm-seat').dataset.seat); });
+    }
+  }
+  // 技能触发时猫章弹大的倍数：角上小章照旧 1.45；互换后整颗大头像只弹一点点
+  const fireK = (rb) => (rb && rb.parentNode && rb.parentNode.classList.contains('is-rolecat') ? 0.3 : 1);
   // 一个元素从 from 矩形「飞」到它自己现在的位置（FLIP）；rot 起始歪多少度
   function flipFrom(el, from, dur, rot, ease) {
     const r = el.getBoundingClientRect();
@@ -1865,6 +1885,7 @@
     const rb = roleBadge(seat), av = avEl(seat);
     const st = game && game.state, role = st && st.roles && st.roles[seat];
     if (!rb || !av || !role) return NOPOP;
+    const K = fireK(rb), sc = (x) => 'scale(' + (1 + (x - 1) * K).toFixed(3) + ')';
     o = o || {};
     const tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat;
     snd('ding');
@@ -1892,19 +1913,19 @@
         if (done || !rb.isConnected) return;
         snd('ding');
         if (rimFxOn()) rimRipple(seat, tone.band, 1100, 3);
-        if (!fx.reduce()) { rb.animate([{ transform: 'scale(1.45)' }, { transform: 'scale(1.85)', offset: 0.4 }, { transform: 'scale(1.35)', offset: 0.75 }, { transform: 'scale(1.45)' }], { duration: ms(480), easing: 'ease-out' }); roleWave(av, rb, tone.band); }
+        if (!fx.reduce()) { rb.animate([{ transform: sc(1.45) }, { transform: sc(1.85), offset: 0.4 }, { transform: sc(1.35), offset: 0.75 }, { transform: sc(1.45) }], { duration: ms(480), easing: 'ease-out' }); roleWave(av, rb, tone.band); }
       },
       pip(k) { if (!pips) return; const ps = pips.querySelectorAll('i'); ps.forEach((p, i) => p.classList.toggle('is-on', i < k)); if (ps[k - 1]) fx.pop(ps[k - 1], { scale: 1.9, dur: 300 }); },
       back(bo) {
         if (done) return done;
         if (bo && bo.sad && !fx.reduce() && rb.isConnected) {   // 扑空（截胡猫没牌可顺、贪吃猫只要到一张）：猫章耷拉一下、灰一下再缩回
-          done = rb.animate([{ transform: 'scale(1.45)', filter: 'none' }, { transform: 'scale(1.25) translateY(3px) rotate(-14deg)', filter: 'grayscale(.85) brightness(.95)', offset: 0.35 }, { transform: 'scale(1.2) translateY(3px) rotate(-10deg)', filter: 'grayscale(.85) brightness(.95)', offset: 0.7 }, { transform: 'scale(1)', filter: 'none' }], { duration: ms(1000), easing: 'ease-in-out', fill: 'forwards' }).finished.catch(() => {})
+          done = rb.animate([{ transform: sc(1.45), filter: 'none' }, { transform: sc(1.25) + ' translateY(' + (3 * K).toFixed(1) + 'px) rotate(' + -14 * K + 'deg)', filter: 'grayscale(.85) brightness(.95)', offset: 0.35 }, { transform: sc(1.2) + ' translateY(' + (3 * K).toFixed(1) + 'px) rotate(' + -10 * K + 'deg)', filter: 'grayscale(.85) brightness(.95)', offset: 0.7 }, { transform: sc(1), filter: 'none' }], { duration: ms(1000), easing: 'ease-in-out', fill: 'forwards' }).finished.catch(() => {})
             .then(() => { rb.classList.remove('is-fire'); rb.getAnimations().forEach((a) => { if (!a.animationName) a.cancel(); }); });
           if (pips) pips.remove();
           return done;
         }
         if (pips) pips.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(240), fill: 'forwards' }).finished.catch(() => {}).then(() => pips.remove());
-        const shrink = fx.reduce() || !rb.isConnected ? Promise.resolve() : rb.animate([{ transform: 'scale(1.45)' }, { transform: 'scale(1)' }], { duration: ms(260), easing: 'cubic-bezier(.4,0,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+        const shrink = fx.reduce() || !rb.isConnected ? Promise.resolve() : rb.animate([{ transform: sc(1.45) }, { transform: sc(1) }], { duration: ms(260), easing: 'cubic-bezier(.4,0,.3,1)', fill: 'forwards' }).finished.catch(() => {});
         done = shrink.then(() => { rb.classList.remove('is-fire'); rb.getAnimations().forEach((a) => { if (a.effect && a.effect.getKeyframes && !a.animationName) a.cancel(); }); });
         return done;
       },
@@ -5952,7 +5973,7 @@
       left.forEach((i, k) => { const to = pile(k, 1); mv(cards[i], where[i], to, 460, null, 120); where[i] = to; });
       await flipTo(big, myB ? myB.getBoundingClientRect() : null, 520, 0);
       big.remove(); mask.remove();
-      if (myB) { myB.style.visibility = ''; fx.pop(myB, { scale: 1.8, dur: 420 }); }
+      if (myB) { myB.style.visibility = ''; fx.pop(myB, { scale: 1 + 0.8 * fireK(myB), dur: 420 }); }
       snd('tap');
       if (gone()) return;
       // 发给机器猫（2026-11-26 用户：要看得出是把中间这摞牌发到每个人手里）：按座次从这摞顶上一张张划出去，
@@ -6055,7 +6076,7 @@
       await flipTo(box, b ? b.getBoundingClientRect() : null, 360, 0, seal);
       if (b) {
         b.style.visibility = '';
-        fx.pop(b, { scale: 1.7, dur: 380 });
+        fx.pop(b, { scale: 1 + 0.7 * fireK(b), dur: 380 });
         const br = b.getBoundingClientRect();
         fx.ring(br.left + br.width / 2, br.top + br.height / 2, { color: tone.band, size: a.width * 1.5, width: 2.5, dur: 520 });
         snd('tap');
@@ -6234,7 +6255,7 @@
         big.classList.remove('is-rays', 'is-near');
         await flipTo(big, myB ? myB.getBoundingClientRect() : null, 520, 0);
         big.remove();
-        if (myB) { myB.style.visibility = ''; fx.pop(myB, { scale: 1.8, dur: 420 }); }
+        if (myB) { myB.style.visibility = ''; fx.pop(myB, { scale: 1 + 0.8 * fireK(myB), dur: 420 }); }
         snd('tap');
       };
       // 2026-11-26 用户：每个人的视角里，别人先都不选，直到我点好一张（我的头像印上去）；之后别人的头像再一个个落到别的牌上。

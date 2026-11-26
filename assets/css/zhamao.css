@@ -1385,6 +1385,18 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-av .zm-role { --zr: clamp(20px, calc(var(--av) * 0.5), 30px); position: absolute; left: calc(var(--zr) * -0.34); bottom: 0; transform-origin: 30% 80%; width: var(--zr); height: var(--zr); z-index: 4; display: block; border-radius: 50%; background: var(--rbg, #fbe6cf); border: 1.2px solid var(--zm-ink); box-shadow: 0 0 0 1.5px var(--zm-card, #fffdf8), 0 1px 3px rgba(29, 27, 24, 0.35); overflow: hidden; pointer-events: auto; cursor: pointer; }
 .zm-av .zm-role svg { width: 118%; height: 118%; margin: -6% 0 0 -9%; display: block; }
 .zm-role.is-used { filter: grayscale(1); opacity: 0.45; }
+/* 角色模式互换（2026-11-26 用户定）：大圆里是角色猫，本人头像缩成左下角小圆（原猫章位置）；锅、手牌数、气泡照旧挂在大圆上 */
+.zm-av.is-rolecat .zm-role { left: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; border: 0; box-shadow: none; transform-origin: 50% 50%; pointer-events: none; }
+.zm-av.is-rolecat .zm-av-face { --zr: clamp(20px, calc(var(--av) * 0.5), 30px); position: absolute; left: calc(var(--zr) * -0.34); bottom: 0; width: var(--zr); height: var(--zr); z-index: 4;
+  background: var(--zm-wash); border: 1.2px solid var(--zm-ink); box-sizing: border-box; box-shadow: 0 0 0 1.5px var(--zm-card, #fffdf8), 0 1px 3px rgba(29, 27, 24, 0.35); cursor: pointer; }
+.zm-av.is-rolecat .zm-role.is-used { filter: saturate(0.35); opacity: 1; }   /* 技能用过：互换后只褪色，整颗灰留给出局 */
+.zm-av.is-rolecat .zm-role.is-fire { z-index: 1; animation: zm-role-fire-cat 0.5s cubic-bezier(.3,.9,.4,1.2) both, zm-role-breathe-cat 1.5s 0.5s ease-in-out infinite; box-shadow: 0 0 0 2.5px var(--glow); }
+@keyframes zm-role-fire-cat { 0% { transform: scale(1); } 45% { transform: scale(1.24); } 75% { transform: scale(1.1); } 100% { transform: scale(1.135); } }
+@keyframes zm-role-breathe-cat { 50% { box-shadow: 0 0 0 2.5px var(--glow), 0 0 0 6px color-mix(in srgb, var(--glow) 35%, transparent); } }
+/* 出局：角色猫和本人头像一起变灰（不管换没换） */
+.zm-seat.is-out .zm-role { filter: grayscale(1); opacity: 0.45; }
+.zm-seat.is-out .zm-av.is-rolecat .zm-role { opacity: 0.5; }
+.zm-seat.is-bomb .zm-av.is-rolecat .zm-role { opacity: 0; }
 /* 规则窗里的角色表 */
 .zm-role-list { list-style: none; padding: 0; margin: 6px 0 10px; display: grid; gap: 8px; }
 .zm-role-list li { display: flex; align-items: center; gap: 10px; margin: 0; }
