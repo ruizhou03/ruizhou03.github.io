@@ -3679,7 +3679,7 @@
         '<button type="button"' + (game.spectator ? ' hidden' : '') + ' class="zm-btn zm-btn-primary zm-peek-ok' + (peekLimit ? ' zm-timed' : '') + '" style="left:' + c.x + 'px;top:' + (c.y + u * 1.12) + 'px">' + (peekLimit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '') + '<b>' + T('ui.gotit', '知道了') + '</b></button>';
       els.fly.appendChild(lay);
       els.fly.classList.add('is-interactive');
-      els.app.classList.add('is-peeking');   // 摊开的三张 + 「知道了」会压到牌堆下面的百变规则牌：看的时候先把规则牌淡掉
+      els.app.classList.add('is-peeking');   // 只是个状态标记。以前百变规则是牌堆下面一张小卡，窥探时会把它淡掉；现在它是铺满桌面的桌布，不再淡掉（2026-11-26 用户：窥探时百变桌布闪没了）
       await new Promise((res) => {
         const ok = lay.querySelector('.zm-peek-ok');
         ok.focus({ preventScroll: true });
