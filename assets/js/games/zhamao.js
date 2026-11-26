@@ -2110,6 +2110,7 @@
       c.addEventListener('click', (e) => { e.stopPropagation(); onCardTap(+c.dataset.id, c); });
     });
     els.hand.querySelectorAll('[data-watch]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); watchFromOut(+b.dataset.watch); }));
+    if (pick) fitWatchRow();
     els.hand.classList.toggle('is-giving', mode === 'give' || favorLook());
     els.hand.classList.toggle('is-myturn', myTurnToAct() && !mode);
     layoutHand();
@@ -4914,8 +4915,32 @@
     const s = game.state, out = [], seats = [];
     for (let j = 1; j < s.alive.length; j++) if (s.alive[j] && avEl(j)) seats.push([j, avEl(j).getBoundingClientRect().left]);
     seats.sort((a, b) => a[1] - b[1]);   // 和上面座位从左到右一个顺序
-    for (const [j] of seats) out.push('<button type="button" class="zm-watch-pick" data-watch="' + j + '"><span class="zm-wp-av">' + avatarHtml(j) + '</span></button>');
+    seats.forEach(([j], i) => out.push('<button type="button" class="zm-watch-pick" data-watch="' + j + '"><span class="zm-wp-av" style="animation-delay:' + (i * 0.3).toFixed(1) + 's">' + avatarHtml(j) + '</span></button>'));
     return out.length ? '<div class="zm-watch-row">' + out.join('') + '</div>' : '';
+  }
+  /* 2026-11-26 用户：9 人局我出局后剩 8 个人，一排 8 颗 48px 头像手机上放不下。
+   * 不按屏幕比例写死几套，直接量手牌区这块实际有多宽多高，试 1 / 2 / 3 行，挑头像能最大的那种（一样大就少分行）：
+   * 手机竖屏人多 → 两行（8 人 4+4，7 人 4+3 居中）；横屏 / 平板 / 人少 → 一行；再窄再矮也只是头像缩小，不会出屏 */
+  function fitWatchRow() {
+    const row = els.hand.querySelector('.zm-watch-row');
+    if (!row) return;
+    const n = row.children.length;
+    const W = els.hand.clientWidth - 12, H = els.hand.clientHeight - 12;   // 留出上下浮动 4px + 头像外圈 2px
+    if (W <= 0 || H <= 0) return;
+    const GX = 0.29, GY = 0.16, MAX = 48;   // 横向间距 ≈ 14/48；两行之间收紧一些
+    let best = null;
+    for (let r = 1; r <= Math.min(n, 3); r++) {
+      const c = Math.ceil(n / r);
+      if (r > 1 && Math.ceil(n / (r - 1)) === c) continue;   // 多分一行列数不变 = 白占高度
+      const size = Math.min(MAX, W / (c + (c - 1) * GX), H / (r + (r - 1) * GY));
+      if (!best || size > best.size + 1) best = { r, c, size };
+    }
+    const sz = Math.max(20, Math.floor(best.size));
+    row.style.setProperty('--wp', sz + 'px');
+    row.style.setProperty('--wpx', Math.round(sz * GX) + 'px');
+    row.style.setProperty('--wpy', Math.round(sz * GY) + 'px');
+    row.style.setProperty('--wpc', best.c);
+    row.classList.toggle('is-rows', best.r > 1);
   }
   // 从 seat 往下数，第一家还在场的（不算我自己）；没有 = -1
   function nextWatchable(seat, alive) {
@@ -9173,6 +9198,7 @@
     if (selected.length && mode !== 'give') { selected = []; renderHand(); renderBand(); }
   });
   window.addEventListener('resize', recheckSize);
+  window.addEventListener('resize', () => { if (game) fitWatchRow(); });   // 转屏 / 拉窗口：观战小头像跟着重新分行
   if (LANDSCAPE_SHORT.addEventListener) LANDSCAPE_SHORT.addEventListener('change', () => { sizeW = 0; recheckSize(); });   // 横竖屏切换：一定重算（不管宽度差多少）
   refreshSoundBtn();
   initSocial();
