@@ -5859,12 +5859,10 @@
       mask.className = 'zm-rd-mask';
       els.fly.appendChild(mask); nodes.push(mask);
       mask.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, fill: 'both' });
-      const S = 1.18, R = cw * S * 2.6, stepA = Math.min(11, 56 / Math.max(1, n - 1));
-      const fanY = c.y - cw * 0.2, pivot = { x: c.x, y: fanY + R };
-      const slot = (k) => { const ang = (k - (n - 1) / 2) * stepA, rad = ang * Math.PI / 180; return { x: pivot.x + R * Math.sin(rad), y: pivot.y - R * Math.cos(rad), r: ang, s: S }; };
+      const { S, fanY, slot, z: fanZ, bottom: fanBottom } = rdFan(n, cw, c, cr);
       const where = cards.map((_, k) => slot(k));
-      cards.forEach((d, k) => { d.style.zIndex = String(5 + k); });
-      zTop = n + 1;
+      cards.forEach((d, k) => { d.style.zIndex = String(5 + fanZ(k)); });
+      zTop = 2 * n + 1;
       snd('whoosh');
       await Promise.all(cards.map((d, k) => d.animate([{ transform: tf({ x: c.x, y: c.y + cw * 0.2, r: 0, s: 0.45 }), opacity: 0 }, { opacity: 1, offset: 0.35 }, { transform: tf(where[k]), opacity: 1 }], { duration: 460, delay: k * 70, easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'both' }).finished.catch(() => {})));
       if (gone()) return;
@@ -5875,7 +5873,6 @@
       const btn = document.createElement('button');
       btn.type = 'button'; btn.className = 'zm-btn zm-btn-primary zm-timed zm-rd-btn';
       btn.innerHTML = '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span><b>' + T('ui.steal.rand', '抽一张') + '</b>';
-      const fanBottom = fanY + cw * S * 0.72 + Math.abs(slot(0).y - fanY) + 18;
       btn.style.cssText = 'left:' + c.x + 'px;top:' + Math.min(innerHeight - 56, fanBottom) + 'px';
       els.fly.appendChild(btn); nodes.push(btn);
       btn.animate([{ opacity: 0, translate: '-50% 8px' }, { opacity: 1, translate: '-50% 0' }], { duration: 260, fill: 'both' });
@@ -5905,7 +5902,7 @@
       big.className = 'zm-rd-big';
       big.style.cssText = 'left:' + (c.x - BW / 2) + 'px;top:' + (c.y - BW * 0.7) + 'px;--glow:' + tone.band;
       big.style.zIndex = '200';   // 永远压在剩下那摞上面（那摞的 z 会随抽牌一路往上加）
-      big.innerHTML = '<i class="zm-rd-rays"></i><i class="zm-rd-halo"></i>' + roleFlipHtml(myRole, BW, true);
+      big.innerHTML = '<i class="zm-rd-rays"></i>' + roleFlipHtml(myRole, BW, true);
       // 2026-11-26 用户：点中那张不能一下子跳到最上层——拈起来时照旧被右边的牌压着；剩下的牌往下收成一摞让开，
       // 它再往上抽出来、离开扇面之后才换成大牌飞到跟前（全程没有压住它的牌，图层不跳）
       const pk = cards[mine], pw = where[mine];
@@ -5913,11 +5910,11 @@
       snd('tap');
       await mv(pk, pw, up1, 220, 'cubic-bezier(.3,.9,.4,1.2)');
       if (gone()) return;
-      left.forEach((i, k) => { const to = pileLow(k, 0.9); cards[i].style.zIndex = String(5 + k); mv(cards[i], where[i], to, 380, null, k * 30); where[i] = to; cards[i].animate([{ opacity: 1 }, { opacity: 0.55 }], { duration: 260, delay: 220, fill: 'both' }); });   // 先让开再淡：别让抽出来的那张透过它们露出来、看着像跑到了上面
+      left.forEach((i, k) => { const to = pileLow(k, 0.9); cards[i].style.zIndex = String(5 + k); mv(cards[i], where[i], to, 380, null, k * 30); where[i] = to; });   // 先往下让开（2026-11-26 用户：不再变淡——剩下这摞是待会儿要发给大家的牌，得一直是实的）
       await mv(pk, up1, up2, 380, 'cubic-bezier(.3,.7,.3,1)');
       if (gone()) return;
       lift(pk);
-      zTop = n + 1;
+      zTop = 2 * n + 1;
       const from = pk.getBoundingClientRect();
       els.fly.appendChild(big); nodes.push(big);
       pk.remove();
@@ -5955,15 +5952,19 @@
       const myB = roleBadge(me); if (myB) myB.style.visibility = 'hidden';
       big.classList.remove('is-rays', 'is-near');
       mask.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 420, fill: 'forwards' });
+      // 剩下那摞收回桌心正中（实的、看得出厚度），待会儿从顶上一张张发出去
+      left.forEach((i, k) => { const to = pile(k, 1); mv(cards[i], where[i], to, 460, null, 120); where[i] = to; });
       await flipTo(big, myB ? myB.getBoundingClientRect() : null, 520, 0);
       big.remove(); mask.remove();
       if (myB) { myB.style.visibility = ''; fx.pop(myB, { scale: 1.8, dur: 420 }); }
       snd('tap');
       if (gone()) return;
-      // 发给机器猫：从这摞顶上一张张飞到头像朝桌心那一侧（不出桌沿），翻开亮一下，缩进角上
+      // 发给机器猫（2026-11-26 用户：要看得出是把中间这摞牌发到每个人手里）：按座次从这摞顶上一张张划出去，
+      // 带一点弧线和转身飞到头像朝桌心那一侧（不出桌沿），这摞一张张变薄；到了再翻开亮一下、缩进角上
       const others = seats.filter((k) => k !== me);
+      await wait(200);
       await Promise.all(others.map(async (seat, k) => {
-        await wait(k * 220);
+        await wait(k * 300);
         if (gone()) return;
         const el = cards[left[left.length - 1 - k]];
         lift(el);
@@ -5976,6 +5977,41 @@
       cleanup();
       if (gone()) g.roleHide = null;
     }
+  }
+  /* 抽角色的扇面（单机联机共用）。2026-11-26 用户：9 人局扇面太挤、点不准（以前 9 张每张只露一指宽）——
+   * 7 人以上：桌子够宽（横屏 / 平板）就把扇子打开；竖屏手机放不开就改成上下两排错开：上排、下排交替（从左到右照旧是第 0、1、2… 张），下排压在上排下半截上、正好落在两张上排牌的缝里，
+   * 上排每张露出上半截整宽、下排每张整张都在外面；两排都还带一点扇面的弧度和转角。6 人以下照旧一把扇子 */
+  function rdFan(n, cw, c, cr) {
+    const S = 1.18, W = cw * S, H = W * 1.4, avail = Math.min(cr.width * 0.66, 560);
+    const stepA = Math.min(11, 56 / Math.max(1, n - 1)), g1 = Math.min(W * 0.62, (avail - W) / Math.max(1, n - 1));
+    if (n < 7 || g1 >= W * 0.55) {   // 一把扇子：人多但桌子够宽（横屏 / 平板）就把扇子打开，每张露出半张多
+      const R = n < 7 ? W * 2.6 : Math.max(W * 2.6, g1 / (stepA * Math.PI / 180));
+      const fanY = c.y - cw * 0.2, pivot = { x: c.x, y: fanY + R };
+      const slot = (k) => { const ang = (k - (n - 1) / 2) * stepA, rad = ang * Math.PI / 180; return { x: pivot.x + R * Math.sin(rad), y: pivot.y - R * Math.cos(rad), r: ang, s: S }; };
+      return { S, fanY, slot, z: (k) => k, bottom: fanY + cw * S * 0.72 + Math.abs(slot(0).y - fanY) + 18 };
+    }
+    const a = Math.ceil(n / 2), span = (a - 1) + (n % 2 ? 0 : 0.5);   // 上排 a 张；人数是偶数时下排最右那张多出半格
+    const gap = Math.min(W * 0.92, Math.max(W * 0.5, (avail - W) / span));
+    const dropY = H * 0.56, fanY = c.y - cw * 0.2 - dropY * 0.5, x0 = c.x - span * gap / 2;
+    const slot = (k) => {
+      const lo = k % 2, j = (k - lo) / 2, x = x0 + (j + lo * 0.5) * gap, u = (x - c.x) / (span * gap / 2 || 1);   // u：-1（最左）… 1（最右）
+      return { x, y: fanY + lo * dropY + u * u * H * 0.1, r: u * 9, s: S };
+    };
+    return { S, fanY, slot, z: (k) => (k % 2 ? n : 0) + k, bottom: fanY + dropY + H * 0.62 + 18 };   // 下排整体压在上排上面
+  }
+  // 发身份那一下：牌从 from（中间那摞 / 扇面里那张）划一道弧、边飞边转正、缩到落点大小（以前 400ms 直线一闪就到，看不出是「发」过去的）
+  function dealFly(el, from, rot) {
+    const r = el.getBoundingClientRect();
+    if (!from || !r.width || fx.reduce()) return Promise.resolve();
+    const dx = from.left + from.width / 2 - (r.left + r.width / 2), dy = from.top + from.height / 2 - (r.top + r.height / 2), k = from.width / r.width;
+    const L = Math.hypot(dx, dy) || 1, bend = Math.min(40, L * 0.16) * (dx >= 0 ? 1 : -1);   // 往行进方向的一侧鼓出去一点
+    const mx = dx * 0.5 + (-dy / L) * bend, my = dy * 0.5 + (dx / L) * bend - Math.min(18, L * 0.06), spin = dx > 0 ? -14 : 14;
+    return el.animate([
+      { transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k.toFixed(3) + ') rotate(' + (rot || 0) + 'deg)' },
+      { transform: 'translate(' + dx.toFixed(1) + 'px,' + (dy - 6).toFixed(1) + 'px) scale(' + (k * 1.04).toFixed(3) + ') rotate(' + (rot || 0) + 'deg)', offset: 0.12 },
+      { transform: 'translate(' + mx.toFixed(1) + 'px,' + my.toFixed(1) + 'px) scale(' + ((k + 1) / 2).toFixed(3) + ') rotate(' + ((rot || 0) / 2 + spin) + 'deg)', offset: 0.55 },
+      { transform: 'none' },
+    ], { duration: Math.round(Math.min(640, 420 + L * 0.6)), easing: 'cubic-bezier(.35,.1,.25,1)' }).finished.catch(() => {});
   }
   /* 发身份（2026-11-26 用户：别人亮身份时不要把整张小卡牌摆在头像前——太小、看不清字、桌面乱）：
    * 背面朝上的角色牌飞到这家头像朝桌心那一侧 → 原地一翻，翻过来不是卡面，而是一枚只画这只猫的圆章（带角色色的光圈）
@@ -6003,7 +6039,7 @@
     el.style.visibility = 'hidden';
     box.dataset.role = role;
     snd('tap');
-    await flipFrom(box, fr, 400, rot || 0);
+    await dealFly(box, fr, rot || 0);
     return box;
   }
   // 第二段：原地一翻成圆章 → 停一下 → 盖进头像角上
@@ -6080,17 +6116,16 @@
       const cw = Math.round(Math.max(56, Math.min(124, (cr.width - 24) / (n * 0.6 + 1.1), (cr.width - 24) / 2.6, cr.height * 0.36 / 1.4)));
       const tf = (p) => 'translate(' + (p.x - cw / 2).toFixed(1) + 'px,' + (p.y - cw * 0.7).toFixed(1) + 'px) rotate(' + (p.r || 0) + 'deg) scale(' + (p.s == null ? 1 : p.s) + ')';
       const mv = (d, a, b, dur, ease, delay) => d.animate([{ transform: tf(a) }, { transform: tf(b) }], { duration: dur, easing: ease || 'cubic-bezier(.45,0,.25,1)', delay: delay || 0, fill: 'both' }).finished.catch(() => {});
-      let zTop = n + 1;
+      let zTop = 2 * n + 1;
       const lift = (d) => { d.style.zIndex = String(5 + (zTop++)); };
-      const cards = seats.map((k) => { const d = document.createElement('div'); d.className = 'zm-rd'; d.innerHTML = roleBackHtml(cw); d.style.zIndex = String(5 + k); els.fly.appendChild(d); nodes.push(d); d.style.opacity = '0'; return d; });
+      const cards = seats.map((k) => { const d = document.createElement('div'); d.className = 'zm-rd'; d.innerHTML = roleBackHtml(cw); els.fly.appendChild(d); nodes.push(d); d.style.opacity = '0'; return d; });
       const mask = document.createElement('div');
       mask.className = 'zm-rd-mask';
       els.fly.appendChild(mask); nodes.push(mask);
       mask.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, fill: 'both' });
-      const S = 1.18, R0 = cw * S * 2.6, stepA = Math.min(11, 56 / Math.max(1, n - 1));
-      const fanY = c.y - cw * 0.2, pivot = { x: c.x, y: fanY + R0 };
-      const slot = (k) => { const ang = (k - (n - 1) / 2) * stepA, rad = ang * Math.PI / 180; return { x: pivot.x + R0 * Math.sin(rad), y: pivot.y - R0 * Math.cos(rad), r: ang, s: S }; };
+      const { S, fanY, slot, z: fanZ, bottom: fanBottom } = rdFan(n, cw, c, cr);
       const where = cards.map((_, k) => slot(k));
+      cards.forEach((d, k) => { d.style.zIndex = String(5 + fanZ(k)); });
       snd('whoosh');
       await Promise.all(cards.map((d, k) => d.animate([{ transform: tf({ x: c.x, y: c.y + cw * 0.2, r: 0, s: 0.45 }), opacity: 0 }, { opacity: 1, offset: 0.35 }, { transform: tf(where[k]), opacity: 1 }], { duration: 460, delay: k * 70, easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'both' }).finished.catch(() => {})));
       if (gone()) return;
@@ -6123,7 +6158,6 @@
         btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'zm-btn zm-btn-primary zm-timed zm-rd-btn';
         btn.innerHTML = '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span><b>' + T('ui.steal.rand', '抽一张') + '</b>';
-        const fanBottom = fanY + cw * S * 0.72 + Math.abs(slot(0).y - fanY) + 18;
         btn.style.cssText = 'left:' + c.x + 'px;top:' + Math.min(innerHeight - 56, fanBottom) + 'px';
         els.fly.appendChild(btn); nodes.push(btn);
         btn.animate([{ opacity: 0, translate: '-50% 8px' }, { opacity: 1, translate: '-50% 0' }], { duration: 260, fill: 'both' });
@@ -6166,7 +6200,7 @@
         big.className = 'zm-rd-big';
         big.style.cssText = 'left:' + (c.x - BW / 2) + 'px;top:' + (c.y - BW * 0.7) + 'px;--glow:' + tone.band;
         big.style.zIndex = '300';   // 压在扇面和别人飞去头像的小牌上面
-        big.innerHTML = '<i class="zm-rd-rays"></i><i class="zm-rd-halo"></i>' + roleFlipHtml(role, BW, true);
+        big.innerHTML = '<i class="zm-rd-rays"></i>' + roleFlipHtml(role, BW, true);
         const from = pk.getBoundingClientRect();
         els.fly.appendChild(big); nodes.push(big);
         pk.style.visibility = 'hidden';
@@ -6258,7 +6292,7 @@
         // 用它在扇面里的实际层次（拈起 / lift 过的会比 5 + k 高）；停稳后没有本该压着它的牌（我的 / 还在扇面里的）才提到上层，
         // 否则一直留在它们底下（右边那家的圆章常常正好落在我那张上，一提就又跑到我那张上面）
         const el = cards[p.k];
-        const box = await sealPark(el, p.seat, p.role, Number(el.style.zIndex) || 5 + p.k, where[p.k].r || 0, cr, c, cw);
+        const box = await sealPark(el, p.seat, p.role, Number(el.style.zIndex) || 5 + fanZ(p.k), where[p.k].r || 0, cr, c, cw);
         nodes.push(box);
         const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
         const br = box.getBoundingClientRect(), z0 = Number(box.style.zIndex) || 0;
