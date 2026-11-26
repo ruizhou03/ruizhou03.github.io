@@ -2269,7 +2269,7 @@
     const hw = handWild();
     els.hand.innerHTML = (note ? '<p class="zm-hand-note">' + esc(note) + '</p>' : '') + pick + hand.map((id) => cardHtml(id,
       (selected.indexOf(id) >= 0 ? 'is-sel' + (combo ? ' is-combo' : '') : (reactOpen && nopeLift.has(id) ? 'is-sel' : '')) + (handHidden.has(id) ? ' is-incoming' : '') +
-      (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : '') + (okSave && !okSave.has(id) ? ' is-dim' : '') + (wildLater.has(id) && !handHidden.has(id) ? ' is-morphing' : ''), '', hw && !wildLater.has(id))).join('');
+      (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : '') + (okSave && !okSave.has(id) ? ' is-dim' : ''), '', hw && !wildLater.has(id))).join('');
     els.hand.querySelectorAll('.zm-card').forEach((c) => {
       c.addEventListener('click', (e) => { e.stopPropagation(); onCardTap(+c.dataset.id, c); });
     });
@@ -2403,15 +2403,12 @@
     c.classList.remove('is-incoming');
     if (fx.reduce()) return;
     /* 百搭 / 百搭猫：猫牌飞进手里时还是原样，落稳了再变成万能猫。
-     * 2026-11-26 用户：以前快进手牌就切成万能猫，像闪了一下、看不出发生了什么 →
-     * 滑进牌槽后整张抬起一点、描一圈金边「亮给你看」，原样停半秒多，再慢慢斜拉幕变成万能猫，拉完冒几颗小星，放回去 */
+     * 2026-11-26 用户：以前快进手牌就切成万能猫，像闪了一下、看不出发生了什么 → 加过「抬起 + 金边停半秒多再拉幕」；
+     * 2026-11-26 用户又定：抬起停顿多余——像普通牌一样直接收进牌槽，滑稳了就原地斜拉幕变万能猫（摸牌 / 被抽 / 抽来 / 给来都走这里） */
     if (handWild() && R.CATS.indexOf(R.KIND_OF[id]) >= 0) {
       const t = token;
       wildLater.add(id);   // 手牌这期间重画也先画原样
       setFace(c, cardHtml(id));
-      const slide = 280, hold = ms(560), settle = ms(220);
-      // 抬起 + 金边是 is-morphing 这个类（CSS 用 translate / scale，不碰 transform）；手牌重画时 wildLater 里的牌照样带上它
-      setTimeout(() => { const c1 = handCard(id); if (t === token && c1 && wildLater.has(id)) c1.classList.add('is-morphing'); }, slide);
       setTimeout(() => {
         wildLater.delete(id);
         const c2 = handCard(id);
@@ -2422,10 +2419,9 @@
           const c3 = handCard(id);
           if (!c3) return;
           const r = c3.getBoundingClientRect();
-          fx.burst(r.left + r.width / 2, r.top + r.height * 0.4, { n: 8, shapes: ['star'], colors: ['#e0893e', '#d4607e', '#8a63a8', '#2f8a83', '#c9a24a'], radius: r.width * 0.75, size: [5, 11], life: 600 });
-          setTimeout(() => c3.classList.remove('is-morphing'), settle);
+          fx.burst(r.left + r.width / 2, r.top + r.height * 0.4, { n: 6, shapes: ['star'], colors: ['#e0893e', '#d4607e', '#8a63a8', '#2f8a83', '#c9a24a'], radius: r.width * 0.6, size: [4, 9], life: 500 });
         });
-      }, slide + hold);
+      }, 300);   // 等滑进牌槽那一下（280ms）走完
     }
     const r = c.getBoundingClientRect();
     const dx = landed ? (landed.left + landed.width / 2) - (r.left + r.width / 2) : 0, dy = landed ? (landed.top + landed.height / 2) - (r.top + r.height / 2) : 0;
