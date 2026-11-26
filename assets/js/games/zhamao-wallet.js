@@ -9,7 +9,7 @@
 (function (root) {
   'use strict';
   const R = root.ZhamaoRules;
-  const T = R && R.T ? R.T : (k, s) => s;
+  const T = R && R.T ? R.T : (k, s, v) => (v ? s.replace(/\{(\w+)\}/g, (m, x) => (x in v ? v[x] : m)) : s);
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   const BASE = root.ZHAMAO_WALLET_URL || (LOCAL ? 'http://127.0.0.1:8789' : 'https://zircon-urge.fly.dev') + '/api/zmw';
   const CACHE = 'zm.wallet.v1';
@@ -32,11 +32,25 @@
   };
   const TIER_K = { easy: 0.93, normal: 1, hard: 1.03 };
   const nice = (x) => (x <= 0 ? 0 : x < 100 ? Math.round(x / 10) * 10 : Math.round(x / 100) * 100);   // 同后端：100 以上到百（2026-11-25 用户）
+  /* 组队（2026-11-26 用户挑方案乙）：队伍那份 = 赢队基础倍率 + 每多活一个队友 0.25（全队同拿）/ 输的队按队伍名次；
+   * 个人那份 = 单人同名次倍率 × 0.7；两份取高，再乘整体系数（按「实力相当、随机出局」模拟 30 万局校准，人均仍拿回 1.25 倍门票）。
+   * 键 = 每队人数 x 队数：[赢队基础倍率, 整体系数] */
+  const TEAM_B = { '2x2': [1.82, 0.94], '3x2': [1.78, 0.93], '4x2': [1.75, 0.91], '2x3': [2.35, 0.94], '2x4': [2.86, 0.94], '3x3': [2.33, 0.93] };
+  const TEAM_LOSE = { 2: [0.6], 3: [0.9, 0.45], 4: [1.0, 0.7, 0.4] };   // 第 2 / 3 / 4 名队
+  const TEAM_SURV = 0.25, TEAM_SOLO = 0.7;
+  const clampI = (x, lo, hi) => Math.max(lo, Math.min(hi, Number.isInteger(x) ? x : lo));
+  function teamParts(n, t) {
+    const w = Math.max(1, Math.min(n - 1, t.winners || 1)), T = Math.round(n / w), cfg = TEAM_B[w + 'x' + T];
+    if (!cfg || t.trank == null) return { m: t.won ? (n * 1.25 - 0.6 * (n - w)) / w : 0.6, floor: false };   // 老客户端没报名次：旧算法
+    const tm = t.won ? cfg[0] + TEAM_SURV * (clampI(t.surv, 1, w) - 1) : TEAM_LOSE[T][clampI(t.trank, 2, T) - 2];
+    const pm = TEAM_SOLO * RANK_MULT[n][clampI(t.prank, 1, n) - 1];
+    return { m: cfg[1] * Math.max(tm, pm), floor: pm > tm };
+  }
   function payout(o) {
     const n = Math.max(2, Math.min(9, Number.isInteger(o.n) ? o.n : 4)), tier = TIER_K[o.tier] ? o.tier : 'normal';
     const p = price(tier, PRICE[o.mode] ? o.mode : 'classic', n);
     let m;
-    if (o.team) { const w = Math.max(1, Math.min(n - 1, o.team.winners || 1)); m = o.team.won ? (n * 1.25 - 0.6 * (n - w)) / w : 0.6; }   // 组队同后端 TEAM_R 1.25 / TEAM_LOSE 0.6（2026-11-25）
+    if (o.team) m = teamParts(n, o.team).m;
     else m = (RANK_MULT[n][Math.max(1, Math.min(n, o.rank | 0)) - 1] || 0) * TIER_K[tier];
     let pay = p * m;
     const a = Number(o.autoShare) || 0;
@@ -398,8 +412,14 @@
     let body;
     if (R.isTeam && R.isTeam(s)) {
       if (s.phase !== 'over') return null;
-      const mine = R.teamOf(s, me);
-      body = { tid: wt.tid, team: true, won: mine === s.winnerTeam, winners: Array.from({ length: n }, (_, k) => k).filter((k) => R.teamOf(s, k) === s.winnerTeam).length };
+      const mine = R.teamOf(s, me), seats = Array.from({ length: n }, (_, k) => k);
+      // 队伍名次：赢的队第 1，输的队按「全队最后一人出局得越晚越靠前」（同排行榜 teamRankHtml）；个人名次：活着 = 1，否则 n − 第几个出局
+      const lastOut = (t) => Math.max(...seats.filter((k) => R.teamOf(s, k) === t).map((k) => s.outOrder.indexOf(k)));
+      const losers = [...new Set(seats.map((k) => R.teamOf(s, k)))].filter((t) => t !== s.winnerTeam).sort((a, b) => lastOut(b) - lastOut(a));
+      const ko = s.outOrder.indexOf(me);
+      body = { tid: wt.tid, team: true, won: mine === s.winnerTeam, winners: seats.filter((k) => R.teamOf(s, k) === s.winnerTeam).length,
+        trank: mine === s.winnerTeam ? 1 : losers.indexOf(mine) + 2, surv: seats.filter((k) => R.teamOf(s, k) === s.winnerTeam && s.alive[k]).length,
+        prank: s.alive[me] || ko < 0 ? 1 : n - ko };
     } else {
       let rank = 0;
       if (s.phase === 'over' && s.winner === me) rank = 1;
@@ -409,10 +429,11 @@
     }
     body.autoShare = wt.all ? wt.auto / wt.all : 0;
     // 当场估好（同服务器的算法）：结算页一出来就有数，服务器回来再对一下（首胜奖励只有服务器知道）
-    const pay = payout({ tier: wt.tier, mode: wt.mode, n, rank: body.rank, team: body.team ? { won: body.won, winners: body.winners } : null, autoShare: body.autoShare });
-    wt.est = { delta: pay - wt.price, pay, price: wt.price, firstWin: 0, bal: (wt.bal0 != null ? wt.bal0 : state ? state.bal : 0) + pay, est: true, auto: body.autoShare };
+    const pay = payout({ tier: wt.tier, mode: wt.mode, n, rank: body.rank, team: body.team ? body : null, autoShare: body.autoShare });
+    const floor = body.team ? (teamParts(n, body).floor ? body.prank : 0) : 0;   // 这局按个人名次保底结算：结算页说一句
+    wt.est = { delta: pay - wt.price, pay, price: wt.price, firstWin: 0, bal: (wt.bal0 != null ? wt.bal0 : state ? state.bal : 0) + pay, est: true, auto: body.autoShare, floor };
     if (state) state = Object.assign({}, state, { bal: wt.est.bal });   // 本机先记上（「再来一局」够不够按这个算），服务器回来会覆盖
-    const p = post('settle', body).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, bal: r.bal, auto: body.autoShare }; dropPending(wt.tid); return wt.done; })
+    const p = post('settle', body).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, bal: r.bal, auto: body.autoShare, floor }; dropPending(wt.tid); return wt.done; })
       .catch((e) => {
         if (e.status === 409 || e.status === 403) { wt.done = { gone: true }; dropPending(wt.tid); return null; }
         keepPending(body);   // 网断了 / 服务器没回：记下来，下次打开游戏再补结算（票在服务器上留 12 小时）
@@ -432,6 +453,8 @@
     if (a > 0.3) return '<span class="zmw-note">' + T('ui.wallet.autoHalf', '这局托管替你走了三成以上，奖励减半') + '</span>';
     return '';
   }
+  /* 组队输了、但个人撑到很后面：按个人名次保底（2026-11-26 方案乙）——说一句，不然看不懂为什么输了还没怎么扣 */
+  function floorNote(k) { return k ? '<span class="zmw-note">' + T('ui.wallet.teamFloor', '你个人第 {k} 名，按个人名次保底结算', { k }) + '</span>' : ''; }
   function paintRes(el, r) {
     if (!el) return;
     if (!r || r.gone || r.delta == null) { el.remove(); return; }
@@ -439,7 +462,7 @@
     el.innerHTML = FISH + '<b class="' + cls + '">' + (d > 0 ? '+' : d < 0 ? '−' : '') + '0</b>' +
       (r.firstWin ? '<span class="zmw-star">' + STAR + '+' + r.firstWin + '</span>' : '') +
       (r.bal != null ? '<span class="zmw-bal">' + FISH + '<b>' + fmt(r.bal) + '</b></span>' : '') +   // 「登录保存」只在猫咪档案里提（2026-11-23 用户：排行榜里放着丑）
-      autoNote(r.auto);
+      (autoNote(r.auto) || floorNote(r.floor));
     const b = el.querySelector(':scope > b'), sign = d > 0 ? '+' : d < 0 ? '−' : '';
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || !Math.abs(d)) { b.textContent = sign + fmt(d); return; }
     const t0 = performance.now(), dur = 700;
