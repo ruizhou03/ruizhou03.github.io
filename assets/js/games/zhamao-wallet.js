@@ -74,7 +74,7 @@
   const listeners = [];
   function remember(j) {
     if (!j || j.bal == null) return;
-    state = Object.assign({}, state || {}, { bal: j.bal, t: Date.now() }, j.checkin ? { ck: j.checkin.today ? today() : '', next: j.checkin.next } : {}, j.relief ? { relief: j.relief } : {}, j.winToday != null ? { winToday: !!j.winToday } : {}, j.owner ? { owner: j.owner } : {}, Array.isArray(j.badges) && j.checkin ? { badges: j.badges } : {});
+    state = Object.assign({}, state || {}, { bal: j.bal, t: Date.now() }, j.checkin ? { ck: j.checkin.today ? today() : '', next: j.checkin.next } : {}, j.relief ? { relief: j.relief } : {}, j.winToday != null ? { winToday: !!j.winToday } : {}, j.owner ? { owner: j.owner } : {}, Array.isArray(j.badges) && j.checkin ? { badges: j.badges } : {}, j.firstWin && typeof j.firstWin === 'object' ? { fw: j.firstWin } : j.fwReady ? { fw: Object.assign({}, (state && state.fw) || {}, { ready: true, done: true }) } : {});
     ls.set(CACHE, JSON.stringify(state));
     listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } });
   }
@@ -120,8 +120,46 @@
 .zmw-res .zmw-bal b{font:inherit}
 .zmw-res .zmw-bal{display:inline-flex;align-items:center;gap:4px;padding:4px 10px 4px 7px;border-radius:999px;background:#ebe5d8;font:600 14px/1 ZM Num,ZM Serif,Georgia,serif;color:#6a6358}
 .zmw-res .zmw-bal .zmw-fish{width:22px;height:14px}
-.zmw-res .zmw-star{display:inline-flex;align-items:center;gap:2px;font:700 14px/1 ZM Num,ZM Serif,Georgia,serif;color:#b07420}
-.zmw-res .zmw-star svg{width:16px;height:16px}
+/* 结算页一笔一笔写清楚（2026-11-26 用户：小鱼干后面一颗星 +1000 看不懂）：这局 / 今日首胜 / 解锁勋章各占一行，余额看左上角 */
+.zmw-res.is-lines{display:flex;flex-direction:column;align-items:stretch;gap:7px;margin:14px 0 2px;padding-top:12px;border-top:1px solid rgba(29,27,24,.14);min-height:0}
+.zmw-ln{display:flex;align-items:center;justify-content:space-between;gap:10px;font:600 15px/1.25 system-ui,"Noto Sans SC",sans-serif;color:#6a6358;text-align:left}
+.zmw-ln>span{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.zmw-ln>b{flex:none;display:inline-flex;align-items:center;gap:6px;font:700 17px/1 ZM Num,ZM Serif,Georgia,"Noto Serif SC",serif;font-variant-numeric:tabular-nums;color:#6a6358}
+.zmw-ln>b i{font-style:normal}
+.zmw-ln>b .zmw-fish{width:34px;height:21px}
+.zmw-ln>b.is-up{color:#3f7a52}.zmw-ln>b.is-down{color:#b4392c}
+.zmw-ln.is-main{color:#1d1b18;font-size:16px}
+.zmw-ln.is-main>b{font-size:26px}
+.zmw-res.is-lines .zmw-note{text-align:left}
+/* 牌桌左上角常驻小鱼干（2026-11-26 用户挑方案 A：标题位换成小鱼干，和主页面同一个位置） */
+.zmw-tchip{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 12px 0 9px;box-sizing:border-box;border:1px solid #1d1b18;border-radius:999px;background:#fffdf8;font:700 15px/1 ZM Num,ZM Serif,Georgia,"Noto Serif SC",serif;font-variant-numeric:tabular-nums;color:#1d1b18;box-shadow:0 2px 0 #1d1b18;white-space:nowrap;transform-origin:20% 50%}
+.zmw-tchip[hidden]{display:none}
+.zmw-tchip .zmw-fish{width:24px;height:15px}
+.zmw-tchip b{transition:color .2s}
+.zm-topleft.has-zmw .zm-title{display:none}
+.zmw-tchip.is-lift{position:relative;z-index:60}
+.zm-dialog-mask.is-wal{padding-top:58px}
+@media (max-width:480px),(max-height:480px){.zmw-tchip{height:30px;font-size:14px;padding:0 10px 0 8px}.zmw-tchip .zmw-fish{width:21px;height:13px}.zm-dialog-mask.is-wal{padding-top:50px}}
+/* 解锁勋章：整页压一层深色蒙版（2026-11-26 用户） */
+.zmw-bdg{position:absolute;inset:0;z-index:58;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow:hidden;text-align:center;color:#fffdf8;background:rgba(24,22,19,.9);-webkit-tap-highlight-color:transparent}
+.zmw-bdg .kick{font:700 14px/1 system-ui,"Noto Sans SC",sans-serif;letter-spacing:.32em;text-indent:.32em;color:#e9b949;margin-bottom:8px}
+.zmw-bdg .art{position:relative;width:min(200px,44vmin);height:min(200px,44vmin);display:grid;place-items:center;flex:none}
+.zmw-bdg .rays{position:absolute;inset:-22%;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(233,185,73,.3) 0 9deg,transparent 9deg 24deg);-webkit-mask:radial-gradient(circle,#000 22%,transparent 68%);mask:radial-gradient(circle,#000 22%,transparent 68%);animation:zmwSpin 14s linear infinite}
+@keyframes zmwSpin{to{transform:rotate(360deg)}}
+.zmw-bdg .art svg{position:relative;width:66%;height:66%;filter:drop-shadow(0 6px 0 rgba(0,0,0,.35))}
+.zmw-bdg .txt{display:contents}.zmw-bdg .kick{order:-1}
+.zmw-bdg h3{margin:4px 0 4px;color:#fffdf8;font:700 26px/1.2 ZM Serif,Georgia,"Noto Serif SC",serif;letter-spacing:.06em}
+.zmw-bdg .how{font:500 14.5px/1.4 system-ui,"Noto Sans SC",sans-serif;color:rgba(255,253,248,.72);margin-bottom:14px}
+.zmw-bdg .rw{display:inline-flex;align-items:center;gap:6px;padding:8px 16px 8px 12px;border-radius:999px;background:#fffdf8;color:#3f7a52;font:700 22px/1 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums;margin-bottom:22px;transition:opacity .4s}
+.zmw-bdg .rw .zmw-fish{width:32px;height:20px}
+.zmw-bdg .rw.is-spent{opacity:.6}
+.zmw-bdg{cursor:pointer;outline:none}
+.zmw-bdg .tap{font:500 13px/1 system-ui,"Noto Sans SC",sans-serif;color:rgba(255,253,248,.5);letter-spacing:.06em}
+.zmw-bdg .rw .zmw-tick{width:20px;height:20px}
+.zmw-bdg .cf{position:absolute;left:50%;top:40%;width:8px;height:14px;border-radius:2px;opacity:0;animation:zmwCf 1.5s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes zmwCf{0%{opacity:1;transform:translate(0,0) rotate(0)}70%{opacity:1}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--r))}}
+@media (max-height:480px){.zmw-bdg{flex-direction:row;column-gap:28px}.zmw-bdg .txt{display:flex;flex-direction:column;align-items:center}.zmw-bdg .kick{order:0}.zmw-bdg .rw{margin-bottom:16px}.zmw-bdg .art{width:min(170px,50vh);height:min(170px,50vh)}}
+@media (prefers-reduced-motion:reduce){.zmw-bdg .rays,.zmw-bdg .cf{animation:none}.zmw-bdg .cf{display:none}}
 .zmw-chip b{transition:color .2s}
 .zmwfx-up{color:#3f7a52!important}.zmwfx-down{color:#b4392c!important}
 /* 小鱼干不够（2026-11-23 用户：余额不够不能直接开，弹窗说清楚，救济在弹窗里自己点） */
@@ -156,7 +194,6 @@
 @keyframes zmwWait{to{background-position:-200% 0}}
 @media (prefers-reduced-motion:reduce){.zmw-res .zmw-wait{animation:none}}
 `;
-  const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8Z" fill="#e9b949" stroke="#b07420" stroke-width="1.2" stroke-linejoin="round"/></svg>';
   let styled = false;
   function style() {
     if (styled) return;
@@ -171,7 +208,7 @@
   /* 小黄点（2026-11-22 用户挑甲）：只在「有东西可以领 / 可以看」时亮——今天还没签到，或者有拿到了还没看过的徽章。余额变了不亮点，靠数字滚动 */
   const seenBadges = () => { try { return JSON.parse(ls.get('zm.badges.seen')) || []; } catch (_) { return []; } };
   function markBadgesSeen(ids) { ls.set('zm.badges.seen', JSON.stringify(Array.from(new Set(seenBadges().concat(ids || []))))); paintChip(); }
-  const hasNews = () => !!state && (state.ck !== today() || (state.badges || []).some((b) => seenBadges().indexOf(b) < 0));
+  const hasNews = () => !!state && (state.ck !== today() || !!(state.fw && state.fw.ready) || (state.badges || []).some((b) => seenBadges().indexOf(b) < 0));   // 2026-11-26：今日首胜待领也亮
   let shortOpen = false;   // 「不够了」弹窗开着：鱼游进弹窗里的余额，后面左上角那个不跟着放
   let shown = null;   // 左上角现在显示的数（动画从这里滚到新余额）
   const FX = () => root.ZhamaoWalletFx || null;
@@ -219,6 +256,7 @@
     const gen = fxGen, b = from.querySelector('b') || from;
     const bal = from === chip ? (shown != null ? shown : state.bal) : (Number(String(b.textContent).replace(/[^\d]/g, '')) || state.bal);   // 结算页：从它上面显示的数往下滚
     if (from === chip) shown = bal - p;
+    if (from === tchip) { tGen++; tShown = bal - p; held = false; if (state) state = Object.assign({}, state, { bal: bal - p }); }   // 本机先记上：开新局时左上角别先弹回旧数再被门票扣下来   // 牌桌左上角（结算页「再来一局」）：还没放完的进账一律收掉，从现在显示的数往下扣
     fx.roll(b, bal, bal - p, 520, { delay: 120 });
     const n = Math.min(5, 2 + Math.round(Math.log10(Math.max(10, p)) - 1));
     return fx.school(FISH, from, to, n, { spread: 14, gap: 70, dur: 700, lift: 30, size: 28, toPoint: center(to) }).then(() => gen === fxGen);
@@ -277,7 +315,8 @@
         const amt = rl.first ? 3000 : 1000;
         task(T('ui.wallet.relief', '领取救济'), !(rl.first || rl.left > 0), (b) => claim(b, amt, () => post('relief', { n: o.n, mode: o.mode, tier: o.tier })));
         task(T('ui.wallet.checkin', '每日签到'), state.ck === today(), (b) => claim(b, state.next || 100, () => api.checkin()));
-        task(T('ui.wallet.win', '对局获胜'), !!state.winToday, () => end(false));
+        if (state.fw && state.fw.ready) task(T('ui.wallet.win', '对局获胜'), false, (b) => claim(b, state.fw.amount || 1000, () => claimFirstWin()));   // 赢过、首胜奖励还没领：当场领
+        else task(T('ui.wallet.win', '对局获胜'), !!state.winToday, () => end(false));
         btn('is-plain', T('ui.ok', '知道了'), () => end(false));
       }
       draw();
@@ -293,6 +332,8 @@
       return shortDialog(o, o.price != null ? o.price : price(o.tier, o.mode, o.n));
     });
   }
+  /* 领今日首胜（2026-11-26：首胜不在结算里发，档案 / 「不够了」弹窗里自己领） */
+  function claimFirstWin() { return post('firstwin'); }
   function cancelFx() { fxGen++; if (FX()) FX().cancelAll(); }
   function canPay(tier, mode, n) { return !(state && state.bal != null && state.bal < price(tier, mode, n)); }
   function mountChip(cover) {
@@ -431,9 +472,11 @@
     // 当场估好（同服务器的算法）：结算页一出来就有数，服务器回来再对一下（首胜奖励只有服务器知道）
     const pay = payout({ tier: wt.tier, mode: wt.mode, n, rank: body.rank, team: body.team ? body : null, autoShare: body.autoShare });
     const floor = body.team ? (teamParts(n, body).floor ? body.prank : 0) : 0;   // 这局按个人名次保底结算：结算页说一句
+    wt.rank = body.team ? (body.won ? 1 : body.trank) : body.rank;   // 结算页那一行写「第 N 名」
     wt.est = { delta: pay - wt.price, pay, price: wt.price, firstWin: 0, bal: (wt.bal0 != null ? wt.bal0 : state ? state.bal : 0) + pay, est: true, auto: body.autoShare, floor };
+    holdT();   // 牌桌左上角先停在结算前的数：等结算页一笔一笔游进去（服务器回来的余额不能先跳上去）
     if (state) state = Object.assign({}, state, { bal: wt.est.bal });   // 本机先记上（「再来一局」够不够按这个算），服务器回来会覆盖
-    const p = post('settle', body).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, bal: r.bal, auto: body.autoShare, floor }; dropPending(wt.tid); return wt.done; })
+    const p = post('settle', body).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, badges: Array.isArray(r.badges) ? r.badges : [], bal: r.bal, auto: body.autoShare, floor }; dropPending(wt.tid); return wt.done; })
       .catch((e) => {
         if (e.status === 409 || e.status === 403) { wt.done = { gone: true }; dropPending(wt.tid); return null; }
         keepPending(body);   // 网断了 / 服务器没回：记下来，下次打开游戏再补结算（票在服务器上留 12 小时）
@@ -455,44 +498,211 @@
   }
   /* 组队输了、但个人撑到很后面：按个人名次保底（2026-11-26 方案乙）——说一句，不然看不懂为什么输了还没怎么扣 */
   function floorNote(k) { return k ? '<span class="zmw-note">' + T('ui.wallet.teamFloor', '你个人第 {k} 名，按个人名次保底结算', { k }) + '</span>' : ''; }
-  function paintRes(el, r) {
-    if (!el) return;
-    if (!r || r.gone || r.delta == null) { el.remove(); return; }
-    const d = r.delta - (r.firstWin || 0), cls = d > 0 ? 'is-up' : d < 0 ? 'is-down' : '';   // 大字 = 这局本身（拿回 − 门票）；首胜奖励单独挂星星
-    el.innerHTML = FISH + '<b class="' + cls + '">' + (d > 0 ? '+' : d < 0 ? '−' : '') + '0</b>' +
-      (r.firstWin ? '<span class="zmw-star">' + STAR + '+' + r.firstWin + '</span>' : '') +
-      (r.bal != null ? '<span class="zmw-bal">' + FISH + '<b>' + fmt(r.bal) + '</b></span>' : '') +   // 「登录保存」只在猫咪档案里提（2026-11-23 用户：排行榜里放着丑）
-      (autoNote(r.auto) || floorNote(r.floor));
-    const b = el.querySelector(':scope > b'), sign = d > 0 ? '+' : d < 0 ? '−' : '';
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !Math.abs(d)) { b.textContent = sign + fmt(d); return; }
+  /* ── 结算页（2026-11-26 用户：小鱼干后面一颗星 +1000 看不懂；勋章的 1 万悄悄进了余额；结算尽量少字）──
+   * 结算窗只算这一局：底下一行「第 N 名  🐟 +奖励」——名次直接给的奖励（门票开局时已经从左上角扣过，这里不提、不算净赚）。
+   * 余额看牌桌左上角常驻的小鱼干：奖励从这一行游进去、那边数字滚上去。
+   * 今日首胜不在这里（去档案领）。新拿到的勋章：先整页弹出（badgeShow，奖励当场游进左上角），点任意处回到排行榜，再放这局的奖励 */
+  const TICK = '<svg class="zmw-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#3f7a52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const BADGE = { streak7: ['七连签', 5000], bug10: ['捉虫十只', 5000], games100: ['百局老猫', 10000], hard10: ['高手十胜', 10000], nine1: ['九人桌第一', 10000], big1000: ['一局赚一千', 10000] };   // 同后端 lib/zhamao-econ.js BADGES
+  const PF = () => root.ZhamaoProfile || null;
+  const bSvg = (id) => (PF() && PF().badgeSvg ? PF().badgeSvg(id) : '');
+  const wait = (ms) => new Promise((r) => setTimeout(r, FX() && FX().reduce() ? 0 : ms));
+  function payOf(r) { return r.pay != null ? r.pay : Math.max(0, (r.delta || 0) + (r.price || 0) - (r.firstWin || 0)); }
+  function paintPay(el, r, label, quiet) {
+    el.classList.add('is-lines');
+    const pay = payOf(r);
+    el.innerHTML = '<div class="zmw-ln is-main"><span>' + label + '</span><b class="' + (pay > 0 ? 'is-up' : '') + '">' + FISH + '<i>+' + (quiet ? fmt(pay) : '0') + '</i></b></div>' + (autoNote(r.auto) || floorNote(r.floor));
+  }
+  function countUp(el, pay) {
+    const i = el.querySelector('.zmw-ln b i');
+    if (!i || !pay || (FX() && FX().reduce())) { if (i) i.textContent = '+' + fmt(pay); return; }
     const t0 = performance.now(), dur = 700;
-    const tick = (t) => { const k = Math.min(1, (t - t0) / dur); b.textContent = sign + fmt(Math.abs(d) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); };
+    const tick = (t) => { const k = Math.min(1, (t - t0) / dur); if (i.isConnected) i.textContent = '+' + fmt(pay * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); };
     requestAnimationFrame(tick);
+  }
+  const rankLabel = (k) => (k ? T('ui.wallet.rankN', '第 {n} 名', { n: k }) : T('ui.wallet.rankPay', '名次奖励'));
+
+  /* 一局只放一次：重新打开排行榜就照最后的样子摆，不再游一遍 */
+  function settleSeq(game, el, label, base, r0, later) {
+    const seq = game.wSeq || (game.wSeq = {});
+    liftT(true);
+    if (seq.r) { paintPay(el, seq.r, label, true); return; }
+    holdT();
+    if (base != null) setT(base);
+    const gen = tGen;
+    paintPay(el, r0, label);
+    seq.r = r0;
+    const line = el.querySelector('.zmw-ln');
+    // 先等服务器（勋章只有它知道），最多 1.6 秒；有新勋章先整页弹，点掉后再放这局的奖励
+    let paid = false;
+    const payNow = (r) => {
+      if (paid || gen !== tGen) return; paid = true;
+      const amt = payOf(r);
+      if (payOf(r) !== payOf(r0)) paintPay(el, r, label);
+      countUp(el, amt);
+      return wait(250).then(() => tAdd(line && line.isConnected ? line.querySelector('b') : el, amt, gen, 0, true));   // 在队列里跑：放完才 resolve
+    };
+    const timer = setTimeout(() => { tQ = tQ.then(() => wait(1100)).then(() => payNow(r0)); }, 1600);
+    Promise.resolve(later()).then((r) => {
+      if (gen !== tGen) return;
+      clearTimeout(timer);
+      if (r) seq.r = r;
+      const bs = ((r && r.badges) || []).filter((id) => BADGE[id]);
+      if (!paid) tQ = tQ.then(() => wait(bs.length ? 900 : 1100));
+      bs.forEach((id) => { tQ = tQ.then(() => (gen === tGen ? badgeShow(id, gen) : null)); });
+      tQ = tQ.then(() => payNow(r || r0)).then(() => { if (gen === tGen) releaseT(); });
+    }).catch(() => { tQ = tQ.then(() => payNow(r0)).then(() => { if (gen === tGen) releaseT(); }); });
   }
   function fill(dialog, p, game) {
     const el = dialog && dialog.querySelector('[data-zmw-res]');
     if (!el) return;
     if (!p) { el.remove(); return; }
-    const est = game && game.wt && game.wt.done ? game.wt.done : game && game.wt && game.wt.est;
-    if (est) paintRes(el, est);
-    Promise.resolve(p).then((r) => {
-      if (!est) { paintRes(el, r); return; }
-      if (!r) return;   // 网断了：留着估的数（下次打开游戏补结算）
-      if (r.delta - (r.firstWin || 0) !== est.delta - (est.firstWin || 0)) { paintRes(el, r); return; }
-      // 和估的一样：只把首胜星星补上、余额对成服务器的
-      if (r.firstWin && !el.querySelector('.zmw-star')) { const st = document.createElement('span'); st.className = 'zmw-star'; st.innerHTML = STAR + '+' + r.firstWin; el.querySelector('b').after(st); }
-      const bl = el.querySelector('.zmw-bal'); if (bl && r.bal != null) bl.innerHTML = FISH + '<b>' + fmt(r.bal) + '</b>';
-    });
+    const wt = (game && game.wt) || {};
+    const est = wt.done || wt.est;
+    settleSeq(game, el, rankLabel(wt.rank), wt.bal0, est || { pay: 0 }, () => Promise.resolve(p).then((r) => (r && !r.gone && r.delta != null ? r : null)));
   }
-  /* 联机：服务器在这局的视图里给了我的 { price, pay, d, refund } */
-  function fillOnline(dialog, pay) {
+  /* 联机：服务器在这局的视图里给了我的 { price, pay, d, refund, rank? }；勋章另外记账——等一下再拉一次（me），跟开局时记下的比 */
+  function fillOnline(dialog, pay, game) {
     const el = dialog && dialog.querySelector('[data-zmw-res]');
     if (!el) return;
-    if (!pay || pay.refund) { el.remove(); return; }
-    // 余额由服务器另外记账：稍等一下再拉一次余额（首胜奖励也在里面）
-    // 2026-11-23：先用本机余额 + 这局输赢当场摆出来，服务器那边记完账再对一下
-    if (state && state.bal != null) paintRes(el, { delta: pay.d, bal: state.bal + pay.d, auto: pay.auto });
-    setTimeout(() => { refresh().then((j) => { const bl = el.querySelector('.zmw-bal'); if (j && bl) bl.innerHTML = FISH + '<b>' + fmt(j.bal) + '</b>'; else if (j && !bl) paintRes(el, { delta: pay.d, bal: j.bal, auto: pay.auto }); }); }, 900);
+    if (!pay || pay.refund || !game) { el.remove(); return; }
+    const r0 = { pay: pay.pay != null ? pay.pay : Math.max(0, pay.d + (pay.price || 0)), auto: pay.auto };
+    settleSeq(game, el, rankLabel(pay.rank), null, r0, () => wait(900).then(refresh).then((j) => {
+      if (!j || !state) return r0;
+      const had = game.wBadges || [], fresh = (state.badges || []).filter((b) => had.indexOf(b) < 0);
+      game.wBadges = (state.badges || []).slice();
+      return Object.assign({}, r0, { badges: fresh });
+    }));
+  }
+
+  // ── 牌桌左上角常驻小鱼干（2026-11-26 用户挑方案 A）──
+  // 一直显示余额；结算时余额不跟着服务器跳，停在结算前（holdT），一笔一笔游进来（tAdd 排队），放完再对一次（releaseT）
+  let tchip = null, tTop = null, tShown = null, held = false, tGen = 0, tQ = Promise.resolve();
+  function mountTable(topleft) {
+    style();
+    if (!topleft || tchip) return;
+    tTop = topleft;
+    tchip = document.createElement('span');
+    tchip.className = 'zmw-tchip';
+    tchip.setAttribute('role', 'img');
+    tchip.innerHTML = FISH + '<b></b>';
+    topleft.insertBefore(tchip, topleft.firstChild);
+    paintT();
+    listeners.push(paintT);
+  }
+  function setT(v) {
+    tShown = v;
+    if (!tchip) return;
+    const b = tchip.querySelector('b'); b.__zmwRoll = {}; b.textContent = fmt(v);
+    tchip.setAttribute('aria-label', T('ui.wallet.title', '小鱼干') + ' ' + fmt(v));
+  }
+  function paintT() {
+    if (!tchip) return;
+    const has = !!(state && state.bal != null);
+    tchip.hidden = !has;
+    tTop.classList.toggle('has-zmw', has);
+    if (!has || held || tShown === state.bal) return;
+    // 平时（打着牌、联机开局扣门票）余额变了：数字滚过去（加绿、减红），不跳
+    const fx = FX(), from = tShown;
+    if (from != null && fx && fxOn() && tchip.offsetParent !== null) { tShown = state.bal; fx.roll(tchip.querySelector('b'), from, state.bal, 520).then(() => { if (!held && tShown === state.bal) setT(state.bal); }); }
+    else setT(state.bal);
+  }
+  function holdT() { if (!held) { held = true; if (tShown == null && state && state.bal != null) tShown = state.bal; } }
+  function releaseT() {
+    held = false;
+    if (!state || state.bal == null) return;
+    shown = state.bal; if (chip) chip.querySelector('b').textContent = fmt(state.bal);   // 主页面那个不再重放一遍进账
+    if (tchip && tShown !== state.bal) {
+      const fx = FX(), b = tchip.querySelector('b'), from = tShown;
+      tShown = state.bal;
+      if (fx && fxOn() && tchip.offsetParent !== null && from != null) fx.roll(b, from, state.bal, 420).then(() => { if (!held) setT(state.bal); }); else setT(state.bal);
+    }
+  }
+  /* 一笔进账 / 出账（排队）：amt > 0 鱼从 from 游进左上角，< 0 从左上角游到 from；数字跟着滚 */
+  function tAdd(from, amt, gen, delay, now) {
+    const step = () => new Promise((res) => {
+      if (gen !== tGen || !amt) { res(); return; }
+      const fx = FX(), b = tchip && tchip.querySelector('b'), a = tShown != null ? tShown : (state ? state.bal : 0), z = a + amt;
+      tShown = z;
+      const done = () => { if (gen === tGen) setT(z); res(); };
+      if (!tchip || !fx || !fxOn() || tchip.offsetParent === null || !from || !from.isConnected) { done(); return; }
+      const n = Math.min(6, 2 + Math.round(Math.log10(Math.max(10, Math.abs(amt))) - 1));
+      setTimeout(() => {
+        if (gen !== tGen) { res(); return; }
+        const o = { spread: 24, gap: 80, dur: 760, lift: -50, size: 26 };
+        const go = amt > 0
+          ? fx.school(FISH, from, tchip, n, Object.assign(o, { onLand: () => fx.roll(b, a, z, 600) }))
+          : (fx.roll(b, a, z, 600), fx.school(FISH, tchip, from, n, Object.assign(o, { lift: 30, toPoint: center(from) })));
+        go.then(() => setTimeout(done, 260));
+      }, delay || 0);
+    });
+    const p = now ? step() : (tQ = tQ.then(step));
+    return p;
+  }
+  /* 换一局 / 回房间：上一局没放完的一律收掉，左上角对成现在的余额；记下开局时的勋章、今天赢没赢过（联机结算时比对） */
+  function tableStart(game) {
+    tGen++; tQ = Promise.resolve(); held = false;
+    const ov = document.querySelector('.zmw-bdg'); if (ov) ov.remove();
+    liftT(false);
+    if (game) { game.wBadges = state && state.badges ? state.badges.slice() : []; game.wWin = state && state.winToday != null ? !!state.winToday : null; }
+    paintT();
+    if (game && game.online) setTimeout(() => { if (!held) refresh(); }, 1500);   // 联机门票在服务器上扣：拉一次，左上角对上
+  }
+  /* 结算页开着：左上角小鱼干浮在蒙版上面（排行榜往下让一点），关掉就落回去 */
+  let liftObs = null;
+  function liftT(on) {
+    if (!tchip) return;
+    const mask = document.getElementById('zmDialogMask');
+    tchip.classList.toggle('is-lift', !!on);
+    if (mask) mask.classList.toggle('is-wal', !!on);
+    if (on && mask && root.MutationObserver && !liftObs) {
+      liftObs = new MutationObserver(() => { if (mask.hidden) { liftObs.disconnect(); liftObs = null; liftT(false); } });
+      liftObs.observe(mask, { attributes: true, attributeFilter: ['hidden'] });
+    }
+  }
+
+  /* 解锁勋章（2026-11-26 用户）：整页压一层深色蒙版，中间勋章（光芒 + 彩纸）、名字、怎么拿到的、奖励；
+   * 奖励的鱼当场从奖励那颗胶囊游进左上角。「查看」= 打开档案里这枚勋章；「关闭」= 回到排行榜。关掉才放下一枚 */
+  function badgeShow(id, gen) {
+    style();
+    const app = document.getElementById('zmApp') || document.body;
+    const meta = BADGE[id] || [id, 0];
+    return new Promise((resolve) => {
+      const m = document.createElement('div');
+      m.className = 'zmw-bdg';
+      m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', T('ui.wallet.badgeGot', '解锁勋章') + ' ' + meta[0]);
+      const cols = ['#e9b949', '#c8463a', '#3f7a52', '#2f4a6d', '#fffdf8', '#e58e46'];
+      let cf = '';
+      for (let i = 0; i < 28; i++) { const a = (i * 137.5) * Math.PI / 180, d = 110 + ((i * 53) % 110); cf += '<i class="cf" style="background:' + cols[i % 6] + ';--x:' + Math.round(Math.cos(a) * d) + 'px;--y:' + Math.round(Math.sin(a) * d * 0.9 + 40) + 'px;--r:' + ((i * 97) % 540) + 'deg;animation-delay:' + (180 + (i % 5) * 30) + 'ms"></i>'; }
+      const how = PF() && PF().badgeHow ? PF().badgeHow(id) : '';
+      m.innerHTML = cf + '<div class="art"><div class="rays"></div>' + bSvg(id) + '</div>' +
+        '<div class="txt"><div class="kick">' + T('ui.wallet.badgeGot', '解锁勋章') + '</div><h3>' + meta[0] + '</h3>' + (how ? '<div class="how">' + how + '</div>' : '') +
+        '<div class="rw">' + FISH + '+' + fmt(meta[1]) + '</div>' +
+        '<div class="tap">' + T('tut.tapOn', '点任意处继续') + '</div></div>';
+      app.appendChild(m);
+      const art = m.querySelector('.art svg'), rw = m.querySelector('.rw');
+      if (!(FX() && FX().reduce())) {
+        m.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
+        if (art) art.animate([{ transform: 'scale(.2) rotate(-30deg)', opacity: 0 }, { transform: 'scale(1.12) rotate(6deg)', opacity: 1, offset: 0.65 }, { transform: 'none', opacity: 1 }], { duration: 620, easing: 'cubic-bezier(.3,.8,.4,1)' });
+        m.querySelector('.txt').animate([{ transform: 'translateY(16px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 360, delay: 260, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' });
+      }
+      if (root.ZhamaoAudio && root.ZhamaoAudio.sfx) { try { root.ZhamaoAudio.sfx('win'); } catch (_) { /* */ } }
+      let closed = false;
+      // 奖励的鱼游进左上角；游完那颗胶囊变淡、前面打个勾（2026-11-26 用户：留着，看得清拿了多少）
+      wait(700).then(() => (closed ? null : tAdd(rw, meta[1], gen, 0, true))).then(() => { rw.classList.add('is-spent'); rw.insertAdjacentHTML('afterbegin', TICK); });
+      const t0 = Date.now();
+      const end = () => {
+        if (closed || Date.now() - t0 < 600) return;   // 刚弹出来那一下的误触不算
+        closed = true;
+        markBadgesSeen([id]);
+        const out = () => { m.remove(); resolve(); };
+        if (FX() && FX().reduce()) out(); else m.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180 }).onfinish = out;
+      };
+      // 2026-11-26 用户：不要「查看」「关闭」——点任意处继续，回到排行榜（勋章在档案里随时能看）
+      m.addEventListener('click', end);
+      m.tabIndex = -1; m.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') end(); });
+      setTimeout(() => m.focus({ preventScroll: true }), 50);
+    });
   }
 
   const api = root.ZhamaoWallet = {
@@ -501,7 +711,7 @@
     me: refresh,
     checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, fb: (steps) => post('fb', { steps }).catch(() => null),
     ledger: (offset) => post('ledger', { offset }), costTag, tagHtml, onNoScore: null,
-    mountChip, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
+    mountChip, mountTable, tableStart, tableChip: () => tchip, badgeShow, claimFirstWin, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
     __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },
   };
 })(window);

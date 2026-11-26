@@ -56,6 +56,14 @@
 .zmp-day.is-done .zmw-fish{opacity:1}
 .zmp-day.is-now{border-color:#b4392c;color:#b4392c;background:#fffdf8;cursor:pointer;box-shadow:0 0 0 3px rgba(180,57,44,.18)}
 .zmp-day.is-now .zmw-fish{opacity:1}
+.zmp-task{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:9px 10px 9px 12px;border:1.5px solid #d9cfbd;border-radius:14px;background:#f3eee3;font:600 14px/1.2 system-ui,"Noto Sans SC",sans-serif;color:#6a6358}
+.zmp-task b{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font:700 14px/1 ZM Num,ZM Serif,Georgia,serif;color:#6a6358}
+.zmp-task b .zmw-fish{width:22px;height:14px}
+.zmp-task.is-ready{border-color:#b4392c;background:#fffdf8;color:#1d1b18;box-shadow:0 0 0 3px rgba(180,57,44,.12)}
+.zmp-task.is-ready b{color:#3f7a52}
+.zmp-task button{cursor:pointer;flex:none;padding:8px 16px;border-radius:999px;border:1.5px solid #1d1b18;background:#b4392c;color:#fffdf8;font:600 14px/1 system-ui,"Noto Sans SC",sans-serif;box-shadow:0 2px 0 #1d1b18}
+.zmp-task button:active{transform:translateY(2px);box-shadow:none}
+.zmp-task em{font-style:normal;font-size:13px;color:#8a8275}
 .zmp-day.is-big{background-image:radial-gradient(circle at 50% 30%,rgba(227,168,63,.28),transparent 70%)}
 @media(prefers-reduced-motion:no-preference){.zmp-day.is-now{animation:zmpPulse 1.6s ease-in-out infinite}@keyframes zmpPulse{50%{box-shadow:0 0 0 7px rgba(180,57,44,.08)}}}
 .zmp-spark{position:relative;height:118px}
@@ -302,7 +310,7 @@
         '<div class="zmp-bdg">' + badges + '</div></div>' +
         '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span><div class="sub"><span class="' + (wk >= 0 ? 'up' : 'dn') + '">近 7 天对局 ' + sign(wk) + '</span><span>' + (p.games || 0) + ' 局</span></div></div></div>' +
       '<div class="zmp-grid">' +
-        '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div><div class="zmp-act" aria-label="近四周签到">' + actHtml(p) + '</div></div>' +
+        '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div>' + fwHtml(p) + '<div class="zmp-act" aria-label="近四周签到">' + actHtml(p) + '</div></div>' +
         '<div class="zmp-card wide"><div class="zmp-h">玩法胜率</div><div class="zmp-rings">' + MODES.map(([k, name, c]) => '<div class="zmp-ring">' + ring(p.modes[k].w, p.modes[k].g, c) + '<b>' + name + '</b><small>' + p.modes[k].g + ' 局</small></div>').join('') + '</div></div>' +
       '</div>' +
       (hasLed ? '<details class="zmp-card"' + (led.open ? ' open' : '') + '><summary class="zmp-ledsum"><span>流水</span><span class="sp" data-spark></span></summary><div data-led>' + ledHtml() + '</div></details>' : '') + '</div>';
@@ -339,6 +347,8 @@
       if (e.target.closest('[data-lmore]')) { moreLed(); return; }
       const lg = e.target.closest('[data-lg]');
       if (lg) { lg.classList.toggle('open'); return; }
+      const fwb = e.target.closest('[data-fw]');
+      if (fwb) { claimFw(fwb); return; }
       const ck = e.target.closest('[data-ck]');
       if (ck) { checkinNow(ck); return; }
       if (e.target.closest('[data-login]')) login();
@@ -367,6 +377,25 @@
       const draw = () => { if (spark && spark.isConnected) spark.innerHTML = sparkSvg(p.ledger, Math.max(60, spark.clientWidth), spark.clientHeight || 28); };
       if (spark) { draw(); if (root.ResizeObserver) new ResizeObserver(draw).observe(spark); }
     }
+  }
+  /* 今日首胜（2026-11-26 用户：不在结算里发，像签到一样在档案里自己领）：签到那张卡里一行，
+   * 赢了还没领 = 红框 +「领取」；领过 = 已领；今天还没赢 = 灰字「赢一局就有」 */
+  function fwHtml(p) {
+    const f = p.firstWin;
+    if (!f) return '';
+    const st = f.ready ? '<button type="button" data-fw>领取</button>' : '<em>' + (f.done ? '已领' : '赢一局就有') + '</em>';
+    return '<div class="zmp-task' + (f.ready ? ' is-ready' : '') + '"><span>今日首胜<b>' + W().FISH + '+' + fmt(f.amount || 1000) + '</b></span>' + st + '</div>';
+  }
+  function claimFw(btn) {
+    if (!last || btn.dataset.busy) return;
+    btn.dataset.busy = '1'; btn.disabled = true;
+    const amt = (last.firstWin && last.firstWin.amount) || 1000, from = last.bal, to = from + amt;
+    const num = body.querySelector('[data-num]'), fx = root.ZhamaoWalletFx;
+    let anim;
+    if (fx && W().fxOn && W().fxOn()) anim = fx.school(W().FISH, btn, num.parentNode, 3, { spread: 16, gap: 90, dur: 700, lift: -50, size: 26, onLand: () => fx.roll(num, from, to, 520) });
+    else { num.textContent = fmt(to); anim = Promise.resolve(); }
+    last.bal = to;
+    W().claimFirstWin().then(() => anim).then(() => setTimeout(() => load(true), 350)).catch(() => load(true));
   }
   /* 签到（2026-11-22 用户：点了要马上有反应，鱼要飞进档案里的余额，不是飞去后面的左上角）：
    * 点下去这格当场变成「已签」，连签数 +1，余额从格子里游出几条鱼进到上面的大数字、数字滚上去；同时发给服务器，
@@ -411,5 +440,5 @@
   }
   function close() { hide(); }
 
-  root.ZhamaoProfile = { open, close, login, isOpen };
+  root.ZhamaoProfile = { open, close, login, isOpen, badgeSvg: (id) => badgeSvg(id), badgeHow: (id) => (BADGE_ART[id] || [''])[0] };   // 「解锁勋章」整页弹窗借用勋章图和说明（zhamao-wallet.js badgeShow）
 })(window);

@@ -6186,6 +6186,7 @@
   /* 领奖台（2026-11-18 用户挑乙）：前三名站 2-1-3 三级台子（金 / 银 / 铜，台面上刻名次），第四名起在下面排一列；
    * 不写「第几名」「胜利」之类的字——台子高低和颜色已经说明了。items：[{ face, nick, me }]，按名次排好 */
   const POD_COLORS = ['#c9a96e', '#a9adb5', '#c98a55'];
+  // 2026-11-26 用户：9 人局榜单太长、底下的小鱼干要滚才看得到——第 4 名往后超过 3 个就排成两列小格（is-grid）
   function podiumHtml(items) {
     const col = (i) => {
       const x = items[i];
@@ -6196,7 +6197,7 @@
     };
     const rest = items.slice(3);
     return '<h2 class="zm-sr">' + T('ui.rank.title', '排行榜') + '</h2><div class="zm-podium">' + col(1) + col(0) + col(2) + '</div>' +
-      (rest.length ? '<ol class="zm-rank zm-rank-rest">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="mini">' + x.face + '</span><span class="nm">' + esc(x.nick) + (x.me ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : '') + '</span></li>').join('') + '</ol>' : '');
+      (rest.length ? '<ol class="zm-rank zm-rank-rest' + (rest.length >= 4 ? ' is-grid' : '') + '">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="mini">' + x.face + '</span><span class="nm">' + esc(x.nick) + (x.me ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : '') + '</span></li>').join('') + '</ol>' : '');
   }
   // 台子从底下长出来（三、二、一依次），头像随后落到台上，冠军那一下冒一圈金星
   function animPodium(d) {
@@ -6265,7 +6266,7 @@
       if (!WAL || !WAL.pay) { closeDialog(); newGame(); return; }
       if (b.dataset.paying) return;
       b.dataset.paying = '1';   // 不用 disabled：按钮一变灰，鱼像游进一个点不动的键（2026-11-23 录屏）
-      WAL.pay({ tier: settings.tier, mode: curMode(), n: soloN(), from: d.querySelector('.zmw-bal'), to: b }).then((ok) => { delete b.dataset.paying; if (ok && d.contains(b) && !els.mask.hidden) { closeDialog(); newGame(); } });
+      WAL.pay({ tier: settings.tier, mode: curMode(), n: soloN(), from: (WAL.tableChip && WAL.tableChip()) || d.querySelector('.zmw-bal'), to: b }).then((ok) => { delete b.dataset.paying; if (ok && d.contains(b) && !els.mask.hidden) { closeDialog(); newGame(); } });   // 2026-11-26：门票从左上角常驻的小鱼干游进「再来一局」
     });
     d.querySelector('[data-home]').addEventListener('click', () => { closeDialog(); showCover(); });
   }
@@ -7153,6 +7154,7 @@
     const seed = ((Math.random() * 2 ** 31) | 0) || 1;
     const st = R.createGame(n, seed, settings.rules);
     game = { state: st, bots: drawBots(n, settings.tier), tiers: [null].concat(Array(n - 1).fill(settings.tier)), tutorial: false };
+    if (WAL && WAL.tableStart) WAL.tableStart(game);
     if (HL) HL.start(game, st, seed);
     if (WAL) {
       // 2026-11-26 用户：开局后（发牌 / 抽角色还没放完）退出再回来，没有「接着打上一局」、门票白扣——以前要等发完牌走第一步才存档。
@@ -8203,6 +8205,7 @@
     game = { online: true, matchNo: g.matchNo, turnSec: g.turnSec, state: null, bots: [], tiers: [], tags: [], tutorial: false, spectator: watching, hideHand: watching && !(g.st.hand && g.st.hand.length) };
     els.app.classList.toggle('is-spectator', watching || !g.st.alive[st.mySeat]);
     els.me.classList.toggle('is-watched', watching);
+    if (WAL && WAL.tableStart) WAL.tableStart(game);
     syncPeople(st);
     bgm('game');
     const deal = g.log.find((e) => e.t === 'deal');
@@ -8622,7 +8625,7 @@
       (host ? '' : '<p class="zm-muted">' + T('ui.room.waitNext', '等房主开下一局') + (WAL && g.pay && !g.pay.refund && !game.spectator ? T('ui.room.waitNextFee', '（开局时扣门票 {p} 小鱼干）', { p: Number(g.pay.price).toLocaleString('en-US') }) : '') + '</p>') +
       '<div class="zm-actions"><button type="button" class="zm-btn" data-leave>' + T('ui.leaveRoom', '离开房间') + '</button>' + (host ? '<button type="button" class="zm-btn" data-again>' + T('ui.room.backShort', '回房间') + '</button><button type="button" class="zm-btn zm-btn-primary" data-next data-focus>' + T('ui.nextGame', '下一局') + '</button>' : '') + '</div>', (d) => {
       if (!teamW) { d.classList.add('is-podium'); animPodium(d); }
-      if (WAL) WAL.fillOnline(d, !game.spectator ? g.pay : null);
+      if (WAL) { const mi = teamW ? -1 : items.findIndex((x) => x.me); WAL.fillOnline(d, !game.spectator && g.pay ? Object.assign({}, g.pay, mi >= 0 ? { rank: mi + 1 } : {}) : null, game); }
       d.querySelector('[data-leave]').addEventListener('click', () => { closeDialog(); leaveOnline(true); });
       const a = d.querySelector('[data-again]');
       if (a) a.addEventListener('click', () => { a.disabled = true; onlineAct('rematch'); });
@@ -9572,6 +9575,7 @@
   refreshSoundBtn();
   initSocial();
   if (WAL) WAL.mountChip(els.cover);   // 主菜单左上角：小鱼干余额，点了去猫咪档案
+  if (WAL && WAL.mountTable) WAL.mountTable(els.app.querySelector('.zm-topleft'));   // 牌桌左上角常驻小鱼干（2026-11-26 用户挑方案 A：标题位换成余额，结算加减、扣门票都往这里游）
   if (WAL) WAL.onNoScore = (g) => { if (g === game) toast(T('ui.wallet.noScore', '这局不计小鱼干（门票没扣上）')); };   // 2026-11-24：服务器没发票时不再悄悄白玩
   refreshCover();
   refreshTools();

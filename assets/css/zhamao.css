@@ -1670,6 +1670,12 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-pod.is-p1 .blk { height: 118px; }
 .zm-pod.is-p2 .blk { height: 84px; }
 .zm-rank-rest { margin-top: 10px; }
+/* 9 人局（第 4 名往后 ≥4 个）：两列小格，榜单不再长到要滚（2026-11-26 用户） */
+.zm-rank-rest.is-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; }
+.zm-rank-rest.is-grid li { gap: 7px; padding: 4px 8px; min-width: 0; }
+.zm-rank-rest.is-grid .pos { width: 18px; font-size: 14px; }
+.zm-rank-rest.is-grid .mini { width: 28px; height: 28px; flex: none; }
+.zm-rank-rest.is-grid .nm { font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .zm-app .zm-rank-edit.is-corner { position: absolute; top: 10px; right: 10px; margin: 0; z-index: 1; }
 
 
