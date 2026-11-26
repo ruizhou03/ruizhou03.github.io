@@ -61,17 +61,18 @@ assert.match(js, /testMutation\('start'/,
 assert.match(js, /testMutation\('leave'/,
   '测试模式解散必须经过 CAS/幂等通道');
 
-assert.match(html, /id="gdOnlineCode"[\s\S]{0,180}placeholder="粘贴邀请码或邀请链接"/,
-  '加入界面必须接收完整邀请码或邀请链接');
-assert.doesNotMatch(html, /id="gdOnlineCode"[\s\S]{0,180}pattern="\\d\{4\}"/,
-  '加入界面不得把输入限制为可枚举的四位房号');
-assert.match(js, /searchParams\.set\('room',\s*onlineState\.inviteCode\)/,
-  '分享链接必须包含完整安全邀请码');
-assert.doesNotMatch(js, /\/\^\\d\{4\}\$\//,
-  '严格协议前端不得接受可枚举的裸四位房号');
+// 2026-11-26 用户同意：照百变小咪，输 4 位房间号就能进房；房主分享的链接仍带完整邀请码
+assert.match(html, /id="gdOnlineCode"[\s\S]{0,120}placeholder="房间号"/,
+  '加入界面输入 4 位房间号');
+assert.match(js, /if \(\/\^\\d\{4\}\$\/\.test\(value\)\) return \{ code: value, inviteCode: null/,
+  '前端接受裸四位房号');
+assert.match(js, /\/\^\(\\d\{4\}\)-\(\[A-Za-z0-9_-\]\{24,256\}\)\$\//,
+  '前端仍接受完整邀请码 / 邀请链接');
+assert.match(js, /searchParams\.set\('room',\s*onlineState\.inviteCode \|\| onlineState\.code\)/,
+  '房主分享链接优先带完整邀请码');
 assert.match(js, /new URLSearchParams\(location\.search\)\.get\('room'\)/,
   '自动加入必须安全解析 URLSearchParams 中的完整邀请码');
-assert.match(html, /guandan\.min\.js\?v=20261031ui15/,
+assert.match(html, /guandan\.min\.js\?v=20261126ui16/,
   '生产页面必须引用本次安全协议压缩构建标记');
 
 console.log('guandan network contracts: ok');

@@ -11,6 +11,10 @@ const modelSha256 = 'ca389e89e8db98d9968705b0e4495620e025c852cf4db4b4c2e66b086ae
 const corePaths = [
   'assets/css/main.css',
   'assets/css/guandan.css',
+  'assets/css/guandan-shell.css',
+  'assets/fonts/zhamao/zm-serif-400.woff2',
+  'assets/fonts/zhamao/zm-serif-700.woff2',
+  'assets/fonts/zhamao/zm-num-700.woff2',
   'assets/css/zircon-icons.css',
   'assets/css/games-shell.css',
   'assets/icons/zircon-ui.svg',
@@ -19,6 +23,7 @@ const corePaths = [
   'assets/icons/guandan-icon-maskable-512.png',
   'assets/icons/guandan-apple-touch-icon.png',
   'assets/js/games-shell/identity.js',
+  'assets/js/games-shell/qrcode.js',
   'assets/js/zircon-icons.js',
   'assets/js/offline/offline.js',
   'assets/js/games/guandan-contract.js',
