@@ -516,19 +516,19 @@ body.gd-game-fullscreen .guandan-wrap .gd-play-actions .gd-btn.gd-slot { width: 
 .guandan-wrap .gd-played.fx-bomb, .guandan-wrap .gd-played.fx-bomb-2, .guandan-wrap .gd-played.fx-bomb-3,
 .guandan-wrap .gd-played.fx-strflush, .guandan-wrap .gd-played.fx-jokerbomb { background: none; }
 
-/* 6. 级牌（2026-11-26 用户：照欢乐斗地主）：右上角一条斜下来的朱砂飘带，写一个「级」字；
-      牌面本身照常白底。右上角的花色往左让一点，免得被飘带压住。 */
+/* 6. 级牌（2026-11-26 用户：照欢乐斗地主）：右上角一条细细的朱砂飘带，写一个小「级」字。
+      飘带收在最角上，牌面版式（点数 / 花色的位置和大小）与普通牌完全一致。 */
 .guandan-wrap .gd-card.is-level { background: linear-gradient(160deg, var(--gd-card-bg) 0%, var(--gd-card-bg-2) 100%); }
 .guandan-wrap .gd-card.is-level::after {
   content: '级'; position: absolute; z-index: 3; pointer-events: none;
-  top: calc(var(--gd-card-w, 50px) * 0.07); right: calc(var(--gd-card-w, 50px) * -0.31);
-  width: calc(var(--gd-card-w, 50px) * 0.9); height: calc(var(--gd-card-w, 50px) * 0.2);
+  /* 宽 0.6W、高 0.15W 的条，转 45° 后中线离右上角 0.14W */
+  top: calc(var(--gd-card-w, 50px) * 0.024); right: calc(var(--gd-card-w, 50px) * -0.201);
+  width: calc(var(--gd-card-w, 50px) * 0.6); height: calc(var(--gd-card-w, 50px) * 0.15);
   transform: rotate(45deg);
   display: flex; align-items: center; justify-content: center;
-  background: var(--gd-seal); color: var(--gd-seal-ink); box-shadow: 0 1px 2px rgba(29, 27, 24, 0.25);
-  font: 700 calc(var(--gd-card-w, 50px) * 0.15)/1 var(--gd-serif);
+  background: var(--gd-seal); color: var(--gd-seal-ink); box-shadow: 0 1px 1.5px rgba(29, 27, 24, 0.22);
+  font: 700 calc(var(--gd-card-w, 50px) * 0.12)/1 var(--gd-serif);
 }
-.guandan-wrap .gd-card.is-level .q-tr { justify-content: flex-start; padding-left: calc(var(--gd-card-w, 50px) * 0.02); font-size: calc(var(--gd-card-w, 50px) * 0.3); }
 
 /* 7. 大小王：手牌里叠着时那一条「★JOKER」横排写得下，不再顶出牌边 */
 .guandan-wrap .gd-card.is-joker .q-tr { font-size: calc(var(--gd-card-w, 50px) * 0.15); letter-spacing: -0.02em; justify-content: flex-start; padding-left: 1px; }
