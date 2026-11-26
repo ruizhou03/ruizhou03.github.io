@@ -1735,12 +1735,22 @@
     if (e.pick) return;   // 2026-11-26 起九命也自己挑位置：这里只演喊九命，塞回去由后面的 insert 事件演（和逗猫棒一样）
     await animInsert({ seat: e.seat, vis: e.vis != null ? e.vis : null }, t);   // 老存档 / 老服务器：随机塞，按大概高度开缝（2026-11-15 用户）
   }
-  /* 角色猫技能触发（2026-11-18 用户：第一版「另编一段表演」太牵强）：
-   * 一律 = 「亮牌」（头像角上的小卡弹出来、立在头像旁边，外圈一道角色色的光）+ 规则本来就有的那个动作。
-   * 2026-11-26 用户：光亮牌有时看不出是角色技能在起作用（贪吃猫要第二张、截胡猫作废成功顺一张）→ 统一再加：桌沿从他那儿漾一道角色色的波纹。
-   * 一律不出字（用户 2026-11-26 再次强调：字丑、降低设计感，靠灯带和不显眼的动效表达）。
-   * 技能分两步的（贪吃猫要两张、截胡猫顺牌）：亮牌一直立着，等这件事做完才收（见 game.rolePop）；贪吃猫卡下两颗小圆点，给一张亮一颗 */
+  /* 角色猫技能触发（2026-11-18 用户：第一版「另编一段表演」太牵强）：亮身份 + 规则本来就有的那个动作，一律不出字。
+   * 2026-11-26 用户：不用弹整张角色牌，要更简洁好看 → 只动头像角上那枚猫章：猫章弹大一圈、外面一圈角色色的光，
+   * 从猫章往外荡两道角色色的圆波；桌沿灯带同时从他那儿漾一道角色色的波纹。
+   * 技能分两步的（贪吃猫要两张、截胡猫顺牌）：猫章一直保持放大、光一呼一吸，等这件事做完才缩回（见 game.rolePop）；
+   * 贪吃猫猫章旁边挂两颗角色色小圆点，给一张填实一颗 */
   const NOPOP = { back: () => Promise.resolve(), pulse() {}, pip() {} };
+  function roleWave(av, rb, band) {
+    const a = av.getBoundingClientRect(), b = rb.getBoundingClientRect();
+    for (let k = 0; k < 2; k++) {
+      const w = document.createElement('i');
+      w.className = 'zm-role-wave';
+      w.style.cssText = 'left:' + (b.left - a.left + b.width / 2) + 'px;top:' + (b.top - a.top + b.height / 2) + 'px;--glow:' + band + ';--to:' + (a.width * 2.4 / b.width).toFixed(2);
+      av.appendChild(w);
+      w.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 0.9 }, { transform: 'translate(-50%,-50%) scale(var(--to))', opacity: 0 }], { duration: ms(900), delay: ms(k * 220), easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'both' }).finished.catch(() => {}).then(() => w.remove());
+    }
+  }
   async function flashRole(seat, t, hold, o) {
     const rb = roleBadge(seat), av = avEl(seat);
     const st = game && game.state, role = st && st.roles && st.roles[seat];
@@ -1749,48 +1759,42 @@
     const tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat;
     snd('ding');
     if (rimFxOn()) rimRipple(seat, tone.band, 1100, 3);
-    if (fx.reduce()) { fx.pop(rb, { scale: 1.8, dur: 420 }); if (hold) await wait(ms(hold)); return NOPOP; }
-    const ar = av.getBoundingClientRect(), br = rb.getBoundingClientRect(), sr = seatEl(seat).getBoundingClientRect();
-    const w = Math.round(Math.max(54, Math.min(84, ar.width * 1.35))), h = w * 1.4;
-    const below = ar.top + ar.height / 2 < innerHeight / 2;
-    let x = ar.left + ar.width / 2 + (below ? 0 : ar.width * 0.35);
-    x = Math.max(w * 0.6 + 4, Math.min(innerWidth - w * 0.6 - 4, x));
-    const y = below ? Math.max(ar.bottom, sr.bottom) + h / 2 + 8 : ar.top - h / 2 - 14;
-    const el = document.createElement('div');
-    el.className = 'zm-role-pop ' + (below ? 'is-cap-bot' : 'is-cap-top');
-    el.style.cssText = 'left:' + (x - w / 2).toFixed(1) + 'px;top:' + (y - h / 2).toFixed(1) + 'px;--glow:' + tone.band;
-    el.innerHTML = roleCardHtml(role, { w }) + (o.pips ? '<i class="zm-role-pips">' + '<i></i>'.repeat(o.pips) + '</i>' : '');
-    els.fly.appendChild(el);
-    rb.style.visibility = 'hidden';
-    await flipFrom(el, br, ms(380), 0, 'cubic-bezier(.3,.9,.4,1.15)');
-    if (t !== token) { el.remove(); return NOPOP; }
-    el.classList.add('is-on');
-    fx.burst(x, y, { n: 8, shapes: ['star', 'dot'], colors: [tone.band, '#c9a96e'], radius: w * 0.85, size: [4, 9], life: 600 });
+    rb.style.setProperty('--glow', tone.band);
+    rb.style.visibility = '';
+    rb.classList.remove('is-fire');
+    void rb.offsetWidth;
+    rb.classList.add('is-fire');
+    if (!fx.reduce()) roleWave(av, rb, tone.band);
+    let pips = null;
+    if (o.pips) {
+      pips = document.createElement('i');
+      pips.className = 'zm-role-pips';
+      pips.style.setProperty('--glow', tone.band);
+      pips.innerHTML = '<i></i>'.repeat(o.pips);
+      av.appendChild(pips);
+    }
+    await wait(ms(380));
+    if (t !== token) { rb.classList.remove('is-fire'); if (pips) pips.remove(); return NOPOP; }
     if (hold) await wait(ms(hold));
     let done = null;
     return {
-      pulse() {   // 同一个技能又起作用一次（贪吃猫要第二张）：亮牌再跳一下、再漾一道波纹、再冒星星
-        if (done || !el.isConnected) return;
+      pulse() {   // 同一个技能又起作用一次（贪吃猫要第二张）：猫章再弹一下、再荡两道圆波、桌沿再漾一道
+        if (done || !rb.isConnected) return;
         snd('ding');
         if (rimFxOn()) rimRipple(seat, tone.band, 1100, 3);
-        el.querySelector('.zm-rc').animate([{ transform: 'none' }, { transform: 'scale(1.16) rotate(-4deg)', offset: 0.35 }, { transform: 'scale(.97) rotate(2deg)', offset: 0.7 }, { transform: 'none' }], { duration: ms(480), easing: 'ease-out' });
-        fx.burst(x, y, { n: 8, shapes: ['star', 'dot'], colors: [tone.band, '#c9a96e'], radius: w * 0.85, size: [4, 9], life: 600 });
+        if (!fx.reduce()) { rb.animate([{ transform: 'scale(1.45)' }, { transform: 'scale(1.85)', offset: 0.4 }, { transform: 'scale(1.35)', offset: 0.75 }, { transform: 'scale(1.45)' }], { duration: ms(480), easing: 'ease-out' }); roleWave(av, rb, tone.band); }
       },
-      pip(k) { const ps = el.querySelectorAll('.zm-role-pips > i'); ps.forEach((p, i) => p.classList.toggle('is-on', i < k)); if (ps[k - 1]) fx.pop(ps[k - 1], { scale: 1.8, dur: 300 }); },
+      pip(k) { if (!pips) return; const ps = pips.querySelectorAll('i'); ps.forEach((p, i) => p.classList.toggle('is-on', i < k)); if (ps[k - 1]) fx.pop(ps[k - 1], { scale: 1.9, dur: 300 }); },
       back() {
         if (done) return done;
-        el.classList.remove('is-on');
-        const b = roleBadge(seat);
-        done = flipTo(el, b && b.isConnected ? b.getBoundingClientRect() : null, ms(320), 0, el.querySelector('.zm-rc')).then(() => {
-          el.remove();
-          const b2 = roleBadge(seat);
-          if (b2) { b2.style.visibility = ''; fx.pop(b2, { scale: 1.5, dur: 300 }); }
-        });
+        if (pips) pips.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(240), fill: 'forwards' }).finished.catch(() => {}).then(() => pips.remove());
+        const shrink = fx.reduce() || !rb.isConnected ? Promise.resolve() : rb.animate([{ transform: 'scale(1.45)' }, { transform: 'scale(1)' }], { duration: ms(260), easing: 'cubic-bezier(.4,0,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+        done = shrink.then(() => { rb.classList.remove('is-fire'); rb.getAnimations().forEach((a) => { if (a.effect && a.effect.getKeyframes && !a.animationName) a.cancel(); }); });
         return done;
       },
     };
   }
-  // 还立着的亮牌（两步技能）：这一串事件跟它无关了就收
+  // 还亮着的猫章（两步技能）：这一串事件跟它无关了就收
   function rolePopDone() { const rp = game && game.rolePop; if (!rp) return Promise.resolve(); game.rolePop = null; return rp.fl.back(); }
   const rolePopKeeps = (rp, e) => (rp.kind === 'fat' ? (e.t === 'askGive' || e.t === 'give') && e.from === rp.from && e.to === rp.to : rp.kind === 'tabby' ? e.t === 'steal' && e.to === rp.seat : false);
   async function animRole(e, t) {
@@ -1811,13 +1815,13 @@
       await wait(ms(520));
       return fl.back();
     }
-    if (e.role === 'tabby') {   // 截胡猫：亮牌一直立着；顺走的那一张接着用偷牌同一个飞法（下一个事件 steal），飞完才收
+    if (e.role === 'tabby') {   // 截胡猫：猫章一直亮着；顺走的那一张接着用偷牌同一个飞法（下一个事件 steal），飞完才收
       const fl = await flashRole(e.seat, t, 380);
       if (t !== token) return fl.back();
       game.rolePop = { kind: 'tabby', seat: e.seat, fl };
       return;
     }
-    const fl = await flashRole(e.seat, t, 600);   // 影子猫等：只亮牌
+    const fl = await flashRole(e.seat, t, 600);   // 影子猫等：只亮猫章
     await fl.back();
   }
   // 牌堆顶 N 张在牌堆上方掀起来摊一下（别人在看，我看不到正面），再放回去
@@ -3572,8 +3576,8 @@
   async function animAskGive(e, t, prev) {
     if (game.arrow) game.arrow.remove();
     game.arrow = aim(e.from, '#e0566e');
-    // 贪吃猫出的索要：第一次问的时候亮牌，卡下两颗小圆点；亮牌一直立着，给一张点亮一颗；
-    // 第二次问（同一张索要的第二张，2026-11-26 用户：以前看不出是角色技能在要第二张）：亮牌再跳一下、桌沿再漾一道、连线再亮一下
+    // 贪吃猫出的索要：第一次问的时候猫章亮起、旁边两颗小圆点；猫章一直亮着，给一张填实一颗；
+    // 第二次问（同一张索要的第二张，2026-11-26 用户：以前看不出是角色技能在要第二张）：猫章再弹一下、桌沿再漾一道、灯带换成它的橙色重连
     const st = game.state, rp = game.rolePop;
     if (st.roles && R.roleOf(st, e.to) === 'fat') {
       game.giveTwo = true;
@@ -3591,7 +3595,7 @@
     await wait(ms(260));
     void t;
   }
-  // 贪吃猫：给到一张，亮牌上的小圆点亮一颗；两张都给了（或对方只剩一张、给完就没了）才收亮牌
+  // 贪吃猫：给到一张，小圆点填实一颗；两张都给了（或对方只剩一张、给完就没了）猫章才缩回
   async function fatGave(e, t) {
     const rp = game.rolePop;
     if (t !== token || !rp || rp.kind !== 'fat') return;

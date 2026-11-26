@@ -1388,15 +1388,15 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-role-chip-av { width: 22px; height: 22px; display: inline-block; }
 .zm-role-chip-av svg { width: 100%; height: 100%; display: block; border-radius: 50%; }
 /* 桌角那一叠（本桌图鉴）：桌面左上角斜叠着本桌几张小角色卡 */
-/* 技能触发的「亮牌」：小卡从头像角上弹出来，停在头像旁边，外圈一道角色色光晕 */
-.zm-role-pop { position: fixed; z-index: 6; pointer-events: none; }
-.zm-role-pop .zm-rc { transition: box-shadow 0.3s ease; }
-.zm-role-pop.is-on .zm-rc { box-shadow: 0 0 0 2.5px var(--glow), 0 0 18px 4px color-mix(in srgb, var(--glow) 50%, transparent); }
-/* 贪吃猫亮牌下的两颗小圆点（2026-11-26，不出字）：角色色描边空心，给一张填实一颗；贴在卡远离头像的那一头 */
-.zm-role-pips { position: absolute; left: 50%; translate: -50% 0; display: inline-flex; gap: 5px; }
-.zm-role-pop.is-cap-top .zm-role-pips { bottom: 100%; margin-bottom: 5px; }
-.zm-role-pop.is-cap-bot .zm-role-pips { top: 100%; margin-top: 5px; }
-.zm-role-pips > i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--glow); background: var(--zm-card, #fffdf8); box-sizing: border-box; box-shadow: 0 0 4px color-mix(in srgb, var(--glow) 45%, transparent); transition: background 0.2s; }
+/* 角色技能触发（2026-11-26 用户：不弹整张牌、不出字）：头像角上的猫章弹大一圈、外圈角色色光；技能分两步时保持放大、光一呼一吸 */
+.zm-av .zm-role.is-fire { z-index: 6; animation: zm-role-fire 0.5s cubic-bezier(.3,.9,.4,1.2) both, zm-role-breathe 1.5s 0.5s ease-in-out infinite;
+  box-shadow: 0 0 0 1.5px var(--zm-card, #fffdf8), 0 0 0 3px var(--glow), 0 0 12px 3px color-mix(in srgb, var(--glow) 50%, transparent); }
+@keyframes zm-role-fire { 0% { transform: scale(1); } 45% { transform: scale(1.8); } 75% { transform: scale(1.35); } 100% { transform: scale(1.45); } }
+@keyframes zm-role-breathe { 50% { box-shadow: 0 0 0 1.5px var(--zm-card, #fffdf8), 0 0 0 3px var(--glow), 0 0 18px 6px color-mix(in srgb, var(--glow) 70%, transparent); } }
+.zm-role-wave { position: absolute; z-index: 3; width: clamp(20px, calc(var(--av) * 0.5), 30px); aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--glow); box-shadow: 0 0 8px color-mix(in srgb, var(--glow) 60%, transparent); pointer-events: none; }
+/* 贪吃猫猫章旁的两颗小圆点：空心，给一张填实一颗 */
+.zm-av .zm-role-pips { --zr: clamp(20px, calc(var(--av) * 0.5), 30px); position: absolute; z-index: 5; left: calc(var(--zr) * 0.95); top: calc(var(--zr) * -0.42); display: inline-flex; gap: 3px; pointer-events: none; }
+.zm-role-pips > i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--glow); background: var(--zm-card, #fffdf8); box-sizing: border-box; box-shadow: 0 0 4px color-mix(in srgb, var(--glow) 50%, transparent); transition: background 0.2s; }
 .zm-role-pips > i.is-on { background: var(--glow); }
 .zm-lift3 { position: fixed; z-index: 4; pointer-events: none; filter: drop-shadow(0 3px 5px rgba(29, 27, 24, 0.25)); }
 /* 给牌键上的 ×N（贪吃猫要两张）：和被甩锅的 ×N 一种小角标 */
