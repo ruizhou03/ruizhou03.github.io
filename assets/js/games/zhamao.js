@@ -5307,10 +5307,18 @@
   }
   // 空出来的手牌区：一排还在场的人的小头像（和上面座位同一个左右顺序）
   function watchPickHtml() {
-    const s = game.state, out = [], seats = [];
-    for (let j = 1; j < s.alive.length; j++) if (s.alive[j] && avEl(j)) seats.push([j, avEl(j).getBoundingClientRect().left]);
-    seats.sort((a, b) => a[1] - b[1]);   // 和上面座位从左到右一个顺序
-    seats.forEach(([j], i) => out.push('<button type="button" class="zm-watch-pick" data-watch="' + j + '"><span class="zm-wp-av" style="animation-delay:' + (i * 0.3).toFixed(1) + 's">' + avatarHtml(j) + '</span></button>'));
+    const s = game.state, out = [];
+    /* 2026-11-26 用户：观战时有的机器猫头像在不停轮换。手牌区每走一步整排重画，以前每次都现量头像的屏幕位置排序——
+     * 桌子一圈左右两列的人横坐标几乎一样，轮到谁时头像在呼吸 / 抖 / 弹，差那几像素就前后对调，看着像头像在换。
+     * 现在量座位（不量正在动的头像）、横坐标按 16px 一档、同档按上下，排好记住；还在场的人变了 / 换视角 / 转屏才重排 */
+    const live = []; for (let j = 1; j < s.alive.length; j++) if (s.alive[j] && seatEl(j)) live.push(j);
+    const key = (game.pov || 0) + '|' + live.join(',');
+    if (!game.watchOrd || game.watchOrd.key !== key) {
+      const pos = new Map(live.map((j) => { const r = seatEl(j).getBoundingClientRect(); return [j, [Math.round((r.left + r.width / 2) / 16), r.top + r.height / 2]]; }));
+      game.watchOrd = { key, seats: live.slice().sort((a, b) => pos.get(a)[0] - pos.get(b)[0] || pos.get(a)[1] - pos.get(b)[1]) };   // 和上面座位从左到右一个顺序
+    }
+    const t0 = (performance.now() / 1000) % 2.4;   // 每次重画接着上一拍浮，不从头跳（2.4 秒 = zm-watch-bob 一个来回）
+    game.watchOrd.seats.forEach((j, i) => out.push('<button type="button" class="zm-watch-pick" data-watch="' + j + '"><span class="zm-wp-av" style="animation-delay:' + (i * 0.3 - t0).toFixed(2) + 's">' + avatarHtml(j) + '</span></button>'));
     return out.length ? '<div class="zm-watch-row">' + out.join('') + '</div>' : '';
   }
   /* 2026-11-26 用户：9 人局我出局后剩 8 个人，一排 8 颗 48px 头像手机上放不下。
@@ -9787,7 +9795,7 @@
     if (selected.length && mode !== 'give') { selected = []; renderHand(); renderBand(); }
   });
   window.addEventListener('resize', recheckSize);
-  window.addEventListener('resize', () => { if (game) fitWatchRow(); });   // 转屏 / 拉窗口：观战小头像跟着重新分行
+  window.addEventListener('resize', () => { if (game) { game.watchOrd = null; fitWatchRow(); } });   // 转屏 / 拉窗口：观战小头像跟着重新分行
   if (LANDSCAPE_SHORT.addEventListener) LANDSCAPE_SHORT.addEventListener('change', () => { sizeW = 0; recheckSize(); });   // 横竖屏切换：一定重算（不管宽度差多少）
   refreshSoundBtn();
   initSocial();
