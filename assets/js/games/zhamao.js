@@ -9111,7 +9111,7 @@
     busy = true;
     const t = token, g0 = game;
     // 分片算（每片 ~25 毫秒就让一下浏览器）：高手机器猫一步要算一会儿，手机上一口气算完会卡住画面
-    simulateRest(s, () => t === token && game === g0).then((done) => {
+    simulateRest(s, () => t === token && game === g0, { cheap: true }).then((done) => {
       if (!done || t !== token || game !== g0) return;
       release();
       renderAll();
@@ -9132,10 +9132,12 @@
     h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
     return 4294967296 * (2097151 & h2) + (h1 >>> 0) + ':' + str.length;
   }
-  function botDecide(s, seat, tier) {
+  // cheap：点了「直接看结果」后还没预演到的那几步，高手按普通的现算（推演太慢；我的名次早定了，只影响机器猫之间谁先谁后）
+  function botDecide(s, seat, tier, cheap) {
     if (!game || ffMemo.g !== game) return AI.decide(s, seat, tier);
     const k = memoKey(s, seat, tier), hit = ffMemo.map.get(k);
     if (hit) return JSON.parse(hit);
+    if (cheap && tier === 'hard') return AI.decide(s, seat, 'normal');
     const d = AI.decide(s, seat, tier);
     ffMemo.map.set(k, JSON.stringify(d));
     return d;
@@ -9159,7 +9161,7 @@
       if (s.phase === 'react') {
         // 和桌上的反应窗（reactPhase / closeReact）同一个问法：局面不动、挨个问，第一个想作废的作废；都不想就全过、结算
         let who = -1;
-        for (const k of R.awaitingReaction(s)) if (R.canNope(s, k) && botDecide(s, k, tierOf(k)).type === 'nope') { who = k; break; }
+        for (const k of R.awaitingReaction(s)) if (R.canNope(s, k) && botDecide(s, k, tierOf(k), opt.cheap).type === 'nope') { who = k; break; }
         if (who >= 0) { R.nope(s, who); log(who, { type: 'nope' }); continue; }
         if (!opt.quiet && HL) HL.close(game);
         for (const k of R.awaitingReaction(s)) R.pass(s, k);
@@ -9169,14 +9171,14 @@
       if (s.phase === 'rescue') {
         const wait = R.rescueWaiting(s);
         if (wait.length) {
-          const k = wait[0], d = botDecide(s, k, tierOf(k)), yes = !(d && d.type === 'rescue' && d.yes === false);
+          const k = wait[0], d = botDecide(s, k, tierOf(k), opt.cheap), yes = !(d && d.type === 'rescue' && d.yes === false);
           R.rescue(s, k, yes); log(k, { type: 'rescue', yes });
         } else { R.closeRescue(s); log(-1, { type: 'closeRescue' }); }
         continue;
       }
       const seat = R.whoActs(s)[0];
       if (seat == null) break;
-      let d = botDecide(s, seat, tierOf(seat));
+      let d = botDecide(s, seat, tierOf(seat), opt.cheap);
       const run = (x) => {
         if (x.type === 'draw') return R.draw(s, seat);
         if (x.type === 'play') return R.play(s, seat, x.cards, x);
