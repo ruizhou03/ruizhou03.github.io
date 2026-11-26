@@ -4215,6 +4215,14 @@
     els.fly.appendChild(el);
     return el;
   }
+  // 同 restCard，但位置写在 left/top 上、transform 只留旋转：这样再动 translate / rotate / scale（单独属性）都绕牌自己的中心，
+  // 不会把定位的那段位移也转歪 / 缩掉（restCard 把位置放在 transform 里，单独的 rotate、scale 会作用在它外面）
+  function pinCard(html, x, y, w, rot) {
+    const el = restCard(html, x, y, w);
+    el.style.left = (x - w / 2).toFixed(1) + 'px'; el.style.top = (y - w * 0.7).toFixed(1) + 'px';
+    el.style.transform = rot ? 'rotate(' + rot + 'deg)' : '';
+    return el;
+  }
   function takeDefuseCard(e) {
     const who = e.from != null ? e.from : e.seat;   // 组队：队友出的逗猫棒从队友那儿飞出来
     const src = who === 0 ? handRectOf(e.card) : avPoint(who);
@@ -4293,30 +4301,107 @@
     if (mine) { dropFromHand([e.extra]); renderHand(); } else if (ov) { ov.counts[e.seat] -= 1; renderSeat(e.seat); }
     const gap = W * 0.62, PL = { x: c.x - gap, y: c.y }, PR = { x: c.x + gap, y: c.y };
     const flyOpts = (id, from, to, d) => ({ html: cardHtml(id), back: backHtml(), flip: mine ? null : 'up', flipAt: 0.15, from, to, w: W, s0: mine ? u / W : 0.35, s1: 1, r0: 0, r1: d, dur: ms(440), lift: 60 });
-    await Promise.all([fx.fly(flyOpts(e.card, src1, PL, -6)), fx.fly(Object.assign(flyOpts(e.extra, src2, PR, 6), { delay: ms(70) }))]);
-    if (t !== token) return;
-    const a = restCard(cardHtml(e.card), PL.x, PL.y, W), b = restCard(cardHtml(e.extra), PR.x, PR.y, W);
-    a.style.transform += ' rotate(-6deg)'; b.style.transform += ' rotate(6deg)';
-    // 往中间一合：先各自往外让一点蓄力，再撞到一起
-    const slide = ms(380);
+    // keep：先落地的那张别消失（以前它落地就删、等另一张那 70ms 桌上空一块，会闪一下）
+    const landed = await Promise.all([fx.fly(Object.assign(flyOpts(e.card, src1, PL, -8), { keep: true })), fx.fly(Object.assign(flyOpts(e.extra, src2, PR, 8), { delay: ms(70), keep: true }))]);
+    const dropLanded = () => landed.forEach((n) => n && n.remove());
+    if (t !== token) { dropLanded(); return; }
+    /* 合成（2026-11-26 用户：原来两张一撞、直接换成逗猫棒，太糙）。四拍：
+     * ① 共鸣：两张浮起一点、往里歪，牌边亮起绿金光，各自飘出几粒光点汇向中间，中间先亮起一团柔光
+     * ② 合拢：两张沿小弧线加速靠拢、转正、收窄，越来越亮，在中间叠成一张
+     * ③ 一闪：白金光团炸开 + 一圈光芒转着散开 + 光环 + 火花
+     * ④ 现身：逗猫棒从光里侧着转过来（像翻面）、弹一下，一道高光从牌面扫过，身后的绿光慢慢收掉 */
+    const lite = fx.reduce();
+    const glowEl = (cls, size, bg) => { const g = document.createElement('div'); g.className = 'zm-flyer zm-save-' + cls; g.style.cssText = 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + bg + ';left:' + (c.x - size / 2).toFixed(1) + 'px;top:' + (c.y - size / 2).toFixed(1) + 'px;opacity:0'; els.fly.appendChild(g); return g; };
+    const aura = glowEl('aura', u * 3, 'radial-gradient(circle, rgba(233,212,106,.55) 0%, rgba(127,176,106,.32) 38%, rgba(127,176,106,0) 70%)');   // 中间那团柔光（垫在牌下面）
+    const a = pinCard(cardHtml(e.card), PL.x, PL.y, W), b = pinCard(cardHtml(e.extra), PR.x, PR.y, W);
+    a.style.rotate = '-8deg'; b.style.rotate = '8deg';
+    dropLanded();
+    const GLOW0 = '0 6px 16px rgba(29,27,24,.22), 0 0 0 0 rgba(233,212,106,0)';
+    const GLOW1 = '0 8px 20px rgba(29,27,24,.18), 0 0 18px 4px rgba(233,212,106,.85)';
+    const GLOW2 = '0 8px 22px rgba(29,27,24,.12), 0 0 30px 10px rgba(255,244,200,.95)';
+    // ① 共鸣
+    const hum = ms(lite ? 120 : 420);
     snd('whoosh');
-    a.animate([{ translate: '0 0' }, { translate: (-u * 0.12) + 'px 0', offset: 0.35 }, { translate: gap + 'px 0', rotate: '6deg' }], { duration: slide, easing: 'cubic-bezier(.5,0,.7,1)', fill: 'forwards' });
-    await b.animate([{ translate: '0 0' }, { translate: (u * 0.12) + 'px 0', offset: 0.35 }, { translate: (-gap) + 'px 0', rotate: '-6deg' }], { duration: slide, easing: 'cubic-bezier(.5,0,.7,1)', fill: 'forwards' }).finished.catch(() => {});
-    if (t !== token) { a.remove(); b.remove(); return; }
-    // 合成：一道光、一圈绿金火花，两张不见了，换成一根逗猫棒（弹一下）
+    aura.animate([{ opacity: 0, scale: '0.4' }, { opacity: 0.85, scale: '0.8' }], { duration: hum, easing: 'ease-out', fill: 'forwards' });
+    [[a, -1], [b, 1]].forEach(([el, sd]) => el.animate([
+      { translate: '0 0', rotate: (sd * 8) + 'deg', boxShadow: GLOW0 },
+      { translate: (sd * u * 0.06).toFixed(1) + 'px ' + (-u * 0.12).toFixed(1) + 'px', rotate: (-sd * 5) + 'deg', boxShadow: GLOW1 },
+    ], { duration: hum, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' }));
+    if (!lite) {
+      // 光点：从两张牌身上飘出，绕一小段弧汇到中间
+      for (let i = 0; i < 10; i++) {
+        const sd = i % 2 ? 1 : -1, P0 = sd < 0 ? PL : PR, sz = 5 + (i % 3) * 2;
+        const x0 = P0.x + (Math.random() - 0.5) * W * 0.7, y0 = P0.y + (Math.random() - 0.5) * W * 1.1;
+        const mx = (x0 + c.x) / 2, my = Math.min(y0, c.y) - u * (0.25 + Math.random() * 0.3);
+        const d = document.createElement('div');
+        d.className = 'zm-flyer';
+        d.style.cssText = 'width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;background:radial-gradient(circle,#fffbe6 0%,#f3dd78 45%,rgba(127,176,106,0) 75%);opacity:0';
+        els.fly.appendChild(d);
+        const at = (x, y) => 'translate(' + (x - sz / 2).toFixed(1) + 'px,' + (y - sz / 2).toFixed(1) + 'px)';
+        d.animate([{ transform: at(x0, y0) + ' scale(.4)', opacity: 0 }, { transform: at(mx, my) + ' scale(1.2)', opacity: 1, offset: 0.45 }, { transform: at(c.x, c.y) + ' scale(.5)', opacity: 0.2 }],
+          { duration: ms(560), delay: ms(40 + i * 34), easing: 'cubic-bezier(.4,0,.6,1)', fill: 'both' }).finished.then(() => d.remove(), () => d.remove());
+      }
+    }
+    await wait(hum);
+    if (t !== token) { a.remove(); b.remove(); aura.remove(); return; }
+    // ② 合拢：沿小弧线（先略往上拱、再落到中间）加速靠拢，转正、收窄、越来越亮
+    const slide = ms(lite ? 160 : 340);
+    snd('whoosh');
+    aura.animate([{ opacity: 0.85, scale: '0.8' }, { opacity: 1, scale: '1.05' }], { duration: slide, easing: 'ease-in', fill: 'forwards' });
+    const join = (el, sd) => el.animate([
+      { translate: (sd * u * 0.06).toFixed(1) + 'px ' + (-u * 0.12).toFixed(1) + 'px', rotate: (-sd * 5) + 'deg', scale: '1 1', boxShadow: GLOW1, filter: 'brightness(1)' },
+      { translate: (-sd * gap * 0.55).toFixed(1) + 'px ' + (-u * 0.2).toFixed(1) + 'px', rotate: (-sd * 3) + 'deg', scale: '0.94 1', boxShadow: GLOW1, filter: 'brightness(1.25)', offset: 0.6 },
+      { translate: (-sd * gap).toFixed(1) + 'px ' + (-u * 0.04).toFixed(1) + 'px', rotate: '0deg', scale: '0.82 0.96', boxShadow: GLOW2, filter: 'brightness(2)' },
+    ], { duration: slide, easing: 'cubic-bezier(.55,0,.85,.4)', fill: 'forwards' }).finished.catch(() => {});
+    await Promise.all([join(a, -1), join(b, 1)]);
+    if (t !== token) { a.remove(); b.remove(); aura.remove(); return; }
+    // ③ 一闪
     snd('combo');
-    fx.ring(c.x, c.y, { color: '#e9d46a', size: u * 2.6, width: 6, dur: 520 });
-    fx.burst(c.x, c.y, { n: 14, shapes: ['star', 'dot'], colors: ['#4f8a5f', '#7fb06a', '#e9d46a', '#fff4c8'], radius: u * 1.2, size: [5, 14], life: 700, pattern: 'ring' });
+    const core = glowEl('core', u * 2.2, 'radial-gradient(circle, #fff 0%, rgba(255,248,214,.95) 22%, rgba(243,221,120,.55) 45%, rgba(243,221,120,0) 70%)');
+    core.animate([{ opacity: 0, scale: '0.3' }, { opacity: 1, scale: '1', offset: 0.25 }, { opacity: 0, scale: '1.7' }], { duration: ms(560), easing: 'ease-out', fill: 'forwards' }).finished.then(() => core.remove(), () => core.remove());
+    if (!lite) {
+      const rays = glowEl('rays', u * 3.6, 'repeating-conic-gradient(from 0deg, rgba(255,240,170,.75) 0deg 7deg, rgba(255,240,170,0) 7deg 30deg)');
+      rays.style.webkitMaskImage = rays.style.maskImage = 'radial-gradient(circle, #000 18%, rgba(0,0,0,.6) 40%, transparent 68%)';
+      rays.animate([{ opacity: 0, scale: '0.3', rotate: '0deg' }, { opacity: 0.9, scale: '0.9', rotate: '25deg', offset: 0.3 }, { opacity: 0, scale: '1.3', rotate: '70deg' }], { duration: ms(820), easing: 'cubic-bezier(.2,.6,.4,1)', fill: 'forwards' }).finished.then(() => rays.remove(), () => rays.remove());
+    }
+    fx.ring(c.x, c.y, { color: '#f3dd78', size: u * 2.8, width: 5, dur: ms(560) });
+    fx.ring(c.x, c.y, { color: '#7fb06a', size: u * 2.0, width: 3, dur: ms(520), delay: ms(90) });
+    fx.burst(c.x, c.y, { n: 16, shapes: ['star', 'dot'], colors: ['#4f8a5f', '#7fb06a', '#e9d46a', '#fff4c8'], radius: u * 1.3, size: [5, 13], life: 760, pattern: 'ring' });
     a.remove(); b.remove();
-    const wand = restCard(cardHtml(R.DEFUSE), c.x, c.y, W);
-    await wand.animate([{ scale: '0.6', filter: 'brightness(2.2)' }, { scale: '1.15', filter: 'brightness(1.4)', offset: 0.55 }, { scale: '1', filter: 'none' }], { duration: ms(360), easing: 'cubic-bezier(.3,.8,.4,1.2)' }).finished.catch(() => {});
+    // ④ 现身：从光里侧着转过来、弹一下，一道高光扫过牌面，身后绿光收掉
+    const wand = pinCard(cardHtml(R.DEFUSE), c.x, c.y, W);
+    wand.style.overflow = 'hidden';
+    const shine = document.createElement('i');
+    shine.style.cssText = 'position:absolute;inset:-10% -60%;background:linear-gradient(105deg,rgba(255,255,255,0) 40%,rgba(255,255,255,.75) 50%,rgba(255,255,255,0) 60%);pointer-events:none;translate:-70% 0;z-index:2';
+    wand.appendChild(shine);
+    const rise = ms(lite ? 200 : 520);
+    const show = wand.animate([
+      { rotate: 'y 80deg', scale: '0.72', filter: 'brightness(2.4)', boxShadow: GLOW2 },
+      { rotate: 'y -12deg', scale: '1.14', filter: 'brightness(1.35)', boxShadow: GLOW1, offset: 0.5 },
+      { rotate: 'y 4deg', scale: '0.98', filter: 'brightness(1.08)', offset: 0.78 },
+      { rotate: 'y 0deg', scale: '1', filter: 'none', boxShadow: GLOW0 },
+    ], { duration: rise, easing: 'cubic-bezier(.25,.8,.35,1)' });
+    if (!lite) shine.animate([{ translate: '-70% 0' }, { translate: '70% 0' }], { duration: ms(420), delay: rise * 0.45, easing: 'ease-in-out', fill: 'forwards' });
+    aura.animate([{ opacity: 1, scale: '1.05' }, { opacity: 0, scale: '1.4' }], { duration: rise + ms(260), easing: 'ease-out', fill: 'forwards' }).finished.then(() => aura.remove(), () => aura.remove());
+    await show.finished.catch(() => {});
+    if (!lite) await wait(ms(200));
+    shine.remove();
+    wand.style.overflow = '';
     if (t !== token) { wand.remove(); return; }
     if (!(await defuseHero(e, t, c, W, wand))) return;
     // 逗猫棒分回那两张，一起落进弃牌堆
+    // 先亮一下，再从中间往两边「拆」开（窄 → 宽，像从逗猫棒身后滑出来），带几粒小光点
+    await wand.animate([{ filter: 'none', scale: '1' }, { filter: 'brightness(1.9)', scale: '1.06' }], { duration: ms(160), easing: 'ease-in' }).finished.catch(() => {});
     wand.remove();
-    const a2 = restCard(cardHtml(e.card), c.x, c.y, W), b2 = restCard(cardHtml(e.extra), c.x, c.y, W);
-    a2.animate([{ translate: '0 0' }, { translate: (-u * 0.35) + 'px 0', rotate: '-8deg' }], { duration: ms(200), easing: 'ease-out', fill: 'forwards' });
-    await b2.animate([{ translate: '0 0' }, { translate: (u * 0.35) + 'px 0', rotate: '8deg' }], { duration: ms(200), easing: 'ease-out', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token) return;
+    const a2 = pinCard(cardHtml(e.card), c.x, c.y, W), b2 = pinCard(cardHtml(e.extra), c.x, c.y, W);
+    fx.burst(c.x, c.y, { n: 8, shapes: ['dot'], colors: ['#e9d46a', '#fff4c8', '#7fb06a'], radius: u * 0.7, size: [4, 8], life: 480 });
+    const part = (el, sd) => el.animate([
+      { translate: '0 0', rotate: '0deg', scale: '0.82 0.96', filter: 'brightness(1.8)' },
+      { translate: (sd * u * 0.42).toFixed(1) + 'px 0', rotate: (sd * 9) + 'deg', scale: '1.02 1', filter: 'brightness(1.05)', offset: 0.7 },
+      { translate: (sd * u * 0.38).toFixed(1) + 'px 0', rotate: (sd * 8) + 'deg', scale: '1', filter: 'none' },
+    ], { duration: ms(300), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+    await Promise.all([part(a2, -1), part(b2, 1)]);
     const r1 = a2.getBoundingClientRect(), r2 = b2.getBoundingClientRect();
     a2.remove(); b2.remove();
     if (t !== token) return;
