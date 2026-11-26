@@ -2039,3 +2039,17 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-dialog.zs-b .zs-line .zs-seg { margin: 0; }
 .zm-dialog.zs-b .zs-row .zs-txt b { font-size: 14px; }
 .zs-nw { white-space: nowrap; }
+
+/* 换牌面「拉幕」（2026-11-26 用户：不要翻面；快一点；线斜着）：zhamao.js curtainFace。旧牌面复制一层盖在上面，从下往上斜着收走，
+ * 收口跟一条斜亮线。外层 .zm-card 换成新牌面后 data-v 可能已变，旧那层的名字条要自己压住（万能猫五彩条 / 普通色条） */
+.zm-curtain { position: absolute; inset: 0; border-radius: inherit; background: var(--zm-card); z-index: 3; pointer-events: none; }
+.zm-curtain:not([data-v="wild"]) .zm-nm { background: var(--band); color: var(--ink); text-shadow: none; }
+.zm-curtain:not([data-v="wild"]) .zm-nm::before, .zm-curtain:not([data-v="wild"]) .zm-nm::after { content: none; }
+.zm-curtain[data-v="wild"] .zm-nm { background: linear-gradient(90deg, #e0893e, #d4607e 28%, #8a63a8 52%, #2f8a83 76%, #c9a24a); color: #fffaf0; text-shadow: 0 1px 0 rgba(29, 27, 24, 0.25); gap: 3cqw; }
+.zm-curtain[data-v="wild"] .zm-nm::before, .zm-curtain[data-v="wild"] .zm-nm::after { content: '✦'; font-size: 9cqw; color: #fff4c8; }
+.zm-curtain-edge {
+  position: absolute; left: 0; width: 100%; height: 2px; z-index: 4; pointer-events: none; border-radius: 2px;
+  transform: translateY(-50%) rotate(-14deg);   /* 和 curtainFace 的斜边一样斜：左右差牌高 18%，牌高 = 1.4 × 牌宽 → atan(0.252) ≈ 14° */
+  background: linear-gradient(90deg, transparent, rgba(255, 246, 210, 1) 18%, rgba(255, 246, 210, 1) 82%, transparent);
+  box-shadow: 0 0 6px 1px rgba(240, 200, 110, 0.85);
+}

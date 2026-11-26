@@ -373,20 +373,33 @@
     c.innerHTML = fresh.innerHTML;
     if (fresh.dataset.v) c.dataset.v = fresh.dataset.v; else delete c.dataset.v;
   }
-  // 翻一下：转到侧面时换牌面，再转回来
+  // 手里这张换成现在该有的牌面（拉幕）
   function flipFace(c, t, delay) { return curtainFace(c, cardHtml(+c.dataset.id, '', '', handWild()), delay, t); }
-  /* 牌原地换牌面（百搭变身 / 变回本身 / 摸底⇄抽顶都走这一个）：现在是翻面——转到侧面时换牌面，叠加在原有位移上，飞着的牌也能翻。
-   * 2026-11-26 用户想改成「幕布拉过去、牌面跟着换」，在另一条线做预览，点头后只换这个函数的身子（和 zhamao.css 的 .zm-curtain） */
+  // 牌原地换牌面（百搭变身 / 变回本身 / 摸底⇄抽顶都走这一个）。c 是 .zm-card 本身，html 是新的完整 cardHtml，t 可以是 null
   function curtainFace(c, html, delay, t) {
+    /* 拉幕（2026-11-26 用户：不要翻面，像幕布拉过去换牌面；要快一点、线要斜着）：
+     * 旧牌面复制一层盖在上面（.zm-curtain），底下立刻换成新牌面；旧那层从下往上斜着收走，收口那道斜边跟一条亮线 */
     if (fx.reduce() || !c.isConnected) { setFace(c, html); return Promise.resolve(); }
-    const a1 = c.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { duration: ms(180), delay: delay || 0, easing: 'ease-in', fill: 'forwards', composite: 'add' });
-    return a1.finished.then(() => {
-      if ((t != null && t !== token) || !c.isConnected) { a1.cancel(); return null; }
+    const go = () => {
+      if ((t != null && t !== token) || !c.isConnected) return null;
+      c.querySelectorAll('.zm-curtain, .zm-curtain-edge').forEach((x) => x.remove());
+      const old = document.createElement('div');
+      old.className = 'zm-curtain';
+      if (c.dataset.v) old.dataset.v = c.dataset.v;
+      ['--bg', '--band', '--ink'].forEach((p) => old.style.setProperty(p, c.style.getPropertyValue(p)));
+      old.innerHTML = c.innerHTML;
       setFace(c, html);
-      const a2 = c.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { duration: ms(200), easing: 'ease-out', composite: 'add' });
-      a1.cancel();
-      return a2.finished;
-    }).catch(() => {});
+      c.appendChild(old);
+      const edge = document.createElement('i');
+      edge.className = 'zm-curtain-edge';
+      c.appendChild(edge);
+      // 斜边：左低右高，左右两端差牌高的 18%；收口从牌底下一点一路扫到牌顶上一点
+      const dur = ms(380), easing = 'cubic-bezier(.45,.05,.3,1)';
+      const poly = (y) => 'polygon(0% 0%, 100% 0%, 100% ' + (y - 9) + '%, 0% ' + (y + 9) + '%)';
+      edge.animate([{ top: '109%', opacity: 0 }, { top: '95%', opacity: 1, offset: 0.12 }, { top: '5%', opacity: 1, offset: 0.88 }, { top: '-9%', opacity: 0 }], { duration: dur, easing, fill: 'forwards' });
+      return old.animate([{ clipPath: poly(109) }, { clipPath: poly(-9) }], { duration: dur, easing, fill: 'forwards' }).finished.catch(() => {}).then(() => { old.remove(); edge.remove(); });
+    };
+    return delay ? new Promise((r) => setTimeout(r, delay / turboK())).then(go) : Promise.resolve().then(go);
   }
   const backHtml = (cls, style) => '<div class="zm-card is-back' + (cls ? ' ' + cls : '') + '"' + (style ? ' style="' + style + '"' : '') + '>' + ART.BACK + '</div>';
   const pileRot = (id) => ((id * 37) % 13) - 6;
