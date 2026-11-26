@@ -284,8 +284,8 @@
       let x, y, cls;
       if (l === 0) { x = c.x - 18; y = c.y - c.r - 12 - H; cls = 'is-dn'; }
       else if (high) { x = c.x - W / 2; y = below + 12; cls = 'is-up'; }
-      else if (onLeft) { x = c.x + c.r + 12; y = c.y - H / 2; cls = 'is-lf'; }
-      else { x = c.x - c.r - 12 - W; y = c.y - H / 2; cls = 'is-rt'; }
+      else if (onLeft) { x = c.x + c.r + 15; y = c.y - H / 2; cls = 'is-lf'; }   // 15：留出尾巴长度，尖头不顶到头像描边
+      else { x = c.x - c.r - 15 - W; y = c.y - H / 2; cls = 'is-rt'; }
       const cx = Math.max(6, Math.min(vw - W - 6, x));
       y = Math.max(6, Math.min(vh - H - 6, y));
       b.classList.add(cls);
