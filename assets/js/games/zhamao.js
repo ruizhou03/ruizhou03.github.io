@@ -3604,6 +3604,35 @@
     return f;
   }
   function restoreTopFace(f) { if (ov && f != null) { ov.topFace = f; game.faceQuiet = f; } }
+  /* 别人偷看时三张牌背 + 猫眼摆哪（2026-11-26 用户：左边那家偷看，三张牌直接盖住他的头像）。
+   * 老规矩：朝偷看那家偏 0.9 张牌、只往上不往下（11-17）。现在先挨个试：偏的方向（朝他 → 正上 → 斜上 → 左右，背着他的方向排最后）× 偏多远 × 牌缩多小 × 猫眼在上面还是叠在牌上，
+   * 挑第一个「不碰任何人的头像 / 名字 / 手牌数、不出桌框」的；全都不行就退到牌堆正上方、最小那档、猫眼叠在牌上 */
+  function peekSpot(a, dc, pu, k) {
+    const avBoxes = [0].concat(allSeatEls().map((x) => +x.dataset.seat)).map((s) => {
+      const se = seatEl(s); if (!se) return null;
+      const bs = Array.from(se.querySelectorAll('.zm-av, .zm-name, .zm-count')).map((x) => x.getBoundingClientRect()).filter((x) => x.width && x.height);
+      if (!bs.length) return null;
+      return { l: Math.min(...bs.map((x) => x.left)) - 4, r: Math.max(...bs.map((x) => x.right)) + 4, t: Math.min(...bs.map((x) => x.top)) - 4, b: Math.max(...bs.map((x) => x.bottom)) + 4 };
+    }).filter(Boolean);
+    const fr = frameX(0), tb = (els.table || els.app).getBoundingClientRect();
+    const ok = (q) => q.l >= fr.l && q.r <= fr.r && q.t >= tb.top + 6 && q.b <= tb.bottom - 6 && !avBoxes.some((v) => q.l < v.r && q.r > v.l && q.t < v.b && q.b > v.t);
+    const n0 = Math.hypot(a.x - dc.x, Math.abs(a.y - dc.y)) || 1;
+    const toward = { x: (a.x - dc.x) / n0, y: (-Math.abs(a.y - dc.y) || -1) / n0 }, r2 = Math.SQRT1_2;
+    const dirs = [toward, { x: 0, y: -1 }, { x: -r2, y: -r2 }, { x: r2, y: -r2 }, { x: -1, y: 0 }, { x: 1, y: 0 }]
+      .map((d, i) => ({ d, i, cos: i ? d.x * toward.x + d.y * toward.y : 2 })).sort((p, q) => q.cos - p.cos).map((p) => p.d);
+    const plan = (d, dd, sc, eyeOn) => {
+      const z = sc / 0.86, cx = dc.x + dd.x * pu * d, cy = dc.y + dd.y * pu * d, sp = (k - 1) / 2 * pu * 0.42 * z, E = pu * 1.1 * z;
+      const ey = eyeOn ? cy : cy - pu * 1.05 * z;
+      return { x: cx, y: cy, sc, eye: E, ey, boxes: [{ l: cx - sp - pu * 0.56 * z, r: cx + sp + pu * 0.56 * z, t: cy - pu * 0.69 * z - 4, b: cy + pu * 0.69 * z }, { l: cx - E / 2, r: cx + E / 2, t: ey - E / 2, b: ey + E / 2 }] };
+    };
+    const near = dirs.filter((d, i) => !i || d.x * toward.x + d.y * toward.y > -0.05), far = dirs.filter((d) => near.indexOf(d) < 0);   // 背着他那边：牌小一点都行，实在不行才去
+    for (const ds0 of [near, far]) for (const sc of [0.86, 0.72, 0.6]) for (const eyeOn of [false, true]) for (const dd of ds0) {
+      const ds = []; for (let d = 0.9; d > -0.01; d -= 0.15) ds.push(d); for (let d = 1.05; d < 2.2; d += 0.15) ds.push(d);   // 先 0.9 往回收到 0，再往外试到 2 张牌远
+      for (const d of ds) { const p = plan(d, dd, sc, eyeOn); if (p.boxes.every(ok)) return p; }
+    }
+    return plan(0, toward, 0.6, true);
+  }
+
   async function animFuture(e, t) {
     snd('peek');
     const r = deckTopRect(), pu = PU();
@@ -3667,13 +3696,13 @@
     // 别人在偷看
     const a = avPoint(e.seat), dc = fx.center(r);
     /* 牌永远在牌堆上方扇开（2026-11-17 用户）：朝偷看那家的方向偏，但不往下——坐到别人背后观战时，偷看的人就是下面那家，以前牌扇到牌堆下面去了 */
-    const dir = { x: a.x - dc.x, y: -Math.abs(a.y - dc.y) || -1 }, len = Math.hypot(dir.x, dir.y) || 1;
     const k = Math.max(0, Math.min(3, e.count || D().deckSize));   // 牌堆不到三张就只抬起剩下那几张
+    const P = peekSpot(a, dc, pu, k);
     const out = [];
     for (let i = 0; i < k; i++) {
       const fan = (i - (k - 1) / 2);
-      const to = { x: dc.x + dir.x / len * pu * 0.9 + fan * pu * 0.42, y: dc.y + dir.y / len * pu * 0.9 - Math.abs(fan) * 4 };
-      out.push(fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: r, to, w: pu, s0: 1, s1: 0.86, r0: 0, r1: fan * 14, dur: ms(380), delay: i * ms(60), lift: 20, keep: true, land: false }));
+      const to = { x: P.x + fan * pu * 0.42 * P.sc / 0.86, y: P.y - Math.abs(fan) * 4 };
+      out.push(fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: r, to, w: pu, s0: 1, s1: P.sc, r0: 0, r1: fan * 14, dur: ms(380), delay: i * ms(60), lift: 20, keep: true, land: false }));
     }
     if (ov && k) { ov.lifted = (ov.lifted || 0) + k; renderPiles(); }
     const nodes = await Promise.all(out);
@@ -3681,9 +3710,9 @@
     const eye = document.createElement('div');
     eye.className = 'zm-prop zm-eye';
     eye.innerHTML = ART.PROPS.eye;
-    const S = pu * 1.1;
+    const S = P.eye;
     eye.style.width = eye.style.height = S + 'px';
-    const ep = { x: dc.x + dir.x / len * pu * 0.9, y: dc.y + dir.y / len * pu * 0.9 - pu * 1.05 };
+    const ep = { x: P.x, y: P.ey };
     els.fly.appendChild(eye);
     await fx.animate(eye, [
       { transform: fx.T(ep.x - S / 2, ep.y - S / 2, 0.2, 0), opacity: 0 },
@@ -3700,7 +3729,7 @@
       if (!n) return null;
       const rr = n.getBoundingClientRect();
       n.remove();
-      return fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: rr, to: deckTopRect(), w: pu, s0: 0.86, s1: 1, r0: (i - (k - 1) / 2) * 14, r1: 0, dur: ms(320), delay: i * ms(50), lift: 10 });
+      return fx.fly({ html: i === 0 && tf != null ? cardHtml(tf) : backHtml(), from: rr, to: deckTopRect(), w: pu, s0: P.sc, s1: 1, r0: (i - (k - 1) / 2) * 14, r1: 0, dur: ms(320), delay: i * ms(50), lift: 10 });
     }));
     if (ov && k) ov.lifted -= k;
     restoreTopFace(tf);
@@ -10126,6 +10155,9 @@
       skip: () => { give(bot, R.SKIP); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
       shuffle: () => { give(bot, R.SHUFFLE); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SHUFFLE)] }); },
       future: () => { give(0, R.FUTURE); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.FUTURE)] }); },
+      // 左边 / 上面那家偷看（2026-11-26：扇面别压住偷看那家的头像）
+      futureL: () => { const a = s.n - 1; give(a, R.FUTURE); s.turn = a; apply(a, { type: 'play', cards: [R.findKind(s.hands[a], R.FUTURE)] }); },
+      futureT: () => { const a = Math.ceil(s.n / 2); give(a, R.FUTURE); s.turn = a; apply(a, { type: 'play', cards: [R.findKind(s.hands[a], R.FUTURE)] }); },
       futurebot: () => { give(bot, R.FUTURE); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.FUTURE)] }); },
       favor: () => { give(bot, R.FAVOR); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.FAVOR)], target: 0 }); },
       bottom: () => { give(0, 'bottom'); s.turn = 0; apply(0, { type: 'play', cards: [s.hands[0].find((id) => R.KIND_OF[id] === 'bottom')] }); },
