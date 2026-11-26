@@ -1392,6 +1392,14 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-role-pop { position: fixed; z-index: 6; pointer-events: none; }
 .zm-role-pop .zm-rc { transition: box-shadow 0.3s ease; }
 .zm-role-pop.is-on .zm-rc { box-shadow: 0 0 0 2.5px var(--glow), 0 0 18px 4px color-mix(in srgb, var(--glow) 50%, transparent); }
+/* 亮牌上的技能小签（2026-11-26）：角色色底、奶油字，挂在卡远离头像的那一头；贪吃猫多两颗小圆点（给一张亮一颗） */
+.zm-role-cap { position: absolute; left: 50%; translate: -50% 0; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; padding: 3px 9px; border-radius: 999px;
+  background: var(--glow); color: #fffaf0; border: 1.2px solid #fffaf0; box-shadow: 0 2px 6px rgba(29, 27, 24, 0.28); font: 700 12px/1.2 'ZM Serif', 'Noto Serif SC', serif; letter-spacing: 0.02em; }
+.zm-role-pop.is-cap-top .zm-role-cap { bottom: 100%; margin-bottom: -6px; }
+.zm-role-pop.is-cap-bot .zm-role-cap { top: 100%; margin-top: -6px; }
+.zm-role-pips { display: inline-flex; gap: 3px; }
+.zm-role-pips > i { width: 7px; height: 7px; border-radius: 50%; border: 1.2px solid #fffaf0; box-sizing: border-box; transition: background 0.2s; }
+.zm-role-pips > i.is-on { background: #fffaf0; }
 .zm-lift3 { position: fixed; z-index: 4; pointer-events: none; filter: drop-shadow(0 3px 5px rgba(29, 27, 24, 0.25)); }
 /* 给牌键上的 ×N（贪吃猫要两张）：和被甩锅的 ×N 一种小角标 */
 .zm-btn .zm-xn { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; height: 18px; padding: 0 6px; border-radius: 999px; background: #fffaf0; color: var(--zm-seal); font: 700 12px/1 'ZM Num', 'ZM Serif', Georgia, serif; }
@@ -1415,6 +1423,10 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   background: repeating-conic-gradient(from 0deg, rgba(232, 207, 150, 0.85) 0 6deg, transparent 6deg 22.5deg);
   -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 62%); mask-image: radial-gradient(circle, #000 20%, transparent 62%); animation: zm-rays 24s linear infinite; }
 .zm-rd-big.is-rays .zm-rd-rays { opacity: 0.7; }
+.zm-rd-halo { position: absolute; left: 50%; top: 50%; width: 150%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; opacity: 0; scale: 0.6;
+  background: radial-gradient(circle, color-mix(in srgb, var(--glow) 55%, #fff3d2) 0%, color-mix(in srgb, var(--glow) 28%, transparent) 38%, transparent 68%); transition: opacity 0.6s ease, scale 0.6s ease; }
+.zm-rd-big.is-near .zm-rd-halo { opacity: 0.95; scale: 1.05; }
+.zm-rd-big.is-flash .zm-rd-halo { opacity: 1; scale: 1.25; transition-duration: 0.12s; }
 @keyframes zm-rays { to { rotate: 360deg; } }
 /* 百变「明塞」（用户挑甲2 · 塞歪了）：明着塞回去的炸毛猫夹在它那一层，往右下歪着露出一截 */
 .zm-deck-kit { position: absolute; left: 0; top: 0; width: var(--pu); pointer-events: none; }
