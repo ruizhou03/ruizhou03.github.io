@@ -5869,6 +5869,7 @@
       const tf = (p) => 'translate(' + (p.x - cw / 2).toFixed(1) + 'px,' + (p.y - cw * 0.7).toFixed(1) + 'px) rotate(' + (p.r || 0) + 'deg) scale(' + (p.s == null ? 1 : p.s) + ')';
       const mv = (d, a, b, dur, ease, delay) => d.animate([{ transform: tf(a) }, { transform: tf(b) }], { duration: dur, easing: ease || 'cubic-bezier(.45,0,.25,1)', delay: delay || 0, fill: 'both' }).finished.catch(() => {});
       const pile = (k, s) => ({ x: c.x - k * 0.8, y: c.y - k * 1.6, r: 0, s });   // 一摞：越上面越往左上错一点，看得出厚度
+      const pileLow = (k, s) => ({ x: c.x - k * 0.8, y: c.y + cw * 0.95 - k * 1.6, r: 0, s });   // 我抽走一张后剩下的收在桌心偏下，给抽出来的那张让路
       let zTop = 1;
       const lift = (d) => { d.style.zIndex = String(5 + (zTop++)); };
       const cards = seats.map(() => { const d = document.createElement('div'); d.className = 'zm-rd'; d.innerHTML = roleBackHtml(cw); els.fly.appendChild(d); nodes.push(d); lift(d); d.style.opacity = '0'; return d; });
@@ -5924,12 +5925,17 @@
       big.style.cssText = 'left:' + (c.x - BW / 2) + 'px;top:' + (c.y - BW * 0.7) + 'px;--glow:' + tone.band;
       big.style.zIndex = '200';   // 永远压在剩下那摞上面（那摞的 z 会随抽牌一路往上加）
       big.innerHTML = '<i class="zm-rd-rays"></i><i class="zm-rd-halo"></i>' + roleFlipHtml(myRole, BW, true);
+      // 2026-11-26 用户：点中那张不能一下子跳到最上层——拈起来时照旧被右边的牌压着；剩下的牌往下收成一摞让开，
+      // 它再往上抽出来、离开扇面之后才换成大牌飞到跟前（全程没有压住它的牌，图层不跳）
       const pk = cards[mine], pw = where[mine];
-      lift(pk);
+      const up1 = { x: pw.x, y: pw.y - cw * 0.32, r: pw.r * 0.5, s: S * 1.1 }, up2 = { x: pw.x, y: pw.y - cw * 0.8, r: 0, s: S * 1.1 };
       snd('tap');
-      await mv(pk, pw, { x: pw.x, y: pw.y - cw * 0.32, r: pw.r * 0.5, s: S * 1.1 }, 220, 'cubic-bezier(.3,.9,.4,1.2)');
+      await mv(pk, pw, up1, 220, 'cubic-bezier(.3,.9,.4,1.2)');
       if (gone()) return;
-      left.forEach((i, k) => { const to = pile(k, 0.9); cards[i].style.zIndex = String(5 + k); mv(cards[i], where[i], to, 380, null, k * 30); where[i] = to; cards[i].animate([{ opacity: 1 }, { opacity: 0.55 }], { duration: 380, fill: 'forwards' }); });
+      left.forEach((i, k) => { const to = pileLow(k, 0.9); cards[i].style.zIndex = String(5 + k); mv(cards[i], where[i], to, 380, null, k * 30); where[i] = to; cards[i].animate([{ opacity: 1 }, { opacity: 0.55 }], { duration: 260, delay: 220, fill: 'both' }); });   // 先让开再淡：别让抽出来的那张透过它们露出来、看着像跑到了上面
+      await mv(pk, up1, up2, 380, 'cubic-bezier(.3,.7,.3,1)');
+      if (gone()) return;
+      lift(pk);
       zTop = n + 1;
       const from = pk.getBoundingClientRect();
       els.fly.appendChild(big); nodes.push(big);
@@ -5938,7 +5944,7 @@
       {
         const r = big.getBoundingClientRect(), dx = from.left + from.width / 2 - (r.left + r.width / 2), dy = from.top + from.height / 2 - (r.top + r.height / 2), k0 = from.width / r.width;
         snd('whoosh');
-        await big.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k0.toFixed(3) + ') rotate(' + (pw.r * 0.5) + 'deg)' }, { transform: 'scale(' + NEAR + ')' }],
+        await big.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k0.toFixed(3) + ') rotate(0deg)' }, { transform: 'scale(' + NEAR + ')' }],
           { duration: 560, easing: 'cubic-bezier(.25,.8,.3,1)', fill: 'forwards' }).finished.catch(() => {});
       }
       if (gone()) return;
@@ -6090,7 +6096,6 @@
         tapped = k;
         stopAsk();
         snd('tap');
-        lift(cards[k]);
         mv(cards[k], where[k], { x: where[k].x, y: where[k].y - cw * 0.32, r: where[k].r * 0.5, s: S * 1.1 }, 220, 'cubic-bezier(.3,.9,.4,1.2)');
         send(k);
       };
@@ -6148,10 +6153,19 @@
       const toMe = async (k, role) => {
         stopAsk();
         if (tapped >= 0 && tapped !== k && free.has(tapped)) { const p = where[tapped]; mv(cards[tapped], { x: p.x, y: p.y - cw * 0.32, r: p.r * 0.5, s: S * 1.1 }, p, 200); }
+        // 点中的那张拈起来时照旧被右边的牌压着（2026-11-26 用户：不能一下子跳到最上层）；扇面上剩下的往下让开、淡下去，
+        // 它再往上抽出来，离开扇面之后才换成大牌飞到跟前
         const pk = cards[k], pw = where[k];
-        if (tapped !== k) { lift(pk); snd('tap'); await mv(pk, pw, { x: pw.x, y: pw.y - cw * 0.32, r: pw.r * 0.5, s: S * 1.1 }, 220, 'cubic-bezier(.3,.9,.4,1.2)'); }
+        const up1 = { x: pw.x, y: pw.y - cw * 0.32, r: pw.r * 0.5, s: S * 1.1 }, up2 = { x: pw.x, y: pw.y - cw * 0.8, r: 0, s: S * 1.1 };
+        if (tapped !== k) { snd('tap'); await mv(pk, pw, up1, 220, 'cubic-bezier(.3,.9,.4,1.2)'); }
         else await wait(120);
         if (gone()) return;
+        const rest = seats.filter((i) => i !== k && free.has(i));
+        const low = (p) => ({ x: p.x, y: p.y + cw * 1.05, r: p.r * 0.6, s: S * 0.92 });
+        rest.forEach((i) => { mv(cards[i], where[i], low(where[i]), 340); cards[i].animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 240, delay: 220, fill: 'both' }); });
+        await mv(pk, up1, up2, 380, 'cubic-bezier(.3,.7,.3,1)');
+        if (gone()) return;
+        pk.style.zIndex = '250';   // 抽出来了：在别人飞去头像的小牌（150 起）上面、我的大牌（300）下面
         const tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat;
         const BW = Math.round(Math.max(150, Math.min(230, innerWidth * 0.52, cr.height * 0.82 / 1.4)));
         const big = document.createElement('div');
@@ -6159,9 +6173,6 @@
         big.style.cssText = 'left:' + (c.x - BW / 2) + 'px;top:' + (c.y - BW * 0.7) + 'px;--glow:' + tone.band;
         big.style.zIndex = '300';   // 压在扇面和别人飞去头像的小牌上面
         big.innerHTML = '<i class="zm-rd-rays"></i><i class="zm-rd-halo"></i>' + roleFlipHtml(role, BW, true);
-        // 我亮相的时候扇面上剩下的牌淡下去（别人还在抽，不收走）
-        const rest = cards.filter((d, i) => i !== k && free.has(i));
-        rest.forEach((d) => d.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 300, fill: 'forwards' }));
         const from = pk.getBoundingClientRect();
         els.fly.appendChild(big); nodes.push(big);
         pk.style.visibility = 'hidden';
@@ -6169,7 +6180,7 @@
         {
           const r = big.getBoundingClientRect(), dx = from.left + from.width / 2 - (r.left + r.width / 2), dy = from.top + from.height / 2 - (r.top + r.height / 2), k0 = from.width / r.width;
           snd('whoosh');
-          await big.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k0.toFixed(3) + ') rotate(' + (pw.r * 0.5) + 'deg)' }, { transform: 'scale(' + NEAR + ')' }],
+          await big.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k0.toFixed(3) + ') rotate(0deg)' }, { transform: 'scale(' + NEAR + ')' }],
             { duration: 560, easing: 'cubic-bezier(.25,.8,.3,1)', fill: 'forwards' }).finished.catch(() => {});
         }
         if (gone()) return;
@@ -6197,7 +6208,7 @@
         game.roleHide.delete(me); renderSeats();
         const myB = roleBadge(me); if (myB) myB.style.visibility = 'hidden';
         big.classList.remove('is-rays', 'is-near');
-        rest.forEach((d) => { if (d.style.visibility !== 'hidden') d.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 300, fill: 'forwards' }); });
+        rest.forEach((i) => { if (!free.has(i)) return; mv(cards[i], low(where[i]), where[i], 340); cards[i].animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 300, fill: 'forwards' }); });   // 我亮完了：扇面回原位（别人还在抽）
         await flipTo(big, myB ? myB.getBoundingClientRect() : null, 520, 0);
         big.remove();
         if (myB) { myB.style.visibility = ''; fx.pop(myB, { scale: 1.8, dur: 420 }); }
