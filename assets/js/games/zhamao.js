@@ -2934,7 +2934,7 @@
     if (tut && tut.bot) { const d = tut.bot(s, seat); if (d) return d; }
     // 本机演示（__zmDebug.demo('ins…')）：指定机器猫这次把炸弹猫塞到哪
     if (s.phase === 'defuse' && game.forceInsert) { const f = game.forceInsert; game.forceInsert = null; return f.rand ? { type: 'insert', pos: (Math.random() * (s.deck.length + 1)) | 0, rand: true } : { type: 'insert', pos: f.pos === 'end' ? s.deck.length : f.pos === 'mid' ? Math.floor(s.deck.length / 2) : f.pos }; }
-    return AI.decide(s, seat, game.tiers[seat] || 'normal');
+    return botDecide(s, seat, game.tiers[seat] || 'normal');
   }
   function botAct(seat) {
     busy = true;
@@ -5061,7 +5061,7 @@
       let want;
       if (tut && tut.botNope) want = tut.botNope(s, x);
       if (want == null && (Array.isArray(game.forceNope) ? game.forceNope[0] === x : game.forceNope === x) && R.canNope(s, x)) want = true;   // 本机演示：指定这只（这一串）机器猫一定作废（__zmDebug.demo；真作废了才清掉 / 轮到下一个）
-      if (want == null) want = R.canNope(s, x) && AI.decide(s, x, game.tiers[x] || 'normal').type === 'nope';
+      if (want == null) want = R.canNope(s, x) && botDecide(s, x, game.tiers[x] || 'normal').type === 'nope';
       if (want) { botSeat = x; break; }
     }
     const meCan = !autopilot && !game.spectator && R.canNope(s, 0) && R.awaitingReaction(s).indexOf(0) >= 0 && (askMeNope(s) || !!tut);
@@ -6333,6 +6333,7 @@
   async function celebrate(winner, mates) {
     const t = token, a = avPoint(winner), r = avR(winner), won = mates ? mates.indexOf(0) >= 0 : winner === 0;
     snd(won ? 'win' : 'lose');
+    if (game && game.ffJump) return t === token;   // 点了「直接看结果」：不再打 2 秒的聚光灯，直接出排行榜（2026-11-26 用户：点了要直接进结尾）
     if (fx.reduce()) { await wait(600); return t === token; }
     const winners = mates || [winner];
     const pts = winners.map((k) => Object.assign({ av: avEl(k), r: avR(k) }, avPoint(k)));
@@ -9034,6 +9035,8 @@
       if (!game.tutorial && s && !s.alive[meSeat()] && s.phase !== 'over' && game.fastOut && !game.turboOff) mode = 'ff';
       // 2026-11-22 用户：我出局了就直接 5 倍速播（以前要自己点 ⏩ 才 5 倍）；⏩ 改成「直接看结果」
       if (mode === 'ff' && !game.turbo && !game.autoTurbo) { game.autoTurbo = true; setTurbo(true); }
+      if (mode === 'ff') ffPrecompute();   // 键一出来就在后台把剩下的预演完，点了直接用
+      if (game.ffJump && s && s.phase !== 'over') mode = 'ff';   // 点了「直接看结果」、剩下几步还在算：键一直亮着，算完进结算再收
     } else {
       const g = online && game && game.online ? G() : null;
       // 我这边也得看到真人全出局了才算（网慢、播得落后时，服务器早算完了，但我这边自己还活着——这时快进 / 露键都等于剧透）
@@ -9046,7 +9049,7 @@
       const want = !!(replaying && !game.turboOff);
       if (!!game.turbo !== want) setTurbo(want);
       const canNext = !!(g && g.over && game.finishShown === g.matchNo && isHost() && !online.playing && !online.queue.length);
-      mode = replaying ? 'ff' : canNext ? 'next' : '';
+      mode = replaying || (game.ffJump && g && game.finishShown !== g.matchNo) ? 'ff' : canNext ? 'next' : '';
     }
     if (!mode) { if (ffBtn) { ffBtn.remove(); ffBtn = null; } return; }
     if (!ffBtn || !els.center.contains(ffBtn)) {
@@ -9058,6 +9061,11 @@
         e.stopPropagation();
         const b = e.currentTarget;
         if (b.dataset.mode === 'ff') {
+          if (game.ffJump) return;
+          // 2026-11-26 用户：键一上来是黄的，看着像已经按下去了；点了又没马上反应（以前点了反倒变灰一下就没了），以为没点上、连点好几下。
+          // 现在平时是淡的，点了才亮（金底），一直亮到结算出来
+          game.ffJump = true;
+          b.classList.add('is-on');
           b.disabled = true;
           snd('tap');
           jumpToEnd();   // 2026-11-22 用户：⏩ = 直接看结果（剩下的瞬间算完，跳到排行榜）
@@ -9080,7 +9088,7 @@
       const label = mode === 'ff' ? T('ui.ffEnd', '直接看结果') : T('ui.nextGame', '下一局');
       ffBtn.setAttribute('aria-label', label); ffBtn.title = label;
     }
-    ffBtn.classList.toggle('is-on', mode === 'ff' && !!game.turbo);
+    ffBtn.classList.toggle('is-on', mode === 'ff' && !!game.ffJump);   // 我出局后自动 5 倍速播时不亮（2026-11-26 用户：一上来就黄，像是已经按住了）；点了「直接看结果」才亮
   }
 
   /* 直接看结果（2026-11-22 用户挑甲）：我的名次已经定了（单机我出局 / 联机真人全出局），剩下的不再一步步播——
@@ -9110,34 +9118,65 @@
       step();
     });
   }
-  async function simulateRest(s, alive) {
-    const tierOf = (k) => game.tiers[k] || 'normal';
-    const log = (seat, d) => { if (HL) HL.act(game, seat, d, seat >= 0 ? 1 : 0); };
+  /* 后台预演（2026-11-26 用户：点了「直接看结果」要马上到结尾，问有没有更快的算法）：
+   * 我一出局（键出来的那一刻），就在后台把剩下的局面复制一份、分小片（每片几毫秒，不卡桌上的动画）替机器猫打到底，
+   * 每一步「谁、在什么局面下、怎么出」都记进 ffMemo。桌上 5 倍速播的时候，机器猫碰到同一个局面就直接用记下的决定——
+   * 两边走的是同一条路（规则引擎的随机数在局面里，局面一样结果就一样）；点「直接看结果」时照着记下的走，几乎不用再算。
+   * 对不上（比如中途换了观战视角、局面被转过）就现算，结果照样对，只是慢一点。只在我出局后启用，平时打牌不经过这里 */
+  const ffMemo = { g: null, map: new Map(), run: 0 };
+  function memoKey(s, seat, tier) {
+    const str = seat + '|' + tier + '|' + JSON.stringify(s);
+    let h1 = 0xdeadbeef, h2 = 0x41c6ce57;   // cyrb53：局面字符串压成一个数当键，不存整串
+    for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return 4294967296 * (2097151 & h2) + (h1 >>> 0) + ':' + str.length;
+  }
+  function botDecide(s, seat, tier) {
+    if (!game || ffMemo.g !== game) return AI.decide(s, seat, tier);
+    const k = memoKey(s, seat, tier), hit = ffMemo.map.get(k);
+    if (hit) return JSON.parse(hit);
+    const d = AI.decide(s, seat, tier);
+    ffMemo.map.set(k, JSON.stringify(d));
+    return d;
+  }
+  function ffPrecompute() {
+    if (!game || game.online || ffMemo.g === game) return;
+    const g0 = game, run = ++ffMemo.run;
+    ffMemo.g = game; ffMemo.map = new Map();
+    let s;
+    try { s = JSON.parse(JSON.stringify(game.state)); } catch (_) { return; }
+    simulateRest(s, () => ffMemo.run === run && game === g0 && !g0.ffJump, { tiers: g0.tiers.slice(), quiet: true, slice: 6 }).catch(() => {});
+  }
+  async function simulateRest(s, alive, opt) {
+    opt = opt || {};
+    const tiers = opt.tiers || game.tiers, sliceMs = opt.slice || 25;
+    const tierOf = (k) => tiers[k] || 'normal';
+    const log = opt.quiet ? () => {} : (seat, d) => { if (HL) HL.act(game, seat, d, seat >= 0 ? 1 : 0); };
     let slice = performance.now();
     for (let guard = 0; guard < 6000 && s.phase !== 'over'; guard++) {
-      if (performance.now() - slice > 25) { await new Promise((r) => setTimeout(r, 0)); if (!alive()) return false; slice = performance.now(); }
+      if (performance.now() - slice > sliceMs) { await new Promise((r) => setTimeout(r, 0)); if (!alive()) return false; slice = performance.now(); }
       if (s.phase === 'react') {
-        let noped = false;
-        for (const k of R.awaitingReaction(s)) {
-          const d = AI.decide(s, k, tierOf(k));
-          if (d && d.type === 'nope' && R.canNope(s, k)) { R.nope(s, k); log(k, { type: 'nope' }); noped = true; break; }
-          R.pass(s, k);
-        }
-        if (noped) continue;
-        if (R.reactionDone(s)) { if (HL) HL.close(game); R.closeReaction(s); }
+        // 和桌上的反应窗（reactPhase / closeReact）同一个问法：局面不动、挨个问，第一个想作废的作废；都不想就全过、结算
+        let who = -1;
+        for (const k of R.awaitingReaction(s)) if (R.canNope(s, k) && botDecide(s, k, tierOf(k)).type === 'nope') { who = k; break; }
+        if (who >= 0) { R.nope(s, who); log(who, { type: 'nope' }); continue; }
+        if (!opt.quiet && HL) HL.close(game);
+        for (const k of R.awaitingReaction(s)) R.pass(s, k);
+        R.closeReaction(s);
         continue;
       }
       if (s.phase === 'rescue') {
         const wait = R.rescueWaiting(s);
         if (wait.length) {
-          const k = wait[0], d = AI.decide(s, k, tierOf(k)), yes = !(d && d.type === 'rescue' && d.yes === false);
+          const k = wait[0], d = botDecide(s, k, tierOf(k)), yes = !(d && d.type === 'rescue' && d.yes === false);
           R.rescue(s, k, yes); log(k, { type: 'rescue', yes });
         } else { R.closeRescue(s); log(-1, { type: 'closeRescue' }); }
         continue;
       }
       const seat = R.whoActs(s)[0];
       if (seat == null) break;
-      let d = AI.decide(s, seat, tierOf(seat));
+      let d = botDecide(s, seat, tierOf(seat));
       const run = (x) => {
         if (x.type === 'draw') return R.draw(s, seat);
         if (x.type === 'play') return R.play(s, seat, x.cards, x);

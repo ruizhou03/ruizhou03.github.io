@@ -1168,6 +1168,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-ff.is-on { background: var(--zm-gold); border-color: var(--zm-gold); color: #2a2318; }
 .zm-ff[data-mode="next"] { color: var(--zm-ink); border-color: var(--zm-gold); }
 .zm-ff:disabled { opacity: 0.4; cursor: default; }
+/* 点了「直接看结果」：亮起来、一直亮到结算出来（算剩下几步那一下不变灰——2026-11-26 用户：以前点了变灰，以为没点上） */
+.zm-ff.is-on:disabled { opacity: 1; }
 /* 本房间战绩表（排行榜弹窗 / 房间准备页）：平均名次 + 每一局各第几（局多了横着滑） */
 .zm-record-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .zm-record { margin: 14px 0 4px; }
