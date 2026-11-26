@@ -6213,16 +6213,18 @@
         return best;
       };
       const queue = [];
-      let pumping = false;
+      let pumping = false, firstGapDone = false;
       async function pump() {
         if (pumping || (canPick && tapped < 0 && !mine)) return;
         pumping = true;
+        // 2026-11-26 用户：要有先后的感觉——我挑完先停一会儿，别人才开始挑；别人之间挨得紧一些
+        if (!firstGapDone) { firstGapDone = true; if (canPick) { await wait(1000); if (gone()) { pumping = false; return; } } }
         while (queue.length && !gone()) {
           const q = queue.shift();
           const v = visOf(q.k);
           if (v >= 0) { free.delete(v); cards[v].classList.remove('can-pick', 'is-wave'); await toSeat(v, q.seat, q.role); }
           q.done();
-          await wait(260);
+          await wait(380);
         }
         pumping = false;
       }
@@ -6242,15 +6244,15 @@
       // 都抽完了：别人那几张一起（错开一点）飞到各自头像旁翻成圆章、盖进角上；最后放大亮我的
       parked.sort((x, y) => x.seat - y.seat);
       await wait(250);
-      // 避让：别人那几张一离开扇面，我那张就挪到桌心、压在飞去头像旁的圆章上面（不再被右边那家的圆章盖住）
-      if (mine) setTimeout(() => { if (gone()) return; const pk = cards[mine.k], to = { x: c.x, y: c.y + cw * 0.4, r: 0, s: S * 1.1 }; pk.style.zIndex = '250'; mv(pk, mine.at, to, 360); mine.at = to; }, parked.length * 90 + 40);
+      // 避让：别人那几张都离开扇面后，我那张挪到桌心偏下、离开别人的圆章；z 放在扇面之上、圆章之下（圆章 150 起），全程不跳层
+      if (mine) setTimeout(() => { if (gone()) return; const pk = cards[mine.k], to = { x: c.x, y: c.y + cw * 0.4, r: 0, s: S * 1.1 }; pk.style.zIndex = '140'; mv(pk, mine.at, to, 420); mine.at = to; }, Math.max(0, parked.length - 1) * 240 + 60);
       await Promise.all(parked.map(async (p, i) => {
-        await wait(i * 90);
+        await wait(i * 240);   // 2026-11-26 用户：发身份别太仓促，一家家错开（同单机）
         if (gone()) return;
         lift(cards[p.k]);
         const box = await sealPark(cards[p.k], p.seat, p.role, 150 + i, where[p.k].r || 0, cr, c, cw);
         nodes.push(box);
-        if (!gone()) await sealOpen(box, p.seat, gone, 420);
+        if (!gone()) await sealOpen(box, p.seat, gone);
       }));
       if (gone()) return;
       if (mine) await revealMine();
