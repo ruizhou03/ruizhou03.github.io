@@ -111,6 +111,9 @@
       // 炸毛的「嘶——」
       nz(a, d, t + 0.05, { type: 'highpass', freq: 3500, q: 0.5, gain: 0.22, dur: 0.6, attack: 0.04 });
     },
+    // 九命（2026-11-26 用户）：先「喵——」大叫一声（音高高、拖长、尾巴往上挑），气泡里写「九命！」；随后爱心转出来时一串暖和的叮
+    ninecry: (a, t, d) => { meow(a, d, t, { f: 820, dur: 0.62, end: 1.15, gain: 0.3 }); },
+    ninehearts: (a, t, d) => { [880, 1175, 1397].forEach((f, i) => tone(a, d, t + i * 0.08, { f, gain: 0.07, dur: 0.35, type: 'triangle' })); tone(a, d, t + 0.75, { f: 1568, to: 784, gain: 0.05, dur: 0.4, type: 'triangle' }); },
     defuse: (a, t, d) => { meow(a, d, t, { f: 760, dur: 0.32, end: 1.0, gain: 0.18 }); tone(a, d, t + 0.25, { f: 1175, gain: 0.07, dur: 0.25 }); tone(a, d, t + 0.33, { f: 1568, gain: 0.06, dur: 0.3 }); },
     insert: (a, t, d) => { card(a, d, t, 0.3); card(a, d, t + 0.07, 0.2); },
     out: (a, t, d) => { meow(a, d, t, { f: 420, dur: 0.6, end: 0.45, gain: 0.22 }); },
@@ -154,7 +157,7 @@
     if (DUCK[name]) duck(DUCK[name]);
   }
   // 只有大动静才把音乐压一下（压到七成）；以前每个音效都压到一半以下，点牌、飞牌、每秒的倒计时滴答一直在压，音乐听着发闷
-  const DUCK = { boom: 1400, kaboom: 1600, defuse: 700, nope: 500 };
+  const DUCK = { boom: 1400, kaboom: 1600, defuse: 700, nope: 500, ninecry: 700 };
   function duck(ms) {
     if (!ctx || !bus) return;
     const g = bus.music.gain, t = ctx.currentTime;

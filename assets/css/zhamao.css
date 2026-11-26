@@ -162,7 +162,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-seat-me .zm-bubble { bottom: auto; top: calc(var(--av) + 4px); }
 @keyframes zm-bubble { 0% { opacity: 0; transform: translate(-50%, 8px) scale(.6); } 10% { opacity: 1; transform: translate(-50%, -2px) scale(1.06); } 16%, 78% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -8px) scale(.96); } }
 /* 小尾巴指向头像 */
-.zm-bubble::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 10px; height: 10px; background: inherit; border-right: 1.5px solid var(--zm-ink); border-bottom: 1.5px solid var(--zm-ink); transform: translateX(-50%) rotate(45deg); }
+.zm-bubble::after { content: ''; position: absolute; left: calc(50% + var(--tail, 0px)); bottom: -6px; width: 10px; height: 10px; background: inherit; border-right: 1.5px solid var(--zm-ink); border-bottom: 1.5px solid var(--zm-ink); transform: translateX(-50%) rotate(45deg); }
 .zm-seat-me .zm-bubble::after { bottom: auto; top: -6px; transform: translateX(-50%) rotate(225deg); }
 .zm-bubble.is-loud { background: #7a5a96; border-color: #5d4378; color: #fff; font-size: 15px; font-weight: 700; padding: 5px 12px; }
 .zm-bubble.is-loud::after { border-color: #5d4378; }
@@ -1896,6 +1896,9 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-bubble.is-sos-catch::after { border-color: #b8914a; }
 .zm-bubble.is-sos-refuse { background: #e6dfd1; border-color: #9a9284; color: #5c564c; }
 .zm-bubble.is-sos-refuse::after { border-color: #9a9284; }
+/* 九命（2026-11-26 用户）：猫先大喊「九命！」——和心圈同一个玫红，大一号、加一圈粉光 */
+.zm-bubble.is-nine { background: #e0566e; border-color: #b23a52; color: #fff; font-size: 17px; letter-spacing: 1px; padding: 5px 13px; box-shadow: 0 0 0 3px rgba(224, 86, 110, 0.28), 0 4px 14px rgba(178, 58, 82, 0.35); z-index: 46; }
+.zm-bubble.is-nine::after { border-color: #b23a52; }
 
 /* 第一次玩的教程引导（2026-11-20 用户挑甲）：上面主页那只炸毛猫，下面两张「牌」当按钮 */
 .zm-app .zm-dialog.is-tutask { width: min(100%, 320px); padding: 18px 20px 20px; border: 0; border-radius: 22px; background: #fffdf8; box-shadow: 0 0 0 1px rgba(29, 27, 24, 0.08), 0 20px 46px rgba(29, 27, 24, 0.28); }

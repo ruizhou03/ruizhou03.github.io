@@ -1459,6 +1459,10 @@
     else b.textContent = text;
     if (!o.sos) b.style.animationDuration = o.ms + 'ms';   // 求救的省略号：冒出来的动画按 CSS 的 0.3 秒走（ms = 60000 时整段淡入会被拉成一分钟，几乎看不见）
     box.appendChild(b);
+    // 靠屏幕边的座位（窄屏左右两家）：气泡居中在头像上会出屏——量一下，往里挪回来（2026-11-26，「九命！」在 iPhone SE 右边被切）
+    const br = b.getBoundingClientRect(), cx = br.left + br.width / 2, hw = b.offsetWidth / 2, pad = 4;
+    const dx = cx - hw < pad ? pad - (cx - hw) : cx + hw > innerWidth - pad ? innerWidth - pad - (cx + hw) : 0;
+    if (dx) { b.style.marginLeft = dx.toFixed(1) + 'px'; b.style.setProperty('--tail', Math.max(-(hw - 12), Math.min(hw - 12, -dx)).toFixed(1) + 'px'); }
     if (o.ms < 60000) setTimeout(() => b.remove(), o.ms);
     return b;
   }
@@ -1680,7 +1684,8 @@
     stack.querySelectorAll('.zm-deck-kit').forEach((k) => k.remove());
   }
   // 百变「九命」：炸了没出局——头像外一圈九颗心转出来、最上面那颗碎掉落下（用掉一条命），头像缓过来，
-  // 炸毛猫从他那儿飞回牌堆（缝开在看不出的高度）。2026-11-17 用户：不要「九命！」字，换成图形
+  // 炸毛猫从他那儿飞回牌堆（缝开在看不出的高度）。2026-11-17 用户：心圈里不要「九命！」字，换成图形；
+  // 2026-11-26 用户：在心圈之前先让猫喊——猫叫 + 头上「九命！」气泡（见 animNine）
   function nineLives(seat) {
     const av = seat === 0 ? els.me.querySelector('.zm-av') : avEl(seat);
     const c = av ? fx.center(av.getBoundingClientRect()) : avPoint(seat);
@@ -1710,7 +1715,15 @@
     setTimeout(() => box.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(350), fill: 'forwards' }).finished.then(() => box.remove(), () => box.remove()), ms(1650));
   }
   async function animNine(e, t) {
-    if (e.why !== 'save') { nineLives(e.seat); snd('defuse'); }   // 急救：前面已经演过「两张合成逗猫棒」
+    if (e.why !== 'save') {   // 急救：前面已经演过「两张合成逗猫棒」
+      // 2026-11-26 用户：规则说「大喊九命」，就真喊——先猫叫一声、头上冒「九命！」气泡（头像一抖），再转出爱心把炸毛猫安抚掉
+      snd('ninecry');
+      bubble(e.seat, T('ui.nine.cry', '九命！'), { loud: true, ms: ms(1900), cls: 'is-nine' });
+      fx.shake(avEl(e.seat), { amp: 4, dur: 320 });
+      await wait(ms(650));
+      if (t !== token) return;
+      nineLives(e.seat); snd('ninehearts');
+    }
     calmAvatar(e.seat, t, ms(500));
     await wait(ms(500));
     if (t !== token) return;
