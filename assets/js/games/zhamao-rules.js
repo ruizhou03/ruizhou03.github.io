@@ -135,7 +135,7 @@
     { id: 'bottom', name: T('flux.bottom.name', '摸底'), desc: T('flux.bottom.desc', '摸牌改从牌堆底部摸') },
     { id: 'hot', name: T('flux.hot.name', '烫手'), desc: T('flux.hot.desc', '每个人的回合一开始就像被甩了一次锅') },
     { id: 'mute', name: T('flux.mute.name', '静默'), desc: T('flux.mute.desc', '不能打「作废」') },
-    { id: 'catsave', name: T('flux.catsave.name', '急救'), desc: T('flux.catsave.desc', '摸到炸毛猫时若无逗猫棒，可打出两张相同的牌代替，炸毛猫随机放回牌堆。每人最多生效一次') },
+    { id: 'catsave', name: T('flux.catsave.name', '急救'), desc: T('flux.catsave.desc', '摸到炸毛猫时若无逗猫棒，可打出两张相同的牌代替逗猫棒，再把炸毛猫塞回牌堆任意位置。每人最多生效一次') },
     // 2026-11-26 用户：「百搭」——所有猫都变成万能猫：任意两只猫算一对、任意三只算三张一样、任意五只算五种各一张；换走就变回来
     { id: 'allwild', name: T('flux.allwild.name', '百搭'), desc: T('flux.allwild.desc', '所有猫都变成万能猫') },
   ]);
@@ -770,15 +770,16 @@
       return ev;
     }
     // 百变「双猫急救」：没逗猫棒，交出一对一样的猫牌（万能猫能顶）当逗猫棒用，照样塞回去
-    // 急救（用户 2026-11-15）：交出一对相同的牌，炸毛猫随机放回牌堆；每人最多一次
+    // 急救（用户 2026-11-15）：交出一对相同的牌；每人最多一次
     const pair = s.flux === 'catsave' && !(s.saveUsed && s.saveUsed[seat]) ? catPairIds(s.hands[seat]) : null;
     if (pair) {
       if (!s.saveUsed) s.saveUsed = Array.from({ length: s.n }, () => false);
       s.saveUsed[seat] = true;
       for (const c of pair) { s.hands[seat].splice(s.hands[seat].indexOf(c), 1); s.discard.push(c); forgetCard(s, c); }
+      // 2026-11-26 用户：急救也和逗猫棒一样，自己挑塞回第几张（以前随机放回）——两张顶一根逗猫棒，之后走平常的塞回（insertKitten）
+      s.phase = 'defuse';
+      s.defuse = { by: seat, card: id };
       ev.push({ t: 'defuse', seat, card: pair[0], extra: pair[1], kitten: id, save: 'cats' });
-      ev.push(...reinsertRandom(s, seat, id, 'save'));
-      endOneTurn(s, ev);
       return ev;
     }
     // 百变「九命」：每人一局一次，不出局；炸毛猫随机塞回牌堆（谁也不知道在哪），这一回合照常结束
@@ -805,7 +806,7 @@
     }
     return eliminate(s, seat, id, ev);
   }
-  /* 九命 / 急救：炸毛猫随机塞回牌堆（谁也不挑位置）。动画按真实高度开缝（2026-11-15 用户），所以和「看得出大概位置」一样公开一个粗略高度 vis，机器猫也按它估 */
+  /* 九命：炸毛猫随机塞回牌堆（谁也不挑位置；急救 2026-11-26 起改成自己挑，走 insertKitten）。动画按真实高度开缝（2026-11-15 用户），所以和「看得出大概位置」一样公开一个粗略高度 vis，机器猫也按它估 */
   function reinsertRandom(s, seat, id, why) {
     const pos = (rand(s) * (s.deck.length + 1)) | 0;
     s.deck.splice(pos, 0, id);

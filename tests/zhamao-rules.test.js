@@ -726,6 +726,27 @@ test('hidden insert (default, 2026-11-25): nine reinsert gives no height; peekto
   t = atDefuse({ insertSeen: true }, 'nine', true); n = t.ev.find((x) => x.t === 'nine'); assert.ok(n.vis != null);
 });
 
+test('flux 急救 (catsave, 2026-11-26): pair replaces the defuse, then the player picks the exact slot like a normal defuse', () => {
+  const s = rig([['orange', 'orange', 'skip'], ['skip']], ['skip', 'skip', 'skip', 'skip'], 0);
+  s.rules = Object.assign({}, s.rules, { mode: 'flux' });
+  s.flux = 'catsave'; s.saveUsed = [false, false];
+  const boom = ofKind(R.BOOM).find((id) => !s.deck.includes(id) && !s.hands.some((h) => h.includes(id)));
+  s.deck.unshift(boom);
+  const size = s.deck.length;
+  const ev = R.draw(s, 0);
+  const d = ev.find((e) => e.t === 'defuse');
+  assert.equal(d.save, 'cats'); assert.ok(d.extra != null);
+  assert.ok(!ev.some((e) => e.t === 'nine'));          // 不再随机放回
+  assert.equal(s.phase, 'defuse'); assert.equal(s.defuse.by, 0); assert.equal(s.defuse.card, boom);
+  assert.ok(s.saveUsed[0]);
+  assert.equal(s.turn, 0);                             // 还没结束回合，等我挑位置
+  const ins = R.insertKitten(s, 0, 2).find((e) => e.t === 'insert');
+  assert.equal(ins.pos, 2); assert.equal(s.deck[2], boom); assert.equal(s.deck.length, size);
+  assert.ok(s.memo[0].deck.includes(boom));            // 我自己知道塞在哪
+  assert.ok(!s.memo[1].deck.includes(boom));           // 对手不知道
+  assert.equal(s.turn, 1);
+});
+
 test('flux 百搭 (allwild): any two / three / five cats combine; off again when the rule changes', () => {
   const s = rig([['orange', 'cow', 'tabby', 'calico', 'siamese', 'orange'], ['skip']], ['skip', 'skip', 'skip'], 0);
   s.rules = Object.assign({}, s.rules, { mode: 'flux' });
