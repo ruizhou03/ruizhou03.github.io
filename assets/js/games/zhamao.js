@@ -1749,6 +1749,8 @@
     if ((e.rule === 'allwild') !== (prev === 'allwild')) flipBottomCards(t, R.CATS);   // 百搭：手里的猫翻成万能猫（换走时翻回来）
     if (prev === 'exact' && e.rule !== 'exact' && game.openKits && game.openKits.size) await tuckKits(t);   // 火眼换走：露着的炸弹猫收回去
     if (t !== token) return;
+    if (prev === 'peektop' && e.rule !== 'peektop' && ov && faceTop(game.state) == null) await closeTopFace(t);   // 透视换走：顶上那张原地翻回牌背
+    if (t !== token) return;
     if (ov && (e.rule === 'peektop' || prev === 'peektop' || prev === 'exact')) { ov.topFace = faceTop(game.state); renderPiles(); }   // 掀顶生效：顶上那张翻起来；换走：盖回去
     el = document.getElementById('zmFlux');
     if (!el) return;
@@ -1762,6 +1764,20 @@
     await wait(ms(500));
     if (t !== token) return;
     if ((prev === 'reverse') !== (e.rule === 'reverse')) await animReverse({ seat: e.seat, dir: e.dir }, t);
+  }
+  /* 透视被换成别的规则（2026-11-26 用户：以前顶上那张一下子没了，像融进了牌堆，不像「翻开的牌合上」）：
+   * 就在牌堆顶原地翻回去——正面转到侧立，换成牌背再转平，落下和牌堆顶那张牌背严丝合缝，然后才收掉 */
+  async function closeTopFace(t) {
+    const stack = els.deck.querySelector('.zm-deck-stack'), fc = stack && stack.querySelector('.zm-deck-face');
+    if (!fc || !fc.firstElementChild || fx.reduce()) return;
+    snd('flip');
+    await fc.firstElementChild.animate([{ transform: 'perspective(400px) rotateY(0deg)' }, { transform: 'perspective(400px) rotateY(90deg)', filter: 'brightness(.85)' }], { duration: ms(170), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token || !fc.isConnected) return;
+    fc.innerHTML = backHtml();
+    const back = fc.firstElementChild;
+    if (!back) return;
+    back.style.boxShadow = 'none';   // 牌背不要透视那圈金边
+    await back.animate([{ transform: 'perspective(400px) rotateY(-90deg)', filter: 'brightness(.85)' }, { transform: 'perspective(400px) rotateY(0deg)', filter: 'none' }], { duration: ms(190), easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).finished.catch(() => {});
   }
   /* 火眼被换成别的规则（2026-11-16 用户：换走以后露着的炸弹猫还一直明着）：歪着露出的那几张摆正、塞回原来那层、翻成牌背；
    * 最上面翻着的那张（它刚好到了顶上）也翻回去。之后谁也不再看得到它们在哪（就像没有火眼时一样） */
