@@ -175,7 +175,7 @@
     merge: '<svg viewBox="0 0 24 24"><path d="M6 4v6a6 6 0 0 0 6 6h6M14 12l4 4-4 4" fill="none" stroke="#1d1b18" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   };
   const LED = { newbie: 'newbie', checkin: 'checkin', ticket: 'ticket', win: 'win', online: 'win', firstwin: 'star', broke1: 'relief', relief: 'relief', feedback: 'feedback', badge: 'star', penalty: 'ticket', refund: 'ticket', merge: 'merge', merged: 'merge', opened: 'merge' };
-  const LED_NAME = { newbie: '新手礼包', checkin: '签到', ticket: '门票', win: '名次奖励', online: '联机奖励', firstwin: '今日首胜', broke1: '第一次亏空', relief: '救济', feedback: '这步不对', badge: '徽章奖励', penalty: '中途离开', refund: '门票退回', merge: '游客小鱼干并入', merged: '并入账号', opened: '账号钱包' };
+  const LED_NAME = { newbie: '新手礼包', checkin: '签到', ticket: '门票', win: '名次结算', online: '联机结算', firstwin: '今日首胜', broke1: '第一次亏空', relief: '救济', feedback: '这步不对', badge: '徽章奖励', penalty: '中途离开', refund: '门票退回', merge: '游客小鱼干并入', merged: '并入账号', opened: '账号钱包' };
   // 勋章（规则在后端 lib/zhamao-econ.js BADGES，服务器判断、拿到时自动发奖励）。2026-11-26 改版：8 个系列 × 铜银金，图和名字在 zhamao-medals.js
   const MD = () => root.ZhamaoMedals;
   const badgeSvg = (id) => (MD() ? MD().of(id) : '');
@@ -261,7 +261,7 @@
       sub = r.left ? '中途离开' : h.mode === 'team' || r.rank == null ? (r.won ? '赢了' : '输了') : '第 ' + r.rank + ' 名';
       if (r.auto > 0.7) { sub += ' · 托管七成以上，不发奖'; warn = true; } else if (r.auto > 0.3) { sub += ' · 托管三成以上，奖励减半'; warn = true; }
     }
-    const NAMES = { ticket: '门票', win: '名次奖励', online: '名次奖励', firstwin: '今日首胜', penalty: '中途离开罚票' };
+    const NAMES = { ticket: '门票', win: '名次结算', online: '名次结算', firstwin: '今日首胜', penalty: '中途离开罚票' };
     const parts = it.parts.filter((x) => x.d || x.why === 'ticket').map((x) => '<span><em>' + (NAMES[x.why] || LED_NAME[x.why] || esc(x.why)) + '</em><b>' + sign(x.d) + '</b></span>').join('');
     return '<li class="g" data-lg><span class="ic">' + (r && r.won ? IC.win : IC.ticket) + '</span><span class="nm">' + name + '<small' + (warn ? ' class="warn"' : '') + '>' + sub + '</small></span><b class="' + (it.d > 0 ? 'up' : it.d < 0 ? 'dn' : '') + '">' + sign(it.d) + '</b><div class="parts">' + parts + '</div></li>';
   }

@@ -17,9 +17,10 @@
   // ── 规则表（同 lib/zhamao-econ.js）──
   // 门票：[2–3 人, 4–5 人, 6–7 人, 8–9 人]，玩法由便宜到贵（2026-11-22 第二版；2026-11-26 一律整百：150→200、250→300、450→500、750→800）
   const PRICE = {
-    classic: { easy: [100, 200, 200, 300], normal: [200, 300, 400, 500], hard: [500, 800, 1000, 1200] },
-    flux: { easy: [200, 200, 300, 300], normal: [300, 400, 500, 600], hard: [600, 1000, 1200, 1500] },
-    roles: { easy: [200, 200, 300, 300], normal: [300, 400, 500, 600], hard: [600, 1000, 1200, 1500] },
+    // 2026-11-26 用户定「两步走」：经典 / 百变 / 角色的门票只是入场费（各玩法一样），输赢在结算（UNIT）里；组队还是老算法
+    classic: { easy: [100, 100, 200, 200], normal: [200, 200, 300, 300], hard: [400, 400, 600, 600] },
+    flux: { easy: [100, 100, 200, 200], normal: [200, 200, 300, 300], hard: [400, 400, 600, 600] },
+    roles: { easy: [100, 100, 200, 200], normal: [200, 200, 300, 300], hard: [400, 400, 600, 600] },
     team: { easy: [200, 300, 300, 400], normal: [400, 500, 600, 800], hard: [1000, 1200, 1500, 1800] },
   };
   const price = (tier, mode, n) => ((PRICE[mode] || PRICE.classic)[tier] || PRICE.classic.normal)[n <= 3 ? 0 : n <= 5 ? 1 : n <= 7 ? 2 : 3];
@@ -46,14 +47,23 @@
     const pm = TEAM_SOLO * RANK_MULT[n][clampI(t.prank, 1, n) - 1];
     return { m: cfg[1] * Math.max(tm, pm), floor: pm > tm };
   }
+  /* 两步走的结算（2026-11-26 用户定，同 lib/zhamao-econ.js）：门票开局扣；结算以中位为界、能加能扣，名次越靠两头差得越多。
+   * 一份 = UNIT（按档位 × 人数档）；名次份数 w = ±(离中位距离 / 最远距离)^1.2（第一 +1、最后 −1、奇数人中位 0）。
+   * 托管 / 中途离开只砍赢的、亏的照付；赢不超过买票前的余额、扣到 0 为止（封顶在 settle 里按余额做，这里不管） */
+  // 一份按人数逐个定（2026-11-26 用户：人越多第一名一定赢得越多），下标 = 人数 − 2
+  const UNIT = { easy: [500, 600, 800, 900, 1100, 1200, 1400, 1500], normal: [1000, 1200, 1500, 1800, 2100, 2400, 2700, 3000], hard: [2000, 2400, 3000, 3600, 4200, 4800, 5400, 6000] };
+  function rankW(n, rank) { const d = (n + 1) / 2 - rank, D = (n - 1) / 2; return Math.sign(d) * Math.pow(Math.abs(d) / D, 1.2); }
   function payout(o) {
     const n = Math.max(2, Math.min(9, Number.isInteger(o.n) ? o.n : 4)), tier = TIER_K[o.tier] ? o.tier : 'normal';
     const p = price(tier, PRICE[o.mode] ? o.mode : 'classic', n);
-    let m;
-    if (o.team) m = teamParts(n, o.team).m;
-    else m = (RANK_MULT[n][Math.max(1, Math.min(n, o.rank | 0)) - 1] || 0) * TIER_K[tier];
-    let pay = p * m;
     const a = Number(o.autoShare) || 0;
+    if (!o.team) {
+      const w = rankW(n, Math.max(1, Math.min(n, o.rank | 0)));
+      let v = Math.sign(w) * nice(UNIT[tier][n - 2] * Math.abs(w));
+      if (v > 0) { if (o.left || a > 0.7) v = 0; else if (a > 0.3) v = nice(v / 2); }
+      return v;
+    }
+    let pay = p * teamParts(n, o.team).m;
     if (a > 0.7) pay = 0; else if (a > 0.3) pay *= 0.5;
     return nice(pay);
   }
@@ -332,7 +342,7 @@
           else { const b = document.createElement('button'); b.type = 'button'; b.textContent = T('ui.wallet.go', '前往'); b.addEventListener('click', () => go(b)); row.appendChild(b); }
           list.appendChild(row);
         };
-        const amt = rl.first ? 3000 : 1000;
+        const amt = rl.amount || (rl.first ? 5000 : 2000);   // 后端下发下一次能领多少（2026-11-26 起：第一次亏空 5,000、之后救济 2,000，每天 2 次）
         task(T('ui.wallet.relief', '领取救济'), !(rl.first || rl.left > 0), (b) => claim(b, amt, () => post('relief', { n: o.n, mode: o.mode, tier: o.tier })));
         task(T('ui.wallet.checkin', '每日签到'), state.ck === today(), (b) => claim(b, state.next || 100, () => api.checkin()));
         if (state.fw && state.fw.ready) task(T('ui.wallet.win', '对局获胜'), false, (b) => claim(b, state.fw.amount || 1000, () => claimFirstWin()));   // 赢过、首胜奖励还没领：当场领
@@ -576,10 +586,14 @@
     }
     body.autoShare = wt.all ? wt.auto / wt.all : 0;
     // 当场估好（同服务器的算法）：结算页一出来就有数，服务器回来再对一下（首胜奖励只有服务器知道）
-    const pay = payout({ tier: wt.tier, mode: wt.mode, n, rank: body.rank, team: body.team ? body : null, autoShare: body.autoShare });
+    const pay0 = payout({ tier: wt.tier, mode: wt.mode, n, rank: body.rank, team: body.team ? body : null, autoShare: body.autoShare });
     const floor = body.team ? (teamParts(n, body).floor ? body.prank : 0) : 0;   // 这局按个人名次保底结算：结算页说一句
     wt.rank = body.team ? (body.won ? 1 : body.trank) : body.rank;   // 结算页那一行写「第 N 名」
-    wt.est = { delta: pay - wt.price, pay, price: wt.price, firstWin: 0, bal: (wt.bal0 != null ? wt.bal0 : state ? state.bal : 0) + pay, est: true, auto: body.autoShare, floor };
+    const b0 = wt.bal0 != null ? wt.bal0 : state ? state.bal : 0;   // 买完票的余额
+    let pay = pay0;
+    if (pay > 0) pay = Math.min(pay, b0 + (wt.price || 0));   // 赢不超过买票前的余额（一局最多翻倍）
+    else if (pay < 0) pay = -Math.min(-pay, Math.max(0, b0));   // 扣到 0 为止
+    wt.est = { delta: pay - wt.price, pay, price: wt.price, firstWin: 0, bal: b0 + pay, est: true, auto: body.autoShare, floor };
     holdT();   // 牌桌左上角先停在结算前的数：等结算页一笔一笔游进去（服务器回来的余额不能先跳上去）
     if (state) state = Object.assign({}, state, { bal: wt.est.bal });   // 本机先记上（「再来一局」够不够按这个算），服务器回来会覆盖
     const p = post('settle', body).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, badges: Array.isArray(r.badges) ? r.badges : [], bal: r.bal, auto: body.autoShare, floor }; dropPending(wt.tid); return wt.done; })
@@ -598,8 +612,8 @@
   /* 托管替我走的比例：超过三成奖励减半、超过七成不发奖（规则同后端 AUTO_HALF / AUTO_ZERO）——2026-11-24 实测：托管拿第 1 却 −1,000，没一个字说明 */
   function autoNote(a) {
     a = Number(a) || 0;
-    if (a > 0.7) return '<span class="zmw-note">' + T('ui.wallet.autoZero', '这局托管替你走了七成以上，不发奖励') + '</span>';
-    if (a > 0.3) return '<span class="zmw-note">' + T('ui.wallet.autoHalf', '这局托管替你走了三成以上，奖励减半') + '</span>';
+    if (a > 0.7) return '<span class="zmw-note">' + T('ui.wallet.autoZero', '这局托管替你走了七成以上，赢的不发，扣的照扣') + '</span>';
+    if (a > 0.3) return '<span class="zmw-note">' + T('ui.wallet.autoHalf', '这局托管替你走了三成以上，赢的减半') + '</span>';
     return '';
   }
   /* 组队输了、但个人撑到很后面：按个人名次保底（2026-11-26 方案乙）——说一句，不然看不懂为什么输了还没怎么扣 */
@@ -615,17 +629,18 @@
   const PF = () => root.ZhamaoProfile || null;
   const bSvg = (id) => (MD() ? MD().of(id) : '');
   const wait = (ms) => new Promise((r) => setTimeout(r, FX() && FX().reduce() ? 0 : ms));
-  function payOf(r) { return r.pay != null ? r.pay : Math.max(0, (r.delta || 0) + (r.price || 0) - (r.firstWin || 0)); }
+  function payOf(r) { return r.pay != null ? r.pay : (r.delta || 0) + (r.price || 0) - (r.firstWin || 0); }   // 2026-11-26 起结算能为负（扣钱）
+  const sgn = (v) => (v < 0 ? '−' : '+');
   function paintPay(el, r, label, quiet) {
     el.classList.add('is-lines');
     const pay = payOf(r);
-    el.innerHTML = '<div class="zmw-ln is-main"><span>' + label + '</span><b class="' + (pay > 0 ? 'is-up' : '') + '">' + FISH + '<i>+' + (quiet ? fmt(pay) : '0') + '</i></b></div>' + (autoNote(r.auto) || floorNote(r.floor));
+    el.innerHTML = '<div class="zmw-ln is-main"><span>' + label + '</span><b class="' + (pay > 0 ? 'is-up' : pay < 0 ? 'is-down' : '') + '">' + FISH + '<i>' + sgn(pay) + (quiet ? fmt(pay) : '0') + '</i></b></div>' + (autoNote(r.auto) || floorNote(r.floor));
   }
   function countUp(el, pay) {
     const i = el.querySelector('.zmw-ln b i');
-    if (!i || !pay || (FX() && FX().reduce())) { if (i) i.textContent = '+' + fmt(pay); return; }
+    if (!i || !pay || (FX() && FX().reduce())) { if (i) i.textContent = sgn(pay) + fmt(pay); return; }
     const t0 = performance.now(), dur = 700;
-    const tick = (t) => { const k = Math.min(1, (t - t0) / dur); if (i.isConnected) i.textContent = '+' + fmt(pay * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); };
+    const tick = (t) => { const k = Math.min(1, (t - t0) / dur); if (i.isConnected) i.textContent = sgn(pay) + fmt(pay * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(tick); };
     requestAnimationFrame(tick);
   }
   const rankLabel = (k) => (k ? T('ui.wallet.rankN', '第 {n} 名', { n: k }) : T('ui.wallet.rankPay', '名次奖励'));
@@ -673,7 +688,7 @@
     const el = dialog && dialog.querySelector('[data-zmw-res]');
     if (!el) return;
     if (!pay || pay.refund || !game) { el.remove(); return; }
-    const r0 = { pay: pay.pay != null ? pay.pay : Math.max(0, pay.d + (pay.price || 0)), auto: pay.auto };
+    const r0 = { pay: pay.pay != null ? pay.pay : pay.d + (pay.price || 0), auto: pay.auto };
     settleSeq(game, el, rankLabel(pay.rank), null, r0, () => wait(900).then(refresh).then((j) => {
       if (!j || !state) return r0;
       const had = game.wBadges || [], fresh = (state.badges || []).filter((b) => had.indexOf(b) < 0);
