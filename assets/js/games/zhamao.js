@@ -110,6 +110,9 @@
   let viewSeat = -1;     // 我出局后坐到哪只机器猫背后看它的手牌（-1 = 不看）
   let autoAct = false;   // 这一步是超时 / 托管替我做的（不清零超时次数）
   const handHidden = new Set();   // 手牌里「位置先占好、牌还在路上」的那几张
+  /* 已经离手、摆上桌还没真出的牌（先摆上桌再选人 / 联机乐观出牌）：手牌里直接不画、剩下的牌立刻滑过去收拢
+   * （2026-11-26 用户：打出对子 / 三张去偷时，手牌原地空着位置僵着等，很怪）。取消 / 没出成 = 位置重新让开、牌飞回来 */
+  const handOut = new Set();
 
   /* 兜底（2026-11-18 用户）：离开超过半小时，这局就算结束了——不再挂小黄点 / 「接着打上一局」、联机也不再自动接回那个房间。
    * 「离开」从最后一次存档算起：每步都存、切后台 / 关页面 / 回主页面也会存一次，所以就是「最后一次还在玩」的时候 */
@@ -353,7 +356,7 @@
     return st.flux === 'peektop' || isOpenKit(st, st.deck[0]) ? st.deck[0] : null;
   }
   function snapshot() { ov = liveDisplay(); return ov; }
-  function release() { ov = null; handHidden.clear(); }
+  function release() { ov = null; handHidden.clear(); handOut.clear(); }
 
   /* ───── 尺寸：只算 --u ───── */
   /* 一局里尺寸锁死（2026-11-14 用户：玩着玩着整桌突然变大、顶上名字和箭头挤成一团）：
@@ -2164,7 +2167,7 @@
   function renderHand(o) {
     o = o || {};
     const s = game.state;
-    const hand = D().hand;
+    const hand = handOut.size ? D().hand.filter((id) => !handOut.has(id)) : D().hand;
     selected = selected.filter((id) => hand.indexOf(id) >= 0);
     /* 问到我要不要作废（2026-11-16 用户：作废牌要默认替我点起来）：每个新的反应窗，手里第一张作废自动抬起；
      * 再点这张抬起的就打出去（2026-11-17 朋友局：都以为再点一下是出牌，结果放下了、时间到了也没作废成），
@@ -3018,7 +3021,7 @@
     const s = game.state;
     const p = s.pending || { by: e.seat, type: e.type, cards: e.cards, target: e.target, named: e.named, nopes: [] };
     const src = game.src || {};
-    if (e.seat === 0) { dropFromHand(e.cards); renderHand(); } else { ov.counts[e.seat] -= e.cards.length; renderSeat(e.seat); }
+    if (e.seat === 0) { dropFromHand(e.cards); e.cards.forEach((id) => handOut.delete(id)); renderHand(); } else { ov.counts[e.seat] -= e.cards.length; renderSeat(e.seat); }
     showStage(p, true);
     snd('whoosh');
     const su = SU(), start = avPoint(e.seat);
@@ -5204,9 +5207,9 @@
     const t = token;
     busy = true;
     const rects = cards.map((id) => handRectOf(id));
-    cards.forEach((id) => handHidden.add(id));
+    cards.forEach((id) => handOut.add(id));
     selected = [];
-    renderHand({ flip: false });
+    renderHand();   // 剩下的牌滑过去收拢
     showStage({ by: 0, type: c.type, cards, target: -1, named: null, nopes: [] }, true);
     els.stage.classList.add('is-preview');
     preview = { cards };
@@ -5243,8 +5246,8 @@
     for (const id of cards) { const el = stageCard(id); if (el) from[id] = el.getBoundingClientRect(); }
     clearStage();
     els.stage.classList.remove('is-preview');
-    cards.forEach((id) => handHidden.delete(id));
-    renderHand({ flip: false });
+    cards.forEach((id) => handOut.delete(id));
+    renderHand();   // 别的牌滑开、让出原位，桌上的牌飞回来
     if (fx.reduce()) return;
     for (const id of cards) {
       const c = handCard(id), f = from[id];
@@ -8759,9 +8762,9 @@
   async function preFly(cards) {
     const t = token;
     const rects = cards.map((id) => handRectOf(id));
-    cards.forEach((id) => handHidden.add(id));
+    cards.forEach((id) => handOut.add(id));
     selected = [];
-    renderHand({ flip: false });
+    renderHand();   // 剩下的牌滑过去收拢
     showStage({ by: 0, type: 'x', cards, target: -1, named: null, nopes: [] }, true);
     preview = { cards };
     snd('whoosh');
