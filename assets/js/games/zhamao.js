@@ -7958,10 +7958,18 @@
       sl.style.zIndex = String(10 - Math.round(Math.abs(d) * 2));
     });
     coverBgPaint(c);
+    dotsTo(deckNearest());   // 2026-11-26 用户：进度点要跟着手指走，别等停稳了才换
+  }
+  // 进度点：滚动时逐帧跟着最靠中间那张走（以前要等停稳 + 换完玩法才动，iOS 惯性滑动时会晚好几秒）
+  var dotOn = -1;
+  function dotsTo(i) {
+    if (i === dotOn) return;
+    dotOn = i;
+    Array.from($('zmModeDots').children).forEach((d, j) => d.classList.toggle('is-on', j === i));
   }
   function refreshDeck() {
     const i = modeIdx();
-    Array.from($('zmModeDots').children).forEach((d, j) => d.classList.toggle('is-on', j === i));
+    dotsTo(i);
     slides.forEach((sl, j) => sl.setAttribute('aria-pressed', String(j === i)));
   }
   function deckTo(i, smooth) {
