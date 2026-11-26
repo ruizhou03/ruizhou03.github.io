@@ -1,5 +1,5 @@
 /* 百变小咪 · 机器猫的「直觉」（2026-11-19 训练，~/zhamao-rl/dmc/REPORT.md）
- * 角色猫模式出牌 + 塞炸毛猫（r.json，认得每人的角色）用的小神经网络：局面 + 候选 → 预估最终名次分。250→192→96→1，权重 int8 + 每个神经元一个缩放。
+ * 角色猫模式出牌 + 塞炸弹猫（r.json，认得每人的角色）用的小神经网络：局面 + 候选 → 预估最终名次分。250→192→96→1，权重 int8 + 每个神经元一个缩放。
  * 由 ~/zhamao-rl/dmc/export-brain.js 生成，别手改。特征在 zhamao-ai.js（brainFeat）里算。 */
 (function (root, factory) {
   const api = factory();

@@ -82,7 +82,7 @@ test('setup for 2..5 players', () => {
       }
       const defInDeck = s.deck.filter((id) => R.KIND_OF[id] === R.DEFUSE).length;
       assert.equal(defInDeck, 6 - n);   // 默认：剩下的逗猫棒全放回（官方规则）
-      // 没放回的炸毛猫 / 逗猫棒收进盒子（不参与这局），弃牌堆一开始是空的
+      // 没放回的炸弹猫 / 逗猫棒收进盒子（不参与这局），弃牌堆一开始是空的
       assert.equal(s.discard.length, 0);
       assert.equal(s.removed.length, (4 - (n - 1)) + 3 + R.COUNTS.flux + (R.DECK_SIZE - R.BASE_SIZE)); // + 3 张交换（没开交换牌）+ 第一副的百变（只有百变模式用）+ 整个第二副
       assert.ok(s.deck.concat(...s.hands).every((id) => !R.inSecondDeck(id)), '5 人及以下只用第一副');
@@ -152,7 +152,7 @@ test('kitten with defuse: insert anywhere, without: out', () => {
   assert.equal(s.turn, 1);
   assert.deepEqual(R.view(s, 0).known, [{ pos: 1, id: s.deck[1] }]);
   assert.deepEqual(R.view(s, 1).known, []);
-  // seat1 摸 orange，seat2 摸到炸毛猫、没逗猫棒 → 出局
+  // seat1 摸 orange，seat2 摸到炸弹猫、没逗猫棒 → 出局
   R.draw(s, 1);
   assert.deepEqual(R.view(s, 0).known, [{ pos: 0, id: s.deck[0] }]);
   ev = R.draw(s, 2);
@@ -413,7 +413,7 @@ test('clone is independent', () => {
 
 test('alter the future: private reorder of the top three', () => {
   const s = rig([['alter', 'cow'], ['future', 'cow']], ['boom', 'orange', 'calico', 'tabby']);
-  // 1 号先偷看过：知道顶上是炸毛猫
+  // 1 号先偷看过：知道顶上是炸弹猫
   s.memo[1].deck = s.deck.slice(0, 3);
   R.play(s, 0, [idOf(s, 0, 'alter')]);
   const ev = closeAll(s);
@@ -559,7 +559,7 @@ test('insertSeen (default off since 2026-11-25; when on): public coarse height, 
   assert.equal(R.normalizeRules({}).insertSeen, false);
   assert.equal(R.normalizeRules({ insertSeen: true }).insertSeen, true);
   assert.equal(R.normalizeRules({ insertSeen: false }).insertSeen, false);
-  // 造一个「刚拆完炸毛猫、该塞回去」的局面
+  // 造一个「刚拆完炸弹猫、该塞回去」的局面
   function atDefuse(rules) {
     const s = R.createGame(3, 11, Object.assign({ insertSeen: true }, rules));
     const me = s.turn;
@@ -590,7 +590,7 @@ test('insertSeen (default off since 2026-11-25; when on): public coarse height, 
   t = atDefuse(); const other = (t.me + 1) % 3;
   const red = R.redactEvents(R.insertKitten(t.s, t.me, 0), other).find((e) => e.t === 'insert');
   assert.equal(red.vis, 0); assert.equal(red.pos, undefined); assert.equal(red.card, undefined);
-  // 机器猫：别人放在最上 → 它知道顶上是炸毛猫，不会去摸（有别的办法时）；真人的记忆（牌堆发红光用的）不变
+  // 机器猫：别人放在最上 → 它知道顶上是炸弹猫，不会去摸（有别的办法时）；真人的记忆（牌堆发红光用的）不变
   assert.equal(t.s.ins.seen, 'top');
   assert.ok(!t.s.memo[other].deck.includes(t.boom));
   const vTop = R.view(t.s, other);

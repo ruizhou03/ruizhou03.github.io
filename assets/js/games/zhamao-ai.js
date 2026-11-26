@@ -1,19 +1,19 @@
 /* 百变小咪 · 机器人（浏览器 window.ZhamaoAI / Node require 共用，无 DOM）
  *
- * 机器人只能看 R.view(state, seat)：自己的手牌、公开信息、自己亲眼看到的（窥探 / 自己塞回的炸毛猫 / 被蹭走偷走的牌）。
+ * 机器人只能看 R.view(state, seat)：自己的手牌、公开信息、自己亲眼看到的（窥探 / 自己塞回的炸弹猫 / 被蹭走偷走的牌）。
  * 决策点：act（出什么 / 摸牌）、react（要不要作废）、give（被索要时给哪张）、pick（五张各不同捡哪张）、
- *         insert（炸毛猫塞哪）、alter（改命怎么排）、steal（偷哪张——扣着的牌没信息，随便点）。
+ *         insert（炸弹猫塞哪）、alter（改命怎么排）、steal（偷哪张——扣着的牌没信息，随便点）。
  *
  * 三档（2026-11-15 第二次重训，详见 ~/zhamao-rl/REPORT.md「看动作 / 连摸 / 塞猫 / 交换时机」一节）：
  *   easy   入门：和普通同一套牌值，但不太会防守——顶上危险也很少窥探 / 躲，被甩锅多半硬摸；也不会下面那四招
- *   normal 普通：算牌堆顶是炸毛猫的概率（公开的塞猫历史 + 粗略高度 vis 一起估那只猫在哪），
- *          危险就窥探 / 躲 / 甩锅，知道顶上是炸毛猫就躲；没逗猫棒时想办法偷。另外四招（2026-11-15 用户提的）：
- *          · 看别人的动作：窥探 / 改命后紧接着躲 → 顶上多半是炸毛猫；改命后自己摸了 → 第二张多半是（规则公开记 peek）
- *          · 被甩锅要连摸几张：按「这几张里有炸毛猫」的合起来的概率决定先窥探 / 改命（lookMulti）
- *          · 自己还要摸几张时拆了炸毛猫：塞在自己那几张之后（insSmart），别塞回自己要摸的范围里
+ *   normal 普通：算牌堆顶是炸弹猫的概率（公开的塞猫历史 + 粗略高度 vis 一起估那只猫在哪），
+ *          危险就窥探 / 躲 / 甩锅，知道顶上是炸弹猫就躲；没逗猫棒时想办法偷。另外四招（2026-11-15 用户提的）：
+ *          · 看别人的动作：窥探 / 改命后紧接着躲 → 顶上多半是炸弹猫；改命后自己摸了 → 第二张多半是（规则公开记 peek）
+ *          · 被甩锅要连摸几张：按「这几张里有炸弹猫」的合起来的概率决定先窥探 / 改命（lookMulti）
+ *          · 自己还要摸几张时拆了炸弹猫：塞在自己那几张之后（insSmart），别塞回自己要摸的范围里
  *          · 交换看时机：牌堆用掉一半以前不换（swapPhase）
  *          牌值和阈值全部自博弈调出来（3–8 人局；对手桌混了现普通 / 入门 / 小推演量高手，防止只对一种打法过拟合）
- *   hard   高手：以「普通」为底，出牌和塞炸毛猫用 PIMC——按自己知道的信息随机补全别人手牌和牌堆，
+ *   hard   高手：以「普通」为底，出牌和塞炸弹猫用 PIMC——按自己知道的信息随机补全别人手牌和牌堆，
  *          每个候选在同一批假想局面里用「普通」打到底；出牌比普通的选择好出 ANCHOR 才换
  *
  * 经典模式（2026-11-18 起）：普通出牌换成 zhamao-brain.js 的神经网络（上面那套规则仍管窥探 / 改命时机和出牌以外的所有决定），
@@ -39,13 +39,13 @@
 
   /* ───── 调参结果（交叉熵搜索 + 自博弈，详见 ~/zhamao-rl/REPORT.md） ─────
    * v*        牌「留着有多值钱」（给牌 / 捡牌 / 交换 / 三张点名用），逗猫棒固定 100
-   * look*     顶上是炸毛猫的概率 ≥ 它就窥探 / 改命（Def = 手里有逗猫棒，No = 没有）
+   * look*     顶上是炸弹猫的概率 ≥ 它就窥探 / 改命（Def = 手里有逗猫棒，No = 没有）
    * dodge*    概率 ≥ 它就甩锅 / 跳过 / 抽底躲开
    * multiAtk  被甩锅（还要摸 ≥2 回合）时概率 ≥ 它就把锅甩出去
-   * insTop    （普通）塞回炸毛猫时放最上面的概率，否则放第 1..insSpread 位
+   * insTop    （普通）塞回炸弹猫时放最上面的概率，否则放第 1..insSpread 位
    * nopeBackP 我的躲闪牌被作废时，顶上危险 ≥ 它就再作废回去
    * bottomDef 有逗猫棒、底牌未知时也用抽底躲
-   * histW / histTop  估计别人刚塞回的炸毛猫：信这条历史的权重 / 认为他塞在最上面的概率
+   * histW / histTop  估计别人刚塞回的炸弹猫：信这条历史的权重 / 认为他塞在最上面的概率
    * shuffleAt 顶上危险 ≥ 它、又没别的躲法时洗牌 */
   const P_BASE = Object.freeze({
     vNope: 20.094, vTattack: 40.692, vAttack: 23.992, vSwap: 8.596, vSkip: 12.89, vBottom: 25.25, vAlter: 41.225, vFuture: 18.315,
@@ -69,8 +69,8 @@
    * fK_*      当前这条百变规则「留着」对我的好处（越低越想打百变换掉；none = 还没有规则）
    * fMuteNope 静默时手里有作废、fCount 手里每多一张百变、fRisk 顶上危险、fHot 烫手且这回合还要摸 ≥2 张、fSave 没逗猫棒时九命 / 急救还能救我（加到「留着」上）
    * fPlayAt   上面加起来 > 它就先打一张百变
-   * fBotFlux  摸底时也按上面的算（原来摸底时只在底牌是炸毛猫、别的躲法都没有时才打）
-   * fBotMargin 摸底时顶上比底下安全多少就抽「顶」；fBotMirror 摸底时塞炸毛猫按顶 / 底对调
+   * fBotFlux  摸底时也按上面的算（原来摸底时只在底牌是炸弹猫、别的躲法都没有时才打）
+   * fBotMargin 摸底时顶上比底下安全多少就抽「顶」；fBotMirror 摸底时塞炸弹猫按顶 / 底对调
    * fExP / fExDepth 火眼时（位置人人看得见）以 fExP 的概率塞在第 fExDepth 张
    * fAhead   顶上已知安全、这回合还要摸 ≥2 张：第二张危险 ≥ dodge 阈值就先甩锅
    * fMuteNopeV 静默时作废的牌值（给牌 / 捡牌 / 交换用）
@@ -81,7 +81,7 @@
   });
   /* 调出来的（2026-11-17 凌晨，交叉熵 30 代 × 32 个候选，百变 3–6 人桌，对手 = 现普通 / 现入门 + 1/4 对自己；选第 13 代）。
    * 大意：没有规则 / 透视 / 急救 / 九命时留着不换；火眼、静默且手里有作废时换；顶上越危险越不换（换了也躲不掉）；
-   * 百变牌本身不值钱（vFlux≈3，能给就给）；摸底时塞炸毛猫顶底对调；有逗猫棒时更少躲、被甩锅时更晚甩 */
+   * 百变牌本身不值钱（vFlux≈3，能给就给）；摸底时塞炸弹猫顶底对调；有逗猫棒时更少躲、被甩锅时更晚甩 */
   const FX_TUNED = Object.freeze({ fK_none: 15.7457, fK_nine: 6.6918, fK_peektop: 18.3012, fK_exact: -13.0072, fK_bottom: 0.6604, fK_hot: 2.22, fK_mute: -0.5201, fK_catsave: 15.0365, fMuteNope: 14.0158, fCount: 0.1795, fRisk: -10.1096, fHot: -0.0925, fSave: 2.6106, fBotFlux: 0, fBotMargin: 0.1702, fBotMirror: 1, fExP: 0.2108, fExDepth: 1.6106, fAhead: 0, fMuteNopeV: 3.8601, fHotMulti: 0.461, vFlux: 3.2768, lookDef: 0.8636, lookNo: 0.0585, dodgeDef: 0.9015, dodgeNo: 0.2566, multiAtk: 0.2736, shuffleAt: 0.3619 });
   const FX_N = Object.freeze(Object.assign({}, FX_DEF, FX_TUNED, (FXO && FXO.normal) || {}));
   const FX_E = Object.freeze(Object.assign({}, FX_DEF, (FXO && FXO.easy) || {}));
@@ -97,7 +97,7 @@
     for (let i = 1; i <= v.n; i++) { const t = (((seat + d * i) % v.n) + v.n) % v.n; if (v.alive[t]) return t; }
     return seat;
   }
-  // 组队：下一个摸牌的是我队友（2026-11-15 队友改成挨着坐）——甩锅 / 跳过 / 把炸毛猫放顶上都会坑到他
+  // 组队：下一个摸牌的是我队友（2026-11-15 队友改成挨着坐）——甩锅 / 跳过 / 把炸弹猫放顶上都会坑到他
   // 2026-11-18 起一队可以 2–4 人：队友是一组（view.mates，老 view 只有 mate）
   const matesV = (v) => v.mates || (v.mate >= 0 ? [v.mate] : []);
   const isMateV = (v, t) => matesV(v).indexOf(t) >= 0;
@@ -197,7 +197,7 @@
     if (b) return { known: true, boom: K[b.id] === R.BOOM };
     return { known: false, boom: false };
   }
-  // 摸到炸毛猫能不能活：有逗猫棒；或百变「九命」这条命还没用；或百变「双猫急救」手里有一对猫
+  // 摸到炸弹猫能不能活：有逗猫棒；或百变「九命」这条命还没用；或百变「双猫急救」手里有一对猫
   const saveOk = (v) => has(v, R.DEFUSE) || (v.flux === 'nine' && !!v.nineUsed && !v.nineUsed[v.me]) || (v.flux === 'catsave' && !!R.catPairIds(v.hand));
   const bottomOk = (v) => has(v, R.BOTTOM) && v.deckSize > 1 && !bottomInfo(v).boom;
 
@@ -219,7 +219,7 @@
       return R.countKind(hand, k) + R.countKind(hand, R.WILD) >= 2 ? P.vCatPair : P.vCatSingle; // 猫：成对才有用
     }
 
-    /* 牌堆前 m 个位置各是炸毛猫的概率 */
+    /* 牌堆前 m 个位置各是炸弹猫的概率 */
     function kittenBelief(v, m) {
       const size = v.deckSize, out = new Array(Math.min(m, size)).fill(0);
       const knownAt = new Map(v.known.map((x) => [x.pos, x.id]));
@@ -259,7 +259,7 @@
           out[i] = Math.min(1, ph + (1 - ph) * uniRest);
         } else out[i] = slots > 0 ? unk / slots : 1;
       }
-      // 看别人的动作猜（2026-11-14 用户）：窥探后接着躲 → 顶上多半是炸毛猫；改命后接着躲 → 同上；改命后自己摸了 → 他多半把炸毛猫排在第二张留给下家
+      // 看别人的动作猜（2026-11-14 用户）：窥探后接着躲 → 顶上多半是炸弹猫；改命后接着躲 → 同上；改命后自己摸了 → 他多半把炸弹猫排在第二张留给下家
       const pk = v.peek;
       if (pk && pk.by !== v.me && pk.act) {
         const sig = pk.act === 'dodge' ? { o: 0, w: pk.kind === 'future' ? (P.sigFutDodge || 0) : (P.sigAltDodge || 0) } : pk.kind === 'alter' ? { o: 1, w: P.sigAltDraw || 0 } : null;
@@ -329,7 +329,7 @@
     function actBottom(v) {
       const b = bottomInfo(v), def = saveOk(v), by = pairsOf(v), ts = targets(v);
       const flux = one(v, R.FLUX);
-      // 「摸底」时抽底变「抽顶」（从最上面摸）：底下是炸毛猫、或者顶上明显比底下安全，就用它
+      // 「摸底」时抽底变「抽顶」（从最上面摸）：底下是炸弹猫、或者顶上明显比底下安全，就用它
       if (has(v, R.BOTTOM) && v.deckSize > 1) {
         const top = topInfo(v), botP = b.known ? (b.boom ? 1 : 0) : (() => { const bl = kittenBelief(v, v.deckSize); return bl.length ? bl[bl.length - 1] : 0; })();
         if (!(top.known && top.boom) && (top.known ? 0 : top.p) + (P.fx ? P.fBotMargin : 0.08) < botP) return playMove([one(v, R.BOTTOM)]);
@@ -381,7 +381,7 @@
       if (top.known && top.boom) {
         const am = attackMove(v);
         if (am) return am;
-        if (mateNext(v)) {   // 组队、下家是队友：跳过会把炸毛猫留给他——转向（掉头后下家是对手）/ 抽底 / 改命 / 洗牌都比跳过好
+        if (mateNext(v)) {   // 组队、下家是队友：跳过会把炸弹猫留给他——转向（掉头后下家是对手）/ 抽底 / 改命 / 洗牌都比跳过好
           if (has(v, R.REVERSE)) return playMove([one(v, R.REVERSE)]);
           if (bottomOk(v)) return playMove([one(v, R.BOTTOM)]);
           if (has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);
@@ -389,8 +389,8 @@
           if (def) return DRAW;
         }
         if (skipIdP(v) != null) return playMove([skipIdP(v)]);
-        if (bottomOk(v)) return playMove([one(v, R.BOTTOM)]);   // 顶上是炸毛猫：从底下摸
-        if (has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);   // 把顶上的炸毛猫往下塞
+        if (bottomOk(v)) return playMove([one(v, R.BOTTOM)]);   // 顶上是炸弹猫：从底下摸
+        if (has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);   // 把顶上的炸弹猫往下塞
         if (has(v, R.SHUFFLE)) return playMove([one(v, R.SHUFFLE)]);
         if (fx != null) return playMove([fx]);   // 百变：没别的办法时换条规则碰碰运气（可能抽到「摸底」）
         if (def) return DRAW;
@@ -416,7 +416,7 @@
       if (risk >= lookAt && has(v, R.FUTURE) && v.deckSize > 1) return playMove([one(v, R.FUTURE)]);
       if (risk >= lookAt && has(v, R.ALTER) && v.deckSize > 1) return playMove([one(v, R.ALTER)]);
       if (P.lookMulti != null && v.turnsLeft >= 2 && v.deckSize > 1 && (has(v, R.FUTURE) || has(v, R.ALTER))) {
-        // 要连着摸好几张：按「接下来这几张里有炸毛猫」的概率决定先看一眼 / 改命，看完按已知的安全牌连着摸
+        // 要连着摸好几张：按「接下来这几张里有炸弹猫」的概率决定先看一眼 / 改命，看完按已知的安全牌连着摸
         const mK = Math.min(v.turnsLeft, 3, v.deckSize), kn = new Set(v.known.map((x) => x.pos));
         let allKnown = true; for (let i = 0; i < mK; i++) if (!kn.has(i)) allKnown = false;
         if (!allKnown) {
@@ -495,15 +495,15 @@
       if (P.fx) return cands.slice().sort((a, b) => cardValueV(v, b) - cardValueV(v, a))[0];
       return cands.slice().sort((a, b) => cardValue(hand, b) - cardValue(hand, a))[0];
     }
-    /* 改命：顶上有炸毛猫——这回合躲得掉（甩锅 / 跳过 / 抽底）就把它放最上面留给下一个人；
-     * 躲不掉就先放够我这几回合要摸的安全牌，炸毛猫紧跟在后面留给下家 */
+    /* 改命：顶上有炸弹猫——这回合躲得掉（甩锅 / 跳过 / 抽底）就把它放最上面留给下一个人；
+     * 躲不掉就先放够我这几回合要摸的安全牌，炸弹猫紧跟在后面留给下家 */
     function alter(v, tier, rng) {
       const cards = (v.alter && v.alter.cards) || [];
       if (tier === 'easy') return R.shuffleIn({ rs: (rng() * 4294967296) >>> 0 }, cards.slice());
       const booms = cards.filter((id) => K[id] === R.BOOM), safe = cards.filter((id) => K[id] !== R.BOOM);
       if (!booms.length) return cards.slice();
       const canDodge = has(v, R.ATTACK) || has(v, R.TATTACK) || has(v, R.SKIP) || has(v, R.REVERSE) || has(v, R.BOTTOM);
-      const mn = mateNext(v) ? 1 : 0;   // 组队、下家是队友：多垫一张安全牌给他，炸毛猫留给后面的对手
+      const mn = mateNext(v) ? 1 : 0;   // 组队、下家是队友：多垫一张安全牌给他，炸弹猫留给后面的对手
       if (canDodge) return safe.slice(0, mn).concat(booms, safe.slice(mn));
       const k = Math.min(v.turnsLeft + mn, safe.length);
       return safe.slice(0, k).concat(booms, safe.slice(k));
@@ -533,7 +533,7 @@
   const BUDGET = (FXO && FXO.budget) || 900, MIN_S = 16, MAX_S = 80, INSERT_S = 40, ANCHOR = 0.05;   // 2026-11-14 重训：门槛 0.2 → 0.05（底子换成新普通后，敢改主意反而更强）
   const ALL_IDS = Array.from({ length: R.DECK_SIZE }, (_, i) => i);
 
-  /* 按 v 补全一个完整局面（别人手牌 + 牌堆未知位置随机；别人刚塞回的炸毛猫按信念放），phase 取 v 当前的 */
+  /* 按 v 补全一个完整局面（别人手牌 + 牌堆未知位置随机；别人刚塞回的炸弹猫按信念放），phase 取 v 当前的 */
   function determinize(v, seed) {
     const N = pol(v);
     const st = { rs: (seed >>> 0) || 1 };
@@ -700,7 +700,7 @@
 
   /* 组队（2026-11-15 实测，高手队 vs 普通队，每组 480–2000 局）：只有输赢、分数很吵，PIMC 怎么调（样本 ×2/×3、平滑分、名次分、复核、改门槛）
    * 都停在赢 52–57%（普通参数在组队里重新交叉熵调参也没有更好的）。所以组队里：平静的回合直接照普通走（危险 < 0.35 时多想无益），
-   * 危险时才算；第一轮挑出的「最好」再用一批新假想局和普通的选择复核一遍；塞炸毛猫用普通的规则（搜索在组队里没增益）。
+   * 危险时才算；第一轮挑出的「最好」再用一批新假想局和普通的选择复核一遍；塞炸弹猫用普通的规则（搜索在组队里没增益）。
    * 结果：2000 局 55.3% ±2.2（和原来一样强），每步平均 47ms（原来 200ms） */
   const TEAM_CALM = 0.35, TEAM_SCREEN = 0.05, TEAM_VERIFY = 150, TEAM_ANCHOR = 0.04;
   /* ───── 经典模式的「直觉」网络（2026-11-18 夜训，~/zhamao-rl/dmc/REPORT.md；用户选甲：普通 = 网络，高手 = 网络 + 推演） ─────
@@ -765,7 +765,7 @@
   function bKnown(v, seat, kind) { const h = v.handKnown && v.handKnown[seat]; if (!h) return 0; let c = 0; for (const id of h) if (K[id] === kind) c++; return c; }
   const S_DIM = 86, A_DIM = 34, V1_DIM = S_DIM + A_DIM, H_DIM = 31;
   /* v2（2026-11-18 晚，REPORT 第五阶段）：输入 190 = v1 120 + 历史 31 + 塞猫动作 10 + 作废动作 29（作废这块线上不用，留 0）。
-   * 网络也管塞炸毛猫的位置（brainInsert）。对一桌 v1 网络名次分 3/4/5 人 0.563/0.529/0.510，对一桌原普通 0.654/0.634/0.628（v1 0.606/0.615/0.618） */
+   * 网络也管塞炸弹猫的位置（brainInsert）。对一桌 v1 网络名次分 3/4/5 人 0.563/0.529/0.510，对一桌原普通 0.654/0.634/0.628（v1 0.606/0.615/0.618） */
   const V2_DIM = V1_DIM + H_DIM + 10 + 29;   // 190
   const isV2 = (B) => !!B && B.DIM >= V2_DIM;
   const BRAIN_V2 = isV2(BRAIN);
@@ -882,7 +882,7 @@
     for (let i = 0; i < cands.length; i++) { const q = brainScore(v, sf, cands[i]); if (q > bv) { bv = q; bi = i; } }
     return cands[bi];
   }
-  // v2：塞炸毛猫的位置也让网络挑（pos = 塞之前牌堆的第几张，0 = 顶）。和训练场 feat.js insFeat / game.js netInsert 一致
+  // v2：塞炸弹猫的位置也让网络挑（pos = 塞之前牌堆的第几张，0 = 顶）。和训练场 feat.js insFeat / game.js netInsert 一致
   function brainInsert(v, rng) {
     const size = v.deckSize, rem = Math.max(0, (v.turnsLeft || 1) - 1);
     const cands = Array.from(new Set([0, 1, 2, 3, 4, 5, 6, rem, rem + 1, rem + 2, rem + 3, Math.floor(size / 2), size].filter((p) => p >= 0 && p <= size))).sort((a, b) => a - b);
@@ -1000,7 +1000,7 @@
   function cardValue(hand, id) { return NB.cardValue(hand, id); }
   function topInfo(v) { return pol(v).topInfo(v); }
 
-  /* 规则「塞回看得出大概位置」：别人塞在最上 / 最底的那只炸毛猫，机器猫和真人一样看在眼里（中间的看不准，不算知道）；
+  /* 规则「塞回看得出大概位置」：别人塞在最上 / 最底的那只炸弹猫，机器猫和真人一样看在眼里（中间的看不准，不算知道）；
    * 那头被摸走过一张 / 洗牌 / 改命之后就不准了（ins.seen 由规则引擎清掉，top / bot 计数非 0 也不算） */
   function withSeen(v) {
     const ins = v.ins;
@@ -1010,7 +1010,7 @@
     v.known = v.known.concat([{ pos, id: ins.card }]).sort((a, b) => a.pos - b.pos);
     return v;
   }
-  /* 铁律一「必死不摸」（2026-11-24 用户定）：这一摸一定是炸毛猫（我看过 / 大家看见塞在那头 / 牌堆全是猫）、
+  /* 铁律一「必死不摸」（2026-11-24 用户定）：这一摸一定是炸弹猫（我看过 / 大家看见塞在那头 / 牌堆全是猫）、
    * 手里没逗猫棒、也没有别的救命办法（九命没用过 / 急救手里有一对 / 组队还有活着的队友都不算必死），
    * 而手里有能躲的牌——就把「摸牌」从候选里去掉，在剩下的动作里挑（有网络就按网络打分，没有就按固定顺序）。
    * 能躲的：甩锅 / 自由甩锅 / 跳过 / 转向，牌堆不全是猫时还有洗牌 / 改命 / 摸底（底下那张没看到是猫）；

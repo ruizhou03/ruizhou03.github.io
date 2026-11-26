@@ -1,5 +1,5 @@
 /* 百变小咪 · 机器猫的「直觉」（2026-11-20 夜训，~/zhamao-rl/dmc/REPORT.md）
- * 组队出牌 + 塞炸毛猫（t4.json：t2 加练 + 对手池 + 2v2v2v2 / 3v3v3 队形）用的小神经网络：局面 + 候选 → 预估最终名次分。250→192→96→1，权重 int8 + 每个神经元一个缩放。
+ * 组队出牌 + 塞炸弹猫（t4.json：t2 加练 + 对手池 + 2v2v2v2 / 3v3v3 队形）用的小神经网络：局面 + 候选 → 预估最终名次分。250→192→96→1，权重 int8 + 每个神经元一个缩放。
  * 由 ~/zhamao-rl/dmc/export-brain.js 生成，别手改。特征在 zhamao-ai.js（brainFeat）里算。 */
 (function (root, factory) {
   const api = factory();

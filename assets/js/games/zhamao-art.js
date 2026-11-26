@@ -392,7 +392,7 @@
     '<rect x="8" y="8" width="84" height="124" rx="6" fill="none" stroke="' + GOLD + '" stroke-width="2.6"/>' +
     '<g transform="translate(50 70) scale(2.3) translate(-12 -14)">' + pawPrint(GOLD) + '</g></svg>';
 
-  /* 封面：一只炸毛猫 + 一只橘猫举着逗猫棒。各自包一层 <g class>，CSS 让它们待机时动（炸毛猫一鼓一鼓、偶尔一抖，
+  /* 封面：一只炸弹猫 + 一只橘猫举着逗猫棒。各自包一层 <g class>，CSS 让它们待机时动（炸弹猫一鼓一鼓、偶尔一抖，
    * 橘猫上下晃） */
   /* 一根长长的逗猫棒（不带猫）：把手在右下 (96,98)，杆子斜着伸到左上 (40,12)，杆头一根绳吊着一串羽毛。
    * .wand-stick 整根绕把手摆，.wand-tail 绳 + 羽毛绕杆头再荡一荡 */
@@ -406,7 +406,7 @@
   }
   function wand() { return '<svg class="zm-wand" viewBox="0 0 100 100" aria-hidden="true" overflow="visible">' + wandInner() + '</svg>'; }
 
-  /* 主页插画：只有一只随时要炸的炸毛猫 + 一根在它头顶不停挥的逗猫棒 */
+  /* 主页插画：只有一只随时要炸的炸弹猫 + 一根在它头顶不停挥的逗猫棒 */
   function hero() {
     const boom = boomArt();
     return '<svg viewBox="0 -6 200 126" aria-hidden="true" overflow="visible">' +

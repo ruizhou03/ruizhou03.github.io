@@ -8,7 +8,7 @@
 
   const KEYS = ['fish', 'yarn', 'catnip', 'spray', 'paw', 'boom'];
   const T = (window.ZhamaoRules && window.ZhamaoRules.T) || ((k, zh) => zh);   // 多语言：见 zhamao-rules.js 的 T
-  const NAMES = { fish: T('prop.fish.name', '小鱼干'), yarn: T('prop.yarn.name', '毛线球'), catnip: T('prop.catnip.name', '猫薄荷'), spray: T('prop.spray.name', '喷水壶'), paw: T('prop.paw.name', '猫爪拍拍'), boom: T('card.boom.name', '炸毛猫') };
+  const NAMES = { fish: T('prop.fish.name', '小鱼干'), yarn: T('prop.yarn.name', '毛线球'), catnip: T('prop.catnip.name', '猫薄荷'), spray: T('prop.spray.name', '喷水壶'), paw: T('prop.paw.name', '猫爪拍拍'), boom: T('card.boom.name', '炸弹猫') };
   const LINES = [T('chat.line.1', '大家好呀'), T('chat.line.2', '手下留情'), T('chat.line.3', '别甩给我！'), T('chat.line.4', '牌堆顶有猫，我闻到了'), T('chat.line.5', '谁塞的猫？站出来'), T('chat.line.6', '好险好险'), T('chat.line.7', '我有逗猫棒，不怕'), T('chat.line.8', '这把稳了')];
   const REPLY = {
     fish: [T('chat.reply.fish.1', '谢谢小鱼干！'), T('chat.reply.fish.2', '好香好香')], yarn: [T('chat.reply.yarn.1', '别闹，我在想牌'), T('chat.reply.yarn.2', '毛线缠住了……')], catnip: [T('chat.reply.catnip.1', '有点晕乎乎……'), T('chat.reply.catnip.2', '再来一点')],
@@ -47,7 +47,7 @@
       eye(26, 42, 2.3) + eye(34, 42, 2.3) + blush(23, 47) + blush(37, 47) + smile(30, 46.5),
     paw: () => stk('M32 10v-5M25 12l-3-4M39 12l3-4', '#e9b949', 2.6) + pawPad(20, 36, 28) + pawPad(44, 36, -28) +
       stk('M8 26q-3 5 0 10M56 26q3 5 0 10', '#e9b949', 2.2),
-    // 炸毛猫：直接用牌面那只（zhamao-art.js），套进 64 格
+    // 炸弹猫：直接用牌面那只（zhamao-art.js），套进 64 格
     boom: () => (window.ZhamaoArt ? window.ZhamaoArt.face('boom').replace('<svg ', '<svg x="3" y="3" width="58" height="58" ') : circ(32, 32, 20, '#3a3632')),
   };
   const ART = {};
@@ -131,7 +131,7 @@
         for (let i = 0; i < 3; i++) later(1300 * (0.19 + i * 0.22), () => sparks(L.x, L.y - S * 0.36, '#e9b949', k));
         glow(c, '#e9b949');
       },
-      // 炸毛猫：砸在头像上「嘭」地炸开一圈黑毛，头像吓得一跳、狂抖
+      // 炸弹猫：砸在头像上「嘭」地炸开一圈黑毛，头像吓得一跳、狂抖
       boom(el, { c, S, k, av }) {
         settle(el, [{ transform: at(c.x, c.y, S, S, ' rotate(360deg)') }, { transform: at(c.x, c.y, S, S, ' scale(1.35)'), opacity: 1, offset: 0.25 },
           { transform: at(c.x, c.y, S, S, ' scale(1.2) rotate(-8deg)'), offset: 0.45 }, { transform: at(c.x, c.y, S, S, ' scale(1.25) rotate(8deg)'), opacity: 1, offset: 0.65 },

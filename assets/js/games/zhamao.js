@@ -3,7 +3,7 @@
  * 座位：0 是我（下方），出牌顺序 0 → 1 → 2 …，桌上画成逆时针：1 号在右上，最后一号在左上。
  * 流程：每次改完状态都回到 step()，它看 state.phase 决定等我操作还是让机器人走。
  * 显示和规则分开：改状态前先把「桌上看得到的样子」拍一张（ov），动画按引擎返回的事件一个个播，
- * 播到哪一步 ov 就改到哪一步——牌飞到了，手牌数才加一；炸毛猫塞回去了，牌堆数才加一。全部播完 ov 清空、按真状态重画。 */
+ * 播到哪一步 ov 就改到哪一步——牌飞到了，手牌数才加一；炸弹猫塞回去了，牌堆数才加一。全部播完 ov 清空、按真状态重画。 */
 (() => {
   'use strict';
 
@@ -125,7 +125,7 @@
     if (!d || d.v !== VERSION || !d.state || d.state.phase === 'over') return null;
     if (!(Date.now() - (d.t || 0) < STALE_MS)) { try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ } return null; }   // 没时间戳的老存档也按过期算
     const s = d.state;
-    const total = s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0) + (s.defuse ? 1 : 0) + (s.rescue ? 1 : 0) + (s.save ? 1 : 0);   // 急救挑对子时那只炸毛猫也算上；组队：等队友救的那只炸毛猫也算上（2026-11-15 漏了它，停在这一步的存档读不回来）
+    const total = s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0) + (s.defuse ? 1 : 0) + (s.rescue ? 1 : 0) + (s.save ? 1 : 0);   // 急救挑对子时那只炸弹猫也算上；组队：等队友救的那只炸弹猫也算上（2026-11-15 漏了它，停在这一步的存档读不回来）
     // 旧存档：加「抽底」前是 64 张、加第二副（6–9 人）前是 68 张、加万能猫前是 135 张。没出现过的牌全收进盒子（removed），照样接着打（那局就没有万能猫）
     if ((total !== R.DECK_SIZE && R.LEGACY_SIZES.indexOf(total) < 0) || !Array.isArray(d.tiers) || d.tiers.length !== s.n) return null;
     s.rules = R.normalizeRules(s.rules);   // 老存档的规则按现在的来（例如甩锅一律叠加）
@@ -346,7 +346,7 @@
     };
   }
   const D = () => ov || liveDisplay();
-  /* 牌堆顶要不要翻着：百变「透视」；或者顶上那张正是「火眼」露着位置的炸毛猫（2026-11-16 用户：它一路被摸到最上面时又盖回去了，前后不一致） */
+  /* 牌堆顶要不要翻着：百变「透视」；或者顶上那张正是「火眼」露着位置的炸弹猫（2026-11-16 用户：它一路被摸到最上面时又盖回去了，前后不一致） */
   const isOpenKit = (st, id) => !!(game && game.openKits && game.openKits.has(id) && st.memo && st.memo[0] && st.memo[0].deck.indexOf(id) >= 0);
   function faceTop(st) {
     if (!st || !st.deck || !st.deck.length || st.phase === 'alter') return null;
@@ -1055,9 +1055,9 @@
     };
   }
   /* ───── 桌沿的情绪 / 进程效果（2026-11-13 用户看过预览后上线）─────
-   * 摸到炸毛猫：整圈红光闪三下 + 从他那儿往两边漾开一圈红；逗猫棒救回来：金绿的波纹从他那儿温柔地漾开；炸出局：暗红波纹慢慢漾开、整圈暗一下；
+   * 摸到炸弹猫：整圈红光闪三下 + 从他那儿往两边漾开一圈红；逗猫棒救回来：金绿的波纹从他那儿温柔地漾开；炸出局：暗红波纹慢慢漾开、整圈暗一下；
    * 洗牌：一道光绕桌飞转一圈半；转向：一道光倒着扫一圈；作废：紫色小波纹；赢了：金光从赢家绕满一圈、整圈亮两下。
-   * 平时：牌堆里炸毛猫越多，桌沿越暖（金 → 橙 → 红）、那点柔光绕得越快 */
+   * 平时：牌堆里炸弹猫越多，桌沿越暖（金 → 橙 → 红）、那点柔光绕得越快 */
   const rimFxOn = () => !fx.reduce() && !(game && game.turbo);   // 快进时桌沿的涟漪 / 闪光 / 绕圈不放（一串串叠起来最卡，2026-11-16）
   function rimLayer(cls) {
     const sv = rimRender();
@@ -1118,7 +1118,7 @@
   function rimFx(e) {
     if (!rimFxOn()) return;
     switch (e.t) {
-      case 'boom': break;   // 不在这儿放：摸牌时还没揭晓是不是炸毛猫，要等它炸开那一下（animBoom）再红（2026-11-14 用户：保留悬念）
+      case 'boom': break;   // 不在这儿放：摸牌时还没揭晓是不是炸弹猫，要等它炸开那一下（animBoom）再红（2026-11-14 用户：保留悬念）
       case 'defuse': rimRipple(e.seat, '#7fb06a', 1300, 3.5); setTimeout(() => rimRipple(e.seat, '#d9b45a', 1300, 2.5), 180); break;
       case 'out': rimRipple(e.seat, '#7a2a22', 1600, 5); rimDim(1800); break;
       case 'shuffle': rimSwirl('#e6bd62', 1.5, 1300, dirNow()); break;   // 绕桌飞转跟着出牌方向（2026-11-14 用户：转向后洗牌还逆时针转）
@@ -1149,7 +1149,7 @@
     setTimeout(() => L.g.remove(), (1700 + 5 * 110 + 60) / turboK());
   }
   function rimDim(ms) { const sv = rimRender(); if (!sv) return; sv.animate([{ opacity: 1 }, { opacity: 0.35, offset: 0.3 }, { opacity: 1 }], { duration: ms, easing: 'ease-in-out' }); }
-  // 牌堆里炸毛猫的占比 → 桌沿多暖、柔光绕多快
+  // 牌堆里炸弹猫的占比 → 桌沿多暖、柔光绕多快
   function rimHeat(p) {
     const sv = els.table.querySelector(':scope > .zm-rim');
     if (!sv) return;
@@ -1496,7 +1496,7 @@
     const stack = els.deck.querySelector('.zm-deck-stack');
     const pu = PU();
     if (pu !== deckPu) { stack.innerHTML = ''; deckPu = pu; }   // 换了尺寸：整摞重码
-    let top = stack.querySelector(':scope > .zm-card');   // 只认牌堆本身那张顶牌：透视翻着的那张 / 火眼露出的炸毛猫也是 .zm-card，但套在别的盒子里（以前抓到它们，insertBefore 报错）
+    let top = stack.querySelector(':scope > .zm-card');   // 只认牌堆本身那张顶牌：透视翻着的那张 / 火眼露出的炸弹猫也是 .zm-card，但套在别的盒子里（以前抓到它们，insertBefore 报错）
     const sheets = stack.querySelectorAll(':scope > .zm-sheet');
     const want = Math.max(0, n - 1);
     for (let i = sheets.length - 1; i >= want; i--) sheets[i].remove();
@@ -1654,7 +1654,7 @@
     renderFlux({ flux: e.rule });
     if ((e.rule === 'bottom') !== (prev === 'bottom')) flipBottomCards(t);   // 摸底：手里的抽底翻成抽顶（换走时翻回来）
     if ((e.rule === 'allwild') !== (prev === 'allwild')) flipBottomCards(t, R.CATS);   // 百搭：手里的猫翻成万能猫（换走时翻回来）
-    if (prev === 'exact' && e.rule !== 'exact' && game.openKits && game.openKits.size) await tuckKits(t);   // 火眼换走：露着的炸毛猫收回去
+    if (prev === 'exact' && e.rule !== 'exact' && game.openKits && game.openKits.size) await tuckKits(t);   // 火眼换走：露着的炸弹猫收回去
     if (t !== token) return;
     if (ov && (e.rule === 'peektop' || prev === 'peektop' || prev === 'exact')) { ov.topFace = faceTop(game.state); renderPiles(); }   // 掀顶生效：顶上那张翻起来；换走：盖回去
     el = document.getElementById('zmFlux');
@@ -1670,7 +1670,7 @@
     if (t !== token) return;
     if ((prev === 'reverse') !== (e.rule === 'reverse')) await animReverse({ seat: e.seat, dir: e.dir }, t);
   }
-  /* 火眼被换成别的规则（2026-11-16 用户：换走以后露着的炸毛猫还一直明着）：歪着露出的那几张摆正、塞回原来那层、翻成牌背；
+  /* 火眼被换成别的规则（2026-11-16 用户：换走以后露着的炸弹猫还一直明着）：歪着露出的那几张摆正、塞回原来那层、翻成牌背；
    * 最上面翻着的那张（它刚好到了顶上）也翻回去。之后谁也不再看得到它们在哪（就像没有火眼时一样） */
   async function tuckKits(t) {
     const stack = els.deck.querySelector('.zm-deck-stack');
@@ -1689,7 +1689,7 @@
     stack.querySelectorAll('.zm-deck-kit').forEach((k) => k.remove());
   }
   // 百变「九命」：炸了没出局——头像外一圈九颗心转出来、最上面那颗碎掉落下（用掉一条命），头像缓过来，
-  // 炸毛猫从他那儿飞回牌堆（缝开在看不出的高度）。2026-11-17 用户：心圈里不要「九命！」字，换成图形；
+  // 炸弹猫从他那儿飞回牌堆（缝开在看不出的高度）。2026-11-17 用户：心圈里不要「九命！」字，换成图形；
   // 2026-11-26 用户：在心圈之前先让猫喊——猫叫 + 头上「九命！」气泡（见 animNine）
   function nineLives(seat) {
     const av = seat === 0 ? els.me.querySelector('.zm-av') : avEl(seat);
@@ -1721,7 +1721,7 @@
   }
   async function animNine(e, t) {
     if (e.why !== 'save') {   // 急救：前面已经演过「两张合成逗猫棒」
-      // 2026-11-26 用户：规则说「大喊九命」，就真喊——先猫叫一声、头上冒「九命！」气泡（头像一抖），再转出爱心把炸毛猫安抚掉
+      // 2026-11-26 用户：规则说「大喊九命」，就真喊——先猫叫一声、头上冒「九命！」气泡（头像一抖），再转出爱心把炸弹猫安抚掉
       snd('ninecry');
       bubble(e.seat, T('ui.nine.cry', '九命！'), { loud: true, ms: ms(1900), cls: 'is-nine' });
       fx.shake(avEl(e.seat), { amp: 4, dur: 320 });
@@ -1906,7 +1906,7 @@
     const s = game.state, f = s.rescue.for, lim = !game || game.tutorial ? 0 : game.online ? onlineRemain() : nopeFullMs(), k = token;
     if (game.rescueDlg && els.dialog.querySelector('[data-rescue]')) return;   // 已经开着
     if (game.rescueAnswered) return;   // 这一回我已经表过态（联机：服务器的新状态还没到）
-    // 桌子蒙一层宣纸色，正中左边是炸毛了的队友（头像发抖、背后竖着那只炸毛猫），右边是我那根逗猫棒（金光），中间一道弧线箭头
+    // 桌子蒙一层宣纸色，正中左边是炸毛了的队友（头像发抖、背后竖着那只炸弹猫），右边是我那根逗猫棒（金光），中间一道弧线箭头
     openStage('<div class="zm-rescue" data-rescue>' +
         '<div class="zm-rescue-mate"><div class="zm-rescue-kit zm-angry">' + cardHtml('boom') + '</div><div class="zm-rescue-av">' + avatarHtml(f) + '</div><b class="zm-rescue-nm">' + esc(nameOf(f)) + '</b></div>' +
         RESCUE_GAP +
@@ -1930,7 +1930,7 @@
       game.rescueDlg = {
         /* 别的队友先救了（2026-11-19 用户：原来那版太糙）：一段段演——
          * ① 按钮淡出，我的逗猫棒收回去、变灰；② 先救的那位队友的头像在上方「啵」地冒出来；
-         * ③ 他的逗猫棒从头像里甩出去，转一圈划弧落到炸毛猫上；④ 落点炸开一圈金光，炸毛猫一下子不抖了、缩回去，队友头像亮金圈；⑤ 整窗淡出 */
+         * ③ 他的逗猫棒从头像里甩出去，转一圈划弧落到炸弹猫上；④ 落点炸开一圈金光，炸弹猫一下子不抖了、缩回去，队友头像亮金圈；⑤ 整窗淡出 */
         taken: async (from, t) => {
           done = true;
           if (okBtn.lifeAnim) okBtn.lifeAnim.pause();
@@ -2009,9 +2009,9 @@
       schedule(Math.max(0, rr.t0 + pace().botNope[1] + 150 - Date.now()), () => { if (game.state.phase === 'rescue' && game.rr === rr) apply(-1, { type: 'closeRescue' }); });
     }
   }
-  /* 百变「明塞」（2026-11-15 用户挑甲2 · 塞歪了）：被明着塞回去的炸毛猫是一张真牌，夹在它那一层、往右下歪着露出一截（上面几层压着它）。
+  /* 百变「明塞」（2026-11-15 用户挑甲2 · 塞歪了）：被明着塞回去的炸弹猫是一张真牌，夹在它那一层、往右下歪着露出一截（上面几层压着它）。
    * 一直留着：有人摸牌它跟着往上挪；被摸走 / 洗牌 / 改命动过（我的记忆里不再知道它在哪）就收回去。动画中途不重算，播完再摆 */
-  // 露着的炸毛猫往哪边歪：第一次露出来时定——离它最近（4 层以内）的那只往哪边，它就往另一边；附近没有就往右。定了不再变
+  // 露着的炸弹猫往哪边歪：第一次露出来时定——离它最近（4 层以内）的那只往哪边，它就往另一边；附近没有就往右。定了不再变
   function kitSideFor(id, pos, list) {
     game.kitSide = game.kitSide || new Map();
     if (game.kitSide.has(id)) return game.kitSide.get(id);
@@ -2076,7 +2076,7 @@
     if (lastDeck >= 0 && lastDeck !== d.deckSize) fx.pop(els.deckCount, { scale: 1.25, dur: 260 });
     lastDeck = d.deckSize;
     els.kit.innerHTML = (d.kittens || d.deckSize) ? '<span class="sep">/</span>' + ART.icon('boom') + '<span>' + d.kittens + '</span>' : '';
-    els.kit.title = T('ui.deck.kittens', '牌堆里还有 {n} 只炸毛猫', { n: d.kittens });
+    els.kit.title = T('ui.deck.kittens', '牌堆里还有 {n} 只炸弹猫', { n: d.kittens });
     if (lastKit >= 0 && lastKit !== d.kittens && d.kittens) { fx.pop(els.kit, { scale: 1.5, dur: 420 }); }
     lastKit = d.kittens;
     renderDiscard(d.discard);
@@ -2095,20 +2095,20 @@
           // 新翻上来的那张：从牌背翻成正面（2026-11-15 用户：掀顶生效 / 每摸走一张，下一张都要翻起来）
           const quiet = game.faceQuiet === faceId;   // 透视：拿起来又正面放回去的那张，不再演一次翻面
           game.faceQuiet = null;
-          /* 火眼露着、歪插在第二张的炸毛猫被顶到最上面（2026-11-22 用户：以前一下子就变正了，像牌多了 / 少了几张）：
+          /* 火眼露着、歪插在第二张的炸弹猫被顶到最上面（2026-11-22 用户：以前一下子就变正了，像牌多了 / 少了几张）：
            * 它本来就是正面，不再翻；从歪着的样子慢慢推正、落进顶上那一层 */
           const slant = stack.querySelector('.zm-deck-kit[data-id="' + faceId + '"]');
           const kt = slant ? { id: faceId, sx: slant.classList.contains('is-left') ? -1 : 1 } : game.kitToTop && game.kitToTop.id === faceId ? game.kitToTop : null;
           game.kitToTop = null;
           if (slant) slant.remove();
-          // 2026-11-22 用户：摸牌和摆正错开——上面那张基本被拿走了（推出去、捏起来那一下之后），炸毛猫才推正；之前保持歪着
+          // 2026-11-22 用户：摸牌和摆正错开——上面那张基本被拿走了（推出去、捏起来那一下之后），炸弹猫才推正；之前保持歪着
           if (kt) { if (!fx.reduce()) fc.firstElementChild.animate([{ translate: (24 * kt.sx) + '% 6%', rotate: (7 * kt.sx) + 'deg' }, { translate: (-3 * kt.sx) + '% -1%', rotate: (-1 * kt.sx) + 'deg', offset: 0.75 }, { translate: '0 0', rotate: '0deg' }], { duration: ms(460), delay: ov ? ms(danger() >= 0.2 ? 820 : 520) : 0, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'backwards' }); }
           else if (!fx.reduce() && !quiet) fc.firstElementChild.animate([{ transform: 'perspective(400px) rotateY(90deg)', filter: 'brightness(.8)' }, { transform: 'perspective(400px) rotateY(0deg)', filter: 'none' }], { duration: ms(320), easing: 'cubic-bezier(.3,.7,.3,1)' });
         }
         fc.style.transform = top.style.transform;
       }
     }
-    // 2026-11-18 用户：牌堆顶不再因为「我知道它是炸毛猫」发红光——不替玩家记牌（自己塞的位置也一样，忘了就是忘了）
+    // 2026-11-18 用户：牌堆顶不再因为「我知道它是炸弹猫」发红光——不替玩家记牌（自己塞的位置也一样，忘了就是忘了）
   }
   function deckTopRect() {
     const c = els.deck.querySelector('.zm-deck-stack > .zm-card');
@@ -2347,7 +2347,7 @@
     if (s.phase === 'over' && !ov) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (s.phase === 'over') { /* 灰着等动画 */ }
     else if (game.dealing) { /* 发牌中：两个键都灰着 */ }
-    // 摸到炸毛猫、我那一下还没炸完（game.fastOut 在出局动画最后才置上）：两个键照常灰着——2026-11-14 用户：一摸牌键就被收走，
+    // 摸到炸弹猫、我那一下还没炸完（game.fastOut 在出局动画最后才置上）：两个键照常灰着——2026-11-14 用户：一摸牌键就被收走，
     // 牌还没翻开就知道自己完了。game.state 是结算后的，我一摸它就已经写着出局，所以不能按 alive 直接藏
     else if (!s.alive[0] && !game.fastOut && !game.spectator) { /* 灰着等动画 */ }
     else if (game.spectator || (game.online && !s.alive[0])) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
@@ -2774,7 +2774,7 @@
     if (tut && !coachQueue) hint('');
     if (s.phase === 'over') { finish(); return; }
     if (!tut && guideGate()) return;   // 实战里的引导：第一次用这个玩法 / 第一次摸到没教过的牌，先讲完再往下走
-    if (window.ZhamaoAudio && s.deck.length) window.ZhamaoAudio.danger(R.kittensInDeck(s) / s.deck.length);   // 背景音乐按公开的炸毛猫概率换版
+    if (window.ZhamaoAudio && s.deck.length) window.ZhamaoAudio.danger(R.kittensInDeck(s) / s.deck.length);   // 背景音乐按公开的炸弹猫概率换版
     if (s.deck.length) rimHeat(R.kittensInDeck(s) / s.deck.length);
     if (s.phase === 'act') startClock(s.turn, s.turn === H && !autopilot ? onMyTimeout : null);
     else if (s.phase === 'give' && s.give.from === H && !autopilot) startClock(0, onMyTimeout);
@@ -2842,7 +2842,7 @@
   function decideBot(seat) {
     const s = game.state;
     if (tut && tut.bot) { const d = tut.bot(s, seat); if (d) return d; }
-    // 本机演示（__zmDebug.demo('ins…')）：指定机器猫这次把炸毛猫塞到哪
+    // 本机演示（__zmDebug.demo('ins…')）：指定机器猫这次把炸弹猫塞到哪
     if (s.phase === 'defuse' && game.forceInsert) { const f = game.forceInsert; game.forceInsert = null; return f.rand ? { type: 'insert', pos: (Math.random() * (s.deck.length + 1)) | 0, rand: true } : { type: 'insert', pos: f.pos === 'end' ? s.deck.length : f.pos === 'mid' ? Math.floor(s.deck.length / 2) : f.pos }; }
     return AI.decide(s, seat, game.tiers[seat] || 'normal');
   }
@@ -2959,7 +2959,7 @@
       case 'draw': return animDraw(e, t);
       case 'boom': return animBoom(e, t, next);
       case 'noSave': return;   // 急救点了「取消」：接着照常炸
-      case 'save': return;   // 急救：等摸到的人挑对子（头像一直是炸毛猫），挑好了 defuse 事件演合成
+      case 'save': return;   // 急救：等摸到的人挑对子（头像一直是炸弹猫），挑好了 defuse 事件演合成
       case 'defuse': return animDefuse(e, t);
       case 'insert': if (e.at != null && game && game.state && game.state.flux === 'exact') (game.openKits = game.openKits || new Set()).add(e.card); return animInsert(e, t);   // 百变「明塞」：塞完那张露一截在牌堆里（renderOpenKits）
       case 'flux': return animFlux(e, t);
@@ -4109,7 +4109,7 @@
     const pu = PU();
     if (!stack || !floor || fx.reduce()) return peel(t, false);
     const fr = floor.getBoundingClientRect();
-    // 火眼露着的炸毛猫正好在最底下（2026-11-16 用户）：爪子拖出来的就是露着的那张（正面），不再另塞一张牌背
+    // 火眼露着的炸弹猫正好在最底下（2026-11-16 用户）：爪子拖出来的就是露着的那张（正面），不再另塞一张牌背
     const kitBox = floor.nextElementSibling && floor.nextElementSibling.classList.contains('zm-deck-kit') ? floor.nextElementSibling : null;
     const kitId = kitBox ? +kitBox.dataset.id : null;
     game.peelFace = kitId;
@@ -4233,7 +4233,7 @@
     node.innerHTML = face != null ? cardHtml(face) : backHtml();
     els.fly.appendChild(node);
     ov.deckSize -= 1;
-    ov.topFace = faceTop(game.state);   // 下一张该翻着就翻起来（透视；或火眼露着的炸毛猫刚好到了最上面）
+    ov.topFace = faceTop(game.state);   // 下一张该翻着就翻起来（透视；或火眼露着的炸弹猫刚好到了最上面）
     renderPiles();
     const tense = danger() >= 0.2;
     snd('peel');
@@ -4289,10 +4289,10 @@
     if (av && !fx.reduce()) av.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.2)', offset: 0.45 }, { transform: 'scale(1)' }], { duration: 320, easing: 'cubic-bezier(.3,.8,.4,1.2)', composite: 'add' });
   }
 
-  /* 炸毛猫！牌捏起来、悬着，然后不往手里飞，直冲桌子正中、越变越大，半路翻开——
-   * 桌子一震、红光一闪、一圈黑毛炸开、金色火星、烟，炸毛猫在桌中央气得发抖，摸到它的人吓得一哆嗦 */
-  /* 头像变身：摸到炸毛猫的人，头像整个换成那只炸毛猫（发抖、红光一呼一吸、头顶冒火星），桌子中间的动画照常演；
-   * 用了逗猫棒：一根逗猫棒从头像背后探出来逗两下，炸毛猫消气、缩回去，头像变回原样；没逗猫棒就跟着出局一起炸掉 */
+  /* 炸弹猫！牌捏起来、悬着，然后不往手里飞，直冲桌子正中、越变越大，半路翻开——
+   * 桌子一震、红光一闪、一圈黑毛炸开、金色火星、烟，炸弹猫在桌中央气得发抖，摸到它的人吓得一哆嗦 */
+  /* 头像变身：摸到炸弹猫的人，头像整个换成那只炸弹猫（发抖、红光一呼一吸、头顶冒火星），桌子中间的动画照常演；
+   * 用了逗猫棒：一根逗猫棒从头像背后探出来逗两下，炸弹猫消气、缩回去，头像变回原样；没逗猫棒就跟着出局一起炸掉 */
   function bombAvatar(seat, on) {
     const av = avEl(seat), box = seatEl(seat);
     if (!av || !box) return;
@@ -4317,7 +4317,7 @@
       if (o) o.remove();
     }
   }
-  // 用了逗猫棒：头像里的炸毛猫冒小心心、消气缩回去，头像变回原样（逗猫棒在桌心那幅画里挥，头像这儿不再另外冒一根）
+  // 用了逗猫棒：头像里的炸弹猫冒小心心、消气缩回去，头像变回原样（逗猫棒在桌心那幅画里挥，头像这儿不再另外冒一根）
   async function calmAvatar(seat, t, delay) {
     const av = avEl(seat);
     if (!av) return;
@@ -4337,17 +4337,17 @@
     document.querySelectorAll('.zm-av-bomb, .zm-av-wand').forEach((x) => x.remove());
     document.querySelectorAll('.zm-seat.is-bomb').forEach((b) => b.classList.remove('is-bomb'));
   }
-  /* 摸到炸毛猫（2026-11-12 用户改）：和平常摸牌一样，牌飞进摸到的人的头像（自己也一样飞进自己头像），
-   * 一落进去头像立刻变成炸毛猫（发抖、冒火星），头像那儿炸一圈毛、桌子一震；桌子正中不再翻出一张大炸毛猫 */
+  /* 摸到炸弹猫（2026-11-12 用户改）：和平常摸牌一样，牌飞进摸到的人的头像（自己也一样飞进自己头像），
+   * 一落进去头像立刻变成炸弹猫（发抖、冒火星），头像那儿炸一圈毛、桌子一震；桌子正中不再翻出一张大炸弹猫 */
   async function animBoom(e, t, next) {
     const from = await peel(t, e.bottom, e.seat);
     if (!from) return;
     ov.kittens = Math.max(0, ov.kittens - 1);
     renderPiles();
     const pu = PU(), a = avPoint(e.seat);
-    const open = game.peelFace != null; game.peelFace = null;   // 透视 / 火眼：大家早看见是炸毛猫了，飞过去也是正面
-    /* 2026-11-17 用户定：出不出局都走同一套——和平常摸牌一样飞进摸到的人的头像（自己也飞进自己头像，不进手牌），一落进去头像变成炸毛猫、炸开；
-     * 有逗猫棒：桌心逗猫棒安抚、头像变回原样（animDefuse）；没有：头像再「嘭」一下出局，手牌连同这只炸毛猫一起落进弃牌堆，炸毛猫从头像里飞出、排在最后（animOut） */
+    const open = game.peelFace != null; game.peelFace = null;   // 透视 / 火眼：大家早看见是炸弹猫了，飞过去也是正面
+    /* 2026-11-17 用户定：出不出局都走同一套——和平常摸牌一样飞进摸到的人的头像（自己也飞进自己头像，不进手牌），一落进去头像变成炸弹猫、炸开；
+     * 有逗猫棒：桌心逗猫棒安抚、头像变回原样（animDefuse）；没有：头像再「嘭」一下出局，手牌连同这只炸弹猫一起落进弃牌堆，炸弹猫从头像里飞出、排在最后（animOut） */
     await fx.fly({ html: open ? cardHtml(e.card) : backHtml(), from, to: a, w: pu, s0: game.peelS || 1.04, s1: 0.32, r0: game.peelRot != null ? game.peelRot : -5, r1: 10, dur: ms(480), lift: 50, fadeOut: true, land: false });
     if (t !== token) return;
     game.boomNode = null;
@@ -4412,7 +4412,7 @@
     snd('thud');
   }
   /* 用逗猫棒拆掉（2026-11-12 用户挑的方案甲「牌化成画」）：逗猫棒那张牌落在桌心不消失，就地「展开」成封面那幅画（牌放大淡出、画从牌那么大长出来，同一个位置），
-   * 只有画里这一根逗猫棒在挥（头像那儿不再另外冒一根），画里的炸毛猫消气的同时头像那只也消气；最后画收回成那张牌，牌落进弃牌堆 */
+   * 只有画里这一根逗猫棒在挥（头像那儿不再另外冒一根），画里的炸弹猫消气的同时头像那只也消气；最后画收回成那张牌，牌落进弃牌堆 */
   async function animDefuse(e, t) {
     if (e.extra != null) return animCatSave(e, t);
     if (e.rescue) { await rescueResolved(e, t); if (t !== token) return; }
@@ -4427,7 +4427,7 @@
     card.remove();
     await defuseToDiscard(e, t, c, W);
   }
-  /* 逗猫棒那张牌在桌心「展开」成画、挥逗猫棒让炸毛猫消气、再收回成那张牌（card 留在原处，调用的人自己处理）；返回 false = 中途被打断 */
+  /* 逗猫棒那张牌在桌心「展开」成画、挥逗猫棒让炸弹猫消气、再收回成那张牌（card 留在原处，调用的人自己处理）；返回 false = 中途被打断 */
   async function defuseHero(e, t, c, W, card) {
     const u = U();
     const SW = Math.min(innerWidth * 0.62, u * 3.4), SH = SW * 0.63;
@@ -4588,8 +4588,8 @@
     renderPiles();
     snd('thud');
   }
-  /* 塞回去：背面的炸毛猫飞回牌堆，牌堆上半截掀开一道口、它滑进去、合上（不论塞在哪动画都一样，不泄露位置） */
-  /* 联机塞回牌堆（2026-11-22 用户：单机很顺，联机像不知道往哪塞、卡一下）：点「塞进去」后要等服务器回话才开演，炸毛猫在桌心干等。
+  /* 塞回去：背面的炸弹猫飞回牌堆，牌堆上半截掀开一道口、它滑进去、合上（不论塞在哪动画都一样，不泄露位置） */
+  /* 联机塞回牌堆（2026-11-22 用户：单机很顺，联机像不知道往哪塞、卡一下）：点「塞进去」后要等服务器回话才开演，炸弹猫在桌心干等。
    * 现在一点就先飞到牌堆左边（和牌堆同高）悬着，回话后 animInsert 从这儿接着：掀开缝、滑进去 */
   function preInsert() {
     if (fx.reduce() || game.insPre) return;
@@ -4614,13 +4614,13 @@
     game.insPre = null;
     const preNode = pi ? await pi.p : null;
     if (t !== token) { if (preNode) preNode.remove(); return; }
-    // 炸毛猫在拆掉它的那个人那儿（头像），从那儿飞回牌堆；联机我自己塞的已经先飞到牌堆左边悬着了，从那儿接着
+    // 炸弹猫在拆掉它的那个人那儿（头像），从那儿飞回牌堆；联机我自己塞的已经先飞到牌堆左边悬着了，从那儿接着
     const av = avEl(e.seat);
     const from = preNode ? (() => { const r = preNode.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })() : node ? node.getBoundingClientRect() : av ? av.getBoundingClientRect() : els.center.getBoundingClientRect();
     if (node) node.remove();
     if (preNode) preNode.remove();
     const s0 = preNode ? 1 : from.width / pu, r0 = preNode ? -8 : from.width ? -10 : 0, d1 = ms(preNode ? 220 : 380), lift1 = preNode ? 8 : 40;
-    // 掀开的「盖子」= 缝上面那几层；炸毛猫从侧面插进这道缝：真的放进牌堆那一摞里（盖子压在它上面、下半截垫在它下面）。
+    // 掀开的「盖子」= 缝上面那几层；炸弹猫从侧面插进这道缝：真的放进牌堆那一摞里（盖子压在它上面、下半截垫在它下面）。
     // 牌堆每一张都画成一层纸边（DOM 里从底往上）。
     // · 规则「看得出大概位置」（e.vis 有值，2026-11-14 用户，默认开）：缝开在真实高度——放最上就盖在最顶上、放最底就塞到最底下；
     //   自己塞的按自己挑的那张（e.pos），别人那儿按服务器给的粗略高度（最上 / 最底照实，中间取到 1/8），认真看能估出个大概
@@ -4643,7 +4643,7 @@
     const floor = atBottom ? layers[0] : layers[L0 - above - 1];
     const slotR = (floor || els.deck).getBoundingClientRect();   // 缝在哪儿（插完会重画牌堆，先量下来给位置小标签用）
     /* 百变「火眼」（2026-11-22 用户：以前牌背朝上塞进去、塞完再突然歪出来露脸，前后不连贯）：大家都看得见塞在哪，
-     * 炸毛猫一路正面朝上——飞到缝旁边（它将来往哪边歪露，就从哪边来），从侧面滑进那一层、直接停在歪着露一截的样子，和之后一直摆着的样子是同一个 */
+     * 炸弹猫一路正面朝上——飞到缝旁边（它将来往哪边歪露，就从哪边来），从侧面滑进那一层、直接停在歪着露一截的样子，和之后一直摆着的样子是同一个 */
     const open = e.at != null && !!(game.openKits && game.openKits.has(e.card));
     let grew = false;
     if (open && (above === 0 || !floor)) {
@@ -4658,7 +4658,7 @@
       const fr = floor.getBoundingClientRect(), off = pu * 1.02;
       const fl = await fx.fly({ html: cardHtml(e.card), from, to: { x: fr.left + fr.width / 2 + sx * off, y: fr.top + fr.height / 2 }, w: pu, s0, s1: 1, r0, r1: 0, dur: d1, lift: lift1, land: false, keep: true });
       if (t !== token) { if (fl) fl.remove(); return; }
-      // 牌堆这时才多一层；炸毛猫那层就是它之后一直露着的那层（和 renderOpenKits 同一个摆法：从下往上数第 n-1-pos 层后面）
+      // 牌堆这时才多一层；炸弹猫那层就是它之后一直露着的那层（和 renderOpenKits 同一个摆法：从下往上数第 n-1-pos 层后面）
       ov.deckSize += 1; ov.kittens += 1; grew = true;
       renderPiles();
       const sheets = stack.querySelectorAll(':scope > .zm-sheet'), sh = sheets[sheets.length - above];
@@ -4733,12 +4733,12 @@
       tag.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' }).finished.then(() => tag.remove(), () => tag.remove());
     }, keep);
   }
-  /* 出局：炸毛猫扑向那个人，大爆炸——更大的红光、黑毛、烟、冲击波；头像变灰冒黑烟，「炸毛」大章砸下来；
+  /* 出局：炸弹猫扑向那个人，大爆炸——更大的红光、黑毛、烟、冲击波；头像变灰冒黑烟，「炸毛」大章砸下来；
    * 他的手牌全翻开、一张张散落进弃牌堆 */
   /* 出局（2026-11-17 用户逐帧看过后定）：
-   * ① 头像上那只炸毛猫「嘭」地炸开（头像还是炸毛猫，抖着、冒烟，不立刻变灰）
+   * ① 头像上那只炸弹猫「嘭」地炸开（头像还是炸弹猫，抖着、冒烟，不立刻变灰）
    * ② 手牌先走：我的从手牌区、别人的从头像里，一张张翻开落进弃牌堆
-   * ③ 最后炸毛猫正面朝上、头像那么大，从头像上整个剥下来，落在弃牌堆最上面——它一离开，头像才变灰
+   * ③ 最后炸弹猫正面朝上、头像那么大，从头像上整个剥下来，落在弃牌堆最上面——它一离开，头像才变灰
    * ④ 整段播完，我自己出局的话手牌区才出那排「看谁」的小头像 */
   async function animOut(e, t) {
     // 最后一个出局（之后只剩赢家）：快进到这儿就停，最后这一炸和结算的聚光灯按原速放——让大家看清冠军是谁（2026-11-14 用户）
@@ -4753,7 +4753,7 @@
     const u = U();
     if (t !== token) return;
     snd('kaboom');
-    // 2026-11-18 用户：炸开那一下头像就直接变灰；同时他的牌一张接一张翻进弃牌堆，炸毛猫就是这一串里的最后一张
+    // 2026-11-18 用户：炸开那一下头像就直接变灰；同时他的牌一张接一张翻进弃牌堆，炸弹猫就是这一串里的最后一张
     // （和别的牌同一个起点、同样大小、同样节奏，不再停一下再从头像上单独剥下来）
     bombAvatar(e.seat, false);
     ov.alive[e.seat] = false;
@@ -4775,9 +4775,9 @@
     const list = cards.filter((id) => id !== kit).concat(withKit ? [kit] : []);
     // 2026-11-18 用户：每张牌轮到它才出现、才起飞（以前先在起点摆着等：别人头像上挂着牌背、我的手牌原地歪着等）；
     // 落点按不震时的位置、按它落下后在堆顶的确切那一层算（以前起飞时量的是震歪的位置，落下后会挪一下）。
-    // 炸毛猫绝不进手牌区（用户）：它一直在头像里，最后一个从头像出来（大家早看见了，正面）。
-    // 别人出局：所有牌都从他头像里一张接一张冒出来、半路翻开，炸毛猫压轴。
-    // 我出局（2026-11-18 用户挑丙）：手牌从手里原位依次飞走，紧接着炸毛猫从头像出来压轴（丁「先吸进头像再吐」没要）
+    // 炸弹猫绝不进手牌区（用户）：它一直在头像里，最后一个从头像出来（大家早看见了，正面）。
+    // 别人出局：所有牌都从他头像里一张接一张冒出来、半路翻开，炸弹猫压轴。
+    // 我出局（2026-11-18 用户挑丙）：手牌从手里原位依次飞走，紧接着炸弹猫从头像出来压轴（丁「先吸进头像再吐」没要）
     const mine = e.seat === 0;
     await wait(ms(220));   // 和「嘭」几乎同时：烟还没散，牌就一张张出来
     if (t !== token) return;
@@ -4787,7 +4787,7 @@
       if (t !== token) return null;
       let r = null;
       if (mine && id !== kit) { const c = handCard(id); if (c) { r = c.getBoundingClientRect(); c.style.visibility = 'hidden'; } }
-      const faceUp = !!r || id === kit || mine;   // 从头像出来的：别人的牌半路翻开；炸毛猫和我自己的牌本来就是明的
+      const faceUp = !!r || id === kit || mine;   // 从头像出来的：别人的牌半路翻开；炸弹猫和我自己的牌本来就是明的
       const to = discardSlot(inAir++);
       return fx.fly({
         html: cardHtml(id), back: backHtml(), flip: faceUp ? null : 'up', flipAt: 0.2,
@@ -4944,7 +4944,7 @@
 
   /* ───── 我的操作 ───── */
   /* ───── 百变「急救」：自己挑一对顶逗猫棒（2026-11-26 用户） ─────
-   * 摸到炸毛猫、没逗猫棒、手里凑得出一对：手牌里能凑对的亮着（凑不上的变灰），先替我抬起最便宜的那一对（catPairIds），点别的牌换；
+   * 摸到炸弹猫、没逗猫棒、手里凑得出一对：手牌里能凑对的亮着（凑不上的变灰），先替我抬起最便宜的那一对（catPairIds），点别的牌换；
    * 「合成」键是绿色的命、倒计时一点点变灰，点了就演两张合成逗猫棒；到点没点 = 交抬着的那一对（没抬成对就交最便宜的），不会因为超时炸死 */
   function saveCandidates(hand) {
     const ok = new Set();
@@ -5304,7 +5304,7 @@
     if (game && game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
     if (game) { game.alterRow = null; game.insPre = null; game.drawLift = null; }   // 联机预掀 / 预塞的那张在 fly 层里，跟着一起清
     els.fly.innerHTML = '';
-    if (els.under) els.under.innerHTML = '';   // 发牌时摆在桌上的炸毛猫
+    if (els.under) els.under.innerHTML = '';   // 发牌时摆在桌上的炸弹猫
     els.fly.classList.remove('is-interactive');
     if (game) game.boomNode = null;
     if (fuseSparkTimer) { clearInterval(fuseSparkTimer); fuseSparkTimer = null; }
@@ -5312,7 +5312,7 @@
 
   /* ───── 开局发牌 ─────
    * 牌堆从天而降、洗一下 → 一圈圈发牌（给我的翻开滑进手里，给别人的飞进头像）→ 每人一张逗猫棒（正面、带绿光）
-   * → 炸毛猫一只只从上面掉下来、气鼓鼓抖两下、钻进牌堆（计数一只只加上去）→ 再洗一下 → 第一个人的红环亮起。
+   * → 炸弹猫一只只从上面掉下来、气鼓鼓抖两下、钻进牌堆（计数一只只加上去）→ 再洗一下 → 第一个人的红环亮起。
    * 点一下桌面可以跳过。 */
   async function dealIntro(t) {
     const s = game.state, n = s.n;
@@ -5335,8 +5335,8 @@
     snd('thud', 300);
     await wait(460);
     if (skipped()) return;
-    // 先把炸毛猫一只只从牌堆里抽出来、翻开、摆在牌堆上方一排（谁也不拿，等发完牌再塞回去）
-    const kf = kits.length > 4 ? 0.6 : 1;   // 人多（炸毛猫多）时一只只摆出来 / 塞回去都快一点，整段发牌别拖太久
+    // 先把炸弹猫一只只从牌堆里抽出来、翻开、摆在牌堆上方一排（谁也不拿，等发完牌再塞回去）
+    const kf = kits.length > 4 ? 0.6 : 1;   // 人多（炸弹猫多）时一只只摆出来 / 塞回去都快一点，整段发牌别拖太久
     const u0 = U(), pu0 = PU();   // 2026-11-20 用户批准扇形：只在桌心摆、放不下叠成扇形（以前一长排铺满桌宽，人多时挡住两侧靠上的头像）
     const pr = els.deck.parentElement.getBoundingClientRect(), dtop = deckTopRect(), ccr0 = els.center.getBoundingClientRect();
     /* 摆在哪：一律在牌堆（连同弃牌堆）正上方、左右居中（2026-11-20 用户：横屏也要居中，不要挤到牌堆右边）。
@@ -5344,13 +5344,13 @@
      * 左右边界 = 和这一排同高的头像（含名字、手牌数）之间——竖屏时桌心是整宽的，只按桌心量会压住两侧靠上的头像 */
     let ceil = ccr0.top;
     for (const box of allSeatEls()) { const b = box.getBoundingClientRect(); if (b.width && b.bottom <= dtop.top && b.right > pr.left && b.left < pr.right) ceil = Math.max(ceil, b.bottom); }
-    /* 炸毛猫按放大前的牌堆牌宽 pk 量、摆（2026-11-26：794edbe 牌堆放大 1.25 倍后还按 pu0 量，牌堆上方「放不下」，
-     * 竖屏小屏直接掉进「上面没地方」那支，炸毛猫摆到和牌堆同一行、压在牌堆底下）。从牌堆飞出来时仍从牌堆大小（pu0）缩过去 */
+    /* 炸弹猫按放大前的牌堆牌宽 pk 量、摆（2026-11-26：794edbe 牌堆放大 1.25 倍后还按 pu0 量，牌堆上方「放不下」，
+     * 竖屏小屏直接掉进「上面没地方」那支，炸弹猫摆到和牌堆同一行、压在牌堆底下）。从牌堆飞出来时仍从牌堆大小（pu0）缩过去 */
     const pk = U() * 0.92;
     let kw = pk * 0.82, rowY = dtop.top - pk * 0.78, rowMid = pr.left + pr.width / 2;
     if (rowY - kw * 0.7 < ceil + 6) {
       const fit = (dtop.top - ceil - 8) / 1.4;
-      // 竖屏一律摆在上面（再挤也只缩小、最小 0.45 张），不退到牌堆两边——竖屏两边太窄，退回去就压在牌堆底下（2026-11-26 用户：炸毛猫摆到牌堆正下方）
+      // 竖屏一律摆在上面（再挤也只缩小、最小 0.45 张），不退到牌堆两边——竖屏两边太窄，退回去就压在牌堆底下（2026-11-26 用户：炸弹猫摆到牌堆正下方）
       // 稍微挤：缩一点，摆在头像底和牌堆顶正中间
       if (fit >= pk * 0.55 || innerHeight > innerWidth) { kw = Math.max(pk * 0.45, Math.min(kw, fit)); rowY = (ceil + dtop.top) / 2; }
       // 上面根本没地方（手机横屏：牌堆顶都顶到顶边那排头像了）：摆到牌堆两边（见下面 sides）
@@ -5367,7 +5367,7 @@
     ccr.width = Math.max(0, ccr.right - ccr.left);
     const availW = Math.max(kw, ccr.width - 12);
     let kGap = kits.length > 1 ? Math.min(kw * 1.12, (availW - kw) / (kits.length - 1)) : 0;
-    /* 牌堆两边（2026-11-22 用户：横屏时炸毛猫正正压在牌堆上、洗牌时还被洗的牌盖住，不好看）：
+    /* 牌堆两边（2026-11-22 用户：横屏时炸弹猫正正压在牌堆上、洗牌时还被洗的牌盖住，不好看）：
      * 上面放不下时，一半摆在牌堆（连同弃牌堆、张数那行）左边、一半摆在右边，各自叠成一小扇，整体仍然左右对称；
      * 两边都太窄（缩到六成还放不下）才退回原来的横在正中 */
     let sides = null;
@@ -5377,7 +5377,7 @@
       const nl = Math.ceil(kits.length / 2), nr = kits.length - nl;
       const wl = pb.l - 10 - (ccr.left + 6), wr = ccr.right - 6 - (pb.r + 10);
       const room = Math.min(wl, nr ? wr : wl);
-      // 一边 nl 张：kw + (nl-1)·gap ≤ room，gap 至少 0.42·kw（叠着也看得清是一只只的炸毛猫）
+      // 一边 nl 张：kw + (nl-1)·gap ≤ room，gap 至少 0.42·kw（叠着也看得清是一只只的炸弹猫）
       const kwFit = Math.min(kw, room / (1 + Math.max(0, nl - 1) * 0.42));
       if (kwFit >= pk * 0.6) {
         kw = kwFit;
@@ -5404,7 +5404,7 @@
       ov.deckSize -= 1; ov.kittens -= 1;
       renderPiles();
       snd('hiss', 120);
-      // 拿起来翻开、放到桌上（飞的时候在上层）；落定后挪进桌面那层（els.under）：之后发的牌、逗猫棒、洗牌都从它上面过（2026-11-26 用户：像现实里先摆炸毛猫再发牌）
+      // 拿起来翻开、放到桌上（飞的时候在上层）；落定后挪进桌面那层（els.under）：之后发的牌、逗猫棒、洗牌都从它上面过（2026-11-26 用户：像现实里先摆炸弹猫再发牌）
       const node = await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), flip: 'up', flipAt: 0.25, from, to: spot, w: kw, s0: pu0 / kw, s1: 1, r0: 0, r1: kGap < kw ? mid * 5 : (i % 2 ? 6 : -6), dur: 380 * kf, lift: 30, keep: true, land: false });
       if (node) { layOnTable(node); node.classList.add('zm-angry'); }
       aside.push(node);
@@ -5412,8 +5412,8 @@
       await wait(140 * kf);
     }
     void u0;
-    /* 发牌从炸毛猫上面过（2026-11-26 用户：像现实里在摆好的炸毛猫上面发牌，牌要稍微盖住它们）：
-     * 炸毛猫摆在牌堆上方一排时，发给别人的牌弧线顶点拱到这一排的下沿（牌的中心比下沿再低一点 → 盖住炸毛猫下半截），
+    /* 发牌从炸弹猫上面过（2026-11-26 用户：像现实里在摆好的炸弹猫上面发牌，牌要稍微盖住它们）：
+     * 炸弹猫摆在牌堆上方一排时，发给别人的牌弧线顶点拱到这一排的下沿（牌的中心比下沿再低一点 → 盖住炸弹猫下半截），
      * 逗猫棒也从这一排的下半截上冒出来；摆在牌堆两边（横屏）时发给左右两家的牌本来就横着从上面过，不用改 */
     const overY = !sides && kits.length ? rowY + rowH / 2 + pu0 * 0.12 : null;
     const arcOver = (a, b) => (overY == null ? 40 : Math.min(220, Math.max(40, (a.y + b.y) / 2 + Math.min(a.y, b.y) - 2 * overY)));   // 二次弧线中点 y = (a+b)/4 + (min−lift)/2 → 让中点落在 overY
@@ -5451,7 +5451,7 @@
     for (let k = 0; k < n; k++) {
       const seat = (s.turn + k) % n, id = defOf[seat];
       if (id == null) continue;
-      const from = { x: dc.x, y: overY != null ? overY - pu * 0.45 : dc.y - pu * 1.2 };   // 炸毛猫摆在上方时：就在那一排下半截上冒出来、压着它们
+      const from = { x: dc.x, y: overY != null ? overY - pu * 0.45 : dc.y - pu * 1.2 };   // 炸弹猫摆在上方时：就在那一排下半截上冒出来、压着它们
       snd('ding', k * 110);
       if (seat === 0) {
         const to = reserveHandSlot(id);
@@ -5468,7 +5468,7 @@
     await Promise.all(dflights);
     if (skipped()) return;
     await wait(200);
-    // 发完了：摆在一边的炸毛猫一只只钻回牌堆（翻成背面落进去）
+    // 发完了：摆在一边的炸弹猫一只只钻回牌堆（翻成背面落进去）
     void defs;
     for (let i = 0; i < aside.length; i++) {
       if (skipped()) { aside.forEach((x) => x && x.isConnected && x.remove()); return; }
@@ -5691,7 +5691,7 @@
   }
   /* ───── 弹窗：遮罩淡入、弹窗从下面弹上来 ───── */
   let dialogClose = null;
-  /* 局内要我做决定的（偷哪张 / 点名 / 改命 / 从弃牌堆捡 / 炸毛猫塞哪）：不弹框，直接摆在桌子正中，
+  /* 局内要我做决定的（偷哪张 / 点名 / 改命 / 从弃牌堆捡 / 炸弹猫塞哪）：不弹框，直接摆在桌子正中，
    * 底下的牌堆、弃牌堆、头像、手牌蒙一层浅浅的宣纸色（和「窥探」摊牌一样）。2026-11-13 用户看过前后对比后定下 */
   function openStage(html, onMount, onClose) {
     openDialog(html, (d) => {
@@ -6001,8 +6001,8 @@
     });
   }
 
-  /* 塞炸毛猫：一排牌背，炸毛猫插在选定位置；拖滑杆时炸毛猫跟着滑过去（FLIP） */
-  /* 塞回去：一排牌背（左 = 牌堆顶、右 = 牌堆底），炸毛猫插进其中一道缝——缝两边的牌往外让开，炸毛猫不压别的牌、也不被压。
+  /* 塞炸弹猫：一排牌背，炸弹猫插在选定位置；拖滑杆时炸弹猫跟着滑过去（FLIP） */
+  /* 塞回去：一排牌背（左 = 牌堆顶、右 = 牌堆底），炸弹猫插进其中一道缝——缝两边的牌往外让开，炸弹猫不压别的牌、也不被压。
    * 拖滑块 / 点三个快捷键选位置，下面一行大字写「第几张」 */
   function insertDialog() {
     const s = game.state;
@@ -6016,7 +6016,7 @@
     snd('ask');
     const limit = size ? dlgLimit() : 0;
     const badge = (p) => (p === 0 ? T('ui.pos.topShort', '顶') : p === size ? T('ui.pos.bottomShort', '底') : String(p + 1));
-    // 2026-11-12 用户定稿（甲）：直接在牌堆上按住左右拖炸毛猫（或点哪道缝塞哪），炸毛猫头上小红标写第几张；只留「随机」「塞进去」
+    // 2026-11-12 用户定稿（甲）：直接在牌堆上按住左右拖炸弹猫（或点哪道缝塞哪），炸弹猫头上小红标写第几张；只留「随机」「塞进去」
     const timerHtml = limit ? '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span>' : '';
     const body = '<h2 class="zm-ins-h">' + T('ui.insert.title', '塞回牌堆') + '</h2>' +
       '<div class="zm-insert-fan is-solo is-drag" data-fan>' + fanHtml + cardHtml('boom', 'is-kit') + '<span class="zm-ins-badge" data-badge>' + badge(0) + '</span>' +
@@ -6027,7 +6027,7 @@
       const fan = d.querySelector('[data-fan]');
       const kit = fan.querySelector('.is-kit');
       const backs = Array.from(fan.querySelectorAll('.zm-card.is-back'));
-      // 摆位置：第 k 道缝左边的牌靠左、右边的牌整体右移一个炸毛猫宽，炸毛猫落在缝里（只改 transform，有过渡，看着是牌在让）
+      // 摆位置：第 k 道缝左边的牌靠左、右边的牌整体右移一个炸弹猫宽，炸弹猫落在缝里（只改 transform，有过渡，看着是牌在让）
       const layout = () => {
         const k = slotOf(pos), W = fan.clientWidth, kw = kit.offsetWidth, cw = backs.length ? backs[0].offsetWidth : 0;
         const step = n > 1 ? Math.max(2.5, Math.min(cw * 0.45, (W - 2 * cw - kw - 12) / Math.max(1, n - 2))) : 0;
@@ -6054,7 +6054,7 @@
       };
       requestAnimationFrame(layout);
       if (range) range.addEventListener('input', () => set(+range.value));
-      // 甲：在扇面上按住左右拖（或点一下）＝把炸毛猫挪到手指底下那道缝
+      // 甲：在扇面上按住左右拖（或点一下）＝把炸弹猫挪到手指底下那道缝
       if (fan.classList.contains('is-drag')) {
         const slotAt = (cx) => {
           if (!geo || !n) return 0;
@@ -6255,13 +6255,13 @@
     const teamRules = ((game && game.state && game.state.rules) || settings.rules || {}).mode === 'team';
     return '<div class="zm-rules"><h2>' + T('rules.title', '怎么玩') + '</h2>' +
       (rolesHtml()) +
-      (teamRules ? '<h3>' + T('rules.team', '组队') + '</h3><ul>' + '<li>' + T('rules.team.1', '每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。') + '</li>' + '<li>' + T('rules.team.2', '出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。') + '</li>' + '<li>' + T('rules.team.3', '下家是队友时，普通「甩锅」和「跳过」都会坑到他——想躲就用「自由甩锅」甩给对手，或者先「转向」。') + '</li>' + '<li>' + T('rules.team.4', '队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸毛猫的位置你也知道。') + '</li>' + '<li>' + T('rules.team.5', '摸到炸毛猫又没有逗猫棒：你喊「救我！」，所有队友一起被问，谁先点「救」就用谁的逗猫棒，你自己把炸毛猫塞回去。没人救就出局。不管队友有没有逗猫棒，大家看到的都一样，对手看不出你们队还剩几根。') + '</li>' + '<li>' + T('rules.team.5b', '不想让队友在你身上耗逗猫棒：点你头像左上角的小逗猫棒，变灰划线就是「别救我」（随时能改回来）。队友头像上也会出现这个记号；真炸了时队友看到你喊「别救我！」、谁都不用想，你直接出局。对手看不到这个记号，炸的时候他们看到的仍是你喊救、没人救成。') + '</li>' + '<li>' + T('rules.team.6', '一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。') + '</li>' + '</ul>' : '') +
-      '<p>' + T('rules.intro', '牌堆里藏着炸毛猫（比人数少一只）。轮到你时，可以出任意多张牌，也可以一张不出，<b>最后摸一张牌结束回合</b>。摸到炸毛猫、手里又没有逗猫棒，就出局。撑到最后的人赢。') + '</p>' +
-      '<h3>' + T('rules.deal', '每人开局') + '</h3><ul><li>' + T('rules.deal.1', '4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸毛猫是里面还有几只。') + '</li></ul>' +
+      (teamRules ? '<h3>' + T('rules.team', '组队') + '</h3><ul>' + '<li>' + T('rules.team.1', '每队人数一样多（2v2、3v3、4v4，或者三队各 2 人）。所有人围着桌子坐一圈，你在底边靠左；<b>头像底色一样的是一队</b>，你这队是蓝色。左上角的小圆点是每队还剩几个人。') + '</li>' + '<li>' + T('rules.team.2', '出牌顺序沿着桌子逆时针转（打出「转向」就倒过来，桌沿上的小箭头会掉头）；桌沿上转圈的光是现在出牌那队的颜色。开局前可以选同队坐一起，或者随机打乱。') + '</li>' + '<li>' + T('rules.team.3', '下家是队友时，普通「甩锅」和「跳过」都会坑到他——想躲就用「自由甩锅」甩给对手，或者先「转向」。') + '</li>' + '<li>' + T('rules.team.4', '队友谁窥探 / 改命，全队都看得到那几张；队友塞回炸弹猫的位置你也知道。') + '</li>' + '<li>' + T('rules.team.5', '摸到炸弹猫又没有逗猫棒：你喊「救我！」，所有队友一起被问，谁先点「救」就用谁的逗猫棒，你自己把炸弹猫塞回去。没人救就出局。不管队友有没有逗猫棒，大家看到的都一样，对手看不出你们队还剩几根。') + '</li>' + '<li>' + T('rules.team.5b', '不想让队友在你身上耗逗猫棒：点你头像左上角的小逗猫棒，变灰划线就是「别救我」（随时能改回来）。队友头像上也会出现这个记号；真炸了时队友看到你喊「别救我！」、谁都不用想，你直接出局。对手看不到这个记号，炸的时候他们看到的仍是你喊救、没人救成。') + '</li>' + '<li>' + T('rules.team.6', '一队全炸毛出局就淘汰；只剩一队时这队赢——只剩一个人也算赢。') + '</li>' + '</ul>' : '') +
+      '<p>' + T('rules.intro', '牌堆里藏着炸弹猫（比人数少一只）。轮到你时，可以出任意多张牌，也可以一张不出，<b>最后摸一张牌结束回合</b>。摸到炸弹猫、手里又没有逗猫棒，就出局。撑到最后的人赢。') + '</p>' +
+      '<h3>' + T('rules.deal', '每人开局') + '</h3><ul><li>' + T('rules.deal.1', '4 张随机牌 + 1 张逗猫棒。牌堆下面的数字是剩几张、红色小炸弹猫是里面还有几只。') + '</li></ul>' +
       '<h3>' + T('rules.cards', '牌') + '</h3><ul>' +
       li('boom', T('rules.card.boom', '摸到就炸毛出局，除非有逗猫棒')) +
-      li('defuse', (() => { const r = R.normalizeRules((game && game.state && game.state.rules) || settings.rules); return T('rules.card.defuse', '摸到炸毛猫时自动用掉，然后你把炸毛猫塞回牌堆任意位置') + (r.insertSeen ? T('rules.card.defuse.seen', '——大家看得到你塞进去的大概高度（最上 / 最底一眼看得出，中间只能估；不报第几张；点「随机」的看不出）') : T('rules.card.defuse.hidden', '，别人看不出塞在哪')); })()) +
-      li('nope', T('rules.card.nope', '作废别人刚出的牌（不管轮没轮到你）。也能作废别人的「作废」，叠了单数张 = 作废。挡不了炸毛猫和逗猫棒')) +
+      li('defuse', (() => { const r = R.normalizeRules((game && game.state && game.state.rules) || settings.rules); return T('rules.card.defuse', '摸到炸弹猫时自动用掉，然后你把炸弹猫塞回牌堆任意位置') + (r.insertSeen ? T('rules.card.defuse.seen', '——大家看得到你塞进去的大概高度（最上 / 最底一眼看得出，中间只能估；不报第几张；点「随机」的看不出）') : T('rules.card.defuse.hidden', '，别人看不出塞在哪')); })()) +
+      li('nope', T('rules.card.nope', '作废别人刚出的牌（不管轮没轮到你）。也能作废别人的「作废」，叠了单数张 = 作废。挡不了炸弹猫和逗猫棒')) +
       li('attack', T('rules.card.attack', '结束回合、不摸牌，下家连着摸两回合（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）')) +
       li('tattack', T('rules.card.tattack', '同甩锅，但可以甩给任意一个人（点他的头像）')) +
       li('skip', T('rules.card.skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合')) +
@@ -6798,7 +6798,7 @@
     catnip: [T('prop.catnip.verb', '迷晕你'), T('prop.catnip.name', '猫薄荷'), T('prop.catnip.tip', '撒一把猫薄荷，TA 晕乎乎地晃脑袋')],
     spray: [T('prop.spray.verb', '泼冷水'), T('prop.spray.name', '喷水壶'), T('prop.spray.tip', '对着 TA 噗噗喷水，TA 冻得直哆嗦')],
     paw: [T('prop.paw.verb', '夸夸'), T('prop.paw.name', '猫爪拍拍'), T('prop.paw.tip', '两只肉垫给 TA 拍手叫好')],
-    boom: [T('prop.boom.verb', '吓一跳'), R.NAMES.boom, T('prop.boom.tip', '一只炸毛猫砸到 TA 头上「嘭」地炸开')],
+    boom: [T('prop.boom.verb', '吓一跳'), R.NAMES.boom, T('prop.boom.tip', '一只炸弹猫砸到 TA 头上「嘭」地炸开')],
   };
   function propLabels() {
     const p = els.app.querySelector('.gz-social-pop:not(.gz-sp-chat)');
@@ -6949,7 +6949,7 @@
     ],
     team: () => [
       { t: T('guide.mode.team.1', '头像底色一样的是队友，你这队是蓝色。一队全部出局就输。'), focus: ['opps', 'me'] },
-      { t: T('guide.mode.team.2', '队友摸到炸毛猫又没有逗猫棒时，你可以把自己的递给他。'), focus: ['hand'] },
+      { t: T('guide.mode.team.2', '队友摸到炸弹猫又没有逗猫棒时，你可以把自己的递给他。'), focus: ['hand'] },
     ],
     roles: () => [
       { t: T('guide.mode.roles.1', '这局每人抽到一只角色猫，技能整局自动生效。'), focus: ['opps', 'me'] },
@@ -7021,7 +7021,7 @@
   }
   function guideGate() {
     const s = game.state;
-    if (game.tutorial || game.online || game.spectator || game.dealing || game.turbo || autopilot || !s.alive[0] || s.phase === 'over' || s.phase === 'save' || coachQueue) return false;   // 急救挑对子时不插引导（炸毛猫正炸着）
+    if (game.tutorial || game.online || game.spectator || game.dealing || game.turbo || autopilot || !s.alive[0] || s.phase === 'over' || s.phase === 'save' || coachQueue) return false;   // 急救挑对子时不插引导（炸弹猫正炸着）
     const mode = s.rules.mode, key = 'mode:' + mode;
     if (GUIDE_MODES[mode] && !guideSeen(key)) { stopClock(); showCoach(GUIDE_MODES[mode](), () => { guideMark(key); step(); }); return true; }
     const item = guideNext(s);
@@ -7444,7 +7444,7 @@
   });
 
   /* 第一次点「单机」：问不问走新手教程（2026-11-20 用户：原来那个纯文字框不好看，在三版里挑甲）——
-   * 插画弹层：上面主页那只炸毛猫 + 挥着的逗猫棒，下面两张「牌」当按钮：直接开（爪印）/ 跟我学（翻开的书，发暖金光），不写说明句 */
+   * 插画弹层：上面主页那只炸弹猫 + 挥着的逗猫棒，下面两张「牌」当按钮：直接开（爪印）/ 跟我学（翻开的书，发暖金光），不写说明句 */
   function soloStart() {
     let seen = false;
     try { seen = !!localStorage.getItem(TUT_KEY); } catch (_) { seen = true; }
@@ -7514,7 +7514,7 @@
 
   /* ───── 主页封面（2026-11-18 第三轮，用户逐项挑定）─────
    * 标题字：四个字各是一张字形 SVG（Noto Serif SC 粗体轮廓，OFL），「小」的竖钩整根换成逗猫棒（顶上拴绳挂羽毛穗、杆尾弯成手柄、握手处两道朱红），
-   *         炸毛猫占「咪」的口字旁（用户挑甲）
+   *         炸弹猫占「咪」的口字旁（用户挑甲）
    * 玩法背景：对角剪影（用户挑乙）——每个玩法一对纯色剪影，大的从左上角探进来、小的从右下角；不铺底色。
    *         四层各对应一个玩法，透明度 = max(0, 1 − |p − i|)，p = 玩法牌滚到第几张（小数，逐帧算），剪影跟着 (i − p) 视差平移——跟手本身就是过渡。
    *         角色用最初那版三花猫剪影（用户：后来重画的都更丑）
@@ -7524,7 +7524,7 @@
   /* ── 标题字 ── */
   const GLYPH = {'百':['M53 753H753L822 839Q822 839 835 830Q848 820 868 805Q888 790 910 773Q931 756 949 741Q945 725 920 725H61Z','M700 547H690L746 610L861 519Q857 513 847 508Q837 502 821 499V-44Q821 -48 804 -56Q788 -64 764 -71Q740 -78 719 -78H700Z','M185 547V598L312 547H755V518H304V-41Q304 -48 290 -58Q275 -68 252 -76Q230 -83 204 -83H185Z','M241 33H757V5H241Z','M241 301H757V272H241Z','M415 753H575Q553 714 526 672Q500 629 472 592Q444 554 416 528H394Q398 556 402 596Q407 635 410 677Q414 719 415 753Z'],'变':['M291 327Q334 253 406 200Q477 148 568 114Q659 80 762 60Q866 41 973 33L972 21Q934 11 910 -18Q886 -46 876 -90Q736 -64 620 -16Q503 33 416 114Q330 194 278 318Z','M641 327 716 392 825 289Q819 280 809 277Q799 274 779 273Q662 127 470 35Q279 -57 34 -89L28 -76Q164 -37 286 22Q409 82 504 159Q600 236 655 327Z','M731 327V299H175L166 327Z','M450 377Q449 373 425 364Q401 354 358 354H338V698H450Z','M661 379Q660 376 636 366Q611 356 568 356H548V697H661Z','M403 855Q472 856 512 842Q553 827 571 805Q589 783 588 760Q587 738 572 722Q557 705 533 701Q509 697 481 714Q475 738 461 764Q447 789 430 812Q413 834 396 850Z','M341 566Q337 558 326 554Q316 549 300 553Q247 486 182 439Q116 392 48 364L37 375Q84 417 132 486Q179 555 211 634Z','M820 790Q820 790 832 781Q844 772 862 758Q880 743 900 726Q920 710 936 695Q932 679 909 679H71L63 707H756Z','M685 612Q769 601 820 576Q872 552 897 522Q922 491 926 462Q929 433 916 412Q904 392 880 387Q856 382 826 400Q815 437 791 474Q767 512 736 546Q706 580 677 605Z'],'小':['M663 587Q766 539 829 484Q892 428 922 374Q953 320 957 275Q961 230 946 202Q931 173 902 169Q874 165 839 193Q832 242 813 294Q794 345 768 396Q743 447 713 494Q683 540 652 581Z','M220 600 384 536Q381 528 373 523Q365 518 346 518Q317 455 273 386Q229 316 170 252Q110 187 32 139L24 148Q63 195 94 252Q126 309 150 370Q175 431 192 490Q210 549 220 600Z','M447 835 608 819Q606 809 598 802Q590 794 571 791V61Q571 18 559 -12Q547 -43 510 -62Q473 -81 396 -88Q392 -57 385 -36Q378 -14 361 1Q345 15 319 26Q293 36 243 45V58Q243 58 258 57Q274 56 298 55Q321 54 346 52Q372 51 392 50Q413 49 421 49Q437 49 442 54Q447 59 447 70Z'],'咪':['M373 448H802L862 530Q862 530 873 521Q884 512 901 498Q918 483 936 467Q955 451 970 436Q966 420 942 420H381Z','M712 435Q737 365 780 304Q823 244 876 198Q928 152 984 124L982 113Q914 98 888 10Q814 78 769 184Q724 289 700 431Z','M544 439H682V423Q636 276 534 164Q431 52 271 -21L262 -10Q335 44 390 116Q446 188 484 270Q523 353 544 439Z','M67 722V769L179 722H326V693H175V99Q175 93 162 84Q149 75 128 68Q108 61 84 61H67Z','M252 722H242L294 780L401 696Q397 690 386 684Q375 678 360 675V141Q360 137 344 129Q329 121 308 115Q288 109 269 109H252Z','M118 241H322V212H118Z','M404 760Q467 728 502 691Q536 654 548 618Q561 583 556 554Q552 526 536 510Q519 494 496 495Q473 496 449 520Q452 559 444 600Q436 642 422 682Q409 723 393 755Z','M812 763 961 702Q957 693 946 688Q936 683 920 685Q883 633 840 584Q798 535 754 498L742 506Q752 538 764 580Q777 623 790 671Q802 719 812 763Z','M595 849 745 834Q744 824 736 816Q729 808 708 805V-48Q708 -54 694 -64Q681 -73 660 -80Q638 -88 617 -88H595Z']};
   const INKC = 'currentColor';
-  // 炸毛猫（墨色刺球 + 两只大眼 + 腮红），cx/cy/R 都是字形单位（1000 一个字）
+  // 炸弹猫（墨色刺球 + 两只大眼 + 腮红），cx/cy/R 都是字形单位（1000 一个字）
   function catGlyph(cx, cy, R) {
     let d = '';
     for (let i = 0; i < 32; i++) { const a = -Math.PI / 2 + i * Math.PI / 16, r = i % 2 ? R * 0.72 : R; d += (i ? 'L' : 'M') + (cx + Math.cos(a) * r).toFixed(1) + ' ' + (cy + Math.sin(a) * r).toFixed(1); }
@@ -7615,7 +7615,7 @@
   const silCut = (solid, holes, over) => sil100('<defs><mask id="h"><rect x="-50" y="-50" width="200" height="200" fill="#fff"/><g fill="#000">' + (holes || '') + '</g></mask></defs><g mask="url(#h)">' + solid + '</g>' + (over || ''));
   // 对角剪影每个玩法一对（大的左上、小的右下），第三项 = 摆位 [大的 x, y, 转角, 小的 x, y, 转角, 小的镜像]（x/y 是自身宽度的百分比，往屏外推多少）
   const SIL = {
-    // 经典：一只刺球炸毛猫（耳朵、挖空的眼睛、头顶一颗火星）；右下一团炸开的爆点
+    // 经典：一只刺球炸弹猫（耳朵、挖空的眼睛、头顶一颗火星）；右下一团炸开的爆点
     classic: () => {
       const cat = '<path d="' + star(50, 56, 15, 40, 30) + '"/><path d="M28 30 22 8 42 22ZM72 30 78 8 58 22Z"/>' + '<path d="' + star(80, 14, 6, 10, 4.5) + '"/>';
       const holes = '<circle cx="40" cy="54" r="7.5"/><circle cx="60" cy="54" r="7.5"/><path d="M45 68q5 5 10 0"  fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>';
@@ -7793,7 +7793,7 @@
     const used = new Set(o.hand.concat(o.discard, o.removed, o.known.map((x) => x.id)));
     o.handKnown.forEach((h, i) => { if (i !== 0) h.forEach((id) => used.add(id)); });
     if (o.defuse && o.defuse.card != null) used.add(o.defuse.card);
-    if (o.rescue && o.rescue.card != null) used.add(o.rescue.card);   // 组队：正在问队友救不救——那只炸毛猫摸出来了，不在牌堆里
+    if (o.rescue && o.rescue.card != null) used.add(o.rescue.card);   // 组队：正在问队友救不救——那只炸弹猫摸出来了，不在牌堆里
     const fluxOn = !!(o.rules && o.rules.mode === 'flux');   // 经典房间不拿「百变」牌号当占位（服务器那副牌里可能根本没有这些号）
     const pool = shuffled(ALL_IDS.filter((id) => !used.has(id) && (!R.inSecondDeck(id) || R.usesSecondDeck(n)) && (fluxOn || R.KIND_OF[id] !== R.FLUX)));
     const take = (pred) => { const i = pool.findIndex(pred); return i >= 0 ? pool.splice(i, 1)[0] : null; };
@@ -7906,7 +7906,7 @@
   function putTop(s, k, id) {
     if (s.deck[k] === id) return;
     const from = locate(s, id);
-    // 换出去的那张要进别人手里时不能是炸毛猫（手里不会有炸毛猫，牌堆里的炸毛猫数也会对不上）：先在牌堆里和一张普通占位对调
+    // 换出去的那张要进别人手里时不能是炸弹猫（手里不会有炸弹猫，牌堆里的炸弹猫数也会对不上）：先在牌堆里和一张普通占位对调
     if (from && from.arr !== s.deck && R.KIND_OF[s.deck[k]] === R.BOOM) {
       const kn = s.memo[0].deck;
       const ok = (x, i) => R.KIND_OF[x] !== R.BOOM && kn.indexOf(x) < 0 && x !== id;
@@ -7919,7 +7919,7 @@
     s.deck[k] = id;
     from.arr[from.i] = victim;
   }
-  // 牌堆顶要是一张不是炸毛猫的（别人摸走了、没炸）：顶上是占位的炸毛猫就和下面一张普通的占位对调
+  // 牌堆顶要是一张不是炸弹猫的（别人摸走了、没炸）：顶上是占位的炸弹猫就和下面一张普通的占位对调
   function topNotBoom(s, at) {
     at = at || 0;
     if (R.KIND_OF[s.deck[at]] !== R.BOOM) return;
@@ -8044,7 +8044,7 @@
       }
       case 'noRescue': break;
       case 'save': s.phase = 'save'; s.save = { by: e.seat, card: e.kitten != null ? e.kitten : s.netBoom }; break;
-      case 'noSave': s.save = null; s.seq += 1; break;   // 急救点了「取消」：接着的 askRescue / out 照常   // 急救：摸到炸毛猫的人在挑哪一对
+      case 'noSave': s.save = null; s.seq += 1; break;   // 急救点了「取消」：接着的 askRescue / out 照常   // 急救：摸到炸弹猫的人在挑哪一对
       case 'defuse': {
         const src = e.rescue && e.from != null ? e.from : e.seat;   // 组队救人：逗猫棒是队友出的
         putInHand(s, src, e.card);
@@ -8057,7 +8057,7 @@
         break;
       }
       case 'nine': {
-        // 九命 / 急救：炸毛猫随机塞回牌堆（2026-11-17：镜像以前没这一步，牌堆少一只，联机每次都要整桌重同步）。位置按公开的粗略高度放
+        // 九命 / 急救：炸弹猫随机塞回牌堆（2026-11-17：镜像以前没这一步，牌堆少一只，联机每次都要整桌重同步）。位置按公开的粗略高度放
         const id = e.card != null ? e.card : s.defuse ? s.defuse.card : s.netBoom;
         // 2026-11-26 起（pick）：喊完九命进入塞回阶段，等他自己挑位置（之后的 insert 事件才放进牌堆）
         if (e.pick) { if (!s.nineUsed) s.nineUsed = Array(s.n).fill(false); s.nineUsed[e.seat] = true; s.phase = 'defuse'; s.defuse = { by: e.seat, card: id }; s.netBoom = null; break; }
@@ -8069,7 +8069,7 @@
         break;
       }
       case 'insert': {
-        // 别人塞的：服务器把牌号和位置都藏了（只给他自己），可是是哪只炸毛猫大家早看见了（defuse 事件里的 kitten）；位置随便放
+        // 别人塞的：服务器把牌号和位置都藏了（只给他自己），可是是哪只炸弹猫大家早看见了（defuse 事件里的 kitten）；位置随便放
         const id = e.card != null ? e.card : s.defuse ? s.defuse.card : null;
         const pos = e.pos != null ? e.pos : e.at != null ? e.at : (Math.random() * (s.deck.length + 1)) | 0;
         s.deck.splice(Math.max(0, Math.min(s.deck.length, pos)), 0, id);
@@ -8123,7 +8123,7 @@
   }
   const seatSpots = () => spotsBy(srvOf);
   /* 换完视角按现在的局面补回那些「挂着」的东西（2026-11-17 用户：要和被看那家屏幕上一模一样）：
-   * 出了要指人的牌、还在等作废 → 准星 + 桌沿连线；被索要 → 粉准星；在挑偷哪张 → 准星；摸到炸毛猫在塞回去 → 头像变炸毛猫 */
+   * 出了要指人的牌、还在等作废 → 准星 + 桌沿连线；被索要 → 粉准星；在挑偷哪张 → 准星；摸到炸弹猫在塞回去 → 头像变炸弹猫 */
   function restoreAim() {
     const s = game && game.state;
     if (!s || game.dealing) return;
@@ -8610,7 +8610,7 @@
     } catch (err) {
       clearTimeout(slow);
       if (game && game.drawLift) { game.drawLift.node.remove(); game.drawLift = null; }   // 没摸成：掀起来的那张收掉
-      dropPreInsert();   // 没塞成：先飞出去的那张收掉、桌心的炸毛猫露回来
+      dropPreInsert();   // 没塞成：先飞出去的那张收掉、桌心的炸弹猫露回来
       if (d.type === 'pass' && err && err.status === 409) return;   // 窗口已经关了（别人作废 / 已结算）：没关系，等下一份状态
       if (d.type === 'rescue' && err && (err.error === 'stale' || err.error === 'not_your_turn' || err.error === 'not_your_call')) return;   // 别的队友先救了：等事件推过来，弹窗里演「被他抢先」
       if (game && game.preFlyP) { await game.preFlyP; game.preFlyP = null; if (!online) return; preview = { cards: d.cards }; endPreview(); }
@@ -8753,7 +8753,7 @@
   let ffBtn = null;
   // 联机：我这边看到的真人全出局了（网慢、播得落后时，服务器早算完了，但我这边自己还活着——这时加速 / 露快进键都等于剧透）
   function humansOutHere() {
-    // 按桌上演到哪算（ov = 这一步动画开演前的样子），不按已经结算好的 game.state：2026-11-22 用户——最后一张炸毛猫还没翻开，右下角就冒快进键，等于告诉我要挂了。
+    // 按桌上演到哪算（ov = 这一步动画开演前的样子），不按已经结算好的 game.state：2026-11-22 用户——最后一张炸弹猫还没翻开，右下角就冒快进键，等于告诉我要挂了。
     // 我自己还要等那一下炸完（fastOut）
     if (!(game && game.online && game.state && online && online.st)) return false;
     const al = (ov || game.state).alive, me = online.st.mySeat;
@@ -9499,7 +9499,7 @@
   els.app.addEventListener('selectstart', (e) => { if (!editable(e.target)) e.preventDefault(); });
   els.app.addEventListener('contextmenu', (e) => { if (!editable(e.target)) e.preventDefault(); });
   $('zmCoverArt').innerHTML = ART.hero();
-  // 彩蛋：鼠标经过（或点一下）封面上的炸毛猫，它就炸两下毛、掉几根毛（平时每隔几秒自己也会抖一下，见 CSS）
+  // 彩蛋：鼠标经过（或点一下）封面上的炸弹猫，它就炸两下毛、掉几根毛（平时每隔几秒自己也会抖一下，见 CSS）
   (function heroEgg() {
     const g = $('zmCoverArt').querySelector('.hero-boom');
     if (!g) return;
@@ -9535,7 +9535,7 @@
       h.addEventListener('pointerenter', wave);
       h.addEventListener('click', wave);
     }
-    // 炸毛猫头顶一直冒火星（只在主页露着的时候）
+    // 炸弹猫头顶一直冒火星（只在主页露着的时候）
     setInterval(() => {
       if (els.cover.hidden || fx.reduce() || document.hidden) return;
       const r = g.getBoundingClientRect();
@@ -9635,8 +9635,8 @@
   $('zmMenuBtn').addEventListener('click', toggleMenu);
   $('zmSoundBtn').addEventListener('click', toggleSoundPanel);
   // 联机排行榜也能点外面收起（2026-11-14：排行榜挪到了顶栏，随时能再打开；收起后房主在桌沿右下角点 ⏭ 开下一局）
-  // 点窗外关窗只给「看看就走」的窗（规则 / 提示 / 结算）。要我拿主意的（塞炸毛猫 / 改命 / 救队友 / 偷牌 / 点名）点窗外不关——
-  // 2026-11-19 用户：手机上塞炸毛猫时点到窗外，窗没了、游戏等不到我塞哪，整局卡死。现在点窗外只晃一下主按钮提醒
+  // 点窗外关窗只给「看看就走」的窗（规则 / 提示 / 结算）。要我拿主意的（塞炸弹猫 / 改命 / 救队友 / 偷牌 / 点名）点窗外不关——
+  // 2026-11-19 用户：手机上塞炸弹猫时点到窗外，窗没了、游戏等不到我塞哪，整局卡死。现在点窗外只晃一下主按钮提醒
   const MUST_ACT = '[data-fan], [data-alter], [data-rescue], [data-steal], [data-range], .zm-grid';
   els.mask.addEventListener('click', (e) => {
     if (e.target !== els.mask) return;
@@ -9732,13 +9732,13 @@
       out: () => { top(R.BOOM); s.turn = bot; s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); apply(bot, { type: 'draw' }); },
       draw: () => { s.turn = 0; apply(0, { type: 'draw' }); },
       attack: () => { give(bot, R.ATTACK); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
-      // 组队（只在组队局里有意义）：队友摸到炸毛猫、手里没逗猫棒、我有 → 问我救不救；队友窥探 / 改命（我该看得到）；我出局后看队友
+      // 组队（只在组队局里有意义）：队友摸到炸弹猫、手里没逗猫棒、我有 → 问我救不救；队友窥探 / 改命（我该看得到）；我出局后看队友
       rescue: () => { const m = R.mateOf(s, 0); if (m < 0) return; s.hands[m] = s.hands[m].filter((id) => R.KIND_OF[id] !== R.DEFUSE); if (R.countKind(s.hands[0], R.DEFUSE) === 0) give(0, R.DEFUSE); top(R.BOOM); s.turn = m; apply(m, { type: 'draw' }); },
       rescuenone: () => { const m = R.mateOf(s, 0); if (m < 0) return; for (const k of [0, m]) s.hands[k] = s.hands[k].filter((id) => R.KIND_OF[id] !== R.DEFUSE); top(R.BOOM); s.turn = m; apply(m, { type: 'draw' }); },   // 队友炸了、谁都没逗猫棒 → 照样喊救、省略号，然后出局
       rescuerace: () => { const ms3 = R.matesOf(s, 0); if (ms3.length < 2) return; const f = ms3[0], o = ms3[1]; s.hands[f] = s.hands[f].filter((id) => R.KIND_OF[id] !== R.DEFUSE); if (R.countKind(s.hands[0], R.DEFUSE) === 0) give(0, R.DEFUSE); if (R.countKind(s.hands[o], R.DEFUSE) === 0) give(o, R.DEFUSE); top(R.BOOM); s.turn = f; apply(f, { type: 'draw' }); },   // 3 人一队：我和另一个机器猫队友都有，看它抢先救的样子
       rescueme: () => { const m = R.mateOf(s, 0); if (m < 0) return; s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); if (R.countKind(s.hands[m], R.DEFUSE) === 0) give(m, R.DEFUSE); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       stealmate: () => { const m = R.mateOf(s, 0); if (m < 0) return; const a = [1, 2, 3].find((k) => k !== m); ['orange', 'calico', 'tabby', 'skip', 'shuffle', 'attack'].forEach((k) => give(m, k)); give(a, 'cow'); give(a, 'cow'); s.turn = a; apply(a, { type: 'play', cards: s.hands[a].filter((id) => R.KIND_OF[id] === 'cow').slice(0, 2), target: m }); },
-      // 组队：对面只剩最后一个人、他摸到炸毛猫没逗猫棒（队友也都出局了）→ 我们队赢，看结算
+      // 组队：对面只剩最后一个人、他摸到炸弹猫没逗猫棒（队友也都出局了）→ 我们队赢，看结算
       teamwin: () => { const foes = Array.from({ length: s.n }, (_, k) => k).filter((k) => R.teamOf(s, k) !== R.teamOf(s, 0)); const last = foes.pop(); foes.forEach((k) => { s.alive[k] = false; s.outOrder.push(k); s.discard.push(...s.hands[k]); s.hands[k] = []; }); s.hands[last] = s.hands[last].filter((id) => R.KIND_OF[id] !== R.DEFUSE); top(R.BOOM); s.turn = last; release(); renderAll(); apply(last, { type: 'draw' }); },
       futuremate: () => { const m = R.mateOf(s, 0); if (m < 0) return; give(m, R.FUTURE); s.turn = m; apply(m, { type: 'play', cards: [R.findKind(s.hands[m], R.FUTURE)] }); },
       altermate: () => { const m = R.mateOf(s, 0); if (m < 0) return; give(m, R.ALTER); s.turn = m; apply(m, { type: 'play', cards: [R.findKind(s.hands[m], R.ALTER)] }); },
@@ -9748,7 +9748,7 @@
       swap: () => { give(0, R.SWAP); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.SWAP)], target: bot }); },
       swapme: () => { give(bot, R.SWAP); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SWAP)], target: 0 }); },
       stack: () => { give(bot, R.ATTACK); s.turn = bot; s.turnsLeft = 2; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
-      // 机器猫拆了炸毛猫、塞回指定位置（看塞回动画）：最上 / 中间 / 最底 / 随机
+      // 机器猫拆了炸弹猫、塞回指定位置（看塞回动画）：最上 / 中间 / 最底 / 随机
       insTop: () => { game.forceInsert = { pos: 0 }; plays.defuse(); },
       insMid: () => { game.forceInsert = { pos: 'mid' }; plays.defuse(); },
       insEnd: () => { game.forceInsert = { pos: 'end' }; plays.defuse(); },
@@ -9784,7 +9784,7 @@
       triplemissme: () => { give(0, 'tabby'); give(0, 'tabby'); give(0, 'tabby'); s.turn = 0; apply(0, { type: 'play', cards: s.hands[0].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: bot, named: R.SWAP }); },
       triplemiss: () => { give(bot, 'tabby'); give(bot, 'tabby'); give(bot, 'tabby'); s.turn = bot; apply(bot, { type: 'play', cards: s.hands[bot].filter((id) => R.KIND_OF[id] === 'tabby').slice(0, 3), target: 0, named: R.SWAP }); },
       nope: () => { give(0, R.NOPE); give(bot, R.ATTACK); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
-      // 百变「急救」：没逗猫棒、手里一对奶牛猫，摸到炸毛猫（我 / 机器猫）；牌堆只剩一张时抽底
+      // 百变「急救」：没逗猫棒、手里一对奶牛猫，摸到炸弹猫（我 / 机器猫）；牌堆只剩一张时抽底
       catsave: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(0, 'cow'); give(0, 'cow'); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       // 急救挑对子：手里两对（奶牛猫 + 跳过）挑一对；catsavenone：凑不出对，手牌闪灰后出局
       catsave2: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(0, 'cow'); give(0, 'cow'); give(0, R.SKIP); give(0, R.SKIP); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },

@@ -82,7 +82,7 @@ test('determinize is consistent with what the seat knows', () => {
 test('normal dodges a known kitten on top', () => {
   const s = R.createGame(3, 4);
   const kitten = R.KIND_OF.indexOf(R.BOOM);
-  // 把一张炸毛猫挪到顶上，让当前玩家「看见」它
+  // 把一张炸弹猫挪到顶上，让当前玩家「看见」它
   const i = s.deck.findIndex((id) => R.KIND_OF[id] === R.BOOM);
   s.deck.unshift(s.deck.splice(i, 1)[0]);
   const me = s.turn;

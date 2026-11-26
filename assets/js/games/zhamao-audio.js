@@ -184,7 +184,7 @@
   }
   // 场景：'menu'（主页 / 设置 / 大厅，丁）| 'game'（一局开始，甲起）| 'end'（一局结束，淡出）
   function scene(name) { if (M()) M().setScene(name); }
-  // 炸毛猫概率（公开信息：牌堆里的炸毛猫数 ÷ 牌堆张数）；有人炸出局
+  // 炸弹猫概率（公开信息：牌堆里的炸弹猫数 ÷ 牌堆张数）；有人炸出局
   function danger(p) { if (M()) M().setDanger(p); }
   function knockedOut() { if (M()) M().onOut(); }
 

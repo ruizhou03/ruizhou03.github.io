@@ -3,21 +3,21 @@
  * 原创猫咪主题卡牌游戏：牌名、形象、百变 / 角色 / 组队玩法均为本站原创（2026-11-11 起）。
  *
  * 一副 56 张（2–5 人）：
- *   炸毛猫 ×4    摸到就炸毛出局，除非手里有逗猫棒
- *   逗猫棒 ×6    摸到炸毛猫时自动打出，把炸毛猫偷偷塞回牌堆任意位置
- *   喵？不行 ×5  作废别人刚出的牌（也能作废「不行」，叠来叠去，单数张=作废）。不能挡炸毛猫 / 逗猫棒
+ *   炸弹猫 ×4    摸到就炸毛出局，除非手里有逗猫棒
+ *   逗猫棒 ×6    摸到炸弹猫时自动打出，把炸弹猫偷偷塞回牌堆任意位置
+ *   喵？不行 ×5  作废别人刚出的牌（也能作废「不行」，叠来叠去，单数张=作废）。不能挡炸弹猫 / 逗猫棒
  *   攻击 ×4      结束自己的回合、不摸牌，下家连着摸两回合
  *   跳过 ×4      结束一个回合、不摸牌（被攻击时只顶掉其中一回合）
  *   索要 ×4      指定一人，他自己挑一张给你
  *   洗牌 ×4      把牌堆洗乱
  *   窥探 ×5      看牌堆最上面三张（不改顺序、别人看不到）
  *   橘猫 / 三花 / 奶牛 / 狸花 / 暹罗 各 ×4   本身没用，凑组合
- * 组合（任何同名牌都算，炸毛猫除外）：
+ * 组合（任何同名牌都算，炸弹猫除外）：
  *   两张同样   指定一人，从他手里随机抽一张
  *   三张同样   指定一人并点名一种牌，他有就得给你一张，没有就落空
- *   五张各不同 从弃牌堆里挑任意一张（炸毛猫除外）
- * 开局：抽出炸毛猫和逗猫棒，余下洗匀每人发 4 张，再每人发 1 张逗猫棒；
- *       放回「人数 −1」张炸毛猫，再把剩下的逗猫棒全放回，洗匀；
+ *   五张各不同 从弃牌堆里挑任意一张（炸弹猫除外）
+ * 开局：抽出炸弹猫和逗猫棒，余下洗匀每人发 4 张，再每人发 1 张逗猫棒；
+ *       放回「人数 −1」张炸弹猫，再把剩下的逗猫棒全放回，洗匀；
  *       多出来的收进盒子（state.removed），这局不用。
  * 回合：可以出任意多张 / 组合（每出一次都留一个「不行」反应窗），最后摸一张牌结束回合。
  *       甩锅叠加（RULES.stackAttack）：默认开 = 被甩锅的人再甩锅，剩下的回合 +2 一起甩走（可以一路越叠越多）；关 = 下家仍只摸两回合。
@@ -36,14 +36,14 @@
  *   'pick'   五种猫各一张：出牌人从弃牌堆挑一张：pickDiscard()
  *   'steal'  两张一样：出牌人从对方扣着的手牌里点一张（顺序打乱过，看不出是哪张）：stealPick()
  *   'alter'  「重排」：出牌人把牌堆最上面（至多）三张按自己想要的顺序放回去：alterTop()
- *   'save'   百变「急救」：摸到炸毛猫、没逗猫棒但手里有一对——自己挑哪一对顶逗猫棒：catSave()（不给牌 = 自动挑最便宜的一对，超时 / 托管 / 机器猫；decline = 点了「取消」，照常炸）
- *   'defuse' 刚用逗猫棒拆了炸毛猫，把它塞回去：insertKitten()
+ *   'save'   百变「急救」：摸到炸弹猫、没逗猫棒但手里有一对——自己挑哪一对顶逗猫棒：catSave()（不给牌 = 自动挑最便宜的一对，超时 / 托管 / 机器猫；decline = 点了「取消」，照常炸）
+ *   'defuse' 刚用逗猫棒拆了炸弹猫，把它塞回去：insertKitten()
  *   'over'   结束，state.winner
  * 每个改状态的函数都返回事件数组（UI 播动画 / 服务器转发）。带 priv 字段的事件只有 priv 里列的座位能看到全部内容，
  * redactEvents(events, seat) 给别人去掉 card / cards / pos。
  *
  * 知识（state.memo[seat]，给机器人用，规则本身不依赖）：
- *   deck  该座位确切知道位置的牌 id 集合（看未来 / 自己塞回的炸毛猫）；别人塞炸毛猫或洗牌后作废
+ *   deck  该座位确切知道位置的牌 id 集合（看未来 / 自己塞回的炸弹猫）；别人塞炸弹猫或洗牌后作废
  *   hands 该座位知道「别人手里有」的牌 id（被蹭走 / 偷走 / 点名要走 / 弃牌堆捡走 / 从自己知道的牌堆顶摸走）
  */
 (function (root, factory) {
@@ -76,13 +76,13 @@
   }
   const lang = () => { const I = i18n(); return (I && I.lang) || 'zh-Hans'; };
   const NAMES = Object.freeze({
-    boom: T('card.boom.name', '炸毛猫'), defuse: T('card.defuse.name', '逗猫棒'), nope: T('card.nope.name', '作废'), attack: T('card.attack.name', '甩锅'),
+    boom: T('card.boom.name', '炸弹猫'), defuse: T('card.defuse.name', '逗猫棒'), nope: T('card.nope.name', '作废'), attack: T('card.attack.name', '甩锅'),
     tattack: T('card.tattack.name', '自由甩锅'), skip: T('card.skip.name', '跳过'), bottom: T('card.bottom.name', '抽底'), favor: T('card.favor.name', '索要'),
     shuffle: T('card.shuffle.name', '洗牌'), future: T('card.future.name', '窥探'), alter: T('card.alter.name', '改命'), swap: T('card.swap.name', '交换'),
     orange: T('card.orange.name', '橘猫'), calico: T('card.calico.name', '三花'), cow: T('card.cow.name', '奶牛猫'), tabby: T('card.tabby.name', '狸花'),
     siamese: T('card.siamese.name', '暹罗'), wild: T('card.wild.name', '万能猫'), reverse: T('card.reverse.name', '转向'), flux: T('card.flux.name', '百变'),
   });
-  /* 第二副牌（2026-11-12 起最多 9 人）：6 人以上开局把它也洗进来——炸毛猫最多 8 只、逗猫棒最多 11 根，功能牌和猫牌也多一倍；
+  /* 第二副牌（2026-11-12 起最多 9 人）：6 人以上开局把它也洗进来——炸弹猫最多 8 只、逗猫棒最多 11 根，功能牌和猫牌也多一倍；
    * 5 人及以下它一开局就整副收进盒子。牌号接在第一副后面（0..67 不变，旧存档 / 联机局照常） */
   const COUNTS2 = Object.freeze({
     boom: 4, defuse: 5, nope: 5, attack: 4, tattack: 3, skip: 4, favor: 4, shuffle: 4, future: 4, alter: 3, swap: 3, bottom: 4,
@@ -113,14 +113,14 @@
     extraDefuse: ['all'],   // 2026-11-13 用户：开关拿掉，固定「剩下的逗猫棒全放回」；老存档 / 老房间读进来也按这个
     swap: [false, true],
     swapDefuse: [false, true],   // 2026-11-13 用户：交换要不要连逗猫棒一起换（以前玩的是整副手牌全换）；默认不换，开房的人 / 单机自己选
-    deckSize: ['std', 'quick', 'more'],   // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 一副 56 张的密度 / 快局更短 / 多 = 以前的整副（两副）
+    deckSize: ['std', 'quick', 'more'],   // 牌量（2026-11-13 用户：牌太多、炸弹猫太稀）：标准 ≈ 一副 56 张的密度 / 快局更短 / 多 = 以前的整副（两副）
     insertSeen: [true, false],
     mode: ['classic', 'flux', 'team', 'roles'],
     // 组队（2026-11-18 用户）：队形（每队人数相等，不做以少打多）+ 座位排法（同队坐一起 / 随机打乱）。只在 mode = team 时有用
     teamForm: ['2v2', '3v3', '4v4', '2v2v2', '2v2v2v2', '3v3v3'],
-    teamSeat: ['together', 'random'],   // roles = 角色猫（2026-11-15）   // team = 2v2 组队（2026-11-15，只能 4 人：0、2 一队，1、3 一队）   // 2026-11-15：经典 / 百变（牌堆里加「百变」牌，打出就从百变规则堆里抽一条换上）   // 塞回炸毛猫看得出大概位置（2026-11-14 用户，默认开）：动画插在真实高度，像线下一样最上 / 最底一眼看得出、中间只能估；不报第几张。选「随机」的照旧看不出
+    teamSeat: ['together', 'random'],   // roles = 角色猫（2026-11-15）   // team = 2v2 组队（2026-11-15，只能 4 人：0、2 一队，1、3 一队）   // 2026-11-15：经典 / 百变（牌堆里加「百变」牌，打出就从百变规则堆里抽一条换上）   // 塞回炸弹猫看得出大概位置（2026-11-14 用户，默认开）：动画插在真实高度，像线下一样最上 / 最底一眼看得出、中间只能估；不报第几张。选「随机」的照旧看不出
   });
-  // 2026-11-25 用户：塞回炸毛猫默认看不出位置（insertSeen 默认关；设置里的开关叫「塞回看不出位置」，默认开）
+  // 2026-11-25 用户：塞回炸弹猫默认看不出位置（insertSeen 默认关；设置里的开关叫「塞回看不出位置」，默认开）
   // 2026-11-13 起「多的逗猫棒全放回」默认开（每人先发 1 根逗猫棒，剩下的全洗回牌堆）
   const DEFAULT_RULES = Object.freeze({ stackAttack: true, extraDefuse: 'all', swap: false, swapDefuse: false, deckSize: 'std', insertSeen: false, mode: 'classic', teamForm: '2v2', teamSeat: 'together' });
   const TEAM_FORMS = Object.freeze({ '2v2': [2, 2], '3v3': [3, 3], '4v4': [4, 4], '2v2v2': [2, 2, 2], '2v2v2v2': [2, 2, 2, 2], '3v3v3': [3, 3, 3] });
@@ -130,13 +130,13 @@
   // 2026-11-15 用户：不叠锅 / 暗塞 / 千里眼 / 慷慨太弱、感觉不到 → 换成 九命 / 掀顶 / 烫手 / 双猫急救
   // 2026-11-15 用户定的名字和说法（掀顶→透视（2026-11-19 改天眼、11-26 改回透视）、明塞→火眼、静音→静默、双猫急救→急救）；id 不变（老存档照常）
   const FLUX_RULES = Object.freeze([
-    { id: 'nine', name: T('flux.nine.name', '九命'), desc: T('flux.nine.desc', '摸到炸毛猫时若无逗猫棒，大喊「九命」并存活，再把炸毛猫塞回牌堆任意位置。每人最多生效一次') },
+    { id: 'nine', name: T('flux.nine.name', '九命'), desc: T('flux.nine.desc', '摸到炸弹猫时若无逗猫棒，大喊「九命」并存活，再把炸弹猫塞回牌堆任意位置。每人最多生效一次') },
     { id: 'peektop', name: T('flux.peektop.name', '透视'), desc: T('flux.peektop.desc', '牌堆第一张牌对所有人可见') },
-    { id: 'exact', name: T('flux.exact.name', '火眼'), desc: T('flux.exact.desc', '炸毛猫塞回的位置对所有人可见') },
+    { id: 'exact', name: T('flux.exact.name', '火眼'), desc: T('flux.exact.desc', '炸弹猫塞回的位置对所有人可见') },
     { id: 'bottom', name: T('flux.bottom.name', '摸底'), desc: T('flux.bottom.desc', '摸牌改从牌堆底部摸') },
     { id: 'hot', name: T('flux.hot.name', '烫手'), desc: T('flux.hot.desc', '每个人的回合一开始就像被甩了一次锅') },
     { id: 'mute', name: T('flux.mute.name', '静默'), desc: T('flux.mute.desc', '不能打「作废」') },
-    { id: 'catsave', name: T('flux.catsave.name', '急救'), desc: T('flux.catsave.desc', '摸到炸毛猫时若无逗猫棒，可打出两张相同的牌代替逗猫棒，再把炸毛猫塞回牌堆任意位置。每人最多生效一次') },
+    { id: 'catsave', name: T('flux.catsave.name', '急救'), desc: T('flux.catsave.desc', '摸到炸弹猫时若无逗猫棒，可打出两张相同的牌代替逗猫棒，再把炸弹猫塞回牌堆任意位置。每人最多生效一次') },
     // 2026-11-26 用户：「百搭」——所有猫都变成万能猫：任意两只猫算一对、任意三只算三张一样、任意五只算五种各一张；换走就变回来
     { id: 'allwild', name: T('flux.allwild.name', '百搭'), desc: T('flux.allwild.desc', '所有猫都变成万能猫') },
   ]);
@@ -165,10 +165,10 @@
     return r;
   }
   const swapsInPlay = (n) => Math.min(usesSecondDeck(n) ? 6 : 3, n - 1);
-  /* 牌量（2026-11-13 用户）：以前 5 人及以下整副 63 张普通牌、6 人起两副 126 张，牌堆是一副 56 张的 2–7 倍，炸毛猫只占 4–8%。
-   * 「标准」「快局」按人数定这一局用多少张普通牌（不算炸毛猫 / 逗猫棒 / 交换）：63 × 人数系数 × 档位系数，人数系数 = 人数 / 5，夹在 0.8–1.8；
+  /* 牌量（2026-11-13 用户）：以前 5 人及以下整副 63 张普通牌、6 人起两副 126 张，牌堆是一副 56 张的 2–7 倍，炸弹猫只占 4–8%。
+   * 「标准」「快局」按人数定这一局用多少张普通牌（不算炸弹猫 / 逗猫棒 / 交换）：63 × 人数系数 × 档位系数，人数系数 = 人数 / 5，夹在 0.8–1.8；
    * 减的时候分三档：猫牌（含万能猫）砍得最多，转向 / 抽底 / 改命 / 洗牌 / 窥探次之，作废 / 跳过 / 甩锅 / 索要 / 自由甩锅基本保住；
-   * 牌堆里多放的逗猫棒也跟着收（「多」照旧全放回）。炸毛猫永远 人数 − 1 */
+   * 牌堆里多放的逗猫棒也跟着收（「多」照旧全放回）。炸弹猫永远 人数 − 1 */
   const DECK_FACTOR = { std: 0.7, quick: 0.5 };
   const KEEP = { nope: 1, skip: 1, attack: 1, favor: 1, tattack: 1, shuffle: 0.75, future: 0.75, alter: 0.75, bottom: 0.75, reverse: 0.75 };   // 其余（猫 / 万能猫）0.55
   const MIN_KEEP = { nope: 2, skip: 2, attack: 2, favor: 1, tattack: 1, wild: 1 };   // 猫每种至少 2 张（凑得出对子），其余至少 1 张
@@ -566,7 +566,7 @@
         endOneTurn(s, ev);
         break;
       case BOTTOM:
-        // 抽底：这一回合不从顶上摸，改从牌堆最底下摸一张（摸完照常结束这一回合；摸到炸毛猫照样炸）
+        // 抽底：这一回合不从顶上摸，改从牌堆最底下摸一张（摸完照常结束这一回合；摸到炸弹猫照样炸）
         if (s.deck.length) ev.push(...takeCard(s, me, s.flux !== 'bottom'));   // 百变「摸底」生效时反过来：抽底变「抽顶」，从最上面摸（2026-11-15 用户）
         break;
       case ATTACK:
@@ -790,7 +790,7 @@
     }
     return boomUnsaved(s, seat, id, ev);
   }
-  // 摸到炸毛猫、没逗猫棒、急救也没用上（凑不出对 / 用过了 / 自己点了「取消」）：九命 → 组队求救 → 出局
+  // 摸到炸弹猫、没逗猫棒、急救也没用上（凑不出对 / 用过了 / 自己点了「取消」）：九命 → 组队求救 → 出局
   function boomUnsaved(s, seat, id, ev) {
     // 百变「九命」：每人一局一次，不出局；2026-11-26 用户：喊完九命也和逗猫棒一样自己挑塞回第几张（以前随机放回）——进入塞回阶段（insertKitten）
     // 事件 nine 带 pick：网页 / 联机镜像据此只演「喊九命」、不再自己往牌堆里放（之后的 insert 事件才放）
@@ -841,7 +841,7 @@
     s.defuse = { by: seat, card: id };
     return [{ t: 'defuse', seat, card: pair[0], extra: pair[1], kitten: id, save: 'cats' }];
   }
-  // 炸毛出局：手牌连同炸毛猫全进弃牌堆，剩下的回合作废
+  // 炸毛出局：手牌连同炸弹猫全进弃牌堆，剩下的回合作废
   function eliminate(s, seat, id, ev) {
     s.alive[seat] = false;
     s.outOrder.push(seat);
@@ -926,7 +926,7 @@
     // 组队（2026-11-18）：队友之间顶上几张的情报共享（窥探 / 改命都是），塞回去的位置也一样——队友看得见塞在第几张，原先记的也不乱
     const mates = matesOf(s, seat);
     if (!exactAll) for (let k = 0; k < s.n; k++) if (k !== seat && mates.indexOf(k) < 0) s.memo[k].deck = []; // 别人不知道塞在哪，原先记的位置全乱了
-    // 点「随机」/ 倒计时到了随机塞：连他自己（和队友）都不知道塞在哪，不记进记忆（2026-11-18 用户：以前照记，它转到牌堆顶时牌堆发红光，等于把炸毛猫露出来了）
+    // 点「随机」/ 倒计时到了随机塞：连他自己（和队友）都不知道塞在哪，不记进记忆（2026-11-18 用户：以前照记，它转到牌堆顶时牌堆发红光，等于把炸弹猫露出来了）
     if (!rand) for (const k of [seat].concat(mates)) if (s.memo[k].deck.indexOf(id) < 0) s.memo[k].deck.push(id);
     s.defuse = null;
     // 规则「看得出大概位置」：动画插在牌堆的真实高度，所有人都看得到——但只发一个粗略的高度 vis（0 = 最上、1 = 最底、中间取到 1/8），
@@ -994,12 +994,12 @@
       pending: s.pending && { by: s.pending.by, type: s.pending.type, target: s.pending.target, named: s.pending.named, nopes: s.pending.nopes.length, cards: s.pending.cards.slice() },
       give: s.give, pick: s.pick,
       defuse: s.defuse && (s.defuse.by === seat ? { by: seat, card: s.defuse.card } : { by: s.defuse.by }),
-      save: s.save ? { by: s.save.by, card: s.save.card } : null,   // 急救：谁在挑对子、炸毛猫是哪张（摸出来时翻开了，公开）
+      save: s.save ? { by: s.save.by, card: s.save.card } : null,   // 急救：谁在挑对子、炸弹猫是哪张（摸出来时翻开了，公开）
       alter: s.alter && (s.alter.by === seat ? { by: seat, cards: s.alter.cards.slice() } : { by: s.alter.by }),
       steal: s.steal && { by: s.steal.by, from: s.steal.from, count: s.steal.perm.length },
       peek: s.peek ? Object.assign({}, s.peek) : null, // 公开：最近谁窥探 / 改命过顶上三张、之后从顶上摸走了几张、他自己接着是躲了（dodge）还是摸了（draw）
-      ins: s.ins ? Object.assign({}, s.ins) : null, // 公开：最近一次塞回炸毛猫的人、塞完后牌堆张数、之后从顶 / 底各摸走几张
-      removed: s.removed.slice(), // 收进盒子的牌种是公开的（多余的炸毛猫 / 逗猫棒）
+      ins: s.ins ? Object.assign({}, s.ins) : null, // 公开：最近一次塞回炸弹猫的人、塞完后牌堆张数、之后从顶 / 底各摸走几张
+      removed: s.removed.slice(), // 收进盒子的牌种是公开的（多余的炸弹猫 / 逗猫棒）
     };
   }
 
