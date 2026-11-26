@@ -292,13 +292,38 @@
   /* 2026-11-26 用户：牌在牌堆里还是它本身的样子，进了手才变万能猫——窥探 / 改命看到的、刚摸起来的那张，先亮本身，再翻一下变成万能猫（rawHtml + morphWild）。
    * rawFace 只在 rawHtml 里临时打开 */
   let rawFace = false;
-  const viewKind = (k, wild) => (k === R.BOTTOM && topdrawNow() ? 'topdraw' : R.CATS.indexOf(k) >= 0 && (wild || allwildNow()) && !rawFace ? R.WILD : k);
-  const willMorph = (id) => id != null && allwildNow() && R.CATS.indexOf(R.KIND_OF[id]) >= 0;   // 百搭：这张从牌堆里拿出来时要不要「变身」
-  // 角色「百搭猫」（2026-11-26 用户：和百变「百搭」一样）：这一家手里的猫都是万能猫——手牌区摆的是他的牌时，猫画成万能猫（摸进来时翻一下变身）
-  const wildLater = new Set();   // 刚飞进百搭猫手里、还没翻成万能猫的牌
-  const handWild = () => { const s = game && game.state; if (!s || !s.roles) return false; const seat = s.alive[0] ? 0 : viewSeat; return seat >= 0 && R.roleOf(s, seat) === 'calico'; };
-  // 百搭猫的猫出手：起飞时还是万能猫，半路翻回原来那只猫（桌上 / 弃牌堆照真牌画）
-  const leaveWild = (id, o) => (handWild() && R.CATS.indexOf(R.KIND_OF[id]) >= 0 ? Object.assign(o, { back: cardHtml(id, '', '', true), flip: 'up', flipAt: 0.15 }) : o);
+  /* 万能猫怎么画（2026-11-26 用户，百变「百搭」和角色「百搭猫」同一套）：
+   * 猫只在「手里」和「刚打上桌、生效期间」画成万能猫；牌堆、弃牌堆里一律是本身的样子（扫进弃牌堆时翻回来）。
+   * 别人冲我来的索要 / 两张偷 / 三张点名：从牌打上桌到牌真的给出去 / 被拿走，我手里的猫亮本身（好挑给哪只、看清会被拿走哪只），完了再翻回万能猫 */
+  const viewKind = (k, wild) => (k === R.BOTTOM && topdrawNow() ? 'topdraw' : R.CATS.indexOf(k) >= 0 && wild && !rawFace ? R.WILD : k);
+  // 这一家的猫是不是万能猫：百变「百搭」= 所有人；角色「百搭猫」= 他自己
+  const wildSeat = (seat) => { const s = game && game.state; return !!s && seat >= 0 && (allwildNow() || (!!s.roles && R.roleOf(s, seat) === 'calico')); };
+  const handSeat = () => { const s = game && game.state; return !s ? -1 : s.alive[0] ? 0 : viewSeat; };   // 手牌区摆的是谁的牌
+  const BARE_TYPES = ['pair', 'triple', 'favor'];
+  const handBare = () => { const s = game && game.state; return !!(game && game.bare) || !!(s && s.phase === 'give' && s.give && s.give.from === handSeat()); };
+  const handWild = () => wildSeat(handSeat()) && !handBare();
+  const willMorph = (id) => id != null && wildSeat(handSeat()) && R.CATS.indexOf(R.KIND_OF[id]) >= 0;   // 从牌堆里拿出来、要进这手牌的猫：先亮本身再「变身」
+  const wildLater = new Set();   // 刚飞进手里、还没翻成万能猫的牌
+  // 我的猫出手上桌：一路都是万能猫（生效完扫进弃牌堆时才翻回本身）
+  const leaveWild = (id, o) => (wildSeat(0) && R.CATS.indexOf(R.KIND_OF[id]) >= 0 ? Object.assign(o, { html: cardHtml(id, '', '', true) }) : o);
+  // 冲我来的索要 / 偷 / 点名开始、结束：手里的猫翻成本身 / 翻回万能猫
+  // 索要给完 / 偷完 / 点名拿走（或没有）：冲我来的这一下结束
+  const bareEnd = (pr, t) => Promise.resolve(pr).then((v) => { if (t === token) setBare(false); return v; });
+  function setBare(on) {
+    if (!game || !!game.bare === on) return;
+    game.bare = on;
+    refaceHand();
+  }
+  function refaceHand() {
+    const t = token, want = handWild();
+    let k = 0;
+    els.hand.querySelectorAll('.zm-card[data-id]').forEach((c) => {
+      const id = +c.dataset.id;
+      if (R.CATS.indexOf(R.KIND_OF[id]) < 0 || wildLater.has(id) || (c.dataset.v === R.WILD) === want) return;
+      if (fx.reduce()) setFace(c, cardHtml(id, '', '', want)); else flipFace(c, t, (k++) * ms(40));
+    });
+    if (k) snd('flip');
+  }
   // 我出这组牌算什么（百变「百搭」/ 角色「百搭猫」：任意两只 / 三只 / 五只猫也算）
   const classifyMine = (cards) => (R.classifyFor && game && game.state ? R.classifyFor(game.state, 0, cards) : R.classify(cards));
   // 名字条放不下的长名字（英文）：按字数缩一档 / 两档字号（zhamao.css 末尾「多语言」一段）。简体一律不加，站点和以前一样
@@ -312,19 +337,11 @@
       '<div class="zm-art">' + ART.face(vk) + '</div><i class="zm-ic">' + ART.icon(vk) + '</i><b class="zm-nm' + nmCls(R.NAMES[vk] || R.NAMES[k]) + '">' + (vk === 'topdraw' ? T('card.topdraw.name', '抽顶') : R.NAMES[vk]) + '</b></div>';
   }
   function rawHtml(id, cls, style) { rawFace = true; try { return cardHtml(id, cls, style); } finally { rawFace = false; } }
-  /* 牌原地翻一下、翻过去那一刻换成现在该有的牌面（百搭：本身那只猫 → 万能猫）。
-   * box = 跟着转的那层（手里的牌就是牌本身；飞出来的牌是外框或翻面层——影子在它上面，一起转才不露底板）；转动叠加在原有位移上（composite add），不打断别的动画 */
+  /* 这张牌原地变成万能猫（百搭：本身那只猫 → 万能猫）。2026-11-26 用户：不翻面了，统一走幕布刷新（curtainFace）；box 留着不用，调用处不用改 */
   function turnFace(box, face, id, delay, t) {
-    if (fx.reduce()) { setFace(face, cardHtml(id)); return Promise.resolve(); }
-    const a1 = box.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { duration: ms(180), delay: delay || 0, easing: 'ease-in', fill: 'forwards', composite: 'add' });
-    return a1.finished.then(() => {
-      if (t !== token || !face.isConnected) { a1.cancel(); return null; }
-      setFace(face, cardHtml(id));
-      const a2 = box.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { duration: ms(200), easing: 'ease-out', composite: 'add' });
-      a1.cancel();
-      return a2.finished;
-    }).catch(() => {});
+    return curtainFace(face, cardHtml(id, '', '', true), delay, t);
   }
+
   // 百搭：亮着本身样子的猫（飞出来的牌节点 / 手里、弹窗里的牌）一张张翻成万能猫
   function morphWild(nodes, ids, t, delay) {
     const jobs = [];
@@ -357,13 +374,18 @@
     if (fresh.dataset.v) c.dataset.v = fresh.dataset.v; else delete c.dataset.v;
   }
   // 翻一下：转到侧面时换牌面，再转回来
-  function flipFace(c, t, delay) {
-    const half = { duration: ms(180), delay: delay || 0, easing: 'ease-in', fill: 'forwards' };
-    return c.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], half).finished.then(() => {
-      if (t !== token) return;
-      setFace(c, cardHtml(+c.dataset.id, '', '', handWild()));
-      c.getAnimations().forEach((a) => a.cancel());
-      return c.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { duration: ms(200), easing: 'ease-out' }).finished;
+  function flipFace(c, t, delay) { return curtainFace(c, cardHtml(+c.dataset.id, '', '', handWild()), delay, t); }
+  /* 牌原地换牌面（百搭变身 / 变回本身 / 摸底⇄抽顶都走这一个）：现在是翻面——转到侧面时换牌面，叠加在原有位移上，飞着的牌也能翻。
+   * 2026-11-26 用户想改成「幕布拉过去、牌面跟着换」，在另一条线做预览，点头后只换这个函数的身子（和 zhamao.css 的 .zm-curtain） */
+  function curtainFace(c, html, delay, t) {
+    if (fx.reduce() || !c.isConnected) { setFace(c, html); return Promise.resolve(); }
+    const a1 = c.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { duration: ms(180), delay: delay || 0, easing: 'ease-in', fill: 'forwards', composite: 'add' });
+    return a1.finished.then(() => {
+      if ((t != null && t !== token) || !c.isConnected) { a1.cancel(); return null; }
+      setFace(c, html);
+      const a2 = c.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { duration: ms(200), easing: 'ease-out', composite: 'add' });
+      a1.cancel();
+      return a2.finished;
     }).catch(() => {});
   }
   const backHtml = (cls, style) => '<div class="zm-card is-back' + (cls ? ' ' + cls : '') + '"' + (style ? ' style="' + style + '"' : '') + '>' + ART.BACK + '</div>';
@@ -2547,7 +2569,7 @@
     els.stage.classList.remove('is-cancelled', 'is-out');
     const named = '';   // 点名要：桌上只摆三张猫，点名的那张不再放旁边（2026-11-18 用户）——到结算时在被点名的人旁边走原来那套对话泡动画
     els.stage.innerHTML = '<div class="zm-stage-inner">' +
-      '<div class="zm-stage-cards">' + p.cards.map((id, i) => cardHtml(id, hidden ? 'is-incoming' : '', 'transform:rotate(' + ((i - (p.cards.length - 1) / 2) * 5).toFixed(1) + 'deg)')).join('') + named + '<div class="zm-stage-nopes"></div></div>' +
+      '<div class="zm-stage-cards">' + p.cards.map((id, i) => cardHtml(id, hidden ? 'is-incoming' : '', 'transform:rotate(' + ((i - (p.cards.length - 1) / 2) * 5).toFixed(1) + 'deg)', wildSeat(p.by))).join('') + named + '<div class="zm-stage-nopes"></div></div>' +
       '<div class="zm-fuse" aria-hidden="true"><i class="rope"></i><i class="spark"></i></div></div>';
     placeStage();
     setActing(p.by);
@@ -3048,11 +3070,11 @@
       case 'alter': return animAlterLift(e, t);
       case 'altered': return animAltered(e, t);
       case 'askGive': return animAskGive(e, t);
-      case 'give': return animTransfer(e, t, 'give');
-      case 'steal': return animSteal(e, t);
+      case 'give': return bareEnd(animTransfer(e, t, 'give'), t);
+      case 'steal': return bareEnd(animSteal(e, t), t);
       case 'swap': return animSwap(e, t);
-      case 'take': return animTake(e, t);
-      case 'miss': return animMiss(e, t);
+      case 'take': return bareEnd(animTake(e, t), t);
+      case 'miss': return bareEnd(animMiss(e, t), t);
       case 'askPick': return;
       case 'pick': return animPick(e, t);
       case 'draw': return animDraw(e, t);
@@ -3078,6 +3100,7 @@
     const p = s.pending || { by: e.seat, type: e.type, cards: e.cards, target: e.target, named: e.named, nopes: [] };
     const src = game.src || {};
     if (e.seat === 0) { dropFromHand(e.cards); e.cards.forEach((id) => handOut.delete(id)); renderHand(); } else { ov.counts[e.seat] -= e.cards.length; renderSeat(e.seat); }
+    if (BARE_TYPES.indexOf(p.type) >= 0 && targetOf(p) === handSeat() && wildSeat(handSeat())) setBare(true);   // 冲我来的：手里的猫亮本身
     showStage(p, true);
     snd('whoosh');
     const su = SU(), start = avPoint(e.seat);
@@ -3093,11 +3116,11 @@
         return Promise.resolve();
       }
       const fo = {
-        html: cardHtml(id), back: backHtml(), flip: mine ? null : 'up', flipAt: 0.15,
+        html: cardHtml(id, '', '', wildSeat(e.seat)), back: backHtml(), flip: mine ? null : 'up', flipAt: 0.15,
         from: mine ? src[id] : start, to: { x: to.left + to.width / 2, y: to.top + to.height / 2 }, w: su,
         s0: mine ? src[id].width / su : 0.3, s1: 1, r0: mine ? 0 : -18, r1: rot, dur: ms(pace().fly + 80), delay: i * ms(80), lift: mine ? 90 : 50,
       };
-      return fx.fly(mine ? leaveWild(id, fo) : fo).then(() => {
+      return fx.fly(fo).then(() => {
         if (t !== token) return;
         target.classList.remove('is-incoming');
         snd('thud');
@@ -3118,16 +3141,16 @@
       await fl.back();
       if (t !== token) return;
     }
-    await mimic(p.cards, t);   // 万能猫顶了谁：演完、停一下再往下走（只有组合里有万能猫时才多这一下）
+    await mimic(p.cards, t, p.by);   // 万能猫顶了谁：演完、停一下再往下走（只有组合里有万能猫时才多这一下）
     if (t !== token) return;
     const named = els.stage.querySelector('.zm-stage-named');
     if (named && !fx.reduce()) named.animate([{ transform: 'scale(.2) rotate(-20deg)', opacity: 0 }, { transform: 'scale(1.15) rotate(6deg)', opacity: 1, offset: 0.6 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'ease-out' });
   }
 
   /* 万能猫上桌：它顶的是哪只猫（对子 / 三张 = 同组里那只真猫；五种各一张 = 缺的那几种按顺序分）。两张都是万能猫就不顶谁 */
-  function mimicKinds(cards) {
+  function mimicKinds(cards, seat) {
     const K = R.KIND_OF, kinds = cards.map((id) => K[id]);
-    if (!kinds.some((k) => k === R.WILD) || !kinds.every(R.catLike) || allwildNow()) return {};   // 百搭时猫都画成万能猫了，不再变身
+    if (!kinds.some((k) => k === R.WILD) || !kinds.every(R.catLike) || wildSeat(seat)) return {};   // 百搭 / 百搭猫：他的猫都画成万能猫了，不再变身
     const real = kinds.filter((k) => k !== R.WILD), out = {};
     if (cards.length === 5) {
       const miss = R.CATS.filter((c) => real.indexOf(c) < 0);
@@ -3137,8 +3160,8 @@
   }
   /* 万能猫变身（2026-11-13 用户挑定甲）：万能猫的画一道流光扫过、变成它顶的那只猫，名字条照旧五彩、名字换成那只猫。
    * 只在桌上这样，进弃牌堆就还是万能猫 */
-  async function mimic(cards, t) {
-    const map = mimicKinds(cards);
+  async function mimic(cards, t, seat) {
+    const map = mimicKinds(cards, seat);
     const ids = Object.keys(map).map(Number);
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i], k = map[id], el = stageCard(id);
@@ -3237,6 +3260,7 @@
     if (t !== token) return;
     await sweepStage(t);
     if (t !== token) return;
+    if (e.cancelled) setBare(false);   // 冲我来的被作废了：手里的猫翻回万能猫
     if (!e.cancelled && e.type === R.SKIP) await fxSleep(e.seat, t);
   }
   // 舞台上所有牌（连同「不行」）沿弧线扫进弃牌堆，摆成那堆里各自的角度，一张张落下
@@ -3245,6 +3269,15 @@
     const inner = els.stage.querySelector('.zm-stage-inner');
     const to = discardRect();
     const pu = PU();
+    // 百搭：桌上画成万能猫的猫，生效完了先原地刷回本身，再扫进弃牌堆（2026-11-26 用户）
+    const wilds = cs.filter((c) => c.dataset.v === R.WILD);
+    if (wilds.length) {
+      snd('flip');
+      await Promise.all(wilds.map((c, i) => curtainFace(c, cardHtml(+c.dataset.id, c.className.replace(/\bzm-card\b/, '').trim()), i * ms(60), t)));
+      if (t !== token) return;
+      await wait(ms(160));
+      if (t !== token) return;
+    }
     const items = cs.map((c) => ({ id: +c.dataset.id, r: c.getBoundingClientRect(), gray: els.stage.classList.contains('is-cancelled') }));
     if (inner && !fx.reduce()) inner.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
     cs.forEach((c) => { c.style.visibility = 'hidden'; });
@@ -4443,10 +4476,7 @@
       await fx.fly(open ? { html: face, from, to, w: u, s0: pu * ps / u, s1: 1, r0: pr, r1: 0, dur: ms(560), lift: 70, swell: 0.18 } : { html: face, back: backHtml(), flip: 'up', flipAt: 0.3, from, to, w: u, s0: pu * ps / u, s1: 1, r0: pr, r1: 0, dur: ms(560), lift: 70, swell: 0.18 });
       if (t !== token) return;
       snd('flip');
-      const hc = morph ? handCard(e.card) : null;
-      if (hc) setFace(hc, face);
-      revealHandCard(e.card, to);
-      if (hc) morphWild([hc], [e.card], t, ms(320));
+      revealHandCard(e.card, to);   // 百搭：落稳后在 revealHandCard 里翻成万能猫
       if (R.KIND_OF[e.card] === R.DEFUSE) { const r = handRectOf(e.card); fx.burst(r.left + r.width / 2, r.top + r.height / 2, { n: 10, shapes: ['star'], colors: ['#4f8a5f', '#9bc8a2', '#c9a96e'], radius: u * 0.8, size: [6, 14], life: 700 }); }
     } else {
       /* 2026-11-19 用户定（随抽底乙一起）：以前牌缩小后盖在头像正中、一直是实的，最后一帧突然没了，之后才跳数字、头像才鼓。
@@ -10037,6 +10067,9 @@
       roletabbymiss: () => { const o = 2 % s.n; setRole(o, 'tabby'); if (R.countKind(s.hands[o], R.NOPE) === 0) give(o, R.NOPE); s.removed.push(...s.hands[bot].splice(0)); give(bot, R.SKIP); s.turn = bot; game.forceNope = [o]; renderAll(); apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
       rolefat: () => { setRole(bot, 'fat'); plays.favor(); },
       rolefatme: () => { setRole(0, 'fat'); give(0, R.FAVOR); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.FAVOR)], target: bot }); },
+      rolecalicosteal: () => { setRole(0, 'calico'); ['orange', 'tabby', 'siamese'].forEach((k) => give(0, k)); give(bot, 'cow'); give(bot, 'cow'); s.turn = bot; const cw = s.hands[bot].filter((x) => R.KIND_OF[x] === 'cow').slice(0, 2); apply(bot, { type: 'play', cards: cw, target: 0 }); },   // 我是百搭猫、被偷：手里的猫亮本身，偷完翻回万能猫
+      rolecalicofavor: () => { setRole(0, 'calico'); ['orange', 'tabby', 'siamese'].forEach((k) => give(0, k)); give(bot, R.FAVOR); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.FAVOR)], target: 0 }); },   // 我是百搭猫、被索要：挑牌时猫亮本身
+      rolecalicoplay: () => { setRole(0, 'calico'); give(0, 'orange'); give(0, 'tabby'); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], 'orange'), R.findKind(s.hands[0], 'tabby')], target: bot }); },   // 我是百搭猫、出两只不同的猫偷：桌上是两张万能猫，生效完刷回本身再进弃牌堆
       rolecalicome: () => { setRole(0, 'calico'); ['orange', 'cow', 'tabby', 'siamese', 'calico'].forEach((k) => give(0, k)); const ck = R.CATS.find((k) => s.deck.some((x) => R.KIND_OF[x] === k)); if (ck) top(ck); s.turn = 0; release(); renderAll(); },   // 我是百搭猫：手里的猫都画成万能猫，顶上放一张猫，摸进来会翻成万能猫
       rolecalico: () => { setRole(bot, 'calico'); give(bot, 'orange'); give(bot, 'siamese'); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], 'orange'), R.findKind(s.hands[bot], 'siamese')], target: 0 }); },
       roletabby: () => { const o = 2 % s.n; setRole(o, 'tabby'); if (R.countKind(s.hands[o], R.NOPE) === 0) give(o, R.NOPE); give(bot, R.SKIP); s.turn = bot; game.forceNope = [o]; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
