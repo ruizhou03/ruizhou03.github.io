@@ -1917,9 +1917,9 @@
     if (e.role === 'timid') {
       const fl = await flashRole(e.seat, t);
       if (t !== token) return fl.back();
-      // 他在看牌堆顶 3 张：是我就照窥探把三张正面摊给我；是别人就在牌堆上方掀起三张牌背摊一下，再放回去
-      if (e.seat === meSeat() && e.cards) await animFuture({ t: 'future', seat: e.seat, cards: e.cards }, t);
-      else await liftTop3(Math.min(3, D().deckSize || 3), t);
+      // 他在看牌堆顶 3 张：整段照窥探演——是我就把三张正面摊给我；是别人就跟别人窥探一样，三张牌背从牌堆扇到上方（避开头像）、猫眼眨一下，再一张张落回牌堆顶
+      // （2026-11-26 用户：以前别人这段是另一套「掀起三张」，放回时三张落在牌堆偏右上一点、和牌堆不重合，然后一下子消失；拿起时牌堆也不变薄，像多出三张）
+      await animFuture({ t: 'future', seat: e.seat, cards: e.seat === meSeat() ? e.cards : null, count: Math.min(3, D().deckSize || 0) }, t);
       return fl.back();
     }
     if (e.role === 'cow') {
@@ -1959,31 +1959,6 @@
       { transform: 'translateX(-2px)', opacity: 0.6, filter: 'blur(.5px)', offset: 0.8 },
       { transform: 'none', opacity: 1, filter: 'none' },
     ], { duration: ms(760), easing: 'ease-in-out' }).finished.catch(() => {});
-  }
-  // 牌堆顶 N 张在牌堆上方掀起来摊一下（别人在看，我看不到正面），再放回去
-  async function liftTop3(n, t) {
-    if (fx.reduce() || !n) { await wait(ms(500)); return; }
-    // 按放大前的牌堆大小抬（2026-11-26：牌堆放大后这三张跟着变大、抬得更高，手机横屏顶出屏幕上沿）；抬起后牌顶不出屏
-    const bs = U() * 0.92 / PU(), dr = deckTopRect(), u = dr.width * 0.82 * bs, cx = dr.left + dr.width / 2, cy = dr.top + dr.height / 2;
-    const up = Math.max(0, Math.min(dr.height * 0.95 * bs, cy - u * 0.7 - 6));
-    const nodes = [];
-    for (let i = 0; i < n; i++) {
-      const d = document.createElement('div');
-      d.className = 'zm-lift3';
-      d.style.cssText = 'width:' + u + 'px;left:' + (cx - u / 2) + 'px;top:' + (cy - u * 0.7) + 'px';
-      d.innerHTML = backHtml();
-      els.fly.appendChild(d);
-      nodes.push(d);
-      const k = i - (n - 1) / 2;
-      d.animate([{ transform: 'none' }, { transform: 'translate(' + (k * u * 0.55).toFixed(1) + 'px,' + (-up).toFixed(1) + 'px) rotate(' + (k * 9) + 'deg)' }],
-        { duration: ms(360), delay: i * ms(60), easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'forwards' });
-    }
-    snd('whoosh');
-    await wait(ms(360 + 60 * n + 820));
-    nodes.forEach((d, i) => d.animate([{ opacity: 1 }, { transform: 'none', opacity: 1 }], { duration: ms(300), delay: (n - 1 - i) * ms(50), easing: 'ease-in', fill: 'forwards', composite: 'replace' }));
-    await wait(ms(300 + 50 * n));
-    nodes.forEach((d) => d.remove());
-    void t;
   }
   /* 组队·求救（2026-11-19 用户改）：前半段永远一个样——被炸的人喊「救我！」，活着的队友（不管几个、不管有没有逗猫棒）头上都冒一个
    * 会动的省略号在想。有人救：他的省略号变成「接着！」，别的队友的省略号收回；没人救（没有 / 不肯 / 到点）：省略号全收回，被炸的人出局。
@@ -10391,6 +10366,7 @@
       boom: () => { top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
       // 角色猫技能（2026-11-18 改版：亮牌 + 原动作）：who 那一家换成这只角色再演
       roletimid: () => { const nx = R.nextAlive(s, bot); setRole(nx, 'timid'); plays.attack(); },
+      roletimidme: () => { const a = [...Array(s.n).keys()].find((k) => k && R.nextAlive(s, k) === 0); setRole(0, 'timid'); give(a, R.ATTACK); s.turn = a; apply(a, { type: 'play', cards: [R.findKind(s.hands[a], R.ATTACK)] }); },   // 我是胆小猫、被上家甩锅
       rolecow: () => { const nx = R.nextAlive(s, bot); setRole(nx, 'cow'); plays.attack(); },
       // 角色边界（2026-11-26）：胆小猫牌堆只剩 2 张；贪吃猫索要的人只剩 1 张；截胡猫作废成功但对方已经没牌（扑空）；影子猫被两张偷牌指上
       roletimidlow: () => { const nx = R.nextAlive(s, bot); setRole(nx, 'timid'); s.removed.push(...s.deck.splice(2)); plays.attack(); },
@@ -10494,7 +10470,7 @@
     (plays[name] || plays.draw)();
   }
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('zmdemo')) {
-    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, guideReset, guideOnline, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage, flashRole: (seat, hold) => flashRole(seat, token, hold), expandRole, openRoleView, liftTop3: (n) => liftTop3(n, token), startWander, layoutRing, fanSpot, get settings() { return settings; } };
+    window.__zmDebug = { get game() { return game; }, get online() { return online; }, get busy() { return busy; }, step, newGame, startTutorial, guideReset, guideOnline, demo, R, AI, fx, renderSeat, renderDir, renameFx, avatarHtml, fitNames, rimLink, rimFx, roomGoneDialog, humansOutHere, rimMood: (re) => rimMood(null, re), celebrate, cardFuse, clearStage, flashRole: (seat, hold) => flashRole(seat, token, hold), expandRole, openRoleView, startWander, layoutRing, fanSpot, get settings() { return settings; } };
   }
   /* 「这步不对」反馈（zhamao-feedback.js）：打开时像暂停一样停住（不弹暂停页），关掉接着打 */
   function fbHold() {

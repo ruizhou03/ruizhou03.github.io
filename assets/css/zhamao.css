@@ -1409,7 +1409,6 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-av .zm-owe.is-left { left: auto; right: 72%; }
 .zm-owe > i:nth-child(1) { left: 0; }
 .zm-owe > i:nth-child(2) { left: calc(var(--av) * 0.24); }
-.zm-lift3 { position: fixed; z-index: 4; pointer-events: none; filter: drop-shadow(0 3px 5px rgba(29, 27, 24, 0.25)); }
 /* 给牌键上的 ×N（贪吃猫要两张）：和被甩锅的 ×N 一种小角标 */
 .zm-btn .zm-xn { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; height: 18px; padding: 0 6px; border-radius: 999px; background: #fffaf0; color: var(--zm-seal); font: 700 12px/1 'ZM Num', 'ZM Serif', Georgia, serif; }
 /* 开局抽角色 */
