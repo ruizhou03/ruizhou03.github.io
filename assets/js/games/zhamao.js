@@ -2481,7 +2481,10 @@
     els.drawBtn.classList.remove('is-ready');
     // 结束了也等动画播完（ov 还在 = 桌上还在演）再收键（2026-11-22 用户：最后一炸把整局打完时，game.state 当场就是 over，
     // 两个键一摸牌就没了，牌还没翻开就知道自己挂了）
-    if (s.phase === 'over' && !ov) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
+    // 观战（我早就出局了 / 坐到别人背后看）：两个键任何时候都不出（2026-11-26 用户：看别人打到最后一摸，game.state 当场就是 over，
+    // 走了下面「灰着等动画」那条，两个键突然冒出来，炸弹猫还没翻开就知道这局完了）。所以这条要排在 over 前面
+    if (game.spectator || (!s.alive[0] && game.fastOut)) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
+    else if (s.phase === 'over' && !ov) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (s.phase === 'over') { /* 灰着等动画 */ }
     else if (game.dealing) { /* 发牌中：两个键都灰着 */ }
     // 摸到炸弹猫、我那一下还没炸完（game.fastOut 在出局动画最后才置上）：两个键照常灰着——2026-11-14 用户：一摸牌键就被收走，
@@ -9368,11 +9371,12 @@
     if (game && !game.online && !online) {
       // 单机：我出局、自己那下炸完了（fastOut），机器猫还在接着打 → 我自己的 ⏩
       const s = game.state;
-      if (!game.tutorial && s && !s.alive[meSeat()] && s.phase !== 'over' && game.fastOut && !game.turboOff) mode = 'ff';
+      // 最后一摸 game.state 当场就是 over：桌上还在演（ov）就别收键，不然键一没、牌还没翻开就知道打完了（2026-11-26 用户）
+      if (!game.tutorial && s && !s.alive[meSeat()] && (s.phase !== 'over' || ov) && game.fastOut && !game.turboOff) mode = 'ff';
       // 2026-11-22 用户：我出局了就直接 5 倍速播（以前要自己点 ⏩ 才 5 倍）；⏩ 改成「直接看结果」
       if (mode === 'ff' && !game.turbo && !game.autoTurbo) { game.autoTurbo = true; setTurbo(true); }
       if (mode === 'ff') ffPrecompute();   // 键一出来就在后台把剩下的预演完，点了直接用
-      if (game.ffJump && s && s.phase !== 'over') mode = 'ff';   // 点了「直接看结果」、剩下几步还在算：键一直亮着，算完进结算再收
+      if (game.ffJump && s && (s.phase !== 'over' || ov)) mode = 'ff';   // 点了「直接看结果」、剩下几步还在算：键一直亮着，算完进结算再收
     } else {
       const g = online && game && game.online ? G() : null;
       // 我这边也得看到真人全出局了才算（网慢、播得落后时，服务器早算完了，但我这边自己还活着——这时快进 / 露键都等于剧透）
@@ -9434,7 +9438,8 @@
     if (!game) return;
     if (game.online) { const g = G(); if (online && g && g.over) { game.turboOff = true; resync(); } return; }
     const s = game.state;
-    if (s.phase === 'over' || s.alive[meSeat()] || game.tutorial) return;
+    if (s.alive[meSeat()] || game.tutorial) return;
+    if (s.phase === 'over' && !ov) return;
     token++;
     game.dealing = false;
     if (game.wander) { game.wander.cancel(); game.wander = null; }
@@ -9446,6 +9451,7 @@
     setTurbo(false);
     busy = true;
     const t = token, g0 = game;
+    if (s.phase === 'over') { release(); renderAll(); step(); return; }   // 最后一摸正在演时点的：已经算完了，直接进结算
     // 分片算（每片 ~25 毫秒就让一下浏览器）：高手机器猫一步要算一会儿，手机上一口气算完会卡住画面
     simulateRest(s, () => t === token && game === g0, { cheap: true }).then((done) => {
       if (!done || t !== token || game !== g0) return;
