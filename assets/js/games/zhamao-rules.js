@@ -36,7 +36,7 @@
  *   'pick'   五种猫各一张：出牌人从弃牌堆挑一张：pickDiscard()
  *   'steal'  两张一样：出牌人从对方扣着的手牌里点一张（顺序打乱过，看不出是哪张）：stealPick()
  *   'alter'  「重排」：出牌人把牌堆最上面（至多）三张按自己想要的顺序放回去：alterTop()
- *   'save'   百变「急救」：摸到炸毛猫、没逗猫棒但手里有一对——自己挑哪一对顶逗猫棒：catSave()（不给牌 = 自动挑最便宜的一对，超时 / 托管 / 机器猫）
+ *   'save'   百变「急救」：摸到炸毛猫、没逗猫棒但手里有一对——自己挑哪一对顶逗猫棒：catSave()（不给牌 = 自动挑最便宜的一对，超时 / 托管 / 机器猫；decline = 点了「取消」，照常炸）
  *   'defuse' 刚用逗猫棒拆了炸毛猫，把它塞回去：insertKitten()
  *   'over'   结束，state.winner
  * 每个改状态的函数都返回事件数组（UI 播动画 / 服务器转发）。带 priv 字段的事件只有 priv 里列的座位能看到全部内容，
@@ -788,6 +788,10 @@
       ev.push({ t: 'save', seat, kitten: id });
       return ev;
     }
+    return boomUnsaved(s, seat, id, ev);
+  }
+  // 摸到炸毛猫、没逗猫棒、急救也没用上（凑不出对 / 用过了 / 自己点了「取消」）：九命 → 组队求救 → 出局
+  function boomUnsaved(s, seat, id, ev) {
     // 百变「九命」：每人一局一次，不出局；2026-11-26 用户：喊完九命也和逗猫棒一样自己挑塞回第几张（以前随机放回）——进入塞回阶段（insertKitten）
     // 事件 nine 带 pick：网页 / 联机镜像据此只演「喊九命」、不再自己往牌堆里放（之后的 insert 事件才放）
     if (s.flux === 'nine' && s.nineUsed && !s.nineUsed[seat]) {
@@ -815,8 +819,15 @@
     return eliminate(s, seat, id, ev);
   }
   /* 急救：交出一对顶逗猫棒（cards 不给 / 给的不成对 → 自动挑 catPairIds 那一对，最便宜的）。之后和逗猫棒一样进 defuse、自己挑位置塞回（insertKitten） */
-  function catSave(s, seat, cards) {
+  // decline = 玩家点了「取消」（2026-11-26 用户：要给他不救的权利）：不交牌、急救也不算用过，照常炸（组队仍会喊队友救）
+  function catSave(s, seat, cards, decline) {
     if (s.phase !== 'save' || !s.save || s.save.by !== seat) throw new Error('illegal save');
+    if (decline) {
+      const kid = s.save.card;
+      s.save = null;
+      s.seq += 1;
+      return boomUnsaved(s, seat, kid, [{ t: 'noSave', seat }]);
+    }
     const hand = s.hands[seat];
     const pair = savePairOk(hand, cards) ? cards.slice() : catPairIds(hand);
     if (!pair) throw new Error('illegal save');

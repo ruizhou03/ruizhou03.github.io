@@ -778,6 +778,14 @@ test('flux 急救 (catsave, 2026-11-26): the player picks which pair; a bad pick
   const d2 = R.catSave(s, 0, [R.findKind(h, 'orange'), R.findKind(h, 'cow')]).find((e) => e.t === 'defuse');
   assert.deepEqual([d2.card, d2.extra].map((id) => R.KIND_OF[id]), ['orange', 'orange']);  // 不成对 → 最便宜的一对
   assert.throws(() => R.catSave(s, 0));                               // 已经不在急救阶段
+  // 点「取消」（2026-11-26 用户）：不交牌、急救不算用过，照常出局
+  s = mk();
+  const before = s.hands[0].length;
+  const evNo = R.catSave(s, 0, null, true);
+  assert.ok(evNo.some((e) => e.t === 'noSave' && e.seat === 0));
+  assert.ok(evNo.some((e) => e.t === 'out' && e.seat === 0));
+  assert.equal(s.alive[0], false); assert.ok(!s.saveUsed[0]); assert.equal(s.save, null);
+  assert.ok(before > 0);
   // 凑不出一对：不进急救阶段，照常出局
   const t = rig([['orange', 'cow', 'skip'], ['skip'], ['skip']], ['shuffle', 'shuffle', 'shuffle'], 0);
   t.rules = Object.assign({}, t.rules, { mode: 'flux' }); t.flux = 'catsave'; t.saveUsed = [false, false, false];

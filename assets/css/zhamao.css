@@ -1703,8 +1703,17 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-btn-life:hover .zm-life i { background: #67977a; }
 /* 百变「急救」挑对子（2026-11-26 用户）：凑不上对的牌变灰，凑得上的描一圈绿；抬起来的那一对就是要交的；「合成」键 = 绿色的命（同救队友） */
 .zm-hand.is-saving .zm-card.is-dim { filter: grayscale(0.85) opacity(0.5); }
-.zm-hand.is-saving .zm-card:not(.is-dim) { box-shadow: 0 0 0 2px #7fb06a, 0 0 12px rgba(127, 176, 106, 0.5); }
-.zm-hand.is-saving .zm-card.is-sel { box-shadow: 0 0 0 2.5px #e9d46a, 0 0 16px rgba(233, 212, 106, 0.75); }
+/* 2026-11-26 用户：不要每张能凑的都描绿边——照索要，整排手牌底下一层暖光一呼一吸（急救用绿金色），抬起的那一对描金边 */
+.zm-hand.is-saving .zm-card:not(.is-sel) { box-shadow: -2px 0 6px rgba(29, 27, 24, 0.08); }
+.zm-hand.is-saving .zm-card.is-sel { translate: 0 -10px; box-shadow: 0 0 0 3px #e9c86a, 0 10px 20px rgba(201, 160, 60, 0.45); }
+.zm-app.is-saving .zm-hand::before {
+  content: ''; position: absolute; left: -2%; right: -2%; bottom: -10px; height: calc(100% + 46px); pointer-events: none; z-index: 0; transform-origin: 50% 100%;
+  background: radial-gradient(66% 100% at 50% 100%, rgba(127, 176, 106, 0.72), rgba(160, 190, 100, 0.6) 62%, rgba(233, 212, 106, 0.3) 84%, rgba(233, 212, 106, 0) 100%);
+  animation: zm-give-breathe 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .zm-app.is-saving .zm-hand::before { animation: none; opacity: 0.8; } }
+.zm-app.is-saving #zmDrawBtn { background: transparent; color: var(--zm-ink); border-color: var(--zm-ink); }
+.zm-app.is-saving .zm-seat-me .zm-av { box-shadow: 0 0 0 2px #7fb06a, 0 0 0 7px rgba(127, 176, 106, 0.25); }
 #zmPlayBtn.zm-btn-life.is-save, #zmPlayBtn.zm-btn-life.is-save:disabled { background: #9c978c; border-color: transparent; color: #fff; }
 #zmPlayBtn.zm-btn-life.is-save:disabled { opacity: 0.6; }
 /* 联机：点了「救」在等服务器——逗猫棒举起来亮着 */

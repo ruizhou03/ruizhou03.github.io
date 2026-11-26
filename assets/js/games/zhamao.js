@@ -2331,7 +2331,8 @@
     else if (mode === 'target') { els.drawBtn.hidden = true; }
     else if (mode === 'save') {
       // 急救（2026-11-26 用户）：「合成」键是绿色的命，倒计时时一点点减少、底下是灰色（同救队友）；到点没点 = 自动交最便宜的一对
-      els.drawBtn.hidden = true;
+      // 2026-11-26 用户：「合成」「取消」两个键，排法照作废（取消在左、合成在右）；取消 = 不救，照常炸
+      els.drawBtn.disabled = false; els.drawBtn.textContent = T('ui.cancel', '取消');
       if (!els.playBtn.querySelector('.zm-life')) els.playBtn.innerHTML = '<span class="zm-life" aria-hidden="true"><i></i></span><b>' + T('ui.btn.save', '合成') + '</b>';
       els.playBtn.classList.add('zm-btn-life', 'is-save');
       els.playBtn.disabled = !(selected.length === 2 && R.savePairOk(game.state.hands[0], selected));
@@ -2841,7 +2842,7 @@
       else if (d.type === 'give') ev = R.give(s, seat, d.card);
       else if (d.type === 'pick') ev = R.pickDiscard(s, seat, d.card);
       else if (d.type === 'insert') ev = R.insertKitten(s, seat, d.pos, !!d.rand);
-      else if (d.type === 'save') ev = R.catSave(s, seat, d.cards);
+      else if (d.type === 'save') ev = R.catSave(s, seat, d.cards, !!d.no);
       else if (d.type === 'alter') ev = R.alterTop(s, seat, d.order);
       else if (d.type === 'steal') ev = R.stealPick(s, seat, d.idx);
       else if (d.type === 'rescue') ev = R.rescue(s, seat, !!d.yes);
@@ -2928,6 +2929,7 @@
       case 'pick': return animPick(e, t);
       case 'draw': return animDraw(e, t);
       case 'boom': return animBoom(e, t, next);
+      case 'noSave': return;   // 急救点了「取消」：接着照常炸
       case 'save': return;   // 急救：等摸到的人挑对子（头像一直是炸毛猫），挑好了 defuse 事件演合成
       case 'defuse': return animDefuse(e, t);
       case 'insert': if (e.at != null && game && game.state && game.state.flux === 'exact') (game.openKits = game.openKits || new Set()).add(e.card); return animInsert(e, t);   // 百变「明塞」：塞完那张露一截在牌堆里（renderOpenKits）
@@ -4965,15 +4967,15 @@
     renderBand();
     if (selected.length === 2) snd('combo');
   }
-  function saveCommit(auto) {
+  function saveCommit(auto, decline) {
     if (mode !== 'save') return;
     const hand = game.state.hands[0];
     const cards = selected.length === 2 && R.savePairOk(hand, selected) ? selected.slice() : null;
-    if (!auto && !cards) { shake(els.playBtn); return; }
+    if (!auto && !decline && !cards) { shake(els.playBtn); return; }
     clearTimeout(saveTimer);
     mode = null;
     if (auto) { timeouts += 1; autoAct = true; }
-    const d = cards ? { type: 'save', cards } : { type: 'save' };
+    const d = decline ? { type: 'save', no: true } : cards ? { type: 'save', cards } : { type: 'save' };
     apply(0, d);
     if (auto && timeouts >= 2) setAutopilot(true);
   }
@@ -5004,6 +5006,7 @@
   function onDraw() {
     const s = game.state;
     if (autopilot) { setAutopilot(false); return; }
+    if (mode === 'save') { saveCommit(false, true); return; }
     if (s.phase === 'react' && reactOpen) { passReact(); return; }
     if (!s.alive[0] && s.phase !== 'over') { return; }   // 出局后「摸牌」那个键已经收起，不能再从这儿直接开下一局   // 联机里出局了不能就地开单机局（还在房间里）
     if (!myTurnToAct()) return;
@@ -7903,7 +7906,8 @@
         break;
       }
       case 'noRescue': break;
-      case 'save': s.phase = 'save'; s.save = { by: e.seat, card: e.kitten != null ? e.kitten : s.netBoom }; break;   // 急救：摸到炸毛猫的人在挑哪一对
+      case 'save': s.phase = 'save'; s.save = { by: e.seat, card: e.kitten != null ? e.kitten : s.netBoom }; break;
+      case 'noSave': s.save = null; s.seq += 1; break;   // 急救点了「取消」：接着的 askRescue / out 照常   // 急救：摸到炸毛猫的人在挑哪一对
       case 'defuse': {
         const src = e.rescue && e.from != null ? e.from : e.seat;   // 组队救人：逗猫棒是队友出的
         putInHand(s, src, e.card);
@@ -8737,7 +8741,7 @@
         if (x.type === 'give') return R.give(s, seat, x.card);
         if (x.type === 'pick') return R.pickDiscard(s, seat, x.card);
         if (x.type === 'insert') return R.insertKitten(s, seat, x.pos, !!x.rand);
-        if (x.type === 'save') return R.catSave(s, seat, x.cards);
+        if (x.type === 'save') return R.catSave(s, seat, x.cards, !!x.no);
         if (x.type === 'alter') return R.alterTop(s, seat, x.order);
         if (x.type === 'steal') return R.stealPick(s, seat, x.idx);
         throw new Error('bad move ' + x.type);
