@@ -8304,7 +8304,7 @@
   }
   const seatSpots = () => spotsBy(srvOf);
   /* 换完视角按现在的局面补回那些「挂着」的东西（2026-11-17 用户：要和被看那家屏幕上一模一样）：
-   * 出了要指人的牌、还在等作废 → 准星 + 桌沿连线；被索要 → 粉准星；在挑偷哪张 → 准星；摸到炸弹猫在塞回去 → 头像变炸弹猫 */
+   * 出了要指人的牌、还在等作废 → 准星 + 桌沿连线；被索要 → 粉准星 + 连线；在挑偷哪张 → 准星 + 连线；摸到炸弹猫在塞回去 → 头像变炸弹猫 */
   function restoreAim() {
     const s = game && game.state;
     if (!s || game.dealing) return;
@@ -8316,8 +8316,16 @@
         game.arrow = aim(tg, cardHue(p));
         game.rimLk = rimLink(p.by, tg, atk, cardHue(p));
       }
-    } else if (s.phase === 'give' && s.give) game.arrow = aim(s.give.from, '#e0566e');
-    else if (s.phase === 'steal' && s.steal) game.arrow = aim(s.steal.from, '#c9a96e');
+    } else if (s.phase === 'give' && s.give) {
+      // 索要 / 偷牌进到「等他挑一张」这一步时，出牌那会儿伸出去的桌沿连线还挂着（等牌飞过来才收）——换视角也得按新座位接着连上
+      // （2026-11-26 用户截图：观战时切视角，右边开阳向左边木木子索要，中间那条线没了）
+      const fat = s.roles && R.roleOf(s, s.give.to) === 'fat' && s.give.left === 1;
+      game.arrow = aim(s.give.from, '#e0566e');
+      game.rimLk = rimLink(s.give.to, s.give.from, false, fat ? (ART.ROLE_TONE.fat || {}).band || '#d27a36' : '#e0566e');
+    } else if (s.phase === 'steal' && s.steal) {
+      game.arrow = aim(s.steal.from, '#c9a96e');
+      game.rimLk = rimLink(s.steal.by, s.steal.from, false, '#c9a24a');
+    }
     else if (s.phase === 'defuse' && s.defuse) bombAvatar(s.defuse.by, true);
     else if (s.phase === 'save' && s.save) bombAvatar(s.save.by, true);
   }
