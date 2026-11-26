@@ -26,7 +26,7 @@
   const els = {
     app: $('zmApp'), table: $('zmTable'), opps: $('zmOpps'), center: $('zmCenter'),
     deck: $('zmDeck'), deckCount: $('zmDeckCount'), kit: $('zmKit'), discard: $('zmDiscard'), stage: $('zmStage'),
-    coach: $('zmCoach'), me: $('zmMe'), hint: $('zmHint'), hand: $('zmHand'), fly: $('zmFly'),
+    coach: $('zmCoach'), me: $('zmMe'), hint: $('zmHint'), hand: $('zmHand'), fly: $('zmFly'), under: $('zmUnder'),
     drawBtn: $('zmDrawBtn'), playBtn: $('zmPlayBtn'), nopeBtn: $('zmNopeBtn'), cancelBtn: $('zmCancelBtn'),
     cover: $('zmCover'), mask: $('zmDialogMask'), dialog: $('zmDialog'), skipTut: $('zmSkipTut'),
   };
@@ -5005,6 +5005,7 @@
     if (game && game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
     if (game) { game.alterRow = null; game.insPre = null; game.drawLift = null; }   // 联机预掀 / 预塞的那张在 fly 层里，跟着一起清
     els.fly.innerHTML = '';
+    if (els.under) els.under.innerHTML = '';   // 发牌时摆在桌上的炸毛猫
     els.fly.classList.remove('is-interactive');
     if (game) game.boomNode = null;
     if (fuseSparkTimer) { clearInterval(fuseSparkTimer); fuseSparkTimer = null; }
@@ -5099,14 +5100,19 @@
       ov.deckSize -= 1; ov.kittens -= 1;
       renderPiles();
       snd('hiss', 120);
-      // is-top：摆出来的炸毛猫一直在最上层（洗牌时飞来飞去的牌从它们底下过）
-      const node = await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), cls: 'is-top', flip: 'up', flipAt: 0.25, from, to: spot, w: kw, s0: pu0 / kw, s1: 1, r0: 0, r1: kGap < kw ? mid * 5 : (i % 2 ? 6 : -6), dur: 380 * kf, lift: 30, keep: true, land: false });
-      if (node) node.classList.add('zm-angry');
+      // 拿起来翻开、放到桌上（飞的时候在上层）；落定后挪进桌面那层（els.under）：之后发的牌、逗猫棒、洗牌都从它上面过（2026-11-26 用户：像现实里先摆炸毛猫再发牌）
+      const node = await fx.fly({ html: cardHtml(kits[i]), back: backHtml(), flip: 'up', flipAt: 0.25, from, to: spot, w: kw, s0: pu0 / kw, s1: 1, r0: 0, r1: kGap < kw ? mid * 5 : (i % 2 ? 6 : -6), dur: 380 * kf, lift: 30, keep: true, land: false });
+      if (node) { layOnTable(node); node.classList.add('zm-angry'); }
       aside.push(node);
       fx.burst(spot.x, spot.y, { n: 6, shapes: ['fur'], colors: FUR, radius: kw * 0.7, size: [5, 11], alignOut: true, life: 500, pattern: 'ring' });
       await wait(140 * kf);
     }
     void u0;
+    /* 发牌从炸毛猫上面过（2026-11-26 用户：像现实里在摆好的炸毛猫上面发牌，牌要稍微盖住它们）：
+     * 炸毛猫摆在牌堆上方一排时，发给别人的牌弧线顶点拱到这一排的下沿（牌的中心比下沿再低一点 → 盖住炸毛猫下半截），
+     * 逗猫棒也从这一排的下半截上冒出来；摆在牌堆两边（横屏）时发给左右两家的牌本来就横着从上面过，不用改 */
+    const overY = !sides && kits.length ? rowY + rowH / 2 + pu0 * 0.12 : null;
+    const arcOver = (a, b) => (overY == null ? 40 : Math.min(220, Math.max(40, (a.y + b.y) / 2 + Math.min(a.y, b.y) - 2 * overY)));   // 二次弧线中点 y = (a+b)/4 + (min−lift)/2 → 让中点落在 overY
     if (skipped()) { aside.forEach((x) => x && x.remove()); return; }
     await animShuffle({ seat: -1 }, t);
     if (skipped()) return;
@@ -5128,7 +5134,8 @@
         const to = aboveSlot(reserveHandSlot(id));
         flights.push(fx.fly({ html: cardHtml(id), back: backHtml(), flip: 'up', flipAt: 0.35, from, to, w: u, s0: pu / u, s1: 1, r0: -10, r1: 0, dur: 420, lift: 60 }).then(() => { if (!skipped()) revealHandCard(id, to); }));
       } else {
-        flights.push(fx.fly({ html: backHtml(), from, to: avPoint(seat), w: pu, s0: 1, s1: 0.4, r0: -10, r1: 20, dur: 380, lift: 40, fadeOut: true, land: false }).then(() => { if (!skipped()) { ov.counts[seat] += 1; renderSeat(seat); } }));
+        const to = avPoint(seat);
+        flights.push(fx.fly({ html: backHtml(), from, to, w: pu, s0: 1, s1: 0.4, r0: -10, r1: 20, dur: 380, lift: arcOver(fx.center(from), to), fadeOut: true, land: false }).then(() => { if (!skipped()) { ov.counts[seat] += 1; renderSeat(seat); } }));
       }
       await wait(85 * Math.min(1, 20 / order.length));
     }
@@ -5140,7 +5147,7 @@
     for (let k = 0; k < n; k++) {
       const seat = (s.turn + k) % n, id = defOf[seat];
       if (id == null) continue;
-      const from = { x: dc.x, y: dc.y - pu * 1.2 };
+      const from = { x: dc.x, y: overY != null ? overY - pu * 0.45 : dc.y - pu * 1.2 };   // 炸毛猫摆在上方时：就在那一排下半截上冒出来、压着它们
       snd('ding', k * 110);
       if (seat === 0) {
         const to = reserveHandSlot(id);
@@ -5179,6 +5186,12 @@
     renderSeats();
     const a = avPoint(s.turn);
     fx.ring(a.x, a.y, { color: '#b4392c', size: 120, width: 3, dur: 560 });
+  }
+  // 飞完停住的牌挪进桌面那层：先把动画停在的样子写成内联样式再撤动画，换了父元素也不跳
+  function layOnTable(node) {
+    if (!els.under || !node.isConnected) return;
+    node.getAnimations({ subtree: true }).forEach((a) => { try { a.commitStyles(); } catch (e) { /* 拿不到就算了 */ } a.cancel(); });
+    els.under.appendChild(node);
   }
   function skipDeal() {
     if (!game || !game.dealing) return;
