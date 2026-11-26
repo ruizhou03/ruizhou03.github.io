@@ -323,9 +323,9 @@
   const pileRot = (id) => ((id * 37) % 13) - 6;
   const U = () => parseFloat(getComputedStyle(els.app).getPropertyValue('--u')) || 64;
   const POP = () => Math.min(U() * 1.3, 120);   // 弹出来看的牌（窥探 / 改命 / 抽牌 / 捡弃牌 / 点名）统一的大号，和 CSS 的 --pop 一致
-  /* 牌面大小（2026-11-26 用户：设置里三档，默认大）：小 = 放大以前的原样；中 = 两者之间；大 = 手牌 1.3 倍、桌上 1.25 倍。写到 CSS 的 --hs / --ts */
+  /* 牌面大小（2026-11-26 用户：设置里三档，默认中）：小 = 放大以前的原样；中 = 两者之间；大 = 手牌 1.3 倍、桌上 1.25 倍。写到 CSS 的 --hs / --ts */
   const CARD_SIZES = { s: [1, 1], m: [1.15, 1.12], l: [1.3, 1.25] };
-  const cardSize = () => CARD_SIZES[settings.cardSize] || CARD_SIZES.l;
+  const cardSize = () => CARD_SIZES[settings.cardSize] || CARD_SIZES.m;   // 没选过 = 中（2026-11-26 用户定默认中）
   function applyCardSize() { const z = cardSize(); els.app.style.setProperty('--hs', z[0]); els.app.style.setProperty('--ts', z[1]); }
   const PU = () => U() * 0.92 * cardSize()[1];     // 牌堆 / 弃牌堆的牌宽（乘牌面大小那档，和 CSS 的 --ts 一致）
   const HU = () => Math.min(U() * cardSize()[0], 120);   // 我的手牌牌宽（乘牌面大小那档，和 CSS 的 --hw 一致）：飞进 / 飞出手牌的牌按这个大小落地
@@ -6262,7 +6262,7 @@
     const secs = segs('turnSec', TURN_OPTS, turnSec());
     const rulesBefore = JSON.stringify(settings.rules);
     const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b>' + (note ? '<small>' + note + '</small>' : '') + '</div>' + ctl + '</div>';
-    const sizeLine = '<div class="zs-line"><span>' + T('ui.set.cardSize', '牌面大小') + '</span>' + segs('cardSize', [['s', T('ui.set.size.s', '小')], ['m', T('ui.set.size.m', '中')], ['l', T('ui.set.size.l', '大')]], CARD_SIZES[settings.cardSize] ? settings.cardSize : 'l') + '</div>';
+    const sizeLine = '<div class="zs-line"><span>' + T('ui.set.cardSize', '牌面大小') + '</span>' + segs('cardSize', [['s', T('ui.set.size.s', '小')], ['m', T('ui.set.size.m', '中')], ['l', T('ui.set.size.l', '大')]], CARD_SIZES[settings.cardSize] ? settings.cardSize : 'm') + '</div>';
     const langLine = I18N ? '<div class="zs-line zs-lang"><span>' + T('ui.set.lang', '语言') + '</span>' + segs('lang', LANG_OPTS, LANG) + '</div>' : '';
     let html = '<h2>' + T('ui.settings', '设置') + '</h2>' +
       '<section class="zs-card">' +
