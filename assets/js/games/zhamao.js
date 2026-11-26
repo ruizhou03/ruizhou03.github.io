@@ -6541,17 +6541,23 @@
     return Math.max(46, Math.floor(Math.min(tw / 5.5, (th - (50 + av + 50 + 66 + 26 + 40)) / 3.4, 98)));
   }
   function sizePreviewHtml(sz) {
-    const z = CARD_SIZES[sz] || CARD_SIZES.m, u = baseU();
-    const hu = Math.min(u * z[0], 120), pu = u * 0.92 * z[1];
+    const u = baseU(), dim = (k) => { const z = CARD_SIZES[k] || CARD_SIZES.m; return { hu: Math.min(u * z[0], 120), pu: u * 0.92 * z[1] }; };
+    const { hu, pu } = dim(sz), big = dim('l'), f = (x) => x.toFixed(1) + 'px';
     const W = Math.round(els.app.clientWidth || innerWidth);
     // 手牌：横屏手牌一行两边让出头像和按钮；竖屏占满底边
     const hw = LANDSCAPE_SHORT.matches ? W * 0.62 : W - 8, n = 7;
     let gap = 6;
     if (n * hu + (n - 1) * gap > hw) gap = (hw - hu) / (n - 1) - hu;
-    const cw = (k, w, extra) => cardHtml(k, '', '--cw:' + w.toFixed(1) + 'px' + (extra || ''));
+    const cw = (k, w, extra) => cardHtml(k, '', '--cw:' + f(w) + (extra || ''));
+    // 参照尺：小中大三张手牌的虚线框叠在一起（底边对齐），当前这档放一张真牌
+    const ruler = '<div class="zs-pv-ruler" style="width:' + f(big.hu) + ';height:' + f(big.hu * 1.4) + '">' +
+      ['l', 'm', 's'].map((k) => { const w = dim(k).hu; return '<i class="' + (k === sz ? 'on' : '') + '" style="width:' + f(w) + ';height:' + f(w * 1.4) + '"><b>' + T('ui.set.size.' + k, { s: '小', m: '中', l: '大' }[k]) + '</b></i>'; }).join('') +
+      cw('defuse', hu, ';position:absolute;left:0;bottom:0') + '</div>';
+    const piles = '<div class="zs-pv-piles" style="gap:' + f(pu * 0.5) + '">' + backHtml('', '--cw:' + f(pu) + ';width:' + f(pu)) + cw('skip', pu, ';rotate:4deg') + '</div>';
     const hand = ['defuse', 'nope', 'attack', 'skip', 'favor', 'shuffle', 'future'].map((k, i) => cw(k, hu, ';margin-left:' + (i ? gap.toFixed(1) : 0) + 'px;z-index:' + i)).join('');
-    return '<div class="zs-pv-piles" style="gap:' + (pu * 0.7).toFixed(1) + 'px">' + backHtml('', '--cw:' + pu.toFixed(1) + 'px;width:' + pu.toFixed(1) + 'px') + cw('skip', pu, ';rotate:4deg') + '</div>' +
-      '<div class="zs-pv-hand">' + hand + '</div>';
+    // 高度都按「大」留好，切换时设置窗口不跟着变
+    return '<div class="zs-pv-top" style="height:' + f(Math.max(big.hu, big.pu) * 1.4 + 6) + '">' + ruler + piles + '</div>' +
+      '<div class="zs-pv-hand" style="height:' + f(big.hu * 1.4) + '">' + hand + '</div>';
   }
 
   function showSettings(fromCover) {
@@ -6584,10 +6590,10 @@
           if (game && game.state) { solveSize(); renderAll(); }
           const pv = d.querySelector('[data-size-prev]');
           if (pv) {   // 新尺寸从旧尺寸长过去，看得出变了多少
-            const old = pv.querySelector('.zm-card'), w0 = old ? old.offsetWidth : 0;
+            const old = pv.querySelector('.zs-pv-ruler .zm-card'), w0 = old ? old.offsetWidth : 0;
             pv.innerHTML = sizePreviewHtml(v);
-            const nw = pv.querySelector('.zm-card'), w1 = nw ? nw.offsetWidth : 0;
-            if (w0 && w1 && !fx.reduce()) pv.querySelectorAll('.zs-pv-piles, .zs-pv-hand').forEach((el) => el.animate([{ transform: 'scale(' + (w0 / w1).toFixed(3) + ')' }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.25,1)' }));
+            const nw = pv.querySelector('.zs-pv-ruler .zm-card'), w1 = nw ? nw.offsetWidth : 0;
+            if (w0 && w1 && !fx.reduce()) pv.querySelectorAll('.zs-pv-ruler > .zm-card, .zs-pv-piles, .zs-pv-hand > *').forEach((el) => el.animate([{ transform: 'scale(' + (w0 / w1).toFixed(3) + ')' }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.25,1)' }));
           }
           snd('tap');
           return;
