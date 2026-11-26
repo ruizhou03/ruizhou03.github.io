@@ -695,7 +695,7 @@ test('team "don\'t save me": nobody is asked, only teammates learn it was refuse
   assert.ok(R.createGame(6, 7, { mode: 'team', teamForm: '3v3' }).noHelp.every((v) => v === false));
 });
 
-test('hidden insert (default, 2026-11-25): nine reinsert gives no height; peektop top insert and 火眼 are exact', () => {
+test('hidden insert (default, 2026-11-25): nine lets you pick the slot (2026-11-26); peektop top insert and 火眼 are exact', () => {
   function atDefuse(rules, flux, noDefuse) {
     const s = R.createGame(3, 11, rules);
     if (flux) s.flux = flux;
@@ -722,8 +722,11 @@ test('hidden insert (default, 2026-11-25): nine reinsert gives no height; peekto
   t = atDefuse({}, 'exact'); e = ins(R.insertKitten(t.s, t.me, 3)); assert.equal(e.at, 3);
   t = atDefuse({}, 'exact'); e = ins(R.insertKitten(t.s, t.me, 2, true)); assert.equal(e.at, 2);
   // 九命：看不出时不发高度；看得出时照旧发
-  t = atDefuse({}, 'nine', true); let n = t.ev.find((x) => x.t === 'nine'); assert.ok(n); assert.equal(n.vis, null);
-  t = atDefuse({ insertSeen: true }, 'nine', true); n = t.ev.find((x) => x.t === 'nine'); assert.ok(n.vis != null);
+  // 九命（2026-11-26 起）：喊完九命进入塞回阶段、自己挑第几张；之后和逗猫棒塞回一样（看不出不发高度，看得出发）
+  t = atDefuse({}, 'nine', true); let n = t.ev.find((x) => x.t === 'nine'); assert.ok(n && n.pick); assert.equal(t.s.phase, 'defuse'); assert.equal(t.s.defuse.card, t.boom);
+  assert.ok(t.s.nineUsed[t.me]); assert.ok(!t.s.deck.includes(t.boom));
+  e = ins(R.insertKitten(t.s, t.me, 2)); assert.equal(e.vis, null); assert.equal(t.s.deck[2], t.boom); assert.ok(t.s.memo[t.me].deck.includes(t.boom));
+  t = atDefuse({ insertSeen: true }, 'nine', true); e = ins(R.insertKitten(t.s, t.me, 2)); assert.ok(e.vis != null);
 });
 
 test('flux 急救 (catsave, 2026-11-26): pair replaces the defuse, then the player picks the exact slot like a normal defuse', () => {

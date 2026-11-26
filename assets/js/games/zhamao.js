@@ -1727,7 +1727,8 @@
     calmAvatar(e.seat, t, ms(500));
     await wait(ms(500));
     if (t !== token) return;
-    await animInsert({ seat: e.seat, vis: e.vis != null ? e.vis : null }, t);   // 按随机塞到的大概高度开缝（2026-11-15 用户）
+    if (e.pick) return;   // 2026-11-26 起九命也自己挑位置：这里只演喊九命，塞回去由后面的 insert 事件演（和逗猫棒一样）
+    await animInsert({ seat: e.seat, vis: e.vis != null ? e.vis : null }, t);   // 老存档 / 老服务器：随机塞，按大概高度开缝（2026-11-15 用户）
   }
   /* 角色猫技能触发（2026-11-18 用户：第一版「另编一段表演」太牵强）：
    * 一律 = 「亮牌」（头像角上的小卡弹出来、立在头像旁边，外圈一道角色色的光）+ 规则本来就有的那个动作，不出字 */
@@ -7738,6 +7739,8 @@
       case 'nine': {
         // 九命 / 急救：炸毛猫随机塞回牌堆（2026-11-17：镜像以前没这一步，牌堆少一只，联机每次都要整桌重同步）。位置按公开的粗略高度放
         const id = e.card != null ? e.card : s.defuse ? s.defuse.card : s.netBoom;
+        // 2026-11-26 起（pick）：喊完九命进入塞回阶段，等他自己挑位置（之后的 insert 事件才放进牌堆）
+        if (e.pick) { if (!s.nineUsed) s.nineUsed = Array(s.n).fill(false); s.nineUsed[e.seat] = true; s.phase = 'defuse'; s.defuse = { by: e.seat, card: id }; s.netBoom = null; break; }
         const n = s.deck.length, pos = e.vis == null ? (Math.random() * (n + 1)) | 0 : Math.round(e.vis * n);
         if (id != null) s.deck.splice(Math.max(0, Math.min(n, pos)), 0, id);
         s.memo[0].deck = s.memo[0].deck.filter((x) => x !== id);

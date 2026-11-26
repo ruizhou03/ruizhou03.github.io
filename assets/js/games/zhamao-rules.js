@@ -129,7 +129,7 @@
   // 2026-11-15 用户：不叠锅 / 暗塞 / 千里眼 / 慷慨太弱、感觉不到 → 换成 九命 / 掀顶 / 烫手 / 双猫急救
   // 2026-11-15 用户定的名字和说法（掀顶→透视（2026-11-19 改天眼、11-26 改回透视）、明塞→火眼、静音→静默、双猫急救→急救）；id 不变（老存档照常）
   const FLUX_RULES = Object.freeze([
-    { id: 'nine', name: T('flux.nine.name', '九命'), desc: T('flux.nine.desc', '摸到炸毛猫时若无逗猫棒，大喊「九命」并存活，炸毛猫随机放回牌堆。每人最多生效一次') },
+    { id: 'nine', name: T('flux.nine.name', '九命'), desc: T('flux.nine.desc', '摸到炸毛猫时若无逗猫棒，大喊「九命」并存活，再把炸毛猫塞回牌堆任意位置。每人最多生效一次') },
     { id: 'peektop', name: T('flux.peektop.name', '透视'), desc: T('flux.peektop.desc', '牌堆第一张牌对所有人可见') },
     { id: 'exact', name: T('flux.exact.name', '火眼'), desc: T('flux.exact.desc', '炸毛猫塞回的位置对所有人可见') },
     { id: 'bottom', name: T('flux.bottom.name', '摸底'), desc: T('flux.bottom.desc', '摸牌改从牌堆底部摸') },
@@ -782,11 +782,13 @@
       ev.push({ t: 'defuse', seat, card: pair[0], extra: pair[1], kitten: id, save: 'cats' });
       return ev;
     }
-    // 百变「九命」：每人一局一次，不出局；炸毛猫随机塞回牌堆（谁也不知道在哪），这一回合照常结束
+    // 百变「九命」：每人一局一次，不出局；2026-11-26 用户：喊完九命也和逗猫棒一样自己挑塞回第几张（以前随机放回）——进入塞回阶段（insertKitten）
+    // 事件 nine 带 pick：网页 / 联机镜像据此只演「喊九命」、不再自己往牌堆里放（之后的 insert 事件才放）
     if (s.flux === 'nine' && s.nineUsed && !s.nineUsed[seat]) {
       s.nineUsed[seat] = true;
-      ev.push(...reinsertRandom(s, seat, id, 'nine'));
-      endOneTurn(s, ev);
+      s.phase = 'defuse';
+      s.defuse = { by: seat, card: id };
+      ev.push({ t: 'nine', seat, card: id, pick: true });
       return ev;
     }
     // 组队（2026-11-19 用户改）：还有活着的队友就当众喊「救我！」，所有队友同时被问，谁先点「救」用谁的逗猫棒。
@@ -805,19 +807,6 @@
       return ev;
     }
     return eliminate(s, seat, id, ev);
-  }
-  /* 九命：炸毛猫随机塞回牌堆（谁也不挑位置；急救 2026-11-26 起改成自己挑，走 insertKitten）。动画按真实高度开缝（2026-11-15 用户），所以和「看得出大概位置」一样公开一个粗略高度 vis，机器猫也按它估 */
-  function reinsertRandom(s, seat, id, why) {
-    const pos = (rand(s) * (s.deck.length + 1)) | 0;
-    s.deck.splice(pos, 0, id);
-    for (let k = 0; k < s.n; k++) s.memo[k].deck = s.memo[k].deck.filter((x) => x !== id);
-    const last = s.deck.length - 1;
-    // 2026-11-25 用户：「塞回看不出位置」（insertSeen 关，默认）时九命 / 急救也一样看不出——不发高度，动画开统一的缝
-    const vis = rulesOf(s).insertSeen === false ? null : pos <= 0 ? 0 : pos >= last ? 1 : Math.min(7 / 8, Math.max(1 / 8, Math.round((pos / Math.max(1, last)) * 8) / 8));
-    s.ins = { by: seat, size: s.deck.length, top: 0, bot: 0, vis, seen: vis === 0 ? 'top' : vis === 1 ? 'bottom' : null, card: vis === 0 || vis === 1 ? id : null };
-    s.peek = null;
-    s.seq += 1;
-    return [{ t: 'nine', seat, card: id, size: s.deck.length, vis, why }];
   }
   // 炸毛出局：手牌连同炸毛猫全进弃牌堆，剩下的回合作废
   function eliminate(s, seat, id, ev) {
