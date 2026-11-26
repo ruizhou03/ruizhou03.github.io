@@ -2952,7 +2952,13 @@
           i++;
           continue;
         }
-        await anim(e, t, nx);
+        // 2026-11-26 用户：联机百变「火眼」别人塞回炸弹猫，整局卡死——某个动画抛错，这串事件就再也播不完、busy / online.playing 一直挂着。
+        // 兜底：动画出错只丢掉这一串剩下的动画（状态早已结算好），清掉飞着的牌，照常往下走，桌面按最终状态重画
+        try { await anim(e, t, nx); } catch (err) {
+          console.error('[zhamao] anim failed, skip rest of group:', e && e.t, err);
+          if (t === token) wipeFx();
+          return;
+        }
       }
     } finally { evPlaying--; }
   }
@@ -2993,7 +2999,7 @@
       case 'noSave': return;   // 急救点了「取消」：接着照常炸
       case 'save': return;   // 急救：等摸到的人挑对子（头像一直是炸弹猫），挑好了 defuse 事件演合成
       case 'defuse': return animDefuse(e, t);
-      case 'insert': if (e.at != null && game && game.state && game.state.flux === 'exact') (game.openKits = game.openKits || new Set()).add(e.card); return animInsert(e, t);   // 百变「明塞」：塞完那张露一截在牌堆里（renderOpenKits）
+      case 'insert': if (e.at != null && game && game.state && game.state.flux === 'exact' && e.card != null) (game.openKits = game.openKits || new Set()).add(e.card); return animInsert(e, t);   // 百变「明塞」：塞完那张露一截在牌堆里（renderOpenKits）
       case 'flux': return animFlux(e, t);
       case 'nine': return animNine(e, t);
       case 'askRescue': return animAskRescue(e, t);
@@ -8240,6 +8246,9 @@
       case 'insert': {
         // 别人塞的：服务器把牌号和位置都藏了（只给他自己），可是是哪只炸弹猫大家早看见了（defuse 事件里的 kitten）；位置随便放
         const id = e.card != null ? e.card : s.defuse ? s.defuse.card : null;
+        // 百变「火眼」：服务器给别人的事件去掉了牌号（e.card），可塞的是哪只大家都看见了——补回去，动画要正面朝上画这张牌
+        // （2026-11-26 用户：联机火眼别人塞回就卡死——以前 cardHtml(undefined) 抛错，事件队列整个堵死）
+        if (e.card == null && e.at != null && id != null) e.card = id;
         const pos = e.pos != null ? e.pos : e.at != null ? e.at : (Math.random() * (s.deck.length + 1)) | 0;
         s.deck.splice(Math.max(0, Math.min(s.deck.length, pos)), 0, id);
         // 随机塞的：我自己（和队友）也不知道在哪；组队：队友挑位置塞的我也知道；百变「火眼」（at）：人人都看见塞在第几张，原先记的也不乱
@@ -8500,7 +8509,13 @@
       // 落后多少：服务器估的「大家应该播完」的时刻（animUntil）已经过去 4 秒以上（正常打四人局实测最多慢 1.9 秒），我还在播 → 落后了，快档追
       { const g = G(); online.behind = !!(g && g.animUntil && Date.now() + (online.skew || 0) > g.animUntil + 4000 && online.queue.length > 0); }
       online.cur = grp.map((e) => e.t).join('+');
-      await playGroup(grp, t);
+      // 播一组出错（镜像 / 动画抛错）：以前 online.playing 永远是 true，之后的事件全堵在队列里，整局卡死。现在按服务器快照重摆接着打
+      try { await playGroup(grp, t); } catch (err) {
+        console.error('[zhamao] playGroup failed, resync:', online && online.cur, err);
+        if (online) { online.playing = false; online.cur = null; }
+        if (t === token) resync();
+        return;
+      }
       if (online) online.cur = null;
     }
     if (!online || t !== token) return;
