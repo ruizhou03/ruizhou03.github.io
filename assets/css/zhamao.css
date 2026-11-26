@@ -1956,7 +1956,8 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 /* 手牌放大镜（2026-11-26 预览，?loupe=1）：手牌挤的时候按住左右滑，手指下那张抬起、上方冒一张放大的 */
 .zm-hand.is-crowded { touch-action: none; }
 .zm-hand.is-scrubbing .zm-card { transition: transform 0.12s ease-out, box-shadow 0.2s ease, filter 0.2s ease; }
-.zm-hand .zm-card.is-scrub { z-index: 60 !important; translate: 0 -14px; box-shadow: 0 0 0 2.5px var(--zm-gold), 0 10px 16px rgba(29, 27, 24, 0.22); }
+/* 2026-11-26 用户：不提到最前（违背叠放顺序），照原来的层次只抬起一点 + 金色高亮；看全貌靠上面的放大镜 */
+.zm-hand .zm-card.is-scrub { translate: 0 -12px; box-shadow: 0 0 0 2.5px var(--zm-gold), 0 0 14px rgba(201, 169, 110, 0.75); filter: brightness(1.04); }
 .zm-loupe { position: fixed; z-index: 70; pointer-events: none; filter: drop-shadow(0 12px 22px rgba(29, 27, 24, 0.3)); transition: opacity 0.15s ease; }
 .zm-loupe .zm-card { --cw: var(--lw); width: var(--lw); }
 .zm-loupe.is-off { opacity: 0.35; }
