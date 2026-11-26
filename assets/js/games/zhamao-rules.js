@@ -656,7 +656,13 @@
         //  · 已经被甩锅、头上有好几口锅（turnsLeft > 1）时转到烫手：不再加——烫手 = 「回合一开始像被甩了一次锅」，这一回合开头已经是真被甩的了，不重复算
         //  · 这一回合烫手给的那一次已经摸掉了（hotGiven 还是我）：换走再换回来不再给第二次
         if (rule === 'hot' && prev !== 'hot' && s.turnsLeft === 1 && s.cowCut !== me && s.hotGiven !== me) { s.turnsLeft = 2; s.hotGiven = me; ev.push({ t: 'turn', seat: me, turnsLeft: 2, hot: 'on' }); }
-        else if (prev === 'hot' && rule !== 'hot' && s.hotGiven === me && s.turnsLeft > 1) { s.turnsLeft -= 1; s.hotGiven = -1; ev.push({ t: 'turn', seat: me, turnsLeft: s.turnsLeft, hot: 'off' }); }
+        //  · 烫手的两张已经摸了一张、剩一张（turnsLeft 1、hotGiven 还是我）时把它换走：剩下那张也免了，这回合直接结束（2026-11-26 用户定：离开烫手就收回锅，他已经在履行烫手的义务）。
+        //    只免烫手给的：被真甩过锅的回合 hotGiven 已经是 -1，照常摸
+        else if (prev === 'hot' && rule !== 'hot' && s.hotGiven === me && s.turnsLeft >= 1) {
+          s.hotGiven = -1;
+          if (s.turnsLeft > 1) { s.turnsLeft -= 1; ev.push({ t: 'turn', seat: me, turnsLeft: s.turnsLeft, hot: 'off' }); }
+          else { ev.push({ t: 'turn', seat: me, turnsLeft: 1, hot: 'off' }); endOneTurn(s, ev); }
+        }
         break;
       }
       case 'pair': {

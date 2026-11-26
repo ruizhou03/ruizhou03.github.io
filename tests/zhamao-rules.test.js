@@ -844,3 +844,37 @@ test('role 百搭猫 (calico): this seat\'s cats are all wild — any two / thre
   assert.equal(R.classifyFor(s, 1, [o[0], o[1]]), null);   // 别人不是百搭猫
   assert.ok(R.play(s, 0, five, {}).length);
 });
+
+/* 百变「烫手」被换走（2026-11-26 用户）：只免烫手给的那一份——摸了一张、剩一张时换走，剩下那张也免，回合直接结束；真被甩来的锅照常摸 */
+test('flux 烫手 switched away: the hot extra draw is waived, even when it is the last one; real 锅 stay', () => {
+  function playFlux(s, rule) {
+    const me = s.turn;
+    let id = s.hands[me].find((x) => R.KIND_OF[x] === R.FLUX);
+    if (id == null) { id = R.KIND_OF.findIndex((k, i) => k === R.FLUX && !s.hands.some((h) => h.includes(i)) && !s.discard.includes(i)); for (const a of [s.deck, s.removed || []]) { const j = a.indexOf(id); if (j >= 0) a.splice(j, 1); } s.hands[me].push(id); }
+    s.fluxDeck = [rule];
+    R.play(s, me, [id]);
+    for (const x of R.awaitingReaction(s)) R.pass(s, x);
+    return R.closeReaction(s);
+  }
+  const fresh = () => R.createGame(4, 11, { mode: 'flux' });
+  // 烫手两张摸了一张 → 换走：剩下那张免了，轮到下家（新规则下摸 1 张）；先发 hot: 'off' 让网页把锅飞回去
+  let s = fresh(); s.flux = 'hot'; s.turnsLeft = 1; s.hotGiven = s.turn; let me = s.turn;
+  const ev = playFlux(s, 'mute');
+  const turns = ev.filter((e) => e.t === 'turn');
+  assert.deepEqual(turns[0], { t: 'turn', seat: me, turnsLeft: 1, hot: 'off' });
+  assert.equal(turns[1].seat, R.nextAlive(s, me));
+  assert.equal(s.turn, R.nextAlive(s, me)); assert.equal(s.turnsLeft, 1); assert.equal(s.hotGiven, -1);
+  // 两张都还没摸 → 换走：剩一张，还是我；再换回烫手也不重复给
+  s = fresh(); s.flux = 'hot'; s.turnsLeft = 2; s.hotGiven = s.turn; me = s.turn;
+  playFlux(s, 'mute'); assert.equal(s.turn, me); assert.equal(s.turnsLeft, 1);
+  // 中途转到烫手、摸一张后再换走 → 一样免掉剩下那张
+  s = fresh(); s.flux = 'mute'; s.turnsLeft = 1; s.hotGiven = -1; me = s.turn;
+  playFlux(s, 'hot'); assert.equal(s.turnsLeft, 2);
+  s.turnsLeft = 1;   // 当作已经摸了一张安全牌
+  playFlux(s, 'nine'); assert.notEqual(s.turn, me);
+  // 真被甩锅（hotGiven -1）：剩 1 张或 3 张，换走烫手都照常摸
+  for (const n of [1, 3]) {
+    s = fresh(); s.flux = 'hot'; s.turnsLeft = n; s.hotGiven = -1; me = s.turn;
+    playFlux(s, 'mute'); assert.equal(s.turn, me); assert.equal(s.turnsLeft, n);
+  }
+});
