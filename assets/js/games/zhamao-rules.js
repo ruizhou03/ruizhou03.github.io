@@ -136,6 +136,8 @@
     { id: 'hot', name: T('flux.hot.name', '烫手'), desc: T('flux.hot.desc', '每个人的回合一开始就像被甩了一次锅') },
     { id: 'mute', name: T('flux.mute.name', '静默'), desc: T('flux.mute.desc', '不能打「作废」') },
     { id: 'catsave', name: T('flux.catsave.name', '急救'), desc: T('flux.catsave.desc', '摸到炸毛猫时若无逗猫棒，可打出两张相同的牌代替，炸毛猫随机放回牌堆。每人最多生效一次') },
+    // 2026-11-26 用户：「百搭」——所有猫都变成万能猫：任意两只猫算一对、任意三只算三张一样、任意五只算五种各一张；换走就变回来
+    { id: 'allwild', name: T('flux.allwild.name', '百搭'), desc: T('flux.allwild.desc', '所有猫都变成万能猫') },
   ]);
   /* 2026-11-15 用户：删掉无关痛痒的——逆行（和「转向」牌重复）拿掉；静音（玩家对战里挺有用）、双猫急救（改成任意一对一样的牌都行，功能牌也算）留着。
    * 逆行的代码留着：老存档里正生效的照常结算 */
@@ -396,6 +398,12 @@
   /* 这个座位出这组牌算什么（考虑角色猫：三花任意两只猫算一对、任意三只算三张）——界面判断能不能出也用它 */
   function classifyFor(s, seat, cards) {
     const c = classify(cards);
+    // 百变「百搭」（2026-11-26 用户）：所有猫都是万能猫——任意两只 = 一对、任意三只 = 三张一样、任意五只 = 五种各一张
+    if (!c && s && s.flux === 'allwild' && cards && new Set(cards).size === cards.length && cards.every((id) => catLike(KIND_OF[id]))) {
+      if (cards.length === 2) return { type: 'pair', needsTarget: true, needsName: false };
+      if (cards.length === 3) return { type: 'triple', needsTarget: true, needsName: true };
+      if (cards.length === 5) return { type: 'five', needsTarget: false, needsName: false };
+    }
     if (c || !s || roleOf(s, seat) !== 'calico' || !cards || (cards.length !== 2 && cards.length !== 3) || new Set(cards).size !== cards.length || !cards.every((id) => catLike(KIND_OF[id]))) return c;
     return cards.length === 2 ? { type: 'pair', needsTarget: true, needsName: false } : { type: 'triple', needsTarget: true, needsName: true };
   }

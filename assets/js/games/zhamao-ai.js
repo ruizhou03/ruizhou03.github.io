@@ -168,6 +168,7 @@
   }
   // 五种猫各一张（规则只认猫）：每种挑一张，缺的拿万能猫顶；顶不上就凑不成
   function fiveCats(v) {
+    if (v.flux === 'allwild') { const cs = v.hand.filter((id) => R.catLike(K[id])); return cs.length >= 5 ? cs.slice(0, 5) : null; }   // 百变「百搭」：任意五只猫
     const picks = [], wild = v.hand.filter((id) => K[id] === R.WILD);
     for (const k of R.CATS) {
       let id = one(v, k);
@@ -177,6 +178,8 @@
     }
     return picks;
   }
+  // 杂猫也能凑：角色猫「百搭猫」，或百变规则「百搭」（所有猫都是万能猫）
+  const anyCat = (v) => (v.roles && v.roles[v.me] === 'calico') || v.flux === 'allwild';
   // 猫种 k 凑 n 张：先用真猫，不够拿万能猫补；一张真猫都没有就不凑（两张以上万能猫自己就是一样的牌，走 by.wild）
   function catSet(by, k, n) {
     const real = by[k] || [], wild = by[R.WILD] || [];
@@ -206,6 +209,7 @@
     const skipIdP = (v) => { if (!P.revFirst) return skipId(v); const a = one(v, R.REVERSE); return a != null ? a : one(v, R.SKIP); };   // 先用跳过还是转向（调参项）
     function cardValueV(v, id) {   // 百变「静默」时作废不能打：按 fMuteNopeV 估（其余同 cardValue）
       if (P.fx && P.fMuteNopeV != null && v.flux === 'mute' && K[id] === R.NOPE) return P.fMuteNopeV;
+      if (v.flux === 'allwild' && R.catLike(K[id])) return v.hand.filter((x) => R.catLike(K[x])).length >= 2 ? P.vCatPair : P.vCatSingle;   // 百变「百搭」：杂猫也成对
       return cardValue(v.hand, id);
     }
     function cardValue(hand, id) {
@@ -307,13 +311,13 @@
         if (by[k].length >= 3 && (desperate || R.catLike(k) || VALUE[k] <= 15)) return playMove(by[k].slice(0, 3), t, R.DEFUSE);
       }
       for (const k of R.CATS) { const c = catSet(by, k, 3); if (c) return playMove(c, t, R.DEFUSE); }   // 拿万能猫凑三张
-      if (v.roles && v.roles[v.me] === 'calico') { const cs = v.hand.filter((id) => R.catLike(K[id])); if (cs.length >= 3) return playMove(cs.slice(0, 3), t, R.DEFUSE); }   // 角色猫「三花」：任意三只猫点名要逗猫棒
+      if (anyCat(v)) { const cs = v.hand.filter((id) => R.catLike(K[id])); if (cs.length >= 3) return playMove(cs.slice(0, 3), t, R.DEFUSE); }   // 角色猫「三花」：任意三只猫点名要逗猫棒
       if (desperate || v.discard.some((id) => K[id] === R.DEFUSE)) {
         const five = fiveCats(v);
         if (five && v.discard.some((id) => K[id] === R.DEFUSE)) return playMove(five);
       }
       let pr = catPair(by);
-      if (!pr && v.roles && v.roles[v.me] === 'calico') { const cs = v.hand.filter((id) => R.catLike(K[id])); if (cs.length >= 2) pr = cs.slice(0, 2); }   // 角色猫「三花」：任意两只猫
+      if (!pr && anyCat(v)) { const cs = v.hand.filter((id) => R.catLike(K[id])); if (cs.length >= 2) pr = cs.slice(0, 2); }   // 角色猫「三花」：任意两只猫
       const pt = pairTarget(v, t);   // 两张偷牌指不到影子猫：换个能指的人，没有就不出对子
       if (pr && pt >= 0) return playMove(pr, pt);
       if (has(v, R.FAVOR)) return playMove([one(v, R.FAVOR)], t);
@@ -681,7 +685,7 @@
       if (c2) for (const t of ps) out.push(playMove(c2, t));
       if (c3) for (const t of ts) out.push(playMove(c3, t, R.DEFUSE));
     }
-    if (v.roles && v.roles[v.me] === 'calico') {   // 角色猫「百搭猫」：不同的猫也能凑对 / 凑三张——拿凑不成对的单张猫来凑
+    if (anyCat(v)) {   // 角色猫「百搭猫」/ 百变「百搭」：不同的猫也能凑对 / 凑三张——拿凑不成对的单张猫来凑
       const singles = R.CATS.filter((k) => (by[k] || []).length === 1).map((k) => by[k][0]);
       for (let i = 0; i < singles.length; i++) for (let j = i + 1; j < singles.length; j++) for (const t of ps) out.push(playMove([singles[i], singles[j]], t));
       if (singles.length >= 3) for (const t of ts) out.push(playMove(singles.slice(0, 3), t, R.DEFUSE));

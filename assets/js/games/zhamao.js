@@ -282,22 +282,26 @@
 
   /* ───── 牌 ───── */
   // 百变「摸底」生效时，抽底牌换成「抽顶」的牌面（规则上它也改成从最上面摸）
-  const topdrawNow = () => !!(game && game.state && (ov && ov.flux !== undefined ? ov.flux : game.state.flux) === 'bottom');
+  const fluxNow = () => (game && game.state ? (ov && ov.flux !== undefined ? ov.flux : game.state.flux) : null);
+  const topdrawNow = () => fluxNow() === 'bottom';
+  // 百变「百搭」（2026-11-26 用户）：所有猫都变成万能猫——猫牌的牌面跟着换成万能猫（像摸底时抽底变抽顶），换走规则再变回来
+  const allwildNow = () => fluxNow() === 'allwild';
+  const viewKind = (k) => (k === R.BOTTOM && topdrawNow() ? 'topdraw' : R.CATS.indexOf(k) >= 0 && allwildNow() ? R.WILD : k);
   // 我出这组牌算什么（角色猫三花：任意两只 / 三只猫也算）
   const classifyMine = (cards) => (R.classifyFor && game && game.state ? R.classifyFor(game.state, 0, cards) : R.classify(cards));
   // 名字条放不下的长名字（英文）：按字数缩一档 / 两档字号（zhamao.css 末尾「多语言」一段）。简体一律不加，站点和以前一样
   const nmCls = (s) => (LANG === 'zh-Hans' ? '' : String(s).length > 12 ? ' is-xlong' : String(s).length > 8 ? ' is-long' : '');
   function cardHtml(kindOrId, cls, style) {
     const k = typeof kindOrId === 'number' ? R.KIND_OF[kindOrId] : kindOrId;
-    const vk = k === R.BOTTOM && topdrawNow() ? 'topdraw' : k;   // 看起来是哪种（data-k 仍是真牌种，出牌判断不受影响）
+    const vk = viewKind(k);   // 看起来是哪种（data-k 仍是真牌种，出牌判断不受影响；data-v 是看起来的那种）
     const t = ART.TONE[vk];
-    return '<div class="zm-card' + (cls ? ' ' + cls : '') + '" data-k="' + k + '"' + (typeof kindOrId === 'number' ? ' data-id="' + kindOrId + '"' : '') +
+    return '<div class="zm-card' + (cls ? ' ' + cls : '') + '" data-k="' + k + '"' + (vk !== k ? ' data-v="' + vk + '"' : '') + (typeof kindOrId === 'number' ? ' data-id="' + kindOrId + '"' : '') +
       ' style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + (style ? ';' + style : '') + '">' +
-      '<div class="zm-art">' + ART.face(vk) + '</div><i class="zm-ic">' + ART.icon(vk) + '</i><b class="zm-nm' + nmCls(R.NAMES[k]) + '">' + (vk === 'topdraw' ? T('card.topdraw.name', '抽顶') : R.NAMES[k]) + '</b></div>';
+      '<div class="zm-art">' + ART.face(vk) + '</div><i class="zm-ic">' + ART.icon(vk) + '</i><b class="zm-nm' + nmCls(R.NAMES[vk] || R.NAMES[k]) + '">' + (vk === 'topdraw' ? T('card.topdraw.name', '抽顶') : R.NAMES[vk]) + '</b></div>';
   }
   // 换上 / 换走「摸底」：手里每张抽底翻一下、换成抽顶（或换回来）
-  async function flipBottomCards(t) {
-    const cards = Array.from(els.hand.querySelectorAll('.zm-card[data-k="' + R.BOTTOM + '"][data-id]'));
+  async function flipBottomCards(t, kinds) {
+    const cards = Array.from(els.hand.querySelectorAll((kinds || [R.BOTTOM]).map((k) => '.zm-card[data-k="' + k + '"][data-id]').join(', ')));
     if (!cards.length) return;
     snd('flip');
     await Promise.all(cards.map((c, i) => {
@@ -309,6 +313,7 @@
         const fresh = tmp.firstChild;
         c.style.setProperty('--bg', fresh.style.getPropertyValue('--bg')); c.style.setProperty('--band', fresh.style.getPropertyValue('--band')); c.style.setProperty('--ink', fresh.style.getPropertyValue('--ink'));
         c.innerHTML = fresh.innerHTML;
+        if (fresh.dataset.v) c.dataset.v = fresh.dataset.v; else delete c.dataset.v;
         c.getAnimations().forEach((a) => a.cancel());
         return c.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { duration: ms(200), easing: 'ease-out' }).finished;
       }).catch(() => {});
@@ -1515,7 +1520,7 @@
   /* ───── 百变规则牌（2026-11-15 用户：用甲的样子、不预告；打「百变」从百变规则堆里抽一条，抽到什么算什么）─────
    * 牌堆下面固定一张横放的牌，标题「百变规则」+ 这条的名字 + 一句话；点它看全部规则。
    * 还没人打过百变时什么都不摆（用户：别写「还没有」，土）——第一次抽到时才翻出来 */
-  const FLUX_IC = { nine: 'defuse', peektop: 'future', exact: 'boom', bottom: 'bottom', reverse: 'reverse', mute: 'nope', hot: 'tattack', catsave: 'calico' };
+  const FLUX_IC = { nine: 'defuse', peektop: 'future', exact: 'boom', bottom: 'bottom', reverse: 'reverse', mute: 'nope', hot: 'tattack', catsave: 'calico', allwild: 'wild' };
   const fluxRule = (id) => (R.FLUX_RULES || []).find((r) => r.id === id) || null;
   function fluxHtml(id) {
     const r = fluxRule(id), k = FLUX_IC[r.id];
@@ -1639,6 +1644,7 @@
     if (t !== token) return;
     renderFlux({ flux: e.rule });
     if ((e.rule === 'bottom') !== (prev === 'bottom')) flipBottomCards(t);   // 摸底：手里的抽底翻成抽顶（换走时翻回来）
+    if ((e.rule === 'allwild') !== (prev === 'allwild')) flipBottomCards(t, R.CATS);   // 百搭：手里的猫翻成万能猫（换走时翻回来）
     if (prev === 'exact' && e.rule !== 'exact' && game.openKits && game.openKits.size) await tuckKits(t);   // 火眼换走：露着的炸毛猫收回去
     if (t !== token) return;
     if (ov && (e.rule === 'peektop' || prev === 'peektop' || prev === 'exact')) { ov.topFace = faceTop(game.state); renderPiles(); }   // 掀顶生效：顶上那张翻起来；换走：盖回去
@@ -2865,7 +2871,7 @@
   /* 万能猫上桌：它顶的是哪只猫（对子 / 三张 = 同组里那只真猫；五种各一张 = 缺的那几种按顺序分）。两张都是万能猫就不顶谁 */
   function mimicKinds(cards) {
     const K = R.KIND_OF, kinds = cards.map((id) => K[id]);
-    if (!kinds.some((k) => k === R.WILD) || !kinds.every(R.catLike)) return {};
+    if (!kinds.some((k) => k === R.WILD) || !kinds.every(R.catLike) || allwildNow()) return {};   // 百搭时猫都画成万能猫了，不再变身
     const real = kinds.filter((k) => k !== R.WILD), out = {};
     if (cards.length === 5) {
       const miss = R.CATS.filter((c) => real.indexOf(c) < 0);
@@ -9332,6 +9338,7 @@
       // 百变「急救」：没逗猫棒、手里一对奶牛猫，摸到炸毛猫（我 / 机器猫）；牌堆只剩一张时抽底
       catsave: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(0, 'cow'); give(0, 'cow'); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       catsavebot: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(bot, 'cow'); give(bot, 'cow'); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
+      allwild: () => { s.flux = 'allwild'; give(0, 'orange'); give(0, 'cow'); give(0, 'tabby'); s.turn = 0; renderAll(); },   // 百变「百搭」：手里三只不同的猫，自己挑着出
       nine: () => { s.flux = 'nine'; s.nineUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
       bottom1: () => { const keep = s.deck.find((id) => R.KIND_OF[id] !== R.BOOM); s.removed.push(...s.deck.filter((id) => id !== keep)); s.deck = [keep]; give(bot, 'bottom'); s.turn = bot; apply(bot, { type: 'play', cards: [s.hands[bot].find((id) => R.KIND_OF[id] === 'bottom')] }); },
       win: () => { for (let i = 1; i < s.n; i++) { s.alive[i] = false; s.outOrder.push(i); s.hands[i] = []; } s.phase = 'over'; s.winner = 0; release(); renderAll(); finish(); },

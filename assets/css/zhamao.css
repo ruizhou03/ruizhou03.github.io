@@ -256,8 +256,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
   font-size: 13.5cqw; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden;
 }
 /* 万能猫（2026-11-13 用户挑甲）：名字条换成一条柔和的五彩渐变（橘→玫红→紫→青绿→金），名字两边各一颗小星——一眼和别的猫牌分开 */
-.zm-card[data-k="wild"] .zm-nm { background: linear-gradient(90deg, #e0893e, #d4607e 28%, #8a63a8 52%, #2f8a83 76%, #c9a24a); color: #fffaf0; text-shadow: 0 1px 0 rgba(29, 27, 24, 0.25); gap: 3cqw; }
-.zm-card[data-k="wild"] .zm-nm::before, .zm-card[data-k="wild"] .zm-nm::after { content: '✦'; font-size: 9cqw; color: #fff4c8; }
+.zm-card[data-k="wild"] .zm-nm, .zm-card[data-v="wild"] .zm-nm { background: linear-gradient(90deg, #e0893e, #d4607e 28%, #8a63a8 52%, #2f8a83 76%, #c9a24a); color: #fffaf0; text-shadow: 0 1px 0 rgba(29, 27, 24, 0.25); gap: 3cqw; }
+.zm-card[data-k="wild"] .zm-nm::before, .zm-card[data-k="wild"] .zm-nm::after, .zm-card[data-v="wild"] .zm-nm::before, .zm-card[data-v="wild"] .zm-nm::after { content: '✦'; font-size: 9cqw; color: #fff4c8; }
 /* 出牌方向箭头（转向）：相邻两个对手之间，淡金 */
 .zm-dir { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
 .zm-dir i { position: absolute; display: block; color: #b8914a; }

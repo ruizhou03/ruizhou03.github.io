@@ -725,3 +725,23 @@ test('hidden insert (default, 2026-11-25): nine reinsert gives no height; peekto
   t = atDefuse({}, 'nine', true); let n = t.ev.find((x) => x.t === 'nine'); assert.ok(n); assert.equal(n.vis, null);
   t = atDefuse({ insertSeen: true }, 'nine', true); n = t.ev.find((x) => x.t === 'nine'); assert.ok(n.vis != null);
 });
+
+test('flux 百搭 (allwild): any two / three / five cats combine; off again when the rule changes', () => {
+  const s = rig([['orange', 'cow', 'tabby', 'calico', 'siamese', 'orange'], ['skip']], ['skip', 'skip', 'skip'], 0);
+  s.rules = Object.assign({}, s.rules, { mode: 'flux' });
+  const h = s.hands[0], id = (k, i) => h.filter((x) => R.KIND_OF[x] === k)[i || 0];
+  const pair = [id('orange'), id('cow')], triple = [id('orange'), id('cow'), id('tabby')];
+  const five = [id('orange'), id('orange', 1), id('cow'), id('tabby'), id('calico')];
+  assert.equal(R.classifyFor(s, 0, pair), null);
+  assert.equal(R.classifyFor(s, 0, five), null);   // 两只橘猫不算五种各一张
+  s.flux = 'allwild';
+  assert.equal(R.classifyFor(s, 0, pair).type, 'pair');
+  assert.equal(R.classifyFor(s, 0, triple).type, 'triple');
+  assert.equal(R.classifyFor(s, 0, five).type, 'five');
+  assert.equal(R.classifyFor(s, 0, [id('orange'), id('cow'), id('tabby'), id('calico')]), null);   // 四张不是组合
+  const ev = R.play(s, 0, pair, { target: 1 });
+  assert.ok(ev.length);
+  s.flux = 'mute';
+  assert.equal(R.classifyFor(s, 0, triple), null);
+  assert.ok(R.FLUX_RULES.some((r) => r.id === 'allwild'));
+});
