@@ -70,22 +70,28 @@
     if (!did) { did = 'd-' + Math.random().toString(36).slice(2, 10) + '-' + Date.now().toString(36); ls.set('gs.did.v1', did); }
     return did;
   }
-  let state = (() => { try { return JSON.parse(ls.get(CACHE)) || null; } catch (_) { return null; } })();
+  /* 这份钱包是谁的：'a:账号' / 'd:设备号'。本机存的余额 / 档案都按它分开（2026-11-26 事故：登录后先摆了游客那份 6,000，像是账号被清空） */
+  const who = () => { if (!loggedIn()) return 'd:' + deviceId(); const u = auth().getUser ? auth().getUser() : null; return 'a:' + ((u && (u.id || u.accountId)) || ''); };
+  let state = (() => { try { const c = JSON.parse(ls.get(CACHE)) || null; return c && c.who === who() ? c : null; } catch (_) { return null; } })();
+  let syncing = false;   // 刚换了身份、服务器的余额还没回来：左上角显示加载，不摆旧数
+  let quiet = false;     // 这次更新是「和服务器对一下」，不是真的进账：数字直接摆，不游鱼
   const listeners = [];
   function remember(j) {
     if (!j || j.bal == null) return;
-    state = Object.assign({}, state || {}, { bal: j.bal, t: Date.now() }, j.checkin ? { ck: j.checkin.today ? today() : '', next: j.checkin.next } : {}, j.relief ? { relief: j.relief } : {}, j.winToday != null ? { winToday: !!j.winToday } : {}, j.owner ? { owner: j.owner } : {}, Array.isArray(j.badges) && j.checkin ? { badges: j.badges } : {}, j.firstWin && typeof j.firstWin === 'object' ? { fw: j.firstWin } : j.fwReady ? { fw: Object.assign({}, (state && state.fw) || {}, { ready: true, done: true }) } : {});
+    state = Object.assign({}, state || {}, { bal: j.bal, t: Date.now(), who: who() }, j.checkin ? { ck: j.checkin.today ? today() : '', next: j.checkin.next } : {}, j.relief ? { relief: j.relief } : {}, j.winToday != null ? { winToday: !!j.winToday } : {}, j.owner ? { owner: j.owner } : {}, Array.isArray(j.badges) && j.checkin ? { badges: j.badges } : {}, j.firstWin && typeof j.firstWin === 'object' ? { fw: j.firstWin } : j.fwReady ? { fw: Object.assign({}, (state && state.fw) || {}, { ready: true, done: true }) } : {});
     ls.set(CACHE, JSON.stringify(state));
     listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } });
   }
   // 手机上的日历日（2026-11-23 用户：签到按用户当地日期算，不按北京时间；服务器只认「世界上某个时区此刻的日期」）
   const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-  async function post(action, body) {
+  async function post(action, body, sync) {
     const b = Object.assign({ day: today(), tz: new Date().getTimezoneOffset() }, body || {});   // tz：服务器记下手机时区，联机结算时也按当地日期算首胜（2026-11-24）
     const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
     let res;
+    const me = who();
     if (loggedIn()) {
-      const g = ls.get('gs.did.anon.v1');
+      // 游客号：登录后备份在 gs.did.anon.v1；刚登录那一刻还没备份，gs.did.v1 里还是游客号（不是账号号 a_…）——也带上，后端先并游客钱包再干别的
+      const cur = ls.get('gs.did.v1'), g = ls.get('gs.did.anon.v1') || (cur && !/^a_/.test(cur) ? cur : '');
       if (g) b.guest = g;
       opts.body = JSON.stringify(b);
       res = await auth().authedFetch(BASE + '?action=' + action, opts);
@@ -96,7 +102,9 @@
     }
     const j = await res.json().catch(() => ({}));
     if (!res.ok) { const e = new Error(j.error || 'http_' + res.status); e.status = res.status; throw e; }
-    remember(j);
+    if (me !== who()) { const e = new Error('who_changed'); e.status = 0; throw e; }   // 半路登录 / 登出了：这份是旧身份的，不摆
+    quiet = !!sync;
+    try { remember(j); } finally { quiet = false; }
     return j;
   }
 
@@ -107,6 +115,8 @@
 .zmw-fish{width:1.6em;height:1em;flex:none;vertical-align:-.12em}
 .zmw-chip{cursor:pointer;font-family:inherit;position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 12px);z-index:5;display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 9px;border:1.5px solid #1d1b18;border-radius:999px;background:#fffdf8;color:#1d1b18;text-decoration:none;font:700 15px/1 ZM Num,ZM Serif,Georgia,"Noto Serif SC",serif;box-shadow:0 2px 0 #1d1b18;-webkit-tap-highlight-color:transparent}
 .zmw-chip:active{transform:translateY(2px);box-shadow:none}
+.zmw-chip.is-load b::after{content:'···';display:inline-block;min-width:2.2em;opacity:.45;animation:zmwLoad 1s ease-in-out infinite alternate}
+@keyframes zmwLoad{to{opacity:.15}}
 .zmw-chip[hidden]{display:none}
 .zmw-chip .zmw-dot{position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:#e9b949;border:2px solid #fffdf8}
 .zmw-chip .zmw-dot[hidden]{display:none}
@@ -224,10 +234,12 @@
   function paintChip() {
     if (!chip) return;
     const has = state && state.bal != null;
-    chip.hidden = !has;
-    if (!has) return;
+    chip.hidden = !has && !syncing;
+    chip.classList.toggle('is-load', !has);
+    if (!has) { chip.querySelector('b').textContent = ''; chip.querySelector('.zmw-dot').hidden = true; shown = null; return; }   // 加载中：只有鱼 + 三个点，不摆错的数
     const b = chip.querySelector('b');
-    if (shortOpen && shown != null) { /* 「不够了」弹窗开着：后面这个先不动，关窗时对齐（录屏：弹窗里鱼还没游到，后面已经先跳成新数） */ }
+    if (quiet && !(shortOpen && shown != null)) { b.textContent = fmt(state.bal); shown = state.bal; }   // 和服务器对数（打开游戏、登录、关档案）：直接摆，不游鱼——2026-11-26 用户：打开游戏莫名其妙有加减
+    else if (shortOpen && shown != null) { /* 「不够了」弹窗开着：后面这个先不动，关窗时对齐（录屏：弹窗里鱼还没游到，后面已经先跳成新数） */ }
     else if (shown == null) { b.textContent = fmt(state.bal); shown = state.bal; }
     else if (chip.offsetParent === null) { /* 封面藏着（在打牌）：等回到主页面露出来再滚 */ }
     else if (profileOpen() || shortOpen || !fxOn() || !FX() || shown === state.bal) { b.textContent = fmt(state.bal); shown = state.bal; }   // 档案开着：鱼飞进档案里的余额，后面这个不动
@@ -405,12 +417,14 @@
     cover.appendChild(chip);
     // 封面一藏起来（开局 / 进联机 / 进教程，不管从哪儿走的）：小鱼干的动画一律当场收掉，不带到下一页
     if (root.MutationObserver) new MutationObserver(() => { if (cover.hidden) cancelFx(); }).observe(cover, { attributes: true, attributeFilter: ['hidden'] });
+    if (!state) syncing = true;   // 本机没有这个身份的余额：先显示加载，不摆别人的数
     paintChip();
     listeners.push(paintChip);
     // 档案数据闲下来先拿一份：本机没存过、存的不是今天的、或存了超过一分钟（2026-11-26 用户：进档案要已经是好的）
-    refresh().then(retryPending).then(() => { if (profStale()) setTimeout(() => profile().catch(() => null), 1200); });
+    refresh().then(() => { if (syncing && syncP === first) { syncing = false; paintChip(); } }).then(retryPending).then(() => { if (profStale()) setTimeout(() => profile().catch(() => null), 1200); });
     // 登录 / 登出之后：游客小鱼干并进账号（后端做），左上角跟着刷新
-    if (auth() && auth().onChange) auth().onChange(() => { setTimeout(refresh, 300); });
+    // 换了身份（登录 / 登出 / 换账号）：旧身份那份余额当场收掉、左上角显示加载，等服务器（并完游客钱包）回来再摆——宁可转圈，不摆错的数
+    if (auth() && auth().onChange) { let was = who(); auth().onChange(() => { const now = who(); if (now !== was) { was = now; switched(); } }); }
     // 老链接 /toolbox/puffcat/me/ 会跳到 ?me=1：进来直接打开档案（用 replaceState 去掉参数，不留历史）
     if (/[?&]me=1\b/.test(location.search)) {
       try { const u = new URL(location.href); u.searchParams.delete('me'); history.replaceState(history.state, '', u.toString()); } catch (_) { /* */ }
@@ -422,13 +436,12 @@
    *  ② 手指一按下左上角小鱼干就先去拿（松手时请求已经在路上了）；1.5 秒内的重复请求共用同一个；
    *  ③ 本机还没存过（第一次玩）：主页面摆好后闲下来先拿一份 */
   const PROF = 'zm.wprof.v1';
-  const who = () => { if (!loggedIn()) return 'd:' + deviceId(); const u = auth().getUser ? auth().getUser() : null; return 'a:' + ((u && (u.id || u.accountId)) || ''); };
   let profP = null, profAt = 0;
   function profile(fresh) {
     if (!fresh && profP && Date.now() - profAt < 1500) return profP;
     profAt = Date.now();
     const me = who();
-    profP = post('profile').then((p) => { try { ls.set(PROF, JSON.stringify({ who: me, t: Date.now(), p })); } catch (_) { /* 存不下就算了 */ } return p; });
+    profP = post('profile', null, true).then((p) => { try { ls.set(PROF, JSON.stringify({ who: me, t: Date.now(), p })); } catch (_) { /* 存不下就算了 */ } return p; });
     profP.catch(() => { profP = null; });
     return profP;
   }
@@ -463,9 +476,23 @@
       return rollDay(c.p, c.t);
     } catch (_) { return null; }
   }
+  const first = Promise.resolve();
+  let syncP = first;
+  function switched() {
+    state = null; shown = null; profP = null; syncing = true;
+    ls.set(CACHE, 'null');
+    listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } });
+    const p = syncP = post('me', null, true).catch(() => null).then(() => { if (syncP === p) { syncing = false; paintChip(); } });
+    return p;
+  }
+  /* 档案等这个：刚登录时先让「并游客钱包」那次请求回来，再拉档案（不然档案会先摆一份还没并的） */
+  const synced = () => syncP;
   function openProfile() { if (root.ZhamaoProfile) root.ZhamaoProfile.open(); }
   function login() { if (auth() && auth().openLogin) auth().openLogin(); else openProfile(); }
-  function refresh() { return post('me').catch(() => null); }
+  /* 和服务器对一下余额（不是进账）：回来的数直接摆，左上角不游鱼、不滚 */
+  function refresh() {
+    return post('me', null, true).catch(() => null);
+  }
 
   // ── 单机设置单：「开始」键上标这局门票 ──
   function priceTag(btn, tier, mode, n) {
@@ -495,7 +522,7 @@
   function retryPending() {
     const l = pendList().filter((x) => Date.now() - (x.t || 0) < 11 * 3600e3);
     ls.set(PEND, JSON.stringify(l));
-    l.reduce((p, x) => p.then(() => { const b = Object.assign({}, x); delete b.t; return post('settle', b).then(() => dropPending(x.tid)).catch((e) => { if (e.status === 409 || e.status === 403) dropPending(x.tid); }); }), Promise.resolve());
+    l.reduce((p, x) => p.then(() => { const b = Object.assign({}, x); delete b.t; return post('settle', b, true).then(() => dropPending(x.tid)).catch((e) => { if (e.status === 409 || e.status === 403) dropPending(x.tid); }); }), Promise.resolve());
   }
 
   // ── 单机：开局领票、记我的步数、结算 ──
@@ -682,6 +709,7 @@
     tchip.hidden = !has;
     tTop.classList.toggle('has-zmw', has);
     if (!has || held || tShown === state.bal) return;
+    if (quiet) { setT(state.bal); return; }   // 和服务器对数：直接摆
     // 平时（打着牌、联机开局扣门票）余额变了：数字滚过去（加绿、减红），不跳
     const fx = FX(), from = tShown;
     if (from != null && fx && fxOn() && tchip.offsetParent !== null) { tShown = state.bal; fx.roll(tchip.querySelector('b'), from, state.bal, 520).then(() => { if (!held && tShown === state.bal) setT(state.bal); }); }
@@ -792,7 +820,7 @@
     BASE, FISH, price, loggedIn, deviceId,
     state: () => state, onChange: (f) => listeners.push(f),
     me: refresh,
-    checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, fb: (steps) => post('fb', { steps }).catch(() => null), fbAward,
+    checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, synced, who, fb: (steps) => post('fb', { steps }).catch(() => null), fbAward,
     ledger: (offset) => post('ledger', { offset }), costTag, tagHtml, onNoScore: null,
     mountChip, mountTable, tableStart, tableChip: () => tchip, badgeShow, claimFirstWin, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
     __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },

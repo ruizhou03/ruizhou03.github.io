@@ -221,7 +221,7 @@
   }
 
   /* ── 流水（2026-11-24 用户：点开一股脑全列出来不理性）──
-   * 按天分组（标题右边是当天净变化）；一局的门票 / 名次奖励 / 首胜 / 离开罚票合成一行（点开看明细）；先列 20 行，「再看更早的」每次再加 20 行，
+   * 按天分组（标题右边是当天净变化）；一局的门票 / 名次奖励 / 首胜 / 离开罚票合成一行（点开看明细）；先列 20 行，「更多」每次再加 20 行，
    * 本机拿到的不够了再向服务器要下一页；上面三个筛选：全部 / 对局 / 福利 */
   const TIER_NAME = { easy: '入门', normal: '普通', hard: '高手' };
   const MODE_NAME = { classic: '经典', flux: '百变', roles: '角色', team: '组队' };
@@ -286,7 +286,7 @@
     const canMore = items.length > led.show || led.more;
     const chip = (k, t) => '<button type="button" data-lf="' + k + '"' + (led.filter === k ? ' class="on"' : '') + '>' + t + '</button>';
     return '<div class="zmp-lf">' + chip('all', '全部') + chip('game', '对局') + chip('perk', '福利') + '</div>' + out +
-      (canMore ? '<button type="button" class="zmp-lmore" data-lmore>' + (led.busy ? '…' : '再看更早的') + '</button>' : '');
+      (canMore ? '<button type="button" class="zmp-lmore" data-lmore>' + (led.busy ? '…' : '更多') + '</button>' : '');
   }
   function paintLed() { const box = body && body.querySelector('[data-led]'); if (box) box.innerHTML = ledHtml(); }
   function moreLed() {
@@ -316,7 +316,6 @@
       const n = round0 + i, done = n < p.checkin.streak, now = !p.checkin.today && n === p.checkin.streak;
       return '<button type="button" class="zmp-day' + (done ? ' is-done' : '') + (now ? ' is-now' : '') + (i === 6 ? ' is-big' : '') + '"' + (now ? ' data-ck' : ' disabled') + ' aria-label="第 ' + (i + 1) + ' 天 ' + amt + '">' + FISH + amt + '</button>';
     }).join('');
-    const wk = p.records.filter((r) => Date.now() - r.at < 7 * 86400e3).reduce((a, r) => a + (r.d || 0), 0);
     const hasLed = !!(p.ledger && p.ledger.length);
     // 名字下面：拿到的最高几枚（档高的在前，最多 4 枚）；下面单独一张「勋章」卡放全部系列
     const ss = seriesState(p.badgeList), nGot = (p.badgeList || []).filter((b) => b.got).length;
@@ -327,7 +326,7 @@
       '<div class="zmp-card zmp-hero2"><div class="zmp-av">' + me.face + '</div><div><div class="zmp-nick">' + esc(me.nick) + '</div><div class="zmp-who">' +
         (p.owner === 'account' ? '<span class="ok">' + TICK + '</span>已登录' : '<button type="button" class="zmp-login" data-login>登录保存</button>') + '</div>' +
         '<div class="zmp-bdg">' + badges + '</div></div>' +
-        '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span><div class="sub"><span class="' + (wk >= 0 ? 'up' : 'dn') + '">近 7 天对局 ' + sign(wk) + '</span><span>' + (p.games || 0) + ' 局</span></div></div></div>' +
+        '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span></div></div>' +   // 2026-11-26 用户：余额旁边不要「近 7 天对局」和「多少局」
       wall +
       '<div class="zmp-grid">' +
         '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div>' + fwHtml(p) + '<div class="zmp-act" aria-label="近四周签到">' + actHtml(p) + '</div></div>' +
@@ -377,7 +376,18 @@
       if (e.target.closest('[data-login]')) login();
     });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen() && !document.querySelector('#sa-overlay.open')) close(); });
-    if (root.SiteAuth && root.SiteAuth.onChange) root.SiteAuth.onChange(() => { if (isOpen()) load(true); });
+    // 登录 / 登出（2026-11-26 事故：在档案里点「登录保存」，档案先摆了一份 6,000、流水全空的，像账号被清空）：
+    // 换了身份就先收掉旧那份、转圈，等钱包那边并完游客钱包再拉档案
+    let was = W() && W().who ? W().who() : '';
+    if (root.SiteAuth && root.SiteAuth.onChange) root.SiteAuth.onChange(() => {
+      const now = W() && W().who ? W().who() : '';
+      const changed = now !== was; was = now;
+      if (!isOpen()) return;
+      if (!changed) { load(true); return; }
+      last = null; led = { all: [], more: false, filter: 'all', show: LED_STEP, busy: false, open: false };
+      body.innerHTML = '<div class="zmp-wait"></div>';
+      Promise.resolve(W().synced ? W().synced() : null).then(() => { if (isOpen()) load(true); });
+    });
   }
   const isOpen = () => !!(el && !el.hidden);
   function load(force) {
@@ -385,7 +395,7 @@
     W().profile(force).then((p) => {
       if (!force && body.querySelector('[data-busy]')) return;   // 正在签到的动画：签到那边放完会自己再拉   // 正在签到的动画：签到那边放完会自己再拉
       render(p);
-    }).catch(() => { if (!last) body.innerHTML = '<div class="zmp-in zmp-card zmp-empty">连不上服务器，稍后再试</div>'; });
+    }).catch((e) => { if (e && e.message === 'who_changed') return; if (!last) body.innerHTML = '<div class="zmp-in zmp-card zmp-empty">连不上服务器，稍后再试</div>'; });
   }
   function render(p) {
     {
