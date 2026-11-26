@@ -4824,45 +4824,13 @@
     if (p.type === R.ATTACK) { const n = alive.length, d = dir === -1 ? -1 : 1; for (let k = 1; k < n; k++) { const x = (((p.by + d * k) % n) + n) % n; if (alive[x]) return x === me; } }
     return false;
   }
-  /* 什么时候问我要不要出「作废」（2026-11-14 用户：局里临时改开关来不及，得事先设好）：
-   * 「全都问」= 每张牌都问；「挑着问」= 和我有关的一定问，再加上勾选的这几种（默认勾：凑五种捡弃牌堆 / 别人之间交换 / 别人之间三张点名）。
-   * 老设置「只在和我有关时询问」开着的 = 挑着问 */
-  const NOPE_ALSO = [
-    ['five', T('ui.nopeAlso.five', '凑五种去捡弃牌堆'), ['five'], true],
-    ['swap', T('ui.nopeAlso.swap', '别人之间交换手牌'), [R.SWAP], true],
-    ['triple', T('ui.nopeAlso.triple', '别人之间三张点名'), ['triple'], true],
-    ['flux', T('ui.nopeAlso.flux', '别人打百变'), [R.FLUX], true],   // 2026-11-15 用户：百变也能作废——挡住别人换掉对我有利的规则
-    ['pair', T('ui.nopeAlso.pair', '别人之间两张偷牌'), ['pair'], false],
-    ['favor', T('ui.nopeAlso.favor', '别人之间索要'), [R.FAVOR], false],
-    ['attack', T('ui.nopeAlso.attack', '甩锅（不甩给我）'), [R.ATTACK, R.TATTACK], false],
-    ['shuffle', R.NAMES.shuffle, [R.SHUFFLE], false],
-    ['alter', R.NAMES.alter, [R.ALTER], false],
-  ];
-  /* 2026-11-15 晚 用户（朋友局反馈：别人之间出牌也弹「作废」，新手以为冲着自己、点了才发现不用）：
-   * 默认全程只在和我有关时问（组队时和队友有关也算），残局也不再自动全问；设置里打开「别人之间的牌也问我」才有细项——
-   * 勾哪几种也问（默认勾原来那四种）、牌堆剩多少时全都问（默认两成）。没打开的人看不到细项 */
-  /* 2026-11-18 用户：默认每张牌都问（手里有作废时，别人之间的转向 / 洗牌……也出那一圈倒计时），设置里能关成只问和我有关的。
-   * 没设过（undefined）= 开；以前打开过的「挑着问」也一并当「全都问」 */
-  const nopeAskMode = () => (settings.nopeOthers === false ? 'mine' : 'all');
-  const nopeAlsoOn = (k) => {
-    if (!settings.nopeOthers) return false;
-    if (Array.isArray(settings.nopeAlso)) return settings.nopeAlso.indexOf(k) >= 0;
-    const def = NOPE_ALSO.find((x) => x[0] === k); return !!(def && def[3]);
-  };
-  /* 残局全都问（2026-11-14 用户：前八成局面和我无关的我不管，最后两成想微调，别人之间的牌也可能想作废）：
-   * 「挑着问」时，牌堆剩下不到开局的这一成数，就当「全都问」。默认两成，设置里能选 关 / 30% / 20% / 10% */
-  const nopeLateSet = () => (settings.nopeLate != null ? +settings.nopeLate : 0.2);
-  const nopeLate = () => (settings.nopeOthers ? nopeLateSet() : 0);
-  function deckLeft() {
-    const st = game && game.state;
-    if (!st || !st.deck) return 1;
-    if (!game.deck0) { try { game.deck0 = R.createGame(st.n, 1, st.rules).deck.length; } catch (_) { game.deck0 = st.deck.length || 1; } }   // 开局牌堆多大只跟人数和牌量规则有关
-    return st.deck.length / Math.max(1, game.deck0);
-  }
+  /* 什么时候问我要不要出「作废」——设置里只剩一个开关（2026-11-26 用户定）：「只在直接和我相关时询问「作废」」，默认打开。
+   * 开着（settings.nopeOthers 不是 true）= 只问和我有关的：我出的、指着我的、甩到我头上的（组队时含队友）；关掉 = 谁出牌都问。
+   * 以前的细项（挑哪几种也问、牌堆剩两成时全都问）拿掉了。没设过的人（undefined）按新默认「只问和我有关的」；
+   * 自己在设置里动过的保留：存的 false = 只问和我有关、true = 全都问 */
+  const nopeAskMode = () => (settings.nopeOthers === true ? 'all' : 'mine');
   function nopeAsks(p, me, alive, dir) {
-    if (nopeAskMode() === 'all' || !p || aboutSeat(p, me, alive, dir)) return true;
-    if (nopeLate() > 0 && deckLeft() <= nopeLate()) return true;
-    return NOPE_ALSO.some(([k, , types]) => nopeAlsoOn(k) && types.indexOf(p.type) >= 0);
+    return nopeAskMode() === 'all' || !p || aboutSeat(p, me, alive, dir);
   }
   // 组队：和队友有关（队友出的、指着队友、甩到队友头上）也算和我有关——帮队友挡一下 / 别挡了队友（2026-11-15 巡查）
   /* 组队：最后出手的是队友（他刚出的牌，或他刚作废回来的）——我再作废就是拆队友的台，不问；只有冲着我来的（指着我 / 甩锅甩到我头上）照问。
@@ -6313,7 +6281,7 @@
       '<ul>' + li('wild', T('rules.card.wild', '能顶任何一种猫：和一只猫凑成两张一样 / 三张一样，五种猫缺哪种也能拿它顶；两张万能猫也算一对。单出没用')) + '</ul>' +
       '<h3>' + T('rules.how', '操作') + '</h3><ul><li>' + T('rules.how.1', '点手牌选中（可多选），再点「出牌」；需要指定人时，能选的人头像会亮，点他的头像。') + '</li>' +
       '<li>' + T('rules.how.2', '不想出牌就点「摸牌」结束回合。轮到你时头像外有一圈红环在收，收完还没动就自动替你摸一张（设置里可改成不限时）。') + '</li>' +
-      '<li>' + T('rules.how.3', '别人出了和你有关的牌（指着你的、甩到你头上的，组队时也包括队友），下面那根导火索在烧：你手里有「作废」就会出现紫色按钮，烧完之前点它。点手里的「作废」牌只会抬起来，不会打出去。和你无关的牌默认不问你，想管别人之间的牌就到设置里打开「别人之间的牌也问我」。') + '</li></ul></div>';
+      '<li>' + T('rules.how.3b', '别人出了和你有关的牌（指着你的、甩到你头上的，组队时也包括队友），下面那根导火索在烧：你手里有「作废」就会出现紫色按钮，烧完之前点它。点手里的「作废」牌只会抬起来，不会打出去。和你无关的牌默认不问你；想连别人之间的牌也管，就到设置里关掉「只在直接和我相关时询问「作废」」。') + '</li></ul></div>';
   }
   function showRules() {
     // 2026-11-15 用户：窗口别占满全屏；右上角一个叉，点窗外任何地方也能关（遮罩点击认 data-ok）
@@ -6323,114 +6291,200 @@
     });
   }
 
-  /* 设置（2026-11-12 用户定稿「卡片 + 开关」，参考拱猪）：上面一张卡放人数 / 机器猫 / 限时，下面「玩法」卡每条一个牌面小图标 + 开关。
-   * 和拱猪一样点了立刻生效、存下来，不再有「取消 / 保存」；规则从下一局起生效，局中改了规则「重开一局」变红 */
-  const DECK_OPTS = [['quick', T('ui.set.deck.quick', '快局')], ['std', T('ui.set.deck.std', '标准')], ['more', T('ui.set.deck.more', '多')]];
+  /* 设置分层（2026-11-26 用户定「丙」）：
+   *  · 主页 / 局内菜单的「设置」只放跟人走的偏好——牌面大小（带整局缩略预览）、作废提醒一个开关、语言（App 里）、联机时观战者能不能看我的手牌；
+   *    局内另外只读列出这一局的规则。放大镜是游戏本身的属性，不给开关。
+   *  · 跟这一局走的规则（限时、牌量、交换牌、交换时逗猫棒换不换、炸弹塞回看不看得出）挪到开局：单机开局单、联机房间页各一个白框，
+   *    框里右上角「规则 ›」、下面一排小规则牌（改过默认的那张描金边），点开是规则页——白框卡片、行首牌面小图、没有说明文字，
+   *    右上角「恢复默认」、没有「好」，一改就存。单机记住上次选的；联机房主改、别人点开只能看 */
+  const DECK_OPTS = [['quick', T('ui.set.deck.less', '少')], ['std', T('ui.set.deck.std', '标准')], ['more', T('ui.set.deck.more', '多')]];
   // 界面语言（只有 App 里有：app/i18n.js 装了 PuffcatI18n 才出这一行）。三个选项各用自己的语言写，切换后重载页面（存档在 localStorage，重载后接着打）
   const I18N = window.PuffcatI18n && window.PuffcatI18n.SUPPORTED ? window.PuffcatI18n : null;
   const LANG_OPTS = [['zh-Hans', '简体中文'], ['zh-Hant', '繁體中文'], ['en', 'English']];
+  // 规则的默认值（「恢复默认」回到这里；小规则牌和它不一样就描金边）
+  const RULE_DEF = { turnSec: 20, deckSize: 'std', swap: false, swapDefuse: false, insertSeen: false };
+  // 限时、牌量没有对应的牌，单画两张小图（同牌面一样的扁平画法）；其余用牌面插画
+  const RULE_FACE = {
+    timer: ['#e3ecf5', '<svg viewBox="0 0 100 100" aria-hidden="true"><rect x="42" y="12" width="16" height="9" rx="3" fill="#2f4a6d"/><circle cx="50" cy="56" r="29" fill="#fffaf0" stroke="#2f4a6d" stroke-width="7"/><path d="M50 56V38M50 56l12 8" stroke="#c8463a" stroke-width="7" stroke-linecap="round" fill="none"/></svg>'],
+    deck: ['#f3e6cf', '<svg viewBox="0 0 100 100" aria-hidden="true"><rect x="30" y="17" width="44" height="60" rx="7" fill="#c9a96e" transform="rotate(10 52 47)"/><rect x="28" y="20" width="44" height="60" rx="7" fill="#e8d3a8" transform="rotate(-6 50 50)"/><rect x="28" y="22" width="44" height="60" rx="7" fill="#fffaf0" stroke="#2f4a6d" stroke-width="5"/><circle cx="50" cy="52" r="9" fill="#2f4a6d"/></svg>'],
+  };
+  const ruleFace = (k) => {
+    const f = RULE_FACE[k], bg = f ? f[0] : ART.TONE[k].bg;
+    return '<i class="zr-mc" style="--bg:' + bg + '" aria-hidden="true">' + (f ? f[1] : ART.face(k)) + '</i>';
+  };
+  const ruleTs = (ts) => (TURN_OPTS.some(([v]) => v === ts) ? ts : RULE_DEF.turnSec);
+  const rulesDefault = (rules, ts) => { const r = R.normalizeRules(rules); return ruleTs(ts) === RULE_DEF.turnSec && ['deckSize', 'swap', 'swapDefuse', 'insertSeen'].every((k) => r[k] === RULE_DEF[k]); };
+  const modeName = (m) => (SOLO_MODES.find(([x]) => x === m) || SOLO_MODES[0])[1];
+  // 一排小规则牌。open = 整个白框是按钮（右上角「规则 ›」）；否则只读
+  function ruleChipsHtml(rules, ts, open) {
+    const r = R.normalizeRules(rules), t = ruleTs(ts);
+    const chip = (k, label, chg) => '<span class="zr-chip' + (chg ? ' is-chg' : '') + '">' + ruleFace(k) + '<small>' + label + '</small></span>';
+    const chips = '<span class="zr-chips">' +
+      chip('timer', t ? T('ui.secs', '{n} 秒', { n: t }) : T('ui.set.noLimit', '不限时'), t !== RULE_DEF.turnSec) +
+      chip('deck', (DECK_OPTS.find(([v]) => v === r.deckSize) || DECK_OPTS[1])[1], r.deckSize !== RULE_DEF.deckSize) +
+      chip('swap', r.swap ? T('ui.rule.swapOn', '有交换') : T('ui.rule.swapOff', '无交换'), r.swap !== RULE_DEF.swap || r.swapDefuse !== RULE_DEF.swapDefuse) +
+      chip('boom', r.insertSeen ? T('ui.rule.insSeen', '塞回明') : T('ui.rule.insHid', '塞回暗'), r.insertSeen !== RULE_DEF.insertSeen) + '</span>';
+    return open
+      ? '<button type="button" class="zr-box" data-rules-open aria-label="' + T('ui.rules.edit', '规则') + '"><span class="zr-more">' + T('ui.rules.edit', '规则') + '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.2 2.2 8 6l-3.8 3.8"/></svg></span>' + chips + '</button>'
+      : '<div class="zr-box is-ro">' + chips + '</div>';
+  }
+  // 规则页（单机：开局单里滑过去；联机：房间页弹出来）。edit = 能改；不能改的控件灰着
+  function rulePageHtml(title, rules, ts, edit) {
+    const r = R.normalizeRules(rules), t = ruleTs(ts), dis = edit ? '' : ' disabled';
+    const seg = (key, opts, val) => '<div class="zs-seg" data-rseg="' + key + '" role="group">' + opts.map(([v, tx]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(val)) + '"' + dis + '>' + tx + '</button>').join('') + '</div>';
+    const sw = (key, on) => '<button type="button" class="zs-switch" data-rsw="' + key + '" role="switch" aria-checked="' + !!on + '"' + dis + '><i></i></button>';
+    const row = (k, name, ctl, dep) => '<div class="zs-row zr-row"' + (dep ? ' data-rdep="' + dep + '"' + (r[dep] ? '' : ' hidden') : '') + '>' + ruleFace(k) + '<div class="zs-txt"><b>' + name + '</b></div>' + ctl + '</div>';
+    return '<div class="zr-head"><button type="button" class="zr-back" data-rules-back aria-label="' + T('ui.back', '返回') + '"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M24.5 6.5 13 20l11.5 13.5"/></svg></button><b>' + esc(title) + '</b>' +
+      (edit ? '<button type="button" class="zr-reset" data-rules-reset' + (rulesDefault(r, t) ? ' disabled' : '') + '>' + T('ui.rules.reset', '恢复默认') + '</button>' : '<span class="zr-host">' + T('lobby.hostRules', '规则由房主定') + '</span>') + '</div>' +
+      '<section class="zs-card zr-card">' +
+      row('timer', T('ui.set.timer', '出牌限时'), seg('turnSec', TURN_OPTS, t)) +
+      row('deck', T('ui.set.deck', '牌量'), seg('deckSize', DECK_OPTS, r.deckSize)) +
+      row('swap', T('ui.set.swap', '有交换牌'), sw('swap', r.swap)) +
+      row('defuse', T('ui.set.swapDefuse', '交换时逗猫棒也换'), sw('swapDefuse', r.swapDefuse), 'swap') +
+      row('boom', T('ui.set.hideIns2', '炸弹塞回时看不出位置'), sw('hideIns', r.insertSeen === false)) +
+      '</section>';
+  }
+  /* 规则页的点击（事件挂在不换掉的外层上）：o.get() → { rules, ts }；o.set({ turnSec } | { rules: {…} })；o.back()；o.title() */
+  function bindRulePage(root, o) {
+    root._rp = o;
+    if (root._rpBound) return;
+    root._rpBound = true;
+    root.addEventListener('click', (e) => {
+      const b = e.target.closest('button'), o = root._rp;
+      if (!b || b.disabled || !o) return;
+      if (b.matches('[data-rules-back]')) { o.back(); return; }
+      if (b.matches('[data-rules-reset]')) {
+        o.set({ turnSec: RULE_DEF.turnSec });
+        o.set({ rules: { deckSize: RULE_DEF.deckSize, swap: RULE_DEF.swap, swapDefuse: RULE_DEF.swapDefuse, insertSeen: RULE_DEF.insertSeen } });
+        const cur = o.get();
+        root.innerHTML = rulePageHtml(o.title(), cur.rules, cur.ts, true);
+        snd('tap');
+        return;
+      }
+      const g = b.closest('[data-rseg]');
+      if (g && b.dataset.v != null) {
+        g.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        fx.pop(b, { scale: 1.06, dur: 200 });
+        if (g.dataset.rseg === 'turnSec') o.set({ turnSec: +b.dataset.v });
+        else o.set({ rules: { [g.dataset.rseg]: b.dataset.v } });
+        snd('tap');
+      } else if (b.dataset.rsw) {
+        const on = b.getAttribute('aria-checked') !== 'true', k = b.dataset.rsw;
+        b.setAttribute('aria-checked', String(on));
+        o.set({ rules: k === 'hideIns' ? { insertSeen: !on } : { [k]: on } });
+        root.querySelectorAll('[data-rdep="' + k + '"]').forEach((x) => {
+          x.hidden = !on;
+          if (on && !fx.reduce()) x.animate([{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }], { duration: 200, easing: 'ease-out' });
+        });
+        snd('tap');
+      } else return;
+      const cur = o.get(), rb = root.querySelector('[data-rules-reset]');
+      if (rb) rb.disabled = rulesDefault(cur.rules, cur.ts);
+    });
+  }
+  // 单机：开局单里的规则（settings.rules / settings.turnSec，存下来下次还是这样）
+  const soloRuleIO = (back) => ({
+    get: () => ({ rules: settings.rules, ts: settings.turnSec }),
+    set: (p) => {
+      if (p.turnSec != null) settings.turnSec = p.turnSec;
+      if (p.rules) settings.rules = R.normalizeRules(Object.assign({}, settings.rules, p.rules));
+      saveSettings(); refreshCover();
+    },
+    back,
+    title: () => modeName(curMode()) + ' · ' + T('ui.rules.edit', '规则'),
+  });
+
+  /* 牌面大小的预览：照这块屏幕、这一档的尺寸摆一整桌（标题、头像、牌堆、出牌区、按钮、一手 7 张牌），整体缩小放进设置里。
+   * 尺寸照 solveSize / CARD_SIZES 算，和真打时一个比例 */
+  function sizePreviewHtml(sz) {
+    const z = CARD_SIZES[sz] || CARD_SIZES.m;
+    const W = Math.round(Math.max(300, els.app.clientWidth || innerWidth)), H = Math.round(Math.max(300, els.app.clientHeight || innerHeight));
+    const land = W > H && H <= 540;
+    const tw = W - 24, th = H - 56;
+    let u;
+    if (land) u = Math.max(40, Math.floor(Math.min(tw / 9, (th - 130) / 3.7, 76)));
+    else { const av = tw < 500 ? 46 : 54; u = Math.max(46, Math.floor(Math.min(tw / 5.5, (th - (50 + av + 50 + 66 + 26 + 40)) / 3.4, 98))); }
+    const hu = Math.min(u * z[0], 120), pu = u * 0.92 * z[1], hh = hu * 1.4, av = land ? 40 : 46;
+    const abs = (x, y, w, h) => 'position:absolute;left:' + x.toFixed(1) + 'px;top:' + y.toFixed(1) + 'px' + (w != null ? ';width:' + w.toFixed(1) + 'px' : '') + (h != null ? ';height:' + h.toFixed(1) + 'px' : '');
+    const faces = AV ? (AV.BOT_TIERS && AV.BOT_TIERS[settings.tier] ? AV.BOT_TIERS[settings.tier].faces : AV.ROBOT || []) : [];
+    const face = (i) => (faces[i] ? faces[i].svg : '');
+    const meFace = profile.avatar && AV && AV.byId[profile.avatar] ? AV.byId[profile.avatar].svg : '';
+    const avatar = (x, y, svg, me) => '<i class="zs-pv-av' + (me ? ' is-me' : '') + '" style="' + abs(x - av / 2, y - av / 2, av, av) + '">' + svg + '</i>';
+    // 手牌：沿底边排，挤不下就一张压一张（照 layoutHand）
+    // 横屏：底下一行 = 我 + 手牌 + 摸牌 / 出牌；竖屏：手牌占满底边，按钮在上面一行
+    const bw = Math.min(110, W * (land ? 0.11 : 0.26)), btnH = 40;
+    const n = 7, hl = land ? av + 40 : 8, hr = land ? W - bw * 2 - 44 : W - 8, hw = hr - hl; let gap = 6;
+    if (n * hu + (n - 1) * gap > hw) gap = (hw - hu) / (n - 1) - hu;
+    const handW = n * hu + (n - 1) * gap, hx = hl + (hw - handW) / 2, hy = H - hh - 8;
+    const kinds = ['defuse', 'nope', 'attack', 'skip', 'favor', 'shuffle', 'future'];
+    let out = '<b class="zs-pv-title" style="' + abs(14, 12) + '">' + T('game.name', '百变小咪') + '</b>';
+    for (let i = 0; i < 3; i++) out += '<i class="zs-pv-tool" style="' + abs(W - 14 - 34 * (3 - i) - 8 * (2 - i), 10, 34, 34) + '"></i>';
+    // 桌沿（灯带）+ 三家对手 + 我
+    const rx0 = 20, ry0 = 74, rx1 = W - 20, ry1 = land ? hy - 16 : hy - btnH - 30;
+    out += '<i class="zs-pv-ring" style="' + abs(rx0, ry0, rx1 - rx0, ry1 - ry0) + '"></i>';
+    out += avatar(W / 2, ry0, face(0)) + avatar(rx0, (ry0 + ry1) / 2, face(1)) + avatar(rx1, (ry0 + ry1) / 2, face(2));
+    out += land ? avatar(hl / 2 + 4, hy + hh / 2, meFace, true) : avatar(W * 0.32, ry1, meFace, true);
+    // 牌堆 + 出牌区
+    const cy = (ry0 + ry1) / 2 - pu * 0.7;
+    out += backHtml('', abs(W / 2 - pu * 1.3, cy, pu) + ';--cw:' + pu.toFixed(1) + 'px');
+    out += cardHtml('skip', '', abs(W / 2 + pu * 0.3, cy, pu) + ';--cw:' + pu.toFixed(1) + 'px;rotate:4deg');
+    // 摸牌 / 出牌
+    const bx = land ? W - 2 * bw - 26 : W / 2 - bw - 4, by = land ? hy + hh / 2 - btnH / 2 : ry1 + 6;
+    out += '<i class="zs-pv-btn is-dark" style="' + abs(bx, by, bw, btnH) + '"></i><i class="zs-pv-btn" style="' + abs(bx + bw + 12, by, bw, btnH) + '"></i>';
+    kinds.forEach((k, i) => { out += cardHtml(k, '', abs(hx + i * (hu + gap), hy, hu) + ';--cw:' + hu.toFixed(1) + 'px;z-index:' + i); });
+    const box = land ? 236 : 132, k = box / W;
+    return '<div class="zs-pv-box" style="width:' + (W * k).toFixed(1) + 'px;height:' + (H * k).toFixed(1) + 'px" aria-hidden="true"><div class="zs-pv-in" style="width:' + W + 'px;height:' + H + 'px;transform:scale(' + k.toFixed(4) + ')">' + out + '</div></div>';
+  }
+
   function showSettings(fromCover) {
     const segs = (key, opts, val) => '<div class="zs-seg" data-seg="' + key + '" role="group">' + opts.map(([v, t]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(val)) + '">' + t + '</button>').join('') + '</div>';
-    const sw = (key, on) => '<button type="button" class="zs-switch" data-sw="' + key + '" role="switch" aria-checked="' + !!on + '"><i></i></button>';
-    const tier = segs('tier', AI.TIERS.map((t) => [t, AI.TIER_NAMES[t]]), settings.tier);
-    const secs = segs('turnSec', TURN_OPTS, turnSec());
-    const rulesBefore = JSON.stringify(settings.rules);
-    const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b>' + (note ? '<small>' + note + '</small>' : '') + '</div>' + ctl + '</div>';
-    const sizeLine = '<div class="zs-line"><span>' + T('ui.set.cardSize', '牌面大小') + '</span>' + segs('cardSize', [['s', T('ui.set.size.s', '小')], ['m', T('ui.set.size.m', '中')], ['l', T('ui.set.size.l', '大')]], CARD_SIZES[settings.cardSize] ? settings.cardSize : 'm') + '</div>';
-    const langLine = I18N ? '<div class="zs-line zs-lang"><span>' + T('ui.set.lang', '语言') + '</span>' + segs('lang', LANG_OPTS, LANG) + '</div>' : '';
+    const sizeNow = CARD_SIZES[settings.cardSize] ? settings.cardSize : 'm';
+    const swRow = (face, title, attr, on) => '<div class="zs-row">' + ruleFace(face) + '<div class="zs-txt"><b>' + title + '</b></div><button type="button" class="zs-switch" ' + attr + ' role="switch" aria-checked="' + !!on + '"><i></i></button></div>';
     let html = '<h2>' + T('ui.settings', '设置') + '</h2>' +
-      '<section class="zs-card">' +
-      '<div class="zs-line"><span>' + T('ui.set.bots', '机器猫') + '</span>' + tier + '</div>' +
-      '<div class="zs-line"><span>' + T('ui.set.timer', '出牌限时') + '</span>' + secs + '</div>' + sizeLine + langLine + '</section>' +
-      '<div class="zs-cap">' + T('ui.set.mode', '玩法') + '</div><section class="zs-card">' +
-      // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 一副 56 张的密度（默认）/ 快局更短 / 多 = 以前的整副
-      '<div class="zs-line"><span>' + T('ui.set.deck', '牌量') + '</span>' + segs('deckSize', DECK_OPTS, R.normalizeRules(settings.rules).deckSize) + '</div>' +
-      row('swap', T('ui.set.swap', '有交换牌'), '', sw('swap', settings.rules.swap)) +
-      // 交换连逗猫棒一起换（2026-11-13 用户：以前玩的是整副手牌全换）；没开交换牌时这行藏着
-      row('defuse', T('ui.set.swapDefuse', '交换时逗猫棒也换'), '', sw('swapDefuse', settings.rules.swapDefuse)).replace('<div class="zs-row"', '<div class="zs-row" data-dep="swap"' + (settings.rules.swap ? '' : ' hidden')) +
-      // 2026-11-14 用户：塞回炸毛猫时动画插在真实高度（默认开），最上 / 最底看得出、中间只能估；不报第几张
-      // 2026-11-25 用户：改叫「塞回看不出位置」、默认开着；开 = 规则 insertSeen 关
-      row('boom', T('ui.set.hideIns', '塞回看不出位置'), '', sw('hideIns', R.normalizeRules(settings.rules).insertSeen === false)) +
-      '</section>';
-    // 「作废」什么时候问我（自己的偏好，单机联机都有）
-    const nopeCard = '<div class="zs-cap">' + R.NAMES.nope + '</div><section class="zs-card">' +
-      row('nope', T('ui.set.nopeOthers', '别人之间的牌也问我'), T('ui.set.nopeOthers.note', '开着时每张牌都问；关掉只在和我有关时问：我出的、指着我的、甩到我头上的'), '<button type="button" class="zs-switch" data-nope-others role="switch" aria-checked="' + (settings.nopeOthers !== false) + '"><i></i></button>') +
-      '</section>';
-    html += nopeCard;
-    // 联机：机器猫 / 规则由房主定，这里只有自己的操作偏好
-    // 联机：机器猫 / 规则由房主定，这里只有自己的偏好——「作废」怎么问、观战的人能不能看我的手牌（坐着的人才有）
+      '<section class="zs-card"><div class="zs-line"><span>' + T('ui.set.cardSize', '牌面大小') + '</span>' + segs('cardSize', [['s', T('ui.set.size.s', '小')], ['m', T('ui.set.size.m', '中')], ['l', T('ui.set.size.l', '大')]], sizeNow) + '</div>' +
+      '<div class="zs-pv" data-size-prev>' + sizePreviewHtml(sizeNow) + '</div></section>' +
+      // 作废提醒（单机联机都有）：开着 = 只问和我有关的（默认）
+      '<section class="zs-card">' + swRow('nope', T('ui.set.nopeMine', '只在直接和我相关时询问<span class="zs-nw">「作废」</span>'), 'data-nope-mine', settings.nopeOthers !== true) + '</section>';
+    // 联机坐着的人：观战者能不能看我的手牌
     const meP = online && online.st ? online.st.players.find((p) => p.id === online.st.me && !p.left) : null;
-    const revealRow = meP ? row('future', T('ui.set.reveal', '观战者能看我的手牌'), T('ui.set.reveal.note', '即时生效；开局就开着、中途没关过，出局后才能看机器猫的牌'), '<button type="button" class="zs-switch" data-online-reveal role="switch" aria-checked="' + !!meP.showHand + '"><i></i></button>') : '';
-    if (online) html = '<h2>' + T('ui.settings', '设置') + '</h2>' + (revealRow ? '<section class="zs-card">' + revealRow + '</section>' : '<p class="zm-muted">' + T('ui.set.onlineHost', '联机时机器猫和玩法都由房主定。') + '</p>') + '<section class="zs-card">' + sizeLine + '</section>' + nopeCard;
-    html += '<p class="zs-note" data-rule-note hidden>' + T('ui.set.nextGame', '规则从下一局起生效') + '</p><div class="zm-actions">' +
-      (fromCover || !game || game.tutorial || online ? '' : '<button type="button" class="zm-btn" data-restart>' + T('ui.restart', '重开一局') + '</button>') +
-      '<button type="button" class="zm-btn zm-btn-primary" data-close data-focus>' + T('ui.ok', '好') + '</button></div>';
+    if (meP) html += '<section class="zs-card">' + swRow('future', T('ui.set.reveal', '观战者能看我的手牌'), 'data-online-reveal', meP.showHand) + '</section>';
+    if (I18N) html += '<section class="zs-card"><div class="zs-line zs-lang"><span>' + T('ui.set.lang', '语言') + '</span>' + segs('lang', LANG_OPTS, LANG) + '</div></section>';
+    // 局内：这一局的规则（只看；要换规则就开新的一局）
+    const st = !fromCover && game && !game.tutorial && game.state;
+    if (st && st.rules) html += '<div class="zs-cap">' + T('ui.set.tableRules', '这一局的规则') + '</div>' + ruleChipsHtml(st.rules, turnSec(), false);
+    html += '<div class="zm-actions"><button type="button" class="zm-btn zm-btn-primary" data-close data-focus>' + T('ui.ok', '好') + '</button></div>';
     openDialog(html, (d) => {
       d.classList.add('zs', 'zs-b');
-      const persist = () => { settings.rules = R.normalizeRules(settings.rules); saveSettings(); refreshCover(); syncNote(); };
-      const syncNote = () => {
-        const differs = !fromCover && game && !game.tutorial && JSON.stringify(settings.rules) !== rulesBefore;
-        d.querySelector('[data-rule-note]').hidden = !differs;
-        const rb = d.querySelector('[data-restart]');
-        if (rb) rb.classList.toggle('zm-btn-primary', !!differs);
-      };
       d.querySelectorAll('[data-seg]').forEach((g) => g.addEventListener('click', (ev) => {
         const b = ev.target.closest('button[data-v]');
         if (!b) return;
         g.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
         fx.pop(b, { scale: 1.06, dur: 200 });
         const key = g.dataset.seg, v = b.dataset.v;
-        if (key === 'nopeLate') { settings.nopeLate = +v; saveSettings(); return; }
-        if (key === 'cardSize') { settings.cardSize = v; saveSettings(); applyCardSize(); if (game && game.state) { solveSize(); renderAll(); } return; }   // 牌面大小：马上生效、不用重开
-        if (key === 'lang') { if (v !== LANG && I18N) { save(); I18N.setLang(v); } return; }
-        if (key === 'players') settings.players = +v;
-        else if (key === 'tier') settings.tier = v;
-        else if (key === 'turnSec') settings.turnSec = +v;
-        else if (key === 'stackAttack' || key === 'swap' || key === 'swapDefuse') settings.rules[key] = v === 'true';
-        else settings.rules[key] = v;
-        persist();
+        if (key === 'cardSize') {   // 牌面大小：马上生效、不用重开；预览跟着换
+          settings.cardSize = v; saveSettings(); applyCardSize();
+          if (game && game.state) { solveSize(); renderAll(); }
+          const pv = d.querySelector('[data-size-prev]');
+          if (pv) { pv.innerHTML = sizePreviewHtml(v); if (!fx.reduce()) pv.firstChild.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' }); }
+          snd('tap');
+          return;
+        }
+        if (key === 'lang') { if (v !== LANG && I18N) { save(); I18N.setLang(v); } }
       }));
-      const nopeSw = d.querySelector('[data-nope-others]');
+      const nopeSw = d.querySelector('[data-nope-mine]');
       if (nopeSw) nopeSw.addEventListener('click', () => {
         const on = nopeSw.getAttribute('aria-checked') !== 'true';
         nopeSw.setAttribute('aria-checked', String(on));
-        settings.nopeOthers = on;
-        const dep = d.querySelector('[data-nope-dep]'); if (dep) dep.hidden = !on;
+        settings.nopeOthers = !on;
         saveSettings(); snd('tap');
       });
-      d.querySelectorAll('[data-nk]').forEach((b) => b.addEventListener('click', () => {
-        const on = b.getAttribute('aria-pressed') !== 'true';
-        b.setAttribute('aria-pressed', String(on));
-        settings.nopeAlso = Array.from(d.querySelectorAll('[data-nk][aria-pressed="true"]')).map((x) => x.dataset.nk);
-        saveSettings(); snd('tap');
-      }));
       d.querySelectorAll('[data-online-reveal]').forEach((b) => b.addEventListener('click', () => {
         const on = b.getAttribute('aria-checked') !== 'true';
         b.setAttribute('aria-checked', String(on));
         snd('tap');
         onlineAct('reveal', { on });
       }));
-      d.querySelectorAll('[data-pref]').forEach((b) => b.addEventListener('click', () => {
-        const on = b.getAttribute('aria-checked') !== 'true';
-        b.setAttribute('aria-checked', String(on));
-        settings[b.dataset.pref] = on;
-        saveSettings();
-        snd('tap');
-      }));
-      d.querySelectorAll('[data-sw]').forEach((b) => b.addEventListener('click', () => {
-        const on = b.getAttribute('aria-checked') !== 'true';
-        b.setAttribute('aria-checked', String(on));
-        const k = b.dataset.sw;
-        if (k === 'hideIns') settings.rules.insertSeen = !on;
-        else settings.rules[k] = k === 'extraDefuse' ? (on ? 'all' : 'two') : on;
-        d.querySelectorAll('[data-dep="' + k + '"]').forEach((x) => { x.hidden = !on; });
-        snd('tap');
-        persist();
-      }));
       d.querySelector('[data-close]').addEventListener('click', closeDialog);
-      const rb = d.querySelector('[data-restart]');
-      if (rb) rb.addEventListener('click', () => { closeDialog(); newGamePaid(); });
-      syncNote();
     });
   }
   /* ───── 右上角菜单（照拱猪）─────
@@ -7255,6 +7309,7 @@
     $('zmSoloFaces').style.setProperty('--fs', Math.min(34, Math.floor((fw + (n - 1) * lap) / n)) + 'px');
     $('zmSoloTier').innerHTML = AI.TIERS.map((t) => '<button type="button" data-tier="' + t + '" aria-pressed="' + (t === settings.tier) + '">' + AI.TIER_NAMES[t] + '</button>').join('');
     if (WAL) WAL.priceTag(els.cover.querySelector('[data-cover="start"]'), settings.tier, curMode(), n);   // 开始键上标这局门票（小鱼干）
+    $('zmSoloRules').innerHTML = ruleChipsHtml(settings.rules, settings.turnSec, true);   // 这一局的规则：一排小规则牌，点开是规则页
     refreshDeck();
   }
 
@@ -7331,6 +7386,7 @@
     sheetMask.style.pointerEvents = '';
     clearSheetFx();
     Object.keys(sheets).forEach((k) => { sheets[k].hidden = k !== kind; });
+    soloRulePage(false, true);   // 每次打开都从第一页（人数 / 难度）开始
     sheet = sheets[kind];
     sheetMask.dataset.kind = kind;
     coverResume();
@@ -7354,6 +7410,18 @@
         if (gen !== sheetGen) return;   // 收的过程中又打开了（单机 / 联机都算）：别把新开的那张藏掉，残留动画打开时已经清了
         sheetMask.hidden = true; sheetMask._closing = false; sheetMask.style.pointerEvents = ''; clearSheetFx();
       });
+  }
+  /* 单机开局单 ⇄ 规则页（2026-11-26）：同一张单，内容左右滑着换；quiet = 打开开局单时悄悄复位，不放动画不出声 */
+  function soloRulePage(on, quiet) {
+    const sec = sheets.solo, pg = $('zmSoloRulePg');
+    if (!sec || !pg || (!on && pg.hidden)) return;
+    if (on) { pg.innerHTML = rulePageHtml(modeName(curMode()) + ' · ' + T('ui.rules.edit', '规则'), settings.rules, settings.turnSec, true); bindRulePage(pg, soloRuleIO(() => soloRulePage(false))); }
+    sec.classList.toggle('is-rulepg', on);
+    pg.hidden = !on;
+    if (quiet) return;
+    snd('tap');
+    if (fx.reduce()) return;
+    sec.querySelectorAll(on ? '.zr-page' : '.zm-solo-pick, [data-cover="start"]').forEach((el) => el.animate([{ opacity: 0, transform: 'translateX(' + (on ? 28 : -28) + 'px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.2,.8,.25,1)' }));
   }
   sheetMask.addEventListener('click', (e) => { if (e.target === sheetMask) closeSheet(); });
   let ghostUntil = 0;   // 甩收设置单后的一小段：主页按钮上冒出来的 click 当成手势的余波吞掉（兜底，见下面 touchend）
@@ -9130,14 +9198,8 @@
       (teamOn ? '<div class="zs-line"><span>' + T('lobby.players', '人数') + '</span><div class="zs-seg" role="group">' + nRowHtml(teamN, host ? '' : ' disabled') + '</div></div>' +
         '<div class="zs-line"><span>' + T('lobby.split', '分法') + '</span><div class="zs-seg" role="group">' + formsOf(teamN).map((f) => '<button type="button" data-form="' + f + '" aria-pressed="' + (rules.teamForm === f) + '"' + (host ? '' : ' disabled') + ' aria-label="' + f + '">' + pipHtml(f) + '</button>').join('') + '</div></div>' +
         '<div class="zs-line"><span>' + T('ui.team.seats', '座位') + '</span><div class="zs-seg" role="group">' + [['together', T('ui.team.together', '同队坐一起')], ['random', T('ui.team.shuffle', '随机打乱')]].map(([v, tx]) => '<button type="button" data-tseat="' + v + '" aria-pressed="' + (rules.teamSeat === v) + '"' + (host ? '' : ' disabled') + '>' + tx + '</button>').join('') + '</div></div>' : '') +
-      '<div class="zs-line"><span>' + T('ui.set.timer', '出牌限时') + '</span><div class="zs-seg" role="group">' +
-      TURN_OPTS.map(([v, t]) => '<button type="button" data-turn="' + v + '" aria-pressed="' + (v === ts) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
-      '<div class="zs-line"><span>' + T('ui.set.deck', '牌量') + '</span><div class="zs-seg" role="group">' +
-      DECK_OPTS.map(([v, t]) => '<button type="button" data-deck="' + v + '" aria-pressed="' + (v === rules.deckSize) + '"' + (host ? '' : ' disabled') + '>' + t + '</button>').join('') + '</div></div>' +
-      row('swap', T('ui.set.swap', '有交换牌'), '', sw('swap', rules.swap)) +
-      (rules.swap ? row('defuse', T('ui.set.swapDefuse', '交换时逗猫棒也换'), '', sw('swapDefuse', rules.swapDefuse)) : '') +
-      row('boom', T('ui.set.hideIns', '塞回看不出位置'), '', sw('hideIns', rules.insertSeen === false)) +
-      '</section>' + (host ? '' : '<p class="zm-muted zm-lobby-note">' + T('lobby.hostRules', '规则由房主定') + '</p>') +
+      '</section>' + ruleChipsHtml(rules, ts, true) +   // 规则：和单机开局单同一排小规则牌，点开规则页（房主改，别人只看）
+      (host ? '' : '<p class="zm-muted zm-lobby-note">' + T('lobby.hostRules', '规则由房主定') + '</p>') +
       '<div class="zm-lobby-actions"><button type="button" class="zm-btn" data-l="leave">' + T('ui.leaveRoom', '离开房间') + '</button>' +
       (host && teamOn ? '<button type="button" class="zm-btn" data-l="tshuffle">' + T('lobby.shuffleTeams', '随机分队') + '</button>' : '') +
       (host ? (teamOn
@@ -9146,6 +9208,26 @@
         : '<span class="zm-lobby-wait">' + T('lobby.waitHost', '等房主开始…') + '</span>') + '</div></div>';
     const qr = lobbyEl.querySelector('[data-qr]');
     if (qr) { if (window.GamesShell && GamesShell.QR) { try { GamesShell.QR.render(qr, url, { scale: 4, margin: 2, dark: '#1d1b18', light: '#fbf8f1' }); } catch (_) { qr.remove(); } } else qr.remove(); }
+  }
+  /* 房间页的规则页（2026-11-26）：弹出来，房主改了马上发给服务器（照旧走 config）；别人点开同一页、控件灰着只能看 */
+  function lobbyRules() {
+    if (!online || !online.st) return;
+    const host = isHost(), cfg = online.st.config || {};
+    const cur = { rules: R.normalizeRules(cfg.rules), ts: ruleTs(cfg.turnSec) };
+    const title = () => modeName(cur.rules.mode) + ' · ' + T('ui.rules.edit', '规则');
+    openDialog('<div class="zr-dlg" data-rules-root>' + rulePageHtml(title(), cur.rules, cur.ts, host) + '</div>', (d) => {
+      d.classList.add('zs', 'zs-b', 'is-rulepg');
+      bindRulePage(d.querySelector('[data-rules-root]'), {
+        get: () => cur,
+        set: (p) => {
+          if (!host) return;
+          if (p.turnSec != null) { cur.ts = p.turnSec; onlineAct('config', { config: { turnSec: p.turnSec } }); }
+          if (p.rules) { cur.rules = R.normalizeRules(Object.assign({}, cur.rules, p.rules)); onlineAct('config', { config: { rules: p.rules } }); }
+        },
+        back: closeDialog,
+        title,
+      });
+    });
   }
   function onLobbyClick(e) {
     if (!online || !online.st) return;
@@ -9163,6 +9245,7 @@
     }
     if (b.dataset.l === 'leave') { leaveOnline(true); return; }
     if (b.dataset.l === 'start') { b.disabled = true; onlineAct('start'); return; }
+    if (b.matches('[data-rules-open]')) { lobbyRules(); return; }
     if (b.dataset.turn != null) { onlineAct('config', { config: { turnSec: +b.dataset.turn } }); return; }
     if (b.dataset.deck != null) { onlineAct('config', { config: { rules: { deckSize: b.dataset.deck } } }); return; }
     if (b.dataset.mode != null) { onlineAct('config', { config: { rules: { mode: b.dataset.mode } } }); return; }   // 经典 / 百变 / 组队 / 角色（和单机设置单同一排）
@@ -9508,6 +9591,7 @@
   els.cover.querySelector('.zm-solo-pick').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
+    if (b.matches('[data-rules-open]')) { soloRulePage(true); return; }
     if (b.dataset.n) {
       settings.players = Math.max(R.MIN_PLAYERS, Math.min(SOLO_MAX, settings.players + +b.dataset.n));
       saveSettings(); refreshSolo();
@@ -9562,7 +9646,7 @@
     if (els.dialog.querySelector('[data-ok]') || els.dialog.querySelector('.zm-rank')) { const cb = closeDialog(); if (cb) cb(); }
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !sheetMask.hidden) { closeSheet(); return; }
+    if (e.key === 'Escape' && !sheetMask.hidden) { if (!$('zmSoloRulePg').hidden) soloRulePage(false); else closeSheet(); return; }
     if (e.key === 'Escape' && mode === 'target') cancelTarget();
     if ((e.key === 'Escape' || e.key === 'Enter') && game && game.peekDone) game.peekDone();
   });

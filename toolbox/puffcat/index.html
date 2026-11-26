@@ -160,8 +160,11 @@ body_class: zm-fullscreen
           </div>
           <div class="zm-solo-faces" id="zmSoloFaces" aria-hidden="true"></div>
           <div class="zs-seg zm-solo-tier" id="zmSoloTier" role="group" aria-label="机器猫难度" data-i18n-aria="ui.solo.tier"></div>
+          <div class="zm-solo-rules" id="zmSoloRules"></div>
         </div>
         <button type="button" class="zm-cover-btn is-primary" data-cover="start"><b data-i18n="ui.start">开始</b></button>
+        <!-- 规则页（2026-11-26）：点上面那排小规则牌，整张单滑到这一页；‹ 回来 -->
+        <div class="zr-page zs-b" id="zmSoloRulePg" hidden></div>
       </section>
       <!-- 联机：上半「开个房间」（玩法就是主页上挑的那张）；下半输房间号 观战 / 加入。还在某个房间里时最上面多一颗「回到房间」 -->
       <section class="zm-setsheet" data-sheet="online" role="dialog" aria-modal="true" aria-label="联机" data-i18n-aria="ui.cover.online" hidden>

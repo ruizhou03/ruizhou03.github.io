@@ -1984,3 +1984,52 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-loupe { position: fixed; z-index: 70; pointer-events: none; filter: drop-shadow(0 12px 22px rgba(29, 27, 24, 0.3)); transition: opacity 0.15s ease; }
 .zm-loupe .zm-card { --cw: var(--lw); width: var(--lw); }
 .zm-loupe.is-off { opacity: 0.35; }
+
+/* ───── 规则跟着开局走（2026-11-26 用户定「丙」）─────
+ * 开局单 / 房间页：白框里右上角「规则 ›」、下面一排小规则牌（改过默认的描金边）；点开规则页（白框卡片、行首牌面小图、右上角恢复默认、一改就存）。
+ * 设置里：牌面大小下面一整桌的缩略预览；作废提醒一个开关。见 zhamao.js ruleChipsHtml / rulePageHtml / sizePreviewHtml */
+.zm-solo-rules { width: 100%; }
+.zr-box { display: block; width: 100%; box-sizing: border-box; padding: 8px 12px 10px; margin: 0; background: rgba(255, 253, 248, 0.75); border: 1.5px solid var(--zm-ink); border-radius: 14px; font: inherit; color: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.zr-box:not(.is-ro):active { transform: scale(0.99); }
+.zr-box.is-ro { cursor: default; padding-top: 11px; margin-top: 8px; }
+.zr-more { display: flex; justify-content: flex-end; align-items: center; gap: 1px; font-size: 13px; color: var(--zm-seal); margin-bottom: 6px; }
+.zr-more svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.zr-chips { display: flex; justify-content: space-around; gap: 6px; }
+.zr-chip { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
+.zr-chip small { font-size: 11.5px; color: var(--zm-ink-mute); white-space: nowrap; }
+.zr-mc { flex: none; display: grid; place-items: center; width: 34px; aspect-ratio: 100 / 130; box-sizing: border-box; border-radius: 7px; background: var(--bg); border: 1.5px solid #fff; box-shadow: 0 1px 3px rgba(29, 27, 24, 0.24); overflow: hidden; font-style: normal; }
+.zr-mc svg { width: 90%; height: auto; display: block; }
+.zr-chip.is-chg .zr-mc { box-shadow: 0 0 0 2px #e2a23b, 0 1px 3px rgba(29, 27, 24, 0.24); }
+.zr-chip.is-chg small { color: #a87a22; font-weight: 700; }
+.zs-row > .zr-mc { width: 28px; }
+.zr-row .zs-txt b { font-size: 14.5px; }
+.zr-row .zs-seg { flex: none; margin: 0; border-width: 1px; border-radius: 10px; }
+.zr-row .zs-seg button { flex: none; padding: 6px 10px; font-size: 13px; }
+.zr-card button:disabled { cursor: default; }
+.zr-card .zs-switch:disabled, .zr-card .zs-seg button:disabled:not([aria-pressed="true"]) { opacity: 0.5; }
+.zr-head { display: flex; align-items: center; gap: 4px; margin: 0 0 2px; }
+.zr-head b { flex: 1; min-width: 0; font-size: 18px; }
+.zr-back { flex: none; width: 36px; height: 36px; margin-left: -8px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+.zr-back svg { width: 24px; height: 24px; fill: none; stroke: var(--zm-seal); stroke-width: 3.6; stroke-linecap: round; stroke-linejoin: round; }
+.zr-reset { flex: none; border: 0; background: none; font: inherit; font-size: 13.5px; color: var(--zm-seal); cursor: pointer; padding: 6px 0 6px 8px; }
+.zr-reset:disabled { color: var(--zm-ink-mute); opacity: 0.45; cursor: default; }
+.zr-host { flex: none; font-size: 12px; color: var(--zm-ink-mute); }
+.zr-page[hidden] { display: none; }
+.zm-setsheet.is-rulepg > :not(.zr-page):not(.zm-setsheet-grab):not(.zm-setsheet-x) { display: none; }
+.zm-setsheet .zr-page .zs-card { margin-top: 6px; }
+.zm-lobby-inner .zr-box { margin-top: 10px; }
+/* 设置里：牌面大小的整桌缩略预览 */
+.zs-pv { display: flex; justify-content: center; padding: 2px 0 12px; }
+.zs-pv-box { position: relative; overflow: hidden; border-radius: 12px; border: 1.5px solid var(--zm-ink); background: var(--zm-paper); box-shadow: 0 3px 10px rgba(29, 27, 24, 0.16); }
+.zs-pv-in { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; }
+.zs-pv-title { font-size: 21px; font-weight: 700; letter-spacing: 0.08em; white-space: nowrap; }
+.zs-pv-tool { display: block; border-radius: 50%; border: 1.5px solid var(--zm-ink); box-sizing: border-box; }
+.zs-pv-ring { display: block; box-sizing: border-box; border: 3px solid rgba(201, 169, 110, 0.55); border-radius: 34px; }
+.zs-pv-av { display: block; border-radius: 50%; overflow: hidden; background: var(--zm-wash); box-shadow: 0 0 0 2px var(--zm-paper); }
+.zs-pv-av svg { width: 100%; height: 100%; display: block; }
+.zs-pv-av.is-me { box-shadow: 0 0 0 3px var(--zm-seal); }
+.zs-pv-btn { display: block; box-sizing: border-box; border-radius: 999px; border: 1.5px solid rgba(29, 27, 24, 0.3); }
+.zs-pv-btn.is-dark { background: var(--zm-ink); border-color: var(--zm-ink); }
+.zm-dialog.zs-b .zs-line .zs-seg { margin: 0; }
+.zm-dialog.zs-b .zs-row .zs-txt b { font-size: 14px; }
+.zs-nw { white-space: nowrap; }
