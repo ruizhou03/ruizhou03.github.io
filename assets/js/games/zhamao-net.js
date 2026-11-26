@@ -58,13 +58,22 @@
     const s = rttSamples.slice().sort((x, y) => x - y);
     return Math.round(s[Math.floor((s.length - 1) / 3)]);   // 偏小的三分位：偶尔一次卡顿不把估计拉高，网真慢了几次之后才跟上
   }
+  /* 不发 CORS 预检（2026-11-26 国内朋友联机摸牌卡）：以前 token 放在 Authorization 头里、POST 标 application/json，
+   * 跨域时浏览器每个请求都先发一个 OPTIONS 问服务器（网址里 rtt / since 每次都变，预检结果也缓存不上）——每摸一张牌、每条长轮询都白多一个来回。
+   * 现在 POST 标 text/plain（服务器照样按 JSON 读）、token 放网址 ?tk=，就是浏览器眼里的「简单请求」，直接发。
+   * 老服务器只认 Authorization 头：对时（ping）回 tk:1 才说明服务器认网址里的 token，在那之前照旧带头 */
+  let tkOk = false;
   async function request(method, action, { code, token, body, query, signal, timed } = {}) {
     const r = rtt();
-    const q = new URLSearchParams(Object.assign({ action }, code ? { code } : {}, query || {}, r != null ? { rtt: String(r) } : {}));
+    const inUrl = !!(token && tkOk);
+    const q = new URLSearchParams(Object.assign({ action }, code ? { code } : {}, query || {}, r != null ? { rtt: String(r) } : {}, inUrl ? { tk: token } : {}));
     const t0 = performance.now();
+    const headers = {};
+    if (method === 'POST') headers['Content-Type'] = 'text/plain;charset=UTF-8';
+    if (token && !inUrl) headers.Authorization = 'Bearer ' + token;
     const res = await fetch(BASE + '?' + q.toString(), {
       method,
-      headers: Object.assign({ 'Content-Type': 'application/json' }, token ? { Authorization: 'Bearer ' + token } : {}),
+      headers,
       body: method === 'POST' ? JSON.stringify(Object.assign({ code }, body || {})) : undefined,
       signal,
     });
@@ -129,9 +138,10 @@
     rtt,
     // 量一下来回：最便宜的请求（不碰数据库），一局里每隔一阵发一次，没出牌的人也有来回可量
     // 带房间号时服务器顺便报房间进度 v（2026-11-17）：网页拿来判断长轮询是不是卡住了；失败回 null
-    ping: (code) => { const t0 = performance.now(); return fetch(BASE + '?action=ping' + (code ? '&code=' + encodeURIComponent(code) : ''), { method: 'GET', cache: 'no-store' }).then((r) => { noteRtt(performance.now() - t0); return r.json().catch(() => null); }, () => null); },
+    ping: (code) => { const t0 = performance.now(); return fetch(BASE + '?action=ping' + (code ? '&code=' + encodeURIComponent(code) : ''), { method: 'GET', cache: 'no-store' }).then((r) => { noteRtt(performance.now() - t0); return r.json().catch(() => null); }, () => null).then((j) => { if (j && j.tk) tkOk = true; return j; }); },
     // 叫醒服务器：fly 上没人用会休眠，第一下要 2–3 秒。点开「联机」就先发一个最便宜的请求（不碰数据库），等真建房时它多半醒了
-    warm: () => fetch(BASE + '?action=state&code=0', { method: 'GET', cache: 'no-store' }).catch(() => {}),
+    // 顺便问一下服务器认不认网址里的 token（ping 回 tk:1）
+    warm: () => fetch(BASE + '?action=ping', { method: 'GET', cache: 'no-store' }).then((r) => r.json()).then((j) => { if (j && j.tk) tkOk = true; }).catch(() => {}),
     // fx：牌桌互动的序号（-1 = 刚进来，只要序号）；带上它，有新互动时长轮询也会立刻回来（回应里 fx / fxSeq，房间没变时不带 state）
     // stall：上一条长轮询卡了多少毫秒被我丢掉（报给服务器记日志）
     state: (code, token, since, signal, fx, stall) => request('GET', 'state', { code, token, query: Object.assign({ since: String(since || 0) }, fx != null ? { fx: String(fx) } : {}, stall ? { stall: String(Math.round(stall)) } : {}), signal }),

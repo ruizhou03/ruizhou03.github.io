@@ -8621,6 +8621,7 @@
       // 落后多少：服务器估的「大家应该播完」的时刻（animUntil）已经过去 4 秒以上（正常打四人局实测最多慢 1.9 秒），我还在播 → 落后了，快档追
       { const g = G(); online.behind = !!(g && g.animUntil && Date.now() + (online.skew || 0) > g.animUntil + 4000 && online.queue.length > 0); }
       online.cur = grp.map((e) => e.t).join('+');
+      online.curAt = performance.now();
       // 播一组出错（镜像 / 动画抛错）：以前 online.playing 永远是 true，之后的事件全堵在队列里，整局卡死。现在按服务器快照重摆接着打
       try { await playGroup(grp, t); } catch (err) {
         console.error('[zhamao] playGroup failed, resync:', online && online.cur, err);
@@ -9029,10 +9030,26 @@
     pollLoop();
     if (NET && NET.ping) NET.ping(online.code);
   }
+  /* 播一组播得太久（2026-11-26 国内朋友：百变 / 角色有时卡在某处看不到进度）：抛错的已经在 pumpQueue 里接住了，
+   * 这里兜「一直等不到」的——某段动画的 promise 永远不回来，队列就一直停在「正在播」。一组正常最多七八秒（转盘 + 结算），
+   * 开局发牌 / 抽角色二三十秒：超过 25 秒（开局 60 秒）还没播完就按服务器快照重摆接着打。切到后台的时间不算（回来时重新起算） */
+  const HUNG_MS = 25000, HUNG_DEAL_MS = 60000;
+  function playHung() {
+    const o = online;
+    if (!o || !o.playing || !o.cur || !o.curAt || o.pausedAt) return;
+    const lim = /deal/.test(o.cur) ? HUNG_DEAL_MS : HUNG_MS;
+    if (performance.now() - o.curAt < lim) return;
+    console.warn('[zhamao] playGroup hung, resync:', o.cur, Math.round(performance.now() - o.curAt) + 'ms');
+    o.curAt = 0;
+    o.playing = false;
+    resync();
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && online && online.curAt) online.curAt = performance.now(); });
   // 在房间里每 3 秒量一次来回（没出牌的人也有数）：倒计时校准用，也随请求报给服务器；回来的房间进度用来看长轮询有没有卡住
   setInterval(() => {
     if (!online || !NET || !NET.ping || document.hidden) return;
     const o = online;
+    playHung();
     NET.ping(o.code).then((r) => { if (online === o && r && r.v != null) pollStalled(r.v); });
     pollStalled(null);
   }, 3000);
