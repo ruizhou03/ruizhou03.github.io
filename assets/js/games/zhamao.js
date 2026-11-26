@@ -6244,17 +6244,23 @@
       // 都抽完了：别人那几张一起（错开一点）飞到各自头像旁翻成圆章、盖进角上；最后放大亮我的
       parked.sort((x, y) => x.seat - y.seat);
       await wait(250);
-      // 避让：别人那几张都离开扇面后，我那张挪到桌心偏下、离开别人的圆章；z 放在扇面之上、圆章之下（圆章 150 起），全程不跳层
+      // 避让：别人那几张都离开扇面后，我那张挪到桌心偏下、离开别人的圆章；z 不动（改 z 的那一下若正压着别的牌就会跳层）
       // 2026-11-26 用户：等最后一张也飞到头像旁停稳（飞 400ms）才挪我的——以前 +60ms 就把我那张提到 140，还在扇面上空的右邻会突然钻到它下面
-      if (mine) setTimeout(() => { if (gone()) return; const pk = cards[mine.k], to = { x: c.x, y: c.y + cw * 0.4, r: 0, s: S * 1.1 }; pk.style.zIndex = '140'; mv(pk, mine.at, to, 420); mine.at = to; }, Math.max(0, parked.length - 1) * 240 + 440);
+      if (mine) setTimeout(() => { if (gone()) return; const pk = cards[mine.k], to = { x: c.x, y: c.y + cw * 0.4, r: 0, s: S * 1.1 }; mv(pk, mine.at, to, 420); mine.at = to; }, Math.max(0, parked.length - 1) * 240 + 440);
       await Promise.all(parked.map(async (p, i) => {
         await wait(i * 240);   // 2026-11-26 用户：发身份别太仓促，一家家错开（同单机）
         if (gone()) return;
         // 2026-11-26 用户（图层错位）：离开扇面那一路保持它在扇面里的层次（5 + k，左边的压在右边下面）——
         // 以前一出发就提到 150，左边那张一转身就跑到我那张（右边）上面；飞到头像旁停稳了再提上去
-        const box = await sealPark(cards[p.k], p.seat, p.role, 5 + p.k, where[p.k].r || 0, cr, c, cw);
+        // 用它在扇面里的实际层次（拈起 / lift 过的会比 5 + k 高）；停稳后没有本该压着它的牌（我的 / 还在扇面里的）才提到上层，
+        // 否则一直留在它们底下（右边那家的圆章常常正好落在我那张上，一提就又跑到我那张上面）
+        const el = cards[p.k];
+        const box = await sealPark(el, p.seat, p.role, Number(el.style.zIndex) || 5 + p.k, where[p.k].r || 0, cr, c, cw);
         nodes.push(box);
-        box.style.zIndex = String(150 + i);
+        const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+        const br = box.getBoundingClientRect(), z0 = Number(box.style.zIndex) || 0;
+        const under = cards.some((d) => d.isConnected && d.style.visibility !== 'hidden' && (Number(d.style.zIndex) || 0) > z0 && hit(br, d.getBoundingClientRect()));
+        if (!under) box.style.zIndex = String(150 + i);
         if (!gone()) await sealOpen(box, p.seat, gone);
       }));
       if (gone()) return;
