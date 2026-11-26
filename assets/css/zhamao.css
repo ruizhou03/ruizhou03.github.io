@@ -513,7 +513,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-flyer .zm-card { position: absolute; left: 0; top: 0; width: 100%; }
 /* 发牌时摆在桌上的炸毛猫（2026-11-26 用户：像现实里先把炸毛猫摆上桌、再在上面发牌）：落定后挪进这层，
  * z-index:-1 = 在 .zm-app 的纸面之上、桌上其他一切之下，发出去的牌 / 逗猫棒 / 洗牌都从它上面过（以前 is-top 压在最上层） */
-.zm-under { position: fixed; inset: 0; pointer-events: none; z-index: -1; }
+.zm-under { position: fixed; inset: 0; pointer-events: none; z-index: -1; }   /* 桌面装饰的顺序：百变桌布 .zm-fluxwm（-3）< 桌沿线 .zm-rim（-2）< 炸毛猫（-1）< 其余一切 */
 .zm-flyer.is-gray .zm-card { filter: grayscale(0.85) opacity(0.7); }
 .zm-flip { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
 .zm-flyer:has(.zm-flip) { perspective: 700px; }
@@ -1042,7 +1042,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-actions.is-center { justify-content: center; }
 .zm-actions.is-center .zm-btn { min-width: 150px; }
 /* 桌沿：绕牌桌一圈的细金线（平时一点柔光顺着出牌方向绕）；指人时亮金一截从出牌人长到被指的人，结算后缩回 */
-.zm-rim { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 1; }
+.zm-rim { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: -2; }   /* 桌沿线：在百变桌布（-3）之上、发牌时摆在桌上的炸毛猫（-1）之下（2026-11-26） */
 .zm-rim path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .zm-rim .base { stroke: var(--rim-base, rgba(184, 145, 74, 0.26)); stroke-width: 1.6; transition: stroke 1.2s ease; }
 .zm-rim .amb path { fill: none; stroke-linecap: round; }
@@ -1820,7 +1820,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 }
 /* 百变规则 · 桌面大水印（2026-11-22 用户挑定）：桌沿以内铺一层，规则图标放大摆在桌心（牌堆后面），下面一行淡色大字写规则名。
  * 压在牌桌最底下（桌沿线、牌堆、头像都在它上面）；点那行大字看全部规则（JS 在牌桌上接点击） */
-.zm-fluxwm { position: absolute; z-index: 0; pointer-events: none; border-radius: 26px; }
+.zm-fluxwm { position: absolute; z-index: -3; pointer-events: none; border-radius: 26px; }   /* -3：桌布在发牌时摆上桌的炸毛猫（.zm-under，-1）底下（2026-11-26 用户：百变模式炸毛猫被桌布盖住） */
 /* 比经典模式「多一层」（2026-11-22 用户挑：淡衬底 + 底色跟着规则换，不要金边）：桌沿以内垫一层淡淡的规则色，水印也比经典桌面深一点 */
 .zm-fluxwm { background: radial-gradient(85% 75% at 50% 45%, color-mix(in srgb, var(--wm-tone, #ecdcee) 70%, transparent), color-mix(in srgb, var(--wm-tone, #ecdcee) 38%, transparent) 70%, color-mix(in srgb, var(--wm-tone, #ecdcee) 16%, transparent)); transition: background-color 0.4s ease; }
 .zm-fluxwm .wm-ic { opacity: 0.2; }
