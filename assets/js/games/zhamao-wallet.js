@@ -587,16 +587,17 @@
     body.autoShare = wt.all ? wt.auto / wt.all : 0;
     // 当场估好（同服务器的算法）：结算页一出来就有数，服务器回来再对一下（首胜奖励只有服务器知道）
     const pay0 = payout({ tier: wt.tier, mode: wt.mode, n, rank: body.rank, team: body.team ? body : null, autoShare: body.autoShare });
+    const autoCut = body.autoShare > 0.3 && pay0 !== payout({ tier: wt.tier, mode: wt.mode, n, rank: body.rank, team: body.team ? body : null, autoShare: 0 });   // 托管规则真的改了这局的数才说（扣钱不减半，2026-11-26 用户第 8 名看到「赢的减半」以为误判）
     const floor = body.team ? (teamParts(n, body).floor ? body.prank : 0) : 0;   // 这局按个人名次保底结算：结算页说一句
     wt.rank = body.team ? (body.won ? 1 : body.trank) : body.rank;   // 结算页那一行写「第 N 名」
     const b0 = wt.bal0 != null ? wt.bal0 : state ? state.bal : 0;   // 买完票的余额
     let pay = pay0;
     if (pay > 0) pay = Math.min(pay, b0 + (wt.price || 0));   // 赢不超过买票前的余额（一局最多翻倍）
     else if (pay < 0) pay = -Math.min(-pay, Math.max(0, b0));   // 扣到 0 为止
-    wt.est = { delta: pay - wt.price, pay, price: wt.price, firstWin: 0, bal: b0 + pay, est: true, auto: body.autoShare, floor };
+    wt.est = { delta: pay - wt.price, pay, price: wt.price, firstWin: 0, bal: b0 + pay, est: true, auto: body.autoShare, autoCut, floor };
     holdT();   // 牌桌左上角先停在结算前的数：等结算页一笔一笔游进去（服务器回来的余额不能先跳上去）
     if (state) state = Object.assign({}, state, { bal: wt.est.bal });   // 本机先记上（「再来一局」够不够按这个算），服务器回来会覆盖
-    const p = post('settle', body).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, badges: Array.isArray(r.badges) ? r.badges : [], bal: r.bal, auto: body.autoShare, floor }; dropPending(wt.tid); return wt.done; })
+    const p = post('settle', body).then((r) => { wt.done = { delta: r.delta, pay: r.pay, price: wt.price, firstWin: r.firstWin || 0, badges: Array.isArray(r.badges) ? r.badges : [], bal: r.bal, auto: body.autoShare, autoCut, floor }; dropPending(wt.tid); return wt.done; })
       .catch((e) => {
         if (e.status === 409 || e.status === 403) { wt.done = { gone: true }; dropPending(wt.tid); return null; }
         keepPending(body);   // 网断了 / 服务器没回：记下来，下次打开游戏再补结算（票在服务器上留 12 小时）
@@ -610,8 +611,9 @@
   // ── 结算页 ──
   function slot() { style(); return '<div class="zmw-res" data-zmw-res><span class="zmw-wait"></span></div>'; }
   /* 托管替我走的比例：超过三成奖励减半、超过七成不发奖（规则同后端 AUTO_HALF / AUTO_ZERO）——2026-11-24 实测：托管拿第 1 却 −1,000，没一个字说明 */
-  function autoNote(a) {
+  function autoNote(a, pay, cut) {
     a = Number(a) || 0;
+    if (pay < 0 || cut === false || (pay === 0 && a <= 0.7)) return '';   // 扣钱照扣、没被减的不说
     if (a > 0.7) return '<span class="zmw-note">' + T('ui.wallet.autoZero', '这局托管替你走了七成以上，赢的不发，扣的照扣') + '</span>';
     if (a > 0.3) return '<span class="zmw-note">' + T('ui.wallet.autoHalf', '这局托管替你走了三成以上，赢的减半') + '</span>';
     return '';
@@ -634,7 +636,7 @@
   function paintPay(el, r, label, quiet) {
     el.classList.add('is-lines');
     const pay = payOf(r);
-    el.innerHTML = '<div class="zmw-ln is-main"><span>' + label + '</span><b class="' + (pay > 0 ? 'is-up' : pay < 0 ? 'is-down' : '') + '">' + FISH + '<i>' + sgn(pay) + (quiet ? fmt(pay) : '0') + '</i></b></div>' + (autoNote(r.auto) || floorNote(r.floor));
+    el.innerHTML = '<div class="zmw-ln is-main"><span>' + label + '</span><b class="' + (pay > 0 ? 'is-up' : pay < 0 ? 'is-down' : '') + '">' + FISH + '<i>' + sgn(pay) + (quiet ? fmt(pay) : '0') + '</i></b></div>' + (autoNote(r.auto, pay, r.autoCut) || floorNote(r.floor));
   }
   function countUp(el, pay) {
     const i = el.querySelector('.zmw-ln b i');
