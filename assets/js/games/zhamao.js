@@ -2113,7 +2113,7 @@
     // 百变「掀顶」：牌堆最上面那张翻开摆着（只在没动画时摆，动画里照常是牌背）
     {
       const stack = els.deck.querySelector('.zm-deck-stack'), top = stack && stack.querySelector('.zm-card.is-top');
-      const faceId = d.topFace != null && d.deckSize > 0 && top ? d.topFace : null;
+      const faceId = d.topFace != null && d.deckSize > 0 && top && !(game.drawLift && game.drawLift.face != null) ? d.topFace : null;   // 联机预掀着翻开的那张：下面先是牌背
       let fc = stack && stack.querySelector('.zm-deck-face');
       if (faceId == null) { if (fc) fc.remove(); }
       else {
@@ -4282,6 +4282,9 @@
   // 联机点「摸牌」：先把顶上那张推出来捏着悬着（等服务器回话），回话后 peel 从这儿接着演
   function prePeel() {
     if (game.drawLift) { game.drawLift.node.remove(); game.drawLift = null; }
+    // 百变「摸底」生效时这一摸是从最底下抽（peel 里会走 peelBottom）：不先掀顶上那张，
+    // 不然一点就闪一下「从顶上摸」、回话后又换成从底下抽（2026-11-26 用户）
+    { const st = game.state; if (st && st.flux === 'bottom' && st.deck && st.deck.length > 1) return; }
     const r = deckTopRect(), pu = PU();
     if (!r || !r.width) return;
     const node = document.createElement('div');
@@ -4293,6 +4296,9 @@
     snd('peel');
     const anim = node.animate(peelFrames(r.left, r.top, pu * 0.16), { duration: 220, fill: 'forwards' });
     game.drawLift = { node, anim, at: performance.now(), face };
+    /* 透视：翻着的那张被掀起来了，下面那张这时还不知道是哪张（服务器回话才告诉）——先露牌背，回话后再翻成正确的那张。
+     * 以前牌堆上照旧摆着被掀走的那张，网慢时看着像下面那张和摸走的是同一张、过一会儿才变（2026-11-26 用户） */
+    if (face != null) renderPiles();
   }
   async function peel(t, bottom, seat) {
     const lift = game.drawLift; game.drawLift = null;   // 联机：点「摸牌」时已经掀起来悬着的那张——从它现在的位置接着摸
@@ -8753,7 +8759,7 @@
       onState(res.state, res._rtt);
     } catch (err) {
       clearTimeout(slow);
-      if (game && game.drawLift) { game.drawLift.node.remove(); game.drawLift = null; }   // 没摸成：掀起来的那张收掉
+      if (game && game.drawLift) { const f = game.drawLift.face; game.drawLift.node.remove(); game.drawLift = null; if (f != null) { game.faceQuiet = f; renderPiles(); } }   // 没摸成：掀起来的那张收掉（透视：放回牌堆顶，不再演翻面）
       dropPreInsert();   // 没塞成：先飞出去的那张收掉、桌心的炸弹猫露回来
       if (d.type === 'pass' && err && err.status === 409) return;   // 窗口已经关了（别人作废 / 已结算）：没关系，等下一份状态
       if (d.type === 'rescue' && err && (err.error === 'stale' || err.error === 'not_your_turn' || err.error === 'not_your_call')) return;   // 别的队友先救了：等事件推过来，弹窗里演「被他抢先」
