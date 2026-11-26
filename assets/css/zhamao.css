@@ -2002,7 +2002,8 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zr-chip { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
 .zr-chip small { font-size: 11.5px; color: var(--zm-ink-mute); white-space: nowrap; }
 .zr-mc { flex: none; display: grid; place-items: center; width: 34px; aspect-ratio: 100 / 130; box-sizing: border-box; border-radius: 7px; background: var(--bg); border: 1.5px solid #fff; box-shadow: 0 1px 3px rgba(29, 27, 24, 0.24); overflow: hidden; font-style: normal; }
-.zr-mc svg { width: 90%; height: auto; display: block; }
+.zr-mc > svg { width: 90%; height: auto; display: block; }
+.zr-mc svg svg { width: 100%; height: 100%; }   /* 牌面插画套在状态图里（禁止圈、角上的眼）*/
 .zr-chip.is-chg .zr-mc { box-shadow: 0 0 0 2px #e2a23b, 0 1px 3px rgba(29, 27, 24, 0.24); }
 .zr-chip.is-chg small { color: #a87a22; font-weight: 700; }
 .zs-row > .zr-mc { width: 28px; }

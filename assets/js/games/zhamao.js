@@ -6321,14 +6321,46 @@
   const LANG_OPTS = [['zh-Hans', '简体中文'], ['zh-Hant', '繁體中文'], ['en', 'English']];
   // 规则的默认值（「恢复默认」回到这里；小规则牌和它不一样就描金边）
   const RULE_DEF = { turnSec: 20, deckSize: 'std', swap: false, swapDefuse: false, insertSeen: false };
-  // 限时、牌量没有对应的牌，单画两张小图（同牌面一样的扁平画法）；其余用牌面插画
-  const RULE_FACE = {
-    timer: ['#e3ecf5', '<svg viewBox="0 0 100 100" aria-hidden="true"><rect x="42" y="12" width="16" height="9" rx="3" fill="#2f4a6d"/><circle cx="50" cy="56" r="29" fill="#fffaf0" stroke="#2f4a6d" stroke-width="7"/><path d="M50 56V38M50 56l12 8" stroke="#c8463a" stroke-width="7" stroke-linecap="round" fill="none"/></svg>'],
-    deck: ['#f3e6cf', '<svg viewBox="0 0 100 100" aria-hidden="true"><rect x="30" y="17" width="44" height="60" rx="7" fill="#c9a96e" transform="rotate(10 52 47)"/><rect x="28" y="20" width="44" height="60" rx="7" fill="#e8d3a8" transform="rotate(-6 50 50)"/><rect x="28" y="22" width="44" height="60" rx="7" fill="#fffaf0" stroke="#2f4a6d" stroke-width="5"/><circle cx="50" cy="52" r="9" fill="#2f4a6d"/></svg>'],
-  };
-  const ruleFace = (k) => {
-    const f = RULE_FACE[k], bg = f ? f[0] : ART.TONE[k].bg;
-    return '<i class="zr-mc" style="--bg:' + bg + '" aria-hidden="true">' + (f ? f[1] : ART.face(k)) + '</i>';
+  /* 规则小图跟着状态变（2026-11-26 用户）：限时 10 秒 / 20 秒 / 不限时 = 钟面上一小块 / 一大块红扇 / ∞；牌量 少 / 标准 / 多 = 2 / 3 / 5 张错开叠着；
+   * 交换牌、交换时逗猫棒也换：关着 = 牌面变淡 + 一道红色禁止圈；塞回：看不出 = 角上一只闭着的眼、看得出 = 睁着的眼。
+   * ruleIcon(k, r, t) → [底色, svg]；r = 规范化后的规则，t = 限时秒数 */
+  const NAVY = '#2f4a6d', SEAL_RED = '#c8463a', CREAM = '#fffaf0';
+  const svgWrap = (inner) => '<svg viewBox="0 0 100 100" aria-hidden="true">' + inner + '</svg>';
+  function timerSvg(t) {
+    let s = '<rect x="42" y="12" width="16" height="9" rx="3" fill="' + NAVY + '"/><circle cx="50" cy="56" r="29" fill="' + CREAM + '" stroke="' + NAVY + '" stroke-width="7"/>';
+    if (!t) return svgWrap(s + '<path d="M50 56c-4-6-8-9-12-9a9 9 0 0 0 0 18c4 0 8-3 12-9s8-9 12-9a9 9 0 0 1 0 18c-4 0-8-3-12-9Z" fill="none" stroke="' + SEAL_RED + '" stroke-width="5.5" stroke-linejoin="round"/>');
+    const a = (t <= 10 ? 120 : 240) * Math.PI / 180, r = 21, x = 50 + r * Math.sin(a), y = 56 - r * Math.cos(a);
+    s += '<path d="M50 56V' + (56 - r) + 'A' + r + ' ' + r + ' 0 ' + (a > Math.PI ? 1 : 0) + ' 1 ' + x.toFixed(1) + ' ' + y.toFixed(1) + 'Z" fill="' + SEAL_RED + '" opacity=".85"/>';
+    return svgWrap(s + '<circle cx="50" cy="56" r="4" fill="' + NAVY + '"/>');
+  }
+  function deckSvg(size) {
+    const n = size === 'quick' ? 2 : size === 'more' ? 5 : 3, dx = 9, dy = -7, w = 36, h = 50;
+    const x0 = 50 - w / 2 - (n - 1) * dx / 2, y0 = 52 - h / 2 - (n - 1) * dy / 2;
+    let s = '';
+    for (let i = 0; i < n; i++) {
+      const top = i === n - 1, x = x0 + i * dx, y = y0 + i * dy;
+      s += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + w + '" height="' + h + '" rx="6" fill="' + (top ? CREAM : i % 2 ? '#e8d3a8' : '#c9a96e') + '" stroke="' + NAVY + '" stroke-width="' + (top ? 4.5 : 3) + '"/>';
+      if (top) s += '<circle cx="' + (x + w / 2).toFixed(1) + '" cy="' + (y + h / 2).toFixed(1) + '" r="7.5" fill="' + NAVY + '"/>';
+    }
+    return svgWrap(s);
+  }
+  // 关着：牌面淡下去，盖一道禁止圈
+  const offSvg = (face) => svgWrap('<g opacity=".5">' + face.replace('<svg ', '<svg width="100" height="100" ') + '</g><circle cx="50" cy="50" r="36" fill="none" stroke="' + SEAL_RED + '" stroke-width="6"/><path d="M25 75 75 25" stroke="' + SEAL_RED + '" stroke-width="6" stroke-linecap="round"/>');
+  // 塞回：角上一只眼（睁 = 大家看得出塞在哪，闭 = 看不出）
+  const eyeSvg = (face, open) => svgWrap(face.replace('<svg ', '<svg width="100" height="100" ') + '<circle cx="74" cy="74" r="19" fill="' + CREAM + '" stroke="' + NAVY + '" stroke-width="4"/>' + (open
+    ? '<path d="M61 74q13-12 26 0q-13 12-26 0Z" fill="#fff" stroke="' + NAVY + '" stroke-width="3.5" stroke-linejoin="round"/><circle cx="74" cy="74" r="4.5" fill="' + NAVY + '"/>'
+    : '<path d="M61 72q13 11 26 0" fill="none" stroke="' + NAVY + '" stroke-width="3.5" stroke-linecap="round"/><path d="M65 77l-2 4M74 79v4.5M83 77l2 4" stroke="' + NAVY + '" stroke-width="3" stroke-linecap="round"/>'));
+  function ruleIcon(k, r, t) {
+    if (k === 'timer') return ['#e3ecf5', timerSvg(t)];
+    if (k === 'deck') return ['#f3e6cf', deckSvg(r.deckSize)];
+    if (k === 'swap' || k === 'defuse') { const on = k === 'swap' ? r.swap : r.swapDefuse; return [on ? ART.TONE[k].bg : '#ecebe7', on ? ART.face(k) : offSvg(ART.face(k))]; }
+    if (k === 'boom') return [ART.TONE.boom.bg, eyeSvg(ART.face('boom'), !!r.insertSeen)];
+    return [ART.TONE[k].bg, ART.face(k)];
+  }
+  const ruleSig = (k, r, t) => String(k === 'timer' ? t : k === 'deck' ? r.deckSize : k === 'swap' ? r.swap : k === 'defuse' ? r.swapDefuse : k === 'boom' ? r.insertSeen : '');
+  const ruleFace = (k, r, t) => {
+    const [bg, svg] = ruleIcon(k, r || {}, t);
+    return '<i class="zr-mc" data-rface="' + k + '" data-sig="' + ruleSig(k, r || {}, t) + '" style="--bg:' + bg + '" aria-hidden="true">' + svg + '</i>';
   };
   const ruleTs = (ts) => (TURN_OPTS.some(([v]) => v === ts) ? ts : RULE_DEF.turnSec);
   const rulesDefault = (rules, ts) => { const r = R.normalizeRules(rules); return ruleTs(ts) === RULE_DEF.turnSec && ['deckSize', 'swap', 'swapDefuse', 'insertSeen'].every((k) => r[k] === RULE_DEF[k]); };
@@ -6336,7 +6368,7 @@
   // 一排小规则牌。open = 整个白框是按钮（右上角「规则 ›」）；否则只读
   function ruleChipsHtml(rules, ts, open) {
     const r = R.normalizeRules(rules), t = ruleTs(ts);
-    const chip = (k, label, chg) => '<span class="zr-chip' + (chg ? ' is-chg' : '') + '">' + ruleFace(k) + '<small>' + label + '</small></span>';
+    const chip = (k, label, chg) => '<span class="zr-chip' + (chg ? ' is-chg' : '') + '">' + ruleFace(k, r, t) + '<small>' + label + '</small></span>';
     const chips = '<span class="zr-chips">' +
       chip('timer', t ? T('ui.secs', '{n} 秒', { n: t }) : T('ui.set.noLimit', '不限时'), t !== RULE_DEF.turnSec) +
       chip('deck', (DECK_OPTS.find(([v]) => v === r.deckSize) || DECK_OPTS[1])[1], r.deckSize !== RULE_DEF.deckSize) +
@@ -6351,7 +6383,7 @@
     const r = R.normalizeRules(rules), t = ruleTs(ts), dis = edit ? '' : ' disabled';
     const seg = (key, opts, val) => '<div class="zs-seg" data-rseg="' + key + '" role="group">' + opts.map(([v, tx]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(val)) + '"' + dis + '>' + tx + '</button>').join('') + '</div>';
     const sw = (key, on) => '<button type="button" class="zs-switch" data-rsw="' + key + '" role="switch" aria-checked="' + !!on + '"' + dis + '><i></i></button>';
-    const row = (k, name, ctl, dep) => '<div class="zs-row zr-row"' + (dep ? ' data-rdep="' + dep + '"' + (r[dep] ? '' : ' hidden') : '') + '>' + ruleFace(k) + '<div class="zs-txt"><b>' + name + '</b></div>' + ctl + '</div>';
+    const row = (k, name, ctl, dep) => '<div class="zs-row zr-row"' + (dep ? ' data-rdep="' + dep + '"' + (r[dep] ? '' : ' hidden') : '') + '>' + ruleFace(k, r, t) + '<div class="zs-txt"><b>' + name + '</b></div>' + ctl + '</div>';
     return '<div class="zr-head"><button type="button" class="zr-back" data-rules-back aria-label="' + T('ui.back', '返回') + '"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M24.5 6.5 13 20l11.5 13.5"/></svg></button><b>' + esc(title) + '</b>' +
       (edit ? '<button type="button" class="zr-reset" data-rules-reset' + (rulesDefault(r, t) ? ' disabled' : '') + '>' + T('ui.rules.reset', '恢复默认') + '</button>' : '<span class="zr-host">' + T('lobby.hostRules', '规则由房主定') + '</span>') + '</div>' +
       '<section class="zs-card zr-card">' +
@@ -6398,6 +6430,14 @@
       } else return;
       const cur = o.get(), rb = root.querySelector('[data-rules-reset]');
       if (rb) rb.disabled = rulesDefault(cur.rules, cur.ts);
+      const nr = R.normalizeRules(cur.rules), nt = ruleTs(cur.ts);
+      root.querySelectorAll('[data-rface]').forEach((el) => {   // 小图跟着换
+        const sig = ruleSig(el.dataset.rface, nr, nt);
+        if (el.dataset.sig === sig) return;
+        const [bg, svg] = ruleIcon(el.dataset.rface, nr, nt);
+        el.dataset.sig = sig; el.style.setProperty('--bg', bg); el.innerHTML = svg;
+        if (!fx.reduce()) el.animate([{ transform: 'scale(.82)' }, { transform: 'scale(1.06)' }, { transform: 'none' }], { duration: 240, easing: 'ease-out' });
+      });
     });
   }
   // 单机：开局单里的规则（settings.rules / settings.turnSec，存下来下次还是这样）
