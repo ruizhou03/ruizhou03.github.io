@@ -2309,7 +2309,8 @@
     els.playBtn.disabled = true; els.drawBtn.disabled = true;
     // 贪吃猫要我给第二张：两张之间（第一张还在飞）键上别闪回「出牌」，灰着的「给牌 ×1」等下一张（2026-11-18 巡查）
     const giveNext = s.phase === 'give' && s.give && s.give.from === 0 && mode !== 'give';
-    if (giveNext && R.roleOf(s, s.give.to) === 'fat') els.playBtn.innerHTML = T('ui.btn.give', '给牌') + '<b class="zm-xn">×' + (s.give.left > 1 ? 2 : 1) + '</b>'; else els.playBtn.textContent = giveNext ? T('ui.btn.give', '给牌') : T('ui.btn.play', '出牌');
+    if (mode === 'save') { /* 急救：「合成」键的绿条在下面那段里留着，别每次重画把倒计时洗掉 */ }
+    else if (giveNext && R.roleOf(s, s.give.to) === 'fat') els.playBtn.innerHTML = T('ui.btn.give', '给牌') + '<b class="zm-xn">×' + (s.give.left > 1 ? 2 : 1) + '</b>'; else els.playBtn.textContent = giveNext ? T('ui.btn.give', '给牌') : T('ui.btn.play', '出牌');
     els.drawBtn.textContent = T('ui.btn.draw', '摸牌');
     els.drawBtn.classList.remove('is-ready');
     // 结束了也等动画播完（ov 还在 = 桌上还在演）再收键（2026-11-22 用户：最后一炸把整局打完时，game.state 当场就是 over，
