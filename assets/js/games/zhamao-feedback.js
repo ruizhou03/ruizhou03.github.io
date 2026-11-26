@@ -147,7 +147,7 @@
           if (root.ZhamaoHlog && root.ZhamaoHlog.snapshot) root.ZhamaoHlog.snapshot(g);
         }
         s.innerHTML = TICK;
-        // 小鱼干：每标一步 +50，每天最多 4 步。2026-11-26 用户：就在这页上先看到鱼游进左上角、数字加上去，再关页
+        // 小鱼干：每标一步 +100（2026-11-26 起，原 +50），每天最多 4 步。2026-11-26 用户：就在这页上先看到鱼游进左上角、数字加上去，再关页
         const W = root.ZhamaoWallet, me = mask;
         const done = W && W.fbAward ? W.fbAward(mask.querySelector('.zmfb-why'), s) : (W && W.fb && W.fb(1), null);
         if (done) { mask.classList.add('is-sent'); Promise.all([Promise.race([done, new Promise((r) => setTimeout(r, 4000))]), new Promise((r) => setTimeout(r, 450))]).then(() => { if (sheet === me) close(); }); }

@@ -360,10 +360,10 @@
     return post('firstwin').catch((e) => { refresh(); throw e; });
   }
   /* 「这步不对」奖励（2026-11-26 用户：点了发送，两秒后数字才莫名其妙加上去）：
-   * 本机按服务器同一套规则（每标一步 +50、每天最多 4 步，按手机当地日期）先算这一步给不给；给就在反馈页上冒一颗「+50」胶囊，
+   * 本机按服务器同一套规则（每标一步 +100、每天最多 4 步，按手机当地日期）先算这一步给不给；给就在反馈页上冒一颗「+100」胶囊，
    * 鱼当场从它游进左上角、数字滚上去，放完再关页。服务器回来以它为准（顺手校正）；请求失败就按服务器的余额摆回去。
    * 返回动画放完的 Promise（不给鱼就立刻好） */
-  const FB_EACH = 50, FB_MAX = 4, FBK = 'zm.wfb.v1';
+  const FB_EACH = 100, FB_MAX = 4, FBK = 'zm.wfb.v1';
   function fbUsed() {
     let n = 0;
     try { const o = JSON.parse(ls.get(FBK)); if (o && o.d === today()) n = o.n | 0; } catch (_) { /* */ }
