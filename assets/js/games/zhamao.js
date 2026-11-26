@@ -5819,6 +5819,7 @@
     // 联机（2026-11-19）也走这一整段：角色服务器发牌时就定了，点哪张都是自己那只（单机也一样）；限时到了自动抽。
     // 纯观战 / 坐在别人身后看：不等人点，很快自动翻开被看的那一家
     if (!st.roles || g.tutorial) return;
+    if (g.online && G() && G().rd) return roleDrawOnline(t);   // 联机：大家同一个扇面同时抽（服务器记谁拿了哪张）
     const n = st.n, seats = Array.from({ length: n }, (_, i) => i), me = meSeat();
     game.roleHide = new Set(seats);
     renderSeats(); renderRoleFan();
@@ -5971,6 +5972,214 @@
         box.remove();
         if (b) { b.style.visibility = ''; fx.pop(b, { scale: 1.6, dur: 360 }); }
       }));
+      if (gone()) return;
+      game.roleHide = null;
+      renderSeats();
+    } finally {
+      cleanup();
+      if (gone()) g.roleHide = null;
+    }
+  }
+  /* 联机抽角色（2026-11-26 用户定「同时抽、共享扇面」）：服务器发牌后先进一段抽角色（view.rd），所有人看的是同一个扇面——
+   * 第 k 张就是服务器上的第 k 张。真人同时点：点了先在扇面里拈起来，服务器说了算（撞同一张：先到先得，后到的换一张空的）；
+   * 谁拿走哪张，那张就在所有人屏幕上飞到他头像旁小翻一下、缩进角上的猫章（我自己那张照旧飞到桌心慢翻亮相）。
+   * 机器猫 / 掉线 / 到点没点的由服务器代拿；所有人都拿到了、动画放完就接着发牌。观战的只看不点 */
+  async function roleDrawOnline(t) {
+    const g = game, st = g.state;
+    const n = st.n, seats = Array.from({ length: n }, (_, i) => i), me = 0;
+    const rdNow = () => { const x = G(); return x && x.matchNo === g.matchNo ? x.rd : null; };
+    const gone = () => t !== token;
+    game.roleHide = new Set(seats);
+    renderSeats(); renderRoleFan();
+    const hideEls = [els.deck, els.discard];
+    const nodes = [];
+    const cleanup = () => { nodes.forEach((d) => d.remove()); hideEls.forEach((x) => { x.style.visibility = ''; }); };
+    const canPick = !g.spectator && !g.hideHand;
+    let tapped = -1, sent = false;
+    const send = (k) => {
+      if (sent || !online || !canPick) return;
+      sent = true;
+      NET.act(online.code, online.token, 'move', { d: { type: 'role', idx: k } }).then((res) => { if (res && res.state) onState(res.state, res._rtt); }).catch(() => { /* 已经拿到了 / 抽完了：等服务器的状态 */ });
+    };
+    // 看着服务器的进度：一张张处理「谁拿走了第几张」，直到抽完、动画都放完（最多等 25 秒，之后交给 playHung 兜底）
+    const watch = async (onTake) => {
+      const seen = new Set(), anims = [];
+      const t0 = performance.now();
+      for (;;) {
+        if (gone()) return false;
+        const rd = rdNow();
+        if (!rd) return false;
+        rd.by.forEach((who, k) => {
+          if (who < 0 || seen.has(k)) return;
+          seen.add(k);
+          const seat = locOf(who), role = rd.roles[k];
+          if (role && st.roles) st.roles[seat] = role;
+          anims.push(onTake(k, seat, role));
+        });
+        if (rd.done && seen.size >= n) break;
+        if (performance.now() - t0 > 25000) break;
+        await wait(120);
+      }
+      await Promise.all(anims);
+      return !gone();
+    };
+    if (fx.reduce()) { await watch(async () => {}); game.roleHide = null; renderSeats(); return; }
+    hideEls.forEach((x) => { x.style.visibility = 'hidden'; });
+    try {
+      const cr = els.center.getBoundingClientRect(), c = { x: cr.left + cr.width / 2, y: cr.top + cr.height / 2 };
+      const cw = Math.round(Math.max(56, Math.min(124, (cr.width - 24) / (n * 0.6 + 1.1), (cr.width - 24) / 2.6, cr.height * 0.36 / 1.4)));
+      const tf = (p) => 'translate(' + (p.x - cw / 2).toFixed(1) + 'px,' + (p.y - cw * 0.7).toFixed(1) + 'px) rotate(' + (p.r || 0) + 'deg) scale(' + (p.s == null ? 1 : p.s) + ')';
+      const mv = (d, a, b, dur, ease, delay) => d.animate([{ transform: tf(a) }, { transform: tf(b) }], { duration: dur, easing: ease || 'cubic-bezier(.45,0,.25,1)', delay: delay || 0, fill: 'both' }).finished.catch(() => {});
+      let zTop = n + 1;
+      const lift = (d) => { d.style.zIndex = String(5 + (zTop++)); };
+      const cards = seats.map((k) => { const d = document.createElement('div'); d.className = 'zm-rd'; d.innerHTML = roleBackHtml(cw); d.style.zIndex = String(5 + k); els.fly.appendChild(d); nodes.push(d); d.style.opacity = '0'; return d; });
+      const mask = document.createElement('div');
+      mask.className = 'zm-rd-mask';
+      els.fly.appendChild(mask); nodes.push(mask);
+      mask.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, fill: 'both' });
+      const S = 1.18, R0 = cw * S * 2.6, stepA = Math.min(11, 56 / Math.max(1, n - 1));
+      const fanY = c.y - cw * 0.2, pivot = { x: c.x, y: fanY + R0 };
+      const slot = (k) => { const ang = (k - (n - 1) / 2) * stepA, rad = ang * Math.PI / 180; return { x: pivot.x + R0 * Math.sin(rad), y: pivot.y - R0 * Math.cos(rad), r: ang, s: S }; };
+      const where = cards.map((_, k) => slot(k));
+      snd('whoosh');
+      await Promise.all(cards.map((d, k) => d.animate([{ transform: tf({ x: c.x, y: c.y + cw * 0.2, r: 0, s: 0.45 }), opacity: 0 }, { opacity: 1, offset: 0.35 }, { transform: tf(where[k]), opacity: 1 }], { duration: 460, delay: k * 70, easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'both' }).finished.catch(() => {})));
+      if (gone()) return;
+      const free = new Set(seats);
+      // 「抽一张」按钮 = 倒计时条，到服务器收口那一刻走完（到点没点：服务器随机给一张）
+      let btn = null, wv = 0, wvStart = 0;
+      const stopAsk = () => {
+        clearTimeout(wvStart); clearInterval(wv);
+        cards.forEach((d) => d.classList.remove('can-pick', 'is-wave'));
+        if (btn && btn.isConnected) btn.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
+      };
+      const tap = (k) => {
+        if (tapped >= 0 || !free.has(k) || gone()) return;
+        tapped = k;
+        stopAsk();
+        snd('tap');
+        lift(cards[k]);
+        mv(cards[k], where[k], { x: where[k].x, y: where[k].y - cw * 0.32, r: where[k].r * 0.5, s: S * 1.1 }, 220, 'cubic-bezier(.3,.9,.4,1.2)');
+        send(k);
+      };
+      const rd0 = rdNow();
+      const mineAlready = rd0 && rd0.by.some((who) => who >= 0 && locOf(who) === me);
+      if (canPick && !mineAlready) {
+        cards.forEach((d) => d.classList.add('can-pick'));
+        const end = rd0 ? rd0.end : Date.now() + 8000;
+        const lim = Math.max(800, end - (Date.now() + (online.skew || 0)));
+        btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'zm-btn zm-btn-primary zm-timed zm-rd-btn';
+        btn.innerHTML = '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span><b>' + T('ui.steal.rand', '抽一张') + '</b>';
+        const fanBottom = fanY + cw * S * 0.72 + Math.abs(slot(0).y - fanY) + 18;
+        btn.style.cssText = 'left:' + c.x + 'px;top:' + Math.min(innerHeight - 56, fanBottom) + 'px';
+        els.fly.appendChild(btn); nodes.push(btn);
+        btn.animate([{ opacity: 0, translate: '-50% 8px' }, { opacity: 1, translate: '-50% 0' }], { duration: 260, fill: 'both' });
+        btn.querySelector('.zm-dlg-timer i').animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: lim, easing: 'linear', fill: 'forwards' });
+        const wave = () => { [...free].sort((a, b) => a - b).forEach((i, k) => setTimeout(() => { const el = cards[i]; if (!el.isConnected || !el.classList.contains('can-pick')) return; el.classList.add('is-wave'); setTimeout(() => el.classList.remove('is-wave'), 260); }, k * 110)); };
+        wvStart = setTimeout(() => { wave(); wv = setInterval(wave, 2400); }, 500);
+        cards.forEach((d, k) => d.addEventListener('click', (ev) => { ev.stopPropagation(); tap(k); }));
+        btn.addEventListener('click', (ev) => { ev.stopPropagation(); const f = [...free]; if (f.length) tap(f[(Math.random() * f.length) | 0]); }, { once: true });
+      }
+      // 别人拿走的：从扇面飞到他头像朝桌心那一侧，翻开亮一下，缩进角上的猫章
+      let kOther = 0;
+      const toSeat = async (k, seat, role) => {
+        const el = cards[k];
+        const zk = kOther++;
+        lift(el);
+        const fr = el.getBoundingClientRect(), a = avEl(seat).getBoundingClientRect();
+        const w = Math.round(Math.max(48, Math.min(76, cw * 0.72)));
+        const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+        const vx = c.x - ax, vy = c.y - ay, vl = Math.hypot(vx, vy) || 1;
+        const off = a.width / 2 + w * 0.95 + 8;
+        const x = Math.max(cr.left + w * 0.6, Math.min(cr.right - w * 0.6, ax + vx / vl * off));
+        const y = Math.max(cr.top + w * 0.75, Math.min(cr.bottom - w * 0.75, ay + vy / vl * off));
+        const box = document.createElement('div');
+        box.className = 'zm-rd-small';
+        box.style.cssText = 'left:' + (x - w / 2) + 'px;top:' + (y - w * 0.7) + 'px;z-index:' + (150 + zk);
+        box.innerHTML = roleFlipHtml(role, w, false);
+        els.fly.appendChild(box); nodes.push(box);
+        el.style.visibility = 'hidden';
+        snd('tap');
+        await flipFrom(box, fr, 380, where[k].r || 0);
+        if (gone()) return;
+        await box.querySelector('.zm-rc-flip-in').animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: 400, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
+        await wait(900);
+        if (gone()) return;
+        game.roleHide.delete(seat); renderSeat(seat);
+        const b = roleBadge(seat); if (b) b.style.visibility = 'hidden';
+        await flipTo(box, b ? b.getBoundingClientRect() : null, 400, 0);
+        box.remove();
+        if (b) { b.style.visibility = ''; fx.pop(b, { scale: 1.6, dur: 360 }); }
+      };
+      // 我拿到的：拈起来（点的那张已经拈着了；被分到别的那张就把点的放回去、换这张拈起来）→ 飞到桌心慢翻亮相 → 缩进我的猫章
+      const toMe = async (k, role) => {
+        stopAsk();
+        if (tapped >= 0 && tapped !== k && free.has(tapped)) { const p = where[tapped]; mv(cards[tapped], { x: p.x, y: p.y - cw * 0.32, r: p.r * 0.5, s: S * 1.1 }, p, 200); }
+        const pk = cards[k], pw = where[k];
+        if (tapped !== k) { lift(pk); snd('tap'); await mv(pk, pw, { x: pw.x, y: pw.y - cw * 0.32, r: pw.r * 0.5, s: S * 1.1 }, 220, 'cubic-bezier(.3,.9,.4,1.2)'); }
+        else await wait(120);
+        if (gone()) return;
+        const tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat;
+        const BW = Math.round(Math.max(150, Math.min(230, innerWidth * 0.52, cr.height * 0.82 / 1.4)));
+        const big = document.createElement('div');
+        big.className = 'zm-rd-big';
+        big.style.cssText = 'left:' + (c.x - BW / 2) + 'px;top:' + (c.y - BW * 0.7) + 'px;--glow:' + tone.band;
+        big.style.zIndex = '300';   // 压在扇面和别人飞去头像的小牌上面
+        big.innerHTML = '<i class="zm-rd-rays"></i><i class="zm-rd-halo"></i>' + roleFlipHtml(role, BW, true);
+        // 我亮相的时候扇面上剩下的牌淡下去（别人还在抽，不收走）
+        const rest = cards.filter((d, i) => i !== k && free.has(i));
+        rest.forEach((d) => d.animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 300, fill: 'forwards' }));
+        const from = pk.getBoundingClientRect();
+        els.fly.appendChild(big); nodes.push(big);
+        pk.style.visibility = 'hidden';
+        const NEAR = 0.86;
+        {
+          const r = big.getBoundingClientRect(), dx = from.left + from.width / 2 - (r.left + r.width / 2), dy = from.top + from.height / 2 - (r.top + r.height / 2), k0 = from.width / r.width;
+          snd('whoosh');
+          await big.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k0.toFixed(3) + ') rotate(' + (pw.r * 0.5) + 'deg)' }, { transform: 'scale(' + NEAR + ')' }],
+            { duration: 560, easing: 'cubic-bezier(.25,.8,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+        }
+        if (gone()) return;
+        big.classList.add('is-near');
+        await big.animate([
+          { transform: 'scale(' + NEAR + ')' },
+          { transform: 'scale(.95) rotate(-2.2deg)', offset: 0.35 },
+          { transform: 'scale(.99) rotate(2deg)', offset: 0.62 },
+          { transform: 'scale(1.01) rotate(-1deg)', offset: 0.84 },
+          { transform: 'scale(1)' },
+        ], { duration: 640, easing: 'ease-in-out', fill: 'forwards' }).finished.catch(() => {});
+        if (gone()) return;
+        const fin = big.querySelector('.zm-rc-flip-in');
+        await fin.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { duration: 300, easing: 'cubic-bezier(.55,0,.9,.5)', fill: 'forwards' }).finished.catch(() => {});
+        if (gone()) return;
+        big.classList.add('is-rays', 'is-flash');
+        snd('ding');
+        fx.burst(c.x, c.y, { n: 16, shapes: ['star', 'dot'], colors: ['#c9a96e', tone.band, '#fff4d6'], radius: BW * 0.95, size: [5, 13], life: 900 });
+        await fin.animate([{ transform: 'rotateY(90deg) scale(1)' }, { transform: 'rotateY(180deg) scale(1.08)', offset: 0.6 }, { transform: 'rotateY(180deg) scale(1)' }], { duration: 520, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+        if (gone()) return;
+        big.classList.remove('is-flash');
+        big.classList.add('is-glow');
+        await new Promise((res) => { const tm = setTimeout(res, 2400); big.style.pointerEvents = 'auto'; big.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(); }, { once: true }); mask.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(); }, { once: true }); });
+        if (gone()) return;
+        game.roleHide.delete(me); renderSeats();
+        const myB = roleBadge(me); if (myB) myB.style.visibility = 'hidden';
+        big.classList.remove('is-rays', 'is-near');
+        rest.forEach((d) => { if (d.style.visibility !== 'hidden') d.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 300, fill: 'forwards' }); });
+        await flipTo(big, myB ? myB.getBoundingClientRect() : null, 520, 0);
+        big.remove();
+        if (myB) { myB.style.visibility = ''; fx.pop(myB, { scale: 1.8, dur: 420 }); }
+        snd('tap');
+      };
+      const ok = await watch((k, seat, role) => {
+        free.delete(k);
+        cards[k].classList.remove('can-pick', 'is-wave');
+        if (seat === me && canPick) return toMe(k, role);
+        return toSeat(k, seat, role);
+      });
+      stopAsk();
+      if (!ok) return;
+      mask.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, fill: 'forwards' });
+      await wait(380);
       if (gone()) return;
       game.roleHide = null;
       renderSeats();
@@ -8556,6 +8765,7 @@
     syncPeople(st);
     syncNoHelp(g);
     syncOnlinePause(g);
+    syncRoles(g);
     if (editing.on || editing.flip) { renderDir(); afterEditRender('table'); }
     if (editing.on && editing.where === 'table' && !g.over) exitEdit();
     const fresh = g.log.filter((e) => e.n > online.lastQueued);
@@ -8581,6 +8791,13 @@
     pumpQueue();
   }
   const busyLocal = () => !!(game && game.dealing);
+  // 联机抽角色：服务器上谁拿到了什么，随时写进镜像（抽角色动画自己按这个演；万一动画被打断，头像角上的猫章也对）
+  function syncRoles(g) {
+    if (!g.rd || !g.st.roles || !game.state || !game.state.roles) return;
+    let moved = false;
+    g.st.roles.forEach((r, s) => { const l = locOf(s); if (r && game.state.roles[l] !== r) { game.state.roles[l] = r; moved = true; } });
+    if (moved && !game.roleHide) renderSeats();
+  }
   // 名字 / 头像 / 机器猫档位 / 离开代打
   function syncPeople(st) {
     if (!game) return;
@@ -8623,7 +8840,8 @@
     syncPeople(st);
     bgm('game');
     const deal = g.log.find((e) => e.t === 'deal');
-    if (fromLobby && deal && !g.over && g.log[0] === deal) {
+    const drawing = !!(g.rd && !g.rd.done);   // 抽角色还没完（刷新 / 中途进来）：也从发牌播起，扇面上已经被拿走的牌直接飞去各家
+    if ((fromLobby || drawing) && deal && !g.over && g.log[0] === deal) {
       // 从头播：按发牌那一刻摆好，发牌动画走一遍，再一步步播到现在
       game.state = mirrorFromDeal(g, rotEvent(deal));
       online.lastQueued = deal.n;
