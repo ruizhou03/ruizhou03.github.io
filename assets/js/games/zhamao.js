@@ -406,8 +406,13 @@
   const U = () => parseFloat(getComputedStyle(els.app).getPropertyValue('--u')) || 64;
   const POP = () => Math.min(U() * 1.3, 120);   // 弹出来看的牌（窥探 / 改命 / 抽牌 / 捡弃牌 / 点名）统一的大号，和 CSS 的 --pop 一致
   /* 牌面大小（2026-11-26 用户：设置里三档，默认中）：小 = 放大以前的原样；中 = 两者之间；大 = 手牌 1.3 倍、桌上 1.25 倍。写到 CSS 的 --hs / --ts */
-  const CARD_SIZES = { s: [1, 1], m: [1.15, 1.12], l: [1.3, 1.25] };
-  const cardSize = () => CARD_SIZES[settings.cardSize] || CARD_SIZES.m;   // 没选过 = 中（2026-11-26 用户定默认中）
+  /* 牌面小 / 中 / 大按屏幕分档（2026-11-26 用户：小中大要相对这块屏幕的比例来定，一套比例一套小中大）。[手牌倍数, 桌上牌堆倍数]
+   *   竖屏（手机 / 平板）和电脑：上下有空，照原来那套
+   *   手机横屏（LANDSCAPE_SHORT，高 ≤ 540）：上下只剩一条，原来那套「大」牌堆下面的张数会压到灯带、顶上贴着对手名字——整套往小收 */
+  const CARD_SIZES_TALL = { s: [1, 1], m: [1.15, 1.12], l: [1.3, 1.25] };
+  const CARD_SIZES_LAND = { s: [0.9, 0.84], m: [1, 0.92], l: [1.1, 1] };
+  const sizeSet = () => (LANDSCAPE_SHORT.matches ? CARD_SIZES_LAND : CARD_SIZES_TALL);
+  const cardSize = () => sizeSet()[settings.cardSize] || sizeSet().m;   // 没选过 = 中（2026-11-26 用户定默认中）
   function applyCardSize() { const z = cardSize(); els.app.style.setProperty('--hs', z[0]); els.app.style.setProperty('--ts', z[1]); }
   const PU = () => U() * 0.92 * cardSize()[1];     // 牌堆 / 弃牌堆的牌宽（乘牌面大小那档，和 CSS 的 --ts 一致）
   const HU = () => Math.min(U() * cardSize()[0], 120);   // 我的手牌牌宽（乘牌面大小那档，和 CSS 的 --hw 一致）：飞进 / 飞出手牌的牌按这个大小落地
@@ -459,6 +464,7 @@
   const LANDSCAPE_SHORT = window.matchMedia('(orientation: landscape) and (max-height: 540px)');   // 和 CSS 里横屏那段用同一个条件
   function solveSize() {
     sizeW = viewW();
+    applyCardSize();   // 转屏换了一套小中大
     const W = els.table.offsetWidth - 24, H = els.table.offsetHeight;
     let u;
     if (LANDSCAPE_SHORT.matches) {
@@ -6943,7 +6949,7 @@
     return Math.max(46, Math.floor(Math.min(tw / 5.5, (th - (50 + av + 50 + 66 + 26 + 40)) / 3.4, 98)));
   }
   function sizePreviewHtml(sz) {
-    const u = baseU(), dim = (k) => { const z = CARD_SIZES[k] || CARD_SIZES.m; return { hu: Math.min(u * z[0], 120), pu: u * 0.92 * z[1] }; };
+    const u = baseU(), dim = (k) => { const z = sizeSet()[k] || sizeSet().m; return { hu: Math.min(u * z[0], 120), pu: u * 0.92 * z[1] }; };
     const { hu, pu } = dim(sz), big = dim('l'), f = (x) => x.toFixed(1) + 'px';
     const W = Math.round(els.app.clientWidth || innerWidth);
     // 手牌：横屏手牌一行两边让出头像和按钮；竖屏占满底边
@@ -6964,7 +6970,7 @@
 
   function showSettings(fromCover) {
     const segs = (key, opts, val) => '<div class="zs-seg" data-seg="' + key + '" role="group">' + opts.map(([v, t]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(val)) + '">' + t + '</button>').join('') + '</div>';
-    const sizeNow = CARD_SIZES[settings.cardSize] ? settings.cardSize : 'm';
+    const sizeNow = sizeSet()[settings.cardSize] ? settings.cardSize : 'm';
     const swRow = (face, title, attr, on) => '<div class="zs-row">' + ruleFace(face) + '<div class="zs-txt"><b>' + title + '</b></div><button type="button" class="zs-switch" ' + attr + ' role="switch" aria-checked="' + !!on + '"><i></i></button></div>';
     let html = '<h2>' + T('ui.settings', '设置') + '</h2>' +
       '<section class="zs-card"><div class="zs-line"><span>' + T('ui.set.cardSize', '牌面大小') + '</span>' + segs('cardSize', [['s', T('ui.set.size.s', '小')], ['m', T('ui.set.size.m', '中')], ['l', T('ui.set.size.l', '大')]], sizeNow) + '</div>' +
