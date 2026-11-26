@@ -323,7 +323,8 @@
   const pileRot = (id) => ((id * 37) % 13) - 6;
   const U = () => parseFloat(getComputedStyle(els.app).getPropertyValue('--u')) || 64;
   const POP = () => Math.min(U() * 1.3, 120);   // 弹出来看的牌（窥探 / 改命 / 抽牌 / 捡弃牌 / 点名）统一的大号，和 CSS 的 --pop 一致
-  const PU = () => U() * 0.92;     // 牌堆 / 弃牌堆的牌宽
+  const PU = () => U() * 0.92 * 1.25;     // 牌堆 / 弃牌堆的牌宽（×1.25：2026-11-26 牌面放大，和 CSS 的 --ts 一致）
+  const HU = () => Math.min(U() * 1.3, 120);   // 我的手牌牌宽（2026-11-26 放大 1.3 倍，和 CSS 的 --hw 一致）：飞进 / 飞出手牌的牌按这个大小落地
   const SU = () => PU() * 1.15;    // 刚出的牌（压在弃牌堆上）的牌宽
 
   /* ───── 显示层 ───── */
@@ -383,7 +384,7 @@
     } else {
       const av = W < 500 ? 46 : 54;
       const fixed = 50 + (av + 50) + 66 + 26 + 40;
-      u = Math.min(W / 5.5, (H - fixed) / 2.7, 98);
+      u = Math.min(W / 5.5, (H - fixed) / 3.4, 98);   // 高度那份：手牌 1.82u + 牌堆 1.61u（2026-11-26 放大后，原来 2.7）
       u = Math.max(46, Math.floor(u));
     }
     els.app.style.setProperty('--u', u + 'px');
@@ -2151,7 +2152,7 @@
   function layoutHand() {
     const cards = els.hand.querySelectorAll('.zm-card');
     if (!cards.length) return;
-    const u = U();
+    const u = cards[0].offsetWidth || HU();   // 手牌比 --u 大（2026-11-26 放大 1.3 倍）：按实际牌宽算重叠
     const W = els.hand.clientWidth - 8;
     const n = cards.length;
     let gap = 6;
@@ -3472,7 +3473,7 @@
     game.stealFrom = null;
     if (game.wanderDone) { game.wanderDone.cancel(); game.wanderDone = null; }
     if (e.from === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.from] -= 1; renderSeat(e.from); }
-    const u = U();
+    const u = e.from === 0 || e.to === 0 ? HU() : U();
     let to = avPoint(e.to);
     if (e.to === 0) to = aboveSlot(reserveHandSlot(e.card));
     snd(kind === 'give' ? 'give' : 'steal');
@@ -3570,7 +3571,7 @@
     const tryAt = (ks, pileCost, only, fMax = 9) => {
       let best = null;
       for (const k of ks) for (const q of [1, 0.8]) {
-        const G = fanGeom(count, PU() * 0.6 * k, q), half = G.half, fh = G.fh;
+        const G = fanGeom(count, U() * 0.92 * 0.6 * k, q), half = G.half, fh = G.fh;
         const cand = [];
         // ① 名字正下方：顶着名字往下排（留出冒起来的 16px），可往桌心那侧错开
         // 顶边的人最多错开 ¼ 个半宽（用户 11-24：错开半把以上看着就不在他正下方了，宁可压牌堆也要对齐）
@@ -3843,7 +3844,7 @@
   async function namedCallout(e, t) {
     markVictim(e.from);
     const av = avEl(e.from), ar = av ? av.getBoundingClientRect() : { left: innerWidth / 2 - 20, top: 80, width: 40, height: 40, bottom: 120 };
-    const u = PU() * 0.72, h = u * 1.4;   // 小一号（约桌上牌的六成，和被抽牌时摊开的那把差不多大；2026-11-18 用户：原来 --pop 大号、手牌大小都偏大）
+    const u = U() * 0.92 * 0.72, h = u * 1.4;   // 小一号（约桌上牌的六成，和被抽牌时摊开的那把差不多大；2026-11-18 用户：原来 --pop 大号、手牌大小都偏大）
     const below = ar.top + ar.height / 2 < innerHeight / 2;
     const se = seatEl(e.from), sb = se ? se.getBoundingClientRect().bottom : ar.bottom + 30;
     const fr = frameX(), x = Math.min(Math.max(ar.left + ar.width / 2 - u / 2, fr.l), fr.r - u - 20);   // 右边多留 20px：右上角的对话泡探出牌外
@@ -3891,7 +3892,7 @@
     if (e.from === 0) { dropFromHand([e.card]); renderHand(); } else { ov.counts[e.from] -= 1; renderSeat(e.from); }
     const to = e.to === 0 ? reserveHandSlot(e.card) : avPoint(e.to);
     snd('steal');
-    await fx.fly({ html: cardHtml(e.card), from: src, to, w: u, s0: 1, s1: e.to === 0 ? U() / u : 0.5, fadeOut: e.to !== 0, dur: ms(820), lift: 90, r0: 0, r1: 0, swell: 0.3 });
+    await fx.fly({ html: cardHtml(e.card), from: src, to, w: u, s0: 1, s1: e.to === 0 ? HU() / u : 0.5, fadeOut: e.to !== 0, dur: ms(820), lift: 90, r0: 0, r1: 0, swell: 0.3 });
     if (t !== token) return;
     if (e.to === 0) revealHandCard(e.card); else { ov.counts[e.to] += 1; renderSeat(e.to); fx.pop(avEl(e.to), { scale: 1.15 }); }
     markVictim(-1);
@@ -3937,7 +3938,7 @@
     fx.burst(c.x, c.y - pu * 0.5, { n: 12, shapes: ['star'], colors: GOLDS, radius: pu, size: [6, 16], life: 800 });
     snd('ding');
     const to = e.seat === 0 ? reserveHandSlot(e.card) : avPoint(e.seat);
-    const u = U();
+    const u = e.seat === 0 ? HU() : U();
     const flight = fx.fly({ html: cardHtml(e.card), from: { x: c.x, y: c.y - pu * 0.6 }, to, w: u, s0: pu / u * 1.2, s1: e.seat === 0 ? 1 : 0.45, fadeOut: e.seat !== 0, dur: ms(620), lift: 90, swell: 0.3 });
     nodes.forEach((n, i) => {
       if (!n) return;
@@ -4113,7 +4114,7 @@
   async function animDraw(e, t) {
     const from = await peel(t, e.bottom, e.seat);
     if (!from) return;
-    const u = U(), pu = PU();
+    const u = HU(), pu = PU();
     const open = game.peelFace != null;   // 透视 / 火眼：摸走的本来就是明牌，不用再翻
     game.peelFace = null;
     const ps = game.peelS || 1.04, pr = game.peelRot != null ? game.peelRot : -5;   // 抽底拖出来的那张原样起飞（不放大、角度接上）
@@ -5308,7 +5309,7 @@
     for (let r = 0, maxLen = Math.max(...rest.map((h) => h.length)); r < maxLen; r++) {
       for (let k = 0; k < n; k++) { const seat = (s.turn + k) % n; if (rest[seat][r] != null) order.push([seat, rest[seat][r]]); }
     }
-    const u = U(), pu = PU();
+    const u = HU(), pu = PU();   // 发到我手里的牌按手牌大小落地（2026-11-26 放大）
     const flights = [];
     for (let i = 0; i < order.length; i++) {
       if (skipped()) return;
