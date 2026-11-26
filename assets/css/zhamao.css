@@ -1394,10 +1394,14 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 @keyframes zm-role-fire { 0% { transform: scale(1); } 45% { transform: scale(1.8); } 75% { transform: scale(1.35); } 100% { transform: scale(1.45); } }
 @keyframes zm-role-breathe { 50% { box-shadow: 0 0 0 1.5px var(--zm-card, #fffdf8), 0 0 0 3px var(--glow), 0 0 18px 6px color-mix(in srgb, var(--glow) 70%, transparent); } }
 .zm-role-wave { position: absolute; z-index: 3; width: clamp(20px, calc(var(--av) * 0.5), 30px); aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--glow); box-shadow: 0 0 8px color-mix(in srgb, var(--glow) 60%, transparent); pointer-events: none; }
-/* 贪吃猫猫章旁的两颗小圆点：空心，给一张填实一颗 */
-.zm-av .zm-role-pips { --zr: clamp(20px, calc(var(--av) * 0.5), 30px); position: absolute; z-index: 5; left: calc(var(--zr) * 0.95); top: calc(var(--zr) * -0.42); display: inline-flex; gap: 3px; pointer-events: none; }
-.zm-role-pips > i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--glow); background: var(--zm-card, #fffdf8); box-sizing: border-box; box-shadow: 0 0 4px color-mix(in srgb, var(--glow) 50%, transparent); transition: background 0.2s; }
-.zm-role-pips > i.is-on { background: var(--glow); }
+/* 贪吃猫要两张（2026-11-26）：被要的人头像右下冒出两张贪吃猫橙色描边的小牌背 = 要你两张；给一张飞走一张 */
+.zm-av .zm-owe { position: absolute; z-index: 5; left: 72%; top: 46%; display: block; width: calc(var(--av) * 0.62); height: calc(var(--av) * 0.5); pointer-events: none; }
+.zm-owe > i { position: absolute; top: 0; width: calc(var(--av) * 0.36); aspect-ratio: 5 / 7; border-radius: 3px; box-sizing: border-box;
+  background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--glow) 82%, #fff) 0 2px, var(--glow) 2px 4px); border: 1.5px solid #fffaf0;
+  box-shadow: 0 0 0 1px var(--glow), 0 0 8px 2px color-mix(in srgb, var(--glow) 55%, transparent), 0 2px 4px rgba(29, 27, 24, 0.3); }
+.zm-av .zm-owe.is-left { left: auto; right: 72%; }
+.zm-owe > i:nth-child(1) { left: 0; }
+.zm-owe > i:nth-child(2) { left: calc(var(--av) * 0.24); }
 .zm-lift3 { position: fixed; z-index: 4; pointer-events: none; filter: drop-shadow(0 3px 5px rgba(29, 27, 24, 0.25)); }
 /* 给牌键上的 ×N（贪吃猫要两张）：和被甩锅的 ×N 一种小角标 */
 .zm-btn .zm-xn { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; height: 18px; padding: 0 6px; border-radius: 999px; background: #fffaf0; color: var(--zm-seal); font: 700 12px/1 'ZM Num', 'ZM Serif', Georgia, serif; }

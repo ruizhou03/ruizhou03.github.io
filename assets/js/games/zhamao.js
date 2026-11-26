@@ -1795,7 +1795,7 @@
     };
   }
   // 还亮着的猫章（两步技能）：这一串事件跟它无关了就收
-  function rolePopDone() { const rp = game && game.rolePop; if (!rp) return Promise.resolve(); game.rolePop = null; return rp.fl.back(); }
+  function rolePopDone() { const rp = game && game.rolePop; if (!rp) return Promise.resolve(); game.rolePop = null; if (rp.owe) { const o = rp.owe; o.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(200), fill: 'forwards' }).finished.catch(() => {}).then(() => o.remove()); } return rp.fl.back(); }
   const rolePopKeeps = (rp, e) => (rp.kind === 'fat' ? (e.t === 'askGive' || e.t === 'give') && e.from === rp.from && e.to === rp.to : rp.kind === 'tabby' ? e.t === 'steal' && e.to === rp.seat : false);
   async function animRole(e, t) {
     if (e.role === 'timid') {
@@ -1818,6 +1818,7 @@
     if (e.role === 'tabby') {   // 截胡猫：猫章一直亮着；顺走的那一张接着用偷牌同一个飞法（下一个事件 steal），飞完才收
       const fl = await flashRole(e.seat, t, 380);
       if (t !== token) return fl.back();
+      if (e.from != null && e.from >= 0) { releaseRim(); game.rimLk = rimLink(e.seat, e.from, false, (ART.ROLE_TONE.tabby || {}).band || '#6a4f86'); }   // 灯带用截胡猫的紫色从它连到被顺的人，牌飞过来时缩回
       game.rolePop = { kind: 'tabby', seat: e.seat, fl };
       return;
     }
@@ -3576,20 +3577,35 @@
   async function animAskGive(e, t, prev) {
     if (game.arrow) game.arrow.remove();
     game.arrow = aim(e.from, '#e0566e');
-    // 贪吃猫出的索要：第一次问的时候猫章亮起、旁边两颗小圆点；猫章一直亮着，给一张填实一颗；
-    // 第二次问（同一张索要的第二张，2026-11-26 用户：以前看不出是角色技能在要第二张）：猫章再弹一下、桌沿再漾一道、灯带换成它的橙色重连
+    // 贪吃猫出的索要：第一次问的时候猫章亮起；被要的人头像旁边冒出两张贪吃猫橙色描边的小牌背（= 要你两张），给一张飞走一张；
+    // 第二次问（同一张索要的第二张，2026-11-26 用户：以前看不出是角色技能在要第二张；小圆点太隐晦）：猫章再弹一下、剩下那张小牌背跳一下、
+    // 桌沿再漾一道，灯带换成贪吃猫的橙色重连
     const st = game.state, rp = game.rolePop;
     if (st.roles && R.roleOf(st, e.to) === 'fat') {
       game.giveTwo = true;
+      const band = (ART.ROLE_TONE.fat || {}).band || '#d27a36';
       if (rp && rp.kind === 'fat' && rp.from === e.from && rp.to === e.to) {
         rp.fl.pulse();
-        releaseRim();   // 灯带重新从贪吃猫连到给牌的人，这次用贪吃猫自己的橙色：一看就是角色技能在要第二张
-        game.rimLk = rimLink(e.to, e.from, false, (ART.ROLE_TONE.fat || {}).band || '#d27a36');
+        const last = rp.owe && rp.owe.querySelector('i:not(.is-gone)');
+        if (last && !fx.reduce()) last.animate([{ transform: 'rotate(' + last.dataset.r + 'deg)' }, { transform: 'rotate(' + last.dataset.r + 'deg) translateY(-6px) scale(1.35)', offset: 0.4 }, { transform: 'rotate(' + last.dataset.r + 'deg)' }], { duration: ms(460), easing: 'ease-out', iterations: 2 });
+        releaseRim();
+        game.rimLk = rimLink(e.to, e.from, false, band);
         await wait(ms(480));
       } else {
-        const fl = await flashRole(e.to, t, 500, { pips: 2 });
+        const fl = await flashRole(e.to, t, 300);
         if (t !== token) return fl.back();
-        game.rolePop = { kind: 'fat', from: e.from, to: e.to, fl, n: 0 };
+        const av = avEl(e.from);
+        let owe = null;
+        if (av) {
+          owe = document.createElement('span');
+          const ar = av.getBoundingClientRect();
+          owe.className = 'zm-owe' + (ar.left + ar.width / 2 > innerWidth * 0.6 ? ' is-left' : '');   // 右半边的头像：小牌背摆左边，别出屏
+          owe.style.setProperty('--glow', band);
+          owe.innerHTML = '<i data-r="-12" style="transform:rotate(-12deg)"></i><i data-r="10" style="transform:rotate(10deg)"></i>';
+          av.appendChild(owe);
+          if (!fx.reduce()) owe.querySelectorAll('i').forEach((c, k) => c.animate([{ transform: 'rotate(' + c.dataset.r + 'deg) translateY(10px) scale(.3)', opacity: 0 }, { transform: 'rotate(' + c.dataset.r + 'deg) translateY(-3px) scale(1.15)', opacity: 1, offset: 0.65 }, { transform: 'rotate(' + c.dataset.r + 'deg)', opacity: 1 }], { duration: ms(380), delay: ms(k * 120), easing: 'cubic-bezier(.3,.9,.4,1.2)', fill: 'backwards' }));
+        }
+        game.rolePop = { kind: 'fat', from: e.from, to: e.to, fl, n: 0, owe };
       }
     } else if (!(prev && prev.t === 'give')) game.giveTwo = false;
     await wait(ms(260));
@@ -3600,10 +3616,12 @@
     const rp = game.rolePop;
     if (t !== token || !rp || rp.kind !== 'fat') return;
     rp.n += 1;
-    rp.fl.pip(rp.n);
+    const c = rp.owe && rp.owe.querySelector('i:not(.is-gone)');
+    if (c) { c.classList.add('is-gone'); c.animate([{ opacity: 1, transform: 'rotate(' + c.dataset.r + 'deg)' }, { opacity: 0, transform: 'rotate(' + c.dataset.r + 'deg) translateY(-8px) scale(.4)' }], { duration: ms(220), fill: 'forwards' }); }
     const s = game.state, more = rp.n < 2 && s.phase === 'give' && s.give && s.give.from === e.from && s.give.to === e.to;
     if (!more) { await wait(ms(320)); if (game.rolePop === rp) rolePopDone(); }
   }
+
 
   /* 给 / 偷来的牌在两人之间飞：我参与的那一方看得到正面（从我手里出去的从原位起飞，进我手里的半路翻开）；
    * 「蹭一张」一路冒小心心 */
