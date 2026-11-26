@@ -323,8 +323,12 @@
   const pileRot = (id) => ((id * 37) % 13) - 6;
   const U = () => parseFloat(getComputedStyle(els.app).getPropertyValue('--u')) || 64;
   const POP = () => Math.min(U() * 1.3, 120);   // 弹出来看的牌（窥探 / 改命 / 抽牌 / 捡弃牌 / 点名）统一的大号，和 CSS 的 --pop 一致
-  const PU = () => U() * 0.92 * 1.25;     // 牌堆 / 弃牌堆的牌宽（×1.25：2026-11-26 牌面放大，和 CSS 的 --ts 一致）
-  const HU = () => Math.min(U() * 1.3, 120);   // 我的手牌牌宽（2026-11-26 放大 1.3 倍，和 CSS 的 --hw 一致）：飞进 / 飞出手牌的牌按这个大小落地
+  /* 牌面大小（2026-11-26 用户：设置里三档，默认大）：小 = 放大以前的原样；中 = 两者之间；大 = 手牌 1.3 倍、桌上 1.25 倍。写到 CSS 的 --hs / --ts */
+  const CARD_SIZES = { s: [1, 1], m: [1.15, 1.12], l: [1.3, 1.25] };
+  const cardSize = () => CARD_SIZES[settings.cardSize] || CARD_SIZES.l;
+  function applyCardSize() { const z = cardSize(); els.app.style.setProperty('--hs', z[0]); els.app.style.setProperty('--ts', z[1]); }
+  const PU = () => U() * 0.92 * cardSize()[1];     // 牌堆 / 弃牌堆的牌宽（乘牌面大小那档，和 CSS 的 --ts 一致）
+  const HU = () => Math.min(U() * cardSize()[0], 120);   // 我的手牌牌宽（乘牌面大小那档，和 CSS 的 --hw 一致）：飞进 / 飞出手牌的牌按这个大小落地
   const SU = () => PU() * 1.15;    // 刚出的牌（压在弃牌堆上）的牌宽
 
   /* ───── 显示层 ───── */
@@ -2161,16 +2165,15 @@
     cards.forEach((c, i) => { c.style.marginLeft = i === 0 ? '0' : gap.toFixed(1) + 'px'; c.style.zIndex = i; });
   }
   /* ───── 手牌放大镜（2026-11-26 用户要试）─────
-   * 手牌多到一张压一张、每张只露不到 30px（约 10 张起，大屏 12 张起）时自动开：按住手牌左右滑，手指下那张抬起来，
+   * 手牌一张压一张（名字条被挡住）时就能用，稀疏到每张整张露着时不开：按住手牌左右滑，手指下那张抬起来，
    * 手牌上方冒出一张放大的同一张牌跟着手指走；松手 = 点了这张（和平常点一下一样：抬起 / 放下 / 再点作废就打出）；
-   * 滑到手牌上方再松手 = 不算。轻点照旧。先挂开关预览：?loupe=1 打开（记在本机），?loupe=0 关掉 */
-  const LOUPE = (() => { try { if (/[?&]loupe=1\b/.test(location.search)) localStorage.setItem('zm.loupe', '1'); if (/[?&]loupe=0\b/.test(location.search)) localStorage.removeItem('zm.loupe'); return localStorage.getItem('zm.loupe') === '1'; } catch (_) { return /[?&]loupe=1\b/.test(location.search); } })();
-  const LOUPE_STEP = 30;   // 每张露出的宽度小于这个（px）就算挤
+   * 滑到手牌上方再松手 = 不算。轻点照旧。2026-11-26 用户试过、默认打开；?loupe=0 关掉（记在本机），?loupe=1 恢复 */
+  const LOUPE = (() => { try { if (/[?&]loupe=1\b/.test(location.search)) localStorage.removeItem('zm.loupe'); if (/[?&]loupe=0\b/.test(location.search)) localStorage.setItem('zm.loupe', '0'); return localStorage.getItem('zm.loupe') !== '0'; } catch (_) { return !/[?&]loupe=0\b/.test(location.search); } })();
   let loupe = null;   // { pid, x0, y0, t0, on, id, el, node }
   const handCrowded = () => {
     const cs = els.hand.querySelectorAll('.zm-card');
     if (cs.length < 3) return false;
-    return cs[2].getBoundingClientRect().left - cs[1].getBoundingClientRect().left < LOUPE_STEP;
+    return cs[2].getBoundingClientRect().left - cs[1].getBoundingClientRect().left < cs[1].offsetWidth - 2;   // 2026-11-26 用户：只要一张压一张（名字条被挡）就能用；只有牌稀疏、每张整张露着时才关
   };
   function loupeCardAt(x) {
     const cs = Array.from(els.hand.querySelectorAll('.zm-card:not(.is-incoming)'));
@@ -6259,11 +6262,12 @@
     const secs = segs('turnSec', TURN_OPTS, turnSec());
     const rulesBefore = JSON.stringify(settings.rules);
     const row = (k, title, note, ctl) => '<div class="zs-row"><i class="zs-ic">' + ART.icon(k) + '</i><div class="zs-txt"><b>' + title + '</b>' + (note ? '<small>' + note + '</small>' : '') + '</div>' + ctl + '</div>';
+    const sizeLine = '<div class="zs-line"><span>' + T('ui.set.cardSize', '牌面大小') + '</span>' + segs('cardSize', [['s', T('ui.set.size.s', '小')], ['m', T('ui.set.size.m', '中')], ['l', T('ui.set.size.l', '大')]], CARD_SIZES[settings.cardSize] ? settings.cardSize : 'l') + '</div>';
     const langLine = I18N ? '<div class="zs-line zs-lang"><span>' + T('ui.set.lang', '语言') + '</span>' + segs('lang', LANG_OPTS, LANG) + '</div>' : '';
     let html = '<h2>' + T('ui.settings', '设置') + '</h2>' +
       '<section class="zs-card">' +
       '<div class="zs-line"><span>' + T('ui.set.bots', '机器猫') + '</span>' + tier + '</div>' +
-      '<div class="zs-line"><span>' + T('ui.set.timer', '出牌限时') + '</span>' + secs + '</div>' + langLine + '</section>' +
+      '<div class="zs-line"><span>' + T('ui.set.timer', '出牌限时') + '</span>' + secs + '</div>' + sizeLine + langLine + '</section>' +
       '<div class="zs-cap">' + T('ui.set.mode', '玩法') + '</div><section class="zs-card">' +
       // 牌量（2026-11-13 用户：牌太多、炸毛猫太稀）：标准 ≈ 一副 56 张的密度（默认）/ 快局更短 / 多 = 以前的整副
       '<div class="zs-line"><span>' + T('ui.set.deck', '牌量') + '</span>' + segs('deckSize', DECK_OPTS, R.normalizeRules(settings.rules).deckSize) + '</div>' +
@@ -6283,7 +6287,7 @@
     // 联机：机器猫 / 规则由房主定，这里只有自己的偏好——「作废」怎么问、观战的人能不能看我的手牌（坐着的人才有）
     const meP = online && online.st ? online.st.players.find((p) => p.id === online.st.me && !p.left) : null;
     const revealRow = meP ? row('future', T('ui.set.reveal', '观战者能看我的手牌'), T('ui.set.reveal.note', '即时生效；开局就开着、中途没关过，出局后才能看机器猫的牌'), '<button type="button" class="zs-switch" data-online-reveal role="switch" aria-checked="' + !!meP.showHand + '"><i></i></button>') : '';
-    if (online) html = '<h2>' + T('ui.settings', '设置') + '</h2>' + (revealRow ? '<section class="zs-card">' + revealRow + '</section>' : '<p class="zm-muted">' + T('ui.set.onlineHost', '联机时机器猫和玩法都由房主定。') + '</p>') + nopeCard;
+    if (online) html = '<h2>' + T('ui.settings', '设置') + '</h2>' + (revealRow ? '<section class="zs-card">' + revealRow + '</section>' : '<p class="zm-muted">' + T('ui.set.onlineHost', '联机时机器猫和玩法都由房主定。') + '</p>') + '<section class="zs-card">' + sizeLine + '</section>' + nopeCard;
     html += '<p class="zs-note" data-rule-note hidden>' + T('ui.set.nextGame', '规则从下一局起生效') + '</p><div class="zm-actions">' +
       (fromCover || !game || game.tutorial || online ? '' : '<button type="button" class="zm-btn" data-restart>' + T('ui.restart', '重开一局') + '</button>') +
       '<button type="button" class="zm-btn zm-btn-primary" data-close data-focus>' + T('ui.ok', '好') + '</button></div>';
@@ -6303,6 +6307,7 @@
         fx.pop(b, { scale: 1.06, dur: 200 });
         const key = g.dataset.seg, v = b.dataset.v;
         if (key === 'nopeLate') { settings.nopeLate = +v; saveSettings(); return; }
+        if (key === 'cardSize') { settings.cardSize = v; saveSettings(); applyCardSize(); if (game && game.state) { solveSize(); renderAll(); } return; }   // 牌面大小：马上生效、不用重开
         if (key === 'lang') { if (v !== LANG && I18N) { save(); I18N.setLang(v); } return; }
         if (key === 'players') settings.players = +v;
         else if (key === 'tier') settings.tier = v;
@@ -9502,6 +9507,7 @@
   refreshTools();
   // 进来先是主菜单 + 一条进度条（等字体到位，太快也让它走完一程，不闪），跑完换成按钮
   (function boot() {
+    applyCardSize();
     coverStep('load');
     els.cover.classList.add('is-loading');   // 加载时插画 + 标题在屏幕正中
     bgm('menu');   // 主页的丁：浏览器要等第一次点按才出声
