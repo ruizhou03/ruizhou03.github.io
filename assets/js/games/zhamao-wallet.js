@@ -504,7 +504,7 @@
   /* ── 结算页（2026-11-26 用户：小鱼干后面一颗星 +1000 看不懂；勋章的 1 万悄悄进了余额；结算尽量少字）──
    * 结算窗只算这一局：底下一行「第 N 名  🐟 +奖励」——名次直接给的奖励（门票开局时已经从左上角扣过，这里不提、不算净赚）。
    * 余额看牌桌左上角常驻的小鱼干：奖励从这一行游进去、那边数字滚上去。
-   * 今日首胜不在这里（去档案领）。新拿到的勋章：先整页弹出（badgeShow，奖励当场游进左上角），点任意处回到排行榜，再放这局的奖励 */
+   * 今日首胜不在这里（去档案领）。排行榜一出来就放这局的奖励；新拿到的勋章（服务器回来才知道）等奖励放完再整页弹出（badgeShow，奖励当场游进左上角），点任意处回到排行榜 */
   const TICK = '<svg class="zmw-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#3f7a52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   // 勋章名字 / 奖励 / 图：zhamao-medals.js（8 个系列 × 铜银金，同后端 lib/zhamao-econ.js BADGES）
   const MD = () => root.ZhamaoMedals || null;
@@ -538,25 +538,24 @@
     paintPay(el, r0, label);
     seq.r = r0;
     const line = el.querySelector('.zmw-ln');
-    // 先等服务器（勋章只有它知道），最多 1.6 秒；有新勋章先整页弹，点掉后再放这局的奖励
-    let paid = false;
-    const payNow = (r) => {
-      if (paid || gen !== tGen) return; paid = true;
-      const amt = payOf(r);
-      if (payOf(r) !== payOf(r0)) paintPay(el, r, label);
-      countUp(el, amt);
-      return wait(250).then(() => tAdd(line && line.isConnected ? line.querySelector('b') : el, amt, gen, 0, true));   // 在队列里跑：放完才 resolve
-    };
-    const timer = setTimeout(() => { tQ = tQ.then(() => wait(1100)).then(() => payNow(r0)); }, 1600);
-    Promise.resolve(later()).then((r) => {
+    // 2026-11-26 用户：排行榜一出来小鱼干就要动（以前先等服务器最多 1.6 秒 + 再等 1.1 秒，进排行榜两秒多才加）。
+    // 现在当场按本机估的数（单机同服务器算法 / 联机服务器已经在这局视图里给了）放：这一行数字往上数、鱼同时游向左上角、左上角跟着滚。
+    // 服务器回来如果数不一样：放完这笔后这一行改成服务器的数，左上角在 releaseT 里滚到服务器余额。
+    // 新勋章只有服务器知道：等这局的奖励放完再整页弹（排队，不会叠在一起）
+    const amt0 = payOf(r0);
+    countUp(el, amt0);
+    tQ = tQ.then(() => tAdd(line && line.isConnected ? line.querySelector('b') : el, amt0, gen, 0, true, true));
+    const finish = (r) => {
       if (gen !== tGen) return;
-      clearTimeout(timer);
-      if (r) seq.r = r;
+      if (r) {
+        seq.r = r;
+        if (payOf(r) !== amt0) tQ = tQ.then(() => { if (gen === tGen && el.isConnected) paintPay(el, r, label, true); });
+      }
       const bs = ((r && r.badges) || []).filter((id) => BMETA(id));
-      if (!paid) tQ = tQ.then(() => wait(bs.length ? 900 : 1100));
-      bs.forEach((id) => { tQ = tQ.then(() => (gen === tGen ? badgeShow(id, gen) : null)); });
-      tQ = tQ.then(() => payNow(r || r0)).then(() => { if (gen === tGen) releaseT(); });
-    }).catch(() => { tQ = tQ.then(() => payNow(r0)).then(() => { if (gen === tGen) releaseT(); }); });
+      bs.forEach((id) => { tQ = tQ.then(() => (gen === tGen ? wait(300).then(() => badgeShow(id, gen)) : null)); });
+      tQ = tQ.then(() => { if (gen === tGen) releaseT(); });
+    };
+    Promise.resolve(later()).then(finish, () => finish(null));
   }
   function fill(dialog, p, game) {
     const el = dialog && dialog.querySelector('[data-zmw-res]');
@@ -624,7 +623,7 @@
     }
   }
   /* 一笔进账 / 出账（排队）：amt > 0 鱼从 from 游进左上角，< 0 从左上角游到 from；数字跟着滚 */
-  function tAdd(from, amt, gen, delay, now) {
+  function tAdd(from, amt, gen, delay, now, rollNow) {
     const step = () => new Promise((res) => {
       if (gen !== tGen || !amt) { res(); return; }
       const fx = FX(), b = tchip && tchip.querySelector('b'), a = tShown != null ? tShown : (state ? state.bal : 0), z = a + amt;
@@ -636,7 +635,7 @@
         if (gen !== tGen) { res(); return; }
         const o = { spread: 24, gap: 80, dur: 760, lift: -50, size: 26 };
         const go = amt > 0
-          ? fx.school(FISH, from, tchip, n, Object.assign(o, { onLand: () => fx.roll(b, a, z, 600) }))
+          ? (rollNow && fx.roll(b, a, z, 1000), fx.school(FISH, from, tchip, n, Object.assign(o, rollNow ? {} : { onLand: () => fx.roll(b, a, z, 600) })))
           : (fx.roll(b, a, z, 600), fx.school(FISH, tchip, from, n, Object.assign(o, { lift: 30, toPoint: center(from) })));
         go.then(() => setTimeout(done, 260));
       }, delay || 0);
