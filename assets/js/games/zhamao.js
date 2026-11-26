@@ -3618,8 +3618,9 @@
   }
   function restoreTopFace(f) { if (ov && f != null) { ov.topFace = f; game.faceQuiet = f; } }
   /* 别人偷看时三张牌背 + 猫眼摆哪（2026-11-26 用户：左边那家偷看，三张牌直接盖住他的头像）。
-   * 老规矩：朝偷看那家偏 0.9 张牌、只往上不往下（11-17）。现在先挨个试：偏的方向（朝他 → 正上 → 斜上 → 左右，背着他的方向排最后）× 偏多远 × 牌缩多小 × 猫眼在上面还是叠在牌上，
-   * 挑第一个「不碰任何人的头像 / 名字 / 手牌数、不出桌框」的；全都不行就退到牌堆正上方、最小那档、猫眼叠在牌上 */
+   * 层次不变（用户定）：牌堆 → 三张牌扇在牌堆上方（压住牌堆上半截，和以前一样高）→ 猫眼在三张牌上面。
+   * 只动两样：左右偏多少（先照老样子朝偷看那家偏，碰到头像就往回收、再往另一边试）、整组缩多小（牌和眼睛一起缩）。
+   * 挑第一个「不碰任何人的头像 / 名字 / 手牌数、不出桌框」的；全都不行就牌堆正上方、最小那档 */
   function peekSpot(a, dc, pu, k) {
     const avBoxes = [0].concat(allSeatEls().map((x) => +x.dataset.seat)).map((s) => {
       const se = seatEl(s); if (!se) return null;
@@ -3628,23 +3629,18 @@
       return { l: Math.min(...bs.map((x) => x.left)) - 4, r: Math.max(...bs.map((x) => x.right)) + 4, t: Math.min(...bs.map((x) => x.top)) - 4, b: Math.max(...bs.map((x) => x.bottom)) + 4 };
     }).filter(Boolean);
     const fr = frameX(0), tb = (els.table || els.app).getBoundingClientRect();
-    const ok = (q) => q.l >= fr.l && q.r <= fr.r && q.t >= tb.top + 6 && q.b <= tb.bottom - 6 && !avBoxes.some((v) => q.l < v.r && q.r > v.l && q.t < v.b && q.b > v.t);
+    const ok = (q) => q.l >= fr.l && q.r <= fr.r && q.t >= tb.top + 6 && !avBoxes.some((v) => q.l < v.r && q.r > v.l && q.t < v.b && q.b > v.t);
     const n0 = Math.hypot(a.x - dc.x, Math.abs(a.y - dc.y)) || 1;
-    const toward = { x: (a.x - dc.x) / n0, y: (-Math.abs(a.y - dc.y) || -1) / n0 }, r2 = Math.SQRT1_2;
-    const dirs = [toward, { x: 0, y: -1 }, { x: -r2, y: -r2 }, { x: r2, y: -r2 }, { x: -1, y: 0 }, { x: 1, y: 0 }]
-      .map((d, i) => ({ d, i, cos: i ? d.x * toward.x + d.y * toward.y : 2 })).sort((p, q) => q.cos - p.cos).map((p) => p.d);
-    const plan = (d, dd, sc, eyeOn) => {
-      const z = sc / 0.86, cx = dc.x + dd.x * pu * d, cy = dc.y + dd.y * pu * d, sp = (k - 1) / 2 * pu * 0.42 * z, E = pu * 1.1 * z;
-      const ey = eyeOn ? cy : cy - pu * 1.05 * z;
+    const hx = (a.x - dc.x) / n0 * pu * 0.9;   // 老位置：朝他偏 0.9 张牌的横向分量
+    const deckTop = dc.y - pu * 0.7, fanBot = deckTop + pu * 0.48;   // 扇面底边压到牌堆上半截（和老动画一样高）
+    const plan = (h, sc) => {
+      const z = sc / 0.86, cx = dc.x + h, cy = fanBot - pu * 0.69 * z, sp = (k - 1) / 2 * pu * 0.42 * z, E = pu * 1.1 * z;
+      const ey = cy - pu * 1.05 * z;
       return { x: cx, y: cy, sc, eye: E, ey, boxes: [{ l: cx - sp - pu * 0.56 * z, r: cx + sp + pu * 0.56 * z, t: cy - pu * 0.69 * z - 4, b: cy + pu * 0.69 * z }, { l: cx - E / 2, r: cx + E / 2, t: ey - E / 2, b: ey + E / 2 }] };
     };
-    const near = dirs.filter((d, i) => !i || d.x * toward.x + d.y * toward.y > -0.05), far = dirs.filter((d) => near.indexOf(d) < 0);   // 背着他那边：牌小一点都行，实在不行才去
-    // 2026-11-26 用户：猫眼放在三张牌上面更好看——宁可牌和眼睛再缩小些，也先保住「眼睛在上」；全都放不下才叠到牌上
-    for (const eyeOn of [false, true]) for (const ds0 of [near, far]) for (const sc of [0.86, 0.76, 0.66, 0.58, 0.5]) for (const dd of ds0) {
-      const ds = []; for (let d = 0.9; d > -0.01; d -= 0.15) ds.push(d); for (let d = 1.05; d < 2.2; d += 0.15) ds.push(d);   // 先 0.9 往回收到 0，再往外试到 2 张牌远
-      for (const d of ds) { const p = plan(d, dd, sc, eyeOn); if (p.boxes.every(ok)) return p; }
-    }
-    return plan(0, toward, 0.5, true);
+    const hs = []; for (let f = 1; f > -0.01; f -= 0.125) hs.push(hx * f); for (let f = 0.25; f < 1.01; f += 0.25) hs.push(-Math.sign(hx || 1) * pu * 0.9 * f);   // 朝他那边往回收到正中，再往另一边
+    for (const sc of [0.86, 0.76, 0.66, 0.58, 0.5]) for (const h of hs) { const p = plan(h, sc); if (p.boxes.every(ok)) return p; }
+    return plan(0, 0.5);
   }
 
   async function animFuture(e, t) {
