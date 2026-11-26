@@ -125,12 +125,12 @@
     if (!d || d.v !== VERSION || !d.state || d.state.phase === 'over') return null;
     if (!(Date.now() - (d.t || 0) < STALE_MS)) { try { localStorage.removeItem(STORE_KEY); } catch (_) { /* 无痕 */ } return null; }   // 没时间戳的老存档也按过期算
     const s = d.state;
-    const total = s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0) + (s.defuse ? 1 : 0) + (s.rescue ? 1 : 0);   // 组队：等队友救的那只炸毛猫也算上（2026-11-15 漏了它，停在这一步的存档读不回来）
+    const total = s.deck.length + s.discard.length + s.removed.length + s.hands.reduce((a, h) => a + h.length, 0) + (s.defuse ? 1 : 0) + (s.rescue ? 1 : 0) + (s.save ? 1 : 0);   // 急救挑对子时那只炸毛猫也算上；组队：等队友救的那只炸毛猫也算上（2026-11-15 漏了它，停在这一步的存档读不回来）
     // 旧存档：加「抽底」前是 64 张、加第二副（6–9 人）前是 68 张、加万能猫前是 135 张。没出现过的牌全收进盒子（removed），照样接着打（那局就没有万能猫）
     if ((total !== R.DECK_SIZE && R.LEGACY_SIZES.indexOf(total) < 0) || !Array.isArray(d.tiers) || d.tiers.length !== s.n) return null;
     s.rules = R.normalizeRules(s.rules);   // 老存档的规则按现在的来（例如甩锅一律叠加）
     if (total !== R.DECK_SIZE) {
-      const seen = new Set(s.deck.concat(s.discard, s.removed, ...s.hands, s.defuse ? [s.defuse.card] : [], s.rescue ? [s.rescue.card] : []));
+      const seen = new Set(s.deck.concat(s.discard, s.removed, ...s.hands, s.defuse ? [s.defuse.card] : [], s.rescue ? [s.rescue.card] : [], s.save ? [s.save.card] : []));
       for (let id = 0; id < R.DECK_SIZE; id++) if (!seen.has(id)) s.removed.push(id);
     }
     return d;
@@ -2119,19 +2119,21 @@
     }
     const prev = new Map();
     if (o.flip !== false) els.hand.querySelectorAll('.zm-card').forEach((c) => prev.set(c.dataset.id, c.getBoundingClientRect()));
-    const combo = selected.length && classifyMine(selected) && mode !== 'give';
+    const saving = mode === 'save', okSave = saving ? saveCandidates(hand) : null;
+    const combo = selected.length && (saving ? selected.length === 2 && R.savePairOk(hand, selected) : classifyMine(selected) && mode !== 'give');
     const note = !hand.length ? watchNote() : '';
     // 我出局了、还没坐到谁背后：空出来的手牌区摆一排还在场的人的小头像，点谁就坐到谁背后（2026-11-17 用户定丙）
     const pick = !hand.length && outIdle() ? watchPickHtml() : '';
     els.hand.innerHTML = (note ? '<p class="zm-hand-note">' + esc(note) + '</p>' : '') + pick + hand.map((id) => cardHtml(id,
       (selected.indexOf(id) >= 0 ? 'is-sel' + (combo ? ' is-combo' : '') : (reactOpen && nopeLift.has(id) ? 'is-sel' : '')) + (handHidden.has(id) ? ' is-incoming' : '') +
-      (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : ''))).join('');
+      (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : '') + (okSave && !okSave.has(id) ? ' is-dim' : ''))).join('');
     els.hand.querySelectorAll('.zm-card').forEach((c) => {
       c.addEventListener('click', (e) => { e.stopPropagation(); onCardTap(+c.dataset.id, c); });
     });
     els.hand.querySelectorAll('[data-watch]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); watchFromOut(+b.dataset.watch); }));
     if (pick) fitWatchRow();
     els.hand.classList.toggle('is-giving', mode === 'give' || favorLook());
+    els.hand.classList.toggle('is-saving', saving);
     els.hand.classList.toggle('is-myturn', myTurnToAct() && !mode);
     layoutHand();
     if (prev.size && !fx.reduce()) {
@@ -2214,6 +2216,8 @@
     const lk = els.table && els.table.querySelector(':scope > .zm-rim .links');
     if (lk) lk.classList.toggle('is-give', giving);
     els.cancelBtn.hidden = mode !== 'target';
+    if (mode !== 'save' && els.playBtn.classList.contains('zm-btn-life')) { els.playBtn.classList.remove('zm-btn-life', 'is-hurry', 'is-save'); els.playBtn.textContent = ''; }
+    els.app.classList.toggle('is-saving', mode === 'save');
     els.playBtn.hidden = false; els.drawBtn.hidden = false;
     els.playBtn.disabled = true; els.drawBtn.disabled = true;
     // 贪吃猫要我给第二张：两张之间（第一张还在飞）键上别闪回「出牌」，灰着的「给牌 ×1」等下一张（2026-11-18 巡查）
@@ -2234,6 +2238,13 @@
     else if (!s.alive[0]) { els.playBtn.hidden = true; els.drawBtn.hidden = true; }
     else if (autopilot) { els.playBtn.hidden = true; els.drawBtn.disabled = false; els.drawBtn.textContent = T('ui.btn.unauto', '取消托管'); }   // 我出局了：自动接着看他们打完，想走就开下一局
     else if (mode === 'target') { els.drawBtn.hidden = true; }
+    else if (mode === 'save') {
+      // 急救（2026-11-26 用户）：「合成」键是绿色的命，倒计时时一点点减少、底下是灰色（同救队友）；到点没点 = 自动交最便宜的一对
+      els.drawBtn.hidden = true;
+      if (!els.playBtn.querySelector('.zm-life')) els.playBtn.innerHTML = '<span class="zm-life" aria-hidden="true"><i></i></span><b>' + T('ui.btn.save', '合成') + '</b>';
+      els.playBtn.classList.add('zm-btn-life', 'is-save');
+      els.playBtn.disabled = !(selected.length === 2 && R.savePairOk(game.state.hands[0], selected));
+    }
     else if (mode === 'give') {
       // 胖橘出的索要要给两张：按钮上写第几张（2026-11-15 巡查：以前给完一张又要给，不知道怎么回事）
       const gv = s.give, two = gv && R.roleOf && R.roleOf(s, gv.to) === 'fat';
@@ -2679,6 +2690,10 @@
         else schedule(pace().bot, () => apply(s.alter.by, decideBot(s.alter.by)));
         break;
       case 'rescue': rescuePhase(H); break;
+      case 'save':
+        if (s.save.by === H) { busy = false; saveStart(dlgLimit()); }
+        else schedule(pace().bot, () => apply(s.save.by, decideBot(s.save.by)));
+        break;
       case 'defuse':
         if (s.defuse.by === H) {
           if (!s.deck.length && !(tut && tut.allow && !tut.allow({ type: 'insert', pos: 0 }))) { schedule(ms(260), () => apply(0, { type: 'insert', pos: 0 })); break; }
@@ -2732,6 +2747,7 @@
       else if (d.type === 'give') ev = R.give(s, seat, d.card);
       else if (d.type === 'pick') ev = R.pickDiscard(s, seat, d.card);
       else if (d.type === 'insert') ev = R.insertKitten(s, seat, d.pos, !!d.rand);
+      else if (d.type === 'save') ev = R.catSave(s, seat, d.cards);
       else if (d.type === 'alter') ev = R.alterTop(s, seat, d.order);
       else if (d.type === 'steal') ev = R.stealPick(s, seat, d.idx);
       else if (d.type === 'rescue') ev = R.rescue(s, seat, !!d.yes);
@@ -2818,6 +2834,7 @@
       case 'pick': return animPick(e, t);
       case 'draw': return animDraw(e, t);
       case 'boom': return animBoom(e, t, next);
+      case 'save': return;   // 急救：等摸到的人挑对子（头像一直是炸毛猫），挑好了 defuse 事件演合成
       case 'defuse': return animDefuse(e, t);
       case 'insert': if (e.at != null && game && game.state && game.state.flux === 'exact') (game.openKits = game.openKits || new Set()).add(e.card); return animInsert(e, t);   // 百变「明塞」：塞完那张露一截在牌堆里（renderOpenKits）
       case 'flux': return animFlux(e, t);
@@ -4202,9 +4219,21 @@
     fx.burst(a.x, a.y - ar.width * 0.3, { n: 10, shapes: ['star', 'dot'], colors: GOLDS.concat(['#c8463a']), radius: ar.width, size: [5, 13], life: 900, delay: 60 });
     if (av && !fx.reduce()) av.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-10px) scale(1.14)', offset: 0.25 }, { transform: 'translateY(0) scale(1)' }], { duration: 460, easing: 'ease-out', composite: 'add' });
     fx.shake(seatEl(e.seat), { amp: 6, dur: 520, delay: 120 });
-    await wait(ms(next && next.t === 'defuse' ? 700 : next && next.t === 'out' ? 820 : 900));
+    // 急救开着、我还没用过、却凑不出一对（2026-11-26 用户）：不弹挑牌，手牌整排闪一下灰，说明没得救，接着炸
+    const st = game.state;
+    if (e.seat === 0 && st && st.flux === 'catsave' && !(st.saveUsed && st.saveUsed[0]) && next && next.t !== 'defuse' && next.t !== 'save') await noPairFlash(t);
+    await wait(ms(next && (next.t === 'defuse' || next.t === 'save') ? 700 : next && next.t === 'out' ? 820 : 900));
   }
 
+  async function noPairFlash(t) {
+    const cards = Array.from(els.hand.querySelectorAll('.zm-card'));
+    if (!cards.length || fx.reduce()) return;
+    await wait(ms(260));
+    if (t !== token) return;
+    const d = ms(620);
+    cards.forEach((c, i) => c.animate([{ filter: 'none' }, { filter: 'grayscale(1) brightness(.82)', offset: 0.3 }, { filter: 'grayscale(1) brightness(.82)', offset: 0.7 }, { filter: 'none' }], { duration: d, delay: i * 18, easing: 'ease-in-out' }));
+    await wait(d);
+  }
   // 一张停在 (x, y) 的牌（不在飞）：拿来接着做动画
   function restCard(html, x, y, w) {
     const el = document.createElement('div');
@@ -4803,6 +4832,57 @@
   }
 
   /* ───── 我的操作 ───── */
+  /* ───── 百变「急救」：自己挑一对顶逗猫棒（2026-11-26 用户） ─────
+   * 摸到炸毛猫、没逗猫棒、手里凑得出一对：手牌里能凑对的亮着（凑不上的变灰），先替我抬起最便宜的那一对（catPairIds），点别的牌换；
+   * 「合成」键是绿色的命、倒计时一点点变灰，点了就演两张合成逗猫棒；到点没点 = 交抬着的那一对（没抬成对就交最便宜的），不会因为超时炸死 */
+  function saveCandidates(hand) {
+    const ok = new Set();
+    for (let i = 0; i < hand.length; i++) for (let j = i + 1; j < hand.length; j++) if (R.savePairOk(hand, [hand[i], hand[j]])) { ok.add(hand[i]); ok.add(hand[j]); }
+    return ok;
+  }
+  let saveTimer = 0;
+  function saveStart(lim) {
+    const hand = game.state.hands[0];
+    mode = 'save';
+    selected = (R.catPairIds(hand) || []).slice();
+    clearTimeout(saveTimer);
+    renderAll();
+    snd('ask');
+    const k = token, btn = els.playBtn;
+    if (!(lim > 0)) return;
+    const life = btn.querySelector('.zm-life i');
+    if (life) life.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: lim, easing: 'linear', fill: 'forwards' });
+    if (lim > 3000) setTimeout(() => { if (k === token && mode === 'save') btn.classList.add('is-hurry'); }, lim - 3000);
+    saveTimer = setTimeout(() => { if (k === token && mode === 'save') saveCommit(true); }, lim);
+  }
+  function saveTap(id, node) {
+    const hand = game.state.hands[0];
+    if (!saveCandidates(hand).has(id)) { shake(node); return; }
+    const i = selected.indexOf(id);
+    if (i >= 0) selected.splice(i, 1);
+    else if (selected.length === 1 && R.savePairOk(hand, [selected[0], id])) selected.push(id);
+    else {
+      // 换一对：点的这张能和谁凑（优先一样的那张），一起抬起来
+      const mate = hand.find((x) => x !== id && R.KIND_OF[x] === R.KIND_OF[id]) ?? hand.find((x) => x !== id && R.savePairOk(hand, [id, x]));
+      selected = mate != null ? [id, mate] : [id];
+    }
+    snd(i >= 0 ? 'untap' : 'tap');
+    renderHand({ flip: false });
+    renderBand();
+    if (selected.length === 2) snd('combo');
+  }
+  function saveCommit(auto) {
+    if (mode !== 'save') return;
+    const hand = game.state.hands[0];
+    const cards = selected.length === 2 && R.savePairOk(hand, selected) ? selected.slice() : null;
+    if (!auto && !cards) { shake(els.playBtn); return; }
+    clearTimeout(saveTimer);
+    mode = null;
+    if (auto) { timeouts += 1; autoAct = true; }
+    const d = cards ? { type: 'save', cards } : { type: 'save' };
+    apply(0, d);
+    if (auto && timeouts >= 2) setAutopilot(true);
+  }
   function shake(node) { if (!node) return; node.classList.remove('zm-shake'); void node.offsetWidth; node.classList.add('zm-shake'); }
   function onCardTap(id, node) {
     const s = game.state;
@@ -4816,6 +4896,7 @@
     if (game.favorPre != null) return;   // 索要合一：已经点了给牌，等它飞
     if (favorAsk()) { selected = selected[0] === id ? [] : [id]; snd('tap'); renderHand({ flip: false }); renderBand(); return; }
     if (mode === 'give') { selected = selected[0] === id ? [] : [id]; snd('tap'); renderHand(); renderBand(); return; }
+    if (mode === 'save') { saveTap(id, node); return; }
     if (mode === 'target') { cancelTarget(); }
     if (!myTurnToAct()) { shake(node); return; }
     const i = selected.indexOf(id);
@@ -4839,6 +4920,7 @@
   }
   function onPlay() {
     const s = game.state;
+    if (mode === 'save') { saveCommit(false); return; }
     if (favorAsk()) {   // 索要合一：先记下给哪张，窗口一关直接给
       if (selected.length !== 1) return;
       game.favorPre = selected[0];
@@ -6718,7 +6800,7 @@
   }
   function guideGate() {
     const s = game.state;
-    if (game.tutorial || game.online || game.spectator || game.dealing || game.turbo || autopilot || !s.alive[0] || s.phase === 'over' || coachQueue) return false;
+    if (game.tutorial || game.online || game.spectator || game.dealing || game.turbo || autopilot || !s.alive[0] || s.phase === 'over' || s.phase === 'save' || coachQueue) return false;   // 急救挑对子时不插引导（炸毛猫正炸着）
     const mode = s.rules.mode, key = 'mode:' + mode;
     if (GUIDE_MODES[mode] && !guideSeen(key)) { stopClock(); showCoach(GUIDE_MODES[mode](), () => { guideMark(key); step(); }); return true; }
     const item = guideNext(s);
@@ -7507,13 +7589,13 @@
       deck, discard: o.discard.slice(), removed: o.removed.slice(), hands, alive: o.alive.slice(), outOrder: o.outOrder.slice(),
       turn: o.turn, turnsLeft: o.turnsLeft, phase: o.phase,
       pending: p ? { by: p.by, type: p.type, cards: p.cards.slice(), target: p.target, named: p.named, nopes: p.nopes.map((x) => ({ seat: x.seat, card: x.card })), passed: [] } : null,
-      give: o.give, pick: o.pick, defuse: o.defuse,
+      give: o.give, pick: o.pick, defuse: o.defuse, save: o.save || null,
       alter: o.alter ? { by: o.alter.by, cards: o.alter.cards ? o.alter.cards.slice() : deck.slice(0, o.alter.count) } : null,
       steal: o.steal ? { by: o.steal.by, from: o.steal.from, perm: shuffled(hands[o.steal.from].slice()) } : null,
       winner: o.winner, seq: 0, memo, dir: o.dir === -1 ? -1 : 1,
       teams: o.teams ? o.teams.slice() : null, rescue: o.rescue || null, winnerTeam: o.winnerTeam != null ? o.winnerTeam : -1,
       noHelp: o.noHelp ? o.noHelp.slice() : o.teams ? Array(n).fill(false) : null,
-      netBoom: o.rescue && o.rescue.card != null ? o.rescue.card : null,   // 在「问救不救」时重连：不救出局时这只要进弃牌堆
+      netBoom: o.rescue && o.rescue.card != null ? o.rescue.card : o.save && o.save.card != null ? o.save.card : null,   // 在「问救不救」时重连：不救出局时这只要进弃牌堆
       // 百变 / 角色猫（2026-11-19 联机）：都是公开的；还没抽到的规则堆不知道（镜像不自己抽规则，全听服务器的 flux 事件）
       flux: o.flux || null, fluxDeck: [], nineUsed: o.nineUsed ? o.nineUsed.slice() : null, saveUsed: o.saveUsed ? o.saveUsed.slice() : null,
       hotGiven: o.hotGiven != null ? o.hotGiven : -1, cowCut: o.cowCut != null ? o.cowCut : -1,
@@ -7530,7 +7612,7 @@
       discard: st.discard, removed: st.removed, known: st.known, handKnown: rotArr(st.handKnown), alive: rotArr(st.alive),
       outOrder: st.outOrder.map(locOf), winner: locOf(st.winner), turn: locOf(st.turn), turnsLeft: st.turnsLeft, phase: st.phase, dir: st.dir,
       pending: st.pending ? Object.assign(fixSeat(st.pending, ['by', 'target']), { nopes: st.pending.nopes.map((x) => ({ seat: locOf(x.seat), card: x.card })) }) : null,
-      give: fixSeat(st.give, ['from', 'to']), pick: fixSeat(st.pick, ['by']), defuse: fixSeat(st.defuse, ['by']),
+      give: fixSeat(st.give, ['from', 'to']), pick: fixSeat(st.pick, ['by']), defuse: fixSeat(st.defuse, ['by']), save: fixSeat(st.save, ['by']),
       alter: fixSeat(st.alter, ['by']), steal: fixSeat(st.steal, ['by', 'from']),
       teams: st.teams ? rotArr(st.teams) : null, rescue: st.rescue ? Object.assign({ for: locOf(st.rescue.for), card: st.rescue.card, mates: (st.rescue.mates || (st.rescue.by != null ? [st.rescue.by] : [])).map(locOf), wait: g.myCall && st.phase === 'rescue' ? [0] : [] }, st.rescue.refused ? { refused: true } : null) : null, winnerTeam: st.winnerTeam,
       noHelp: st.noHelp ? rotArr(st.noHelp) : null,
@@ -7725,11 +7807,12 @@
         break;
       }
       case 'noRescue': break;
+      case 'save': s.phase = 'save'; s.save = { by: e.seat, card: e.kitten != null ? e.kitten : s.netBoom }; break;   // 急救：摸到炸毛猫的人在挑哪一对
       case 'defuse': {
         const src = e.rescue && e.from != null ? e.from : e.seat;   // 组队救人：逗猫棒是队友出的
         putInHand(s, src, e.card);
         const h = s.hands[src]; h.splice(h.indexOf(e.card), 1); s.discard.push(e.card); forget(s, e.card);
-        s.rescue = null;
+        s.rescue = null; s.save = null;
         // 百变「急救」：另一张也交出去（以前镜像里漏了这张，手牌 / 弃牌堆对不上，联机每次急救都要整桌重同步）
         if (e.extra != null) { putInHand(s, e.seat, e.extra); const h2 = s.hands[e.seat]; h2.splice(h2.indexOf(e.extra), 1); s.discard.push(e.extra); forget(s, e.extra); }
         if (e.save === 'cats') { if (!s.saveUsed) s.saveUsed = Array(s.n).fill(false); s.saveUsed[e.seat] = true; }
@@ -7818,6 +7901,7 @@
     } else if (s.phase === 'give' && s.give) game.arrow = aim(s.give.from, '#e0566e');
     else if (s.phase === 'steal' && s.steal) game.arrow = aim(s.steal.from, '#c9a96e');
     else if (s.phase === 'defuse' && s.defuse) bombAvatar(s.defuse.by, true);
+    else if (s.phase === 'save' && s.save) bombAvatar(s.save.by, true);
   }
   /* 换视角的「转桌」（联机 / 单机共用）：每一家的座位从原来的位置滑到新位置（被看的人从上面滑到下面），手牌淡进来；
    * key(本地座位) = 这一家不随视角变的编号（联机 = 服务器座位，单机 = 原来的座位号）。滑完再补上准星 / 桌沿连线 */
@@ -8143,7 +8227,7 @@
     busy = true;
     mode = null;
     // 头像上的倒计时红环：现在该谁做决定
-    const who = s.phase === 'act' ? s.turn : s.phase === 'give' ? s.give.from : s.phase === 'pick' ? s.pick.by : s.phase === 'steal' ? s.steal.by : s.phase === 'alter' ? s.alter.by : s.phase === 'rescue' && s.rescue ? s.rescue.for : s.phase === 'defuse' ? s.defuse.by : -1;
+    const who = s.phase === 'act' ? s.turn : s.phase === 'give' ? s.give.from : s.phase === 'pick' ? s.pick.by : s.phase === 'steal' ? s.steal.by : s.phase === 'alter' ? s.alter.by : s.phase === 'rescue' && s.rescue ? s.rescue.for : s.phase === 'defuse' ? s.defuse.by : s.phase === 'save' && s.save ? s.save.by : -1;
     if (s.phase === 'react') { renderAll(); onlineReact(g, mine, remain); return; }
     if (g.turnSec && who >= 0 && remain > 0) startClock(who, null, remain);
     if (!mine) {
@@ -8158,6 +8242,7 @@
       case 'steal': busy = false; renderAll(); stealPicker(); break;
       case 'alter': busy = false; renderAll(); alterDialog(); break;
       case 'defuse': busy = false; renderAll(); insertDialog(); break;
+      case 'save': busy = false; saveStart(remain); break;   // 急救：挑一对
       case 'rescue': busy = false; renderAll(); rescueDialog(); break;   // 组队：队友炸毛了，问我救不救
       default: renderAll();
     }
@@ -8556,6 +8641,7 @@
         if (x.type === 'give') return R.give(s, seat, x.card);
         if (x.type === 'pick') return R.pickDiscard(s, seat, x.card);
         if (x.type === 'insert') return R.insertKitten(s, seat, x.pos, !!x.rand);
+        if (x.type === 'save') return R.catSave(s, seat, x.cards);
         if (x.type === 'alter') return R.alterTop(s, seat, x.order);
         if (x.type === 'steal') return R.stealPick(s, seat, x.idx);
         throw new Error('bad move ' + x.type);
@@ -9438,6 +9524,9 @@
       nope: () => { give(0, R.NOPE); give(bot, R.ATTACK); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.ATTACK)] }); },
       // 百变「急救」：没逗猫棒、手里一对奶牛猫，摸到炸毛猫（我 / 机器猫）；牌堆只剩一张时抽底
       catsave: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(0, 'cow'); give(0, 'cow'); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
+      // 急救挑对子：手里两对（奶牛猫 + 跳过）挑一对；catsavenone：凑不出对，手牌闪灰后出局
+      catsave2: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(0, 'cow'); give(0, 'cow'); give(0, R.SKIP); give(0, R.SKIP); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
+      catsavenone: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); const h = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE), seen = new Set(); s.hands[0] = h.filter((id) => { const k = R.KIND_OF[id]; if (seen.has(k) || k === R.WILD) { s.removed.push(id); return false; } seen.add(k); return true; }); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       catsavebot: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(bot, 'cow'); give(bot, 'cow'); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
       allwild: () => { s.flux = 'allwild'; give(0, 'orange'); give(0, 'cow'); give(0, 'tabby'); s.turn = 0; renderAll(); },   // 百变「百搭」：手里三只不同的猫，自己挑着出
       nine: () => { s.flux = 'nine'; s.nineUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },

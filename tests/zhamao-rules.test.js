@@ -736,10 +736,16 @@ test('flux 急救 (catsave, 2026-11-26): pair replaces the defuse, then the play
   const boom = ofKind(R.BOOM).find((id) => !s.deck.includes(id) && !s.hands.some((h) => h.includes(id)));
   s.deck.unshift(boom);
   const size = s.deck.length;
-  const ev = R.draw(s, 0);
+  const ev0 = R.draw(s, 0);
+  // 2026-11-26 用户：先进「急救」阶段自己挑哪一对；超时 / 不给牌 = 自动交最便宜的一对
+  assert.equal(s.phase, 'save'); assert.deepEqual(R.whoActs(s), [0]);
+  assert.ok(ev0.some((e) => e.t === 'save' && e.seat === 0 && e.kitten === boom));
+  assert.ok(!ev0.some((e) => e.t === 'nine' || e.t === 'out'));
+  assert.ok(!s.saveUsed[0]);
+  const ev = R.catSave(s, 0);
   const d = ev.find((e) => e.t === 'defuse');
   assert.equal(d.save, 'cats'); assert.ok(d.extra != null);
-  assert.ok(!ev.some((e) => e.t === 'nine'));          // 不再随机放回
+  assert.deepEqual([d.card, d.extra].map((id) => R.KIND_OF[id]), ['orange', 'orange']);   // 最便宜的那一对：猫对优先于行动牌
   assert.equal(s.phase, 'defuse'); assert.equal(s.defuse.by, 0); assert.equal(s.defuse.card, boom);
   assert.ok(s.saveUsed[0]);
   assert.equal(s.turn, 0);                             // 还没结束回合，等我挑位置
@@ -748,6 +754,37 @@ test('flux 急救 (catsave, 2026-11-26): pair replaces the defuse, then the play
   assert.ok(s.memo[0].deck.includes(boom));            // 我自己知道塞在哪
   assert.ok(!s.memo[1].deck.includes(boom));           // 对手不知道
   assert.equal(s.turn, 1);
+});
+
+test('flux 急救 (catsave, 2026-11-26): the player picks which pair; a bad pick is refused / falls back to the cheapest pair', () => {
+  const mk = () => {
+    const s = rig([['orange', 'orange', 'skip', 'skip', 'cow'], ['skip']], ['shuffle', 'shuffle', 'shuffle', 'shuffle'], 0);
+    s.rules = Object.assign({}, s.rules, { mode: 'flux' });
+    s.flux = 'catsave'; s.saveUsed = [false, false];
+    const boom = ofKind(R.BOOM).find((id) => !s.deck.includes(id) && !s.hands.some((h) => h.includes(id)));
+    s.deck.unshift(boom);
+    R.draw(s, 0);
+    return s;
+  };
+  let s = mk();
+  const skips = s.hands[0].filter((id) => R.KIND_OF[id] === 'skip');
+  const d = R.catSave(s, 0, skips).find((e) => e.t === 'defuse');
+  assert.deepEqual([d.card, d.extra].sort(), skips.slice().sort());   // 我挑的两张跳过
+  assert.equal(R.countKind(s.hands[0], 'orange'), 2);                // 橘猫留在手里
+  assert.equal(s.phase, 'defuse');
+  s = mk();
+  const h = s.hands[0];
+  assert.equal(R.savePairOk(h, [R.findKind(h, 'orange'), R.findKind(h, 'cow')]), false);   // 不一样的两只猫不算一对
+  const d2 = R.catSave(s, 0, [R.findKind(h, 'orange'), R.findKind(h, 'cow')]).find((e) => e.t === 'defuse');
+  assert.deepEqual([d2.card, d2.extra].map((id) => R.KIND_OF[id]), ['orange', 'orange']);  // 不成对 → 最便宜的一对
+  assert.throws(() => R.catSave(s, 0));                               // 已经不在急救阶段
+  // 凑不出一对：不进急救阶段，照常出局
+  const t = rig([['orange', 'cow', 'skip'], ['skip'], ['skip']], ['shuffle', 'shuffle', 'shuffle'], 0);
+  t.rules = Object.assign({}, t.rules, { mode: 'flux' }); t.flux = 'catsave'; t.saveUsed = [false, false, false];
+  const bm = ofKind(R.BOOM).find((id) => !t.deck.includes(id) && !t.hands.some((x) => x.includes(id)));
+  t.deck.unshift(bm);
+  const ev = R.draw(t, 0);
+  assert.ok(ev.some((e) => e.t === 'out' && e.seat === 0)); assert.ok(!ev.some((e) => e.t === 'save'));
 });
 
 test('flux 百搭 (allwild): any two / three / five cats combine; off again when the rule changes', () => {

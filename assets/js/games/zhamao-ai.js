@@ -589,6 +589,7 @@
     if (v.ins !== undefined) s.ins = v.ins && Object.assign({}, v.ins);
     if (v.peek !== undefined) s.peek = v.peek && Object.assign({}, v.peek);
     if (v.phase === 'defuse') { s.phase = 'defuse'; s.defuse = { by: v.me, card: v.defuse.card }; }
+    if (v.phase === 'save' && v.save) { s.phase = 'save'; s.save = { by: v.save.by, card: v.save.card }; }
     if (v.phase === 'react' && v.pending) {
       s.phase = 'react';
       s.pending = { by: v.pending.by, type: v.pending.type, cards: v.pending.cards.slice(), target: v.pending.target, named: v.pending.named,
@@ -620,6 +621,7 @@
       case 'give': { const f = s.give.from, v = R.view(s, f); R.give(s, f, polT(v, tier(f)).give(v, 'normal', rng)); return; }
       case 'pick': { const b = s.pick.by, v = R.view(s, b); R.pickDiscard(s, b, polT(v, tier(b)).pick(v, 'normal', rng)); return; }
       case 'defuse': { const b = s.defuse.by, v = R.view(s, b); R.insertKitten(s, b, polT(v, tier(b)).insert(v, 'normal', rng)); return; }
+      case 'save': R.catSave(s, s.save.by); return;   // 急救：自动挑最便宜的一对
       case 'alter': { const b = s.alter.by, v = R.view(s, b); R.alterTop(s, b, polT(v, tier(b)).alter(v, 'normal', rng)); return; }
       case 'steal': { const b = s.steal.by; R.stealPick(s, b, (rng() * s.steal.perm.length) | 0); return; }
       case 'rescue': { const w = R.rescueWaiting(s); if (w.length) R.rescue(s, w[0], true); else R.closeRescue(s); return; }   // 组队：有逗猫棒的队友总是救（离得近的先）
@@ -1100,6 +1102,7 @@
       case 'give': return { type: 'give', card: chooseGive(v, tier, rng) };
       case 'pick': return { type: 'pick', card: choosePick(v, tier, rng) };
       case 'defuse': return { type: 'insert', pos: insertFor(v, tier, rng) };
+      case 'save': return { type: 'save' };   // 急救：交最便宜的一对（规则里不给牌 = catPairIds）
       case 'alter': return { type: 'alter', order: chooseAlter(v, tier, rng) };
       case 'steal': return { type: 'steal', idx: (rng() * v.steal.count) | 0 };   // 扣着的牌没信息，随便点
       case 'rescue': return { type: 'rescue', yes: true };   // 组队：队友炸了、我有逗猫棒——救

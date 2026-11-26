@@ -36,6 +36,7 @@
  *   'pick'   五种猫各一张：出牌人从弃牌堆挑一张：pickDiscard()
  *   'steal'  两张一样：出牌人从对方扣着的手牌里点一张（顺序打乱过，看不出是哪张）：stealPick()
  *   'alter'  「重排」：出牌人把牌堆最上面（至多）三张按自己想要的顺序放回去：alterTop()
+ *   'save'   百变「急救」：摸到炸毛猫、没逗猫棒但手里有一对——自己挑哪一对顶逗猫棒：catSave()（不给牌 = 自动挑最便宜的一对，超时 / 托管 / 机器猫）
  *   'defuse' 刚用逗猫棒拆了炸毛猫，把它塞回去：insertKitten()
  *   'over'   结束，state.winner
  * 每个改状态的函数都返回事件数组（UI 播动画 / 服务器转发）。带 priv 字段的事件只有 priv 里列的座位能看到全部内容，
@@ -324,7 +325,7 @@
       alive: s.alive.slice(), outOrder: s.outOrder.slice(),
       turn: s.turn, turnsLeft: s.turnsLeft, phase: s.phase,
       pending: s.pending && Object.assign({}, s.pending, { cards: s.pending.cards.slice(), nopes: s.pending.nopes.slice(), passed: s.pending.passed.slice() }),
-      give: s.give && Object.assign({}, s.give), pick: s.pick && Object.assign({}, s.pick), defuse: s.defuse && Object.assign({}, s.defuse),
+      give: s.give && Object.assign({}, s.give), pick: s.pick && Object.assign({}, s.pick), defuse: s.defuse && Object.assign({}, s.defuse), save: s.save ? Object.assign({}, s.save) : null,
       alter: s.alter && { by: s.alter.by, cards: s.alter.cards.slice() },
       steal: s.steal && { by: s.steal.by, from: s.steal.from, perm: s.steal.perm.slice() },
       winner: s.winner, seq: s.seq, ins: s.ins ? Object.assign({}, s.ins) : null, peek: s.peek ? Object.assign({}, s.peek) : null, dir: s.dir || 1,
@@ -370,6 +371,13 @@
     if ((by[WILD] || []).length >= 2) return by[WILD].slice(0, 2);
     for (const k of PAIR_ORDER) if ((by[k] || []).length >= 2) return by[k].slice(0, 2);
     return null;
+  }
+  // 急救：这两张能不能凑成一对顶逗猫棒（同 catPairIds 认的：一样的猫 / 猫 + 万能猫 / 两张万能猫 / 一样的行动牌）
+  function savePairOk(hand, cards) {
+    if (!cards || cards.length !== 2 || cards[0] === cards[1] || cards.some((c) => hand.indexOf(c) < 0)) return false;
+    const a = KIND_OF[cards[0]], b = KIND_OF[cards[1]], cat = (k) => CATS.indexOf(k) >= 0;
+    if (a === b) return cat(a) || a === WILD || PAIR_ORDER.indexOf(a) >= 0;
+    return (a === WILD && cat(b)) || (b === WILD && cat(a));
   }
   const kittensInDeck = (s) => s.deck.reduce((a, id) => a + (KIND_OF[id] === BOOM ? 1 : 0), 0);
 
@@ -771,15 +779,13 @@
     }
     // 百变「双猫急救」：没逗猫棒，交出一对一样的猫牌（万能猫能顶）当逗猫棒用，照样塞回去
     // 急救（用户 2026-11-15）：交出一对相同的牌；每人最多一次
+    // 2026-11-26 用户：自己挑哪一对（以前自动挑）——先进「急救」阶段（phase 'save'），catSave() 交牌；超时 / 托管 / 机器猫不给牌 = 自动挑最便宜的一对（不会因为超时炸死）。
+    // 手里凑不出一对就不进这一步，照常往下（九命 / 组队求救 / 出局）
     const pair = s.flux === 'catsave' && !(s.saveUsed && s.saveUsed[seat]) ? catPairIds(s.hands[seat]) : null;
     if (pair) {
-      if (!s.saveUsed) s.saveUsed = Array.from({ length: s.n }, () => false);
-      s.saveUsed[seat] = true;
-      for (const c of pair) { s.hands[seat].splice(s.hands[seat].indexOf(c), 1); s.discard.push(c); forgetCard(s, c); }
-      // 2026-11-26 用户：急救也和逗猫棒一样，自己挑塞回第几张（以前随机放回）——两张顶一根逗猫棒，之后走平常的塞回（insertKitten）
-      s.phase = 'defuse';
-      s.defuse = { by: seat, card: id };
-      ev.push({ t: 'defuse', seat, card: pair[0], extra: pair[1], kitten: id, save: 'cats' });
+      s.phase = 'save';
+      s.save = { by: seat, card: id };
+      ev.push({ t: 'save', seat, kitten: id });
       return ev;
     }
     // 百变「九命」：每人一局一次，不出局；2026-11-26 用户：喊完九命也和逗猫棒一样自己挑塞回第几张（以前随机放回）——进入塞回阶段（insertKitten）
@@ -807,6 +813,22 @@
       return ev;
     }
     return eliminate(s, seat, id, ev);
+  }
+  /* 急救：交出一对顶逗猫棒（cards 不给 / 给的不成对 → 自动挑 catPairIds 那一对，最便宜的）。之后和逗猫棒一样进 defuse、自己挑位置塞回（insertKitten） */
+  function catSave(s, seat, cards) {
+    if (s.phase !== 'save' || !s.save || s.save.by !== seat) throw new Error('illegal save');
+    const hand = s.hands[seat];
+    const pair = savePairOk(hand, cards) ? cards.slice() : catPairIds(hand);
+    if (!pair) throw new Error('illegal save');
+    const id = s.save.card;
+    if (!s.saveUsed) s.saveUsed = Array.from({ length: s.n }, () => false);
+    s.saveUsed[seat] = true;
+    for (const c of pair) { hand.splice(hand.indexOf(c), 1); s.discard.push(c); forgetCard(s, c); }
+    s.save = null;
+    s.seq += 1;
+    s.phase = 'defuse';
+    s.defuse = { by: seat, card: id };
+    return [{ t: 'defuse', seat, card: pair[0], extra: pair[1], kitten: id, save: 'cats' }];
   }
   // 炸毛出局：手牌连同炸毛猫全进弃牌堆，剩下的回合作废
   function eliminate(s, seat, id, ev) {
@@ -929,6 +951,7 @@
       case 'give': return [s.give.from];
       case 'pick': return [s.pick.by];
       case 'defuse': return [s.defuse.by];
+      case 'save': return [s.save.by];
       case 'alter': return [s.alter.by];
       case 'steal': return [s.steal.by];
       case 'rescue': return rescueWaiting(s);
@@ -960,6 +983,7 @@
       pending: s.pending && { by: s.pending.by, type: s.pending.type, target: s.pending.target, named: s.pending.named, nopes: s.pending.nopes.length, cards: s.pending.cards.slice() },
       give: s.give, pick: s.pick,
       defuse: s.defuse && (s.defuse.by === seat ? { by: seat, card: s.defuse.card } : { by: s.defuse.by }),
+      save: s.save ? { by: s.save.by, card: s.save.card } : null,   // 急救：谁在挑对子、炸毛猫是哪张（摸出来时翻开了，公开）
       alter: s.alter && (s.alter.by === seat ? { by: seat, cards: s.alter.cards.slice() } : { by: s.alter.by }),
       steal: s.steal && { by: s.steal.by, from: s.steal.from, count: s.steal.perm.length },
       peek: s.peek ? Object.assign({}, s.peek) : null, // 公开：最近谁窥探 / 改命过顶上三张、之后从顶上摸走了几张、他自己接着是躲了（dodge）还是摸了（draw）
@@ -981,7 +1005,7 @@
 
   return {
     T, lang,
-    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, isTeam, mateOf, matesOf, teamOf, teamCount, TEAM_FORMS, teamPlayers, rescue, rescueWaiting, closeRescue, setNoHelp, ROLES, roleOf, classifyFor, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
+    BOOM, DEFUSE, NOPE, ATTACK, TATTACK, SKIP, BOTTOM, FAVOR, SHUFFLE, FUTURE, ALTER, SWAP, WILD, REVERSE, FLUX, FLUX_RULES, rulesOf, catPairIds, savePairOk, catSave, isTeam, mateOf, matesOf, teamOf, teamCount, TEAM_FORMS, teamPlayers, rescue, rescueWaiting, closeRescue, setNoHelp, ROLES, roleOf, classifyFor, CATS, ACTIONS, COUNTS, KINDS, NAMES, KIND_OF, DECK_SIZE,
     MIN_PLAYERS, MAX_PLAYERS, TWO_DECKS_FROM, BASE_SIZE, DECK_OF, LEGACY_SIZES, inSecondDeck, usesSecondDeck, RULE_OPTIONS, DEFAULT_RULES, normalizeRules, swapsInPlay, deckQuota,
     kindOf, isCat, catLike, cardName, sortHand, rand, shuffleIn,
     createGame, cloneGame, aliveCount, nextAlive, countKind, findKind, kittensInDeck,
