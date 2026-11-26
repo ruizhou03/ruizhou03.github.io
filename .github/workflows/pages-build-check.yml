@@ -40,6 +40,9 @@ jobs:
           node --test tests/pinball-core.test.mjs tests/pinball-table-contract.test.mjs
           node scripts/sim-pinball-balance.mjs --runs=4
 
+      - name: Check puffcat bundled font covers all game text
+        run: node --test tests/zhamao-fonts.test.js
+
       - name: Test kitchen planner data and scheduler contracts
         run: |
           ruby scripts/validate_kitchen_planner.rb

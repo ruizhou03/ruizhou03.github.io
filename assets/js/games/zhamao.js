@@ -6108,7 +6108,7 @@
       '<path d="M12 2h7l-4 14h-7z" fill="' + rib + '"/><path d="M28 2h-7l4 14h7z" fill="' + rib + '" opacity=".8"/>' +
       '<circle cx="20" cy="28" r="13" fill="url(#' + id + ')" stroke="' + c + '" stroke-width="1.4"/>' +
       '<circle cx="20" cy="28" r="9.5" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1"/>' +
-      '<text x="20" y="32.6" text-anchor="middle" font-family="Georgia,serif" font-size="13" font-weight="700" fill="' + c + '">' + (i + 1) + '</text></svg>';
+      '<text x="20" y="32.6" text-anchor="middle" font-family="ZM Num,ZM Serif,Georgia,serif" font-size="13" font-weight="700" fill="' + c + '">' + (i + 1) + '</text></svg>';
   }
   /* 领奖台（2026-11-18 用户挑乙）：前三名站 2-1-3 三级台子（金 / 银 / 铜，台面上刻名次），第四名起在下面排一列；
    * 不写「第几名」「胜利」之类的字——台子高低和颜色已经说明了。items：[{ face, nick, me }]，按名次排好 */
@@ -9511,7 +9511,13 @@
     const sleep = (t) => new Promise((r) => setTimeout(r, t));
     const t0 = performance.now();
     bump(0.3);
-    (document.fonts ? Promise.race([document.fonts.ready, sleep(1500)]) : Promise.resolve()).then(async () => {
+    // 自带字体（2026-11-26 用户：游戏资产上的字要固定样式）：进度条这段时间里把 ZM Serif 常规 / 粗体、ZM Num 等到位，每到一个进度条往前走一截；
+    // 最多等 4 秒，到点照常进游戏（先用系统字体，字体晚到了浏览器自动换上），不会卡在加载页
+    const zmFaces = ['400 16px "ZM Serif"', '700 16px "ZM Serif"', '700 16px "ZM Num"'];
+    const fontsIn = document.fonts && document.fonts.load
+      ? Promise.all(zmFaces.map((f) => document.fonts.load(f, '百变小咪1').catch(() => null).then(() => bump(got + 0.15)))).then(() => document.fonts.ready)
+      : Promise.resolve();
+    Promise.race([fontsIn, sleep(4000)]).then(async () => {
       bump(0.75);
       await sleep(Math.max(0, 900 - (performance.now() - t0)));
       bump(1);

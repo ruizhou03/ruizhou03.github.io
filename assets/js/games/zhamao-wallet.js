@@ -105,35 +105,35 @@
   const fmt = (x) => Math.round(Math.abs(x)).toLocaleString('en-US');
   const CSS = `
 .zmw-fish{width:1.6em;height:1em;flex:none;vertical-align:-.12em}
-.zmw-chip{cursor:pointer;font-family:inherit;position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 12px);z-index:5;display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 9px;border:1.5px solid #1d1b18;border-radius:999px;background:#fffdf8;color:#1d1b18;text-decoration:none;font:700 15px/1 Georgia,"Noto Serif SC",serif;box-shadow:0 2px 0 #1d1b18;-webkit-tap-highlight-color:transparent}
+.zmw-chip{cursor:pointer;font-family:inherit;position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:calc(env(safe-area-inset-left,0px) + 12px);z-index:5;display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 9px;border:1.5px solid #1d1b18;border-radius:999px;background:#fffdf8;color:#1d1b18;text-decoration:none;font:700 15px/1 ZM Num,ZM Serif,Georgia,"Noto Serif SC",serif;box-shadow:0 2px 0 #1d1b18;-webkit-tap-highlight-color:transparent}
 .zmw-chip:active{transform:translateY(2px);box-shadow:none}
 .zmw-chip[hidden]{display:none}
 .zmw-chip .zmw-dot{position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:#e9b949;border:2px solid #fffdf8}
 .zmw-chip .zmw-dot[hidden]{display:none}
 [data-cover="start"]{position:relative}
-.zmw-cost{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;gap:3px;padding:3px 9px 3px 6px;border-radius:999px;background:rgba(255,253,248,.2);font:600 14px/1.2 Georgia,serif;pointer-events:none}
+.zmw-cost{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;gap:3px;padding:3px 9px 3px 6px;border-radius:999px;background:rgba(255,253,248,.2);font:600 14px/1.2 ZM Num,ZM Serif,Georgia,serif;pointer-events:none}
 .zmw-cost .zmw-fish{width:1.5em}
 .zmw-res{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 10px;margin:12px auto 2px;min-height:40px}
 .zmw-res .zmw-fish{width:40px;height:26px}
-.zmw-res>b{font:700 30px/1 Georgia,"Noto Serif SC",serif;font-variant-numeric:tabular-nums;color:#1d1b18}
+.zmw-res>b{font:700 30px/1 ZM Num,ZM Serif,Georgia,"Noto Serif SC",serif;font-variant-numeric:tabular-nums;color:#1d1b18}
 .zmw-res>b.is-up{color:#3f7a52}.zmw-res>b.is-down{color:#b4392c}
 .zmw-res .zmw-bal b{font:inherit}
-.zmw-res .zmw-bal{display:inline-flex;align-items:center;gap:4px;padding:4px 10px 4px 7px;border-radius:999px;background:#ebe5d8;font:600 14px/1 Georgia,serif;color:#6a6358}
+.zmw-res .zmw-bal{display:inline-flex;align-items:center;gap:4px;padding:4px 10px 4px 7px;border-radius:999px;background:#ebe5d8;font:600 14px/1 ZM Num,ZM Serif,Georgia,serif;color:#6a6358}
 .zmw-res .zmw-bal .zmw-fish{width:22px;height:14px}
-.zmw-res .zmw-star{display:inline-flex;align-items:center;gap:2px;font:700 14px/1 Georgia,serif;color:#b07420}
+.zmw-res .zmw-star{display:inline-flex;align-items:center;gap:2px;font:700 14px/1 ZM Num,ZM Serif,Georgia,serif;color:#b07420}
 .zmw-res .zmw-star svg{width:16px;height:16px}
 .zmw-chip b{transition:color .2s}
 .zmwfx-up{color:#3f7a52!important}.zmwfx-down{color:#b4392c!important}
 /* 小鱼干不够（2026-11-23 用户：余额不够不能直接开，弹窗说清楚，救济在弹窗里自己点） */
 .zmw-short-mask{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:20px;background:rgba(29,27,24,.42);-webkit-tap-highlight-color:transparent}
-.zmw-short{box-sizing:border-box;width:min(300px,100%);padding:22px 20px 18px;border:1.5px solid #1d1b18;border-radius:18px;background:#fffdf8;box-shadow:0 4px 0 #1d1b18;color:#1d1b18;text-align:center;font-family:Georgia,"Noto Serif SC",serif}
+.zmw-short{box-sizing:border-box;width:min(300px,100%);padding:22px 20px 18px;border:1.5px solid #1d1b18;border-radius:18px;background:#fffdf8;box-shadow:0 4px 0 #1d1b18;color:#1d1b18;text-align:center;font-family:ZM Num,ZM Serif,Georgia,"Noto Serif SC",serif}
 .zmw-short .zmw-big{width:64px;height:40px;display:block;margin:0 auto 6px;transform:rotate(-14deg)}
-.zmw-short h3{margin:0 0 14px;font:700 19px/1.2 Georgia,"Noto Serif SC",serif}
+.zmw-short h3{margin:0 0 14px;font:700 19px/1.2 ZM Num,ZM Serif,Georgia,"Noto Serif SC",serif}
 .zmw-short .zmw-row{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 18px}
-.zmw-short .zmw-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 12px 6px 9px;border-radius:999px;background:#ebe5d8;font:700 18px/1 Georgia,serif;font-variant-numeric:tabular-nums}
+.zmw-short .zmw-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 12px 6px 9px;border-radius:999px;background:#ebe5d8;font:700 18px/1 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums}
 .zmw-short .zmw-pill .zmw-fish{width:26px;height:16px}
 .zmw-short .zmw-pill.is-price{background:#f0c9bb}
-.zmw-short .zmw-row i{font-style:normal;color:#8a8275;font:600 18px/1 Georgia,serif}
+.zmw-short .zmw-row i{font-style:normal;color:#8a8275;font:600 18px/1 ZM Num,ZM Serif,Georgia,serif}
 .zmw-short *{box-sizing:border-box}
 .zmw-short .zmw-acts{display:flex;flex-direction:column;gap:8px}
 .zmw-short button{cursor:pointer;font:600 16px/1 system-ui,"Noto Sans SC",sans-serif;padding:13px 14px;border-radius:12px;border:1.5px solid #1d1b18;background:#fffdf8;color:#1d1b18;box-shadow:0 2px 0 #1d1b18;display:inline-flex;align-items:center;justify-content:center;gap:6px}
@@ -147,7 +147,7 @@
 .zmw-short .zmw-tasks p:first-child{border-top:0}
 .zmw-short .zmw-tasks button{padding:8px 14px;border-radius:999px;font-size:14px;background:#b4392c;color:#fffdf8;box-shadow:0 2px 0 #1d1b18}
 .zmw-short .zmw-tasks em{font-style:normal;font:500 14px/1 system-ui,"Noto Sans SC",sans-serif;color:#8a8275;padding:8px 4px}
-.zmw-tag{display:inline-flex;align-items:center;gap:2px;margin-left:6px;padding:2px 8px 2px 5px;border-radius:999px;background:rgba(255,253,248,.22);font:600 .86em/1.2 Georgia,serif;font-variant-numeric:tabular-nums;vertical-align:middle}
+.zmw-tag{display:inline-flex;align-items:center;gap:2px;margin-left:6px;padding:2px 8px 2px 5px;border-radius:999px;background:rgba(255,253,248,.22);font:600 .86em/1.2 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums;vertical-align:middle}
 .zm-btn:not(.zm-btn-primary) .zmw-tag{background:#ebe5d8}
 .zmw-tag .zmw-fish{width:1.4em;height:.9em}
 .zmw-res .zmw-note{flex-basis:100%;text-align:center;font:500 13px/1.3 system-ui,"Noto Sans SC",sans-serif;color:#8a8275}

@@ -531,7 +531,7 @@
   const gArrow = (x) => '<path d="M' + x + ' 12h9" stroke="#8a7f74" stroke-width="2.2" stroke-linecap="round"/><path d="M' + (x + 12) + ' 12l-4.5-3.4v6.8Z" fill="#8a7f74"/>';
   const GLYPH = {
     timid: () => [92, gIc('attack', 0) + gArrow(27) + gIc('future', 42) + gBack(72, 13, -14) + gBack(79, 12, 0) + gBack(86, 13, 14)],
-    fat: () => [94, gIc('favor', 0) + gArrow(27) + gBack(52, 12, -8) + gBack(62, 12, 8) + '<text x="74" y="17" font-size="12" font-weight="700" fill="#d27a36" font-family="Georgia,serif">×2</text>'],
+    fat: () => [94, gIc('favor', 0) + gArrow(27) + gBack(52, 12, -8) + gBack(62, 12, 8) + '<text x="74" y="17" font-size="12" font-weight="700" fill="#d27a36" font-family="ZM Num,ZM Serif,Georgia,serif">×2</text>'],
     shadow: () => [82, gIc('orange', 0) + gIc('orange', 18) + gArrow(44) + '<circle cx="70" cy="12" r="9.5" fill="none" stroke="#c8463a" stroke-width="2.4"/><path d="M63.3 5.3l13.4 13.4" stroke="#c8463a" stroke-width="2.4" stroke-linecap="round"/>'],
     cow: () => [86, gIc('attack', 0) + gIc('attack', 20) + gArrow(47) + gIc('attack', 62)],
     calico: () => [100, gIc('orange', 0) + gIc('cow', 20) + '<path d="M48 9.5h9M48 14.5h9" stroke="#8a7f74" stroke-width="2.2" stroke-linecap="round"/>' + gIc('orange', 62) + gIc('orange', 80)],

@@ -16,7 +16,7 @@
 
   const CSS = `
 .zmp-ring svg{max-width:80px}
-.zmp{position:fixed;inset:0;z-index:70;background:#f3eee3;color:#1d1b18;display:flex;flex-direction:column;font-family:'Songti SC','STSong','Noto Serif SC','Noto Serif CJK SC','Source Han Serif SC','PingFang SC',serif;-webkit-user-select:none;user-select:none;transform:translateX(100%);transition:transform .32s cubic-bezier(.3,.8,.3,1)}
+.zmp{position:fixed;inset:0;z-index:70;background:#f3eee3;color:#1d1b18;display:flex;flex-direction:column;font-family:ZM Serif,'Songti SC','STSong','Noto Serif SC','Noto Serif CJK SC','Source Han Serif SC','PingFang SC',serif;-webkit-user-select:none;user-select:none;transform:translateX(100%);transition:transform .32s cubic-bezier(.3,.8,.3,1)}
 .zmp.is-on{transform:none}
 .zmp[hidden]{display:none}
 @media(prefers-reduced-motion:reduce){.zmp{transition:none}}
@@ -42,15 +42,15 @@
 .zmp-login{border:1.5px solid #b4392c;color:#b4392c;background:#fffdf8;border-radius:999px;padding:7px 15px;font:700 14px/1 system-ui,sans-serif;cursor:pointer}
 .zmp-bal{text-align:right}
 .zmp-bal .n b{font:inherit;display:inline-block}
-.zmp-bal .n{display:inline-flex;align-items:center;gap:8px;font:900 clamp(30px,8vw,42px)/1 Georgia,serif;font-variant-numeric:tabular-nums}
+.zmp-bal .n{display:inline-flex;align-items:center;gap:8px;font:900 clamp(30px,8vw,42px)/1 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums}
 .zmp-bal .zmw-fish{width:46px;height:29px}
-.zmp-bal .sub{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;font:700 13px/1 Georgia,serif;color:#6a6358}
+.zmp-bal .sub{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;font:700 13px/1 ZM Num,ZM Serif,Georgia,serif;color:#6a6358}
 .zmp-bal .up{color:#3f7a52}.zmp-bal .dn{color:#b4392c}
 @media(max-width:480px){.zmp-hero{grid-template-columns:auto minmax(0,1fr)}.zmp-bal{grid-column:1/-1;text-align:left}.zmp-bal .sub{justify-content:flex-start}}
 .zmp-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;font-size:15px;font-weight:700}
 .zmp-h small{font:600 12px system-ui,sans-serif;color:#6a6358}
 .zmp-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
-.zmp-day{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;border:1.5px solid #d9cfbd;border-radius:14px;background:#f3eee3;font:700 13px/1 Georgia,serif;color:#6a6358;cursor:default}
+.zmp-day{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;border:1.5px solid #d9cfbd;border-radius:14px;background:#f3eee3;font:700 13px/1 ZM Num,ZM Serif,Georgia,serif;color:#6a6358;cursor:default}
 .zmp-day .zmw-fish{width:26px;height:16px;opacity:.35}
 .zmp-day.is-done{background:#1d1b18;border-color:#1d1b18;color:#f3eee3}
 .zmp-day.is-done .zmw-fish{opacity:1}
@@ -66,19 +66,19 @@
 .zmp-rings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;text-align:center}
 .zmp-ring svg{width:100%;max-width:88px;height:auto}
 .zmp-ring b{display:block;font-size:14px}
-.zmp-ring small{color:#6a6358;font:700 12px Georgia,serif}
+.zmp-ring small{color:#6a6358;font:700 12px ZM Num,ZM Serif,Georgia,serif}
 .zmp-bars{display:grid;gap:10px}
 .zmp-bar{display:grid;grid-template-columns:3em minmax(0,1fr) 3.2em;gap:8px;align-items:center;font-size:14px}
 .zmp-bar .t{height:14px;border-radius:7px;background:#ebe5d8;overflow:hidden}
 .zmp-bar .t i{display:block;height:100%;border-radius:7px;background:#1d1b18}
-.zmp-bar span:last-child{text-align:right;font:700 14px Georgia,serif;font-variant-numeric:tabular-nums}
+.zmp-bar span:last-child{text-align:right;font:700 14px ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums}
 .zmp-recs{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:8px}
 .zmp-rec{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px 7px;border-radius:14px;background:#f3eee3;border:1.5px solid #d9cfbd}
 .zmp-rec .m{position:absolute;top:6px;left:6px;width:8px;height:8px;border-radius:50%}
-.zmp-rec .rk{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 14px/1 Georgia,serif;background:#ebe5d8;color:#6a6358}
+.zmp-rec .rk{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 14px/1 ZM Num,ZM Serif,Georgia,serif;background:#ebe5d8;color:#6a6358}
 .zmp-rec .rk.g1{background:#e9c46a;color:#6b4a12}.zmp-rec .rk.g2{background:#cfd3d9;color:#4b5058}.zmp-rec .rk.g3{background:#d9a477;color:#5e3517}
 .zmp-rec .rk svg{width:18px;height:18px}
-.zmp-rec .d{font:700 13px/1 Georgia,serif;font-variant-numeric:tabular-nums}
+.zmp-rec .d{font:700 13px/1 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums}
 .zmp-rec .d.up{color:#3f7a52}.zmp-rec .d.dn{color:#b4392c}
 .zmp-rec .nn{font:600 11px/1 system-ui,sans-serif;color:#6a6358}
 .zmp-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font:12px system-ui,sans-serif;color:#6a6358}
@@ -95,7 +95,7 @@
 .zmp-led .ic{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#ebe5d8}
 .zmp-led .ic svg{width:15px;height:15px}
 .zmp-led time{color:#6a6358;font:12px system-ui,sans-serif;white-space:nowrap}
-.zmp-led b{font:700 14px Georgia,serif;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;min-width:3.5em}
+.zmp-led b{font:700 14px ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;min-width:3.5em}
 .zmp-led b.up{color:#3f7a52}.zmp-led b.dn{color:#b4392c}
 .zmp-empty{color:#6a6358;font:14px system-ui,sans-serif;text-align:center;padding:12px 0}
 .zmp-wait{width:56px;height:8px;margin:40px auto;border-radius:4px;background:linear-gradient(90deg,#ebe5d8,#d9cfbd,#ebe5d8);background-size:200% 100%;animation:zmpWait 1s linear infinite}
@@ -115,7 +115,7 @@
 .zmp-lf button{border:1.5px solid #d9cfbd;background:#f3eee3;color:#6a6358;border-radius:999px;padding:6px 13px;font:600 13px/1 system-ui,sans-serif;cursor:pointer}
 .zmp-lf button.on{border-color:#1d1b18;background:#1d1b18;color:#f3eee3}
 .zmp-lday{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 0;padding-bottom:4px;border-bottom:1.5px solid #1d1b18;font:700 13px/1.2 system-ui,sans-serif;color:#1d1b18}
-.zmp-lday b{font:700 13px Georgia,serif;font-variant-numeric:tabular-nums}
+.zmp-lday b{font:700 13px ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums}
 .zmp-lday b.up{color:#3f7a52}.zmp-lday b.dn{color:#b4392c}
 .zmp-led li.g{cursor:pointer}
 .zmp-led .nm small{display:block;margin-top:2px;font:12px/1.2 system-ui,sans-serif;color:#6a6358}
@@ -124,7 +124,7 @@
 .zmp-led li.open .parts{display:block}
 .zmp-led li .parts span{display:flex;justify-content:space-between}
 .zmp-led li .parts em{font-style:normal}
-.zmp-led li .parts b{font:600 12px Georgia,serif;min-width:0;color:#6a6358}
+.zmp-led li .parts b{font:600 12px ZM Num,ZM Serif,Georgia,serif;min-width:0;color:#6a6358}
 .zmp-lmore{display:block;width:100%;margin-top:10px;padding:10px;border:1.5px dashed #d9cfbd;border-radius:12px;background:none;color:#6a6358;font:600 14px/1 system-ui,sans-serif;cursor:pointer}
 .zmp-ledsum{display:flex;align-items:center;gap:10px}
 .zmp-ledsum .sp{flex:1;height:28px;min-width:60px}
@@ -138,12 +138,12 @@
 .zmp-bcard .how{font:15px/1.4 system-ui,sans-serif;color:#1d1b18}
 .zmp-bcard .pg{height:10px;border-radius:5px;background:#ebe5d8;overflow:hidden;margin:12px 0 4px}
 .zmp-bcard .pg i{display:block;height:100%;background:#3f7a52;border-radius:5px}
-.zmp-bcard .pn{font:700 13px Georgia,serif;color:#6a6358}
-.zmp-bcard .rw{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:5px 14px;border-radius:999px;background:#f3eee3;font:700 16px Georgia,serif}
+.zmp-bcard .pn{font:700 13px ZM Num,ZM Serif,Georgia,serif;color:#6a6358}
+.zmp-bcard .rw{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:5px 14px;border-radius:999px;background:#f3eee3;font:700 16px ZM Num,ZM Serif,Georgia,serif}
 .zmp-bcard .rw .zmw-fish{width:28px;height:18px}
 .zmp-bcard .rw.got{background:#e3f0e6;color:#3f7a52}
 /* 站点登录弹层（auth.html）在游戏页里没有站点的颜色变量：给它一套游戏的 */
-#sa-overlay{--color-bg:#fffdf8;--color-bg-warm:#f3eee3;--color-border:#d9cfbd;--color-muted:#6a6358;--color-light:#8a8274;--color-ink:#1d1b18;--color-text:#1d1b18;--color-highlight:#b4392c;--color-accent:#b4392c;--font-display:'Songti SC','Noto Serif SC',serif;font-family:system-ui,-apple-system,'PingFang SC',sans-serif}
+#sa-overlay{--color-bg:#fffdf8;--color-bg-warm:#f3eee3;--color-border:#d9cfbd;--color-muted:#6a6358;--color-light:#8a8274;--color-ink:#1d1b18;--color-text:#1d1b18;--color-highlight:#b4392c;--color-accent:#b4392c;--font-display:ZM Serif,'Songti SC','Noto Serif SC',serif;font-family:system-ui,-apple-system,'PingFang SC',sans-serif}
 `;
   const BACK = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M24.5 6.5 13 20l11.5 13.5" fill="none" stroke="#b4392c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const TICK = '<svg viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -163,9 +163,9 @@
   const BADGE_ART = {
     streak7: ['连续签到 7 天', '#3f7a52', '<path d="M32 12l5 11 12 1-9 8 3 12-11-6-11 6 3-12-9-8 12-1Z"/>'],
     bug10: ['「这步不对」标满 10 步', '#2f4a6d', '<ellipse cx="32" cy="36" rx="10" ry="13"/><path d="M32 23v26M22 30l-7-4M42 30l7-4M22 40l-7 3M42 40l7 3M27 20l-4-6M37 20l4-6" stroke="#fffdf8" stroke-width="3" fill="none" stroke-linecap="round"/>'],
-    games100: ['打满 100 局', '#8e4a9c', '<text x="32" y="41" text-anchor="middle" font-size="20" font-weight="700" font-family="Georgia,serif" fill="#fffdf8">100</text>'],
+    games100: ['打满 100 局', '#8e4a9c', '<text x="32" y="41" text-anchor="middle" font-size="20" font-weight="700" font-family="ZM Num,ZM Serif,Georgia,serif" fill="#fffdf8">100</text>'],
     hard10: ['对高手机器猫拿 10 次第一', '#c8463a', '<path d="M18 44l3-22 8 9 3-12 3 12 8-9 3 22Z"/>'],
-    nine1: ['9 人局拿第一（组队算队伍赢）', '#e58e46', '<text x="32" y="43" text-anchor="middle" font-size="24" font-weight="700" font-family="Georgia,serif" fill="#fffdf8">9</text>'],
+    nine1: ['9 人局拿第一（组队算队伍赢）', '#e58e46', '<text x="32" y="43" text-anchor="middle" font-size="24" font-weight="700" font-family="ZM Num,ZM Serif,Georgia,serif" fill="#fffdf8">9</text>'],
     big1000: ['一局净赚 1,000 以上', '#b07420', '<path d="M14 32c6-9 17-12 26-9 4 1 7 4 9 9-2 5-5 8-9 9-9 3-20 0-26-9Z M47 32l8-7v14Z" fill="#fffdf8"/>'],
   };
   const badgeSvg = (id) => { const a = BADGE_ART[id] || ['', '#999', '']; return '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="' + a[1] + '" stroke="#1d1b18" stroke-width="2.5"/><g fill="#fffdf8">' + a[2] + '</g></svg>'; };
@@ -182,7 +182,7 @@
     const r = 30, c = 2 * Math.PI * r, k = g ? w / g : 0;
     return '<svg viewBox="0 0 80 80" role="img" aria-label="胜率 ' + Math.round(k * 100) + '%"><circle cx="40" cy="40" r="' + r + '" fill="none" stroke="#ebe5d8" stroke-width="10"/>' +
       (g ? '<circle cx="40" cy="40" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + (c * k).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 40 40)"/>' : '') +
-      '<text x="40" y="45" text-anchor="middle" font-family="Georgia,serif" font-size="16" font-weight="700" fill="#1d1b18">' + (g ? Math.round(k * 100) + '%' : '–') + '</text></svg>';
+      '<text x="40" y="45" text-anchor="middle" font-family="ZM Num,ZM Serif,Georgia,serif" font-size="16" font-weight="700" fill="#1d1b18">' + (g ? Math.round(k * 100) + '%' : '–') + '</text></svg>';
   }
   /* 近四周（2026-11-24 用户：签了三天，底下格子只亮一个——以前这排是「每天打了几局」，看着像签到）：
    * 28 格 = 28 天（当地日期，最右是今天），签到过的那天涂黑。只表示签到（用户：标对局很 misleading，红点和图例都拿掉） */
