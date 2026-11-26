@@ -1220,7 +1220,7 @@
     const nT = turn && (d.turnsLeft > 1 || game.attackSeat === seat) ? d.turnsLeft : 0;
     const tv = els.app.dataset.uivTurns;   // 预览（本机对比，未定）：hat 扣锅 / ring 红圈分段 / beads 红珠
     if (tv) { setBadge(av, 'zm-turns', ''); setPotMark(av, tv, nT); } else setBadge(av, 'zm-turns', nT ? '×' + nT : '');
-    // 角色猫：头像左上角一枚圆章，只画这只猫（2026-11-19 用户：斜插小卡缩小后字和名字糊成一团、看不出是哪只猫）；点它 = 展开整张角色卡
+    // 角色猫：头像角上一枚圆章（2026-11-26 起在左下角，让开头上扣的锅 ×N），只画这只猫（2026-11-19 用户：斜插小卡缩小后字和名字糊成一团、看不出是哪只猫）；点它 = 展开整张角色卡
     const role = s.roles ? s.roles[seat] : null;
     let rb = av.querySelector('.zm-role');
     if (!role) { if (rb) rb.remove(); }
