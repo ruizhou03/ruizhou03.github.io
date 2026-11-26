@@ -480,15 +480,15 @@ body.gd-game-fullscreen .gd-self-clock { font-family: var(--gd-num); }
 }
 .guandan-wrap .gd-played .gd-played-clock { position: relative; }
 .guandan-wrap .gd-played .gd-played-clock.urgent, .guandan-wrap .gd-self-clock.urgent { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); }
-/* 我的闹钟和我的「不出」放在同一处：出牌按钮行的左边（按钮行宽度固定，见 --gd-actions-w） */
+/* 我的闹钟和我的「不出」放在同一处：出牌按钮正上方居中（2026-11-26 用户：「不出」要在自己正中） */
 .guandan-wrap .gd-play-band { --gd-actions-w: 284px; }
 body.gd-game-fullscreen .guandan-wrap .gd-play-band > .gd-play-actions { gap: 10px; }
 body.gd-game-fullscreen .guandan-wrap .gd-play-actions .gd-btn.gd-slot { width: 88px; min-width: 88px; padding-left: 0; padding-right: 0; }
-.guandan-wrap .gd-play-actions .gd-self-clock { position: absolute; right: calc(100% + 14px); top: 50%; transform: translateY(-50%); }
+.guandan-wrap .gd-play-actions .gd-self-clock { position: absolute; left: 50%; bottom: calc(100% + 12px); transform: translateX(-50%); }
 .guandan-wrap .gd-play-actions .gd-self-clock.urgent { animation: none; }
 .guandan-wrap #gdPlay0Center { position: relative; overflow: visible; }
-.guandan-wrap #gdPlay0Center > .gd-pass-big { position: absolute; right: calc(50% + var(--gd-actions-w) / 2 + 14px + 19px); top: 50%; transform: translate(50%, -50%); animation-name: gd-pass-ink-c; }
-@keyframes gd-pass-ink-c { from { opacity: 0; transform: translate(50%, -50%) scale(1.25); filter: blur(2px); } to { opacity: 1; transform: translate(50%, -50%); filter: none; } }
+.guandan-wrap #gdPlay0Center > .gd-pass-big { position: absolute; left: 50%; top: calc(50% - var(--gd-pass-lift, 53px)); transform: translate(-50%, -50%); animation-name: gd-pass-ink-c; }
+@keyframes gd-pass-ink-c { from { opacity: 0; transform: translate(-50%, -50%) scale(1.25); filter: blur(2px); } to { opacity: 1; transform: translate(-50%, -50%); filter: none; } }
 
 /* 5. 炸弹 / 接风 / 抗贡 / 头游：出牌区正中盖一枚印章，两个字，不带图标和说明 */
 .guandan-wrap .gd-fx-banner { top: 33%; font-family: var(--gd-serif); }
@@ -516,12 +516,19 @@ body.gd-game-fullscreen .guandan-wrap .gd-play-actions .gd-btn.gd-slot { width: 
 .guandan-wrap .gd-played.fx-bomb, .guandan-wrap .gd-played.fx-bomb-2, .guandan-wrap .gd-played.fx-bomb-3,
 .guandan-wrap .gd-played.fx-strflush, .guandan-wrap .gd-played.fx-jokerbomb { background: none; }
 
-/* 6. 级牌：整张淡朱砂底 + 顶边一道朱砂线，在宣纸牌桌上一眼能分出来（叠着只露顶条也看得见） */
-.guandan-wrap .gd-card.is-level {
-  background: linear-gradient(170deg, #fff6f2 0%, #f6dfd6 100%);
-  border-color: rgba(180, 57, 44, 0.45);
-  box-shadow: 0 1px 3px rgba(20, 37, 63, 0.18), inset 0 3px 0 var(--gd-seal);
+/* 6. 级牌（2026-11-26 用户：照欢乐斗地主）：右上角一条斜下来的朱砂飘带，写一个「级」字；
+      牌面本身照常白底。右上角的花色往左让一点，免得被飘带压住。 */
+.guandan-wrap .gd-card.is-level { background: linear-gradient(160deg, var(--gd-card-bg) 0%, var(--gd-card-bg-2) 100%); }
+.guandan-wrap .gd-card.is-level::after {
+  content: '级'; position: absolute; z-index: 3; pointer-events: none;
+  top: calc(var(--gd-card-w, 50px) * 0.07); right: calc(var(--gd-card-w, 50px) * -0.31);
+  width: calc(var(--gd-card-w, 50px) * 0.9); height: calc(var(--gd-card-w, 50px) * 0.2);
+  transform: rotate(45deg);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--gd-seal); color: var(--gd-seal-ink); box-shadow: 0 1px 2px rgba(29, 27, 24, 0.25);
+  font: 700 calc(var(--gd-card-w, 50px) * 0.15)/1 var(--gd-serif);
 }
+.guandan-wrap .gd-card.is-level .q-tr { justify-content: flex-start; padding-left: calc(var(--gd-card-w, 50px) * 0.02); font-size: calc(var(--gd-card-w, 50px) * 0.3); }
 
 /* 7. 大小王：手牌里叠着时那一条「★JOKER」横排写得下，不再顶出牌边 */
 .guandan-wrap .gd-card.is-joker .q-tr { font-size: calc(var(--gd-card-w, 50px) * 0.15); letter-spacing: -0.02em; justify-content: flex-start; padding-left: 1px; }
