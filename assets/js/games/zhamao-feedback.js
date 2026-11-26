@@ -37,6 +37,9 @@
 .zmfb-why.is-ready{opacity:1;pointer-events:auto}
 .zmfb-why button{border:1px solid var(--zm-ink,#1d1b18);background:var(--zm-paper,#f3eee3);border-radius:999px;padding:7px 12px;font:14px/1 system-ui;cursor:pointer;color:var(--zm-ink,#1d1b18)}
 .zmfb-why button.is-on{background:var(--zm-ink,#1d1b18);color:var(--zm-paper,#f3eee3)}
+.zmfb-mask.is-sent .zmfb-why button{pointer-events:none}
+.zmfb-why .zmw-fbrw{margin-left:auto}
+.zmfb-why .zmw-fbrw+.zmfb-send{margin-left:0}
 .zmfb-why .zmfb-send{margin-left:auto;background:var(--zm-seal,#b4392c);color:var(--zm-seal-ink,#fbf6ec);border-color:var(--zm-seal,#b4392c);min-width:64px}
 .zmfb-why .zmfb-send svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
 `;
@@ -143,9 +146,12 @@
           (g.hl.fb = g.hl.fb || []).push([pick, why || 'other', Math.max(0, Date.now() - (g.hl.t0 || Date.now()))]);
           if (root.ZhamaoHlog && root.ZhamaoHlog.snapshot) root.ZhamaoHlog.snapshot(g);
         }
-        if (root.ZhamaoWallet) root.ZhamaoWallet.fb(1);   // 小鱼干：每标一步 +5，每天最多 4 步（2026-11-22）
         s.innerHTML = TICK;
-        setTimeout(close, 450);
+        // 小鱼干：每标一步 +50，每天最多 4 步。2026-11-26 用户：就在这页上先看到鱼游进左上角、数字加上去，再关页
+        const W = root.ZhamaoWallet, me = mask;
+        const done = W && W.fbAward ? W.fbAward(mask.querySelector('.zmfb-why'), s) : (W && W.fb && W.fb(1), null);
+        if (done) { mask.classList.add('is-sent'); Promise.all([Promise.race([done, new Promise((r) => setTimeout(r, 4000))]), new Promise((r) => setTimeout(r, 450))]).then(() => { if (sheet === me) close(); }); }
+        else setTimeout(close, 450);
       }
     });
   }

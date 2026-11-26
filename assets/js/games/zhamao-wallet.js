@@ -138,6 +138,11 @@
 .zmw-tchip b{transition:color .2s}
 .zm-topleft.has-zmw .zm-title{display:none}
 .zmw-tchip.is-lift{position:relative;z-index:60}
+.zmw-tchip.is-fb{position:relative;z-index:90}
+.zmw-fbrw{display:inline-flex;align-items:center;gap:5px;padding:6px 12px 6px 9px;border-radius:999px;background:#fffdf8;border:1px solid rgba(29,27,24,.18);color:#3f7a52;font:700 16px/1 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums;transition:opacity .4s;white-space:nowrap}
+.zmw-fbrw .zmw-fish{width:24px;height:15px}
+.zmw-fbrw .zmw-tick{width:15px;height:15px}
+.zmw-fbrw.is-spent{opacity:.6}
 .zm-dialog-mask.is-wal{padding-top:58px}
 @media (max-width:480px),(max-height:480px){.zmw-tchip{height:30px;font-size:14px;padding:0 10px 0 8px}.zmw-tchip .zmw-fish{width:21px;height:13px}.zm-dialog-mask.is-wal{padding-top:50px}}
 /* 解锁勋章：整页压一层深色蒙版（2026-11-26 用户） */
@@ -341,6 +346,48 @@
     const prev = state && state.fw;
     if (state) { state = Object.assign({}, state, { fw: Object.assign({}, prev || {}, { ready: false, done: true }), t: Date.now() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); }
     return post('firstwin').catch((e) => { refresh(); throw e; });
+  }
+  /* 「这步不对」奖励（2026-11-26 用户：点了发送，两秒后数字才莫名其妙加上去）：
+   * 本机按服务器同一套规则（每标一步 +50、每天最多 4 步，按手机当地日期）先算这一步给不给；给就在反馈页上冒一颗「+50」胶囊，
+   * 鱼当场从它游进左上角、数字滚上去，放完再关页。服务器回来以它为准（顺手校正）；请求失败就按服务器的余额摆回去。
+   * 返回动画放完的 Promise（不给鱼就立刻好） */
+  const FB_EACH = 50, FB_MAX = 4, FBK = 'zm.wfb.v1';
+  function fbUsed() {
+    let n = 0;
+    try { const o = JSON.parse(ls.get(FBK)); if (o && o.d === today()) n = o.n | 0; } catch (_) { /* */ }
+    try { const c = JSON.parse(ls.get(PROF)); if (c && c.p && c.who === who() && c.p.fbToday != null && c.t && ymd(new Date(c.t)) === today()) n = Math.max(n, c.p.fbToday | 0); } catch (_) { /* */ }
+    return n;
+  }
+  function fbAward(host, before) {
+    const used = fbUsed();
+    ls.set(FBK, JSON.stringify({ d: today(), n: used + 1 }));
+    const amt = used < FB_MAX && state && state.bal != null ? FB_EACH : 0;
+    let anim = Promise.resolve();
+    if (amt) {
+      style();
+      let rw = null;
+      if (host) {
+        rw = document.createElement('span');
+        rw.className = 'zmw-fbrw';
+        rw.innerHTML = FISH + '+' + fmt(amt);
+        host.insertBefore(rw, before && before.parentNode === host ? before : null);
+        if (FX() && !FX().reduce()) rw.animate([{ transform: 'scale(.4)', opacity: 0 }, { transform: 'scale(1.12)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'ease-out' });
+      }
+      if (tchip) tchip.classList.add('is-fb');
+      // 胶囊亮一下再游（不然一冒出来鱼就飞走，看不清拿了多少）
+      anim = tAdd(rw, amt, tGen, rw && FX() && fxOn() ? 320 : 0, true).then(() => {
+        if (rw && rw.isConnected) { rw.classList.add('is-spent'); rw.insertAdjacentHTML('afterbegin', TICK); }
+        return wait(rw && rw.isConnected && FX() && fxOn() ? 380 : 0);
+      }).then(() => { if (tchip) tchip.classList.remove('is-fb'); });
+      // 本机先记上（tAdd 一调用就把左上角的目标数挪到新余额，这里通知别处时左上角不会再滚一遍）
+      state = Object.assign({}, state, { bal: state.bal + amt, t: Date.now() });
+      ls.set(CACHE, JSON.stringify(state));
+      listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } });
+    }
+    post('fb', { steps: 1 }).then((j) => {
+      try { const c = JSON.parse(ls.get(PROF)); if (c && c.p && c.who === who()) { c.p.fbToday = Math.min(FB_MAX, used + 1); c.p.fbTotal = (c.p.fbTotal | 0) + 1; if (j && j.bal != null) c.p.bal = j.bal; ls.set(PROF, JSON.stringify(c)); } } catch (_) { /* */ }
+    }).catch(() => { if (amt) refresh(); });
+    return anim;
   }
   function cancelFx() { fxGen++; if (FX()) FX().cancelAll(); }
   function canPay(tier, mode, n) { return !(state && state.bal != null && state.bal < price(tier, mode, n)); }
@@ -745,7 +792,7 @@
     BASE, FISH, price, loggedIn, deviceId,
     state: () => state, onChange: (f) => listeners.push(f),
     me: refresh,
-    checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, fb: (steps) => post('fb', { steps }).catch(() => null),
+    checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, fb: (steps) => post('fb', { steps }).catch(() => null), fbAward,
     ledger: (offset) => post('ledger', { offset }), costTag, tagHtml, onNoScore: null,
     mountChip, mountTable, tableStart, tableChip: () => tchip, badgeShow, claimFirstWin, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
     __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },
