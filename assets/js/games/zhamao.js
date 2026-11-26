@@ -4938,7 +4938,7 @@
   }
 
   /* 「作废只在和我有关时问」（设置里，默认关）：和我有关 = 这张牌是我出的（被人作废了，我可能想作废回去）、
-   * 指着我（索要 / 偷牌 / 点名 / 交换 / 自由甩锅）、或者是甩锅而下一家就是我。别的（洗牌、窥探、改命、跳过、抽底、互相甩锅 / 偷牌……）一律不问 */
+   * 指着我（索要 / 偷牌 / 点名 / 交换 / 自由甩锅）、或者是甩锅而下一家就是我。别的（洗牌、窥探、改命、跳过、抽底、互相甩锅 / 偷牌……）不问，例外见 alwaysAsk */
   function aboutSeat(p, me, alive, dir) {
     if (!p) return true;
     if (p.by === me || p.target === me) return true;
@@ -4951,8 +4951,11 @@
    * 以前的细项（挑哪几种也问、牌堆剩两成时全都问）拿掉了。没设过的人（undefined）按新默认「只问和我有关的」；
    * 自己在设置里动过的保留：存的 false = 只问和我有关、true = 全都问 */
   const nopeAskMode = () => (settings.nopeOthers === true ? 'all' : 'mine');
+  /* 就算和我无关也照问（2026-11-26 用户定）：五猫捡弃牌（能捡回逗猫棒 / 作废）、百变牌（全桌规则都变）、只剩两个人（对手出的每张牌都冲着我）。
+   * 只看牌型和还剩几个人——都是公开信息，联机时「问了我」不泄露任何东西 */
+  const alwaysAsk = (p, alive) => p.type === 'five' || p.type === R.FLUX || alive.filter(Boolean).length <= 2;
   function nopeAsks(p, me, alive, dir) {
-    return nopeAskMode() === 'all' || !p || aboutSeat(p, me, alive, dir);
+    return nopeAskMode() === 'all' || !p || aboutSeat(p, me, alive, dir) || alwaysAsk(p, alive);
   }
   // 组队：和队友有关（队友出的、指着队友、甩到队友头上）也算和我有关——帮队友挡一下 / 别挡了队友（2026-11-15 巡查）
   /* 组队：最后出手的是队友（他刚出的牌，或他刚作废回来的）——我再作废就是拆队友的台，不问；只有冲着我来的（指着我 / 甩锅甩到我头上）照问。
