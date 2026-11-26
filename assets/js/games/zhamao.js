@@ -2501,7 +2501,7 @@
       els.drawBtn.disabled = false; els.drawBtn.textContent = T('ui.cancel', '取消');
       if (!els.playBtn.querySelector('.zm-life')) els.playBtn.innerHTML = '<span class="zm-life" aria-hidden="true"><i></i></span><b>' + T('ui.btn.save', '合成') + '</b>';
       els.playBtn.classList.add('zm-btn-life', 'is-save');
-      els.playBtn.disabled = !(selected.length === 2 && R.savePairOk(game.state.hands[0], selected));
+      els.playBtn.disabled = false;   // 2026-11-26 用户：倒计时键点了一定要有反应——没挑成对也能点，交默认那一对（同到点）
     }
     else if (mode === 'give') {
       // 胖橘出的索要要给两张：按钮上写第几张（2026-11-15 巡查：以前给完一张又要给，不知道怎么回事）
@@ -5278,11 +5278,14 @@
     if (mode !== 'save') return;
     const hand = game.state.hands[0];
     const cards = selected.length === 2 && R.savePairOk(hand, selected) ? selected.slice() : null;
-    if (!auto && !decline && !cards) { shake(els.playBtn); return; }
+    // 没挑成对就点了「合成」（2026-11-26 用户：倒计时键点了一定要有反应）：只抬了一张 → 找一张能跟它凑对的；否则交默认那一对（同到点）
+    let pick = cards;
+    if (!pick && !decline && selected.length === 1) { const o = hand.find((x) => x !== selected[0] && R.savePairOk(hand, [selected[0], x])); if (o != null) pick = [selected[0], o]; }
+    if (!pick && !decline) pick = (R.catPairIds(hand) || []).slice();
     clearTimeout(saveTimer);
     mode = null;
     if (auto) { timeouts += 1; autoAct = true; }
-    const d = decline ? { type: 'save', no: true } : cards ? { type: 'save', cards } : { type: 'save' };
+    const d = decline ? { type: 'save', no: true } : pick && pick.length === 2 ? { type: 'save', cards: pick } : { type: 'save' };
     apply(0, d);
     if (auto && timeouts >= 2) setAutopilot(true);
   }

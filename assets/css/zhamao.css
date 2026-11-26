@@ -1419,7 +1419,7 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 @keyframes zm-rd-breathe { 50% { filter: drop-shadow(0 0 9px rgba(232, 200, 120, 0.95)); } }
 /* 抽角色时的遮罩：同偷牌那层宣纸色（只剩牌是亮的） */
 .zm-rd-mask { position: fixed; inset: 0; z-index: 4; background: rgba(243, 238, 227, 0.62); -webkit-backdrop-filter: blur(1px); backdrop-filter: blur(1px); pointer-events: auto; }
-.zm-rd-btn { position: fixed; z-index: 6; translate: -50% 0; white-space: nowrap; }
+.zm-rd-btn { position: fixed; z-index: 6; translate: -50% 0; white-space: nowrap; pointer-events: auto; }   /* 2026-11-26 用户：「抽一张」点了要能抽（.zm-fly 整层不接点击，以前点它落到遮罩上没反应） */
 .zm-rd-big, .zm-rd-small { position: fixed; z-index: 6; pointer-events: none; }
 .zm-rd-big { z-index: 7; }
 /* 发身份（2026-11-26）：别人那张背面牌飞到头像旁一翻，翻出来的是一枚只画这只猫的圆章，再盖进头像角上 */
