@@ -6279,7 +6279,7 @@
   let hiddenAt = 0;
   function markAway() {
     hiddenAt = Date.now();
-    if (game && !game.tutorial && !game.online && !game.dealing) save();   // 已暂停的局也重存一次，时间戳 = 离开那一刻
+    if (game && !game.tutorial && !game.online) save();   // 已暂停的局也重存一次，时间戳 = 离开那一刻（发牌中也存：存的是发完的局面，接回来跳过发牌动画）
     if (online && NET) NET.writeSession({ code: online.code, token: online.token });   // 联机：刷新「最后还在」的时间
   }
   window.addEventListener('pagehide', markAway);
@@ -6767,7 +6767,13 @@
     const st = R.createGame(n, seed, settings.rules);
     game = { state: st, bots: drawBots(n, settings.tier), tiers: [null].concat(Array(n - 1).fill(settings.tier)), tutorial: false };
     if (HL) HL.start(game, st, seed);
-    if (WAL) WAL.start(game, settings.tier);
+    if (WAL) {
+      // 2026-11-26 用户：开局后（发牌 / 抽角色还没放完）退出再回来，没有「接着打上一局」、门票白扣——以前要等发完牌走第一步才存档。
+      // 现在一开局就存；服务器发的门票号回来后再存一次（门票号没存上，接回来这局结算不了）
+      const g = game, tp = WAL.start(game, settings.tier);
+      if (tp && tp.then) tp.then(() => { if (game === g) save(); });
+    }
+    save();
     els.cover.hidden = true;
     buildSeats();
     solveSize();
@@ -7006,7 +7012,7 @@
   function showCover() {
     if (WAL && game) WAL.settle(game);
     if (WAL) setTimeout(() => WAL.me(), 1200);   // 回主页面：余额可能刚结算完，稍后刷新左上角
-    if (game && !game.tutorial && !game.dealing) save();
+    if (game && !game.tutorial) save();   // 发牌 / 抽角色中回主页面也存（2026-11-26），接着打时直接从发完牌开始
     resetTable();
     tut = null;
     els.skipTut.hidden = true;

@@ -384,7 +384,7 @@
     if (!game || game.tutorial || game.online) return;
     const st = game.state, mode = R.normalizeRules(st.rules).mode;
     const wt = game.wt = { n: st.n, mode, tier, all: 0, auto: 0 };
-    post('ticket', { n: st.n, mode, tier, gid: game.hl && game.hl.id }).then((r) => {
+    return post('ticket', { n: st.n, mode, tier, gid: game.hl && game.hl.id }).then((r) => {   // 返回：票回来后让牌桌再存一次档（门票号要跟着存档走）
       if (game.wt !== wt) return;
       if (r.tid) { wt.tid = r.tid; wt.price = r.price; wt.bal0 = r.bal; } else { wt.short = true; noScore(game); }
     }).catch(() => { if (game.wt === wt) { wt.off = true; noScore(game); } });
