@@ -8170,14 +8170,43 @@
     els.skipTut.hidden = true;
     if (soundPanel) soundPanel.hidden = true;
     refreshCover();
+    // 猫咪档案还没在后台更新完（排行榜那会儿来不及）：先跑一条和开场一样的进度条，拉完才跑满、再亮主菜单（2026-11-26 用户）
+    const wait = WAL && WAL.profileWait ? WAL.profileWait() : null;
+    sheetMask.hidden = true;
+    if (wait) {
+      coverStep('load');
+      els.cover.classList.add('is-loading');
+      els.cover.hidden = false;
+      refreshTools();
+      bgm('menu');
+      coverLoad(wait);
+      return;
+    }
     els.cover.classList.remove('is-loading');
     coverStep('main');
-    sheetMask.hidden = true;
     els.cover.hidden = false;
     deckSync();
     refreshTools();
     bgm('menu');
     coverIntro(false);
+  }
+  /* 主菜单的加载进度条：等 p（最多 5 秒，见 ZhamaoWallet.profileWait）期间慢慢往前爬，到了跑满、再揭开主菜单；太快也走完一程（不闪） */
+  async function coverLoad(p) {
+    const bar = els.cover.querySelector('.zm-cover-load i');
+    let got = 0.12, done = false;
+    const bump = (to) => { got = Math.max(got, to); if (bar) bar.style.transform = 'scaleX(' + got.toFixed(3) + ')'; };
+    const sleep = (t) => new Promise((r) => setTimeout(r, t));
+    if (bar) { bar.style.transition = 'none'; bump(0.12); void bar.offsetWidth; bar.style.transition = ''; }
+    const t0 = performance.now();
+    bump(0.3);
+    (async () => { while (!done) { await sleep(180); if (!done) bump(got + (0.85 - got) * 0.18); } })();
+    await p;
+    done = true;
+    bump(0.9);
+    await sleep(Math.max(0, 700 - (performance.now() - t0)));
+    bump(1);
+    await sleep(240);
+    if (!els.cover.hidden && els.cover.classList.contains('is-loading')) coverReveal();
   }
   // 主菜单：标题一个字一个字落下来（只在进来那一次）；回主菜单时玩法牌、按钮依次浮上来
   function coverIntro(title) {

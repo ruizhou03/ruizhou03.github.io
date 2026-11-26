@@ -459,13 +459,14 @@
    *  ② 手指一按下左上角小鱼干就先去拿（松手时请求已经在路上了）；1.5 秒内的重复请求共用同一个；
    *  ③ 本机还没存过（第一次玩）：主页面摆好后闲下来先拿一份 */
   const PROF = 'zm.wprof.v1';
-  let profP = null, profAt = 0;
+  let profP = null, profAt = 0, profBusy = 0, settledAt = 0;
   function profile(fresh) {
     if (!fresh && profP && Date.now() - profAt < 1500) return profP;
     profAt = Date.now();
     const me = who();
+    profBusy++;
     profP = post('profile', null, true).then((p) => { try { ls.set(PROF, JSON.stringify({ who: me, t: Date.now(), p })); } catch (_) { /* 存不下就算了 */ } return p; });
-    profP.catch(() => { profP = null; });
+    profP.catch(() => { profP = null; }).then(() => { profBusy--; });
     return profP;
   }
   const prevDay = (day) => { const d = new Date(day + 'T12:00:00'); d.setDate(d.getDate() - 1); return ymd(d); };
@@ -475,6 +476,16 @@
   /* 存的那份是昨天（或更早）拿的（2026-11-26 用户：新的一天进档案，签到要两三秒才能点）：
    * 按服务器同一套规则在本机先翻到今天——昨天签过连签接着算、断了归零；今日首胜「已领」清掉（待领的那份还在）。
    * 左上角那份（state）比存档新时，以它为准：今天已经签过 / 首胜刚领过 */
+  /* 回主页面时档案还没更新完（2026-11-26 用户：排行榜那会儿来不及的话，回主页面跑一条和开场一样的进度条，后台拉完才跑满）：
+   * 档案正在拉 / 存的是这局结算之前的 / 不是今天的 → 返回「拉完」的 Promise（最多等 5 秒）；已经是新的 → null（不跑进度条） */
+  function profileWait() {
+    let c = null;
+    try { c = JSON.parse(ls.get(PROF)); } catch (_) { /* */ }
+    const old = !c || !c.p || c.who !== who() || !c.t || dayAt(c.t) !== today() || c.t < settledAt;
+    if (!profBusy && !old) return null;
+    const p = profBusy && profP ? profP : profile(true);
+    return Promise.race([p.catch(() => null), new Promise((r) => setTimeout(r, 5000))]);
+  }
   function rollDay(p, t) {
     const now = today(), then = t ? dayAt(t) : now;
     if (then < now) {
@@ -689,6 +700,7 @@
       bs.forEach((id) => { tQ = tQ.then(() => (gen === tGen ? wait(300).then(() => badgeShow(id, gen)) : null)); });
       tQ = tQ.then(() => { if (gen === tGen) releaseT(); });
       // 看排行榜这会儿（2026-11-26 用户：最可能接着点回主页面 / 进档案）：后台把档案拉一份新的，进档案时流水不再跳
+      settledAt = Date.now();
       setTimeout(() => profile(true).catch(() => null), 300);
     };
     Promise.resolve(later()).then(finish, () => finish(null));
@@ -853,7 +865,7 @@
     BASE, FISH, price, loggedIn, deviceId,
     state: () => state, onChange: (f) => listeners.push(f),
     me: refresh,
-    checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, synced, who, today, fb: (steps) => post('fb', { steps }).catch(() => null), fbAward,
+    checkin: () => post('checkin').then((j) => { state = Object.assign({}, state || {}, { ck: today() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); return j; }), profile, profileCached, profileWait, synced, who, today, fb: (steps) => post('fb', { steps }).catch(() => null), fbAward,
     ledger: (offset) => post('ledger', { offset }), costTag, tagHtml, onNoScore: null,
     mountChip, mountTable, tableStart, tableChip: () => tchip, badgeShow, claimFirstWin, priceTag, start, act, settle, slot, fill, fillOnline, openProfile, login, markBadgesSeen, seenBadges, fxOn, playTicket, pay, canPay, cancelFx, payout, topUp,
     __demo: { setShown: (x) => { shown = x; if (chip) chip.querySelector('b').textContent = fmt(x); }, repaint: () => paintChip() },
