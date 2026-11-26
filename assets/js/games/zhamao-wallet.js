@@ -336,7 +336,12 @@
     });
   }
   /* 领今日首胜（2026-11-26：首胜不在结算里发，档案 / 「不够了」弹窗里自己领） */
-  function claimFirstWin() { return post('firstwin'); }
+  /* 2026-11-26 用户：点了领取要当场变「已领」——本机先记成领过（左上角小黄点、档案缓存跟着变），服务器没领成再按服务器的摆回去 */
+  function claimFirstWin() {
+    const prev = state && state.fw;
+    if (state) { state = Object.assign({}, state, { fw: Object.assign({}, prev || {}, { ready: false, done: true }), t: Date.now() }); ls.set(CACHE, JSON.stringify(state)); listeners.forEach((f) => { try { f(state); } catch (_) { /* */ } }); }
+    return post('firstwin').catch((e) => { refresh(); throw e; });
+  }
   function cancelFx() { fxGen++; if (FX()) FX().cancelAll(); }
   function canPay(tier, mode, n) { return !(state && state.bal != null && state.bal < price(tier, mode, n)); }
   function mountChip(cover) {
@@ -355,7 +360,8 @@
     if (root.MutationObserver) new MutationObserver(() => { if (cover.hidden) cancelFx(); }).observe(cover, { attributes: true, attributeFilter: ['hidden'] });
     paintChip();
     listeners.push(paintChip);
-    refresh().then(retryPending).then(() => { if (!profileCached()) setTimeout(() => profile().catch(() => null), 2500); });
+    // 档案数据闲下来先拿一份：本机没存过、存的不是今天的、或存了超过一分钟（2026-11-26 用户：进档案要已经是好的）
+    refresh().then(retryPending).then(() => { if (profStale()) setTimeout(() => profile().catch(() => null), 1200); });
     // 登录 / 登出之后：游客小鱼干并进账号（后端做），左上角跟着刷新
     if (auth() && auth().onChange) auth().onChange(() => { setTimeout(refresh, 300); });
     // 老链接 /toolbox/puffcat/me/ 会跳到 ?me=1：进来直接打开档案（用 replaceState 去掉参数，不留历史）
@@ -379,12 +385,35 @@
     profP.catch(() => { profP = null; });
     return profP;
   }
+  const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const prevDay = (day) => { const d = new Date(day + 'T12:00:00'); d.setDate(d.getDate() - 1); return ymd(d); };
+  function profStale() {
+    try { const c = JSON.parse(ls.get(PROF)); return !c || !c.p || c.who !== who() || !c.t || ymd(new Date(c.t)) !== today() || Date.now() - c.t > 60e3; } catch (_) { return true; }
+  }
+  /* 存的那份是昨天（或更早）拿的（2026-11-26 用户：新的一天进档案，签到要两三秒才能点）：
+   * 按服务器同一套规则在本机先翻到今天——昨天签过连签接着算、断了归零；今日首胜「已领」清掉（待领的那份还在）。
+   * 左上角那份（state）比存档新时，以它为准：今天已经签过 / 首胜刚领过 */
+  function rollDay(p, t) {
+    const now = today(), then = t ? ymd(new Date(t)) : now;
+    if (then < now) {
+      if (p.checkin) {
+        const keep = p.checkin.today && then === prevDay(now), streak = keep ? p.checkin.streak : 0, cyc = p.checkin.cycle || [];
+        p.checkin = Object.assign({}, p.checkin, { today: false, streak, next: cyc.length ? cyc[streak % cyc.length] : p.checkin.next });
+      }
+      if (p.firstWin) p.firstWin = Object.assign({}, p.firstWin, { done: false });
+      p.winToday = false;
+      p.today = now;
+    }
+    if (state && p.checkin && state.ck === now && !p.checkin.today) { p.checkin = Object.assign({}, p.checkin, { today: true, streak: p.checkin.streak + 1 }); p.ckDays = (p.ckDays || []).concat(now); }
+    if (state && state.fw && state.t && state.t > (t || 0) && ymd(new Date(state.t)) === now) p.firstWin = Object.assign({}, p.firstWin || {}, state.fw);
+    return p;
+  }
   function profileCached() {
     try {
       const c = JSON.parse(ls.get(PROF));
       if (!c || !c.p || c.who !== who()) return null;
       if (state && state.bal != null) c.p.bal = state.bal;   // 余额以左上角为准（存档之后可能又打了几局）
-      return c.p;
+      return rollDay(c.p, c.t);
     } catch (_) { return null; }
   }
   function openProfile() { if (root.ZhamaoProfile) root.ZhamaoProfile.open(); }

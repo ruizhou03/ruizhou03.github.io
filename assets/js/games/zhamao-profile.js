@@ -409,16 +409,24 @@
     const st = f.ready ? '<button type="button" data-fw>领取</button>' : '<em>' + (f.done ? '已领' : '赢一局就有') + '</em>';
     return '<div class="zmp-task' + (f.ready ? ' is-ready' : '') + '"><span>今日首胜<b>' + W().FISH + '+' + fmt(f.amount || 1000) + '</b></span>' + st + '</div>';
   }
+  /* 2026-11-26 用户：点了领取，按钮要当场变「已领」（以前等服务器回来要好几秒，中间还能一直点）。
+   * 点下去：这一行马上换成「已领」、鱼游进余额；服务器回来再按服务器的重摆；没领成就摆回「领取」、余额退回去 */
+  let fwBusy = false;
   function claimFw(btn) {
-    if (!last || btn.dataset.busy) return;
-    btn.dataset.busy = '1'; btn.disabled = true;
-    const amt = (last.firstWin && last.firstWin.amount) || 1000, from = last.bal, to = from + amt;
+    if (!last || fwBusy || !last.firstWin || !last.firstWin.ready) return;
+    fwBusy = true;
+    const prev = last.firstWin, amt = prev.amount || 1000, from = last.bal, to = from + amt;
+    const row = btn.closest('.zmp-task');
     const num = body.querySelector('[data-num]'), fx = root.ZhamaoWalletFx;
     let anim;
     if (fx && W().fxOn && W().fxOn()) anim = fx.school(W().FISH, btn, num.parentNode, 3, { spread: 16, gap: 90, dur: 700, lift: -50, size: 26, onLand: () => fx.roll(num, from, to, 520) });
     else { num.textContent = fmt(to); anim = Promise.resolve(); }
     last.bal = to;
-    W().claimFirstWin().then(() => anim).then(() => setTimeout(() => load(true), 350)).catch(() => load(true));
+    last.firstWin = Object.assign({}, prev, { ready: false, done: true });
+    if (row) { row.classList.remove('is-ready'); row.dataset.busy = '1'; btn.outerHTML = '<em>已领</em>'; }   // data-busy：领的路上别被晚到的旧档案盖回「领取」
+    const done = () => { fwBusy = false; if (row) delete row.dataset.busy; };
+    W().claimFirstWin().then(() => anim).then(() => { done(); setTimeout(() => load(true), 350); })
+      .catch(() => { done(); if (last) { last.firstWin = prev; last.bal = from; render(last); } load(true); });
   }
   /* 签到（2026-11-22 用户：点了要马上有反应，鱼要飞进档案里的余额，不是飞去后面的左上角）：
    * 点下去这格当场变成「已签」，连签数 +1，余额从格子里游出几条鱼进到上面的大数字、数字滚上去；同时发给服务器，
