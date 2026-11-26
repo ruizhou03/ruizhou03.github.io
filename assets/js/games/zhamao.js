@@ -3639,11 +3639,12 @@
       return { x: cx, y: cy, sc, eye: E, ey, boxes: [{ l: cx - sp - pu * 0.56 * z, r: cx + sp + pu * 0.56 * z, t: cy - pu * 0.69 * z - 4, b: cy + pu * 0.69 * z }, { l: cx - E / 2, r: cx + E / 2, t: ey - E / 2, b: ey + E / 2 }] };
     };
     const near = dirs.filter((d, i) => !i || d.x * toward.x + d.y * toward.y > -0.05), far = dirs.filter((d) => near.indexOf(d) < 0);   // 背着他那边：牌小一点都行，实在不行才去
-    for (const ds0 of [near, far]) for (const sc of [0.86, 0.72, 0.6]) for (const eyeOn of [false, true]) for (const dd of ds0) {
+    // 2026-11-26 用户：猫眼放在三张牌上面更好看——宁可牌和眼睛再缩小些，也先保住「眼睛在上」；全都放不下才叠到牌上
+    for (const eyeOn of [false, true]) for (const ds0 of [near, far]) for (const sc of [0.86, 0.76, 0.66, 0.58, 0.5]) for (const dd of ds0) {
       const ds = []; for (let d = 0.9; d > -0.01; d -= 0.15) ds.push(d); for (let d = 1.05; d < 2.2; d += 0.15) ds.push(d);   // 先 0.9 往回收到 0，再往外试到 2 张牌远
       for (const d of ds) { const p = plan(d, dd, sc, eyeOn); if (p.boxes.every(ok)) return p; }
     }
-    return plan(0, toward, 0.6, true);
+    return plan(0, toward, 0.5, true);
   }
 
   async function animFuture(e, t) {
