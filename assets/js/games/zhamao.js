@@ -376,7 +376,7 @@
   // 手里这张换成现在该有的牌面（拉幕）
   function flipFace(c, t, delay) { return curtainFace(c, cardHtml(+c.dataset.id, '', '', handWild()), delay, t); }
   // 牌原地换牌面（百搭变身 / 变回本身 / 摸底⇄抽顶都走这一个）。c 是 .zm-card 本身，html 是新的完整 cardHtml，t 可以是 null
-  function curtainFace(c, html, delay, t) {
+  function curtainFace(c, html, delay, t, slow) {   // slow：这一下要让人看清（摸进手里的猫变万能猫），拉得慢些
     /* 拉幕（2026-11-26 用户：不要翻面，像幕布拉过去换牌面；要快一点、线要斜着）：
      * 旧牌面复制一层盖在上面（.zm-curtain），底下立刻换成新牌面；旧那层从下往上斜着收走，收口那道斜边跟一条亮线 */
     if (fx.reduce() || !c.isConnected) { setFace(c, html); return Promise.resolve(); }
@@ -394,7 +394,7 @@
       edge.className = 'zm-curtain-edge';
       c.appendChild(edge);
       // 斜边：左低右高，左右两端差牌高的 18%；收口从牌底下一点一路扫到牌顶上一点
-      const dur = ms(380), easing = 'cubic-bezier(.45,.05,.3,1)';
+      const dur = ms(slow ? 620 : 380), easing = slow ? 'cubic-bezier(.4,.1,.35,1)' : 'cubic-bezier(.45,.05,.3,1)';
       const poly = (y) => 'polygon(0% 0%, 100% 0%, 100% ' + (y - 9) + '%, 0% ' + (y + 9) + '%)';
       edge.animate([{ top: '109%', opacity: 0 }, { top: '95%', opacity: 1, offset: 0.12 }, { top: '5%', opacity: 1, offset: 0.88 }, { top: '-9%', opacity: 0 }], { duration: dur, easing, fill: 'forwards' });
       return old.animate([{ clipPath: poly(109) }, { clipPath: poly(-9) }], { duration: dur, easing, fill: 'forwards' }).finished.catch(() => {}).then(() => { old.remove(); edge.remove(); });
@@ -440,7 +440,8 @@
     return st.flux === 'peektop' || isOpenKit(st, st.deck[0]) ? st.deck[0] : null;
   }
   function snapshot() { ov = liveDisplay(); return ov; }
-  function release() { ov = null; handHidden.clear(); handOut.clear(); wildLater.clear(); }
+  // wildLater 不在这里清（2026-11-26：摸牌动画一演完就 release + 重画，以前把「还在亮原样」的那张也清了，刚落手就闪成万能猫）；到点自己删
+  function release() { ov = null; handHidden.clear(); handOut.clear(); }
 
   /* ───── 尺寸：只算 --u ───── */
   /* 一局里尺寸锁死（2026-11-14 用户：玩着玩着整桌突然变大、顶上名字和箭头挤成一团）：
@@ -2293,7 +2294,7 @@
     const hw = handWild();
     els.hand.innerHTML = (note ? '<p class="zm-hand-note">' + esc(note) + '</p>' : '') + pick + hand.map((id) => cardHtml(id,
       (selected.indexOf(id) >= 0 ? 'is-sel' + (combo ? ' is-combo' : '') : (reactOpen && nopeLift.has(id) ? 'is-sel' : '')) + (handHidden.has(id) ? ' is-incoming' : '') +
-      (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : '') + (okSave && !okSave.has(id) ? ' is-dim' : ''), '', hw && !wildLater.has(id))).join('');
+      (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : '') + (okSave && !okSave.has(id) ? ' is-dim' : '') + (wildLater.has(id) && !handHidden.has(id) ? ' is-morphing' : ''), '', hw && !wildLater.has(id))).join('');
     els.hand.querySelectorAll('.zm-card').forEach((c) => {
       c.addEventListener('click', (e) => { e.stopPropagation(); onCardTap(+c.dataset.id, c); });
     });
@@ -2426,16 +2427,30 @@
     if (!c) return;
     c.classList.remove('is-incoming');
     if (fx.reduce()) return;
-    // 百搭猫：猫牌飞进手里时还是原样，落稳了翻一下变成万能猫（2026-11-26 用户：摸进来以后都变身为万能猫）
+    /* 百搭 / 百搭猫：猫牌飞进手里时还是原样，落稳了再变成万能猫。
+     * 2026-11-26 用户：以前快进手牌就切成万能猫，像闪了一下、看不出发生了什么 →
+     * 滑进牌槽后整张抬起一点、描一圈金边「亮给你看」，原样停半秒多，再慢慢斜拉幕变成万能猫，拉完冒几颗小星，放回去 */
     if (handWild() && R.CATS.indexOf(R.KIND_OF[id]) >= 0) {
       const t = token;
       wildLater.add(id);   // 手牌这期间重画也先画原样
       setFace(c, cardHtml(id));
+      const slide = 280, hold = ms(560), settle = ms(220);
+      // 抬起 + 金边是 is-morphing 这个类（CSS 用 translate / scale，不碰 transform）；手牌重画时 wildLater 里的牌照样带上它
+      setTimeout(() => { const c1 = handCard(id); if (t === token && c1 && wildLater.has(id)) c1.classList.add('is-morphing'); }, slide);
       setTimeout(() => {
         wildLater.delete(id);
         const c2 = handCard(id);
-        if (t === token && c2) { snd('flip'); flipFace(c2, t); }
-      }, ms(300));
+        if (t !== token || !c2) return;
+        snd('flip');
+        curtainFace(c2, cardHtml(id, '', '', handWild()), 0, t, true).then(() => {
+          if (t !== token) return;
+          const c3 = handCard(id);
+          if (!c3) return;
+          const r = c3.getBoundingClientRect();
+          fx.burst(r.left + r.width / 2, r.top + r.height * 0.4, { n: 8, shapes: ['star'], colors: ['#e0893e', '#d4607e', '#8a63a8', '#2f8a83', '#c9a24a'], radius: r.width * 0.75, size: [5, 11], life: 600 });
+          setTimeout(() => c3.classList.remove('is-morphing'), settle);
+        });
+      }, slide + hold);
     }
     const r = c.getBoundingClientRect();
     const dx = landed ? (landed.left + landed.width / 2) - (r.left + r.width / 2) : 0, dy = landed ? (landed.top + landed.height / 2) - (r.top + r.height / 2) : 0;
