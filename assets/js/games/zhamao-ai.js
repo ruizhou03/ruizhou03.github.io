@@ -981,7 +981,30 @@
     return polT(v, tier).act(v);
   }
   // 各档内部的细节判断一律按「普通」的走法（原来入门那套随手乱出的已经不用了）
-  function reactFor(v, tier, rng) { return polT(v, tier).react(v, rng || Math.random, 'normal'); }
+  /* 2026-11-26 高手作废别人的逃跑 / 甩锅牌（用户：机器猫从来不作废别人的跳过、洗牌这类牌）：
+   * 别人（组队里是对手）出跳过 / 转向 / 抽底 / 洗牌 / 甩锅（不冲我来的）、我手里有作废时，作废和不作废在同一批假想局里各打到底，
+   * 作废的平均名次分高出 ESC_ANCHOR 才作废——不写死什么时候废，由推演算。
+   * 研究版实测（经典 4 人，一座位对 3 个线上高手，各 6400 局）：名次分 0.499 vs 对照 0.499，约每 11 局作废一次；门槛 0.05 时废得多但掉 0.7 个点 */
+  const ESC_S = (FXO && FXO.escS != null) ? FXO.escS : 40, ESC_ANCHOR = 0.1;
+  const ESC_T = new Set([R.SKIP, R.REVERSE, R.BOTTOM, R.SHUFFLE, R.ATTACK, R.TATTACK].filter(Boolean));
+  function escWindow(v) {
+    const p = v.pending;
+    if (!p || !has(v, R.NOPE) || p.nopes % 2 !== 0 || p.by === v.me || !ESC_T.has(p.type)) return false;
+    if (teamV(v) && isMateV(v, p.by)) return false;
+    if (p.type === R.ATTACK && nextAliveV(v, p.by) === v.me) return false;   // 冲我来的照旧按规则挡
+    if (p.type === R.TATTACK && p.target === v.me) return false;
+    return true;
+  }
+  function hardEscNope(v, rng) {
+    const ap = (s, nope, rr) => { if (nope) R.nope(s, v.me); else R.pass(s, v.me); let g = 0; while (s.phase === 'react' && g++ < 30) stepWith(s, null, rr); };
+    const sc = evaluate(v, ap, [false, true], ESC_S, rng);
+    return sc[1] - sc[0] > ESC_ANCHOR * ESC_S;
+  }
+  function reactFor(v, tier, rng) {
+    rng = rng || Math.random;
+    if (tier === 'hard' && ESC_S > 0 && escWindow(v)) return hardEscNope(v, rng);
+    return polT(v, tier).react(v, rng, 'normal');
+  }
   function insertFor(v, tier, rng) {
     rng = rng || Math.random;
     if (isV2(brainOf(v)) && !(isFlux(v) && v.n >= FLUX_INS_MAX_N)) {   // 塞猫跟出牌配套交给网络（v2 出牌是和网络塞猫一起练的，配原规则塞猫反而掉分）；百变 5 人以上网络塞猫反而略差
@@ -1091,10 +1114,18 @@
     }
     return true;
   }
+  /* 2026-11-26 用户：机器猫有时连着打两张洗牌，中间没看牌，第二张没有任何用。
+   * 弃牌堆最上面是洗牌 = 上一张打出的就是洗牌、之后没人看过 / 塞过牌，牌堆对谁都还是乱的，再洗一次白费一张牌 */
+  function badShuffle(v, m) {
+    if (!m || m.type !== 'play' || m.cards.length !== 1 || K[m.cards[0]] !== R.SHUFFLE) return false;
+    const top = v.discard.length ? v.discard[v.discard.length - 1] : null;
+    return top != null && K[top] === R.SHUFFLE;
+  }
   function guardSwap(state, seat, v, d) {
-    if (!badSwap(v, d)) return d;
+    const bad = (m) => badSwap(v, m) || badShuffle(v, m);
+    if (!bad(d)) return d;
     const legal = (m) => m.type !== 'play' || !!R.checkPlay(state, seat, m.cards, m);
-    const pool = actCandidates(v).filter((m) => legal(m) && !badSwap(v, m));
+    const pool = actCandidates(v).filter((m) => legal(m) && !bad(m));
     if (useBrain(v) && pool.length) {
       const sf = brainState(v);
       let best = pool[0], bs = -Infinity;
