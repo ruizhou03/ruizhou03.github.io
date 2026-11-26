@@ -1600,7 +1600,8 @@
     s += '<circle r="16" fill="#5b3a8a"/><circle r="11" fill="#e9c86a"/></svg>';
     return (wheelSvgCache = s);
   }
-  async function fluxWheel(idx, t) {
+  /* 转盘跟着出牌方向转（2026-11-26 用户）：桌上出牌方向 1 = 逆时针，-1 = 顺时针；转盘同向转，换向后也反过来。只改转的方向，转到哪条不变 */
+  async function fluxWheel(idx, t, spin) {
     // 横屏人多时桌子中间那块顶上让给了顶边几家（padding-top）：转盘只在剩下的桌面里转，别盖住顶边那几家（2026-11-19）
     const box0 = els.center.getBoundingClientRect(), padT = parseFloat(getComputedStyle(els.center).paddingTop) || 0;
     const box = { left: box0.left, width: box0.width, top: box0.top + padT, height: box0.height - padT };
@@ -1615,8 +1616,9 @@
     snd('flip');
     await wrap.animate([{ transform: 'scale(.2)', opacity: 0 }, { transform: 'scale(1.05)', opacity: 1, offset: 0.7 }, { transform: 'scale(1)' }], { duration: ms(380), easing: 'cubic-bezier(.3,.8,.4,1.2)' }).finished.catch(() => {});
     if (t !== token) { wrap.remove(); return; }
-    const end = 360 * 4 - idx * seg, dur = ms(2600);
-    if (rimFxOn()) rimSwirl('#a77bb5', 1, dur, dirNow());
+    const sd = spin === -1 || spin === 1 ? spin : dirNow();
+    const end = sd === 1 ? -(360 * 4 + idx * seg) : 360 * 4 - idx * seg, dur = ms(2600);   // CSS rotate 正 = 顺时针
+    if (rimFxOn()) rimSwirl('#a77bb5', 1, dur, sd);
     await new Promise((res) => {
       const t0 = performance.now();
       let last = -1;
@@ -1624,7 +1626,7 @@
         if (t !== token) { res(); return; }
         const k = Math.min(1, (now - t0) / dur), a = end * (1 - Math.pow(1 - k, 4));   // 先快后慢停下
         disc.style.transform = 'rotate(' + a + 'deg)';
-        const sgi = Math.floor((a + seg / 2) / seg);
+        const sgi = Math.floor((Math.abs(a) + seg / 2) / seg);
         if (sgi !== last) { if (last >= 0) snd('tick'); last = sgi; }
         if (k < 1) requestAnimationFrame(tickF); else res();
       };
@@ -1646,7 +1648,9 @@
     const prev = ov ? ov.flux : null;
     if (ov) ov.flux = e.rule;
     const idx = Math.max(0, R.FLUX_RULES.findIndex((r) => r.id === e.rule));
-    if (!fx.reduce()) await fluxWheel(idx, t);
+    // 打出百变那一刻的方向：换上 / 换走「逆行」时 e.dir 已是掉头后的，要倒回去
+    const flip = ((e.prev !== undefined ? e.prev : prev) === 'reverse') !== (e.rule === 'reverse'), spin = e.dir === 1 || e.dir === -1 ? (flip ? -e.dir : e.dir) : dirNow();
+    if (!fx.reduce()) await fluxWheel(idx, t, spin);
     if (t !== token) return;
     let el = document.getElementById('zmFlux');
     if (el && !fx.reduce()) await el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(220), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});   // 旧水印淡出
@@ -9934,6 +9938,9 @@
       catsave2: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[0] = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(0, 'cow'); give(0, 'cow'); give(0, R.SKIP); give(0, R.SKIP); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       catsavenone: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); const h = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE), seen = new Set(); s.hands[0] = h.filter((id) => { const k = R.KIND_OF[id]; if (seen.has(k) || k === R.WILD) { s.removed.push(id); return false; } seen.add(k); return true; }); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       catsavebot: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(bot, 'cow'); give(bot, 'cow'); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
+      // 转盘跟着出牌方向（2026-11-26）：fluxccw = 出牌方向 1（桌上逆时针），fluxcw = -1（顺时针）；机器猫打出一张百变
+      fluxccw: () => plays.fluxDir(1), fluxcw: () => plays.fluxDir(-1),
+      fluxDir: (d) => { s.dir = d; const id = R.KIND_OF.findIndex((k, i) => k === R.FLUX && s.hands.every((h) => h.indexOf(i) < 0)); [s.deck, s.discard, s.removed].forEach((a) => { const j = a.indexOf(id); if (j >= 0) a.splice(j, 1); }); s.hands[bot].push(id); s.turn = bot; renderAll(); apply(bot, { type: 'play', cards: [id] }); },
       allwild: () => { s.flux = 'allwild'; give(0, 'orange'); give(0, 'cow'); give(0, 'tabby'); s.turn = 0; renderAll(); },   // 百变「百搭」：手里三只不同的猫，自己挑着出
       nine: () => { s.flux = 'nine'; s.nineUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
       bottom1: () => { const keep = s.deck.find((id) => R.KIND_OF[id] !== R.BOOM); s.removed.push(...s.deck.filter((id) => id !== keep)); s.deck = [keep]; give(bot, 'bottom'); s.turn = bot; apply(bot, { type: 'play', cards: [s.hands[bot].find((id) => R.KIND_OF[id] === 'bottom')] }); },
