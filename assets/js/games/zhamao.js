@@ -289,14 +289,19 @@
   const topdrawNow = () => fluxNow() === 'bottom';
   // 百变「百搭」（2026-11-26 用户）：所有猫都变成万能猫——猫牌的牌面跟着换成万能猫（像摸底时抽底变抽顶），换走规则再变回来
   const allwildNow = () => fluxNow() === 'allwild';
-  const viewKind = (k) => (k === R.BOTTOM && topdrawNow() ? 'topdraw' : R.CATS.indexOf(k) >= 0 && allwildNow() ? R.WILD : k);
-  // 我出这组牌算什么（角色猫三花：任意两只 / 三只猫也算）
+  const viewKind = (k, wild) => (k === R.BOTTOM && topdrawNow() ? 'topdraw' : R.CATS.indexOf(k) >= 0 && (wild || allwildNow()) ? R.WILD : k);
+  // 角色「百搭猫」（2026-11-26 用户：和百变「百搭」一样）：这一家手里的猫都是万能猫——手牌区摆的是他的牌时，猫画成万能猫（摸进来时翻一下变身）
+  const wildLater = new Set();   // 刚飞进百搭猫手里、还没翻成万能猫的牌
+  const handWild = () => { const s = game && game.state; if (!s || !s.roles) return false; const seat = s.alive[0] ? 0 : viewSeat; return seat >= 0 && R.roleOf(s, seat) === 'calico'; };
+  // 百搭猫的猫出手：起飞时还是万能猫，半路翻回原来那只猫（桌上 / 弃牌堆照真牌画）
+  const leaveWild = (id, o) => (handWild() && R.CATS.indexOf(R.KIND_OF[id]) >= 0 ? Object.assign(o, { back: cardHtml(id, '', '', true), flip: 'up', flipAt: 0.15 }) : o);
+  // 我出这组牌算什么（百变「百搭」/ 角色「百搭猫」：任意两只 / 三只 / 五只猫也算）
   const classifyMine = (cards) => (R.classifyFor && game && game.state ? R.classifyFor(game.state, 0, cards) : R.classify(cards));
   // 名字条放不下的长名字（英文）：按字数缩一档 / 两档字号（zhamao.css 末尾「多语言」一段）。简体一律不加，站点和以前一样
   const nmCls = (s) => (LANG === 'zh-Hans' ? '' : String(s).length > 12 ? ' is-xlong' : String(s).length > 8 ? ' is-long' : '');
-  function cardHtml(kindOrId, cls, style) {
+  function cardHtml(kindOrId, cls, style, wild) {   // wild：猫画成万能猫（百搭猫的手牌）
     const k = typeof kindOrId === 'number' ? R.KIND_OF[kindOrId] : kindOrId;
-    const vk = viewKind(k);   // 看起来是哪种（data-k 仍是真牌种，出牌判断不受影响；data-v 是看起来的那种）
+    const vk = viewKind(k, wild);   // 看起来是哪种（data-k 仍是真牌种，出牌判断不受影响；data-v 是看起来的那种）
     const t = ART.TONE[vk];
     return '<div class="zm-card' + (cls ? ' ' + cls : '') + '" data-k="' + k + '"' + (vk !== k ? ' data-v="' + vk + '"' : '') + (typeof kindOrId === 'number' ? ' data-id="' + kindOrId + '"' : '') +
       ' style="--bg:' + t.bg + ';--band:' + t.band + ';--ink:' + t.ink + (style ? ';' + style : '') + '">' +
@@ -308,19 +313,27 @@
     if (!cards.length) return;
     snd('flip');
     await Promise.all(cards.map((c, i) => {
-      if (fx.reduce()) { c.outerHTML = cardHtml(+c.dataset.id, c.className.replace(/\bzm-card\b/, '').trim(), c.getAttribute('style').split(';').filter((x) => !/^--(bg|band|ink)/.test(x.trim())).join(';')); return null; }
-      const half = { duration: ms(180), delay: i * ms(60), easing: 'ease-in', fill: 'forwards' };
-      return c.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], half).finished.then(() => {
-        if (t !== token) return;
-        const tmp = document.createElement('div'); tmp.innerHTML = cardHtml(+c.dataset.id);
-        const fresh = tmp.firstChild;
-        c.style.setProperty('--bg', fresh.style.getPropertyValue('--bg')); c.style.setProperty('--band', fresh.style.getPropertyValue('--band')); c.style.setProperty('--ink', fresh.style.getPropertyValue('--ink'));
-        c.innerHTML = fresh.innerHTML;
-        if (fresh.dataset.v) c.dataset.v = fresh.dataset.v; else delete c.dataset.v;
-        c.getAnimations().forEach((a) => a.cancel());
-        return c.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { duration: ms(200), easing: 'ease-out' }).finished;
-      }).catch(() => {});
+      if (fx.reduce()) { c.outerHTML = cardHtml(+c.dataset.id, c.className.replace(/\bzm-card\b/, '').trim(), c.getAttribute('style').split(';').filter((x) => !/^--(bg|band|ink)/.test(x.trim())).join(';'), handWild()); return null; }
+      return flipFace(c, t, i * ms(60));
     }));
+  }
+  // 手里这张牌换上它现在该有的牌面（摸底 / 百搭 / 百搭猫）
+  function setFace(c, html) {
+    const tmp = document.createElement('div'); tmp.innerHTML = html;
+    const fresh = tmp.firstChild;
+    c.style.setProperty('--bg', fresh.style.getPropertyValue('--bg')); c.style.setProperty('--band', fresh.style.getPropertyValue('--band')); c.style.setProperty('--ink', fresh.style.getPropertyValue('--ink'));
+    c.innerHTML = fresh.innerHTML;
+    if (fresh.dataset.v) c.dataset.v = fresh.dataset.v; else delete c.dataset.v;
+  }
+  // 翻一下：转到侧面时换牌面，再转回来
+  function flipFace(c, t, delay) {
+    const half = { duration: ms(180), delay: delay || 0, easing: 'ease-in', fill: 'forwards' };
+    return c.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], half).finished.then(() => {
+      if (t !== token) return;
+      setFace(c, cardHtml(+c.dataset.id, '', '', handWild()));
+      c.getAnimations().forEach((a) => a.cancel());
+      return c.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { duration: ms(200), easing: 'ease-out' }).finished;
+    }).catch(() => {});
   }
   const backHtml = (cls, style) => '<div class="zm-card is-back' + (cls ? ' ' + cls : '') + '"' + (style ? ' style="' + style + '"' : '') + '>' + ART.BACK + '</div>';
   const pileRot = (id) => ((id * 37) % 13) - 6;
@@ -356,7 +369,7 @@
     return st.flux === 'peektop' || isOpenKit(st, st.deck[0]) ? st.deck[0] : null;
   }
   function snapshot() { ov = liveDisplay(); return ov; }
-  function release() { ov = null; handHidden.clear(); handOut.clear(); }
+  function release() { ov = null; handHidden.clear(); handOut.clear(); wildLater.clear(); }
 
   /* ───── 尺寸：只算 --u ───── */
   /* 一局里尺寸锁死（2026-11-14 用户：玩着玩着整桌突然变大、顶上名字和箭头挤成一团）：
@@ -2188,9 +2201,10 @@
     const note = !hand.length ? watchNote() : '';
     // 我出局了、还没坐到谁背后：空出来的手牌区摆一排还在场的人的小头像，点谁就坐到谁背后（2026-11-17 用户定丙）
     const pick = !hand.length && outIdle() ? watchPickHtml() : '';
+    const hw = handWild();
     els.hand.innerHTML = (note ? '<p class="zm-hand-note">' + esc(note) + '</p>' : '') + pick + hand.map((id) => cardHtml(id,
       (selected.indexOf(id) >= 0 ? 'is-sel' + (combo ? ' is-combo' : '') : (reactOpen && nopeLift.has(id) ? 'is-sel' : '')) + (handHidden.has(id) ? ' is-incoming' : '') +
-      (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : '') + (okSave && !okSave.has(id) ? ' is-dim' : ''))).join('');
+      (s.phase === 'react' && reactOpen && R.KIND_OF[id] === R.NOPE ? ' is-nope-ready' : '') + (okSave && !okSave.has(id) ? ' is-dim' : ''), '', hw && !wildLater.has(id))).join('');
     els.hand.querySelectorAll('.zm-card').forEach((c) => {
       c.addEventListener('click', (e) => { e.stopPropagation(); onCardTap(+c.dataset.id, c); });
     });
@@ -2252,7 +2266,7 @@
       if (loupe.el) loupe.el.classList.remove('is-scrub');
       c.classList.add('is-scrub');
       loupe.el = c; loupe.id = +c.dataset.id;
-      loupe.node.innerHTML = cardHtml(loupe.id);
+      loupe.node.innerHTML = cardHtml(loupe.id, '', '', handWild());
       if (!fx.reduce()) loupe.node.animate([{ transform: 'scale(.92)' }, { transform: 'none' }], { duration: 120, easing: 'ease-out' });
       snd('tick');
     }
@@ -2323,6 +2337,17 @@
     if (!c) return;
     c.classList.remove('is-incoming');
     if (fx.reduce()) return;
+    // 百搭猫：猫牌飞进手里时还是原样，落稳了翻一下变成万能猫（2026-11-26 用户：摸进来以后都变身为万能猫）
+    if (handWild() && R.CATS.indexOf(R.KIND_OF[id]) >= 0) {
+      const t = token;
+      wildLater.add(id);   // 手牌这期间重画也先画原样
+      setFace(c, cardHtml(id));
+      setTimeout(() => {
+        wildLater.delete(id);
+        const c2 = handCard(id);
+        if (t === token && c2) { snd('flip'); flipFace(c2, t); }
+      }, ms(300));
+    }
     const r = c.getBoundingClientRect();
     const dx = landed ? (landed.left + landed.width / 2) - (r.left + r.width / 2) : 0, dy = landed ? (landed.top + landed.height / 2) - (r.top + r.height / 2) : 0;
     if (Math.abs(dx) > 1.5 || Math.abs(dy) > 1.5) {
@@ -3036,11 +3061,12 @@
         target.classList.remove('is-incoming');
         return Promise.resolve();
       }
-      return fx.fly({
+      const fo = {
         html: cardHtml(id), back: backHtml(), flip: mine ? null : 'up', flipAt: 0.15,
         from: mine ? src[id] : start, to: { x: to.left + to.width / 2, y: to.top + to.height / 2 }, w: su,
         s0: mine ? src[id].width / su : 0.3, s1: 1, r0: mine ? 0 : -18, r1: rot, dur: ms(pace().fly + 80), delay: i * ms(80), lift: mine ? 90 : 50,
-      }).then(() => {
+      };
+      return fx.fly(mine ? leaveWild(id, fo) : fo).then(() => {
         if (t !== token) return;
         target.classList.remove('is-incoming');
         snd('thud');
@@ -5219,7 +5245,7 @@
       const target = stageCard(id);
       if (!target) return null;
       const to = target.getBoundingClientRect(), rot = (i - (cards.length - 1) / 2) * 5;
-      return fx.fly({ html: cardHtml(id), from: rects[i], to: { x: to.left + to.width / 2, y: to.top + to.height / 2 }, w: su, s0: rects[i].width / su, s1: 1, r0: 0, r1: rot, dur: ms(380), delay: i * ms(60), lift: 70 })
+      return fx.fly(leaveWild(id, { html: cardHtml(id), from: rects[i], to: { x: to.left + to.width / 2, y: to.top + to.height / 2 }, w: su, s0: rects[i].width / su, s1: 1, r0: 0, r1: rot, dur: ms(380), delay: i * ms(60), lift: 70 }))
         .then(() => { if (t === token) target.classList.remove('is-incoming'); });
     }));
     if (t !== token || !preview) return;
@@ -7152,7 +7178,8 @@
   function guideNext(s) {
     const hand = s.hands[0], cnt = {};
     for (const id of hand) { const k = R.KIND_OF[id]; cnt[k] = (cnt[k] || 0) + 1; }
-    for (const id of hand) { const k = R.KIND_OF[id]; if (GUIDE_CARDS[k] && !guideSeen('card:' + k)) return { key: 'card:' + k, cards: [k], text: GUIDE_CARDS[k]() }; }
+    const hw = handWild();   // 百搭猫：手里的猫都画成万能猫，讲牌就讲万能猫
+    for (const id of hand) { const k = hw && R.CATS.indexOf(R.KIND_OF[id]) >= 0 ? R.WILD : R.KIND_OF[id]; if (GUIDE_CARDS[k] && !guideSeen('card:' + k)) return { key: 'card:' + k, cards: [k], text: GUIDE_CARDS[k]() }; }
     if (!guideSeen('combo:three')) { const k = Object.keys(cnt).find((x) => cnt[x] >= 3 && x !== R.BOOM); if (k) return { key: 'combo:three', cards: [k, k, k], text: T('guide.combo.three', '三张一样一起出：点一个人、说一种牌，他有就得给你') }; }
     if (!guideSeen('combo:five') && R.CATS.every((k) => cnt[k])) return { key: 'combo:five', cards: R.CATS.slice(), text: T('guide.combo.five', '五种猫各一张一起出：从弃牌堆捡一张') };
     if (!guideSeen('tip:stack') && s.phase === 'act' && s.turn === 0 && s.turnsLeft > 1 && (cnt[R.ATTACK] || cnt[R.TATTACK])) return { key: 'tip:stack', cards: [cnt[R.ATTACK] ? R.ATTACK : R.TATTACK], text: T('guide.tip.stack', '被甩锅时再甩出去：没摸的回合加 2，一起甩走') };
@@ -8773,7 +8800,7 @@
       const target = stageCard(id);
       if (!target) return null;
       const to = target.getBoundingClientRect(), rot = (i - (cards.length - 1) / 2) * 5;
-      return fx.fly({ html: cardHtml(id), from: rects[i], to: { x: to.left + to.width / 2, y: to.top + to.height / 2 }, w: su, s0: rects[i].width / su, s1: 1, r0: 0, r1: rot, dur: ms(340), delay: i * ms(50), lift: 70 })
+      return fx.fly(leaveWild(id, { html: cardHtml(id), from: rects[i], to: { x: to.left + to.width / 2, y: to.top + to.height / 2 }, w: su, s0: rects[i].width / su, s1: 1, r0: 0, r1: rot, dur: ms(340), delay: i * ms(50), lift: 70 }))
         .then(() => { if (t === token) target.classList.remove('is-incoming'); });
     }));
     if (t !== token || !preview) return;
@@ -9928,6 +9955,7 @@
       roletabbymiss: () => { const o = 2 % s.n; setRole(o, 'tabby'); if (R.countKind(s.hands[o], R.NOPE) === 0) give(o, R.NOPE); s.removed.push(...s.hands[bot].splice(0)); give(bot, R.SKIP); s.turn = bot; game.forceNope = [o]; renderAll(); apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
       rolefat: () => { setRole(bot, 'fat'); plays.favor(); },
       rolefatme: () => { setRole(0, 'fat'); give(0, R.FAVOR); s.turn = 0; apply(0, { type: 'play', cards: [R.findKind(s.hands[0], R.FAVOR)], target: bot }); },
+      rolecalicome: () => { setRole(0, 'calico'); ['orange', 'cow', 'tabby', 'siamese', 'calico'].forEach((k) => give(0, k)); const ck = R.CATS.find((k) => s.deck.some((x) => R.KIND_OF[x] === k)); if (ck) top(ck); s.turn = 0; release(); renderAll(); },   // 我是百搭猫：手里的猫都画成万能猫，顶上放一张猫，摸进来会翻成万能猫
       rolecalico: () => { setRole(bot, 'calico'); give(bot, 'orange'); give(bot, 'siamese'); s.turn = bot; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], 'orange'), R.findKind(s.hands[bot], 'siamese')], target: 0 }); },
       roletabby: () => { const o = 2 % s.n; setRole(o, 'tabby'); if (R.countKind(s.hands[o], R.NOPE) === 0) give(o, R.NOPE); give(bot, R.SKIP); s.turn = bot; game.forceNope = [o]; apply(bot, { type: 'play', cards: [R.findKind(s.hands[bot], R.SKIP)] }); },
       roleshadow: () => { setRole(bot, 'shadow'); give(0, 'cow'); give(0, 'cow'); s.turn = 0; release(); renderAll(); step(); },

@@ -828,3 +828,19 @@ test('flux 百搭 (allwild): any two / three / five cats combine; off again when
   assert.equal(R.classifyFor(s, 0, triple), null);
   assert.ok(R.FLUX_RULES.some((r) => r.id === 'allwild'));
 });
+
+test('role 百搭猫 (calico): this seat\'s cats are all wild — any two / three / five; other seats unaffected', () => {
+  const s = rig([['orange', 'cow', 'tabby', 'calico', 'siamese', 'orange'], ['orange', 'cow', 'tabby']], ['skip', 'skip', 'skip'], 0);
+  const h = s.hands[0], id = (k, i) => h.filter((x) => R.KIND_OF[x] === k)[i || 0];
+  const pair = [id('orange'), id('cow')], triple = [id('orange'), id('cow'), id('tabby')];
+  const five = [id('orange'), id('orange', 1), id('cow'), id('tabby'), id('calico')];
+  assert.equal(R.classifyFor(s, 0, five), null);
+  s.roles = ['calico', 'timid'];
+  assert.equal(R.classifyFor(s, 0, pair).type, 'pair');
+  assert.equal(R.classifyFor(s, 0, triple).type, 'triple');
+  assert.equal(R.classifyFor(s, 0, five).type, 'five');   // 2026-11-26：百搭猫和百变「百搭」一样，任意五只猫也算
+  assert.equal(R.classifyFor(s, 0, [id('orange'), id('cow'), id('tabby'), id('calico')]), null);
+  const o = s.hands[1];
+  assert.equal(R.classifyFor(s, 1, [o[0], o[1]]), null);   // 别人不是百搭猫
+  assert.ok(R.play(s, 0, five, {}).length);
+});

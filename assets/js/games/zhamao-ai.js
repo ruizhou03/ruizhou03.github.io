@@ -166,9 +166,11 @@
     for (const id of v.hand) { const k = K[id]; (by[k] = by[k] || []).push(id); }
     return by;
   }
+  // 所有猫都是万能猫：百变规则「百搭」，或角色「百搭猫」（2026-11-26 用户改成和百搭一样：手里的猫都是万能猫）
+  const anyCat = (v) => (v.roles && v.roles[v.me] === 'calico') || v.flux === 'allwild';
   // 五种猫各一张（规则只认猫）：每种挑一张，缺的拿万能猫顶；顶不上就凑不成
   function fiveCats(v) {
-    if (v.flux === 'allwild') { const cs = v.hand.filter((id) => R.catLike(K[id])); return cs.length >= 5 ? cs.slice(0, 5) : null; }   // 百变「百搭」：任意五只猫
+    if (anyCat(v)) { const cs = v.hand.filter((id) => R.catLike(K[id])); return cs.length >= 5 ? cs.slice(0, 5) : null; }   // 百变「百搭」/ 角色「百搭猫」：任意五只猫
     const picks = [], wild = v.hand.filter((id) => K[id] === R.WILD);
     for (const k of R.CATS) {
       let id = one(v, k);
@@ -178,8 +180,6 @@
     }
     return picks;
   }
-  // 杂猫也能凑：角色猫「百搭猫」，或百变规则「百搭」（所有猫都是万能猫）
-  const anyCat = (v) => (v.roles && v.roles[v.me] === 'calico') || v.flux === 'allwild';
   // 猫种 k 凑 n 张：先用真猫，不够拿万能猫补；一张真猫都没有就不凑（两张以上万能猫自己就是一样的牌，走 by.wild）
   function catSet(by, k, n) {
     const real = by[k] || [], wild = by[R.WILD] || [];
@@ -209,7 +209,7 @@
     const skipIdP = (v) => { if (!P.revFirst) return skipId(v); const a = one(v, R.REVERSE); return a != null ? a : one(v, R.SKIP); };   // 先用跳过还是转向（调参项）
     function cardValueV(v, id) {   // 百变「静默」时作废不能打：按 fMuteNopeV 估（其余同 cardValue）
       if (P.fx && P.fMuteNopeV != null && v.flux === 'mute' && K[id] === R.NOPE) return P.fMuteNopeV;
-      if (v.flux === 'allwild' && R.catLike(K[id])) return v.hand.filter((x) => R.catLike(K[x])).length >= 2 ? P.vCatPair : P.vCatSingle;   // 百变「百搭」：杂猫也成对
+      if (anyCat(v) && R.catLike(K[id])) return v.hand.filter((x) => R.catLike(K[x])).length >= 2 ? P.vCatPair : P.vCatSingle;   // 百变「百搭」/ 百搭猫：杂猫也成对
       return cardValue(v.hand, id);
     }
     function cardValue(hand, id) {
@@ -493,17 +493,17 @@
         const pool = hand.filter((id) => K[id] !== R.DEFUSE || nDef >= 2);
         const src = pool.length ? pool : hand;
         if (nDef >= 2) return src.find((id) => K[id] === R.DEFUSE);
-        return src.slice().sort((a, b) => (P.fx ? cardValueV(v, b) - cardValueV(v, a) : cardValue(hand, b) - cardValue(hand, a)))[0];
+        return src.slice().sort((a, b) => (P.fx || anyCat(v) ? cardValueV(v, b) - cardValueV(v, a) : cardValue(hand, b) - cardValue(hand, a)))[0];
       }
       if (tier === 'easy') { const non = hand.filter((id) => K[id] !== R.DEFUSE); return pickRand(non.length ? non : hand, rng); }
-      if (P.fx) return hand.slice().sort((a, b) => cardValueV(v, a) - cardValueV(v, b))[0];
+      if (P.fx || anyCat(v)) return hand.slice().sort((a, b) => cardValueV(v, a) - cardValueV(v, b))[0];
       return hand.slice().sort((a, b) => cardValue(hand, a) - cardValue(hand, b))[0];
     }
     function pick(v, tier, rng) {
       const cands = v.discard.filter((id) => K[id] !== R.BOOM);
       if (tier === 'easy') return pickRand(cands, rng);
       const hand = v.hand;
-      if (P.fx) return cands.slice().sort((a, b) => cardValueV(v, b) - cardValueV(v, a))[0];
+      if (P.fx || anyCat(v)) return cands.slice().sort((a, b) => cardValueV(v, b) - cardValueV(v, a))[0];
       return cands.slice().sort((a, b) => cardValue(hand, b) - cardValue(hand, a))[0];
     }
     /* 改命：顶上有炸弹猫——这回合躲得掉（甩锅 / 跳过 / 抽底）就把它放最上面留给下一个人；

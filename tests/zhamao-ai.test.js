@@ -170,3 +170,27 @@ test('hard beats normal heads-up (sanity, small sample)', () => {
   }
   assert.ok(hard >= 20, 'hard won only ' + hard + '/' + G);
 });
+
+test('百搭猫 (calico role): bots use any mixed cats as pairs / fives; roles self-play runs clean', () => {
+  const rules = Object.assign({}, R.DEFAULT_RULES, { mode: 'roles' });
+  let mixed = 0;
+  for (let g = 0; g < 30; g++) {
+    const s = R.createGame(4, 777 + g, rules);
+    s.roles[g % 4] = 'calico';
+    const st = { rs: g + 3 }; const rng = () => R.rand(st);
+    let guard = 0;
+    while (s.phase !== 'over') {
+      assert.ok(++guard < 5000, 'runaway');
+      if (s.phase === 'react') {
+        for (const t of R.awaitingReaction(s)) { const d = A.decide(s, t, g % 2 ? 'hard' : 'normal', rng); if (d.type === 'nope') { R.nope(s, t); break; } R.pass(s, t); }
+        if (R.reactionDone(s)) R.closeReaction(s);
+        continue;
+      }
+      const seat = R.whoActs(s)[0];
+      const d = A.decide(s, seat, g % 2 ? 'hard' : 'normal', rng);
+      if (d.type === 'play' && d.cards.length >= 2 && !R.classify(d.cards)) { assert.equal(R.roleOf(s, seat), 'calico'); mixed++; }
+      apply(s, seat, d);
+    }
+  }
+  assert.ok(mixed > 3, 'calico bots rarely used mixed cats: ' + mixed);
+});

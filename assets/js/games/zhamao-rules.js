@@ -152,7 +152,7 @@
     { id: 'fat', name: T('role.fat.name', '贪吃猫'), desc: T('role.fat.desc', '出索要，对方要给 2 张'), once: false },
     { id: 'shadow', name: T('role.shadow.name', '影子猫'), desc: T('role.shadow.desc', '两张偷牌指不到它'), once: false },
     { id: 'cow', name: T('role.cow.name', '扛锅猫'), desc: T('role.cow.desc', '被甩锅，只摸 1 张'), once: false },
-    { id: 'calico', name: T('role.calico.name', '百搭猫'), desc: T('role.calico.desc', '杂猫也能凑对、凑三张'), once: false },
+    { id: 'calico', name: T('role.calico.name', '百搭猫'), desc: T('role.calico.desc', '猫牌一到手就变万能猫'), once: false },
     { id: 'tabby', name: T('role.tabby.name', '截胡猫'), desc: T('role.tabby.desc', '作废成功，顺走对方一张'), once: false },
   ]);
   const ROLE_IDS = ROLES.map((r) => r.id);
@@ -403,17 +403,17 @@
     return null;
   }
 
-  /* 这个座位出这组牌算什么（考虑角色猫：三花任意两只猫算一对、任意三只算三张）——界面判断能不能出也用它 */
+  /* 这个座位出这组牌算什么（考虑「所有猫都是万能猫」）——界面判断能不能出也用它
+   * 百变「百搭」（2026-11-26 用户）：所有人的猫都是万能猫；角色「百搭猫」（2026-11-26 用户改成和百搭一样）：这一家手里的猫都是万能猫。
+   * 都是：任意两只 = 一对、任意三只 = 三张一样、任意五只 = 五种各一张 */
+  const allWildFor = (s, seat) => !!s && (s.flux === 'allwild' || roleOf(s, seat) === 'calico');
   function classifyFor(s, seat, cards) {
     const c = classify(cards);
-    // 百变「百搭」（2026-11-26 用户）：所有猫都是万能猫——任意两只 = 一对、任意三只 = 三张一样、任意五只 = 五种各一张
-    if (!c && s && s.flux === 'allwild' && cards && new Set(cards).size === cards.length && cards.every((id) => catLike(KIND_OF[id]))) {
-      if (cards.length === 2) return { type: 'pair', needsTarget: true, needsName: false };
-      if (cards.length === 3) return { type: 'triple', needsTarget: true, needsName: true };
-      if (cards.length === 5) return { type: 'five', needsTarget: false, needsName: false };
-    }
-    if (c || !s || roleOf(s, seat) !== 'calico' || !cards || (cards.length !== 2 && cards.length !== 3) || new Set(cards).size !== cards.length || !cards.every((id) => catLike(KIND_OF[id]))) return c;
-    return cards.length === 2 ? { type: 'pair', needsTarget: true, needsName: false } : { type: 'triple', needsTarget: true, needsName: true };
+    if (c || !allWildFor(s, seat) || !cards || new Set(cards).size !== cards.length || !cards.every((id) => catLike(KIND_OF[id]))) return c;
+    if (cards.length === 2) return { type: 'pair', needsTarget: true, needsName: false };
+    if (cards.length === 3) return { type: 'triple', needsTarget: true, needsName: true };
+    if (cards.length === 5) return { type: 'five', needsTarget: false, needsName: false };
+    return c;
   }
   /* 能被指定的人：还在场、不是自己、手里有牌（指定甩锅不看手牌：在场的人都能甩）。
    * 自由甩锅还能甩给自己（2026-11-26 用户：用来发育——自己多摸，被甩锅时再甩自己照样 +2 叠上去） */
