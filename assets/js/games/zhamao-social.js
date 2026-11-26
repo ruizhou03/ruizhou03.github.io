@@ -47,8 +47,9 @@
       eye(26, 42, 2.3) + eye(34, 42, 2.3) + blush(23, 47) + blush(37, 47) + smile(30, 46.5),
     paw: () => stk('M32 10v-5M25 12l-3-4M39 12l3-4', '#e9b949', 2.6) + pawPad(20, 36, 28) + pawPad(44, 36, -28) +
       stk('M8 26q-3 5 0 10M56 26q3 5 0 10', '#e9b949', 2.2),
-    // 炸弹猫：直接用牌面那只（zhamao-art.js），套进 64 格
-    boom: () => (window.ZhamaoArt ? window.ZhamaoArt.face('boom').replace('<svg ', '<svg x="3" y="3" width="58" height="58" ') : circ(32, 32, 20, '#3a3632')),
+    // 炸弹猫：直接用牌面那只（zhamao-art.js），套进 64 格。
+    // 牌面脚下那道地面阴影（cy=92 的扁椭圆）去掉：贴纸描边会把它描成一块奶油色托盘，扔出去时跟着转、一起砸进对方头像（2026-11-26 用户：看着怪）
+    boom: () => (window.ZhamaoArt ? window.ZhamaoArt.face('boom').replace(/<ellipse cx="50" cy="92"[^>]*\/>/, '').replace('<svg ', '<svg x="3" y="3" width="58" height="58" ') : circ(32, 32, 20, '#3a3632')),
   };
   const ART = {};
   KEYS.forEach((k) => { ART[k] = GS.sticker(DRAW[k]()); });
