@@ -91,11 +91,6 @@
 .zmp-rec .nn{font:600 11px/1 system-ui,sans-serif;color:#6a6358}
 .zmp-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font:12px system-ui,sans-serif;color:#6a6358}
 .zmp-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
-.zmp-badges{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;text-align:center}
-@media(max-width:520px){.zmp-badges{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.zmp-badge svg{width:50px;height:50px}
-.zmp-badge small{display:block;font:600 12px/1.25 system-ui,sans-serif;color:#6a6358;margin-top:2px}
-.zmp-badge.off svg{filter:grayscale(1);opacity:.28}
 .zmp details{margin-top:14px}
 .zmp summary{cursor:pointer;font-size:15px;font-weight:700;padding:6px 0}
 .zmp-led{list-style:none;margin:6px 0 0;padding:0}
@@ -108,9 +103,9 @@
 .zmp-empty{color:#6a6358;font:14px system-ui,sans-serif;text-align:center;padding:12px 0}
 .zmp-wait{width:56px;height:8px;margin:40px auto;border-radius:4px;background:linear-gradient(90deg,#ebe5d8,#d9cfbd,#ebe5d8);background-size:200% 100%;animation:zmpWait 1s linear infinite}
 @keyframes zmpWait{to{background-position:-200% 0}}
-.zmp-bdg{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
-.zmp-bdg button{width:26px;height:26px;padding:0;border:0;background:none;cursor:pointer;border-radius:50%}
-.zmp-bdg button svg{width:26px;height:26px;display:block}
+.zmp-bdg{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.zmp-bdg button{width:30px;height:30px;padding:0;border:0;background:none;cursor:pointer;border-radius:50%}
+.zmp-bdg button svg{width:30px;height:30px;display:block}
 .zmp-bdg button.off svg{filter:grayscale(1);opacity:.3}
 .zmp-hero2{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;background:#f8f4ea}
 .zmp-hero2 .zmp-bal{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left}
@@ -140,16 +135,30 @@
 .zmp details.zmp-card{margin-top:12px}
 .zmp-bmask{position:absolute;inset:0;z-index:2;background:rgba(29,27,24,.28);display:flex;align-items:center;justify-content:center;padding:20px}
 .zmp-bcard{width:min(320px,100%);background:#fffdf8;border:1.5px solid #1d1b18;border-radius:18px;box-shadow:0 3px 0 #1d1b18;padding:18px 16px 16px;text-align:center}
-.zmp-bcard .big svg{width:76px;height:76px}
-.zmp-bcard.off .big svg{filter:grayscale(1);opacity:.35}
-.zmp-bcard h3{margin:6px 0 2px;font-size:19px}
-.zmp-bcard .how{font:15px/1.4 system-ui,sans-serif;color:#1d1b18}
-.zmp-bcard .pg{height:10px;border-radius:5px;background:#ebe5d8;overflow:hidden;margin:12px 0 4px}
-.zmp-bcard .pg i{display:block;height:100%;background:#3f7a52;border-radius:5px}
+.zmp-bcard .big svg{width:120px;height:120px;filter:drop-shadow(0 4px 6px rgba(29,27,24,.18))}
+.zmp-bcard h3{margin:4px 0 2px;font-size:21px;letter-spacing:.04em}
+.zmp-bcard .how{font:14px/1.4 system-ui,sans-serif;color:#6a6358}
+.zmp-bcard .lad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:14px}
+.zmp-bcard .lad div{border:1.5px solid #d9cfbd;border-radius:12px;padding:8px 2px 7px;background:#f3eee3;color:#a69c8a;display:flex;flex-direction:column;align-items:center;gap:3px}
+.zmp-bcard .lad svg{width:38px;height:38px;display:block}
+.zmp-bcard .lad span{font:700 12.5px/1.2 ZM Serif,Georgia,serif}
+.zmp-bcard .lad i{display:inline-flex;align-items:center;gap:3px;font:700 12px/1 ZM Num,ZM Serif,Georgia,serif;font-style:normal;color:#6a6358;min-height:16px}
+.zmp-bcard .lad i .zmw-fish{width:18px;height:11px}
+.zmp-bcard .lad i svg{width:16px;height:16px}
+.zmp-bcard .lad .got{background:#fffdf8;border-color:#1d1b18;color:#1d1b18}
+.zmp-bcard .lad .now{background:#fffdf8;border-color:#b4392c;color:#1d1b18}
+.zmp-bcard .lad .now i{color:#3f7a52}
+.zmp-bcard .pg{height:6px;border-radius:3px;background:#ebe5d8;overflow:hidden;margin:12px 6px 4px}
+.zmp-bcard .pg i{display:block;height:100%;border-radius:3px}
 .zmp-bcard .pn{font:700 13px ZM Num,ZM Serif,Georgia,serif;color:#6a6358}
-.zmp-bcard .rw{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:5px 14px;border-radius:999px;background:#f3eee3;font:700 16px ZM Num,ZM Serif,Georgia,serif}
-.zmp-bcard .rw .zmw-fish{width:28px;height:18px}
-.zmp-bcard .rw.got{background:#e3f0e6;color:#3f7a52}
+.zmp-medals{margin-top:12px}
+.zmp-wall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 6px;text-align:center}
+.zmp-wall button{border:0;background:none;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;color:#1d1b18;-webkit-tap-highlight-color:transparent}
+.zmp-wall svg{width:min(68px,100%);height:auto;aspect-ratio:1;display:block;transition:transform .15s}
+.zmp-wall button:active svg{transform:scale(.94)}
+.zmp-wall b{font:700 12.5px/1.2 ZM Serif,Georgia,serif;white-space:nowrap}
+.zmp-wall .off b{color:#a69c8a}
+@media(min-width:621px){.zmp-wall{grid-template-columns:repeat(8,minmax(0,1fr))}}
 /* 站点登录弹层（auth.html）在游戏页里没有站点的颜色变量：给它一套游戏的 */
 #sa-overlay{--color-bg:#fffdf8;--color-bg-warm:#f3eee3;--color-border:#d9cfbd;--color-muted:#6a6358;--color-light:#8a8274;--color-ink:#1d1b18;--color-text:#1d1b18;--color-highlight:#b4392c;--color-accent:#b4392c;--font-display:ZM Serif,'Songti SC','Noto Serif SC',serif;font-family:system-ui,-apple-system,'PingFang SC',sans-serif}
 `;
@@ -167,16 +176,22 @@
   };
   const LED = { newbie: 'newbie', checkin: 'checkin', ticket: 'ticket', win: 'win', online: 'win', firstwin: 'star', broke1: 'relief', relief: 'relief', feedback: 'feedback', badge: 'star', penalty: 'ticket', refund: 'ticket', merge: 'merge', merged: 'merge', opened: 'merge' };
   const LED_NAME = { newbie: '新手礼包', checkin: '签到', ticket: '门票', win: '名次奖励', online: '联机奖励', firstwin: '今日首胜', broke1: '第一次亏空', relief: '救济', feedback: '这步不对', badge: '徽章奖励', penalty: '中途离开', refund: '门票退回', merge: '游客小鱼干并入', merged: '并入账号', opened: '账号钱包' };
-  // 徽章（规则在后端 lib/zhamao-econ.js BADGES，服务器判断、拿到时自动发奖励）：怎么拿 + 图
-  const BADGE_ART = {
-    streak7: ['连续签到 7 天', '#3f7a52', '<path d="M32 12l5 11 12 1-9 8 3 12-11-6-11 6 3-12-9-8 12-1Z"/>'],
-    bug10: ['「这步不对」标满 10 步', '#2f4a6d', '<ellipse cx="32" cy="36" rx="10" ry="13"/><path d="M32 23v26M22 30l-7-4M42 30l7-4M22 40l-7 3M42 40l7 3M27 20l-4-6M37 20l4-6" stroke="#fffdf8" stroke-width="3" fill="none" stroke-linecap="round"/>'],
-    games100: ['打满 100 局', '#8e4a9c', '<text x="32" y="41" text-anchor="middle" font-size="20" font-weight="700" font-family="ZM Num,ZM Serif,Georgia,serif" fill="#fffdf8">100</text>'],
-    hard10: ['对高手机器猫拿 10 次第一', '#c8463a', '<path d="M18 44l3-22 8 9 3-12 3 12 8-9 3 22Z"/>'],
-    nine1: ['9 人局拿第一（组队算队伍赢）', '#e58e46', '<text x="32" y="43" text-anchor="middle" font-size="24" font-weight="700" font-family="ZM Num,ZM Serif,Georgia,serif" fill="#fffdf8">9</text>'],
-    big1000: ['一局净赚 1,000 以上', '#b07420', '<path d="M14 32c6-9 17-12 26-9 4 1 7 4 9 9-2 5-5 8-9 9-9 3-20 0-26-9Z M47 32l8-7v14Z" fill="#fffdf8"/>'],
-  };
-  const badgeSvg = (id) => { const a = BADGE_ART[id] || ['', '#999', '']; return '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="' + a[1] + '" stroke="#1d1b18" stroke-width="2.5"/><g fill="#fffdf8">' + a[2] + '</g></svg>'; };
+  // 勋章（规则在后端 lib/zhamao-econ.js BADGES，服务器判断、拿到时自动发奖励）。2026-11-26 改版：8 个系列 × 铜银金，图和名字在 zhamao-medals.js
+  const MD = () => root.ZhamaoMedals;
+  const badgeSvg = (id) => (MD() ? MD().of(id) : '');
+  const badgeHow = (id) => { const m = MD() && MD().meta(id); return m ? m.how : ''; };
+  // 服务器给的 badgeList（每档一条：id / got / progress / goal / reward）→ 按系列：拿到的最高档、朝下一档的进度
+  function seriesState(list) {
+    const by = {}; (list || []).forEach((b) => { by[b.id] = b; });
+    return (MD() ? MD().SERIES : []).map(([sid, sname, tiers]) => {
+      let tier = 0;
+      tiers.forEach(([id], i) => { if (by[id] && by[id].got) tier = i + 1; });
+      const nx = tier < 3 ? tiers[tier] : null, nb = nx ? by[nx[0]] : null;
+      const goal = nb ? nb.goal || nx[3] : 0, prog = nb ? Math.min(nb.progress || 0, goal) : 0;
+      return { sid, sname, tier, tiers: tiers.map(([id, name, how, g, rw]) => ({ id, name, how, goal: (by[id] && by[id].goal) || g, reward: (by[id] && by[id].reward) || rw, got: !!(by[id] && by[id].got) })), prog, goal, k: goal ? prog / goal : 1 };
+    });
+  }
+  const medal = (st) => (MD() ? MD().svg(st.sid, st.tier, st.tier < 3 ? { prog: st.k } : null) : '');
 
   function myFace() {
     let p = null; try { p = JSON.parse(localStorage.getItem('zm.profile.v1')); } catch (_) { /* */ }
@@ -251,7 +266,7 @@
     return '<li class="g" data-lg><span class="ic">' + (r && r.won ? IC.win : IC.ticket) + '</span><span class="nm">' + name + '<small' + (warn ? ' class="warn"' : '') + '>' + sub + '</small></span><b class="' + (it.d > 0 ? 'up' : it.d < 0 ? 'dn' : '') + '">' + sign(it.d) + '</b><div class="parts">' + parts + '</div></li>';
   }
   function oneLine(x) {
-    const extra = x.why === 'checkin' && x.day ? '连签第 ' + x.day + ' 天' : x.why === 'badge' && x.badge && BADGE_ART[x.badge] ? BADGE_ART[x.badge][0] : x.why === 'feedback' && x.steps ? x.steps + ' 步' : '';
+    const extra = x.why === 'checkin' && x.day ? '连签第 ' + x.day + ' 天' : x.why === 'badge' && x.badge && badgeHow(x.badge) ? (MD().meta(x.badge).name + ' · ' + badgeHow(x.badge)) : x.why === 'feedback' && x.steps ? x.steps + ' 步' : '';
     return '<li><span class="ic">' + (IC[LED[x.why]] || IC.ticket) + '</span><span class="nm">' + (LED_NAME[x.why] || esc(x.why)) + (extra ? '<small>' + esc(extra) + '</small>' : '') + '</span><b class="' + (x.d > 0 ? 'up' : x.d < 0 ? 'dn' : '') + '">' + sign(x.d) + '</b></li>';
   }
   const LED_STEP = 20;
@@ -303,26 +318,34 @@
     }).join('');
     const wk = p.records.filter((r) => Date.now() - r.at < 7 * 86400e3).reduce((a, r) => a + (r.d || 0), 0);
     const hasLed = !!(p.ledger && p.ledger.length);
-    const badges = (p.badgeList || []).map((b) => '<button type="button" class="' + (b.got ? '' : 'off') + '" data-badge="' + b.id + '" aria-label="' + esc(b.name) + '">' + badgeSvg(b.id) + '</button>').join('');
+    // 名字下面：拿到的最高几枚（档高的在前，最多 4 枚）；下面单独一张「勋章」卡放全部系列
+    const ss = seriesState(p.badgeList), nGot = (p.badgeList || []).filter((b) => b.got).length;
+    const badges = ss.filter((x) => x.tier).sort((x, y) => y.tier - x.tier).slice(0, 4).map((x) => '<button type="button" data-ser="' + x.sid + '" aria-label="' + esc(x.tiers[x.tier - 1].name) + '">' + MD().svg(x.sid, x.tier) + '</button>').join('');
+    const wall = ss.length ? '<div class="zmp-card zmp-medals"><div class="zmp-h">勋章<small>' + nGot + ' / ' + MD().total + '</small></div><div class="zmp-wall">' +
+      ss.map((x) => '<button type="button" data-ser="' + x.sid + '"' + (x.tier ? '' : ' class="off"') + '>' + medal(x) + '<b>' + esc(x.tier ? x.tiers[x.tier - 1].name : x.sname) + '</b></button>').join('') + '</div></div>' : '';
     return '<div class="zmp-in">' +
       '<div class="zmp-card zmp-hero2"><div class="zmp-av">' + me.face + '</div><div><div class="zmp-nick">' + esc(me.nick) + '</div><div class="zmp-who">' +
         (p.owner === 'account' ? '<span class="ok">' + TICK + '</span>已登录' : '<button type="button" class="zmp-login" data-login>登录保存</button>') + '</div>' +
         '<div class="zmp-bdg">' + badges + '</div></div>' +
         '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span><div class="sub"><span class="' + (wk >= 0 ? 'up' : 'dn') + '">近 7 天对局 ' + sign(wk) + '</span><span>' + (p.games || 0) + ' 局</span></div></div></div>' +
+      wall +
       '<div class="zmp-grid">' +
         '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div>' + fwHtml(p) + '<div class="zmp-act" aria-label="近四周签到">' + actHtml(p) + '</div></div>' +
         '<div class="zmp-card wide"><div class="zmp-h">玩法胜率</div><div class="zmp-rings">' + MODES.map(([k, name, c]) => '<div class="zmp-ring">' + ring(p.modes[k].w, p.modes[k].g, c) + '<b>' + name + '</b><small>' + p.modes[k].g + ' 局</small></div>').join('') + '</div></div>' +
       '</div>' +
       (hasLed ? '<details class="zmp-card"' + (led.open ? ' open' : '') + '><summary class="zmp-ledsum"><span>流水</span><span class="sp" data-spark></span></summary><div data-led>' + ledHtml() + '</div></details>' : '') + '</div>';
   }
-  // 点徽章：小卡（怎么拿、进度、奖励）。点哪儿都收起
-  function badgeCard(b) {
+  // 点勋章：小卡——当前这档的大图、名字；铜银金三格（拿到的亮、正在冲的描红）；朝下一档的进度和奖励。点哪儿都收起
+  function badgeCard(sid) {
+    const x = seriesState(last && last.badgeList).find((y) => y.sid === sid);
+    if (!x) return;
+    const cur = x.tier ? x.tiers[x.tier - 1] : null, nx = x.tier < 3 ? x.tiers[x.tier] : null, FISH = W().FISH;
     const m = document.createElement('div');
     m.className = 'zmp-bmask';
-    const pct = Math.round((Math.min(b.progress, b.goal) / b.goal) * 100);
-    m.innerHTML = '<div class="zmp-bcard' + (b.got ? '' : ' off') + '" role="dialog" aria-label="' + esc(b.name) + '"><div class="big">' + badgeSvg(b.id) + '</div><h3>' + esc(b.name) + '</h3><div class="how">' + esc((BADGE_ART[b.id] || [''])[0]) + '</div>' +
-      (b.goal > 1 ? '<div class="pg"><i style="width:' + pct + '%"></i></div><div class="pn">' + fmt(b.progress) + ' / ' + fmt(b.goal) + '</div>' : '') +
-      '<div class="rw' + (b.got ? ' got' : '') + '">' + W().FISH + '+' + fmt(b.reward) + (b.got ? ' ' + TICK.replace('#fff', '#3f7a52') : '') + '</div></div>';
+    const lad = x.tiers.map((t, i) => '<div class="' + (t.got ? 'got' : i === x.tier ? 'now' : '') + '">' + MD().svg(x.sid, t.got ? i + 1 : 0) + '<span>' + esc(t.name) + '</span><i>' + (t.got ? TICK.replace('#fff', '#3f7a52') : FISH + fmt(t.reward)) + '</i></div>').join('');
+    m.innerHTML = '<div class="zmp-bcard" role="dialog" aria-label="' + esc(cur ? cur.name : x.sname) + '"><div class="big">' + medal(x) + '</div><h3>' + esc(cur ? cur.name : x.sname) + '</h3><div class="how">' + esc((cur || nx).how) + '</div>' +
+      '<div class="lad">' + lad + '</div>' +
+      (nx && nx.goal > 1 ? '<div class="pg"><i style="width:' + Math.round(x.k * 100) + '%;background:' + MD().METAL[x.tier + 1][1] + '"></i></div><div class="pn">' + fmt(x.prog) + ' / ' + fmt(nx.goal) + '</div>' : '') + '</div>';
     m.addEventListener('click', () => m.remove());
     el.appendChild(m);
   }
@@ -340,8 +363,8 @@
     body = el.querySelector('.zmp-body');
     el.querySelector('.zmp-x').addEventListener('click', close);
     body.addEventListener('click', (e) => {
-      const bd = e.target.closest('[data-badge]');
-      if (bd && last) { const b = (last.badgeList || []).find((x) => x.id === bd.dataset.badge); if (b) badgeCard(b); return; }
+      const bd = e.target.closest('[data-ser]');
+      if (bd && last) { badgeCard(bd.dataset.ser); return; }
       const lf = e.target.closest('[data-lf]');
       if (lf) { led.filter = lf.dataset.lf; led.show = LED_STEP; paintLed(); return; }
       if (e.target.closest('[data-lmore]')) { moreLed(); return; }
@@ -440,5 +463,5 @@
   }
   function close() { hide(); }
 
-  root.ZhamaoProfile = { open, close, login, isOpen, badgeSvg: (id) => badgeSvg(id), badgeHow: (id) => (BADGE_ART[id] || [''])[0] };   // 「解锁勋章」整页弹窗借用勋章图和说明（zhamao-wallet.js badgeShow）
+  root.ZhamaoProfile = { open, close, login, isOpen, badgeSvg: (id) => badgeSvg(id), badgeHow };   // 「解锁勋章」整页弹窗借用勋章图和说明（zhamao-wallet.js badgeShow）
 })(window);

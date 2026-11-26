@@ -146,8 +146,11 @@
 .zmw-bdg .art{position:relative;width:min(200px,44vmin);height:min(200px,44vmin);display:grid;place-items:center;flex:none}
 .zmw-bdg .rays{position:absolute;inset:-22%;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(233,185,73,.3) 0 9deg,transparent 9deg 24deg);-webkit-mask:radial-gradient(circle,#000 22%,transparent 68%);mask:radial-gradient(circle,#000 22%,transparent 68%);animation:zmwSpin 14s linear infinite}
 @keyframes zmwSpin{to{transform:rotate(360deg)}}
-.zmw-bdg .art svg{position:relative;width:66%;height:66%;filter:drop-shadow(0 6px 0 rgba(0,0,0,.35))}
-.zmw-bdg .txt{display:contents}.zmw-bdg .kick{order:-1}
+.zmw-bdg .art svg{position:relative;width:74%;height:74%;filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
+.zmw-bdg .steps{order:-1;display:flex;gap:10px;margin-bottom:4px}
+.zmw-bdg .steps svg{width:34px;height:34px;display:block;opacity:.45}
+.zmw-bdg .steps .had svg{opacity:.7}.zmw-bdg .steps .cur svg{opacity:1}
+.zmw-bdg .txt{display:contents}.zmw-bdg .kick{order:-2}
 .zmw-bdg h3{margin:4px 0 4px;color:#fffdf8;font:700 26px/1.2 ZM Serif,Georgia,"Noto Serif SC",serif;letter-spacing:.06em}
 .zmw-bdg .how{font:500 14.5px/1.4 system-ui,"Noto Sans SC",sans-serif;color:rgba(255,253,248,.72);margin-bottom:14px}
 .zmw-bdg .rw{display:inline-flex;align-items:center;gap:6px;padding:8px 16px 8px 12px;border-radius:999px;background:#fffdf8;color:#3f7a52;font:700 22px/1 ZM Num,ZM Serif,Georgia,serif;font-variant-numeric:tabular-nums;margin-bottom:22px;transition:opacity .4s}
@@ -503,9 +506,11 @@
    * 余额看牌桌左上角常驻的小鱼干：奖励从这一行游进去、那边数字滚上去。
    * 今日首胜不在这里（去档案领）。新拿到的勋章：先整页弹出（badgeShow，奖励当场游进左上角），点任意处回到排行榜，再放这局的奖励 */
   const TICK = '<svg class="zmw-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#3f7a52" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const BADGE = { streak7: ['七连签', 5000], bug10: ['捉虫十只', 5000], games100: ['百局老猫', 10000], hard10: ['高手十胜', 10000], nine1: ['九人桌第一', 10000], big1000: ['一局赚一千', 10000] };   // 同后端 lib/zhamao-econ.js BADGES
+  // 勋章名字 / 奖励 / 图：zhamao-medals.js（8 个系列 × 铜银金，同后端 lib/zhamao-econ.js BADGES）
+  const MD = () => root.ZhamaoMedals || null;
+  const BMETA = (id) => (MD() ? MD().meta(id) : null);
   const PF = () => root.ZhamaoProfile || null;
-  const bSvg = (id) => (PF() && PF().badgeSvg ? PF().badgeSvg(id) : '');
+  const bSvg = (id) => (MD() ? MD().of(id) : '');
   const wait = (ms) => new Promise((r) => setTimeout(r, FX() && FX().reduce() ? 0 : ms));
   function payOf(r) { return r.pay != null ? r.pay : Math.max(0, (r.delta || 0) + (r.price || 0) - (r.firstWin || 0)); }
   function paintPay(el, r, label, quiet) {
@@ -547,7 +552,7 @@
       if (gen !== tGen) return;
       clearTimeout(timer);
       if (r) seq.r = r;
-      const bs = ((r && r.badges) || []).filter((id) => BADGE[id]);
+      const bs = ((r && r.badges) || []).filter((id) => BMETA(id));
       if (!paid) tQ = tQ.then(() => wait(bs.length ? 900 : 1100));
       bs.forEach((id) => { tQ = tQ.then(() => (gen === tGen ? badgeShow(id, gen) : null)); });
       tQ = tQ.then(() => payNow(r || r0)).then(() => { if (gen === tGen) releaseT(); });
@@ -666,7 +671,7 @@
   function badgeShow(id, gen) {
     style();
     const app = document.getElementById('zmApp') || document.body;
-    const meta = BADGE[id] || [id, 0];
+    const md = BMETA(id) || { name: id, reward: 0, tier: 1, how: '' }, meta = [md.name, md.reward];
     return new Promise((resolve) => {
       const m = document.createElement('div');
       m.className = 'zmw-bdg';
@@ -674,9 +679,11 @@
       const cols = ['#e9b949', '#c8463a', '#3f7a52', '#2f4a6d', '#fffdf8', '#e58e46'];
       let cf = '';
       for (let i = 0; i < 28; i++) { const a = (i * 137.5) * Math.PI / 180, d = 110 + ((i * 53) % 110); cf += '<i class="cf" style="background:' + cols[i % 6] + ';--x:' + Math.round(Math.cos(a) * d) + 'px;--y:' + Math.round(Math.sin(a) * d * 0.9 + 40) + 'px;--r:' + ((i * 97) % 540) + 'deg;animation-delay:' + (180 + (i % 5) * 30) + 'ms"></i>'; }
-      const how = PF() && PF().badgeHow ? PF().badgeHow(id) : '';
-      m.innerHTML = cf + '<div class="art"><div class="rays"></div>' + bSvg(id) + '</div>' +
-        '<div class="txt"><div class="kick">' + T('ui.wallet.badgeGot', '解锁勋章') + '</div><h3>' + meta[0] + '</h3>' + (how ? '<div class="how">' + how + '</div>' : '') +
+      const how = md.how;
+      // 铜 → 银 → 金：上面三颗小勋章，这次拿到的那颗亮起（2026-11-26 勋章改版）
+      const steps = MD() && md.series ? '<div class="steps">' + [1, 2, 3].map((t) => '<span class="' + (t < md.tier ? 'had' : t === md.tier ? 'cur' : '') + '">' + MD().svg(md.series, t <= md.tier ? t : 0) + '</span>').join('') + '</div>' : '';
+      m.innerHTML = cf + steps + '<div class="art"><div class="rays"></div>' + bSvg(id) + '</div>' +
+        '<div class="txt"><div class="kick">' + (md.tier > 1 ? T('ui.wallet.badgeUp', '勋章升级') : T('ui.wallet.badgeGot', '解锁勋章')) + '</div><h3>' + meta[0] + '</h3>' + (how ? '<div class="how">' + how + '</div>' : '') +
         '<div class="rw">' + FISH + '+' + fmt(meta[1]) + '</div>' +
         '<div class="tap">' + T('tut.tapOn', '点任意处继续') + '</div></div>';
       app.appendChild(m);
@@ -684,6 +691,7 @@
       if (!(FX() && FX().reduce())) {
         m.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
         if (art) art.animate([{ transform: 'scale(.2) rotate(-30deg)', opacity: 0 }, { transform: 'scale(1.12) rotate(6deg)', opacity: 1, offset: 0.65 }, { transform: 'none', opacity: 1 }], { duration: 620, easing: 'cubic-bezier(.3,.8,.4,1)' });
+        m.querySelectorAll('.steps .cur svg').forEach((n) => n.animate([{ transform: 'scale(.3)', opacity: 0 }, { transform: 'scale(1.25)', opacity: 1, offset: .7 }, { transform: 'none', opacity: 1 }], { duration: 420, delay: 520, easing: 'ease-out', fill: 'backwards' }));
         m.querySelector('.txt').animate([{ transform: 'translateY(16px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 360, delay: 260, easing: 'cubic-bezier(.3,.8,.4,1)', fill: 'backwards' });
       }
       if (root.ZhamaoAudio && root.ZhamaoAudio.sfx) { try { root.ZhamaoAudio.sfx('win'); } catch (_) { /* */ } }
