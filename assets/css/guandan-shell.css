@@ -1,0 +1,434 @@
+/* 掼蛋 · 外壳（2026-11-26）：主页、设置单、☰ 菜单、设置卡、房间、出牌按钮——照百变小咪（zhamao.css）那套做。
+ * 配色本来就是同一张「墨园宣纸」（guandan.css 顶上的 --gd-*），这里补的是小咪的形状和字：
+ *   - 自带宋体（ZM Serif = 思源宋体子集，和小咪同一份文件；不在子集里的字逐字退回 Noto Serif SC）
+ *   - 大按钮：12px 圆角、1.5px 墨线，主按钮朱砂底；牌桌上的按钮是胶囊
+ *   - 弹层：宣纸底 + 1px 墨线 + 大圆角；设置单从底下升起
+ * 只管外壳，不碰牌桌网格和卡面（guandan.css / 规格第 1 节）。 */
+
+@font-face { font-family: 'ZM Serif'; font-weight: 400; font-style: normal; font-display: swap; src: url('/assets/fonts/zhamao/zm-serif-400.woff2') format('woff2'); }
+@font-face { font-family: 'ZM Serif'; font-weight: 700; font-style: normal; font-display: swap; src: url('/assets/fonts/zhamao/zm-serif-700.woff2') format('woff2'); }
+@font-face { font-family: 'ZM Num'; font-weight: 700; font-style: normal; font-display: swap; src: url('/assets/fonts/zhamao/zm-num-700.woff2') format('woff2'); }
+
+.guandan-wrap {
+  --gd-serif: 'ZM Serif', 'Noto Serif SC', 'Songti SC', 'STSong', 'Source Han Serif SC', 'SimSun', serif;
+  --gd-num: 'ZM Num', 'Cormorant Garamond', Georgia, serif;
+  --gd-card-face: #fffdf8;
+  --gd-grab: #cfc6b6;
+}
+/* 外壳上的字一律用游戏宋体（牌面自己的字体不动） */
+.guandan-wrap :is(.gd-cover, .gd-sheet, .gd-menu, .gd-tools, .gd-lobby, .gd-confirm-panel, .gd-result-panel, .gd-btn, .gd-band-hint, .gd-name, .gd-board-panel, .gd-sound-panel, .gd-toast, .gd-sort-actions, .gd-order-actions),
+.guandan-wrap :is(.gd-cover, .gd-sheet, .gd-menu, .gd-lobby, .gd-confirm-panel) :where(button, input) {
+  font-family: var(--gd-serif);
+}
+.gd-confirm-modal .gd-confirm-panel, .gd-confirm-modal .gd-confirm-panel :where(button, input, h2) { font-family: var(--gd-serif); }
+
+/* ───────── 右上角工具：声音 + ☰ ───────── */
+body.gd-game-fullscreen .guandan-wrap header { position: fixed; inset: 0 0 auto; z-index: 31; pointer-events: none; height: 0; }
+body.gd-game-fullscreen .guandan-wrap header h1 { display: none; }
+.gd-tools {
+  position: fixed; z-index: 31; pointer-events: auto;
+  top: calc(0.45rem + env(safe-area-inset-top, 0px));
+  right: calc(0.5rem + env(safe-area-inset-right, 0px));
+  display: flex; gap: 8px;
+}
+body.gd-game-fullscreen .gd-tools .gd-tool {
+  position: static; inset: auto; margin: 0;
+  width: 44px; height: 44px; flex: none; border-radius: 50%; padding: 0;
+  border: 1px solid var(--gd-ink); background: var(--gd-paper); color: var(--gd-ink);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: none;
+}
+.gd-tools .gd-tool svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.gd-tools .gd-tool:focus-visible { outline: 2px solid var(--gd-seal); outline-offset: 2px; }
+.gd-mute-btn .gd-snd .off { display: none; }
+.gd-mute-btn.is-off .gd-snd .on { display: none; }
+.gd-mute-btn.is-off .gd-snd .off { display: inline; }
+body.gd-game-fullscreen .gd-tools .gd-mute-btn.is-off { border-style: solid; color: var(--gd-ink-mute); }
+/* 主页上不露工具（主页自己有「设置」）；房间、牌桌上才有 */
+.guandan-wrap.gd-view-setup .gd-tools { display: none; }
+@media (max-height: 500px) { .gd-tools { gap: 6px; } }
+
+/* ☰ 菜单：每条 = 线条小图标 + 一行粗字（照小咪 .zm-menu） */
+.gd-menu {
+  position: fixed; z-index: 10001; pointer-events: auto;
+  width: 212px; max-width: calc(100vw - 16px); padding: 6px;
+  background: var(--gd-paper); border: 1px solid var(--gd-ink); border-radius: 12px;
+  box-shadow: 0 10px 26px rgba(20, 18, 15, 0.18);
+  display: flex; flex-direction: column; max-height: calc(100vh - 70px); overflow-y: auto;
+}
+.gd-menu[hidden], .gd-menu [hidden] { display: none; }
+.gd-menu button {
+  display: grid; grid-template-columns: 22px 1fr; column-gap: 10px; align-items: center; width: 100%; text-align: left;
+  border: 0; background: none; padding: 9px 10px; border-radius: 8px; color: var(--gd-ink); cursor: pointer; min-height: 44px;
+}
+.gd-menu button:hover, .gd-menu button:focus-visible { background: var(--gd-wash); outline: none; }
+.gd-menu b { font-size: 15px; font-weight: 700; white-space: nowrap; letter-spacing: 0.04em; }
+.gd-menu-ic { width: 22px; height: 22px; fill: none; stroke: var(--gd-ink); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.gd-menu hr { border: 0; border-top: 1px solid rgba(29, 27, 24, 0.14); margin: 4px 8px; }
+.gd-sound-panel { font-family: var(--gd-serif); border-radius: 12px; box-shadow: 0 10px 26px rgba(20, 18, 15, 0.18); z-index: 10001; }
+
+/* ───────── 主页（封面） ───────── */
+body.gd-game-fullscreen #gdPgo.gd-cover {
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  justify-content: center; align-items: center; color: var(--gd-ink); text-align: center;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(180, 57, 44, 0.07) 0 14%, transparent 14.5%),
+    radial-gradient(circle at 88% 86%, rgba(180, 57, 44, 0.06) 0 18%, transparent 18.5%),
+    var(--gd-paper);
+}
+.gd-cover-inner {
+  width: min(360px, 100%);
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.gd-cover-art { position: relative; width: 260px; height: 168px; }
+.gd-cover-fan { position: absolute; left: 50%; bottom: 22px; width: 0; height: 0; }
+.gd-cover-fan .gd-card {
+  --gd-card-w: 64px; --gd-card-h: 92px;
+  position: absolute; left: calc(var(--gd-card-w) / -2); bottom: 0;
+  width: var(--gd-card-w); height: var(--gd-card-h);
+  transform-origin: 50% 160%;
+  transform: rotate(calc(var(--i) * 13deg)) translateY(calc(var(--i) * var(--i) * 1.5px));
+  box-shadow: 0 6px 14px rgba(29, 27, 24, 0.16);
+  animation: gd-fan-in 0.7s cubic-bezier(.2, .9, .3, 1.15) both;
+  animation-delay: calc((var(--i) + 2) * 70ms);
+  pointer-events: none;
+}
+@keyframes gd-fan-in { from { transform: rotate(0) translateY(24px); opacity: 0; } }
+.gd-cover-seal {
+  position: absolute; right: 22px; top: 6px; width: 46px; height: 46px; display: grid; place-items: center;
+  border-radius: 9px; background: var(--gd-seal); color: var(--gd-seal-ink);
+  font: 700 27px/1 var(--gd-serif); transform: rotate(9deg);
+  box-shadow: inset 0 0 0 2px rgba(251, 246, 236, 0.55), 0 4px 10px rgba(180, 57, 44, 0.28);
+  animation: gd-seal-in 0.5s 0.65s cubic-bezier(.3, 1.6, .5, 1) both;
+}
+@keyframes gd-seal-in { from { transform: rotate(9deg) scale(1.9); opacity: 0; } }
+.gd-cover-head { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+body.gd-game-fullscreen .gd-cover .gd-cover-title {
+  margin: 0; font: 700 44px/1.1 var(--gd-serif); letter-spacing: 0.32em; text-indent: 0.32em; color: var(--gd-ink);
+}
+.gd-cover-sub { margin: 0; font-size: 13px; color: var(--gd-ink-mute); letter-spacing: 0.08em; }
+.gd-cover-btns { width: 100%; display: flex; gap: 12px; }
+.gd-cover-btns .gd-cover-btn { flex: 1; min-width: 0; }
+.gd-cover-btn {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  padding: 14px 16px; min-height: 52px; border-radius: 12px; cursor: pointer;
+  border: 1.5px solid var(--gd-ink); background: var(--gd-card-face); color: var(--gd-ink);
+  transition: transform 0.12s ease, opacity 0.2s ease;
+}
+.gd-cover-btn b { font-size: 19px; font-weight: 700; letter-spacing: 0.3em; text-indent: 0.3em; }
+.gd-cover-btn.is-primary { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); overflow: hidden; }
+.gd-cover-btn.is-primary::after { content: ''; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255, 250, 240, 0.28), transparent); animation: gd-shine 3.4s ease-in-out 1.4s infinite; pointer-events: none; }
+@keyframes gd-shine { 0% { left: -60%; } 35%, 100% { left: 130%; } }
+.gd-cover-btn:active { transform: translateY(1px); }
+.gd-cover-btn:focus-visible { outline: 2px solid var(--gd-ink); outline-offset: 3px; }
+.gd-cover-btn[disabled] { opacity: 0.55; cursor: default; }
+.gd-cover-dot { position: absolute; top: 8px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: #e0a526; }
+.gd-cover-foot { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 20px; }
+.gd-cover-link {
+  border: 0; background: none; padding: 8px 4px; font-size: 14px; color: var(--gd-ink-mute); cursor: pointer; min-height: 40px;
+  text-decoration: underline; text-underline-offset: 4px; text-decoration-color: rgba(106, 99, 88, 0.4);
+}
+.gd-cover .gd-overlay-timing-note { font-size: 13px; color: var(--gd-ink-mute); }
+#gdPgo > .gd-rules-card { display: none; }   /* 还没搬进设置单时先收着 */
+
+/* 横屏（手机、平板、电脑都是横着打）：左边一扇牌 + 大字，右边两颗大按钮 + 小字 */
+@media (orientation: landscape) {
+  .gd-cover-inner {
+    width: min(760px, 100%);
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: 1fr auto auto auto 1fr; column-gap: 40px; row-gap: 14px; align-items: center;
+  }
+  .gd-cover-art { grid-column: 1; grid-row: 2 / 4; justify-self: center; align-self: end; }
+  .gd-cover-head { grid-column: 1; grid-row: 4; align-self: start; }
+  .gd-cover-inner > .gd-overlay-timing-note { grid-column: 2; grid-row: 1; align-self: end; }
+  .gd-cover-btns { grid-column: 2; grid-row: 2 / 4; align-self: center; }
+  .gd-cover-btns .gd-cover-btn { min-height: 96px; }
+  .gd-cover-btns .gd-cover-btn b { font-size: 22px; }
+  .gd-cover-foot { grid-column: 2; grid-row: 4; align-self: start; }
+}
+@media (orientation: landscape) and (max-height: 430px) {
+  .gd-cover-art { transform: scale(0.82); transform-origin: 50% 100%; margin-bottom: -18px; }
+  body.gd-game-fullscreen .gd-cover .gd-cover-title { font-size: 36px; }
+  .gd-cover-btns .gd-cover-btn { min-height: 84px; }
+}
+
+/* ───────── 设置单（从底下升起） ───────── */
+.gd-sheet-mask {
+  position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  background: rgba(29, 27, 24, 0); transition: background 0.22s ease;
+}
+.gd-sheet-mask[hidden] { display: none; }
+.gd-sheet-mask.is-open { background: rgba(29, 27, 24, 0.28); }
+.gd-sheet {
+  position: relative; width: min(540px, 100%); max-height: calc(100% - 12px); overflow-y: auto; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 12px; text-align: left; color: var(--gd-ink);
+  padding: 10px 24px calc(18px + env(safe-area-inset-bottom, 0px));
+  background: var(--gd-paper); border-radius: 22px 22px 0 0; box-shadow: 0 -10px 30px rgba(29, 27, 24, 0.14);
+  transform: translateY(100%); transition: transform 0.28s cubic-bezier(.2, .9, .3, 1);
+}
+.gd-sheet[hidden], .gd-sheet [hidden], .gd-cover [hidden] { display: none; }
+.gd-sheet-mask.is-open .gd-sheet { transform: none; }
+.gd-sheet-grab { align-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--gd-grab); flex: none; }
+.gd-sheet .gd-cover-btn b { font-size: 18px; }
+.gd-sheet .gd-pgo-score { margin: -4px 0 0; font-size: 12.5px; color: var(--gd-ink-mute); text-align: center; }
+.gd-sheet .gd-pgo-score:empty, .gd-sheet .gd-pgo-score[hidden] { display: none; }
+.gd-solo-resume b { font-size: 16px; letter-spacing: 0.12em; text-indent: 0.12em; }
+
+/* 玩法卡（照小咪 .zr-box）：一行一项，左字右分段 */
+.gd-rules-card {
+  display: flex; flex-direction: column; gap: 2px; padding: 6px 14px;
+  background: rgba(255, 253, 248, 0.75); border: 1.5px solid var(--gd-ink); border-radius: 14px;
+}
+.gd-rule-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; }
+.gd-rule-row + .gd-rule-row { border-top: 1px solid rgba(29, 27, 24, 0.1); }
+.gd-rule-tx { display: flex; flex-direction: column; min-width: 0; }
+.gd-rule-tx b { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; }
+.gd-rule-tx small { font-size: 11.5px; color: var(--gd-ink-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 分段（照小咪 .zs-seg）：墨线框，选中的那格墨底白字 */
+.gd-seg { display: flex; flex: none; border: 1px solid var(--gd-ink); border-radius: 10px; overflow: hidden; background: transparent; padding: 0; gap: 0; }
+body.gd-game-fullscreen .gd-seg .gs-pgo-mode-tab, .gd-seg .gs-pgo-mode-tab {
+  flex: none; min-width: 3.4em; min-height: 36px; margin: 0; border: 0; border-left: 1px solid rgba(29, 27, 24, 0.22); border-radius: 0;
+  background: transparent; color: var(--gd-ink); font-size: 14px; font-weight: 400; padding: 6px 12px; cursor: pointer; white-space: nowrap; box-shadow: none;
+}
+.gd-seg .gs-pgo-mode-tab:first-child { border-left: 0; }
+body.gd-game-fullscreen .gd-seg .gs-pgo-mode-tab.selected, .gd-seg .gs-pgo-mode-tab[aria-pressed="true"] {
+  background: var(--gd-ink); color: var(--gd-paper); font-weight: 700; box-shadow: none;
+}
+.gd-seg .gs-pgo-mode-tab:focus-visible { outline: 2px solid var(--gd-seal); outline-offset: -3px; }
+
+/* 联机单：上「开个房间」/ 或 / 下「加入」；横屏左右两栏 */
+.gd-on-cols { display: flex; flex-direction: column; gap: 12px; }
+.gd-on-create, .gd-on-join { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.gd-on-or { display: flex; align-items: center; gap: 12px; color: var(--gd-ink-faint); font-size: 13px; letter-spacing: 0.2em; }
+.gd-on-or::before, .gd-on-or::after { content: ''; flex: 1; height: 1px; background: rgba(29, 27, 24, 0.16); }
+.gd-input {
+  width: 100%; box-sizing: border-box; height: 48px; padding: 0 14px; border-radius: 12px;
+  border: 1.5px solid var(--gd-ink); background: var(--gd-card-face); color: var(--gd-ink); font-size: 15px; text-align: center;
+  -webkit-user-select: text; user-select: text;
+}
+.gd-input::placeholder { color: var(--gd-ink-faint); letter-spacing: 0.08em; }
+.gd-input:focus { outline: 2px solid var(--gd-seal); outline-offset: 1px; }
+.gd-on-nick { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--gd-ink-mute); }
+.gd-on-nick span { flex: none; }
+.gd-on-nick .gd-input { height: 36px; font-size: 14px; border-width: 1px; border-color: rgba(29, 27, 24, 0.35); background: transparent; }
+.gd-sheet .gd-online-hint { min-height: 0; margin: 0; font-size: 13px; color: var(--gd-ink-mute); text-align: center; }
+.gd-sheet .gd-online-hint:empty { display: none; }
+.gd-sheet .gd-online-hint.error { color: var(--gd-seal); font-weight: 700; }
+
+@media (orientation: landscape) {
+  .gd-sheet { width: min(560px, 100%); }
+  .gd-sheet-online { width: min(780px, 100%); }
+  .gd-on-cols { display: grid; grid-template-columns: minmax(0, 1.15fr) auto minmax(0, 1fr); column-gap: 18px; align-items: stretch; }
+  .gd-on-or { flex-direction: column; gap: 8px; }
+  .gd-on-or::before, .gd-on-or::after { width: 1px; height: auto; flex: 1; }
+  .gd-on-join { justify-content: center; }
+  .gd-on-create .gd-cover-btn { margin-top: auto; }
+  .gd-on-join .gd-on-nick { margin-top: 6px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .gd-sheet { gap: 8px; padding: 8px 20px calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .gd-sheet .gd-cover-btn { padding: 10px 14px; min-height: 46px; }
+  .gd-rule-row { padding: 4px 0; }
+  .gd-rule-tx small { display: none; }
+  .gd-seg .gs-pgo-mode-tab { min-height: 34px; padding: 4px 11px; }
+  .gd-input { height: 44px; }
+}
+
+/* ───────── 小卡片（确认 / 设置 / 二维码）：宣纸底、墨线、大圆角 ───────── */
+.gd-confirm-modal .gd-confirm-backdrop { background: rgba(29, 27, 24, 0.32); }
+.gd-confirm-modal .gd-confirm-panel {
+  background: var(--gd-paper); color: var(--gd-ink); border: 1px solid var(--gd-ink); border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(29, 27, 24, 0.24); padding: 22px 22px 18px;
+}
+.gd-confirm-modal .gd-confirm-msg { font-size: 18px; font-weight: 700; letter-spacing: 0.04em; color: var(--gd-ink); }
+.gd-confirm-modal .gd-confirm-sub { display: inline-block; margin-top: 6px; font-size: 13.5px; color: var(--gd-ink-mute); letter-spacing: 0; }
+.gd-confirm-modal .gd-confirm-actions { gap: 10px; }
+.gd-confirm-modal .gd-confirm-actions .gd-btn { flex: 1; }
+.gd-confirm-modal .gd-confirm-actions .gd-btn.primary { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); }
+
+.gd-settings-modal .gd-settings-panel { width: min(400px, 92vw); max-height: min(92vh, 640px); overflow-y: auto; text-align: left; padding: 14px 18px 12px; }
+.gd-dlg-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.gd-dlg-head h2 { margin: 0; font-size: 19px; letter-spacing: 0.12em; color: var(--gd-ink); }
+.gd-dlg-x { width: 40px; height: 40px; margin-right: -8px; border: 0; background: none; border-radius: 50%; cursor: pointer; display: grid; place-items: center; color: var(--gd-ink); }
+.gd-dlg-x svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.gd-dlg-x:hover { background: var(--gd-wash); }
+.gd-set-note { margin: 2px 0 6px; font-size: 12.5px; color: var(--gd-ink-mute); }
+.gd-set-group { padding: 8px 0 6px; border-top: 1px solid rgba(29, 27, 24, 0.12); }
+.gd-set-group:first-of-type { border-top: 0; }
+.gd-set-h { font-size: 12px; color: var(--gd-ink-mute); letter-spacing: 0.2em; margin: 2px 0 2px; }
+.gd-set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; font-size: 15px; cursor: pointer; }
+.gd-set-row > span { flex: 1; min-width: 0; }
+.gd-set-cols { display: flex; flex-direction: column; }
+@media (orientation: landscape) and (max-height: 600px) {
+  .gd-settings-modal .gd-settings-panel { width: min(680px, 94vw); }
+  .gd-set-cols { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); column-gap: 26px; }
+  .gd-set-cols > .gd-set-group:nth-child(2) { border-top: 0; grid-column: 2; grid-row: 1 / span 2; }
+  .gd-set-cols > .gd-set-group:nth-child(3) { grid-column: 1; }
+  .gd-set-row { min-height: 40px; }
+}
+.gd-set-foot { margin-top: 6px; font-size: 11px; color: var(--gd-ink-faint); text-align: center; }
+/* 开关（照小咪 .zs-switch） */
+.gd-switch, .guandan-wrap .gd-switch {
+  -webkit-appearance: none; appearance: none; flex: none; position: relative; width: 46px; height: 28px; min-width: 0; min-height: 0; min-block-size: 0; padding: 0; margin: 0; border-radius: 14px;
+  background: #d8d0c1; border: 0; cursor: pointer; transition: background 0.18s ease;
+}
+.gd-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fffdf8; box-shadow: 0 1px 3px rgba(29, 27, 24, 0.3); transition: transform 0.18s ease; }
+.gd-switch:checked { background: var(--gd-ink); }
+.gd-switch:checked::after { transform: translateX(18px); }
+.gd-switch:focus-visible { outline: 2px solid var(--gd-seal); outline-offset: 2px; }
+/* 小胶囊按钮：复制链接 / 二维码 / 保存到本机 */
+.gd-pill {
+  flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--gd-ink); background: var(--gd-paper);
+  color: var(--gd-ink); font: 700 13.5px/1 var(--gd-serif); letter-spacing: 0.06em; cursor: pointer; white-space: nowrap;
+}
+.gd-pill:active { transform: scale(0.96); }
+.gd-pill:disabled { opacity: 0.5; cursor: default; }
+
+.gd-qr-panel h2 { margin: 0 0 10px; font-size: 18px; letter-spacing: 0.12em; color: var(--gd-ink); }
+.gd-qr-box { display: grid; place-items: center; min-height: 120px; }
+.gd-qr-box canvas { width: min(210px, 60vw, 52vh); height: auto; image-rendering: pixelated; border-radius: 8px; }
+.gd-qr-code { margin: 8px 0 0; font-size: 13px; color: var(--gd-ink-mute); }
+.gd-qr-code b { font: 700 18px/1 var(--gd-num); color: var(--gd-ink); letter-spacing: 0.12em; margin-left: 4px; }
+
+/* ───────── 房间 ───────── */
+/* 中间这块拆开摆：房间号 + 复制链接 / 二维码在牌桌正中；两颗大按钮分在「我」的左右两边 */
+body.gd-game-fullscreen .gd-lobby .gd-lobby-center { display: contents; }
+body.gd-game-fullscreen .gd-lobby .gd-lobby-code {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -74%); z-index: 3;
+}
+body.gd-game-fullscreen .gd-lobby .gd-lobby-rules {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, 14px); z-index: 3; white-space: nowrap;
+}
+body.gd-game-fullscreen .gd-lobby .gd-lobby-meta { display: none; }
+body.gd-game-fullscreen .gd-lobby .gd-lobby-btn-row {
+  position: absolute; z-index: 3; width: auto; margin: 0;
+  left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: max(14px, env(safe-area-inset-bottom, 0px));
+  justify-content: space-between; pointer-events: none;
+}
+body.gd-game-fullscreen .gd-lobby .gd-lobby-btn-row .gd-btn.gd-btn { pointer-events: auto; flex: 0 1 min(190px, 27vw); }
+body.gd-game-fullscreen .gd-lobby .gd-lobby-seat.at-left, body.gd-game-fullscreen .gd-lobby .gd-lobby-seat.at-right { top: 50%; }
+body.gd-game-fullscreen .gd-lobby .gd-lobby-seat.at-top { top: max(8px, env(safe-area-inset-top, 0px)); }
+.gd-lobby-code { display: flex; align-items: center; justify-content: center; gap: 14px; }
+body.gd-game-fullscreen .gd-lobby .gd-lobby-room-chip {
+  position: static; inset: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+  padding: 0; border: 0; background: none; border-radius: 0; cursor: pointer; color: var(--gd-ink-mute);
+}
+.gd-lobby .gd-lobby-room-chip small { font-size: 12px; letter-spacing: 0.2em; }
+body.gd-game-fullscreen .gd-lobby .gd-lobby-room-chip span {
+  margin: 0; font: 700 44px/1 var(--gd-num); letter-spacing: 0.14em; color: var(--gd-ink);
+}
+.gd-lobby-share { display: flex; gap: 8px; }
+.gd-lobby-rules { font-size: 12.5px; color: var(--gd-ink-mute); letter-spacing: 0.04em; text-align: center; }
+.gd-lobby-rules:empty { display: none; }
+body.gd-game-fullscreen .gd-lobby .gd-lobby-meta { font-size: 12px; color: var(--gd-ink-faint); }
+.gd-lobby .gd-lobby-btn-row { display: flex; gap: 10px; width: 100%; }
+body.gd-game-fullscreen .gd-lobby .gd-lobby-btn-row .gd-btn {
+  flex: 1; min-height: 46px; padding: 0 12px; border-radius: 12px; border: 1.5px solid var(--gd-ink);
+  background: var(--gd-card-face); color: var(--gd-ink); font-size: 15px; font-weight: 700; letter-spacing: 0.12em;
+}
+body.gd-game-fullscreen .gd-lobby .gd-lobby-btn-row .gd-btn.primary { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); }
+body.gd-game-fullscreen .gd-lobby .gd-lobby-btn-row .gd-btn.primary:disabled { background: #a39b8f; border: 1.5px solid #a39b8f; color: #f6f1e6; cursor: default; letter-spacing: 0.06em; }
+.gd-lobby #gdLobbyStartBtn.is-ready { animation: gd-ready 1.8s ease-in-out infinite; }
+@keyframes gd-ready { 0%, 100% { box-shadow: 0 0 0 0 rgba(180, 57, 44, 0.35); } 50% { box-shadow: 0 0 0 6px rgba(180, 57, 44, 0); } }
+
+/* 座位卡（照小咪 .zm-lseat）：白卡、墨线；空位是虚线框 + 「＋ 加机器人」 */
+.gd-lobby .gd-lobby-seat .seat-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 92px; padding: 10px 10px 8px;
+  border: 1.5px solid var(--gd-ink); border-radius: 14px; background: var(--gd-card-face);
+}
+.gd-lobby .gd-lobby-seat.team-opp .seat-inner { border-color: rgba(29, 27, 24, 0.45); }
+.gd-lobby .gd-lobby-seat.swap-selected .seat-inner { border-color: var(--gd-seal); box-shadow: 0 0 0 3px rgba(180, 57, 44, 0.18); }
+.gd-lobby .gd-lobby-seat.empty .seat-inner { padding: 0; border: 0; background: none; }
+.gd-lobby-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  width: 92px; height: 104px; border: 1.5px dashed rgba(29, 27, 24, 0.4); border-radius: 14px; background: transparent;
+  color: var(--gd-ink-mute); cursor: pointer;
+}
+div.gd-lobby-empty { cursor: default; }
+.gd-lobby-empty .plus { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(29, 27, 24, 0.35); position: relative; }
+.gd-lobby-empty .plus::before, .gd-lobby-empty .plus::after { content: ''; position: absolute; left: 50%; top: 50%; width: 14px; height: 1.5px; background: currentColor; transform: translate(-50%, -50%); }
+.gd-lobby-empty .plus::after { transform: translate(-50%, -50%) rotate(90deg); }
+.gd-lobby-empty .nick { font-size: 13px; color: var(--gd-ink-mute); }
+button.gd-lobby-empty:hover { border-color: var(--gd-ink); color: var(--gd-ink); }
+.gd-lobby .gd-lobby-seat.move-target .gd-lobby-empty { border-color: var(--gd-seal); color: var(--gd-seal); }
+.gd-lobby .gd-lobby-seat.move-target .gd-lobby-empty .nick { color: var(--gd-seal); font-weight: 700; }
+.gd-lobby .gd-lobby-seat .avatar { background: var(--gd-wash); border: 1.5px solid var(--gd-ink); color: var(--gd-ink); }
+.gd-lobby .gd-lobby-seat.team-opp .avatar { border-color: var(--gd-ink-faint); }
+.gd-lobby .gd-lobby-seat .nick { font-size: 14px; font-weight: 700; color: var(--gd-ink); max-width: 7em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-lobby .gd-lobby-seat .badges { display: flex; gap: 4px; }
+.gd-lobby .gd-lobby-seat .badges:empty { display: none; }
+.gd-lobby .gd-lobby-seat .badge.ai { display: none; }
+.gd-lobby .gd-lobby-seat .badge { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--gd-wash); color: var(--gd-ink-mute); border: 0; }
+.gd-lobby .gd-lobby-seat .badge.host { background: var(--gd-seal); color: var(--gd-seal-ink); }
+.gd-lobby .gd-lobby-seat .badge.me { background: var(--gd-ink); color: var(--gd-paper); }
+.gd-lobby .gd-lobby-seat .seat-actions { display: flex; gap: 4px; margin-top: 2px; }
+body.gd-game-fullscreen .gd-lobby .gd-lobby-seat .seat-actions .gd-btn { min-height: 30px; min-block-size: 30px; padding: 0 10px; border-radius: 999px; font-size: 12px; border: 1px solid rgba(29, 27, 24, 0.4); background: transparent; }
+/* 队伍标签：我方 / 对方（掼蛋的座位就是队伍，一眼看清） */
+.gd-lobby .gd-lobby-seat::before {
+  content: '对方'; display: block; text-align: center; font-size: 11px; letter-spacing: 0.24em; text-indent: 0.24em; color: var(--gd-ink-faint); margin-bottom: 3px;
+}
+.gd-lobby .gd-lobby-seat.team-you::before { content: '我方'; color: var(--gd-ink-mute); }
+.gd-lobby .gd-lobby-seat.at-bottom { bottom: max(0.8rem, env(safe-area-inset-bottom, 0px)); }
+/* 对家那张卡横着放（头像在左，名字 / 按钮在右），给中间的房间号让出高度 */
+.gd-lobby .gd-lobby-seat.at-top .seat-inner { display: grid; grid-template-columns: auto auto; column-gap: 10px; row-gap: 2px; align-items: center; justify-items: start; }
+.gd-lobby .gd-lobby-seat.at-top .seat-inner > .avatar { grid-row: 1 / span 3; }
+.gd-lobby .gd-lobby-seat.at-top.empty .seat-inner { display: block; }
+.gd-lobby .gd-lobby-seat.at-top .gd-lobby-empty { flex-direction: row; width: 150px; height: 58px; }
+@media (max-height: 430px) {
+  .gd-lobby .gd-lobby-seat .seat-inner { min-width: 84px; padding: 6px 8px 5px; gap: 1px; }
+  .gd-lobby .gd-lobby-seat .avatar { width: 36px; height: 36px; }
+  .gd-lobby-empty { width: 84px; height: 80px; gap: 4px; }
+  .gd-lobby-empty .plus { width: 32px; height: 32px; }
+  body.gd-game-fullscreen .gd-lobby .gd-lobby-room-chip span { font-size: 36px; }
+  body.gd-game-fullscreen .gd-lobby .gd-lobby-btn-row .gd-btn { min-height: 42px; }
+  .gd-lobby .gd-lobby-seat::before { margin-bottom: 1px; }
+}
+
+/* ───────── 牌桌上的按钮：胶囊（照小咪 .zm-btn），出牌 = 朱砂 ───────── */
+body.gd-game-fullscreen .gd-play-actions .gd-btn,
+body.gd-game-fullscreen .gd-sort-actions .gd-btn,
+body.gd-game-fullscreen .gd-order-actions .gd-btn {
+  border-radius: 999px; border: 1px solid var(--gd-ink); background: var(--gd-paper); color: var(--gd-ink);
+  font-weight: 700; letter-spacing: 0.08em;
+}
+body.gd-game-fullscreen .gd-play-actions .gd-btn { min-height: 42px; font-size: 15px; }
+body.gd-game-fullscreen .gd-play-actions .gd-btn.primary:not(:disabled) { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); }
+body.gd-game-fullscreen .gd-play-actions .gd-btn:disabled { opacity: 0.35; border-style: solid; border-color: var(--gd-ink); color: var(--gd-ink); background: var(--gd-paper); }
+body.gd-game-fullscreen .gd-play-actions .gd-btn:active:not(:disabled) { transform: scale(0.96); }
+body.gd-game-fullscreen .gd-self-clock { font-family: var(--gd-num); }
+
+/* 结算卡：和小卡片一个样 */
+.guandan-wrap .gd-overlay .gd-result-panel { background: var(--gd-paper); border: 1px solid var(--gd-ink); border-radius: 18px; box-shadow: 0 18px 44px rgba(29, 27, 24, 0.24); }
+.guandan-wrap .gd-overlay .gd-result-actions .gd-btn, .guandan-wrap .gd-overlay #gdRoundNext {
+  min-height: 46px; border-radius: 12px; border: 1.5px solid var(--gd-ink); font-weight: 700; letter-spacing: 0.12em; background: var(--gd-card-face); color: var(--gd-ink);
+}
+.guandan-wrap .gd-overlay .gd-result-actions .gd-btn.primary, .guandan-wrap .gd-overlay #gdRoundNext.primary { background: var(--gd-seal); border-color: var(--gd-seal); color: var(--gd-seal-ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .gd-cover-fan .gd-card, .gd-cover-seal, .gd-cover-btn.is-primary::after, .gd-lobby #gdLobbyStartBtn.is-ready { animation: none; }
+  .gd-sheet, .gd-sheet-mask { transition: none; }
+}
+
+/* 大屏（电脑、平板）：主页和房间整体放大一档 */
+@media (orientation: landscape) and (min-height: 600px) {
+  .gd-cover-inner { width: min(900px, 100%); column-gap: 64px; }
+  .gd-cover-art { transform: scale(1.35); transform-origin: 50% 100%; margin-top: 50px; }
+  body.gd-game-fullscreen .gd-cover .gd-cover-title { font-size: 58px; }
+  .gd-cover-sub { font-size: 15px; }
+  .gd-cover-btns .gd-cover-btn { min-height: 120px; }
+  .gd-cover-btns .gd-cover-btn b { font-size: 26px; }
+  .gd-cover-link { font-size: 15px; }
+  body.gd-game-fullscreen .gd-lobby .gd-lobby-room-chip span { font-size: 64px; }
+  .gd-lobby-rules { font-size: 14px; }
+  body.gd-game-fullscreen .gd-lobby .gd-lobby-rules { transform: translate(-50%, 24px); }
+}
+/* 横屏手机：二维码卡左右排（码在左，房号和「好」在右），不出屏 */
+@media (orientation: landscape) and (max-height: 500px) {
+  .gd-qr-panel { width: min(460px, 90vw); display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto 1fr; column-gap: 18px; align-items: center; padding: 16px 18px; }
+  .gd-qr-panel .gd-qr-box { grid-column: 1; grid-row: 1 / span 3; min-height: 0; }
+  .gd-qr-box canvas { width: min(200px, 62vh); }
+  .gd-qr-panel h2 { grid-column: 2; margin: 0; }
+  .gd-qr-panel .gd-qr-code { grid-column: 2; }
+  .gd-qr-panel .gd-confirm-actions { grid-column: 2; margin-top: 8px; align-self: start; }
+}

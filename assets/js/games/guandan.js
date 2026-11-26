@@ -5004,15 +5004,9 @@
   }
   // 版本 / AI 引擎说明：不再常驻牌桌，只在开始页（设置）底部以小字显示（规格第 6 节）。
   function updateBuildBadge() {
-    const host = document.getElementById('gdPgoMain');
-    if (!host) return;
-    let el = document.getElementById('gdBuildBadge');
-    if (!el) {
-      el = document.createElement('p');
-      el.id = 'gdBuildBadge';
-      el.className = 'gd-build-note';
-      host.appendChild(el);
-    }
+    // 2026-11-26：挪进设置卡最底下一行小字，主页上不再露
+    const el = document.getElementById('gdSettingsVersion');
+    if (!el) return;
     let ai = '';
     const lv = state && (state.phase === PHASE.IDLE ? state.aiLevel : state.matchAiLevel);
     if (lv === 'hard') ai = ' · 高手 ' + (_dmcState === 2 ? 'DanZero Worker' : _dmcState === 1 ? '载入中…' : _dmcState === 3 ? '模型不可用' : '待加载');
@@ -5622,6 +5616,8 @@
   if (els.offlineCacheBtn) els.offlineCacheBtn.addEventListener('click', async () => {
     const btn = els.offlineCacheBtn;
     btn.disabled = true;
+    btn.textContent = '保存中…';
+    let saved = false;
     try {
       await cacheCoreOfflineAssets();
       if (state.aiLevel === 'hard') {
@@ -5633,11 +5629,13 @@
         updateHardOfflineStatus('当前档位基础资源已校验并缓存，可离线使用。');
       }
       announce('离线版缓存完成');
+      saved = true;
     } catch (_) {
       updateHardOfflineStatus('离线缓存未完成；请联网后重试。');
       announce('离线缓存未完成，请联网后重试');
     } finally {
       btn.disabled = false;
+      btn.textContent = saved ? '已保存 ✓' : '没存上，联网再试';
     }
   });
   // 玩法设置段选：同队进贡 / 单局积分上限 / 出牌时间
@@ -5685,6 +5683,7 @@
     // 高手档若神经网络还没下好：原地显示下载进度,下完才开始,不让「假高手」(启发式)上桌
     const needNet = state.aiLevel === 'hard' && _dmcState !== 2;
     if (!needNet) {
+      closeSheet();
       deactivateDialog(els.pgo);
       els.pgo.classList.remove('open');
       startMatch();
@@ -5700,6 +5699,7 @@
       if (_dmcState === 2) {
         try { await cacheHardOfflineAssets(); } catch (_) { /* 在线可玩，但绝不标记为可离线 */ }
         btn.innerHTML = btn.dataset.orig;
+        closeSheet();
         deactivateDialog(els.pgo);
         els.pgo.classList.remove('open');
         startMatch();
@@ -6268,31 +6268,132 @@
   if (gdBoardBtn) gdBoardBtn.addEventListener('click', event => openBoard(event.currentTarget));
   if ($('gdBoardClose')) $('gdBoardClose').addEventListener('click', closeBoard);
   if ($('gdBoardBackdrop')) $('gdBoardBackdrop').addEventListener('click', closeBoard);
-  // ⚙️ 设置：调出 Pre-Game 页（含全部设置）。对局进行中露出「返回游戏」让你能关掉续局。
+  // ⚙️ 设置（2026-11-26 照百变小咪）：单独一张设置卡（声音三轨 / 手牌大小 / 机器人速度 / 离线），
+  // 不再把开始页借来当设置页。牌局中打开时单机暂停，关掉接着打。
   const gdPgoCloseBtn = $('gdPgoClose');
-  if (gdSettingsBtn) gdSettingsBtn.addEventListener('click', event => {
-    const returnable = navState.current !== NAV_VIEW.SETUP;
+  const settingsDlg = $('gdSettingsDlg');
+  const settingsNote = $('gdSettingsNote');
+  function openSettings(returnTarget) {
+    if (!settingsDlg) return;
+    closeMenu();
     if (!isNetworked()) pauseLocalGame('settings');
-    setOverlayTimingNote(pgoTimingNote);
-    if (gdPgoCloseBtn) {
-      gdPgoCloseBtn.hidden = !returnable;
-      gdPgoCloseBtn.textContent = navState.current === NAV_VIEW.LOBBY ? '← 返回大厅' : '← 返回游戏';
-      gdPgoCloseBtn.setAttribute('aria-label', navState.current === NAV_VIEW.LOBBY ? '返回大厅' : '返回游戏');
+    setOverlayTimingNote(settingsNote);
+    syncPgoOptions();
+    AUDIO.refreshButton();
+    updateBuildBadge();
+    settingsDlg.hidden = false;
+    activateDialog(settingsDlg, closeSettings, '#gdSettingsClose', returnTarget);
+  }
+  function closeSettings() {
+    if (!settingsDlg || settingsDlg.hidden) return;
+    deactivateDialog(settingsDlg);
+    settingsDlg.hidden = true;
+    resumeLocalGame('settings');
+  }
+  if (gdSettingsBtn) gdSettingsBtn.addEventListener('click', event => openSettings(event.currentTarget));
+  if ($('gdSettingsClose')) $('gdSettingsClose').addEventListener('click', closeSettings);
+  if (settingsDlg) {
+    const bd = settingsDlg.querySelector('[data-close="settings"]');
+    if (bd) bd.addEventListener('click', closeSettings);
+    for (const box of settingsDlg.querySelectorAll('input.gd-switch[data-track]')) {
+      box.addEventListener('change', () => { AUDIO.setTrack(box.dataset.track, box.checked); });
     }
-    els.pgo.classList.add('open');
-    if (returnable) activateDialog(
-      els.pgo,
-      () => gdPgoCloseBtn.click(),
-      '#gdPgoClose',
-      event.currentTarget,
-    );
-  });
+  }
   if (gdPgoCloseBtn) gdPgoCloseBtn.addEventListener('click', () => {
     deactivateDialog(els.pgo);
     els.pgo.classList.remove('open');
     gdPgoCloseBtn.hidden = true;
     resumeLocalGame('settings');
   });
+
+  // ☰ 菜单（照百变小咪）：右上角一颗钮，点开一列「图标 + 一行字」。
+  // 设置 / 战绩榜 / 回到主页面 三项沿用旧按钮的 id（gdSettingsBtn / gdBoardBtn / gdExitBtn），上面的监听直接挂在菜单项上。
+  const menuBtn = $('gdMenuBtn');
+  const menuEl = $('gdMenu');
+  const menuNew = $('gdMenuNew');
+  function placeMenu() {
+    if (!menuBtn || !menuEl) return;
+    const r = menuBtn.getBoundingClientRect();
+    const w = menuEl.offsetWidth || 220;
+    menuEl.style.top = Math.round(r.bottom + 8) + 'px';
+    menuEl.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w))) + 'px';
+  }
+  function syncMenuItems() {
+    const view = navState.current;
+    const inGame = view === NAV_VIEW.PLAYING || view === NAV_VIEW.TRIBUTE || view === NAV_VIEW.SETTLEMENT;
+    const online = !!onlineState;
+    if (menuNew) menuNew.hidden = online || !inGame;
+    if (gdExitBtn) {
+      const label = gdExitBtn.querySelector('b');
+      if (label) label.textContent = online ? '离开房间' : '回到主页面';
+    }
+    if (menuEl) {
+      // 连着的分隔线 / 打头的分隔线收起来
+      let prevVisible = null;
+      for (const node of menuEl.children) {
+        if (node.tagName === 'HR') {
+          node.hidden = !prevVisible || prevVisible.tagName === 'HR';
+          if (!node.hidden) prevVisible = node;
+        } else if (!node.hidden) prevVisible = node;
+      }
+    }
+  }
+  function openMenu() {
+    if (!menuEl) return;
+    syncMenuItems();
+    menuEl.hidden = false;
+    placeMenu();
+    menuBtn.setAttribute('aria-expanded', 'true');
+    const first = [...menuEl.querySelectorAll('button')].find(b => !b.hidden);
+    if (first) first.focus({ preventScroll: true });
+  }
+  function closeMenu() {
+    if (!menuEl || menuEl.hidden) return;
+    menuEl.hidden = true;
+    if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+  }
+  if (menuBtn) menuBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (menuEl.hidden) openMenu(); else closeMenu();
+  });
+  if (menuEl) {
+    // 点菜单项：先收菜单，再交给各自的监听（设置 / 战绩榜 / 回到主页面在上下文里已挂好）
+    menuEl.addEventListener('click', e => { if (e.target.closest('button')) closeMenu(); });
+    menuEl.addEventListener('keydown', e => {
+      const items = [...menuEl.querySelectorAll('button')].filter(b => !b.hidden);
+      const i = items.indexOf(document.activeElement);
+      if (e.key === 'Escape') { e.preventDefault(); closeMenu(); menuBtn.focus(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+    });
+    document.addEventListener('click', e => {
+      if (!menuEl.hidden && !e.target.closest('#gdMenu, #gdMenuBtn')) closeMenu();
+    });
+    window.addEventListener('resize', () => { if (!menuEl.hidden) placeMenu(); });
+  }
+  // 规则：打开战绩榜那层，规则那一节展开并滚到顶
+  function openRules(returnTarget) {
+    openBoard(returnTarget);
+    const det = boardModal && boardModal.querySelector('details.about');
+    if (det) { det.open = true; requestAnimationFrame(() => det.scrollIntoView({ block: 'start' })); }
+  }
+  if ($('gdRulesBtn')) $('gdRulesBtn').addEventListener('click', event => openRules(event.currentTarget));
+  if (menuNew) menuNew.addEventListener('click', event => {
+    openConfirm({
+      title: '重新开一盘？',
+      sub: '这一盘的级数清零，从打 2 重新开始。',
+      ok: '重新开始',
+      onOk: () => {
+        roundVisualGeneration++;
+        resetLocalPause();
+        state.autopilot = false;
+        state._consecutiveTimeouts = 0;
+        refreshAutopilotBtn();
+        startMatch();
+      },
+    }, event.currentTarget);
+  });
+
   // 中途退出本局：随时弃掉当前这副牌，回到难度选择页（PGO）。复用 matchSetup 那套
   // 收尾——停时钟、关托管、回 IDLE、重渲、亮起 PGO。不弹确认窗（用户讨厌弹窗）；
   // 旧对局快照留着不清，万一手滑还能靠 resume 救回来，开新局时 startMatch 自会覆盖。
@@ -6319,13 +6420,34 @@
     els.pgo.classList.add('open');
   }
   // 右上角「退出本局」按钮 → 先弹确认窗（用户明确要求确认），确认后才 quitToSetup
+  // 确认小卡：「回到主页面」「离开房间」「重新开一盘」共用一张（文案和确定后做什么由调用方给）
   const confirmExit = $('gdConfirmExit');
-  function openConfirmExit(returnTarget) {
+  let confirmOnOk = null;
+  function openConfirm(opts, returnTarget) {
+    if (!confirmExit) { if (opts && opts.onOk) opts.onOk(); return; }
     if (!isNetworked()) pauseLocalGame('exit-confirm');
-    if (confirmExit) {
-      confirmExit.hidden = false;
-      activateDialog(confirmExit, closeConfirmExit, '#gdConfirmExitCancel', returnTarget);
-    }
+    const main = $('gdConfirmExitMain'), sub = $('gdConfirmExitSub'), ok = $('gdConfirmExitOk');
+    if (main) main.textContent = opts.title || '';
+    if (sub) sub.textContent = opts.sub || '';
+    if (ok) ok.textContent = opts.ok || '确定';
+    confirmOnOk = opts.onOk || null;
+    confirmExit.hidden = false;
+    activateDialog(confirmExit, closeConfirmExit, '#gdConfirmExitCancel', returnTarget);
+  }
+  function openConfirmExit(returnTarget) {
+    // 房间里还没开打：直接走「离开房间」那颗按钮（房主要先选转交还是解散）
+    if (onlineState && navState.current === NAV_VIEW.LOBBY && onlineEls.leaveBtn) { onlineEls.leaveBtn.click(); return; }
+    openConfirm(onlineState ? {
+      title: '离开房间？',
+      sub: '这一局会由机器人接着替你打。',
+      ok: '离开',
+      onOk: quitToSetup,
+    } : {
+      title: '回到主页面？',
+      sub: '这一盘先存着，下次进来可以接着打。',
+      ok: '回主页面',
+      onOk: quitToSetup,
+    }, returnTarget);
   }
   function closeConfirmExit() {
     if (confirmExit) {
@@ -6338,7 +6460,12 @@
   if ($('gdMuteBtn')) $('gdMuteBtn').addEventListener('click', toggleMute);
   if ($('gdConfirmExitCancel')) $('gdConfirmExitCancel').addEventListener('click', closeConfirmExit);
   if ($('gdConfirmExitBackdrop')) $('gdConfirmExitBackdrop').addEventListener('click', closeConfirmExit);
-  if ($('gdConfirmExitOk')) $('gdConfirmExitOk').addEventListener('click', () => { closeConfirmExit(); quitToSetup(); });
+  if ($('gdConfirmExitOk')) $('gdConfirmExitOk').addEventListener('click', () => {
+    const fn = confirmOnOk;
+    confirmOnOk = null;
+    closeConfirmExit();
+    if (fn) fn();
+  });
   // 旋转/尺寸变化：复位滚动 + 强制 position:fixed 重新按当前视口铺满，避免 Safari 旋转后
   // 顶部残留一小栏（wrap 被滚下去一点 / fixed 没按新视口重算）的坑。
   function gdReflowViewport() {
@@ -6561,23 +6688,6 @@
   };
   let onlineTab = 'create';
   let playMode = 'single';   // 'single' | 'online'
-
-  // 把「玩法设置」面板搬到当前该出现的位置：单机 → 难度下方；联机·创建房间 → 提交键上方；
-  // 联机·加入房间 → 隐藏（设置由房主定，加入者不需要）。移动 DOM 节点，监听器/选中态都保留。
-  function placeGameOpts() {
-    const opts = els.gameOpts;
-    if (!opts) return;
-    if (playMode === 'single') {
-      if (els.pgoScore) onlineEls.singleSetup.insertBefore(opts, els.pgoScore);
-      opts.hidden = false;
-    } else if (onlineTab === 'create') {
-      const form = onlineEls.submit && onlineEls.submit.parentNode;
-      if (form) form.insertBefore(opts, onlineEls.submit);
-      opts.hidden = false;
-    } else {
-      opts.hidden = true;
-    }
-  }
 
   // ---- API ----
   const gdApi = NET.api;
@@ -6866,7 +6976,7 @@
     onlineEls.hint.className = 'gd-online-hint' + (isError ? ' error' : '');
   }
   const ERR_MSG = {
-    room_not_found: '房间不存在或已过期',
+    room_not_found: '没有这个房间（房号不对，或者房间已经解散）',
     room_in_progress: '游戏已开始，无法加入',
     room_full: '房间已满，换一个房号试试',
     room_dissolved: '房间已解散',
@@ -6891,40 +7001,121 @@
   };
   const errText = e => ERR_MSG[e] || ('错误：' + e);
 
-  // ---- tabs ----
-  if (onlineEls.tabs) {
-    [...onlineEls.tabs.querySelectorAll('.gd-online-tab')].forEach(b => {
-      b.addEventListener('click', () => {
-        onlineTab = b.dataset.tab;
-        setExclusiveButtonState(onlineEls.tabs, onlineTab, 'tab', 'active');
-        onlineEls.code.hidden = (onlineTab === 'create');
-        onlineEls.submit.textContent = (onlineTab === 'create') ? '创建房间' : '加入房间';
-        placeGameOpts();   // 创建房间显示玩法设置，加入房间隐藏
-        setOnlineHint('');
-      });
+  // ---- 主页（封面）+ 两张设置单（2026-11-26 照百变小咪）----
+  // 「单机」「联机」各升起一张设置单；玩法卡（#gdGameOpts）只有一张，打开哪张单就搬到哪张单里。
+  const sheetMask = $('gdSheetMask');
+  const sheetSolo = onlineEls.singleSetup;
+  const sheetOnline = onlineEls.onlineSetup;
+  const soloResumeBtn = $('gdSoloResume');
+  let openSheetName = null;
+  function placeGameOpts(where) {
+    const opts = els.gameOpts;
+    if (!opts) return;
+    const slot = document.querySelector('.gd-sheet-slot[data-slot="' + where + '"]');
+    if (slot && opts.parentNode !== slot) slot.appendChild(opts);
+  }
+  function openSheet(name, returnTarget) {
+    if (!sheetMask) return;
+    playMode = name === 'online' ? 'online' : 'single';
+    onlineTab = 'create';
+    placeGameOpts(name);
+    sheetMask.hidden = false;
+    if (sheetSolo) sheetSolo.hidden = name !== 'solo';
+    if (sheetOnline) sheetOnline.hidden = name !== 'online';
+    openSheetName = name;
+    setOnlineHint('');
+    if (name === 'solo') {
+      syncPgoDiff();
+      if (soloResumeBtn) soloResumeBtn.hidden = !loadSession();
+    } else {
+      if (onlineEls.nick && !onlineEls.nick.value) onlineEls.nick.value = gdGetNick() || randomGuestNick();
+      const resume = $('gdOnlineResume');
+      if (resume) resume.hidden = !onlineState;
+    }
+    const sheet = name === 'online' ? sheetOnline : sheetSolo;
+    requestAnimationFrame(() => sheetMask.classList.add('is-open'));
+    activateDialog(sheet, closeSheet, name === 'online' ? '#gdOnlineCreate' : '#gdPgoStart', returnTarget);
+  }
+  function closeSheet() {
+    if (!sheetMask || sheetMask.hidden) return;
+    const sheet = openSheetName === 'online' ? sheetOnline : sheetSolo;
+    deactivateDialog(sheet);
+    sheetMask.classList.remove('is-open');
+    sheetMask.hidden = true;
+    openSheetName = null;
+  }
+  // 联机没填过昵称：先给一个能用的（进房后随时可以在设置单里改）
+  function randomGuestNick() {
+    const pool = ['老周', '小王', '阿杰', '大刘', '小陈', '阿梅', '老李', '小赵', '阿强', '小林'];
+    return pool[Math.floor(Math.random() * pool.length)] + String(Math.floor(Math.random() * 90) + 10);
+  }
+  if (sheetMask) {
+    // 点单子外面收起
+    sheetMask.addEventListener('click', e => { if (e.target === sheetMask) closeSheet(); });
+    // 往下拖把手 / 单子顶部收起
+    let dragY = null, dragSheet = null;
+    sheetMask.addEventListener('pointerdown', e => {
+      const sheet = e.target.closest('.gd-sheet');
+      if (!sheet || e.target.closest('button, input, label, .gd-seg')) return;
+      const r = sheet.getBoundingClientRect();
+      if (e.clientY - r.top > 44) return;
+      dragY = e.clientY; dragSheet = sheet;
+    });
+    window.addEventListener('pointermove', e => {
+      if (dragY == null) return;
+      const dy = Math.max(0, e.clientY - dragY);
+      dragSheet.style.transform = 'translateY(' + dy + 'px)';
+    });
+    window.addEventListener('pointerup', e => {
+      if (dragY == null) return;
+      const dy = e.clientY - dragY;
+      dragSheet.style.transform = '';
+      dragY = null; dragSheet = null;
+      if (dy > 60) closeSheet();
     });
   }
-  // playmode toggle
-  if (onlineEls.pgoPlayMode) {
-    [...onlineEls.pgoPlayMode.querySelectorAll('.gs-pgo-mode-tab')].forEach(b => {
-      b.addEventListener('click', () => {
-        const m = b.dataset.playmode;
-        playMode = m;
-        setExclusiveButtonState(onlineEls.pgoPlayMode, playMode, 'playmode');
-        if (m === 'online') {
-          onlineEls.singleSetup.hidden = true;
-          onlineEls.onlineSetup.hidden = false;
-          // 预填昵称
-          if (onlineEls.nick && !onlineEls.nick.value) onlineEls.nick.value = gdGetNick();
-        } else {
-          onlineEls.singleSetup.hidden = false;
-          onlineEls.onlineSetup.hidden = true;
-        }
-        placeGameOpts();   // 切模式时把玩法设置搬到对应位置
-      });
+  const coverEl = els.pgo;
+  if (coverEl) coverEl.addEventListener('click', e => {
+    const b = e.target.closest('[data-cover]');
+    if (!b) return;
+    const act = b.dataset.cover;
+    if (act === 'solo' || act === 'online') openSheet(act, b);
+    else if (act === 'settings') openSettings(b);
+    else if (act === 'board') openBoard(b);
+    else if (act === 'rules') openRules(b);
+  });
+  // 封面插画：一扇真牌（和牌桌同一套牌面）——逢人配、两张王、黑桃 A、方片 K
+  (function drawCoverArt() {
+    const art = $('gdCoverArt');
+    if (!art || art.childElementCount) return;
+    const fan = document.createElement('div');
+    fan.className = 'gd-cover-fan';
+    const cards = [11 + 2 * 13, 12, 13, 52, 53];   // ♦K ♠A ♥2(逢人配) 小王 大王
+    cards.forEach((c, i) => {
+      const el = buildCardEl(c, 'size-full', '2');
+      el.style.setProperty('--i', String(i - (cards.length - 1) / 2));
+      fan.appendChild(el);
     });
-  }
-  placeGameOpts();   // 初始（默认单机）把玩法设置放到难度下方
+    art.appendChild(fan);
+    const seal = document.createElement('span');
+    seal.className = 'gd-cover-seal';
+    seal.textContent = '掼';
+    art.appendChild(seal);
+  })();
+  if (soloResumeBtn) soloResumeBtn.addEventListener('click', () => {
+    const snap = loadSession();
+    closeSheet();
+    if (!snap) return;
+    els.pgo.classList.remove('open');
+    if ((snap.matchAiLevel || snap.aiLevel) === 'hard') ensureDMC();
+    restoreFromSession(snap);
+  });
+  const onlineResumeBtn = $('gdOnlineResume');
+  if (onlineResumeBtn) onlineResumeBtn.addEventListener('click', () => {
+    closeSheet();
+    if (onlineState && onlineState.srvState === 'lobby') { revealLobby(); renderLobbyOptimistic(); }
+    else if (onlineState) els.pgo.classList.remove('open');
+  });
 
   function parseInviteInput(raw) {
     let value = String(raw || '').trim();
@@ -6932,54 +7123,76 @@
     try {
       if (/^https?:\/\//i.test(value)) {
         value = new URL(value).searchParams.get('room') || '';
+      } else {
+        // 微信等转发时链接前后常带一段话：从整段文字里把 ?room= 后面那串抠出来
+        const m = /[?&]room=([0-9]{4}-[A-Za-z0-9_-]{24,256})/.exec(value);
+        if (m) value = m[1];
       }
     } catch { return null; }
     value = value.trim();
+    // 只输 4 位房间号（2026-11-26 用户同意，照百变小咪）
+    if (/^\d{4}$/.test(value)) return { code: value, inviteCode: null, legacy: false };
     const match = /^(\d{4})-([A-Za-z0-9_-]{24,256})$/.exec(value);
     return match ? { code: match[1], inviteCode: value, legacy: false } : null;
   }
 
-  // ---- submit (create/join) ----
-  if (onlineEls.submit) {
-    onlineEls.submit.addEventListener('click', async () => {
-      const nick = onlineEls.nick.value.trim();
-      if (!nick || nick.length > 12) { setOnlineHint('昵称 1-12 字', true); return; }
-      gdSetNick(nick);
-      if (onlineTab === 'create') {
-        setOnlineHint('创建中…');
-        const r = await gdApi('create', { body: {
-          nick,
-          deviceId: gdGetDeviceId(),
-          rulesVersion: RULES_VERSION,
-          protocolVersion: PROTOCOL_VERSION,
-          aiContractVersion: AI_CONTRACT_VERSION,
-          config: { aiLevel: state.aiLevel, options: state.options },
-        } });
-        if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
-        enterRoom(r.data, nick);
-      } else {
-        const invite = parseInviteInput(onlineEls.code.value);
-        if (!invite) { setOnlineHint('请粘贴房主分享的完整邀请码或邀请链接', true); return; }
-        setOnlineHint('加入中…');
-        const joinBody = {
-          code: invite.code,
-          nick,
-          deviceId: gdGetDeviceId(),
-          rulesVersion: RULES_VERSION,
-          protocolVersion: PROTOCOL_VERSION,
-          aiContractVersion: AI_CONTRACT_VERSION,
-        };
-        if (invite.inviteCode) joinBody.inviteCode = invite.inviteCode;
-        const r = await gdApi('join', { body: joinBody });
-        if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
-        enterRoom(r.data, nick, invite.inviteCode);
-      }
-    });
+  // ---- 创建 / 加入 ----
+  function readOnlineNick() {
+    const nick = (onlineEls.nick && onlineEls.nick.value.trim()) || gdGetNick() || randomGuestNick();
+    if (!nick || [...nick].length > 12) { setOnlineHint('昵称 1–12 个字', true); return null; }
+    if (onlineEls.nick) onlineEls.nick.value = nick;
+    gdSetNick(nick);
+    return nick;
   }
-  // Enter 触发 submit
-  ['gdOnlineNick', 'gdOnlineCode'].forEach(id => {
-    const el = $(id);
-    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter' && onlineEls.submit) onlineEls.submit.click(); });
+  let onlineBusy = false;
+  async function createRoom() {
+    if (onlineBusy) return;
+    const nick = readOnlineNick();
+    if (!nick) return;
+    onlineBusy = true;
+    setOnlineHint('正在开房间…');
+    try {
+      const r = await gdApi('create', { body: {
+        nick,
+        deviceId: gdGetDeviceId(),
+        rulesVersion: RULES_VERSION,
+        protocolVersion: PROTOCOL_VERSION,
+        aiContractVersion: AI_CONTRACT_VERSION,
+        config: { aiLevel: state.aiLevel, options: state.options },
+      } });
+      if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
+      enterRoom(r.data, nick);
+    } finally { onlineBusy = false; }
+  }
+  async function joinRoom() {
+    if (onlineBusy) return;
+    const invite = parseInviteInput(onlineEls.code && onlineEls.code.value);
+    if (!invite) { setOnlineHint('输入 4 位房间号', true); if (onlineEls.code) onlineEls.code.focus(); return; }
+    const nick = readOnlineNick();
+    if (!nick) return;
+    onlineBusy = true;
+    setOnlineHint('正在进房间…');
+    try {
+      const joinBody = {
+        code: invite.code,
+        nick,
+        deviceId: gdGetDeviceId(),
+        rulesVersion: RULES_VERSION,
+        protocolVersion: PROTOCOL_VERSION,
+        aiContractVersion: AI_CONTRACT_VERSION,
+      };
+      if (invite.inviteCode) joinBody.inviteCode = invite.inviteCode;
+      const r = await gdApi('join', { body: joinBody });
+      if (!r.ok) { setOnlineHint(errText(r.error), true); return; }
+      enterRoom(r.data, nick, invite.inviteCode || undefined);
+    } finally { onlineBusy = false; }
+  }
+  if ($('gdOnlineCreate')) $('gdOnlineCreate').addEventListener('click', createRoom);
+  if ($('gdOnlineJoin')) $('gdOnlineJoin').addEventListener('click', joinRoom);
+  if (onlineEls.code) onlineEls.code.addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
+  if (onlineEls.nick) onlineEls.nick.addEventListener('change', () => {
+    const v = onlineEls.nick.value.trim();
+    if (v && [...v].length <= 12) gdSetNick(v);
   });
 
   // ---- enter / leave ----
@@ -7050,6 +7263,7 @@
 
   // 揭开联机大厅：关掉 PGO 浮层、显示大厅、给牌桌挂 gd-in-lobby（藏掉牌局 UI）。
   function revealLobby() {
+    closeSheet();
     setNavView(NAV_VIEW.LOBBY);
     if (els.pgo) els.pgo.classList.remove('open');
     if (onlineEls.lobby) onlineEls.lobby.hidden = false;
@@ -7825,52 +8039,36 @@
       const inner = document.createElement('div');
       inner.className = 'seat-inner';
       if (!p) {
-        // 空座：大灰头像 + "坐下"
+        // 空座（照百变小咪的虚线空位）：房主点 = 加机器人（已选中某人时 = 把他移过来）；没坐下的人点 = 坐这
         cell.classList.add('empty');
-        const av = document.createElement('div');
-        av.className = 'avatar';
-        av.textContent = '[[zi:user]]';
-        const nick = document.createElement('div');
-        nick.className = 'nick';
-        const badges = document.createElement('div');
-        badges.className = 'badges';
-        // 谁能点这个空座、点了干嘛：
-        //   - 房主：已选中某玩家头像 → 把那个玩家移到这个空座（含移房主自己）；没选中 → 提示先选头像。
-        //   - 非房主、还没初次入座(mySeat==null) → 自己坐到这（初次落座，旧行为）。
-        //   - 其余(非房主已坐) → 虚位，不可点。
         const hostSel = (typeof onlineState.swapSelected === 'number' && seatedMap[onlineState.swapSelected]) ? onlineState.swapSelected : null;
         const canInteract = isHost || (mySeatRaw == null);
-        if (canInteract) {
-          nick.textContent = isHost ? (hostSel != null ? '移到这' : '空位') : '坐下';
-          if (isHost && hostSel != null) cell.classList.add('move-target');
-          const onEmpty = () => {
-            if (isHost) {
-              const sel = (typeof onlineState.swapSelected === 'number' && seatedMap[onlineState.swapSelected]) ? onlineState.swapSelected : null;
-              if (sel != null) sendMoveSeat(sel, s);
-              else toast('先点一个玩家头像，再点空位把他移过去');
-            } else if (mySeatRaw == null) {
-              sendSit(s);
-            }
-          };
-          av.addEventListener('click', onEmpty);
-          nick.addEventListener('click', onEmpty);
-        } else {
-          nick.textContent = '虚位';
-          av.style.cursor = 'default';
-          nick.style.cursor = 'default';
-        }
-        inner.appendChild(av);
-        inner.appendChild(nick);
-        inner.appendChild(badges);
-        cell.appendChild(inner);
-        // 「🤖 加机器人」浮泡：只房主有；它 position: absolute，必须挂 cell 上不挂 inner
+        const slot = document.createElement(canInteract ? 'button' : 'div');
+        slot.className = 'gd-lobby-empty';
+        if (canInteract) slot.type = 'button';
+        const plus = document.createElement('i');
+        plus.className = 'plus';
+        plus.setAttribute('aria-hidden', 'true');
+        const label = document.createElement('span');
+        label.className = 'nick';
         if (isHost) {
-          const aiBtn = document.createElement('button');
-          aiBtn.className = 'add-ai-btn';
-          aiBtn.textContent = '[[zi:bot]] 加机器人';
-          aiBtn.addEventListener('click', (e) => { e.stopPropagation(); sendAddAi(s); });
-          cell.appendChild(aiBtn);
+          label.textContent = hostSel != null ? '移到这' : '加机器人';
+          if (hostSel != null) cell.classList.add('move-target');
+        } else {
+          label.textContent = mySeatRaw == null ? '坐这里' : '等人加入';
         }
+        slot.append(plus, label);
+        if (canInteract) slot.addEventListener('click', () => {
+          if (isHost) {
+            const sel = (typeof onlineState.swapSelected === 'number' && seatedMap[onlineState.swapSelected]) ? onlineState.swapSelected : null;
+            if (sel != null) sendMoveSeat(sel, s);
+            else sendAddAi(s);
+          } else if (mySeatRaw == null) {
+            sendSit(s);
+          }
+        });
+        inner.appendChild(slot);
+        cell.appendChild(inner);
       } else {
         seatedCount++;
         const isMe = p.id === onlineState.playerId;
@@ -7897,7 +8095,7 @@
         };
         if (p.isHost) addBadge('host', '房主');
         if (isMe) addBadge('me', '我');
-        if (p.isAi) addBadge('ai', 'AI');
+        if (p.isAi) addBadge('ai', 'AI');   // CSS 里收起（头像就是机器人）
         if (!p.online) addBadge('offline', '离线');
         inner.appendChild(av);
         inner.appendChild(nick);
@@ -7931,33 +8129,36 @@
       }
     }
     // 旁观者（standing） — Phase 1 暂时不渲染；他们可以点空座位坐下。
-    // 入座计数 + 中央按钮切换：
-    //   房主 + 4 坐满 → 把"邀请好友"换成"开始游戏"；其余时刻保持 邀请好友 + 离开房间
+    // 底部两颗：离开房间 /「开始」。开始一直在原位：房主坐满 4 人才能点，没满写着几缺几；别人看到「等房主开始」
     if (onlineEls.seated) onlineEls.seated.textContent = seatedCount + '/4';
     const ready = onlineState.isHost && seatedCount === 4;
-    const inviteBtn = $('gdCopyLinkBtn');
-    if (onlineEls.startBtn && inviteBtn) {
-      if (ready) {
-        inviteBtn.hidden = true;
-        onlineEls.startBtn.hidden = false;
-        onlineEls.startBtn.disabled = false;
-        onlineEls.startBtn.textContent = '[[zi:gamepad]] 开始游戏';
-      } else {
-        inviteBtn.hidden = false;
-        onlineEls.startBtn.hidden = true;
-      }
+    if (onlineEls.startBtn) {
+      onlineEls.startBtn.hidden = false;
+      onlineEls.startBtn.disabled = !ready;
+      onlineEls.startBtn.classList.toggle('is-ready', ready);
+      onlineEls.startBtn.textContent = onlineState.isHost
+        ? (seatedCount === 4 ? '开始' : '开始（' + seatedCount + '/4）')
+        : '等房主开始';
     }
-    if (srv.state === 'playing' && typeof srv.firstLeader === 'number') {
-      if (onlineEls.startBtn && inviteBtn) {
-        inviteBtn.hidden = true;
-        onlineEls.startBtn.hidden = false;
-        onlineEls.startBtn.disabled = true;
-        // 用昵称而非绝对座号——大厅已是自视角，绝对座号和玩家眼前位置对不上。
-        const flP = seatedMap[srv.firstLeader];
-        const flName = flP ? flP.nick : ('座 ' + (srv.firstLeader + 1));
-        onlineEls.startBtn.textContent = '[[zi:dice]] 抽签：' + flName + ' 首出';
-      }
+    if (srv.state === 'playing' && typeof srv.firstLeader === 'number' && onlineEls.startBtn) {
+      onlineEls.startBtn.disabled = true;
+      // 用昵称而非绝对座号——大厅已是自视角，绝对座号和玩家眼前位置对不上。
+      const flP = seatedMap[srv.firstLeader];
+      const flName = flP ? flP.nick : ('座 ' + (srv.firstLeader + 1));
+      onlineEls.startBtn.textContent = '抽签：' + flName + ' 先出';
     }
+    renderLobbyRules(srv.config || onlineState.config);
+    if (onlineEls.lobby) onlineEls.lobby.classList.toggle('is-host', isHost);
+  }
+  // 房间玩法一行字：「机器人 普通 · 25 秒 · 同队免贡」（建房时定，进房的人一眼看清）
+  function renderLobbyRules(config) {
+    const box = $('gdLobbyRules');
+    if (!box) return;
+    if (!config) { box.textContent = ''; return; }
+    const lv = { easy: '新手', normal: '普通', hard: '高手' }[config.aiLevel] || '普通';
+    const o = config.options || {};
+    const parts = ['机器人 ' + lv, o.turnSec ? o.turnSec + ' 秒一手' : '出牌不限时', o.teamTribute ? '同队进贡' : '同队免贡'];
+    box.textContent = parts.join(' · ');
   }
 
   // ---- actions ----
@@ -8265,27 +8466,49 @@
   if (onlineEls.copyCodeBtn) {
     onlineEls.copyCodeBtn.addEventListener('click', () => {
       if (!onlineState) return;
-      if (!onlineState.inviteCode) {
-        toast('当前房间没有安全邀请码，请由房主重新创建');
-        return;
-      }
-      copyText(onlineState.inviteCode, '邀请码已复制');
+      copyText(onlineState.code, '房间号已复制');
     });
+  }
+  function roomInviteUrl() {
+    if (!onlineState || !onlineState.code) return null;
+    const inviteUrl = new URL(location.href);
+    inviteUrl.search = '';
+    inviteUrl.hash = '';
+    // 房主手里有带密钥的完整邀请码就用它；凭房号进来的人分享房号就行
+    inviteUrl.searchParams.set('room', onlineState.inviteCode || onlineState.code);
+    return inviteUrl.toString();
   }
   if (onlineEls.copyLinkBtn) {
     onlineEls.copyLinkBtn.addEventListener('click', () => {
       if (!onlineState) return;
-      if (!onlineState.inviteCode) {
-        toast('当前房间没有安全邀请码，请由房主重新创建');
-        return;
-      }
-      const inviteUrl = new URL(location.href);
-      inviteUrl.search = '';
-      inviteUrl.hash = '';
-      inviteUrl.searchParams.set('room', onlineState.inviteCode);
-      copyText(inviteUrl.toString(), '邀请链接已复制');
+      const url = roomInviteUrl();
+      if (!url) { toast('当前房间没有安全邀请码，请由房主重新创建'); return; }
+      copyText('来打掼蛋！房间号 ' + onlineState.code + '，点链接直接进：' + url, '邀请链接已复制，发给朋友就行');
     });
   }
+  // 二维码（照百变小咪）：同桌的朋友扫一下就进房
+  const qrDlg = $('gdQrDlg');
+  function closeQr() {
+    if (!qrDlg || qrDlg.hidden) return;
+    deactivateDialog(qrDlg);
+    qrDlg.hidden = true;
+  }
+  if ($('gdQrBtn')) $('gdQrBtn').addEventListener('click', event => {
+    const url = roomInviteUrl();
+    if (!url || !qrDlg) { toast('当前房间没有安全邀请码，请由房主重新创建'); return; }
+    const box = $('gdQrBox');
+    if (box) {
+      box.innerHTML = '';
+      if (window.GamesShell && GamesShell.QR) {
+        try { GamesShell.QR.render(box, url, { scale: 5, margin: 2, dark: '#1d1b18', light: '#fffdf8' }); } catch (_) { box.textContent = '二维码生成失败，请用「复制链接」'; }
+      } else box.textContent = '二维码还没加载好，请用「复制链接」';
+    }
+    if ($('gdQrCode')) $('gdQrCode').textContent = onlineState.code;
+    qrDlg.hidden = false;
+    activateDialog(qrDlg, closeQr, '#gdQrClose', event.currentTarget);
+  });
+  if ($('gdQrClose')) $('gdQrClose').addEventListener('click', closeQr);
+  if (qrDlg) { const bd = qrDlg.querySelector('[data-close="qr"]'); if (bd) bd.addEventListener('click', closeQr); }
   function copyText(t, successMessage) {
     if (!t) return;
     if (navigator.clipboard) navigator.clipboard.writeText(t)
@@ -8302,20 +8525,14 @@
     const rawInvite = new URLSearchParams(location.search).get('room');
     const invite = parseInviteInput(rawInvite);
     if (!invite) return;
-    // 切到联机 + 加入 tab
-    const onlineBtn = onlineEls.pgoPlayMode && onlineEls.pgoPlayMode.querySelector('[data-playmode="online"]');
-    if (onlineBtn) onlineBtn.click();
-    const joinTab = onlineEls.tabs && onlineEls.tabs.querySelector('[data-tab="join"]');
-    if (joinTab) joinTab.click();
-    if (onlineEls.code) onlineEls.code.value = rawInvite;
-    const savedNick = gdGetNick();
-    if (savedNick) {
-      onlineEls.nick.value = savedNick;
-      setTimeout(() => { onlineEls.submit && onlineEls.submit.click(); }, 200);
-    } else {
-      onlineEls.nick && onlineEls.nick.focus();
-      setOnlineHint('输入昵称后按回车自动加入房间');
-    }
+    // 别人发来的邀请链接：直接升起联机单、填好链接；有昵称就自动进房
+    if (onlineState) return;   // 已经在某个房间里（重连流程接管）
+    setTimeout(() => {
+      openSheet('online');
+      if (onlineEls.code) onlineEls.code.value = rawInvite;
+      if (gdGetNick()) joinRoom();
+      else { if (onlineEls.nick) onlineEls.nick.focus(); setOnlineHint('起个昵称，点「加入」就进房'); }
+    }, 200);
   })();
 
   if (IS_LOCAL_RUNTIME) {

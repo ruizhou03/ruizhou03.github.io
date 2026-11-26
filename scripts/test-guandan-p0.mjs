@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../toolbox/guandan/index.html', import.meta.url), 'utf8');
 const css = await readFile(new URL('../assets/css/guandan.css', import.meta.url), 'utf8');
+const shellCss = await readFile(new URL('../assets/css/guandan-shell.css', import.meta.url), 'utf8');
 const js = await readFile(new URL('../assets/js/games/guandan.js', import.meta.url), 'utf8');
 const contract = await readFile(new URL('../assets/js/games/guandan-contract.js', import.meta.url), 'utf8');
 const engine = await readFile(new URL('../assets/js/games/guandan-engine.js', import.meta.url), 'utf8');
@@ -11,33 +12,32 @@ const rulesFixture = JSON.parse(await readFile(
   'utf8',
 ));
 
-assert.match(html, /class="gd-board-btn" id="gdBoardBtn"/, '榜单按钮应使用独立定位类');
-assert.match(html, /class="gd-mute-btn" id="gdMuteBtn"/, '音效按钮应使用独立定位类');
+// 2026-11-26 外壳照百变小咪：右上角只有「声音」+「☰ 菜单」，设置 / 规则 / 战绩榜 / 回到主页面收进菜单
+assert.match(html, /class="gd-tool gd-mute-btn" id="gdMuteBtn"/, '声音按钮在右上角工具里');
+assert.match(html, /id="gdMenuBtn"[^>]*aria-haspopup="menu"[^>]*aria-expanded="false"/, '菜单按钮必须公开弹出菜单状态');
+for (const id of ['gdSettingsBtn', 'gdRulesBtn', 'gdBoardBtn', 'gdExitBtn']) {
+  assert.match(html, new RegExp(`role="menuitem" id="${id}"`), `${id} 必须是菜单项`);
+}
 assert.match(html, /id="gdSelfClock"[^>]*role="timer"[^>]*aria-live="off"/,
   '玩家倒计时必须可查询但不能逐秒打断读屏');
 assert.match(html, /id="gdAutopilotBtn"[^>]*aria-label="托管未开启"[^>]*aria-pressed="false"/,
   '托管按钮必须公开初始开关状态');
 for (const [id, label] of [
-  ['gdPgoPlayMode', '玩法模式'], ['gdPgoDiff', '难度'], ['gdPgoCardSize', '手牌大小'],
-  ['gdPgoTeamTrib', '同队进贡'], ['gdPgoTurnSec', '出牌时间'], ['gdOnlineTabs', '联机方式'],
+  ['gdPgoDiff', '对手难度'], ['gdPgoCardSize', '手牌大小'],
+  ['gdPgoTeamTrib', '同队进贡'], ['gdPgoTurnSec', '出牌时间'], ['gdPgoAiSpeed', '机器人出牌速度'],
 ]) {
   assert.match(html, new RegExp(`id="${id}"[^>]*aria-label="${label}"`),
     `${label}分段按钮组必须有可访问名称`);
 }
 assert.match(js, /setExclusiveButtonState[\s\S]*setAttribute\('aria-pressed'/,
   '所有分段按钮的选择状态必须同时公开给辅助技术');
-assert.doesNotMatch(html, /class="gd-board-btn" id="gdMuteBtn"/, '音效按钮不得复用榜单定位类');
-assert.match(css, /\.gd-mute-btn\s*\{\s*left:\s*calc\(0\.6rem \+ 48px\)/,
-  '竖屏榜单与音效按钮必须为 44px 目标保留至少 4px 间距');
-assert.match(css, /\.gd-settings-btn\s*\{\s*right:\s*calc\(0\.6rem \+ 48px\)/,
-  '竖屏设置与退出按钮必须为 44px 目标保留至少 4px 间距');
-assert.match(css, /\.gd-mute-btn\s*\{[\s\S]*right:\s*calc\(0\.5rem \+ 100px \+ env\(safe-area-inset-right, 0px\)\)/,
-  '触屏横屏工具栏必须按 50px 节距排列，避免 44px 目标重叠');
+assert.match(shellCss, /\.gd-tools \.gd-tool \{[\s\S]*?width: 44px; height: 44px;/,
+  '右上角工具按钮必须是 44px 触控目标');
 assert.doesNotMatch(css, /prefers-color-scheme:\s*dark/,
   '规格 1.8：牌桌固定为墨园宣纸色，本期不做独立深色配色');
 assert.match(css, /--gd-paper:\s*#f3eee3[\s\S]*--gd-seal:\s*#b4392c/,
   '规格 1.8：必须定义墨园宣纸配色令牌');
-assert.match(html, /guandan\.min\.js\?v=20261031ui15/, '生产页面应使用当前压缩内容标记，避免旧 JS 缓存');
+assert.match(html, /guandan\.min\.js\?v=20261126ui16/, '生产页面应使用当前压缩内容标记，避免旧 JS 缓存');
 assert.match(html, /data-value="off"[^>]*class="[^"]*selected|class="[^"]*selected"[^>]*data-value="off"/,
   '同队进贡 UI 默认应关闭');
 

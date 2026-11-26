@@ -290,13 +290,20 @@
     if (!hasDom) return;
     const button = document.getElementById('gdMuteBtn');
     if (button) {
-      button.textContent = '[[zi:volume]]';
+      // 图标照百变小咪：喇叭 + 声波；全关时声波换成一个叉
+      if (!button.querySelector('svg.gd-snd')) {
+        button.innerHTML = '<svg class="gd-snd" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.2L12 5.8v12.4l-4.8-3.7H4z"/>' +
+          '<path class="on" d="M15.4 9.2a4 4 0 0 1 0 5.6M17.9 6.7a7.5 7.5 0 0 1 0 10.6"/><path class="off" d="M15.5 9.5l5 5M20.5 9.5l-5 5"/></svg>';
+      }
       button.setAttribute('aria-pressed', allOff() ? 'true' : 'false');
       button.setAttribute('aria-label', '声音设置' + (allOff() ? '（已全部关闭）' : ''));
       button.setAttribute('aria-haspopup', 'true');
       button.setAttribute('aria-expanded', panel && !panel.hidden ? 'true' : 'false');
       button.classList.toggle('is-off', allOff());
-      if (window.ZirconIcons) window.ZirconIcons.hydrate(button);
+    }
+    // 设置卡里的三个开关跟着同一份偏好走
+    for (const box of document.querySelectorAll('input.gd-switch[data-track]')) {
+      box.checked = !!prefs[box.dataset.track];
     }
     if (panel) {
       for (const key of Object.keys(LABELS)) {
@@ -400,6 +407,7 @@
     effects,
     voice,
     toggle,
+    setTrack,
     refreshButton,
     isMuted: allOff,
     prefs: () => Object.assign({}, prefs),
