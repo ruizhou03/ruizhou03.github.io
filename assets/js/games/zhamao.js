@@ -7821,9 +7821,9 @@
       const src = el.dataset.m;
       if (!src) return;
       const col = el.style.backgroundColor;
+      const px = Math.min(1024, Math.round(Math.max(el.offsetWidth, 320) * dpr));
       const img = new Image();
       img.onload = () => {
-        const px = Math.min(1024, Math.round(Math.max(el.offsetWidth, 320) * dpr));
         const cv = document.createElement('canvas');
         cv.width = cv.height = px;
         const g = cv.getContext('2d');
@@ -7834,7 +7834,10 @@
         el.style.background = 'none'; el.style.webkitMaskImage = el.style.maskImage = 'none';
         el.appendChild(cv);
       };
-      img.src = src;
+      // 2026-11-26 用户：经典 / 角色 / 组队的剪影发虚、只有百变清楚。那三个的 SVG 里用了 <mask> 挖眼睛 / 牌面，
+      // Safari 画这种 SVG 时按它自己的 100×100 先栅格化遮罩、再拉大到 canvas 上（百变没有 <mask>，按矢量画所以清楚）。
+      // 给根节点写死 width / height = 画布像素，遮罩就按最终尺寸栅格化
+      img.src = src.replace('%3Csvg%20', '%3Csvg%20width%3D%22' + px + '%22%20height%3D%22' + px + '%22%20');   // data-m 是 encodeURIComponent 过的
     });
   }
   function coverBgPaint(c) {
