@@ -1318,7 +1318,11 @@
       if (!rb || rb.dataset.role !== role) {
         if (rb) rb.remove();
         rb = document.createElement('i'); rb.className = 'zm-role'; rb.dataset.role = role; rb.style.setProperty('--rbg', (ART.ROLE_TONE[role] || ART.ROLE_TONE.fat).bg); rb.innerHTML = ART.roleFace(role); av.appendChild(rb);
-        rb.addEventListener('click', (ev) => { ev.stopPropagation(); expandRole(+rb.closest('.zm-seat').dataset.seat); });
+        rb.addEventListener('click', (ev) => {
+          // 互换后（2026-11-26 用户）：点大圆 = 看他的角色卡，点左下小头像 = 原来的互动；正在选人 / 选好了牌 / 出局看别人时，点大圆照旧当点这个人
+          if (rb.parentNode.classList.contains('is-rolecat') && (mode === 'target' || preview || selected.length || (game && (game.spectator || !game.state.alive[0])))) return;
+          ev.stopPropagation(); expandRole(+rb.closest('.zm-seat').dataset.seat);
+        });
       }
       const hid = !!(game.roleHide && game.roleHide.has(seat));
       rb.style.visibility = hid ? 'hidden' : '';   // 开局抽角色：亮出来之前角上空着
@@ -1395,11 +1399,6 @@
     if (r0 && !fx.reduce()) {   // 等角色圆章快飞到了再缩（先缩会露出一个空圆）
       const r = f.getBoundingClientRect(), dx = r0.left + r0.width / 2 - (r.left + r.width / 2), dy = r0.top + r0.height / 2 - (r.top + r.height / 2), k = r0.width / (r.width || 1);
       f.animate([{ transform: 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k.toFixed(3) + ')' }, { transform: 'none' }], { duration: 380, delay: 240, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'backwards' });
-    }
-    // 点左下角的小头像 = 展开整张角色卡（和以前点角上猫章一样的位置）；选人时照旧当点这个人
-    if (f && !f.dataset.rc) {
-      f.dataset.rc = '1';
-      f.addEventListener('click', (ev) => { if (!av.classList.contains('is-rolecat') || mode === 'target' || preview) return; ev.stopPropagation(); expandRole(+av.closest('.zm-seat').dataset.seat); });
     }
   }
   // 技能触发时猫章弹大的倍数：角上小章照旧 1.45；互换后整颗大头像只弹一点点
