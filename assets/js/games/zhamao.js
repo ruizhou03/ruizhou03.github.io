@@ -5964,30 +5964,7 @@
         if (gone()) return;
         const el = cards[left[left.length - 1 - k]];
         lift(el);
-        const fr = el.getBoundingClientRect(), a = avEl(seat).getBoundingClientRect();
-        const w = Math.round(Math.max(48, Math.min(76, cw * 0.72)));
-        const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
-        const vx = c.x - ax, vy = c.y - ay, vl = Math.hypot(vx, vy) || 1;
-        const off = a.width / 2 + w * 0.95 + 8;
-        const x = Math.max(cr.left + w * 0.6, Math.min(cr.right - w * 0.6, ax + vx / vl * off));
-        const y = Math.max(cr.top + w * 0.75, Math.min(cr.bottom - w * 0.75, ay + vy / vl * off));
-        const box = document.createElement('div');
-        box.className = 'zm-rd-small';
-        box.style.cssText = 'left:' + (x - w / 2) + 'px;top:' + (y - w * 0.7) + 'px;z-index:' + (200 + k);
-        box.innerHTML = roleFlipHtml(st.roles[seat], w, false);
-        els.fly.appendChild(box); nodes.push(box);
-        el.remove();
-        snd('tap');
-        await flipFrom(box, fr, 380, 0);
-        if (gone()) return;
-        await box.querySelector('.zm-rc-flip-in').animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: 400, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
-        await wait(900);
-        if (gone()) return;
-        game.roleHide.delete(seat); renderSeat(seat);
-        const b = roleBadge(seat); if (b) b.style.visibility = 'hidden';
-        await flipTo(box, b ? b.getBoundingClientRect() : null, 400, 0);
-        box.remove();
-        if (b) { b.style.visibility = ''; fx.pop(b, { scale: 1.6, dur: 360 }); }
+        await sealTo(el, seat, st.roles[seat], 200 + k, 0, cr, c, cw, gone);
       }));
       if (gone()) return;
       game.roleHide = null;
@@ -5996,6 +5973,59 @@
       cleanup();
       if (gone()) g.roleHide = null;
     }
+  }
+  /* 发身份（2026-11-26 用户：别人亮身份时不要把整张小卡牌摆在头像前——太小、看不清字、桌面乱）：
+   * 背面朝上的角色牌飞到这家头像朝桌心那一侧 → 原地一翻，翻过来不是卡面，而是一枚只画这只猫的圆章（带角色色的光圈）
+   * → 停一下 → 圆章「盖」进头像角上的猫章位置（落下时压一下、荡一圈角色色波纹）。el = 扇面 / 牌堆里的那张背面牌 */
+  async function sealTo(el, seat, role, z, rot, cr, c, cw, gone) {
+    const box = await sealPark(el, seat, role, z, rot, cr, c, cw);
+    if (gone()) { box.remove(); return; }
+    await sealOpen(box, seat, gone);
+  }
+  // 第一段：背面牌飞到头像朝桌心那一侧停住（联机抽的时候先停在这儿，等大家都抽完再一起翻，见 roleDrawOnline）
+  async function sealPark(el, seat, role, z, rot, cr, c, cw) {
+    const fr = el.getBoundingClientRect(), a = avEl(seat).getBoundingClientRect();
+    const tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat;
+    const w = Math.round(Math.max(44, Math.min(68, cw * 0.62))), h = Math.round(w * 1.4), D = Math.round(w * 1.08);
+    const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+    const vx = c.x - ax, vy = c.y - ay, vl = Math.hypot(vx, vy) || 1;
+    const off = a.width / 2 + w * 0.9 + 8;
+    const x = Math.max(cr.left + w * 0.6, Math.min(cr.right - w * 0.6, ax + vx / vl * off));
+    const y = Math.max(cr.top + h * 0.55, Math.min(cr.bottom - h * 0.55, ay + vy / vl * off));
+    const box = document.createElement('div');
+    box.className = 'zm-rd-seal-box';
+    box.style.cssText = 'left:' + (x - w / 2) + 'px;top:' + (y - h / 2) + 'px;width:' + w + 'px;height:' + h + 'px;z-index:' + z;
+    box.innerHTML = '<div class="zm-rd-sf"><div class="zm-rd-sf-b">' + roleBackHtml(w) + '</div><div class="zm-rd-sf-f"><i class="zm-rd-seal" style="--rbg:' + tone.bg + ';--rband:' + tone.band + ';width:' + D + 'px;height:' + D + 'px">' + ART.roleFace(role) + '</i></div></div>';
+    els.fly.appendChild(box);
+    el.style.visibility = 'hidden';
+    box.dataset.role = role;
+    snd('tap');
+    await flipFrom(box, fr, 400, rot || 0);
+    return box;
+  }
+  // 第二段：原地一翻成圆章 → 停一下 → 盖进头像角上
+  async function sealOpen(box, seat, gone, hold) {
+    const role = box.dataset.role, tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat, a = avEl(seat).getBoundingClientRect();
+    try {
+      const sf = box.querySelector('.zm-rd-sf'), seal = box.querySelector('.zm-rd-seal');
+      await sf.animate([{ transform: 'rotateY(0deg) scale(1)' }, { transform: 'rotateY(90deg) scale(.9)', offset: 0.5 }, { transform: 'rotateY(180deg) scale(1)' }], { duration: 420, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
+      if (gone()) return;
+      seal.classList.add('is-on');
+      seal.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)', offset: 0.4 }, { transform: 'scale(1)' }], { duration: 360, easing: 'ease-out' });
+      await wait(hold == null ? 760 : hold);
+      if (gone()) return;
+      game.roleHide.delete(seat); renderSeat(seat);
+      const b = roleBadge(seat); if (b) b.style.visibility = 'hidden';
+      seal.classList.remove('is-on');
+      await flipTo(box, b ? b.getBoundingClientRect() : null, 360, 0, seal);
+      if (b) {
+        b.style.visibility = '';
+        fx.pop(b, { scale: 1.7, dur: 380 });
+        const br = b.getBoundingClientRect();
+        fx.ring(br.left + br.width / 2, br.top + br.height / 2, { color: tone.band, size: a.width * 1.5, width: 2.5, dur: 520 });
+        snd('tap');
+      }
+    } finally { box.remove(); }
   }
   /* 联机抽角色（2026-11-26 用户定「同时抽、共享扇面」）：服务器发牌后先进一段抽角色（view.rd），所有人看的是同一个扇面——
    * 第 k 张就是服务器上的第 k 张。真人同时点：点了先在扇面里拈起来，服务器说了算（撞同一张：先到先得，后到的换一张空的）；
@@ -6067,7 +6097,7 @@
       const stopAsk = () => {
         clearTimeout(wvStart); clearInterval(wv);
         cards.forEach((d) => d.classList.remove('can-pick', 'is-wave'));
-        if (btn && btn.isConnected) btn.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
+        if (btn && btn.isConnected) { const b0 = btn; btn = null; b0.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' }).finished.then(() => b0.remove(), () => b0.remove()); }   // 只收一次（以前每次调都从 1 重新淡一遍，按钮会闪回来）
       };
       const tap = (k) => {
         if (tapped >= 0 || !free.has(k) || gone()) return;
@@ -6075,7 +6105,11 @@
         stopAsk();
         snd('tap');
         mv(cards[k], where[k], { x: where[k].x, y: where[k].y - cw * 0.32, r: where[k].r * 0.5, s: S * 1.1 }, 220, 'cubic-bezier(.3,.9,.4,1.2)');
+        free.delete(k);
+        cards[k].classList.remove('can-pick', 'is-wave');
+        tagCard(k, me);   // 点哪张就是哪张：我的头像当场印上去（角色服务器开局就定了，点牌只是参与感）
         send(k);
+        pump();   // 我点好了：别人的头像这才依次落到别的牌上
       };
       const rd0 = rdNow();
       const mineAlready = rd0 && rd0.by.some((who) => who >= 0 && locOf(who) === me);
@@ -6098,52 +6132,31 @@
       }
       // 别人拿走的：从扇面飞到他头像朝桌心那一侧，翻开亮一下，缩进角上的猫章
       let kOther = 0;
+      // 联机（2026-11-26 用户四轮意见：边抽边飞太乱、太慢）：抽的时候牌不离开扇面——谁拿了哪张，那张就往下沉一点、
+      // 牌背上贴一枚拿牌人的小头像；大家都抽完，别人那几张一起飞到各自头像旁翻成圆章、盖进角上，最后才放大亮我的
+      const parked = [];
+      const sink = (k) => ({ x: where[k].x, y: where[k].y + cw * 0.14, r: where[k].r, s: S * 0.96 });
+      const tagCard = (k, seat) => { const t = document.createElement('i'); t.className = 'zm-rd-who'; t.innerHTML = avatarHtml(seat); cards[k].appendChild(t); t.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.25)', offset: 0.6 }, { transform: 'scale(1)' }], { duration: 320, easing: 'ease-out' }); };
       const toSeat = async (k, seat, role) => {
-        const el = cards[k];
-        const zk = kOther++;
-        lift(el);
-        const fr = el.getBoundingClientRect(), a = avEl(seat).getBoundingClientRect();
-        const w = Math.round(Math.max(48, Math.min(76, cw * 0.72)));
-        const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
-        const vx = c.x - ax, vy = c.y - ay, vl = Math.hypot(vx, vy) || 1;
-        const off = a.width / 2 + w * 0.95 + 8;
-        const x = Math.max(cr.left + w * 0.6, Math.min(cr.right - w * 0.6, ax + vx / vl * off));
-        const y = Math.max(cr.top + w * 0.75, Math.min(cr.bottom - w * 0.75, ay + vy / vl * off));
-        const box = document.createElement('div');
-        box.className = 'zm-rd-small';
-        box.style.cssText = 'left:' + (x - w / 2) + 'px;top:' + (y - w * 0.7) + 'px;z-index:' + (150 + zk);
-        box.innerHTML = roleFlipHtml(role, w, false);
-        els.fly.appendChild(box); nodes.push(box);
-        el.style.visibility = 'hidden';
+        tagCard(k, seat);
         snd('tap');
-        await flipFrom(box, fr, 380, where[k].r || 0);
-        if (gone()) return;
-        await box.querySelector('.zm-rc-flip-in').animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: 400, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
-        await wait(900);
-        if (gone()) return;
-        game.roleHide.delete(seat); renderSeat(seat);
-        const b = roleBadge(seat); if (b) b.style.visibility = 'hidden';
-        await flipTo(box, b ? b.getBoundingClientRect() : null, 400, 0);
-        box.remove();
-        if (b) { b.style.visibility = ''; fx.pop(b, { scale: 1.6, dur: 360 }); }
+        mv(cards[k], where[k], sink(k), 260);
+        cards[k].animate([{ filter: 'brightness(1)' }, { filter: 'brightness(.86)' }], { duration: 260, fill: 'forwards' });
+        parked.push({ k, seat, role });
       };
-      // 我拿到的：拈起来（点的那张已经拈着了；被分到别的那张就把点的放回去、换这张拈起来）→ 飞到桌心慢翻亮相 → 缩进我的猫章
+      // 我拿到的：贴上我的小头像、在扇面里往上抽出一截（照旧被右边的牌压着），等最后放大亮相
+      let mine = null;
       const toMe = async (k, role) => {
         stopAsk();
-        if (tapped >= 0 && tapped !== k && free.has(tapped)) { const p = where[tapped]; mv(cards[tapped], { x: p.x, y: p.y - cw * 0.32, r: p.r * 0.5, s: S * 1.1 }, p, 200); }
-        // 点中的那张拈起来时照旧被右边的牌压着（2026-11-26 用户：不能一下子跳到最上层）；扇面上剩下的往下让开、淡下去，
-        // 它再往上抽出来，离开扇面之后才换成大牌飞到跟前
-        const pk = cards[k], pw = where[k];
-        const up1 = { x: pw.x, y: pw.y - cw * 0.32, r: pw.r * 0.5, s: S * 1.1 }, up2 = { x: pw.x, y: pw.y - cw * 0.8, r: 0, s: S * 1.1 };
-        if (tapped !== k) { snd('tap'); await mv(pk, pw, up1, 220, 'cubic-bezier(.3,.9,.4,1.2)'); }
-        else await wait(120);
-        if (gone()) return;
-        const rest = seats.filter((i) => i !== k && free.has(i));
-        const low = (p) => ({ x: p.x, y: p.y + cw * 1.05, r: p.r * 0.6, s: S * 0.92 });
-        rest.forEach((i) => { mv(cards[i], where[i], low(where[i]), 340); cards[i].animate([{ opacity: 1 }, { opacity: 0.4 }], { duration: 240, delay: 220, fill: 'both' }); });
-        await mv(pk, up1, up2, 380, 'cubic-bezier(.3,.7,.3,1)');
-        if (gone()) return;
-        pk.style.zIndex = '250';   // 抽出来了：在别人飞去头像的小牌（150 起）上面、我的大牌（300）下面
+        const pw = where[k], up1 = { x: pw.x, y: pw.y - cw * 0.32, r: pw.r * 0.5, s: S * 1.1 };
+        if (tapped !== k) { snd('tap'); mv(cards[k], pw, up1, 220, 'cubic-bezier(.3,.9,.4,1.2)'); }
+        if (tapped !== k) tagCard(k, me);
+        mine = { k, role, at: up1 };
+      };
+      // 最后：我那张从扇面里抽出来（这时扇面上只剩它）飞到桌心、凑近、慢翻亮相，再缩进我的猫章
+      const revealMine = async () => {
+        const role = mine.role, pk = cards[mine.k];
+        pk.style.zIndex = '250';
         const tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat;
         const BW = Math.round(Math.max(150, Math.min(230, innerWidth * 0.52, cr.height * 0.82 / 1.4)));
         const big = document.createElement('div');
@@ -6181,25 +6194,67 @@
         if (gone()) return;
         big.classList.remove('is-flash');
         big.classList.add('is-glow');
-        await new Promise((res) => { const tm = setTimeout(res, 2400); big.style.pointerEvents = 'auto'; big.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(); }, { once: true }); mask.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(); }, { once: true }); });
+        await new Promise((res) => { const tm = setTimeout(res, 1700); big.style.pointerEvents = 'auto'; big.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(); }, { once: true }); mask.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(); }, { once: true }); });
         if (gone()) return;
         game.roleHide.delete(me); renderSeats();
         const myB = roleBadge(me); if (myB) myB.style.visibility = 'hidden';
         big.classList.remove('is-rays', 'is-near');
-        rest.forEach((i) => { if (!free.has(i)) return; mv(cards[i], low(where[i]), where[i], 340); cards[i].animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 300, fill: 'forwards' }); });   // 我亮完了：扇面回原位（别人还在抽）
         await flipTo(big, myB ? myB.getBoundingClientRect() : null, 520, 0);
         big.remove();
         if (myB) { myB.style.visibility = ''; fx.pop(myB, { scale: 1.8, dur: 420 }); }
         snd('tap');
       };
+      // 2026-11-26 用户：每个人的视角里，别人先都不选，直到我点好一张（我的头像印上去）；之后别人的头像再一个个落到别的牌上。
+      // 服务器上谁拿了第几张只决定角色，桌上落在哪张牌由我这边排：我点的那张就是我的，别人按服务器的那张（被我占了就挪到最近的空牌）
+      const visOf = (k) => {
+        if (free.has(k)) return k;
+        let best = -1;
+        free.forEach((i) => { if (best < 0 || Math.abs(i - k) < Math.abs(best - k)) best = i; });
+        return best;
+      };
+      const queue = [];
+      let pumping = false;
+      async function pump() {
+        if (pumping || (canPick && tapped < 0 && !mine)) return;
+        pumping = true;
+        while (queue.length && !gone()) {
+          const q = queue.shift();
+          const v = visOf(q.k);
+          if (v >= 0) { free.delete(v); cards[v].classList.remove('can-pick', 'is-wave'); await toSeat(v, q.seat, q.role); }
+          q.done();
+          await wait(260);
+        }
+        pumping = false;
+      }
       const ok = await watch((k, seat, role) => {
-        free.delete(k);
-        cards[k].classList.remove('can-pick', 'is-wave');
-        if (seat === me && canPick) return toMe(k, role);
-        return toSeat(k, seat, role);
+        if (seat === me && canPick) {
+          const v = tapped >= 0 ? tapped : visOf(k);
+          free.delete(v);
+          cards[v].classList.remove('can-pick', 'is-wave');
+          const p = toMe(v, role);
+          pump();
+          return p;
+        }
+        return new Promise((done) => { queue.push({ k, seat, role, done }); pump(); });
       });
       stopAsk();
       if (!ok) return;
+      // 都抽完了：别人那几张一起（错开一点）飞到各自头像旁翻成圆章、盖进角上；最后放大亮我的
+      parked.sort((x, y) => x.seat - y.seat);
+      await wait(250);
+      // 避让：别人那几张一离开扇面，我那张就挪到桌心、压在飞去头像旁的圆章上面（不再被右边那家的圆章盖住）
+      if (mine) setTimeout(() => { if (gone()) return; const pk = cards[mine.k], to = { x: c.x, y: c.y + cw * 0.4, r: 0, s: S * 1.1 }; pk.style.zIndex = '250'; mv(pk, mine.at, to, 360); mine.at = to; }, parked.length * 90 + 40);
+      await Promise.all(parked.map(async (p, i) => {
+        await wait(i * 90);
+        if (gone()) return;
+        lift(cards[p.k]);
+        const box = await sealPark(cards[p.k], p.seat, p.role, 150 + i, where[p.k].r || 0, cr, c, cw);
+        nodes.push(box);
+        if (!gone()) await sealOpen(box, p.seat, gone, 420);
+      }));
+      if (gone()) return;
+      if (mine) await revealMine();
+      if (gone()) return;
       mask.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, fill: 'forwards' });
       await wait(380);
       if (gone()) return;

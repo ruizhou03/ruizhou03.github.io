@@ -1422,6 +1422,18 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-rd-btn { position: fixed; z-index: 6; translate: -50% 0; white-space: nowrap; }
 .zm-rd-big, .zm-rd-small { position: fixed; z-index: 6; pointer-events: none; }
 .zm-rd-big { z-index: 7; }
+/* 发身份（2026-11-26）：别人那张背面牌飞到头像旁一翻，翻出来的是一枚只画这只猫的圆章，再盖进头像角上 */
+.zm-rd-seal-box { position: fixed; z-index: 6; pointer-events: none; perspective: 600px; }
+.zm-rd-sf { position: absolute; inset: 0; transform-style: preserve-3d; }
+.zm-rd-sf-b, .zm-rd-sf-f { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.zm-rd-sf-f { transform: rotateY(180deg); }
+.zm-rd-seal { display: block; flex: none; border-radius: 50%; background: var(--rbg, #fbe6cf); border: 1.5px solid var(--zm-ink); overflow: hidden;
+  box-shadow: 0 0 0 2.5px var(--zm-card, #fffdf8), 0 2px 6px rgba(29, 27, 24, 0.3); transition: box-shadow 0.35s ease; }
+.zm-rd-seal.is-on { box-shadow: 0 0 0 2.5px var(--zm-card, #fffdf8), 0 0 0 5px var(--rband, #c9a96e), 0 0 18px 6px color-mix(in srgb, var(--rband, #c9a96e) 55%, transparent); }
+.zm-rd-seal svg { width: 118%; height: 118%; margin: -6% 0 0 -9%; display: block; }
+/* 联机抽角色：谁拿了哪张，牌背下方贴一枚他的小头像（牌留在扇面里，抽完才一起发） */
+.zm-rd-who { position: absolute; left: 50%; bottom: 7%; width: 44%; aspect-ratio: 1; margin-left: -22%; border-radius: 50%; background: var(--zm-card, #fffdf8); border: 1.5px solid var(--zm-ink); box-shadow: 0 0 0 2px var(--zm-card, #fffdf8), 0 2px 5px rgba(29, 27, 24, 0.35); overflow: hidden; pointer-events: none; }
+.zm-rd-who svg, .zm-rd-who img { width: 100%; height: 100%; display: block; }
 .zm-rc-flip { perspective: 900px; }
 .zm-rc-flip-in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
 .zm-rc-flip-b, .zm-rc-flip-f { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
@@ -2056,3 +2068,4 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 }
 /* 摸进手里的猫要变万能猫（百搭 / 百搭猫）：抬起来那一会儿描一圈金边，让人看清是这张在变 */
 .zm-hand .zm-card.is-morphing { translate: 0 -12px; scale: 1.05; box-shadow: 0 0 0 2px rgba(222, 178, 84, 0.95), 0 6px 18px rgba(222, 178, 84, 0.5); z-index: 5; }
+.zm-rd-who span { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 12px; color: var(--zm-ink); }
