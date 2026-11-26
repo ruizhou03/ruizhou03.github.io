@@ -1737,21 +1737,16 @@
   }
   /* 角色猫技能触发（2026-11-18 用户：第一版「另编一段表演」太牵强）：
    * 一律 = 「亮牌」（头像角上的小卡弹出来、立在头像旁边，外圈一道角色色的光）+ 规则本来就有的那个动作。
-   * 2026-11-26 用户：光亮牌有时看不出是角色技能在起作用（贪吃猫要第二张、截胡猫作废成功顺一张）→ 统一再加两样：
-   * 亮牌上挂一条角色色的技能小签（「要 2 张」「作废成功 · 顺走 1 张」…），桌沿从他那儿漾一道角色色的波纹。
-   * 技能分两步的（贪吃猫要两张、截胡猫顺牌）：亮牌一直立着，等这件事做完才收（见 game.rolePop） */
-  const ROLE_CAP = {
-    timid: ['role.timid.cap', '先偷看 3 张'], cow: ['role.cow.cap', '只摸 1 张'], fat: ['role.fat.cap', '要 2 张'],
-    shadow: ['role.shadow.cap', '偷牌扑空'], calico: ['role.calico.cap', '杂猫也算数'], tabby: ['role.tabby.cap', '作废成功 · 顺走 1 张'],
-  };
-  const roleCap = (id) => (ROLE_CAP[id] ? T(ROLE_CAP[id][0], ROLE_CAP[id][1]) : '');
-  const NOPOP = { back: () => Promise.resolve(), cap() {}, pulse() {}, pip() {} };
+   * 2026-11-26 用户：光亮牌有时看不出是角色技能在起作用（贪吃猫要第二张、截胡猫作废成功顺一张）→ 统一再加：桌沿从他那儿漾一道角色色的波纹。
+   * 一律不出字（用户 2026-11-26 再次强调：字丑、降低设计感，靠灯带和不显眼的动效表达）。
+   * 技能分两步的（贪吃猫要两张、截胡猫顺牌）：亮牌一直立着，等这件事做完才收（见 game.rolePop）；贪吃猫卡下两颗小圆点，给一张亮一颗 */
+  const NOPOP = { back: () => Promise.resolve(), pulse() {}, pip() {} };
   async function flashRole(seat, t, hold, o) {
     const rb = roleBadge(seat), av = avEl(seat);
     const st = game && game.state, role = st && st.roles && st.roles[seat];
     if (!rb || !av || !role) return NOPOP;
-    o = typeof o === 'string' ? { text: o } : (o || {});
-    const tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat, text = o.text != null ? o.text : roleCap(role);
+    o = o || {};
+    const tone = ART.ROLE_TONE[role] || ART.ROLE_TONE.fat;
     snd('ding');
     if (rimFxOn()) rimRipple(seat, tone.band, 1100, 3);
     if (fx.reduce()) { fx.pop(rb, { scale: 1.8, dur: 420 }); if (hold) await wait(ms(hold)); return NOPOP; }
@@ -1764,17 +1759,8 @@
     const el = document.createElement('div');
     el.className = 'zm-role-pop ' + (below ? 'is-cap-bot' : 'is-cap-top');
     el.style.cssText = 'left:' + (x - w / 2).toFixed(1) + 'px;top:' + (y - h / 2).toFixed(1) + 'px;--glow:' + tone.band;
-    const pips = o.pips ? '<i class="zm-role-pips">' + '<i></i>'.repeat(o.pips) + '</i>' : '';
-    el.innerHTML = roleCardHtml(role, { w }) + (text ? '<span class="zm-role-cap"><b>' + esc(text) + '</b>' + pips + '</span>' : '');
+    el.innerHTML = roleCardHtml(role, { w }) + (o.pips ? '<i class="zm-role-pips">' + '<i></i>'.repeat(o.pips) + '</i>' : '');
     els.fly.appendChild(el);
-    const capEl = el.querySelector('.zm-role-cap');
-    const fitCap = () => {   // 签比卡宽：贴着屏幕边时往里挪，别出屏
-      if (!capEl) return;
-      capEl.style.marginLeft = '';
-      const r = capEl.getBoundingClientRect(), d = r.left < 6 ? 6 - r.left : r.right > innerWidth - 6 ? innerWidth - 6 - r.right : 0;
-      if (d) capEl.style.marginLeft = d.toFixed(1) + 'px';
-    };
-    fitCap();
     rb.style.visibility = 'hidden';
     await flipFrom(el, br, ms(380), 0, 'cubic-bezier(.3,.9,.4,1.15)');
     if (t !== token) { el.remove(); return NOPOP; }
@@ -1783,7 +1769,6 @@
     if (hold) await wait(ms(hold));
     let done = null;
     return {
-      cap(tx) { const b = capEl && capEl.querySelector('b'); if (!b) return; b.textContent = tx; fitCap(); capEl.animate([{ transform: 'scale(.6)', opacity: 0.3 }, { transform: 'scale(1.12)', opacity: 1, offset: 0.6 }, { transform: 'none', opacity: 1 }], { duration: ms(360), easing: 'ease-out' }); },
       pulse() {   // 同一个技能又起作用一次（贪吃猫要第二张）：亮牌再跳一下、再漾一道波纹、再冒星星
         if (done || !el.isConnected) return;
         snd('ding');
@@ -1791,7 +1776,7 @@
         el.querySelector('.zm-rc').animate([{ transform: 'none' }, { transform: 'scale(1.16) rotate(-4deg)', offset: 0.35 }, { transform: 'scale(.97) rotate(2deg)', offset: 0.7 }, { transform: 'none' }], { duration: ms(480), easing: 'ease-out' });
         fx.burst(x, y, { n: 8, shapes: ['star', 'dot'], colors: [tone.band, '#c9a96e'], radius: w * 0.85, size: [4, 9], life: 600 });
       },
-      pip(k) { const ps = capEl ? capEl.querySelectorAll('.zm-role-pips > i') : []; ps.forEach((p, i) => p.classList.toggle('is-on', i < k)); if (ps[k - 1]) fx.pop(ps[k - 1], { scale: 1.8, dur: 300 }); },
+      pip(k) { const ps = el.querySelectorAll('.zm-role-pips > i'); ps.forEach((p, i) => p.classList.toggle('is-on', i < k)); if (ps[k - 1]) fx.pop(ps[k - 1], { scale: 1.8, dur: 300 }); },
       back() {
         if (done) return done;
         el.classList.remove('is-on');
@@ -1826,7 +1811,7 @@
       await wait(ms(520));
       return fl.back();
     }
-    if (e.role === 'tabby') {   // 截胡猫：亮牌（挂「作废成功 · 顺走 1 张」）一直立着；顺走的那一张接着用偷牌同一个飞法（下一个事件 steal），飞完才收
+    if (e.role === 'tabby') {   // 截胡猫：亮牌一直立着；顺走的那一张接着用偷牌同一个飞法（下一个事件 steal），飞完才收
       const fl = await flashRole(e.seat, t, 380);
       if (t !== token) return fl.back();
       game.rolePop = { kind: 'tabby', seat: e.seat, fl };
@@ -3587,14 +3572,15 @@
   async function animAskGive(e, t, prev) {
     if (game.arrow) game.arrow.remove();
     game.arrow = aim(e.from, '#e0566e');
-    // 贪吃猫出的索要：第一次问的时候亮牌，挂「要 2 张」+ 两颗小圆点；亮牌一直立着，给一张点亮一颗；
-    // 第二次问（同一张索要的第二张，2026-11-26 用户：以前看不出是角色技能在要第二张）：亮牌再跳一下、桌沿再漾一道，签换成「再要 1 张」
+    // 贪吃猫出的索要：第一次问的时候亮牌，卡下两颗小圆点；亮牌一直立着，给一张点亮一颗；
+    // 第二次问（同一张索要的第二张，2026-11-26 用户：以前看不出是角色技能在要第二张）：亮牌再跳一下、桌沿再漾一道、连线再亮一下
     const st = game.state, rp = game.rolePop;
     if (st.roles && R.roleOf(st, e.to) === 'fat') {
       game.giveTwo = true;
       if (rp && rp.kind === 'fat' && rp.from === e.from && rp.to === e.to) {
-        rp.fl.cap(T('role.fat.cap2', '再要 1 张'));
         rp.fl.pulse();
+        releaseRim();   // 灯带重新从贪吃猫连到给牌的人，这次用贪吃猫自己的橙色：一看就是角色技能在要第二张
+        game.rimLk = rimLink(e.to, e.from, false, (ART.ROLE_TONE.fat || {}).band || '#d27a36');
         await wait(ms(480));
       } else {
         const fl = await flashRole(e.to, t, 500, { pips: 2 });
@@ -5321,7 +5307,7 @@
     const b = seatEl(seat);
     if (!b.classList.contains('is-target')) {
       const st = game.state;
-      if (st.roles && R.roleOf(st, seat) === 'shadow' && st.alive[seat] && st.hands[seat].length && b.classList.contains('is-target-off')) { flashRole(seat, token, 700, T('role.shadow.tip', '偷牌指不到它')).then((fl) => fl.back()); return; }   // 影子猫：两张偷牌指不到它——点它 = 它亮一下牌告诉你为什么
+      if (st.roles && R.roleOf(st, seat) === 'shadow' && st.alive[seat] && st.hands[seat].length && b.classList.contains('is-target-off')) { flashRole(seat, token, 700).then((fl) => fl.back()); return; }   // 影子猫：两张偷牌指不到它——点它 = 它亮一下牌告诉你为什么
       shake(b); return;
     }
     const cb = targetCb;

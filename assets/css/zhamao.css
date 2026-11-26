@@ -1392,14 +1392,12 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-role-pop { position: fixed; z-index: 6; pointer-events: none; }
 .zm-role-pop .zm-rc { transition: box-shadow 0.3s ease; }
 .zm-role-pop.is-on .zm-rc { box-shadow: 0 0 0 2.5px var(--glow), 0 0 18px 4px color-mix(in srgb, var(--glow) 50%, transparent); }
-/* 亮牌上的技能小签（2026-11-26）：角色色底、奶油字，挂在卡远离头像的那一头；贪吃猫多两颗小圆点（给一张亮一颗） */
-.zm-role-cap { position: absolute; left: 50%; translate: -50% 0; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; padding: 3px 9px; border-radius: 999px;
-  background: var(--glow); color: #fffaf0; border: 1.2px solid #fffaf0; box-shadow: 0 2px 6px rgba(29, 27, 24, 0.28); font: 700 12px/1.2 'ZM Serif', 'Noto Serif SC', serif; letter-spacing: 0.02em; }
-.zm-role-pop.is-cap-top .zm-role-cap { bottom: 100%; margin-bottom: -6px; }
-.zm-role-pop.is-cap-bot .zm-role-cap { top: 100%; margin-top: -6px; }
-.zm-role-pips { display: inline-flex; gap: 3px; }
-.zm-role-pips > i { width: 7px; height: 7px; border-radius: 50%; border: 1.2px solid #fffaf0; box-sizing: border-box; transition: background 0.2s; }
-.zm-role-pips > i.is-on { background: #fffaf0; }
+/* 贪吃猫亮牌下的两颗小圆点（2026-11-26，不出字）：角色色描边空心，给一张填实一颗；贴在卡远离头像的那一头 */
+.zm-role-pips { position: absolute; left: 50%; translate: -50% 0; display: inline-flex; gap: 5px; }
+.zm-role-pop.is-cap-top .zm-role-pips { bottom: 100%; margin-bottom: 5px; }
+.zm-role-pop.is-cap-bot .zm-role-pips { top: 100%; margin-top: 5px; }
+.zm-role-pips > i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--glow); background: var(--zm-card, #fffdf8); box-sizing: border-box; box-shadow: 0 0 4px color-mix(in srgb, var(--glow) 45%, transparent); transition: background 0.2s; }
+.zm-role-pips > i.is-on { background: var(--glow); }
 .zm-lift3 { position: fixed; z-index: 4; pointer-events: none; filter: drop-shadow(0 3px 5px rgba(29, 27, 24, 0.25)); }
 /* 给牌键上的 ×N（贪吃猫要两张）：和被甩锅的 ×N 一种小角标 */
 .zm-btn .zm-xn { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; height: 18px; padding: 0 6px; border-radius: 999px; background: #fffaf0; color: var(--zm-seal); font: 700 12px/1 'ZM Num', 'ZM Serif', Georgia, serif; }
