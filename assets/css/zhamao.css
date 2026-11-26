@@ -2029,7 +2029,6 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zs-pv-top { display: flex; align-items: flex-end; justify-content: center; gap: 28px; flex: none; }
 .zs-pv-ruler { position: relative; flex: none; }
 .zs-pv-ruler > i { position: absolute; left: 0; bottom: 0; border: 1.5px dashed rgba(29, 27, 24, 0.28); border-radius: 9% / 6.4%; box-sizing: border-box; }
-.zs-pv-ruler > i b { position: absolute; right: 4px; top: 2px; font-size: 10px; font-weight: 400; color: rgba(29, 27, 24, 0.45); line-height: 1; }
 .zs-pv-ruler > i.on { border-color: transparent; }
 .zs-pv-ruler > .zm-card { transform-origin: 0 100%; }
 .zs-pv-piles > *, .zs-pv-hand > * { transform-origin: 50% 100%; }
