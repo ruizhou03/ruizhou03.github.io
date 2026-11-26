@@ -755,7 +755,7 @@
         const o = { spread: 24, gap: 80, dur: 760, lift: -50, size: 26 };
         const go = amt > 0
           ? (rollNow && fx.roll(b, a, z, 1000), fx.school(FISH, from, tchip, n, Object.assign(o, rollNow ? {} : { onLand: () => fx.roll(b, a, z, 600) })))
-          : (fx.roll(b, a, z, 600), fx.school(FISH, tchip, from, n, Object.assign(o, { lift: 30, toPoint: center(from) })));
+          : (fx.roll(b, a, z, 1000), fx.school(FISH, tchip, from, n, Object.assign(o, { lift: 30, toPoint: center(from) })));
         go.then(() => setTimeout(done, 260));
       }, delay || 0);
     });
