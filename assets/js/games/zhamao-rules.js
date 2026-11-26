@@ -21,7 +21,7 @@
  *       多出来的收进盒子（state.removed），这局不用。
  * 回合：可以出任意多张 / 组合（每出一次都留一个「不行」反应窗），最后摸一张牌结束回合。
  *       甩锅叠加（RULES.stackAttack）：默认开 = 被甩锅的人再甩锅，剩下的回合 +2 一起甩走（可以一路越叠越多）；关 = 下家仍只摸两回合。
- *   自由甩锅 ×3  同甩锅，但甩给任意一个还在场的人（不一定是下家）
+ *   自由甩锅 ×3  同甩锅，但甩给任意一个还在场的人（不一定是下家，也可以甩给自己）
  *   交换（可选，RULES.swap，默认关）  和指定的一个人整手交换——各自的逗猫棒默认不换（RULES.swapDefuse 开了就连逗猫棒一起换）。整副里有 3 张，开局只放 min(3, 人数−1) 张进来
  *     （2 人 1 张、3 人 2 张、4–5 人 3 张：人越多、每人摸到的机会越被摊薄，所以随人数加；但封顶 3 张，免得满桌一直换手），其余收进盒子
  * 只剩一人没炸毛时他赢。
@@ -415,10 +415,11 @@
     if (c || !s || roleOf(s, seat) !== 'calico' || !cards || (cards.length !== 2 && cards.length !== 3) || new Set(cards).size !== cards.length || !cards.every((id) => catLike(KIND_OF[id]))) return c;
     return cards.length === 2 ? { type: 'pair', needsTarget: true, needsName: false } : { type: 'triple', needsTarget: true, needsName: true };
   }
-  /* 能被指定的人：还在场、不是自己、手里有牌（指定甩锅不看手牌：在场的人都能甩） */
+  /* 能被指定的人：还在场、不是自己、手里有牌（指定甩锅不看手牌：在场的人都能甩）。
+   * 自由甩锅还能甩给自己（2026-11-26 用户：用来发育——自己多摸，被甩锅时再甩自己照样 +2 叠上去） */
   function validTargets(s, seat, type) {
     const out = [];
-    for (let t = 0; t < s.n; t++) if (t !== seat && s.alive[t] && (type === TATTACK || type === SWAP || s.hands[t].length > 0) && !(type === 'pair' && roleOf(s, t) === 'shadow')) out.push(t);   // 黑猫：两张偷牌不能指他（指了也白指）
+    for (let t = 0; t < s.n; t++) if ((t !== seat || type === TATTACK) && s.alive[t] && (type === TATTACK || type === SWAP || s.hands[t].length > 0) && !(type === 'pair' && roleOf(s, t) === 'shadow')) out.push(t);   // 黑猫：两张偷牌不能指他（指了也白指）
     return out;
   }
 
@@ -572,7 +573,7 @@
       case ATTACK:
       case TATTACK: {
         const left = s.turnsLeft;
-        const next = p.type === TATTACK && s.alive[p.target] && p.target !== me ? p.target : nextAlive(s, me);
+        const next = p.type === TATTACK && p.target >= 0 && s.alive[p.target] ? p.target : nextAlive(s, me);   // 自由甩锅可以甩给自己
         s.turn = next;
         // 被甩锅的人再甩：剩下的回合 +2 一起甩走。奶牛猫把 2 减成 1 以后再甩，下家照样是 1 + 2 = 3（2026-11-15 用户：减的那一张跟着传下去）
         const viaCow = left === 1 && s.cowCut === me;

@@ -303,6 +303,17 @@
       return null;
     }
 
+    /* 自由甩锅甩给自己发育（2026-11-26 用户）：只在稳赚时用——这回合只摸一张、顶上两张都看过不是炸弹猫，
+     * 而且第二张值得（逗猫棒 / 作废 / 自由甩锅这类比这张自由甩锅还值钱的牌）。角色奶牛猫被甩锅只摸一张，甩自己白搭 */
+    function selfFeed(v) {
+      if (!has(v, R.TATTACK) || v.turnsLeft !== 1 || v.deckSize < 3 || v.flux === 'hot' || v.flux === 'bottom') return null;
+      if (v.roles && v.roles[v.me] === 'cow') return null;
+      const k0 = v.known.find((x) => x.pos === 0), k1 = v.known.find((x) => x.pos === 1);
+      if (!k0 || !k1 || K[k0.id] === R.BOOM || K[k1.id] === R.BOOM) return null;
+      const tid = one(v, R.TATTACK);
+      if (cardValueV(v, k1.id) < cardValueV(v, tid)) return null;
+      return playMove([tid], v.me);
+    }
     function stealMove(v, by, ts, desperate) {
       if (!ts.length) return null;
       const t = richest(v, R.DEFUSE);
@@ -403,7 +414,7 @@
         const b2 = kittenBelief(v, 2);
         if (b2.length > 1 && b2[1] >= (saveOk(v) ? P.dodgeDef : P.dodgeNo)) { const am = attackMove(v); if (am) return am; }
       }
-      if (top.known) return DRAW; // 顶上是安全牌，放心摸
+      if (top.known) { const sm = selfFeed(v); return sm || DRAW; } // 顶上是安全牌，放心摸（顶上两张都知道是好牌：自由甩锅甩给自己多摸一张）
 
       // 没逗猫棒：先想办法弄一张
       if (!def) {
@@ -450,7 +461,7 @@
         if (p.type === R.ATTACK && isMateV(v, nextAliveV(v, p.by))) return true;
         if ((p.type === R.TATTACK || p.type === R.FAVOR || p.type === 'pair' || p.type === 'triple') && isMateV(v, p.target) && v.alive[p.target]) return true;
       }
-      if (isMateV(v, p.by)) return false;
+      if (p.by === v.me || isMateV(v, p.by)) return false;   // 我自己出的（自由甩锅甩给自己发育）不挡
       if (p.type === R.ATTACK) return nextAliveV(v, p.by) === v.me;
       if (p.type === R.TATTACK) return p.target === v.me;
       if (p.type === R.SWAP) return p.target === v.me && v.hand.filter((id) => K[id] !== R.DEFUSE).length >= Math.max(0, v.counts[p.by] - 1);   // 他那手比我还少才挡
@@ -466,7 +477,7 @@
         if (p.type === R.FAVOR && v.counts[v.me] <= 1 && !has(v, R.DEFUSE)) return false;
         return tier === 'easy' ? rng() < 0.4 : true;
       }
-      if (!live && p.by === v.me && tier !== 'easy') {
+      if (!live && p.by === v.me && tier !== 'easy' && !(p.type === R.TATTACK && p.target === v.me)) {   // 甩给自己发育的被作废了：不用再顶回去
         const top = topInfo(v);
         if ((p.type === R.ATTACK || p.type === R.TATTACK || p.type === R.SKIP || p.type === R.REVERSE || p.type === R.BOTTOM || p.type === R.SHUFFLE) && (top.boom || top.p >= P.nopeBackP)) return true;
         if ((p.type === 'pair' || p.type === 'triple' || p.type === R.FAVOR || p.type === 'five') && !has(v, R.DEFUSE)) return true;

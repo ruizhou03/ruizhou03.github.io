@@ -207,7 +207,8 @@ test('targeted attack: any alive player, stacks with remaining turns by default'
   assert.equal(R.normalizeRules({}).stackAttack, true);
   const c = R.classify([idOf(s, 0, 'tattack')]);
   assert.equal(c.type, 'tattack'); assert.equal(c.needsTarget, true);
-  assert.deepEqual(R.validTargets(s, 0, 'tattack'), [1, 2, 3]); // 手里没牌的 2 号也能甩
+  assert.deepEqual(R.validTargets(s, 0, 'tattack'), [0, 1, 2, 3]); // 手里没牌的 2 号也能甩；也能甩给自己
+  assert.deepEqual(R.validTargets(s, 0, 'favor'), [1, 3]); // 别的指人牌照旧不能指自己
   assert.equal(R.checkPlay(s, 0, [idOf(s, 0, 'tattack')], {}), null); // 不指定人不行
   R.play(s, 0, [idOf(s, 0, 'tattack')], { target: 2 }); closeAll(s);
   assert.equal(s.turn, 2); assert.equal(s.turnsLeft, 2);
@@ -216,6 +217,19 @@ test('targeted attack: any alive player, stacks with remaining turns by default'
   R.play(t, 0, [idOf(t, 0, 'tattack')], { target: 1 }); closeAll(t);
   R.play(t, 1, [idOf(t, 1, 'tattack')], { target: 3 }); closeAll(t);
   assert.equal(t.turn, 3); assert.equal(t.turnsLeft, 4);
+});
+
+test('targeted attack on yourself: you take the turns (grow), stacks when already attacked', () => {
+  const s = rig([['tattack', 'cow'], ['tattack'], ['cow']], ['orange', 'calico', 'cow', 'tabby', 'orange', 'calico']);
+  R.play(s, 0, [idOf(s, 0, 'tattack')], { target: 0 }); closeAll(s);
+  assert.equal(s.turn, 0); assert.equal(s.turnsLeft, 2);   // 自己连摸两回合
+  R.draw(s, 0); assert.equal(s.turn, 0); assert.equal(s.turnsLeft, 1);
+  R.draw(s, 0); assert.equal(s.turn, 1);
+  // 被甩了两回合再甩给自己：2 + 2 = 4
+  const t = rig([['tattack'], ['tattack'], ['cow']], ['orange', 'calico', 'cow', 'tabby']);
+  R.play(t, 0, [idOf(t, 0, 'tattack')], { target: 1 }); closeAll(t);
+  R.play(t, 1, [idOf(t, 1, 'tattack')], { target: 1 }); closeAll(t);
+  assert.equal(t.turn, 1); assert.equal(t.turnsLeft, 4);
 });
 
 test('nope chain: odd cancels, even goes through', () => {

@@ -411,6 +411,7 @@
   function seatOrder() { const m = mateSeat(), out = []; for (let s = game.state.n - 1; s >= 1; s--) if (s !== m) out.push(s); return out; }
   function seatEl(seat) { return seat === 0 ? els.me : seat === mateSeat() && els.mate ? els.mate : els.opps.querySelector('[data-seat="' + seat + '"]'); }
   const allSeatEls = () => Array.from(els.opps.querySelectorAll('.zm-seat')).concat(els.mate ? [els.mate] : []);   // 对手 + 组队时底下那位队友
+  const pickSeatEls = () => allSeatEls().concat([els.me]);   // 选人用：自由甩锅能甩给自己（2026-11-26 用户），自己的头像也要能亮 / 能点
   function avEl(seat) { const s = seatEl(seat); return s && s.querySelector('.zm-av'); }
   /* 游戏框（牌桌的双线裱框，内线缩进 6px）左右能放东西的范围：飞出来的扇面 / 点名牌都别越过内线（2026-11-13 用户：最左 / 最右那家手牌多时扇面出框）。
    * 以前按整个窗口算，手机上贴着边、电脑上桌子居中时更是直接跑到框外 */
@@ -2419,6 +2420,7 @@
       const seat = +box.dataset.seat;
       if (seat) box.classList.toggle('is-aim', ts.indexOf(seat) >= 0);
     }
+    els.me.classList.toggle('is-aim', ts.indexOf(0) >= 0);   // 自由甩锅：自己也能点
   }
   let lastNopeHot = false;
   // 这张待作废的牌和我有关吗（组队：和队友有关也算）——决定作废键是「冲着我」还是「收敛」
@@ -5257,6 +5259,7 @@
     let k = 0;
     // 一个个亮起来的先后顺着出牌方向（2026-11-14 用户：以前总是从右往左）：座位号变大 = 出牌方向 1 往下传，方向 -1 就倒过来亮
     const n = game.state.n, order = Array.from({ length: n - 1 }, (_, i) => (dirNow() === 1 ? i + 1 : n - 1 - i));
+    if (ts.indexOf(0) >= 0) order.push(0);   // 自由甩锅能甩给自己：自己最后亮；别的牌不指自己，自己的头像也不变暗
     for (const seat of order) {
       const b = seatEl(seat), on = ts.indexOf(seat) >= 0;
       b.classList.toggle('is-target', on);
@@ -5272,7 +5275,7 @@
   }
   function cancelTarget() {
     mode = null; targetCb = null;
-    allSeatEls().forEach((b) => b.classList.remove('is-target', 'is-target-off'));
+    pickSeatEls().forEach((b) => b.classList.remove('is-target', 'is-target-off'));
     endPreview();
     renderBand();
   }
@@ -5400,9 +5403,9 @@
     }
     // 2026-11-13 用户：要甩锅给别人，点头像却先弹出了互动表情——点「出牌」后牌要先飞上桌（约 0.4 秒）才开始选人，
     // 这段时间点头像落到了「互动」。现在：牌在飞 / 等选人时点头像 = 记下来，落定后直接选他；选人模式里永远不弹互动
-    if (preview && mode !== 'target') { if (seat > 0) preview.tap = seat; return; }
+    if (preview && mode !== 'target') { if (seat >= 0) preview.tap = seat; return; }
     // 已经选好了要指人的牌（还没按「出牌」）就点了一个能指的人：当作出给他（和先按出牌再点他一样，牌照样先飞上桌）
-    if (mode == null && seat > 0 && !busy && selected.length && myTurnToAct() && els.mask.hidden) {
+    if (mode == null && seat >= 0 && !busy && selected.length && myTurnToAct() && els.mask.hidden) {   // seat 0 = 点自己（只有自由甩锅能指自己）
       const c = classifyMine(selected);
       if (c && c.needsTarget && R.validTargets(game.state, 0, c.type).indexOf(seat) >= 0 && !(tut && tut.allow && !tut.allow({ type: 'play', cards: selected.slice(), preview: true }))) {
         onPlay();
@@ -5423,7 +5426,7 @@
     }
     const cb = targetCb;
     mode = null; targetCb = null;
-    allSeatEls().forEach((x) => x.classList.remove('is-target', 'is-target-off'));
+    pickSeatEls().forEach((x) => x.classList.remove('is-target', 'is-target-off'));
     cb(seat);
   }
   function pressNope() {
@@ -6402,7 +6405,7 @@
       li('defuse', (() => { const r = R.normalizeRules((game && game.state && game.state.rules) || settings.rules); return T('rules.card.defuse', '摸到炸弹猫时自动用掉，然后你把炸弹猫塞回牌堆任意位置') + (r.insertSeen ? T('rules.card.defuse.seen', '——大家看得到你塞进去的大概高度（最上 / 最底一眼看得出，中间只能估；不报第几张；点「随机」的看不出）') : T('rules.card.defuse.hidden', '，别人看不出塞在哪')); })()) +
       li('nope', T('rules.card.nope', '作废别人刚出的牌（不管轮没轮到你）。也能作废别人的「作废」，叠了单数张 = 作废。挡不了炸弹猫和逗猫棒')) +
       li('attack', T('rules.card.attack', '结束回合、不摸牌，下家连着摸两回合（被甩锅的人再甩锅：剩下的回合 +2 一起甩走，可以一路越叠越多）')) +
-      li('tattack', T('rules.card.tattack', '同甩锅，但可以甩给任意一个人（点他的头像）')) +
+      li('tattack', T('rules.card.tattack', '同甩锅，但可以甩给任意一个人，也可以甩给自己发育（点头像）')) +
       li('skip', T('rules.card.skip', '结束一个回合、不摸牌。被甩锅时只顶掉其中一回合')) +
       li('reverse', T('rules.card.reverse', '出牌方向倒过来（对手之间的小箭头跟着掉头），并像跳过一样结束一个回合、不摸牌。被甩锅时只顶掉其中一回合；两个人玩就等于跳过')) +
       (((game && game.state && game.state.rules) || settings.rules || {}).mode === 'flux' ? li('flux', T('rules.card.flux', '转一次转盘，换上抽到的规则。能被作废')) : '') +
@@ -7106,7 +7109,7 @@
    *   只在桌上安静时（轮到某个人出牌 / 摸牌）讲；一有事要我表态或挑牌就自己收起来、不算看过，下次安静时再讲。 */
   const GUIDE_KEY = 'zm.guide.v1';
   const GUIDE_CARDS = {
-    tattack: () => T('guide.card.tattack', '甩给任意一个人，他连摸两回合'),
+    tattack: () => T('guide.card.tattack', '甩给任意一个人（也可以是自己），他连摸两回合'),
     reverse: () => T('guide.card.reverse', '出牌方向倒过来，你这回合不摸牌'),
     bottom: () => T('guide.card.bottom', '这回合从牌堆最底下摸'),
     alter: () => T('guide.card.alter', '看顶上三张，再按你想要的顺序放回去'),
@@ -9799,6 +9802,11 @@
   });
   els.me.addEventListener('click', (e) => {
     if (!e.target.closest('.zm-av')) return;
+    // 自由甩锅甩给自己（2026-11-26 用户：用来发育）：选人时 / 牌在往桌上飞时 / 选好牌还没按出牌时点自己的头像 = 甩给自己
+    if (game && !game.spectator && game.state && game.state.alive[0]) {
+      const c = !busy && selected.length && mode == null && myTurnToAct() && els.mask.hidden ? classifyMine(selected) : null;
+      if ((mode === 'target' && els.me.classList.contains('is-target')) || (preview && mode !== 'target') || (c && c.needsTarget && R.validTargets(game.state, 0, c.type).indexOf(0) >= 0)) { onSeatTap(0); return; }
+    }
     // 出局后在看别人：点下面这个头像回到自己座位
     if (game && game.online && game.spectator && online && online.st && online.st.mySeat >= 0 && online.base !== online.st.mySeat) { onlineView(online.st.mySeat); return; }
     if (game && !game.online && game.spectator) { if (!game.dealing && game.state.phase !== 'over') watch(0, true); return; }
