@@ -2202,3 +2202,11 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-rank-rest.is-grid li:has(> .zm-pay, > .zmw-res) > .nm { grid-column: 3; align-self: end; }
 .zm-rank-rest.is-grid li > .zm-pay, .zm-rank-rest.is-grid li > .zmw-res.is-inline { grid-column: 3; justify-self: start; align-self: start; margin-left: 0; }
 .zm-rank-rest.is-grid li > .zmw-res.is-inline .zmw-ln { justify-content: flex-start; }
+/* 第 4 名起一律一行一个（2026-11-27 用户：两列不好看）；人多（≥4 行）时行收紧，9 人局按钮也还在屏幕里 */
+.zm-rank-rest.is-many { margin-top: 6px; }
+.zm-rank-rest.is-many li { padding: 2px 10px; gap: 9px; }
+.zm-rank-rest.is-many .mini { width: 26px; height: 26px; }
+.zm-rank-rest.is-many .nm { font-size: 14px; }
+.zm-rank-rest.is-many li > .zm-pay { font-size: 14px; }
+.zm-rank-rest.is-many li > .zmw-res.is-inline .zmw-ln > b { font-size: 16px; }
+.zm-rank-rest.is-many li > .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 24px; height: 15px; }

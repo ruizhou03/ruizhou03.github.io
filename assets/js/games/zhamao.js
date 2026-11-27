@@ -6903,7 +6903,7 @@
   /* 领奖台（2026-11-18 用户挑乙）：前三名站 2-1-3 三级台子（金 / 银 / 铜，台面上刻名次），第四名起在下面排一列；
    * 不写「第几名」「胜利」之类的字——台子高低和颜色已经说明了。items：[{ face, nick, me }]，按名次排好 */
   const POD_COLORS = ['#c9a96e', '#a9adb5', '#c98a55'];
-  // 2026-11-26 用户：9 人局榜单太长、底下的小鱼干要滚才看得到——第 4 名往后超过 3 个就排成两列小格（is-grid）
+  // 2026-11-26 用户：9 人局榜单太长 → 曾排成两列小格；2026-11-27 用户：还是一行一个好看——人多（≥4 行）时行收紧（is-many）
   /* slot（2026-11-27 用户）：这局我的小鱼干不再单独一行，揉进榜里——上了台就放进我那根台子（名次数字下面），没上台放在我那一行右边；
    * 我第三名：台子矮放不下「3」+ 鱼，三根台子都不写数字（高低看得出名次），我那根只放鱼。托管多的小机器人标挂在我头像右上角 */
   /* 每个人这一局的小鱼干（2026-11-27 用户：领奖台上每个人、排行榜每一行都写奖 / 罚，看得出第一拿多少、垫底扣多少；我的那份另外凸显）。
@@ -6924,7 +6924,7 @@
     };
     const rest = items.slice(3);
     return '<h2 class="zm-sr">' + T('ui.rank.title', '排行榜') + '</h2><div class="zm-podium">' + col(1) + col(0) + col(2) + '</div>' +
-      (rest.length ? '<ol class="zm-rank zm-rank-rest' + (rest.length >= 4 ? ' is-grid' : '') + '">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="miniw"><span class="mini">' + x.face + '</span>' + (j + 3 === mi ? bot : '') + rdyTick(x) + '</span><span class="nm">' + esc(x.nick) + (x.me && j + 3 !== mi ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : '') + '</span>' + (j + 3 === mi ? sl : payTag(x.pay)) + '</li>').join('') + '</ol>' : '') +
+      (rest.length ? '<ol class="zm-rank zm-rank-rest' + (rest.length >= 4 ? ' is-many' : '') + '">' + rest.map((x, j) => '<li class="' + (x.me ? 'is-me' : '') + '"><span class="pos">' + (j + 4) + '</span><span class="miniw"><span class="mini">' + x.face + '</span>' + (j + 3 === mi ? bot : '') + rdyTick(x) + '</span><span class="nm">' + esc(x.nick) + (x.me && j + 3 !== mi ? '<small>' + T('ui.rank.me', '（我）') + '</small>' : '') + '</span>' + (j + 3 === mi ? sl : payTag(x.pay)) + '</li>').join('') + '</ol>' : '') +
       (slot && mi < 0 ? slot : '');
   }
   // 台子从底下长出来（三、二、一依次），头像随后落到台上，冠军那一下冒一圈金星
