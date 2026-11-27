@@ -234,18 +234,25 @@
         fx.pop(b, { scale: 1.12, dur: 220 });
       }));
       d.querySelector('[data-save]').addEventListener('click', () => {
-        const v = nickIn.value.trim();
-        if (v && ([...v].length > 12 || /[<>&"'/\\]/.test(v))) { err.textContent = T('ui.profile.bad', '名字最多 12 个字，不能有特殊符号'); err.hidden = false; nickIn.focus(); return; }
-        const I = ident();
-        if (v) { if (I && I.setNick) I.setNick(v); } else if (I && I.clearNick) I.clearNick();
-        profile = { nick: v || randomNick(), avatar: pick };
-        writeJSON(PROFILE_KEY, profile);
+        const bad = setProfile(nickIn.value, pick);
+        if (bad) { err.textContent = bad; err.hidden = false; nickIn.focus(); return; }
         closeDialog();
-        applyProfile();
-        save();
-        if (online) onlineAct('profile', { nick: v, avatar: pick });
       });
     });
+  }
+  /* 存名字 / 头像（牌桌菜单「修改昵称/头像」和猫咪档案里点头像都走这里，2026-11-27）。名字不合规返回提示文字，存好返回空 */
+  function setProfile(nick, pick) {
+    const v = String(nick || '').trim();
+    if (v && ([...v].length > 12 || /[<>&"'/\\]/.test(v))) return T('ui.profile.bad', '名字最多 12 个字，不能有特殊符号');
+    if (!(AV && AV.byId[pick])) pick = profile.avatar;
+    const I = ident();
+    if (v) { if (I && I.setNick) I.setNick(v); } else if (I && I.clearNick) I.clearNick();
+    profile = { nick: v || randomNick(), avatar: pick };
+    writeJSON(PROFILE_KEY, profile);
+    applyProfile();
+    save();
+    if (online) onlineAct('profile', { nick: v, avatar: pick });
+    return '';
   }
 
   /* 机器猫的名字和头像按档从各自的池子里抽（2026-11-13 用户：高手一套名字 + 深色金眼头像、普通希腊字母 + 现在四个、入门零一…零九 + 马卡龙大眼睛；
@@ -10655,5 +10662,5 @@
   // 联机的「这步不对」：机器猫的动作取自服务器发下来的事件流（不暂停），发事件序号给服务器，由它找回是第几步（2026-11-20）
   const fbOnline = () => (online && online.st && online.st.game && game && game.online ? { log: online.st.game.log || [], me: online.st.mySeat, loc: locOf, over: !!online.st.game.over } : null);
   const fbSend = (n, why) => (online && NET ? NET.act(online.code, online.token, 'fb', { n, why }).catch(() => {}) : null);
-  window.ZhamaoTable = { cardHtml, backHtml, roleCardHtml, rulesHtml, game: () => game, hold: fbHold, resume: fbResume, canPause: () => canPause(), online: fbOnline, sendFb: fbSend };
+  window.ZhamaoTable = { profile: () => profile, setProfile, cardHtml, backHtml, roleCardHtml, rulesHtml, game: () => game, hold: fbHold, resume: fbResume, canPause: () => canPause(), online: fbOnline, sendFb: fbSend };
 })();

@@ -36,9 +36,6 @@
 .zmp-av{width:60px;height:60px;border-radius:50%;overflow:hidden;border:2px solid #1d1b18;background:#ebe5d8;display:grid;place-items:center;font-size:22px;font-weight:900}
 .zmp-av svg{width:100%;height:100%;display:block}
 .zmp-nick{font-size:19px;font-weight:900;line-height:1.2}
-.zmp-who{display:flex;align-items:center;gap:6px;margin-top:5px;font:600 13px/1 system-ui,sans-serif;color:#6a6358}
-.zmp-who .ok{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#3f7a52}
-.zmp-who .ok svg{width:11px;height:11px}
 .zmp-login{border:1.5px solid #b4392c;color:#b4392c;background:#fffdf8;border-radius:999px;padding:7px 15px;font:700 14px/1 system-ui,sans-serif;cursor:pointer}
 .zmp-bal{text-align:right}
 .zmp-bal .n b{font:inherit;display:inline-block}
@@ -103,13 +100,6 @@
 .zmp-empty{color:#6a6358;font:14px system-ui,sans-serif;text-align:center;padding:12px 0}
 .zmp-wait{width:56px;height:8px;margin:40px auto;border-radius:4px;background:linear-gradient(90deg,#ebe5d8,#d9cfbd,#ebe5d8);background-size:200% 100%;animation:zmpWait 1s linear infinite}
 @keyframes zmpWait{to{background-position:-200% 0}}
-.zmp-bdg{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
-.zmp-bdg button{width:30px;height:30px;padding:0;border:0;background:none;cursor:pointer;border-radius:50%}
-.zmp-bdg button svg{width:30px;height:30px;display:block}
-.zmp-bdg button.off svg{filter:grayscale(1);opacity:.3}
-.zmp-hero2{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;background:#f8f4ea}
-.zmp-hero2 .zmp-bal{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left}
-.zmp-hero2 .zmp-bal .sub{margin:0}
 .zmp-act{display:grid;grid-template-columns:repeat(28,minmax(0,1fr));gap:2px;margin-top:8px}
 .zmp-act i{position:relative;aspect-ratio:1;border-radius:3px;background:#ebe5d8}
 .zmp-act i.ck{background:#1d1b18}
@@ -159,10 +149,42 @@
 .zmp-wall b{font:700 12.5px/1.2 ZM Serif,Georgia,serif;white-space:nowrap}
 .zmp-wall .off b{color:#a69c8a}
 @media(min-width:621px){.zmp-wall{grid-template-columns:repeat(8,minmax(0,1fr))}}
+.zmp-hero3{display:flex;align-items:center;gap:12px;background:#f8f4ea}
+.zmp-hero3 .l{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.zmp-me{display:flex;align-items:center;gap:12px;max-width:100%;border:0;background:none;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.zmp-me:active .zmp-av{transform:scale(.95)}
+.zmp-me .zmp-av{flex:none;transition:transform .12s}
+.zmp-me .zmp-nick{display:inline-flex;align-items:center;gap:5px;min-width:0;white-space:nowrap}
+.zmp-me .zmp-nick span{overflow:hidden;text-overflow:ellipsis}
+.zmp-me .zmp-nick svg{flex:none;width:14px;height:14px;opacity:.45}
+.zmp-hero3 .zmp-bal{text-align:left}
+.zmp-hero3 .zmp-bal .n{font-size:clamp(26px,7.4vw,40px);gap:6px}
+.zmp-hero3 .zmp-bal .zmw-fish{width:38px;height:24px}
+.zmp-hero3 .zmp-rings{flex:none;grid-template-columns:repeat(2,58px);gap:8px 6px}
+.zmp-hero3 .zmp-ring svg{width:52px;max-width:none;display:block;margin:0 auto}
+.zmp-hero3 .zmp-ring b{margin-top:2px;font-size:12px;white-space:nowrap}
+.zmp-hero3 .zmp-ring b small{margin-left:2px;font-size:10.5px}
+@media(max-width:374px){.zmp-hero3{gap:8px}.zmp-me{gap:8px}.zmp-me .zmp-av{width:48px;height:48px}.zmp-hero3 .zmp-bal .n{font-size:22px;gap:4px}.zmp-hero3 .zmp-bal .zmw-fish{width:30px;height:19px}.zmp-hero3 .zmp-rings{grid-template-columns:repeat(2,50px);gap:6px 4px}.zmp-hero3 .zmp-ring svg{width:44px}.zmp-hero3 .zmp-ring b{font-size:11px}.zmp-hero3 .zmp-ring b small{font-size:9.5px;margin-left:1px}}
+@media(min-width:560px){.zmp-hero3 .zmp-rings{grid-template-columns:repeat(4,64px);gap:6px}.zmp-hero3 .zmp-ring svg{width:58px}}
+.zmp-ed{width:min(360px,100%);background:#fffdf8;border:1.5px solid #1d1b18;border-radius:18px;box-shadow:0 3px 0 #1d1b18;padding:16px}
+.zmp-ed .top{display:flex;align-items:center;gap:12px}
+.zmp-ed .top .zmp-av{flex:none}
+.zmp-ed input{flex:1;min-width:0;height:44px;padding:0 12px;border:1.5px solid #d9cfbd;border-radius:12px;background:#f8f4ea;color:#1d1b18;font:700 18px/1 ZM Serif,'Songti SC',serif;outline:none;-webkit-user-select:text;user-select:text}
+.zmp-ed input:focus{border-color:#1d1b18}
+.zmp-ed .avs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:14px}
+.zmp-ed .avs button{aspect-ratio:1;padding:0;border:2px solid transparent;border-radius:50%;background:none;cursor:pointer;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.zmp-ed .avs button svg{width:100%;height:100%;display:block}
+.zmp-ed .avs button.on{border-color:#b4392c;box-shadow:0 0 0 2px #fffdf8,0 0 0 4px rgba(180,57,44,.35)}
+.zmp-ed .err{margin:10px 0 0;color:#b4392c;font:13px/1.4 system-ui,sans-serif}
+.zmp-ed .act{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+.zmp-ed .act button{padding:10px 20px;border-radius:999px;border:1.5px solid #1d1b18;background:#fffdf8;color:#1d1b18;font:600 15px/1 system-ui,"Noto Sans SC",sans-serif;cursor:pointer;box-shadow:0 2px 0 #1d1b18}
+.zmp-ed .act button.go{background:#b4392c;color:#fffdf8}
+.zmp-ed .act button:active{transform:translateY(2px);box-shadow:none}
 /* 站点登录弹层（auth.html）在游戏页里没有站点的颜色变量：给它一套游戏的 */
 #sa-overlay{--color-bg:#fffdf8;--color-bg-warm:#f3eee3;--color-border:#d9cfbd;--color-muted:#6a6358;--color-light:#8a8274;--color-ink:#1d1b18;--color-text:#1d1b18;--color-highlight:#b4392c;--color-accent:#b4392c;--font-display:ZM Serif,'Songti SC','Noto Serif SC',serif;font-family:system-ui,-apple-system,'PingFang SC',sans-serif}
 `;
   const BACK = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M24.5 6.5 13 20l11.5 13.5" fill="none" stroke="#b4392c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const PEN = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.6 2.6l2.8 2.8-7.7 7.7-3.4.6.6-3.4z" fill="none" stroke="#1d1b18" stroke-width="1.5" stroke-linejoin="round"/></svg>';
   const TICK = '<svg viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const IC = {
     newbie: '<svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2" fill="#e3a83f" stroke="#1d1b18" stroke-width="1.5"/><path d="M12 9v11M4 13h16" stroke="#1d1b18" stroke-width="1.5"/><path d="M12 9c-3-4-7-2-4 0M12 9c3-4 7-2 4 0" fill="none" stroke="#b4392c" stroke-width="1.6"/></svg>',
@@ -319,18 +341,19 @@
     const hasLed = !!(p.ledger && p.ledger.length);
     // 名字下面：拿到的最高几枚（档高的在前，最多 4 枚）；下面单独一张「勋章」卡放全部系列
     const ss = seriesState(p.badgeList), nGot = (p.badgeList || []).filter((b) => b.got).length;
-    const badges = ss.filter((x) => x.tier).sort((x, y) => y.tier - x.tier).slice(0, 4).map((x) => '<button type="button" data-ser="' + x.sid + '" aria-label="' + esc(x.tiers[x.tier - 1].name) + '">' + MD().svg(x.sid, x.tier) + '</button>').join('');
     const wall = ss.length ? '<div class="zmp-card zmp-medals"><div class="zmp-h">勋章<small>' + nGot + ' / ' + MD().total + '</small></div><div class="zmp-wall">' +
       ss.map((x) => '<button type="button" data-ser="' + x.sid + '"' + (x.tier ? '' : ' class="off"') + '>' + medal(x) + '<b>' + esc(x.tier ? x.tiers[x.tier - 1].name : x.sname) + '</b></button>').join('') + '</div></div>' : '';
+    // 第一格（2026-11-27 用户）：已登录不再挂绿勾（没登录才有「登录保存」）；名字下的那排勋章拿掉（下面就是勋章墙）；
+    // 右边空着的一大块放玩法胜率（窄屏 2×2 小环，宽屏一排 4 个）；点头像 / 名字改名换头像
+    const rings = '<div class="zmp-rings">' + MODES.map(([k, name, c]) => '<div class="zmp-ring">' + ring(p.modes[k].w, p.modes[k].g, c) + '<b>' + name + '<small>' + p.modes[k].g + '局</small></b></div>').join('') + '</div>';
     return '<div class="zmp-in">' +
-      '<div class="zmp-card zmp-hero2"><div class="zmp-av">' + me.face + '</div><div><div class="zmp-nick">' + esc(me.nick) + '</div><div class="zmp-who">' +
-        (p.owner === 'account' ? '<span class="ok">' + TICK + '</span>已登录' : '<button type="button" class="zmp-login" data-login>登录保存</button>') + '</div>' +
-        '<div class="zmp-bdg">' + badges + '</div></div>' +
-        '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span></div></div>' +   // 2026-11-26 用户：余额旁边不要「近 7 天对局」和「多少局」
+      '<div class="zmp-card zmp-hero3"><div class="l"><button type="button" class="zmp-me" data-edit aria-label="改名字和头像"><span class="zmp-av">' + me.face + '</span><span class="zmp-nick"><span>' + esc(me.nick) + '</span>' + PEN + '</span></button>' +
+        (p.owner === 'account' ? '' : '<button type="button" class="zmp-login" data-login>登录保存</button>') +
+        '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span></div>' +   // 2026-11-26 用户：余额旁边不要「近 7 天对局」和「多少局」
+        '</div>' + rings + '</div>' +
       wall +
       '<div class="zmp-grid">' +
         '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div>' + fwHtml(p) + '<div class="zmp-act" aria-label="近四周签到">' + actHtml(p) + '</div></div>' +
-        '<div class="zmp-card wide"><div class="zmp-h">玩法胜率</div><div class="zmp-rings">' + MODES.map(([k, name, c]) => '<div class="zmp-ring">' + ring(p.modes[k].w, p.modes[k].g, c) + '<b>' + name + '</b><small>' + p.modes[k].g + ' 局</small></div>').join('') + '</div></div>' +
       '</div>' +
       (hasLed ? '<details class="zmp-card"' + (led.open ? ' open' : '') + '><summary class="zmp-ledsum"><span>流水</span><span class="sp" data-spark></span></summary><div data-led>' + ledHtml() + '</div></details>' : '') + '</div>';
   }
@@ -346,6 +369,38 @@
       '<div class="lad">' + lad + '</div>' +
       (nx && nx.goal > 1 ? '<div class="pg"><i style="width:' + Math.round(x.k * 100) + '%;background:' + MD().METAL[x.tier + 1][1] + '"></i></div><div class="pn">' + fmt(x.prog) + ' / ' + fmt(nx.goal) + '</div>' : '') + '</div>';
     m.addEventListener('click', () => m.remove());
+    el.appendChild(m);
+  }
+
+  /* 点自己的头像 / 名字（2026-11-27 用户）：就地弹一张小卡改名换头像，存的路子和牌桌菜单「修改昵称/头像」同一个（ZhamaoTable.setProfile） */
+  function editMe() {
+    const T = root.ZhamaoTable, av = AV();
+    if (!T || !T.setProfile || !av || !av.HUMAN) return;
+    const cur = T.profile ? T.profile() : null;
+    let pick = (cur && cur.avatar) || 'cat';
+    const m = document.createElement('div');
+    m.className = 'zmp-bmask';
+    const face = (id) => (av.byId[id] ? av.byId[id].svg : '');
+    m.innerHTML = '<div class="zmp-ed" role="dialog" aria-label="改名字和头像"><div class="top"><span class="zmp-av" data-face>' + face(pick) + '</span>' +
+      '<input data-nick maxlength="12" autocomplete="nickname" aria-label="名字" placeholder="删空就随机起一个" value="' + esc(cur ? cur.nick : myFace().nick) + '"></div>' +
+      '<div class="avs" role="group" aria-label="头像">' + av.HUMAN.map((a) => '<button type="button" data-av="' + a.id + '" aria-label="' + esc(a.name) + '"' + (a.id === pick ? ' class="on"' : '') + '>' + a.svg + '</button>').join('') + '</div>' +
+      '<p class="err" data-err hidden></p><div class="act"><button type="button" data-no>取消</button><button type="button" class="go" data-ok>保存</button></div></div>';
+    const card = m.firstChild, inp = card.querySelector('[data-nick]'), err = card.querySelector('[data-err]');
+    const shut = () => m.remove();
+    m.addEventListener('click', (e) => {
+      if (!card.contains(e.target)) { shut(); return; }
+      const b = e.target.closest('[data-av]');
+      if (b) { pick = b.dataset.av; card.querySelectorAll('[data-av]').forEach((x) => x.classList.toggle('on', x === b)); card.querySelector('[data-face]').innerHTML = face(pick); return; }
+      if (e.target.closest('[data-no]')) { shut(); return; }
+      if (e.target.closest('[data-ok]')) {
+        const bad = T.setProfile(inp.value, pick);
+        if (bad) { err.textContent = bad; err.hidden = false; inp.focus(); return; }
+        shut();
+        const me = myFace(), h = body && body.querySelector('.zmp-me');
+        if (h) { h.querySelector('.zmp-av').innerHTML = me.face; h.querySelector('.zmp-nick span').textContent = me.nick; }
+      }
+    });
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') card.querySelector('[data-ok]').click(); });
     el.appendChild(m);
   }
 
@@ -373,9 +428,10 @@
       if (fwb) { claimFw(fwb); return; }
       const ck = e.target.closest('[data-ck]');
       if (ck) { checkinNow(ck); return; }
-      if (e.target.closest('[data-login]')) login();
+      if (e.target.closest('[data-login]')) { login(); return; }
+      if (e.target.closest('[data-edit]')) editMe();
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen() && !document.querySelector('#sa-overlay.open')) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key !== 'Escape' || !isOpen() || document.querySelector('#sa-overlay.open')) return; const bm = el.querySelector('.zmp-bmask'); if (bm) bm.remove(); else close(); });
     // 登录 / 登出（2026-11-26 事故：在档案里点「登录保存」，档案先摆了一份 6,000、流水全空的，像账号被清空）：
     // 换了身份就先收掉旧那份、转圈，等钱包那边并完游客钱包再拉档案
     let was = W() && W().who ? W().who() : '';
