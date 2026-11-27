@@ -11,6 +11,7 @@
 原始字体目录里要有 NotoSerifSC-Regular.otf / NotoSerifSC-Bold.otf / Gelasio-700.ttf（或 Gelasio-Bold.ttf 可变字体）；
 没给目录就下载到 /tmp/zhamao-fonts-src/（约 23 MB，不进 git）。依赖：pip install fonttools brotli
 """
+import hashlib
 import os
 import re
 import subprocess
@@ -63,8 +64,29 @@ def fetch(src):
             urllib.request.urlretrieve(url, p)
 
 
+# 版本号（2026-11-27 用户：设置里新加的「扮」字没走自带字体）：站点的 service worker 对静态资源是「先给缓存、后台再更新」，
+# 字体网址一直不变 → 补了新字后第一次打开拿到的还是旧字体、新字退回系统字。所以网址带上文件内容的哈希，字体一变网址就变
+STAMP_FILES = ['assets/css/zhamao.css', 'toolbox/puffcat/index.html']
+
+
+def stamp():
+    for f in STAMP_FILES:
+        p = os.path.join(ROOT, f)
+        with open(p, encoding='utf-8') as fh:
+            s = fh.read()
+        for name in ('zm-serif-400.woff2', 'zm-serif-700.woff2', 'zm-num-700.woff2'):
+            with open(os.path.join(OUT, name), 'rb') as fh:
+                h = hashlib.sha1(fh.read()).hexdigest()[:10]
+            s = re.sub(re.escape('/assets/fonts/zhamao/' + name) + r'(\?v=[0-9a-f]+)?', '/assets/fonts/zhamao/' + name + '?v=' + h, s)
+        with open(p, 'w', encoding='utf-8') as fh:
+            fh.write(s)
+
+
 def main():
-    src = sys.argv[1] if len(sys.argv) > 1 else '/tmp/zhamao-fonts-src'
+    if '--stamp' in sys.argv:
+        stamp(); return
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    src = args[0] if args else '/tmp/zhamao-fonts-src'
     fetch(src)
     gel = os.path.join(src, 'Gelasio-700.ttf')
     if not os.path.exists(gel):
@@ -78,8 +100,11 @@ def main():
     for w, name in (('400', 'Regular'), ('700', 'Bold')):
         subprocess.check_call([sys.executable, '-m', 'fontTools.subset', os.path.join(src, 'NotoSerifSC-%s.otf' % name),
                                '--text-file=' + cs_path, '--layout-features=', '--output-file=' + os.path.join(OUT, 'zm-serif-%s.woff2' % w)] + common)
-    subprocess.check_call([sys.executable, '-m', 'fontTools.subset', gel, '--text=' + NUM_TEXT, '--layout-features=lnum,kern',
-                           '--output-file=' + os.path.join(OUT, 'zm-num-700.woff2')] + common)
+    num = os.path.join(OUT, 'zm-num-700.woff2')
+    if not os.path.exists(num) or '--num' in sys.argv:   # 数字字体只跟 NUM_TEXT 有关、不随游戏用字变：平时不重做（重做出来内容一样、二进制不同，白白换版本号）
+        subprocess.check_call([sys.executable, '-m', 'fontTools.subset', gel, '--text=' + NUM_TEXT, '--layout-features=lnum,kern',
+                               '--output-file=' + num] + common)
+    stamp()
     sizes = ', '.join('%s %d KB' % (f, os.path.getsize(os.path.join(OUT, f)) // 1024) for f in sorted(os.listdir(OUT)) if f.endswith('.woff2'))
     print('✓ 字表 %d 个字符；%s' % (len(text), sizes))
 

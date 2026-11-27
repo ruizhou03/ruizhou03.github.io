@@ -304,6 +304,8 @@
 .zb-scene.is-live .zb-scene-if{opacity:1}
 /* 嵌在商店里的那局（?zmshow=1）：没有按钮、顶栏，只看牌局 */
 .zm-app.is-show .zm-band,.zm-app.is-show .zm-topbar,.zm-app.is-show .zm-cover{visibility:hidden!important}
+/* 11-27 用户：预览里没有摸牌 / 出牌键，头像和手牌之间空太宽 → 那一行（我的头像 + 按钮带）收窄；行数不变，只改高度 */
+.zm-app.is-show .zm-table{grid-template-rows:46px auto minmax(0,1fr) 34px auto!important}
 .zb-shop .zb-scene{--zm-ink:#1d1b18;--zm-card:#fffdf8;--u:60px;flex:1;height:auto;min-height:300px;max-height:560px;position:relative;border-radius:14px;border:1px solid #1d1b18;outline:none;overflow:hidden;transition:background-color .35s;background-color:#f3eee3}
 .zb-shop .zb-tabs{padding:12px 12px 0}
 .zb-shop .zb-tabs button{position:relative;font-size:14px;height:34px;color:#1d1b18}
@@ -664,11 +666,11 @@
       return chips;
     }
     /* 11-27 第六轮（用户：玩家不知道这些能点起来带进这局；内容偏上、下面空得多）：
-     * 顶上一行和规则格的「规则 ›」同一个位置——左边「开局道具」，右边一句提示；挑了以后提示换成这局开局要扣多少 */
+     * 顶上一行和规则格（左「游戏规则」右「设置规则 ›」）同一个样子——左边「开局道具」，右边「点选使用」；挑了以后换成「合计 🐟N」（11-27 用户：右上角要简洁、正式） */
     function boxHtml(chips, pk, attr) {
       let cost = 0;
       chips.forEach(([k]) => { if (!(k === 'counter' && counterDayOn()) && (k === 'role' ? !!pk.role : !!pk[k])) cost += priceAt(k); });
-      return '<span class="zb-ih"><b>开局道具</b>' + (cost ? '<em class="on">开局扣 ' + FISH() + fmt(cost) + '</em>' : '<em>点一下，带进这局</em>') + '</span>' +
+      return '<span class="zb-ih"><b>开局道具</b>' + (cost ? '<em class="on">合计 ' + FISH() + fmt(cost) + '</em>' : '<em>点选使用</em>') + '</span>' +
         '<span class="zr-chips">' + chips.map(([k, ic]) => {
         const free = k === 'counter' && counterDayOn(), on = free || (k === 'role' ? !!pk.role : !!pk[k]), p = priceAt(k);
         return '<button type="button" class="zb-it2" ' + attr + '="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i><small>' + ITEM_NAME[k] + '</small>' +
@@ -755,13 +757,32 @@
         return '<span class="' + (n ? '' : 'z') + '"><i style="--bg:' + ((tone && tone[ic] && tone[ic].bg) || '#f3eee3') + '">' + (ART().icon(ic) || '') + '</i><b>' + n + '</b><small>' + (k === 'cat' ? '猫牌' : (r.NAMES[k] || '')) + '</small></span>';
       }).join('');
     }
-    function closeCtr() { if (ctrPanel) { ctrPanel.remove(); ctrPanel = null; } }
+    /* 11-27 用户：面板开、关要有动画 → 从「正」字章那里长出来（缩放 + 淡入），关的时候缩回章里 */
+    function ctrOrigin(inEl) {
+      const st = ctrEl && ctrEl.isConnected ? ctrEl.getBoundingClientRect() : null, r = inEl.getBoundingClientRect();
+      return st && r.width ? (st.left + st.width / 2 - r.left) + 'px ' + (st.top + st.height / 2 - r.top) + 'px' : '50% 50%';
+    }
+    function closeCtr(now) {
+      if (!ctrPanel) return;
+      const p = ctrPanel; ctrPanel = null;
+      const inEl = p.firstChild;
+      if (now === true || !inEl || !p.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { p.remove(); return; }
+      inEl.style.transformOrigin = ctrOrigin(inEl);
+      inEl.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(.12)', opacity: 0 }], { duration: 200, easing: 'cubic-bezier(.4,0,.8,.4)', fill: 'forwards' });
+      p.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-in', fill: 'forwards' }).finished.then(() => p.remove(), () => p.remove());
+    }
     function openCtr() {
-      closeCtr();
+      closeCtr(true);
       ctrPanel = document.createElement('div'); ctrPanel.className = 'zb-ctrp';
       ctrPanel.innerHTML = '<div class="zb-ctrp-in">' + ctrHtml() + '</div>';
       ctrPanel.addEventListener('click', (e) => { e.stopPropagation(); closeCtr(); });
       ($('zmApp') || document.body).appendChild(ctrPanel);
+      const inEl = ctrPanel.firstChild;
+      if (inEl.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        inEl.style.transformOrigin = ctrOrigin(inEl);
+        inEl.animate([{ transform: 'scale(.12)', opacity: 0 }, { transform: 'scale(1.03)', opacity: 1, offset: 0.7 }, { transform: 'scale(1)', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(.2,.8,.3,1)' });
+        inEl.querySelectorAll('span').forEach((c, i) => c.animate([{ transform: 'translateY(6px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 220, delay: 90 + i * 18, easing: 'ease-out', fill: 'backwards' }));
+      }
     }
     function paintCounter(g) {
       const s = g.state;

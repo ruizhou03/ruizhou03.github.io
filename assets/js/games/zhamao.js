@@ -7017,7 +7017,7 @@
       chip('swap', r.swap ? T('ui.rule.swapOn', '有交换') : T('ui.rule.swapOff', '无交换')) +
       chip('boom', r.insertSeen ? T('ui.rule.insSeen', '塞回明') : T('ui.rule.insHid', '塞回暗')) + '</span>';
     return open
-      ? '<button type="button" class="zr-box" data-rules-open aria-label="' + T('ui.rules.edit', '规则') + '"><span class="zr-more">' + T('ui.rules.edit', '规则') + '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.2 2.2 8 6l-3.8 3.8"/></svg></span>' + chips + '</button>'
+      ? '<button type="button" class="zr-box" data-rules-open aria-label="' + T('ui.rules.set', '设置规则') + '"><span class="zr-more"><b class="zr-lab">' + T('ui.rules.title', '游戏规则') + '</b><span class="zr-go">' + T('ui.rules.set', '设置规则') + '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.2 2.2 8 6l-3.8 3.8"/></svg></span></span>' + chips + '</button>'
       : '<div class="zr-box is-ro">' + chips + '</div>';
   }
   // 规则页（单机：开局单里滑过去；联机：房间页弹出来）。edit = 能改；不能改的控件灰着

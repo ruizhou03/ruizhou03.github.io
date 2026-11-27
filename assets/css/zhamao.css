@@ -5,9 +5,9 @@
  * 思源宋体截成只含游戏用字（scripts/zhamao-fonts.py，加了新字要重跑；tests/zhamao-fonts.test.js 查漏字）+ Gelasio 数字（Georgia 的开源替身）。
  * 放在每个字体列表最前面，苹果 / 安卓 / 电脑一个样；页面在字体到之前不显示游戏（index.html 开头），最多等 3 秒再退回系统字体。
  * 玩家自己打的字（昵称、聊天）里不在字表的字，逐字退回后面的系统宋体 / 思源宋体 CDN */
-@font-face { font-family: 'ZM Serif'; font-weight: 400; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-400.woff2') format('woff2'); }
-@font-face { font-family: 'ZM Serif'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-700.woff2') format('woff2'); }
-@font-face { font-family: 'ZM Num'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-num-700.woff2') format('woff2'); }
+@font-face { font-family: 'ZM Serif'; font-weight: 400; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-400.woff2?v=4f74f1979b') format('woff2'); }
+@font-face { font-family: 'ZM Serif'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-serif-700.woff2?v=8b89976ed0') format('woff2'); }
+@font-face { font-family: 'ZM Num'; font-weight: 700; font-style: normal; font-display: block; src: url('/assets/fonts/zhamao/zm-num-700.woff2?v=73242cd6c8') format('woff2'); }
 
 body.zm-fullscreen { margin: 0; background: #f3eee3; overflow: hidden; }
 /* 不许缩放（2026-11-13 用户：微信里误双击会放大）：只留上下左右滑动，双击放大、双指放大都关掉（视口和手势在页面开头也锁了）。
@@ -2025,7 +2025,10 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zr-box { display: block; width: 100%; box-sizing: border-box; padding: 8px 12px 10px; margin: 0; background: rgba(255, 253, 248, 0.75); border: 1.5px solid var(--zm-ink); border-radius: 14px; font: inherit; color: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .zr-box:not(.is-ro):active { transform: scale(0.99); }
 .zr-box.is-ro { cursor: default; padding-top: 11px; margin-top: 8px; }
-.zr-more { display: flex; justify-content: flex-end; align-items: center; gap: 1px; font-size: 13px; color: var(--zm-seal); margin-bottom: 6px; }
+.zr-more { display: flex; justify-content: space-between; align-items: center; font-size: 13px; line-height: 18px; color: var(--zm-seal); margin-bottom: 6px; }
+/* 2026-11-27 用户：左边写「游戏规则」，右边按钮写「设置规则 ›」（开局道具格顶上一行同一个样子，见 zhamao-beta.js .zb-ih） */
+.zr-more .zr-lab { font-weight: 700; color: var(--zm-ink); letter-spacing: 0.04em; }
+.zr-more .zr-go { display: inline-flex; align-items: center; gap: 1px; }
 .zr-more svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .zr-chips { display: flex; justify-content: space-around; gap: 6px; }
 .zr-chip { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
