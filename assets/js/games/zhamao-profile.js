@@ -25,6 +25,7 @@
 .zmp-x{width:44px;height:44px;border:0;background:none;padding:0;cursor:pointer;display:grid;place-items:center;border-radius:50%}
 .zmp-x svg{width:30px;height:30px}
 .zmp-x:active svg{transform:scale(.92)}
+.zmp-topr{margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:env(safe-area-inset-right,0px)}
 .zmp-top h2{margin:0;font-size:22px;font-weight:900;letter-spacing:.04em}
 .zmp-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:4px 14px calc(env(safe-area-inset-bottom,0px) + 24px)}
 .zmp-in{max-width:760px;margin:0 auto}
@@ -143,6 +144,8 @@
 .zmp-bcard .pg i{display:block;height:100%;border-radius:3px}
 .zmp-bcard .pn{font:700 13px ZM Num,ZM Serif,Georgia,serif;color:#6a6358}
 .zmp-medals{margin-top:12px}
+.zmp-h2{margin:16px 0 0;padding-top:12px;border-top:1px dashed #d9cfbd}
+.zmp-h2+.zmp-task{margin-top:8px}
 .zmp-wall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 6px;text-align:center}
 .zmp-wall button{border:0;background:none;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;color:#1d1b18;-webkit-tap-highlight-color:transparent}
 .zmp-wall svg{width:min(68px,100%);height:auto;aspect-ratio:1;display:block;transition:transform .15s}
@@ -152,12 +155,14 @@
 @media(min-width:621px){.zmp-wall{grid-template-columns:repeat(8,minmax(0,1fr))}}
 .zmp-hero3{display:flex;align-items:center;gap:12px;background:#f8f4ea}
 .zmp-hero3 .l{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
-.zmp-me{display:flex;align-items:center;gap:12px;max-width:100%;border:0;background:none;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.zmp-me:active .zmp-av{transform:scale(.95)}
-.zmp-me .zmp-av{flex:none;transition:transform .12s}
-.zmp-me .zmp-nick{display:inline-flex;align-items:center;gap:5px;min-width:0;white-space:nowrap}
-.zmp-me .zmp-nick span{overflow:hidden;text-overflow:ellipsis}
-.zmp-me .zmp-nick svg{flex:none;width:14px;height:14px;opacity:.45}
+.zmp-id{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:5px;max-width:100%}
+.zmp-id>button{border:0;background:none;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.zmp-id .zmp-av{grid-row:1/3;align-self:center;border:2px solid #1d1b18;background:#ebe5d8;transition:transform .12s}
+.zmp-id .zmp-av:active{transform:scale(.95)}
+.zmp-id .zmp-nick{align-self:end;display:inline-flex;align-items:center;gap:5px;min-width:0;max-width:100%;white-space:nowrap;font-size:19px;font-weight:900;line-height:1.2}
+.zmp-id.solo .zmp-nick{grid-row:1/3;align-self:center}
+.zmp-id .zmp-nick span{overflow:hidden;text-overflow:ellipsis}
+.zmp-id .zmp-nick svg{flex:none;width:14px;height:14px;opacity:.45}
 .zmp-hero3 .zmp-bal{text-align:left}
 .zmp-hero3 .zmp-bal .n{font-size:clamp(26px,7.4vw,40px);gap:6px}
 .zmp-hero3 .zmp-bal .zmw-fish{width:38px;height:24px}
@@ -165,11 +170,11 @@
 .zmp-hero3 .zmp-ring svg{width:70px;max-width:none;display:block;margin:0 auto}
 .zmp-hero3 .zmp-ring b{margin-top:3px;font-size:13px;white-space:nowrap}
 .zmp-hero3 .zmp-ring b small{margin-left:2px;font-size:10.5px}
-@media(max-width:374px){.zmp-hero3{gap:8px}.zmp-me{gap:8px}.zmp-me .zmp-av{width:48px;height:48px}.zmp-hero3 .zmp-bal .n{font-size:22px;gap:4px}.zmp-hero3 .zmp-bal .zmw-fish{width:30px;height:19px}.zmp-hero3 .zmp-rings{grid-template-columns:repeat(2,58px);gap:8px 4px}.zmp-hero3 .zmp-ring svg{width:54px}.zmp-tops svg,.zmp-tops button{width:26px;height:26px}.zmp-hero3 .zmp-ring b{font-size:11px}.zmp-hero3 .zmp-ring b small{font-size:9.5px;margin-left:1px}}
+@media(max-width:374px){.zmp-hero3{gap:8px}.zmp-id{column-gap:8px}.zmp-id .zmp-av{width:52px;height:52px}.zmp-id .zmp-nick{font-size:17px}.zmp-hero3 .zmp-bal .n{font-size:22px;gap:4px}.zmp-hero3 .zmp-bal .zmw-fish{width:30px;height:19px}.zmp-hero3 .zmp-rings{grid-template-columns:repeat(2,58px);gap:8px 4px}.zmp-hero3 .zmp-ring svg{width:54px}.zmp-tops svg,.zmp-tops button{width:24px;height:24px}.zmp-hero3 .zmp-ring b{font-size:11px}.zmp-hero3 .zmp-ring b small{font-size:9.5px;margin-left:1px}}
 @media(min-width:560px){.zmp-hero3 .zmp-rings{grid-template-columns:repeat(4,84px);gap:8px}.zmp-hero3 .zmp-ring svg{width:80px}}
-.zmp-tops{display:flex;gap:6px;margin-top:-2px}
-.zmp-tops button{width:32px;height:32px;padding:0;border:0;background:none;cursor:pointer;border-radius:50%;-webkit-tap-highlight-color:transparent}
-.zmp-tops svg{width:32px;height:32px;display:block}
+.zmp-tops{align-self:start;display:flex;gap:3px}
+.zmp-tops button{width:28px;height:28px;padding:0;border:0;background:none;cursor:pointer;border-radius:50%;-webkit-tap-highlight-color:transparent}
+.zmp-tops svg{width:28px;height:28px;display:block}
 .zmp-ed{width:min(360px,100%);background:#fffdf8;border:1.5px solid #1d1b18;border-radius:18px;box-shadow:0 3px 0 #1d1b18;padding:16px}
 .zmp-ed .top{display:flex;align-items:center;gap:12px}
 .zmp-ed .top .zmp-av{flex:none}
@@ -352,14 +357,15 @@
     const tops = ss.filter((x) => x.tier).sort((x, y) => y.tier - x.tier).slice(0, 4).map((x) => '<button type="button" data-ser="' + x.sid + '" aria-label="' + esc(x.tiers[x.tier - 1].name) + '">' + MD().svg(x.sid, x.tier) + '</button>').join('');
     const rings = '<div class="zmp-rings">' + MODES.map(([k, name, c]) => '<div class="zmp-ring">' + ring(p.modes[k].w, p.modes[k].g, c) + '<b>' + name + '<small>' + p.modes[k].g + '局</small></b></div>').join('') + '</div>';
     return '<div class="zmp-in">' +
-      '<div class="zmp-card zmp-hero3"><div class="l"><button type="button" class="zmp-me" data-edit aria-label="改名字和头像"><span class="zmp-av">' + me.face + '</span><span class="zmp-nick"><span>' + esc(me.nick) + '</span>' + PEN + '</span></button>' +
-        (tops ? '<div class="zmp-tops">' + tops + '</div>' : '') +
+      '<div class="zmp-card zmp-hero3"><div class="l"><div class="zmp-id' + (tops ? '' : ' solo') + '"><button type="button" class="zmp-av" data-edit aria-label="改头像">' + me.face + '</button><button type="button" class="zmp-nick" data-edit aria-label="改名字"><span>' + esc(me.nick) + '</span>' + PEN + '</button>' +
+        (tops ? '<div class="zmp-tops">' + tops + '</div>' : '') + '</div>' +
         (p.owner === 'account' ? '' : '<button type="button" class="zmp-login" data-login>登录保存</button>') +
         '<div class="zmp-bal"><span class="n">' + FISH + '<b data-num>' + fmt(p.bal) + '</b></span></div>' +   // 2026-11-26 用户：余额旁边不要「近 7 天对局」和「多少局」
         '</div>' + rings + '</div>' +
       wall +
       '<div class="zmp-grid">' +
-        '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div>' + fwHtml(p) + '<div class="zmp-act" aria-label="近四周签到">' + actHtml(p) + '</div></div>' +
+        '<div class="zmp-card wide"><div class="zmp-h">签到<small>连签 ' + p.checkin.streak + ' 天</small></div><div class="zmp-week">' + week + '</div><div class="zmp-act" aria-label="近四周签到">' + actHtml(p) + '</div>' +
+          (p.firstWin ? '<div class="zmp-h zmp-h2">今日任务</div>' + fwHtml(p) : '') + '</div>' +   // 2026-11-27 用户：任务不算签到，下面单起小标题；28 格挪到七格正下方
       '</div>' +
       (hasLed ? '<details class="zmp-card"' + (led.open ? ' open' : '') + '><summary class="zmp-ledsum"><span>流水</span><span class="sp" data-spark></span></summary><div data-led>' + ledHtml() + '</div></details>' : '') + '</div>';
   }
@@ -402,7 +408,7 @@
         const bad = T.setProfile(inp.value, pick);
         if (bad) { err.textContent = bad; err.hidden = false; inp.focus(); return; }
         shut();
-        const me = myFace(), h = body && body.querySelector('.zmp-me');
+        const me = myFace(), h = body && body.querySelector('.zmp-id');
         if (h) { h.querySelector('.zmp-av').innerHTML = me.face; h.querySelector('.zmp-nick span').textContent = me.nick; }
       }
     });
@@ -418,7 +424,7 @@
     el = document.createElement('section');
     el.className = 'zmp'; el.hidden = true;
     el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', '猫咪档案');
-    el.innerHTML = '<div class="zmp-top"><button type="button" class="zmp-x" aria-label="返回">' + BACK + '</button><h2>猫咪档案</h2></div><div class="zmp-body"></div>';
+    el.innerHTML = '<div class="zmp-top"><button type="button" class="zmp-x" aria-label="返回">' + BACK + '</button><h2>猫咪档案</h2><span class="zmp-topr" data-topr></span></div><div class="zmp-body"></div>';
     document.body.appendChild(el);
     body = el.querySelector('.zmp-body');
     el.querySelector('.zmp-x').addEventListener('click', close);
