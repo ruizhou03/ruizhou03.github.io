@@ -233,7 +233,8 @@ body.zm-fullscreen, .zm-app *:not(input):not(textarea) { -webkit-user-select: no
 .zm-stage-cards { position: relative; display: flex; gap: calc(var(--u) * -0.35); }
 .zm-stage-cards .zm-card { width: calc(var(--pu) * 1.15); }
 .zm-stage-cards .zm-card + .zm-card { margin-left: calc(var(--u) * -0.42); }
-.zm-stage-cards.is-many .zm-card + .zm-card { margin-left: calc(var(--u) * -0.62); }   /* 五猫：五张叠紧一点，竖屏也摆得下 */
+.zm-stage-cards.is-three .zm-card + .zm-card { margin-left: calc(var(--u) * -0.56); }   /* 三张：扇面收小一点（2026-11-27 用户） */
+.zm-stage-cards.is-many .zm-card + .zm-card { margin-left: calc(var(--u) * -0.74); }   /* 五猫：五张叠紧，不压牌堆、不挡右边那家（2026-11-27 用户） */
 .zm-stage-nopes { position: absolute; inset: 0; pointer-events: none; }
 .zm-stage-nopes .zm-card { position: absolute; width: calc(var(--pu) * 1.15); left: 50%; top: 50%; }   /* 和桌上那张一样大，叠上去正好盖住 */
 .zm-stage-cards .zm-stage-nopes .zm-card + .zm-card { margin-left: 0; }   /* 2026-11-18：上面「并排的牌往左压」那条也套到了叠着的作废上，第二张起整张往左错开、跑出倒计时框 */

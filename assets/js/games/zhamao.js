@@ -1800,16 +1800,29 @@
   /* 透视被换成别的规则（2026-11-26 用户：以前顶上那张一下子没了，像融进了牌堆，不像「翻开的牌合上」）：
    * 就在牌堆顶原地翻回去——正面转到侧立，换成牌背再转平，落下和牌堆顶那张牌背严丝合缝，然后才收掉 */
   async function closeTopFace(t) {
+    /* 2026-11-27 用户第二次：还是像翻着翻着融进牌堆——原地转到侧立时，底下一模一样的牌背露出来，看着就是两张叠在一起化掉了。
+     * 现在像手把顶上那张拿起来翻个面再放回去：① 轻轻抬起（离开牌堆、影子变大）② 抬着翻面 ③ 落回原位、牌堆跟着一沉——
+     * 一直是「最上面那一张」，落下后和牌堆严丝合缝 */
     const stack = els.deck.querySelector('.zm-deck-stack'), fc = stack && stack.querySelector('.zm-deck-face');
     if (!fc || !fc.firstElementChild || fx.reduce()) return;
+    const up = { translate: '0 -14%', scale: '1.06' }, flat = { translate: '0 0', scale: '1' },   // 用独立的 translate / scale：牌面层自己的 transform（按牌堆高度错开）不动
+    shUp = 'drop-shadow(0 10px 10px rgba(29,27,24,.28))', shDown = 'drop-shadow(0 1px 1px rgba(29,27,24,.18))';
+    fc.style.zIndex = '3';
+    await fc.animate([Object.assign({ filter: shDown }, flat), Object.assign({ filter: shUp }, up)], { duration: ms(200), easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token || !fc.isConnected) return;
     snd('flip');
-    await fc.firstElementChild.animate([{ transform: 'perspective(400px) rotateY(0deg)' }, { transform: 'perspective(400px) rotateY(90deg)', filter: 'brightness(.85)' }], { duration: ms(170), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
+    await fc.firstElementChild.animate([{ transform: 'perspective(700px) rotateY(0deg)' }, { transform: 'perspective(700px) rotateY(90deg)', filter: 'brightness(.9)' }], { duration: ms(150), easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
     if (t !== token || !fc.isConnected) return;
     fc.innerHTML = backHtml();
     const back = fc.firstElementChild;
     if (!back) return;
     back.style.boxShadow = 'none';   // 牌背不要透视那圈金边
-    await back.animate([{ transform: 'perspective(400px) rotateY(-90deg)', filter: 'brightness(.85)' }, { transform: 'perspective(400px) rotateY(0deg)', filter: 'none' }], { duration: ms(190), easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+    await back.animate([{ transform: 'perspective(700px) rotateY(-90deg)', filter: 'brightness(.9)' }, { transform: 'perspective(700px) rotateY(0deg)', filter: 'none' }], { duration: ms(170), easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token || !fc.isConnected) return;
+    await fc.animate([Object.assign({ filter: shUp }, up), { translate: '0 1%', scale: '.995', filter: shDown, offset: 0.8 }, Object.assign({ filter: shDown }, flat)], { duration: ms(220), easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' }).finished.catch(() => {});
+    if (t !== token) return;
+    snd('thud');
+    stack.animate([{ translate: '0 0' }, { translate: '0 1.5px', offset: 0.35 }, { translate: '0 0' }], { duration: 200, easing: 'ease-out' });
   }
   /* 火眼被换成别的规则（2026-11-16 用户：换走以后露着的炸弹猫还一直明着）：歪着露出的那几张摆正、塞回原来那层、翻成牌背；
    * 最上面翻着的那张（它刚好到了顶上）也翻回去。之后谁也不再看得到它们在哪（就像没有火眼时一样） */
@@ -2630,11 +2643,13 @@
     return -1;
   }
   // 舞台不加框、不写字：只有放大的牌 + 下面一根导火索。谁出的 = 牌从他头像飞出来 + 他头像亮一圈金光；指了谁 = 那人头像上套一个准星
+  // 桌上一排牌各歪多少度：两张照旧 ±2.5°；三张、五张收一点（2026-11-27 用户：扇形开得太大，压住牌堆和右边那家）
+  const stageRot = (i, n) => (i - (n - 1) / 2) * (n >= 4 ? 2.5 : n === 3 ? 3.5 : 5);
   function showStage(p, hidden) {
     els.stage.classList.remove('is-cancelled', 'is-out');
     const named = '';   // 点名要：桌上只摆三张猫，点名的那张不再放旁边（2026-11-18 用户）——到结算时在被点名的人旁边走原来那套对话泡动画
     els.stage.innerHTML = '<div class="zm-stage-inner">' +
-      '<div class="zm-stage-cards' + (p.cards.length >= 4 ? ' is-many' : '') + '">' + p.cards.map((id, i) => cardHtml(id, hidden ? 'is-incoming' : '', 'transform:rotate(' + ((i - (p.cards.length - 1) / 2) * 5).toFixed(1) + 'deg)', wildSeat(p.by))).join('') + named + '<div class="zm-stage-nopes"></div></div>' +
+      '<div class="zm-stage-cards' + (p.cards.length >= 4 ? ' is-many' : p.cards.length === 3 ? ' is-three' : '') + '">' + p.cards.map((id, i) => cardHtml(id, hidden ? 'is-incoming' : '', 'transform:rotate(' + stageRot(i, p.cards.length).toFixed(1) + 'deg)', wildSeat(p.by))).join('') + named + '<div class="zm-stage-nopes"></div></div>' +
       '<div class="zm-fuse" aria-hidden="true"><i class="rope"></i><i class="spark"></i></div></div>';
     placeStage();
     setActing(p.by);
@@ -3186,7 +3201,7 @@
       const target = stageCard(id);
       const to = target.getBoundingClientRect();
       const mine = e.seat === 0 && src[id];
-      const rot = (i - (e.cards.length - 1) / 2) * 5;
+      const rot = stageRot(i, e.cards.length);
       // 联机里我出的牌已经先飞上桌摆好了（乐观出牌 / 先摆上桌再选人）：服务器回话后别再从原地「飞」一遍——
       // 以前会带着 90px 的弧线原地蹦一下，看着像动画重播了一次（2026-11-13 用户：牌落定后好像重复了一下、卡一下）
       if (mine && Math.hypot(src[id].left + src[id].width / 2 - (to.left + to.width / 2), src[id].top + src[id].height / 2 - (to.top + to.height / 2)) < 6) {
@@ -3336,13 +3351,13 @@
       await wait(ms(game.lastNopes ? 480 : 140));
     }
     if (t !== token) return;
-    await sweepStage(t);
+    await sweepStage(t, !e.cancelled && e.type === 'five');
     if (t !== token) return;
     if (e.cancelled) setBare(false);   // 冲我来的被作废了：手里的猫翻回万能猫
     if (!e.cancelled && e.type === R.SKIP) await fxSleep(e.seat, t);
   }
   // 舞台上所有牌（连同「不行」）沿弧线扫进弃牌堆，摆成那堆里各自的角度，一张张落下
-  async function sweepStage(t) {
+  async function sweepStage(t, gather) {
     const cs = Array.from(els.stage.querySelectorAll('.zm-stage-inner .zm-card[data-id]'));
     const inner = els.stage.querySelector('.zm-stage-inner');
     const to = discardRect();
@@ -3366,14 +3381,28 @@
     // 起飞那一帧要和桌上那张严丝合缝（2026-11-27 慢放：以前拿转过角度的外框宽当牌宽，起飞瞬间整排大一圈、往上一跳）：
     // 用没转之前的宽、带上它本来的角度
     const rotOf = (c) => { const m = /rotate\((-?[\d.]+)deg\)/.exec(c.style.transform || ''); return m ? +m[1] : 0; };
-    const items = cs.map((c) => ({ id: +c.dataset.id, r: c.getBoundingClientRect(), w: c.offsetWidth, rot: rotOf(c), gray: els.stage.classList.contains('is-cancelled') }));
+    // 五猫（2026-11-27 用户）：五张先往中间那张收拢成一摞（像许愿前把牌合在一起），再整摞落进弃牌堆
+    if (gather && cs.length > 1 && !fx.reduce()) {
+      const mid = cs[Math.floor(cs.length / 2)], mr = mid.getBoundingClientRect(), mx = mr.left + mr.width / 2;
+      snd('whoosh');
+      await Promise.all(cs.map((c, i) => {
+        const r = c.getBoundingClientRect(), dx = mx - (r.left + r.width / 2);
+        c.style.zIndex = String(i === Math.floor(cs.length / 2) ? cs.length : i);
+        return c.animate([{ translate: '0 0', rotate: '0deg' }, { translate: dx.toFixed(1) + 'px -4px', rotate: (-rotOf(c)).toFixed(1) + 'deg' }], { duration: ms(300), delay: Math.abs(i - (cs.length - 1) / 2) * ms(25), easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
+      }));
+      if (t !== token) return;
+      fx.burst(mx, mr.top + mr.height / 2, { n: 10, shapes: ['star'], colors: GOLDS, radius: mr.width * 0.8, size: [5, 12], life: 600, pattern: 'ring' });
+      await wait(ms(120));
+      if (t !== token) return;
+    }
+    const items = cs.map((c) => ({ id: +c.dataset.id, r: c.getBoundingClientRect(), w: c.offsetWidth, rot: gather ? 0 : rotOf(c), gray: els.stage.classList.contains('is-cancelled') }));
     if (inner && !fx.reduce()) inner.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
     cs.forEach((c) => { c.style.visibility = 'hidden'; });
     setTimeout(() => { if (t === token) clearStage(true); }, 170);   // 桌沿连线留着：等牌真的拿到 / 给到再缩回
     snd('sweep');
     await Promise.all(items.map((it, i) => fx.fly({
       html: cardHtml(it.id), from: it.r, to, w: pu, s0: (it.w || it.r.width) / pu, s1: 1, r0: it.rot, r1: pileRot(it.id),
-      dur: ms(260), delay: i * ms(45), lift: 6, swell: 0.02, cls: it.gray ? 'is-gray' : '',
+      dur: ms(260), delay: i * ms(gather ? 18 : 45), lift: 6, swell: 0.02, cls: it.gray ? 'is-gray' : '',
     }).then(() => {
       if (t !== token || !ov) return;
       ov.discard.push(it.id);
@@ -3765,36 +3794,13 @@
       els.app.classList.remove('is-peeking');
       lay.remove();
       if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
-      // 放回去（2026-11-27 用户：以前边飞边翻、几张在牌堆上叠成一团再「融」进去，不够精细）——分三拍：
-      // ① 原地一张张翻回牌背（从最下面那张起，最上面那张最后翻；透视那张本来就正面朝上、不翻）；
-      // ② 从最下面那张起依次落回牌堆，每张落定牌堆就厚一张、轻轻一沉；③ 最上面那张最后盖上去，正好是牌堆顶
-      if (fx.reduce()) {
-        nodes.forEach((n) => n && n.remove());
-      } else {
-        const k = e.cards.length, order = e.cards.map((_, i) => k - 1 - i);
-        // 飞出来时就是一张两面牌（正面 + 牌背），这里直接把它原地转过去
-        const turned = nodes;
-        await Promise.all(nodes.map((n, i) => {
-          if (!n || open0(i)) return null;
-          const inner = n.firstElementChild;
-          if (!inner || !inner.querySelector('[class*="-side-back"]')) return null;
-          return inner.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: ms(300), delay: order.indexOf(i) * ms(80) / turboK(), easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished.catch(() => {});
-        }));
-        if (t !== token) { turned.forEach((n) => n && n.remove()); return; }
-        await Promise.all(order.map((i, j) => {
-          const n = turned[i];
-          if (!n) return null;
-          n.remove();
-          return fx.fly({ html: open0(i) ? cardHtml(e.cards[i]) : backHtml(), from: spots[i], to: deckTopRect(), w: u, s0: 1, s1: pu / u, r0: 0, r1: 0, dur: ms(400), delay: j * ms(150), lift: 26, swell: 0.03 }).then(() => {
-            if (t !== token) return;
-            snd('thud');
-            if (ov) { ov.lifted = Math.max(0, (ov.lifted || 0) - 1); if (j === k - 1) restoreTopFace(tf); renderPiles(); }
-            (els.deck.querySelector('.zm-deck-stack') || els.deck).animate([{ transform: 'none' }, { transform: 'translateY(2px) scaleY(.985)', offset: 0.35 }, { transform: 'none' }], { duration: 220, easing: 'ease-out' });
-          });
-        }));
-        if (t !== token) return;
-        return;
-      }
+      // 翻回去、倒着落回牌堆
+      await Promise.all(nodes.map((n, i) => {
+        if (!n) return null;
+        n.remove();
+        const id = e.cards[i];
+        return fx.fly({ html: cardHtml(id), back: backHtml(), flip: open0(i) ? null : 'down', flipAt: 0.05, from: spots[i], to: deckTopRect(), w: u, s0: 1, s1: pu / u, dur: ms(480), delay: (e.cards.length - 1 - i) * ms(110), lift: 40 });
+      }));
       snd('thud');
       if (ov) ov.lifted -= e.cards.length;
       restoreTopFace(tf);
@@ -4403,54 +4409,26 @@
   }
 
   /* 五张不同：弃牌堆一下子摊开成扇面，挑中的那张升起、闪金光，飞进他手里 */
-  /* 从弃牌堆捡一张（五猫）——2026-11-27 用户要优化：以前扇开的几张里没有被捡的那张，它凭空从扇子上方冒出来。
-   * 现在：弃牌堆扇开、被捡的那张就在扇子正中（正面），它往上一抬、金光一圈，其余几张合回弃牌堆，它再飞到捡牌的人那儿 */
+  /* 从弃牌堆捡一张（五猫）——2026-11-27 用户：五张猫先收拢、落进弃牌堆（像许了个愿），挑中的那张再从堆里「应声」出来。
+   * 挑的时候只列堆里有的牌种，所以一定挑得到，不演「找」的过程：弃牌堆一圈金光，那张从堆顶正面升起、亮一下，飞去捡牌的人那儿 */
   async function animPick(e, t) {
-    const r = discardRect(), pu = PU();
-    const others = ov.discard.slice(-7).filter((id) => id !== e.card).slice(-4);
-    const mid = Math.floor(others.length / 2);
-    const fan = others.slice(0, mid).concat([e.card], others.slice(mid));
-    const k = fan.length, ci = fan.indexOf(e.card);
-    const off = (i) => i - (k - 1) / 2;
-    // 扇面别出桌框（弃牌堆靠右时往里收）
-    const c = fx.center(r), fr = frameX(4), half = (k - 1) / 2 * pu * 0.42 + pu * 0.55;
-    c.x = Math.max(fr.l + half, Math.min(fr.r - half, c.x));
-    snd('fan');
+    const r = discardRect(), pu = PU(), c = fx.center(r);
     ov.discard = ov.discard.filter((x) => x !== e.card);
     renderPiles();
-    const outs = fan.map((id, i) => fx.fly({ html: cardHtml(id), from: r, to: { x: c.x + off(i) * pu * 0.42, y: c.y - pu * 0.22 + Math.abs(off(i)) * 3 }, w: pu, s0: 1, s1: 0.92, r0: pileRot(id), r1: off(i) * 11, dur: ms(320), delay: Math.abs(off(i)) * ms(40), lift: 10, keep: true, land: false }));
-    const nodes = await Promise.all(outs);
-    if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
-    const pick = nodes[ci];
-    if (pick) pick.style.zIndex = '3';
-    // 被捡的那张抬起来、放大一点、金光一圈；别的几张微微压暗
-    const up = { x: c.x + off(ci) * pu * 0.42, y: c.y - pu * 0.62 };
-    if (pick && !fx.reduce()) {
-      const cur = getComputedStyle(pick).transform;
-      await pick.animate([
-        { transform: cur, boxShadow: '0 4px 10px rgba(29,27,24,.18)' },
-        { transform: fx.T(up.x - pick.offsetWidth / 2, up.y - pick.offsetHeight / 2, 1.12, 0), boxShadow: '0 0 0 3px #e2b85c, 0 0 26px rgba(226,184,92,.75), 0 14px 24px rgba(29,27,24,.22)' },
-      ], { duration: ms(280), easing: 'cubic-bezier(.3,.8,.4,1.2)', fill: 'forwards' }).finished.catch(() => {});
-      if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
-    }
-    nodes.forEach((n, i) => { if (n && i !== ci && !fx.reduce()) n.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(.88)' }], { duration: ms(200), fill: 'forwards' }); });
-    fx.burst(up.x, up.y, { n: 14, shapes: ['star'], colors: GOLDS, radius: pu * 0.9, size: [6, 15], life: 760, pattern: 'ring' });
     snd('ding');
+    const pile = els.discard || null;
+    if (pile && !fx.reduce()) pile.animate([{ filter: 'none' }, { filter: 'drop-shadow(0 0 10px rgba(226,184,92,.9))', offset: 0.4 }, { filter: 'none' }], { duration: ms(700), easing: 'ease-in-out' });
+    fx.burst(c.x, c.y, { n: 12, shapes: ['star'], colors: GOLDS, radius: pu * 0.85, size: [5, 13], life: 700, pattern: 'ring' });
+    const up = { x: c.x, y: c.y - pu * 0.75 };
+    const rise = await fx.fly({ html: cardHtml(e.card), from: r, to: up, w: pu, s0: 1, s1: 1.12, r0: pileRot(e.card), r1: 0, dur: ms(380), lift: 0, swell: 0, land: false, keep: true, fadeIn: true });
+    if (t !== token) { if (rise) rise.remove(); return; }
+    if (rise && !fx.reduce()) rise.animate([{ boxShadow: '0 6px 14px rgba(29,27,24,.2)' }, { boxShadow: '0 0 0 3px #e2b85c, 0 0 24px rgba(226,184,92,.8), 0 12px 22px rgba(29,27,24,.22)' }], { duration: ms(220), fill: 'forwards' });
     await wait(ms(260));
-    if (t !== token) { nodes.forEach((n) => n && n.remove()); return; }
-    // 其余合回弃牌堆
-    nodes.forEach((n, i) => {
-      if (!n || i === ci) return;
-      const rr = n.getBoundingClientRect();
-      n.remove();
-      fx.fly({ html: cardHtml(fan[i]), from: rr, to: r, w: pu, s0: 0.92, s1: 1, r0: off(i) * 11, r1: pileRot(fan[i]), dur: ms(240), delay: Math.abs(off(i)) * ms(30), lift: 4 });
-    });
+    if (t !== token) { if (rise) rise.remove(); return; }
     const to = e.seat === 0 ? reserveHandSlot(e.card) : avPoint(e.seat);
     const u = e.seat === 0 ? HU() : U();
-    const pr = pick ? pick.getBoundingClientRect() : null;
-    if (pick) pick.remove();
-    const flight = fx.fly({ html: cardHtml(e.card), from: pr ? fx.center(pr) : up, to, w: u, s0: pu * 1.12 / u, s1: e.seat === 0 ? 1 : 0.45, fadeOut: e.seat !== 0, dur: ms(560), lift: 60, swell: 0.12 });
-    await flight;
+    if (rise) rise.remove();
+    await fx.fly({ html: cardHtml(e.card), from: up, to, w: u, s0: pu * 1.12 / u, s1: e.seat === 0 ? 1 : 0.45, fadeOut: e.seat !== 0, dur: ms(560), lift: 60, swell: 0.12 });
     if (t !== token) return;
     if (e.seat === 0) revealHandCard(e.card); else { ov.counts[e.seat] += 1; renderSeat(e.seat); fx.pop(avEl(e.seat), { scale: 1.15 }); }
     await wait(ms(160));
@@ -5487,7 +5465,7 @@
     await Promise.all(cards.map((id, i) => {
       const target = stageCard(id);
       if (!target) return null;
-      const to = target.getBoundingClientRect(), rot = (i - (cards.length - 1) / 2) * 5;
+      const to = target.getBoundingClientRect(), rot = stageRot(i, cards.length);
       return fx.fly(leaveWild(id, { html: cardHtml(id), from: rects[i], to: { x: to.left + to.width / 2, y: to.top + to.height / 2 }, w: su, s0: rects[i].width / su, s1: 1, r0: 0, r1: rot, dur: ms(380), delay: i * ms(60), lift: 70 }))
         .then(() => { if (t === token) target.classList.remove('is-incoming'); });
     }));
@@ -9449,7 +9427,7 @@
     await Promise.all(cards.map((id, i) => {
       const target = stageCard(id);
       if (!target) return null;
-      const to = target.getBoundingClientRect(), rot = (i - (cards.length - 1) / 2) * 5;
+      const to = target.getBoundingClientRect(), rot = stageRot(i, cards.length);
       return fx.fly(leaveWild(id, { html: cardHtml(id), from: rects[i], to: { x: to.left + to.width / 2, y: to.top + to.height / 2 }, w: su, s0: rects[i].width / su, s1: 1, r0: 0, r1: rot, dur: ms(340), delay: i * ms(50), lift: 70 }))
         .then(() => { if (t === token) target.classList.remove('is-incoming'); });
     }));
@@ -10891,6 +10869,8 @@
       catsavenone: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); const h = s.hands[0].filter((id) => R.KIND_OF[id] !== R.DEFUSE), seen = new Set(); s.hands[0] = h.filter((id) => { const k = R.KIND_OF[id]; if (seen.has(k) || k === R.WILD) { s.removed.push(id); return false; } seen.add(k); return true; }); top(R.BOOM); s.turn = 0; apply(0, { type: 'draw' }); },
       catsavebot: () => { s.flux = 'catsave'; s.saveUsed = s.hands.map(() => false); s.hands[bot] = s.hands[bot].filter((id) => R.KIND_OF[id] !== R.DEFUSE); give(bot, 'cow'); give(bot, 'cow'); top(R.BOOM); s.turn = bot; apply(bot, { type: 'draw' }); },
       // 转盘跟着出牌方向（2026-11-26）：fluxccw = 出牌方向 1（桌上逆时针），fluxcw = -1（顺时针）；机器猫打出一张百变
+      peekoff: () => { s.flux = 'peektop'; s.fluxDeck = ['mute']; renderAll(); const d0 = s.dir; setTimeout(() => plays.fluxDir(d0), 1500); },   // 百变「透视」换走：牌堆顶那张翻回牌背
+      peekclose: () => { s.flux = 'peektop'; renderAll(); const tk = token; setTimeout(async () => { if (tk !== token) return; s.flux = 'mute'; await closeTopFace(tk); renderAll(); }, 1200); },   // 只看「透视换走、顶上那张翻回去」这一下
       fluxccw: () => plays.fluxDir(1), fluxcw: () => plays.fluxDir(-1),
       fluxDir: (d) => { s.dir = d; const id = R.KIND_OF.findIndex((k, i) => k === R.FLUX && s.hands.every((h) => h.indexOf(i) < 0)); [s.deck, s.discard, s.removed].forEach((a) => { const j = a.indexOf(id); if (j >= 0) a.splice(j, 1); }); s.hands[bot].push(id); s.turn = bot; renderAll(); apply(bot, { type: 'play', cards: [id] }); },
       // 百搭下从牌堆拿出来的猫（2026-11-26 用户）：先亮本身、再翻成万能猫——窥探 / 摸牌 / 改命
