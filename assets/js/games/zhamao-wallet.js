@@ -162,7 +162,7 @@
 .zmw-ln>b.is-up{color:#3f7a52}.zmw-ln>b.is-down{color:#b4392c}
 .zmw-ln.is-main{color:#1d1b18;font-size:16px}
 .zmw-ln.is-main>b{font-size:26px}
-.zmw-bot{position:relative;align-self:flex-start;margin:-6px 0 0 -3px;width:20px;height:20px;padding:0;border:0;border-radius:50%;background:#efe8db;color:#8a8275;display:inline-grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.zmw-bot{position:relative;align-self:flex-start;margin:-6px 0 0 -3px;width:20px;height:20px;padding:0;border:0;border-radius:50%;background:transparent;color:#8a8275;filter:drop-shadow(0 0 1px #fffdf8) drop-shadow(0 0 1px #fffdf8);display:inline-grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .zmw-bot svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .zmw-bot>em{position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);white-space:nowrap;padding:5px 9px;border-radius:8px;background:#1d1b18;color:#fffdf8;font:500 12px/1.2 ZM Serif,'Songti SC','STSong','Noto Serif SC',serif;font-style:normal;opacity:0;pointer-events:none;transition:opacity .18s}
 .zmw-bot.is-open>em{opacity:1}

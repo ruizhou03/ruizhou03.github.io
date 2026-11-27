@@ -5552,6 +5552,15 @@
       cb(seat);
     });
     if (early != null && ts.indexOf(early) >= 0) onSeatTap(early);
+    // 谁都指不了（2026-11-27 用户：只剩影子猫时两张偷牌）：牌摆上桌后影子猫自己亮身份、身子虚一下，随后牌自动飞回手里，
+    // 不用玩家去找「取消」——平时出牌开弓没有回头箭，没人会想到点取消
+    if (!ts.length) {
+      const st = game.state, sh = [];
+      for (let k = 1; k < st.n; k++) if (st.alive[k] && st.hands[k].length && st.roles && R.roleOf(st, k) === 'shadow') sh.push(k);
+      Promise.all(sh.map((k) => flashRole(k, t, 0).then((fl) => shadowDodge(k).then(() => fl.back()))))
+        .then(() => wait(ms(sh.length ? 200 : 700)))
+        .then(() => { if (t === token && mode === 'target' && targetCb) cancelTarget(); });
+    }
   }
   function endPreview() {   // 不出了：桌上的牌飞回手里原位
     if (!preview) return;
