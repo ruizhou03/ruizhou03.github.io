@@ -25,7 +25,10 @@ assert.match(js, /requestId,\s*\n\s*expectedVersion:/,
   '所有 mutation 必须携带 requestId 与 expectedVersion');
 assert.match(js, /const previous = sess\._mutationTail/,
   '同一会话的 mutation 必须串行化');
-assert.match(js, /凭证轮换不改变公开 room\.version[\s\S]{0,260}gdApi\(action/,
+// 2026-11-27：mutation 改成 send() 闭包（同一个 body = 同一 requestId + expectedVersion），超时 / 5xx 也复用它重发
+assert.match(js, /const send = \(\) => gdApi\(action, \{[^}]*\bbody\b/,
+  'mutation 重发必须复用同一个 body（同一 requestId 与 expectedVersion）');
+assert.match(js, /凭证轮换不改变公开 room\.version[\s\S]{0,260}r = await send\(\)/,
   '凭证轮换后必须保留原 requestId 与 expectedVersion 重试 mutation');
 const terminalFailureFn = js.match(/function isTerminalOnlineFailure\(r\) \{[\s\S]*?\n  \}/)?.[0] || '';
 assert.ok(terminalFailureFn, '必须定义会话终止错误分类器');
@@ -72,7 +75,7 @@ assert.match(js, /searchParams\.set\('room',\s*onlineState\.inviteCode \|\| onli
   '房主分享链接优先带完整邀请码');
 assert.match(js, /new URLSearchParams\(location\.search\)\.get\('room'\)/,
   '自动加入必须安全解析 URLSearchParams 中的完整邀请码');
-assert.match(html, /guandan\.min\.js\?v=20261127ui26/,
+assert.match(html, /guandan\.min\.js\?v=20261127ui27/,
   '生产页面必须引用本次安全协议压缩构建标记');
 
 console.log('guandan network contracts: ok');

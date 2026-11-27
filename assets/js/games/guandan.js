@@ -2866,8 +2866,27 @@
   }
 
   // 每轮收到服务器状态时刷新本地的牌面/回合/出牌区
+  // 联机里别家这一手的声音（2026-11-27 用户：别人出的牌常常没听到播报）——以前只有炸弹放声，
+  // 单张 / 对子 / 不出 / 报牌都没声。按服务器的逐步记录（trail）每一步放一次：牌型语音、不出、剩 10 / 5 / 2 张、头游。
+  // 我自己的那手在乐观渲染里已经放过，不重放；同一步（tseq）只放一次。
+  function voiceNetStep(st, beforeLen) {
+    if (!st || st.seat == null || st.seat === 0) return;
+    if (st.tseq != null && st.tseq <= (state._voicedTseq || 0)) return;
+    if (st.tseq != null) state._voicedTseq = st.tseq;
+    const lp = Array.isArray(st.lastPlay) ? st.lastPlay[st.seat] : null;
+    if (lp === 'pass') { _gaSfxPass(); AUDIO.voice(passVoiceId()); return; }
+    if (!lp || !lp.cards || !lp.cards.length || lp.tributeLabel) return;
+    if (!isBombType(lp.type)) { _gaSfxPlay(); AUDIO.voice(voiceIdForCombo(lp)); }   // 炸弹的声音在 playBombFx 里
+    const afterLen = st.counts ? st.counts[st.seat] : null;
+    if (afterLen == null || beforeLen == null) return;
+    const warn = afterLen > 0 ? [2, 5, 10].find(n => beforeLen > n && afterLen <= n) : null;
+    if (warn) AUDIO.voice('left-' + warn, { queue: true });
+    else if (afterLen === 0 && Array.isArray(st.out) && st.out.length === 1 && st.out[0] === st.seat) AUDIO.voice('e-first', { queue: true });
+  }
   function applyServerGameState(gv) {
     if (!gv || !state.isNetworked) return;
+    // 进贡 / 还贡动画正在演（约 3~4 秒）：这期间来的新状态先存着，演完再一次铺上（不然演到一半被新帧打断，牌半路消失）
+    if (state._tribAnimUntil && Date.now() < state._tribAnimUntil) { state._tribPendingGv = gv; return; }
     gv = rotateGvToSelf(gv);   // 统一旋转成自视角（我 = 本地座 0）后再渲染
     // 房间流程：托管 / 准备 标记（头像上画），我自己的托管跟服务器走
     state._netAuto = Array.isArray(gv.auto) ? gv.auto.slice() : null;
@@ -2931,7 +2950,7 @@
     const _trail = Array.isArray(gv.trail) ? gv.trail : [];
     const _trailMaxSeq = _trail.length ? _trail[_trail.length - 1].tseq : 0;
     // 新一局：trailCounter 每局从 0 重数 → 收到比本地游标小的 tseq 说明换局了，复位游标从头重放。
-    if (_trailMaxSeq < (state._lastTrailSeq || 0)) state._lastTrailSeq = 0;
+    if (_trailMaxSeq < (state._lastTrailSeq || 0)) { state._lastTrailSeq = 0; state._voicedTseq = 0; }
     const _trailNew = _trail.filter(st => st.tseq > (state._lastTrailSeq || 0));
     // 本局进贡/还贡完成事件：内容去重，只在第一帧出牌时演一遍交换/抗贡。
     const _tribSig = gv.tributeReveal ? JSON.stringify(gv.tributeReveal) : '';
@@ -3045,16 +3064,31 @@
         showTributeBanner('[[zi:shield]] 抗贡成功', (names ? names + ' ' : '') + '握双大王，免进贡', 1900);
         state._tableTimer = setTimeout(_finishReveal, 2000);
       } else {
-        // 把交换的两张牌摆到各自出牌区（进/还角标），只显示这桩交换，停留约 1.9s 让人看清。
-        const level = currentLevelLabel();
-        const mkCombo = (card, label) => ({ type: T.SINGLE, cards: [card], key: singleWeight(card, level), bombStrength: 0, tributeLabel: label });
-        state.lastPlay = [null, null, null, null];
-        for (const p of (_rev.pairs || [])) {
-          if (p.tributeCard != null) state.lastPlay[p.giver] = mkCombo(p.tributeCard, '进');
-          if (p.returnCard != null) state.lastPlay[p.receiver] = mkCombo(p.returnCard, '还');
+        // 2026-11-27 用户：联机看不到进贡的人打出来的牌、也没有动画 → 和单机走同一套四段式：
+        // 进 / 还两张牌亮在各自出牌区 → 对飞 → 停一下 → 塞进对方手牌。服务器那边早换好了，这里只是倒回去再演一遍。
+        const pairs = (_rev.pairs || []).filter(p => p.tributeCard != null && p.returnCard != null);
+        const rm = (arr, c) => { const i = arr.indexOf(c); if (i >= 0) arr.splice(i, 1); };
+        state.hands[0] = (state.hands[0] || []).slice();
+        for (const p of pairs) {   // 我的手牌退回交换前：换来的拿掉、换出去的放回
+          if (p.receiver === 0) { rm(state.hands[0], p.tributeCard); state.hands[0].push(p.returnCard); }
+          if (p.giver === 0) { rm(state.hands[0], p.returnCard); state.hands[0].push(p.tributeCard); }
         }
-        renderAll();
-        state._tableTimer = setTimeout(_finishReveal, 1900);
+        state.lastPlay = [null, null, null, null];
+        state.pendingTribute = { pairs, newLeader: gv.turn };
+        let left = pairs.length;
+        state._tribAnimUntil = Date.now() + 4500;
+        const done = () => {
+          state._tribAnimUntil = 0;
+          state.pendingTribute = null;
+          const pend = state._tribPendingGv;
+          state._tribPendingGv = null;
+          _finishReveal();
+          if (pend) applyServerGameState(pend);
+        };
+        if (!left) done();
+        else {
+          pairs.forEach((_, i) => swapTributePair(i, () => { if (--left === 0) done(); }));
+        }
       }
     } else if (!testMode && gv.phase === 'playing' && _trailNew.length > 1) {
       // 出牌阶段·逐帧回放：把服务端这次跑出的多步(别家出牌/不出/收圈/新领出)按节奏一帧帧放出来——
@@ -3063,6 +3097,8 @@
       stopTurnClock();
       state.busy = true;
       const applyTrailStep = (st) => {
+        const _before = st.seat != null && state.hands[st.seat] ? state.hands[st.seat].length : null;
+        voiceNetStep(st, _before);
         state.lastPlay = Array.isArray(st.lastPlay) ? st.lastPlay.slice() : [null, null, null, null];
         if (Array.isArray(st.out)) state.out = st.out.slice();
         state.turn = st.turn;
@@ -3103,6 +3139,11 @@
       state._tableTimer = setTimeout(stepNext, _revealGap());
     } else {
       // 出牌阶段·即时铺好（无新别家出牌 / 测试模式 / 非收圈：如我自己刚出、单纯轮次推进、初始帧、切座快照）。
+      // 只有一步新动作（别家刚出 / 不出）时也要出声
+      if (gv.phase === 'playing' && _trailNew.length === 1) {
+        const st = _trailNew[0];
+        voiceNetStep(st, st.seat != null && state.hands[st.seat] ? state.hands[st.seat].length : null);
+      }
       _applyTableNow();
       // 撤掉任何残留的结算/战报浮层（幂等，未开时 remove 无副作用）。
       closeEndOverlays();
@@ -8072,7 +8113,37 @@
     else if (sess.polling) pokePoll();
     else startOnlineSync();
   }
+  // ── 对局记录：网页出错 / 卡住了，报给服务器记进这间房的记录（2026-11-27 用户：出完小王卡死，想能按房间号查）──
+  let clientLogsSent = 0;
+  function reportClient(kind, msg, stack) {
+    const sess = onlineState;
+    if (!sess || !sess.accessToken || clientLogsSent >= 12) return;
+    clientLogsSent++;
+    const at = 'phase=' + state.phase + ' turn=' + state.turn + ' busy=' + !!state.busy + ' v=' + (sess.lastVersion || 0) +
+      ' hand=' + ((state.hands[0] || []).length) + ' sse=' + !!(sess._sse && sess._sseOk) + ' rtt=' + (NET.rtt ? NET.rtt() : '');
+    gdApi('client_log', { token: sess.accessToken, timeoutMs: 6000, body: {
+      code: sess.code, kind, msg: String(msg || '').slice(0, 400), stack: String(stack || '').slice(0, 1200), at,
+      build: (CONTRACT && CONTRACT.releaseMarker) || '',
+    } });
+  }
+  window.addEventListener('error', (e) => reportClient('error', e.message, e.error && e.error.stack));
+  window.addEventListener('unhandledrejection', (e) => { const r = e.reason; reportClient('rejection', (r && r.message) || String(r), r && r.stack); });
+  // 卡住兜底：牌桌「忙」（回放 / 等回话）超过 15 秒还没松开 = 卡死了 → 报一条，然后整份重拉服务器状态重画
+  let busySince = 0;
+  function checkStuck() {
+    const sess = onlineState;
+    if (!sess || !state.isNetworked || !state.busy) { busySince = 0; return; }
+    if (!busySince) { busySince = Date.now(); return; }
+    if (Date.now() - busySince < 15000) return;
+    busySince = 0;
+    reportClient('stuck', 'busy>15s', '');
+    if (state._tableTimer) { clearTimeout(state._tableTimer); state._tableTimer = null; }
+    state.busy = false;
+    sess.lastVersion = 0;   // 下一份状态整份重发，applyServerGameState 重画
+    kickStalledSync(sess, 'busy_stuck');
+  }
   setInterval(async () => {
+    checkStuck();
     const sess = onlineState;
     if (!sess || !sess.accessToken || document.hidden || watchBusy) return;
     if (sess._sse && sess._sseOk && Date.now() - (sess._sseLastAt || 0) > SSE_SILENT_MS) { kickStalledSync(sess, 'sse_silent'); return; }
