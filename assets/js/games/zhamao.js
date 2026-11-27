@@ -5829,6 +5829,10 @@
     }
     const u = HU(), pu = PU();   // 发到我手里的牌按手牌大小落地（2026-11-26 放大）
     const flights = [];
+    /* 2026-11-27 用户：发牌有气无力、软绵绵、飘乎乎 → 改成「甩出去」：出手快、到头急刹（三次方减速，不再慢起慢落），弧线压低、半路不再鼓大，
+     * 牌一路小转着飞、到头像跟前一缩就进去（不再慢慢淡掉），头像被「啪」地打一下；每张间隔也收紧一点 */
+    const snap = (t) => 1 - Math.pow(1 - t, 3);
+    const tap = (seat) => { const av = avEl(seat); if (av && !fx.reduce()) av.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.09)', offset: 0.3 }, { transform: 'scale(1)' }], { duration: 170, easing: 'ease-out', composite: 'add' }); };
     for (let i = 0; i < order.length; i++) {
       if (skipped()) return;
       const [seat, id] = order[i];
@@ -5838,12 +5842,12 @@
       snd('deal');
       if (seat === 0) {
         const to = aboveSlot(reserveHandSlot(id));
-        flights.push(fx.fly({ html: cardHtml(id), back: backHtml(), flip: 'up', flipAt: 0.35, from, to, w: u, s0: pu / u, s1: 1, r0: -10, r1: 0, dur: 420, lift: 60 }).then(() => { if (!skipped()) revealHandCard(id, to); }));
+        flights.push(fx.fly({ html: cardHtml(id), back: backHtml(), flip: 'up', flipAt: 0.22, from, to, w: u, s0: pu / u, s1: 1, r0: -8, r1: 0, dur: 330, lift: 28, swell: 0.02, easeFn: snap }).then(() => { if (!skipped()) revealHandCard(id, to); }));
       } else {
-        const to = avPoint(seat);
-        flights.push(fx.fly({ html: backHtml(), from, to, w: pu, s0: 1, s1: 0.4, r0: -10, r1: 20, dur: 380, lift: arcOver(fx.center(from), to), fadeOut: true, land: false }).then(() => { if (!skipped()) { ov.counts[seat] += 1; renderSeat(seat); } }));
+        const to = avPoint(seat), fc = fx.center(from);
+        flights.push(fx.fly({ html: backHtml(), from, to, w: pu, s0: 0.92, s1: 0.34, r0: -6, r1: to.x < fc.x - 4 ? -48 : 48, dur: 260, lift: overY != null ? arcOver(fc, to) : 14, swell: 0, easeFn: snap, sink: 0.8, land: false }).then(() => { if (!skipped()) { ov.counts[seat] += 1; renderSeat(seat); tap(seat); } }));
       }
-      await wait(85 * Math.min(1, 20 / order.length));
+      await wait(72 * Math.min(1, 20 / order.length));
     }
     await Promise.all(flights);
     if (skipped()) return;
@@ -5966,28 +5970,34 @@
       if (gone()) return;
       const left = cards.map((_, i) => i);
       left.forEach((i) => cards[i].classList.add('can-pick'));
-      // 底下一颗「抽一张」按钮，按钮本身就是倒计时条（同偷牌）
-      const lim = autopilot || g.spectator ? 600 : 8000;
-      const btn = document.createElement('button');
-      btn.type = 'button'; btn.className = 'zm-btn zm-btn-primary zm-timed zm-rd-btn';
-      btn.innerHTML = '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span><b>' + T('ui.steal.rand', '抽一张') + '</b>';
-      btn.style.cssText = 'left:' + c.x + 'px;top:' + Math.min(innerHeight - 56, fanBottom) + 'px';
-      els.fly.appendChild(btn); nodes.push(btn);
-      btn.animate([{ opacity: 0, translate: '-50% 8px' }, { opacity: 1, translate: '-50% 0' }], { duration: 260, fill: 'both' });
-      btn.querySelector('.zm-dlg-timer i').animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: lim, easing: 'linear', fill: 'forwards' });
-      // 暗示：每隔一会儿，从左到右一张张往上冒一下，像在说「挑一张」
-      let wv = 0;
-      const wave = () => { left.forEach((i, k) => setTimeout(() => { const el = cards[i]; if (!el.isConnected || !el.classList.contains('can-pick')) return; el.classList.add('is-wave'); setTimeout(() => el.classList.remove('is-wave'), 260); }, k * 110)); };
-      const wvStart = setTimeout(() => { wave(); wv = setInterval(wave, 2400); }, 500);
-      const mine = await new Promise((res) => {
-        const tm = setTimeout(() => res(left[(Math.random() * left.length) | 0]), lim);
-        left.forEach((i) => cards[i].addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(i); }, { once: true }));
-        btn.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(left[(Math.random() * left.length) | 0]); }, { once: true });
-        const chk = setInterval(() => { if (gone()) { clearInterval(chk); clearTimeout(tm); res(-1); } }, 200);
-        setTimeout(() => clearInterval(chk), lim + 50);
-      });
+      /* 开局前已经用「挑角色」挑好了（2026-11-27 用户：挑完进局还要再点一张牌，只是走形式）：不出「抽一张」、不等点——
+       * 扇面摊开一停，正中那张自己被拈起来，后面的亮相照旧 */
+      const chosen = !!(g.zb && g.zb.role && !g.online);
+      let wvStart = 0, wv = 0, btn = null;
+      const mine = chosen ? await wait(260).then(() => (gone() ? -1 : left[(left.length - 1) >> 1])) : await (async () => {
+        // 底下一颗「抽一张」按钮，按钮本身就是倒计时条（同偷牌）
+        const lim = autopilot || g.spectator ? 600 : 8000;
+        btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'zm-btn zm-btn-primary zm-timed zm-rd-btn';
+        btn.innerHTML = '<span class="zm-dlg-timer" aria-hidden="true"><i></i></span><b>' + T('ui.steal.rand', '抽一张') + '</b>';
+        btn.style.cssText = 'left:' + c.x + 'px;top:' + Math.min(innerHeight - 56, fanBottom) + 'px';
+        els.fly.appendChild(btn); nodes.push(btn);
+        btn.animate([{ opacity: 0, translate: '-50% 8px' }, { opacity: 1, translate: '-50% 0' }], { duration: 260, fill: 'both' });
+        btn.querySelector('.zm-dlg-timer i').animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: lim, easing: 'linear', fill: 'forwards' });
+        // 暗示：每隔一会儿，从左到右一张张往上冒一下，像在说「挑一张」
+        const wave = () => { left.forEach((i, k) => setTimeout(() => { const el = cards[i]; if (!el.isConnected || !el.classList.contains('can-pick')) return; el.classList.add('is-wave'); setTimeout(() => el.classList.remove('is-wave'), 260); }, k * 110)); };
+        wvStart = setTimeout(() => { wave(); wv = setInterval(wave, 2400); }, 500);
+        const mine0 = await new Promise((res) => {
+          const tm = setTimeout(() => res(left[(Math.random() * left.length) | 0]), lim);
+          left.forEach((i) => cards[i].addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(i); }, { once: true }));
+          btn.addEventListener('click', (ev) => { ev.stopPropagation(); clearTimeout(tm); res(left[(Math.random() * left.length) | 0]); }, { once: true });
+          const chk = setInterval(() => { if (gone()) { clearInterval(chk); clearTimeout(tm); res(-1); } }, 200);
+          setTimeout(() => clearInterval(chk), lim + 50);
+        });
+        return mine0;
+      })();
       clearTimeout(wvStart); clearInterval(wv);
-      btn.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
+      if (btn) btn.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: 'forwards' });
       if (gone() || mine < 0) return;
       left.forEach((i) => cards[i].classList.remove('can-pick', 'is-wave'));
       left.splice(left.indexOf(mine), 1);

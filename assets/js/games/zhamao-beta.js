@@ -60,7 +60,9 @@
     if (d.use && !FRAMES_NOW.includes(d.use.frame)) d.use.frame = 'none';
     const realBal = () => { const s = W() && W().state ? W().state() : null; return s && s.bal != null ? s.bal : 0; };
     const bal = () => Math.max(0, realBal() + d.delta);
-    function book(amt, why) { d.delta += amt; d.log.unshift({ at: Date.now(), amt, why }); d.log = d.log.slice(0, 60); save(); paintBal(); }
+    const known = () => { const s = W() && W().state ? W().state() : null; return !!(s && s.bal != null); };   // 还没拿到服务器余额：照旧让买（同门票：连不上不拦）
+    const ticketOf = (ctx) => (ctx && ctx.tier && ctx.n && W() && W().price ? W().price(ctx.tier, ctx.mode, ctx.n) || 0 : 0);
+    function book(amt, why) { d.delta += amt; d.log.unshift({ at: Date.now(), amt, why }); d.log = d.log.slice(0, 60); save(); paintBal(); if (W() && W().nudge) W().nudge(); }   // 左上角的小鱼干也跟着滚（2026-11-27 用户：进局扣了道具钱，余额没变）
     function dayRec() {
       const t = today();
       if (!d.day || d.day.d !== t) { d.day = { d: t, ck: false, rAd: 0, extra: 0, games: 0, win: 0, online: 0, got: {} }; save(); }
@@ -191,9 +193,12 @@
 .zb-chip .rb{width:17px;display:inline-flex}
 .zb-chip .rb svg{width:100%;height:auto}
 .zb-pick{position:fixed;inset:0;z-index:2147483001;background:rgba(29,27,24,.55);display:flex;align-items:center;justify-content:center}
-.zb-pick-in{display:grid;grid-template-columns:repeat(3,auto);gap:12px;padding:16px;background:#f3eee3;border-radius:14px;border:1px solid #1d1b18}
-.zb-pick-in button{border:0;background:none;padding:0;border-radius:9px}
-.zb-pick-in button[aria-pressed=true]{box-shadow:0 0 0 3px #b4392c}
+.zb-pick{--zm-card:#fffdf8;--zm-ink:#1d1b18;--zm-ink-mute:#6a6358}
+.zb-pick-in{display:grid;gap:12px;padding:0}
+.zb-pick-in button{border:0;background:none;padding:0;border-radius:9%/6.4%;cursor:pointer;-webkit-tap-highlight-color:transparent;font:inherit}
+.zb-pick-in .zm-rc{box-shadow:0 3px 0 rgba(29,27,24,.85),0 8px 18px rgba(29,27,24,.35);transition:transform .15s}
+.zb-pick-in button:active .zm-rc{transform:translateY(2px)}
+.zb-pick-in button[aria-pressed=true] .zm-rc{box-shadow:0 0 0 3px #b4392c,0 3px 0 3px rgba(29,27,24,.85),0 10px 22px rgba(29,27,24,.4)}
 .zb-ctrb{position:absolute;right:calc(100% + 9px);bottom:1px;width:24px;height:24px;padding:0;border:0;border-radius:5px;background:#b4392c;box-shadow:0 1px 0 rgba(29,27,24,.35),inset 0 0 0 1.5px rgba(251,246,236,.55);transform:rotate(-6deg);cursor:pointer;display:grid;place-items:center;pointer-events:auto;-webkit-tap-highlight-color:transparent}
 .zb-ctrb svg{width:17px;height:17px;display:block}
 .zb-ctrb:active{transform:rotate(-6deg) scale(.92)}
@@ -400,6 +405,8 @@
 .zb-it2[aria-pressed=true] .zr-mc{box-shadow:0 0 0 2px #b4392c,0 2px 5px rgba(29,27,24,.25);transform:translateY(-2px)}
 .zb-it2[aria-pressed=true] small{color:#1d1b18;font-weight:700}
 .zb-it2[aria-pressed=true] .pr{color:#b4392c;border-top-color:rgba(180,57,44,.35)}
+.zb-it2.is-short .zr-mc,.zb-it2.is-short small{opacity:.42;filter:grayscale(.6)}
+.zb-it2.is-short .pr{color:#b4392c;opacity:.75}
 ` + Object.keys(BACK_FILL).filter((k) => k !== 'navy').map((k) => `.zb-back-${k} .zm-card.is-back svg>rect:first-child{fill:${BACK_FILL[k]}}`).join('\n') + '\n' +
       `.zb-back-gilt .zm-card.is-back svg>rect:nth-child(2){stroke:#f3d58a}\n` +
       Object.keys(FELT).filter((k) => FELT[k]).map((k) => `.zb-felt-${k}.zm-app{${feltStyle(k)}}`).join('\n');
@@ -709,15 +716,17 @@
       if (!st || !st.ctrBy || st.ctrBy === st.me || !oPhaseOk(st)) return null;
       return (st.players || []).find((p) => p.id === st.ctrBy) || { nick: '?' };
     }
-    function boxHtml(chips, pk, attr) {
+    function boxHtml(chips, pk, attr, ctx) {
       let cost = 0;
       const tk = ctrTaker(attr);
       chips.forEach(([k]) => { if (!(k === 'counter' && (counterDayOn() || tk)) && (k === 'role' ? !!pk.role : !!pk[k])) cost += priceAt(k); });
+      // 买不起的（余额 − 这局门票 − 已挑的 < 它的价）：灰着、价钱标红，点了只抖一下（2026-11-27 用户：挑了「必有作废」进局没有——钱不够时开局悄悄没买）
+      const left = known() ? bal() - ticketOf(ctx) - cost : Infinity;
       return '<span class="zb-ih"><b>开局道具</b>' + (cost ? '<em class="on">合计 ' + FISH() + fmt(cost) + '</em>' : '<em>点选使用</em>') + '</span>' +
         '<span class="zr-chips">' + chips.map(([k, ic]) => {
         const by = k === 'counter' && tk;   // 别人带了：亮着、不写价、角上挂他的小头像
-        const free = k === 'counter' && (counterDayOn() || !!by), on = free || (k === 'role' ? !!pk.role : !!pk[k]), p = priceAt(k);
-        return '<button type="button" class="zb-it2' + (by ? ' is-by' : '') + '" ' + attr + '="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + (by ? ' aria-label="' + ITEM_NAME[k] + '，' + String(tk.nick || '').replace(/[<>&"]/g, '') + ' 已带"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i>' + (by ? '<span class="zb-by" aria-hidden="true">' + faceOfP(tk) + '</span>' : '') + '<small>' + ITEM_NAME[k] + '</small>' +
+        const free = k === 'counter' && (counterDayOn() || !!by), on = free || (k === 'role' ? !!pk.role : !!pk[k]), p = priceAt(k), short = !on && p > left;
+        return '<button type="button" class="zb-it2' + (by ? ' is-by' : '') + (short ? ' is-short' : '') + '" ' + attr + '="' + k + '" aria-pressed="' + on + '"' + (free ? ' data-free="1"' : '') + (by ? ' aria-label="' + ITEM_NAME[k] + '，' + String(tk.nick || '').replace(/[<>&"]/g, '') + ' 已带"' : '') + '><i class="zr-mc" style="--bg:' + ITEM_BG[k] + '" aria-hidden="true">' + ic + '</i>' + (by ? '<span class="zb-by" aria-hidden="true">' + faceOfP(tk) + '</span>' : '') + '<small>' + ITEM_NAME[k] + '</small>' +
           '<span class="pr">' + (by ? '' : counterDayOn() && k === 'counter' ? '今日畅用' : FISH() + fmt(p)) + '</span></button>';
       }).join('') + '</span>';
     }
@@ -727,7 +736,7 @@
       if (!pick) return;
       let row = pick.querySelector('.zb-items');
       if (!row) { row = document.createElement('div'); row.className = 'zb-items zr-box is-ro'; pick.appendChild(row); row.addEventListener('click', onChip); }
-      const html = boxHtml(chipsFor(ctx), d.pick, 'data-zbp');
+      const html = boxHtml(chipsFor(ctx), d.pick, 'data-zbp', ctx);
       if (row.__h !== html) { row.innerHTML = html; row.__h = html; }
     }
     function onChip(e) {
@@ -735,29 +744,67 @@
       if (!b) return;
       e.stopPropagation();
       if (b.dataset.free) return;
+      if (b.classList.contains('is-short')) { b.animate([{ transform: 'none' }, { transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(-2px)' }, { transform: 'none' }], { duration: 300 }); return; }
       const k = b.dataset.zbp;
       if (k === 'role') { if (d.pick.role) { d.pick.role = null; save(); repaintPicks(); } else rolePicker(); return; }
       d.pick[k] = !d.pick[k]; save(); repaintPicks();
     }
+    /* 挑角色（2026-11-27 用户：展开后要一张张角色卡，才看得出是「从里面点一张」）：
+     * 六张完整的角色牌（画 + 技能小图 + 一句技能 + 名字带），像发牌一样一张张落到桌上，落完从左到右轮流往上冒一下暗示能点；
+     * 点一张：那张抬起、描朱红边，其余的退下去，然后收起。点空白处 = 不挑。竖屏两列、宽一点三列、横屏一排六张，取牌最大的那种 */
     function rolePicker() {
+      const ids = ROLE_IDS(), vw = innerWidth, vh = innerHeight, gap = 12;
+      let best = { w: 0, cols: 3 };
+      [2, 3, 6].forEach((cols) => {
+        const rows = Math.ceil(ids.length / cols), w = Math.floor(Math.min((vw - 36 - gap * (cols - 1)) / cols, (vh - 56 - gap * (rows - 1)) / rows / 1.4, 150));
+        if (w > best.w) best = { w, cols };
+      });
       const m = document.createElement('div');
       m.className = 'zb-pick';
-      const html = TB() && TB().roleCardHtml ? (id) => TB().roleCardHtml(id, { w: 84 }) : (id) => id;
-      m.innerHTML = '<div class="zb-pick-in">' + ROLE_IDS().map((id) => '<button type="button" data-r="' + id + '" aria-pressed="' + (d.pick.role === id) + '">' + html(id) + '</button>').join('') + '</div>';
+      const html = TB() && TB().roleCardHtml ? (id) => TB().roleCardHtml(id, { big: true, w: best.w }) : (id) => id;
+      m.innerHTML = '<div class="zb-pick-in" style="grid-template-columns:repeat(' + best.cols + ',auto)">' + ids.map((id) => '<button type="button" data-r="' + id + '" aria-pressed="' + (d.pick.role === id) + '" aria-label="' + id + '">' + html(id) + '</button>').join('') + '</div>';
+      document.body.appendChild(m);
+      const btns = [...m.querySelectorAll('[data-r]')], calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!calm) {
+        m.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
+        btns.forEach((b, i) => {
+          b.animate([{ transform: 'translateY(46px) rotate(' + (i % 2 ? 5 : -5) + 'deg) scale(.82)', opacity: 0 }, { transform: 'translateY(-4px) rotate(0) scale(1.02)', opacity: 1, offset: 0.72 }, { transform: 'none', opacity: 1 }],
+            { duration: 300, delay: 40 + i * 55, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'backwards' });
+          b.firstElementChild.animate([{ transform: 'none' }, { transform: 'translateY(-9px)' }, { transform: 'none' }], { duration: 420, delay: 40 + ids.length * 55 + 320 + i * 110, easing: 'cubic-bezier(.3,0,.3,1)' });   // 轮流冒一下：能点
+        });
+      }
+      let done = false;
       m.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (done) return;
+        done = true;
         const b = e.target.closest('[data-r]');
+        const close = () => { m.remove(); repaintPicks(); };
         if (b) { d.pick.role = b.dataset.r; save(); }
-        m.remove(); repaintPicks();
+        if (calm) { close(); return; }
+        if (b) {
+          btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          b.animate([{ transform: 'none' }, { transform: 'translateY(-10px) scale(1.07)' }], { duration: 200, easing: 'cubic-bezier(.2,.8,.3,1.2)', fill: 'forwards' });
+          btns.forEach((x) => { if (x !== b) x.animate([{ opacity: 1, transform: 'none' }, { opacity: 0.25, transform: 'scale(.94)' }], { duration: 200, fill: 'forwards' }); });
+        }
+        m.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay: b ? 380 : 0, fill: 'forwards' }).finished.then(close, close);
       });
-      document.body.appendChild(m);
     }
 
     // ── 开局：扣道具、改牌 ──
     function guarantee(s, kind, keep) {   // 同 shop-sim/sim.js：牌堆里随机一张这种牌进手，手里随机一张（非逗猫棒 / 百变 / 同种）洗回牌堆，手牌张数不变
       const r = R(), di = s.deck.map((id, i) => [id, i]).filter(([id]) => r.KIND_OF[id] === kind);
       const h = s.hands[0], hi = h.map((id, i) => [id, i]).filter(([id]) => ![r.DEFUSE, r.FLUX, kind].concat(keep || []).includes(r.KIND_OF[id]));   // keep：这局已经保证拿到的别再换走
-      if (!di.length || !hi.length) return false;
+      if (!hi.length) return false;
+      if (!di.length) {   // 牌堆里一张都没有（全发到别人手里了）：从机器猫手里换一张过来，它拿走我那张（2026-11-27：说了「必有」就一定有）
+        const from = [];
+        for (let k = 1; k < s.n; k++) s.hands[k].forEach((id, i) => { if (r.KIND_OF[id] === kind) from.push([k, i]); });
+        if (!from.length) return false;
+        const [k, i] = from[(Math.random() * from.length) | 0], [hId, hIdx] = hi[(Math.random() * hi.length) | 0];
+        h[hIdx] = s.hands[k][i]; s.hands[k][i] = hId;
+        if (r.sortHand) s.hands[k] = r.sortHand(s.hands[k]);
+        return true;
+      }
       const [dId, dIdx] = di[(Math.random() * di.length) | 0], [hId, hIdx] = hi[(Math.random() * hi.length) | 0];
       h[hIdx] = dId; s.deck[dIdx] = hId;
       for (let i = s.deck.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [s.deck[i], s.deck[j]] = [s.deck[j], s.deck[i]]; }
@@ -769,8 +816,8 @@
       const s = game.state, o = { tier: ctx.tier, mode: ctx.mode, n: s.n, rules: s.rules };
       const zb = {};
       // 当场买：钱在这时才扣（2026-11-27 第四轮：不再有存货）
-      const buy = (k) => { if (bal() < priceAt(k)) return false; takeBuy(k, ITEM_NAME[k]); return true; };
-      const can = (k) => bal() >= priceAt(k);
+      const can = (k) => !known() || bal() >= priceAt(k);
+      const buy = (k) => { if (!can(k)) return false; takeBuy(k, ITEM_NAME[k]); return true; };
       if (counterDayOn()) zb.counter = true;
       else if (d.pick.counter && buy('counter')) zb.counter = true;
       if (o.mode !== 'team') {
@@ -971,7 +1018,7 @@
      * 都是选好、开局那一刻当场扣 */
     function mountBox(host, before, ctx, pk, attr, onClick) {
       let row = host.querySelector(':scope > .zb-items');
-      const html = boxHtml(chipsFor(ctx), pk, attr);
+      const html = boxHtml(chipsFor(ctx), pk, attr, ctx);
       /* 「全员准备」线程（11-27）会在按钮行前面放一排准备条 .zm-readyrow：道具格要在它上面；我准备好了（按钮行或我的座位挂 is-ready）道具格就锁住 */
       const rr = before && before.previousElementSibling && before.previousElementSibling.classList.contains('zm-readyrow') ? before.previousElementSibling : null;
       if (rr) before = rr;
@@ -982,7 +1029,7 @@
       if (row.__h === html) return;
       row.innerHTML = html; row.__h = html;
     }
-    function onOnlineChip(e) { const b = e.target.closest('[data-zbo]'); if (!b || b.dataset.free || b.closest('.is-lock')) return; e.stopPropagation(); d.opick = d.opick || {}; d.opick[b.dataset.zbo] = !d.opick[b.dataset.zbo]; save(); repaintPicks(); }
+    function onOnlineChip(e) { const b = e.target.closest('[data-zbo]'); if (!b || b.dataset.free || b.closest('.is-lock') || b.classList.contains('is-short')) return; e.stopPropagation(); d.opick = d.opick || {}; d.opick[b.dataset.zbo] = !d.opick[b.dataset.zbo]; save(); repaintPicks(); }
     function repaintPicks() {
       if (soloCtx && document.querySelector('.zm-solo-pick .zb-items')) solo(soloCtx);
       d.opick = d.opick || { counter: false, x2: false };
@@ -997,7 +1044,7 @@
       if (!g || g.tutorial || g.spectator) return;
       const rules = (g.state && g.state.rules) || {};
       if (g.online && acts.querySelector('[data-leave]')) mountBox(acts.parentNode, acts, { online: true, mode: g.state && g.state.teams ? 'team' : rules.mode }, d.opick, 'data-zbo', onOnlineChip);
-      else if (!g.online && acts.querySelector('[data-again]')) mountBox(acts.parentNode, acts, { mode: rules.mode, rules }, d.pick, 'data-zbp', onChip);
+      else if (!g.online && acts.querySelector('[data-again]')) mountBox(acts.parentNode, acts, { mode: rules.mode, rules, tier: g.tiers && g.tiers[1], n: g.state && g.state.n }, d.pick, 'data-zbp', onChip);
     }
     // 每日任务：开局计数在 onDeal；赢、联机在这里看
     const seen = new WeakSet();
@@ -1134,6 +1181,8 @@
     }
     /* 领到的鱼游进档案的总额（2026-11-27 用户：看完广告回来要有反应——按钮已经变「已领取」，鱼从那一行游进余额；余额滑出屏幕就进顶栏的小鱼干） */
     root.ZhamaoProfileBalAdj = () => d.delta;
+    if (W() && W().nudge) W().nudge(true);   // 左上角余额算上内测的加减（直接摆，不游鱼）
+    if (W() && W().onChange) W().onChange(() => repaintPicks());   // 余额变了：开局道具里买不起的跟着灰 / 亮
     const fishIn = (src, amt) => { if (root.ZhamaoProfile && root.ZhamaoProfile.addFish) root.ZhamaoProfile.addFish(src, amt); };
     const rowAt = (bodyEl, i) => { const rows = bodyEl.querySelectorAll('[data-zbcard] .zmp-task'); return rows[Math.min(i, rows.length - 1)] || bodyEl.querySelector('[data-zbcard]'); };
     function mountCard(bodyEl) {
