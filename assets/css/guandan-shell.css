@@ -859,7 +859,7 @@ body.gd-game-fullscreen .guandan-wrap #gdPlay3 { padding-left: 16px; }
 .guandan-wrap #gdSeat2 .gd-pass-tag { left: 50%; }
 /* R5-4. 手牌数：头像右下角一张小牌（照百变小咪），上面写数字；≤10 张变朱砂。打完了同一个位置换成名次 */
 .guandan-wrap .gd-av-cnt { position: absolute; right: -9px; bottom: -6px; z-index: 3; display: flex; pointer-events: none; }
-.guandan-wrap .gd-av-cnt .gd-count:not([hidden]) {
+body .guandan-wrap .gd-seat .gd-av-cnt .gd-count:not([hidden]) {
   display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
   min-width: 19px; height: 25px; padding: 0 2px; border-radius: 4px; margin: 0;
   /* 2026-11-27 用户：红底那种（实心）好看，白底描边那种不好看 → 平时也用实心：墨色底、纸色字，≤10 张换朱砂 */
@@ -867,7 +867,7 @@ body.gd-game-fullscreen .guandan-wrap #gdPlay3 { padding-left: 16px; }
   font: 700 12px/1 var(--gd-num); letter-spacing: -0.02em;
   box-shadow: 0 0 0 1.5px var(--gd-paper, #fbf6ec), 2px 2px 0 1.5px rgba(29, 27, 24, 0.28);
 }
-.guandan-wrap .gd-av-cnt .gd-count.warn:not([hidden]) { background: var(--gd-seal); color: var(--gd-seal-ink, #fff); }
+body .guandan-wrap .gd-seat .gd-av-cnt .gd-count.warn:not([hidden]) { background: var(--gd-seal); color: var(--gd-seal-ink, #fff); }
 .guandan-wrap .gd-av-cnt .gd-rank-badge:not([hidden]) {
   display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 10px; margin: 0; white-space: nowrap;
   background: var(--gd-ink); color: var(--gd-paper); font: 700 11px/1 var(--gd-serif); letter-spacing: 0.04em; box-shadow: 0 0 0 1.5px var(--gd-paper);
