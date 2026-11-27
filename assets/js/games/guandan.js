@@ -1323,8 +1323,10 @@
     for (const g of customGroups) for (const c of g.cards) customCardSet.add(c);
 
     // 默认列只用未被自定义摞起来的剩余牌
+    // 联机里队友的牌在服务器亮出来之前只是占位（-1）：先不画，等真牌到了再画。
+    // 2026-11-27 用户「出完小王直接卡死」：出完最后一手立刻切去看队友，画占位牌抛错，这一手根本没发出去。
     const remainingHand = isSpectating()
-      ? state.hands[viewSeat()]
+      ? (state.hands[viewSeat()] || []).filter(c => c >= 0)
       : state.hands[0].filter(c => !customCardSet.has(c));
     const cols = buildHandColumns(remainingHand);
     if (!isSpectating()) state.handOrder = cols.map(c => c.weight);
@@ -3237,7 +3239,8 @@
     // 乐观渲染：先在本地立刻反映我这一手（出牌移出手牌 + 落到出牌区 + 炸弹特效 / 不出标签），
     // 不等服务器往返。服务器确认后 applyServerGameState 用权威态覆盖；若被判非法也由它纠回。
     // 这样手感即时，不再「点完牌要等半秒才出去」。
-    applyOptimisticMove(action, cards);
+    // 乐观渲染只是手感：它出任何错都不能拦住这一手发往服务器
+    try { applyOptimisticMove(action, cards); } catch (e) { reportClient('optimistic', e && e.message, e && e.stack); }
     state.busy = true;
     updateActions();
     const r = await gdMutation('move', { move: { action, cards } });
