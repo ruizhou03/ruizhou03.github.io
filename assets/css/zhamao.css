@@ -2141,9 +2141,6 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 .zm-pod .zmw-res.is-inline .zmw-fish path:nth-child(3) { stroke: var(--pc); }
 .zm-pod .zmw-res.is-inline .zmw-fish circle { fill: var(--pc); }
 .zm-pod.is-p2 .blk { gap: 4px; }
-.zm-podium.is-nonum .zm-pod .blk { padding-top: 10px; }
-.zm-podium.is-nonum .zm-pod .zmw-res.is-inline { border-top: 0; padding-top: 0; }
-.zm-podium.is-nonum .zm-pod .zmw-res.is-inline .zmw-ln > b { font-size: 18px; }
 .zm-rank li > .zmw-res.is-inline { flex: none; margin-left: auto; }
 .zm-rank li > .zmw-res.is-inline .zmw-ln > b { font-size: 19px; gap: 4px; }
 .zm-rank li > .zmw-res.is-inline .zmw-ln > b .zmw-fish { width: 28px; height: 18px; }
@@ -2164,3 +2161,44 @@ button.zm-nohelp::before { content: ''; position: absolute; inset: -9px; border-
 @media (prefers-reduced-motion: reduce) { .zm-rk-tabs .bar { transition: none; } }
 /* 两页是横向滚动框，会把竖向超出的部分裁掉（第一名头像的描边圈顶上被切平，2026-11-27 用户截图）：上面留出空、整体往上挪回去 */
 .zm-rk-pages { padding-top: 10px; margin-top: -10px; }
+
+/* ── 排行榜每个人都写这一局的奖 / 罚（2026-11-27 用户）──
+ * 台子上：数字下一道细线（跟台子一样宽、左右留一点），线下「鱼 + 数」居中，奶白字刻在台子上；我的那份反过来——奶白小胶囊、台子色的字，一眼看得出是我的。
+ * 台子加高一点放得下数字 + 一行鱼（以前我第三名时不写数字，现在每根都写）。名单那几行：右边一样写，淡墨色；我那行照旧大一号 */
+.zm-pod .blk { height: 78px; gap: 6px; padding-top: 9px; }
+.zm-pod.is-p2 .blk { height: 102px; gap: 6px; }
+.zm-pod.is-p1 .blk { height: 130px; }
+.zm-pod .blk > .zm-pay, .zm-pod .zmw-res.is-inline { width: calc(100% - 18px); box-sizing: border-box; padding-top: 7px; border-top: 1px solid rgba(255, 253, 248, 0.45); }
+.zm-pay { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font: 700 14px/1 'ZM Num', 'ZM Serif', Georgia, serif; white-space: nowrap; }
+.zm-pay i { font-style: normal; }
+.zm-pay .zmw-fish { width: 20px; height: 13px; flex: none; }
+.zm-pod .zm-pay { color: #fffdf8; opacity: 0.9; text-shadow: 0 1px 0 rgba(29, 27, 24, 0.16); }
+.zm-pod .zm-pay .zmw-fish path:nth-child(-n+2) { fill: currentColor; stroke: none; }
+.zm-pod .zm-pay .zmw-fish path:nth-child(3) { stroke: var(--pc); }
+.zm-pod .zm-pay .zmw-fish circle { fill: var(--pc); }
+/* 我的：胶囊 */
+.zm-pod .zmw-res.is-inline .zmw-ln > b, .zm-pod .zmw-res.is-inline .zmw-ln > b.is-up, .zm-pod .zmw-res.is-inline .zmw-ln > b.is-down {
+  flex-direction: row; gap: 4px; font-size: 15px; color: var(--pc); background: #fffdf8; padding: 4px 10px 4px 8px; border-radius: 999px; text-shadow: none; box-shadow: 0 1px 3px rgba(29, 27, 24, 0.18); }
+.zm-pod .zmw-res.is-inline .zmw-fish { width: 20px; height: 13px; opacity: 1; }
+.zm-pod .zmw-res.is-inline .zmw-fish path:nth-child(3) { stroke: #fffdf8; }
+.zm-pod .zmw-res.is-inline .zmw-fish circle { fill: #fffdf8; }
+.zm-pod.is-p2 .blk, .zm-pod.is-p3 .blk { gap: 6px; }
+/* 名单里的别人 */
+.zm-rank li > .zm-pay { flex: none; margin-left: auto; color: var(--zm-ink-mute); font-size: 15px; }
+.zm-rank li > .zm-pay .zmw-fish { opacity: 0.75; }
+.zm-rank-rest.is-grid li > .zm-pay { font-size: 12.5px; gap: 3px; }
+.zm-rank-rest.is-grid li > .zm-pay .zmw-fish { width: 16px; height: 11px; }
+/* 准备了的小勾：挂在头像右下角，我点了「再来一局」才显（.is-rdy），谁准备了谁亮 */
+.zm-pod .avw > .zm-rdy-st, .zm-rank .miniw > .zm-rdy-st { position: absolute; right: -3px; bottom: -2px; width: 20px; height: 20px; border-radius: 50%; background: var(--zm-seal); color: #fff;
+  display: grid; place-items: center; box-shadow: 0 0 0 2px var(--zm-paper); transform: scale(0); transition: transform 0.26s cubic-bezier(.3, .7, .4, 1.5); z-index: 1; }
+.zm-rank .miniw > .zm-rdy-st { width: 14px; height: 14px; right: -4px; bottom: -3px; box-shadow: 0 0 0 1.5px var(--zm-paper); }
+.zm-pod .avw > .zm-rdy-st svg { width: 13px; height: 13px; display: block; }
+.zm-rank .miniw > .zm-rdy-st svg { width: 10px; height: 10px; display: block; }
+.zm-dialog.is-rdy [data-rdy].is-on { transform: scale(1); }
+@media (prefers-reduced-motion: reduce) { .zm-pod .avw > .zm-rdy-st, .zm-rank .miniw > .zm-rdy-st { transition: none; } }
+/* 名单两列（第 4 名起 ≥4 个）：一格太窄，名字和奖罚并一行会把名字挤没——奖罚放到名字下面一行 */
+.zm-rank-rest.is-grid li:has(> .zm-pay, > .zmw-res) { display: grid; grid-template-columns: 18px 28px minmax(0, 1fr); column-gap: 7px; row-gap: 2px; align-items: center; }
+.zm-rank-rest.is-grid li:has(> .zm-pay, > .zmw-res) > .pos, .zm-rank-rest.is-grid li:has(> .zm-pay, > .zmw-res) > .miniw { grid-row: 1 / 3; }
+.zm-rank-rest.is-grid li:has(> .zm-pay, > .zmw-res) > .nm { grid-column: 3; align-self: end; }
+.zm-rank-rest.is-grid li > .zm-pay, .zm-rank-rest.is-grid li > .zmw-res.is-inline { grid-column: 3; justify-self: start; align-self: start; margin-left: 0; }
+.zm-rank-rest.is-grid li > .zmw-res.is-inline .zmw-ln { justify-content: flex-start; }
